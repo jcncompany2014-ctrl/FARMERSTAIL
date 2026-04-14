@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function MyPage() {
@@ -42,7 +43,13 @@ export default function MyPage() {
             메뉴
           </h3>
           <div className="space-y-1 text-sm">
-            <div className="py-3 text-[#8A7668]">📦 주문 내역 (준비 중)</div>
+            <Link
+              href="/mypage/orders"
+              className="flex items-center justify-between py-3 text-[#3D2B1F] font-medium hover:text-[#A0452E] transition"
+            >
+              <span>📦 주문 내역</span>
+              <span className="text-[#8A7668]">→</span>
+            </Link>
             <div className="py-3 text-[#8A7668]">🔔 알림 설정 (준비 중)</div>
             <div className="py-3 text-[#8A7668]">📍 배송지 관리 (준비 중)</div>
           </div>
