@@ -49,22 +49,6 @@ function loadDaumPostcode(): Promise<void> {
   })
 }
 
-declare global {
-  interface Window {
-    daum: {
-      Postcode: new (config: {
-        oncomplete: (data: {
-          zonecode: string
-          roadAddress: string
-          jibunAddress: string
-          buildingName: string
-          userSelectedType: 'R' | 'J'
-        }) => void
-      }) => { open: () => void }
-    }
-  }
-}
-
 export default function SubscribePage() {
   const router = useRouter()
   const params = useParams()
