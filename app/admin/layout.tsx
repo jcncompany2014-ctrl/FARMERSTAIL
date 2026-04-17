@@ -44,11 +44,12 @@ export default async function AdminLayout({
         </div>
 
         <nav className="px-3 py-4 space-y-1">
-          <NavItem href="/admin" icon="📊" label="대시보드" />
-          <NavItem href="/admin/orders" icon="📦" label="주문 관리" />
-          <NavItem href="/admin/products" icon="🛍️" label="제품 관리" />
-          <NavItem href="/admin/users" icon="👥" label="회원 관리" />
-        </nav>
+  <NavItem href="/admin" icon="📊" label="대시보드" />
+  <NavItem href="/admin/orders" icon="📦" label="주문 관리" />
+  <NavItem href="/admin/subscriptions" icon="🔁" label="정기배송" />   {/* ← 이거 */}
+  <NavItem href="/admin/products" icon="🛍️" label="제품 관리" />
+  <NavItem href="/admin/users" icon="👥" label="회원 관리" />
+</nav>
 
         <div className="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-[#3D2B1F]">
           <p className="text-[10px] text-[#8A7668]">LOGGED IN AS</p>

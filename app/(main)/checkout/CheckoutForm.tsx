@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { loadTossPayments, ANONYMOUS } from '@tosspayments/tosspayments-sdk'
 import { createClient } from '@/lib/supabase/client'
+import AddressSearch from '@/components/AddressSearch'
 
 type OrderItem = {
   productId: string
@@ -63,8 +64,15 @@ export default function CheckoutForm({
   const [saveToProfile, setSaveToProfile] = useState(false)
   const [loading, setLoading] = useState(false)
 
+  const handleAddressComplete = useCallback((data: { zip: string; address: string; buildingName: string }) => {
+    setZip(data.zip)
+    setAddress(data.address)
+    if (data.buildingName) {
+      setAddressDetail(data.buildingName)
+    }
+  }, [])
+
   async function handlePay() {
-    // 검증
     if (!name.trim() || !phone.trim() || !zip.trim() || !address.trim()) {
       alert('받는 분, 연락처, 주소를 모두 입력해주세요')
       return
@@ -72,7 +80,6 @@ export default function CheckoutForm({
 
     setLoading(true)
     try {
-      // 1) profiles에 저장 옵션
       if (saveToProfile) {
         await supabase
           .from('profiles')
@@ -86,7 +93,6 @@ export default function CheckoutForm({
           .eq('id', userId)
       }
 
-      // 2) 주문 row 먼저 생성 (pending 상태)
       const orderNumber = generateOrderNumber()
 
       const { data: order, error: orderError } = await supabase
@@ -113,7 +119,6 @@ export default function CheckoutForm({
         throw new Error(orderError?.message ?? '주문 생성 실패')
       }
 
-      // 3) order_items 삽입
       const itemsPayload = orderItems.map((it) => ({
         order_id: order.id,
         product_id: it.productId,
@@ -132,7 +137,6 @@ export default function CheckoutForm({
         throw new Error(itemsError.message)
       }
 
-      // 4) 토스페이먼츠 결제창 호출
       const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!
       const tossPayments = await loadTossPayments(clientKey)
       const payment = tossPayments.payment({ customerKey: ANONYMOUS })
@@ -159,7 +163,6 @@ export default function CheckoutForm({
           useAppCardOnly: false,
         },
       })
-      // 여기까지 오면 결제창이 뜬 상태. 성공/실패는 리다이렉트로 처리됨.
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '결제 요청 중 오류'
       alert(msg)
@@ -169,7 +172,7 @@ export default function CheckoutForm({
 
   return (
     <div className="px-5 space-y-6">
-      {/* 배송지 */}
+      {/* 배송지 — 카카오 주소검색 연동 */}
       <section className="p-5 rounded-2xl bg-white border border-[#EDE6D8]">
         <h2 className="text-sm font-bold text-[#2A2118] mb-3">배송지</h2>
         <div className="space-y-2">
@@ -187,22 +190,27 @@ export default function CheckoutForm({
             onChange={(e) => setPhone(e.target.value)}
             className="w-full px-4 py-3 rounded-xl bg-[#F5F0E6] text-sm text-[#2A2118] placeholder:text-[#8A7668] focus:outline-none focus:ring-2 focus:ring-[#A0452E]"
           />
+          {/* 주소 검색 */}
           <div className="flex gap-2">
             <input
               type="text"
               placeholder="우편번호"
               value={zip}
-              onChange={(e) => setZip(e.target.value)}
-              className="w-28 px-4 py-3 rounded-xl bg-[#F5F0E6] text-sm text-[#2A2118] placeholder:text-[#8A7668] focus:outline-none focus:ring-2 focus:ring-[#A0452E]"
+              readOnly
+              className="w-28 px-4 py-3 rounded-xl bg-[#F5F0E6] text-sm text-[#2A2118] placeholder:text-[#8A7668]"
             />
-            <input
-              type="text"
-              placeholder="기본 주소"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="flex-1 px-4 py-3 rounded-xl bg-[#F5F0E6] text-sm text-[#2A2118] placeholder:text-[#8A7668] focus:outline-none focus:ring-2 focus:ring-[#A0452E]"
+            <AddressSearch
+              onComplete={handleAddressComplete}
+              className="flex-1"
             />
           </div>
+          <input
+            type="text"
+            placeholder="주소 검색을 눌러주세요"
+            value={address}
+            readOnly
+            className="w-full px-4 py-3 rounded-xl bg-[#F5F0E6] text-sm text-[#2A2118] placeholder:text-[#8A7668]"
+          />
           <input
             type="text"
             placeholder="상세 주소 (선택)"

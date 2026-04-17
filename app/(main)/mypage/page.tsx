@@ -50,6 +50,13 @@ export default function MyPage() {
               <span>📦 주문 내역</span>
               <span className="text-[#8A7668]">→</span>
             </Link>
+            <Link
+              href="/mypage/subscriptions"
+              className="flex items-center justify-between py-3 text-[#3D2B1F] font-medium hover:text-[#6B7F3A] transition"
+            >
+              <span>🔁 정기배송 관리</span>
+              <span className="text-[#8A7668]">→</span>
+            </Link>
             <div className="py-3 text-[#8A7668]">🔔 알림 설정 (준비 중)</div>
             <div className="py-3 text-[#8A7668]">📍 배송지 관리 (준비 중)</div>
           </div>
