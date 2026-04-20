@@ -20,7 +20,7 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   refunded: '환불',
 }
 
-function statusColor(status: string) {
+function statusBadge(status: string) {
   switch (status) {
     case 'paid':
     case 'delivered':
@@ -29,7 +29,7 @@ function statusColor(status: string) {
     case 'shipping':
       return 'bg-[#A0452E] text-white'
     case 'pending':
-      return 'bg-[#EDE6D8] text-[#5C4A3A]'
+      return 'bg-[#D4B872] text-[#3D2B1F]'
     case 'failed':
     case 'cancelled':
     case 'refunded':
@@ -41,12 +41,11 @@ function statusColor(status: string) {
 
 function formatDate(iso: string) {
   const d = new Date(iso)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${y}.${m}.${day} ${hh}:${mm}`
+  return d.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
 }
 
 export default async function OrdersPage() {
@@ -82,115 +81,142 @@ export default async function OrdersPage() {
 
   if (error) {
     return (
-      <div className="p-5">
-        <p className="text-[#B83A2E]">주문 내역을 불러오지 못했어요.</p>
-        <p className="text-xs text-[#8A7668] mt-2">{error.message}</p>
-      </div>
+      <main className="pb-8">
+        <div className="px-5 pt-5">
+          <div className="bg-white rounded-xl border border-[#EDE6D8] px-5 py-5">
+            <p className="text-[13px] font-bold text-[#B83A2E]">
+              주문 내역을 불러오지 못했어요
+            </p>
+            <p className="text-[11px] text-[#8A7668] mt-1.5">{error.message}</p>
+          </div>
+        </div>
+      </main>
     )
   }
 
   return (
-    <div className="pb-10">
-      <div className="px-5 pt-6 pb-4">
-        <h1 className="font-['Archivo_Black'] text-2xl text-[#2A2118]">
-          ORDERS
+    <main className="pb-8">
+      {/* 헤더 */}
+      <section className="px-5 pt-5 pb-1">
+        <Link
+          href="/mypage"
+          className="text-[11px] text-[#8A7668] hover:text-[#A0452E] inline-flex items-center gap-1"
+        >
+          ← 내 정보
+        </Link>
+        <h1 className="text-lg font-black text-[#3D2B1F] tracking-tight mt-1">
+          주문 내역
         </h1>
-        <p className="text-sm text-[#8A7668] mt-1">
+        <p className="text-[11px] text-[#8A7668] mt-0.5">
           총 {orders?.length ?? 0}건의 주문
         </p>
-      </div>
+      </section>
 
       {!orders || orders.length === 0 ? (
-        <div className="px-5 mt-20 flex flex-col items-center">
-          <div className="w-20 h-20 rounded-full bg-[#F5F0E6] flex items-center justify-center text-4xl">
-            📦
+        <section className="px-5 mt-14">
+          <div className="bg-white rounded-xl border border-[#EDE6D8] px-5 py-10 text-center">
+            <div className="w-14 h-14 mx-auto rounded-full bg-[#F5F0E6] flex items-center justify-center text-[26px]">
+              📦
+            </div>
+            <p className="mt-4 text-[13px] font-bold text-[#3D2B1F]">
+              아직 주문 내역이 없어요
+            </p>
+            <p className="text-[11px] text-[#8A7668] mt-1">
+              첫 주문을 시작해 보세요
+            </p>
+            <Link
+              href="/products"
+              className="mt-5 inline-block px-5 py-2.5 rounded-xl bg-[#A0452E] text-white text-[12px] font-bold active:scale-[0.98] transition"
+            >
+              제품 둘러보기
+            </Link>
           </div>
-          <p className="mt-5 text-[#5C4A3A]">아직 주문 내역이 없어요</p>
-          <Link
-            href="/products"
-            className="mt-6 px-6 py-3 rounded-full bg-[#A0452E] text-white text-sm font-medium"
-          >
-            제품 둘러보기
-          </Link>
-        </div>
+        </section>
       ) : (
-        <ul className="px-5 space-y-3">
-          {orders.map((order: any) => {
-            const items = Array.isArray(order.order_items)
-              ? order.order_items
-              : []
-            const firstItem = items[0]
-            const extraCount = items.length - 1
+        <section className="px-5 mt-3">
+          <ul className="space-y-2.5">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {orders.map((order: any) => {
+              const items = Array.isArray(order.order_items)
+                ? order.order_items
+                : []
+              const firstItem = items[0]
+              const extraCount = items.length - 1
 
-            const displayStatus =
-              order.payment_status === 'paid'
-                ? order.order_status
-                : order.payment_status
-            const label =
-              order.payment_status === 'paid'
-                ? ORDER_STATUS_LABEL[order.order_status] ??
-                  order.order_status
-                : PAYMENT_STATUS_LABEL[order.payment_status] ??
-                  order.payment_status
+              const displayStatus =
+                order.payment_status === 'paid'
+                  ? order.order_status
+                  : order.payment_status
+              const label =
+                order.payment_status === 'paid'
+                  ? ORDER_STATUS_LABEL[order.order_status] ??
+                    order.order_status
+                  : PAYMENT_STATUS_LABEL[order.payment_status] ??
+                    order.payment_status
 
-            return (
-              <li key={order.id}>
-                <Link
-                  href={`/mypage/orders/${order.id}`}
-                  className="block p-4 rounded-2xl bg-white border border-[#EDE6D8] hover:border-[#A0452E] transition"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs text-[#8A7668]">
-                      {formatDate(order.created_at)}
-                    </span>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor(
-                        displayStatus
-                      )}`}
-                    >
-                      {label}
-                    </span>
-                  </div>
-
-                  {firstItem && (
-                    <div className="flex gap-3">
-                      <div className="shrink-0 w-14 h-14 rounded-lg bg-[#F5F0E6] flex items-center justify-center overflow-hidden">
-                        {firstItem.product_image_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={firstItem.product_image_url}
-                            alt={firstItem.product_name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-xl">🐾</span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-[#2A2118] line-clamp-1">
-                          {firstItem.product_name}
-                          {extraCount > 0 && (
-                            <span className="text-[#8A7668]">
-                              {' '}
-                              외 {extraCount}건
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-xs text-[#8A7668] mt-0.5">
-                          {order.order_number}
-                        </p>
-                        <p className="font-['Archivo_Black'] text-[#A0452E] text-base mt-1">
-                          {order.total_amount.toLocaleString()}원
-                        </p>
-                      </div>
+              return (
+                <li key={order.id}>
+                  <Link
+                    href={`/mypage/orders/${order.id}`}
+                    className="block bg-white rounded-xl border border-[#EDE6D8] px-4 py-4 hover:border-[#3D2B1F] transition-all"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[11px] text-[#8A7668] font-bold">
+                        {formatDate(order.created_at)}
+                      </span>
+                      <span
+                        className={`text-[10px] font-black px-2 py-0.5 rounded-md ${statusBadge(
+                          displayStatus
+                        )}`}
+                      >
+                        {label}
+                      </span>
                     </div>
-                  )}
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
+
+                    {firstItem && (
+                      <div className="flex gap-3">
+                        <div className="shrink-0 w-14 h-14 rounded-lg bg-[#F5F0E6] overflow-hidden flex items-center justify-center">
+                          {firstItem.product_image_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={firstItem.product_image_url}
+                              alt={firstItem.product_name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xl">🐾</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-bold text-[#3D2B1F] line-clamp-1">
+                            {firstItem.product_name}
+                            {extraCount > 0 && (
+                              <span className="text-[#8A7668]">
+                                {' '}외 {extraCount}건
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-[10px] text-[#8A7668] mt-0.5 font-mono">
+                            {order.order_number}
+                          </p>
+                          <div className="mt-1 flex items-baseline gap-1">
+                            <span className="text-[14px] font-black text-[#A0452E]">
+                              {order.total_amount.toLocaleString()}
+                            </span>
+                            <span className="text-[10px] text-[#8A7668]">
+                              원
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
       )}
-    </div>
+    </main>
   )
 }

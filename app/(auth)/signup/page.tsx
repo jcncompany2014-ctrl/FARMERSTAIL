@@ -37,64 +37,76 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#F5F0E6] px-6">
+    <main className="min-h-screen flex flex-col items-center justify-center bg-[#F5F0E6] px-6">
       <div className="w-full max-w-sm">
+        {/* 로고 */}
         <div className="text-center mb-10">
-          <div className="text-5xl mb-3">🐕</div>
-          <h1 className="text-3xl font-black text-[#3D2B1F] tracking-tight">
-            FARMER'S TAIL
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icons/icon-192.png"
+            alt="Farmer's Tail"
+            className="w-20 h-20 mx-auto rounded-2xl mb-4"
+          />
+          <h1 className="text-xl font-black text-[#3D2B1F] tracking-tight">
+            FARMER&apos;S TAIL
           </h1>
-          <p className="text-[#8A7668] text-sm mt-2">회원가입</p>
+          <p className="text-[11px] text-[#8A7668] mt-1">Farm to Tail · 프리미엄 반려견 식품</p>
         </div>
 
-        <form onSubmit={handleSignup} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-[#5C4A3A] mb-2 uppercase tracking-wide">
-              이메일
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border-2 border-[#EDE6D8] bg-white text-[#2A2118] focus:outline-none focus:border-[#3D2B1F] transition"
-              placeholder="example@email.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-[#5C4A3A] mb-2 uppercase tracking-wide">
-              비밀번호
-            </label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border-2 border-[#EDE6D8] bg-white text-[#2A2118] focus:outline-none focus:border-[#3D2B1F] transition"
-              placeholder="6자 이상"
-            />
-          </div>
-
-          {error && (
-            <div className="text-sm text-[#B83A2E] font-semibold bg-[#FFF5F3] border-2 border-[#B83A2E]/20 rounded-xl px-4 py-3">
-              ⚠ {error}
+        {/* 폼 */}
+        <div className="bg-white rounded-xl border border-[#EDE6D8] px-5 py-6">
+          <div className="text-[13px] font-black text-[#3D2B1F] mb-4">회원가입</div>
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div>
+              <label className="block text-[11px] font-bold text-[#5C4A3A] mb-1.5">
+                이메일
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border border-[#EDE6D8] bg-[#FDFDFD] text-[#2A2118] text-sm focus:outline-none focus:border-[#A0452E] transition"
+                placeholder="example@email.com"
+              />
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-xl bg-[#A0452E] text-white font-bold text-base border-2 border-[#2A2118] shadow-[3px_3px_0_#2A2118] hover:shadow-[4px_4px_0_#2A2118] hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50"
-          >
-            {loading ? '가입 중...' : '회원가입'}
-          </button>
-        </form>
+            <div>
+              <label className="block text-[11px] font-bold text-[#5C4A3A] mb-1.5">
+                비밀번호
+              </label>
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border border-[#EDE6D8] bg-[#FDFDFD] text-[#2A2118] text-sm focus:outline-none focus:border-[#A0452E] transition"
+                placeholder="6자 이상"
+              />
+              <p className="text-[10px] text-[#8A7668] mt-1">영문, 숫자 포함 6자 이상</p>
+            </div>
 
-        <div className="text-center mt-6 text-sm text-[#8A7668]">
+            {error && (
+              <div className="text-[12px] text-[#B83A2E] font-bold bg-[#B83A2E]/5 border border-[#B83A2E]/20 rounded-lg px-3.5 py-2.5">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-xl bg-[#A0452E] text-white font-bold text-[14px] active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              {loading ? '가입 중...' : '회원가입'}
+            </button>
+          </form>
+        </div>
+
+        {/* 하단 링크 */}
+        <div className="text-center mt-5 text-[12px] text-[#8A7668]">
           이미 계정이 있으신가요?{' '}
-          <Link href="/login" className="text-[#3D2B1F] font-bold underline">
+          <Link href="/login" className="text-[#A0452E] font-bold">
             로그인
           </Link>
         </div>

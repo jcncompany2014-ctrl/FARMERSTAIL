@@ -3,18 +3,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 
 // Daum Postcode API 타입
-declare global {
-  interface Window {
-    daum: {
-      Postcode: new (config: {
-        oncomplete: (data: DaumPostcodeData) => void
-        onclose?: () => void
-        width?: string
-        height?: string
-      }) => { open: () => void; embed: (element: HTMLElement) => void }
-    }
-  }
-}
 
 interface DaumPostcodeData {
   zonecode: string
@@ -107,7 +95,7 @@ export default function AddressSearch({
     <button
       type="button"
       onClick={handleClick}
-      className={`px-4 py-3 rounded-xl border-2 border-[#EDE6D8] bg-white text-sm font-bold text-[#3D2B1F] hover:border-[#6B7F3A] hover:text-[#6B7F3A] transition active:scale-95 ${className}`}
+      className={`px-4 py-3 rounded-lg border border-[#EDE6D8] bg-white text-[12px] font-bold text-[#3D2B1F] hover:border-[#A0452E] hover:text-[#A0452E] transition active:scale-95 ${className}`}
     >
       🔍 {buttonText}
     </button>

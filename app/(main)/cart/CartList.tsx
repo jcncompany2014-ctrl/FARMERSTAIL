@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
@@ -76,76 +75,94 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
   }
 
   return (
-    <ul className="px-5 space-y-3">
+    <ul className="space-y-2.5">
       {items.map((row) => {
         const price = row.product.sale_price ?? row.product.price
+        const hasSale = row.product.sale_price !== null
         const lineTotal = price * row.quantity
         const isBusy = busyId === row.id
 
         return (
           <li
             key={row.id}
-            className="flex gap-3 p-3 rounded-2xl bg-white border border-[#EDE6D8]"
+            className="bg-white rounded-xl border border-[#EDE6D8] overflow-hidden"
           >
-            <Link
-              href={`/products/${row.product.slug}`}
-              className="shrink-0 w-20 h-20 rounded-xl bg-[#F5F0E6] overflow-hidden relative"
-            >
-              {row.product.image_url ? (
-                <Image
-                  src={row.product.image_url}
-                  alt={row.product.name}
-                  fill
-                  className="object-cover"
-                  sizes="80px"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-2xl">
-                  🐾
+            <div className="flex gap-3 p-3">
+              <Link
+                href={`/products/${row.product.slug}`}
+                className="shrink-0 w-20 h-20 rounded-lg bg-[#F5F0E6] overflow-hidden relative"
+              >
+                {row.product.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={row.product.image_url}
+                    alt={row.product.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-2xl">
+                    🐾
+                  </div>
+                )}
+              </Link>
+
+              <div className="flex-1 min-w-0 flex flex-col">
+                <div className="flex justify-between items-start gap-2">
+                  <Link
+                    href={`/products/${row.product.slug}`}
+                    className="text-[12px] text-[#3D2B1F] font-bold leading-snug line-clamp-2"
+                  >
+                    {row.product.name}
+                  </Link>
+                  <button
+                    onClick={() => removeItem(row.id)}
+                    disabled={isBusy}
+                    className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-[#8A7668] hover:text-[#B83A2E] hover:bg-[#F5F0E6] text-xs transition disabled:opacity-40"
+                    aria-label="삭제"
+                  >
+                    ✕
+                  </button>
                 </div>
-              )}
-            </Link>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-start gap-2">
-                <Link
-                  href={`/products/${row.product.slug}`}
-                  className="text-sm text-[#2A2118] font-medium line-clamp-2"
-                >
-                  {row.product.name}
-                </Link>
-                <button
-                  onClick={() => removeItem(row.id)}
-                  disabled={isBusy}
-                  className="text-[#8A7668] hover:text-[#B83A2E] text-xs shrink-0"
-                  aria-label="삭제"
-                >
-                  ✕
-                </button>
-              </div>
+                <div className="mt-auto pt-2 flex items-end justify-between">
+                  {/* 수량 스텝퍼 */}
+                  <div className="flex items-center bg-[#F5F0E6] rounded-lg">
+                    <button
+                      onClick={() => updateQty(row.id, row.quantity - 1)}
+                      disabled={isBusy || row.quantity <= 1}
+                      className="w-7 h-7 flex items-center justify-center text-[#3D2B1F] font-bold text-sm disabled:opacity-30 active:scale-90 transition"
+                      aria-label="수량 감소"
+                    >
+                      −
+                    </button>
+                    <span className="w-7 text-center text-[12px] font-bold text-[#3D2B1F]">
+                      {row.quantity}
+                    </span>
+                    <button
+                      onClick={() => updateQty(row.id, row.quantity + 1)}
+                      disabled={isBusy}
+                      className="w-7 h-7 flex items-center justify-center text-[#3D2B1F] font-bold text-sm disabled:opacity-30 active:scale-90 transition"
+                      aria-label="수량 증가"
+                    >
+                      +
+                    </button>
+                  </div>
 
-              <p className="mt-1 font-['Archivo_Black'] text-[#A0452E]">
-                {lineTotal.toLocaleString()}원
-              </p>
-
-              <div className="mt-2 flex items-center gap-2">
-                <button
-                  onClick={() => updateQty(row.id, row.quantity - 1)}
-                  disabled={isBusy || row.quantity <= 1}
-                  className="w-7 h-7 rounded-full border border-[#EDE6D8] text-[#5C4A3A] disabled:opacity-40"
-                >
-                  −
-                </button>
-                <span className="w-7 text-center text-sm text-[#2A2118]">
-                  {row.quantity}
-                </span>
-                <button
-                  onClick={() => updateQty(row.id, row.quantity + 1)}
-                  disabled={isBusy}
-                  className="w-7 h-7 rounded-full border border-[#EDE6D8] text-[#5C4A3A] disabled:opacity-40"
-                >
-                  +
-                </button>
+                  {/* 가격 */}
+                  <div className="text-right">
+                    {hasSale && (
+                      <div className="text-[9px] text-[#8A7668] line-through leading-none">
+                        {(row.product.price * row.quantity).toLocaleString()}원
+                      </div>
+                    )}
+                    <div className="flex items-baseline gap-0.5 mt-0.5">
+                      <span className="text-[14px] font-black text-[#A0452E]">
+                        {lineTotal.toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-[#8A7668]">원</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </li>

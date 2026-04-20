@@ -16,6 +16,14 @@ type Product = {
   short_description: string | null
 }
 
+type DaumPostcodeData = {
+  userSelectedType: 'R' | 'J';
+  roadAddress: string;
+  jibunAddress: string;
+  zonecode: string;
+  buildingName: string;
+};
+
 const INTERVALS = [
   { value: 1, label: '매주', desc: '1주마다 배송' },
   { value: 2, label: '2주마다', desc: '2주마다 배송' },
@@ -117,7 +125,7 @@ export default function SubscribePage() {
   const openAddressSearch = useCallback(async () => {
     await loadDaumPostcode()
     new window.daum.Postcode({
-      oncomplete(data) {
+      oncomplete(data: DaumPostcodeData) {
         const addr = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress
         setZipRef.current(data.zonecode)
         setAddrRef.current(addr)

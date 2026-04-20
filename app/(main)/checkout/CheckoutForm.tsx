@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { loadTossPayments, ANONYMOUS } from '@tosspayments/tosspayments-sdk'
 import { createClient } from '@/lib/supabase/client'
@@ -50,7 +49,7 @@ export default function CheckoutForm({
   shippingFee,
   total,
 }: Props) {
-  const router = useRouter()
+  useRouter()
   const supabase = createClient()
 
   const [name, setName] = useState(defaultProfile.name)
@@ -64,13 +63,16 @@ export default function CheckoutForm({
   const [saveToProfile, setSaveToProfile] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const handleAddressComplete = useCallback((data: { zip: string; address: string; buildingName: string }) => {
-    setZip(data.zip)
-    setAddress(data.address)
-    if (data.buildingName) {
-      setAddressDetail(data.buildingName)
-    }
-  }, [])
+  const handleAddressComplete = useCallback(
+    (data: { zip: string; address: string; buildingName: string }) => {
+      setZip(data.zip)
+      setAddress(data.address)
+      if (data.buildingName) {
+        setAddressDetail(data.buildingName)
+      }
+    },
+    []
+  )
 
   async function handlePay() {
     if (!name.trim() || !phone.trim() || !zip.trim() || !address.trim()) {
@@ -170,88 +172,95 @@ export default function CheckoutForm({
     }
   }
 
+  const inputClass =
+    'w-full px-4 py-3 rounded-lg border border-[#EDE6D8] bg-[#FDFDFD] text-[13px] text-[#3D2B1F] placeholder:text-[#8A7668] focus:outline-none focus:border-[#A0452E] transition'
+
   return (
-    <div className="px-5 space-y-6">
-      {/* 배송지 — 카카오 주소검색 연동 */}
-      <section className="p-5 rounded-2xl bg-white border border-[#EDE6D8]">
-        <h2 className="text-sm font-bold text-[#2A2118] mb-3">배송지</h2>
+    <div className="px-5 mt-3 space-y-3">
+      {/* 배송지 */}
+      <section className="bg-white rounded-xl border border-[#EDE6D8] px-5 py-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[13px] font-black text-[#3D2B1F]">배송지</h2>
+          <span className="text-[10px] text-[#8A7668]">* 필수 입력</span>
+        </div>
         <div className="space-y-2">
           <input
             type="text"
-            placeholder="받는 분"
+            placeholder="받는 분 이름"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-[#F5F0E6] text-sm text-[#2A2118] placeholder:text-[#8A7668] focus:outline-none focus:ring-2 focus:ring-[#A0452E]"
+            className={inputClass}
           />
           <input
             type="tel"
             placeholder="연락처 (예: 010-1234-5678)"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-[#F5F0E6] text-sm text-[#2A2118] placeholder:text-[#8A7668] focus:outline-none focus:ring-2 focus:ring-[#A0452E]"
+            className={inputClass}
           />
-          {/* 주소 검색 */}
           <div className="flex gap-2">
             <input
               type="text"
               placeholder="우편번호"
               value={zip}
               readOnly
-              className="w-28 px-4 py-3 rounded-xl bg-[#F5F0E6] text-sm text-[#2A2118] placeholder:text-[#8A7668]"
+              className="flex-1 px-4 py-3 rounded-lg border border-[#EDE6D8] bg-[#F5F0E6] text-[13px] text-[#3D2B1F] placeholder:text-[#8A7668]"
             />
             <AddressSearch
               onComplete={handleAddressComplete}
-              className="flex-1"
+              className="shrink-0"
             />
           </div>
           <input
             type="text"
-            placeholder="주소 검색을 눌러주세요"
+            placeholder="주소 (검색 버튼으로 입력)"
             value={address}
             readOnly
-            className="w-full px-4 py-3 rounded-xl bg-[#F5F0E6] text-sm text-[#2A2118] placeholder:text-[#8A7668]"
+            className="w-full px-4 py-3 rounded-lg border border-[#EDE6D8] bg-[#F5F0E6] text-[13px] text-[#3D2B1F] placeholder:text-[#8A7668]"
           />
           <input
             type="text"
-            placeholder="상세 주소 (선택)"
+            placeholder="상세 주소 (동/호수 등)"
             value={addressDetail}
             onChange={(e) => setAddressDetail(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-[#F5F0E6] text-sm text-[#2A2118] placeholder:text-[#8A7668] focus:outline-none focus:ring-2 focus:ring-[#A0452E]"
+            className={inputClass}
           />
           <input
             type="text"
             placeholder="배송 메모 (선택)"
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-[#F5F0E6] text-sm text-[#2A2118] placeholder:text-[#8A7668] focus:outline-none focus:ring-2 focus:ring-[#A0452E]"
+            className={inputClass}
           />
         </div>
 
-        <label className="mt-3 flex items-center gap-2 text-xs text-[#5C4A3A] cursor-pointer">
+        <label className="mt-3 flex items-center gap-2 text-[11px] text-[#5C4A3A] cursor-pointer">
           <input
             type="checkbox"
             checked={saveToProfile}
             onChange={(e) => setSaveToProfile(e.target.checked)}
-            className="accent-[#A0452E]"
+            className="accent-[#A0452E] w-3.5 h-3.5"
           />
-          기본 배송지로 저장하기
+          기본 배송지로 저장
         </label>
       </section>
 
       {/* 주문 상품 */}
-      <section className="p-5 rounded-2xl bg-white border border-[#EDE6D8]">
-        <h2 className="text-sm font-bold text-[#2A2118] mb-3">주문 상품</h2>
+      <section className="bg-white rounded-xl border border-[#EDE6D8] px-5 py-5">
+        <h2 className="text-[13px] font-black text-[#3D2B1F] mb-3">
+          주문 상품{' '}
+          <span className="text-[#8A7668] font-bold">({orderItems.length})</span>
+        </h2>
         <ul className="space-y-3">
           {orderItems.map((it) => (
             <li key={it.productId} className="flex gap-3">
               <div className="shrink-0 w-14 h-14 rounded-lg bg-[#F5F0E6] overflow-hidden relative">
                 {it.imageUrl ? (
-                  <Image
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
                     src={it.imageUrl}
                     alt={it.name}
-                    fill
-                    className="object-cover"
-                    sizes="56px"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-xl">
@@ -260,14 +269,14 @@ export default function CheckoutForm({
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-[#2A2118] line-clamp-2">
+                <p className="text-[12px] font-bold text-[#3D2B1F] leading-snug line-clamp-2">
                   {it.name}
                 </p>
-                <p className="text-xs text-[#8A7668] mt-0.5">
+                <p className="text-[10px] text-[#8A7668] mt-0.5">
                   {it.unitPrice.toLocaleString()}원 × {it.quantity}
                 </p>
               </div>
-              <p className="text-sm font-semibold text-[#2A2118] whitespace-nowrap">
+              <p className="text-[12px] font-black text-[#3D2B1F] whitespace-nowrap">
                 {it.lineTotal.toLocaleString()}원
               </p>
             </li>
@@ -276,40 +285,54 @@ export default function CheckoutForm({
       </section>
 
       {/* 결제 요약 */}
-      <section className="p-5 rounded-2xl bg-[#F5F0E6] border border-[#EDE6D8]">
-        <div className="flex justify-between text-sm text-[#5C4A3A]">
+      <section className="bg-white rounded-xl border border-[#EDE6D8] px-5 py-5">
+        <h2 className="text-[13px] font-black text-[#3D2B1F] mb-3">
+          결제 정보
+        </h2>
+        <div className="flex justify-between text-[12px] text-[#5C4A3A]">
           <span>상품 금액</span>
-          <span>{subtotal.toLocaleString()}원</span>
+          <span className="font-bold text-[#3D2B1F]">
+            {subtotal.toLocaleString()}원
+          </span>
         </div>
-        <div className="flex justify-between text-sm text-[#5C4A3A] mt-2">
+        <div className="flex justify-between text-[12px] text-[#5C4A3A] mt-2">
           <span>배송비</span>
-          <span>
+          <span className="font-bold text-[#3D2B1F]">
             {shippingFee === 0 ? '무료' : `${shippingFee.toLocaleString()}원`}
           </span>
         </div>
         <div className="border-t border-[#EDE6D8] my-3" />
         <div className="flex justify-between items-center">
-          <span className="text-[#2A2118] font-semibold">총 결제금액</span>
-          <span className="font-['Archivo_Black'] text-xl text-[#A0452E]">
-            {total.toLocaleString()}원
+          <span className="text-[13px] font-black text-[#3D2B1F]">
+            총 결제금액
           </span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-[18px] font-black text-[#A0452E]">
+              {total.toLocaleString()}
+            </span>
+            <span className="text-[11px] text-[#8A7668]">원</span>
+          </div>
         </div>
       </section>
 
-      <p className="text-[11px] text-[#8A7668] leading-relaxed">
-        주문 내용을 확인했으며, 결제 진행에 동의합니다. 이 결제는 토스페이먼츠
-        테스트 모드로 진행됩니다.
+      <p className="text-[10px] text-[#8A7668] leading-relaxed px-1">
+        주문 내용을 확인했으며, 결제 진행에 동의합니다.
+        <br />이 결제는 토스페이먼츠 테스트 모드로 진행됩니다.
       </p>
 
       {/* 고정 결제 버튼 */}
-      <div className="fixed bottom-16 left-0 right-0 z-30 bg-white border-t border-[#EDE6D8]">
-        <div className="max-w-md mx-auto px-5 py-3">
+      <div
+        className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-0 right-0 z-30"
+      >
+        <div className="max-w-md mx-auto px-5">
           <button
             onClick={handlePay}
             disabled={loading}
-            className="w-full py-4 rounded-full bg-[#A0452E] text-white font-semibold disabled:opacity-50 hover:bg-[#8A3822] transition"
+            className="w-full py-4 rounded-xl bg-[#A0452E] text-white text-[14px] font-black shadow-[0_4px_14px_rgba(160,69,46,0.25)] active:scale-[0.98] transition disabled:opacity-50 disabled:active:scale-100"
           >
-            {loading ? '결제창 여는 중...' : `${total.toLocaleString()}원 결제하기`}
+            {loading
+              ? '결제창 여는 중...'
+              : `${total.toLocaleString()}원 결제하기`}
           </button>
         </div>
       </div>
