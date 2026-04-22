@@ -1,0 +1,25 @@
+{
+  "// purpose": "VS Code IDE 노이즈 정리 — 실제 빌드/런타임에는 영향 없음",
+
+  // Tailwind v4 전용 at-rule들(@theme, @apply, @tailwind 등)을
+  // VS Code 기본 CSS 린터가 몰라서 경고로 띄운다. 무시 처리.
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
+
+  // Next.js가 dev/build 중에 생성하는 임시 타입 파일들에서 발생하는
+  // 스테일 진단(TS 서버 캐시)이 Problems 패널을 덮는 것을 막는다.
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+  "files.watcherExclude": {
+    "**/.next/**": true,
+    "**/node_modules/**": true
+  },
+  "search.exclude": {
+    "**/.next": true,
+    "**/node_modules": true
+  },
+
+  // Tailwind IntelliSense 확장을 쓰면 위 @rules를 네이티브로 이해함.
+  // 확장 ID: bradlc.vscode-tailwindcss
+  "tailwindCSS.experimental.configFile": null
+}

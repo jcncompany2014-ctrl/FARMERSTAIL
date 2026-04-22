@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const ORDER_STATUSES = [
-  { key: 'preparing', label: '준비 중', color: 'bg-[#A0452E]' },
-  { key: 'shipping', label: '배송 중', color: 'bg-[#6B7F3A]' },
+  { key: 'preparing', label: '준비 중', color: 'bg-terracotta' },
+  { key: 'shipping', label: '배송 중', color: 'bg-moss' },
   { key: 'delivered', label: '배송 완료', color: 'bg-[#8BA05A]' },
-  { key: 'cancelled', label: '취소', color: 'bg-[#B83A2E]' },
+  { key: 'cancelled', label: '취소', color: 'bg-sale' },
 ]
 
 export default function OrderStatusControl({
@@ -51,9 +51,9 @@ export default function OrderStatusControl({
   const disabled = paymentStatus !== 'paid' || loading
 
   return (
-    <section className="p-6 rounded-2xl bg-white border border-[#EDE6D8]">
-      <h2 className="text-sm font-bold text-[#2A2118] mb-1">주문 상태 관리</h2>
-      <p className="text-[11px] text-[#8A7668] mb-4">
+    <section className="p-6 rounded-2xl bg-white border border-rule">
+      <h2 className="text-sm font-bold text-ink mb-1">주문 상태 관리</h2>
+      <p className="text-[11px] text-muted mb-4">
         {paymentStatus !== 'paid'
           ? '결제 완료 후 변경 가능'
           : '클릭해서 상태를 변경하세요'}
@@ -70,7 +70,7 @@ export default function OrderStatusControl({
               className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition text-left flex items-center justify-between ${
                 active
                   ? `${s.color} text-white`
-                  : 'bg-[#F5F0E6] text-[#5C4A3A] hover:bg-[#EDE6D8]'
+                  : 'bg-bg text-text hover:bg-rule'
               } disabled:opacity-40 disabled:cursor-not-allowed`}
             >
               <span>{s.label}</span>

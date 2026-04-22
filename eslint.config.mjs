@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Claude Design handoff bundles — reference prototypes, not source code.
+    // They intentionally ship unescaped entities and use globals like
+    // IOSDevice from a sibling <script> tag. Linting them is noise.
+    ".claude-design/**",
   ]),
 ]);
 

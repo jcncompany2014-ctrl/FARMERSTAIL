@@ -62,8 +62,11 @@ export default function AddressSearch({
 }: AddressSearchProps) {
   const scriptReady = useRef(false)
   // ref로 최신 콜백 유지 — Daum Postcode 클로저 안에서도 항상 최신 참조
+  // React 19: ref는 render 중에 mutate하면 안 됨. useEffect에서 갱신한다.
   const onCompleteRef = useRef(onComplete)
-  onCompleteRef.current = onComplete
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
 
   useEffect(() => {
     if (!scriptReady.current) {
@@ -95,7 +98,7 @@ export default function AddressSearch({
     <button
       type="button"
       onClick={handleClick}
-      className={`px-4 py-3 rounded-lg border border-[#EDE6D8] bg-white text-[12px] font-bold text-[#3D2B1F] hover:border-[#A0452E] hover:text-[#A0452E] transition active:scale-95 ${className}`}
+      className={`px-4 py-3 rounded-lg border border-rule bg-white text-[12px] font-bold text-text hover:border-terracotta hover:text-terracotta transition active:scale-95 ${className}`}
     >
       🔍 {buttonText}
     </button>

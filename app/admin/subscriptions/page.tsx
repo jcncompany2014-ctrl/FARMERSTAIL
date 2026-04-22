@@ -38,9 +38,9 @@ const TABS = [
 ]
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  active: { label: '구독 중', cls: 'bg-[#6B7F3A]/10 text-[#6B7F3A]' },
-  paused: { label: '일시정지', cls: 'bg-[#D4B872]/10 text-[#D4B872]' },
-  cancelled: { label: '해지', cls: 'bg-[#8A7668]/10 text-[#8A7668]' },
+  active: { label: '구독 중', cls: 'bg-moss/10 text-moss' },
+  paused: { label: '일시정지', cls: 'bg-gold/10 text-gold' },
+  cancelled: { label: '해지', cls: 'bg-muted/10 text-muted' },
 }
 
 const INTERVAL_LABELS: Record<number, string> = { 1: '매주', 2: '2주', 4: '4주' }
@@ -208,8 +208,8 @@ export default function AdminSubscriptionsPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-black text-[#3D2B1F]">정기배송 관리</h1>
-          <p className="text-sm text-[#8A7668] mt-1">
+          <h1 className="text-2xl font-black text-text">정기배송 관리</h1>
+          <p className="text-sm text-muted mt-1">
             전체 {subs.length}건 · 활성 {subs.filter(s => s.status === 'active').length}건
           </p>
         </div>
@@ -217,7 +217,7 @@ export default function AdminSubscriptionsPage() {
           <button
             onClick={handleBulkCreateOrders}
             disabled={bulkLoading}
-            className="px-4 py-2.5 rounded-xl font-bold text-sm bg-[#6B7F3A] text-white border-2 border-[#2A2118] shadow-[2px_2px_0_#2A2118] hover:-translate-y-0.5 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all disabled:opacity-50"
+            className="px-4 py-2.5 rounded-xl font-bold text-sm bg-moss text-white border-2 border-ink shadow-[2px_2px_0_#2A2118] hover:-translate-y-0.5 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all disabled:opacity-50"
           >
             {bulkLoading ? '생성 중...' : `📦 일괄 주문 생성 (${upcomingCount}건)`}
           </button>
@@ -226,9 +226,9 @@ export default function AdminSubscriptionsPage() {
 
       {/* 일괄 결과 배너 */}
       {bulkResult && (
-        <div className="mb-4 p-3 bg-[#6B7F3A]/10 border border-[#6B7F3A] rounded-xl text-sm text-[#6B7F3A] font-bold flex items-center justify-between">
+        <div className="mb-4 p-3 bg-moss/10 border border-moss rounded-xl text-sm text-moss font-bold flex items-center justify-between">
           <span>{bulkResult}</span>
-          <button onClick={() => setBulkResult(null)} className="text-[#8A7668] hover:text-[#3D2B1F]">✕</button>
+          <button onClick={() => setBulkResult(null)} className="text-muted hover:text-text">✕</button>
         </div>
       )}
 
@@ -240,13 +240,13 @@ export default function AdminSubscriptionsPage() {
             onClick={() => setTab(t.value)}
             className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
               tab === t.value
-                ? 'bg-[#3D2B1F] text-white'
-                : 'bg-white text-[#8A7668] border border-[#EDE6D8] hover:border-[#8A7668]'
+                ? 'bg-text text-white'
+                : 'bg-white text-muted border border-rule hover:border-muted'
             }`}
           >
             {t.label}
             {t.value === 'upcoming' && upcomingCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[#A0452E] text-white text-[10px]">
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-terracotta text-white text-[10px]">
                 {upcomingCount}
               </span>
             )}
@@ -261,21 +261,21 @@ export default function AdminSubscriptionsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="고객명, 이메일, 상품명 검색..."
-          className="w-full px-4 py-2.5 rounded-xl border-2 border-[#EDE6D8] bg-white text-sm text-[#3D2B1F] focus:border-[#6B7F3A] focus:outline-none transition"
+          className="w-full px-4 py-2.5 rounded-xl border-2 border-rule bg-white text-sm text-text focus:border-moss focus:outline-none transition"
         />
       </div>
 
       {/* 테이블 */}
       {loading ? (
-        <div className="text-center py-10 text-[#8A7668]">로딩 중...</div>
+        <div className="text-center py-10 text-muted">로딩 중...</div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-10 text-[#8A7668]">해당하는 구독이 없습니다.</div>
+        <div className="text-center py-10 text-muted">해당하는 구독이 없습니다.</div>
       ) : (
-        <div className="bg-white rounded-2xl border-2 border-[#EDE6D8] overflow-hidden">
+        <div className="bg-white rounded-2xl border-2 border-rule overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[#F5F0E6] text-[#8A7668] text-xs font-bold uppercase tracking-wider">
+                <tr className="bg-bg text-muted text-xs font-bold uppercase tracking-wider">
                   <th className="text-left px-4 py-3">고객</th>
                   <th className="text-left px-4 py-3">상품</th>
                   <th className="text-center px-4 py-3">주기</th>
@@ -286,32 +286,32 @@ export default function AdminSubscriptionsPage() {
                   <th className="text-center px-4 py-3">관리</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#EDE6D8]">
+              <tbody className="divide-y divide-rule">
                 {filtered.map((sub) => {
                   const badge = STATUS_BADGE[sub.status] || STATUS_BADGE.active
                   const isLoading = actionLoading === sub.id
 
                   return (
-                    <tr key={sub.id} className={`hover:bg-[#F5F0E6]/50 transition ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}>
+                    <tr key={sub.id} className={`hover:bg-bg/50 transition ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}>
                       {/* 고객 */}
                       <td className="px-4 py-3">
-                        <div className="font-bold text-[#3D2B1F] text-xs">
+                        <div className="font-bold text-text text-xs">
                           {sub.profiles?.name || sub.recipient_name || '-'}
                         </div>
-                        <div className="text-[10px] text-[#8A7668]">
+                        <div className="text-[10px] text-muted">
                           {sub.profiles?.email || ''}
                         </div>
                       </td>
                       {/* 상품 */}
                       <td className="px-4 py-3">
                         {sub.subscription_items.map((item, i) => (
-                          <div key={i} className="text-xs text-[#3D2B1F]">
+                          <div key={i} className="text-xs text-text">
                             {item.product_name} ×{item.quantity}
                           </div>
                         ))}
                       </td>
                       {/* 주기 */}
-                      <td className="px-4 py-3 text-center text-xs font-bold text-[#3D2B1F]">
+                      <td className="px-4 py-3 text-center text-xs font-bold text-text">
                         {INTERVAL_LABELS[sub.interval_weeks] || `${sub.interval_weeks}주`}
                       </td>
                       {/* 상태 */}
@@ -321,17 +321,17 @@ export default function AdminSubscriptionsPage() {
                         </span>
                       </td>
                       {/* 다음 배송 */}
-                      <td className="px-4 py-3 text-center text-xs text-[#3D2B1F]">
+                      <td className="px-4 py-3 text-center text-xs text-text">
                         {sub.next_delivery_date
                           ? new Date(sub.next_delivery_date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
                           : '-'}
                       </td>
                       {/* 금액 */}
-                      <td className="px-4 py-3 text-right text-xs font-bold text-[#A0452E]">
+                      <td className="px-4 py-3 text-right text-xs font-bold text-terracotta">
                         {sub.total_amount.toLocaleString()}원
                       </td>
                       {/* 누적 */}
-                      <td className="px-4 py-3 text-center text-xs text-[#3D2B1F]">
+                      <td className="px-4 py-3 text-center text-xs text-text">
                         {sub.total_deliveries}회
                       </td>
                       {/* 관리 */}
@@ -342,7 +342,7 @@ export default function AdminSubscriptionsPage() {
                               <button
                                 onClick={() => handleStatusChange(sub.id, 'paused')}
                                 disabled={isLoading}
-                                className="px-2 py-1 rounded text-[10px] font-bold bg-[#D4B872]/10 text-[#D4B872] hover:bg-[#D4B872]/20 transition disabled:opacity-50"
+                                className="px-2 py-1 rounded text-[10px] font-bold bg-gold/10 text-gold hover:bg-gold/20 transition disabled:opacity-50"
                                 title="일시정지"
                               >
                                 ⏸
@@ -352,7 +352,7 @@ export default function AdminSubscriptionsPage() {
                               <button
                                 onClick={() => handleStatusChange(sub.id, 'active')}
                                 disabled={isLoading}
-                                className="px-2 py-1 rounded text-[10px] font-bold bg-[#6B7F3A]/10 text-[#6B7F3A] hover:bg-[#6B7F3A]/20 transition disabled:opacity-50"
+                                className="px-2 py-1 rounded text-[10px] font-bold bg-moss/10 text-moss hover:bg-moss/20 transition disabled:opacity-50"
                                 title="재개"
                               >
                                 ▶
@@ -361,7 +361,7 @@ export default function AdminSubscriptionsPage() {
                             <button
                               onClick={() => handleStatusChange(sub.id, 'cancelled')}
                               disabled={isLoading}
-                              className="px-2 py-1 rounded text-[10px] font-bold bg-[#B83A2E]/10 text-[#B83A2E] hover:bg-[#B83A2E]/20 transition disabled:opacity-50"
+                              className="px-2 py-1 rounded text-[10px] font-bold bg-sale/10 text-sale hover:bg-sale/20 transition disabled:opacity-50"
                               title="해지"
                             >
                               ✕

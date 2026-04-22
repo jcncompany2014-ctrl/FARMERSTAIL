@@ -26,10 +26,10 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F0E6] flex">
+    <div className="min-h-screen bg-bg flex">
       {/* 사이드바 */}
-      <aside className="w-60 shrink-0 bg-[#2A2118] text-[#F5F0E6] min-h-screen sticky top-0">
-        <div className="px-6 py-6 border-b border-[#3D2B1F]">
+      <aside className="w-60 shrink-0 bg-[#2A2118] text-bg min-h-screen sticky top-0">
+        <div className="px-6 py-6 border-b border-text">
           <Link href="/admin" className="block">
   {/* eslint-disable-next-line @next/next/no-img-element */}
   <img
@@ -38,7 +38,7 @@ export default async function AdminLayout({
     className="h-12 w-auto brightness-0 invert"
   />
 </Link>
-<p className="text-[10px] text-[#8A7668] mt-2 tracking-widest">
+<p className="text-[10px] text-muted mt-2 tracking-widest">
   ADMIN CONSOLE
 </p>
         </div>
@@ -51,12 +51,12 @@ export default async function AdminLayout({
   <NavItem href="/admin/users" icon="👥" label="회원 관리" />
 </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-[#3D2B1F]">
-          <p className="text-[10px] text-[#8A7668]">LOGGED IN AS</p>
+        <div className="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-text">
+          <p className="text-[10px] text-muted">LOGGED IN AS</p>
           <p className="text-xs text-white mt-0.5 truncate">{user.email}</p>
           <Link
             href="/dashboard"
-            className="mt-3 block text-[10px] text-[#A0452E] hover:text-[#8BA05A] transition"
+            className="mt-3 block text-[10px] text-terracotta hover:text-[#8BA05A] transition"
           >
             ← 일반 화면으로
           </Link>
@@ -83,7 +83,7 @@ function NavItem({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#8A7668] hover:bg-[#3D2B1F] hover:text-white transition"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted hover:bg-text hover:text-white transition"
     >
       <span className="text-base">{icon}</span>
       <span className="font-medium">{label}</span>

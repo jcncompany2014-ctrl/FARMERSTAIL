@@ -92,3 +92,56 @@ self.addEventListener('fetch', (event) => {
     return
   }
 })
+
+// --- Web Push ---
+// 서버에서 웹푸시를 보내면 여기로 수신. payload가 JSON이면 title/body/url 사용.
+self.addEventListener('push', (event) => {
+  let data = {}
+  if (event.data) {
+    try {
+      data = event.data.json()
+    } catch {
+      data = { title: '파머스테일', body: event.data.text() }
+    }
+  }
+  const title = data.title || '파머스테일'
+  const body = data.body || ''
+  const url = data.url || '/'
+  const tag = data.tag || 'farmerstail'
+
+  const options = {
+    body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag,
+    data: { url },
+    requireInteraction: data.requireInteraction === true,
+  }
+  event.waitUntil(self.registration.showNotification(title, options))
+})
+
+// 알림 클릭 → 해당 URL로 포커스 또는 새 창 열기
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const target = (event.notification.data && event.notification.data.url) || '/'
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })
+      for (const client of all) {
+        try {
+          const u = new URL(client.url)
+          if (u.pathname === target || client.url === target) {
+            await client.focus()
+            return
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      if (self.clients.openWindow) await self.clients.openWindow(target)
+    })()
+  )
+})

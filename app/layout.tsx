@@ -1,19 +1,145 @@
 import type { Metadata, Viewport } from "next";
+import localFont from "next/font/local";
+import {
+  Noto_Serif_KR,
+  Cormorant_Garamond,
+  JetBrains_Mono,
+} from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import AnalyticsScripts from "@/components/AnalyticsScripts";
+import OnboardingGate from "@/components/OnboardingGate";
+
+// Pretendard Variable — 본문 / UI 전체
+const pretendard = localFont({
+  src: "./fonts/PretendardVariable.woff2",
+  display: "swap",
+  weight: "45 920", // variable font weight range
+  variable: "--font-sans",
+  preload: true,
+});
+
+// Noto Serif KR — 국문 에디토리얼 헤드라인 (primary serif).
+// The Claude Design handoff spec'd Nanum Myeongjo, but Nanum's build-time
+// subset surface (many Korean unicode-range slices) reliably breaks Next 16's
+// Turbopack font pipeline on spotty connections. Noto Serif KR is visually
+// close enough (both are classical Korean serifs) and its bundled weights
+// build consistently.
+const notoSerifKR = Noto_Serif_KR({
+  subsets: ["latin"],
+  weight: ["400", "700", "900"],
+  display: "swap",
+  variable: "--font-serif",
+});
+
+// Cormorant Garamond — 에디토리얼 이탤릭 디스플레이 (No. 01, 까지, 중간 등)
+const cormorantGaramond = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  style: ["italic", "normal"],
+  display: "swap",
+  variable: "--font-display",
+});
+
+// JetBrains Mono — 잡지 캡션 · 메타데이터 · 크레딧
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+  variable: "--font-mono",
+});
+
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://farmerstail.vercel.app";
 
 export const metadata: Metadata = {
-  title: "파머스테일 | Farmer's Tail",
-  description: "우리 아이를 위한 프리미엄 반려견 식품 - Farm to Tail",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "파머스테일 | Farmer's Tail",
+    template: "%s | 파머스테일",
+  },
+  description:
+    "우리 아이를 위한 프리미엄 반려견 식품. 수의영양학 기반 레시피로 만든 화식, 간식, 체험팩 — Farm to Tail.",
+  applicationName: "파머스테일",
+  keywords: [
+    "파머스테일",
+    "Farmer's Tail",
+    "반려견 식품",
+    "반려견 화식",
+    "프리미엄 강아지 사료",
+    "강아지 간식",
+    "수의영양학",
+    "정기배송",
+    "D2C 펫푸드",
+    "Farm to Tail",
+  ],
+  authors: [{ name: "Farmer's Tail" }],
+  creator: "Farmer's Tail",
+  publisher: "Farmer's Tail",
   manifest: "/manifest.json",
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    url: siteUrl,
+    siteName: "파머스테일",
+    title: "파머스테일 | Farmer's Tail",
+    description:
+      "우리 아이를 위한 프리미엄 반려견 식품 — 수의영양학 기반 레시피, Farm to Tail",
+    images: [
+      {
+        url: "/api/og",
+        width: 1200,
+        height: 630,
+        alt: "파머스테일 — 우리 아이를 위한 프리미엄 반려견 식품",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "파머스테일 | Farmer's Tail",
+    description:
+      "우리 아이를 위한 프리미엄 반려견 식품 — 수의영양학 기반 레시피, Farm to Tail",
+    images: ["/api/og"],
+  },
+  other: {
+    // Kakao in-app browser reads this specifically for rich share cards.
+    "og:image:width": "1200",
+    "og:image:height": "630",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "파머스테일",
   },
   icons: {
-    icon: "/icons/icon-192.png",
-    apple: "/icons/icon-512.png",
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    // iOS Safari pins this as the home-screen icon when users install.
+    apple: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/icons/icon-192.png",
+  },
+  alternates: {
+    canonical: "/",
   },
 };
 
@@ -31,10 +157,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">
+    <html
+      lang="ko"
+      className={`h-full antialiased ${pretendard.variable} ${notoSerifKR.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable}`}
+    >
+      <body className="min-h-full flex flex-col font-sans">
         {children}
         <ServiceWorkerRegister />
+        <AnalyticsScripts />
+        {/* First-launch intercept for installed PWAs — see components/OnboardingGate.tsx */}
+        <OnboardingGate />
       </body>
     </html>
   );

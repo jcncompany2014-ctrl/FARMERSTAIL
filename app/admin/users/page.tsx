@@ -40,7 +40,7 @@ export default async function AdminUsersPage({
 
   // 각 유저별 주문 수/누적 금액 집계
   const userIds = (users ?? []).map((u) => u.id)
-  let orderStats: Record<string, { count: number; total: number }> = {}
+  const orderStats: Record<string, { count: number; total: number }> = {}
 
   if (userIds.length > 0) {
     const { data: orders } = await supabase
@@ -49,7 +49,7 @@ export default async function AdminUsersPage({
       .in('user_id', userIds)
       .eq('payment_status', 'paid')
 
-    ;(orders ?? []).forEach((o: any) => {
+    ;(orders ?? []).forEach((o: { user_id: string; total_amount: number }) => {
       if (!orderStats[o.user_id]) {
         orderStats[o.user_id] = { count: 0, total: 0 }
       }
@@ -61,10 +61,10 @@ export default async function AdminUsersPage({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-['Archivo_Black'] text-3xl text-[#2A2118]">
+        <h1 className="font-['Archivo_Black'] text-3xl text-ink">
           USERS
         </h1>
-        <p className="text-sm text-[#8A7668] mt-1">
+        <p className="text-sm text-muted mt-1">
           총 {users?.length ?? 0}명의 회원
         </p>
       </div>
@@ -77,18 +77,18 @@ export default async function AdminUsersPage({
             name="q"
             defaultValue={q}
             placeholder="이메일, 이름, 연락처로 검색"
-            className="flex-1 max-w-md px-4 py-2 rounded-full text-sm bg-white border border-[#EDE6D8] focus:outline-none focus:border-[#A0452E]"
+            className="flex-1 max-w-md px-4 py-2 rounded-full text-sm bg-white border border-rule focus:outline-none focus:border-terracotta"
           />
           <button
             type="submit"
-            className="px-5 py-2 rounded-full text-xs font-semibold bg-[#A0452E] text-white hover:bg-[#8A3822] transition"
+            className="px-5 py-2 rounded-full text-xs font-semibold bg-terracotta text-white hover:bg-[#8A3822] transition"
           >
             검색
           </button>
           {q && (
             <Link
               href="/admin/users"
-              className="px-4 py-2 rounded-full text-xs font-semibold bg-white border border-[#EDE6D8] text-[#5C4A3A] hover:border-[#A0452E] transition"
+              className="px-4 py-2 rounded-full text-xs font-semibold bg-white border border-rule text-text hover:border-terracotta transition"
             >
               초기화
             </Link>
@@ -97,29 +97,29 @@ export default async function AdminUsersPage({
       </div>
 
       {/* 테이블 */}
-      <div className="p-6 rounded-2xl bg-white border border-[#EDE6D8]">
+      <div className="p-6 rounded-2xl bg-white border border-rule">
         {error ? (
           <div>
-            <p className="text-[#B83A2E] text-sm">에러: {error.message}</p>
-            <p className="text-xs text-[#8A7668] mt-2">
+            <p className="text-sale text-sm">에러: {error.message}</p>
+            <p className="text-xs text-muted mt-2">
               profiles 테이블 RLS 정책에 admin 조회 권한이 없을 수 있어요.
               아래 SQL을 Supabase에서 실행해보세요:
             </p>
-            <pre className="text-[10px] font-mono bg-[#F5F0E6] p-3 rounded mt-2 overflow-x-auto">
+            <pre className="text-[10px] font-mono bg-bg p-3 rounded mt-2 overflow-x-auto">
 {`create policy "profiles_select_admin"
   on public.profiles for select
   using (public.is_admin());`}
             </pre>
           </div>
         ) : !users || users.length === 0 ? (
-          <p className="text-center text-sm text-[#8A7668] py-10">
+          <p className="text-center text-sm text-muted py-10">
             {q ? '조건에 맞는 회원이 없어요' : '가입한 회원이 없어요'}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-[#8A7668] border-b border-[#EDE6D8]">
+                <tr className="text-[11px] text-muted border-b border-rule">
                   <th className="text-left py-2 font-medium">이메일</th>
                   <th className="text-left py-2 font-medium">이름</th>
                   <th className="text-left py-2 font-medium">연락처</th>
@@ -131,21 +131,31 @@ export default async function AdminUsersPage({
                 </tr>
               </thead>
               <tbody>
-                {users.map((u: any) => {
+                {users.map((u: {
+                  id: string
+                  email: string | null
+                  name: string | null
+                  phone: string | null
+                  zip: string | null
+                  address: string | null
+                  address_detail: string | null
+                  role: string | null
+                  created_at: string
+                }) => {
                   const stats = orderStats[u.id] ?? { count: 0, total: 0 }
                   return (
                     <tr
                       key={u.id}
-                      className="border-b border-[#F5F0E6] hover:bg-[#F5F0E6] transition"
+                      className="border-b border-bg hover:bg-bg transition"
                     >
-                      <td className="py-3 text-[11px] text-[#2A2118]">
+                      <td className="py-3 text-[11px] text-ink">
                         {u.email ?? '-'}
                       </td>
-                      <td className="py-3 text-[#2A2118]">{u.name ?? '-'}</td>
-                      <td className="py-3 text-[11px] text-[#5C4A3A]">
+                      <td className="py-3 text-ink">{u.name ?? '-'}</td>
+                      <td className="py-3 text-[11px] text-text">
                         {u.phone ?? '-'}
                       </td>
-                      <td className="py-3 text-[11px] text-[#5C4A3A] max-w-xs truncate">
+                      <td className="py-3 text-[11px] text-text max-w-xs truncate">
                         {u.address
                           ? `${u.address}${u.address_detail ? ' ' + u.address_detail : ''}`
                           : '-'}
@@ -156,18 +166,18 @@ export default async function AdminUsersPage({
                             ADMIN
                           </span>
                         ) : (
-                          <span className="text-[10px] text-[#8A7668]">
+                          <span className="text-[10px] text-muted">
                             user
                           </span>
                         )}
                       </td>
-                      <td className="py-3 text-right text-[#2A2118] font-semibold">
+                      <td className="py-3 text-right text-ink font-semibold">
                         {stats.count}건
                       </td>
-                      <td className="py-3 text-right font-semibold text-[#A0452E]">
+                      <td className="py-3 text-right font-semibold text-terracotta">
                         {stats.total.toLocaleString()}원
                       </td>
-                      <td className="py-3 text-right text-[11px] text-[#8A7668]">
+                      <td className="py-3 text-right text-[11px] text-muted">
                         {formatDate(u.created_at)}
                       </td>
                     </tr>
@@ -180,8 +190,8 @@ export default async function AdminUsersPage({
       </div>
 
       {/* 안내 */}
-      <div className="mt-4 p-4 rounded-xl bg-[#F5F0E6] border border-[#EDE6D8]">
-        <p className="text-[11px] text-[#5C4A3A]">
+      <div className="mt-4 p-4 rounded-xl bg-bg border border-rule">
+        <p className="text-[11px] text-text">
           ℹ️ 개인정보 보호를 위해 회원 정보는 조회만 가능해요. 수정이 필요하면
           회원 본인이 직접 마이페이지에서 변경해야 해요. 관리자 권한 부여는
           Supabase SQL Editor에서 직접 처리하세요.

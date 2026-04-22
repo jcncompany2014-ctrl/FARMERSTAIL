@@ -64,14 +64,14 @@ export default async function AdminOrderDetailPage({
       <div className="mb-6">
         <Link
           href="/admin/orders"
-          className="text-xs text-[#8A7668] hover:text-[#A0452E]"
+          className="text-xs text-muted hover:text-terracotta"
         >
           ← 주문 목록
         </Link>
-        <h1 className="font-['Archivo_Black'] text-3xl text-[#2A2118] mt-2">
+        <h1 className="font-['Archivo_Black'] text-3xl text-ink mt-2">
           ORDER DETAIL
         </h1>
-        <p className="text-xs text-[#8A7668] mt-1 font-mono">
+        <p className="text-xs text-muted mt-1 font-mono">
           {order.order_number}
         </p>
       </div>
@@ -80,14 +80,15 @@ export default async function AdminOrderDetailPage({
         {/* 왼쪽: 주문 정보 */}
         <div className="col-span-2 space-y-4">
           {/* 주문 상품 */}
-          <section className="p-6 rounded-2xl bg-white border border-[#EDE6D8]">
-            <h2 className="text-sm font-bold text-[#2A2118] mb-4">
+          <section className="p-6 rounded-2xl bg-white border border-rule">
+            <h2 className="text-sm font-bold text-ink mb-4">
               주문 상품 ({items.length})
             </h2>
             <ul className="space-y-3">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {items.map((it: any) => (
                 <li key={it.id} className="flex gap-3 items-center">
-                  <div className="shrink-0 w-12 h-12 rounded-lg bg-[#F5F0E6] overflow-hidden flex items-center justify-center">
+                  <div className="shrink-0 w-12 h-12 rounded-lg bg-bg overflow-hidden flex items-center justify-center">
                     {it.product_image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -100,12 +101,12 @@ export default async function AdminOrderDetailPage({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[#2A2118]">{it.product_name}</p>
-                    <p className="text-xs text-[#8A7668] mt-0.5">
+                    <p className="text-sm text-ink">{it.product_name}</p>
+                    <p className="text-xs text-muted mt-0.5">
                       {it.unit_price.toLocaleString()}원 × {it.quantity}
                     </p>
                   </div>
-                  <p className="text-sm font-semibold text-[#2A2118] whitespace-nowrap">
+                  <p className="text-sm font-semibold text-ink whitespace-nowrap">
                     {it.line_total.toLocaleString()}원
                   </p>
                 </li>
@@ -114,8 +115,8 @@ export default async function AdminOrderDetailPage({
           </section>
 
           {/* 배송지 */}
-          <section className="p-6 rounded-2xl bg-white border border-[#EDE6D8]">
-            <h2 className="text-sm font-bold text-[#2A2118] mb-4">배송지</h2>
+          <section className="p-6 rounded-2xl bg-white border border-rule">
+            <h2 className="text-sm font-bold text-ink mb-4">배송지</h2>
             <dl className="space-y-2 text-sm">
               <InfoRow label="받는 분" value={order.recipient_name} />
               <InfoRow label="연락처" value={order.recipient_phone} />
@@ -132,8 +133,8 @@ export default async function AdminOrderDetailPage({
           </section>
 
           {/* 결제 정보 */}
-          <section className="p-6 rounded-2xl bg-white border border-[#EDE6D8]">
-            <h2 className="text-sm font-bold text-[#2A2118] mb-4">결제 정보</h2>
+          <section className="p-6 rounded-2xl bg-white border border-rule">
+            <h2 className="text-sm font-bold text-ink mb-4">결제 정보</h2>
             <dl className="space-y-2 text-sm">
               <InfoRow label="결제 상태" value={order.payment_status} />
               {order.payment_method && (
@@ -152,7 +153,7 @@ export default async function AdminOrderDetailPage({
                   }
                 />
               )}
-              <div className="border-t border-[#EDE6D8] my-3" />
+              <div className="border-t border-rule my-3" />
               <InfoRow
                 label="상품 금액"
                 value={`${order.subtotal.toLocaleString()}원`}
@@ -165,9 +166,9 @@ export default async function AdminOrderDetailPage({
                     : `${order.shipping_fee.toLocaleString()}원`
                 }
               />
-              <div className="flex justify-between items-center pt-2 border-t border-[#EDE6D8]">
-                <dt className="text-[#2A2118] font-semibold">총 결제 금액</dt>
-                <dd className="font-['Archivo_Black'] text-xl text-[#A0452E]">
+              <div className="flex justify-between items-center pt-2 border-t border-rule">
+                <dt className="text-ink font-semibold">총 결제 금액</dt>
+                <dd className="font-['Archivo_Black'] text-xl text-terracotta">
                   {order.total_amount.toLocaleString()}원
                 </dd>
               </div>
@@ -178,8 +179,8 @@ export default async function AdminOrderDetailPage({
         {/* 오른쪽: 관리 액션 */}
         <div className="col-span-1 space-y-4">
           {/* 주문자 정보 */}
-          <section className="p-6 rounded-2xl bg-white border border-[#EDE6D8]">
-            <h2 className="text-sm font-bold text-[#2A2118] mb-4">주문자</h2>
+          <section className="p-6 rounded-2xl bg-white border border-rule">
+            <h2 className="text-sm font-bold text-ink mb-4">주문자</h2>
             <dl className="space-y-2 text-sm">
               <InfoRow label="이름" value={profile?.name ?? '-'} />
               <InfoRow
@@ -206,8 +207,8 @@ export default async function AdminOrderDetailPage({
           />
 
           {/* 메타 정보 */}
-          <section className="p-6 rounded-2xl bg-white border border-[#EDE6D8]">
-            <h2 className="text-sm font-bold text-[#2A2118] mb-4">메타</h2>
+          <section className="p-6 rounded-2xl bg-white border border-rule">
+            <h2 className="text-sm font-bold text-ink mb-4">메타</h2>
             <dl className="space-y-2 text-sm">
               <InfoRow
                 label="생성"
@@ -242,8 +243,8 @@ function InfoRow({
 }) {
   return (
     <div className="flex justify-between gap-3">
-      <dt className="text-[#8A7668] shrink-0">{label}</dt>
-      <dd className="text-[#2A2118] text-right min-w-0">{value}</dd>
+      <dt className="text-muted shrink-0">{label}</dt>
+      <dd className="text-ink text-right min-w-0">{value}</dd>
     </div>
   )
 }

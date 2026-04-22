@@ -93,7 +93,7 @@ function StockEditor({
           }}
           autoFocus
           disabled={loading}
-          className="w-16 px-2 py-1 text-center text-xs rounded border border-[#A0452E] focus:outline-none"
+          className="w-16 px-2 py-1 text-center text-xs rounded border border-terracotta focus:outline-none"
         />
       </div>
     )
@@ -101,15 +101,15 @@ function StockEditor({
 
   const color =
     initialValue === 0
-      ? 'text-[#B83A2E]'
+      ? 'text-sale'
       : initialValue < 10
-      ? 'text-[#A0452E]'
-      : 'text-[#2A2118]'
+      ? 'text-terracotta'
+      : 'text-ink'
 
   return (
     <button
       onClick={() => setEditing(true)}
-      className={`w-full text-center text-sm font-semibold hover:bg-[#EDE6D8] rounded px-2 py-1 transition ${color}`}
+      className={`w-full text-center text-sm font-semibold hover:bg-rule rounded px-2 py-1 transition ${color}`}
     >
       {initialValue}
     </button>
@@ -153,7 +153,7 @@ function ActiveToggle({
         onClick={toggle}
         disabled={loading}
         className={`relative w-10 h-6 rounded-full transition ${
-          active ? 'bg-[#6B7F3A]' : 'bg-[#EDE6D8]'
+          active ? 'bg-moss' : 'bg-rule'
         } disabled:opacity-50`}
       >
         <span

@@ -1,0 +1,413 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Star, ThumbsUp, MessageSquare } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+
+/**
+ * ProductReviews — 제품 상세 하단 리뷰 블록.
+ *
+ * 톤: /products/[slug]의 paper-tone 섹션 카드와 같은 언어 — kicker 헤더,
+ * serif 평균 점수, gold 별점 + 분포 바. 모든 색은 토큰 경유.
+ */
+
+type Review = {
+  id: string
+  user_id: string
+  rating: number
+  title: string | null
+  content: string
+  helpful_count: number
+  created_at: string
+  dog?: { name: string } | null
+  author?: { name: string | null } | null
+}
+
+function timeAgo(iso: string) {
+  const d = new Date(iso)
+  const diff = Date.now() - d.getTime()
+  const day = Math.floor(diff / 86400000)
+  if (day < 1) return '오늘'
+  if (day < 7) return `${day}일 전`
+  if (day < 30) return `${Math.floor(day / 7)}주 전`
+  if (day < 365) return `${Math.floor(day / 30)}개월 전`
+  return `${Math.floor(day / 365)}년 전`
+}
+
+function Stars({ value, size = 13 }: { value: number; size?: number }) {
+  return (
+    <div className="inline-flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => {
+        const filled = i <= Math.round(value)
+        return (
+          <Star
+            key={i}
+            width={size}
+            height={size}
+            strokeWidth={1.5}
+            color={filled ? 'var(--gold)' : 'var(--rule-2)'}
+            fill={filled ? 'var(--gold)' : 'transparent'}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+export default function ProductReviews({ productId }: { productId: string }) {
+  const supabase = createClient()
+  const router = useRouter()
+  const pathname = usePathname()
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [avg, setAvg] = useState<number | null>(null)
+  const [count, setCount] = useState(0)
+  const [distribution, setDistribution] = useState<Record<number, number>>({})
+  const [helpful, setHelpful] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(true)
+  const [pending, setPending] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    async function load() {
+      // fetch latest reviews (top 20) with joined dog
+      const { data: rows } = await supabase
+        .from('reviews')
+        .select(
+          'id, user_id, rating, title, content, helpful_count, created_at, dogs(name)'
+        )
+        .eq('product_id', productId)
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      // fetch author names separately (profiles.id → auth.users.id, not a direct FK on reviews)
+      const authorIds = Array.from(new Set((rows ?? []).map((r) => r.user_id)))
+      const { data: profRows } =
+        authorIds.length > 0
+          ? await supabase
+              .from('profiles')
+              .select('id, name')
+              .in('id', authorIds)
+          : { data: [] as { id: string; name: string | null }[] }
+      const profMap = new Map<string, string | null>()
+      for (const p of profRows ?? []) profMap.set(p.id, p.name)
+
+      // fetch aggregate stats independently so header is correct even if list is trimmed
+      const { data: allRatings } = await supabase
+        .from('reviews')
+        .select('rating')
+        .eq('product_id', productId)
+
+      let totalCount = 0
+      let sum = 0
+      const dist: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+      for (const r of allRatings ?? []) {
+        totalCount++
+        sum += r.rating
+        dist[r.rating] = (dist[r.rating] || 0) + 1
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      let userHelpful = new Set<string>()
+      if (user && rows && rows.length > 0) {
+        const { data: likes } = await supabase
+          .from('review_helpful')
+          .select('review_id')
+          .eq('user_id', user.id)
+          .in(
+            'review_id',
+            rows.map((r) => r.id)
+          )
+        userHelpful = new Set((likes ?? []).map((l) => l.review_id))
+      }
+
+      if (!mounted) return
+      setReviews(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (rows ?? []).map((r: any) => ({
+          id: r.id,
+          user_id: r.user_id,
+          rating: r.rating,
+          title: r.title,
+          content: r.content,
+          helpful_count: r.helpful_count,
+          created_at: r.created_at,
+          dog: r.dogs ?? null,
+          author: { name: profMap.get(r.user_id) ?? null },
+        }))
+      )
+      setCount(totalCount)
+      setAvg(totalCount > 0 ? sum / totalCount : null)
+      setDistribution(dist)
+      setHelpful(userHelpful)
+      setLoading(false)
+    }
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [productId, supabase])
+
+  async function toggleHelpful(reviewId: string) {
+    if (pending) return
+    setPending(reviewId)
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      router.push(
+        `/login?next=${encodeURIComponent(pathname ?? '/')}`
+      )
+      return
+    }
+
+    const already = helpful.has(reviewId)
+    // optimistic
+    setHelpful((prev) => {
+      const next = new Set(prev)
+      if (already) next.delete(reviewId)
+      else next.add(reviewId)
+      return next
+    })
+    setReviews((prev) =>
+      prev.map((r) =>
+        r.id === reviewId
+          ? {
+              ...r,
+              helpful_count: Math.max(
+                0,
+                r.helpful_count + (already ? -1 : 1)
+              ),
+            }
+          : r
+      )
+    )
+
+    if (already) {
+      await supabase
+        .from('review_helpful')
+        .delete()
+        .eq('review_id', reviewId)
+        .eq('user_id', user.id)
+    } else {
+      await supabase
+        .from('review_helpful')
+        .insert({ review_id: reviewId, user_id: user.id })
+    }
+    setPending(null)
+  }
+
+  return (
+    <section
+      id="reviews"
+      className="rounded-2xl px-5 py-5 mb-3"
+      style={{
+        background: 'var(--bg-2)',
+        boxShadow: 'inset 0 0 0 1px var(--rule)',
+      }}
+    >
+      {/* 헤더 */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="kicker">Reviews · 리뷰</span>
+        <div
+          className="flex-1 h-px"
+          style={{ background: 'var(--rule-2)' }}
+        />
+        <span
+          className="text-[11px] font-semibold"
+          style={{ color: 'var(--muted)' }}
+        >
+          {count}개
+        </span>
+      </div>
+
+      {loading ? (
+        <div className="py-8 flex items-center justify-center">
+          <div
+            className="w-5 h-5 border-2 rounded-full animate-spin"
+            style={{
+              borderColor: 'var(--terracotta)',
+              borderTopColor: 'transparent',
+            }}
+          />
+        </div>
+      ) : count === 0 ? (
+        <div className="py-10 flex flex-col items-center text-center">
+          <div
+            className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+            style={{ background: 'var(--bg)' }}
+          >
+            <MessageSquare
+              className="w-5 h-5"
+              strokeWidth={1.5}
+              color="var(--muted)"
+            />
+          </div>
+          <span className="kicker kicker-muted">Empty · 리뷰 없음</span>
+          <p
+            className="font-serif mt-2 text-[14px] font-black"
+            style={{ color: 'var(--text)' }}
+          >
+            아직 등록된 리뷰가 없어요
+          </p>
+          <p
+            className="text-[11px] mt-1"
+            style={{ color: 'var(--muted)' }}
+          >
+            첫 리뷰를 남기고 적립금을 받아보세요
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Summary */}
+          <div
+            className="flex items-center gap-5 pb-4"
+            style={{ borderBottom: '1px solid var(--rule-2)' }}
+          >
+            <div className="text-center shrink-0">
+              <div
+                className="font-serif font-black leading-none"
+                style={{
+                  fontSize: 36,
+                  color: 'var(--terracotta)',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {avg?.toFixed(1) ?? '—'}
+              </div>
+              <div className="mt-2">
+                <Stars value={avg ?? 0} size={12} />
+              </div>
+            </div>
+            <div className="flex-1 space-y-1">
+              {[5, 4, 3, 2, 1].map((n) => {
+                const c = distribution[n] ?? 0
+                const pct = count > 0 ? (c / count) * 100 : 0
+                return (
+                  <div
+                    key={n}
+                    className="flex items-center gap-2 text-[10px]"
+                    style={{ color: 'var(--muted)' }}
+                  >
+                    <span
+                      className="w-3 font-bold"
+                      style={{ color: 'var(--text)' }}
+                    >
+                      {n}
+                    </span>
+                    <div
+                      className="flex-1 h-1.5 rounded-full overflow-hidden"
+                      style={{ background: 'var(--bg)' }}
+                    >
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${pct}%`,
+                          background: 'var(--gold)',
+                        }}
+                      />
+                    </div>
+                    <span className="w-6 text-right">{c}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Reviews list */}
+          <ul className="mt-4 space-y-4">
+            {reviews.map((r, idx) => {
+              const liked = helpful.has(r.id)
+              const authorName =
+                r.author?.name?.trim() ||
+                (r.user_id ? `고객 ${r.user_id.slice(0, 4)}` : '고객')
+              const isLast = idx === reviews.length - 1
+              return (
+                <li
+                  key={r.id}
+                  className="pb-4"
+                  style={{
+                    borderBottom: isLast
+                      ? 'none'
+                      : '1px solid var(--rule-2)',
+                    paddingBottom: isLast ? 0 : undefined,
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Stars value={r.rating} size={12} />
+                      <span
+                        className="text-[11px] font-black"
+                        style={{ color: 'var(--text)' }}
+                      >
+                        {authorName}
+                      </span>
+                      {r.dog?.name && (
+                        <span
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                          style={{
+                            color: 'var(--moss)',
+                            background:
+                              'color-mix(in srgb, var(--moss) 10%, transparent)',
+                          }}
+                        >
+                          🐾 {r.dog.name}
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className="text-[10px]"
+                      style={{ color: 'var(--muted)' }}
+                    >
+                      {timeAgo(r.created_at)}
+                    </span>
+                  </div>
+                  {r.title && (
+                    <h3
+                      className="font-serif mt-2 text-[13px] font-black leading-snug"
+                      style={{
+                        color: 'var(--ink)',
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
+                      {r.title}
+                    </h3>
+                  )}
+                  <p
+                    className="mt-1 text-[12px] leading-relaxed whitespace-pre-line"
+                    style={{ color: 'var(--text)' }}
+                  >
+                    {r.content}
+                  </p>
+                  <button
+                    onClick={() => toggleHelpful(r.id)}
+                    disabled={pending === r.id}
+                    className="mt-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition active:scale-95"
+                    style={{
+                      color: liked ? 'var(--terracotta)' : 'var(--muted)',
+                      background: liked
+                        ? 'color-mix(in srgb, var(--terracotta) 6%, transparent)'
+                        : 'var(--bg)',
+                      boxShadow: liked
+                        ? 'inset 0 0 0 1px var(--terracotta)'
+                        : 'inset 0 0 0 1px var(--rule-2)',
+                    }}
+                  >
+                    <ThumbsUp
+                      className="w-3 h-3"
+                      strokeWidth={liked ? 2.5 : 2}
+                    />
+                    도움이 돼요{' '}
+                    {r.helpful_count > 0 && `· ${r.helpful_count}`}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      )}
+    </section>
+  )
+}

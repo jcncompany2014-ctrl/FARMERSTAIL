@@ -1,25 +1,73 @@
 {
   "name": "파머스테일 - Farmer's Tail",
   "short_name": "파머스테일",
-  "description": "우리 아이를 위한 프리미엄 반려견 식품",
+  "description": "우리 아이를 위한 프리미엄 반려견 식품 — 수의영양학 기반 레시피, Farm to Tail.",
   "start_url": "/dashboard",
+  "id": "/dashboard",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#F5F0E6",
   "theme_color": "#A0452E",
   "orientation": "portrait",
   "scope": "/",
+  "lang": "ko-KR",
+  "dir": "ltr",
+  "categories": ["shopping", "lifestyle", "food"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "주문 내역",
+      "short_name": "주문",
+      "description": "최근 주문과 배송 상태 확인",
+      "url": "/mypage/orders",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "정기배송 관리",
+      "short_name": "정기배송",
+      "description": "정기배송 일정 및 변경",
+      "url": "/mypage/subscriptions",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "내 아이들",
+      "short_name": "내 아이들",
+      "description": "우리 아이 프로필 관리",
+      "url": "/dogs",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "장바구니",
+      "short_name": "장바구니",
+      "description": "담은 상품 결제",
+      "url": "/cart",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

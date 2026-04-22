@@ -1,8 +1,16 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { Package, ShoppingBag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: '주문 내역',
+  description: '내 주문 내역',
+  robots: { index: false, follow: false },
+}
 
 const ORDER_STATUS_LABEL: Record<string, string> = {
   pending: '결제 대기',
@@ -24,18 +32,18 @@ function statusBadge(status: string) {
   switch (status) {
     case 'paid':
     case 'delivered':
-      return 'bg-[#6B7F3A] text-white'
+      return 'bg-moss text-white'
     case 'preparing':
     case 'shipping':
-      return 'bg-[#A0452E] text-white'
+      return 'bg-terracotta text-white'
     case 'pending':
-      return 'bg-[#D4B872] text-[#3D2B1F]'
+      return 'bg-gold text-text'
     case 'failed':
     case 'cancelled':
     case 'refunded':
-      return 'bg-[#B83A2E] text-white'
+      return 'bg-sale text-white'
     default:
-      return 'bg-[#EDE6D8] text-[#5C4A3A]'
+      return 'bg-rule text-text'
   }
 }
 
@@ -83,11 +91,11 @@ export default async function OrdersPage() {
     return (
       <main className="pb-8">
         <div className="px-5 pt-5">
-          <div className="bg-white rounded-xl border border-[#EDE6D8] px-5 py-5">
-            <p className="text-[13px] font-bold text-[#B83A2E]">
+          <div className="bg-white rounded-xl border border-rule px-5 py-5">
+            <p className="text-[13px] font-bold text-sale">
               주문 내역을 불러오지 못했어요
             </p>
-            <p className="text-[11px] text-[#8A7668] mt-1.5">{error.message}</p>
+            <p className="text-[11px] text-muted mt-1.5">{error.message}</p>
           </div>
         </div>
       </main>
@@ -97,36 +105,71 @@ export default async function OrdersPage() {
   return (
     <main className="pb-8">
       {/* 헤더 */}
-      <section className="px-5 pt-5 pb-1">
+      <section className="px-5 pt-6 pb-2">
         <Link
           href="/mypage"
-          className="text-[11px] text-[#8A7668] hover:text-[#A0452E] inline-flex items-center gap-1"
+          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← 내 정보
         </Link>
-        <h1 className="text-lg font-black text-[#3D2B1F] tracking-tight mt-1">
+        <span className="kicker mt-3 inline-block">Orders · 주문 내역</span>
+        <h1
+          className="font-serif mt-1.5"
+          style={{
+            fontSize: 22,
+            fontWeight: 800,
+            color: 'var(--ink)',
+            letterSpacing: '-0.02em',
+          }}
+        >
           주문 내역
         </h1>
-        <p className="text-[11px] text-[#8A7668] mt-0.5">
+        <p className="text-[11px] text-muted mt-1">
           총 {orders?.length ?? 0}건의 주문
         </p>
       </section>
 
       {!orders || orders.length === 0 ? (
         <section className="px-5 mt-14">
-          <div className="bg-white rounded-xl border border-[#EDE6D8] px-5 py-10 text-center">
-            <div className="w-14 h-14 mx-auto rounded-full bg-[#F5F0E6] flex items-center justify-center text-[26px]">
-              📦
+          <div
+            className="rounded-2xl border px-5 py-12 text-center"
+            style={{
+              background: 'var(--bg-2)',
+              borderColor: 'var(--rule-2)',
+              borderStyle: 'dashed',
+            }}
+          >
+            <div
+              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center"
+              style={{
+                background: 'var(--bg)',
+                border: '1px solid var(--rule-2)',
+              }}
+            >
+              <Package
+                className="w-6 h-6 text-muted"
+                strokeWidth={1.5}
+              />
             </div>
-            <p className="mt-4 text-[13px] font-bold text-[#3D2B1F]">
+            <span className="kicker mt-4 inline-block">Empty · 내역 없음</span>
+            <p
+              className="font-serif mt-2"
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                color: 'var(--ink)',
+                letterSpacing: '-0.015em',
+              }}
+            >
               아직 주문 내역이 없어요
             </p>
-            <p className="text-[11px] text-[#8A7668] mt-1">
+            <p className="text-[11px] text-muted mt-1.5 leading-relaxed">
               첫 주문을 시작해 보세요
             </p>
             <Link
               href="/products"
-              className="mt-5 inline-block px-5 py-2.5 rounded-xl bg-[#A0452E] text-white text-[12px] font-bold active:scale-[0.98] transition"
+              className="mt-5 inline-block px-6 py-2.5 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
+              style={{ background: 'var(--ink)', color: 'var(--bg)' }}
             >
               제품 둘러보기
             </Link>
@@ -158,10 +201,10 @@ export default async function OrdersPage() {
                 <li key={order.id}>
                   <Link
                     href={`/mypage/orders/${order.id}`}
-                    className="block bg-white rounded-xl border border-[#EDE6D8] px-4 py-4 hover:border-[#3D2B1F] transition-all"
+                    className="block bg-white rounded-xl border border-rule px-4 py-4 hover:border-text transition-all"
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-[11px] text-[#8A7668] font-bold">
+                      <span className="text-[11px] text-muted font-bold">
                         {formatDate(order.created_at)}
                       </span>
                       <span
@@ -175,7 +218,7 @@ export default async function OrdersPage() {
 
                     {firstItem && (
                       <div className="flex gap-3">
-                        <div className="shrink-0 w-14 h-14 rounded-lg bg-[#F5F0E6] overflow-hidden flex items-center justify-center">
+                        <div className="shrink-0 w-14 h-14 rounded-lg bg-bg overflow-hidden flex items-center justify-center">
                           {firstItem.product_image_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -184,26 +227,37 @@ export default async function OrdersPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <span className="text-xl">🐾</span>
+                            <ShoppingBag
+                              className="w-6 h-6 text-muted"
+                              strokeWidth={1.5}
+                            />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[12px] font-bold text-[#3D2B1F] line-clamp-1">
+                          <p className="text-[12px] font-bold text-text line-clamp-1">
                             {firstItem.product_name}
                             {extraCount > 0 && (
-                              <span className="text-[#8A7668]">
+                              <span className="text-muted">
                                 {' '}외 {extraCount}건
                               </span>
                             )}
                           </p>
-                          <p className="text-[10px] text-[#8A7668] mt-0.5 font-mono">
+                          <p className="text-[10px] text-muted mt-0.5 font-mono">
                             {order.order_number}
                           </p>
                           <div className="mt-1 flex items-baseline gap-1">
-                            <span className="text-[14px] font-black text-[#A0452E]">
+                            <span
+                              className="font-serif"
+                              style={{
+                                fontSize: 14,
+                                fontWeight: 800,
+                                color: 'var(--terracotta)',
+                                letterSpacing: '-0.015em',
+                              }}
+                            >
                               {order.total_amount.toLocaleString()}
                             </span>
-                            <span className="text-[10px] text-[#8A7668]">
+                            <span className="text-[10px] text-muted">
                               원
                             </span>
                           </div>

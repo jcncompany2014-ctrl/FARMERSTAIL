@@ -22,19 +22,19 @@ const STATUS_LABEL: Record<string, string> = {
 
 function statusBadge(paymentStatus: string, orderStatus: string) {
   if (paymentStatus !== 'paid') {
-    return { label: '결제 전', color: 'bg-[#EDE6D8] text-[#5C4A3A]' }
+    return { label: '결제 전', color: 'bg-rule text-text' }
   }
   switch (orderStatus) {
     case 'preparing':
-      return { label: '준비 중', color: 'bg-[#A0452E] text-white' }
+      return { label: '준비 중', color: 'bg-terracotta text-white' }
     case 'shipping':
-      return { label: '배송 중', color: 'bg-[#6B7F3A] text-white' }
+      return { label: '배송 중', color: 'bg-moss text-white' }
     case 'delivered':
       return { label: '완료', color: 'bg-[#8BA05A] text-white' }
     case 'cancelled':
-      return { label: '취소', color: 'bg-[#B83A2E] text-white' }
+      return { label: '취소', color: 'bg-sale text-white' }
     default:
-      return { label: STATUS_LABEL[orderStatus] ?? orderStatus, color: 'bg-[#EDE6D8] text-[#5C4A3A]' }
+      return { label: STATUS_LABEL[orderStatus] ?? orderStatus, color: 'bg-rule text-text' }
   }
 }
 
@@ -96,7 +96,10 @@ export default async function AdminHome() {
   ])
 
   const totalRevenue =
-    paidOrdersRes.data?.reduce((sum, o: any) => sum + (o.total_amount ?? 0), 0) ?? 0
+    paidOrdersRes.data?.reduce(
+      (sum, o: { total_amount: number | null }) => sum + (o.total_amount ?? 0),
+      0
+    ) ?? 0
   const totalPaidCount = paidOrdersRes.count ?? 0
   const todayOrderCount = todayOrdersRes.count ?? 0
   const pendingShipCount = pendingShipRes.count ?? 0
@@ -110,7 +113,7 @@ export default async function AdminHome() {
     const key = `${d.getMonth() + 1}/${d.getDate()}`
     dailyMap.set(key, 0)
   }
-  ;(thirtyDayOrdersRes.data ?? []).forEach((o: any) => {
+  ;(thirtyDayOrdersRes.data ?? []).forEach((o: { created_at: string; total_amount: number }) => {
     const d = new Date(o.created_at)
     const key = `${d.getMonth() + 1}/${d.getDate()}`
     dailyMap.set(key, (dailyMap.get(key) ?? 0) + o.total_amount)
@@ -123,10 +126,10 @@ export default async function AdminHome() {
     <div>
       <div className="flex items-end justify-between mb-8">
         <div>
-          <h1 className="font-['Archivo_Black'] text-3xl text-[#2A2118]">
+          <h1 className="font-['Archivo_Black'] text-3xl text-ink">
             DASHBOARD
           </h1>
-          <p className="text-sm text-[#8A7668] mt-1">
+          <p className="text-sm text-muted mt-1">
             {now.getFullYear()}년 {now.getMonth() + 1}월 {now.getDate()}일 기준
           </p>
         </div>
@@ -161,15 +164,15 @@ export default async function AdminHome() {
       </div>
 
       {/* 30일 매출 sparkline */}
-      <div className="p-6 rounded-2xl bg-white border border-[#EDE6D8] mb-6">
+      <div className="p-6 rounded-2xl bg-white border border-rule mb-6">
         <div className="flex items-end justify-between mb-4">
           <div>
-            <h2 className="text-sm font-bold text-[#2A2118]">최근 30일 매출</h2>
-            <p className="text-[11px] text-[#8A7668] mt-0.5">
+            <h2 className="text-sm font-bold text-ink">최근 30일 매출</h2>
+            <p className="text-[11px] text-muted mt-0.5">
               결제 완료된 주문만 집계
             </p>
           </div>
-          <p className="font-['Archivo_Black'] text-2xl text-[#A0452E]">
+          <p className="font-['Archivo_Black'] text-2xl text-terracotta">
             {last30DayRevenue.toLocaleString()}원
           </p>
         </div>
@@ -182,11 +185,11 @@ export default async function AdminHome() {
                 className="flex-1 flex flex-col items-center justify-end group relative"
               >
                 <div
-                  className="w-full bg-[#A0452E] rounded-sm transition-all hover:bg-[#8A3822] min-h-[2px]"
+                  className="w-full bg-terracotta rounded-sm transition-all hover:bg-[#8A3822] min-h-[2px]"
                   style={{ height: `${height}%` }}
                 />
                 {value > 0 && (
-                  <span className="absolute -top-5 opacity-0 group-hover:opacity-100 text-[9px] text-[#2A2118] whitespace-nowrap bg-white px-1 rounded border border-[#EDE6D8] transition">
+                  <span className="absolute -top-5 opacity-0 group-hover:opacity-100 text-[9px] text-ink whitespace-nowrap bg-white px-1 rounded border border-rule transition">
                     {value.toLocaleString()}원
                   </span>
                 )}
@@ -194,33 +197,33 @@ export default async function AdminHome() {
             )
           })}
         </div>
-        <div className="flex justify-between mt-2 text-[9px] text-[#8A7668]">
+        <div className="flex justify-between mt-2 text-[9px] text-muted">
           <span>{dailyData[0]?.[0]}</span>
           <span>{dailyData[dailyData.length - 1]?.[0]}</span>
         </div>
       </div>
 
       {/* 최근 주문 */}
-      <div className="p-6 rounded-2xl bg-white border border-[#EDE6D8]">
+      <div className="p-6 rounded-2xl bg-white border border-rule">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-[#2A2118]">최근 주문</h2>
+          <h2 className="text-sm font-bold text-ink">최근 주문</h2>
           <Link
             href="/admin/orders"
-            className="text-xs text-[#A0452E] hover:underline"
+            className="text-xs text-terracotta hover:underline"
           >
             전체 보기 →
           </Link>
         </div>
 
         {recentOrders.length === 0 ? (
-          <p className="text-center text-sm text-[#8A7668] py-10">
+          <p className="text-center text-sm text-muted py-10">
             아직 주문이 없어요
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-[#8A7668] border-b border-[#EDE6D8]">
+                <tr className="text-[11px] text-muted border-b border-rule">
                   <th className="text-left py-2 font-medium">주문번호</th>
                   <th className="text-left py-2 font-medium">주문자</th>
                   <th className="text-right py-2 font-medium">금액</th>
@@ -229,23 +232,24 @@ export default async function AdminHome() {
                 </tr>
               </thead>
               <tbody>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {recentOrders.map((o: any) => {
                   const badge = statusBadge(o.payment_status, o.order_status)
                   return (
                     <tr
                       key={o.id}
-                      className="border-b border-[#F5F0E6] hover:bg-[#F5F0E6] transition"
+                      className="border-b border-bg hover:bg-bg transition"
                     >
-                      <td className="py-3 font-mono text-[11px] text-[#2A2118]">
+                      <td className="py-3 font-mono text-[11px] text-ink">
                         <Link
                           href={`/admin/orders/${o.id}`}
-                          className="hover:text-[#A0452E]"
+                          className="hover:text-terracotta"
                         >
                           {o.order_number}
                         </Link>
                       </td>
-                      <td className="py-3 text-[#2A2118]">{o.recipient_name}</td>
-                      <td className="py-3 text-right font-semibold text-[#2A2118]">
+                      <td className="py-3 text-ink">{o.recipient_name}</td>
+                      <td className="py-3 text-right font-semibold text-ink">
                         {o.total_amount.toLocaleString()}원
                       </td>
                       <td className="py-3 text-center">
@@ -255,7 +259,7 @@ export default async function AdminHome() {
                           {badge.label}
                         </span>
                       </td>
-                      <td className="py-3 text-right text-[11px] text-[#8A7668]">
+                      <td className="py-3 text-right text-[11px] text-muted">
                         {formatDate(o.created_at)}
                       </td>
                     </tr>
@@ -283,20 +287,20 @@ function MetricCard({
 }) {
   const toneClass =
     tone === 'red'
-      ? 'text-[#A0452E]'
+      ? 'text-terracotta'
       : tone === 'green'
-      ? 'text-[#6B7F3A]'
-      : 'text-[#2A2118]'
+      ? 'text-moss'
+      : 'text-ink'
 
   return (
-    <div className="p-5 rounded-2xl bg-white border border-[#EDE6D8]">
-      <p className="text-[11px] text-[#8A7668] font-bold uppercase tracking-wider">
+    <div className="p-5 rounded-2xl bg-white border border-rule">
+      <p className="text-[11px] text-muted font-bold uppercase tracking-wider">
         {label}
       </p>
       <p className={`mt-2 font-['Archivo_Black'] text-2xl ${toneClass}`}>
         {value}
       </p>
-      <p className="mt-1 text-[10px] text-[#8A7668]">{sub}</p>
+      <p className="mt-1 text-[10px] text-muted">{sub}</p>
     </div>
   )
 }

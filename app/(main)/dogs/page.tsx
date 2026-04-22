@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Dog as DogIcon, Plus, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type Dog = {
@@ -13,6 +14,7 @@ type Dog = {
   weight: number | null
   age_value: number | null
   age_unit: string | null
+  photo_url: string | null
   created_at: string
 }
 
@@ -24,15 +26,22 @@ export default function DogsPage() {
 
   useEffect(() => {
     async function loadDogs() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
         return
       }
 
+      // Explicit user_id filter (defense-in-depth: RLS admin policy would
+      // otherwise leak other users' dogs to admin-role accounts on this route).
       const { data, error } = await supabase
         .from('dogs')
-        .select('id, name, breed, gender, weight, age_value, age_unit, created_at')
+        .select(
+          'id, name, breed, gender, weight, age_value, age_unit, photo_url, created_at'
+        )
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (!error && data) {
@@ -45,73 +54,142 @@ export default function DogsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-[#F5F0E6]">
-        <div className="text-[#8A7668]">로딩 중...</div>
+      <main className="min-h-[80vh] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-[#F5F0E6] px-6 py-10">
-      <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+    <main className="pb-8">
+      {/* Header */}
+      <section className="px-5 pt-6 pb-2">
+        <Link
+          href="/dashboard"
+          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+        >
+          ← 홈으로
+        </Link>
+        <div className="mt-3 flex items-end justify-between">
           <div>
-            <Link href="/dashboard" className="text-sm text-[#8A7668] hover:text-[#3D2B1F] transition">
-              ← 홈으로
-            </Link>
-            <h1 className="text-3xl font-black text-[#3D2B1F] tracking-tight mt-3">
+            <span className="kicker">Our Dogs · 내 아이들</span>
+            <h1
+              className="font-serif mt-1.5"
+              style={{
+                fontSize: 22,
+                fontWeight: 800,
+                color: 'var(--ink)',
+                letterSpacing: '-0.02em',
+              }}
+            >
               내 강아지
             </h1>
           </div>
           <Link
             href="/dogs/new"
-            className="px-4 py-2 bg-[#A0452E] text-white font-bold text-sm rounded-xl border-2 border-[#2A2118] shadow-[3px_3px_0_#2A2118] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_#2A2118] transition-all"
+            className="inline-flex items-center gap-1 px-4 py-2 text-[12px] font-bold rounded-full active:scale-[0.98] transition"
+            style={{ background: 'var(--ink)', color: 'var(--bg)' }}
           >
-            + 추가
+            <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+            추가
           </Link>
         </div>
+      </section>
 
-        {/* Empty state */}
-        {dogs.length === 0 && (
-          <div className="bg-white rounded-2xl border-2 border-dashed border-[#D8CCBA] p-10 text-center">
-            <div className="text-6xl mb-4">🐕</div>
-            <h3 className="font-bold text-[#3D2B1F] mb-2">아직 등록된 강아지가 없어요</h3>
-            <p className="text-sm text-[#8A7668] mb-6">
-              첫 번째 강아지를 등록하고<br />맞춤 영양 분석을 받아보세요
+      {/* Empty state — editorial paper-tone, landing/dashboard와 동일 문법 */}
+      {dogs.length === 0 && (
+        <section className="px-5 mt-6">
+          <div
+            className="rounded-2xl border border-dashed px-6 py-12 text-center"
+            style={{ background: 'var(--bg-2)', borderColor: 'var(--rule-2)' }}
+          >
+            <div
+              className="inline-flex w-16 h-16 rounded-full items-center justify-center mb-4"
+              style={{
+                background: 'var(--bg)',
+                border: '1px solid var(--rule-2)',
+              }}
+            >
+              <DogIcon
+                className="w-7 h-7 text-terracotta"
+                strokeWidth={1.3}
+              />
+            </div>
+            <span className="kicker">First Dog · 시작하기</span>
+            <h3
+              className="font-serif mt-2"
+              style={{
+                fontSize: 17,
+                fontWeight: 800,
+                color: 'var(--ink)',
+                letterSpacing: '-0.015em',
+              }}
+            >
+              아직 등록된 강아지가 없어요
+            </h3>
+            <p className="text-[12px] text-muted mt-2 leading-relaxed">
+              첫 번째 강아지를 등록하고
+              <br />
+              맞춤 영양 분석을 받아보세요
             </p>
             <Link
               href="/dogs/new"
-              className="inline-block px-6 py-3 bg-[#A0452E] text-white font-bold rounded-xl border-2 border-[#2A2118] shadow-[3px_3px_0_#2A2118] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_#2A2118] transition-all"
+              className="mt-6 inline-flex items-center gap-1.5 px-6 py-3 text-[12px] font-bold rounded-full active:scale-[0.98] transition-all"
+              style={{ background: 'var(--ink)', color: 'var(--bg)' }}
             >
-              + 강아지 등록하기
+              <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+              강아지 등록하기
             </Link>
           </div>
-        )}
+        </section>
+      )}
 
-        {/* Dogs list */}
-        {dogs.length > 0 && (
-          <div className="space-y-3">
+      {/* Dogs list */}
+      {dogs.length > 0 && (
+        <section className="px-5 mt-4">
+          <ul className="space-y-2.5">
             {dogs.map((dog) => (
-              <Link
-                key={dog.id}
-                href={`/dogs/${dog.id}`}
-                className="block bg-white rounded-2xl border-2 border-[#EDE6D8] p-5 hover:border-[#3D2B1F] hover:shadow-[3px_3px_0_#2A2118] hover:-translate-y-0.5 transition-all"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-[#F5F0E6] rounded-full flex items-center justify-center text-3xl flex-shrink-0">
-                    🐕
+              <li key={dog.id}>
+                <Link
+                  href={`/dogs/${dog.id}`}
+                  className="flex items-center gap-4 bg-white rounded-2xl border border-rule px-5 py-4 hover:border-text hover:shadow-sm transition-all"
+                >
+                  <div className="w-12 h-12 bg-bg rounded-full overflow-hidden flex items-center justify-center flex-shrink-0">
+                    {dog.photo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={dog.photo_url}
+                        alt={dog.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <DogIcon
+                        className="w-5 h-5 text-muted"
+                        strokeWidth={1.5}
+                      />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-black text-[#3D2B1F] text-lg truncate">
+                    <h3
+                      className="font-serif truncate"
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 800,
+                        color: 'var(--ink)',
+                        letterSpacing: '-0.015em',
+                      }}
+                    >
                       {dog.name}
                     </h3>
-                    <div className="flex flex-wrap gap-1 mt-1 text-xs text-[#8A7668]">
+                    <div className="flex flex-wrap gap-1 mt-0.5 text-[11px] text-muted">
                       {dog.breed && <span>{dog.breed}</span>}
                       {dog.age_value && (
                         <>
                           <span>·</span>
-                          <span>{dog.age_value}{dog.age_unit === 'years' ? '살' : '개월'}</span>
+                          <span>
+                            {dog.age_value}
+                            {dog.age_unit === 'years' ? '살' : '개월'}
+                          </span>
                         </>
                       )}
                       {dog.weight && (
@@ -122,13 +200,16 @@ export default function DogsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="text-[#8A7668]">→</div>
-                </div>
-              </Link>
+                  <ChevronRight
+                    className="w-4 h-4 text-muted"
+                    strokeWidth={2}
+                  />
+                </Link>
+              </li>
             ))}
-          </div>
-        )}
-      </div>
+          </ul>
+        </section>
+      )}
     </main>
   )
 }

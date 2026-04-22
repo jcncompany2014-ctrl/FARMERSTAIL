@@ -1,33 +1,232 @@
 @import "tailwindcss";
 
+/* =========================================================================
+   Farmer's Tail — Design tokens
+   Signature: warm editorial, paper-grain overlay, Ink Oil + Terracotta.
+   Keep palette centralized here; never hard-code hex in components.
+   ========================================================================= */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Legacy aliases (kept so existing views don't break) */
+  --background: #F5F0E6;
+  --foreground: #3D2B1F;
+
+  /* New palette — matches Claude Design handoff */
+  --bg: #F5F0E6;
+  --bg-2: #EFE8D9;
+  --ink: #1E1A14;           /* signature: Ink Oil */
+  --text: #3D2B1F;
+  --muted: #8A7668;
+  --rule: #EDE6D8;
+  --rule-2: #D9CFBB;
+  --terracotta: #A0452E;
+  --moss: #6B7F3A;
+  --gold: #D4B872;
+  --sale: #B83A2E;
 }
 
+/* Tailwind v4 theme — next/font가 주입한 CSS 변수 + 브랜드 컬러 토큰을
+   Tailwind 유틸(bg-ink, text-terracotta 등)로 연결 */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Brand palette exposed as Tailwind color utilities */
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-ink: var(--ink);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-rule-2: var(--rule-2);
+  --color-terracotta: var(--terracotta);
+  --color-moss: var(--moss);
+  --color-gold: var(--gold);
+  --color-sale: var(--sale);
+
+  --font-sans:
+    var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic",
+    "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-serif:
+    var(--font-serif), "Noto Serif KR", ui-serif, Georgia, Cambria,
+    "Times New Roman", Times, serif;
+  /* Editorial display serif — numerals, italic accents */
+  --font-display:
+    var(--font-display), "Cormorant Garamond", "Noto Serif KR", ui-serif,
+    Georgia, serif;
+  /* Magazine captions, metadata, credits */
+  --font-mono:
+    var(--font-mono), "JetBrains Mono", "SF Mono", ui-monospace, Menlo,
+    Consolas, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-feature-settings: "ss01", "ss02", "cv01", "cv11"; /* Pretendard 기본 피처 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.005em;
 }
-.scrollbar-hide::-webkit-scrollbar {
+
+/* In-page anchor nav on the editorial landing: scroll smoothly, and offset
+   the scroll target below the sticky EditorialHeader (≈ 86px: safe-area
+   padding + top bar + sub-nav). Gated on prefers-reduced-motion so users who
+   opt out don't get smooth scroll forced on them. */
+html {
+  scroll-padding-top: 96px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* =========================================================================
+   Editorial typography helpers
+
+   Single-font policy (2026-04 update):
+     한글 지면 위에서 세리프/이탤릭을 섞으니 글꼴 가족이 튀고 가독성이 떨어진다.
+     결정: 본문 sans 1종으로 전부 통일. 변화는 color / weight만으로.
+     - `.font-serif` 클래스가 마크업 곳곳에 남아 있어서 일일이 지우는 대신
+       여기서 sans로 remap해 버린다 (영향 범위가 50+ 파일).
+     - `.font-display-italic`도 동일 원칙으로 sans + normal로 고정.
+     - `em` 기본 italic도 전역에서 해제 — 기존 `<em>` 마크업은 의미(semantic)만
+       남고 시각적으로는 평문과 동일하게 렌더.
+   ========================================================================= */
+
+/* 히어로/에디토리얼 세리프 — 지금은 전부 sans로 통일.
+   클래스명은 호환성을 위해 유지한다. */
+.font-serif {
+  font-family: var(--font-sans);
+  letter-spacing: -0.015em;
+}
+
+/* 레거시 이탤릭 강조 클래스 — sans + normal로 중화. */
+.font-display-italic {
+  font-family: var(--font-sans);
+  font-style: normal;
+}
+
+/* 이탤릭을 전역 금지한다. 기존 컴포넌트들의 inline
+   `style={{ fontStyle: 'italic' }}`도 override되도록 `!important` 사용.
+   (inline style은 보통 CSS 선택자보다 우선순위가 높아서 `!important` 없이는
+   이기지 못한다.) 의도적 예외가 필요해질 경우 이 규칙을 좁히는 방향으로. */
+em,
+i,
+.font-serif,
+.font-display-italic,
+[class*="italic"],
+[style*="italic"] {
+  font-style: normal !important;
+}
+
+/* 잡지 캡션용 모노스페이스 */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Kicker — 작은 대문자 섹션 라벨 */
+.kicker {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+}
+.kicker-ink { color: var(--ink); }
+.kicker-cream { color: #D9CFBB; }
+.kicker-muted { color: var(--muted); }
+.kicker-moss { color: var(--moss); }
+.kicker-gold { color: var(--gold); }
+.kicker-white { color: rgba(255,255,255,0.8); }
+
+/* 가격 tabular-nums */
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* =========================================================================
+   Signature device (a): paper grain overlay
+   SVG turbulence, multiplied onto warm surfaces.
+   Apply via `.grain` on a relatively-positioned container.
+   ========================================================================= */
+.grain {
+  position: relative;
+}
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.12  0 0 0 0 0.10  0 0 0 0 0.07  0 0 0 0.9 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+  mix-blend-mode: multiply;
+  opacity: 0.10;
+  pointer-events: none;
+  z-index: 2;
+}
+.grain-soft::before { opacity: 0.06; }
+.grain-heavy::before { opacity: 0.16; }
+
+/* Fiber weave — Hero 전용 2축 해치 */
+.fiber::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(61,43,31,0.035) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(61,43,31,0.025) 0 1px, transparent 1px 4px);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* =========================================================================
+   Placeholder — striped image frame with mono caption
+   (Used until real photography lands.)
+   ========================================================================= */
+.ph {
+  position: relative;
+  background: repeating-linear-gradient(135deg, #E8DFCB 0 8px, #DFD4BA 8px 16px);
+  color: #6B5A45;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+.ph-label {
+  position: relative;
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px 12px;
+  color: #6B5A45;
+}
+.ph-ink {
+  background: repeating-linear-gradient(135deg, #2A2319 0 8px, #211B13 8px 16px);
+}
+.ph-ink .ph-label { color: #8A7A60; }
+
+/* =========================================================================
+   Scrollbar hide (mobile carousels)
+   ========================================================================= */
+.scrollbar-hide::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-.scrollbar-hide {
+.scrollbar-hide,
+.no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* =========================================================================
+   Hairline rule
+   ========================================================================= */
+.hr {
+  height: 1px;
+  background: var(--rule-2);
+  border: 0;
 }

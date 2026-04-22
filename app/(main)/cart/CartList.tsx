@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { X, ShoppingBag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type Row = {
@@ -40,10 +41,19 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
       prev.map((i) => (i.id === id ? { ...i, quantity: next } : i))
     )
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
     const { error } = await supabase
       .from('cart_items')
       .update({ quantity: next })
       .eq('id', id)
+      .eq('user_id', user.id)
 
     setBusyId(null)
 
@@ -62,7 +72,19 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
     const prev = items
     setItems((p) => p.filter((i) => i.id !== id))
 
-    const { error } = await supabase.from('cart_items').delete().eq('id', id)
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    const { error } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
 
     setBusyId(null)
 
@@ -85,12 +107,12 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
         return (
           <li
             key={row.id}
-            className="bg-white rounded-xl border border-[#EDE6D8] overflow-hidden"
+            className="bg-white rounded-xl border border-rule overflow-hidden"
           >
             <div className="flex gap-3 p-3">
               <Link
                 href={`/products/${row.product.slug}`}
-                className="shrink-0 w-20 h-20 rounded-lg bg-[#F5F0E6] overflow-hidden relative"
+                className="shrink-0 w-20 h-20 rounded-lg bg-bg overflow-hidden relative"
               >
                 {row.product.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -100,8 +122,11 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-2xl">
-                    🐾
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ShoppingBag
+                      className="w-5 h-5 text-muted"
+                      strokeWidth={1.5}
+                    />
                   </div>
                 )}
               </Link>
@@ -110,38 +135,38 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
                 <div className="flex justify-between items-start gap-2">
                   <Link
                     href={`/products/${row.product.slug}`}
-                    className="text-[12px] text-[#3D2B1F] font-bold leading-snug line-clamp-2"
+                    className="text-[12px] text-text font-bold leading-snug line-clamp-2"
                   >
                     {row.product.name}
                   </Link>
                   <button
                     onClick={() => removeItem(row.id)}
                     disabled={isBusy}
-                    className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-[#8A7668] hover:text-[#B83A2E] hover:bg-[#F5F0E6] text-xs transition disabled:opacity-40"
+                    className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-muted hover:text-sale hover:bg-bg transition disabled:opacity-40"
                     aria-label="삭제"
                   >
-                    ✕
+                    <X className="w-3.5 h-3.5" strokeWidth={2.5} />
                   </button>
                 </div>
 
                 <div className="mt-auto pt-2 flex items-end justify-between">
                   {/* 수량 스텝퍼 */}
-                  <div className="flex items-center bg-[#F5F0E6] rounded-lg">
+                  <div className="flex items-center bg-bg rounded-lg">
                     <button
                       onClick={() => updateQty(row.id, row.quantity - 1)}
                       disabled={isBusy || row.quantity <= 1}
-                      className="w-7 h-7 flex items-center justify-center text-[#3D2B1F] font-bold text-sm disabled:opacity-30 active:scale-90 transition"
+                      className="w-7 h-7 flex items-center justify-center text-text font-bold text-sm disabled:opacity-30 active:scale-90 transition"
                       aria-label="수량 감소"
                     >
                       −
                     </button>
-                    <span className="w-7 text-center text-[12px] font-bold text-[#3D2B1F]">
+                    <span className="w-7 text-center text-[12px] font-bold text-text">
                       {row.quantity}
                     </span>
                     <button
                       onClick={() => updateQty(row.id, row.quantity + 1)}
                       disabled={isBusy}
-                      className="w-7 h-7 flex items-center justify-center text-[#3D2B1F] font-bold text-sm disabled:opacity-30 active:scale-90 transition"
+                      className="w-7 h-7 flex items-center justify-center text-text font-bold text-sm disabled:opacity-30 active:scale-90 transition"
                       aria-label="수량 증가"
                     >
                       +
@@ -151,15 +176,15 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
                   {/* 가격 */}
                   <div className="text-right">
                     {hasSale && (
-                      <div className="text-[9px] text-[#8A7668] line-through leading-none">
+                      <div className="text-[9px] text-muted line-through leading-none">
                         {(row.product.price * row.quantity).toLocaleString()}원
                       </div>
                     )}
                     <div className="flex items-baseline gap-0.5 mt-0.5">
-                      <span className="text-[14px] font-black text-[#A0452E]">
+                      <span className="text-[14px] font-black text-terracotta">
                         {lineTotal.toLocaleString()}
                       </span>
-                      <span className="text-[10px] text-[#8A7668]">원</span>
+                      <span className="text-[10px] text-muted">원</span>
                     </div>
                   </div>
                 </div>

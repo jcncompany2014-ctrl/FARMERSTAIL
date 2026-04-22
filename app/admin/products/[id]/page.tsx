@@ -28,14 +28,14 @@ export default async function AdminProductEditPage({
       <div className="mb-6">
         <Link
           href="/admin/products"
-          className="text-xs text-[#8A7668] hover:text-[#A0452E]"
+          className="text-xs text-muted hover:text-terracotta"
         >
           ← 제품 목록
         </Link>
-        <h1 className="font-['Archivo_Black'] text-3xl text-[#2A2118] mt-2">
+        <h1 className="font-['Archivo_Black'] text-3xl text-ink mt-2">
           EDIT PRODUCT
         </h1>
-        <p className="text-xs text-[#8A7668] mt-1">{product.name}</p>
+        <p className="text-xs text-muted mt-1">{product.name}</p>
       </div>
 
       <ProductForm mode="edit" initialData={product} />

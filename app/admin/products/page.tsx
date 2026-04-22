@@ -17,33 +17,33 @@ export default async function AdminProductsPage() {
     <div>
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="font-['Archivo_Black'] text-3xl text-[#2A2118]">
+          <h1 className="font-['Archivo_Black'] text-3xl text-ink">
             PRODUCTS
           </h1>
-          <p className="text-sm text-[#8A7668] mt-1">
+          <p className="text-sm text-muted mt-1">
             총 {products?.length ?? 0}개 상품
           </p>
         </div>
         <Link
           href="/admin/products/new"
-          className="px-4 py-2 rounded-full bg-[#A0452E] text-white text-xs font-semibold hover:bg-[#8A3822] transition"
+          className="px-4 py-2 rounded-full bg-terracotta text-white text-xs font-semibold hover:bg-[#8A3822] transition"
         >
           + 새 상품 등록
         </Link>
       </div>
 
-      <div className="p-6 rounded-2xl bg-white border border-[#EDE6D8]">
+      <div className="p-6 rounded-2xl bg-white border border-rule">
         {error ? (
-          <p className="text-[#B83A2E] text-sm">에러: {error.message}</p>
+          <p className="text-sale text-sm">에러: {error.message}</p>
         ) : !products || products.length === 0 ? (
-          <p className="text-center text-sm text-[#8A7668] py-10">
+          <p className="text-center text-sm text-muted py-10">
             등록된 상품이 없어요
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-[#8A7668] border-b border-[#EDE6D8]">
+                <tr className="text-[11px] text-muted border-b border-rule">
                   <th className="text-left py-2 font-medium w-16">이미지</th>
                   <th className="text-left py-2 font-medium">상품명</th>
                   <th className="text-left py-2 font-medium">카테고리</th>
@@ -54,13 +54,14 @@ export default async function AdminProductsPage() {
                 </tr>
               </thead>
               <tbody>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {products.map((p: any) => (
                   <tr
                     key={p.id}
-                    className="border-b border-[#F5F0E6] hover:bg-[#F5F0E6] transition"
+                    className="border-b border-bg hover:bg-bg transition"
                   >
                     <td className="py-3">
-                      <div className="w-12 h-12 rounded-lg bg-[#F5F0E6] overflow-hidden flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-lg bg-bg overflow-hidden flex items-center justify-center">
                         {p.image_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -74,26 +75,26 @@ export default async function AdminProductsPage() {
                       </div>
                     </td>
                     <td className="py-3">
-                      <p className="text-[#2A2118] font-medium">{p.name}</p>
-                      <p className="text-[10px] text-[#8A7668] font-mono mt-0.5">
+                      <p className="text-ink font-medium">{p.name}</p>
+                      <p className="text-[10px] text-muted font-mono mt-0.5">
                         {p.slug}
                       </p>
                     </td>
-                    <td className="py-3 text-[#5C4A3A] text-xs">
+                    <td className="py-3 text-text text-xs">
                       {p.category ?? '-'}
                     </td>
                     <td className="py-3 text-right">
                       {p.sale_price ? (
                         <div>
-                          <p className="text-[10px] text-[#8A7668] line-through">
+                          <p className="text-[10px] text-muted line-through">
                             {p.price.toLocaleString()}원
                           </p>
-                          <p className="font-semibold text-[#A0452E]">
+                          <p className="font-semibold text-terracotta">
                             {p.sale_price.toLocaleString()}원
                           </p>
                         </div>
                       ) : (
-                        <p className="font-semibold text-[#2A2118]">
+                        <p className="font-semibold text-ink">
                           {p.price.toLocaleString()}원
                         </p>
                       )}
@@ -115,7 +116,7 @@ export default async function AdminProductsPage() {
                     <td className="py-3 text-center">
                       <Link
                         href={`/admin/products/${p.id}`}
-                        className="text-[11px] text-[#A0452E] hover:underline font-semibold"
+                        className="text-[11px] text-terracotta hover:underline font-semibold"
                       >
                         편집 →
                       </Link>

@@ -182,6 +182,58 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   }
 }
 
+export type MacroRange = { min: number; max: number; scale: number }
+export type AAFCORanges = {
+  protein: MacroRange
+  fat: MacroRange
+  carb: MacroRange
+  fiber: MacroRange
+}
+
+/**
+ * AAFCO 2024 권장 범위 (%DM basis 대략치).
+ * - min: AAFCO 최소 요구량 (또는 실무 하한)
+ * - max: 산업 평균 상한 (과다 섭취 주의 구간 시작점)
+ * - scale: 막대 그래프의 축 상한 (시각화용)
+ */
+export function getAAFCORanges(
+  stage: 'puppy' | 'adult' | 'senior'
+): AAFCORanges {
+  if (stage === 'puppy') {
+    return {
+      protein: { min: 22.5, max: 40, scale: 50 },
+      fat: { min: 8.5, max: 30, scale: 40 },
+      carb: { min: 30, max: 50, scale: 60 },
+      fiber: { min: 2, max: 5, scale: 10 },
+    }
+  }
+  if (stage === 'senior') {
+    return {
+      protein: { min: 25, max: 35, scale: 45 },
+      fat: { min: 8, max: 18, scale: 30 },
+      carb: { min: 35, max: 55, scale: 65 },
+      fiber: { min: 4, max: 8, scale: 12 },
+    }
+  }
+  return {
+    protein: { min: 18, max: 35, scale: 45 },
+    fat: { min: 5.5, max: 22, scale: 32 },
+    carb: { min: 30, max: 50, scale: 60 },
+    fiber: { min: 3, max: 7, scale: 10 },
+  }
+}
+
+/**
+ * DB에 저장된 한글 생애주기 문자열(`stageKR`)을 raw enum으로 역매핑.
+ * 알려지지 않은 값은 'adult'로 폴백.
+ */
+export function stageFromKR(kr: string | null | undefined): 'puppy' | 'adult' | 'senior' {
+  if (!kr) return 'adult'
+  if (kr.includes('퍼피') || kr.includes('성장')) return 'puppy'
+  if (kr.includes('시니어') || kr.includes('노령')) return 'senior'
+  return 'adult'
+}
+
 export function getSupplements(concerns: string[]): Array<{ emoji: string; name: string; desc: string }> {
   const s: Array<{ emoji: string; name: string; desc: string }> = []
   if (concerns.includes('피부/털')) {

@@ -28,20 +28,20 @@ function statusBadge(paymentStatus: string, orderStatus: string) {
     }
     return {
       label: labelMap[paymentStatus] ?? paymentStatus,
-      color: 'bg-[#EDE6D8] text-[#5C4A3A]',
+      color: 'bg-rule text-text',
     }
   }
   switch (orderStatus) {
     case 'preparing':
-      return { label: '준비 중', color: 'bg-[#A0452E] text-white' }
+      return { label: '준비 중', color: 'bg-terracotta text-white' }
     case 'shipping':
-      return { label: '배송 중', color: 'bg-[#6B7F3A] text-white' }
+      return { label: '배송 중', color: 'bg-moss text-white' }
     case 'delivered':
       return { label: '배송 완료', color: 'bg-[#8BA05A] text-white' }
     case 'cancelled':
-      return { label: '취소', color: 'bg-[#B83A2E] text-white' }
+      return { label: '취소', color: 'bg-sale text-white' }
     default:
-      return { label: orderStatus, color: 'bg-[#EDE6D8] text-[#5C4A3A]' }
+      return { label: orderStatus, color: 'bg-rule text-text' }
   }
 }
 
@@ -95,10 +95,10 @@ export default async function AdminOrdersPage({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-['Archivo_Black'] text-3xl text-[#2A2118]">
+        <h1 className="font-['Archivo_Black'] text-3xl text-ink">
           ORDERS
         </h1>
-        <p className="text-sm text-[#8A7668] mt-1">주문 관리</p>
+        <p className="text-sm text-muted mt-1">주문 관리</p>
       </div>
 
       {/* 필터 탭 + 검색 */}
@@ -117,7 +117,7 @@ export default async function AdminOrdersPage({
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
                   active
                     ? 'bg-[#2A2118] text-white'
-                    : 'bg-white text-[#5C4A3A] border border-[#EDE6D8] hover:border-[#A0452E]'
+                    : 'bg-white text-text border border-rule hover:border-terracotta'
                 }`}
               >
                 {f.label}
@@ -139,11 +139,11 @@ export default async function AdminOrdersPage({
             name="q"
             defaultValue={q}
             placeholder="주문번호 또는 이름"
-            className="px-3 py-1.5 rounded-full text-xs bg-white border border-[#EDE6D8] focus:outline-none focus:border-[#A0452E] w-52"
+            className="px-3 py-1.5 rounded-full text-xs bg-white border border-rule focus:outline-none focus:border-terracotta w-52"
           />
           <button
             type="submit"
-            className="px-4 py-1.5 rounded-full text-xs font-semibold bg-[#A0452E] text-white hover:bg-[#8A3822] transition"
+            className="px-4 py-1.5 rounded-full text-xs font-semibold bg-terracotta text-white hover:bg-[#8A3822] transition"
           >
             검색
           </button>
@@ -151,18 +151,18 @@ export default async function AdminOrdersPage({
       </div>
 
       {/* 주문 테이블 */}
-      <div className="p-6 rounded-2xl bg-white border border-[#EDE6D8]">
+      <div className="p-6 rounded-2xl bg-white border border-rule">
         {error ? (
-          <p className="text-[#B83A2E] text-sm">에러: {error.message}</p>
+          <p className="text-sale text-sm">에러: {error.message}</p>
         ) : !orders || orders.length === 0 ? (
-          <p className="text-center text-sm text-[#8A7668] py-10">
+          <p className="text-center text-sm text-muted py-10">
             조건에 맞는 주문이 없어요
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-[#8A7668] border-b border-[#EDE6D8]">
+                <tr className="text-[11px] text-muted border-b border-rule">
                   <th className="text-left py-2 font-medium">주문번호</th>
                   <th className="text-left py-2 font-medium">주문자</th>
                   <th className="text-left py-2 font-medium">연락처</th>
@@ -178,16 +178,16 @@ export default async function AdminOrdersPage({
                   return (
                     <tr
                       key={o.id}
-                      className="border-b border-[#F5F0E6] hover:bg-[#F5F0E6] transition"
+                      className="border-b border-bg hover:bg-bg transition"
                     >
-                      <td className="py-3 font-mono text-[11px] text-[#2A2118]">
+                      <td className="py-3 font-mono text-[11px] text-ink">
                         {o.order_number}
                       </td>
-                      <td className="py-3 text-[#2A2118]">{o.recipient_name}</td>
-                      <td className="py-3 text-[11px] text-[#5C4A3A]">
+                      <td className="py-3 text-ink">{o.recipient_name}</td>
+                      <td className="py-3 text-[11px] text-text">
                         {o.recipient_phone}
                       </td>
-                      <td className="py-3 text-right font-semibold text-[#2A2118]">
+                      <td className="py-3 text-right font-semibold text-ink">
                         {o.total_amount.toLocaleString()}원
                       </td>
                       <td className="py-3 text-center">
@@ -197,13 +197,13 @@ export default async function AdminOrdersPage({
                           {badge.label}
                         </span>
                       </td>
-                      <td className="py-3 text-right text-[11px] text-[#8A7668]">
+                      <td className="py-3 text-right text-[11px] text-muted">
                         {formatDate(o.created_at)}
                       </td>
                       <td className="py-3 text-center">
                         <Link
                           href={`/admin/orders/${o.id}`}
-                          className="text-[11px] text-[#A0452E] hover:underline font-semibold"
+                          className="text-[11px] text-terracotta hover:underline font-semibold"
                         >
                           상세 →
                         </Link>

@@ -184,8 +184,8 @@ export default function ProductForm({
           </Field>
           {form.image_url && (
             <div className="mt-2">
-              <p className="text-[10px] text-[#8A7668] mb-1">미리보기</p>
-              <div className="w-32 h-32 rounded-lg bg-[#F5F0E6] overflow-hidden">
+              <p className="text-[10px] text-muted mb-1">미리보기</p>
+              <div className="w-32 h-32 rounded-lg bg-bg overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={form.image_url}
@@ -260,22 +260,22 @@ export default function ProductForm({
             />
           </Field>
 
-          <label className="flex items-center gap-2 text-sm text-[#2A2118] cursor-pointer pt-2">
+          <label className="flex items-center gap-2 text-sm text-ink cursor-pointer pt-2">
             <input
               type="checkbox"
               checked={form.is_active}
               onChange={(e) => update('is_active', e.target.checked)}
-              className="accent-[#A0452E] w-4 h-4"
+              className="accent-terracotta w-4 h-4"
             />
             활성화 (판매 중)
           </label>
 
-          <label className="flex items-center gap-2 text-sm text-[#2A2118] cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-ink cursor-pointer">
             <input
               type="checkbox"
               checked={form.is_subscribable}
               onChange={(e) => update('is_subscribable', e.target.checked)}
-              className="accent-[#A0452E] w-4 h-4"
+              className="accent-terracotta w-4 h-4"
             />
             정기배송 가능
           </label>
@@ -285,7 +285,7 @@ export default function ProductForm({
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-full bg-[#A0452E] text-white text-sm font-semibold hover:bg-[#8A3822] transition disabled:opacity-50"
+            className="w-full py-3 rounded-full bg-terracotta text-white text-sm font-semibold hover:bg-[#8A3822] transition disabled:opacity-50"
           >
             {loading ? '저장 중...' : mode === 'create' ? '등록하기' : '저장하기'}
           </button>
@@ -295,7 +295,7 @@ export default function ProductForm({
               type="button"
               onClick={handleDelete}
               disabled={loading}
-              className="w-full py-3 rounded-full bg-white text-[#B83A2E] border border-[#B83A2E]/40 text-xs font-semibold hover:border-[#B83A2E] transition disabled:opacity-50"
+              className="w-full py-3 rounded-full bg-white text-sale border border-sale/40 text-xs font-semibold hover:border-sale transition disabled:opacity-50"
             >
               삭제
             </button>
@@ -307,7 +307,7 @@ export default function ProductForm({
 }
 
 const inputClass =
-  'w-full px-3 py-2 rounded-lg bg-[#F5F0E6] text-sm text-[#2A2118] placeholder:text-[#8A7668] focus:outline-none focus:ring-2 focus:ring-[#A0452E]'
+  'w-full px-3 py-2 rounded-lg bg-bg text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta'
 
 function Section({
   title,
@@ -317,8 +317,8 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="p-5 rounded-2xl bg-white border border-[#EDE6D8]">
-      <h2 className="text-sm font-bold text-[#2A2118] mb-3">{title}</h2>
+    <section className="p-5 rounded-2xl bg-white border border-rule">
+      <h2 className="text-sm font-bold text-ink mb-3">{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>
   )
@@ -333,7 +333,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold text-[#5C4A3A] mb-1">
+      <label className="block text-[11px] font-semibold text-text mb-1">
         {label}
       </label>
       {children}

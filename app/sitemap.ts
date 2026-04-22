@@ -1,0 +1,151 @@
+import type { MetadataRoute } from 'next'
+import { createClient } from '@/lib/supabase/server'
+
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.vercel.app'
+
+export const revalidate = 3600 // 1시간마다 재생성
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const now = new Date()
+
+  // 정적 페이지
+  const staticRoutes: MetadataRoute.Sitemap = [
+    {
+      url: `${siteUrl}/`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 1.0,
+    },
+    {
+      url: `${siteUrl}/products`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/blog`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
+    // 에디토리얼 마케팅 서브루트 — 브랜드 이야기 · 정기배송 플랜.
+    // 랜딩과 함께 서치 인덱싱이 필요한 공개 페이지.
+    {
+      url: `${siteUrl}/about`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${siteUrl}/plans`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${siteUrl}/login`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: `${siteUrl}/signup`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    // 법정 필수 표기 페이지 — 검색엔진이 찾을 수 있게 포함.
+    // 변경 빈도 낮고 우선순위도 낮지만 크롤됐다는 사실이 App Store /
+    // 규제기관 관점에서 "공개했다"의 증거가 된다.
+    {
+      url: `${siteUrl}/business`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: `${siteUrl}/legal/terms`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: `${siteUrl}/legal/privacy`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: `${siteUrl}/legal/refund`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+  ]
+
+  // 동적 페이지 — Supabase fetch 실패해도 정적만 리턴 (sitemap은 절대
+  // 500을 던지면 안 됨. 검색엔진이 인덱싱을 포기함).
+  try {
+    const supabase = await createClient()
+
+    // 병렬로 products + blog posts + blog categories 쿼리
+    const [{ data: products }, { data: posts }, { data: categories }] =
+      await Promise.all([
+        supabase
+          .from('products')
+          .select('slug, updated_at')
+          .eq('is_active', true),
+        supabase
+          .from('blog_posts')
+          .select('slug, updated_at, published_at')
+          .eq('is_published', true),
+        supabase
+          .from('blog_categories')
+          .select('slug'),
+      ])
+
+    const productRoutes: MetadataRoute.Sitemap = (products ?? []).map((p) => ({
+      url: `${siteUrl}/products/${p.slug}`,
+      lastModified: p.updated_at ? new Date(p.updated_at) : now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }))
+
+    const postRoutes: MetadataRoute.Sitemap = (posts ?? []).map((p) => ({
+      url: `${siteUrl}/blog/${p.slug}`,
+      // updated_at은 수정 시각, published_at은 게시 시각 — 둘 중 최신
+      // (수정이 없었으면 published_at이 곧 lastmod)
+      lastModified: new Date(
+        Math.max(
+          p.updated_at ? new Date(p.updated_at).getTime() : 0,
+          p.published_at ? new Date(p.published_at).getTime() : 0,
+          0
+        ) || now.getTime()
+      ),
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    }))
+
+    // /blog?category=slug 는 쿼리 파라미터 기반이라 검색엔진 인덱싱
+    // 가치가 낮음. 그래도 브랜치 페이지 하나로 카운트는 해줌 —
+    // `changeFrequency: daily`로 너무 자주 재방문하지 않도록 주간으로.
+    const categoryRoutes: MetadataRoute.Sitemap = (categories ?? []).map(
+      (c) => ({
+        url: `${siteUrl}/blog?category=${c.slug}`,
+        lastModified: now,
+        changeFrequency: 'weekly' as const,
+        priority: 0.5,
+      })
+    )
+
+    return [
+      ...staticRoutes,
+      ...productRoutes,
+      ...postRoutes,
+      ...categoryRoutes,
+    ]
+  } catch {
+    return staticRoutes
+  }
+}
