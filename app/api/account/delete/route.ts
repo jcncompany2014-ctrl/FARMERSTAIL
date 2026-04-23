@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { appendLedger } from '@/lib/commerce/points'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -130,15 +131,20 @@ export async function POST(req: Request) {
   ])
 
   // 4) Log the reason for churn analysis (optional; best-effort).
+  //    delta=0 인 "메모성" ledger 엔트리. appendLedger 는 balance_after 를
+  //    현재 잔액 그대로 다시 적어 주므로, 탈퇴 이전 잔액이 보존된다.
   if (body.reason && body.reason.trim()) {
-    await admin.from('point_ledger').insert({
-      user_id: user.id,
-      delta: 0,
-      balance_after: 0,
-      reason: `탈퇴: ${body.reason.trim().slice(0, 200)}`,
-      reference_type: 'account_deletion',
-      reference_id: null,
-    }).then(() => {/* noop */}, () => {/* swallow — not critical */})
+    try {
+      await appendLedger(admin, {
+        userId: user.id,
+        delta: 0,
+        reason: `탈퇴: ${body.reason.trim().slice(0, 200)}`,
+        referenceType: 'account_deletion',
+        referenceId: null,
+      })
+    } catch {
+      /* swallow — churn 로그는 critical 아님 */
+    }
   }
 
   // 5) Soft-delete the auth user. This keeps auth.users.id valid so

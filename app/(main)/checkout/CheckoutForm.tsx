@@ -6,7 +6,12 @@ import { loadTossPayments, ANONYMOUS } from '@tosspayments/tosspayments-sdk'
 import { ShoppingBag, Ticket, Coins, Check, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import AddressSearch from '@/components/AddressSearch'
-import { validateCoupon, type Coupon } from '@/lib/coupons'
+import {
+  validateCoupon,
+  applyCouponRedemption,
+  type Coupon,
+} from '@/lib/coupons'
+import { debitPoints } from '@/lib/commerce/points'
 import { trackBeginCheckout } from '@/lib/analytics'
 import { calculateShipping, shippingLabel } from '@/lib/commerce/shipping'
 
@@ -238,28 +243,24 @@ export default function CheckoutForm({
         throw new Error(orderError?.message ?? '주문 생성 실패')
       }
 
-      // Record coupon redemption + bump usage count
+      // Record coupon redemption + bump usage count (lib/coupons로 일원화).
       if (couponApplied) {
-        await supabase.from('coupon_redemptions').insert({
-          coupon_id: couponApplied.coupon.id,
-          user_id: userId,
-          order_id: order.id,
+        await applyCouponRedemption(supabase, {
+          coupon: couponApplied.coupon,
+          userId,
+          orderId: order.id,
         })
-        await supabase
-          .from('coupons')
-          .update({ used_count: couponApplied.coupon.used_count + 1 })
-          .eq('id', couponApplied.coupon.id)
       }
 
-      // Deduct points immediately at order creation (refund via order cancellation)
+      // 주문 생성 시점에 바로 포인트 차감 — 취소 시 환급은 cancel route에서.
+      // debitPoints 는 balance 재확인 + 음수 금액 방어가 포함돼 있음.
       if (effectivePointsUsed > 0) {
-        await supabase.from('point_ledger').insert({
-          user_id: userId,
-          delta: -effectivePointsUsed,
-          balance_after: pointBalance - effectivePointsUsed,
+        await debitPoints(supabase, {
+          userId,
+          amount: effectivePointsUsed,
           reason: '주문 결제 포인트 사용',
-          reference_type: 'order',
-          reference_id: order.id,
+          referenceType: 'order',
+          referenceId: order.id,
         })
       }
 

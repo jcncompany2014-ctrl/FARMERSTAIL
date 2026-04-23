@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
+import { creditPoints } from '@/lib/commerce/points'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -182,7 +183,8 @@ export async function POST(req: Request) {
         .eq('id', order.id)
 
       // Award points if the order has earn amount and we haven't credited yet.
-      // We check via reference_id+type rather than storing a bool.
+      // 멱등성 체크: 같은 주문의 같은 delta 적립 row가 있으면 스킵 —
+      // Toss가 중복 웹훅을 보낼 수 있어서 (동일 eventId, 재시도 등).
       if (order.points_earned && order.points_earned > 0) {
         const { data: already } = await supabase
           .from('point_ledger')
@@ -192,21 +194,12 @@ export async function POST(req: Request) {
           .eq('delta', order.points_earned)
           .maybeSingle()
         if (!already) {
-          const { data: last } = await supabase
-            .from('point_ledger')
-            .select('balance_after')
-            .eq('user_id', order.user_id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          const prev = last?.balance_after ?? 0
-          await supabase.from('point_ledger').insert({
-            user_id: order.user_id,
-            delta: order.points_earned,
-            balance_after: prev + order.points_earned,
+          await creditPoints(supabase, {
+            userId: order.user_id,
+            amount: order.points_earned,
             reason: '주문 결제 적립 (웹훅)',
-            reference_type: 'order',
-            reference_id: order.id,
+            referenceType: 'order',
+            referenceId: order.id,
           })
         }
       }

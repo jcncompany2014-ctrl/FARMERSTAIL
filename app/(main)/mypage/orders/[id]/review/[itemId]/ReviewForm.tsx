@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Star, ShoppingBag, Loader2, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { creditPoints } from '@/lib/commerce/points'
 
 type Dog = { id: string; name: string }
 
@@ -75,22 +76,13 @@ export default function ReviewForm({
       return
     }
 
-    // Award points (ledger) — balance_after is cumulative sum of deltas
-    const { data: ledger } = await supabase
-      .from('point_ledger')
-      .select('balance_after')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    const prev = ledger?.balance_after ?? 0
-    await supabase.from('point_ledger').insert({
-      user_id: user.id,
-      delta: REVIEW_POINT_REWARD,
-      balance_after: prev + REVIEW_POINT_REWARD,
+    // 리뷰 작성 적립 — lib/commerce/points 로 일원화.
+    await creditPoints(supabase, {
+      userId: user.id,
+      amount: REVIEW_POINT_REWARD,
       reason: '리뷰 작성 적립',
-      reference_type: 'review',
-      reference_id: review.id,
+      referenceType: 'review',
+      referenceId: review.id,
     })
 
     setSuccess(true)

@@ -5,6 +5,8 @@ import {
   isOrderStatus,
   isPaymentStatus,
 } from '@/lib/commerce/order-fsm'
+import { creditPoints, appendLedger } from '@/lib/commerce/points'
+import { revokeCouponRedemption } from '@/lib/coupons'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -135,52 +137,31 @@ export async function POST(
     .eq('id', order.id)
     .eq('user_id', user.id)
 
-  // Helper: append ledger entry computing balance_after from latest
-  async function appendLedger(
-    delta: number,
-    reason: string,
-    refType = 'order'
-  ) {
-    const { data: last } = await supabase
-      .from('point_ledger')
-      .select('balance_after')
-      .eq('user_id', user!.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    const prev = last?.balance_after ?? 0
-    await supabase.from('point_ledger').insert({
-      user_id: user!.id,
-      delta,
-      balance_after: prev + delta,
-      reason,
-      reference_type: refType,
-      reference_id: order!.id,
+  // 3) Refund used points — appendLedger 헬퍼로 일원화.
+  if (order.points_used > 0) {
+    await creditPoints(supabase, {
+      userId: user.id,
+      amount: order.points_used,
+      reason: '주문 취소 포인트 환급',
+      referenceType: 'order_refund',
+      referenceId: order.id,
+    })
+  }
+  // 4) Revoke earned points (only if they were actually credited — paid orders).
+  //    음수 delta를 직접 넣어야 하므로 creditPoints/debitPoints 대신 appendLedger.
+  if (order.points_earned > 0 && order.payment_status !== 'pending') {
+    await appendLedger(supabase, {
+      userId: user.id,
+      delta: -order.points_earned,
+      reason: '주문 취소 적립 회수',
+      referenceType: 'order_refund',
+      referenceId: order.id,
     })
   }
 
-  // 3) Refund used points
-  if (order.points_used > 0) {
-    await appendLedger(order.points_used, '주문 취소 포인트 환급')
-  }
-  // 4) Revoke earned points (only if they were actually credited — paid orders)
-  if (order.points_earned > 0 && order.payment_status !== 'pending') {
-    await appendLedger(-order.points_earned, '주문 취소 적립 회수')
-  }
-
-  // 5) Decrement coupon usage
+  // 5) Decrement coupon usage — redemption 행은 감사 목적으로 보존.
   if (order.coupon_code) {
-    const { data: coupon } = await supabase
-      .from('coupons')
-      .select('id, used_count')
-      .eq('code', order.coupon_code)
-      .maybeSingle()
-    if (coupon) {
-      await supabase
-        .from('coupons')
-        .update({ used_count: Math.max(0, coupon.used_count - 1) })
-        .eq('id', coupon.id)
-    }
+    await revokeCouponRedemption(supabase, { couponCode: order.coupon_code })
   }
 
   return NextResponse.json({ ok: true })

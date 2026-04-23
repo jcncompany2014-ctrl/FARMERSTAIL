@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { pushToUser } from '@/lib/push'
+import { creditPoints } from '@/lib/commerce/points'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -148,21 +149,12 @@ export async function POST(req: Request) {
 
   // 5) 포인트 적립 — 실제 결제 완료(DONE)일 때만. 가상계좌는 입금 웹훅에서 처리.
   if (isActuallyPaid && order.points_earned && order.points_earned > 0) {
-    const { data: lastLedger } = await supabase
-      .from('point_ledger')
-      .select('balance_after')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    const prev = lastLedger?.balance_after ?? 0
-    await supabase.from('point_ledger').insert({
-      user_id: user.id,
-      delta: order.points_earned,
-      balance_after: prev + order.points_earned,
+    await creditPoints(supabase, {
+      userId: user.id,
+      amount: order.points_earned,
       reason: '주문 결제 적립',
-      reference_type: 'order',
-      reference_id: order.id,
+      referenceType: 'order',
+      referenceId: order.id,
     })
   }
 
