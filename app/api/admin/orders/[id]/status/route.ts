@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { pushToUser } from '@/lib/push'
 import { isAdmin } from '@/lib/auth/admin'
+import {
+  canTransitionOrderStatus,
+  isOrderStatus,
+  ORDER_STATUS_LABEL,
+  isPaymentStatus,
+  type OrderStatus,
+} from '@/lib/commerce/order-fsm'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -9,19 +16,10 @@ export const dynamic = 'force-dynamic'
 type Params = Promise<{ id: string }>
 
 type TransitionBody = {
-  orderStatus: 'preparing' | 'shipping' | 'delivered' | 'cancelled'
+  orderStatus: OrderStatus
   carrier?: string | null
   trackingNumber?: string | null
   reason?: string | null
-}
-
-const VALID_STATUSES = new Set(['preparing', 'shipping', 'delivered', 'cancelled'])
-
-const STATUS_LABEL_KO: Record<string, string> = {
-  preparing: '준비 중',
-  shipping: '배송 중',
-  delivered: '배송 완료',
-  cancelled: '주문 취소',
 }
 
 const CARRIER_LABEL_KO: Record<string, string> = {
@@ -57,7 +55,9 @@ export async function POST(
 
   const { orderStatus, carrier, trackingNumber, reason } = body
 
-  if (!orderStatus || !VALID_STATUSES.has(orderStatus)) {
+  // 'pending' 도 FSM 상태이긴 하지만 관리자가 수동으로 pending 으로 되돌리는 경우는 없음.
+  // 허용 범위는 FSM이 canTransition으로 자동 거부하므로 여기서는 enum만 검증.
+  if (!isOrderStatus(orderStatus)) {
     return NextResponse.json(
       { code: 'INVALID_STATUS', message: '올바르지 않은 상태값입니다' },
       { status: 400 }
@@ -101,27 +101,22 @@ export async function POST(
     )
   }
 
-  // 3) 전환 가드 — cancelled/delivered로 끝난 주문은 일반 관리자가 되돌릴 수 없음
-  if (order.order_status === 'cancelled' && orderStatus !== 'cancelled') {
+  // 3) 전환 가드 — FSM에 일임. delivered/cancelled terminal, 결제 미완 가드 등
+  //    모든 규칙이 canTransitionOrderStatus 안에 있음.
+  if (!isOrderStatus(order.order_status) || !isPaymentStatus(order.payment_status)) {
     return NextResponse.json(
-      {
-        code: 'ALREADY_CANCELLED',
-        message: '취소된 주문은 다시 활성화할 수 없습니다',
-      },
-      { status: 400 }
+      { code: 'INVALID_DB_STATE', message: '주문 상태가 손상돼 있어요' },
+      { status: 500 }
     )
   }
 
-  // 배송·완료는 결제가 끝난 주문에만 허용
-  if (
-    (orderStatus === 'shipping' || orderStatus === 'delivered') &&
-    order.payment_status !== 'paid'
-  ) {
+  const transition = canTransitionOrderStatus(order.order_status, orderStatus, {
+    payment_status: order.payment_status,
+    actor: 'admin',
+  })
+  if (!transition.ok) {
     return NextResponse.json(
-      {
-        code: 'NOT_PAID',
-        message: '결제가 완료되지 않은 주문은 발송/완료 처리할 수 없어요',
-      },
+      { code: 'INVALID_TRANSITION', message: transition.reason },
       { status: 400 }
     )
   }
@@ -199,6 +194,6 @@ export async function POST(
   return NextResponse.json({
     ok: true,
     orderStatus,
-    label: STATUS_LABEL_KO[orderStatus] ?? orderStatus,
+    label: ORDER_STATUS_LABEL[orderStatus] ?? orderStatus,
   })
 }

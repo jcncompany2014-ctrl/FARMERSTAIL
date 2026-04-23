@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import {
+  canTransitionOrderStatus,
+  isOrderStatus,
+  isPaymentStatus,
+} from '@/lib/commerce/order-fsm'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -61,12 +66,20 @@ export async function POST(
     )
   }
 
-  if (['shipping', 'delivered', 'cancelled'].includes(order.order_status)) {
+  // FSM에 고객 취소 전환 가능 여부를 위임. 규칙: pending/preparing 에서만 허용.
+  if (!isOrderStatus(order.order_status) || !isPaymentStatus(order.payment_status)) {
     return NextResponse.json(
-      {
-        code: 'NOT_CANCELLABLE',
-        message: '이미 배송이 시작되었거나 취소된 주문이에요',
-      },
+      { code: 'INVALID_DB_STATE', message: '주문 상태가 손상돼 있어요' },
+      { status: 500 }
+    )
+  }
+  const transition = canTransitionOrderStatus(order.order_status, 'cancelled', {
+    payment_status: order.payment_status,
+    actor: 'customer',
+  })
+  if (!transition.ok) {
+    return NextResponse.json(
+      { code: 'NOT_CANCELLABLE', message: transition.reason },
       { status: 400 }
     )
   }
