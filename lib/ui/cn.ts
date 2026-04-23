@@ -8,10 +8,29 @@
  *
  * 규칙:
  *   - 문자열/undefined/false/null을 받아서 truthy 것만 공백으로 join.
+ *   - `as const` 튜플 (readonly string[])도 받는다 — base 클래스 목록을 배열
+ *     상수로 두고 재사용하는 흔한 패턴을 지원.
  *   - 중복 공백은 한 번만 정리.
  */
-export function cn(
-  ...classes: Array<string | false | null | undefined>
-): string {
-  return classes.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
+type ClassValue =
+  | string
+  | false
+  | null
+  | undefined
+  | readonly ClassValue[]
+
+function flatten(input: ClassValue): string {
+  if (!input) return ''
+  if (typeof input === 'string') return input
+  // readonly array
+  return input.map(flatten).filter(Boolean).join(' ')
+}
+
+export function cn(...classes: ClassValue[]): string {
+  return classes
+    .map(flatten)
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }

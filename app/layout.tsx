@@ -6,6 +6,10 @@ import {
   JetBrains_Mono,
 } from "next/font/google";
 import "./globals.css";
+// Side-effect import — zod의 기본 에러 메시지를 ko locale로 교체.
+// layout이 모든 요청 진입점에서 평가되므로 이 한 줄이면 서버/클라이언트 양쪽에
+// 적용된다 (같은 모듈 그래프).
+import "@/lib/forms/zod-ko";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import AnalyticsScripts from "@/components/AnalyticsScripts";
 import OnboardingGate from "@/components/OnboardingGate";
