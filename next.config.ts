@@ -1,6 +1,70 @@
 import type { NextConfig } from 'next'
 import { withSentryConfig } from '@sentry/nextjs'
 
+/**
+ * 보안 헤더.
+ *
+ * OWASP 기본 + Next.js 16 호환 세트. 특히 다음을 고려:
+ *
+ * - CSP는 **지금 당장 전면 적용은 하지 않는다**. 이유:
+ *   1) Next dev/HMR이 `'unsafe-eval'` 필요 + dynamic import가 inline script
+ *      hash를 쓰는데 매 빌드마다 해시가 바뀌어 유지비 큼
+ *   2) Sentry tunnelRoute(/monitoring), Toss Payments iframe, Daum 우편번호,
+ *      GA/Meta Pixel, 카카오 스크립트 등 3rd party 다수 → 느슨하게 시작해서
+ *      Report-Only 모드로 로그 모으며 점진적으로 조임
+ *   현재는 `frame-ancestors` / `object-src` 같은 저위험·고효과만 설정하고
+ *   본격 CSP는 Step 30 이후(쿠키 동의/법적 이슈 정돈된 뒤) 다시 손댄다.
+ *
+ * - HSTS: Vercel이 프로덕션에서 자동으로 붙여주지만, 미래 셀프호스팅 대비
+ *   명시적으로 박아둠. `includeSubDomains` + `preload`까지 붙이면 취소가
+ *   어려우니 1년 + includeSubDomains만, preload는 보류.
+ *
+ * - Permissions-Policy: 카메라(강아지 사진)·위치(매장찾기 미래)·마이크 등은
+ *   앱이 명시 요청할 때만 허용. 기본은 전부 차단해서 3rd-party iframe이
+ *   몰래 권한 요청 못 하게.
+ */
+const securityHeaders = [
+  {
+    // 옛 브라우저에서 `X-Frame-Options` 인식. 최신 브라우저는 CSP
+    // `frame-ancestors`가 이기지만 둘 다 박아두는 게 관행.
+    key: 'X-Frame-Options',
+    value: 'SAMEORIGIN',
+  },
+  {
+    // Clickjacking 방어의 최신 표준. 같은 오리진만 이 사이트를 frame에
+    // 넣을 수 있음. Toss/Daum은 반대 방향(우리가 그들 걸 frame)이라 영향 없음.
+    key: 'Content-Security-Policy',
+    value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'",
+  },
+  {
+    key: 'X-Content-Type-Options',
+    value: 'nosniff',
+  },
+  {
+    key: 'Referrer-Policy',
+    // 다른 사이트로 이동할 때 origin만 보내고 path/query는 숨김. SEO 영향 無.
+    value: 'strict-origin-when-cross-origin',
+  },
+  {
+    key: 'Strict-Transport-Security',
+    // 1년. preload는 안전성 확인 뒤 추가.
+    value: 'max-age=31536000; includeSubDomains',
+  },
+  {
+    key: 'X-DNS-Prefetch-Control',
+    value: 'on',
+  },
+  {
+    key: 'Permissions-Policy',
+    // 기본 전부 차단. 필요해지면 개별 API route/페이지 수준에서 풀어줌.
+    // 주의: `self`에도 적용됨 → DogPhotoPicker가 카메라 쓴다면 여기서 'self'
+    // 허용 필요. 현재는 파일 업로드 방식이라 전면 차단 유지.
+    value:
+      'camera=(), microphone=(), geolocation=(), payment=(self), ' +
+      'interest-cohort=()',
+  },
+]
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -10,6 +74,15 @@ const nextConfig: NextConfig = {
         pathname: '/storage/v1/object/public/**',
       },
     ],
+  },
+  async headers() {
+    return [
+      {
+        // 모든 경로에 보안 헤더 적용.
+        source: '/:path*',
+        headers: securityHeaders,
+      },
+    ]
   },
 }
 
