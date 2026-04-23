@@ -11,6 +11,11 @@
 import * as Sentry from '@sentry/nextjs'
 
 export async function register() {
+  // 환경변수 검증을 가장 먼저. 필수 키 누락 시 여기서 throw → 서버 부팅
+  // 자체가 실패하므로 "반쯤 깨진 앱"이 프로덕션에 뜨는 일을 막는다.
+  // 이 import는 side-effect 실행 — 모듈 top-level에서 schema.parse가 돈다.
+  await import('./lib/env')
+
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     await import('./sentry.server.config')
   }
