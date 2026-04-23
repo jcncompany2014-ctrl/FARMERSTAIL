@@ -15,6 +15,10 @@ Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   environment: process.env.NODE_ENV,
   enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
+  // 커밋 SHA로 release 태깅 — Vercel이 NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA로
+  // 공개 접근 가능한 형태로 inline 해준다 (빌드 타임). 클라이언트에서 환경
+  // 변수를 읽어야 하므로 NEXT_PUBLIC_ 접두사 필요.
+  release: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA,
   // 브라우저 세션 기반 트랜잭션 샘플링. 0.1은 1시간 1000 page view 기준
   // ~100 transaction — 무료 한도 안에서 병목 추적에 충분.
   tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
