@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import AddressSearch from '@/components/AddressSearch'
 import { validateCoupon, type Coupon } from '@/lib/coupons'
 import { trackBeginCheckout } from '@/lib/analytics'
+import { calculateShipping, shippingLabel } from '@/lib/commerce/shipping'
 
 type OrderItem = {
   productId: string
@@ -30,7 +31,9 @@ type Props = {
   }
   orderItems: OrderItem[]
   subtotal: number
-  shippingFee: number
+  /** 서버측 초기 배송비 — 실제 표기/결제는 zip 변경에 따라 클라이언트가 재계산. */
+  shippingFee?: number
+  /** 서버측 초기 total — begin_checkout 이벤트 용. 결제 금액은 재계산. */
   total: number
   pointBalance: number
 }
@@ -52,7 +55,6 @@ export default function CheckoutForm({
   defaultProfile,
   orderItems,
   subtotal,
-  shippingFee,
   total: baseTotal,
   pointBalance,
 }: Props) {
@@ -94,7 +96,7 @@ export default function CheckoutForm({
         quantity: it.quantity,
       })),
     })
-    // orderItems는 props라 이 컴포넌트 수명 동안 안정 — 마운트 1회로 충분.
+    // orderItems/baseTotal은 props라 이 컴포넌트 수명 동안 안정 — 마운트 1회로 충분.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -122,9 +124,18 @@ export default function CheckoutForm({
   const effectivePointsUsed =
     usePoints > maxPointsUsable ? maxPointsUsable : usePoints
 
+  // 주소의 zip이 바뀔 때마다 배송비 재계산. baseTotal prop은 서버 초기값이라
+  // 무시하고 여기서 subtotal + dynamicShipping.total로 다시 만든다.
+  const dynamicShipping = useMemo(
+    () => calculateShipping({ subtotal, zip }),
+    [subtotal, zip],
+  )
+  const currentShippingFee = dynamicShipping.total
+  const currentBaseTotal = subtotal + currentShippingFee
+
   const total = Math.max(
     0,
-    baseTotal - couponDiscount - effectivePointsUsed
+    currentBaseTotal - couponDiscount - effectivePointsUsed
   )
 
   async function applyCoupon() {
@@ -201,7 +212,7 @@ export default function CheckoutForm({
           user_id: userId,
           order_number: orderNumber,
           subtotal,
-          shipping_fee: shippingFee,
+          shipping_fee: currentShippingFee,
           total_amount: total,
           discount_amount: couponDiscount,
           coupon_code: couponApplied?.coupon.code ?? null,
@@ -699,9 +710,14 @@ export default function CheckoutForm({
         <div className="flex justify-between text-[12px] text-text mt-2">
           <span>배송비</span>
           <span className="font-bold text-text">
-            {shippingFee === 0 ? '무료' : `${shippingFee.toLocaleString()}원`}
+            {shippingLabel(dynamicShipping)}
           </span>
         </div>
+        {dynamicShipping.isRemote && (
+          <p className="text-[10px] text-muted mt-0.5">
+            도서산간 추가 배송비가 포함된 금액이에요
+          </p>
+        )}
         {couponDiscount > 0 && (
           <div className="flex justify-between text-[12px] mt-2">
             <span className="text-terracotta">쿠폰 할인</span>

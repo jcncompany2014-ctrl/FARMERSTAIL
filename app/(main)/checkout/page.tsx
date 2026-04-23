@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ShoppingCart, AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { stockState, maxOrderable } from '@/lib/products/stock'
+import { calculateShipping } from '@/lib/commerce/shipping'
 import CheckoutForm from './CheckoutForm'
 
 export const dynamic = 'force-dynamic'
@@ -245,7 +246,13 @@ export default async function CheckoutPage() {
     const price = r.product.sale_price ?? r.product.price
     return sum + price * r.quantity
   }, 0)
-  const shippingFee = subtotal >= 30000 ? 0 : 3000
+  // 서버측 배송비는 profile zip 기반으로 초기값 산출. 사용자가 결제 화면에서
+  // 주소를 바꾸면 CheckoutForm이 클라이언트측 calculateShipping으로 재계산.
+  const initialShipping = calculateShipping({
+    subtotal,
+    zip: profile?.zip ?? null,
+  })
+  const shippingFee = initialShipping.total
   const total = subtotal + shippingFee
 
   const orderItems = rows.map((r) => ({

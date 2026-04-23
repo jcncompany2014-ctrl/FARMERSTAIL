@@ -3,6 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShoppingCart, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import {
+  calculateShipping,
+  FREE_SHIPPING_THRESHOLD,
+} from "@/lib/commerce/shipping";
 import CartList from "./CartList";
 
 export const dynamic = "force-dynamic";
@@ -74,7 +78,11 @@ export default async function CartPage() {
     return sum + price * r.quantity;
   }, 0);
 
-  const shipping = subtotal === 0 ? 0 : subtotal >= 30000 ? 0 : 3000;
+  // cart 단계에서는 배송지를 아직 모르니 도서산간 추가금은 계산 못함. 결제 직전
+  // (CheckoutForm) 에서 zip이 입력되면 거기서 최종 확정. 여기서는 일반 지역
+  // 기준 표시만 한다 — 사용자가 "무료배송까지 얼마 남았나"를 알 수 있으면 충분.
+  const shippingBreakdown = calculateShipping({ subtotal });
+  const shipping = shippingBreakdown.total;
   const total = subtotal + shipping;
 
   return (
@@ -169,9 +177,9 @@ export default async function CartPage() {
                     : `${shipping.toLocaleString()}원`}
                 </span>
               </div>
-              {shipping > 0 && (
+              {shippingBreakdown.remainingToFree > 0 && (
                 <p className="text-[10px] text-muted mt-1.5">
-                  {(30000 - subtotal).toLocaleString()}원 더 담으면 무료배송
+                  {shippingBreakdown.remainingToFree.toLocaleString()}원 더 담으면 무료배송
                 </p>
               )}
               <div className="border-t border-rule my-3" />
@@ -201,7 +209,7 @@ export default async function CartPage() {
           </section>
 
           {/* 무료배송 프로그레스 */}
-          {shipping > 0 && (
+          {shippingBreakdown.remainingToFree > 0 && (
             <section className="px-5 mt-3">
               <div className="bg-bg rounded-2xl border border-rule px-4 py-3">
                 <div className="flex items-center justify-between text-[11px] text-text">
@@ -210,14 +218,14 @@ export default async function CartPage() {
                     무료배송까지
                   </span>
                   <span className="font-bold text-terracotta">
-                    {(30000 - subtotal).toLocaleString()}원 남음
+                    {shippingBreakdown.remainingToFree.toLocaleString()}원 남음
                   </span>
                 </div>
                 <div className="mt-2 h-1.5 bg-white rounded-full overflow-hidden">
                   <div
                     className="h-full bg-moss rounded-full transition-all"
                     style={{
-                      width: `${Math.min(100, (subtotal / 30000) * 100)}%`,
+                      width: `${Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100)}%`,
                     }}
                   />
                 </div>
