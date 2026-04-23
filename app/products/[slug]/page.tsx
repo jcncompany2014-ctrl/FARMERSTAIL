@@ -23,6 +23,28 @@ const getProduct = cache(async (slug: string) => {
   return data
 })
 
+/**
+ * variant 쿼리는 **별도 분리** — 마이그레이션이 배포 환경에 아직 적용 안 된
+ * 상태에서도 PDP 가 죽지 않게. 테이블 부재/권한 오류는 조용히 빈 배열로 처리.
+ */
+const getVariants = cache(async (productId: string) => {
+  const supabase = await createClient()
+  try {
+    const { data, error } = await supabase
+      .from('product_variants')
+      .select(
+        'id, product_id, sku, name, option_values, price, sale_price, stock, position, is_active'
+      )
+      .eq('product_id', productId)
+      .eq('is_active', true)
+      .order('position', { ascending: true })
+    if (error) return []
+    return data ?? []
+  } catch {
+    return []
+  }
+})
+
 export async function generateMetadata({
   params,
 }: {
@@ -137,5 +159,7 @@ export default async function ProductDetailPage({
     )
   }
 
-  return <ProductDetailClient product={product} />
+  const variants = await getVariants(product.id)
+
+  return <ProductDetailClient product={product} variants={variants} />
 }

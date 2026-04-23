@@ -21,6 +21,14 @@ import ProductReviews from './ProductReviews'
 import { trackAddToCart, trackViewItem } from '@/lib/analytics'
 import { stockState, maxOrderable, stockMessage } from '@/lib/products/stock'
 import { StockBadge, StockOverlay } from '@/components/ui/StockBadge'
+import { VariantSelector } from '@/components/ui/VariantSelector'
+import {
+  type ProductVariant,
+  defaultVariant,
+  effectivePrice,
+  effectiveListPrice,
+  hasSale as variantHasSale,
+} from '@/lib/products/variants'
 
 /**
  * /products/[slug] — 상세 페이지.
@@ -68,8 +76,10 @@ function renderCategoryIcon(category: string | null, size: number) {
 
 export default function ProductDetailClient({
   product,
+  variants = [],
 }: {
   product: Product
+  variants?: ProductVariant[]
 }) {
   const router = useRouter()
   const supabase = createClient()
@@ -78,10 +88,39 @@ export default function ProductDetailClient({
   const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
 
+  // variant 선택 상태 — 초기값은 재고 있는 것 중 첫 번째.
+  const activeVariants = variants.filter((v) => v.is_active)
+  const hasVariants = activeVariants.length > 0
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
+    () => defaultVariant(variants)?.id ?? null
+  )
+  const selectedVariant =
+    activeVariants.find((v) => v.id === selectedVariantId) ?? null
+
+  // variant 변경 시 수량을 1로 reset — variant별 재고 상한이 다르므로 이전
+  // variant의 수량이 새 variant의 qtyMax를 초과할 수 있음. 이벤트 핸들러에서
+  // 직접 처리 (useEffect 내 setState는 cascading render 유발).
+  function handleVariantChange(variantId: string) {
+    setSelectedVariantId(variantId)
+    setQuantity(1)
+  }
+
+  // 유효 가격/재고 — variant가 있으면 variant 값이 우선, 없으면 product 값.
+  const effPrice = selectedVariant
+    ? effectivePrice(selectedVariant, product)
+    : product.sale_price ?? product.price
+  const effListPrice = selectedVariant
+    ? effectiveListPrice(selectedVariant, product)
+    : product.price
+  const effIsSale = selectedVariant
+    ? variantHasSale(selectedVariant, product)
+    : product.sale_price !== null
+  const effStock = selectedVariant ? selectedVariant.stock : product.stock
+
   // 재고 상태 — 'out'이면 CTA 잠금, 'low'면 수량 스텝퍼 상한 & 경고 표시.
-  const stockBucket = stockState(product.stock)
+  const stockBucket = stockState(effStock)
   const isSoldOut = stockBucket === 'out'
-  const qtyMax = maxOrderable(product.stock)
+  const qtyMax = maxOrderable(effStock)
 
   // All product images in display order. Hero first, then gallery. Dedupe in
   // case the admin accidentally added the hero URL to the gallery too.
@@ -182,6 +221,10 @@ export default function ProductDetailClient({
     // 뒤늦게 확인되는 경우)은 PDP reload 혹은 Step 16의 결제 단 재검증이
     // 커버한다.
     if (isSoldOut) return
+    // variant 카탈로그 상품은 반드시 선택되어야 함 — 기본 선택이 있으므로
+    // 여기서 막히는 건 예외 상황이지만 방어.
+    if (hasVariants && !selectedVariant) return
+
     const capped = Math.min(quantity, qtyMax)
     if (capped <= 0) return
     setAdding(true)
@@ -194,12 +237,17 @@ export default function ProductDetailClient({
       return
     }
 
-    const { data: existing } = await supabase
+    // variant가 있으면 (user, product, variant) 튜플 단위, 없으면 (user, product, null).
+    // maybeSingle은 정확히 0 또는 1 개를 기대 — (user_id, product_id, variant_id)
+    // 복합 unique 키로 보장.
+    const existingQuery = supabase
       .from('cart_items')
       .select('id, quantity')
       .eq('user_id', user.id)
       .eq('product_id', product.id)
-      .maybeSingle()
+    const { data: existing } = selectedVariant
+      ? await existingQuery.eq('variant_id', selectedVariant.id).maybeSingle()
+      : await existingQuery.is('variant_id', null).maybeSingle()
 
     // 누적 수량도 qtyMax를 넘지 않게 자른다 — 이미 장바구니에 담긴 수량 +
     // 이번에 담는 수량이 재고를 초과할 수 있음.
@@ -210,15 +258,18 @@ export default function ProductDetailClient({
         .update({ quantity: nextQty })
         .eq('id', existing.id)
     } else {
-      await supabase
-        .from('cart_items')
-        .insert({ user_id: user.id, product_id: product.id, quantity: capped })
+      await supabase.from('cart_items').insert({
+        user_id: user.id,
+        product_id: product.id,
+        variant_id: selectedVariant?.id ?? null,
+        quantity: capped,
+      })
     }
 
     trackAddToCart({
       item_id: product.id,
       item_name: product.name,
-      price: product.sale_price ?? product.price,
+      price: effPrice,
       quantity: capped,
       item_category: product.category ?? undefined,
     })
@@ -228,10 +279,10 @@ export default function ProductDetailClient({
     setTimeout(() => setAdded(false), 2000)
   }
 
-  const displayPrice = product.sale_price ?? product.price
+  const displayPrice = effPrice
   const total = displayPrice * quantity
-  const discount = product.sale_price
-    ? Math.round(((product.price - product.sale_price) / product.price) * 100)
+  const discount = effIsSale
+    ? Math.round(((effListPrice - effPrice) / effListPrice) * 100)
     : 0
   const freeShipping = displayPrice >= 30000
 
@@ -287,8 +338,10 @@ export default function ProductDetailClient({
           </div>
         )}
 
-        {/* 품절 오버레이 — 이미지 전체를 덮는다. in_stock / low 일땐 렌더 안 함. */}
-        <StockOverlay stock={product.stock} />
+        {/* 품절 오버레이 — 이미지 전체를 덮는다. in_stock / low 일땐 렌더 안 함.
+            variant가 있으면 '선택된' variant 기준으로 판정 — 다른 옵션은 살아 있을
+            수 있으니 variant selector가 여전히 가시적이라 UX 상 이상하지 않다. */}
+        <StockOverlay stock={effStock} />
 
         {/* 이미지 인덱스 */}
         {allImages.length > 1 && (
@@ -451,19 +504,19 @@ export default function ProductDetailClient({
           </div>
 
           <div className="flex items-baseline gap-2 flex-wrap">
-            {product.sale_price && (
+            {effIsSale && (
               <span
                 className="text-[12px] line-through"
                 style={{ color: 'var(--muted)' }}
               >
-                {product.price.toLocaleString()}원
+                {effListPrice.toLocaleString()}원
               </span>
             )}
             <span
               className="font-serif font-black leading-none"
               style={{
                 fontSize: 28,
-                color: product.sale_price ? 'var(--sale)' : 'var(--ink)',
+                color: effIsSale ? 'var(--sale)' : 'var(--ink)',
                 letterSpacing: '-0.02em',
               }}
             >
@@ -495,6 +548,37 @@ export default function ProductDetailClient({
             )}
           </div>
         </section>
+
+        {/* ── Options · 옵션 ─────────────── */}
+        {hasVariants && (
+          <section
+            className="rounded-2xl px-5 py-5 mb-3"
+            style={{
+              background: 'var(--bg-2)',
+              boxShadow: 'inset 0 0 0 1px var(--rule)',
+            }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <span className="kicker">Options · 옵션</span>
+              <div
+                className="flex-1 h-px"
+                style={{ background: 'var(--rule-2)' }}
+              />
+            </div>
+            <VariantSelector
+              variants={variants}
+              selectedId={selectedVariantId}
+              parent={{ price: product.price, sale_price: product.sale_price }}
+              onChange={handleVariantChange}
+              layout="tiles"
+            />
+            {selectedVariant && (
+              <p className="mt-3 text-[11px] text-muted">
+                선택: <span className="font-bold text-text">{selectedVariant.name}</span>
+              </p>
+            )}
+          </section>
+        )}
 
         {/* ── Description · 상품 설명 ─────────────── */}
         {product.description && (
@@ -619,13 +703,13 @@ export default function ProductDetailClient({
           {/* 재고 상태 힌트 — CTA 바로 위에 한 줄. out/low일 때만. */}
           {stockBucket !== 'in_stock' && (
             <div className="flex items-center gap-1.5 mb-2 text-[11.5px]">
-              <StockBadge stock={product.stock} placement="inline" showCount />
+              <StockBadge stock={effStock} placement="inline" showCount />
               {stockBucket === 'out' ? (
                 <span className="text-muted">
                   곧 다시 만나요. 재입고 알림으로 소식을 전해 드릴게요.
                 </span>
               ) : (
-                <span className="text-muted">{stockMessage(product.stock)}</span>
+                <span className="text-muted">{stockMessage(effStock)}</span>
               )}
             </div>
           )}
