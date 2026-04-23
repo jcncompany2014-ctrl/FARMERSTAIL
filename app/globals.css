@@ -232,6 +232,21 @@ i,
 }
 
 /* =========================================================================
+   Toast animations — components/ui/Toast.tsx 에서 사용.
+   motion-safe 미디어 쿼리 아래에서만 적용 (Toast.tsx가 motion-safe:animate-*).
+   ========================================================================= */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* =========================================================================
    Phone Frame — Desktop/Tablet PWA container
 
    문제: PWA는 mobile-first로 max-w-md (448px) 칼럼 + 하단 탭바(`fixed bottom-0

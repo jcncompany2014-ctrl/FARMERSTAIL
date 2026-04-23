@@ -9,6 +9,7 @@ import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import AnalyticsScripts from "@/components/AnalyticsScripts";
 import OnboardingGate from "@/components/OnboardingGate";
+import { ToastProvider } from "@/components/ui/Toast";
 
 // Pretendard Variable — 본문 / UI 전체
 const pretendard = localFont({
@@ -162,7 +163,10 @@ export default function RootLayout({
       className={`h-full antialiased ${pretendard.variable} ${notoSerifKR.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-full flex flex-col font-sans">
-        {children}
+        {/* Toast provider — 앱 전체에서 useToast() 가능. viewport는 하단 중앙 */}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
         <ServiceWorkerRegister />
         <AnalyticsScripts />
         {/* First-launch intercept for installed PWAs — see components/OnboardingGate.tsx */}
