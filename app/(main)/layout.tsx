@@ -50,8 +50,10 @@ export default function MainLayout({
   }, [router, supabase, pathname])
 
   if (checking) {
+    // `phone-frame`: 데스크톱에서 AppChrome이 렌더되기 전 로딩 중에도 프레임
+    // 안에 스피너가 있어야 플래시(full-bleed → centered) 안 남는다.
     return (
-      <main className="min-h-screen flex items-center justify-center bg-bg">
+      <main className="phone-frame min-h-screen flex items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
           <div className="text-sm text-muted">로딩 중...</div>
