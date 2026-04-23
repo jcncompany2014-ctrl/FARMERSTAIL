@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isAdmin } from '@/lib/auth/admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -62,7 +63,8 @@ export async function POST(
     )
   }
 
-  // 관리자 권한 확인 — user 컨텍스트(쿠키 세션)로 읽고 role 검증.
+  // 관리자 권한 확인 — JWT app_metadata.role 우선, profiles.role fallback.
+  // 자세한 배경은 lib/auth/admin.ts.
   const supabase = await createClient()
   const {
     data: { user },
@@ -73,12 +75,7 @@ export async function POST(
       { status: 401 }
     )
   }
-  const { data: me } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-  if (!me || me.role !== 'admin') {
+  if (!(await isAdmin(supabase, user))) {
     return NextResponse.json(
       { code: 'FORBIDDEN', message: '관리자 권한이 필요합니다' },
       { status: 403 }

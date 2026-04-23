@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { isAdmin } from '@/lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,9 +20,8 @@ export default async function AdminLayout({
     redirect('/login?next=/admin')
   }
 
-  // JWT에 들어있는 role 확인 (raw_user_meta_data.role)
-  const role = (user.user_metadata as { role?: string })?.role
-  if (role !== 'admin') {
+  // app_metadata.role 우선, profiles.role fallback — 자세한 배경은 lib/auth/admin.ts.
+  if (!(await isAdmin(supabase, user))) {
     redirect('/dashboard')
   }
 

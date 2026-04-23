@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { pushToUser } from '@/lib/push'
+import { isAdmin } from '@/lib/auth/admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -77,8 +78,7 @@ export async function POST(
     )
   }
 
-  const role = (user.user_metadata as { role?: string } | null)?.role
-  if (role !== 'admin') {
+  if (!(await isAdmin(supabase, user))) {
     return NextResponse.json(
       { code: 'FORBIDDEN', message: '관리자 권한이 필요합니다' },
       { status: 403 }
