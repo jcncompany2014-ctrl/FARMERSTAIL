@@ -5,6 +5,11 @@ import { Check, Clock, Receipt } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import PurchaseTracker from './PurchaseTracker'
 import type { AnalyticsItem } from '@/lib/analytics'
+import {
+  bankCodeLabel,
+  formatDueDate,
+  paymentMethodLabel,
+} from '@/lib/payments/toss'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +36,10 @@ type OrderForSuccess = {
   receipt_url: string | null
   shipping_fee: number | null
   coupon_code: string | null
+  virtual_account_bank: string | null
+  virtual_account_number: string | null
+  virtual_account_due_date: string | null
+  virtual_account_holder: string | null
 }
 
 type OrderItemRow = {
@@ -61,7 +70,7 @@ export default async function CheckoutSuccessPage({
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .select(
-      'id, order_number, total_amount, payment_status, payment_method, receipt_url, shipping_fee, coupon_code'
+      'id, order_number, total_amount, payment_status, payment_method, receipt_url, shipping_fee, coupon_code, virtual_account_bank, virtual_account_number, virtual_account_due_date, virtual_account_holder'
     )
     .eq('order_number', orderId)
     .eq('user_id', user.id)
@@ -108,7 +117,7 @@ export default async function CheckoutSuccessPage({
   const { data: fresh } = await supabase
     .from('orders')
     .select(
-      'id, order_number, total_amount, payment_status, payment_method, receipt_url, shipping_fee, coupon_code'
+      'id, order_number, total_amount, payment_status, payment_method, receipt_url, shipping_fee, coupon_code, virtual_account_bank, virtual_account_number, virtual_account_due_date, virtual_account_holder'
     )
     .eq('id', order.id)
     .single<OrderForSuccess>()
@@ -251,15 +260,61 @@ function SuccessView({
             <div className="text-[10px] text-muted font-bold uppercase tracking-widest">
               입금 안내
             </div>
-            <p className="text-[12px] text-text mt-1.5 leading-relaxed">
-              발급된 가상계좌 정보는 결제 직후 토스페이먼츠에서 보낸
-              안내(이메일/문자)에서 확인하실 수 있어요. 입금이 확인되면
-              상품 준비가 시작되고 알림을 보내드려요.
-            </p>
-            <p className="text-[11px] text-muted mt-2 leading-relaxed">
-              * 24시간 내 입금되지 않으면 주문이 자동 취소됩니다.
-            </p>
+            {order.virtual_account_number ? (
+              <>
+                <dl className="mt-2.5 space-y-1.5 text-[12px]">
+                  <div className="flex justify-between">
+                    <dt className="text-muted">입금 은행</dt>
+                    <dd className="text-text font-bold">
+                      {bankCodeLabel(order.virtual_account_bank) || '—'}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <dt className="text-muted">계좌번호</dt>
+                    <dd className="text-text font-mono font-bold text-[13px] break-all text-right">
+                      {order.virtual_account_number}
+                    </dd>
+                  </div>
+                  {order.virtual_account_holder && (
+                    <div className="flex justify-between">
+                      <dt className="text-muted">예금주</dt>
+                      <dd className="text-text">
+                        {order.virtual_account_holder}
+                      </dd>
+                    </div>
+                  )}
+                  {order.virtual_account_due_date && (
+                    <div className="flex justify-between">
+                      <dt className="text-muted">입금 기한</dt>
+                      <dd className="text-sale font-bold">
+                        {formatDueDate(order.virtual_account_due_date)}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+                <p className="text-[11px] text-muted mt-3 leading-relaxed">
+                  입금이 확인되면 상품 준비가 시작되고 알림을 보내드려요.
+                  기한까지 입금되지 않으면 주문이 자동 취소됩니다.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-[12px] text-text mt-1.5 leading-relaxed">
+                  발급된 가상계좌 정보는 결제 직후 토스페이먼츠에서 보낸
+                  안내(이메일/문자)에서 확인하실 수 있어요. 입금이 확인되면
+                  상품 준비가 시작되고 알림을 보내드려요.
+                </p>
+                <p className="text-[11px] text-muted mt-2 leading-relaxed">
+                  * 24시간 내 입금되지 않으면 주문이 자동 취소됩니다.
+                </p>
+              </>
+            )}
           </div>
+          {order.payment_method && (
+            <p className="text-[10px] text-muted mt-2 text-center">
+              결제 수단 · {paymentMethodLabel(order.payment_method)}
+            </p>
+          )}
         </section>
       ) : (
         <section className="px-5 mt-4">

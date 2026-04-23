@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { creditPoints } from '@/lib/commerce/points'
+import { fetchPayment, type TossPaymentStatus } from '@/lib/payments/toss'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -34,16 +35,6 @@ export const dynamic = 'force-dynamic'
  *   TOSS_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY
  */
 
-type TossPaymentStatus =
-  | 'READY'
-  | 'IN_PROGRESS'
-  | 'WAITING_FOR_DEPOSIT'
-  | 'DONE'
-  | 'CANCELED'
-  | 'PARTIAL_CANCELED'
-  | 'ABORTED'
-  | 'EXPIRED'
-
 type WebhookBody = {
   eventType?: string
   createdAt?: string
@@ -52,19 +43,6 @@ type WebhookBody = {
     orderId?: string
     status?: TossPaymentStatus
   }
-}
-
-type TossPayment = {
-  paymentKey: string
-  orderId: string
-  status: TossPaymentStatus
-  totalAmount: number
-  method?: string
-  approvedAt?: string
-  virtualAccount?: { dueDate?: string; accountNumber?: string; bankCode?: string }
-  // Toss 공식 영수증 URL. 카드 결제는 승인 즉시, 가상계좌는 입금 확인
-  // 후 `DONE`으로 전환될 때 채워진다.
-  receipt?: { url?: string }
 }
 
 export async function POST(req: Request) {
@@ -87,37 +65,19 @@ export async function POST(req: Request) {
     )
   }
 
-  const secretKey = process.env.TOSS_SECRET_KEY
-  if (!secretKey) {
-    // Return 500 so Toss retries until ops fixes the env.
-    return NextResponse.json(
-      { ok: false, reason: 'server_config' },
-      { status: 500 }
-    )
-  }
-
   // 1) Re-fetch payment from Toss — this is our truth source.
-  const basic = Buffer.from(`${secretKey}:`).toString('base64')
-  const tossRes = await fetch(
-    `https://api.tosspayments.com/v1/payments/${encodeURIComponent(paymentKey)}`,
-    {
-      method: 'GET',
-      headers: { Authorization: `Basic ${basic}` },
-      cache: 'no-store',
-    }
-  )
-
-  if (!tossRes.ok) {
+  //    lib/payments/toss 가 auth 헤더와 base URL을 책임.
+  const lookup = await fetchPayment(paymentKey)
+  if (!lookup.ok) {
     // Toss API itself returned an error — don't trust the webhook.
     // Return 500 so Toss retries; if it's a permanent 4xx the retry
     // budget will bleed out but at least we don't corrupt state.
     return NextResponse.json(
-      { ok: false, reason: 'toss_lookup_failed' },
+      { ok: false, reason: 'toss_lookup_failed', tossError: lookup.error },
       { status: 500 }
     )
   }
-
-  const payment = (await tossRes.json()) as TossPayment
+  const payment = lookup.data
 
   // Sanity: the paymentKey we looked up must match the event's paymentKey.
   if (payment.paymentKey !== paymentKey) {
@@ -217,28 +177,42 @@ export async function POST(req: Request) {
     }
 
     case 'WAITING_FOR_DEPOSIT': {
-      // Virtual account issued but not yet deposited. Keep pending;
-      // no state change needed — confirm already set it.
+      // Virtual account issued but not yet deposited. confirm route 가 이미
+      // VA 필드를 세팅했을 가능성이 높지만, 유저가 confirm을 거치지 않은
+      // 엣지 케이스(탭 닫음)를 대비해 여기서도 업데이트 한 번 더.
+      const va = payment.virtualAccount
+      if (va) {
+        await supabase
+          .from('orders')
+          .update({
+            payment_method: payment.method ?? null,
+            payment_key: paymentKey,
+            virtual_account_bank: va.bankCode ?? null,
+            virtual_account_number: va.accountNumber ?? null,
+            virtual_account_due_date: va.dueDate ?? null,
+            virtual_account_holder: va.customerName ?? null,
+          })
+          .eq('id', order.id)
+      }
       break
     }
 
     case 'CANCELED':
     case 'PARTIAL_CANCELED': {
+      // PARTIAL_CANCELED = 일부 환불이 일어났지만 나머지는 유효한 상태.
+      // 이 플로우에서는 "전액 환불"만 지원하므로 PARTIAL을 'partially_refunded'
+      // 라벨로 기록만 해두고 order_status 는 유지 (관리자가 수동 처리).
       if (order.payment_status === 'cancelled') {
         return NextResponse.json({ ok: true, skipped: 'already_cancelled' })
       }
+      const isPartial = payment.status === 'PARTIAL_CANCELED'
       await supabase
         .from('orders')
         .update({
-          payment_status:
-            payment.status === 'PARTIAL_CANCELED' ? 'refunded' : 'cancelled',
-          order_status:
-            payment.status === 'PARTIAL_CANCELED'
-              ? order.order_status
-              : 'cancelled',
-          cancelled_at: new Date().toISOString(),
-          cancel_reason:
-            order.payment_status !== 'cancelled' ? '결제 취소 (토스)' : null,
+          payment_status: isPartial ? 'partially_refunded' : 'cancelled',
+          order_status: isPartial ? order.order_status : 'cancelled',
+          cancelled_at: isPartial ? null : new Date().toISOString(),
+          cancel_reason: isPartial ? null : '결제 취소 (토스)',
         })
         .eq('id', order.id)
       break

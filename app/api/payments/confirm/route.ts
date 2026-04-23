@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { pushToUser } from '@/lib/push'
 import { creditPoints } from '@/lib/commerce/points'
+import { confirmPayment } from '@/lib/payments/toss'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -12,6 +13,17 @@ type ConfirmBody = {
   amount: number
 }
 
+/**
+ * POST /api/payments/confirm
+ *
+ * 체크아웃 successUrl로 리다이렉트된 직후 호출. 역할:
+ *   1. 주문과 paymentKey/amount 일치성 검증(위변조 방지).
+ *   2. Toss v1 `/payments/confirm` 호출 (Idempotency-Key 사용 — 같은 요청 반복 시
+ *      Toss가 동일 응답을 돌려주므로 새로고침/이중 탭 공격에도 안전).
+ *   3. 응답의 status가 DONE이면 paid/preparing으로, WAITING_FOR_DEPOSIT이면
+ *      pending으로 유지하며 가상계좌 정보(은행·계좌번호·만료일) 저장.
+ *   4. DONE일 때만 포인트 적립. 가상계좌는 입금 확정 시점의 웹훅에서 별도 처리.
+ */
 export async function POST(req: Request) {
   let body: ConfirmBody
   try {
@@ -73,33 +85,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, alreadyPaid: true })
   }
 
-  // 3) 토스페이먼츠 승인 API 호출
-  const secretKey = process.env.TOSS_SECRET_KEY
-  if (!secretKey) {
-    return NextResponse.json(
-      { code: 'SERVER_CONFIG', message: '서버 설정 오류 (시크릿 키 없음)' },
-      { status: 500 }
-    )
-  }
+  // 3) 토스페이먼츠 승인 API 호출 — lib/payments/toss 가 Idempotency-Key 포함.
+  const result = await confirmPayment({ paymentKey, orderId, amount })
 
-  const encryptedSecret = Buffer.from(`${secretKey}:`).toString('base64')
-
-  const tossRes = await fetch(
-    'https://api.tosspayments.com/v1/payments/confirm',
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${encryptedSecret}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ paymentKey, orderId, amount }),
-      cache: 'no-store',
-    }
-  )
-
-  const tossData = await tossRes.json()
-
-  if (!tossRes.ok) {
+  if (!result.ok) {
     // 승인 실패 → 주문 상태 failed로
     await supabase
       .from('orders')
@@ -107,36 +96,42 @@ export async function POST(req: Request) {
       .eq('id', order.id)
 
     return NextResponse.json(
-      {
-        code: tossData?.code ?? 'TOSS_ERROR',
-        message: tossData?.message ?? '결제 승인에 실패했습니다',
-      },
+      { code: result.error.code, message: result.error.message },
       { status: 400 }
     )
   }
 
+  const payment = result.data
+
   // 4) 주문 상태 업데이트 — 가상계좌는 아직 입금 전이라 'paid'로 넘기면 안 됨.
   //    WAITING_FOR_DEPOSIT 상태는 'pending'으로 유지하고, 실제 입금 시
   //    /api/payments/webhook이 'paid'로 승격시킴.
-  const method: string | undefined = tossData?.method
-  const approvedAt: string | undefined = tossData?.approvedAt
-  const tossStatus: string | undefined = tossData?.status
-  const isActuallyPaid = tossStatus === 'DONE'
-  // Toss 승인 응답의 receipt.url — 카드/가상계좌 공통으로 제공되는
-  // 공식 거래증빙 URL. 주문 상세에서 "영수증 보기" 링크로 노출한다.
-  const receiptUrl: string | null = tossData?.receipt?.url ?? null
+  const isActuallyPaid = payment.status === 'DONE'
+  const isWaitingDeposit = payment.status === 'WAITING_FOR_DEPOSIT'
+
+  // 가상계좌 발급 정보. 입금 전까지 사용자에게 계좌 안내를 할 수 있도록 저장.
+  const va = payment.virtualAccount
+  const vaFields = isWaitingDeposit && va
+    ? {
+        virtual_account_bank: va.bankCode ?? null,
+        virtual_account_number: va.accountNumber ?? null,
+        virtual_account_due_date: va.dueDate ?? null,
+        virtual_account_holder: va.customerName ?? null,
+      }
+    : {}
 
   const { error: updateError } = await supabase
     .from('orders')
     .update({
       payment_status: isActuallyPaid ? 'paid' : 'pending',
-      payment_method: method ?? null,
+      payment_method: payment.method ?? null,
       payment_key: paymentKey,
       paid_at: isActuallyPaid
-        ? (approvedAt ?? new Date().toISOString())
+        ? (payment.approvedAt ?? new Date().toISOString())
         : null,
       order_status: isActuallyPaid ? 'preparing' : 'pending',
-      receipt_url: receiptUrl,
+      receipt_url: payment.receipt?.url ?? null,
+      ...vaFields,
     })
     .eq('id', order.id)
 
@@ -176,7 +171,7 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     ok: true,
-    status: tossStatus ?? 'UNKNOWN',
-    waitingForDeposit: !isActuallyPaid,
+    status: payment.status,
+    waitingForDeposit: isWaitingDeposit,
   })
 }

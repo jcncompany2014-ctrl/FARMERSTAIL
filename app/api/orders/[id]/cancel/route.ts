@@ -7,6 +7,7 @@ import {
 } from '@/lib/commerce/order-fsm'
 import { creditPoints, appendLedger } from '@/lib/commerce/points'
 import { revokeCouponRedemption } from '@/lib/coupons'
+import { cancelPayment } from '@/lib/payments/toss'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -86,37 +87,18 @@ export async function POST(
     )
   }
 
-  // 1) Call Toss cancel if already paid
+  // 1) Call Toss cancel if already paid — lib/payments/toss 가 idempotency 처리.
   if (order.payment_status === 'paid' && order.payment_key) {
-    const secretKey = process.env.TOSS_SECRET_KEY
-    if (!secretKey) {
-      return NextResponse.json(
-        { code: 'SERVER_CONFIG', message: '서버 설정 오류' },
-        { status: 500 }
-      )
-    }
-    const encryptedSecret = Buffer.from(`${secretKey}:`).toString('base64')
-    const tossRes = await fetch(
-      `https://api.tosspayments.com/v1/payments/${order.payment_key}/cancel`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${encryptedSecret}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          cancelReason: body.reason || '고객 요청',
-        }),
-        cache: 'no-store',
-      }
-    )
-    if (!tossRes.ok) {
-      const tossData = await tossRes.json().catch(() => ({}))
+    const cancelResult = await cancelPayment({
+      paymentKey: order.payment_key,
+      cancelReason: body.reason || '고객 요청',
+    })
+    if (!cancelResult.ok) {
       return NextResponse.json(
         {
-          code: tossData?.code ?? 'TOSS_CANCEL_FAILED',
+          code: cancelResult.error.code || 'TOSS_CANCEL_FAILED',
           message:
-            tossData?.message ??
+            cancelResult.error.message ||
             '결제 취소에 실패했어요. 잠시 후 다시 시도해주세요',
         },
         { status: 400 }

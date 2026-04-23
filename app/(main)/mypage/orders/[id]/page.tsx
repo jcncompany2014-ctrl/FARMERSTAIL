@@ -12,6 +12,11 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import ReorderButton from './ReorderButton'
 import CancelOrderButton from './CancelOrderButton'
+import {
+  bankCodeLabel,
+  formatDueDate,
+  paymentMethodLabel,
+} from '@/lib/payments/toss'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,16 +43,7 @@ const CARRIER_LABEL: Record<string, string> = {
   kd: '경동택배',
   other: '기타',
 }
-
-const PAYMENT_METHOD_LABEL: Record<string, string> = {
-  카드: '카드',
-  CARD: '카드',
-  가상계좌: '가상계좌',
-  계좌이체: '계좌이체',
-  휴대폰: '휴대폰',
-  상품권: '상품권',
-  간편결제: '간편결제',
-}
+// payment_method 라벨은 lib/payments/toss.ts::paymentMethodLabel 로 일원화.
 
 function formatDateTime(iso: string | null) {
   if (!iso) return '-'
@@ -387,6 +383,57 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
         </div>
       </section>
 
+      {/* 가상계좌 입금 안내 — payment_status === 'pending' && VA 필드가 있을 때만 */}
+      {order.payment_status === 'pending' &&
+        order.virtual_account_number && (
+          <section className="px-5 mt-3">
+            <div className="bg-[#FFF6E0] rounded-xl border border-gold/50 px-5 py-5">
+              <div className="text-[10px] text-muted font-bold uppercase tracking-widest mb-2">
+                입금 대기 · 가상계좌
+              </div>
+              <dl className="space-y-1.5 text-[12px]">
+                <div className="flex justify-between">
+                  <dt className="text-muted">입금 은행</dt>
+                  <dd className="text-text font-bold">
+                    {bankCodeLabel(order.virtual_account_bank) || '—'}
+                  </dd>
+                </div>
+                <div className="flex justify-between items-center">
+                  <dt className="text-muted">계좌번호</dt>
+                  <dd className="text-text font-mono font-bold text-[13px] break-all text-right">
+                    {order.virtual_account_number}
+                  </dd>
+                </div>
+                {order.virtual_account_holder && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted">예금주</dt>
+                    <dd className="text-text">
+                      {order.virtual_account_holder}
+                    </dd>
+                  </div>
+                )}
+                {order.virtual_account_due_date && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted">입금 기한</dt>
+                    <dd className="text-sale font-bold">
+                      {formatDueDate(order.virtual_account_due_date)}
+                    </dd>
+                  </div>
+                )}
+                <div className="flex justify-between border-t border-gold/30 pt-2 mt-2">
+                  <dt className="text-text font-bold">입금 금액</dt>
+                  <dd className="text-terracotta font-black">
+                    {order.total_amount.toLocaleString()}원
+                  </dd>
+                </div>
+              </dl>
+              <p className="text-[11px] text-muted mt-3 leading-relaxed">
+                기한까지 입금되지 않으면 주문이 자동 취소돼요.
+              </p>
+            </div>
+          </section>
+        )}
+
       {/* 배송지 */}
       <section className="px-5 mt-3">
         <div className="bg-white rounded-xl border border-rule px-5 py-5">
@@ -437,8 +484,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
               <div className="flex justify-between">
                 <dt className="text-muted">결제 수단</dt>
                 <dd className="text-text">
-                  {PAYMENT_METHOD_LABEL[order.payment_method] ??
-                    order.payment_method}
+                  {paymentMethodLabel(order.payment_method)}
                 </dd>
               </div>
             )}
