@@ -3,16 +3,19 @@
 /**
  * Route-segment error boundary.
  *
- * Caught automatically when any component inside a route segment (page,
- * layout, loading) throws during render or effect phase. Sentry SDK has
- * its own React error boundary integration, so we don't need to manually
- * call captureException here — but we do it anyway as a safety net in
- * case the auto-hook is disabled or fails to attach.
+ * Next가 라우트 세그먼트(page/layout/loading) 하위에서 render/effect 예외를
+ * 잡으면 자동으로 이 파일로 fallback. Sentry React Error Boundary가 자동
+ * 후킹되지만 안전망으로 명시 captureException도 한 번 더 호출 — 훅이 분리
+ * 실패해도 알림이 누락되지 않게.
+ *
+ * UX: 사용자는 "다시 시도"를 누를 수 있고, 실패하면 홈/고객센터로 빠져나갈
+ * 루트를 제공한다. digest는 지원 문의용 correlation id라 복사 가능하게 노출.
  */
 import { useEffect } from 'react'
-import Link from 'next/link'
 import { AlertTriangle } from 'lucide-react'
 import * as Sentry from '@sentry/nextjs'
+import { ErrorScreen } from '@/components/ui/ErrorScreen'
+import { business } from '@/lib/business'
 
 export default function AppError({
   error,
@@ -26,41 +29,27 @@ export default function AppError({
   }, [error])
 
   return (
-    <main className="min-h-[100dvh] bg-bg flex flex-col items-center justify-center px-6 py-12">
-      <div className="w-16 h-16 rounded-full bg-sale/10 flex items-center justify-center text-sale">
-        <AlertTriangle className="w-8 h-8" strokeWidth={2} />
-      </div>
-
-      <div className="mt-6 text-[10px] font-semibold text-muted uppercase tracking-[0.3em]">
-        Something went wrong
-      </div>
-      <h1 className="mt-2 font-serif text-[22px] font-black text-text tracking-tight text-center">
-        문제가 발생했어요
-      </h1>
-      <p className="mt-2 text-[12px] text-muted text-center leading-relaxed max-w-xs">
-        잠시 후 다시 시도해 주세요. 문제가 계속되면 고객센터로 연락해 주세요.
-      </p>
-
-      {error.digest && (
-        <p className="mt-3 text-[10px] font-mono text-muted">
-          오류 ID · {error.digest}
-        </p>
-      )}
-
-      <div className="mt-8 w-full max-w-xs space-y-2">
-        <button
-          onClick={reset}
-          className="w-full py-3.5 rounded-xl bg-terracotta text-white text-[13px] font-black active:scale-[0.98] transition"
-        >
-          다시 시도
-        </button>
-        <Link
-          href="/"
-          className="block w-full text-center py-3.5 rounded-xl bg-white border border-rule text-[13px] font-bold text-[#5C4A3A] active:scale-[0.98] transition"
-        >
-          홈으로
-        </Link>
-      </div>
-    </main>
+    <ErrorScreen
+      code="500"
+      kicker="Oh Dear · 잠깐 멈췄어요"
+      title="문제가 발생했어요"
+      description="잠시 후 다시 시도해 주세요. 반복되면 오류 ID를 고객센터에 알려 주세요."
+      icon={<AlertTriangle className="w-6 h-6" strokeWidth={2} aria-hidden />}
+      tone="sale"
+      primary={{ label: '다시 시도', onClick: reset }}
+      secondary={{ label: '홈으로', href: '/' }}
+      traceId={error.digest}
+      footer={
+        <>
+          도움이 필요하신가요?{' '}
+          <a
+            href={`mailto:${business.email}`}
+            className="font-bold underline underline-offset-2 text-terracotta"
+          >
+            고객센터 문의
+          </a>
+        </>
+      }
+    />
   )
 }
