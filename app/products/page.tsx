@@ -14,6 +14,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { StockBadge, StockOverlay } from '@/components/ui/StockBadge'
 
 /**
  * /products — 공개 카탈로그.
@@ -41,6 +42,8 @@ type Product = {
   category: string | null
   is_subscribable: boolean
   image_url: string | null
+  /** 재고. PLP에서 품절 뱃지/오버레이, 재고 소량 뱃지에 사용. */
+  stock: number
 }
 
 const CATEGORIES = ['전체', '화식', '간식', '체험팩'] as const
@@ -88,7 +91,7 @@ export default function ProductsPage() {
       const { data } = await supabase
         .from('products')
         .select(
-          'id, name, slug, short_description, price, sale_price, category, is_subscribable, image_url'
+          'id, name, slug, short_description, price, sale_price, category, is_subscribable, image_url, stock'
         )
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
@@ -401,7 +404,7 @@ function FeatureCard({
         )}
 
         {/* 뱃지들 */}
-        <div className="absolute top-3 left-3 flex gap-1.5">
+        <div className="absolute top-3 left-3 flex gap-1.5 z-10">
           {hasSale && discount > 0 && (
             <span
               className="text-[10px] font-black px-2 py-0.5 rounded-full"
@@ -418,7 +421,12 @@ function FeatureCard({
               정기배송
             </span>
           )}
+          {/* 재고 소량(low)일 때만 inline 뱃지. 품절은 아래 StockOverlay가 커버. */}
+          <StockBadge stock={product.stock} placement="inline" showCount />
         </div>
+
+        {/* Sold-out overlay — 이미지 전체를 덮음. stock > 0이면 아무것도 렌더 안 함. */}
+        <StockOverlay stock={product.stock} />
 
         {/* category kicker — 이미지 상단 오른쪽 */}
         {product.category && (

@@ -19,6 +19,8 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import ProductReviews from './ProductReviews'
 import { trackAddToCart, trackViewItem } from '@/lib/analytics'
+import { stockState, maxOrderable, stockMessage } from '@/lib/products/stock'
+import { StockBadge, StockOverlay } from '@/components/ui/StockBadge'
 
 /**
  * /products/[slug] — 상세 페이지.
@@ -75,6 +77,11 @@ export default function ProductDetailClient({
   const [quantity, setQuantity] = useState(1)
   const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
+
+  // 재고 상태 — 'out'이면 CTA 잠금, 'low'면 수량 스텝퍼 상한 & 경고 표시.
+  const stockBucket = stockState(product.stock)
+  const isSoldOut = stockBucket === 'out'
+  const qtyMax = maxOrderable(product.stock)
 
   // All product images in display order. Hero first, then gallery. Dedupe in
   // case the admin accidentally added the hero URL to the gallery too.
@@ -170,6 +177,13 @@ export default function ProductDetailClient({
   }
 
   async function handleAddToCart() {
+    // 방어선: 서버(RLS)가 품절을 거부하기 전에 UI에서 막는다. 동시에 다른
+    // 사용자가 막 사 간 상황(stock이 이미 0인 채 SSR됐는데 클라이언트에서
+    // 뒤늦게 확인되는 경우)은 PDP reload 혹은 Step 16의 결제 단 재검증이
+    // 커버한다.
+    if (isSoldOut) return
+    const capped = Math.min(quantity, qtyMax)
+    if (capped <= 0) return
     setAdding(true)
 
     const {
@@ -187,22 +201,25 @@ export default function ProductDetailClient({
       .eq('product_id', product.id)
       .maybeSingle()
 
+    // 누적 수량도 qtyMax를 넘지 않게 자른다 — 이미 장바구니에 담긴 수량 +
+    // 이번에 담는 수량이 재고를 초과할 수 있음.
     if (existing) {
+      const nextQty = Math.min(existing.quantity + capped, qtyMax)
       await supabase
         .from('cart_items')
-        .update({ quantity: existing.quantity + quantity })
+        .update({ quantity: nextQty })
         .eq('id', existing.id)
     } else {
       await supabase
         .from('cart_items')
-        .insert({ user_id: user.id, product_id: product.id, quantity })
+        .insert({ user_id: user.id, product_id: product.id, quantity: capped })
     }
 
     trackAddToCart({
       item_id: product.id,
       item_name: product.name,
       price: product.sale_price ?? product.price,
-      quantity,
+      quantity: capped,
       item_category: product.category ?? undefined,
     })
 
@@ -254,7 +271,7 @@ export default function ProductDetailClient({
         {/* 뱃지 */}
         {discount > 0 && (
           <div
-            className="absolute top-3 left-3 text-[11px] font-black px-2 py-1 rounded-full"
+            className="absolute top-3 left-3 text-[11px] font-black px-2 py-1 rounded-full z-10"
             style={{ background: 'var(--sale)', color: 'var(--bg)' }}
           >
             {discount}% OFF
@@ -262,13 +279,16 @@ export default function ProductDetailClient({
         )}
         {product.is_subscribable && (
           <div
-            className="absolute top-3 right-3 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full"
+            className="absolute top-3 right-3 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full z-10"
             style={{ background: 'var(--moss)', color: 'var(--bg)' }}
           >
             <Repeat className="w-3 h-3" strokeWidth={2.5} />
             정기배송 가능
           </div>
         )}
+
+        {/* 품절 오버레이 — 이미지 전체를 덮는다. in_stock / low 일땐 렌더 안 함. */}
+        <StockOverlay stock={product.stock} />
 
         {/* 이미지 인덱스 */}
         {allImages.length > 1 && (
@@ -541,8 +561,11 @@ export default function ProductDetailClient({
               {quantity}
             </div>
             <button
-              onClick={() => setQuantity(quantity + 1)}
-              className="w-10 h-10 rounded-full flex items-center justify-center transition active:scale-95"
+              onClick={() =>
+                setQuantity((q) => Math.min(q + 1, Math.max(1, qtyMax)))
+              }
+              disabled={quantity >= qtyMax}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition active:scale-95 disabled:opacity-40"
               style={{
                 background: 'var(--bg)',
                 color: 'var(--text)',
@@ -593,7 +616,37 @@ export default function ProductDetailClient({
         }}
       >
         <div className="max-w-md mx-auto">
-          {product.is_subscribable ? (
+          {/* 재고 상태 힌트 — CTA 바로 위에 한 줄. out/low일 때만. */}
+          {stockBucket !== 'in_stock' && (
+            <div className="flex items-center gap-1.5 mb-2 text-[11.5px]">
+              <StockBadge stock={product.stock} placement="inline" showCount />
+              {stockBucket === 'out' ? (
+                <span className="text-muted">
+                  곧 다시 만나요. 재입고 알림으로 소식을 전해 드릴게요.
+                </span>
+              ) : (
+                <span className="text-muted">{stockMessage(product.stock)}</span>
+              )}
+            </div>
+          )}
+
+          {isSoldOut ? (
+            // 품절: CTA 자체를 "품절" 상태로 교체. 재입고 알림 훅은 Step 21에서
+            // 바꿔 끼운다 (지금은 disabled 버튼만 노출).
+            <button
+              type="button"
+              disabled
+              aria-label="품절 상품"
+              className="w-full py-4 rounded-full font-bold text-[14px] transition-all opacity-60 cursor-not-allowed"
+              style={{
+                background: 'var(--rule-2)',
+                color: 'var(--text)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              품절 · SOLD OUT
+            </button>
+          ) : product.is_subscribable ? (
             <div className="flex gap-2">
               <button
                 onClick={handleAddToCart}

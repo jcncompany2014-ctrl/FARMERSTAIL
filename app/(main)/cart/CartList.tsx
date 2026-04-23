@@ -5,6 +5,9 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, ShoppingBag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
+import { StockBadge } from '@/components/ui/StockBadge'
+import { stockState, maxOrderable } from '@/lib/products/stock'
 
 type Row = {
   id: string
@@ -26,13 +29,20 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
   const [, startTransition] = useTransition()
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
 
   async function updateQty(id: string, next: number) {
     if (next < 1) return
     const target = items.find((i) => i.id === id)
     if (!target) return
-    if (next > target.product.stock) {
-      alert(`재고가 ${target.product.stock}개 남았어요`)
+    const maxQ = maxOrderable(target.product.stock)
+    if (maxQ <= 0) {
+      // 품절 상품이 장바구니에 남아 있는 경우 — 증가는 막고 제거를 안내.
+      toast.warning('품절 상품이에요. 장바구니에서 제거해 주세요.')
+      return
+    }
+    if (next > maxQ) {
+      toast.warning(`재고가 ${target.product.stock}개 남았어요`)
       return
     }
 
@@ -103,6 +113,10 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
         const hasSale = row.product.sale_price !== null
         const lineTotal = price * row.quantity
         const isBusy = busyId === row.id
+        // row-level 재고 상태 — 담아 뒀는데 그 사이 품절된 케이스 대응.
+        const rowStock = stockState(row.product.stock)
+        const rowSoldOut = rowStock === 'out'
+        const maxQ = maxOrderable(row.product.stock)
 
         return (
           <li
@@ -133,12 +147,24 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
 
               <div className="flex-1 min-w-0 flex flex-col">
                 <div className="flex justify-between items-start gap-2">
-                  <Link
-                    href={`/products/${row.product.slug}`}
-                    className="text-[12px] text-text font-bold leading-snug line-clamp-2"
-                  >
-                    {row.product.name}
-                  </Link>
+                  <div className="min-w-0">
+                    <Link
+                      href={`/products/${row.product.slug}`}
+                      className="text-[12px] text-text font-bold leading-snug line-clamp-2"
+                    >
+                      {row.product.name}
+                    </Link>
+                    {/* 재고 뱃지 — low/out일 때만 렌더 */}
+                    {rowStock !== 'in_stock' && (
+                      <div className="mt-1">
+                        <StockBadge
+                          stock={row.product.stock}
+                          placement="inline"
+                          showCount
+                        />
+                      </div>
+                    )}
+                  </div>
                   <button
                     onClick={() => removeItem(row.id)}
                     disabled={isBusy}
@@ -150,11 +176,16 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
                 </div>
 
                 <div className="mt-auto pt-2 flex items-end justify-between">
-                  {/* 수량 스텝퍼 */}
-                  <div className="flex items-center bg-bg rounded-lg">
+                  {/* 수량 스텝퍼 — 품절 row는 disabled 상태로 표시. */}
+                  <div
+                    className={
+                      'flex items-center bg-bg rounded-lg ' +
+                      (rowSoldOut ? 'opacity-50' : '')
+                    }
+                  >
                     <button
                       onClick={() => updateQty(row.id, row.quantity - 1)}
-                      disabled={isBusy || row.quantity <= 1}
+                      disabled={isBusy || row.quantity <= 1 || rowSoldOut}
                       className="w-7 h-7 flex items-center justify-center text-text font-bold text-sm disabled:opacity-30 active:scale-90 transition"
                       aria-label="수량 감소"
                     >
@@ -165,7 +196,7 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
                     </span>
                     <button
                       onClick={() => updateQty(row.id, row.quantity + 1)}
-                      disabled={isBusy}
+                      disabled={isBusy || rowSoldOut || row.quantity >= maxQ}
                       className="w-7 h-7 flex items-center justify-center text-text font-bold text-sm disabled:opacity-30 active:scale-90 transition"
                       aria-label="수량 증가"
                     >
