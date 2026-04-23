@@ -247,6 +247,19 @@ i,
 }
 
 /* =========================================================================
+   Skeleton shimmer — components/ui/Skeleton.tsx 에서 사용.
+   왼→오 한 번 훑고 사라지는 대신 은근하게 반복. 3D 금속이 아니라 종이 물결.
+   ========================================================================= */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* =========================================================================
    Phone Frame — Desktop/Tablet PWA container
 
    문제: PWA는 mobile-first로 max-w-md (448px) 칼럼 + 하단 탭바(`fixed bottom-0
