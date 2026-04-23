@@ -86,7 +86,11 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <div className="min-h-screen bg-bg">
+    // `phone-frame`: 데스크톱/태블릿(≥md)에서 이 래퍼를 "책상 위 폰"으로
+    // 센터 정렬 + 그림자 부양 시킨다. 모바일(<md)에서는 규칙 전부 무시되어
+    // 기존 full-bleed 경험 그대로. 상세 근거는 globals.css의 @media 블록
+    // 주석 참고. 바깥 body도 --bg-2로 어두워져 "프레임 밖" 느낌이 산다.
+    <div className="phone-frame min-h-screen bg-bg">
       {/* 상단 헤더 */}
       <header
         className={`sticky top-0 z-40 bg-bg/90 backdrop-blur-xl transition-all duration-200 ${
@@ -136,9 +140,16 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       {/* PWA 설치 프롬프트 — 스마트하게 한 번만 노출 */}
       <InstallPrompt />
 
-      {/* 하단 탭 네비게이션 */}
+      {/* 하단 탭 네비게이션.
+          모바일(<md): viewport 전폭으로 붙는다 (left-0 right-0).
+          데스크톱(≥md): 폰 프레임 폭으로 재조준. `fixed` 자체는 viewport에
+          고정시켜야 스크롤 상관없이 하단에 박히므로, frame 안에 containing-
+          block을 만들지 않고 대신 이 nav를 직접 중앙 정렬한다.
+          - `md:left-1/2 md:right-auto`: viewport 중앙에서 출발
+          - `md:-translate-x-1/2`: 자기 폭의 절반만큼 왼쪽으로 당겨 센터링
+          - `md:w-full md:max-w-md`: 프레임과 같은 폭(448px) 확보 */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-rule"
+        className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-rule md:left-1/2 md:right-auto md:w-full md:max-w-md md:-translate-x-1/2 md:rounded-b-[inherit]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="max-w-md mx-auto px-2 pt-2 pb-2 grid grid-cols-5 gap-0.5">

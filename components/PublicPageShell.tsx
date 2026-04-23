@@ -22,7 +22,10 @@ export default function PublicPageShell({
   backLabel?: string
 }) {
   return (
-    <div className="min-h-screen bg-bg">
+    // `phone-frame`: 데스크톱/태블릿(≥md)에서 "책상 위 폰" 프레임 비주얼로
+    // 전환. 모바일(<md)은 규칙 전부 무시 → 기존 full-bleed 유지.
+    // 상세 근거는 globals.css 주석 참조.
+    <div className="phone-frame min-h-screen bg-bg">
       <div className="max-w-md mx-auto">
         <div className="px-5 pt-5">
           <Link

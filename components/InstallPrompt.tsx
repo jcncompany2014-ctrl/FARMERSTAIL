@@ -143,12 +143,15 @@ export default function InstallPrompt() {
 
   return (
     <>
-      {/* 하단 설치 배너 */}
+      {/* 하단 설치 배너.
+          모바일: viewport 전폭. 데스크톱(≥md): 폰 프레임 위에 맞게 센터링.
+          AppChrome 하단 탭바와 동일한 `md:left-1/2 md:-translate-x-1/2
+          md:max-w-md` 패턴으로 폰 프레임 폭(448px) 안에 정렬. */}
       <div
         role="dialog"
         aria-live="polite"
         aria-label="앱 설치 안내"
-        className="fixed left-0 right-0 z-[60] px-4"
+        className="fixed left-0 right-0 z-[60] px-4 md:left-1/2 md:right-auto md:w-full md:max-w-md md:-translate-x-1/2"
         style={{
           // Bottom tab nav height (~72px) + safe area. Sits just above the tab bar.
           bottom: 'calc(88px + env(safe-area-inset-bottom))',

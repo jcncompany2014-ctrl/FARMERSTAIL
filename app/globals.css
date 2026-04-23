@@ -230,3 +230,47 @@ i,
   background: var(--rule-2);
   border: 0;
 }
+
+/* =========================================================================
+   Phone Frame — Desktop/Tablet PWA container
+
+   문제: PWA는 mobile-first로 max-w-md (448px) 칼럼 + 하단 탭바(`fixed bottom-0
+   left-0 right-0`) + 상단 sticky 헤더 구성. 이 레이아웃을 데스크톱/태블릿
+   viewport에 그대로 띄우면 컨텐츠는 좁은 칼럼으로 가운데 뜨는데 헤더/탭바는
+   viewport 전폭으로 쭉 늘어나서 어색한 "잡종" 느낌이 된다 (= 사용자가 지적한
+   "웹/앱이 섞여 보이는" 현상).
+
+   해결: ≥md (768px) 뷰포트에서는 "폰을 책상 위에 놓은" 비주얼로 전환한다.
+   - body 배경을 --bg-2 (더 어두운 종이톤)로 살짝 어둡게
+   - .phone-frame 컨테이너(AppChrome / PublicPageShell의 바깥쪽 div)를 중앙
+     정렬 + max-width 440px + 그림자로 "기기처럼" 부양
+   - sticky 헤더는 frame 내부라 자동으로 max-w-md 폭을 상속 → 데스크톱에서도
+     센터 정렬된 바로 보임
+   - 하단 fixed 탭바는 position: fixed 특성상 viewport에 붙으므로 별도로
+     `md:left-1/2 md:-translate-x-1/2 md:max-w-md`로 컴포넌트에서 중앙 정렬
+
+   iPhone/Android 실제 사용 경로(<md)에서는 이 규칙 전부 적용 안 됨 →
+   기존 full-bleed 모바일 경험 그대로 유지.
+
+   참고: transform/contain 같은 containing-block 트릭을 쓰지 않았다. 그렇게
+   하면 fixed 자식이 frame에 갇히는데, frame이 viewport보다 길어지면 탭바가
+   스크롤돼 사라지는 부작용이 난다. 현재 접근(=탭바는 viewport 고정 + 수평만
+   프레임 폭으로 재조준)이 가장 안전.
+   ========================================================================= */
+@media (min-width: 768px) {
+  body {
+    background: var(--bg-2);
+  }
+
+  .phone-frame {
+    max-width: 440px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: var(--bg);
+    position: relative;
+    box-shadow:
+      0 0 0 1px rgba(30, 26, 20, 0.04),
+      0 2px 8px -2px rgba(30, 26, 20, 0.06),
+      0 24px 48px -16px rgba(30, 26, 20, 0.18);
+  }
+}
