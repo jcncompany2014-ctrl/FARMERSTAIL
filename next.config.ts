@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import { createRequire } from 'module'
 import { withSentryConfig } from '@sentry/nextjs'
 
 /**
@@ -112,4 +113,28 @@ const sentryOptions = {
   disableClientWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
 }
 
-export default withSentryConfig(nextConfig, sentryOptions)
+/**
+ * Bundle analyzer — `ANALYZE=true npm run build` 로 client/server/edge 번들
+ * 사이즈 트리를 report.html 로 생성. 플러그인은 devDependency 지만 CI 에
+ * 부담을 주지 않으려고 dynamic require 로 감싸서 ANALYZE 미설정 시 로드되지
+ * 않게 했다. 미설치 환경에선 console.warn 만 내고 그대로 통과.
+ */
+function maybeWithBundleAnalyzer(config: NextConfig): NextConfig {
+  if (process.env.ANALYZE !== 'true') return config
+  try {
+    const req = createRequire(import.meta.url)
+    const withBundleAnalyzer = req('@next/bundle-analyzer') as (opts: {
+      enabled?: boolean
+      openAnalyzer?: boolean
+    }) => (cfg: NextConfig) => NextConfig
+    return withBundleAnalyzer({ enabled: true, openAnalyzer: false })(config)
+  } catch (err) {
+    console.warn(
+      '[next.config] ANALYZE=true requested but @next/bundle-analyzer not installed — skipping.',
+      err,
+    )
+    return config
+  }
+}
+
+export default withSentryConfig(maybeWithBundleAnalyzer(nextConfig), sentryOptions)

@@ -16,6 +16,7 @@ import OnboardingGate from "@/components/OnboardingGate";
 import CookieConsent from "@/components/CookieConsent";
 import ConsentBootstrap from "@/components/ConsentBootstrap";
 import JsonLd from "@/components/JsonLd";
+import WebVitalsReporter from "@/components/WebVitalsReporter";
 import {
   buildOrganizationJsonLd,
   buildWebSiteJsonLd,
@@ -180,6 +181,8 @@ export default function RootLayout({
         </ToastProvider>
         <ServiceWorkerRegister />
         <AnalyticsScripts />
+        {/* Core Web Vitals beacon — Sentry 로 poor LCP/INP/CLS 알림 전송 */}
+        <WebVitalsReporter />
         {/* 이미 저장된 쿠키 동의를 마운트 즉시 tracker 에 반영 */}
         <ConsentBootstrap />
         {/* 첫 방문 시 쿠키 동의 배너 */}
