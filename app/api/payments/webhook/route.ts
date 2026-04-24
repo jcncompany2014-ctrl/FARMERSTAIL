@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { creditPoints } from '@/lib/commerce/points'
 import { fetchPayment, type TossPaymentStatus } from '@/lib/payments/toss'
+import { notifyOrderCancelled, notifyOrderPlaced } from '@/lib/email'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -92,7 +93,7 @@ export async function POST(req: Request) {
   const { data: order, error: orderErr } = await supabase
     .from('orders')
     .select(
-      'id, user_id, total_amount, payment_status, order_status, points_earned, paid_at'
+      'id, user_id, order_number, total_amount, payment_status, order_status, points_earned, paid_at, shipping_fee, recipient_name'
     )
     .eq('order_number', orderId)
     .maybeSingle()
@@ -173,6 +174,19 @@ export async function POST(req: Request) {
       }).catch(() => {
         /* best-effort */
       })
+
+      // 이메일 주문 접수 안내 — 가상계좌 입금 완료 시 최초 "정식 접수" 메일.
+      // confirm 단계에서 DONE이 아닌 WAITING_FOR_DEPOSIT으로 빠진 주문은
+      // 여기서 비로소 주문 접수 메일을 받는다.
+      notifyOrderPlaced(supabase, {
+        orderId: order.id,
+        userId: order.user_id,
+        orderNumber: order.order_number,
+        recipientName: order.recipient_name ?? null,
+        totalAmount: order.total_amount,
+        shippingFee: order.shipping_fee ?? 0,
+        paymentMethod: payment.method ?? null,
+      }).catch(() => {})
       break
     }
 
@@ -215,6 +229,19 @@ export async function POST(req: Request) {
           cancel_reason: isPartial ? null : '결제 취소 (토스)',
         })
         .eq('id', order.id)
+
+      // 전액 취소일 때만 고객 메일을 보냄 — 부분 환불은 ops 가 별도 커뮤니케이션.
+      if (!isPartial) {
+        notifyOrderCancelled(supabase, {
+          orderId: order.id,
+          userId: order.user_id,
+          orderNumber: order.order_number,
+          recipientName: order.recipient_name ?? null,
+          totalAmount: order.total_amount,
+          reason: '결제 취소 (토스)',
+          refundAmount: order.total_amount,
+        }).catch(() => {})
+      }
       break
     }
 

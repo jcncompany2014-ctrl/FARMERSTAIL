@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { pushToUser } from '@/lib/push'
 import { creditPoints } from '@/lib/commerce/points'
 import { confirmPayment } from '@/lib/payments/toss'
+import { notifyOrderPlaced, notifyVirtualAccountWaiting } from '@/lib/email'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -61,7 +62,9 @@ export async function POST(req: Request) {
   // 2) 주문 검증 (DB 기준)
   const { data: order, error: orderError } = await supabase
     .from('orders')
-    .select('id, total_amount, payment_status, user_id, points_earned')
+    .select(
+      'id, order_number, total_amount, payment_status, user_id, points_earned, shipping_fee, recipient_name'
+    )
     .eq('order_number', orderId)
     .eq('user_id', user.id)
     .single()
@@ -166,6 +169,36 @@ export async function POST(req: Request) {
       tag: `order-${order.id}`,
     }).catch(() => {
       /* 푸시는 베스트 에포트 */
+    })
+  }
+
+  // 8) 이메일 알림 — DONE 이면 주문 접수 메일, WAITING_FOR_DEPOSIT 이면 입금 안내.
+  //    fire-and-forget. 메일 실패가 주문 응답을 늦추지 않도록 await 하지 않음.
+  if (isActuallyPaid) {
+    notifyOrderPlaced(supabase, {
+      orderId: order.id,
+      userId: user.id,
+      orderNumber: order.order_number,
+      recipientName: order.recipient_name ?? null,
+      totalAmount: order.total_amount,
+      shippingFee: order.shipping_fee ?? 0,
+      paymentMethod: payment.method ?? null,
+    }).catch(() => {
+      /* 메일은 베스트 에포트 */
+    })
+  } else if (isWaitingDeposit && va?.accountNumber) {
+    notifyVirtualAccountWaiting(supabase, {
+      orderId: order.id,
+      userId: user.id,
+      orderNumber: order.order_number,
+      recipientName: order.recipient_name ?? null,
+      totalAmount: order.total_amount,
+      bankCode: va.bankCode ?? null,
+      accountNumber: va.accountNumber,
+      accountHolder: va.customerName ?? null,
+      dueDate: va.dueDate ?? null,
+    }).catch(() => {
+      /* 메일은 베스트 에포트 */
     })
   }
 

@@ -8,6 +8,7 @@ import {
 import { creditPoints, appendLedger } from '@/lib/commerce/points'
 import { revokeCouponRedemption } from '@/lib/coupons'
 import { cancelPayment } from '@/lib/payments/toss'
+import { notifyOrderCancelled } from '@/lib/email'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -56,7 +57,7 @@ export async function POST(
   const { data: order } = await supabase
     .from('orders')
     .select(
-      'id, user_id, payment_status, order_status, payment_key, total_amount, points_used, points_earned, coupon_code'
+      'id, user_id, order_number, payment_status, order_status, payment_key, total_amount, points_used, points_earned, coupon_code, recipient_name'
     )
     .eq('id', id)
     .eq('user_id', user.id)
@@ -145,6 +146,17 @@ export async function POST(
   if (order.coupon_code) {
     await revokeCouponRedemption(supabase, { couponCode: order.coupon_code })
   }
+
+  // 6) 이메일 안내 — fire-and-forget. 취소 플로우가 메일 때문에 늦어지지 않도록.
+  notifyOrderCancelled(supabase, {
+    orderId: order.id,
+    userId: user.id,
+    orderNumber: order.order_number,
+    recipientName: order.recipient_name ?? null,
+    totalAmount: order.total_amount,
+    reason: body.reason ?? null,
+    refundAmount: order.payment_status === 'paid' ? order.total_amount : null,
+  }).catch(() => {})
 
   return NextResponse.json({ ok: true })
 }

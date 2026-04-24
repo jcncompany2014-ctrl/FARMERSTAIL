@@ -10,6 +10,11 @@ import {
   type OrderStatus,
 } from '@/lib/commerce/order-fsm'
 import { carrierLabel, isCarrierCode } from '@/lib/tracking'
+import {
+  notifyOrderCancelled,
+  notifyOrderDelivered,
+  notifyOrderShipped,
+} from '@/lib/email'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -77,7 +82,7 @@ export async function POST(
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .select(
-      'id, order_number, user_id, payment_status, order_status, total_amount, shipped_at, delivered_at, cancelled_at'
+      'id, order_number, user_id, payment_status, order_status, total_amount, shipped_at, delivered_at, cancelled_at, recipient_name, refunded_amount'
     )
     .eq('id', id)
     .single()
@@ -187,6 +192,37 @@ export async function POST(
     }).catch(() => {
       /* 푸시는 베스트 에포트 */
     })
+
+    // 같은 이벤트에 대한 이메일 알림. fire-and-forget.
+    if (orderStatus === 'shipping') {
+      notifyOrderShipped(supabase, {
+        orderId: order.id,
+        userId: order.user_id,
+        orderNumber: order.order_number,
+        recipientName: order.recipient_name ?? null,
+        totalAmount: order.total_amount,
+        carrier: typeof carrier === 'string' ? carrier.trim() || null : carrier ?? null,
+        trackingNumber: trackingNumber?.trim() || null,
+      }).catch(() => {})
+    } else if (orderStatus === 'delivered') {
+      notifyOrderDelivered(supabase, {
+        orderId: order.id,
+        userId: order.user_id,
+        orderNumber: order.order_number,
+        recipientName: order.recipient_name ?? null,
+        totalAmount: order.total_amount,
+      }).catch(() => {})
+    } else if (orderStatus === 'cancelled') {
+      notifyOrderCancelled(supabase, {
+        orderId: order.id,
+        userId: order.user_id,
+        orderNumber: order.order_number,
+        recipientName: order.recipient_name ?? null,
+        totalAmount: order.total_amount,
+        reason: reason?.trim() || null,
+        refundAmount: order.refunded_amount ?? null,
+      }).catch(() => {})
+    }
   }
 
   return NextResponse.json({

@@ -67,6 +67,13 @@ const serverSchema = z.object({
   // === Anthropic (선택 — /api/analysis/commentary용) =======================
   ANTHROPIC_API_KEY: optStr(),
 
+  // === Resend (선택 — 거래 메일. 없으면 모든 sendEmail 호출은 no-op) ========
+  // EMAIL_FROM 은 "파머스테일 <no-reply@farmerstail.com>" 처럼 display+addr 형식.
+  // Resend 계정에 검증된 도메인만 From으로 쓸 수 있음.
+  RESEND_API_KEY: optStr(),
+  EMAIL_FROM: optStr(),
+  EMAIL_REPLY_TO: optStr(),
+
   // === Node runtime meta ===================================================
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 })
@@ -95,6 +102,9 @@ const raw = {
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
   VAPID_SUBJECT: process.env.VAPID_SUBJECT,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  EMAIL_FROM: process.env.EMAIL_FROM,
+  EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO,
   NODE_ENV: process.env.NODE_ENV,
 }
 
@@ -140,4 +150,5 @@ export const features = {
       env.VAPID_SUBJECT
   ),
   anthropic: Boolean(env.ANTHROPIC_API_KEY),
+  email: Boolean(env.RESEND_API_KEY && env.EMAIL_FROM),
 } as const
