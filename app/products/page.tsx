@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { StockBadge, StockOverlay } from '@/components/ui/StockBadge'
+import SearchBar from '@/components/SearchBar'
 
 /**
  * /products — 공개 카탈로그.
@@ -85,6 +86,8 @@ export default function ProductsPage() {
   const [category, setCategory] = useState<Category>(
     CATEGORIES.includes(initialCat as Category) ? initialCat : '전체'
   )
+  // Search query — SearchBar가 URL 의 ?q= 와 양방향 동기화. 여기선 필터용으로만.
+  const [query, setQuery] = useState<string>(searchParams.get('q') ?? '')
 
   useEffect(() => {
     async function load() {
@@ -101,18 +104,31 @@ export default function ProductsPage() {
     load()
   }, [supabase])
 
-  const filtered = useMemo(
-    () =>
+  const filtered = useMemo(() => {
+    const base =
       category === '전체'
         ? products
-        : products.filter((p) => p.category === category),
-    [products, category]
-  )
+        : products.filter((p) => p.category === category)
+    const q = query.trim().toLowerCase()
+    if (!q) return base
+    // name + short_description 대상으로 부분 일치. 한글은 대소문자 영향 없고
+    // toLowerCase 는 영문 상품명/영양소 키워드 (예: "DHA") 대응용.
+    return base.filter((p) => {
+      if (p.name.toLowerCase().includes(q)) return true
+      if (p.short_description?.toLowerCase().includes(q)) return true
+      return false
+    })
+  }, [products, category, query])
+
+  const isSearching = query.trim().length > 0
 
   // Feature 제품 — '전체' 탭에서만, sort_order 1위를 주인공으로.
-  // 나머지는 grid로 넘어간다. 카테고리 필터 중에는 feature 없이
-  // 그리드만 보여줘 소음을 줄인다.
-  const featured = category === '전체' && filtered.length > 0 ? filtered[0] : null
+  // 나머지는 grid로 넘어간다. 카테고리 필터 중에도, 검색 중에도 feature 없이
+  // 그리드만 보여줘 소음을 줄인다 (주인공 편집은 '일반 탐색' 맥락에서만 의미).
+  const featured =
+    category === '전체' && !isSearching && filtered.length > 0
+      ? filtered[0]
+      : null
   const restForGrid = featured ? filtered.slice(1) : filtered
 
   return (
@@ -165,6 +181,15 @@ export default function ProductsPage() {
             </div>
           ))}
         </div>
+
+        {/* Search — WebSite JSON-LD 의 SearchAction target 과 연결. 값 변화는
+            debounce 후 URL 의 q 로 동기화되어 공유/뒤로가기가 깨지지 않는다. */}
+        <div className="mt-5 max-w-[360px] mx-auto">
+          <SearchBar
+            placeholder="제품명·설명으로 검색"
+            onChange={setQuery}
+          />
+        </div>
       </section>
 
       {/* ── Chapter nav · 카테고리 ──────────────────────────── */}
@@ -213,16 +238,19 @@ export default function ProductsPage() {
         </div>
       </section>
 
-      {/* Product count — kicker 톤 */}
+      {/* Product count — kicker 톤. 검색 중엔 '카테고리' 대신 쿼리 echo. */}
       {!loading && (
-        <div className="px-5 mt-5 flex items-baseline justify-between">
-          <span className="kicker kicker-muted">
-            {filtered.length} Products · {category}
+        <div className="px-5 mt-5 flex items-baseline justify-between gap-3">
+          <span className="kicker kicker-muted truncate">
+            {filtered.length} Results
+            {isSearching
+              ? ` · "${query.trim()}"`
+              : ` · ${category}`}
           </span>
-          {category !== '전체' && (
+          {(category !== '전체' || isSearching) && (
             <button
               onClick={() => setCategory('전체')}
-              className="text-[10.5px] font-bold underline underline-offset-2"
+              className="text-[10.5px] font-bold underline underline-offset-2 shrink-0"
               style={{ color: 'var(--terracotta)' }}
             >
               전체 보기
@@ -248,7 +276,7 @@ export default function ProductsPage() {
       {!loading && filtered.length === 0 && (
         <div className="px-5 mt-6">
           <div
-            className="rounded-2xl py-14 flex flex-col items-center text-center"
+            className="rounded-2xl py-14 px-6 flex flex-col items-center text-center"
             style={{
               background: 'var(--bg-2)',
               border: '1px dashed var(--rule-2)',
@@ -264,13 +292,25 @@ export default function ProductsPage() {
                 color="var(--muted)"
               />
             </div>
-            <span className="kicker kicker-muted">Empty · 비어 있음</span>
+            <span className="kicker kicker-muted">
+              {isSearching ? 'No match · 검색 결과 없음' : 'Empty · 비어 있음'}
+            </span>
             <p
               className="font-serif mt-2 text-[15px] font-black"
               style={{ color: 'var(--text)' }}
             >
-              해당 카테고리에 상품이 없어요
+              {isSearching
+                ? '검색어와 일치하는 상품이 없어요'
+                : '해당 카테고리에 상품이 없어요'}
             </p>
+            {isSearching && (
+              <p
+                className="mt-2 text-[11.5px] leading-relaxed"
+                style={{ color: 'var(--muted)' }}
+              >
+                다른 단어로 시도하거나 전체 카테고리에서 둘러보세요.
+              </p>
+            )}
           </div>
         </div>
       )}
