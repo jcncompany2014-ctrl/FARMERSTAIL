@@ -17,6 +17,7 @@ import KakaoLoginButton from '@/components/KakaoLoginButton'
 import AuthHero from '@/components/auth/AuthHero'
 import AddressSearch from '@/components/AddressSearch'
 import { trackSignUp } from '@/lib/analytics'
+import { MARKETING_POLICY_VERSION } from '@/lib/consent'
 
 /**
  * /signup — 신규 계정 생성.
@@ -239,6 +240,9 @@ function SignupForm() {
       // profiles 업데이트 — 트리거가 만들어 둔 row에 사용자 입력을
       // 채워 넣는다. 주소/전화번호 저장 실패는 가입 자체를 되돌리지
       // 않는다 (다음 단계에서 수정 가능). 다만 에러는 info 노트로 노출.
+      // 마케팅 동의는 timestamp + policy version 감사를 위해 RPC 사용.
+      // profile 본체(주소·이름 등) 와 분리해 호출. 에러는 나중에 info 로만 노출.
+      const now = new Date().toISOString()
       const { error: profErr } = await supabase
         .from('profiles')
         .update({
@@ -250,8 +254,41 @@ function SignupForm() {
           birth_year: birthYearNum,
           agree_email: agreeMarketingEmail,
           agree_sms: agreeMarketingSms,
+          // timestamp — 감사 로그용. opt-in 이면 현재 시각, opt-out 이면 null.
+          agree_email_at: agreeMarketingEmail ? now : null,
+          agree_sms_at: agreeMarketingSms ? now : null,
+          marketing_policy_version:
+            agreeMarketingEmail || agreeMarketingSms
+              ? MARKETING_POLICY_VERSION
+              : null,
         })
         .eq('id', data.user.id)
+
+      // consent_log 에 증적. RPC 를 써도 되고 직접 insert 해도 되지만, 가입
+      // 직후라 RPC (auth.uid() 기준) 가 가장 깔끔. 실패해도 무시 — profiles
+      // 플래그가 truth source 이고 로그는 부가적.
+      if (agreeMarketingEmail) {
+        await supabase
+          .from('consent_log')
+          .insert({
+            user_id: data.user.id,
+            channel: 'email',
+            granted: true,
+            policy_version: MARKETING_POLICY_VERSION,
+            source: 'signup',
+          })
+      }
+      if (agreeMarketingSms) {
+        await supabase
+          .from('consent_log')
+          .insert({
+            user_id: data.user.id,
+            channel: 'sms',
+            granted: true,
+            policy_version: MARKETING_POLICY_VERSION,
+            source: 'signup',
+          })
+      }
 
       if (profErr) {
         // 트리거가 14세 미만을 거부하면 UNDER_14 메시지로 돌아옴.

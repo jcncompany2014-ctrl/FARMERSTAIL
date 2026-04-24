@@ -52,6 +52,22 @@ async function resolveRecipient(
   }
 }
 
+/**
+ * 광고성 이메일(카트 리마인더, 프로모션 등) 은 `agree_email` 플래그가 true 여야만
+ * 보낸다. 주문/배송/환불 같은 거래 정보는 이 체크를 거치지 않는다.
+ */
+async function hasEmailMarketingConsent(
+  supabase: AnySupabase,
+  userId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('agree_email')
+    .eq('id', userId)
+    .maybeSingle()
+  return Boolean(data?.agree_email)
+}
+
 async function loadOrderItems(
   supabase: AnySupabase,
   orderId: string,
@@ -359,7 +375,13 @@ export async function notifyRestock(
 export async function notifyAbandonedCart(
   supabase: AnySupabase,
   input: { userId: string },
-): Promise<{ sent: boolean; itemCount: number; subtotal: number }> {
+): Promise<{ sent: boolean; itemCount: number; subtotal: number; skipped?: string }> {
+  // 0) 마케팅 수신동의 체크 — 광고성 이메일이므로 동의하지 않은 유저에게는
+  //    보내지 않는다. cron 로그는 남기지 않아 쿨다운 계산에 영향 없음.
+  if (!(await hasEmailMarketingConsent(supabase, input.userId))) {
+    return { sent: false, itemCount: 0, subtotal: 0, skipped: 'no_consent' }
+  }
+
   // 1) 카트 + 상품 join. is_active + stock>0 만 추려 "이미 내려간 상품" 은 제외.
   const { data: rows } = await supabase
     .from('cart_items')

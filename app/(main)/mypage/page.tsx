@@ -17,6 +17,7 @@ import {
   Coins,
   Ticket,
   UserPlus,
+  Mail,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -212,6 +213,11 @@ export default function MyPage() {
             href="/mypage/notifications"
             Icon={Bell}
             label="알림 설정"
+          />
+          <MenuItem
+            href="/mypage/consent"
+            Icon={Mail}
+            label="광고 수신 설정"
           />
           <MenuItem Icon={MapPin} label="배송지 관리" comingSoon last />
         </div>
