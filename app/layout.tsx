@@ -157,7 +157,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#A0452E",
+  // theme-color 는 모바일 브라우저의 주소바/PWA 헤더 배경에 쓰인다. 라이트에선
+  // 시그니처 terracotta, 다크에선 iOS 상태바 아이콘(흰색)과 겹치지 않도록
+  // --bg 다크 값(#171310)로 연속시킨다.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#A0452E" },
+    { media: "(prefers-color-scheme: dark)", color: "#171310" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
