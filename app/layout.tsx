@@ -15,6 +15,11 @@ import AnalyticsScripts from "@/components/AnalyticsScripts";
 import OnboardingGate from "@/components/OnboardingGate";
 import CookieConsent from "@/components/CookieConsent";
 import ConsentBootstrap from "@/components/ConsentBootstrap";
+import JsonLd from "@/components/JsonLd";
+import {
+  buildOrganizationJsonLd,
+  buildWebSiteJsonLd,
+} from "@/lib/seo/jsonld";
 import { ToastProvider } from "@/components/ui/Toast";
 
 // Pretendard Variable — 본문 / UI 전체
@@ -181,6 +186,10 @@ export default function RootLayout({
         <CookieConsent />
         {/* First-launch intercept for installed PWAs — see components/OnboardingGate.tsx */}
         <OnboardingGate />
+        {/* 사이트 전역 JSON-LD — Organization / WebSite. 페이지별 스키마는 각
+            라우트에서 추가로 주입. Google 이 @id 로 엔티티를 병합해준다. */}
+        <JsonLd id="ld-organization" data={buildOrganizationJsonLd()} />
+        <JsonLd id="ld-website" data={buildWebSiteJsonLd()} />
       </body>
     </html>
   );

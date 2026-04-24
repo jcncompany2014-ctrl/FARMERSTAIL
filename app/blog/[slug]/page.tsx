@@ -5,6 +5,8 @@ import { cache } from 'react'
 import { BookOpen, Eye, ArrowUpRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import PublicPageShell from '@/components/PublicPageShell'
+import JsonLd from '@/components/JsonLd'
+import { buildArticleJsonLd, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 
 /**
  * /blog/[slug] — 매거진 상세.
@@ -142,8 +144,28 @@ export default async function BlogPostPage({ params }: { params: Params }) {
 
   const relatedPosts = related ?? []
 
+  const articleLd = buildArticleJsonLd({
+    title: post.title,
+    slug: post.slug,
+    description:
+      post.excerpt ??
+      post.content.slice(0, 180).replace(/\s+/g, ' '),
+    coverUrl: post.cover_url,
+    publishedAt: post.published_at,
+  })
+  const breadcrumbLd = buildBreadcrumbJsonLd([
+    { name: '홈', path: '/' },
+    { name: '매거진', path: '/blog' },
+    ...(cat
+      ? [{ name: cat.name, path: `/blog?category=${cat.slug}` }]
+      : []),
+    { name: post.title, path: `/blog/${post.slug}` },
+  ])
+
   return (
     <PublicPageShell backHref="/blog" backLabel="매거진">
+      <JsonLd id={`ld-article-${post.slug}`} data={articleLd} />
+      <JsonLd id={`ld-breadcrumb-blog-${post.slug}`} data={breadcrumbLd} />
       {/* ── Cover ──────────────────────────────────────── */}
       {post.cover_url ? (
         <div

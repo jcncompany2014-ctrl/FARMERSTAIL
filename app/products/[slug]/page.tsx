@@ -4,6 +4,12 @@ import { cache } from 'react'
 import { Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import ProductDetailClient from './ProductDetailClient'
+import JsonLd from '@/components/JsonLd'
+import {
+  buildBreadcrumbJsonLd,
+  buildProductJsonLd,
+  SITE_URL,
+} from '@/lib/seo/jsonld'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +28,35 @@ const getProduct = cache(async (slug: string) => {
     .single()
   return data
 })
+
+/**
+ * 리뷰 aggregate — JSON-LD AggregateRating 주입용. 리뷰가 0개면 null 을 반환해
+ * 빈 aggregate 가 검색 결과에 드러가지 않게 한다 (Google 의 경고 대상).
+ * 테이블이 없거나 RLS 에서 거부당해도 조용히 null 로 후퇴.
+ */
+const getReviewAggregate = cache(
+  async (
+    productId: string,
+  ): Promise<{ ratingValue: number; reviewCount: number } | null> => {
+    const supabase = await createClient()
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('rating')
+        .eq('product_id', productId)
+        .eq('is_published', true)
+      if (error || !data || data.length === 0) return null
+      const ratings = data
+        .map((r) => Number((r as { rating: number | null }).rating))
+        .filter((n) => Number.isFinite(n) && n > 0)
+      if (ratings.length === 0) return null
+      const avg = ratings.reduce((s, n) => s + n, 0) / ratings.length
+      return { ratingValue: avg, reviewCount: ratings.length }
+    } catch {
+      return null
+    }
+  },
+)
 
 /**
  * variant 쿼리는 **별도 분리** — 마이그레이션이 배포 환경에 아직 적용 안 된
@@ -159,7 +194,50 @@ export default async function ProductDetailPage({
     )
   }
 
-  const variants = await getVariants(product.id)
+  const [variants, rating] = await Promise.all([
+    getVariants(product.id),
+    getReviewAggregate(product.id),
+  ])
 
-  return <ProductDetailClient product={product} variants={variants} />
+  // JSON-LD 이미지 배열 — 절대 URL 로 정규화. image_url 이 외부 URL 이면 그대로,
+  // 상대경로면 SITE_URL 로 prefix.
+  const absolutize = (u: string) =>
+    u.startsWith('http') ? u : `${SITE_URL}${u.startsWith('/') ? '' : '/'}${u}`
+  const images = [
+    product.image_url ? absolutize(product.image_url) : null,
+    ...(Array.isArray(product.gallery_urls)
+      ? product.gallery_urls.map((u: string) => absolutize(u))
+      : []),
+  ].filter((u): u is string => typeof u === 'string' && u.length > 0)
+
+  const productLd = buildProductJsonLd({
+    name: product.name,
+    slug: product.slug,
+    description:
+      product.meta_description ??
+      product.short_description ??
+      product.description?.slice(0, 300) ??
+      product.name,
+    image: images.length > 0 ? images : [`${SITE_URL}/api/og`],
+    price: product.price,
+    salePrice: product.sale_price ?? null,
+    inStock: (product.stock ?? 0) > 0,
+    sku: variants[0]?.sku ?? product.slug,
+    category: product.category ?? undefined,
+    aggregateRating: rating ?? undefined,
+  })
+
+  const breadcrumbLd = buildBreadcrumbJsonLd([
+    { name: '홈', path: '/' },
+    { name: '제품', path: '/products' },
+    { name: product.name, path: `/products/${product.slug}` },
+  ])
+
+  return (
+    <>
+      <JsonLd id={`ld-product-${product.slug}`} data={productLd} />
+      <JsonLd id={`ld-breadcrumb-${product.slug}`} data={breadcrumbLd} />
+      <ProductDetailClient product={product} variants={variants} />
+    </>
+  )
 }
