@@ -76,6 +76,8 @@ function SignupForm() {
   const [showPw, setShowPw] = useState(false)
   const [showPw2, setShowPw2] = useState(false)
   const [phone, setPhone] = useState('')
+  // birth_year — 만 14세 미만 가입 차단 근거. 문자열로 보관했다가 제출 시 숫자로.
+  const [birthYear, setBirthYear] = useState('')
 
   // ── 02 배송지
   const [zip, setZip] = useState('')
@@ -110,6 +112,23 @@ function SignupForm() {
   const phoneValid = phone === '' || isValidKoreanMobile(phone)
   const hasReferral = referralCode.trim().length > 0
 
+  // 나이 게이트 — 연도만 입력받고 "해당 연도 생이면 올해 기준 최대 나이" 로 계산.
+  // 엄밀한 만 나이는 아니지만 PIPA 14세 기준에서 충분히 보수적. (14살 생일 직전인
+  // 사람은 사실상 13세라 막힐 수 있는데, 이는 의도된 안전 마진.)
+  const currentYear = new Date().getFullYear()
+  const MIN_BIRTH_YEAR = currentYear - 100
+  const MAX_BIRTH_YEAR = currentYear - 14
+  const birthYearNum = birthYear ? Number(birthYear) : NaN
+  const birthYearValid =
+    Number.isInteger(birthYearNum) &&
+    birthYearNum >= MIN_BIRTH_YEAR &&
+    birthYearNum <= MAX_BIRTH_YEAR
+  // 사용자가 "올해 - 13 ~ 올해" 사이 연도를 골랐을 때만 under-14 경고를 띄운다.
+  const birthYearUnder14 =
+    Number.isInteger(birthYearNum) &&
+    birthYearNum > MAX_BIRTH_YEAR &&
+    birthYearNum <= currentYear
+
   const canSubmit = useMemo(() => {
     if (loading) return false
     if (!agreeRequired) return false
@@ -119,6 +138,7 @@ function SignupForm() {
     if (password !== passwordConfirm) return false
     if (!isValidKoreanMobile(phone)) return false
     if (!zip.trim() || !address.trim()) return false
+    if (!birthYearValid) return false
     return true
   }, [
     loading,
@@ -130,6 +150,7 @@ function SignupForm() {
     phone,
     zip,
     address,
+    birthYearValid,
   ])
 
   // Mirror the URL-provided code to sessionStorage so it survives the
@@ -186,6 +207,16 @@ function SignupForm() {
       setError('기본 배송지 주소를 입력해 주세요')
       return
     }
+    if (!birthYearValid) {
+      if (birthYearUnder14) {
+        setError(
+          '만 14세 미만은 가입할 수 없어요. 보호자와 함께 다시 확인해 주세요.',
+        )
+      } else {
+        setError('출생 연도를 선택해 주세요')
+      }
+      return
+    }
 
     setLoading(true)
 
@@ -216,12 +247,22 @@ function SignupForm() {
           zip,
           address,
           address_detail: addressDetail,
+          birth_year: birthYearNum,
           agree_email: agreeMarketingEmail,
           agree_sms: agreeMarketingSms,
         })
         .eq('id', data.user.id)
 
       if (profErr) {
+        // 트리거가 14세 미만을 거부하면 UNDER_14 메시지로 돌아옴.
+        // 혹시 클라이언트 가드를 우회하더라도 가입 자체가 실패로 보이도록
+        // 에러로 띄우고 리다이렉트를 막는다.
+        if (profErr.message?.includes('UNDER_14')) {
+          await supabase.auth.signOut()
+          setLoading(false)
+          setError('만 14세 미만은 가입할 수 없어요.')
+          return
+        }
         setInfo(
           '프로필 저장 중 일부 오류가 있었어요. 마이페이지에서 확인해 주세요.'
         )
@@ -613,6 +654,60 @@ function SignupForm() {
                   >
                     <AlertCircle className="w-3 h-3" strokeWidth={2.5} />
                     010으로 시작하는 10~11자리 숫자를 입력해 주세요
+                  </p>
+                )}
+              </div>
+
+              {/* 출생 연도 — 만 14세 미만 가입 차단 목적. 연도만 수집. */}
+              <div>
+                <label
+                  className="block text-[11px] font-bold mb-1.5"
+                  style={{ color: 'var(--text)' }}
+                >
+                  출생 연도
+                </label>
+                <select
+                  required
+                  value={birthYear}
+                  onChange={(e) => setBirthYear(e.target.value)}
+                  className={baseInputCls}
+                  style={{
+                    ...baseInputStyle,
+                    borderColor: birthYearUnder14
+                      ? 'var(--sale)'
+                      : 'var(--rule-2)',
+                  }}
+                >
+                  <option value="">선택해 주세요</option>
+                  {Array.from({ length: currentYear - MIN_BIRTH_YEAR + 1 }).map(
+                    (_, i) => {
+                      // 최근 해부터 과거로 (사용 빈도 가장 높은 성인 연령대가 상단)
+                      const y = currentYear - i
+                      return (
+                        <option key={y} value={y}>
+                          {y}년
+                        </option>
+                      )
+                    },
+                  )}
+                </select>
+                {birthYearUnder14 ? (
+                  <p
+                    className="text-[10.5px] mt-1 flex items-start gap-1 font-semibold leading-relaxed"
+                    style={{ color: 'var(--sale)' }}
+                  >
+                    <AlertCircle
+                      className="w-3 h-3 shrink-0 mt-0.5"
+                      strokeWidth={2.5}
+                    />
+                    만 14세 미만은 가입할 수 없어요. 보호자와 상의해 주세요.
+                  </p>
+                ) : (
+                  <p
+                    className="text-[10px] mt-1"
+                    style={{ color: 'var(--muted)' }}
+                  >
+                    만 14세 이상만 가입할 수 있어요 (개인정보보호법)
                   </p>
                 )}
               </div>
