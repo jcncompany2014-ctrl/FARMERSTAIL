@@ -13,6 +13,8 @@ import "@/lib/forms/zod-ko";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import AnalyticsScripts from "@/components/AnalyticsScripts";
 import OnboardingGate from "@/components/OnboardingGate";
+import CookieConsent from "@/components/CookieConsent";
+import ConsentBootstrap from "@/components/ConsentBootstrap";
 import { ToastProvider } from "@/components/ui/Toast";
 
 // Pretendard Variable — 본문 / UI 전체
@@ -173,6 +175,10 @@ export default function RootLayout({
         </ToastProvider>
         <ServiceWorkerRegister />
         <AnalyticsScripts />
+        {/* 이미 저장된 쿠키 동의를 마운트 즉시 tracker 에 반영 */}
+        <ConsentBootstrap />
+        {/* 첫 방문 시 쿠키 동의 배너 */}
+        <CookieConsent />
         {/* First-launch intercept for installed PWAs — see components/OnboardingGate.tsx */}
         <OnboardingGate />
       </body>

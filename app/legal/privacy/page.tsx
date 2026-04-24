@@ -5,6 +5,7 @@ import LegalDocument, {
   Section,
   UL,
 } from '@/components/LegalDocument'
+import CookieConsentResetLink from '@/components/CookieConsentResetLink'
 import { business } from '@/lib/business'
 
 export const metadata: Metadata = {
@@ -330,9 +331,29 @@ export default function PrivacyPage() {
         <Section title="9. 쿠키 및 자동 수집 장치">
           <p>
             서비스는 로그인 상태 유지, 장바구니 정보 저장, 서비스 이용
-            분석 등의 목적으로 쿠키를 사용합니다. 회원은 브라우저 설정을
-            통해 쿠키 저장을 거부할 수 있으나, 일부 기능(예: 로그인 상태
-            유지)의 사용이 제한될 수 있습니다.
+            분석 등의 목적으로 쿠키를 사용합니다. 쿠키는 용도에 따라
+            다음과 같이 구분됩니다.
+          </p>
+          <UL>
+            <li>
+              <b>필수 쿠키:</b> 로그인 세션, 장바구니, 보안 토큰 등 서비스
+              기본 기능에 필요합니다. 동의 여부와 무관하게 사용됩니다.
+            </li>
+            <li>
+              <b>분석 쿠키:</b> 방문 패턴을 집계해 서비스 개선에
+              활용합니다 (Google Analytics 4).
+            </li>
+            <li>
+              <b>광고·마케팅 쿠키:</b> 관심사 기반 광고, 전환 추적에
+              사용됩니다 (Meta Pixel).
+            </li>
+          </UL>
+          <p className="mt-2">
+            분석·광고 쿠키는 최초 방문 시 노출되는 쿠키 설정 배너에서
+            동의 여부를 직접 선택할 수 있으며, <CookieConsentResetLink />
+            를 눌러 언제든 재설정할 수 있습니다. 브라우저 설정에서 쿠키
+            저장을 차단해도 동일한 효과이지만, 일부 기능(예: 로그인 유지)
+            사용이 제한될 수 있습니다.
           </p>
         </Section>
 
