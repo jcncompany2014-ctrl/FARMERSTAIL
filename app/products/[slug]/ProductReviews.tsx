@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Star, ThumbsUp, MessageSquare } from 'lucide-react'
+import { Star, ThumbsUp, MessageSquare, BadgeCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 /**
@@ -20,9 +20,13 @@ type Review = {
   content: string
   helpful_count: number
   created_at: string
+  image_urls: string[]
+  verified: boolean
   dog?: { name: string } | null
   author?: { name: string | null } | null
 }
+
+type SortKey = 'latest' | 'helpful' | 'photo' | 'top'
 
 function timeAgo(iso: string) {
   const d = new Date(iso)
@@ -66,19 +70,23 @@ export default function ProductReviews({ productId }: { productId: string }) {
   const [helpful, setHelpful] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [pending, setPending] = useState<string | null>(null)
+  const [sort, setSort] = useState<SortKey>('latest')
+  const [lightbox, setLightbox] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
     async function load() {
-      // fetch latest reviews (top 20) with joined dog
+      // fetch latest reviews (top 20) with joined dog, photos, and verified-purchase flag
+      // (order_item_id NOT NULL 을 서버에서 bool 로 환산하는 SELECT 표현식은 PostgREST
+      // 에서 안 되니 프론트에서 order_item_id 를 받아 파생.)
       const { data: rows } = await supabase
         .from('reviews')
         .select(
-          'id, user_id, rating, title, content, helpful_count, created_at, dogs(name)'
+          'id, user_id, rating, title, content, helpful_count, image_urls, order_item_id, created_at, dogs(name)'
         )
         .eq('product_id', productId)
         .order('created_at', { ascending: false })
-        .limit(20)
+        .limit(50)
 
       // fetch author names separately (profiles.id → auth.users.id, not a direct FK on reviews)
       const authorIds = Array.from(new Set((rows ?? []).map((r) => r.user_id)))
@@ -133,6 +141,8 @@ export default function ProductReviews({ productId }: { productId: string }) {
           title: r.title,
           content: r.content,
           helpful_count: r.helpful_count,
+          image_urls: (r.image_urls ?? []) as string[],
+          verified: Boolean(r.order_item_id),
           created_at: r.created_at,
           dog: r.dogs ?? null,
           author: { name: profMap.get(r.user_id) ?? null },
@@ -149,6 +159,21 @@ export default function ProductReviews({ productId }: { productId: string }) {
       mounted = false
     }
   }, [productId, supabase])
+
+  // 정렬/필터를 useMemo 로. 서버 재요청하지 않고 클라이언트에서 끝 —
+  // 50건 정도까지는 체감 차이 없음.
+  const visibleReviews = useMemo(() => {
+    const list = [...reviews]
+    if (sort === 'photo') return list.filter((r) => r.image_urls.length > 0)
+    if (sort === 'helpful') {
+      list.sort((a, b) => b.helpful_count - a.helpful_count)
+      return list
+    }
+    if (sort === 'top') return list.filter((r) => r.rating === 5)
+    // latest
+    list.sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+    return list
+  }, [reviews, sort])
 
   async function toggleHelpful(reviewId: string) {
     if (pending) return
@@ -316,14 +341,50 @@ export default function ProductReviews({ productId }: { productId: string }) {
             </div>
           </div>
 
+          {/* Sort chips */}
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {([
+              { k: 'latest', label: '최신순' },
+              { k: 'helpful', label: '도움 많은 순' },
+              { k: 'photo', label: '사진 리뷰' },
+              { k: 'top', label: '⭐ 5점만' },
+            ] as { k: SortKey; label: string }[]).map((opt) => {
+              const active = sort === opt.k
+              return (
+                <button
+                  key={opt.k}
+                  type="button"
+                  onClick={() => setSort(opt.k)}
+                  className="px-2.5 py-1 rounded-full text-[10px] font-bold transition active:scale-95"
+                  style={{
+                    color: active ? 'var(--terracotta)' : 'var(--muted)',
+                    background: active
+                      ? 'color-mix(in srgb, var(--terracotta) 8%, transparent)'
+                      : 'var(--bg)',
+                    boxShadow: active
+                      ? 'inset 0 0 0 1px var(--terracotta)'
+                      : 'inset 0 0 0 1px var(--rule-2)',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              )
+            })}
+          </div>
+
           {/* Reviews list */}
           <ul className="mt-4 space-y-4">
-            {reviews.map((r, idx) => {
+            {visibleReviews.length === 0 && (
+              <li className="py-6 text-center text-[11px] text-muted">
+                조건에 맞는 리뷰가 없어요
+              </li>
+            )}
+            {visibleReviews.map((r, idx) => {
               const liked = helpful.has(r.id)
               const authorName =
                 r.author?.name?.trim() ||
                 (r.user_id ? `고객 ${r.user_id.slice(0, 4)}` : '고객')
-              const isLast = idx === reviews.length - 1
+              const isLast = idx === visibleReviews.length - 1
               return (
                 <li
                   key={r.id}
@@ -336,7 +397,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
                   }}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Stars value={r.rating} size={12} />
                       <span
                         className="text-[11px] font-black"
@@ -344,6 +405,20 @@ export default function ProductReviews({ productId }: { productId: string }) {
                       >
                         {authorName}
                       </span>
+                      {r.verified && (
+                        <span
+                          className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                          style={{
+                            color: 'var(--moss)',
+                            background:
+                              'color-mix(in srgb, var(--moss) 10%, transparent)',
+                          }}
+                          title="실제 구매 확인된 리뷰"
+                        >
+                          <BadgeCheck className="w-3 h-3" strokeWidth={2.2} />
+                          구매 확인
+                        </span>
+                      )}
                       {r.dog?.name && (
                         <span
                           className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
@@ -381,6 +456,26 @@ export default function ProductReviews({ productId }: { productId: string }) {
                   >
                     {r.content}
                   </p>
+                  {r.image_urls.length > 0 && (
+                    <div className="mt-2.5 flex gap-1.5 overflow-x-auto scrollbar-hide">
+                      {r.image_urls.map((url) => (
+                        <button
+                          key={url}
+                          type="button"
+                          onClick={() => setLightbox(url)}
+                          className="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-bg border border-rule active:scale-95 transition"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt="리뷰 사진"
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <button
                     onClick={() => toggleHelpful(r.id)}
                     disabled={pending === r.id}
@@ -407,6 +502,21 @@ export default function ProductReviews({ productId }: { productId: string }) {
             })}
           </ul>
         </>
+      )}
+      {lightbox && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setLightbox(null)}
+          className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-4"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox}
+            alt="리뷰 사진 확대"
+            className="max-h-[92vh] max-w-full rounded-lg object-contain"
+          />
+        </div>
       )}
     </section>
   )
