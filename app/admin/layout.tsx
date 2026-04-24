@@ -1,9 +1,20 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
+
+// 관리자 페이지는 크롤 · 검색 인덱스 금지. robots.txt 차단과 이중화 —
+// robots.txt 를 무시하는 크롤러 (arc.net, SEO 분석 도구) 대비.
+export const metadata: Metadata = {
+  title: {
+    default: '관리자',
+    template: '%s · 관리자 | 파머스테일',
+  },
+  robots: { index: false, follow: false, nocache: true },
+}
 
 export default async function AdminLayout({
   children,
