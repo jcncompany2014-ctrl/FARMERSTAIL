@@ -72,6 +72,32 @@ function StockEditor({
       setValue(initialValue)
       return
     }
+
+    // 0 → >0 전이 — 재입고 알림 dispatch.
+    // 실수로 0 을 건드린 게 아니라 실제 재고가 들어온 경우에만 의미가 있으므로
+    // "0 → N" 만 트리거. value>0 → value>0 의 증감에는 반응하지 않는다.
+    // fire-and-forget: 발송 결과는 토스트로만 확인하고 UI 를 막지 않는다.
+    if (initialValue === 0 && value > 0) {
+      fetch('/api/admin/restock/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, variantId: null }),
+      })
+        .then(async (res) => {
+          if (!res.ok) return
+          const data = (await res.json().catch(() => null)) as
+            | { matched?: number; notified?: number }
+            | null
+          if (data?.matched && data.matched > 0) {
+            // 관리자에게 간단 확인. 모달이나 정식 토스트를 붙이기 전까지 alert 로.
+            alert(
+              `재입고 알림을 ${data.notified ?? 0}/${data.matched}명에게 발송했어요.`,
+            )
+          }
+        })
+        .catch(() => {})
+    }
+
     setEditing(false)
     startTransition(() => router.refresh())
   }

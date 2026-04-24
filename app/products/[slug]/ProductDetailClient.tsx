@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import ProductReviews from './ProductReviews'
+import RestockButton from './RestockButton'
 import { trackAddToCart, trackViewItem } from '@/lib/analytics'
 import { stockState, maxOrderable, stockMessage } from '@/lib/products/stock'
 import { StockBadge, StockOverlay } from '@/components/ui/StockBadge'
@@ -715,21 +716,12 @@ export default function ProductDetailClient({
           )}
 
           {isSoldOut ? (
-            // 품절: CTA 자체를 "품절" 상태로 교체. 재입고 알림 훅은 Step 21에서
-            // 바꿔 끼운다 (지금은 disabled 버튼만 노출).
-            <button
-              type="button"
-              disabled
-              aria-label="품절 상품"
-              className="w-full py-4 rounded-full font-bold text-[14px] transition-all opacity-60 cursor-not-allowed"
-              style={{
-                background: 'var(--rule-2)',
-                color: 'var(--text)',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              품절 · SOLD OUT
-            </button>
+            // 품절: 재입고 알림 구독 버튼으로 교체. variant가 있으면 variant
+            // 단위로 구독한다 — 대용량 품절/소포장 재고 상황을 분리해 통지.
+            <RestockButton
+              productId={product.id}
+              variantId={selectedVariant?.id ?? null}
+            />
           ) : product.is_subscribable ? (
             <div className="flex gap-2">
               <button
