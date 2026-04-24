@@ -9,7 +9,10 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --experimental-strip-types --no-warnings --test \"lib/**/*.test.ts\" \"lib/**/*.test.tsx\"",
-    "test:watch": "node --experimental-strip-types --no-warnings --test --watch \"lib/**/*.test.ts\""
+    "test:watch": "node --experimental-strip-types --no-warnings --test --watch \"lib/**/*.test.ts\"",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -30,6 +33,7 @@
     "rollup": "npm:@rollup/wasm-node@^4.60.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
