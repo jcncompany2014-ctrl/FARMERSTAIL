@@ -23,6 +23,7 @@ import {
   type OrderEmailItem,
 } from './templates/orders'
 import { renderRestockAlert } from './templates/restock'
+import { renderCartAbandoned, type CartRecoveryItem } from './templates/cart'
 import { paymentMethodLabel } from '@/lib/payments/toss'
 import { pushToUser } from '@/lib/push'
 
@@ -342,6 +343,99 @@ export async function notifyRestock(
     .in('id', ids)
 
   return { matched: rows.length, notified, failed }
+}
+
+// ── 장바구니 재결제 유도 메일 ────────────────────────────────────────────────
+/**
+ * 한 유저의 현재 장바구니를 조회해 재결제 유도 메일을 보낸다. 호출 전에 cron 이
+ * 24h+ 미결제 + 7일 쿨다운 조건을 만족하는지 확인한 상태여야 한다.
+ *
+ * RLS 우회를 위해 service_role 클라이언트를 받는 것을 전제.
+ */
+export async function notifyAbandonedCart(
+  supabase: AnySupabase,
+  input: { userId: string },
+): Promise<{ sent: boolean; itemCount: number; subtotal: number }> {
+  // 1) 카트 + 상품 join. is_active + stock>0 만 추려 "이미 내려간 상품" 은 제외.
+  const { data: rows } = await supabase
+    .from('cart_items')
+    .select(
+      'id, quantity, product_id, variant_id, products(id, name, slug, price, sale_price, image_url, stock, is_active)',
+    )
+    .eq('user_id', input.userId)
+
+  type Row = {
+    id: string
+    quantity: number
+    product_id: string
+    variant_id?: string | null
+    products:
+      | {
+          id: string
+          name: string
+          slug: string
+          price: number
+          sale_price: number | null
+          image_url: string | null
+          stock: number
+          is_active: boolean
+        }
+      | Array<{
+          id: string
+          name: string
+          slug: string
+          price: number
+          sale_price: number | null
+          image_url: string | null
+          stock: number
+          is_active: boolean
+        }>
+      | null
+  }
+
+  const items: CartRecoveryItem[] = []
+  let subtotal = 0
+  for (const r of (rows ?? []) as Row[]) {
+    const p = Array.isArray(r.products) ? r.products[0] : r.products
+    if (!p || !p.is_active || (p.stock ?? 0) <= 0) continue
+    const price = p.sale_price ?? p.price ?? 0
+    const lineTotal = price * r.quantity
+    subtotal += lineTotal
+    items.push({
+      productName: p.name,
+      quantity: r.quantity,
+      lineTotal,
+    })
+  }
+  if (items.length === 0) return { sent: false, itemCount: 0, subtotal: 0 }
+
+  // 2) 수신자 조회 — profiles 에서 email.
+  const recipient = await resolveRecipient(supabase, input.userId, null)
+  if (!recipient) return { sent: false, itemCount: items.length, subtotal }
+
+  const { subject, html } = renderCartAbandoned({
+    recipientName: recipient.name,
+    items,
+    subtotal,
+  })
+  const sendResult = await sendEmail({
+    to: recipient.email,
+    subject,
+    html,
+    tag: 'cart-abandoned',
+    // sent_at 일자별 dedupe — 같은 날 중복 트리거는 Resend 측에서 1건으로 접음.
+    idempotencyKey: `cart-abandoned:${input.userId}:${new Date().toISOString().slice(0, 10)}`,
+  })
+
+  // 3) 로그 기록 — 쿨다운 판정용. 이메일이 skipped 됐어도 "트리거 됐다"는 기록은 남김.
+  await supabase.from('cart_recovery_log').insert({
+    user_id: input.userId,
+    item_count: items.length,
+    subtotal,
+    channel: 'email',
+  })
+
+  return { sent: sendResult.ok === true, itemCount: items.length, subtotal }
 }
 
 // ── 회원 가입 환영 메일 ──────────────────────────────────────────────────────

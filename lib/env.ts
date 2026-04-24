@@ -74,6 +74,11 @@ const serverSchema = z.object({
   EMAIL_FROM: optStr(),
   EMAIL_REPLY_TO: optStr(),
 
+  // === Cron job bearer secret (선택 — 없으면 /api/cron/* 은 503 반환) =======
+  // Vercel Cron 이 붙인 `Authorization: Bearer <secret>` 를 검증. 외부 툴이
+  // 호출할 수 있는 엔드포인트라 단순 admin 쿠키 가드가 아니라 고정 토큰으로 막음.
+  CRON_SECRET: optStr(),
+
   // === Node runtime meta ===================================================
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 })
@@ -105,6 +110,7 @@ const raw = {
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   EMAIL_FROM: process.env.EMAIL_FROM,
   EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO,
+  CRON_SECRET: process.env.CRON_SECRET,
   NODE_ENV: process.env.NODE_ENV,
 }
 
