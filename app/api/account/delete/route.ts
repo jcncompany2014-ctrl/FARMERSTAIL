@@ -23,17 +23,23 @@ export const dynamic = 'force-dynamic'
  *   2. Refuse if there's an unfinished order (preparing / shipping) —
  *      the customer needs to finish or cancel that first. Otherwise
  *      ops loses the ability to reach them during fulfillment.
- *   3. Wipe PII from profiles (name, phone, address) and mark
- *      deleted_at = now(). Email is replaced with a reversible-by-id
- *      sentinel so admin CSV reports still make sense.
+ *   3. Wipe PII from profiles (name, phone, address, birth_year,
+ *      marketing consent timestamps) and mark deleted_at = now().
+ *      Email is replaced with a reversible-by-id sentinel so admin
+ *      CSV reports still make sense.
  *   4. Clear ancillary personal data: dogs (hard delete — they own
  *      their pet profiles), cart_items, push_subscriptions,
- *      referral_codes. Orders / reviews / point_ledger stay — those
- *      are transaction records.
- *   5. auth.admin.deleteUser(id, shouldSoftDelete=true) — Supabase
+ *      push_preferences, restock_alerts, cart_recovery_log,
+ *      referral_codes, wishlists, health/weight logs, dog reminders,
+ *      analyses, surveys. Orders / reviews / point_ledger stay —
+ *      those are transaction records.
+ *   5. Insert an `account_deletions` audit row with sha256(email) so
+ *      we can detect "same person re-signed up" without storing the
+ *      original email. See migration 20260424000006.
+ *   6. auth.admin.deleteUser(id, shouldSoftDelete=true) — Supabase
  *      marks the row "deleted" without removing it, preserving FK
  *      integrity on orders.user_id.
- *   6. Sign out the current session so the browser drops the tokens.
+ *   7. Sign out the current session so the browser drops the tokens.
  */
 
 type DeleteBody = {
@@ -96,6 +102,11 @@ export async function POST(req: Request) {
   //    bypass RLS on auxiliary tables and call auth.admin.deleteUser.
   const admin = createAdminClient()
 
+  // Capture the original email BEFORE anonymizing — we need it to
+  // compute the audit hash. user.email is the auth email; profiles.email
+  // is kept in sync but auth is the source of truth.
+  const originalEmail = (user.email ?? '').trim().toLowerCase()
+
   // Anonymize profile. Email becomes a stable sentinel so the
   // accounting team can trace which orders belonged to a deleted
   // account without exposing the original email.
@@ -111,17 +122,29 @@ export async function POST(req: Request) {
       zip: null,
       agree_sms: false,
       agree_email: false,
+      // Step 25/26: age-gate + consent audit columns — clear them so
+      // no residual demographic/marketing data remains after 탈퇴.
+      birth_year: null,
+      agree_email_at: null,
+      agree_sms_at: null,
+      marketing_policy_version: null,
       deleted_at: new Date().toISOString(),
     })
     .eq('id', user.id)
 
   // Hard-delete data that is 100% personal and has no transaction
-  // record-keeping requirement.
+  // record-keeping requirement. Includes Step 20/24/26 tables:
+  //   • restock_alerts  — product subscription; no legal retention
+  //   • cart_recovery_log — PIPA reminder audit; only needed while user exists
+  //   • push_preferences — category opt-in flags
   await Promise.all([
     admin.from('dogs').delete().eq('user_id', user.id),
     admin.from('cart_items').delete().eq('user_id', user.id),
     admin.from('wishlists').delete().eq('user_id', user.id),
     admin.from('push_subscriptions').delete().eq('user_id', user.id),
+    admin.from('push_preferences').delete().eq('user_id', user.id),
+    admin.from('restock_alerts').delete().eq('user_id', user.id),
+    admin.from('cart_recovery_log').delete().eq('user_id', user.id),
     admin.from('referral_codes').delete().eq('user_id', user.id),
     admin.from('health_logs').delete().eq('user_id', user.id),
     admin.from('weight_logs').delete().eq('user_id', user.id),
@@ -129,6 +152,30 @@ export async function POST(req: Request) {
     admin.from('analyses').delete().eq('user_id', user.id),
     admin.from('surveys').delete().eq('user_id', user.id),
   ])
+
+  // Audit row — sha256(email) only, so "did the same person sign up
+  // again?" is detectable without keeping the plaintext email.
+  // sha256_hex is a security-invoker sql function (public) defined in
+  // migration 20260424000006.
+  let emailHash: string | null = null
+  if (originalEmail) {
+    const { data: hashData } = await admin.rpc('sha256_hex', {
+      input: originalEmail,
+    })
+    if (typeof hashData === 'string' && hashData.length > 0) {
+      emailHash = hashData
+    }
+  }
+
+  await admin.from('account_deletions').insert({
+    user_id: user.id,
+    reason: body.reason ? body.reason.trim().slice(0, 200) : null,
+    email_hash: emailHash,
+    // We already blocked 'preparing'/'shipping' above; this is always 0
+    // at the point of deletion, but we keep the column for symmetry
+    // with CS tooling that may loosen the block later.
+    open_order_count: 0,
+  })
 
   // 4) Log the reason for churn analysis (optional; best-effort).
   //    delta=0 인 "메모성" ledger 엔트리. appendLedger 는 balance_after 를
