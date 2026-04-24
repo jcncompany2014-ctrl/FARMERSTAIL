@@ -28,16 +28,20 @@ const optStr = () =>
     .transform((v) => (v === '' ? undefined : v))
 
 const serverSchema = z.object({
-  // === Supabase (필수) =====================================================
+  // === Supabase ============================================================
+  // URL + anon key 는 공개 카탈로그도 못 여니까 무조건 필수.
   NEXT_PUBLIC_SUPABASE_URL: z.string().url({
     message: 'NEXT_PUBLIC_SUPABASE_URL must be a valid URL',
   }),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, {
     message: 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required',
   }),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, {
-    message: 'SUPABASE_SERVICE_ROLE_KEY is required (server-only admin ops)',
-  }),
+  // service_role 은 관리자/웹훅/크론 전용. dev 에서 일반 카탈로그만 둘러볼
+  // 때는 없어도 서버가 떠야 DX 가 좋아서 default('') 로 완화한다 — 대신
+  // production 빌드에서는 아래 분기에서 빈값을 잡아 즉시 throw. admin 클라이언트
+  // (lib/supabase/admin.ts) 는 빈값이면 호출 시점에 자체 에러를 던져서
+  // "서버는 떴지만 admin 동작은 명확히 실패" 상태가 된다.
+  SUPABASE_SERVICE_ROLE_KEY: z.string().default(''),
 
   // === Site (선택, fallback 있음) ==========================================
   NEXT_PUBLIC_SITE_URL: optStr().pipe(z.string().url().optional()),
@@ -133,6 +137,28 @@ if (!parsed.success) {
   throw new Error('Invalid environment variables — see logs above.')
 }
 
+// Post-parse 보강 검증:
+//   - service_role 은 schema 단계에선 default('') 로 느슨하게 통과시켰으니
+//     여기서 환경별로 분기. 프로덕션 빌드에서 키 누락은 배포 직전에 잡혀야 하니
+//     여전히 즉시 throw.
+//   - dev/test 에서는 빈 값 허용 + 한 번만 경고. 경고는 instrumentation 부팅 시점에
+//     한 번만 찍혀서 로그가 도배되지 않는다.
+if (!parsed.data.SUPABASE_SERVICE_ROLE_KEY) {
+  if (parsed.data.NODE_ENV === 'production') {
+    console.error(
+      '\n❌ SUPABASE_SERVICE_ROLE_KEY is required in production ' +
+        '(admin ops, payment webhook, cron jobs).\n',
+    )
+    throw new Error('Invalid environment variables — see logs above.')
+  }
+  console.warn(
+    '\n⚠️  SUPABASE_SERVICE_ROLE_KEY 가 비어 있습니다 — 관리자/결제 웹훅/크론 ' +
+      '경로는 런타임에 실패합니다. 공개 카탈로그만 둘러볼 거면 무시해도 됩니다.\n' +
+      '   값을 넣으려면: Supabase Dashboard → Project Settings → API → ' +
+      '"service_role" secret 복사 → .env.local 에 추가.\n',
+  )
+}
+
 /**
  * 검증된 환경변수. 서버/엣지 코드에서 `process.env` 대신 이걸 써라.
  * - 타입 안전 (optional 필드는 `string | undefined`)
@@ -143,6 +169,9 @@ export const env = parsed.data
 
 /** Feature flag 헬퍼 — 선택 env 그룹이 모두 채워졌을 때만 true. */
 export const features = {
+  // admin/service_role 경로가 쓸 준비가 됐는지. false 면 관리자 대시보드 진입
+  // 시점에 UI 에서 "서비스 롤 키 미설정" 안내로 유저 혼란 줄일 수 있다.
+  adminOps: Boolean(env.SUPABASE_SERVICE_ROLE_KEY),
   sentry: Boolean(env.SENTRY_DSN ?? env.NEXT_PUBLIC_SENTRY_DSN),
   sentryUpload: Boolean(
     env.SENTRY_ORG && env.SENTRY_PROJECT && env.SENTRY_AUTH_TOKEN
