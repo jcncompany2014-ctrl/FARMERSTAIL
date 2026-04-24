@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
-import { carrierMeta, type TrackingResult, type TrackingEvent } from '@/lib/tracking'
+import {
+  carrierMeta,
+  mapTrackerStatusCode,
+  type TrackingResult,
+  type TrackingEvent,
+} from '@/lib/tracking'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -27,18 +32,6 @@ const QUERY = `
     }
   }
 `
-
-// Delivery Tracker's status codes → our normalized states.
-function mapStatusCode(code: string | null | undefined): TrackingResult['state'] {
-  if (!code) return 'unknown'
-  const upper = code.toUpperCase()
-  if (upper === 'INFORMATION_RECEIVED') return 'information_received'
-  if (upper === 'AT_PICKUP') return 'at_pickup'
-  if (upper === 'IN_TRANSIT') return 'in_transit'
-  if (upper === 'OUT_FOR_DELIVERY') return 'out_for_delivery'
-  if (upper === 'DELIVERED') return 'delivered'
-  return 'unknown'
-}
 
 type DeliveryTrackerEvent = {
   time: string
@@ -154,7 +147,7 @@ export async function GET(req: Request) {
     // Sort newest first for display.
     events.sort((a, b) => (a.time < b.time ? 1 : a.time > b.time ? -1 : 0))
     const last = track.lastEvent ?? track.events[track.events.length - 1] ?? null
-    const state = mapStatusCode(last?.status?.code)
+    const state = mapTrackerStatusCode(last?.status?.code)
 
     const result: TrackingResult = {
       state,

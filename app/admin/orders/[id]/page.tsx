@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import OrderStatusControl from './OrderStatusControl'
+import ShippingControl from './ShippingControl'
+import { carrierLabel } from '@/lib/tracking'
 
 export const dynamic = 'force-dynamic'
 
@@ -205,6 +207,60 @@ export default async function AdminOrderDetailPage({
             currentOrderStatus={order.order_status}
             paymentStatus={order.payment_status}
           />
+
+          {/* 발송 처리 (preparing → shipping) */}
+          <ShippingControl
+            orderId={order.id}
+            currentOrderStatus={order.order_status}
+            paymentStatus={order.payment_status}
+            currentCarrier={order.carrier}
+            currentTrackingNumber={order.tracking_number}
+          />
+
+          {/* 현재 송장 (shipping 이후에만) */}
+          {(order.carrier || order.tracking_number) && (
+            <section className="p-6 rounded-2xl bg-white border border-rule">
+              <h2 className="text-sm font-bold text-ink mb-4">운송장</h2>
+              <dl className="space-y-2 text-sm">
+                {order.carrier && (
+                  <InfoRow
+                    label="택배사"
+                    value={carrierLabel(order.carrier)}
+                  />
+                )}
+                {order.tracking_number && (
+                  <InfoRow
+                    label="송장번호"
+                    value={
+                      <span className="font-mono text-[11px] break-all">
+                        {order.tracking_number}
+                      </span>
+                    }
+                  />
+                )}
+                {order.shipped_at && (
+                  <InfoRow
+                    label="발송"
+                    value={
+                      <span className="text-[11px]">
+                        {formatDateTime(order.shipped_at)}
+                      </span>
+                    }
+                  />
+                )}
+                {order.delivered_at && (
+                  <InfoRow
+                    label="도착"
+                    value={
+                      <span className="text-[11px]">
+                        {formatDateTime(order.delivered_at)}
+                      </span>
+                    }
+                  />
+                )}
+              </dl>
+            </section>
+          )}
 
           {/* 메타 정보 */}
           <section className="p-6 rounded-2xl bg-white border border-rule">

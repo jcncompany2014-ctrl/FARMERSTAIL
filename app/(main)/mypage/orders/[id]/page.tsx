@@ -17,6 +17,7 @@ import {
   formatDueDate,
   paymentMethodLabel,
 } from '@/lib/payments/toss'
+import { carrierLabel } from '@/lib/tracking'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,16 +35,7 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   partially_refunded: '부분 환불',
 }
 
-const CARRIER_LABEL: Record<string, string> = {
-  cj: 'CJ대한통운',
-  post: '우체국택배',
-  lotte: '롯데택배',
-  hanjin: '한진택배',
-  logen: '로젠택배',
-  kd: '경동택배',
-  other: '기타',
-}
-// payment_method 라벨은 lib/payments/toss.ts::paymentMethodLabel 로 일원화.
+// 택배사/결제수단 라벨은 각각 lib/tracking, lib/payments/toss 로 일원화.
 
 function formatDateTime(iso: string | null) {
   if (!iso) return '-'
@@ -259,7 +251,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
                   <div className="flex justify-between">
                     <dt className="text-muted">택배사</dt>
                     <dd className="text-text font-bold">
-                      {CARRIER_LABEL[order.carrier] ?? order.carrier}
+                      {carrierLabel(order.carrier)}
                     </dd>
                   </div>
                 )}

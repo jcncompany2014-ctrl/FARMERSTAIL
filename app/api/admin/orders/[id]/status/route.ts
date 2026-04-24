@@ -9,6 +9,7 @@ import {
   isPaymentStatus,
   type OrderStatus,
 } from '@/lib/commerce/order-fsm'
+import { carrierLabel, isCarrierCode } from '@/lib/tracking'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -22,20 +23,7 @@ type TransitionBody = {
   reason?: string | null
 }
 
-const CARRIER_LABEL_KO: Record<string, string> = {
-  cj: 'CJ대한통운',
-  post: '우체국택배',
-  lotte: '롯데택배',
-  hanjin: '한진택배',
-  logen: '로젠택배',
-  kd: '경동택배',
-  other: '기타',
-}
-
-function carrierLabel(code: string | null | undefined) {
-  if (!code) return null
-  return CARRIER_LABEL_KO[code] ?? code
-}
+// 택배사 라벨/코드 검증은 lib/tracking 으로 일원화.
 
 export async function POST(
   req: Request,
@@ -128,7 +116,17 @@ export async function POST(
   if (orderStatus === 'shipping') {
     update.shipped_at = order.shipped_at ?? now
     // 택배사/송장번호는 선택 입력 — 값이 넘어오면 저장, 공란이면 명시적으로 null 로.
-    if (carrier !== undefined) update.carrier = carrier?.trim() || null
+    // carrier 코드는 lib/tracking::isCarrierCode 로 화이트리스트 검증.
+    if (carrier !== undefined) {
+      const trimmed = carrier?.trim()
+      if (trimmed && !isCarrierCode(trimmed)) {
+        return NextResponse.json(
+          { code: 'INVALID_CARRIER', message: '지원하지 않는 택배사예요' },
+          { status: 400 }
+        )
+      }
+      update.carrier = trimmed || null
+    }
     if (trackingNumber !== undefined)
       update.tracking_number = trackingNumber?.trim() || null
   } else if (orderStatus === 'delivered') {
