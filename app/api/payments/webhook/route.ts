@@ -166,12 +166,16 @@ export async function POST(req: Request) {
       }
 
       // Notify the customer — virtual-account deposits are the key case.
-      pushToUser(order.user_id, {
-        title: '입금이 확인됐어요 🐾',
-        body: `${payment.totalAmount.toLocaleString()}원 결제가 완료됐어요. 상품을 준비할게요.`,
-        url: `/mypage/orders/${order.id}`,
-        tag: `order-${order.id}`,
-      }).catch(() => {
+      pushToUser(
+        order.user_id,
+        {
+          title: '입금이 확인됐어요 🐾',
+          body: `${payment.totalAmount.toLocaleString()}원 결제가 완료됐어요. 상품을 준비할게요.`,
+          url: `/mypage/orders/${order.id}`,
+          tag: `order-${order.id}`,
+        },
+        { category: 'order' },
+      ).catch(() => {
         /* best-effort */
       })
 

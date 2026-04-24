@@ -162,12 +162,16 @@ export async function POST(req: Request) {
   // 7) 웹푸시 알림 — 실제 결제가 끝난 경우에만 "완료" 메시지를 보냄.
   //    가상계좌는 입금 전이니 별도의 "입금 대기" 안내는 주문 상세에서 처리.
   if (isActuallyPaid) {
-    pushToUser(user.id, {
-      title: '결제가 완료됐어요 🐾',
-      body: `${amount.toLocaleString()}원 결제가 정상 처리됐어요. 주문 상세를 확인해 주세요.`,
-      url: `/mypage/orders/${order.id}`,
-      tag: `order-${order.id}`,
-    }).catch(() => {
+    pushToUser(
+      user.id,
+      {
+        title: '결제가 완료됐어요 🐾',
+        body: `${amount.toLocaleString()}원 결제가 정상 처리됐어요. 주문 상세를 확인해 주세요.`,
+        url: `/mypage/orders/${order.id}`,
+        tag: `order-${order.id}`,
+      },
+      { category: 'order' },
+    ).catch(() => {
       /* 푸시는 베스트 에포트 */
     })
   }

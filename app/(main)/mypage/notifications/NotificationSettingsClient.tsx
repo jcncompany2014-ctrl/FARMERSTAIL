@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Send,
 } from 'lucide-react'
+import PreferencesPanel from './PreferencesPanel'
 
 type SubRow = {
   id: string
@@ -342,6 +343,11 @@ export default function NotificationSettingsClient({
             </p>
           )}
         </div>
+      </section>
+
+      {/* 카테고리·조용한 시간 선호 */}
+      <section className="px-5 mt-3">
+        <PreferencesPanel />
       </section>
 
       {/* 등록된 기기 */}

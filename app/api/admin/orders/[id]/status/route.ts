@@ -184,12 +184,16 @@ export async function POST(
               reason ? ` · ${reason}` : ''
             }`
 
-    pushToUser(order.user_id, {
-      title,
-      body: bodyText,
-      url: `/mypage/orders/${order.id}`,
-      tag: `order-${order.id}-${orderStatus}`,
-    }).catch(() => {
+    pushToUser(
+      order.user_id,
+      {
+        title,
+        body: bodyText,
+        url: `/mypage/orders/${order.id}`,
+        tag: `order-${order.id}-${orderStatus}`,
+      },
+      { category: 'order' },
+    ).catch(() => {
       /* 푸시는 베스트 에포트 */
     })
 

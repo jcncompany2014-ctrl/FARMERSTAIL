@@ -321,13 +321,17 @@ export async function notifyRestock(
           })
         }
         // 웹푸시는 이메일 주소 유무와 무관하게 시도 — 푸시 구독만 등록한 유저도 있음.
-        await pushToUser(row.user_id, {
-          title: '🐾 재입고되었어요',
-          body: `${product.name}${variantName ? ` (${variantName})` : ''} 가 다시 돌아왔어요. 한정 수량이에요.`,
-          url: `/products/${product.slug}`,
-          tag: `restock:${input.productId}`,
-          requireInteraction: false,
-        }).catch(() => {})
+        await pushToUser(
+          row.user_id,
+          {
+            title: '🐾 재입고되었어요',
+            body: `${product.name}${variantName ? ` (${variantName})` : ''} 가 다시 돌아왔어요. 한정 수량이에요.`,
+            url: `/products/${product.slug}`,
+            tag: `restock:${input.productId}`,
+            requireInteraction: false,
+          },
+          { category: 'restock' },
+        ).catch(() => {})
         notified += 1
       } catch {
         failed += 1
