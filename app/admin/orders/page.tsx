@@ -92,13 +92,34 @@ export default async function AdminOrdersPage({
 
   const { data: orders, error } = await query
 
+  // CSV export URL — 현재 필터/검색을 그대로 전달.
+  const exportParams = new URLSearchParams()
+  if (status !== 'all') exportParams.set('status', status)
+  if (q.trim()) exportParams.set('q', q.trim())
+  const exportHref = `/api/admin/orders/export${
+    exportParams.toString() ? `?${exportParams.toString()}` : ''
+  }`
+
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-['Archivo_Black'] text-3xl text-ink">
-          ORDERS
-        </h1>
-        <p className="text-sm text-muted mt-1">주문 관리</p>
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="font-['Archivo_Black'] text-3xl text-ink">
+            ORDERS
+          </h1>
+          <p className="text-sm text-muted mt-1">주문 관리</p>
+        </div>
+        <a
+          href={exportHref}
+          // download 속성이 있으면 브라우저가 바로 저장. 서버는 Content-Disposition
+          // 으로 파일명을 지정하지만, 구형 Safari/Edge 에서 href 그대로 네비게이션
+          // 되는 이슈를 방지.
+          download
+          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-white border border-rule text-ink hover:border-terracotta hover:text-terracotta transition"
+        >
+          <span>⬇</span>
+          <span>CSV 내보내기</span>
+        </a>
       </div>
 
       {/* 필터 탭 + 검색 */}
