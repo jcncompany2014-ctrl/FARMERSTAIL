@@ -156,8 +156,18 @@ export default function ProductsPage() {
           정성껏 준비합니다.
         </p>
 
-        {/* Manifesto trio — 가치 3축 */}
-        <div className="mt-5 grid grid-cols-3 gap-2 max-w-[360px] mx-auto">
+        {/* Manifesto trio — 가치 3축.
+            affordance 주의: 이전 버전은 rounded-xl + bg-bg-2 + inset border
+            조합이라 바로 아래 Chapters 카테고리 버튼과 시각적으로 동일했고,
+            실제 사용자가 "눌러본다" 는 보고가 있었다 (false affordance).
+            해결: 박스/배경/테두리를 전부 제거하고 decorative icon + caption
+            그룹으로 낮춘다. 아래 카테고리 카드들은 박스를 유지 → 시각 대비로
+            "저기 아래가 실제 누를 수 있는 곳" 이라는 신호가 명확해진다. */}
+        <div
+          className="mt-5 grid grid-cols-3 gap-2 max-w-[360px] mx-auto"
+          role="list"
+          aria-label="브랜드 가치"
+        >
           {[
             { icon: Leaf, tone: 'var(--moss)', label: '국내산 재료' },
             { icon: ShieldCheck, tone: 'var(--ink)', label: '수의사 설계' },
@@ -165,16 +175,13 @@ export default function ProductsPage() {
           ].map(({ icon: Icon, tone, label }) => (
             <div
               key={label}
-              className="flex flex-col items-center gap-1.5 py-2 rounded-xl"
-              style={{
-                background: 'var(--bg-2)',
-                boxShadow: 'inset 0 0 0 1px var(--rule)',
-              }}
+              role="listitem"
+              className="flex flex-col items-center gap-1.5 py-1"
             >
-              <Icon className="w-3.5 h-3.5" strokeWidth={2} color={tone} />
+              <Icon className="w-4 h-4" strokeWidth={1.8} color={tone} />
               <span
-                className="text-[10.5px] font-bold"
-                style={{ color: 'var(--text)' }}
+                className="text-[10.5px] font-semibold tracking-wide"
+                style={{ color: 'var(--muted)' }}
               >
                 {label}
               </span>
