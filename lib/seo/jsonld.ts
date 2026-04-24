@@ -31,6 +31,33 @@
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.vercel.app'
 
+/**
+ * /api/og 의 dynamic share card URL 을 만들어 주는 헬퍼.
+ *
+ * metadata.openGraph.images 에 상대경로를 넣으면 layout 의 metadataBase 가
+ * 자동으로 절대 URL 로 붙여 주므로 여기서는 path + query 만 조립한다.
+ *
+ * variant:
+ *   • 'default'   → 테라코타 accent (브랜드 일반)
+ *   • 'product'   → 올리브 accent   (제품 상세/리스트)
+ *   • 'editorial' → 골드 accent     (매거진/브랜드 이야기)
+ */
+export function ogImageUrl(input: {
+  title: string
+  subtitle?: string
+  tag?: string
+  variant?: 'default' | 'product' | 'editorial'
+}): string {
+  const params = new URLSearchParams()
+  params.set('title', input.title.slice(0, 80))
+  if (input.subtitle) params.set('subtitle', input.subtitle.slice(0, 120))
+  if (input.tag) params.set('tag', input.tag.slice(0, 40))
+  if (input.variant && input.variant !== 'default') {
+    params.set('variant', input.variant)
+  }
+  return `/api/og?${params.toString()}`
+}
+
 const SITE_NAME = '파머스테일'
 const SITE_NAME_EN = "Farmer's Tail"
 const LOGO_URL = `${SITE_URL}/icons/icon-512.png`

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import PublicPageShell from '@/components/PublicPageShell'
+import { ogImageUrl } from '@/lib/seo/jsonld'
 
 /**
  * /about — 브랜드 이야기 (public, editorial).
@@ -14,6 +15,13 @@ import PublicPageShell from '@/components/PublicPageShell'
  * `.ph` 자리를 교체만 하면 된다.
  */
 
+const ABOUT_OG = ogImageUrl({
+  title: '브랜드 이야기',
+  subtitle: '농장에서 꼬리까지, 사람이 먹는 등급의 재료로',
+  tag: 'About',
+  variant: 'editorial',
+})
+
 export const metadata: Metadata = {
   title: '브랜드 이야기 | 파머스테일',
   description:
@@ -25,6 +33,14 @@ export const metadata: Metadata = {
       '수의영양학 기반의 프리미엄 반려견 식단. 농장에서 꼬리까지, 사람이 먹는 등급의 재료로.',
     type: 'article',
     url: '/about',
+    images: [{ url: ABOUT_OG, width: 1200, height: 630, alt: '브랜드 이야기' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '브랜드 이야기 | 파머스테일',
+    description:
+      '수의영양학 기반의 프리미엄 반려견 식단. 농장에서 꼬리까지, 사람이 먹는 등급의 재료로.',
+    images: [ABOUT_OG],
   },
   robots: { index: true, follow: true },
 }

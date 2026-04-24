@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import AuthAwareShell from '@/components/AuthAwareShell'
+import { ogImageUrl } from '@/lib/seo/jsonld'
 
 /**
  * 카탈로그 리스트 (/products) 의 기본 메타. /products/[slug] 는 자체
@@ -7,6 +8,13 @@ import AuthAwareShell from '@/components/AuthAwareShell'
  * 되며 같은 필드는 page 값이 우선한다. OG 카드에는 공통 브랜드 이미지
  * (`/api/og`) 를 써 카카오 공유 미리보기가 일관되게 보이도록 한다.
  */
+const PRODUCTS_OG = ogImageUrl({
+  title: '제품 카탈로그',
+  subtitle: '수의영양학 기반 레시피 · 화식, 간식, 체험팩',
+  tag: 'Products',
+  variant: 'product',
+})
+
 export const metadata: Metadata = {
   title: '제품',
   description:
@@ -18,12 +26,14 @@ export const metadata: Metadata = {
     title: '제품 | 파머스테일',
     description:
       '수의영양학 기반 레시피로 만든 프리미엄 반려견 식품 — 화식, 간식, 체험팩.',
+    images: [{ url: PRODUCTS_OG, width: 1200, height: 630, alt: '제품 카탈로그' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: '제품 | 파머스테일',
     description:
       '수의영양학 기반 레시피로 만든 프리미엄 반려견 식품 — 화식, 간식, 체험팩.',
+    images: [PRODUCTS_OG],
   },
   robots: { index: true, follow: true },
 }

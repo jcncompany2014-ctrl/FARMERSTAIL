@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { BookOpen, ArrowUpRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import PublicPageShell from '@/components/PublicPageShell'
+import { ogImageUrl } from '@/lib/seo/jsonld'
 
 /**
  * /blog — 매거진 인덱스.
@@ -13,6 +14,13 @@ import PublicPageShell from '@/components/PublicPageShell'
 
 export const dynamic = 'force-dynamic'
 
+const BLOG_OG = ogImageUrl({
+  title: '매거진',
+  subtitle: '반려견 영양·건강·케어에 관한 파머스테일의 이야기',
+  tag: 'Magazine',
+  variant: 'editorial',
+})
+
 export const metadata: Metadata = {
   title: '매거진 | 파머스테일',
   description: '반려견 영양·건강·케어에 관한 파머스테일의 이야기',
@@ -22,6 +30,13 @@ export const metadata: Metadata = {
     description: '반려견 영양·건강·케어에 관한 파머스테일의 이야기',
     type: 'website',
     url: '/blog',
+    images: [{ url: BLOG_OG, width: 1200, height: 630, alt: '파머스테일 매거진' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '매거진 | 파머스테일',
+    description: '반려견 영양·건강·케어에 관한 파머스테일의 이야기',
+    images: [BLOG_OG],
   },
   robots: { index: true, follow: true },
 }

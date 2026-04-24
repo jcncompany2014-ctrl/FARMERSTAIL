@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import PublicPageShell from '@/components/PublicPageShell'
+import { ogImageUrl } from '@/lib/seo/jsonld'
 
 /**
  * /plans — 정기배송 마케팅 페이지 (public, editorial).
@@ -13,6 +14,13 @@ import PublicPageShell from '@/components/PublicPageShell'
  * 헤드라인 · 모노 캡션)로 /about과 톤을 맞춘다.
  */
 
+const PLANS_OG = ogImageUrl({
+  title: '정기배송 플랜',
+  subtitle: '주 1회 · 2주 1회 · 월 1회 냉동 배송',
+  tag: 'Plans',
+  variant: 'product',
+})
+
 export const metadata: Metadata = {
   title: '정기배송 플랜 | 파머스테일',
   description:
@@ -24,6 +32,14 @@ export const metadata: Metadata = {
       '주 1회 · 2주 1회 · 월 1회 냉동 배송. 수의영양학 기반의 맞춤 식단을 정기적으로.',
     type: 'website',
     url: '/plans',
+    images: [{ url: PLANS_OG, width: 1200, height: 630, alt: '정기배송 플랜' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '정기배송 플랜 | 파머스테일',
+    description:
+      '주 1회 · 2주 1회 · 월 1회 냉동 배송. 수의영양학 기반의 맞춤 식단을 정기적으로.',
+    images: [PLANS_OG],
   },
   robots: { index: true, follow: true },
 }
