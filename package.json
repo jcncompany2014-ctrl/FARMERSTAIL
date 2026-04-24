@@ -7,7 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --experimental-strip-types --no-warnings --test \"lib/**/*.test.ts\" \"lib/**/*.test.tsx\"",
+    "test:watch": "node --experimental-strip-types --no-warnings --test --watch \"lib/**/*.test.ts\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -23,6 +25,9 @@
     "react-hook-form": "^7.73.1",
     "web-push": "^3.6.7",
     "zod": "^4.3.6"
+  },
+  "overrides": {
+    "rollup": "npm:@rollup/wasm-node@^4.60.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
