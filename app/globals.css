@@ -232,30 +232,107 @@ i,
 }
 
 /* =========================================================================
-   Toast animations — components/ui/Toast.tsx 에서 사용.
-   motion-safe 미디어 쿼리 아래에서만 적용 (Toast.tsx가 motion-safe:animate-*).
+   Motion system — design tokens
+   ---------------------------------------------------------------------------
+   파머스테일의 움직임 원칙: "종이 위의 동작." 스프링 오버슈트/관성 과시는
+   브랜드 톤에서 빠진다. 대신 짧고 또렷한 fade·rise 계열로 통일한다. 그래서
+   tokens 는 duration 4 단계 + easing 3 종으로 제한 — choice fatigue 방지.
+
+   - --duration-instant: 100ms · 포커스/호버 등 즉각 피드백
+   - --duration-fast   : 180ms · 아이콘 전환, 버튼 탭
+   - --duration-base   : 240ms · 패널 드러냄, 리스트 항목 등장
+   - --duration-slow   : 360ms · 모달/시트, 페이지 전환
+
+   easing 은 Material/IBM 에서 검증된 셋:
+   - --ease-standard:  cubic-bezier(0.4, 0.0, 0.2, 1) · 기본 진입·진출
+   - --ease-decel   :  cubic-bezier(0.0, 0.0, 0.2, 1) · "들어올 때" 만
+   - --ease-accel   :  cubic-bezier(0.4, 0.0, 1,   1) · "나갈 때" 만
+
+   prefers-reduced-motion 을 설정한 사용자에게는 모든 애니메이션이 duration 0
+   으로 강등된다. Tailwind 의 `motion-safe:` prefix 로 일일이 감쌀 필요 없이
+   여기서 전역 가드.
    ========================================================================= */
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+:root {
+  --duration-instant: 100ms;
+  --duration-fast: 180ms;
+  --duration-base: 240ms;
+  --duration-slow: 360ms;
+
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-decel: cubic-bezier(0, 0, 0.2, 1);
+  --ease-accel: cubic-bezier(0.4, 0, 1, 1);
+}
+
+@theme inline {
+  /* Tailwind v4 animation utility namespace. `animate-fade-in-up` 같은
+     클래스를 그대로 쓸 수 있게. */
+  --animate-fade-in: fade-in var(--duration-base) var(--ease-decel) both;
+  --animate-fade-in-up: fade-in-up var(--duration-base) var(--ease-decel) both;
+  --animate-fade-in-down: fade-in-down var(--duration-base) var(--ease-decel) both;
+  --animate-scale-in: scale-in var(--duration-fast) var(--ease-decel) both;
+  --animate-slide-in-right: slide-in-right var(--duration-base) var(--ease-decel) both;
+  --animate-slide-in-up: slide-in-up var(--duration-slow) var(--ease-decel) both;
+  --animate-toast-in: toast-in var(--duration-base) var(--ease-decel) both;
+  --animate-shimmer: shimmer 1.8s var(--ease-standard) infinite;
+  --animate-pulse-soft: pulse-soft 2s var(--ease-standard) infinite;
 }
 
 /* =========================================================================
-   Skeleton shimmer — components/ui/Skeleton.tsx 에서 사용.
-   왼→오 한 번 훑고 사라지는 대신 은근하게 반복. 3D 금속이 아니라 종이 물결.
+   Motion keyframes
    ========================================================================= */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slide-in-up {
+  /* 바텀시트/하단 모달 용. transform 만 써서 레이아웃 흔들림 없음. */
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+/* Toast — 기존 호환 유지. 이름만 keep 하고 duration/ease 를 tokens 로 재통일. */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Skeleton shimmer — 왼→오 은근 반복. 3D 금속이 아니라 종이 물결. */
 @keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* =========================================================================
+   Reduced motion — 전역 safety net
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
