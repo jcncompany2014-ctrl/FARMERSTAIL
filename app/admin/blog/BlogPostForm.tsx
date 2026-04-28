@@ -3,8 +3,24 @@
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, Pencil, Upload, X, Loader2 } from 'lucide-react'
+import {
+  Eye,
+  Pencil,
+  Upload,
+  X,
+  Loader2,
+  Bold,
+  Italic,
+  Heading2,
+  List,
+  Quote,
+  Link2,
+  Image as ImageIcon,
+  Code as CodeIcon,
+  Minus,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { renderMarkdown } from '@/lib/markdown'
 
 type Category = {
   id: string
@@ -57,6 +73,94 @@ export default function BlogPostForm({
   const [preview, setPreview] = useState(false)
   const [upload, setUpload] = useState<UploadState>({ status: 'idle' })
   const fileRef = useRef<HTMLInputElement | null>(null)
+  // 본문 textarea ref — 툴바 버튼이 cursor 위치에 markdown 삽입할 때 사용.
+  const contentRef = useRef<HTMLTextAreaElement | null>(null)
+  // 본문에 인라인 이미지 업로드용 별도 input
+  const inlineImgRef = useRef<HTMLInputElement | null>(null)
+  const [inlineUpload, setInlineUpload] = useState<UploadState>({
+    status: 'idle',
+  })
+
+  /**
+   * 현재 textarea 의 selection 을 양 옆으로 wrap. selection 이 없으면 placeholder
+   * 를 가운데 끼움. cursor 는 wrap 후 끝쪽으로 이동.
+   */
+  function wrapSelection(before: string, after: string, placeholder = '') {
+    const ta = contentRef.current
+    if (!ta) return
+    const start = ta.selectionStart ?? 0
+    const end = ta.selectionEnd ?? 0
+    const selected = form.content.slice(start, end) || placeholder
+    const next =
+      form.content.slice(0, start) +
+      before +
+      selected +
+      after +
+      form.content.slice(end)
+    update('content', next)
+    requestAnimationFrame(() => {
+      ta.focus()
+      const pos = start + before.length + selected.length
+      ta.setSelectionRange(pos, pos)
+    })
+  }
+
+  function insertAtLineStart(prefix: string) {
+    const ta = contentRef.current
+    if (!ta) return
+    const start = ta.selectionStart ?? 0
+    const before = form.content.slice(0, start)
+    const after = form.content.slice(start)
+    // 현재 줄의 시작 위치
+    const lineStart = before.lastIndexOf('\n') + 1
+    const next =
+      form.content.slice(0, lineStart) + prefix + form.content.slice(lineStart)
+    update('content', next)
+    requestAnimationFrame(() => {
+      ta.focus()
+      const pos = start + prefix.length
+      ta.setSelectionRange(pos, pos)
+    })
+  }
+
+  function insertAtCursor(text: string) {
+    const ta = contentRef.current
+    if (!ta) return
+    const start = ta.selectionStart ?? 0
+    const end = ta.selectionEnd ?? 0
+    const next =
+      form.content.slice(0, start) + text + form.content.slice(end)
+    update('content', next)
+    requestAnimationFrame(() => {
+      ta.focus()
+      const pos = start + text.length
+      ta.setSelectionRange(pos, pos)
+    })
+  }
+
+  async function handleInlineImage(file: File) {
+    setInlineUpload({ status: 'uploading' })
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('slug', `inline-${form.slug || 'post'}`)
+    const res = await fetch('/api/admin/blog/upload', {
+      method: 'POST',
+      body: fd,
+    })
+    if (!res.ok) {
+      const err = (await res.json().catch(() => null)) as {
+        message?: string
+      } | null
+      setInlineUpload({
+        status: 'error',
+        message: err?.message ?? '업로드 실패',
+      })
+      return
+    }
+    const data = (await res.json()) as { url: string }
+    insertAtCursor(`\n\n![](${data.url})\n\n`)
+    setInlineUpload({ status: 'idle' })
+  }
 
   function update<K extends keyof PostData>(key: K, value: PostData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -224,39 +328,120 @@ export default function BlogPostForm({
           </Field>
         </Section>
 
-        <Section title="본문">
-          <div className="flex items-center justify-end gap-1 mb-1.5">
-            <button
-              type="button"
-              onClick={() => setPreview(false)}
-              className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded ${
-                !preview
-                  ? 'bg-text text-white'
-                  : 'text-muted hover:bg-bg'
-              } transition font-bold`}
-            >
-              <Pencil className="w-3 h-3" strokeWidth={2.25} />
-              편집
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreview(true)}
-              className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded ${
-                preview
-                  ? 'bg-text text-white'
-                  : 'text-muted hover:bg-bg'
-              } transition font-bold`}
-            >
-              <Eye className="w-3 h-3" strokeWidth={2.25} />
-              미리보기
-            </button>
+        <Section title="본문 (마크다운 지원)">
+          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            {/* 마크다운 툴바 */}
+            <div className="flex items-center gap-0.5 flex-wrap">
+              <ToolBtn
+                onClick={() => wrapSelection('**', '**', '강조')}
+                title="굵게"
+              >
+                <Bold className="w-3 h-3" strokeWidth={2.5} />
+              </ToolBtn>
+              <ToolBtn
+                onClick={() => wrapSelection('*', '*', '기울임')}
+                title="기울임"
+              >
+                <Italic className="w-3 h-3" strokeWidth={2.5} />
+              </ToolBtn>
+              <ToolBtn
+                onClick={() => insertAtLineStart('## ')}
+                title="제목"
+              >
+                <Heading2 className="w-3 h-3" strokeWidth={2.5} />
+              </ToolBtn>
+              <ToolBtn
+                onClick={() => insertAtLineStart('- ')}
+                title="목록"
+              >
+                <List className="w-3 h-3" strokeWidth={2.5} />
+              </ToolBtn>
+              <ToolBtn
+                onClick={() => insertAtLineStart('> ')}
+                title="인용"
+              >
+                <Quote className="w-3 h-3" strokeWidth={2.5} />
+              </ToolBtn>
+              <ToolBtn
+                onClick={() => wrapSelection('`', '`', '코드')}
+                title="인라인 코드"
+              >
+                <CodeIcon className="w-3 h-3" strokeWidth={2.5} />
+              </ToolBtn>
+              <ToolBtn
+                onClick={() => insertAtCursor('\n\n---\n\n')}
+                title="구분선"
+              >
+                <Minus className="w-3 h-3" strokeWidth={2.5} />
+              </ToolBtn>
+              <ToolBtn
+                onClick={() => {
+                  const url = window.prompt('링크 URL', 'https://')
+                  if (!url) return
+                  wrapSelection('[', `](${url})`, '링크 텍스트')
+                }}
+                title="링크"
+              >
+                <Link2 className="w-3 h-3" strokeWidth={2.5} />
+              </ToolBtn>
+              <ToolBtn
+                onClick={() => inlineImgRef.current?.click()}
+                title="이미지 삽입"
+                disabled={inlineUpload.status === 'uploading'}
+              >
+                {inlineUpload.status === 'uploading' ? (
+                  <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2.5} />
+                ) : (
+                  <ImageIcon className="w-3 h-3" strokeWidth={2.5} />
+                )}
+              </ToolBtn>
+              <input
+                ref={inlineImgRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) handleInlineImage(f)
+                  e.target.value = ''
+                }}
+              />
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setPreview(false)}
+                className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded ${
+                  !preview
+                    ? 'bg-text text-white'
+                    : 'text-muted hover:bg-bg'
+                } transition font-bold`}
+              >
+                <Pencil className="w-3 h-3" strokeWidth={2.25} />
+                편집
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreview(true)}
+                className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded ${
+                  preview
+                    ? 'bg-text text-white'
+                    : 'text-muted hover:bg-bg'
+                } transition font-bold`}
+              >
+                <Eye className="w-3 h-3" strokeWidth={2.25} />
+                미리보기
+              </button>
+            </div>
           </div>
           {preview ? (
             <div className="min-h-[400px] bg-bg rounded-lg p-4">
               {form.content.trim() ? (
-                <article className="prose-compact text-[14px] text-text leading-relaxed whitespace-pre-line">
-                  {form.content}
-                </article>
+                <article
+                  className="ft-md text-[14px] text-text leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(form.content) }}
+                />
               ) : (
                 <p className="text-[11px] text-muted italic">
                   본문이 비어 있어요
@@ -265,15 +450,21 @@ export default function BlogPostForm({
             </div>
           ) : (
             <textarea
+              ref={contentRef}
               value={form.content}
               onChange={(e) => update('content', e.target.value)}
               rows={20}
-              className={`${inputClass} text-[13px] leading-relaxed`}
-              placeholder={`본문을 써 내려가세요. 줄바꿈 / 문단 구분은 그대로 보여요.\n\n예)\n반려견의 체중 관리는 단순히 덜 먹이는 문제가 아닙니다.\n하루 권장 칼로리와 영양 비율을 맞춰야...`}
+              className={`${inputClass} text-[13px] leading-relaxed font-mono`}
+              placeholder={`본문을 마크다운으로 작성하세요.\n\n# 큰 제목\n## 부제\n**굵게** *기울임* \`코드\`\n\n- 목록 1\n- 목록 2\n\n[링크](https://example.com)\n![이미지 alt](https://...)\n`}
             />
           )}
+          {inlineUpload.status === 'error' && (
+            <p className="mt-1 text-[11px] text-sale font-bold">
+              {inlineUpload.message}
+            </p>
+          )}
           <p className="mt-1 text-[10px] text-muted">
-            {form.content.length.toLocaleString()}자
+            {form.content.length.toLocaleString()}자 · 마크다운: **굵게** *기울임* # 제목 - 목록 [링크](url) ![alt](img)
           </p>
         </Section>
       </div>
@@ -451,5 +642,29 @@ function Field({
       </label>
       {children}
     </div>
+  )
+}
+
+function ToolBtn({
+  children,
+  onClick,
+  title,
+  disabled,
+}: {
+  children: React.ReactNode
+  onClick: () => void
+  title: string
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      disabled={disabled}
+      className="inline-flex items-center justify-center w-7 h-7 rounded text-text hover:bg-bg hover:text-terracotta transition disabled:opacity-40"
+    >
+      {children}
+    </button>
   )
 }

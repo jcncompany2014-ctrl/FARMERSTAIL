@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { Heart, Soup } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
@@ -40,7 +41,7 @@ export default async function WishlistPage() {
         >
           ← 내 정보
         </Link>
-        <span className="kicker mt-3 inline-block">Wishlist · 찜한 상품</span>
+        <span className="kicker mt-3 block">Wishlist · 찜한 상품</span>
         <h1
           className="font-serif mt-1.5"
           style={{
@@ -66,7 +67,7 @@ export default async function WishlistPage() {
             }}
           >
             <div
-              className="inline-flex w-14 h-14 rounded-full items-center justify-center mb-4"
+              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-4"
               style={{
                 background: 'var(--bg)',
                 border: '1px solid var(--rule-2)',
@@ -120,11 +121,12 @@ export default async function WishlistPage() {
                 <Link href={`/products/${p.slug}`} className="block">
                   <div className="aspect-square bg-bg relative overflow-hidden">
                     {p.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={p.image_url}
                         alt={p.name}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="(max-width: 768px) 50vw, 224px"
+                        className="object-cover"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

@@ -179,21 +179,39 @@ export async function POST(
     }
   )
 
-  const tossData = (await tossRes.json().catch(() => ({}))) as {
+  // Toss 가 장애시 HTML 500 을 돌려줄 수 있어 JSON 파싱 실패 자체를 삼키면
+  // 진짜 원인이 숨는다. 파싱 실패는 로깅하되 UI 로는 일관된 code/message 내려준다.
+  let tossData: {
     code?: string
     message?: string
     totalAmount?: number
     balanceAmount?: number
     status?: string
+  } = {}
+  let tossParseError: unknown = null
+  try {
+    tossData = await tossRes.json()
+  } catch (err) {
+    tossParseError = err
   }
 
-  if (!tossRes.ok) {
+  if (!tossRes.ok || tossParseError) {
+    if (tossParseError) {
+      console.error(
+        '[partial-cancel] Toss response JSON parse failed',
+        { status: tossRes.status, err: tossParseError },
+      )
+    }
     return NextResponse.json(
       {
         code: tossData.code ?? 'TOSS_CANCEL_FAILED',
-        message: tossData.message ?? '결제 취소에 실패했습니다',
+        message:
+          tossData.message ??
+          (tossParseError
+            ? `결제사 응답을 읽지 못했어요 (HTTP ${tossRes.status})`
+            : '결제 취소에 실패했습니다'),
       },
-      { status: 400 }
+      { status: tossParseError ? 502 : 400 }
     )
   }
 

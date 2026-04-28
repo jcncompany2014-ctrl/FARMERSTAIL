@@ -49,7 +49,7 @@ export default async function CouponsPage() {
         >
           ← 내 정보
         </Link>
-        <span className="kicker mt-3 inline-block">Coupons · 쿠폰</span>
+        <span className="kicker mt-3 block">Coupons · 쿠폰</span>
         <h1
           className="font-serif mt-1.5"
           style={{
@@ -83,7 +83,7 @@ export default async function CouponsPage() {
             }}
           >
             <div
-              className="inline-flex w-14 h-14 rounded-full items-center justify-center mb-3"
+              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3"
               style={{
                 background: 'var(--bg)',
                 border: '1px solid var(--rule-2)',

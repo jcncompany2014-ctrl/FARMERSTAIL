@@ -4,14 +4,26 @@ import { cache } from 'react'
 import { Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import ProductDetailClient from './ProductDetailClient'
+import ProductLongDesc from '@/components/products/ProductLongDesc'
+import RelatedProducts from '@/components/products/RelatedProducts'
+import ProductQA from '@/components/products/ProductQA'
+import type { CatalogProduct } from '@/components/products/CatalogProductCard'
 import JsonLd from '@/components/JsonLd'
 import {
   buildBreadcrumbJsonLd,
   buildProductJsonLd,
   SITE_URL,
 } from '@/lib/seo/jsonld'
+import { isAppContextServer } from '@/lib/app-context'
 
-export const dynamic = 'force-dynamic'
+/**
+ * PDP 캐싱 — 서버 렌더는 공개 콘텐츠(가격·설명·이미지)만 다룬다. 개인화(찜/
+ * 정기배송 토글 등)는 ProductDetailClient 가 클라이언트에서 담당하므로 RSC
+ * 레벨은 60 초 revalidate 로 ISR. 관리자 편집 후 최대 1분이면 반영되고,
+ * 그 사이엔 CDN/Next 데이터캐시가 요청을 완전히 삼킨다.
+ * (이전: force-dynamic — 모든 방문마다 Supabase 왕복 + HTML 재생성.)
+ */
+export const revalidate = 60
 
 type Params = Promise<{ slug: string }>
 
@@ -194,10 +206,28 @@ export default async function ProductDetailPage({
     )
   }
 
-  const [variants, rating] = await Promise.all([
+  const supabase = await createClient()
+  const isApp = await isAppContextServer()
+  const [variants, rating, relatedRaw, userRes] = await Promise.all([
     getVariants(product.id),
     getReviewAggregate(product.id),
+    // 같은 카테고리의 다른 active 상품 (현재 상품 제외) — 함께 보면 좋은 상품.
+    product.category
+      ? supabase
+          .from('products')
+          .select(
+            'id, name, slug, short_description, price, sale_price, category, is_subscribable, image_url, stock, created_at',
+          )
+          .eq('is_active', true)
+          .eq('category', product.category)
+          .neq('id', product.id)
+          .order('sort_order', { ascending: true })
+          .limit(8)
+      : Promise.resolve({ data: [] as CatalogProduct[] }),
+    supabase.auth.getUser(),
   ])
+  const related = ((relatedRaw.data ?? []) as CatalogProduct[]).slice(0, 4)
+  const isAuthed = !!userRes.data.user
 
   // JSON-LD 이미지 배열 — 절대 URL 로 정규화. image_url 이 외부 URL 이면 그대로,
   // 상대경로면 SITE_URL 로 prefix.
@@ -233,11 +263,34 @@ export default async function ProductDetailPage({
     { name: product.name, path: `/products/${product.slug}` },
   ])
 
+  // Chrome 은 layout (AuthAwareShell → WebChrome) 가 이미 처리.
   return (
     <>
       <JsonLd id={`ld-product-${product.slug}`} data={productLd} />
       <JsonLd id={`ld-breadcrumb-${product.slug}`} data={breadcrumbLd} />
-      <ProductDetailClient product={product} variants={variants} />
+      <ProductDetailClient
+        product={product}
+        variants={variants}
+        isApp={isApp}
+        longDescSlot={
+          isApp ? null : (
+            <ProductLongDesc
+              description={product.description}
+              category={product.category}
+            />
+          )
+        }
+        relatedSlot={isApp ? null : <RelatedProducts products={related} />}
+        qnaSlot={
+          isApp ? null : (
+            <ProductQA
+              productId={product.id}
+              productSlug={product.slug}
+              isAuthed={isAuthed}
+            />
+          )
+        }
+      />
     </>
   )
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { Star, MessageSquare } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
@@ -67,7 +68,7 @@ export default async function MyReviewsPage() {
         >
           ← 내 정보
         </Link>
-        <span className="kicker mt-3 inline-block">My Reviews · 내 리뷰</span>
+        <span className="kicker mt-3 block">My Reviews · 내 리뷰</span>
         <h1
           className="font-serif mt-1.5"
           style={{
@@ -95,7 +96,7 @@ export default async function MyReviewsPage() {
             }}
           >
             <div
-              className="inline-flex w-14 h-14 rounded-full items-center justify-center mb-3"
+              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3"
               style={{
                 background: 'var(--bg)',
                 border: '1px solid var(--rule-2)',
@@ -141,13 +142,14 @@ export default async function MyReviewsPage() {
                 href={`/products/${r.products?.slug ?? ''}#reviews`}
                 className="flex items-center gap-3"
               >
-                <div className="w-12 h-12 rounded-lg bg-bg overflow-hidden flex items-center justify-center shrink-0">
+                <div className="relative w-12 h-12 rounded-lg bg-bg overflow-hidden flex items-center justify-center shrink-0">
                   {r.products?.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={r.products.image_url}
                       alt={r.products?.name ?? ''}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="48px"
+                      className="object-cover"
                     />
                   ) : null}
                 </div>

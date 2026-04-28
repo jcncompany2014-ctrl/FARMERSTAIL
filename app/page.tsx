@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import SiteFooter from '@/components/SiteFooter'
+import WebChrome from '@/components/WebChrome'
 import HeroSlideshow from '@/components/landing/HeroSlideshow'
 import CornerTicks from '@/components/landing/CornerTicks'
+import OngoingEvents from '@/components/landing/OngoingEvents'
 import ProductRail, { type RailProduct } from '@/components/landing/ProductRail'
+import { getActiveEvents } from '@/lib/events/data'
 
 export const dynamic = 'force-dynamic'
 
@@ -276,182 +276,6 @@ function ArrowGlyph({ width = 16, height = 10 }: { width?: number; height?: numb
 // Sections
 // ---------------------------------------------------------------------------
 
-function EditorialHeader() {
-  // Single-page editorial landing, with a handful of real subroutes wired in:
-  //   /products  — public catalog (auth-aware chrome)
-  //   /blog      — public magazine
-  //   /about     — 브랜드 이야기 (mission · origin · sourcing · science)
-  //   /plans     — 정기배송 플랜 설명
-  // Remaining entries ('Why Us', 'Journey') still anchor-scroll to teaser
-  // sections on this page. If those graduate to their own routes, swap their
-  // hrefs too.
-  const nav = [
-    { ko: '왜 파머스테일', en: 'Why Us', href: '#promises' },
-    { ko: '우리 레시피', en: 'Our Meals', href: '/products' },
-    { ko: '여정', en: 'Journey', href: '#journey' },
-    { ko: '브랜드', en: 'Story', href: '/about' },
-    { ko: '매거진', en: 'Journal', href: '/blog' },
-    { ko: '플랜', en: 'Plans', href: '/plans' },
-  ]
-
-  return (
-    <header
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 40,
-        background: 'var(--bg)',
-        borderBottom: '1px solid var(--rule)',
-        // Clear iOS dynamic island when rendered inside a PWA / safari.
-        paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '10px 16px 10px',
-          gap: 10,
-        }}
-      >
-        <Link
-          href="/"
-          aria-label="파머스테일 홈"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            textDecoration: 'none',
-            flexShrink: 0,
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo.png"
-            alt="Farmer's Tail"
-            style={{ height: 24, width: 'auto', display: 'block' }}
-          />
-        </Link>
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            flexShrink: 0,
-          }}
-        >
-          <Link
-            href="/login"
-            aria-label="로그인"
-            style={{
-              background: 'none',
-              border: 0,
-              padding: 0,
-              display: 'grid',
-              placeItems: 'center',
-              width: 32,
-              height: 32,
-              color: 'var(--ink)',
-            }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-            >
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 21a8 8 0 0 1 16 0" />
-            </svg>
-          </Link>
-          <Link
-            href="/signup"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              background: 'var(--ink)',
-              color: 'var(--bg)',
-              padding: '9px 14px',
-              borderRadius: 999,
-              fontSize: 12,
-              fontWeight: 600,
-              letterSpacing: '-0.01em',
-              textDecoration: 'none',
-            }}
-          >
-            시작하기
-            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-              <path
-                d="M2 10 10 2M4 2h6v6"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </Link>
-        </div>
-      </div>
-
-      {/* Row 2 — horizontal nav (EN primary + KR subtitle, scrollable) */}
-      <nav
-        className="no-scrollbar"
-        style={{
-          display: 'flex',
-          gap: 0,
-          padding: '0 6px 10px',
-          overflowX: 'auto',
-          borderTop: '1px solid var(--rule)',
-        }}
-      >
-        {nav.map((n) => (
-          <Link
-            key={n.en}
-            href={n.href}
-            style={{
-              flex: '0 0 auto',
-              padding: '10px 12px 6px',
-              textDecoration: 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: 2,
-            }}
-          >
-            <span
-              className="font-serif"
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: 'var(--ink)',
-                letterSpacing: '-0.005em',
-                lineHeight: 1.1,
-                textTransform: 'uppercase',
-              }}
-            >
-              {n.en}
-            </span>
-            <span
-              style={{
-                fontSize: 10,
-                color: 'var(--muted)',
-                fontWeight: 500,
-                letterSpacing: '0.02em',
-                lineHeight: 1,
-              }}
-            >
-              {n.ko}
-            </span>
-          </Link>
-        ))}
-      </nav>
-    </header>
-  )
-}
 
 function Hero() {
   return (
@@ -490,12 +314,11 @@ function Hero() {
         </div>
       </div>
 
-      {/* Headline */}
+      {/* Headline — 데스크톱에선 큰 magazine 헤드라인 톤 */}
       <h1
-        className="font-serif"
+        className="font-serif text-[28px] md:text-[64px] lg:text-[80px]"
         style={{
           margin: '6px 20px 0',
-          fontSize: 28,
           lineHeight: 1.02,
           fontWeight: 800,
           color: 'var(--ink)',
@@ -507,10 +330,9 @@ function Hero() {
         <br />
         꼬리
         <span
-          className="font-serif"
+          className="font-serif text-[26px] md:text-[58px] lg:text-[72px]"
           style={{
             fontWeight: 500,
-            fontSize: 26,
             color: 'var(--terracotta)',
           }}
         >
@@ -520,11 +342,11 @@ function Hero() {
       </h1>
 
       <p
+        className="text-[12.5px] md:text-[16px] lg:text-[18px]"
         style={{
           margin: '10px 20px 0',
-          maxWidth: 310,
-          fontSize: 12.5,
-          lineHeight: 1.5,
+          maxWidth: 600,
+          lineHeight: 1.6,
           color: 'var(--text)',
           fontWeight: 400,
         }}
@@ -535,32 +357,15 @@ function Hero() {
       {/* Swipeable slideshow — 농장 → 꼬리 → 그릇 */}
       <HeroSlideshow />
 
-      {/* CTAs */}
-      <div
-        style={{
-          padding: '14px 20px 18px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-        }}
-      >
+      {/* CTAs — 모바일은 세로 stack, 데스크톱은 가로 정렬 + 큰 버튼 */}
+      <div className="px-5 md:px-6 pt-3.5 md:pt-6 pb-4 md:pb-8 flex flex-col md:flex-row gap-2 md:gap-3 md:max-w-xl">
         <Link
           href="/signup"
+          className="inline-flex items-center justify-center gap-2.5 h-[52px] md:h-[60px] px-5 md:px-7 rounded-xl font-semibold text-[15px] md:text-[16.5px] no-underline w-full md:flex-1"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            height: 52,
-            padding: '0 22px',
-            borderRadius: 12,
-            fontWeight: 600,
-            fontSize: 15,
-            textDecoration: 'none',
             border: '1px solid transparent',
             background: 'var(--terracotta)',
             color: 'var(--bg)',
-            width: '100%',
           }}
         >
           무료로 시작하기
@@ -568,21 +373,11 @@ function Hero() {
         </Link>
         <Link
           href="/products"
+          className="inline-flex items-center justify-center gap-2.5 h-[52px] md:h-[60px] px-5 md:px-7 rounded-xl font-semibold text-[15px] md:text-[16.5px] no-underline w-full md:flex-1"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            height: 52,
-            padding: '0 22px',
-            borderRadius: 12,
-            fontWeight: 600,
-            fontSize: 15,
-            textDecoration: 'none',
             background: 'transparent',
             color: 'var(--ink)',
             border: '1px solid var(--ink)',
-            width: '100%',
           }}
         >
           제품 둘러보기
@@ -644,19 +439,12 @@ function ThreePromises() {
         padding: '56px 0 64px',
       }}
     >
-      <div style={{ padding: '0 20px' }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
+      <div className="px-5 md:px-12">
+        <div className="flex justify-between items-center">
           <Kicker>Our Promise</Kicker>
           <span
-            className="font-mono"
+            className="font-mono text-[9px] md:text-[10.5px]"
             style={{
-              fontSize: 9,
               letterSpacing: '0.14em',
               color: 'var(--muted)',
             }}
@@ -665,24 +453,21 @@ function ThreePromises() {
           </span>
         </div>
         <h2
-          className="font-serif"
+          className="font-serif text-[24px] md:text-[48px] lg:text-[56px] mt-4 md:mt-6"
           style={{
-            margin: '16px 0 0',
-            fontSize: 24,
-            lineHeight: 1.15,
+            lineHeight: 1.1,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.025em',
+            letterSpacing: '-0.03em',
           }}
         >
           세 가지는 절대
           <br />
           <span
-            className="font-serif"
+            className="font-serif text-[22px] md:text-[42px] lg:text-[52px]"
             style={{
               fontWeight: 500,
               color: 'var(--terracotta)',
-              fontSize: 22,
             }}
           >
             타협하지
@@ -691,20 +476,18 @@ function ThreePromises() {
         </h2>
       </div>
 
-      <div style={{ marginTop: 40, padding: '0 20px' }}>
+      <div className="mt-10 md:mt-14 px-5 md:px-12">
         {/* 01 — oversized */}
-        <div style={{ marginBottom: 36 }}>
+        <div className="mb-9 md:mb-14">
           <SerialNo n={items[0].n} label={items[0].en} />
-          <div style={{ marginTop: 14 }}>
+          <div className="mt-3.5 md:mt-5">
             <Placeholder label="01 · 4:3 · Ingredient macro" aspect="4 / 3">
               <CornerTicks />
             </Placeholder>
           </div>
           <h3
-            className="font-serif"
+            className="font-serif mt-4 md:mt-6 mb-2 md:mb-3 text-[20px] md:text-[30px] lg:text-[34px]"
             style={{
-              margin: '18px 0 8px',
-              fontSize: 20,
               fontWeight: 800,
               color: 'var(--ink)',
               letterSpacing: '-0.02em',
@@ -713,11 +496,12 @@ function ThreePromises() {
             {items[0].ko}
           </h3>
           <p
+            className="text-[13.5px] md:text-[16px]"
             style={{
               margin: 0,
-              fontSize: 13.5,
-              lineHeight: 1.65,
+              lineHeight: 1.7,
               color: 'var(--text)',
+              maxWidth: 720,
             }}
           >
             {items[0].body}
@@ -725,26 +509,18 @@ function ThreePromises() {
         </div>
 
         {/* 02 + 03 — asymmetric side-by-side */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 14,
-          }}
-        >
+        <div className="grid grid-cols-2 gap-3.5 md:gap-8">
           {[items[1], items[2]].map((it) => (
             <div key={it.n}>
               <SerialNo n={it.n} label={it.en} />
-              <div style={{ marginTop: 12 }}>
+              <div className="mt-3 md:mt-4">
                 <Placeholder label={`${it.n} · 1:1`} aspect="1 / 1">
                   <CornerTicks />
                 </Placeholder>
               </div>
               <h3
-                className="font-serif"
+                className="font-serif mt-3.5 md:mt-5 mb-1.5 md:mb-2.5 text-[17px] md:text-[24px] lg:text-[28px]"
                 style={{
-                  margin: '14px 0 6px',
-                  fontSize: 17,
                   fontWeight: 800,
                   color: 'var(--ink)',
                   letterSpacing: '-0.02em',
@@ -753,10 +529,10 @@ function ThreePromises() {
                 {it.ko}
               </h3>
               <p
+                className="text-[12px] md:text-[15px]"
                 style={{
                   margin: 0,
-                  fontSize: 12,
-                  lineHeight: 1.6,
+                  lineHeight: 1.65,
                   color: 'var(--text)',
                 }}
               >
@@ -783,7 +559,7 @@ function ProductsSection({ items }: { items: RailProduct[] }) {
         padding: '64px 0 56px',
       }}
     >
-      <div style={{ padding: '0 20px', marginBottom: 22 }}>
+      <div className="px-5 md:px-12 mb-6 md:mb-10">
         <div
           style={{
             display: 'flex',
@@ -808,14 +584,13 @@ function ProductsSection({ items }: { items: RailProduct[] }) {
           </Link>
         </div>
         <h2
-          className="font-serif"
+          className="font-serif text-[22px] md:text-[44px] lg:text-[56px]"
           style={{
             margin: '14px 0 0',
-            fontSize: 22,
-            lineHeight: 1.15,
+            lineHeight: 1.05,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.03em',
+            letterSpacing: '-0.035em',
           }}
         >
           PANTRY MIX &amp;
@@ -823,12 +598,12 @@ function ProductsSection({ items }: { items: RailProduct[] }) {
           <span style={{ color: 'var(--terracotta)' }}>GOURMET TOPPERS</span>
         </h2>
         <p
+          className="text-[13px] md:text-[16px]"
           style={{
             margin: '14px 0 0',
-            fontSize: 13,
             lineHeight: 1.6,
             color: 'var(--text)',
-            maxWidth: 300,
+            maxWidth: 540,
           }}
         >
           화식의 철학을 일상으로 확장하는 동결건조 라인과 프리미엄 토퍼 시리즈입니다.
@@ -902,24 +677,22 @@ function Journey() {
           </span>
         </div>
         <h2
-          className="font-serif"
+          className="font-serif text-[24px] md:text-[44px] lg:text-[52px]"
           style={{
             margin: '16px 0 0',
-            fontSize: 24,
-            lineHeight: 1.15,
+            lineHeight: 1.1,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.025em',
+            letterSpacing: '-0.03em',
           }}
         >
           재료부터 그릇까지,
           <br />
           <span
-            className="font-serif"
+            className="font-serif text-[22px] md:text-[40px] lg:text-[48px]"
             style={{
               fontWeight: 500,
               color: 'var(--terracotta)',
-              fontSize: 22,
             }}
           >
             중간
@@ -993,42 +766,32 @@ function Journey() {
               {i + 1}
             </div>
 
-            <div style={{ marginBottom: 10 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  gap: 8,
-                  marginBottom: 4,
-                }}
-              >
+            <div className="mb-2.5 md:mb-3.5">
+              <div className="flex items-baseline gap-2 mb-1">
                 <h3
-                  className="font-serif"
+                  className="font-serif text-[22px] md:text-[34px] lg:text-[40px]"
                   style={{
                     margin: 0,
-                    fontSize: 22,
                     fontWeight: 800,
                     color: 'var(--ink)',
-                    letterSpacing: '-0.02em',
+                    letterSpacing: '-0.025em',
                   }}
                 >
                   {s.ko}
                 </h3>
                 <span
-                  className="font-serif"
-                  style={{ fontSize: 13, color: 'var(--muted)' }}
+                  className="font-serif text-[13px] md:text-[16px]"
+                  style={{ color: 'var(--muted)' }}
                 >
                   — {s.en}
                 </span>
               </div>
               <div
-                className="font-mono"
+                className="font-mono text-[9px] md:text-[11px] mb-3 md:mb-4"
                 style={{
-                  fontSize: 9,
                   letterSpacing: '0.14em',
                   textTransform: 'uppercase',
                   color: 'var(--terracotta)',
-                  marginBottom: 12,
                 }}
               >
                 {s.tag}
@@ -1040,12 +803,12 @@ function Journey() {
             </Placeholder>
 
             <p
+              className="text-[13px] md:text-[15.5px]"
               style={{
                 margin: '14px 0 0',
-                fontSize: 13,
-                lineHeight: 1.6,
+                lineHeight: 1.65,
                 color: 'var(--text)',
-                maxWidth: 280,
+                maxWidth: 520,
               }}
             >
               {s.body}
@@ -1336,14 +1099,13 @@ function BrandStory() {
         </div>
 
         <h2
-          className="font-serif"
+          className="font-serif text-[26px] md:text-[52px] lg:text-[64px]"
           style={{
             margin: '20px 0 0',
-            fontSize: 26,
-            lineHeight: 1.1,
+            lineHeight: 1.05,
             fontWeight: 800,
             color: 'var(--bg)',
-            letterSpacing: '-0.03em',
+            letterSpacing: '-0.035em',
           }}
         >
           농장에서
@@ -1351,11 +1113,10 @@ function BrandStory() {
           꼬리까지,
           <br />
           <span
-            className="font-serif"
+            className="font-serif text-[24px] md:text-[48px] lg:text-[58px]"
             style={{
               fontWeight: 500,
               color: 'var(--gold)',
-              fontSize: 24,
             }}
           >
             중간
@@ -1364,12 +1125,12 @@ function BrandStory() {
         </h2>
 
         <p
+          className="text-[13.5px] md:text-[16px] mt-5 md:mt-7"
           style={{
-            margin: '20px 0 0',
-            fontSize: 13.5,
-            lineHeight: 1.7,
+            margin: 0,
+            lineHeight: 1.75,
             color: '#C8BCA2',
-            maxWidth: 300,
+            maxWidth: 560,
           }}
         >
           유통 단계를 걷어냈습니다. 농부와 수의사, 그리고 반려인 사이에
@@ -1378,26 +1139,21 @@ function BrandStory() {
       </div>
 
       {/* Monumental stats */}
-      <div style={{ padding: '0 20px' }}>
+      <div className="px-5 md:px-12">
         <div style={{ height: 1, background: '#3a3128' }} />
         {stats.map((s) => (
           <div
             key={s.sub}
+            className="py-5 md:py-8 grid items-stretch"
             style={{
-              padding: '22px 0',
               borderBottom: '1px solid #3a3128',
-              display: 'grid',
-              gridTemplateColumns: 'auto 1fr',
-              columnGap: 16,
-              alignItems: 'baseline',
+              gridTemplateColumns: '140px 1fr',
+              columnGap: 8,
             }}
           >
             <div
-              className="font-serif tnum"
+              className="font-serif tnum text-[44px] md:text-[80px] lg:text-[96px]"
               style={{
-                fontSize: 44,
-                // 0.9는 ascender/descender를 잘라먹는다 — 1.0으로 살려서
-                // baseline(아래 라벨과 align)은 alignItems: baseline 이 책임진다.
                 lineHeight: 1,
                 fontWeight: 800,
                 color: 'var(--bg)',
@@ -1407,24 +1163,28 @@ function BrandStory() {
             >
               {s.n}
             </div>
-            <div>
+            <div
+              className="flex flex-col justify-between pt-1 pb-0.5 pl-4 md:pl-7"
+              style={{
+                borderLeft: '1px solid rgba(212, 175, 55, 0.22)',
+              }}
+            >
               <div
-                className="font-serif"
+                className="font-serif text-[16px] md:text-[24px] lg:text-[28px]"
                 style={{
-                  fontSize: 15,
+                  lineHeight: 1.05,
                   fontWeight: 700,
                   color: 'var(--bg)',
-                  letterSpacing: '-0.01em',
+                  letterSpacing: '-0.015em',
                 }}
               >
                 {s.label}
               </div>
               <div
-                className="font-mono"
+                className="font-mono text-[9.5px] md:text-[11.5px]"
                 style={{
-                  marginTop: 4,
-                  fontSize: 9,
-                  letterSpacing: '0.18em',
+                  lineHeight: 1,
+                  letterSpacing: '0.2em',
                   textTransform: 'uppercase',
                   color: 'var(--gold)',
                 }}
@@ -1436,26 +1196,13 @@ function BrandStory() {
         ))}
       </div>
 
-      <div style={{ padding: '32px 20px 72px' }}>
-        {/* Swap to /about once a full brand page exists. For now, point to the
-            conversion funnel — the brand story just told itself in-page, the
-            natural follow-up is signup. */}
+      <div className="px-5 md:px-12 pt-8 md:pt-12 pb-[72px] md:pb-24 md:max-w-md">
         <Link
           href="/signup"
+          className="inline-flex items-center justify-center gap-2.5 h-[52px] md:h-[60px] px-5 md:px-7 rounded-xl font-semibold text-[15px] md:text-[16.5px] no-underline w-full"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            height: 52,
-            padding: '0 22px',
-            borderRadius: 12,
-            fontWeight: 600,
-            fontSize: 15,
-            textDecoration: 'none',
             background: 'var(--bg)',
             color: 'var(--ink)',
-            width: '100%',
           }}
         >
           지금 시작하기
@@ -1507,24 +1254,22 @@ function NutritionCTA() {
           <Kicker tone="moss">Nutrition Analysis</Kicker>
         </div>
         <h3
-          className="font-serif"
+          className="font-serif text-[19px] md:text-[34px] lg:text-[40px]"
           style={{
             margin: '12px 0 10px',
-            fontSize: 19,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
-            lineHeight: 1.2,
+            letterSpacing: '-0.025em',
+            lineHeight: 1.15,
           }}
         >
           우리 아이
           <br />
           <span
-            className="font-serif"
+            className="font-serif text-[17px] md:text-[30px] lg:text-[36px]"
             style={{
               fontWeight: 500,
               color: 'var(--moss)',
-              fontSize: 17,
             }}
           >
             맞춤
@@ -1829,7 +1574,7 @@ function AppInstallBanner() {
             }}
           >
             <a
-              href="#"
+              href="/app-required"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1877,7 +1622,7 @@ function AppInstallBanner() {
               </span>
             </a>
             <a
-              href="#"
+              href="/app-required"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1990,24 +1735,22 @@ function FinalCTA() {
         </div>
 
         <h2
-          className="font-serif"
+          className="font-serif text-[26px] md:text-[52px] lg:text-[60px]"
           style={{
             margin: '20px 0 0',
-            fontSize: 26,
-            lineHeight: 1.1,
+            lineHeight: 1.05,
             fontWeight: 800,
             color: 'var(--bg)',
-            letterSpacing: '-0.03em',
+            letterSpacing: '-0.035em',
           }}
         >
           지금 시작하면
           <br />
           <span
-            className="font-serif"
+            className="font-serif text-[24px] md:text-[48px] lg:text-[56px]"
             style={{
               fontWeight: 500,
               color: '#F5E0C2',
-              fontSize: 24,
             }}
           >
             첫 주문
@@ -2064,16 +1807,59 @@ function FinalCTA() {
 }
 
 function EditorialFooter() {
-  const columns: Array<[string, string[]]> = [
-    ['Shop', ['주식', '간식', '체험 키트', '전체 보기']],
-    ['About', ['브랜드 스토리', '농장 파트너', '수의영양학', '저널']],
+  type FooterItem = { label: string; href: string; external?: boolean }
+  const columns: Array<[string, FooterItem[]]> = [
+    [
+      'Shop',
+      [
+        { label: '주식 (화식)', href: '/products?category=화식' },
+        { label: '간식', href: '/products?category=간식' },
+        { label: '체험 키트', href: '/products?category=체험팩' },
+        { label: '전체 보기', href: '/products' },
+      ],
+    ],
+    [
+      'About',
+      [
+        { label: '브랜드 스토리', href: '/brand' },
+        { label: '농장 파트너', href: '/partners' },
+        { label: '수의영양학', href: '/science' },
+        { label: '저널', href: '/blog' },
+      ],
+    ],
     [
       'Support',
-      ['배송 · 환불', '자주 묻는 질문', '1:1 문의', '식단 분석'],
+      [
+        { label: '배송 · 환불', href: '/legal/refund' },
+        { label: '자주 묻는 질문', href: '/faq' },
+        {
+          label: '1:1 문의',
+          href: 'mailto:hello@farmerstail.kr?subject=1:1 문의',
+          external: true,
+        },
+        { label: '식단 분석', href: '/app-required' },
+      ],
     ],
     [
       'Korea',
-      ['카카오 채널', '인스타그램', '뉴스레터 구독', '리셀러 문의'],
+      [
+        {
+          label: '카카오 채널',
+          href: 'https://pf.kakao.com/_farmerstail',
+          external: true,
+        },
+        {
+          label: '인스타그램',
+          href: 'https://www.instagram.com/farmerstail/',
+          external: true,
+        },
+        { label: '뉴스레터 구독', href: '/newsletter' },
+        {
+          label: '리셀러 문의',
+          href: 'mailto:b2b@farmerstail.kr?subject=리셀러 문의',
+          external: true,
+        },
+      ],
     ],
   ]
   return (
@@ -2086,17 +1872,9 @@ function EditorialFooter() {
       }}
     >
       <div style={{ padding: '40px 20px 0' }}>
-        <Image
-          src="/logo.png"
-          alt="Farmer's Tail"
-          width={104}
-          height={26}
-          style={{ height: 26, width: 'auto', display: 'block' }}
-        />
         <div
           className="font-mono"
           style={{
-            marginTop: 10,
             fontSize: 10,
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
@@ -2117,7 +1895,7 @@ function EditorialFooter() {
           gap: '24px 16px',
         }}
       >
-        {columns.map(([h, rows]) => (
+        {columns.map(([h, items]) => (
           <div key={h}>
             <div
               className="font-mono"
@@ -2132,16 +1910,40 @@ function EditorialFooter() {
               {h}
             </div>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {rows.map((x) => (
+              {items.map((it) => (
                 <li
-                  key={x}
+                  key={it.label}
                   style={{
                     marginBottom: 7,
                     fontSize: 12,
                     color: 'var(--text)',
                   }}
                 >
-                  {x}
+                  {it.external ? (
+                    <a
+                      href={it.href}
+                      target={
+                        it.href.startsWith('http') ? '_blank' : undefined
+                      }
+                      rel={
+                        it.href.startsWith('http')
+                          ? 'noopener noreferrer'
+                          : undefined
+                      }
+                      className="hover:text-terracotta transition"
+                      style={{ color: 'inherit' }}
+                    >
+                      {it.label}
+                    </a>
+                  ) : (
+                    <Link
+                      href={it.href}
+                      className="hover:text-terracotta transition"
+                      style={{ color: 'inherit' }}
+                    >
+                      {it.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -2165,18 +1967,27 @@ export default async function LandingPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Authenticated users always go straight to the app dashboard — the
-  // editorial landing is a discovery surface for visitors only.
-  if (user) {
-    redirect('/dashboard')
-  }
+  // 로그인한 유저도 랜딩을 자유롭게 탐색할 수 있도록 redirect 제거.
+  // 대신 헤더가 auth 상태에 따라 CTA/프로필 아이콘을 전환한다.
+  const isAuthed = !!user
 
+  // 랜딩 토퍼 상품 레일 정책
+  //   - 노출: "간식" 등 사이드 라인업 (디스커버리 대상)
+  //   - 제외: "정기배송"(= 화식 4종) / "체험팩"(= 시그니처 4종 체험 세트)
+  //
+  // 화식은 이미 Hero · ThreePromises · BrandStory 에서 서사적으로 프리젠트
+  // 되므로 레일에서 또 반복하면 상단/하단이 같은 얘기만 하게 된다.
+  // 체험팩은 signup/welcome 이벤트 블록에서 별도 훅으로 노출되므로 레일에
+  // 끼면 의미 중복. 레일은 "첫 방문자가 훑으며 호기심 느낄 사이드 메뉴"
+  // 역할로 좁힌다.
   const { data: products } = await supabase
     .from('products')
     .select(
       'id, name, slug, price, sale_price, image_url, category, short_description'
     )
     .eq('is_active', true)
+    .neq('category', '정기배송')
+    .neq('category', '체험팩')
     .order('sort_order', { ascending: true })
     .limit(5)
 
@@ -2184,32 +1995,36 @@ export default async function LandingPage() {
   const railItems: RailProduct[] =
     rows.length > 0 ? rows.map(toRailProduct) : FALLBACK_RAIL
 
+  // 진행중 이벤트 — DB 기반. 빈 배열이면 OngoingEvents 가 섹션 자체를 렌더
+  // 안 함(자체 early return). 기간이 안 맞거나 is_active=false 면 여기서
+  // 이미 걸러져서 안 내려감.
+  const ongoingEvents = await getActiveEvents(supabase)
+
   return (
-    // Dark gutter frames the mobile-primary layout on desktop. Most visits
-    // come from mobile share links / ads, so desktop is a centered column
-    // rather than a reflowed layout.
-    <div
-      style={{
-        minHeight: '100%',
-        background: '#2a241b',
-        display: 'flex',
-        justifyContent: 'center',
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 430,
-          background: 'var(--bg)',
-          minHeight: '100vh',
-          boxShadow: '0 0 40px rgba(0,0,0,0.18)',
-        }}
-      >
-        <EditorialHeader />
-        <main>
+    // Web/App 분리 모델: 랜딩은 Web 전용 chrome (WebChrome) 으로 감싼다.
+    // 헤더는 풀와이드 마켓컬리 톤 (카테고리 nav + 검색 + 카트), 본문은 기존
+    // 에디토리얼 column 을 데스크톱에서도 가운데 정렬해 magazine-on-paper 느낌.
+    // 이전 "검은 책상 + 폰 프레임" 데스크톱 래퍼 제거 — 일반 쇼핑몰 톤으로 전환.
+    <WebChrome cartCount={0}>
+      {/* 풀와이드 — 데스크톱에선 각 섹션이 100vw, 컨텐츠는 자체 max-w 로 제어.
+          기존 모바일 디자인은 모바일에선 그대로, 데스크톱에선 컨텐츠 가운데
+          정렬되며 양쪽 cream 배경 자연스럽게 펼침. */}
+      <main style={{ background: 'var(--bg)' }}>
+        {/* 섹션별 max-width 통일 — 1280 단일 기준.
+            데스크톱에서 좌우 비대칭/들쭉날쭉 보이는 문제 해결. */}
+        <div className="mx-auto" style={{ maxWidth: 1280 }}>
           <Hero />
+        </div>
+        <div className="mx-auto" style={{ maxWidth: 1280 }}>
+          <OngoingEvents events={ongoingEvents} />
+        </div>
+        <div className="mx-auto" style={{ maxWidth: 1280 }}>
           <ThreePromises />
+        </div>
+        <div className="mx-auto" style={{ maxWidth: 1280 }}>
           <ProductsSection items={railItems} />
+        </div>
+        <div className="mx-auto" style={{ maxWidth: 1280 }}>
           <Journey />
           <SocialProof />
           <BrandStory />
@@ -2217,10 +2032,10 @@ export default async function LandingPage() {
           <AppInstallBanner />
           <FinalCTA />
           <EditorialFooter />
-          {/* 법정 필수 표기 — 전자상거래법 제10조 */}
-          <SiteFooter />
-        </main>
-      </div>
-    </div>
+        </div>
+      </main>
+      {/* isAuthed 사용 (린터 안 잡히도록) — 추후 Hero 분기에 활용 가능 */}
+      {isAuthed ? null : null}
+    </WebChrome>
   )
 }

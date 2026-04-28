@@ -128,7 +128,7 @@ export default async function AnalysesTimelinePage({
         >
           ← {dog.name}
         </Link>
-        <span className="kicker mt-3 inline-block">Analysis History</span>
+        <span className="kicker mt-3 block">Analysis History</span>
         <h1 className="font-serif mt-1.5" style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
           분석 히스토리
         </h1>

@@ -1,13 +1,11 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   Soup,
   Cookie,
   PackageOpen,
-  Flame,
   Repeat,
   ArrowRight,
   Dog,
@@ -17,8 +15,41 @@ import {
   Truck,
   BookOpen,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 import ReferralAutoRedeemer from '@/components/ReferralAutoRedeemer'
+import { getActiveEvents } from '@/lib/events/data'
+import {
+  OngoingEvents,
+  DashboardGreeting,
+} from './DashboardClientIslands'
+
+/**
+ * Dashboard — 로그인 후 홈 화면.
+ *
+ * ## 2026-04 Perf 리팩토 메모
+ * 이전 구현은 전체가 `'use client'` 였다:
+ *   1) auth.getUser()  → 대기
+ *   2) profiles   → 대기
+ *   3) dogs       → 대기
+ *   4) products   → 대기
+ *   5) subscriptions → 대기
+ *   6) events     → 대기
+ *   → 모든 단계 완료까지 풀페이지 스피너
+ *
+ * 6×RTT 직렬 + JS hydration 후에야 첫 유효 페인트였다. 지금은 서버 컴포넌트로
+ * 전환 + Promise.all 로 병렬화. 인증은 서버 쿠키에서 한 번에 읽고, 5개 쿼리
+ * 는 동시 실행. HTML 이 바로 내려와 LCP 가 크게 개선되고, JS 번들도 마스트
+ * 헤드 / 카운트다운 / 캐러셀 섬 (`DashboardClientIslands.tsx`) 만 필요.
+ */
+
+export const metadata: Metadata = {
+  title: '파머스테일',
+  description: '파머스테일 대시보드',
+  robots: { index: false, follow: false },
+}
+
+// 개인화된 페이지 — CDN 캐시 금지. 유저별 쿼리 결과를 공유하면 안 됨.
+export const dynamic = 'force-dynamic'
 
 type DogRow = {
   id: string
@@ -28,7 +59,7 @@ type DogRow = {
   weight: number | null
 }
 
-type Product = {
+type ProductRow = {
   id: string
   name: string
   slug: string
@@ -40,7 +71,7 @@ type Product = {
   is_subscribable: boolean
 }
 
-type Subscription = {
+type SubscriptionRow = {
   id: string
   status: string
   next_delivery_date: string | null
@@ -51,7 +82,82 @@ const CATEGORIES = [
   { key: '화식', label: '화식', Icon: Soup, desc: '건강한 한 끼' },
   { key: '간식', label: '간식', Icon: Cookie, desc: '특별한 보상' },
   { key: '체험팩', label: '체험팩', Icon: PackageOpen, desc: '처음이라면' },
-]
+] as const
+
+/**
+ * 헤더 chrome 에 이미 데이트라인 (`MON · 24 APR`) 이 박혀있으니 dashboard
+ * 마스트헤드 자리는 날짜 대신 **개인화 status 카드** 를 보여준다. 매거진의
+ * 큼직한 focal stat (D-3, 이름, 카테고리) + 콘텍스트 한 줄 + 화살표.
+ *
+ * 분기 우선순위:
+ *   1) 활성 정기배송 → "D-3" / "오늘 도착" 등 큰 숫자 + 도착 예정일,
+ *      /mypage/subscriptions
+ *   2) 강아지 등록됨 → 첫 강아지 이름 + 나이/품종, /dogs/{id}
+ *   3) 둘 다 없음 → "체험팩" + 안내 카피, /products?category=체험팩
+ */
+type DashboardContext = {
+  /** 큰 focal text — D-3 / 강아지 이름 / "체험팩". 한 줄 inline 링크에 들어감. */
+  primary: string
+  /** dot/색 강조용 톤. */
+  tone: 'moss' | 'terracotta' | 'gold'
+  /** 클릭 시 이동할 경로. */
+  href: string
+  /** 작은 라벨 — 영문 표기 (mono uppercase). */
+  enLabel: string
+}
+
+/**
+ * KST 기준 두 날짜의 일수 차이. 문자열 'YYYY-MM-DD' 또는 ISO 둘 다 받는다.
+ * 서버 timezone 이 UTC 라도 결과가 사용자 (KST) 의 "오늘" 기준으로 안정.
+ */
+function daysUntilKST(target: string): number {
+  const targetIso =
+    target.length === 10 ? `${target}T00:00:00+09:00` : target
+  const targetMs = new Date(targetIso).getTime()
+  const nowKstStr = new Date(Date.now() + 9 * 3600 * 1000)
+    .toISOString()
+    .slice(0, 10)
+  const todayMs = new Date(`${nowKstStr}T00:00:00+09:00`).getTime()
+  return Math.round((targetMs - todayMs) / 86_400_000)
+}
+
+function buildContextCard(opts: {
+  hasActiveSub: boolean
+  nextDeliveryDate: string | null
+  dogs: DogRow[]
+}): DashboardContext {
+  if (opts.hasActiveSub && opts.nextDeliveryDate) {
+    const days = daysUntilKST(opts.nextDeliveryDate)
+    const primary =
+      days < 0
+        ? '곧 도착'
+        : days === 0
+          ? '오늘 도착'
+          : days === 1
+            ? '내일 도착'
+            : `D-${days}`
+    return {
+      enLabel: 'NEXT DELIVERY',
+      primary,
+      tone: 'moss',
+      href: '/mypage/subscriptions',
+    }
+  }
+  if (opts.dogs.length > 0) {
+    return {
+      enLabel: 'FAMILY',
+      primary: opts.dogs[0].name,
+      tone: 'terracotta',
+      href: `/dogs/${opts.dogs[0].id}`,
+    }
+  }
+  return {
+    enLabel: 'GET STARTED',
+    primary: '체험팩',
+    tone: 'gold',
+    href: '/products?category=체험팩',
+  }
+}
 
 function ProductFallback({ category }: { category: string | null }) {
   const Icon =
@@ -67,111 +173,256 @@ function ProductFallback({ category }: { category: string | null }) {
   )
 }
 
-export default function DashboardPage() {
-  const router = useRouter()
-  const supabase = createClient()
+export default async function DashboardPage() {
+  const supabase = await createClient()
 
-  const [userName, setUserName] = useState<string | null>(null)
-  const [dogs, setDogs] = useState<DogRow[]>([])
-  const [products, setProducts] = useState<Product[]>([])
-  const [subscription, setSubscription] = useState<Subscription | null>(null)
-  const [loading, setLoading] = useState(true)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  useEffect(() => {
-    async function load() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
+  if (!user) redirect('/login')
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', user.id)
-        .single()
-      setUserName(profile?.name || user.email?.split('@')[0] || null)
+  // 3개 쿼리 동시 실행. user-scoped (profile + dogs + active subscription) 는
+  // dashboard_user_snapshot RPC 로 1-shot, 글로벌 (products / events) 만 별도.
+  // 이전엔 5개 라운드트립이었는데 RPC 합쳐 3개로 — auth/RLS 평가도 1회만 발생.
+  //
+  // Error 처리 방침: 개별 쿼리 실패해도 대시보드는 "빈 상태" 로 렌더한다.
+  //   - UX: 한 섹션 실패로 모든 영역을 블록하는 건 과잉 반응.
+  //   - 가시성: Sentry 로 보내서 운영자는 인지. 사용자 경로는 유지.
+  const [
+    { data: snapshotData, error: snapshotErr },
+    { data: prodData, error: prodErr },
+    events,
+  ] = await Promise.all([
+    supabase.rpc('dashboard_user_snapshot', { p_user_id: user.id }),
+    supabase
+      .from('products')
+      .select(
+        'id, name, slug, price, sale_price, image_url, category, short_description, is_subscribable',
+      )
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .limit(10),
+    // getActiveEvents 는 내부에서 catch + empty 반환 — 실패해도 대시보드 전체
+    // 가 깨지지 않는다.
+    getActiveEvents(supabase, 3),
+  ])
 
-      const { data: dogData } = await supabase
-        .from('dogs')
-        .select('id, name, breed, birth_date, weight')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(3)
-      if (dogData) setDogs(dogData)
-
-      const { data: prodData } = await supabase
-        .from('products')
-        .select(
-          'id, name, slug, price, sale_price, image_url, category, short_description, is_subscribable'
-        )
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true })
-        .limit(10)
-      if (prodData) setProducts(prodData)
-
-      const { data: subData } = await supabase
-        .from('subscriptions')
-        .select(
-          'id, status, next_delivery_date, subscription_items(product_name)'
-        )
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      if (subData) setSubscription(subData as Subscription)
-
-      setLoading(false)
-    }
-    load()
-  }, [router, supabase])
-
-  if (loading) {
-    return (
-      <main className="min-h-[80vh] flex items-center justify-center">
-        <div
-          className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
-          style={{ borderColor: 'var(--terracotta)', borderTopColor: 'transparent' }}
-        />
-      </main>
-    )
+  if (snapshotErr) {
+    console.error('[dashboard] user_snapshot rpc failed', snapshotErr)
   }
+  if (prodErr) console.error('[dashboard] products query failed', prodErr)
 
-  const saleProducts = products.filter((p) => p.sale_price !== null)
-  const allProducts = products
+  // RPC 가 JSONB 로 { profile, dogs, subscription } 반환. 실패시 모두 null/[].
+  type SnapshotShape = {
+    profile: { name: string | null } | null
+    dogs: DogRow[]
+    subscription: SubscriptionRow | null
+  }
+  const snapshot = (snapshotData ?? {
+    profile: null,
+    dogs: [],
+    subscription: null,
+  }) as SnapshotShape
+
+  const userName =
+    snapshot.profile?.name || user.email?.split('@')[0] || null
+  const userCreatedAt = user.created_at ?? null
+  const dogs = (snapshot.dogs ?? []) as DogRow[]
+  const products = (prodData ?? []) as ProductRow[]
+  const subscription = snapshot.subscription
+  const hasActiveSub =
+    subscription !== null && subscription.next_delivery_date !== null
+
+  // 헤더에 이미 날짜가 있어 마스트헤드 자리는 큰 status 카드로 대체.
+  // 우선순위: 정기배송 D-day → 강아지 → 시작 유도.
+  const ctx = buildContextCard({
+    hasActiveSub,
+    nextDeliveryDate: subscription?.next_delivery_date ?? null,
+    dogs,
+  })
 
   return (
     <main className="pb-8">
-      {/* Fires at most once per session: consumes a pending referral
-          code stashed during the Kakao OAuth signup roundtrip. */}
+      {/* 가입 리퍼럴 자동 적용 — 클라이언트 섬. 세션당 1회. */}
       <ReferralAutoRedeemer />
 
-      {/* ── 인사 — kicker + serif h1, landing/auth와 동일 조판 언어 ── */}
-      <section className="px-5 pt-6 pb-2">
-        <span className="kicker">Good day · 오늘의 한 끼</span>
-        <h1
-          className="font-serif mt-2 leading-snug"
+      {/* ── 인사 — kicker + serif h1 ─────────────────────────── */}
+      <section className="relative grain grain-soft px-5 pt-4 pb-5 overflow-hidden">
+        {/* 듀얼 라이트 글로우 — flat 한 베이지 배경에 깊이감. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
           style={{
-            fontSize: 22,
+            background:
+              'radial-gradient(ellipse 420px 260px at 108% -12%, rgba(160,69,46,0.20) 0%, transparent 60%)',
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(ellipse 300px 180px at -8% 110%, rgba(212,169,74,0.14) 0%, transparent 60%)',
+          }}
+        />
+
+        {/* terracotta tick + kicker — hairline 살짝 두껍게 (1 → 1.5px),
+            terracotta dot 추가로 magazine masthead 시그니처 강조. */}
+        <div className="relative flex items-center gap-2.5">
+          <span
+            aria-hidden
+            style={{
+              width: 24,
+              height: 1.5,
+              background: 'var(--terracotta)',
+              flexShrink: 0,
+            }}
+          />
+          <span className="kicker">Good day · 오늘의 한 끼</span>
+          <span
+            aria-hidden
+            style={{
+              width: 4,
+              height: 4,
+              borderRadius: 1,
+              background: 'var(--terracotta)',
+              flexShrink: 0,
+              marginLeft: 'auto',
+            }}
+          />
+        </div>
+
+        {/* 인사말 — 이름 (ink) + 시간대 인사 (terracotta italic serif) 로
+            계조 강조. 한 줄 안에서 두 톤이 교차하면서 매거진 풍 hierarchy. */}
+        <h1
+          className="relative font-serif mt-3.5 leading-[1.15]"
+          style={{
+            fontSize: 28,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.025em',
           }}
         >
           {userName ? `${userName}님,` : ''}
           <br />
-          안녕하세요.
+          <span
+            className="italic"
+            style={{
+              fontWeight: 600,
+              color: 'var(--terracotta)',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            <DashboardGreeting />
+          </span>
         </h1>
-        <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>
-          오늘도 건강한 한 끼를 준비해요
+
+        {/* 부제 — 마지막 단어를 italic terracotta 로 강조해서 brand voice
+            (정성, 한 그릇) 을 매번 살짝 빛내준다. */}
+        <p
+          className="relative mt-3 leading-relaxed"
+          style={{
+            fontSize: 12.5,
+            color: 'var(--text)',
+            letterSpacing: '-0.005em',
+          }}
+        >
+          오늘도 건강한 한 끼를{' '}
+          <span
+            className="font-serif italic"
+            style={{
+              fontWeight: 700,
+              color: 'var(--terracotta)',
+            }}
+          >
+            정성스럽게.
+          </span>
         </p>
+
+        {/* Next-action 한 줄 — 활성 구독자는 바로 아래 다음 배송 히어로 카드
+            가 이어받으니 표시 안 함. 비구독자에게만 가벼운 텍스트 링크로 다음
+            행동 유도 (chip 보다 가볍고 매거진톤). */}
+        {!hasActiveSub && (
+          <Link
+            href={ctx.href}
+            className="relative inline-flex items-center gap-1.5 mt-4 group"
+          >
+            <span
+              aria-hidden
+              style={{
+                width: 12,
+                height: 1,
+                background: `var(--${ctx.tone})`,
+              }}
+            />
+            <span
+              className="font-mono"
+              style={{
+                fontSize: 9.5,
+                fontWeight: 700,
+                letterSpacing: '0.18em',
+                color: `var(--${ctx.tone})`,
+                textTransform: 'uppercase',
+              }}
+            >
+              {ctx.enLabel}
+            </span>
+            <span
+              style={{
+                fontSize: 12.5,
+                fontWeight: 700,
+                color: 'var(--ink)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {ctx.primary}
+            </span>
+            <ArrowRight
+              className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5"
+              style={{ color: 'var(--ink)' }}
+              strokeWidth={2.25}
+            />
+          </Link>
+        )}
+
+        {/* 섹션 하단 에디토리얼 rule — 양쪽 terracotta 정사각형으로 magazine
+            ornament. 가운데가 비어 light + breath 표현. */}
+        <div
+          aria-hidden
+          className="relative mt-6 flex items-center gap-2"
+        >
+          <span
+            style={{
+              width: 4,
+              height: 4,
+              background: 'var(--terracotta)',
+              borderRadius: 1,
+              flexShrink: 0,
+            }}
+          />
+          <span
+            style={{
+              flex: 1,
+              height: 1,
+              background:
+                'linear-gradient(to right, var(--rule) 0%, var(--rule) 92%, transparent 100%)',
+            }}
+          />
+          <span
+            style={{
+              width: 4,
+              height: 4,
+              background: 'var(--terracotta)',
+              borderRadius: 1,
+              flexShrink: 0,
+            }}
+          />
+        </div>
       </section>
 
       {/* ── 다음 배송 히어로 (D-N 강조) ── */}
-      {subscription && subscription.next_delivery_date && (
+      {hasActiveSub && (
         <section className="px-5 mt-4">
           <Link
             href="/mypage/subscriptions"
@@ -183,54 +434,18 @@ export default function DashboardPage() {
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Truck className="w-3.5 h-3.5 text-white/80" strokeWidth={2} />
+                <Truck
+                  className="w-3.5 h-3.5 text-white/80"
+                  strokeWidth={2}
+                />
                 <span className="kicker kicker-white">Next Delivery</span>
               </div>
               <Repeat className="w-4 h-4 text-white/60" strokeWidth={2} />
             </div>
-            <div className="mt-2.5 flex items-baseline gap-2">
-              {(() => {
-                const target = new Date(subscription.next_delivery_date)
-                const today = new Date()
-                today.setHours(0, 0, 0, 0)
-                target.setHours(0, 0, 0, 0)
-                const diff = Math.round(
-                  (target.getTime() - today.getTime()) / 86400000
-                )
-                const label =
-                  diff === 0
-                    ? '오늘'
-                    : diff > 0
-                      ? `D-${diff}`
-                      : `${Math.abs(diff)}일 경과`
-                return (
-                  <>
-                    <span
-                      className="font-serif text-white leading-none"
-                      style={{
-                        fontSize: 28,
-                        fontWeight: 800,
-                        letterSpacing: '-0.02em',
-                      }}
-                    >
-                      {label}
-                    </span>
-                    <span className="text-white/70 text-[11px] font-semibold">
-                      {target.toLocaleDateString('ko-KR', {
-                        month: 'long',
-                        day: 'numeric',
-                        weekday: 'short',
-                      })}
-                    </span>
-                  </>
-                )
-              })()}
-            </div>
-            <div className="mt-2 text-white/80 text-[11px] truncate">
-              {subscription.subscription_items?.[0]?.product_name}
-              {subscription.subscription_items?.length > 1 &&
-                ` 외 ${subscription.subscription_items.length - 1}개`}
-            </div>
+            <NextDeliveryLine
+              nextDate={subscription!.next_delivery_date!}
+              items={subscription!.subscription_items}
+            />
           </Link>
         </section>
       )}
@@ -329,9 +544,6 @@ export default function DashboardPage() {
             </Link>
           </div>
         ) : (
-          // Empty-state — 에디토리얼 톤으로 통일. 가득 찬 글래스모피즘 배경
-          // 대신, paper-tone 지면 위에 kicker + serif 헤드라인 + ink CTA로
-          // 정리한다. onboarding 마지막 슬라이드와 같은 문법.
           <Link href="/dogs/new" className="block">
             <div
               className="relative overflow-hidden rounded-2xl border border-dashed px-5 py-9 text-center transition-all hover:shadow-sm"
@@ -341,7 +553,7 @@ export default function DashboardPage() {
               }}
             >
               <div
-                className="inline-flex w-14 h-14 rounded-full items-center justify-center mb-3"
+                className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3"
                 style={{
                   background: 'var(--bg)',
                   border: '1px solid var(--rule-2)',
@@ -363,8 +575,7 @@ export default function DashboardPage() {
                   letterSpacing: '-0.015em',
                 }}
               >
-                우리 아이를 등록해
-                보세요
+                우리 아이를 등록해 보세요
               </div>
               <div
                 className="text-[11px] mt-2 leading-relaxed"
@@ -423,112 +634,8 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* ── 할인 상품 (가로 스크롤) ── */}
-      {saleProducts.length > 0 && (
-        <section className="mb-8">
-          <div className="flex items-center justify-between px-5 mb-3">
-            <div className="flex items-center gap-2">
-              <Flame
-                className="w-4 h-4"
-                style={{ color: 'var(--terracotta)' }}
-                strokeWidth={2}
-              />
-              <h2
-                className="font-serif"
-                style={{
-                  fontSize: 17,
-                  fontWeight: 800,
-                  color: 'var(--ink)',
-                  letterSpacing: '-0.015em',
-                }}
-              >
-                지금 할인 중
-              </h2>
-            </div>
-            <Link
-              href="/products"
-              className="text-[11px] font-semibold"
-              style={{ color: 'var(--muted)' }}
-            >
-              전체보기 →
-            </Link>
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 pl-5 pr-5 scrollbar-hide">
-            {saleProducts.map((p) => {
-              const discount = Math.round(
-                ((p.price - (p.sale_price ?? p.price)) / p.price) * 100
-              )
-              return (
-                <Link
-                  key={p.id}
-                  href={`/products/${p.slug}`}
-                  className="flex-shrink-0 bg-white rounded-2xl overflow-hidden transition-all"
-                  style={{
-                    width: '160px',
-                    border: '1px solid var(--rule)',
-                  }}
-                >
-                  <div
-                    className="relative overflow-hidden"
-                    style={{
-                      width: '160px',
-                      height: '160px',
-                      background: 'var(--bg)',
-                    }}
-                  >
-                    {p.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={p.image_url}
-                        alt={p.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <ProductFallback category={p.category} />
-                    )}
-                    {discount > 0 && (
-                      <div
-                        className="absolute top-2 left-2 text-white text-[10px] font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: 'var(--terracotta)' }}
-                      >
-                        -{discount}%
-                      </div>
-                    )}
-                  </div>
-                  <div className="px-3 py-2.5">
-                    <div
-                      className="text-[11px] font-semibold leading-snug line-clamp-2 min-h-[30px]"
-                      style={{ color: 'var(--ink)' }}
-                    >
-                      {p.name}
-                    </div>
-                    <div className="mt-1.5 flex items-baseline gap-1">
-                      <span
-                        className="font-serif text-[15px] font-black"
-                        style={{ color: 'var(--terracotta)' }}
-                      >
-                        {(p.sale_price ?? p.price).toLocaleString()}
-                      </span>
-                      <span
-                        className="text-[10px]"
-                        style={{ color: 'var(--muted)' }}
-                      >
-                        원
-                      </span>
-                    </div>
-                    <div
-                      className="text-[10px] line-through leading-none"
-                      style={{ color: 'var(--muted)' }}
-                    >
-                      {p.price.toLocaleString()}원
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        </section>
-      )}
+      {/* ── 진행중인 이벤트 (클라이언트 섬 — 가로 스냅 캐러셀) ── */}
+      <OngoingEvents events={events} userCreatedAt={userCreatedAt} />
 
       {/* ── 전체 상품 (2열 그리드) ── */}
       <section className="px-5 mb-8">
@@ -553,18 +660,18 @@ export default function DashboardPage() {
           </Link>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {allProducts.slice(0, 6).map((p) => {
+          {products.slice(0, 6).map((p) => {
             const hasSale = p.sale_price !== null
             const discount = hasSale
               ? Math.round(
-                  ((p.price - (p.sale_price ?? p.price)) / p.price) * 100
+                  ((p.price - (p.sale_price ?? p.price)) / p.price) * 100,
                 )
               : 0
             return (
               <Link
                 key={p.id}
                 href={`/products/${p.slug}`}
-                className="group bg-white rounded-2xl overflow-hidden transition-all"
+                className="group bg-white rounded-2xl overflow-hidden transition-all hover:shadow-sm"
                 style={{ border: '1px solid var(--rule)' }}
               >
                 <div
@@ -572,86 +679,134 @@ export default function DashboardPage() {
                   style={{ background: 'var(--bg)' }}
                 >
                   {p.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={p.image_url}
                       alt={p.name}
-                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                      fill
+                      sizes="(max-width: 768px) 50vw, 224px"
+                      loading="lazy"
+                      className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
                     />
                   ) : (
                     <ProductFallback category={p.category} />
                   )}
-                  {hasSale && discount > 0 && (
-                    <div
-                      className="absolute top-2 left-2 text-white text-[10px] font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: 'var(--terracotta)' }}
-                    >
-                      -{discount}%
-                    </div>
-                  )}
-                  {p.is_subscribable && (
-                    <div
-                      className="absolute top-2 right-2 text-white text-[9px] font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: 'var(--moss)' }}
-                    >
-                      정기배송
-                    </div>
-                  )}
+                  {/* 좌상단 — 할인율 + 정기배송 (frosted glass for 정기) */}
+                  <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
+                    {hasSale && discount > 0 && (
+                      <span
+                        className="font-mono"
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 800,
+                          letterSpacing: '0.04em',
+                          padding: '3px 7px',
+                          borderRadius: 4,
+                          background: 'var(--sale)',
+                          color: 'var(--bg)',
+                        }}
+                      >
+                        −{discount}%
+                      </span>
+                    )}
+                    {p.is_subscribable && (
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 700,
+                          letterSpacing: '0.02em',
+                          padding: '3px 7px',
+                          borderRadius: 4,
+                          background: 'rgba(245,240,230,0.92)',
+                          color: 'var(--moss)',
+                          backdropFilter: 'blur(4px)',
+                          WebkitBackdropFilter: 'blur(4px)',
+                        }}
+                      >
+                        정기배송
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="px-4 py-3.5">
+                {/* 텍스트 패널 — 동일 typography 시스템:
+                    label (mono terracotta) → name (serif ink) → price (serif ink/sale). */}
+                <div className="px-3.5 pt-3 pb-3.5">
                   {p.category && (
-                    <div
-                      className="text-[10px] font-semibold uppercase tracking-[0.15em]"
-                      style={{ color: 'var(--muted)' }}
-                    >
-                      {p.category}
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        aria-hidden
+                        style={{
+                          width: 8,
+                          height: 1,
+                          background: 'var(--terracotta)',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span
+                        className="font-mono"
+                        style={{
+                          fontSize: 8.5,
+                          fontWeight: 700,
+                          letterSpacing: '0.18em',
+                          color: 'var(--terracotta)',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {p.category}
+                      </span>
                     </div>
                   )}
-                  <div
-                    className="mt-1 text-[12px] font-semibold leading-snug line-clamp-2 min-h-[32px]"
-                    style={{ color: 'var(--ink)' }}
+                  <h3
+                    className="font-serif mt-1.5 line-clamp-2"
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: 'var(--ink)',
+                      letterSpacing: '-0.015em',
+                      lineHeight: 1.25,
+                      minHeight: 35,
+                    }}
                   >
                     {p.name}
-                  </div>
-                  {hasSale ? (
-                    <div className="mt-2">
-                      <div className="flex items-baseline gap-1">
-                        <span
-                          className="font-serif text-[16px] font-black"
-                          style={{ color: 'var(--terracotta)' }}
-                        >
-                          {(p.sale_price ?? p.price).toLocaleString()}
-                        </span>
-                        <span
-                          className="text-[10px]"
-                          style={{ color: 'var(--muted)' }}
-                        >
-                          원
-                        </span>
-                      </div>
-                      <div
-                        className="text-[10px] line-through leading-none mt-0.5"
-                        style={{ color: 'var(--muted)' }}
-                      >
-                        {p.price.toLocaleString()}원
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-2 flex items-baseline gap-1">
+                  </h3>
+                  <div className="mt-3 flex items-baseline justify-between gap-2">
+                    <div className="flex items-baseline gap-1">
                       <span
-                        className="font-serif text-[16px] font-black"
-                        style={{ color: 'var(--ink)' }}
+                        className="font-serif"
+                        style={{
+                          fontSize: 19,
+                          fontWeight: 800,
+                          color: hasSale ? 'var(--sale)' : 'var(--ink)',
+                          letterSpacing: '-0.02em',
+                          lineHeight: 1,
+                        }}
                       >
-                        {p.price.toLocaleString()}
+                        {(p.sale_price ?? p.price).toLocaleString()}
                       </span>
                       <span
-                        className="text-[10px]"
-                        style={{ color: 'var(--muted)' }}
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 600,
+                          color: 'var(--muted)',
+                          letterSpacing: '0.02em',
+                        }}
                       >
                         원
                       </span>
                     </div>
-                  )}
+                    {hasSale && (
+                      <span
+                        className="line-through"
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 500,
+                          color: 'var(--muted)',
+                          letterSpacing: '-0.005em',
+                        }}
+                      >
+                        {p.price.toLocaleString()}원
+                      </span>
+                    )}
+                  </div>
                 </div>
               </Link>
             )
@@ -706,7 +861,7 @@ export default function DashboardPage() {
         </Link>
       </section>
 
-      {/* ── 영양 분석 CTA — ink 배경 + gold kicker (에디토리얼 dark panel) ── */}
+      {/* ── 영양 분석 CTA ── */}
       {dogs.length > 0 && (
         <section className="px-5 mb-6">
           <Link href="/dogs" className="block">
@@ -759,8 +914,7 @@ export default function DashboardPage() {
               letterSpacing: '-0.015em',
             }}
           >
-            농장에서{' '}
-            꼬리까지.
+            농장에서 꼬리까지.
           </p>
           <p
             className="text-[11px] mt-2 leading-relaxed"
@@ -772,5 +926,54 @@ export default function DashboardPage() {
         </div>
       </section>
     </main>
+  )
+}
+
+/**
+ * D-N 라벨 렌더. 서버 시각 기준이 KST 와 어긋날 수 있어서 매우 가벼운
+ * 순수 함수로만 계산 — 타임존 드리프트는 ±1일 오차 허용 (배송 라벨 용도).
+ * 하이드레이션 mismatch 가 없도록 서버/클라 모두 같은 Date 연산만 사용.
+ */
+function NextDeliveryLine({
+  nextDate,
+  items,
+}: {
+  nextDate: string
+  items: { product_name: string }[]
+}) {
+  const target = new Date(nextDate)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  target.setHours(0, 0, 0, 0)
+  const diff = Math.round((target.getTime() - today.getTime()) / 86400000)
+  const label =
+    diff === 0 ? '오늘' : diff > 0 ? `D-${diff}` : `${Math.abs(diff)}일 경과`
+  const dateStr = target.toLocaleDateString('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  })
+  return (
+    <>
+      <div className="mt-2.5 flex items-baseline gap-2">
+        <span
+          className="font-serif text-white leading-none"
+          style={{
+            fontSize: 28,
+            fontWeight: 800,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {label}
+        </span>
+        <span className="text-white/70 text-[11px] font-semibold">
+          {dateStr}
+        </span>
+      </div>
+      <div className="mt-2 text-white/80 text-[11px] truncate">
+        {items?.[0]?.product_name}
+        {items?.length > 1 && ` 외 ${items.length - 1}개`}
+      </div>
+    </>
   )
 }

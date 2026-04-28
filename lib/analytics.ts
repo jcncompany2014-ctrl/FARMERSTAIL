@@ -162,6 +162,93 @@ export function trackPurchase({
 }
 
 export function trackSignUp(method: 'email' | 'kakao') {
-  safeGtag('event', 'sign_up', { method })
+  // First-touch attribution — 가입 시점에 가장 처음 도달했던 UTM 출처를
+  // 함께 보낸다. GA4 는 세션 단위로 UTM 을 자동 캡처하지만, "사용자가 어제
+  // 광고 보고 → 오늘 직접 방문 → 가입" 같은 cross-session 코호트는 우리가
+  // 따로 잡아야 한다. localStorage 기반 first-touch 가 그 갭을 채움.
+  const ft = getFirstTouch()
+  const gtagParams: Record<string, string | null> = { method }
+  if (ft?.source) {
+    gtagParams.first_touch_source = ft.source
+    gtagParams.first_touch_medium = ft.medium ?? null
+    gtagParams.first_touch_campaign = ft.campaign ?? null
+  }
+  safeGtag('event', 'sign_up', gtagParams)
   safeFbq('track', 'CompleteRegistration', { method })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// First-touch attribution
+// ─────────────────────────────────────────────────────────────────────────────
+
+const FIRST_TOUCH_KEY = 'ft_first_touch'
+const FIRST_TOUCH_TTL_MS = 30 * 24 * 60 * 60 * 1000 // 30일 — 광고 클릭 후 가입까지 윈도우.
+
+export type FirstTouch = {
+  source: string
+  medium: string | null
+  campaign: string | null
+  /** ISO timestamp 첫 캡처 시각. TTL 판정용. */
+  ts: string
+}
+
+/**
+ * 현재 페이지 URL 의 utm_* 파라미터를 읽어 first-touch 로 기록.
+ * **이미 기록된 first-touch 가 있으면 덮어쓰지 않음** — 첫 도달 시점의 출처가
+ * 우선. 30일 지난 기록은 만료로 보고 새로 캡처. UTM 이 없는 방문은 무시 (빈
+ * 레코드 저장 X).
+ *
+ * `instrumentation-client.ts` 가 모든 client 라우트 마운트 직후 호출 권장.
+ */
+export function captureFirstTouchFromUrl(): void {
+  if (typeof window === 'undefined') return
+  let raw: string | null = null
+  try {
+    raw = window.localStorage.getItem(FIRST_TOUCH_KEY)
+  } catch {
+    return
+  }
+  // 이미 유효한 기록 있으면 그대로 둠.
+  if (raw) {
+    try {
+      const existing = JSON.parse(raw) as FirstTouch
+      if (Date.now() - new Date(existing.ts).getTime() < FIRST_TOUCH_TTL_MS) {
+        return
+      }
+    } catch {
+      /* 파싱 실패하면 새로 캡처 시도 */
+    }
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  const source = params.get('utm_source')?.trim()
+  if (!source) return // UTM 없으면 저장 안 함 — direct/organic 은 빈 레코드 만들지 않는다.
+
+  const data: FirstTouch = {
+    source: source.slice(0, 64),
+    medium: params.get('utm_medium')?.trim().slice(0, 64) ?? null,
+    campaign: params.get('utm_campaign')?.trim().slice(0, 96) ?? null,
+    ts: new Date().toISOString(),
+  }
+  try {
+    window.localStorage.setItem(FIRST_TOUCH_KEY, JSON.stringify(data))
+  } catch {
+    /* Safari Private 모드 등 — 무시 */
+  }
+}
+
+/** 현재 first-touch 레코드 (만료 X). 없거나 만료됐으면 null. */
+export function getFirstTouch(): FirstTouch | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(FIRST_TOUCH_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as FirstTouch
+    if (Date.now() - new Date(parsed.ts).getTime() > FIRST_TOUCH_TTL_MS) {
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
 }

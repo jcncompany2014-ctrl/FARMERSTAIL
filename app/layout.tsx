@@ -12,11 +12,13 @@ import "./globals.css";
 import "@/lib/forms/zod-ko";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import AnalyticsScripts from "@/components/AnalyticsScripts";
+import { KakaoInitScript } from "@/components/ShareButton";
 import OnboardingGate from "@/components/OnboardingGate";
 import CookieConsent from "@/components/CookieConsent";
 import ConsentBootstrap from "@/components/ConsentBootstrap";
 import JsonLd from "@/components/JsonLd";
 import WebVitalsReporter from "@/components/WebVitalsReporter";
+import AppContextCookieSync from "@/components/AppContextCookieSync";
 import {
   buildOrganizationJsonLd,
   buildWebSiteJsonLd,
@@ -160,10 +162,8 @@ export const viewport: Viewport = {
   // theme-color 는 모바일 브라우저의 주소바/PWA 헤더 배경에 쓰인다. 라이트에선
   // 시그니처 terracotta, 다크에선 iOS 상태바 아이콘(흰색)과 겹치지 않도록
   // --bg 다크 값(#171310)로 연속시킨다.
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#A0452E" },
-    { media: "(prefers-color-scheme: dark)", color: "#171310" },
-  ],
+  // 다크 자동 트리거 비활성 — 라이트 톤 단일.
+  themeColor: "#A0452E",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -178,8 +178,48 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
+      // data-scroll-behavior="smooth" — Next 16 requirement. globals.css 의
+      // `html { scroll-behavior: smooth }` (앵커 이동용) 은 라우트 전환 시
+      // 이전 스크롤 위치에서 새 페이지 top 까지 부드럽게 스크롤되는 어색한
+      // 애니메이션을 유발한다. 이 속성을 달면 Next 가 route transition 동안만
+      // 일시적으로 smooth 를 끄고, 같은 페이지 내 앵커 이동에서는 유지해 준다.
+      data-scroll-behavior="smooth"
       className={`h-full antialiased ${pretendard.variable} ${notoSerifKR.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable}`}
     >
+      <head>
+        {/*
+          Preconnect / dns-prefetch — TCP/TLS 핸드셰이크를 HTML 파싱 단계와
+          병렬화. 처음 이미지/스크립트 fetch 까지 걸리는 시간을 ~100-200ms
+          단축. 브라우저별 동시 preconnect 한도가 있으니 핵심 도메인만:
+
+          1) Supabase Storage — 모든 상품/블로그/이벤트 이미지 호스팅. PDP 와
+             /products 의 LCP 직격이라 1순위.
+          2) Google Tag Manager — GA4 스크립트 진입점. Consent default=denied
+             지만 스크립트 자체는 일찍 받아야 동의 시 즉시 fire 가능.
+          3) Meta Pixel - 동일 이유.
+
+          dns-prefetch 는 preconnect 의 fallback (Safari 일부 버전).
+        */}
+        <link
+          rel="preconnect"
+          href="https://adynmnrzffidoilnxutg.supabase.co"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="dns-prefetch"
+          href="https://adynmnrzffidoilnxutg.supabase.co"
+        />
+        <link
+          rel="preconnect"
+          href="https://www.googletagmanager.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preconnect"
+          href="https://connect.facebook.net"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         {/* Toast provider — 앱 전체에서 useToast() 가능. viewport는 하단 중앙 */}
         <ToastProvider>
@@ -187,6 +227,12 @@ export default function RootLayout({
         </ToastProvider>
         <ServiceWorkerRegister />
         <AnalyticsScripts />
+        {/* 카카오톡 공유 SDK — NEXT_PUBLIC_KAKAO_JS_KEY 가 있을 때만 활성화 */}
+        <KakaoInitScript />
+        {/* App / Web context 쿠키 동기화 — middleware 가 ft_app 쿠키로 앱 전용
+            라우트 (/dashboard, /dogs/* 등) 진입을 분기. PWA standalone /
+            Capacitor 네이티브 감지 시 쿠키 자동 set, 웹 사용자에겐 unset. */}
+        <AppContextCookieSync />
         {/* Core Web Vitals beacon — Sentry 로 poor LCP/INP/CLS 알림 전송 */}
         <WebVitalsReporter />
         {/* 이미 저장된 쿠키 동의를 마운트 즉시 tracker 에 반영 */}

@@ -194,7 +194,7 @@ export default function NotificationSettingsClient({
         >
           ← 마이페이지
         </Link>
-        <span className="kicker mt-3 inline-block">Notifications · 알림 설정</span>
+        <span className="kicker mt-3 block">Notifications · 알림 설정</span>
         <h1
           className="font-serif mt-1.5"
           style={{

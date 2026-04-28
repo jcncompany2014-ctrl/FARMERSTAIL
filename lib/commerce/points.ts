@@ -1,22 +1,13 @@
 /**
  * Farmer's Tail — 포인트 ledger 헬퍼.
  *
- * 현재 구조: `point_ledger` 테이블에 append-only 로그. 각 row는 {delta,
+ * 구조: `point_ledger` 테이블에 append-only 로그. 각 row는 {delta,
  * balance_after, reason, reference_*}. 최신 row의 balance_after가 현재 잔액.
  *
- * 이 패턴은 단순하지만 **동시성 위험**이 있다. 두 요청이 동시에 최신 balance를
- * 읽으면 같은 balance_after를 계산해서 두 row를 insert할 수 있다. D2C 규모와
- * user-scoped 사용 패턴(한 유저가 동시 결제/환불 요청을 보내는 경우가 거의 없음)
- * 에서는 사실상 발생 확률이 낮지만, 이상적으로는 Postgres 함수로 SELECT + INSERT
- * 를 트랜잭션으로 감싸는 RPC 마이그레이션으로 이관해야 한다. 이 파일은 그때까지
- * 의 중간 정류장 — 최소한 모든 호출처가 **같은 읽기-쓰기 패턴** 을 공유하도록.
- *
- * 미래 작업 (out of scope):
- *   - `CREATE FUNCTION apply_point_delta(uuid, int, text, text, uuid)` RPC 추가.
- *   - 이 파일의 appendLedger를 RPC 호출로 교체.
- *   - point_ledger에 (user_id, reference_id, reference_type) unique
- *     partial index를 걸어 "같은 주문에 대한 같은 종류 적립이 두 번" 일어나는
- *     멱등성 버그를 방어.
+ * 동시성 안전: `apply_point_delta` Postgres RPC (migration
+ * 20260425000000) 를 통해 사용자별 advisory lock + 단일 트랜잭션 안에서 처리.
+ * 같은 reference (예: 같은 주문) 에 대한 중복 적립은 partial unique index 로
+ * DB 레벨에서 차단되며, 함수가 `already_applied` 메시지로 멱등 응답.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -59,29 +50,40 @@ export async function getCurrentBalance(
 }
 
 /**
- * ledger에 항목을 추가하고 balance_after를 자동 계산. 성공 시 새 잔액 반환.
+ * ledger 에 항목을 추가하고 balance_after 를 자동 계산. 성공 시 새 잔액 반환.
  *
- * 포인트가 음수로 떨어지지는 않도록 방어 — delta가 음수이고 현재 잔액보다 크면
- * 호출처가 보통 미리 막지만, 여기서도 최종 방어선으로 보정하지는 않고 **그대로
- * 음수 balance_after 를 기록** 한다. 음수 잔액이 나왔다는 것 자체가 버그
- * 신호이므로 조용히 보정하면 debug가 어렵다. 호출처가 사전 차단하는 게 정답.
+ * 내부적으로 `apply_point_delta` RPC 호출. RPC 안에서:
+ *   1) 사용자별 advisory lock 획득 (동시성 차단)
+ *   2) 최신 잔액 SELECT
+ *   3) prev + delta 계산 — 음수면 거부
+ *   4) INSERT (멱등성 unique 제약 위반시 already_applied 로 ok)
+ *
+ * 호출처는 RPC 의 결과를 그대로 반환받음 — 기존 호출 시그니처 호환.
  */
 export async function appendLedger(
   supabase: SupabaseClient,
   input: AppendLedgerInput,
 ): Promise<{ ok: true; balanceAfter: number } | { ok: false; reason: string }> {
-  const prev = await getCurrentBalance(supabase, input.userId)
-  const next = prev + input.delta
-  const { error } = await supabase.from('point_ledger').insert({
-    user_id: input.userId,
-    delta: input.delta,
-    balance_after: next,
-    reason: input.reason,
-    reference_type: input.referenceType,
-    reference_id: input.referenceId,
+  const { data, error } = await supabase.rpc('apply_point_delta', {
+    p_user_id: input.userId,
+    p_delta: input.delta,
+    p_reason: input.reason,
+    p_reference_type: input.referenceType,
+    p_reference_id: input.referenceId,
   })
+
   if (error) return { ok: false, reason: error.message }
-  return { ok: true, balanceAfter: next }
+
+  // RPC 는 TABLE(balance_after INT, ok BOOLEAN, message TEXT) 반환.
+  // PostgREST 는 단일행 TABLE 도 array 로 직렬화 — 첫 row 추출.
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row) return { ok: false, reason: 'rpc_returned_no_row' }
+
+  if (row.ok === false) {
+    return { ok: false, reason: row.message ?? '포인트 처리에 실패했어요' }
+  }
+
+  return { ok: true, balanceAfter: row.balance_after }
 }
 
 /**

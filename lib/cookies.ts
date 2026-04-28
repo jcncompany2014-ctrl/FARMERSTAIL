@@ -21,7 +21,11 @@
  */
 
 export const COOKIE_POLICY_VERSION = 'v1'
-const STORAGE_KEY = 'ft_cookie_consent'
+// export 이유: CookieConsent.tsx 의 useSyncExternalStore getSnapshot 이
+// raw 문자열 비교로 스냅샷을 메모이즈하는데 key 가 어긋나면 조용히 무한루프.
+// 하드코딩하는 것보다 SSOT 를 공유하는 게 안전.
+export const COOKIE_STORAGE_KEY = 'ft_cookie_consent'
+const STORAGE_KEY = COOKIE_STORAGE_KEY
 
 export type CookieConsent = {
   necessary: true

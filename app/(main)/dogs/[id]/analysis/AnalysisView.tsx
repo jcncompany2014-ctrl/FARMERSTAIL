@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getAAFCORanges, stageFromKR, type MacroRange } from '@/lib/nutrition'
+import StructuredAnalysis from '@/components/analysis/StructuredAnalysis'
 
 type Analysis = {
   id: string
@@ -47,6 +48,11 @@ type Analysis = {
   supplements: string[]
   commentary: string | null
   created_at: string
+  // v2 추가
+  risk_flags?: string[] | null
+  vet_consult_recommended?: boolean | null
+  next_review_date?: string | null
+  guideline_version?: string | null
 }
 
 type HistoryPoint = {
@@ -565,6 +571,14 @@ export default function AnalysisView({
           </div>
         </section>
       )}
+
+      {/* AI v2 — 구조화 분석 (위험플래그 + 전환플랜 + 출처) */}
+      <StructuredAnalysis
+        analysisId={analysis.id}
+        vetConsultFromCalc={analysis.vet_consult_recommended ?? false}
+        riskFlagsFromCalc={analysis.risk_flags ?? []}
+        nextReviewDate={analysis.next_review_date ?? null}
+      />
 
       {/* CTA */}
       <section className="px-5 mt-5 space-y-2">

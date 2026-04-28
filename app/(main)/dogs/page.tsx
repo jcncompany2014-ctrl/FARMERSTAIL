@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Dog as DogIcon, Plus, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -154,13 +155,14 @@ export default function DogsPage() {
                   href={`/dogs/${dog.id}`}
                   className="flex items-center gap-4 bg-white rounded-2xl border border-rule px-5 py-4 hover:border-text hover:shadow-sm transition-all"
                 >
-                  <div className="w-12 h-12 bg-bg rounded-full overflow-hidden flex items-center justify-center flex-shrink-0">
+                  <div className="relative w-12 h-12 bg-bg rounded-full overflow-hidden flex items-center justify-center flex-shrink-0">
                     {dog.photo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={dog.photo_url}
                         alt={dog.name}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="48px"
+                        className="object-cover"
                       />
                     ) : (
                       <DogIcon
@@ -174,18 +176,34 @@ export default function DogsPage() {
                       className="font-serif truncate"
                       style={{
                         fontSize: 16,
-                        fontWeight: 800,
+                        fontWeight: 700,
                         color: 'var(--ink)',
                         letterSpacing: '-0.015em',
                       }}
                     >
                       {dog.name}
                     </h3>
-                    <div className="flex flex-wrap gap-1 mt-0.5 text-[11px] text-muted">
-                      {dog.breed && <span>{dog.breed}</span>}
+                    {/* meta — mono 9.5 muted, separator는 rule-2 톤 dot.
+                        상품/블로그 카드와 동일한 secondary typography 톤. */}
+                    <div
+                      className="flex flex-wrap items-center gap-x-1.5 mt-1 font-mono"
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: 600,
+                        letterSpacing: '0.04em',
+                        color: 'var(--muted)',
+                      }}
+                    >
+                      {dog.breed && (
+                        <span style={{ textTransform: 'uppercase' }}>
+                          {dog.breed}
+                        </span>
+                      )}
                       {dog.age_value && (
                         <>
-                          <span>·</span>
+                          {dog.breed && (
+                            <span style={{ color: 'var(--rule-2)' }}>·</span>
+                          )}
                           <span>
                             {dog.age_value}
                             {dog.age_unit === 'years' ? '살' : '개월'}
@@ -194,7 +212,7 @@ export default function DogsPage() {
                       )}
                       {dog.weight && (
                         <>
-                          <span>·</span>
+                          <span style={{ color: 'var(--rule-2)' }}>·</span>
                           <span>{dog.weight}kg</span>
                         </>
                       )}

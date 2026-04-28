@@ -7,6 +7,7 @@ import { CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
 import AuthHero from '@/components/auth/AuthHero'
+import { useIsAppContext } from '@/hooks/useIsAppContext'
 
 /**
  * /login — 기존 계정 로그인.
@@ -15,6 +16,30 @@ import AuthHero from '@/components/auth/AuthHero'
  * (--ink, --bg, --terracotta, --muted, --rule, --rule-2, --moss, --sale,
  *  --text) 경유 — 하드코딩 hex 제거.
  */
+
+/**
+ * OAuth callback 에서 보낸 안정 에러 코드를 사용자용 한국어 카피로 변환.
+ * 모르는 코드는 그대로 반환 — fallback (옛 링크 / 외부 직접 호출 등).
+ *
+ * SSOT: app/auth/callback/route.ts 의 코드 목록과 1:1 매핑.
+ */
+function humanizeAuthError(code: string): string {
+  switch (code) {
+    case 'oauth_provider_denied':
+      return '로그인 동의가 취소됐어요. 다시 시도해 주세요.'
+    case 'oauth_provider_error':
+      return '소셜 로그인 제공자에서 문제가 발생했어요. 잠시 후 다시 시도해 주세요.'
+    case 'oauth_missing_code':
+      return '로그인 정보가 누락됐어요. 다시 로그인을 시도해 주세요.'
+    case 'oauth_exchange_failed':
+      return '로그인 세션을 만들지 못했어요. 페이지를 새로고침하고 다시 시도해 주세요.'
+    case 'oauth_unexpected':
+      return '예상치 못한 오류가 발생했어요. 잠시 후 다시 시도해 주세요.'
+    default:
+      // 옛 링크 호환을 위해 raw 메시지를 그대로. 단 너무 길면 잘라서.
+      return code.length > 200 ? code.slice(0, 200) + '…' : code
+  }
+}
 
 export default function LoginPage() {
   return (
@@ -28,6 +53,11 @@ function LoginInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+  // app/web 분리 모델: 로그인 후 행선지가 다르다.
+  //   • App (PWA / Capacitor) → /dashboard (케어 다이어리 home)
+  //   • Web (브라우저)         → /mypage/orders (주문 확인 — 웹 접근 가능 surface)
+  // useIsAppContext 가 SSR 시 null 이라도 OK — handleLogin 은 client 이벤트.
+  const isApp = useIsAppContext()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -40,8 +70,13 @@ function LoginInner() {
   // Derived from the URL. Deriving avoids the react-hooks/set-state-in-effect
   // lint rule and eliminates the flash where the banner renders empty, then
   // populates.
+  //
+  // OAuth callback (app/auth/callback/route.ts) 은 안정 에러 코드를 보낸다 —
+  // 여기서 한국어 카피로 매핑. 알 수 없는 코드는 그대로 노출 (fallback) —
+  // 옛날 링크/외부에서 들어온 직접 호출 케이스 대비.
   const urlErrorParam = searchParams.get('error')
-  const urlError = urlErrorParam ? decodeURIComponent(urlErrorParam) : ''
+  const rawUrlError = urlErrorParam ? decodeURIComponent(urlErrorParam) : ''
+  const urlError = rawUrlError ? humanizeAuthError(rawUrlError) : ''
   const error = formError || urlError
   const justDeleted = searchParams.get('deleted') === '1'
 
@@ -62,20 +97,34 @@ function LoginInner() {
       return
     }
 
-    router.push('/dashboard')
+    // 분기: 앱 사용자는 /dashboard (케어), 웹 사용자는 /mypage/orders (주문 확인).
+    // ?next= 가 명시되어 있으면 그쪽 우선 (예: /checkout 으로 가다가 로그인 통과).
+    const nextParam = searchParams.get('next')
+    const safeNext =
+      nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')
+        ? nextParam
+        : null
+    const destination = safeNext ?? (isApp ? '/dashboard' : '/mypage/orders')
+    router.push(destination)
     router.refresh()
   }
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-center px-6 py-10"
+      className="min-h-screen flex flex-col items-center justify-center px-6 py-10 md:py-16"
       style={{ background: 'var(--bg)' }}
     >
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm md:max-w-md">
+        {/*
+          랜딩 "시작하기" 버튼이 이 페이지로 직접 오기 때문에,
+          카피는 returning user 에만 맞춰선 안 된다 ("다시 오셨군요" 금지).
+          첫 방문자는 바로 아래 "회원가입" 링크로 갈 수 있도록 가이드하고,
+          문구는 재방문/첫방문 모두에 자연스러운 중립 톤으로 둔다.
+        */}
         <AuthHero
-          kicker="Welcome Back · 다시 만나요"
-          title={<>다시 오셨군요</>}
-          subtitle="계정으로 로그인하고 이어서 진행해 주세요."
+          kicker="Sign In · 로그인"
+          title={<>이메일로 로그인</>}
+          subtitle="계정이 있다면 로그인하고, 처음이라면 아래에서 가입해 주세요."
         />
 
         {/* 탈퇴 완료 안내 — /api/account/delete 후 router.replace('/login?deleted=1') */}
@@ -112,6 +161,28 @@ function LoginInner() {
             </div>
           </div>
         )}
+
+        {/*
+          카카오 로그인 — 프라이머리 위치로 승격. signup 과 동일 원칙:
+          한국 유저는 카카오로 훨씬 빠르게 로그인하므로 이메일 폼 위로
+          올려 단축 경로로 둔다. 이메일은 카카오를 안 쓰는 유저를 위한
+          fallback.
+        */}
+        <div className="mb-5">
+          <KakaoLoginButton variant="login" />
+        </div>
+
+        {/* "또는 이메일로" 디바이더 */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
+          <span
+            className="kicker"
+            style={{ color: 'var(--muted)', fontSize: 9 }}
+          >
+            Or Email · 이메일로 로그인
+          </span>
+          <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
+        </div>
 
         {/* 폼 — 흰 카드 대신 종이 톤 지면 위에 직접. */}
         <form onSubmit={handleLogin} className="space-y-4">
@@ -217,18 +288,8 @@ function LoginInner() {
           </button>
         </form>
 
-        {/* "또는" 디바이더 */}
-        <div className="flex items-center gap-3 my-6">
-          <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
-          <span className="kicker" style={{ color: 'var(--muted)' }}>
-            Or
-          </span>
-          <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
-        </div>
-
-        <KakaoLoginButton variant="login" />
-
-        {/* 하단 링크 */}
+        {/* 하단 링크 — 카카오 블록은 상단으로 승격됐으므로 여기엔
+            회원가입 유도 링크만 남는다. */}
         <div
           className="text-center mt-8 text-[12.5px]"
           style={{ color: 'var(--muted)' }}

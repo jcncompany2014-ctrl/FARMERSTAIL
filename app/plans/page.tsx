@@ -394,14 +394,12 @@ export default function PlansPage() {
       <section style={{ padding: '28px 20px 40px' }}>
         <Kicker>Subscribe · 정기배송</Kicker>
         <h1
-          className="font-serif"
+          className="font-serif text-[28px] md:text-[44px] lg:text-[52px] mt-3.5 md:mt-5"
           style={{
-            fontSize: 28,
-            lineHeight: 1.15,
+            lineHeight: 1.1,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
-            marginTop: 14,
+            letterSpacing: '-0.025em',
           }}
         >
           매번 고민하지 않고,
@@ -409,11 +407,10 @@ export default function PlansPage() {
           한결같이 좋은 식단.
         </h1>
         <p
+          className="text-[14px] md:text-[16px] mt-4 md:mt-5"
           style={{
-            fontSize: 14,
-            lineHeight: 1.65,
+            lineHeight: 1.7,
             color: 'var(--text)',
-            marginTop: 18,
           }}
         >
           정기배송은 반려견에게 가장 중요한 두 가지 — &lsquo;일관된 영양&rsquo;과
@@ -435,10 +432,9 @@ export default function PlansPage() {
       <section style={{ padding: '36px 20px 0' }}>
         <SectionNo n="01" label="Why Subscribe" />
         <h2
-          className="font-serif"
+          className="font-serif text-[22px] md:text-[34px] lg:text-[40px]"
           style={{
-            fontSize: 22,
-            lineHeight: 1.2,
+            lineHeight: 1.15,
             fontWeight: 800,
             color: 'var(--ink)',
             letterSpacing: '-0.02em',
@@ -534,10 +530,9 @@ export default function PlansPage() {
       <section style={{ padding: '48px 20px 0' }}>
         <SectionNo n="02" label="Choose Your Cadence" />
         <h2
-          className="font-serif"
+          className="font-serif text-[22px] md:text-[34px] lg:text-[40px]"
           style={{
-            fontSize: 22,
-            lineHeight: 1.2,
+            lineHeight: 1.15,
             fontWeight: 800,
             color: 'var(--ink)',
             letterSpacing: '-0.02em',
@@ -582,10 +577,9 @@ export default function PlansPage() {
       <section style={{ padding: '48px 20px 0' }}>
         <SectionNo n="03" label="How It Works" />
         <h2
-          className="font-serif"
+          className="font-serif text-[22px] md:text-[34px] lg:text-[40px]"
           style={{
-            fontSize: 22,
-            lineHeight: 1.2,
+            lineHeight: 1.15,
             fontWeight: 800,
             color: 'var(--ink)',
             letterSpacing: '-0.02em',
@@ -644,10 +638,9 @@ export default function PlansPage() {
       <section style={{ padding: '48px 20px 0' }}>
         <SectionNo n="04" label="FAQ" />
         <h2
-          className="font-serif"
+          className="font-serif text-[22px] md:text-[34px] lg:text-[40px]"
           style={{
-            fontSize: 22,
-            lineHeight: 1.2,
+            lineHeight: 1.15,
             fontWeight: 800,
             color: 'var(--ink)',
             letterSpacing: '-0.02em',

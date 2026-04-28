@@ -29,21 +29,20 @@ export default function LegalDocument({
 }) {
   return (
     <>
-      <section className="px-5 pt-8 pb-2 text-center">
+      <section className="px-5 md:px-6 pt-8 md:pt-16 pb-2 md:pb-6 text-center">
         <span className="kicker">{eyebrow}</span>
         <h1
-          className="font-serif mt-3 leading-tight"
+          className="font-serif mt-3 md:mt-5 leading-tight text-[26px] md:text-[44px] lg:text-[52px]"
           style={{
-            fontSize: 26,
             fontWeight: 900,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.025em',
           }}
         >
           {title}
         </h1>
         <div
-          className="mt-2 text-[11px] font-mono"
+          className="mt-2 md:mt-4 text-[11px] md:text-[12.5px] font-mono"
           style={{
             color: 'var(--muted)',
             letterSpacing: '0.08em',
@@ -54,8 +53,8 @@ export default function LegalDocument({
       </section>
 
       {summary && (
-        <section className="px-5 mt-5">
-          <div className="flex items-center gap-2 mb-3">
+        <section className="px-5 md:px-6 mt-5 md:mt-8">
+          <div className="flex items-center gap-2 mb-3 md:mb-4">
             <span
               className="kicker"
               style={{ color: 'var(--moss)' }}
@@ -68,7 +67,7 @@ export default function LegalDocument({
             />
           </div>
           <div
-            className="rounded-2xl px-5 py-4"
+            className="rounded-2xl px-5 py-4 md:px-7 md:py-6"
             style={{
               background:
                 'color-mix(in srgb, var(--moss) 8%, transparent)',
@@ -77,7 +76,7 @@ export default function LegalDocument({
             }}
           >
             <div
-              className="text-[11.5px] leading-relaxed"
+              className="text-[11.5px] md:text-[14px] leading-relaxed"
               style={{ color: 'var(--text)' }}
             >
               {summary}
@@ -86,8 +85,8 @@ export default function LegalDocument({
         </section>
       )}
 
-      <section className="px-5 mt-5 pb-10">
-        <div className="flex items-center gap-2 mb-3">
+      <section className="px-5 md:px-6 mt-5 md:mt-8 pb-10 md:pb-16">
+        <div className="flex items-center gap-2 mb-3 md:mb-4">
           <span className="kicker kicker-muted">
             Document · 전문
           </span>
@@ -97,7 +96,7 @@ export default function LegalDocument({
           />
         </div>
         <article
-          className="rounded-2xl px-5 py-5 text-[12px] leading-[1.75]"
+          className="rounded-2xl px-5 py-5 md:px-8 md:py-8 text-[12px] md:text-[14px] leading-[1.75]"
           style={{
             background: 'var(--bg-2)',
             boxShadow: 'inset 0 0 0 1px var(--rule)',
@@ -122,19 +121,18 @@ export function Article({
   children: ReactNode
 }) {
   return (
-    <section className="mt-6 first:mt-0">
+    <section className="mt-6 md:mt-8 first:mt-0">
       <h2
-        className="font-serif text-[14px] font-black"
+        className="font-serif text-[14px] md:text-[18px] font-black"
         style={{
           color: 'var(--ink)',
-          letterSpacing: '-0.01em',
+          letterSpacing: '-0.015em',
         }}
       >
         <span
-          className="font-mono mr-1.5"
+          className="font-mono mr-1.5 md:mr-2 text-[11px] md:text-[13px]"
           style={{
             color: 'var(--terracotta)',
-            fontSize: 11,
             letterSpacing: '0.12em',
             fontWeight: 700,
           }}
@@ -144,7 +142,7 @@ export function Article({
         ({title})
       </h2>
       <div
-        className="mt-2 text-[12px] leading-[1.75] space-y-1.5"
+        className="mt-2 md:mt-3 text-[12px] md:text-[14px] leading-[1.75] space-y-1.5 md:space-y-2"
         style={{ color: 'var(--text)' }}
       >
         {children}
@@ -162,18 +160,18 @@ export function Section({
   children: ReactNode
 }) {
   return (
-    <section className="mt-6 first:mt-0">
+    <section className="mt-6 md:mt-8 first:mt-0">
       <h2
-        className="font-serif text-[14px] font-black"
+        className="font-serif text-[14px] md:text-[18px] font-black"
         style={{
           color: 'var(--ink)',
-          letterSpacing: '-0.01em',
+          letterSpacing: '-0.015em',
         }}
       >
         {title}
       </h2>
       <div
-        className="mt-2 text-[12px] leading-[1.75] space-y-1.5"
+        className="mt-2 md:mt-3 text-[12px] md:text-[14px] leading-[1.75] space-y-1.5 md:space-y-2"
         style={{ color: 'var(--text)' }}
       >
         {children}
@@ -186,7 +184,7 @@ export function Section({
 export function OL({ children }: { children: ReactNode }) {
   return (
     <ol
-      className="list-decimal pl-5 space-y-1 text-[12px]"
+      className="list-decimal pl-5 md:pl-6 space-y-1 md:space-y-1.5 text-[12px] md:text-[14px]"
       style={{ color: 'var(--text)' }}
     >
       {children}
@@ -198,7 +196,7 @@ export function OL({ children }: { children: ReactNode }) {
 export function UL({ children }: { children: ReactNode }) {
   return (
     <ul
-      className="list-disc pl-5 space-y-1 text-[12px]"
+      className="list-disc pl-5 md:pl-6 space-y-1 md:space-y-1.5 text-[12px] md:text-[14px]"
       style={{ color: 'var(--text)' }}
     >
       {children}

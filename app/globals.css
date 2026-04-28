@@ -13,7 +13,12 @@
   /* New palette — matches Claude Design handoff */
   --bg: #F5F0E6;
   --bg-2: #EFE8D9;
-  --ink: #1E1A14;           /* signature: Ink Oil */
+  --ink: #2E1F14;           /* signature: Mahogany — 진한 고동색.
+                               이전엔 #1E1A14 (거의 검정) 이었는데 단색 배경
+                               (CTA 버튼 / brand 패널) 에 쓰이면 그냥 검정으로
+                               읽혀서 갈색빛을 더 살림. cream 위 대비 14:1 (AAA).
+                               --text(#3D2B1F) 보다 한 단계 진해서 ink/text
+                               hierarchy 도 유지. */
   --text: #3D2B1F;
   --muted: #8A7668;
   --rule: #EDE6D8;
@@ -54,31 +59,259 @@
      어두운 배경 위에서 종이 노이즈가 사라진다.
    ========================================================================= */
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --background: #171310;
-    --foreground: #E8DFCB;
+/*
+ * Dark mode auto-trigger disabled (사용자 요청 — 임시).
+ * OS 의 prefers-color-scheme: dark 가 켜져 있어도 라이트 톤 유지.
+ * `html[data-theme="dark"]` 는 아래에 그대로 살아 있으므로 추후 토글 UI
+ * 도입 시 다시 활성화 가능.
+ *
+ * @media (prefers-color-scheme: dark) {
+ *   :root:not([data-theme="light"]) { ...dark vars... }
+ * }
+ */
 
-    --bg: #171310;
-    --bg-2: #1F1A14;
-    --ink: #F5F0E6;                 /* flip: 이제 light accent/strong text */
-    --text: #E8DFCB;
-    --muted: #9C8A78;               /* 약간 더 밝게 — 대비 확보 */
-    --rule: #2A2319;
-    --rule-2: #3D3428;
-    --terracotta: #C4664A;          /* +lightness for AA on dark bg */
-    --moss: #8FA452;
-    --gold: #E5CC8A;
-    --sale: #D65448;
+/* =========================================================================
+   Chrome-aware sticky CTAs
+   ---------------------------------------------------------------------------
+   웹 (WebChrome) 에는 하단 탭바가 없고, 앱 (AppChrome) 에는 5-tab nav 가
+   `position: fixed; bottom: 0; height: ~72px + safe-area`.
 
-    --shadow-ink: 0, 0, 0;          /* 이미 어두운 바탕 — 그림자는 순검 */
-    --scrim: rgba(0, 0, 0, 0.60);
-    --grain-blend: screen;          /* 어두운 바탕 위에선 노이즈가 "빛" 로 */
-    --fiber-blend: screen;
-    --grain-opacity: 0.06;          /* screen 은 더 튀므로 약하게 */
+   페이지 단의 모바일 sticky CTA (`.ft-sticky-cta-bottom`) 가 web 에선 viewport
+   끝까지 붙고, app 에선 탭 네비 위에 자연스럽게 떠야 한다.
 
-    color-scheme: dark;
+   AppChrome 의 wrapper 에 `data-ft-chrome="app"` 을 박고, CSS 로 sticky 위치만
+   분기. JS 분기 / props 전달 없이 깔끔.
+   ========================================================================= */
+.ft-sticky-cta-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+[data-ft-chrome="app"] .ft-sticky-cta-bottom {
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  padding-bottom: 0;
+}
+
+/* =========================================================================
+   Markdown body (.ft-md)
+   ---------------------------------------------------------------------------
+   admin 이 작성한 블로그 본문 / 다른 long-form 콘텐츠를 lib/markdown.ts 가
+   HTML 로 변환한 결과물. tailwind typography 플러그인 없이 최소한의 editorial
+   타이포로.
+   ========================================================================= */
+.ft-md > * + * { margin-top: 1.1em; }
+.ft-md h1 { font-family: var(--font-serif), serif; font-weight: 900; font-size: 1.6em; letter-spacing: -0.02em; line-height: 1.2; margin-top: 1.6em; color: var(--ink); }
+.ft-md h2 { font-family: var(--font-serif), serif; font-weight: 800; font-size: 1.35em; letter-spacing: -0.018em; line-height: 1.25; margin-top: 1.5em; color: var(--ink); }
+.ft-md h3 { font-family: var(--font-serif), serif; font-weight: 700; font-size: 1.15em; letter-spacing: -0.015em; margin-top: 1.4em; color: var(--ink); }
+.ft-md h4, .ft-md h5, .ft-md h6 { font-weight: 700; color: var(--ink); margin-top: 1.3em; }
+.ft-md p { line-height: 1.85; }
+.ft-md a { color: var(--terracotta); text-decoration: underline; text-underline-offset: 2px; font-weight: 600; }
+.ft-md a:hover { color: #8A3822; }
+.ft-md strong { font-weight: 700; color: var(--ink); }
+.ft-md em { font-style: italic; }
+.ft-md blockquote {
+  border-left: 3px solid var(--terracotta);
+  padding-left: 1em;
+  color: var(--muted);
+  font-style: italic;
+}
+.ft-md ul, .ft-md ol { padding-left: 1.4em; line-height: 1.75; }
+.ft-md ul { list-style: disc; }
+.ft-md ol { list-style: decimal; }
+.ft-md li { margin-top: 0.4em; }
+.ft-md hr { border: none; border-top: 1px solid var(--rule-2); margin: 2em 0; }
+.ft-md code {
+  background: rgba(160, 69, 46, 0.08);
+  color: var(--terracotta);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+.ft-md pre {
+  background: var(--bg-2);
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+.ft-md pre code { background: none; color: var(--ink); padding: 0; }
+.ft-md img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1.5em 0;
+  display: block;
+}
+
+/* =========================================================================
+   Sticky header heights — chrome-aware offset for nested sticky elements
+   ---------------------------------------------------------------------------
+   PDP tab nav 같은 nested sticky 가 chrome 의 sticky header 바로 아래 붙어야
+   한다. WebChrome 의 sticky 부분 높이:
+     • Mobile: h-16 main + search wrapper + chip nav ≈ 160px
+     • Desktop: Tier 1 promo (h-9) 는 비-sticky 라 스크롤 시 사라짐.
+       Sticky 는 h-20 main + h-12 nav = 128px 만 남음.
+   AppChrome 은 mobile/desktop 동일 h-14 = 56px sticky.
+   ========================================================================= */
+:root {
+  --ft-chrome-h: 160px; /* WebChrome mobile */
+}
+@media (min-width: 768px) {
+  :root {
+    --ft-chrome-h: 128px; /* WebChrome desktop sticky (promo bar excluded) */
   }
+}
+[data-ft-chrome="app"] {
+  --ft-chrome-h: 56px;
+}
+@media (min-width: 768px) {
+  [data-ft-chrome="app"] {
+    --ft-chrome-h: 56px;
+  }
+}
+.ft-sticky-under-chrome {
+  position: sticky;
+  top: var(--ft-chrome-h);
+}
+.ft-anchor-under-chrome {
+  /* anchor 스크롤 정지 위치 — chrome + tab nav (48) + 8 여백 */
+  scroll-margin-top: calc(var(--ft-chrome-h) + 56px);
+}
+
+/* PDP 좌측 갤러리 + 우측 정보 카드 — 데스크톱에서 chrome 바로 아래 sticky.
+   모바일은 sticky 적용 안 함 (단일 column 흐름이라 불필요).
+   앱 컨텍스트 (phone-frame 448px) 에선 sticky 적용 안 함 — 단일 흐름. */
+@media (min-width: 768px) {
+  .ft-sticky-product-col {
+    position: sticky;
+    top: calc(var(--ft-chrome-h) + 12px);
+  }
+}
+[data-ft-chrome="app"] .ft-sticky-product-col {
+  position: static !important;
+  top: auto !important;
+}
+
+/* =========================================================================
+   App-chrome layout overrides
+   ---------------------------------------------------------------------------
+   Tailwind 의 md:/lg: 는 viewport-based — AppChrome 의 phone-frame 이 폭을
+   448px 로 제한해도 viewport 가 desktop 이면 md:grid-cols-3 같은 데스크톱
+   레이아웃이 발동, 좁은 컬럼 안에 다열 그리드가 깨져서 들어간다.
+
+   여기선 [data-ft-chrome="app"] 하위에 한해서:
+     • product grid → 2-col 고정
+     • PDP / cart / checkout 의 md:flex 2-column → 단일 column
+     • RelatedProducts / RecentlyViewed grid → 2-col 고정
+   으로 override.
+   ========================================================================= */
+[data-ft-chrome="app"] .grid.grid-cols-2.md\:grid-cols-3,
+[data-ft-chrome="app"] .grid.grid-cols-2.md\:grid-cols-3.lg\:grid-cols-4,
+[data-ft-chrome="app"] .grid.grid-cols-2.md\:grid-cols-4,
+[data-ft-chrome="app"] .grid.md\:grid-cols-3.lg\:grid-cols-4,
+[data-ft-chrome="app"] .md\:grid.md\:grid-cols-2,
+[data-ft-chrome="app"] .md\:grid.md\:grid-cols-3,
+[data-ft-chrome="app"] .md\:grid.md\:grid-cols-4,
+[data-ft-chrome="app"] .md\:grid.md\:grid-cols-6 {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+/* PDP / cart / checkout 2-column 레이아웃은 단일 흐름으로 */
+[data-ft-chrome="app"] .md\:flex.md\:gap-8,
+[data-ft-chrome="app"] .md\:flex.md\:gap-10,
+[data-ft-chrome="app"] .md\:flex.md\:max-w-6xl,
+[data-ft-chrome="app"] .md\:grid.md\:grid-cols-\[1fr_360px\] {
+  display: block !important;
+}
+[data-ft-chrome="app"] .md\:w-1\/2,
+[data-ft-chrome="app"] .md\:w-\[55\%\],
+[data-ft-chrome="app"] .md\:w-\[45\%\],
+[data-ft-chrome="app"] .md\:w-\[360px\] {
+  width: 100% !important;
+}
+[data-ft-chrome="app"] .md\:flex-1 {
+  width: 100% !important;
+}
+
+/* AppChrome 의 max-w-md 폭 안에서 max-w 확장 무력화 */
+[data-ft-chrome="app"] .max-w-6xl,
+[data-ft-chrome="app"] .max-w-5xl,
+[data-ft-chrome="app"] .max-w-4xl,
+[data-ft-chrome="app"] .max-w-3xl {
+  max-width: 100% !important;
+}
+
+/* 데스크톱 큰 padding 도 phone-frame 안에선 모바일 padding 유지 */
+[data-ft-chrome="app"] .md\:px-12 { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+[data-ft-chrome="app"] .md\:px-10 { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+[data-ft-chrome="app"] .md\:px-8  { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+[data-ft-chrome="app"] .md\:px-6  { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+
+/* hero / heading 의 데스크톱 큰 폰트 무력화 (앱 phone-frame 에선 너무 큼) */
+[data-ft-chrome="app"] .md\:text-\[64px\],
+[data-ft-chrome="app"] .md\:text-\[80px\],
+[data-ft-chrome="app"] .md\:text-\[96px\],
+[data-ft-chrome="app"] .lg\:text-\[80px\],
+[data-ft-chrome="app"] .lg\:text-\[96px\],
+[data-ft-chrome="app"] .lg\:text-\[120px\] {
+  font-size: inherit !important;
+}
+
+/* SiteFooter — app 컨텍스트에선 가벼운 단일 컬럼 + 사업자 info 접이식만.
+   AppChrome 의 phone-frame max-w-md 안에서 4-col grid 가 squeeze 되지 않게
+   강제 단일 컬럼. */
+[data-ft-chrome="app"] footer .md\:grid {
+  display: block !important;
+}
+[data-ft-chrome="app"] footer .md\:max-w-\[1280px\] {
+  max-width: 100% !important;
+}
+[data-ft-chrome="app"] footer .md\:px-6 { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+[data-ft-chrome="app"] footer .md\:py-12 { padding-top: 1.25rem !important; padding-bottom: 1.25rem !important; }
+[data-ft-chrome="app"] footer .md\:flex-col {
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+}
+/* 데스크톱 전용 표시 항목 (사업자 등록번호 등) — 앱에선 접이식 토글에만 의존 */
+[data-ft-chrome="app"] footer dl.hidden.md\:block {
+  display: none !important;
+}
+[data-ft-chrome="app"] footer .hidden.md\:block,
+[data-ft-chrome="app"] footer .hidden.md\:inline {
+  display: none !important;
+}
+
+/* 5-col grid (e.g. /brand chapter index) — phone-frame 에서 강제 2-col */
+[data-ft-chrome="app"] .md\:grid.md\:grid-cols-5,
+[data-ft-chrome="app"] .md\:grid-cols-5,
+[data-ft-chrome="app"] .grid-cols-2.md\:grid-cols-5 {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+/* CatalogFilterSidebar — app 컨텍스트에선 phone-frame 폭에 sidebar 어색.
+   bottom-sheet 트리거가 mobile only (md:hidden) 라 데스크톱 PWA 에선 필터
+   접근 동선이 사라지긴 하지만, 그건 edge case. 사이드바가 콘텐츠 위에
+   세로로 끼어들어 깨지는 게 더 큰 문제. */
+[data-ft-chrome="app"] aside.hidden.md\:block.w-\[240px\] {
+  display: none !important;
+}
+
+/* /compare 표 — 앱 phone-frame 에서 가로로 못 펼침 → 가로 스크롤 허용 */
+[data-ft-chrome="app"] .ft-compare-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+[data-ft-chrome="app"] .ft-compare-table-wrap > * {
+  min-width: 600px;
+}
+
+/* MiniCartToast — 앱 컨텍스트에선 sticky CTA + 탭 nav 위로 띄움.
+   기본 bottom-24 (96px) 면 sticky CTA (88px+80h) 와 겹침. 168+12=180 이상. */
+[data-ft-chrome="app"] .ft-mini-cart-toast {
+  bottom: calc(180px + env(safe-area-inset-bottom)) !important;
 }
 
 /* 수동 오버라이드 — 위 media 규칙보다 뒤에 나와서 가중치 우위. */
@@ -154,6 +387,23 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   letter-spacing: -0.005em;
+}
+
+/* iOS Safari 의 300ms tap delay 제거 — viewport meta 로 대부분 잡지만 fallback.
+   button/a/role=button 는 기본적으로 manipulation 으로 fine-tune. */
+button,
+a,
+[role="button"],
+[type="button"],
+[type="submit"] {
+  touch-action: manipulation;
+}
+
+/* 모든 인터랙티브 요소는 active 시 즉시 시각 피드백.
+   transition 이 없으면 브라우저가 다음 frame 까지 대기 → laggy 느낌. */
+button,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* In-page anchor nav on the editorial landing: scroll smoothly, and offset
@@ -233,6 +483,22 @@ i,
 .tnum { font-variant-numeric: tabular-nums; }
 
 /* =========================================================================
+   Search highlight (`<mark>` 매치 강조)
+   ---------------------------------------------------------------------------
+   브라우저 기본 mark 스타일은 형광 노랑이라 brand 톤 (cream/terracotta) 과 안
+   어울림. 무채색 톤 위에서도 눈에 잘 띄도록 terracotta tint + bold weight 로
+   재정의. 부모 글자의 family/size/style 은 그대로 상속 받아 lift 만 함.
+   ========================================================================= */
+.ft-highlight {
+  background: rgba(160, 69, 46, 0.16);
+  color: var(--terracotta);
+  font-weight: 700;
+  padding: 0 2px;
+  margin: 0 -1px;
+  border-radius: 2px;
+}
+
+/* =========================================================================
    Signature device (a): paper grain overlay
    SVG turbulence, multiplied onto warm surfaces.
    Apply via `.grain` on a relatively-positioned container.
@@ -272,13 +538,7 @@ html[data-theme="dark"] .fiber::after {
     repeating-linear-gradient(0deg, rgba(245,240,230,0.05) 0 1px, transparent 1px 3px),
     repeating-linear-gradient(90deg, rgba(245,240,230,0.035) 0 1px, transparent 1px 4px);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .fiber::after {
-    background:
-      repeating-linear-gradient(0deg, rgba(245,240,230,0.05) 0 1px, transparent 1px 3px),
-      repeating-linear-gradient(90deg, rgba(245,240,230,0.035) 0 1px, transparent 1px 4px);
-  }
-}
+/* Auto-dark .fiber 변형도 같이 비활성. data-theme="dark" 일 때만 적용됨. */
 
 /* =========================================================================
    Placeholder — striped image frame with mono caption

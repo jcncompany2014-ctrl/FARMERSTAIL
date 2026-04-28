@@ -83,10 +83,23 @@ export default async function AdminOrdersPage({
     query = query.eq('payment_status', 'paid').eq('order_status', status)
   }
 
-  // 검색 (주문번호 or 수령자명)
-  if (q.trim()) {
+  // 검색 — 주문번호 / 수령자명 / 전화번호 3중. 운영팀이 고객 문의 받을 때
+  // 가장 흔한 키 세 가지. PostgREST `or()` 는 (%, _, (, ), \, ,) escape 안
+  // 해주니 직접 처리.
+  //
+  // 전화 검색 한계: stored 형식이 '010-1234-5678' 인데 사용자가 '01012345678'
+  // (하이픈 없이) 입력하면 매치 안 됨. 운영팀 안내: 입력 형식 그대로 저장된
+  // 형식과 맞춰야 함. 정규화는 generated column + index 가 정공이라 schema
+  // 변경이 필요해 별도 작업.
+  const trimmed = q.trim()
+  if (trimmed) {
+    const escaped = trimmed.replace(/[\\%_,()]/g, (m) => `\\${m}`)
     query = query.or(
-      `order_number.ilike.%${q.trim()}%,recipient_name.ilike.%${q.trim()}%`
+      [
+        `order_number.ilike.%${escaped}%`,
+        `recipient_name.ilike.%${escaped}%`,
+        `recipient_phone.ilike.%${escaped}%`,
+      ].join(','),
     )
   }
 
@@ -156,11 +169,13 @@ export default async function AdminOrdersPage({
             <input type="hidden" name="status" value={status} />
           )}
           <input
-            type="text"
+            type="search"
             name="q"
             defaultValue={q}
-            placeholder="주문번호 또는 이름"
-            className="px-3 py-1.5 rounded-full text-xs bg-white border border-rule focus:outline-none focus:border-terracotta w-52"
+            placeholder="주문번호 · 이름 · 전화"
+            inputMode="search"
+            autoComplete="off"
+            className="px-3 py-1.5 rounded-full text-xs bg-white border border-rule focus:outline-none focus:border-terracotta w-56"
           />
           <button
             type="submit"

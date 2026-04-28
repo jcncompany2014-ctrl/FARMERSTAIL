@@ -64,6 +64,8 @@ export default function RestockButton({
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
+      // loading state 정리
+      setLoading(false)
       router.push(
         `/login?next=${encodeURIComponent(
           typeof window !== 'undefined' ? window.location.pathname : '/',

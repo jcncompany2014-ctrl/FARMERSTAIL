@@ -14,9 +14,29 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:install": "playwright install --with-deps chromium",
     "analyze": "ANALYZE=true next build",
-    "analyze:win": "powershell -Command \"$env:ANALYZE='true'; next build\""
+    "analyze:win": "powershell -Command \"$env:ANALYZE='true'; next build\"",
+    "cap:webdir": "node -e \"require('fs').mkdirSync('capacitor-web',{recursive:true});require('fs').writeFileSync('capacitor-web/index.html','<!doctype html><meta charset=\\\"utf-8\\\"><title>Farmer\\u0027s Tail</title>')\"",
+    "cap:add:android": "npm run cap:webdir && npx cap add android",
+    "cap:add:ios": "npm run cap:webdir && npx cap add ios",
+    "cap:sync": "npm run cap:webdir && npx cap sync",
+    "cap:open:android": "npx cap open android",
+    "cap:open:ios": "npx cap open ios",
+    "cap:dev:android": "powershell -Command \"$env:CAPACITOR_SERVER_URL='http://10.0.2.2:3000'; npx cap sync android; npx cap run android\"",
+    "cap:dev:ios": "CAPACITOR_SERVER_URL=http://localhost:3000 npx cap sync ios && npx cap run ios",
+    "cap:assets": "npx @capacitor/assets generate --iconBackgroundColor '#F5F0E6' --iconBackgroundColorDark '#171310' --splashBackgroundColor '#F5F0E6' --splashBackgroundColorDark '#171310'"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/browser": "^8.0.3",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/ios": "^8.3.1",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/push-notifications": "^8.0.3",
+    "@capacitor/share": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@hookform/resolvers": "^5.2.2",
     "@sentry/nextjs": "^10.49.0",
     "@supabase/ssr": "^0.10.2",
@@ -35,6 +55,7 @@
     "rollup": "npm:@rollup/wasm-node@^4.60.2"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@next/bundle-analyzer": "^16.2.3",
     "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4",

@@ -206,22 +206,30 @@ export default function AdminSubscriptionsPage() {
   return (
     <div>
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-black text-text">정기배송 관리</h1>
           <p className="text-sm text-muted mt-1">
             전체 {subs.length}건 · 활성 {subs.filter(s => s.status === 'active').length}건
           </p>
         </div>
-        {upcomingCount > 0 && (
-          <button
-            onClick={handleBulkCreateOrders}
-            disabled={bulkLoading}
-            className="px-4 py-2.5 rounded-xl font-bold text-sm bg-moss text-white border-2 border-ink shadow-[2px_2px_0_#2A2118] hover:-translate-y-0.5 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all disabled:opacity-50"
+        <div className="flex items-center gap-2">
+          <a
+            href="/admin/subscriptions/calendar"
+            className="px-3 py-2 rounded-lg border border-rule text-[12px] font-bold text-ink hover:bg-bg transition inline-flex items-center gap-1.5"
           >
-            {bulkLoading ? '생성 중...' : `📦 일괄 주문 생성 (${upcomingCount}건)`}
-          </button>
-        )}
+            📅 캘린더 뷰
+          </a>
+          {upcomingCount > 0 && (
+            <button
+              onClick={handleBulkCreateOrders}
+              disabled={bulkLoading}
+              className="px-4 py-2.5 rounded-xl font-bold text-sm bg-moss text-white border-2 border-ink shadow-[2px_2px_0_#2A2118] hover:-translate-y-0.5 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all disabled:opacity-50"
+            >
+              {bulkLoading ? '생성 중...' : `📦 일괄 주문 생성 (${upcomingCount}건)`}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 일괄 결과 배너 */}

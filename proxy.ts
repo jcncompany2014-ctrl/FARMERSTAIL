@@ -129,8 +129,109 @@ function findRule(pathname: string, method: string): Rule | undefined {
   return undefined
 }
 
+// =============================================================================
+// 앱 전용 라우트 보호 (Web/App 분리 모델)
+// =============================================================================
+//
+// 본 서비스는 Web (브라우저, 마케팅·판매) 와 App (PWA / Capacitor 네이티브,
+// 강아지 케어 다이어리) 를 분리한다. 일부 라우트는 앱 전용이며 웹 사용자가
+// 직접 URL 입력 / 외부 링크로 진입하면 `/app-required` 다운로드 페이지로
+// 보낸다.
+//
+// 감지: `ft_app=1` 쿠키 — `components/AppContextCookieSync.tsx` 가 client
+// 에서 PWA standalone / Capacitor 네이티브 감지 시 자동 set.
+//
+// 첫 진입은 쿠키가 아직 없을 수 있어 client-side hook 가 한 번 더 검증.
+// 본 proxy 의 redirect 는 명시적으로 ft_app 쿠키가 없는 케이스만 잡음.
+//
+// 라우트 분류는 README / LAUNCH_CHECKLIST 와 SSOT 로 동기화:
+//   • Web/Both:  /, /products, /blog, /events, /about, /business,
+//                /legal/*, /login, /signup, /cart, /checkout,
+//                /mypage/orders/*, /api/*, /admin/*, /auth/*
+//   • App only:  /dashboard, /dogs/*, /welcome,
+//                /mypage/{addresses,subscriptions,reviews,points,coupons,
+//                         wishlist,notifications,consent,delete,referral}/*
+
+const APP_ONLY_PREFIXES: readonly string[] = [
+  '/dashboard',
+  '/dogs',
+  '/welcome',
+  // /mypage 자체는 web 사용자도 진입 시 chrome 분기되지만, /mypage 의
+  // sub-route 중 web 으로 노출 가능한 건 /mypage/orders 뿐. 나머지는 app 전용.
+  '/mypage/addresses',
+  '/mypage/subscriptions',
+  '/mypage/reviews',
+  '/mypage/points',
+  '/mypage/coupons',
+  '/mypage/wishlist',
+  '/mypage/notifications',
+  '/mypage/consent',
+  '/mypage/delete',
+  '/mypage/referral',
+]
+
+/** Web 가 진입 가능한 mypage exception — 정확 매치 (prefix 아님). */
+const MYPAGE_WEB_ALLOWED = new Set([
+  '/mypage/orders',
+])
+function isWebAllowedMypage(pathname: string): boolean {
+  if (MYPAGE_WEB_ALLOWED.has(pathname)) return true
+  // /mypage/orders/[id], /mypage/orders/[id]/track 등 sub-route 도 허용
+  if (pathname.startsWith('/mypage/orders/')) return true
+  return false
+}
+
+function isAppOnlyPath(pathname: string): boolean {
+  return APP_ONLY_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  )
+}
+
 export function proxy(request: NextRequest) {
-  const rule = findRule(request.nextUrl.pathname, request.method)
+  const { pathname } = request.nextUrl
+
+  // 1) 앱 전용 라우트 보호 — rate limit 보다 먼저. 웹 사용자에겐 곧장
+  // /app-required 로 redirect.
+  if (isAppOnlyPath(pathname)) {
+    const appCookie = request.cookies.get('ft_app')?.value
+    if (appCookie !== '1') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/app-required'
+      url.search = `?from=${encodeURIComponent(pathname + request.nextUrl.search)}`
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // 1-a) /mypage 자체 (= 케어 다이어리 hub) — 웹 사용자가 들어오면 web 호환
+  // 페이지 (/mypage/orders) 로 보낸다. 이는 (main) 의 auth-gated AppChrome 이
+  // 웹 컨텍스트에서 발현하지 않게 막아주는 추가 안전망.
+  if (
+    (pathname === '/mypage' || pathname.startsWith('/mypage/')) &&
+    !isWebAllowedMypage(pathname) &&
+    !isAppOnlyPath(pathname) // 위에서 이미 처리됨
+  ) {
+    const appCookie = request.cookies.get('ft_app')?.value
+    if (appCookie !== '1' && pathname === '/mypage') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/mypage/orders'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // 1-b) App 사용자가 marketing 랜딩 ("/") 으로 진입하면 dashboard 로.
+  // 랜딩은 풀와이드 마케팅 페이지라 phone-frame 안에 들어가면 어색하고,
+  // 앱의 정체성 (= 케어 다이어리) 와도 맞지 않다.
+  if (pathname === '/') {
+    const appCookie = request.cookies.get('ft_app')?.value
+    if (appCookie === '1') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // 2) Rate limit — /api/* 만 (RULES 가 정의된 곳).
+  const rule = findRule(pathname, request.method)
   if (!rule) return NextResponse.next()
 
   const ip = ipFromRequest(request)
@@ -160,12 +261,23 @@ export function proxy(request: NextRequest) {
 }
 
 /**
- * 매처. 위 RULES의 path들을 커버하되, 정적 파일/Next 내부 경로는 제외.
+ * 매처. 두 가지 책임:
+ *   1) `/api/*`         — rate-limit RULES 적용
+ *   2) `/dashboard`, `/dogs/*`, `/mypage/*`, `/welcome` — 앱 전용 가드
  *
- * 주의: 매처에서 한 번 걸러도 proxy() 함수 안에서 findRule로 다시 검증하므로,
- * 여기선 "rate limit 대상이 될 수 있는 모든 경로" 상위집합이면 충분.
- * `/api/:path*`만 써도 의미상 동일 — 정적 에셋은 이미 /api/* 에 매칭 안 됨.
+ * 정적 자산 / Next.js 내부 / favicon / icons / fonts 같은 안 막아야 할 경로는
+ * 매처가 1차 필터. proxy() 함수 안에서 isAppOnlyPath / findRule 가 2차 정확
+ * 매치.
  */
 export const config = {
-  matcher: ['/api/:path*'],
+  matcher: [
+    '/',
+    '/api/:path*',
+    '/dashboard/:path*',
+    '/dashboard',
+    '/dogs/:path*',
+    '/dogs',
+    '/welcome',
+    '/mypage/:path*',
+  ],
 }

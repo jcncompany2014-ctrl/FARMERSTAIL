@@ -84,10 +84,10 @@ export default function HeroSlideshow() {
   }
 
   return (
-    <div style={{ padding: '12px 20px 0' }}>
+    <div className="px-5 md:px-6 pt-3 md:pt-5">
       <div
         ref={trackRef}
-        className="no-scrollbar"
+        className="no-scrollbar md:rounded-2xl"
         style={{
           display: 'flex',
           overflowX: 'auto',
@@ -120,21 +120,10 @@ export default function HeroSlideshow() {
             >
               <CornerTicks />
               {/* Top-left serial */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 10,
-                  left: 10,
-                  zIndex: 3,
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  gap: 5,
-                }}
-              >
+              <div className="absolute top-2.5 left-2.5 md:top-5 md:left-5 z-[3] flex items-baseline gap-1 md:gap-2">
                 <span
-                  className="font-serif"
+                  className="font-serif text-[13px] md:text-[18px]"
                   style={{
-                    fontSize: 13,
                     color: 'rgba(61,43,31,0.6)',
                     fontWeight: 500,
                   }}
@@ -142,9 +131,8 @@ export default function HeroSlideshow() {
                   No.
                 </span>
                 <span
-                  className="font-serif"
+                  className="font-serif text-[13px] md:text-[18px]"
                   style={{
-                    fontSize: 13,
                     fontWeight: 800,
                     color: 'rgba(61,43,31,0.8)',
                     letterSpacing: '-0.02em',
@@ -155,16 +143,11 @@ export default function HeroSlideshow() {
               </div>
               {/* Oversized EN label */}
               <div
-                className="font-serif"
+                className="font-serif absolute bottom-2.5 right-3 md:bottom-5 md:right-6 z-[3] text-[22px] md:text-[60px] lg:text-[80px]"
                 style={{
-                  position: 'absolute',
-                  bottom: 10,
-                  right: 12,
-                  zIndex: 3,
-                  fontSize: 22,
                   fontWeight: 800,
                   color: 'rgba(61,43,31,0.18)',
-                  letterSpacing: '-0.03em',
+                  letterSpacing: '-0.04em',
                   lineHeight: 1,
                 }}
               >
@@ -172,13 +155,8 @@ export default function HeroSlideshow() {
               </div>
               {/* Mono caption */}
               <div
-                className="font-mono"
+                className="font-mono absolute bottom-2.5 left-2.5 md:bottom-5 md:left-5 z-[3] text-[8.5px] md:text-[11px]"
                 style={{
-                  position: 'absolute',
-                  bottom: 10,
-                  left: 10,
-                  zIndex: 3,
-                  fontSize: 8.5,
                   letterSpacing: '0.14em',
                   textTransform: 'uppercase',
                   color: 'rgba(61,43,31,0.65)',
@@ -192,20 +170,12 @@ export default function HeroSlideshow() {
       </div>
 
       {/* Caption + progress row */}
-      <div style={{ marginTop: 8 }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'baseline',
-            marginBottom: 6,
-          }}
-        >
+      <div className="mt-2 md:mt-4">
+        <div className="flex justify-between items-baseline mb-1.5 md:mb-2.5">
           <div>
             <span
-              className="font-serif"
+              className="font-serif text-[12px] md:text-[16px]"
               style={{
-                fontSize: 12,
                 fontWeight: 800,
                 color: 'var(--ink)',
                 letterSpacing: '-0.01em',
@@ -214,20 +184,17 @@ export default function HeroSlideshow() {
               {SLIDES[idx].ko}
             </span>
             <span
-              className="font-serif"
+              className="font-serif text-[12px] md:text-[15px] ml-1.5"
               style={{
-                fontSize: 12,
                 color: 'var(--muted)',
-                marginLeft: 6,
               }}
             >
               — {SLIDES[idx].caption}
             </span>
           </div>
           <div
-            className="font-mono"
+            className="font-mono text-[9px] md:text-[11px]"
             style={{
-              fontSize: 9,
               letterSpacing: '0.14em',
               color: 'var(--muted)',
               textTransform: 'uppercase',
@@ -239,20 +206,15 @@ export default function HeroSlideshow() {
         </div>
 
         {/* Segmented progress bar — click to jump */}
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div className="flex gap-1 md:gap-1.5">
           {SLIDES.map((s, i) => (
             <button
               key={s.n}
               aria-label={`Slide ${i + 1}`}
               onClick={() => goTo(i)}
+              className="flex-1 h-[2px] md:h-[3px] p-0 border-0 cursor-pointer transition-colors"
               style={{
-                flex: 1,
-                height: 2,
-                padding: 0,
-                border: 0,
-                cursor: 'pointer',
                 background: i <= idx ? 'var(--ink)' : 'var(--rule-2)',
-                transition: 'background .25s',
               }}
             />
           ))}

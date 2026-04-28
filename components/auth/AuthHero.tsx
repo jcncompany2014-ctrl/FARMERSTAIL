@@ -25,20 +25,22 @@ export default function AuthHero({
   subtitle?: React.ReactNode
 }) {
   return (
-    <div className="text-center mb-8">
-      {/* Landing / onboarding과 동일한 logo.png를 쓴다 —
-          예전처럼 rounded-square PNG 아이콘이 아니라 serif script mark.
-          flex + justify-center 로 항상 컨테이너 중앙에 딱 맞게 놓는다. */}
+    <div className="text-center mb-8 md:mb-10">
+      {/*
+        로고 — landing/onboarding 와 같은 logo.png, brightness(0) 블랙.
+        모바일은 h-9(36px) — 좁은 max-w-sm 컬럼에서 form 과 위계 균형.
+        데스크톱은 h-11(44px) — 페이지 전체 캔버스가 넓어지므로 한 tier 업.
+      */}
       <Link
         href="/"
         aria-label="파머스테일 홈"
-        className="flex justify-center mb-6"
+        className="flex justify-center mb-5 md:mb-6"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo.png"
           alt="Farmer's Tail"
-          className="h-11 w-auto block"
+          className="h-9 md:h-11 w-auto block"
           style={{ filter: 'brightness(0)' }}
         />
       </Link>
@@ -46,14 +48,12 @@ export default function AuthHero({
       <span className="kicker">{kicker}</span>
 
       <h1
-        className="font-serif"
+        className="font-serif mt-2.5 md:mt-3.5 text-[24px] md:text-[34px] lg:text-[40px]"
         style={{
-          fontSize: 24,
-          lineHeight: 1.2,
+          lineHeight: 1.15,
           fontWeight: 800,
           color: 'var(--ink)',
-          letterSpacing: '-0.02em',
-          marginTop: 10,
+          letterSpacing: '-0.025em',
         }}
       >
         {title}
@@ -61,11 +61,10 @@ export default function AuthHero({
 
       {subtitle && (
         <p
+          className="mt-2.5 md:mt-3.5 text-[13px] md:text-[15px]"
           style={{
-            fontSize: 13,
             lineHeight: 1.6,
             color: 'var(--muted)',
-            marginTop: 10,
           }}
         >
           {subtitle}

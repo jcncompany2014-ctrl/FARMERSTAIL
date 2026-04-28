@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Download, Share, Plus, X, Smartphone } from 'lucide-react'
 
 // Chrome fires this before the install banner — we intercept and defer it so
@@ -62,6 +62,76 @@ export default function InstallPrompt() {
     useState<BeforeInstallPromptEvent | null>(null)
   const [visible, setVisible] = useState(false)
   const [iosSheetOpen, setIosSheetOpen] = useState(false)
+  const iosSheetRef = useRef<HTMLDivElement | null>(null)
+
+  // iOS 설치 시트 a11y 보강 — ESC 닫기, body scroll lock, focus trap, focus
+  // restore. 시트가 열릴 때만 effect 가 발동하므로 unmount 시에도 cleanup 안전.
+  useEffect(() => {
+    if (!iosSheetOpen) return
+    const sheet = iosSheetRef.current
+    if (!sheet) return
+
+    // 1) Focus 보존 — 시트 열리기 전 focused 였던 element 를 기억해뒀다가 close
+    //    시 복귀. 키보드 사용자가 "어디로 돌아갈지" 잃지 않게.
+    const prevActive = document.activeElement as HTMLElement | null
+
+    // 2) Body scroll lock — 시트 뒤 페이지가 스크롤되면 모달 환영 깨짐.
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    // 3) 시트 안의 focusable 요소 찾기. visibility/display none 등 무시.
+    function getFocusables(): HTMLElement[] {
+      return Array.from(
+        sheet!.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => !el.hidden && el.offsetParent !== null)
+    }
+
+    // 4) 초기 focus — 첫 focusable (보통 close 버튼) 으로 이동.
+    //    setTimeout 0 — animation 시작 직후 focus 이동이 layout 충돌 안 일으키게.
+    const focusables = getFocusables()
+    if (focusables.length > 0) {
+      window.setTimeout(() => focusables[0].focus(), 0)
+    }
+
+    // 5) 키보드 핸들러 — ESC 닫기 + Tab/Shift+Tab 순환.
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setIosSheetOpen(false)
+        return
+      }
+      if (e.key === 'Tab') {
+        const list = getFocusables()
+        if (list.length === 0) {
+          e.preventDefault()
+          return
+        }
+        const first = list[0]
+        const last = list[list.length - 1]
+        const active = document.activeElement
+        // 마지막에서 Tab → 첫번째로, 첫번째에서 Shift+Tab → 마지막으로 wrap.
+        if (e.shiftKey && active === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      document.body.style.overflow = prevOverflow
+      document.removeEventListener('keydown', onKeyDown)
+      // unmount/close 시 원래 위치로 focus 복귀. element 가 사라졌으면 noop.
+      if (prevActive && document.contains(prevActive)) {
+        prevActive.focus()
+      }
+    }
+  }, [iosSheetOpen])
   useEffect(() => {
     // useEffect never runs on the server, so `window` is guaranteed present here.
     if (isStandalone()) return
@@ -246,6 +316,7 @@ export default function InstallPrompt() {
             onClick={() => setIosSheetOpen(false)}
           />
           <div
+            ref={iosSheetRef}
             className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-2xl p-5 pb-[calc(24px+env(safe-area-inset-bottom))] sm:pb-5 shadow-xl"
             style={{
               border: '1px solid var(--rule)',

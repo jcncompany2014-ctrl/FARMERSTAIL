@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import PublicPageShell from '@/components/PublicPageShell'
+import AuthAwareShell from "@/components/AuthAwareShell"
 import { ogImageUrl } from '@/lib/seo/jsonld'
 
 /**
@@ -114,21 +114,17 @@ function SectionNo({ n, label }: { n: string; label: string }) {
 
 export default function AboutPage() {
   return (
-    <PublicPageShell backHref="/" backLabel="홈">
-      {/* Hero — mission statement.
-          .kicker 위에 큰 세리프 헤드라인, 영문 보조 캡션.
-          에디토리얼 랜딩과 톤을 맞춘다. */}
-      <section style={{ padding: '28px 20px 40px' }}>
+    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--bg)" }}>
+      {/* Hero — mission statement. */}
+      <section className="px-5 md:px-6 pt-7 md:pt-16 pb-10 md:pb-16">
         <Kicker>Our Mission · 우리의 약속</Kicker>
         <h1
-          className="font-serif"
+          className="font-serif mt-3.5 md:mt-5 text-[28px] md:text-[52px] lg:text-[60px]"
           style={{
-            fontSize: 28,
-            lineHeight: 1.15,
+            lineHeight: 1.1,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
-            marginTop: 14,
+            letterSpacing: '-0.03em',
           }}
         >
           사람이 먹는 등급의 재료로,
@@ -167,13 +163,12 @@ export default function AboutPage() {
       <section style={{ padding: '36px 20px 0' }}>
         <SectionNo n="01" label="Origin" />
         <h2
-          className="font-serif"
+          className="font-serif text-[22px] md:text-[34px] lg:text-[40px]"
           style={{
-            fontSize: 22,
-            lineHeight: 1.2,
+            lineHeight: 1.15,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.025em',
             marginTop: 14,
           }}
         >
@@ -216,13 +211,12 @@ export default function AboutPage() {
       <section style={{ padding: '48px 20px 0' }}>
         <SectionNo n="02" label="Farm to Tail" />
         <h2
-          className="font-serif"
+          className="font-serif text-[22px] md:text-[34px] lg:text-[40px]"
           style={{
-            fontSize: 22,
-            lineHeight: 1.2,
+            lineHeight: 1.15,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.025em',
             marginTop: 14,
           }}
         >
@@ -294,13 +288,12 @@ export default function AboutPage() {
       <section style={{ padding: '48px 20px 0' }}>
         <SectionNo n="03" label="Nutrition Science" />
         <h2
-          className="font-serif"
+          className="font-serif text-[22px] md:text-[34px] lg:text-[40px]"
           style={{
-            fontSize: 22,
-            lineHeight: 1.2,
+            lineHeight: 1.15,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.025em',
             marginTop: 14,
           }}
         >
@@ -333,13 +326,12 @@ export default function AboutPage() {
       <section style={{ padding: '48px 20px 0' }}>
         <SectionNo n="04" label="Kitchen" />
         <h2
-          className="font-serif"
+          className="font-serif text-[22px] md:text-[34px] lg:text-[40px]"
           style={{
-            fontSize: 22,
-            lineHeight: 1.2,
+            lineHeight: 1.15,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.025em',
             marginTop: 14,
           }}
         >
@@ -407,13 +399,12 @@ export default function AboutPage() {
       <section style={{ padding: '48px 20px 0' }}>
         <SectionNo n="05" label="AI Nutritionist" />
         <h2
-          className="font-serif"
+          className="font-serif text-[22px] md:text-[34px] lg:text-[40px]"
           style={{
-            fontSize: 22,
-            lineHeight: 1.2,
+            lineHeight: 1.15,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.025em',
             marginTop: 14,
           }}
         >
@@ -440,13 +431,12 @@ export default function AboutPage() {
       <section style={{ padding: '48px 20px 0' }}>
         <SectionNo n="06" label="Our Promises" />
         <h2
-          className="font-serif"
+          className="font-serif text-[22px] md:text-[34px] lg:text-[40px]"
           style={{
-            fontSize: 22,
-            lineHeight: 1.2,
+            lineHeight: 1.15,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.025em',
             marginTop: 14,
           }}
         >
@@ -621,6 +611,6 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
-    </PublicPageShell>
+    </div></AuthAwareShell>
   )
 }

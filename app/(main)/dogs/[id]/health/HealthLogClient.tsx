@@ -183,7 +183,7 @@ export default function HealthLogClient({
         >
           ← {dogName}
         </Link>
-        <span className="kicker mt-3 inline-block">Health Journal</span>
+        <span className="kicker mt-3 block">Health Journal</span>
         <h1 className="font-serif mt-1.5" style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
           건강 일지
         </h1>

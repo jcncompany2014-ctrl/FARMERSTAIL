@@ -1,3 +1,12 @@
+import {
+  bcsMerFactor,
+  CONDITION_ADJUSTMENTS,
+  GUIDELINE_VERSION,
+  type BcsKey,
+  type ChronicConditionKey,
+  type McsKey,
+} from './nutrition/guidelines'
+
 export type SurveyAnswers = {
   bodyCondition: 'skinny' | 'slim' | 'ideal' | 'chubby' | 'obese'
   allergies: string[]
@@ -5,6 +14,27 @@ export type SurveyAnswers = {
   foodType?: string
   snackFreq?: string
   taste?: string
+  // ── v2 확장 필드 (모두 옵션 — 기존 설문이 비어 있을 수 있음) ──
+  /** WSAVA 9-point exact BCS. 입력되면 bodyCondition 보다 우선. */
+  bcsExact?: BcsKey
+  /** Muscle Condition Score 1~4 (1=정상, 4=중증 손실) */
+  mcsScore?: McsKey
+  /** Bristol Stool 1~7 (4=정상) */
+  bristolScore?: 1 | 2 | 3 | 4 | 5 | 6 | 7
+  /** 만성질환 키 배열 — guidelines.ChronicConditionKey */
+  chronicConditions?: ChronicConditionKey[]
+  /** 현재 복용 약 / 보충제 자유 텍스트 */
+  currentMedications?: string[]
+  /** 임신/수유 상태 */
+  pregnancyStatus?: 'none' | 'pregnant' | 'lactating'
+  /** 모질·피부 상태 */
+  coatCondition?: 'healthy' | 'dull' | 'shedding' | 'itchy' | 'lesions'
+  /** 식욕 */
+  appetite?: 'strong' | 'normal' | 'picky' | 'reduced'
+  /** 일일 산책 분 */
+  dailyWalkMinutes?: number
+  /** 현재 주식 브랜드명 */
+  currentFoodBrand?: string
 }
 
 export type DogInfo = {
@@ -37,6 +67,15 @@ export type NutritionResult = {
   fiber: { pct: number; g: number }
   micro: Record<string, { val: number; unit: string; min: number }>
   caPRatio: string
+  // ── v2 확장 ──
+  /** 위험 플래그 — UI / AI 에 노출 */
+  riskFlags: string[]
+  /** 적용된 출처 키 (GUIDELINE_CITATIONS.key) */
+  citations: string[]
+  /** 수의사 상담 권장 여부 */
+  vetConsult: boolean
+  /** 가이드라인 버전 — reproducibility */
+  guidelineVersion: string
 }
 
 function ageMonths(dog: DogInfo): number {
@@ -66,13 +105,31 @@ function bcsScore(body: SurveyAnswers['bodyCondition']): BCSResult {
   }
 }
 
+/** WSAVA 9점 정확 BCS → BCSResult 변환 (v2 — bcsExact 입력 시). */
+function bcsScoreExact(score: BcsKey): BCSResult {
+  if (score <= 2) return { score, label: `BCS ${score}/9`, desc: '심한 저체중 — 갈비뼈/등뼈/골반뼈 윤곽 가시', color: '#A6BEDA' }
+  if (score <= 4) return { score, label: `BCS ${score}/9`, desc: '저체중 — 갈비뼈 쉽게 촉진, 허리 잘록', color: '#8BA05A' }
+  if (score === 5) return { score, label: `BCS ${score}/9`, desc: '이상적 — 갈비뼈 만져지지만 안 보임', color: '#6B7F3A' }
+  if (score <= 7) return { score, label: `BCS ${score}/9`, desc: '과체중 — 갈비뼈 만지기 어려움, 허리 라인 흐림', color: '#D4B872' }
+  return { score, label: `BCS ${score}/9`, desc: '비만 — 갈비뼈 만지기 매우 어려움, 복부 처짐', color: '#A0452E' }
+}
+
 export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): NutritionResult {
   const w = dog.weight
   const RER = 70 * Math.pow(w, 0.75)
   const stage = lifeStage(dog)
-  const bcs = bcsScore(answers.bodyCondition)
-  let factor = 1.6
 
+  // BCS — 정확 입력(v2) 우선, 없으면 5단계 매핑
+  const bcs = answers.bcsExact
+    ? bcsScoreExact(answers.bcsExact)
+    : bcsScore(answers.bodyCondition)
+
+  let factor = 1.6
+  const riskFlags: string[] = []
+  const citations = new Set<string>(['nrc2006', 'aafco2024', 'fediaf2021'])
+  let vetConsult = false
+
+  // 생애주기 / 활동량 기반 base factor (NRC 2006 권장 범위)
   if (stage === 'puppy') {
     const m = ageMonths(dog)
     if (m < 4) factor = 3.0
@@ -86,14 +143,48 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     else factor = 1.6
   }
 
-  if (bcs.score >= 7) factor *= 0.85
-  else if (bcs.score >= 6) factor *= 0.92
-  else if (bcs.score <= 2) factor *= 1.15
-  else if (bcs.score <= 3) factor *= 1.08
+  // BCS 보정 — v2 의 정확 9점 factor 우선
+  if (answers.bcsExact) {
+    factor *= bcsMerFactor(answers.bcsExact)
+    citations.add('wsava')
+    if (answers.bcsExact >= 8) {
+      riskFlags.push('SEVERE_OBESITY')
+      vetConsult = true
+    } else if (answers.bcsExact >= 7) {
+      riskFlags.push('OVERWEIGHT')
+    } else if (answers.bcsExact <= 2) {
+      riskFlags.push('SEVERE_UNDERWEIGHT')
+      vetConsult = true
+    } else if (answers.bcsExact <= 3) {
+      riskFlags.push('UNDERWEIGHT')
+    }
+  } else {
+    // 레거시 5단계 — 기존 로직 유지
+    if (bcs.score >= 7) factor *= 0.85
+    else if (bcs.score >= 6) factor *= 0.92
+    else if (bcs.score <= 2) factor *= 1.15
+    else if (bcs.score <= 3) factor *= 1.08
+  }
+
   if (dog.neutered) factor *= 0.9
+
+  // 임신/수유 보정 (NRC 2006 §13)
+  if (answers.pregnancyStatus === 'pregnant') {
+    factor *= 1.3   // 임신 후반기 ~30% 증가
+    riskFlags.push('PREGNANT')
+    vetConsult = true
+  } else if (answers.pregnancyStatus === 'lactating') {
+    factor *= 2.5   // 수유 절정기 — 새끼 수에 따라 RER × 2 ~ 4
+    riskFlags.push('LACTATING')
+    vetConsult = true
+  }
+
+  // MCS 보정 — 근손실 있으면 단백질 % 증가만, MER 은 그대로
+  // (별도 변수에 저장 후 매크로 분기에서 사용)
 
   const MER = Math.round(RER * factor)
 
+  // ── 매크로 분기 (NRC + AAFCO 권장 범위 내) ──
   let proteinPct, fatPct, carbPct, fiberPct
   if (stage === 'puppy') {
     proteinPct = 32; fatPct = 22; carbPct = 38; fiberPct = 4
@@ -105,11 +196,85 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     else { proteinPct = 30; fatPct = 18; carbPct = 42; fiberPct = 5 }
   }
 
+  // 레거시 healthConcerns (v1 호환)
   if (answers.healthConcerns.includes('체중')) { proteinPct += 3; fatPct -= 3 }
   if (answers.healthConcerns.includes('피부/털')) { fatPct += 3; carbPct -= 3 }
   if (answers.healthConcerns.includes('소화')) { fiberPct += 2; carbPct -= 2 }
   if (answers.healthConcerns.includes('관절')) { proteinPct += 2; carbPct -= 2 }
   if (answers.healthConcerns.includes('신장')) { proteinPct -= 4; carbPct += 4 }
+
+  // MCS — 근손실 시 단백질 +
+  if (answers.mcsScore && answers.mcsScore >= 2) {
+    const boost = answers.mcsScore - 1   // MCS 2: +1, 3: +2, 4: +3
+    proteinPct += boost * 2
+    fatPct -= boost
+    carbPct -= boost
+    if (answers.mcsScore >= 3) {
+      riskFlags.push('MUSCLE_LOSS')
+      vetConsult = true
+    }
+    citations.add('wsava')
+  }
+
+  // Bristol stool 신호
+  if (answers.bristolScore !== undefined) {
+    if (answers.bristolScore <= 2) {
+      fiberPct += 3   // 변비
+      riskFlags.push('CONSTIPATION')
+    } else if (answers.bristolScore >= 6) {
+      fiberPct += 2   // 가용성 섬유
+      riskFlags.push(answers.bristolScore === 7 ? 'DIARRHEA' : 'LOOSE_STOOL')
+      if (answers.bristolScore === 7) vetConsult = true
+    }
+  }
+
+  // ── 만성질환 분기 (CONDITION_ADJUSTMENTS 적용) ──
+  const microFactors: {
+    phosphorus?: number
+    sodium?: number
+    omega3?: number
+    omega6?: number
+    zinc?: number
+    calcium?: number
+  } = {}
+  const conditionSupplements = new Set<string>()
+
+  for (const cond of answers.chronicConditions ?? []) {
+    const adj = CONDITION_ADJUSTMENTS[cond]
+    if (!adj) continue
+    proteinPct += adj.proteinDelta
+    fatPct += adj.fatDelta
+    carbPct += adj.carbDelta
+    fiberPct += adj.fiberDelta
+    for (const flag of adj.riskFlags) riskFlags.push(flag)
+    for (const c of adj.cite) citations.add(c)
+    for (const s of adj.supplements) conditionSupplements.add(s)
+    if (adj.vetConsult) vetConsult = true
+    if (adj.micro?.phosphorusFactor !== undefined) {
+      microFactors.phosphorus = Math.min(microFactors.phosphorus ?? 1, adj.micro.phosphorusFactor)
+    }
+    if (adj.micro?.sodiumFactor !== undefined) {
+      microFactors.sodium = Math.min(microFactors.sodium ?? 1, adj.micro.sodiumFactor)
+    }
+    if (adj.micro?.omega3Factor !== undefined) {
+      microFactors.omega3 = Math.max(microFactors.omega3 ?? 1, adj.micro.omega3Factor)
+    }
+    if (adj.micro?.omega6Factor !== undefined) {
+      microFactors.omega6 = Math.max(microFactors.omega6 ?? 1, adj.micro.omega6Factor)
+    }
+    if (adj.micro?.zincFactor !== undefined) {
+      microFactors.zinc = Math.max(microFactors.zinc ?? 1, adj.micro.zincFactor)
+    }
+    if (adj.micro?.calciumFactor !== undefined) {
+      microFactors.calcium = Math.min(microFactors.calcium ?? 1, adj.micro.calciumFactor)
+    }
+  }
+
+  // 매크로 합 100 정규화 — 각 percentage 가 0 ~ 50 범위 내라고 가정
+  proteinPct = Math.max(15, Math.min(50, proteinPct))
+  fatPct = Math.max(8, Math.min(30, fatPct))
+  fiberPct = Math.max(2, Math.min(10, fiberPct))
+  carbPct = Math.max(20, 100 - proteinPct - fatPct - fiberPct)
 
   const proteinG = Math.round((MER * proteinPct / 100) / 4)
   const fatG = Math.round((MER * fatPct / 100) / 9)
@@ -160,6 +325,25 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   }
   if (answers.healthConcerns.includes('관절')) daily.omega3.val *= 1.5
   if (answers.healthConcerns.includes('신장')) daily.phosphorus.val *= 0.7
+
+  // v2: 만성질환 micro factors 적용 (가장 보수적인 값 사용 — 위 microFactors 가
+  // 이미 min/max 로 결합됨).
+  if (microFactors.phosphorus !== undefined) daily.phosphorus.val *= microFactors.phosphorus
+  if (microFactors.omega3 !== undefined) daily.omega3.val *= microFactors.omega3
+  if (microFactors.omega6 !== undefined) daily.omega6.val *= microFactors.omega6
+  if (microFactors.zinc !== undefined) daily.zinc.val *= microFactors.zinc
+  if (microFactors.calcium !== undefined) daily.calcium.val *= microFactors.calcium
+
+  // 모질·피부 condition (v2)
+  if (answers.coatCondition === 'dull' || answers.coatCondition === 'shedding') {
+    daily.omega3.val *= 1.3
+    daily.zinc.val *= 1.2
+  } else if (answers.coatCondition === 'itchy' || answers.coatCondition === 'lesions') {
+    daily.omega3.val *= 1.5
+    daily.zinc.val *= 1.3
+    riskFlags.push('SKIN_BARRIER_COMPROMISED')
+  }
+
   for (const k in daily) daily[k].val = +daily[k].val.toFixed(2)
 
   const caPRatio = (daily.calcium.val / daily.phosphorus.val).toFixed(1)
@@ -179,7 +363,24 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     fiber: { pct: fiberPct, g: fiberG },
     micro: daily,
     caPRatio,
+    // v2 신규
+    riskFlags: Array.from(new Set(riskFlags)),
+    citations: Array.from(citations),
+    vetConsult,
+    guidelineVersion: GUIDELINE_VERSION,
   }
+}
+
+/** 만성질환별 추가 보충제 키 (UI 표시용 — getSupplements 에 합치지 않고 별도). */
+export function getConditionSupplements(
+  conditions: ChronicConditionKey[] | undefined,
+): string[] {
+  const set = new Set<string>()
+  for (const c of conditions ?? []) {
+    const adj = CONDITION_ADJUSTMENTS[c]
+    for (const s of adj?.supplements ?? []) set.add(s)
+  }
+  return Array.from(set)
 }
 
 export type MacroRange = { min: number; max: number; scale: number }

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { STOCK_LOW_THRESHOLD } from '@/lib/products/stock'
+import RevenueChart, { type RevenuePoint } from '@/components/admin/RevenueChart'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,6 +88,9 @@ export default async function AdminHome() {
     lastWeekOrdersRes,
     prevWeekOrdersRes,
     failedOrdersRes,
+    newSubsRes,
+    churnedSubsRes,
+    todayRevenueRes,
   ] = await Promise.all([
     // 누적 매출 (paid만)
     supabase
@@ -162,6 +166,28 @@ export default async function AdminHome() {
       .select('id', { count: 'exact', head: true })
       .eq('payment_status', 'failed')
       .gte('created_at', thirtyDaysAgo),
+
+    // 30일 신규 구독 — created_at 기준
+    supabase
+      .from('subscriptions')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', thirtyDaysAgo),
+
+    // 30일 해지 구독 — status='cancelled' AND updated_at 30일 내
+    // (status 변경 시점이 곧 해지 시점이라는 가정 — 트리거가 다른 컬럼을 건드릴
+    // 가능성이 있으면 cancelled_at 컬럼을 추가하는 게 정확)
+    supabase
+      .from('subscriptions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'cancelled')
+      .gte('updated_at', thirtyDaysAgo),
+
+    // 오늘 매출 — payment_status='paid' AND created_at >= 오늘 0시
+    supabase
+      .from('orders')
+      .select('total_amount')
+      .eq('payment_status', 'paid')
+      .gte('created_at', todayStart),
   ])
 
   const totalRevenue =
@@ -205,6 +231,22 @@ export default async function AdminHome() {
 
   const failedOrderCount = failedOrdersRes.count ?? 0
 
+  // 구독 30일 net 변화 (신규 - 해지). 음수면 churn 우세.
+  const newSubsCount = newSubsRes.count ?? 0
+  const churnedSubsCount = churnedSubsRes.count ?? 0
+  const netSubsDelta = newSubsCount - churnedSubsCount
+  // Churn rate = 해지 / (활성 + 해지) — 단순 근사치, 코호트 분석은 별도.
+  const churnDenom = activeSubCount + churnedSubsCount
+  const churnRatePct =
+    churnDenom > 0 ? (churnedSubsCount / churnDenom) * 100 : 0
+
+  // 오늘 매출
+  const todayRevenue =
+    (todayRevenueRes.data ?? []).reduce(
+      (s, o: { total_amount: number | null }) => s + (o.total_amount ?? 0),
+      0,
+    ) ?? 0
+
   // WoW 매출 변화
   const lastWeekRevenue =
     (lastWeekOrdersRes.data ?? []).reduce(
@@ -232,20 +274,26 @@ export default async function AdminHome() {
   const thirtyDayOrders =
     (thirtyDayOrdersRes.data ?? []) as unknown as ThirtyDayOrder[]
 
+  // 30일 일별 매출 — RevenueChart 가 (YYYY-MM-DD, revenue) 형태를 요구.
   const dailyMap = new Map<string, number>()
+  const fmtDateKey = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+      d.getDate(),
+    ).padStart(2, '0')}`
   for (let i = 29; i >= 0; i--) {
     const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-    const key = `${d.getMonth() + 1}/${d.getDate()}`
-    dailyMap.set(key, 0)
+    dailyMap.set(fmtDateKey(d), 0)
   }
   thirtyDayOrders.forEach((o) => {
-    const d = new Date(o.created_at)
-    const key = `${d.getMonth() + 1}/${d.getDate()}`
-    dailyMap.set(key, (dailyMap.get(key) ?? 0) + o.total_amount)
+    const key = fmtDateKey(new Date(o.created_at))
+    if (dailyMap.has(key)) {
+      dailyMap.set(key, (dailyMap.get(key) ?? 0) + o.total_amount)
+    }
   })
-  const dailyData = Array.from(dailyMap.entries())
-  const maxDaily = Math.max(...dailyData.map(([, v]) => v), 1)
-  const last30DayRevenue = dailyData.reduce((s, [, v]) => s + v, 0)
+  const dailyChartData: RevenuePoint[] = Array.from(dailyMap.entries()).map(
+    ([date, revenue]) => ({ date, revenue }),
+  )
+  // 30일 합계는 RevenueChart 가 자체 계산해서 보여주므로 별도 변수 없음.
 
   // Top 상품 (30일 매출 기준). product_id 가 없는 아이템(삭제된 상품) 은 스킵.
   const productStats = new Map<
@@ -290,15 +338,15 @@ export default async function AdminHome() {
       {/* 지표 카드 4개 — 1행 */}
       <div className="grid grid-cols-4 gap-4 mb-4">
         <MetricCard
-          label="누적 매출"
-          value={`${totalRevenue.toLocaleString()}원`}
-          sub={`완료 주문 ${totalPaidCount}건`}
+          label="오늘 매출"
+          value={`${todayRevenue.toLocaleString()}원`}
+          sub={`주문 ${todayOrderCount}건`}
           tone="red"
         />
         <MetricCard
-          label="오늘 주문"
-          value={`${todayOrderCount}건`}
-          sub="payment_status 무관"
+          label="누적 매출"
+          value={`${totalRevenue.toLocaleString()}원`}
+          sub={`완료 ${totalPaidCount}건`}
           tone="dark"
         />
         <MetricCard
@@ -315,8 +363,8 @@ export default async function AdminHome() {
         />
       </div>
 
-      {/* 지표 카드 4개 — 2행: Ops / Retention 시그널 */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      {/* 지표 카드 4개 — 2행: Ops 시그널 */}
+      <div className="grid grid-cols-4 gap-4 mb-4">
         <MetricCard
           label="AOV (평균 주문가)"
           value={`${aov.toLocaleString()}원`}
@@ -347,44 +395,46 @@ export default async function AdminHome() {
         />
       </div>
 
-      {/* 30일 매출 sparkline */}
-      <div className="p-6 rounded-2xl bg-white border border-rule mb-6">
-        <div className="flex items-end justify-between mb-4">
-          <div>
-            <h2 className="text-sm font-bold text-ink">최근 30일 매출</h2>
-            <p className="text-[11px] text-muted mt-0.5">
-              결제 완료된 주문만 집계
-            </p>
-          </div>
-          <p className="font-['Archivo_Black'] text-2xl text-terracotta">
-            {last30DayRevenue.toLocaleString()}원
-          </p>
-        </div>
-        <div className="flex items-end gap-1 h-24">
-          {dailyData.map(([date, value]) => {
-            const height = (value / maxDaily) * 100
-            return (
-              <div
-                key={date}
-                className="flex-1 flex flex-col items-center justify-end group relative"
-              >
-                <div
-                  className="w-full bg-terracotta rounded-sm transition-all hover:bg-[#8A3822] min-h-[2px]"
-                  style={{ height: `${height}%` }}
-                />
-                {value > 0 && (
-                  <span className="absolute -top-5 opacity-0 group-hover:opacity-100 text-[9px] text-ink whitespace-nowrap bg-white px-1 rounded border border-rule transition">
-                    {value.toLocaleString()}원
-                  </span>
-                )}
-              </div>
-            )
-          })}
-        </div>
-        <div className="flex justify-between mt-2 text-[9px] text-muted">
-          <span>{dailyData[0]?.[0]}</span>
-          <span>{dailyData[dailyData.length - 1]?.[0]}</span>
-        </div>
+      {/* 지표 카드 3개 — 3행: 구독 retention. D2C 펫푸드는 정기배송이 LTV 의
+          핵심 동력이라 별개 행으로 강조. */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <MetricCard
+          label="구독 신규 (30일)"
+          value={`${newSubsCount}건`}
+          sub={
+            netSubsDelta > 0
+              ? `순증가 +${netSubsDelta}건`
+              : netSubsDelta < 0
+                ? `순감소 ${netSubsDelta}건`
+                : '순변화 없음'
+          }
+          tone={netSubsDelta >= 0 ? 'green' : 'red'}
+        />
+        <MetricCard
+          label="구독 해지 (30일)"
+          value={`${churnedSubsCount}건`}
+          sub={
+            churnRatePct === 0
+              ? '해지 0%'
+              : `Churn ${churnRatePct.toFixed(1)}%`
+          }
+          tone={churnRatePct > 5 ? 'red' : 'dark'}
+        />
+        <MetricCard
+          label="이번 주 매출"
+          value={`${lastWeekRevenue.toLocaleString()}원`}
+          sub={
+            wowDelta === 0
+              ? 'WoW 변화 없음'
+              : `vs 전주 ${wowDelta > 0 ? '+' : ''}${wowDelta.toFixed(1)}%`
+          }
+          tone={wowDelta >= 0 ? 'green' : 'red'}
+        />
+      </div>
+
+      {/* 30일 매출 — SVG line chart (RevenueChart) */}
+      <div className="mb-6">
+        <RevenueChart data={dailyChartData} title="최근 30일 매출" />
       </div>
 
       {/* Top 상품 + 재고 경고 — 2-column */}

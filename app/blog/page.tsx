@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { BookOpen, ArrowUpRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import PublicPageShell from '@/components/PublicPageShell'
+import AuthAwareShell from '@/components/AuthAwareShell'
 import { ogImageUrl } from '@/lib/seo/jsonld'
 
 /**
@@ -12,7 +13,12 @@ import { ogImageUrl } from '@/lib/seo/jsonld'
  * + paper-tone 카드 + hex → 토큰. Hero 1개 + 나머지 리스트 2-row 그리드.
  */
 
-export const dynamic = 'force-dynamic'
+/**
+ * 블로그 인덱스 — 공개 콘텐츠만 렌더. 사용자별 개인화가 없어서 ISR 이 가장
+ * 합리적. 관리자가 글을 발행/숨김 처리한 뒤 최대 5분이면 반영.
+ * (이전: force-dynamic — 모든 방문마다 blog_posts 전체 조회.)
+ */
+export const revalidate = 300
 
 const BLOG_OG = ogImageUrl({
   title: '매거진',
@@ -77,10 +83,13 @@ export default async function BlogIndexPage({
   const { category: catSlug } = await searchParams
   const supabase = await createClient()
 
-  const { data: categories } = await supabase
+  const { data: categories, error: catsErr } = await supabase
     .from('blog_categories')
     .select('id, slug, name')
     .order('sort_order', { ascending: true })
+  if (catsErr) {
+    console.error('[blog] categories query failed', catsErr)
+  }
   const cats = (categories ?? []) as Category[]
   const activeCategory = catSlug ? cats.find((c) => c.slug === catSlug) : null
 
@@ -96,30 +105,33 @@ export default async function BlogIndexPage({
     query = query.eq('category_id', activeCategory.id)
   }
 
-  const { data: posts } = await query
+  const { data: posts, error: postsErr } = await query
+  if (postsErr) {
+    console.error('[blog] posts query failed', postsErr)
+  }
   const rows = (posts ?? []) as Post[]
   const catById = new Map(cats.map((c) => [c.id, c]))
 
   const [hero, ...rest] = rows
 
   return (
-    <PublicPageShell>
+    <AuthAwareShell>
+      <div className="mx-auto" style={{ maxWidth: 1024, background: 'var(--bg)' }}>
       {/* ── Hero title ──────────────────────────────────── */}
-      <section className="px-5 pt-10 pb-5 text-center">
+      <section className="px-5 md:px-6 pt-10 md:pt-16 pb-5 md:pb-10 text-center">
         <span className="kicker">Magazine · 매거진</span>
         <h1
-          className="font-serif mt-3 leading-tight"
+          className="font-serif mt-3 md:mt-5 leading-tight text-[30px] md:text-[56px] lg:text-[64px]"
           style={{
-            fontSize: 30,
             fontWeight: 800,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.025em',
           }}
         >
           파머스테일 매거진
         </h1>
         <p
-          className="mx-auto mt-3 text-[12px] leading-relaxed max-w-[280px]"
+          className="mx-auto mt-3 md:mt-5 text-[12px] md:text-[15px] leading-relaxed max-w-[280px] md:max-w-[520px]"
           style={{ color: 'var(--muted)' }}
         >
           반려견 영양·건강·케어에 관한 파머스테일의 이야기
@@ -239,11 +251,13 @@ export default async function BlogIndexPage({
                     style={{ background: '#E4DBC2' }}
                   >
                     {hero.cover_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={hero.cover_url}
                         alt={hero.title}
-                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                        fill
+                        priority
+                        sizes="(max-width: 768px) 100vw, 448px"
+                        className="object-cover group-hover:scale-[1.02] transition-transform duration-500"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
@@ -268,42 +282,78 @@ export default async function BlogIndexPage({
                       Latest
                     </span>
                   </div>
-                  <div
-                    className="p-5"
-                    style={{ borderTop: '1px solid var(--rule)' }}
-                  >
+                  <div className="px-5 pt-4 pb-5">
+                    {/* 카테고리 — terracotta hairline + mono uppercase. 상품
+                        카드와 동일한 시그니처. */}
                     {hero.category_id && catById.get(hero.category_id) && (
-                      <span className="kicker kicker-moss">
-                        {catById.get(hero.category_id)!.name}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          aria-hidden
+                          style={{
+                            width: 14,
+                            height: 1,
+                            background: 'var(--moss)',
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span
+                          className="font-mono"
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 700,
+                            letterSpacing: '0.2em',
+                            color: 'var(--moss)',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {catById.get(hero.category_id)!.name}
+                        </span>
+                      </div>
                     )}
                     <h2
-                      className="font-serif mt-2 text-[18px] font-black leading-snug"
+                      className="font-serif mt-2 leading-tight"
                       style={{
+                        fontSize: 20,
+                        fontWeight: 800,
                         color: 'var(--ink)',
-                        letterSpacing: '-0.01em',
+                        letterSpacing: '-0.02em',
                       }}
                     >
                       {hero.title}
                     </h2>
                     {hero.excerpt && (
                       <p
-                        className="text-[12.5px] mt-2 leading-relaxed line-clamp-2"
-                        style={{ color: 'var(--muted)' }}
+                        className="font-serif italic mt-2 leading-relaxed line-clamp-2"
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: 500,
+                          color: 'var(--muted)',
+                          letterSpacing: '-0.005em',
+                        }}
                       >
                         {hero.excerpt}
                       </p>
                     )}
                     <div className="mt-4 flex items-center justify-between">
                       <span
-                        className="text-[11px]"
-                        style={{ color: 'var(--muted)' }}
+                        className="font-mono"
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 600,
+                          letterSpacing: '0.04em',
+                          color: 'var(--muted)',
+                        }}
                       >
                         {formatDate(hero.published_at)}
                       </span>
                       <span
-                        className="inline-flex items-center gap-1 text-[11px] font-bold"
-                        style={{ color: 'var(--terracotta)' }}
+                        className="inline-flex items-center gap-1"
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: 'var(--terracotta)',
+                          letterSpacing: '-0.01em',
+                        }}
                       >
                         읽기
                         <ArrowUpRight
@@ -318,10 +368,10 @@ export default async function BlogIndexPage({
             </section>
           )}
 
-          {/* ── 리스트 ─────────────────────────── */}
+          {/* ── 리스트 — 데스크톱 2열 그리드 ─────────────────────────── */}
           {rest.length > 0 && (
-            <section className="px-5 mt-8">
-              <div className="flex items-center gap-2 mb-3">
+            <section className="px-5 md:px-6 mt-8 md:mt-12">
+              <div className="flex items-center gap-2 mb-3 md:mb-5">
                 <span className="kicker kicker-muted">
                   More · 더 읽어보기
                 </span>
@@ -330,7 +380,7 @@ export default async function BlogIndexPage({
                   style={{ background: 'var(--rule-2)' }}
                 />
               </div>
-              <ul className="space-y-3">
+              <ul className="space-y-3 md:grid md:grid-cols-2 md:gap-5 md:space-y-0">
                 {rest.map((p) => (
                   <li key={p.id}>
                     <Link
@@ -343,16 +393,17 @@ export default async function BlogIndexPage({
                     >
                       <article className="flex gap-3">
                         <div
-                          className="shrink-0 w-28 aspect-square overflow-hidden"
+                          className="relative shrink-0 w-28 aspect-square overflow-hidden"
                           style={{ background: 'var(--rule-2)' }}
                         >
                           {p.cover_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
+                            <Image
                               src={p.cover_url}
                               alt={p.title}
-                              className="w-full h-full object-cover"
+                              fill
+                              sizes="112px"
                               loading="lazy"
+                              className="object-cover"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
@@ -368,25 +419,49 @@ export default async function BlogIndexPage({
                         <div className="flex-1 min-w-0 py-3 pr-3">
                           {p.category_id &&
                             catById.get(p.category_id) && (
-                              <span
-                                className="kicker kicker-moss"
-                                style={{ fontSize: 9 }}
-                              >
-                                {catById.get(p.category_id)!.name}
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  aria-hidden
+                                  style={{
+                                    width: 8,
+                                    height: 1,
+                                    background: 'var(--moss)',
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span
+                                  className="font-mono"
+                                  style={{
+                                    fontSize: 8.5,
+                                    fontWeight: 700,
+                                    letterSpacing: '0.18em',
+                                    color: 'var(--moss)',
+                                    textTransform: 'uppercase',
+                                  }}
+                                >
+                                  {catById.get(p.category_id)!.name}
+                                </span>
+                              </div>
                             )}
                           <h3
-                            className="font-serif text-[13.5px] font-black leading-snug mt-1 line-clamp-2"
+                            className="font-serif leading-snug mt-1.5 line-clamp-2"
                             style={{
+                              fontSize: 13.5,
+                              fontWeight: 700,
                               color: 'var(--ink)',
-                              letterSpacing: '-0.01em',
+                              letterSpacing: '-0.015em',
                             }}
                           >
                             {p.title}
                           </h3>
                           <p
-                            className="text-[10.5px] mt-1.5"
-                            style={{ color: 'var(--muted)' }}
+                            className="font-mono mt-2"
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 600,
+                              letterSpacing: '0.04em',
+                              color: 'var(--muted)',
+                            }}
                           >
                             {formatDate(p.published_at)}
                           </p>
@@ -400,6 +475,7 @@ export default async function BlogIndexPage({
           )}
         </div>
       )}
-    </PublicPageShell>
+      </div>
+    </AuthAwareShell>
   )
 }

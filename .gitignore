@@ -48,3 +48,26 @@ next-env.d.ts
 
 # design handoff dumps (screenshots, zips, HTML exports) — not source
 .claude-design/
+
+# Capacitor — 네이티브 빌드 산출물 / 임시 webDir
+# ─────────────────────────────────────────────────
+# ios/, android/ 자체는 commit (네이티브 설정·서명 인증서·plugin 등록 등이
+# 포함). 다만 빌드 결과물 / Pods / 캐시는 무시.
+/capacitor-web/
+/ios/App/Pods/
+/ios/App/build/
+/ios/App/App.xcworkspace/xcuserdata/
+/ios/App/App.xcodeproj/xcuserdata/
+/ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+/ios/DerivedData/
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/app/release/
+/android/local.properties
+/android/.idea/
+/android/app/*.iml
+/android/captures/
+
+# Capacitor 자산 생성 산출물은 commit 함 (스토어 제출 시 필요).
+# 단 source PSD/AI 같은 디자인 원본은 별도 폴더에서 관리.

@@ -1,10 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
 import { BookOpen, Eye, ArrowUpRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import PublicPageShell from '@/components/PublicPageShell'
+import AuthAwareShell from '@/components/AuthAwareShell'
+import ShareButton from '@/components/ShareButton'
+import { renderMarkdown } from '@/lib/markdown'
 import JsonLd from '@/components/JsonLd'
 import { buildArticleJsonLd, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 
@@ -15,7 +18,14 @@ import { buildArticleJsonLd, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
  * 카드. 관련 글 리스트는 blog 인덱스 More 카드와 동일한 horizontal 레이아웃.
  */
 
-export const dynamic = 'force-dynamic'
+/**
+ * 블로그 상세 — 공개 글. ISR 로 5분 TTL. 조회수 카운터는 서버 RPC 기반이라
+ * 캐시 히트일 때는 bump 되지 않음 (revalidation 주기에만 증가) — 카운터는
+ * 정확한 수치보다는 "상대적 인기도" 용도라 감내 가능. 정확한 카운터가 필요
+ * 해지면 client-side view beacon 으로 이전.
+ * (이전: force-dynamic — 모든 방문마다 blog_posts + blog_categories 조회.)
+ */
+export const revalidate = 300
 
 type Params = Promise<{ slug: string }>
 
@@ -163,29 +173,41 @@ export default async function BlogPostPage({ params }: { params: Params }) {
   ])
 
   return (
-    <PublicPageShell backHref="/blog" backLabel="매거진">
+    <AuthAwareShell>
+      <article className="mx-auto" style={{ maxWidth: 820, background: 'var(--bg)' }}>
       <JsonLd id={`ld-article-${post.slug}`} data={articleLd} />
       <JsonLd id={`ld-breadcrumb-blog-${post.slug}`} data={breadcrumbLd} />
+      <div className="px-5 md:px-8 pt-5 md:pt-7">
+        <Link
+          href="/blog"
+          className="inline-flex items-center gap-0.5 text-[11px] md:text-[12.5px] font-bold transition"
+          style={{ color: 'var(--muted)' }}
+        >
+          ← 매거진
+        </Link>
+      </div>
       {/* ── Cover ──────────────────────────────────────── */}
       {post.cover_url ? (
         <div
-          className="w-full aspect-[16/9] overflow-hidden mt-3"
+          className="relative w-full aspect-[16/9] overflow-hidden mt-3 md:mt-5 md:rounded-2xl"
           style={{ background: '#E4DBC2' }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={post.cover_url}
             alt={post.title}
-            className="w-full h-full object-cover"
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, 820px"
+            className="object-cover"
           />
         </div>
       ) : (
         <div
-          className="w-full aspect-[16/9] flex items-center justify-center mt-3"
+          className="w-full aspect-[16/9] flex items-center justify-center mt-3 md:mt-5 md:rounded-2xl"
           style={{ background: '#E4DBC2' }}
         >
           <BookOpen
-            className="w-12 h-12"
+            className="w-12 h-12 md:w-16 md:h-16"
             strokeWidth={1.2}
             color="var(--ink)"
             style={{ opacity: 0.35 }}
@@ -194,7 +216,7 @@ export default async function BlogPostPage({ params }: { params: Params }) {
       )}
 
       {/* ── Header ─────────────────────────────────────── */}
-      <header className="px-5 pt-6 pb-4">
+      <header className="px-5 md:px-8 pt-6 md:pt-10 pb-4 md:pb-6">
         <div className="flex items-center gap-2 mb-3">
           <span className="kicker" style={{ color: 'var(--terracotta)' }}>
             Article · 매거진
@@ -214,39 +236,46 @@ export default async function BlogPostPage({ params }: { params: Params }) {
           </Link>
         )}
         <h1
-          className="font-serif mt-2 leading-tight"
+          className="font-serif mt-2 md:mt-3 leading-tight text-[26px] md:text-[40px] lg:text-[48px]"
           style={{
-            fontSize: 26,
             fontWeight: 900,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.025em',
           }}
         >
           {post.title}
         </h1>
         {post.excerpt && (
           <p
-            className="mt-3 text-[13px] leading-relaxed"
+            className="mt-3 md:mt-5 text-[13px] md:text-[16px] leading-relaxed"
             style={{ color: 'var(--muted)' }}
           >
             {post.excerpt}
           </p>
         )}
         <div
-          className="mt-4 flex items-center gap-3 text-[11px]"
+          className="mt-4 md:mt-6 flex items-center gap-3 text-[11px] md:text-[12.5px] flex-wrap"
           style={{ color: 'var(--muted)' }}
         >
           <span>{formatDate(post.published_at)}</span>
           <span style={{ opacity: 0.5 }}>·</span>
           <span className="inline-flex items-center gap-1">
-            <Eye className="w-3 h-3" strokeWidth={2} />
+            <Eye className="w-3 h-3 md:w-3.5 md:h-3.5" strokeWidth={2} />
             {(post.views ?? 0).toLocaleString()}
+          </span>
+          <span className="ml-auto">
+            <ShareButton
+              url={`/blog/${post.slug}`}
+              title={post.title}
+              description={post.excerpt ?? undefined}
+              imageUrl={post.cover_url ?? undefined}
+            />
           </span>
         </div>
       </header>
 
       {/* ── Rule ───────────────────────────────────────── */}
-      <div className="px-5">
+      <div className="px-5 md:px-8">
         <div
           className="h-px"
           style={{ background: 'var(--rule-2)' }}
@@ -254,56 +283,56 @@ export default async function BlogPostPage({ params }: { params: Params }) {
       </div>
 
       {/* ── Body ───────────────────────────────────────── */}
-      <article className="px-5 pt-6">
+      <article className="px-5 md:px-8 pt-6 md:pt-10">
         <div
-          className="text-[14px] whitespace-pre-line"
+          className="ft-md text-[14px] md:text-[17px]"
           style={{
             color: 'var(--text)',
-            lineHeight: 1.8,
+            lineHeight: 1.85,
           }}
-        >
-          {post.content}
-        </div>
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
+        />
       </article>
 
       {/* ── Related ────────────────────────────────────── */}
       {relatedPosts.length > 0 && (
-        <section className="px-5 mt-12 pb-12">
-          <div className="flex items-center gap-2 mb-3">
+        <section className="px-5 md:px-8 mt-12 md:mt-16 pb-12 md:pb-20">
+          <div className="flex items-center gap-2 mb-3 md:mb-5">
             <span className="kicker kicker-muted">Related · 관련 글</span>
             <div
               className="flex-1 h-px"
               style={{ background: 'var(--rule-2)' }}
             />
           </div>
-          <ul className="space-y-3">
+          <ul className="space-y-3 md:grid md:grid-cols-3 md:gap-4 md:space-y-0">
             {relatedPosts.map((r) => (
               <li key={r.id}>
                 <Link
                   href={`/blog/${r.slug}`}
-                  className="group block rounded-xl overflow-hidden transition active:scale-[0.99]"
+                  className="group block rounded-xl overflow-hidden transition active:scale-[0.99] h-full"
                   style={{
                     background: 'var(--bg-2)',
                     boxShadow: 'inset 0 0 0 1px var(--rule)',
                   }}
                 >
-                  <article className="flex gap-3">
+                  <article className="flex md:flex-col gap-3 md:gap-0 h-full">
                     <div
-                      className="shrink-0 w-24 aspect-square overflow-hidden"
+                      className="relative shrink-0 w-24 aspect-square md:w-full md:aspect-[4/3] overflow-hidden"
                       style={{ background: 'var(--rule-2)' }}
                     >
                       {r.cover_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <Image
                           src={r.cover_url}
                           alt={r.title}
-                          className="w-full h-full object-cover"
+                          fill
+                          sizes="(max-width: 768px) 96px, 260px"
                           loading="lazy"
+                          className="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <BookOpen
-                            className="w-5 h-5"
+                            className="w-5 h-5 md:w-7 md:h-7"
                             strokeWidth={1.5}
                             color="var(--ink)"
                             style={{ opacity: 0.35 }}
@@ -311,9 +340,9 @@ export default async function BlogPostPage({ params }: { params: Params }) {
                         </div>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0 py-2.5 pr-3">
+                    <div className="flex-1 min-w-0 py-2.5 pr-3 md:p-4">
                       <h3
-                        className="font-serif text-[13px] font-black leading-snug line-clamp-2"
+                        className="font-serif text-[13px] md:text-[15px] font-black leading-snug line-clamp-2"
                         style={{
                           color: 'var(--ink)',
                           letterSpacing: '-0.01em',
@@ -321,15 +350,15 @@ export default async function BlogPostPage({ params }: { params: Params }) {
                       >
                         {r.title}
                       </h3>
-                      <div className="mt-1.5 flex items-center justify-between">
+                      <div className="mt-1.5 md:mt-3 flex items-center justify-between">
                         <p
-                          className="text-[10px]"
+                          className="text-[10px] md:text-[11px]"
                           style={{ color: 'var(--muted)' }}
                         >
                           {formatDate(r.published_at)}
                         </p>
                         <ArrowUpRight
-                          className="w-3 h-3"
+                          className="w-3 h-3 md:w-3.5 md:h-3.5"
                           strokeWidth={2.5}
                           color="var(--terracotta)"
                         />
@@ -342,6 +371,7 @@ export default async function BlogPostPage({ params }: { params: Params }) {
           </ul>
         </section>
       )}
-    </PublicPageShell>
+      </article>
+    </AuthAwareShell>
   )
 }

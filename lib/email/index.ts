@@ -24,6 +24,10 @@ import {
 } from './templates/orders'
 import { renderRestockAlert } from './templates/restock'
 import { renderCartAbandoned, type CartRecoveryItem } from './templates/cart'
+import {
+  renderSubscriptionReminder,
+  type SubscriptionReminderItem,
+} from './templates/subscription'
 import { paymentMethodLabel } from '@/lib/payments/toss'
 import { pushToUser } from '@/lib/push'
 
@@ -477,5 +481,34 @@ export async function notifyWelcome(
     html,
     tag: 'welcome',
     idempotencyKey: `welcome:${input.email}`,
+  })
+}
+
+// ── 정기배송 알림 메일 ───────────────────────────────────────────────────────
+/**
+ * 정기배송 N일 전 도착 알림. cron 이 (subscription, days_before) 페어로 호출.
+ * idempotencyKey 에 (subscription_id, date) 를 묶어 같은 회차에 중복 발송 방지.
+ */
+export async function notifySubscriptionReminder(input: {
+  email: string
+  name: string | null
+  subscriptionId: string
+  items: SubscriptionReminderItem[]
+  nextDeliveryDate: string
+  daysBefore: number
+}) {
+  const { subject, html } = renderSubscriptionReminder({
+    recipientName: input.name ?? '고객',
+    items: input.items,
+    nextDeliveryDate: input.nextDeliveryDate,
+    daysBefore: input.daysBefore,
+  })
+  return sendEmail({
+    to: input.email,
+    subject,
+    html,
+    tag: 'subscription-reminder',
+    // 같은 구독·같은 배송일 조합엔 24h 안에 중복 발송 X (Resend idempotency).
+    idempotencyKey: `sub-reminder:${input.subscriptionId}:${input.nextDeliveryDate}`,
   })
 }

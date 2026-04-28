@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   Repeat,
   Package,
@@ -217,21 +218,19 @@ export default function MySubscriptionsPage() {
         >
           ← 내 정보
         </Link>
-        <div className="mt-3">
-          <span className="kicker">Subscriptions · 정기배송</span>
-          <h1
-            className="font-serif mt-1.5 inline-flex items-center gap-2"
-            style={{
-              fontSize: 22,
-              fontWeight: 800,
-              color: 'var(--ink)',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            <Repeat className="w-5 h-5 text-moss" strokeWidth={2} />
-            내 정기배송
-          </h1>
-        </div>
+        <span className="kicker mt-3 block">Subscriptions · 정기배송</span>
+        <h1
+          className="font-serif mt-1.5 flex items-center gap-2"
+          style={{
+            fontSize: 22,
+            fontWeight: 800,
+            color: 'var(--ink)',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          <Repeat className="w-5 h-5 text-moss" strokeWidth={2} />
+          내 정기배송
+        </h1>
 
         {/* 신규 신청 성공 배너 */}
         {showNewBanner && (
@@ -256,7 +255,7 @@ export default function MySubscriptionsPage() {
             }}
           >
             <div
-              className="inline-flex w-14 h-14 rounded-full items-center justify-center mb-4"
+              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-4"
               style={{
                 background: 'var(--bg)',
                 border: '1px solid var(--rule-2)',
@@ -333,13 +332,14 @@ export default function MySubscriptionsPage() {
                   <div className="p-5">
                     {sub.subscription_items.map((item, i) => (
                       <div key={i} className="flex gap-3 items-center">
-                        <div className="w-14 h-14 rounded-lg border border-rule overflow-hidden flex-shrink-0 bg-bg">
+                        <div className="relative w-14 h-14 rounded-lg border border-rule overflow-hidden flex-shrink-0 bg-bg">
                           {item.product_image_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
+                            <Image
                               src={item.product_image_url}
                               alt={item.product_name}
-                              className="w-full h-full object-cover"
+                              fill
+                              sizes="56px"
+                              className="object-cover"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">

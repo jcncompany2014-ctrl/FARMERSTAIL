@@ -88,7 +88,7 @@ export function ProductGridSkeleton({ count = 6 }: { count?: number }) {
     <div
       role="status"
       aria-label="제품 목록 로딩 중"
-      className="grid grid-cols-2 gap-3"
+      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-5"
     >
       {Array.from({ length: count }).map((_, i) => (
         <ProductCardSkeleton key={i} />
@@ -102,12 +102,18 @@ export function ProductGridSkeleton({ count = 6 }: { count?: number }) {
  */
 export function PdpHeroSkeleton() {
   return (
-    <div className="flex flex-col gap-3" role="status" aria-label="제품 정보 로딩 중">
-      <Skeleton className="aspect-square w-full" rounded="lg" />
-      <Skeleton className="h-5 w-[70%] mt-2" />
-      <Skeleton className="h-4 w-[50%]" />
-      <Skeleton className="h-7 w-[30%] mt-1" />
-      <Skeleton className="h-11 w-full mt-3" rounded="lg" />
+    <div
+      className="flex flex-col gap-3 md:flex-row md:gap-10 md:items-start"
+      role="status"
+      aria-label="제품 정보 로딩 중"
+    >
+      <Skeleton className="aspect-square w-full md:w-1/2" rounded="lg" />
+      <div className="flex flex-col gap-3 md:flex-1">
+        <Skeleton className="h-5 md:h-9 w-[70%] mt-2" />
+        <Skeleton className="h-4 md:h-5 w-[50%]" />
+        <Skeleton className="h-7 md:h-10 w-[30%] mt-1" />
+        <Skeleton className="h-11 md:h-14 w-full mt-3" rounded="lg" />
+      </div>
     </div>
   )
 }

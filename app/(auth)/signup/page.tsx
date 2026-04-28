@@ -79,6 +79,9 @@ function SignupForm() {
   const [phone, setPhone] = useState('')
   // birth_year — 만 14세 미만 가입 차단 근거. 문자열로 보관했다가 제출 시 숫자로.
   const [birthYear, setBirthYear] = useState('')
+  // birth_month/day — 생일 쿠폰 자동 발송 대상 식별용. 선택. 둘 다 채우거나 둘 다 비우거나.
+  const [birthMonth, setBirthMonth] = useState('')
+  const [birthDay, setBirthDay] = useState('')
 
   // ── 02 배송지
   const [zip, setZip] = useState('')
@@ -243,6 +246,11 @@ function SignupForm() {
       // 마케팅 동의는 timestamp + policy version 감사를 위해 RPC 사용.
       // profile 본체(주소·이름 등) 와 분리해 호출. 에러는 나중에 info 로만 노출.
       const now = new Date().toISOString()
+      // 생일 (월/일) — 둘 다 채워야 의미 있음. 한쪽만이면 NULL 로.
+      const birthMonthNum =
+        birthMonth && birthDay ? Number(birthMonth) : null
+      const birthDayNum = birthMonth && birthDay ? Number(birthDay) : null
+
       const { error: profErr } = await supabase
         .from('profiles')
         .update({
@@ -252,6 +260,8 @@ function SignupForm() {
           address,
           address_detail: addressDetail,
           birth_year: birthYearNum,
+          birth_month: birthMonthNum,
+          birth_day: birthDayNum,
           agree_email: agreeMarketingEmail,
           agree_sms: agreeMarketingSms,
           // timestamp — 감사 로그용. opt-in 이면 현재 시각, opt-out 이면 null.
@@ -332,6 +342,11 @@ function SignupForm() {
           }
         }
       }
+      // 환영 메일 fire-and-forget — 서버 라우트가 본인 세션으로 검증 후
+      // Resend 로 발송. 실패해도 가입 플로우엔 영향 없음 (idempotencyKey
+      // 덕분에 중복 호출도 안전).
+      fetch('/api/auth/welcome-email', { method: 'POST' }).catch(() => {})
+
       setLoading(false)
       router.push('/dashboard')
     }
@@ -355,10 +370,10 @@ function SignupForm() {
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center px-6 pt-10 pb-16"
+      className="min-h-screen flex flex-col items-center px-6 pt-7 md:pt-12 pb-16 md:pb-20"
       style={{ background: 'var(--bg)' }}
     >
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm md:max-w-md">
         <AuthHero
           kicker="Begin · 시작하기"
           title={<>3분 만에 시작</>}
@@ -464,6 +479,61 @@ function SignupForm() {
               ? '초대 코드 확인됨 — 가입 즉시 총 6,000P가 적립돼요.'
               : '가입만 해도 3,000P. 초대 코드가 있다면 3,000P 더.'}
           </p>
+        </div>
+
+        {/*
+          카카오 가입 — 프라이머리 CTA 위치로 승격.
+          한국 유저 대다수가 소셜 로그인으로 훨씬 빠르게 가입하는데,
+          이전엔 긴 이메일 폼 하단에 묻혀 있어서 존재감이 낮았다.
+          웰컴 보상 카드 바로 아래로 끌어올려서 "3,000P 약속 → 즉시
+          카카오 한 번에 가입" 이라는 단축 경로를 열어준다.
+          이메일 폼은 카카오를 쓰지 않는 소수 유저를 위한 fallback 으로
+          아래로 내리고, 그 사이에 "또는 이메일로 가입" 디바이더 배치.
+        */}
+        <div className="mb-3">
+          <KakaoLoginButton variant="signup" />
+        </div>
+
+        {/* 카카오 로그인은 별도 동의 UI 없이 진행되므로 묵시적 동의 근거 제공. */}
+        <p
+          className="mb-6 text-[10.5px] text-center leading-relaxed"
+          style={{ color: 'var(--muted)' }}
+        >
+          카카오로 계속하면{' '}
+          <Link
+            href="/legal/terms"
+            target="_blank"
+            className="underline underline-offset-2 font-bold"
+            style={{ color: 'var(--text)' }}
+          >
+            이용약관
+          </Link>
+          과{' '}
+          <Link
+            href="/legal/privacy"
+            target="_blank"
+            className="underline underline-offset-2 font-bold"
+            style={{ color: 'var(--text)' }}
+          >
+            개인정보처리방침
+          </Link>
+          에 동의하는 것으로 간주됩니다.
+          <br />
+          (배송지는 가입 후 마이페이지에서 등록할 수 있어요.)
+        </p>
+
+        {/* "또는 이메일로 가입" 디바이더 — 이전엔 폼 뒤에 "Or" 로 카카오를
+            선택지로 제시했는데, 이제 카카오가 primary 라 방향을 뒤집어
+            "소셜이 안 맞으면 이메일로" 라는 의미로 라벨도 구체화한다. */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
+          <span
+            className="kicker"
+            style={{ color: 'var(--muted)', fontSize: 9 }}
+          >
+            Or Email · 이메일로 가입
+          </span>
+          <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
         </div>
 
         <form onSubmit={handleSignup} className="space-y-6">
@@ -747,6 +817,59 @@ function SignupForm() {
                     만 14세 이상만 가입할 수 있어요 (개인정보보호법)
                   </p>
                 )}
+              </div>
+
+              {/* 생일 (월/일) — 선택. 채우면 매년 생일 당일 쿠폰 자동 발송. */}
+              <div>
+                <label
+                  className="flex items-center gap-1 text-[11px] font-bold mb-1.5"
+                  style={{ color: 'var(--text)' }}
+                >
+                  생일 <span style={{ color: 'var(--muted)' }}>(선택)</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={birthMonth}
+                    onChange={(e) => setBirthMonth(e.target.value)}
+                    className={baseInputCls}
+                    style={baseInputStyle}
+                  >
+                    <option value="">월</option>
+                    {Array.from({ length: 12 }).map((_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        {i + 1}월
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={birthDay}
+                    onChange={(e) => setBirthDay(e.target.value)}
+                    className={baseInputCls}
+                    style={baseInputStyle}
+                  >
+                    <option value="">일</option>
+                    {Array.from({
+                      length: birthMonth
+                        ? new Date(
+                            Number(birthYear) || 2000,
+                            Number(birthMonth),
+                            0,
+                          ).getDate()
+                        : 31,
+                    }).map((_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        {i + 1}일
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p
+                  className="text-[10px] mt-1"
+                  style={{ color: 'var(--muted)' }}
+                >
+                  채우시면 생일 당일 쿠폰을 자동으로 보내드려요 (마케팅 수신
+                  동의 필요)
+                </p>
               </div>
             </div>
           </section>
@@ -1058,46 +1181,8 @@ function SignupForm() {
           </button>
         </form>
 
-        {/* "또는" 디바이더 */}
-        <div className="flex items-center gap-3 my-6">
-          <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
-          <span className="kicker" style={{ color: 'var(--muted)' }}>
-            Or
-          </span>
-          <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
-        </div>
-
-        <KakaoLoginButton variant="signup" />
-
-        {/* 카카오 로그인은 별도 동의 UI 없이 진행되므로 묵시적 동의 근거 제공. */}
-        <p
-          className="mt-3 text-[10.5px] text-center leading-relaxed"
-          style={{ color: 'var(--muted)' }}
-        >
-          카카오로 계속하면{' '}
-          <Link
-            href="/legal/terms"
-            target="_blank"
-            className="underline underline-offset-2 font-bold"
-            style={{ color: 'var(--text)' }}
-          >
-            이용약관
-          </Link>
-          과{' '}
-          <Link
-            href="/legal/privacy"
-            target="_blank"
-            className="underline underline-offset-2 font-bold"
-            style={{ color: 'var(--text)' }}
-          >
-            개인정보처리방침
-          </Link>
-          에 동의하는 것으로 간주됩니다.
-          <br />
-          (배송지는 가입 후 마이페이지에서 등록할 수 있어요.)
-        </p>
-
-        {/* 하단 링크 */}
+        {/* 하단 링크 — 이미 카카오 가입 블록은 상단으로 이동했으므로
+            여기엔 기존 사용자 로그인 유도 링크만 남는다. */}
         <div
           className="text-center mt-8 text-[12.5px]"
           style={{ color: 'var(--muted)' }}

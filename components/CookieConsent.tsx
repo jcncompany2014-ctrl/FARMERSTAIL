@@ -6,6 +6,7 @@ import { Cookie, Check, X, ChevronDown, ChevronUp } from 'lucide-react'
 import {
   readConsent,
   writeConsent,
+  COOKIE_STORAGE_KEY,
   type CookieConsent as Consent,
 } from '@/lib/cookies'
 
@@ -25,8 +26,27 @@ function subscribeConsent(cb: () => void) {
     window.removeEventListener('storage', cb)
   }
 }
+
+/**
+ * useSyncExternalStore 는 Object.is 로 이전/다음 스냅샷을 비교한다. readConsent()
+ * 는 localStorage 를 파싱해서 **매 호출마다 새 객체**를 반환하므로, 그대로 넘기면
+ * 참조가 계속 달라져 "바뀐 것처럼 보이는" 상태 → 재렌더 → 재호출 → 새 객체 …
+ * React 19 가 공식 경고로 잡아준다:
+ *   "The result of getSnapshot should be cached to avoid an infinite loop"
+ *
+ * 해결: 모듈 스코프에 raw 문자열 + 파싱된 값을 쌍으로 보관. localStorage 원문이
+ * 바뀌지 않았으면 **동일한 참조**를 반환. 이벤트(ft-consent-change 등)가 터져서
+ * subscribe 가 React 를 재렌더시킬 때만 raw 가 달라지고 새 객체를 계산한다.
+ */
+let cachedRaw: string | null | undefined
+let cachedValue: Consent | null = null
 function getSnapshot(): Consent | null {
-  return readConsent()
+  if (typeof window === 'undefined') return null
+  const raw = window.localStorage.getItem(COOKIE_STORAGE_KEY)
+  if (raw === cachedRaw) return cachedValue
+  cachedRaw = raw
+  cachedValue = readConsent()
+  return cachedValue
 }
 function getServerSnapshot(): Consent | null {
   return null
@@ -66,8 +86,9 @@ export default function CookieConsent() {
   return (
     <div
       className="fixed inset-x-0 bottom-0 z-[60] px-4 pb-4 pt-2"
-      role="dialog"
-      aria-modal="false"
+      // 비차단 배너 — dialog 가 아니라 region 이 맞는 시맨틱. dialog + modal=false
+      // 조합은 스크린리더에 모호한 신호를 준다 (WAI-ARIA 저자 가이드).
+      role="region"
       aria-labelledby="cookie-consent-title"
     >
       <div

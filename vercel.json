@@ -3,7 +3,19 @@
   "crons": [
     {
       "path": "/api/cron/cart-recovery",
-      "schedule": "0 * * * *"
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/subscription-reminders",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/restock-alerts",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/birthday-coupons",
+      "schedule": "0 0 * * *"
     }
   ]
 }

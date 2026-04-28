@@ -106,29 +106,26 @@ export async function validateCoupon(
 /**
  * 주문 생성 시 쿠폰 사용 기록 + used_count 증가.
  *
- * 현재 구조는 insert + update 가 분리돼 있어 두 호출 사이에 서버가 죽으면
- * redemption만 남고 카운터가 안 오를 수 있다. D2C 규모에서는 실제로 문제가
- * 된 적이 없어 RPC로 합치는 건 미뤘다. 순서는 "redemption 먼저 insert → 성공
- * 시 카운터 증가" — 반대로 하면 "사용량만 올라가고 누가 썼는지 모름" 이라는
- * 더 나쁜 상태가 될 수 있어서.
+ * 내부적으로 `redeem_coupon` Postgres RPC 호출 — 단일 트랜잭션 + 행 잠금
+ * (`SELECT ... FOR UPDATE`) 으로 동시 redemption / usage_limit 초과를 차단.
+ * 같은 (coupon_id, order_id) 가 이미 있으면 unique index 가 잡고 함수가
+ * `already_redeemed` 로 멱등 처리 — webhook 두 번 들어와도 한 번만 적용.
  */
 export async function applyCouponRedemption(
   supabase: SupabaseClient,
   input: { coupon: Coupon; userId: string; orderId: string },
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
   const { coupon, userId, orderId } = input
-  const { error: redemptionError } = await supabase
-    .from('coupon_redemptions')
-    .insert({ coupon_id: coupon.id, user_id: userId, order_id: orderId })
-  if (redemptionError) {
-    return { ok: false, reason: redemptionError.message }
-  }
-  const { error: bumpError } = await supabase
-    .from('coupons')
-    .update({ used_count: coupon.used_count + 1 })
-    .eq('id', coupon.id)
-  if (bumpError) {
-    return { ok: false, reason: bumpError.message }
+  const { data, error } = await supabase.rpc('redeem_coupon', {
+    p_coupon_id: coupon.id,
+    p_user_id: userId,
+    p_order_id: orderId,
+  })
+  if (error) return { ok: false, reason: error.message }
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row) return { ok: false, reason: 'rpc_returned_no_row' }
+  if (row.ok === false) {
+    return { ok: false, reason: row.message ?? '쿠폰 적용에 실패했어요' }
   }
   return { ok: true }
 }
@@ -137,23 +134,20 @@ export async function applyCouponRedemption(
  * 주문 취소 시 used_count 감소. redemption 행은 "누가 언제 썼다가 취소됐는지"
  * 감사를 위해 남긴다.
  *
- * used_count 는 unsigned 개념이므로 `Math.max(0, ...)` 로 언더플로 방지.
- * 쿠폰 코드가 실제 coupons 테이블에 없으면 조용히 pass — 삭제된 쿠폰일 수 있음.
+ * `revoke_coupon_redemption` RPC 사용 — 행 잠금 + 언더플로 방지가
+ * Postgres 측에서 처리됨. 코드 미일치는 ok 응답으로 silent pass.
  */
 export async function revokeCouponRedemption(
   supabase: SupabaseClient,
   input: { couponCode: string },
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
-  const { data: coupon } = await supabase
-    .from('coupons')
-    .select('id, used_count')
-    .eq('code', input.couponCode)
-    .maybeSingle()
-  if (!coupon) return { ok: true }
-  const { error } = await supabase
-    .from('coupons')
-    .update({ used_count: Math.max(0, coupon.used_count - 1) })
-    .eq('id', coupon.id)
+  const { data, error } = await supabase.rpc('revoke_coupon_redemption', {
+    p_coupon_code: input.couponCode,
+  })
   if (error) return { ok: false, reason: error.message }
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row || row.ok === false) {
+    return { ok: false, reason: row?.message ?? '쿠폰 취소에 실패했어요' }
+  }
   return { ok: true }
 }

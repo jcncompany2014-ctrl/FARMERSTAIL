@@ -31,6 +31,9 @@ type BusinessInfo = {
   phone: string
   /** 고객센터 이메일 */
   email: string
+  /** 카카오 채널 1:1 채팅 URL (선택 — 비어있으면 footer 에 미노출).
+   *  ex) "https://pf.kakao.com/_xxxxx/chat" — 카카오 채널 관리자에서 발급. */
+  kakaoChannelUrl: string | null
   /** 개인정보보호 책임자 */
   privacyOfficer: string
   /** 개인정보보호 책임자 이메일 */
@@ -62,6 +65,10 @@ export const business: BusinessInfo = {
   address: read('NEXT_PUBLIC_BUSINESS_ADDRESS'),
   phone: read('NEXT_PUBLIC_BUSINESS_PHONE', '1644-0000'),
   email: read('NEXT_PUBLIC_BUSINESS_EMAIL', 'support@farmerstail.com'),
+  kakaoChannelUrl: (() => {
+    const raw = process.env.NEXT_PUBLIC_KAKAO_CHANNEL_URL
+    return raw && raw.trim() ? raw.trim() : null
+  })(),
   privacyOfficer: read('NEXT_PUBLIC_BUSINESS_PRIVACY_OFFICER'),
   privacyOfficerEmail: read(
     'NEXT_PUBLIC_BUSINESS_PRIVACY_OFFICER_EMAIL',

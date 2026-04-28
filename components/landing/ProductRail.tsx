@@ -41,7 +41,13 @@ export default function ProductRail({ items }: { items: RailProduct[] }) {
         let bestIdx = 0
         let bestDist = Infinity
         cards.forEach((c, i) => {
-          const dist = Math.abs(c.offsetLeft - railLeft - 20) // 20 = padding
+          // 20 = rail 좌측 padding. 카드 offset 에서 이 값을 빼야
+          // "화면 기준 첫 카드가 0px 위치" 가 되고, 스크롤 인덱스가 정확.
+          // 본문은 20px 에 정렬되지만, 카드는 이미지 타일 + border 가 시각
+          // 무게가 커서 본문과 같은 20px 에 두면 phone frame 에 붙어 보인다.
+          // 그래서 한 단계 더 들여 20px — 본문 정렬선 안쪽에 여백이 생겨
+          // "카드가 지면 안으로 들어와 앉은" 형태가 된다.
+          const dist = Math.abs(c.offsetLeft - railLeft - 20)
           if (dist < bestDist) {
             bestDist = dist
             bestIdx = i
@@ -59,17 +65,28 @@ export default function ProductRail({ items }: { items: RailProduct[] }) {
 
   return (
     <>
-      {/* Horizontal scroll rail */}
+      {/* Horizontal scroll rail.
+          좌우 padding 20px — 위 ProductsSection header 본문과 동일한
+          정렬선을 공유한다. "PANTRY MIX & GOURMET TOPPERS" 카피가
+          시작되는 x 축과 카드 왼쪽 엣지가 같은 라인에 떨어져야 지면이
+          한 그리드로 읽힌다.
+
+          scrollPaddingLeft 를 같이 지정하는 이유:
+          scroll-snap-align: start 는 기본적으로 scrollport 의 실제 시작
+          지점에 snap 하는데, Safari/일부 Chrome 에서 padding 을 무시하고
+          "패딩 포함된 scrollport edge(=0)" 에 snap 해버리는 quirk 가 있다.
+          그러면 초기 상태에서 첫 카드가 패딩을 뚫고 edge 에 붙어보이는
+          현상이 생긴다. scroll-padding-left 를 padding-left 와 동일하게
+          박으면 snap 기준 자체가 20px 로 옮겨져 안정적이다. */}
       <div
         ref={railRef}
-        className="no-scrollbar"
+        className="no-scrollbar gap-3.5 md:gap-5 px-5 md:px-12 py-2.5 md:py-4 pb-4 md:pb-6"
         style={{
           display: 'flex',
-          gap: 14,
           overflowX: 'auto',
           overflowY: 'hidden',
           scrollSnapType: 'x mandatory',
-          padding: '10px 20px 18px',
+          scrollPaddingLeft: 20,
           WebkitOverflowScrolling: 'touch',
         }}
       >
@@ -77,8 +94,8 @@ export default function ProductRail({ items }: { items: RailProduct[] }) {
           <article
             key={p.id}
             data-rail-card
+            className="w-[232px] md:w-[300px] lg:w-[320px] shrink-0"
             style={{
-              flex: '0 0 232px',
               scrollSnapAlign: 'start',
               display: 'flex',
               flexDirection: 'column',
@@ -158,7 +175,7 @@ export default function ProductRail({ items }: { items: RailProduct[] }) {
                     src={p.imageUrl}
                     alt={p.koName}
                     fill
-                    sizes="232px"
+                    sizes="(max-width: 768px) 232px, 320px"
                     style={{ objectFit: 'cover', zIndex: 2 }}
                   />
                 ) : (
@@ -177,18 +194,10 @@ export default function ProductRail({ items }: { items: RailProduct[] }) {
               </div>
 
               {/* Text block */}
-              <div
-                style={{
-                  padding: '16px 16px 18px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6,
-                }}
-              >
+              <div className="p-4 md:p-5 pb-[18px] md:pb-6 flex flex-col gap-1.5 md:gap-2">
                 <div
-                  className="font-mono"
+                  className="font-mono text-[9px] md:text-[10.5px]"
                   style={{
-                    fontSize: 9,
                     letterSpacing: '0.18em',
                     textTransform: 'uppercase',
                     color: 'var(--terracotta)',
@@ -197,56 +206,49 @@ export default function ProductRail({ items }: { items: RailProduct[] }) {
                   {p.cat}
                 </div>
                 <div
-                  className="font-serif"
+                  className="font-serif text-[17px] md:text-[20px]"
                   style={{
-                    fontSize: 17,
                     fontWeight: 800,
                     color: 'var(--ink)',
-                    letterSpacing: '-0.01em',
+                    letterSpacing: '-0.015em',
                     lineHeight: 1.15,
                   }}
                 >
                   {p.enName}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: -2 }}>
+                <div
+                  className="text-[12px] md:text-[13.5px] -mt-0.5"
+                  style={{ color: 'var(--muted)' }}
+                >
                   {p.koName}
                 </div>
                 <p
+                  className="mt-1.5 md:mt-2 text-[12px] md:text-[13.5px] leading-relaxed min-h-[54px] md:min-h-[60px]"
                   style={{
-                    margin: '6px 0 0',
-                    fontSize: 12,
-                    lineHeight: 1.55,
                     color: 'var(--text)',
-                    minHeight: 54,
                   }}
                 >
                   {p.body}
                 </p>
                 <div
+                  className="mt-2 md:mt-3 pt-2.5 md:pt-3.5 flex justify-between items-baseline"
                   style={{
-                    marginTop: 8,
-                    paddingTop: 10,
                     borderTop: '1px solid var(--rule-2)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'baseline',
                   }}
                 >
                   <span
-                    className="font-serif tnum"
+                    className="font-serif tnum text-[17px] md:text-[22px]"
                     style={{
-                      fontSize: 17,
                       fontWeight: 800,
                       color: 'var(--ink)',
-                      letterSpacing: '-0.01em',
+                      letterSpacing: '-0.015em',
                     }}
                   >
                     ₩{p.price.toLocaleString()}
                   </span>
                   <span
-                    className="font-mono"
+                    className="font-mono text-[10px] md:text-[11.5px]"
                     style={{
-                      fontSize: 10,
                       letterSpacing: '0.12em',
                       color: 'var(--muted)',
                     }}
@@ -262,15 +264,14 @@ export default function ProductRail({ items }: { items: RailProduct[] }) {
         {/* Trailing peek — "view all" tile */}
         <Link
           href="/products"
+          className="w-[140px] md:w-[180px] shrink-0 p-[18px_16px] md:p-7"
           style={{
-            flex: '0 0 140px',
             scrollSnapAlign: 'start',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
             border: '1px dashed var(--rule-2)',
             borderRadius: 12,
-            padding: '18px 16px',
             color: 'var(--ink)',
             textDecoration: 'none',
             background: 'transparent',
@@ -316,15 +317,11 @@ export default function ProductRail({ items }: { items: RailProduct[] }) {
         </Link>
       </div>
 
-      {/* Scroll indicator: elongated dot on active + counter */}
+      {/* Scroll indicator: elongated dot on active + counter.
+          rail 과 동일하게 좌우 padding — 카드 엣지와 같은 정렬선을
+          공유해야 active dot 이 첫 카드 아래 정확히 떨어진다. */}
       <div
-        style={{
-          padding: '0 20px',
-          marginTop: 6,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
+        className="px-5 md:px-12 mt-2 md:mt-3 flex justify-between items-center"
       >
         <div style={{ display: 'flex', gap: 6 }}>
           {items.map((p, i) => (

@@ -54,7 +54,7 @@ export default async function PointsPage() {
         >
           ← 내 정보
         </Link>
-        <span className="kicker mt-3 inline-block">Points · 적립금</span>
+        <span className="kicker mt-3 block">Points · 적립금</span>
         <h1
           className="font-serif mt-1.5"
           style={{

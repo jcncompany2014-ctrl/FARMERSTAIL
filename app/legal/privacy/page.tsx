@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import PublicPageShell from '@/components/PublicPageShell'
+import AuthAwareShell from "@/components/AuthAwareShell"
 import LegalDocument, {
   Section,
   UL,
@@ -33,7 +33,7 @@ const EFFECTIVE_DATE = '2026-04-22'
  */
 export default function PrivacyPage() {
   return (
-    <PublicPageShell>
+    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--bg)" }}>
       <LegalDocument
         eyebrow="Privacy Policy"
         title="개인정보처리방침"
@@ -441,6 +441,6 @@ export default function PrivacyPage() {
           </p>
         </Section>
       </LegalDocument>
-    </PublicPageShell>
+    </div></AuthAwareShell>
   )
 }

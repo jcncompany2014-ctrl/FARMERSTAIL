@@ -107,7 +107,7 @@ export default function ConsentSettingsClient({
         >
           ← 마이페이지
         </Link>
-        <span className="kicker mt-3 inline-block">Consent · 수신동의</span>
+        <span className="kicker mt-3 block">Consent · 수신동의</span>
         <h1
           className="font-serif mt-1.5"
           style={{

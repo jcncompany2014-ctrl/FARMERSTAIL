@@ -3,13 +3,17 @@
 /**
  * (main) route group — auth-gated app shell.
  *
- * This layer's ONLY job is to gate: if the user isn't signed in, bounce
- * them to /login. The actual chrome (sticky header, tab bar, InstallPrompt,
- * SiteFooter) lives in <AppChrome> so the exact same visual shell can wrap
- * pages outside this group (e.g. /products, which also needs to render for
- * unauth visitors under an editorial shell). Keeping gate + chrome separate
- * avoids the prior situation where "make /products public" forced a
- * chrome rewrite.
+ * 본 그룹은 **앱 전용 라우트** 만 포함한다 (dashboard, dogs/*, mypage/*
+ * 거의 전부, welcome 등). 웹/앱 양쪽에서 접근 가능한 라우트 (cart, checkout,
+ * mypage/orders) 는 그룹 외부 (`app/cart`, `app/checkout`, `app/mypage/orders`) 로
+ * 이동되어 WebChrome 으로 일관되게 wrap 된다.
+ *
+ * 이 layout 의 책임:
+ *   1. 클라이언트 인증 체크 (UX 가드 — 미로그인이면 빠르게 /login redirect)
+ *   2. AppChrome 으로 항상 wrap — 모바일 폰 프레임 + 하단 탭바 + InstallPrompt
+ *
+ * web 사용자가 앱 전용 라우트를 직접 입력하면 proxy.ts middleware 가
+ * /app-required 로 redirect 한다 — 이 layout 까지 도달 안 함.
  */
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
@@ -27,9 +31,6 @@ export default function MainLayout({
 
   const [checking, setChecking] = useState(true)
 
-  // 인증 체크 — unauth 방문자는 /login으로. pathname을 deps에 넣어
-  // SPA 네비게이션으로 (main) 경로에 재진입할 때도 재검증한다
-  // (세션 만료 / 로그아웃 이후 /dashboard 같은 보호 경로를 직접 타이핑)
   useEffect(() => {
     let mounted = true
     async function check() {
@@ -50,8 +51,6 @@ export default function MainLayout({
   }, [router, supabase, pathname])
 
   if (checking) {
-    // `phone-frame`: 데스크톱에서 AppChrome이 렌더되기 전 로딩 중에도 프레임
-    // 안에 스피너가 있어야 플래시(full-bleed → centered) 안 남는다.
     return (
       <main className="phone-frame min-h-screen flex items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-3">

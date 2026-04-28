@@ -1,46 +1,50 @@
-import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
+import WebChrome from '@/components/WebChrome'
 import AppChrome from '@/components/AppChrome'
-import PublicPageShell from '@/components/PublicPageShell'
 
 /**
- * Picks the right chrome based on whether the visitor is signed in.
+ * AuthAwareShell — 컨텍스트 기반 chrome dispatcher.
  *
- * - Signed in → <AppChrome>: sticky header + cart badge + bottom tab bar +
- *   InstallPrompt. The dense, task-oriented "installed PWA" feel.
- * - Anonymous → <PublicPageShell>: back-link + SiteFooter only. The thin
- *   editorial wrapper we already use for /legal, /business, /blog — keeps
- *   marketing pages feeling like web content rather than app screens.
+ * # Web/App 분리 (옵션 B)
  *
- * Server component on purpose: auth state is read off the session cookie
- * before the page streams, which keeps the user from seeing the wrong
- * chrome flash on first paint. Use this for any route that genuinely
- * serves both audiences (e.g. /products). Routes that are always
- * auth-gated should stay under app/(main)/; routes that are always public
- * should use PublicPageShell directly.
+ * 같은 라우트 (/products, /cart, /checkout, /blog 등) 라도 진입 컨텍스트가
+ * 다르면 다른 chrome 으로 감싼다:
+ *
+ *   • 웹 (브라우저)        → WebChrome — 풀와이드 마켓컬리 톤
+ *   • 앱 (PWA/Capacitor)   → AppChrome — 폰 프레임 + 하단 탭바
+ *
+ * 컨텍스트 감지: `ft_app` 쿠키.
+ *   • `components/AppContextCookieSync.tsx` 가 PWA standalone / Capacitor
+ *     네이티브 감지 시 client-side 에서 set.
+ *   • SSR 첫 요청에는 쿠키가 없을 수 있어 (cold install) WebChrome 으로
+ *     fallback. 두 번째 요청부터는 정확.
+ *
+ * # 어디 쓰이나
+ *
+ * 그룹 외부의 commerce / marketing 라우트:
+ *   /products, /products/[slug], /cart, /checkout/*, /mypage/orders/*,
+ *   /blog/*, /events/*, /collections/*, /brand, /about, /business
+ *
+ * `(main)` 그룹 내부는 자체 layout.tsx 가 항상 AppChrome (auth gate 포함).
+ *
+ * # 호환성 props
+ *
+ * `publicBackHref`, `publicBackLabel` — 호출처 시그니처 호환. 사용 안 함.
  */
 export default async function AuthAwareShell({
   children,
-  publicBackHref = '/',
-  publicBackLabel = '홈',
 }: {
   children: React.ReactNode
-  /** Back-link target when rendered in public/editorial mode. */
+  /** @deprecated 사용 안 함. */
   publicBackHref?: string
-  /** Back-link label when rendered in public/editorial mode. */
+  /** @deprecated 사용 안 함. */
   publicBackLabel?: string
 }) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const cookieStore = await cookies()
+  const isApp = cookieStore.get('ft_app')?.value === '1'
 
-  if (user) {
+  if (isApp) {
     return <AppChrome>{children}</AppChrome>
   }
-
-  return (
-    <PublicPageShell backHref={publicBackHref} backLabel={publicBackLabel}>
-      {children}
-    </PublicPageShell>
-  )
+  return <WebChrome>{children}</WebChrome>
 }

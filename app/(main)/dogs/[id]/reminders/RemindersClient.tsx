@@ -280,7 +280,7 @@ export default function RemindersClient({
         >
           ← {dogName}
         </Link>
-        <span className="kicker mt-3 inline-block">Care Reminders</span>
+        <span className="kicker mt-3 block">Care Reminders</span>
         <h1 className="font-serif mt-1.5" style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
           리마인더
         </h1>

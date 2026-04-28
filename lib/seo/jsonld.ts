@@ -281,3 +281,87 @@ export function buildFaqJsonLd(items: FaqItem[]) {
     })),
   } as const
 }
+
+/**
+ * ItemList — 컬렉션 / 카탈로그 모음 grid 의 검색 결과 향상.
+ * Google rich result 의 carousel 자격 (정확한 가격 / 이미지 동반 시).
+ */
+export function buildItemListJsonLd(input: {
+  name: string
+  url: string
+  items: { name: string; url: string; image?: string | null }[]
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: input.name,
+    url: input.url,
+    numberOfItems: input.items.length,
+    itemListElement: input.items.map((it, idx) => {
+      const node: Record<string, unknown> = {
+        '@type': 'ListItem',
+        position: idx + 1,
+        url: it.url,
+        name: it.name,
+      }
+      if (it.image) node.image = it.image
+      return node
+    }),
+  } as const
+}
+
+/**
+ * CollectionPage — 큐레이션 컬렉션 detail 페이지.
+ * mainEntity 로 ItemList 를 묶어 함께 제출.
+ */
+export function buildCollectionPageJsonLd(input: {
+  name: string
+  description?: string
+  url: string
+  items: { name: string; url: string; image?: string | null }[]
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: input.name,
+    description: input.description,
+    url: input.url,
+    isPartOf: {
+      '@type': 'WebSite',
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+    mainEntity: buildItemListJsonLd({
+      name: input.name,
+      url: input.url,
+      items: input.items,
+    }),
+  } as const
+}
+
+/**
+ * AboutPage — 브랜드 / 회사 소개 페이지. /brand 가 사용.
+ */
+export function buildAboutPageJsonLd(input: {
+  name: string
+  description: string
+  url: string
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'AboutPage',
+    name: input.name,
+    description: input.description,
+    url: input.url,
+    isPartOf: {
+      '@type': 'WebSite',
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+    about: {
+      '@type': 'Organization',
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+  } as const
+}

@@ -38,10 +38,66 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     },
     {
+      url: `${siteUrl}/brand`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${siteUrl}/collections`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    // 판매 동선 alias — /products?sort=best 등을 short URL 로.
+    {
+      url: `${siteUrl}/best`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.7,
+    },
+    {
+      url: `${siteUrl}/new`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.7,
+    },
+    {
       url: `${siteUrl}/plans`,
       lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.7,
+    },
+    // 신규 콘텐츠 페이지 — 산지 / FAQ / 뉴스레터 / 과학 alias / 이벤트 인덱스
+    {
+      url: `${siteUrl}/partners`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: `${siteUrl}/faq`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: `${siteUrl}/newsletter`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.4,
+    },
+    {
+      url: `${siteUrl}/events`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    },
+    {
+      url: `${siteUrl}/science`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.5,
     },
     {
       url: `${siteUrl}/login`,
@@ -89,21 +145,56 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const supabase = await createClient()
 
-    // 병렬로 products + blog posts + blog categories 쿼리
-    const [{ data: products }, { data: posts }, { data: categories }] =
-      await Promise.all([
-        supabase
-          .from('products')
+    // 병렬로 products + blog posts + blog categories + collections 쿼리.
+    // collections 는 마이그레이션이 아직 안 적용된 환경에서도 안전하게 처리.
+    type CollectionRow = { slug: string; updated_at: string | null }
+    const collectionsPromise: Promise<{ data: CollectionRow[] | null }> =
+      (async () => {
+        try {
+          const r = await supabase
+            .from('collections')
+            .select('slug, updated_at')
+            .eq('is_published', true)
+          return {
+            data: (r.data ?? null) as CollectionRow[] | null,
+          }
+        } catch {
+          return { data: null }
+        }
+      })()
+
+    type EventRow = { slug: string; updated_at: string | null }
+    const eventsPromise: Promise<{ data: EventRow[] | null }> = (async () => {
+      try {
+        const r = await supabase
+          .from('events')
           .select('slug, updated_at')
-          .eq('is_active', true),
-        supabase
-          .from('blog_posts')
-          .select('slug, updated_at, published_at')
-          .eq('is_published', true),
-        supabase
-          .from('blog_categories')
-          .select('slug'),
-      ])
+          .eq('is_active', true)
+        return { data: (r.data ?? null) as EventRow[] | null }
+      } catch {
+        return { data: null }
+      }
+    })()
+
+    const [
+      { data: products },
+      { data: posts },
+      { data: categories },
+      { data: collections },
+      { data: events },
+    ] = await Promise.all([
+      supabase
+        .from('products')
+        .select('slug, updated_at')
+        .eq('is_active', true),
+      supabase
+        .from('blog_posts')
+        .select('slug, updated_at, published_at')
+        .eq('is_published', true),
+      supabase.from('blog_categories').select('slug'),
+      collectionsPromise,
+      eventsPromise,
+    ])
 
     const productRoutes: MetadataRoute.Sitemap = (products ?? []).map((p) => ({
       url: `${siteUrl}/products/${p.slug}`,
@@ -139,11 +230,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })
     )
 
+    const collectionRoutes: MetadataRoute.Sitemap = (collections ?? []).map(
+      (c) => ({
+        url: `${siteUrl}/collections/${c.slug}`,
+        lastModified: c.updated_at ? new Date(c.updated_at) : now,
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      }),
+    )
+
+    const eventRoutes: MetadataRoute.Sitemap = (events ?? []).map((e) => ({
+      url: `${siteUrl}/events/${e.slug}`,
+      lastModified: e.updated_at ? new Date(e.updated_at) : now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.6,
+    }))
+
     return [
       ...staticRoutes,
       ...productRoutes,
       ...postRoutes,
       ...categoryRoutes,
+      ...collectionRoutes,
+      ...eventRoutes,
     ]
   } catch {
     return staticRoutes

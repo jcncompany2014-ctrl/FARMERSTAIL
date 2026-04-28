@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import PublicPageShell from '@/components/PublicPageShell'
+import AuthAwareShell from "@/components/AuthAwareShell"
 import LegalDocument, {
   Article,
   OL,
@@ -27,7 +27,7 @@ const EFFECTIVE_DATE = '2026-04-22'
  */
 export default function TermsPage() {
   return (
-    <PublicPageShell>
+    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--bg)" }}>
       <LegalDocument
         eyebrow="Terms of Service"
         title="이용약관"
@@ -340,6 +340,6 @@ export default function TermsPage() {
           </p>
         </Article>
       </LegalDocument>
-    </PublicPageShell>
+    </div></AuthAwareShell>
   )
 }

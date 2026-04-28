@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { Star, ThumbsUp, MessageSquare, BadgeCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -72,6 +73,22 @@ export default function ProductReviews({ productId }: { productId: string }) {
   const [pending, setPending] = useState<string | null>(null)
   const [sort, setSort] = useState<SortKey>('latest')
   const [lightbox, setLightbox] = useState<string | null>(null)
+
+  // 라이트박스 열려 있을 때 ESC 로 닫기 + body scroll lock.
+  // backdrop 클릭 닫기는 이미 구현돼 있음 — ESC 는 키보드 사용자용 탈출구.
+  useEffect(() => {
+    if (!lightbox) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setLightbox(null)
+    }
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [lightbox])
 
   useEffect(() => {
     let mounted = true
@@ -227,21 +244,21 @@ export default function ProductReviews({ productId }: { productId: string }) {
   return (
     <section
       id="reviews"
-      className="rounded-2xl px-5 py-5 mb-3"
+      className="rounded-2xl px-5 py-5 md:px-7 md:py-7 mb-3"
       style={{
         background: 'var(--bg-2)',
         boxShadow: 'inset 0 0 0 1px var(--rule)',
       }}
     >
       {/* 헤더 */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 md:mb-5">
         <span className="kicker">Reviews · 리뷰</span>
         <div
           className="flex-1 h-px"
           style={{ background: 'var(--rule-2)' }}
         />
         <span
-          className="text-[11px] font-semibold"
+          className="text-[11px] md:text-[13px] font-semibold"
           style={{ color: 'var(--muted)' }}
         >
           {count}개
@@ -288,42 +305,41 @@ export default function ProductReviews({ productId }: { productId: string }) {
         <>
           {/* Summary */}
           <div
-            className="flex items-center gap-5 pb-4"
+            className="flex items-center gap-5 md:gap-8 pb-4 md:pb-5"
             style={{ borderBottom: '1px solid var(--rule-2)' }}
           >
             <div className="text-center shrink-0">
               <div
-                className="font-serif font-black leading-none"
+                className="font-serif font-black leading-none text-[36px] md:text-[48px]"
                 style={{
-                  fontSize: 36,
                   color: 'var(--terracotta)',
                   letterSpacing: '-0.02em',
                 }}
               >
                 {avg?.toFixed(1) ?? '—'}
               </div>
-              <div className="mt-2">
+              <div className="mt-2 md:mt-3">
                 <Stars value={avg ?? 0} size={12} />
               </div>
             </div>
-            <div className="flex-1 space-y-1">
+            <div className="flex-1 space-y-1 md:space-y-1.5">
               {[5, 4, 3, 2, 1].map((n) => {
                 const c = distribution[n] ?? 0
                 const pct = count > 0 ? (c / count) * 100 : 0
                 return (
                   <div
                     key={n}
-                    className="flex items-center gap-2 text-[10px]"
+                    className="flex items-center gap-2 md:gap-3 text-[10px] md:text-[11.5px]"
                     style={{ color: 'var(--muted)' }}
                   >
                     <span
-                      className="w-3 font-bold"
+                      className="w-3 md:w-4 font-bold"
                       style={{ color: 'var(--text)' }}
                     >
                       {n}
                     </span>
                     <div
-                      className="flex-1 h-1.5 rounded-full overflow-hidden"
+                      className="flex-1 h-1.5 md:h-2 rounded-full overflow-hidden"
                       style={{ background: 'var(--bg)' }}
                     >
                       <div
@@ -334,46 +350,88 @@ export default function ProductReviews({ productId }: { productId: string }) {
                         }}
                       />
                     </div>
-                    <span className="w-6 text-right">{c}</span>
+                    <span className="w-6 md:w-8 text-right">{c}</span>
                   </div>
                 )
               })}
             </div>
           </div>
 
-          {/* Sort chips */}
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            {([
+          {/* Sort chips — count 노출. 사진 리뷰는 별도 강조 색. */}
+          {(() => {
+            const photoCount = reviews.filter(
+              (r) => r.image_urls && r.image_urls.length > 0,
+            ).length
+            const topCount = reviews.filter((r) => r.rating === 5).length
+            const opts: {
+              k: SortKey
+              label: string
+              count?: number
+              accent?: 'terracotta' | 'gold'
+            }[] = [
               { k: 'latest', label: '최신순' },
               { k: 'helpful', label: '도움 많은 순' },
-              { k: 'photo', label: '사진 리뷰' },
-              { k: 'top', label: '⭐ 5점만' },
-            ] as { k: SortKey; label: string }[]).map((opt) => {
-              const active = sort === opt.k
-              return (
-                <button
-                  key={opt.k}
-                  type="button"
-                  onClick={() => setSort(opt.k)}
-                  className="px-2.5 py-1 rounded-full text-[10px] font-bold transition active:scale-95"
-                  style={{
-                    color: active ? 'var(--terracotta)' : 'var(--muted)',
-                    background: active
-                      ? 'color-mix(in srgb, var(--terracotta) 8%, transparent)'
-                      : 'var(--bg)',
-                    boxShadow: active
-                      ? 'inset 0 0 0 1px var(--terracotta)'
-                      : 'inset 0 0 0 1px var(--rule-2)',
-                  }}
-                >
-                  {opt.label}
-                </button>
-              )
-            })}
-          </div>
+              {
+                k: 'photo',
+                label: '포토 리뷰',
+                count: photoCount,
+                accent: 'terracotta',
+              },
+              {
+                k: 'top',
+                label: '⭐ 5점만',
+                count: topCount,
+                accent: 'gold',
+              },
+            ]
+            return (
+              <div className="mt-4 md:mt-5 flex flex-wrap gap-1.5 md:gap-2">
+                {opts.map((opt) => {
+                  const active = sort === opt.k
+                  const accentColor =
+                    opt.accent === 'gold'
+                      ? 'var(--gold)'
+                      : 'var(--terracotta)'
+                  return (
+                    <button
+                      key={opt.k}
+                      type="button"
+                      onClick={() => setSort(opt.k)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 md:px-3.5 md:py-1.5 rounded-full text-[10px] md:text-[12px] font-bold transition active:scale-95"
+                      style={{
+                        color: active
+                          ? opt.accent
+                            ? accentColor
+                            : 'var(--terracotta)'
+                          : 'var(--muted)',
+                        background: active
+                          ? `color-mix(in srgb, ${
+                              opt.accent ? accentColor : 'var(--terracotta)'
+                            } 8%, transparent)`
+                          : 'var(--bg)',
+                        boxShadow: active
+                          ? `inset 0 0 0 1px ${opt.accent ? accentColor : 'var(--terracotta)'}`
+                          : 'inset 0 0 0 1px var(--rule-2)',
+                      }}
+                    >
+                      {opt.label}
+                      {typeof opt.count === 'number' && opt.count > 0 && (
+                        <span
+                          className="tabular-nums"
+                          style={{ opacity: active ? 1 : 0.6 }}
+                        >
+                          {opt.count}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })()}
 
           {/* Reviews list */}
-          <ul className="mt-4 space-y-4">
+          <ul className="mt-4 md:mt-6 space-y-4 md:space-y-6">
             {visibleReviews.length === 0 && (
               <li className="py-6 text-center text-[11px] text-muted">
                 조건에 맞는 리뷰가 없어요
@@ -441,7 +499,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
                   </div>
                   {r.title && (
                     <h3
-                      className="font-serif mt-2 text-[13px] font-black leading-snug"
+                      className="font-serif mt-2 md:mt-3 text-[13px] md:text-[16px] font-black leading-snug"
                       style={{
                         color: 'var(--ink)',
                         letterSpacing: '-0.01em',
@@ -451,26 +509,27 @@ export default function ProductReviews({ productId }: { productId: string }) {
                     </h3>
                   )}
                   <p
-                    className="mt-1 text-[12px] leading-relaxed whitespace-pre-line"
+                    className="mt-1 md:mt-1.5 text-[12px] md:text-[14px] leading-relaxed whitespace-pre-line"
                     style={{ color: 'var(--text)' }}
                   >
                     {r.content}
                   </p>
                   {r.image_urls.length > 0 && (
-                    <div className="mt-2.5 flex gap-1.5 overflow-x-auto scrollbar-hide">
+                    <div className="mt-2.5 md:mt-3.5 flex gap-1.5 md:gap-2 overflow-x-auto scrollbar-hide">
                       {r.image_urls.map((url) => (
                         <button
                           key={url}
                           type="button"
                           onClick={() => setLightbox(url)}
-                          className="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-bg border border-rule active:scale-95 transition"
+                          className="relative shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-lg overflow-hidden bg-bg border border-rule active:scale-95 transition"
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
+                          <Image
                             src={url}
                             alt="리뷰 사진"
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="(max-width: 768px) 80px, 96px"
                             loading="lazy"
+                            className="object-cover"
                           />
                         </button>
                       ))}
@@ -479,7 +538,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
                   <button
                     onClick={() => toggleHelpful(r.id)}
                     disabled={pending === r.id}
-                    className="mt-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition active:scale-95"
+                    className="mt-2.5 md:mt-3.5 inline-flex items-center gap-1 md:gap-1.5 px-2.5 py-1 md:px-3.5 md:py-1.5 rounded-full text-[10px] md:text-[12px] font-bold transition active:scale-95"
                     style={{
                       color: liked ? 'var(--terracotta)' : 'var(--muted)',
                       background: liked
@@ -491,7 +550,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
                     }}
                   >
                     <ThumbsUp
-                      className="w-3 h-3"
+                      className="w-3 h-3 md:w-3.5 md:h-3.5"
                       strokeWidth={liked ? 2.5 : 2}
                     />
                     도움이 돼요{' '}

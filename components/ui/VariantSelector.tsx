@@ -43,8 +43,8 @@ export function VariantSelector({
       <div
         className={cn(
           layout === 'tiles'
-            ? 'grid grid-cols-2 gap-2'
-            : 'flex flex-wrap gap-2',
+            ? 'grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3'
+            : 'flex flex-wrap gap-2 md:gap-2.5',
         )}
       >
         {actives.map((v) => {
@@ -66,8 +66,8 @@ export function VariantSelector({
               className={cn(
                 'relative text-left transition active:scale-[0.99]',
                 layout === 'tiles'
-                  ? 'rounded-xl border px-3 py-2.5'
-                  : 'rounded-full border px-3 py-1.5',
+                  ? 'rounded-xl border px-3 py-2.5 md:px-4 md:py-3.5'
+                  : 'rounded-full border px-3 py-1.5 md:px-4 md:py-2',
                 // 선택 상태
                 selected
                   ? 'bg-ink text-bg border-ink'
@@ -80,16 +80,16 @@ export function VariantSelector({
                 <div className="flex flex-col">
                   <span
                     className={cn(
-                      'text-[12px] font-bold leading-tight',
+                      'text-[12px] md:text-[14px] font-bold leading-tight',
                       selected ? 'text-bg' : 'text-text',
                     )}
                   >
                     {v.name}
                   </span>
-                  <div className="mt-1 flex items-baseline gap-1">
+                  <div className="mt-1 md:mt-1.5 flex items-baseline gap-1">
                     <span
                       className={cn(
-                        'text-[11px] font-bold',
+                        'text-[11px] md:text-[13px] font-bold',
                         selected ? 'text-bg' : 'text-terracotta',
                       )}
                     >
@@ -98,7 +98,7 @@ export function VariantSelector({
                     {state === 'low' && !out && (
                       <span
                         className={cn(
-                          'text-[9px] font-bold',
+                          'text-[9px] md:text-[10px] font-bold',
                           selected ? 'text-bg/70' : 'text-sale',
                         )}
                       >
@@ -106,17 +106,17 @@ export function VariantSelector({
                       </span>
                     )}
                     {out && (
-                      <span className="text-[9px] font-bold text-muted">
+                      <span className="text-[9px] md:text-[10px] font-bold text-muted">
                         품절
                       </span>
                     )}
                   </div>
                 </div>
               ) : (
-                <span className="text-[11px] font-bold inline-flex items-center gap-1.5">
+                <span className="text-[11px] md:text-[13px] font-bold inline-flex items-center gap-1.5">
                   {v.name}
                   {out && (
-                    <span className="text-[9px] font-bold text-muted">품절</span>
+                    <span className="text-[9px] md:text-[10px] font-bold text-muted">품절</span>
                   )}
                 </span>
               )}
