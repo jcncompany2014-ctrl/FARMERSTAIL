@@ -2,16 +2,10 @@
  * 사업자 정보 — single source of truth.
  *
  * 전자상거래법 제10조 / 개인정보보호법 제26조에서 요구하는 필수 표기
- * 항목을 환경변수로 주입하고, 세팅 전에는 플레이스홀더로 대체한다.
- * 실제 값은 `.env.local` 또는 Vercel Project Settings > Environment
- * Variables에 채워 넣는다.
+ * 항목. 운영 정보는 환경변수로 주입할 수도 있지만 (NEXT_PUBLIC_*),
+ * 변경이 드문 회사 메타라 아래 const 에 직접 박는 게 단순.
  *
- * 클라이언트 컴포넌트(푸터)에서도 참조하기 때문에 모두
- * NEXT_PUBLIC_ 접두사를 쓴다. 공개가 법적으로 요구되는 정보라서
- * 노출되어도 무방하다.
- *
- * 값이 비어 있으면 `(등록 예정)`이 렌더링되므로, 런칭 직전
- * 체크리스트에서 이 필드들을 반드시 채웠는지 확인해야 한다.
+ * 통신판매업 신고번호는 신고 후 받은 정식 번호로 교체 필수.
  */
 
 type BusinessInfo = {
@@ -44,36 +38,18 @@ type BusinessInfo = {
 
 const placeholder = '(등록 예정)'
 
-function read(
-  envKey: keyof NodeJS.ProcessEnv,
-  fallback: string = placeholder
-): string {
-  const raw = process.env[envKey]
-  if (!raw || !raw.trim()) return fallback
-  return raw.trim()
-}
-
 export const business: BusinessInfo = {
-  companyName: read(
-    'NEXT_PUBLIC_BUSINESS_COMPANY_NAME',
-    '파머스테일 (Farmer\'s Tail)'
-  ),
-  brandName: "파머스테일",
-  ceo: read('NEXT_PUBLIC_BUSINESS_CEO'),
-  businessNumber: read('NEXT_PUBLIC_BUSINESS_NUMBER'),
-  mailOrderNumber: read('NEXT_PUBLIC_BUSINESS_MAIL_ORDER_NUMBER'),
-  address: read('NEXT_PUBLIC_BUSINESS_ADDRESS'),
-  phone: read('NEXT_PUBLIC_BUSINESS_PHONE', '1644-0000'),
-  email: read('NEXT_PUBLIC_BUSINESS_EMAIL', 'support@farmerstail.com'),
-  kakaoChannelUrl: (() => {
-    const raw = process.env.NEXT_PUBLIC_KAKAO_CHANNEL_URL
-    return raw && raw.trim() ? raw.trim() : null
-  })(),
-  privacyOfficer: read('NEXT_PUBLIC_BUSINESS_PRIVACY_OFFICER'),
-  privacyOfficerEmail: read(
-    'NEXT_PUBLIC_BUSINESS_PRIVACY_OFFICER_EMAIL',
-    'privacy@farmerstail.com'
-  ),
+  companyName: "(주)Farmer's Tail",
+  brandName: '파머스테일',
+  ceo: '안성민, 이준호',
+  businessNumber: '243-06-03606',
+  mailOrderNumber: placeholder, // 통신판매업 신고 완료 후 'XXXX-인천연수-XXXX호' 형식으로 교체
+  address: '인천광역시 연수구 송도동 171, 121호',
+  phone: '070-4066-1333',
+  email: 'story@farmerstail.kr',
+  kakaoChannelUrl: null, // 카카오 채널 만들면 'https://pf.kakao.com/_xxxxx/chat' 로 교체
+  privacyOfficer: '안성민, 이준호',
+  privacyOfficerEmail: 'story@farmerstail.kr',
   hostingProvider: 'Vercel Inc. / Supabase Inc.',
 }
 
