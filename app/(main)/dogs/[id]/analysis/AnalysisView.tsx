@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -19,7 +19,6 @@ import {
   LineChart,
   Scale,
   Minus,
-  Sparkles,
   Share2,
   History,
 } from 'lucide-react'
@@ -84,14 +83,7 @@ export default function AnalysisView({
   const [history, setHistory] = useState<HistoryPoint[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [commentary, setCommentary] = useState<string | null>(null)
-  const [commentaryState, setCommentaryState] = useState<
-    'idle' | 'loading' | 'ok' | 'unavailable' | 'error'
-  >('idle')
-  // Guard against double-fetching when effect re-runs (StrictMode, re-renders).
-  // We track the analysis id we last requested commentary for; the effect
-  // itself stays pure — no setState in its synchronous body.
-  const commentaryFetchedRef = useRef<string | null>(null)
+  // Legacy commentary fetch 는 StructuredAnalysis v2 가 대체. 상태 변수는 제거.
 
   useEffect(() => {
     async function load() {
@@ -143,7 +135,6 @@ export default function AnalysisView({
       }
 
       setAnalysis(target)
-      setCommentary(target.commentary ?? null)
 
       // For the trend chart: everything up to and including the target
       // (so older detail views show the timeline state as of that reading).
@@ -166,43 +157,7 @@ export default function AnalysisView({
     load()
   }, [dogId, analysisId, router, supabase])
 
-  // Lazy-generate AI commentary if not yet persisted.
-  // 'idle' doubles as the loading state (the consumer already treats
-  // idle|loading identically), so we can skip the synchronous transition
-  // in the effect body and only write terminal states from the async task.
-  useEffect(() => {
-    if (!analysis || commentary) return
-    if (commentaryFetchedRef.current === analysis.id) return
-    commentaryFetchedRef.current = analysis.id
-
-    let cancelled = false
-    ;(async () => {
-      try {
-        const res = await fetch('/api/analysis/commentary', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ analysisId: analysis.id }),
-        })
-        const data = await res.json()
-        if (cancelled) return
-        if (res.status === 503 || data?.code === 'API_KEY_MISSING') {
-          setCommentaryState('unavailable')
-          return
-        }
-        if (!res.ok || !data?.commentary) {
-          setCommentaryState('error')
-          return
-        }
-        setCommentary(data.commentary)
-        setCommentaryState('ok')
-      } catch {
-        if (!cancelled) setCommentaryState('error')
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [analysis, commentary])
+  // Legacy commentary fetch effect 는 StructuredAnalysis v2 가 대체. 제거.
 
   if (loading)
     return (
@@ -282,13 +237,9 @@ export default function AnalysisView({
               {analysis.bcs_label}
             </span>
           </div>
-          <a
-            href="#commentary"
-            className="text-[10px] font-bold text-terracotta inline-flex items-center gap-0.5"
-          >
-            코멘트
-            <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
-          </a>
+          <span className="text-[10px] font-bold text-muted">
+            {analysisDate}
+          </span>
         </div>
       </div>
 
@@ -389,52 +340,7 @@ export default function AnalysisView({
         </div>
       </section>
 
-      {/* AI 코멘트 */}
-      {commentaryState !== 'unavailable' && (
-        <section id="commentary" className="px-5 mt-3 scroll-mt-16">
-          <div className="bg-gradient-to-br from-bg to-white rounded-2xl border border-rule p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-full bg-text flex items-center justify-center">
-                <Sparkles
-                  className="w-3.5 h-3.5 text-gold"
-                  strokeWidth={2}
-                />
-              </div>
-              <div>
-                <span className="kicker" style={{ fontSize: 9 }}>
-                  AI Consultant · AI 컨설턴트
-                </span>
-                <div
-                  className="font-serif mt-0.5 leading-none"
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: 'var(--ink)',
-                    letterSpacing: '-0.015em',
-                  }}
-                >
-                  {dog.name}에게 드리는 한마디
-                </div>
-              </div>
-            </div>
-            {commentary ? (
-              <p className="text-[12.5px] text-text leading-[1.7] whitespace-pre-wrap">
-                {commentary}
-              </p>
-            ) : commentaryState === 'loading' || commentaryState === 'idle' ? (
-              <div className="space-y-2">
-                <div className="h-2.5 rounded-full bg-rule animate-pulse w-[95%]" />
-                <div className="h-2.5 rounded-full bg-rule animate-pulse w-[88%]" />
-                <div className="h-2.5 rounded-full bg-rule animate-pulse w-[75%]" />
-              </div>
-            ) : (
-              <p className="text-[11px] text-muted leading-relaxed">
-                코멘트를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
-              </p>
-            )}
-          </div>
-        </section>
-      )}
+      {/* 레거시 AI 코멘트 (3-4문장) 는 StructuredAnalysis v2 가 대체. 제거. */}
 
       {/* 추이 */}
       <section className="px-5 mt-3">

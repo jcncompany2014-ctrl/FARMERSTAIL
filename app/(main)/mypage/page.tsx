@@ -18,12 +18,19 @@ import {
   Ticket,
   UserPlus,
   Mail,
+  HelpCircle,
+  FileText,
+  RotateCcw,
+  Shield,
+  Building,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type Profile = {
   name: string | null
   phone: string | null
+  tier?: string | null
+  cumulative_spend?: number | null
 }
 
 export default function MyPage() {
@@ -46,7 +53,7 @@ export default function MyPage() {
 
       const { data: prof } = await supabase
         .from('profiles')
-        .select('name, phone')
+        .select('name, phone, tier, cumulative_spend')
         .eq('id', user.id)
         .single()
       if (prof) setProfile(prof)
@@ -112,9 +119,12 @@ export default function MyPage() {
         </h1>
       </section>
 
-      {/* 프로필 카드 */}
+      {/* 프로필 카드 — 클릭 시 /account/profile 로 이동 (이름/연락처/생일/등급/비밀번호 변경) */}
       <section className="px-5 mt-4">
-        <div className="bg-white rounded-2xl border border-rule px-5 py-5">
+        <Link
+          href="/account/profile"
+          className="block bg-white rounded-2xl border border-rule px-5 py-5 active:scale-[0.99] transition"
+        >
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-bg flex items-center justify-center">
               <User
@@ -123,15 +133,24 @@ export default function MyPage() {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-bold text-text truncate">
-                {displayName}님
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="text-[14px] font-bold text-text truncate">
+                  {displayName}님
+                </div>
+                {profile?.tier && (
+                  <TierChip tier={profile.tier} />
+                )}
               </div>
               <div className="text-[11px] text-muted truncate mt-0.5">
                 {email ?? '—'}
               </div>
+              <div className="text-[10px] text-terracotta font-bold mt-1">
+                내 프로필 / 등급 / 비밀번호 →
+              </div>
             </div>
+            <ChevronRight className="w-4 h-4 text-muted shrink-0" strokeWidth={2} />
           </div>
-        </div>
+        </Link>
       </section>
 
       {/* 포인트 하이라이트 — ink 배경 + kicker-gold */}
@@ -235,13 +254,8 @@ export default function MyPage() {
         <MenuItem href="/dogs" Icon={Dog} label="내 아이들" last />
       </MenuGroup>
 
-      {/* 그룹 4: 설정 */}
+      {/* 그룹 4: 설정 — 프로필은 상단 카드에서 진입 (중복 제거) */}
       <MenuGroup kicker="Settings · 설정" className="mt-5">
-        <MenuItem
-          href="/account/profile"
-          Icon={User}
-          label="내 프로필 (이름·생일)"
-        />
         <MenuItem
           href="/mypage/notifications"
           Icon={Bell}
@@ -253,6 +267,16 @@ export default function MyPage() {
           label="광고 수신 설정"
           last
         />
+      </MenuGroup>
+
+      {/* 그룹 5: 고객지원 / 약관 — 앱 footer 숨김 대신 여기서 reachable */}
+      <MenuGroup kicker="Support · 고객지원 & 약관" className="mt-5">
+        <MenuItem href="/business" Icon={HelpCircle} label="고객센터" />
+        <MenuItem href="/faq" Icon={FileText} label="자주 묻는 질문" />
+        <MenuItem href="/legal/refund" Icon={RotateCcw} label="환불 정책" />
+        <MenuItem href="/legal/terms" Icon={FileText} label="이용약관" />
+        <MenuItem href="/legal/privacy" Icon={Shield} label="개인정보처리방침" />
+        <MenuItem href="/business" Icon={Building} label="사업자 정보" last />
       </MenuGroup>
 
       {/* 로그아웃 */}
@@ -276,6 +300,27 @@ export default function MyPage() {
         </Link>
       </section>
     </main>
+  )
+}
+
+/**
+ * 등급 chip — 프로필 카드에 인라인. 등급별 색은 lib/tiers.ts 와 일치.
+ */
+function TierChip({ tier }: { tier: string }) {
+  const meta: Record<string, { label: string; bg: string; ink: string }> = {
+    bronze: { label: 'BRONZE', bg: '#C49A6C', ink: '#FFFFFF' },
+    silver: { label: 'SILVER', bg: '#A8A8AE', ink: '#1E1A14' },
+    gold: { label: 'GOLD', bg: '#D4A94A', ink: '#1E1A14' },
+    vip: { label: 'VIP', bg: '#1E1A14', ink: '#D4A94A' },
+  }
+  const m = meta[tier] ?? meta.bronze
+  return (
+    <span
+      className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded font-mono"
+      style={{ background: m.bg, color: m.ink, letterSpacing: '0.04em' }}
+    >
+      {m.label}
+    </span>
   )
 }
 

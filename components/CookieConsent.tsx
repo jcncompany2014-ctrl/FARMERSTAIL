@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { Cookie, Check, X, ChevronDown, ChevronUp } from 'lucide-react'
 import {
@@ -9,6 +9,23 @@ import {
   COOKIE_STORAGE_KEY,
   type CookieConsent as Consent,
 } from '@/lib/cookies'
+
+/**
+ * 앱 컨텍스트(`ft_app=1` 쿠키) 감지 — 클라이언트에서 document.cookie 검사.
+ * 앱 사용자에겐 별도 쿠키 동의 배너가 뜨지 않는다 — signup / 설치 단계에서
+ * 약관 동의를 이미 받았다고 가정. 첫 진입 시에는 자동으로 "필수만 허용"
+ * (분석/마케팅 false) 로 기록해 다음 방문에 배너가 다시 안 뜨게.
+ */
+function useIsAppContext(): boolean {
+  const [isApp, setIsApp] = useState(false)
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const cookies = document.cookie.split(';').map((c) => c.trim())
+    const flag = cookies.some((c) => c.startsWith('ft_app=1'))
+    setIsApp(flag)
+  }, [])
+  return isApp
+}
 
 /**
  * "동의 변경" / "재설정" 이벤트를 subscribe 해서 현재 동의 상태를 useSyncExternalStore
@@ -73,9 +90,19 @@ export default function CookieConsent() {
   const [expanded, setExpanded] = useState(false)
   const [analytics, setAnalytics] = useState(true)
   const [marketing, setMarketing] = useState(true)
+  const isApp = useIsAppContext()
 
-  // 이미 결정했으면 렌더링 생략 (SSR 에서는 항상 null 이라 배너 하이드레이션 됨).
+  // 앱 컨텍스트에서 첫 진입 시 자동으로 "필수만 허용" 으로 기록해 배너 노출
+  // 안 함. 이미 정해진 consent 가 있으면 그대로 유지.
+  useEffect(() => {
+    if (isApp && consent === null) {
+      writeConsent({ analytics: false, marketing: false })
+    }
+  }, [isApp, consent])
+
+  // 이미 결정했으면 렌더링 생략. 앱이면 배너 자체를 안 보여줌.
   if (consent !== null) return null
+  if (isApp) return null
 
   function save(a: boolean, m: boolean) {
     writeConsent({ analytics: a, marketing: m })

@@ -5,6 +5,8 @@ import { ChevronRight, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import ProfileForm from '@/components/account/ProfileForm'
+import PasswordChangeButton from '@/components/account/PasswordChangeButton'
+import TierBadge from '@/components/account/TierBadge'
 import { isAppContextServer } from '@/lib/app-context'
 
 /**
@@ -38,7 +40,7 @@ export default async function ProfileEditPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('name, phone, birth_year, birth_month, birth_day, agree_email')
+    .select('name, phone, birth_year, birth_month, birth_day, agree_email, tier, cumulative_spend')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -101,6 +103,19 @@ export default async function ProfileEditPage() {
           </p>
         </section>
 
+        {/* 등급 카드 */}
+        <section className="px-5 md:px-8 pb-2">
+          <TierBadge
+            tier={
+              (profile as { tier?: string | null } | null)?.tier ?? 'bronze'
+            }
+            cumulativeSpend={
+              (profile as { cumulative_spend?: number | null } | null)
+                ?.cumulative_spend ?? 0
+            }
+          />
+        </section>
+
         <section className="px-5 md:px-8">
           <div
             className="rounded-2xl p-5 md:p-7"
@@ -118,6 +133,33 @@ export default async function ProfileEditPage() {
                 birth_day: profile?.birth_day ?? null,
               }}
             />
+          </div>
+
+          {/* 비밀번호 변경 — 별도 카드. 직접 update 가 아니라 reset 메일 발송. */}
+          <div
+            className="mt-4 rounded-2xl p-5"
+            style={{
+              background: 'var(--bg-2)',
+              boxShadow: 'inset 0 0 0 1px var(--rule)',
+            }}
+          >
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <div
+                  className="text-[12px] font-bold"
+                  style={{ color: 'var(--ink)' }}
+                >
+                  비밀번호 변경
+                </div>
+                <p
+                  className="text-[11px] mt-1 leading-relaxed"
+                  style={{ color: 'var(--muted)' }}
+                >
+                  가입 이메일 ({user.email}) 로 재설정 링크를 보내드려요.
+                </p>
+              </div>
+            </div>
+            <PasswordChangeButton email={user.email ?? ''} />
           </div>
 
           {!profile?.agree_email && (

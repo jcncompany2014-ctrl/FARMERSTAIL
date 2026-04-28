@@ -26,7 +26,6 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import InstallPrompt from '@/components/InstallPrompt'
-import SiteFooter from '@/components/SiteFooter'
 import ChromeStamp from '@/components/ChromeStamp'
 import MiniCartToast from '@/components/products/MiniCartToast'
 import { WishlistProvider } from '@/components/products/WishlistContext'
@@ -224,9 +223,10 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       {/* 페이지 컨텐츠 */}
       <main className="max-w-md mx-auto pb-[calc(88px+env(safe-area-inset-bottom))]">
         {children}
-        {/* 법정 필수 표기 푸터 — 모든 내부 페이지 공통.
-            하단 고정 탭바 위로 스크롤돼 올라오도록 <main> 안에 둔다. */}
-        <SiteFooter />
+        {/* 앱 컨텍스트는 SiteFooter 숨김 — 사업자 정보 / 약관 / 환불정책 등은
+            마이페이지 메뉴에서 진입. 매 페이지 하단에 노출되면 한국 앱 사용자
+            UX 와 어긋남 (다른 앱들도 노출 안 함). 법적 표기는 /business,
+            /legal/* 페이지 + 마이페이지 메뉴로 충분히 reachable. */}
       </main>
 
       {/* PWA 설치 프롬프트 — 스마트하게 한 번만 노출 */}
