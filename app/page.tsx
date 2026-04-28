@@ -277,7 +277,7 @@ function ArrowGlyph({ width = 16, height = 10 }: { width?: number; height?: numb
 // ---------------------------------------------------------------------------
 
 
-function Hero() {
+function Hero({ isAuthed = false }: { isAuthed?: boolean }) {
   return (
     <section
       className="grain grain-soft fiber"
@@ -359,8 +359,9 @@ function Hero() {
 
       {/* CTAs — 모바일은 세로 stack, 데스크톱은 가로 정렬 + 큰 버튼 */}
       <div className="px-5 md:px-6 pt-3.5 md:pt-6 pb-4 md:pb-8 flex flex-col md:flex-row gap-2 md:gap-3 md:max-w-xl">
+        {/* 로그인된 사용자는 가입 대신 분석 시작으로. 비로그인은 회원가입. */}
         <Link
-          href="/signup"
+          href={isAuthed ? '/dogs/new' : '/signup'}
           className="inline-flex items-center justify-center gap-2.5 h-[52px] md:h-[60px] px-5 md:px-7 rounded-xl font-semibold text-[15px] md:text-[16.5px] no-underline w-full md:flex-1"
           style={{
             border: '1px solid transparent',
@@ -368,7 +369,7 @@ function Hero() {
             color: 'var(--bg)',
           }}
         >
-          무료로 시작하기
+          {isAuthed ? '맞춤 분석 시작' : '무료로 시작하기'}
           <ArrowGlyph />
         </Link>
         <Link
@@ -1060,7 +1061,7 @@ function SocialProof() {
   )
 }
 
-function BrandStory() {
+function BrandStory({ isAuthed = false }: { isAuthed?: boolean }) {
   const stats = [
     { n: '100%', label: '사람이 먹는 등급', sub: 'HUMAN-GRADE' },
     { n: '0', label: '첨가물 · 보존료', sub: 'ADDITIVES' },
@@ -1198,14 +1199,14 @@ function BrandStory() {
 
       <div className="px-5 md:px-12 pt-8 md:pt-12 pb-[72px] md:pb-24 md:max-w-md">
         <Link
-          href="/signup"
+          href={isAuthed ? '/products' : '/signup'}
           className="inline-flex items-center justify-center gap-2.5 h-[52px] md:h-[60px] px-5 md:px-7 rounded-xl font-semibold text-[15px] md:text-[16.5px] no-underline w-full"
           style={{
             background: 'var(--bg)',
             color: 'var(--ink)',
           }}
         >
-          지금 시작하기
+          {isAuthed ? '쇼핑하기' : '지금 시작하기'}
           <ArrowGlyph />
         </Link>
       </div>
@@ -1213,7 +1214,7 @@ function BrandStory() {
   )
 }
 
-function NutritionCTA() {
+function NutritionCTA({ isAuthed = false }: { isAuthed?: boolean }) {
   return (
     <section
       id="analysis"
@@ -1288,7 +1289,7 @@ function NutritionCTA() {
           이번 달 식단을 작성해 드립니다.
         </p>
         <Link
-          href="/signup?from=nutrition"
+          href={isAuthed ? '/dogs/new' : '/signup?from=nutrition'}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -1305,7 +1306,7 @@ function NutritionCTA() {
             width: '100%',
           }}
         >
-          무료 분석 시작하기
+          {isAuthed ? '맞춤 분석 시작' : '무료 분석 시작하기'}
           <ArrowGlyph />
         </Link>
 
@@ -1698,7 +1699,7 @@ function AppInstallBanner() {
   )
 }
 
-function FinalCTA() {
+function FinalCTA({ isAuthed = false }: { isAuthed?: boolean }) {
   return (
     <section
       className="grain grain-heavy"
@@ -1768,7 +1769,7 @@ function FinalCTA() {
           }}
         >
           <Link
-            href="/signup"
+            href={isAuthed ? '/products' : '/signup'}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -1785,7 +1786,7 @@ function FinalCTA() {
               width: '100%',
             }}
           >
-            무료로 시작하기
+            {isAuthed ? '쇼핑 시작하기' : '무료로 시작하기'}
             <ArrowGlyph />
           </Link>
           <div
@@ -2013,7 +2014,7 @@ export default async function LandingPage() {
         {/* 섹션별 max-width 통일 — 1280 단일 기준.
             데스크톱에서 좌우 비대칭/들쭉날쭉 보이는 문제 해결. */}
         <div className="mx-auto" style={{ maxWidth: 1280 }}>
-          <Hero />
+          <Hero isAuthed={isAuthed} />
         </div>
         <div className="mx-auto" style={{ maxWidth: 1280 }}>
           <OngoingEvents events={ongoingEvents} />
@@ -2027,15 +2028,13 @@ export default async function LandingPage() {
         <div className="mx-auto" style={{ maxWidth: 1280 }}>
           <Journey />
           <SocialProof />
-          <BrandStory />
-          <NutritionCTA />
+          <BrandStory isAuthed={isAuthed} />
+          <NutritionCTA isAuthed={isAuthed} />
           <AppInstallBanner />
-          <FinalCTA />
+          <FinalCTA isAuthed={isAuthed} />
           <EditorialFooter />
         </div>
       </main>
-      {/* isAuthed 사용 (린터 안 잡히도록) — 추후 Hero 분기에 활용 가능 */}
-      {isAuthed ? null : null}
     </WebChrome>
   )
 }

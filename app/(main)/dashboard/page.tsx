@@ -892,23 +892,30 @@ export default async function DashboardPage() {
       )}
 
       {/* ── 브랜드 소개 ── */}
-      <section className="px-5 mb-4">
+      {/* 브랜드 stamp — 클릭 가능 카드처럼 보이지 않게, 박스/그림자 없이
+          좌측 얇은 액센트 라인만 두는 editorial 톤. */}
+      <section className="px-6 mt-6 mb-4">
         <div
-          className="bg-white rounded-2xl px-5 py-6"
-          style={{ border: '1px solid var(--rule)' }}
+          className="pl-3"
+          style={{ borderLeft: '2px solid var(--moss)' }}
         >
           <div className="flex items-center gap-2">
             <Leaf
-              className="w-4 h-4"
+              className="w-3 h-3"
               style={{ color: 'var(--moss)' }}
               strokeWidth={1.5}
             />
-            <span className="kicker kicker-moss">Farm to Tail</span>
+            <span
+              className="font-mono text-[9.5px] tracking-[0.2em] uppercase font-bold"
+              style={{ color: 'var(--moss)' }}
+            >
+              Farm to Tail
+            </span>
           </div>
           <p
-            className="font-serif mt-3"
+            className="font-serif mt-2"
             style={{
-              fontSize: 16,
+              fontSize: 14.5,
               fontWeight: 800,
               color: 'var(--ink)',
               letterSpacing: '-0.015em',
@@ -917,7 +924,7 @@ export default async function DashboardPage() {
             농장에서 꼬리까지.
           </p>
           <p
-            className="text-[11px] mt-2 leading-relaxed"
+            className="text-[10.5px] mt-1.5 leading-relaxed"
             style={{ color: 'var(--muted)' }}
           >
             수의영양학 기반 레시피로 만든 프리미엄 반려견 식품. 건강한 매일을

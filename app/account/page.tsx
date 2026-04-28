@@ -19,6 +19,7 @@ import AuthAwareShell from '@/components/AuthAwareShell'
 import LogoutButton from '@/components/account/LogoutButton'
 import WelcomeCouponBanner from '@/components/account/WelcomeCouponBanner'
 import TierBadge from '@/components/account/TierBadge'
+import { isAppContextServer } from '@/lib/app-context'
 
 /**
  * /account — 웹 사용자용 마이페이지 hub.
@@ -54,6 +55,7 @@ type SectionItem = {
 }
 
 export default async function AccountPage() {
+  const isApp = await isAppContextServer()
   const supabase = await createClient()
   const {
     data: { user },
@@ -211,7 +213,8 @@ export default async function AccountPage() {
         </div>
       </section>
 
-      {/* 앱 전용 안내 */}
+      {/* 앱 전용 안내 — 앱에서는 이미 다 가능하니 웹에서만 노출 */}
+      {!isApp && (
       <section className="px-5 md:px-8 mt-8 md:mt-12">
         <div
           className="rounded-2xl px-5 py-5 md:px-8 md:py-7"
@@ -283,6 +286,7 @@ export default async function AccountPage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* 로그아웃 */}
       <section className="px-5 md:px-8 mt-6 md:mt-10">

@@ -4,7 +4,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import AuthAwareShell from '@/components/AuthAwareShell'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   getEventBySlug,
@@ -150,7 +149,6 @@ export default async function EventDetailPage({ params }: PageProps) {
   const dateRange = formatEventDateRange(event.startsAt, event.endsAt)
 
   return (
-    <AuthAwareShell>
     <main className="pb-14 md:pb-20 mx-auto" style={{ background: 'var(--bg)', maxWidth: 880 }}>
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section
@@ -458,6 +456,5 @@ export default async function EventDetailPage({ params }: PageProps) {
         </Link>
       </section>
     </main>
-    </AuthAwareShell>
   )
 }

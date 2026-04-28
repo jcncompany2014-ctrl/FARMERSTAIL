@@ -5,6 +5,7 @@ import { ChevronRight, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import ProfileForm from '@/components/account/ProfileForm'
+import { isAppContextServer } from '@/lib/app-context'
 
 /**
  * /account/profile — 기본 프로필 편집.
@@ -23,6 +24,12 @@ export const metadata: Metadata = {
 }
 
 export default async function ProfileEditPage() {
+  const isApp = await isAppContextServer()
+  // 앱 사용자는 /mypage hub 에서 진입했으니 뒤로가기/breadcrumb 도 거기로.
+  // 웹 사용자는 /account hub 에서 진입.
+  const backHref = isApp ? '/mypage' : '/account'
+  const backLabel = isApp ? '마이페이지' : '내 계정'
+
   const supabase = await createClient()
   const {
     data: { user },
@@ -43,12 +50,12 @@ export default async function ProfileEditPage() {
       >
         <div className="px-5 md:px-8 pt-4 md:pt-6">
           <Link
-            href="/account"
+            href={backHref}
             className="inline-flex items-center gap-1 text-[11px] md:text-[12px] hover:opacity-70 transition"
             style={{ color: 'var(--muted)' }}
           >
             <ArrowLeft className="w-3 h-3" strokeWidth={2.5} />
-            내 계정
+            {backLabel}
           </Link>
           <nav
             aria-label="현재 위치"
@@ -59,8 +66,8 @@ export default async function ProfileEditPage() {
               홈
             </Link>
             <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
-            <Link href="/account" className="hover:text-terracotta transition">
-              내 계정
+            <Link href={backHref} className="hover:text-terracotta transition">
+              {backLabel}
             </Link>
             <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
             <span style={{ color: 'var(--ink)', fontWeight: 700 }}>프로필</span>

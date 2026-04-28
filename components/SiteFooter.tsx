@@ -25,41 +25,48 @@ export default function SiteFooter() {
       <div className="px-5 py-5 max-w-md mx-auto md:max-w-[1280px] md:px-6 md:py-12">
         {/* 데스크톱 4열 그리드 — 마켓컬리 톤. 모바일은 단일 열 stack. */}
         <div className="md:grid md:grid-cols-4 md:gap-10">
-          {/* 고객 문의 — 외부 채팅 위젯 대신 저비용 패턴: mailto / tel / 카카오. */}
+          {/* 고객 문의 — 박스/배지 형태 대신 인라인 텍스트 + 아이콘 라인업으로 정리.
+              이전: rounded-full bg-white border 박스가 모바일 폭 좁아서 눌림 / 정렬 깨짐.
+              현재: 라벨 + 값 평문 한 줄씩, 클릭 가능한 텍스트만 강조. */}
           <div className="mb-4 md:mb-0">
             <div className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-muted mb-2 md:mb-3">
               고객 문의
             </div>
-            <div className="flex flex-wrap gap-2">
-              <a
-                href={`mailto:${business.email}`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 md:px-3.5 md:py-2 rounded-full bg-white border border-rule text-text text-[11px] md:text-[12px] font-bold hover:border-text transition"
-              >
-                <Mail className="w-3 h-3 md:w-3.5 md:h-3.5" strokeWidth={2.25} />
-                이메일
-              </a>
-              {business.phone && business.phone !== '(등록 예정)' && (
+            <ul className="space-y-1.5 text-[12px] md:text-[13px] leading-relaxed">
+              <li className="flex items-center gap-2">
+                <Mail className="w-3 h-3 text-muted shrink-0" strokeWidth={2} />
                 <a
-                  href={`tel:${business.phone.replace(/[^\d+]/g, '')}`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 md:px-3.5 md:py-2 rounded-full bg-white border border-rule text-text text-[11px] md:text-[12px] font-bold hover:border-text transition"
+                  href={`mailto:${business.email}`}
+                  className="text-text hover:text-terracotta transition"
                 >
-                  <Phone className="w-3 h-3 md:w-3.5 md:h-3.5" strokeWidth={2.25} />
-                  {business.phone}
+                  {business.email}
                 </a>
+              </li>
+              {business.phone && business.phone !== '(등록 예정)' && (
+                <li className="flex items-center gap-2">
+                  <Phone className="w-3 h-3 text-muted shrink-0" strokeWidth={2} />
+                  <a
+                    href={`tel:${business.phone.replace(/[^\d+]/g, '')}`}
+                    className="text-text hover:text-terracotta transition font-mono tabular-nums"
+                  >
+                    {business.phone}
+                  </a>
+                </li>
               )}
               {business.kakaoChannelUrl && (
-                <a
-                  href={business.kakaoChannelUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 md:px-3.5 md:py-2 rounded-full text-[11px] md:text-[12px] font-bold transition"
-                  style={{ background: '#FEE500', color: '#1A1A1A' }}
-                >
-                  <MessageCircle className="w-3 h-3 md:w-3.5 md:h-3.5" strokeWidth={2.25} />
-                  카카오 채널
-                </a>
+                <li className="flex items-center gap-2">
+                  <MessageCircle className="w-3 h-3 text-muted shrink-0" strokeWidth={2} />
+                  <a
+                    href={business.kakaoChannelUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-text hover:text-terracotta transition"
+                  >
+                    카카오 채널
+                  </a>
+                </li>
               )}
-            </div>
+            </ul>
           </div>
 
           {/* Legal nav — 데스크톱 두번째 컬럼 */}

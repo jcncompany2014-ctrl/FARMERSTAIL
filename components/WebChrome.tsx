@@ -150,6 +150,8 @@ export default function WebChrome({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [cartCount, setCartCount] = useState(cartCountProp ?? 0)
+  // 헤더의 마이페이지/로그인 아이콘 분기용. null = 미확인 (서버 렌더 직후), false = 비로그인, true = 로그인
+  const [isAuthed, setIsAuthed] = useState<boolean | null>(null)
   const pathname = usePathname()
   const supabase = createClient()
 
@@ -161,7 +163,12 @@ export default function WebChrome({
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (!mounted || !user) return
+      if (!mounted) return
+      setIsAuthed(!!user)
+      if (!user) {
+        setCartCount(0)
+        return
+      }
       const { data } = await supabase
         .from('cart_items')
         .select('quantity')
@@ -407,25 +414,40 @@ export default function WebChrome({
               />
             </Link>
 
-            <Link
-              href="/cart"
-              aria-label="장바구니"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center"
-            >
-              <ShoppingCart
-                className="w-[22px] h-[22px]"
-                style={{ color: 'var(--ink)' }}
-                strokeWidth={1.75}
-              />
-              {cartCount > 0 && (
-                <span
-                  className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
-                  style={{ background: 'var(--terracotta)' }}
-                >
-                  {cartCount > 99 ? '99+' : cartCount}
-                </span>
-              )}
-            </Link>
+            {/* 우측 액션 그룹: 마이페이지/로그인 + 장바구니. 카트 아이콘 폭에
+                관계없이 로고 중앙 정렬 유지하려고 absolute right 로 묶음. */}
+            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
+              <Link
+                href={isAuthed ? '/account' : '/login?next=/account'}
+                aria-label={isAuthed ? '내 계정' : '로그인'}
+                className="w-10 h-10 flex items-center justify-center"
+              >
+                <User
+                  className="w-[20px] h-[20px]"
+                  style={{ color: 'var(--ink)' }}
+                  strokeWidth={1.75}
+                />
+              </Link>
+              <Link
+                href="/cart"
+                aria-label="장바구니"
+                className="relative w-10 h-10 flex items-center justify-center"
+              >
+                <ShoppingCart
+                  className="w-[22px] h-[22px]"
+                  style={{ color: 'var(--ink)' }}
+                  strokeWidth={1.75}
+                />
+                {cartCount > 0 && (
+                  <span
+                    className="absolute top-1 right-0 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
+                    style={{ background: 'var(--terracotta)' }}
+                  >
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </span>
+                )}
+              </Link>
+            </div>
           </div>
 
           {/* 모바일 검색바 */}
