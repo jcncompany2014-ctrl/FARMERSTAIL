@@ -55,7 +55,7 @@ export default function MyPage() {
         .from('profiles')
         .select('name, phone, tier, cumulative_spend')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
       if (prof) setProfile(prof)
 
       const { count: oCount } = await supabase

@@ -23,6 +23,7 @@ import {
   History,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 import { getAAFCORanges, stageFromKR, type MacroRange } from '@/lib/nutrition'
 import StructuredAnalysis from '@/components/analysis/StructuredAnalysis'
 
@@ -77,6 +78,7 @@ export default function AnalysisView({
 }) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
 
   const [dog, setDog] = useState<Dog | null>(null)
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
@@ -126,7 +128,7 @@ export default function AnalysisView({
       setTotalCount(rows.length)
 
       const target = analysisId
-        ? rows.find((r) => r.id === analysisId) ?? null
+        ? (rows.find((r: { id: string }) => r.id === analysisId) ?? null)
         : rows[0]
 
       if (!target) {
@@ -139,7 +141,13 @@ export default function AnalysisView({
       // For the trend chart: everything up to and including the target
       // (so older detail views show the timeline state as of that reading).
       const targetTime = new Date(target.created_at).getTime()
-      const upToTarget = rows.filter(
+      type AnalysisRow = {
+        id: string
+        created_at: string
+        bcs_score: number | null
+        rer: number
+      }
+      const upToTarget = (rows as AnalysisRow[]).filter(
         (r) => new Date(r.created_at).getTime() <= targetTime
       )
       // Take latest 6 and flip oldest→newest for left-to-right charts.
@@ -294,7 +302,7 @@ export default function AnalysisView({
               await navigator.clipboard.writeText(
                 `${text}\n${shareData.url}`
               )
-              alert('분석 요약을 복사했어요')
+              toast.success('분석 요약을 복사했어요')
             }
           }}
           className="absolute top-0 right-5 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-rule text-[10px] font-bold text-text hover:border-terracotta hover:text-terracotta active:scale-[0.96] transition-all shadow-sm"

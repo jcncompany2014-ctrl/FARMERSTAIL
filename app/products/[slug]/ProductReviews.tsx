@@ -106,7 +106,9 @@ export default function ProductReviews({ productId }: { productId: string }) {
         .limit(50)
 
       // fetch author names separately (profiles.id → auth.users.id, not a direct FK on reviews)
-      const authorIds = Array.from(new Set((rows ?? []).map((r) => r.user_id)))
+      const authorIds = Array.from(
+        new Set(((rows ?? []) as { user_id: string }[]).map((r) => r.user_id))
+      )
       const { data: profRows } =
         authorIds.length > 0
           ? await supabase
@@ -143,9 +145,11 @@ export default function ProductReviews({ productId }: { productId: string }) {
           .eq('user_id', user.id)
           .in(
             'review_id',
-            rows.map((r) => r.id)
+            (rows as { id: string }[]).map((r) => r.id)
           )
-        userHelpful = new Set((likes ?? []).map((l) => l.review_id))
+        userHelpful = new Set(
+          ((likes ?? []) as { review_id: string }[]).map((l) => l.review_id)
+        )
       }
 
       if (!mounted) return

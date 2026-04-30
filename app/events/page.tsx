@@ -7,9 +7,10 @@ import {
   type EventPalette,
 } from '@/lib/events/data'
 
-// DB 에서 이벤트를 읽으므로 페이지는 request-time 렌더. 관리자가 /admin/events
-// 에서 방금 수정한 내용이 곧바로 반영돼야 정상.
-export const dynamic = 'force-dynamic'
+// 1분 ISR — 이벤트 카드는 자주 바뀌지 않음. 60초 stale-while-revalidate 로
+// admin 변경이 1분 내 반영. 즉각 반영 필요시 router.refresh() 또는
+// revalidatePath('/events').
+export const revalidate = 60
 
 /**
  * /events — 진행 중 이벤트 인덱스.

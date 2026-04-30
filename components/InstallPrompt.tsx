@@ -228,7 +228,7 @@ export default function InstallPrompt() {
         }}
       >
         <div
-          className="max-w-md mx-auto bg-white rounded-2xl overflow-hidden"
+          className="max-w-md mx-auto bg-bg rounded-2xl overflow-hidden"
           style={{
             border: '1px solid var(--rule)',
             boxShadow: '0 10px 30px -12px rgba(61,43,31,0.35)',
@@ -289,7 +289,7 @@ export default function InstallPrompt() {
               type="button"
               onClick={dismiss}
               aria-label="닫기"
-              className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full transition"
+              className="shrink-0 w-10 h-10 -mr-1 flex items-center justify-center rounded-full transition"
               style={{ background: 'transparent' }}
             >
               <X
@@ -317,7 +317,7 @@ export default function InstallPrompt() {
           />
           <div
             ref={iosSheetRef}
-            className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-2xl p-5 pb-[calc(24px+env(safe-area-inset-bottom))] sm:pb-5 shadow-xl"
+            className="relative w-full max-w-md bg-bg rounded-t-3xl sm:rounded-2xl p-5 pb-[calc(24px+env(safe-area-inset-bottom))] sm:pb-5 shadow-xl"
             style={{
               border: '1px solid var(--rule)',
               animation: 'ftInstallSheetIn 280ms cubic-bezier(.2,.9,.25,1)',

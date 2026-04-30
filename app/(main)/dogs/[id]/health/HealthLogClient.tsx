@@ -16,6 +16,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 export type HealthLog = {
   id: string
@@ -79,6 +80,7 @@ export default function HealthLogClient({
   initialLogs: HealthLog[]
 }) {
   const supabase = createClient()
+  const toast = useToast()
   const [logs, setLogs] = useState<HealthLog[]>(initialLogs)
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(initialLogs.length === 0)
@@ -167,7 +169,7 @@ export default function HealthLogClient({
       .delete()
       .eq('id', id)
     if (delErr) {
-      alert('삭제 실패: ' + delErr.message)
+      toast.error('삭제 실패: ' + delErr.message)
       return
     }
     setLogs((prev) => prev.filter((l) => l.id !== id))

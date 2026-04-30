@@ -69,7 +69,7 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
     setBusyId(null)
 
     if (error) {
-      alert('수량 변경 실패: ' + error.message)
+      toast.error('수량 변경 실패: ' + error.message)
       setItems(initialItems)
       return
     }
@@ -100,7 +100,7 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
     setBusyId(null)
 
     if (error) {
-      alert('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + error.message)
       setItems(prev)
       return
     }
@@ -170,10 +170,10 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
                   <button
                     onClick={() => removeItem(row.id)}
                     disabled={isBusy}
-                    className="shrink-0 w-6 h-6 md:w-8 md:h-8 flex items-center justify-center rounded-full text-muted hover:text-sale hover:bg-bg transition disabled:opacity-40"
+                    className="shrink-0 w-10 h-10 -mr-2 -mt-1 flex items-center justify-center rounded-full text-muted hover:text-sale hover:bg-bg transition disabled:opacity-40"
                     aria-label="삭제"
                   >
-                    <X className="w-3.5 h-3.5 md:w-4 md:h-4" strokeWidth={2.5} />
+                    <X className="w-4 h-4" strokeWidth={2.5} />
                   </button>
                 </div>
 
@@ -188,18 +188,18 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
                     <button
                       onClick={() => updateQty(row.id, row.quantity - 1)}
                       disabled={isBusy || row.quantity <= 1 || rowSoldOut}
-                      className="w-7 h-7 md:w-9 md:h-9 flex items-center justify-center text-text font-bold text-sm md:text-base disabled:opacity-30 active:scale-90 transition"
+                      className="w-10 h-10 md:w-10 md:h-10 flex items-center justify-center text-text font-bold text-base disabled:opacity-30 active:scale-90 transition"
                       aria-label="수량 감소"
                     >
                       −
                     </button>
-                    <span className="w-7 md:w-10 text-center text-[12px] md:text-[14px] font-bold text-text">
+                    <span className="w-8 md:w-10 text-center text-[13px] md:text-[14px] font-bold text-text">
                       {row.quantity}
                     </span>
                     <button
                       onClick={() => updateQty(row.id, row.quantity + 1)}
                       disabled={isBusy || rowSoldOut || row.quantity >= maxQ}
-                      className="w-7 h-7 md:w-9 md:h-9 flex items-center justify-center text-text font-bold text-sm md:text-base disabled:opacity-30 active:scale-90 transition"
+                      className="w-10 h-10 md:w-10 md:h-10 flex items-center justify-center text-text font-bold text-base disabled:opacity-30 active:scale-90 transition"
                       aria-label="수량 증가"
                     >
                       +

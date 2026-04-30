@@ -68,8 +68,8 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
         .from('cart_items')
         .select('quantity')
         .eq('user_id', user.id)
-      const total = (items ?? []).reduce(
-        (sum, it: { quantity: number }) => sum + it.quantity,
+      const total = ((items ?? []) as { quantity: number }[]).reduce(
+        (sum: number, it) => sum + it.quantity,
         0,
       )
       if (mounted) setCartCount(total)
@@ -241,7 +241,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           - `md:-translate-x-1/2`: 자기 폭의 절반만큼 왼쪽으로 당겨 센터링
           - `md:w-full md:max-w-md`: 프레임과 같은 폭(448px) 확보 */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-rule md:left-1/2 md:right-auto md:w-full md:max-w-md md:-translate-x-1/2 md:rounded-b-[inherit]"
+        className="fixed bottom-0 left-0 right-0 z-40 bg-bg/95 backdrop-blur-xl border-t border-rule md:left-1/2 md:right-auto md:w-full md:max-w-md md:-translate-x-1/2 md:rounded-b-[inherit]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="max-w-md mx-auto px-2 pt-2 pb-2 grid grid-cols-5 gap-0.5">

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { MapPin, Pencil, Star, Trash2 } from 'lucide-react'
 import type { Address } from '@/lib/commerce/addresses'
+import { useToast } from '@/components/ui/Toast'
 
 /**
  * 배송지 리스트의 인터랙티브 레이어.
@@ -13,11 +14,11 @@ import type { Address } from '@/lib/commerce/addresses'
  * 수정은 라우트 이동(/addresses/[id]/edit), 삭제·기본설정은 API 호출 후
  * router.refresh() 로 서버 목록도 다시 가져온다 (낙관적 상태 + 서버 재동기화).
  *
- * 에러는 inline 토스트 없이 alert() 로 처리 — 이 화면은 실패 확률이 낮고
- * 나중에 공용 toast 가 들어오면 그때 교체.
+ * 에러는 공용 useToast 로 표시 — 표준화된 알림 UX 와 다크모드 토큰 호환.
  */
 export default function AddressesClient({ initial }: { initial: Address[] }) {
   const router = useRouter()
+  const toast = useToast()
   const [list, setList] = useState<Address[]>(initial)
   const [pending, startTransition] = useTransition()
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -38,7 +39,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
       startTransition(() => router.refresh())
     } catch {
       setList(prev)
-      alert('기본 배송지 설정에 실패했어요. 잠시 후 다시 시도해 주세요.')
+      toast.error('기본 배송지 설정에 실패했어요. 잠시 후 다시 시도해 주세요.')
     } finally {
       setBusyId(null)
     }
@@ -60,7 +61,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
       startTransition(() => router.refresh())
     } catch {
       setList(prev)
-      alert('삭제에 실패했어요. 잠시 후 다시 시도해 주세요.')
+      toast.error('삭제에 실패했어요. 잠시 후 다시 시도해 주세요.')
     } finally {
       setBusyId(null)
     }

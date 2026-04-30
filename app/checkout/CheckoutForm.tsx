@@ -15,6 +15,7 @@ import {
   Plus,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 import AddressSearch from '@/components/AddressSearch'
 import {
   validateCoupon,
@@ -86,6 +87,7 @@ export default function CheckoutForm({
 }: Props) {
   useRouter()
   const supabase = createClient()
+  const toast = useToast()
 
   const [name, setName] = useState(defaultProfile.name)
   const [phone, setPhone] = useState(defaultProfile.phone)
@@ -223,7 +225,7 @@ export default function CheckoutForm({
 
   async function handlePay() {
     if (!name.trim() || !phone.trim() || !zip.trim() || !address.trim()) {
-      alert('받는 분, 연락처, 주소를 모두 입력해주세요')
+      toast.error('받는 분, 연락처, 주소를 모두 입력해주세요')
       return
     }
 
@@ -414,7 +416,7 @@ export default function CheckoutForm({
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '결제 요청 중 오류'
-      alert(msg)
+      toast.error(msg)
       setLoading(false)
     }
   }

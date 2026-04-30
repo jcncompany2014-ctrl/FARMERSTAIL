@@ -174,8 +174,8 @@ export default function WebChrome({
         .select('quantity')
         .eq('user_id', user.id)
       if (!mounted) return
-      const total = (data ?? []).reduce(
-        (s, it: { quantity: number }) => s + it.quantity,
+      const total = ((data ?? []) as { quantity: number }[]).reduce(
+        (s: number, it) => s + it.quantity,
         0,
       )
       setCartCount(total)

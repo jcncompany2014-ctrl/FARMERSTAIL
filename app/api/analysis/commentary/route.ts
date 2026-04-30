@@ -140,6 +140,9 @@ export async function POST(req: Request) {
         messages: [{ role: 'user', content: prompt.user }],
       }),
       cache: 'no-store',
+      // Anthropic capacity 이슈 시 30초+ hang 가능. Vercel hobby limit (10s)
+      // 안에서 실패하도록 20초 timeout — 사용자가 적절한 에러 메시지 받음.
+      signal: AbortSignal.timeout(20_000),
     })
 
     const data = (await res.json()) as AnthropicResponse

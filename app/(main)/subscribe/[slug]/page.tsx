@@ -11,6 +11,7 @@ import {
   CalendarDays,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 type Product = {
   id: string
@@ -73,6 +74,7 @@ export default function SubscribePage() {
   const router = useRouter()
   const params = useParams()
   const supabase = createClient()
+  const toast = useToast()
   const slug = params.slug as string
 
   const [product, setProduct] = useState<Product | null>(null)
@@ -124,7 +126,7 @@ export default function SubscribePage() {
         .eq('slug', slug)
         .eq('is_active', true)
         .eq('is_subscribable', true)
-        .single()
+        .maybeSingle()
 
       if (!prod) {
         setLoading(false)
@@ -132,11 +134,12 @@ export default function SubscribePage() {
       }
       setProduct(prod)
 
+      // 신규 회원의 profile row 미존재 케이스 방어
       const { data: prof } = await supabase
         .from('profiles')
         .select('name, phone, zip, address, address_detail')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (prof) {
         setRecipientName(prof.name ?? '')
@@ -168,7 +171,7 @@ export default function SubscribePage() {
   async function handleSubmit() {
     if (!product) return
     if (!recipientName || !recipientPhone || !recipientAddress) {
-      alert('수령인 정보를 모두 입력해 주세요.')
+      toast.error('수령인 정보를 모두 입력해 주세요.')
       return
     }
     setSubmitting(true)
@@ -210,7 +213,7 @@ export default function SubscribePage() {
       .single()
 
     if (subErr || !sub) {
-      alert('구독 생성에 실패했습니다. 다시 시도해 주세요.')
+      toast.error('구독 생성에 실패했습니다. 다시 시도해 주세요.')
       setSubmitting(false)
       return
     }
@@ -519,8 +522,9 @@ export default function SubscribePage() {
         </div>
       </div>
 
-      {/* Fixed bottom CTA */}
-      <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-rule px-5 py-3 z-30">
+      {/* Sticky bottom CTA — `.ft-sticky-cta-bottom` 이 chrome-aware:
+          web 에선 viewport bottom, app 에선 탭바 위로 자동 정렬 + safe-area. */}
+      <div className="ft-sticky-cta-bottom bg-bg border-t border-rule px-5 py-3 z-30">
         <div className="max-w-md mx-auto">
           <button
             onClick={handleSubmit}

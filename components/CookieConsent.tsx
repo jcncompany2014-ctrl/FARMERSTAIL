@@ -119,7 +119,7 @@ export default function CookieConsent() {
       aria-labelledby="cookie-consent-title"
     >
       <div
-        className="mx-auto max-w-lg bg-white rounded-2xl border border-rule shadow-xl overflow-hidden"
+        className="mx-auto max-w-lg bg-bg rounded-2xl border border-rule shadow-xl overflow-hidden"
         style={{ boxShadow: '0 12px 40px rgba(30,26,20,0.18)' }}
       >
         <div className="px-5 pt-5 pb-4">

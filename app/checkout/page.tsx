@@ -29,11 +29,13 @@ export default async function CheckoutPage() {
 
   if (!user) redirect('/login?next=/checkout')
 
+  // .maybeSingle() — 신규 회원의 profile row 가 없을 때 .single() 이
+  // PGRST116 throw 해 결제 페이지 통째로 깨지는 거 방지.
   const { data: profile } = await supabase
     .from('profiles')
     .select('name, phone, zip, address, address_detail')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   // User's current points balance
   const { data: ledger } = await supabase

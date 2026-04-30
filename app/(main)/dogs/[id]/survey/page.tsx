@@ -22,6 +22,7 @@ import {
   ShieldAlert,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 import {
   calculateNutrition,
   getSupplements,
@@ -93,6 +94,7 @@ export default function SurveyPage() {
   const router = useRouter()
   const params = useParams()
   const supabase = createClient()
+  const toast = useToast()
   const dogId = params.id as string
 
   const [dog, setDog] = useState<Dog | null>(null)
@@ -274,7 +276,7 @@ export default function SurveyPage() {
       .single()
 
     if (surveyErr || !surveyData) {
-      alert('저장 실패: ' + surveyErr?.message)
+      toast.error('저장 실패: ' + surveyErr?.message)
       setSaving(false)
       return
     }
@@ -341,7 +343,7 @@ export default function SurveyPage() {
     })
 
     if (analysisErr) {
-      alert('분석 저장 실패: ' + analysisErr.message)
+      toast.error('분석 저장 실패: ' + analysisErr.message)
       setSaving(false)
       return
     }

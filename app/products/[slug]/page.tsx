@@ -37,7 +37,7 @@ const getProduct = cache(async (slug: string) => {
     )
     .eq('slug', slug)
     .eq('is_active', true)
-    .single()
+    .maybeSingle()
   return data
 })
 

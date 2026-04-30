@@ -215,8 +215,8 @@ export default function ProductDetailClient({
         .select('rating')
         .eq('product_id', product.id)
       if (!mounted) return
-      const arr = reviewData ?? []
-      const sum = arr.reduce((s, r) => s + (r.rating ?? 0), 0)
+      const arr = (reviewData ?? []) as { rating: number | null }[]
+      const sum = arr.reduce((s: number, r) => s + (r.rating ?? 0), 0)
       setReviewCount(arr.length)
       setReviewAvg(arr.length > 0 ? sum / arr.length : null)
 
@@ -301,29 +301,15 @@ export default function ProductDetailClient({
       return
     }
 
-    const existingQuery = supabase
-      .from('cart_items')
-      .select('id, quantity')
-      .eq('user_id', user.id)
-      .eq('product_id', product.id)
-    const { data: existing } = selectedVariant
-      ? await existingQuery.eq('variant_id', selectedVariant.id).maybeSingle()
-      : await existingQuery.is('variant_id', null).maybeSingle()
-
-    if (existing) {
-      const nextQty = Math.min(existing.quantity + capped, qtyMax)
-      await supabase
-        .from('cart_items')
-        .update({ quantity: nextQty })
-        .eq('id', existing.id)
-    } else {
-      await supabase.from('cart_items').insert({
-        user_id: user.id,
-        product_id: product.id,
-        variant_id: selectedVariant?.id ?? null,
-        quantity: capped,
-      })
-    }
+    // Atomic upsert RPC — 두 번 빠르게 누르거나 동시 호출이 중복 row 만드는
+    // race condition 차단. 함수 안에 SELECT FOR UPDATE → UPDATE 또는 INSERT.
+    await supabase.rpc('upsert_cart_item', {
+      p_user_id: user.id,
+      p_product_id: product.id,
+      p_variant_id: selectedVariant?.id ?? null,
+      p_quantity: capped,
+      p_max_qty: qtyMax,
+    })
 
     trackAddToCart({
       item_id: product.id,

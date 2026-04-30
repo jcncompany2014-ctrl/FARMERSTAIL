@@ -176,6 +176,8 @@ export async function POST(req: Request) {
         messages: [{ role: 'user', content: prompt.user }],
       }),
       cache: 'no-store',
+      // Anthropic capacity hang 방어. 20초 안에 응답 없으면 abort.
+      signal: AbortSignal.timeout(20_000),
     })
     const data = (await res.json()) as AnthropicResponse
     if (!res.ok) {

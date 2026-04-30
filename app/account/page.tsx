@@ -75,7 +75,9 @@ export default async function AccountPage() {
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .in('order_status', ['pending', 'confirmed', 'shipped']),
+      // FSM 의 실제 enum: pending → preparing → shipping → delivered.
+      // 'confirmed', 'shipped' 는 존재하지 않는 값이라 매번 0건 반환했음.
+      .in('order_status', ['pending', 'preparing', 'shipping']),
   ])
 
   const { data: profile } = await supabase

@@ -84,8 +84,16 @@ export default function ConsentSettingsClient({
       .order('granted_at', { ascending: false })
       .limit(10)
     if (fresh) {
+      type ConsentRow = {
+        id: string
+        channel: string
+        granted: boolean
+        granted_at: string
+        policy_version: string | null
+        source: string | null
+      }
       setHist(
-        fresh.map((r) => ({
+        (fresh as ConsentRow[]).map((r) => ({
           id: r.id,
           channel: r.channel as Channel,
           granted: Boolean(r.granted),

@@ -50,7 +50,7 @@ const getPost = cache(async (slug: string): Promise<Post | null> => {
     )
     .eq('slug', slug)
     .eq('is_published', true)
-    .single()
+    .maybeSingle()
   return (data as Post) ?? null
 })
 

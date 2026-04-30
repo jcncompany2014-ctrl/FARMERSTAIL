@@ -37,7 +37,7 @@ export default function WishlistButton({
       disabled={busy}
       aria-label={wished ? '찜 해제' : '찜하기'}
       aria-pressed={wished}
-      className="absolute top-2 right-2 z-20 w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center transition active:scale-90 disabled:opacity-70"
+      className="absolute top-1.5 right-1.5 z-20 w-10 h-10 md:w-10 md:h-10 rounded-full flex items-center justify-center transition active:scale-90 disabled:opacity-70"
       style={{
         background: wished
           ? 'rgba(160,69,46,0.92)'

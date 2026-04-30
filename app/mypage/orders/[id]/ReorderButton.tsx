@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Repeat, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 type Item = { product_id: string; quantity: number }
 
@@ -15,6 +16,7 @@ export default function ReorderButton({ items }: { items: Item[] }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
+  const toast = useToast()
 
   async function handleReorder() {
     if (items.length === 0) return
@@ -72,7 +74,7 @@ export default function ReorderButton({ items }: { items: Item[] }) {
     if (inserts.length > 0) {
       const { error } = await supabase.from('cart_items').insert(inserts)
       if (error) {
-        alert('재주문 실패: ' + error.message)
+        toast.error('재주문 실패: ' + error.message)
         setLoading(false)
         return
       }

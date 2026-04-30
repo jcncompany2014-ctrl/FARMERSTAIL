@@ -124,10 +124,10 @@ export default function MiniCartToast() {
           type="button"
           onClick={() => setToast(null)}
           aria-label="닫기"
-          className="shrink-0 w-7 h-7 -mr-1 flex items-center justify-center rounded-full transition active:scale-90"
+          className="shrink-0 w-10 h-10 -mr-2 flex items-center justify-center rounded-full transition active:scale-90"
           style={{ color: 'rgba(245,240,230,0.6)' }}
         >
-          <X className="w-3.5 h-3.5" strokeWidth={2} />
+          <X className="w-4 h-4" strokeWidth={2} />
         </button>
       </div>
     </div>

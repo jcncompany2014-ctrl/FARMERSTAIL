@@ -59,38 +59,21 @@ export default function BulkAddToCart({
       return
     }
 
-    // 한 번에 batch insert. cart_items 테이블의 unique key
-    // (user_id, product_id, variant_id) 충돌 시 quantity +1 로 누적해야
-    // 하지만 RPC 가 없으면 maybeSingle 로 row 별 처리.
+    // upsert_cart_item RPC — atomic SELECT FOR UPDATE + UPDATE-or-INSERT.
+    // race-safe + 한 번 호출에 1 row 누적. 컬렉션 N 개 묶음 추가는 N 번 호출.
     let added = 0
     for (const p of eligible) {
-      const { data: existing } = await supabase
-        .from('cart_items')
-        .select('id, quantity')
-        .eq('user_id', user.id)
-        .eq('product_id', p.id)
-        .is('variant_id', null)
-        .maybeSingle()
-
       const cap = Math.min(p.stock, 1)
       if (cap <= 0) continue
 
-      if (existing) {
-        const next = Math.min(existing.quantity + 1, p.stock)
-        const { error: upErr } = await supabase
-          .from('cart_items')
-          .update({ quantity: next })
-          .eq('id', existing.id)
-        if (!upErr) added += 1
-      } else {
-        const { error: insErr } = await supabase.from('cart_items').insert({
-          user_id: user.id,
-          product_id: p.id,
-          variant_id: null,
-          quantity: cap,
-        })
-        if (!insErr) added += 1
-      }
+      const { error: rpcErr } = await supabase.rpc('upsert_cart_item', {
+        p_user_id: user.id,
+        p_product_id: p.id,
+        p_variant_id: null,
+        p_quantity: cap,
+        p_max_qty: p.stock,
+      })
+      if (!rpcErr) added += 1
 
       trackAddToCart({
         item_id: p.id,

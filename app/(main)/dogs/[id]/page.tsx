@@ -25,6 +25,7 @@ import {
   Bell,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 type Dog = {
   id: string
@@ -52,6 +53,7 @@ export default function DogDetailPage() {
   const params = useParams()
   const dogId = params.id as string
   const supabase = createClient()
+  const toast = useToast()
 
   const [dog, setDog] = useState<Dog | null>(null)
   const [loading, setLoading] = useState(true)
@@ -107,7 +109,7 @@ export default function DogDetailPage() {
   async function handleSaveWeight() {
     const value = parseFloat(newWeight)
     if (!value || value <= 0 || value > 100) {
-      alert('올바른 체중을 입력해 주세요 (0.1 ~ 100kg)')
+      toast.error('올바른 체중을 입력해 주세요 (0.1 ~ 100kg)')
       return
     }
     setSavingWeight(true)
@@ -131,7 +133,7 @@ export default function DogDetailPage() {
       .single()
 
     if (error || !data) {
-      alert('저장 실패: ' + (error?.message ?? '알 수 없음'))
+      toast.error('저장 실패: ' + (error?.message ?? '알 수 없음'))
       setSavingWeight(false)
       return
     }
@@ -172,13 +174,13 @@ export default function DogDetailPage() {
       .select('id')
 
     if (error) {
-      alert('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + error.message)
       setDeleting(false)
       return
     }
 
     if (!data || data.length === 0) {
-      alert('삭제 권한이 없어요. 이 강아지는 다른 계정에 속해있어요.')
+      toast.error('삭제 권한이 없어요. 이 강아지는 다른 계정에 속해있어요.')
       setDeleting(false)
       setShowDeleteConfirm(false)
       return

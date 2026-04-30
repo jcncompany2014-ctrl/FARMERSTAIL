@@ -69,7 +69,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       if (!mounted) return
       setWishedIds(
         new Set(
-          (data ?? []).map((r) => (r as { product_id: string }).product_id),
+          ((data ?? []) as { product_id: string }[]).map((r) => r.product_id),
         ),
       )
       setReady(true)

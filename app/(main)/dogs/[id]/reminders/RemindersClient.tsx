@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 export type ReminderType =
   | 'vaccine'
@@ -132,6 +133,7 @@ export default function RemindersClient({
   initial: Reminder[]
 }) {
   const supabase = createClient()
+  const toast = useToast()
   const [reminders, setReminders] = useState<Reminder[]>(initial)
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -236,7 +238,7 @@ export default function RemindersClient({
       )
       .single()
     if (error || !data) {
-      alert('업데이트 실패: ' + (error?.message ?? '알 수 없음'))
+      toast.error('업데이트 실패: ' + (error?.message ?? '알 수 없음'))
       return
     }
     setReminders((prev) =>
@@ -265,7 +267,7 @@ export default function RemindersClient({
     if (!confirm('이 리마인더를 삭제할까요?')) return
     const { error } = await supabase.from('dog_reminders').delete().eq('id', id)
     if (error) {
-      alert('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + error.message)
       return
     }
     setReminders((prev) => prev.filter((r) => r.id !== id))

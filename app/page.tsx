@@ -8,7 +8,11 @@ import OngoingEvents from '@/components/landing/OngoingEvents'
 import ProductRail, { type RailProduct } from '@/components/landing/ProductRail'
 import { getActiveEvents } from '@/lib/events/data'
 
-export const dynamic = 'force-dynamic'
+// 5분 ISR — 랜딩은 상품/이벤트 캐러셀이 자주 안 바뀌므로 매 방문마다 다이나믹
+// 렌더링하지 않아도 됨. CDN 캐시 + 5분 stale-while-revalidate 로 LCP 1초+ 단축.
+// admin 가 상품/이벤트 변경하면 최대 5분 후 반영. 즉시 반영이 필요하면 webhook
+// 또는 router.refresh() 로 revalidatePath('/').
+export const revalidate = 300
 
 export const metadata: Metadata = {
   title: "파머스테일 — 농장에서 꼬리까지",
