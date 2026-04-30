@@ -278,6 +278,9 @@ export default function SurveyPage() {
     if (surveyErr || !surveyData) {
       toast.error('저장 실패: ' + surveyErr?.message)
       setSaving(false)
+      // loading 단계에서 멈추면 사용자가 spinner 화면에 갇힘 — status 로 복귀
+      // 시켜서 "결과 보기" 버튼으로 재시도 가능하게.
+      setCurrentStep('status')
       return
     }
 
@@ -345,6 +348,10 @@ export default function SurveyPage() {
     if (analysisErr) {
       toast.error('분석 저장 실패: ' + analysisErr.message)
       setSaving(false)
+      // 분석 저장 실패 시 무한로딩 방지 — status 단계로 복귀해 재시도 가능.
+      // 부분 저장된 surveys row 는 다음 시도에 새 row 가 만들어지면 고아가
+      // 되지만, RLS 가 user_id 로 격리해 다른 사용자에 노출 위험 없음.
+      setCurrentStep('status')
       return
     }
 

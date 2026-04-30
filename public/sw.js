@@ -1,9 +1,11 @@
 const CACHE_NAME = 'farmerstail-v1'
 
 // 앱 셸에 필요한 정적 자원
+// 주의: 여기 있는 경로가 실제 public/ 에 존재해야 함. 누락 파일은 .catch 로
+// 통과하지만 의도된 자산이 캐시 안 되면 offline 상태에서 깨질 수 있음.
 const PRECACHE_URLS = [
   '/offline',
-  '/farmerstailLOGO.png',
+  '/logo.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ]

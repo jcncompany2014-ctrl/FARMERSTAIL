@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { loadTossPayments, ANONYMOUS } from '@tosspayments/tosspayments-sdk'
@@ -86,7 +85,8 @@ export default function CheckoutForm({
   total: baseTotal,
   pointBalance,
 }: Props) {
-  useRouter()
+  // useRouter 호출 흔적 — 라우팅 후 결제는 Toss SDK 가 직접 redirect 하므로
+  // 여기서 router 객체가 필요 없다. 사용 안 하는 호출 제거.
   const supabase = createClient()
   const toast = useToast()
 

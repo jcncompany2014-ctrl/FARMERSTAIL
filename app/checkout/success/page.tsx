@@ -93,7 +93,15 @@ export default async function CheckoutSuccessPage({
     return <SuccessView order={order} items={items} />
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  // baseUrl 은 결제 confirm fetch + 사용자에게 노출되는 안내(이메일 link 등)
+  // 양쪽에 쓰일 수 있어 localhost fallback 은 production 사고 위험.
+  // NEXT_PUBLIC_SITE_URL 누락 시 명시적 throw → Vercel 빌드 실패가 더 안전.
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+  if (!baseUrl) {
+    throw new Error(
+      '[checkout/success] NEXT_PUBLIC_SITE_URL is not set — production-fatal',
+    )
+  }
   const confirmRes = await fetch(`${baseUrl}/api/payments/confirm`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

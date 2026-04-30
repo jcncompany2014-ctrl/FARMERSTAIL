@@ -19,6 +19,8 @@
  *   --rule:      #E6DDC8  (구분선)
  */
 
+import { business } from '@/lib/business'
+
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://farmerstail.com'
 
@@ -116,15 +118,21 @@ export function renderLayout({
             </tr>`
               : ''}
 
-            <!-- 푸터 -->
+            <!-- 푸터 — 사업자 정보는 lib/business.ts 가 single source of truth.
+                 이전엔 가짜 placeholder 가 박혀 있어서 모든 메일에 잘못된 정보가
+                 발송되고 있었음. 절대 다시 하드코딩하지 말 것. -->
             <tr>
               <td style="padding:20px 32px 28px 32px;border-top:1px solid #E6DDC8;background:#FAF6EE;">
                 <div style="font-size:10px;color:#7A7A7A;line-height:1.6;">
-                  <strong style="color:#2C2A26;">(주)파머스테일</strong><br />
-                  대표 김태호 · 사업자등록번호 123-45-67890<br />
-                  통신판매업신고 제2025-서울강남-1234호<br />
-                  서울특별시 강남구 테헤란로 123, 456호<br />
-                  고객센터 <a href="mailto:hello@farmerstail.com" style="color:#B5533A;text-decoration:none;">hello@farmerstail.com</a>
+                  <strong style="color:#2C2A26;">${escape(business.companyName)}</strong><br />
+                  대표 ${escape(business.ceo)} · 사업자등록번호 ${escape(business.businessNumber)}<br />
+                  통신판매업신고 ${escape(business.mailOrderNumber)}<br />
+                  ${escape(business.address)}<br />
+                  고객센터 <a href="mailto:${escape(business.email)}" style="color:#B5533A;text-decoration:none;">${escape(business.email)}</a>${
+                    business.phone
+                      ? ` · ${escape(business.phone)}`
+                      : ''
+                  }
                 </div>
                 <div style="margin-top:10px;font-size:10px;color:#9A9A9A;">
                   본 메일은 거래 안내용으로, 주문 및 회원 활동에 따라 자동 발송됩니다.

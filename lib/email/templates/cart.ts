@@ -29,7 +29,10 @@ export function renderCartAbandoned(input: {
       ? `${escape(input.items[0]!.productName)} 외 ${input.items.length - 1}개`
       : escape(input.items[0]?.productName ?? '')
 
-  const subject = `[파머스테일] 장바구니에 ${itemCountLabel} 담아두셨어요 🛒`
+  // (광고) 표기 — 정보통신망법 제50조 제4항. 광고성 정보는 제목에 명시 의무.
+  // cart-abandoned 메일은 재구매 유도 마케팅이라 (광고) 적용. 거래성(주문확인)
+  // 메일과 분리.
+  const subject = `(광고) [파머스테일] 장바구니에 ${itemCountLabel} 담아두셨어요 🛒`
 
   const itemRows = input.items
     .map((it) =>

@@ -269,30 +269,34 @@ function SignupForm() {
         })
         .eq('id', data.user.id)
 
-      // consent_log 에 증적. RPC 를 써도 되고 직접 insert 해도 되지만, 가입
-      // 직후라 RPC (auth.uid() 기준) 가 가장 깔끔. 실패해도 무시 — profiles
-      // 플래그가 truth source 이고 로그는 부가적.
+      // consent_log 에 증적. profiles 플래그가 truth source 이고 로그는 부가적.
+      // ─ 절대 await 가 throw 하면 가입 마무리 (push to /dashboard) 가 깨짐.
+      //    Promise.allSettled 로 둘 다 best-effort.
+      const consentInserts: Promise<unknown>[] = []
       if (agreeMarketingEmail) {
-        await supabase
-          .from('consent_log')
-          .insert({
+        consentInserts.push(
+          supabase.from('consent_log').insert({
             user_id: data.user.id,
             channel: 'email',
             granted: true,
             policy_version: MARKETING_POLICY_VERSION,
             source: 'signup',
-          })
+          }),
+        )
       }
       if (agreeMarketingSms) {
-        await supabase
-          .from('consent_log')
-          .insert({
+        consentInserts.push(
+          supabase.from('consent_log').insert({
             user_id: data.user.id,
             channel: 'sms',
             granted: true,
             policy_version: MARKETING_POLICY_VERSION,
             source: 'signup',
-          })
+          }),
+        )
+      }
+      if (consentInserts.length > 0) {
+        await Promise.allSettled(consentInserts)
       }
 
       if (profErr) {

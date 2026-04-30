@@ -99,18 +99,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.5,
     },
-    {
-      url: `${siteUrl}/login`,
-      lastModified: now,
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
-    {
-      url: `${siteUrl}/signup`,
-      lastModified: now,
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
+    // login / signup 은 robots.ts 에서 disallow — sitemap 에 포함하면
+    // GSC 가 "Submitted URL blocked by robots.txt" 경고를 내고 문서 자체에도
+    // 모순. 제거.
     // 법정 필수 표기 페이지 — 검색엔진이 찾을 수 있게 포함.
     // 변경 빈도 낮고 우선순위도 낮지만 크롤됐다는 사실이 App Store /
     // 규제기관 관점에서 "공개했다"의 증거가 된다.
@@ -218,17 +209,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }))
 
-    // /blog?category=slug 는 쿼리 파라미터 기반이라 검색엔진 인덱싱
-    // 가치가 낮음. 그래도 브랜치 페이지 하나로 카운트는 해줌 —
-    // `changeFrequency: daily`로 너무 자주 재방문하지 않도록 주간으로.
-    const categoryRoutes: MetadataRoute.Sitemap = (categories ?? []).map(
-      (c) => ({
-        url: `${siteUrl}/blog?category=${c.slug}`,
-        lastModified: now,
-        changeFrequency: 'weekly' as const,
-        priority: 0.5,
-      })
-    )
+    // /blog?category=slug 는 query string canonical 처리가 모호해 GSC 에서
+    // 중복 콘텐츠 / "Crawled — currently not indexed" 경고를 자주 받음.
+    // sitemap 제외 — 카테고리는 메인 /blog 에서 navigation 으로 도달.
+    // 추후 /blog/category/[slug] 같은 path 기반 라우트로 옮기면 다시 포함.
+    const categoryRoutes: MetadataRoute.Sitemap = []
+    void categories // 미사용 변수 lint silence — 향후 path 기반 라우팅 시 복구 자료
 
     const collectionRoutes: MetadataRoute.Sitemap = (collections ?? []).map(
       (c) => ({

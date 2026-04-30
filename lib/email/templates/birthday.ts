@@ -29,7 +29,8 @@ export function renderBirthdayCoupon({
   discountLabel,
   validUntil,
 }: BirthdayEmailInput): { subject: string; html: string } {
-  const subject = `🎂 ${recipientName}님, 생일 축하해요`
+  // (광고) 표기 — 정보통신망법 제50조 제4항. 생일 쿠폰은 광고성 마케팅 메일.
+  const subject = `(광고) 🎂 ${recipientName}님, 생일 축하해요`
 
   const validBlock = validUntil
     ? `<p style="margin:8px 0 0;font-size:13px;color:#7B6F5C">유효기간: ~${fmtDate(validUntil)}</p>`
