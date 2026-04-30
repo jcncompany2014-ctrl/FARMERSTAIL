@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { appendLedger } from '@/lib/commerce/points'
+import { parseRequest, zAccountDelete } from '@/lib/api/schemas'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -51,19 +53,24 @@ type DeleteBody = {
 }
 
 export async function POST(req: Request) {
-  let body: DeleteBody = {}
-  try {
-    body = await req.json()
-  } catch {
-    /* allow empty body */
-  }
-
-  if ((body.confirmText ?? '').trim() !== '탈퇴') {
+  // 탈퇴는 destructive — 무차별 시도 방지. IP 당 분당 3회면 정상 사용엔 충분.
+  const rl = rateLimit({
+    bucket: 'account-delete',
+    key: ipFromRequest(req),
+    limit: 3,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
     return NextResponse.json(
-      { code: 'CONFIRM_REQUIRED', message: '확인 문구가 일치하지 않아요' },
-      { status: 400 }
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rl.headers },
     )
   }
+
+  // confirmText literal '탈퇴' + reason optional 을 Zod 가 검증.
+  const parsed = await parseRequest(req, zAccountDelete)
+  if (!parsed.ok) return parsed.response
+  const body: DeleteBody = parsed.data
 
   // 1) Session check (RLS-gated client so we can't be tricked into
   //    deleting someone else's account).

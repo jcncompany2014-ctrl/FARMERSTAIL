@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { buildCommentaryPrompt, type CommentaryContext } from '@/lib/commentary'
+import { parseRequest, zAnalysisRequest } from '@/lib/api/schemas'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-type Body = { analysisId: string }
 
 type AnthropicResponse = {
   content?: Array<{ type: string; text?: string }>
@@ -13,23 +13,23 @@ type AnthropicResponse = {
 }
 
 export async function POST(req: Request) {
-  let body: Body
-  try {
-    body = await req.json()
-  } catch {
+  // Rate limit — Anthropic 비용 폭주 방어 (5 req/min/IP)
+  const rl = rateLimit({
+    bucket: 'analysis-commentary',
+    key: ipFromRequest(req),
+    limit: 5,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
     return NextResponse.json(
-      { code: 'INVALID_BODY', message: '요청 형식이 올바르지 않습니다' },
-      { status: 400 }
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rl.headers },
     )
   }
 
-  const { analysisId } = body
-  if (!analysisId) {
-    return NextResponse.json(
-      { code: 'MISSING_PARAMS', message: 'analysisId가 필요합니다' },
-      { status: 400 }
-    )
-  }
+  const parsed = await parseRequest(req, zAnalysisRequest)
+  if (!parsed.ok) return parsed.response
+  const { analysisId } = parsed.data
 
   const supabase = await createClient()
 

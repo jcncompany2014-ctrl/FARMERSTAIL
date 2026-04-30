@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isPushConfigured } from '@/lib/push'
+import { parseRequest, zPushSubscribe } from '@/lib/api/schemas'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -18,6 +20,20 @@ export async function POST(req: Request) {
     )
   }
 
+  // 사용자가 여러 디바이스에서 구독 가능하지만 분당 5회면 충분.
+  const rl = rateLimit({
+    bucket: 'push-subscribe',
+    key: ipFromRequest(req),
+    limit: 5,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
+    return NextResponse.json(
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rl.headers },
+    )
+  }
+
   const supabase = await createClient()
   const {
     data: { user },
@@ -29,28 +45,11 @@ export async function POST(req: Request) {
     )
   }
 
-  let body: {
-    endpoint?: string
-    keys?: { p256dh?: string; auth?: string }
-  } = {}
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json(
-      { code: 'BAD_REQUEST', message: '잘못된 요청' },
-      { status: 400 }
-    )
-  }
-
-  const endpoint = body.endpoint
-  const p256dh = body.keys?.p256dh
-  const auth = body.keys?.auth
-  if (!endpoint || !p256dh || !auth) {
-    return NextResponse.json(
-      { code: 'BAD_REQUEST', message: '구독 정보가 누락됐어요' },
-      { status: 400 }
-    )
-  }
+  const parsed = await parseRequest(req, zPushSubscribe)
+  if (!parsed.ok) return parsed.response
+  const { endpoint, keys } = parsed.data
+  const p256dh = keys.p256dh
+  const auth = keys.auth
 
   // Upsert by endpoint (endpoint has a unique index from the migration).
   const userAgent = req.headers.get('user-agent') ?? null

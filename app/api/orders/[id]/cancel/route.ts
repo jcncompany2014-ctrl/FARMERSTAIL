@@ -9,6 +9,8 @@ import { creditPoints, appendLedger } from '@/lib/commerce/points'
 import { revokeCouponRedemption } from '@/lib/coupons'
 import { cancelPayment } from '@/lib/payments/toss'
 import { notifyOrderCancelled } from '@/lib/email'
+import { zOrderCancel } from '@/lib/api/schemas'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -36,9 +38,27 @@ export async function POST(
 ) {
   const { id } = await params
 
+  // Rate limit — 자기 주문이라도 폭주 시 Toss/이메일/포인트 RPC 까지 호출되니
+  // 보호. 정상 사용자는 분당 1-2회 정도면 충분.
+  const rl = rateLimit({
+    bucket: 'order-cancel',
+    key: ipFromRequest(req),
+    limit: 10,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
+    return NextResponse.json(
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rl.headers },
+    )
+  }
+
   let body: CancelBody = {}
   try {
-    body = await req.json()
+    const raw = await req.json()
+    const parsed = zOrderCancel.safeParse(raw)
+    if (parsed.success) body = parsed.data
+    // 빈 body 허용 — reason 자체가 optional. parse 실패해도 reason 만 무시.
   } catch {
     /* allow empty body */
   }

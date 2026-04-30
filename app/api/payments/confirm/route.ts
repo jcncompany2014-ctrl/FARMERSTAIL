@@ -4,15 +4,11 @@ import { pushToUser } from '@/lib/push'
 import { creditPoints } from '@/lib/commerce/points'
 import { confirmPayment } from '@/lib/payments/toss'
 import { notifyOrderPlaced, notifyVirtualAccountWaiting } from '@/lib/email'
+import { parseRequest, zPaymentConfirm } from '@/lib/api/schemas'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-type ConfirmBody = {
-  paymentKey: string
-  orderId: string
-  amount: number
-}
 
 /**
  * POST /api/payments/confirm
@@ -24,26 +20,29 @@ type ConfirmBody = {
  *   3. 응답의 status가 DONE이면 paid/preparing으로, WAITING_FOR_DEPOSIT이면
  *      pending으로 유지하며 가상계좌 정보(은행·계좌번호·만료일) 저장.
  *   4. DONE일 때만 포인트 적립. 가상계좌는 입금 확정 시점의 웹훅에서 별도 처리.
+ *
+ * # 보호
+ * - Zod schema (paymentKey/orderId 길이, amount 양의 정수)
+ * - Rate limit: IP 당 10/min (정상 결제 흐름 + 새로고침 1-2회 여유)
  */
 export async function POST(req: Request) {
-  let body: ConfirmBody
-  try {
-    body = await req.json()
-  } catch {
+  // Rate limit — payment 위조 시도 / 무한 재시도 방어
+  const rl = rateLimit({
+    bucket: 'payments-confirm',
+    key: ipFromRequest(req),
+    limit: 10,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
     return NextResponse.json(
-      { code: 'INVALID_BODY', message: '요청 형식이 올바르지 않습니다' },
-      { status: 400 }
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rl.headers },
     )
   }
 
-  const { paymentKey, orderId, amount } = body
-
-  if (!paymentKey || !orderId || !amount) {
-    return NextResponse.json(
-      { code: 'MISSING_PARAMS', message: '필수 파라미터가 없습니다' },
-      { status: 400 }
-    )
-  }
+  const parsed = await parseRequest(req, zPaymentConfirm)
+  if (!parsed.ok) return parsed.response
+  const { paymentKey, orderId, amount } = parsed.data
 
   const supabase = await createClient()
 

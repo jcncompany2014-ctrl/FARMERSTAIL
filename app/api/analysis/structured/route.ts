@@ -6,6 +6,8 @@ import {
   type AiAnalysisContext,
 } from '@/lib/nutrition/ai-prompt'
 import type { ChronicConditionKey } from '@/lib/nutrition/guidelines'
+import { parseRequest, zAnalysisRequest } from '@/lib/api/schemas'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,9 +22,12 @@ export const dynamic = 'force-dynamic'
  * 구조화된 JSON 분석을 받아 analyses.structured_analysis 에 캐시.
  *
  * 기존 /api/analysis/commentary 는 plain text — 호환 유지. 이 라우트가 새 v2.
+ *
+ * # 보호
+ * - Zod 검증 (analysisId UUID)
+ * - Rate limit: IP 당 분당 5건 — Anthropic 비용 공격 방어 (캐시 hit 는 cheap
+ *   하니 후술 캐시 분기 후 limit 카운트 안 하는 변수도 검토 가능)
  */
-
-type Body = { analysisId: string }
 
 type AnthropicResponse = {
   content?: Array<{ type: string; text?: string }>
@@ -30,23 +35,28 @@ type AnthropicResponse = {
 }
 
 export async function POST(req: Request) {
-  let body: Body
-  try {
-    body = await req.json()
-  } catch {
+  // 1) Rate limit — Anthropic 비용 폭주 방어. 사용자별 + IP 두 키 모두 적용.
+  const ip = ipFromRequest(req)
+  const rl = rateLimit({
+    bucket: 'analysis-structured',
+    key: ip,
+    limit: 5,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
     return NextResponse.json(
-      { code: 'INVALID_BODY', message: '요청 형식이 올바르지 않습니다' },
-      { status: 400 },
+      {
+        code: 'RATE_LIMITED',
+        message: '잠시 후 다시 시도해 주세요',
+      },
+      { status: 429, headers: rl.headers },
     )
   }
 
-  const { analysisId } = body
-  if (!analysisId) {
-    return NextResponse.json(
-      { code: 'MISSING_PARAMS', message: 'analysisId가 필요합니다' },
-      { status: 400 },
-    )
-  }
+  // 2) Zod 검증
+  const parsed = await parseRequest(req, zAnalysisRequest)
+  if (!parsed.ok) return parsed.response
+  const { analysisId } = parsed.data
 
   const supabase = await createClient()
   const {

@@ -24,6 +24,7 @@
  */
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 type Rule = {
@@ -187,8 +188,60 @@ function isAppOnlyPath(pathname: string): boolean {
   )
 }
 
-export function proxy(request: NextRequest) {
+/**
+ * `/admin` 진입 시 Supabase JWT app_metadata.role === 'admin' 검증.
+ *
+ * 라우트별 isAdmin() 가드(lib/auth/admin.ts) 는 이미 application-level 에서
+ * 작동하지만, proxy 한 줄이 forgot-to-guard 사고 (새 admin route 만들 때 가드
+ * 빼먹는 케이스) 를 막는 보험. JWT 만 검사 — DB 라운드트립 없음. profiles.role
+ * fallback 은 라우트 핸들러의 isAdmin() 에 위임 (defense in depth).
+ *
+ * 비-admin 진입 시 봇 스캐너에 admin 라우트 존재 단서를 노출하지 않도록
+ * 그냥 root 로 redirect (404/403 같은 코드 없이).
+ */
+async function checkAdminAccess(request: NextRequest): Promise<NextResponse | null> {
+  const res = NextResponse.next()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll: (toSet) => {
+          for (const c of toSet) {
+            res.cookies.set(c.name, c.value, c.options)
+          }
+        },
+      },
+    },
+  )
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('next', request.nextUrl.pathname)
+    return NextResponse.redirect(url)
+  }
+  const role = (user.app_metadata as { role?: string } | null | undefined)?.role
+  if (role !== 'admin') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
+  }
+  return null // 통과 — 계속 진행
+}
+
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // 0) Admin 가드 — application-level isAdmin() 의 보조 방어선.
+  if (pathname.startsWith('/admin') && !pathname.startsWith('/api/admin')) {
+    const blocked = await checkAdminAccess(request)
+    if (blocked) return blocked
+  }
 
   // 1) 앱 전용 라우트 보호 — rate limit 보다 먼저. 웹 사용자에겐 곧장
   // /app-required 로 redirect.
@@ -261,9 +314,10 @@ export function proxy(request: NextRequest) {
 }
 
 /**
- * 매처. 두 가지 책임:
- *   1) `/api/*`         — rate-limit RULES 적용
+ * 매처. 세 가지 책임:
+ *   1) `/api/*`              — rate-limit RULES 적용
  *   2) `/dashboard`, `/dogs/*`, `/mypage/*`, `/welcome` — 앱 전용 가드
+ *   3) `/admin/*`            — JWT 기반 admin 검증
  *
  * 정적 자산 / Next.js 내부 / favicon / icons / fonts 같은 안 막아야 할 경로는
  * 매처가 1차 필터. proxy() 함수 안에서 isAppOnlyPath / findRule 가 2차 정확
@@ -273,6 +327,8 @@ export const config = {
   matcher: [
     '/',
     '/api/:path*',
+    '/admin',
+    '/admin/:path*',
     '/dashboard/:path*',
     '/dashboard',
     '/dogs/:path*',

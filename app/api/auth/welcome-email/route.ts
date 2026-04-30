@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { notifyWelcome } from '@/lib/email'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -22,7 +23,22 @@ export const dynamic = 'force-dynamic'
  * 보안: 본인 user 확인 + email/name 모두 서버에서 다시 조회 (client 가 임의의
  * 이메일 주소를 넘겨 발송하는 abuse 차단). Resend tag 'welcome' 으로 분류.
  */
-export async function POST() {
+export async function POST(req: Request) {
+  // Resend cost 보호 — 같은 IP 가 단시간에 무차별 호출하는 봇 차단.
+  // 정상 가입 흐름은 1회 호출이라 분당 3회면 충분.
+  const rl = rateLimit({
+    bucket: 'welcome-email',
+    key: ipFromRequest(req),
+    limit: 3,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'rate_limited' },
+      { status: 429, headers: rl.headers },
+    )
+  }
+
   const supabase = await createClient()
   const {
     data: { user },

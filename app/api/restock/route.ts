@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { parseRequest, zRestockRequest } from '@/lib/api/schemas'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,27 +19,24 @@ export const dynamic = 'force-dynamic'
  * "이미 구독됨" 으로 응답. DELETE 도 없는 구독은 조용히 성공.
  */
 
-type Body = {
-  productId?: string
-  variantId?: string | null
-}
-
-async function parseBody(req: Request): Promise<Body | null> {
-  try {
-    return (await req.json()) as Body
-  } catch {
-    return null
-  }
-}
-
 export async function POST(req: Request) {
-  const body = await parseBody(req)
-  if (!body?.productId) {
+  const rl = rateLimit({
+    bucket: 'restock-subscribe',
+    key: ipFromRequest(req),
+    limit: 20,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
     return NextResponse.json(
-      { code: 'INVALID_BODY', message: 'productId 가 필요해요' },
-      { status: 400 }
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rl.headers },
     )
   }
+
+  const parsed = await parseRequest(req, zRestockRequest)
+  if (!parsed.ok) return parsed.response
+  const body = { productId: parsed.data.productId, variantId: parsed.data.variantId ?? null }
+
   const supabase = await createClient()
   const {
     data: { user },
@@ -98,13 +97,10 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const body = await parseBody(req)
-  if (!body?.productId) {
-    return NextResponse.json(
-      { code: 'INVALID_BODY', message: 'productId 가 필요해요' },
-      { status: 400 }
-    )
-  }
+  const parsed = await parseRequest(req, zRestockRequest)
+  if (!parsed.ok) return parsed.response
+  const body = { productId: parsed.data.productId, variantId: parsed.data.variantId ?? null }
+
   const supabase = await createClient()
   const {
     data: { user },

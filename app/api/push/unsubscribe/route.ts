@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { parseRequest, zPushUnsubscribe } from '@/lib/api/schemas'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -21,26 +22,13 @@ export async function POST(req: Request) {
     )
   }
 
-  let body: { endpoint?: string } = {}
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json(
-      { code: 'BAD_REQUEST', message: '잘못된 요청' },
-      { status: 400 }
-    )
-  }
-  if (!body.endpoint) {
-    return NextResponse.json(
-      { code: 'BAD_REQUEST', message: 'endpoint가 필요합니다' },
-      { status: 400 }
-    )
-  }
+  const parsed = await parseRequest(req, zPushUnsubscribe)
+  if (!parsed.ok) return parsed.response
 
   await supabase
     .from('push_subscriptions')
     .delete()
-    .eq('endpoint', body.endpoint)
+    .eq('endpoint', parsed.data.endpoint)
     .eq('user_id', user.id)
 
   return NextResponse.json({ ok: true })

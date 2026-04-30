@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { parseRequest, zNewsletterSubscribe } from '@/lib/api/schemas'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 /**
  * POST /api/newsletter — 뉴스레터 구독 신청.
@@ -7,39 +9,39 @@ import { createClient } from '@/lib/supabase/server'
  * Body: { email: string, source?: string }
  *
  * 동작:
- *   1. 이메일 형식 검증
+ *   1. Zod 검증 (이메일 형식)
  *   2. 기존 구독자 (status=confirmed) 면 200 + alreadySubscribed 반환
  *   3. 기존 구독자 (status=unsubscribed) 면 status='pending' 으로 재활성화
  *   4. 신규 → insert (status='pending', confirm_token 발급)
  *   5. 추후: Resend 로 confirm 메일 발송 — 1차는 placeholder
+ *
+ * # 보호
+ * - Rate limit: IP 당 분당 5회 — confirm 메일 spam / DB 무제한 insert 방어
  *
  * RLS:
  *   - newsletter_subscribers 의 public insert 정책이 status=pending 만 허용.
  *   - 본 route 는 server-side anon client 를 사용해 정책에 맞게 insert.
  */
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
 export async function POST(req: Request) {
-  let body: { email?: string; source?: string }
-  try {
-    body = (await req.json()) as { email?: string; source?: string }
-  } catch {
+  // confirm 메일 발송 (Resend 비용) + DB insert 폭주 방어
+  const rl = rateLimit({
+    bucket: 'newsletter-subscribe',
+    key: ipFromRequest(req),
+    limit: 5,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
     return NextResponse.json(
-      { code: 'BAD_BODY', message: '잘못된 요청 형식이에요.' },
-      { status: 400 },
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rl.headers },
     )
   }
 
-  const email = (body.email ?? '').trim().toLowerCase()
-  const source = (body.source ?? 'web').slice(0, 32)
-
-  if (!email || !EMAIL_RE.test(email)) {
-    return NextResponse.json(
-      { code: 'INVALID_EMAIL', message: '올바른 이메일 주소를 입력해 주세요.' },
-      { status: 400 },
-    )
-  }
+  const parsed = await parseRequest(req, zNewsletterSubscribe)
+  if (!parsed.ok) return parsed.response
+  const email = parsed.data.email.trim().toLowerCase()
+  const source = (parsed.data.source ?? 'web').slice(0, 32)
 
   const supabase = await createClient()
 
