@@ -26,6 +26,7 @@ import {
 } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Sparkles } from 'lucide-react'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 import {
   formatEventDateRange,
   type EventItem,
@@ -363,24 +364,15 @@ function WelcomeBenefitModal({
 }) {
   const expiresAtMs = new Date(userCreatedAt).getTime() + WELCOME_WINDOW_MS
   const [now, setNow] = useState(() => Date.now())
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(id)
   }, [])
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prevOverflow
-    }
-  }, [onClose])
+  // Esc / focus trap / body scroll lock / focus restore — useModalA11y 가 처리.
+  useModalA11y({ open: true, onClose, containerRef: dialogRef })
 
   const remaining = Math.max(0, expiresAtMs - now)
   const expired = remaining === 0
@@ -391,11 +383,13 @@ function WelcomeBenefitModal({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="welcome-modal-title"
+      tabIndex={-1}
       onClick={onClose}
-      className="fixed inset-0 z-[60] flex items-center justify-center px-5"
+      className="fixed inset-0 z-[60] flex items-center justify-center px-5 outline-none"
       style={{
         background: 'rgba(20, 16, 12, 0.56)',
         backdropFilter: 'blur(4px)',

@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 
 /**
  * ProductImageLightbox — PDP 이미지 클릭 시 풀스크린 zoom modal.
@@ -31,28 +32,25 @@ export default function ProductImageLightbox({
 }) {
   const open = startIndex !== null
   const [idx, setIdx] = useState(startIndex ?? 0)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   // startIndex prop 변경 시 idx 초기화 (open 시점에 정확한 위치로).
   useEffect(() => {
     if (startIndex !== null) setIdx(startIndex)
   }, [startIndex])
 
-  // body scroll lock + keyboard navigation
+  // useModalA11y 가 Esc + body scroll lock + focus trap + restore 처리.
+  useModalA11y({ open, onClose, containerRef: dialogRef })
+
+  // 좌/우 화살표 keyboard navigation 은 lightbox-고유 동작이라 별도 effect.
   useEffect(() => {
     if (!open) return
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-      else if (e.key === 'ArrowLeft') prev()
+      if (e.key === 'ArrowLeft') prev()
       else if (e.key === 'ArrowRight') next()
     }
     window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = prevOverflow
-      window.removeEventListener('keydown', onKey)
-    }
+    return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -69,10 +67,12 @@ export default function ProductImageLightbox({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label="제품 이미지 확대"
-      className="fixed inset-0 z-[60] flex items-center justify-center"
+      tabIndex={-1}
+      className="fixed inset-0 z-[60] flex items-center justify-center outline-none"
       style={{ background: 'rgba(15,12,10,0.95)' }}
       onClick={onClose}
     >

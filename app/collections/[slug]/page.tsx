@@ -338,8 +338,9 @@ export default async function CollectionDetailPage({
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 lg:gap-6">
-            {products.map((p) => (
-              <CatalogProductCard key={p.id} product={p} />
+            {products.map((p, i) => (
+              // 데스크톱 4-col 첫 row(=4장) 만 LCP 후보로 priority. 그 외 lazy.
+              <CatalogProductCard key={p.id} product={p} priority={i < 4} />
             ))}
           </div>
         )}

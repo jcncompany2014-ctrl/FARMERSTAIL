@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Loader2 } from 'lucide-react'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 
 const REASONS = [
   '단순 변심',
@@ -18,6 +19,14 @@ export default function CancelOrderButton({ orderId }: { orderId: string }) {
   const [reason, setReason] = useState<string>(REASONS[0])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalA11y({
+    open,
+    onClose: () => !loading && setOpen(false),
+    containerRef: dialogRef,
+    preventEscape: loading,
+  })
 
   async function submitCancel() {
     setError(null)
@@ -56,16 +65,22 @@ export default function CancelOrderButton({ orderId }: { orderId: string }) {
           onClick={() => !loading && setOpen(false)}
         >
           <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cancel-order-title"
+            tabIndex={-1}
             className="bg-white rounded-2xl w-full max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-rule flex items-center justify-between">
-              <h2 className="text-[15px] font-black text-text">
+              <h2 id="cancel-order-title" className="text-[15px] font-black text-text">
                 주문 취소
               </h2>
               <button
                 onClick={() => !loading && setOpen(false)}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-muted hover:bg-bg"
+                aria-label="닫기"
+                className="w-10 h-10 -mr-2 rounded-full flex items-center justify-center text-muted hover:bg-bg"
               >
                 <X className="w-4 h-4" strokeWidth={2} />
               </button>

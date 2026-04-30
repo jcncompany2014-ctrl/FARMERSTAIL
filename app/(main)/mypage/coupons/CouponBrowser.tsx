@@ -98,6 +98,12 @@ export default function CouponBrowser({
                 if (e.key === 'Enter') lookup()
               }}
               placeholder="코드 입력 (예: WELCOME5000)"
+              autoComplete="off"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="search"
+              maxLength={32}
               className="flex-1 px-3 py-2.5 rounded-lg bg-bg border border-rule text-[12px] font-bold text-text placeholder:text-muted/60 focus:outline-none focus:border-terracotta"
             />
             <button

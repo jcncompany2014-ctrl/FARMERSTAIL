@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { formatPhone } from '@/lib/formatters'
 
 type Product = {
   id: string
@@ -393,6 +394,9 @@ export default function SubscribePage() {
                 value={recipientName}
                 onChange={(e) => setRecipientName(e.target.value)}
                 placeholder="이름"
+                autoComplete="name"
+                enterKeyHint="next"
+                maxLength={40}
                 className={inputCls}
               />
             </div>
@@ -403,8 +407,12 @@ export default function SubscribePage() {
               <input
                 type="tel"
                 value={recipientPhone}
-                onChange={(e) => setRecipientPhone(e.target.value)}
+                onChange={(e) => setRecipientPhone(formatPhone(e.target.value))}
                 placeholder="010-0000-0000"
+                inputMode="tel"
+                autoComplete="tel"
+                enterKeyHint="next"
+                maxLength={13}
                 className={inputCls}
               />
             </div>
@@ -418,6 +426,9 @@ export default function SubscribePage() {
                   value={recipientZip}
                   readOnly
                   placeholder="우편번호"
+                  autoComplete="postal-code"
+                  inputMode="numeric"
+                  maxLength={5}
                   className="w-28 px-4 py-3 rounded-xl border border-rule bg-bg text-[13px] text-text"
                 />
                 <button
@@ -434,6 +445,7 @@ export default function SubscribePage() {
                 value={recipientAddress}
                 readOnly
                 placeholder="주소 검색을 눌러주세요"
+                autoComplete="street-address"
                 className="w-full px-4 py-3 rounded-xl border border-rule bg-bg text-[13px] text-text placeholder:text-muted"
               />
             </div>
@@ -446,6 +458,9 @@ export default function SubscribePage() {
                 value={recipientAddressDetail}
                 onChange={(e) => setRecipientAddressDetail(e.target.value)}
                 placeholder="동/호수"
+                autoComplete="address-line2"
+                enterKeyHint="next"
+                maxLength={100}
                 className={inputCls}
               />
             </div>
@@ -458,6 +473,8 @@ export default function SubscribePage() {
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
                 placeholder="부재 시 문 앞에 놓아주세요"
+                enterKeyHint="done"
+                maxLength={80}
                 className={inputCls}
               />
             </div>

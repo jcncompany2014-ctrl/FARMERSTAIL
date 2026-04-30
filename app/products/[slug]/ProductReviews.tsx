@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { Star, ThumbsUp, MessageSquare, BadgeCheck } from 'lucide-react'
@@ -73,22 +74,14 @@ export default function ProductReviews({ productId }: { productId: string }) {
   const [pending, setPending] = useState<string | null>(null)
   const [sort, setSort] = useState<SortKey>('latest')
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const lightboxRef = useRef<HTMLDivElement>(null)
 
-  // 라이트박스 열려 있을 때 ESC 로 닫기 + body scroll lock.
-  // backdrop 클릭 닫기는 이미 구현돼 있음 — ESC 는 키보드 사용자용 탈출구.
-  useEffect(() => {
-    if (!lightbox) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setLightbox(null)
-    }
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = prevOverflow
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [lightbox])
+  // useModalA11y — Esc / focus trap / focus restore / body scroll lock.
+  useModalA11y({
+    open: lightbox !== null,
+    onClose: () => setLightbox(null),
+    containerRef: lightboxRef,
+  })
 
   useEffect(() => {
     let mounted = true
@@ -568,10 +561,13 @@ export default function ProductReviews({ productId }: { productId: string }) {
       )}
       {lightbox && (
         <div
+          ref={lightboxRef}
           role="dialog"
           aria-modal="true"
+          aria-label="리뷰 사진 확대"
+          tabIndex={-1}
           onClick={() => setLightbox(null)}
-          className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-4 outline-none"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

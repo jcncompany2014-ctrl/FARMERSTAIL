@@ -17,6 +17,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import AddressSearch from '@/components/AddressSearch'
+import { formatPhone } from '@/lib/formatters'
 import {
   validateCoupon,
   applyCouponRedemption,
@@ -111,7 +112,8 @@ export default function CheckoutForm({
   // 저장된 배송지를 클릭하면 폼에 채우고, activeAddressId 를 갱신한다.
   const handleSelectSaved = useCallback((addr: Address) => {
     setName(addr.recipientName)
-    setPhone(addr.phone)
+    // 저장값이 하이픈 없이 들어왔을 수도 있어 일관 표시 위해 formatPhone 통과.
+    setPhone(formatPhone(addr.phone))
     setZip(addr.zip)
     setAddress(addr.address)
     setAddressDetail(addr.addressDetail)
@@ -569,6 +571,8 @@ export default function CheckoutForm({
               setName(e.target.value)
               if (activeAddressId) setActiveAddressId(null)
             }}
+            autoComplete="name"
+            enterKeyHint="next"
             className={inputClass}
           />
           <input
@@ -576,9 +580,14 @@ export default function CheckoutForm({
             placeholder="연락처 (예: 010-1234-5678)"
             value={phone}
             onChange={(e) => {
-              setPhone(e.target.value)
+              // 숫자만 추출 → 자동 하이픈. 사용자가 010 입력 → 010-, 7자리 → 010-1234-...
+              setPhone(formatPhone(e.target.value))
               if (activeAddressId) setActiveAddressId(null)
             }}
+            inputMode="tel"
+            autoComplete="tel"
+            enterKeyHint="next"
+            maxLength={13}
             className={inputClass}
           />
           <div className="flex gap-2">
@@ -587,6 +596,9 @@ export default function CheckoutForm({
               placeholder="우편번호"
               value={zip}
               readOnly
+              inputMode="numeric"
+              autoComplete="postal-code"
+              maxLength={5}
               className="flex-1 px-4 py-3 rounded-lg border border-rule bg-bg text-[13px] text-text placeholder:text-muted"
             />
             <AddressSearch
@@ -599,6 +611,7 @@ export default function CheckoutForm({
             placeholder="주소 (검색 버튼으로 입력)"
             value={address}
             readOnly
+            autoComplete="street-address"
             className="w-full px-4 py-3 rounded-lg border border-rule bg-bg text-[13px] text-text placeholder:text-muted"
           />
           <input
@@ -609,6 +622,8 @@ export default function CheckoutForm({
               setAddressDetail(e.target.value)
               if (activeAddressId) setActiveAddressId(null)
             }}
+            autoComplete="address-line2"
+            enterKeyHint="next"
             className={inputClass}
           />
           <input
@@ -616,6 +631,8 @@ export default function CheckoutForm({
             placeholder="배송 메모 (선택)"
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
+            enterKeyHint="done"
+            maxLength={80}
             className={inputClass}
           />
         </div>

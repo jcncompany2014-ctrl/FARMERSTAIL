@@ -196,6 +196,12 @@ function LoginInner() {
             <input
               type="email"
               required
+              autoComplete="email"
+              inputMode="email"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="next"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 rounded-lg border text-sm focus:outline-none transition"
@@ -225,6 +231,8 @@ function LoginInner() {
               <input
                 type={showPw ? 'text' : 'password'}
                 required
+                autoComplete="current-password"
+                enterKeyHint="go"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 pr-11 rounded-lg border text-sm focus:outline-none transition"

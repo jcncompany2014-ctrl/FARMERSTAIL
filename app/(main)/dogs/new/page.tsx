@@ -205,6 +205,9 @@ export default function NewDogPage() {
             className={inputCls}
             placeholder="예: 코코"
             maxLength={20}
+            autoComplete="off"
+            autoCapitalize="off"
+            enterKeyHint="next"
           />
         </div>
 
@@ -279,10 +282,13 @@ export default function NewDogPage() {
             <input
               type="number"
               min="0"
+              max="50"
               value={ageValue}
               onChange={(e) => setAgeValue(e.target.value)}
               className={`${inputCls} flex-1`}
               placeholder="0"
+              inputMode="numeric"
+              enterKeyHint="next"
             />
             <button
               type="button"
@@ -314,11 +320,14 @@ export default function NewDogPage() {
           <input
             type="number"
             min="0"
+            max="100"
             step="0.1"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
             className={inputCls}
             placeholder="예: 4.5"
+            inputMode="decimal"
+            enterKeyHint="done"
           />
         </div>
 

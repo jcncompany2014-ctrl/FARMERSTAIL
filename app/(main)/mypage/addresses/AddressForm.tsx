@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AddressSearch from '@/components/AddressSearch'
 import type { Address, AddressInput } from '@/lib/commerce/addresses'
+import { formatPhone } from '@/lib/formatters'
 
 type Props = {
   mode: 'create' | 'edit'
@@ -131,6 +132,8 @@ export default function AddressForm({ mode, initial }: Props) {
             onChange={(e) => setLabel(e.target.value)}
             placeholder="집, 회사 등"
             maxLength={20}
+            autoComplete="off"
+            enterKeyHint="next"
             className="form-input"
           />
         </Field>
@@ -143,6 +146,8 @@ export default function AddressForm({ mode, initial }: Props) {
             onChange={(e) => setRecipientName(e.target.value)}
             placeholder="이름"
             maxLength={40}
+            autoComplete="name"
+            enterKeyHint="next"
             className="form-input"
           />
         </Field>
@@ -152,9 +157,12 @@ export default function AddressForm({ mode, initial }: Props) {
             type="tel"
             required
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => setPhone(formatPhone(e.target.value))}
             placeholder="010-1234-5678"
-            maxLength={20}
+            maxLength={13}
+            inputMode="tel"
+            autoComplete="tel"
+            enterKeyHint="next"
             className="form-input"
           />
         </Field>
@@ -167,6 +175,9 @@ export default function AddressForm({ mode, initial }: Props) {
               readOnly
               value={zip}
               placeholder="우편번호"
+              autoComplete="postal-code"
+              inputMode="numeric"
+              maxLength={5}
               className="form-input flex-1"
               style={{ background: 'var(--bg-2)' }}
             />
@@ -178,6 +189,7 @@ export default function AddressForm({ mode, initial }: Props) {
             readOnly
             value={address}
             placeholder="주소 검색 버튼으로 입력해 주세요"
+            autoComplete="street-address"
             className="form-input mt-2"
             style={{ background: 'var(--bg-2)' }}
           />
@@ -187,6 +199,8 @@ export default function AddressForm({ mode, initial }: Props) {
             onChange={(e) => setAddressDetail(e.target.value)}
             placeholder="상세 주소 (동, 호수)"
             maxLength={100}
+            autoComplete="address-line2"
+            enterKeyHint="done"
             className="form-input mt-2"
           />
         </Field>

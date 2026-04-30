@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 import {
   Dog as DogIcon,
   Moon,
@@ -65,6 +67,27 @@ export default function DogDetailPage() {
   const [newWeight, setNewWeight] = useState('')
   const [newWeightNote, setNewWeightNote] = useState('')
   const [savingWeight, setSavingWeight] = useState(false)
+
+  const weightModalRef = useRef<HTMLDivElement>(null)
+  const deleteModalRef = useRef<HTMLDivElement>(null)
+  function closeWeightModal() {
+    if (savingWeight) return
+    setShowWeightModal(false)
+    setNewWeight('')
+    setNewWeightNote('')
+  }
+  useModalA11y({
+    open: showWeightModal,
+    onClose: closeWeightModal,
+    containerRef: weightModalRef,
+    preventEscape: savingWeight,
+  })
+  useModalA11y({
+    open: showDeleteConfirm,
+    onClose: () => !deleting && setShowDeleteConfirm(false),
+    containerRef: deleteModalRef,
+    preventEscape: deleting,
+  })
 
   useEffect(() => {
     async function loadDog() {
@@ -226,13 +249,15 @@ export default function DogDetailPage() {
       {/* Hero */}
       <section className="px-5 mt-4">
         <div className="bg-white rounded-2xl border border-rule px-6 py-8 text-center">
-          <div className="w-24 h-24 bg-bg rounded-full overflow-hidden flex items-center justify-center mx-auto mb-4">
+          <div className="relative w-24 h-24 bg-bg rounded-full overflow-hidden flex items-center justify-center mx-auto mb-4">
             {dog.photo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={dog.photo_url}
                 alt={dog.name}
-                className="w-full h-full object-cover"
+                fill
+                sizes="96px"
+                className="object-cover"
+                priority
               />
             ) : (
               <DogIcon
@@ -388,13 +413,27 @@ export default function DogDetailPage() {
 
       {/* 체중 기록 모달 */}
       {showWeightModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center sm:px-6 z-50">
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl border-t sm:border border-rule p-6 max-w-sm w-full shadow-xl">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center sm:px-6 z-50"
+          onClick={closeWeightModal}
+        >
+          <div
+            ref={weightModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="weight-modal-title"
+            tabIndex={-1}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-t-2xl sm:rounded-2xl border-t sm:border border-rule p-6 max-w-sm w-full shadow-xl"
+          >
             <div className="flex items-center gap-2 mb-1">
               <Scale className="w-3.5 h-3.5 text-moss" strokeWidth={2} />
               <span className="kicker">New Weight Log · 체중 기록 추가</span>
             </div>
-            <h3 className="font-serif text-[18px] font-black text-text">
+            <h3
+              id="weight-modal-title"
+              className="font-serif text-[18px] font-black text-text"
+            >
               {dog.name}의 체중
             </h3>
             <p className="text-[11px] text-muted mt-1">
@@ -415,6 +454,8 @@ export default function DogDetailPage() {
                   value={newWeight}
                   onChange={(e) => setNewWeight(e.target.value)}
                   placeholder={dog.weight ? `이전: ${dog.weight}kg` : '예: 5.4'}
+                  inputMode="decimal"
+                  enterKeyHint="next"
                   className="w-full px-4 py-3 rounded-lg border border-rule bg-[#FDFDFD] text-[#2A2118] text-sm focus:outline-none focus:border-terracotta transition"
                 />
               </div>
@@ -442,11 +483,7 @@ export default function DogDetailPage() {
                 {savingWeight ? '저장 중...' : '저장하기'}
               </button>
               <button
-                onClick={() => {
-                  setShowWeightModal(false)
-                  setNewWeight('')
-                  setNewWeightNote('')
-                }}
+                onClick={closeWeightModal}
                 disabled={savingWeight}
                 className="w-full py-3 rounded-xl bg-white text-muted text-[13px] font-bold border border-rule hover:border-text hover:text-text transition"
               >
@@ -561,8 +598,20 @@ export default function DogDetailPage() {
 
       {/* Delete confirm modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center px-6 z-50">
-          <div className="bg-white rounded-2xl border border-rule p-6 max-w-sm w-full shadow-xl">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center px-6 z-50"
+          onClick={() => !deleting && setShowDeleteConfirm(false)}
+        >
+          <div
+            ref={deleteModalRef}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+            aria-describedby="delete-modal-desc"
+            tabIndex={-1}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl border border-rule p-6 max-w-sm w-full shadow-xl"
+          >
             <div className="flex justify-center mb-3">
               <div className="w-12 h-12 rounded-full bg-[#FFF5F3] flex items-center justify-center">
                 <AlertTriangle
@@ -571,10 +620,16 @@ export default function DogDetailPage() {
                 />
               </div>
             </div>
-            <h3 className="font-serif text-[18px] font-black text-text text-center mb-2">
+            <h3
+              id="delete-modal-title"
+              className="font-serif text-[18px] font-black text-text text-center mb-2"
+            >
               정말 삭제할까요?
             </h3>
-            <p className="text-[12px] text-muted text-center mb-6 leading-relaxed">
+            <p
+              id="delete-modal-desc"
+              className="text-[12px] text-muted text-center mb-6 leading-relaxed"
+            >
               {dog.name}의 모든 정보가 삭제돼요.
               <br />
               이 작업은 되돌릴 수 없어요.

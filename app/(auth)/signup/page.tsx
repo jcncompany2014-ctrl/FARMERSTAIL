@@ -18,6 +18,7 @@ import AuthHero from '@/components/auth/AuthHero'
 import AddressSearch from '@/components/AddressSearch'
 import { trackSignUp } from '@/lib/analytics'
 import { MARKETING_POLICY_VERSION } from '@/lib/consent'
+import { formatPhone, stripHyphens } from '@/lib/formatters'
 
 /**
  * /signup — 신규 계정 생성.
@@ -41,19 +42,13 @@ import { MARKETING_POLICY_VERSION } from '@/lib/consent'
  * 클라이언트는 그 row에 update로 필드를 채워 넣는다.
  */
 
-// ── 유틸: 휴대폰 번호 자동 포매팅 ─────────────────────────────
-// 숫자만 남기고 3-4-4 / 3-3-4 자리에 하이픈을 끼워 넣는다.
-function formatPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '').slice(0, 11)
-  if (digits.length < 4) return digits
-  if (digits.length < 8) return `${digits.slice(0, 3)}-${digits.slice(3)}`
-  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
-}
-
-// 대한민국 휴대폰 — 010/011/016/017/018/019 로 시작, 총 10~11자리.
+/**
+ * 대한민국 휴대폰 — 010/011/016/017/018/019 로 시작, 총 10~11자리.
+ * lib/formatters 의 isValidMobilePhone 은 010 만 허용 (현재 표준).
+ * 가입에선 011/016/017/018/019 도 허용 (구형 번호 보유자가 있음).
+ */
 function isValidKoreanMobile(value: string): boolean {
-  const digits = value.replace(/\D/g, '')
-  return /^01[016789]\d{7,8}$/.test(digits)
+  return /^01[016789]\d{7,8}$/.test(stripHyphens(value))
 }
 
 function SignupForm() {
@@ -568,6 +563,8 @@ function SignupForm() {
                   type="text"
                   required
                   autoComplete="name"
+                  enterKeyHint="next"
+                  maxLength={20}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className={baseInputCls}
@@ -596,6 +593,11 @@ function SignupForm() {
                   type="email"
                   required
                   autoComplete="email"
+                  inputMode="email"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="next"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className={baseInputCls}
@@ -732,8 +734,10 @@ function SignupForm() {
                 <input
                   type="tel"
                   required
-                  inputMode="numeric"
+                  inputMode="tel"
                   autoComplete="tel"
+                  enterKeyHint="next"
+                  maxLength={13}
                   value={phone}
                   onChange={(e) => setPhone(formatPhone(e.target.value))}
                   className={baseInputCls}

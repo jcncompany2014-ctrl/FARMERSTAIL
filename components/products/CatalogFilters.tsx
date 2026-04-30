@@ -1,8 +1,9 @@
 'use client'
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { X, SlidersHorizontal } from 'lucide-react'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 
 /**
  * CatalogFilters — 카탈로그 필터 (가격대 / 정기배송 / 세일 / 카테고리).
@@ -193,15 +194,13 @@ function MobileTrigger() {
     (f.subscribable ? 1 : 0) +
     (f.priceMin !== null || f.priceMax !== null ? 1 : 0)
 
-  // 모바일 sheet 열렸을 때 body scroll lock
-  useEffect(() => {
-    if (!open) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prev
-    }
-  }, [open])
+  const sheetRef = useRef<HTMLDivElement>(null)
+  // useModalA11y 가 body scroll lock + Esc + focus trap 모두 처리.
+  useModalA11y({
+    open,
+    onClose: () => setOpen(false),
+    containerRef: sheetRef,
+  })
 
   return (
     <>
@@ -241,6 +240,8 @@ function MobileTrigger() {
             onClick={() => setOpen(false)}
           />
           <div
+            ref={sheetRef}
+            tabIndex={-1}
             className="absolute left-0 right-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-2xl"
             style={{ background: 'var(--bg)' }}
           >
