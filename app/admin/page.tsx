@@ -2,6 +2,12 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { STOCK_LOW_THRESHOLD } from '@/lib/products/stock'
 import RevenueChart, { type RevenuePoint } from '@/components/admin/RevenueChart'
+import CategoryRevenueDonut, {
+  type CategoryRevenuePoint,
+} from '@/components/admin/CategoryRevenueDonut'
+import FoodInfoCompletion, {
+  type ProductInfoLite,
+} from '@/components/admin/FoodInfoCompletion'
 
 export const dynamic = 'force-dynamic'
 
@@ -190,6 +196,19 @@ export default async function AdminHome() {
       .gte('created_at', todayStart),
   ])
 
+  // 식품정보고시 14항목 채움률 — 별도 쿼리. 100개 이하 가정.
+  const { data: foodInfoProducts } = await supabase
+    .from('products')
+    .select(
+      `id, name, origin, manufacturer, manufacturer_address,
+       manufacture_date_policy, shelf_life_days, net_weight_g, ingredients,
+       nutrition_facts, allergens, storage_method, feeding_guide,
+       pet_food_class, certifications, country_of_packaging`,
+    )
+    .eq('is_active', true)
+    .limit(200)
+  const productInfo = (foodInfoProducts ?? []) as ProductInfoLite[]
+
   const totalRevenue =
     paidOrdersRes.data?.reduce(
       (sum, o: { total_amount: number | null }) => sum + (o.total_amount ?? 0),
@@ -322,6 +341,37 @@ export default async function AdminHome() {
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 5)
 
+  // 카테고리별 매출 — productInfo 의 id → category 매핑 활용 + 30일 line_total
+  // 합산. productInfo 는 이미 active 상품만이라 cancelled 카테고리도 자연 배제.
+  const productCategoryMap = new Map<string, string | null>()
+  for (const p of productInfo) {
+    productCategoryMap.set(p.id, null) // category 컬럼은 productInfo 에서 안 가져옴
+  }
+  // 별도 쿼리 — productInfo 가 category 빠뜨려서 추가 round-trip. 비용 작음
+  // (단순 select).
+  const { data: categoryRows } = await supabase
+    .from('products')
+    .select('id, category')
+    .eq('is_active', true)
+  const catMap = new Map<string, string | null>(
+    (categoryRows ?? []).map((p) => [p.id as string, (p.category as string | null) ?? null]),
+  )
+  const categoryRevenueAgg = new Map<string, number>()
+  for (const order of thirtyDayOrders) {
+    for (const item of order.order_items ?? []) {
+      if (!item.product_id) continue
+      const cat = catMap.get(item.product_id) ?? '미분류'
+      const key = cat || '미분류'
+      categoryRevenueAgg.set(
+        key,
+        (categoryRevenueAgg.get(key) ?? 0) + item.line_total,
+      )
+    }
+  }
+  const categoryRevenue: CategoryRevenuePoint[] = Array.from(
+    categoryRevenueAgg.entries(),
+  ).map(([category, revenue]) => ({ category, revenue }))
+
   return (
     <div>
       <div className="flex items-end justify-between mb-8">
@@ -433,8 +483,15 @@ export default async function AdminHome() {
       </div>
 
       {/* 30일 매출 — SVG line chart (RevenueChart) */}
-      <div className="mb-6">
+      <div className="mb-4">
         <RevenueChart data={dailyChartData} title="최근 30일 매출" />
+      </div>
+
+      {/* 카테고리별 매출 도넛 + 식품정보고시 채움률 — 출시 직전 운영자 핵심
+          모니터링 항목. 채움률 < 100% 면 시정명령 위험. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <CategoryRevenueDonut data={categoryRevenue} />
+        <FoodInfoCompletion products={productInfo} />
       </div>
 
       {/* Top 상품 + 재고 경고 — 2-column */}
