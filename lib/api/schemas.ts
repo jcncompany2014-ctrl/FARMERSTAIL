@@ -1,16 +1,21 @@
 /**
- * API route 공용 Zod 스키마.
+ * API route 공용 Zod 스키마 — pure (Next.js / Node 의존 없음).
  *
  * 한 곳에 모아 Zod 의존을 단일화. 라우트별 스키마는 짧은 inline 으로 두고,
  * 여러 곳에서 재사용되는 정규식/제약은 여기서 export.
  *
  * # 가이드라인
  * - **모든 user-input 는 Zod parse 통과해야** API 본 로직에 도달.
- * - parseRequest() helper 가 JSON.parse / Zod 둘 다 잡아 422 로 일관 응답.
+ * - parseRequest() helper (lib/api/parseRequest.ts) 가 JSON.parse / Zod
+ *   둘 다 잡아 422 로 일관 응답.
  * - 메시지는 한국어 — 사용자에게 노출되는 경우가 있음.
+ *
+ * # 분리 이유
+ * 이 파일은 Node test runner 에서 직접 import 가능해야 하므로 next/server
+ * 등 런타임 의존을 두지 않는다. parseRequest 는 NextResponse 가 필요해
+ * lib/api/parseRequest.ts 로 옮겨졌다 — 호출처는 양쪽 모두 import.
  */
 import { z } from 'zod'
-import { NextResponse } from 'next/server'
 
 // ──────────────────────────────────────────────────────────────────────────
 // Common primitives
@@ -113,58 +118,5 @@ export const zAccountDelete = z.object({
   reason: zShortText.optional(),
 })
 
-// ──────────────────────────────────────────────────────────────────────────
-// Helpers
-// ──────────────────────────────────────────────────────────────────────────
-
-/**
- * Request body 를 JSON.parse + Zod parse 하는 헬퍼.
- *
- * 성공: { ok: true, data: T }
- * 실패: { ok: false, response: NextResponse } — 호출 측에서 그대로 return.
- *
- * 422 (validation 실패) / 400 (JSON 파싱 실패) 를 분리해 운영 모니터링이 둘을
- * 구분할 수 있게.
- */
-export async function parseRequest<T extends z.ZodTypeAny>(
-  req: Request,
-  schema: T,
-): Promise<
-  | { ok: true; data: z.infer<T> }
-  | { ok: false; response: NextResponse }
-> {
-  let raw: unknown
-  try {
-    raw = await req.json()
-  } catch {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        { code: 'INVALID_BODY', message: '요청 형식이 올바르지 않아요' },
-        { status: 400 },
-      ),
-    }
-  }
-
-  const result = schema.safeParse(raw)
-  if (!result.success) {
-    // 첫 번째 오류만 message 로 노출 — 나머지는 details 로 디버그.
-    const first = result.error.issues[0]
-    return {
-      ok: false,
-      response: NextResponse.json(
-        {
-          code: 'VALIDATION_FAILED',
-          message: first?.message ?? '입력값이 올바르지 않아요',
-          details: result.error.issues.map((i) => ({
-            path: i.path.join('.'),
-            message: i.message,
-          })),
-        },
-        { status: 422 },
-      ),
-    }
-  }
-
-  return { ok: true, data: result.data }
-}
+// parseRequest helper 는 lib/api/parseRequest.ts 로 분리 (NextResponse 의존).
+// 호출처는 보통 두 모듈 모두 import — schemas + parseRequest.

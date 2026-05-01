@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { parseRequest, zNewsletterSubscribe } from '@/lib/api/schemas'
+import { zNewsletterSubscribe } from '@/lib/api/schemas'
+import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { notifyNewsletterConfirm } from '@/lib/email'
 

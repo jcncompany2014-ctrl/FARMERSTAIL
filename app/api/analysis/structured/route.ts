@@ -6,7 +6,8 @@ import {
   type AiAnalysisContext,
 } from '@/lib/nutrition/ai-prompt'
 import type { ChronicConditionKey } from '@/lib/nutrition/guidelines'
-import { parseRequest, zAnalysisRequest } from '@/lib/api/schemas'
+import { zAnalysisRequest } from '@/lib/api/schemas'
+import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'

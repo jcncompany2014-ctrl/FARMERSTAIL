@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { parseRequest, zPushUnsubscribe } from '@/lib/api/schemas'
+import { zPushUnsubscribe } from '@/lib/api/schemas'
+import { parseRequest } from '@/lib/api/parseRequest'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'

@@ -26,7 +26,7 @@
  * client: in-memory module Map (페이지 lifecycle 동안 일관).
  */
 
-type RawFlagRow = {
+export type RawFlagRow = {
   key: string
   enabled: boolean
   variants: Array<{
@@ -46,8 +46,9 @@ export type ResolvedFlag = {
 // ──────────────────────────────────────────────────────────────────────────
 // Hash — 같은 (userId, flagKey) 조합엔 항상 같은 0~99 정수.
 // FNV-1a 해시. 외부 lib 필요 없음.
+// 테스트가 직접 호출할 수 있게 export — 내부 호출자도 그대로 사용.
 // ──────────────────────────────────────────────────────────────────────────
-function hashBucket(userId: string, key: string): number {
+export function hashBucket(userId: string, key: string): number {
   const s = `${userId}:${key}`
   let h = 0x811c9dc5
   for (let i = 0; i < s.length; i++) {
@@ -59,8 +60,9 @@ function hashBucket(userId: string, key: string): number {
 
 // ──────────────────────────────────────────────────────────────────────────
 // Variant 결정.
+// 테스트용으로 export — DB 레이어 없이 결정 로직만 단위 테스트 가능.
 // ──────────────────────────────────────────────────────────────────────────
-function pickVariant(
+export function pickVariant(
   flag: RawFlagRow,
   userId: string | null,
 ): ResolvedFlag {

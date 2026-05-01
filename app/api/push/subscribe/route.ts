@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isPushConfigured } from '@/lib/push'
-import { parseRequest, zPushSubscribe } from '@/lib/api/schemas'
+import { zPushSubscribe } from '@/lib/api/schemas'
+import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
