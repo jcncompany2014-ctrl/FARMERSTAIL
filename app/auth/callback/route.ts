@@ -32,8 +32,10 @@ export async function GET(request: Request) {
   const errorParam = searchParams.get('error')
   const errorDescription = searchParams.get('error_description')
 
-  // Provider (현재는 Kakao 만, 추후 google/apple 도 같은 콜백 공유 가능)
-  const provider = 'kakao'
+  // Provider 추적 — Sentry tag 용. Supabase 가 callback URL 에 provider 를
+  // 직접 알리지 않으므로 referer 또는 Supabase session 사후 검사로 추정 가능.
+  // 일단 'oauth' 일반화 — 정확한 분리가 필요하면 OAuth state param 에 인코딩.
+  const provider = 'oauth'
 
   if (errorParam) {
     // 사용자가 카카오 동의 화면에서 "취소" 누른 케이스가 가장 흔함

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
+import AppleLoginButton from '@/components/AppleLoginButton'
 import AuthHero from '@/components/auth/AuthHero'
 import AddressSearch from '@/components/AddressSearch'
 import { trackSignUp } from '@/lib/analytics'
@@ -485,8 +486,10 @@ function SignupForm() {
           이메일 폼은 카카오를 쓰지 않는 소수 유저를 위한 fallback 으로
           아래로 내리고, 그 사이에 "또는 이메일로 가입" 디바이더 배치.
         */}
-        <div className="mb-3">
+        <div className="mb-3 space-y-2">
           <KakaoLoginButton variant="signup" />
+          {/* Apple Guideline 4.8 — 서드파티 소셜 로그인이 있으면 SIWA 동등 노출 의무. */}
+          <AppleLoginButton variant="signup" />
         </div>
 
         {/* 카카오 로그인은 별도 동의 UI 없이 진행되므로 묵시적 동의 근거 제공. */}

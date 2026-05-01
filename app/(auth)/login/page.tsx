@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
+import AppleLoginButton from '@/components/AppleLoginButton'
 import AuthHero from '@/components/auth/AuthHero'
 import { useIsAppContext } from '@/hooks/useIsAppContext'
 
@@ -168,8 +169,11 @@ function LoginInner() {
           올려 단축 경로로 둔다. 이메일은 카카오를 안 쓰는 유저를 위한
           fallback.
         */}
-        <div className="mb-5">
+        <div className="mb-3 space-y-2">
           <KakaoLoginButton variant="login" />
+          {/* Apple Guideline 4.8 — Kakao 와 동등 비중. iOS 빌드는 거부 사유
+              해소 위해 동일 화면 노출, 웹은 미국/일본 사용자 도움. */}
+          <AppleLoginButton variant="login" />
         </div>
 
         {/* "또는 이메일로" 디바이더 */}
