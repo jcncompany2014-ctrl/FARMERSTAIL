@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { chargeBillingKey } from '@/lib/payments/toss'
 import { notifySubscriptionChargeFailed } from '@/lib/email'
+import { traceBusiness, captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -168,15 +169,26 @@ export async function GET(req: Request) {
       continue
     }
 
-    // 2-c) Toss 청구.
-    const result = await chargeBillingKey({
-      billingKey: sub.billing_key,
-      customerKey: sub.billing_customer_key,
-      orderId: orderRow.id,
-      orderName,
-      amount: sub.total_amount,
-      idempotencyKey: `sub-charge:${sub.id}:${today}`,
-    })
+    // 2-c) Toss 청구. 비즈니스 span 으로 wrap — Sentry 트랜잭션에서 실패율 +
+    //      latency 추적.
+    const result = await traceBusiness(
+      'subscription.charge',
+      {
+        'subscription.id': sub.id,
+        'subscription.amount': sub.total_amount,
+        'subscription.failed_count': sub.failed_charge_count,
+        'subscription.scheduled_for': today,
+      },
+      () =>
+        chargeBillingKey({
+          billingKey: sub.billing_key,
+          customerKey: sub.billing_customer_key,
+          orderId: orderRow.id,
+          orderName,
+          amount: sub.total_amount,
+          idempotencyKey: `sub-charge:${sub.id}:${today}`,
+        }),
+    )
 
     if (result.ok) {
       // 2-d) 성공 → orders / charge / subscription 업데이트.
@@ -211,6 +223,11 @@ export async function GET(req: Request) {
           })
           .eq('id', sub.id),
       ])
+      captureBusinessEvent('info', 'subscription.charge.succeeded', {
+        subscriptionId: sub.id,
+        amount: sub.total_amount,
+        attemptCount: sub.failed_charge_count + 1,
+      })
       succeeded += 1
     } else {
       // 2-e) 실패 → counter 증가. 3회 누적이면 paused.
@@ -246,6 +263,19 @@ export async function GET(req: Request) {
           })
           .eq('id', sub.id),
       ])
+      // 매출 영향 이벤트 — paused 면 warning, 단일 실패면 info.
+      captureBusinessEvent(
+        shouldPause ? 'warning' : 'info',
+        shouldPause
+          ? 'subscription.charge.paused'
+          : 'subscription.charge.failed',
+        {
+          subscriptionId: sub.id,
+          amount: sub.total_amount,
+          attemptCount: nextFailedCount,
+          errorCode: result.error?.code ?? null,
+        },
+      )
       failed += 1
 
       // 사용자에게 결제 실패 이메일 발송 — fire-and-forget. 메일 발송 실패가

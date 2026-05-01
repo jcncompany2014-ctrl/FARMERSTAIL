@@ -6,6 +6,7 @@ import { confirmPayment } from '@/lib/payments/toss'
 import { notifyOrderPlaced, notifyVirtualAccountWaiting } from '@/lib/email'
 import { parseRequest, zPaymentConfirm } from '@/lib/api/schemas'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { traceBusiness, captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -88,7 +89,15 @@ export async function POST(req: Request) {
   }
 
   // 3) 토스페이먼츠 승인 API 호출 — lib/payments/toss 가 Idempotency-Key 포함.
-  const result = await confirmPayment({ paymentKey, orderId, amount })
+  // Sentry 트레이싱 wrap — 결제 confirm 실패율 + latency 추적.
+  const result = await traceBusiness(
+    'order.payment.confirm',
+    {
+      'order.id': orderId,
+      'order.amount': amount,
+    },
+    () => confirmPayment({ paymentKey, orderId, amount }),
+  )
 
   if (!result.ok) {
     // 승인 실패 → 주문 상태 failed로
@@ -96,6 +105,13 @@ export async function POST(req: Request) {
       .from('orders')
       .update({ payment_status: 'failed' })
       .eq('id', order.id)
+
+    // 매출 영향 이벤트 — Sentry 운영 채널에 알림.
+    captureBusinessEvent('warning', 'order.payment.confirm.failed', {
+      orderId,
+      amount,
+      errorCode: result.error.code ?? null,
+    })
 
     return NextResponse.json(
       { code: result.error.code, message: result.error.message },

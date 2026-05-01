@@ -14,7 +14,37 @@ Sentry.init({
   dsn: process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN,
   environment: process.env.NODE_ENV,
   enabled: !!(process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN),
-  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+  // 라우트별 차등 sampling — 결제 / Anthropic 같은 비즈니스 핵심은 100%,
+  // tracking / health 같은 잡음 라우트는 1% 로 비용 절감.
+  // 0.1 fallback (그 외 일반 라우트).
+  tracesSampler: ({ name, attributes }) => {
+    const path = (attributes?.['http.target'] ?? name) as string | undefined
+    if (typeof path !== 'string') return 0.1
+    // 결제 / 웹훅 / 자동결제 cron — 실패 추적이 매출에 직결.
+    if (
+      path.startsWith('/api/payments/') ||
+      path.startsWith('/api/cron/subscription-charge') ||
+      path.startsWith('/checkout/success') ||
+      path.startsWith('/api/orders/') ||
+      path.startsWith('/api/account/delete')
+    ) {
+      return 1.0
+    }
+    // 비용 큰 외부 API — 비용 폭주 / 응답 지연 추적.
+    if (path.startsWith('/api/analysis/')) return 1.0
+    // 가입/로그인 콜백 — 가입 깔때기 추적.
+    if (path === '/auth/callback' || path.startsWith('/api/auth/')) return 0.5
+    // 헬스체크 / 트래킹 / web vitals — 빈도 높고 가치 낮음.
+    if (
+      path.startsWith('/api/health') ||
+      path.startsWith('/api/tracking') ||
+      path.startsWith('/api/metrics/web-vitals')
+    ) {
+      return 0.01
+    }
+    // production: 0.1, dev: 1.0
+    return process.env.NODE_ENV === 'production' ? 0.1 : 1.0
+  },
   // Release 태깅 — Vercel 빌드가 주입하는 커밋 SHA를 쓴다. 같은 SHA로
   // source map을 업로드해야 symbolication이 동작하므로 next.config.ts의
   // release 설정과 일치시킨다. Vercel 외부(로컬)에서는 undefined → SDK가
@@ -22,6 +52,13 @@ Sentry.init({
   release: process.env.VERCEL_GIT_COMMIT_SHA,
   debug: false,
   sendDefaultPii: false,
+  // 비즈니스 도메인 태그 — Sentry 대시보드에서 quick filter / cohort 분석용.
+  initialScope: {
+    tags: {
+      'app.region': 'kr',
+      'app.platform': 'web',
+    },
+  },
   beforeSend(event) {
     // PII 한국 특화 패턴 scrubbing — 주민등록번호, 휴대폰, 이메일.
     // Sentry의 기본 scrubber도 돌지만 한국 포맷은 놓치는 경우 있어 이중화.
