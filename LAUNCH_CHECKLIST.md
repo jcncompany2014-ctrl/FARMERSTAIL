@@ -155,6 +155,19 @@ WHERE table_name = 'products'
 |---|---|
 | `ANTHROPIC_API_KEY` | `sk-ant-...` |
 
+### 🟢 Universal Links / App Links (네이티브 앱)
+| 키 | 용도 |
+|---|---|
+| `APPLE_APP_SITE_TEAM_ID` | Apple Developer Team ID 10자. 비어있으면 AASA 비활성. |
+| `ANDROID_PACKAGE_NAME` | 기본 `com.farmerstail.app` (capacitor.config 와 일치). |
+| `ANDROID_FINGERPRINTS` | Play Console → Setup → App integrity 의 SHA-256. 콤마 구분 가능. |
+| `CAPACITOR_SERVER_URL` | 앱 WebView 가 로드할 도메인. 미설정 시 capacitor.config default. |
+
+### 🟢 (선택) Sign in with Apple 비활성화
+| 키 | 용도 |
+|---|---|
+| `NEXT_PUBLIC_DISABLE_SIWA` | `1` 설정 시 login/signup 에서 Apple 버튼 숨김. 임시 비활성용. |
+
 ---
 
 ## 3. 외부 서비스 사전 설정
@@ -164,6 +177,10 @@ WHERE table_name = 'products'
 - [ ] 운영 클라이언트키 / 시크릿키 발급 (test_*, live_* 구분)
 - [ ] 결제 webhook URL 등록: `https://[domain]/api/payments/webhook`
 - [ ] 환불/취소 권한 활성화
+- [ ] **정기결제(빌링) 사용 신청** — 자동결제 cron 동작에 필수
+- [ ] billingAuth successUrl / failUrl 등록:
+      `https://[domain]/subscribe/billing-success`
+      `https://[domain]/subscribe/billing-fail`
 
 ### Resend
 - [ ] 도메인 추가 (`farmerstail.com`)
@@ -181,6 +198,26 @@ WHERE table_name = 'products'
 - [ ] Storage 버킷 권한 (products / blog / events / dog-photos)
 - [ ] Email Auth → 비밀번호 재설정 메일 템플릿 (Supabase 측에서 설정)
 - [ ] OAuth 카카오 provider 등록 (redirect URL: `https://[domain]/auth/callback`)
+- [ ] **OAuth Apple provider 등록** — Apple Guideline 4.8 SIWA 충족
+      필요 항목: Services ID, Team ID, Key ID, .p8 key 파일
+
+### Apple Developer (iOS App Store 출시 시)
+- [ ] Apple Developer Program 가입 ($99/yr)
+- [ ] App ID `com.farmerstail.app` 등록
+- [ ] Sign in with Apple capability 활성
+- [ ] Services ID `com.farmerstail.app.signin` 생성 (SIWA web flow 용)
+- [ ] Sign in with Apple Key (.p8) 발급
+- [ ] Universal Links: `apple-app-site-association` AASA 검증
+      `APPLE_APP_SITE_TEAM_ID` env 등록 후 `https://[domain]/.well-known/apple-app-site-association` 200 + JSON 응답 확인
+- [ ] Privacy Manifest `PrivacyInfo.xcprivacy` 작성 (cap add ios 후)
+- [ ] Info.plist `NSUserTrackingUsageDescription` (ATT)
+      `NSPhotoLibraryUsageDescription`, `NSCameraUsageDescription`
+- [ ] App Store Connect 앱 생성 + Privacy Nutrition Labels 작성
+
+### Google Play (Android)
+- [ ] Play Console 앱 등록 + Data safety form
+- [ ] App signing key 등록, SHA-256 → `ANDROID_FINGERPRINTS` env
+- [ ] Account deletion URL: `https://[domain]/mypage/delete`
 
 ### Vercel
 - [ ] Production 도메인 연결 (`farmerstail.com`)
