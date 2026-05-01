@@ -60,9 +60,12 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     let mounted = true
 
     async function fetchCount() {
+      // getSession() — JWT 검증 RTT 회피 (50-100ms). cart 자체는 RLS 가
+      // user_id 검증해 spoof 안전.
       const {
-        data: { user },
-      } = await supabase.auth.getUser()
+        data: { session },
+      } = await supabase.auth.getSession()
+      const user = session?.user ?? null
       if (!mounted || !user) return
       const { data: items } = await supabase
         .from('cart_items')

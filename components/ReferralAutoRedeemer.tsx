@@ -39,8 +39,9 @@ export default function ReferralAutoRedeemer() {
     }
 
     ;(async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      // getSession — RPC 가 auth.uid() 검증해 spoof 안전.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) return
 
       const { data, error } = await supabase.rpc('redeem_referral_code', {
         input_code: code,

@@ -54,9 +54,12 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     let mounted = true
     ;(async () => {
       const supabase = createClient()
+      // getSession() — UI 전용 read 라 JWT 검증 RTT 불필요. wishlists 쿼리는
+      // RLS 가 auth.uid() = user_id 검증.
       const {
-        data: { user },
-      } = await supabase.auth.getUser()
+        data: { session },
+      } = await supabase.auth.getSession()
+      const user = session?.user ?? null
       if (!mounted) return
       if (!user) {
         setReady(true)
@@ -97,9 +100,11 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
       try {
         const supabase = createClient()
+        // getSession — wishlist write 는 RLS 가 검증하므로 spoof 안전.
         const {
-          data: { user },
-        } = await supabase.auth.getUser()
+          data: { session },
+        } = await supabase.auth.getSession()
+        const user = session?.user ?? null
         if (!user) {
           // 비로그인 — 낙관 적용 롤백 후 /login redirect.
           setWishedIds((s) => {

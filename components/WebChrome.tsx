@@ -156,14 +156,17 @@ export default function WebChrome({
   const supabase = createClient()
 
   // Cart count — pathname change 또는 ft:cart:add 이벤트 시 refetch.
-  // (이전: prop 으로만 받아 항상 0 — landing 에서 cartCount={0} hardcoded.)
+  // getSession() 사용 — getUser() 는 매번 JWT 검증 위해 Supabase 로 RTT 발생.
+  // 여기선 "로그인 됐나" UI 신호만 필요해 cookie 로컬 read 로 충분 (50~200ms 절약).
+  // 카트 데이터 자체는 RLS 가 user_id 검증하므로 spoof 우려 없음.
   useEffect(() => {
     let mounted = true
     async function fetchCount() {
       const {
-        data: { user },
-      } = await supabase.auth.getUser()
+        data: { session },
+      } = await supabase.auth.getSession()
       if (!mounted) return
+      const user = session?.user ?? null
       setIsAuthed(!!user)
       if (!user) {
         setCartCount(0)
