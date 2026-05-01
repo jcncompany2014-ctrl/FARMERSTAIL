@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import ShareButton from '@/components/ShareButton'
 import { renderMarkdown } from '@/lib/markdown'
+import { BLUR_BG2 } from '@/lib/ui/blur'
 import JsonLd from '@/components/JsonLd'
 import { buildArticleJsonLd, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 
@@ -327,6 +328,8 @@ export default async function BlogPostPage({ params }: { params: Params }) {
                           fill
                           sizes="(max-width: 768px) 96px, 260px"
                           loading="lazy"
+                          placeholder="blur"
+                          blurDataURL={BLUR_BG2}
                           className="object-cover"
                         />
                       ) : (

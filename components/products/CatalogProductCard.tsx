@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { Soup, Cookie, PackageOpen } from 'lucide-react'
 import { StockOverlay } from '@/components/ui/StockBadge'
 import WishlistButton from './WishlistButton'
+import { BLUR_BG2 } from '@/lib/ui/blur'
 
 /**
  * CatalogProductCard — 카탈로그 그리드용 ProductCard.
@@ -112,6 +113,10 @@ export default function CatalogProductCard({
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
             priority={priority}
+            // priority=true 인 LCP 후보는 blur placeholder 가 LCP 측정에서
+            // 손해 — placeholder 도 화면에 그려지므로. lazy 인 카드만 blur.
+            placeholder={priority ? undefined : 'blur'}
+            blurDataURL={priority ? undefined : BLUR_BG2}
             className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           />
         ) : (

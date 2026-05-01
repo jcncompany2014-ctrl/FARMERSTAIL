@@ -8,6 +8,7 @@ import { X, ShoppingBag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { StockBadge } from '@/components/ui/StockBadge'
+import { BLUR_BG2 } from '@/lib/ui/blur'
 import { stockState, maxOrderable } from '@/lib/products/stock'
 
 type Row = {
@@ -135,6 +136,8 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
                     alt={row.product.name}
                     fill
                     sizes="(max-width: 768px) 80px, 112px"
+                    placeholder="blur"
+                    blurDataURL={BLUR_BG2}
                     className="object-cover"
                   />
                 ) : (

@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { BLUR_BG2 } from '@/lib/ui/blur'
 import {
   Soup,
   Cookie,
@@ -753,6 +754,8 @@ function Gallery({
                 alt=""
                 fill
                 sizes="(max-width: 768px) 64px, 80px"
+                placeholder="blur"
+                blurDataURL={BLUR_BG2}
                 className="object-cover"
               />
             </button>
