@@ -66,12 +66,28 @@ const securityHeaders = [
   },
 ]
 
+/**
+ * Supabase Storage 호스트명을 NEXT_PUBLIC_SUPABASE_URL 에서 자동 추출.
+ *
+ * 이전엔 코드에 프로젝트 ID 가 박혀 있어 Supabase 프로젝트 이전 / staging
+ * 분리 시 누락 위험. URL 파싱 실패 시 fallback (개발 시 첫 빌드 통과용).
+ */
+function supabaseHostname(): string {
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!raw) return 'adynmnrzffidoilnxutg.supabase.co'
+  try {
+    return new URL(raw).hostname
+  } catch {
+    return 'adynmnrzffidoilnxutg.supabase.co'
+  }
+}
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'adynmnrzffidoilnxutg.supabase.co',
+        hostname: supabaseHostname(),
         pathname: '/storage/v1/object/public/**',
       },
     ],

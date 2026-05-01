@@ -22,19 +22,65 @@
 ```bash
 supabase db push
 ```
-또는 SQL Editor 에서 다음을 순서대로:
 
-1. `20260425000000_atomic_points_coupons.sql` — 포인트/쿠폰 race-safe RPC
-2. `20260425000001_notifications_last_seen.sql` — 알림 unread 추적
-3. `20260425000002_dashboard_snapshot.sql` — 대시보드 user-scoped 스냅샷
-4. `20260425000003_perf_indexes.sql` — 핫 쿼리 인덱스 11종
+총 **30개** 마이그레이션 (날짜순 자동 적용). 주요 그룹:
+
+### 보안 / RLS (2026-04-23)
+1. `20260423000000_admin_role_to_app_metadata.sql` — admin 권한 JWT app_metadata 분리
+2. `20260423000001_rls_security_audit_fixes.sql` — search_path 하드닝 + storage RLS
+
+### 상품 / 주문 / 카트 / 이벤트 / 주소 (2026-04-23 ~ 04-24)
+3. `20260423000002_product_variants.sql`
+4. `20260423000003_orders_virtual_account_fields.sql`
+5. `20260424000000_restock_alerts.sql`
+6. `20260424000001_cart_recovery_log.sql`
+7. `20260424000002_review_photos.sql`
+8. `20260424000003_push_preferences.sql`
+9. `20260424000004_profile_birth_year.sql` — 14세 게이트 + 트리거
+10. `20260424000005_marketing_consent_audit.sql` — set_marketing_consent RPC
+11. `20260424000006_account_deletions_audit.sql` — sha256 감사 row
+12. `20260424000007_events.sql` + `..008_event_images.sql`
+13. `20260424000009_addresses.sql`
+
+### 포인트 / 쿠폰 / 대시보드 / 인덱스 (2026-04-25)
+14. `20260425000000_atomic_points_coupons.sql` — apply_point_delta / redeem_coupon RPC
+15. `20260425000001_notifications_last_seen.sql`
+16. `20260425000002_dashboard_snapshot.sql` — dashboard_user_snapshot RPC
+17. `20260425000003_perf_indexes.sql` — 핫 쿼리 인덱스 11종
+
+### Catalog / Blog / 부가 (2026-04-25)
+18. `20260425000004_collections.sql` — 컬렉션 + sort_order
+19. `20260425000005_product_qna.sql`
+20. `20260425000006_sales_count.sql`
+21. `20260425000007_newsletter_subscribers.sql` + `..009_newsletter_token_update.sql`
+22. `20260425000008_partners_faqs.sql`
+23. `20260425000010_profile_birthday.sql`
+24. `20260425000011_user_tiers.sql`
+25. `20260425000012_seed_welcome_birthday_coupons.sql`
+26. `20260425000013_nutrition_v2_schema.sql`
+
+### 결제 / 식품정보 (2026-05-01)
+27. `20260501000000_subscription_billing.sql` — billing_key + subscription_charges
+28. `20260501000001_product_food_info.sql` — products 14개 식품정보고시 컬럼
 
 **확인**: 적용 후 Supabase SQL Editor 에서:
 ```sql
+-- RPC 함수 존재 확인 (4개)
 SELECT proname FROM pg_proc
 WHERE proname IN ('apply_point_delta', 'redeem_coupon',
                   'revoke_coupon_redemption', 'dashboard_user_snapshot');
--- 4 row 가 나와야 정상.
+
+-- 마이그레이션 적용 카운트 (30개여야 정상)
+SELECT COUNT(*) FROM supabase_migrations.schema_migrations
+WHERE version >= '20260423000000';
+
+-- 핵심 신규 컬럼 존재
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'subscriptions'
+  AND column_name IN ('billing_key', 'billing_customer_key');
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'products'
+  AND column_name IN ('origin', 'manufacturer', 'ingredients', 'allergens');
 ```
 
 ---

@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "_comment_timezone": "Vercel Cron schedules are in UTC. KST = UTC+9. The mapping below: cart-recovery 09:00 UTC = 18:00 KST · subscription-reminders 00:00 UTC = 09:00 KST · subscription-charge 19:00 UTC = 04:00 KST (다음날) · restock-alerts 01:00 UTC = 10:00 KST · birthday-coupons 00:00 UTC = 09:00 KST. 시간대 변경 시 이 주석도 함께 갱신.",
   "crons": [
     {
       "path": "/api/cron/cart-recovery",

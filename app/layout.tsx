@@ -67,6 +67,19 @@ const jetbrainsMono = JetBrains_Mono({
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://farmerstail.vercel.app";
 
+// Supabase Storage 도메인 — preconnect / dns-prefetch 힌트용. NEXT_PUBLIC_
+// SUPABASE_URL 에서 origin 추출 (next.config.ts 의 supabaseHostname() 와 동일
+// 패턴). 환경변수 누락 시에만 fallback URL 사용.
+const supabaseOrigin = (() => {
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!raw) return "https://adynmnrzffidoilnxutg.supabase.co";
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return "https://adynmnrzffidoilnxutg.supabase.co";
+  }
+})();
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
@@ -202,13 +215,10 @@ export default function RootLayout({
         */}
         <link
           rel="preconnect"
-          href="https://adynmnrzffidoilnxutg.supabase.co"
+          href={supabaseOrigin}
           crossOrigin="anonymous"
         />
-        <link
-          rel="dns-prefetch"
-          href="https://adynmnrzffidoilnxutg.supabase.co"
-        />
+        <link rel="dns-prefetch" href={supabaseOrigin} />
         <link
           rel="preconnect"
           href="https://www.googletagmanager.com"
