@@ -225,6 +225,18 @@ WHERE table_name = 'products'
 - [ ] Cron Jobs 활성화 (`vercel.json` 의 `/api/cron/*`)
 - [ ] Region: `icn1` (서울) 권장
 
+#### Cron 스케줄 (Vercel 은 UTC) ↔ KST 매핑
+| Path | UTC | KST |
+|---|---|---|
+| `/api/cron/subscription-reminders` | 00:00 | 09:00 |
+| `/api/cron/birthday-coupons` | 00:00 | 09:00 |
+| `/api/cron/restock-alerts` | 01:00 | 10:00 |
+| `/api/cron/review-prompts` | 01:00 | 10:00 |
+| `/api/cron/cart-recovery` | 09:00 | 18:00 |
+| `/api/cron/subscription-charge` | 19:00 | 04:00 (다음날) |
+
+스케줄 변경 시 이 표도 함께 갱신.
+
 ---
 
 ## 4. 도메인 / DNS
