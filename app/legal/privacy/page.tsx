@@ -267,6 +267,168 @@ export default function PrivacyPage() {
             사항을 계약서 등 문서에 명시하고 수탁자가 개인정보를 안전하게
             처리하는지를 감독하고 있습니다.
           </p>
+
+          <p className="mt-4 font-bold" style={{ color: 'var(--text)' }}>
+            국외 이전 (개인정보보호법 제28조의8)
+          </p>
+          <div className="mt-2 overflow-x-auto">
+            <table
+              className="w-full text-[12px]"
+              style={{ borderCollapse: 'collapse' }}
+            >
+              <thead>
+                <tr style={{ background: 'var(--bg-2)' }}>
+                  <th
+                    className="text-left px-2 py-1.5 font-bold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    수탁자
+                  </th>
+                  <th
+                    className="text-left px-2 py-1.5 font-bold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    이전 국가
+                  </th>
+                  <th
+                    className="text-left px-2 py-1.5 font-bold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    이전 항목·시기·방법
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Supabase Inc.
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    미국 (AWS us-east)
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    회원가입·로그인 정보, 주문/결제 메타데이터
+                    <br />
+                    회원 행위 발생 시점에 상시
+                    <br />
+                    HTTPS / TLS 1.2 이상 암호화 전송
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Vercel Inc.
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    미국 (글로벌 CDN, 1차 KR 리전)
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    웹 요청 헤더, IP, User-Agent
+                    <br />
+                    서비스 이용 시점에 상시
+                    <br />
+                    HTTPS / TLS 1.2 이상 암호화 전송
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Resend (Recur Labs Inc.)
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    미국
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    이메일 주소, 거래·알림 메시지 본문
+                    <br />
+                    이메일 발송 시점
+                    <br />
+                    HTTPS API 호출
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Anthropic, PBC
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    미국
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    반려견 영양 분석을 위한 익명화된 설문 응답 (이름·연락처
+                    포함하지 않음)
+                    <br />
+                    분석 요청 시점
+                    <br />
+                    HTTPS API 호출, Anthropic 정책상 학습용 미사용
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Sentry (Functional Software Inc.)
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    미국
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    오류 발생 시 stack trace, route, 사용자 식별번호
+                    (PII 자동 스크러빙)
+                    <br />
+                    오류 발생 시점에만
+                    <br />
+                    HTTPS / 암호화
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2">
+            회원은 개인정보 국외 이전을 거부할 권리가 있으며, 거부 시 일부
+            서비스 이용이 제한될 수 있습니다. 거부를 원하시면 개인정보 보호
+            책임자에게 연락해 주세요.
+          </p>
         </Section>
 
         <Section title="6. 정보주체의 권리와 행사 방법">
@@ -336,18 +498,42 @@ export default function PrivacyPage() {
           </p>
           <UL>
             <li>
-              <b>필수 쿠키:</b> 로그인 세션, 장바구니, 보안 토큰 등 서비스
-              기본 기능에 필요합니다. 동의 여부와 무관하게 사용됩니다.
+              <b>필수 쿠키:</b> 로그인 세션 (sb-access-token, sb-refresh-token),
+              장바구니 (cart 식별), 보안 토큰 (CSRF), 앱 컨텍스트 감지
+              (ft_app), 쿠키 동의 기록 (ft_consent) 등. 서비스 기본 기능에
+              필요해 동의 여부와 무관하게 사용됩니다.
             </li>
             <li>
-              <b>분석 쿠키:</b> 방문 패턴을 집계해 서비스 개선에
-              활용합니다 (Google Analytics 4).
+              <b>분석 쿠키:</b> 방문 패턴, 페이지 체류 시간, 클릭 흐름을
+              집계해 서비스 개선에 활용합니다 (Google Analytics 4 — _ga, _gid).
+              개별 식별 불가능한 익명 통계만 수집합니다.
             </li>
             <li>
               <b>광고·마케팅 쿠키:</b> 관심사 기반 광고, 전환 추적에
-              사용됩니다 (Meta Pixel).
+              사용됩니다 (Meta Pixel — _fbp). iOS Safari 의 ATT 권한
+              거부 시 자동 비활성화됩니다.
             </li>
           </UL>
+
+          <p className="mt-3 font-bold" style={{ color: 'var(--text)' }}>
+            자동 수집 항목
+          </p>
+          <UL>
+            <li>
+              IP 주소, User-Agent (브라우저/OS 종류), 접속 시각·일시
+            </li>
+            <li>
+              방문 페이지 경로, referrer (어떤 사이트에서 왔는지), 광고
+              유입 파라미터 (UTM)
+            </li>
+            <li>
+              화면 해상도, 다크/라이트 모드, 언어 설정
+            </li>
+            <li>
+              쿠키 동의 상태, 푸시 알림 권한, 위치 권한 (사용자 명시 허용 시)
+            </li>
+          </UL>
+
           <p className="mt-2">
             분석·광고 쿠키는 최초 방문 시 노출되는 쿠키 설정 배너에서
             동의 여부를 직접 선택할 수 있으며, <CookieConsentResetLink />
