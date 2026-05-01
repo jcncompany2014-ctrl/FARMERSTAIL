@@ -8,6 +8,9 @@ import CategoryRevenueDonut, {
 import FoodInfoCompletion, {
   type ProductInfoLite,
 } from '@/components/admin/FoodInfoCompletion'
+import CohortRetentionTable, {
+  type CohortRow,
+} from '@/components/admin/CohortRetentionTable'
 
 export const dynamic = 'force-dynamic'
 
@@ -208,6 +211,19 @@ export default async function AdminHome() {
     .eq('is_active', true)
     .limit(200)
   const productInfo = (foodInfoProducts ?? []) as ProductInfoLite[]
+
+  // 코호트 리텐션 — RPC. RPC 함수가 prod 에 없으면 (마이그레이션 미적용)
+  // 빈 배열로 fallback. admin 가드는 RPC 자체가 함.
+  let cohortRows: CohortRow[] = []
+  try {
+    const { data: cohortData } = await supabase.rpc(
+      'cohort_retention_weekly',
+      { p_max_cohorts: 12 },
+    )
+    cohortRows = (cohortData ?? []) as CohortRow[]
+  } catch {
+    /* 마이그레이션 미적용 / 권한 미확보 — UI 가 빈 상태 처리 */
+  }
 
   const totalRevenue =
     paidOrdersRes.data?.reduce(
@@ -492,6 +508,11 @@ export default async function AdminHome() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <CategoryRevenueDonut data={categoryRevenue} />
         <FoodInfoCompletion products={productInfo} />
+      </div>
+
+      {/* 코호트 리텐션 — 가입 주별 재구매율. W4 가 정기배송 conversion 신호. */}
+      <div className="mb-6">
+        <CohortRetentionTable rows={cohortRows} />
       </div>
 
       {/* Top 상품 + 재고 경고 — 2-column */}
