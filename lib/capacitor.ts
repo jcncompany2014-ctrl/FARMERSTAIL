@@ -99,6 +99,93 @@ export async function registerNativePush(): Promise<
 }
 
 /**
+ * 디바이스 ID — 자체 관리 UUID (localStorage). Capacitor Device 플러그인을
+ * 추가 설치하지 않아도 native_push_tokens 의 (user, device_id) UNIQUE 만족.
+ * native 가 아니면 null. 재설치 시 새 UUID — 토큰은 새 row 로 register.
+ */
+const DEVICE_ID_KEY = 'ft_device_id'
+export async function getDeviceId(): Promise<string | null> {
+  if (!isNativeApp()) return null
+  try {
+    const { Preferences } = await import('@capacitor/preferences')
+    const existing = await Preferences.get({ key: DEVICE_ID_KEY })
+    if (existing.value) return existing.value
+    // 없으면 새로 생성 + 저장
+    const fresh =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    await Preferences.set({ key: DEVICE_ID_KEY, value: fresh })
+    return fresh
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 플랫폼 + 앱 버전. App plugin (@capacitor/app — 이미 설치됨) 사용.
+ */
+export async function getDeviceInfo(): Promise<{
+  appVersion?: string
+  platform?: 'ios' | 'android'
+}> {
+  if (!isNativeApp()) return {}
+  try {
+    type CapWindow = Window & {
+      Capacitor?: { getPlatform?: () => string }
+    }
+    const platformRaw =
+      typeof window !== 'undefined'
+        ? (window as CapWindow).Capacitor?.getPlatform?.()
+        : null
+    const platform = platformRaw === 'ios' ? 'ios' : 'android'
+
+    const { App } = await import('@capacitor/app')
+    const appInfo = await App.getInfo().catch(() => null)
+    return {
+      appVersion: appInfo?.version,
+      platform,
+    }
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * 네이티브 푸시 등록 + 서버에 토큰 전송. 한 번에 끝까지 가는 통합 헬퍼.
+ *
+ * 호출처: 사용자가 마이페이지 알림 토글을 ON 으로 켤 때, 또는 native 앱이
+ * 첫 실행에서 사용자 동의 후. 권한 거부면 서버 호출 없이 false 반환.
+ *
+ * @returns true = 등록 성공, false = 권한 거부 / 네트워크 실패 / 웹 환경.
+ */
+export async function registerAndSyncNativePush(): Promise<boolean> {
+  if (!isNativeApp()) return false
+
+  const result = await registerNativePush()
+  if (!result.ok) return false
+
+  const [deviceId, info] = await Promise.all([getDeviceId(), getDeviceInfo()])
+  if (!deviceId || !info.platform) return false
+
+  try {
+    const res = await fetch('/api/push/native-register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        platform: info.platform,
+        token: result.token,
+        deviceId,
+        appVersion: info.appVersion,
+      }),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+/**
  * 외부 URL 을 in-app browser 로 열기. iOS Safari 의 SFSafariViewController,
  * Android 의 Custom Tabs 사용 — system 브라우저로 빠져나가지 않으면서도
  * 보안/세션 분리 (예: Toss 결제 redirect) 가 자연스럽게 처리됨.

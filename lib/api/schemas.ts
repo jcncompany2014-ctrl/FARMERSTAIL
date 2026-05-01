@@ -73,6 +73,20 @@ export const zPushUnsubscribe = z.object({
   endpoint: z.string().url().max(500),
 })
 
+/**
+ * Capacitor 네이티브 푸시 토큰 등록.
+ * platform: 'ios' (APNs) | 'android' (FCM).
+ * token: APNs hex 문자열 또는 FCM token string.
+ * device_id: 같은 디바이스가 토큰 갱신 시 row 재사용을 위한 안정적 식별자.
+ */
+export const zNativePushRegister = z.object({
+  platform: z.enum(['ios', 'android']),
+  token: z.string().min(8).max(500),
+  deviceId: z.string().min(4).max(200),
+  appVersion: z.string().max(40).optional(),
+  osVersion: z.string().max(40).optional(),
+})
+
 export const zPushPreferences = z.object({
   enabled: z.boolean().optional(),
   marketing_enabled: z.boolean().optional(),

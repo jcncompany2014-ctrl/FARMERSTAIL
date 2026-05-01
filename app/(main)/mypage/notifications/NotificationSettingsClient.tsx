@@ -12,6 +12,7 @@ import {
   Send,
 } from 'lucide-react'
 import PreferencesPanel from './PreferencesPanel'
+import { isNativeApp, registerAndSyncNativePush } from '@/lib/capacitor'
 
 type SubRow = {
   id: string
@@ -81,6 +82,28 @@ export default function NotificationSettingsClient({
 
   async function enable() {
     setMsg(null)
+
+    // 네이티브 앱 (Capacitor) — Web Push 가 아닌 APNs/FCM 토큰 등록.
+    // Web Push 가 native WebView 에서 안 도는 경우가 많아 분기.
+    if (isNativeApp()) {
+      setStatus('subscribing')
+      try {
+        const ok = await registerAndSyncNativePush()
+        if (!ok) {
+          setMsg('알림 권한을 허용한 뒤 다시 시도해 주세요')
+          setStatus('off')
+          return
+        }
+        setStatus('on')
+        setMsg('네이티브 앱 알림이 활성화됐어요')
+        return
+      } catch (e) {
+        setMsg(e instanceof Error ? e.message : '알림 등록 실패')
+        setStatus('off')
+        return
+      }
+    }
+
     if (!vapidPublicKey) {
       setMsg('서버 설정이 완료되지 않았어요')
       return
