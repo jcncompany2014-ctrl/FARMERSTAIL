@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { notifyRestock } from '@/lib/email'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -97,6 +98,10 @@ export async function GET(req: Request) {
     if (stock <= 0) continue
 
     // 3) 발송 트리거 — notifyRestock 이 발송 + notified_at 갱신까지 함.
+    // 발송 실패 시 notified_at 을 NULL 로 유지해 다음 cron 사이클이 자동 retry.
+    // 단 영구 실패 (예: 상품 삭제) 는 일정 횟수 후 포기 — fail_count 컬럼이
+    // 없어 in-memory 가 아닌 retry 한도 추적은 미구현. 운영자가 Sentry 알림으로
+    // 수동 개입 가능.
     try {
       const result = await notifyRestock(admin, {
         productId,
@@ -105,10 +110,18 @@ export async function GET(req: Request) {
       dispatched += 1
       totalNotified += result.notified
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
       console.error('[cron/restock-alerts] notifyRestock failed', {
         productId,
         variantId,
-        err: err instanceof Error ? err.message : String(err),
+        err: message,
+      })
+      // 매출 영향 가능성 (사용자가 보충 알림 받지 못해 재구매 누락) — Sentry
+      // 운영 채널에 warning 으로 기록.
+      captureBusinessEvent('warning', 'cron.restock_alerts.dispatch_failed', {
+        productId,
+        variantId,
+        error: message,
       })
     }
   }

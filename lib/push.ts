@@ -178,5 +178,44 @@ export async function pushToUser(
   if (dead.length > 0) {
     await supabase.from('push_subscriptions').delete().in('id', dead)
   }
-  return { ok: true, sent, dead: dead.length }
+
+  // ── Native (APNs/FCM) fan-out ─────────────────────────────────────────
+  // 같은 user 의 native 토큰들에도 같은 알림 발송. 환경변수 미설정 시
+  // sendNativePush 가 즉시 실패 반환 — 정상 흐름 유지.
+  const { sendNativePush } = await import('./push/native')
+  const { data: nativeRows } = await supabase
+    .from('native_push_tokens')
+    .select('id, platform, token')
+    .eq('user_id', userId)
+  type NativeRow = { id: string; platform: 'ios' | 'android'; token: string }
+  const nativeList = (nativeRows ?? []) as NativeRow[]
+  const deadNative: string[] = []
+  let nativeSent = 0
+  await Promise.all(
+    nativeList.map(async (row) => {
+      const result = await sendNativePush(row.platform, row.token, {
+        title: payload.title,
+        body: payload.body ?? '',
+        url: payload.url,
+        threadId: payload.tag,
+      })
+      if (result.ok) {
+        nativeSent += 1
+      } else if (result.unregistered) {
+        deadNative.push(row.id)
+      }
+    }),
+  )
+  if (deadNative.length > 0) {
+    await supabase
+      .from('native_push_tokens')
+      .delete()
+      .in('id', deadNative)
+  }
+
+  return {
+    ok: true,
+    sent: sent + nativeSent,
+    dead: dead.length + deadNative.length,
+  }
 }

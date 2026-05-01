@@ -21,6 +21,10 @@
     {
       "path": "/api/cron/birthday-coupons",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/review-prompts",
+      "schedule": "0 1 * * *"
     }
   ]
 }
