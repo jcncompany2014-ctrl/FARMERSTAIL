@@ -245,3 +245,102 @@ export function formatDueDate(iso: string | null | undefined): string {
   const day = d.getDate()
   return `${m}월 ${day}일 23:59까지`
 }
+
+// ──────────────────────────────────────────────────────────────────────────
+// Billing — 정기결제 (재청구).
+//
+// Toss billingKey 흐름:
+//   1) 사용자가 정기배송 신청 시 카드 등록 페이지(/api/payments/billing-confirm
+//      에서 callback) 에서 Toss SDK requestBillingAuth('카드') 호출
+//      → Toss 가 user.id 기반 customerKey 와 함께 billingKey 발급.
+//   2) billingKey 를 subscriptions.billing_key 컬럼에 저장.
+//   3) cron 이 매일 새벽 next_delivery_date == today 인 active 구독 스캔 →
+//      이 함수 chargeBillingKey() 호출로 자동 청구.
+//
+// 보안: billing_key 는 카드 정보 자체가 아닌 Toss 서버측 토큰. 노출되어도 우리
+// secret 으로만 청구 가능하므로 비교적 안전. 그래도 RLS 로 사용자가 자기
+// 키만 read 가능하게 제한.
+// ──────────────────────────────────────────────────────────────────────────
+
+export interface BillingChargeResult {
+  ok: boolean
+  paymentKey?: string
+  status?: TossPaymentStatus
+  error?: { code?: string; message?: string }
+}
+
+/**
+ * billingKey + customerKey 로 정해진 금액을 청구.
+ *
+ * @param input.billingKey — Toss billing key (issueBillingAuthByCustomerKey 결과)
+ * @param input.customerKey — 우리가 발급한 UUID. user_id 그대로 쓰면 안 됨
+ *   (Toss 측에 노출). 별도 발급한 random UUID 권장.
+ * @param input.orderId — 새로 만들 주문 식별자. order_status='pending' row 를
+ *   먼저 만들고 그 id 를 그대로 사용.
+ * @param input.orderName — 결제 내역 표시용. "Farmer's Tail 정기배송 #N"
+ * @param input.amount — 원 단위 정수
+ * @param input.idempotencyKey — `sub-charge:{subscription_id}:{date}` 권장
+ */
+export async function chargeBillingKey(input: {
+  billingKey: string
+  customerKey: string
+  orderId: string
+  orderName: string
+  amount: number
+  idempotencyKey: string
+}): Promise<BillingChargeResult> {
+  const secret = process.env.TOSS_SECRET_KEY
+  if (!secret) {
+    return { ok: false, error: { code: 'TOSS_SECRET_MISSING', message: 'Toss 시크릿 키가 설정되지 않았어요' } }
+  }
+
+  const auth = Buffer.from(`${secret}:`).toString('base64')
+
+  try {
+    const res = await fetch(
+      `${TOSS_API_BASE}/billing/${encodeURIComponent(input.billingKey)}`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${auth}`,
+          'Content-Type': 'application/json',
+          'Idempotency-Key': input.idempotencyKey,
+        },
+        body: JSON.stringify({
+          customerKey: input.customerKey,
+          orderId: input.orderId,
+          orderName: input.orderName,
+          amount: input.amount,
+        }),
+        // 결제 실패 / 타임아웃 → 30초.
+        signal: AbortSignal.timeout(30_000),
+      },
+    )
+
+    const data = (await res.json()) as Partial<TossPayment> & {
+      code?: string
+      message?: string
+    }
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: { code: data.code, message: data.message },
+      }
+    }
+
+    return {
+      ok: true,
+      paymentKey: data.paymentKey,
+      status: data.status,
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      error: {
+        code: 'NETWORK_ERROR',
+        message: err instanceof Error ? err.message : 'unknown',
+      },
+    }
+  }
+}
