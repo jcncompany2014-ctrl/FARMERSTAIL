@@ -253,7 +253,7 @@ function LoginInner() {
                 type="button"
                 onClick={() => setShowPw((v) => !v)}
                 aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 표시'}
-                className="absolute inset-y-0 right-2 my-auto h-8 w-8 flex items-center justify-center rounded-md hover:bg-black/5 transition"
+                className="absolute inset-y-0 right-1 my-auto h-10 w-10 flex items-center justify-center rounded-md hover:bg-black/5 transition"
                 style={{ color: 'var(--muted)' }}
                 tabIndex={-1}
               >

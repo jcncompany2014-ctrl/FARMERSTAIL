@@ -365,3 +365,50 @@ export function buildAboutPageJsonLd(input: {
     },
   } as const
 }
+
+/**
+ * Event — 마케팅 이벤트 / 프로모션 (블랙프라이데이, 신규 출시 등).
+ *
+ * Google "Event" rich result 대상. 단, schema.org Event 의 본 의도는 물리적/
+ * 가상 이벤트(콘서트, 컨퍼런스). 쇼핑 프로모션을 Event 로 표시하면 Google 이
+ * 거부할 수 있어 organizer/location 까지 충실히 채운다.
+ *
+ * eventStatus / eventAttendanceMode 는 onlineSale 이라 OnlineEventAttendanceMode
+ * + EventScheduled 고정. 이벤트 종료 후엔 EventScheduled 가 EventCompleted 로
+ * 자동 변환되도록 endDate 가 과거면 호출처에서 status 변경 권장.
+ */
+export function buildEventJsonLd(input: {
+  name: string
+  description: string
+  startDate: string // ISO 8601
+  endDate: string
+  url: string
+  imageUrl?: string | null
+}) {
+  const now = Date.now()
+  const ended = new Date(input.endDate).getTime() < now
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: input.name,
+    description: input.description,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    eventStatus: ended
+      ? 'https://schema.org/EventCompleted'
+      : 'https://schema.org/EventScheduled',
+    eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
+    location: {
+      '@type': 'VirtualLocation',
+      url: input.url,
+    },
+    organizer: {
+      '@type': 'Organization',
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+    url: input.url,
+    ...(input.imageUrl ? { image: input.imageUrl } : {}),
+    isAccessibleForFree: true,
+  } as const
+}

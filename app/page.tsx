@@ -1803,7 +1803,7 @@ function FinalCTA({ isAuthed = false }: { isAuthed?: boolean }) {
               textTransform: 'uppercase',
             }}
           >
-            14일 환불 보장 · 언제든 취소
+            7일 단순변심 환불 · 언제든 취소
           </div>
         </div>
       </div>

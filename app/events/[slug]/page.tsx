@@ -13,6 +13,8 @@ import {
 } from '@/lib/events/data'
 import EventClaimBlock from '@/components/events/EventClaimBlock'
 import ShareButton from '@/components/ShareButton'
+import JsonLd from '@/components/JsonLd'
+import { buildEventJsonLd, SITE_URL } from '@/lib/seo/jsonld'
 
 /**
  * /events/[slug] — 이벤트 상세.
@@ -148,8 +150,27 @@ export default async function EventDetailPage({ params }: PageProps) {
   const palette = PALETTE_MAP[event.palette]
   const dateRange = formatEventDateRange(event.startsAt, event.endsAt)
 
+  // Event JSON-LD — Google rich result. Schema.org Event 는 본래 물리/가상
+  // 이벤트용이지만 organizer / location.VirtualLocation 으로 쇼핑 프로모션을
+  // 표현 가능. 이미지 URL 은 절대 경로 변환.
+  const eventUrl = `${SITE_URL}/events/${event.slug}`
+  const eventImage = event.imageUrl
+    ? event.imageUrl.startsWith('http')
+      ? event.imageUrl
+      : `${SITE_URL}${event.imageUrl}`
+    : null
+  const eventJsonLd = buildEventJsonLd({
+    name: `${event.koSubtitle} · ${event.enTitle}`,
+    description: event.tagline ?? event.koSubtitle,
+    startDate: event.startsAt,
+    endDate: event.endsAt,
+    url: eventUrl,
+    imageUrl: eventImage,
+  })
+
   return (
     <main className="pb-14 md:pb-20 mx-auto" style={{ background: 'var(--bg)', maxWidth: 880 }}>
+      <JsonLd data={eventJsonLd} />
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section
         className="relative overflow-hidden"

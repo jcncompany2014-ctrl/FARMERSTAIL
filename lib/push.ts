@@ -138,7 +138,20 @@ export async function pushToUser(
   const rows = (subs ?? []) as SubRow[]
   if (rows.length === 0) return { ok: true, sent: 0, dead: 0 }
 
-  const body = JSON.stringify(payload)
+  // 정보통신망법 §50④ — 광고성 정보 발송 시 매체에 (광고) 표기 의무.
+  // 푸시는 모바일 알림센터/잠금화면에 노출되므로 광고 매체로 분류.
+  // category 'marketing' 일 때만 title 에 "[광고]" 자동 prefix.
+  // (이미 prefix 가 붙어 있으면 중복 추가하지 않음.)
+  const stampedPayload: PushPayload =
+    opts?.category === 'marketing'
+      ? {
+          ...payload,
+          title: payload.title.startsWith('[광고]')
+            ? payload.title
+            : `[광고] ${payload.title}`,
+        }
+      : payload
+  const body = JSON.stringify(stampedPayload)
   const dead: string[] = []
   let sent = 0
 

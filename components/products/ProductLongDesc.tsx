@@ -22,7 +22,15 @@ export default function ProductLongDesc({
   category: string | null
 }) {
   // 카테고리별 default 표 데이터 — 추후 product 테이블에 컬럼 추가되면 prop 으로.
+  // 사료관리법 시행규칙 별표 1 표시기준: "반려동물용 자가소비 사료" 분류 라벨
+  // 필수. 원산지/제조원/유통기한 등 14개 의무항목은 product DB 컬럼이 생기면
+  // 채울 예정 — 현재는 카테고리 일반화로 대응.
   const specs: Spec[] = [
+    {
+      icon: Leaf,
+      label: '제품 분류',
+      value: '반려동물용 자가소비 사료',
+    },
     {
       icon: Snowflake,
       label: '보관 방법',

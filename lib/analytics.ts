@@ -35,8 +35,52 @@ const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
 
 export const isAnalyticsEnabled = () => Boolean(GA_ID || PIXEL_ID)
 
+/**
+ * iOS App Tracking Transparency (ATT) 게이트.
+ *
+ * Apple Guideline 5.1.2 — 사용자가 ATT 권한을 거부했거나 아직 묻지 않은 상태
+ * 면 IDFA / 광고 식별자를 사용하는 트래킹 (Meta Pixel, GA4 demographic, fbq
+ * AdvancedMatching) 을 호출하지 말 것. iOS 14.5+ 에서 강제. 거부 시 추적
+ * SDK 호출 자체를 막아야 거부 사유 회피.
+ *
+ * 동작:
+ * - native (Capacitor iOS) 컨텍스트에서만 의미 있음. 웹/Android 는 항상 true.
+ * - `@capacitor-community/app-tracking-transparency` 가 status='authorized' 일
+ *   때만 GA/Pixel 활성. 거부면 모든 track* 함수가 noop.
+ * - 첫 진입 시 native bridge 가 status 'notDetermined' 면 prompt 띄울지는 UI
+ *   레이어 결정. (ex. 첫 로그인/체크아웃 직전에 한 번 명시 안내 후 요청.)
+ *
+ * 구현 노트:
+ * - native bridge 가 plugin 로딩 실패하면 fail-closed (false) — 추적 안 함.
+ * - 모듈 스코프 cache 로 한 세션 동안 한 번만 평가.
+ */
+type AttStatus = 'authorized' | 'denied' | 'restricted' | 'notDetermined'
+let attCache: AttStatus | null = null
+
+function isCapacitorIos(): boolean {
+  if (typeof window === 'undefined') return false
+  // Capacitor 가 inject 한 native bridge 식별자
+  type CapWindow = Window & { Capacitor?: { getPlatform?: () => string } }
+  return (window as CapWindow).Capacitor?.getPlatform?.() === 'ios'
+}
+
+/**
+ * 동기 체크. 캐시된 status 만 본다 — async ATT.requestPermission 은 별도
+ * trigger 함수에서 호출하고 결과를 setAttStatus 로 캐시 갱신.
+ */
+function isTrackingAllowed(): boolean {
+  if (!isCapacitorIos()) return true // 웹/Android 는 ATT 적용 X
+  return attCache === 'authorized'
+}
+
+/** native ATT plugin 결과를 module cache 에 저장. AppRoot 초기화 시 1회 호출. */
+export function setAttStatus(status: AttStatus): void {
+  attCache = status
+}
+
 function safeGtag(...args: Parameters<GtagFn>): void {
   if (typeof window === 'undefined') return
+  if (!isTrackingAllowed()) return
   try {
     window.gtag?.(...args)
   } catch {
@@ -46,6 +90,7 @@ function safeGtag(...args: Parameters<GtagFn>): void {
 
 function safeFbq(...args: Parameters<FbqFn>): void {
   if (typeof window === 'undefined') return
+  if (!isTrackingAllowed()) return
   try {
     window.fbq?.(...args)
   } catch {

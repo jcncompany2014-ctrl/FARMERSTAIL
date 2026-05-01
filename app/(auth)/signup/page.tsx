@@ -136,7 +136,9 @@ function SignupForm() {
     if (password.length < 6) return false
     if (password !== passwordConfirm) return false
     if (!isValidKoreanMobile(phone)) return false
-    if (!zip.trim() || !address.trim()) return false
+    // 배송지는 가입 시 선택 — 첫 주문/마이페이지에서 입력 가능. 개인정보보호법
+    // 제16조 (수집 최소화) 준수. 입력하면 그대로 profile 에 저장돼 첫 주문 때
+    // 자동 채워짐.
     if (!birthYearValid) return false
     return true
   }, [
@@ -147,8 +149,6 @@ function SignupForm() {
     password,
     passwordConfirm,
     phone,
-    zip,
-    address,
     birthYearValid,
   ])
 
@@ -200,10 +200,6 @@ function SignupForm() {
     }
     if (!isValidKoreanMobile(phone)) {
       setError('올바른 휴대폰 번호를 입력해 주세요')
-      return
-    }
-    if (!zip.trim() || !address.trim()) {
-      setError('기본 배송지 주소를 입력해 주세요')
       return
     }
     if (!birthYearValid) {
@@ -638,7 +634,7 @@ function SignupForm() {
                     type="button"
                     onClick={() => setShowPw((v) => !v)}
                     aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 표시'}
-                    className="absolute inset-y-0 right-2 my-auto h-8 w-8 flex items-center justify-center rounded-md hover:bg-black/5 transition"
+                    className="absolute inset-y-0 right-1 my-auto h-10 w-10 flex items-center justify-center rounded-md hover:bg-black/5 transition"
                     style={{ color: 'var(--muted)' }}
                     tabIndex={-1}
                   >
@@ -694,7 +690,7 @@ function SignupForm() {
                     type="button"
                     onClick={() => setShowPw2((v) => !v)}
                     aria-label={showPw2 ? '비밀번호 숨기기' : '비밀번호 표시'}
-                    className="absolute inset-y-0 right-2 my-auto h-8 w-8 flex items-center justify-center rounded-md hover:bg-black/5 transition"
+                    className="absolute inset-y-0 right-1 my-auto h-10 w-10 flex items-center justify-center rounded-md hover:bg-black/5 transition"
                     style={{ color: 'var(--muted)' }}
                     tabIndex={-1}
                   >
@@ -897,17 +893,25 @@ function SignupForm() {
               >
                 02
               </span>
-              <span className="kicker">Shipping · 기본 배송지</span>
+              <span className="kicker">Shipping · 기본 배송지 (선택)</span>
+              <span
+                className="ml-auto text-[10px] font-semibold"
+                style={{ color: 'var(--muted)' }}
+              >
+                선택
+              </span>
             </div>
 
             <div className="space-y-2">
               <div className="flex gap-2">
                 <input
                   type="text"
-                  required
                   value={zip}
                   readOnly
                   placeholder="우편번호"
+                  autoComplete="postal-code"
+                  inputMode="numeric"
+                  maxLength={5}
                   className="flex-1 px-4 py-3 rounded-lg border text-sm"
                   style={{
                     borderColor: 'var(--rule-2)',
@@ -922,7 +926,6 @@ function SignupForm() {
               </div>
               <input
                 type="text"
-                required
                 value={address}
                 readOnly
                 placeholder="주소 (검색 버튼으로 입력)"
@@ -949,7 +952,8 @@ function SignupForm() {
               className="text-[10px] mt-1.5"
               style={{ color: 'var(--muted)' }}
             >
-              체크아웃 시 기본 배송지로 자동 입력돼요
+              지금 입력하면 첫 주문 시 자동 채워져요. 나중에 마이페이지에서도
+              추가/변경할 수 있어요.
             </p>
           </section>
 

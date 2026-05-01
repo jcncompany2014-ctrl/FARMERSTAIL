@@ -271,15 +271,30 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // 1-b) App 사용자가 marketing 랜딩 ("/") 으로 진입하면 dashboard 로.
-  // 랜딩은 풀와이드 마케팅 페이지라 phone-frame 안에 들어가면 어색하고,
-  // 앱의 정체성 (= 케어 다이어리) 와도 맞지 않다.
+  // 1-b) App 사용자가 marketing 랜딩 ("/") 으로 진입하면:
+  //   • 로그인됨 → /dashboard (케어 다이어리)
+  //   • 미로그인 → 그대로 / (marketing landing 노출)
+  //
+  // 이전엔 ft_app=1 만 보고 무조건 /dashboard 로 리다이렉트했는데, 그러면
+  // /dashboard 가 다시 /login 으로 보내 로그인 강제 흐름이 됐다. Apple App
+  // Store Guideline 5.1.1(i) "Login Services" — 핵심 기능이 아닌데 로그인을
+  // 강요하면 거부 사유. 게스트가 둘러볼 수 있도록 미인증 시 marketing 랜딩
+  // 그대로 노출.
+  //
+  // Supabase 세션 쿠키 (`sb-*-auth-token`) 존재 여부로 빠르게 판정 — DB
+  // 라운드트립 없이 cookie 만 검사. 위조된 쿠키여도 dashboard 가 자체 가드.
   if (pathname === '/') {
     const appCookie = request.cookies.get('ft_app')?.value
     if (appCookie === '1') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
+      const hasSession = request.cookies
+        .getAll()
+        .some((c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'))
+      if (hasSession) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
+        return NextResponse.redirect(url)
+      }
+      // 미로그인 + ft_app=1 → marketing 랜딩 그대로 노출 (게스트 browse 허용)
     }
   }
 
