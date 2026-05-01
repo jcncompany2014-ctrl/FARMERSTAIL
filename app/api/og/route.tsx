@@ -225,7 +225,15 @@ export async function GET(req: Request) {
               textTransform: 'uppercase',
             }}
           >
-            farmerstail.co.kr
+            {(() => {
+              const url =
+                process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.com'
+              try {
+                return new URL(url).hostname
+              } catch {
+                return 'farmerstail.com'
+              }
+            })()}
           </div>
         </div>
       </div>
