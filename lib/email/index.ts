@@ -29,6 +29,10 @@ import {
   renderSubscriptionChargeFailed,
   type SubscriptionReminderItem,
 } from './templates/subscription'
+import {
+  renderNewsletterConfirm,
+  renderUnsubscribeAck,
+} from './templates/newsletter'
 import { paymentMethodLabel } from '@/lib/payments/toss'
 import { pushToUser } from '@/lib/push'
 
@@ -543,5 +547,51 @@ export async function notifySubscriptionChargeFailed(input: {
     html,
     tag: 'subscription-charge-failed',
     idempotencyKey: `sub-charge-failed:${input.subscriptionId}:${input.scheduledFor}`,
+  })
+}
+
+// ── 뉴스레터 ────────────────────────────────────────────────────────────────
+/**
+ * 뉴스레터 가입 confirm 메일. /api/newsletter 가 새 구독 insert 후 호출.
+ * 정보통신망법 §50 — 광고성 정보 발송 동의 확인 절차 (double opt-in).
+ */
+export async function notifyNewsletterConfirm(input: {
+  email: string
+  confirmToken: string
+}) {
+  const { subject, html } = renderNewsletterConfirm({
+    email: input.email,
+    confirmToken: input.confirmToken,
+  })
+  return sendEmail({
+    to: input.email,
+    subject,
+    html,
+    tag: 'newsletter-confirm',
+    // 같은 토큰엔 24h 안에 한 번만 — 재전송 트리거 시 새 토큰 받아야 함.
+    idempotencyKey: `newsletter-confirm:${input.confirmToken}`,
+  })
+}
+
+/**
+ * 마케팅 채널 수신거부 결과 통보. 정보통신망법 §50⑤ — 동의 철회 후 14일 내
+ * 처리결과 통보 의무. profiles.agree_email/sms 가 false 로 토글된 직후 / 또는
+ * /api/newsletter/unsubscribe 가 호출.
+ */
+export async function notifyUnsubscribeAck(input: {
+  email: string
+  channel: 'email' | 'sms' | 'newsletter'
+}) {
+  const { subject, html } = renderUnsubscribeAck({
+    email: input.email,
+    channel: input.channel,
+  })
+  return sendEmail({
+    to: input.email,
+    subject,
+    html,
+    tag: 'unsubscribe-ack',
+    // 같은 (이메일, 채널) 페어로 24h 내 중복 발송 방지.
+    idempotencyKey: `unsubscribe-ack:${input.email}:${input.channel}`,
   })
 }

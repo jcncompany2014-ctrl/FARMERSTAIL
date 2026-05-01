@@ -86,5 +86,27 @@ export async function GET(request: Request) {
     next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\')
       ? next
       : '/dashboard'
+
+  // 만 14세 게이트 — OAuth (카카오/Apple) 가입자는 birth_year 가 비어 있을
+  // 수 있다. 개인정보보호법 제22조의2 (만 14세 미만 차단) 강제. 기준 연도
+  // 미입력이면 onboarding 으로 redirect 하여 입력 강제 — 입력 전엔 dashboard
+  // 진입 불가. (이메일 가입은 form 자체가 birth_year 강제라 영향 없음.)
+  const supabaseAfter = await createClient()
+  const {
+    data: { user },
+  } = await supabaseAfter.auth.getUser()
+  if (user) {
+    const { data: profile } = await supabaseAfter
+      .from('profiles')
+      .select('birth_year')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (!profile?.birth_year) {
+      const target =
+        '/onboarding/age-gate?next=' + encodeURIComponent(safeNext)
+      return NextResponse.redirect(`${origin}${target}`)
+    }
+  }
+
   return NextResponse.redirect(`${origin}${safeNext}`)
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { parseRequest, zNewsletterSubscribe } from '@/lib/api/schemas'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { notifyNewsletterConfirm } from '@/lib/email'
 
 /**
  * POST /api/newsletter — 뉴스레터 구독 신청.
@@ -77,8 +78,16 @@ export async function POST(req: Request) {
         { status: 500 },
       )
     }
-    // TODO: Resend 로 confirm 메일 발송 (env: NEWSLETTER_FROM, RESEND_API_KEY)
-    return NextResponse.json({ ok: true, reactivated: true })
+    // double opt-in confirm 메일 — fire-and-forget. 발송 실패해도 사용자에게는
+    // "확인 메일을 보냈어요" 라고 응답해 spam check 우회 차단.
+    notifyNewsletterConfirm({ email, confirmToken }).catch(() => {
+      /* swallow */
+    })
+    return NextResponse.json({
+      ok: true,
+      reactivated: true,
+      message: '확인 메일을 보냈어요. 이메일을 열어 구독을 마무리해 주세요.',
+    })
   }
 
   // 2) 신규 insert
@@ -104,11 +113,17 @@ export async function POST(req: Request) {
     )
   }
 
-  // TODO: confirm 메일 발송. 지금은 즉시 confirmed 로 마크 (추후 double opt-in 추가).
-  await supabase
-    .from('newsletter_subscribers')
-    .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
-    .eq('email', email)
+  // double opt-in — confirm 메일 발송 후 사용자가 토큰 링크를 클릭해야 비로소
+  // status='confirmed' 로 전환. 정보통신망법 §50 명시 동의 절차 준수.
+  // 메일 발송 실패해도 row 는 남기고 사용자 응답엔 정상 — 재시도는 사용자가
+  // 다시 구독 신청하면 토큰 갱신 + 재발송.
+  notifyNewsletterConfirm({ email, confirmToken }).catch(() => {
+    /* swallow — Resend 미설정 / 일시 오류 시 다음 신청에 재발송 */
+  })
 
-  return NextResponse.json({ ok: true, subscribed: true })
+  return NextResponse.json({
+    ok: true,
+    subscribed: true,
+    message: '확인 메일을 보냈어요. 이메일을 열어 구독을 마무리해 주세요.',
+  })
 }

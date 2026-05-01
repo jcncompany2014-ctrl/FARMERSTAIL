@@ -77,6 +77,20 @@ export default function ConsentSettingsClient({
       setSaving(null)
       return
     }
+
+    // 정보통신망법 §50⑤ — 마케팅 수신거부 처리결과 통보 의무.
+    // 토글 off 시 ack 이메일 발송. fire-and-forget, 실패해도 토글 자체는
+    // RPC 로 이미 저장됐으니 사용자에게 영향 없음.
+    if (!next) {
+      void fetch('/api/consent/unsubscribe-ack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel }),
+      }).catch(() => {
+        /* swallow */
+      })
+    }
+
     // 이력 리로드 — 최신 10건.
     const { data: fresh } = await supabase
       .from('consent_log')
