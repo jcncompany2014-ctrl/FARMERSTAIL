@@ -193,6 +193,14 @@ export default function SubscribePage() {
     const nextDelivery = new Date()
     nextDelivery.setDate(nextDelivery.getDate() + interval * 7)
 
+    // billingKey 발급 흐름에 쓰이는 customerKey — Toss 측 사용자 식별자.
+    // user.id 그대로 노출하지 않도록 별도 random UUID. 같은 구독은 같은
+    // customerKey 유지 (재발급 시도/카드 변경 시 일관성).
+    const customerKey =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `c-${Date.now()}-${Math.random().toString(36).slice(2)}`
+
     const { data: sub, error: subErr } = await supabase
       .from('subscriptions')
       .insert({
@@ -209,6 +217,7 @@ export default function SubscribePage() {
         subtotal,
         shipping_fee: shippingFee,
         total_amount: totalAmount,
+        billing_customer_key: customerKey,
       })
       .select('id')
       .single()
@@ -228,7 +237,13 @@ export default function SubscribePage() {
       product_image_url: product.image_url,
     })
 
-    router.push('/mypage/subscriptions?new=1')
+    // 카드 등록 페이지로 redirect — Toss billing auth 트리거. 사용자가 카드를
+    // 등록하면 next_delivery_date 에 cron 이 자동 청구. 카드 등록 미완료 시에는
+    // billing_key 가 NULL 이라 cron 이 자동 skip — 사용자는 마이페이지에서
+    // 언제든 다시 등록 가능.
+    router.push(
+      `/subscribe/billing-auth?subscriptionId=${sub.id}&customerKey=${encodeURIComponent(customerKey)}`,
+    )
   }
 
   if (loading) {

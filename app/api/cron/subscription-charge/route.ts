@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { chargeBillingKey } from '@/lib/payments/toss'
+import { notifySubscriptionChargeFailed } from '@/lib/email'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -247,8 +248,44 @@ export async function GET(req: Request) {
       ])
       failed += 1
 
-      // TODO: 사용자에게 결제 실패 이메일 / 푸시 발송 — 카드 갱신 안내.
-      // 현재는 알림 없이 silent. 추후 notifySubscriptionChargeFailed 추가.
+      // 사용자에게 결제 실패 이메일 발송 — fire-and-forget. 메일 발송 실패가
+      // cron 흐름을 막아서는 안 됨. profiles 와 subscription_items 에서
+      // recipient + 상품명 조회 후 발송.
+      void (async () => {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('email, name')
+            .eq('id', sub.user_id)
+            .maybeSingle()
+          if (!profile?.email) return
+          const { data: items } = await supabase
+            .from('subscription_items')
+            .select('product_name, quantity')
+            .eq('subscription_id', sub.id)
+            .limit(2)
+          const itemsArr = (items ?? []) as { product_name: string; quantity: number }[]
+          const productLabel =
+            itemsArr.length === 0
+              ? '정기배송 상품'
+              : itemsArr.length === 1
+                ? itemsArr[0].product_name
+                : `${itemsArr[0].product_name} 외 ${itemsArr.length - 1}개`
+          await notifySubscriptionChargeFailed({
+            email: profile.email,
+            name: profile.name ?? null,
+            subscriptionId: sub.id,
+            productLabel,
+            amount: sub.total_amount,
+            attemptCount: nextFailedCount,
+            paused: shouldPause,
+            reason: result.error?.message ?? null,
+            scheduledFor: today,
+          })
+        } catch {
+          /* swallow — 다음 cron 시 재발송 idempotencyKey 가 차단 */
+        }
+      })()
     }
 
     // QPS 보호 — Toss 분당 제한 안 넘게 100ms 간격.

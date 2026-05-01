@@ -269,6 +269,96 @@ export interface BillingChargeResult {
   error?: { code?: string; message?: string }
 }
 
+export interface BillingIssueResult {
+  ok: boolean
+  billingKey?: string
+  cardCompany?: string
+  cardNumber?: string
+  error?: { code?: string; message?: string }
+}
+
+/**
+ * Toss billing authKey → 영구 billingKey 교환.
+ *
+ * 흐름:
+ *   1) 클라이언트가 SDK `requestBillingAuth({customerKey})` 호출 → 카드 등록
+ *   2) Toss 가 `?authKey=xxx&customerKey=xxx` 로 successUrl redirect
+ *   3) 우리 서버가 이 함수로 authKey 를 영구 billingKey 로 교환
+ *   4) billingKey 를 subscriptions.billing_key 에 저장 (한 번 받으면 영구)
+ *
+ * customerKey 는 Toss 측 사용자 식별자. user.id 그대로 쓰면 외부 노출이 위험해
+ * 별개의 random UUID 권장 — 재발급도 가능.
+ */
+export async function issueBillingKey(input: {
+  authKey: string
+  customerKey: string
+}): Promise<BillingIssueResult> {
+  const secret = process.env.TOSS_SECRET_KEY
+  if (!secret) {
+    return {
+      ok: false,
+      error: {
+        code: 'TOSS_SECRET_MISSING',
+        message: 'Toss 시크릿 키가 설정되지 않았어요',
+      },
+    }
+  }
+
+  const auth = Buffer.from(`${secret}:`).toString('base64')
+
+  try {
+    const res = await fetch(
+      `${TOSS_API_BASE}/billing/authorizations/issue`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${auth}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          authKey: input.authKey,
+          customerKey: input.customerKey,
+        }),
+        signal: AbortSignal.timeout(15_000),
+      },
+    )
+
+    type IssueResponse = {
+      billingKey?: string
+      cardCompany?: string
+      cardNumber?: string // masked, e.g. "536160******1234"
+      code?: string
+      message?: string
+    }
+    const data = (await res.json()) as IssueResponse
+
+    if (!res.ok || !data.billingKey) {
+      return {
+        ok: false,
+        error: {
+          code: data.code,
+          message: data.message ?? 'billingKey 발급 실패',
+        },
+      }
+    }
+
+    return {
+      ok: true,
+      billingKey: data.billingKey,
+      cardCompany: data.cardCompany,
+      cardNumber: data.cardNumber,
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      error: {
+        code: 'NETWORK_ERROR',
+        message: err instanceof Error ? err.message : 'unknown',
+      },
+    }
+  }
+}
+
 /**
  * billingKey + customerKey 로 정해진 금액을 청구.
  *

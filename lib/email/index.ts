@@ -26,6 +26,7 @@ import { renderRestockAlert } from './templates/restock'
 import { renderCartAbandoned, type CartRecoveryItem } from './templates/cart'
 import {
   renderSubscriptionReminder,
+  renderSubscriptionChargeFailed,
   type SubscriptionReminderItem,
 } from './templates/subscription'
 import { paymentMethodLabel } from '@/lib/payments/toss'
@@ -510,5 +511,37 @@ export async function notifySubscriptionReminder(input: {
     tag: 'subscription-reminder',
     // 같은 구독·같은 배송일 조합엔 24h 안에 중복 발송 X (Resend idempotency).
     idempotencyKey: `sub-reminder:${input.subscriptionId}:${input.nextDeliveryDate}`,
+  })
+}
+
+/**
+ * 정기배송 결제 실패 알림. cron (subscription-charge) 이 호출.
+ * paused=true 면 3회 누적 실패로 자동 일시중단 — 별도 카피.
+ */
+export async function notifySubscriptionChargeFailed(input: {
+  email: string
+  name: string | null
+  subscriptionId: string
+  productLabel: string
+  amount: number
+  attemptCount: number
+  paused: boolean
+  reason?: string | null
+  scheduledFor: string // YYYY-MM-DD
+}) {
+  const { subject, html } = renderSubscriptionChargeFailed({
+    recipientName: input.name ?? '고객',
+    productLabel: input.productLabel,
+    amount: input.amount,
+    attemptCount: input.attemptCount,
+    paused: input.paused,
+    reason: input.reason,
+  })
+  return sendEmail({
+    to: input.email,
+    subject,
+    html,
+    tag: 'subscription-charge-failed',
+    idempotencyKey: `sub-charge-failed:${input.subscriptionId}:${input.scheduledFor}`,
   })
 }
