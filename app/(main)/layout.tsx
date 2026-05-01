@@ -1,5 +1,3 @@
-'use client'
-
 /**
  * (main) route group — auth-gated app shell.
  *
@@ -9,15 +7,19 @@
  * 이동되어 WebChrome 으로 일관되게 wrap 된다.
  *
  * 이 layout 의 책임:
- *   1. 클라이언트 인증 체크 (UX 가드 — 미로그인이면 빠르게 /login redirect)
- *   2. AppChrome 으로 항상 wrap — 모바일 폰 프레임 + 하단 탭바 + InstallPrompt
+ *   AppChrome 으로 항상 wrap — 모바일 폰 프레임 + 하단 탭바 + InstallPrompt
  *
- * web 사용자가 앱 전용 라우트를 직접 입력하면 proxy.ts middleware 가
- * /app-required 로 redirect 한다 — 이 layout 까지 도달 안 함.
+ * # 인증
+ * 인증 체크는 **이 레이아웃이 하지 않는다**. 다음 두 곳에서 이미 처리:
+ *   1. proxy.ts 미들웨어 — 앱 전용 prefix 에 ft_app 쿠키 / 인증 검사 + redirect
+ *   2. 각 page.tsx 가 server component 에서 `await supabase.auth.getUser()` 후
+ *      필요 시 `redirect('/login')`
+ *
+ * 이전 (~Round 36) 까지는 'use client' 로 추가 client-side getUser() 가 있었지만,
+ * 그건 서버 redirect 가 이미 끝난 뒤 redundant + 사용자 경험상 매 라우트 이동마다
+ * 빈 스피너 200~500ms 가 깜빡이는 원인이었다. 제거 — 이제 layout 은 server
+ * component 라 zero-overhead 로 통과.
  */
-import { useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import AppChrome from '@/components/AppChrome'
 
 export default function MainLayout({
@@ -25,41 +27,5 @@ export default function MainLayout({
 }: {
   children: React.ReactNode
 }) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const supabase = createClient()
-
-  const [checking, setChecking] = useState(true)
-
-  useEffect(() => {
-    let mounted = true
-    async function check() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!mounted) return
-      if (!user) {
-        router.push('/login')
-        return
-      }
-      setChecking(false)
-    }
-    check()
-    return () => {
-      mounted = false
-    }
-  }, [router, supabase, pathname])
-
-  if (checking) {
-    return (
-      <main className="phone-frame min-h-screen flex items-center justify-center bg-bg">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
-          <div className="text-sm text-muted">로딩 중...</div>
-        </div>
-      </main>
-    )
-  }
-
   return <AppChrome>{children}</AppChrome>
 }

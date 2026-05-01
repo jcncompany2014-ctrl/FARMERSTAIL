@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -53,7 +53,7 @@ const INTERVAL_LABELS: Record<number, string> = {
   4: '4주마다',
 }
 
-export default function MySubscriptionsPage() {
+function MySubscriptionsPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -571,5 +571,25 @@ export default function MySubscriptionsPage() {
         )}
       </div>
     </main>
+  )
+}
+
+/**
+ * Next 16 가 'use client' 페이지를 정적으로 prerender 하려 시도할 때
+ * useSearchParams() 가 suspense 경계를 요구한다. 페이지 자체는 사용자별
+ * 동적이라 prerender 결과가 의미 없지만, 빌드 통과를 위해 Suspense 로 감싼다.
+ * fallback 은 같은 spinner — 하이드레이션 직전 빈 화면 회피.
+ */
+export default function MySubscriptionsPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center bg-bg">
+          <div className="w-8 h-8 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
+        </main>
+      }
+    >
+      <MySubscriptionsPageInner />
+    </Suspense>
   )
 }
