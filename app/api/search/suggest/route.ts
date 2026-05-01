@@ -104,6 +104,21 @@ export async function GET(req: Request) {
     sale_price: p.sale_price,
   }))
 
+  // 검색어 로깅 — fire-and-forget. q 길이 < 2 면 사용자가 입력 중 — 의미 약함.
+  // 사용자 식별자 / IP 저장 X (개인 검색 이력 ≠ 운영 인사이트).
+  if (q.length >= 2) {
+    void supabase
+      .from('search_queries')
+      .insert({
+        q_normalized: q.toLowerCase(),
+        q_raw: q,
+        result_count: items.length,
+      })
+      .then(() => {
+        /* swallow — RLS 가 anon insert 허용 */
+      })
+  }
+
   return NextResponse.json(
     { items },
     {

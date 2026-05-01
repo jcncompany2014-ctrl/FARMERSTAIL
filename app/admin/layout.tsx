@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
+import OrderRealtimeBell from '@/components/admin/OrderRealtimeBell'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,6 +68,8 @@ export default async function AdminLayout({
   <NavItem href="/admin/partners" icon="🌾" label="산지·공급자" />
   <NavItem href="/admin/faqs" icon="❓" label="FAQ 관리" />
   <NavItem href="/admin/users" icon="👥" label="회원 관리" />
+  <NavItem href="/admin/search" icon="🔍" label="검색 인사이트" />
+  <NavItem href="/admin/feature-flags" icon="🚩" label="Feature Flags" />
 </nav>
 
         <div className="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-text">
@@ -82,8 +85,14 @@ export default async function AdminLayout({
       </aside>
 
       {/* 본문 */}
-      <main className="flex-1 min-w-0">
-        <div className="max-w-6xl mx-auto px-8 py-8">{children}</div>
+      <main className="flex-1 min-w-0 flex flex-col">
+        {/* 상단바 — 실시간 주문 알림 벨 */}
+        <header className="sticky top-0 z-20 bg-bg/95 backdrop-blur border-b border-rule">
+          <div className="max-w-6xl mx-auto px-8 h-12 flex items-center justify-end gap-3">
+            <OrderRealtimeBell />
+          </div>
+        </header>
+        <div className="max-w-6xl mx-auto w-full px-8 py-8 flex-1">{children}</div>
       </main>
     </div>
   )
