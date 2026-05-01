@@ -231,6 +231,17 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col font-sans">
+        {/*
+          Skip to main — 키보드/스크린리더 사용자 첫 Tab 시 노출. WCAG 2.4.1.
+          기본은 화면 밖, focus 받으면 좌상단으로 즉시 이동. 페이지마다
+          <main id="main"> 가 존재한다 가정 — 없으면 자연스럽게 noop.
+        */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-ink focus:text-bg focus:rounded-md focus:font-bold focus:text-sm"
+        >
+          본문 바로가기
+        </a>
         {/* Toast provider — 앱 전체에서 useToast() 가능. viewport는 하단 중앙 */}
         <ToastProvider>
           {children}

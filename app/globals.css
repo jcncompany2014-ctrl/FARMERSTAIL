@@ -741,3 +741,43 @@ html[data-theme="dark"] .fiber::after {
       0 24px 48px -16px rgba(var(--shadow-ink), 0.18);
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Focus-visible — 키보드 사용자 / 스크린리더에 명확한 포커스 ring.
+ *
+ * 기본 :focus 가 아니라 :focus-visible 만 ring 노출 — 마우스 클릭 후 잔존
+ * outline 으로 디자인이 깨지는 문제 방지. WCAG 2.4.7 Focus Visible 충족.
+ *
+ * 컨테이너별로 outline 색상을 다르게 주려면 컴포넌트 측에서 override 가능.
+ * 여기 default 는 terracotta + 2px solid + offset 2px.
+ *
+ * 일부 컴포넌트 (브랜드 CTA, drawer 핸들 등) 는 자체 focus 스타일이 있으므로
+ * `outline: none` 으로 끄고 box-shadow ring 을 직접 그릴 수 있다.
+ * ────────────────────────────────────────────────────────────────────── */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--terracotta);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* 입력 폼은 outline 보다 border 색상 변화가 더 자연스러움 — 컴포넌트 측에서
+   onFocus 핸들러가 처리. 여기선 키보드 focus 시 추가 ring 으로 보강. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--terracotta) 30%, transparent);
+}
+/* 버튼은 outline 으로 그대로. 단 active 클릭 후엔 outline 사라지도록. */
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+/* high-contrast 모드 (Windows / forced-colors) — 테마 색상 무시하고 시스템
+   accent 사용. 접근성 표준 준수. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid CanvasText;
+  }
+}
