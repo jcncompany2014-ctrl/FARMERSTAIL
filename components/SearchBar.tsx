@@ -17,8 +17,10 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { Search, X, Clock } from 'lucide-react'
+import { Search, X, Clock, TrendingUp } from 'lucide-react'
 
 /**
  * Recent searches — localStorage `ft_recent_searches`.
@@ -52,6 +54,16 @@ function pushRecent(q: string): string[] {
   } catch {
     return readRecent()
   }
+}
+
+type SuggestItem = {
+  id: string
+  name: string
+  slug: string
+  category: string | null
+  image_url: string | null
+  price: number
+  sale_price: number | null
 }
 
 function clearRecent(): void {
@@ -88,8 +100,12 @@ export default function SearchBar({
   const [focused, setFocused] = useState(false)
   const [recent, setRecent] = useState<string[]>([])
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const suggestTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const suggestAbortRef = useRef<AbortController | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const formRef = useRef<HTMLFormElement | null>(null)
+  const [suggestions, setSuggestions] = useState<SuggestItem[]>([])
+  const [suggestLoading, setSuggestLoading] = useState(false)
 
   // 최근 검색어 hydrate (mount 1회).
   useEffect(() => {
@@ -153,6 +169,47 @@ export default function SearchBar({
     // 들어와도 루프가 돌진 않는다 (value 가 같아야 같은 타이머 예약).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, debounceMs])
+
+  // value 변화 → 220ms 디바운스 → /api/search/suggest fetch.
+  // 키 입력당 fetch 가 너무 많이 가는 걸 막기 위해 URL 동기화보다 약간 길게
+  // 220ms 잡음. AbortController 로 직전 요청 취소.
+  useEffect(() => {
+    if (suggestTimerRef.current) clearTimeout(suggestTimerRef.current)
+    suggestAbortRef.current?.abort()
+    const trimmed = value.trim()
+    if (trimmed.length === 0) {
+      setSuggestions([])
+      setSuggestLoading(false)
+      return
+    }
+    suggestTimerRef.current = setTimeout(async () => {
+      const controller = new AbortController()
+      suggestAbortRef.current = controller
+      setSuggestLoading(true)
+      try {
+        const res = await fetch(
+          `/api/search/suggest?q=${encodeURIComponent(trimmed)}`,
+          { signal: controller.signal },
+        )
+        if (!res.ok) {
+          setSuggestions([])
+          return
+        }
+        const data = (await res.json()) as { items?: SuggestItem[] }
+        setSuggestions(Array.isArray(data.items) ? data.items : [])
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') {
+          setSuggestions([])
+        }
+      } finally {
+        setSuggestLoading(false)
+      }
+    }, 220)
+    return () => {
+      if (suggestTimerRef.current) clearTimeout(suggestTimerRef.current)
+      suggestAbortRef.current?.abort()
+    }
+  }, [value])
 
   const clear = () => {
     setValue('')
@@ -274,6 +331,124 @@ export default function SearchBar({
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* 자동완성 dropdown — 입력값 있을 때 suggest API 결과.
+          상품 카드 형태 (썸네일 + 이름 + 카테고리 + 가격). 클릭 시 PDP 직진. */}
+      {focused && value.length > 0 && suggestions.length > 0 && (
+        <div
+          className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 rounded-2xl overflow-hidden"
+          style={{
+            background: 'var(--bg)',
+            boxShadow:
+              '0 8px 24px rgba(30,26,20,0.12), inset 0 0 0 1px var(--rule)',
+          }}
+        >
+          <div
+            className="flex items-center gap-2 px-4 py-2.5"
+            style={{ borderBottom: '1px solid var(--rule)' }}
+          >
+            <TrendingUp
+              className="w-3.5 h-3.5 shrink-0"
+              strokeWidth={2}
+              color="var(--muted)"
+            />
+            <span
+              className="font-mono text-[10px] tracking-[0.18em] uppercase"
+              style={{ color: 'var(--muted)' }}
+            >
+              Suggest · 추천 상품
+            </span>
+            {suggestLoading && (
+              <div
+                className="ml-auto w-3 h-3 border rounded-full animate-spin"
+                style={{
+                  borderColor: 'var(--terracotta)',
+                  borderTopColor: 'transparent',
+                }}
+              />
+            )}
+          </div>
+          <ul>
+            {suggestions.map((p) => {
+              const effective = p.sale_price ?? p.price
+              return (
+                <li key={p.id}>
+                  <Link
+                    href={`/products/${p.slug}`}
+                    onMouseDown={(e) => {
+                      // input blur 차단 — Link 의 client-side 네비게이션 진행
+                      e.preventDefault()
+                    }}
+                    onClick={() => {
+                      setRecent(pushRecent(value))
+                      setFocused(false)
+                    }}
+                    className="flex items-center gap-3 px-4 py-2.5 transition active:bg-bg-2"
+                  >
+                    <div
+                      className="relative w-10 h-10 shrink-0 rounded-md overflow-hidden"
+                      style={{ background: 'var(--bg-2)' }}
+                    >
+                      {p.image_url && (
+                        <Image
+                          src={p.image_url}
+                          alt={p.name}
+                          fill
+                          sizes="40px"
+                          className="object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-[13px] font-bold truncate"
+                        style={{ color: 'var(--text)' }}
+                      >
+                        {p.name}
+                      </p>
+                      {p.category && (
+                        <p
+                          className="text-[10.5px] mt-0.5"
+                          style={{ color: 'var(--muted)' }}
+                        >
+                          {p.category}
+                        </p>
+                      )}
+                    </div>
+                    <p
+                      className="text-[12px] font-black tabular-nums shrink-0"
+                      style={{ color: 'var(--terracotta)' }}
+                    >
+                      {effective.toLocaleString()}원
+                    </p>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* 자동완성 결과 0건 안내 */}
+      {focused && value.length > 0 && !suggestLoading && suggestions.length === 0 && (
+        <div
+          className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 rounded-2xl overflow-hidden px-4 py-3"
+          style={{
+            background: 'var(--bg)',
+            boxShadow:
+              '0 8px 24px rgba(30,26,20,0.12), inset 0 0 0 1px var(--rule)',
+          }}
+        >
+          <p
+            className="text-[12px]"
+            style={{ color: 'var(--muted)' }}
+          >
+            <strong style={{ color: 'var(--text)' }}>"{value}"</strong>{' '}
+            검색 결과가 없어요. Enter 를 눌러 전체 카탈로그에서 다시 시도하실
+            수 있어요.
+          </p>
         </div>
       )}
     </form>
