@@ -265,6 +265,11 @@ export default function MyPage() {
           href="/mypage/consent"
           Icon={Mail}
           label="광고 수신 설정"
+        />
+        <MenuItem
+          href="/mypage/privacy"
+          Icon={Shield}
+          label="내 데이터 (열람·다운로드)"
           last
         />
       </MenuGroup>

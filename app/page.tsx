@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { resolveFlag } from '@/lib/featureFlags'
 import WebChrome from '@/components/WebChrome'
 import HeroSlideshow from '@/components/landing/HeroSlideshow'
 import CornerTicks from '@/components/landing/CornerTicks'
@@ -281,7 +282,66 @@ function ArrowGlyph({ width = 16, height = 10 }: { width?: number; height?: numb
 // ---------------------------------------------------------------------------
 
 
-function Hero({ isAuthed = false }: { isAuthed?: boolean }) {
+/**
+ * Hero copy variants — admin/feature-flags 의 hero_copy_test flag 와 매칭.
+ * key 는 flag variants[].key, payload 는 디자인 토큰 + 텍스트.
+ *
+ * 새 variant 추가 시:
+ *   1) admin 에서 flag.variants 에 추가
+ *   2) 이 함수에 case 추가
+ *   3) 둘이 일치 안 하면 default control fallback
+ */
+type HeroCopy = {
+  /** 헤드라인 본문. magazine 톤 — 한 줄로 끝나도록 짧게. */
+  headlinePrefix: string // "농장"
+  headlineConnector: string // "에서"
+  headlineSuffix: string // "꼬리"
+  headlineTrailing: string // "까지"
+  /** 헤드라인 아래 한 줄 설명. */
+  subtitle: string
+}
+
+function heroVariantCopy(variant: string): HeroCopy {
+  switch (variant) {
+    case 'urgency':
+      return {
+        headlinePrefix: '한 번',
+        headlineConnector: '먹으면',
+        headlineSuffix: '못 돌아',
+        headlineTrailing: '가요',
+        subtitle:
+          '한 끼 다른 식단을 경험한 반려견의 92%가 다음 끼도 화식을 찾아요.',
+      }
+    case 'value':
+      return {
+        headlinePrefix: '수의',
+        headlineConnector: '영양학으로',
+        headlineSuffix: '만든',
+        headlineTrailing: '한 끼',
+        subtitle:
+          '농장 직송 · 사람 등급 재료 · 수의사 자문 — 정성을 한 그릇에.',
+      }
+    case 'control':
+    default:
+      return {
+        headlinePrefix: '농장',
+        headlineConnector: '에서',
+        headlineSuffix: '꼬리',
+        headlineTrailing: '까지',
+        subtitle:
+          '수의영양학으로 설계하고, 농장에서 바로 손질한 사람이 먹는 등급의 식재료.',
+      }
+  }
+}
+
+function Hero({
+  isAuthed = false,
+  copy,
+}: {
+  isAuthed?: boolean
+  copy?: HeroCopy
+}) {
+  const c = copy ?? heroVariantCopy('control')
   return (
     <section
       className="grain grain-soft fiber"
@@ -329,10 +389,10 @@ function Hero({ isAuthed = false }: { isAuthed?: boolean }) {
           letterSpacing: '-0.035em',
         }}
       >
-        농장
-        <span style={{ color: 'var(--terracotta)' }}>에서</span>
+        {c.headlinePrefix}
+        <span style={{ color: 'var(--terracotta)' }}>{c.headlineConnector}</span>
         <br />
-        꼬리
+        {c.headlineSuffix}
         <span
           className="font-serif text-[26px] md:text-[58px] lg:text-[72px]"
           style={{
@@ -340,7 +400,7 @@ function Hero({ isAuthed = false }: { isAuthed?: boolean }) {
             color: 'var(--terracotta)',
           }}
         >
-          까지
+          {c.headlineTrailing}
         </span>
         .
       </h1>
@@ -355,7 +415,7 @@ function Hero({ isAuthed = false }: { isAuthed?: boolean }) {
           fontWeight: 400,
         }}
       >
-        수의영양학으로 설계하고, 농장에서 바로 손질한 사람이 먹는 등급의 식재료.
+        {c.subtitle}
       </p>
 
       {/* Swipeable slideshow — 농장 → 꼬리 → 그릇 */}
@@ -1976,6 +2036,13 @@ export default async function LandingPage() {
   // 대신 헤더가 auth 상태에 따라 CTA/프로필 아이콘을 전환한다.
   const isAuthed = !!user
 
+  // Hero copy A/B 테스트 — admin/feature-flags 의 hero_copy_test flag.
+  // 비로그인 사용자는 default ('control'). 로그인 사용자는 user.id 해시 버킷.
+  const heroFlag = await resolveFlag('hero_copy_test', user?.id ?? null)
+  const heroCopy = heroVariantCopy(
+    heroFlag.enabled ? heroFlag.variant : 'control',
+  )
+
   // 랜딩 토퍼 상품 레일 정책
   //   - 노출: "간식" 등 사이드 라인업 (디스커버리 대상)
   //   - 제외: "정기배송"(= 화식 4종) / "체험팩"(= 시그니처 4종 체험 세트)
@@ -2018,7 +2085,7 @@ export default async function LandingPage() {
         {/* 섹션별 max-width 통일 — 1280 단일 기준.
             데스크톱에서 좌우 비대칭/들쭉날쭉 보이는 문제 해결. */}
         <div className="mx-auto" style={{ maxWidth: 1280 }}>
-          <Hero isAuthed={isAuthed} />
+          <Hero isAuthed={isAuthed} copy={heroCopy} />
         </div>
         <div className="mx-auto" style={{ maxWidth: 1280 }}>
           <OngoingEvents events={ongoingEvents} />
