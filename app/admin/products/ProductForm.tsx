@@ -18,6 +18,21 @@ type ProductData = {
   is_subscribable: boolean
   is_active: boolean
   sort_order: number
+  // 식품정보고시 / 사료관리법 표시 14개 항목 — 모두 nullable, 점진 입력.
+  origin: string | null
+  manufacturer: string | null
+  manufacturer_address: string | null
+  manufacture_date_policy: string | null
+  shelf_life_days: number | null
+  net_weight_g: number | null
+  ingredients: string | null
+  nutrition_facts: string | null // 텍스트 JSON 입력 — submit 시 parse
+  allergens: string | null // 콤마 구분 입력 — submit 시 split
+  storage_method: string | null
+  feeding_guide: string | null
+  pet_food_class: string | null
+  certifications: string | null // 콤마 구분 — submit 시 split
+  country_of_packaging: string | null
 }
 
 const EMPTY: ProductData = {
@@ -33,6 +48,20 @@ const EMPTY: ProductData = {
   is_subscribable: false,
   is_active: true,
   sort_order: 0,
+  origin: null,
+  manufacturer: null,
+  manufacturer_address: null,
+  manufacture_date_policy: null,
+  shelf_life_days: null,
+  net_weight_g: null,
+  ingredients: null,
+  nutrition_facts: null,
+  allergens: null,
+  storage_method: null,
+  feeding_guide: null,
+  pet_food_class: '반려동물용 자가소비 사료',
+  certifications: null,
+  country_of_packaging: null,
 }
 
 const CATEGORIES = ['체험팩', '정기배송', '간식', '화식', '기타']
@@ -68,6 +97,34 @@ export default function ProductForm({
 
     setLoading(true)
 
+    // 식품정보고시 textarea 들 → DB 형식 변환.
+    // - allergens / certifications: 콤마 구분 → text[]
+    // - nutrition_facts: 사용자 입력 JSON → JSONB. 파싱 실패 시 저장 안 함 (alert).
+    const allergensArr = form.allergens
+      ? form.allergens
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : null
+    const certificationsArr = form.certifications
+      ? form.certifications
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : null
+    let nutritionParsed: unknown = null
+    if (form.nutrition_facts && form.nutrition_facts.trim()) {
+      try {
+        nutritionParsed = JSON.parse(form.nutrition_facts)
+      } catch {
+        alert(
+          '영양성분 JSON 형식이 올바르지 않아요. 예: {"protein_pct":35,"fat_pct":12}',
+        )
+        setLoading(false)
+        return
+      }
+    }
+
     const payload = {
       name: form.name.trim(),
       slug: form.slug.trim(),
@@ -81,6 +138,21 @@ export default function ProductForm({
       is_subscribable: form.is_subscribable,
       is_active: form.is_active,
       sort_order: form.sort_order,
+      // 식품정보고시 14개 항목
+      origin: form.origin?.trim() || null,
+      manufacturer: form.manufacturer?.trim() || null,
+      manufacturer_address: form.manufacturer_address?.trim() || null,
+      manufacture_date_policy: form.manufacture_date_policy?.trim() || null,
+      shelf_life_days: form.shelf_life_days,
+      net_weight_g: form.net_weight_g,
+      ingredients: form.ingredients?.trim() || null,
+      nutrition_facts: nutritionParsed,
+      allergens: allergensArr,
+      storage_method: form.storage_method?.trim() || null,
+      feeding_guide: form.feeding_guide?.trim() || null,
+      pet_food_class: form.pet_food_class?.trim() || null,
+      certifications: certificationsArr,
+      country_of_packaging: form.country_of_packaging?.trim() || null,
     }
 
     if (mode === 'create') {
@@ -279,6 +351,162 @@ export default function ProductForm({
             />
             정기배송 가능
           </label>
+        </Section>
+
+        {/*
+          식품정보고시 / 사료관리법 표시 14개 — 전자상거래법 §13 의무 항목.
+          누락 시 공정위 시정명령 + 과태료 500만원. 각 상품마다 충실히 채워야
+          PDP 의 "정보 준비 중" 라벨이 사라짐.
+        */}
+        <Section title="식품·사료 표시 정보 (필수)">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Field label="원산지">
+              <input
+                type="text"
+                value={form.origin ?? ''}
+                onChange={(e) => update('origin', e.target.value)}
+                placeholder="예: 국내산 (전라남도 강진군)"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="제조원 / 수입원">
+              <input
+                type="text"
+                value={form.manufacturer ?? ''}
+                onChange={(e) => update('manufacturer', e.target.value)}
+                placeholder="예: (주)강진팜 / 수입원: ABC 무역"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="제조원 소재지">
+              <input
+                type="text"
+                value={form.manufacturer_address ?? ''}
+                onChange={(e) => update('manufacturer_address', e.target.value)}
+                placeholder="예: 전라남도 강진군 ..."
+                className={inputClass}
+              />
+            </Field>
+            <Field label="포장 국가 (수입품)">
+              <input
+                type="text"
+                value={form.country_of_packaging ?? ''}
+                onChange={(e) => update('country_of_packaging', e.target.value)}
+                placeholder="예: 대한민국"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="제조 정책">
+              <input
+                type="text"
+                value={form.manufacture_date_policy ?? ''}
+                onChange={(e) =>
+                  update('manufacture_date_policy', e.target.value)
+                }
+                placeholder="예: 주문 후 7일 내 제조"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="소비기한 (제조일 기준 일수)">
+              <input
+                type="number"
+                min="0"
+                value={form.shelf_life_days ?? ''}
+                onChange={(e) =>
+                  update(
+                    'shelf_life_days',
+                    e.target.value ? Number(e.target.value) : null,
+                  )
+                }
+                placeholder="예: 90"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="용량 (g)">
+              <input
+                type="number"
+                min="0"
+                value={form.net_weight_g ?? ''}
+                onChange={(e) =>
+                  update(
+                    'net_weight_g',
+                    e.target.value ? Number(e.target.value) : null,
+                  )
+                }
+                placeholder="예: 200"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="보관 방법">
+              <input
+                type="text"
+                value={form.storage_method ?? ''}
+                onChange={(e) => update('storage_method', e.target.value)}
+                placeholder="예: 냉동 보관 · 해동 후 48h 내 급여"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="품목 분류 (사료관리법)">
+              <input
+                type="text"
+                value={form.pet_food_class ?? ''}
+                onChange={(e) => update('pet_food_class', e.target.value)}
+                placeholder="기본: 반려동물용 자가소비 사료"
+                className={inputClass}
+              />
+            </Field>
+          </div>
+
+          <Field label="원재료명 (전체)">
+            <textarea
+              value={form.ingredients ?? ''}
+              onChange={(e) => update('ingredients', e.target.value)}
+              placeholder="예: 닭가슴살(국내산) 35%, 단호박 20%, 현미 ..."
+              rows={3}
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="알레르기 유발성분 (콤마 구분)">
+            <input
+              type="text"
+              value={form.allergens ?? ''}
+              onChange={(e) => update('allergens', e.target.value)}
+              placeholder="예: 닭, 계란, 유제품"
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="영양성분 JSON">
+            <textarea
+              value={form.nutrition_facts ?? ''}
+              onChange={(e) => update('nutrition_facts', e.target.value)}
+              placeholder={`{"protein_pct":35,"fat_pct":12,"fiber_pct":4,"ash_pct":2,"moisture_pct":12,"calories_kcal_per_100g":140,"calcium_pct":1.2,"phosphorus_pct":0.9}`}
+              rows={3}
+              className={inputClass}
+              style={{ fontFamily: 'monospace' }}
+            />
+          </Field>
+
+          <Field label="급여 가이드">
+            <textarea
+              value={form.feeding_guide ?? ''}
+              onChange={(e) => update('feeding_guide', e.target.value)}
+              placeholder="예: 체중 5kg 기준 1일 100g, 2회 분할 급여 권장"
+              rows={3}
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="인증 / 검사 (콤마 구분)">
+            <input
+              type="text"
+              value={form.certifications ?? ''}
+              onChange={(e) => update('certifications', e.target.value)}
+              placeholder="예: HACCP 인증, USDA Grade A, 자가품질검사 통과"
+              className={inputClass}
+            />
+          </Field>
         </Section>
 
         <div className="space-y-2">

@@ -5,6 +5,9 @@ import { Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import ProductDetailClient from './ProductDetailClient'
 import ProductLongDesc from '@/components/products/ProductLongDesc'
+import ProductFoodInfo, {
+  type NutritionFacts,
+} from '@/components/products/ProductFoodInfo'
 import RelatedProducts from '@/components/products/RelatedProducts'
 import ProductQA from '@/components/products/ProductQA'
 import type { CatalogProduct } from '@/components/products/CatalogProductCard'
@@ -33,7 +36,13 @@ const getProduct = cache(async (slug: string) => {
   const { data } = await supabase
     .from('products')
     .select(
-      'id, name, slug, description, short_description, meta_description, price, sale_price, category, is_subscribable, stock, image_url, gallery_urls, tags'
+      `id, name, slug, description, short_description, meta_description,
+       price, sale_price, category, is_subscribable, stock, image_url,
+       gallery_urls, tags,
+       origin, manufacturer, manufacturer_address, manufacture_date_policy,
+       shelf_life_days, net_weight_g, ingredients, nutrition_facts,
+       allergens, storage_method, feeding_guide, pet_food_class,
+       certifications, country_of_packaging`,
     )
     .eq('slug', slug)
     .eq('is_active', true)
@@ -274,10 +283,31 @@ export default async function ProductDetailPage({
         isApp={isApp}
         longDescSlot={
           isApp ? null : (
-            <ProductLongDesc
-              description={product.description}
-              category={product.category}
-            />
+            <>
+              <ProductLongDesc
+                description={product.description}
+                category={product.category}
+              />
+              {/* 전자상거래법 §13 + 사료관리법 표시 — 항상 노출. 컬럼이 비어
+                  있으면 자동으로 "정보 준비 중" 표시되어 운영자가 미입력
+                  상품을 시각적으로 인지 가능. */}
+              <ProductFoodInfo
+                origin={product.origin}
+                manufacturer={product.manufacturer}
+                manufacturerAddress={product.manufacturer_address}
+                manufactureDatePolicy={product.manufacture_date_policy}
+                shelfLifeDays={product.shelf_life_days}
+                netWeightG={product.net_weight_g}
+                ingredients={product.ingredients}
+                nutritionFacts={product.nutrition_facts as NutritionFacts | null}
+                allergens={product.allergens}
+                storageMethod={product.storage_method}
+                feedingGuide={product.feeding_guide}
+                petFoodClass={product.pet_food_class}
+                certifications={product.certifications}
+                countryOfPackaging={product.country_of_packaging}
+              />
+            </>
           )
         }
         relatedSlot={isApp ? null : <RelatedProducts products={related} />}
