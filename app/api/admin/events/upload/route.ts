@@ -145,3 +145,71 @@ export async function POST(req: Request) {
     path,
   })
 }
+
+/**
+ * DELETE — event 이미지가 교체될 때 옛 파일 정리. 정책은
+ * /api/admin/products/upload 의 DELETE 주석 참조.
+ */
+export async function DELETE(req: Request) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json(
+      { code: 'UNAUTHORIZED', message: '로그인이 필요합니다' },
+      { status: 401 }
+    )
+  }
+  if (!(await isAdmin(supabase, user))) {
+    return NextResponse.json(
+      { code: 'FORBIDDEN', message: '관리자 권한이 필요합니다' },
+      { status: 403 }
+    )
+  }
+
+  let body: { path?: string; url?: string }
+  try {
+    body = (await req.json()) as { path?: string; url?: string }
+  } catch {
+    return NextResponse.json(
+      { code: 'INVALID_BODY', message: '잘못된 요청 형식입니다' },
+      { status: 400 }
+    )
+  }
+
+  const path = resolvePath(body.path, body.url)
+  if (!path) {
+    return NextResponse.json({ ok: true, skipped: true })
+  }
+
+  const { error } = await supabase.storage.from('event-images').remove([path])
+  if (error) {
+    return NextResponse.json(
+      { code: 'DELETE_FAILED', message: error.message },
+      { status: 500 }
+    )
+  }
+  return NextResponse.json({ ok: true })
+}
+
+function resolvePath(
+  rawPath?: string,
+  rawUrl?: string,
+): string | null {
+  let candidate: string | null = null
+  if (rawPath && typeof rawPath === 'string') {
+    candidate = rawPath.trim()
+  } else if (rawUrl && typeof rawUrl === 'string') {
+    const marker = '/object/public/event-images/'
+    const idx = rawUrl.indexOf(marker)
+    if (idx === -1) return null
+    candidate = rawUrl.slice(idx + marker.length)
+  }
+  if (!candidate) return null
+  if (candidate.includes('..')) return null
+  if (candidate.startsWith('/')) return null
+  if (candidate.length > 256) return null
+  return candidate
+}

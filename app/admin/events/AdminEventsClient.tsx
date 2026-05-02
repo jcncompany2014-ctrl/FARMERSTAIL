@@ -232,6 +232,7 @@ export default function AdminEventsClient({
     fd.append('file', file)
     fd.append('slug', slugForPath)
 
+    const previousImageUrl = imageUrl
     setUploading(true)
     try {
       const res = await fetch('/api/admin/events/upload', {
@@ -244,6 +245,15 @@ export default function AdminEventsClient({
         return
       }
       setImageUrl(json.url as string)
+      // 새 이미지가 안전히 올라간 뒤 옛 파일 정리 (fire-and-forget).
+      // 외부 URL 은 서버에서 marker miss 로 skip 되어 안전.
+      if (previousImageUrl && previousImageUrl !== json.url) {
+        fetch('/api/admin/events/upload', {
+          method: 'DELETE',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ url: previousImageUrl }),
+        }).catch(() => {})
+      }
     } catch (err) {
       alert(
         '이미지 업로드 중 오류: ' +
@@ -253,6 +263,20 @@ export default function AdminEventsClient({
       setUploading(false)
       // 같은 파일을 다시 선택해도 change 이벤트가 발화하도록 input 초기화.
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  /** "이미지 제거" 클릭 시 Storage 도 함께 정리 (fire-and-forget). */
+  function handleRemoveImage() {
+    const previousImageUrl = imageUrl
+    setImageUrl('')
+    setImageAlt('')
+    if (previousImageUrl) {
+      fetch('/api/admin/events/upload', {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: previousImageUrl }),
+      }).catch(() => {})
     }
   }
 
@@ -700,10 +724,7 @@ export default function AdminEventsClient({
                     {imageUrl && (
                       <button
                         type="button"
-                        onClick={() => {
-                          setImageUrl('')
-                          setImageAlt('')
-                        }}
+                        onClick={handleRemoveImage}
                         className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-rule text-[11px] text-sale hover:bg-sale/10 transition"
                       >
                         <Trash2 className="w-3 h-3" strokeWidth={2} />

@@ -178,6 +178,7 @@ export default function BlogPostForm({
 
   async function handleCover(file: File) {
     setUpload({ status: 'uploading' })
+    const previousCover = form.cover_url
     const fd = new FormData()
     fd.append('file', file)
     fd.append('slug', form.slug || 'post')
@@ -198,6 +199,28 @@ export default function BlogPostForm({
     const data = (await res.json()) as { url: string }
     update('cover_url', data.url)
     setUpload({ status: 'idle' })
+    // 새 커버가 안전히 올라간 뒤 옛 파일 정리 (fire-and-forget). 외부 URL 은
+    // 서버에서 marker miss 로 skip 되어 안전.
+    if (previousCover && previousCover !== data.url) {
+      fetch('/api/admin/blog/upload', {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: previousCover }),
+      }).catch(() => {})
+    }
+  }
+
+  /** 커버 X 버튼: 폼 state 비우고 Storage 도 함께 정리. */
+  function clearCover() {
+    const previousCover = form.cover_url
+    update('cover_url', null)
+    if (previousCover) {
+      fetch('/api/admin/blog/upload', {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: previousCover }),
+      }).catch(() => {})
+    }
   }
 
   async function handleSubmit(e: React.FormEvent, publishOverride?: boolean) {
@@ -529,7 +552,7 @@ export default function BlogPostForm({
               />
               <button
                 type="button"
-                onClick={() => update('cover_url', null)}
+                onClick={clearCover}
                 className="absolute top-2 right-2 w-7 h-7 bg-sale text-white rounded-full flex items-center justify-center hover:bg-[#8A2A1E] transition"
                 aria-label="커버 제거"
               >

@@ -140,3 +140,92 @@ export async function POST(req: Request) {
     path,
   })
 }
+
+/**
+ * DELETE — admin 이 ImageUploader 에서 이미지를 "X" 로 제거할 때 호출.
+ *
+ * 보낼 게 path (bucket-relative) 또는 publicUrl 둘 중 하나. publicUrl 인 경우
+ * `/object/public/products/` 마커 뒤가 path. 외부 manual URL (Daum 우편번호
+ * 처럼 외부 호스팅된 이미지를 admin 이 직접 입력) 은 marker 가 없어 fall-through
+ * 로 무시된다.
+ *
+ * 왜 별도 핸들러?
+ *   업로드 시점엔 path 가 unique (Date.now+random) 이고 cacheControl 1년이라
+ *   안전하지만, admin 이 갤러리에서 이미지를 빼면 DB 의 gallery_urls 만 갱신되고
+ *   Storage 파일은 고아로 남아 비용이 누적된다. ImageUploader 의 removeImage
+ *   가 background fetch 로 이 핸들러를 호출해 고아를 즉시 정리한다.
+ *
+ *   사용자가 폼을 cancel 해도 파일은 삭제됐다는 trade-off — admin UX 에선 cancel
+ *   이 드물고, 만약 실수로 지웠어도 manual URL 입력으로 복구 가능. Storage 비용
+ *   누적이 더 큰 위험이라 이쪽을 택한다.
+ */
+export async function DELETE(req: Request) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json(
+      { code: 'UNAUTHORIZED', message: '로그인이 필요합니다' },
+      { status: 401 }
+    )
+  }
+  if (!(await isAdmin(supabase, user))) {
+    return NextResponse.json(
+      { code: 'FORBIDDEN', message: '관리자 권한이 필요합니다' },
+      { status: 403 }
+    )
+  }
+
+  let body: { path?: string; url?: string }
+  try {
+    body = (await req.json()) as { path?: string; url?: string }
+  } catch {
+    return NextResponse.json(
+      { code: 'INVALID_BODY', message: '잘못된 요청 형식입니다' },
+      { status: 400 }
+    )
+  }
+
+  const path = resolvePath(body.path, body.url)
+  if (!path) {
+    // URL 이 외부 도메인 / 우리 버킷이 아님 → no-op (200 으로 조용히)
+    return NextResponse.json({ ok: true, skipped: true })
+  }
+
+  const { error } = await supabase.storage.from('products').remove([path])
+  if (error) {
+    return NextResponse.json(
+      { code: 'DELETE_FAILED', message: error.message },
+      { status: 500 }
+    )
+  }
+  return NextResponse.json({ ok: true })
+}
+
+/**
+ * publicUrl 또는 raw path 에서 bucket-relative path 를 안전하게 추출.
+ * - traversal (`..`) 차단
+ * - 절대 경로 (`/foo`) 차단
+ * - 우리 버킷 마커가 없으면 null (외부 URL 로 간주, 삭제 시도 안 함)
+ */
+function resolvePath(
+  rawPath?: string,
+  rawUrl?: string,
+): string | null {
+  let candidate: string | null = null
+  if (rawPath && typeof rawPath === 'string') {
+    candidate = rawPath.trim()
+  } else if (rawUrl && typeof rawUrl === 'string') {
+    const marker = '/object/public/products/'
+    const idx = rawUrl.indexOf(marker)
+    if (idx === -1) return null
+    candidate = rawUrl.slice(idx + marker.length)
+  }
+  if (!candidate) return null
+  if (candidate.includes('..')) return null
+  if (candidate.startsWith('/')) return null
+  if (candidate.length > 256) return null
+  return candidate
+}

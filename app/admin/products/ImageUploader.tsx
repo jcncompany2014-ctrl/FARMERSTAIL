@@ -93,6 +93,15 @@ export default function ImageUploader({
         gallery: gallery.filter((u) => u !== url),
       })
     }
+    // Storage 고아 정리 — fire-and-forget. 우리 버킷이 아닌 외부 URL 은 서버에서
+    // marker miss 로 skipped 처리되므로 안전. 폼 cancel 시에도 파일은 이미
+    // 삭제되지만, admin UX 에서 cancel 은 드물고 manual URL 로 복구 가능하므로
+    // Storage 비용 누적이 더 큰 위험.
+    fetch('/api/admin/products/upload', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ url }),
+    }).catch(() => {})
   }
 
   function promoteToHero(url: string) {
