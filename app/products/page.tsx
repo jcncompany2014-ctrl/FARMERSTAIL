@@ -31,7 +31,9 @@ import { isAppContextServer } from '@/lib/app-context'
  * 모바일은 사이드바 → "필터" 버튼 + bottom sheet.
  */
 
-export const revalidate = 60
+// 5분 ISR — 상품 카탈로그는 60s 마다 재생성할 만큼 자주 안 변함. 운영자
+// admin 변경 시 revalidateTag/Path 로 즉시 무효화 가능 (출시 후 hook 추가 시).
+export const revalidate = 300
 
 const PAGE_SIZE = 12
 

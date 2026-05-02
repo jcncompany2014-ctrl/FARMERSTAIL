@@ -1,4 +1,9 @@
-const CACHE_NAME = 'farmerstail-v1'
+// CACHE_NAME 변경은 모든 사용자의 SW cache 를 invalidate 한다.
+// 새 배포 직후 stale chunks 문제 (Next 의 _next/static 해시 파일이 SW 캐시에
+// 영구 보관) 발생 시 버전 bump.
+// 버전 정책: 의도적 invalidate 필요할 때만 수동 증가. 일상적 deploy 마다
+// 올리면 사용자 매번 첫 진입 시 SW 가 모든 자산 재캐시 → 느려짐.
+const CACHE_NAME = 'farmerstail-v2'
 
 // 앱 셸에 필요한 정적 자원
 // 주의: 여기 있는 경로가 실제 public/ 에 존재해야 함. 누락 파일은 .catch 로

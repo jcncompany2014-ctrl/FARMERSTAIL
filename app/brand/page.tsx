@@ -8,6 +8,9 @@ import {
   SITE_URL,
 } from '@/lib/seo/jsonld'
 
+// 1시간 ISR — 브랜드 페이지는 변경 빈도 낮음.
+export const revalidate = 3600
+
 /**
  * /brand — 웹 전용 브랜드 스토리 (와이드 magazine cover 톤).
  *

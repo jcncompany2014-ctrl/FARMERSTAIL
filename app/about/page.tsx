@@ -3,6 +3,9 @@ import Link from 'next/link'
 import AuthAwareShell from "@/components/AuthAwareShell"
 import { ogImageUrl } from '@/lib/seo/jsonld'
 
+// 1시간 ISR — 브랜드 콘텐츠는 거의 안 변함. CDN 에서 hot, cold 만 SSR.
+export const revalidate = 3600
+
 /**
  * /about — 브랜드 이야기 (public, editorial).
  *

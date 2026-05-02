@@ -4,6 +4,10 @@ import { Building2, ExternalLink } from 'lucide-react'
 import { business, ftcLookupUrl } from '@/lib/business'
 import AuthAwareShell from "@/components/AuthAwareShell"
 
+// 1시간 ISR — 사업자 정보 변경 빈도 낮음. 통신판매 신고번호 등록 시
+// revalidatePath('/business') 로 강제 갱신.
+export const revalidate = 3600
+
 export const metadata: Metadata = {
   title: '사업자 정보',
   description:

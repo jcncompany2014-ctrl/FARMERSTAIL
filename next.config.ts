@@ -91,6 +91,12 @@ const nextConfig: NextConfig = {
         pathname: '/storage/v1/object/public/**',
       },
     ],
+    // Supabase Storage URL 은 admin 이 같은 슬러그로 새 파일 업로드 시 path 가
+    // 동일해도 컨텐츠가 바뀔 수 있다. 그러나 실제 운영에서 상품 이미지는 거의
+    // 갱신되지 않고, 갱신 시엔 admin 이 new file 으로 업로드하면서 경로가
+    // 변경되는 패턴. 1년 캐시로 CDN 부담 + 사용자 응답 둘 다 개선.
+    // 갱신 즉시 반영이 필요하면 Vercel 의 image cache invalidate API 호출.
+    minimumCacheTTL: 31536000,
   },
   async headers() {
     return [

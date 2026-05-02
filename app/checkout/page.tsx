@@ -29,44 +29,45 @@ export default async function CheckoutPage() {
 
   if (!user) redirect('/login?next=/checkout')
 
-  // .maybeSingle() — 신규 회원의 profile row 가 없을 때 .single() 이
-  // PGRST116 throw 해 결제 페이지 통째로 깨지는 거 방지.
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('name, phone, zip, address, address_detail')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  // User's current points balance
-  const { data: ledger } = await supabase
-    .from('point_ledger')
-    .select('balance_after')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  const pointBalance = ledger?.balance_after ?? 0
-
-  // Saved shipping addresses — multi-address management (Phase 1.6).
-  // Default address first, then most recently created. CheckoutForm uses
-  // this list for the saved-address picker at the top of the 배송지 section.
-  const { data: addrRows } = await supabase
-    .from('addresses')
-    .select(
-      'id, user_id, label, recipient_name, phone, zip, address, address_detail, is_default, created_at, updated_at',
-    )
-    .eq('user_id', user.id)
-    .order('is_default', { ascending: false })
-    .order('created_at', { ascending: false })
-  const savedAddresses = (addrRows ?? []).map((r) =>
-    rowToAddress(r as AddressRow),
-  )
-  const defaultAddress = savedAddresses.find((a) => a.isDefault) ?? null
-
-  const { data: items, error } = await supabase
-    .from('cart_items')
-    .select(
-      `
+  // 4개의 user-scoped 쿼리를 병렬 — auth 가 끝났으니 의존성 없음.
+  // 이전: 직렬로 4 RTT (auth → profile → ledger → addresses → cart) =
+  // 200~400ms.  이후: 1 RTT (auth) + 1 RTT (Promise.all 의 max). 100~200ms 절약.
+  const [
+    { data: profile },
+    { data: ledger },
+    { data: addrRows },
+    { data: items, error },
+  ] = await Promise.all([
+    // .maybeSingle() — 신규 회원의 profile row 가 없을 때 .single() 이
+    // PGRST116 throw 해 결제 페이지 통째로 깨지는 거 방지.
+    supabase
+      .from('profiles')
+      .select('name, phone, zip, address, address_detail')
+      .eq('id', user.id)
+      .maybeSingle(),
+    // User's current points balance
+    supabase
+      .from('point_ledger')
+      .select('balance_after')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // Saved shipping addresses — Default address first, then most recently
+    // created. CheckoutForm uses this list for the saved-address picker.
+    supabase
+      .from('addresses')
+      .select(
+        'id, user_id, label, recipient_name, phone, zip, address, address_detail, is_default, created_at, updated_at',
+      )
+      .eq('user_id', user.id)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: false }),
+    // Cart items + product join
+    supabase
+      .from('cart_items')
+      .select(
+        `
       id,
       quantity,
       product_id,
@@ -81,8 +82,15 @@ export default async function CheckoutPage() {
         is_active
       )
     `
-    )
-    .eq('user_id', user.id)
+      )
+      .eq('user_id', user.id),
+  ])
+
+  const pointBalance = ledger?.balance_after ?? 0
+  const savedAddresses = (addrRows ?? []).map((r) =>
+    rowToAddress(r as AddressRow),
+  )
+  const defaultAddress = savedAddresses.find((a) => a.isDefault) ?? null
 
   if (error) {
     return (

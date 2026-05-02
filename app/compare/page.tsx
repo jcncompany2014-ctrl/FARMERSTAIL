@@ -14,7 +14,8 @@ import { createClient } from '@/lib/supabase/server'
  * 1차는 URL 만 지원 — 다음 라운드에 카드 단의 "비교 담기" UI 추가.
  */
 
-export const revalidate = 60
+// 5분 ISR — 비교 페이지 콘텐츠는 product 변경 시에만 영향 받아 60s 너무 짧음.
+export const revalidate = 300
 
 const MAX_COMPARE = 4
 
