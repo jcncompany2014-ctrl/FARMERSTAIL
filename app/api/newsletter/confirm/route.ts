@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 /**
  * GET /api/newsletter/confirm?token=...
@@ -8,18 +9,34 @@ import { createClient } from '@/lib/supabase/server'
  * confirm_token 매칭 → status='confirmed', confirmed_at=now(). 성공 시 친화적인
  * confirmation 페이지로 redirect.
  *
- * RLS: 일반 anon insert 만 허용하므로 update 는 service role 이 필요.
- *      이 라우트는 server-side service role 클라이언트를 사용해야 한다 — 다만
- *      현 코드베이스는 createClient (anon) 를 사용 중이라 confirm/unsubscribe 도
- *      anon 키로 동작시키되, RLS 정책에 익명 update 를 별도로 허용하거나
- *      Supabase admin RPC 를 통해 처리해야 한다. 1차는 token-based update 를
- *      실행 — RLS 가 막으면 운영 후 admin policy 를 보정.
+ * # RLS / 클라이언트 선택
+ * 이전엔 anon UPDATE 를 RLS 로 열고 라우트가 `.eq()` 로 좁혔는데, anon 키를 들고
+ * supabase-js raw 호출로 token 검증 없이 mass-confirm 이 가능했다 (마이그레이션
+ * 20260502000000 에서 정책 제거). 이제 confirm/unsubscribe 는 service-role 로
+ * RLS 를 우회하되, 라우트 자체가 token 정규식 + .eq() 로 1행만 좁히는 검증을
+ * 한다.
  *
- * 보안: token 은 32자 hex (uuid replace) 라 brute force 비현실적. 그래도 미스
- *      매칭 시 generic 메시지 반환.
+ * # 보안
+ * - Token: 32자 hex (uuid replace) — 128-bit 엔트로피, brute force 비현실적
+ * - Rate limit: IP 당 분당 10회 — token 추측 시도 / 메일 클릭 봇 / 회귀 방어
+ * - 미매칭 시 generic redirect (token 존재 여부 누설 안 함)
  */
 
 export async function GET(req: Request) {
+  // Token 추측 시도 방어. 메일 클릭은 정상이라 분당 10회로 여유.
+  const rl = rateLimit({
+    bucket: 'newsletter-confirm',
+    key: ipFromRequest(req),
+    limit: 10,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
+    return NextResponse.json(
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rl.headers },
+    )
+  }
+
   const url = new URL(req.url)
   const token = url.searchParams.get('token')?.trim()
 
@@ -29,7 +46,7 @@ export async function GET(req: Request) {
     return NextResponse.redirect(`${baseUrl}/newsletter?status=invalid`)
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // 1) token 매칭 row 찾기
   const { data: row } = await supabase

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 /**
  * GET /api/newsletter/unsubscribe?token=...
@@ -9,9 +10,27 @@ import { createClient } from '@/lib/supabase/server'
  *
  * unsubscribe_token 은 가입 시 자동 발급된 영구 토큰 (확인 후 cleared 되지
  * 않음 — 같은 사용자가 여러 번 해지/재가입 가능해야 하니).
+ *
+ * # RLS / 클라이언트 선택
+ * 이전엔 anon UPDATE 를 RLS 로 열어 anon 키로 mass-unsubscribe 가 가능했다
+ * (마이그레이션 20260502000000 에서 정책 제거). 이제 service-role 로 RLS 우회
+ * + 라우트가 token 매칭 + 1행 좁힘.
  */
 
 export async function GET(req: Request) {
+  const rl = rateLimit({
+    bucket: 'newsletter-unsubscribe',
+    key: ipFromRequest(req),
+    limit: 10,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
+    return NextResponse.json(
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rl.headers },
+    )
+  }
+
   const url = new URL(req.url)
   const token = url.searchParams.get('token')?.trim()
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin
@@ -20,7 +39,7 @@ export async function GET(req: Request) {
     return NextResponse.redirect(`${baseUrl}/newsletter?status=invalid`)
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: row } = await supabase
     .from('newsletter_subscribers')
