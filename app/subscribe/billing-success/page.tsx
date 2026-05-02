@@ -25,16 +25,20 @@ function BillingSuccessInner() {
   const customerKey = params.get('customerKey')
   const subscriptionId = params.get('subscriptionId')
 
-  const [status, setStatus] = useState<Status>('exchanging')
+  // 잘못된 진입을 useState initializer 에서 derive — useEffect 안에서 동기
+  // setState 를 부르면 React 19 `react-hooks/set-state-in-effect` 룰이
+  // cascading render 위험으로 막는다.
+  const isInvalidEntry = !authKey || !customerKey || !subscriptionId
+  const [status, setStatus] = useState<Status>(
+    isInvalidEntry ? 'failed' : 'exchanging',
+  )
   const [card, setCard] = useState<{ brand: string | null; last4: string | null } | null>(null)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(
+    isInvalidEntry ? '잘못된 접근이에요' : null,
+  )
 
   useEffect(() => {
-    if (!authKey || !customerKey || !subscriptionId) {
-      setStatus('failed')
-      setErrorMsg('잘못된 접근이에요')
-      return
-    }
+    if (isInvalidEntry) return
 
     let cancelled = false
 
@@ -70,7 +74,7 @@ function BillingSuccessInner() {
     return () => {
       cancelled = true
     }
-  }, [authKey, customerKey, subscriptionId])
+  }, [authKey, customerKey, subscriptionId, isInvalidEntry])
 
   return (
     <main

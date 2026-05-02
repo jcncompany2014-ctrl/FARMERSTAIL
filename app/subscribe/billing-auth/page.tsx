@@ -25,13 +25,16 @@ function BillingAuthInner() {
   const params = useSearchParams()
   const subscriptionId = params.get('subscriptionId')
   const customerKey = params.get('customerKey')
-  const [error, setError] = useState<string | null>(null)
+  // 잘못된 진입은 useState 의 initializer 로 derive — useEffect 안에서
+  // 동기 setState 를 호출하면 React 19 `react-hooks/set-state-in-effect`
+  // 룰이 cascading render 위험으로 막는다.
+  const isInvalidEntry = !subscriptionId || !customerKey
+  const [error, setError] = useState<string | null>(
+    isInvalidEntry ? '잘못된 접근이에요' : null,
+  )
 
   useEffect(() => {
-    if (!subscriptionId || !customerKey) {
-      setError('잘못된 접근이에요')
-      return
-    }
+    if (isInvalidEntry) return
 
     let cancelled = false
 
@@ -77,7 +80,7 @@ function BillingAuthInner() {
     return () => {
       cancelled = true
     }
-  }, [subscriptionId, customerKey])
+  }, [subscriptionId, customerKey, isInvalidEntry])
 
   return (
     <main

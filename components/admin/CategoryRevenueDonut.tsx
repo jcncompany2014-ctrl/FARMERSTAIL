@@ -81,20 +81,24 @@ export default function CategoryRevenueDonut({
 
   // 각 segment 의 stroke-dasharray + offset 계산.
   // CIRC * (revenue / total) = arc 길이.
-  let cumulative = 0
-  const segments = displayed.map((d, i) => {
+  //
+  // 이전엔 `let cumulative` 를 .map 안에서 누적시켰는데 React 19 의
+  // `react-hooks/immutability` 룰은 render 본문에서 변수 재할당을 금지한다.
+  // n ≤ 6 이라 O(n²) 누적합으로 풀어도 비용이 미미해 함수형으로 다시 짠다.
+  const segments = displayed.map((d, i, arr) => {
     const ratio = d.revenue / total
     const length = CIRC * ratio
-    const segment = {
+    const offset = arr
+      .slice(0, i)
+      .reduce((s, prev) => s + CIRC * (prev.revenue / total), 0)
+    return {
       key: d.category,
       color: COLORS[i % COLORS.length],
       length,
-      offset: cumulative,
+      offset,
       ratio,
       revenue: d.revenue,
     }
-    cumulative += length
-    return segment
   })
 
   return (

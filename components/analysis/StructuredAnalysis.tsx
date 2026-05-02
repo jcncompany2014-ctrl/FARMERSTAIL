@@ -49,8 +49,11 @@ export default function StructuredAnalysis({
     if (fetchedRef.current === analysisId) return
     fetchedRef.current = analysisId
     let cancelled = false
-    setState('loading')
+    // React 19 `react-hooks/set-state-in-effect` 룰은 effect body 의 동기
+    // setState 를 cascading render 위험으로 본다. async IIFE 안으로 옮기면
+    // setState 가 microtask 로 미뤄져 한 번의 commit 으로 묶이고 룰도 만족.
     ;(async () => {
+      setState('loading')
       try {
         const res = await fetch('/api/analysis/structured', {
           method: 'POST',

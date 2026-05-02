@@ -11,7 +11,7 @@ import type { CapacitorConfig } from '@capacitor/cli'
  *
  *   ┌─ iOS / Android 네이티브 쉘 ────────────┐
  *   │  WKWebView / WebView                    │
- *   │  └─→ https://farmerstail.com (Vercel)   │
+ *   │  └─→ https://farmerstail.kr (Vercel)    │
  *   │                                          │
  *   │  네이티브 plugins:                       │
  *   │   • Splash Screen                        │
@@ -55,7 +55,7 @@ const config: CapacitorConfig = {
   server: {
     // 운영: Vercel 도메인을 그대로 로드. NEXT_PUBLIC_SITE_URL 와 일치.
     // 빈 값이면 webDir 의 정적 파일을 로드 (정적 export 모드 — 미사용).
-    url: process.env.CAPACITOR_SERVER_URL ?? 'https://farmerstail.com',
+    url: process.env.CAPACITOR_SERVER_URL ?? 'https://farmerstail.kr',
     // androidScheme=https 로 두면 service worker / Storage API 가 origin
     // 일관성 검사를 통과해 PWA 와 동일한 동작 (push subscription, IndexedDB 등).
     androidScheme: 'https',
@@ -64,7 +64,7 @@ const config: CapacitorConfig = {
     // iOS 에서 ATS (App Transport Security) 가 https 만 허용 — http localhost
     // 는 Info.plist 에서 NSAppTransportSecurity > NSAllowsArbitraryLoads 로
     // 별도 풀어야 함 (개발 빌드만).
-    allowNavigation: ['farmerstail.com', '*.farmerstail.com'],
+    allowNavigation: ['farmerstail.kr', '*.farmerstail.kr'],
   },
 
   ios: {

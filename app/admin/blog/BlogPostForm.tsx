@@ -110,7 +110,6 @@ export default function BlogPostForm({
     if (!ta) return
     const start = ta.selectionStart ?? 0
     const before = form.content.slice(0, start)
-    const after = form.content.slice(start)
     // 현재 줄의 시작 위치
     const lineStart = before.lastIndexOf('\n') + 1
     const next =

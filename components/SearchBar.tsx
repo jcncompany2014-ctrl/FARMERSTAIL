@@ -445,7 +445,7 @@ export default function SearchBar({
             className="text-[12px]"
             style={{ color: 'var(--muted)' }}
           >
-            <strong style={{ color: 'var(--text)' }}>"{value}"</strong>{' '}
+            <strong style={{ color: 'var(--text)' }}>&ldquo;{value}&rdquo;</strong>{' '}
             검색 결과가 없어요. Enter 를 눌러 전체 카탈로그에서 다시 시도하실
             수 있어요.
           </p>

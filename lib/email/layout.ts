@@ -22,7 +22,7 @@
 import { business } from '@/lib/business'
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://farmerstail.com'
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://farmerstail.kr'
 
 export type LayoutInput = {
   /** <title>. Gmail 스레드 그룹화에 영향. */

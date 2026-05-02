@@ -93,7 +93,7 @@ WHERE table_name = 'products'
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon (공개 가능) |
 | `SUPABASE_SERVICE_ROLE_KEY` | 관리자/웹훅/크론 (production 필수) |
-| `NEXT_PUBLIC_SITE_URL` | `https://farmerstail.com` 같은 canonical URL |
+| `NEXT_PUBLIC_SITE_URL` | `https://farmerstail.kr` 같은 canonical URL |
 
 ### 🟡 결제 — 없으면 결제 시점 503
 | 키 | 용도 |
@@ -105,7 +105,7 @@ WHERE table_name = 'products'
 | 키 | 용도 |
 |---|---|
 | `RESEND_API_KEY` | Resend API key (`re_xxx`) |
-| `EMAIL_FROM` | `"파머스테일 <no-reply@farmerstail.com>"` 형식. Resend 인증 도메인만 사용 가능 |
+| `EMAIL_FROM` | `"파머스테일 <no-reply@farmerstail.kr>"` 형식. Resend 인증 도메인만 사용 가능 |
 | `EMAIL_REPLY_TO` | (선택) "답장" 갈 주소 |
 
 ### 🟡 모니터링 — 없으면 에러 추적 안 됨
@@ -183,7 +183,7 @@ WHERE table_name = 'products'
       `https://[domain]/subscribe/billing-fail`
 
 ### Resend
-- [ ] 도메인 추가 (`farmerstail.com`)
+- [ ] 도메인 추가 (`farmerstail.kr`)
 - [ ] DKIM/SPF/DMARC DNS 레코드 등록 + 검증 통과
 - [ ] `EMAIL_FROM` 의 도메인이 인증된 도메인과 일치 확인
 
@@ -220,7 +220,7 @@ WHERE table_name = 'products'
 - [ ] Account deletion URL: `https://[domain]/mypage/delete`
 
 ### Vercel
-- [ ] Production 도메인 연결 (`farmerstail.com`)
+- [ ] Production 도메인 연결 (`farmerstail.kr`)
 - [ ] HTTPS / HSTS 자동 (Vercel 기본)
 - [ ] Cron Jobs 활성화 (`vercel.json` 의 `/api/cron/*`)
 - [ ] Region: `icn1` (서울) 권장

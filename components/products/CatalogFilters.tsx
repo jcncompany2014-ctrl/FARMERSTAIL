@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useMemo, useRef, useState, useTransition } from 'react'
 import { X, SlidersHorizontal } from 'lucide-react'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 

@@ -22,6 +22,10 @@ function useIsAppContext(): boolean {
     if (typeof document === 'undefined') return
     const cookies = document.cookie.split(';').map((c) => c.trim())
     const flag = cookies.some((c) => c.startsWith('ft_app=1'))
+    // 외부 시스템(document.cookie) 의 1회 동기화 — useEffect 의 정상 사용 패턴.
+    // React 19 `react-hooks/set-state-in-effect` 룰은 cascading render 를
+    // 우려하지만 이 setState 는 deps=[] 라 마운트 직후 1회만 발생한다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsApp(flag)
   }, [])
   return isApp

@@ -27,9 +27,11 @@
  *   Search Console 에서 경고로 잡힌다.
  */
 
-/** 사이트 전역 기본값 — NEXT_PUBLIC_SITE_URL 이 없으면 Vercel preview URL 로 fallback. */
+/** 사이트 전역 기본값 — NEXT_PUBLIC_SITE_URL 이 없으면 운영 도메인으로 fallback.
+ * 도메인 미연결 환경에선 NEXT_PUBLIC_SITE_URL 을 명시적으로 Vercel preview 등으로
+ * 덮어 써야 한다 (LAUNCH_CHECKLIST.md 의 env 표 참고). */
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.vercel.app'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
 
 /**
  * /api/og 의 dynamic share card URL 을 만들어 주는 헬퍼.
@@ -86,7 +88,7 @@ export function buildOrganizationJsonLd() {
       contactType: 'customer service',
       areaServed: 'KR',
       availableLanguage: ['Korean'],
-      email: 'hello@farmerstail.com',
+      email: 'hello@farmerstail.kr',
     },
   } as const
 }

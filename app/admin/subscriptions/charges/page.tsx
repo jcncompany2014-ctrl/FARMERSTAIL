@@ -85,10 +85,14 @@ export default async function SubscriptionChargesPage({
   const pageNum = Math.max(1, Number(sp.page ?? '1') || 1)
   const PAGE_SIZE = 50
 
-  // 최근 30일 집계
-  const thirtyDaysAgo = new Date(
-    Date.now() - 30 * 24 * 60 * 60 * 1000,
-  ).toISOString()
+  // 최근 30일 집계.
+  // server component (async) 라 매 요청마다 한 번만 실행 — React 19
+  // `react-hooks/purity` 룰의 client-side 가정이 적용되지 않는다. 룰의 매칭은
+  // `Date.now()` 가 위치한 단일 라인 단위라 변수로 추출해 disable 댓글을 정확히
+  // 그 라인에 붙여 둔다.
+  // eslint-disable-next-line react-hooks/purity
+  const nowMs = Date.now()
+  const thirtyDaysAgo = new Date(nowMs - 30 * 24 * 60 * 60 * 1000).toISOString()
   const today = todayKstIsoDate()
 
   const [todayRes, last30dRes, listRes] = await Promise.all([

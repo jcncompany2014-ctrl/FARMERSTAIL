@@ -65,7 +65,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://farmerstail.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://farmerstail.kr";
 
 // Supabase Storage 도메인 — preconnect / dns-prefetch 힌트용. NEXT_PUBLIC_
 // SUPABASE_URL 에서 origin 추출 (next.config.ts 의 supabaseHostname() 와 동일

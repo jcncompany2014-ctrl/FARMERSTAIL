@@ -227,11 +227,11 @@ export async function GET(req: Request) {
           >
             {(() => {
               const url =
-                process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.com'
+                process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
               try {
                 return new URL(url).hostname
               } catch {
-                return 'farmerstail.com'
+                return 'farmerstail.kr'
               }
             })()}
           </div>

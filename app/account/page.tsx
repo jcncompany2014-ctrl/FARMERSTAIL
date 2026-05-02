@@ -10,7 +10,6 @@ import {
   RotateCcw,
   Gift,
   ShoppingBag,
-  LogOut,
   Smartphone,
   UserCog,
 } from 'lucide-react'

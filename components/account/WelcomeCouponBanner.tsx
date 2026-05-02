@@ -44,11 +44,14 @@ export default async function WelcomeCouponBanner({
 
   if (!coupon || !coupon.is_active) return null
 
-  // 만료 체크
-  if (
-    coupon.expires_at &&
-    new Date(coupon.expires_at).getTime() < Date.now()
-  ) {
+  // 만료 체크.
+  //
+  // 이 컴포넌트는 server component (async function + supabase server client) 라
+  // 매 요청마다 새 스냅샷으로 한 번만 실행된다. React 19 `react-hooks/purity`
+  // 룰은 client/server 를 구분 못 해 false-positive 를 내지만, 여기선 hydration
+  // mismatch 도 cascading render 도 발생하지 않는다.
+  // eslint-disable-next-line react-hooks/purity
+  if (coupon.expires_at && new Date(coupon.expires_at).getTime() < Date.now()) {
     return null
   }
 

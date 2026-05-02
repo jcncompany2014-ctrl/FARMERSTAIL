@@ -9,7 +9,7 @@
  * 환경변수:
  *   - `RESEND_API_KEY`  없으면 모든 호출이 `{ ok: false, skipped: true }` 로
  *                       조용히 지나간다. 로컬/스테이징에서 오작동 안 나도록.
- *   - `EMAIL_FROM`      "파머스테일 <no-reply@farmerstail.com>" 같은 RFC 5322
+ *   - `EMAIL_FROM`      "파머스테일 <no-reply@farmerstail.kr>" 같은 RFC 5322
  *                       형식. Resend는 도메인 인증된 주소만 허용.
  *   - `EMAIL_REPLY_TO`  (선택) 고객이 "답장" 눌렀을 때 가는 주소.
  *

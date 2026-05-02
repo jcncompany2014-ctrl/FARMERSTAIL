@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 import { createClient } from '@/lib/supabase/server'
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.vercel.app'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
 
 export const revalidate = 3600 // 1시간마다 재생성
 

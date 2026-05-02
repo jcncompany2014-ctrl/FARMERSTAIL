@@ -6,7 +6,7 @@
  */
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.vercel.app'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
 
 export type BirthdayEmailInput = {
   recipientName: string

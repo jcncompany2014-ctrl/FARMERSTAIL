@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 type Props = {
@@ -24,7 +24,7 @@ type Props = {
  * 1. Apple Developer → Certificates, Identifiers & Profiles → Services IDs 에
  *    `com.farmerstail.app.signin` 같은 식별자 생성, "Sign In with Apple"
  *    capability 활성.
- * 2. Domain & subdomain: `farmerstail.com` (또는 master 도메인) 등록.
+ * 2. Domain & subdomain: `farmerstail.kr` (또는 master 도메인) 등록.
  * 3. Return URL: `https://[supabase-project].supabase.co/auth/v1/callback`.
  * 4. Apple Developer → Keys → Sign in with Apple Key 생성, .p8 파일 다운로드.
  * 5. Supabase Auth → Providers → Apple 활성:
@@ -47,14 +47,12 @@ export default function AppleLoginButton({
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [shouldRender, setShouldRender] = useState(true)
-
-  // SUPABASE Apple Provider 가 비활성인 환경에서도 버튼만은 노출되도록 — 클릭
-  // 시 supabase 가 OAuth 에러를 반환하면 그때 안내. 단, build-time env 에 명시적
-  // 비활성 플래그가 있으면 숨김.
-  useEffect(() => {
-    if (process.env.NEXT_PUBLIC_DISABLE_SIWA === '1') setShouldRender(false)
-  }, [])
+  // NEXT_PUBLIC_* 는 build-time 에 inline 되므로 useState lazy initializer 로
+  // 1회만 평가하면 충분. 이전엔 useEffect 안에서 setState 하다가 React 19
+  // `react-hooks/set-state-in-effect` 룰에 걸려 추가 render 가 끼었다.
+  const [shouldRender] = useState(
+    () => process.env.NEXT_PUBLIC_DISABLE_SIWA !== '1',
+  )
 
   async function handleClick() {
     setError('')

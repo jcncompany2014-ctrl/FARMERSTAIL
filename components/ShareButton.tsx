@@ -185,7 +185,6 @@ export function KakaoInitScript() {
         crossOrigin="anonymous"
       />
       <script
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{
           __html: `
             (function() {

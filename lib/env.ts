@@ -72,7 +72,7 @@ const serverSchema = z.object({
   ANTHROPIC_API_KEY: optStr(),
 
   // === Resend (선택 — 거래 메일. 없으면 모든 sendEmail 호출은 no-op) ========
-  // EMAIL_FROM 은 "파머스테일 <no-reply@farmerstail.com>" 처럼 display+addr 형식.
+  // EMAIL_FROM 은 "파머스테일 <no-reply@farmerstail.kr>" 처럼 display+addr 형식.
   // Resend 계정에 검증된 도메인만 From으로 쓸 수 있음.
   RESEND_API_KEY: optStr(),
   EMAIL_FROM: optStr(),

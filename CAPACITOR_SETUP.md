@@ -82,7 +82,7 @@ Xcode 가 열림. 처음엔 Team 선택 (Apple Developer 계정) + Bundle ID 충
 
 ## 5. 운영 환경 빌드
 
-`server.url` 이 자동으로 `https://farmerstail.com` 으로 잡힘 (또는 `CAPACITOR_SERVER_URL`
+`server.url` 이 자동으로 `https://farmerstail.kr` 으로 잡힘 (또는 `CAPACITOR_SERVER_URL`
 env 로 오버라이드).
 
 ```bash
@@ -125,7 +125,7 @@ npm run cap:open:ios      # → Product → Archive
 ### 6.4 Universal Links (이메일/카톡 링크 → 앱 자동 진입)
 
 - Apple Developer Portal → Identifiers → 본 앱 ID → "Associated Domains" 활성
-- Xcode → Capabilities → Associated Domains → `applinks:farmerstail.com`
+- Xcode → Capabilities → Associated Domains → `applinks:farmerstail.kr`
 - Vercel 에 `/.well-known/apple-app-site-association` 호스팅 (별도 작업)
 
 ### 6.5 ATS (App Transport Security)
@@ -187,8 +187,8 @@ keytool -genkey -v -keystore farmerstail.keystore -alias farmerstail \
 - 앱 이름: 파머스테일
 - 카테고리: 쇼핑 / 라이프스타일
 - 연령: 4+ (4세 이상)
-- 개인정보처리방침 URL: `https://farmerstail.com/legal/privacy`
-- 이용약관 URL: `https://farmerstail.com/legal/terms`
+- 개인정보처리방침 URL: `https://farmerstail.kr/legal/privacy`
+- 이용약관 URL: `https://farmerstail.kr/legal/terms`
 
 ### iOS App Store Connect
 - 스크린샷 6.7" (iPhone 16 Pro Max), 6.5" (iPhone 14 Plus), 5.5" (iPhone 8 Plus)
@@ -212,7 +212,7 @@ keytool -genkey -v -keystore farmerstail.keystore -alias farmerstail \
 |---|---|
 | "Just a website wrapper" (Apple 4.2) | Push 알림 / Splash / 카메라 권한 등 native 기능 강조 |
 | "Account deletion" (Apple 5.1.1) | `/mypage/delete` 이미 구현됨. 심사자에게 경로 명시 |
-| "Privacy policy 누락" | `https://farmerstail.com/legal/privacy` 링크 명확히 |
+| "Privacy policy 누락" | `https://farmerstail.kr/legal/privacy` 링크 명확히 |
 | "Permission rationale 누락" | Info.plist 의 NS*UsageDescription 한국어 명확히 |
 
 ---
