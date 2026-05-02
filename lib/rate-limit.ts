@@ -20,12 +20,20 @@
  *     return new Response('Too Many Requests', { status: 429, headers: r.headers })
  *   }
  *
- * # Edge-safe
+ * # Edge-safe + 메모리 가드
  *
  * - globalThis에 Map 하나만 둠. setInterval 같은 persistent timer 없음
- *   (Edge에서 안 됨). GC는 hit할 때 만료 엔트리 덮어쓰는 식으로 자연스럽게 일어남.
- *   unique IP가 폭증해도 60초 윈도우 끝나면 해당 IP는 한 엔트리(overwrite).
- *   long-tail attack이면 수만 IP × 수 KB = 수 MB. Edge instance RAM으로 감당됨.
+ *   (Edge에서 안 됨).
+ *
+ * - 자연 GC: 같은 key 가 다시 들어와 윈도우가 만료됐으면 entry 를 덮어씀. 그러나
+ *   "1번만 호출하고 사라지는 IP" 가 누적되면 Map 이 무한 성장 — 분산 attacker
+ *   가 IP 별로 1회씩만 보내도 long-tail leak 가능. Vercel Edge isolate 메모리
+ *   는 128MB 라 IP × ~80B = 1.6M entries 면 한도 도달.
+ *
+ * - 가드: `MAX_ENTRIES` 초과 시 1회 sweep — 만료된 entry 제거, 그래도 초과면
+ *   가장 오래된 (insertion-order) 일정 비율을 evict. JS Map 의 iteration 순서가
+ *   삽입순이라 LRU 근사가 자연스럽게 가능. sweep 비용은 set() 의 O(n) 1회로,
+ *   threshold 한참 위까지 가지 않게 buffer 확보.
  */
 
 type Entry = {
@@ -41,6 +49,27 @@ const GLOBAL_KEY = '__farmerstail_rl__' as const
 type GlobalBucket = Map<string, Entry>
 const g = globalThis as unknown as { [GLOBAL_KEY]?: GlobalBucket }
 const store: GlobalBucket = g[GLOBAL_KEY] ?? (g[GLOBAL_KEY] = new Map())
+
+// 메모리 가드 — Edge isolate 128MB 의 ~5% 한도 (50K entries × 80B ≈ 4MB).
+// HIGH_WATER 도달 시 1회 sweep, EVICT_TARGET 까지 줄임. attacker 가 IP 분산
+// 으로 1회 hit 만 만들어도 sweep 이 만료된 entry + 가장 오래된 entry 부터
+// 제거하므로 정상 트래픽엔 거의 영향 없음.
+const MAX_ENTRIES = 50_000
+const EVICT_TARGET = 40_000
+
+function maybeSweep(now: number) {
+  if (store.size < MAX_ENTRIES) return
+  // 1차: 만료된 entry 제거.
+  for (const [k, v] of store) {
+    if (v.reset <= now) store.delete(k)
+    if (store.size <= EVICT_TARGET) return
+  }
+  // 2차: 그래도 초과면 가장 오래된 entry 부터 evict (Map iteration = 삽입순).
+  for (const k of store.keys()) {
+    if (store.size <= EVICT_TARGET) return
+    store.delete(k)
+  }
+}
 
 export type RateLimitArgs = {
   /** 버킷 이름. 정책 단위 — 'login', 'payment', 'admin-upload' 같이 분리. */
@@ -77,6 +106,8 @@ export function rateLimit(args: RateLimitArgs): RateLimitResult {
 
   let entry: Entry
   if (!existing || existing.reset <= now) {
+    // 새 윈도우. set() 직전에 가드 — Map 크기가 한도 근처면 sweep.
+    maybeSweep(now)
     entry = { count: 1, reset: now + windowMs }
     store.set(mapKey, entry)
   } else {

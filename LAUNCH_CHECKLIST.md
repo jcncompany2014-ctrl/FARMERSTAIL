@@ -107,6 +107,7 @@ WHERE table_name = 'products'
 | `RESEND_API_KEY` | Resend API key (`re_xxx`) |
 | `EMAIL_FROM` | `"파머스테일 <no-reply@farmerstail.kr>"` 형식. Resend 인증 도메인만 사용 가능 |
 | `EMAIL_REPLY_TO` | (선택) "답장" 갈 주소 |
+| `RESEND_WEBHOOK_SECRET` | **production 필수** — `whsec_...` (Resend 콘솔의 Webhook signing secret). 미설정 시 svix 서명 검증이 우회되어 webhook 위조 가능. dev 에서만 미설정 허용. |
 
 ### 🟡 모니터링 — 없으면 에러 추적 안 됨
 | 키 | 용도 |
