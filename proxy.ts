@@ -155,7 +155,16 @@ function findRule(pathname: string, method: string): Rule | undefined {
 
 const APP_ONLY_PREFIXES: readonly string[] = [
   '/dashboard',
-  '/dogs',
+  // ⚠️ TEMPORARILY DISABLED — '/dogs' app-only 가드 해제.
+  // 출시 전 디자인/UX 데스크톱 검토를 위해 잠시 풀어둠. /dogs/[id]/survey 같은
+  // 경로를 보호자가 PC 브라우저에서도 볼 수 있어야 클로드 디자인 / 본인 검토
+  // 가능. 출시 직전에 다시 추가:
+  //   '/dogs',
+  //
+  // 영향 범위: /dogs, /dogs/[id], /dogs/[id]/survey, /dogs/[id]/analysis 등
+  // 모든 강아지 관련 라우트가 web 에서도 접근 가능. RLS 가 user_id 격리하므로
+  // 본인 데이터만 보임 — 데이터 노출 위험 없음. 단지 모바일-first 디자인이라
+  // 데스크톱에선 좁은 컬럼으로 보일 뿐.
   '/welcome',
   // /mypage 자체는 web 사용자도 진입 시 chrome 분기되지만, /mypage 의
   // sub-route 중 web 으로 노출 가능한 건 /mypage/orders 뿐. 나머지는 app 전용.
