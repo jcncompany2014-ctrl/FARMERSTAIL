@@ -63,12 +63,35 @@
 - 34: Skip-to-content + focus-visible WCAG
 - 35: README + docs/RUNBOOK.md
 
-### Round 36-38: 성능 (가장 최근)
+### Round 36-38: 성능
 - 36: `(main)/layout` client auth gate 제거 — 200~500ms 절감
 - 37: Vercel region icn1 + getUser→getSession (chrome 4곳) — 250~550ms
 - 38: Checkout serial → Promise.all + ISR 연장 + cacheTTL — 100~200ms
 
 **누적 ~500ms 이상 모든 페이지에서 빨라짐**
+
+### Round 39: 보안 audit + Personalization 시스템 (가장 최근)
+- 39.1: React 19 lint 10건 + 도메인 일관화 (.com/.vercel.app → .kr 11파일) (`442a50f`)
+- 39.2: Storage orphan 정리 (admin 이미지 교체 시) + SW iOS 50MB cap (`bc0021a`)
+- 39.3: Rate limiter LRU 메모리 가드 (50K cap) + Resend webhook secret 명시 (`77a9ccc`)
+- 39.4: **Newsletter RLS mass-update 보안 구멍 차단** — anon 키로 mass-confirm
+        가능한 진짜 취약점. service-role 우회로 fix (`f9d9b54`)
+- 39.5: 설문 personalization 7필드 추가 (`91ba22f`)
+        — care_goal/home_cooking_experience/satisfaction/weight_trend/
+          gi_sensitivity/preferred_proteins/indoor_activity
+- 39.6: Claude Design 핸드오프 적용 — survey.css + 페이지 전면 리뉴얼 (`67915b7`)
+- 39.7: /dogs 가드 임시 해제 (데스크톱 디자인 검토용) (`05953b5`)
+- 39.8: **Personalization 알고리즘 v1 (decideFirstBox) + 인프라** (`f61133e`)
+        — 30+ 룰, 43개 단위 테스트, dog_formulas + dog_checkins 테이블
+- 39.9: 알고리즘 ↔ analysis 페이지 통합 — RecommendationBox placeholder (`6de7f7f`)
+- 39.10: **알고리즘 v1.1 (decideNextBox) — cycle 진행 + checkin/adjust API + cron**
+         (`9969d52`) — 218 → 236 tests
+- 39.11: cron push 알림 + admin 시뮬레이터 (`0568c62`)
+- 39.12: 박스 패킹 리스트 (CSV) + docs/PERSONALIZATION.md (`aa64bc8`)
+
+**Personalization 시스템 = 5종 화식 + 토퍼를 강아지별 비율로 조합 + 매월 자동
+조정. 알고리즘 v1 (firstBox / nextBox), API 4개, cron 1개, admin 도구 2개,
+DB 테이블 2개 — 운영 인프라 완비.**
 
 ---
 
@@ -91,8 +114,10 @@
 ### Production 셋업
 - [ ] Vercel env vars 모두 등록 (.env.example 참조)
 - [ ] 도메인 farmerstail.kr Vercel 연결 + SSL
-- [ ] `supabase db push` — 마이그 36개 적용
+- [ ] `supabase db push` — 마이그 **39개** 적용 (또는 dashboard SQL Editor)
+- [ ] PostgREST 캐시 reload (`NOTIFY pgrst, 'reload schema';`) — dashboard 적용 시 필수
 - [ ] Supabase Apple OAuth provider 등록
+- [ ] **`/dogs` app-only 가드 복구** (`proxy.ts:158` 주석 처리한 줄 활성화)
 
 ### 자산
 - [ ] 1024×1024 앱 아이콘 source → `npm run cap:assets`
@@ -124,9 +149,13 @@
 | `README.md` | 프로젝트 한눈에 |
 | `docs/SESSION_SUMMARY.md` | 이 파일 — 작업 라운드 정리 |
 | `lib/business.ts` | 사업자 정보 SSOT — 통판신고 등록 위치 |
-| `vercel.json` | Cron 9개 + region icn1 |
+| `vercel.json` | Cron 10개 + region icn1 |
 | `proxy.ts` | 미들웨어 (rate limit + admin 가드 + app/web 분기) |
-| `supabase/migrations/` | 36개 마이그레이션 |
+| `supabase/migrations/` | 39개 마이그레이션 |
+| `lib/personalization/` | 화식 비율 알고리즘 v1 (firstBox + nextBox) + 5라인 메타 |
+| `app/api/personalization/` | compute / checkin / adjust API |
+| `app/admin/personalization/` | 시뮬레이터 + 박스 패킹 리스트 |
+| `docs/PERSONALIZATION.md` | personalization 시스템 운영 매뉴얼 |
 | `lib/api/schemas.ts` | Zod 스키마 SSOT |
 | `lib/api/parseRequest.ts` | API 요청 파싱 helper |
 | `lib/featureFlags.ts` | A/B 테스트 |
@@ -150,6 +179,9 @@
 
 ## 6. 마지막 production deployment
 
-- 마지막 commit: **`1ed9a12`** (round 38, perf 통합 fix)
+- 마지막 push: **`1ed9a12`** (round 38, perf 통합 fix)
+- 미푸시 commit (round 39, **12개 누적**): `442a50f` / `bc0021a` / `77a9ccc` /
+  `f9d9b54` / `91ba22f` / `67915b7` / `05953b5` / `f61133e` / `6de7f7f` /
+  `9969d52` / `0568c62` / `aa64bc8` (+ 추가 commit)
 - main branch — Vercel 자동 배포
 - Vercel project: `prj_1n6HOvEXcq04hYQ3m4mpAFZOoFmR` / team `team_wyh7Ny9FwA9X4MtOEnTlArpj`

@@ -33,6 +33,7 @@ import {
   renderNewsletterConfirm,
   renderUnsubscribeAck,
 } from './templates/newsletter'
+import { renderPersonalizationCycle } from './templates/personalization-cycle'
 import { paymentMethodLabel } from '@/lib/payments/toss'
 import { pushToUser } from '@/lib/push'
 
@@ -593,5 +594,40 @@ export async function notifyUnsubscribeAck(input: {
     tag: 'unsubscribe-ack',
     // 같은 (이메일, 채널) 페어로 24h 내 중복 발송 방지.
     idempotencyKey: `unsubscribe-ack:${input.email}:${input.channel}`,
+  })
+}
+
+/**
+ * Personalization cycle 진행 알림. cron 이 새 dog_formulas row 생성 후 호출.
+ * push 와 함께 발송 — push OFF 사용자도 메일은 받게.
+ */
+export async function notifyPersonalizationCycle(input: {
+  email: string
+  recipientName: string
+  dogName: string
+  dogId: string
+  cycleNumber: number
+  mainLineName: string
+  mainLineSubtitle: string
+  mainLinePct: number
+  reasoningLabels: string[]
+}) {
+  const { subject, html } = renderPersonalizationCycle({
+    recipientName: input.recipientName,
+    dogName: input.dogName,
+    dogId: input.dogId,
+    cycleNumber: input.cycleNumber,
+    mainLineName: input.mainLineName,
+    mainLineSubtitle: input.mainLineSubtitle,
+    mainLinePct: input.mainLinePct,
+    reasoningLabels: input.reasoningLabels,
+  })
+  return sendEmail({
+    to: input.email,
+    subject,
+    html,
+    tag: 'personalization-cycle',
+    // 같은 (dog, cycle) 조합은 한 번만 — 재전송 방지.
+    idempotencyKey: `personalization-cycle:${input.dogId}:${input.cycleNumber}`,
   })
 }

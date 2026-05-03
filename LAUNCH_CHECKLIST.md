@@ -8,7 +8,7 @@
 
 | | 항목 | 어디서 확인 |
 |---|---|---|
-| 🔴 | **Supabase 마이그레이션 4개 적용** | `supabase db push` |
+| 🔴 | **Supabase 마이그레이션 39개 적용** | `supabase db push` (또는 dashboard SQL Editor) |
 | 🔴 | **환경변수 (production)** | Vercel Project Settings → Environment Variables |
 | 🔴 | **Resend 도메인 인증** | resend.com → Domains → DKIM/SPF 통과 |
 | 🔴 | **Toss Payments 운영 키** | Toss 가맹점 콘솔 → API 키 (테스트키 X) |
@@ -23,7 +23,7 @@
 supabase db push
 ```
 
-총 **30개** 마이그레이션 (날짜순 자동 적용). 주요 그룹:
+총 **39개** 마이그레이션 (날짜순 자동 적용). 주요 그룹:
 
 ### 보안 / RLS (2026-04-23)
 1. `20260423000000_admin_role_to_app_metadata.sql` — admin 권한 JWT app_metadata 분리
@@ -63,6 +63,18 @@ supabase db push
 27. `20260501000000_subscription_billing.sql` — billing_key + subscription_charges
 28. `20260501000001_product_food_info.sql` — products 14개 식품정보고시 컬럼
 
+### Round 39 — Personalization + 보안 (2026-05-02)
+36. `20260502000000_newsletter_rls_tighten.sql` — newsletter mass-update 구멍 차단
+37. `20260502000001_survey_personalization_fields.sql` — surveys 테이블에 7 personalization 필드
+38. `20260502000002_personalization_tables.sql` — dog_formulas + dog_checkins (RLS 본인 격리)
+
+⚠️ **Dashboard SQL Editor 로 직접 적용 시** PostgREST 캐시 reload 필수:
+```sql
+NOTIFY pgrst, 'reload schema';
+```
+
+안 하면 새 컬럼/테이블이 API 에서 "schema cache 에 없음" 으로 빠짐.
+
 **확인**: 적용 후 Supabase SQL Editor 에서:
 ```sql
 -- RPC 함수 존재 확인 (4개)
@@ -70,7 +82,7 @@ SELECT proname FROM pg_proc
 WHERE proname IN ('apply_point_delta', 'redeem_coupon',
                   'revoke_coupon_redemption', 'dashboard_user_snapshot');
 
--- 마이그레이션 적용 카운트 (30개여야 정상)
+-- 마이그레이션 적용 카운트 (39개여야 정상)
 SELECT COUNT(*) FROM supabase_migrations.schema_migrations
 WHERE version >= '20260423000000';
 
@@ -81,6 +93,19 @@ WHERE table_name = 'subscriptions'
 SELECT column_name FROM information_schema.columns
 WHERE table_name = 'products'
   AND column_name IN ('origin', 'manufacturer', 'ingredients', 'allergens');
+
+-- Personalization 7 필드
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'surveys'
+  AND column_name IN (
+    'care_goal','home_cooking_experience','current_diet_satisfaction',
+    'weight_trend_6mo','gi_sensitivity','preferred_proteins','indoor_activity'
+  );
+
+-- Personalization 운영 테이블
+SELECT table_name FROM information_schema.tables
+WHERE table_schema='public'
+  AND table_name IN ('dog_formulas','dog_checkins');
 ```
 
 ---
@@ -235,8 +260,11 @@ WHERE table_name = 'products'
 | `/api/cron/review-prompts` | 01:00 | 10:00 |
 | `/api/cron/cart-recovery` | 09:00 | 18:00 |
 | `/api/cron/subscription-charge` | 19:00 | 04:00 (다음날) |
+| `/api/cron/dog-age-update` | 00:30 | 09:30 |
+| `/api/cron/coupon-expiry` | 02:00 | 11:00 |
+| `/api/cron/personalization-progression` | 19:00 | 04:00 (다음날) — 28일 cycle 만료 자동 진행 |
 
-스케줄 변경 시 이 표도 함께 갱신.
+스케줄 변경 시 이 표도 함께 갱신. 총 **10 cron**.
 
 ---
 

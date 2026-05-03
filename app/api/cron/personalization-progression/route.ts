@@ -6,6 +6,7 @@ import type { AlgorithmInput, Checkin, Formula } from '@/lib/personalization/typ
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { pushToUser } from '@/lib/push'
+import { notifyPersonalizationCycle } from '@/lib/email'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -353,6 +354,34 @@ export async function GET(req: Request) {
       ).catch(() => {
         /* 푸시 실패는 무시 — Sentry 가 push 자체에서 잡음 */
       })
+
+      // 이메일 발송 — push OFF 사용자도 받게. profile 의 email + name 조회.
+      // best-effort. agree_email=false 인 사용자는 sendEmail 이 알아서 차단.
+      void (async () => {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('email, name')
+            .eq('id', cur.user_id)
+            .maybeSingle()
+          if (!profile?.email) return
+          await notifyPersonalizationCycle({
+            email: profile.email,
+            recipientName: profile.name ?? '',
+            dogName: dogTyped.name,
+            dogId: cur.dog_id,
+            cycleNumber: next.cycleNumber,
+            mainLineName: FOOD_LINE_META[mainLine].name,
+            mainLineSubtitle: FOOD_LINE_META[mainLine].subtitle,
+            mainLinePct: mainPct,
+            reasoningLabels: next.reasoning
+              .slice(0, 4)
+              .map((r) => r.chipLabel),
+          })
+        } catch {
+          /* 이메일 실패는 cron 흐름 안 막음 */
+        }
+      })()
 
       // DB 부하 분산.
       await new Promise((r) => setTimeout(r, 50))
