@@ -202,6 +202,71 @@ gzip backup-*.sql
 
 ---
 
+## 11. Personalization 문제 (cycle 진행 / 추천 박스)
+
+### "추천 박스를 불러오지 못했어요"
+
+**증상**: `/dogs/[id]/analysis` 페이지의 RecommendationBox 가 에러 상태.
+
+### 진단 흐름
+1. DevTools Network → `POST /api/personalization/compute` 응답 확인:
+   - `503 NO_SURVEY` → 설문이 없음. 보통 신규 강아지 직후 race. 새로고침으로 해결.
+   - `404 DOG_NOT_FOUND` → user 가 다른 강아지 ID 접근 시도. RLS 방어선.
+   - `500 DB_ERROR` → Supabase 측 — Sentry 확인.
+   - `429 RATE_LIMITED` → 분당 10회 초과. 봇 의심.
+2. Supabase SQL Editor:
+   ```sql
+   -- 컬럼 존재 확인 (PostgREST cache 갱신 안 됐을 가능성)
+   SELECT column_name FROM information_schema.columns
+   WHERE table_name='surveys' AND column_name='care_goal';
+   ```
+   0 rows → `NOTIFY pgrst, 'reload schema';`
+3. dog_formulas 테이블 존재 확인:
+   ```sql
+   SELECT * FROM dog_formulas LIMIT 1;
+   ```
+   42P01 → 마이그 `20260502000002` 미적용.
+
+### Cron progression 실패
+
+**증상**: 28일 후에도 cycle 안 넘어감. push/email 도착 안 함.
+
+### 진단
+1. Sentry `personalization.progression.failed` warning 검색.
+2. cron 실행 로그:
+   ```
+   Vercel → Project Settings → Crons →
+   /api/cron/personalization-progression → Run history
+   ```
+   - 200 응답인데 `succeeded=0` → 후보가 없음. 정상 (28일 미경과 등).
+   - 5xx 응답 → DB / cold start. Sentry 자세한 에러.
+3. CRON_SECRET 일치 확인 (Vercel env vars).
+
+### user_adjusted 비율 ↑ (알고리즘 정확도 ↓)
+
+**증상**: `/admin/personalization` KPI 의 user_adjusted 비율이 30%+. 사용자가
+추천을 바꾸고 있다는 신호.
+
+### 분석 흐름
+1. `/admin/personalization` 시뮬레이터로 회귀 케이스 재현.
+2. `dog_formulas` 의 reasoning 분석 — 어떤 룰이 잘못 발화하는지.
+3. 케어 목표별 분포 확인 — 특정 케어 목표 사용자가 다 조정한다면 그 케어
+   목표의 비율 매핑이 어긋난 것.
+4. 룰 수정 → `lib/personalization/firstBox.ts` 또는 `nextBox.ts` →
+   해당 단위 테스트 추가 → 시뮬레이터 재검증.
+
+### 마이그레이션 캐시 stale
+
+**증상**: SQL 로 컬럼 추가했는데 API 가 "column not found" 응답.
+
+**해결**:
+```sql
+NOTIFY pgrst, 'reload schema';
+```
+안 되면 Supabase Dashboard → Settings → API → Restart server.
+
+---
+
 ## 비상 연락
 
 - 안성민 / 이준호 — `story@farmerstail.kr`
