@@ -1,32 +1,114 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { Loader2, Box, Info, Sparkles } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Loader2,
+  Calendar,
+  Scale,
+  Shield,
+  Heart,
+  Stethoscope,
+  Baby,
+  AlertCircle,
+  Plus,
+  Sparkles,
+  GitBranch,
+  ArrowLeft,
+  ArrowRight,
+  Drumstick,
+  Bird,
+  Fish,
+  Beef,
+  Sprout,
+  Info,
+} from 'lucide-react'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
-import type { Formula, FoodLine } from '@/lib/personalization/types'
+import type {
+  Formula,
+  FoodLine,
+  Reasoning,
+} from '@/lib/personalization/types'
+import './recommendation.css'
 
 /**
  * RecommendationBox — analysis 페이지의 "첫 박스 추천" 섹션.
  *
- * 마운트 시 /api/personalization/compute 호출 → dog_formulas (cycle_number=1)
- * 처방을 가져오거나 새로 생성. 결과를 minimal placeholder 디자인으로 표시.
+ * Claude Design 핸드오프 (2026-05-03 result page) 적용 + 사용자 피드백 반영
+ * (SKU carousel edge-bleed 제거 → 자연스러운 padding 22px).
  *
- * # 디자인 — placeholder
- * 이 컴포넌트의 시각 디자인은 의도적으로 minimal. 클로드 디자인 핸드오프
- * (donut chart / stacked bar / 카드 라인업 등) 받으면 이 자리에서 교체하면 됨.
- * 알고리즘 호출 / 데이터 흐름 / 에러 처리는 그대로 유지하면 됨.
+ * # 데이터 소스
+ * 마운트 시 POST /api/personalization/compute → dog_formulas (cycle=1) 처방
+ * fetch 또는 새로 생성. user_adjusted 인 경우 reasoning 의 마지막 priority=9
+ * "사용자 조정됨" chip 으로 표시.
  *
- * # 상태
- *  - 'loading'    : API 호출 중
- *  - 'ready'      : Formula 받음 → 정상 노출
- *  - 'no_survey'  : 설문 없음 (이상한 진입). 안내만.
- *  - 'error'      : 네트워크 / 서버 오류. 재시도 안내.
+ * # 표시 영역
+ *  1. Hero — kicker (메인 라인 케어 컨셉) + 강아지 이름 + 1주/4주 toggle
+ *  2. Bar viz — 5 라인 + 토퍼 stacked bar (legend 포함)
+ *  3. SKU horizontal carousel — 메인 라인 카드들 (0% 라인 제외)
+ *  4. Toppers — 야채 / 육류 토퍼 (있을 때만)
+ *  5. Reasoning chain — 알고리즘 결정 근거 (input → decision)
+ *  6. Totals — kcal / 그램 / 박스 무게 + CTA (주문 / 비율 조정)
+ *
+ * 비율 조정 sheet 는 placeholder (CTA 'fb-cta-ghost' 클릭 시 toast).
+ * 추후 별도 디자인 핸드오프로 확장.
  */
+
 type State =
   | { status: 'loading' }
   | { status: 'ready'; formula: Formula }
   | { status: 'no_survey' }
   | { status: 'error'; message: string }
+
+type Scale = '1w' | '4w'
+
+/** 메인 라인별 한 줄 효능 — UI 카드의 blurb. */
+const LINE_BLURBS: Record<FoodLine, string> = {
+  basic: '단일 단백원 · 소화 부담 낮음',
+  weight: '고단백 · 저지방 · 체중관리',
+  skin: '오메가-3 · 항염증 지원',
+  premium: '철·아연·B12 풍부',
+  joint: 'B1·콜린 풍부 · 인지 기능 지원',
+}
+
+/** 메인 라인별 단백질 한국어 라벨 (UI 메타). */
+const LINE_PROTEIN_KR: Record<FoodLine, string> = {
+  basic: '닭',
+  weight: '오리',
+  skin: '연어',
+  premium: '소',
+  joint: '돼지',
+}
+
+/** 라인 아이콘 — 정적 분기. React 19 의 static-components 룰 충족. */
+function LineIcon({ line, size = 16, strokeWidth = 1.8 }: { line: FoodLine; size?: number; strokeWidth?: number }) {
+  switch (line) {
+    case 'basic': return <Drumstick size={size} strokeWidth={strokeWidth} />
+    case 'weight': return <Bird size={size} strokeWidth={strokeWidth} />
+    case 'skin': return <Fish size={size} strokeWidth={strokeWidth} />
+    case 'premium': return <Beef size={size} strokeWidth={strokeWidth} />
+    case 'joint': return <Sparkles size={size} strokeWidth={strokeWidth} />
+  }
+}
+
+/** Reasoning ruleId 별 아이콘 — 정적 분기 (static-components 룰). */
+function ReasoningIcon({ ruleId, size = 12, strokeWidth = 2, color = 'var(--muted)' }: {
+  ruleId: string
+  size?: number
+  strokeWidth?: number
+  color?: string
+}) {
+  const props = { size, strokeWidth, color }
+  if (ruleId.startsWith('allergy-') || ruleId.startsWith('next-allergy-')) return <Shield {...props} />
+  if (ruleId.startsWith('age-')) return <Calendar {...props} />
+  if (ruleId.startsWith('chronic-')) return <Stethoscope {...props} />
+  if (ruleId.startsWith('bcs-')) return <Scale {...props} />
+  if (ruleId.startsWith('pregnancy-')) return <Baby {...props} />
+  if (ruleId.startsWith('gi-') || ruleId.startsWith('next-stool-')) return <AlertCircle {...props} />
+  if (ruleId.startsWith('topper-')) return <Plus {...props} />
+  if (ruleId === 'user-adjusted') return <Info {...props} />
+  if (ruleId.startsWith('next-coat-') || ruleId.startsWith('next-appetite-')) return <Heart {...props} />
+  return <Sparkles {...props} />
+}
 
 export default function RecommendationBox({
   dogId,
@@ -36,6 +118,7 @@ export default function RecommendationBox({
   dogName: string
 }) {
   const [state, setState] = useState<State>({ status: 'loading' })
+  const [scale, setScale] = useState<Scale>('1w')
   const fetchedRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -81,208 +164,441 @@ export default function RecommendationBox({
     }
   }, [dogId])
 
+  // ── 로딩 / 에러 / no_survey ──
   if (state.status === 'loading') {
     return (
-      <section className="px-5 mt-6">
-        <div className="rounded-2xl bg-white border border-rule p-6 flex items-center gap-3">
-          <Loader2
-            className="w-5 h-5 animate-spin text-terracotta"
-            strokeWidth={2}
-          />
-          <div>
-            <div className="text-[13px] font-bold text-text">
-              {dogName} 맞춤 박스 계산 중
-            </div>
-            <div className="text-[11px] text-muted mt-0.5">
-              알고리즘 v1.0 — 30+ 룰 적용
-            </div>
+      <section className="fb-state" style={{ marginTop: 24 }}>
+        <Loader2
+          size={18}
+          strokeWidth={2}
+          color="var(--terracotta)"
+          className="animate-spin"
+        />
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 13 }}>
+            {dogName} 맞춤 박스 계산 중
           </div>
-        </div>
-      </section>
-    )
-  }
-
-  if (state.status === 'no_survey') {
-    return (
-      <section className="px-5 mt-6">
-        <div className="rounded-2xl bg-bg-2 border border-rule p-5 text-[12px] text-muted leading-relaxed">
-          박스 추천을 받으려면 설문을 먼저 완료해 주세요.
-        </div>
-      </section>
-    )
-  }
-
-  if (state.status === 'error') {
-    return (
-      <section className="px-5 mt-6">
-        <div className="rounded-2xl bg-bg-2 border border-rule p-5 text-[12px] text-muted leading-relaxed">
-          박스 추천을 불러오지 못했어요. 잠시 후 페이지를 새로고침해 주세요.
-        </div>
-      </section>
-    )
-  }
-
-  const { formula } = state
-  const sortedLines = [...ALL_LINES]
-    .filter((line) => formula.lineRatios[line] > 0)
-    .sort((a, b) => formula.lineRatios[b] - formula.lineRatios[a])
-
-  // Stacked bar 표현 — 비율을 % 로.
-  const totalToppers =
-    formula.toppers.protein + formula.toppers.vegetable
-
-  const transitionLabel =
-    formula.transitionStrategy === 'aggressive'
-      ? '즉시 풀비율 적용'
-      : formula.transitionStrategy === 'gradual'
-        ? '2주 점진 전환'
-        : '4주 보수적 전환'
-
-  return (
-    <section className="px-5 mt-6">
-      {/* placeholder — 클로드 디자인 핸드오프로 교체 예정 */}
-      <div className="rounded-2xl bg-white border border-rule overflow-hidden">
-        {/* Hero */}
-        <div className="px-5 pt-5 pb-4 border-b border-rule">
-          <div className="inline-flex items-center gap-1.5 mb-2">
-            <Box className="w-3.5 h-3.5 text-terracotta" strokeWidth={2.25} />
-            <span className="kicker">First Box · 추천 박스</span>
-          </div>
-          <h3
-            className="font-serif"
+          <div
             style={{
-              fontSize: 20,
-              fontWeight: 800,
-              color: 'var(--ink)',
-              letterSpacing: '-0.02em',
+              fontSize: 10.5,
+              color: 'var(--muted)',
+              marginTop: 1,
+              fontFamily: 'var(--font-mono), monospace',
+              letterSpacing: 0.04,
             }}
           >
-            {dogName}이의 첫 박스
-          </h3>
-          <p className="text-[11.5px] text-muted mt-1.5 leading-relaxed">
-            {transitionLabel} · 1일 {formula.dailyKcal.toLocaleString()} kcal ·{' '}
-            {formula.dailyGrams}g
-          </p>
-        </div>
-
-        {/* Stacked ratio bar */}
-        <div className="px-5 py-4">
-          <div className="flex h-3 rounded-full overflow-hidden bg-rule">
-            {sortedLines.map((line) => {
-              const pct = formula.lineRatios[line] * 100
-              return (
-                <div
-                  key={line}
-                  style={{
-                    width: `${pct}%`,
-                    background: FOOD_LINE_META[line].color,
-                  }}
-                  title={`${FOOD_LINE_META[line].name} ${pct}%`}
-                />
-              )
-            })}
+            ALGORITHM v1
           </div>
-
-          {/* Line list */}
-          <ul className="mt-4 space-y-2">
-            {sortedLines.map((line) => {
-              const meta = FOOD_LINE_META[line]
-              const pct = Math.round(formula.lineRatios[line] * 100)
-              return (
-                <li key={line} className="flex items-center gap-3">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
-                    style={{ background: meta.color }}
-                  />
-                  <span className="flex-1 min-w-0">
-                    <span className="text-[12.5px] font-bold text-text">
-                      {meta.name}
-                    </span>
-                    <span className="text-[10.5px] text-muted ml-1.5">
-                      · {meta.subtitle}
-                    </span>
-                  </span>
-                  <span className="text-[13px] font-black text-terracotta font-mono">
-                    {pct}%
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-
-          {/* Toppers */}
-          {totalToppers > 0 && (
-            <div className="mt-4 pt-4 border-t border-rule">
-              <span className="text-[10px] font-bold text-muted tracking-[0.2em] uppercase">
-                Toppers · 토퍼
-              </span>
-              <ul className="mt-2 space-y-1.5">
-                {formula.toppers.vegetable > 0 && (
-                  <li className="flex items-center gap-2 text-[11.5px] text-text">
-                    <span className="text-muted">동결건조 야채</span>
-                    <span className="font-mono font-bold text-moss ml-auto">
-                      +{Math.round(formula.toppers.vegetable * 100)}%
-                    </span>
-                  </li>
-                )}
-                {formula.toppers.protein > 0 && (
-                  <li className="flex items-center gap-2 text-[11.5px] text-text">
-                    <span className="text-muted">동결건조 육류</span>
-                    <span className="font-mono font-bold text-terracotta ml-auto">
-                      +{Math.round(formula.toppers.protein * 100)}%
-                    </span>
-                  </li>
-                )}
-              </ul>
-            </div>
-          )}
         </div>
+      </section>
+    )
+  }
+  if (state.status === 'no_survey') {
+    return (
+      <section className="fb-state" style={{ marginTop: 24 }}>
+        박스 추천을 받으려면 설문을 먼저 완료해 주세요.
+      </section>
+    )
+  }
+  if (state.status === 'error') {
+    return (
+      <section className="fb-state" style={{ marginTop: 24 }}>
+        박스 추천을 불러오지 못했어요. 잠시 후 페이지를 새로고침해 주세요.
+      </section>
+    )
+  }
 
-        {/* Reasoning chips */}
-        {formula.reasoning.length > 0 && (
-          <div className="px-5 py-4 bg-bg-2 border-t border-rule">
-            <div className="flex items-center gap-1.5 mb-2.5">
-              <Sparkles
-                className="w-3 h-3 text-terracotta"
-                strokeWidth={2.25}
-              />
-              <span className="kicker">Reasoning · 결정 근거</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {formula.reasoning.slice(0, 6).map((r, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-white text-text"
-                  style={{ boxShadow: 'inset 0 0 0 1px var(--rule)' }}
-                  title={`${r.trigger} → ${r.action}`}
-                >
-                  {r.chipLabel}
-                </span>
-              ))}
-            </div>
-            {formula.reasoning.length > 6 && (
-              <p className="text-[10px] text-muted mt-2">
-                +{formula.reasoning.length - 6}개 룰 더 적용됨
-              </p>
-            )}
-          </div>
-        )}
+  return <RecommendationView formula={state.formula} dogName={dogName} dogId={dogId} scale={scale} setScale={setScale} />
+}
 
-        {/* Footer note */}
-        <div className="px-5 py-3.5 border-t border-rule flex items-start gap-2 text-[10.5px] text-muted leading-relaxed">
-          <Info
-            className="w-3 h-3 shrink-0 mt-0.5"
-            strokeWidth={2}
-          />
-          <span>
-            알고리즘 {formula.algorithmVersion} · 매월 체크인 응답 후 비율이
-            자동 조정돼요.
-          </span>
+function RecommendationView({
+  formula,
+  dogName,
+  dogId,
+  scale,
+  setScale,
+}: {
+  formula: Formula
+  dogName: string
+  dogId: string
+  scale: Scale
+  setScale: (s: Scale) => void
+}) {
+  // 1주 / 4주 분량 — quantize 잔차 흡수.
+  const days = scale === '1w' ? 7 : 28
+  const totalKcal = useMemo(() => formula.dailyKcal, [formula.dailyKcal])
+  const totalGrams = useMemo(
+    () => Math.round(formula.dailyGrams * days),
+    [formula.dailyGrams, days],
+  )
+
+  const selectedLines = useMemo(
+    () =>
+      ALL_LINES.filter((line) => formula.lineRatios[line] > 0).sort(
+        (a, b) => formula.lineRatios[b] - formula.lineRatios[a],
+      ),
+    [formula.lineRatios],
+  )
+
+  // 메인 라인 — kicker 표시용.
+  const mainLine = selectedLines[0]
+  const mainMeta = mainLine ? FOOD_LINE_META[mainLine] : null
+
+  // 토퍼 합계 — 화식 위에 추가되는 비중.
+  const topperTotalPct = Math.round(
+    (formula.toppers.protein + formula.toppers.vegetable) * 100,
+  )
+  const mainPct = 100 - topperTotalPct
+
+  // 알고리즘이 0% 처리한 라인 = blocked. reasoning ruleId allergy-* 가 있으면
+  // 알레르기 차단 라인으로 추정.
+  const blockedLines = useMemo(() => {
+    const set = new Set<FoodLine>()
+    for (const r of formula.reasoning) {
+      const m = r.ruleId.match(/^(?:next-)?allergy-(basic|weight|skin|premium|joint)$/)
+      if (m) set.add(m[1] as FoodLine)
+    }
+    return set
+  }, [formula.reasoning])
+
+  return (
+    <>
+      {/* Hero */}
+      <div className="fb-hero" style={{ marginTop: 24 }}>
+        <div className="fb-kicker">
+          <span className="fb-kicker-dot" />
+          {mainMeta
+            ? `${mainMeta.name} · ${mainMeta.subtitle.replace(/^[^·]+·\s*/, '')}`
+            : '추천 박스'}
+        </div>
+        <h2 className="fb-h1">
+          <span className="fb-name">{dogName}</span>이의
+          <br />
+          {formula.cycleNumber === 1 ? '첫' : `${formula.cycleNumber}번째`} 박스
+        </h2>
+        <div className="fb-toggle" role="tablist" aria-label="박스 분량">
+          <button
+            role="tab"
+            aria-selected={scale === '1w'}
+            onClick={() => setScale('1w')}
+          >
+            1주분
+          </button>
+          <button
+            role="tab"
+            aria-selected={scale === '4w'}
+            onClick={() => setScale('4w')}
+          >
+            4주분
+          </button>
+          <i className="fb-toggle-thumb" data-pos={scale} />
         </div>
       </div>
-    </section>
+
+      {/* Bar viz */}
+      <div className="fb-bar-wrap">
+        <div className="fb-bar-axis">
+          <span>메인 화식 {mainPct}%</span>
+          {topperTotalPct > 0 && <span>토퍼 {topperTotalPct}%</span>}
+        </div>
+        <div className="fb-bar">
+          {/* 메인 라인 segments */}
+          {selectedLines.map((line) => {
+            const pct = Math.round(formula.lineRatios[line] * 100 * (mainPct / 100))
+            if (pct === 0) return null
+            return (
+              <span
+                key={line}
+                className="fb-bar-seg"
+                style={{
+                  width: `${pct}%`,
+                  background: FOOD_LINE_META[line].color,
+                }}
+                title={`${FOOD_LINE_META[line].name} ${pct}%`}
+              />
+            )
+          })}
+          {/* 토퍼 segments */}
+          {formula.toppers.vegetable > 0 && (
+            <span
+              className="fb-bar-seg"
+              style={{
+                width: `${Math.round(formula.toppers.vegetable * 100)}%`,
+                background: 'var(--moss)',
+              }}
+              title={`야채 토퍼 ${Math.round(formula.toppers.vegetable * 100)}%`}
+            />
+          )}
+          {formula.toppers.protein > 0 && (
+            <span
+              className="fb-bar-seg"
+              style={{
+                width: `${Math.round(formula.toppers.protein * 100)}%`,
+                background: '#A86B4A',
+              }}
+              title={`육류 토퍼 ${Math.round(formula.toppers.protein * 100)}%`}
+            />
+          )}
+        </div>
+        <div className="fb-bar-legend">
+          {ALL_LINES.map((line) => {
+            const pct = Math.round(formula.lineRatios[line] * 100)
+            const blocked = blockedLines.has(line)
+            const off = pct === 0
+            return (
+              <div
+                key={line}
+                className={`fb-leg${off ? ' off' : ''}${blocked ? ' blk' : ''}`}
+              >
+                <span
+                  className="fb-leg-dot"
+                  style={{
+                    background: off
+                      ? 'var(--rule-2)'
+                      : FOOD_LINE_META[line].color,
+                  }}
+                />
+                <span className="fb-leg-l">{FOOD_LINE_META[line].name}</span>
+                <span className="fb-leg-pct">
+                  {blocked ? '차단' : `${pct}%`}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* SKU horizontal carousel */}
+      {selectedLines.length > 0 && (
+        <div className="fb-sku-scroll" role="region" aria-label="선택된 화식 라인">
+          {selectedLines.map((line, i) => {
+            const meta = FOOD_LINE_META[line]
+            const pct = Math.round(formula.lineRatios[line] * 100)
+            const grams = Math.round(formula.lineRatios[line] * totalGrams)
+            const kcal = Math.round(formula.lineRatios[line] * totalKcal)
+            return (
+              <article
+                key={line}
+                className="fb-sku"
+                style={{ ['--sku' as string]: meta.color }}
+              >
+                <div className="fb-sku-head">
+                  <div className="fb-sku-icon">
+                    <LineIcon line={line} />
+                  </div>
+                  <div className="fb-sku-idx">
+                    {String(i + 1).padStart(2, '0')} /{' '}
+                    {String(selectedLines.length).padStart(2, '0')}
+                  </div>
+                </div>
+                <div className="fb-sku-line">{meta.name}</div>
+                <div className="fb-sku-sub">{meta.subtitle}</div>
+                <div className="fb-sku-pct">
+                  <span className="num">{pct}</span>
+                  <small>%</small>
+                </div>
+                <div className="fb-sku-blurb">{LINE_BLURBS[line]}</div>
+                <div className="fb-sku-meta">
+                  <div>
+                    <span className="l">단백원</span>
+                    <span className="v">{LINE_PROTEIN_KR[line]}</span>
+                  </div>
+                  <div>
+                    <span className="l">그램</span>
+                    <span className="v">{grams}g</span>
+                  </div>
+                  <div>
+                    <span className="l">kcal</span>
+                    <span className="v">{kcal}</span>
+                  </div>
+                </div>
+                <div className="fb-sku-bar">
+                  <span style={{ width: `${pct}%` }} />
+                </div>
+              </article>
+            )
+          })}
+          <div className="fb-sku-end">
+            <ArrowLeft size={14} strokeWidth={2} color="var(--muted)" />
+            <span>옆으로 스와이프</span>
+          </div>
+        </div>
+      )}
+
+      {/* Toppers */}
+      {(formula.toppers.vegetable > 0 || formula.toppers.protein > 0) && (
+        <div className="fb-toppers">
+          <div className="fb-sub-lbl">
+            <Plus size={11} strokeWidth={2.4} color="var(--muted)" />
+            동결건조 토퍼
+          </div>
+          <div className="fb-topper-row">
+            {formula.toppers.vegetable > 0 && (
+              <VeggieTopper
+                pct={Math.round(formula.toppers.vegetable * 100)}
+                grams={Math.round(formula.toppers.vegetable * totalGrams)}
+              />
+            )}
+            {formula.toppers.protein > 0 && (
+              <MeatTopper
+                pct={Math.round(formula.toppers.protein * 100)}
+                grams={Math.round(formula.toppers.protein * totalGrams)}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Reasoning */}
+      {formula.reasoning.length > 0 && (
+        <div className="fb-reasoning">
+          <div className="fb-sub-lbl">
+            <GitBranch size={11} strokeWidth={2} color="var(--muted)" />왜 이 비율일까요
+            {formula.userAdjusted && (
+              <span className="fb-adj">사용자 조정됨</span>
+            )}
+          </div>
+          <ul className="fb-reason-list">
+            {formula.reasoning.slice(0, 6).map((r, i) => (
+              <ReasonRow key={i} reasoning={r} />
+            ))}
+          </ul>
+          {formula.reasoning.length > 6 && (
+            <p
+              style={{
+                fontSize: 10,
+                color: 'var(--muted)',
+                marginTop: 8,
+                textAlign: 'center',
+              }}
+            >
+              +{formula.reasoning.length - 6}개 룰 더 적용됨
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Totals + CTA */}
+      <div className="fb-totals">
+        <div className="fb-totals-stat">
+          <div>
+            <div className="l">kcal/일</div>
+            <div className="v">
+              {totalKcal}
+              <small> kcal</small>
+            </div>
+          </div>
+          <div>
+            <div className="l">{scale === '1w' ? '1주' : '4주'} 분량</div>
+            <div className="v">
+              {totalGrams.toLocaleString()}
+              <small> g</small>
+            </div>
+          </div>
+          <div>
+            <div className="l">알고리즘</div>
+            <div
+              className="v"
+              style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 14 }}
+            >
+              {formula.algorithmVersion}
+            </div>
+          </div>
+        </div>
+        <div className="fb-cta-row">
+          <button
+            type="button"
+            className="fb-cta-ghost"
+            onClick={() => {
+              // 비율 조정 sheet 는 별도 핸드오프 후 구현. 일단 안내 alert.
+              alert(
+                '비율 조정은 다음 핸드오프 후 활성화될 예정이에요. 지금은 알고리즘 추천 비율 그대로 사용됩니다.',
+              )
+            }}
+          >
+            비율 조정
+          </button>
+          <a
+            href={`/dogs/${dogId}/analysis`}
+            className="fb-cta-prim"
+            style={{ textDecoration: 'none' }}
+          >
+            이 박스 주문하기
+            <ArrowRight size={14} strokeWidth={2.4} color="#fff" />
+          </a>
+        </div>
+      </div>
+    </>
   )
 }
 
-// FoodLine import 가 미사용 — 향후 prop 타입 정교화 시 남길 수 있음.
-void ({} as FoodLine)
+function VeggieTopper({
+  pct,
+  grams,
+}: {
+  pct: number
+  grams: number
+}) {
+  return (
+    <div className="fb-topper" style={{ ['--sku' as string]: 'var(--moss)' }}>
+      <div className="fb-topper-icon">
+        <Sprout size={15} strokeWidth={1.8} />
+      </div>
+      <div className="fb-topper-body">
+        <div className="fb-topper-lbl">야채 토퍼</div>
+        <div className="fb-topper-sub">동결건조 · 당근·호박</div>
+      </div>
+      <div className="fb-topper-pct">
+        <span className="num">{pct}</span>
+        <small>%</small>
+        <span className="g">{grams}g</span>
+      </div>
+    </div>
+  )
+}
+
+function MeatTopper({ pct, grams }: { pct: number; grams: number }) {
+  return (
+    <div className="fb-topper" style={{ ['--sku' as string]: '#A86B4A' }}>
+      <div className="fb-topper-icon">
+        <Drumstick size={15} strokeWidth={1.8} />
+      </div>
+      <div className="fb-topper-body">
+        <div className="fb-topper-lbl">육류 토퍼</div>
+        <div className="fb-topper-sub">동결건조 · 닭가슴·연어</div>
+      </div>
+      <div className="fb-topper-pct">
+        <span className="num">{pct}</span>
+        <small>%</small>
+        <span className="g">{grams}g</span>
+      </div>
+    </div>
+  )
+}
+
+function ReasonRow({ reasoning }: { reasoning: Reasoning }) {
+  return (
+    <li className="fb-reason-row" title={reasoning.action}>
+      <div className="fb-reason-from">
+        <ReasoningIcon ruleId={reasoning.ruleId} />
+        <span>{reasoning.trigger}</span>
+      </div>
+      <div className="fb-reason-arrow">
+        <svg viewBox="0 0 24 8" width="24" height="8" aria-hidden="true">
+          <path
+            d="M0 4 H20 M16 1 L20 4 L16 7"
+            stroke="var(--rule-2)"
+            strokeWidth="1.2"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+      <div className="fb-reason-to">
+        <span>{reasoning.chipLabel}</span>
+        <Info size={11} strokeWidth={2} color="var(--muted)" />
+      </div>
+    </li>
+  )
+}
