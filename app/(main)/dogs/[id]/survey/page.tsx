@@ -7,28 +7,50 @@ import {
   Dog as DogIcon,
   AlertCircle,
   ArrowRight,
+  ChevronLeft,
   Check,
   HelpCircle,
   AlertTriangle,
   Smile,
-  Stethoscope,
-  Utensils,
-  Soup,
-  UtensilsCrossed,
   Meh,
   Frown,
-  Baby,
+  Stethoscope,
   Sparkles,
+  Sparkle,
   ShieldAlert,
-  Scale,
-  Bone,
-  Star,
+  MoonStar,
+  Moon,
+  Sun,
+  CloudSun,
+  Cloud,
+  Dumbbell,
+  Activity,
   TrendingDown,
   TrendingUp,
   Minus,
-  Activity,
+  Plus,
+  PlusCircle,
+  Circle,
+  CircleDashed,
+  CircleDot,
+  CircleCheck,
+  CircleEllipsis,
+  Droplet,
+  Droplets,
+  Wheat,
+  CookingPot,
+  Combine,
+  Flame,
+  Wind,
+  Scissors,
+  Baby,
   Heart,
+  Loader2,
+  Bone,
+  Star,
+  Scale,
   Pause,
+  Soup,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -47,22 +69,25 @@ import {
   type McsKey,
   type ChronicConditionKey,
 } from '@/lib/nutrition/guidelines'
-
+import './survey.css'
 
 /**
- * 설문 v2 — 수의영양학 임상 평가에 가까운 8단계.
+ * 설문 v3 — Claude Design 핸드오프 (2026-05-03) 적용 + personalization 7 필드.
  *
- *   1. body       : BCS 9-point (WSAVA)
- *   2. muscle     : MCS 4-grade (WSAVA)
- *   3. stool      : Bristol Stool 1~7
- *   4. diet       : 주식 / 간식 / 기호 / 산책시간 / 현재 브랜드
- *   5. allergy    : 알레르기 식재료
- *   6. chronic    : 만성질환 다중 선택 + 처방식 / 복용약 자유 입력
- *   7. status     : 임신·수유 / 모질·피부 / 식욕
+ *   1. body       : BCS 9-point + 6개월 체중 추세
+ *   2. muscle     : MCS 4-grade
+ *   3. stool      : Bristol Stool 1~7 + 위장 민감도
+ *   4. diet       : 주식 / 브랜드 / 간식 / 식욕 / 산책분 / 실내활동 /
+ *                   화식경험 / 만족도 1~5
+ *   5. allergy    : 알레르기 모드 + 항목 / 선호 단백질
+ *   6. chronic    : 만성질환 + 처방식 / 약
+ *   7. status     : 임신·수유 / 모질·피부 / 케어 목표 (★알고리즘 1순위)
  *   8. loading    : 분석 중 → 결과 페이지
  *
- * 단계당 1 질문 원칙 (체감 부담 ↓), chronic 만 다중 다이얼로그.
- * 모든 v2 필드는 선택 — 빈 채로 다음 가도 진행 가능 (v1 호환). 단 BCS 는 필수.
+ * Personalization 알고리즘 첫 박스 결정에 필요한 7 필드:
+ *   weight_trend_6mo, gi_sensitivity, indoor_activity (선택)
+ *   home_cooking_experience, current_diet_satisfaction, care_goal (필수)
+ *   preferred_proteins (선택, 다중)
  */
 
 type Dog = {
@@ -99,8 +124,6 @@ const ALLERGY_OPTIONS = [
   '대두',
 ]
 
-// 케어 목표 — 5종 라인업 (Basic / Weight / Skin / Premium / Joint) 과 1:1 매핑.
-// 알고리즘이 첫 박스의 메인 라인을 결정할 때 1순위로 보는 변수.
 type CareGoal =
   | 'weight_management'
   | 'skin_coat'
@@ -112,7 +135,7 @@ const CARE_GOAL_OPTIONS: Array<{
   v: CareGoal
   label: string
   desc: string
-  Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+  Icon: React.ComponentType<{ className?: string; strokeWidth?: number; color?: string; size?: number }>
 }> = [
   {
     v: 'weight_management',
@@ -146,8 +169,6 @@ const CARE_GOAL_OPTIONS: Array<{
   },
 ]
 
-// 선호 단백질 — 알레르기와 별개의 기호 신호. 알레르기 제외 후 선호도가 높은
-// 단백질에 알고리즘 가산점.
 const PROTEIN_OPTIONS: Array<{ v: string; label: string }> = [
   { v: 'chicken', label: '닭/칠면조' },
   { v: 'duck', label: '오리' },
@@ -156,6 +177,58 @@ const PROTEIN_OPTIONS: Array<{ v: string; label: string }> = [
   { v: 'pork', label: '돼지고기' },
   { v: 'lamb', label: '양고기' },
 ]
+
+// BCS 9-point — 디자인의 시각 위계 그대로 (group + icon + tag)
+const BCS_VIEW: Record<
+  BcsKey,
+  {
+    group: 'under' | 'ideal' | 'over'
+    Icon: React.ComponentType<{ className?: string; strokeWidth?: number; color?: string; size?: number }>
+    tag: string
+    tagTone: 'good' | 'warn' | 'bad'
+  }
+> = {
+  1: { group: 'under', Icon: MoonStar, tag: '위험', tagTone: 'bad' },
+  2: { group: 'under', Icon: Moon, tag: '주의', tagTone: 'warn' },
+  3: { group: 'under', Icon: MoonStar, tag: '주의', tagTone: 'warn' },
+  4: { group: 'ideal', Icon: Sparkle, tag: '양호', tagTone: 'good' },
+  5: { group: 'ideal', Icon: Sparkles, tag: '이상적', tagTone: 'good' },
+  6: { group: 'over', Icon: Sun, tag: '주의', tagTone: 'warn' },
+  7: { group: 'over', Icon: Sun, tag: '주의', tagTone: 'warn' },
+  8: { group: 'over', Icon: CloudSun, tag: '위험', tagTone: 'bad' },
+  9: { group: 'over', Icon: Cloud, tag: '위험', tagTone: 'bad' },
+}
+
+const MCS_VIEW: Record<
+  McsKey,
+  {
+    Icon: React.ComponentType<{ className?: string; strokeWidth?: number; color?: string; size?: number }>
+    tag: string
+    tagTone: 'good' | 'warn' | 'bad'
+  }
+> = {
+  1: { Icon: Dumbbell, tag: '양호', tagTone: 'good' },
+  2: { Icon: Activity, tag: '경도', tagTone: 'warn' },
+  3: { Icon: TrendingDown, tag: '주의', tagTone: 'warn' },
+  4: { Icon: AlertTriangle, tag: '위험', tagTone: 'bad' },
+}
+
+const STOOL_VIEW: Record<
+  1 | 2 | 3 | 4 | 5 | 6 | 7,
+  {
+    Icon: React.ComponentType<{ className?: string; strokeWidth?: number; color?: string; size?: number }>
+    tag: string
+    tagTone: 'good' | 'warn' | 'bad'
+  }
+> = {
+  1: { Icon: Circle, tag: '변비', tagTone: 'bad' },
+  2: { Icon: CircleDashed, tag: '변비', tagTone: 'bad' },
+  3: { Icon: CircleDot, tag: '경계', tagTone: 'warn' },
+  4: { Icon: CircleCheck, tag: '이상적', tagTone: 'good' },
+  5: { Icon: CircleEllipsis, tag: '경계', tagTone: 'warn' },
+  6: { Icon: Droplet, tag: '설사', tagTone: 'bad' },
+  7: { Icon: Droplets, tag: '설사', tagTone: 'bad' },
+}
 
 export default function SurveyPage() {
   const router = useRouter()
@@ -169,7 +242,7 @@ export default function SurveyPage() {
   const [err, setErr] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // 1. body — BCS 9-point
+  // 1. body
   const [bcs, setBcs] = useState<BcsKey | null>(null)
   // 2. muscle
   const [mcs, setMcs] = useState<McsKey | null>(null)
@@ -192,23 +265,21 @@ export default function SurveyPage() {
   const [pregnancy, setPregnancy] = useState<'none' | 'pregnant' | 'lactating' | ''>('')
   const [coat, setCoat] = useState<'healthy' | 'dull' | 'shedding' | 'itchy' | 'lesions' | ''>('')
 
-  // ── personalization v3 — 화식 비율 알고리즘 input ──
-  // body 단계에 흡수
+  // ── personalization v3 ──
   const [weightTrend, setWeightTrend] =
     useState<'stable' | 'gained' | 'lost' | 'unknown' | ''>('')
-  // stool 단계에 흡수
   const [giSensitivity, setGiSensitivity] =
     useState<'rare' | 'sometimes' | 'frequent' | 'always' | ''>('')
-  // diet 단계에 흡수
   const [indoorActivity, setIndoorActivity] =
     useState<'calm' | 'moderate' | 'active' | ''>('')
   const [homeCookingExp, setHomeCookingExp] =
     useState<'first' | 'occasional' | 'frequent' | ''>('')
   const [dietSatisfaction, setDietSatisfaction] = useState<1 | 2 | 3 | 4 | 5 | null>(null)
-  // allergy 단계에 흡수
   const [preferredProteins, setPreferredProteins] = useState<string[]>([])
-  // status 단계에 흡수 — 알고리즘 1순위 변수
   const [careGoal, setCareGoal] = useState<CareGoal | ''>('')
+
+  // loading 단계 stage 인디케이터
+  const [loadingStage, setLoadingStage] = useState(0)
 
   useEffect(() => {
     async function load() {
@@ -234,9 +305,16 @@ export default function SurveyPage() {
     load()
   }, [dogId, router, supabase])
 
+  // loading stage 진행 — 4 stage rotating
+  useEffect(() => {
+    if (currentStep !== 'loading') return
+    const t = setInterval(() => setLoadingStage((s) => Math.min(s + 1, 4)), 700)
+    return () => clearInterval(t)
+  }, [currentStep])
+
   const stepIdx = STEPS.indexOf(currentStep)
   const totalSteps = STEPS.length - 1
-  const progress = Math.round((stepIdx / totalSteps) * 100)
+  const progress = Math.min(100, Math.round((stepIdx / totalSteps) * 100))
 
   function toggleArr<T>(arr: T[], v: T, setter: (x: T[]) => void) {
     if (arr.includes(v)) setter(arr.filter((x) => x !== v))
@@ -246,18 +324,22 @@ export default function SurveyPage() {
   function validateStep(): boolean {
     setErr('')
     if (currentStep === 'body' && bcs === null) {
-      setErr('체형을 선택해 주세요')
+      setErr('체형(BCS)을 선택해 주세요')
       return false
     }
-    // mcs / stool 은 임상 평가 — 모르면 skip 허용. weightTrend / giSensitivity
-    // 는 personalization 알고리즘 input 이지만 모를 수 있으니 'unknown' 옵션
-    // 으로 대체 가능 (UI 에서 명시).
     if (currentStep === 'diet') {
-      if (!foodType || !snackFreq || !taste) {
-        setErr('주식 / 간식 / 기호를 모두 선택해 주세요')
+      if (!foodType) {
+        setErr('주식 형태를 선택해 주세요')
         return false
       }
-      // Critical — 첫 박스 결정에 필수
+      if (!snackFreq) {
+        setErr('간식 빈도를 선택해 주세요')
+        return false
+      }
+      if (!taste) {
+        setErr('식욕 상태를 선택해 주세요')
+        return false
+      }
       if (!homeCookingExp) {
         setErr('화식 경험 정도를 선택해 주세요')
         return false
@@ -268,14 +350,13 @@ export default function SurveyPage() {
       }
     }
     if (currentStep === 'allergy' && !dlMode) {
-      setErr('하나를 선택해 주세요')
+      setErr('알레르기 여부를 선택해 주세요')
       return false
     }
     if (currentStep === 'allergy' && dlMode === 'has' && allergies.length === 0) {
-      setErr('하나 이상 선택해 주세요')
+      setErr('알레르기 재료를 하나 이상 선택해 주세요')
       return false
     }
-    // status 는 임신/모질 외에 careGoal 추가 — 1순위 변수라 필수.
     if (currentStep === 'status' && !careGoal) {
       setErr('가장 신경 쓰고 싶은 케어 목표를 선택해 주세요')
       return false
@@ -288,7 +369,9 @@ export default function SurveyPage() {
     const idx = STEPS.indexOf(currentStep)
     if (currentStep === 'status') {
       setCurrentStep('loading')
-      setTimeout(() => saveAndGoResult(), 1800)
+      setLoadingStage(0)
+      // 시각적 분석 단계 보여주기 — 약 2.8초 후 실제 저장 → 결과로 이동
+      setTimeout(() => saveAndGoResult(), 2800)
       return
     }
     if (idx < STEPS.length - 1) setCurrentStep(STEPS[idx + 1])
@@ -314,7 +397,6 @@ export default function SurveyPage() {
       return
     }
 
-    // legacy bodyCondition 매핑 — bcsExact 입력해도 v1 컬럼 호환
     const bodyMap: Record<number, SurveyAnswers['bodyCondition']> = {
       1: 'skinny', 2: 'skinny', 3: 'slim', 4: 'slim',
       5: 'ideal',
@@ -322,7 +404,6 @@ export default function SurveyPage() {
       8: 'obese', 9: 'obese',
     }
 
-    // legacy healthConcerns 매핑 — chronic 일부를 v1 키로 변환 (UI 위그릇)
     const legacyHealthConcerns: string[] = []
     if (chronicConditions.includes('arthritis')) legacyHealthConcerns.push('관절')
     if (chronicConditions.includes('kidney')) legacyHealthConcerns.push('신장')
@@ -344,7 +425,6 @@ export default function SurveyPage() {
       foodType,
       snackFreq,
       taste,
-      // v2
       bcsExact: bcs ?? undefined,
       mcsScore: mcs ?? undefined,
       bristolScore: bristol ?? undefined,
@@ -355,7 +435,6 @@ export default function SurveyPage() {
       appetite: taste || undefined,
       dailyWalkMinutes: walkMinutes ? Number(walkMinutes) : undefined,
       currentFoodBrand: currentBrand.trim() || undefined,
-      // v3 — personalization 알고리즘 input
       careGoal: careGoal || undefined,
       homeCookingExperience: homeCookingExp || undefined,
       currentDietSatisfaction: dietSatisfaction ?? undefined,
@@ -365,14 +444,12 @@ export default function SurveyPage() {
       indoorActivity: indoorActivity || undefined,
     }
 
-    // surveys insert
     const { data: surveyData, error: surveyErr } = await supabase
       .from('surveys')
       .insert({
         dog_id: dogId,
         user_id: user.id,
         answers,
-        // v2 분리 컬럼 (인덱스/필터용)
         mcs_score: mcs,
         bristol_stool_score: bristol,
         chronic_conditions: chronicConditions,
@@ -382,7 +459,6 @@ export default function SurveyPage() {
         coat_condition: coat || null,
         appetite: taste || null,
         pregnancy_status: pregnancy || null,
-        // v3 — personalization 알고리즘 input (마이그 20260502000001)
         care_goal: careGoal || null,
         home_cooking_experience: homeCookingExp || null,
         current_diet_satisfaction: dietSatisfaction,
@@ -397,13 +473,10 @@ export default function SurveyPage() {
     if (surveyErr || !surveyData) {
       toast.error('저장 실패: ' + surveyErr?.message)
       setSaving(false)
-      // loading 단계에서 멈추면 사용자가 spinner 화면에 갇힘 — status 로 복귀
-      // 시켜서 "결과 보기" 버튼으로 재시도 가능하게.
       setCurrentStep('status')
       return
     }
 
-    // dogs 보강 — 처방식
     if (prescriptionDiet.trim()) {
       await supabase
         .from('dogs')
@@ -412,7 +485,6 @@ export default function SurveyPage() {
         .eq('user_id', user.id)
     }
 
-    // 영양 계산
     const nu = calculateNutrition(
       {
         weight: dog.weight,
@@ -429,7 +501,6 @@ export default function SurveyPage() {
     ]
     const uniqueSupps = Array.from(new Set(supps))
 
-    // 다음 재분석 권장일 — 기본 90일 후, 만성질환 있으면 60일.
     const nextDays = chronicConditions.length > 0 ? 60 : 90
     const nextReview = new Date(Date.now() + nextDays * 24 * 3600 * 1000)
       .toISOString()
@@ -457,7 +528,6 @@ export default function SurveyPage() {
       micronutrients: nu.micro,
       ca_p_ratio: parseFloat(nu.caPRatio),
       supplements: uniqueSupps,
-      // v2
       risk_flags: nu.riskFlags,
       vet_consult_recommended: nu.vetConsult,
       next_review_date: nextReview,
@@ -467,9 +537,6 @@ export default function SurveyPage() {
     if (analysisErr) {
       toast.error('분석 저장 실패: ' + analysisErr.message)
       setSaving(false)
-      // 분석 저장 실패 시 무한로딩 방지 — status 단계로 복귀해 재시도 가능.
-      // 부분 저장된 surveys row 는 다음 시도에 새 row 가 만들어지면 고아가
-      // 되지만, RLS 가 user_id 로 격리해 다른 사용자에 노출 위험 없음.
       setCurrentStep('status')
       return
     }
@@ -480,663 +547,943 @@ export default function SurveyPage() {
 
   if (!dog) {
     return (
-      <main className="flex items-center justify-center min-h-[80vh]">
-        <div className="w-8 h-8 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
+      <main className="flex items-center justify-center min-h-[80vh]" style={{ background: 'var(--bg)' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--terracotta)' }} strokeWidth={1.6} />
       </main>
     )
   }
 
+  // ── 이전 답변 요약 echo chips ──
+  const echoItems: string[] = []
+  if (stepIdx > 0 && bcs) echoItems.push(`BCS ${bcs}/9`)
+  if (stepIdx > 1 && mcs) echoItems.push(`MCS ${mcs}`)
+  if (stepIdx > 2 && bristol) echoItems.push(`변 #${bristol}`)
+  if (stepIdx > 3) {
+    if (foodType) echoItems.push(foodType)
+    if (dietSatisfaction !== null) echoItems.push(`만족도 ${dietSatisfaction}/5`)
+  }
+  if (stepIdx > 4) {
+    if (dlMode === 'none') echoItems.push('알레르기 없음')
+    if (dlMode === 'has' && allergies.length) echoItems.push(`알레르기 ${allergies.length}`)
+  }
+  if (stepIdx > 5 && chronicConditions.length) echoItems.push(`질환 ${chronicConditions.length}`)
+
   const isLoading = currentStep === 'loading'
 
   return (
-    <main className="px-5 py-6 pb-10">
-      <div className="max-w-md mx-auto">
+    <main style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+      <div className="max-w-md mx-auto" style={{ background: 'var(--bg)' }}>
         {!isLoading && (
-          <div className="mb-6">
-            <Link
-              href={`/dogs/${dogId}`}
-              className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-            >
-              ← 돌아가기
-            </Link>
-            <div className="mt-4 flex items-center justify-between">
-              <span className="text-[10px] font-semibold text-muted uppercase tracking-[0.2em]">
-                Step {stepIdx + 1} / {totalSteps}
-              </span>
-              <span className="text-[10px] font-bold text-terracotta">{progress}%</span>
+          <>
+            {/* Step header — STEP nn / TT  +  progress with ticks */}
+            <div className="s-stepwrap">
+              <div className="s-row">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Link
+                    href={`/dogs/${dogId}`}
+                    aria-label="강아지 페이지로 돌아가기"
+                    style={{ color: 'var(--muted)', display: 'inline-flex' }}
+                  >
+                    <ChevronLeft size={16} strokeWidth={2.2} />
+                  </Link>
+                  <span className="s-step-no">
+                    STEP {String(Math.min(stepIdx + 1, totalSteps)).padStart(2, '0')}
+                    {' / '}
+                    {String(totalSteps).padStart(2, '0')}
+                  </span>
+                </div>
+                <span className="s-step-pct">{progress}%</span>
+              </div>
+              <div className="s-progress">
+                <i style={{ width: `${progress}%` }} />
+                <div className="s-ticks">
+                  {Array.from({ length: totalSteps + 1 }).map((_, i) => (
+                    <span key={i} />
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="mt-2 h-1 bg-rule rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-moss to-terracotta transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
+
+            {/* Echo chips — 이전 답변 요약 */}
+            {echoItems.length > 0 && (
+              <div style={{ padding: '12px 22px 0' }}>
+                <div className="s-echo">
+                  {echoItems.map((it, i) => (
+                    <span key={i} className="s-e">
+                      <Check size={11} strokeWidth={2.5} />
+                      {it}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
-        {/* 1. BCS 9-point */}
+        {/* Step content */}
         {currentStep === 'body' && (
-          <div>
-            <span className="kicker mb-3 inline-block">Body Condition · WSAVA</span>
-            <h1 className="font-serif mb-3" style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              {dog.name}의 체형은
-              <br />어떤 단계인가요?
+          <div className="s-page">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <span className="s-kicker">
+                BODY <span className="s-dot">·</span> WSAVA
+              </span>
+            </div>
+            <h1 className="s-title">
+              {dog.name}의 체형을<br />선택해 주세요
             </h1>
-            <p className="text-[12px] text-muted mb-6 leading-relaxed">
-              위에서 봤을 때 허리 라인 + 옆에서 본 배 라인 기준 9점 척도예요.
+            <p className="s-sub">
+              위에서 봤을 때 허리, 옆에서 봤을 때 배 라인 기준{' '}
+              <strong>9점 척도</strong>예요. 5번이 이상적이에요.
             </p>
-            <div className="grid grid-cols-3 gap-1.5">
+
+            <div className="s-grid-3">
               {([1, 2, 3, 4, 5, 6, 7, 8, 9] as BcsKey[]).map((s) => {
-                const meta = BCS_DESCRIPTIONS[s]
                 const active = bcs === s
-                const tone =
-                  s <= 2
-                    ? '#A6BEDA'
-                    : s <= 4
-                      ? '#8BA05A'
-                      : s === 5
-                        ? '#6B7F3A'
-                        : s <= 7
-                          ? '#D4B872'
-                          : '#A0452E'
+                const view = BCS_VIEW[s]
+                const Icon = view.Icon
+                const stroke = s === 5 ? 2.2 : 1.6
+                const color = active
+                  ? 'var(--bg)'
+                  : view.group === 'ideal'
+                    ? '#566729'
+                    : view.group === 'under'
+                      ? '#A6BEDA'
+                      : view.tagTone === 'bad'
+                        ? 'var(--terracotta)'
+                        : '#D4B872'
                 return (
                   <button
                     key={s}
+                    type="button"
+                    className="s-pickcard"
+                    aria-pressed={active}
                     onClick={() => setBcs(s)}
-                    className={`py-3 px-2 rounded-xl border transition text-center ${
-                      active ? 'border-text bg-bg' : 'border-rule bg-white hover:border-muted'
-                    }`}
                   >
-                    <div className="font-mono text-[10px] text-muted">{s}/9</div>
-                    <div
-                      className="mx-auto rounded-full mt-1.5"
-                      style={{ background: tone, width: 6 + s * 1.5, height: 6 + s * 1.5 }}
-                    />
-                    <div className="text-[10px] font-bold text-text mt-1.5">{meta.label.replace('BCS ', '')}</div>
+                    {s === 5 && <span className="s-ideal">IDEAL</span>}
+                    <div className="s-num">{s}/9</div>
+                    <div className="s-swatch">
+                      <Icon size={28} strokeWidth={stroke} color={color} />
+                    </div>
+                    <div className="s-lbl">{BCS_DESCRIPTIONS[s].label.replace('BCS ', '')}</div>
                   </button>
                 )
               })}
             </div>
+
             {bcs !== null && (
-              <p
-                className="mt-4 text-[11.5px] leading-relaxed rounded-xl px-3 py-2.5"
-                style={{
-                  color: 'var(--ink)',
-                  background: 'var(--bg-2)',
-                  boxShadow: 'inset 0 0 0 1px var(--rule)',
-                }}
-              >
-                <strong>{BCS_DESCRIPTIONS[bcs].label}:</strong> {BCS_DESCRIPTIONS[bcs].desc}
-              </p>
+              <div className="s-hint">
+                <div className="s-iconwrap">
+                  {(() => {
+                    const Icon = BCS_VIEW[bcs].Icon
+                    return <Icon size={14} strokeWidth={2} />
+                  })()}
+                </div>
+                <div>
+                  <div className="s-row">
+                    <strong>{BCS_DESCRIPTIONS[bcs].label}</strong>
+                    <span className={'s-tag s-' + BCS_VIEW[bcs].tagTone}>
+                      {BCS_VIEW[bcs].tag}
+                    </span>
+                  </div>
+                  {BCS_DESCRIPTIONS[bcs].desc}
+                </div>
+              </div>
             )}
 
-            <Section label="최근 6개월 체중 변화 (선택)">
-              <OptsRow
-                value={weightTrend}
-                options={[
+            <div className="s-sect">
+              <div className="s-sect-lbl">
+                <span className="s-label-text">최근 6개월 체중 변화</span>
+                <span className="s-opt">선택</span>
+              </div>
+              <div className="s-chiprow">
+                {[
                   { v: 'stable', label: '비슷', Icon: Minus },
                   { v: 'gained', label: '늘었음', Icon: TrendingUp },
                   { v: 'lost', label: '빠졌음', Icon: TrendingDown },
                   { v: 'unknown', label: '잘 모름', Icon: HelpCircle },
-                ]}
-                onChange={(v) => setWeightTrend(v as typeof weightTrend)}
-              />
-              <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
-                BCS 가 &ldquo;현재&rdquo; 라면 추세는 &ldquo;변화 방향&rdquo;이에요.
-                의도된 감량인지 우려 신호인지 구분해 더 정확한 칼로리 처방을 만들어요.
-              </p>
-            </Section>
-          </div>
-        )}
-
-        {/* 2. MCS */}
-        {currentStep === 'muscle' && (
-          <div>
-            <span className="kicker mb-3 inline-block">Muscle Condition · WSAVA</span>
-            <h1 className="font-serif mb-3" style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              근육 상태는
-              <br />어떤가요?
-            </h1>
-            <p className="text-[12px] text-muted mb-6 leading-relaxed">
-              척추뼈 / 견갑골 / 골반 위 근육을 만져 평가해요. 노령견 근감소증 조기
-              발견에 중요해요. <span className="text-muted">(선택)</span>
-            </p>
-            <div className="grid grid-cols-1 gap-2">
-              {([1, 2, 3, 4] as McsKey[]).map((s) => {
-                const meta = MCS_DESCRIPTIONS[s]
-                const active = mcs === s
-                return (
-                  <button
-                    key={s}
-                    onClick={() => setMcs(active ? null : s)}
-                    className={`py-3 px-4 rounded-xl border transition text-left ${
-                      active ? 'border-text bg-bg' : 'border-rule bg-white hover:border-muted'
-                    }`}
-                  >
-                    <div className="font-bold text-[13px] text-text">{meta.label}</div>
-                    <div className="text-[11px] text-muted mt-0.5 leading-relaxed">{meta.desc}</div>
-                  </button>
-                )
-              })}
-              <button
-                onClick={() => setMcs(null)}
-                className={`py-2 px-3 rounded-xl text-[11px] font-bold ${mcs === null ? 'text-terracotta' : 'text-muted hover:text-terracotta'}`}
-              >
-                {mcs === null ? '✓ 모르겠음 (건너뜀)' : '모르겠음 (건너뜀)'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 3. Bristol stool */}
-        {currentStep === 'stool' && (
-          <div>
-            <span className="kicker mb-3 inline-block">Stool · Bristol Scale</span>
-            <h1 className="font-serif mb-3" style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              평소 변 상태는
-              <br />어떻게 보이나요?
-            </h1>
-            <p className="text-[12px] text-muted mb-6 leading-relaxed">
-              장 건강 + 식이섬유 / 수분 흡수 신호예요. <span>(선택)</span>
-            </p>
-            <div className="space-y-1.5">
-              {([1, 2, 3, 4, 5, 6, 7] as const).map((s) => {
-                const meta = BRISTOL_INTERPRETATION[s]
-                const active = bristol === s
-                const tone =
-                  s === 4 ? '#6B7F3A' : s <= 2 || s === 7 ? '#A0452E' : s === 3 || s === 5 ? '#D4B872' : '#C49A6C'
-                return (
-                  <button
-                    key={s}
-                    onClick={() => setBristol(active ? null : s)}
-                    className={`w-full py-2.5 px-4 rounded-xl border transition text-left flex items-center gap-3 ${
-                      active ? 'border-text bg-bg' : 'border-rule bg-white hover:border-muted'
-                    }`}
-                  >
-                    <span className="font-mono text-[11px] text-muted shrink-0 w-6">#{s}</span>
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: tone }} />
-                    <span className="flex-1 min-w-0">
-                      <div className="text-[12.5px] font-bold text-text truncate">{meta.label}</div>
-                      <div className="text-[10px] text-muted">{meta.signal}</div>
-                    </span>
-                  </button>
-                )
-              })}
-              <button
-                onClick={() => setBristol(null)}
-                className="py-2 px-3 rounded-xl text-[11px] font-bold text-muted hover:text-terracotta"
-              >
-                {bristol === null ? '✓ 잘 모르겠음 (건너뜀)' : '잘 모르겠음 (건너뜀)'}
-              </button>
-            </div>
-
-            <Section label="사료를 바꿀 때 변이 자주 무르나요? (선택)">
-              <OptsRow
-                value={giSensitivity}
-                options={[
-                  { v: 'rare', label: '거의 없음', Icon: Check },
-                  { v: 'sometimes', label: '가끔', Icon: Meh },
-                  { v: 'frequent', label: '자주', Icon: AlertTriangle },
-                  { v: 'always', label: '매번', Icon: AlertCircle },
-                ]}
-                onChange={(v) => setGiSensitivity(v as typeof giSensitivity)}
-              />
-              <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
-                위장 적응기를 알아야 첫 박스를 보수적으로 시작할지(단일 단백질
-                위주) 더 다양하게 갈지 결정해요.
-              </p>
-            </Section>
-          </div>
-        )}
-
-        {/* 4. Diet */}
-        {currentStep === 'diet' && (
-          <div>
-            <span className="kicker mb-3 inline-block">Eating Habits</span>
-            <h1 className="font-serif mb-3" style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              식생활을 알려주세요
-            </h1>
-            <Section label="현재 주식">
-              <OptsRow
-                value={foodType}
-                options={[
-                  { v: '건식 사료', label: '건식', Icon: Utensils },
-                  { v: '습식/화식', label: '습식/화식', Icon: Soup },
-                  { v: '반반', label: '반반', Icon: UtensilsCrossed },
-                ]}
-                onChange={setFoodType}
-              />
-            </Section>
-            <Section label="현재 브랜드 (선택)">
-              <input
-                type="text"
-                value={currentBrand}
-                onChange={(e) => setCurrentBrand(e.target.value)}
-                placeholder="예: 로얄캐닌 미니어처닥스훈트"
-                className="w-full px-3 py-2.5 rounded-xl border border-rule bg-white text-[12.5px]"
-              />
-            </Section>
-            <Section label="간식 빈도">
-              <OptsRow
-                value={snackFreq}
-                options={[
-                  { v: '거의 안 줌', label: '거의 안 줌' },
-                  { v: '가끔', label: '가끔' },
-                  { v: '매일', label: '매일' },
-                ]}
-                onChange={setSnackFreq}
-              />
-            </Section>
-            <Section label="식욕">
-              <OptsRow
-                value={taste}
-                options={[
-                  { v: 'strong', label: '왕성', Icon: Smile },
-                  { v: 'normal', label: '정상', Icon: Smile },
-                  { v: 'picky', label: '까다로움', Icon: Meh },
-                  { v: 'reduced', label: '식욕 감퇴', Icon: Frown },
-                ]}
-                onChange={(v) => setTaste(v as typeof taste)}
-              />
-            </Section>
-            <Section label="하루 산책 시간 (분, 선택)">
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={300}
-                value={walkMinutes}
-                onChange={(e) => setWalkMinutes(e.target.value)}
-                placeholder="예: 30"
-                className="w-32 px-3 py-2.5 rounded-xl border border-rule bg-white text-[12.5px] font-mono"
-              />
-            </Section>
-
-            <Section label="산책 외 실내 활동은 어떤가요? (선택)">
-              <OptsRow
-                value={indoorActivity}
-                options={[
-                  { v: 'calm', label: '차분', Icon: Pause },
-                  { v: 'moderate', label: '보통', Icon: Activity },
-                  { v: 'active', label: '활발', Icon: Heart },
-                ]}
-                onChange={(v) => setIndoorActivity(v as typeof indoorActivity)}
-              />
-              <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
-                산책 분수만으로는 부족한 활동량 신호. 실내에서도 잘 뛰노는지
-                알면 칼로리 인자를 정밀하게 잡아요.
-              </p>
-            </Section>
-
-            <Section label="화식 경험은 어떤가요?">
-              <OptsRow
-                value={homeCookingExp}
-                options={[
-                  { v: 'first', label: '처음', Icon: Sparkles },
-                  { v: 'occasional', label: '가끔 먹어봄', Icon: Soup },
-                  { v: 'frequent', label: '자주/매일', Icon: Check },
-                ]}
-                onChange={(v) => setHomeCookingExp(v as typeof homeCookingExp)}
-              />
-              <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
-                처음이면 첫 박스를 단순 조합으로 보수적으로 시작해 위장
-                적응부터. 자주/매일이면 즉시 풀 비율로 갑니다.
-              </p>
-            </Section>
-
-            <Section label="지금 식이에 얼마나 만족하세요?">
-              <div className="flex gap-2">
-                {([1, 2, 3, 4, 5] as const).map((s) => {
-                  const active = dietSatisfaction === s
+                ].map(({ v, label, Icon }) => {
+                  const active = weightTrend === v
                   return (
                     <button
-                      key={s}
-                      onClick={() => setDietSatisfaction(s)}
-                      className={`flex-1 py-3 rounded-xl border text-center transition ${
-                        active
-                          ? 'border-text bg-text text-white'
-                          : 'border-rule bg-white text-text hover:border-muted'
-                      }`}
+                      key={v}
+                      type="button"
+                      className={'s-chip' + (active ? ' s-on' : '')}
+                      aria-pressed={active}
+                      onClick={() => setWeightTrend(v as typeof weightTrend)}
                     >
-                      <div className="font-mono text-[16px] font-bold">{s}</div>
-                      <div className="text-[9.5px] mt-0.5 opacity-80">
-                        {s === 1 ? '매우 불만'
-                          : s === 2 ? '불만'
-                          : s === 3 ? '보통'
-                          : s === 4 ? '만족'
-                          : '매우 만족'}
-                      </div>
+                      <Icon size={13} strokeWidth={2} />
+                      {label}
                     </button>
                   )
                 })}
               </div>
-              <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
-                4주차 체크인 때 비교할 baseline 이에요. 지금 만족도가 높을수록
-                알고리즘이 큰 변화 없이 미세 조정만 합니다.
-              </p>
-            </Section>
+            </div>
           </div>
         )}
 
-        {/* 5. Allergy */}
-        {currentStep === 'allergy' && (
-          <div>
-            <span className="kicker mb-3 inline-block">Allergies</span>
-            <h1 className="font-serif mb-3" style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              피해야 할
-              <br />재료가 있나요?
-            </h1>
-            <OptsRow
-              value={dlMode}
-              options={[
-                { v: 'none', label: '없어요', Icon: Check },
-                { v: 'unknown', label: '잘 몰라요', Icon: HelpCircle },
-                { v: 'has', label: '있어요', Icon: AlertTriangle },
-              ]}
-              onChange={(v) => setDlMode(v as typeof dlMode)}
-            />
-            {dlMode === 'has' && (
-              <div className="flex flex-wrap gap-2 mt-5">
-                {ALLERGY_OPTIONS.map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => toggleArr(allergies, v, setAllergies)}
-                    className={`px-4 py-2 rounded-xl border text-[12px] font-bold transition ${
-                      allergies.includes(v)
-                        ? 'border-text bg-text text-white'
-                        : 'border-rule bg-white text-text hover:border-muted'
-                    }`}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-            )}
+        {currentStep === 'muscle' && (
+          <div className="s-page">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <span className="s-kicker">
+                MUSCLE <span className="s-dot">·</span> WSAVA
+              </span>
+              <span className="s-opt-badge">선택</span>
+            </div>
+            <h1 className="s-title">근육 상태는<br />어떤가요?</h1>
+            <p className="s-sub">
+              척추뼈 / 견갑골 / 골반 위 근육을 만져 평가해요. 노령견 근감소증 조기
+              발견에 중요해요.
+            </p>
 
-            <Section label="잘 먹는 단백질이 있나요? (선택, 복수 가능)">
-              <div className="flex flex-wrap gap-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {([1, 2, 3, 4] as McsKey[]).map((s) => {
+                const active = mcs === s
+                const view = MCS_VIEW[s]
+                const Icon = view.Icon
+                const meta = MCS_DESCRIPTIONS[s]
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    className="s-listbtn"
+                    aria-pressed={active}
+                    onClick={() => setMcs(active ? null : s)}
+                  >
+                    <span className="s-lb-num">MCS {s}</span>
+                    <span
+                      className="s-lb-icon"
+                      style={{
+                        background: active
+                          ? 'rgba(255,255,255,.12)'
+                          : view.tagTone === 'good'
+                            ? '#E6EBD2'
+                            : view.tagTone === 'warn'
+                              ? '#F5E5C7'
+                              : '#F0D8CF',
+                      }}
+                    >
+                      <Icon
+                        size={20}
+                        strokeWidth={1.8}
+                        color={
+                          active
+                            ? 'var(--bg)'
+                            : view.tagTone === 'good'
+                              ? '#566729'
+                              : view.tagTone === 'warn'
+                                ? '#7A5B1B'
+                                : 'var(--terracotta)'
+                        }
+                      />
+                    </span>
+                    <span className="s-lb-body">
+                      <span className="s-lb-title">{meta.label}</span>
+                      <span className="s-lb-sub">{meta.desc}</span>
+                    </span>
+                    <span className={'s-tag s-' + view.tagTone}>{view.tag}</span>
+                  </button>
+                )
+              })}
+              <button
+                type="button"
+                className={'s-skipbtn' + (mcs === null ? ' s-active' : '')}
+                onClick={() => setMcs(null)}
+              >
+                {mcs === null ? '✓ 잘 모르겠어요 — 건너뛸게요' : '잘 모르겠어요 — 건너뛸게요'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'stool' && (
+          <div className="s-page">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <span className="s-kicker">
+                STOOL <span className="s-dot">·</span> BRISTOL SCALE
+              </span>
+              <span className="s-opt-badge">선택</span>
+            </div>
+            <h1 className="s-title">
+              {dog.name}의 평소 변은<br />어떻게 보이나요?
+            </h1>
+            <p className="s-sub">
+              장 건강과 식이섬유·수분 흡수 신호예요.
+              <span className="s-pill">이상: #4</span>
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {([1, 2, 3, 4, 5, 6, 7] as const).map((s) => {
+                const active = bristol === s
+                const view = STOOL_VIEW[s]
+                const Icon = view.Icon
+                const meta = BRISTOL_INTERPRETATION[s]
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    className="s-listbtn"
+                    aria-pressed={active}
+                    onClick={() => setBristol(active ? null : s)}
+                  >
+                    <span className="s-lb-num">#{s}</span>
+                    <span
+                      className="s-lb-icon"
+                      style={{
+                        background: active
+                          ? 'rgba(255,255,255,.12)'
+                          : view.tagTone === 'good'
+                            ? '#E6EBD2'
+                            : view.tagTone === 'warn'
+                              ? '#F5E5C7'
+                              : '#F0D8CF',
+                      }}
+                    >
+                      <Icon
+                        size={20}
+                        strokeWidth={1.8}
+                        color={
+                          active
+                            ? 'var(--bg)'
+                            : view.tagTone === 'good'
+                              ? '#566729'
+                              : view.tagTone === 'warn'
+                                ? '#7A5B1B'
+                                : 'var(--terracotta)'
+                        }
+                      />
+                    </span>
+                    <span className="s-lb-body">
+                      <span className="s-lb-title">{meta.label}</span>
+                      <span className="s-lb-sub">{meta.signal}</span>
+                    </span>
+                    <span className={'s-tag s-' + view.tagTone}>{view.tag}</span>
+                  </button>
+                )
+              })}
+              <button
+                type="button"
+                className={'s-skipbtn' + (bristol === null ? ' s-active' : '')}
+                onClick={() => setBristol(null)}
+              >
+                {bristol === null ? '✓ 잘 모르겠어요 — 건너뛸게요' : '잘 모르겠어요 — 건너뛸게요'}
+              </button>
+            </div>
+
+            <div className="s-sect">
+              <div className="s-sect-lbl">
+                <span className="s-label-text">사료를 바꿀 때 변이 자주 무르나요?</span>
+                <span className="s-opt">선택</span>
+              </div>
+              <div className="s-chiprow">
+                {[
+                  { v: 'rare', label: '거의 없음', Icon: Check },
+                  { v: 'sometimes', label: '가끔', Icon: Meh },
+                  { v: 'frequent', label: '자주', Icon: AlertTriangle },
+                  { v: 'always', label: '매번', Icon: AlertCircle },
+                ].map(({ v, label, Icon }) => {
+                  const active = giSensitivity === v
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      className={'s-chip' + (active ? ' s-on' : '')}
+                      aria-pressed={active}
+                      onClick={() => setGiSensitivity(v as typeof giSensitivity)}
+                    >
+                      <Icon size={13} strokeWidth={2} />
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'diet' && (
+          <div className="s-page">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <span className="s-kicker">EATING HABITS</span>
+            </div>
+            <h1 className="s-title">식생활을<br />알려주세요</h1>
+            <p className="s-sub">현재 식이 패턴이 영양 권장량 계산의 기준이 돼요.</p>
+
+            <div className="s-sect">
+              <div className="s-sect-lbl"><span className="s-label-text">주식 형태</span></div>
+              <div className="s-tilerow">
+                {[
+                  { v: '건식 사료', label: '건식', meta: '사료/킵블', Icon: Wheat },
+                  { v: '습식/화식', label: '습식·화식', meta: '캔/홈쿡', Icon: CookingPot },
+                  { v: '반반', label: '반반', meta: '혼합', Icon: Combine },
+                ].map(({ v, label, meta, Icon }) => {
+                  const active = foodType === v
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      className={'s-tile' + (active ? ' s-on' : '')}
+                      aria-pressed={active}
+                      onClick={() => setFoodType(v)}
+                    >
+                      <span className="s-ic">
+                        <Icon
+                          size={20}
+                          strokeWidth={1.7}
+                          color={active ? 'var(--bg)' : 'var(--ink)'}
+                        />
+                      </span>
+                      <span className="s-tile-lb">{label}</span>
+                      <span className="s-meta">{meta}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="s-sect">
+              <div className="s-sect-lbl">
+                <span className="s-label-text">현재 사용 중인 브랜드</span>
+                <span className="s-opt">선택</span>
+              </div>
+              <input
+                type="text"
+                className="s-inp"
+                value={currentBrand}
+                onChange={(e) => setCurrentBrand(e.target.value)}
+                placeholder="예: 로얄캐닌 미니어처닥스훈트"
+              />
+            </div>
+
+            <div className="s-sect">
+              <div className="s-sect-lbl"><span className="s-label-text">간식 빈도</span></div>
+              <div className="s-chiprow">
+                {[
+                  { v: '거의 안 줌', label: '거의 안 줌', Icon: Minus },
+                  { v: '가끔', label: '가끔', Icon: Plus },
+                  { v: '매일', label: '매일', Icon: PlusCircle },
+                ].map(({ v, label, Icon }) => {
+                  const active = snackFreq === v
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      className={'s-chip' + (active ? ' s-on' : '')}
+                      aria-pressed={active}
+                      onClick={() => setSnackFreq(v)}
+                    >
+                      <Icon size={13} strokeWidth={2} />
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="s-sect">
+              <div className="s-sect-lbl"><span className="s-label-text">식욕</span></div>
+              <div className="s-chiprow">
+                {[
+                  { v: 'strong', label: '왕성', Icon: Flame },
+                  { v: 'normal', label: '정상', Icon: Smile },
+                  { v: 'picky', label: '까다로움', Icon: Meh },
+                  { v: 'reduced', label: '식욕 감퇴', Icon: Frown },
+                ].map(({ v, label, Icon }) => {
+                  const active = taste === v
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      className={'s-chip' + (active ? ' s-on' : '')}
+                      aria-pressed={active}
+                      onClick={() => setTaste(v as typeof taste)}
+                    >
+                      <Icon size={13} strokeWidth={2} />
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="s-sect">
+              <div className="s-sect-lbl">
+                <span className="s-label-text">하루 산책 시간</span>
+                <span className="s-opt">선택</span>
+              </div>
+              <div className="s-input-suffix">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={300}
+                  className="s-inp"
+                  value={walkMinutes}
+                  onChange={(e) => setWalkMinutes(e.target.value)}
+                  placeholder="30"
+                />
+                <span className="s-unit">분 / 일</span>
+              </div>
+            </div>
+
+            <div className="s-sect">
+              <div className="s-sect-lbl">
+                <span className="s-label-text">산책 외 실내 활동</span>
+                <span className="s-opt">선택</span>
+              </div>
+              <div className="s-chiprow">
+                {[
+                  { v: 'calm', label: '차분', Icon: Pause },
+                  { v: 'moderate', label: '보통', Icon: Activity },
+                  { v: 'active', label: '활발', Icon: Heart },
+                ].map(({ v, label, Icon }) => {
+                  const active = indoorActivity === v
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      className={'s-chip' + (active ? ' s-on' : '')}
+                      aria-pressed={active}
+                      onClick={() => setIndoorActivity(v as typeof indoorActivity)}
+                    >
+                      <Icon size={13} strokeWidth={2} />
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="s-sect">
+              <div className="s-sect-lbl"><span className="s-label-text">화식 경험</span></div>
+              <div className="s-tilerow">
+                {[
+                  { v: 'first', label: '처음', meta: '첫 도입', Icon: Sparkles },
+                  { v: 'occasional', label: '가끔', meta: '경험 있음', Icon: Soup },
+                  { v: 'frequent', label: '자주', meta: '매일/익숙', Icon: Check },
+                ].map(({ v, label, meta, Icon }) => {
+                  const active = homeCookingExp === v
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      className={'s-tile' + (active ? ' s-on' : '')}
+                      aria-pressed={active}
+                      onClick={() => setHomeCookingExp(v as typeof homeCookingExp)}
+                    >
+                      <span className="s-ic">
+                        <Icon
+                          size={20}
+                          strokeWidth={1.7}
+                          color={active ? 'var(--bg)' : 'var(--ink)'}
+                        />
+                      </span>
+                      <span className="s-tile-lb">{label}</span>
+                      <span className="s-meta">{meta}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="s-sect">
+              <div className="s-sect-lbl"><span className="s-label-text">지금 식이 만족도</span></div>
+              <div className="s-rate-row">
+                {([1, 2, 3, 4, 5] as const).map((s) => {
+                  const active = dietSatisfaction === s
+                  const labels = ['매우 불만', '불만', '보통', '만족', '매우 만족']
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      className="s-rate"
+                      aria-pressed={active}
+                      onClick={() => setDietSatisfaction(s)}
+                    >
+                      <span className="s-rate-num">{s}</span>
+                      <span className="s-rate-lb">{labels[s - 1]}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'allergy' && (
+          <div className="s-page">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <span className="s-kicker">ALLERGIES</span>
+            </div>
+            <h1 className="s-title">피해야 할<br />재료가 있나요?</h1>
+            <p className="s-sub">알레르기 + 선호 단백질을 함께 알려주시면 정확도가 올라가요.</p>
+
+            <div className="s-sect">
+              <div className="s-sect-lbl"><span className="s-label-text">알레르기 유무</span></div>
+              <div className="s-seg">
+                <button
+                  type="button"
+                  aria-pressed={dlMode === 'none'}
+                  onClick={() => {
+                    setDlMode('none')
+                    setAllergies([])
+                  }}
+                >
+                  <Check size={16} strokeWidth={2} />
+                  없어요
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={dlMode === 'unknown'}
+                  onClick={() => {
+                    setDlMode('unknown')
+                    setAllergies([])
+                  }}
+                >
+                  <HelpCircle size={16} strokeWidth={2} />
+                  잘 몰라요
+                </button>
+                <button
+                  type="button"
+                  className="s-danger"
+                  aria-pressed={dlMode === 'has'}
+                  onClick={() => setDlMode('has')}
+                >
+                  <AlertTriangle size={16} strokeWidth={2} />
+                  있어요
+                </button>
+              </div>
+              {dlMode === 'has' && (
+                <div className="s-chiprow" style={{ marginTop: 12 }}>
+                  {ALLERGY_OPTIONS.map((v) => {
+                    const active = allergies.includes(v)
+                    return (
+                      <button
+                        key={v}
+                        type="button"
+                        className={'s-chip' + (active ? ' s-on' : '')}
+                        aria-pressed={active}
+                        onClick={() => toggleArr(allergies, v, setAllergies)}
+                      >
+                        {v}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="s-sect">
+              <div className="s-sect-lbl">
+                <span className="s-label-text">잘 먹는 단백질</span>
+                <span className="s-opt">선택 · 복수</span>
+              </div>
+              <div className="s-chiprow">
                 {PROTEIN_OPTIONS.map(({ v, label }) => {
                   const active = preferredProteins.includes(v)
                   return (
                     <button
                       key={v}
-                      onClick={() =>
-                        toggleArr(preferredProteins, v, setPreferredProteins)
-                      }
-                      className={`px-3.5 py-2 rounded-xl border text-[12px] font-bold transition ${
-                        active
-                          ? 'border-text bg-text text-white'
-                          : 'border-rule bg-white text-text hover:border-muted'
-                      }`}
+                      type="button"
+                      className={'s-chip' + (active ? ' s-on' : '')}
+                      aria-pressed={active}
+                      onClick={() => toggleArr(preferredProteins, v, setPreferredProteins)}
                     >
                       {label}
                     </button>
                   )
                 })}
               </div>
-              <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
-                알레르기와 별개로, 평소 잘 먹는 단백질이 있으면 첫 박스의 메인
-                단백질 우선순위에 가산점을 줘요.
-              </p>
-            </Section>
+            </div>
           </div>
         )}
 
-        {/* 6. Chronic */}
         {currentStep === 'chronic' && (
-          <div>
-            <span className="kicker mb-3 inline-block">Health · 만성질환</span>
-            <h1 className="font-serif mb-3" style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              현재 진단받은
-              <br />질환이 있나요?
-            </h1>
-            <p className="text-[12px] text-muted mb-5 leading-relaxed">
-              여러 개 선택 가능. 식이가 핵심 치료의 일부인 질환이라 정확한 분기에
-              꼭 필요해요. <span>(없으면 건너뛰세요)</span>
+          <div className="s-page">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <span className="s-kicker">
+                HEALTH <span className="s-dot">·</span> 만성질환
+              </span>
+              <span className="s-opt-badge">선택</span>
+            </div>
+            <h1 className="s-title">현재 진단받은<br />질환이 있나요?</h1>
+            <p className="s-sub">
+              식이가 핵심 치료의 일부인 질환은 분기에 꼭 필요해요.
+              <span className="s-pill">없으면 건너뛰세요</span>
             </p>
-            <div className="flex flex-wrap gap-2">
+
+            <div className="s-chiprow">
               {(Object.keys(CHRONIC_CONDITION_LABELS) as ChronicConditionKey[]).map((k) => {
                 const active = chronicConditions.includes(k)
                 return (
                   <button
                     key={k}
+                    type="button"
+                    className={'s-chip s-terra' + (active ? ' s-on' : '')}
+                    aria-pressed={active}
                     onClick={() => toggleArr(chronicConditions, k, setChronicConditions)}
-                    className={`px-3.5 py-2 rounded-xl border text-[12px] font-bold transition ${
-                      active
-                        ? 'border-terracotta bg-terracotta text-white'
-                        : 'border-rule bg-white text-text hover:border-muted'
-                    }`}
                   >
+                    {active && <Check size={13} strokeWidth={2.4} color="#fff" />}
                     {CHRONIC_CONDITION_LABELS[k]}
                   </button>
                 )
               })}
             </div>
 
-            <Section label="처방식 (선택)">
+            <div className="s-sect">
+              <div className="s-sect-lbl">
+                <span className="s-label-text">처방식</span>
+                <span className="s-opt">선택</span>
+              </div>
               <input
                 type="text"
+                className="s-inp"
                 value={prescriptionDiet}
                 onChange={(e) => setPrescriptionDiet(e.target.value)}
                 placeholder="예: Royal Canin Renal RF14"
-                className="w-full px-3 py-2.5 rounded-xl border border-rule bg-white text-[12.5px]"
               />
-            </Section>
+            </div>
 
-            <Section label="복용 중인 약 / 보충제 (선택, 쉼표 구분)">
+            <div className="s-sect">
+              <div className="s-sect-lbl">
+                <span className="s-label-text">복용 중인 약 / 보충제</span>
+                <span className="s-opt">선택</span>
+              </div>
               <textarea
+                className="s-inp"
+                rows={2}
                 value={medications}
                 onChange={(e) => setMedications(e.target.value)}
-                rows={2}
                 placeholder="예: 갑상선 호르몬, 글루코사민, 오메가-3"
-                className="w-full px-3 py-2.5 rounded-xl border border-rule bg-white text-[12.5px] resize-none"
               />
-            </Section>
+            </div>
 
             {chronicConditions.length > 0 && (
-              <div
-                className="mt-4 rounded-xl px-3 py-2.5 text-[11px] leading-relaxed inline-flex items-start gap-2"
-                style={{
-                  background: 'color-mix(in srgb, var(--terracotta) 8%, transparent)',
-                  color: 'var(--text)',
-                }}
-              >
-                <ShieldAlert
-                  className="w-3.5 h-3.5 shrink-0 mt-0.5"
-                  strokeWidth={2.5}
-                  color="var(--terracotta)"
-                />
+              <div className="s-note">
+                <span className="s-ic-warn">
+                  <ShieldAlert size={13} strokeWidth={2.2} color="#fff" />
+                </span>
                 <span>
-                  분석 결과는 가이드라인 기반 권장이에요. 처방식·약물 변경은 반드시
-                  주치 수의사와 상담 후 진행해 주세요.
+                  분석 결과는 <strong>가이드라인 기반 권장</strong>이에요. 처방식·약물
+                  변경은 반드시 주치 수의사와 상담 후 진행해 주세요.
                 </span>
               </div>
             )}
           </div>
         )}
 
-        {/* 7. Status */}
         {currentStep === 'status' && (
-          <div>
-            <span className="kicker mb-3 inline-block">Status · 현재 상태</span>
-            <h1 className="font-serif mb-3" style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              마지막 단계예요
-            </h1>
-            <p className="text-[12px] text-muted mb-5 leading-relaxed">
-              임신·수유 / 모질 상태가 있다면 칼로리·미량영양소가 크게 달라져요.
+          <div className="s-page">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <span className="s-kicker">
+                STATUS <span className="s-dot">·</span> 현재 상태
+              </span>
+            </div>
+            <h1 className="s-title">마지막 단계예요</h1>
+            <p className="s-sub">
+              임신·수유나 모질 상태가 있다면 칼로리·미량영양소 권장량이 달라져요.
             </p>
 
-            <Section label="임신 / 수유 상태">
-              <OptsRow
-                value={pregnancy}
-                options={[
+            <div className="s-sect">
+              <div className="s-sect-lbl"><span className="s-label-text">임신 / 수유 상태</span></div>
+              <div className="s-chiprow">
+                {[
                   { v: 'none', label: '해당 없음', Icon: Check },
                   { v: 'pregnant', label: '임신 중', Icon: Baby },
-                  { v: 'lactating', label: '수유 중', Icon: Baby },
-                ]}
-                onChange={(v) => setPregnancy(v as typeof pregnancy)}
-              />
-            </Section>
+                  { v: 'lactating', label: '수유 중', Icon: Heart },
+                ].map(({ v, label, Icon }) => {
+                  const active = pregnancy === v
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      className={'s-chip' + (active ? ' s-on' : '')}
+                      aria-pressed={active}
+                      onClick={() => setPregnancy(v as typeof pregnancy)}
+                    >
+                      <Icon size={13} strokeWidth={2} />
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
-            <Section label="모질·피부 상태 (선택)">
-              <OptsRow
-                value={coat}
-                options={[
+            <div className="s-sect">
+              <div className="s-sect-lbl">
+                <span className="s-label-text">모질·피부 상태</span>
+                <span className="s-opt">선택</span>
+              </div>
+              <div className="s-chiprow">
+                {[
                   { v: 'healthy', label: '건강', Icon: Sparkles },
-                  { v: 'dull', label: '푸석', Icon: Meh },
-                  { v: 'shedding', label: '심한 탈모' },
+                  { v: 'dull', label: '푸석', Icon: Wind },
+                  { v: 'shedding', label: '심한 탈모', Icon: Scissors },
                   { v: 'itchy', label: '가려움', Icon: AlertTriangle },
                   { v: 'lesions', label: '병변', Icon: Stethoscope },
-                ]}
-                onChange={(v) => setCoat(v as typeof coat)}
-              />
-            </Section>
+                ].map(({ v, label, Icon }) => {
+                  const active = coat === v
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      className={'s-chip' + (active ? ' s-on' : '')}
+                      aria-pressed={active}
+                      onClick={() => setCoat(active ? '' : (v as typeof coat))}
+                    >
+                      <Icon size={13} strokeWidth={2} />
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
-            <Section label="가장 신경 쓰고 싶은 케어 목표는?">
-              <div className="space-y-2">
+            <div className="s-sect">
+              <div className="s-sect-lbl">
+                <span className="s-label-text">가장 신경 쓰고 싶은 케어 목표</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {CARE_GOAL_OPTIONS.map(({ v, label, desc, Icon }) => {
                   const active = careGoal === v
                   return (
                     <button
                       key={v}
+                      type="button"
+                      className="s-listbtn"
+                      aria-pressed={active}
                       onClick={() => setCareGoal(v)}
-                      className={`w-full py-3 px-4 rounded-xl border transition text-left flex items-start gap-3 ${
-                        active
-                          ? 'border-terracotta bg-bg'
-                          : 'border-rule bg-white hover:border-muted'
-                      }`}
                     >
-                      <Icon
-                        className={`w-4 h-4 shrink-0 mt-0.5 ${
-                          active ? 'text-terracotta' : 'text-muted'
-                        }`}
-                        strokeWidth={2}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-bold text-text">{label}</div>
-                        <div className="text-[11px] text-muted mt-0.5 leading-relaxed">
-                          {desc}
-                        </div>
-                      </div>
+                      <span
+                        className="s-lb-icon"
+                        style={{
+                          background: active
+                            ? 'rgba(255,255,255,.12)'
+                            : 'var(--bg-2)',
+                        }}
+                      >
+                        <Icon
+                          size={20}
+                          strokeWidth={1.8}
+                          color={active ? 'var(--bg)' : 'var(--terracotta)'}
+                        />
+                      </span>
+                      <span className="s-lb-body">
+                        <span className="s-lb-title">{label}</span>
+                        <span className="s-lb-sub">{desc}</span>
+                      </span>
                       {active && (
                         <Check
-                          className="w-4 h-4 shrink-0 mt-0.5 text-terracotta"
+                          size={16}
                           strokeWidth={2.5}
+                          color="var(--bg)"
+                          style={{ flex: '0 0 auto' }}
                         />
                       )}
                     </button>
                   )
                 })}
               </div>
-              <p className="text-[10.5px] text-muted mt-3 leading-relaxed">
-                이 답이 첫 박스에 들어갈 화식 라인의 메인을 결정해요. 이후 매월
-                체크인으로 비율이 조정됩니다.
+              <p style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 10, lineHeight: 1.5 }}>
+                이 답이 첫 박스의 화식 라인 메인을 결정해요. 이후 매월 체크인으로 비율이 조정됩니다.
               </p>
-            </Section>
+            </div>
+
+            <div className="s-hint" style={{ marginTop: 24 }}>
+              <div className="s-iconwrap">
+                <Sparkles size={14} strokeWidth={2} />
+              </div>
+              <div>
+                <strong>준비 끝!</strong> 결과 보기를 누르면 NRC·AAFCO·FEDIAF·WSAVA
+                가이드라인에 맞춰 맞춤 영양 분석이 시작돼요.
+              </div>
+            </div>
           </div>
         )}
 
-        {/* loading */}
+        {/* Loading */}
         {isLoading && (
-          <div className="text-center py-16">
-            <div className="w-20 h-20 rounded-full bg-bg flex items-center justify-center mx-auto mb-6 animate-pulse">
-              <DogIcon className="w-10 h-10 text-terracotta" strokeWidth={1.3} />
+          <div className="s-loading-page">
+            <div className="s-orb">
+              <DogIcon size={38} strokeWidth={1.4} />
             </div>
-            <span className="kicker mb-2 inline-block">Analyzing</span>
-            <h2 className="font-serif mb-2" style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              {dog.name} 맞춤 영양
-              <br />설계 중이에요
+            <span className="s-kicker">ANALYZING</span>
+            <h2 className="s-title" style={{ fontSize: 24, margin: '6px 0 8px' }}>
+              {dog.name} 맞춤 영양<br />설계 중이에요
             </h2>
-            <p className="text-[11.5px] text-muted mb-6 leading-relaxed">
-              NRC 2006 · AAFCO 2024 · FEDIAF 2021 · WSAVA
-              <br />가이드라인 적용 중...
+            <p
+              style={{
+                fontSize: 11.5,
+                color: 'var(--muted)',
+                lineHeight: 1.7,
+                fontFamily: 'var(--font-mono), JetBrains Mono, monospace',
+                letterSpacing: 0.04,
+              }}
+            >
+              NRC 2006 · AAFCO 2024
+              <br />
+              FEDIAF 2021 · WSAVA
             </p>
-            <div className="flex justify-center gap-1.5">
-              <span className="w-1.5 h-1.5 bg-terracotta rounded-full animate-pulse" />
-              <span className="w-1.5 h-1.5 bg-terracotta rounded-full animate-pulse" style={{ animationDelay: '0.15s' }} />
-              <span className="w-1.5 h-1.5 bg-terracotta rounded-full animate-pulse" style={{ animationDelay: '0.3s' }} />
+            <ul className="s-stages">
+              {[
+                '체형 평가 처리',
+                'RER · MER 계산 중',
+                'AAFCO 매크로 비교',
+                '맞춤 보충제 매핑',
+              ].map((s, i) => {
+                const cls =
+                  i < loadingStage ? 's-done' : i === loadingStage ? 's-active' : ''
+                return (
+                  <li key={i} className={cls}>
+                    <span className="s-ic-stage">
+                      {i < loadingStage ? (
+                        <Check size={11} strokeWidth={3} color="#fff" />
+                      ) : i === loadingStage ? (
+                        <Loader2 size={11} strokeWidth={2.5} color="#fff" />
+                      ) : null}
+                    </span>
+                    {s}
+                  </li>
+                )
+              })}
+            </ul>
+            <div className="s-dots" style={{ marginTop: 24 }}>
+              <span />
+              <span />
+              <span />
             </div>
           </div>
         )}
 
         {err && !isLoading && (
-          <div className="mt-5 flex items-start gap-2 text-[12px] text-sale font-semibold bg-[#FFF5F3] border border-sale/20 rounded-xl px-4 py-3">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2} />
+          <div className="s-errbar">
+            <AlertCircle size={14} strokeWidth={2.2} />
             <span>{err}</span>
           </div>
         )}
 
         {!isLoading && (
-          <div className="flex items-center justify-between mt-8">
+          <div className="s-ctabar">
             <button
+              type="button"
+              className="s-prev-btn"
               onClick={goPrev}
               disabled={stepIdx === 0}
-              className="text-[12px] font-bold text-muted py-3 px-4 rounded-xl hover:bg-white disabled:opacity-0 transition"
             >
-              ← 이전
+              <ChevronLeft size={14} strokeWidth={2.4} />
+              이전
             </button>
             <button
+              type="button"
+              className="s-next-btn"
               onClick={goNext}
               disabled={saving}
-              className="flex items-center gap-1.5 py-3 px-6 rounded-full bg-ink text-bg text-[13px] font-bold active:scale-[0.98] transition disabled:opacity-50"
             >
               {currentStep === 'status' ? '결과 보기' : '다음'}
-              <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />
+              <ArrowRight size={14} strokeWidth={2.6} color="var(--bg)" />
             </button>
           </div>
         )}
       </div>
     </main>
-  )
-}
-
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="mt-5">
-      <div className="text-[10px] font-semibold text-muted uppercase tracking-[0.2em] mb-2">
-        {label}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-type Option = {
-  v: string
-  label: string
-  Icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>
-}
-
-function OptsRow({
-  value,
-  options,
-  onChange,
-}: {
-  value: string
-  options: Option[]
-  onChange: (v: string) => void
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map(({ v, label, Icon }) => {
-        const active = value === v
-        return (
-          <button
-            key={v}
-            onClick={() => onChange(v)}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border text-[12px] font-bold transition ${
-              active
-                ? 'border-text bg-text text-white'
-                : 'border-rule bg-white text-text hover:border-muted'
-            }`}
-          >
-            {Icon && (
-              <Icon className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-muted'}`} strokeWidth={2} />
-            )}
-            {label}
-          </button>
-        )
-      })}
-    </div>
   )
 }
