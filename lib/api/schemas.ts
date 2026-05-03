@@ -118,5 +118,11 @@ export const zAccountDelete = z.object({
   reason: zShortText.optional(),
 })
 
+/** /api/personalization/compute 입력 — 강아지 ID 만 필요. 라우트가 최신 설문 +
+ * 분석 row 조회 → decideFirstBox → dog_formulas upsert. */
+export const zPersonalizationCompute = z.object({
+  dogId: zUuid,
+})
+
 // parseRequest helper 는 lib/api/parseRequest.ts 로 분리 (NextResponse 의존).
 // 호출처는 보통 두 모듈 모두 import — schemas + parseRequest.

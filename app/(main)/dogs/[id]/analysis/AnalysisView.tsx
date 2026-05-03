@@ -26,6 +26,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { getAAFCORanges, stageFromKR, type MacroRange } from '@/lib/nutrition'
 import StructuredAnalysis from '@/components/analysis/StructuredAnalysis'
+import RecommendationBox from '@/components/analysis/RecommendationBox'
 
 type Analysis = {
   id: string
@@ -484,6 +485,12 @@ export default function AnalysisView({
             </ul>
           </div>
         </section>
+      )}
+
+      {/* Personalization v1 — 추천 박스 (placeholder UI, 클로드 디자인 핸드오프
+          받으면 RecommendationBox 컴포넌트만 교체) */}
+      {!isArchive && (
+        <RecommendationBox dogId={dogId} dogName={dog.name} />
       )}
 
       {/* AI v2 — 구조화 분석 (위험플래그 + 전환플랜 + 출처) */}
