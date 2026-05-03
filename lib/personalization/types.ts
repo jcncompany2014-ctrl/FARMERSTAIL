@@ -1,0 +1,143 @@
+/**
+ * Farmer's Tail — Personalization 타입.
+ *
+ * 5종 화식 (Basic 닭 / Weight 오리 / Skin 연어 / Premium 소 / Joint 돼지) +
+ * 동결건조 토퍼 2종 (육류 / 야채) 을 강아지별 비율로 조합하는 personalization
+ * 시스템의 핵심 데이터 구조.
+ *
+ * 알고리즘 (`firstBox.ts`) 가 설문 응답 + 영양 계산 결과를 받아 Formula 를
+ * 출력. 출력은 DB `dog_formulas` 테이블에 저장되고, UI 에서 추천 박스 카드로
+ * 노출. cycle 별 (보통 4주마다) 재실행해 비율 조정.
+ */
+
+/** 5종 화식 라인 식별자. SKU id 가 아니라 "라인" — 실제 SKU 는 분량/포장
+ * 별로 여러 개 있을 수 있음. 알고리즘은 라인 단위로 비율 결정. */
+export type FoodLine = 'basic' | 'weight' | 'skin' | 'premium' | 'joint'
+
+/** 토퍼 카테고리. 화식 위에 추가로 뿌려지는 동결건조 보조식. */
+export type ToppperType = 'protein' | 'vegetable'
+
+/** 첫 박스 전환 전략 — 사용자의 화식 경험에 따라 보수성 조절. */
+export type TransitionStrategy =
+  /** 화식 자주/매일 — full ratio 즉시 적용 */
+  | 'aggressive'
+  /** 화식 가끔 경험 — 점진 전환 */
+  | 'gradual'
+  /** 화식 처음 — 4주 전환기 protocol, 단순 조합 + 토퍼 최소 */
+  | 'conservative'
+
+/** 비율 (0.0~1.0, 합 1.0). DB 에는 100 곱한 정수로 저장 (decimal 회피). */
+export type Ratio = number
+
+/**
+ * 알고리즘 결정 근거 한 건. UI 에서 chip 으로 표시되어 보호자에게 "왜
+ * 이 비율로 정해졌는지" 투명하게 노출. 디버깅/audit 시에도 핵심.
+ */
+export type Reasoning = {
+  /** 어떤 입력 신호가 룰을 발화시켰는지 (사람 읽기 쉽게). */
+  trigger: string
+  /** 무엇을 조정했는지 (formula 변경 내용). */
+  action: string
+  /** UI 칩에 노출할 짧은 한국어 라벨 (≤ 18자 권장). */
+  chipLabel: string
+  /** 0(가장 중요) ~ 9(부드러운 nudge). 알레르기 0, 케어목표 1, BCS 3 등. */
+  priority: number
+  /** 룰 ID — 알고리즘 버전 변경 시 추적. snake_case. */
+  ruleId: string
+}
+
+/** 알고리즘 input — 설문 + 강아지 + 영양 calc 합성. */
+export type AlgorithmInput = {
+  // ── dogs ──
+  dogId: string
+  dogName: string
+  ageMonths: number
+  weightKg: number
+  neutered: boolean
+  activityLevel: 'low' | 'medium' | 'high'
+
+  // ── surveys (필수) ──
+  bcs: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | null
+  /** 알레르기 라벨 — surveys.answers.allergies 그대로 (한국어). */
+  allergies: string[]
+  /** 만성질환 키 — kidney / arthritis / ibd / pancreatitis 등. */
+  chronicConditions: string[]
+  pregnancy: 'none' | 'pregnant' | 'lactating' | null
+  /** 케어 목표 — 알고리즘 1순위 변수. null 이면 'general_upgrade' fallback. */
+  careGoal:
+    | 'weight_management'
+    | 'skin_coat'
+    | 'joint_senior'
+    | 'allergy_avoid'
+    | 'general_upgrade'
+    | null
+
+  // ── surveys (선택, personalization v3) ──
+  homeCookingExperience: 'first' | 'occasional' | 'frequent' | null
+  currentDietSatisfaction: 1 | 2 | 3 | 4 | 5 | null
+  weightTrend6mo: 'stable' | 'gained' | 'lost' | 'unknown' | null
+  giSensitivity: 'rare' | 'sometimes' | 'frequent' | 'always' | null
+  preferredProteins: string[]
+  indoorActivity: 'calm' | 'moderate' | 'active' | null
+
+  // ── nutrition calc 결과 ──
+  /** 일일 권장 칼로리 (MER). */
+  dailyKcal: number
+  /** 일일 권장 그램. */
+  dailyGrams: number
+}
+
+/** 알고리즘 output — 한 강아지의 한 cycle 처방. */
+export type Formula = {
+  /** 5종 라인 비율 — Record value 합 1.0. quantized to 0.1 단위. */
+  lineRatios: Record<FoodLine, Ratio>
+
+  /** 토퍼 비중 — 화식 위에 얹는 추가량 (kcal 기준). 합계가 0.3 (30%) 넘으면
+   * 화식이 주식이 아니게 되니 알고리즘이 자체 cap. */
+  toppers: {
+    protein: Ratio
+    vegetable: Ratio
+  }
+
+  /** reasoning 배열 — 우선순위 오름차순 정렬됨. UI 가 위에서부터 노출. */
+  reasoning: Reasoning[]
+
+  /** 첫 박스 전환 전략. */
+  transitionStrategy: TransitionStrategy
+
+  /** 영양 calc 그대로 — 박스 분량 산정에 사용. */
+  dailyKcal: number
+  dailyGrams: number
+
+  /** cycle 번호 — 첫 박스는 1. 이후 4주마다 +1. */
+  cycleNumber: number
+
+  /** 알고리즘 버전 — 룰 변경 추적. semver. */
+  algorithmVersion: string
+
+  /** 사용자가 추천 비율을 직접 수정했는지. true 면 reasoning 에 "사용자 조정"
+   * 추가. 첫 출력은 항상 false. */
+  userAdjusted: boolean
+}
+
+/**
+ * UI 에 노출할 라인 메타 — name / subtitle / 색상 등. lines.ts 의 상수와
+ * 매칭. DB 에는 안 들어감 — 알고리즘 출력 후 UI 가 join.
+ */
+export type FoodLineMeta = {
+  line: FoodLine
+  /** 영문 라인명 — 'Basic', 'Weight', 'Skin', 'Premium', 'Joint' */
+  name: string
+  /** 한국어 부제 — '닭 · 균형식' */
+  subtitle: string
+  /** 메인 단백질 키 — preferred_proteins / allergies 매핑용. */
+  mainProtein: 'chicken' | 'duck' | 'salmon' | 'beef' | 'pork'
+  /** 알고리즘이 즉시 0% 처리해야 할 알레르기 라벨 (한국어). */
+  blockingAllergies: string[]
+  /** 한 줄 효능 요약 — 박스 카드 노출. */
+  benefit: string
+  /** 100g 당 kcal — 박스 분량 산정. */
+  kcalPer100g: number
+  /** UI 색상 토큰 (CSS variable name 또는 hex). */
+  color: string
+}
