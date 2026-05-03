@@ -124,5 +124,39 @@ export const zPersonalizationCompute = z.object({
   dogId: zUuid,
 })
 
+/** /api/personalization/checkin — 매 cycle 의 week_2 / week_4 응답 저장.
+ * 모든 점수는 선택 (응답 안 한 항목은 null). */
+export const zPersonalizationCheckin = z.object({
+  dogId: zUuid,
+  cycleNumber: z.number().int().min(1).max(120),
+  checkpoint: z.enum(['week_2', 'week_4']),
+  stoolScore: z.number().int().min(1).max(7).nullable().optional(),
+  coatScore: z.number().int().min(1).max(5).nullable().optional(),
+  appetiteScore: z.number().int().min(1).max(5).nullable().optional(),
+  overallSatisfaction: z.number().int().min(1).max(5).nullable().optional(),
+  freeText: z.string().max(2000).optional(),
+  photoUrls: z.array(z.string().url()).max(8).optional(),
+})
+
+/** /api/personalization/adjust — 사용자가 추천 비율을 직접 수정. 합 1.0 검증
+ * 은 라우트가 한 번 더. blocked (알레르기) 라인은 0% 만 허용. */
+export const zPersonalizationAdjust = z.object({
+  dogId: zUuid,
+  cycleNumber: z.number().int().min(1).max(120),
+  lineRatios: z.object({
+    basic: z.number().min(0).max(1),
+    weight: z.number().min(0).max(1),
+    skin: z.number().min(0).max(1),
+    premium: z.number().min(0).max(1),
+    joint: z.number().min(0).max(1),
+  }),
+  toppers: z
+    .object({
+      protein: z.number().min(0).max(0.3),
+      vegetable: z.number().min(0).max(0.3),
+    })
+    .optional(),
+})
+
 // parseRequest helper 는 lib/api/parseRequest.ts 로 분리 (NextResponse 의존).
 // 호출처는 보통 두 모듈 모두 import — schemas + parseRequest.

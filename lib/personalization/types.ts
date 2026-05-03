@@ -46,6 +46,29 @@ export type Reasoning = {
   ruleId: string
 }
 
+/**
+ * 체크인 응답 한 건 — dog_checkins 테이블 row 와 1:1 매핑.
+ *
+ * 매 cycle 의 week_2 / week_4 체크인 결과. decideNextBox 가 input 으로 받아
+ * 다음 cycle 비율을 조정. 응답 안 한 cycle 은 빈 배열 — 알고리즘이 빈 배열도
+ * 정상 처리해야 함 (응답률 30~40% 가정).
+ */
+export type Checkin = {
+  cycleNumber: number
+  /** 'week_2' = 위장 적응 신호 / 'week_4' = 종합 평가 */
+  checkpoint: 'week_2' | 'week_4'
+  /** Bristol 1-7 (4 = 이상). null = 응답 안 함. */
+  stoolScore: 1 | 2 | 3 | 4 | 5 | 6 | 7 | null
+  /** 1-5 (5 = 매우 윤기). null = 응답 안 함. */
+  coatScore: 1 | 2 | 3 | 4 | 5 | null
+  /** 1-5 (5 = 매우 왕성). null = 응답 안 함. */
+  appetiteScore: 1 | 2 | 3 | 4 | 5 | null
+  /** 1-5 (5 = 매우 만족). week_4 의 핵심 신호. null = 응답 안 함. */
+  overallSatisfaction: 1 | 2 | 3 | 4 | 5 | null
+  /** 응답 시각 — 늦은 응답 (3주 후 week_2) 처리 시 가중치 ↓. */
+  respondedAt: string
+}
+
 /** 알고리즘 input — 설문 + 강아지 + 영양 calc 합성. */
 export type AlgorithmInput = {
   // ── dogs ──
@@ -118,6 +141,22 @@ export type Formula = {
   /** 사용자가 추천 비율을 직접 수정했는지. true 면 reasoning 에 "사용자 조정"
    * 추가. 첫 출력은 항상 false. */
   userAdjusted: boolean
+}
+
+/**
+ * decideNextBox 의 input — 이전 cycle 처방 + 체크인 + 최신 설문.
+ *
+ * cycle N+1 의 비율은 다음 신호 합성:
+ *   1. previousFormula 의 lineRatios — baseline (큰 변화 회피, churn 방지)
+ *   2. checkins — week_2/week_4 응답 → 미세 조정 (지방 ↓ / 야채 ↑ 등)
+ *   3. surveyInput — 알레르기/케어목표 변경 시 큰 swing 가능 (설문 재제출)
+ */
+export type NextBoxInput = {
+  previousFormula: Formula
+  checkins: Checkin[]
+  surveyInput: AlgorithmInput
+  /** 새 cycle 번호 — typically previous.cycleNumber + 1 */
+  cycleNumber: number
 }
 
 /**
