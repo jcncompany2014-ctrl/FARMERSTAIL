@@ -45,13 +45,14 @@ components/       재사용 UI — admin/, products/, ui/
 lib/              순수 함수 + 클라이언트
   api/            Zod 스키마 + parseRequest helper
   commerce/       order FSM, points, shipping, addresses
-  email/          Resend 템플릿 (orders / cart / restock / subscription)
+  email/          Resend 템플릿 (orders / cart / restock / subscription / personalization)
   payments/toss/  Toss 결제 + 정기결제 빌링키
+  personalization/  화식 5종 비율 알고리즘 (firstBox + nextBox) + 5라인 메타
   push/           web-push (PWA) + native.ts (APNs/FCM HTTP)
   sentry/         비즈니스 트레이싱 헬퍼
   supabase/       client / server / admin helpers
 proxy.ts          Next 16 middleware — admin 가드 + rate limit + app/web 분기
-supabase/migrations/  34개 마이그레이션 (날짜순)
+supabase/migrations/  39개 마이그레이션 (날짜순)
 public/icons/     PWA 아이콘 (192, 512)
 capacitor.config.ts   네이티브 앱 셸 (com.farmerstail.app)
 ```
@@ -64,6 +65,7 @@ capacitor.config.ts   네이티브 앱 셸 (com.farmerstail.app)
  ├─ addresses (다중 배송지)
  ├─ dogs → surveys → analyses (영양 분석 v2: WSAVA BCS9 + 만성질환 11종)
  │   ├─ weight_logs, health_logs, dog_reminders
+ │   ├─ dog_formulas → dog_checkins (personalization cycle 처방 + 응답)
  ├─ orders → order_items (Toss 결제 + payment_status FSM)
  ├─ subscriptions → subscription_items + subscription_charges (정기결제 cron)
  ├─ reviews (구매 인증 + photo_urls)
@@ -91,8 +93,24 @@ capacitor.config.ts   네이티브 앱 셸 (com.farmerstail.app)
 | `coupon-expiry` | 02:00 | 11:00 | 만료 D-3 임박 쿠폰 안내 |
 | `cart-recovery` | 09:00 | 18:00 | 장바구니 회수 메일 |
 | `subscription-charge` | 19:00 | 04:00 (다음날) | 정기배송 자동 빌링 |
+| `personalization-progression` | 19:00 | 04:00 (다음날) | 28일 cycle 만료된 강아지 다음 처방 자동 생성 + push/email |
 
 모든 cron 은 `Authorization: Bearer ${CRON_SECRET}` 검증. 누락 시 401.
+
+## Personalization 시스템
+
+5종 화식 (Basic 닭 / Weight 오리 / Skin 연어 / Premium 소 / Joint 돼지) +
+동결건조 토퍼를 강아지별 비율로 조합하는 D2C 정기배송. 매월 자동 비율 조정.
+
+| 영역 | 위치 |
+|---|---|
+| 알고리즘 | `lib/personalization/firstBox.ts` (cycle 1) + `nextBox.ts` (cycle 2+) |
+| API | `app/api/personalization/{compute,checkin,adjust}/route.ts` |
+| Cron | `app/api/cron/personalization-progression/route.ts` (매일 KST 04:00) |
+| Admin | `/admin/personalization` (시뮬레이터) + `/admin/personalization/picking-list` (CSV) |
+| Email | `lib/email/templates/personalization-cycle.ts` |
+| 사용자 UI | `components/analysis/RecommendationBox.tsx` (analysis 페이지에 통합) |
+| 문서 | **`docs/PERSONALIZATION.md`** — 운영 매뉴얼 / 룰 표 / 디버그 |
 
 ## 기술 스택
 
