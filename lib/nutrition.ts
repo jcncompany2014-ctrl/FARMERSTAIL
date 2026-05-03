@@ -35,6 +35,30 @@ export type SurveyAnswers = {
   dailyWalkMinutes?: number
   /** 현재 주식 브랜드명 */
   currentFoodBrand?: string
+  // ── personalization v3 — 화식 비율 알고리즘 input ──
+  // (마이그레이션 20260502000001 참조. 모든 필드 영양 calc 에는 미사용 —
+  //  algorithm.ts 의 첫 박스 비율 결정 단계에서만 사용.)
+  /** 보호자 메인 케어 목표 — 알고리즘 1순위 변수 */
+  careGoal?:
+    | 'weight_management'
+    | 'skin_coat'
+    | 'joint_senior'
+    | 'allergy_avoid'
+    | 'general_upgrade'
+  /** 화식 경험 — 첫 박스 보수성 결정 */
+  homeCookingExperience?: 'first' | 'occasional' | 'frequent'
+  /** 현재 식이 만족도 1~5 — 4주차 비교 baseline */
+  currentDietSatisfaction?: 1 | 2 | 3 | 4 | 5
+  /** 최근 6개월 체중 추세 */
+  weightTrend6mo?: 'stable' | 'gained' | 'lost' | 'unknown'
+  /** 위장 민감도 — 사료 변경 시 변 무름 빈도 */
+  giSensitivity?: 'rare' | 'sometimes' | 'frequent' | 'always'
+  /** 선호 단백질 — 알레르기와 별개의 기호 신호 */
+  preferredProteins?: Array<
+    'chicken' | 'beef' | 'salmon' | 'pork' | 'lamb' | 'duck'
+  >
+  /** 산책 외 실내 활동 수준 */
+  indoorActivity?: 'calm' | 'moderate' | 'active'
 }
 
 export type DogInfo = {

@@ -20,6 +20,15 @@ import {
   Baby,
   Sparkles,
   ShieldAlert,
+  Scale,
+  Bone,
+  Star,
+  TrendingDown,
+  TrendingUp,
+  Minus,
+  Activity,
+  Heart,
+  Pause,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -90,6 +99,64 @@ const ALLERGY_OPTIONS = [
   '대두',
 ]
 
+// 케어 목표 — 5종 라인업 (Basic / Weight / Skin / Premium / Joint) 과 1:1 매핑.
+// 알고리즘이 첫 박스의 메인 라인을 결정할 때 1순위로 보는 변수.
+type CareGoal =
+  | 'weight_management'
+  | 'skin_coat'
+  | 'joint_senior'
+  | 'allergy_avoid'
+  | 'general_upgrade'
+
+const CARE_GOAL_OPTIONS: Array<{
+  v: CareGoal
+  label: string
+  desc: string
+  Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+}> = [
+  {
+    v: 'weight_management',
+    label: '체중 관리',
+    desc: '감량 / 유지 / 증량 — BCS 가 5점에서 멀수록 적극 조정',
+    Icon: Scale,
+  },
+  {
+    v: 'skin_coat',
+    label: '피부·털 개선',
+    desc: '윤기 부족, 가려움, 푸석함 — 오메가-3 비중 강화',
+    Icon: Sparkles,
+  },
+  {
+    v: 'joint_senior',
+    label: '관절·시니어 케어',
+    desc: '7세 이상 또는 관절 신호 — B1·콜린·콜라겐 중심',
+    Icon: Bone,
+  },
+  {
+    v: 'allergy_avoid',
+    label: '알레르기·민감 회피',
+    desc: '특정 단백질 차단 + 노블 프로틴 우선',
+    Icon: ShieldAlert,
+  },
+  {
+    v: 'general_upgrade',
+    label: '일반 영양 업그레이드',
+    desc: '특별 이슈 없음 — 균형식 + 기호성 중심',
+    Icon: Star,
+  },
+]
+
+// 선호 단백질 — 알레르기와 별개의 기호 신호. 알레르기 제외 후 선호도가 높은
+// 단백질에 알고리즘 가산점.
+const PROTEIN_OPTIONS: Array<{ v: string; label: string }> = [
+  { v: 'chicken', label: '닭/칠면조' },
+  { v: 'duck', label: '오리' },
+  { v: 'beef', label: '소고기' },
+  { v: 'salmon', label: '연어/생선' },
+  { v: 'pork', label: '돼지고기' },
+  { v: 'lamb', label: '양고기' },
+]
+
 export default function SurveyPage() {
   const router = useRouter()
   const params = useParams()
@@ -124,6 +191,24 @@ export default function SurveyPage() {
   // 7. status
   const [pregnancy, setPregnancy] = useState<'none' | 'pregnant' | 'lactating' | ''>('')
   const [coat, setCoat] = useState<'healthy' | 'dull' | 'shedding' | 'itchy' | 'lesions' | ''>('')
+
+  // ── personalization v3 — 화식 비율 알고리즘 input ──
+  // body 단계에 흡수
+  const [weightTrend, setWeightTrend] =
+    useState<'stable' | 'gained' | 'lost' | 'unknown' | ''>('')
+  // stool 단계에 흡수
+  const [giSensitivity, setGiSensitivity] =
+    useState<'rare' | 'sometimes' | 'frequent' | 'always' | ''>('')
+  // diet 단계에 흡수
+  const [indoorActivity, setIndoorActivity] =
+    useState<'calm' | 'moderate' | 'active' | ''>('')
+  const [homeCookingExp, setHomeCookingExp] =
+    useState<'first' | 'occasional' | 'frequent' | ''>('')
+  const [dietSatisfaction, setDietSatisfaction] = useState<1 | 2 | 3 | 4 | 5 | null>(null)
+  // allergy 단계에 흡수
+  const [preferredProteins, setPreferredProteins] = useState<string[]>([])
+  // status 단계에 흡수 — 알고리즘 1순위 변수
+  const [careGoal, setCareGoal] = useState<CareGoal | ''>('')
 
   useEffect(() => {
     async function load() {
@@ -164,10 +249,23 @@ export default function SurveyPage() {
       setErr('체형을 선택해 주세요')
       return false
     }
-    // mcs / stool / status / chronic 은 모두 선택 가능 — skip 허용
-    if (currentStep === 'diet' && (!foodType || !snackFreq || !taste)) {
-      setErr('주식 / 간식 / 기호를 모두 선택해 주세요')
-      return false
+    // mcs / stool 은 임상 평가 — 모르면 skip 허용. weightTrend / giSensitivity
+    // 는 personalization 알고리즘 input 이지만 모를 수 있으니 'unknown' 옵션
+    // 으로 대체 가능 (UI 에서 명시).
+    if (currentStep === 'diet') {
+      if (!foodType || !snackFreq || !taste) {
+        setErr('주식 / 간식 / 기호를 모두 선택해 주세요')
+        return false
+      }
+      // Critical — 첫 박스 결정에 필수
+      if (!homeCookingExp) {
+        setErr('화식 경험 정도를 선택해 주세요')
+        return false
+      }
+      if (dietSatisfaction === null) {
+        setErr('현재 식이 만족도를 선택해 주세요')
+        return false
+      }
     }
     if (currentStep === 'allergy' && !dlMode) {
       setErr('하나를 선택해 주세요')
@@ -175,6 +273,11 @@ export default function SurveyPage() {
     }
     if (currentStep === 'allergy' && dlMode === 'has' && allergies.length === 0) {
       setErr('하나 이상 선택해 주세요')
+      return false
+    }
+    // status 는 임신/모질 외에 careGoal 추가 — 1순위 변수라 필수.
+    if (currentStep === 'status' && !careGoal) {
+      setErr('가장 신경 쓰고 싶은 케어 목표를 선택해 주세요')
       return false
     }
     return true
@@ -252,6 +355,14 @@ export default function SurveyPage() {
       appetite: taste || undefined,
       dailyWalkMinutes: walkMinutes ? Number(walkMinutes) : undefined,
       currentFoodBrand: currentBrand.trim() || undefined,
+      // v3 — personalization 알고리즘 input
+      careGoal: careGoal || undefined,
+      homeCookingExperience: homeCookingExp || undefined,
+      currentDietSatisfaction: dietSatisfaction ?? undefined,
+      weightTrend6mo: weightTrend || undefined,
+      giSensitivity: giSensitivity || undefined,
+      preferredProteins: preferredProteins as SurveyAnswers['preferredProteins'],
+      indoorActivity: indoorActivity || undefined,
     }
 
     // surveys insert
@@ -271,6 +382,14 @@ export default function SurveyPage() {
         coat_condition: coat || null,
         appetite: taste || null,
         pregnancy_status: pregnancy || null,
+        // v3 — personalization 알고리즘 input (마이그 20260502000001)
+        care_goal: careGoal || null,
+        home_cooking_experience: homeCookingExp || null,
+        current_diet_satisfaction: dietSatisfaction,
+        weight_trend_6mo: weightTrend || null,
+        gi_sensitivity: giSensitivity || null,
+        preferred_proteins: preferredProteins,
+        indoor_activity: indoorActivity || null,
       })
       .select()
       .single()
@@ -450,6 +569,23 @@ export default function SurveyPage() {
                 <strong>{BCS_DESCRIPTIONS[bcs].label}:</strong> {BCS_DESCRIPTIONS[bcs].desc}
               </p>
             )}
+
+            <Section label="최근 6개월 체중 변화 (선택)">
+              <OptsRow
+                value={weightTrend}
+                options={[
+                  { v: 'stable', label: '비슷', Icon: Minus },
+                  { v: 'gained', label: '늘었음', Icon: TrendingUp },
+                  { v: 'lost', label: '빠졌음', Icon: TrendingDown },
+                  { v: 'unknown', label: '잘 모름', Icon: HelpCircle },
+                ]}
+                onChange={(v) => setWeightTrend(v as typeof weightTrend)}
+              />
+              <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
+                BCS 가 &ldquo;현재&rdquo; 라면 추세는 &ldquo;변화 방향&rdquo;이에요.
+                의도된 감량인지 우려 신호인지 구분해 더 정확한 칼로리 처방을 만들어요.
+              </p>
+            </Section>
           </div>
         )}
 
@@ -533,6 +669,23 @@ export default function SurveyPage() {
                 {bristol === null ? '✓ 잘 모르겠음 (건너뜀)' : '잘 모르겠음 (건너뜀)'}
               </button>
             </div>
+
+            <Section label="사료를 바꿀 때 변이 자주 무르나요? (선택)">
+              <OptsRow
+                value={giSensitivity}
+                options={[
+                  { v: 'rare', label: '거의 없음', Icon: Check },
+                  { v: 'sometimes', label: '가끔', Icon: Meh },
+                  { v: 'frequent', label: '자주', Icon: AlertTriangle },
+                  { v: 'always', label: '매번', Icon: AlertCircle },
+                ]}
+                onChange={(v) => setGiSensitivity(v as typeof giSensitivity)}
+              />
+              <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
+                위장 적응기를 알아야 첫 박스를 보수적으로 시작할지(단일 단백질
+                위주) 더 다양하게 갈지 결정해요.
+              </p>
+            </Section>
           </div>
         )}
 
@@ -598,6 +751,70 @@ export default function SurveyPage() {
                 className="w-32 px-3 py-2.5 rounded-xl border border-rule bg-white text-[12.5px] font-mono"
               />
             </Section>
+
+            <Section label="산책 외 실내 활동은 어떤가요? (선택)">
+              <OptsRow
+                value={indoorActivity}
+                options={[
+                  { v: 'calm', label: '차분', Icon: Pause },
+                  { v: 'moderate', label: '보통', Icon: Activity },
+                  { v: 'active', label: '활발', Icon: Heart },
+                ]}
+                onChange={(v) => setIndoorActivity(v as typeof indoorActivity)}
+              />
+              <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
+                산책 분수만으로는 부족한 활동량 신호. 실내에서도 잘 뛰노는지
+                알면 칼로리 인자를 정밀하게 잡아요.
+              </p>
+            </Section>
+
+            <Section label="화식 경험은 어떤가요?">
+              <OptsRow
+                value={homeCookingExp}
+                options={[
+                  { v: 'first', label: '처음', Icon: Sparkles },
+                  { v: 'occasional', label: '가끔 먹어봄', Icon: Soup },
+                  { v: 'frequent', label: '자주/매일', Icon: Check },
+                ]}
+                onChange={(v) => setHomeCookingExp(v as typeof homeCookingExp)}
+              />
+              <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
+                처음이면 첫 박스를 단순 조합으로 보수적으로 시작해 위장
+                적응부터. 자주/매일이면 즉시 풀 비율로 갑니다.
+              </p>
+            </Section>
+
+            <Section label="지금 식이에 얼마나 만족하세요?">
+              <div className="flex gap-2">
+                {([1, 2, 3, 4, 5] as const).map((s) => {
+                  const active = dietSatisfaction === s
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => setDietSatisfaction(s)}
+                      className={`flex-1 py-3 rounded-xl border text-center transition ${
+                        active
+                          ? 'border-text bg-text text-white'
+                          : 'border-rule bg-white text-text hover:border-muted'
+                      }`}
+                    >
+                      <div className="font-mono text-[16px] font-bold">{s}</div>
+                      <div className="text-[9.5px] mt-0.5 opacity-80">
+                        {s === 1 ? '매우 불만'
+                          : s === 2 ? '불만'
+                          : s === 3 ? '보통'
+                          : s === 4 ? '만족'
+                          : '매우 만족'}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
+                4주차 체크인 때 비교할 baseline 이에요. 지금 만족도가 높을수록
+                알고리즘이 큰 변화 없이 미세 조정만 합니다.
+              </p>
+            </Section>
           </div>
         )}
 
@@ -635,6 +852,33 @@ export default function SurveyPage() {
                 ))}
               </div>
             )}
+
+            <Section label="잘 먹는 단백질이 있나요? (선택, 복수 가능)">
+              <div className="flex flex-wrap gap-2">
+                {PROTEIN_OPTIONS.map(({ v, label }) => {
+                  const active = preferredProteins.includes(v)
+                  return (
+                    <button
+                      key={v}
+                      onClick={() =>
+                        toggleArr(preferredProteins, v, setPreferredProteins)
+                      }
+                      className={`px-3.5 py-2 rounded-xl border text-[12px] font-bold transition ${
+                        active
+                          ? 'border-text bg-text text-white'
+                          : 'border-rule bg-white text-text hover:border-muted'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
+                알레르기와 별개로, 평소 잘 먹는 단백질이 있으면 첫 박스의 메인
+                단백질 우선순위에 가산점을 줘요.
+              </p>
+            </Section>
           </div>
         )}
 
@@ -746,6 +990,48 @@ export default function SurveyPage() {
                 ]}
                 onChange={(v) => setCoat(v as typeof coat)}
               />
+            </Section>
+
+            <Section label="가장 신경 쓰고 싶은 케어 목표는?">
+              <div className="space-y-2">
+                {CARE_GOAL_OPTIONS.map(({ v, label, desc, Icon }) => {
+                  const active = careGoal === v
+                  return (
+                    <button
+                      key={v}
+                      onClick={() => setCareGoal(v)}
+                      className={`w-full py-3 px-4 rounded-xl border transition text-left flex items-start gap-3 ${
+                        active
+                          ? 'border-terracotta bg-bg'
+                          : 'border-rule bg-white hover:border-muted'
+                      }`}
+                    >
+                      <Icon
+                        className={`w-4 h-4 shrink-0 mt-0.5 ${
+                          active ? 'text-terracotta' : 'text-muted'
+                        }`}
+                        strokeWidth={2}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-bold text-text">{label}</div>
+                        <div className="text-[11px] text-muted mt-0.5 leading-relaxed">
+                          {desc}
+                        </div>
+                      </div>
+                      {active && (
+                        <Check
+                          className="w-4 h-4 shrink-0 mt-0.5 text-terracotta"
+                          strokeWidth={2.5}
+                        />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-[10.5px] text-muted mt-3 leading-relaxed">
+                이 답이 첫 박스에 들어갈 화식 라인의 메인을 결정해요. 이후 매월
+                체크인으로 비율이 조정됩니다.
+              </p>
             </Section>
           </div>
         )}
