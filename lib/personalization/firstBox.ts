@@ -39,12 +39,11 @@ import type {
   TransitionStrategy,
 } from './types.ts'
 import { FOOD_LINE_META, ALL_LINES, PROTEIN_TO_LINE } from './lines.ts'
+import { quantizeAndNormalize } from './quantize.ts'
 
 const ALGORITHM_VERSION = 'v1.2.0'
 /** 토퍼 합계 cap — 화식이 주식 지위를 잃지 않도록 30% 한도. */
 const MAX_TOPPER_TOTAL = 0.3
-/** 비율 quantize 단위 (10%). */
-const QUANTIZE_STEP = 0.1
 
 // ──────────────────────────────────────────────────────────────────────────
 // 메인 진입점
@@ -77,7 +76,7 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
   // Step 5d (v1.2) — 실내 활동 + 산책 부족.
   lineRatios = applyIndoorActivityAdjustments(lineRatios, input, reasoning)
 
-  // Step 5e (v1.2) — 만성질환 조합 (Polzin 2013 + Innes 2022).
+  // Step 5e (v1.2) — 만성질환 조합 (Polzin 2011 + IRIS 2019 + Vandeweerd 2012).
   lineRatios = applyChronicComboAdjustments(lineRatios, input, reasoning)
 
   // Step 5f (v1.2) — 현재 식이 만족도 (firstBox 에서도 활용).
@@ -122,61 +121,8 @@ function emptyRatios(): Record<FoodLine, Ratio> {
   return { basic: 0, weight: 0, skin: 0, premium: 0, joint: 0 }
 }
 
-/** blocked 라인은 0 으로 강제하고, 나머지를 정규화. */
-function normalize(
-  ratios: Record<FoodLine, Ratio>,
-  blocked: Set<FoodLine>,
-): Record<FoodLine, Ratio> {
-  const out: Record<FoodLine, Ratio> = { ...ratios }
-  for (const line of ALL_LINES) {
-    if (blocked.has(line)) out[line] = 0
-  }
-  const total = ALL_LINES.reduce((s, l) => s + out[l], 0)
-  if (total <= 0) {
-    // 모든 라인이 0 — 알레르기 다수 + 룰 충돌. fallback: blocked 가 아닌 첫 라인 100%.
-    const fallback = ALL_LINES.find((l) => !blocked.has(l)) ?? 'skin'
-    out[fallback] = 1
-    return out
-  }
-  for (const line of ALL_LINES) {
-    out[line] = out[line] / total
-  }
-  return out
-}
-
-/** 0.1 단위로 round, 합 1.0 보장. 가장 큰 라인이 잔차 흡수. */
-function quantize(ratios: Record<FoodLine, Ratio>): Record<FoodLine, Ratio> {
-  const rounded = ALL_LINES.reduce(
-    (acc, l) => {
-      acc[l] = Math.round(ratios[l] / QUANTIZE_STEP) * QUANTIZE_STEP
-      return acc
-    },
-    {} as Record<FoodLine, Ratio>,
-  )
-  const sum = ALL_LINES.reduce((s, l) => s + rounded[l], 0)
-  const diff = 1 - sum
-  if (Math.abs(diff) > 1e-9) {
-    // 잔차를 가장 큰 라인에 흡수. 큰 라인이 없으면 첫 non-zero.
-    const target =
-      ALL_LINES.reduce<FoodLine | null>(
-        (best, l) =>
-          rounded[l] > 0 && (best === null || rounded[l] > rounded[best])
-            ? l
-            : best,
-        null,
-      ) ?? 'basic'
-    rounded[target] += diff
-    rounded[target] = Math.max(0, Math.round(rounded[target] * 10) / 10)
-  }
-  return rounded
-}
-
-function quantizeAndNormalize(
-  ratios: Record<FoodLine, Ratio>,
-  blocked: Set<FoodLine>,
-): Record<FoodLine, Ratio> {
-  return quantize(normalize(ratios, blocked))
-}
+// normalize / quantize / quantizeAndNormalize 는 ./quantize.ts 의 단일 진실 소스.
+// firstBox / nextBox 가 동일 로직을 중복 보유하던 걸 추출. 변경은 거기서.
 
 // ──────────────────────────────────────────────────────────────────────────
 // Step 1 — 알레르기 차단 (priority 0)
@@ -522,12 +468,18 @@ function applyWeightTrendAdjustments(
 //     · Active working: 3.0-8.0
 //
 // 활발한 견 (산책 60분+ 또는 high activity) → 단백질 + 헴철분 + 아연 더 필요.
-//   Source: Hill (2018) "Sport dog nutrition" J Anim Sci. 96(11):4717-4729 —
-//   활동량 ↑ 견은 회복용 단백질 25-32% 권장 (sedentary 의 18-25% 대비).
+//   Source:
+//     · NRC (2006) "Nutrient Requirements of Dogs and Cats" ch.13
+//       Table 13-1 — MER multiplier for working/exercising dogs (×3-8 RER).
+//     · Wakshlag & Shmalberg (2014) "Nutritional management of the canine
+//       athlete" Vet Clin North Am Small Anim Pract 44(4):807-825 —
+//       활동량 ↑ 견은 회복용 단백질 ≥25% DM 권장.
 //
 // 차분한 견 (low activity + 짧은 산책) → 칼로리 ↓ + Weight 라인 우선.
-//   Source: German (2010) "Obesity prevalence in dogs" — 활동량 부족 +
-//   고지방식이 비만 1차 원인.
+//   Source:
+//     · German (2006) "The Growing Problem of Obesity in Dogs and Cats"
+//       J Nutr 136(7 Suppl):1940S-1946S — 활동량 부족 + 고지방식이가
+//       비만의 1차 원인.
 
 function applyActivityAdjustments(
   ratios: Record<FoodLine, Ratio>,
@@ -608,9 +560,13 @@ function applyActivityAdjustments(
 // v1.2 — Step 5d: 실내 활동 + 산책 부족 (priority 4)
 // ──────────────────────────────────────────────────────────────────────────
 //
-// 근거 — Bland et al. (2010) "Dog obesity: owner attitudes and behaviour"
-//   J Small Anim Pract. 51(8):412-419:
-//   실내-only / 산책 30분 미만 견은 비만 risk 1.7~2.3배 ↑
+// 근거:
+//   · Bland et al. (2009) "Dog obesity: owner attitudes and behaviour"
+//     Prev Vet Med 92(4):333-340 — 보호자 행동 + 활동량 패턴이 비만 risk 와
+//     강한 상관 (OR 보고는 별도 논문 참고).
+//   · Courcier et al. (2010) "Prevalence and risk factors for obesity in
+//     adult dogs" J Small Anim Pract 51(7):362-367 — 실내 위주 / 운동 부족
+//     견의 비만 OR 약 1.7-2.3 (활동 등급별).
 //
 // 처방: 산책 부족 + 실내 차분 → 야채 토퍼 ↑ (포만감 + 저칼로리 식이섬유)
 
@@ -661,14 +617,17 @@ function applyIndoorActivityAdjustments(
 // ──────────────────────────────────────────────────────────────────────────
 //
 // 근거:
-//  · Polzin (2013) "Chronic kidney disease in small animals"
-//    Vet Clin North Am Small Anim Pract. 43(4):721-735:
-//    CKD + 관절염 동시 → 단백질 제한 (CKD 우선) + 콜라겐 보충 (관절).
-//    Premium (소·헴철분 ↑ → 신장 부담) 보다 Joint (돼지·콜라겐) 우선.
-//  · Innes et al. (2022) "Joint disease in dogs: long term outcomes"
-//    BMC Vet Res. 18:212:
-//    오메가-3 + GAG (글리코사미노글리칸) 조합 효과 — Skin (연어) + Joint
-//    (사골육수) 시너지.
+//  · Polzin (2011) "Chronic Kidney Disease in Small Animals"
+//    Vet Clin North Am Small Anim Pract 41(1):15-30 — CKD 진단/관리 종설.
+//  · IRIS (2019) "Staging of CKD" www.iris-kidney.com — Stage 3+ 단백질 제한
+//    권장 (Stage 1-2 는 인 제한 위주, 단백질 정상). 본 알고리즘은 staging
+//    입력 없이 일률 제한 — v1.3 에서 IRIS stage 입력 추가 예정.
+//  · Vandeweerd et al. (2012) "Systematic review of efficacy of
+//    nutraceuticals in joint disease in dogs" J Vet Intern Med
+//    26(3):448-456 — 오메가-3 / GAG 의 관절염 보조 효과 메타분석.
+//  · Roush et al. (2010) "Multicenter veterinary practice assessment of EPA
+//    and DHA on osteoarthritis in dogs" JAVMA 236(1):59-66 —
+//    Skin (연어, EPA/DHA) + Joint (사골 GAG) 시너지 임상 근거.
 
 function applyChronicComboAdjustments(
   ratios: Record<FoodLine, Ratio>,
@@ -706,7 +665,7 @@ function applyChronicComboAdjustments(
   }
 
   // 알레르기성 피부염 + 관절염 — Skin (오메가-3) 와 Joint 동시 가산.
-  // Innes 2022 — 오메가-3 와 GAG 조합 항염증 효과.
+  // Vandeweerd 2012 / Roush 2010 — 오메가-3 + GAG 조합 항염증 효과.
   if (c.includes('allergy_skin') && c.includes('arthritis')) {
     if (ratios.skin >= 0.2 && ratios.joint >= 0.2) {
       reasoning.push({
@@ -753,10 +712,11 @@ function applyChronicComboAdjustments(
 // v1.2 — Step 5f: 현재 식이 만족도 (firstBox priority 5)
 // ──────────────────────────────────────────────────────────────────────────
 //
-// 근거 — Customer retention 이론 + Pet food switch 연구:
-//  · Houpt (1991) "Feeding problems and behavior modification" —
-//    급격한 식이 변경은 거부율 30%+ 유발.
-//  · 이미 만족도 4-5 인 식이는 변화 자체가 churn risk.
+// 근거 — UX/retention 룰 (영양학 기반 아님, 행동·기호성):
+//  · Bourgeois et al. (2006) "Dietary preferences of dogs and cats" —
+//    포유류 기호성 연구. 갑작스러운 식이 변경은 수용도 ↓.
+//  · 이미 만족도 4-5 인 식이는 변화 자체가 churn risk (제품 운영 경험).
+//    임상 영양 권고가 아닌 제품 결정.
 //
 // firstBox 에서는 lineRatios 자체는 안 건드림. reasoning 만 발화해서
 // nextBox 가 'freeze' 룰 적용하기 쉽게.
@@ -873,9 +833,12 @@ function applyPreferredProteinBonus(
     bumped = true
   }
   if (bumped) {
+    // chip 진실성 — 가산 후 normalize/quantize 가 결과 ratio 를 0.05~0.1
+    // 만큼 깎을 수 있어 정확히 "+X%" 가 아닐 수 있음. chip 텍스트에 그
+    // 사실을 명시 (audit C-5). 정확한 final ratio 는 stacked bar 에서 확인.
     reasoning.push({
       trigger: `선호 단백질: ${input.preferredProteins.join(', ')}`,
-      action: `해당 라인 +${(bumpAmount * 100).toFixed(0)}% (기호성 보정)`,
+      action: `해당 라인 가산 시도 (~+${(bumpAmount * 100).toFixed(0)}%, 정량 한도 내 적용)`,
       chipLabel: '선호 단백질 가산',
       priority: 7,
       ruleId: 'preferred-protein-bonus',

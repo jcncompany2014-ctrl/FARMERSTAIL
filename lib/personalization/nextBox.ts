@@ -34,9 +34,10 @@ import type {
   TransitionStrategy,
 } from './types.ts'
 import { FOOD_LINE_META, ALL_LINES } from './lines.ts'
+import { quantizeAndNormalize } from './quantize.ts'
 
-const ALGORITHM_VERSION = 'v1.1.0'
-const QUANTIZE_STEP = 0.1
+// firstBox 와 동일 버전 — 둘 다 같은 룰셋/타입을 공유. 분리 버전은 분석/diff 깨짐.
+const ALGORITHM_VERSION = 'v1.2.0'
 
 // ──────────────────────────────────────────────────────────────────────────
 // 메인 진입점
@@ -184,47 +185,7 @@ function shiftRatio(
   }
 }
 
-/** 비율 정규화 + 0.1 단위 quantize. blocked 라인은 강제 0. */
-function quantizeAndNormalize(
-  ratios: Record<FoodLine, Ratio>,
-  blocked: Set<FoodLine>,
-): Record<FoodLine, Ratio> {
-  // 1) blocked → 0
-  const cleaned: Record<FoodLine, Ratio> = { ...ratios }
-  for (const line of ALL_LINES) {
-    if (blocked.has(line)) cleaned[line] = 0
-  }
-  // 2) sum > 0 보장
-  const sum = ALL_LINES.reduce((s, l) => s + cleaned[l], 0)
-  if (sum <= 0) {
-    const fallback = ALL_LINES.find((l) => !blocked.has(l)) ?? 'skin'
-    cleaned[fallback] = 1
-  } else {
-    for (const line of ALL_LINES) cleaned[line] = cleaned[line] / sum
-  }
-  // 3) 0.1 단위 round + 잔차 흡수
-  const rounded = ALL_LINES.reduce(
-    (acc, l) => {
-      acc[l] = Math.round(cleaned[l] / QUANTIZE_STEP) * QUANTIZE_STEP
-      return acc
-    },
-    {} as Record<FoodLine, Ratio>,
-  )
-  const total = ALL_LINES.reduce((s, l) => s + rounded[l], 0)
-  const diff = 1 - total
-  if (Math.abs(diff) > 1e-9) {
-    const target =
-      ALL_LINES.reduce<FoodLine | null>(
-        (best, l) =>
-          rounded[l] > 0 && (best === null || rounded[l] > rounded[best])
-            ? l
-            : best,
-        null,
-      ) ?? 'basic'
-    rounded[target] = Math.max(0, Math.round((rounded[target] + diff) * 10) / 10)
-  }
-  return rounded
-}
+// quantizeAndNormalize 는 ./quantize.ts 단일 진실 소스 (firstBox 와 공유).
 
 // ──────────────────────────────────────────────────────────────────────────
 // week_2 신호 — 위장 적응

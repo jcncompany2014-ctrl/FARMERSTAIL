@@ -217,13 +217,41 @@ export default function AnalysisView({
 
   return (
     <main className="pb-10">
-      <section className="px-5 pt-6 pb-2">
+      <section className="px-5 pt-6 pb-2 flex items-center justify-between gap-3">
         <Link
           href={isArchive ? `/dogs/${dogId}/analyses` : `/dogs/${dogId}`}
           className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← {isArchive ? '분석 히스토리' : dog.name}
         </Link>
+        <button
+          onClick={async () => {
+            const text = `${dog.name}의 맞춤 영양 분석\n\n• 하루 에너지 ${analysis.mer.toLocaleString()} kcal\n• 급여량 ${analysis.feed_g}g/일\n• 체형 ${analysis.bcs_label}\n\n파머스테일 · Farm to Tail`
+            const shareData = {
+              title: `${dog.name} 영양 분석 · 파머스테일`,
+              text,
+              url: typeof window !== 'undefined' ? window.location.href : '',
+            }
+            if (typeof navigator !== 'undefined' && navigator.share) {
+              try {
+                await navigator.share(shareData)
+              } catch {
+                /* 사용자 취소 */
+              }
+            } else if (
+              typeof navigator !== 'undefined' &&
+              navigator.clipboard
+            ) {
+              await navigator.clipboard.writeText(`${text}\n${shareData.url}`)
+              toast.success('분석 요약을 복사했어요')
+            }
+          }}
+          className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-terracotta font-semibold transition-colors"
+          aria-label="분석 결과 공유"
+        >
+          <Share2 className="w-3 h-3" strokeWidth={2.5} />
+          공유
+        </button>
       </section>
 
       {/* Sticky 핵심 요약 — 스크롤해도 상단에 고정 */}
@@ -272,46 +300,25 @@ export default function AnalysisView({
         </section>
       )}
 
-      {/* Hero */}
-      <section className="px-5 mt-3 text-center relative">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-moss/10 text-moss text-[10px] font-bold tracking-[0.15em] uppercase mb-3">
+      {/* Hero — 시각적 위계: kicker → 이름 (가장 강조) → AAFCO 배지 (안심) */}
+      <section className="px-5 mt-4 text-center">
+        <span className="kicker inline-block">Nutrition Report</span>
+        <h1
+          className="font-serif mt-1.5"
+          style={{
+            fontSize: 24,
+            fontWeight: 800,
+            color: 'var(--ink)',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.2,
+          }}
+        >
+          {dog.name} 맞춤 영양 분석
+        </h1>
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-moss/10 text-moss text-[10px] font-bold tracking-[0.15em] uppercase mt-3">
           <ShieldCheck className="w-3 h-3" strokeWidth={2.5} />
           AAFCO 2024 충족
         </div>
-        <span className="kicker inline-block">Nutrition Report</span>
-        <h1 className="font-serif mt-1.5" style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-          {dog.name} 맞춤 영양 분석
-        </h1>
-        <button
-          onClick={async () => {
-            const text = `${dog.name}의 맞춤 영양 분석\n\n• 하루 에너지 ${analysis.mer.toLocaleString()} kcal\n• 급여량 ${analysis.feed_g}g/일\n• 체형 ${analysis.bcs_label}\n\n파머스테일 · Farm to Tail`
-            const shareData = {
-              title: `${dog.name} 영양 분석 · 파머스테일`,
-              text,
-              url: typeof window !== 'undefined' ? window.location.href : '',
-            }
-            if (typeof navigator !== 'undefined' && navigator.share) {
-              try {
-                await navigator.share(shareData)
-              } catch {
-                /* 사용자 취소 */
-              }
-            } else if (
-              typeof navigator !== 'undefined' &&
-              navigator.clipboard
-            ) {
-              await navigator.clipboard.writeText(
-                `${text}\n${shareData.url}`
-              )
-              toast.success('분석 요약을 복사했어요')
-            }
-          }}
-          className="absolute top-0 right-5 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-rule text-[10px] font-bold text-text hover:border-terracotta hover:text-terracotta active:scale-[0.96] transition-all shadow-sm"
-          aria-label="분석 결과 공유"
-        >
-          <Share2 className="w-3 h-3" strokeWidth={2.5} />
-          공유
-        </button>
       </section>
 
       {/* Energy card */}

@@ -78,6 +78,10 @@ export default function StructuredAnalysis({
     })()
     return () => {
       cancelled = true
+      // React 19 dev StrictMode mount→unmount→mount 시 두 번째 mount 가
+      // ref 가드로 early return 되어 첫 fetch 의 setState 가 cancelled=true
+      // 라 무시 → 무한 loading. ref 리셋해 두 번째 mount 가 새로 fetch.
+      if (fetchedRef.current === analysisId) fetchedRef.current = null
     }
   }, [analysisId])
 

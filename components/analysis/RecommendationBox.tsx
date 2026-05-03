@@ -164,6 +164,11 @@ export default function RecommendationBox({
     })()
     return () => {
       cancelled = true
+      // React 19 dev StrictMode 의 mount→unmount→mount 더블 fire 대응:
+      // ref 를 그대로 두면 두 번째 mount 가 early return 으로 빠지고
+      // 첫 fetch 가 완료돼도 cancelled=true 라 setState 무시 → 영원히 loading.
+      // ref 를 리셋해 두 번째 mount 가 새 fetch 를 시작하도록.
+      if (fetchedRef.current === dogId) fetchedRef.current = null
     }
   }, [dogId])
 
@@ -270,11 +275,11 @@ function RecommendationView({
   const mainLine = selectedLines[0]
   const mainMeta = mainLine ? FOOD_LINE_META[mainLine] : null
 
-  // 토퍼 합계 — 화식 위에 추가되는 비중.
+  // Spec A — 메인 화식 5종 합 = 100% (정량 영양 책임), 토퍼 = 별도 0~30% 보너스.
+  // 메인과 토퍼를 같은 100% 안에 끼워 분배하지 않음 (이전 Spec B 잔재 제거).
   const topperTotalPct = Math.round(
     (formula.toppers.protein + formula.toppers.vegetable) * 100,
   )
-  const mainPct = 100 - topperTotalPct
 
   // 알고리즘이 0% 처리한 라인 = blocked. reasoning ruleId allergy-* 가 있으면
   // 알레르기 차단 라인으로 추정.
@@ -321,16 +326,17 @@ function RecommendationView({
         </div>
       </div>
 
-      {/* Bar viz */}
+      {/* Bar viz — Spec A: 메인 5종만 stack (합 100%), 토퍼는 카드 아래 별도 섹션. */}
       <div className="fb-bar-wrap">
         <div className="fb-bar-axis">
-          <span>메인 화식 {mainPct}%</span>
-          {topperTotalPct > 0 && <span>토퍼 {topperTotalPct}%</span>}
+          <span>메인 화식 5종 100%</span>
+          {topperTotalPct > 0 && (
+            <span>+ 토퍼 보너스 {topperTotalPct}%</span>
+          )}
         </div>
         <div className="fb-bar">
-          {/* 메인 라인 segments */}
           {selectedLines.map((line) => {
-            const pct = Math.round(formula.lineRatios[line] * 100 * (mainPct / 100))
+            const pct = Math.round(formula.lineRatios[line] * 100)
             if (pct === 0) return null
             return (
               <span
@@ -344,27 +350,6 @@ function RecommendationView({
               />
             )
           })}
-          {/* 토퍼 segments */}
-          {formula.toppers.vegetable > 0 && (
-            <span
-              className="fb-bar-seg"
-              style={{
-                width: `${Math.round(formula.toppers.vegetable * 100)}%`,
-                background: 'var(--moss)',
-              }}
-              title={`야채 토퍼 ${Math.round(formula.toppers.vegetable * 100)}%`}
-            />
-          )}
-          {formula.toppers.protein > 0 && (
-            <span
-              className="fb-bar-seg"
-              style={{
-                width: `${Math.round(formula.toppers.protein * 100)}%`,
-                background: '#A86B4A',
-              }}
-              title={`육류 토퍼 ${Math.round(formula.toppers.protein * 100)}%`}
-            />
-          )}
         </div>
         <div className="fb-bar-legend">
           {ALL_LINES.map((line) => {

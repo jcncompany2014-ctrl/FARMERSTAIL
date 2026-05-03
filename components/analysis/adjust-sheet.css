@@ -104,16 +104,25 @@
   box-shadow: 0 1px 2px rgba(46, 31, 20, .04);
 }
 .adj-live-axis {
-  display: flex; justify-content: space-between;
+  display: flex; justify-content: space-between; align-items: center;
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
   font-size: 9.5px; color: var(--muted);
-  letter-spacing: .04em; margin-bottom: 8px;
+  letter-spacing: .04em; margin-bottom: 6px;
 }
 .adj-live-axis .l { display: flex; align-items: center; gap: 5px; }
-.adj-live-axis .l b { color: var(--ink); font-weight: 600; }
-.adj-live-bar-wrap { position: relative; }
+.adj-live-axis .l b { color: var(--ink); font-weight: 600; font-size: 11px; }
+.adj-live-axis .r {
+  display: flex; align-items: center; gap: 4px;
+  color: #566729; font-weight: 600;
+}
+.adj-live-axis .r.warn { color: #A0452E; }
+/* 토퍼 axis — 메인 bar 와 시각적 구분을 위해 위쪽 여백 + 옅은 dashed 라인 */
+.adj-live-axis-topper {
+  margin-top: 14px; padding-top: 10px;
+  border-top: 1px dashed var(--rule);
+}
 .adj-live-bar {
-  height: 18px; border-radius: 99px;
+  height: 16px; border-radius: 99px;
   overflow: hidden;
   display: flex;
   background: var(--rule);
@@ -123,33 +132,17 @@
   height: 100%;
   transition: width 360ms cubic-bezier(.32, .72, .0, 1);
 }
-.adj-live-divider {
-  position: absolute; top: 0; bottom: 0;
-  width: 1px; background: rgba(255, 255, 255, .55);
-  pointer-events: none;
+/* 토퍼 bar — 메인보다 살짝 얇게 (보너스 성격 강조) */
+.adj-live-bar-topper {
+  height: 12px;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      var(--rule) 0 4px,
+      transparent 4px 8px
+    ),
+    var(--bg-2);
 }
-.adj-live-foot {
-  margin-top: 12px;
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px;
-}
-.adj-live-sum {
-  font-family: var(--font-serif), 'Fraunces', serif;
-  font-size: 34px; line-height: 1; font-weight: 600;
-  color: var(--terracotta);
-  letter-spacing: -.02em;
-}
-.adj-live-sum small {
-  font-size: 13px; color: var(--muted); margin-left: 2px;
-  font-family: var(--font-mono), 'JetBrains Mono', monospace; font-weight: 500;
-}
-.adj-live-sum.warn { color: #A0452E; }
-.adj-live-status {
-  font-size: 11px; color: #566729; font-weight: 600;
-  display: flex; align-items: center; gap: 5px;
-  text-align: right;
-}
-.adj-live-status.warn { color: #A0452E; }
 
 /* Section labels */
 .adj-sect-lbl {
@@ -235,7 +228,11 @@
   margin: 0;
 }
 .adj-range-thumb {
-  position: absolute; top: 50%; transform: translate(-50%, -50%);
+  position: absolute; top: 50%;
+  /* thumb 의 반지름(11px) 만큼 양 끝을 안쪽으로 보정 — pct 0% 에서도 100% 에서도
+     thumb 이 track 안에 완전히 보이도록. inline style 의 --pct (0~100) 사용. */
+  left: calc(11px + (100% - 22px) * var(--pct, 0) / 100);
+  transform: translate(-50%, -50%);
   width: 22px; height: 22px; border-radius: 50%;
   background: var(--ink);
   border: 3px solid #fff;

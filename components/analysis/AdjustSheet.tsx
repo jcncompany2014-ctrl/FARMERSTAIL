@@ -207,8 +207,10 @@ export default function AdjustSheet({
   const topperKeys: string[] = ['vegetable', 'protein']
   const mainSum = sumGroup(ratios, mainKeys)
   const topperSum = sumGroup(ratios, topperKeys)
-  const total = mainSum + topperSum
-  const canSave = total === 100 && !saving
+  // Spec A — 메인 5종 합 = 100% (정량 영양 책임), 토퍼 = 0~30% 별도 보너스.
+  // 둘은 더하지 않음. 메인 합이 정확히 100% 이고 토퍼가 cap 이내면 저장 가능.
+  const canSave =
+    Math.round(mainSum) === 100 && topperSum <= TOPPER_CAP && !saving
 
   function onLineChange(id: string, newVal: number) {
     setRatios((prev) =>
@@ -349,17 +351,16 @@ export default function AdjustSheet({
             ratios={ratios}
             mainSum={mainSum}
             topperSum={topperSum}
-            total={total}
           />
 
-          {/* 메인 화식 */}
+          {/* 메인 화식 — 5종 합 무조건 100% (정량 영양). 단일 라인 max 70%. */}
           <div className="adj-sect-lbl">
             <div className="l">
               <Drumstick size={11} strokeWidth={2} color="var(--ink)" />
               메인 화식 5종
             </div>
             <div className="r">
-              <b>{Math.round(mainSum)}</b>% / 70% 권장
+              <b>{Math.round(mainSum)}</b>% · 합 100% 필수
             </div>
           </div>
           <div className="adj-lines">
@@ -395,11 +396,12 @@ export default function AdjustSheet({
             })}
           </div>
 
-          {/* 토퍼 */}
+          {/* 토퍼 — 메인 정량 위에 끼얹는 보너스. 0~30%, 메인 합과 별개. */}
           <div className="adj-sect-lbl">
             <div className="l">
+              <Plus size={11} strokeWidth={2} color="var(--ink)" />
               <Sprout size={11} strokeWidth={2} color="var(--ink)" />
-              동결건조 토퍼
+              토퍼 보너스
             </div>
             <div className="r">
               <b>{Math.round(topperSum)}</b>% / 30% cap
@@ -519,71 +521,87 @@ function LiveBar({
   ratios,
   mainSum,
   topperSum,
-  total,
 }: {
   ratios: Ratios
   mainSum: number
   topperSum: number
-  total: number
 }) {
-  const ok = total === 100
-  const allKeys = [...ALL_LINES, ...TOPPER_KEYS]
+  // Spec A — 메인 5종 (합 100% 정량 영양) 과 토퍼 (0~30% 보너스) 를 두 줄로
+  // 분리 표시. 두 그룹은 합치지 않음 (서로 다른 dimension).
+  //   - 메인 bar: 100% 너비 = "한 끼니 정량". 5종이 width=v% 로 stack.
+  //   - 토퍼 bar: 30% cap 을 100% 너비로 표시 (스케일링). 2종이 (v/30)*100% 로 stack.
+  const mainOk = Math.round(mainSum) === 100
+  const topperOk = topperSum <= TOPPER_CAP
   return (
     <div className="adj-live">
+      {/* ── 메인 화식 (정량) ───────────────────────────────────────────── */}
       <div className="adj-live-axis">
         <div className="l">
           <UtensilsCrossed size={10} strokeWidth={2} color="var(--muted)" />
           메인 화식 <b>{Math.round(mainSum)}%</b>
         </div>
-        <div className="l">
-          토퍼 <b>{Math.round(topperSum)}%</b>
-          <Plus size={10} strokeWidth={2.4} color="var(--muted)" />
-        </div>
-      </div>
-      <div className="adj-live-bar-wrap">
-        <div className="adj-live-bar">
-          {allKeys.map((k) => {
-            const v = ratios[k] ?? 0
-            if (v === 0) return null
-            const color =
-              k === 'vegetable' || k === 'protein'
-                ? TOPPER_META[k as TopperKey].color
-                : FOOD_LINE_META[k as FoodLine].color
-            return (
-              <i
-                key={k}
-                style={{ width: `${v}%`, background: color }}
-                title={`${k} ${v}%`}
-              />
-            )
-          })}
-        </div>
-        {mainSum > 0 && mainSum < 100 && (
-          <div
-            className="adj-live-divider"
-            style={{ left: `${mainSum}%` }}
-          />
-        )}
-      </div>
-      <div className="adj-live-foot">
-        <div className={'adj-live-sum' + (ok ? '' : ' warn')}>
-          {Math.round(total)}
-          <small>%</small>
-        </div>
-        <div className={'adj-live-status' + (ok ? '' : ' warn')}>
-          {ok ? (
+        <div className={'r' + (mainOk ? '' : ' warn')}>
+          {mainOk ? (
             <>
-              <Check size={11} strokeWidth={2.6} color="#566729" />합 100% — 저장 가능
+              <Check size={10} strokeWidth={2.6} color="#566729" />합 100%
             </>
           ) : (
             <>
-              <AlertCircle size={11} strokeWidth={2.2} color="#A0452E" />
-              {total > 100
-                ? `${Math.round(total - 100)}% 초과`
-                : `${Math.round(100 - total)}% 부족`}
+              <AlertCircle size={10} strokeWidth={2.2} color="#A0452E" />
+              {mainSum > 100
+                ? `${Math.round(mainSum - 100)}% 초과`
+                : `${Math.round(100 - mainSum)}% 부족`}
             </>
           )}
         </div>
+      </div>
+      <div className="adj-live-bar">
+        {ALL_LINES.map((k) => {
+          const v = ratios[k] ?? 0
+          if (v === 0) return null
+          const color = FOOD_LINE_META[k].color
+          return (
+            <i
+              key={k}
+              style={{ width: `${v}%`, background: color }}
+              title={`${k} ${v}%`}
+            />
+          )
+        })}
+      </div>
+
+      {/* ── 토퍼 보너스 (메인 위에 끼얹기, 30% cap) ────────────────────── */}
+      <div className="adj-live-axis adj-live-axis-topper">
+        <div className="l">
+          <Plus size={10} strokeWidth={2.4} color="var(--muted)" />
+          토퍼 보너스 <b>{Math.round(topperSum)}%</b>
+        </div>
+        <div className={'r' + (topperOk ? '' : ' warn')}>
+          {topperOk ? (
+            <>{TOPPER_CAP}% cap 이내</>
+          ) : (
+            <>
+              <AlertCircle size={10} strokeWidth={2.2} color="#A0452E" />
+              {`${Math.round(topperSum - TOPPER_CAP)}% 초과`}
+            </>
+          )}
+        </div>
+      </div>
+      <div className="adj-live-bar adj-live-bar-topper">
+        {TOPPER_KEYS.map((k) => {
+          const v = ratios[k] ?? 0
+          if (v === 0) return null
+          const color = TOPPER_META[k].color
+          // cap 30% 을 100% 너비로 스케일 — 토퍼 5% 는 막대의 16.67% 너비.
+          const pct = Math.min(100, (v / TOPPER_CAP) * 100)
+          return (
+            <i
+              key={k}
+              style={{ width: `${pct}%`, background: color }}
+              title={`${k} ${v}%`}
+            />
+          )
+        })}
       </div>
     </div>
   )
@@ -687,7 +705,10 @@ function SegSlider({
   onChange: (v: number) => void
   onBlockedTouch: () => void
 }) {
-  const pct = (value / max) * 100
+  // value > max 인 케이스 (예: 알고리즘이 단일 100% collapse 한 라인을 sheet 에서
+  // max=70 으로 제한) 에서 pct 가 100% 를 넘어 thumb 이 viewport 밖으로 빠지는
+  // 문제를 막기 위해 0~100 으로 clamp.
+  const pct = Math.max(0, Math.min(100, (value / max) * 100))
   return (
     <div className="adj-range-wrap">
       <div className="adj-range-track">
@@ -720,7 +741,9 @@ function SegSlider({
       {!disabled && (
         <div
           className="adj-range-thumb"
-          style={{ left: `${pct}%` }}
+          // CSS variable 로 pct 전달 — adjust-sheet.css 가 thumb 반지름만큼
+          // 안쪽으로 조정해 0%/100% 에서도 thumb 이 track 안에 완전히 보임.
+          style={{ ['--pct' as string]: pct } as React.CSSProperties}
         />
       )}
     </div>
