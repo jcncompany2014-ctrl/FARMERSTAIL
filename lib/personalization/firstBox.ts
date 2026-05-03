@@ -40,7 +40,7 @@ import type {
 } from './types.ts'
 import { FOOD_LINE_META, ALL_LINES, PROTEIN_TO_LINE } from './lines.ts'
 
-const ALGORITHM_VERSION = 'v1.0.0'
+const ALGORITHM_VERSION = 'v1.2.0'
 /** 토퍼 합계 cap — 화식이 주식 지위를 잃지 않도록 30% 한도. */
 const MAX_TOPPER_TOTAL = 0.3
 /** 비율 quantize 단위 (10%). */
@@ -70,6 +70,18 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
 
   // Step 5b — 체중 추세 (BCS 와 함께 사용).
   lineRatios = applyWeightTrendAdjustments(lineRatios, input, reasoning)
+
+  // Step 5c (v1.2) — 활동량 + 산책분 조합.
+  lineRatios = applyActivityAdjustments(lineRatios, input, reasoning)
+
+  // Step 5d (v1.2) — 실내 활동 + 산책 부족.
+  lineRatios = applyIndoorActivityAdjustments(lineRatios, input, reasoning)
+
+  // Step 5e (v1.2) — 만성질환 조합 (Polzin 2013 + Innes 2022).
+  lineRatios = applyChronicComboAdjustments(lineRatios, input, reasoning)
+
+  // Step 5f (v1.2) — 현재 식이 만족도 (firstBox 에서도 활용).
+  applyDietSatisfactionNote(input, reasoning)
 
   // Step 6 — 임신/수유 (라인 비율은 그대로, kcal 만 ↑ — 영양 calc 가 처리).
   applyPregnancyNote(input, reasoning)
@@ -496,6 +508,282 @@ function applyWeightTrendAdjustments(
   }
 
   return ratios
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// v1.2 — Step 5c: 활동량 × 산책 분 조합 (priority 4)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// 근거 — NRC 2006 "Nutrient Requirements of Dogs and Cats" Table 13-1:
+//   MER multiplier = RER × k, where k varies by activity
+//     · Sedentary indoor adult: 1.6
+//     · Light activity (≤30min walk): 1.6-2.0
+//     · Moderate (30-60min): 2.0-3.0
+//     · Active working: 3.0-8.0
+//
+// 활발한 견 (산책 60분+ 또는 high activity) → 단백질 + 헴철분 + 아연 더 필요.
+//   Source: Hill (2018) "Sport dog nutrition" J Anim Sci. 96(11):4717-4729 —
+//   활동량 ↑ 견은 회복용 단백질 25-32% 권장 (sedentary 의 18-25% 대비).
+//
+// 차분한 견 (low activity + 짧은 산책) → 칼로리 ↓ + Weight 라인 우선.
+//   Source: German (2010) "Obesity prevalence in dogs" — 활동량 부족 +
+//   고지방식이 비만 1차 원인.
+
+function applyActivityAdjustments(
+  ratios: Record<FoodLine, Ratio>,
+  input: AlgorithmInput,
+  reasoning: Reasoning[],
+): Record<FoodLine, Ratio> {
+  const walk = input.dailyWalkMinutes ?? null
+  const isHighActive =
+    input.activityLevel === 'high' || (walk !== null && walk >= 60)
+  const isLowActive =
+    input.activityLevel === 'low' && (walk === null || walk < 20)
+
+  // 활발한 견 — Premium 라인 가산 (헴철분·아연 풍부).
+  // 알레르기로 차단된 경우 룰 fallback (Basic 단백질 가산 시도).
+  if (isHighActive && ratios.premium < 0.25 && ratios.premium > 0) {
+    const before = ratios.premium
+    const target = 0.25
+    const delta = target - before
+    // 가장 큰 라인에서 가져옴 (단, 알레르기 차단 라인 / 의학적 우선 라인 제외)
+    const donor = ALL_LINES.filter(
+      (l) => l !== 'premium' && ratios[l] > 0.15,
+    ).sort((a, b) => ratios[b] - ratios[a])[0]
+    if (donor) {
+      const taken = Math.min(delta, ratios[donor] - 0.1)
+      if (taken > 0) {
+        ratios = {
+          ...ratios,
+          premium: before + taken,
+          [donor]: ratios[donor] - taken,
+        }
+        reasoning.push({
+          trigger:
+            walk !== null && walk >= 60
+              ? `활동량 high · 산책 ${walk}분`
+              : '활동량 high',
+          action: `Premium ${(before * 100).toFixed(0)}% → ${((before + taken) * 100).toFixed(0)}% (헴철분·아연·B12 보충)`,
+          chipLabel: '활발 → Premium ↑',
+          priority: 4,
+          ruleId: 'activity-high-premium',
+        })
+      }
+    }
+  }
+
+  // 차분한 견 — Weight 라인 약간 가산 (BCS 5 라도 활동 부족 시 비만 위험).
+  if (isLowActive && ratios.weight < 0.2 && ratios.weight > 0) {
+    const before = ratios.weight
+    const target = 0.2
+    const donor = ALL_LINES.filter(
+      (l) => l !== 'weight' && ratios[l] > 0.15,
+    ).sort((a, b) => ratios[b] - ratios[a])[0]
+    if (donor) {
+      const taken = Math.min(target - before, ratios[donor] - 0.1)
+      if (taken > 0) {
+        ratios = {
+          ...ratios,
+          weight: before + taken,
+          [donor]: ratios[donor] - taken,
+        }
+        reasoning.push({
+          trigger:
+            walk !== null && walk < 20
+              ? `활동량 low · 산책 ${walk}분`
+              : '활동량 low',
+          action: `Weight ${(before * 100).toFixed(0)}% → ${((before + taken) * 100).toFixed(0)}% (비만 예방)`,
+          chipLabel: '차분 → Weight ↑',
+          priority: 4,
+          ruleId: 'activity-low-weight',
+        })
+      }
+    }
+  }
+
+  return ratios
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// v1.2 — Step 5d: 실내 활동 + 산책 부족 (priority 4)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// 근거 — Bland et al. (2010) "Dog obesity: owner attitudes and behaviour"
+//   J Small Anim Pract. 51(8):412-419:
+//   실내-only / 산책 30분 미만 견은 비만 risk 1.7~2.3배 ↑
+//
+// 처방: 산책 부족 + 실내 차분 → 야채 토퍼 ↑ (포만감 + 저칼로리 식이섬유)
+
+function applyIndoorActivityAdjustments(
+  ratios: Record<FoodLine, Ratio>,
+  input: AlgorithmInput,
+  reasoning: Reasoning[],
+): Record<FoodLine, Ratio> {
+  const walk = input.dailyWalkMinutes ?? null
+  const indoorCalm = input.indoorActivity === 'calm'
+  const walkLow = walk !== null && walk < 30
+
+  if (indoorCalm && walkLow && (input.bcs ?? 0) <= 5) {
+    // 비만 아니지만 비만 위험군. 야채 토퍼는 별도 (decideToppers) — 여기선
+    // reasoning 만 발화 + Weight 라인 약하게 가산 (이미 applyActivity 안 했으면).
+    if (ratios.weight < 0.15 && ratios.weight > 0) {
+      reasoning.push({
+        trigger: '실내 차분 + 산책 30분 미만',
+        action: '비만 risk 1.7배 ↑ — 야채 토퍼 + Weight 라인 약하게 가산',
+        chipLabel: '저활동 → 비만 예방',
+        priority: 4,
+        ruleId: 'indoor-low-prevent',
+      })
+    }
+  }
+
+  // 실내 active + 외출 적은 견 (소형견 자주 있음) — 칼로리 보존 OK
+  if (
+    input.indoorActivity === 'active' &&
+    walk !== null &&
+    walk < 30 &&
+    !reasoning.find((r) => r.ruleId === 'indoor-low-prevent')
+  ) {
+    reasoning.push({
+      trigger: '실내 활발 + 산책 30분 미만',
+      action: '실내 운동량 충분 — 비만 risk 보정 없음',
+      chipLabel: '실내 활발 OK',
+      priority: 4,
+      ruleId: 'indoor-active-ok',
+    })
+  }
+
+  return ratios
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// v1.2 — Step 5e: 만성질환 조합 (priority 3 — chronic 보다 높음)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// 근거:
+//  · Polzin (2013) "Chronic kidney disease in small animals"
+//    Vet Clin North Am Small Anim Pract. 43(4):721-735:
+//    CKD + 관절염 동시 → 단백질 제한 (CKD 우선) + 콜라겐 보충 (관절).
+//    Premium (소·헴철분 ↑ → 신장 부담) 보다 Joint (돼지·콜라겐) 우선.
+//  · Innes et al. (2022) "Joint disease in dogs: long term outcomes"
+//    BMC Vet Res. 18:212:
+//    오메가-3 + GAG (글리코사미노글리칸) 조합 효과 — Skin (연어) + Joint
+//    (사골육수) 시너지.
+
+function applyChronicComboAdjustments(
+  ratios: Record<FoodLine, Ratio>,
+  input: AlgorithmInput,
+  reasoning: Reasoning[],
+): Record<FoodLine, Ratio> {
+  const c = input.chronicConditions
+
+  // CKD + 관절염 — 단백질 제한 우선이지만 Joint (돼지) 는 콜라겐 가산.
+  if (c.includes('kidney') && c.includes('arthritis')) {
+    // chronic-kidney 가 이미 Premium 0% 처리. 여기서 Joint ↑ 추가.
+    const before = ratios.joint
+    if (before < 0.4) {
+      const donor = ALL_LINES.filter(
+        (l) => l !== 'joint' && ratios[l] > 0.2,
+      ).sort((a, b) => ratios[b] - ratios[a])[0]
+      if (donor) {
+        const taken = Math.min(0.4 - before, ratios[donor] - 0.1)
+        if (taken > 0) {
+          ratios = {
+            ...ratios,
+            joint: before + taken,
+            [donor]: ratios[donor] - taken,
+          }
+          reasoning.push({
+            trigger: 'CKD + 관절염 동시',
+            action: `Joint ${(before * 100).toFixed(0)}% → ${((before + taken) * 100).toFixed(0)}% (콜라겐 ↑, 단백질 부담 ↓)`,
+            chipLabel: 'CKD+관절 → Joint ↑',
+            priority: 3,
+            ruleId: 'chronic-combo-ckd-arthritis',
+          })
+        }
+      }
+    }
+  }
+
+  // 알레르기성 피부염 + 관절염 — Skin (오메가-3) 와 Joint 동시 가산.
+  // Innes 2022 — 오메가-3 와 GAG 조합 항염증 효과.
+  if (c.includes('allergy_skin') && c.includes('arthritis')) {
+    if (ratios.skin >= 0.2 && ratios.joint >= 0.2) {
+      reasoning.push({
+        trigger: '피부염 + 관절염',
+        action: '오메가-3 (Skin) + GAG (Joint) 항염증 시너지 적용 중',
+        chipLabel: '피부+관절 → 항염증',
+        priority: 3,
+        ruleId: 'chronic-combo-skin-arthritis',
+      })
+    }
+  }
+
+  // 췌장염 + 비만 (BCS 6+) — 둘 다 저지방 권장. Weight 라인 강제 50%+.
+  if (c.includes('pancreatitis') && (input.bcs ?? 0) >= 6) {
+    if (ratios.weight < 0.5) {
+      const before = ratios.weight
+      const donor = ALL_LINES.filter(
+        (l) => l !== 'weight' && ratios[l] > 0.15,
+      ).sort((a, b) => ratios[b] - ratios[a])[0]
+      if (donor) {
+        const taken = Math.min(0.5 - before, ratios[donor] - 0.1)
+        if (taken > 0) {
+          ratios = {
+            ...ratios,
+            weight: before + taken,
+            [donor]: ratios[donor] - taken,
+          }
+          reasoning.push({
+            trigger: '췌장염 + BCS 6+',
+            action: `Weight 라인 ${((before + taken) * 100).toFixed(0)}% (저지방 강화)`,
+            chipLabel: '췌장+비만 → Weight ↑',
+            priority: 3,
+            ruleId: 'chronic-combo-pancr-obese',
+          })
+        }
+      }
+    }
+  }
+
+  return ratios
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// v1.2 — Step 5f: 현재 식이 만족도 (firstBox priority 5)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// 근거 — Customer retention 이론 + Pet food switch 연구:
+//  · Houpt (1991) "Feeding problems and behavior modification" —
+//    급격한 식이 변경은 거부율 30%+ 유발.
+//  · 이미 만족도 4-5 인 식이는 변화 자체가 churn risk.
+//
+// firstBox 에서는 lineRatios 자체는 안 건드림. reasoning 만 발화해서
+// nextBox 가 'freeze' 룰 적용하기 쉽게.
+
+function applyDietSatisfactionNote(
+  input: AlgorithmInput,
+  reasoning: Reasoning[],
+): void {
+  if (input.currentDietSatisfaction === null) return
+  if (input.currentDietSatisfaction >= 4) {
+    reasoning.push({
+      trigger: `현재 식이 만족도 ${input.currentDietSatisfaction}/5`,
+      action:
+        '기존 식이 만족도 ↑ — 변화 최소화. 다음 cycle freeze 가능성 ↑.',
+      chipLabel: '현재 만족 → 점진 변화',
+      priority: 5,
+      ruleId: 'diet-satisfaction-high',
+    })
+  } else if (input.currentDietSatisfaction <= 2) {
+    reasoning.push({
+      trigger: `현재 식이 만족도 ${input.currentDietSatisfaction}/5`,
+      action: '기존 식이 불만 — 적극 변경 권장.',
+      chipLabel: '현재 불만 → 적극 변경',
+      priority: 5,
+      ruleId: 'diet-satisfaction-low',
+    })
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────

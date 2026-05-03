@@ -122,6 +122,7 @@ export async function POST(req: Request) {
     gi_sensitivity: string | null
     preferred_proteins: string[] | null
     indoor_activity: string | null
+    daily_walk_minutes: number | null
   }
 
   const [surveyResp, analysisResp] = await Promise.all([
@@ -130,7 +131,8 @@ export async function POST(req: Request) {
       .select(
         'id, answers, chronic_conditions, pregnancy_status, care_goal, ' +
           'home_cooking_experience, current_diet_satisfaction, ' +
-          'weight_trend_6mo, gi_sensitivity, preferred_proteins, indoor_activity',
+          'weight_trend_6mo, gi_sensitivity, preferred_proteins, indoor_activity, ' +
+          'daily_walk_minutes',
       )
       .eq('dog_id', dogId)
       .eq('user_id', user.id)
@@ -206,6 +208,7 @@ export async function POST(req: Request) {
       : [],
     indoorActivity:
       (survey.indoor_activity as AlgorithmInput['indoorActivity']) ?? null,
+    dailyWalkMinutes: survey.daily_walk_minutes ?? null,
     dailyKcal: analysis.mer,
     dailyGrams: analysis.feed_g,
   }

@@ -4,6 +4,7 @@ import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { decideNextBox } from '@/lib/personalization/nextBox'
 import type { AlgorithmInput, Checkin, Formula } from '@/lib/personalization/types'
 import { mainLineOf } from '@/lib/personalization/format'
+import { diffFormulas } from '@/lib/personalization/diff'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { pushToUser } from '@/lib/push'
 import { notifyPersonalizationCycle } from '@/lib/email'
@@ -154,7 +155,7 @@ export async function GET(req: Request) {
           .select(
             'answers, chronic_conditions, pregnancy_status, care_goal, ' +
               'home_cooking_experience, current_diet_satisfaction, weight_trend_6mo, ' +
-              'gi_sensitivity, preferred_proteins, indoor_activity',
+              'gi_sensitivity, preferred_proteins, indoor_activity, daily_walk_minutes',
           )
           .eq('dog_id', cur.dog_id)
           .order('created_at', { ascending: false })
@@ -202,6 +203,7 @@ export async function GET(req: Request) {
         gi_sensitivity: string | null
         preferred_proteins: string[] | null
         indoor_activity: string | null
+        daily_walk_minutes: number | null
       }
       const analysisTyped = analysis as unknown as {
         mer: number
@@ -253,6 +255,7 @@ export async function GET(req: Request) {
         indoorActivity:
           (surveyTyped.indoor_activity as AlgorithmInput['indoorActivity']) ??
           null,
+        dailyWalkMinutes: surveyTyped.daily_walk_minutes ?? null,
         dailyKcal: analysisTyped.mer,
         dailyGrams: analysisTyped.feed_g,
       }
@@ -295,9 +298,18 @@ export async function GET(req: Request) {
         cycleNumber: cur.cycle_number + 1,
       })
 
-      // 다음 cycle 의 applied_from = today, applied_until = today + 28일.
-      const appliedFrom = today
-      const appliedUntil = addDaysIso(today, CYCLE_DAYS)
+      // Option A — 의미 있는 변화 vs 미세 조정 판정.
+      // 미세 조정 → auto_applied 즉시 적용 (기존 동작).
+      // 의미 있는 변화 → pending_approval, push 별도 카피, 결제 안 됨.
+      // 강제 변화 (알레르기 / 만성질환 추가) → auto_applied 강제, "변경됨" push.
+      const diff = diffFormulas(previousFormula, next)
+      const requiresApproval = diff.meaningful && !diff.forced
+
+      const appliedFrom = requiresApproval ? null : today
+      const appliedUntil = requiresApproval ? null : addDaysIso(today, CYCLE_DAYS)
+      const approvalStatus = requiresApproval ? 'pending_approval' : 'auto_applied'
+      const proposedAt = requiresApproval ? new Date().toISOString() : null
+      const approvedAt = requiresApproval ? null : new Date().toISOString()
 
       const { error: insErr } = await supabase.from('dog_formulas').insert({
         dog_id: cur.dog_id,
@@ -312,6 +324,9 @@ export async function GET(req: Request) {
         daily_grams: next.dailyGrams,
         applied_from: appliedFrom,
         applied_until: appliedUntil,
+        approval_status: approvalStatus,
+        proposed_at: proposedAt,
+        approved_at: approvedAt,
       })
 
       if (insErr) {
@@ -335,15 +350,26 @@ export async function GET(req: Request) {
         cycleNumber: next.cycleNumber,
       })
 
-      // 보호자에게 푸시 알림 — 새 cycle 처방 도착. 메인 라인 1개만 짧게.
-      // best-effort. 실패해도 cron 진행은 멈추지 않음.
+      // 보호자에게 푸시 알림 — 흐름 분기:
+      //   pending_approval → "확인이 필요해요" + approval URL
+      //   auto_applied (강제 포함)  → "준비됐어요" + analysis URL
       const main = mainLineOf(next)
+      const pushTitle = requiresApproval
+        ? `${dogTyped.name} 다음 박스 확인이 필요해요`
+        : `${dogTyped.name} 다음 박스 준비됐어요 🐾`
+      const pushBody = requiresApproval
+        ? `이번 달 비율이 바뀔 수 있어요 — ${main.name} ${main.pct}% 제안. 5일 안에 확인해주세요.`
+        : `이번 달은 ${main.name} ${main.pct}% 메인. 자세한 비율 보기 →`
+      const pushUrl = requiresApproval
+        ? `/dogs/${cur.dog_id}/approve?cycle=${next.cycleNumber}`
+        : `/dogs/${cur.dog_id}/analysis`
+
       pushToUser(
         cur.user_id,
         {
-          title: `${dogTyped.name} 다음 박스 준비됐어요 🐾`,
-          body: `이번 달은 ${main.name} ${main.pct}% 메인. 자세한 비율 보기 →`,
-          url: `/dogs/${cur.dog_id}/analysis`,
+          title: pushTitle,
+          body: pushBody,
+          url: pushUrl,
           tag: `formula-cycle-${cur.dog_id}-${next.cycleNumber}`,
         },
         // 'order' 카테고리 — 정기배송 박스 안내라 order 흐름과 연동.

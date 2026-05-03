@@ -28,7 +28,9 @@ import type {
   FoodLine,
   Reasoning,
 } from '@/lib/personalization/types'
+import AdjustSheet from './AdjustSheet'
 import './recommendation.css'
+import './adjust-sheet.css'
 
 /**
  * RecommendationBox — analysis 페이지의 "첫 박스 추천" 섹션.
@@ -119,6 +121,7 @@ export default function RecommendationBox({
 }) {
   const [state, setState] = useState<State>({ status: 'loading' })
   const [scale, setScale] = useState<Scale>('1w')
+  const [sheetOpen, setSheetOpen] = useState(false)
   const fetchedRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -208,7 +211,28 @@ export default function RecommendationBox({
     )
   }
 
-  return <RecommendationView formula={state.formula} dogName={dogName} dogId={dogId} scale={scale} setScale={setScale} />
+  return (
+    <>
+      <RecommendationView
+        formula={state.formula}
+        dogName={dogName}
+        dogId={dogId}
+        scale={scale}
+        setScale={setScale}
+        onOpenAdjust={() => setSheetOpen(true)}
+      />
+      <AdjustSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        formula={state.formula}
+        dogId={dogId}
+        dogName={dogName}
+        onSaved={(next) => {
+          setState({ status: 'ready', formula: next })
+        }}
+      />
+    </>
+  )
 }
 
 function RecommendationView({
@@ -217,12 +241,14 @@ function RecommendationView({
   dogId,
   scale,
   setScale,
+  onOpenAdjust,
 }: {
   formula: Formula
   dogName: string
   dogId: string
   scale: Scale
   setScale: (s: Scale) => void
+  onOpenAdjust: () => void
 }) {
   // 1주 / 4주 분량 — quantize 잔차 흡수.
   const days = scale === '1w' ? 7 : 28
@@ -509,12 +535,7 @@ function RecommendationView({
           <button
             type="button"
             className="fb-cta-ghost"
-            onClick={() => {
-              // 비율 조정 sheet 는 별도 핸드오프 후 구현. 일단 안내 alert.
-              alert(
-                '비율 조정은 다음 핸드오프 후 활성화될 예정이에요. 지금은 알고리즘 추천 비율 그대로 사용됩니다.',
-              )
-            }}
+            onClick={onOpenAdjust}
           >
             비율 조정
           </button>

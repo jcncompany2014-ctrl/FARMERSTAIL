@@ -71,6 +71,7 @@ function defaultInput(): AlgorithmInput {
     giSensitivity: 'rare',
     preferredProteins: [],
     indoorActivity: 'moderate',
+    dailyWalkMinutes: 30,
     dailyKcal: 280,
     dailyGrams: 200,
   }

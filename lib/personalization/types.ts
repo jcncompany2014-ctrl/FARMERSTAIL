@@ -102,6 +102,8 @@ export type AlgorithmInput = {
   giSensitivity: 'rare' | 'sometimes' | 'frequent' | 'always' | null
   preferredProteins: string[]
   indoorActivity: 'calm' | 'moderate' | 'active' | null
+  /** 일일 산책 분 (선택). v1.2 활동량 룰에서 사용. null = 미입력. */
+  dailyWalkMinutes: number | null
 
   // ── nutrition calc 결과 ──
   /** 일일 권장 칼로리 (MER). */

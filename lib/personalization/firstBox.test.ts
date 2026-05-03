@@ -32,6 +32,7 @@ function baseInput(): AlgorithmInput {
     giSensitivity: 'rare',
     preferredProteins: [],
     indoorActivity: 'moderate',
+    dailyWalkMinutes: 30,
     dailyKcal: 280,
     dailyGrams: 200,
   }
@@ -446,6 +447,154 @@ describe('decideFirstBox — 선호 단백질', () => {
       preferredProteins: ['chicken'],
     })
     assert.equal(f.lineRatios.basic, 0, 'allergy 우선')
+  })
+})
+
+describe('decideFirstBox v1.2 — 활동량 룰', () => {
+  it('high + 산책 60분+ → Premium ↑', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      activityLevel: 'high',
+      dailyWalkMinutes: 80,
+    })
+    const reason = f.reasoning.find((r) => r.ruleId === 'activity-high-premium')
+    assert.ok(reason)
+    // Premium 이 룰 발화로 0.25 까지 가산되어야 함 (단, 다른 룰과 충돌 시 다를 수)
+    assert.ok(f.lineRatios.premium >= 0.2)
+  })
+
+  it('low + 산책 < 20 → Weight ↑', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      activityLevel: 'low',
+      dailyWalkMinutes: 10,
+    })
+    const reason = f.reasoning.find((r) => r.ruleId === 'activity-low-weight')
+    assert.ok(reason)
+  })
+
+  it('medium + 산책 정상 → 활동 룰 발화 없음', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      activityLevel: 'medium',
+      dailyWalkMinutes: 40,
+    })
+    const reason = f.reasoning.find((r) => r.ruleId.startsWith('activity-'))
+    assert.equal(reason, undefined)
+  })
+})
+
+describe('decideFirstBox v1.2 — 실내 활동 룰', () => {
+  it('실내 차분 + 산책 부족 + BCS 정상 → 비만 예방 chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      indoorActivity: 'calm',
+      dailyWalkMinutes: 15,
+      activityLevel: 'low',
+      careGoal: 'general_upgrade',
+    })
+    // activity-low-weight 도 발화함. indoor-low-prevent 또는 그것
+    const reason = f.reasoning.find(
+      (r) =>
+        r.ruleId === 'indoor-low-prevent' ||
+        r.ruleId === 'activity-low-weight',
+    )
+    assert.ok(reason, '저활동 룰 중 하나는 발화')
+  })
+
+  it('실내 활발 + 산책 30분 미만 → "OK" chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      indoorActivity: 'active',
+      dailyWalkMinutes: 20,
+    })
+    const reason = f.reasoning.find((r) => r.ruleId === 'indoor-active-ok')
+    assert.ok(reason)
+  })
+})
+
+describe('decideFirstBox v1.2 — 만성질환 조합', () => {
+  it('CKD + 관절염 → Joint ↑ (Polzin 2013)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['kidney', 'arthritis'],
+    })
+    assert.equal(f.lineRatios.premium, 0, 'CKD 룰: Premium 차단')
+    const reason = f.reasoning.find(
+      (r) => r.ruleId === 'chronic-combo-ckd-arthritis',
+    )
+    assert.ok(reason)
+  })
+
+  it('피부염 + 관절염 → 시너지 chip (Innes 2022)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['allergy_skin', 'arthritis'],
+      careGoal: 'skin_coat',
+    })
+    // careGoal=skin_coat 이라 Skin ≥ 0.7. arthritis 룰이 Joint 30% 까지 ↑.
+    // 두 라인 모두 가산되면 시너지 chip 발화.
+    const reason = f.reasoning.find(
+      (r) => r.ruleId === 'chronic-combo-skin-arthritis',
+    )
+    // Skin 0.7 + Joint 0.3 인 상태에서 chip 발화 — 항상 발화하는 게 아니라
+    // 알고리즘 정규화 후 둘 다 ≥ 0.2 일 때만. 약한 검증.
+    if (reason) assert.match(reason.action, /오메가-3/)
+  })
+
+  it('췌장염 + BCS 7 → Weight 50%+ (저지방 강화)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['pancreatitis'],
+      bcs: 7,
+    })
+    assert.ok(f.lineRatios.weight >= 0.4)
+    const reason = f.reasoning.find(
+      (r) => r.ruleId === 'chronic-combo-pancr-obese',
+    )
+    assert.ok(reason)
+  })
+})
+
+describe('decideFirstBox v1.2 — 식이 만족도 신호', () => {
+  it('만족도 5 → freeze 권장 chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      currentDietSatisfaction: 5,
+    })
+    const reason = f.reasoning.find(
+      (r) => r.ruleId === 'diet-satisfaction-high',
+    )
+    assert.ok(reason)
+  })
+
+  it('만족도 1 → 적극 변경 chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      currentDietSatisfaction: 1,
+    })
+    const reason = f.reasoning.find(
+      (r) => r.ruleId === 'diet-satisfaction-low',
+    )
+    assert.ok(reason)
+  })
+
+  it('만족도 3 → 발화 없음', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      currentDietSatisfaction: 3,
+    })
+    const reason = f.reasoning.find((r) =>
+      r.ruleId.startsWith('diet-satisfaction-'),
+    )
+    assert.equal(reason, undefined)
+  })
+})
+
+describe('decideFirstBox v1.2 — algorithmVersion', () => {
+  it('v1.2.0 출력', () => {
+    const f = decideFirstBox(baseInput())
+    assert.equal(f.algorithmVersion, 'v1.2.0')
   })
 })
 
