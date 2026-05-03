@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { decideNextBox } from '@/lib/personalization/nextBox'
 import type { AlgorithmInput, Checkin, Formula } from '@/lib/personalization/types'
-import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import { mainLineOf } from '@/lib/personalization/format'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { pushToUser } from '@/lib/push'
 import { notifyPersonalizationCycle } from '@/lib/email'
@@ -337,15 +337,12 @@ export async function GET(req: Request) {
 
       // 보호자에게 푸시 알림 — 새 cycle 처방 도착. 메인 라인 1개만 짧게.
       // best-effort. 실패해도 cron 진행은 멈추지 않음.
-      const mainLine = ALL_LINES.reduce((best, l) =>
-        next.lineRatios[l] > next.lineRatios[best] ? l : best,
-      )
-      const mainPct = Math.round(next.lineRatios[mainLine] * 100)
+      const main = mainLineOf(next)
       pushToUser(
         cur.user_id,
         {
           title: `${dogTyped.name} 다음 박스 준비됐어요 🐾`,
-          body: `이번 달은 ${FOOD_LINE_META[mainLine].name} ${mainPct}% 메인. 자세한 비율 보기 →`,
+          body: `이번 달은 ${main.name} ${main.pct}% 메인. 자세한 비율 보기 →`,
           url: `/dogs/${cur.dog_id}/analysis`,
           tag: `formula-cycle-${cur.dog_id}-${next.cycleNumber}`,
         },
@@ -371,9 +368,9 @@ export async function GET(req: Request) {
             dogName: dogTyped.name,
             dogId: cur.dog_id,
             cycleNumber: next.cycleNumber,
-            mainLineName: FOOD_LINE_META[mainLine].name,
-            mainLineSubtitle: FOOD_LINE_META[mainLine].subtitle,
-            mainLinePct: mainPct,
+            mainLineName: main.name,
+            mainLineSubtitle: main.subtitle,
+            mainLinePct: main.pct,
             reasoningLabels: next.reasoning
               .slice(0, 4)
               .map((r) => r.chipLabel),
