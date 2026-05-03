@@ -88,10 +88,20 @@
          (`9969d52`) — 218 → 236 tests
 - 39.11: cron push 알림 + admin 시뮬레이터 (`0568c62`)
 - 39.12: 박스 패킹 리스트 (CSV) + docs/PERSONALIZATION.md (`aa64bc8`)
+- 39.13: cron 이메일 알림 + LAUNCH_CHECKLIST/SESSION_SUMMARY 마이그 39개 반영 (`e317308`)
+- 39.14: admin nav 에 personalization 항목 + RUNBOOK section 11 (`57d2244`)
+- 39.15: RecommendationBox 디자인 핸드오프 #2 적용 + edge-bleed 제거 (여백 fix) (`b436ad5`)
+- 39.16: README 에 personalization 시스템 섹션 (`58673ea`)
+- 39.17: lib/personalization/format.ts — 한국어 포매터 7개 + 18 tests (`9903e64`)
+- 39.18: 알고리즘 weight_trend_6mo 룰 + CRON_SECRET production 가드 (`5c30345`)
 
 **Personalization 시스템 = 5종 화식 + 토퍼를 강아지별 비율로 조합 + 매월 자동
-조정. 알고리즘 v1 (firstBox / nextBox), API 4개, cron 1개, admin 도구 2개,
-DB 테이블 2개 — 운영 인프라 완비.**
+조정. 알고리즘 v1.1 (firstBox + nextBox + format), API 4개, cron 1개, admin
+도구 2개 (시뮬레이터 + 박스 패킹 CSV), DB 테이블 2개, 이메일 템플릿 1개 —
+운영 인프라 + 사용자 UI 모두 완비. 단 비율 조정 sheet + 체크인 폼 UI 만 별도
+디자인 핸드오프 대기 중.**
+
+테스트: round 38 → 168 / round 39 → **259** (+91 tests).
 
 ---
 
@@ -180,8 +190,10 @@ DB 테이블 2개 — 운영 인프라 완비.**
 ## 6. 마지막 production deployment
 
 - 마지막 push: **`1ed9a12`** (round 38, perf 통합 fix)
-- 미푸시 commit (round 39, **12개 누적**): `442a50f` / `bc0021a` / `77a9ccc` /
-  `f9d9b54` / `91ba22f` / `67915b7` / `05953b5` / `f61133e` / `6de7f7f` /
-  `9969d52` / `0568c62` / `aa64bc8` (+ 추가 commit)
+- 미푸시 commit (round 39, **18개 누적**):
+  - audit 부 (4개): `442a50f` / `bc0021a` / `77a9ccc` / `f9d9b54`
+  - 설문 7필드 + 디자인: `91ba22f` / `67915b7` / `05953b5`
+  - personalization 시스템 (10개): `f61133e` → `5c30345`
+  - 추가 commits: format.ts, env guard 등
 - main branch — Vercel 자동 배포
 - Vercel project: `prj_1n6HOvEXcq04hYQ3m4mpAFZOoFmR` / team `team_wyh7Ny9FwA9X4MtOEnTlArpj`
