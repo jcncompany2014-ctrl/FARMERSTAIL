@@ -159,6 +159,20 @@ if (!parsed.data.SUPABASE_SERVICE_ROLE_KEY) {
   )
 }
 
+// CRON_SECRET — production 에서 누락되면 모든 cron 이 silent 401 반환해
+// 정기배송 / personalization 진행 / 만료 쿠폰 알림 등이 모두 정지. 빌드 시점에
+// 잡아 출시 직후 사고 차단.
+if (!parsed.data.CRON_SECRET && parsed.data.NODE_ENV === 'production') {
+  console.error(
+    '\n❌ CRON_SECRET is required in production. Without it, every /api/cron/* ' +
+      'route returns 401 and scheduled tasks (subscription billing, ' +
+      'personalization progression, restock alerts, etc.) silently stop.\n' +
+      '   Generate: openssl rand -hex 32\n' +
+      '   Then add to Vercel Environment Variables.\n',
+  )
+  throw new Error('Invalid environment variables — see logs above.')
+}
+
 /**
  * 검증된 환경변수. 서버/엣지 코드에서 `process.env` 대신 이걸 써라.
  * - 타입 안전 (optional 필드는 `string | undefined`)

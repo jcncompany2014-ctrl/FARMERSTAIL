@@ -345,6 +345,64 @@ describe('decideFirstBox — quantization', () => {
   })
 })
 
+describe('decideFirstBox — 체중 추세', () => {
+  it('weightTrend = lost + BCS 5 → 수의사 상담 chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      weightTrend6mo: 'lost',
+      bcs: 5,
+    })
+    const reason = f.reasoning.find(
+      (r) => r.ruleId === 'weight-trend-unintended-loss',
+    )
+    assert.ok(reason)
+    assert.match(reason!.action, /상담/)
+  })
+
+  it('weightTrend = lost + BCS 7 → 의도된 감량 chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      weightTrend6mo: 'lost',
+      bcs: 7,
+    })
+    const reason = f.reasoning.find(
+      (r) => r.ruleId === 'weight-trend-intended-loss',
+    )
+    assert.ok(reason)
+  })
+
+  it('weightTrend = gained + BCS 6 → Weight 50%+', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      weightTrend6mo: 'gained',
+      bcs: 6,
+    })
+    assert.ok(f.lineRatios.weight >= 0.5)
+    const reason = f.reasoning.find(
+      (r) => r.ruleId === 'weight-trend-active-gain',
+    )
+    assert.ok(reason)
+  })
+
+  it('weightTrend = unknown → 변화 없음', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      weightTrend6mo: 'unknown',
+    })
+    const reason = f.reasoning.find((r) => r.ruleId.startsWith('weight-trend-'))
+    assert.equal(reason, undefined)
+  })
+
+  it('weightTrend = stable → 변화 없음', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      weightTrend6mo: 'stable',
+    })
+    const reason = f.reasoning.find((r) => r.ruleId.startsWith('weight-trend-'))
+    assert.equal(reason, undefined)
+  })
+})
+
 describe('decideFirstBox — 임신/수유', () => {
   it('pregnant → reasoning 발화', () => {
     const f = decideFirstBox({ ...baseInput(), pregnancy: 'pregnant' })

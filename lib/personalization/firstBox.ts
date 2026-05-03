@@ -68,6 +68,9 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
   // Step 5 — BCS 기반 미세 조정.
   lineRatios = applyBcsAdjustments(lineRatios, input, reasoning)
 
+  // Step 5b — 체중 추세 (BCS 와 함께 사용).
+  lineRatios = applyWeightTrendAdjustments(lineRatios, input, reasoning)
+
   // Step 6 — 임신/수유 (라인 비율은 그대로, kcal 만 ↑ — 영양 calc 가 처리).
   applyPregnancyNote(input, reasoning)
 
@@ -422,6 +425,73 @@ function applyBcsAdjustments(
       chipLabel: `BCS ${input.bcs}/9 → Premium ↑`,
       priority: 4,
       ruleId: 'bcs-underweight',
+    })
+  }
+
+  return ratios
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Step 5b — 체중 추세 (priority 4, BCS 와 함께)
+// ──────────────────────────────────────────────────────────────────────────
+
+function applyWeightTrendAdjustments(
+  ratios: Record<FoodLine, Ratio>,
+  input: AlgorithmInput,
+  reasoning: Reasoning[],
+): Record<FoodLine, Ratio> {
+  if (!input.weightTrend6mo || input.weightTrend6mo === 'unknown') return ratios
+
+  // 의도되지 않은 감량 (BCS 정상+ 인데 빠짐) — 수의사 상담 chip.
+  if (
+    input.weightTrend6mo === 'lost' &&
+    input.bcs !== null &&
+    input.bcs >= 5
+  ) {
+    reasoning.push({
+      trigger: '6개월 체중 감소 + BCS 정상',
+      action: '의도되지 않은 감량 가능성 — 수의사 상담 권장',
+      chipLabel: '체중감소 → 상담',
+      priority: 4,
+      ruleId: 'weight-trend-unintended-loss',
+    })
+  }
+
+  // 의도된 감량 (BCS 6+ 이고 빠지는 중) — 잘 되고 있으니 그대로 유지.
+  // reasoning chip 만 발화 (다음 cycle 비교 시 신호).
+  if (
+    input.weightTrend6mo === 'lost' &&
+    input.bcs !== null &&
+    input.bcs >= 6
+  ) {
+    reasoning.push({
+      trigger: '6개월 체중 감소 + BCS 과체중',
+      action: '의도된 감량 진행 중 — 비율 유지',
+      chipLabel: '감량 진행 중',
+      priority: 4,
+      ruleId: 'weight-trend-intended-loss',
+    })
+  }
+
+  // 의도되지 않은 증량 (BCS 정상 이하인데 늘어남) — Weight 라인 ↑.
+  if (
+    input.weightTrend6mo === 'gained' &&
+    input.bcs !== null &&
+    input.bcs >= 6 &&
+    ratios.weight < 0.5
+  ) {
+    const before = ratios.weight
+    ratios = {
+      ...ratios,
+      weight: 0.5,
+      basic: Math.max(0, ratios.basic + before - 0.5),
+    }
+    reasoning.push({
+      trigger: '6개월 체중 증가 + BCS 6+',
+      action: `Weight ${(before * 100).toFixed(0)}% → 50% (적극 관리)`,
+      chipLabel: '증량 추세 → Weight ↑',
+      priority: 4,
+      ruleId: 'weight-trend-active-gain',
     })
   }
 
