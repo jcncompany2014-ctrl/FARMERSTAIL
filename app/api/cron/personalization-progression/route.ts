@@ -3,7 +3,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { decideNextBox } from '@/lib/personalization/nextBox'
 import type { AlgorithmInput, Checkin, Formula } from '@/lib/personalization/types'
+import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
+import { pushToUser } from '@/lib/push'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -330,6 +332,26 @@ export async function GET(req: Request) {
       captureBusinessEvent('info', 'personalization.progression.succeeded', {
         dogId: cur.dog_id,
         cycleNumber: next.cycleNumber,
+      })
+
+      // 보호자에게 푸시 알림 — 새 cycle 처방 도착. 메인 라인 1개만 짧게.
+      // best-effort. 실패해도 cron 진행은 멈추지 않음.
+      const mainLine = ALL_LINES.reduce((best, l) =>
+        next.lineRatios[l] > next.lineRatios[best] ? l : best,
+      )
+      const mainPct = Math.round(next.lineRatios[mainLine] * 100)
+      pushToUser(
+        cur.user_id,
+        {
+          title: `${dogTyped.name} 다음 박스 준비됐어요 🐾`,
+          body: `이번 달은 ${FOOD_LINE_META[mainLine].name} ${mainPct}% 메인. 자세한 비율 보기 →`,
+          url: `/dogs/${cur.dog_id}/analysis`,
+          tag: `formula-cycle-${cur.dog_id}-${next.cycleNumber}`,
+        },
+        // 'order' 카테고리 — 정기배송 박스 안내라 order 흐름과 연동.
+        { category: 'order' },
+      ).catch(() => {
+        /* 푸시 실패는 무시 — Sentry 가 push 자체에서 잡음 */
       })
 
       // DB 부하 분산.
