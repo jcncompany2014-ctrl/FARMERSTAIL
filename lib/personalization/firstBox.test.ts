@@ -33,6 +33,10 @@ function baseInput(): AlgorithmInput {
     preferredProteins: [],
     indoorActivity: 'moderate',
     dailyWalkMinutes: 30,
+    pregnancyWeek: null,
+    litterSize: null,
+    expectedAdultWeightKg: null,
+    irisStage: null,
     dailyKcal: 280,
     dailyGrams: 200,
   }
@@ -591,10 +595,244 @@ describe('decideFirstBox v1.2 — 식이 만족도 신호', () => {
   })
 })
 
-describe('decideFirstBox v1.2 — algorithmVersion', () => {
-  it('v1.2.0 출력', () => {
+describe('decideFirstBox v1.3 — algorithmVersion', () => {
+  it('v1.3.0 출력', () => {
     const f = decideFirstBox(baseInput())
-    assert.equal(f.algorithmVersion, 'v1.2.0')
+    assert.equal(f.algorithmVersion, 'v1.3.0')
+  })
+})
+
+describe('decideFirstBox v1.3 — 임신 multiplier 정밀화 (NRC 2006 ch.15)', () => {
+  it('pregnancyWeek=null → "주차 미입력" chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      pregnancy: 'pregnant',
+      pregnancyWeek: null,
+    })
+    const r = f.reasoning.find((x) => x.ruleId === 'pregnancy-pregnant')
+    assert.ok(r)
+    assert.match(r!.chipLabel, /주차 미입력|1\.5/)
+  })
+
+  it('pregnancyWeek=7 (late) → 1.6-2.0× chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      pregnancy: 'pregnant',
+      pregnancyWeek: 7,
+    })
+    const r = f.reasoning.find((x) => x.ruleId === 'pregnancy-pregnant')
+    assert.ok(r)
+    assert.match(r!.chipLabel, /1\.6-2\.0/)
+  })
+
+  it('pregnancyWeek=2 (early) → ~1.0× chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      pregnancy: 'pregnant',
+      pregnancyWeek: 2,
+    })
+    const r = f.reasoning.find((x) => x.ruleId === 'pregnancy-pregnant')
+    assert.ok(r)
+    assert.match(r!.action, /임신 초기/)
+  })
+
+  it('lactating litterSize=3 → 2.75× chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      pregnancy: 'lactating',
+      litterSize: 3,
+    })
+    const r = f.reasoning.find((x) => x.ruleId === 'pregnancy-lactating')
+    assert.ok(r)
+    assert.match(r!.chipLabel, /2\.75/)
+  })
+
+  it('lactating litterSize=6 → 3.0-4.0× chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      pregnancy: 'lactating',
+      litterSize: 6,
+    })
+    const r = f.reasoning.find((x) => x.ruleId === 'pregnancy-lactating')
+    assert.ok(r)
+    assert.match(r!.chipLabel, /3\.0-4\.0/)
+  })
+})
+
+describe('decideFirstBox v1.3 — 췌장염 fat ceiling (Xenoulis 2015)', () => {
+  it('췌장염 처방 후 DM-fat% < 15%', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['pancreatitis'],
+    })
+    // Σ ratio × fatPctDM 직접 계산
+    const fat =
+      f.lineRatios.basic * 12 +
+      f.lineRatios.weight * 8 +
+      f.lineRatios.skin * 16 +
+      f.lineRatios.premium * 15 +
+      f.lineRatios.joint * 18
+    assert.ok(fat < 15.5, `DM-fat% should be <15.5% (got ${fat.toFixed(1)}%)`)
+    const r = f.reasoning.find((x) => x.ruleId === 'chronic-pancreatitis')
+    assert.ok(r)
+    assert.match(r!.action, /DM 지방 \d/)
+  })
+
+  it('췌장염 + 관절염 동시 → 췌장염이 우선 (fat 우선)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['pancreatitis', 'arthritis'],
+    })
+    const fat =
+      f.lineRatios.basic * 12 +
+      f.lineRatios.weight * 8 +
+      f.lineRatios.skin * 16 +
+      f.lineRatios.premium * 15 +
+      f.lineRatios.joint * 18
+    // 둘 다 fired 되더라도 최종 fat 가 안전 범위
+    assert.ok(fat < 17, `fat should still be controlled (got ${fat.toFixed(1)}%)`)
+  })
+})
+
+describe('decideFirstBox v1.3 — 대형견 puppy Ca cap (AAFCO 2024 Large-size Growth)', () => {
+  it('대형견 puppy (성견 30kg, 6mo) → Premium/Joint 0%, Basic 위주', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      ageMonths: 6,
+      expectedAdultWeightKg: 30,
+    })
+    assert.equal(f.lineRatios.premium, 0, 'Premium 차단')
+    assert.equal(f.lineRatios.joint, 0, 'Joint 차단 (고-Ca)')
+    assert.ok(f.lineRatios.basic >= 0.5, 'Basic 위주')
+    const r = f.reasoning.find((x) => x.ruleId === 'age-puppy-large-breed')
+    assert.ok(r, '대형견 puppy chip 발화')
+  })
+
+  it('일반 puppy (성견 8kg, 6mo) → 대형견 룰 안 발화', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      ageMonths: 6,
+      expectedAdultWeightKg: 8,
+    })
+    const r = f.reasoning.find((x) => x.ruleId === 'age-puppy-large-breed')
+    assert.equal(r, undefined, '대형견 룰 안 발화')
+  })
+
+  it('expectedAdultWeightKg 미입력 → 대형견 룰 안 발화 (보수)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      ageMonths: 6,
+      expectedAdultWeightKg: null,
+    })
+    const r = f.reasoning.find((x) => x.ruleId === 'age-puppy-large-breed')
+    assert.equal(r, undefined)
+  })
+
+  it('성견 (24mo, 30kg) → 대형견 룰 안 발화 (puppy 만 적용)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      ageMonths: 24,
+      expectedAdultWeightKg: 30,
+    })
+    const r = f.reasoning.find((x) => x.ruleId === 'age-puppy-large-breed')
+    assert.equal(r, undefined)
+  })
+})
+
+describe('decideFirstBox v1.3 — CKD IRIS staging (IRIS 2019)', () => {
+  it('Stage 1 → Premium 유지 + 단백질 정상 chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['kidney'],
+      irisStage: 1,
+    })
+    const early = f.reasoning.find((r) => r.ruleId === 'chronic-kidney-early')
+    assert.ok(early, '초기 CKD chip 발화')
+    const late = f.reasoning.find((r) => r.ruleId === 'chronic-kidney')
+    assert.equal(late, undefined, '후기 CKD chip 안 발화')
+    // Premium 유지 — care goal general_upgrade 의 0.1 그대로 또는 상위
+    assert.ok(f.lineRatios.premium >= 0.1, 'Premium 라인 유지')
+  })
+
+  it('Stage 2 → 같은 분기', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['kidney'],
+      irisStage: 2,
+    })
+    const early = f.reasoning.find((r) => r.ruleId === 'chronic-kidney-early')
+    assert.ok(early)
+    assert.match(early!.chipLabel, /Stage 2/)
+  })
+
+  it('Stage 3 → Premium 0% (저단백)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['kidney'],
+      irisStage: 3,
+    })
+    const late = f.reasoning.find((r) => r.ruleId === 'chronic-kidney')
+    assert.ok(late, '후기 CKD chip 발화')
+    assert.equal(f.lineRatios.premium, 0)
+  })
+
+  it('Stage 4 → Premium 0%', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['kidney'],
+      irisStage: 4,
+    })
+    assert.equal(f.lineRatios.premium, 0)
+  })
+
+  it('stage 미입력 → 보수적 (Stage 3+ 처방)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['kidney'],
+      irisStage: null,
+    })
+    const late = f.reasoning.find((r) => r.ruleId === 'chronic-kidney')
+    assert.ok(late)
+    assert.match(late!.trigger, /보수적|미진단/)
+    assert.equal(f.lineRatios.premium, 0)
+  })
+
+  it('CKD 없으면 IRIS 분기 자체 안 발화', () => {
+    const f = decideFirstBox({ ...baseInput(), irisStage: 2 })
+    const early = f.reasoning.find((r) => r.ruleId === 'chronic-kidney-early')
+    const late = f.reasoning.find((r) => r.ruleId === 'chronic-kidney')
+    assert.equal(early, undefined)
+    assert.equal(late, undefined)
+  })
+})
+
+describe('decideFirstBox v1.3 — IgE cross-reactivity chip', () => {
+  it('양고기 알레르기 → Premium 라인 cross-react chip (차단 안 함)', () => {
+    const f = decideFirstBox({ ...baseInput(), allergies: ['양고기'] })
+    const cross = f.reasoning.find((r) => r.ruleId === 'cross-react-premium')
+    assert.ok(cross, 'cross-react chip 발화')
+    // Premium 라인은 차단 안 됨 — ratio 살아있어야 함 (general_upgrade 시작값)
+    // 또는 다른 룰로 0 가능하지만 cross-react 가 차단 자체는 안 함
+    assert.equal(
+      f.reasoning.find((r) => r.ruleId === 'allergy-premium'),
+      undefined,
+      'cross-react 만으로는 차단 안 함',
+    )
+  })
+
+  it('닭 알레르기 → Weight 라인 cross-react chip (오리/닭 cross)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      allergies: ['닭·칠면조'],
+    })
+    const cross = f.reasoning.find((r) => r.ruleId === 'cross-react-weight')
+    assert.ok(cross, 'Weight (오리) cross-react chip 발화')
+  })
+
+  it('알레르기 없으면 cross-react chip 없음', () => {
+    const f = decideFirstBox(baseInput())
+    const cross = f.reasoning.find((r) => r.ruleId.startsWith('cross-react-'))
+    assert.equal(cross, undefined)
   })
 })
 

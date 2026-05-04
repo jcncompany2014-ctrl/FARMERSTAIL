@@ -155,7 +155,8 @@ export async function GET(req: Request) {
           .select(
             'answers, chronic_conditions, pregnancy_status, care_goal, ' +
               'home_cooking_experience, current_diet_satisfaction, weight_trend_6mo, ' +
-              'gi_sensitivity, preferred_proteins, indoor_activity, daily_walk_minutes',
+              'gi_sensitivity, preferred_proteins, indoor_activity, daily_walk_minutes, ' +
+              'pregnancy_week, litter_size, expected_adult_weight_kg, iris_stage',
           )
           .eq('dog_id', cur.dog_id)
           .order('created_at', { ascending: false })
@@ -204,6 +205,11 @@ export async function GET(req: Request) {
         preferred_proteins: string[] | null
         indoor_activity: string | null
         daily_walk_minutes: number | null
+        // v1.3 임상 정밀화 (마이그레이션 20260504000000)
+        pregnancy_week: number | null
+        litter_size: number | null
+        expected_adult_weight_kg: number | null
+        iris_stage: number | null
       }
       const analysisTyped = analysis as unknown as {
         mer: number
@@ -256,6 +262,11 @@ export async function GET(req: Request) {
           (surveyTyped.indoor_activity as AlgorithmInput['indoorActivity']) ??
           null,
         dailyWalkMinutes: surveyTyped.daily_walk_minutes ?? null,
+        pregnancyWeek: surveyTyped.pregnancy_week ?? null,
+        litterSize: surveyTyped.litter_size ?? null,
+        expectedAdultWeightKg: surveyTyped.expected_adult_weight_kg ?? null,
+        irisStage:
+          (surveyTyped.iris_stage as AlgorithmInput['irisStage']) ?? null,
         dailyKcal: analysisTyped.mer,
         dailyGrams: analysisTyped.feed_g,
       }

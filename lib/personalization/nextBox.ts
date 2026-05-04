@@ -37,7 +37,7 @@ import { FOOD_LINE_META, ALL_LINES } from './lines.ts'
 import { quantizeAndNormalize } from './quantize.ts'
 
 // firstBox 와 동일 버전 — 둘 다 같은 룰셋/타입을 공유. 분리 버전은 분석/diff 깨짐.
-const ALGORITHM_VERSION = 'v1.2.0'
+const ALGORITHM_VERSION = 'v1.3.0'
 
 // ──────────────────────────────────────────────────────────────────────────
 // 메인 진입점

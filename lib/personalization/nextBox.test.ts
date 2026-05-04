@@ -32,6 +32,10 @@ function baseSurvey(): AlgorithmInput {
     preferredProteins: [],
     indoorActivity: 'moderate',
     dailyWalkMinutes: 30,
+    pregnancyWeek: null,
+    litterSize: null,
+    expectedAdultWeightKg: null,
+    irisStage: null,
     dailyKcal: 280,
     dailyGrams: 200,
   }
@@ -99,14 +103,14 @@ describe('decideNextBox — 기본 동작', () => {
     assert.equal(f.cycleNumber, 5)
   })
 
-  it('algorithmVersion v1.2 (firstBox 와 통일)', () => {
+  it('algorithmVersion v1.3 (firstBox 와 통일)', () => {
     const f = decideNextBox({
       previousFormula: basePreviousFormula(),
       checkins: [],
       surveyInput: baseSurvey(),
       cycleNumber: 2,
     })
-    assert.match(f.algorithmVersion, /^v1\.2/)
+    assert.match(f.algorithmVersion, /^v1\.3/)
   })
 
   it('cycle 2+ 전환 전략 gradual', () => {

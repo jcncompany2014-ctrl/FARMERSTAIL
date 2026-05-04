@@ -105,6 +105,37 @@ export type AlgorithmInput = {
   /** 일일 산책 분 (선택). v1.2 활동량 룰에서 사용. null = 미입력. */
   dailyWalkMinutes: number | null
 
+  // ── 임신/수유 정밀화 (v1.3, NRC 2006 ch.15 Table 15-3) ──
+  /**
+   * 임신 주차 (1~9). late gestation (≥6주차) 는 RER × 1.6-2.0 권장.
+   * null = 미입력 시 보수적으로 1.5× 사용 (기존 v1.2 동작).
+   * 출처: NRC (2006) "Nutrient Requirements of Dogs and Cats" Table 15-3.
+   */
+  pregnancyWeek: number | null
+  /**
+   * 출산 산자수 (lactation kcal multiplier 결정). RER × (2.0 + 0.25*n) for
+   * n=1-4, ×3.0~4.0 for n≥5. null = 보수적 2.0× 사용.
+   * 출처: NRC 2006 Table 15-3.
+   */
+  litterSize: number | null
+
+  // ── 임상 안전 정밀화 (v1.3 Phase A2) ──
+  /**
+   * 예상 성견 체중 (kg). 대형견 (≥25kg) puppy 의 Ca:P 상한 룰 발화 —
+   * AAFCO 2024 Dog Food Nutrient Profiles "Growth (Large size)" 정의.
+   * NRC 2006 ch.15 — 대형견 puppy 의 Ca 1.8% DM 상한 (DOD/HOD 예방).
+   * null = 미입력 시 일반 puppy 처방.
+   */
+  expectedAdultWeightKg: number | null
+  /**
+   * IRIS CKD 단계 (1~4). 만성 신장질환 진단견의 처방 분기:
+   *  · Stage 1-2: 단백질 정상 (Premium 정상) + 인 제한 chip
+   *  · Stage 3-4: 단백질 제한 (Premium 0%, 현 동작)
+   *  · null + chronicConditions.kidney: 보수적 Stage 3+ 처방
+   * 출처: IRIS (2019) Staging of CKD Guidelines www.iris-kidney.com.
+   */
+  irisStage: 1 | 2 | 3 | 4 | null
+
   // ── nutrition calc 결과 ──
   /** 일일 권장 칼로리 (MER). */
   dailyKcal: number
@@ -175,10 +206,32 @@ export type FoodLineMeta = {
   mainProtein: 'chicken' | 'duck' | 'salmon' | 'beef' | 'pork'
   /** 알고리즘이 즉시 0% 처리해야 할 알레르기 라벨 (한국어). */
   blockingAllergies: string[]
+  /**
+   * IgE 교차반응 — 이 라인이 알레르기로 차단됐을 때 보호자에게 같이
+   * 경고할 다른 알레르기 라벨. 차단은 안 함 (false positive 비용 큼) —
+   * chip 만 push (priority 0, 'cross-react' ruleId).
+   *
+   * 근거:
+   *  · Bexley et al. 2017 Vet Dermatol 28(1):31-e7 — chicken/turkey IgE cross
+   *  · Kuehn et al. 2018 Vet Dermatol 29(4):343-e119 — fish parvalbumin cross
+   *  · Olivry & Mueller 2019 BMC Vet Res 15:140 — beef/lamb BSA 부분 cross
+   */
+  crossReactWith?: string[]
   /** 한 줄 효능 요약 — 박스 카드 노출. */
   benefit: string
   /** 100g 당 kcal — 박스 분량 산정. */
   kcalPer100g: number
+  /**
+   * Dry-matter 단백질 비중 (%). 라인 mix 의 영양 단면 계산 (CKD IRIS 단백질
+   * 평가, lactation 단백질 충족 검증) 에 사용.
+   * 값은 화식 5종 영양 분석 보고서 v2 (2026-04) batch 평균. 실제 ±5% 변동.
+   */
+  proteinPctDM: number
+  /**
+   * Dry-matter 지방 비중 (%). 췌장염 fat-ceiling 룰 (DM <15%) 검증의 핵심
+   * 입력 — Xenoulis (2015) J Small Anim Pract 56(1):13-26.
+   */
+  fatPctDM: number
   /** UI 색상 토큰 (CSS variable name 또는 hex). */
   color: string
 }

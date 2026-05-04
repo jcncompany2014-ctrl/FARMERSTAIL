@@ -123,6 +123,11 @@ export async function POST(req: Request) {
     preferred_proteins: string[] | null
     indoor_activity: string | null
     daily_walk_minutes: number | null
+    // v1.3 임상 정밀화 — 마이그레이션 20260504000000 에 추가됨.
+    pregnancy_week: number | null
+    litter_size: number | null
+    expected_adult_weight_kg: number | null
+    iris_stage: number | null
   }
 
   const [surveyResp, analysisResp] = await Promise.all([
@@ -132,7 +137,8 @@ export async function POST(req: Request) {
         'id, answers, chronic_conditions, pregnancy_status, care_goal, ' +
           'home_cooking_experience, current_diet_satisfaction, ' +
           'weight_trend_6mo, gi_sensitivity, preferred_proteins, indoor_activity, ' +
-          'daily_walk_minutes',
+          'daily_walk_minutes, pregnancy_week, litter_size, ' +
+          'expected_adult_weight_kg, iris_stage',
       )
       .eq('dog_id', dogId)
       .eq('user_id', user.id)
@@ -209,6 +215,11 @@ export async function POST(req: Request) {
     indoorActivity:
       (survey.indoor_activity as AlgorithmInput['indoorActivity']) ?? null,
     dailyWalkMinutes: survey.daily_walk_minutes ?? null,
+    pregnancyWeek: survey.pregnancy_week ?? null,
+    litterSize: survey.litter_size ?? null,
+    expectedAdultWeightKg: survey.expected_adult_weight_kg ?? null,
+    irisStage:
+      (survey.iris_stage as AlgorithmInput['irisStage']) ?? null,
     dailyKcal: analysis.mer,
     dailyGrams: analysis.feed_g,
   }

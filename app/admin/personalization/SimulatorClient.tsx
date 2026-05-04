@@ -72,6 +72,10 @@ function defaultInput(): AlgorithmInput {
     preferredProteins: [],
     indoorActivity: 'moderate',
     dailyWalkMinutes: 30,
+    pregnancyWeek: null,
+    litterSize: null,
+    expectedAdultWeightKg: null,
+    irisStage: null,
     dailyKcal: 280,
     dailyGrams: 200,
   }

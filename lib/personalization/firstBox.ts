@@ -41,7 +41,7 @@ import type {
 import { FOOD_LINE_META, ALL_LINES, PROTEIN_TO_LINE } from './lines.ts'
 import { quantizeAndNormalize } from './quantize.ts'
 
-const ALGORITHM_VERSION = 'v1.2.0'
+const ALGORITHM_VERSION = 'v1.3.0'
 /** 토퍼 합계 cap — 화식이 주식 지위를 잃지 않도록 30% 한도. */
 const MAX_TOPPER_TOTAL = 0.3
 
@@ -124,6 +124,20 @@ function emptyRatios(): Record<FoodLine, Ratio> {
 // normalize / quantize / quantizeAndNormalize 는 ./quantize.ts 의 단일 진실 소스.
 // firstBox / nextBox 가 동일 로직을 중복 보유하던 걸 추출. 변경은 거기서.
 
+/**
+ * 라인 mix 의 dry-matter 지방 비중 (%). 췌장염 fat ceiling 검증 등 임상 룰
+ * 에서 사용. 합산 = Σ (lineRatios[l] × FOOD_LINE_META[l].fatPctDM).
+ *
+ * 비율 합이 1.0 이 아니어도 weighted average 의미는 유지 — 단 fat % 자체는
+ * 합 기준의 가중평균이라 normalize 전 계산이라도 의미 있음.
+ */
+function dmFatPct(ratios: Record<FoodLine, Ratio>): number {
+  return ALL_LINES.reduce(
+    (sum, l) => sum + ratios[l] * FOOD_LINE_META[l].fatPctDM,
+    0,
+  )
+}
+
 // ──────────────────────────────────────────────────────────────────────────
 // Step 1 — 알레르기 차단 (priority 0)
 // ──────────────────────────────────────────────────────────────────────────
@@ -147,6 +161,26 @@ function filterByAllergies(
       })
     }
   }
+
+  // v1.3 — IgE cross-reactivity 경고 chip. 차단은 안 하고 chip 만 push.
+  // 사용자의 알레르기 라벨이 다른 라인의 crossReactWith 에 매치되면 그 라인은
+  // 살아있되 보호자에게 cross-react 가능성 알림.
+  for (const line of ALL_LINES) {
+    const meta = FOOD_LINE_META[line]
+    if (blocked.has(line)) continue // 이미 차단된 라인은 cross 알림 무의미
+    const cr = meta.crossReactWith ?? []
+    const matched = cr.find((a) => allergies.includes(a))
+    if (matched) {
+      reasoning.push({
+        trigger: `${matched} 알레르기 + ${meta.name} 라인`,
+        action: `${matched} 알레르기견은 ${meta.subtitle.split(' · ')[0]} 도 IgE cross-react 가능 (Bexley 2017 / Olivry 2019). 차단 안 함, 도입 시 관찰 권장.`,
+        chipLabel: `${meta.name} cross-react 주의`,
+        priority: 0,
+        ruleId: `cross-react-${line}`,
+      })
+    }
+  }
+
   return blocked
 }
 
@@ -227,7 +261,23 @@ function applyAgeStage(
       ruleId: 'age-senior-joint',
     })
   }
-  // 12개월 미만 puppy — Joint/Weight 빼고 Basic/Premium 위주 (성장기 단백질 ↑)
+  // 12개월 미만 puppy — Joint/Weight 빼고 Basic/Premium 위주 (성장기 단백질 ↑).
+  //
+  // v1.3 — 대형견 puppy (≥25kg 성견 + <18mo) 의 경우 Premium (소·헴철분) 도
+  // 줄이고 Basic 위주로. AAFCO 2024 "Growth (Large size)" Ca 1.8% DM 상한
+  // 대응 — Premium 의 헴철분/단백질 high 가 Ca:P 균형 깨뜨릴 위험. Basic 의
+  // 닭이 Ca:P 비율 가장 안정적.
+  //
+  // 근거:
+  //  · AAFCO 2024 Dog Food Nutrient Profiles, "Growth (Large size)" 정의:
+  //    ≥25kg 성견 예상 + <18mo puppy. Max Ca = 1.8% DM, Max Ca:P = 1.8.
+  //  · Hazewinkel & Tryfonidou (2002) Endocrinology of skeletal development
+  //    (대형견 puppy 의 과잉 Ca → DOD/HOD/패노스토시스).
+  //  · Lauten (2006) Vet Clin North Am Small Anim Pract 36(6):1345-1359.
+  const isLargeBreedPuppy =
+    input.ageMonths < 18 &&
+    input.expectedAdultWeightKg !== null &&
+    input.expectedAdultWeightKg >= 25
   if (input.ageMonths < 12) {
     const oldJoint = ratios.joint
     const oldWeight = ratios.weight
@@ -246,6 +296,26 @@ function applyAgeStage(
       ruleId: 'age-puppy',
     })
   }
+  if (isLargeBreedPuppy) {
+    // 대형견 puppy — Premium ↓, Basic 위주 + Joint 차단 (Joint 의 사골육수
+    // 고-Ca 우려). AAFCO Ca 1.8% DM 상한 압력 ↓.
+    const oldPremium = ratios.premium
+    const oldJoint = ratios.joint
+    ratios = {
+      ...ratios,
+      premium: 0,
+      joint: 0,
+      basic: ratios.basic + oldPremium + oldJoint,
+    }
+    reasoning.push({
+      trigger: `대형견 puppy (성견 ${input.expectedAdultWeightKg}kg 예상, ${input.ageMonths}개월)`,
+      action:
+        'Joint/Premium 차단 (고-Ca/단백질 부담 ↓), Basic 위주. Ca:P ≤1.8 + Ca ≤1.8% DM 권장 (AAFCO 2024 Large-size Growth, NRC 2006 ch.15). 수의사 정기 검진 권장.',
+      chipLabel: '대형견 puppy → 골격 보호',
+      priority: 2,
+      ruleId: 'age-puppy-large-breed',
+    })
+  }
   return ratios
 }
 
@@ -260,22 +330,50 @@ function applyChronicAdjustments(
 ): Record<FoodLine, Ratio> {
   const c = input.chronicConditions
 
-  // 만성 신장질환 — 단백질 양 ↓ + 인 ↓. Premium (소·헴철분) 줄이고 Basic (저인)
-  // 늘림. 사용자에게 "수의사 상담 권장" 강하게 reasoning.
+  // 만성 신장질환 (CKD) — IRIS staging 분기 (v1.3).
+  //
+  // 근거 — IRIS (2019) "Staging of CKD Guidelines" www.iris-kidney.com:
+  //  · Stage 1 (creatinine <1.4 mg/dL): non-azotemic. 단백질 정상 + 인 제한.
+  //  · Stage 2 (1.4-2.8): mild azotemia. 단백질 정상 + 인 제한 + 인 binder.
+  //  · Stage 3 (2.9-5.0): moderate azotemia. 단백질 적당 제한 + 인 강제한.
+  //  · Stage 4 (>5.0): severe azotemia. 단백질 강제한 + 인 강제한.
+  //
+  // 알고리즘 v1.2 까지는 "kidney" 만 보고 Premium 0% 일률 적용 → Stage 1-2
+  // 견에 단백질 과제한 → 근감소증 위험 (Polzin 2011, Vet Clin 41:15-30).
+  // v1.3: irisStage 입력 분기.
   if (c.includes('kidney')) {
-    const oldPremium = ratios.premium
-    ratios = {
-      ...ratios,
-      premium: 0,
-      basic: ratios.basic + oldPremium,
+    const stage = input.irisStage
+    if (stage === 1 || stage === 2) {
+      // 초기 CKD — 단백질 정상 유지. Premium 그대로. 인 제한 chip만.
+      reasoning.push({
+        trigger: `만성 신장질환 (IRIS Stage ${stage})`,
+        action:
+          '단백질 정상 (Premium 유지). 인 제한 + 인 binder 권장 — 수의사 처방식 (저인) 상담. 단백질 과제한은 근감소증 위험 (Polzin 2011).',
+        chipLabel: `CKD Stage ${stage} → 단백질 유지`,
+        priority: 3,
+        ruleId: 'chronic-kidney-early',
+      })
+    } else {
+      // Stage 3-4 또는 stage 미입력 (보수적). 단백질 제한.
+      const oldPremium = ratios.premium
+      ratios = {
+        ...ratios,
+        premium: 0,
+        basic: ratios.basic + oldPremium,
+      }
+      const stageLabel =
+        stage === 3 || stage === 4
+          ? `IRIS Stage ${stage}`
+          : 'stage 미진단 (보수적)'
+      reasoning.push({
+        trigger: `만성 신장질환 (${stageLabel})`,
+        action:
+          'Premium 0% (단백질·인 부담), Basic 으로 이전. 수의사 처방식 상담 필수. IRIS 2019 — Stage 3+ 단백질 제한.',
+        chipLabel: 'CKD 후기 → 저단백 처방',
+        priority: 3,
+        ruleId: 'chronic-kidney',
+      })
     }
-    reasoning.push({
-      trigger: '만성 신장질환',
-      action: 'Premium 0% (단백질·인 부담), Basic 으로 이전. 수의사 처방식 상담 권장.',
-      chipLabel: '신장질환 → 저단백 조정',
-      priority: 3,
-      ruleId: 'chronic-kidney',
-    })
   }
 
   // IBD — 단일 단백질 + 저자극. 가장 안전한 Skin (연어) 또는 Joint (돼지) 위주.
@@ -290,7 +388,11 @@ function applyChronicAdjustments(
     // 단일화는 Step 7 의 GI 민감도 룰이 처리 (giSensitivity 강제 'always')
   }
 
-  // 췌장염 — 저지방. 지방이 높은 Skin (연어) 줄이고 Basic / Weight 위주.
+  // 췌장염 — 저지방 강제. v1.3 강화 — 라인 mix 의 dry-matter fat% 합산해
+  // 임상 권고치 (<15% DM, Xenoulis 2015 J Small Anim Pract 56:13-26) 검증.
+  //   1단계: 고지방 Skin/Premium reduce (기존)
+  //   2단계: 1단계 후에도 DM-fat% > 15% 면 Weight (fatPctDM=8) 강제 ≥0.5
+  //          다른 라인에서 비례 차감 (Joint fatPctDM=18 도 줄어듦)
   if (c.includes('pancreatitis')) {
     const oldSkin = ratios.skin
     const oldPremium = ratios.premium
@@ -300,9 +402,44 @@ function applyChronicAdjustments(
       premium: oldPremium * 0.5,
       weight: ratios.weight + oldSkin * 0.7 + oldPremium * 0.5,
     }
+    // 합산 fat% 검증
+    let fatPct = dmFatPct(ratios)
+    if (fatPct > 15 && ratios.weight < 0.5) {
+      const taken = 0.5 - ratios.weight
+      const otherSum =
+        ratios.basic + ratios.skin + ratios.premium + ratios.joint
+      if (otherSum > 0) {
+        const scale = Math.max(0, otherSum - taken) / otherSum
+        ratios = {
+          basic: ratios.basic * scale,
+          weight: 0.5,
+          skin: ratios.skin * scale,
+          premium: ratios.premium * scale,
+          joint: ratios.joint * scale,
+        }
+        fatPct = dmFatPct(ratios)
+      }
+    }
+    // 여전히 >15% 면 더 강하게 Weight ≥0.7
+    if (fatPct > 15 && ratios.weight < 0.7) {
+      const taken = 0.7 - ratios.weight
+      const otherSum =
+        ratios.basic + ratios.skin + ratios.premium + ratios.joint
+      if (otherSum > 0) {
+        const scale = Math.max(0, otherSum - taken) / otherSum
+        ratios = {
+          basic: ratios.basic * scale,
+          weight: 0.7,
+          skin: ratios.skin * scale,
+          premium: ratios.premium * scale,
+          joint: ratios.joint * scale,
+        }
+        fatPct = dmFatPct(ratios)
+      }
+    }
     reasoning.push({
       trigger: '췌장염 이력',
-      action: '고지방 라인 (Skin/Premium) ↓, 저지방 Weight ↑',
+      action: `DM 지방 ${fatPct.toFixed(1)}% (목표 <15%, Xenoulis 2015 J Small Anim Pract 56:13-26)`,
       chipLabel: '췌장염 → 저지방',
       priority: 3,
       ruleId: 'chronic-pancreatitis',
@@ -750,21 +887,63 @@ function applyDietSatisfactionNote(
 // Step 6 — 임신/수유 (priority 5)
 // ──────────────────────────────────────────────────────────────────────────
 
-function applyPregnancyNote(input: AlgorithmInput, reasoning: Reasoning[]): void {
-  // 비율은 그대로. 칼로리는 영양 calc 에서 이미 1.5~2배 처리됨.
+// 근거 — NRC (2006) "Nutrient Requirements of Dogs and Cats" Table 15-3:
+//   · Early gestation (week 1-5):   RER × 1.0~1.2 — 변화 미미
+//   · Late gestation  (week 6-9):   RER × 1.6~2.0 — 태아 성장 + 임신부 체중 ↑
+//   · Lactation peak  (week 3-4):   RER × (2.0 + 0.25*n) for n=1-4
+//                                   RER × 3.0~4.0     for n≥5
+//
+// 비율 자체는 임신/수유로 변경 안 함 — kcal 만 영양 calc 에서 multiplier
+// 적용 (이 알고리즘은 비율 결정자이고 kcal 곱셈은 호출자/calc 의 책임).
+// 본 함수는 chip 으로 정확한 multiplier 가이드를 표시.
+
+function applyPregnancyNote(
+  input: AlgorithmInput,
+  reasoning: Reasoning[],
+): void {
   if (input.pregnancy === 'pregnant') {
+    const w = input.pregnancyWeek
+    let mul: string
+    let action: string
+    if (w !== null && w >= 6) {
+      mul = '1.6-2.0×'
+      action = `임신 후기 (${w}주차) — RER × 1.6~2.0 (NRC 2006 ch.15). 태아 성장기.`
+    } else if (w !== null && w >= 1) {
+      mul = '~1.0×'
+      action = `임신 초기 (${w}주차) — RER × 1.0~1.2 권장. 후기 (6주+) 부터 본격 ↑.`
+    } else {
+      // 주차 미입력 — 보수적으로 평균 1.5× chip (기존 v1.2 동작 유지).
+      mul = '~1.5× (주차 미입력)'
+      action =
+        '임신 중 — 보수적 RER × 1.5 (정확한 multiplier 는 주차 입력 시 자동). 후기는 1.6-2.0× 권장 (NRC 2006).'
+    }
     reasoning.push({
       trigger: '임신 중',
-      action: '일일 kcal 1.5x (영양 calc 자동 보정). 라인 비율 유지.',
-      chipLabel: '임신 → kcal ↑',
+      action,
+      chipLabel: `임신 → kcal ${mul}`,
       priority: 5,
       ruleId: 'pregnancy-pregnant',
     })
   } else if (input.pregnancy === 'lactating') {
+    const n = input.litterSize
+    let mul: string
+    let action: string
+    if (n !== null && n >= 1 && n <= 4) {
+      const m = (2.0 + 0.25 * n).toFixed(2)
+      mul = `${m}×`
+      action = `수유 중 (산자 ${n}마리) — RER × ${m} (NRC 2006 Table 15-3).`
+    } else if (n !== null && n >= 5) {
+      mul = '3.0-4.0×'
+      action = `수유 중 (산자 ${n}마리) — RER × 3.0~4.0 (대형 산자, 영양 요구 ↑↑).`
+    } else {
+      mul = '~2.0× (산자 수 미입력)'
+      action =
+        '수유 중 — 보수적 RER × 2.0 (정확한 multiplier 는 산자 수 입력 시 자동). 산자 4마리+ 는 3.0× 이상 필요 가능.'
+    }
     reasoning.push({
       trigger: '수유 중',
-      action: '일일 kcal 2.0x (영양 calc 자동 보정). 라인 비율 유지.',
-      chipLabel: '수유 → kcal 2x',
+      action,
+      chipLabel: `수유 → kcal ${mul}`,
       priority: 5,
       ruleId: 'pregnancy-lactating',
     })
