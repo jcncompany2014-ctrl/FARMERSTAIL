@@ -14,7 +14,10 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
-import { computeNutrientPanel } from '@/lib/personalization/nutrientPanel'
+import {
+  computeNutrientPanel,
+  clinicalCheckForPanel,
+} from '@/lib/personalization/nutrientPanel'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { haptic } from '@/lib/haptic'
 
@@ -355,6 +358,7 @@ export default function AdjustSheet({
             ratios={ratios}
             mainSum={mainSum}
             topperSum={topperSum}
+            formula={formula}
           />
 
           {/* 메인 화식 — 5종 합 무조건 100% (정량 영양). 단일 라인 max 70%. */}
@@ -525,10 +529,12 @@ function LiveBar({
   ratios,
   mainSum,
   topperSum,
+  formula,
 }: {
   ratios: Ratios
   mainSum: number
   topperSum: number
+  formula: Formula
 }) {
   // Spec A — 메인 5종 (합 100% 정량 영양) 과 토퍼 (0~30% 보너스) 를 두 줄로
   // 분리 표시. 두 그룹은 합치지 않음 (서로 다른 dimension).
@@ -608,17 +614,31 @@ function LiveBar({
         })}
       </div>
 
-      {/* ── 영양 단면 live preview (v1.5+) ────────────────────────────── */}
-      <NutrientLivePreview ratios={ratios} />
+      {/* ── 영양 단면 live preview + 임상 권고 위반 chip (v1.5+) ──────── */}
+      <NutrientLivePreview ratios={ratios} formula={formula} />
     </div>
   )
 }
 
 /**
- * 슬라이더 조정 시 영양 단면 (DM%) 실시간 update. 사용자가 "이 변경이
- * 영양적으로 어떤 의미" 를 즉시 볼 수 있음. 메인 5종 ratio 기준 (Spec A).
+ * 슬라이더 조정 시 영양 단면 (DM%) 실시간 update + 임상 권고 위반 chip.
+ * 사용자가 "이 변경이 영양적으로 어떤 의미" 를 즉시 볼 수 있고, 만약
+ * 췌장염 fat 16% 초과 같은 위반이 발생하면 즉시 경고.
+ *
+ * context 는 formula.reasoning 의 ruleId 에서 추론:
+ *  - age-puppy / age-puppy-large-breed → isPuppy / isLargeBreedPuppy
+ *  - chronic-pancreatitis → hasPancreatitis
+ *  - chronic-cardiac → hasCardiac
+ *  - chronic-kidney (Stage 3+) → irisStage 3
+ *  - chronic-kidney-early (Stage 1-2) → irisStage 1
  */
-function NutrientLivePreview({ ratios }: { ratios: Ratios }) {
+function NutrientLivePreview({
+  ratios,
+  formula,
+}: {
+  ratios: Ratios
+  formula: Formula
+}) {
   // ratios 는 0-100 percent. computeNutrientPanel 은 0-1.0 ratio 받음.
   const mainRatios = useMemo(() => {
     const total = ALL_LINES.reduce((s, l) => s + (ratios[l] ?? 0), 0)
@@ -643,6 +663,28 @@ function NutrientLivePreview({ ratios }: { ratios: Ratios }) {
     [mainRatios],
   )
 
+  // formula.reasoning 의 ruleId 에서 임상 context 추론.
+  const clinicalContext = useMemo(() => {
+    const rules = new Set(formula.reasoning.map((r) => r.ruleId))
+    return {
+      isPuppy: rules.has('age-puppy') || rules.has('age-puppy-large-breed'),
+      isLargeBreedPuppy: rules.has('age-puppy-large-breed'),
+      hasPancreatitis: rules.has('chronic-pancreatitis'),
+      hasCardiac: rules.has('chronic-cardiac'),
+      // chronic-kidney = Stage 3+ 보수, chronic-kidney-early = Stage 1-2.
+      irisStage: rules.has('chronic-kidney')
+        ? 3
+        : rules.has('chronic-kidney-early')
+          ? 1
+          : null,
+    }
+  }, [formula.reasoning])
+
+  const check = useMemo(
+    () => clinicalCheckForPanel(panel, clinicalContext),
+    [panel, clinicalContext],
+  )
+
   return (
     <div className="adj-live-nutri">
       <div className="adj-live-nutri-label">영양 단면 (DM)</div>
@@ -660,6 +702,18 @@ function NutrientLivePreview({ ratios }: { ratios: Ratios }) {
           <b>{panel.kcalPer100g}</b>
         </span>
       </div>
+      {check.warnings.length > 0 && (
+        <div className="adj-live-warn">
+          {check.warnings.map((w) => (
+            <div key={w.code} className="adj-live-warn-row">
+              <AlertCircle size={11} strokeWidth={2.4} color="#A0452E" />
+              <span className="adj-live-warn-label">{w.label}</span>
+              <span className="adj-live-warn-actual">{w.actual}</span>
+              <span className="adj-live-warn-target">{w.target}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

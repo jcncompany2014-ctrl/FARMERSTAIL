@@ -186,6 +186,42 @@
   transition: color 200ms;
 }
 
+/* 임상 권고 위반 chip — adjust 시 즉시 경고 */
+.adj-live-warn {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: rgba(160, 69, 46, .06);
+  border: 1px solid rgba(160, 69, 46, .25);
+  border-radius: 10px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.adj-live-warn-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10.5px;
+  color: var(--ink);
+  flex-wrap: wrap;
+}
+.adj-live-warn-label {
+  font-weight: 700;
+  color: #A0452E;
+  flex-shrink: 0;
+}
+.adj-live-warn-actual {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 10px;
+  color: var(--ink);
+  background: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.adj-live-warn-target {
+  font-size: 10px;
+  color: var(--muted);
+  font-style: italic;
+}
+
 /* Section labels */
 .adj-sect-lbl {
   display: flex; align-items: center; justify-content: space-between;
