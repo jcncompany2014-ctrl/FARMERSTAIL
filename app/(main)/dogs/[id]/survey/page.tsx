@@ -69,6 +69,7 @@ import {
   type McsKey,
   type ChronicConditionKey,
 } from '@/lib/nutrition/guidelines'
+import { detectChronicFromMedications } from '@/lib/nutrition/drugs'
 import './survey.css'
 
 /**
@@ -117,11 +118,15 @@ const ALLERGY_OPTIONS = [
   '소고기',
   '양고기',
   '연어·생선',
+  '오리',
+  '흰살생선',
   '돼지고기',
   '유제품',
   '계란',
   '곡물 (밀/옥수수)',
   '대두',
+  '감자',
+  '견과류',
 ]
 
 type CareGoal =
@@ -1475,6 +1480,65 @@ export default function SurveyPage() {
                 onChange={(e) => setMedications(e.target.value)}
                 placeholder="예: 갑상선 호르몬, 글루코사민, 오메가-3"
               />
+              {/* 약물 키워드 → 만성질환 자동 제안 (사용자 confirm 후 추가) */}
+              {(() => {
+                const matches = detectChronicFromMedications(medications)
+                  .filter((m) => !chronicConditions.includes(m.condition))
+                if (matches.length === 0) return null
+                return (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      padding: 10,
+                      background: 'var(--bg-2)',
+                      borderRadius: 10,
+                      fontSize: 11.5,
+                      color: 'var(--muted)',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <div style={{ marginBottom: 6 }}>
+                      💡 입력한 약물에서 진단 가능성을 발견했어요. 해당하면 추가:
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                      {matches.map((m) => (
+                        <button
+                          key={m.condition}
+                          type="button"
+                          onClick={() =>
+                            setChronicConditions([...chronicConditions, m.condition])
+                          }
+                          style={{
+                            appearance: 'none',
+                            border: '1px solid var(--terracotta)',
+                            background: '#fff',
+                            color: 'var(--terracotta)',
+                            padding: '4px 10px',
+                            borderRadius: 99,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            fontFamily: 'inherit',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          + {m.label}
+                          <span
+                            style={{
+                              fontSize: 9,
+                              fontFamily: 'var(--font-mono), monospace',
+                              marginLeft: 4,
+                              color: 'var(--muted)',
+                              fontWeight: 500,
+                            }}
+                          >
+                            {m.keyword}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
 
             {chronicConditions.length > 0 && (
