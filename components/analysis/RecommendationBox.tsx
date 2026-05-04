@@ -219,15 +219,79 @@ export default function RecommendationBox({
   }
   if (state.status === 'no_survey') {
     return (
-      <section className="fb-state" style={{ marginTop: 24 }}>
-        박스 추천을 받으려면 설문을 먼저 완료해 주세요.
+      <section className="fb-state fb-state-no-survey" style={{ marginTop: 24 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
+          맞춤 박스를 받으려면 설문이 필요해요
+        </div>
+        <div
+          style={{
+            fontSize: 11.5,
+            color: 'var(--muted)',
+            marginBottom: 14,
+            lineHeight: 1.5,
+          }}
+        >
+          5분이면 끝나요. {dogName}이 영양 맞춤 처방을 즉시 받아볼게요.
+        </div>
+        <a
+          href={`/dogs/${dogId}/survey`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '10px 18px',
+            background: 'var(--terracotta)',
+            color: '#fff',
+            borderRadius: 99,
+            fontSize: 12,
+            fontWeight: 700,
+            textDecoration: 'none',
+          }}
+        >
+          설문 시작하기
+          <ArrowRight size={11} strokeWidth={2.4} />
+        </a>
       </section>
     )
   }
   if (state.status === 'error') {
     return (
       <section className="fb-state" style={{ marginTop: 24 }}>
-        박스 추천을 불러오지 못했어요. 잠시 후 페이지를 새로고침해 주세요.
+        <div style={{ marginBottom: 12, fontWeight: 600 }}>
+          박스 추천을 불러오지 못했어요
+        </div>
+        <div
+          style={{
+            fontSize: 11,
+            color: 'var(--muted)',
+            marginBottom: 14,
+            fontFamily: 'var(--font-mono), monospace',
+          }}
+        >
+          {state.message}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            // ref 리셋 + state 강제 loading → useEffect 재진입 위해 page reload
+            // (가장 단순). production 에선 retry counter 두고 limit 가능.
+            if (typeof window !== 'undefined') window.location.reload()
+          }}
+          style={{
+            appearance: 'none',
+            border: '1px solid var(--terracotta)',
+            background: '#fff',
+            color: 'var(--terracotta)',
+            padding: '8px 16px',
+            borderRadius: 99,
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          다시 시도
+        </button>
       </section>
     )
   }
