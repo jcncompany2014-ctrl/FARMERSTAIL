@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import { computeNutrientPanel } from '@/lib/personalization/nutrientPanel'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 
 /**
@@ -602,6 +603,59 @@ function LiveBar({
             />
           )
         })}
+      </div>
+
+      {/* ── 영양 단면 live preview (v1.5+) ────────────────────────────── */}
+      <NutrientLivePreview ratios={ratios} />
+    </div>
+  )
+}
+
+/**
+ * 슬라이더 조정 시 영양 단면 (DM%) 실시간 update. 사용자가 "이 변경이
+ * 영양적으로 어떤 의미" 를 즉시 볼 수 있음. 메인 5종 ratio 기준 (Spec A).
+ */
+function NutrientLivePreview({ ratios }: { ratios: Ratios }) {
+  // ratios 는 0-100 percent. computeNutrientPanel 은 0-1.0 ratio 받음.
+  const mainRatios = useMemo(() => {
+    const total = ALL_LINES.reduce((s, l) => s + (ratios[l] ?? 0), 0)
+    if (total <= 0) {
+      return { basic: 0, weight: 0, skin: 0, premium: 0, joint: 0 }
+    }
+    const out: Record<FoodLine, number> = {
+      basic: 0,
+      weight: 0,
+      skin: 0,
+      premium: 0,
+      joint: 0,
+    }
+    for (const l of ALL_LINES) {
+      out[l] = (ratios[l] ?? 0) / total
+    }
+    return out
+  }, [ratios])
+
+  const panel = useMemo(
+    () => computeNutrientPanel(mainRatios),
+    [mainRatios],
+  )
+
+  return (
+    <div className="adj-live-nutri">
+      <div className="adj-live-nutri-label">영양 단면 (DM)</div>
+      <div className="adj-live-nutri-grid">
+        <span>
+          <small>단백질</small>
+          <b>{panel.proteinPctDM}%</b>
+        </span>
+        <span>
+          <small>지방</small>
+          <b>{panel.fatPctDM}%</b>
+        </span>
+        <span>
+          <small>kcal/100g</small>
+          <b>{panel.kcalPer100g}</b>
+        </span>
       </div>
     </div>
   )

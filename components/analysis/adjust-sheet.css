@@ -144,6 +144,48 @@
     var(--bg-2);
 }
 
+/* 영양 단면 live preview — 슬라이더 조정 시 실시간 protein/fat/kcal */
+.adj-live-nutri {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--rule);
+}
+.adj-live-nutri-label {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.adj-live-nutri-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.adj-live-nutri-grid span {
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+.adj-live-nutri-grid small {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+.adj-live-nutri-grid b {
+  font-family: var(--font-serif), 'Fraunces', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -.01em;
+  margin-top: 1px;
+  transition: color 200ms;
+}
+
 /* Section labels */
 .adj-sect-lbl {
   display: flex; align-items: center; justify-content: space-between;
