@@ -39,8 +39,18 @@
 .s-progress .s-ticks span:first-child,
 .s-progress .s-ticks span:last-child { visibility: hidden; }
 
-/* Page chrome */
-.s-page { padding: 18px 22px 32px; }
+/* Page chrome — step 전환 시 부드러운 slide-up + fade animation */
+.s-page {
+  padding: 18px 22px 32px;
+  animation: s-page-enter 220ms cubic-bezier(.32, .72, .0, 1);
+}
+@keyframes s-page-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .s-page { animation: none; }
+}
 .s-page h1.s-title {
   font-family: var(--font-sans), "Pretendard", sans-serif;
   font-weight: 800;
