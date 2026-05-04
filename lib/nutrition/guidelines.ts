@@ -18,7 +18,7 @@
  * 대체하지 않으며, 만성질환자는 항상 수의사 상담을 우선해야 함.
  */
 
-export const GUIDELINE_VERSION = 'NRC2006+AAFCO2024+FEDIAF2021+WSAVA2011'
+export const GUIDELINE_VERSION = 'NRC2006+AAFCO2024+FEDIAF2024+WSAVA2021+IRIS2019+KFA'
 
 /** 가이드라인 출처 표시 — UI footer / 메일 footnote 등에 인용. */
 export const GUIDELINE_CITATIONS = [
@@ -51,11 +51,39 @@ export const GUIDELINE_CITATIONS = [
     url: 'https://wsava.org/global-guidelines/global-nutrition-guidelines/',
   },
   {
-    key: 'acvim_kidney',
-    label: 'ACVIM CKD',
-    title: 'Consensus Statement on Chronic Kidney Disease',
+    key: 'iris_ckd',
+    label: 'IRIS 2019/2023',
+    title: 'Staging of Chronic Kidney Disease',
+    org: 'International Renal Interest Society',
+    url: 'https://www.iris-kidney.com/iris-staging-system',
+  },
+  {
+    key: 'acvim_mmvd',
+    label: 'ACVIM MMVD 2019',
+    title: 'Consensus on Myxomatous Mitral Valve Disease (Keene 2019)',
     org: 'American College of Veterinary Internal Medicine',
-    url: 'https://onlinelibrary.wiley.com/journal/19391676',
+    url: 'https://onlinelibrary.wiley.com/doi/10.1111/jvim.15488',
+  },
+  {
+    key: 'kfa',
+    label: '한국펫사료협회 (KFA)',
+    title: '펫 사료 영양 표시 기준 가이드',
+    org: 'Korea Feed Association',
+    url: 'https://www.kofeed.org/',
+  },
+  {
+    key: 'rda_kr',
+    label: '농촌진흥청 RDA',
+    title: '반려동물 사료 가이드 (2022)',
+    org: '농림축산식품부 / 농촌진흥청 국립축산과학원',
+    url: 'https://www.nias.go.kr/',
+  },
+  {
+    key: 'mafra_feed_law',
+    label: '사료관리법',
+    title: '사료등의 기준 및 규격 (사료관리법 제10조)',
+    org: '농림축산식품부',
+    url: 'https://www.law.go.kr/법령/사료관리법',
   },
 ] as const
 
@@ -205,7 +233,7 @@ export const CONDITION_ADJUSTMENTS: Record<ChronicConditionKey, DietAdjustment> 
     fiberDelta: 6,        // 고섬유 — 혈당 안정
     supplements: ['크롬', 'L-카르니틴'],
     riskFlags: ['DIABETIC_DIET_REQUIRED'],
-    cite: ['acvim_kidney', 'fediaf2021'],
+    cite: ['iris_ckd', 'fediaf2021'],
     vetConsult: true,
   },
   kidney: {
@@ -215,7 +243,7 @@ export const CONDITION_ADJUSTMENTS: Record<ChronicConditionKey, DietAdjustment> 
     fiberDelta: 2,
     supplements: ['오메가-3 (EPA)', '비타민 B군', '수분 보충'],
     riskFlags: ['CKD_DIET_REQUIRED'],
-    cite: ['acvim_kidney', 'nrc2006'],
+    cite: ['iris_ckd', 'nrc2006'],
     vetConsult: true,
     micro: {
       phosphorusFactor: 0.6,  // 인 제한 — CKD 핵심
