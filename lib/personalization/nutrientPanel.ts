@@ -182,6 +182,19 @@ export function clinicalCheckForPanel(
       target: '≤1.8 (AAFCO Large-size Growth)',
     })
   }
+  // Ca:P lower bound — AAFCO 일반 권고 1:1 minimum (인 과다 시 Ca 흡수 ↓).
+  // audit 보강.
+  if (
+    panel.calciumPhosphorusRatio !== null &&
+    panel.calciumPhosphorusRatio < 1.0
+  ) {
+    w.push({
+      code: 'ca-p-low',
+      label: 'Ca:P 비율 1:1 미만 (인 과다)',
+      actual: panel.calciumPhosphorusRatio.toFixed(2),
+      target: '≥1.0 (AAFCO 일반)',
+    })
+  }
 
   // 심장병 저나트륨
   if (

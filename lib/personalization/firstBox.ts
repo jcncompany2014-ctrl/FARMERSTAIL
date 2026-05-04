@@ -672,6 +672,126 @@ function applyChronicAdjustments(
     })
   }
 
+  // ──────────────────────────────────────────────────────────────────────
+  // v1.6 Phase A4 — audit 보강 만성질환 (EPI / 갑상선 / Cushing's / IVDD /
+  //   Patellar / Tracheal / MMVD)
+  // ──────────────────────────────────────────────────────────────────────
+
+  // EPI (외분비 췌장 부전) — 효소 분비 부족. 췌장염과 다른 별개 질환:
+  // 정상 fat OK, 단백질 흡수율 ↓ 라 단백질 ↑ 권장. 췌장염 ceiling 적용 X.
+  //
+  // 근거:
+  //  · Westermarck (2012) Vet Clin Small Anim Pract 42:147 — EPI 종설.
+  //  · Wiberg & Westermarck (2002) JAVMA 220:1183 — pancreatin 효소 보충.
+  if (c.includes('epi')) {
+    if (ratios.premium < 0.3) {
+      const before = ratios.premium
+      ratios = {
+        ...ratios,
+        premium: 0.3,
+        basic: Math.max(0, ratios.basic + before - 0.3),
+      }
+    }
+    reasoning.push({
+      trigger: 'EPI (외분비 췌장 부전)',
+      action:
+        'Premium (단백질 ↑) ≥30% — 흡수율 낮아 단백질 보충. 췌장염과 다름 — 정상 지방 OK. Pancreatin 효소 + B12 보충 필수 (Westermarck 2012).',
+      chipLabel: 'EPI → 단백질 ↑',
+      priority: 3,
+      ruleId: 'chronic-epi',
+    })
+  }
+
+  // 갑상선저하증 — 의인성 체중 ↑ 예방 위해 Weight 라인 가산.
+  //
+  // 근거:
+  //  · Scott-Moncrieff (2007) Vet Clin Small Anim Pract 37:709 —
+  //    canine hypothyroidism 종설 + 영양 권고.
+  if (c.includes('hypothyroid')) {
+    if (ratios.weight < 0.3) {
+      const before = ratios.weight
+      ratios = {
+        ...ratios,
+        weight: 0.3,
+        basic: Math.max(0, ratios.basic + before - 0.3),
+      }
+    }
+    reasoning.push({
+      trigger: '갑상선저하증',
+      action:
+        'Weight 라인 (저칼로리 + 식이섬유) ≥30% — 의인성 체중 ↑ 예방. 레보티록신 복용 + 정기 T4 검사 (Scott-Moncrieff 2007).',
+      chipLabel: '갑상선저하 → Weight ↑',
+      priority: 3,
+      ruleId: 'chronic-hypothyroid',
+    })
+  }
+
+  // Cushing's (부신피질항진증) — 의인성 비만 + 근감소 양쪽 대응.
+  //
+  // 근거:
+  //  · Behrend et al. (2013) JVIM 27:1292 — ACVIM Hyperadrenocorticism
+  //    consensus statement.
+  if (c.includes('cushings')) {
+    // Premium (단백질 ↑) + Weight (저칼로리) 양쪽 가산
+    if (ratios.weight < 0.25) {
+      const before = ratios.weight
+      ratios = {
+        ...ratios,
+        weight: 0.25,
+        basic: Math.max(0, ratios.basic + before - 0.25),
+      }
+    }
+    reasoning.push({
+      trigger: 'Cushing\'s (부신피질항진증)',
+      action:
+        'Weight ≥25% (의인성 비만 예방) + 단백질 정상 (근감소 회피). 트릴로스탄 복용 + 정기 ACTH 자극 검사 (Behrend 2013 ACVIM consensus).',
+      chipLabel: 'Cushing\'s → Weight ↑',
+      priority: 3,
+      ruleId: 'chronic-cushings',
+    })
+  }
+
+  // 슬개골 탈구 / IVDD / 기관 허탈 — 모두 비만이 악화 요인. Weight + Joint 가산.
+  if (c.includes('patellar_luxation') || c.includes('ivdd') || c.includes('tracheal_collapse')) {
+    if (ratios.weight < 0.3) {
+      const before = ratios.weight
+      ratios = {
+        ...ratios,
+        weight: 0.3,
+        basic: Math.max(0, ratios.basic + before - 0.3),
+      }
+    }
+    const labels: string[] = []
+    if (c.includes('patellar_luxation')) labels.push('슬개골 탈구')
+    if (c.includes('ivdd')) labels.push('IVDD')
+    if (c.includes('tracheal_collapse')) labels.push('기관 허탈')
+    reasoning.push({
+      trigger: labels.join(' / '),
+      action:
+        'Weight 라인 ≥30% — 비만이 악화 요인. 글루코사민·EPA 보조 권장 (Brisson 2010 Vet Clin 40:829, LaFond 2002 JAAHA 38:467).',
+      chipLabel: `${labels[0]} → 체중 관리`,
+      priority: 3,
+      ruleId: 'chronic-musculoskeletal',
+    })
+  }
+
+  // MMVD (점액종성 이첨판 변성) — 소형견 1차 진료. ACVIM Stage A/B/C/D 별 차등.
+  // 단순화: cardiac 룰과 같지만 chip text 차별화.
+  //
+  // 근거:
+  //  · Keene et al. (2019) JVIM 33:1127 — ACVIM consensus on canine MMVD.
+  //  · Atkins et al. (2009) JVIM 23:1142 — earlier consensus.
+  if (c.includes('mmvd') && !c.includes('cardiac')) {
+    reasoning.push({
+      trigger: 'MMVD 진단',
+      action:
+        '저나트륨 + taurine + EPA 권장. ACVIM Stage C/D 면 Na <0.3% DM (Keene 2019). 정기 심초음파 + ProBNP 검사.',
+      chipLabel: 'MMVD → 저Na',
+      priority: 3,
+      ruleId: 'chronic-mmvd',
+    })
+  }
+
   return ratios
 }
 
