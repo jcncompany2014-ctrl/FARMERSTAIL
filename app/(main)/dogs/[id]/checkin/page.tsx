@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Sparkles,
   Camera,
+  X,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -92,6 +93,10 @@ export default function CheckinPage() {
     1 | 2 | 3 | 4 | 5 | null
   >(null)
   const [freeText, setFreeText] = useState('')
+  // 사진 — 변/털 첨부. v1.5+ Storage bucket dog_checkin_photos.
+  const [photoUrls, setPhotoUrls] = useState<string[]>([])
+  const [photoPreview, setPhotoPreview] = useState<Record<string, string>>({})
+  const [uploading, setUploading] = useState(false)
 
   // 강아지 정보 + 기존 응답 조회
   useEffect(() => {
@@ -118,7 +123,7 @@ export default function CheckinPage() {
         supabase
           .from('dog_checkins')
           .select(
-            'stool_score, coat_score, appetite_score, overall_satisfaction, free_text',
+            'stool_score, coat_score, appetite_score, overall_satisfaction, free_text, photo_urls',
           )
           .eq('dog_id', dogId)
           .eq('cycle_number', cycleNumber)
@@ -138,6 +143,7 @@ export default function CheckinPage() {
           appetite_score: number | null
           overall_satisfaction: number | null
           free_text: string | null
+          photo_urls: string[] | null
         }
         setExisting({
           stoolScore: p.stool_score,
@@ -153,6 +159,20 @@ export default function CheckinPage() {
         setSatisfaction(p.overall_satisfaction as typeof satisfaction)
         setFreeText(p.free_text ?? '')
         setEditMode(false)
+        // 사진 — signed URL 미리보기 batch 발급.
+        if (Array.isArray(p.photo_urls) && p.photo_urls.length > 0) {
+          setPhotoUrls(p.photo_urls)
+          const previews: Record<string, string> = {}
+          await Promise.all(
+            p.photo_urls.map(async (path) => {
+              const { data } = await supabase.storage
+                .from('dog_checkin_photos')
+                .createSignedUrl(path, 60 * 60)
+              if (data?.signedUrl) previews[path] = data.signedUrl
+            }),
+          )
+          if (!cancelled) setPhotoPreview(previews)
+        }
       }
       setLoading(false)
     })()
@@ -160,6 +180,65 @@ export default function CheckinPage() {
       cancelled = true
     }
   }, [dogId, cycleNumber, checkpoint, router, supabase])
+
+  async function uploadPhoto(file: File) {
+    setUploading(true)
+    setErr('')
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) {
+        setErr('로그인이 필요해요')
+        return
+      }
+      // 파일 크기 검증 — 5MB cap (Storage bucket 도 같은 cap).
+      if (file.size > 5 * 1024 * 1024) {
+        setErr('사진은 5MB 이하만 첨부 가능해요')
+        return
+      }
+      // 폴더: {user.id}/{dog_id}/{cycle}-{checkpoint}-{timestamp}-{filename}
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `${user.id}/${dogId}/${cycleNumber}-${checkpoint}-${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('dog_checkin_photos')
+        .upload(path, file, { contentType: file.type, upsert: false })
+      if (upErr) {
+        setErr(upErr.message || '사진 업로드 실패')
+        return
+      }
+      // signed URL 발급 (1시간) — bucket private 라 public URL 안 됨.
+      const { data: signed } = await supabase.storage
+        .from('dog_checkin_photos')
+        .createSignedUrl(path, 60 * 60)
+      // 저장 시점에는 path 만 photo_urls 에 저장 — signed URL 은 만료. 갤러리
+      // 표시용 미리보기로만 signed 사용.
+      setPhotoUrls((prev) => [...prev, path])
+      // signed URL 미리보기 캐시 — 컴포넌트 state 안에 저장 (Map 형태로 추가).
+      if (signed?.signedUrl) {
+        setPhotoPreview((prev) => ({ ...prev, [path]: signed.signedUrl }))
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : '업로드 오류')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function removePhoto(path: string) {
+    setErr('')
+    try {
+      await supabase.storage.from('dog_checkin_photos').remove([path])
+      setPhotoUrls((prev) => prev.filter((p) => p !== path))
+      setPhotoPreview((prev) => {
+        const next = { ...prev }
+        delete next[path]
+        return next
+      })
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : '삭제 오류')
+    }
+  }
 
   async function submit() {
     setErr('')
@@ -177,6 +256,7 @@ export default function CheckinPage() {
           appetiteScore: appetite,
           overallSatisfaction: checkpoint === 'week_4' ? satisfaction : null,
           freeText: freeText.trim() || undefined,
+          photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
         }),
       })
       const json = (await res.json()) as
@@ -348,13 +428,84 @@ export default function CheckinPage() {
         <div className="ck-charcount">{freeText.length} / 500</div>
       </fieldset>
 
-      <div className="ck-photo-hint">
-        <Camera size={14} strokeWidth={1.8} color="var(--muted)" />
-        <span>
-          <strong>변/털 사진 첨부</strong>가 곧 가능해져요. AI 가 자동으로
-          상태를 분석해 더 정확한 추천을 만들어요.
-        </span>
-      </div>
+      {editMode && (
+        <fieldset className="ck-section ck-photo-section">
+          <legend className="ck-sect-lbl">변·털 사진 (선택)</legend>
+          <p className="ck-sect-hint">
+            첨부하면 다음 cycle 에 AI 자동 채점이 더 정확해져요. 5MB 이하 jpg/png.
+          </p>
+          {photoUrls.length > 0 && (
+            <div className="ck-photo-grid">
+              {photoUrls.map((path) => {
+                const url = photoPreview[path]
+                return (
+                  <div key={path} className="ck-photo-thumb">
+                    {url ? (
+                      // Server-side signed URL 이라 next/image 대신 img.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={url}
+                        alt="체크인 사진"
+                        loading="lazy"
+                        className="ck-photo-img"
+                      />
+                    ) : (
+                      <div className="ck-photo-loading">…</div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(path)}
+                      className="ck-photo-del"
+                      aria-label="사진 삭제"
+                    >
+                      <X size={11} strokeWidth={2.6} color="#fff" />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <label className={'ck-photo-btn' + (uploading ? ' busy' : '')}>
+            <Camera size={14} strokeWidth={2} />
+            <span>{uploading ? '업로드 중...' : '사진 추가'}</span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple={false}
+              disabled={uploading}
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) uploadPhoto(f)
+                e.target.value = '' // 같은 파일 재선택 가능
+              }}
+              style={{ display: 'none' }}
+            />
+          </label>
+        </fieldset>
+      )}
+      {!editMode && photoUrls.length > 0 && (
+        <fieldset className="ck-section">
+          <legend className="ck-sect-lbl">첨부된 사진</legend>
+          <div className="ck-photo-grid">
+            {photoUrls.map((path) => {
+              const url = photoPreview[path]
+              return (
+                <div key={path} className="ck-photo-thumb">
+                  {url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={url}
+                      alt="체크인 사진"
+                      loading="lazy"
+                      className="ck-photo-img"
+                    />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </fieldset>
+      )}
 
       {err && (
         <div className="ck-err">

@@ -56,6 +56,60 @@
   margin: 0;
 }
 
+/* Photo upload section */
+.ck-photo-section { margin-top: 4px; }
+.ck-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.ck-photo-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-2);
+  border: 1px solid var(--rule);
+}
+.ck-photo-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.ck-photo-loading {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+  font-size: 18px; color: var(--muted);
+}
+.ck-photo-del {
+  position: absolute; top: 4px; right: 4px;
+  appearance: none; border: 0;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: rgba(46, 31, 20, .72);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.ck-photo-del:hover { background: rgba(160, 69, 46, .9); }
+.ck-photo-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 14px;
+  background: var(--bg-2);
+  color: var(--ink);
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.ck-photo-btn:hover { background: var(--rule); }
+.ck-photo-btn.busy {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 /* Progress indicator — hero 아래 응답 진행률 */
 .ck-progress {
   display: flex; align-items: center; gap: 10px;

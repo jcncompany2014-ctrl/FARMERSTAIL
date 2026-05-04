@@ -135,7 +135,9 @@ export const zPersonalizationCheckin = z.object({
   appetiteScore: z.number().int().min(1).max(5).nullable().optional(),
   overallSatisfaction: z.number().int().min(1).max(5).nullable().optional(),
   freeText: z.string().max(2000).optional(),
-  photoUrls: z.array(z.string().url()).max(8).optional(),
+  // Storage path 형식 (`{user_id}/{dog_id}/{filename}`) 허용. signed URL 은
+  // 만료되고 bucket private 라 public URL 불가 — path 만 저장.
+  photoUrls: z.array(z.string().min(1).max(500)).max(8).optional(),
 })
 
 /** /api/personalization/adjust — 사용자가 추천 비율을 직접 수정. 합 1.0 검증
