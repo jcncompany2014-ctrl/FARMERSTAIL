@@ -56,6 +56,32 @@
   margin: 0;
 }
 
+/* Progress indicator — hero 아래 응답 진행률 */
+.ck-progress {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 14px;
+}
+.ck-progress-bar {
+  flex: 1;
+  height: 4px; border-radius: 99px;
+  background: var(--rule);
+  overflow: hidden;
+}
+.ck-progress-bar i {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--moss), var(--terracotta));
+  border-radius: 99px;
+  transition: width 320ms cubic-bezier(.32, .72, 0, 1);
+}
+.ck-progress-lbl {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: .04em;
+  flex-shrink: 0;
+}
+
 /* Existing response banner */
 .ck-existing {
   display: flex;

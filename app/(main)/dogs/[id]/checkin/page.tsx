@@ -234,6 +234,32 @@ export default function CheckinPage() {
             ? '박스 도착 후 2주가 지났어요. 위장 적응이 잘 되고 있는지 알려주세요.'
             : '이번 박스가 끝나가요. 다음 박스 비율 결정에 도움이 되는 신호 4가지만.'}
         </p>
+        {/* 응답 진행 — 답한 항목 / 전체. null/미응답도 "잘 모르겠어요" 로
+            의도된 응답이라 카운트. 사용자에게 "거의 다 왔어요" 시각 신호. */}
+        {(() => {
+          const answered = [
+            stool !== null || existing?.stoolScore !== undefined,
+            coat !== null || existing?.coatScore !== undefined,
+            appetite !== null || existing?.appetiteScore !== undefined,
+            ...(checkpoint === 'week_4'
+              ? [satisfaction !== null || existing?.overallSatisfaction !== undefined]
+              : []),
+          ]
+          const filled = answered.filter(Boolean).length
+          const total = answered.length
+          if (!editMode || total === 0) return null
+          const pct = Math.round((filled / total) * 100)
+          return (
+            <div className="ck-progress" aria-label={`${filled}/${total} 항목 응답`}>
+              <div className="ck-progress-bar">
+                <i style={{ width: `${pct}%` }} />
+              </div>
+              <span className="ck-progress-lbl">
+                {filled} / {total} 항목
+              </span>
+            </div>
+          )
+        })()}
       </header>
 
       {existing && !editMode && (
