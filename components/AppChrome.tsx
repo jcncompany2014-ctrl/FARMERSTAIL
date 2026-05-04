@@ -182,15 +182,15 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* 우측: 알림 + 장바구니. 둘 다 40px 히트 영역 + 24px 시각 아이콘.
-              알림은 mypage/notifications 로 이동 — unread count 백엔드는 추후. */}
+              Bell → /notifications (push_log + 주문 알림 합산). */}
           <div className="flex items-center gap-0.5 -mr-2.5 shrink-0">
             <Link
-              href="/mypage/orders"
+              href="/notifications"
               onClick={handleBellClick}
               aria-label={
                 unreadCount > 0
-                  ? `알림 ${unreadCount}개 — 최근 주문 확인하기`
-                  : '알림 — 최근 주문 확인하기'
+                  ? `알림 ${unreadCount}개`
+                  : '알림 센터'
               }
               className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-rule transition"
             >
