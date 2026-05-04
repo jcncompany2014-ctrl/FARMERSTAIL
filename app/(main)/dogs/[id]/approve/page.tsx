@@ -10,12 +10,15 @@ import {
   Loader2,
   AlertCircle,
   Sparkles,
+  TrendingUp,
+  TrendingDown,
+  ArrowRight,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
-import { diffFormulas } from '@/lib/personalization/diff'
+import './approve.css'
 
 /**
  * /dogs/[id]/approve?cycle=N
@@ -23,8 +26,16 @@ import { diffFormulas } from '@/lib/personalization/diff'
  * cron 이 의미 있는 변화를 감지해 pending_approval 상태로 만든 처방을 보호자가
  * 승인 / 거부하는 화면. push / email deep link 가 진입.
  *
- * # 디자인 (placeholder — 클로드 디자인 핸드오프 받으면 비교 화면 교체)
- * 이전 vs 새 비율 stacked bar 비교 + 변경 사항 칩 + approve / decline CTA.
+ * # UI
+ *  1. Hero — kicker (NEEDS APPROVAL · cycle N) + 강아지 이름 + 1줄 설명
+ *  2. 변경 chips — 라인별 ±N% (▲ 증가, ▼ 감소, • 추가/제거)
+ *  3. 비교 bars — 이전 (muted) vs 새 (강조) stacked bar + legend
+ *  4. Reasoning — 알고리즘 결정 근거 chip (number badge + label + detail)
+ *  5. Sticky CTA — 그대로 유지 / 새 비율 적용
+ *
+ * # Spec A — 메인 5종 합 100%, 토퍼 별도
+ *
+ * # 5일 무응답 → 자동 declined (timeout cron)
  */
 
 export default function ApprovePage() {
@@ -175,52 +186,24 @@ export default function ApprovePage() {
           />
           처방 정보 불러오는 중...
         </div>
-        <style jsx>{`
-          .ap-page { padding: 60px 22px; min-height: 100vh; background: var(--bg); }
-          .ap-state {
-            display: flex; align-items: center; gap: 10px;
-            font-size: 13px; color: var(--muted);
-            justify-content: center;
-          }
-        `}</style>
       </main>
     )
   }
 
   if (!pending) {
     return (
-      <main className="ap-page" style={{ padding: 22 }}>
-        <Link href={`/dogs/${dogId}`} style={{ color: 'var(--muted)', fontSize: 12 }}>
-          ← 돌아가기
+      <main className="ap-page">
+        <Link href={`/dogs/${dogId}`} className="ap-back">
+          <ChevronLeft size={14} strokeWidth={2.2} />
+          {dogName ? `${dogName}이의 페이지` : '돌아가기'}
         </Link>
-        <div
-          style={{
-            background: 'var(--bg-2)',
-            border: '1px solid var(--rule)',
-            borderRadius: 16,
-            padding: 24,
-            marginTop: 24,
-            textAlign: 'center',
-          }}
-        >
-          <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>
+        <div className="ap-empty">
+          <p>
             cycle {cycleNumber} 의 동의 대기 처방을 찾을 수 없어요.
             <br />
             이미 응답했거나 5일이 지나 자동 취소됐을 수 있어요.
           </p>
-          <Link
-            href={`/dogs/${dogId}/analysis`}
-            style={{
-              marginTop: 16,
-              display: 'inline-block',
-              padding: '10px 18px',
-              background: 'var(--ink)',
-              color: 'var(--bg)',
-              borderRadius: 99,
-              fontSize: 12,
-              fontWeight: 700,
-            }}
-          >
+          <Link href={`/dogs/${dogId}/analysis`} className="ap-empty-cta">
             현재 처방 보기
           </Link>
         </div>
@@ -228,110 +211,54 @@ export default function ApprovePage() {
     )
   }
 
-  const diff = previous ? diffFormulas(previous, pending) : null
+  // 라인별 변화량 — diff.changes 는 한국어 텍스트라 별도 계산. 토퍼도 포함.
+  // (diffFormulas 의 forced/meaningful 신호는 cron approval 결정에 사용 — UI 는
+  // 별도 계산.)
+  const lineChanges = previous ? computeLineChanges(previous, pending) : []
 
   return (
-    <main
-      style={{
-        maxWidth: 480,
-        margin: '0 auto',
-        padding: '16px 22px 96px',
-        background: 'var(--bg)',
-        minHeight: '100vh',
-      }}
-    >
-      <Link
-        href={`/dogs/${dogId}`}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4,
-          fontSize: 11,
-          fontWeight: 600,
-          color: 'var(--muted)',
-          letterSpacing: '0.04em',
-          textDecoration: 'none',
-          marginBottom: 18,
-        }}
-      >
+    <main className="ap-page">
+      <Link href={`/dogs/${dogId}`} className="ap-back">
         <ChevronLeft size={14} strokeWidth={2.2} />
         {dogName}이의 페이지
       </Link>
 
-      <header style={{ marginBottom: 24 }}>
-        <div
-          style={{
-            fontFamily: 'var(--font-mono), monospace',
-            fontSize: 9.5,
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: 'var(--terracotta)',
-            fontWeight: 600,
-            marginBottom: 10,
-          }}
-        >
-          NEEDS APPROVAL · CYCLE {cycleNumber}
+      <header className="ap-hero">
+        <div className="ap-kicker">
+          <span className="ap-pill">CYCLE {cycleNumber}</span>
+          NEEDS APPROVAL
         </div>
-        <h1
-          style={{
-            fontFamily: 'var(--font-sans), Pretendard, sans-serif',
-            fontWeight: 800,
-            fontSize: 24,
-            lineHeight: 1.18,
-            color: 'var(--ink)',
-            letterSpacing: '-0.025em',
-            margin: '0 0 12px',
-          }}
-        >
+        <h1 className="ap-h1">
           {dogName}이 다음 박스
           <br />
           비율을 바꿔봐요
         </h1>
-        <p
-          style={{
-            fontSize: 12.5,
-            color: 'var(--muted)',
-            lineHeight: 1.6,
-            margin: 0,
-          }}
-        >
+        <p className="ap-sub">
           체크인 응답을 분석해서 비율을 조정해봤어요. 마음에 들면{' '}
           <strong>적용</strong>, 그대로 두려면 <strong>유지</strong>.
         </p>
       </header>
 
-      {/* 변경 요약 chips */}
-      {diff && diff.changes.length > 0 && (
-        <section style={{ marginBottom: 24 }}>
-          <div
-            style={{
-              fontFamily: 'var(--font-mono), monospace',
-              fontSize: 10,
-              letterSpacing: '0.22em',
-              fontWeight: 700,
-              color: 'var(--ink)',
-              textTransform: 'uppercase',
-              marginBottom: 10,
-            }}
-          >
-            바뀌는 부분
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {diff.changes.map((c, i) => (
+      {/* 라인별 변화량 chips */}
+      {lineChanges.length > 0 && (
+        <section className="ap-changes">
+          <div className="ap-sect-lbl">바뀌는 부분</div>
+          <div className="ap-chip-row">
+            {lineChanges.map((c, i) => (
               <span
                 key={i}
-                style={{
-                  display: 'inline-block',
-                  padding: '5px 11px',
-                  background: '#fff',
-                  boxShadow: 'inset 0 0 0 1px var(--rule)',
-                  borderRadius: 99,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                }}
+                className={
+                  'ap-chip ' +
+                  (c.delta > 0 ? 'ap-up' : c.delta < 0 ? 'ap-down' : 'ap-info')
+                }
               >
-                {c}
+                {c.delta > 0 && <TrendingUp size={11} strokeWidth={2.4} />}
+                {c.delta < 0 && <TrendingDown size={11} strokeWidth={2.4} />}
+                {c.label}
+                <span className="ap-chip-arrow">
+                  {c.delta > 0 ? '+' : ''}
+                  {c.delta}%
+                </span>
               </span>
             ))}
           </div>
@@ -340,112 +267,49 @@ export default function ApprovePage() {
 
       {/* 비교 stacked bar — 이전 vs 새 */}
       {previous && (
-        <section style={{ marginBottom: 24 }}>
+        <section>
           <CompareBars previous={previous} next={pending} />
         </section>
       )}
 
       {/* Reasoning */}
-      <section style={{ marginBottom: 28 }}>
-        <div
-          style={{
-            fontFamily: 'var(--font-mono), monospace',
-            fontSize: 10,
-            letterSpacing: '0.22em',
-            fontWeight: 700,
-            color: 'var(--ink)',
-            textTransform: 'uppercase',
-            marginBottom: 10,
-          }}
-        >
-          왜 이렇게 제안했어요
-        </div>
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 6,
-          }}
-        >
+      <section className="ap-reasoning">
+        <div className="ap-sect-lbl">왜 이렇게 제안했어요</div>
+        <ul className="ap-reason-list">
           {pending.reasoning.slice(0, 5).map((r, i) => (
-            <li
-              key={i}
-              style={{
-                background: '#fff',
-                boxShadow: 'inset 0 0 0 1px var(--rule)',
-                borderRadius: 12,
-                padding: '10px 12px',
-                fontSize: 12,
-                lineHeight: 1.5,
-                color: 'var(--text)',
-              }}
-            >
-              <strong style={{ color: 'var(--ink)' }}>{r.chipLabel}</strong>
-              <br />
-              <span style={{ color: 'var(--muted)', fontSize: 11 }}>
-                {r.trigger} → {r.action}
-              </span>
+            <li key={i} className="ap-reason">
+              <span className="ap-reason-num">{i + 1}</span>
+              <div className="ap-reason-body">
+                <div className="ap-reason-chip">{r.chipLabel}</div>
+                <div className="ap-reason-detail">
+                  <strong>{r.trigger}</strong>
+                  <ArrowRight
+                    size={10}
+                    strokeWidth={2}
+                    style={{ verticalAlign: '-1px', margin: '0 4px' }}
+                  />
+                  {r.action}
+                </div>
+              </div>
             </li>
           ))}
         </ul>
       </section>
 
       {err && (
-        <div
-          style={{
-            background: '#FFF5F2',
-            color: '#8A3923',
-            padding: '10px 12px',
-            borderRadius: 10,
-            fontSize: 11.5,
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 7,
-            marginBottom: 16,
-          }}
-        >
+        <div className="ap-err">
           <AlertCircle size={14} strokeWidth={2} />
           {err}
         </div>
       )}
 
       {/* CTAs */}
-      <div
-        style={{
-          position: 'sticky',
-          bottom: 0,
-          background: 'linear-gradient(to top, var(--bg) 70%, transparent)',
-          paddingTop: 16,
-          paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 8,
-        }}
-      >
+      <div className="ap-cta">
         <button
           type="button"
           disabled={submitting !== null}
           onClick={() => decide('decline')}
-          style={{
-            appearance: 'none',
-            border: 0,
-            cursor: 'pointer',
-            background: 'var(--bg-2)',
-            color: 'var(--ink)',
-            padding: '14px 16px',
-            borderRadius: 99,
-            fontSize: 13,
-            fontWeight: 700,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            fontFamily: 'inherit',
-          }}
+          className="ap-btn ap-decline"
         >
           {submitting === 'decline' ? (
             <Loader2 size={14} strokeWidth={2.4} className="animate-spin" />
@@ -458,23 +322,7 @@ export default function ApprovePage() {
           type="button"
           disabled={submitting !== null}
           onClick={() => decide('approve')}
-          style={{
-            appearance: 'none',
-            border: 0,
-            cursor: 'pointer',
-            background: 'var(--terracotta)',
-            color: '#fff',
-            padding: '14px 16px',
-            borderRadius: 99,
-            fontSize: 13,
-            fontWeight: 700,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            boxShadow: '0 8px 22px -8px rgba(160, 69, 46, 0.45)',
-            fontFamily: 'inherit',
-          }}
+          className="ap-btn ap-approve"
         >
           {submitting === 'approve' ? (
             <Loader2 size={14} strokeWidth={2.4} className="animate-spin" />
@@ -485,25 +333,43 @@ export default function ApprovePage() {
         </button>
       </div>
 
-      <p
-        style={{
-          fontSize: 10,
-          color: 'var(--muted)',
-          textAlign: 'center',
-          marginTop: 14,
-          lineHeight: 1.6,
-        }}
-      >
-        <Sparkles
-          size={11}
-          strokeWidth={2}
-          color="var(--terracotta)"
-          style={{ verticalAlign: '-2px', marginRight: 4 }}
-        />
+      <p className="ap-foot">
+        <Sparkles size={11} strokeWidth={2} color="var(--terracotta)" />
         5일 안에 응답 안 하시면 자동으로 이전 비율 유지됩니다.
       </p>
     </main>
   )
+}
+
+/**
+ * 라인 + 토퍼별 변화량 (%포인트). previous 와 next 의 0% 라인 추가/제거도 포함.
+ * Spec A — 메인 5종 (합 100%) 과 토퍼는 별개 차원.
+ */
+function computeLineChanges(
+  previous: Formula,
+  next: Formula,
+): Array<{ label: string; delta: number }> {
+  const out: Array<{ label: string; delta: number }> = []
+  for (const line of ALL_LINES) {
+    const prev = Math.round(previous.lineRatios[line] * 100)
+    const cur = Math.round(next.lineRatios[line] * 100)
+    if (prev === cur) continue
+    out.push({ label: FOOD_LINE_META[line as FoodLine].name, delta: cur - prev })
+  }
+  // 토퍼
+  const toppers: Array<{ key: 'vegetable' | 'protein'; label: string }> = [
+    { key: 'vegetable', label: '야채 토퍼' },
+    { key: 'protein', label: '육류 토퍼' },
+  ]
+  for (const { key, label } of toppers) {
+    const prev = Math.round(previous.toppers[key] * 100)
+    const cur = Math.round(next.toppers[key] * 100)
+    if (prev === cur) continue
+    out.push({ label, delta: cur - prev })
+  }
+  // 절대값 큰 순 정렬 — 가장 임팩트 있는 변화 먼저.
+  out.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+  return out
 }
 
 function CompareBars({
@@ -514,22 +380,9 @@ function CompareBars({
   next: Formula
 }) {
   return (
-    <div
-      style={{
-        background: '#fff',
-        boxShadow: 'inset 0 0 0 1px var(--rule)',
-        borderRadius: 16,
-        padding: 14,
-      }}
-    >
-      <BarRow label="이전" formula={previous} muted />
-      <div
-        style={{
-          height: 1,
-          background: 'var(--rule)',
-          margin: '12px 0',
-        }}
-      />
+    <div className="ap-compare">
+      <BarRow label="이전" formula={previous} prev />
+      <div className="ap-divider" />
       <BarRow label="새 제안" formula={next} />
     </div>
   )
@@ -538,57 +391,24 @@ function CompareBars({
 function BarRow({
   label,
   formula,
-  muted,
+  prev,
 }: {
   label: string
   formula: Formula
-  muted?: boolean
+  prev?: boolean
 }) {
+  const totalKcal = formula.dailyKcal
   return (
-    <>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 6,
-        }}
-      >
-        <span
-          style={{
-            fontFamily: 'var(--font-mono), monospace',
-            fontSize: 10,
-            letterSpacing: '0.22em',
-            color: muted ? 'var(--muted)' : 'var(--ink)',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-          }}
-        >
-          {label}
-        </span>
-        <span
-          style={{
-            fontFamily: 'var(--font-mono), monospace',
-            fontSize: 10,
-            color: 'var(--muted)',
-          }}
-        >
-          {formula.dailyKcal} kcal
+    <div className={'ap-bar-row ' + (prev ? 'ap-prev' : 'ap-next')}>
+      <div className="ap-bar-head">
+        <span className="ap-bar-label">{label}</span>
+        <span className="ap-bar-meta">
+          <b>{totalKcal}</b> kcal
         </span>
       </div>
-      <div
-        style={{
-          display: 'flex',
-          height: 12,
-          borderRadius: 99,
-          overflow: 'hidden',
-          background: 'var(--rule)',
-          marginBottom: 6,
-          opacity: muted ? 0.65 : 1,
-        }}
-      >
+      <div className="ap-bar">
         {ALL_LINES.filter((l) => formula.lineRatios[l] > 0).map((line) => (
-          <span
+          <i
             key={line}
             style={{
               width: `${Math.round(formula.lineRatios[line] * 100)}%`,
@@ -598,34 +418,24 @@ function BarRow({
           />
         ))}
       </div>
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 4,
-          fontSize: 10.5,
-          color: muted ? 'var(--muted)' : 'var(--text)',
-        }}
-      >
+      <div className="ap-legend">
         {ALL_LINES.filter((l) => formula.lineRatios[l] > 0)
           .sort((a, b) => formula.lineRatios[b] - formula.lineRatios[a])
           .map((line) => (
-            <span key={line} style={{ display: 'inline-flex', gap: 4 }}>
+            <span key={line} className="ap-legend-item">
               <span
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: 50,
-                  background: FOOD_LINE_META[line as FoodLine].color,
-                  display: 'inline-block',
-                  alignSelf: 'center',
-                }}
+                className="ap-legend-dot"
+                style={{ background: FOOD_LINE_META[line as FoodLine].color }}
               />
-              {FOOD_LINE_META[line as FoodLine].name}{' '}
-              <strong>{Math.round(formula.lineRatios[line] * 100)}%</strong>
+              <span className="ap-legend-name">
+                {FOOD_LINE_META[line as FoodLine].name}
+              </span>
+              <span className="ap-legend-pct">
+                {Math.round(formula.lineRatios[line] * 100)}%
+              </span>
             </span>
           ))}
       </div>
-    </>
+    </div>
   )
 }
