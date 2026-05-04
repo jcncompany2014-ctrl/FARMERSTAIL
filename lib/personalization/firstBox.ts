@@ -45,6 +45,7 @@ import {
   getLineFat,
 } from './lines.ts'
 import { quantizeAndNormalize } from './quantize.ts'
+import { transferToTarget } from './transfers.ts'
 
 const ALGORITHM_VERSION = 'v1.3.0'
 /** 토퍼 합계 cap — 화식이 주식 지위를 잃지 않도록 30% 한도. */
@@ -454,26 +455,40 @@ function applyChronicAdjustments(
     })
   }
 
-  // 관절염 — Joint 라인 가산.
+  // 관절염 — Joint 라인 가산. v1.4 — transferToTarget 으로 mass leak 방지 +
+  // chip 진실성 (actual finalValue 가 chip text 에 박힘). audit C-1/C-5 fix.
   if (c.includes('arthritis') && ratios.joint < 0.3) {
     const before = ratios.joint
-    ratios = { ...ratios, joint: 0.3, basic: Math.max(0, ratios.basic - 0.3 + before) }
+    const { ratios: next, finalValue } = transferToTarget(
+      ratios,
+      'joint',
+      0.3,
+      // donor 우선순위: basic (균형식 = 가장 풍부) → premium → weight → skin
+      ['basic', 'premium', 'weight', 'skin'],
+    )
+    ratios = next
     reasoning.push({
       trigger: '관절염 진단',
-      action: `Joint ${(before * 100).toFixed(0)}% → 30% (콜라겐·B1)`,
+      action: `Joint ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}% (콜라겐·B1)`,
       chipLabel: '관절염 → Joint ↑',
       priority: 3,
       ruleId: 'chronic-arthritis',
     })
   }
 
-  // 알레르기성 피부염 — Skin (연어 오메가-3) 가산.
+  // 알레르기성 피부염 — Skin (연어 오메가-3) 가산. v1.4 transferToTarget.
   if (c.includes('allergy_skin') && ratios.skin < 0.3) {
     const before = ratios.skin
-    ratios = { ...ratios, skin: 0.3, basic: Math.max(0, ratios.basic - 0.3 + before) }
+    const { ratios: next, finalValue } = transferToTarget(
+      ratios,
+      'skin',
+      0.3,
+      ['basic', 'weight', 'premium', 'joint'],
+    )
+    ratios = next
     reasoning.push({
       trigger: '알레르기성 피부염',
-      action: `Skin ${(before * 100).toFixed(0)}% → 30% (오메가-3 항염)`,
+      action: `Skin ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}% (오메가-3 항염)`,
       chipLabel: '피부염 → Skin ↑',
       priority: 3,
       ruleId: 'chronic-allergy-skin',
@@ -623,37 +638,54 @@ function applyBcsAdjustments(
 ): Record<FoodLine, Ratio> {
   if (input.bcs === null) return ratios
 
-  // BCS 6+ — 과체중. Weight 라인 가산.
+  // BCS 6+ — 과체중. Weight 라인 가산. v1.4 transferToTarget.
   if (input.bcs >= 6 && input.bcs <= 7 && ratios.weight < 0.4) {
     const before = ratios.weight
-    ratios = { ...ratios, weight: 0.4, basic: Math.max(0, ratios.basic + before - 0.4) }
+    const { ratios: next, finalValue } = transferToTarget(
+      ratios,
+      'weight',
+      0.4,
+      ['basic', 'premium', 'joint', 'skin'],
+    )
+    ratios = next
     reasoning.push({
       trigger: `BCS ${input.bcs}/9 (과체중)`,
-      action: `Weight ${(before * 100).toFixed(0)}% → 40%`,
+      action: `Weight ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}%`,
       chipLabel: `BCS ${input.bcs}/9 → Weight ↑`,
       priority: 4,
       ruleId: 'bcs-overweight',
     })
   }
-  // BCS 8-9 — 비만. Weight 라인 메인.
+  // BCS 8-9 — 비만. Weight 라인 메인. v1.4 transferToTarget.
   if (input.bcs >= 8 && ratios.weight < 0.6) {
-    const before = ratios.weight
-    ratios = { ...ratios, weight: 0.6, basic: Math.max(0, ratios.basic + before - 0.6) }
+    const { ratios: next, finalValue } = transferToTarget(
+      ratios,
+      'weight',
+      0.6,
+      ['basic', 'premium', 'joint', 'skin'],
+    )
+    ratios = next
     reasoning.push({
       trigger: `BCS ${input.bcs}/9 (비만)`,
-      action: `Weight 메인 60%, 강한 칼로리 제한 + 식이섬유 ↑`,
+      action: `Weight 메인 ${(finalValue * 100).toFixed(0)}%, 강한 칼로리 제한 + 식이섬유 ↑`,
       chipLabel: `BCS ${input.bcs}/9 → Weight 메인`,
       priority: 4,
       ruleId: 'bcs-obese',
     })
   }
-  // BCS 1-3 — 저체중. Premium (단백질 ↑) 가산.
+  // BCS 1-3 — 저체중. Premium (단백질 ↑) 가산. v1.4 transferToTarget.
   if (input.bcs <= 3 && ratios.premium < 0.3) {
     const before = ratios.premium
-    ratios = { ...ratios, premium: 0.3, basic: Math.max(0, ratios.basic + before - 0.3) }
+    const { ratios: next, finalValue } = transferToTarget(
+      ratios,
+      'premium',
+      0.3,
+      ['basic', 'weight', 'joint', 'skin'],
+    )
+    ratios = next
     reasoning.push({
       trigger: `BCS ${input.bcs}/9 (저체중)`,
-      action: `Premium ${(before * 100).toFixed(0)}% → 30% (헴철분·단백질)`,
+      action: `Premium ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}% (헴철분·단백질)`,
       chipLabel: `BCS ${input.bcs}/9 → Premium ↑`,
       priority: 4,
       ruleId: 'bcs-underweight',
