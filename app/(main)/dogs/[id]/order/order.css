@@ -78,6 +78,58 @@
   text-decoration: none;
 }
 
+/* Trust chips — AAFCO + NRC 등 */
+.ord-trust {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 16px;
+}
+.ord-trust-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 10px;
+  background: color-mix(in srgb, var(--moss) 12%, white);
+  color: var(--moss);
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* 추천 강도 chip */
+.ord-strength {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.ord-strength-main {
+  background: var(--terracotta);
+  color: #fff;
+}
+.ord-strength-sub {
+  background: var(--gold);
+  color: #fff;
+}
+.ord-strength-mini {
+  background: var(--bg-2);
+  color: var(--muted);
+}
+
+/* 품절 SKU */
+.ord-item.ord-item-oos {
+  opacity: 0.65;
+}
+.ord-item.ord-item-oos .ord-item-bar {
+  background: var(--rule) !important;
+}
+.ord-oos-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--terracotta);
+}
+
 /* Item list */
 .ord-list {
   list-style: none;

@@ -11,6 +11,9 @@ import {
   AlertCircle,
   ArrowRight,
   Sparkles,
+  ShieldCheck,
+  Bell,
+  PackageOpen,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -36,7 +39,7 @@ const LINE_TO_SLUG: Record<FoodLine, string | null> = {
   weight: 'duck-weight',
   skin: 'salmon-skin',
   premium: 'beef-premium',
-  joint: null, // 현재 SKU 미등록 — "준비 중" 표시
+  joint: 'pork-joint',
 }
 
 const TOPPER_TO_SLUG: Record<'vegetable' | 'protein', string> = {
@@ -199,12 +202,23 @@ export default function OrderPage() {
     0,
   )
 
-  // joint line 매칭 안 된 케이스 — UI 에 "준비 중" 카드
-  const missingJoint =
-    formula && (formula.lineRatios.joint ?? 0) > 0 && !LINE_TO_SLUG.joint
+  // 추천 강도 분류 — 메인(50%+) / 보조(15-49%) / 소량(<15%)
+  function strengthLabel(pct: number): { tier: string; tone: string } {
+    if (pct >= 50) return { tier: '메인', tone: 'main' }
+    if (pct >= 15) return { tier: '보조', tone: 'sub' }
+    return { tier: '소량', tone: 'mini' }
+  }
+  // (품절 SKU 검증은 cart 추가 시 inStock filter 로 처리 — 사전 disable 대신
+  // 품절 표시만 노출, 가능한 것만 담음)
 
   async function addAllToCart() {
     if (selectedItems.length === 0) return
+    // 품절 SKU 가 있으면 사전 차단 — atomic group 방어.
+    const inStock = selectedItems.filter((it) => (it.product.stock ?? 0) > 0)
+    if (inStock.length === 0) {
+      setErr('모든 상품이 품절 — 재입고 후 다시 시도해 주세요')
+      return
+    }
     setAdding(true)
     setErr('')
     try {
@@ -215,9 +229,8 @@ export default function OrderPage() {
         router.push(`/login?next=/dogs/${dogId}/order`)
         return
       }
-      // 모든 SKU 를 upsert_cart_item RPC 로 atomic insert
       const errors: string[] = []
-      for (const it of selectedItems) {
+      for (const it of inStock) {
         const { error } = await supabase.rpc('upsert_cart_item', {
           p_user_id: user.id,
           p_product_id: it.product.id,
@@ -240,7 +253,22 @@ export default function OrderPage() {
         return
       }
       haptic('confirm')
-      toast.success(`${selectedItems.length}개 상품 장바구니 담음`)
+      // GA4 — box order funnel 핵심 지표.
+      if (typeof window !== 'undefined' && 'gtag' in window) {
+        const gtag = (window as unknown as { gtag: (...a: unknown[]) => void }).gtag
+        gtag('event', 'box_ordered', {
+          dog_id: dogId,
+          cycle_number: formula?.cycleNumber ?? null,
+          item_count: inStock.length,
+          subtotal: subtotal,
+        })
+      }
+      const oosCount = selectedItems.length - inStock.length
+      toast.success(
+        oosCount > 0
+          ? `${inStock.length}개 담음 (품절 ${oosCount}개 제외)`
+          : `${inStock.length}개 상품 장바구니 담음`,
+      )
       try {
         window.dispatchEvent(new CustomEvent('ft:cart:add'))
       } catch {
@@ -300,6 +328,18 @@ export default function OrderPage() {
 
       {formula && selectedItems.length > 0 && (
         <>
+          {/* 신뢰 배지 row — AAFCO + 수의사 */}
+          <section className="ord-trust">
+            <span className="ord-trust-chip">
+              <ShieldCheck size={11} strokeWidth={2.4} />
+              AAFCO 2024 충족
+            </span>
+            <span className="ord-trust-chip">
+              <Sparkles size={11} strokeWidth={2.4} />
+              NRC · FEDIAF 기준
+            </span>
+          </section>
+
           <ul className="ord-list">
             {selectedItems.map((it) => {
               const meta = it.line ? FOOD_LINE_META[it.line] : null
@@ -310,8 +350,13 @@ export default function OrderPage() {
                   : '육류 토퍼 · 동결건조'
               const color = meta ? meta.color : 'var(--moss)'
               const price = it.product.sale_price ?? it.product.price
+              const strength = strengthLabel(it.pct)
+              const isOOS = (it.product.stock ?? 0) <= 0
               return (
-                <li key={it.slug} className="ord-item">
+                <li
+                  key={it.slug}
+                  className={'ord-item' + (isOOS ? ' ord-item-oos' : '')}
+                >
                   <span className="ord-item-bar" style={{ background: color }} />
                   <div className="ord-item-body">
                     <div className="ord-item-head">
@@ -326,9 +371,11 @@ export default function OrderPage() {
                       </span>
                     </div>
                     <div className="ord-item-meta">
-                      <span>1팩</span>
+                      <span className={'ord-strength ord-strength-' + strength.tone}>
+                        {strength.tier}
+                      </span>
                       <span className="ord-divider" />
-                      <span>{price.toLocaleString()}원</span>
+                      <span>1팩 · {price.toLocaleString()}원</span>
                       {it.product.sale_price !== null && (
                         <>
                           <span className="ord-divider" />
@@ -337,28 +384,20 @@ export default function OrderPage() {
                           </s>
                         </>
                       )}
+                      {isOOS && (
+                        <>
+                          <span className="ord-divider" />
+                          <span className="ord-oos-tag">
+                            <Bell size={10} strokeWidth={2.4} />
+                            품절 — 재입고 알림
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </li>
               )
             })}
-            {missingJoint && (
-              <li className="ord-item ord-item-missing">
-                <span
-                  className="ord-item-bar"
-                  style={{ background: 'var(--rule)' }}
-                />
-                <div className="ord-item-body">
-                  <div className="ord-item-head">
-                    <span className="ord-item-name">Joint · 돼지 관절·시니어</span>
-                    <span className="ord-item-pct">준비 중</span>
-                  </div>
-                  <div className="ord-item-meta">
-                    <span>곧 출시 — 다른 라인으로 임시 보완</span>
-                  </div>
-                </div>
-              </li>
-            )}
           </ul>
 
           <section className="ord-summary">
@@ -370,6 +409,13 @@ export default function OrderPage() {
               <Sparkles size={11} strokeWidth={2.2} color="var(--moss)" />
               <span>
                 알고리즘 v{formula.algorithmVersion} · {formula.dailyKcal} kcal/일
+                · 1팩씩 (장바구니에서 수량 조정)
+              </span>
+            </div>
+            <div className="ord-summary-row ord-summary-info">
+              <PackageOpen size={11} strokeWidth={2.2} color="var(--terracotta)" />
+              <span>
+                주문 후 4주 동안 강아지 변화를 알림으로 챙겨드려요.
               </span>
             </div>
           </section>
