@@ -847,8 +847,9 @@ export default function SurveyPage() {
               {dog.name}의 체형을<br />선택해 주세요
             </h1>
             <p className="s-sub">
-              위에서 봤을 때 허리, 옆에서 봤을 때 배 라인 기준{' '}
-              <strong>9점 척도</strong>예요. 5번이 이상적이에요.
+              <strong>BCS (Body Condition Score)</strong> = 체형 점수. 위에서
+              봤을 때 허리, 옆에서 봤을 때 배 라인 기준{' '}
+              <strong>9점 척도</strong>예요. 5번이 이상적.
             </p>
 
             <div className="s-grid-3">
@@ -946,8 +947,9 @@ export default function SurveyPage() {
             </div>
             <h1 className="s-title">근육 상태는<br />어떤가요?</h1>
             <p className="s-sub">
-              척추뼈 / 견갑골 / 골반 위 근육을 만져 평가해요. 노령견 근감소증 조기
-              발견에 중요해요.
+              <strong>MCS (Muscle Condition Score)</strong> = 근육 상태 점수.
+              척추뼈 / 견갑골 / 골반 위 근육을 만져 평가해요. 노령견 근감소증
+              조기 발견에 중요해요.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -1022,7 +1024,8 @@ export default function SurveyPage() {
               {dog.name}의 평소 변은<br />어떻게 보이나요?
             </h1>
             <p className="s-sub">
-              장 건강과 식이섬유·수분 흡수 신호예요.
+              <strong>Bristol Scale</strong> = 변 형태를 7단계로 분류한 의학
+              표준. 장 건강과 식이섬유·수분 흡수 신호예요.
               <span className="s-pill">이상: #4</span>
             </p>
 
@@ -1359,7 +1362,6 @@ export default function SurveyPage() {
                 </button>
                 <button
                   type="button"
-                  className="s-danger"
                   aria-pressed={dlMode === 'has'}
                   onClick={() => setDlMode('has')}
                 >
@@ -1459,7 +1461,8 @@ export default function SurveyPage() {
                   <span className="s-opt">선택</span>
                 </div>
                 <p className="s-sub" style={{ fontSize: 11, marginBottom: 8 }}>
-                  수의사가 알려준 단계가 있으면 골라 주세요. 미입력 시 보수적
+                  IRIS = 만성 신장질환의 국제 표준 진단 단계 (1=초기, 4=말기).
+                  수의사가 알려주지 않았으면 건너뛰세요 — 미입력 시 보수적
                   처방 (단백질 제한) 적용.
                 </p>
                 <div className="s-chiprow">
@@ -1628,6 +1631,30 @@ export default function SurveyPage() {
                 })}
               </div>
             </div>
+
+            {/* puppy + pregnancy 모순 경고 — 12개월 미만 puppy 의 임신은 매우 드묾 */}
+            {pregnancy !== '' &&
+              pregnancy !== 'none' &&
+              dog &&
+              (dog.age_unit === 'years'
+                ? dog.age_value * 12 < 12
+                : dog.age_value < 12) && (
+                <div
+                  className="s-note"
+                  style={{
+                    background: 'color-mix(in srgb, var(--gold) 14%, transparent)',
+                    color: 'var(--ink)',
+                  }}
+                >
+                  <span className="s-ic-warn" style={{ background: 'var(--gold)' }}>
+                    <AlertCircle size={13} strokeWidth={2.2} color="#fff" />
+                  </span>
+                  <span>
+                    12개월 미만 강아지의 임신·수유는 매우 드물어요. 한 번 더
+                    확인해 주세요.
+                  </span>
+                </div>
+              )}
 
             {/* v1.3 — 임신 주차 (1-9). NRC 2006 ch.15 — 후기 (≥6주차) RER × 1.6-2.0 */}
             {pregnancy === 'pregnant' && (
