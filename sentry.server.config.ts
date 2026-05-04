@@ -32,6 +32,14 @@ Sentry.init({
     }
     // 비용 큰 외부 API — 비용 폭주 / 응답 지연 추적.
     if (path.startsWith('/api/analysis/')) return 1.0
+    // Personalization 핵심 — 알고리즘 처방 / 체크인 / 동의 / 조정 / cron 진행.
+    // 실패가 retention 직결, sampling 1.0 으로 모든 케이스 추적.
+    if (
+      path.startsWith('/api/personalization/') ||
+      path.startsWith('/api/cron/personalization-progression')
+    ) {
+      return 1.0
+    }
     // 가입/로그인 콜백 — 가입 깔때기 추적.
     if (path === '/auth/callback' || path.startsWith('/api/auth/')) return 0.5
     // 헬스체크 / 트래킹 / web vitals — 빈도 높고 가치 낮음.
