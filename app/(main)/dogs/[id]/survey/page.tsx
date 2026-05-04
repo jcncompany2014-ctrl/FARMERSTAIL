@@ -397,8 +397,15 @@ export default function SurveyPage() {
         setPreferredProteins(data.preferredProteins as string[])
       if (typeof data.careGoal === 'string')
         setCareGoal(data.careGoal as CareGoal | '')
-      if (typeof data.currentStep === 'string' && data.currentStep !== 'loading')
-        setCurrentStep(data.currentStep as Step)
+      // currentStep 복원 — 'loading' (제출 중간 종료) 은 'status' 로 fallback
+      // 해 사용자가 처음부터 다시 안 하도록.
+      if (typeof data.currentStep === 'string') {
+        if (data.currentStep === 'loading') {
+          setCurrentStep('status')
+        } else {
+          setCurrentStep(data.currentStep as Step)
+        }
+      }
       toast.info('이전에 작성하던 내용을 불러왔어요')
     } catch {
       // corrupted — silently ignore
@@ -776,7 +783,14 @@ export default function SurveyPage() {
                   <Link
                     href={`/dogs/${dogId}`}
                     aria-label="강아지 페이지로 돌아가기"
-                    style={{ color: 'var(--muted)', display: 'inline-flex' }}
+                    style={{
+                      color: 'var(--muted)',
+                      display: 'inline-flex',
+                      // tap target Apple HIG 44px — visual 16px chevron 유지하면서
+                      // hit area 만 음수 마진으로 확장.
+                      padding: 8,
+                      margin: -8,
+                    }}
                   >
                     <ChevronLeft size={16} strokeWidth={2.2} />
                   </Link>
@@ -788,7 +802,14 @@ export default function SurveyPage() {
                 </div>
                 <span className="s-step-pct">{progress}%</span>
               </div>
-              <div className="s-progress">
+              <div
+                className="s-progress"
+                role="progressbar"
+                aria-valuenow={progress}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`전체 ${totalSteps}단계 중 ${stepIdx + 1}단계, 진행률 ${progress}%`}
+              >
                 <i style={{ width: `${progress}%` }} />
                 <div className="s-ticks">
                   {Array.from({ length: totalSteps + 1 }).map((_, i) => (
@@ -1251,9 +1272,9 @@ export default function SurveyPage() {
               <div className="s-sect-lbl"><span className="s-label-text">화식 경험</span></div>
               <div className="s-tilerow">
                 {[
-                  { v: 'first', label: '처음', meta: '첫 도입', Icon: Sparkles },
-                  { v: 'occasional', label: '가끔', meta: '경험 있음', Icon: Soup },
-                  { v: 'frequent', label: '자주', meta: '매일/익숙', Icon: Check },
+                  { v: 'first', label: '처음', meta: '한 번도 안 줘봄', Icon: Sparkles },
+                  { v: 'occasional', label: '가끔', meta: '월 1-2회', Icon: Soup },
+                  { v: 'frequent', label: '자주', meta: '주 1회 이상', Icon: Check },
                 ].map(({ v, label, meta, Icon }) => {
                   const active = homeCookingExp === v
                   return (
@@ -1414,7 +1435,13 @@ export default function SurveyPage() {
                     type="button"
                     className={'s-chip s-terra' + (active ? ' s-on' : '')}
                     aria-pressed={active}
-                    onClick={() => toggleArr(chronicConditions, k, setChronicConditions)}
+                    onClick={() => {
+                      // CKD 토글 off 시 irisStage 자동 reset (stale 입력 방지)
+                      if (k === 'kidney' && chronicConditions.includes('kidney')) {
+                        setIrisStage(null)
+                      }
+                      toggleArr(chronicConditions, k, setChronicConditions)
+                    }}
                   >
                     {active && <Check size={13} strokeWidth={2.4} color="#fff" />}
                     {CHRONIC_CONDITION_LABELS[k]}
@@ -1586,7 +1613,13 @@ export default function SurveyPage() {
                       type="button"
                       className={'s-chip' + (active ? ' s-on' : '')}
                       aria-pressed={active}
-                      onClick={() => setPregnancy(v as typeof pregnancy)}
+                      onClick={() => {
+                        // pregnancy 변경 시 week/litter conditional state stale 방지
+                        const next = v as typeof pregnancy
+                        setPregnancy(next)
+                        if (next !== 'pregnant') setPregnancyWeek(null)
+                        if (next !== 'lactating') setLitterSize(null)
+                      }}
                     >
                       <Icon size={13} strokeWidth={2} />
                       {label}
@@ -1609,6 +1642,8 @@ export default function SurveyPage() {
                 </p>
                 <input
                   type="number"
+                  inputMode="numeric"
+                  enterKeyHint="next"
                   className="s-inp"
                   min={1}
                   max={9}
@@ -1635,6 +1670,8 @@ export default function SurveyPage() {
                 </p>
                 <input
                   type="number"
+                  inputMode="numeric"
+                  enterKeyHint="next"
                   className="s-inp"
                   min={1}
                   max={15}
@@ -1665,6 +1702,8 @@ export default function SurveyPage() {
                   </p>
                   <input
                     type="number"
+                    inputMode="decimal"
+                    enterKeyHint="done"
                     className="s-inp"
                     min={0.5}
                     max={100}
@@ -1830,7 +1869,7 @@ export default function SurveyPage() {
         )}
 
         {err && !isLoading && (
-          <div className="s-errbar">
+          <div className="s-errbar" role="alert" aria-live="polite">
             <AlertCircle size={14} strokeWidth={2.2} />
             <span>{err}</span>
           </div>
