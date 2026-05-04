@@ -18,6 +18,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
+import { haptic } from '@/lib/haptic'
 import './approve.css'
 
 /**
@@ -161,6 +162,7 @@ export default function ApprovePage() {
         setErr(msg)
         return
       }
+      haptic('confirm')
       if (decision === 'approve') {
         toast.success('새 비율 적용됐어요')
       } else {

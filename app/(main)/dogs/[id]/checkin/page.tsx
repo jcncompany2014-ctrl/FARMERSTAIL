@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { haptic } from '@/lib/haptic'
 import './checkin.css'
 
 /**
@@ -218,6 +219,7 @@ export default function CheckinPage() {
       if (signed?.signedUrl) {
         setPhotoPreview((prev) => ({ ...prev, [path]: signed.signedUrl }))
       }
+      haptic('tap')
     } catch (e) {
       setErr(e instanceof Error ? e.message : '업로드 오류')
     } finally {
@@ -268,6 +270,7 @@ export default function CheckinPage() {
         setErr(msg)
         return
       }
+      haptic('confirm')
       toast.success(`${dogName}이를 더 잘 챙길게요 🐾`)
       router.push(`/dogs/${dogId}/analysis`)
     } catch (e) {

@@ -16,6 +16,7 @@ import {
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import { computeNutrientPanel } from '@/lib/personalization/nutrientPanel'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
+import { haptic } from '@/lib/haptic'
 
 /**
  * AdjustSheet — Claude Design 핸드오프 #3 (sheet) 적용.
@@ -226,6 +227,7 @@ export default function AdjustSheet({
   }
   function onBlockedTouch(id: string) {
     setShakeId(id)
+    haptic('warn')
     setTimeout(() => setShakeId(null), 380)
   }
   function onReset() {
@@ -268,6 +270,7 @@ export default function AdjustSheet({
         setErr(msg)
         return
       }
+      haptic('confirm')
       onSaved({
         ...formula,
         lineRatios,

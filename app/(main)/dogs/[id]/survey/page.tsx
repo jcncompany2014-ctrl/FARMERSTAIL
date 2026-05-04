@@ -70,6 +70,7 @@ import {
   type ChronicConditionKey,
 } from '@/lib/nutrition/guidelines'
 import { detectChronicFromMedications } from '@/lib/nutrition/drugs'
+import { haptic } from '@/lib/haptic'
 import './survey.css'
 
 /**
@@ -245,11 +246,11 @@ export default function SurveyPage() {
   const [dog, setDog] = useState<Dog | null>(null)
   const [currentStep, setCurrentStep] = useState<Step>('body')
 
-  // 설문 step 변경 시 자동 scroll-to-top — 모바일에서 다음 step 진입 후
-  // 사용자가 매번 맨 위로 스크롤하지 않도록.
+  // 설문 step 변경 시 자동 scroll-to-top + 짧은 진동 (모바일 즉각 피드백).
   useEffect(() => {
     if (typeof window === 'undefined') return
     window.scrollTo({ top: 0, behavior: 'smooth' })
+    haptic('tick')
   }, [currentStep])
   const [err, setErr] = useState('')
   const [saving, setSaving] = useState(false)
