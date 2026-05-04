@@ -84,12 +84,20 @@ export default async function AdminPersonalizationPage() {
             알고리즘 시뮬레이터
           </h1>
         </div>
-        <Link
-          href="/admin"
-          className="text-[12px] text-muted hover:text-text"
-        >
-          ← Admin
-        </Link>
+        <div className="flex flex-col gap-1.5 items-end">
+          <Link
+            href="/admin/algorithm"
+            className="text-[11px] font-bold text-terracotta hover:underline"
+          >
+            알고리즘 데이터 편집 →
+          </Link>
+          <Link
+            href="/admin"
+            className="text-[11px] text-muted hover:text-text"
+          >
+            ← Admin home
+          </Link>
+        </div>
       </div>
 
       {/* KPI cards */}

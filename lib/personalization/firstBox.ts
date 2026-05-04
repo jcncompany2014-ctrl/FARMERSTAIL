@@ -38,7 +38,12 @@ import type {
   Reasoning,
   TransitionStrategy,
 } from './types.ts'
-import { FOOD_LINE_META, ALL_LINES, PROTEIN_TO_LINE } from './lines.ts'
+import {
+  FOOD_LINE_META,
+  ALL_LINES,
+  PROTEIN_TO_LINE,
+  getLineFat,
+} from './lines.ts'
 import { quantizeAndNormalize } from './quantize.ts'
 
 const ALGORITHM_VERSION = 'v1.3.0'
@@ -126,14 +131,17 @@ function emptyRatios(): Record<FoodLine, Ratio> {
 
 /**
  * 라인 mix 의 dry-matter 지방 비중 (%). 췌장염 fat ceiling 검증 등 임상 룰
- * 에서 사용. 합산 = Σ (lineRatios[l] × FOOD_LINE_META[l].fatPctDM).
+ * 에서 사용. 합산 = Σ (lineRatios[l] × fatPctDM).
  *
- * 비율 합이 1.0 이 아니어도 weighted average 의미는 유지 — 단 fat % 자체는
- * 합 기준의 가중평균이라 normalize 전 계산이라도 의미 있음.
+ * v1.4 — admin override (algorithm_food_lines DB) 가 있으면 그걸 사용.
+ * 없으면 lines.ts hardcoded.
  */
-function dmFatPct(ratios: Record<FoodLine, Ratio>): number {
+function dmFatPct(
+  ratios: Record<FoodLine, Ratio>,
+  override?: AlgorithmInput['foodLineMetaOverride'],
+): number {
   return ALL_LINES.reduce(
-    (sum, l) => sum + ratios[l] * FOOD_LINE_META[l].fatPctDM,
+    (sum, l) => sum + ratios[l] * getLineFat(l, override),
     0,
   )
 }
@@ -403,7 +411,7 @@ function applyChronicAdjustments(
       weight: ratios.weight + oldSkin * 0.7 + oldPremium * 0.5,
     }
     // 합산 fat% 검증
-    let fatPct = dmFatPct(ratios)
+    let fatPct = dmFatPct(ratios, input.foodLineMetaOverride)
     if (fatPct > 15 && ratios.weight < 0.5) {
       const taken = 0.5 - ratios.weight
       const otherSum =
@@ -417,7 +425,7 @@ function applyChronicAdjustments(
           premium: ratios.premium * scale,
           joint: ratios.joint * scale,
         }
-        fatPct = dmFatPct(ratios)
+        fatPct = dmFatPct(ratios, input.foodLineMetaOverride)
       }
     }
     // 여전히 >15% 면 더 강하게 Weight ≥0.7
@@ -434,7 +442,7 @@ function applyChronicAdjustments(
           premium: ratios.premium * scale,
           joint: ratios.joint * scale,
         }
-        fatPct = dmFatPct(ratios)
+        fatPct = dmFatPct(ratios, input.foodLineMetaOverride)
       }
     }
     reasoning.push({

@@ -172,6 +172,41 @@ export async function POST(req: Request) {
     )
   }
 
+  // 3.5) admin override fetch — algorithm_food_lines 테이블이 있으면 그 값으로
+  //      알고리즘 룰의 라인 영양 단면 (fatPctDM 등) 을 override. 없으면
+  //      lines.ts 의 hardcoded 기본값으로 fallback (zero-downtime).
+  const { data: foodLineRows } = await supabase
+    .from('algorithm_food_lines')
+    .select(
+      'line, kcal_per_100g, protein_pct_dm, fat_pct_dm, calcium_pct_dm, ' +
+        'phosphorus_pct_dm, sodium_pct_dm, subtitle_override, benefit_override',
+    )
+
+  const foodLineMetaOverride: AlgorithmInput['foodLineMetaOverride'] = {}
+  // typegen 이 새 테이블 모름 — unknown 으로 캐스팅. 추후 supabase gen types 적용 시 제거.
+  for (const r of ((foodLineRows ?? []) as unknown) as Array<{
+    line: 'basic' | 'weight' | 'skin' | 'premium' | 'joint'
+    kcal_per_100g: number
+    protein_pct_dm: number
+    fat_pct_dm: number
+    calcium_pct_dm: number | null
+    phosphorus_pct_dm: number | null
+    sodium_pct_dm: number | null
+    subtitle_override: string | null
+    benefit_override: string | null
+  }>) {
+    foodLineMetaOverride[r.line] = {
+      kcalPer100g: r.kcal_per_100g,
+      proteinPctDM: r.protein_pct_dm,
+      fatPctDM: r.fat_pct_dm,
+      calciumPctDM: r.calcium_pct_dm,
+      phosphorusPctDM: r.phosphorus_pct_dm,
+      sodiumPctDM: r.sodium_pct_dm,
+      subtitle: r.subtitle_override,
+      benefit: r.benefit_override,
+    }
+  }
+
   // 4) AlgorithmInput 조립.
   const ageMonths =
     dog.age_unit === 'years' ? dog.age_value * 12 : dog.age_value
@@ -220,6 +255,9 @@ export async function POST(req: Request) {
     expectedAdultWeightKg: survey.expected_adult_weight_kg ?? null,
     irisStage:
       (survey.iris_stage as AlgorithmInput['irisStage']) ?? null,
+    foodLineMetaOverride: Object.keys(foodLineMetaOverride).length
+      ? foodLineMetaOverride
+      : undefined,
     dailyKcal: analysis.mer,
     dailyGrams: analysis.feed_g,
   }

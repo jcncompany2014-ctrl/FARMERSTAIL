@@ -130,6 +130,38 @@ export async function GET(req: Request) {
     if (!nextExists) targets.push(cur)
   }
 
+  // admin override — 모든 강아지에 동일 (한 batch). 한 번만 fetch.
+  const { data: foodLineRows } = await supabase
+    .from('algorithm_food_lines')
+    .select(
+      'line, kcal_per_100g, protein_pct_dm, fat_pct_dm, calcium_pct_dm, ' +
+        'phosphorus_pct_dm, sodium_pct_dm, subtitle_override, benefit_override',
+    )
+  const foodLineMetaOverride: AlgorithmInput['foodLineMetaOverride'] = {}
+  // typegen 미적용 — unknown 캐스팅.
+  for (const r of ((foodLineRows ?? []) as unknown) as Array<{
+    line: 'basic' | 'weight' | 'skin' | 'premium' | 'joint'
+    kcal_per_100g: number
+    protein_pct_dm: number
+    fat_pct_dm: number
+    calcium_pct_dm: number | null
+    phosphorus_pct_dm: number | null
+    sodium_pct_dm: number | null
+    subtitle_override: string | null
+    benefit_override: string | null
+  }>) {
+    foodLineMetaOverride[r.line] = {
+      kcalPer100g: r.kcal_per_100g,
+      proteinPctDM: r.protein_pct_dm,
+      fatPctDM: r.fat_pct_dm,
+      calciumPctDM: r.calcium_pct_dm,
+      phosphorusPctDM: r.phosphorus_pct_dm,
+      sodiumPctDM: r.sodium_pct_dm,
+      subtitle: r.subtitle_override,
+      benefit: r.benefit_override,
+    }
+  }
+
   let succeeded = 0
   let failed = 0
   let skipped = 0
@@ -267,6 +299,9 @@ export async function GET(req: Request) {
         expectedAdultWeightKg: surveyTyped.expected_adult_weight_kg ?? null,
         irisStage:
           (surveyTyped.iris_stage as AlgorithmInput['irisStage']) ?? null,
+        foodLineMetaOverride: Object.keys(foodLineMetaOverride).length
+          ? foodLineMetaOverride
+          : undefined,
         dailyKcal: analysisTyped.mer,
         dailyGrams: analysisTyped.feed_g,
       }

@@ -136,6 +136,32 @@ export type AlgorithmInput = {
    */
   irisStage: 1 | 2 | 3 | 4 | null
 
+  // ── Admin GUI override (v1.4) ──
+  /**
+   * algorithm_food_lines DB 표에서 admin 이 편집한 라인 영양 단면.
+   * undefined 면 lines.ts 의 hardcoded 기본값 사용 (zero-downtime fallback).
+   * compute / cron 호출자가 DB fetch 후 주입.
+   */
+  foodLineMetaOverride?: Partial<Record<FoodLine, Partial<FoodLineMetaOverride>>>
+  /**
+   * algorithm_chronic_severity DB 표에서 admin 이 편집한 만성질환 강도.
+   * key = condition (kidney/pancreatitis/...) → severity + protein/fat factor.
+   * 같은 질환도 mild vs severe 별 다른 처방 강도. 추후 룰 분기에 사용.
+   */
+  chronicSeverityOverride?: Record<
+    string,
+    {
+      severity: 'mild' | 'moderate' | 'severe'
+      proteinFactor: number
+      fatFactor: number
+    }
+  >
+  /**
+   * 사용자가 수의사에게 받은 진단 강도 (만성질환별). 미입력 시 default_severity
+   * (algorithm_chronic_severity DB 의 기본값) 적용.
+   */
+  diagnosedSeverity?: Record<string, 'mild' | 'moderate' | 'severe'>
+
   // ── nutrition calc 결과 ──
   /** 일일 권장 칼로리 (MER). */
   dailyKcal: number
@@ -190,6 +216,26 @@ export type NextBoxInput = {
   surveyInput: AlgorithmInput
   /** 새 cycle 번호 — typically previous.cycleNumber + 1 */
   cycleNumber: number
+}
+
+/**
+ * Admin 이 algorithm_food_lines DB 표에서 편집 가능한 영양 메타 부분집합.
+ * lines.ts 의 FOOD_LINE_META 와 호환 — 같은 필드명을 partial 로.
+ */
+export type FoodLineMetaOverride = {
+  kcalPer100g: number
+  proteinPctDM: number
+  fatPctDM: number
+  /** Calcium % DM. 대형견 puppy / IRIS CKD 룰 강화에 사용. */
+  calciumPctDM: number | null
+  /** Phosphorus % DM. CKD 인 제한 검증. */
+  phosphorusPctDM: number | null
+  /** Sodium % DM. 심장병 저나트륨 검증. */
+  sodiumPctDM: number | null
+  /** UI 한국어 부제 — admin 이 batch 별 갱신. */
+  subtitle: string | null
+  /** 한 줄 효능 요약 — admin 이 편집. */
+  benefit: string | null
 }
 
 /**

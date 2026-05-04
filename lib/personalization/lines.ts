@@ -102,6 +102,34 @@ export const ALL_LINES: FoodLineMeta['line'][] = [
   'joint',
 ]
 
+/**
+ * 라인 메타 fetch — admin override (DB) 우선, 없으면 hardcoded fallback.
+ *
+ * 알고리즘은 input.foodLineMetaOverride 로 DB 결과를 받음. compute / cron
+ * 호출자가 algorithm_food_lines 테이블을 fetch 해서 input 에 주입. 이 헬퍼는
+ * 알고리즘 내부에서 라인 영양 값 (fatPctDM 등) 을 일관되게 가져올 때 사용.
+ */
+export function getLineFat(
+  line: FoodLineMeta['line'],
+  override?: Record<string, { fatPctDM?: number } | undefined>,
+): number {
+  return override?.[line]?.fatPctDM ?? FOOD_LINE_META[line].fatPctDM
+}
+
+export function getLineProtein(
+  line: FoodLineMeta['line'],
+  override?: Record<string, { proteinPctDM?: number } | undefined>,
+): number {
+  return override?.[line]?.proteinPctDM ?? FOOD_LINE_META[line].proteinPctDM
+}
+
+export function getLineKcal(
+  line: FoodLineMeta['line'],
+  override?: Record<string, { kcalPer100g?: number } | undefined>,
+): number {
+  return override?.[line]?.kcalPer100g ?? FOOD_LINE_META[line].kcalPer100g
+}
+
 /** preferred_proteins (survey) → FoodLine 매핑.
  * 알고리즘이 "닭 좋아함" → Basic 가산점 같은 결정에 사용. */
 export const PROTEIN_TO_LINE: Record<string, FoodLineMeta['line']> = {
