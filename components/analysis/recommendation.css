@@ -242,6 +242,61 @@
   width: 80px;
 }
 
+/* Nutrient panel — 영양 단면 카드 (DM% weighted average) */
+.fb-nutri {
+  margin: 0 22px 18px;
+  padding: 14px 16px 14px;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(46, 31, 20, .04);
+}
+.fb-nutri .fb-sub-lbl { margin-bottom: 10px; }
+.fb-nutri-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.fb-nutri-cell {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.fb-nutri-cell-l {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.fb-nutri-cell-v {
+  font-family: var(--font-serif), 'Fraunces', serif;
+  font-size: 18px; font-weight: 700;
+  letter-spacing: -.02em;
+  color: var(--ink);
+  display: flex; align-items: baseline; gap: 3px;
+}
+.fb-nutri-cell-v small {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 500; color: var(--muted);
+  letter-spacing: .04em;
+}
+.fb-nutri-cell-hint {
+  font-size: 9.5px;
+  font-weight: 600;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+.fb-nutri-foot {
+  margin: 8px 0 0;
+  font-size: 10.5px;
+  color: var(--muted);
+  letter-spacing: .02em;
+}
+.fb-nutri-foot b { color: var(--ink); font-weight: 600; }
+.fb-nutri-warn { color: var(--terracotta); font-weight: 700; }
+
 /* Toppers */
 .fb-toppers { padding: 0 22px; margin-bottom: 18px; }
 .fb-topper-row { display: grid; gap: 8px; }

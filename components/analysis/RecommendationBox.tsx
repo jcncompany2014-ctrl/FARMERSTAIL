@@ -23,6 +23,7 @@ import {
   Info,
 } from 'lucide-react'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import { computeNutrientPanel } from '@/lib/personalization/nutrientPanel'
 import type {
   Formula,
   FoodLine,
@@ -460,6 +461,9 @@ function RecommendationView({
         </div>
       )}
 
+      {/* 영양 단면 — 라인 mix 의 weighted DM% (v1.5+) */}
+      <NutrientPanelCard formula={formula} />
+
       {/* Reasoning */}
       {formula.reasoning.length > 0 && (
         <div className="fb-reasoning">
@@ -606,5 +610,154 @@ function ReasonRow({ reasoning }: { reasoning: Reasoning }) {
         <Info size={11} strokeWidth={2} color="var(--muted)" />
       </div>
     </li>
+  )
+}
+
+/**
+ * 영양 단면 카드 — 라인 mix 의 weighted DM% (단백질/지방/100g 당 kcal,
+ * 그리고 admin override 가 있는 경우 Ca/P/Na). 사용자에게 "내 강아지 박스의
+ * 영양 균형" 을 직관적으로 보여줌.
+ */
+function NutrientPanelCard({ formula }: { formula: Formula }) {
+  // override 는 v1.4+ admin GUI 가 DB 에 저장. RecommendationBox 는 이미
+  // compute API 가 주입한 final formula 의 ratio 만 받아 hardcoded 라인
+  // 메타로 panel 산출. (override 적용 결과는 알고리즘 내부에서 이미 처방에
+  // 반영됨 — UI 는 lineRatios 만으로도 충분.)
+  const panel = computeNutrientPanel(formula.lineRatios)
+  const tier = (
+    pct: number,
+    low: number,
+    high: number,
+  ): 'low' | 'ok' | 'high' => {
+    if (pct < low) return 'low'
+    if (pct > high) return 'high'
+    return 'ok'
+  }
+  const proteinTier = tier(panel.proteinPctDM, 18, 35)
+  const fatTier = tier(panel.fatPctDM, 5.5, 18)
+
+  return (
+    <div className="fb-nutri">
+      <div className="fb-sub-lbl">
+        <Sparkles size={11} strokeWidth={2.4} color="var(--muted)" />
+        영양 단면 · 라인 평균
+      </div>
+      <div className="fb-nutri-grid">
+        <NutriCell
+          label="단백질"
+          value={`${panel.proteinPctDM}%`}
+          subValue="DM"
+          tier={proteinTier}
+          hint={
+            proteinTier === 'low'
+              ? 'AAFCO 18% 미만'
+              : proteinTier === 'high'
+                ? '고단백 (활동량 ↑ 권장)'
+                : 'AAFCO 충족'
+          }
+        />
+        <NutriCell
+          label="지방"
+          value={`${panel.fatPctDM}%`}
+          subValue="DM"
+          tier={fatTier}
+          hint={
+            fatTier === 'low'
+              ? 'AAFCO 5.5% 미만'
+              : fatTier === 'high'
+                ? '고지방 — 췌장염견 주의'
+                : '안전 범위'
+          }
+        />
+        <NutriCell
+          label="kcal/100g"
+          value={panel.kcalPer100g.toString()}
+          subValue="평균"
+          tier="ok"
+          hint="박스 분량 기준"
+        />
+      </div>
+      {panel.calciumPctDM !== null &&
+        panel.phosphorusPctDM !== null &&
+        panel.calciumPhosphorusRatio !== null && (
+          <div className="fb-nutri-grid" style={{ marginTop: 6 }}>
+            <NutriCell
+              label="Ca"
+              value={`${panel.calciumPctDM}%`}
+              subValue="DM"
+              tier="ok"
+            />
+            <NutriCell
+              label="P"
+              value={`${panel.phosphorusPctDM}%`}
+              subValue="DM"
+              tier="ok"
+            />
+            <NutriCell
+              label="Ca:P"
+              value={panel.calciumPhosphorusRatio.toFixed(2)}
+              subValue="ratio"
+              tier={
+                panel.calciumPhosphorusRatio > 1.8
+                  ? 'high'
+                  : panel.calciumPhosphorusRatio < 1.0
+                    ? 'low'
+                    : 'ok'
+              }
+              hint={
+                panel.calciumPhosphorusRatio > 1.8
+                  ? '대형견 puppy 1.8 상한'
+                  : '안전 범위'
+              }
+            />
+          </div>
+        )}
+      {panel.sodiumPctDM !== null && (
+        <p className="fb-nutri-foot">
+          나트륨 <b>{panel.sodiumPctDM}% DM</b>
+          {panel.sodiumPctDM > 0.3 && (
+            <span className="fb-nutri-warn">
+              {' '}
+              · 심장병견 0.3% 권고 초과
+            </span>
+          )}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function NutriCell({
+  label,
+  value,
+  subValue,
+  tier,
+  hint,
+}: {
+  label: string
+  value: string
+  subValue?: string
+  tier: 'low' | 'ok' | 'high'
+  hint?: string
+}) {
+  const color =
+    tier === 'low'
+      ? 'var(--muted)'
+      : tier === 'high'
+        ? 'var(--terracotta)'
+        : 'var(--moss)'
+  return (
+    <div className="fb-nutri-cell">
+      <div className="fb-nutri-cell-l">{label}</div>
+      <div className="fb-nutri-cell-v">
+        <span style={{ color }}>{value}</span>
+        {subValue && <small>{subValue}</small>}
+      </div>
+      {hint && (
+        <div className="fb-nutri-cell-hint" style={{ color }}>
+          {hint}
+        </div>
+      )}
+    </div>
   )
 }
