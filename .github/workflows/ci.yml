@@ -1,0 +1,48 @@
+name: CI
+
+# PR 과 main push 시 lint + tsc + tests 자동 검증.
+# 솔로 개발자 안전망 — push 전 자동 확인.
+#
+# Vercel build 도 별도로 동작하지만 CI 가 더 빠르고 PR 단계 차단 가능.
+#
+# Secret 가 필요 없는 검증만 — Supabase / Anthropic 등의 통합 테스트는
+# 별도 workflow (이번 phase 범위 밖) 에서.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 이전 동일 ref 의 in-flight 작업 cancel — 솔로 운영자에 비용 절감.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: lint · tsc · tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # 24.x — 로컬 dev 와 일치 (--experimental-strip-types 없이도 .ts 실행 안정).
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npx eslint .
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Tests
+        run: npm test

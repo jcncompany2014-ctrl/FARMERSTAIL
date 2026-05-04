@@ -15,8 +15,8 @@
  *  이진부동소수 표현 깨끗이 떨어내고, abs(diff) > EPS 일 때만 잔차 흡수.
  */
 
-import { ALL_LINES } from './lines'
-import type { FoodLine, Ratio } from './types'
+import { ALL_LINES } from './lines.ts'
+import type { FoodLine, Ratio } from './types.ts'
 
 const QUANTIZE_STEP = 0.1
 const EPS = 1e-9

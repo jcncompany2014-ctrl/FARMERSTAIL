@@ -1,10 +1,10 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Loader2, Check, AlertCircle, Save } from 'lucide-react'
+import { Loader2, Check, AlertCircle, Save, ToggleLeft, ToggleRight } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { createClient } from '@/lib/supabase/client'
-import type { FoodLineRow, ChronicRow } from './page'
+import type { FoodLineRow, ChronicRow, BreedRow } from './page'
 
 const LINE_LABELS: Record<FoodLineRow['line'], string> = {
   basic: 'Basic · 닭 균형식',
@@ -17,17 +17,21 @@ const LINE_LABELS: Record<FoodLineRow['line'], string> = {
 export default function AlgorithmConfigClient({
   initialFoodLines,
   initialChronic,
+  initialBreeds,
 }: {
   initialFoodLines: FoodLineRow[]
   initialChronic: ChronicRow[]
+  initialBreeds: BreedRow[]
 }) {
   const supabase = createClient()
   const toast = useToast()
   const [foodLines, setFoodLines] = useState(initialFoodLines)
   const [chronic, setChronic] = useState(initialChronic)
+  const [breeds, setBreeds] = useState(initialBreeds)
   const [savingLine, setSavingLine] = useState<string | null>(null)
   const [savingCond, setSavingCond] = useState<string | null>(null)
-  const [tab, setTab] = useState<'lines' | 'chronic'>('lines')
+  const [savingBreed, setSavingBreed] = useState<string | null>(null)
+  const [tab, setTab] = useState<'lines' | 'chronic' | 'breeds'>('lines')
 
   const saveLine = async (row: FoodLineRow) => {
     setSavingLine(row.line)
@@ -51,6 +55,27 @@ export default function AlgorithmConfigClient({
       toast.error(e instanceof Error ? e.message : '저장 실패')
     } finally {
       setSavingLine(null)
+    }
+  }
+
+  const saveBreed = async (row: BreedRow) => {
+    setSavingBreed(row.breed_key)
+    try {
+      const { error } = await supabase
+        .from('algorithm_breed_predispose')
+        .update({
+          breed_keywords: row.breed_keywords,
+          predispose_conditions: row.predispose_conditions,
+          cautions: row.cautions,
+          enabled: row.enabled,
+        })
+        .eq('breed_key', row.breed_key)
+      if (error) throw error
+      toast.success(`${row.korean_label} 저장됨`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '저장 실패')
+    } finally {
+      setSavingBreed(null)
     }
   }
 
@@ -84,6 +109,9 @@ export default function AlgorithmConfigClient({
         </TabBtn>
         <TabBtn active={tab === 'chronic'} onClick={() => setTab('chronic')}>
           만성질환 강도 ({chronic.length})
+        </TabBtn>
+        <TabBtn active={tab === 'breeds'} onClick={() => setTab('breeds')}>
+          품종 predispose ({breeds.length})
         </TabBtn>
       </div>
 
@@ -135,7 +163,177 @@ export default function AlgorithmConfigClient({
           ))}
         </section>
       )}
+
+      {tab === 'breeds' && (
+        <section className="space-y-3">
+          <Note>
+            품종 keyword 가 dogs.breed (자유 텍스트) 와 ILIKE 매칭되면
+            predispose 만성질환 chip 자동 발화. enabled 토글로 운영 중 빠른
+            disable 가능. keyword 는 한국어/영문 둘 다 — 컴마 구분 (예:
+            &lsquo;달마시안, dalmatian&rsquo;).
+          </Note>
+          {breeds.map((row) => (
+            <BreedEditor
+              key={row.breed_key}
+              row={row}
+              saving={savingBreed === row.breed_key}
+              onChange={(next) =>
+                setBreeds((prev) =>
+                  prev.map((r) => (r.breed_key === row.breed_key ? next : r)),
+                )
+              }
+              onSave={() => saveBreed(row)}
+            />
+          ))}
+        </section>
+      )}
     </div>
+  )
+}
+
+function BreedEditor({
+  row,
+  saving,
+  onChange,
+  onSave,
+}: {
+  row: BreedRow
+  saving: boolean
+  onChange: (r: BreedRow) => void
+  onSave: () => void
+}) {
+  return (
+    <div
+      className="rounded-2xl"
+      style={{
+        background: row.enabled ? '#fff' : 'var(--bg-2)',
+        border: `1px solid ${row.enabled ? 'var(--rule)' : 'var(--rule-2)'}`,
+        padding: 14,
+        opacity: row.enabled ? 1 : 0.7,
+      }}
+    >
+      <div className="flex items-baseline justify-between mb-2.5">
+        <h3
+          className="font-bold text-[13px] inline-flex items-center gap-2"
+          style={{ color: 'var(--ink)' }}
+        >
+          {row.korean_label}
+          <span
+            className="font-mono text-[10px] font-normal"
+            style={{ color: 'var(--muted)' }}
+          >
+            {row.breed_key}
+          </span>
+        </h3>
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            onClick={() => onChange({ ...row, enabled: !row.enabled })}
+            className="inline-flex items-center gap-1 text-[10.5px] font-bold transition-colors"
+            style={{
+              color: row.enabled ? 'var(--moss)' : 'var(--muted)',
+            }}
+          >
+            {row.enabled ? (
+              <ToggleRight size={14} strokeWidth={2.4} />
+            ) : (
+              <ToggleLeft size={14} strokeWidth={2.4} />
+            )}
+            {row.enabled ? 'on' : 'off'}
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold transition-transform active:scale-95"
+            style={{
+              background: 'var(--ink)',
+              color: 'var(--bg)',
+              fontSize: 10.5,
+              opacity: saving ? 0.6 : 1,
+            }}
+          >
+            {saving ? (
+              <Loader2 size={11} strokeWidth={2.4} className="animate-spin" />
+            ) : (
+              <Check size={11} strokeWidth={2.4} />
+            )}
+            저장
+          </button>
+        </div>
+      </div>
+
+      <ArrayField
+        label="매칭 keywords"
+        values={row.breed_keywords}
+        onChange={(vs) => onChange({ ...row, breed_keywords: vs })}
+        placeholder="달마시안, dalmatian"
+      />
+      <ArrayField
+        label="predispose conditions"
+        values={row.predispose_conditions}
+        onChange={(vs) => onChange({ ...row, predispose_conditions: vs })}
+        placeholder="urinary_stone, cardiac"
+      />
+      <ArrayField
+        label="caution chip 텍스트"
+        values={row.cautions}
+        onChange={(vs) => onChange({ ...row, cautions: vs })}
+        placeholder="퓨린 회피 — Premium 차감"
+      />
+
+      {row.citations.length > 0 && (
+        <p
+          className="text-[10px] mt-2 leading-relaxed"
+          style={{ color: 'var(--muted)' }}
+        >
+          출처: {row.citations.join(' · ')}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function ArrayField({
+  label,
+  values,
+  onChange,
+  placeholder,
+}: {
+  label: string
+  values: string[]
+  onChange: (vs: string[]) => void
+  placeholder?: string
+}) {
+  const text = values.join(', ')
+  return (
+    <label className="block mb-2">
+      <div
+        className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1"
+        style={{ color: 'var(--muted)' }}
+      >
+        {label}
+      </div>
+      <input
+        type="text"
+        value={text}
+        placeholder={placeholder}
+        onChange={(e) => {
+          const parts = e.target.value
+            .split(',')
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0)
+          onChange(parts)
+        }}
+        className="w-full rounded-lg border outline-none transition-colors text-[12px]"
+        style={{
+          padding: '7px 10px',
+          background: '#fff',
+          borderColor: 'var(--rule)',
+          color: 'var(--ink)',
+        }}
+      />
+    </label>
   )
 }
 

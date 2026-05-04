@@ -67,7 +67,9 @@ export async function POST(req: Request) {
   // 1) 강아지 소유 검증 — RLS 가 한 번 더 거르지만 명시적 4xx 응답 위해 직접 확인.
   const { data: dog, error: dogErr } = await supabase
     .from('dogs')
-    .select('id, name, weight, age_value, age_unit, neutered, activity_level')
+    .select(
+      'id, name, weight, age_value, age_unit, neutered, activity_level, breed',
+    )
     .eq('id', dogId)
     .eq('user_id', user.id)
     .maybeSingle()
@@ -172,15 +174,21 @@ export async function POST(req: Request) {
     )
   }
 
-  // 3.5) admin override fetch — algorithm_food_lines 테이블이 있으면 그 값으로
-  //      알고리즘 룰의 라인 영양 단면 (fatPctDM 등) 을 override. 없으면
-  //      lines.ts 의 hardcoded 기본값으로 fallback (zero-downtime).
-  const { data: foodLineRows } = await supabase
-    .from('algorithm_food_lines')
-    .select(
-      'line, kcal_per_100g, protein_pct_dm, fat_pct_dm, calcium_pct_dm, ' +
-        'phosphorus_pct_dm, sodium_pct_dm, subtitle_override, benefit_override',
-    )
+  // 3.5) admin override fetch — algorithm_food_lines + breed_predispose.
+  const [{ data: foodLineRows }, { data: breedRows }] = await Promise.all([
+    supabase
+      .from('algorithm_food_lines')
+      .select(
+        'line, kcal_per_100g, protein_pct_dm, fat_pct_dm, calcium_pct_dm, ' +
+          'phosphorus_pct_dm, sodium_pct_dm, subtitle_override, benefit_override',
+      ),
+    supabase
+      .from('algorithm_breed_predispose')
+      .select(
+        'breed_key, korean_label, breed_keywords, predispose_conditions, cautions',
+      )
+      .eq('enabled', true),
+  ])
 
   const foodLineMetaOverride: AlgorithmInput['foodLineMetaOverride'] = {}
   // typegen 이 새 테이블 모름 — unknown 으로 캐스팅. 추후 supabase gen types 적용 시 제거.
@@ -255,6 +263,20 @@ export async function POST(req: Request) {
     expectedAdultWeightKg: survey.expected_adult_weight_kg ?? null,
     irisStage:
       (survey.iris_stage as AlgorithmInput['irisStage']) ?? null,
+    breed: (dog as { breed?: string | null }).breed ?? null,
+    breedPredisposeMap: ((breedRows ?? []) as unknown as Array<{
+      breed_key: string
+      korean_label: string
+      breed_keywords: string[]
+      predispose_conditions: string[]
+      cautions: string[]
+    }>).map((r) => ({
+      breedKey: r.breed_key,
+      koreanLabel: r.korean_label,
+      breedKeywords: r.breed_keywords,
+      predisposeConditions: r.predispose_conditions,
+      cautions: r.cautions,
+    })),
     foodLineMetaOverride: Object.keys(foodLineMetaOverride).length
       ? foodLineMetaOverride
       : undefined,

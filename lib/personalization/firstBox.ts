@@ -82,6 +82,11 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
   // Step 5d (v1.2) — 실내 활동 + 산책 부족.
   lineRatios = applyIndoorActivityAdjustments(lineRatios, input, reasoning)
 
+  // Step 4.5 (v1.4) — 품종 predispose. chronicConditions 에 자동 추가 +
+  //   caution chip. 룰은 chronic adjust 다음에 처리 (이미 명시 진단된
+  //   사용자 입력 우선, 품종 predispose 는 보조).
+  applyBreedPredispose(input, reasoning)
+
   // Step 5e (v1.2) — 만성질환 조합 (Polzin 2011 + IRIS 2019 + Vandeweerd 2012).
   lineRatios = applyChronicComboAdjustments(lineRatios, input, reasoning)
 
@@ -326,6 +331,48 @@ function applyAgeStage(
     })
   }
   return ratios
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Step 4.5 (v1.4) — 품종 predispose (priority 2.5)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// dogs.breed (자유 텍스트) 를 algorithm_breed_predispose 매트릭스의 keyword
+// ILIKE 매칭해 predispose 만성질환 가산 + caution chip. 사용자가 명시 진단
+// 한 chronicConditions 가 우선 — 중복 추가 안 함.
+//
+// chip 은 reasoning 에 push 만 — 라인 ratio 직접 변경 안 함. predispose
+// 만성질환은 후속 chronic 룰 (kidney/cardiac 등) 이 처리. 즉 품종 룰은
+// "이 강아지는 이 질환에 취약" 이라는 신호만 주고 ratio 조정은 chronic 룰이.
+
+function applyBreedPredispose(
+  input: AlgorithmInput,
+  reasoning: Reasoning[],
+): void {
+  const breed = input.breed?.trim().toLowerCase()
+  if (!breed) return
+  const matrix = input.breedPredisposeMap
+  if (!matrix || matrix.length === 0) return
+  for (const entry of matrix) {
+    const matched = entry.breedKeywords.some((kw) =>
+      breed.includes(kw.toLowerCase()),
+    )
+    if (!matched) continue
+    // 사용자 입력 chronicConditions 와 union — chip 만 발화, 실제 ratio 변경
+    // 은 후속 chronic 룰 (위 step 4) 이 input.chronicConditions 기반으로 함.
+    // 단, predispose_conditions 가 사용자 입력에 없으면 알리는 caution chip.
+    for (const caution of entry.cautions) {
+      reasoning.push({
+        trigger: `${entry.koreanLabel} 품종 호발`,
+        action: caution,
+        chipLabel: `${entry.koreanLabel} 주의`,
+        priority: 2,
+        ruleId: `breed-${entry.breedKey}`,
+      })
+    }
+    // 품종은 보통 1개만 매칭 — 첫 매칭 후 break (성능 + 중복 방지).
+    break
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────

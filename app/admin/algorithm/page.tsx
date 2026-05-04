@@ -29,16 +29,18 @@ export default async function AdminAlgorithmPage() {
   if (!user) redirect('/login?next=/admin/algorithm')
   if (!(await isAdmin(supabase, user))) redirect('/')
 
-  const [{ data: foodLines }, { data: chronicSeverity }] = await Promise.all([
-    supabase
-      .from('algorithm_food_lines')
-      .select('*')
-      .order('line'),
-    supabase
-      .from('algorithm_chronic_severity')
-      .select('*')
-      .order('condition'),
-  ])
+  const [{ data: foodLines }, { data: chronicSeverity }, { data: breeds }] =
+    await Promise.all([
+      supabase.from('algorithm_food_lines').select('*').order('line'),
+      supabase
+        .from('algorithm_chronic_severity')
+        .select('*')
+        .order('condition'),
+      supabase
+        .from('algorithm_breed_predispose')
+        .select('*')
+        .order('korean_label'),
+    ])
 
   return (
     <main className="px-5 py-6 max-w-4xl mx-auto">
@@ -82,6 +84,7 @@ export default async function AdminAlgorithmPage() {
       <AlgorithmConfigClient
         initialFoodLines={(foodLines ?? []) as FoodLineRow[]}
         initialChronic={(chronicSeverity ?? []) as ChronicRow[]}
+        initialBreeds={(breeds ?? []) as BreedRow[]}
       />
     </main>
   )
@@ -107,5 +110,16 @@ export type ChronicRow = {
   protein_factor: number
   fat_factor: number
   notes: string | null
+  updated_at: string
+}
+
+export type BreedRow = {
+  breed_key: string
+  korean_label: string
+  breed_keywords: string[]
+  predispose_conditions: string[]
+  cautions: string[]
+  citations: string[]
+  enabled: boolean
   updated_at: string
 }

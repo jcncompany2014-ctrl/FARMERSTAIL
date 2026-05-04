@@ -17,7 +17,7 @@
  * 여러 라인에서 가져와야 할 때 — `transferToTarget` 우선순위 fallback.
  */
 
-import type { FoodLine, Ratio } from './types'
+import type { FoodLine, Ratio } from './types.ts'
 
 /**
  * `from` 라인에서 `to` 라인으로 amount 만큼 이동. from 가용량보다 amount 가

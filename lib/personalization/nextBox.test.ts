@@ -36,6 +36,7 @@ function baseSurvey(): AlgorithmInput {
     litterSize: null,
     expectedAdultWeightKg: null,
     irisStage: null,
+    breed: null,
     dailyKcal: 280,
     dailyGrams: 200,
   }

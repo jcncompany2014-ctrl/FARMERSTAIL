@@ -37,6 +37,7 @@ function baseInput(): AlgorithmInput {
     litterSize: null,
     expectedAdultWeightKg: null,
     irisStage: null,
+    breed: null,
     dailyKcal: 280,
     dailyGrams: 200,
   }
@@ -894,6 +895,96 @@ describe('decideFirstBox v1.3 — 새 만성질환 (DCM/당뇨/간/CDS/스테로
         `${id} 안 발화`,
       )
     }
+  })
+})
+
+describe('decideFirstBox v1.4 — 품종 predispose', () => {
+  const matrix = [
+    {
+      breedKey: 'dalmatian',
+      koreanLabel: '달마시안',
+      breedKeywords: ['달마시안', 'dalmatian'],
+      predisposeConditions: ['urinary_stone'],
+      cautions: ['퓨린 회피 — Premium 차감'],
+    },
+    {
+      breedKey: 'doberman',
+      koreanLabel: '도베르만',
+      breedKeywords: ['도베르만', 'doberman'],
+      predisposeConditions: ['cardiac'],
+      cautions: ['DCM 호발 — taurine 권장'],
+    },
+  ]
+
+  it('breed null → predispose 룰 안 발화', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      breed: null,
+      breedPredisposeMap: matrix,
+    })
+    const r = f.reasoning.find((x) => x.ruleId.startsWith('breed-'))
+    assert.equal(r, undefined)
+  })
+
+  it('breedPredisposeMap 미주입 → 룰 안 발화', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      breed: '달마시안',
+    })
+    const r = f.reasoning.find((x) => x.ruleId.startsWith('breed-'))
+    assert.equal(r, undefined)
+  })
+
+  it('한국어 매칭 — "달마시안" → dalmatian chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      breed: '달마시안',
+      breedPredisposeMap: matrix,
+    })
+    const r = f.reasoning.find((x) => x.ruleId === 'breed-dalmatian')
+    assert.ok(r)
+    assert.match(r!.action, /퓨린/)
+  })
+
+  it('영문 매칭 — "Doberman Pinscher" → doberman chip', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      breed: 'Doberman Pinscher',
+      breedPredisposeMap: matrix,
+    })
+    const r = f.reasoning.find((x) => x.ruleId === 'breed-doberman')
+    assert.ok(r)
+    assert.match(r!.action, /DCM|taurine/)
+  })
+
+  it('대소문자 무관', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      breed: 'DALMATIAN',
+      breedPredisposeMap: matrix,
+    })
+    const r = f.reasoning.find((x) => x.ruleId === 'breed-dalmatian')
+    assert.ok(r)
+  })
+
+  it('매칭 안 되는 품종 → chip 없음', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      breed: '믹스견',
+      breedPredisposeMap: matrix,
+    })
+    const r = f.reasoning.find((x) => x.ruleId.startsWith('breed-'))
+    assert.equal(r, undefined)
+  })
+
+  it('빈 매트릭스 → 룰 안 발화', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      breed: '달마시안',
+      breedPredisposeMap: [],
+    })
+    const r = f.reasoning.find((x) => x.ruleId.startsWith('breed-'))
+    assert.equal(r, undefined)
   })
 })
 

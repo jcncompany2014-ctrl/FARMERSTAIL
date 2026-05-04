@@ -131,12 +131,33 @@ export async function GET(req: Request) {
   }
 
   // admin override — 모든 강아지에 동일 (한 batch). 한 번만 fetch.
-  const { data: foodLineRows } = await supabase
-    .from('algorithm_food_lines')
-    .select(
-      'line, kcal_per_100g, protein_pct_dm, fat_pct_dm, calcium_pct_dm, ' +
-        'phosphorus_pct_dm, sodium_pct_dm, subtitle_override, benefit_override',
-    )
+  const [{ data: foodLineRows }, { data: breedRows }] = await Promise.all([
+    supabase
+      .from('algorithm_food_lines')
+      .select(
+        'line, kcal_per_100g, protein_pct_dm, fat_pct_dm, calcium_pct_dm, ' +
+          'phosphorus_pct_dm, sodium_pct_dm, subtitle_override, benefit_override',
+      ),
+    supabase
+      .from('algorithm_breed_predispose')
+      .select(
+        'breed_key, korean_label, breed_keywords, predispose_conditions, cautions',
+      )
+      .eq('enabled', true),
+  ])
+  const breedPredisposeMap = ((breedRows ?? []) as unknown as Array<{
+    breed_key: string
+    korean_label: string
+    breed_keywords: string[]
+    predispose_conditions: string[]
+    cautions: string[]
+  }>).map((r) => ({
+    breedKey: r.breed_key,
+    koreanLabel: r.korean_label,
+    breedKeywords: r.breed_keywords,
+    predisposeConditions: r.predispose_conditions,
+    cautions: r.cautions,
+  }))
   const foodLineMetaOverride: AlgorithmInput['foodLineMetaOverride'] = {}
   // typegen 미적용 — unknown 캐스팅.
   for (const r of ((foodLineRows ?? []) as unknown) as Array<{
@@ -178,7 +199,7 @@ export async function GET(req: Request) {
         supabase
           .from('dogs')
           .select(
-            'id, name, weight, age_value, age_unit, neutered, activity_level',
+            'id, name, weight, age_value, age_unit, neutered, activity_level, breed',
           )
           .eq('id', cur.dog_id)
           .maybeSingle(),
@@ -224,6 +245,7 @@ export async function GET(req: Request) {
         age_unit: 'years' | 'months'
         neutered: boolean
         activity_level: 'low' | 'medium' | 'high'
+        breed?: string | null
       }
       const surveyTyped = survey as unknown as {
         answers: { bcsExact?: number; allergies?: string[] }
@@ -299,6 +321,8 @@ export async function GET(req: Request) {
         expectedAdultWeightKg: surveyTyped.expected_adult_weight_kg ?? null,
         irisStage:
           (surveyTyped.iris_stage as AlgorithmInput['irisStage']) ?? null,
+        breed: dogTyped.breed ?? null,
+        breedPredisposeMap,
         foodLineMetaOverride: Object.keys(foodLineMetaOverride).length
           ? foodLineMetaOverride
           : undefined,

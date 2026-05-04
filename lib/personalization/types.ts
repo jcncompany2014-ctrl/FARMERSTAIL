@@ -136,6 +136,26 @@ export type AlgorithmInput = {
    */
   irisStage: 1 | 2 | 3 | 4 | null
 
+  // ── 품종 predispose (v1.4) ──
+  /**
+   * dogs.breed 자유 텍스트 (예: "골든 리트리버"). 알고리즘이 breed predispose
+   * 매트릭스 (algorithm_breed_predispose) 와 keyword ILIKE 매칭해 자동 chronic
+   * conditions 가산 + caution chip. null = 알 수 없음 / 믹스견.
+   */
+  breed: string | null
+  /**
+   * algorithm_breed_predispose DB 표에서 가져온 매핑. compute / cron 호출자가
+   * fetch + filter (enabled=true) 한 결과 주입. undefined = 매핑 안 사용
+   * (test 등). 알고리즘 내부에서 breed 와 keyword 매칭.
+   */
+  breedPredisposeMap?: Array<{
+    breedKey: string
+    koreanLabel: string
+    breedKeywords: string[]
+    predisposeConditions: string[]
+    cautions: string[]
+  }>
+
   // ── Admin GUI override (v1.4) ──
   /**
    * algorithm_food_lines DB 표에서 admin 이 편집한 라인 영양 단면.
