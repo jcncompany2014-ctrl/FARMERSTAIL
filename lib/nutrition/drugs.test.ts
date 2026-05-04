@@ -19,8 +19,9 @@ describe('detectChronicFromMedications', () => {
     assert.equal(r[0].condition, 'long_term_steroid')
   })
 
-  it('인슐린 + 메트포민 → diabetes 한 번만', () => {
-    const r = detectChronicFromMedications('인슐린 + 메트포민 처방')
+  it('인슐린 → diabetes 한 번만', () => {
+    // v1.6 — metformin 은 canine DM 표준 아니라 매핑에서 제거됨 (audit)
+    const r = detectChronicFromMedications('인슐린 + caninsulin 처방')
     assert.equal(r.length, 1)
     assert.equal(r[0].condition, 'diabetes')
   })
@@ -32,7 +33,7 @@ describe('detectChronicFromMedications', () => {
   })
 
   it('여러 약 동시 → 여러 condition', () => {
-    const r = detectChronicFromMedications('프레드니솔론 + 메트포민 + 피모벤단')
+    const r = detectChronicFromMedications('프레드니솔론 + 인슐린 + 피모벤단')
     const conditions = r.map((x) => x.condition).sort()
     assert.deepEqual(
       conditions,

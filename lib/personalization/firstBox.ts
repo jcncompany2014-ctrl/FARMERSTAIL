@@ -187,7 +187,7 @@ function filterByAllergies(
     if (matched) {
       reasoning.push({
         trigger: `${matched} 알레르기 + ${meta.name} 라인`,
-        action: `${matched} 알레르기견은 ${meta.subtitle.split(' · ')[0]} 도 IgE cross-react 가능 (Bexley 2017 / Olivry 2019). 차단 안 함, 도입 시 관찰 권장.`,
+        action: `${matched} 알레르기견은 ${meta.subtitle.split(' · ')[0]} 도 IgE cross-react 가능 (Bexley 2017/2019, Martín 2004). 차단 안 함, 도입 시 관찰 권장.`,
         chipLabel: `${meta.name} cross-react 주의`,
         priority: 0,
         ruleId: `cross-react-${line}`,
@@ -285,9 +285,10 @@ function applyAgeStage(
   // 근거:
   //  · AAFCO 2024 Dog Food Nutrient Profiles, "Growth (Large size)" 정의:
   //    ≥25kg 성견 예상 + <18mo puppy. Max Ca = 1.8% DM, Max Ca:P = 1.8.
-  //  · Hazewinkel & Tryfonidou (2002) Endocrinology of skeletal development
-  //    (대형견 puppy 의 과잉 Ca → DOD/HOD/패노스토시스).
-  //  · Lauten (2006) Vet Clin North Am Small Anim Pract 36(6):1345-1359.
+  //  · Hazewinkel & Tryfonidou (2002) Mol Cell Endocrinol 197(1-2):23-33
+  //    "Vitamin D3 metabolism in dogs" — 대형견 puppy Ca/D 과잉 → DOD/HOD.
+  //  · Lauten (2006) Vet Clin North Am Small Anim Pract 36(6):1345-1359
+  //    PMID 17085239.
   const isLargeBreedPuppy =
     input.ageMonths < 18 &&
     input.expectedAdultWeightKg !== null &&
@@ -623,10 +624,10 @@ function applyChronicAdjustments(
   //
   // 근거:
   //  · Pan et al. (2010) "Dietary supplementation with medium-chain TAG has
-  //    long-lasting cognition-altering effects in aged dogs"
-  //    Br J Nutr 103(12):1746-1754.
-  //  · Heath et al. (2007) "Nutritional intervention in canine cognitive
-  //    dysfunction" Vet Therapeutics 8(2):124-131.
+  //    long-lasting cognition-enhancing effects in aged dogs"
+  //    Br J Nutr 103(12):1746-1754. PMID 20141643.
+  //  · Heath, Barabas & Craze (2007) "Nutritional supplementation in cases of
+  //    canine cognitive dysfunction" Appl Anim Behav Sci 105(4):284-296.
   if (c.includes('cognitive_decline') || c.includes('cds')) {
     if (ratios.skin < 0.3) {
       const before = ratios.skin
@@ -822,11 +823,11 @@ function applyWeightTrendAdjustments(
 //
 // 활발한 견 (산책 60분+ 또는 high activity) → 단백질 + 헴철분 + 아연 더 필요.
 //   Source:
-//     · NRC (2006) "Nutrient Requirements of Dogs and Cats" ch.13
-//       Table 13-1 — MER multiplier for working/exercising dogs (×3-8 RER).
-//     · Wakshlag & Shmalberg (2014) "Nutritional management of the canine
-//       athlete" Vet Clin North Am Small Anim Pract 44(4):807-825 —
-//       활동량 ↑ 견은 회복용 단백질 ≥25% DM 권장.
+//     · NRC (2006) "Nutrient Requirements of Dogs and Cats" ch.3
+//       (Energy Requirements) — MER multiplier for active/working dogs.
+//     · Wakshlag & Shmalberg (2014) "Nutrition for working and service dogs"
+//       Vet Clin North Am Small Anim Pract 44(4):719-740 — 활동량 ↑ 견은
+//       회복용 단백질 ≥25% DM 권장. PMID 24951343.
 //
 // 차분한 견 (low activity + 짧은 산책) → 칼로리 ↓ + Weight 라인 우선.
 //   Source:

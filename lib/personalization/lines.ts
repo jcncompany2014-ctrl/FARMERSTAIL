@@ -55,7 +55,7 @@ export const FOOD_LINE_META: Record<FoodLineMeta['line'], FoodLineMeta> = {
     subtitle: '연어 · 피부·털',
     mainProtein: 'salmon',
     blockingAllergies: ['연어·생선'],
-    // 연어 알레르기 ↔ 다른 어류 (참치/정어리) cross-react ~70-80% (Kuehn 2018).
+    // 연어 알레르기 ↔ 다른 어류 cross-react (Bexley 2019 Vet Dermatol 30:25-e8).
     // chip 으로 "다른 어류 토퍼 주의" 알림.
     crossReactWith: [],
     benefit: '오메가-3 자체 공급, 피모 윤기',

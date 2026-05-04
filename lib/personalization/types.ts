@@ -278,9 +278,12 @@ export type FoodLineMeta = {
    * chip 만 push (priority 0, 'cross-react' ruleId).
    *
    * 근거:
-   *  · Bexley et al. 2017 Vet Dermatol 28(1):31-e7 — chicken/turkey IgE cross
-   *  · Kuehn et al. 2018 Vet Dermatol 29(4):343-e119 — fish parvalbumin cross
-   *  · Olivry & Mueller 2019 BMC Vet Res 15:140 — beef/lamb BSA 부분 cross
+   *  · Bexley et al. (2017) Vet Dermatol 28(1):31-e7 — chicken/turkey IgE cross
+   *    DOI 10.1111/vde.12335
+   *  · Bexley et al. (2019) Vet Dermatol 30(1):25-e8 — fish/chicken parvalbumin
+   *    cross-react PMID 30378189
+   *  · Martín et al. (2004) Vet Dermatol 15(6):349-356 — beef/lamb/milk BSA
+   *    cross PMID 15585009
    */
   crossReactWith?: string[]
   /** 한 줄 효능 요약 — 박스 카드 노출. */

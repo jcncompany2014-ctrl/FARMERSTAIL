@@ -122,7 +122,7 @@ export const MCS_DESCRIPTIONS: Record<McsKey, { label: string; desc: string }> =
 export type ChronicConditionKey =
   | 'diabetes'             // 당뇨
   | 'kidney'               // 만성신장질환 (CKD)
-  | 'cardiac'              // 심장질환 (DCM 포함)
+  | 'cardiac'              // 심장질환 (DCM/MMVD 포함)
   | 'pancreatitis'         // 췌장염
   | 'ibd'                  // 염증성 장질환
   | 'allergy_skin'         // 알레르기성 피부염
@@ -133,6 +133,14 @@ export type ChronicConditionKey =
   | 'urinary_stone'        // 요결석
   | 'cognitive_decline'    // 인지저하증 (CDS) — v1.3
   | 'long_term_steroid'    // 장기 스테로이드 복용 — v1.3
+  // v1.6 — 한국 시장 / audit 보강
+  | 'epi'                  // 외분비 췌장 부전 (Exocrine Pancreatic Insufficiency)
+  | 'hypothyroid'          // 갑상선저하증
+  | 'cushings'             // 부신피질항진증 (Cushing's, hyperadrenocorticism)
+  | 'patellar_luxation'    // 슬개골 탈구 — 한국 소형견 호발
+  | 'ivdd'                 // 추간판 탈출증 — 닥스훈트/시바/비숑 호발
+  | 'tracheal_collapse'    // 기관 허탈 — 토이/포메/요크셔 호발
+  | 'mmvd'                 // 점액종성 이첨판 변성 (MMVD) — 소형견 호발
 
 export const CHRONIC_CONDITION_LABELS: Record<ChronicConditionKey, string> = {
   diabetes: '당뇨',
@@ -148,6 +156,13 @@ export const CHRONIC_CONDITION_LABELS: Record<ChronicConditionKey, string> = {
   urinary_stone: '요결석',
   cognitive_decline: '인지저하증 (CDS)',
   long_term_steroid: '장기 스테로이드 복용',
+  epi: '외분비 췌장 부전 (EPI)',
+  hypothyroid: '갑상선저하증',
+  cushings: '부신피질항진증 (Cushing\'s)',
+  patellar_luxation: '슬개골 탈구',
+  ivdd: '추간판 탈출증 (IVDD)',
+  tracheal_collapse: '기관 허탈',
+  mmvd: '점액종성 이첨판 변성 (MMVD)',
 }
 
 /**
@@ -339,6 +354,88 @@ export const CONDITION_ADJUSTMENTS: Record<ChronicConditionKey, DietAdjustment> 
     vetConsult: true,
     micro: {
       calciumFactor: 1.2,    // Ca 손실 보충
+    },
+  },
+  // v1.6 — 한국 시장 / audit 보강
+  epi: {
+    // EPI (Exocrine Pancreatic Insufficiency) — 췌장 효소 분비 부족.
+    // 췌장염과 다른 별개 질환 — pancreatin 효소 보충 평생.
+    proteinDelta: 3,         // 흡수율 낮음 → 단백질 ↑
+    fatDelta: 0,             // 췌장염과 다름 (정상 fat OK)
+    carbDelta: -2,
+    fiberDelta: -2,          // 저섬유 (소화 부담 ↓)
+    supplements: ['Pancreatin / Viokase', 'B12 (cobalamin)', '비타민 K'],
+    riskFlags: ['EPI_ENZYME_REQUIRED'],
+    cite: ['fediaf2021'],
+    vetConsult: true,
+  },
+  hypothyroid: {
+    proteinDelta: 0,
+    fatDelta: -3,            // 의인성 체중 ↑ 예방
+    carbDelta: -2,
+    fiberDelta: 3,           // 비만 예방
+    supplements: [],
+    riskFlags: ['HYPOTHYROID_WEIGHT'],
+    cite: ['nrc2006'],
+    vetConsult: true,
+  },
+  cushings: {
+    proteinDelta: 2,         // 근감소 보충
+    fatDelta: -3,            // 의인성 비만 예방
+    carbDelta: 0,
+    fiberDelta: 3,
+    supplements: ['오메가-3'],
+    riskFlags: ['CUSHINGS_DIET'],
+    cite: ['nrc2006'],
+    vetConsult: true,
+  },
+  patellar_luxation: {
+    proteinDelta: 1,
+    fatDelta: -1,
+    carbDelta: 0,
+    fiberDelta: 0,
+    supplements: ['글루코사민+콘드로이틴', '오메가-3 (EPA)'],
+    riskFlags: ['JOINT_SUPPORT'],
+    cite: ['nrc2006'],
+    vetConsult: false,
+    micro: {
+      omega3Factor: 1.3,
+    },
+  },
+  ivdd: {
+    proteinDelta: 0,
+    fatDelta: -2,            // 체중 부담 ↓ (디스크 압박 예방)
+    carbDelta: 0,
+    fiberDelta: 2,
+    supplements: ['오메가-3 (EPA)', '글루코사민'],
+    riskFlags: ['IVDD_WEIGHT'],
+    cite: ['nrc2006'],
+    vetConsult: true,
+  },
+  tracheal_collapse: {
+    proteinDelta: 0,
+    fatDelta: -3,            // 비만 = 기관 압박 악화
+    carbDelta: 0,
+    fiberDelta: 3,
+    supplements: [],
+    riskFlags: ['TRACHEAL_WEIGHT'],
+    cite: ['nrc2006'],
+    vetConsult: true,
+  },
+  mmvd: {
+    // MMVD (Myxomatous Mitral Valve Disease) — Cavalier King Charles 등
+    // 소형견 호발. ACVIM Stage A/B/C/D 별 권고 차등.
+    proteinDelta: 0,
+    fatDelta: -1,
+    carbDelta: 1,
+    fiberDelta: 0,
+    supplements: ['타우린', 'L-카르니틴', '오메가-3 (EPA)'],
+    riskFlags: ['CARDIAC_LOW_SODIUM'],
+    cite: ['nrc2006'],
+    vetConsult: true,
+    micro: {
+      sodiumFactor: 0.5,     // ACVIM Stage C/D 저나트륨 (Keene 2019)
+      omega3Factor: 1.5,
     },
   },
 }

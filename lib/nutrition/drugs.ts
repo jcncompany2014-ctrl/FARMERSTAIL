@@ -44,19 +44,19 @@ export const DRUG_RULES: DrugRule[] = [
     condition: 'long_term_steroid',
     label: '장기 스테로이드',
   },
-  // 당뇨 — 인슐린 / 경구 혈당 강하제
+  // 당뇨 — canine DM 표준은 인슐린만. 사람용 metformin/glipizide/exenatide 는
+  // canine 표준 아님 (audit 권고에 따라 제거 — 보호자가 본인 약 잘못 입력 시
+  // 잘못된 자동 진단 방지).
   {
     keywords: [
       '인슐린',
       'insulin',
-      '바이에타',
-      '메트포민',
-      'metformin',
-      'glipizide',
-      '글리피지드',
       'caninsulin',
       '카니인슐린',
       'vetsulin',
+      '벳슐린',
+      'prozinc',
+      '프로진크',
     ],
     condition: 'diabetes',
     label: '당뇨',
@@ -113,31 +113,33 @@ export const DRUG_RULES: DrugRule[] = [
     condition: 'arthritis',
     label: '관절염',
   },
-  // IBD — 면역억제 / metronidazole 장기 복용
+  // IBD — 면역억제. atopica 는 atopic dermatitis 1차 적응증이지만 IBD off-label
+  // 사용 가능 — 키워드 'atopica + 장' 특이도 약하므로 azathioprine 만 strong.
   {
     keywords: [
       '시클로스포린',
       'cyclosporine',
-      'atopica',
-      '아토피카',
       '아자티오프린',
       'azathioprine',
-      'metronidazole 장기',
-      '플래질 장기',
     ],
     condition: 'ibd',
     label: '염증성 장질환 (IBD)',
   },
-  // 췌장염 — 효소 보충 / 진통제 (chronic 진단 후 사용)
+  // EPI (Exocrine Pancreatic Insufficiency) — 효소 보충제. 췌장염과 다른 질환.
+  // audit 보강 — pancreatin/viokase 는 췌장염 약물이 아닌 EPI 효소.
   {
     keywords: [
       '판크레아틴',
       'pancreatin',
       'viokase',
       '비오카제',
+      'creon',
+      '크레온',
+      'pancrease',
+      '판크리즈',
     ],
-    condition: 'pancreatitis',
-    label: '췌장염',
+    condition: 'epi',
+    label: '외분비 췌장 부전 (EPI)',
   },
   // 간질환 — UDCA / SAMe / silymarin 장기 복용
   {
@@ -185,6 +187,97 @@ export const DRUG_RULES: DrugRule[] = [
     ],
     condition: 'cognitive_decline',
     label: '인지저하증',
+  },
+  // v1.6 — 한국 시장 / audit 보강 약물
+
+  // 알레르기성 피부염 — 한국 시판 핵심 약물 (atopy 1차 진단 신호)
+  {
+    keywords: [
+      'apoquel',
+      '아포퀠',
+      '아포켈',
+      'oclacitinib',
+      '오클라시티닙',
+      'cytopoint',
+      '사이토포인트',
+      'lokivetmab',
+      '로키베트맙',
+      'atopica',
+      '아토피카',
+    ],
+    condition: 'allergy_skin',
+    label: '알레르기성 피부염 (Atopy)',
+  },
+  // 갑상선저하증 — 한국 동물병원 흔한 호르몬 처방
+  {
+    keywords: [
+      '레보티록신',
+      'levothyroxine',
+      '솔록신',
+      'soloxine',
+      '신트로이드',
+      'synthroid',
+      'thyrosyn',
+      '치로신',
+    ],
+    condition: 'hypothyroid',
+    label: '갑상선저하증',
+  },
+  // Cushing's (부신피질항진증) — 한국 흔한 노령견 진단
+  {
+    keywords: [
+      '트릴로스탄',
+      'trilostane',
+      'vetoryl',
+      '베토릴',
+      'mitotane',
+      '미토탄',
+      'lysodren',
+      '리소드렌',
+    ],
+    condition: 'cushings',
+    label: '부신피질항진증 (Cushing\'s)',
+  },
+  // 만성 통증 / 관절염 보조 — gabapentin/tramadol 장기 처방
+  {
+    keywords: [
+      '가바펜틴',
+      'gabapentin',
+      '트라마돌',
+      'tramadol',
+      'amantadine',
+      '아만타딘',
+    ],
+    condition: 'arthritis',
+    label: '관절염 (만성 통증)',
+  },
+  // GI ulcer / GERD — omeprazole 장기 + sucralfate
+  {
+    keywords: [
+      'omeprazole',
+      '오메프라졸',
+      'pantoprazole',
+      '판토프라졸',
+      'sucralfate',
+      '수크랄페이트',
+    ],
+    condition: 'ibd',
+    label: 'GI 만성 (위장 보호)',
+  },
+  // CKD adjunct — 한국 흔한 처방
+  {
+    keywords: [
+      'azodyl',
+      '아조딜',
+      'kremezin',
+      '크레메진',
+      'renalzin',
+      '리날진',
+      'fortekor',
+      '포르테코',
+    ],
+    condition: 'kidney',
+    label: 'CKD 보조',
   },
 ]
 
