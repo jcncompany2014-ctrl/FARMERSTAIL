@@ -213,9 +213,26 @@ export async function pushToUser(
       .in('id', deadNative)
   }
 
+  // 알림 센터 (`/notifications`) 가 조회할 push_log 에 이력 저장. 0건 발송
+  // (sub 없음) 도 기록 — 발송 시도/실패 자체가 디버깅 신호. RLS 가 self-only
+  // select 라 다른 사용자에 노출 안 됨.
+  const totalSent = sent + nativeSent
+  try {
+    await supabase.from('push_log').insert({
+      user_id: userId,
+      title: stampedPayload.title,
+      body: stampedPayload.body ?? '',
+      url: stampedPayload.url ?? null,
+      category: opts?.category ?? null,
+      sent_count: totalSent,
+    })
+  } catch {
+    // 로그 실패는 발송 자체에 영향 안 줌 — silently ignore.
+  }
+
   return {
     ok: true,
-    sent: sent + nativeSent,
+    sent: totalSent,
     dead: dead.length + deadNative.length,
   }
 }
