@@ -239,6 +239,13 @@ export default function SurveyPage() {
 
   const [dog, setDog] = useState<Dog | null>(null)
   const [currentStep, setCurrentStep] = useState<Step>('body')
+
+  // 설문 step 변경 시 자동 scroll-to-top — 모바일에서 다음 step 진입 후
+  // 사용자가 매번 맨 위로 스크롤하지 않도록.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [currentStep])
   const [err, setErr] = useState('')
   const [saving, setSaving] = useState(false)
 

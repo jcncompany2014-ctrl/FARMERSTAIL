@@ -129,18 +129,28 @@
 .fb-leg.blk .fb-leg-l { color: var(--muted); text-decoration: line-through; }
 .fb-leg.blk .fb-leg-pct { color: var(--terracotta); }
 
-/* SKU carousel — 사용자 피드백 반영: edge-bleed 제거. padding 22px 양쪽으로
-   자연스럽게 여백. 카드는 horizontal scroll 안에서 펼쳐짐. */
+/* SKU carousel — 사용자 피드백 반영: edge-bleed 제거. 22px 양쪽 여백.
+ *
+ * 주의: scroll container 의 horizontal padding-right 는 일부 환경 (Chromium
+ * 모바일 / Samsung Internet) 에서 overflow 끝까지 갔을 때 적용 안 됨 — 카드
+ * 여러 개일 때 마지막 카드가 viewport 가장자리에 붙는 시각 버그.
+ *
+ * 우회: container padding 좌우 0, 첫 카드 margin-left + 마지막 카드
+ * margin-right 로 여백 강제. scroll-padding-inline 으로 snap 시에도 22px 안쪽.
+ */
 .fb-sku-scroll {
   display: flex; gap: 10px;
   overflow-x: auto; overflow-y: hidden;
-  padding: 4px 22px 14px;
+  padding: 4px 0 14px;
   scroll-snap-type: x mandatory;
+  scroll-padding-inline: 22px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   margin-bottom: 6px;
 }
 .fb-sku-scroll::-webkit-scrollbar { display: none; }
+.fb-sku-scroll > *:first-child { margin-left: 22px; }
+.fb-sku-scroll > *:last-child { margin-right: 22px; }
 .fb-sku {
   flex: 0 0 auto; width: 200px;
   background: #fff;
