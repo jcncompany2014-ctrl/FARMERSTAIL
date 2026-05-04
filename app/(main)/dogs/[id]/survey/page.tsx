@@ -247,11 +247,20 @@ export default function SurveyPage() {
   const [dog, setDog] = useState<Dog | null>(null)
   const [currentStep, setCurrentStep] = useState<Step>('body')
 
-  // 설문 step 변경 시 자동 scroll-to-top + 짧은 진동 (모바일 즉각 피드백).
+  // 설문 step 변경 시 자동 scroll-to-top + 짧은 진동 + 첫 h1 focus (a11y).
   useEffect(() => {
     if (typeof window === 'undefined') return
     window.scrollTo({ top: 0, behavior: 'smooth' })
     haptic('tick')
+    // a11y — 새 step 의 heading 으로 focus 이동 → screen reader 가 다음
+    // step 진입을 명확히 알림. 첫 paint 후 timing 안전하도록 rAF.
+    requestAnimationFrame(() => {
+      const h1 = document.querySelector<HTMLHeadingElement>('.s-page h1')
+      if (h1) {
+        h1.setAttribute('tabindex', '-1')
+        h1.focus({ preventScroll: true })
+      }
+    })
   }, [currentStep])
   const [err, setErr] = useState('')
   const [saving, setSaving] = useState(false)

@@ -49,6 +49,14 @@
   line-height: 1.18;
   font-size: 26px;
   margin: 6px 0 10px;
+  /* programmatic focus (step 전환 시 a11y) — 시각 outline 제거,
+     keyboard tab focus 시는 outline 유지 */
+  outline: none;
+}
+.s-page h1.s-title:focus-visible {
+  outline: 2px solid var(--terracotta);
+  outline-offset: 4px;
+  border-radius: 4px;
 }
 .s-page p.s-sub {
   font-size: 13px; color: var(--muted); line-height: 1.6;
