@@ -37,6 +37,10 @@
     {
       "path": "/api/cron/personalization-progression",
       "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/cron/personalization-approval-timeout",
+      "schedule": "0 18 * * *"
     }
   ]
 }
