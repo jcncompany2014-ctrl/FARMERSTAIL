@@ -905,12 +905,20 @@ function CurrentFormulaCard({
               </span>
             )}
           </div>
-          <Link
-            href={`/dogs/${dogId}/analysis`}
-            className="text-[11px] font-bold text-terracotta hover:underline"
-          >
-            상세 →
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/dogs/${dogId}/formulas`}
+              className="text-[10.5px] text-muted hover:text-text"
+            >
+              히스토리
+            </Link>
+            <Link
+              href={`/dogs/${dogId}/analysis`}
+              className="text-[11px] font-bold text-terracotta hover:underline"
+            >
+              상세 →
+            </Link>
+          </div>
         </div>
 
         {/* mini stacked bar */}

@@ -1,0 +1,279 @@
+/* =========================================================================
+   Formula history timeline — `.fh-` 접두 (formula history).
+   토큰: globals.css 의 --bg/--ink/--rule/--terracotta/--moss 재사용.
+   ========================================================================= */
+
+.fh-page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 22px 80px;
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+.fh-state {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--muted);
+  justify-content: center;
+  padding: 60px 22px;
+}
+
+.fh-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  margin-bottom: 18px;
+  transition: color 120ms;
+}
+.fh-back:hover { color: var(--terracotta); }
+
+/* Hero */
+.fh-hero { margin-bottom: 24px; }
+.fh-kicker {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: inline-block;
+}
+.fh-hero h1 {
+  font-family: var(--font-sans), 'Pretendard', sans-serif;
+  font-weight: 800; font-size: 24px;
+  line-height: 1.18;
+  color: var(--ink);
+  letter-spacing: -0.025em;
+  margin: 0 0 12px;
+}
+.fh-hero p {
+  font-size: 12.5px; color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Empty */
+.fh-empty {
+  background: var(--bg-2);
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  padding: 28px 24px;
+  margin-top: 24px;
+  text-align: center;
+}
+.fh-empty p {
+  font-size: 13px;
+  color: var(--text);
+  margin: 0 0 16px;
+}
+.fh-empty-cta {
+  display: inline-block;
+  padding: 11px 20px;
+  background: var(--terracotta);
+  color: #fff;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* Timeline */
+.fh-timeline {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 0;
+}
+.fh-card {
+  display: flex; gap: 14px;
+  padding: 0 0 14px;
+  position: relative;
+}
+.fh-card:last-child { padding-bottom: 0; }
+
+/* Marker (dot + line) */
+.fh-marker {
+  flex-shrink: 0;
+  width: 12px;
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  padding-top: 22px;
+}
+.fh-marker-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--ink);
+  z-index: 1;
+}
+.fh-card.fh-latest .fh-marker-dot {
+  background: var(--terracotta);
+  box-shadow: 0 0 0 4px rgba(160, 69, 46, 0.18);
+}
+.fh-card.fh-pending .fh-marker-dot { background: var(--terracotta); }
+.fh-card.fh-declined .fh-marker-dot { background: var(--muted); }
+.fh-marker-line {
+  position: absolute;
+  top: 30px; bottom: -14px; left: 50%;
+  width: 1px;
+  background: var(--rule);
+  transform: translateX(-50%);
+}
+
+/* Card body */
+.fh-body {
+  flex: 1; min-width: 0;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 14px;
+  transition: border-color 120ms;
+}
+.fh-card.fh-pending .fh-body {
+  border-color: var(--terracotta);
+  background: rgba(160, 69, 46, 0.04);
+}
+.fh-card.fh-declined .fh-body {
+  background: var(--bg-2);
+  border-style: dashed;
+}
+
+/* Card head */
+.fh-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.fh-head-left {
+  display: inline-flex; align-items: center; gap: 6px;
+  flex-wrap: wrap;
+}
+.fh-cycle-tag {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.fh-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1.5px 7px;
+  border-radius: 99px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.fh-tag-latest { background: var(--moss); color: #fff; }
+.fh-tag-adjusted { background: var(--terracotta); color: #fff; }
+.fh-tag-pending { background: var(--terracotta); color: #fff; }
+.fh-tag-declined { background: var(--muted); color: #fff; }
+.fh-date {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+/* Bar */
+.fh-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--rule);
+  margin-bottom: 8px;
+}
+.fh-bar i {
+  height: 100%;
+  transition: width 360ms cubic-bezier(.32, .72, .0, 1);
+}
+
+/* Legend */
+.fh-legend {
+  display: flex; flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 10.5px;
+}
+.fh-legend-item {
+  display: inline-flex; align-items: center; gap: 3px;
+}
+.fh-legend-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.fh-legend-name { color: var(--muted); }
+.fh-legend-pct { font-weight: 700; color: var(--ink); }
+
+/* Meta — kcal, g, topper */
+.fh-meta {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+}
+.fh-meta b, .fh-meta strong { color: var(--ink); font-weight: 600; }
+.fh-divider {
+  width: 1px; height: 8px;
+  background: var(--rule-2);
+  display: inline-block;
+}
+
+/* Chips (reasoning) */
+.fh-chips {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  margin-bottom: 8px;
+}
+.fh-chip {
+  display: inline-block;
+  padding: 3px 8px;
+  background: var(--bg-2);
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text);
+}
+.fh-chip-more {
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+}
+
+/* CTA — pending 강조 */
+.fh-cta {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 8px 12px;
+  background: var(--terracotta);
+  color: #fff;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  margin-bottom: 8px;
+  transition: transform 120ms;
+}
+.fh-cta:active { transform: scale(0.97); }
+
+/* Foot — algorithm version + approval status */
+.fh-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 4px;
+  font-size: 9.5px;
+  color: var(--muted);
+}
+.fh-version {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+}
+.fh-status {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-weight: 600;
+}
+.fh-status-auto { color: var(--muted); }
+.fh-status-approved { color: var(--moss); }
+.fh-status-declined { color: var(--muted); }
