@@ -445,33 +445,40 @@ function applyChronicAdjustments(
     // 단일화는 Step 7 의 GI 민감도 룰이 처리 (giSensitivity 강제 'always')
   }
 
-  // 췌장염 — 저지방 강제. v1.3 강화 — 라인 mix 의 dry-matter fat% 합산해
-  // 임상 권고치 (<15% DM) — Xenoulis & Steiner (2008) Vet Clin North Am 38:189
-  // + Mansfield (2012) Top Companion Anim Med 27:123. (Xenoulis 2015 J Small
-  // Anim Pract 56:13 은 진단 종설로 fat ceiling 직접 명시 X.)
-  //   1단계: 고지방 Skin/Premium reduce (기존)
-  //   2단계: 1단계 후에도 DM-fat% > 15% 면 Weight (fatPctDM=8) 강제 ≥0.5
-  //          다른 라인에서 비례 차감 (Joint fatPctDM=18 도 줄어듦)
+  // 췌장염 — 저지방 강제. v1.6 — acute (severe) vs chronic (mild/moderate)
+  // 차등. severity 추정:
+  //   · diagnosedSeverity['pancreatitis'] === 'severe' → acute, fat ≤10% DM
+  //   · 그 외 → chronic, fat ≤15% DM (default)
+  // 출처: Xenoulis & Steiner (2008) Vet Clin North Am 38:189 + Mansfield
+  //       (2012) Top Companion Anim Med 27:123. acute 권고 ≤10% 는 ACVIM
+  //       (2022) JVIM 36:117 도 동일.
   if (c.includes('pancreatitis')) {
+    const severity = input.diagnosedSeverity?.['pancreatitis'] ?? 'moderate'
+    const fatCeiling = severity === 'severe' ? 10 : 15
+    const weightFloor1 = severity === 'severe' ? 0.6 : 0.5
+    const weightFloor2 = severity === 'severe' ? 0.8 : 0.7
+
     const oldSkin = ratios.skin
     const oldPremium = ratios.premium
     ratios = {
       ...ratios,
-      skin: oldSkin * 0.3,
-      premium: oldPremium * 0.5,
-      weight: ratios.weight + oldSkin * 0.7 + oldPremium * 0.5,
+      skin: oldSkin * (severity === 'severe' ? 0.1 : 0.3),
+      premium: oldPremium * (severity === 'severe' ? 0.3 : 0.5),
+      weight:
+        ratios.weight +
+        oldSkin * (severity === 'severe' ? 0.9 : 0.7) +
+        oldPremium * (severity === 'severe' ? 0.7 : 0.5),
     }
-    // 합산 fat% 검증
     let fatPct = dmFatPct(ratios, input.foodLineMetaOverride)
-    if (fatPct > 15 && ratios.weight < 0.5) {
-      const taken = 0.5 - ratios.weight
+    if (fatPct > fatCeiling && ratios.weight < weightFloor1) {
+      const taken = weightFloor1 - ratios.weight
       const otherSum =
         ratios.basic + ratios.skin + ratios.premium + ratios.joint
       if (otherSum > 0) {
         const scale = Math.max(0, otherSum - taken) / otherSum
         ratios = {
           basic: ratios.basic * scale,
-          weight: 0.5,
+          weight: weightFloor1,
           skin: ratios.skin * scale,
           premium: ratios.premium * scale,
           joint: ratios.joint * scale,
@@ -479,16 +486,15 @@ function applyChronicAdjustments(
         fatPct = dmFatPct(ratios, input.foodLineMetaOverride)
       }
     }
-    // 여전히 >15% 면 더 강하게 Weight ≥0.7
-    if (fatPct > 15 && ratios.weight < 0.7) {
-      const taken = 0.7 - ratios.weight
+    if (fatPct > fatCeiling && ratios.weight < weightFloor2) {
+      const taken = weightFloor2 - ratios.weight
       const otherSum =
         ratios.basic + ratios.skin + ratios.premium + ratios.joint
       if (otherSum > 0) {
         const scale = Math.max(0, otherSum - taken) / otherSum
         ratios = {
           basic: ratios.basic * scale,
-          weight: 0.7,
+          weight: weightFloor2,
           skin: ratios.skin * scale,
           premium: ratios.premium * scale,
           joint: ratios.joint * scale,
@@ -496,10 +502,11 @@ function applyChronicAdjustments(
         fatPct = dmFatPct(ratios, input.foodLineMetaOverride)
       }
     }
+    const phaseLabel = severity === 'severe' ? '급성' : '만성'
     reasoning.push({
-      trigger: '췌장염 이력',
-      action: `DM 지방 ${fatPct.toFixed(1)}% (목표 <15%, Xenoulis & Steiner 2008 Vet Clin 38:189 / Mansfield 2012 TCAM 27:123)`,
-      chipLabel: '췌장염 → 저지방',
+      trigger: `췌장염 이력 (${phaseLabel})`,
+      action: `DM 지방 ${fatPct.toFixed(1)}% (목표 <${fatCeiling}% — ${phaseLabel} 췌장염, Xenoulis & Steiner 2008 / Mansfield 2012)`,
+      chipLabel: `${phaseLabel} 췌장염 → 저지방`,
       priority: 3,
       ruleId: 'chronic-pancreatitis',
     })
