@@ -106,7 +106,7 @@ export default function FormulasHistoryPage() {
             color="var(--terracotta)"
             className="animate-spin"
           />
-          처방 히스토리 불러오는 중...
+          박스 히스토리 불러오는 중...
         </div>
       </main>
     )
@@ -123,7 +123,7 @@ export default function FormulasHistoryPage() {
         <span className="fh-kicker">FORMULA HISTORY</span>
         <h1>
           {dogName}이의<br />
-          처방 타임라인
+          박스 타임라인
         </h1>
         <p>
           매 cycle (보통 4주) 마다 알고리즘이 비율을 조정해요. 가장 최근부터
@@ -133,7 +133,7 @@ export default function FormulasHistoryPage() {
 
       {rows.length === 0 ? (
         <div className="fh-empty">
-          <p>아직 처방 기록이 없어요.</p>
+          <p>아직 박스 기록이 없어요.</p>
           <Link href={`/dogs/${dogId}/analysis`} className="fh-empty-cta">
             첫 박스 추천 받기 →
           </Link>

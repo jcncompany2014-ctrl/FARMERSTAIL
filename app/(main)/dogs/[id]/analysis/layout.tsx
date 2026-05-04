@@ -31,11 +31,11 @@ export async function generateMetadata({
     }
     return {
       title: `${name}이 맞춤 영양 분석 · 파머스테일`,
-      description: `${name}이를 위한 NRC/AAFCO 기반 화식 비율 처방. 5종 메인 + 동결건조 토퍼. 매 cycle 알고리즘 자동 조정.`,
+      description: `${name}이를 위한 NRC/AAFCO 기반 맞춤 화식 박스. 5종 메인 + 동결건조 토퍼. 매 cycle 알고리즘 자동 조정.`,
       openGraph: {
         title: `${name}이 맞춤 영양 분석`,
         description:
-          'AAFCO 2024 / NRC 2006 / FEDIAF 가이드라인 기반 처방. 매 cycle 자동 조정.',
+          'AAFCO 2024 / NRC 2006 / FEDIAF 가이드라인 기반 맞춤 박스. 매 cycle 자동 조정.',
         type: 'website',
         siteName: '파머스테일 · Farm to Tail',
         locale: 'ko_KR',
@@ -53,10 +53,10 @@ export async function generateMetadata({
 const DEFAULT_META: Metadata = {
   title: '맞춤 영양 분석 · 파머스테일',
   description:
-    'AAFCO / NRC / FEDIAF 기반 강아지 맞춤 화식 처방. 5종 메인 + 토퍼.',
+    'AAFCO / NRC / FEDIAF 기반 강아지 맞춤 화식 박스. 5종 메인 + 토퍼.',
   openGraph: {
     title: '파머스테일 · Farm to Tail',
-    description: 'AAFCO / NRC / FEDIAF 기반 강아지 맞춤 화식 처방.',
+    description: 'AAFCO / NRC / FEDIAF 기반 강아지 맞춤 화식 박스.',
     type: 'website',
     siteName: '파머스테일',
     locale: 'ko_KR',

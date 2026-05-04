@@ -188,7 +188,7 @@ export default function ApprovePage() {
             color="var(--terracotta)"
             className="animate-spin"
           />
-          처방 정보 불러오는 중...
+          박스 정보 불러오는 중...
         </div>
       </main>
     )
@@ -203,12 +203,12 @@ export default function ApprovePage() {
         </Link>
         <div className="ap-empty">
           <p>
-            cycle {cycleNumber} 의 동의 대기 처방을 찾을 수 없어요.
+            cycle {cycleNumber} 의 동의 대기 박스를 찾을 수 없어요.
             <br />
             이미 응답했거나 5일이 지나 자동 취소됐을 수 있어요.
           </p>
           <Link href={`/dogs/${dogId}/analysis`} className="ap-empty-cta">
-            현재 처방 보기
+            현재 박스 보기
           </Link>
         </div>
       </main>

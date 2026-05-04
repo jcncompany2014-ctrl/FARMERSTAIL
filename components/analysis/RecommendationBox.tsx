@@ -231,7 +231,7 @@ export default function RecommendationBox({
             lineHeight: 1.5,
           }}
         >
-          5분이면 끝나요. {dogName}이 영양 맞춤 처방을 즉시 받아볼게요.
+          5분이면 끝나요. {dogName}이 맞춤 박스 추천을 즉시 받아볼게요.
         </div>
         <a
           href={`/dogs/${dogId}/survey`}
@@ -608,7 +608,7 @@ function RecommendationView({
             비율 조정
           </button>
           <a
-            href={`/products?dog=${dogId}&from=analysis`}
+            href={`/dogs/${dogId}/order`}
             className="fb-cta-prim"
             style={{ textDecoration: 'none' }}
           >

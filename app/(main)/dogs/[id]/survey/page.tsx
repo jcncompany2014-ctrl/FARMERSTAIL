@@ -1473,7 +1473,7 @@ export default function SurveyPage() {
                 <p className="s-sub" style={{ fontSize: 11, marginBottom: 8 }}>
                   IRIS = 만성 신장질환의 국제 표준 진단 단계 (1=초기, 4=말기).
                   수의사가 알려주지 않았으면 건너뛰세요 — 미입력 시 보수적
-                  처방 (단백질 제한) 적용.
+                  추천 (단백질 제한) 적용.
                 </p>
                 <div className="s-chiprow">
                   {([1, 2, 3, 4] as const).map((s) => (
@@ -1735,7 +1735,7 @@ export default function SurveyPage() {
                   </div>
                   <p className="s-sub" style={{ fontSize: 11, marginBottom: 8 }}>
                     18개월 미만 강아지 — 25kg+ 대형견은 Ca 1.8% DM 상한
-                    (AAFCO 2024) 권고. 정확한 처방을 위해 입력해 주세요.
+                    (AAFCO 2024) 권고. 정확한 추천을 위해 입력해 주세요.
                   </p>
                   <input
                     type="number"

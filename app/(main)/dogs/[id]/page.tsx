@@ -896,8 +896,8 @@ function CurrentFormulaCard({
             />
             <span className="kicker">
               {isPending
-                ? '동의 필요 · 새 처방'
-                : `현재 처방 · cycle ${formula.cycle_number}`}
+                ? '동의 필요 · 새 박스'
+                : `현재 박스 · cycle ${formula.cycle_number}`}
             </span>
             {formula.user_adjusted && (
               <span className="text-[9px] font-bold text-terracotta px-1.5 py-0.5 rounded-full bg-terracotta/10">

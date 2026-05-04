@@ -158,7 +158,7 @@ export default async function AdminPersonalizationPage() {
 
       {/* KPI cards — 2 row: 4개 + 4개 */}
       <section className="grid grid-cols-4 gap-3 mb-6">
-        <KpiCard label="총 처방" value={totalFormulas ?? 0} unit="건" />
+        <KpiCard label="총 박스" value={totalFormulas ?? 0} unit="건" />
         <KpiCard
           label="사용자 조정"
           value={`${adjustedRate}%`}

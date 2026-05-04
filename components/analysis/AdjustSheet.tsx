@@ -340,7 +340,7 @@ export default function AdjustSheet({
             <div className="adj-kicker">ADJUST RATIO</div>
             <h2>비율 직접 조정</h2>
             <div className="adj-sub">
-              <strong>{dogName}</strong>이의 cycle {formula.cycleNumber} 처방
+              <strong>{dogName}</strong>이의 cycle {formula.cycleNumber} 맞춤 박스
             </div>
           </div>
           <button

@@ -181,7 +181,7 @@ export default async function PickingListPage({
             {date} 박스 패킹 리스트
           </h1>
           <p className="text-[11.5px] text-muted mt-1">
-            오늘 active 인 처방 {rows.length}건 · 1주 분량 기준
+            오늘 active 인 박스 {rows.length}건 · 1주 분량 기준
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -220,7 +220,7 @@ export default async function PickingListPage({
 
       {rows.length === 0 ? (
         <div className="rounded-2xl bg-white border border-rule p-8 text-center text-[13px] text-muted">
-          {date} 에 active 처방 없어요.
+          {date} 에 active 박스 없어요.
         </div>
       ) : (
         <div className="overflow-x-auto bg-white border border-rule rounded-2xl">
