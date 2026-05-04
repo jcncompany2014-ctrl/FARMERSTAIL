@@ -7,9 +7,9 @@
  *   (https://nap.nationalacademies.org/catalog/10668)
  * - AAFCO 2024: Association of American Feed Control Officials, Dog Food Nutrient Profiles
  *   (Adult Maintenance / Growth & Reproduction)
- * - FEDIAF 2021: European Pet Food Industry Federation, "Nutritional Guidelines For
+ * - FEDIAF 2024: European Pet Food Industry Federation, "Nutritional Guidelines For
  *   Complete and Complementary Pet Food"
- * - WSAVA 2011: Body / Muscle Condition Score 가이드라인
+ * - WSAVA 2021 Global Nutrition Toolkit: Body / Muscle Condition Score
  *   (https://wsava.org/global-guidelines/global-nutrition-guidelines/)
  * - ACVIM Consensus Statements (Chronic Kidney Disease 2013, Hepatic Lipidosis 등)
  *
@@ -38,7 +38,7 @@ export const GUIDELINE_CITATIONS = [
   },
   {
     key: 'fediaf2021',
-    label: 'FEDIAF 2021',
+    label: 'FEDIAF 2024',
     title: 'Nutritional Guidelines for Complete and Complementary Pet Food',
     org: 'European Pet Food Industry Federation',
     url: 'https://europeanpetfood.org/self-regulation/nutritional-guidelines/',

@@ -110,9 +110,9 @@ function round3(n: number): number {
  *
  *   - 일반 성견 protein ≥18% DM, puppy ≥22.5%
  *   - 일반 성견 fat ≥5.5% DM
- *   - 췌장염 fat <15% DM (Xenoulis 2015)
+ *   - 췌장염 fat <15% DM (Xenoulis & Steiner 2008 / Mansfield 2012)
  *   - 대형견 puppy Ca:P ≤1.8 (AAFCO Large-size Growth)
- *   - 심장병 Na <0.3% DM 권장 (Freeman 2018)
+ *   - 심장병 Na <0.3% DM 권장 (Keene et al. 2019 ACVIM MMVD consensus JVIM 33:1127)
  *
  * 반환 — 위반된 권고치 배열 (사용자에게 chip 으로 노출).
  */
@@ -165,7 +165,7 @@ export function clinicalCheckForPanel(
       code: 'pancreatitis-fat-high',
       label: '췌장염 지방 상한 초과',
       actual: `${panel.fatPctDM}% DM`,
-      target: '<15% (Xenoulis 2015)',
+      target: '<15% (Xenoulis & Steiner 2008)',
     })
   }
 
@@ -206,7 +206,7 @@ export function clinicalCheckForPanel(
       code: 'cardiac-sodium-high',
       label: '심장병 나트륨 권고 초과',
       actual: `${panel.sodiumPctDM}% DM`,
-      target: '<0.3% (Freeman 2018)',
+      target: '<0.3% (Keene 2019 ACVIM MMVD)',
     })
   }
 

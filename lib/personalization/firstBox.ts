@@ -446,7 +446,9 @@ function applyChronicAdjustments(
   }
 
   // 췌장염 — 저지방 강제. v1.3 강화 — 라인 mix 의 dry-matter fat% 합산해
-  // 임상 권고치 (<15% DM, Xenoulis 2015 J Small Anim Pract 56:13-26) 검증.
+  // 임상 권고치 (<15% DM) — Xenoulis & Steiner (2008) Vet Clin North Am 38:189
+  // + Mansfield (2012) Top Companion Anim Med 27:123. (Xenoulis 2015 J Small
+  // Anim Pract 56:13 은 진단 종설로 fat ceiling 직접 명시 X.)
   //   1단계: 고지방 Skin/Premium reduce (기존)
   //   2단계: 1단계 후에도 DM-fat% > 15% 면 Weight (fatPctDM=8) 강제 ≥0.5
   //          다른 라인에서 비례 차감 (Joint fatPctDM=18 도 줄어듦)
@@ -496,7 +498,7 @@ function applyChronicAdjustments(
     }
     reasoning.push({
       trigger: '췌장염 이력',
-      action: `DM 지방 ${fatPct.toFixed(1)}% (목표 <15%, Xenoulis 2015 J Small Anim Pract 56:13-26)`,
+      action: `DM 지방 ${fatPct.toFixed(1)}% (목표 <15%, Xenoulis & Steiner 2008 Vet Clin 38:189 / Mansfield 2012 TCAM 27:123)`,
       chipLabel: '췌장염 → 저지방',
       priority: 3,
       ruleId: 'chronic-pancreatitis',
