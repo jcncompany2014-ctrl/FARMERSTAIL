@@ -472,6 +472,135 @@ function applyChronicAdjustments(
     })
   }
 
+  // ──────────────────────────────────────────────────────────────────────
+  // v1.3 Phase A3 — 새 만성질환 (DCM / 당뇨 / 간 / CDS / 스테로이드)
+  // ──────────────────────────────────────────────────────────────────────
+
+  // 심장병 / DCM (확장성 심근증) — chip 위주 + Joint 주의 (사골육수 나트륨).
+  //
+  // 근거:
+  //  · Freeman et al. (2018) "Diet-associated dilated cardiomyopathy"
+  //    JAVMA 253(11):1390-1394 — grain-free / legume-heavy 사료와 DCM 연관 보고.
+  //  · Kaplan et al. (2018) "Taurine deficiency and dilated cardiomyopathy"
+  //    PLoS ONE 13(12):e0209112.
+  //  · FDA (2018-2022) Vet-LIRN 조사 — grain-free pulse-heavy 식단 회피 권고.
+  //
+  // 화식은 grain-free 가 아니라 (감자/현미/단호박 포함) 본 알고리즘은 라인
+  // 변경 없이 chip 만 push — 사용자에게 taurine 풍부 라인 (Premium 소심장,
+  // Skin 연어) 의 가치 강조 + 저나트륨 권고.
+  if (c.includes('cardiac') || c.includes('dcm')) {
+    reasoning.push({
+      trigger: '심장병 / DCM 진단',
+      action:
+        'taurine 풍부 라인 (Premium 소·Skin 연어) 권장. 저나트륨 + grain-free 시판 사료 회피 (FDA 2018-2022). 수의 심장 정기 검진 필수.',
+      chipLabel: '심장병 → 타우린·저Na',
+      priority: 3,
+      ruleId: 'chronic-cardiac',
+    })
+  }
+
+  // 당뇨병 — 고섬유 + 저단순당. Weight (단호박 식이섬유) 가산 + 야채 토퍼 ↑.
+  //
+  // 근거:
+  //  · Fleeman & Rand (2001) "Management of canine diabetes"
+  //    Vet Clin Small Anim Pract 31(5):855-880 — 인슐린 + 고섬유 (10-15% DM).
+  //  · Hand et al. Small Animal Clinical Nutrition 5e ch.27.
+  if (c.includes('diabetes') && ratios.weight < 0.4) {
+    const before = ratios.weight
+    ratios = {
+      ...ratios,
+      weight: 0.4,
+      basic: Math.max(0, ratios.basic + before - 0.4),
+    }
+    reasoning.push({
+      trigger: '당뇨병 진단',
+      action:
+        'Weight 라인 (단호박 식이섬유) 가산 → 혈당 spike 완화 (Fleeman & Rand 2001). 야채 토퍼 추가 권장. 인슐린 + 정기 혈당 측정 필수.',
+      chipLabel: '당뇨 → 고섬유',
+      priority: 3,
+      ruleId: 'chronic-diabetes',
+    })
+  }
+
+  // 간질환 — 구리 제한. Premium (소·내장) 차단 우선, Weight (오리) / Basic 으로.
+  //
+  // 근거:
+  //  · Center (2017) "Diseases of the liver" Textbook of Vet Internal Medicine
+  //    Cu <1mg/100g DM 권고 (chronic copper-associated hepatitis 예방).
+  //  · Strombeck & Guilford (1995) Small Animal Gastroenterology — 간성 뇌증
+  //    예방 단백질 적정량 + BCAA.
+  //
+  // 설문은 'liver' 키 사용 (lib/nutrition/guidelines.ts), 'hepatic' 도 호환.
+  if (c.includes('liver') || c.includes('hepatic')) {
+    const oldPremium = ratios.premium
+    ratios = {
+      ...ratios,
+      premium: 0,
+      basic: ratios.basic + oldPremium,
+    }
+    reasoning.push({
+      trigger: '간질환 진단',
+      action:
+        'Premium (소·내장) 차단 → 구리 부담 ↓ (Center 2017). Basic / Weight 우선. BCAA 추가 + 수의사 처방식 상담 필수.',
+      chipLabel: '간질환 → 구리 제한',
+      priority: 3,
+      ruleId: 'chronic-hepatic',
+    })
+  }
+
+  // 인지저하증 (CDS, Cognitive Dysfunction Syndrome) — DHA + MCT.
+  // Skin 라인 (연어 DHA) 가산 + chip 으로 MCT 보조 권장.
+  //
+  // 근거:
+  //  · Pan et al. (2010) "Dietary supplementation with medium-chain TAG has
+  //    long-lasting cognition-altering effects in aged dogs"
+  //    Br J Nutr 103(12):1746-1754.
+  //  · Heath et al. (2007) "Nutritional intervention in canine cognitive
+  //    dysfunction" Vet Therapeutics 8(2):124-131.
+  if (c.includes('cognitive_decline') || c.includes('cds')) {
+    if (ratios.skin < 0.3) {
+      const before = ratios.skin
+      ratios = {
+        ...ratios,
+        skin: 0.3,
+        basic: Math.max(0, ratios.basic + before - 0.3),
+      }
+    }
+    reasoning.push({
+      trigger: '인지저하증 (CDS)',
+      action:
+        'Skin 라인 (연어 DHA) ≥30% — Pan 2010 Br J Nutr 103:1746. MCT (코코넛 오일 1tsp/10kg) + 항산화 보조제 추가 권장. 수의 신경 정기 검진.',
+      chipLabel: 'CDS → DHA·MCT',
+      priority: 3,
+      ruleId: 'chronic-cognitive-decline',
+    })
+  }
+
+  // 만성 스테로이드 (prednisolone 등 long-term) — Joint (콜라겐·Ca) 가산.
+  //
+  // 근거:
+  //  · Plumb's Veterinary Drug Handbook 9e — 장기 corticosteroid →
+  //    Ca/P 손실 + 근감소 + 의인성 비만.
+  //  · Behrend et al. (2003) Vet Clin Small Anim — endocrine side effects.
+  if (c.includes('long_term_steroid')) {
+    if (ratios.joint < 0.3) {
+      const before = ratios.joint
+      ratios = {
+        ...ratios,
+        joint: 0.3,
+        basic: Math.max(0, ratios.basic + before - 0.3),
+      }
+    }
+    reasoning.push({
+      trigger: '장기 스테로이드 복용',
+      action:
+        'Joint 라인 (콜라겐 + Ca) ≥30% — Ca/P 손실 보충 (Plumb 9e). BCS / 혈당 정기 모니터링 (의인성 비만/당뇨 위험).',
+      chipLabel: '스테로이드 → Joint ↑',
+      priority: 3,
+      ruleId: 'chronic-long-term-steroid',
+    })
+  }
+
   return ratios
 }
 

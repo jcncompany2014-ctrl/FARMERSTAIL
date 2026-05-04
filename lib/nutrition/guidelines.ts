@@ -120,17 +120,19 @@ export const MCS_DESCRIPTIONS: Record<McsKey, { label: string; desc: string }> =
 // ────────────────────────────────────────────────────────────────────────────
 
 export type ChronicConditionKey =
-  | 'diabetes'         // 당뇨
-  | 'kidney'           // 만성신장질환 (CKD)
-  | 'cardiac'          // 심장질환
-  | 'pancreatitis'     // 췌장염
-  | 'ibd'              // 염증성 장질환
-  | 'allergy_skin'     // 알레르기성 피부염
-  | 'arthritis'        // 관절염
-  | 'liver'            // 간질환
-  | 'dental'           // 치주질환
-  | 'epilepsy'         // 간질
-  | 'urinary_stone'    // 요결석
+  | 'diabetes'             // 당뇨
+  | 'kidney'               // 만성신장질환 (CKD)
+  | 'cardiac'              // 심장질환 (DCM 포함)
+  | 'pancreatitis'         // 췌장염
+  | 'ibd'                  // 염증성 장질환
+  | 'allergy_skin'         // 알레르기성 피부염
+  | 'arthritis'            // 관절염
+  | 'liver'                // 간질환
+  | 'dental'               // 치주질환
+  | 'epilepsy'             // 간질
+  | 'urinary_stone'        // 요결석
+  | 'cognitive_decline'    // 인지저하증 (CDS) — v1.3
+  | 'long_term_steroid'    // 장기 스테로이드 복용 — v1.3
 
 export const CHRONIC_CONDITION_LABELS: Record<ChronicConditionKey, string> = {
   diabetes: '당뇨',
@@ -144,6 +146,8 @@ export const CHRONIC_CONDITION_LABELS: Record<ChronicConditionKey, string> = {
   dental: '치주질환',
   epilepsy: '간질',
   urinary_stone: '요결석',
+  cognitive_decline: '인지저하증 (CDS)',
+  long_term_steroid: '장기 스테로이드 복용',
 }
 
 /**
@@ -307,6 +311,34 @@ export const CONDITION_ADJUSTMENTS: Record<ChronicConditionKey, DietAdjustment> 
     vetConsult: true,
     micro: {
       calciumFactor: 0.9,
+    },
+  },
+  cognitive_decline: {
+    // 인지저하증 (CDS) — DHA + MCT (Pan 2010 Br J Nutr 103:1746).
+    proteinDelta: 0,
+    fatDelta: 4,             // MCT 가산
+    carbDelta: -2,
+    fiberDelta: 0,
+    supplements: ['DHA (오메가-3)', 'MCT 오일', '항산화제 (E·셀레늄)'],
+    riskFlags: ['COGNITIVE_SUPPORT'],
+    cite: ['nrc2006'],
+    vetConsult: true,
+    micro: {
+      omega3Factor: 1.6,
+    },
+  },
+  long_term_steroid: {
+    // 장기 corticosteroid 복용 — Ca/P 손실 + 의인성 비만/당뇨 위험.
+    proteinDelta: 2,         // 근손실 보충
+    fatDelta: -2,            // 비만 예방
+    carbDelta: 0,
+    fiberDelta: 2,           // 식욕 ↑ 대응
+    supplements: ['글루코사민+콘드로이틴', '오메가-3', '비타민 D'],
+    riskFlags: ['STEROID_SIDE_EFFECTS'],
+    cite: ['nrc2006'],
+    vetConsult: true,
+    micro: {
+      calciumFactor: 1.2,    // Ca 손실 보충
     },
   },
 }

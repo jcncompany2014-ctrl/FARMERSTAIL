@@ -806,6 +806,97 @@ describe('decideFirstBox v1.3 — CKD IRIS staging (IRIS 2019)', () => {
   })
 })
 
+describe('decideFirstBox v1.3 — 새 만성질환 (DCM/당뇨/간/CDS/스테로이드)', () => {
+  it('cardiac → chip 발화 (taurine·저Na 권장)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['cardiac'],
+    })
+    const r = f.reasoning.find((x) => x.ruleId === 'chronic-cardiac')
+    assert.ok(r)
+    assert.match(r!.action, /taurine|저나트륨|grain-free/)
+  })
+
+  it('dcm 키도 동일 분기', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['dcm'],
+    })
+    const r = f.reasoning.find((x) => x.ruleId === 'chronic-cardiac')
+    assert.ok(r)
+  })
+
+  it('diabetes → Weight 라인 ≥0.4', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['diabetes'],
+    })
+    assert.ok(f.lineRatios.weight >= 0.4 - 1e-9)
+    const r = f.reasoning.find((x) => x.ruleId === 'chronic-diabetes')
+    assert.ok(r)
+    assert.match(r!.action, /고섬유|식이섬유|혈당/)
+  })
+
+  it('liver → Premium 0% (구리 제한)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['liver'],
+    })
+    assert.equal(f.lineRatios.premium, 0)
+    const r = f.reasoning.find((x) => x.ruleId === 'chronic-hepatic')
+    assert.ok(r)
+    assert.match(r!.action, /구리|Cu/)
+  })
+
+  it('hepatic alias 도 동작', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['hepatic'],
+    })
+    assert.equal(f.lineRatios.premium, 0)
+  })
+
+  it('cognitive_decline → Skin 라인 ≥0.3 (DHA)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['cognitive_decline'],
+    })
+    assert.ok(f.lineRatios.skin >= 0.3 - 1e-9)
+    const r = f.reasoning.find((x) => x.ruleId === 'chronic-cognitive-decline')
+    assert.ok(r)
+    assert.match(r!.action, /DHA|MCT/)
+  })
+
+  it('long_term_steroid → Joint 라인 ≥0.3', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['long_term_steroid'],
+    })
+    assert.ok(f.lineRatios.joint >= 0.3 - 1e-9)
+    const r = f.reasoning.find((x) => x.ruleId === 'chronic-long-term-steroid')
+    assert.ok(r)
+    assert.match(r!.action, /Ca\/P|콜라겐/)
+  })
+
+  it('만성질환 없으면 새 룰들 다 안 발화', () => {
+    const f = decideFirstBox({ ...baseInput(), chronicConditions: [] })
+    const ids = [
+      'chronic-cardiac',
+      'chronic-diabetes',
+      'chronic-hepatic',
+      'chronic-cognitive-decline',
+      'chronic-long-term-steroid',
+    ]
+    for (const id of ids) {
+      assert.equal(
+        f.reasoning.find((r) => r.ruleId === id),
+        undefined,
+        `${id} 안 발화`,
+      )
+    }
+  })
+})
+
 describe('decideFirstBox v1.3 — IgE cross-reactivity chip', () => {
   it('양고기 알레르기 → Premium 라인 cross-react chip (차단 안 함)', () => {
     const f = decideFirstBox({ ...baseInput(), allergies: ['양고기'] })

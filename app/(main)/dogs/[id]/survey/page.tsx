@@ -261,9 +261,17 @@ export default function SurveyPage() {
   const [chronicConditions, setChronicConditions] = useState<ChronicConditionKey[]>([])
   const [prescriptionDiet, setPrescriptionDiet] = useState('')
   const [medications, setMedications] = useState('')
+  // v1.3 임상 정밀화 — 만성질환 의존 conditional input.
+  // CKD 진단 시 IRIS stage (1-4) — 단백질 처방 분기 (Premium 0% 여부 결정).
+  const [irisStage, setIrisStage] = useState<1 | 2 | 3 | 4 | null>(null)
   // 7. status
   const [pregnancy, setPregnancy] = useState<'none' | 'pregnant' | 'lactating' | ''>('')
   const [coat, setCoat] = useState<'healthy' | 'dull' | 'shedding' | 'itchy' | 'lesions' | ''>('')
+  // v1.3 — 임신 주차 (1-9) + 산자수. NRC 2006 ch.15 multiplier 분기.
+  const [pregnancyWeek, setPregnancyWeek] = useState<number | null>(null)
+  const [litterSize, setLitterSize] = useState<number | null>(null)
+  // v1.3 — 대형견 puppy Ca cap (AAFCO 2024). <18mo puppy 의 예상 성견 체중.
+  const [expectedAdultWeightKg, setExpectedAdultWeightKg] = useState<number | null>(null)
 
   // ── personalization v3 ──
   const [weightTrend, setWeightTrend] =
@@ -466,6 +474,16 @@ export default function SurveyPage() {
         gi_sensitivity: giSensitivity || null,
         preferred_proteins: preferredProteins,
         indoor_activity: indoorActivity || null,
+        // v1.3 임상 정밀화 — conditional 입력. 미입력 시 알고리즘이 보수적 처방.
+        iris_stage: chronicConditions.includes('kidney') ? irisStage : null,
+        pregnancy_week: pregnancy === 'pregnant' ? pregnancyWeek : null,
+        litter_size: pregnancy === 'lactating' ? litterSize : null,
+        expected_adult_weight_kg:
+          dog && (dog.age_unit === 'years'
+            ? dog.age_value * 12 < 18
+            : dog.age_value < 18)
+            ? expectedAdultWeightKg
+            : null,
       })
       .select()
       .single()
@@ -1229,6 +1247,41 @@ export default function SurveyPage() {
               })}
             </div>
 
+            {/* v1.3 — CKD 진단 시 IRIS stage. Stage 1-2 는 단백질 정상 처방,
+                Stage 3+ 는 단백질 제한. 미입력 시 보수적 (Stage 3+) 처방. */}
+            {chronicConditions.includes('kidney') && (
+              <div className="s-sect">
+                <div className="s-sect-lbl">
+                  <span className="s-label-text">CKD IRIS 단계</span>
+                  <span className="s-opt">선택</span>
+                </div>
+                <p className="s-sub" style={{ fontSize: 11, marginBottom: 8 }}>
+                  수의사가 알려준 단계가 있으면 골라 주세요. 미입력 시 보수적
+                  처방 (단백질 제한) 적용.
+                </p>
+                <div className="s-chiprow">
+                  {([1, 2, 3, 4] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className={
+                        's-chip s-terra' + (irisStage === s ? ' s-on' : '')
+                      }
+                      aria-pressed={irisStage === s}
+                      onClick={() =>
+                        setIrisStage(irisStage === s ? null : s)
+                      }
+                    >
+                      {irisStage === s && (
+                        <Check size={13} strokeWidth={2.4} color="#fff" />
+                      )}
+                      Stage {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="s-sect">
               <div className="s-sect-lbl">
                 <span className="s-label-text">처방식</span>
@@ -1307,6 +1360,93 @@ export default function SurveyPage() {
                 })}
               </div>
             </div>
+
+            {/* v1.3 — 임신 주차 (1-9). NRC 2006 ch.15 — 후기 (≥6주차) RER × 1.6-2.0 */}
+            {pregnancy === 'pregnant' && (
+              <div className="s-sect">
+                <div className="s-sect-lbl">
+                  <span className="s-label-text">임신 주차</span>
+                  <span className="s-opt">선택</span>
+                </div>
+                <p className="s-sub" style={{ fontSize: 11, marginBottom: 8 }}>
+                  6주차 이후가 영양 요구량이 본격적으로 ↑. 미입력 시 보수적
+                  multiplier (×1.5).
+                </p>
+                <input
+                  type="number"
+                  className="s-inp"
+                  min={1}
+                  max={9}
+                  step={1}
+                  value={pregnancyWeek ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setPregnancyWeek(v === '' ? null : Math.max(1, Math.min(9, Number(v))))
+                  }}
+                  placeholder="1-9"
+                />
+              </div>
+            )}
+
+            {/* v1.3 — 수유 산자수. NRC 2006 Table 15-3 — RER × (2.0+0.25n) */}
+            {pregnancy === 'lactating' && (
+              <div className="s-sect">
+                <div className="s-sect-lbl">
+                  <span className="s-label-text">산자 수</span>
+                  <span className="s-opt">선택</span>
+                </div>
+                <p className="s-sub" style={{ fontSize: 11, marginBottom: 8 }}>
+                  수유 영양 요구량은 산자 수에 비례 (×2.0~4.0). 미입력 시 ×2.0.
+                </p>
+                <input
+                  type="number"
+                  className="s-inp"
+                  min={1}
+                  max={15}
+                  step={1}
+                  value={litterSize ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setLitterSize(v === '' ? null : Math.max(1, Math.min(15, Number(v))))
+                  }}
+                  placeholder="1-15"
+                />
+              </div>
+            )}
+
+            {/* v1.3 — 대형견 puppy Ca cap. <18mo puppy 만 노출. AAFCO 2024. */}
+            {dog &&
+              (dog.age_unit === 'years'
+                ? dog.age_value * 12 < 18
+                : dog.age_value < 18) && (
+                <div className="s-sect">
+                  <div className="s-sect-lbl">
+                    <span className="s-label-text">예상 성견 체중 (kg)</span>
+                    <span className="s-opt">선택</span>
+                  </div>
+                  <p className="s-sub" style={{ fontSize: 11, marginBottom: 8 }}>
+                    18개월 미만 강아지 — 25kg+ 대형견은 Ca 1.8% DM 상한
+                    (AAFCO 2024) 권고. 정확한 처방을 위해 입력해 주세요.
+                  </p>
+                  <input
+                    type="number"
+                    className="s-inp"
+                    min={0.5}
+                    max={100}
+                    step={0.5}
+                    value={expectedAdultWeightKg ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setExpectedAdultWeightKg(
+                        v === ''
+                          ? null
+                          : Math.max(0.5, Math.min(100, Number(v))),
+                      )
+                    }}
+                    placeholder="예: 30 (대형견)"
+                  />
+                </div>
+              )}
 
             <div className="s-sect">
               <div className="s-sect-lbl">
