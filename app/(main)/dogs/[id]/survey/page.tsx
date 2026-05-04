@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -295,6 +295,10 @@ export default function SurveyPage() {
 
   // loading 단계 stage 인디케이터
   const [loadingStage, setLoadingStage] = useState(0)
+  // autosave 복원 한 번만 — 진입 시 localStorage 의 이전 진행 상태 복원.
+  // ref 사용 — React 19 'set-state-in-effect' 룰 회피 (effect 안에서 setState
+  // 직접 호출 금지). 복원은 mount 직후 1회 mutation 이라 ref 충분.
+  const restoredRef = useRef(false)
 
   useEffect(() => {
     async function load() {
@@ -319,6 +323,153 @@ export default function SurveyPage() {
     }
     load()
   }, [dogId, router, supabase])
+
+  // ── Autosave (localStorage) ──────────────────────────────────────────
+  // 페이지 떠난 후 다시 들어와도 입력 복원. 7일 만료. dog 별 분리.
+  // 모바일에서 잠깐 다른 앱 → 돌아올 때 가장 큰 가치.
+  const STORAGE_KEY = `farmerstail-survey:${dogId}`
+
+  // 1) 복원 — dog 로드 후 한 번만. ref 가드라 1회 mutation 안전 — React 19
+  // 'set-state-in-effect' 룰은 mount 직후 hydration 패턴엔 과보수.
+  /* eslint-disable react-hooks/set-state-in-effect -- mount 1회 ref 가드 복원 */
+  useEffect(() => {
+    if (!dog || restoredRef.current || typeof window === 'undefined') return
+    restoredRef.current = true
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return
+    try {
+      const data = JSON.parse(raw) as Record<string, unknown> & { _ts?: number }
+      // 7일 지나면 만료
+      if (
+        typeof data._ts === 'number' &&
+        Date.now() - data._ts > 7 * 24 * 60 * 60 * 1000
+      ) {
+        localStorage.removeItem(STORAGE_KEY)
+        return
+      }
+      // 핵심 state 만 복원 — undefined 아닌 값만 적용해 partial restore 안전.
+      if (data.bcs !== undefined) setBcs(data.bcs as BcsKey | null)
+      if (data.mcs !== undefined) setMcs(data.mcs as McsKey | null)
+      if (data.bristol !== undefined)
+        setBristol(data.bristol as typeof bristol)
+      if (typeof data.foodType === 'string') setFoodType(data.foodType)
+      if (typeof data.snackFreq === 'string') setSnackFreq(data.snackFreq)
+      if (typeof data.taste === 'string') setTaste(data.taste as typeof taste)
+      if (typeof data.walkMinutes === 'string') setWalkMinutes(data.walkMinutes)
+      if (typeof data.currentBrand === 'string') setCurrentBrand(data.currentBrand)
+      if (typeof data.dlMode === 'string') setDlMode(data.dlMode as typeof dlMode)
+      if (Array.isArray(data.allergies)) setAllergies(data.allergies as string[])
+      if (Array.isArray(data.chronicConditions))
+        setChronicConditions(data.chronicConditions as ChronicConditionKey[])
+      if (typeof data.prescriptionDiet === 'string')
+        setPrescriptionDiet(data.prescriptionDiet)
+      if (typeof data.medications === 'string') setMedications(data.medications)
+      if (data.irisStage !== undefined)
+        setIrisStage(data.irisStage as typeof irisStage)
+      if (typeof data.pregnancy === 'string')
+        setPregnancy(data.pregnancy as typeof pregnancy)
+      if (typeof data.coat === 'string') setCoat(data.coat as typeof coat)
+      if (data.pregnancyWeek !== undefined)
+        setPregnancyWeek(data.pregnancyWeek as number | null)
+      if (data.litterSize !== undefined)
+        setLitterSize(data.litterSize as number | null)
+      if (data.expectedAdultWeightKg !== undefined)
+        setExpectedAdultWeightKg(data.expectedAdultWeightKg as number | null)
+      if (typeof data.weightTrend === 'string')
+        setWeightTrend(data.weightTrend as typeof weightTrend)
+      if (typeof data.giSensitivity === 'string')
+        setGiSensitivity(data.giSensitivity as typeof giSensitivity)
+      if (typeof data.indoorActivity === 'string')
+        setIndoorActivity(data.indoorActivity as typeof indoorActivity)
+      if (typeof data.homeCookingExp === 'string')
+        setHomeCookingExp(data.homeCookingExp as typeof homeCookingExp)
+      if (data.dietSatisfaction !== undefined)
+        setDietSatisfaction(data.dietSatisfaction as typeof dietSatisfaction)
+      if (Array.isArray(data.preferredProteins))
+        setPreferredProteins(data.preferredProteins as string[])
+      if (typeof data.careGoal === 'string')
+        setCareGoal(data.careGoal as CareGoal | '')
+      if (typeof data.currentStep === 'string' && data.currentStep !== 'loading')
+        setCurrentStep(data.currentStep as Step)
+      toast.info('이전에 작성하던 내용을 불러왔어요')
+    } catch {
+      // corrupted — silently ignore
+    }
+  }, [dog, STORAGE_KEY, toast])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // 2) 저장 — state 변경 시. loading step 중엔 저장 안 함 (이미 제출).
+  useEffect(() => {
+    if (!dog || !restoredRef.current || typeof window === 'undefined') return
+    if (currentStep === 'loading') return
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          bcs,
+          mcs,
+          bristol,
+          foodType,
+          snackFreq,
+          taste,
+          walkMinutes,
+          currentBrand,
+          dlMode,
+          allergies,
+          chronicConditions,
+          prescriptionDiet,
+          medications,
+          irisStage,
+          pregnancy,
+          coat,
+          pregnancyWeek,
+          litterSize,
+          expectedAdultWeightKg,
+          weightTrend,
+          giSensitivity,
+          indoorActivity,
+          homeCookingExp,
+          dietSatisfaction,
+          preferredProteins,
+          careGoal,
+          currentStep,
+          _ts: Date.now(),
+        }),
+      )
+    } catch {
+      // quota exceeded — silently ignore
+    }
+  }, [
+    dog,
+    STORAGE_KEY,
+    bcs,
+    mcs,
+    bristol,
+    foodType,
+    snackFreq,
+    taste,
+    walkMinutes,
+    currentBrand,
+    dlMode,
+    allergies,
+    chronicConditions,
+    prescriptionDiet,
+    medications,
+    irisStage,
+    pregnancy,
+    coat,
+    pregnancyWeek,
+    litterSize,
+    expectedAdultWeightKg,
+    weightTrend,
+    giSensitivity,
+    indoorActivity,
+    homeCookingExp,
+    dietSatisfaction,
+    preferredProteins,
+    careGoal,
+    currentStep,
+  ])
 
   // loading stage 진행 — 4 stage rotating
   useEffect(() => {
@@ -564,6 +715,15 @@ export default function SurveyPage() {
       setSaving(false)
       setCurrentStep('status')
       return
+    }
+
+    // autosave 삭제 — 설문 완료 후 다음 진입은 fresh start.
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(STORAGE_KEY)
+      } catch {
+        /* noop */
+      }
     }
 
     router.push(`/dogs/${dogId}/analysis`)
