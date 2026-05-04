@@ -206,6 +206,80 @@ export function trackPurchase({
   })
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Personalization funnel — 보호자가 강아지 처방을 받기까지의 단계별 이벤트.
+// GA4 dashboard 에서 funnel 분석 + drop-off 측정.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 설문 시작 — 첫 step (body) 진입. */
+export function trackSurveyStarted(dogId: string) {
+  safeGtag('event', 'survey_started', { dog_id: dogId })
+}
+
+/** 설문 완료 — analysis insert 직후. */
+export function trackSurveyCompleted(dogId: string) {
+  safeGtag('event', 'survey_completed', { dog_id: dogId })
+}
+
+/** 분석 페이지 진입. */
+export function trackAnalysisViewed(dogId: string) {
+  safeGtag('event', 'analysis_viewed', { dog_id: dogId })
+}
+
+/** 추천 박스 (compute) 결과 표시 — careGoal 별 분포 측정. */
+export function trackBoxRecommended(opts: {
+  dogId: string
+  cycleNumber: number
+  careGoal: string | null
+  algorithmVersion: string
+}) {
+  safeGtag('event', 'box_recommended', {
+    dog_id: opts.dogId,
+    cycle_number: opts.cycleNumber,
+    care_goal: opts.careGoal ?? 'unknown',
+    algorithm_version: opts.algorithmVersion,
+  })
+}
+
+/** 체크인 응답 — week_2 / week_4 별 응답률 측정. */
+export function trackCheckinSubmitted(opts: {
+  dogId: string
+  cycleNumber: number
+  checkpoint: 'week_2' | 'week_4'
+  hasPhoto: boolean
+}) {
+  safeGtag('event', 'checkin_submitted', {
+    dog_id: opts.dogId,
+    cycle_number: opts.cycleNumber,
+    checkpoint: opts.checkpoint,
+    has_photo: opts.hasPhoto,
+  })
+}
+
+/** 처방 변경 동의 — approve / decline 선택. */
+export function trackBoxDecision(opts: {
+  dogId: string
+  cycleNumber: number
+  decision: 'approve' | 'decline'
+}) {
+  safeGtag('event', 'box_decision', {
+    dog_id: opts.dogId,
+    cycle_number: opts.cycleNumber,
+    decision: opts.decision,
+  })
+}
+
+/** 사용자가 추천 비율 직접 조정 — 알고리즘 정확도 KPI (적을수록 좋음). */
+export function trackBoxAdjusted(opts: {
+  dogId: string
+  cycleNumber: number
+}) {
+  safeGtag('event', 'box_adjusted', {
+    dog_id: opts.dogId,
+    cycle_number: opts.cycleNumber,
+  })
+}
+
 export function trackSignUp(method: 'email' | 'kakao') {
   // First-touch attribution — 가입 시점에 가장 처음 도달했던 UTM 출처를
   // 함께 보낸다. GA4 는 세션 단위로 UTM 을 자동 캡처하지만, "사용자가 어제

@@ -20,6 +20,7 @@ import {
 } from '@/lib/personalization/nutrientPanel'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { haptic } from '@/lib/haptic'
+import { trackBoxAdjusted } from '@/lib/analytics'
 
 /**
  * AdjustSheet — Claude Design 핸드오프 #3 (sheet) 적용.
@@ -274,6 +275,7 @@ export default function AdjustSheet({
         return
       }
       haptic('confirm')
+      trackBoxAdjusted({ dogId, cycleNumber: formula.cycleNumber })
       onSaved({
         ...formula,
         lineRatios,

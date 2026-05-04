@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import { computeNutrientPanel } from '@/lib/personalization/nutrientPanel'
+import { trackBoxRecommended, trackAnalysisViewed } from '@/lib/analytics'
 import type {
   Formula,
   FoodLine,
@@ -154,6 +155,20 @@ export default function RecommendationBox({
           return
         }
         setState({ status: 'ready', formula: json.formula })
+        // GA4 funnel — care goal 분포 + algorithm version 별 측정.
+        trackAnalysisViewed(dogId)
+        const goalReason = json.formula.reasoning.find((r) =>
+          r.ruleId.startsWith('goal-'),
+        )
+        const careGoal = goalReason
+          ? goalReason.ruleId.replace('goal-', '')
+          : null
+        trackBoxRecommended({
+          dogId,
+          cycleNumber: json.formula.cycleNumber,
+          careGoal,
+          algorithmVersion: json.formula.algorithmVersion,
+        })
       } catch (e) {
         if (!cancelled) {
           setState({

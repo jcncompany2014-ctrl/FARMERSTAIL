@@ -15,6 +15,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { haptic } from '@/lib/haptic'
+import { trackCheckinSubmitted } from '@/lib/analytics'
 import './checkin.css'
 
 /**
@@ -271,6 +272,12 @@ export default function CheckinPage() {
         return
       }
       haptic('confirm')
+      trackCheckinSubmitted({
+        dogId,
+        cycleNumber,
+        checkpoint,
+        hasPhoto: photoUrls.length > 0,
+      })
       toast.success(`${dogName}이를 더 잘 챙길게요 🐾`)
       router.push(`/dogs/${dogId}/analysis`)
     } catch (e) {

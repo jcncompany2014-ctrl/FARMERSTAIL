@@ -19,6 +19,7 @@ import { useToast } from '@/components/ui/Toast'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { haptic } from '@/lib/haptic'
+import { trackBoxDecision } from '@/lib/analytics'
 import './approve.css'
 
 /**
@@ -163,6 +164,7 @@ export default function ApprovePage() {
         return
       }
       haptic('confirm')
+      trackBoxDecision({ dogId, cycleNumber, decision })
       if (decision === 'approve') {
         toast.success('새 비율 적용됐어요')
       } else {

@@ -71,6 +71,7 @@ import {
 } from '@/lib/nutrition/guidelines'
 import { detectChronicFromMedications } from '@/lib/nutrition/drugs'
 import { haptic } from '@/lib/haptic'
+import { trackSurveyStarted, trackSurveyCompleted } from '@/lib/analytics'
 import './survey.css'
 
 /**
@@ -326,6 +327,7 @@ export default function SurveyPage() {
         return
       }
       setDog(data)
+      trackSurveyStarted(dogId)
     }
     load()
   }, [dogId, router, supabase])
@@ -732,6 +734,7 @@ export default function SurveyPage() {
       }
     }
 
+    trackSurveyCompleted(dogId)
     router.push(`/dogs/${dogId}/analysis`)
     router.refresh()
   }
