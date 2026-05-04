@@ -672,8 +672,9 @@ export default function SurveyPage() {
 
     if (surveyErr || !surveyData) {
       toast.error('저장 실패: ' + surveyErr?.message)
+      setErr('저장 실패: ' + (surveyErr?.message ?? '알 수 없는 오류'))
       setSaving(false)
-      setCurrentStep('status')
+      // status 로 점프 대신 loading 화면 그대로 — 사용자가 inline retry.
       return
     }
 
@@ -736,8 +737,8 @@ export default function SurveyPage() {
 
     if (analysisErr) {
       toast.error('분석 저장 실패: ' + analysisErr.message)
+      setErr('분석 저장 실패: ' + analysisErr.message)
       setSaving(false)
-      setCurrentStep('status')
       return
     }
 
@@ -1896,11 +1897,50 @@ export default function SurveyPage() {
                 )
               })}
             </ul>
-            <div className="s-dots" style={{ marginTop: 24 }}>
-              <span />
-              <span />
-              <span />
-            </div>
+            {!err && (
+              <div className="s-dots" style={{ marginTop: 24 }}>
+                <span />
+                <span />
+                <span />
+              </div>
+            )}
+            {err && (
+              <div
+                className="s-errbar"
+                role="alert"
+                aria-live="polite"
+                style={{ marginTop: 20 }}
+              >
+                <AlertCircle size={14} strokeWidth={2.2} />
+                <span>{err}</span>
+              </div>
+            )}
+            {err && (
+              <button
+                type="button"
+                onClick={() => {
+                  setErr('')
+                  setLoadingStage(0)
+                  saveAndGoResult()
+                }}
+                disabled={saving}
+                style={{
+                  marginTop: 14,
+                  appearance: 'none',
+                  border: '1px solid var(--terracotta)',
+                  background: '#fff',
+                  color: 'var(--terracotta)',
+                  padding: '10px 20px',
+                  borderRadius: 99,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                다시 시도
+              </button>
+            )}
           </div>
         )}
 
