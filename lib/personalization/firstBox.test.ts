@@ -986,6 +986,63 @@ describe('decideFirstBox v1.4 — 품종 predispose', () => {
     const r = f.reasoning.find((x) => x.ruleId.startsWith('breed-'))
     assert.equal(r, undefined)
   })
+
+  it('영문 단일 단어 word-boundary — "lab" 단독은 매칭 안 됨', () => {
+    // 'lab' 단독 키워드는 'puggle' 같은 부분 매칭 차단 위해 word-boundary.
+    // 매트릭스에 일부러 'lab' 만 (trailing space 없이) 등록해 검증.
+    const matrixWithLab = [
+      {
+        breedKey: 'lab_test',
+        koreanLabel: 'Lab',
+        breedKeywords: ['lab'],
+        predisposeConditions: [],
+        cautions: ['Lab 매칭'],
+      },
+    ]
+    // 'collaboration' 안의 'lab' 은 word-boundary 위배 → 매칭 안 됨.
+    const noMatch = decideFirstBox({
+      ...baseInput(),
+      breed: 'collaboration mix',
+      breedPredisposeMap: matrixWithLab,
+    })
+    assert.equal(
+      noMatch.reasoning.find((x) => x.ruleId === 'breed-lab_test'),
+      undefined,
+      'collaboration 의 lab 부분문자열은 매칭 안 됨',
+    )
+    // 단독 'lab' 또는 'lab mix' 는 매칭.
+    const match = decideFirstBox({
+      ...baseInput(),
+      breed: 'lab mix',
+      breedPredisposeMap: matrixWithLab,
+    })
+    assert.ok(
+      match.reasoning.find((x) => x.ruleId === 'breed-lab_test'),
+      'lab mix 는 매칭',
+    )
+  })
+
+  it('한글 부분 매칭 유지 — "포메라니안" 안의 "포메" 매칭', () => {
+    // Korean 키워드는 형태소 분석 없이 안전한 substring 유지.
+    const matrixWithPome = [
+      {
+        breedKey: 'pomeranian',
+        koreanLabel: '포메라니안',
+        breedKeywords: ['포메'],
+        predisposeConditions: [],
+        cautions: ['포메 매칭'],
+      },
+    ]
+    const f = decideFirstBox({
+      ...baseInput(),
+      breed: '포메라니안',
+      breedPredisposeMap: matrixWithPome,
+    })
+    assert.ok(
+      f.reasoning.find((x) => x.ruleId === 'breed-pomeranian'),
+      '한글 substring 매칭 유지',
+    )
+  })
 })
 
 describe('decideFirstBox v1.3 — IgE cross-reactivity chip', () => {

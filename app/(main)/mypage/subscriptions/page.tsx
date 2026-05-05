@@ -28,6 +28,7 @@ type Subscription = {
   id: string
   status: 'active' | 'paused' | 'cancelled'
   interval_weeks: number
+  coverage_weeks: number | null
   next_delivery_date: string | null
   last_delivery_date: string | null
   total_deliveries: number
@@ -38,6 +39,8 @@ type Subscription = {
   created_at: string
   reminder_enabled: boolean
   reminder_days_before: number
+  dog_id: string | null
+  dogs: { id: string; name: string } | null
   subscription_items: SubscriptionItem[]
 }
 
@@ -85,7 +88,7 @@ function MySubscriptionsPageInner() {
 
     const { data } = await supabase
       .from('subscriptions')
-      .select('*, subscription_items(*)')
+      .select('*, subscription_items(*), dogs(id, name)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -312,10 +315,27 @@ function MySubscriptionsPageInner() {
                   <div
                     className={`px-5 py-2 flex items-center justify-between ${status.bg}`}
                   >
-                    <span
-                      className={`text-[11px] font-bold ${status.color}`}
-                    >
-                      {status.label}
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className={`text-[11px] font-bold ${status.color}`}
+                      >
+                        {status.label}
+                      </span>
+                      {sub.dogs && (
+                        <Link
+                          href={`/dogs/${sub.dogs.id}`}
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/60 text-text hover:bg-white transition"
+                        >
+                          🐶 {sub.dogs.name}
+                        </Link>
+                      )}
+                      {sub.coverage_weeks && (
+                        <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-full bg-white/60 text-text">
+                          {sub.coverage_weeks === 2
+                            ? '2주치 · 하이브리드'
+                            : '4주치 · 풀 화식'}
+                        </span>
+                      )}
                     </span>
                     {sub.next_delivery_date && (
                       <span className="text-[10px] text-muted">

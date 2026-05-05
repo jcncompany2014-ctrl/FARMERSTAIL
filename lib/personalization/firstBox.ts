@@ -346,6 +346,27 @@ function applyAgeStage(
 // 만성질환은 후속 chronic 룰 (kidney/cardiac 등) 이 처리. 즉 품종 룰은
 // "이 강아지는 이 질환에 취약" 이라는 신호만 주고 ratio 조정은 chronic 룰이.
 
+/**
+ * 단일 영문 단어 키워드 ("corgi", "pug", "boxer") 는 word boundary 매칭 —
+ * 'corgi-mix' 매칭 OK, 'puggle' 의 'pug' 같은 부분 매칭은 차단.
+ * 한글 / 다단어 / 후행 공백 ("lab ") 키워드는 기존 substring 그대로 — 한국어
+ * 형태소 분석 없이 안전한 default.
+ */
+function breedKeywordMatches(breed: string, kw: string): boolean {
+  const kwLower = kw.toLowerCase()
+  const isSingleAsciiWord = /^[a-z][a-z0-9]*$/.test(kwLower)
+  if (isSingleAsciiWord) {
+    // word boundary on both sides — non-alphanumeric or string edge
+    const escaped = kwLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(
+      `(?:^|[^a-z0-9])${escaped}(?:[^a-z0-9]|$)`,
+      'i',
+    )
+    return re.test(breed)
+  }
+  return breed.includes(kwLower)
+}
+
 function applyBreedPredispose(
   input: AlgorithmInput,
   reasoning: Reasoning[],
@@ -356,7 +377,7 @@ function applyBreedPredispose(
   if (!matrix || matrix.length === 0) return
   for (const entry of matrix) {
     const matched = entry.breedKeywords.some((kw) =>
-      breed.includes(kw.toLowerCase()),
+      breedKeywordMatches(breed, kw),
     )
     if (!matched) continue
     // 사용자 입력 chronicConditions 와 union — chip 만 발화, 실제 ratio 변경

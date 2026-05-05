@@ -279,6 +279,188 @@ export const DRUG_RULES: DrugRule[] = [
     condition: 'kidney',
     label: 'CKD 보조',
   },
+
+  // ── 한국 시장 처방식 (prescription diet) 키워드 ────────────────────────
+  // Hill's Prescription Diet / Royal Canin Veterinary Diet — 한국 동물병원
+  // 1순위 처방. 약물 다음으로 영양 진단의 가장 강력한 신호. 보호자가
+  // medications 칸에 처방식을 함께 적는 케이스 다수 (audit 보강).
+
+  // Hill's k/d (Renal) + Royal Canin Renal — 신장
+  {
+    keywords: [
+      "k/d",
+      'kd 처방식',
+      'k-d',
+      'kd canine',
+      "hill's k/d",
+      '힐스 k/d',
+      'royal canin renal',
+      '로얄캐닌 신장',
+      '로얄캐닌 renal',
+      '로얄캐닌 레날',
+      'renal canine',
+      '신장 처방식',
+      '신장처방식',
+    ],
+    condition: 'kidney',
+    label: 'CKD (처방식 신장)',
+  },
+  // Hill's u/d (Urinary stones) + Royal Canin Urinary — 요결석
+  // 현재 ChronicConditionKey 에 urinary_stone 미등재 — kidney 로 임시 매핑.
+  // (요결석은 신장이 아니지만 영양 처방 priority 상 낮은 인 + 미네랄 균형
+  // 측면에서 kidney 와 일부 겹침. 향후 별도 키 추가 시 분리.)
+  {
+    keywords: [
+      "u/d",
+      'ud 처방식',
+      "hill's u/d",
+      '힐스 u/d',
+      'royal canin urinary',
+      '로얄캐닌 urinary',
+      '로얄캐닌 요로',
+      '요결석 처방식',
+      's/o',
+      'royal canin so',
+    ],
+    condition: 'kidney',
+    label: '요결석/요로 (처방식)',
+  },
+  // Hill's i/d (GI) + Royal Canin Gastrointestinal — 만성 위장
+  {
+    keywords: [
+      'i/d',
+      'id 처방식',
+      "hill's i/d",
+      '힐스 i/d',
+      'gastrointestinal',
+      'royal canin gastrointestinal',
+      '로얄캐닌 gastrointestinal',
+      '로얄캐닌 소화기',
+      '소화기 처방식',
+    ],
+    condition: 'ibd',
+    label: 'GI 만성 (처방식 소화기)',
+  },
+  // Hill's z/d (Hypoallergenic) + Royal Canin Hypoallergenic / Hydrolyzed
+  // — 식이 알레르기 / 만성 피부
+  {
+    keywords: [
+      'z/d',
+      'zd 처방식',
+      "hill's z/d",
+      '힐스 z/d',
+      'hypoallergenic',
+      'royal canin hypoallergenic',
+      '로얄캐닌 hypoallergenic',
+      '로얄캐닌 하이포',
+      'hydrolyzed protein',
+      'hp 처방식',
+      'royal canin hp',
+    ],
+    condition: 'allergy_skin',
+    label: '식이 알레르기 (처방식 가수분해)',
+  },
+  // Hill's w/d (Weight) + Royal Canin Satiety / Obesity
+  // 현재 obesity 별도 키 없음 — arthritis 와 자주 동반 (관절 부담).
+  // 보호자에게 표시 chip 만 (chronic 진단 자동 추가 안 함이 안전).
+  // 임시: 'arthritis' 매핑 (체중↑ → 관절 부하). 향후 'obesity' 키 추가 시 분리.
+  {
+    keywords: [
+      'w/d',
+      'wd 처방식',
+      "hill's w/d",
+      '힐스 w/d',
+      'royal canin satiety',
+      '로얄캐닌 새티어티',
+      'royal canin obesity',
+      '로얄캐닌 오베시티',
+      '체중 처방식',
+      'metabolic',
+      'royal canin metabolic',
+    ],
+    condition: 'arthritis',
+    label: '비만 관리 (처방식 체중) — 관절 보호 동반',
+  },
+  // Hill's r/d (Weight reduction — 강한 감량) — w/d 보다 강한 감량용.
+  // 동일 매핑.
+  {
+    keywords: [
+      'r/d',
+      'rd 처방식',
+      "hill's r/d",
+      '힐스 r/d',
+    ],
+    condition: 'arthritis',
+    label: '비만 감량 (처방식 r/d)',
+  },
+  // Hill's j/d (Joint Mobility) + Royal Canin Mobility
+  {
+    keywords: [
+      'j/d',
+      'jd 처방식',
+      "hill's j/d",
+      '힐스 j/d',
+      'royal canin mobility',
+      '로얄캐닌 mobility',
+      '로얄캐닌 모빌리티',
+      '관절 처방식',
+    ],
+    condition: 'arthritis',
+    label: '관절 처방식',
+  },
+  // Hill's l/d (Liver) + Royal Canin Hepatic — 간
+  {
+    keywords: [
+      'l/d',
+      'ld 처방식',
+      "hill's l/d",
+      '힐스 l/d',
+      'royal canin hepatic',
+      '로얄캐닌 hepatic',
+      '로얄캐닌 헤파틱',
+      '간 처방식',
+    ],
+    condition: 'liver',
+    label: '간 처방식',
+  },
+  // Hill's h/d 또는 Royal Canin Cardiac
+  {
+    keywords: [
+      'h/d',
+      'hd 처방식',
+      "hill's h/d",
+      '힐스 h/d',
+      'royal canin cardiac',
+      '로얄캐닌 cardiac',
+      '로얄캐닌 카디악',
+      '심장 처방식',
+    ],
+    condition: 'cardiac',
+    label: '심장 처방식',
+  },
+  // Hill's b/d (Brain Aging) — 인지저하증 보조
+  {
+    keywords: [
+      'b/d',
+      'bd 처방식',
+      "hill's b/d",
+      '힐스 b/d',
+      '인지 처방식',
+    ],
+    condition: 'cognitive_decline',
+    label: '인지저하 처방식',
+  },
+  // Royal Canin Diabetic
+  {
+    keywords: [
+      'royal canin diabetic',
+      '로얄캐닌 diabetic',
+      '로얄캐닌 당뇨',
+      '당뇨 처방식',
+    ],
+    condition: 'diabetes',
+    label: '당뇨 처방식',
+  },
 ]
 
 export type DrugMatch = {
