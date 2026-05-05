@@ -63,7 +63,7 @@ type State =
   | { status: 'no_survey' }
   | { status: 'error'; message: string }
 
-type Scale = '1w' | '4w'
+type Scale = '1w' | '2w' | '4w'
 
 /** 메인 라인별 한 줄 효능 — UI 카드의 blurb. */
 const LINE_BLURBS: Record<FoodLine, string> = {
@@ -335,8 +335,9 @@ function RecommendationView({
   setScale: (s: Scale) => void
   onOpenAdjust: () => void
 }) {
-  // 1주 / 4주 분량 — quantize 잔차 흡수.
-  const days = scale === '1w' ? 7 : 28
+  // 1주 / 2주 / 4주 분량 — quantize 잔차 흡수.
+  // 2w/4w 가 정기배송 portion (하이브리드/풀 화식) 과 직결.
+  const days = scale === '1w' ? 7 : scale === '2w' ? 14 : 28
   const totalKcal = useMemo(() => formula.dailyKcal, [formula.dailyKcal])
   const totalGrams = useMemo(
     () => Math.round(formula.dailyGrams * days),
@@ -394,6 +395,13 @@ function RecommendationView({
             onClick={() => setScale('1w')}
           >
             1주분
+          </button>
+          <button
+            role="tab"
+            aria-selected={scale === '2w'}
+            onClick={() => setScale('2w')}
+          >
+            2주분
           </button>
           <button
             role="tab"
@@ -583,7 +591,9 @@ function RecommendationView({
             </div>
           </div>
           <div>
-            <div className="l">{scale === '1w' ? '1주' : '4주'} 분량</div>
+            <div className="l">
+              {scale === '1w' ? '1주' : scale === '2w' ? '2주' : '4주'} 분량
+            </div>
             <div className="v">
               {totalGrams.toLocaleString()}
               <small> g</small>
