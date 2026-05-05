@@ -1300,20 +1300,19 @@ function applyPregnancyNote(
       ruleId: 'pregnancy-pregnant',
     })
   } else if (input.pregnancy === 'lactating') {
+    // nutrition.ts 와 동일 수식: ME = RER × (1.5 + 0.7 × min(pups, 8)), cap 5.0
+    // NRC 2006 §15.7 — 수유 절정기 (peak week 3-4 lactation).
     const n = input.litterSize
     let mul: string
     let action: string
-    if (n !== null && n >= 1 && n <= 4) {
-      const m = (2.0 + 0.25 * n).toFixed(2)
-      mul = `${m}×`
-      action = `수유 중 (산자 ${n}마리) — RER × ${m} (NRC 2006 Table 15-3).`
-    } else if (n !== null && n >= 5) {
-      mul = '3.0-4.0×'
-      action = `수유 중 (산자 ${n}마리) — RER × 3.0~4.0 (대형 산자, 영양 요구 ↑↑).`
+    if (n !== null && n >= 1) {
+      const factor = Math.min(5.0, 1.5 + 0.7 * Math.min(n, 8))
+      mul = `${factor.toFixed(1)}×`
+      action = `수유 중 (산자 ${n}마리) — RER × ${factor.toFixed(1)} (NRC 2006 §15.7 — 1.5 + 0.7 × pups, max 5.0).`
     } else {
-      mul = '~2.0× (산자 수 미입력)'
+      mul = '~2.5× (산자 수 미입력)'
       action =
-        '수유 중 — 보수적 RER × 2.0 (정확한 multiplier 는 산자 수 입력 시 자동). 산자 4마리+ 는 3.0× 이상 필요 가능.'
+        '수유 중 — 보수적 RER × 2.5 (~3마리 평균). 정확한 multiplier 는 산자 수 입력 시 자동. 4마리: 4.3×, 8마리+: 5.0×.'
     }
     reasoning.push({
       trigger: '수유 중',

@@ -671,7 +671,7 @@ describe('decideFirstBox v1.3 — 임신 multiplier 정밀화 (NRC 2006 ch.15)',
     assert.match(r!.action, /임신 초기/)
   })
 
-  it('lactating litterSize=3 → 2.75× chip', () => {
+  it('lactating litterSize=3 → 3.6× chip (NRC 1.5 + 0.7×3)', () => {
     const f = decideFirstBox({
       ...baseInput(),
       pregnancy: 'lactating',
@@ -679,10 +679,10 @@ describe('decideFirstBox v1.3 — 임신 multiplier 정밀화 (NRC 2006 ch.15)',
     })
     const r = f.reasoning.find((x) => x.ruleId === 'pregnancy-lactating')
     assert.ok(r)
-    assert.match(r!.chipLabel, /2\.75/)
+    assert.match(r!.chipLabel, /3\.6/)
   })
 
-  it('lactating litterSize=6 → 3.0-4.0× chip', () => {
+  it('lactating litterSize=6 → 5.0× chip (cap)', () => {
     const f = decideFirstBox({
       ...baseInput(),
       pregnancy: 'lactating',
@@ -690,7 +690,8 @@ describe('decideFirstBox v1.3 — 임신 multiplier 정밀화 (NRC 2006 ch.15)',
     })
     const r = f.reasoning.find((x) => x.ruleId === 'pregnancy-lactating')
     assert.ok(r)
-    assert.match(r!.chipLabel, /3\.0-4\.0/)
+    // 1.5 + 0.7 × 6 = 5.7 → cap 5.0
+    assert.match(r!.chipLabel, /5\.0/)
   })
 })
 
