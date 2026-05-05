@@ -206,6 +206,12 @@ export default function OrderPage() {
 
   // 정기배송 입력 — 한달 1회 청구 고정, portion (2주치 / 4주치) 만 선택
   const [coverageWeeks, setCoverageWeeks] = useState<PortionWeeks>(4)
+  /** 회원가입 정보가 자동 기입됐는지 — 사용자에게 hint 노출. */
+  const [profilePrefilled, setProfilePrefilled] = useState(false)
+  /** 사용자가 주소를 수정했는지 — true 면 신청 시 profile 도 업데이트 옵션. */
+  const [addressEdited, setAddressEdited] = useState(false)
+  /** 변경 주소를 다음 정기배송에도 사용 (profiles upsert) 옵트인 토글. */
+  const [saveAddressToProfile, setSaveAddressToProfile] = useState(true)
   const [recipientName, setRecipientName] = useState('')
   const [recipientPhone, setRecipientPhone] = useState('')
   const [recipientZip, setRecipientZip] = useState('')
@@ -288,6 +294,11 @@ export default function OrderPage() {
         setRecipientZip(p.zip ?? '')
         setRecipientAddress(p.address ?? '')
         setRecipientAddressDetail(p.address_detail ?? '')
+        // 어떤 필드라도 채워졌으면 hint 노출 — 사용자가 다시 입력 안 해도
+        // 됨을 명시.
+        if (p.name || p.phone || p.address) {
+          setProfilePrefilled(true)
+        }
       }
 
       if (!formulaRow) {
@@ -429,6 +440,7 @@ export default function OrderPage() {
         if (data.buildingName) {
           setDetailRef.current(data.buildingName)
         }
+        setAddressEdited(true)
       },
     }).open()
   }, [])
@@ -515,6 +527,20 @@ export default function OrderPage() {
       if (itemErr) {
         setErr('상품 항목 추가에 실패했습니다.')
         return
+      }
+      // 사용자가 옵트인했으면 profiles 도 업데이트 — 다음 정기배송 / 단건
+      // 주문에 자동 prefill. fire-and-forget (실패해도 구독은 계속).
+      if (addressEdited && saveAddressToProfile) {
+        void supabase
+          .from('profiles')
+          .update({
+            name: recipientName,
+            phone: recipientPhone,
+            zip: recipientZip,
+            address: recipientAddress,
+            address_detail: recipientAddressDetail,
+          })
+          .eq('id', user.id)
       }
       haptic('confirm')
       // GA4 — box 정기배송 신청
@@ -753,6 +779,12 @@ export default function OrderPage() {
               <Truck size={13} strokeWidth={2.2} color="var(--moss)" />
               수령인 정보
             </h2>
+            {profilePrefilled && !addressEdited && (
+              <div className="ord-prefill-hint">
+                <Check size={11} strokeWidth={2.4} color="var(--moss)" />
+                <span>회원가입 정보로 자동 기입됐어요. 다르면 아래에서 수정.</span>
+              </div>
+            )}
             <div className="ord-form">
               <div className="ord-form-row">
                 <input
@@ -760,7 +792,10 @@ export default function OrderPage() {
                   className="ord-input"
                   placeholder="이름"
                   value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
+                  onChange={(e) => {
+                    setRecipientName(e.target.value)
+                    setAddressEdited(true)
+                  }}
                   autoComplete="name"
                 />
                 <input
@@ -768,7 +803,10 @@ export default function OrderPage() {
                   className="ord-input"
                   placeholder="연락처"
                   value={recipientPhone}
-                  onChange={(e) => setRecipientPhone(formatPhone(e.target.value))}
+                  onChange={(e) => {
+                    setRecipientPhone(formatPhone(e.target.value))
+                    setAddressEdited(true)
+                  }}
                   inputMode="numeric"
                   autoComplete="tel"
                 />
@@ -804,7 +842,10 @@ export default function OrderPage() {
                 className="ord-input"
                 placeholder="상세 주소 (동·호수)"
                 value={recipientAddressDetail}
-                onChange={(e) => setRecipientAddressDetail(e.target.value)}
+                onChange={(e) => {
+                  setRecipientAddressDetail(e.target.value)
+                  setAddressEdited(true)
+                }}
               />
               <textarea
                 className="ord-textarea"
@@ -813,6 +854,16 @@ export default function OrderPage() {
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
               />
+              {addressEdited && (
+                <label className="ord-save-toggle">
+                  <input
+                    type="checkbox"
+                    checked={saveAddressToProfile}
+                    onChange={(e) => setSaveAddressToProfile(e.target.checked)}
+                  />
+                  <span>다음 주문에도 이 주소를 기본으로 사용</span>
+                </label>
+              )}
             </div>
           </section>
 

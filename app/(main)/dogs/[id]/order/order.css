@@ -371,6 +371,50 @@
 }
 .ord-addr-btn:hover { opacity: 0.85; }
 
+/* 회원가입 정보 자동 기입 hint */
+.ord-prefill-hint {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: color-mix(in srgb, var(--moss) 8%, white);
+  border-radius: 99px;
+  padding: 4px 10px;
+  font-size: 10.5px;
+  color: var(--moss);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+/* 주소 저장 옵트인 토글 */
+.ord-save-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px;
+  color: var(--text);
+  margin-top: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.ord-save-toggle input[type=checkbox] {
+  appearance: none;
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 120ms;
+}
+.ord-save-toggle input[type=checkbox]:checked {
+  background: var(--moss);
+  border-color: var(--moss);
+}
+.ord-save-toggle input[type=checkbox]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 9px;
+  color: #fff;
+  font-weight: 800;
+}
+
 /* Summary */
 .ord-summary {
   background: var(--bg-2);
