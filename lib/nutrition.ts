@@ -5,7 +5,7 @@ import {
   type BcsKey,
   type ChronicConditionKey,
   type McsKey,
-} from './nutrition/guidelines'
+} from './nutrition/guidelines.ts'
 
 export type SurveyAnswers = {
   bodyCondition: 'skinny' | 'slim' | 'ideal' | 'chubby' | 'obese'
@@ -160,7 +160,10 @@ function bcsScoreExact(score: BcsKey): BCSResult {
 }
 
 export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): NutritionResult {
-  const w = dog.weight
+  // weight 가드 — 0/음수/비정상 입력 시 NaN/Infinity 폭주 차단.
+  // 강아지 0.5kg ~ 100kg 합리적 범위로 clamp. 0 이면 RER=0 → MER=0 → 분석
+  // 의미 없음. 0.5kg 최소로 가정 (소형견 신생아 ~250g, 분양 가능 최소).
+  const w = Math.max(0.5, Math.min(100, dog.weight || 0.5))
   const RER = 70 * Math.pow(w, 0.75)
   const stage = lifeStage(dog)
 
