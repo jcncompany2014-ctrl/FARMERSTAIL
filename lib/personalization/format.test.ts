@@ -130,8 +130,8 @@ describe('totalGrams', () => {
   it('1주 = daily × 7', () => {
     assert.equal(totalGrams(baseFormula(), '1w'), 1400)
   })
-  it('4주 = daily × 28', () => {
-    assert.equal(totalGrams(baseFormula(), '4w'), 5600)
+  it('4주 = daily × 30 (캘린더 월)', () => {
+    assert.equal(totalGrams(baseFormula(), '4w'), 6000)
   })
   it('default = 1주', () => {
     assert.equal(totalGrams(baseFormula()), 1400)

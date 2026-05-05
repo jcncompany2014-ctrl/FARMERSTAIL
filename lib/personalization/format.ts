@@ -77,10 +77,12 @@ export function transitionLabel(formula: Formula): string {
 }
 
 /**
- * 1주분 / 4주분 그램 합계. dailyGrams * 7 / 28.
+ * 1주분 / 4주분 그램 합계. dailyGrams * 7 / 30 (캘린더 월).
+ * 박스 정기배송 portion (4주치 = 30일) 와 정합. 이전 28일은 portion 모델
+ * 도입 전 기준 — audit 통일.
  */
 export function totalGrams(formula: Formula, scale: '1w' | '4w' = '1w'): number {
-  const days = scale === '1w' ? 7 : 28
+  const days = scale === '1w' ? 7 : 30
   return formula.dailyGrams * days
 }
 
