@@ -622,6 +622,8 @@ export default function SurveyPage() {
       chronicConditions,
       currentMedications: meds,
       pregnancyStatus: pregnancy || undefined,
+      pregnancyWeek: pregnancyWeek ?? null,
+      litterSize: litterSize ?? null,
       coatCondition: coat || undefined,
       appetite: taste || undefined,
       dailyWalkMinutes: walkMinutes ? Number(walkMinutes) : undefined,
@@ -1613,36 +1615,45 @@ export default function SurveyPage() {
               임신·수유나 모질 상태가 있다면 칼로리·미량영양소 권장량이 달라져요.
             </p>
 
-            <div className="s-sect">
-              <div className="s-sect-lbl"><span className="s-label-text">임신 / 수유 상태</span></div>
-              <div className="s-chiprow">
-                {[
-                  { v: 'none', label: '해당 없음', Icon: Check },
-                  { v: 'pregnant', label: '임신 중', Icon: Baby },
-                  { v: 'lactating', label: '수유 중', Icon: Heart },
-                ].map(({ v, label, Icon }) => {
-                  const active = pregnancy === v
-                  return (
-                    <button
-                      key={v}
-                      type="button"
-                      className={'s-chip' + (active ? ' s-on' : '')}
-                      aria-pressed={active}
-                      onClick={() => {
-                        // pregnancy 변경 시 week/litter conditional state stale 방지
-                        const next = v as typeof pregnancy
-                        setPregnancy(next)
-                        if (next !== 'pregnant') setPregnancyWeek(null)
-                        if (next !== 'lactating') setLitterSize(null)
-                      }}
-                    >
-                      <Icon size={13} strokeWidth={2} />
-                      {label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+            {/* 임신/수유는 암컷 + 비중성화 만 표시 (수컷/중성화견에 잘못 켜져
+               MER × 2.5 폭주 차단). dog.gender 미상 (legacy) 또는 female + non-
+               neutered 인 경우만 노출. */}
+            {dog &&
+              (dog.gender === 'female' || dog.gender == null) &&
+              !dog.neutered && (
+                <div className="s-sect">
+                  <div className="s-sect-lbl">
+                    <span className="s-label-text">임신 / 수유 상태</span>
+                  </div>
+                  <div className="s-chiprow">
+                    {[
+                      { v: 'none', label: '해당 없음', Icon: Check },
+                      { v: 'pregnant', label: '임신 중', Icon: Baby },
+                      { v: 'lactating', label: '수유 중', Icon: Heart },
+                    ].map(({ v, label, Icon }) => {
+                      const active = pregnancy === v
+                      return (
+                        <button
+                          key={v}
+                          type="button"
+                          className={'s-chip' + (active ? ' s-on' : '')}
+                          aria-pressed={active}
+                          onClick={() => {
+                            // pregnancy 변경 시 week/litter conditional state stale 방지
+                            const next = v as typeof pregnancy
+                            setPregnancy(next)
+                            if (next !== 'pregnant') setPregnancyWeek(null)
+                            if (next !== 'lactating') setLitterSize(null)
+                          }}
+                        >
+                          <Icon size={13} strokeWidth={2} />
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
             {/* puppy + pregnancy 모순 경고 — 12개월 미만 puppy 의 임신은 매우 드묾 */}
             {pregnancy !== '' &&

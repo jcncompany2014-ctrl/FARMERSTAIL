@@ -27,6 +27,10 @@ export type SurveyAnswers = {
   currentMedications?: string[]
   /** 임신/수유 상태 */
   pregnancyStatus?: 'none' | 'pregnant' | 'lactating'
+  /** 임신 주차 1-9 (NRC 2006 §15: 6주차 이후 RER 급증). */
+  pregnancyWeek?: number | null
+  /** 수유 새끼 수 (NRC 2006: 1마리 RER × 2, 4마리 ×4, 8+마리 ×5+). */
+  litterSize?: number | null
   /** 모질·피부 상태 */
   coatCondition?: 'healthy' | 'dull' | 'shedding' | 'itchy' | 'lesions'
   /** 식욕 */
@@ -209,20 +213,36 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
 
   if (dog.neutered) factor *= 0.9
 
-  // 임신/수유 보정 (NRC 2006 §13). female + non-neutered 만 적용 — 수컷
-  // 또는 중성화견에 임신/수유 토글이 잘못 켜져도 factor 폭주 차단 (audit fix).
-  // dog.gender 미상 (legacy 입력) 이면 안전하게 적용 — 기존 호환.
+  // 임신/수유 보정 (NRC 2006 §15). female + non-neutered 만 적용 — 수컷/
+  // 중성화견에 임신/수유 잘못 켜져도 factor 폭주 차단.
   const canBePregnantOrLactating =
     !dog.neutered && (dog.gender === 'female' || dog.gender == null)
   if (canBePregnantOrLactating && answers.pregnancyStatus === 'pregnant') {
-    factor *= 1.3   // 임신 후반기 ~30% 증가
+    // NRC 2006 §15.6: 임신 1-5주차 RER × 1.0-1.3, 6-9주차 RER × 1.6-2.0.
+    // pregnancyWeek 입력 시 정확 분기. 미입력 시 보수적 1.3 (전기간 평균).
+    const wk = answers.pregnancyWeek
+    let pregFactor = 1.3
+    if (typeof wk === 'number' && wk >= 1 && wk <= 9) {
+      if (wk >= 6) pregFactor = 1.8 // 후기 (gestation last 1/3)
+      else if (wk >= 4) pregFactor = 1.5
+      else pregFactor = 1.3 // 초기
+    }
+    factor *= pregFactor
     riskFlags.push('PREGNANT')
     vetConsult = true
   } else if (
     canBePregnantOrLactating &&
     answers.pregnancyStatus === 'lactating'
   ) {
-    factor *= 2.5   // 수유 절정기 — 새끼 수에 따라 RER × 2 ~ 4
+    // NRC 2006 §15.7: 수유 RER × (1.5 + 0.7 × pups), 절정기 (4주차) 까지.
+    // pups 1: 2.2, 2: 2.9, 3: 3.6, 4: 4.0 (cap), 8+: 5.0 (cap)
+    // litterSize 미입력 시 보수적 2.5 (≈3 pups, 가장 흔한 평균).
+    const pups = answers.litterSize
+    let lactFactor = 2.5
+    if (typeof pups === 'number' && pups >= 1) {
+      lactFactor = Math.min(5.0, 1.5 + 0.7 * Math.min(pups, 8))
+    }
+    factor *= lactFactor
     riskFlags.push('LACTATING')
     vetConsult = true
   }
