@@ -299,6 +299,13 @@
   font-size: 10.5px;
   color: var(--muted);
 }
+.ord-item-rate {
+  font-style: normal;
+  font-size: 9.5px;
+  color: var(--muted);
+  opacity: 0.75;
+  margin-left: 1px;
+}
 .ord-item-total {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
   font-size: 12.5px;

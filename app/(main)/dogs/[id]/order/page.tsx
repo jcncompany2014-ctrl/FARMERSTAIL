@@ -77,13 +77,13 @@ const PORTION_OPTIONS = [
     value: 2 as const,
     label: '2주치',
     sub: '하이브리드',
-    desc: '화식 50% + 건식 50% 권장 — 가성비',
+    desc: '15일 1팩씩 · 나머지는 건식 반반',
   },
   {
     value: 4 as const,
     label: '4주치',
     sub: '풀 화식',
-    desc: '한 달 풀 커버 — 인기',
+    desc: '30일 1팩씩 · 한달 풀 (인기)',
   },
 ]
 type PortionWeeks = (typeof PORTION_OPTIONS)[number]['value']
@@ -141,34 +141,43 @@ function loadDaumPostcode(): Promise<void> {
 }
 
 /**
- * 한 회 배송 분량 (g) 을 팩 단위로 환산.
- *
- * 사료관리법 ±5% 허용:
- *  - floor 가 95% 이상 deliver → floor 채택 (소량 deficit 허용)
- *  - 외에는 ceil (안전 마진 — 강아지 부족 < 약간 잉여)
- *
- * 라인이 추천되었으면 최소 1팩.
+ * 메인 라인 — 1팩 = 1일 한끼 분량.
+ * 일일 g 을 10g 단위로 ceil 반올림 (사료관리법 표시기준 ±5% 허용 내).
+ * 예: 일일 164g → 한끼 170g (ceil), 158g → 160g.
  */
-function packsForCycle(
+function mealPortionG(dailyG: number): number {
+  if (dailyG <= 0) return 0
+  return Math.ceil(dailyG / 10) * 10
+}
+
+/**
+ * 토퍼 — 100g 동결건조 고정 팩. 사이클 총 필요량을 100g 팩 단위로
+ * 사료관리법 ±5% 허용 내 floor/ceil 결정.
+ */
+function topperPacksForCycle(
   cycleG: number,
-  packG: number,
-): { packs: number; deliveredG: number; deliverRatio: number } {
-  if (packG <= 0 || cycleG <= 0) {
-    return { packs: 1, deliveredG: packG, deliverRatio: 0 }
-  }
+): { packs: number; deliveredG: number } {
+  if (cycleG <= 0) return { packs: 1, deliveredG: 100 }
+  const packG = 100
   const exact = cycleG / packG
   const floor = Math.max(1, Math.floor(exact))
   const ceil = Math.max(1, Math.ceil(exact))
   if (floor === ceil) {
-    const g = floor * packG
-    return { packs: floor, deliveredG: g, deliverRatio: g / cycleG }
+    return { packs: floor, deliveredG: floor * packG }
   }
-  const floorG = floor * packG
-  if (floorG >= cycleG * TOLERANCE) {
-    return { packs: floor, deliveredG: floorG, deliverRatio: floorG / cycleG }
+  if (floor * packG >= cycleG * TOLERANCE) {
+    return { packs: floor, deliveredG: floor * packG }
   }
-  const ceilG = ceil * packG
-  return { packs: ceil, deliveredG: ceilG, deliverRatio: ceilG / cycleG }
+  return { packs: ceil, deliveredG: ceil * packG }
+}
+
+/**
+ * 100g 단위 단가 기반 1팩 가격 산정.
+ *  - product.price 는 100g 기준 단가 (예: 소 7,000원/100g)
+ *  - 100원 단위 반올림.
+ */
+function pricePerPack(unitPricePer100g: number, packG: number): number {
+  return Math.round((packG / 100) * unitPricePer100g / 100) * 100
 }
 
 /** g → 보기 좋은 한국어 (예: "1.4 kg" / "850 g"). */
@@ -183,11 +192,20 @@ type LineItem = {
   topper?: 'vegetable' | 'protein'
   pct: number
   product: Product
+  /** 발송할 팩 개수. 메인 = cycleDays, 토퍼 = ±5% tolerance. */
   quantity: number
+  /** 한 팩 g — 메인은 일끼 분량, 토퍼는 100g 고정. */
+  packG: number
+  /** 일일 분량 g (계산값). */
   dailyG: number
+  /** 한끼 분량 g (메인 = packG, 토퍼 = packG). UI 표시용. */
+  mealG: number
+  /** 사이클 총 필요 g. */
   cycleG: number
+  /** 사이클 실제 발송 g. */
   deliveredG: number
-  deliverRatio: number
+  /** 1팩 단가. */
+  pricePerPack: number
 }
 
 export default function OrderPage() {
@@ -353,9 +371,16 @@ export default function OrderPage() {
   }, [dogId, router, supabase])
 
   // ── 라인 + 토퍼 → 항목 빌드 (coverageWeeks 변경 시 자동 재계산) ────────
-  // 한 회 배송 분량 = 일일 g × coverageWeeks × 7
-  // (interval_weeks=4 고정, coverageWeeks=2 면 화식반 + 건식사료반 권장)
-  const cycleDays = coverageWeeks * 7
+  //
+  // 박스 정기배송 모델
+  //   · 메인 5종 — 1팩 = 1일 한끼 분량 (10g 단위 ceil 반올림)
+  //               4주치 = 30팩, 2주치 = 15팩 (1일 1팩)
+  //   · 토퍼 — 100g 동결건조 고정 팩, 사이클 총 필요량 ±5% tolerance
+  //
+  // 가격 — product.price 는 100g 단위 단가 (예: 소 7,000원/100g)
+  //   · 메인 1팩 = mealG / 100 × unitPrice (100원 단위 반올림)
+  //   · 토퍼 1팩 = product.price (100g 표준)
+  const cycleDays = coverageWeeks === 4 ? 30 : 15
   const items: LineItem[] = []
 
   if (formula) {
@@ -371,19 +396,23 @@ export default function OrderPage() {
       const meta = FOOD_LINE_META[line]
       const kcalPer100g = meta.kcalPer100g
       const dailyG = ((ratio * dailyKcal) / kcalPer100g) * 100
+      const mealG = mealPortionG(dailyG)
       const cycleG = dailyG * cycleDays
-      const packG = product.net_weight_g ?? 500
-      const { packs, deliveredG, deliverRatio } = packsForCycle(cycleG, packG)
+      const deliveredG = mealG * cycleDays
+      const unitPrice = product.sale_price ?? product.price
+      const perPack = pricePerPack(unitPrice, mealG)
       items.push({
         slug,
         line,
         pct: Math.round(ratio * 100),
         product,
-        quantity: packs,
+        quantity: cycleDays, // 1일 1팩 → cycleDays 팩
+        packG: mealG,
+        mealG,
         dailyG,
         cycleG,
         deliveredG,
-        deliverRatio,
+        pricePerPack: perPack,
       })
     }
     for (const k of ['vegetable', 'protein'] as const) {
@@ -394,24 +423,27 @@ export default function OrderPage() {
       if (!product) continue
       const dailyG = ((ratio * dailyKcal) / TOPPER_KCAL_PER_100G) * 100
       const cycleG = dailyG * cycleDays
-      const packG = product.net_weight_g ?? 100
-      const { packs, deliveredG, deliverRatio } = packsForCycle(cycleG, packG)
+      const { packs, deliveredG } = topperPacksForCycle(cycleG)
+      const unitPrice = product.sale_price ?? product.price
+      // 토퍼는 100g 표준 팩 → 단가 그대로
       items.push({
         slug,
         topper: k,
         pct: Math.round(ratio * 100),
         product,
         quantity: packs,
+        packG: 100,
+        mealG: dailyG, // 토퍼는 일일 sprinkle 분량
         dailyG,
         cycleG,
         deliveredG,
-        deliverRatio,
+        pricePerPack: unitPrice,
       })
     }
   }
 
   const subtotal = items.reduce(
-    (sum, it) => sum + (it.product.sale_price ?? it.product.price) * it.quantity,
+    (sum, it) => sum + it.pricePerPack * it.quantity,
     0,
   )
   const shippingFee = subtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_FEE
@@ -470,8 +502,7 @@ export default function OrderPage() {
         return
       }
       const subSubtotal = subscribable.reduce(
-        (s, it) =>
-          s + (it.product.sale_price ?? it.product.price) * it.quantity,
+        (s, it) => s + it.pricePerPack * it.quantity,
         0,
       )
       const subShipping =
@@ -513,14 +544,17 @@ export default function OrderPage() {
         setErr('구독 생성에 실패했습니다. 다시 시도해 주세요.')
         return
       }
-      const itemRows = subscribable.map((it) => ({
-        subscription_id: (sub as { id: string }).id,
-        product_id: it.product.id,
-        quantity: it.quantity,
-        unit_price: it.product.sale_price ?? it.product.price,
-        product_name: it.product.name,
-        product_image_url: it.product.image_url,
-      }))
+      const itemRows = subscribable.map((it) => {
+        const portionTag = it.line ? `${it.mealG}g 한끼` : `${it.packG}g 팩`
+        return {
+          subscription_id: (sub as { id: string }).id,
+          product_id: it.product.id,
+          quantity: it.quantity,
+          unit_price: it.pricePerPack,
+          product_name: `${it.product.name} (${portionTag})`,
+          product_image_url: it.product.image_url,
+        }
+      })
       const { error: itemErr } = await supabase
         .from('subscription_items')
         .insert(itemRows)
@@ -703,11 +737,12 @@ export default function OrderPage() {
                   ? '야채 토퍼 · 동결건조'
                   : '육류 토퍼 · 동결건조'
               const color = meta ? meta.color : 'var(--moss)'
-              const price = it.product.sale_price ?? it.product.price
+              const unitPrice = it.product.sale_price ?? it.product.price
               const strength = strengthLabel(it.pct)
               const isOOS = (it.product.stock ?? 0) <= 0
               const notSub = it.product.is_subscribable === false
-              const lineTotal = price * it.quantity
+              const lineTotal = it.pricePerPack * it.quantity
+              const isMain = !!it.line
               return (
                 <li
                   key={it.slug}
@@ -734,24 +769,44 @@ export default function OrderPage() {
                       <span>
                         일일 {formatGrams(it.dailyG)}
                       </span>
+                      {isMain && (
+                        <>
+                          <span className="ord-divider" />
+                          <span>
+                            한끼 <strong>{it.mealG}g</strong>
+                          </span>
+                        </>
+                      )}
                     </div>
                     <div className="ord-item-portion">
                       <PackageOpen size={11} strokeWidth={2.2} color={color} />
-                      <span>
-                        {coverageWeeks}주치 분량{' '}
-                        <strong>{formatGrams(it.deliveredG)}</strong>
-                        {' · '}
-                        {it.quantity}팩
-                        {' ('}
-                        {it.product.net_weight_g
-                          ? `${it.product.net_weight_g}g/팩`
-                          : '팩 정량 미지정'}
-                        {')'}
-                      </span>
+                      {isMain ? (
+                        <span>
+                          {coverageWeeks === 4 ? '한달 (30일)' : '반달 (15일)'} ·{' '}
+                          <strong>
+                            {it.quantity}팩 ({it.mealG}g/끼)
+                          </strong>
+                          {' · 총 '}
+                          {formatGrams(it.deliveredG)}
+                        </span>
+                      ) : (
+                        <span>
+                          {coverageWeeks === 4 ? '한달치' : '반달치'} 토퍼{' '}
+                          <strong>{formatGrams(it.deliveredG)}</strong>
+                          {' · '}
+                          {it.quantity}팩 (100g/팩)
+                        </span>
+                      )}
                     </div>
                     <div className="ord-item-foot">
                       <span className="ord-item-sub">
-                        {price.toLocaleString()}원 × {it.quantity}
+                        {it.pricePerPack.toLocaleString()}원 × {it.quantity}팩
+                        {isMain && (
+                          <em className="ord-item-rate">
+                            {' '}
+                            ({unitPrice.toLocaleString()}원/100g)
+                          </em>
+                        )}
                       </span>
                       <span className="ord-item-total">
                         {lineTotal.toLocaleString()}원
@@ -870,7 +925,9 @@ export default function OrderPage() {
           {/* 결제 요약 */}
           <section className="ord-summary">
             <div className="ord-summary-row">
-              <span>월 배송 분량 ({coverageWeeks}주치)</span>
+              <span>
+                월 배송 ({coverageWeeks === 4 ? '한달 30일' : '반달 15일'})
+              </span>
               <strong className="ord-summary-strong-sm">
                 {formatGrams(totalCycleG)}
                 {' · '}
