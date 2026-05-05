@@ -1,12 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ChevronLeft,
   Loader2,
-  ShoppingCart,
   Check,
   AlertCircle,
   ArrowRight,
@@ -14,25 +13,38 @@ import {
   ShieldCheck,
   Bell,
   PackageOpen,
+  Repeat,
+  Truck,
+  Search,
+  CalendarDays,
+  CreditCard,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { haptic } from '@/lib/haptic'
-import { trackAddToCart } from '@/lib/analytics'
+import { formatPhone } from '@/lib/formatters'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import './order.css'
 
 /**
- * /dogs/[id]/order — 맞춤 박스 한 번에 cart 담기 페이지.
+ * /dogs/[id]/order — 맞춤 박스 정기배송 신청 페이지.
  *
  * # 흐름
- *  1. 강아지 + 최신 dog_formulas (cycle desc 1) fetch
- *  2. 5 라인 + 2 토퍼 → SKU 매핑 (slug 기준)
- *  3. 카드 그리드 + 가격 합계
- *  4. "다 담기" → upsert_cart_item RPC × 모든 SKU → /cart 이동
+ *  1. 강아지 + 최신 dog_formulas (cycle desc 1) + profile fetch
+ *  2. 5 라인 + 2 토퍼 → SKU 매핑 (slug 기준), net_weight_g 로 팩 수 산정
+ *  3. interval (매주/2주/4주) 선택 → 한 배송 분량 g 계산 + 사료관리법 ±5%
+ *     허용 오차 내 반올림 (95% 이상 deliver 시 floor, 미달 시 ceil)
+ *  4. 주소·수령인 (profile pre-fill, 없으면 daum postcode)
+ *  5. CTA "정기배송 신청" → subscriptions + subscription_items insert →
+ *     /subscribe/billing-auth (Toss 카드 등록) 으로 redirect
  *
- * # SKU 매핑 (현재 등록된 4 라인 + 2 토퍼; joint 미등록)
+ * # 법적 근거
+ *  - 사료관리법 시행규칙 별표 4 (사료 표시기준) — 표시 정량 ±5% 허용 오차
+ *  - 식품등의 표시·광고에 관한 법률 (사료가 식품 분류는 아니지만 동일 정량 관행)
+ *  - cycle 분량은 ratio × 일일 kcal / kcalPer100g × interval 일수
+ *
+ * # SKU 매핑 (현재 등록된 4 라인 + 2 토퍼; joint 미등록 시 graceful skip)
  */
 const LINE_TO_SLUG: Record<FoodLine, string | null> = {
   basic: 'chicken-basic',
@@ -47,6 +59,22 @@ const TOPPER_TO_SLUG: Record<'vegetable' | 'protein', string> = {
   protein: 'ocean-omega-mix',
 }
 
+/** 동결건조 토퍼 평균 kcal/100g (USDA freeze-dried meat/veggie ~370-400). */
+const TOPPER_KCAL_PER_100G = 380
+
+/** 사료관리법 표시기준 ±5% 허용 — floor 가 95% 이상 deliver 하면 floor 채택. */
+const TOLERANCE = 0.95
+
+/** 정기배송 주기 옵션. */
+const INTERVALS = [
+  { value: 1, label: '매주', desc: '1주마다 신선 배송' },
+  { value: 2, label: '2주마다', desc: '인기 · 신선도 + 비용 균형' },
+  { value: 4, label: '4주마다', desc: '월 1회 · 냉동보관 가능' },
+]
+
+const SHIPPING_FREE_THRESHOLD = 30000
+const SHIPPING_FEE = 3000
+
 type Product = {
   id: string
   name: string
@@ -55,6 +83,95 @@ type Product = {
   sale_price: number | null
   image_url: string | null
   stock: number
+  net_weight_g: number | null
+  is_subscribable: boolean | null
+}
+
+type DaumPostcodeData = {
+  userSelectedType: 'R' | 'J'
+  roadAddress: string
+  jibunAddress: string
+  zonecode: string
+  buildingName: string
+}
+
+let daumScriptLoaded = false
+let daumScriptLoading = false
+const daumCallbacks: (() => void)[] = []
+
+function loadDaumPostcode(): Promise<void> {
+  return new Promise((resolve) => {
+    if (daumScriptLoaded) {
+      resolve()
+      return
+    }
+    if (daumScriptLoading) {
+      daumCallbacks.push(resolve)
+      return
+    }
+    daumScriptLoading = true
+    const s = document.createElement('script')
+    s.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
+    s.async = true
+    s.onload = () => {
+      daumScriptLoaded = true
+      daumScriptLoading = false
+      resolve()
+      daumCallbacks.forEach((cb) => cb())
+      daumCallbacks.length = 0
+    }
+    document.head.appendChild(s)
+  })
+}
+
+/**
+ * 한 회 배송 분량 (g) 을 팩 단위로 환산.
+ *
+ * 사료관리법 ±5% 허용:
+ *  - floor 가 95% 이상 deliver → floor 채택 (소량 deficit 허용)
+ *  - 외에는 ceil (안전 마진 — 강아지 부족 < 약간 잉여)
+ *
+ * 라인이 추천되었으면 최소 1팩.
+ */
+function packsForCycle(
+  cycleG: number,
+  packG: number,
+): { packs: number; deliveredG: number; deliverRatio: number } {
+  if (packG <= 0 || cycleG <= 0) {
+    return { packs: 1, deliveredG: packG, deliverRatio: 0 }
+  }
+  const exact = cycleG / packG
+  const floor = Math.max(1, Math.floor(exact))
+  const ceil = Math.max(1, Math.ceil(exact))
+  if (floor === ceil) {
+    const g = floor * packG
+    return { packs: floor, deliveredG: g, deliverRatio: g / cycleG }
+  }
+  const floorG = floor * packG
+  if (floorG >= cycleG * TOLERANCE) {
+    return { packs: floor, deliveredG: floorG, deliverRatio: floorG / cycleG }
+  }
+  const ceilG = ceil * packG
+  return { packs: ceil, deliveredG: ceilG, deliverRatio: ceilG / cycleG }
+}
+
+/** g → 보기 좋은 한국어 (예: "1.4 kg" / "850 g"). */
+function formatGrams(g: number): string {
+  if (g >= 1000) return `${(g / 1000).toFixed(1)} kg`
+  return `${Math.round(g)} g`
+}
+
+type LineItem = {
+  slug: string
+  line?: FoodLine
+  topper?: 'vegetable' | 'protein'
+  pct: number
+  product: Product
+  quantity: number
+  dailyG: number
+  cycleG: number
+  deliveredG: number
+  deliverRatio: number
 }
 
 export default function OrderPage() {
@@ -65,11 +182,39 @@ export default function OrderPage() {
   const dogId = params.id as string
 
   const [loading, setLoading] = useState(true)
-  const [adding, setAdding] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState('')
   const [dogName, setDogName] = useState('')
   const [formula, setFormula] = useState<Formula | null>(null)
   const [products, setProducts] = useState<Record<string, Product>>({})
+
+  // 정기배송 입력
+  const [interval, setIntervalWeeks] = useState(2)
+  const [recipientName, setRecipientName] = useState('')
+  const [recipientPhone, setRecipientPhone] = useState('')
+  const [recipientZip, setRecipientZip] = useState('')
+  const [recipientAddress, setRecipientAddress] = useState('')
+  const [recipientAddressDetail, setRecipientAddressDetail] = useState('')
+  const [memo, setMemo] = useState('')
+
+  const setZipRef = useRef(setRecipientZip)
+  const setAddrRef = useRef(setRecipientAddress)
+  const setDetailRef = useRef(setRecipientAddressDetail)
+  useEffect(() => {
+    setZipRef.current = setRecipientZip
+    setAddrRef.current = setRecipientAddress
+    setDetailRef.current = setRecipientAddressDetail
+  }, [])
+
+  useEffect(() => {
+    loadDaumPostcode()
+  }, [])
+
+  // 첫 배송 예상일 (interval × 7d 후)
+  const [firstDeliveryAt, setFirstDeliveryAt] = useState<number | null>(null)
+  useEffect(() => {
+    setFirstDeliveryAt(Date.now() + interval * 7 * 86400000)
+  }, [interval])
 
   useEffect(() => {
     let cancelled = false
@@ -81,31 +226,52 @@ export default function OrderPage() {
         router.push(`/login?next=/dogs/${dogId}/order`)
         return
       }
-      const [{ data: dog }, { data: formulaRow }] = await Promise.all([
-        supabase
-          .from('dogs')
-          .select('name')
-          .eq('id', dogId)
-          .eq('user_id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('dog_formulas')
-          .select(
-            'cycle_number, formula, reasoning, transition_strategy, ' +
-              'algorithm_version, daily_kcal, daily_grams, user_adjusted',
-          )
-          .eq('dog_id', dogId)
-          .eq('user_id', user.id)
-          .order('cycle_number', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ])
+      const [{ data: dog }, { data: formulaRow }, { data: prof }] =
+        await Promise.all([
+          supabase
+            .from('dogs')
+            .select('name')
+            .eq('id', dogId)
+            .eq('user_id', user.id)
+            .maybeSingle(),
+          supabase
+            .from('dog_formulas')
+            .select(
+              'cycle_number, formula, reasoning, transition_strategy, ' +
+                'algorithm_version, daily_kcal, daily_grams, user_adjusted',
+            )
+            .eq('dog_id', dogId)
+            .eq('user_id', user.id)
+            .order('cycle_number', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          supabase
+            .from('profiles')
+            .select('name, phone, zip, address, address_detail')
+            .eq('id', user.id)
+            .maybeSingle(),
+        ])
       if (cancelled) return
       if (!dog) {
         router.push('/dogs')
         return
       }
       setDogName((dog as { name: string }).name)
+
+      if (prof) {
+        const p = prof as {
+          name?: string | null
+          phone?: string | null
+          zip?: string | null
+          address?: string | null
+          address_detail?: string | null
+        }
+        setRecipientName(p.name ?? '')
+        setRecipientPhone(p.phone ?? '')
+        setRecipientZip(p.zip ?? '')
+        setRecipientAddress(p.address ?? '')
+        setRecipientAddressDetail(p.address_detail ?? '')
+      }
 
       if (!formulaRow) {
         setErr('아직 맞춤 박스 추천이 없어요. 분석을 먼저 받아 주세요.')
@@ -134,14 +300,16 @@ export default function OrderPage() {
         userAdjusted: f.user_adjusted,
       })
 
-      // 매핑된 모든 slug 의 product fetch
       const allSlugs = [
         ...Object.values(LINE_TO_SLUG).filter((s): s is string => s !== null),
         ...Object.values(TOPPER_TO_SLUG),
       ]
       const { data: prodList } = await supabase
         .from('products')
-        .select('id, name, slug, price, sale_price, image_url, stock')
+        .select(
+          'id, name, slug, price, sale_price, image_url, stock, ' +
+            'net_weight_g, is_subscribable',
+        )
         .in('slug', allSlugs)
         .eq('is_active', true)
       const map: Record<string, Product> = {}
@@ -156,70 +324,111 @@ export default function OrderPage() {
     }
   }, [dogId, router, supabase])
 
-  const selectedItems: Array<{
-    slug: string
-    line?: FoodLine
-    topper?: 'vegetable' | 'protein'
-    pct: number
-    product: Product
-    quantity: number
-  }> = []
+  // ── 라인 + 토퍼 → 항목 빌드 (interval 변경 시 자동 재계산) ─────────────
+  const intervalDays = interval * 7
+  const items: LineItem[] = []
 
   if (formula) {
+    const dailyKcal = formula.dailyKcal
     for (const line of ALL_LINES) {
       const ratio = formula.lineRatios[line] ?? 0
       if (ratio <= 0) continue
       const slug = LINE_TO_SLUG[line]
       if (!slug) continue
-      const p = products[slug]
-      if (!p) continue
-      selectedItems.push({
+      const product = products[slug]
+      if (!product) continue
+
+      const meta = FOOD_LINE_META[line]
+      const kcalPer100g = meta.kcalPer100g
+      const dailyG = ((ratio * dailyKcal) / kcalPer100g) * 100
+      const cycleG = dailyG * intervalDays
+      const packG = product.net_weight_g ?? 500
+      const { packs, deliveredG, deliverRatio } = packsForCycle(cycleG, packG)
+      items.push({
         slug,
         line,
         pct: Math.round(ratio * 100),
-        product: p,
-        quantity: 1, // v1 단순화 — 1개씩. 추후 1주분 g 기준 수량 산정.
+        product,
+        quantity: packs,
+        dailyG,
+        cycleG,
+        deliveredG,
+        deliverRatio,
       })
     }
     for (const k of ['vegetable', 'protein'] as const) {
       const ratio = formula.toppers[k] ?? 0
       if (ratio <= 0) continue
       const slug = TOPPER_TO_SLUG[k]
-      const p = products[slug]
-      if (!p) continue
-      selectedItems.push({
+      const product = products[slug]
+      if (!product) continue
+      const dailyG = ((ratio * dailyKcal) / TOPPER_KCAL_PER_100G) * 100
+      const cycleG = dailyG * intervalDays
+      const packG = product.net_weight_g ?? 100
+      const { packs, deliveredG, deliverRatio } = packsForCycle(cycleG, packG)
+      items.push({
         slug,
         topper: k,
         pct: Math.round(ratio * 100),
-        product: p,
-        quantity: 1,
+        product,
+        quantity: packs,
+        dailyG,
+        cycleG,
+        deliveredG,
+        deliverRatio,
       })
     }
   }
 
-  const subtotal = selectedItems.reduce(
+  const subtotal = items.reduce(
     (sum, it) => sum + (it.product.sale_price ?? it.product.price) * it.quantity,
     0,
   )
+  const shippingFee = subtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_FEE
+  const totalAmount = subtotal + shippingFee
+  const totalCycleG = items.reduce((s, it) => s + it.deliveredG, 0)
 
-  // 추천 강도 분류 — 메인(50%+) / 보조(15-49%) / 소량(<15%)
+  const oosCount = items.filter((it) => (it.product.stock ?? 0) <= 0).length
+  const nonSubscribableCount = items.filter(
+    (it) => it.product.is_subscribable === false,
+  ).length
+
   function strengthLabel(pct: number): { tier: string; tone: string } {
     if (pct >= 50) return { tier: '메인', tone: 'main' }
     if (pct >= 15) return { tier: '보조', tone: 'sub' }
     return { tier: '소량', tone: 'mini' }
   }
-  // (품절 SKU 검증은 cart 추가 시 inStock filter 로 처리 — 사전 disable 대신
-  // 품절 표시만 노출, 가능한 것만 담음)
 
-  async function addAllToCart() {
-    if (selectedItems.length === 0) return
-    // 품절 SKU 가 있으면 사전 차단 — atomic group 방어.
-    const inStock = selectedItems.filter((it) => (it.product.stock ?? 0) > 0)
-    if (inStock.length === 0) {
-      setErr('모든 상품이 품절 — 재입고 후 다시 시도해 주세요')
+  const openAddressSearch = useCallback(async () => {
+    await loadDaumPostcode()
+    new (window as unknown as { daum: { Postcode: new (cfg: unknown) => { open: () => void } } }).daum.Postcode({
+      oncomplete(data: DaumPostcodeData) {
+        const addr =
+          data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress
+        setZipRef.current(data.zonecode)
+        setAddrRef.current(addr)
+        if (data.buildingName) {
+          setDetailRef.current(data.buildingName)
+        }
+      },
+    }).open()
+  }, [])
+
+  async function handleSubscribe() {
+    if (items.length === 0) return
+    if (!recipientName.trim() || !recipientPhone.trim() || !recipientAddress.trim()) {
+      setErr('수령인 이름·전화·주소를 모두 입력해 주세요.')
       return
     }
-    setAdding(true)
+    const subscribable = items.filter(
+      (it) =>
+        (it.product.stock ?? 0) > 0 && it.product.is_subscribable !== false,
+    )
+    if (subscribable.length === 0) {
+      setErr('정기배송 가능한 상품이 없어요. 재입고 후 다시 시도해 주세요.')
+      return
+    }
+    setSubmitting(true)
     setErr('')
     try {
       const {
@@ -229,56 +438,85 @@ export default function OrderPage() {
         router.push(`/login?next=/dogs/${dogId}/order`)
         return
       }
-      const errors: string[] = []
-      for (const it of inStock) {
-        const { error } = await supabase.rpc('upsert_cart_item', {
-          p_user_id: user.id,
-          p_product_id: it.product.id,
-          p_variant_id: null,
-          p_quantity: it.quantity,
-          p_max_qty: Math.max(1, it.product.stock || 99),
+      const subSubtotal = subscribable.reduce(
+        (s, it) =>
+          s + (it.product.sale_price ?? it.product.price) * it.quantity,
+        0,
+      )
+      const subShipping =
+        subSubtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_FEE
+      const subTotal = subSubtotal + subShipping
+      const nextDelivery = new Date()
+      nextDelivery.setDate(nextDelivery.getDate() + interval * 7)
+
+      const customerKey =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `c-${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+      const { data: sub, error: subErr } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: user.id,
+          interval_weeks: interval,
+          status: 'active',
+          next_delivery_date: nextDelivery.toISOString().split('T')[0],
+          total_deliveries: 0,
+          recipient_name: recipientName,
+          recipient_phone: recipientPhone,
+          recipient_zip: recipientZip,
+          recipient_address: recipientAddress,
+          recipient_address_detail: recipientAddressDetail,
+          subtotal: subSubtotal,
+          shipping_fee: subShipping,
+          total_amount: subTotal,
+          billing_customer_key: customerKey,
         })
-        if (error) errors.push(`${it.product.name}: ${error.message}`)
-        else {
-          trackAddToCart({
-            item_id: it.product.id,
-            item_name: it.product.name,
-            price: it.product.sale_price ?? it.product.price,
-            quantity: it.quantity,
-          })
-        }
+        .select('id')
+        .single()
+      if (subErr || !sub) {
+        setErr('구독 생성에 실패했습니다. 다시 시도해 주세요.')
+        return
       }
-      if (errors.length > 0) {
-        setErr(`일부 상품 추가 실패:\n${errors.join('\n')}`)
+      const itemRows = subscribable.map((it) => ({
+        subscription_id: (sub as { id: string }).id,
+        product_id: it.product.id,
+        quantity: it.quantity,
+        unit_price: it.product.sale_price ?? it.product.price,
+        product_name: it.product.name,
+        product_image_url: it.product.image_url,
+      }))
+      const { error: itemErr } = await supabase
+        .from('subscription_items')
+        .insert(itemRows)
+      if (itemErr) {
+        setErr('상품 항목 추가에 실패했습니다.')
         return
       }
       haptic('confirm')
-      // GA4 — box order funnel 핵심 지표.
+      // GA4 — box 정기배송 신청
       if (typeof window !== 'undefined' && 'gtag' in window) {
-        const gtag = (window as unknown as { gtag: (...a: unknown[]) => void }).gtag
-        gtag('event', 'box_ordered', {
+        const gtag = (window as unknown as {
+          gtag: (...a: unknown[]) => void
+        }).gtag
+        gtag('event', 'subscription_started', {
           dog_id: dogId,
           cycle_number: formula?.cycleNumber ?? null,
-          item_count: inStock.length,
-          subtotal: subtotal,
+          interval_weeks: interval,
+          item_count: subscribable.length,
+          subtotal: subSubtotal,
+          memo_provided: memo.trim().length > 0,
         })
       }
-      const oosCount = selectedItems.length - inStock.length
-      toast.success(
-        oosCount > 0
-          ? `${inStock.length}개 담음 (품절 ${oosCount}개 제외)`
-          : `${inStock.length}개 상품 장바구니 담음`,
+      toast.success('카드 등록 페이지로 이동합니다')
+      router.push(
+        `/subscribe/billing-auth?subscriptionId=${(sub as { id: string }).id}` +
+          `&customerKey=${encodeURIComponent(customerKey)}`,
       )
-      try {
-        window.dispatchEvent(new CustomEvent('ft:cart:add'))
-      } catch {
-        /* noop */
-      }
-      router.push('/cart')
     } catch (e) {
-      setErr(e instanceof Error ? e.message : '장바구니 추가 실패')
+      setErr(e instanceof Error ? e.message : '정기배송 신청 실패')
     } finally {
-      setAdding(false)
+      setSubmitting(false)
     }
   }
 
@@ -308,12 +546,12 @@ export default function OrderPage() {
       <header className="ord-hero">
         <span className="ord-kicker">CUSTOM BOX · CYCLE {formula?.cycleNumber ?? '–'}</span>
         <h1>
-          {dogName}이 맞춤 박스<br />
-          이대로 주문할까요?
+          {dogName} 맞춤 박스<br />
+          정기배송으로 시작할까요?
         </h1>
         <p>
-          알고리즘이 추천한 5종 메인 + 토퍼를 한 번에 담아요. 장바구니에서
-          수량 조정 가능.
+          분석된 비율 그대로 알맞은 분량을 계산했어요. 1회 배송에 필요한 g
+          기준으로 팩 수를 자동 산정 (사료관리법 ±5% 허용 오차 내).
         </p>
       </header>
 
@@ -326,7 +564,7 @@ export default function OrderPage() {
         </div>
       )}
 
-      {formula && selectedItems.length > 0 && (
+      {formula && items.length > 0 && (
         <>
           {/* 신뢰 배지 row — AAFCO + 수의사 */}
           <section className="ord-trust">
@@ -338,10 +576,61 @@ export default function OrderPage() {
               <Sparkles size={11} strokeWidth={2.4} />
               NRC · FEDIAF 기준
             </span>
+            <span className="ord-trust-chip">
+              <PackageOpen size={11} strokeWidth={2.4} />
+              사료관리법 ±5% 정량
+            </span>
           </section>
 
+          {/* 정기배송 주기 선택 */}
+          <section className="ord-section">
+            <h2 className="ord-section-h">
+              <Repeat size={13} strokeWidth={2.2} color="var(--moss)" />
+              배송 주기
+            </h2>
+            <div
+              className="ord-interval-grid"
+              role="radiogroup"
+              aria-label="정기배송 주기"
+            >
+              {INTERVALS.map((opt) => (
+                <button
+                  type="button"
+                  key={opt.value}
+                  role="radio"
+                  aria-checked={interval === opt.value}
+                  className={
+                    'ord-interval-card' +
+                    (interval === opt.value ? ' ord-interval-on' : '')
+                  }
+                  onClick={() => {
+                    haptic('tick')
+                    setIntervalWeeks(opt.value)
+                  }}
+                >
+                  <span className="ord-interval-label">{opt.label}</span>
+                  <span className="ord-interval-desc">{opt.desc}</span>
+                </button>
+              ))}
+            </div>
+            {firstDeliveryAt !== null && (
+              <p className="ord-interval-foot">
+                <CalendarDays size={11} strokeWidth={2.2} color="var(--muted)" />
+                <span>
+                  첫 배송 예정 ·{' '}
+                  {new Date(firstDeliveryAt).toLocaleDateString('ko-KR', {
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'short',
+                  })}
+                </span>
+              </p>
+            )}
+          </section>
+
+          {/* 라인 + 토퍼 분량 카드 */}
           <ul className="ord-list">
-            {selectedItems.map((it) => {
+            {items.map((it) => {
               const meta = it.line ? FOOD_LINE_META[it.line] : null
               const label = meta
                 ? `${meta.name} · ${meta.subtitle}`
@@ -352,72 +641,187 @@ export default function OrderPage() {
               const price = it.product.sale_price ?? it.product.price
               const strength = strengthLabel(it.pct)
               const isOOS = (it.product.stock ?? 0) <= 0
+              const notSub = it.product.is_subscribable === false
+              const lineTotal = price * it.quantity
               return (
                 <li
                   key={it.slug}
-                  className={'ord-item' + (isOOS ? ' ord-item-oos' : '')}
+                  className={
+                    'ord-item' +
+                    (isOOS || notSub ? ' ord-item-oos' : '')
+                  }
                 >
                   <span className="ord-item-bar" style={{ background: color }} />
                   <div className="ord-item-body">
                     <div className="ord-item-head">
-                      <span
-                        className="ord-item-name"
-                        style={{ color: 'var(--ink)' }}
-                      >
-                        {label}
-                      </span>
+                      <span className="ord-item-name">{label}</span>
                       <span className="ord-item-pct" style={{ color }}>
                         {it.pct}%
                       </span>
                     </div>
                     <div className="ord-item-meta">
-                      <span className={'ord-strength ord-strength-' + strength.tone}>
+                      <span
+                        className={'ord-strength ord-strength-' + strength.tone}
+                      >
                         {strength.tier}
                       </span>
                       <span className="ord-divider" />
-                      <span>1팩 · {price.toLocaleString()}원</span>
-                      {it.product.sale_price !== null && (
-                        <>
-                          <span className="ord-divider" />
-                          <s style={{ color: 'var(--muted)', fontSize: 10 }}>
-                            {it.product.price.toLocaleString()}원
-                          </s>
-                        </>
-                      )}
-                      {isOOS && (
-                        <>
-                          <span className="ord-divider" />
-                          <span className="ord-oos-tag">
-                            <Bell size={10} strokeWidth={2.4} />
-                            품절 — 재입고 알림
-                          </span>
-                        </>
-                      )}
+                      <span>
+                        일일 {formatGrams(it.dailyG)}
+                      </span>
                     </div>
+                    <div className="ord-item-portion">
+                      <PackageOpen size={11} strokeWidth={2.2} color={color} />
+                      <span>
+                        {interval === 1
+                          ? '1주 분량'
+                          : `${interval}주 분량`}
+                        {' '}
+                        <strong>{formatGrams(it.deliveredG)}</strong>
+                        {' · '}
+                        {it.quantity}팩
+                        {' ('}
+                        {it.product.net_weight_g
+                          ? `${it.product.net_weight_g}g/팩`
+                          : '팩 정량 미지정'}
+                        {')'}
+                      </span>
+                    </div>
+                    <div className="ord-item-foot">
+                      <span className="ord-item-sub">
+                        {price.toLocaleString()}원 × {it.quantity}
+                      </span>
+                      <span className="ord-item-total">
+                        {lineTotal.toLocaleString()}원
+                      </span>
+                    </div>
+                    {(isOOS || notSub) && (
+                      <div className="ord-item-warn">
+                        <Bell size={10} strokeWidth={2.4} />
+                        <span>
+                          {isOOS
+                            ? '품절 — 신청 시 제외 (재입고 알림)'
+                            : '정기배송 미지원 — 신청 시 제외'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </li>
               )
             })}
           </ul>
 
+          {/* 수령인 정보 */}
+          <section className="ord-section">
+            <h2 className="ord-section-h">
+              <Truck size={13} strokeWidth={2.2} color="var(--moss)" />
+              수령인 정보
+            </h2>
+            <div className="ord-form">
+              <div className="ord-form-row">
+                <input
+                  type="text"
+                  className="ord-input"
+                  placeholder="이름"
+                  value={recipientName}
+                  onChange={(e) => setRecipientName(e.target.value)}
+                  autoComplete="name"
+                />
+                <input
+                  type="tel"
+                  className="ord-input"
+                  placeholder="연락처"
+                  value={recipientPhone}
+                  onChange={(e) => setRecipientPhone(formatPhone(e.target.value))}
+                  inputMode="numeric"
+                  autoComplete="tel"
+                />
+              </div>
+              <div className="ord-form-addr">
+                <input
+                  type="text"
+                  className="ord-input ord-input-zip"
+                  placeholder="우편번호"
+                  value={recipientZip}
+                  readOnly
+                  onClick={openAddressSearch}
+                />
+                <button
+                  type="button"
+                  className="ord-addr-btn"
+                  onClick={openAddressSearch}
+                >
+                  <Search size={12} strokeWidth={2.4} />
+                  주소 찾기
+                </button>
+              </div>
+              <input
+                type="text"
+                className="ord-input"
+                placeholder="기본 주소"
+                value={recipientAddress}
+                readOnly
+                onClick={openAddressSearch}
+              />
+              <input
+                type="text"
+                className="ord-input"
+                placeholder="상세 주소 (동·호수)"
+                value={recipientAddressDetail}
+                onChange={(e) => setRecipientAddressDetail(e.target.value)}
+              />
+              <textarea
+                className="ord-textarea"
+                placeholder="배송 메모 (예: 부재 시 경비실, 강아지 알레르기 주의)"
+                rows={2}
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+              />
+            </div>
+          </section>
+
+          {/* 결제 요약 */}
           <section className="ord-summary">
             <div className="ord-summary-row">
+              <span>1회 배송 분량</span>
+              <strong className="ord-summary-strong-sm">
+                {formatGrams(totalCycleG)}
+                {' · '}
+                {items.reduce((s, it) => s + it.quantity, 0)}팩
+              </strong>
+            </div>
+            <div className="ord-summary-row">
               <span>상품 합계</span>
-              <strong>{subtotal.toLocaleString()}원</strong>
+              <span>{subtotal.toLocaleString()}원</span>
+            </div>
+            <div className="ord-summary-row">
+              <span>배송비</span>
+              <span>
+                {shippingFee === 0
+                  ? '무료'
+                  : `${shippingFee.toLocaleString()}원`}
+              </span>
+            </div>
+            <div className="ord-summary-divide" />
+            <div className="ord-summary-row">
+              <span>1회 결제</span>
+              <strong>{totalAmount.toLocaleString()}원</strong>
             </div>
             <div className="ord-summary-row ord-summary-info">
               <Sparkles size={11} strokeWidth={2.2} color="var(--moss)" />
               <span>
                 알고리즘 v{formula.algorithmVersion} · {formula.dailyKcal} kcal/일
-                · 1팩씩 (장바구니에서 수량 조정)
+                · {interval}주마다 자동 청구
               </span>
             </div>
-            <div className="ord-summary-row ord-summary-info">
-              <PackageOpen size={11} strokeWidth={2.2} color="var(--terracotta)" />
-              <span>
-                주문 후 4주 동안 강아지 변화를 알림으로 챙겨드려요.
-              </span>
-            </div>
+            {(oosCount > 0 || nonSubscribableCount > 0) && (
+              <div className="ord-summary-row ord-summary-info ord-summary-warn">
+                <AlertCircle size={11} strokeWidth={2.2} color="var(--terracotta)" />
+                <span>
+                  {oosCount + nonSubscribableCount}개 상품은 신청 시 자동 제외
+                </span>
+              </div>
+            )}
           </section>
 
           {err && (
@@ -428,27 +832,30 @@ export default function OrderPage() {
           )}
 
           <div className="ord-cta">
-            <Link href="/products" className="ord-btn ord-btn-ghost">
-              개별 보기
+            <Link
+              href={`/dogs/${dogId}/analysis`}
+              className="ord-btn ord-btn-ghost"
+            >
+              뒤로
             </Link>
             <button
               type="button"
-              onClick={addAllToCart}
-              disabled={adding || selectedItems.length === 0}
+              onClick={handleSubscribe}
+              disabled={submitting || items.length === 0}
               className="ord-btn ord-btn-prim"
             >
-              {adding ? (
+              {submitting ? (
                 <Loader2 size={14} strokeWidth={2.4} className="animate-spin" />
               ) : (
-                <ShoppingCart size={14} strokeWidth={2.4} color="#fff" />
+                <CreditCard size={14} strokeWidth={2.4} color="#fff" />
               )}
-              {selectedItems.length}개 다 담기
+              정기배송 신청 · 카드 등록
               <ArrowRight size={12} strokeWidth={2.4} color="#fff" />
             </button>
           </div>
           <p className="ord-foot">
             <Check size={11} strokeWidth={2.6} color="var(--moss)" />
-            장바구니에서 수량 / 정기배송 주기 변경 가능
+            언제든 마이페이지에서 주기 변경 · 일시정지 · 해지 가능
           </p>
         </>
       )}

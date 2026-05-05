@@ -1,4 +1,4 @@
-/* /dogs/[id]/order — 맞춤 박스 한 번에 담기 페이지. .ord- 접두. */
+/* /dogs/[id]/order — 맞춤 박스 정기배송 신청 페이지. .ord- 접두. */
 
 .ord-page {
   max-width: 480px;
@@ -78,10 +78,10 @@
   text-decoration: none;
 }
 
-/* Trust chips — AAFCO + NRC 등 */
+/* Trust chips — AAFCO + NRC + 사료관리법 */
 .ord-trust {
   display: flex; flex-wrap: wrap; gap: 6px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 .ord-trust-chip {
   display: inline-flex; align-items: center; gap: 4px;
@@ -94,6 +94,67 @@
   letter-spacing: 0.04em;
 }
 
+/* Section header */
+.ord-section {
+  margin-bottom: 22px;
+}
+.ord-section-h {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+}
+
+/* Interval picker */
+.ord-interval-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.ord-interval-card {
+  appearance: none; cursor: pointer;
+  background: #fff;
+  border: 1.5px solid var(--rule);
+  border-radius: 14px;
+  padding: 11px 8px 12px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 3px;
+  transition: all 140ms;
+  font-family: inherit;
+  text-align: center;
+}
+.ord-interval-card:active { transform: scale(0.97); }
+.ord-interval-card.ord-interval-on {
+  border-color: var(--terracotta);
+  background: color-mix(in srgb, var(--terracotta) 6%, white);
+  box-shadow: 0 4px 14px -8px rgba(160, 69, 46, 0.4);
+}
+.ord-interval-label {
+  font-size: 13px; font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+}
+.ord-interval-card.ord-interval-on .ord-interval-label {
+  color: var(--terracotta);
+}
+.ord-interval-desc {
+  font-size: 9.5px;
+  color: var(--muted);
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
+.ord-interval-foot {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  margin: 8px 0 0;
+}
+
 /* 추천 강도 chip */
 .ord-strength {
   display: inline-block;
@@ -103,37 +164,31 @@
   font-weight: 700;
   letter-spacing: 0.04em;
 }
-.ord-strength-main {
-  background: var(--terracotta);
-  color: #fff;
-}
-.ord-strength-sub {
-  background: var(--gold);
-  color: #fff;
-}
-.ord-strength-mini {
-  background: var(--bg-2);
-  color: var(--muted);
-}
+.ord-strength-main { background: var(--terracotta); color: #fff; }
+.ord-strength-sub  { background: var(--gold); color: #fff; }
+.ord-strength-mini { background: var(--bg-2); color: var(--muted); }
 
-/* 품절 SKU */
-.ord-item.ord-item-oos {
-  opacity: 0.65;
-}
-.ord-item.ord-item-oos .ord-item-bar {
-  background: var(--rule) !important;
-}
+/* 품절 / 미지원 SKU */
+.ord-item.ord-item-oos { opacity: 0.65; }
+.ord-item.ord-item-oos .ord-item-bar { background: var(--rule) !important; }
 .ord-oos-tag {
   display: inline-flex; align-items: center; gap: 3px;
   font-size: 10px;
   font-weight: 700;
   color: var(--terracotta);
 }
+.ord-item-warn {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px;
+  color: var(--terracotta);
+  font-weight: 600;
+  margin-top: 4px;
+}
 
 /* Item list */
 .ord-list {
   list-style: none;
-  margin: 0 0 20px;
+  margin: 0 0 22px;
   padding: 0;
   display: flex; flex-direction: column;
   gap: 8px;
@@ -160,7 +215,7 @@
 .ord-item-body {
   flex: 1; min-width: 0;
   display: flex; flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 .ord-item-head {
   display: flex; align-items: baseline; justify-content: space-between;
@@ -184,6 +239,100 @@
   width: 1px; height: 8px;
   background: var(--rule-2);
 }
+.ord-item-portion {
+  display: flex; align-items: center; gap: 5px;
+  background: color-mix(in srgb, var(--bg-2) 60%, white);
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: 11px;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+.ord-item-portion strong {
+  color: var(--ink);
+  font-weight: 800;
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+}
+.ord-item-foot {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-top: 2px;
+}
+.ord-item-sub {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.ord-item-total {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* Form (수령인 정보) */
+.ord-form {
+  display: flex; flex-direction: column;
+  gap: 8px;
+}
+.ord-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ord-form-addr {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.ord-input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--rule);
+  background: #FDFDFD;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--ink);
+  font-family: inherit;
+  transition: border-color 140ms;
+}
+.ord-input:focus {
+  outline: none;
+  border-color: var(--moss);
+}
+.ord-input-zip {
+  cursor: pointer;
+}
+.ord-textarea {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--rule);
+  background: #FDFDFD;
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: var(--ink);
+  font-family: inherit;
+  resize: vertical;
+  min-height: 56px;
+  transition: border-color 140ms;
+}
+.ord-textarea:focus {
+  outline: none;
+  border-color: var(--moss);
+}
+.ord-addr-btn {
+  appearance: none; cursor: pointer; border: 0;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 0 14px;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  transition: opacity 140ms;
+}
+.ord-addr-btn:hover { opacity: 0.85; }
 
 /* Summary */
 .ord-summary {
@@ -191,7 +340,7 @@
   border-radius: 14px;
   padding: 14px 16px;
   display: flex; flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   margin-bottom: 14px;
 }
 .ord-summary-row {
@@ -205,12 +354,26 @@
   font-weight: 700;
   color: var(--terracotta);
 }
+.ord-summary-strong-sm {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  color: var(--ink) !important;
+}
+.ord-summary-divide {
+  height: 1px;
+  background: var(--rule-2);
+  margin: 2px 0;
+}
 .ord-summary-info {
   font-size: 10.5px;
   color: var(--muted);
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
   gap: 5px;
   justify-content: flex-start;
+}
+.ord-summary-warn {
+  color: var(--terracotta) !important;
 }
 
 /* Error */
