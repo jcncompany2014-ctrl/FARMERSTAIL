@@ -136,7 +136,8 @@ export async function GET(req: Request) {
       .from('algorithm_food_lines')
       .select(
         'line, kcal_per_100g, protein_pct_dm, fat_pct_dm, calcium_pct_dm, ' +
-          'phosphorus_pct_dm, sodium_pct_dm, subtitle_override, benefit_override',
+          'phosphorus_pct_dm, sodium_pct_dm, omega3_pct_dm, omega6_pct_dm, ' +
+          'vitamin_d_iu_per_100g_dm, subtitle_override, benefit_override',
       ),
     supabase
       .from('algorithm_breed_predispose')
@@ -168,6 +169,9 @@ export async function GET(req: Request) {
     calcium_pct_dm: number | null
     phosphorus_pct_dm: number | null
     sodium_pct_dm: number | null
+    omega3_pct_dm: number | null
+    omega6_pct_dm: number | null
+    vitamin_d_iu_per_100g_dm: number | null
     subtitle_override: string | null
     benefit_override: string | null
   }>) {
@@ -178,6 +182,9 @@ export async function GET(req: Request) {
       calciumPctDM: r.calcium_pct_dm,
       phosphorusPctDM: r.phosphorus_pct_dm,
       sodiumPctDM: r.sodium_pct_dm,
+      omega3PctDM: r.omega3_pct_dm,
+      omega6PctDM: r.omega6_pct_dm,
+      vitaminDIuPer100gDM: r.vitamin_d_iu_per_100g_dm,
       subtitle: r.subtitle_override,
       benefit: r.benefit_override,
     }

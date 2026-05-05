@@ -45,6 +45,9 @@ export default function AlgorithmConfigClient({
           calcium_pct_dm: row.calcium_pct_dm,
           phosphorus_pct_dm: row.phosphorus_pct_dm,
           sodium_pct_dm: row.sodium_pct_dm,
+          omega3_pct_dm: row.omega3_pct_dm,
+          omega6_pct_dm: row.omega6_pct_dm,
+          vitamin_d_iu_per_100g_dm: row.vitamin_d_iu_per_100g_dm,
           subtitle_override: row.subtitle_override,
           benefit_override: row.benefit_override,
         })
@@ -488,6 +491,57 @@ function LineEditor({
             onChange({
               ...row,
               sodium_pct_dm: row.sodium_pct_dm === null ? 0.3 : null,
+            })
+          }
+        />
+        <NumField
+          label="EPA+DHA % DM"
+          value={row.omega3_pct_dm ?? 0}
+          step={0.01}
+          min={0}
+          max={10}
+          onChange={(v) => onChange({ ...row, omega3_pct_dm: v })}
+          allowNull
+          isNull={row.omega3_pct_dm === null}
+          onNullToggle={() =>
+            onChange({
+              ...row,
+              omega3_pct_dm: row.omega3_pct_dm === null ? 0.2 : null,
+            })
+          }
+        />
+        <NumField
+          label="ω-6 % DM"
+          value={row.omega6_pct_dm ?? 0}
+          step={0.1}
+          min={0}
+          max={15}
+          onChange={(v) => onChange({ ...row, omega6_pct_dm: v })}
+          allowNull
+          isNull={row.omega6_pct_dm === null}
+          onNullToggle={() =>
+            onChange({
+              ...row,
+              omega6_pct_dm: row.omega6_pct_dm === null ? 3.0 : null,
+            })
+          }
+        />
+        <NumField
+          label="비타민 D IU/100g DM"
+          value={row.vitamin_d_iu_per_100g_dm ?? 0}
+          step={1}
+          min={0}
+          max={5000}
+          onChange={(v) =>
+            onChange({ ...row, vitamin_d_iu_per_100g_dm: v })
+          }
+          allowNull
+          isNull={row.vitamin_d_iu_per_100g_dm === null}
+          onNullToggle={() =>
+            onChange({
+              ...row,
+              vitamin_d_iu_per_100g_dm:
+                row.vitamin_d_iu_per_100g_dm === null ? 100 : null,
             })
           }
         />

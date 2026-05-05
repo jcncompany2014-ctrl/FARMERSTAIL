@@ -98,6 +98,12 @@ export type FoodLineRow = {
   calcium_pct_dm: number | null
   phosphorus_pct_dm: number | null
   sodium_pct_dm: number | null
+  /** EPA+DHA 합산 % DM (AAFCO ≥0.1, ACVIM cardiac ≥0.3). */
+  omega3_pct_dm: number | null
+  /** omega-6 % DM (NRC ω-6:3 비율 5:1~10:1). */
+  omega6_pct_dm: number | null
+  /** vitamin D IU/100g DM (AAFCO 500-3000 IU/kg DM, large puppy 5000). */
+  vitamin_d_iu_per_100g_dm: number | null
   subtitle_override: string | null
   benefit_override: string | null
   updated_at: string
