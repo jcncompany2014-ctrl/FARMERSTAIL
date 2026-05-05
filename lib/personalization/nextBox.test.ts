@@ -104,14 +104,14 @@ describe('decideNextBox — 기본 동작', () => {
     assert.equal(f.cycleNumber, 5)
   })
 
-  it('algorithmVersion v1.3 (firstBox 와 통일)', () => {
+  it('algorithmVersion v1.6 (firstBox 와 통일)', () => {
     const f = decideNextBox({
       previousFormula: basePreviousFormula(),
       checkins: [],
       surveyInput: baseSurvey(),
       cycleNumber: 2,
     })
-    assert.match(f.algorithmVersion, /^v1\.3/)
+    assert.match(f.algorithmVersion, /^v1\.6/)
   })
 
   it('cycle 2+ 전환 전략 gradual', () => {

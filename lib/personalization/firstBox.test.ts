@@ -178,16 +178,50 @@ describe('decideFirstBox — BCS 미세 조정', () => {
   })
 })
 
-describe('decideFirstBox — 시니어 자동 보정', () => {
-  it('7세 (84개월) → Joint 20% 자동 가산', () => {
+describe('decideFirstBox — 시니어 자동 보정 (size-aware)', () => {
+  it('중형 (15kg) 7세 (84개월) → Joint 20% 자동 가산', () => {
     const f = decideFirstBox({
       ...baseInput(),
+      weightKg: 15, // 중형 — senior 84개월부터
       ageMonths: 84,
       careGoal: 'general_upgrade',
     })
     assert.ok(f.lineRatios.joint >= 0.2)
     const reason = f.reasoning.find((r) => r.ruleId === 'age-senior-joint')
     assert.ok(reason)
+  })
+
+  it('소형 (5kg) 7세 → senior 미적용 (소형은 9세부터)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      weightKg: 5,
+      ageMonths: 84,
+      careGoal: 'general_upgrade',
+    })
+    const reason = f.reasoning.find((r) => r.ruleId === 'age-senior-joint')
+    assert.equal(reason, undefined, '소형견 7세는 아직 adult')
+  })
+
+  it('소형 (5kg) 9세 (108개월) → Joint 가산 발화', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      weightKg: 5,
+      ageMonths: 108,
+      careGoal: 'general_upgrade',
+    })
+    const reason = f.reasoning.find((r) => r.ruleId === 'age-senior-joint')
+    assert.ok(reason, '소형 9세는 senior')
+  })
+
+  it('대형 (30kg) 6세 (72개월) → senior 발화', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      weightKg: 30,
+      ageMonths: 72,
+      careGoal: 'general_upgrade',
+    })
+    const reason = f.reasoning.find((r) => r.ruleId === 'age-senior-joint')
+    assert.ok(reason, '대형 6세부터 senior')
   })
 
   it('puppy (12개월 미만) → Weight/Joint 0%', () => {
@@ -597,9 +631,9 @@ describe('decideFirstBox v1.2 — 식이 만족도 신호', () => {
 })
 
 describe('decideFirstBox v1.3 — algorithmVersion', () => {
-  it('v1.3.0 출력', () => {
+  it('v1.6.0 출력', () => {
     const f = decideFirstBox(baseInput())
-    assert.equal(f.algorithmVersion, 'v1.3.0')
+    assert.equal(f.algorithmVersion, 'v1.6.0')
   })
 })
 

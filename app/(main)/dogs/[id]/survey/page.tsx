@@ -101,6 +101,7 @@ type Dog = {
   age_unit: 'years' | 'months'
   neutered: boolean
   activity_level: 'low' | 'medium' | 'high'
+  gender: 'male' | 'female' | null
 }
 
 const STEPS = [
@@ -327,7 +328,7 @@ export default function SurveyPage() {
       }
       const { data, error } = await supabase
         .from('dogs')
-        .select('id, name, weight, age_value, age_unit, neutered, activity_level')
+        .select('id, name, weight, age_value, age_unit, neutered, activity_level, gender')
         .eq('id', dogId)
         .eq('user_id', user.id)
         .maybeSingle()
@@ -693,6 +694,7 @@ export default function SurveyPage() {
         ageUnit: dog.age_unit,
         neutered: dog.neutered,
         activityLevel: dog.activity_level,
+        gender: dog.gender as 'male' | 'female' | null,
       },
       answers,
     )

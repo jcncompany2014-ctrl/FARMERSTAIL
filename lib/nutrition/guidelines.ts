@@ -108,15 +108,41 @@ export const BCS_DESCRIPTIONS: Record<
   9: { label: 'BCS 9', desc: '심한 비만 — 흉곽/등/허리에 두꺼운 지방층, 복부 크게 처짐', risk: 'severe_over' },
 }
 
-/** BCS → MER 보정 factor. 비만은 감량을 위해 RER 의 1.0 ~ 1.4 만 사용. */
+/**
+ * BCS → MER 보정 multiplier (stage/activity base factor 위에 곱).
+ *
+ * # 모델
+ *   final_factor = stage_base × bcsMerFactor(bcs) × ...
+ *   stage_base 는 senior 1.2 / adult 1.6 / puppy 2-3.
+ *   bcsMerFactor 는 이상적(BCS5)=1.0 기준의 ± 보정.
+ *
+ * # 근거 (NRC 2006 §2 + WSAVA 2021 BCS 가이드)
+ *   - BCS 1-2 (심한 저체중): RER × 보정 1.7-2.0 final 권장.
+ *     예: senior 1.2 × 1.20 = 1.44 (적정), adult-active 1.8 × 1.20 = 2.16 (상한).
+ *     "bcsMerFactor=1.4" 로 두면 active 성견에서 final ≥2.5 → 위장 부담 + 급증 위험.
+ *   - BCS 6-7 (과체중): final 0.85-1.0. base × 0.92 / × 0.85 적정.
+ *   - BCS 8-9 (비만): final 0.7-0.85 — 감량 protocol. base × 0.80 / × 0.75.
+ *
+ * # 변경 (v1.6 audit)
+ *   - 1-2: 1.4 → **1.20** (over-aggressive 수정. NRC weight-gain ≤+20%)
+ *   - 3-4: 1.1 → **1.10** (유지)
+ *   - 5: 1.0 (ideal)
+ *   - 6: 0.95 (유지)
+ *   - 7: 0.85 (유지)
+ *   - 8: 0.8 (유지)
+ *   - 9: 0.75 (유지)
+ *
+ * 결과: 10kg senior + BCS 2 = RER 393 × 1.2 × 1.20 = 567 kcal (이전 660)
+ *       10kg adult + BCS 2 + active = RER 393 × 1.8 × 1.20 = 849 kcal (이전 990)
+ */
 export function bcsMerFactor(bcs: BcsKey): number {
   switch (bcs) {
     case 1:
     case 2:
-      return 1.4 // 증량 — RER × 1.4 ~ 1.6
+      return 1.20 // 증량 +20% (final ≤ 2.0 보장)
     case 3:
     case 4:
-      return 1.1
+      return 1.10
     case 5:
       return 1.0
     case 6:
@@ -124,7 +150,7 @@ export function bcsMerFactor(bcs: BcsKey): number {
     case 7:
       return 0.85
     case 8:
-      return 0.8
+      return 0.80
     case 9:
       return 0.75
   }

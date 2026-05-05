@@ -47,7 +47,11 @@ import {
 import { quantizeAndNormalize } from './quantize.ts'
 import { transferToTarget } from './transfers.ts'
 
-const ALGORITHM_VERSION = 'v1.3.0'
+// v1.6.0 — audit: bcsMerFactor 보정 (1.4 → 1.20), pregnancy/lactation gender
+// 게이트, EPI/갑상선/Cushing's/IVDD/MMVD chronic 룰, 한국 처방식 키워드,
+// 품종 영문 word-boundary, omega/vitD nutrient panel, daily_grams 라인 mix
+// 재계산.
+const ALGORITHM_VERSION = 'v1.6.0'
 /** 토퍼 합계 cap — 화식이 주식 지위를 잃지 않도록 30% 한도. */
 const MAX_TOPPER_TOTAL = 0.3
 
@@ -262,9 +266,13 @@ function applyAgeStage(
   input: AlgorithmInput,
   reasoning: Reasoning[],
 ): Record<FoodLine, Ratio> {
-  // 7세+ 시니어 — Joint 라인이 0% 면 약간 옮겨와줌 (단, 케어목표 = joint_senior
+  // 시니어 threshold — size-aware (소형 9세+, 중형 7세+, 대형 6세+).
+  // WSAVA 2021 Senior Care Guidelines.
+  const seniorMonths =
+    input.weightKg < 10 ? 108 : input.weightKg > 25 ? 72 : 84
+  // 시니어 — Joint 라인이 0% 면 약간 옮겨와줌 (단, 케어목표 = joint_senior
   // 면 이미 60% 라 추가 가산 안 함).
-  if (input.ageMonths >= 84 && ratios.joint < 0.2 && input.careGoal !== 'joint_senior') {
+  if (input.ageMonths >= seniorMonths && ratios.joint < 0.2 && input.careGoal !== 'joint_senior') {
     const before = ratios.joint
     ratios = { ...ratios, joint: 0.2, basic: Math.max(0, ratios.basic - 0.2) }
     reasoning.push({

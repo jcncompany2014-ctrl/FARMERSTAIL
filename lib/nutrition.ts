@@ -67,6 +67,8 @@ export type DogInfo = {
   ageUnit: 'years' | 'months'
   neutered: boolean
   activityLevel: 'low' | 'medium' | 'high'
+  /** 임신/수유 적용 게이트 — 'female' 만 pregnancyStatus 반영. */
+  gender?: 'male' | 'female' | null
 }
 
 export type BCSResult = {
@@ -106,10 +108,25 @@ function ageMonths(dog: DogInfo): number {
   return dog.ageUnit === 'years' ? dog.ageValue * 12 : dog.ageValue
 }
 
+/**
+ * 생애주기 결정 — WSAVA 2021 + NRC 2006 size-aware.
+ *
+ *   - 모든 견종 12개월 미만: puppy (대형견은 18-24개월까지 puppy 인 경우도
+ *     있으나 영양 측면에선 12개월 이후 성견 protocol 로 충분).
+ *   - 소형 (<10kg): senior 9세+ (108개월)
+ *   - 중형 (10-25kg): senior 7세+ (84개월)
+ *   - 대형/초대형 (>25kg): senior 6세+ (72개월)
+ *
+ * 출처:
+ *   - WSAVA 2021 Senior Care Guidelines
+ *   - Hoskins (2003) Veterinary Geriatrics
+ */
 function lifeStage(dog: DogInfo): 'puppy' | 'adult' | 'senior' {
   const m = ageMonths(dog)
   if (m < 12) return 'puppy'
-  if (m >= 84) return 'senior'
+  const seniorThreshold =
+    dog.weight < 10 ? 108 : dog.weight > 25 ? 72 : 84
+  if (m >= seniorThreshold) return 'senior'
   return 'adult'
 }
 
@@ -192,12 +209,19 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
 
   if (dog.neutered) factor *= 0.9
 
-  // 임신/수유 보정 (NRC 2006 §13)
-  if (answers.pregnancyStatus === 'pregnant') {
+  // 임신/수유 보정 (NRC 2006 §13). female + non-neutered 만 적용 — 수컷
+  // 또는 중성화견에 임신/수유 토글이 잘못 켜져도 factor 폭주 차단 (audit fix).
+  // dog.gender 미상 (legacy 입력) 이면 안전하게 적용 — 기존 호환.
+  const canBePregnantOrLactating =
+    !dog.neutered && (dog.gender === 'female' || dog.gender == null)
+  if (canBePregnantOrLactating && answers.pregnancyStatus === 'pregnant') {
     factor *= 1.3   // 임신 후반기 ~30% 증가
     riskFlags.push('PREGNANT')
     vetConsult = true
-  } else if (answers.pregnancyStatus === 'lactating') {
+  } else if (
+    canBePregnantOrLactating &&
+    answers.pregnancyStatus === 'lactating'
+  ) {
     factor *= 2.5   // 수유 절정기 — 새끼 수에 따라 RER × 2 ~ 4
     riskFlags.push('LACTATING')
     vetConsult = true
@@ -294,11 +318,23 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     }
   }
 
-  // 매크로 합 100 정규화 — 각 percentage 가 0 ~ 50 범위 내라고 가정
+  // 매크로 합 100 정규화 (audit fix — 이전 carb 에 max(20, ...) 강제로 합이
+  // 110% 까지 갈 수 있었음. 예: protein 50 + fat 30 + fiber 10 + carb 20 = 110).
+  // protein/fat/fiber 클램프 후 carb 가 잔량을 흡수. 잔량 < 0 이면 다른 매크로
+  // 비례 축소 (극단 chronic + MCS combo 케이스).
   proteinPct = Math.max(15, Math.min(50, proteinPct))
   fatPct = Math.max(8, Math.min(30, fatPct))
   fiberPct = Math.max(2, Math.min(10, fiberPct))
-  carbPct = Math.max(20, 100 - proteinPct - fatPct - fiberPct)
+  carbPct = 100 - proteinPct - fatPct - fiberPct
+  if (carbPct < 0) {
+    // protein + fat + fiber 합 > 100 — 비례 축소.
+    const overflow = -carbPct
+    const total = proteinPct + fatPct + fiberPct
+    proteinPct = Math.round(proteinPct - overflow * (proteinPct / total))
+    fatPct = Math.round(fatPct - overflow * (fatPct / total))
+    fiberPct = Math.round(fiberPct - overflow * (fiberPct / total))
+    carbPct = Math.max(0, 100 - proteinPct - fatPct - fiberPct)
+  }
 
   const proteinG = Math.round((MER * proteinPct / 100) / 4)
   const fatG = Math.round((MER * fatPct / 100) / 9)
@@ -377,7 +413,13 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     mer: MER,
     factor: +factor.toFixed(2),
     perMeal: Math.round(MER / 2),
-    feedG: Math.round(MER / 1.2),
+    // feedG — 화식 5종 평균 에너지 밀도 ~2.0 kcal/g 기준 (basic 2.15 / weight
+    // 1.75 / skin 2.25 / premium 1.95 / joint 2.0 → 가중평균 2.0). 실제
+    // 라인 mix 비율은 알고리즘 출력 후 결정되므로 여기선 평균값 사용.
+    // 이전 1.2 kcal/g 은 raw moisture 80% wet food 기준 (잘못된 가정 — audit
+    // fix). 결과: 10kg senior MER 472 → feedG 236g (이전 393g, 라인 mix 실제
+    // 237g 와 일치).
+    feedG: Math.round(MER / 2.0),
     stage,
     stageKR: lifeStageKR(stage),
     bcs,

@@ -337,11 +337,29 @@ function RecommendationView({
 }) {
   // 1주 / 2주 / 4주 분량 — quantize 잔차 흡수.
   // 2w/4w 가 정기배송 portion (하이브리드/풀 화식) 과 직결.
-  const days = scale === '1w' ? 7 : scale === '2w' ? 14 : 28
+  // 1w = 7일, 2w = 15일 (반달 portion), 4w = 30일 (한달 풀 portion)
+  // — order 페이지 cycleDays 와 일치 (calendar month).
+  const days = scale === '1w' ? 7 : scale === '2w' ? 15 : 30
   const totalKcal = useMemo(() => formula.dailyKcal, [formula.dailyKcal])
+  /**
+   * 라인 mix 기준 실제 일일 화식 g.
+   * dailyGrams 필드는 nutrition.ts 의 MER/1.2 (120 kcal/100g 기준 wet/raw)
+   * 이라 우리 cooked dense 화식 (175-225 kcal/100g) 와 안 맞음 — 라인별
+   * kcalPer100g 가중평균으로 재계산해 order 페이지와 일치시킴.
+   */
+  const dailyGramsByMix = useMemo(() => {
+    let total = 0
+    for (const line of ALL_LINES) {
+      const ratio = formula.lineRatios[line] ?? 0
+      if (ratio <= 0) continue
+      const kcalPer100g = FOOD_LINE_META[line].kcalPer100g
+      total += (ratio * formula.dailyKcal) / kcalPer100g * 100
+    }
+    return total
+  }, [formula.lineRatios, formula.dailyKcal])
   const totalGrams = useMemo(
-    () => Math.round(formula.dailyGrams * days),
-    [formula.dailyGrams, days],
+    () => Math.round(dailyGramsByMix * days),
+    [dailyGramsByMix, days],
   )
 
   const selectedLines = useMemo(
