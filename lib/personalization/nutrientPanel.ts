@@ -16,7 +16,11 @@
  *  - DM 값이 null 인 라인 (Ca/P/Na 미입력) 은 합산에서 제외 + 'unknown' 표시.
  */
 
-import { ALL_LINES, FOOD_LINE_META } from './lines.ts'
+import {
+  ALL_LINES,
+  FOOD_LINE_META,
+  FOOD_LINE_NUTRITION_FALLBACK,
+} from './lines.ts'
 import type { AlgorithmInput, Formula } from './types.ts'
 
 export type NutrientPanel = {
@@ -32,6 +36,17 @@ export type NutrientPanel = {
   sodiumPctDM: number | null
   /** Ca:P 비율 (대형견 puppy 1.8 상한). 둘 중 하나 null 이면 null. */
   calciumPhosphorusRatio: number | null
+  /** Σ ratio × omega3PctDM. EPA+DHA 합산 % DM. AAFCO 성견 최소 0.1%. */
+  omega3PctDM: number | null
+  /** Σ ratio × omega6PctDM. */
+  omega6PctDM: number | null
+  /** ω-6 : ω-3 비율. NRC 2006 5:1~10:1 (healthy), 2:1~5:1 (염증성). */
+  omega6to3Ratio: number | null
+  /**
+   * Σ ratio × vitamin D IU/100g DM. AAFCO 500-3000 IU/kg DM range
+   * (대형견 puppy max 5000).
+   */
+  vitaminDIuPer100gDM: number | null
 }
 
 export function computeNutrientPanel(
@@ -44,9 +59,15 @@ export function computeNutrientPanel(
   let ca = 0
   let p = 0
   let na = 0
+  let o3 = 0
+  let o6 = 0
+  let vd = 0
   let caKnown = true
   let pKnown = true
   let naKnown = true
+  let o3Known = true
+  let o6Known = true
+  let vdKnown = true
 
   for (const line of ALL_LINES) {
     const ratio = lineRatios[line] ?? 0
@@ -64,9 +85,15 @@ export function computeNutrientPanel(
 
     // Ca/P/Na — admin override 만 있고 lines.ts hardcoded 엔 없음 (v1.4
     // 시점). null 이면 partial 처리.
+    // omega-3/6/vitD 는 v1.6 부터 USDA fallback 추정값 사용 — admin override
+    // 우선, 없으면 FOOD_LINE_NUTRITION_FALLBACK.
     const lca = ov?.calciumPctDM ?? null
     const lpp = ov?.phosphorusPctDM ?? null
     const lna = ov?.sodiumPctDM ?? null
+    const fb = FOOD_LINE_NUTRITION_FALLBACK[line]
+    const lo3 = ov?.omega3PctDM ?? fb.omega3PctDM
+    const lo6 = ov?.omega6PctDM ?? fb.omega6PctDM
+    const lvd = ov?.vitaminDIuPer100gDM ?? fb.vitaminDIuPer100gDM
 
     if (lca === null) caKnown = false
     else ca += ratio * lca
@@ -74,6 +101,12 @@ export function computeNutrientPanel(
     else p += ratio * lpp
     if (lna === null) naKnown = false
     else na += ratio * lna
+    if (lo3 === null) o3Known = false
+    else o3 += ratio * lo3
+    if (lo6 === null) o6Known = false
+    else o6 += ratio * lo6
+    if (lvd === null) vdKnown = false
+    else vd += ratio * lvd
   }
 
   const calciumPctDM = caKnown ? round2(ca) : null
@@ -84,6 +117,14 @@ export function computeNutrientPanel(
       ? round2(calciumPctDM / phosphorusPctDM)
       : null
 
+  const omega3PctDM = o3Known ? round2(o3) : null
+  const omega6PctDM = o6Known ? round2(o6) : null
+  const omega6to3Ratio =
+    omega3PctDM !== null && omega6PctDM !== null && omega3PctDM > 0
+      ? round1(omega6PctDM / omega3PctDM)
+      : null
+  const vitaminDIuPer100gDM = vdKnown ? Math.round(vd) : null
+
   return {
     proteinPctDM: round1(protein),
     fatPctDM: round1(fat),
@@ -92,6 +133,10 @@ export function computeNutrientPanel(
     phosphorusPctDM,
     sodiumPctDM,
     calciumPhosphorusRatio,
+    omega3PctDM,
+    omega6PctDM,
+    omega6to3Ratio,
+    vitaminDIuPer100gDM,
   }
 }
 
@@ -222,6 +267,70 @@ export function clinicalCheckForPanel(
       actual: `${panel.proteinPctDM}% DM`,
       target: '<22% (IRIS 2019)',
     })
+  }
+
+  // AAFCO EPA+DHA 최소 (성견 0.1% DM) — audit Section 5 보강
+  if (panel.omega3PctDM !== null && panel.omega3PctDM < 0.1) {
+    w.push({
+      code: 'omega3-low',
+      label: 'AAFCO EPA+DHA 최소 미달',
+      actual: `${panel.omega3PctDM}% DM`,
+      target: '≥0.1% (AAFCO 2024 성견)',
+    })
+  }
+  // 심장병 (MMVD) EPA+DHA 권장 — ACVIM 2019 40-65 mg/kg BW/day.
+  // 대략 환산: 0.3% DM 이상이면 보통 충족 (10kg 견 200g/일 가정).
+  if (
+    context.hasCardiac &&
+    panel.omega3PctDM !== null &&
+    panel.omega3PctDM < 0.3
+  ) {
+    w.push({
+      code: 'cardiac-omega3-low',
+      label: '심장병 EPA+DHA 권장 미달',
+      actual: `${panel.omega3PctDM}% DM`,
+      target: '≥0.3% (Skin 라인 가산 권장 — Keene 2019)',
+    })
+  }
+  // omega-6:3 ratio — NRC 2006 healthy 5:1~10:1, 염증성 (atopy/IBD/관절염)
+  // 2:1~5:1 권장. 너무 높으면 친염증성, 너무 낮으면 fatty acid 균형 깨짐.
+  if (panel.omega6to3Ratio !== null) {
+    if (panel.omega6to3Ratio > 30) {
+      w.push({
+        code: 'omega-ratio-high',
+        label: 'omega-6:3 비율 과다',
+        actual: `${panel.omega6to3Ratio}:1`,
+        target: '≤30:1 (NRC 2006 — Skin 라인 가산)',
+      })
+    }
+  }
+
+  // Vitamin D — AAFCO 500-3000 IU/kg DM (대형견 puppy 5000 max). panel 의
+  // 단위는 IU/100g DM 이므로 × 10 = IU/kg DM.
+  if (panel.vitaminDIuPer100gDM !== null) {
+    const vdPerKg = panel.vitaminDIuPer100gDM * 10
+    if (vdPerKg < 500) {
+      w.push({
+        code: 'vitd-low',
+        label: 'AAFCO 비타민 D 최소 미달',
+        actual: `${vdPerKg} IU/kg DM`,
+        target: '≥500 IU/kg DM (AAFCO 2024)',
+      })
+    } else if (vdPerKg > 3000 && !context.isLargeBreedPuppy) {
+      w.push({
+        code: 'vitd-high',
+        label: 'AAFCO 비타민 D 상한 초과',
+        actual: `${vdPerKg} IU/kg DM`,
+        target: '≤3,000 IU/kg DM (AAFCO 2024 max)',
+      })
+    } else if (vdPerKg > 5000 && context.isLargeBreedPuppy) {
+      w.push({
+        code: 'vitd-large-puppy-high',
+        label: '대형견 puppy 비타민 D 상한 초과',
+        actual: `${vdPerKg} IU/kg DM`,
+        target: '≤5,000 IU/kg DM (AAFCO Large-size Growth)',
+      })
+    }
   }
 
   return { passed: w.length === 0, warnings: w }

@@ -8,6 +8,7 @@ type SubscriptionRow = {
   user_id: string
   status: 'active' | 'paused' | 'cancelled'
   interval_weeks: number
+  coverage_weeks: number | null
   next_delivery_date: string | null
   last_delivery_date: string | null
   total_deliveries: number
@@ -20,6 +21,8 @@ type SubscriptionRow = {
   shipping_fee: number
   total_amount: number
   created_at: string
+  dog_id: string | null
+  dogs: { id: string; name: string } | null
   profiles: { name: string | null; email: string | null } | null
   subscription_items: {
     product_name: string
@@ -65,7 +68,7 @@ export default function AdminSubscriptionsPage() {
     setLoading(true)
     const { data } = await supabase
       .from('subscriptions')
-      .select('*, profiles(name, email), subscription_items(*)')
+      .select('*, profiles(name, email), subscription_items(*), dogs(id, name)')
       .order('created_at', { ascending: false })
 
     if (data) setSubs(data as SubscriptionRow[])
@@ -318,9 +321,21 @@ export default function AdminSubscriptionsPage() {
                           </div>
                         ))}
                       </td>
-                      {/* 주기 */}
+                      {/* 주기 + 분량 */}
                       <td className="px-4 py-3 text-center text-xs font-bold text-text">
-                        {INTERVAL_LABELS[sub.interval_weeks] || `${sub.interval_weeks}주`}
+                        <div>
+                          {INTERVAL_LABELS[sub.interval_weeks] || `${sub.interval_weeks}주`}
+                        </div>
+                        {sub.coverage_weeks && (
+                          <div className="text-[9px] text-muted font-normal mt-0.5">
+                            {sub.coverage_weeks === 2 ? '2주치 (하이브리드)' : '4주치 (풀)'}
+                          </div>
+                        )}
+                        {sub.dogs && (
+                          <div className="text-[9px] text-terracotta font-normal mt-0.5">
+                            🐶 {sub.dogs.name}
+                          </div>
+                        )}
                       </td>
                       {/* 상태 */}
                       <td className="px-4 py-3 text-center">

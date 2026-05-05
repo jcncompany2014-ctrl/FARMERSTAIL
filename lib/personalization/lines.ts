@@ -130,6 +130,32 @@ export function getLineKcal(
   return override?.[line]?.kcalPer100g ?? FOOD_LINE_META[line].kcalPer100g
 }
 
+/**
+ * 라인별 omega-3 / omega-6 / vitamin D 추정값 (USDA FoodData Central + 화식
+ * 70% moisture 변환). admin override (algorithm_food_lines DB) 우선, 없으면
+ * 이 fallback. NULL 이면 nutrient panel 의 omega/vit D 검증 skip.
+ *
+ * 출처:
+ *   - USDA FoodData Central (chicken/duck/salmon/beef/pork lean cooked)
+ *   - NRC 2006 Nutrient Requirements ch.7 (Lipids)
+ *   - Bauer (2008) JAVMA 233:680 — fatty acid review
+ */
+export const FOOD_LINE_NUTRITION_FALLBACK: Record<
+  FoodLineMeta['line'],
+  {
+    omega3PctDM: number
+    omega6PctDM: number
+    vitaminDIuPer100gDM: number
+  }
+> = {
+  basic:   { omega3PctDM: 0.17, omega6PctDM: 3.3, vitaminDIuPer100gDM: 17 },
+  weight:  { omega3PctDM: 0.33, omega6PctDM: 3.3, vitaminDIuPer100gDM: 83 },
+  // skin = 연어 — 자연 EPA+DHA 풍부. cardiac/atopy 가산 핵심.
+  skin:    { omega3PctDM: 6.7,  omega6PctDM: 1.7, vitaminDIuPer100gDM: 1200 },
+  premium: { omega3PctDM: 0.10, omega6PctDM: 1.7, vitaminDIuPer100gDM: 17 },
+  joint:   { omega3PctDM: 0.17, omega6PctDM: 5.0, vitaminDIuPer100gDM: 167 },
+}
+
 /** preferred_proteins (survey) → FoodLine 매핑.
  * 알고리즘이 "닭 좋아함" → Basic 가산점 같은 결정에 사용. */
 export const PROTEIN_TO_LINE: Record<string, FoodLineMeta['line']> = {

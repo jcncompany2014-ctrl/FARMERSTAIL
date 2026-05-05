@@ -252,6 +252,18 @@ export type FoodLineMetaOverride = {
   phosphorusPctDM: number | null
   /** Sodium % DM. 심장병 저나트륨 검증. */
   sodiumPctDM: number | null
+  /**
+   * EPA+DHA 합산 % DM. AAFCO 2024 성견 최소 0.1%. ACVIM cardiac 권장
+   * 40-65 mg/kg BW/day. NULL = 추후 batch lab.
+   */
+  omega3PctDM: number | null
+  /** omega-6 % DM. omega-6:3 ratio (5:1~10:1) 검증. */
+  omega6PctDM: number | null
+  /**
+   * vitamin D IU per 100g DM. AAFCO 500-3000 IU/kg DM range, 대형 puppy
+   * 5000 max. 과다는 hypercalcemia 위험.
+   */
+  vitaminDIuPer100gDM: number | null
   /** UI 한국어 부제 — admin 이 batch 별 갱신. */
   subtitle: string | null
   /** 한 줄 효능 요약 — admin 이 편집. */

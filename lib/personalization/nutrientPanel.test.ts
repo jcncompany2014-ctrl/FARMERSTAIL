@@ -83,6 +83,14 @@ describe('clinicalCheckForPanel', () => {
     irisStage: null,
   }
 
+  // 정상 범위 omega/vitD default — 개별 case 가 override.
+  const NORM = {
+    omega3PctDM: 0.5,
+    omega6PctDM: 3.0,
+    omega6to3Ratio: 6.0,
+    vitaminDIuPer100gDM: 100, // 1000 IU/kg DM (AAFCO 500-3000 범위)
+  } as const
+
   it('일반 성견 normal panel → passed', () => {
     const c = clinicalCheckForPanel(
       {
@@ -93,6 +101,7 @@ describe('clinicalCheckForPanel', () => {
         phosphorusPctDM: null,
         sodiumPctDM: null,
         calciumPhosphorusRatio: null,
+        ...NORM,
       },
       baseContext,
     )
@@ -110,6 +119,7 @@ describe('clinicalCheckForPanel', () => {
         phosphorusPctDM: null,
         sodiumPctDM: null,
         calciumPhosphorusRatio: null,
+        ...NORM,
       },
       { ...baseContext, isPuppy: true },
     )
@@ -127,6 +137,7 @@ describe('clinicalCheckForPanel', () => {
         phosphorusPctDM: null,
         sodiumPctDM: null,
         calciumPhosphorusRatio: null,
+        ...NORM,
       },
       { ...baseContext, hasPancreatitis: true },
     )
@@ -143,6 +154,7 @@ describe('clinicalCheckForPanel', () => {
         phosphorusPctDM: 0.8,
         sodiumPctDM: null,
         calciumPhosphorusRatio: 2.0,
+        ...NORM,
       },
       { ...baseContext, isPuppy: true, isLargeBreedPuppy: true },
     )
@@ -159,6 +171,7 @@ describe('clinicalCheckForPanel', () => {
         phosphorusPctDM: null,
         sodiumPctDM: 0.4,
         calciumPhosphorusRatio: null,
+        ...NORM,
       },
       { ...baseContext, hasCardiac: true },
     )
@@ -175,9 +188,119 @@ describe('clinicalCheckForPanel', () => {
         phosphorusPctDM: null,
         sodiumPctDM: null,
         calciumPhosphorusRatio: null,
+        ...NORM,
       },
       { ...baseContext, irisStage: 3 },
     )
     assert.ok(c.warnings.find((w) => w.code === 'ckd-protein-high'))
+  })
+
+  // v1.6 audit Section 5 — omega-3 / omega-6:3 / vitamin D
+  it('AAFCO EPA+DHA 0.05% → 미달 warning', () => {
+    const c = clinicalCheckForPanel(
+      {
+        proteinPctDM: 26,
+        fatPctDM: 12,
+        kcalPer100g: 215,
+        calciumPctDM: null,
+        phosphorusPctDM: null,
+        sodiumPctDM: null,
+        calciumPhosphorusRatio: null,
+        ...NORM,
+        omega3PctDM: 0.05,
+      },
+      baseContext,
+    )
+    assert.ok(c.warnings.find((w) => w.code === 'omega3-low'))
+  })
+
+  it('심장병 + omega-3 0.2% → 권장 미달 warning', () => {
+    const c = clinicalCheckForPanel(
+      {
+        proteinPctDM: 26,
+        fatPctDM: 12,
+        kcalPer100g: 215,
+        calciumPctDM: null,
+        phosphorusPctDM: null,
+        sodiumPctDM: null,
+        calciumPhosphorusRatio: null,
+        ...NORM,
+        omega3PctDM: 0.2,
+      },
+      { ...baseContext, hasCardiac: true },
+    )
+    assert.ok(c.warnings.find((w) => w.code === 'cardiac-omega3-low'))
+  })
+
+  it('omega-6:3 비율 35:1 → 과다 warning', () => {
+    const c = clinicalCheckForPanel(
+      {
+        proteinPctDM: 26,
+        fatPctDM: 12,
+        kcalPer100g: 215,
+        calciumPctDM: null,
+        phosphorusPctDM: null,
+        sodiumPctDM: null,
+        calciumPhosphorusRatio: null,
+        ...NORM,
+        omega6to3Ratio: 35,
+      },
+      baseContext,
+    )
+    assert.ok(c.warnings.find((w) => w.code === 'omega-ratio-high'))
+  })
+
+  it('vitamin D 30 IU/100g (300 IU/kg) → 최소 미달', () => {
+    const c = clinicalCheckForPanel(
+      {
+        proteinPctDM: 26,
+        fatPctDM: 12,
+        kcalPer100g: 215,
+        calciumPctDM: null,
+        phosphorusPctDM: null,
+        sodiumPctDM: null,
+        calciumPhosphorusRatio: null,
+        ...NORM,
+        vitaminDIuPer100gDM: 30,
+      },
+      baseContext,
+    )
+    assert.ok(c.warnings.find((w) => w.code === 'vitd-low'))
+  })
+
+  it('vitamin D 350 IU/100g (3500 IU/kg) → 상한 초과 (puppy 아닌)', () => {
+    const c = clinicalCheckForPanel(
+      {
+        proteinPctDM: 26,
+        fatPctDM: 12,
+        kcalPer100g: 215,
+        calciumPctDM: null,
+        phosphorusPctDM: null,
+        sodiumPctDM: null,
+        calciumPhosphorusRatio: null,
+        ...NORM,
+        vitaminDIuPer100gDM: 350,
+      },
+      baseContext,
+    )
+    assert.ok(c.warnings.find((w) => w.code === 'vitd-high'))
+  })
+
+  it('대형견 puppy + vitamin D 600 IU/100g (6000 IU/kg) → 상한 초과', () => {
+    const c = clinicalCheckForPanel(
+      {
+        proteinPctDM: 26,
+        fatPctDM: 12,
+        kcalPer100g: 215,
+        calciumPctDM: null,
+        phosphorusPctDM: null,
+        sodiumPctDM: null,
+        calciumPhosphorusRatio: null,
+        ...NORM,
+        vitaminDIuPer100gDM: 600,
+      },
+      { ...baseContext, isPuppy: true, isLargeBreedPuppy: true },
+    )
+    assert.ok(c.warnings.find((w) => w.code === 'vitd-large-puppy-high'))
   })
 })
