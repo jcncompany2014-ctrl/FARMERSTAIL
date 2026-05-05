@@ -508,10 +508,16 @@ export default function OrderPage() {
       const subShipping =
         subSubtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_FEE
       const subTotal = subSubtotal + subShipping
-      // 박스 정기배송: 한달 1회 청구 (interval_weeks=4 고정).
-      // coverageWeeks 는 portion (2 또는 4) — DB 컬럼 coverage_weeks.
+      // 박스 정기배송 다음 배송일:
+      //   · 4주치 (풀 화식) — 캘린더 월 기준 (같은 날 다음 달)
+      //   · 2주치 (하이브리드) — 15일 후
+      // cron `nextDeliveryDate` 와 정합 (cron 도 box 구독은 같은 룰 사용).
       const nextDelivery = new Date()
-      nextDelivery.setDate(nextDelivery.getDate() + 28)
+      if (coverageWeeks === 2) {
+        nextDelivery.setDate(nextDelivery.getDate() + 15)
+      } else {
+        nextDelivery.setMonth(nextDelivery.getMonth() + 1)
+      }
 
       const customerKey =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto

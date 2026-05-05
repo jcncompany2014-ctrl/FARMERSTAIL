@@ -42,7 +42,10 @@ export const dynamic = 'force-dynamic'
  */
 
 const MAX_PER_RUN = 100
-const CYCLE_DAYS = 28
+// 한 cycle = 30일 (캘린더 월). order 페이지 4주치 portion (30일) 와 정합.
+// (이전 28일은 정확히 4주 = subscription_charge cron 의 interval_weeks=4 와 같았음.
+// portion 모델 도입 후 30일 표준으로 통일.)
+const CYCLE_DAYS = 30
 
 function todayKstIsoDate(): string {
   const now = new Date()

@@ -4,7 +4,7 @@ import { zPersonalizationCompute } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { decideFirstBox } from '@/lib/personalization/firstBox'
-import { ALL_LINES, FOOD_LINE_META } from '@/lib/personalization/lines'
+import { dailyGramsFromMix } from '@/lib/personalization/lines'
 import type { AlgorithmInput, Formula } from '@/lib/personalization/types'
 
 export const runtime = 'nodejs'
@@ -296,20 +296,13 @@ export async function POST(req: Request) {
   const formula = decideFirstBox(input)
 
   // 5.5) daily_grams 재계산 — 결정된 라인 mix 의 kcalPer100g 가중평균 기준.
-  // nutrition.ts 의 feed_g (MER/1.2 = 120 kcal/100g 기준 wet/raw baseline) 는
-  // 실제 cooked 화식 (175-225 kcal/100g) 와 안 맞아 분석 페이지 / order
-  // 페이지 / DB 값이 어긋남. 라인 mix 기준으로 재계산해 일관성 확보.
-  const dailyGramsByMix = (() => {
-    let total = 0
-    for (const line of ALL_LINES) {
-      const ratio = formula.lineRatios[line] ?? 0
-      if (ratio <= 0) continue
-      const kcal100 =
-        foodLineMetaOverride[line]?.kcalPer100g ?? FOOD_LINE_META[line].kcalPer100g
-      total += (ratio * formula.dailyKcal) / kcal100 * 100
-    }
-    return Math.round(total)
-  })()
+  // nutrition.ts 의 feed_g 는 평균 2.0 kcal/g 추정. 라인 mix 결정 후엔 실제
+  // 가중평균으로 재계산해 정확도 ↑.
+  const dailyGramsByMix = dailyGramsFromMix(
+    formula.lineRatios,
+    formula.dailyKcal,
+    foodLineMetaOverride,
+  )
   formula.dailyGrams = dailyGramsByMix
 
   // 6) Persist — UNIQUE (dog_id, cycle_number) 충돌 시 race condition (다른 탭).

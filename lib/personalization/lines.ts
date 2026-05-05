@@ -165,3 +165,27 @@ export const PROTEIN_TO_LINE: Record<string, FoodLineMeta['line']> = {
   beef: 'premium',
   pork: 'joint',
 }
+
+/**
+ * 결정된 라인 mix 의 가중평균 kcal/100g 으로 일일 g 재계산.
+ *
+ * nutrition.ts 의 feed_g 는 평균 2.0 kcal/g 가정 — 실제 라인 mix 비율 따라
+ * basic 2.15 / weight 1.75 / skin 2.25 / premium 1.95 / joint 2.0 가중평균
+ * 적용해 정확도 ↑. compute API + nextBox + 분석 페이지 RecommendationBox
+ * 모두 같은 룰로 통일.
+ */
+export function dailyGramsFromMix(
+  lineRatios: Record<FoodLineMeta['line'], number>,
+  dailyKcal: number,
+  override?: Record<string, { kcalPer100g?: number } | undefined>,
+): number {
+  let total = 0
+  for (const line of ALL_LINES) {
+    const ratio = lineRatios[line] ?? 0
+    if (ratio <= 0) continue
+    const kcal100 =
+      override?.[line]?.kcalPer100g ?? FOOD_LINE_META[line].kcalPer100g
+    total += (ratio * dailyKcal) / kcal100 * 100
+  }
+  return Math.round(total)
+}

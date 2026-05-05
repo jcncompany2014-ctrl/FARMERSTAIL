@@ -117,7 +117,17 @@ export default function AdminSubscriptionsPage() {
       const sub = subs.find(s => s.id === subId)
       if (sub) {
         const next = new Date()
-        next.setDate(next.getDate() + sub.interval_weeks * 7)
+        // 박스 구독은 캘린더 월 기준 (4주치) 또는 15일 (2주치)
+        const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null
+        if (isBoxSub) {
+          if (sub.coverage_weeks === 2) {
+            next.setDate(next.getDate() + 15)
+          } else {
+            next.setMonth(next.getMonth() + 1)
+          }
+        } else {
+          next.setDate(next.getDate() + sub.interval_weeks * 7)
+        }
         updates.next_delivery_date = next.toISOString().split('T')[0]
       }
     }
@@ -186,8 +196,18 @@ export default function AdminSubscriptionsPage() {
       await supabase.from('order_items').insert(items)
 
       // 3) 구독 업데이트: 다음 배송일 갱신, 누적 횟수 +1
+      // 박스 구독은 캘린더 월 (4주치) 또는 15일 (2주치) — cron 룰과 정합.
       const nextDate = new Date(sub.next_delivery_date!)
-      nextDate.setDate(nextDate.getDate() + sub.interval_weeks * 7)
+      const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null
+      if (isBoxSub) {
+        if (sub.coverage_weeks === 2) {
+          nextDate.setDate(nextDate.getDate() + 15)
+        } else {
+          nextDate.setMonth(nextDate.getMonth() + 1)
+        }
+      } else {
+        nextDate.setDate(nextDate.getDate() + sub.interval_weeks * 7)
+      }
 
       await supabase
         .from('subscriptions')

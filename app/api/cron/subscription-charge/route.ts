@@ -52,6 +52,8 @@ type SubscriptionRow = {
   recipient_address: string | null
   recipient_address_detail: string | null
   interval_weeks: number
+  coverage_weeks: number | null
+  dog_id: string | null
   total_deliveries: number
 }
 
@@ -69,6 +71,27 @@ function addWeeksIso(isoDate: string, weeks: number): string {
   const d = new Date(isoDate + 'T00:00:00Z')
   d.setUTCDate(d.getUTCDate() + weeks * 7)
   return d.toISOString().slice(0, 10)
+}
+
+/**
+ * 박스 정기배송 (dog_id + coverage_weeks 있음) 은 캘린더 월 기준 — 같은 날
+ * 다음 달. order 페이지 cycleDays (4주치=30일, 2주치=15일) 와 정합. 단일
+ * SKU /subscribe/[slug] 흐름 (interval_weeks 1/2/4) 은 기존 weekly 로직 유지.
+ */
+function nextDeliveryDate(sub: SubscriptionRow, todayIso: string): string {
+  const isBoxSubscription = !!sub.dog_id && sub.coverage_weeks != null
+  if (isBoxSubscription) {
+    const d = new Date(todayIso + 'T00:00:00Z')
+    if (sub.coverage_weeks === 2) {
+      // 2주치 하이브리드 — 15일 후
+      d.setUTCDate(d.getUTCDate() + 15)
+    } else {
+      // 4주치 풀 — 캘린더 월 (같은 날 다음 달)
+      d.setUTCMonth(d.getUTCMonth() + 1)
+    }
+    return d.toISOString().slice(0, 10)
+  }
+  return addWeeksIso(todayIso, sub.interval_weeks)
 }
 
 export async function GET(req: Request) {
@@ -89,7 +112,8 @@ export async function GET(req: Request) {
       `id, user_id, next_delivery_date, total_amount,
        billing_key, billing_customer_key, failed_charge_count,
        recipient_name, recipient_phone, recipient_zip, recipient_address,
-       recipient_address_detail, interval_weeks, total_deliveries`,
+       recipient_address_detail, interval_weeks, coverage_weeks, dog_id,
+       total_deliveries`,
     )
     .eq('status', 'active')
     .not('billing_key', 'is', null)
@@ -193,7 +217,7 @@ export async function GET(req: Request) {
     if (result.ok) {
       // 2-d) 성공 → orders / charge / subscription 업데이트.
       const nowIso = new Date().toISOString()
-      const nextDate = addWeeksIso(today, sub.interval_weeks)
+      const nextDate = nextDeliveryDate(sub, today)
       await Promise.all([
         supabase
           .from('orders')

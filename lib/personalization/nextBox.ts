@@ -33,7 +33,7 @@ import type {
   Reasoning,
   TransitionStrategy,
 } from './types.ts'
-import { FOOD_LINE_META, ALL_LINES } from './lines.ts'
+import { FOOD_LINE_META, ALL_LINES, dailyGramsFromMix } from './lines.ts'
 import { quantizeAndNormalize } from './quantize.ts'
 
 // firstBox 와 동일 버전 — 둘 다 같은 룰셋/타입을 공유. 분리 버전은 분석/diff 깨짐.
@@ -410,13 +410,20 @@ function finalize(
   // 전환 전략 — cycle 2+ 는 항상 'gradual' (이미 적응 단계).
   const transitionStrategy: TransitionStrategy = 'gradual'
 
+  // dailyGrams 라인 mix 기준 재계산 (cycle 별 비율 변경 반영).
+  const dailyGramsByMix = dailyGramsFromMix(
+    finalized,
+    surveyInput.dailyKcal,
+    surveyInput.foodLineMetaOverride,
+  )
+
   return {
     lineRatios: finalized,
     toppers,
     reasoning: reasoning.sort((a, b) => a.priority - b.priority),
     transitionStrategy,
     dailyKcal: surveyInput.dailyKcal,
-    dailyGrams: surveyInput.dailyGrams,
+    dailyGrams: dailyGramsByMix,
     cycleNumber,
     algorithmVersion: ALGORITHM_VERSION,
     userAdjusted: false,

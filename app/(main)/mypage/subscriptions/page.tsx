@@ -129,8 +129,22 @@ function MySubscriptionsPageInner() {
     if (!uid) return
     const sub = subs.find((s) => s.id === subId)
     if (!sub) return
+    // 박스 구독 (dog_id + coverage_weeks): coverage 에 따라 다음 배송일 산정
+    //   · 4주치 → 캘린더 월 (다음 달 같은 날)
+    //   · 2주치 → 15일 후
+    //   · 단일 SKU 구독 → interval_weeks × 7
+    // cron `nextDeliveryDate` / order 페이지 와 정합.
     const nextDate = new Date()
-    nextDate.setDate(nextDate.getDate() + sub.interval_weeks * 7)
+    const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null
+    if (isBoxSub) {
+      if (sub.coverage_weeks === 2) {
+        nextDate.setDate(nextDate.getDate() + 15)
+      } else {
+        nextDate.setMonth(nextDate.getMonth() + 1)
+      }
+    } else {
+      nextDate.setDate(nextDate.getDate() + sub.interval_weeks * 7)
+    }
 
     await supabase
       .from('subscriptions')
