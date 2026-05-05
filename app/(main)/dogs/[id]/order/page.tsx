@@ -33,8 +33,9 @@ import './order.css'
  * # 흐름
  *  1. 강아지 + 최신 dog_formulas (cycle desc 1) + profile fetch
  *  2. 5 라인 + 2 토퍼 → SKU 매핑 (slug 기준), net_weight_g 로 팩 수 산정
- *  3. interval (매주/2주/4주) 선택 → 한 배송 분량 g 계산 + 사료관리법 ±5%
- *     허용 오차 내 반올림 (95% 이상 deliver 시 floor, 미달 시 ceil)
+ *  3. portion (2주치 / 4주치) 선택 — 청구는 항상 한달 1회.
+ *     2주치 = 화식반 + 건식사료반 권장 (가성비), 4주치 = 풀 화식.
+ *     사료관리법 ±5% 허용 오차 내 팩 수 산정 (95% 이상 deliver 시 floor).
  *  4. 주소·수령인 (profile pre-fill, 없으면 daum postcode)
  *  5. CTA "정기배송 신청" → subscriptions + subscription_items insert →
  *     /subscribe/billing-auth (Toss 카드 등록) 으로 redirect
@@ -42,7 +43,7 @@ import './order.css'
  * # 법적 근거
  *  - 사료관리법 시행규칙 별표 4 (사료 표시기준) — 표시 정량 ±5% 허용 오차
  *  - 식품등의 표시·광고에 관한 법률 (사료가 식품 분류는 아니지만 동일 정량 관행)
- *  - cycle 분량은 ratio × 일일 kcal / kcalPer100g × interval 일수
+ *  - cycle 분량은 ratio × 일일 kcal / kcalPer100g × coverageWeeks × 7
  *
  * # SKU 매핑 (현재 등록된 4 라인 + 2 토퍼; joint 미등록 시 graceful skip)
  */
@@ -65,12 +66,27 @@ const TOPPER_KCAL_PER_100G = 380
 /** 사료관리법 표시기준 ±5% 허용 — floor 가 95% 이상 deliver 하면 floor 채택. */
 const TOLERANCE = 0.95
 
-/** 정기배송 주기 옵션. */
-const INTERVALS = [
-  { value: 1, label: '매주', desc: '1주마다 신선 배송' },
-  { value: 2, label: '2주마다', desc: '인기 · 신선도 + 비용 균형' },
-  { value: 4, label: '4주마다', desc: '월 1회 · 냉동보관 가능' },
+/**
+ * 박스 정기배송 portion 옵션.
+ * 배송 주기는 항상 한달마다 (interval_weeks=4). portion 만 선택.
+ *  - 4주치: 한 달 풀커버 (화식 100%) — 인기
+ *  - 2주치: 가성비 — 화식 50% + 건식사료 50% 권장 (보호자 판단)
+ */
+const PORTION_OPTIONS = [
+  {
+    value: 2 as const,
+    label: '2주치',
+    sub: '하이브리드',
+    desc: '화식 50% + 건식 50% 권장 — 가성비',
+  },
+  {
+    value: 4 as const,
+    label: '4주치',
+    sub: '풀 화식',
+    desc: '한 달 풀 커버 — 인기',
+  },
 ]
+type PortionWeeks = (typeof PORTION_OPTIONS)[number]['value']
 
 const SHIPPING_FREE_THRESHOLD = 30000
 const SHIPPING_FEE = 3000
@@ -188,8 +204,8 @@ export default function OrderPage() {
   const [formula, setFormula] = useState<Formula | null>(null)
   const [products, setProducts] = useState<Record<string, Product>>({})
 
-  // 정기배송 입력
-  const [interval, setIntervalWeeks] = useState(2)
+  // 정기배송 입력 — 한달 1회 청구 고정, portion (2주치 / 4주치) 만 선택
+  const [coverageWeeks, setCoverageWeeks] = useState<PortionWeeks>(4)
   const [recipientName, setRecipientName] = useState('')
   const [recipientPhone, setRecipientPhone] = useState('')
   const [recipientZip, setRecipientZip] = useState('')
@@ -210,11 +226,12 @@ export default function OrderPage() {
     loadDaumPostcode()
   }, [])
 
-  // 첫 배송 예상일 (interval × 7d 후)
+  // 첫 배송 예상일 — 신청일 + 4-7일 (택배 대기) 가정. 이후 한달 단위 청구.
+  // (마이페이지/cron 가 next_delivery_date 관리)
   const [firstDeliveryAt, setFirstDeliveryAt] = useState<number | null>(null)
   useEffect(() => {
-    setFirstDeliveryAt(Date.now() + interval * 7 * 86400000)
-  }, [interval])
+    setFirstDeliveryAt(Date.now() + 5 * 86400000)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -324,8 +341,10 @@ export default function OrderPage() {
     }
   }, [dogId, router, supabase])
 
-  // ── 라인 + 토퍼 → 항목 빌드 (interval 변경 시 자동 재계산) ─────────────
-  const intervalDays = interval * 7
+  // ── 라인 + 토퍼 → 항목 빌드 (coverageWeeks 변경 시 자동 재계산) ────────
+  // 한 회 배송 분량 = 일일 g × coverageWeeks × 7
+  // (interval_weeks=4 고정, coverageWeeks=2 면 화식반 + 건식사료반 권장)
+  const cycleDays = coverageWeeks * 7
   const items: LineItem[] = []
 
   if (formula) {
@@ -341,7 +360,7 @@ export default function OrderPage() {
       const meta = FOOD_LINE_META[line]
       const kcalPer100g = meta.kcalPer100g
       const dailyG = ((ratio * dailyKcal) / kcalPer100g) * 100
-      const cycleG = dailyG * intervalDays
+      const cycleG = dailyG * cycleDays
       const packG = product.net_weight_g ?? 500
       const { packs, deliveredG, deliverRatio } = packsForCycle(cycleG, packG)
       items.push({
@@ -363,7 +382,7 @@ export default function OrderPage() {
       const product = products[slug]
       if (!product) continue
       const dailyG = ((ratio * dailyKcal) / TOPPER_KCAL_PER_100G) * 100
-      const cycleG = dailyG * intervalDays
+      const cycleG = dailyG * cycleDays
       const packG = product.net_weight_g ?? 100
       const { packs, deliveredG, deliverRatio } = packsForCycle(cycleG, packG)
       items.push({
@@ -446,8 +465,10 @@ export default function OrderPage() {
       const subShipping =
         subSubtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_FEE
       const subTotal = subSubtotal + subShipping
+      // 박스 정기배송: 한달 1회 청구 (interval_weeks=4 고정).
+      // coverageWeeks 는 portion (2 또는 4) — DB 컬럼 coverage_weeks.
       const nextDelivery = new Date()
-      nextDelivery.setDate(nextDelivery.getDate() + interval * 7)
+      nextDelivery.setDate(nextDelivery.getDate() + 28)
 
       const customerKey =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -458,7 +479,9 @@ export default function OrderPage() {
         .from('subscriptions')
         .insert({
           user_id: user.id,
-          interval_weeks: interval,
+          dog_id: dogId,
+          interval_weeks: 4,
+          coverage_weeks: coverageWeeks,
           status: 'active',
           next_delivery_date: nextDelivery.toISOString().split('T')[0],
           total_deliveries: 0,
@@ -502,7 +525,8 @@ export default function OrderPage() {
         gtag('event', 'subscription_started', {
           dog_id: dogId,
           cycle_number: formula?.cycleNumber ?? null,
-          interval_weeks: interval,
+          interval_weeks: 4,
+          coverage_weeks: coverageWeeks,
           item_count: subscribable.length,
           subtotal: subSubtotal,
           memo_provided: memo.trim().length > 0,
@@ -550,8 +574,8 @@ export default function OrderPage() {
           정기배송으로 시작할까요?
         </h1>
         <p>
-          분석된 비율 그대로 알맞은 분량을 계산했어요. 1회 배송에 필요한 g
-          기준으로 팩 수를 자동 산정 (사료관리법 ±5% 허용 오차 내).
+          분석된 비율 그대로 분량 산정 — 한달 1회 배송 (4주치 풀, 2주치 하이브리드).
+          사료관리법 ±5% 허용 오차 내 팩 수 자동 반올림.
         </p>
       </header>
 
@@ -582,37 +606,51 @@ export default function OrderPage() {
             </span>
           </section>
 
-          {/* 정기배송 주기 선택 */}
+          {/* 한달 정기배송 portion 선택 — 2주치 / 4주치 */}
           <section className="ord-section">
             <h2 className="ord-section-h">
               <Repeat size={13} strokeWidth={2.2} color="var(--moss)" />
-              배송 주기
+              한달 정기배송 · 분량 선택
             </h2>
             <div
-              className="ord-interval-grid"
+              className="ord-interval-grid ord-portion-grid"
               role="radiogroup"
-              aria-label="정기배송 주기"
+              aria-label="박스 분량 선택"
             >
-              {INTERVALS.map((opt) => (
+              {PORTION_OPTIONS.map((opt) => (
                 <button
                   type="button"
                   key={opt.value}
                   role="radio"
-                  aria-checked={interval === opt.value}
+                  aria-checked={coverageWeeks === opt.value}
                   className={
                     'ord-interval-card' +
-                    (interval === opt.value ? ' ord-interval-on' : '')
+                    (coverageWeeks === opt.value ? ' ord-interval-on' : '')
                   }
                   onClick={() => {
                     haptic('tick')
-                    setIntervalWeeks(opt.value)
+                    setCoverageWeeks(opt.value)
                   }}
                 >
                   <span className="ord-interval-label">{opt.label}</span>
+                  <span className="ord-portion-sub">{opt.sub}</span>
                   <span className="ord-interval-desc">{opt.desc}</span>
                 </button>
               ))}
             </div>
+            {coverageWeeks === 2 && (
+              <div className="ord-hybrid-note" role="note">
+                <Sparkles size={12} strokeWidth={2.4} color="var(--moss)" />
+                <div>
+                  <strong>화식 50% + 건식사료 50% 권장</strong>
+                  <span>
+                    2주치는 한 달의 절반만 화식 — 나머지는 평소 드시던 건식
+                    사료와 섞어 주세요. 입문/가성비에 적합하고, 영양 균형은
+                    화식 쪽이 책임집니다.
+                  </span>
+                </div>
+              </div>
+            )}
             {firstDeliveryAt !== null && (
               <p className="ord-interval-foot">
                 <CalendarDays size={11} strokeWidth={2.2} color="var(--muted)" />
@@ -623,6 +661,7 @@ export default function OrderPage() {
                     day: 'numeric',
                     weekday: 'short',
                   })}
+                  {' · 이후 매월 같은 날 자동 청구'}
                 </span>
               </p>
             )}
@@ -673,10 +712,7 @@ export default function OrderPage() {
                     <div className="ord-item-portion">
                       <PackageOpen size={11} strokeWidth={2.2} color={color} />
                       <span>
-                        {interval === 1
-                          ? '1주 분량'
-                          : `${interval}주 분량`}
-                        {' '}
+                        {coverageWeeks}주치 분량{' '}
                         <strong>{formatGrams(it.deliveredG)}</strong>
                         {' · '}
                         {it.quantity}팩
@@ -783,7 +819,7 @@ export default function OrderPage() {
           {/* 결제 요약 */}
           <section className="ord-summary">
             <div className="ord-summary-row">
-              <span>1회 배송 분량</span>
+              <span>월 배송 분량 ({coverageWeeks}주치)</span>
               <strong className="ord-summary-strong-sm">
                 {formatGrams(totalCycleG)}
                 {' · '}
@@ -804,14 +840,14 @@ export default function OrderPage() {
             </div>
             <div className="ord-summary-divide" />
             <div className="ord-summary-row">
-              <span>1회 결제</span>
+              <span>월 결제</span>
               <strong>{totalAmount.toLocaleString()}원</strong>
             </div>
             <div className="ord-summary-row ord-summary-info">
               <Sparkles size={11} strokeWidth={2.2} color="var(--moss)" />
               <span>
                 알고리즘 v{formula.algorithmVersion} · {formula.dailyKcal} kcal/일
-                · {interval}주마다 자동 청구
+                · 매월 자동 청구 ({coverageWeeks}주치 portion)
               </span>
             </div>
             {(oosCount > 0 || nonSubscribableCount > 0) && (

@@ -612,7 +612,7 @@ function RecommendationView({
             className="fb-cta-prim"
             style={{ textDecoration: 'none' }}
           >
-            이 박스 주문하기
+            정기배송 신청
             <ArrowRight size={14} strokeWidth={2.4} color="#fff" />
           </a>
         </div>
