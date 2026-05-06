@@ -145,6 +145,10 @@ export async function POST(req: Request) {
   //   • restock_alerts  — product subscription; no legal retention
   //   • cart_recovery_log — PIPA reminder audit; only needed while user exists
   //   • push_preferences — category opt-in flags
+  //   • dog_formulas / dog_checkins — pet personalization data (펫 정보)
+  //   • native_push_tokens / newsletter_subscribers — 통신 채널, 즉시 해제
+  //   • addresses — 배송지 저장본 (orders 행에 snapshot 이 별도)
+  //   • push_log — 발송 이력 audit 가 user 떠나면 의미 없음
   await Promise.all([
     admin.from('dogs').delete().eq('user_id', user.id),
     admin.from('cart_items').delete().eq('user_id', user.id),
@@ -159,7 +163,41 @@ export async function POST(req: Request) {
     admin.from('dog_reminders').delete().eq('user_id', user.id),
     admin.from('analyses').delete().eq('user_id', user.id),
     admin.from('surveys').delete().eq('user_id', user.id),
+    admin.from('dog_formulas').delete().eq('user_id', user.id),
+    admin.from('dog_checkins').delete().eq('user_id', user.id),
+    admin.from('native_push_tokens').delete().eq('user_id', user.id),
+    admin.from('newsletter_subscribers').delete().eq('user_id', user.id),
+    admin.from('addresses').delete().eq('user_id', user.id),
+    admin.from('push_log').delete().eq('user_id', user.id),
   ])
+
+  // 정기배송 — billing_key 카드 토큰 즉시 해제 + cancel 처리. 전자상거래법
+  // 보관 의무 (subscription_charges) 와 별개로 토큰은 결제수단 정보라 즉시
+  // 삭제. 카드사에 알리는 별도 절차는 필요 없음 (Toss 측에서 토큰 invalidation
+  // 은 미사용 기간 자동 만료).
+  await admin
+    .from('subscriptions')
+    .update({
+      status: 'cancelled',
+      billing_key: null,
+      billing_customer_key: null,
+      billing_card_brand: null,
+      billing_card_last4: null,
+      requires_billing_key_renewal: false,
+      next_retry_at: null,
+      next_delivery_date: null,
+      // recipient_* 도 PII — 익명화.
+      recipient_name: '탈퇴회원',
+      recipient_phone: null,
+      recipient_zip: null,
+      recipient_address: null,
+      recipient_address_detail: null,
+    })
+    .eq('user_id', user.id)
+
+  // product_qna / reviews — 작성자 user_id 는 보존 (다른 사용자에게 도움이
+  // 되는 컨텐츠). profile.name 이 익명화 ("탈퇴회원") 됐으니 join 결과는
+  // 자동으로 탈퇴회원 표시. 별도 author_name 캐시 컬럼은 현재 스키마에 없음.
 
   // Audit row — sha256(email) only, so "did the same person sign up
   // again?" is detectable without keeping the plaintext email.
