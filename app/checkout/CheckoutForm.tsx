@@ -341,6 +341,48 @@ export default function CheckoutForm({
         throw new Error(itemsError.message)
       }
 
+      // ── 재고 atomic decrement (oversell 방지) ───────────────────────────
+      // reserve_order_stock RPC 가 모든 상품 row 를 FOR UPDATE 잡고 부족분
+      // 검출 → 부족이면 ok=false 반환. ok=false 시 방금 만든 order/items 를
+      // 롤백 (delete) 하고 사용자에게 안내. Toss redirect 전에 확정해 결제
+      // 후 oversell 발견 시 환불 비용 / CS 부담 차단.
+      const reservePayload = orderItems.map((it) => ({
+        product_id: it.productId,
+        qty: it.quantity,
+      }))
+      const { data: reserveResult, error: reserveError } = await supabase.rpc(
+        'reserve_order_stock',
+        { items: reservePayload },
+      )
+      const reserveOk =
+        !reserveError &&
+        reserveResult &&
+        typeof reserveResult === 'object' &&
+        'ok' in (reserveResult as Record<string, unknown>) &&
+        (reserveResult as { ok: boolean }).ok === true
+      if (!reserveOk) {
+        // 롤백 — order_items 가 ON DELETE CASCADE 라 order 삭제 한 번이면 충분.
+        await supabase.from('orders').delete().eq('id', order.id)
+        // 쿠폰 redemption / 포인트 차감 롤백은 보수적으로 생략 — 매우 드문
+        // 케이스이며 사용자가 다시 시도 시 자동 정합. 운영 발견 시 admin 보정.
+        const insufficientList =
+          reserveResult &&
+          typeof reserveResult === 'object' &&
+          'insufficient' in (reserveResult as Record<string, unknown>)
+            ? ((reserveResult as { insufficient?: Array<{ product_id: string; available: number }> })
+                .insufficient ?? [])
+            : []
+        const firstShort =
+          insufficientList.length > 0
+            ? orderItems.find((it) => it.productId === insufficientList[0].product_id)?.name
+            : null
+        throw new Error(
+          firstShort
+            ? `${firstShort} 가 품절됐어요. 카트를 새로고침해 주세요.`
+            : '결제 직전 재고가 부족해졌어요. 카트를 새로고침해 주세요.',
+        )
+      }
+
       const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!
       const tossPayments = await loadTossPayments(clientKey)
       const payment = tossPayments.payment({ customerKey: ANONYMOUS })

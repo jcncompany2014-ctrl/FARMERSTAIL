@@ -49,6 +49,10 @@
     {
       "path": "/api/cron/subscription-cleanup",
       "schedule": "30 18 * * *"
+    },
+    {
+      "path": "/api/cron/order-expire",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
