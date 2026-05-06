@@ -61,6 +61,10 @@
     {
       "path": "/api/cron/tracking-poll",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/onboarding-funnel",
+      "schedule": "0 1 * * *"
     }
   ]
 }
