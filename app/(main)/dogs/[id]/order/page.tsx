@@ -511,6 +511,29 @@ export default function OrderPage() {
         router.push(`/login?next=/dogs/${dogId}/order`)
         return
       }
+
+      // 중복 구독 방어 — 같은 강아지에 active 또는 paused 구독이 이미 있으면
+      // 새로 생성 안 함 (마이페이지 / 강아지 상세에서 관리 유도). 사용자가
+      // 빠른 더블탭 / 재진입으로 의도치 않게 중복 등록하는 케이스 차단.
+      const { data: existingSubs } = await supabase
+        .from('subscriptions')
+        .select('id, status')
+        .eq('user_id', user.id)
+        .eq('dog_id', dogId)
+        .in('status', ['active', 'paused'])
+        .limit(1)
+      if (existingSubs && existingSubs.length > 0) {
+        const existingId = (existingSubs[0] as { id: string }).id
+        setErr(
+          '이 강아지에 진행중인 정기배송이 이미 있어요. 마이페이지에서 관리해 주세요.',
+        )
+        setTimeout(
+          () => router.push('/mypage/subscriptions?highlight=' + existingId),
+          1500,
+        )
+        return
+      }
+
       const subSubtotal = subscribable.reduce(
         (s, it) => s + it.pricePerPack * it.quantity,
         0,
