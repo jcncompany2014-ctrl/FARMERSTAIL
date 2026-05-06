@@ -7,7 +7,6 @@ import {
   User,
   Package,
   Repeat,
-  Dog,
   Bell,
   MapPin,
   ChevronRight,
@@ -20,9 +19,7 @@ import {
   Mail,
   HelpCircle,
   FileText,
-  RotateCcw,
   Shield,
-  Building,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -225,6 +222,16 @@ export default function MyPage() {
         적립금은 상단 Points 카드에 이미 노출되므로 메뉴 중복 제거.
       */}
 
+      {/*
+        ── 메뉴 정리 (2026-05) ──────────────────────────────────────
+        사용자 요구: "마음 편하게 기록·구독·강아지 관리에 집중".
+        변경:
+          · Pets 그룹 삭제 — 탭바에 /dogs 가 이미 있어 중복
+          · 친구 초대 → Benefits 에서 빼고 하단 footer 영역으로 (마케팅 비중 ↓)
+          · Support 6항목 → 고객센터/FAQ 만 메뉴 유지, 약관 4종은 footer
+            텍스트 링크로 (법적 reachability 유지하되 시각적 비중 ↓)
+      */}
+
       {/* 그룹 1: 주문 & 배송 */}
       <MenuGroup kicker="Orders · 주문 & 배송" className="mt-6">
         <MenuItem href="/mypage/orders" Icon={Package} label="주문 내역" />
@@ -236,25 +243,14 @@ export default function MyPage() {
         <MenuItem href="/mypage/addresses" Icon={MapPin} label="배송지 관리" last />
       </MenuGroup>
 
-      {/* 그룹 2: 혜택 & 활동 */}
+      {/* 그룹 2: 혜택 & 활동 — 친구 초대 제거 (footer 로 이동) */}
       <MenuGroup kicker="Benefits · 혜택" className="mt-5">
         <MenuItem href="/mypage/wishlist" Icon={Heart} label="찜한 상품" />
         <MenuItem href="/mypage/reviews" Icon={Star} label="내 리뷰" />
-        <MenuItem href="/mypage/coupons" Icon={Ticket} label="내 쿠폰" />
-        <MenuItem
-          href="/mypage/referral"
-          Icon={UserPlus}
-          label="친구 초대"
-          last
-        />
+        <MenuItem href="/mypage/coupons" Icon={Ticket} label="내 쿠폰" last />
       </MenuGroup>
 
-      {/* 그룹 3: 반려견 */}
-      <MenuGroup kicker="Pets · 우리 아이들" className="mt-5">
-        <MenuItem href="/dogs" Icon={Dog} label="내 아이들" last />
-      </MenuGroup>
-
-      {/* 그룹 4: 설정 — 프로필은 상단 카드에서 진입 (중복 제거) */}
+      {/* 그룹 3: 설정 */}
       <MenuGroup kicker="Settings · 설정" className="mt-5">
         <MenuItem
           href="/mypage/notifications"
@@ -274,15 +270,31 @@ export default function MyPage() {
         />
       </MenuGroup>
 
-      {/* 그룹 5: 고객지원 / 약관 — 앱 footer 숨김 대신 여기서 reachable */}
-      <MenuGroup kicker="Support · 고객지원 & 약관" className="mt-5">
+      {/* 그룹 4: 도움말 — 고객센터 + FAQ 만 메뉴, 친구 초대 추가 */}
+      <MenuGroup kicker="Help · 도움말" className="mt-5">
         <MenuItem href="/business" Icon={HelpCircle} label="고객센터" />
         <MenuItem href="/faq" Icon={FileText} label="자주 묻는 질문" />
-        <MenuItem href="/legal/refund" Icon={RotateCcw} label="환불 정책" />
-        <MenuItem href="/legal/terms" Icon={FileText} label="이용약관" />
-        <MenuItem href="/legal/privacy" Icon={Shield} label="개인정보처리방침" />
-        <MenuItem href="/business" Icon={Building} label="사업자 정보" last />
+        <MenuItem
+          href="/mypage/referral"
+          Icon={UserPlus}
+          label="친구 초대 · 적립금"
+          last
+        />
       </MenuGroup>
+
+      {/* 약관 / 사업자 — 작은 텍스트 풋터. 법적 reachability 는 유지하되 시각적
+          비중을 줄여 매일 사용 surface 와 분리. */}
+      <section className="px-5 mt-6 mb-2">
+        <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[10.5px] text-muted">
+          <Link href="/legal/refund" className="hover:text-text">환불 정책</Link>
+          <span aria-hidden>·</span>
+          <Link href="/legal/terms" className="hover:text-text">이용약관</Link>
+          <span aria-hidden>·</span>
+          <Link href="/legal/privacy" className="hover:text-text">개인정보처리방침</Link>
+          <span aria-hidden>·</span>
+          <Link href="/business" className="hover:text-text">사업자 정보</Link>
+        </div>
+      </section>
 
       {/* 로그아웃 */}
       <section className="px-5 mt-4">

@@ -22,6 +22,11 @@ import {
   OngoingEvents,
   DashboardGreeting,
 } from './DashboardClientIslands'
+import {
+  computeNextAction,
+  type NextActionInput,
+} from '@/lib/dashboard/next-action'
+import NextActionCard from '@/components/dashboard/NextActionCard'
 
 /**
  * Dashboard — 로그인 후 홈 화면.
@@ -193,6 +198,9 @@ export default async function DashboardPage() {
     { data: snapshotData, error: snapshotErr },
     { data: prodData, error: prodErr },
     events,
+    { data: pendingFormulasData },
+    { data: latestWeightsData },
+    { data: dogAnalysesData },
   ] = await Promise.all([
     supabase.rpc('dashboard_user_snapshot', { p_user_id: user.id }),
     supabase
@@ -206,6 +214,25 @@ export default async function DashboardPage() {
     // getActiveEvents 는 내부에서 catch + empty 반환 — 실패해도 대시보드 전체
     // 가 깨지지 않는다.
     getActiveEvents(supabase, 3),
+    // 처방 승인 대기 — 가장 오래된 1건 (사용자가 가장 먼저 확인해야 할 것)
+    supabase
+      .from('dog_formulas')
+      .select('id, dog_id, proposed_at, dogs(name)')
+      .eq('user_id', user.id)
+      .eq('approval_status', 'proposed')
+      .order('proposed_at', { ascending: true })
+      .limit(1),
+    // 각 강아지의 최근 체중 측정일. 14일+ 미기록인 가장 오래된 강아지 찾기.
+    supabase
+      .from('weight_logs')
+      .select('dog_id, measured_at')
+      .eq('user_id', user.id)
+      .order('measured_at', { ascending: false }),
+    // 각 강아지의 분석 존재 여부. 분석 0 인 강아지 picking 용.
+    supabase
+      .from('analyses')
+      .select('dog_id')
+      .eq('user_id', user.id),
   ])
 
   if (snapshotErr) {
@@ -241,6 +268,108 @@ export default async function DashboardPage() {
     nextDeliveryDate: subscription?.next_delivery_date ?? null,
     dogs,
   })
+
+  // ── "오늘 할 일" 카드 — computeNextAction 으로 우선순위 결정 ──────────
+  // 강아지 ID set 으로 분석 받은 강아지 / 분석 미실행 강아지 분리.
+  const dogIdsWithAnalyses = new Set(
+    ((dogAnalysesData ?? []) as Array<{ dog_id: string }>).map(
+      (a) => a.dog_id,
+    ),
+  )
+  const unanalyzedDog =
+    dogs.find((d) => !dogIdsWithAnalyses.has(d.id)) ?? null
+
+  // 가장 오래된 처방 승인 대기 1건.
+  type PendingFormulaRow = {
+    id: string
+    dog_id: string
+    dogs: { name: string } | { name: string }[] | null
+  }
+  const firstPending =
+    (pendingFormulasData ?? [])[0] as PendingFormulaRow | undefined
+  const pendingFormula = firstPending
+    ? {
+        dogId: firstPending.dog_id,
+        dogName: Array.isArray(firstPending.dogs)
+          ? (firstPending.dogs[0]?.name ?? '강아지')
+          : (firstPending.dogs?.name ?? '강아지'),
+        formulaId: firstPending.id,
+      }
+    : null
+
+  // 14일+ 체중 미기록 강아지 — 모든 강아지 중 가장 오래된 미기록.
+  // weight_logs 는 measured_at desc 정렬 → 각 dog 의 최신 1건만 사용.
+  const lastWeightByDog = new Map<string, string>()
+  for (const w of (latestWeightsData ?? []) as Array<{
+    dog_id: string
+    measured_at: string
+  }>) {
+    if (!lastWeightByDog.has(w.dog_id)) {
+      lastWeightByDog.set(w.dog_id, w.measured_at)
+    }
+  }
+  const STALE_DAYS = 14
+  // Server component 는 매 요청마다 실행돼 Date.now() 사용이 정상이지만
+  // react-hooks/purity 룰이 hook 가정으로 잡음. 이 컴포넌트는 force-dynamic
+  // 으로 캐시 안 됨 — 의도된 동작.
+  // eslint-disable-next-line react-hooks/purity
+  const nowKstMs = Date.now() + 9 * 3600 * 1000
+  const staleWeightDog = (() => {
+    for (const d of dogs) {
+      const last = lastWeightByDog.get(d.id)
+      if (!last) {
+        // 한 번도 기록 안 한 강아지 — 1번 입력 권유.
+        return { id: d.id, name: d.name, daysSinceLastWeight: null }
+      }
+      const lastMs = new Date(`${last}T00:00:00+09:00`).getTime()
+      const days = Math.floor((nowKstMs - lastMs) / 86_400_000)
+      if (days >= STALE_DAYS) {
+        return { id: d.id, name: d.name, daysSinceLastWeight: days }
+      }
+    }
+    return null
+  })()
+
+  // 활성 구독 D-day 카운트.
+  const upcomingDelivery =
+    hasActiveSub && subscription?.next_delivery_date
+      ? (() => {
+          const targetIso = `${subscription.next_delivery_date}T00:00:00+09:00`
+          // 같은 이유 — server component 의 의도된 시간 의존성.
+          const todayKstStart = new Date(
+            new Date(nowKstMs).toISOString().slice(0, 10) + 'T00:00:00+09:00',
+          ).getTime()
+          const days = Math.round(
+            (new Date(targetIso).getTime() - todayKstStart) / 86_400_000,
+          )
+          const items = subscription.subscription_items ?? []
+          const productLabel =
+            items.length === 0
+              ? '정기배송'
+              : items.length === 1
+                ? items[0].product_name
+                : `${items[0].product_name} 외 ${items.length - 1}개`
+          return { daysUntil: days, productLabel }
+        })()
+      : null
+
+  // 분석 받았지만 정기배송 미신청 강아지 (한 단계 더 권유).
+  const noSubDog =
+    !hasActiveSub && dogs.length > 0 && dogIdsWithAnalyses.size > 0
+      ? Array.from(dogIdsWithAnalyses)[0]
+      : null
+
+  const nextActionInput: NextActionInput = {
+    hasDogs: dogs.length > 0,
+    unanalyzedDog: unanalyzedDog
+      ? { id: unanalyzedDog.id, name: unanalyzedDog.name }
+      : null,
+    pendingFormula,
+    staleWeightDog,
+    upcomingDelivery,
+    noSubDogId: noSubDog,
+  }
+  const nextAction = computeNextAction(nextActionInput)
 
   return (
     <main className="pb-8">
@@ -420,6 +549,10 @@ export default async function DashboardPage() {
           />
         </div>
       </section>
+
+      {/* ── 오늘 할 일 — 매일 들렀을 때 한 가지 액션. nextAction null 이면
+          렌더 안 함 (모든 상태 정상 = 카드 비표시 → 화면 가벼워짐). ── */}
+      {nextAction && <NextActionCard action={nextAction} />}
 
       {/* ── 다음 배송 히어로 (D-N 강조) ── */}
       {hasActiveSub && (
