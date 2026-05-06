@@ -160,17 +160,23 @@ if (!parsed.data.SUPABASE_SERVICE_ROLE_KEY) {
 }
 
 // CRON_SECRET — production 에서 누락되면 모든 cron 이 silent 401 반환해
-// 정기배송 / personalization 진행 / 만료 쿠폰 알림 등이 모두 정지. 빌드 시점에
-// 잡아 출시 직후 사고 차단.
+// 정기배송 / personalization 진행 / 만료 쿠폰 알림 등이 모두 정지.
+//
+// # Behavior change (audit fix v1.6.2)
+// 이전: throw 로 startup 차단 → env.ts import 한 다른 라우트 (web-vitals 등)
+// 까지 모듈 로드 실패 → 500 에러 폭주.
+// 수정: console.error 만 — cron 은 isAuthorizedCronRequest 에서 자체 401
+// 반환, 다른 라우트/페이지는 영향 없음. Vercel runtime log 에 매 cold start
+// 마다 1회 경고 출력 → 운영자가 발견 가능.
 if (!parsed.data.CRON_SECRET && parsed.data.NODE_ENV === 'production') {
   console.error(
-    '\n❌ CRON_SECRET is required in production. Without it, every /api/cron/* ' +
-      'route returns 401 and scheduled tasks (subscription billing, ' +
-      'personalization progression, restock alerts, etc.) silently stop.\n' +
+    '\n❌ CRON_SECRET is missing in production. Cron routes (subscription ' +
+      'billing, personalization progression, restock alerts) will return 401 ' +
+      'and scheduled tasks silently stop.\n' +
       '   Generate: openssl rand -hex 32\n' +
-      '   Then add to Vercel Environment Variables.\n',
+      '   Then add to Vercel Environment Variables (Settings → Environment ' +
+      'Variables).\n',
   )
-  throw new Error('Invalid environment variables — see logs above.')
 }
 
 /**
