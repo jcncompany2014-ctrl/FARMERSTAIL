@@ -136,20 +136,35 @@ export async function confirmPayment(input: {
 }
 
 /**
- * 전체 취소(환불). 부분 취소는 cancelAmount 파라미터를 추가해야 하지만
- * 현재 D2C 플로우에서는 전체 취소만 지원.
+ * 결제 취소(환불). 전체 또는 부분.
+ *
+ * - cancelAmount 생략 / null → Toss 가 잔여 금액 전체 환불 (전체 취소).
+ * - cancelAmount 양수 → 그 금액만 부분 취소. 잔여 금액 (balanceAmount) 보다
+ *   크면 Toss 가 400 으로 거절.
+ *
+ * # idempotencyKey
+ * 부분 취소는 같은 paymentKey 에 대해 N번 호출 가능 → key 에 cancelAmount
+ * 도 포함시켜야 함. 같은 (key, amount, reason) 조합은 Toss 가 dedupe.
  */
 export async function cancelPayment(input: {
   paymentKey: string
   cancelReason: string
+  cancelAmount?: number
 }): Promise<TossResult<TossPayment>> {
   const reasonShort = input.cancelReason.trim().slice(0, 200) || '고객 요청'
+  const body: { cancelReason: string; cancelAmount?: number } = {
+    cancelReason: reasonShort,
+  }
+  if (input.cancelAmount && input.cancelAmount > 0) {
+    body.cancelAmount = Math.floor(input.cancelAmount)
+  }
+  const keyAmountPart = body.cancelAmount ? `:${body.cancelAmount}` : ':full'
   return tossFetch<TossPayment>(
     `/payments/${encodeURIComponent(input.paymentKey)}/cancel`,
     {
       method: 'POST',
-      body: JSON.stringify({ cancelReason: reasonShort }),
-      idempotencyKey: `cancel:${input.paymentKey}:${reasonShort}`,
+      body: JSON.stringify(body),
+      idempotencyKey: `cancel:${input.paymentKey}${keyAmountPart}:${reasonShort}`,
     },
   )
 }

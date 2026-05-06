@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import {
   canTransitionOrderStatus,
   isOrderStatus,
@@ -127,8 +128,9 @@ export async function POST(
     }
   }
 
-  // 2) Flip order row
+  // 2) Flip order row + 부분취소 audit/stock 복원과 동일한 토대로 통일.
   const nowIso = new Date().toISOString()
+  const refundAmount = order.payment_status === 'paid' ? order.total_amount : 0
   await supabase
     .from('orders')
     .update({
@@ -136,9 +138,60 @@ export async function POST(
       order_status: 'cancelled',
       cancelled_at: nowIso,
       cancel_reason: body.reason || '고객 요청',
+      refunded_amount: refundAmount,
     })
     .eq('id', order.id)
     .eq('user_id', user.id)
+
+  // 2b) 항목 단위 cancelled_at 마킹 + stock 복원 + refunds audit row.
+  // RLS 우회 필요 작업 (stock RPC + refunds insert) 은 admin client.
+  // 본인 주문 검증은 위에서 이미 완료.
+  const admin = createAdminClient()
+  const { data: items } = await admin
+    .from('order_items')
+    .select('id, product_id, quantity, line_total')
+    .eq('order_id', order.id)
+    .is('cancelled_at', null)
+  const itemsArr = (items ?? []) as Array<{
+    id: string
+    product_id: string
+    quantity: number
+    line_total: number
+  }>
+  if (itemsArr.length > 0) {
+    await admin
+      .from('order_items')
+      .update({ cancelled_at: nowIso })
+      .in(
+        'id',
+        itemsArr.map((it) => it.id),
+      )
+    // refunded_amount = line_total 일괄 업데이트
+    for (const it of itemsArr) {
+      await admin
+        .from('order_items')
+        .update({ refunded_amount: it.line_total })
+        .eq('id', it.id)
+      // stock 복원
+      await admin.rpc('restore_stock', {
+        p_product_id: it.product_id,
+        p_qty: it.quantity,
+      })
+    }
+  }
+  // 환불 audit row — paid 상태였던 주문만 (pending 취소는 환불 0).
+  if (refundAmount > 0) {
+    await admin.from('refunds').insert({
+      order_id: order.id,
+      user_id: user.id,
+      amount: refundAmount,
+      reason: body.reason ?? null,
+      refunded_by: null, // self-service
+      status: 'succeeded',
+      order_item_ids: null, // 전체 취소
+      is_partial: false,
+    })
+  }
 
   // 3) Refund used points — appendLedger 헬퍼로 일원화.
   if (order.points_used > 0) {
