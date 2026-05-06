@@ -21,22 +21,20 @@
  * 고정 글자수라서 layout shift 가 거의 없다.
  */
 
-import { useCallback, useSyncExternalStore } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  EMPTY_SUBSCRIBE,
   getStampSnapshot,
-  getServerStampSnapshot,
   type EditorialStamp,
 } from '@/lib/dateStamp'
 
 export default function ChromeStamp() {
-  const getClient = useCallback(() => getStampSnapshot(), [])
-  const getServer = useCallback(() => getServerStampSnapshot(), [])
-  const stamp = useSyncExternalStore<EditorialStamp | null>(
-    EMPTY_SUBSCRIBE,
-    getClient,
-    getServer,
-  )
+  // useSyncExternalStore + getServerSnapshot 패턴이 React 19 + Next 16
+  // turbopack 에서 hydration mismatch (#418) 일으키는 케이스 회피 — 단순한
+  // mount-after pattern 으로 client-only stamp.
+  const [stamp, setStamp] = useState<EditorialStamp | null>(null)
+  useEffect(() => {
+    setStamp(getStampSnapshot())
+  }, [])
 
   return (
     <div

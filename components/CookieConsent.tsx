@@ -95,6 +95,14 @@ export default function CookieConsent() {
   const [analytics, setAnalytics] = useState(true)
   const [marketing, setMarketing] = useState(true)
   const isApp = useIsAppContext()
+  // Hydration mismatch 방지 — server 는 항상 banner 렌더 (consent=null), client 는
+  // localStorage 에 따라 다를 수 있음. mounted 플래그로 client-only 렌더 보장.
+  // (React 19 + Next 16 turbopack 에서 useSyncExternalStore 만으로는 mismatch
+  // detection 이 #418 을 던지는 케이스 회피.)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // 앱 컨텍스트에서 첫 진입 시 자동으로 "필수만 허용" 으로 기록해 배너 노출
   // 안 함. 이미 정해진 consent 가 있으면 그대로 유지.
@@ -104,6 +112,8 @@ export default function CookieConsent() {
     }
   }, [isApp, consent])
 
+  // SSR / 첫 hydration tick 까지는 NULL 반환 — 서버/클라이언트 100% 일치.
+  if (!mounted) return null
   // 이미 결정했으면 렌더링 생략. 앱이면 배너 자체를 안 보여줌.
   if (consent !== null) return null
   if (isApp) return null
