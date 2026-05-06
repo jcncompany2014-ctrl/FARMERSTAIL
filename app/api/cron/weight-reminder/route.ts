@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
+import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -22,11 +23,8 @@ export const dynamic = 'force-dynamic'
  *  매주 월요일 09:00 KST.
  */
 export async function GET(req: Request) {
-  if (process.env.NODE_ENV === 'production') {
-    const auth = req.headers.get('authorization')
-    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-    }
+  if (!isAuthorizedCronRequest(req)) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const supabase = createAdminClient()

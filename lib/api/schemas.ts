@@ -157,6 +157,10 @@ export const zPersonalizationAdjust = z.object({
       protein: z.number().min(0).max(0.3),
       vegetable: z.number().min(0).max(0.3),
     })
+    .refine(
+      (t) => t.protein + t.vegetable <= 0.3 + 1e-9,
+      { message: '토퍼 합은 30% 이하여야 해요' },
+    )
     .optional(),
 })
 

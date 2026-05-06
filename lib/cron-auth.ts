@@ -16,7 +16,11 @@ import { timingSafeEqual } from 'node:crypto'
 
 export function isAuthorizedCronRequest(req: Request): boolean {
   const secret = process.env.CRON_SECRET
-  if (!secret) return false
+  // dev 환경 + secret 미설정 → 우회 (로컬 cron 트리거 편의).
+  // production 에선 env.ts 가 secret 누락을 startup 차단 (process.exit).
+  if (!secret) {
+    return process.env.NODE_ENV !== 'production'
+  }
   const header = req.headers.get('authorization') ?? ''
   const expected = `Bearer ${secret}`
   // 길이가 다르면 즉시 false (timingSafeEqual 은 같은 길이 요구).
