@@ -247,16 +247,28 @@ export function renderOrderCancelled(
 // ── 회원 가입 환영 ───────────────────────────────────────────────────────────
 export function renderWelcome(input: {
   recipientName: string
+  /** 가입 환영 쿠폰 코드 — admin/coupons 에 'WELCOME5000' (또는 env 로 지정한
+   *  코드) 가 활성화돼 있어야 동작. 코드는 메일에 직접 노출. */
+  couponCode?: string
+  couponLabel?: string
 }): { subject: string; html: string } {
   const subject = '[파머스테일] 반가워요, 가족이 되어주셔서 감사해요 🐾'
+  const code = (input.couponCode ?? 'WELCOME5000').toUpperCase()
+  const couponLabel = input.couponLabel ?? '5,000원 할인 쿠폰'
   const body = `
     <p style="margin:0 0 14px 0;">
       ${escape(input.recipientName)}님, 반가워요! 파머스테일은 반려견이
       "이건 진짜 맛있다" 고 눈을 반짝이는 음식만 골라 담아요.
     </p>
-    <p style="margin:0 0 14px 0;">
-      가입 첫 구매 시 사용할 수 있는 <strong style="color:#B5533A;">5,000원 할인 쿠폰</strong>
-      을 마이페이지에 담아뒀어요.
+    <p style="margin:0 0 8px 0;">
+      가입 첫 구매 시 사용할 수 있는 <strong style="color:#B5533A;">${escape(couponLabel)}</strong>
+      을 드려요.
+    </p>
+    <div style="margin:14px 0;padding:12px 14px;border:1px dashed #B5533A;border-radius:10px;background:#FAF6EC;text-align:center;font-family:'JetBrains Mono', ui-monospace, Consolas, monospace;font-size:14px;font-weight:800;letter-spacing:0.05em;color:#1E1A14;">
+      ${escape(code)}
+    </div>
+    <p style="margin:0 0 14px 0;font-size:11.5px;color:#7A7A7A;">
+      체크아웃에서 위 코드를 입력하면 할인이 적용돼요. 한 번만 사용 가능.
     </p>
   `
   const html = renderLayout({

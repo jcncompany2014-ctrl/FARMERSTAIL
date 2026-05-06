@@ -478,8 +478,12 @@ export async function notifyAbandonedCart(
 export async function notifyWelcome(
   input: { email: string; name: string | null },
 ) {
+  // 환영 쿠폰 코드는 env (WELCOME_COUPON_CODE) 우선, 기본 'WELCOME5000'.
+  // admin/coupons 에 활성화된 동일 코드가 있어야 실제 적용됨.
+  const couponCode = (process.env.WELCOME_COUPON_CODE ?? 'WELCOME5000').toUpperCase()
   const { subject, html } = renderWelcome({
     recipientName: input.name ?? '고객',
+    couponCode,
   })
   await sendEmail({
     to: input.email,
