@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { AlertCircle, RotateCcw } from 'lucide-react'
+import * as Sentry from '@sentry/nextjs'
 
 /**
  * (main) 그룹 전용 error boundary.
@@ -10,6 +11,10 @@ import { AlertCircle, RotateCcw } from 'lucide-react'
  * 이 그룹은 AppChrome 으로 감싸진 모바일 앱 영역 (dashboard / dogs / mypage / etc).
  * 루트 error.tsx 로 떨어지면 phone-frame 사라지고 풀폭 데스크톱 layout 으로 보여
  * UX 가 어그러짐. 여기에 자체 error UI 를 두어 chrome 톤 유지.
+ *
+ * Sentry — 다른 segment 와 동일하게 명시 captureException + segment 태그.
+ * Sentry SDK 의 자동 React Error Boundary 가 활성화돼 있어도 안전망으로 한
+ * 번 더 호출 (자동 후킹 실패 시 알림 누락 방지, 다른 error.tsx 와 동일 패턴).
  */
 export default function AppError({
   error,
@@ -19,9 +24,9 @@ export default function AppError({
   reset: () => void
 }) {
   useEffect(() => {
-    // 운영 중 Sentry 활성화 시 자동으로 캡처됨 (instrumentation-client.ts).
-    // 추가로 콘솔에 남겨 디버깅 단서 제공.
-    console.error('[(main) error]', error)
+    Sentry.captureException(error, {
+      tags: { segment: 'main' },
+    })
   }, [error])
 
   return (

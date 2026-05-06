@@ -48,7 +48,12 @@ async function trimCache(cacheName, maxEntries) {
   }
 }
 
-// 설치: 정적 자원 프리캐시
+// 설치: 정적 자원 프리캐시.
+// 이전: skipWaiting() 자동 호출 → 새 버전이 즉시 활성화 + 페이지 reload 발생
+// → 진행 중 폼 / 결제 흐름 깨질 수 있음.
+// 변경: skipWaiting 호출 안 함 → waiting 상태 유지 → 클라이언트가 사용자 알림
+// 후 SKIP_WAITING 메시지 받았을 때만 활성화. 첫 설치 (controller 없음) 는
+// 자연 활성화 (waiting 상태 X).
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -58,7 +63,15 @@ self.addEventListener('install', (event) => {
       })
     })
   )
-  self.skipWaiting()
+})
+
+// SKIP_WAITING 메시지 — 클라이언트(ServiceWorkerRegister.tsx) 가 사용자 액션
+// "새로고침" 시 보냄. waiting → activated 즉시 전환 → controllerchange 발생
+// → 페이지 리로드. 이게 없으면 사용자가 모든 탭을 닫을 때까지 옛 SW 유지.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })
 
 // 활성화: 이전 캐시 정리

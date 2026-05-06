@@ -1,24 +1,35 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 
 /**
- * PWA 서비스 워커 등록.
+ * PWA 서비스 워커 등록 + 새 버전 detect 시 사용자 toast.
  *
  * Dev 환경에서는 등록하지 않고, 이미 붙어 있던 SW 는 적극적으로 해제한다.
  *
- * Why:
- *   sw.js 의 정적 자원 핸들러(스크립트/스타일/이미지)가 stale-while-revalidate
- *   전략이라, 첫 요청은 항상 캐시를 먼저 돌려준다. Prod 에서는 Next.js 가
- *   chunk 파일명에 hash 를 박으니 "새 파일 = 새 URL" 이 되어 캐시 miss →
- *   fetch 로 자연스럽게 갱신되지만, dev 에서는 HMR/chunk 이름이 더 안정적
- *   이어서 옛 번들이 붙잡혀 UI 변경이 "반영 안 된 것처럼" 보이는 일이 잦다.
- *   개발 중에는 SW 를 끄고, 붙어 있던 기존 등록도 끊어 캐시 꼬임을 막는다.
+ * # 새 버전 알림
+ * sw.js 의 CACHE_NAME 이 bump 됐을 때 SW 가 install → waiting 상태로 들어
+ * 가는데, 이때 사용자에게 toast 로 "새 버전이 준비됐어요. [새로고침]" 안내.
+ * 누르면 skipWaiting + page reload → 즉시 새 빌드 적용.
  *
- *   Prod(production) 빌드에서만 등록 — Vercel 배포/실기기 PWA 설치 시에는
- *   그대로 동작한다.
+ * # SSR
+ * useSyncExternalStore has-mounted — 서버 단계에선 toast 렌더 안 함, mount
+ * 후에만 SW state 구독. setState-in-effect 룰 회피.
  */
+const EMPTY_SUBSCRIBE = () => () => {}
+function useHasMounted(): boolean {
+  return useSyncExternalStore<boolean>(
+    EMPTY_SUBSCRIBE,
+    () => true,
+    () => false,
+  )
+}
+
 export default function ServiceWorkerRegister() {
+  const hasMounted = useHasMounted()
+  const [waitingReg, setWaitingReg] =
+    useState<ServiceWorkerRegistration | null>(null)
+
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
 
@@ -27,7 +38,6 @@ export default function ServiceWorkerRegister() {
       navigator.serviceWorker.getRegistrations().then((regs) => {
         regs.forEach((r) => r.unregister())
       })
-      // 캐시도 비워서 다음 리로드부터 네트워크만 타게.
       if (typeof caches !== 'undefined') {
         caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)))
       }
@@ -37,12 +47,76 @@ export default function ServiceWorkerRegister() {
     navigator.serviceWorker
       .register('/sw.js')
       .then((reg) => {
-        console.log('[SW] Registered:', reg.scope)
+        // 이미 waiting 중인 SW 가 있으면 (새 버전 install 완료 후 활성화 대기)
+        // 즉시 toast.
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          setWaitingReg(reg)
+        }
+        // updatefound — 새 SW install 시작 → installed → activated 사이클 추적.
+        reg.addEventListener('updatefound', () => {
+          const next = reg.installing
+          if (!next) return
+          next.addEventListener('statechange', () => {
+            if (
+              next.state === 'installed' &&
+              navigator.serviceWorker.controller
+            ) {
+              // controller 가 있으면 = 이미 옛 SW 가 페이지 통제 중 = "업데이트".
+              // 첫 설치 (controller 없음) 인 경우는 toast 없이 자연 활성화.
+              setWaitingReg(reg)
+            }
+          })
+        })
       })
       .catch((err) => {
         console.log('[SW] Registration failed:', err)
       })
+
+    // controllerchange 이벤트 — skipWaiting 후 새 SW 가 활성화되면 페이지 reload.
+    const onControllerChange = () => {
+      if (typeof window !== 'undefined') window.location.reload()
+    }
+    navigator.serviceWorker.addEventListener(
+      'controllerchange',
+      onControllerChange,
+    )
+    return () => {
+      navigator.serviceWorker.removeEventListener(
+        'controllerchange',
+        onControllerChange,
+      )
+    }
   }, [])
 
-  return null
+  if (!hasMounted || !waitingReg?.waiting) return null
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-4 py-3 rounded-full shadow-xl"
+      style={{
+        bottom: 'max(20px, env(safe-area-inset-bottom))',
+        background: 'var(--ink)',
+        color: 'var(--bg)',
+      }}
+    >
+      <span className="text-[12px] font-bold">새 버전이 준비됐어요</span>
+      <button
+        type="button"
+        onClick={() => {
+          waitingReg.waiting?.postMessage({ type: 'SKIP_WAITING' })
+          // controllerchange 가 reload 트리거. fallback: 5초 후 강제.
+          setTimeout(() => window.location.reload(), 5000)
+        }}
+        className="text-[11px] font-bold px-3 py-1.5 rounded-full"
+        style={{
+          background: 'var(--terracotta)',
+          color: 'var(--bg)',
+        }}
+      >
+        새로고침
+      </button>
+    </div>
+  )
 }
