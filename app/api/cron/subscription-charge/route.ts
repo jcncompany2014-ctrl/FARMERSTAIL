@@ -193,6 +193,34 @@ export async function GET(req: Request) {
       continue
     }
 
+    // 2-b-2) subscription_items → order_items 복사 (audit fix).
+    // 이전: order row 만 만들고 items 누락 → 사용자/admin 이 주문 상세에서
+    // 상품 안 보임 + 발송 운영 시 어떤 상품 보낼지 모름.
+    const { data: subItems } = await supabase
+      .from('subscription_items')
+      .select('product_id, product_name, product_image_url, quantity, unit_price')
+      .eq('subscription_id', sub.id)
+    const subItemsArr = (subItems ?? []) as Array<{
+      product_id: string | null
+      product_name: string
+      product_image_url: string | null
+      quantity: number
+      unit_price: number
+    }>
+    if (subItemsArr.length > 0) {
+      await supabase.from('order_items').insert(
+        subItemsArr.map((it) => ({
+          order_id: orderRow.id,
+          product_id: it.product_id,
+          product_name: it.product_name,
+          product_image_url: it.product_image_url,
+          quantity: it.quantity,
+          unit_price: it.unit_price,
+          line_total: it.unit_price * it.quantity,
+        })),
+      )
+    }
+
     // 2-c) Toss 청구. 비즈니스 span 으로 wrap — Sentry 트랜잭션에서 실패율 +
     //      latency 추적.
     const result = await traceBusiness(
