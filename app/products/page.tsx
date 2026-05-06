@@ -14,6 +14,11 @@ import CatalogProductCard, {
 } from '@/components/products/CatalogProductCard'
 import RecentlyViewed from '@/components/products/RecentlyViewed'
 import { isAppContextServer } from '@/lib/app-context'
+import JsonLd from '@/components/JsonLd'
+import {
+  buildItemListJsonLd,
+  buildBreadcrumbJsonLd,
+} from '@/lib/seo/jsonld'
 
 /**
  * /products — 카탈로그 (마켓컬리/SSF 톤 쇼핑몰).
@@ -208,11 +213,36 @@ export default async function ProductsPage({
     return qs ? `/products?${qs}` : '/products'
   }
 
+  // ── Structured data — ItemList + Breadcrumb. Google Shopping / Naver
+  // search 의 rich result 파싱용. 첫 페이지만 (page 2+ 는 canonical 충돌 방지).
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
+  const itemListLd =
+    pageNum === 1 && rows.length > 0
+      ? buildItemListJsonLd({
+          name: `${pageTitle} | 파머스테일`,
+          url: `${baseUrl}/products`,
+          items: rows.slice(0, 30).map((p) => ({
+            name: p.name,
+            url: `${baseUrl}/products/${p.slug}`,
+            image: p.image_url ?? null,
+          })),
+        })
+      : null
+  const breadcrumbLd = buildBreadcrumbJsonLd([
+    { name: '홈', path: '/' },
+    { name: '제품', path: '/products' },
+  ])
+
   return (
     <main
       className="pb-12 mx-auto"
       style={{ background: 'var(--bg)', maxWidth: 1280 }}
     >
+      <JsonLd id="ld-breadcrumb-products" data={breadcrumbLd} />
+      {itemListLd && (
+        <JsonLd id="ld-itemlist-products" data={itemListLd} />
+      )}
       {/* ── Top toolbar: breadcrumb + h1 + count + sort ─────
           앱 컨텍스트에선 breadcrumb 생략 — 상단 헤더 + 하단 탭바가 navigation
           이미 제공. RecentlyViewed 도 앱에선 mypage 가 자체 surface. */}
