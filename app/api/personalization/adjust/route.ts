@@ -3,8 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { zPersonalizationAdjust } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
-import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
-import type { Reasoning } from '@/lib/personalization/types'
+import { FOOD_LINE_META, ALL_LINES, dailyGramsFromMix } from '@/lib/personalization/lines'
+import type { FoodLine, Reasoning } from '@/lib/personalization/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -155,11 +155,19 @@ export async function POST(req: Request) {
         .toppers,
   }
 
+  // 사용자 조정으로 라인 mix 가 바뀌면 daily_grams 도 재계산. 라인별 kcal/100g
+  // 가중평균 — order 페이지 / 분석 페이지 표시와 정합.
+  const adjustedDailyGrams = dailyGramsFromMix(
+    quantized as Record<FoodLine, number>,
+    existing.daily_kcal,
+  )
+
   const { error: upErr } = await supabase
     .from('dog_formulas')
     .update({
       formula: newFormula,
       reasoning: adjustedReasoning,
+      daily_grams: adjustedDailyGrams,
       user_adjusted: true,
     })
     .eq('id', existing.id)
@@ -171,5 +179,9 @@ export async function POST(req: Request) {
     )
   }
 
-  return NextResponse.json({ ok: true, lineRatios: quantized })
+  return NextResponse.json({
+    ok: true,
+    lineRatios: quantized,
+    dailyGrams: adjustedDailyGrams,
+  })
 }

@@ -266,7 +266,7 @@ export default function AdjustSheet({
         }),
       })
       const json = (await res.json()) as
-        | { ok: true; lineRatios: typeof lineRatios }
+        | { ok: true; lineRatios: typeof lineRatios; dailyGrams?: number }
         | { ok?: false; code?: string; message?: string }
       if (!res.ok || !('ok' in json) || json.ok !== true) {
         const msg =
@@ -280,6 +280,8 @@ export default function AdjustSheet({
         ...formula,
         lineRatios,
         toppers,
+        // 서버가 라인 mix 기준 재계산한 dailyGrams 사용 (없으면 기존 값 유지).
+        dailyGrams: json.dailyGrams ?? formula.dailyGrams,
         userAdjusted: true,
       })
       onClose()
