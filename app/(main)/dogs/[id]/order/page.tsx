@@ -493,6 +493,17 @@ export default function OrderPage() {
       setErr('수령인 이름·전화·주소를 모두 입력해 주세요.')
       return
     }
+    // 한국 휴대폰 번호 검증 — 010/011/016/017/018/019 + 7-8 자리.
+    // 대시 제거 후 정규식 체크.
+    const phoneDigits = recipientPhone.replace(/[^0-9]/g, '')
+    if (!/^01[016789]\d{7,8}$/.test(phoneDigits)) {
+      setErr('전화번호 형식이 맞지 않아요 (01x-XXXX-XXXX).')
+      return
+    }
+    if (recipientName.trim().length < 2) {
+      setErr('수령인 이름은 2자 이상이어야 해요.')
+      return
+    }
     const subscribable = items.filter(
       (it) =>
         (it.product.stock ?? 0) > 0 && it.product.is_subscribable !== false,

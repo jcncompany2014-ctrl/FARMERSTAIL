@@ -35,7 +35,12 @@ type AnalysisRow = {
   feed_g: number
   protein_pct: number
   fat_pct: number
+  guideline_version: string | null
 }
+
+/** 현재 알고리즘 출력 가이드라인 — 이 값보다 오래된 분석은 stale 표시. */
+const CURRENT_GUIDELINE_VERSION =
+  'NRC2006+AAFCO2024+FEDIAF2024+WSAVA2021+IRIS2019+KFA'
 
 function formatDate(iso: string) {
   const d = new Date(iso)
@@ -110,13 +115,18 @@ export default async function AnalysesTimelinePage({
   const { data: analysesRaw } = await supabase
     .from('analyses')
     .select(
-      'id, created_at, mer, rer, stage, bcs_label, bcs_score, feed_g, protein_pct, fat_pct'
+      'id, created_at, mer, rer, stage, bcs_label, bcs_score, feed_g, protein_pct, fat_pct, guideline_version'
     )
     .eq('dog_id', dogId)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
   const analyses = (analysesRaw ?? []) as AnalysisRow[]
+  // v1.6.1 audit (2026-05-05) — algorithm 핵심 수정 후 분석은 stale 가능.
+  // 첫 row (LATEST) 가 stale 면 "재분석 권장" hint.
+  const latestIsStale =
+    analyses.length > 0 &&
+    analyses[0].guideline_version !== CURRENT_GUIDELINE_VERSION
 
   return (
     <main className="pb-10">
@@ -136,6 +146,43 @@ export default async function AnalysesTimelinePage({
           총 {analyses.length}회의 맞춤 분석 기록이 있어요
         </p>
       </section>
+
+      {/* v1.6.1 audit (2026-05-05) 이전 분석은 MER 부정확 가능 — 재분석 권장 */}
+      {latestIsStale && (
+        <section className="px-5 mt-3">
+          <div
+            className="rounded-2xl px-4 py-3 border-2 flex items-start gap-2.5"
+            style={{
+              background: 'color-mix(in srgb, var(--gold) 8%, white)',
+              borderColor: 'color-mix(in srgb, var(--gold) 35%, transparent)',
+            }}
+          >
+            <span style={{ fontSize: 16 }}>🔄</span>
+            <div className="flex-1">
+              <p
+                className="text-[12px] font-bold leading-snug"
+                style={{ color: 'var(--ink)' }}
+              >
+                알고리즘이 업데이트됐어요
+              </p>
+              <p
+                className="text-[10.5px] mt-1 leading-relaxed"
+                style={{ color: 'var(--muted)' }}
+              >
+                BCS / 임신·수유 / 급여량 계산 정확도 향상 (NRC 2006 정식 수식
+                반영). 정확한 처방을 위해 다시 분석을 받아주세요.
+              </p>
+              <Link
+                href={`/dogs/${dogId}/survey`}
+                className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold"
+                style={{ color: 'var(--terracotta)' }}
+              >
+                새 설문으로 다시 분석 →
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {analyses.length === 0 ? (
         <section className="px-5 mt-6">
