@@ -127,7 +127,15 @@ function ageMonths(dog: DogInfo): number {
  */
 function lifeStage(dog: DogInfo): 'puppy' | 'adult' | 'senior' {
   const m = ageMonths(dog)
-  if (m < 12) return 'puppy'
+  // Puppy threshold — size-aware (NRC 2006 + AAFCO 2024).
+  //   - 소형 (<10kg): 12개월까지 puppy (조기 성숙)
+  //   - 중형 (10-25kg): 12개월까지 puppy
+  //   - 대형 (25-45kg): 18개월까지 puppy (성장 protocol 연장)
+  //   - 초대형 (>45kg): 24개월까지 puppy
+  const puppyThreshold =
+    dog.weight > 45 ? 24 : dog.weight > 25 ? 18 : 12
+  if (m < puppyThreshold) return 'puppy'
+  // Senior threshold — size-aware (WSAVA 2021).
   const seniorThreshold =
     dog.weight < 10 ? 108 : dog.weight > 25 ? 72 : 84
   if (m >= seniorThreshold) return 'senior'
@@ -218,11 +226,16 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
 
   // 임신/수유 보정 (NRC 2006 §15). female + non-neutered 만 적용 — 수컷/
   // 중성화견에 임신/수유 잘못 켜져도 factor 폭주 차단.
+  //
+  // # 중요 (audit fix v1.6.1):
+  // NRC formula 는 RER × multiplier (absolute), maintenance activity 와
+  // stack 하면 안 됨. 임신/수유 중에는 영양 요구의 대부분이 태아 성장 / 우유
+  // 생산이라 maintenance MER 은 의미 없음. activity base 를 REPLACE.
+  // BCS 보정은 그대로 적용 (저체중 mom 은 더 먹어야).
   const canBePregnantOrLactating =
     !dog.neutered && (dog.gender === 'female' || dog.gender == null)
   if (canBePregnantOrLactating && answers.pregnancyStatus === 'pregnant') {
-    // NRC 2006 §15.6: 임신 1-5주차 RER × 1.0-1.3, 6-9주차 RER × 1.6-2.0.
-    // pregnancyWeek 입력 시 정확 분기. 미입력 시 보수적 1.3 (전기간 평균).
+    // NRC 2006 §15.6: 임신 1-3주차 RER × 1.3, 4-5주차 ×1.5, 6-9주차 ×1.8.
     const wk = answers.pregnancyWeek
     let pregFactor = 1.3
     if (typeof wk === 'number' && wk >= 1 && wk <= 9) {
@@ -230,28 +243,48 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
       else if (wk >= 4) pregFactor = 1.5
       else pregFactor = 1.3 // 초기
     }
-    factor *= pregFactor
+    // BCS 보정 보존 — bcsMerFactor 가 이미 factor 에 반영됨. 앞 stage_base
+    // 만 제거하고 BCS / 기타는 그대로.
+    const bcsModifier =
+      typeof answers.bcsExact === 'number'
+        ? bcsMerFactor(answers.bcsExact)
+        : 1.0
+    factor = pregFactor * bcsModifier
     riskFlags.push('PREGNANT')
     vetConsult = true
   } else if (
     canBePregnantOrLactating &&
     answers.pregnancyStatus === 'lactating'
   ) {
-    // NRC 2006 §15.7: 수유 RER × (1.5 + 0.7 × pups), 절정기 (4주차) 까지.
-    // pups 1: 2.2, 2: 2.9, 3: 3.6, 4: 4.0 (cap), 8+: 5.0 (cap)
-    // litterSize 미입력 시 보수적 2.5 (≈3 pups, 가장 흔한 평균).
+    // NRC 2006 §15.7: 수유 RER × (1.5 + 0.7 × pups), peak week 3-4.
     const pups = answers.litterSize
     let lactFactor = 2.5
     if (typeof pups === 'number' && pups >= 1) {
       lactFactor = Math.min(5.0, 1.5 + 0.7 * Math.min(pups, 8))
     }
-    factor *= lactFactor
+    const bcsModifier =
+      typeof answers.bcsExact === 'number'
+        ? bcsMerFactor(answers.bcsExact)
+        : 1.0
+    factor = lactFactor * bcsModifier
     riskFlags.push('LACTATING')
     vetConsult = true
   }
 
   // MCS 보정 — 근손실 있으면 단백질 % 증가만, MER 은 그대로
   // (별도 변수에 저장 후 매크로 분기에서 사용)
+
+  // Factor 최대 cap — NRC 2006 §15 가장 극단 케이스 (8+ pups lactating
+  // + underweight) 도 5.0× 이하. 그 이상은 입력 오류로 간주 — clamp + flag.
+  // 최소도 RER × 0.5 = AAFCO 강제 감량 protocol 하한 (BCS 9 의 0.75 × 중성화
+  // 0.9 = 0.675 정상 범위).
+  if (factor > 5.0) {
+    riskFlags.push('FACTOR_CAPPED_HIGH')
+    factor = 5.0
+  } else if (factor < 0.5) {
+    riskFlags.push('FACTOR_CAPPED_LOW')
+    factor = 0.5
+  }
 
   const MER = Math.round(RER * factor)
 
@@ -343,11 +376,11 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
 
   // 매크로 합 100 정규화 (audit fix — 이전 carb 에 max(20, ...) 강제로 합이
   // 110% 까지 갈 수 있었음. 예: protein 50 + fat 30 + fiber 10 + carb 20 = 110).
-  // protein/fat/fiber 클램프 후 carb 가 잔량을 흡수. 잔량 < 0 이면 다른 매크로
-  // 비례 축소 (극단 chronic + MCS combo 케이스).
-  proteinPct = Math.max(15, Math.min(50, proteinPct))
-  fatPct = Math.max(8, Math.min(30, fatPct))
-  fiberPct = Math.max(2, Math.min(10, fiberPct))
+  // protein/fat/fiber 클램프 + 정수 반올림 후 carb 가 잔량을 흡수. carb 음수
+  // 면 비례 축소 (극단 chronic + MCS combo).
+  proteinPct = Math.round(Math.max(15, Math.min(50, proteinPct)))
+  fatPct = Math.round(Math.max(8, Math.min(30, fatPct)))
+  fiberPct = Math.round(Math.max(2, Math.min(10, fiberPct)))
   carbPct = 100 - proteinPct - fatPct - fiberPct
   if (carbPct < 0) {
     // protein + fat + fiber 합 > 100 — 비례 축소.
@@ -357,6 +390,12 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     fatPct = Math.round(fatPct - overflow * (fatPct / total))
     fiberPct = Math.round(fiberPct - overflow * (fiberPct / total))
     carbPct = Math.max(0, 100 - proteinPct - fatPct - fiberPct)
+  }
+  // Math.round 누적 오차로 합이 99 또는 101 이 될 수 있음 — carb 가 잔차 흡수
+  // (가장 큰 매크로라 1-2% 변동 영향 최소).
+  const macroSum = proteinPct + fatPct + carbPct + fiberPct
+  if (macroSum !== 100) {
+    carbPct = Math.max(0, carbPct + (100 - macroSum))
   }
 
   const proteinG = Math.round((MER * proteinPct / 100) / 4)

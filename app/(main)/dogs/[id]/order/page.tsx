@@ -101,6 +101,11 @@ type Product = {
   stock: number
   net_weight_g: number | null
   is_subscribable: boolean | null
+  /**
+   * `{ calories_kcal_per_100g: number, protein_pct, fat_pct, ... }`
+   * 토퍼 분량 정확 산정에 사용. 동결건조 제품은 보통 350-450 kcal/100g.
+   */
+  nutrition_facts: Record<string, number> | null
 }
 
 type DaumPostcodeData = {
@@ -354,7 +359,7 @@ export default function OrderPage() {
         .from('products')
         .select(
           'id, name, slug, price, sale_price, image_url, stock, ' +
-            'net_weight_g, is_subscribable',
+            'net_weight_g, is_subscribable, nutrition_facts',
         )
         .in('slug', allSlugs)
         .eq('is_active', true)
@@ -421,7 +426,12 @@ export default function OrderPage() {
       const slug = TOPPER_TO_SLUG[k]
       const product = products[slug]
       if (!product) continue
-      const dailyG = ((ratio * dailyKcal) / TOPPER_KCAL_PER_100G) * 100
+      // product.nutrition_facts.calories_kcal_per_100g 우선 (admin 입력),
+      // 없으면 fallback 380 kcal/100g (USDA freeze-dried 평균).
+      const topperKcal100g =
+        (product.nutrition_facts?.calories_kcal_per_100g as number | undefined) ??
+        TOPPER_KCAL_PER_100G
+      const dailyG = ((ratio * dailyKcal) / topperKcal100g) * 100
       const cycleG = dailyG * cycleDays
       const { packs, deliveredG } = topperPacksForCycle(cycleG)
       const unitPrice = product.sale_price ?? product.price

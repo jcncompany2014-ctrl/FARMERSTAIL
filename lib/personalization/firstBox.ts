@@ -47,11 +47,12 @@ import {
 import { quantizeAndNormalize } from './quantize.ts'
 import { transferToTarget } from './transfers.ts'
 
-// v1.6.0 — audit: bcsMerFactor 보정 (1.4 → 1.20), pregnancy/lactation gender
-// 게이트, EPI/갑상선/Cushing's/IVDD/MMVD chronic 룰, 한국 처방식 키워드,
-// 품종 영문 word-boundary, omega/vitD nutrient panel, daily_grams 라인 mix
-// 재계산.
-const ALGORITHM_VERSION = 'v1.6.0'
+// v1.6.1 — audit: bcsMerFactor 보정 (1.4 → 1.20), pregnancy/lactation gender
+// 게이트, NRC pregnancy/lactation REPLACE activity base (stack 버그 fix),
+// EPI/갑상선/Cushing's/IVDD/MMVD chronic 룰, 한국 처방식 키워드, 품종 영문
+// word-boundary, omega/vitD nutrient panel, daily_grams 라인 mix 재계산,
+// factor 0.5-5.0 cap, macro 합 100% 보존, lifeStage size-aware (puppy + senior).
+const ALGORITHM_VERSION = 'v1.6.1'
 /** 토퍼 합계 cap — 화식이 주식 지위를 잃지 않도록 30% 한도. */
 const MAX_TOPPER_TOTAL = 0.3
 

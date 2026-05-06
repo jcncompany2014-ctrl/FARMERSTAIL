@@ -631,9 +631,9 @@ describe('decideFirstBox v1.2 — 식이 만족도 신호', () => {
 })
 
 describe('decideFirstBox v1.3 — algorithmVersion', () => {
-  it('v1.6.0 출력', () => {
+  it('v1.6.1 출력', () => {
     const f = decideFirstBox(baseInput())
-    assert.equal(f.algorithmVersion, 'v1.6.0')
+    assert.equal(f.algorithmVersion, 'v1.6.1')
   })
 })
 
