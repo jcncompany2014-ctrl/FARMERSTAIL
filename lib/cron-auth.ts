@@ -7,11 +7,23 @@
  *
  * 왜 admin 쿠키 가드가 아닌가: cron 은 유저 세션이 없는 서버 컨텍스트에서
  * 호출되므로 Supabase auth 쿠키가 없다. 고정 bearer 가 가장 단순.
+ *
+ * # 타이밍 공격 방어 (audit fix)
+ * `===` 비교는 첫 mismatch 에서 즉시 종료 → 길이별 응답 시간 차이로 secret
+ * brute-force 가능 (이론적). `timingSafeEqual` 로 length-independent 비교.
  */
+import { timingSafeEqual } from 'node:crypto'
+
 export function isAuthorizedCronRequest(req: Request): boolean {
   const secret = process.env.CRON_SECRET
   if (!secret) return false
   const header = req.headers.get('authorization') ?? ''
-  // "Bearer xxx" 와 "Bearer  xxx" 차이를 용납하지 않도록 strict compare.
-  return header === `Bearer ${secret}`
+  const expected = `Bearer ${secret}`
+  // 길이가 다르면 즉시 false (timingSafeEqual 은 같은 길이 요구).
+  if (header.length !== expected.length) return false
+  try {
+    return timingSafeEqual(Buffer.from(header), Buffer.from(expected))
+  } catch {
+    return false
+  }
 }

@@ -280,6 +280,49 @@ export function trackBoxAdjusted(opts: {
   })
 }
 
+/**
+ * 정기배송 이벤트 — 매출 funnel 핵심 지표.
+ *  - subscription_started: order 페이지에서 신청 완료 (billing-auth 로 redirect 직전)
+ *  - subscription_billing_completed: Toss 카드 등록 성공 (실 매출 시작 시점)
+ *  - subscription_paused / resumed / cancelled: lifetime 단계
+ *  - subscription_charge_succeeded / failed: cron 매월 청구 결과 (server-side)
+ */
+export function trackSubscriptionPaused(opts: {
+  subscriptionId: string
+  reason?: 'user_action' | 'billing_failed_3x'
+}) {
+  safeGtag('event', 'subscription_paused', {
+    subscription_id: opts.subscriptionId,
+    reason: opts.reason ?? 'user_action',
+  })
+}
+
+export function trackSubscriptionResumed(opts: { subscriptionId: string }) {
+  safeGtag('event', 'subscription_resumed', {
+    subscription_id: opts.subscriptionId,
+  })
+}
+
+export function trackSubscriptionCancelled(opts: {
+  subscriptionId: string
+  totalDeliveries: number
+}) {
+  safeGtag('event', 'subscription_cancelled', {
+    subscription_id: opts.subscriptionId,
+    total_deliveries: opts.totalDeliveries,
+  })
+}
+
+export function trackSubscriptionBillingCompleted(opts: {
+  subscriptionId: string
+  cardBrand: string | null
+}) {
+  safeGtag('event', 'subscription_billing_completed', {
+    subscription_id: opts.subscriptionId,
+    card_brand: opts.cardBrand,
+  })
+}
+
 export function trackSignUp(method: 'email' | 'kakao') {
   // First-touch attribution — 가입 시점에 가장 처음 도달했던 UTM 출처를
   // 함께 보낸다. GA4 는 세션 단위로 UTM 을 자동 캡처하지만, "사용자가 어제

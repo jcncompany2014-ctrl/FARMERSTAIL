@@ -215,11 +215,10 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
       riskFlags.push('UNDERWEIGHT')
     }
   } else {
-    // 레거시 5단계 — 기존 로직 유지
-    if (bcs.score >= 7) factor *= 0.85
-    else if (bcs.score >= 6) factor *= 0.92
-    else if (bcs.score <= 2) factor *= 1.15
-    else if (bcs.score <= 3) factor *= 1.08
+    // 레거시 5단계 — bcsScore() 가 1/3/5/7/9 점만 반환. 9-tier bcsMerFactor
+    // 와 정합 (audit fix v1.6.1):
+    //   skinny (1): × 1.20  →  obese (9): × 0.75
+    factor *= bcsMerFactor(bcs.score as BcsKey)
   }
 
   if (dog.neutered) factor *= 0.9

@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { trackSubscriptionBillingCompleted } from '@/lib/analytics'
 
 /**
  * /subscribe/billing-success
@@ -63,6 +64,12 @@ function BillingSuccessInner() {
         }
         setCard({ brand: data.cardBrand ?? null, last4: data.last4 ?? null })
         setStatus('succeeded')
+        // GA4 — Toss billing key 등록 성공. subscription_started 와 함께 funnel
+        // 핵심 step (실제 매출이 시작되는 시점).
+        trackSubscriptionBillingCompleted({
+          subscriptionId: subscriptionId!,
+          cardBrand: data.cardBrand ?? null,
+        })
       } catch (e) {
         if (cancelled) return
         setStatus('failed')

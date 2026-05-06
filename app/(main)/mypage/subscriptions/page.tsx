@@ -16,6 +16,11 @@ import {
   BellOff,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import {
+  trackSubscriptionPaused,
+  trackSubscriptionResumed,
+  trackSubscriptionCancelled,
+} from '@/lib/analytics'
 
 type SubscriptionItem = {
   product_name: string
@@ -119,6 +124,7 @@ function MySubscriptionsPageInner() {
       .update({ status: 'paused' })
       .eq('id', subId)
       .eq('user_id', uid)
+    trackSubscriptionPaused({ subscriptionId: subId, reason: 'user_action' })
     await loadSubscriptions()
     setActionLoading(null)
   }
@@ -154,6 +160,7 @@ function MySubscriptionsPageInner() {
       })
       .eq('id', subId)
       .eq('user_id', uid)
+    trackSubscriptionResumed({ subscriptionId: subId })
     await loadSubscriptions()
     setActionLoading(null)
   }
@@ -166,11 +173,16 @@ function MySubscriptionsPageInner() {
     setActionLoading(subId)
     const uid = await requireUid()
     if (!uid) return
+    const sub = subs.find((s) => s.id === subId)
     await supabase
       .from('subscriptions')
       .update({ status: 'cancelled', next_delivery_date: null })
       .eq('id', subId)
       .eq('user_id', uid)
+    trackSubscriptionCancelled({
+      subscriptionId: subId,
+      totalDeliveries: sub?.total_deliveries ?? 0,
+    })
     await loadSubscriptions()
     setActionLoading(null)
   }
