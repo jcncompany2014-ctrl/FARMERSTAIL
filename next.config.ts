@@ -97,6 +97,15 @@ const nextConfig: NextConfig = {
     // 변경되는 패턴. 1년 캐시로 CDN 부담 + 사용자 응답 둘 다 개선.
     // 갱신 즉시 반영이 필요하면 Vercel 의 image cache invalidate API 호출.
     minimumCacheTTL: 31536000,
+    // AVIF + WebP 우선 — JPEG 대비 ~30% 작음. 비호환 브라우저는 자동 fallback.
+    formats: ['image/avif', 'image/webp'],
+  },
+  // Tree-shaking 보강 — lucide-react 같은 barrel-import 라이브러리에서 import 한
+  // 아이콘만 번들에 들어가게. 127 파일이 lucide-react 사용 중이라 번들 임팩트 큼.
+  // - lucide-react: 700+ 아이콘 중 실제 import 한 N개만 번들링 → ~100KB+ 절감
+  // - @sentry/nextjs: SDK 의 unused export 제거
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@sentry/nextjs'],
   },
   async headers() {
     return [
@@ -104,6 +113,27 @@ const nextConfig: NextConfig = {
         // 모든 경로에 보안 헤더 적용.
         source: '/:path*',
         headers: securityHeaders,
+      },
+      {
+        // 정적 자원 (Next 가 hash 박은 _next/static/*) — immutable + 1년.
+        // CDN 과 브라우저 모두 강력 캐시. hash 가 바뀌면 새 URL 이라 staleness X.
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // 폰트 파일 — Pretendard 등 webfont. 1년 immutable.
+        source: '/(.*)\\.(woff2|woff|ttf|otf)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
       },
     ]
   },
