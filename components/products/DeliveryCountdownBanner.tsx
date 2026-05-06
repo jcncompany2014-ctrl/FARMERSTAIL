@@ -1,7 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Truck } from 'lucide-react'
+
+// SSR 단계에선 false, client mount 후 true. setState-in-effect 룰 + hydration
+// mismatch 동시 회피.
+const EMPTY_SUBSCRIBE = () => () => {}
+function useHasMounted(): boolean {
+  return useSyncExternalStore<boolean>(
+    EMPTY_SUBSCRIBE,
+    () => true,
+    () => false,
+  )
+}
 
 /**
  * DeliveryCountdownBanner — "오늘 출고 마감까지" 카운트다운 배너.
@@ -33,6 +44,7 @@ function formatRemain(ms: number): string {
 }
 
 export default function DeliveryCountdownBanner() {
+  const hasMounted = useHasMounted()
   // 모드 / urgent 여부는 마운트 시 1회 + 1분마다만 재계산.
   // 초 단위 카운트다운 텍스트는 별도 inner 가 처리 — 부모 트리 re-render 없음.
   const [snapshot, setSnapshot] = useState(() => computeSnapshot())
@@ -45,6 +57,10 @@ export default function DeliveryCountdownBanner() {
     )
     return () => window.clearInterval(id)
   }, [])
+
+  // SSR 에선 banner 렌더 안 함 — server/client time 차이로 인한 hydration
+  // mismatch 차단. mount 후 1프레임 안에 채워진다 (layout shift 미세).
+  if (!hasMounted) return null
 
   const { mode, urgent } = snapshot
 
