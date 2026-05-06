@@ -11,6 +11,7 @@ import FoodInfoCompletion, {
 import CohortRetentionTable, {
   type CohortRow,
 } from '@/components/admin/CohortRetentionTable'
+import ActionsPanel from '@/components/admin/ActionsPanel'
 
 export const dynamic = 'force-dynamic'
 
@@ -197,6 +198,55 @@ export default async function AdminHome() {
       .select('total_amount')
       .eq('payment_status', 'paid')
       .gte('created_at', todayStart),
+  ])
+
+  // ── 처리 대기 큐 (admin hot path) — 솔로 창업자가 매일 한 번 보고
+  // 처리해야 하는 작업 카운트. 모두 head:true 로 count 만 가져옴.
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
+  const sevenDaysAgoIso = sevenDaysAgo
+  const [
+    unshippedRes,
+    shippingStuckRes,
+    cardRenewalRes,
+    recentFailedChargeRes,
+    refundsPendingRes,
+    stockOutRes,
+  ] = await Promise.all([
+    // preparing + paid + 24h+ → 발송 stale
+    supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('payment_status', 'paid')
+      .eq('order_status', 'preparing')
+      .lt('created_at', oneDayAgo),
+    // shipping + 7d+ → 배송 stuck (택배사 이슈 가능)
+    supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('order_status', 'shipping')
+      .lt('shipped_at', sevenDaysAgoIso),
+    // 정기배송 카드 재등록 대기
+    supabase
+      .from('subscriptions')
+      .select('id', { count: 'exact', head: true })
+      .eq('requires_billing_key_renewal', true),
+    // 24h 내 결제 실패한 정기배송
+    supabase
+      .from('subscription_charges')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'failed')
+      .gte('attempted_at', oneDayAgo),
+    // 환불 pending (refunds 테이블에 행이 있는 케이스)
+    supabase
+      .from('refunds')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending'),
+    // 재고 0 상품 (is_active=true)
+    supabase
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true)
+      .lte('stock', 0),
   ])
 
   // 식품정보고시 14항목 채움률 — 별도 쿼리. 100개 이하 가정.
@@ -399,6 +449,18 @@ export default async function AdminHome() {
             {now.getFullYear()}년 {now.getMonth() + 1}월 {now.getDate()}일 기준
           </p>
         </div>
+      </div>
+
+      {/* 처리 대기 큐 — admin hot path. 0건이면 회색, 있으면 sale 강조. */}
+      <div className="mb-6">
+        <ActionsPanel
+          unshippedCount={unshippedRes.count ?? 0}
+          shippingStuckCount={shippingStuckRes.count ?? 0}
+          cardRenewalCount={cardRenewalRes.count ?? 0}
+          recentFailedCount={recentFailedChargeRes.count ?? 0}
+          refundsPendingCount={refundsPendingRes.count ?? 0}
+          stockOutCount={stockOutRes.count ?? 0}
+        />
       </div>
 
       {/* 지표 카드 4개 — 1행 */}
