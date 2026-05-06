@@ -7,7 +7,12 @@ import { notifyOrderPlaced, notifyVirtualAccountWaiting } from '@/lib/email'
 import { zPaymentConfirm } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
-import { traceBusiness, captureBusinessEvent } from '@/lib/sentry/trace'
+import {
+  traceBusiness,
+  captureBusinessEvent,
+  tagSentryUser,
+  tagSentryRoute,
+} from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,6 +52,10 @@ export async function POST(req: Request) {
   const { paymentKey, orderId, amount } = parsed.data
 
   const supabase = await createClient()
+
+  // Sentry — user.id + route 도메인 태깅 (PII 미포함, id 만).
+  tagSentryRoute('order.payment.confirm')
+  await tagSentryUser(supabase)
 
   // 1) 인증 확인
   const {

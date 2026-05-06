@@ -94,3 +94,45 @@ export function captureBusinessEvent(
 export function setUserContext(userId: string | null): void {
   Sentry.setUser(userId ? { id: userId } : null)
 }
+
+/**
+ * API route 시작점에서 호출 — supabase auth 로 현재 사용자 id 를 Sentry
+ * scope 에 박는다. 이후 발생하는 captureException / captureMessage 에 자동
+ * 포함되어 운영 시 "어떤 user 의 어떤 요청이 실패했나" 추적 가능.
+ *
+ * # 사용
+ *   const supabase = await createClient()
+ *   await tagSentryUser(supabase)
+ *   const { data: { user } } = await supabase.auth.getUser()  // 다음 호출 무관
+ *
+ * # 보안
+ * id 만 박는다 (UUID). email / phone / name 등 PII 는 안 박음. Sentry SDK 의
+ * sendDefaultPii=false 와 일치.
+ */
+export async function tagSentryUser(supabase: {
+  auth: { getUser: () => Promise<{ data: { user: { id: string } | null } }> }
+}): Promise<string | null> {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user?.id) {
+      Sentry.setUser({ id: user.id })
+      return user.id
+    }
+  } catch {
+    /* swallow — Sentry 태깅 실패가 요청 흐름을 막아서는 안 됨 */
+  }
+  return null
+}
+
+/**
+ * 라우트 도메인 태그 setter. Sentry 대시보드에서 도메인별 필터 / 알람 룰을
+ * 만들 때 사용 (subscription / order / personalization 등).
+ *
+ * 예) tagSentryRoute('subscription.charge') 호출 후 발생하는 모든 이벤트에
+ *     `route.domain=subscription.charge` 태그가 붙어 채널 라우팅 가능.
+ */
+export function tagSentryRoute(domain: string): void {
+  Sentry.setTag('route.domain', domain)
+}

@@ -12,6 +12,7 @@ import { cancelPayment } from '@/lib/payments/toss'
 import { notifyOrderCancelled } from '@/lib/email'
 import { zOrderCancel } from '@/lib/api/schemas'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -65,6 +66,9 @@ export async function POST(
   }
 
   const supabase = await createClient()
+  tagSentryRoute('order.cancel')
+  await tagSentryUser(supabase)
+
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { issueBillingKey } from '@/lib/payments/toss'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -51,6 +52,9 @@ export async function POST(req: Request) {
   const { authKey, customerKey, subscriptionId } = parsed.data
 
   const supabase = await createClient()
+  tagSentryRoute('subscription.billing.issue')
+  await tagSentryUser(supabase)
+
   const {
     data: { user },
   } = await supabase.auth.getUser()

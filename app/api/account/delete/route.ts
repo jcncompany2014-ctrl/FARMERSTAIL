@@ -5,6 +5,7 @@ import { appendLedger } from '@/lib/commerce/points'
 import { zAccountDelete } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -76,6 +77,9 @@ export async function POST(req: Request) {
   // 1) Session check (RLS-gated client so we can't be tricked into
   //    deleting someone else's account).
   const supabase = await createClient()
+  tagSentryRoute('account.delete')
+  await tagSentryUser(supabase)
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
