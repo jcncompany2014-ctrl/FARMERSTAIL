@@ -753,6 +753,16 @@ export default function DogDetailPage() {
               {dog.name}의 모든 정보가 삭제돼요.
               <br />
               이 작업은 되돌릴 수 없어요.
+              {subscriptions.length > 0 && (
+                <>
+                  <br />
+                  <br />
+                  <span className="text-terracotta font-bold">
+                    ⚠ 진행중인 정기배송 {subscriptions.length}건은 자동으로
+                    해지되지 않아요. 마이페이지에서 먼저 해지해 주세요.
+                  </span>
+                </>
+              )}
             </p>
             <div className="space-y-2">
               <button
