@@ -533,6 +533,8 @@ export async function notifySubscriptionChargeFailed(input: {
   paused: boolean
   reason?: string | null
   scheduledFor: string // YYYY-MM-DD
+  errorClass?: 'permanent' | 'transient' | 'unknown'
+  nextRetryAt?: string | null
 }) {
   const { subject, html } = renderSubscriptionChargeFailed({
     recipientName: input.name ?? '고객',
@@ -541,6 +543,8 @@ export async function notifySubscriptionChargeFailed(input: {
     attemptCount: input.attemptCount,
     paused: input.paused,
     reason: input.reason,
+    errorClass: input.errorClass,
+    nextRetryAt: input.nextRetryAt ?? null,
   })
   return sendEmail({
     to: input.email,

@@ -98,6 +98,21 @@ export async function POST(req: Request) {
     ? result.cardNumber.replace(/\*/g, '').slice(-4)
     : null
 
+  // 카드 등록(또는 재등록) 시 retry/renewal 상태 reset.
+  // - paused 면서 requires_billing_key_renewal=true 였던 구독은 자동 active 화
+  //   (사용자가 카드 다시 등록하는 의도 = 다시 정기배송 받겠다).
+  // - failed_charge_count / next_retry_at / last_failed_* 모두 clear.
+  // 다음 cron 사이클에서 정상 결제 시도 → 성공 시 next_delivery_date 갱신.
+  const wasInRenewal = await supabase
+    .from('subscriptions')
+    .select('status, requires_billing_key_renewal')
+    .eq('id', subscriptionId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const shouldResume =
+    wasInRenewal.data?.status === 'paused' &&
+    wasInRenewal.data?.requires_billing_key_renewal === true
+
   await supabase
     .from('subscriptions')
     .update({
@@ -105,6 +120,13 @@ export async function POST(req: Request) {
       billing_customer_key: customerKey,
       billing_card_brand: result.cardCompany ?? null,
       billing_card_last4: last4,
+      requires_billing_key_renewal: false,
+      failed_charge_count: 0,
+      next_retry_at: null,
+      last_failed_charge_at: null,
+      last_failed_charge_reason: null,
+      last_failed_charge_code: null,
+      ...(shouldResume ? { status: 'active' } : {}),
     })
     .eq('id', subscriptionId)
     .eq('user_id', user.id)
@@ -113,5 +135,6 @@ export async function POST(req: Request) {
     ok: true,
     cardBrand: result.cardCompany ?? null,
     last4,
+    resumed: shouldResume,
   })
 }

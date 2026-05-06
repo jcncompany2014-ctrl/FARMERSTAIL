@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { chargeBillingKey } from '@/lib/payments/toss'
+import {
+  classifyBillingError,
+  describeBillingError,
+  RETRY_COOLDOWN_MS,
+} from '@/lib/payments/billing-error-classify'
 import { notifySubscriptionChargeFailed } from '@/lib/email'
 import { traceBusiness, captureBusinessEvent } from '@/lib/sentry/trace'
 
@@ -55,6 +60,8 @@ type SubscriptionRow = {
   coverage_weeks: number | null
   dog_id: string | null
   total_deliveries: number
+  next_retry_at: string | null
+  requires_billing_key_renewal: boolean | null
 }
 
 const MAX_PER_RUN = 100
@@ -105,7 +112,14 @@ export async function GET(req: Request) {
   const supabase = createAdminClient()
   const today = todayKstIsoDate()
 
-  // 1) 오늘 결제 대상 구독 fetch — 누락된 billing_key / paused 는 자동 제외.
+  // 1) 오늘 결제 대상 구독 fetch.
+  //    제외 조건:
+  //      - status != active
+  //      - billing_key NULL (등록 안 됨)
+  //      - requires_billing_key_renewal=true (영구 거절 — 사용자가 카드 다시
+  //        등록할 때까지 대기)
+  //      - next_retry_at > NOW() (transient 실패 후 24h 쿨다운 중)
+  const nowIso = new Date().toISOString()
   const { data: subs, error: fetchErr } = await supabase
     .from('subscriptions')
     .select(
@@ -113,11 +127,13 @@ export async function GET(req: Request) {
        billing_key, billing_customer_key, failed_charge_count,
        recipient_name, recipient_phone, recipient_zip, recipient_address,
        recipient_address_detail, interval_weeks, coverage_weeks, dog_id,
-       total_deliveries`,
+       total_deliveries, next_retry_at, requires_billing_key_renewal`,
     )
     .eq('status', 'active')
+    .eq('requires_billing_key_renewal', false)
     .not('billing_key', 'is', null)
     .lte('next_delivery_date', today)
+    .or(`next_retry_at.is.null,next_retry_at.lte.${nowIso}`)
     .limit(MAX_PER_RUN)
 
   if (fetchErr) {
@@ -244,7 +260,9 @@ export async function GET(req: Request) {
 
     if (result.ok) {
       // 2-d) 성공 → orders / charge / subscription 업데이트.
-      const nowIso = new Date().toISOString()
+      // 성공하면 모든 retry/renewal 플래그를 0/false 로 reset (이전에 실패해서
+      // 카드 재등록 받은 후 정상화 케이스 포함).
+      const successIso = new Date().toISOString()
       const nextDate = nextDeliveryDate(sub, today)
       await Promise.all([
         supabase
@@ -253,7 +271,7 @@ export async function GET(req: Request) {
             payment_status: 'paid',
             order_status: 'preparing',
             payment_key: result.paymentKey,
-            paid_at: nowIso,
+            paid_at: successIso,
           })
           .eq('id', orderRow.id),
         supabase
@@ -262,15 +280,20 @@ export async function GET(req: Request) {
             status: 'succeeded',
             payment_key: result.paymentKey,
             order_id: orderRow.id,
-            completed_at: nowIso,
+            completed_at: successIso,
           })
           .eq('id', chargeRow.id),
         supabase
           .from('subscriptions')
           .update({
             next_delivery_date: nextDate,
-            last_charged_at: nowIso,
+            last_charged_at: successIso,
             failed_charge_count: 0,
+            next_retry_at: null,
+            last_failed_charge_at: null,
+            last_failed_charge_reason: null,
+            last_failed_charge_code: null,
+            requires_billing_key_renewal: false,
             total_deliveries: sub.total_deliveries + 1,
           })
           .eq('id', sub.id),
@@ -282,10 +305,47 @@ export async function GET(req: Request) {
       })
       succeeded += 1
     } else {
-      // 2-e) 실패 → counter 증가. 3회 누적이면 paused.
-      const nextFailedCount = sub.failed_charge_count + 1
-      const shouldPause = nextFailedCount >= MAX_FAILED
-      const nowIso = new Date().toISOString()
+      // 2-e) 실패 → 에러 코드 분류해서 분기.
+      //
+      // permanent (카드 만료/유효 X): 즉시 paused + requires_billing_key_renewal.
+      //   재시도 의미 없음. 사용자가 카드 다시 등록할 때까지 대기.
+      // transient (잔액부족/네트워크): count 증가 안 함, next_retry_at +24h.
+      //   같은 카드로 시간 지나면 풀릴 가능성.
+      // unknown: 기존 3-strike 정책 — count++, 3회면 paused.
+      const errorCode = result.error?.code ?? null
+      const errorClass = classifyBillingError(errorCode)
+      const nowIso2 = new Date().toISOString()
+
+      let shouldPause = false
+      let shouldMarkRenewal = false
+      let nextFailedCount = sub.failed_charge_count
+      let nextRetryAt: string | null = null
+      const reasonShort = describeBillingError(errorCode).short
+
+      if (errorClass === 'permanent') {
+        shouldPause = true
+        shouldMarkRenewal = true
+        // permanent 는 count 증가 의미 없음 — 1회 카운트만 찍어 history 보전.
+        nextFailedCount = sub.failed_charge_count + 1
+      } else if (errorClass === 'transient') {
+        // count 증가 안 함 — 사용자가 같은 카드로 시간 지나면 결제 가능.
+        nextRetryAt = new Date(Date.now() + RETRY_COOLDOWN_MS).toISOString()
+      } else {
+        // unknown: 기존 3-strike.
+        nextFailedCount = sub.failed_charge_count + 1
+        shouldPause = nextFailedCount >= MAX_FAILED
+      }
+
+      const subUpdate: Record<string, unknown> = {
+        failed_charge_count: nextFailedCount,
+        last_failed_charge_at: nowIso2,
+        last_failed_charge_code: errorCode,
+        last_failed_charge_reason: result.error?.message ?? reasonShort,
+        next_retry_at: nextRetryAt,
+      }
+      if (shouldPause) subUpdate.status = 'paused'
+      if (shouldMarkRenewal) subUpdate.requires_billing_key_renewal = true
+
       await Promise.all([
         supabase
           .from('orders')
@@ -293,39 +353,37 @@ export async function GET(req: Request) {
             payment_status: 'failed',
             order_status: 'cancelled',
             cancel_reason: result.error?.message ?? '결제 실패',
-            cancelled_at: nowIso,
+            cancelled_at: nowIso2,
           })
           .eq('id', orderRow.id),
         supabase
           .from('subscription_charges')
           .update({
             status: 'failed',
-            error_code: result.error?.code,
+            error_code: errorCode,
             error_message: result.error?.message,
-            completed_at: nowIso,
+            completed_at: nowIso2,
           })
           .eq('id', chargeRow.id),
-        supabase
-          .from('subscriptions')
-          .update({
-            failed_charge_count: nextFailedCount,
-            last_failed_charge_at: nowIso,
-            last_failed_charge_reason: result.error?.message ?? null,
-            ...(shouldPause ? { status: 'paused' } : {}),
-          })
-          .eq('id', sub.id),
+        supabase.from('subscriptions').update(subUpdate).eq('id', sub.id),
       ])
-      // 매출 영향 이벤트 — paused 면 warning, 단일 실패면 info.
+
+      // 매출 영향 이벤트 — Sentry breadcrumb 분류 가능하게 errorClass 같이 기록.
       captureBusinessEvent(
         shouldPause ? 'warning' : 'info',
-        shouldPause
-          ? 'subscription.charge.paused'
-          : 'subscription.charge.failed',
+        shouldMarkRenewal
+          ? 'subscription.charge.renewal_required'
+          : shouldPause
+            ? 'subscription.charge.paused'
+            : errorClass === 'transient'
+              ? 'subscription.charge.transient'
+              : 'subscription.charge.failed',
         {
           subscriptionId: sub.id,
           amount: sub.total_amount,
           attemptCount: nextFailedCount,
-          errorCode: result.error?.code ?? null,
+          errorCode,
+          errorClass,
         },
       )
       failed += 1
@@ -361,8 +419,10 @@ export async function GET(req: Request) {
             amount: sub.total_amount,
             attemptCount: nextFailedCount,
             paused: shouldPause,
-            reason: result.error?.message ?? null,
+            reason: result.error?.message ?? reasonShort,
             scheduledFor: today,
+            errorClass,
+            nextRetryAt,
           })
         } catch {
           /* swallow — 다음 cron 시 재발송 idempotencyKey 가 차단 */

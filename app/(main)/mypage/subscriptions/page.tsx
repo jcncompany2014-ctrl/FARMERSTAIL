@@ -14,6 +14,9 @@ import {
   RefreshCw,
   Bell,
   BellOff,
+  AlertTriangle,
+  CreditCard,
+  Clock,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -47,6 +50,16 @@ type Subscription = {
   dog_id: string | null
   dogs: { id: string; name: string } | null
   subscription_items: SubscriptionItem[]
+  // billing / retry 상태
+  billing_card_brand: string | null
+  billing_card_last4: string | null
+  billing_customer_key: string | null
+  failed_charge_count: number
+  last_failed_charge_at: string | null
+  last_failed_charge_reason: string | null
+  last_failed_charge_code: string | null
+  next_retry_at: string | null
+  requires_billing_key_renewal: boolean
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
@@ -209,6 +222,27 @@ function MySubscriptionsPageInner() {
     await loadSubscriptions()
   }
 
+  /**
+   * 카드 재등록 — 기존 customerKey 재사용해 /subscribe/billing-auth 로 이동.
+   * Toss SDK 가 새 authKey 발급 → /api/payments/billing-issue 가 billingKey
+   * 갱신 + 실패 플래그 reset + status='active' 자동 재개.
+   * customerKey 가 없는 (구) 데이터는 새로 발급해서 진입.
+   */
+  function handleReRegisterCard(sub: Subscription) {
+    let customerKey = sub.billing_customer_key
+    if (!customerKey) {
+      // crypto.randomUUID 는 모던 브라우저 + Capacitor WebView 모두 지원.
+      customerKey =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    }
+    const url = `/subscribe/billing-auth?subscriptionId=${encodeURIComponent(
+      sub.id,
+    )}&customerKey=${encodeURIComponent(customerKey)}`
+    router.push(url)
+  }
+
   async function handleChangeInterval(subId: string, newInterval: number) {
     setActionLoading(subId)
     const uid = await requireUid()
@@ -330,11 +364,17 @@ function MySubscriptionsPageInner() {
               const isEditing = editingInterval === sub.id
               const isLoading = actionLoading === sub.id
 
+              const needsRenewal = sub.requires_billing_key_renewal === true
+              const hasFailureSignal =
+                !isCancelled &&
+                (needsRenewal ||
+                  (sub.failed_charge_count ?? 0) > 0 ||
+                  !!sub.next_retry_at)
               return (
                 <div
                   key={sub.id}
-                  className={`bg-white rounded-2xl border border-rule overflow-hidden transition ${
-                    isCancelled ? 'opacity-60' : ''
+                  className={`bg-white rounded-2xl border overflow-hidden transition ${
+                    isCancelled ? 'opacity-60 border-rule' : needsRenewal ? 'border-sale/60' : 'border-rule'
                   }`}
                 >
                   {/* 상태 바 */}
@@ -373,6 +413,62 @@ function MySubscriptionsPageInner() {
                       </span>
                     )}
                   </div>
+
+                  {/* 결제 실패 / 재등록 필요 callout */}
+                  {hasFailureSignal && (
+                    <div
+                      className={`px-5 py-3 border-b ${
+                        needsRenewal
+                          ? 'bg-sale/8 border-sale/30'
+                          : 'bg-gold/8 border-gold/30'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle
+                          className={`w-4 h-4 shrink-0 mt-0.5 ${
+                            needsRenewal ? 'text-sale' : 'text-gold'
+                          }`}
+                          strokeWidth={2.2}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className={`text-[12px] font-bold ${
+                              needsRenewal ? 'text-sale' : 'text-text'
+                            }`}
+                          >
+                            {needsRenewal
+                              ? '카드 정보를 다시 등록해주세요'
+                              : sub.next_retry_at
+                                ? '결제가 일시 실패했어요'
+                                : `결제 ${sub.failed_charge_count}회 실패`}
+                          </div>
+                          {sub.last_failed_charge_reason && (
+                            <div className="text-[11px] text-muted mt-0.5 leading-snug">
+                              사유: {sub.last_failed_charge_reason}
+                            </div>
+                          )}
+                          {sub.next_retry_at && !needsRenewal && (
+                            <div className="text-[10.5px] text-muted mt-1 inline-flex items-center gap-1">
+                              <Clock className="w-3 h-3" strokeWidth={2} />
+                              {formatRetryAt(sub.next_retry_at)} 자동 재시도
+                            </div>
+                          )}
+                        </div>
+                        {(needsRenewal ||
+                          (sub.failed_charge_count ?? 0) >= 2) && (
+                          <button
+                            type="button"
+                            onClick={() => handleReRegisterCard(sub)}
+                            disabled={isLoading}
+                            className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-white bg-sale hover:bg-sale/90 transition disabled:opacity-50"
+                          >
+                            <CreditCard className="w-3 h-3" strokeWidth={2.5} />
+                            재등록
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* 상품 정보 */}
                   <div className="p-5">
@@ -618,6 +714,26 @@ function MySubscriptionsPageInner() {
       </div>
     </main>
   )
+}
+
+/**
+ * 결제 재시도 시각을 짧은 한국어로. 24h 이내면 "오늘"/"내일" + HH:MM, 그 이상은
+ * MM월 DD일 HH:MM. KST 강제.
+ */
+function formatRetryAt(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  const fmt = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  const parts = fmt.formatToParts(date)
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
+  return `${get('month')}월 ${get('day')}일 ${get('hour')}:${get('minute')}`
 }
 
 /**
