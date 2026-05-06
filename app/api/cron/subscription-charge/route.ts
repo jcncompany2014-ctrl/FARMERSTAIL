@@ -8,6 +8,7 @@ import {
   RETRY_COOLDOWN_MS,
 } from '@/lib/payments/billing-error-classify'
 import { notifySubscriptionChargeFailed } from '@/lib/email'
+import { pushToUser } from '@/lib/push'
 import { traceBusiness, captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
@@ -387,6 +388,33 @@ export async function GET(req: Request) {
         },
       )
       failed += 1
+
+      // 푸시 알림 — order 카테고리 (push_preferences + quiet hours 자동 검사).
+      // 이메일과 별개로 push ON 사용자에게도 닿게. permanent / transient /
+      // unknown 별로 톤 다르게.
+      const pushTitle = shouldMarkRenewal
+        ? '카드 정보를 다시 등록해주세요 💳'
+        : shouldPause
+          ? '정기배송이 일시중단됐어요'
+          : errorClass === 'transient'
+            ? '결제가 잠시 실패 — 내일 다시 시도할게요'
+            : '정기배송 결제 실패'
+      const pushBody = shouldMarkRenewal
+        ? `${reasonShort} · 마이페이지에서 새 카드 등록`
+        : shouldPause
+          ? '연속 3회 실패. 마이페이지에서 카드 확인'
+          : reasonShort
+      pushToUser(
+        sub.user_id,
+        {
+          title: pushTitle,
+          body: pushBody,
+          url: '/mypage/subscriptions',
+          tag: `sub-charge-failed-${sub.id}-${today}`,
+          requireInteraction: shouldMarkRenewal,
+        },
+        { category: 'order' },
+      ).catch(() => {})
 
       // 사용자에게 결제 실패 이메일 발송 — fire-and-forget. 메일 발송 실패가
       // cron 흐름을 막아서는 안 됨. profiles 와 subscription_items 에서

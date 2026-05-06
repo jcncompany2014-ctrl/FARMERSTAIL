@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { notifySubscriptionReminder } from '@/lib/email'
+import { pushToUser } from '@/lib/push'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -112,35 +113,62 @@ export async function GET(req: Request) {
 
   let sent = 0
   let errors = 0
+  let pushed = 0
   for (const { sub, days } of dueSubs) {
     const profile = profileById.get(sub.user_id)
-    if (!profile?.email) {
-      // 이메일이 없으면 건너뜀 — 마케팅 동의 없이 거래성 메일만 발송하므로
-      // 이메일 부재는 곧 미수신.
-      continue
+
+    // 이메일 발송 (수신자 프로필에 email 있으면).
+    if (profile?.email) {
+      try {
+        const result = await notifySubscriptionReminder({
+          email: profile.email,
+          name: profile.name,
+          subscriptionId: sub.id,
+          items: sub.subscription_items.map((it) => ({
+            productName: it.product_name,
+            quantity: it.quantity,
+          })),
+          nextDeliveryDate: sub.next_delivery_date,
+          daysBefore: days,
+        })
+        if (result.ok) sent++
+        else errors++
+      } catch (err) {
+        console.error('[cron/subscription-reminders] email send failed', {
+          subscriptionId: sub.id,
+          err,
+        })
+        errors++
+      }
     }
-    try {
-      const result = await notifySubscriptionReminder({
-        email: profile.email,
-        name: profile.name,
-        subscriptionId: sub.id,
-        items: sub.subscription_items.map((it) => ({
-          productName: it.product_name,
-          quantity: it.quantity,
-        })),
-        nextDeliveryDate: sub.next_delivery_date,
-        daysBefore: days,
+
+    // 푸시 알림 — order 카테고리 (push_preferences 동의 + quiet hours 자동 검사).
+    // 이메일과 별개. 이메일 OFF + 푸시 ON 사용자에게도 닿게.
+    const itemCountLabel =
+      sub.subscription_items.length > 1
+        ? `${sub.subscription_items[0]?.product_name ?? '상품'} 외 ${sub.subscription_items.length - 1}개`
+        : sub.subscription_items[0]?.product_name ?? '정기배송 상품'
+    const pushTitle =
+      days === 0
+        ? '오늘 정기배송이 출발해요 📦'
+        : days === 1
+          ? '내일 정기배송이 출발해요 🐾'
+          : `D-${days} · 정기배송 알림`
+    pushToUser(
+      sub.user_id,
+      {
+        title: pushTitle,
+        body: itemCountLabel,
+        url: `/mypage/subscriptions`,
+        tag: `sub-reminder-${sub.id}-${sub.next_delivery_date}`,
+      },
+      { category: 'order' },
+    )
+      .then((res) => {
+        if (res.ok && res.sent > 0) pushed++
       })
-      if (result.ok) sent++
-      else errors++
-    } catch (err) {
-      console.error('[cron/subscription-reminders] send failed', {
-        subscriptionId: sub.id,
-        err,
-      })
-      errors++
-    }
+      .catch(() => {})
   }
 
-  return NextResponse.json({ checked: subs?.length ?? 0, sent, errors })
+  return NextResponse.json({ checked: subs?.length ?? 0, sent, errors, pushed })
 }
