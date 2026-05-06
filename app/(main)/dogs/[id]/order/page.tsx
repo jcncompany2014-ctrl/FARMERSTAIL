@@ -609,7 +609,17 @@ export default function OrderPage() {
         .from('subscription_items')
         .insert(itemRows)
       if (itemErr) {
-        setErr('상품 항목 추가에 실패했습니다.')
+        // 롤백 — subscription 만 생성되고 items 가 비어있으면 cron 청구는
+        // 정상가로 진행되지만 발송할 상품 정보가 없음 → orphan. 즉시 취소.
+        await supabase
+          .from('subscriptions')
+          .update({
+            status: 'cancelled',
+            last_failed_charge_reason: 'item-insert-failed',
+          })
+          .eq('id', (sub as { id: string }).id)
+          .eq('user_id', user.id)
+        setErr('상품 항목 추가에 실패했습니다. 다시 시도해 주세요.')
         return
       }
       // 사용자가 옵트인했으면 profiles 도 업데이트 — 다음 정기배송 / 단건

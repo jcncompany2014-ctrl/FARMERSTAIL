@@ -120,6 +120,9 @@ export default async function AnalysesTimelinePage({
     .eq('dog_id', dogId)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+    // 한 강아지에 분석이 100건+ 쌓이는 케이스는 거의 없지만 server-side
+    // limit 으로 메모리 폭주 방어 (가드레일).
+    .limit(50)
 
   const analyses = (analysesRaw ?? []) as AnalysisRow[]
   // v1.6.1 audit (2026-05-05) — algorithm 핵심 수정 후 분석은 stale 가능.

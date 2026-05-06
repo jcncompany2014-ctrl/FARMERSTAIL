@@ -120,6 +120,9 @@ export default function AnalysisView({
         .eq('dog_id', dogId)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
+        // 무제한 select 가드 — 100건+ 누적 시 memory/network ↑.
+        // history 6 개만 보여주는 UI 라 50 으로 충분.
+        .limit(50)
 
       if (!rows || rows.length === 0) {
         setLoading(false)
