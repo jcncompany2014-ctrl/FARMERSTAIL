@@ -240,23 +240,33 @@ export async function getAllEventSlugs(
 
 /**
  * 'YY.MM.DD – MM.DD' (같은 해) / 'YY.MM.DD – YY.MM.DD' (해 다름).
- * 카드 / 리스트 / 상세 어디서든 동일 포맷을 쓰도록 공유.
+ * 카드 / 리스트 / 상세 어디서든 동일 포맷.
  *
- * DB 의 timestamptz 가 ISO 문자열로 내려올 때 Date 생성자가 바로 파싱하므로
- * 타임존은 브라우저 로컬 기준(KST 가정). 서버 렌더링 시엔 Vercel 의 UTC
- * 기본값이 깨질 수 있는데, `/events` 는 운영이 관리자 뜻대로 시작/종료하는
- * 개념이라 +/- 하루 오차는 치명적이지 않다고 판단.
+ * # SSR hydration 안전성 (audit fix v1.6.2)
+ * 이전: `getMonth()` / `getDate()` 가 실행 환경 timezone 사용 → Vercel UTC
+ * 서버 vs KST 클라이언트 결과 다름 → React error #418 hydration mismatch.
+ * 수정: UTC + 9h 오프셋 수동 계산 → 환경 무관 KST 기준 결정적 출력.
  */
+function kstParts(iso: string): { y: number; m: number; d: number } {
+  const ms = new Date(iso).getTime() + 9 * 3600 * 1000
+  const d = new Date(ms)
+  return {
+    y: d.getUTCFullYear(),
+    m: d.getUTCMonth() + 1,
+    d: d.getUTCDate(),
+  }
+}
+
 export function formatEventDateRange(
   startsAt: string,
   endsAt: string
 ): string {
-  const s = new Date(startsAt)
-  const e = new Date(endsAt)
+  const s = kstParts(startsAt)
+  const e = kstParts(endsAt)
   const pad = (n: number) => String(n).padStart(2, '0')
-  const yy = (d: Date) => String(d.getFullYear()).slice(2)
-  if (s.getFullYear() === e.getFullYear()) {
-    return `${yy(s)}.${pad(s.getMonth() + 1)}.${pad(s.getDate())} – ${pad(e.getMonth() + 1)}.${pad(e.getDate())}`
+  const yy = (year: number) => String(year).slice(2)
+  if (s.y === e.y) {
+    return `${yy(s.y)}.${pad(s.m)}.${pad(s.d)} – ${pad(e.m)}.${pad(e.d)}`
   }
-  return `${yy(s)}.${pad(s.getMonth() + 1)}.${pad(s.getDate())} – ${yy(e)}.${pad(e.getMonth() + 1)}.${pad(e.getDate())}`
+  return `${yy(s.y)}.${pad(s.m)}.${pad(s.d)} – ${yy(e.y)}.${pad(e.m)}.${pad(e.d)}`
 }
