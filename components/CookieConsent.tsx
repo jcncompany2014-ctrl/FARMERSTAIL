@@ -36,6 +36,8 @@ function useIsAppContext(): boolean {
  * 로 반영. SSR 타임에는 항상 null (not-decided) 이라고 가정 — 하이드레이션 후
  * readConsent() 가 실제 값을 밀어준다.
  */
+const EMPTY_SUBSCRIBE = () => () => {}
+
 function subscribeConsent(cb: () => void) {
   if (typeof window === 'undefined') return () => {}
   window.addEventListener('ft-consent-change', cb)
@@ -96,13 +98,14 @@ export default function CookieConsent() {
   const [marketing, setMarketing] = useState(true)
   const isApp = useIsAppContext()
   // Hydration mismatch 방지 — server 는 항상 banner 렌더 (consent=null), client 는
-  // localStorage 에 따라 다를 수 있음. mounted 플래그로 client-only 렌더 보장.
-  // (React 19 + Next 16 turbopack 에서 useSyncExternalStore 만으로는 mismatch
-  // detection 이 #418 을 던지는 케이스 회피.)
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  // localStorage 에 따라 다를 수 있음. has-mounted 패턴으로 server 단계에선 절대
+  // 렌더 안 함 → SSR/첫 hydration 100% 일치.
+  // useSyncExternalStore 사용 — setState-in-effect 룰 회피.
+  const mounted = useSyncExternalStore<boolean>(
+    EMPTY_SUBSCRIBE,
+    () => true,
+    () => false,
+  )
 
   // 앱 컨텍스트에서 첫 진입 시 자동으로 "필수만 허용" 으로 기록해 배너 노출
   // 안 함. 이미 정해진 consent 가 있으면 그대로 유지.

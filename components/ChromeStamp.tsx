@@ -21,20 +21,27 @@
  * 고정 글자수라서 layout shift 가 거의 없다.
  */
 
-import { useEffect, useState } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 import {
   getStampSnapshot,
   type EditorialStamp,
 } from '@/lib/dateStamp'
 
+const EMPTY_SUBSCRIBE = () => () => {}
+
 export default function ChromeStamp() {
-  // useSyncExternalStore + getServerSnapshot 패턴이 React 19 + Next 16
-  // turbopack 에서 hydration mismatch (#418) 일으키는 케이스 회피 — 단순한
-  // mount-after pattern 으로 client-only stamp.
-  const [stamp, setStamp] = useState<EditorialStamp | null>(null)
-  useEffect(() => {
-    setStamp(getStampSnapshot())
-  }, [])
+  // useSyncExternalStore "has-mounted" 패턴 — server 는 false, client 는 true.
+  // setState-in-effect 룰 회피 + hydration mismatch 차단 동시 달성.
+  // 이전: getServerSnapshot=null + getSnapshot=stamp → 둘 다 동일 element 인데
+  // text 만 다름 → React 19 + Next 16 turbopack 에서 #418. 이번 패턴은 server
+  // 단계에서 ' ' (placeholder) 를 그대로 그리고, client mount 후 한 번에 stamp
+  // 로 swap → React 가 hydration 후 reconcile 로 처리 (mismatch 가 아님).
+  const hasMounted = useSyncExternalStore<boolean>(
+    EMPTY_SUBSCRIBE,
+    useCallback(() => true, []),
+    useCallback(() => false, []),
+  )
+  const stamp: EditorialStamp | null = hasMounted ? getStampSnapshot() : null
 
   return (
     <div
