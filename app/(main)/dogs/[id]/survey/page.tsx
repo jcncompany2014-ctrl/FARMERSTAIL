@@ -626,7 +626,10 @@ export default function SurveyPage() {
       litterSize: litterSize ?? null,
       coatCondition: coat || undefined,
       appetite: taste || undefined,
-      dailyWalkMinutes: walkMinutes ? Number(walkMinutes) : undefined,
+      // walkMinutes 0-300 clamp (현실적 범위 — 산책 5시간 초과는 입력 오류).
+      dailyWalkMinutes: walkMinutes
+        ? Math.max(0, Math.min(300, Number(walkMinutes) || 0))
+        : undefined,
       currentFoodBrand: currentBrand.trim() || undefined,
       careGoal: careGoal || undefined,
       homeCookingExperience: homeCookingExp || undefined,
@@ -648,7 +651,9 @@ export default function SurveyPage() {
         chronic_conditions: chronicConditions,
         current_medications: meds,
         current_food_brand: currentBrand.trim() || null,
-        daily_walk_minutes: walkMinutes ? Number(walkMinutes) : null,
+        daily_walk_minutes: walkMinutes
+          ? Math.max(0, Math.min(300, Number(walkMinutes) || 0))
+          : null,
         coat_condition: coat || null,
         appetite: taste || null,
         pregnancy_status: pregnancy || null,
