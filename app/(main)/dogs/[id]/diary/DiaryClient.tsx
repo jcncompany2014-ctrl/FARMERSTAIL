@@ -1,0 +1,476 @@
+'use client'
+
+import { useState, useRef } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { Camera, Plus, Heart, Trash2, ImageIcon } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
+
+/**
+ * 사진 일기 client view — list + 새 entry 모달.
+ *
+ * # 매일 사용 surface
+ *  - 페이지 상단 새 entry CTA 큼직하게
+ *  - 카드 list — 그리드 (사진 1장이면 single, 2장+ 면 2열, 3장+ 4장은 grid 4)
+ *  - mood 1-5 emoji + 짧은 메모 + 작성일
+ *
+ * # 업로드
+ *  - 파일 선택 → client side 에서 1024px max 로 resize (canvas) → supabase
+ *    storage `dog-diary-photos` 버킷의 user_id/dog_id/yyyy-mm-dd-uuid.webp 경로
+ *  - 최대 5장. 5MB / 장 (마이그레이션 limit)
+ */
+
+type Entry = {
+  id: string
+  photo_urls: string[]
+  note: string | null
+  mood: number | null
+  created_at: string
+}
+
+const MOODS = ['😢', '😟', '😐', '🙂', '😊'] as const
+const MAX_PHOTOS = 5
+
+export default function DiaryClient({
+  dogId,
+  dogName,
+  initialEntries,
+}: {
+  dogId: string
+  dogName: string
+  initialEntries: Entry[]
+}) {
+  const supabase = createClient()
+  const toast = useToast()
+  const [entries, setEntries] = useState<Entry[]>(initialEntries)
+  const [showNew, setShowNew] = useState(false)
+  const [draftFiles, setDraftFiles] = useState<File[]>([])
+  const [draftNote, setDraftNote] = useState('')
+  const [draftMood, setDraftMood] = useState<number | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  function pickFiles() {
+    fileInputRef.current?.click()
+  }
+
+  function onFilesPicked(files: FileList | null) {
+    if (!files) return
+    const arr = Array.from(files).slice(0, MAX_PHOTOS - draftFiles.length)
+    setDraftFiles((prev) => [...prev, ...arr].slice(0, MAX_PHOTOS))
+  }
+
+  function removeDraftFile(idx: number) {
+    setDraftFiles((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  /**
+   * Canvas resize — 모바일에서 4MB+ 사진을 그대로 올리면 5MB limit 걸림 + 업로드
+   * 시간 길어짐. max 1280px 로 줄이고 webp 0.85 quality.
+   */
+  async function resizeImage(file: File): Promise<Blob> {
+    const bitmap = await createImageBitmap(file)
+    const max = 1280
+    const ratio = Math.min(1, max / Math.max(bitmap.width, bitmap.height))
+    const w = Math.round(bitmap.width * ratio)
+    const h = Math.round(bitmap.height * ratio)
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('canvas ctx not available')
+    ctx.drawImage(bitmap, 0, 0, w, h)
+    return new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error('blob failed'))),
+        'image/webp',
+        0.85,
+      )
+    })
+  }
+
+  async function handleSubmit() {
+    if (draftFiles.length === 0 && !draftNote.trim()) {
+      toast.error('사진 또는 메모 중 하나는 입력해주세요')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error('로그인이 필요해요')
+
+      // 1) 각 사진 resize + upload
+      const today = new Date().toISOString().slice(0, 10)
+      const uploadedUrls: string[] = []
+      for (const file of draftFiles) {
+        const blob = await resizeImage(file)
+        const filename = `${user.id}/${dogId}/${today}-${crypto.randomUUID()}.webp`
+        const { error: upErr } = await supabase.storage
+          .from('dog-diary-photos')
+          .upload(filename, blob, { contentType: 'image/webp', upsert: false })
+        if (upErr) throw upErr
+        const { data: signed } = await supabase.storage
+          .from('dog-diary-photos')
+          .createSignedUrl(filename, 60 * 60 * 24 * 365) // 1년 — bucket 이 private 라 signed URL 필요
+        if (signed?.signedUrl) uploadedUrls.push(signed.signedUrl)
+      }
+
+      // 2) entry insert
+      const { data, error } = await supabase
+        .from('dog_diary')
+        .insert({
+          dog_id: dogId,
+          user_id: user.id,
+          photo_urls: uploadedUrls,
+          note: draftNote.trim() || null,
+          mood: draftMood,
+        })
+        .select('id, photo_urls, note, mood, created_at')
+        .single()
+      if (error) throw error
+      if (data) setEntries((prev) => [data as Entry, ...prev])
+
+      toast.success('일기를 저장했어요')
+      setShowNew(false)
+      setDraftFiles([])
+      setDraftNote('')
+      setDraftMood(null)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '저장하지 못했어요')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleDelete(entryId: string) {
+    if (!confirm('이 일기를 삭제하시겠어요?')) return
+    const { error } = await supabase
+      .from('dog_diary')
+      .delete()
+      .eq('id', entryId)
+    if (error) {
+      toast.error('삭제하지 못했어요')
+      return
+    }
+    setEntries((prev) => prev.filter((e) => e.id !== entryId))
+    toast.success('삭제했어요')
+  }
+
+  return (
+    <main className="pb-20 px-5 max-w-md mx-auto">
+      <section className="pt-6 pb-2">
+        <Link
+          href={`/dogs/${dogId}`}
+          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+        >
+          ← {dogName}
+        </Link>
+        <div className="mt-3 flex items-end justify-between">
+          <div>
+            <span className="kicker">Diary · 사진 일기</span>
+            <h1
+              className="font-serif mt-1.5"
+              style={{
+                fontSize: 22,
+                fontWeight: 800,
+                color: 'var(--ink)',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {dogName} 의 일상
+            </h1>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowNew(true)}
+            className="inline-flex items-center gap-1 px-4 py-2 rounded-full text-[12px] font-bold text-white"
+            style={{ background: 'var(--terracotta)' }}
+          >
+            <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+            기록 남기기
+          </button>
+        </div>
+      </section>
+
+      {entries.length === 0 ? (
+        <section className="mt-6">
+          <div
+            className="text-center rounded-2xl border px-5 py-12"
+            style={{
+              background: 'var(--bg-2)',
+              borderColor: 'var(--rule-2)',
+              borderStyle: 'dashed',
+            }}
+          >
+            <div
+              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-4"
+              style={{
+                background: 'var(--bg)',
+                border: '1px solid var(--rule-2)',
+              }}
+            >
+              <Camera className="w-6 h-6 text-muted" strokeWidth={1.3} />
+            </div>
+            <span className="kicker kicker-muted">First Page · 첫 페이지</span>
+            <h3
+              className="font-serif mt-2"
+              style={{
+                fontSize: 17,
+                fontWeight: 800,
+                color: 'var(--ink)',
+                letterSpacing: '-0.015em',
+              }}
+            >
+              오늘의 한 장
+            </h3>
+            <p className="text-[12px] text-muted mt-2 leading-relaxed">
+              산책 다녀온 모습, 입맛 좋은 날, 잠든 표정.
+              <br />
+              매일 한 장씩 남기면 1년이 책이 돼요.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowNew(true)}
+              className="mt-5 inline-flex items-center gap-1 px-6 py-2.5 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
+              style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+            >
+              첫 기록 남기기
+            </button>
+          </div>
+        </section>
+      ) : (
+        <section className="mt-4 space-y-3">
+          {entries.map((entry) => (
+            <article
+              key={entry.id}
+              className="bg-white rounded-2xl border border-rule overflow-hidden"
+            >
+              {entry.photo_urls.length > 0 && <PhotoGrid urls={entry.photo_urls} />}
+              <div className="px-4 py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    {entry.mood !== null && (
+                      <span className="text-[16px]" aria-label={`기분 ${entry.mood}/5`}>
+                        {MOODS[entry.mood - 1]}
+                      </span>
+                    )}
+                    <span className="text-[10.5px] text-muted font-mono">
+                      {formatKoDate(entry.created_at)}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(entry.id)}
+                    className="text-muted hover:text-sale transition"
+                    aria-label="삭제"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" strokeWidth={1.8} />
+                  </button>
+                </div>
+                {entry.note && (
+                  <p className="text-[13px] text-text leading-relaxed whitespace-pre-line">
+                    {entry.note}
+                  </p>
+                )}
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+
+      {/* 새 entry 모달 */}
+      {showNew && (
+        <div
+          className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-sm flex items-end md:items-center justify-center"
+          onClick={() => !submitting && setShowNew(false)}
+        >
+          <div
+            className="w-full md:max-w-md bg-white rounded-t-3xl md:rounded-3xl p-5 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <span className="kicker">New · 새 기록</span>
+              <button
+                type="button"
+                onClick={() => !submitting && setShowNew(false)}
+                disabled={submitting}
+                className="text-[12px] text-muted disabled:opacity-50"
+              >
+                닫기
+              </button>
+            </div>
+
+            {/* 사진 선택 + 미리보기 */}
+            <div className="mb-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  onFilesPicked(e.target.files)
+                  e.target.value = ''
+                }}
+              />
+              <div className="grid grid-cols-3 gap-2">
+                {draftFiles.map((f, i) => (
+                  <div
+                    key={i}
+                    className="relative aspect-square rounded-lg overflow-hidden border border-rule bg-bg-2"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={URL.createObjectURL(f)}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeDraftFile(i)}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-ink/70 text-white flex items-center justify-center text-[10px]"
+                      aria-label="제거"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                {draftFiles.length < MAX_PHOTOS && (
+                  <button
+                    type="button"
+                    onClick={pickFiles}
+                    className="aspect-square rounded-lg border-2 border-dashed border-rule-2 flex items-center justify-center text-muted hover:border-text transition"
+                  >
+                    <ImageIcon className="w-5 h-5" strokeWidth={1.5} />
+                  </button>
+                )}
+              </div>
+              <p className="text-[10.5px] text-muted mt-1.5">
+                최대 {MAX_PHOTOS}장 · 1장당 5MB
+              </p>
+            </div>
+
+            {/* 메모 */}
+            <div className="mb-4">
+              <label className="text-[11px] font-bold text-text">메모</label>
+              <textarea
+                value={draftNote}
+                onChange={(e) => setDraftNote(e.target.value.slice(0, 200))}
+                rows={3}
+                placeholder="오늘 특별한 일이 있었나요?"
+                className="mt-1 w-full px-3 py-2.5 rounded-lg border border-rule bg-bg text-[13px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta resize-none"
+              />
+              <div className="text-right text-[10px] text-muted mt-1">
+                {draftNote.length}/200
+              </div>
+            </div>
+
+            {/* 기분 */}
+            <div className="mb-5">
+              <label className="text-[11px] font-bold text-text">오늘 기분</label>
+              <div className="mt-2 flex gap-1.5">
+                {MOODS.map((emoji, i) => {
+                  const score = i + 1
+                  const active = draftMood === score
+                  return (
+                    <button
+                      key={score}
+                      type="button"
+                      onClick={() => setDraftMood(active ? null : score)}
+                      className={`flex-1 py-2 rounded-lg border text-[20px] transition ${
+                        active
+                          ? 'border-terracotta bg-terracotta/8'
+                          : 'border-rule bg-white'
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full py-3 rounded-full text-[13px] font-bold transition active:scale-[0.98] disabled:opacity-50"
+              style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+            >
+              {submitting ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Heart className="w-3.5 h-3.5 animate-pulse" /> 저장 중...
+                </span>
+              ) : (
+                '저장하기'
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+    </main>
+  )
+}
+
+function PhotoGrid({ urls }: { urls: string[] }) {
+  if (urls.length === 1) {
+    return (
+      <div className="relative aspect-[4/3] bg-bg-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={urls[0]}
+          alt=""
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+    )
+  }
+  if (urls.length === 2) {
+    return (
+      <div className="grid grid-cols-2 gap-px bg-rule">
+        {urls.map((u, i) => (
+          <div key={i} className="relative aspect-square bg-bg-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={u} alt="" className="w-full h-full object-cover" loading="lazy" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+  return (
+    <div className="grid grid-cols-3 gap-px bg-rule">
+      {urls.slice(0, 3).map((u, i) => (
+        <div key={i} className="relative aspect-square bg-bg-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={u} alt="" className="w-full h-full object-cover" loading="lazy" />
+          {i === 2 && urls.length > 3 && (
+            <div className="absolute inset-0 bg-ink/50 flex items-center justify-center text-white font-bold text-[14px]">
+              +{urls.length - 3}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+// next/image 직접 사용은 외부 origin 추가 필요해서 일단 <img>; sw.js 가 캐시.
+void Image
+
+function formatKoDate(iso: string): string {
+  const d = new Date(iso)
+  const fmt = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  const parts = fmt.formatToParts(d)
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
+  return `${get('month')}.${get('day')} ${get('hour')}:${get('minute')}`
+}

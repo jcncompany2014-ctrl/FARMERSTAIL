@@ -19,7 +19,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Dog, Scale, BarChart3, ClipboardList, Repeat } from 'lucide-react'
+import { Dog, Camera, BarChart3, ClipboardList, Repeat } from 'lucide-react'
 
 type Tab = {
   href: (id: string) => string
@@ -36,12 +36,15 @@ const TABS: readonly Tab[] = [
     Icon: Dog,
   },
   {
-    href: (id) => `/dogs/${id}/health`,
+    // 기록 = 사진 일기 (매일 retention 핵심). 컨디션·체중 등 health log 는
+    // diary 페이지에서 별도 link 로 진입.
+    href: (id) => `/dogs/${id}/diary`,
     isActive: (path, id) =>
+      path.startsWith(`/dogs/${id}/diary`) ||
       path.startsWith(`/dogs/${id}/health`) ||
       path.startsWith(`/dogs/${id}/checkin`),
     label: '기록',
-    Icon: Scale,
+    Icon: Camera,
   },
   {
     href: (id) => `/dogs/${id}/analyses`,
