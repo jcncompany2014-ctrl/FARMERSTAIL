@@ -20,6 +20,7 @@ import {
   HelpCircle,
   FileText,
   Shield,
+  Crown,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -128,38 +129,48 @@ export default function MyPage() {
         </h1>
       </section>
 
-      {/* 프로필 카드 — 클릭 시 /account/profile 로 이동 (이름/연락처/생일/등급/비밀번호 변경) */}
+      {/* 프로필 카드 — 클릭 시 /account/profile (이름/연락처/생일/비밀번호).
+          tier chip 은 자체 link 로 /mypage/membership 분리 진입 (등급 hub). */}
       <section className="px-5 mt-4">
-        <Link
-          href="/account/profile"
-          className="block bg-white rounded-2xl border border-rule px-5 py-5 active:scale-[0.99] transition"
-        >
+        <div className="bg-white rounded-2xl border border-rule px-5 py-5">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-bg flex items-center justify-center">
+            <Link
+              href="/account/profile"
+              aria-label="프로필 수정"
+              className="w-12 h-12 rounded-full bg-bg flex items-center justify-center shrink-0 hover:bg-rule transition"
+            >
               <User
                 className="w-5 h-5 text-muted"
                 strokeWidth={1.5}
               />
-            </div>
-            <div className="flex-1 min-w-0">
+            </Link>
+            <Link
+              href="/account/profile"
+              className="flex-1 min-w-0 group"
+            >
               <div className="flex items-center gap-1.5 flex-wrap">
-                <div className="text-[14px] font-bold text-text truncate">
+                <div className="text-[14px] font-bold text-text truncate group-hover:text-terracotta transition">
                   {displayName}님
                 </div>
-                {profile?.tier && (
-                  <TierChip tier={profile.tier} />
-                )}
               </div>
               <div className="text-[11px] text-muted truncate mt-0.5">
                 {email ?? '—'}
               </div>
               <div className="text-[10px] text-terracotta font-bold mt-1">
-                내 프로필 / 등급 / 비밀번호 →
+                프로필 / 비밀번호 →
               </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted shrink-0" strokeWidth={2} />
+            </Link>
+            {profile?.tier && (
+              <Link
+                href="/mypage/membership"
+                aria-label="멤버십 등급 보기"
+                className="shrink-0 active:scale-95 transition"
+              >
+                <TierChip tier={profile.tier} />
+              </Link>
+            )}
           </div>
-        </Link>
+        </div>
       </section>
 
       {/* 포인트 하이라이트 — ink 배경 + kicker-gold */}
@@ -278,6 +289,11 @@ export default function MyPage() {
 
       {/* 그룹 2: 혜택 & 활동 — 친구 초대 제거 (footer 로 이동) */}
       <MenuGroup kicker="Benefits · 혜택" className="mt-5">
+        <MenuItem
+          href="/mypage/membership"
+          Icon={Crown}
+          label="멤버십 등급"
+        />
         <MenuItem href="/mypage/wishlist" Icon={Heart} label="찜한 상품" />
         <MenuItem href="/mypage/reviews" Icon={Star} label="내 리뷰" />
         <MenuItem

@@ -8,6 +8,7 @@ import { calculateShipping } from '@/lib/commerce/shipping'
 import CheckoutForm from './CheckoutForm'
 import { rowToAddress, type AddressRow } from '@/lib/commerce/addresses'
 import AuthAwareShell from '@/components/AuthAwareShell'
+import { tierMeta } from '@/lib/tiers'
 import DeliveryCountdownBanner from '@/components/products/DeliveryCountdownBanner'
 import { isAppContextServer } from '@/lib/app-context'
 
@@ -42,7 +43,7 @@ export default async function CheckoutPage() {
     // PGRST116 throw 해 결제 페이지 통째로 깨지는 거 방지.
     supabase
       .from('profiles')
-      .select('name, phone, zip, address, address_detail')
+      .select('name, phone, zip, address, address_detail, tier')
       .eq('id', user.id)
       .maybeSingle(),
     // User's current points balance
@@ -350,6 +351,7 @@ export default async function CheckoutPage() {
         shippingFee={shippingFee}
         total={total}
         pointBalance={pointBalance}
+        earnRate={tierMeta(profile?.tier ?? null).earnRate}
       />
     </main>
     </AuthAwareShell>

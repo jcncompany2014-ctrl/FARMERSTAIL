@@ -59,6 +59,8 @@ type Props = {
   /** 서버측 초기 total — begin_checkout 이벤트 용. 결제 금액은 재계산. */
   total: number
   pointBalance: number
+  /** 적립률 (%) — tier 기반. 서버에서 profile.tier → tierMeta(t).earnRate. */
+  earnRate?: number
 }
 
 function generateOrderNumber() {
@@ -82,6 +84,7 @@ export default function CheckoutForm({
   subtotal,
   total: baseTotal,
   pointBalance,
+  earnRate = 1,
 }: Props) {
   // useRouter 호출 흔적 — 라우팅 후 결제는 Toss SDK 가 직접 redirect 하므로
   // 여기서 router 객체가 필요 없다. 사용 안 하는 호출 제거.
@@ -250,8 +253,9 @@ export default function CheckoutForm({
 
       const orderNumber = generateOrderNumber()
 
-      // 1% cashback on the net paid amount — credited on delivery in a later step.
-      const pointsEarned = Math.floor(total * 0.01)
+      // Tier 기반 cashback (브론즈 1% / 실버 1.5% / 골드 2% / VIP 3%) — 결제 net
+      // 금액 × 적립률 / 100. 적립은 배송 완료 시점에 credit (lib/commerce/points).
+      const pointsEarned = Math.floor((total * earnRate) / 100)
 
       // 가상계좌를 선택한 경우에만 현금영수증 정보를 저장한다.
       // 카드의 경우 매출전표가 법적 영수증이라 불필요.

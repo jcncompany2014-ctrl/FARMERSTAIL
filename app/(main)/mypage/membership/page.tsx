@@ -1,0 +1,425 @@
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import {
+  ChevronLeft,
+  Coins,
+  Truck,
+  Ticket,
+  Crown,
+  Gift,
+  Sparkles,
+  Cake,
+  Lock,
+  Check,
+} from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import {
+  TIERS,
+  tierMeta,
+  nextTier,
+  spendToNextTier,
+  type TierBenefit,
+  type TierMeta,
+} from '@/lib/tiers'
+
+export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: '멤버십',
+  robots: { index: false, follow: false },
+}
+
+const ICON_MAP: Record<TierBenefit['Icon'], typeof Coins> = {
+  coins: Coins,
+  truck: Truck,
+  ticket: Ticket,
+  crown: Crown,
+  gift: Gift,
+  sparkles: Sparkles,
+  cake: Cake,
+}
+
+/**
+ * /mypage/membership — 멤버십 hub.
+ *
+ * 4단계 등급 시각화 + 현재 등급 hero + 누적 통계 + 다음 등급 진행률 + 등급별
+ * detailed 혜택. /account/profile 의 작은 TierBadge 와 분리 — 매일 들어와도
+ * 시인성 좋게.
+ */
+export default async function MembershipPage() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login?next=/mypage/membership')
+
+  const [{ data: profile }, { count: orderCount }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('tier, cumulative_spend, tier_updated_at')
+      .eq('id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('payment_status', 'paid'),
+  ])
+
+  const tier = (profile?.tier as string | null) ?? 'bronze'
+  const cumulativeSpend =
+    typeof profile?.cumulative_spend === 'number'
+      ? profile.cumulative_spend
+      : 0
+  const meta = tierMeta(tier)
+  const next = nextTier(tier)
+  const remain = spendToNextTier(cumulativeSpend, tier)
+
+  const lower = meta.threshold
+  const upper = next?.threshold ?? meta.threshold
+  const progress =
+    upper > lower
+      ? Math.min(
+          100,
+          Math.max(0, ((cumulativeSpend - lower) / (upper - lower)) * 100),
+        )
+      : 100
+
+  return (
+    <main className="pb-12">
+      <section className="px-5 pt-6 pb-3">
+        <Link
+          href="/mypage"
+          className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-terracotta font-semibold"
+        >
+          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
+          내 정보
+        </Link>
+      </section>
+
+      {/* HERO 카드 — 등급 색 기반, 누적 + 진행률 + 다음 등급 */}
+      <section className="px-5">
+        <div
+          className="relative overflow-hidden rounded-3xl px-6 pt-6 pb-7"
+          style={{ background: meta.bg, color: meta.ink }}
+        >
+          <div
+            aria-hidden
+            className="absolute -top-10 -right-10 w-44 h-44 rounded-full pointer-events-none"
+            style={{ background: 'rgba(255,255,255,0.10)' }}
+          />
+          <div
+            aria-hidden
+            className="absolute -bottom-12 -left-12 w-36 h-36 rounded-full pointer-events-none"
+            style={{ background: 'rgba(255,255,255,0.05)' }}
+          />
+
+          <div className="relative">
+            <div className="flex items-start gap-4">
+              <div
+                className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
+                style={{
+                  background:
+                    meta.key === 'vip'
+                      ? meta.ink
+                      : 'rgba(255,255,255,0.15)',
+                  color: meta.key === 'vip' ? meta.bg : meta.ink,
+                }}
+              >
+                {meta.key === 'vip' ? (
+                  <Crown className="w-5 h-5" strokeWidth={2} />
+                ) : (
+                  <Sparkles className="w-5 h-5" strokeWidth={2} />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div
+                  className="font-mono text-[10px] tracking-[0.22em] uppercase"
+                  style={{ opacity: 0.8 }}
+                >
+                  Member · {meta.en}
+                </div>
+                <h1
+                  className="font-serif mt-1 leading-tight"
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 800,
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  {meta.label} 등급
+                </h1>
+              </div>
+            </div>
+
+            {/* 누적 + 다음 등급 */}
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div
+                className="rounded-xl px-4 py-3"
+                style={{ background: 'rgba(255,255,255,0.12)' }}
+              >
+                <div
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  style={{ opacity: 0.7 }}
+                >
+                  누적 결제
+                </div>
+                <div className="mt-1 flex items-baseline gap-0.5">
+                  <span
+                    className="font-serif font-black leading-none tabular-nums"
+                    style={{ fontSize: 22, letterSpacing: '-0.02em' }}
+                  >
+                    {cumulativeSpend.toLocaleString('ko-KR')}
+                  </span>
+                  <span className="text-[10px]" style={{ opacity: 0.85 }}>
+                    원
+                  </span>
+                </div>
+              </div>
+              <div
+                className="rounded-xl px-4 py-3"
+                style={{ background: 'rgba(255,255,255,0.12)' }}
+              >
+                <div
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  style={{ opacity: 0.7 }}
+                >
+                  주문 수
+                </div>
+                <div className="mt-1 flex items-baseline gap-0.5">
+                  <span
+                    className="font-serif font-black leading-none tabular-nums"
+                    style={{ fontSize: 22, letterSpacing: '-0.02em' }}
+                  >
+                    {orderCount ?? 0}
+                  </span>
+                  <span className="text-[10px]" style={{ opacity: 0.85 }}>
+                    건
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 다음 등급 progress */}
+            <div className="mt-5">
+              {next ? (
+                <>
+                  <div className="flex items-center justify-between mb-2">
+                    <span
+                      className="text-[11px] font-bold"
+                      style={{ opacity: 0.85 }}
+                    >
+                      {next.label}까지
+                    </span>
+                    <span
+                      className="text-[11px] font-bold tabular-nums"
+                      style={{ opacity: 0.95 }}
+                    >
+                      {remain.toLocaleString('ko-KR')}원 남음
+                    </span>
+                  </div>
+                  <div
+                    className="h-1.5 rounded-full overflow-hidden"
+                    style={{ background: 'rgba(255,255,255,0.22)' }}
+                  >
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${progress}%`,
+                        background:
+                          meta.key === 'vip' ? meta.ink : '#FFFFFF',
+                      }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Crown className="w-4 h-4" strokeWidth={2} />
+                  <span className="text-[12px] font-bold">
+                    최고 등급 도달!
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 현재 등급 혜택 list */}
+      <section className="px-5 mt-5">
+        <div className="flex items-center gap-2 mb-2.5">
+          <span
+            aria-hidden
+            style={{ width: 16, height: 1.5, background: 'var(--terracotta)' }}
+          />
+          <span className="kicker">My Benefits · 현재 등급 혜택</span>
+        </div>
+        <ul className="bg-white rounded-2xl border border-rule overflow-hidden">
+          {meta.benefits.map((b, i) => {
+            const Icon = ICON_MAP[b.Icon]
+            return (
+              <li
+                key={`${meta.key}-${i}`}
+                className={`flex items-start gap-3 px-4 py-3.5 ${
+                  i < meta.benefits.length - 1 ? 'border-b border-rule' : ''
+                }`}
+              >
+                <div
+                  className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{
+                    background: 'color-mix(in srgb, var(--terracotta) 10%, white)',
+                  }}
+                >
+                  <Icon
+                    className="w-4 h-4 text-terracotta"
+                    strokeWidth={2}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[12.5px] font-bold text-text">
+                    {b.label}
+                  </div>
+                  <div className="text-[11px] text-muted mt-0.5 leading-relaxed">
+                    {b.detail}
+                  </div>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+
+      {/* 모든 등급 비교 */}
+      <section className="px-5 mt-6">
+        <div className="flex items-center gap-2 mb-2.5">
+          <span
+            aria-hidden
+            style={{ width: 16, height: 1.5, background: 'var(--terracotta)' }}
+          />
+          <span className="kicker">All Tiers · 등급 안내</span>
+        </div>
+        <div className="space-y-2">
+          {TIERS.map((t) => (
+            <TierRow
+              key={t.key}
+              t={t}
+              currentTier={meta.key}
+              cumulativeSpend={cumulativeSpend}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* 등급 산정 안내 */}
+      <section className="px-5 mt-5">
+        <div className="rounded-xl bg-bg-2 px-4 py-3.5 text-[10.5px] text-text leading-relaxed">
+          <p className="font-bold text-text mb-1.5">등급 산정 안내</p>
+          <ul className="space-y-1 text-text/80">
+            <li>
+              · 누적 결제 금액 기준 자동 산정 (취소·환불 제외 순결제액)
+            </li>
+            <li>· 등급 변경은 결제 완료 시 즉시 반영</li>
+            <li>· 등급 산정에서 적립금·쿠폰 할인 차감 후 금액 적용</li>
+            <li>
+              · 정기배송 결제도 동일 기준으로 합산 (월별 정산)
+            </li>
+          </ul>
+          {profile?.tier_updated_at && (
+            <p className="text-[10px] text-muted mt-2">
+              마지막 등급 업데이트: {formatDate(profile.tier_updated_at)}
+            </p>
+          )}
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function TierRow({
+  t,
+  currentTier,
+  cumulativeSpend,
+}: {
+  t: TierMeta
+  currentTier: string
+  cumulativeSpend: number
+}) {
+  const reached = cumulativeSpend >= t.threshold
+  const isCurrent = currentTier === t.key
+  return (
+    <div
+      className="rounded-xl px-4 py-3 transition"
+      style={{
+        background: isCurrent
+          ? 'color-mix(in srgb, ' + t.bg + ' 8%, white)'
+          : 'white',
+        border: `1px solid ${isCurrent ? t.bg : 'var(--rule)'}`,
+        opacity: reached || isCurrent ? 1 : 0.85,
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+          style={{
+            background: reached ? t.bg : 'var(--bg-2)',
+            color: reached ? t.ink : 'var(--muted)',
+          }}
+        >
+          {reached ? (
+            t.key === 'vip' ? (
+              <Crown className="w-3.5 h-3.5" strokeWidth={2} />
+            ) : (
+              <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+            )
+          ) : (
+            <Lock className="w-3 h-3" strokeWidth={2} />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span
+              className="text-[12px] font-black"
+              style={{ color: reached ? 'var(--ink)' : 'var(--muted)' }}
+            >
+              {t.label}
+            </span>
+            {isCurrent && (
+              <span
+                className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                style={{
+                  background: 'var(--terracotta)',
+                  color: 'white',
+                }}
+              >
+                NOW
+              </span>
+            )}
+          </div>
+          <div className="text-[10.5px] text-muted mt-0.5">
+            {t.threshold === 0
+              ? '가입 즉시'
+              : `${t.threshold.toLocaleString('ko-KR')}원 이상`}
+          </div>
+        </div>
+        <span
+          className="text-[10.5px] font-bold tabular-nums"
+          style={{ color: reached ? t.bg : 'var(--muted)' }}
+        >
+          {t.earnRate}% 적립
+        </span>
+      </div>
+      <p className="text-[10.5px] text-muted mt-2 leading-relaxed pl-11">
+        {t.benefit}
+      </p>
+    </div>
+  )
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
