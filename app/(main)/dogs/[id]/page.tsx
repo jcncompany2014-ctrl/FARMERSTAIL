@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
@@ -103,6 +103,7 @@ const FOOD_LINE_NAMES: Record<string, string> = {
 export default function DogDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const dogId = params.id as string
   const supabase = createClient()
   const toast = useToast()
@@ -146,6 +147,15 @@ export default function DogDetailPage() {
     containerRef: deleteModalRef,
     preventEscape: deleting,
   })
+
+  // ?weight=open 으로 진입하면 (NextActionCard 의 weigh-in CTA) 체중 입력
+  // 모달 자동 오픈. 페이지 로드 후 한 번만.
+  useEffect(() => {
+    if (searchParams.get('weight') === 'open') {
+      setShowWeightModal(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     async function loadDog() {

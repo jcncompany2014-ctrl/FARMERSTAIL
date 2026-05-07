@@ -128,16 +128,35 @@ function MySubscriptionsPageInner() {
     return user.id
   }
 
-  async function handlePause(subId: string) {
+  async function handlePause(subId: string, weeks?: 1 | 2 | 4) {
     setActionLoading(subId)
     const uid = await requireUid()
     if (!uid) return
+    // weeks 지정 시 자동 재개 — next_delivery_date 를 N주 뒤로 미루고 status
+    // 는 active 유지 (cron 이 그날 정상 청구). 사용자가 수동 resume 안 해도
+    // 됨. weeks 미지정 시 무기한 paused.
+    const update: Record<string, unknown> = weeks
+      ? (() => {
+          const sub = subs.find((s) => s.id === subId)
+          const base = sub?.next_delivery_date
+            ? new Date(sub.next_delivery_date)
+            : new Date()
+          base.setDate(base.getDate() + weeks * 7)
+          return {
+            next_delivery_date: base.toISOString().split('T')[0],
+          }
+        })()
+      : { status: 'paused' }
     await supabase
       .from('subscriptions')
-      .update({ status: 'paused' })
+      .update(update)
       .eq('id', subId)
       .eq('user_id', uid)
-    trackSubscriptionPaused({ subscriptionId: subId, reason: 'user_action' })
+    // weeks 가 있으면 "건너뛰기" 라 paused 이벤트로 잡지 않음. 무기한 일시정지
+    // 만 user_action 으로 카운트.
+    if (!weeks) {
+      trackSubscriptionPaused({ subscriptionId: subId, reason: 'user_action' })
+    }
     await loadSubscriptions()
     setActionLoading(null)
   }
@@ -638,45 +657,66 @@ function MySubscriptionsPageInner() {
 
                     {/* 액션 버튼 */}
                     {!isCancelled && (
-                      <div className="mt-4 flex gap-2">
+                      <div className="mt-4 space-y-2">
                         {isActive && (
                           <>
-                            <button
-                              onClick={() => handlePause(sub.id)}
-                              disabled={isLoading}
-                              className="flex-1 inline-flex items-center justify-center gap-1 py-2.5 rounded-xl text-[11px] font-bold border border-rule text-muted hover:border-muted transition disabled:opacity-50"
-                            >
-                              {isLoading ? (
-                                '처리 중...'
-                              ) : (
-                                <>
-                                  <Pause
-                                    className="w-3 h-3"
-                                    strokeWidth={2.5}
-                                  />
-                                  일시정지
-                                </>
-                              )}
-                            </button>
-                            <button
-                              onClick={() => setEditingInterval(sub.id)}
-                              disabled={isLoading}
-                              className="flex-1 inline-flex items-center justify-center gap-1 py-2.5 rounded-xl text-[11px] font-bold border border-rule text-moss hover:border-moss transition disabled:opacity-50"
-                            >
-                              <RefreshCw className="w-3 h-3" strokeWidth={2.5} />
-                              주기 변경
-                            </button>
-                            <button
-                              onClick={() => handleCancel(sub.id)}
-                              disabled={isLoading}
-                              className="py-2.5 px-3 rounded-xl text-[11px] font-bold border border-rule text-sale hover:border-sale transition disabled:opacity-50"
-                            >
-                              해지
-                            </button>
+                            {/* 1주/2주/4주 건너뛰기 — 자동 재개 (status=active 유지,
+                                next_delivery_date 만 미룸). "한 번만 쉬고 싶다" UX. */}
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-muted shrink-0">
+                                건너뛰기
+                              </span>
+                              {[1, 2, 4].map((w) => (
+                                <button
+                                  key={w}
+                                  onClick={() =>
+                                    handlePause(sub.id, w as 1 | 2 | 4)
+                                  }
+                                  disabled={isLoading}
+                                  className="flex-1 py-1.5 rounded-lg border border-rule bg-bg text-[10.5px] font-bold text-text hover:border-text transition disabled:opacity-50"
+                                >
+                                  {w}주
+                                </button>
+                              ))}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handlePause(sub.id)}
+                                disabled={isLoading}
+                                className="flex-1 inline-flex items-center justify-center gap-1 py-2.5 rounded-xl text-[11px] font-bold border border-rule text-muted hover:border-muted transition disabled:opacity-50"
+                              >
+                                {isLoading ? (
+                                  '처리 중...'
+                                ) : (
+                                  <>
+                                    <Pause
+                                      className="w-3 h-3"
+                                      strokeWidth={2.5}
+                                    />
+                                    일시정지
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => setEditingInterval(sub.id)}
+                                disabled={isLoading}
+                                className="flex-1 inline-flex items-center justify-center gap-1 py-2.5 rounded-xl text-[11px] font-bold border border-rule text-moss hover:border-moss transition disabled:opacity-50"
+                              >
+                                <RefreshCw className="w-3 h-3" strokeWidth={2.5} />
+                                주기 변경
+                              </button>
+                              <button
+                                onClick={() => handleCancel(sub.id)}
+                                disabled={isLoading}
+                                className="py-2.5 px-3 rounded-xl text-[11px] font-bold border border-rule text-sale hover:border-sale transition disabled:opacity-50"
+                              >
+                                해지
+                              </button>
+                            </div>
                           </>
                         )}
                         {isPaused && (
-                          <>
+                          <div className="flex gap-2">
                             <button
                               onClick={() => handleResume(sub.id)}
                               disabled={isLoading}
@@ -701,7 +741,7 @@ function MySubscriptionsPageInner() {
                             >
                               해지
                             </button>
-                          </>
+                          </div>
                         )}
                       </div>
                     )}

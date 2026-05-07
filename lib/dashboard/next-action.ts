@@ -148,7 +148,8 @@ export function computeNextAction(input: NextActionInput): NextAction | null {
       title: `${input.staleWeightDog.name} 체중 기록`,
       subtitle,
       cta: '체중 입력',
-      href: `/dogs/${input.staleWeightDog.id}/health?focus=weight`,
+      // ?weight=open 으로 강아지 page 의 체중 모달 자동 open.
+      href: `/dogs/${input.staleWeightDog.id}?weight=open`,
       tone: 'moss',
     }
   }
