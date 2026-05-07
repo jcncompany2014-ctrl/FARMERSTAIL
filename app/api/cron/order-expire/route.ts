@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -43,7 +44,10 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
+  return trackCron('order-expire', () => runOrderExpire())
+}
 
+async function runOrderExpire(): Promise<Response> {
   const supabase = createAdminClient()
   const cutoff = new Date(
     Date.now() - EXPIRE_AFTER_MINUTES * 60 * 1000,

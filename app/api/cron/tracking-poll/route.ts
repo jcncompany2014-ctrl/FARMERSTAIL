@@ -4,6 +4,7 @@ import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { carrierMeta, mapTrackerStatusCode } from '@/lib/tracking'
 import { pushToUser } from '@/lib/push'
 import { notifyOrderDelivered } from '@/lib/email'
+import { trackCron } from '@/lib/cron-tracking'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -66,7 +67,10 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
+  return trackCron('tracking-poll', () => runTrackingPoll())
+}
 
+async function runTrackingPoll(): Promise<Response> {
   const supabase = createAdminClient()
 
   const { data: orders, error: fetchErr } = await supabase

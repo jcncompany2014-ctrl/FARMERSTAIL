@@ -211,6 +211,7 @@ export default async function AdminHome() {
     recentFailedChargeRes,
     refundsPendingRes,
     stockOutRes,
+    cronFailRes,
   ] = await Promise.all([
     // preparing + paid + 24h+ → 발송 stale
     supabase
@@ -247,6 +248,12 @@ export default async function AdminHome() {
       .select('id', { count: 'exact', head: true })
       .eq('is_active', true)
       .lte('stock', 0),
+    // 24h 내 실패한 cron 카운트
+    supabase
+      .from('cron_health')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'error')
+      .gte('executed_at', oneDayAgo),
   ])
 
   // 식품정보고시 14항목 채움률 — 별도 쿼리. 100개 이하 가정.
@@ -460,6 +467,7 @@ export default async function AdminHome() {
           recentFailedCount={recentFailedChargeRes.count ?? 0}
           refundsPendingCount={refundsPendingRes.count ?? 0}
           stockOutCount={stockOutRes.count ?? 0}
+          cronFailureCount={cronFailRes.count ?? 0}
         />
       </div>
 

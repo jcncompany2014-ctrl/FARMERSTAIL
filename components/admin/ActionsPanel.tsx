@@ -6,6 +6,7 @@ import {
   Clock,
   Package,
   RefreshCcw,
+  Activity,
 } from 'lucide-react'
 
 /**
@@ -29,6 +30,8 @@ export type ActionsPanelProps = {
   recentFailedCount: number
   refundsPendingCount: number
   stockOutCount: number
+  /** 24h 내 실패한 cron 횟수 (cron_health). 0 이면 카드 회색 (정상). */
+  cronFailureCount?: number
 }
 
 type Item = {
@@ -79,6 +82,12 @@ export default function ActionsPanel(props: ActionsPanelProps) {
       icon: Clock,
       label: 'Stock 0 상품',
       count: props.stockOutCount,
+    },
+    {
+      href: '/admin?tab=cron-health',
+      icon: Activity,
+      label: '24h cron 실패',
+      count: props.cronFailureCount ?? 0,
     },
   ]
 

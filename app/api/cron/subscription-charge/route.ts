@@ -10,6 +10,7 @@ import {
 import { notifySubscriptionChargeFailed } from '@/lib/email'
 import { pushToUser } from '@/lib/push'
 import { traceBusiness, captureBusinessEvent } from '@/lib/sentry/trace'
+import { trackCron } from '@/lib/cron-tracking'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -109,7 +110,10 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
+  return trackCron('subscription-charge', () => runSubscriptionCharge())
+}
 
+async function runSubscriptionCharge(): Promise<Response> {
   const supabase = createAdminClient()
   const today = todayKstIsoDate()
 

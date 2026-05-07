@@ -27,6 +27,7 @@ import {
   type NextActionInput,
 } from '@/lib/dashboard/next-action'
 import NextActionCard from '@/components/dashboard/NextActionCard'
+import OnboardingTutorial from '@/components/dashboard/OnboardingTutorial'
 
 /**
  * Dashboard — 로그인 후 홈 화면.
@@ -201,6 +202,7 @@ export default async function DashboardPage() {
     { data: pendingFormulasData },
     { data: latestWeightsData },
     { data: dogAnalysesData },
+    { data: onboardData },
   ] = await Promise.all([
     supabase.rpc('dashboard_user_snapshot', { p_user_id: user.id }),
     // 대시보드 제품 — 4개만. 더 보고 싶으면 "전체 →" 로 /products 진입.
@@ -235,7 +237,16 @@ export default async function DashboardPage() {
       .from('analyses')
       .select('dog_id')
       .eq('user_id', user.id),
+    // 가입 후 첫 진입 튜토리얼 노출 여부 — onboarded_at IS NULL 이면 모달 띄움.
+    supabase
+      .from('profiles')
+      .select('onboarded_at')
+      .eq('id', user.id)
+      .maybeSingle(),
   ])
+
+  const showOnboarding =
+    onboardData != null && (onboardData as { onboarded_at: string | null }).onboarded_at === null
 
   if (snapshotErr) {
     console.error('[dashboard] user_snapshot rpc failed', snapshotErr)
@@ -375,6 +386,9 @@ export default async function DashboardPage() {
 
   return (
     <main className="pb-8">
+      {/* 가입 후 첫 진입 튜토리얼 — onboarded_at IS NULL 인 경우만 1회. */}
+      {showOnboarding && <OnboardingTutorial />}
+
       {/* 가입 리퍼럴 자동 적용 — 클라이언트 섬. 세션당 1회. */}
       <ReferralAutoRedeemer />
 
