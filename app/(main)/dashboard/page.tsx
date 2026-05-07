@@ -203,6 +203,8 @@ export default async function DashboardPage() {
     { data: dogAnalysesData },
   ] = await Promise.all([
     supabase.rpc('dashboard_user_snapshot', { p_user_id: user.id }),
+    // 대시보드 제품 — 4개만. 더 보고 싶으면 "전체 →" 로 /products 진입.
+    // 매일 사용 surface 의 시각적 무게 ↓.
     supabase
       .from('products')
       .select(
@@ -210,7 +212,7 @@ export default async function DashboardPage() {
       )
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
-      .limit(10),
+      .limit(4),
     // getActiveEvents 는 내부에서 catch + empty 반환 — 실패해도 대시보드 전체
     // 가 깨지지 않는다.
     getActiveEvents(supabase, 3),
@@ -732,38 +734,32 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      {/* ── 카테고리 ── */}
-      <section className="px-5 mb-8">
-        <div className="mb-2.5">
-          <span className="kicker kicker-muted">Categories</span>
-        </div>
-        <div className="grid grid-cols-3 gap-2.5">
-          {CATEGORIES.map(({ key, label, Icon, desc }) => (
+      {/* ── 카테고리 — 3카드 (~120px) → 1줄 chip (~36px) 으로 압축.
+          매일 들어와도 화면이 가벼워야 핵심에 집중 가능. */}
+      <section className="px-5 mb-6">
+        <div className="flex items-center gap-2 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none">
+          {CATEGORIES.map(({ key, label, Icon }) => (
             <Link
               key={key}
               href={`/products?category=${encodeURIComponent(key)}`}
-              className="bg-white rounded-2xl py-5 px-2 text-center transition-all"
-              style={{ border: '1px solid var(--rule)' }}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-rule hover:border-text transition active:scale-[0.97]"
             >
               <Icon
-                className="w-6 h-6 mx-auto mb-3"
+                className="w-3.5 h-3.5"
                 style={{ color: 'var(--ink)' }}
-                strokeWidth={1.5}
+                strokeWidth={1.7}
               />
-              <div
-                className="text-[12px] font-bold"
-                style={{ color: 'var(--ink)' }}
-              >
+              <span className="text-[11.5px] font-bold text-text">
                 {label}
-              </div>
-              <div
-                className="text-[9px] mt-0.5"
-                style={{ color: 'var(--muted)' }}
-              >
-                {desc}
-              </div>
+              </span>
             </Link>
           ))}
+          <Link
+            href="/products"
+            className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-full text-[11.5px] font-bold text-muted hover:text-text"
+          >
+            전체 →
+          </Link>
         </div>
       </section>
 

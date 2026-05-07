@@ -180,32 +180,41 @@ export default function MyPage() {
         </Link>
       </section>
 
-      {/* 요약 통계 — 3열 stat card. 하나의 조판 언어로 반복. */}
-      <section className="px-5 mt-2.5">
-        <div className="grid grid-cols-3 gap-2">
-          <StatCard
-            href="/mypage/orders"
-            kicker="Orders"
-            value={orderCount}
-            unit="건"
-            valueColor="var(--ink)"
-          />
-          <StatCard
-            href="/mypage/subscriptions"
-            kicker="Subs"
-            value={subCount}
-            unit="건"
-            valueColor="var(--moss)"
-          />
-          <StatCard
-            href="/mypage/wishlist"
-            kicker="Wish"
-            value={wishCount}
-            unit="개"
-            valueColor="var(--terracotta)"
-          />
-        </div>
-      </section>
+      {/* 요약 통계 — 3열 stat card. 0 건은 자동 숨김 → 신규 사용자 화면 noise ↓.
+          모두 0 이면 섹션 자체가 안 그려짐 (NextActionCard 가 뭘 해야 할지 안내). */}
+      {(orderCount > 0 || subCount > 0 || wishCount > 0) && (
+        <section className="px-5 mt-2.5">
+          <div className="grid grid-cols-3 gap-2">
+            {orderCount > 0 && (
+              <StatCard
+                href="/mypage/orders"
+                kicker="Orders"
+                value={orderCount}
+                unit="건"
+                valueColor="var(--ink)"
+              />
+            )}
+            {subCount > 0 && (
+              <StatCard
+                href="/mypage/subscriptions"
+                kicker="Subs"
+                value={subCount}
+                unit="건"
+                valueColor="var(--moss)"
+              />
+            )}
+            {wishCount > 0 && (
+              <StatCard
+                href="/mypage/wishlist"
+                kicker="Wish"
+                value={wishCount}
+                unit="개"
+                valueColor="var(--terracotta)"
+              />
+            )}
+          </div>
+        </section>
+      )}
 
       {/*
         ── 메뉴 ───────────────────────────────────────────────────────
@@ -255,7 +264,7 @@ export default function MyPage() {
         <MenuItem
           href="/mypage/notifications"
           Icon={Bell}
-          label="알림 설정"
+          label="알림 받기 설정"
         />
         <MenuItem
           href="/mypage/consent"
@@ -282,17 +291,13 @@ export default function MyPage() {
         />
       </MenuGroup>
 
-      {/* 약관 / 사업자 — 작은 텍스트 풋터. 법적 reachability 는 유지하되 시각적
-          비중을 줄여 매일 사용 surface 와 분리. */}
+      {/* 약관·정책 — 단일 진입점 /legal hub 으로 묶어 시각 무게 ↓.
+          (이전: 4개 인라인 링크 — 매일 사용 surface 에 너무 많은 noise) */}
       <section className="px-5 mt-6 mb-2">
-        <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[10.5px] text-muted">
-          <Link href="/legal/refund" className="hover:text-text">환불 정책</Link>
-          <span aria-hidden>·</span>
-          <Link href="/legal/terms" className="hover:text-text">이용약관</Link>
-          <span aria-hidden>·</span>
-          <Link href="/legal/privacy" className="hover:text-text">개인정보처리방침</Link>
-          <span aria-hidden>·</span>
-          <Link href="/business" className="hover:text-text">사업자 정보</Link>
+        <div className="text-[10.5px] text-muted">
+          <Link href="/legal" className="hover:text-text">
+            약관 · 정책
+          </Link>
         </div>
       </section>
 

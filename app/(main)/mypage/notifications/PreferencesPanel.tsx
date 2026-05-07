@@ -19,11 +19,13 @@ type Prefs = {
   quiet_hours_end: number | null
 }
 
+// 카테고리 단순화 (2026-05): 4종 → 3종.
+// notify_cart 는 DB 컬럼은 유지하되 UI 에서 숨김 — 'marketing' 토글이 사실상
+// 함께 제어 (cart-recovery 자체는 메일 채널이라 사용자 push 차이 없음).
 const CATEGORIES: { key: keyof Prefs; label: string; hint: string }[] = [
   { key: 'notify_order', label: '주문 · 배송', hint: '결제/배송 단계 변화를 받을게요' },
   { key: 'notify_restock', label: '재입고 알림', hint: '기다리던 상품이 돌아오면 알려드려요' },
-  { key: 'notify_cart', label: '장바구니 리마인더', hint: '담은 상품을 잊지 않게 살짝 알려드릴게요' },
-  { key: 'notify_marketing', label: '프로모션 · 쿠폰', hint: '할인·신상품 소식 (선택)' },
+  { key: 'notify_marketing', label: '프로모션 · 쿠폰', hint: '할인·신상품·장바구니 리마인더 (선택)' },
 ]
 
 export default function PreferencesPanel() {
