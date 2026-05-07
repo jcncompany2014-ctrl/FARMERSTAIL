@@ -265,10 +265,11 @@ export default function CouponCard({
                 e.stopPropagation()
                 onCopy()
               }}
-              className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-bold transition"
+              aria-label={copied ? '복사됨' : '쿠폰 코드 복사'}
+              className="shrink-0 inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10.5px] font-bold transition"
               style={{
-                borderColor: copied ? 'var(--moss)' : 'var(--rule)',
-                color: copied ? 'var(--moss)' : 'var(--ink)',
+                background: copied ? 'var(--moss)' : 'var(--ink)',
+                color: 'white',
               }}
             >
               {copied ? (
@@ -277,7 +278,7 @@ export default function CouponCard({
                   복사됨
                 </>
               ) : (
-                <span className="font-mono">{coupon.code}</span>
+                '코드 복사'
               )}
             </button>
           )}

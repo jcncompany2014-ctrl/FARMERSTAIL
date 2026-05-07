@@ -21,6 +21,7 @@ import {
   FileText,
   Shield,
   Crown,
+  Sparkles,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -325,8 +326,9 @@ export default function MyPage() {
         />
       </MenuGroup>
 
-      {/* 그룹 4: 도움말 — 고객센터 + FAQ 만 메뉴, 친구 초대 추가 */}
+      {/* 그룹 4: 도움말 — AI 영양사 + 고객센터 + FAQ + 친구 초대 */}
       <MenuGroup kicker="Help · 도움말" className="mt-5">
+        <MenuItem href="/chat" Icon={Sparkles} label="AI 영양사 상담" />
         <MenuItem href="/business" Icon={HelpCircle} label="고객센터" />
         <MenuItem href="/faq" Icon={FileText} label="자주 묻는 질문" />
         <MenuItem

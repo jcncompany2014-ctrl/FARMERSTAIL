@@ -262,13 +262,16 @@ export function renderWelcome(input: {
     </p>
     <p style="margin:0 0 8px 0;">
       가입 첫 구매 시 사용할 수 있는 <strong style="color:#B5533A;">${escape(couponLabel)}</strong>
-      을 드려요.
+      을 마이페이지에 담아 두었어요.
     </p>
-    <div style="margin:14px 0;padding:12px 14px;border:1px dashed #B5533A;border-radius:10px;background:#FAF6EC;text-align:center;font-family:'JetBrains Mono', ui-monospace, Consolas, monospace;font-size:14px;font-weight:800;letter-spacing:0.05em;color:#1E1A14;">
-      ${escape(code)}
-    </div>
-    <p style="margin:0 0 14px 0;font-size:11.5px;color:#7A7A7A;">
-      체크아웃에서 위 코드를 입력하면 할인이 적용돼요. 한 번만 사용 가능.
+    <p style="margin:0 0 14px 0;font-size:11.5px;color:#7A7A7A;line-height:1.6;">
+      체크아웃에서 자동으로 사용 가능한 쿠폰을 안내해드려요.
+      코드를 직접 입력하실 필요는 없어요.
+    </p>
+    <!-- 코드 자체는 운영 백업용으로 메일 하단에 작게. 사용자가 평소 인지할
+         필요 X — 체크아웃 sheet 가 자동 추천. -->
+    <p style="margin:0;font-size:9.5px;color:#B5B5B5;font-family:monospace;letter-spacing:0.04em;">
+      ref: ${escape(code)}
     </p>
   `
   const html = renderLayout({

@@ -65,6 +65,10 @@
     {
       "path": "/api/cron/onboarding-funnel",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/referral-milestones",
+      "schedule": "0 18 * * *"
     }
   ]
 }

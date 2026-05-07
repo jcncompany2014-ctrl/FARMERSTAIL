@@ -143,7 +143,7 @@ export default function CouponBrowser({
             onKeyDown={(e) => {
               if (e.key === 'Enter') lookupAndCopy()
             }}
-            placeholder="쿠폰 코드 등록 (예: WELCOME5000)"
+            placeholder="받은 쿠폰 코드 입력"
             autoComplete="off"
             autoCapitalize="characters"
             autoCorrect="off"
