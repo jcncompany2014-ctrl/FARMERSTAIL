@@ -6,7 +6,6 @@ import Image from 'next/image'
 import { loadTossPayments, ANONYMOUS } from '@tosspayments/tosspayments-sdk'
 import {
   ShoppingBag,
-  Ticket,
   Coins,
   MapPin,
   Plus,
