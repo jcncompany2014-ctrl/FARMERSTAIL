@@ -8,8 +8,6 @@ import {
   ShoppingBag,
   Ticket,
   Coins,
-  Check,
-  X,
   MapPin,
   Plus,
 } from 'lucide-react'
@@ -24,6 +22,7 @@ import {
 } from '@/lib/coupons'
 import { debitPoints } from '@/lib/commerce/points'
 import { trackBeginCheckout } from '@/lib/analytics'
+import CheckoutCouponSheet from '@/components/coupons/CheckoutCouponSheet'
 import { calculateShipping, shippingLabel } from '@/lib/commerce/shipping'
 import type { Address } from '@/lib/commerce/addresses'
 
@@ -122,14 +121,11 @@ export default function CheckoutForm({
     setSaveToAddresses(false)
   }, [])
 
-  // Coupon state
-  const [couponCode, setCouponCode] = useState('')
+  // Coupon state — sheet 가 자체 errMsg / loading 처리. 적용된 쿠폰 객체만 보유.
   const [couponApplied, setCouponApplied] = useState<{
     coupon: Coupon
     discount: number
   } | null>(null)
-  const [couponMsg, setCouponMsg] = useState<string | null>(null)
-  const [couponChecking, setCouponChecking] = useState(false)
 
   // Points state
   const [usePoints, setUsePoints] = useState(0)
@@ -188,28 +184,23 @@ export default function CheckoutForm({
     currentBaseTotal - couponDiscount - effectivePointsUsed
   )
 
-  async function applyCoupon() {
-    setCouponMsg(null)
-    setCouponChecking(true)
-    const result = await validateCoupon(
-      supabase,
-      couponCode,
-      subtotal,
-      userId
-    )
-    setCouponChecking(false)
+  /**
+   * code 를 받아 server-side validate. CheckoutCouponSheet 의 카드 클릭이든
+   * 직접 입력이든 동일 validation. sheet 가 자체 loading / errMsg state 보유.
+   */
+  async function applyCouponCode(
+    rawCode: string,
+  ): Promise<{ ok: boolean; message?: string }> {
+    const result = await validateCoupon(supabase, rawCode, subtotal, userId)
     if (!result.ok) {
-      setCouponMsg(result.reason)
-      return
+      return { ok: false, message: result.reason }
     }
     setCouponApplied({ coupon: result.coupon, discount: result.discount })
-    setCouponMsg(null)
+    return { ok: true }
   }
 
   function removeCoupon() {
     setCouponApplied(null)
-    setCouponCode('')
-    setCouponMsg(null)
   }
 
   const handleAddressComplete = useCallback(
@@ -696,64 +687,21 @@ export default function CheckoutForm({
         )}
       </section>
 
-      {/* 쿠폰 */}
-      <section className="bg-white rounded-xl border border-rule px-5 py-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Ticket className="w-4 h-4 text-terracotta" strokeWidth={2} />
-          <h2 className="text-[13px] font-black text-text">쿠폰 적용</h2>
-        </div>
-        {couponApplied ? (
-          <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-terracotta/5 border border-terracotta/30">
-            <div className="flex items-center gap-2 min-w-0">
-              <Check
-                className="w-4 h-4 text-terracotta shrink-0"
-                strokeWidth={2.5}
-              />
-              <div className="min-w-0">
-                <p className="text-[12px] font-black text-terracotta truncate">
-                  {couponApplied.coupon.name}
-                </p>
-                <p className="text-[10px] text-muted truncate">
-                  −{couponApplied.discount.toLocaleString()}원 적용됨
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={removeCoupon}
-              className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted hover:text-sale transition"
-              aria-label="쿠폰 제거"
-            >
-              <X className="w-3.5 h-3.5" strokeWidth={2.5} />
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                placeholder="쿠폰 코드 입력"
-                className="flex-1 px-3 py-2.5 rounded-lg bg-bg border border-rule text-[12px] font-bold text-text placeholder:text-muted/60 focus:outline-none focus:border-terracotta"
-              />
-              <button
-                type="button"
-                onClick={applyCoupon}
-                disabled={couponChecking || !couponCode.trim()}
-                className="px-4 py-2.5 rounded-lg bg-text text-white text-[12px] font-bold active:scale-[0.98] transition disabled:opacity-50"
-              >
-                {couponChecking ? '확인 중' : '적용'}
-              </button>
-            </div>
-            {couponMsg && (
-              <p className="text-[11px] font-bold text-sale mt-2">
-                {couponMsg}
-              </p>
-            )}
-          </>
-        )}
-      </section>
+      {/* 쿠폰 — sheet 기반 (사용 가능 쿠폰 자동 list + 1탭 적용) */}
+      <CheckoutCouponSheet
+        subtotal={subtotal}
+        applied={
+          couponApplied
+            ? {
+                name: couponApplied.coupon.name,
+                code: couponApplied.coupon.code,
+                discount: couponApplied.discount,
+              }
+            : null
+        }
+        onApply={(targetCode) => applyCouponCode(targetCode)}
+        onRemove={removeCoupon}
+      />
 
       {/* 포인트 */}
       {pointBalance > 0 && (

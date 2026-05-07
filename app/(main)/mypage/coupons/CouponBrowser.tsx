@@ -1,73 +1,109 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Copy, Ticket, Search } from 'lucide-react'
+import { Search, Ticket } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import CouponCard, {
+  type CouponCardData,
+  type CouponCardState,
+} from '@/components/coupons/CouponCard'
+import { useToast } from '@/components/ui/Toast'
 
-type Coupon = {
-  id: string
-  code: string
-  name: string
-  description: string | null
-  discount_type: 'percent' | 'fixed'
-  discount_value: number
-  min_order_amount: number
-  max_discount: number | null
-  expires_at: string | null
+type Coupon = CouponCardData & {
   per_user_limit: number | null
   used_count: number
   usage_limit: number | null
+  is_active: boolean
 }
 
-function formatDiscount(c: Coupon) {
-  if (c.discount_type === 'percent') {
-    return `${c.discount_value}%`
-  }
-  return `${c.discount_value.toLocaleString()}원`
+type Redemption = {
+  coupon_id: string
+  created_at: string
 }
 
-function formatDate(iso: string | null) {
-  if (!iso) return '상시'
-  const d = new Date(iso)
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(
-    d.getDate()
-  ).padStart(2, '0')}까지`
-}
+type Tab = 'available' | 'used' | 'expired'
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'available', label: '사용 가능' },
+  { key: 'used', label: '사용 완료' },
+  { key: 'expired', label: '만료' },
+]
 
 export default function CouponBrowser({
-  coupons,
-  usedCountByCoupon,
+  activeCoupons,
+  expiredCoupons,
+  redemptions,
 }: {
-  coupons: Coupon[]
-  usedCountByCoupon: Record<string, number>
+  activeCoupons: Coupon[]
+  expiredCoupons: Coupon[]
+  redemptions: Redemption[]
 }) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
+  const [tab, setTab] = useState<Tab>('available')
   const [code, setCode] = useState('')
-  const [lookupMsg, setLookupMsg] = useState<string | null>(null)
-  const [lookupOk, setLookupOk] = useState(false)
+  const [registering, setRegistering] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
 
-  async function lookup() {
+  // redemption 카운트 — coupon_id 별 본인 사용 횟수
+  const usedByCoupon = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const r of redemptions) {
+      m.set(r.coupon_id, (m.get(r.coupon_id) ?? 0) + 1)
+    }
+    return m
+  }, [redemptions])
+
+  // 분류
+  const buckets = useMemo(() => {
+    const available: Coupon[] = []
+    const used: Coupon[] = []
+
+    for (const c of activeCoupons) {
+      const userUsed = usedByCoupon.get(c.id) ?? 0
+      const usedUp = c.per_user_limit !== null && userUsed >= c.per_user_limit
+      const totalDone = c.usage_limit !== null && c.used_count >= c.usage_limit
+      if (usedUp) used.push(c)
+      else if (totalDone) used.push(c) // 다 소진 — 'used' 로 분류해 노출
+      else available.push(c)
+    }
+
+    return { available, used, expired: expiredCoupons }
+  }, [activeCoupons, expiredCoupons, usedByCoupon])
+
+  async function lookupAndCopy() {
     const trimmed = code.trim().toUpperCase()
     if (!trimmed) return
-    setLookupMsg(null)
-    setLookupOk(false)
+    setRegistering(true)
+    try {
+      const { data } = await supabase
+        .from('coupons')
+        .select('code, name, expires_at, is_active')
+        .eq('code', trimmed)
+        .eq('is_active', true)
+        .maybeSingle()
 
-    const { data } = await supabase
-      .from('coupons')
-      .select('code, name')
-      .eq('code', trimmed)
-      .eq('is_active', true)
-      .maybeSingle()
-
-    if (data) {
-      setLookupOk(true)
-      setLookupMsg(`"${data.name}" — 체크아웃에서 이 코드를 입력해 적용하세요`)
+      if (!data) {
+        toast.error('유효하지 않은 쿠폰 코드예요')
+        return
+      }
+      if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) {
+        toast.error('이미 만료된 쿠폰이에요')
+        return
+      }
+      // 클립보드 복사 + 안내
+      try {
+        await navigator.clipboard.writeText(trimmed)
+      } catch {
+        /* ignore */
+      }
+      toast.success(`"${data.name}" 코드를 복사했어요`)
+      setCode('')
       router.refresh()
-    } else {
-      setLookupMsg('유효하지 않은 쿠폰 코드예요')
+    } finally {
+      setRegistering(false)
     }
   }
 
@@ -76,143 +112,160 @@ export default function CouponBrowser({
       await navigator.clipboard.writeText(c)
       setCopied(c)
       setTimeout(() => setCopied(null), 1500)
+      toast.success('코드를 복사했어요')
     } catch {
-      /* ignore */
+      toast.error('복사하지 못했어요')
     }
   }
 
+  const list =
+    tab === 'available'
+      ? buckets.available
+      : tab === 'used'
+        ? buckets.used
+        : buckets.expired
+
+  const stateForTab: CouponCardState =
+    tab === 'available' ? 'available' : tab === 'used' ? 'used' : 'expired'
+
   return (
     <>
-      {/* Lookup input */}
+      {/* 코드 등록 (외부 코드 — 이메일 / SNS 받았을 때) */}
       <section className="px-5 mt-3">
-        <div className="bg-white rounded-2xl border border-rule px-4 py-4">
-          <div className="text-[11px] font-bold text-muted uppercase tracking-wider mb-2">
-            쿠폰 코드 확인
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') lookup()
-              }}
-              placeholder="코드 입력 (예: WELCOME5000)"
-              autoComplete="off"
-              autoCapitalize="characters"
-              autoCorrect="off"
-              spellCheck={false}
-              enterKeyHint="search"
-              maxLength={32}
-              className="flex-1 px-3 py-2.5 rounded-lg bg-bg border border-rule text-[12px] font-bold text-text placeholder:text-muted/60 focus:outline-none focus:border-terracotta"
-            />
-            <button
-              onClick={lookup}
-              className="px-4 py-2.5 rounded-lg bg-text text-white text-[12px] font-bold active:scale-[0.98] transition inline-flex items-center gap-1"
-            >
-              <Search className="w-3.5 h-3.5" strokeWidth={2.5} />
-              확인
-            </button>
-          </div>
-          {lookupMsg && (
-            <p
-              className={`text-[11px] mt-2 font-bold ${
-                lookupOk ? 'text-moss' : 'text-sale'
-              }`}
-            >
-              {lookupMsg}
-            </p>
-          )}
+        <div
+          className="rounded-2xl border px-4 py-3 flex gap-2"
+          style={{ background: 'white', borderColor: 'var(--rule)' }}
+        >
+          <input
+            type="text"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 32))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') lookupAndCopy()
+            }}
+            placeholder="쿠폰 코드 등록 (예: WELCOME5000)"
+            autoComplete="off"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="search"
+            className="flex-1 px-3 py-2 rounded-lg bg-bg border border-rule text-[12px] font-mono font-bold text-text placeholder:text-muted/60 placeholder:font-sans focus:outline-none focus:border-terracotta"
+          />
+          <button
+            type="button"
+            onClick={lookupAndCopy}
+            disabled={registering || !code.trim()}
+            className="shrink-0 px-4 py-2 rounded-lg text-[12px] font-bold inline-flex items-center gap-1 transition disabled:opacity-50"
+            style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+          >
+            <Search className="w-3.5 h-3.5" strokeWidth={2.5} />
+            {registering ? '확인 중' : '등록'}
+          </button>
         </div>
       </section>
 
-      {/* Coupon list */}
-      {coupons.length > 0 && (
-        <section className="px-5 mt-4 space-y-2.5">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted mb-1">
-            사용 가능한 쿠폰
-          </div>
-          {coupons.map((c) => {
-            const usedByMe = usedCountByCoupon[c.id] ?? 0
-            const usedUp =
-              c.per_user_limit !== null && usedByMe >= c.per_user_limit
+      {/* 탭 */}
+      <section className="px-5 mt-4">
+        <div
+          className="grid grid-cols-3 gap-px rounded-xl overflow-hidden"
+          style={{ background: 'var(--rule)' }}
+        >
+          {TABS.map(({ key, label }) => {
+            const count =
+              key === 'available'
+                ? buckets.available.length
+                : key === 'used'
+                  ? buckets.used.length
+                  : buckets.expired.length
+            const active = tab === key
             return (
-              <div
-                key={c.id}
-                className={`relative overflow-hidden rounded-2xl border px-4 py-4 transition ${
-                  usedUp
-                    ? 'bg-bg border-rule opacity-60'
-                    : 'bg-gradient-to-br from-bg to-white border-rule hover:border-terracotta'
-                }`}
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTab(key)}
+                className="py-2.5 text-[11.5px] font-bold transition"
+                style={{
+                  background: active ? 'var(--ink)' : 'white',
+                  color: active ? 'white' : 'var(--text)',
+                }}
               >
-                <div className="flex items-start gap-4">
-                  <div
-                    className={`shrink-0 w-14 h-14 rounded-xl flex items-center justify-center ${
-                      usedUp ? 'bg-rule' : 'bg-terracotta/10'
-                    }`}
+                {label}
+                {count > 0 && (
+                  <span
+                    className="ml-1 inline-block px-1.5 rounded-full text-[10px] font-bold"
+                    style={{
+                      background: active ? 'rgba(255,255,255,0.18)' : 'var(--bg-2)',
+                      color: active ? 'white' : 'var(--muted)',
+                    }}
                   >
-                    <Ticket
-                      className={`w-6 h-6 ${
-                        usedUp ? 'text-muted' : 'text-terracotta'
-                      }`}
-                      strokeWidth={1.8}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-1">
-                      <span
-                        className={`font-serif font-black text-[20px] leading-none ${
-                          usedUp ? 'text-muted' : 'text-terracotta'
-                        }`}
-                      >
-                        {formatDiscount(c)}
-                      </span>
-                      <span className="text-[11px] text-muted">할인</span>
-                    </div>
-                    <h3 className="mt-1.5 text-[13px] font-black text-text">
-                      {c.name}
-                    </h3>
-                    {c.description && (
-                      <p className="text-[11px] text-muted mt-0.5">
-                        {c.description}
-                      </p>
-                    )}
-                    <div className="mt-1.5 text-[10px] text-muted space-x-2">
-                      {c.min_order_amount > 0 && (
-                        <span>
-                          최소 {c.min_order_amount.toLocaleString()}원~
-                        </span>
-                      )}
-                      <span>· {formatDate(c.expires_at)}</span>
-                    </div>
-                    <button
-                      onClick={() => copyCode(c.code)}
-                      className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-rule text-[10px] font-bold text-text hover:border-terracotta hover:text-terracotta transition"
-                    >
-                      {copied === c.code ? (
-                        <>
-                          <Check className="w-3 h-3" strokeWidth={2.5} />
-                          복사됨
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3" strokeWidth={2} />
-                          {c.code}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-                {usedUp && (
-                  <div className="absolute top-2 right-2 text-[9px] font-bold text-muted bg-rule px-2 py-0.5 rounded-md">
-                    사용 완료
-                  </div>
+                    {count}
+                  </span>
                 )}
-              </div>
+              </button>
             )
           })}
-        </section>
-      )}
+        </div>
+      </section>
+
+      {/* 카드 list */}
+      <section className="px-5 mt-3 space-y-2.5">
+        {list.length === 0 ? (
+          <div
+            className="rounded-2xl border px-5 py-12 text-center"
+            style={{
+              background: 'var(--bg-2)',
+              borderColor: 'var(--rule-2)',
+              borderStyle: 'dashed',
+            }}
+          >
+            <div
+              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3"
+              style={{
+                background: 'var(--bg)',
+                border: '1px solid var(--rule-2)',
+              }}
+            >
+              <Ticket
+                className="w-6 h-6 text-muted"
+                strokeWidth={1.3}
+              />
+            </div>
+            <span className="kicker kicker-muted">Empty</span>
+            <h3
+              className="font-serif mt-2"
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                color: 'var(--ink)',
+                letterSpacing: '-0.015em',
+              }}
+            >
+              {tab === 'available'
+                ? '사용 가능한 쿠폰이 없어요'
+                : tab === 'used'
+                  ? '사용한 쿠폰이 없어요'
+                  : '만료된 쿠폰이 없어요'}
+            </h3>
+            <p className="text-[11px] text-muted mt-1.5">
+              {tab === 'available'
+                ? '이벤트 / 가입 쿠폰이 발급되면 여기에 표시돼요'
+                : '아직이에요'}
+            </p>
+          </div>
+        ) : (
+          list.map((c) => (
+            <CouponCard
+              key={c.id}
+              coupon={c}
+              state={stateForTab}
+              onCopy={
+                tab === 'available' ? () => copyCode(c.code) : undefined
+              }
+              copied={copied === c.code}
+            />
+          ))
+        )}
+      </section>
     </>
   )
 }

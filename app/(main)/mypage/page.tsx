@@ -39,6 +39,7 @@ export default function MyPage() {
   const [subCount, setSubCount] = useState(0)
   const [pointBalance, setPointBalance] = useState(0)
   const [wishCount, setWishCount] = useState(0)
+  const [couponCount, setCouponCount] = useState(0)
 
   useEffect(() => {
     async function load() {
@@ -84,6 +85,17 @@ export default function MyPage() {
         .select('product_id', { count: 'exact', head: true })
         .eq('user_id', user.id)
       setWishCount(wCount ?? 0)
+
+      // 쿠폰 — 사용자가 사용 가능한 활성 쿠폰 수. per_user_limit 도달분 제외
+      // 까지 정밀 계산하면 쿼리가 무거워져, 단순히 활성 + 미만료 쿠폰 카운트
+      // (체크아웃 sheet 가 정밀 필터링). 마이페이지는 "쿠폰함에 N장" 의미.
+      const nowIso = new Date().toISOString()
+      const { count: cCount } = await supabase
+        .from('coupons')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_active', true)
+        .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+      setCouponCount(cCount ?? 0)
     }
     load()
   }, [supabase])
@@ -180,11 +192,14 @@ export default function MyPage() {
         </Link>
       </section>
 
-      {/* 요약 통계 — 3열 stat card. 0 건은 자동 숨김 → 신규 사용자 화면 noise ↓.
-          모두 0 이면 섹션 자체가 안 그려짐 (NextActionCard 가 뭘 해야 할지 안내). */}
-      {(orderCount > 0 || subCount > 0 || wishCount > 0) && (
+      {/* 요약 통계 — 0 건은 자동 숨김. 쿠폰은 "사용 가능한 쿠폰" 시그널이라
+          사용자가 1+ 인 한 강조하는 게 좋음 (지나치기 아까운 정보). */}
+      {(orderCount > 0 ||
+        subCount > 0 ||
+        couponCount > 0 ||
+        wishCount > 0) && (
         <section className="px-5 mt-2.5">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {orderCount > 0 && (
               <StatCard
                 href="/mypage/orders"
@@ -203,13 +218,22 @@ export default function MyPage() {
                 valueColor="var(--moss)"
               />
             )}
+            {couponCount > 0 && (
+              <StatCard
+                href="/mypage/coupons"
+                kicker="Coupons"
+                value={couponCount}
+                unit="장"
+                valueColor="var(--terracotta)"
+              />
+            )}
             {wishCount > 0 && (
               <StatCard
                 href="/mypage/wishlist"
                 kicker="Wish"
                 value={wishCount}
                 unit="개"
-                valueColor="var(--terracotta)"
+                valueColor="var(--gold)"
               />
             )}
           </div>
@@ -256,7 +280,13 @@ export default function MyPage() {
       <MenuGroup kicker="Benefits · 혜택" className="mt-5">
         <MenuItem href="/mypage/wishlist" Icon={Heart} label="찜한 상품" />
         <MenuItem href="/mypage/reviews" Icon={Star} label="내 리뷰" />
-        <MenuItem href="/mypage/coupons" Icon={Ticket} label="내 쿠폰" last />
+        <MenuItem
+          href="/mypage/coupons"
+          Icon={Ticket}
+          label="내 쿠폰"
+          badge={couponCount}
+          last
+        />
       </MenuGroup>
 
       {/* 그룹 3: 설정 */}
@@ -425,12 +455,15 @@ function MenuItem({
   label,
   comingSoon,
   last,
+  badge,
 }: {
   href?: string
   Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
   label: string
   comingSoon?: boolean
   last?: boolean
+  /** 라벨 옆 작은 카운트 배지 (예: 사용 가능 쿠폰 N장). 0 이면 안 그림. */
+  badge?: number
 }) {
   const borderCls = last ? '' : 'border-b border-rule'
 
@@ -460,14 +493,25 @@ function MenuItem({
       href={href}
       className={`flex items-center justify-between px-4 py-3.5 hover:bg-bg transition ${borderCls}`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         <Icon
           className="w-[18px] h-[18px] text-text"
           strokeWidth={1.5}
         />
-        <span className="text-[13px] font-semibold text-text">
+        <span className="text-[13px] font-semibold text-text truncate">
           {label}
         </span>
+        {typeof badge === 'number' && badge > 0 && (
+          <span
+            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+            style={{
+              background: 'var(--terracotta)',
+              color: 'white',
+            }}
+          >
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
       </div>
       <ChevronRight
         className="w-4 h-4 text-muted"
