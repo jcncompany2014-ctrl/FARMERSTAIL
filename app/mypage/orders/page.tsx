@@ -129,10 +129,50 @@ export default async function OrdersPage() {
         >
           주문 내역
         </h1>
-        <p className="text-[11px] text-muted mt-1">
-          총 {orders?.length ?? 0}건의 주문
-        </p>
       </section>
+
+      {/* 상태별 통계 — 진행 중 (preparing/shipping) / 완료 / 취소
+          0건 카드는 자동 숨김. 모두 0 이면 섹션 비표시. */}
+      {(() => {
+        const ongoing = (orders ?? []).filter(
+          (o) =>
+            o.payment_status === 'paid' &&
+            (o.order_status === 'preparing' || o.order_status === 'shipping'),
+        ).length
+        const delivered = (orders ?? []).filter(
+          (o) => o.order_status === 'delivered',
+        ).length
+        const cancelled = (orders ?? []).filter(
+          (o) =>
+            o.order_status === 'cancelled' ||
+            o.payment_status === 'cancelled' ||
+            o.payment_status === 'refunded',
+        ).length
+        const total = orders?.length ?? 0
+        if (total === 0) return null
+        return (
+          <section className="px-5 mt-3 md:px-6">
+            <div className="grid grid-cols-3 gap-2">
+              <StatChip
+                kicker="전체"
+                value={total}
+                tone="ink"
+              />
+              <StatChip
+                kicker="진행 중"
+                value={ongoing}
+                tone="terracotta"
+                highlight={ongoing > 0}
+              />
+              <StatChip
+                kicker={cancelled > 0 ? '취소·환불' : '완료'}
+                value={cancelled > 0 ? cancelled : delivered}
+                tone={cancelled > 0 ? 'sale' : 'moss'}
+              />
+            </div>
+          </section>
+        )
+      })()}
 
       {!orders || orders.length === 0 ? (
         <section className="px-5 mt-14">
@@ -278,5 +318,68 @@ export default async function OrdersPage() {
       )}
     </main>
     </AuthAwareShell>
+  )
+}
+
+/**
+ * StatChip — 헤더 상태 통계 카드. 0 도 표시 (전체 한 번에 보기 좋음).
+ * tone 'terracotta' + highlight 이면 sale 색 강조 + 도트 (사용자 액션 필요).
+ */
+function StatChip({
+  kicker,
+  value,
+  tone,
+  highlight,
+}: {
+  kicker: string
+  value: number
+  tone: 'ink' | 'terracotta' | 'moss' | 'sale'
+  highlight?: boolean
+}) {
+  const colorMap = {
+    ink: 'var(--ink)',
+    terracotta: 'var(--terracotta)',
+    moss: 'var(--moss)',
+    sale: 'var(--sale)',
+  }
+  const accent = colorMap[tone]
+  return (
+    <div
+      className="rounded-xl border px-3 py-2.5 transition relative"
+      style={{
+        background: highlight
+          ? `color-mix(in srgb, ${accent} 6%, white)`
+          : 'white',
+        borderColor: highlight ? accent : 'var(--rule)',
+      }}
+    >
+      <div
+        className="text-[10px] font-bold uppercase tracking-widest"
+        style={{ color: accent }}
+      >
+        {kicker}
+      </div>
+      <div className="mt-1 flex items-baseline gap-0.5">
+        <span
+          className="font-serif tabular-nums leading-none"
+          style={{
+            fontSize: 18,
+            fontWeight: 800,
+            color: 'var(--ink)',
+            letterSpacing: '-0.015em',
+          }}
+        >
+          {value}
+        </span>
+        <span className="text-[10px] text-muted">건</span>
+      </div>
+      {highlight && value > 0 && (
+        <span
+          aria-hidden
+          className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full"
+          style={{ background: accent }}
+        />
+      )}
+    </div>
   )
 }
