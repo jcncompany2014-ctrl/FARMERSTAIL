@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -10,6 +10,10 @@ import {
   Check,
   Inbox,
   ArrowRight,
+  Package,
+  RefreshCcw,
+  Megaphone,
+  Calendar,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import './notifications.css'
@@ -17,8 +21,9 @@ import './notifications.css'
 /**
  * /notifications — 보호자가 받은 푸시 알림 모아보기.
  *
- * push_log 테이블에서 사용자 본인 row 만 fetch (RLS). 읽지 않은 것 위에
- * 강조. 클릭 시 push_log.read_at 갱신 + url 로 deep link 이동.
+ * push_log 테이블에서 사용자 본인 row 만 fetch (RLS).
+ * 카테고리 탭 (전체 / 안 읽음 / 주문 / 마케팅) + 시간 그룹 (오늘 / 어제 / 이전).
+ * 클릭 시 push_log.read_at 갱신 + url 로 deep link 이동.
  */
 
 type Row = {
@@ -42,12 +47,33 @@ const CATEGORY_LABEL: Record<string, string> = {
   checkin: '체크인',
 }
 
+/** 카테고리별 accent 색 */
+const CATEGORY_COLOR: Record<string, string> = {
+  order: 'var(--moss)',
+  restock: 'var(--terracotta)',
+  marketing: 'var(--gold)',
+  cart: 'var(--gold)',
+  reminder: 'var(--terracotta)',
+  approval: 'var(--terracotta)',
+  checkin: 'var(--moss)',
+}
+
+const FILTERS = [
+  { key: 'all', label: '전체' },
+  { key: 'unread', label: '안 읽음' },
+  { key: 'order', label: '주문' },
+  { key: 'marketing', label: '마케팅' },
+] as const
+
+type FilterKey = (typeof FILTERS)[number]['key']
+
 export default function NotificationsPage() {
   const supabase = createClient()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState<Row[]>([])
   const [marking, setMarking] = useState(false)
+  const [filter, setFilter] = useState<FilterKey>('all')
 
   useEffect(() => {
     let cancelled = false
@@ -78,6 +104,41 @@ export default function NotificationsPage() {
 
   const unreadCount = rows.filter((r) => r.read_at === null).length
 
+  const filtered = useMemo(() => {
+    if (filter === 'all') return rows
+    if (filter === 'unread') return rows.filter((r) => r.read_at === null)
+    if (filter === 'order')
+      return rows.filter(
+        (r) => r.category === 'order' || r.category === 'restock',
+      )
+    if (filter === 'marketing')
+      return rows.filter(
+        (r) => r.category === 'marketing' || r.category === 'cart',
+      )
+    return rows
+  }, [rows, filter])
+
+  // 시간 그룹 — 오늘 / 어제 / 이전
+  const groups = useMemo(() => {
+    const today: Row[] = []
+    const yesterday: Row[] = []
+    const earlier: Row[] = []
+    const now = Date.now()
+    const todayStart = new Date(now).setHours(0, 0, 0, 0)
+    const yesterdayStart = todayStart - 86_400_000
+    for (const r of filtered) {
+      const t = new Date(r.sent_at).getTime()
+      if (t >= todayStart) today.push(r)
+      else if (t >= yesterdayStart) yesterday.push(r)
+      else earlier.push(r)
+    }
+    return [
+      { label: '오늘', items: today },
+      { label: '어제', items: yesterday },
+      { label: '이전', items: earlier },
+    ].filter((g) => g.items.length > 0)
+  }, [filtered])
+
   async function markAllRead() {
     setMarking(true)
     try {
@@ -91,7 +152,9 @@ export default function NotificationsPage() {
         .update({ read_at: now })
         .eq('user_id', user.id)
         .is('read_at', null)
-      setRows((prev) => prev.map((r) => ({ ...r, read_at: r.read_at ?? now })))
+      setRows((prev) =>
+        prev.map((r) => ({ ...r, read_at: r.read_at ?? now })),
+      )
     } finally {
       setMarking(false)
     }
@@ -109,7 +172,9 @@ export default function NotificationsPage() {
       .eq('id', id)
       .eq('user_id', user.id)
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, read_at: r.read_at ?? now } : r)),
+      prev.map((r) =>
+        r.id === id ? { ...r, read_at: r.read_at ?? now } : r,
+      ),
     )
   }
 
@@ -128,7 +193,7 @@ export default function NotificationsPage() {
           )}
         </div>
         <h1>알림 센터</h1>
-        <p>최근 100개 알림. 읽으면 자동 표시됩니다.</p>
+        <p>최근 100개 알림. 클릭하면 자동으로 읽음 처리돼요.</p>
 
         {unreadCount > 0 && (
           <button
@@ -146,6 +211,59 @@ export default function NotificationsPage() {
           </button>
         )}
       </header>
+
+      {/* 카테고리 탭 */}
+      {!loading && rows.length > 0 && (
+        <div
+          className="grid grid-cols-4 gap-px rounded-xl overflow-hidden mx-5 mt-2"
+          style={{ background: 'var(--rule)' }}
+        >
+          {FILTERS.map((f) => {
+            const active = filter === f.key
+            const count =
+              f.key === 'all'
+                ? rows.length
+                : f.key === 'unread'
+                  ? unreadCount
+                  : f.key === 'order'
+                    ? rows.filter(
+                        (r) =>
+                          r.category === 'order' || r.category === 'restock',
+                      ).length
+                    : rows.filter(
+                        (r) =>
+                          r.category === 'marketing' || r.category === 'cart',
+                      ).length
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilter(f.key)}
+                className="py-2 text-[11px] font-bold transition"
+                style={{
+                  background: active ? 'var(--ink)' : 'white',
+                  color: active ? 'white' : 'var(--text)',
+                }}
+              >
+                {f.label}
+                {count > 0 && (
+                  <span
+                    className="ml-1 inline-block px-1 rounded-full text-[9.5px] font-bold tabular-nums"
+                    style={{
+                      background: active
+                        ? 'rgba(255,255,255,0.18)'
+                        : 'var(--bg-2)',
+                      color: active ? 'white' : 'var(--muted)',
+                    }}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {loading ? (
         <div className="nt-state">
@@ -165,19 +283,42 @@ export default function NotificationsPage() {
             체크인 / 박스 도착 / 새 비율 동의 알림이 여기 모여요.
           </p>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="nt-empty">
+          <Inbox size={28} strokeWidth={1.5} color="var(--muted)" />
+          <p>이 카테고리는 비어 있어요.</p>
+        </div>
       ) : (
-        <ol className="nt-list">
-          {rows.map((row) => (
-            <NotificationCard
-              key={row.id}
-              row={row}
-              onClick={() => {
-                if (row.read_at === null) markOneRead(row.id)
-                if (row.url) router.push(row.url)
-              }}
-            />
+        <div className="px-5 mt-3 space-y-5">
+          {groups.map((g) => (
+            <div key={g.label}>
+              <div className="flex items-center gap-1.5 mb-2 px-1">
+                <Calendar
+                  className="w-3 h-3 text-muted"
+                  strokeWidth={2}
+                />
+                <span className="text-[11px] font-bold text-text">
+                  {g.label}
+                </span>
+                <span className="text-[10px] text-muted tabular-nums">
+                  {g.items.length}
+                </span>
+              </div>
+              <ol className="nt-list">
+                {g.items.map((row) => (
+                  <NotificationCard
+                    key={row.id}
+                    row={row}
+                    onClick={() => {
+                      if (row.read_at === null) markOneRead(row.id)
+                      if (row.url) router.push(row.url)
+                    }}
+                  />
+                ))}
+              </ol>
+            </div>
           ))}
-        </ol>
+        </div>
       )}
     </main>
   )
@@ -192,7 +333,21 @@ function NotificationCard({
 }) {
   const isUnread = row.read_at === null
   const timeAgo = formatTimeAgo(row.sent_at)
-  const catLabel = row.category ? CATEGORY_LABEL[row.category] ?? row.category : null
+  const catLabel = row.category
+    ? CATEGORY_LABEL[row.category] ?? row.category
+    : null
+  const catColor = row.category
+    ? CATEGORY_COLOR[row.category] ?? 'var(--muted)'
+    : 'var(--muted)'
+
+  const Icon =
+    row.category === 'order' || row.category === 'checkin'
+      ? Package
+      : row.category === 'restock'
+        ? RefreshCcw
+        : row.category === 'marketing' || row.category === 'cart'
+          ? Megaphone
+          : Bell
 
   return (
     <li>
@@ -201,25 +356,54 @@ function NotificationCard({
         onClick={onClick}
         className={'nt-card ' + (isUnread ? 'nt-unread' : '')}
       >
-        <div className="nt-card-head">
-          <div className="nt-card-title-row">
-            {isUnread && <span className="nt-dot" />}
-            <span className="nt-title">{row.title}</span>
+        <div className="flex items-start gap-3">
+          <div
+            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+            style={{
+              background: `color-mix(in srgb, ${catColor} 12%, white)`,
+            }}
+            aria-hidden
+          >
+            <Icon
+              className="w-3.5 h-3.5"
+              style={{ color: catColor }}
+              strokeWidth={2}
+            />
           </div>
-          <span className="nt-time">{timeAgo}</span>
-        </div>
-        {row.body && <p className="nt-body">{row.body}</p>}
-        <div className="nt-foot">
-          {catLabel && <span className="nt-tag">{catLabel}</span>}
-          {row.sent_count === 0 && (
-            <span className="nt-tag nt-tag-warn">미발송</span>
-          )}
-          {row.url && (
-            <span className="nt-go">
-              열기
-              <ArrowRight size={10} strokeWidth={2.4} />
-            </span>
-          )}
+
+          <div className="flex-1 min-w-0 text-left">
+            <div className="nt-card-head">
+              <div className="nt-card-title-row">
+                {isUnread && <span className="nt-dot" />}
+                <span className="nt-title">{row.title}</span>
+              </div>
+              <span className="nt-time">{timeAgo}</span>
+            </div>
+            {row.body && <p className="nt-body">{row.body}</p>}
+            <div className="nt-foot">
+              {catLabel && (
+                <span
+                  className="nt-tag"
+                  style={{
+                    background: `color-mix(in srgb, ${catColor} 8%, white)`,
+                    color: catColor,
+                    border: `1px solid color-mix(in srgb, ${catColor} 30%, white)`,
+                  }}
+                >
+                  {catLabel}
+                </span>
+              )}
+              {row.sent_count === 0 && (
+                <span className="nt-tag nt-tag-warn">미발송</span>
+              )}
+              {row.url && (
+                <span className="nt-go">
+                  열기
+                  <ArrowRight size={10} strokeWidth={2.4} />
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </button>
     </li>
