@@ -41,7 +41,7 @@ export default function AuthHero({
           src="/logo.png"
           alt="Farmer's Tail"
           className="h-9 md:h-11 w-auto block"
-          style={{ filter: 'brightness(0)' }}
+          style={{ filter: 'var(--logo-filter, brightness(0))' }}
         />
       </Link>
 

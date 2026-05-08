@@ -39,6 +39,10 @@
   --fiber-blend: multiply;
   --grain-opacity: 0.10;
   --fiber-opacity: 1;                   /* fiber는 자체 alpha로 조절 */
+
+  /* 로고 필터 — light 에선 검정 강제 (brightness 0), 다크에선 흰색 으로 invert.
+     컴포넌트에서 style={{ filter: 'var(--logo-filter)' }} 로 사용. */
+  --logo-filter: brightness(0);
 }
 
 /* =========================================================================
@@ -362,6 +366,9 @@ html[data-theme="dark"] {
   --fiber-blend: screen;
   --grain-opacity: 0.06;
 
+  /* 로고 — black PNG → cream/white 으로 invert (brightness(0) + invert(1)). */
+  --logo-filter: brightness(0) invert(1);
+
   color-scheme: dark;               /* 네이티브 스크롤바/폼 컨트롤도 다크 */
 }
 html[data-theme="light"] {
@@ -436,6 +443,15 @@ html[data-theme="dark"] .info-card {
    유지. 그러나 .bg-white (= 다크에서 bg-2 로 swap) 카드 안에 text-white
    가 있으면 cream 카드에 흰 글자 = 거의 invisible. 그런 경우는 매우 드물고
    대부분 해당 컨테이너가 background 토큰을 사용하므로 별도 swap 불필요. */
+
+/* (5) /logo.png — light 모드에선 컴포넌트 단에서 inline `filter: brightness(0)`
+   으로 black 강제. 다크 배경에선 그 까만 로고가 invisible 되므로 invert(1)
+   추가해 cream/white 으로 뒤집는다. !important 로 inline 우선권 무력화.
+   WebChrome (mobile/desktop), AppChrome, AuthHero 모두 영향. admin/layout
+   은 자체 다크 sidebar 라 별도 처리. */
+html[data-theme="dark"] img[src="/logo.png"] {
+  filter: brightness(0) invert(1) !important;
+}
 
 /* Tailwind v4 theme — next/font가 주입한 CSS 변수 + 브랜드 컬러 토큰을
    Tailwind 유틸(bg-ink, text-terracotta 등)로 연결 */

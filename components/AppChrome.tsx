@@ -175,7 +175,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                 src="/logo.png"
                 alt="Farmer's Tail"
                 className="h-11 w-auto"
-                style={{ filter: 'brightness(0)' }}
+                style={{ filter: 'var(--logo-filter, brightness(0))' }}
               />
             </Link>
             <ChromeStamp />
