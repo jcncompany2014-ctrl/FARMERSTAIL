@@ -54,7 +54,7 @@ export default function ProductQAForm({
       })
 
       if (insErr) {
-        setError('문의 등록 실패: ' + insErr.message)
+        setError('문의를 등록하지 못했어요')
         return
       }
 

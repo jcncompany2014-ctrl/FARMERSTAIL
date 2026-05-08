@@ -19,7 +19,7 @@
  *   // 2) 아무 client component에서 훅으로 꺼내 쓰기.
  *   const toast = useToast()
  *   toast.success('장바구니에 담았어요')
- *   toast.error('결제에 실패했어요. 잠시 후 다시 시도해 주세요.')
+ *   toast.error('결제하지 못했어요')
  *   toast.info('주문이 접수됐습니다', { duration: 4000 })
  *
  *   // 3) action 제공:

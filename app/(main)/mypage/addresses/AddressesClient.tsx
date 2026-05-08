@@ -39,7 +39,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
       startTransition(() => router.refresh())
     } catch {
       setList(prev)
-      toast.error('기본 배송지 설정에 실패했어요. 잠시 후 다시 시도해 주세요.')
+      toast.error('기본 배송지를 설정하지 못했어요')
     } finally {
       setBusyId(null)
     }
@@ -61,7 +61,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
       startTransition(() => router.refresh())
     } catch {
       setList(prev)
-      toast.error('삭제에 실패했어요. 잠시 후 다시 시도해 주세요.')
+      toast.error('삭제하지 못했어요')
     } finally {
       setBusyId(null)
     }

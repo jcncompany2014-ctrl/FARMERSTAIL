@@ -1,16 +1,32 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, Loader2, AlertCircle } from 'lucide-react'
+import {
+  Send,
+  Sparkles,
+  Loader2,
+  AlertCircle,
+  Trash2,
+  User as UserIcon,
+} from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 /**
- * AI 영양사 chat client (stateless single-turn).
+ * AI 영양사 chat client (history 보존 thread).
  *
- * - 사용자가 질문 입력 → POST /api/chatbot → 응답 표시
- * - 강아지 select (있으면) — 컨텍스트로 함께 전송
- * - 추천 질문 chip — 시작 시 사용자 질문 거리 안내
- * - history X — 매 질문 독립 (구현 단순화)
+ * - mount 시 GET /api/chatbot?dogId=... 로 최근 30개 history 로드
+ * - 사용자 질문 → POST /api/chatbot → reply
+ * - 둘 다 thread 에 append
+ * - 강아지 select 변경 시 conversation 분리 (다시 fetch)
+ * - "대화 지우기" 버튼 — DELETE 호출 + thread 비움
  */
+
+type Message = {
+  id?: string
+  role: 'user' | 'assistant'
+  content: string
+  created_at?: string
+}
 
 const SUGGESTIONS = [
   '닭고기 알러지 있는 강아지에게 뭐 먹여요?',
@@ -24,30 +40,58 @@ export default function ChatClient({
 }: {
   dogs: Array<{ id: string; name: string }>
 }) {
+  const toast = useToast()
   const [input, setInput] = useState('')
   const [selectedDogId, setSelectedDogId] = useState<string>(
     dogs[0]?.id ?? '',
   )
-  const [reply, setReply] = useState<string | null>(null)
-  const [question, setQuestion] = useState<string | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const replyRef = useRef<HTMLDivElement | null>(null)
+  const threadEndRef = useRef<HTMLDivElement | null>(null)
 
-  // 응답 도착 시 자동 스크롤
+  // history 로드 (selectedDogId 변경 시마다 다시)
   useEffect(() => {
-    if (reply && replyRef.current) {
-      replyRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    let cancelled = false
+    setHistoryLoading(true)
+    setError(null)
+    setMessages([])
+    ;(async () => {
+      try {
+        const url = selectedDogId
+          ? `/api/chatbot?dogId=${selectedDogId}`
+          : '/api/chatbot'
+        const res = await fetch(url, { cache: 'no-store' })
+        if (!res.ok) return
+        const data = (await res.json()) as { messages: Message[] }
+        if (!cancelled) setMessages(data.messages ?? [])
+      } catch {
+        // history 로드 실패는 silent — 새 대화로 시작
+      } finally {
+        if (!cancelled) setHistoryLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
     }
-  }, [reply])
+  }, [selectedDogId])
+
+  // 새 메시지 도착 시 자동 스크롤
+  useEffect(() => {
+    if (threadEndRef.current) {
+      threadEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    }
+  }, [messages.length, loading])
 
   async function send(message: string) {
     const text = message.trim().slice(0, 500)
     if (!text || loading) return
     setLoading(true)
     setError(null)
-    setReply(null)
-    setQuestion(text)
+    // optimistic — user message append 즉시
+    setMessages((prev) => [...prev, { role: 'user', content: text }])
+    setInput('')
     try {
       const res = await fetch('/api/chatbot', {
         method: 'POST',
@@ -61,18 +105,37 @@ export default function ChatClient({
       if (!res.ok) {
         throw new Error(data.message ?? '응답에 실패했어요')
       }
-      setReply(data.reply ?? '')
-      setInput('')
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: data.reply ?? '' },
+      ])
     } catch (err) {
       setError(err instanceof Error ? err.message : '오류가 발생했어요')
+      // 실패하면 마지막 user message 도 제거 (재시도 가능)
+      setMessages((prev) => prev.slice(0, -1))
     } finally {
       setLoading(false)
     }
   }
 
+  async function clearHistory() {
+    if (!confirm('이 대화를 삭제할까요? 되돌릴 수 없어요.')) return
+    try {
+      const url = selectedDogId
+        ? `/api/chatbot?dogId=${selectedDogId}`
+        : '/api/chatbot'
+      const res = await fetch(url, { method: 'DELETE' })
+      if (!res.ok) throw new Error('삭제 실패')
+      setMessages([])
+      toast.success('대화를 지웠어요')
+    } catch {
+      toast.error('삭제하지 못했어요')
+    }
+  }
+
   return (
     <>
-      {/* 강아지 선택 (있을 때만) */}
+      {/* 강아지 선택 */}
       {dogs.length > 0 && (
         <section className="px-5 mt-3">
           <div className="text-[10.5px] font-bold text-muted uppercase tracking-widest mb-1.5">
@@ -113,9 +176,76 @@ export default function ChatClient({
         </section>
       )}
 
-      {/* 입력 폼 */}
-      <section className="px-5 mt-4">
-        <div className="bg-white rounded-2xl border border-rule px-4 py-3">
+      {/* 대화 thread */}
+      <section className="px-5 mt-4 space-y-3">
+        {historyLoading ? (
+          <div className="flex items-center gap-2 text-[12px] text-muted py-6 justify-center">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} />
+            대화를 불러오는 중...
+          </div>
+        ) : messages.length === 0 ? (
+          <>
+            <div className="text-[10.5px] font-bold text-muted uppercase tracking-widest">
+              이런 질문은 어때요?
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => send(s)}
+                  disabled={loading}
+                  className="px-3 py-1.5 rounded-full text-[11px] text-text bg-bg-2 border border-rule hover:border-text transition text-left max-w-full"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            {messages.map((m, i) => (
+              <MessageBubble key={m.id ?? `${i}-${m.role}`} message={m} />
+            ))}
+            {loading && (
+              <div
+                className="rounded-2xl border-2 px-4 py-3"
+                style={{
+                  background: 'color-mix(in srgb, var(--moss) 4%, white)',
+                  borderColor:
+                    'color-mix(in srgb, var(--moss) 35%, transparent)',
+                }}
+              >
+                <div className="flex items-center gap-2 text-[12px] text-muted">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  답변을 생각하고 있어요...
+                </div>
+              </div>
+            )}
+            {error && (
+              <div className="flex items-start gap-2 text-[12px] text-sale rounded-xl bg-sale/8 px-3 py-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+            <div ref={threadEndRef} />
+            {messages.length >= 2 && !loading && (
+              <button
+                type="button"
+                onClick={clearHistory}
+                className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-sale transition"
+              >
+                <Trash2 className="w-3 h-3" strokeWidth={2} />
+                이 대화 지우기
+              </button>
+            )}
+          </>
+        )}
+      </section>
+
+      {/* 입력 폼 — 항상 하단 */}
+      <section className="px-5 mt-4 sticky bottom-[calc(88px+env(safe-area-inset-bottom))] z-10">
+        <div className="bg-white rounded-2xl border border-rule px-4 py-3 shadow-sm">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value.slice(0, 500))}
@@ -125,11 +255,15 @@ export default function ChatClient({
                 send(input)
               }
             }}
-            rows={3}
-            placeholder="우리 아이 식이에 대해 궁금한 점을 적어주세요..."
+            rows={2}
+            placeholder={
+              messages.length === 0
+                ? '우리 아이 식이에 대해 궁금한 점을 적어주세요...'
+                : '이어서 질문하기...'
+            }
             className="w-full text-[13px] text-text placeholder:text-muted/60 focus:outline-none resize-none"
           />
-          <div className="mt-2 flex items-center justify-between">
+          <div className="mt-1 flex items-center justify-between">
             <span className="text-[10px] text-muted">
               {input.length}/500
             </span>
@@ -158,101 +292,54 @@ export default function ChatClient({
           </div>
         </div>
       </section>
-
-      {/* 추천 질문 (응답 없을 때만) */}
-      {!reply && !loading && !error && (
-        <section className="px-5 mt-4">
-          <div className="text-[10.5px] font-bold text-muted uppercase tracking-widest mb-2">
-            이런 질문은 어때요?
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => send(s)}
-                disabled={loading}
-                className="px-3 py-1.5 rounded-full text-[11px] text-text bg-bg-2 border border-rule hover:border-text transition text-left max-w-full"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 응답 영역 */}
-      {(reply || loading || error) && (
-        <section ref={replyRef} className="px-5 mt-5">
-          {/* 사용자 질문 */}
-          {question && (
-            <div
-              className="bg-white rounded-2xl border border-rule px-4 py-3 mb-3"
-              style={{ borderLeft: '3px solid var(--rule-2)' }}
-            >
-              <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">
-                You
-              </div>
-              <p className="text-[12.5px] text-text leading-relaxed whitespace-pre-line">
-                {question}
-              </p>
-            </div>
-          )}
-
-          {/* AI 응답 */}
-          <div
-            className="rounded-2xl border-2 px-4 py-4"
-            style={{
-              background: 'color-mix(in srgb, var(--moss) 4%, white)',
-              borderColor: 'color-mix(in srgb, var(--moss) 35%, transparent)',
-            }}
-          >
-            <div className="flex items-center gap-1.5 mb-2">
-              <Sparkles
-                className="w-3.5 h-3.5"
-                style={{ color: 'var(--moss)' }}
-                strokeWidth={2}
-              />
-              <span
-                className="text-[10px] font-bold uppercase tracking-widest"
-                style={{ color: 'var(--moss)' }}
-              >
-                AI 영양사
-              </span>
-            </div>
-            {loading ? (
-              <div className="flex items-center gap-2 text-[12px] text-muted py-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                답변을 생각하고 있어요...
-              </div>
-            ) : error ? (
-              <div className="flex items-start gap-2 text-[12px] text-sale">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            ) : reply ? (
-              <p className="text-[13px] text-text leading-relaxed whitespace-pre-line">
-                {reply}
-              </p>
-            ) : null}
-          </div>
-
-          {/* 다시 묻기 */}
-          {reply && !loading && (
-            <button
-              type="button"
-              onClick={() => {
-                setReply(null)
-                setQuestion(null)
-                setInput('')
-              }}
-              className="w-full mt-3 py-2.5 rounded-xl border border-rule text-[12px] font-bold text-text hover:border-text transition"
-            >
-              새 질문 하기
-            </button>
-          )}
-        </section>
-      )}
     </>
+  )
+}
+
+function MessageBubble({ message }: { message: Message }) {
+  const isUser = message.role === 'user'
+  return (
+    <div
+      className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}
+    >
+      <div
+        className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5`}
+        style={{
+          background: isUser
+            ? 'var(--bg-2)'
+            : 'color-mix(in srgb, var(--moss) 12%, white)',
+        }}
+      >
+        {isUser ? (
+          <UserIcon
+            className="w-3.5 h-3.5 text-text"
+            strokeWidth={2}
+          />
+        ) : (
+          <Sparkles
+            className="w-3.5 h-3.5"
+            style={{ color: 'var(--moss)' }}
+            strokeWidth={2}
+          />
+        )}
+      </div>
+      <div
+        className={`flex-1 min-w-0 max-w-[80%] rounded-2xl px-3.5 py-2.5 ${
+          isUser ? 'rounded-tr-sm' : 'rounded-tl-sm'
+        }`}
+        style={{
+          background: isUser
+            ? 'white'
+            : 'color-mix(in srgb, var(--moss) 4%, white)',
+          border: isUser
+            ? '1px solid var(--rule)'
+            : '1px solid color-mix(in srgb, var(--moss) 35%, transparent)',
+        }}
+      >
+        <p className="text-[13px] text-text leading-relaxed whitespace-pre-line">
+          {message.content}
+        </p>
+      </div>
+    </div>
   )
 }

@@ -143,7 +143,7 @@ export default function ProfileForm({
     setSaving(false)
 
     if (updErr) {
-      setError('저장 실패: ' + updErr.message)
+      setError('저장하지 못했어요')
       return
     }
     setDone(true)

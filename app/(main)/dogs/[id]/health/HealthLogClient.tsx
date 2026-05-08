@@ -169,7 +169,7 @@ export default function HealthLogClient({
       .delete()
       .eq('id', id)
     if (delErr) {
-      toast.error('삭제 실패: ' + delErr.message)
+      toast.error('삭제하지 못했어요')
       return
     }
     setLogs((prev) => prev.filter((l) => l.id !== id))

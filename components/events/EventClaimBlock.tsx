@@ -159,7 +159,7 @@ function CouponClaimBlock({
       await navigator.clipboard.writeText(codeStr)
       toast.info('쿠폰 코드가 다시 복사됐어요', { description: codeStr })
     } catch {
-      toast.error('복사에 실패했어요', { description: `코드: ${codeStr}` })
+      toast.error('복사하지 못했어요', { description: `코드: ${codeStr}` })
     }
   }
 

@@ -128,6 +128,7 @@ export default async function AdminUsersPage({
                   <th className="text-right py-2 font-medium">주문</th>
                   <th className="text-right py-2 font-medium">누적</th>
                   <th className="text-right py-2 font-medium">가입일</th>
+                  <th className="text-center py-2 font-medium">CS</th>
                 </tr>
               </thead>
               <tbody>
@@ -179,6 +180,14 @@ export default async function AdminUsersPage({
                       </td>
                       <td className="py-3 text-right text-[11px] text-muted">
                         {formatDate(u.created_at)}
+                      </td>
+                      <td className="py-3 text-center">
+                        <Link
+                          href={`/admin/users/${u.id}/message`}
+                          className="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold bg-terracotta/10 text-terracotta hover:bg-terracotta hover:text-white transition"
+                        >
+                          메시지
+                        </Link>
                       </td>
                     </tr>
                   )

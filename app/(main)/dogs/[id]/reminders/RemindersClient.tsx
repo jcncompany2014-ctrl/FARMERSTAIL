@@ -238,7 +238,7 @@ export default function RemindersClient({
       )
       .single()
     if (error || !data) {
-      toast.error('업데이트 실패: ' + (error?.message ?? '알 수 없음'))
+      toast.error('업데이트하지 못했어요')
       return
     }
     setReminders((prev) =>
@@ -267,7 +267,7 @@ export default function RemindersClient({
     if (!confirm('이 리마인더를 삭제할까요?')) return
     const { error } = await supabase.from('dog_reminders').delete().eq('id', id)
     if (error) {
-      toast.error('삭제 실패: ' + error.message)
+      toast.error('삭제하지 못했어요')
       return
     }
     setReminders((prev) => prev.filter((r) => r.id !== id))

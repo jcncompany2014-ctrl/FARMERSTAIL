@@ -74,7 +74,7 @@ export default function ReorderButton({ items }: { items: Item[] }) {
     if (inserts.length > 0) {
       const { error } = await supabase.from('cart_items').insert(inserts)
       if (error) {
-        toast.error('재주문 실패: ' + error.message)
+        toast.error('재주문하지 못했어요')
         setLoading(false)
         return
       }

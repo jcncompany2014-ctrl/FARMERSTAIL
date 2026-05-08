@@ -223,7 +223,7 @@ export default function SubscribePage() {
       .single()
 
     if (subErr || !sub) {
-      toast.error('구독 생성에 실패했습니다. 다시 시도해 주세요.')
+      toast.error('구독을 만들지 못했어요')
       setSubmitting(false)
       return
     }

@@ -8,22 +8,16 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * POST /api/chatbot
+ * POST /api/chatbot — 식이/알러지 상담 (history 보존).
+ * GET /api/chatbot?dogId=... — 대화 history 조회.
+ * DELETE /api/chatbot?dogId=... — history 삭제.
  *
- * 식이 / 알러지 간이 상담 — Anthropic API 호출. stateless (history 없음).
- * 사용자 강아지 정보를 컨텍스트로 묶어 짧은 답변.
- *
- * # 입력
- *  { message: string, dogId?: string }
- *
- * # 출력
- *  { reply: string }
+ * (user_id, dog_id) 쌍의 최근 10턴을 컨텍스트로 묶어 자연 대화. dog_id 가
+ * 없으면 dog_id IS NULL 인 일반 대화로 분리.
  *
  * # 가드
- *  - 인증 필수
- *  - rate limit: 분당 5회 / IP (Anthropic 비용 폭주 방어)
- *  - 메시지 length 500자 제한
- *  - 시스템 프롬프트에 "수의사 진료 대체 X" 명시
+ *  - 인증 필수, rate limit 5/min/IP, 메시지 500자
+ *  - 시스템 프롬프트 "수의사 진료 대체 X" 명시
  */
 
 const zChatbot = z.object({
@@ -65,7 +59,7 @@ export async function POST(req: Request) {
     )
   }
 
-  // dog 컨텍스트 (있으면) — RLS 가 자동으로 본인 dog 만 select.
+  // dog 컨텍스트
   let dogContext = ''
   if (dogId) {
     const { data: dog } = await supabase
@@ -97,6 +91,23 @@ export async function POST(req: Request) {
     )
   }
 
+  // history — 최근 10턴 (5왕복) 만 컨텍스트로. token 비용 ↓.
+  const historyQuery = supabase
+    .from('chatbot_messages')
+    .select('role, content')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(10)
+  const { data: historyRaw } = dogId
+    ? await historyQuery.eq('dog_id', dogId)
+    : await historyQuery.is('dog_id', null)
+
+  const history = ((historyRaw ?? []) as Array<{ role: string; content: string }>)
+    .reverse()
+    .filter((m): m is { role: 'user' | 'assistant'; content: string } =>
+      m.role === 'user' || m.role === 'assistant',
+    )
+
   const systemPrompt = `당신은 파머스테일 (Farmer's Tail) 의 AI 영양사예요. 한국어로 친근하게,
 간결하게 (3-5 문장) 응답해요. 보호자가 강아지 식이 / 알러지 / 영양에 대해
 물어보면 NRC 2006 / FEDIAF / WSAVA 가이드라인 기반으로 답해요.
@@ -124,7 +135,10 @@ ${dogContext}`
         model: 'claude-3-5-haiku-20241022',
         max_tokens: 400,
         system: systemPrompt,
-        messages: [{ role: 'user', content: message }],
+        messages: [
+          ...history.map((m) => ({ role: m.role, content: m.content })),
+          { role: 'user', content: message },
+        ],
       }),
       signal: AbortSignal.timeout(20_000),
     })
@@ -150,6 +164,25 @@ ${dogContext}`
       )
     }
 
+    // history 저장 — best effort. 응답 흐름은 안 막음.
+    void supabase
+      .from('chatbot_messages')
+      .insert([
+        {
+          user_id: user.id,
+          dog_id: dogId ?? null,
+          role: 'user',
+          content: message,
+        },
+        {
+          user_id: user.id,
+          dog_id: dogId ?? null,
+          role: 'assistant',
+          content: reply,
+        },
+      ])
+      .then(() => undefined, () => undefined)
+
     return NextResponse.json({ reply })
   } catch (err) {
     return NextResponse.json(
@@ -160,4 +193,55 @@ ${dogContext}`
       { status: 502 },
     )
   }
+}
+
+export async function GET(req: Request) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json(
+      { code: 'UNAUTHORIZED', message: '로그인이 필요합니다' },
+      { status: 401 },
+    )
+  }
+  const url = new URL(req.url)
+  const dogId = url.searchParams.get('dogId')
+
+  const q = supabase
+    .from('chatbot_messages')
+    .select('id, role, content, created_at, dog_id')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })
+    .limit(30)
+  const { data } = dogId
+    ? await q.eq('dog_id', dogId)
+    : await q.is('dog_id', null)
+  return NextResponse.json({ messages: data ?? [] })
+}
+
+export async function DELETE(req: Request) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json(
+      { code: 'UNAUTHORIZED', message: '로그인이 필요합니다' },
+      { status: 401 },
+    )
+  }
+  const url = new URL(req.url)
+  const dogId = url.searchParams.get('dogId')
+  let q = supabase.from('chatbot_messages').delete().eq('user_id', user.id)
+  if (dogId) q = q.eq('dog_id', dogId)
+  const { error } = await q
+  if (error) {
+    return NextResponse.json(
+      { code: 'DELETE_FAILED', message: error.message },
+      { status: 500 },
+    )
+  }
+  return NextResponse.json({ ok: true })
 }

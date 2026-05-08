@@ -421,8 +421,33 @@ function Hero({
       {/* Swipeable slideshow — 농장 → 꼬리 → 그릇 */}
       <HeroSlideshow />
 
+      {/* Trust strip — 가입 직전 social proof. magazine 톤 유지하며 짧은 한 줄. */}
+      <div
+        className="px-5 md:px-6 pt-4 md:pt-6 pb-1 flex items-center gap-3 md:max-w-xl"
+        style={{ flexWrap: 'wrap' }}
+      >
+        <div
+          className="font-mono"
+          style={{
+            fontSize: 10,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: 'var(--moss)',
+            fontWeight: 700,
+          }}
+        >
+          ★★★★★
+        </div>
+        <span
+          className="text-[11.5px] md:text-[13px]"
+          style={{ color: 'var(--text)' }}
+        >
+          1,200+ 보호자가 선택 · 만족도 96%
+        </span>
+      </div>
+
       {/* CTAs — 모바일은 세로 stack, 데스크톱은 가로 정렬 + 큰 버튼 */}
-      <div className="px-5 md:px-6 pt-3.5 md:pt-6 pb-4 md:pb-8 flex flex-col md:flex-row gap-2 md:gap-3 md:max-w-xl">
+      <div className="px-5 md:px-6 pt-2.5 md:pt-3 pb-4 md:pb-8 flex flex-col md:flex-row gap-2 md:gap-3 md:max-w-xl">
         {/* 로그인된 사용자는 가입 대신 분석 시작으로. 비로그인은 회원가입. */}
         <Link
           href={isAuthed ? '/dogs/new' : '/signup'}
@@ -449,7 +474,7 @@ function Hero({
         </Link>
       </div>
 
-      {/* Magazine credit line */}
+      {/* Magazine credit line — 가입 안내 + risk-free 강조 */}
       <div
         className="font-mono"
         style={{
@@ -463,8 +488,8 @@ function Hero({
           borderTop: '1px solid var(--rule)',
         }}
       >
-        <span>Photography · TBD</span>
-        <span>Styling · TBD</span>
+        <span>가입 30초 · 무료</span>
+        <span>7일 환불 보장</span>
       </div>
     </section>
   )

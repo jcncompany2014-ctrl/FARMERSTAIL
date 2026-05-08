@@ -12,6 +12,7 @@ import {
   Send,
 } from 'lucide-react'
 import PreferencesPanel from './PreferencesPanel'
+import ThemeToggle from '@/components/ThemeToggle'
 import { isNativeApp, registerAndSyncNativePush } from '@/lib/capacitor'
 
 type SubRow = {
@@ -371,6 +372,11 @@ export default function NotificationSettingsClient({
       {/* 카테고리·조용한 시간 선호 */}
       <section className="px-5 mt-3">
         <PreferencesPanel />
+      </section>
+
+      {/* 화면 테마 — 다크모드 토글 */}
+      <section className="px-5 mt-3">
+        <ThemeToggle />
       </section>
 
       {/* 등록된 기기 */}

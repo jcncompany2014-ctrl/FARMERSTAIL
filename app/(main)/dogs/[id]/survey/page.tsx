@@ -679,8 +679,8 @@ export default function SurveyPage() {
       .single()
 
     if (surveyErr || !surveyData) {
-      toast.error('저장 실패: ' + surveyErr?.message)
-      setErr('저장 실패: ' + (surveyErr?.message ?? '알 수 없는 오류'))
+      toast.error('저장하지 못했어요')
+      setErr('저장하지 못했어요')
       setSaving(false)
       // status 로 점프 대신 loading 화면 그대로 — 사용자가 inline retry.
       return
@@ -745,8 +745,8 @@ export default function SurveyPage() {
     })
 
     if (analysisErr) {
-      toast.error('분석 저장 실패: ' + analysisErr.message)
-      setErr('분석 저장 실패: ' + analysisErr.message)
+      toast.error('분석을 저장하지 못했어요')
+      setErr('분석을 저장하지 못했어요')
       setSaving(false)
       return
     }

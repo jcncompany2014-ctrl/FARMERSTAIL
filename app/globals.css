@@ -387,6 +387,24 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   letter-spacing: -0.005em;
+  /* 한국어 우선 줄바꿈 — 단어가 끝나는 곳에서만 줄을 끊고, 영문이 길면
+     break-all 로 fallback. CJK 가 영문에 비해 너무 자주 덧대 여러 줄 깨지는
+     문제 회피 — 본문 / 카드 내부에서 자연스러운 호흡. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  line-break: strict;
+}
+
+/* 카드 / 버튼 라벨처럼 좁은 컨테이너에 한국어가 들어갈 때 단어 단위 보존.
+   * 텍스트 truncate 가 아닌 자연 줄바꿈 영역에 적용. */
+p, h1, h2, h3, h4, h5, h6, li, dt, dd, label, button, span {
+  word-break: keep-all;
+}
+
+/* 모노 / 코드 / 숫자 영역은 keep-all 무시 — 긴 코드 / 토큰이 줄을 넘기게. */
+code, pre, kbd, samp, [class*="font-mono"], .tabular-nums {
+  word-break: normal;
+  overflow-wrap: anywhere;
 }
 
 /* iOS Safari 의 300ms tap delay 제거 — viewport meta 로 대부분 잡지만 fallback.

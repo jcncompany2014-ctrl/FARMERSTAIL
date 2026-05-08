@@ -133,9 +133,7 @@ export default function EditDogPage() {
         )
       } catch (e) {
         setLoading(false)
-        setError(
-          '사진 업로드 실패: ' + (e instanceof Error ? e.message : '알 수 없음')
-        )
+        setError('사진을 업로드하지 못했어요')
         return
       }
     }
@@ -161,7 +159,7 @@ export default function EditDogPage() {
     setLoading(false)
 
     if (updateError) {
-      setError('수정 실패: ' + updateError.message)
+      setError('수정하지 못했어요')
       return
     }
 

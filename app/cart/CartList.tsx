@@ -70,7 +70,7 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
     setBusyId(null)
 
     if (error) {
-      toast.error('수량 변경 실패: ' + error.message)
+      toast.error('수량을 변경하지 못했어요')
       setItems(initialItems)
       return
     }
@@ -101,7 +101,7 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
     setBusyId(null)
 
     if (error) {
-      toast.error('삭제 실패: ' + error.message)
+      toast.error('삭제하지 못했어요')
       setItems(prev)
       return
     }
