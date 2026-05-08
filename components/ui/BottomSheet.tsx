@@ -161,7 +161,7 @@ function BottomSheetFooter({
 }) {
   return (
     <div
-      className={`px-5 py-4 shrink-0 border-t border-rule bg-white/60 backdrop-blur-sm${className ? ` ${className}` : ''}`}
+      className={`px-5 py-4 shrink-0 border-t border-rule bg-bg-2/80 backdrop-blur-sm${className ? ` ${className}` : ''}`}
     >
       {children}
     </div>

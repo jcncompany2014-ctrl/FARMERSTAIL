@@ -128,7 +128,7 @@ export default function DogPhotoPicker({
         <div className="text-[10px] font-semibold text-muted uppercase tracking-[0.2em]">
           Photo
         </div>
-        <div className="text-[12px] text-[#5C4A3A] mt-0.5 leading-relaxed">
+        <div className="text-[12px] text-text/70 mt-0.5 leading-relaxed">
           {state.action === 'replace'
             ? '저장하면 새 사진이 적용돼요'
             : state.action === 'remove'

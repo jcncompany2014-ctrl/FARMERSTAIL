@@ -299,10 +299,16 @@ function ToastViewport(props: {
 // Card
 // ──────────────────────────────────────────────────────────────────────────
 
+// 다크모드 호환:
+//  - bg-ink: light 에선 dark coffee bg, 다크에선 cream bg (inverted). text-bg 면
+//    light 모드 cream text on dark, 다크 모드 coffee text on cream — 항상 contrast.
+//  - bg-sale: 양 모드에서 vivid red 라 text-bg(cream/coffee) 면 양쪽 OK.
+//  - bg-gold: 양 모드에서 light amber 라 text-bg(cream) 가 light 에선 invisible.
+//    text-[#1E1A14] 처럼 항상-dark hardcoded 으로 양쪽 다 진한 글자 보장.
 const intentStyle: Record<ToastIntent, { bg: string; ring: string; icon: string }> = {
-  success: { bg: 'bg-ink text-white', ring: 'ring-moss/40', icon: '✓' },
-  info: { bg: 'bg-ink text-white', ring: 'ring-ink/20', icon: 'ⓘ' },
-  warning: { bg: 'bg-gold text-ink', ring: 'ring-gold/50', icon: '!' },
+  success: { bg: 'bg-ink text-bg', ring: 'ring-moss/40', icon: '✓' },
+  info: { bg: 'bg-ink text-bg', ring: 'ring-ink/20', icon: 'ⓘ' },
+  warning: { bg: 'bg-gold text-[#1E1A14]', ring: 'ring-gold/50', icon: '!' },
   error: { bg: 'bg-sale text-white', ring: 'ring-sale/50', icon: '!' },
 }
 
@@ -343,7 +349,8 @@ function ToastCard({
     >
       <span
         aria-hidden
-        className="shrink-0 w-6 h-6 rounded-full bg-white/15 flex items-center justify-center text-[13px] font-black"
+        className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[13px] font-black"
+        style={{ background: 'rgba(0,0,0,0.12)' }}
       >
         {style.icon}
       </span>
@@ -380,7 +387,7 @@ function ToastCard({
         type="button"
         aria-label="닫기"
         onClick={() => onDismiss(item.id)}
-        className="shrink-0 -mr-1 -mt-1 p-1 rounded hover:bg-white/10 text-[13px] leading-none"
+        className="shrink-0 -mr-1 -mt-1 p-1 rounded hover:bg-black/10 text-[13px] leading-none"
       >
         ×
       </button>

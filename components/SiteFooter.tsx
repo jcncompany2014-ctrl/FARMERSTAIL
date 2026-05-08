@@ -21,7 +21,7 @@ export default function SiteFooter() {
   const [open, setOpen] = useState(false)
 
   return (
-    <footer className="mt-14 md:mt-20 border-t border-rule bg-bg text-[#5C4A3A]">
+    <footer className="mt-14 md:mt-20 border-t border-rule bg-bg text-text/70">
       <div className="px-5 py-5 max-w-md mx-auto md:max-w-[1280px] md:px-6 md:py-12">
         {/* 데스크톱 4열 그리드 — 마켓컬리 톤. 모바일은 단일 열 stack. */}
         <div className="md:grid md:grid-cols-4 md:gap-10">
@@ -133,7 +133,7 @@ export default function SiteFooter() {
 
             <dl
               id="site-footer-biz"
-              className={`mt-2.5 md:mt-0 text-[10.5px] md:text-[12px] leading-relaxed text-[#5C4A3A] space-y-0.5 md:space-y-1 ${open ? '' : 'hidden md:block'}`}
+              className={`mt-2.5 md:mt-0 text-[10.5px] md:text-[12px] leading-relaxed text-text/70 space-y-0.5 md:space-y-1 ${open ? '' : 'hidden md:block'}`}
             >
               <Row label="대표" value={business.ceo} />
               <Row

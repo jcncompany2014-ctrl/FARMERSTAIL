@@ -232,7 +232,10 @@ export default function WebChrome({
       <header
         className="sticky top-0 z-40 border-b"
         style={{
-          background: 'rgba(245,240,230,0.96)',
+          // 다크모드는 cream backdrop 이 그대로 떠 있으면 헤더 텍스트가 cream
+          // on cream 으로 invisible. 토큰으로 swap — bg-2 의 96% alpha.
+          background:
+            'color-mix(in srgb, var(--bg-2) 96%, transparent)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           borderColor: 'var(--rule)',
