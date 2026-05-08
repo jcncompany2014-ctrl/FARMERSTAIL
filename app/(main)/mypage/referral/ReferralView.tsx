@@ -12,7 +12,10 @@ import {
   ChevronLeft,
   Sparkles,
   Lock,
+  ChevronRight,
+  Dog,
 } from 'lucide-react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 
@@ -22,12 +25,19 @@ type RedemptionRow = {
   redeemed_at: string
 }
 
+type DogRow = {
+  id: string
+  name: string
+  photo_url: string | null
+}
+
 type Props = {
   code: string
   alreadyRedeemed: boolean
   referredCount: number
   totalEarned: number
   recent: RedemptionRow[]
+  dogs?: DogRow[]
 }
 
 /**
@@ -55,6 +65,7 @@ export default function ReferralView({
   referredCount,
   totalEarned,
   recent,
+  dogs = [],
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -474,6 +485,65 @@ export default function ReferralView({
           })}
         </ul>
       </section>
+
+      {/* 강아지 사진과 함께 공유 — 솔로 D2C CAC 핵심 그로스 */}
+      {dogs.length > 0 && (
+        <section className="px-5 mt-5">
+          <div className="flex items-center gap-2 mb-2.5">
+            <span
+              aria-hidden
+              style={{
+                width: 16,
+                height: 1.5,
+                background: 'var(--terracotta)',
+              }}
+            />
+            <span className="kicker">Share · 강아지 사진과 함께</span>
+          </div>
+          <p className="text-[11px] text-muted leading-relaxed mb-3">
+            강아지 사진 + 한마디 + 추천 코드를 한 묶음으로. 신뢰감 ↑
+          </p>
+          <ul className="space-y-2">
+            {dogs.map((d) => (
+              <li key={d.id}>
+                <Link
+                  href={`/dogs/${d.id}/share`}
+                  className="flex items-center gap-3 bg-white rounded-2xl border border-rule px-4 py-3 hover:border-terracotta transition active:scale-[0.99]"
+                >
+                  <div className="shrink-0 w-12 h-12 rounded-full bg-bg-2 overflow-hidden flex items-center justify-center">
+                    {d.photo_url ? (
+                      <Image
+                        src={d.photo_url}
+                        alt={d.name}
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Dog
+                        className="w-6 h-6 text-muted"
+                        strokeWidth={1.5}
+                      />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-bold text-text">
+                      {d.name}로 공유하기
+                    </div>
+                    <div className="text-[10.5px] text-muted mt-0.5">
+                      미리보기 + 카카오톡 / 메시지 공유
+                    </div>
+                  </div>
+                  <ChevronRight
+                    className="w-4 h-4 text-muted shrink-0"
+                    strokeWidth={2}
+                  />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* 받은 초대 코드 입력 (아직 등록 안 한 유저만) */}
       {!alreadyRedeemed && (

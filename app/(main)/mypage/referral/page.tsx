@@ -29,6 +29,7 @@ export default async function ReferralPage() {
     { data: myRedemption },
     { data: referredRaw },
     { data: referralPoints },
+    { data: dogsRaw },
   ] = await Promise.all([
     supabase.rpc('get_or_create_my_referral_code'),
     supabase
@@ -42,14 +43,19 @@ export default async function ReferralPage() {
       .eq('referrer_id', user.id)
       .order('redeemed_at', { ascending: false })
       .limit(20),
-    // 추천으로 누적 적립한 포인트 합 — point_ledger 에서 reference_type='referral'
-    // + delta>0 만 (음수는 환수). 최근 row 들 가져와서 client 합산.
+    // 추천으로 누적 적립한 포인트 합 — referral / referral_milestone 둘 다.
     supabase
       .from('point_ledger')
-      .select('delta')
+      .select('delta, reference_type')
       .eq('user_id', user.id)
-      .eq('reference_type', 'referral')
+      .in('reference_type', ['referral', 'referral_milestone'])
       .gt('delta', 0),
+    // 강아지 list — 강아지별 공유 카드 진입점.
+    supabase
+      .from('dogs')
+      .select('id, name, photo_url')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true }),
   ])
 
   const referred: RedemptionRow[] = (referredRaw ?? []) as RedemptionRow[]
@@ -85,6 +91,13 @@ export default async function ReferralPage() {
           referredCount={referred.length}
           totalEarned={totalEarned}
           recent={referred}
+          dogs={
+            (dogsRaw ?? []) as Array<{
+              id: string
+              name: string
+              photo_url: string | null
+            }>
+          }
         />
       )}
     </main>

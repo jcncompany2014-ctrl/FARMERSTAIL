@@ -9,6 +9,10 @@ import {
   ChevronRight,
   Scale,
   Flame,
+  Sparkles,
+  Activity,
+  AlertCircle,
+  Calendar,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 
@@ -115,7 +119,7 @@ export default async function AnalysesTimelinePage({
   const { data: analysesRaw } = await supabase
     .from('analyses')
     .select(
-      'id, created_at, mer, rer, stage, bcs_label, bcs_score, feed_g, protein_pct, fat_pct, guideline_version'
+      'id, created_at, mer, rer, stage, bcs_label, bcs_score, feed_g, protein_pct, fat_pct, carb_pct, fiber_pct, guideline_version, vet_consult_recommended, next_review_date, commentary, supplements'
     )
     .eq('dog_id', dogId)
     .eq('user_id', user.id)
@@ -124,7 +128,14 @@ export default async function AnalysesTimelinePage({
     // limit 으로 메모리 폭주 방어 (가드레일).
     .limit(50)
 
-  const analyses = (analysesRaw ?? []) as AnalysisRow[]
+  const analyses = (analysesRaw ?? []) as (AnalysisRow & {
+    carb_pct: number | null
+    fiber_pct: number | null
+    vet_consult_recommended: boolean | null
+    next_review_date: string | null
+    commentary: string | null
+    supplements: string[] | null
+  })[]
   // v1.6.1 audit (2026-05-05) — algorithm 핵심 수정 후 분석은 stale 가능.
   // 첫 row (LATEST) 가 stale 면 "재분석 권장" hint.
   const latestIsStale =
@@ -209,11 +220,30 @@ export default async function AnalysesTimelinePage({
           </div>
         </section>
       ) : (
-        <section className="px-5 mt-4">
+        <>
+        {/* LATEST 분석 hero — 사용자가 페이지 들어왔을 때 한눈에 처방 핵심 */}
+        <LatestAnalysisHero
+          dogId={dogId}
+          dogName={dog.name}
+          analysis={analyses[0]}
+          isStale={latestIsStale}
+        />
+
+        {/* 이전 분석 timeline — 최신은 hero 가 표시하므로 2번째부터만 */}
+        {analyses.length > 1 && (
+        <section className="px-5 mt-5">
+          <div className="flex items-center gap-2 mb-2.5">
+            <span
+              aria-hidden
+              style={{ width: 16, height: 1.5, background: 'var(--terracotta)' }}
+            />
+            <span className="kicker">History · 이전 분석</span>
+          </div>
           <ol className="relative space-y-3">
             {/* 세로 타임라인 축 */}
             <div className="absolute top-3 bottom-3 left-[15px] w-px bg-rule" />
-            {analyses.map((a, idx) => {
+            {analyses.slice(1).map((a, idx0) => {
+              const idx = idx0 + 1 // 원본 array index (hero 가 0 차지)
               // 이전(더 오래된) 분석과 비교 — 리스트는 최신순이므로 idx+1이 이전
               const prev = analyses[idx + 1]
               const weight = weightFromRER(Number(a.rer))
@@ -304,17 +334,253 @@ export default async function AnalysesTimelinePage({
               )
             })}
           </ol>
-
-          <div className="mt-5">
-            <Link
-              href={`/dogs/${dogId}/survey`}
-              className="block w-full py-3 text-center rounded-xl bg-white text-text text-[12px] font-bold border border-rule hover:border-terracotta hover:text-terracotta transition"
-            >
-              새 설문으로 다시 분석하기
-            </Link>
-          </div>
         </section>
+        )}
+
+        <div className="mt-5 px-5">
+          <Link
+            href={`/dogs/${dogId}/survey`}
+            className="block w-full py-3 text-center rounded-xl bg-white text-text text-[12px] font-bold border border-rule hover:border-terracotta hover:text-terracotta transition"
+          >
+            새 설문으로 다시 분석하기
+          </Link>
+        </div>
+        </>
       )}
     </main>
+  )
+}
+
+/**
+ * Latest 분석 hero 카드.
+ *
+ * 사용자가 분석 페이지 들어왔을 때 가장 먼저 보이는 영역. 핵심 stat (체중 /
+ * MER / 급여량 / BCS) + 영양소 분포 (protein/fat/carb mini bar) + AI 코멘터리
+ * 첫 줄 + CTA (처방 보러가기).
+ */
+function LatestAnalysisHero({
+  dogId,
+  dogName,
+  analysis,
+  isStale,
+}: {
+  dogId: string
+  dogName: string
+  analysis: AnalysisRow & {
+    carb_pct: number | null
+    fiber_pct: number | null
+    vet_consult_recommended: boolean | null
+    next_review_date: string | null
+    commentary: string | null
+    supplements: string[] | null
+  }
+  isStale: boolean
+}) {
+  const weight = weightFromRER(Number(analysis.rer))
+  const protein = analysis.protein_pct ?? 0
+  const fat = analysis.fat_pct ?? 0
+  const carb = analysis.carb_pct ?? Math.max(0, 100 - protein - fat - (analysis.fiber_pct ?? 0))
+  // 단축 코멘터리 (첫 문장 또는 80자)
+  const commentSnippet = analysis.commentary
+    ? analysis.commentary.split(/[.!?。]\s*/)[0].slice(0, 90)
+    : null
+
+  return (
+    <section className="px-5 mt-3">
+      <div
+        className="relative overflow-hidden rounded-3xl px-6 pt-6 pb-7 text-white"
+        style={{
+          background:
+            'linear-gradient(135deg, var(--terracotta) 0%, #8B3923 100%)',
+        }}
+      >
+        <div
+          aria-hidden
+          className="absolute -top-12 -right-10 w-44 h-44 rounded-full pointer-events-none"
+          style={{ background: 'rgba(255,255,255,0.10)' }}
+        />
+        <div
+          aria-hidden
+          className="absolute -bottom-12 -left-12 w-36 h-36 rounded-full pointer-events-none"
+          style={{ background: 'rgba(255,255,255,0.05)' }}
+        />
+
+        <div className="relative">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-gold" strokeWidth={2} />
+              <span className="kicker kicker-gold">Latest · 최근 분석</span>
+            </div>
+            <span className="text-[10px] text-white/70 font-mono tabular-nums">
+              {formatDate(analysis.created_at)}
+            </span>
+          </div>
+
+          <h2
+            className="font-serif leading-tight"
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              letterSpacing: '-0.02em',
+            }}
+          >
+            {dogName}의 맞춤 영양 처방
+          </h2>
+          <p className="text-[11px] text-white/80 mt-1">
+            {analysis.stage} · BCS {analysis.bcs_score}/9 ({analysis.bcs_label})
+          </p>
+
+          {/* 핵심 stat 4-grid */}
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <HeroStat
+              kicker="체중"
+              value={`${weight.toFixed(1)}kg`}
+              Icon={Scale}
+            />
+            <HeroStat
+              kicker="일일 칼로리"
+              value={`${Math.round(analysis.mer)}kcal`}
+              Icon={Flame}
+            />
+            <HeroStat
+              kicker="권장 급여량"
+              value={`${analysis.feed_g}g/일`}
+              Icon={Activity}
+            />
+            <HeroStat
+              kicker="BCS"
+              value={`${analysis.bcs_score}/9`}
+              Icon={Sparkles}
+            />
+          </div>
+
+          {/* 영양소 분포 (protein / fat / carb) — 100% stacked bar */}
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
+                영양소 분포
+              </span>
+              <span className="text-[10px] text-white/85 font-mono tabular-nums">
+                P {protein.toFixed(0)}% · F {fat.toFixed(0)}% · C {carb.toFixed(0)}%
+              </span>
+            </div>
+            <div
+              className="h-2 rounded-full overflow-hidden flex"
+              style={{ background: 'rgba(255,255,255,0.18)' }}
+            >
+              <div style={{ width: `${protein}%`, background: 'var(--gold)' }} />
+              <div style={{ width: `${fat}%`, background: '#F5E0C2' }} />
+              <div style={{ width: `${carb}%`, background: 'rgba(255,255,255,0.45)' }} />
+            </div>
+          </div>
+
+          {/* AI 코멘터리 snippet (있으면) */}
+          {commentSnippet && (
+            <div
+              className="mt-4 px-3.5 py-2.5 rounded-xl text-[11.5px] leading-relaxed"
+              style={{
+                background: 'rgba(255,255,255,0.10)',
+                color: '#F5E0C2',
+              }}
+            >
+              <span className="font-bold">AI 영양사 한마디:</span>{' '}
+              {commentSnippet}
+              {commentSnippet.length >= 90 ? '…' : ''}
+            </div>
+          )}
+
+          {/* CTA — 처방 / 주문 / 분석 상세 */}
+          <div className="mt-5 flex gap-2">
+            <Link
+              href={`/dogs/${dogId}/analyses/${analysis.id}`}
+              className="flex-1 inline-flex items-center justify-center gap-1 py-2.5 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
+              style={{ background: 'white', color: 'var(--terracotta)' }}
+            >
+              자세히 보기
+              <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
+            </Link>
+            <Link
+              href={`/dogs/${dogId}/formulas`}
+              className="flex-1 inline-flex items-center justify-center gap-1 py-2.5 rounded-full text-[12px] font-bold transition"
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                color: 'white',
+                border: '1px solid rgba(255,255,255,0.25)',
+              }}
+            >
+              처방 확인
+            </Link>
+          </div>
+
+          {/* 메타 — 다음 분석 권장일 / 수의사 상담 추천 */}
+          {(analysis.next_review_date || analysis.vet_consult_recommended) && (
+            <div className="mt-4 pt-4 border-t border-white/15 space-y-1.5">
+              {analysis.next_review_date && (
+                <div className="flex items-center gap-1.5 text-[10.5px] text-white/85">
+                  <Calendar className="w-3 h-3" strokeWidth={2} />
+                  다음 분석 권장: {formatDate(analysis.next_review_date)}
+                </div>
+              )}
+              {analysis.vet_consult_recommended && (
+                <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-gold">
+                  <AlertCircle className="w-3 h-3" strokeWidth={2} />
+                  수의사 상담을 권장해요
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* stale 안내 inline (헤더 banner 와 별개) */}
+          {isStale && (
+            <div
+              className="mt-3 px-3 py-2 rounded-lg text-[10.5px]"
+              style={{
+                background: 'rgba(255,255,255,0.10)',
+                color: '#F5E0C2',
+              }}
+            >
+              ⚠️ 알고리즘 업데이트 후 분석 — 정확도를 위해 재분석 권장
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function HeroStat({
+  kicker,
+  value,
+  Icon,
+}: {
+  kicker: string
+  value: string
+  Icon: typeof Scale
+}) {
+  return (
+    <div
+      className="rounded-xl px-3 py-2.5"
+      style={{ background: 'rgba(255,255,255,0.12)' }}
+    >
+      <div className="flex items-center gap-1">
+        <Icon className="w-3 h-3" strokeWidth={2} />
+        <span
+          className="text-[9.5px] font-bold uppercase tracking-widest"
+          style={{ color: 'rgba(255,255,255,0.75)' }}
+        >
+          {kicker}
+        </span>
+      </div>
+      <div
+        className="font-serif tabular-nums leading-none mt-1"
+        style={{
+          fontSize: 17,
+          fontWeight: 800,
+          letterSpacing: '-0.015em',
+        }}
+      >
+        {value}
+      </div>
+    </div>
   )
 }
