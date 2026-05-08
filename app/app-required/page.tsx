@@ -67,7 +67,7 @@ export default async function AppRequiredPage({
           }}
         >
           {fromLabel
-            ? `${fromLabel}은(는)`
+            ? `${fromLabel}${eunNeun(fromLabel)}`
             : '이 기능은'}
           <br />
           <span
@@ -198,6 +198,20 @@ function Feature({
  * `/dashboard` 같은 기술 경로를 사용자에게 보여줄 라벨로 변환.
  * 변환 못 하는 경로면 null 반환 → 일반 카피로 폴백.
  */
+/**
+ * 한글 받침 유무로 "은/는" 조사 자동 결정. 한글이 아닌 단어로 끝나면 안전한
+ * fallback "은" 반환. friendlyLabel 결과가 매번 다른 받침을 가지므로
+ * "은(는)" 같은 양자 표기 대신 자연스러운 한 글자만 노출하는 데 사용.
+ */
+function eunNeun(word: string): '은' | '는' {
+  if (!word) return '은'
+  const code = word.charCodeAt(word.length - 1)
+  // 한글 음절 범위 (가–힣) 밖이면 fallback
+  if (code < 0xac00 || code > 0xd7a3) return '은'
+  // (음절 - 가) % 28 === 0 → 받침 없음 → "는"
+  return (code - 0xac00) % 28 === 0 ? '는' : '은'
+}
+
 function friendlyLabel(path: string): string | null {
   const clean = path.split('?')[0]
   if (clean === '/dashboard') return '홈 대시보드'

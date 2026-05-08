@@ -49,7 +49,14 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
     if (busyId) return
     const target = list.find((a) => a.id === id)
     if (!target) return
-    if (!confirm(`"${target.label || target.address}" 을(를) 삭제할까요?`)) return
+    const name = target.label || target.address
+    // 한글 받침 유무로 "을/를" 자동 결정 — "을(를)" 양자 표기보다 자연스러움.
+    const code = name.charCodeAt(name.length - 1)
+    const eulReul =
+      code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0
+        ? '을'
+        : '를'
+    if (!confirm(`"${name}"${eulReul} 삭제할까요?`)) return
 
     setBusyId(id)
     const prev = list
