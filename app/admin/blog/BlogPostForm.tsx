@@ -317,6 +317,16 @@ export default function BlogPostForm({
       {/* 왼쪽: 본문 */}
       <div className="col-span-2 space-y-4">
         <Section title="기본 정보">
+          <AiDraftHelper
+            onApply={(draft) => {
+              setForm((prev) => ({
+                ...prev,
+                title: draft.title,
+                excerpt: draft.excerpt,
+                content: draft.body,
+              }))
+            }}
+          />
           <Field label="제목 *">
             <input
               type="text"
@@ -688,5 +698,172 @@ function ToolBtn({
     >
       {children}
     </button>
+  )
+}
+
+/**
+ * 블로그 글 초안 AI 어시스턴트.
+ *
+ * 키워드/주제 입력 → /api/admin/blog/draft 호출 (Anthropic Haiku) → 응답을
+ * 부모 form 의 title/excerpt/content 에 일괄 채워넣음.
+ *
+ * 한 번의 클릭으로 글 시작점 확보 → 에디터가 다듬는 패턴.
+ */
+function AiDraftHelper({
+  onApply,
+}: {
+  onApply: (draft: { title: string; excerpt: string; body: string }) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [topic, setTopic] = useState('')
+  const [audience, setAudience] = useState('')
+  const [length, setLength] = useState<'short' | 'medium' | 'long'>('medium')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function generate() {
+    if (!topic.trim()) {
+      setError('주제를 입력해 주세요')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/admin/blog/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: topic.trim(),
+          audience: audience.trim() || undefined,
+          length,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error ?? data.message ?? 'failed')
+      }
+      onApply({
+        title: data.draft.title,
+        excerpt: data.draft.excerpt ?? '',
+        body: data.draft.body,
+      })
+      setOpen(false)
+      setTopic('')
+      setAudience('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '초안 생성에 실패했어요')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-rule bg-bg-2 text-text hover:border-terracotta transition"
+      >
+        ✨ AI 초안 생성
+      </button>
+    )
+  }
+
+  return (
+    <div className="mb-3 p-4 rounded-xl border border-terracotta/40 bg-terracotta/5 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-[12px] font-black text-text">
+          ✨ AI 글 초안 생성기
+        </h3>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-[10px] text-muted hover:text-text"
+        >
+          닫기
+        </button>
+      </div>
+
+      <div>
+        <label className="block text-[10px] font-bold text-muted uppercase tracking-widest mb-1">
+          주제 / 키워드 *
+        </label>
+        <input
+          type="text"
+          value={topic}
+          onChange={(e) => setTopic(e.target.value.slice(0, 100))}
+          maxLength={100}
+          placeholder="예: 노령견 관절 영양제 선택법, 사료에서 화식 전환"
+          className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-[12px] focus:outline-none focus:border-terracotta"
+        />
+      </div>
+
+      <div>
+        <label className="block text-[10px] font-bold text-muted uppercase tracking-widest mb-1">
+          타겟 독자 (선택)
+        </label>
+        <input
+          type="text"
+          value={audience}
+          onChange={(e) => setAudience(e.target.value.slice(0, 100))}
+          maxLength={100}
+          placeholder="예: 첫 반려견을 키우는 30대 보호자"
+          className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-[12px] focus:outline-none focus:border-terracotta"
+        />
+      </div>
+
+      <div>
+        <label className="block text-[10px] font-bold text-muted uppercase tracking-widest mb-1">
+          본문 길이
+        </label>
+        <div className="flex gap-1.5">
+          {(
+            [
+              { key: 'short', label: '짧게 600~900자' },
+              { key: 'medium', label: '중간 1200~1800자' },
+              { key: 'long', label: '길게 2000~3000자' },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setLength(opt.key)}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition ${
+                length === opt.key
+                  ? 'bg-text text-white border-transparent'
+                  : 'bg-white border-rule text-text hover:border-text'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {error && (
+        <p className="text-[11px] font-bold text-sale">{error}</p>
+      )}
+
+      <button
+        type="button"
+        onClick={generate}
+        disabled={loading || !topic.trim()}
+        className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg bg-terracotta text-white text-[12px] font-black active:scale-[0.98] transition disabled:opacity-50"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2} />
+            생성 중...
+          </>
+        ) : (
+          '초안 생성 → 폼에 채우기'
+        )}
+      </button>
+
+      <p className="text-[10px] text-muted leading-relaxed">
+        Claude Haiku 기반. 생성된 초안은 자동으로 제목 / 요약 / 본문에 채워져요.
+        그대로 발행하지 말고 사실 / 표현 / 톤을 점검 후 게시.
+      </p>
+    </div>
   )
 }

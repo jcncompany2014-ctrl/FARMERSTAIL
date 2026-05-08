@@ -74,7 +74,7 @@ export default async function AdminLayout({
   <NavItem href="/admin/faqs" icon="❓" label="FAQ 관리" />
   <NavItem href="/admin/users" icon="👥" label="회원 관리" />
   <NavItem href="/admin/search" icon="🔍" label="검색 인사이트" />
-  <NavItem href="/admin/push-stats" icon="📣" label="푸시 통계" />
+  <NavItem href="/admin/push-stats" icon="📡" label="푸시 통계" />
   <NavItem href="/admin/feature-flags" icon="🚩" label="Feature Flags" />
 </nav>
 
