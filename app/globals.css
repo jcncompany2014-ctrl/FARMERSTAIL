@@ -13,6 +13,9 @@
   /* New palette — matches Claude Design handoff */
   --bg: #F5F0E6;
   --bg-2: #EFE8D9;
+  /* bg-3 — 카드/sheet/raised surface 용 최상위 paper. 라이트에선 거의 백색에
+     가까운 cream-tinted off-white, 다크에선 elevated 톤 (#2E2419). */
+  --bg-3: #FCF8EE;
   --ink: #2E1F14;           /* signature: Mahogany — 진한 고동색.
                                이전엔 #1E1A14 (거의 검정) 이었는데 단색 배경
                                (CTA 버튼 / brand 패널) 에 쓰이면 그냥 검정으로
@@ -314,22 +317,44 @@
   bottom: calc(180px + env(safe-area-inset-bottom)) !important;
 }
 
-/* 수동 오버라이드 — 위 media 규칙보다 뒤에 나와서 가중치 우위. */
+/* 수동 오버라이드 — 위 media 규칙보다 뒤에 나와서 가중치 우위.
+ *
+ * 다크 팔레트 v2 — "blackout" 느낌 회피하기 위해 3-tier surface system
+ * 으로 깊이 분리 + warm coffee bias 강화. light 의 paper-grain 톤을
+ * 다크 모드에선 "촛불 아래 가죽 노트북" 톤으로 매핑.
+ *
+ *   --bg     #15110D  body deepest (warm black-coffee)
+ *   --bg-2   #221C15  card surface (+12 lighter, 또렷한 카드 경계)
+ *   --bg-3   #2E2419  elevated/raised (sheet, sticky CTA, hover) — 새 토큰
+ *   --rule   #3A2F22  border (+16 더 살아있게)
+ *   --rule-2 #4D4030  강조 border, focus ring
+ *
+ *   --text   #EBE2D0  primary 본문 (살짝 더 cream)
+ *   --ink    #F8F2E8  최상위 text/icon (브랜드 ink reverse)
+ *   --muted  #A89580  보조 text — 라이트 mute 보다 더 잘 보이게
+ *
+ * accent 는 dark bg 위 채도 ↑ 로 교체 (모두 더 saturated):
+ *   --terracotta #D27A56  (이전 #C4664A — 약간 다홍색에 가깝게)
+ *   --moss       #9CB35F  (이전 #8FA452 — 풀잎 청량감 ↑)
+ *   --gold       #E8D095  (이전 #E5CC8A — 따뜻한 황동)
+ *   --sale       #E05F50  (이전 #D65448 — 알람 톤 또렷)
+ */
 html[data-theme="dark"] {
-  --background: #171310;
-  --foreground: #E8DFCB;
+  --background: #15110D;
+  --foreground: #EBE2D0;
 
-  --bg: #171310;
-  --bg-2: #1F1A14;
-  --ink: #F5F0E6;
-  --text: #E8DFCB;
-  --muted: #9C8A78;
-  --rule: #2A2319;
-  --rule-2: #3D3428;
-  --terracotta: #C4664A;
-  --moss: #8FA452;
-  --gold: #E5CC8A;
-  --sale: #D65448;
+  --bg: #15110D;
+  --bg-2: #221C15;
+  --bg-3: #2E2419;
+  --ink: #F8F2E8;
+  --text: #EBE2D0;
+  --muted: #A89580;
+  --rule: #3A2F22;
+  --rule-2: #4D4030;
+  --terracotta: #D27A56;
+  --moss: #9CB35F;
+  --gold: #E8D095;
+  --sale: #E05F50;
 
   --shadow-ink: 0, 0, 0;
   --scrim: rgba(0, 0, 0, 0.60);
@@ -344,32 +369,73 @@ html[data-theme="light"] {
 }
 
 /* =========================================================================
-   Dark mode — Tailwind hardcoded utility 색상 토큰화
+   Dark mode — Tailwind hardcoded utility + 잔존 cream/white hex 토큰화
    ---------------------------------------------------------------------------
-   Tailwind 의 `bg-white` 는 hardcoded `rgb(255 255 255)` 라서 다크 배경
-   위에 그대로 흰 카드로 carved out 된다. 카드 / 인풋 / sheet 의 시각적
-   "용지" 톤을 다크에서 `--bg-2` (deep coffee 한 단계 밝은 톤) 으로 swap.
-   inline style `background:'white'` 도 같은 방식으로 잡는다.
-   의도된 CTA cream 버튼은 inline `var(--bg)` 패턴이라 자동 inverted.
+   `.bg-white` / `bg-[#FDFDFD]` / inline `background: white|#fff|#fbfaf4`
+   같은 hardcoded 흰색·크림은 다크 배경에 그대로 carved out 된다. 모두
+   `--bg-2` (카드 surface) 또는 `--bg-3` (raised) 으로 swap.
+   의도된 CTA cream 버튼은 inline `var(--bg)` 패턴이라 자동 inverted —
+   영향 없음.
    ========================================================================= */
+
+/* (1) Tailwind class 단위 — bg-white 와 arbitrary cream 변종들. */
 html[data-theme="dark"] .bg-white,
+html[data-theme="dark"] [class~="bg-[#FDFDFD]"],
+html[data-theme="dark"] [class~="bg-[#fdfdfd]"],
+html[data-theme="dark"] [class~="bg-[#FFFCF2]"],
+html[data-theme="dark"] [class~="bg-[#fffcf2]"],
+html[data-theme="dark"] [class~="bg-[#FFF5F2]"],
+html[data-theme="dark"] [class~="bg-[#fff5f2]"],
+html[data-theme="dark"] [class~="bg-[#fbfaf4]"],
+html[data-theme="dark"] [class~="bg-[#FBFAF4]"] {
+  background-color: var(--bg-2) !important;
+}
+
+/* (2) inline style — 흰색 / cream 톤 hex 모음. */
 html[data-theme="dark"] [style*="background: white"],
+html[data-theme="dark"] [style*="background:white"],
 html[data-theme="dark"] [style*="background: #fff"],
 html[data-theme="dark"] [style*="background: #FFF"],
-html[data-theme="dark"] [style*="background:'white'"],
-html[data-theme="dark"] [style*='background: "white"'] {
-  background-color: var(--bg-2) !important;
-}
-
-/* 헬스/리마인더 등에서 input bg 로 #FDFDFD (off-white) 를 쓰는 곳도 swap */
+html[data-theme="dark"] [style*="background:#fff"],
+html[data-theme="dark"] [style*="background:#FFF"],
+html[data-theme="dark"] [style*="background: '#fff'"],
+html[data-theme="dark"] [style*="background:'#fff'"],
+html[data-theme="dark"] [style*="background: '#FFF'"],
+html[data-theme="dark"] [style*="background-color: white"],
+html[data-theme="dark"] [style*="background-color:white"],
+html[data-theme="dark"] [style*="background-color: #fff"],
+html[data-theme="dark"] [style*="background-color: #FFF"],
+html[data-theme="dark"] [style*="#fbfaf4"],
+html[data-theme="dark"] [style*="#FBFAF4"],
 html[data-theme="dark"] [style*="#FDFDFD"],
-html[data-theme="dark"] [style*="#fdfdfd"] {
+html[data-theme="dark"] [style*="#fdfdfd"],
+html[data-theme="dark"] [style*="#FFFCF2"],
+html[data-theme="dark"] [style*="#fffcf2"],
+html[data-theme="dark"] [style*="#FFF5F2"],
+html[data-theme="dark"] [style*="#fff5f2"],
+html[data-theme="dark"] [style*="#FAFAFA"],
+html[data-theme="dark"] [style*="#fafafa"] {
   background-color: var(--bg-2) !important;
 }
 
-/* `text-white` 는 보통 terracotta/ink CTA 위 cream 톤이라 다크에서도 OK.
-   다만 light bg-white 카드 위 흰 글자 같은 invariant invisible 케이스가
-   있다면 inline style 로 명시적으로 처리. */
+/* (3) 별도 .css 파일 — survey.css / notifications.css 등이 hardcoded
+   `background: #fff` 등을 넣을 때 직접 dark 변형. Tailwind 가 아닌 공용
+   css 클래스라 selector 로는 안 잡힘. 대신 wildcard attribute selector
+   는 위에서 cover. 이 블럭은 그 외 잔존물 보강. */
+html[data-theme="dark"] .scard,
+html[data-theme="dark"] .s-row,
+html[data-theme="dark"] .s-card-light,
+html[data-theme="dark"] .s-mini,
+html[data-theme="dark"] .ai-tip,
+html[data-theme="dark"] .alert-soft,
+html[data-theme="dark"] .info-card {
+  background-color: var(--bg-2) !important;
+}
+
+/* (4) `text-white` — terracotta/ink/sale 같은 dark accent 위에 쓰일 때는
+   유지. 그러나 .bg-white (= 다크에서 bg-2 로 swap) 카드 안에 text-white
+   가 있으면 cream 카드에 흰 글자 = 거의 invisible. 그런 경우는 매우 드물고
+   대부분 해당 컨테이너가 background 토큰을 사용하므로 별도 swap 불필요. */
 
 /* Tailwind v4 theme — next/font가 주입한 CSS 변수 + 브랜드 컬러 토큰을
    Tailwind 유틸(bg-ink, text-terracotta 등)로 연결 */
@@ -380,6 +446,7 @@ html[data-theme="dark"] [style*="#fdfdfd"] {
   /* Brand palette exposed as Tailwind color utilities */
   --color-bg: var(--bg);
   --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
   --color-ink: var(--ink);
   --color-text: var(--text);
   --color-muted: var(--muted);
