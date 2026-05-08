@@ -75,8 +75,10 @@ function Placeholder({
 
 function SectionNo({ n, label }: { n: string; label: string }) {
   // 한 폰트 가족(serif)만 씀. "No."는 기울기로, 번호는 볼드로 변화를 준다.
+  // flexWrap nowrap + whiteSpace nowrap — "No." 와 숫자가 좁은 컨테이너에서
+  // 분리되는 것 차단 (랜딩 SerialNo 와 동일한 정책).
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
       <span
         className="font-serif"
         style={{

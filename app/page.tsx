@@ -164,8 +164,18 @@ function SerialNo({ n, label }: { n: string; label?: string }) {
   // 한 폰트 가족(serif)만 씀. "No."는 기울기로, 번호는 볼드로.
   // alignItems: baseline 이 핵심 — "No." 와 번호가 하나의 베이스라인에 얹혀야
   // 에디토리얼 각인처럼 보인다.
+  // flexWrap: nowrap + 각 child flexShrink:0 — 좁은 grid 컬럼 (모바일 grid-cols-2)
+  // 에서 "No." 와 숫자가 분리되어 줄바꿈되는 케이스 방지.
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 8,
+        flexWrap: 'nowrap',
+        whiteSpace: 'nowrap',
+      }}
+    >
       <span
         className="font-serif"
         style={{
@@ -174,6 +184,7 @@ function SerialNo({ n, label }: { n: string; label?: string }) {
           color: 'var(--terracotta)',
           fontWeight: 500,
           fontStyle: 'italic',
+          flexShrink: 0,
         }}
       >
         No.
@@ -187,6 +198,7 @@ function SerialNo({ n, label }: { n: string; label?: string }) {
           color: 'var(--ink)',
           letterSpacing: '-0.02em',
           fontVariantNumeric: 'lining-nums tabular-nums',
+          flexShrink: 0,
         }}
       >
         {n}
@@ -199,6 +211,7 @@ function SerialNo({ n, label }: { n: string; label?: string }) {
               fontSize: 14,
               lineHeight: 1,
               marginLeft: 2,
+              flexShrink: 0,
             }}
           >
             —
@@ -207,10 +220,14 @@ function SerialNo({ n, label }: { n: string; label?: string }) {
             style={{
               fontSize: 10,
               fontWeight: 600,
-              letterSpacing: '0.22em',
+              letterSpacing: '0.18em',
               textTransform: 'uppercase',
               color: 'var(--muted)',
               lineHeight: 1,
+              flexShrink: 1,
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {label}

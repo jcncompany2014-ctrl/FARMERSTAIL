@@ -174,8 +174,8 @@ export default async function PushStatsPage() {
                   <th className="px-4 py-3 text-right">발송</th>
                   <th className="px-4 py-3 text-right">읽음</th>
                   <th className="px-4 py-3 text-right">읽음률</th>
-                  <th className="px-4 py-3 text-right">평균 반응시간</th>
-                  <th className="px-4 py-3 text-right">평균 디바이스/발송</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">평균 반응시간</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">건당 평균 디바이스</th>
                 </tr>
               </thead>
               <tbody>

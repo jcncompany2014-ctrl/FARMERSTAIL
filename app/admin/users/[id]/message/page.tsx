@@ -72,7 +72,7 @@ export default async function AdminUserMessagePage({
         </Link>
       </header>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Composer */}
         <section>
           <h2 className="text-[13px] font-black text-text mb-3">메시지 작성</h2>

@@ -105,7 +105,7 @@ export default function SubscriptionCard({
                         {s.coverage_weeks === 2 ? '2주치 · 하이브리드' : '4주치 · 풀 화식'}
                       </span>
                     </div>
-                    <span className="text-[12px] font-bold text-text font-mono">
+                    <span className="text-[12px] font-bold text-text font-mono whitespace-nowrap">
                       {s.total_amount.toLocaleString()}원/월
                     </span>
                   </div>
