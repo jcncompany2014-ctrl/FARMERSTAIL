@@ -146,7 +146,7 @@ export default function HealthLogClient({
         )
         .single()
       if (insErr || !data) {
-        setError(insErr?.message ?? '저장 실패')
+        setError('저장하지 못했어요')
         return
       }
       setLogs((prev) => [data as HealthLog, ...prev])

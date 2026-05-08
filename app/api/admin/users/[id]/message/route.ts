@@ -33,6 +33,14 @@ export async function POST(
 
   const { id: targetUserId } = await params
 
+  // 자기 자신에게 발송 차단 — UI 실수 방지 (관리자가 회원 목록 검색 중 자기 row 누름)
+  if (targetUserId === user.id) {
+    return NextResponse.json(
+      { ok: false, error: 'cannot_message_self' },
+      { status: 400 },
+    )
+  }
+
   let parsed: { title?: unknown; body?: unknown; url?: unknown }
   try {
     parsed = await req.json()
@@ -44,10 +52,22 @@ export async function POST(
     typeof parsed.title === 'string' ? parsed.title.trim().slice(0, 80) : ''
   const body =
     typeof parsed.body === 'string' ? parsed.body.trim().slice(0, 240) : ''
-  const url =
+
+  // url 은 동일 origin path 만 허용 — 외부 도메인으로 사용자 유도 차단.
+  // 어드민 신뢰가 깨지는 시나리오 (계정 탈취 등) 에서 외부 phishing link
+  // 발송을 막는 1차 방어선. "/" 로 시작하는 path 만 통과.
+  const rawUrl =
     typeof parsed.url === 'string' && parsed.url.trim()
       ? parsed.url.trim().slice(0, 240)
       : undefined
+  const url = rawUrl && rawUrl.startsWith('/') ? rawUrl : undefined
+
+  if (rawUrl && !url) {
+    return NextResponse.json(
+      { ok: false, error: 'url_must_be_relative_path' },
+      { status: 400 },
+    )
+  }
 
   if (!title || !body) {
     return NextResponse.json(

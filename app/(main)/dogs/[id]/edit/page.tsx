@@ -131,7 +131,7 @@ export default function EditDogPage() {
           photoUrl,
           photoState
         )
-      } catch (e) {
+      } catch {
         setLoading(false)
         setError('사진을 업로드하지 못했어요')
         return

@@ -36,7 +36,6 @@ export default function ThemeToggle() {
     // SSR / hydration mismatch 회피용 — mount 시 localStorage 에서 읽어와 한 번만 swap.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setChoice(readThemeChoice())
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
   }, [])
 

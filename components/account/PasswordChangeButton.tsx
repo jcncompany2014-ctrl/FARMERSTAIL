@@ -40,7 +40,7 @@ export default function PasswordChangeButton({ email }: { email: string }) {
       }
       setDone(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '발송 실패')
+      setError(err instanceof Error ? err.message : '발송하지 못했어요')
     } finally {
       setBusy(false)
     }

@@ -203,7 +203,7 @@ export default function RemindersClient({
         )
         .single()
       if (error || !data) {
-        setErr(error?.message ?? '저장 실패')
+        setErr('저장하지 못했어요')
         return
       }
       setReminders((prev) =>

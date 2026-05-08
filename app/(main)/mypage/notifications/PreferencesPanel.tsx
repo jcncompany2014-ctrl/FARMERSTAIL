@@ -65,7 +65,7 @@ export default function PreferencesPanel() {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => null)
-        setError(data?.message ?? '저장 실패')
+        setError(data?.message ?? '저장하지 못했어요')
         setPrefs(prev)
       }
     } catch {

@@ -64,8 +64,24 @@ export default function MessageComposer({ userId }: { userId: string }) {
         reason?: string
         error?: string
       } = await res.json()
-      if (!res.ok || !data.ok) {
-        toast.error('발송하지 못했어요', { description: data.error })
+      // 4xx/5xx — 입력 검증 실패 등 명시적 에러
+      if (!res.ok) {
+        const errLabel: Record<string, string> = {
+          unauthorized: '로그인이 필요해요',
+          forbidden: '관리자 권한이 없어요',
+          cannot_message_self: '본인에게는 발송할 수 없어요',
+          url_must_be_relative_path: '이동 URL 은 / 로 시작하는 경로만 가능해요',
+          user_not_found: '대상 사용자를 찾을 수 없어요',
+          title_and_body_required: '제목과 본문을 입력해 주세요',
+        }
+        toast.error('발송하지 못했어요', {
+          description: errLabel[data.error ?? ''] ?? data.error,
+        })
+        return
+      }
+      // 200 인데 ok=false — VAPID 미설정 등 서버 설정 이슈
+      if (!data.ok) {
+        toast.error('발송하지 못했어요', { description: data.reason })
         return
       }
       setLastResult({
