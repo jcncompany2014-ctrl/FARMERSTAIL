@@ -69,7 +69,9 @@ export default function ServiceWorkerRegister() {
         })
       })
       .catch((err) => {
-        console.log('[SW] Registration failed:', err)
+        // SW 등록 실패는 user-impact 없음 (PWA push/offline 만 disabled).
+        // Sentry 로 흐르게 console.error 로 승격.
+        console.error('[SW] Registration failed:', err)
       })
 
     // controllerchange 이벤트 — skipWaiting 후 새 SW 가 활성화되면 페이지 reload.

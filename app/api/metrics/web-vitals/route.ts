@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'edge'
@@ -40,6 +41,18 @@ export async function POST(request: Request) {
   const lenHeader = request.headers.get('content-length')
   if (lenHeader && Number(lenHeader) > MAX_BODY) {
     return NextResponse.json({ error: 'payload_too_large' }, { status: 413 })
+  }
+
+  // 익명 beacon 이라 spam 잠재성. IP 당 분당 60건 (페이지 당 vital 5종 +
+  // navigation 12회 정도 — 정상 사용은 5분에 30건 미만). Sentry 쿼터 보호.
+  const rl = rateLimit({
+    bucket: 'web-vitals',
+    key: ipFromRequest(request),
+    limit: 60,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
+    return new NextResponse(null, { status: 429, headers: rl.headers })
   }
 
   let body: VitalPayload

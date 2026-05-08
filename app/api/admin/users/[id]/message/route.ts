@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { pushToUser } from '@/lib/push'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 /**
  * POST /api/admin/users/[id]/message
@@ -20,6 +21,21 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  // 어드민 신뢰 대상이지만 실수 / 자동화 루프 방어를 위한 가벼운 limit.
+  // 분당 30건 — 정상 CS 작업 한도, 실수로 spam loop 차단.
+  const rl = rateLimit({
+    bucket: 'admin-msg',
+    key: ipFromRequest(req),
+    limit: 30,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: 'rate_limited' },
+      { status: 429, headers: rl.headers },
+    )
+  }
+
   const supabase = await createClient()
   const {
     data: { user },
