@@ -159,7 +159,9 @@ export async function GET(req: Request) {
       {
         title: pushTitle,
         body: itemCountLabel,
-        url: `/mypage/subscriptions`,
+        // ?focus 로 해당 구독 카드까지 자동 스크롤 + highlight + skip/pause 강조.
+        // 결제 전 마지막 컨트롤 권한 — 1탭으로 도달.
+        url: `/mypage/subscriptions?focus=${sub.id}`,
         tag: `sub-reminder-${sub.id}-${sub.next_delivery_date}`,
       },
       { category: 'order' },

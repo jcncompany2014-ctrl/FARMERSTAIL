@@ -11,6 +11,9 @@ import FoodInfoCompletion, {
 import CohortRetentionTable, {
   type CohortRow,
 } from '@/components/admin/CohortRetentionTable'
+import CohortLtvTable, {
+  type LtvRow,
+} from '@/components/admin/CohortLtvTable'
 import ActionsPanel from '@/components/admin/ActionsPanel'
 
 export const dynamic = 'force-dynamic'
@@ -280,6 +283,17 @@ export default async function AdminHome() {
     cohortRows = (cohortData ?? []) as CohortRow[]
   } catch {
     /* 마이그레이션 미적용 / 권한 미확보 — UI 가 빈 상태 처리 */
+  }
+
+  // 코호트 LTV — D7/D30/D90 평균. cohort_ltv_weekly RPC.
+  let ltvRows: LtvRow[] = []
+  try {
+    const { data: ltvData } = await supabase.rpc('cohort_ltv_weekly', {
+      weeks_back: 12,
+    })
+    ltvRows = (ltvData ?? []) as LtvRow[]
+  } catch {
+    /* RPC 미적용 또는 권한 미확보 */
   }
 
   const totalRevenue =
@@ -583,6 +597,10 @@ export default async function AdminHome() {
       {/* 코호트 리텐션 — 가입 주별 재구매율. W4 가 정기배송 conversion 신호. */}
       <div className="mb-6">
         <CohortRetentionTable rows={cohortRows} />
+      </div>
+
+      <div className="mb-6">
+        <CohortLtvTable rows={ltvRows} />
       </div>
 
       {/* Top 상품 + 재고 경고 — 2-column */}

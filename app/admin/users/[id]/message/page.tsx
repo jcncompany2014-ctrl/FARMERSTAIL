@@ -25,21 +25,36 @@ export default async function AdminUserMessagePage({
   const { id } = await params
   const supabase = await createClient()
 
-  const [{ data: profile }, { data: pushLog }] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id, email, name, phone')
-      .eq('id', id)
-      .maybeSingle(),
-    supabase
-      .from('push_log')
-      .select('id, title, body, category, sent_at, read_at')
-      .eq('user_id', id)
-      .order('sent_at', { ascending: false })
-      .limit(50),
-  ])
+  const [{ data: profile }, { data: pushLog }, { data: csThread }] =
+    await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, email, name, phone')
+        .eq('id', id)
+        .maybeSingle(),
+      supabase
+        .from('push_log')
+        .select('id, title, body, category, sent_at, read_at')
+        .eq('user_id', id)
+        .order('sent_at', { ascending: false })
+        .limit(50),
+      supabase
+        .from('cs_messages')
+        .select('id, sender, body, created_at, read_at')
+        .eq('user_id', id)
+        .order('created_at', { ascending: true })
+        .limit(100),
+    ])
 
   if (!profile) notFound()
+
+  // 사용자가 보낸 미확인 메시지가 있으면 read 처리 — admin 이 thread 본 시점.
+  await supabase
+    .from('cs_messages')
+    .update({ read_at: new Date().toISOString() })
+    .eq('user_id', id)
+    .eq('sender', 'user')
+    .is('read_at', null)
 
   const recent = (pushLog ?? []) as Array<{
     id: string
@@ -47,6 +62,14 @@ export default async function AdminUserMessagePage({
     body: string
     category: string | null
     sent_at: string
+    read_at: string | null
+  }>
+
+  const thread = ((csThread ?? []) as unknown) as Array<{
+    id: string
+    sender: 'admin' | 'user'
+    body: string
+    created_at: string
     read_at: string | null
   }>
 
@@ -72,6 +95,48 @@ export default async function AdminUserMessagePage({
         </Link>
       </header>
 
+      {/* CS 양방향 thread — 사용자 답장 + admin 답변 history */}
+      {thread.length > 0 && (
+        <section className="mb-6">
+          <h2 className="text-[13px] font-black text-text mb-3">
+            대화 내역 ({thread.length}건)
+          </h2>
+          <ul className="bg-white rounded-2xl border border-rule p-4 space-y-2.5 max-h-[400px] overflow-y-auto">
+            {thread.map((m) => {
+              const mine = m.sender === 'admin'
+              return (
+                <li
+                  key={m.id}
+                  className={`flex ${mine ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
+                      mine
+                        ? 'bg-terracotta text-white rounded-br-md'
+                        : 'bg-bg-2 text-text rounded-bl-md border border-rule'
+                    }`}
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5 opacity-70">
+                      {mine ? 'admin' : '사용자'}
+                    </p>
+                    <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap break-keep">
+                      {m.body}
+                    </p>
+                    <p
+                      className={`text-[9.5px] mt-1 ${
+                        mine ? 'text-white/70' : 'text-muted'
+                      }`}
+                    >
+                      {new Date(m.created_at).toLocaleString('ko-KR')}
+                    </p>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Composer */}
         <section>
@@ -81,6 +146,7 @@ export default async function AdminUserMessagePage({
             <p className="text-[11px] text-text leading-relaxed">
               ⚠️ 1:1 CS 메시지는 사용자의 알림 선호도/방해금지 시간대를 우회해
               발송됩니다. 환불/배송지연 같은 critical 안내에만 사용하세요.
+              사용자가 답장하면 위 대화 내역에 누적됩니다.
             </p>
           </div>
         </section>

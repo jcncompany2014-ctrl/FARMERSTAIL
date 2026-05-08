@@ -105,6 +105,16 @@ export async function POST(
   // category 를 안 넘기면 카테고리 게이팅 없이 발송 (admin CS 메시지는 사용자 선호 무시)
   const result = await pushToUser(targetUserId, { title, body, url })
 
+  // CS 양방향 thread 에도 같은 메시지 기록 — 사용자가 /mypage/cs 에서 답장
+  // 가능. push 발송 실패해도 thread 에는 남도록 별도 처리. RLS 가 admin
+  // role 만 insert 허용하므로 sender_id=user.id (현재 admin).
+  await supabase.from('cs_messages').insert({
+    user_id: targetUserId,
+    sender: 'admin',
+    sender_id: user.id,
+    body: title === body ? body : `${title}\n\n${body}`,
+  })
+
   // pushToUser 자체도 { ok, sent, dead, reason } 를 반환 — sent>0 이면 ok 가 true.
   // 우리는 admin API 입장에서 호출 자체가 성공했음을 알리고 싶으므로 ok 는 그대로
   // pushToUser 의 결과를 따라간다 (구독 없으면 ok=false 지만 sent=0 으로 동작).

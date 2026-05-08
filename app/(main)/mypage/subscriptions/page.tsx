@@ -85,6 +85,10 @@ function MySubscriptionsPageInner() {
   const [showNewBanner, setShowNewBanner] = useState(isNew)
   const [editingInterval, setEditingInterval] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  // D-1 푸시에서 ?focus=subId 로 진입하면 해당 카드까지 자동 스크롤 + 1.5초
+  // pulse 강조. 결제 직전 사용자가 한 번에 skip / 일시정지 결정 가능하게.
+  const focusSubId = searchParams.get('focus')
+  const [pulsedSubId, setPulsedSubId] = useState<string | null>(null)
 
   useEffect(() => {
     loadSubscriptions()
@@ -94,6 +98,17 @@ function MySubscriptionsPageInner() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // subs 로드 완료 후 focus 처리 — DOM 그려진 다음에 스크롤.
+  useEffect(() => {
+    if (loading || !focusSubId) return
+    const el = document.getElementById(`sub-${focusSubId}`)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setPulsedSubId(focusSubId)
+    const t = setTimeout(() => setPulsedSubId(null), 1800)
+    return () => clearTimeout(t)
+  }, [loading, focusSubId])
 
   async function loadSubscriptions() {
     const {
@@ -389,12 +404,14 @@ function MySubscriptionsPageInner() {
                 (needsRenewal ||
                   (sub.failed_charge_count ?? 0) > 0 ||
                   !!sub.next_retry_at)
+              const isPulsed = pulsedSubId === sub.id
               return (
                 <div
                   key={sub.id}
+                  id={`sub-${sub.id}`}
                   className={`bg-white rounded-2xl border overflow-hidden transition ${
                     isCancelled ? 'opacity-60 border-rule' : needsRenewal ? 'border-sale/60' : 'border-rule'
-                  }`}
+                  } ${isPulsed ? 'ring-2 ring-terracotta/60 ring-offset-2 ring-offset-bg' : ''}`}
                 >
                   {/* 상태 바 */}
                   <div

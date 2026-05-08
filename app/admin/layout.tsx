@@ -57,6 +57,9 @@ export default async function AdminLayout({
 
         <nav className="px-3 py-4 space-y-1">
   <NavItem href="/admin" icon="📊" label="대시보드" />
+  <NavItem href="/admin/search-all" icon="🔎" label="통합 검색" />
+  <NavItem href="/admin/cs-inbox" icon="📨" label="고객 답장" />
+  <NavItem href="/admin/push-campaigns" icon="📣" label="푸시 캠페인" />
   <NavItem href="/admin/orders" icon="📦" label="주문 관리" />
   <NavItem href="/admin/subscriptions" icon="🔁" label="정기배송" />
   <NavItem href="/admin/subscriptions/charges" icon="💳" label="자동결제 이력" />
