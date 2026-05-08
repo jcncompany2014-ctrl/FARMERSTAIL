@@ -699,7 +699,7 @@ export default function WebChrome({
                       textTransform: 'uppercase',
                     }}
                   >
-                    Orders
+                    Account
                   </span>
                 </Link>
                 <Link
