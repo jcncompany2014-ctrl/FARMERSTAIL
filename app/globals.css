@@ -343,6 +343,34 @@ html[data-theme="light"] {
   color-scheme: light;
 }
 
+/* =========================================================================
+   Dark mode — Tailwind hardcoded utility 색상 토큰화
+   ---------------------------------------------------------------------------
+   Tailwind 의 `bg-white` 는 hardcoded `rgb(255 255 255)` 라서 다크 배경
+   위에 그대로 흰 카드로 carved out 된다. 카드 / 인풋 / sheet 의 시각적
+   "용지" 톤을 다크에서 `--bg-2` (deep coffee 한 단계 밝은 톤) 으로 swap.
+   inline style `background:'white'` 도 같은 방식으로 잡는다.
+   의도된 CTA cream 버튼은 inline `var(--bg)` 패턴이라 자동 inverted.
+   ========================================================================= */
+html[data-theme="dark"] .bg-white,
+html[data-theme="dark"] [style*="background: white"],
+html[data-theme="dark"] [style*="background: #fff"],
+html[data-theme="dark"] [style*="background: #FFF"],
+html[data-theme="dark"] [style*="background:'white'"],
+html[data-theme="dark"] [style*='background: "white"'] {
+  background-color: var(--bg-2) !important;
+}
+
+/* 헬스/리마인더 등에서 input bg 로 #FDFDFD (off-white) 를 쓰는 곳도 swap */
+html[data-theme="dark"] [style*="#FDFDFD"],
+html[data-theme="dark"] [style*="#fdfdfd"] {
+  background-color: var(--bg-2) !important;
+}
+
+/* `text-white` 는 보통 terracotta/ink CTA 위 cream 톤이라 다크에서도 OK.
+   다만 light bg-white 카드 위 흰 글자 같은 invariant invisible 케이스가
+   있다면 inline style 로 명시적으로 처리. */
+
 /* Tailwind v4 theme — next/font가 주입한 CSS 변수 + 브랜드 컬러 토큰을
    Tailwind 유틸(bg-ink, text-terracotta 등)로 연결 */
 @theme inline {

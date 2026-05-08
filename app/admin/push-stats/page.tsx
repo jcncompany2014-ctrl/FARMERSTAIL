@@ -132,8 +132,8 @@ export default async function PushStatsPage() {
         </Link>
       </header>
 
-      {/* KPI cards */}
-      <section className="grid grid-cols-4 gap-3 mb-6">
+      {/* KPI cards — admin/page.tsx 의 MetricCard grid 와 동일한 gap-4 */}
+      <section className="grid grid-cols-4 gap-4 mb-6">
         <KpiCard
           label="총 발송"
           value={totalSent.toLocaleString()}
@@ -161,7 +161,7 @@ export default async function PushStatsPage() {
       </section>
 
       {/* 카테고리별 표 */}
-      <section className="mb-8">
+      <section className="mb-6">
         <h2 className="text-[13px] font-black text-text mb-3">
           카테고리별 성과
         </h2>
@@ -286,7 +286,7 @@ function KpiCard({
           ? 'var(--terracotta)'
           : 'var(--muted)'
   return (
-    <div className="bg-white rounded-2xl border border-rule px-4 py-4">
+    <div className="bg-white rounded-2xl border border-rule p-5">
       <div
         className="text-[9px] uppercase tracking-[0.18em] font-bold"
         style={{ color: toneColor }}

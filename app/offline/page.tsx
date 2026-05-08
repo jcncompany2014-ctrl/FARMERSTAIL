@@ -9,7 +9,7 @@ export default function OfflinePage() {
           className="font-serif text-[24px] md:text-[40px] lg:text-[48px] font-black text-text mb-3 md:mb-5"
           style={{ letterSpacing: '-0.025em', lineHeight: 1.15 }}
         >
-          오프라인 상태에요
+          오프라인 상태예요
         </h1>
         <p className="text-[13px] md:text-[16px] text-muted leading-relaxed mb-6 md:mb-9">
           인터넷 연결이 끊어진 것 같아요.
