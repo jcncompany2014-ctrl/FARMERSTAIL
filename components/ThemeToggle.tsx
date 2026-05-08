@@ -34,8 +34,13 @@ export default function ThemeToggle() {
 
   useEffect(() => {
     // SSR / hydration mismatch 회피용 — mount 시 localStorage 에서 읽어와 한 번만 swap.
+    // 동시에 DOM 의 data-theme 도 동기화 — 사용자가 dark 선택 후 reload 하면
+    // SSR 은 attribute 없이 light 로 그려지는데, mount 시 attribute 를 다시
+    // 박아줘야 globals.css 의 dark 변수가 활성화됨.
+    const stored = readThemeChoice()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setChoice(readThemeChoice())
+    setChoice(stored)
+    writeThemeChoice(stored)
     setMounted(true)
   }, [])
 

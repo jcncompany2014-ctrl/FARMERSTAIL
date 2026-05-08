@@ -87,6 +87,9 @@ export default function ChatClient({
   async function send(message: string) {
     const text = message.trim().slice(0, 500)
     if (!text || loading) return
+    // 현재 대화 key (dogId or '') snapshot. fetch 도중 사용자가 강아지를
+    // 전환하면 response 가 엉뚱한 대화에 append 되는 race 방지용.
+    const sentDogKey = selectedDogId
     setLoading(true)
     setError(null)
     // optimistic — user message append 즉시
@@ -105,15 +108,24 @@ export default function ChatClient({
       if (!res.ok) {
         throw new Error(data.message ?? '응답에 실패했어요')
       }
+      // 응답 도착 시 사용자가 다른 대화로 옮겨갔다면 silent drop —
+      // history 가 useEffect 에서 새로 fetch 되었으므로 이전 reply 는 이미
+      // 무관. server 는 이미 chatbot_messages 에 저장했으므로 다음 history
+      // fetch 시 자동 노출.
+      if (sentDogKey !== selectedDogId) return
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: data.reply ?? '' },
       ])
     } catch (err) {
+      // stale 응답 에러는 무시 — 이미 다른 대화로 이동했으므로 사용자에게
+      // 잘못된 alert 띄우지 않음.
+      if (sentDogKey !== selectedDogId) return
       setError(err instanceof Error ? err.message : '오류가 발생했어요')
       // 실패하면 마지막 user message 도 제거 (재시도 가능)
       setMessages((prev) => prev.slice(0, -1))
     } finally {
+      // loading 은 stale 하더라도 항상 false 로 — 다음 send 가능하게.
       setLoading(false)
     }
   }

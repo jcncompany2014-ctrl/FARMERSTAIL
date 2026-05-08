@@ -229,6 +229,19 @@ export default function RootLayout({
           href="https://connect.facebook.net"
           crossOrigin="anonymous"
         />
+        {/*
+          다크모드 깜빡임 방지 — SSR 직후 hydration 전에 inline 동기 스크립트로
+          html[data-theme] 을 박아둔다. 사용자가 다크 선택 후 reload 해도 첫
+          페인트부터 다크 변수로 그려져 라이트→다크 flash 가 발생하지 않음.
+          ThemeToggle 의 useEffect 도 동일 동기화를 하지만 mount 후 1프레임
+          뒤라 짧게 깜빡일 수 있어서 이 인라인이 실질적인 게이트.
+          localStorage 차단(Safari private)은 try/catch 로 흡수.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var c=localStorage.getItem('ft_theme');if(c==='dark'||c==='light'){document.documentElement.setAttribute('data-theme',c);}}catch(e){}})();`,
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col font-sans">
         {/*

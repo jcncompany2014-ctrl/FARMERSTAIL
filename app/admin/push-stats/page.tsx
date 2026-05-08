@@ -67,9 +67,13 @@ export default async function PushStatsPage() {
       cur.read += 1
       const sentTs = new Date(r.sent_at).getTime()
       const readTs = new Date(r.read_at).getTime()
-      const minutes = Math.max(0, (readTs - sentTs) / 60000)
-      cur.reactionMinutesSum += minutes
-      cur.reactionMinutesCount += 1
+      // Invalid Date → NaN. NaN 이 한 번 들어가면 평균 전체가 NaN 으로 오염되므로
+      // valid timestamp 일 때만 누적.
+      if (!Number.isNaN(sentTs) && !Number.isNaN(readTs)) {
+        const minutes = Math.max(0, (readTs - sentTs) / 60000)
+        cur.reactionMinutesSum += minutes
+        cur.reactionMinutesCount += 1
+      }
     }
     byCategory.set(key, cur)
   }

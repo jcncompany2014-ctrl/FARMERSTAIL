@@ -207,18 +207,26 @@ export async function GET(req: Request) {
     )
   }
   const url = new URL(req.url)
-  const dogId = url.searchParams.get('dogId')
+  const rawDogId = url.searchParams.get('dogId')
+  // UUID 형식만 통과 — garbage path param 으로 DB 에러 일으키는 것 차단.
+  const dogId =
+    rawDogId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawDogId)
+      ? rawDogId
+      : null
 
+  // 최근 30개 — desc 로 가져와 응답 직전 reverse. asc + limit 은 30개 넘기면
+  // "옛날 30개" 만 잘려 사용자 화면에 새 메시지가 사라지는 버그가 됨.
   const q = supabase
     .from('chatbot_messages')
     .select('id, role, content, created_at, dog_id')
     .eq('user_id', user.id)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(30)
   const { data } = dogId
     ? await q.eq('dog_id', dogId)
     : await q.is('dog_id', null)
-  return NextResponse.json({ messages: data ?? [] })
+  const messages = (data ?? []).slice().reverse()
+  return NextResponse.json({ messages })
 }
 
 export async function DELETE(req: Request) {
@@ -233,7 +241,11 @@ export async function DELETE(req: Request) {
     )
   }
   const url = new URL(req.url)
-  const dogId = url.searchParams.get('dogId')
+  const rawDogId = url.searchParams.get('dogId')
+  const dogId =
+    rawDogId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawDogId)
+      ? rawDogId
+      : null
   let q = supabase.from('chatbot_messages').delete().eq('user_id', user.id)
   if (dogId) q = q.eq('dog_id', dogId)
   const { error } = await q
