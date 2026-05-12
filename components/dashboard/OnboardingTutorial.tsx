@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Dog, BarChart3, Repeat, Check, ArrowRight, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 
 /**
  * 가입 후 첫 dashboard 진입 시 노출되는 3단계 튜토리얼.
@@ -54,6 +55,17 @@ export default function OnboardingTutorial() {
   const supabase = createClient()
   const [step, setStep] = useState(0)
   const [hidden, setHidden] = useState(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  // 첫 진입 튜토리얼 — Esc 로 건너뛰기 + focus trap + body scroll lock.
+  // markOnboarded() 가 비동기지만 hidden state 가 즉시 true 가 되므로 unmount.
+  useModalA11y({
+    open: !hidden,
+    onClose: () => {
+      void handleSkip()
+    },
+    containerRef: dialogRef,
+  })
 
   async function markOnboarded() {
     setHidden(true)
@@ -92,6 +104,8 @@ export default function OnboardingTutorial() {
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 z-[80] bg-bg flex flex-col"
       role="dialog"
       aria-modal="true"

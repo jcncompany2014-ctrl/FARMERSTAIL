@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 
 /**
  * /admin/partners — 산지/공급자 CRUD 클라이언트.
@@ -57,6 +58,15 @@ export default function AdminPartnersClient({
   const [sortOrder, setSortOrder] = useState(0)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
+
+  // 모달 a11y — focus trap / Esc / scroll lock.
+  useModalA11y({
+    open: modalOpen,
+    onClose: () => !saving && setModalOpen(false),
+    containerRef: modalRef,
+    preventEscape: saving,
+  })
 
   function reset() {
     setRegion('')
@@ -266,14 +276,19 @@ export default function AdminPartnersClient({
       {modalOpen && (
         <div
           className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-6 overflow-y-auto"
-          onClick={() => setModalOpen(false)}
+          onClick={() => !saving && setModalOpen(false)}
         >
           <div
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="partner-modal-title"
+            tabIndex={-1}
             className="w-full max-w-xl bg-bg rounded-2xl shadow-2xl"
             onClick={(ev) => ev.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-rule sticky top-0 bg-bg rounded-t-2xl z-10">
-              <h2 className="font-['Archivo_Black'] text-lg text-ink">
+              <h2 id="partner-modal-title" className="font-['Archivo_Black'] text-lg text-ink">
                 {editing ? 'EDIT PARTNER' : 'NEW PARTNER'}
               </h2>
               <button

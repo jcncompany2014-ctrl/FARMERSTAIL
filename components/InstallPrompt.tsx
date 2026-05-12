@@ -311,8 +311,7 @@ export default function InstallPrompt() {
           aria-label="iOS 설치 방법"
         >
           <div
-            className="absolute inset-0 backdrop-blur-sm"
-            style={{ background: 'rgba(30,26,20,0.4)' }}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setIosSheetOpen(false)}
           />
           <div
