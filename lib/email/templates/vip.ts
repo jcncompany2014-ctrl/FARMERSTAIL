@@ -10,16 +10,17 @@ const SITE_URL =
 
 export type VipEmailInput = {
   recipientName: string
-  tier: string // 'gold' | 'vip' — 메일 hook 에 노출 (사용자에게 자존감)
+  tier: string // 'fruit' | 'mate' — 메일 hook 에 노출 (사용자에게 자존감)
   discountLabel: string
   validUntil?: string | null
 }
 
 const TIER_LABELS: Record<string, string> = {
-  gold: 'GOLD',
-  vip: 'VIP',
-  silver: 'SILVER',
-  bronze: 'BRONZE',
+  mate: 'MATE · 단짝',
+  fruit: 'FRUIT · 열매',
+  bloom: 'BLOOM · 꽃',
+  sprout: 'SPROUT · 새싹',
+  seed: 'SEED · 씨앗',
 }
 
 function fmtDate(iso: string | null | undefined): string {

@@ -10,20 +10,20 @@ export const dynamic = 'force-dynamic'
 /**
  * GET /api/cron/vip-coupons
  *
- * profiles.tier IN ('gold','vip') + 마케팅 동의 사용자에게 매월 1회 정기
+ * profiles.tier IN ('fruit','mate') + 마케팅 동의 사용자에게 매월 1회 정기
  * 쿠폰 메일 발송.
  *
  * 동작
  * ────
  * 1) audience_type='vip_tier' + is_active + 미만료 쿠폰 1건 pick. 없으면 skip.
- * 2) profiles 에서 tier IN ('gold','vip') + agree_email + email 보유.
+ * 2) profiles 에서 tier IN ('fruit','mate') + agree_email + email 보유.
  * 3) vip_coupon_log (user_id, year_month) 가 이미 있으면 제외.
  * 4) 배치 5명씩 sendEmail + log insert.
  *
  * 정책
  * ────
- * - 'gold' (spend >= 500,000) + 'vip' (spend >= 2,000,000) 둘 다 대상.
- *   silver/bronze 제외. fn_compute_tier 함수 정의 참고.
+ * - 'fruit' (spend >= 1,000,000) + 'mate' (spend >= 3,000,000) 둘 다 대상.
+ *   bloom/sprout/seed 제외. fn_compute_tier 함수 정의 참고.
  * - 한 달 1회 발송 (멱등). vercel.json 에서 매월 1일 9시 KST 권장.
  *
  * 스케줄
@@ -39,7 +39,9 @@ function todayKst() {
   }
 }
 
-const VIP_TIERS = ['gold', 'vip']
+// 5단계 리브랜딩 (seed/sprout/bloom/fruit/mate) 후 cron 대상.
+// fruit (>= 100만원) + mate (>= 300만원). bloom 이하 제외.
+const VIP_TIERS = ['fruit', 'mate']
 
 export async function GET(req: Request) {
   if (!isAuthorizedCronRequest(req)) {

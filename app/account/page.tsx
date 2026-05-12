@@ -193,7 +193,7 @@ export default async function AccountPage() {
       {/* 회원 등급 */}
       <section className="px-5 md:px-8">
         <TierBadge
-          tier={(profile as { tier?: string | null } | null)?.tier ?? 'bronze'}
+          tier={(profile as { tier?: string | null } | null)?.tier ?? 'seed'}
           cumulativeSpend={
             (profile as { cumulative_spend?: number | null } | null)?.cumulative_spend ?? 0
           }

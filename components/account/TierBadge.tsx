@@ -29,7 +29,7 @@ export default function TierBadge({
   const spend = cumulativeSpend ?? 0
   const next = nextTier(meta.key)
   const remain = spendToNextTier(spend, meta.key)
-  const isVip = meta.key === 'vip'
+  const isTop = meta.key === 'mate' // 최상위 (단짝) — Crown 아이콘 + 진한 배경
 
   // progress: (현재 등급 임계 + 다음까지) 사이 위치
   const lower = meta.threshold
@@ -48,11 +48,11 @@ export default function TierBadge({
         <div
           className="shrink-0 inline-flex w-10 h-10 md:w-12 md:h-12 rounded-full items-center justify-center"
           style={{
-            background: isVip ? meta.ink : 'rgba(255,255,255,0.15)',
-            color: isVip ? meta.bg : meta.ink,
+            background: isTop ? meta.ink : 'rgba(255,255,255,0.15)',
+            color: isTop ? meta.bg : meta.ink,
           }}
         >
-          {isVip ? (
+          {isTop ? (
             <Crown className="w-4 h-4 md:w-5 md:h-5" strokeWidth={2} />
           ) : (
             <Sparkles className="w-4 h-4 md:w-5 md:h-5" strokeWidth={2} />
@@ -99,8 +99,8 @@ export default function TierBadge({
               className="h-full rounded-full transition-[width] duration-500"
               style={{
                 width: `${progress}%`,
-                background: isVip ? meta.ink : '#FFFFFF',
-                opacity: isVip ? 1 : 0.92,
+                background: isTop ? meta.ink : '#FFFFFF',
+                opacity: isTop ? 1 : 0.92,
               }}
             />
           </div>

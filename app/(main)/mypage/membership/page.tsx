@@ -12,6 +12,11 @@ import {
   Cake,
   Lock,
   Check,
+  Leaf,
+  Flower2,
+  Heart,
+  PawPrint,
+  Award,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import {
@@ -38,6 +43,11 @@ const ICON_MAP: Record<TierBenefit['Icon'], typeof Coins> = {
   gift: Gift,
   sparkles: Sparkles,
   cake: Cake,
+  leaf: Leaf,
+  flower: Flower2,
+  heart: Heart,
+  paw: PawPrint,
+  certificate: Award,
 }
 
 /**
@@ -67,7 +77,7 @@ export default async function MembershipPage() {
       .eq('payment_status', 'paid'),
   ])
 
-  const tier = (profile?.tier as string | null) ?? 'bronze'
+  const tier = (profile?.tier as string | null) ?? 'seed'
   const cumulativeSpend =
     typeof profile?.cumulative_spend === 'number'
       ? profile.cumulative_spend
@@ -121,13 +131,13 @@ export default async function MembershipPage() {
                 className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
                 style={{
                   background:
-                    meta.key === 'vip'
+                    meta.key === 'mate'
                       ? meta.ink
                       : 'rgba(255,255,255,0.15)',
-                  color: meta.key === 'vip' ? meta.bg : meta.ink,
+                  color: meta.key === 'mate' ? meta.bg : meta.ink,
                 }}
               >
-                {meta.key === 'vip' ? (
+                {meta.key === 'mate' ? (
                   <Crown className="w-5 h-5" strokeWidth={2} />
                 ) : (
                   <Sparkles className="w-5 h-5" strokeWidth={2} />
@@ -228,7 +238,7 @@ export default async function MembershipPage() {
                       style={{
                         width: `${progress}%`,
                         background:
-                          meta.key === 'vip' ? meta.ink : '#FFFFFF',
+                          meta.key === 'mate' ? meta.ink : '#FFFFFF',
                       }}
                     />
                   </div>

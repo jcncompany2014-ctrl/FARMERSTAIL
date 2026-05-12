@@ -107,7 +107,7 @@ export default async function ProfileEditPage() {
         <section className="px-5 md:px-8 pb-2">
           <TierBadge
             tier={
-              (profile as { tier?: string | null } | null)?.tier ?? 'bronze'
+              (profile as { tier?: string | null } | null)?.tier ?? 'seed'
             }
             cumulativeSpend={
               (profile as { cumulative_spend?: number | null } | null)

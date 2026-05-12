@@ -76,7 +76,7 @@ export default async function PointsPage() {
     }
   }
 
-  const tier = (profile?.tier as string | null) ?? 'bronze'
+  const tier = (profile?.tier as string | null) ?? 'seed'
   const meta = tierMeta(tier)
   const next = nextTier(tier)
   const cumulativeSpend = profile?.cumulative_spend ?? 0
@@ -148,7 +148,7 @@ export default async function PointsPage() {
                 className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
                 style={{ background: meta.bg, color: meta.ink }}
               >
-                {meta.key === 'vip' ? (
+                {meta.key === 'mate' ? (
                   <Crown className="w-3.5 h-3.5" strokeWidth={2} />
                 ) : (
                   <Sparkles className="w-3.5 h-3.5" strokeWidth={2} />
