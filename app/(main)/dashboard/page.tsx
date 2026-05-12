@@ -524,7 +524,7 @@ export default async function DashboardPage() {
               style={{
                 fontSize: 9.5,
                 fontWeight: 700,
-                letterSpacing: '0.18em',
+                letterSpacing: '0.22em',
                 color: `var(--${ctx.tone})`,
                 textTransform: 'uppercase',
               }}
@@ -915,7 +915,7 @@ export default async function DashboardPage() {
                         style={{
                           fontSize: 8.5,
                           fontWeight: 700,
-                          letterSpacing: '0.18em',
+                          letterSpacing: '0.22em',
                           color: 'var(--terracotta)',
                           textTransform: 'uppercase',
                         }}
@@ -1082,7 +1082,7 @@ export default async function DashboardPage() {
               strokeWidth={1.5}
             />
             <span
-              className="font-mono text-[9.5px] tracking-[0.2em] uppercase font-bold"
+              className="font-mono text-[9.5px] tracking-[0.22em] uppercase font-bold"
               style={{ color: 'var(--moss)' }}
             >
               Farm to Tail

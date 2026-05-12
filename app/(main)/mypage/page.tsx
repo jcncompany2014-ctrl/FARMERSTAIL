@@ -211,7 +211,9 @@ export default function MyPage() {
         couponCount > 0 ||
         wishCount > 0) && (
         <section className="px-5 mt-2.5">
-          <div className="grid grid-cols-4 gap-2">
+          {/* 320px 에서 4칼럼은 카드당 ~64px 라 kicker 줄바꿈. 모바일은 2칼럼,
+              sm(640) 이상에서 4칼럼. */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {orderCount > 0 && (
               <StatCard
                 href="/mypage/orders"

@@ -347,7 +347,9 @@ export default function RemindersClient({
               <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
                 유형
               </label>
-              <div className="grid grid-cols-5 gap-1.5">
+              {/* 5칼럼 → 320px 에서 칩이 너무 좁아 라벨 wrap. grid-cols-3
+                  으로 2줄 wrap 이 더 자연스러움 (각 칩 ~92px 확보). */}
+              <div className="grid grid-cols-3 gap-1.5">
                 {(Object.keys(TYPE_META) as ReminderType[]).map((k) => {
                   const m = TYPE_META[k]
                   const active = type === k

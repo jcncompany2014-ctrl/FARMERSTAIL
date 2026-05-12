@@ -859,7 +859,7 @@ function InfoRow({
 }) {
   return (
     <div className="flex justify-between items-center py-2.5 border-b border-bg last:border-0">
-      <span className="text-[10px] font-semibold text-muted uppercase tracking-[0.2em]">
+      <span className="text-[10px] font-semibold text-muted uppercase tracking-[0.22em]">
         {label}
       </span>
       {valueNode ?? (

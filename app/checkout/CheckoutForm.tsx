@@ -3,7 +3,9 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { loadTossPayments, ANONYMOUS } from '@tosspayments/tosspayments-sdk'
+// Toss SDK 는 결제 버튼 누르기 전엔 필요 X. checkout 페이지 진입 시 main
+// 번들에 포함되면 사용자가 폼 채우는 동안 수십 KB 가 idle. handlePay 안에서
+// dynamic import 로 늦춤 (line ~381).
 import {
   ShoppingBag,
   Coins,
@@ -378,6 +380,11 @@ export default function CheckoutForm({
       }
 
       const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!
+      // SDK 를 결제 시점에 lazy load — checkout 폼 진입 시 main 번들에서
+      // 빠짐 (수십 KB 절감). 함수 첫 실행에서 한 번만 fetch.
+      const { loadTossPayments, ANONYMOUS } = await import(
+        '@tosspayments/tosspayments-sdk'
+      )
       const tossPayments = await loadTossPayments(clientKey)
       const payment = tossPayments.payment({ customerKey: ANONYMOUS })
 

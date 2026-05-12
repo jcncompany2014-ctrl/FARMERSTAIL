@@ -93,8 +93,10 @@ export default function MiniCartToast() {
           </p>
         </div>
 
+        {/* 이미지 — 모바일에선 숨겨 텍스트 컬럼 확보 (320px 에서 텍스트
+            거의 안 보이는 문제 fix). 데스크탑 md+ 에서만 노출. */}
         {toast.imageUrl && (
-          <div className="shrink-0 relative w-11 h-11 rounded-lg overflow-hidden bg-bg/10">
+          <div className="hidden md:block shrink-0 relative w-11 h-11 rounded-lg overflow-hidden bg-bg/10">
             <Image
               src={toast.imageUrl}
               alt=""
@@ -116,7 +118,7 @@ export default function MiniCartToast() {
           }}
         >
           <ShoppingBag className="w-3 h-3" strokeWidth={2.5} />
-          담기
+          <span className="hidden sm:inline">담기</span>
           <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
         </Link>
 
