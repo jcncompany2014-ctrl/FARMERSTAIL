@@ -32,15 +32,50 @@ export default async function WelcomeCouponBanner({
 
   if ((count ?? 0) > 0) return null
 
-  // 2) 환영 쿠폰 메타. ENV → DB 순.
-  const code =
-    process.env.NEXT_PUBLIC_WELCOME_COUPON_CODE ?? 'WELCOME10'
+  // 2) 환영 쿠폰 picking — admin 의 audience_type 우선, ENV fallback.
+  //
+  // 우선순위:
+  //  a) coupons 테이블에서 audience_type='first_signup' + 활성 + 미만료 중
+  //     가장 최근에 만든 한 건 (= 운영자가 admin 에서 명시 지정한 것)
+  //  b) ENV NEXT_PUBLIC_WELCOME_COUPON_CODE 또는 fallback 'WELCOME10' 으로
+  //     특정 코드 lookup (= 이전 hard-coded 방식 호환)
+  //
+  // 솔로 운영자가 admin 에서 audience='first_signup' 쿠폰 활성화하면 ENV
+  // 안 만져도 자동 매칭. 환영 쿠폰이 없으면 banner 자체가 렌더 안 됨.
+  let coupon: {
+    code: string
+    name: string
+    discount_type: 'percent' | 'fixed'
+    discount_value: number
+    min_order_amount: number
+    is_active: boolean
+    expires_at: string | null
+  } | null = null
 
-  const { data: coupon } = await supabase
+  const audienceResult = await supabase
     .from('coupons')
-    .select('code, name, discount_type, discount_value, min_order_amount, is_active, expires_at')
-    .eq('code', code)
+    .select(
+      'code, name, discount_type, discount_value, min_order_amount, is_active, expires_at',
+    )
+    .eq('audience_type', 'first_signup')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle()
+  coupon = audienceResult.data
+
+  if (!coupon) {
+    const fallbackCode =
+      process.env.NEXT_PUBLIC_WELCOME_COUPON_CODE ?? 'WELCOME10'
+    const fallbackResult = await supabase
+      .from('coupons')
+      .select(
+        'code, name, discount_type, discount_value, min_order_amount, is_active, expires_at',
+      )
+      .eq('code', fallbackCode)
+      .maybeSingle()
+    coupon = fallbackResult.data
+  }
 
   if (!coupon || !coupon.is_active) return null
 
@@ -95,23 +130,20 @@ export default async function WelcomeCouponBanner({
               style={{ color: 'var(--ink)', opacity: 0.78 }}
             >
               {Number(coupon.min_order_amount).toLocaleString('ko-KR')}원 이상
-              주문 시 사용 가능. 체크아웃에서 코드 입력.
+              주문 시 결제 단계에서 자동 적용돼요.
             </p>
           ) : (
             <p
               className="mt-1 text-[11.5px] md:text-[13px]"
               style={{ color: 'var(--ink)', opacity: 0.78 }}
             >
-              체크아웃에서 코드 입력 시 자동 적용돼요.
+              결제 단계에서 자동으로 적용돼요.
             </p>
           )}
+          {/* code 칩은 일부러 제거 — 사용자는 자동 적용을 신뢰하면 되고,
+              raw 쿠폰 코드 (WELCOME10 등) 가 banner 에 큼지막하게 노출되면
+              "이걸 어디다 입력해야 하지?" 라는 혼란만 늘림. */}
           <div className="mt-3 flex items-center gap-3 flex-wrap">
-            <code
-              className="px-3 py-1.5 rounded-lg font-mono text-[12px] md:text-[13.5px] font-bold tracking-wider"
-              style={{ background: 'var(--ink)', color: 'var(--gold)' }}
-            >
-              {coupon.code}
-            </code>
             <Link
               href="/products"
               className="inline-flex items-center gap-1 text-[12px] md:text-[13px] font-bold underline underline-offset-2"

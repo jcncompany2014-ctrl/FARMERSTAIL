@@ -46,15 +46,46 @@ export async function GET(req: Request) {
   const admin = createAdminClient()
   const today = todayKst()
 
-  const couponCode =
-    (process.env.BIRTHDAY_COUPON_CODE ?? 'BIRTHDAY10').toUpperCase()
+  // 쿠폰 picking — admin 의 audience_type='birthday' 우선, ENV fallback.
+  //
+  // 우선순위:
+  //  a) audience_type='birthday' + is_active + 미만료 중 최신 1건
+  //  b) ENV BIRTHDAY_COUPON_CODE 또는 fallback 'BIRTHDAY10' 코드 lookup
+  //
+  // admin 이 쿠폰 관리에서 audience='birthday' 활성 쿠폰을 만들면 cron 이
+  // 자동으로 그걸 픽업. 없으면 발송 skip 후 hint 응답.
+  type CouponRow = {
+    code: string
+    name: string
+    discount_type: 'percent' | 'fixed'
+    discount_value: number
+    expires_at: string | null
+    is_active: boolean
+  }
+  let coupon: CouponRow | null = null
 
-  // 0) 쿠폰 활성 확인 — 운영자가 쿠폰을 만들지 않았으면 발송 안 함.
-  const { data: coupon } = await admin
+  const audienceLookup = await admin
     .from('coupons')
     .select('code, name, discount_type, discount_value, expires_at, is_active')
-    .eq('code', couponCode)
+    .eq('audience_type', 'birthday')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle()
+  coupon = (audienceLookup.data ?? null) as CouponRow | null
+
+  if (!coupon) {
+    const fallbackCode =
+      (process.env.BIRTHDAY_COUPON_CODE ?? 'BIRTHDAY10').toUpperCase()
+    const fallbackLookup = await admin
+      .from('coupons')
+      .select(
+        'code, name, discount_type, discount_value, expires_at, is_active',
+      )
+      .eq('code', fallbackCode)
+      .maybeSingle()
+    coupon = (fallbackLookup.data ?? null) as CouponRow | null
+  }
 
   if (!coupon || !coupon.is_active) {
     return NextResponse.json({
@@ -63,9 +94,12 @@ export async function GET(req: Request) {
       sent: 0,
       skipped: 0,
       reason: 'coupon_not_configured',
-      hint: `Create active coupon "${couponCode}" in /admin/coupons to enable birthday emails.`,
+      hint: 'Create an active coupon with audience_type=birthday in /admin/coupons to enable birthday emails.',
     })
   }
+
+  // hooked variable name 호환 — 아래 로직이 couponCode 로 참조함.
+  const couponCode = coupon.code
 
   // 만료된 쿠폰 발송 안 함
   if (

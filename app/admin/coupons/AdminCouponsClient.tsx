@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation'
 import { Plus, Trash2, Ticket, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
+type AudienceType =
+  | 'all'
+  | 'first_signup'
+  | 'birthday'
+  | 'inactive_30d'
+  | 'vip_tier'
+  | 'manual'
+
 type Coupon = {
   id: string
   code: string
@@ -20,7 +28,48 @@ type Coupon = {
   used_count: number
   per_user_limit: number | null
   is_active: boolean
+  audience_type: AudienceType
   created_at: string
+}
+
+// admin 표/모달에서 사용하는 사람-친화 라벨 + 운영 의도 설명.
+// audience_type 가 새로 추가되면 여기에 항목 한 줄 + 마이그레이션 CHECK 만
+// 확장하면 전체 화면이 자동 반영.
+const AUDIENCE_OPTIONS: {
+  value: AudienceType
+  label: string
+  desc: string
+}[] = [
+  { value: 'all', label: '누구나', desc: '코드 입력으로 누구나 사용' },
+  {
+    value: 'first_signup',
+    label: '첫 가입 환영',
+    desc: '결제 0건인 신규 회원에게 자동 노출 · 결제 시 자동 적용',
+  },
+  {
+    value: 'birthday',
+    label: '생일 축하',
+    desc: '생일 cron 이 매년 1회 자동 발송 (마케팅 수신 동의자만)',
+  },
+  {
+    value: 'inactive_30d',
+    label: '재참여 (30일 미접속)',
+    desc: '30일 이상 활동 없는 사용자에게 재참여 유도 (cron 추가 예정)',
+  },
+  {
+    value: 'vip_tier',
+    label: 'VIP / 우수 고객',
+    desc: '등급 = gold / vip 사용자에게만 노출 (정책 확정 후 활성)',
+  },
+  {
+    value: 'manual',
+    label: '수동 발급 전용',
+    desc: 'admin 이 사용자 한 명씩 직접 지정 — 대량 발급 X',
+  },
+]
+
+function audienceLabel(t: AudienceType): string {
+  return AUDIENCE_OPTIONS.find((o) => o.value === t)?.label ?? t
 }
 
 function formatDateTime(iso: string | null) {
@@ -55,6 +104,7 @@ export default function AdminCouponsClient({
   const [expiresAt, setExpiresAt] = useState('')
   const [usageLimit, setUsageLimit] = useState<number | ''>('')
   const [perUserLimit, setPerUserLimit] = useState<number | ''>(1)
+  const [audienceType, setAudienceType] = useState<AudienceType>('all')
 
   async function createCoupon() {
     if (!code.trim() || !name.trim() || discountValue <= 0) {
@@ -74,6 +124,7 @@ export default function AdminCouponsClient({
       usage_limit: usageLimit === '' ? null : usageLimit,
       per_user_limit: perUserLimit === '' ? null : perUserLimit,
       is_active: true,
+      audience_type: audienceType,
     })
     setSaving(false)
     if (error) {
@@ -146,6 +197,9 @@ export default function AdminCouponsClient({
                   이름
                 </th>
                 <th className="px-4 py-3 text-[11px] font-bold text-muted uppercase">
+                  대상
+                </th>
+                <th className="px-4 py-3 text-[11px] font-bold text-muted uppercase">
                   할인
                 </th>
                 <th className="px-4 py-3 text-[11px] font-bold text-muted uppercase">
@@ -168,6 +222,17 @@ export default function AdminCouponsClient({
                   </td>
                   <td className="px-4 py-3 text-[13px] text-ink">
                     {c.name}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded-md text-[10.5px] font-bold ${
+                        c.audience_type === 'all'
+                          ? 'bg-rule text-muted'
+                          : 'bg-gold/15 text-text'
+                      }`}
+                    >
+                      {audienceLabel(c.audience_type)}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-[12px] font-bold text-terracotta">
                     {c.discount_type === 'percent'
@@ -254,6 +319,27 @@ export default function AdminCouponsClient({
                   placeholder="선택 사항"
                   className="input"
                 />
+              </Field>
+              <Field label="발급 대상 *">
+                <select
+                  value={audienceType}
+                  onChange={(e) =>
+                    setAudienceType(e.target.value as AudienceType)
+                  }
+                  className="input"
+                >
+                  {AUDIENCE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[10.5px] text-muted leading-relaxed">
+                  {
+                    AUDIENCE_OPTIONS.find((o) => o.value === audienceType)
+                      ?.desc
+                  }
+                </p>
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="할인 유형">

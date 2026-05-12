@@ -14,7 +14,7 @@ export default async function AdminCouponsPage() {
   const { data: coupons } = await supabase
     .from('coupons')
     .select(
-      'id, code, name, description, discount_type, discount_value, min_order_amount, max_discount, starts_at, expires_at, usage_limit, used_count, per_user_limit, is_active, created_at'
+      'id, code, name, description, discount_type, discount_value, min_order_amount, max_discount, starts_at, expires_at, usage_limit, used_count, per_user_limit, is_active, audience_type, created_at'
     )
     .order('created_at', { ascending: false })
 
