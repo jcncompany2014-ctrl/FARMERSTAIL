@@ -214,7 +214,7 @@ function MySubscriptionsPageInner() {
 
   async function handleCancel(subId: string) {
     if (
-      !confirm('정말 정기배송을 해지하시겠어요?\n해지 후에는 다시 신청해야 합니다.')
+      !confirm('정말 정기배송을 해지할까요?\n해지 후에는 다시 신청해야 해요.')
     )
       return
     setActionLoading(subId)

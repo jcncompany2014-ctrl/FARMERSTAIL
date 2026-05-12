@@ -286,7 +286,8 @@ export default function NotificationsPage() {
       ) : filtered.length === 0 ? (
         <div className="nt-empty">
           <Inbox size={28} strokeWidth={1.5} color="var(--muted)" />
-          <p>이 카테고리는 비어 있어요.</p>
+          <p>이 카테고리는 비어 있어요</p>
+          <p className="nt-empty-sub">다른 카테고리를 골라 보세요</p>
         </div>
       ) : (
         <div className="px-5 mt-3 space-y-5">

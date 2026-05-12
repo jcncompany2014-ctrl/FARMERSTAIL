@@ -130,7 +130,7 @@ export default async function CartPage() {
         <p className="text-[11px] md:text-[13px] text-muted mt-1 md:mt-2">
           {validRows.length > 0
             ? `${validRows.length}개의 상품이 담겨 있어요`
-            : "담긴 상품이 없어요"}
+            : '장바구니가 비어 있어요'}
         </p>
       </section>
 
