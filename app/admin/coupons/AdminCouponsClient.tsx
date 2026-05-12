@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, Ticket, X } from 'lucide-react'
+import { Plus, Trash2, Ticket, X, Send, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type AudienceType =
@@ -154,6 +154,71 @@ export default function AdminCouponsClient({
     router.refresh()
   }
 
+  // ── 수동 발급 모달 (audience='manual' 쿠폰 전용) ────────────────────────
+  // admin 이 "이 쿠폰을 누구에게 줄지" 한 명씩 선택. 이메일/이름 prefix 로
+  // profiles 검색 → 결과 list 에서 클릭 → POST /api/admin/coupons/grant.
+  const [grantTarget, setGrantTarget] = useState<Coupon | null>(null)
+  const [grantQuery, setGrantQuery] = useState('')
+  const [grantResults, setGrantResults] = useState<
+    Array<{ id: string; email: string | null; name: string | null }>
+  >([])
+  const [grantSearching, setGrantSearching] = useState(false)
+  const [grantSending, setGrantSending] = useState<string | null>(null)
+  const [grantedUserIds, setGrantedUserIds] = useState<Set<string>>(
+    new Set(),
+  )
+
+  async function searchUsers() {
+    const q = grantQuery.trim()
+    if (!q) return
+    setGrantSearching(true)
+    // ILIKE prefix search on email + name. profiles 에 RLS — admin 은 service
+    // role 아니지만 admin 정책으로 select 가능 (이전 admin 페이지 패턴 동일).
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, email, name')
+      .or(`email.ilike.${q}%,name.ilike.${q}%`)
+      .limit(20)
+    setGrantResults(
+      (data ?? []) as Array<{
+        id: string
+        email: string | null
+        name: string | null
+      }>,
+    )
+    setGrantSearching(false)
+  }
+
+  async function grantToUser(userId: string) {
+    if (!grantTarget) return
+    setGrantSending(userId)
+    try {
+      const res = await fetch('/api/admin/coupons/grant', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          coupon_id: grantTarget.id,
+          user_id: userId,
+        }),
+      })
+      const json = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !json.ok) {
+        alert(`발급 실패: ${json.error ?? res.statusText}`)
+        return
+      }
+      setGrantedUserIds((prev) => new Set(prev).add(userId))
+    } finally {
+      setGrantSending(null)
+    }
+  }
+
+  function closeGrantModal() {
+    setGrantTarget(null)
+    setGrantQuery('')
+    setGrantResults([])
+    setGrantedUserIds(new Set())
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -259,13 +324,25 @@ export default function AdminCouponsClient({
                     </button>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => removeCoupon(c)}
-                      className="p-1.5 rounded-md text-muted hover:text-sale hover:bg-bg transition"
-                      aria-label="삭제"
-                    >
-                      <Trash2 className="w-4 h-4" strokeWidth={2} />
-                    </button>
+                    <div className="inline-flex items-center gap-1">
+                      {c.audience_type === 'manual' && c.is_active && (
+                        <button
+                          onClick={() => setGrantTarget(c)}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-bold text-terracotta hover:bg-terracotta/10 transition"
+                          aria-label="사용자에게 발급"
+                        >
+                          <Send className="w-3 h-3" strokeWidth={2.2} />
+                          발급
+                        </button>
+                      )}
+                      <button
+                        onClick={() => removeCoupon(c)}
+                        className="p-1.5 rounded-md text-muted hover:text-sale hover:bg-bg transition"
+                        aria-label="삭제"
+                      >
+                        <Trash2 className="w-4 h-4" strokeWidth={2} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -436,6 +513,113 @@ export default function AdminCouponsClient({
                 className="flex-1 py-2.5 rounded-lg bg-terracotta text-white text-[13px] font-bold hover:bg-[#8A3822] transition disabled:opacity-50"
               >
                 {saving ? '생성 중...' : '생성'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 수동 발급 모달 — audience='manual' 쿠폰 전용 */}
+      {grantTarget && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+          onClick={closeGrantModal}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white border-b border-rule px-5 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-[15px] font-black text-ink">
+                  쿠폰 발급
+                </h2>
+                <p className="text-[11px] text-muted mt-0.5">
+                  &quot;{grantTarget.name}&quot; 받을 사용자 선택
+                </p>
+              </div>
+              <button
+                onClick={closeGrantModal}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-muted hover:bg-bg"
+                aria-label="닫기"
+              >
+                <X className="w-4 h-4" strokeWidth={2} />
+              </button>
+            </div>
+            <div className="px-5 py-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={grantQuery}
+                  onChange={(e) => setGrantQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') searchUsers()
+                  }}
+                  placeholder="이메일 또는 이름 (앞글자)"
+                  className="input flex-1"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={searchUsers}
+                  disabled={grantSearching || !grantQuery.trim()}
+                  className="shrink-0 px-3 py-2.5 rounded-lg bg-ink text-bg text-[12px] font-bold inline-flex items-center gap-1 disabled:opacity-50"
+                >
+                  <Search className="w-3.5 h-3.5" strokeWidth={2.5} />
+                  {grantSearching ? '...' : '검색'}
+                </button>
+              </div>
+
+              <div className="mt-3 space-y-1.5 max-h-[50vh] overflow-y-auto">
+                {grantResults.length === 0 && grantQuery && !grantSearching ? (
+                  <p className="text-center text-[12px] text-muted py-8">
+                    검색 결과가 없어요
+                  </p>
+                ) : grantResults.length === 0 ? (
+                  <p className="text-center text-[11px] text-muted py-4">
+                    이메일이나 이름의 앞글자로 검색해 주세요
+                  </p>
+                ) : (
+                  grantResults.map((u) => {
+                    const sent = grantedUserIds.has(u.id)
+                    const sending = grantSending === u.id
+                    return (
+                      <div
+                        key={u.id}
+                        className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border border-rule hover:border-text transition"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-bold text-ink truncate">
+                            {u.name ?? '(이름 없음)'}
+                          </div>
+                          <div className="text-[11px] text-muted truncate">
+                            {u.email ?? '-'}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => grantToUser(u.id)}
+                          disabled={sending || sent}
+                          className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-bold transition ${
+                            sent
+                              ? 'bg-moss/20 text-moss'
+                              : 'bg-terracotta text-white hover:bg-[#8A3822]'
+                          } disabled:opacity-60`}
+                        >
+                          {sent ? '발급됨' : sending ? '발급 중...' : '발급'}
+                        </button>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+            <div className="sticky bottom-0 bg-white border-t border-rule px-5 py-3">
+              <button
+                onClick={closeGrantModal}
+                className="w-full py-2.5 rounded-lg border border-rule text-[13px] font-bold text-text hover:bg-bg transition"
+              >
+                완료
               </button>
             </div>
           </div>

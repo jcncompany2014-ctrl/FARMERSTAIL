@@ -35,33 +35,73 @@ export default async function CouponsPage() {
   const nowIso = new Date(nowMs).toISOString()
   const thirtyDaysAgo = new Date(nowMs - 30 * 24 * 3600 * 1000).toISOString()
 
-  const [{ data: activeCoupons }, { data: expiredCoupons }, { data: redemptions }] =
-    await Promise.all([
-      // 활성 + 미만료
-      supabase
-        .from('coupons')
-        .select(
-          'id, code, name, description, discount_type, discount_value, min_order_amount, max_discount, expires_at, per_user_limit, used_count, usage_limit, is_active',
-        )
-        .eq('is_active', true)
-        .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
-        .order('expires_at', { ascending: true, nullsFirst: false }),
-      // 최근 30일 내 만료된 것 (오래된 expired 는 노이즈)
-      supabase
-        .from('coupons')
-        .select(
-          'id, code, name, description, discount_type, discount_value, min_order_amount, max_discount, expires_at, per_user_limit, used_count, usage_limit, is_active',
-        )
-        .lte('expires_at', nowIso)
-        .gte('expires_at', thirtyDaysAgo)
-        .order('expires_at', { ascending: false }),
-      // 본인 redemptions
-      supabase
-        .from('coupon_redemptions')
-        .select('coupon_id, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false }),
-    ])
+  // audience 필터 — 쿠폰함에 노출할 audience:
+  //  - 'all': 누구나
+  //  - 'manual': 본인에게 발급된 grant 있는 것만 (별도 query 로 join)
+  //  - 'first_signup' / 'birthday' / 'inactive_30d' / 'vip_tier': 결제 단계
+  //    에서 자동 적용되므로 쿠폰함에는 노출 안 함 (이메일/배너로 안내).
+  const [
+    { data: publicCoupons },
+    { data: expiredCoupons },
+    { data: redemptions },
+    { data: grantedRows },
+  ] = await Promise.all([
+    // 활성 + 미만료, audience='all'
+    supabase
+      .from('coupons')
+      .select(
+        'id, code, name, description, discount_type, discount_value, min_order_amount, max_discount, expires_at, per_user_limit, used_count, usage_limit, is_active',
+      )
+      .eq('is_active', true)
+      .eq('audience_type', 'all')
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+      .order('expires_at', { ascending: true, nullsFirst: false }),
+    // 최근 30일 내 만료된 것 (오래된 expired 는 노이즈)
+    supabase
+      .from('coupons')
+      .select(
+        'id, code, name, description, discount_type, discount_value, min_order_amount, max_discount, expires_at, per_user_limit, used_count, usage_limit, is_active',
+      )
+      .lte('expires_at', nowIso)
+      .gte('expires_at', thirtyDaysAgo)
+      .order('expires_at', { ascending: false }),
+    // 본인 redemptions
+    supabase
+      .from('coupon_redemptions')
+      .select('coupon_id, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+    // 본인에게 manual 발급된 grant — coupon row inner join.
+    supabase
+      .from('manual_coupon_grants')
+      .select(
+        'coupon_id, coupons!inner(id, code, name, description, discount_type, discount_value, min_order_amount, max_discount, expires_at, per_user_limit, used_count, usage_limit, is_active)',
+      )
+      .eq('user_id', user.id),
+  ])
+
+  // grant 결과를 publicCoupons 와 합침. 만료/비활성 제외 + 중복 제거.
+  type CouponRow = NonNullable<typeof publicCoupons>[number]
+  type GrantRow = {
+    coupon_id: string
+    coupons: CouponRow | CouponRow[] | null
+  }
+  const grantedCoupons: CouponRow[] = ((grantedRows ?? []) as GrantRow[])
+    .map((g) => (Array.isArray(g.coupons) ? g.coupons[0] : g.coupons))
+    .filter((c): c is CouponRow => {
+      if (!c || !c.is_active) return false
+      if (c.expires_at && new Date(c.expires_at).getTime() < nowMs) return false
+      return true
+    })
+
+  const seenIds = new Set<string>()
+  const activeCoupons = [...(publicCoupons ?? []), ...grantedCoupons].filter(
+    (c) => {
+      if (seenIds.has(c.id)) return false
+      seenIds.add(c.id)
+      return true
+    },
+  )
 
   return (
     <main className="pb-8">
