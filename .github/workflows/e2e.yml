@@ -1,0 +1,75 @@
+name: E2E (Playwright)
+
+# main 브랜치 push / 수동 실행 시 e2e 테스트 자동 실행.
+#
+# 왜 CI 와 분리하나
+# ───────────────
+# Playwright 는 browser binary 다운로드 + build + start 까지 합해 5~10분
+# 걸린다. lint/tsc/test 같은 빠른 검증과 같은 job 에 묶으면 PR feedback
+# 사이클이 느려져서 chunk 를 분리. PR 에선 빠른 CI 만, main push 에선 둘 다.
+#
+# Secret
+# ──────
+# build 시 createClient 가 NEXT_PUBLIC_SUPABASE_URL/ANON_KEY 를 요구.
+# 실제 backend call 을 하는 spec 은 아직 없고 정적 페이지 + 인증 redirect
+# 위주라 placeholder 로 충분. 실 운영 환경으로 옮기려면 repo Settings →
+# Secrets and variables → Actions 에 동일 이름으로 등록하면 자동 사용.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: chromium · mobile-chrome
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install npm deps
+        run: npm ci
+
+      # Build / 시작 시 require 되는 env. secret 없으면 dummy 로 채워서
+      # 빌드 통과 시킴. 실제 backend call 을 하는 spec 은 secret 등록 후
+      # 활성화 — 현재는 정적/인증 redirect 만 검증.
+      - name: Set env defaults
+        run: |
+          : "${NEXT_PUBLIC_SUPABASE_URL:=https://placeholder.supabase.co}"
+          : "${NEXT_PUBLIC_SUPABASE_ANON_KEY:=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder.placeholder}"
+          : "${NEXT_PUBLIC_SITE_URL:=http://localhost:3100}"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL" >> $GITHUB_ENV
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # PLAYWRIGHT_USE_BUILD 는 CI 환경에서 playwright.config.ts 가 자동으로
+      # true 로 두고 build+start 로 돌린다 — production binary 로 검증.
+      - name: Run Playwright tests
+        run: npx playwright test --project=chromium --project=mobile-chrome
+
+      - name: Upload playwright-report (on failure)
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

@@ -23,6 +23,25 @@ export default function robots(): MetadataRoute.Robots {
           '/dogs/*',
           '/login',
           '/signup',
+          // 인증 영역 — (main) 그룹의 dashboard / chat / notifications.
+          // 실제로는 인증 미들웨어가 막지만, robots 에 명시해야 GSC 의
+          // "Crawled — not indexed" / "Indexed though blocked" 경고 예방.
+          '/dashboard',
+          '/dashboard/*',
+          '/chat',
+          '/chat/*',
+          '/notifications',
+          '/notifications/*',
+          // /subscribe/billing-auth /billing-success /billing-fail — Toss
+          // 결제 콜백 endpoint. 검색 색인 불필요.
+          '/subscribe',
+          '/subscribe/*',
+          // /welcome — PWA 설치 후 첫 진입 시 internal redirect 페이지.
+          // OnboardingGate 가 자동 이동 시키므로 직접 방문 / 인덱스 불필요.
+          '/welcome',
+          // /app-required — 비-PWA 사용자에게 앱 설치 안내 페이지. 검색 결과
+          // 직접 노출되면 사용자 혼란. internal redirect 전용.
+          '/app-required',
         ],
       },
     ],

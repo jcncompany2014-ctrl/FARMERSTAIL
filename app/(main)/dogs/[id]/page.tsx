@@ -25,6 +25,8 @@ import {
   History,
   Heart,
   Bell,
+  Sparkles,
+  PartyPopper,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -66,8 +68,13 @@ export default function DogDetailPage() {
   const [newWeightNote, setNewWeightNote] = useState('')
   const [savingWeight, setSavingWeight] = useState(false)
 
+  // ?welcome=1 — 강아지 등록 직후 진입 시 환영 시트 자동 오픈.
+  // 설문으로 자연스럽게 유도하기 위함.
+  const [showWelcomeSheet, setShowWelcomeSheet] = useState(false)
+
   const weightModalRef = useRef<HTMLDivElement>(null)
   const deleteModalRef = useRef<HTMLDivElement>(null)
+  const welcomeSheetRef = useRef<HTMLDivElement>(null)
   function closeWeightModal() {
     if (savingWeight) return
     setShowWeightModal(false)
@@ -86,12 +93,27 @@ export default function DogDetailPage() {
     containerRef: deleteModalRef,
     preventEscape: deleting,
   })
+  useModalA11y({
+    open: showWelcomeSheet,
+    onClose: () => setShowWelcomeSheet(false),
+    containerRef: welcomeSheetRef,
+  })
 
   // ?weight=open 으로 진입하면 (NextActionCard 의 weigh-in CTA) 체중 입력
   // 모달 자동 오픈. 페이지 로드 후 한 번만.
+  // ?welcome=1 — 강아지 신규 등록 직후. 환영 시트 자동 오픈 + URL 정리
+  // (새로고침 시 다시 뜨지 않도록 history.replaceState 로 query 제거).
   useEffect(() => {
     if (searchParams.get('weight') === 'open') {
       setShowWeightModal(true)
+    }
+    if (searchParams.get('welcome') === '1') {
+      setShowWelcomeSheet(true)
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href)
+        url.searchParams.delete('welcome')
+        window.history.replaceState({}, '', url.toString())
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -727,6 +749,96 @@ export default function DogDetailPage() {
                 className="w-full py-3 rounded-xl bg-white text-muted text-[13px] font-bold border border-rule hover:border-text hover:text-text transition"
               >
                 취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Welcome sheet — 강아지 등록 직후 환영 + 설문 유도 (?welcome=1) */}
+      {showWelcomeSheet && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center sm:px-6 z-50"
+          onClick={() => setShowWelcomeSheet(false)}
+        >
+          <div
+            ref={welcomeSheetRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="welcome-sheet-title"
+            tabIndex={-1}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-t-2xl sm:rounded-2xl border-t sm:border border-rule p-6 max-w-sm w-full shadow-xl"
+          >
+            <div className="flex justify-center mb-3">
+              <div className="w-14 h-14 rounded-full bg-bg flex items-center justify-center">
+                <PartyPopper
+                  className="w-7 h-7 text-terracotta"
+                  strokeWidth={1.8}
+                />
+              </div>
+            </div>
+            <div className="text-center mb-1">
+              <span className="kicker">Welcome</span>
+            </div>
+            <h3
+              id="welcome-sheet-title"
+              className="font-serif text-[20px] font-black text-text text-center"
+            >
+              {dog.name} 등록 완료!
+            </h3>
+            <p className="text-[12px] text-muted text-center mt-2 leading-relaxed">
+              이제 {dog.name}의 식습관·건강·취향을 5분 동안
+              <br />
+              알려주시면 맞춤 식단을 추천해 드려요.
+            </p>
+
+            <div className="mt-5 rounded-xl bg-bg p-4 space-y-2">
+              <div className="flex items-start gap-2.5">
+                <Sparkles
+                  className="w-3.5 h-3.5 text-terracotta mt-0.5 shrink-0"
+                  strokeWidth={2.2}
+                />
+                <p className="text-[11px] text-text leading-relaxed">
+                  AI가 NRC 2006 / FEDIAF 기준으로 일일 칼로리·영양소를 계산해요
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <Sparkles
+                  className="w-3.5 h-3.5 text-terracotta mt-0.5 shrink-0"
+                  strokeWidth={2.2}
+                />
+                <p className="text-[11px] text-text leading-relaxed">
+                  알레르기·만성질환·기호도까지 반영한 1:1 처방
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <Sparkles
+                  className="w-3.5 h-3.5 text-terracotta mt-0.5 shrink-0"
+                  strokeWidth={2.2}
+                />
+                <p className="text-[11px] text-text leading-relaxed">
+                  설문은 언제든 다시 할 수 있어요
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-2">
+              <button
+                onClick={() => {
+                  setShowWelcomeSheet(false)
+                  router.push(`/dogs/${dog.id}/survey`)
+                }}
+                className="flex items-center justify-center gap-1.5 w-full py-3.5 rounded-full bg-terracotta text-white text-[13px] font-black active:scale-[0.98] transition"
+              >
+                <ClipboardList className="w-4 h-4" strokeWidth={2.2} />5분 맞춤
+                설문 시작하기
+              </button>
+              <button
+                onClick={() => setShowWelcomeSheet(false)}
+                className="w-full py-3 rounded-xl bg-white text-muted text-[12px] font-bold border border-rule hover:border-text hover:text-text transition"
+              >
+                먼저 둘러볼게요
               </button>
             </div>
           </div>

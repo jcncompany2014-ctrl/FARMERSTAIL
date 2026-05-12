@@ -146,7 +146,11 @@ export default function NewDogPage() {
     }
 
     setLoading(false)
-    router.push('/dogs')
+    // 등록 직후 → 강아지 상세로 바로 이동하면서 welcome 모드 진입.
+    // 이전엔 /dogs 목록으로 돌아가서 사용자가 다시 카드 클릭 → 설문 시작 버튼
+    // 누르는 2단계 마찰이 있었음. ?welcome=1 이면 상세 페이지가 자동으로
+    // "설문 시작하기" bottom sheet 띄움.
+    router.push(`/dogs/${inserted.id}?welcome=1`)
     router.refresh()
   }
 
