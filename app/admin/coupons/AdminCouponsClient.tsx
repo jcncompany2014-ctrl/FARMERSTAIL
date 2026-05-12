@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Trash2, Ticket, X, Send, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 
 type AudienceType =
   | 'all'
@@ -93,6 +94,8 @@ export default function AdminCouponsClient({
   const router = useRouter()
   const supabase = createClient()
   const toast = useToast()
+  const createModalRef = useRef<HTMLDivElement>(null)
+  const grantModalRef = useRef<HTMLDivElement>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -220,6 +223,19 @@ export default function AdminCouponsClient({
     setGrantResults([])
     setGrantedUserIds(new Set())
   }
+
+  // 모달 a11y — focus trap / Esc / body scroll lock.
+  useModalA11y({
+    open: modalOpen,
+    onClose: () => !saving && setModalOpen(false),
+    containerRef: createModalRef,
+    preventEscape: saving,
+  })
+  useModalA11y({
+    open: grantTarget !== null,
+    onClose: closeGrantModal,
+    containerRef: grantModalRef,
+  })
 
   return (
     <div>
@@ -356,15 +372,20 @@ export default function AdminCouponsClient({
       {/* 생성 모달 */}
       {modalOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
-          onClick={() => setModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={() => !saving && setModalOpen(false)}
         >
           <div
+            ref={createModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="coupon-create-title"
+            tabIndex={-1}
             className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white border-b border-rule px-5 py-4 flex items-center justify-between">
-              <h2 className="text-[15px] font-black text-ink">
+              <h2 id="coupon-create-title" className="text-[15px] font-black text-ink">
                 새 쿠폰 생성
               </h2>
               <button
@@ -524,16 +545,21 @@ export default function AdminCouponsClient({
       {/* 수동 발급 모달 — audience='manual' 쿠폰 전용 */}
       {grantTarget && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
           onClick={closeGrantModal}
         >
           <div
+            ref={grantModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="coupon-grant-title"
+            tabIndex={-1}
             className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white border-b border-rule px-5 py-4 flex items-center justify-between">
               <div>
-                <h2 className="text-[15px] font-black text-ink">
+                <h2 id="coupon-grant-title" className="text-[15px] font-black text-ink">
                   쿠폰 발급
                 </h2>
                 <p className="text-[11px] text-muted mt-0.5">

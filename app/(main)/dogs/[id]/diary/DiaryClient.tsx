@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Camera, Plus, Heart, Trash2, ImageIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 
 /**
  * 사진 일기 client view — list + 새 entry 모달.
@@ -49,6 +50,15 @@ export default function DiaryClient({
   const [draftNote, setDraftNote] = useState('')
   const [draftMood, setDraftMood] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const newEntryRef = useRef<HTMLDivElement>(null)
+
+  // 모달 a11y — focus trap / Esc / scroll lock. submitting 중엔 Esc 무시.
+  useModalA11y({
+    open: showNew,
+    onClose: () => !submitting && setShowNew(false),
+    containerRef: newEntryRef,
+    preventEscape: submitting,
+  })
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   function pickFiles() {
@@ -284,10 +294,15 @@ export default function DiaryClient({
       {/* 새 entry 모달 */}
       {showNew && (
         <div
-          className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-sm flex items-end md:items-center justify-center"
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center"
           onClick={() => !submitting && setShowNew(false)}
         >
           <div
+            ref={newEntryRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="새 건강 일지"
+            tabIndex={-1}
             className="w-full md:max-w-md bg-white rounded-t-3xl md:rounded-3xl p-5 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >

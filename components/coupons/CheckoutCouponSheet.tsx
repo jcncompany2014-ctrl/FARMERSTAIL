@@ -5,6 +5,7 @@ import { Ticket, X, ChevronRight, Search, Check } from 'lucide-react'
 import CouponCard, {
   type CouponCardData,
 } from '@/components/coupons/CouponCard'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 
 /**
  * 체크아웃 쿠폰 선택 시트.
@@ -56,6 +57,15 @@ export default function CheckoutCouponSheet({
   const [applying, setApplying] = useState(false)
   const [errMsg, setErrMsg] = useState<string | null>(null)
   const lastFetchedSubtotal = useRef<number | null>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
+
+  // 모달 a11y — focus trap / Esc / body scroll lock.
+  useModalA11y({
+    open,
+    onClose: () => !applying && setOpen(false),
+    containerRef: sheetRef,
+    preventEscape: applying,
+  })
 
   // mount + subtotal 변경 시 fetch. 단, sheet 가 안 열려있으면 fetch 보류
   // (불필요한 호출 줄임). 트리거 row 의 N장 카운트만 필요할 때는 첫 1회만.
@@ -189,10 +199,15 @@ export default function CheckoutCouponSheet({
       {/* Sheet */}
       {open && (
         <div
-          className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-sm flex items-end md:items-center justify-center"
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center"
           onClick={() => !applying && setOpen(false)}
         >
           <div
+            ref={sheetRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="쿠폰 선택"
+            tabIndex={-1}
             className="w-full md:max-w-md bg-bg rounded-t-3xl md:rounded-3xl max-h-[85vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >

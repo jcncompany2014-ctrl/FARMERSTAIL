@@ -265,7 +265,7 @@ export default function AdminPartnersClient({
 
       {modalOpen && (
         <div
-          className="fixed inset-0 z-50 bg-ink/60 flex items-start justify-center p-6 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-6 overflow-y-auto"
           onClick={() => setModalOpen(false)}
         >
           <div
