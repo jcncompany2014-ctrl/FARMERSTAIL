@@ -16,6 +16,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { Spinner } from '@/components/ui/Spinner'
 import './notifications.css'
 
 /**
@@ -203,7 +204,7 @@ export default function NotificationsPage() {
             className="nt-mark-all"
           >
             {marking ? (
-              <Loader2 size={11} strokeWidth={2.4} className="animate-spin" />
+              <Spinner size={11} />
             ) : (
               <Check size={11} strokeWidth={2.6} />
             )}
@@ -267,12 +268,7 @@ export default function NotificationsPage() {
 
       {loading ? (
         <div className="nt-state">
-          <Loader2
-            size={18}
-            strokeWidth={2}
-            color="var(--terracotta)"
-            className="animate-spin"
-          />
+          <Spinner size={18} />
           알림 불러오는 중...
         </div>
       ) : rows.length === 0 ? (

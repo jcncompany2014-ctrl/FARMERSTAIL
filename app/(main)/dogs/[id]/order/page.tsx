@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { Spinner } from '@/components/ui/Spinner'
 import { haptic } from '@/lib/haptic'
 import { formatPhone } from '@/lib/formatters'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
@@ -668,12 +669,7 @@ export default function OrderPage() {
     return (
       <main className="ord-page">
         <div className="ord-state">
-          <Loader2
-            size={18}
-            strokeWidth={2}
-            color="var(--terracotta)"
-            className="animate-spin"
-          />
+          <Spinner size={18} />
           박스 정보 불러오는 중...
         </div>
       </main>

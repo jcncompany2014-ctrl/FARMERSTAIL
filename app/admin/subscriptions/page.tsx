@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Spinner } from '@/components/ui/Spinner'
 
 type SubscriptionRow = {
   id: string
@@ -298,9 +299,12 @@ export default function AdminSubscriptionsPage() {
 
       {/* 테이블 */}
       {loading ? (
-        <div className="text-center py-10 text-muted">로딩 중...</div>
+        <div className="flex items-center justify-center gap-2 py-10 text-muted">
+          <Spinner size={16} />
+          <span className="text-[12px]">불러오는 중...</span>
+        </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-10 text-muted">해당하는 구독이 없습니다.</div>
+        <div className="text-center py-10 text-muted">해당하는 구독이 없어요</div>
       ) : (
         <div className="bg-white rounded-2xl border-2 border-rule overflow-hidden">
           <div className="overflow-x-auto">

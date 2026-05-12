@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Bell, BellRing, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { Spinner } from '@/components/ui/Spinner'
 
 /**
  * 품절 상품 PDP 하단에 붙는 "재입고 알림 받기" 버튼.
@@ -91,7 +92,8 @@ export default function RestockButton({
 
   if (subscribed === null) {
     return (
-      <div className="w-full rounded-full bg-bg border border-rule h-[52px] flex items-center justify-center">
+      <div className="w-full rounded-full bg-bg border border-rule h-[52px] flex items-center justify-center gap-2">
+        <Spinner size={14} />
         <span className="text-[11px] text-muted">불러오는 중…</span>
       </div>
     )

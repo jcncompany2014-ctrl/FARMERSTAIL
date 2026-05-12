@@ -20,7 +20,6 @@ type Props =
 export default function ProductRowActions(props: Props) {
   const router = useRouter()
   const supabase = createClient()
-  const toast = useToast()
   const [loading, setLoading] = useState(false)
   const [, startTransition] = useTransition()
 
@@ -48,6 +47,7 @@ function StockEditor({
   router,
   supabase,
 }: SharedProps & { initialValue: number }) {
+  const toast = useToast()
   const [value, setValue] = useState(initialValue)
   const [editing, setEditing] = useState(false)
 
@@ -153,6 +153,7 @@ function ActiveToggle({
   router,
   supabase,
 }: SharedProps & { initialValue: boolean }) {
+  const toast = useToast()
   const [active, setActive] = useState(initialValue)
 
   async function toggle() {

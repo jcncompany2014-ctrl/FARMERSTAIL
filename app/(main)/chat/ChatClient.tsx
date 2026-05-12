@@ -10,6 +10,7 @@ import {
   User as UserIcon,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { Spinner } from '@/components/ui/Spinner'
 
 /**
  * AI 영양사 chat client (history 보존 thread).
@@ -192,7 +193,7 @@ export default function ChatClient({
       <section className="px-5 mt-4 space-y-3">
         {historyLoading ? (
           <div className="flex items-center gap-2 text-[12px] text-muted py-6 justify-center">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} />
+            <Spinner size={14} />
             대화를 불러오는 중...
           </div>
         ) : messages.length === 0 ? (

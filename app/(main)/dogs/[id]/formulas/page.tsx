@@ -13,6 +13,7 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { Spinner } from '@/components/ui/Spinner'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import type { FoodLine } from '@/lib/personalization/types'
 import './formulas.css'
@@ -100,12 +101,7 @@ export default function FormulasHistoryPage() {
     return (
       <main className="fh-page">
         <div className="fh-state">
-          <Loader2
-            size={18}
-            strokeWidth={2}
-            color="var(--terracotta)"
-            className="animate-spin"
-          />
+          <Spinner size={18} />
           박스 히스토리 불러오는 중...
         </div>
       </main>
