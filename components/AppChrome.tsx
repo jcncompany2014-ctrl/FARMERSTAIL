@@ -175,6 +175,9 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                 src="/logo.png"
                 alt="Farmer's Tail"
                 className="h-11 w-auto"
+                // LCP 후보 — 헤더 로고가 첫 viewport 가장 큰 가시 요소가
+                // 될 수 있어 fetchpriority high 로 브라우저 우선순위 올림.
+                fetchPriority="high"
                 style={{ filter: 'var(--logo-filter, brightness(0))' }}
               />
             </Link>

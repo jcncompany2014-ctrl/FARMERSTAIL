@@ -251,6 +251,7 @@ export default function WebChrome({
                 src="/logo.png"
                 alt="Farmer's Tail"
                 className="h-12 w-auto"
+                fetchPriority="high"
                 style={{ filter: 'var(--logo-filter, brightness(0))' }}
               />
             </Link>
@@ -416,6 +417,7 @@ export default function WebChrome({
                 src="/logo.png"
                 alt="Farmer's Tail"
                 className="h-11 w-auto block"
+                fetchPriority="high"
                 style={{ filter: 'var(--logo-filter, brightness(0))' }}
               />
             </Link>

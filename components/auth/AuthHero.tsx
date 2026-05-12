@@ -41,6 +41,8 @@ export default function AuthHero({
           src="/logo.png"
           alt="Farmer's Tail"
           className="h-9 md:h-11 w-auto block"
+          // 로그인/회원가입 페이지의 LCP 후보 — 로고 외 큰 시각 요소 없음.
+          fetchPriority="high"
           style={{ filter: 'var(--logo-filter, brightness(0))' }}
         />
       </Link>
