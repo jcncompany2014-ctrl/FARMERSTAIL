@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ExternalLink, Lock, MessageCircle, CheckCircle2, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 /**
  * /admin/qna — 상품 문의 답변 클라이언트.
@@ -50,6 +51,7 @@ export default function AdminQnaClient({
 }) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
 
   const [filter, setFilter] = useState<'pending' | 'answered' | 'all'>('pending')
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -86,7 +88,7 @@ export default function AdminQnaClient({
   async function saveAnswer(q: AdminQnaRow) {
     const draft = (drafts[q.id] ?? q.answer ?? '').trim()
     if (!draft) {
-      alert('답변 내용을 입력해주세요')
+      toast.error('답변 내용을 입력해주세요')
       return
     }
     const {
@@ -103,7 +105,7 @@ export default function AdminQnaClient({
       .eq('id', q.id)
     setSaving(null)
     if (error) {
-      alert('답변 저장 실패: ' + error.message)
+      toast.error('답변 저장 실패: ' + error.message)
       return
     }
     setExpandedId(null)
@@ -123,7 +125,7 @@ export default function AdminQnaClient({
       .eq('id', q.id)
     setSaving(null)
     if (error) {
-      alert('답변 삭제 실패: ' + error.message)
+      toast.error('답변 삭제 실패: ' + error.message)
       return
     }
     router.refresh()
@@ -135,7 +137,7 @@ export default function AdminQnaClient({
     const { error } = await supabase.from('product_qna').delete().eq('id', q.id)
     setDeleting(null)
     if (error) {
-      alert('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + error.message)
       return
     }
     router.refresh()

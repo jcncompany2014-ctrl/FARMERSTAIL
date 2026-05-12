@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 import {
   ORDER_STATUS_LABEL,
   isOrderStatus,
@@ -36,6 +37,7 @@ export default function OrderStatusControl({
 }) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
   const [loading, setLoading] = useState(false)
   const [, startTransition] = useTransition()
 
@@ -79,7 +81,7 @@ export default function OrderStatusControl({
     setLoading(false)
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      alert('변경 실패: ' + (data?.message ?? '알 수 없는 오류'))
+      toast.error('변경 실패: ' + (data?.message ?? '알 수 없는 오류'))
       return
     }
     startTransition(() => router.refresh())

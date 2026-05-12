@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 import { Plus, Save, Trash2 } from 'lucide-react'
 
 export type FeatureFlagRow = {
@@ -33,6 +34,7 @@ export default function FeatureFlagsClient({
   initialRows: FeatureFlagRow[]
 }) {
   const supabase = createClient()
+  const toast = useToast()
   const router = useRouter()
   const [rows, setRows] = useState<FeatureFlagRow[]>(initialRows)
   const [savingKey, setSavingKey] = useState<string | null>(null)
@@ -43,7 +45,7 @@ export default function FeatureFlagsClient({
 
   async function createFlag() {
     if (!/^[a-z0-9_]{3,40}$/.test(newKey)) {
-      alert('키는 영소문자/숫자/_ 로 3~40자 이내')
+      toast.error('키는 영소문자/숫자/_ 로 3~40자 이내')
       return
     }
     setSavingKey(newKey)
@@ -56,7 +58,7 @@ export default function FeatureFlagsClient({
     })
     setSavingKey(null)
     if (error) {
-      alert('생성 실패: ' + error.message)
+      toast.error('생성 실패: ' + error.message)
       return
     }
     setNewKey('')
@@ -77,7 +79,7 @@ export default function FeatureFlagsClient({
       .eq('key', row.key)
     setSavingKey(null)
     if (error) {
-      alert('저장 실패: ' + error.message)
+      toast.error('저장 실패: ' + error.message)
       return
     }
     router.refresh()
@@ -89,7 +91,7 @@ export default function FeatureFlagsClient({
     const { error } = await supabase.from('feature_flags').delete().eq('key', key)
     setSavingKey(null)
     if (error) {
-      alert('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + error.message)
       return
     }
     setRows((prev) => prev.filter((r) => r.key !== key))

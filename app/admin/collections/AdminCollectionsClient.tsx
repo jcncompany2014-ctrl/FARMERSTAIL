@@ -16,6 +16,7 @@ import {
   Package,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 /**
  * /admin/collections — CRUD 클라이언트.
@@ -79,6 +80,7 @@ export default function AdminCollectionsClient({
 }) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
 
   // 컬렉션 메타 모달
   const [modalOpen, setModalOpen] = useState(false)
@@ -185,13 +187,13 @@ export default function AdminCollectionsClient({
       })
       const json = await res.json()
       if (!res.ok) {
-        alert('이미지 업로드 실패: ' + (json?.message ?? res.status))
+        toast.error('이미지 업로드 실패: ' + (json?.message ?? res.status))
         return
       }
       if (target === 'hero') setHeroImageUrl(json.url as string)
       else setCardImageUrl(json.url as string)
     } catch (err) {
-      alert(
+      toast.error(
         '이미지 업로드 오류: ' +
           (err instanceof Error ? err.message : String(err)),
       )
@@ -204,11 +206,11 @@ export default function AdminCollectionsClient({
 
   async function save() {
     if (!slug.trim() || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(slug.trim())) {
-      alert('slug 는 소문자/숫자/하이픈만 허용 (예: first-meal)')
+      toast.error('slug 는 소문자/숫자/하이픈만 허용 (예: first-meal)')
       return
     }
     if (!title.trim()) {
-      alert('title 은 필수입니다')
+      toast.error('title 은 필수예요')
       return
     }
 
@@ -231,7 +233,7 @@ export default function AdminCollectionsClient({
     setSaving(false)
 
     if (error) {
-      alert(
+      toast.error(
         (editing ? '수정' : '생성') +
           ' 실패: ' +
           error.message +
@@ -251,7 +253,7 @@ export default function AdminCollectionsClient({
       .update({ is_published: !c.is_published })
       .eq('id', c.id)
     if (error) {
-      alert('공개 상태 변경 실패: ' + error.message)
+      toast.error('공개 상태 변경 실패: ' + error.message)
       return
     }
     router.refresh()
@@ -268,7 +270,7 @@ export default function AdminCollectionsClient({
     const { error } = await supabase.from('collections').delete().eq('id', c.id)
     setDeleting(null)
     if (error) {
-      alert('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + error.message)
       return
     }
     router.refresh()
@@ -279,7 +281,7 @@ export default function AdminCollectionsClient({
     if (!productId) return
     const existing = itemsByCollection.get(collectionId) ?? []
     if (existing.some((it) => it.product_id === productId)) {
-      alert('이미 이 컬렉션에 포함된 제품입니다')
+      toast.error('이미 이 컬렉션에 포함된 제품이에요')
       return
     }
     // 다음 position = 마지막 position + 10 (10 단위로 띄워 reorder 여유).
@@ -289,7 +291,7 @@ export default function AdminCollectionsClient({
       .from('collection_items')
       .insert({ collection_id: collectionId, product_id: productId, position: nextPos })
     if (error) {
-      alert('추가 실패: ' + error.message)
+      toast.error('추가 실패: ' + error.message)
       return
     }
     setItems((s) => [...s, { collection_id: collectionId, product_id: productId, position: nextPos }])
@@ -303,7 +305,7 @@ export default function AdminCollectionsClient({
       .eq('collection_id', collectionId)
       .eq('product_id', productId)
     if (error) {
-      alert('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + error.message)
       return
     }
     setItems((s) =>
@@ -334,7 +336,7 @@ export default function AdminCollectionsClient({
       .eq('collection_id', collectionId)
       .eq('product_id', a.product_id)
     if (e1) {
-      alert('정렬 실패: ' + e1.message)
+      toast.error('정렬 실패: ' + e1.message)
       return
     }
     const { error: e2 } = await supabase
@@ -343,7 +345,7 @@ export default function AdminCollectionsClient({
       .eq('collection_id', collectionId)
       .eq('product_id', b.product_id)
     if (e2) {
-      alert('정렬 실패: ' + e2.message)
+      toast.error('정렬 실패: ' + e2.message)
       return
     }
 

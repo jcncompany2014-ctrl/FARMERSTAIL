@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Trash2, Pencil, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 /**
  * /admin/faqs — FAQ CRUD 클라이언트.
@@ -32,6 +33,7 @@ export default function AdminFaqsClient({
 }) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<AdminFaqRow | null>(null)
@@ -88,7 +90,7 @@ export default function AdminFaqsClient({
 
   async function save() {
     if (!question.trim() || !answer.trim()) {
-      alert('question / answer 는 필수입니다')
+      toast.error('question / answer 는 필수예요')
       return
     }
     const payload = {
@@ -104,7 +106,7 @@ export default function AdminFaqsClient({
       : await supabase.from('faqs').insert(payload)
     setSaving(false)
     if (error) {
-      alert((editing ? '수정' : '생성') + ' 실패: ' + error.message)
+      toast.error((editing ? '수정' : '생성') + ' 실패: ' + error.message)
       return
     }
     setModalOpen(false)
@@ -118,7 +120,7 @@ export default function AdminFaqsClient({
       .update({ is_published: !f.is_published })
       .eq('id', f.id)
     if (error) {
-      alert('공개 상태 변경 실패: ' + error.message)
+      toast.error('공개 상태 변경 실패: ' + error.message)
       return
     }
     router.refresh()
@@ -130,7 +132,7 @@ export default function AdminFaqsClient({
     const { error } = await supabase.from('faqs').delete().eq('id', f.id)
     setDeleting(null)
     if (error) {
-      alert('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + error.message)
       return
     }
     router.refresh()

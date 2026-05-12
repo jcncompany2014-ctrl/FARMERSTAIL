@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Trash2, Ticket, X, Send, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 type AudienceType =
   | 'all'
@@ -91,6 +92,7 @@ export default function AdminCouponsClient({
 }) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -108,7 +110,7 @@ export default function AdminCouponsClient({
 
   async function createCoupon() {
     if (!code.trim() || !name.trim() || discountValue <= 0) {
-      alert('코드, 이름, 할인값을 입력해주세요')
+      toast.error('코드, 이름, 할인값을 입력해주세요')
       return
     }
     setSaving(true)
@@ -128,7 +130,7 @@ export default function AdminCouponsClient({
     })
     setSaving(false)
     if (error) {
-      alert('쿠폰 생성 실패: ' + error.message)
+      toast.error('쿠폰 생성 실패: ' + error.message)
       return
     }
     setModalOpen(false)
@@ -203,7 +205,7 @@ export default function AdminCouponsClient({
       })
       const json = (await res.json()) as { ok?: boolean; error?: string }
       if (!res.ok || !json.ok) {
-        alert(`발급 실패: ${json.error ?? res.statusText}`)
+        toast.error(`발급 실패: ${json.error ?? res.statusText}`)
         return
       }
       setGrantedUserIds((prev) => new Set(prev).add(userId))

@@ -13,6 +13,7 @@ import {
   Award,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 /**
  * /admin/partners — 산지/공급자 CRUD 클라이언트.
@@ -39,6 +40,7 @@ export default function AdminPartnersClient({
 }) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<AdminPartnerRow | null>(null)
@@ -100,12 +102,12 @@ export default function AdminPartnersClient({
       })
       const json = await res.json()
       if (!res.ok) {
-        alert('업로드 실패: ' + (json?.message ?? res.status))
+        toast.error('업로드 실패: ' + (json?.message ?? res.status))
         return
       }
       setImageUrl(json.url as string)
     } catch (err) {
-      alert('업로드 오류: ' + (err instanceof Error ? err.message : String(err)))
+      toast.error('업로드 오류: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ''
@@ -114,7 +116,7 @@ export default function AdminPartnersClient({
 
   async function save() {
     if (!region.trim() || !name.trim() || !ingredient.trim() || !body.trim()) {
-      alert('region / name / ingredient / body 는 필수입니다')
+      toast.error('region / name / ingredient / body 는 필수예요')
       return
     }
 
@@ -136,7 +138,7 @@ export default function AdminPartnersClient({
     setSaving(false)
 
     if (error) {
-      alert((editing ? '수정' : '생성') + ' 실패: ' + error.message)
+      toast.error((editing ? '수정' : '생성') + ' 실패: ' + error.message)
       return
     }
     setModalOpen(false)
@@ -150,7 +152,7 @@ export default function AdminPartnersClient({
       .update({ is_published: !p.is_published })
       .eq('id', p.id)
     if (error) {
-      alert('공개 상태 변경 실패: ' + error.message)
+      toast.error('공개 상태 변경 실패: ' + error.message)
       return
     }
     router.refresh()
@@ -162,7 +164,7 @@ export default function AdminPartnersClient({
     const { error } = await supabase.from('partners').delete().eq('id', p.id)
     setDeleting(null)
     if (error) {
-      alert('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + error.message)
       return
     }
     router.refresh()

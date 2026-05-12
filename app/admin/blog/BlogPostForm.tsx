@@ -20,6 +20,7 @@ import {
   Minus,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 import { renderMarkdown } from '@/lib/markdown'
 
 type Category = {
@@ -67,6 +68,7 @@ export default function BlogPostForm({
 }) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
 
   const [form, setForm] = useState<PostData>(initialData ?? EMPTY)
   const [loading, setLoading] = useState(false)
@@ -227,11 +229,11 @@ export default function BlogPostForm({
     e.preventDefault()
 
     if (!form.title.trim() || !form.slug.trim()) {
-      alert('제목과 slug는 필수예요')
+      toast.error('제목과 slug는 필수예요')
       return
     }
     if (!form.content.trim()) {
-      alert('본문을 작성해 주세요')
+      toast.error('본문을 작성해 주세요')
       return
     }
 
@@ -266,7 +268,7 @@ export default function BlogPostForm({
 
       setLoading(false)
       if (error) {
-        alert('저장 실패: ' + error.message)
+        toast.error('저장 실패: ' + error.message)
         return
       }
       router.push(`/admin/blog/${data.id}`)
@@ -279,7 +281,7 @@ export default function BlogPostForm({
 
       setLoading(false)
       if (error) {
-        alert('저장 실패: ' + error.message)
+        toast.error('저장 실패: ' + error.message)
         return
       }
       setForm((prev) => ({
@@ -302,7 +304,7 @@ export default function BlogPostForm({
       .eq('id', form.id)
     setLoading(false)
     if (error) {
-      alert('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + error.message)
       return
     }
     router.push('/admin/blog')

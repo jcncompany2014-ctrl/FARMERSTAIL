@@ -15,6 +15,7 @@ import {
   Upload,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 /**
  * /admin/events — CRUD 클라이언트.
@@ -118,6 +119,7 @@ export default function AdminEventsClient({
 }) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<AdminEventRow | null>(null)
@@ -241,7 +243,7 @@ export default function AdminEventsClient({
       })
       const json = await res.json()
       if (!res.ok) {
-        alert('이미지 업로드 실패: ' + (json?.message ?? res.status))
+        toast.error('이미지 업로드 실패: ' + (json?.message ?? res.status))
         return
       }
       setImageUrl(json.url as string)
@@ -255,7 +257,7 @@ export default function AdminEventsClient({
         }).catch(() => {})
       }
     } catch (err) {
-      alert(
+      toast.error(
         '이미지 업로드 중 오류: ' +
           (err instanceof Error ? err.message : String(err))
       )
@@ -283,21 +285,21 @@ export default function AdminEventsClient({
   async function save() {
     // Client-side validation — DB CHECK 제약과 중복되지만 UX 위해 먼저.
     if (!slug.trim() || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(slug.trim())) {
-      alert('slug 는 소문자/숫자/하이픈만 허용 (예: black-friday)')
+      toast.error('slug 는 소문자/숫자/하이픈만 허용 (예: black-friday)')
       return
     }
     if (!kicker.trim() || !enTitle.trim() || !koSubtitle.trim()) {
-      alert('kicker / enTitle / koSubtitle 은 필수입니다')
+      toast.error('kicker / enTitle / koSubtitle 은 필수입니다')
       return
     }
     if (!startsAt || !endsAt) {
-      alert('시작/종료 일시를 입력해주세요')
+      toast.error('시작/종료 일시를 입력해주세요')
       return
     }
     const startsIso = fromLocalInput(startsAt)
     const endsIso = fromLocalInput(endsAt)
     if (!startsIso || !endsIso || new Date(endsIso) <= new Date(startsIso)) {
-      alert('종료 일시는 시작 일시보다 뒤여야 합니다')
+      toast.error('종료 일시는 시작 일시보다 뒤여야 해요')
       return
     }
 
@@ -352,7 +354,7 @@ export default function AdminEventsClient({
     setSaving(false)
 
     if (error) {
-      alert(
+      toast.error(
         (editing ? '수정' : '생성') +
           ' 실패: ' +
           error.message +
@@ -372,7 +374,7 @@ export default function AdminEventsClient({
       .update({ is_active: !e.is_active })
       .eq('id', e.id)
     if (error) {
-      alert('활성화 상태 변경 실패: ' + error.message)
+      toast.error('활성화 상태 변경 실패: ' + error.message)
       return
     }
     router.refresh()
@@ -389,7 +391,7 @@ export default function AdminEventsClient({
     const { error } = await supabase.from('events').delete().eq('id', e.id)
     setDeleting(null)
     if (error) {
-      alert('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + error.message)
       return
     }
     router.refresh()

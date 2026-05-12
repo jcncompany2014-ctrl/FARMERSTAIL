@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 type Props =
   | {
@@ -19,6 +20,7 @@ type Props =
 export default function ProductRowActions(props: Props) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
   const [loading, setLoading] = useState(false)
   const [, startTransition] = useTransition()
 
@@ -55,7 +57,7 @@ function StockEditor({
       return
     }
     if (value < 0) {
-      alert('재고는 0 이상이어야 해요')
+      toast.error('재고는 0 이상이어야 해요')
       setValue(initialValue)
       return
     }
@@ -68,7 +70,7 @@ function StockEditor({
     setLoading(false)
 
     if (error) {
-      alert('저장 실패: ' + error.message)
+      toast.error('저장 실패: ' + error.message)
       setValue(initialValue)
       return
     }
@@ -89,9 +91,9 @@ function StockEditor({
             | { matched?: number; notified?: number }
             | null
           if (data?.matched && data.matched > 0) {
-            // 관리자에게 간단 확인. 모달이나 정식 토스트를 붙이기 전까지 alert 로.
-            alert(
-              `재입고 알림을 ${data.notified ?? 0}/${data.matched}명에게 발송했어요.`,
+            // 재입고 알림 발송 결과 — toast.success 로 짧게.
+            toast.success(
+              `재입고 알림 ${data.notified ?? 0}/${data.matched}명 발송 완료`,
             )
           }
         })
@@ -166,7 +168,7 @@ function ActiveToggle({
     setLoading(false)
 
     if (error) {
-      alert('저장 실패: ' + error.message)
+      toast.error('저장 실패: ' + error.message)
       setActive(!next)
       return
     }

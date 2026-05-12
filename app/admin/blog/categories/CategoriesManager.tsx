@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Trash2, Save } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 type Category = {
   id: string
@@ -20,6 +21,7 @@ type Props = {
 export default function CategoriesManager({ initial, postCounts }: Props) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
 
   const [items, setItems] = useState<Category[]>(initial)
   const [newName, setNewName] = useState('')
@@ -46,7 +48,7 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
       .single()
     setLoading(false)
     if (error) {
-      alert('추가 실패: ' + error.message)
+      toast.error('추가 실패: ' + error.message)
       return
     }
     setItems((prev) => [...prev, data as Category])
@@ -63,7 +65,7 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
       .eq('id', c.id)
     setLoading(false)
     if (error) {
-      alert('저장 실패: ' + error.message)
+      toast.error('저장 실패: ' + error.message)
       return
     }
     router.refresh()
@@ -72,7 +74,7 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
   async function remove(c: Category) {
     const count = postCounts[c.id] ?? 0
     if (count > 0) {
-      alert(`${count}개의 글에서 이 카테고리를 사용 중이에요. 먼저 이전해 주세요.`)
+      toast.error(`${count}개의 글에서 이 카테고리를 사용 중이에요. 먼저 이전해 주세요.`)
       return
     }
     if (!confirm(`"${c.name}" 카테고리를 삭제할까요?`)) return
@@ -83,7 +85,7 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
       .eq('id', c.id)
     setLoading(false)
     if (error) {
-      alert('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + error.message)
       return
     }
     setItems((prev) => prev.filter((i) => i.id !== c.id))
