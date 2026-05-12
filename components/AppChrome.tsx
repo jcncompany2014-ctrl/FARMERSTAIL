@@ -223,8 +223,10 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* 페이지 컨텐츠 */}
-      <main className="max-w-md mx-auto pb-[calc(88px+env(safe-area-inset-bottom))]">
+      {/* 페이지 컨텐츠 — main padding-bottom 도 nav 키운 만큼 같이 키워야
+          마지막 컨텐츠가 nav 에 가려지지 않음. nav 내부 = 8px tap padding +
+          88px tab content + 12px home-bar gap. */}
+      <main className="max-w-md mx-auto pb-[calc(100px+env(safe-area-inset-bottom))]">
         {children}
         {/* 앱 컨텍스트는 SiteFooter 숨김 — 사업자 정보 / 약관 / 환불정책 등은
             마이페이지 메뉴에서 진입. 매 페이지 하단에 노출되면 한국 앱 사용자
@@ -245,9 +247,15 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           - `md:w-full md:max-w-md`: 프레임과 같은 폭(448px) 확보 */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-40 bg-bg/95 backdrop-blur-xl border-t border-rule md:left-1/2 md:right-auto md:w-full md:max-w-md md:-translate-x-1/2 md:rounded-b-[inherit]"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        // iOS home indicator 와 충분히 거리. safe-area-inset-bottom 만 적용
+        // 하면 iPhone 의 home bar 가 탭바 아이콘 바로 위에 닿아 의도치 않은
+        // gesture 간섭이 잦다. 카카오톡/네이버 등이 쓰는 패턴 — safe-area +
+        // 추가 12px 여유. 디바이스가 indicator 없으면 (Android) 12px 만 적용.
+        style={{
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
+        }}
       >
-        <div className="max-w-md mx-auto px-2 pt-2 pb-2 grid grid-cols-5 gap-0.5">
+        <div className="max-w-md mx-auto px-2 pt-2 pb-1 grid grid-cols-5 gap-0.5">
           {TABS.map(({ href, label, Icon }) => {
             const active =
               pathname === href || pathname.startsWith(href + '/')

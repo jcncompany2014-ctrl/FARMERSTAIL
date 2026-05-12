@@ -384,6 +384,14 @@ export default async function DashboardPage() {
   }
   const nextAction = computeNextAction(nextActionInput)
 
+  // 분석 받은 강아지가 1마리도 없으면 = 신규 사용자 / 첫 설문 안 한 상태.
+  // 이 단계에서 이벤트·전체 상품·매거진 같은 "더 둘러보기" surface 를 다 노출
+  // 하면 첫 화면이 정보 과다해서 핵심 next action (분석/설문) 이 묻힌다.
+  // 분석 완료 후에야 cross-sell / 매거진 등을 펼친다 — 일종의 progressive
+  // disclosure. NextActionCard + 강아지 카드까지만 노출하면 1 viewport 안에
+  // 핵심 흐름이 다 들어옴.
+  const hasAnyAnalysis = dogIdsWithAnalyses.size > 0
+
   return (
     <main className="pb-8">
       {/* 가입 후 첫 진입 튜토리얼 — onboarded_at IS NULL 인 경우만 1회. */}
@@ -749,38 +757,48 @@ export default async function DashboardPage() {
       </section>
 
       {/* ── 카테고리 — 3카드 (~120px) → 1줄 chip (~36px) 으로 압축.
-          매일 들어와도 화면이 가벼워야 핵심에 집중 가능. */}
-      <section className="px-5 mb-6">
-        <div className="flex items-center gap-2 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none">
-          {CATEGORIES.map(({ key, label, Icon }) => (
+          매일 들어와도 화면이 가벼워야 핵심에 집중 가능.
+          분석 미완료 사용자에겐 노출 안 함 (progressive disclosure). */}
+      {hasAnyAnalysis && (
+        <section className="px-5 mb-6">
+          <div className="flex items-center gap-2 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none">
+            {CATEGORIES.map(({ key, label, Icon }) => (
+              <Link
+                key={key}
+                href={`/products?category=${encodeURIComponent(key)}`}
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-rule hover:border-text transition active:scale-[0.97]"
+              >
+                <Icon
+                  className="w-3.5 h-3.5"
+                  style={{ color: 'var(--ink)' }}
+                  strokeWidth={1.7}
+                />
+                <span className="text-[11.5px] font-bold text-text">
+                  {label}
+                </span>
+              </Link>
+            ))}
             <Link
-              key={key}
-              href={`/products?category=${encodeURIComponent(key)}`}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-rule hover:border-text transition active:scale-[0.97]"
+              href="/products"
+              className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-full text-[11.5px] font-bold text-muted hover:text-text"
             >
-              <Icon
-                className="w-3.5 h-3.5"
-                style={{ color: 'var(--ink)' }}
-                strokeWidth={1.7}
-              />
-              <span className="text-[11.5px] font-bold text-text">
-                {label}
-              </span>
+              전체 →
             </Link>
-          ))}
-          <Link
-            href="/products"
-            className="shrink-0 inline-flex items-center px-3 py-1.5 rounded-full text-[11.5px] font-bold text-muted hover:text-text"
-          >
-            전체 →
-          </Link>
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
-      {/* ── 진행중인 이벤트 (클라이언트 섬 — 가로 스냅 캐러셀) ── */}
-      <OngoingEvents events={events} userCreatedAt={userCreatedAt} />
+      {/* ── 진행중인 이벤트 (클라이언트 섬 — 가로 스냅 캐러셀)
+          첫 분석 완료 후에만 노출 — 분석 안 한 사용자에게 이벤트 캐러셀이
+          먼저 보이면 핵심 동선이 흐려짐. ── */}
+      {hasAnyAnalysis && (
+        <OngoingEvents events={events} userCreatedAt={userCreatedAt} />
+      )}
 
-      {/* ── 전체 상품 (2열 그리드) ── */}
+      {/* ── 전체 상품 (2열 그리드) — 분석 완료 후 cross-sell.
+          신규 사용자에겐 노출 안 함: 설문/분석 끝나면 맞춤 처방이 나오므로
+          그 시점에 "장바구니용 추가 제품" 으로 노출하는 게 자연스러움. ── */}
+      {hasAnyAnalysis && (
       <section className="px-5 mb-8">
         <div className="flex items-center justify-between mb-3">
           <h2
@@ -956,14 +974,19 @@ export default async function DashboardPage() {
           })}
         </div>
       </section>
+      )}
 
-      {/* ── 매거진 CTA ── */}
+      {/* ── 매거진 CTA — 첫 분석 완료 후 노출.
+          분석 안 한 사용자의 핵심 CTA 는 "분석 시작" 이므로 매거진은 한 단계
+          뒤로. /blog 는 어차피 별도 surface 로 접근 가능. ── */}
+      {hasAnyAnalysis && (
       <section className="px-5 mb-6">
         <Link
           href="/blog"
           className="group block bg-white rounded-2xl transition overflow-hidden"
           style={{ border: '1px solid var(--rule)' }}
         >
+
           <div className="flex items-center gap-4 px-5 py-5">
             <div
               className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
@@ -1003,6 +1026,7 @@ export default async function DashboardPage() {
           </div>
         </Link>
       </section>
+      )}
 
       {/* ── 영양 분석 CTA ── */}
       {dogs.length > 0 && (
