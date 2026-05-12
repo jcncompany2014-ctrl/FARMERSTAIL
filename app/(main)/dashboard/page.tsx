@@ -385,12 +385,21 @@ export default async function DashboardPage() {
   const nextAction = computeNextAction(nextActionInput)
 
   // 분석 받은 강아지가 1마리도 없으면 = 신규 사용자 / 첫 설문 안 한 상태.
-  // 이 단계에서 이벤트·전체 상품·매거진 같은 "더 둘러보기" surface 를 다 노출
-  // 하면 첫 화면이 정보 과다해서 핵심 next action (분석/설문) 이 묻힌다.
-  // 분석 완료 후에야 cross-sell / 매거진 등을 펼친다 — 일종의 progressive
-  // disclosure. NextActionCard + 강아지 카드까지만 노출하면 1 viewport 안에
-  // 핵심 흐름이 다 들어옴.
+  // (참고용 변수 — 현재 secondary 영역 자체가 모두 false 로 잠겨 있어 분기
+  // 효과는 없지만, SHOW_SECONDARY_DASHBOARD 를 true 로 복원하면 다시 의미
+  // 갖는다.)
   const hasAnyAnalysis = dogIdsWithAnalyses.size > 0
+
+  // ── Secondary 영역 일시 잠금 ─────────────────────────────────────
+  // 카테고리 칩 / 진행중 이벤트 / 전체 상품 그리드 / 매거진 CTA / 영양 분석
+  // CTA 다섯 섹션은 첫 화면 정보 과다를 줄이려고 한꺼번에 숨김. 솔로 운영자
+  // 결정 — "스크롤 없이 한 viewport" 가 더 중요. 코드는 그대로 두고 이 flag
+  // 만 true 로 바꾸면 전체가 한 번에 복원되도록 toggle 점 한 군데에 모음.
+  // 분석 완료 사용자에게만 다시 노출하려면 `SHOW_SECONDARY_DASHBOARD &&
+  // hasAnyAnalysis` 패턴으로 바꿔도 됨 (각 섹션 wrap 그대로). 추후 cross-
+  // sell 동선을 설문 완료 후 surface 나 마이페이지 메뉴 등 별도 자리로 옮길
+  // 때 이 flag 를 단계적으로 풀거나 별도 컴포넌트로 분리.
+  const SHOW_SECONDARY_DASHBOARD = false
 
   return (
     <main className="pb-8">
@@ -758,8 +767,8 @@ export default async function DashboardPage() {
 
       {/* ── 카테고리 — 3카드 (~120px) → 1줄 chip (~36px) 으로 압축.
           매일 들어와도 화면이 가벼워야 핵심에 집중 가능.
-          분석 미완료 사용자에겐 노출 안 함 (progressive disclosure). */}
-      {hasAnyAnalysis && (
+          현재 SHOW_SECONDARY_DASHBOARD = false 로 잠겨있음. */}
+      {SHOW_SECONDARY_DASHBOARD && (
         <section className="px-5 mb-6">
           <div className="flex items-center gap-2 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none">
             {CATEGORIES.map(({ key, label, Icon }) => (
@@ -789,16 +798,14 @@ export default async function DashboardPage() {
       )}
 
       {/* ── 진행중인 이벤트 (클라이언트 섬 — 가로 스냅 캐러셀)
-          첫 분석 완료 후에만 노출 — 분석 안 한 사용자에게 이벤트 캐러셀이
-          먼저 보이면 핵심 동선이 흐려짐. ── */}
-      {hasAnyAnalysis && (
+          SHOW_SECONDARY_DASHBOARD = false 로 잠겨있음. ── */}
+      {SHOW_SECONDARY_DASHBOARD && (
         <OngoingEvents events={events} userCreatedAt={userCreatedAt} />
       )}
 
-      {/* ── 전체 상품 (2열 그리드) — 분석 완료 후 cross-sell.
-          신규 사용자에겐 노출 안 함: 설문/분석 끝나면 맞춤 처방이 나오므로
-          그 시점에 "장바구니용 추가 제품" 으로 노출하는 게 자연스러움. ── */}
-      {hasAnyAnalysis && (
+      {/* ── 전체 상품 (2열 그리드) — cross-sell.
+          SHOW_SECONDARY_DASHBOARD = false 로 잠겨있음. ── */}
+      {SHOW_SECONDARY_DASHBOARD && (
       <section className="px-5 mb-8">
         <div className="flex items-center justify-between mb-3">
           <h2
@@ -976,10 +983,10 @@ export default async function DashboardPage() {
       </section>
       )}
 
-      {/* ── 매거진 CTA — 첫 분석 완료 후 노출.
-          분석 안 한 사용자의 핵심 CTA 는 "분석 시작" 이므로 매거진은 한 단계
-          뒤로. /blog 는 어차피 별도 surface 로 접근 가능. ── */}
-      {hasAnyAnalysis && (
+      {/* ── 매거진 CTA — /blog 진입 동선.
+          SHOW_SECONDARY_DASHBOARD = false 로 잠겨있음. /blog 는 어차피
+          별도 surface (탭바/footer) 로 접근 가능. ── */}
+      {SHOW_SECONDARY_DASHBOARD && (
       <section className="px-5 mb-6">
         <Link
           href="/blog"
@@ -1028,8 +1035,9 @@ export default async function DashboardPage() {
       </section>
       )}
 
-      {/* ── 영양 분석 CTA ── */}
-      {dogs.length > 0 && (
+      {/* ── 영양 분석 CTA — SHOW_SECONDARY_DASHBOARD = false 로 잠겨있음.
+          분석 시작 동선은 NextActionCard 가 이미 안내. ── */}
+      {SHOW_SECONDARY_DASHBOARD && dogs.length > 0 && (
         <section className="px-5 mb-6">
           <Link href="/dogs" className="block">
             <div
