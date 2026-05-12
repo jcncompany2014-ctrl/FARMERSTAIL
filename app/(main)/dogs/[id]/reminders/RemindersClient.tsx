@@ -666,7 +666,7 @@ function ReminderRow({
             {r.enabled && (
               <button
                 onClick={onDone}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-moss text-white text-[10px] font-bold active:scale-[0.96] transition"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-moss text-white text-[10px] font-bold active:scale-[0.98] transition"
               >
                 <Check className="w-3 h-3" strokeWidth={2.5} />
                 완료

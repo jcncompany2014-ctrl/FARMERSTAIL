@@ -125,7 +125,7 @@ export default async function AddressesPage() {
           <section className="px-5 mt-3">
             <Link
               href="/mypage/addresses/new"
-              className="flex items-center justify-center gap-1.5 py-3 w-full rounded-xl border text-[12.5px] font-bold active:scale-[0.99] transition"
+              className="flex items-center justify-center gap-1.5 py-3 w-full rounded-xl border text-[12.5px] font-bold active:scale-[0.98] transition"
               style={{
                 background: 'var(--ink)',
                 color: 'var(--bg)',

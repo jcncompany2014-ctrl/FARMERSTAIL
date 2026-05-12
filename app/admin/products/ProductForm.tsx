@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 type ProductData = {
   id?: string
@@ -75,6 +76,7 @@ export default function ProductForm({
 }) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
 
   const [form, setForm] = useState<ProductData>(initialData ?? EMPTY)
   const [loading, setLoading] = useState(false)
@@ -87,11 +89,11 @@ export default function ProductForm({
     e.preventDefault()
 
     if (!form.name.trim() || !form.slug.trim()) {
-      alert('상품명과 slug는 필수에요')
+      toast.error('상품명과 slug는 필수에요')
       return
     }
     if (form.price <= 0) {
-      alert('가격은 0보다 커야 해요')
+      toast.error('가격은 0보다 커야 해요')
       return
     }
 
@@ -117,7 +119,7 @@ export default function ProductForm({
       try {
         nutritionParsed = JSON.parse(form.nutrition_facts)
       } catch {
-        alert(
+        toast.error(
           '영양성분 JSON 형식이 올바르지 않아요. 예: {"protein_pct":35,"fat_pct":12}',
         )
         setLoading(false)
@@ -164,9 +166,10 @@ export default function ProductForm({
 
       setLoading(false)
       if (error) {
-        alert('등록 실패: ' + error.message)
+        toast.error('등록 실패: ' + error.message)
         return
       }
+      toast.success('상품을 등록했어요')
       router.push(`/admin/products/${data.id}`)
       router.refresh()
     } else {
@@ -177,10 +180,10 @@ export default function ProductForm({
 
       setLoading(false)
       if (error) {
-        alert('저장 실패: ' + error.message)
+        toast.error('저장 실패: ' + error.message)
         return
       }
-      alert('저장했어요')
+      toast.success('저장했어요')
       router.refresh()
     }
   }
@@ -197,9 +200,10 @@ export default function ProductForm({
     setLoading(false)
 
     if (error) {
-      alert('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + error.message)
       return
     }
+    toast.success('삭제했어요')
     router.push('/admin/products')
     router.refresh()
   }

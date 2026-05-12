@@ -262,7 +262,7 @@ export default async function AnalysesTimelinePage({
                   />
                   <Link
                     href={`/dogs/${dogId}/analyses/${a.id}`}
-                    className="block bg-white rounded-2xl border border-rule hover:border-terracotta transition p-4 active:scale-[0.995]"
+                    className="block bg-white rounded-2xl border border-rule hover:border-terracotta transition p-4 active:scale-[0.99]"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
