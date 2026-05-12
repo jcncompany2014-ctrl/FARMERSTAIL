@@ -2,7 +2,7 @@
  * Farmer's Tail — 주문 라이프사이클 메일 템플릿.
  *
  * 각 함수는 {subject, html} 을 반환하기만 한다. 실제 전송은 상위 레이어
- * (lib/email/index.ts) 에서. 템플릿을 순수 함수로 유지하면 Playwright에서
+ * (lib/email/index.ts) 에서. 템플릿을 순수 함수로 유지하면 단위 테스트에서
  * 메일 바디 회귀 스냅샷도 찍기 쉬움.
  */
 import { block, escape, renderLayout, SITE_URL } from '../layout'

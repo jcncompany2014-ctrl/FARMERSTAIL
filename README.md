@@ -24,7 +24,6 @@ npm run dev                     # http://localhost:3000
 
 # 5. 테스트
 npm run test:watch              # Node native test runner
-npm run test:e2e                # Playwright (선택)
 ```
 
 ## 핵심 디렉토리

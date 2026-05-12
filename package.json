@@ -11,9 +11,6 @@
     "verify": "npx eslint . && npx tsc --noEmit && npm test",
     "test": "node --experimental-strip-types --no-warnings --test \"lib/**/*.test.ts\" \"lib/**/*.test.tsx\"",
     "test:watch": "node --experimental-strip-types --no-warnings --test --watch \"lib/**/*.test.ts\"",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:install": "playwright install --with-deps chromium",
     "analyze": "ANALYZE=true next build",
     "analyze:win": "powershell -Command \"$env:ANALYZE='true'; next build\"",
     "cap:webdir": "node -e \"require('fs').mkdirSync('capacitor-web',{recursive:true});require('fs').writeFileSync('capacitor-web/index.html','<!doctype html><meta charset=\\\"utf-8\\\"><title>Farmer\\u0027s Tail</title>')\"",
@@ -58,7 +55,6 @@
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@next/bundle-analyzer": "^16.2.3",
-    "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
