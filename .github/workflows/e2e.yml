@@ -1,23 +1,28 @@
 name: E2E (Playwright)
 
-# main 브랜치 push / 수동 실행 시 e2e 테스트 자동 실행.
+# 수동 실행 전용 — 자동 트리거 OFF.
 #
-# 왜 CI 와 분리하나
-# ───────────────
-# Playwright 는 browser binary 다운로드 + build + start 까지 합해 5~10분
-# 걸린다. lint/tsc/test 같은 빠른 검증과 같은 job 에 묶으면 PR feedback
-# 사이클이 느려져서 chunk 를 분리. PR 에선 빠른 CI 만, main push 에선 둘 다.
+# 왜 manual 만
+# ───────────
+# 첫 자동 실행 (placeholder secret) 에서 일부 spec 이 떨어졌다. Supabase
+# 실 URL/anon key 가 없으면 인증 redirect / RLS 응답이 production 과 달라
+# auth-required spec 들이 실패. 매 push 마다 실패 메일이 오는 noise 가
+# 솔로 운영자에게 무가치하므로 자동 트리거를 일시 OFF.
 #
-# Secret
-# ──────
-# build 시 createClient 가 NEXT_PUBLIC_SUPABASE_URL/ANON_KEY 를 요구.
-# 실제 backend call 을 하는 spec 은 아직 없고 정적 페이지 + 인증 redirect
-# 위주라 placeholder 로 충분. 실 운영 환경으로 옮기려면 repo Settings →
-# Secrets and variables → Actions 에 동일 이름으로 등록하면 자동 사용.
+# 재활성 절차
+# ─────────
+#   1) repo Settings → Secrets and variables → Actions
+#   2) 다음 secret 등록:
+#      - NEXT_PUBLIC_SUPABASE_URL  (prod 또는 stage URL)
+#      - NEXT_PUBLIC_SUPABASE_ANON_KEY
+#      - NEXT_PUBLIC_SITE_URL (선택)
+#   3) 아래 `on:` 에 push/pull_request 트리거 복원.
+#
+# 수동 실행
+# ────────
+#   Actions 탭 → E2E (Playwright) → Run workflow → main branch 선택
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
