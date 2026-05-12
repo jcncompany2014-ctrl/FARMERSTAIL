@@ -64,18 +64,25 @@ export default async function MembershipPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/mypage/membership')
 
-  const [{ data: profile }, { count: orderCount }] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('tier, cumulative_spend, tier_updated_at')
-      .eq('id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('payment_status', 'paid'),
-  ])
+  const [{ data: profile }, { count: orderCount }, { data: dogs }] =
+    await Promise.all([
+      supabase
+        .from('profiles')
+        .select('tier, cumulative_spend, tier_updated_at')
+        .eq('id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('payment_status', 'paid'),
+      // 단짝 등급일 때 강아지 등록증 CTA list 용. 다른 등급은 사용 안 함.
+      supabase
+        .from('dogs')
+        .select('id, name, breed, photo_url')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true }),
+    ])
 
   const tier = (profile?.tier as string | null) ?? 'seed'
   const cumulativeSpend =
@@ -256,6 +263,83 @@ export default async function MembershipPage() {
         </div>
       </section>
 
+      {/* 단짝 등록증 CTA — mate 등급 + 강아지 1마리 이상일 때만 */}
+      {meta.key === 'mate' && (dogs?.length ?? 0) > 0 && (
+        <section className="px-5 mt-5">
+          <div className="flex items-center gap-2 mb-2.5">
+            <span
+              aria-hidden
+              style={{
+                width: 16,
+                height: 1.5,
+                background: 'var(--terracotta)',
+              }}
+            />
+            <span className="kicker">Certificate · 단짝 등록증</span>
+          </div>
+          <div
+            className="rounded-2xl px-5 py-5"
+            style={{
+              background: 'var(--ink)',
+              color: 'var(--bg)',
+            }}
+          >
+            <p className="text-[12px] leading-relaxed" style={{ opacity: 0.85 }}>
+              단짝 등급 도달의 증표로 강아지 등록증을 받으실 수 있어요. 저장
+              해서 보관하거나 SNS 에 공유해 보세요.
+            </p>
+            <div className="mt-4 space-y-2">
+              {(dogs ?? []).map((d) => (
+                <Link
+                  key={d.id}
+                  href={`/mypage/certificate/${d.id}`}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition active:scale-[0.99]"
+                  style={{ background: 'rgba(255,255,255,0.08)' }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center shrink-0"
+                    style={{ background: 'rgba(255,255,255,0.12)' }}
+                  >
+                    {d.photo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={d.photo_url}
+                        alt={d.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span style={{ fontSize: 16 }}>🐾</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-bold truncate">
+                      {d.name}
+                    </div>
+                    {d.breed && (
+                      <div
+                        className="text-[10.5px] truncate"
+                        style={{ opacity: 0.7 }}
+                      >
+                        {d.breed}
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    className="text-[10.5px] font-bold px-2.5 py-1 rounded-full"
+                    style={{
+                      background: 'var(--gold)',
+                      color: 'var(--ink)',
+                    }}
+                  >
+                    등록증 보기
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* 현재 등급 혜택 list */}
       <section className="px-5 mt-5">
         <div className="flex items-center gap-2 mb-2.5">
@@ -377,7 +461,7 @@ function TierRow({
           }}
         >
           {reached ? (
-            t.key === 'vip' ? (
+            t.key === 'mate' ? (
               <Crown className="w-3.5 h-3.5" strokeWidth={2} />
             ) : (
               <Check className="w-3.5 h-3.5" strokeWidth={2.5} />

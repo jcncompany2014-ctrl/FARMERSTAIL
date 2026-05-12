@@ -386,8 +386,9 @@ export default async function DashboardPage() {
 
   // 분석 받은 강아지가 1마리도 없으면 = 신규 사용자 / 첫 설문 안 한 상태.
   // (참고용 변수 — 현재 secondary 영역 자체가 모두 false 로 잠겨 있어 분기
-  // 효과는 없지만, SHOW_SECONDARY_DASHBOARD 를 true 로 복원하면 다시 의미
-  // 갖는다.)
+  // 효과는 없지만, SHOW_SECONDARY_DASHBOARD 를 true 로 복원하면 다시
+  // `SHOW_SECONDARY_DASHBOARD && hasAnyAnalysis` 패턴으로 의미 갖는다.)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const hasAnyAnalysis = dogIdsWithAnalyses.size > 0
 
   // ── Secondary 영역 일시 잠금 ─────────────────────────────────────
