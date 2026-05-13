@@ -198,8 +198,8 @@
 |---|--------|------|------|
 | 54 | 분석 결과 카드 + 산출 근거 expandable | 🟨 | StructuredAnalysis 있음. **expandable 부족** |
 | 55 | "왜 이 추천인가" 근거 설명 | 🟨 | RecommendationBox 일부 |
-| 56 | 변수별 신뢰도 progress bar | ⬜ | 종합 점수만, 변수별 분해 X |
-| 57 | 가장 신뢰도 낮은 변수 highlight | ⬜ | AccuracyCard subtitle 만 |
+| 56 | 변수별 신뢰도 progress bar | ✅ | P3 — AccuracyBreakdown expandable, 체중/활동/급여 |
+| 57 | 가장 신뢰도 낮은 변수 highlight | ✅ | P3 — weakest score < 0.7 일 때 gold alert + hint |
 | 58 | 분석 히스토리 시계열 그래프 | ✅ | AnalysisView 의 trend 차트 |
 | 59 | 강아지 등록증 PDF (mate 등급) | ✅ | 기존 구현 |
 | 60 | SNS 공유 카드 자동 생성 | 🟨 | /share 페이지 있음. OG 이미지 정적 |

@@ -35,6 +35,9 @@ import { computeStreak, type CheckinRow } from '@/lib/dashboard/streaks'
 import PersonaCard from '@/components/dashboard/PersonaCard'
 import { computePersona, daysSinceIso, personaCardSpec } from '@/lib/persona'
 import AccuracyCard from '@/components/dashboard/AccuracyCard'
+import AccuracyBreakdown, {
+  type AccuracyVar,
+} from '@/components/dashboard/AccuracyBreakdown'
 import {
   feedReliability,
   activityReliability,
@@ -482,21 +485,48 @@ export default async function DashboardPage() {
   // ── Phase D7.5 — 맞춤도 카드 ──────────────────────────────────────────
   // firstDog 의 측정 도구 + 최근 측정일 → 종합 reliability. 0~1.
   // 가입 < 7일 또는 dog 없으면 카드 비표시.
+  // 변수별 reliability — breakdown 카드 props 로도 사용
+  const weightR =
+    firstDogMeta &&
+    weightReliability(
+      firstDogMeta.weight_method,
+      firstDogMeta.weight_measured_at,
+    )
+  const activityR =
+    firstDogMeta && activityReliability(firstDogMeta.activity_method)
+  const feedR =
+    firstDogMeta &&
+    feedReliability(
+      // 자동배송 활성이면 feed_method 가 unknown 이어도 auto_delivery 로
+      // 간주 — 자체 사료 D2C 의 차별화 신호 (override).
+      hasActiveSub ? 'auto_delivery' : firstDogMeta.feed_method,
+    )
   const accuracyScore =
-    firstDog && firstDogMeta && daysSinceSignup >= 7
-      ? overallReliability([
-          weightReliability(
-            firstDogMeta.weight_method,
-            firstDogMeta.weight_measured_at,
-          ),
-          activityReliability(firstDogMeta.activity_method),
-          feedReliability(
-            // 자동배송 활성이면 feed_method 가 unknown 이어도 auto_delivery 로
-            // 간주 — 자체 사료 D2C 의 차별화 신호 (overrride).
-            hasActiveSub ? 'auto_delivery' : firstDogMeta.feed_method,
-          ),
-        ])
+    firstDog && firstDogMeta && daysSinceSignup >= 7 && weightR != null && activityR != null && feedR != null
+      ? overallReliability([weightR, activityR, feedR])
       : null
+  const accuracyVars: AccuracyVar[] = accuracyScore !== null && weightR != null && activityR != null && feedR != null
+    ? [
+        {
+          key: 'weight',
+          label: '체중',
+          score: weightR,
+          hint: '동물병원/디지털 체중계로 재면 정밀도가 올라가요',
+        },
+        {
+          key: 'activity',
+          label: '활동',
+          score: activityR,
+          hint: '만보계나 스마트태그를 연동하면 정밀도가 올라가요',
+        },
+        {
+          key: 'feed',
+          label: '급여',
+          score: feedR,
+          hint: '정기배송을 이용하면 자동 추적이 가능해요',
+        },
+      ]
+    : []
 
   // 분석 받은 강아지가 1마리도 없으면 = 신규 사용자 / 첫 설문 안 한 상태.
   // (참고용 변수 — 현재 secondary 영역 자체가 모두 false 로 잠겨 있어 분기
@@ -723,6 +753,12 @@ export default async function DashboardPage() {
           dogId={firstDog?.id ?? null}
           dogName={firstDog?.name ?? null}
         />
+      )}
+
+      {/* ── 변수별 맞춤도 자세히 — accuracy 카드 아래에 expandable (P3).
+          가장 약한 변수 highlight + 개선 hint. ── */}
+      {accuracyVars.length > 0 && (
+        <AccuracyBreakdown variables={accuracyVars} />
       )}
 
       {/* ── 체크인 스트릭 — currentStreak >= 2 일 때만 카드가 자체 노출.
