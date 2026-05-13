@@ -55,7 +55,7 @@
 
 | # | 디테일 | 상태 | 위치 / 비고 |
 |---|--------|------|-------------|
-| 19 | 추천 근거 "왜 이렇게?" 버튼 | 🟨 | StructuredAnalysis 에 일부. **모든 nudge/추천에 일관 적용 X** |
+| 19 | 추천 근거 "왜 이렇게?" 버튼 | ✅ | P21 — NextActionCard expandable "왜 이 안내?" + StructuredAnalysis RecommendationBox |
 | 20 | 견주가 시스템 수정 권한 (가중치 조정) | ✅ | P7 — dogs.accuracy_user_boost 컬럼 + AccuracyBreakdown 토글 ("표명" / "해제") |
 | 21 | 데이터 PDF + 수의사 공유 | 🟨 | D8.2 `/vet/[token]` 페이지 (read-only). **PDF 다운로드 X** |
 
@@ -196,8 +196,8 @@
 
 | # | 디테일 | 상태 | 비고 |
 |---|--------|------|------|
-| 54 | 분석 결과 카드 + 산출 근거 expandable | 🟨 | StructuredAnalysis 있음. **expandable 부족** |
-| 55 | "왜 이 추천인가" 근거 설명 | 🟨 | RecommendationBox 일부 |
+| 54 | 분석 결과 카드 + 산출 근거 expandable | 🟨 | StructuredAnalysis + AccuracyBreakdown expandable. 분석 카드 자체 expandable 후속 |
+| 55 | "왜 이 추천인가" 근거 설명 | ✅ | P21 — NextActionCard expandable + RecommendationBox |
 | 56 | 변수별 신뢰도 progress bar | ✅ | P3 — AccuracyBreakdown expandable, 체중/활동/급여 |
 | 57 | 가장 신뢰도 낮은 변수 highlight | ✅ | P3 — weakest score < 0.7 일 때 gold alert + hint |
 | 58 | 분석 히스토리 시계열 그래프 | ✅ | AnalysisView 의 trend 차트 |

@@ -2,8 +2,27 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, EyeOff } from 'lucide-react'
+import { ArrowRight, EyeOff, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import type { NextAction } from '@/lib/dashboard/next-action'
+
+/**
+ * P21 — "왜 이 안내?" reason 매핑.
+ * NextAction.type 별 한 줄 설명. voice-guidelines §1 — "신뢰도" 단어 X.
+ */
+const REASON_BY_TYPE: Record<NextAction['type'], string> = {
+  onboarding:
+    '강아지 등록 → 첫 분석 → 정기 케어 까지 한 흐름으로 가기 위해 안내해요',
+  analyze:
+    '설문이 끝난 강아지만 영양 분석이 나와요. 오래 미루면 추천이 맞지 않을 수 있어요',
+  approve:
+    '제안한 식단을 보호자가 직접 검토하고 승인할 때 비로소 적용돼요',
+  'weigh-in':
+    '체중이 2주 이상 안 측정되면 추천량이 실제와 멀어질 수 있어요',
+  delivery:
+    '다음 배송 D-day 가 가까워 미리 알려드려요. 일시 정지·건너뛰기도 자유',
+  subscribe:
+    '정기배송을 시작하면 사료 양·종류가 자동 조정돼 매번 챙기는 부담이 줄어요',
+}
 
 /**
  * Dashboard "오늘 할 일" 카드 — computeNextAction 의 결과 1개를 시각화.
@@ -22,6 +41,7 @@ import type { NextAction } from '@/lib/dashboard/next-action'
  * 다시 표시.
  */
 export default function NextActionCard({ action }: { action: NextAction }) {
+  const [reasonOpen, setReasonOpen] = useState(false)
   // lazy initializer — useEffect 안에서 setState 호출하면 react-hooks/set-state
   // -in-effect 룰 위반 (cascading render). mount 시 1회만 localStorage 읽고
   // 결정. action.type 변경에 따른 reset 은 server 가 새 컴포넌트 instance
@@ -109,16 +129,39 @@ export default function NextActionCard({ action }: { action: NextAction }) {
           </span>
         </div>
       </Link>
-      {/* dismiss — 카드 아래 별도 line. 카드 위 absolute X 는 CTA pill 과
-          충돌. 작은 텍스트 링크로 시각적 부담 ↓. */}
-      <button
-        type="button"
-        onClick={handleDismiss}
-        aria-label="이 안내 24시간 동안 숨기기"
-        className="mt-1.5 ml-1 inline-flex items-center gap-1 px-2 py-1 text-[10.5px] font-semibold text-muted/70 hover:text-muted transition"
-      >
-        <EyeOff className="w-3 h-3" strokeWidth={2} />이 안내 숨기기
-      </button>
+      {/* P21 — "왜 이 안내?" expandable disclosure (A-19, B-55).
+          dismiss 와 같은 inline row 에 배치. */}
+      <div className="mt-1.5 ml-1 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={handleDismiss}
+          aria-label="이 안내 24시간 동안 숨기기"
+          className="inline-flex items-center gap-1 px-2 py-1 text-[10.5px] font-semibold text-muted/70 hover:text-muted transition"
+        >
+          <EyeOff className="w-3 h-3" strokeWidth={2} />이 안내 숨기기
+        </button>
+        <button
+          type="button"
+          onClick={() => setReasonOpen((v) => !v)}
+          aria-expanded={reasonOpen}
+          className="inline-flex items-center gap-1 px-2 py-1 text-[10.5px] font-semibold text-muted/70 hover:text-muted transition"
+        >
+          <HelpCircle className="w-3 h-3" strokeWidth={2} />왜 이 안내?
+          {reasonOpen ? (
+            <ChevronUp className="w-3 h-3" strokeWidth={2} />
+          ) : (
+            <ChevronDown className="w-3 h-3" strokeWidth={2} />
+          )}
+        </button>
+      </div>
+      {reasonOpen && (
+        <p
+          className="ml-1 mt-1 text-[11px] leading-relaxed px-3 py-2 rounded-lg"
+          style={{ background: 'var(--bg)', color: 'var(--text)' }}
+        >
+          {REASON_BY_TYPE[action.type]}
+        </p>
+      )}
     </div>
   )
 }
