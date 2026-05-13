@@ -203,7 +203,7 @@
 | 58 | 분석 히스토리 시계열 그래프 | ✅ | AnalysisView 의 trend 차트 |
 | 59 | 강아지 등록증 PDF (mate 등급) | ✅ | 기존 구현 |
 | 60 | SNS 공유 카드 자동 생성 | 🟨 | /share 페이지 있음. OG 이미지 정적 |
-| 61 | 수의사용 진료 리포트 PDF | ⬜ | D8.2 portal 은 있고 PDF X |
+| 61 | 수의사용 진료 리포트 PDF | ✅ | P15 — /vet/[token] 에 PDF/인쇄 버튼 + @media print CSS |
 
 ### B.7 피드백 (62~70)
 
@@ -251,7 +251,7 @@
 | 86 | `/vet` portal | ✅ | D8.2 `/vet/[token]` |
 | 87 | 수의사 입력값 W=1.0 골든 | ⬜ | 수의사 직접 입력 endpoint X |
 | 88 | 시스템 자가 보정 (수의사 데이터 학습) | 🟦 | Phase 4 |
-| 89 | 사전 진료 리포트 PDF | ⬜ | portal HTML 만. PDF X |
+| 89 | 사전 진료 리포트 PDF | ✅ | P15 — window.print() + @media print 인쇄 friendly CSS |
 | 90 | 수의사 처방 자동 사료 조성 반영 | 🟦 | Phase 4 |
 | 91 | 수의사 인증 / 면허 verification | 🟦 | Phase 4 |
 

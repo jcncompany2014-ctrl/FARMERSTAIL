@@ -10,6 +10,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import VetSharePrintButton from './VetSharePrintButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -83,14 +84,28 @@ export default async function VetSharePage({
   const latestWeight = result.latestWeight
 
   return (
-    <main className="pb-12" style={{ background: 'var(--bg)' }}>
-      <section className="px-5 pt-6 pb-2">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'var(--bg-2)' }}>
-          <Stethoscope className="w-3 h-3" strokeWidth={2.2} style={{ color: 'var(--terracotta)' }} />
-          <span className="text-[10.5px] font-bold uppercase tracking-widest" style={{ color: 'var(--terracotta)' }}>
-            진료 참고용
-          </span>
+    <main className="pb-12 vet-share-print" style={{ background: 'var(--bg)' }}>
+      <style>{`
+        @media print {
+          .vet-share-print { background: white !important; padding-bottom: 0 !important; }
+          .vet-share-print .no-print { display: none !important; }
+          .vet-share-print section { page-break-inside: avoid; }
+          .vet-share-print a { color: #1E1A14 !important; text-decoration: none !important; }
+        }
+      `}</style>
+      <section className="px-5 pt-6 pb-2 flex items-start justify-between gap-3">
+        <div>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'var(--bg-2)' }}>
+            <Stethoscope className="w-3 h-3" strokeWidth={2.2} style={{ color: 'var(--terracotta)' }} />
+            <span className="text-[10.5px] font-bold uppercase tracking-widest" style={{ color: 'var(--terracotta)' }}>
+              진료 참고용
+            </span>
+          </div>
         </div>
+        {/* PDF / 인쇄 — P15. window.print() — 브라우저가 PDF 저장 또는 실 인쇄 */}
+        <VetSharePrintButton />
+      </section>
+      <section className="px-5 pt-2 pb-2">
         <h1
           className="font-serif mt-3 leading-tight"
           style={{
