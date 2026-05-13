@@ -1341,28 +1341,68 @@ function applyGiSensitivity(
 
   if (!sensitive) return ratios
 
-  // 가장 비중이 높은 라인 1개로 collapse.
+  // [A1 fix] 이전: 가장 큰 라인 1개로 100% collapse — chronic 룰 (joint/skin 등)
+  // 이 발화해 그 라인에 20%+ 부여한 경우에도 main(basic)이 100% 가져가서
+  // chronic chip 과 실 사료가 불일치했다. 이제:
+  //   1) chronic 라인 (joint/skin/weight) 이 0.2+ 있으면 그 라인이 main —
+  //      사용자가 본 chip 과 실 사료 일관성 보장.
+  //   2) collapse 강도를 intensity 단계로 (always=85% / frequent=75% / ibd=85%).
+  //      잔여 (1-intensity) 는 다른 non-zero 라인에 비례 분배 — chronic
+  //      라인이 main 이 아닐 때도 그 라인의 chronic 의도가 남음.
+  const chronicLines: FoodLine[] = ['joint', 'skin', 'weight']
   let mainLine: FoodLine = 'basic'
-  let max = 0
-  for (const line of ALL_LINES) {
-    if (ratios[line] > max) {
-      max = ratios[line]
+  // chronic 라인이 0.2+ 면 그게 우선
+  for (const line of chronicLines) {
+    if (ratios[line] >= 0.2) {
       mainLine = line
+      break
     }
   }
-  const collapsed = emptyRatios()
-  collapsed[mainLine] = 1.0
+  // 아니면 가장 큰 라인
+  if (mainLine === 'basic' && ratios.basic < ratios.premium) {
+    let max = ratios.basic
+    for (const line of ALL_LINES) {
+      if (ratios[line] > max) {
+        max = ratios[line]
+        mainLine = line
+      }
+    }
+  }
+
+  const intensity =
+    input.chronicConditions.includes('ibd')
+      ? 0.85
+      : input.giSensitivity === 'always'
+        ? 0.85
+        : 0.75
+  const remaining = 1 - intensity
+
+  // 잔여 분배 — main 외 non-zero 라인 비례
+  const others = ALL_LINES.filter((l) => l !== mainLine && ratios[l] > 0)
+  const otherSum = others.reduce((s, l) => s + ratios[l], 0)
+
+  const next = emptyRatios()
+  next[mainLine] = intensity
+  if (otherSum > 0) {
+    for (const l of others) {
+      next[l] = (ratios[l] / otherSum) * remaining
+    }
+  } else {
+    // 다른 라인 다 0 차단 (알레르기) → main 100%
+    next[mainLine] = 1.0
+  }
+
   reasoning.push({
     trigger:
       input.chronicConditions.includes('ibd')
         ? 'IBD + 위장 적응'
         : `위장 민감 (${input.giSensitivity === 'always' ? '매번' : '자주'})`,
-    action: `${FOOD_LINE_META[mainLine].name} 100% (단일 단백질) — 위장 적응 후 다른 라인 추가`,
-    chipLabel: '위장민감 → 단일 단백질',
+    action: `${FOOD_LINE_META[mainLine].name} ${Math.round(intensity * 100)}% 위주 — 위장 적응 후 다른 라인 비율 ↑`,
+    chipLabel: `위장민감 → ${FOOD_LINE_META[mainLine].name} ${Math.round(intensity * 100)}%`,
     priority: 6,
     ruleId: 'gi-sensitive',
   })
-  return collapsed
+  return next
 }
 
 // ──────────────────────────────────────────────────────────────────────────

@@ -246,13 +246,15 @@ describe('decideFirstBox — 만성질환', () => {
     assert.match(reason!.action, /수의사/, '수의사 상담 권장 메시지')
   })
 
-  it('IBD → 단일 단백질 강제 (giSensitive 효과)', () => {
+  it('IBD → main 라인 85% 위주 (A1: 100% collapse 가 chronic 룰 무효화 fix)', () => {
     const f = decideFirstBox({
       ...baseInput(),
       chronicConditions: ['ibd'],
     })
-    const nonZero = Object.values(f.lineRatios).filter((v) => v > 0).length
-    assert.equal(nonZero, 1, 'IBD 면 단일 라인 100%')
+    // A1 fix 이후: main 85% + 잔여 15% 비례 (chronic 의도 보존).
+    // 100% collapse 였을 때 main=basic 으로 chronic chip 과 실 라인 불일치.
+    const max = Math.max(...Object.values(f.lineRatios))
+    assert.ok(max >= 0.8 && max <= 1.0, 'main 라인 80~100% — IBD 적응 우선')
   })
 
   it('관절염 → Joint 30%+', () => {
@@ -265,16 +267,16 @@ describe('decideFirstBox — 만성질환', () => {
 })
 
 describe('decideFirstBox — GI 민감도', () => {
-  it('giSensitivity = always → 단일 라인 100%', () => {
+  it('giSensitivity = always → main 라인 85% (A1 fix)', () => {
     const f = decideFirstBox({ ...baseInput(), giSensitivity: 'always' })
-    const nonZero = Object.values(f.lineRatios).filter((v) => v > 0).length
-    assert.equal(nonZero, 1)
+    const max = Math.max(...Object.values(f.lineRatios))
+    assert.ok(max >= 0.8, 'main 라인 80%+ 위주')
   })
 
-  it('giSensitivity = frequent → 단일 라인', () => {
+  it('giSensitivity = frequent → main 라인 75% (A1 fix)', () => {
     const f = decideFirstBox({ ...baseInput(), giSensitivity: 'frequent' })
-    const nonZero = Object.values(f.lineRatios).filter((v) => v > 0).length
-    assert.equal(nonZero, 1)
+    const max = Math.max(...Object.values(f.lineRatios))
+    assert.ok(max >= 0.7, 'main 라인 70%+ 위주')
   })
 
   it('giSensitivity = rare → 혼합 유지', () => {
@@ -1129,15 +1131,15 @@ describe('decideFirstBox — 복합 시나리오', () => {
     assert.ok(priorities.has(1))
   })
 
-  it('IBD + 화식 처음 — 가장 보수적', () => {
+  it('IBD + 화식 처음 — 가장 보수적 (A1: main 85% 위주)', () => {
     const f = decideFirstBox({
       ...baseInput(),
       chronicConditions: ['ibd'],
       homeCookingExperience: 'first',
     })
-    // 단일 단백질 + 토퍼 0 + conservative
-    const nonZero = Object.values(f.lineRatios).filter((v) => v > 0).length
-    assert.equal(nonZero, 1)
+    // A1 fix 이후: main 85% + 잔여 15%. 토퍼 0, conservative 그대로.
+    const max = Math.max(...Object.values(f.lineRatios))
+    assert.ok(max >= 0.8, 'main 라인 80%+ 위주 — IBD 적응 우선')
     assert.equal(f.toppers.protein, 0)
     assert.equal(f.toppers.vegetable, 0)
     assert.equal(f.transitionStrategy, 'conservative')
