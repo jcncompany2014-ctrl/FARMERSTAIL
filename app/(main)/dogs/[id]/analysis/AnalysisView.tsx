@@ -31,6 +31,7 @@ import {
   merConfidenceInterval,
   formatRange,
 } from '@/lib/nutrition/confidence-interval'
+import { summarizeHistory } from '@/lib/analysis/narrative'
 
 type Analysis = {
   id: string
@@ -436,6 +437,36 @@ export default function AnalysisView({
             </div>
           ) : (
             <div className="space-y-5">
+              {/* 자연어 narrative — P9 (A-31). 차트 위 한 줄 요약. */}
+              {(() => {
+                const n = summarizeHistory(
+                  history.map((h) => ({
+                    date: h.date,
+                    bcs: h.bcs,
+                    weight: h.weight,
+                  })),
+                  dog?.name ?? null,
+                )
+                if (!n) return null
+                const accent =
+                  n.tone === 'positive'
+                    ? 'var(--moss)'
+                    : n.tone === 'cautious'
+                      ? 'var(--gold)'
+                      : 'var(--muted)'
+                return (
+                  <div
+                    className="rounded-xl px-4 py-3 text-[12.5px] leading-relaxed font-bold"
+                    style={{
+                      background: `color-mix(in srgb, ${accent} 8%, white)`,
+                      border: `1px solid color-mix(in srgb, ${accent} 28%, transparent)`,
+                      color: 'var(--ink)',
+                    }}
+                  >
+                    {n.text}
+                  </div>
+                )
+              })()}
               <TrendRow
                 Icon={Scale}
                 label="체형 (BCS)"

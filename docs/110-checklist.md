@@ -82,7 +82,7 @@
 |---|--------|------|-------------|
 | 29 | 견 이름·사진 메인 | 🟨 | dog detail 페이지 OK. **dashboard greeting 에 강조 약함** |
 | 30 | 칭찬·격려 톤 일관성 | ✅ | voice-guidelines §2 전체 카피 정책 |
-| 31 | 견 변화 시각화 (12주 그래프 + 자연어 요약) | 🟨 | WeightSparkline + analyses 차트. **자연어 요약 "4주 전보다 건강해졌어요" X** |
+| 31 | 견 변화 시각화 (12주 그래프 + 자연어 요약) | ✅ | P9 — summarizeHistory lib + AnalysisView trend 차트 위 narrative chip |
 | 32 | 마일스톤 축하 | ✅ | D3 MilestoneCard + D8.4 365일 → year-in-review CTA |
 
 ### A.8 부정 시나리오 대응 (33~35)
