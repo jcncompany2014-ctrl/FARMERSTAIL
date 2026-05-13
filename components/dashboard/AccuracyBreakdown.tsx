@@ -42,17 +42,20 @@ export default function AccuracyBreakdown({
   variables,
   dogId,
   userBoost,
+  defaultOpen = false,
 }: {
   variables: AccuracyVar[]
   /** P7 — boost 토글 대상 dog. null 이면 토글 숨김 */
   dogId?: string | null
   /** 현재 dogs.accuracy_user_boost. 0 이면 토글 OFF, 0.15 면 ON. */
   userBoost?: number
+  /** P14 — data_lover 페르소나용 자동 펼침 */
+  defaultOpen?: boolean
 }) {
   const router = useRouter()
   const toast = useToast()
   const supabase = createClient()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   const [busy, setBusy] = useState(false)
   const boostOn = (userBoost ?? 0) > 0
 

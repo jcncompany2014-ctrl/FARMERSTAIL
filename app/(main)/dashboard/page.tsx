@@ -33,6 +33,7 @@ import { currentMilestone } from '@/lib/dashboard/milestones'
 import StreakCard from '@/components/dashboard/StreakCard'
 import { computeStreak, type CheckinRow } from '@/lib/dashboard/streaks'
 import PersonaCard from '@/components/dashboard/PersonaCard'
+import DogHelloCard from '@/components/dashboard/DogHelloCard'
 import { computePersona, daysSinceIso, personaCardSpec } from '@/lib/persona'
 import AccuracyCard from '@/components/dashboard/AccuracyCard'
 import AccuracyBreakdown, {
@@ -746,6 +747,15 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      {/* ── P14 emotional 페르소나 — 견 사진 + 이름 hello card. A-29 + A-37
+          반영. 다른 페르소나는 자동 숨김. ── */}
+      {personaResult.dominant === 'emotional' && firstDog && (
+        <DogHelloCard
+          dogName={firstDog.name}
+          photoUrl={firstDogMeta?.photo_url ?? null}
+        />
+      )}
+
       {/* ── 마일스톤 축하 — 가입 후 30/100/365일 등 7일 윈도우. 365일+ 는
           year-in-review 페이지로 CTA 연결. ── */}
       {milestone && (
@@ -781,6 +791,7 @@ export default async function DashboardPage() {
           variables={accuracyVars}
           dogId={firstDog?.id ?? null}
           userBoost={userBoost}
+          defaultOpen={personaResult.dominant === 'data_lover'}
         />
       )}
 

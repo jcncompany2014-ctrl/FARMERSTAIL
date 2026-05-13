@@ -80,7 +80,7 @@
 
 | # | 디테일 | 상태 | 위치 / 비고 |
 |---|--------|------|-------------|
-| 29 | 견 이름·사진 메인 | 🟨 | dog detail 페이지 OK. **dashboard greeting 에 강조 약함** |
+| 29 | 견 이름·사진 메인 | ✅ | P14 — emotional 페르소나일 때 DogHelloCard dashboard 상단 노출 |
 | 30 | 칭찬·격려 톤 일관성 | ✅ | voice-guidelines §2 전체 카피 정책 |
 | 31 | 견 변화 시각화 (12주 그래프 + 자연어 요약) | ✅ | P9 — summarizeHistory lib + AnalysisView trend 차트 위 narrative chip |
 | 32 | 마일스톤 축하 | ✅ | D3 MilestoneCard + D8.4 365일 → year-in-review CTA |
@@ -97,10 +97,10 @@
 
 | # | 디테일 | 상태 | 위치 / 비고 |
 |---|--------|------|-------------|
-| 36 | 데이터 신뢰 타입 | 🟨 | D7.4 data_lover 페르소나. **분석 차트 강조 차별 미세 X** |
-| 37 | 감성 케어 타입 | 🟨 | D7.4 emotional. **사진 강조 / 수치 최소화 차별 X** |
-| 38 | 편의 우선 타입 | 🟨 | D7.4 convenience. **메인 플로우 극단 단순화 X** |
-| 39 | 수의사 의존 타입 | 🟨 | D7.4 vet_dependent. **수의사 연동 강조 미세 X** |
+| 36 | 데이터 신뢰 타입 | ✅ | P14 — data_lover 페르소나 + AccuracyBreakdown 자동 펼침 |
+| 37 | 감성 케어 타입 | ✅ | P14 — emotional + DogHelloCard 상단 노출 |
+| 38 | 편의 우선 타입 | 🟨 | convenience 페르소나 인식 + PersonaCard 정기배송 CTA. 메인 단순화는 부분 |
+| 39 | 수의사 의존 타입 | 🟨 | vet_dependent 페르소나 + PersonaCard "진료 기록 올리기" CTA |
 
 ### A.10 사업 모델 UX (40~42)
 
