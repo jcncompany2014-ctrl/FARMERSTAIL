@@ -138,18 +138,18 @@
 | # | 디테일 | 상태 | 비고 |
 |---|--------|------|------|
 | 15 | 사전 안내 GIF/영상 | 🟨 | PhotoFrameGuide 모달이 정적 SVG. GIF X |
-| 16 | `<video>` 실시간 stream | ⬜ | 본격 in-app 카메라 미구현 |
+| 16 | `<video>` 실시간 stream | ✅ | P22 — InAppCamera getUserMedia + canvas 캡처 + retake |
 | 17 | 강아지 silhouette frame 측면 | ✅ | D6.3 PhotoFrameGuide SVG |
-| 18 | silhouette frame 정면 | ⬜ | 측면만 |
-| 19 | silhouette frame 위에서 | ⬜ | 측면만 |
+| 18 | silhouette frame 정면 | 🟨 | InAppCamera overlay prop. 정면 SVG 컴포넌트 후속 |
+| 19 | silhouette frame 위에서 | 🟨 | InAppCamera overlay prop. 위 SVG 컴포넌트 후속 |
 | 20 | 참조 객체 자리 (신용카드) | ✅ | D6.3 SVG 안에 카드 자리 |
-| 21 | 참조 객체 A4 모드 | ⬜ | 신용카드만 |
-| 22 | 실시간 조명 측정 | ⬜ | 후속 |
-| 23 | 실시간 각도 측정 | ⬜ | 후속 |
+| 21 | 참조 객체 A4 모드 | 🟨 | 신용카드만 현재. A4 overlay 추가 가능 (overlay prop) |
+| 22 | 실시간 조명 측정 | 🟨 | W_image lib 의 brightness 평가 (캡처 후). 실시간은 후속 |
+| 23 | 실시간 각도 측정 | ⬜ | DeviceOrientationEvent — 별도 phase |
 | 24 | 실시간 흔들림 감지 | ⬜ | 후속 |
-| 25 | 캡처 후 W_image 평가 + 결과 표시 | ⬜ | 평가 로직 미구현 |
-| 26 | 임계치 미달 시 어떤 부분 문제인지 짚기 | ⬜ | 후속 |
-| 27 | multi-step wizard (3장 사진) | ⬜ | 단일 사진만 |
+| 25 | 캡처 후 W_image 평가 + 결과 표시 | 🟨 | P22 — computeWImage lib 있음. 캡처 흐름 통합 후속 |
+| 26 | 임계치 미달 시 어떤 부분 문제인지 짚기 | ✅ | P22 — W_image.issues array (어두움/흐림/참조 없음 등) |
+| 27 | multi-step wizard (3장 사진) | 🟨 | InAppCamera 컴포넌트 — 단일 캡처. wizard 호출처가 sequence |
 | 28 | 햅틱 + 셔터 sound 피드백 | 🟨 | haptic.ts 있음. **사진 캡처 시 vibrate 호출 X** |
 | 29 | 음성 안내 | 🟦 | 옵션 (⚪) |
 | 30 | 참조 객체 자동 감지 | 🟦 | 옵션 (⚪) |
@@ -159,8 +159,8 @@
 | # | 디테일 | 상태 | 비고 |
 |---|--------|------|------|
 | 31 | 경량 CNN BCS 분류 | 🟦 | Phase 3, 외부 모델 |
-| 32 | W_image 산출 함수 | ⬜ | 발명 모듈 B 미구현 |
-| 33 | 임계치 0.5 미만 BCS 추정값 미사용 | ⬜ | 추정 로직 없음 |
+| 32 | W_image 산출 함수 | ✅ | P22 — lib/vision/w-image.ts (coverage/brightness/sharpness/ref/view 가중치). PCT flag 가드 |
+| 33 | 임계치 0.5 미만 BCS 추정값 미사용 | ✅ | P22 — usable=false 시 호출처가 BCS 추정 skip |
 | 34 | 자가 입력값 vs BCS 추정 교차검증 | ⬜ | 후속 |
 | 35 | 시계열 BCS 변화율 일관성 검증 | ⬜ | 후속 |
 | 36 | 장모종 "사진만으로 어려움" 안내 | ⬜ | 후속 |
