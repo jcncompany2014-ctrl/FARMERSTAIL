@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/Spinner'
+import type { ChatNudge } from '@/lib/chat/proactive-nudges'
 
 /**
  * AI 영양사 chat client (history 보존 thread).
@@ -51,6 +52,11 @@ export default function ChatClient({
   const [historyLoading, setHistoryLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const threadEndRef = useRef<HTMLDivElement | null>(null)
+  // 챗봇 능동 개입 — history 0건일 때만 1건 nudge 표시. 사용자 입력
+  // 1건이라도 들어오면 자동 hide (messages.length > 0).
+  // dogId 별 24h dismiss 는 localStorage.
+  const [nudge, setNudge] = useState<ChatNudge | null>(null)
+  const [nudgeDismissed, setNudgeDismissed] = useState(false)
 
   // history 로드 (selectedDogId 변경 시마다 다시)
   useEffect(() => {
@@ -58,6 +64,21 @@ export default function ChatClient({
     setHistoryLoading(true)
     setError(null)
     setMessages([])
+    setNudge(null)
+
+    // 24h dismiss 키 — dogId 별 별도
+    const dismissKey = `ft:chat-nudge:dismiss:${selectedDogId || 'general'}`
+    let dismissed = false
+    try {
+      const ts = Number(localStorage.getItem(dismissKey))
+      if (Number.isFinite(ts) && Date.now() - ts < 24 * 3600 * 1000) {
+        dismissed = true
+      }
+    } catch {
+      /* localStorage 차단 환경은 그냥 보여줌 */
+    }
+    setNudgeDismissed(dismissed)
+
     ;(async () => {
       try {
         const url = selectedDogId
@@ -66,7 +87,24 @@ export default function ChatClient({
         const res = await fetch(url, { cache: 'no-store' })
         if (!res.ok) return
         const data = (await res.json()) as { messages: Message[] }
-        if (!cancelled) setMessages(data.messages ?? [])
+        if (cancelled) return
+        const list = data.messages ?? []
+        setMessages(list)
+        // history 가 비어있고 dismiss 안 됐을 때만 nudge fetch
+        if (list.length === 0 && !dismissed) {
+          try {
+            const nudgeUrl = selectedDogId
+              ? `/api/chatbot/nudge?dogId=${selectedDogId}`
+              : '/api/chatbot/nudge'
+            const nres = await fetch(nudgeUrl, { cache: 'no-store' })
+            if (nres.ok && !cancelled) {
+              const nd = (await nres.json()) as { nudge: ChatNudge | null }
+              setNudge(nd.nudge ?? null)
+            }
+          } catch {
+            /* nudge fetch 실패 — silent */
+          }
+        }
       } catch {
         // history 로드 실패는 silent — 새 대화로 시작
       } finally {
@@ -77,6 +115,16 @@ export default function ChatClient({
       cancelled = true
     }
   }, [selectedDogId])
+
+  function dismissNudge() {
+    setNudgeDismissed(true)
+    try {
+      const key = `ft:chat-nudge:dismiss:${selectedDogId || 'general'}`
+      localStorage.setItem(key, String(Date.now()))
+    } catch {
+      /* noop */
+    }
+  }
 
   // 새 메시지 도착 시 자동 스크롤
   useEffect(() => {
@@ -198,6 +246,60 @@ export default function ChatClient({
           </div>
         ) : messages.length === 0 ? (
           <>
+            {/* 능동 개입 nudge — assistant 톤 카드. dismiss 24h. CTA 가 있으면
+                input 에 자동 주입하지만, 사용자가 그대로 send 할지 직접
+                고치든 자유 — 자율성 유지 (voice-guidelines §5). */}
+            {nudge && !nudgeDismissed && (
+              <div
+                className="rounded-2xl border-2 px-4 py-3"
+                style={{
+                  background: 'color-mix(in srgb, var(--terracotta) 5%, white)',
+                  borderColor:
+                    'color-mix(in srgb, var(--terracotta) 28%, transparent)',
+                }}
+                aria-label="영양사 도우미 안내"
+              >
+                <div className="flex items-start gap-2.5">
+                  <span
+                    className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+                    style={{ background: 'var(--terracotta)', color: 'white' }}
+                    aria-hidden
+                  >
+                    <Sparkles className="w-3.5 h-3.5" strokeWidth={2.2} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="text-[12.5px] leading-relaxed"
+                      style={{ color: 'var(--ink)' }}
+                    >
+                      {nudge.message}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      {nudge.promptSuggestion && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInput(nudge.promptSuggestion ?? '')
+                          }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold text-white"
+                          style={{ background: 'var(--terracotta)' }}
+                        >
+                          이 질문으로 시작
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={dismissNudge}
+                        className="text-[11px] font-bold text-muted hover:text-text transition"
+                      >
+                        괜찮아요
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="text-[10.5px] font-bold text-muted uppercase tracking-widest">
               이런 질문은 어때요?
             </div>
