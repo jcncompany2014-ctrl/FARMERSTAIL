@@ -140,16 +140,16 @@
 | 15 | 사전 안내 GIF/영상 | 🟨 | PhotoFrameGuide 모달이 정적 SVG. GIF X |
 | 16 | `<video>` 실시간 stream | ✅ | P22 — InAppCamera getUserMedia + canvas 캡처 + retake |
 | 17 | 강아지 silhouette frame 측면 | ✅ | D6.3 PhotoFrameGuide SVG |
-| 18 | silhouette frame 정면 | 🟨 | InAppCamera overlay prop. 정면 SVG 컴포넌트 후속 |
-| 19 | silhouette frame 위에서 | 🟨 | InAppCamera overlay prop. 위 SVG 컴포넌트 후속 |
-| 20 | 참조 객체 자리 (신용카드) | ✅ | D6.3 SVG 안에 카드 자리 |
-| 21 | 참조 객체 A4 모드 | 🟨 | 신용카드만 현재. A4 overlay 추가 가능 (overlay prop) |
+| 18 | silhouette frame 정면 | ✅ | P23 — DogSilhouette view='front' SVG (얼굴 + 귀 + 코 + 눈) |
+| 19 | silhouette frame 위에서 | ✅ | P23 — DogSilhouette view='top' SVG (위에서 본 타원 + 다리 4) |
+| 20 | 참조 객체 자리 (신용카드) | ✅ | D6.3 + P23 — DogSilhouette reference='card' |
+| 21 | 참조 객체 A4 모드 | ✅ | P23 — DogSilhouette reference='a4' option |
 | 22 | 실시간 조명 측정 | 🟨 | W_image lib 의 brightness 평가 (캡처 후). 실시간은 후속 |
 | 23 | 실시간 각도 측정 | ⬜ | DeviceOrientationEvent — 별도 phase |
 | 24 | 실시간 흔들림 감지 | ⬜ | 후속 |
-| 25 | 캡처 후 W_image 평가 + 결과 표시 | 🟨 | P22 — computeWImage lib 있음. 캡처 흐름 통합 후속 |
+| 25 | 캡처 후 W_image 평가 + 결과 표시 | ✅ | P23 — DogPhotoWizard 가 캡처 직후 computeWImage 호출 + 결과 chip |
 | 26 | 임계치 미달 시 어떤 부분 문제인지 짚기 | ✅ | P22 — W_image.issues array (어두움/흐림/참조 없음 등) |
-| 27 | multi-step wizard (3장 사진) | 🟨 | InAppCamera 컴포넌트 — 단일 캡처. wizard 호출처가 sequence |
+| 27 | multi-step wizard (3장 사진) | ✅ | P23 — DogPhotoWizard 컴포넌트 (측면 → 정면 → 위, 건너뛰기 + 진행 stepper) |
 | 28 | 햅틱 + 셔터 sound 피드백 | 🟨 | haptic.ts 있음. **사진 캡처 시 vibrate 호출 X** |
 | 29 | 음성 안내 | 🟦 | 옵션 (⚪) |
 | 30 | 참조 객체 자동 감지 | 🟦 | 옵션 (⚪) |
