@@ -188,8 +188,8 @@
 | 48 | 영양소별 권장량 | ✅ | nutrition.ts 단백/지방/탄수/섬유/Ca/P |
 | 49 | 신뢰구간 출력 ("380~420 kcal/일") | ✅ | P2 — merConfidenceInterval lib + AnalysisView 표시 |
 | 50 | 다목적 최적화 (영양·알러지·선호·비용) | 🟦 | Phase 3 |
-| 51 | 4종 사료 라인 매칭 | 🟨 | products 4종 있음. **자동 매칭 알고리즘 X** |
-| 52 | 점진적 라인 전환 (100:0 → 80:20) | ⬜ | 후속 |
+| 51 | 4종 사료 라인 매칭 | ✅ | `lib/personalization/firstBox.ts` 룰 30+ 항목 + 알레르기/만성질환/BCS 가중치 |
+| 52 | 점진적 라인 전환 (100:0 → 80:20) | ✅ | `lib/personalization/transfers.ts` + `TransitionStrategy` |
 | 53 | 메타학습 가중치 갱신 | 🟨 | D8.3 sensitivity_snapshots cron. **갱신 RPC X** |
 
 ### B.6 분석 결과 UX (54~61)
@@ -259,9 +259,9 @@
 
 | # | 디테일 | 상태 | 비고 |
 |---|--------|------|------|
-| 92 | 단계적 동의 4단계 | 🟨 | privacy_consent 있음. 4단계 세분 X |
+| 92 | 단계적 동의 4단계 | ✅ | P12 — profiles.consent_level 1~4 + set_consent_level RPC + consent_log 자동 기록 |
 | 93 | 차등 프라이버시 외부 제공 | 🟦 | Phase 4 |
-| 94 | 데이터 가치 환원 — 동의별 포인트 | ⬜ | 후속 |
+| 94 | 데이터 가치 환원 — 동의별 포인트 | ✅ | P12 — 2단계 500P / 3단계 +1000P / 4단계 +2000P 자동 적립 (consent_max_rewarded_level 멱등) |
 | 95 | 동의 변경/철회 UI | ✅ | mypage |
 | 96 | GDPR/PIPA 감사 로그 | ✅ | audit_log |
 
