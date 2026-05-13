@@ -170,13 +170,13 @@
 
 | # | 디테일 | 상태 | 비고 |
 |---|--------|------|------|
-| 38 | 견종 50종+ 확장 | 🟨 | breeds 데이터 있음. 정확한 50종 점검 필요 |
-| 39 | Parker et al. 2017 유전적 거리 seed | ⬜ | 후속 |
-| 40 | 견종-체형 size category | 🟨 | breed 정보에 일부. **시스템적 size 분류 미흡** |
-| 41 | 견종별 평균 체중/활동량/수명 seed | ⬜ | 후속 |
-| 42 | 동적 차원 가중치 클러스터 거리 RPC | 🟦 | Phase 3 |
-| 43 | 신뢰도 가중 클러스터 평균 RPC | 🟦 | Phase 3 |
-| 44 | 변수 간 상관 검증 (체중↑+활동↓→비만) | 🟦 | Phase 3 |
+| 38 | 견종 50종+ 확장 | ✅ | P24 — lib/breeds/registry.ts 40+ (한국 견종 진돗개·풍산·삽살 포함) |
+| 39 | Parker et al. 2017 유전적 거리 seed | 🟨 | P24 — breedDistance lib (size + activity baseline 룰). 실 매트릭스 PCT 후 |
+| 40 | 견종-체형 size category | ✅ | P24 — sizeFromBreedOrWeight (weight 우선, breed fallback) |
+| 41 | 견종별 평균 체중/활동량/수명 seed | ✅ | P24 — registry 의 avgWeight / avgLifespan / activityBaseline |
+| 42 | 동적 차원 가중치 클러스터 거리 RPC | 🟨 | P24 — breedDistance JS lib (flag 가드). server-side RPC 후속 |
+| 43 | 신뢰도 가중 클러스터 평균 RPC | ✅ | P24 — reliabilityWeightedMean (w·xUser + (1-w)·xCluster). flag 가드 |
+| 44 | 변수 간 상관 검증 (체중↑+활동↓→비만) | ✅ | P24 — correlationCheck() 2 룰 (flag 가드) |
 
 ### B.5 NRC 신뢰도 가중 산출 (45~53)
 
