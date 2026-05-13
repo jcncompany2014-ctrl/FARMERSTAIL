@@ -18,6 +18,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import MedicalRecordOcr from '@/components/MedicalRecordOcr'
+import MedicalRecordForm from '@/components/MedicalRecordForm'
 
 export type HealthLog = {
   id: string
@@ -370,6 +371,11 @@ export default function HealthLogClient({
             }
           }}
         />
+      </section>
+
+      {/* 수동 의료 기록 입력 — Phase P6 (B-67 마무리). expandable. */}
+      <section className="px-5 mt-3">
+        <MedicalRecordForm dogId={dogId} />
       </section>
 
       {/* 기록 리스트 */}
