@@ -38,6 +38,7 @@ import AccuracyCard from '@/components/dashboard/AccuracyCard'
 import AccuracyBreakdown, {
   type AccuracyVar,
 } from '@/components/dashboard/AccuracyBreakdown'
+import InsightChip from '@/components/dashboard/InsightChip'
 import {
   feedReliability,
   activityReliability,
@@ -223,6 +224,7 @@ export default async function DashboardPage() {
     { data: dogMetaData },
     { count: chatCount },
     { count: diaryCount },
+    { data: pastSnapshotData },
   ] = await Promise.all([
     supabase.rpc('dashboard_user_snapshot', { p_user_id: user.id }),
     // 대시보드 제품 — 4개만. 더 보고 싶으면 "전체 →" 로 /products 진입.
@@ -290,6 +292,19 @@ export default async function DashboardPage() {
       .from('dog_diary')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id),
+    // P8 — 지난주(7일 전) sensitivity snapshot. 변화율 chip 표시용.
+    // 최신 1건만 가져와 현재와 비교.
+    supabase
+      .from('dog_sensitivity_snapshots')
+      .select('snapshot_at, baseline_state, top_variable, top_delta')
+      .eq('user_id', user.id)
+      .lte(
+        'snapshot_at',
+        new Date(Date.now() - 6 * 86_400_000).toISOString(),
+      )
+      .order('snapshot_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   const showOnboarding =
@@ -766,6 +781,20 @@ export default async function DashboardPage() {
           variables={accuracyVars}
           dogId={firstDog?.id ?? null}
           userBoost={userBoost}
+        />
+      )}
+
+      {/* P8 — sensitivity snapshot 의 가장 영향 큰 변수 1줄 chip.
+          7일 이상 된 snapshot 이 있을 때만 노출 — 신규 사용자에게는 X. */}
+      {pastSnapshotData && (
+        <InsightChip
+          topVariable={
+            (pastSnapshotData as { top_variable: string }).top_variable
+          }
+          topDelta={
+            (pastSnapshotData as { top_delta: number }).top_delta
+          }
+          dogId={firstDog?.id ?? null}
         />
       )}
 
