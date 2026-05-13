@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   ChevronDown,
   ChevronUp,
@@ -8,7 +9,11 @@ import {
   Footprints,
   UtensilsCrossed,
   AlertCircle,
+  Sparkles,
+  Loader2,
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 
 /**
  * AccuracyBreakdown — 변수별 신뢰도 progress bar.
@@ -35,10 +40,40 @@ export type AccuracyVar = {
 
 export default function AccuracyBreakdown({
   variables,
+  dogId,
+  userBoost,
 }: {
   variables: AccuracyVar[]
+  /** P7 — boost 토글 대상 dog. null 이면 토글 숨김 */
+  dogId?: string | null
+  /** 현재 dogs.accuracy_user_boost. 0 이면 토글 OFF, 0.15 면 ON. */
+  userBoost?: number
 }) {
+  const router = useRouter()
+  const toast = useToast()
+  const supabase = createClient()
   const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const boostOn = (userBoost ?? 0) > 0
+
+  async function toggleBoost() {
+    if (!dogId || busy) return
+    setBusy(true)
+    const next = boostOn ? 0 : 0.15
+    const { error } = await supabase
+      .from('dogs')
+      .update({ accuracy_user_boost: next })
+      .eq('id', dogId)
+    setBusy(false)
+    if (error) {
+      toast.error('저장하지 못했어요')
+      return
+    }
+    toast.success(
+      next > 0 ? '맞춤도에 자기 표명을 반영했어요' : '자기 표명을 해제했어요',
+    )
+    router.refresh()
+  }
 
   if (variables.length === 0) return null
 
@@ -99,6 +134,58 @@ export default function AccuracyBreakdown({
                   <strong>{weakest.label}</strong>이 가장 약해요.{' '}
                   {weakest.hint}
                 </p>
+              </div>
+            )}
+
+            {/* P7 — 사용자 자기 표명 토글. User Sovereignty (A-20). 시스템이
+                일방적으로 결정하지 않고 보호자가 직접 +0.15 boost. */}
+            {dogId && (
+              <div
+                className="mt-3 rounded-xl px-3 py-2.5 flex items-start gap-2"
+                style={{
+                  background: boostOn
+                    ? 'color-mix(in srgb, var(--terracotta) 8%, white)'
+                    : 'var(--bg)',
+                  border: '1px solid var(--rule)',
+                }}
+              >
+                <Sparkles
+                  className="w-4 h-4 shrink-0 mt-0.5"
+                  strokeWidth={2}
+                  style={{
+                    color: boostOn ? 'var(--terracotta)' : 'var(--muted)',
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-[12px] leading-relaxed font-bold"
+                    style={{ color: 'var(--ink)' }}
+                  >
+                    내 데이터는 정확해요
+                  </p>
+                  <p
+                    className="text-[10.5px] leading-relaxed mt-0.5"
+                    style={{ color: 'var(--muted)' }}
+                  >
+                    측정 도구가 정확하다고 표명하면 맞춤도에 +15%p 반영돼요.
+                    언제든 해제할 수 있어요.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleBoost}
+                  disabled={busy}
+                  aria-pressed={boostOn}
+                  className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold transition disabled:opacity-60"
+                  style={{
+                    background: boostOn ? 'var(--terracotta)' : 'white',
+                    color: boostOn ? 'white' : 'var(--ink)',
+                    border: `1px solid ${boostOn ? 'var(--terracotta)' : 'var(--rule)'}`,
+                  }}
+                >
+                  {busy && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {boostOn ? '해제' : '표명'}
+                </button>
               </div>
             )}
           </div>

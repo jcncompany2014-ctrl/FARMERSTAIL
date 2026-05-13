@@ -271,12 +271,12 @@ export default async function DashboardPage() {
       .select('dog_id, created_at, cycle_number, checkpoint')
       .eq('user_id', user.id)
       .order('cycle_number', { ascending: true }),
-    // Phase D7.4 + D7.5 — 페르소나 + 맞춤도 계산용 dog meta.
+    // Phase D7.4 + D7.5 + P7 — 페르소나 + 맞춤도 계산용 dog meta.
     // snapshot RPC 가 select 안 하는 컬럼이라 별도 fetch.
     supabase
       .from('dogs')
       .select(
-        'id, photo_url, allergies_source, weight_method, activity_method, feed_method, weight_measured_at',
+        'id, photo_url, allergies_source, weight_method, activity_method, feed_method, weight_measured_at, accuracy_user_boost',
       )
       .eq('user_id', user.id),
     // chatbot 사용자 발화 수 — 챗봇 의존 신호
@@ -460,6 +460,7 @@ export default async function DashboardPage() {
     activity_method: string | null
     feed_method: string | null
     weight_measured_at: string | null
+    accuracy_user_boost: number | null
   }
   const dogMetaList = (dogMetaData ?? []) as DogMetaRow[]
   const firstDogMeta = firstDog
@@ -501,9 +502,11 @@ export default async function DashboardPage() {
       // 간주 — 자체 사료 D2C 의 차별화 신호 (override).
       hasActiveSub ? 'auto_delivery' : firstDogMeta.feed_method,
     )
+  // P7 — 사용자 자기 표명 boost 합산. 최종 [0,1] clamp.
+  const userBoost = firstDogMeta?.accuracy_user_boost ?? 0
   const accuracyScore =
     firstDog && firstDogMeta && daysSinceSignup >= 7 && weightR != null && activityR != null && feedR != null
-      ? overallReliability([weightR, activityR, feedR])
+      ? Math.min(1, overallReliability([weightR, activityR, feedR]) + userBoost)
       : null
   const accuracyVars: AccuracyVar[] = accuracyScore !== null && weightR != null && activityR != null && feedR != null
     ? [
@@ -756,9 +759,14 @@ export default async function DashboardPage() {
       )}
 
       {/* ── 변수별 맞춤도 자세히 — accuracy 카드 아래에 expandable (P3).
-          가장 약한 변수 highlight + 개선 hint. ── */}
+          가장 약한 변수 highlight + 개선 hint. P7 — 자기 표명 boost
+          토글 추가 (User Sovereignty). ── */}
       {accuracyVars.length > 0 && (
-        <AccuracyBreakdown variables={accuracyVars} />
+        <AccuracyBreakdown
+          variables={accuracyVars}
+          dogId={firstDog?.id ?? null}
+          userBoost={userBoost}
+        />
       )}
 
       {/* ── 체크인 스트릭 — currentStreak >= 2 일 때만 카드가 자체 노출.
