@@ -73,6 +73,17 @@ export type DogInfo = {
   activityLevel: 'low' | 'medium' | 'high'
   /** 임신/수유 적용 게이트 — 'female' 만 pregnancyStatus 반영. */
   gender?: 'male' | 'female' | null
+  /**
+   * [A4] 예상 성견 체중 kg.
+   *
+   * lifeStage 임계 결정에 사용. 12개월 골든 puppy (현재 18kg) 가 성견 시
+   * 30kg+ 라면 large breed puppy protocol (18mo) 이 적용돼야 — 단순 현재
+   * 체중만 보면 medium 견으로 분류돼 12mo 에 adult 전환 + puppy factor 1.4
+   * 손실. firstBox.ts 의 expectedAdultWeightKg 와 동일 신호.
+   *
+   * 미지정 / null / 0 시 dog.weight 그대로 사용 (이전 동작).
+   */
+  expectedAdultWeight?: number | null
 }
 
 export type BCSResult = {
@@ -127,17 +138,24 @@ function ageMonths(dog: DogInfo): number {
  */
 function lifeStage(dog: DogInfo): 'puppy' | 'adult' | 'senior' {
   const m = ageMonths(dog)
+  // [A4] size 결정에 expectedAdultWeight 우선. 현재 weight 가 작아도
+  // 성견 체중이 입력되면 그 사이즈 protocol 적용. 미입력 시 current
+  // weight fallback.
+  const sizeWeight =
+    dog.expectedAdultWeight && dog.expectedAdultWeight > 0
+      ? dog.expectedAdultWeight
+      : dog.weight
   // Puppy threshold — size-aware (NRC 2006 + AAFCO 2024).
   //   - 소형 (<10kg): 12개월까지 puppy (조기 성숙)
   //   - 중형 (10-25kg): 12개월까지 puppy
   //   - 대형 (25-45kg): 18개월까지 puppy (성장 protocol 연장)
   //   - 초대형 (>45kg): 24개월까지 puppy
   const puppyThreshold =
-    dog.weight > 45 ? 24 : dog.weight > 25 ? 18 : 12
+    sizeWeight > 45 ? 24 : sizeWeight > 25 ? 18 : 12
   if (m < puppyThreshold) return 'puppy'
   // Senior threshold — size-aware (WSAVA 2021).
   const seniorThreshold =
-    dog.weight < 10 ? 108 : dog.weight > 25 ? 72 : 84
+    sizeWeight < 10 ? 108 : sizeWeight > 25 ? 72 : 84
   if (m >= seniorThreshold) return 'senior'
   return 'adult'
 }
