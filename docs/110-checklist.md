@@ -66,7 +66,7 @@
 | 22 | 사진 옵션 + 보상 명확 시만 | ✅ | DogPhotoPicker "강제 X" 카피. 보상 정책은 후속 |
 | 23 | 카메라 가이드 (실루엣 + AR) | 🟨 | D6.3 PhotoFrameGuide 모달 + SVG silhouette. **in-app `<video>` 실시간 stream X** |
 | 24 | "1장만 좋아도 OK" 정책 | ✅ | 현재 단일 사진 받음. 모듈 B 다중 사진 wizard 미구현이라 자동 만족 |
-| 25 | 친구가 찍어주기 (link sharing) | ⬜ | 친구 link 발송 후 웹 업로드 흐름 미구현 |
+| 25 | 친구가 찍어주기 (link sharing) | ✅ | P5 — photo_request_tokens + 익명 페이지 + Web Share API + 자동 적용 |
 
 ### A.6 첫 4주 보호 (26~28)
 

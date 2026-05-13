@@ -42,6 +42,7 @@ import CurrentFormulaCard from './_components/CurrentFormulaCard'
 import SubscriptionCard from './_components/SubscriptionCard'
 import DogFamilyMembers from '@/components/DogFamilyMembers'
 import VetShareButton from '@/components/VetShareButton'
+import PhotoRequestButton from '@/components/PhotoRequestButton'
 
 export default function DogDetailPage() {
   const router = useRouter()
@@ -699,6 +700,11 @@ export default function DogDetailPage() {
       {/* Phase D8.2 — 수의사 read-only 공유 토큰. 클립보드 자동 복사 + revoke. */}
       <section className="px-5 mt-3">
         <VetShareButton dogId={dog.id} dogName={dog.name} />
+      </section>
+
+      {/* Phase P5 — 친구 사진 부탁 링크. 익명 업로드 → dog.photo_url 자동 적용. */}
+      <section className="px-5 mt-3">
+        <PhotoRequestButton dogId={dog.id} dogName={dog.name} />
       </section>
 
       {/* Secondary actions */}
