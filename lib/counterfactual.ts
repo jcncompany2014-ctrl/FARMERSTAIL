@@ -1,3 +1,9 @@
+import {
+  calculateNutrition,
+  type DogInfo,
+  type SurveyAnswers,
+} from './nutrition.ts'
+
 /**
  * 반사실 시뮬레이션 (Counterfactual / What-if).
  *
@@ -37,30 +43,72 @@ export type DogState = {
 }
 
 /**
- * 1차 단순 모델로 일일 권장 그램 계산.
+ * [A2 fix] 일일 권장 그램 계산 — 실제 calculateNutrition() wrapping.
  *
- * RER = 70 × W^0.75
- * MER = RER × activityFactor × stage modifier × BCS modifier × neuter modifier
- * feedG = MER / kcalPerGram   (자체 화식 기준 ≈ 3.5 kcal/g)
+ * 이전 (KCAL_PER_GRAM=3.5 고정 + 단순 modifier 식) 은 nutrition.ts 의
+ * BCS 9점 정확 factor / 임신·수유 / 신뢰구간 모두 무시. sensitivity 결과가
+ * 실 처방과 어긋남 → 발명 핵심 청구항인데 보호자 신뢰 깨짐.
  *
- * 자체 사료 정확도 측면에서 kcalPerGram 은 사료 종류별 상이. 여기서는 평균.
+ * 통합 후: DogState → calculateNutrition() 호출 → feedG 그대로 반환.
+ * Lifecycle / BCS / neuter / activity 모두 동일 로직 사용.
  */
 const KCAL_PER_GRAM = 3.5
 
 export function feedGramsModel(state: DogState): number {
   if (state.weightKg <= 0) return 0
-  const rer = 70 * Math.pow(state.weightKg, 0.75)
-  let factor = state.activityFactor
-  // BCS 보정 — 7+ 감량 / 3- 증량
-  if (state.bcs >= 7) factor *= 0.85
-  if (state.bcs <= 3) factor *= 1.15
-  // 라이프 스테이지
-  if (state.lifeStage === 'puppy') factor *= 1.4
-  if (state.lifeStage === 'senior') factor *= 0.9
-  // 중성화 — MER 약 10% ↓
-  if (state.neutered) factor *= 0.9
-  const mer = rer * factor
-  return Math.round(mer / KCAL_PER_GRAM)
+
+  // activityFactor (숫자) → activityLevel ('low'/'medium'/'high') 매핑.
+  // 1.4 미만 = low / 1.5 이상 = high / 그 사이 = medium.
+  const activityLevel: 'low' | 'medium' | 'high' =
+    state.activityFactor < 1.4
+      ? 'low'
+      : state.activityFactor > 1.5
+        ? 'high'
+        : 'medium'
+
+  // lifeStage → ageValue/ageUnit 매핑. nutrition.lifeStage() 가 weight 와
+  // age 로 stage 결정하므로, perturbation 의도가 보존되게 stage 명시 강제는
+  // age 값 — puppy 6mo / adult 36mo / senior 96mo (대형견 일관 매핑).
+  const { ageValue, ageUnit } =
+    state.lifeStage === 'puppy'
+      ? { ageValue: 6 as const, ageUnit: 'months' as const }
+      : state.lifeStage === 'senior'
+        ? { ageValue: 10 as const, ageUnit: 'years' as const }
+        : { ageValue: 3 as const, ageUnit: 'years' as const }
+
+  // BCS clamp + bcsExact 로 전달 — calculateNutrition 의 9점 정확 factor
+  // 사용 (5단계 매핑 보다 정확).
+  const bcsExact = Math.max(1, Math.min(9, Math.round(state.bcs))) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+
+  const dogInfo: DogInfo = {
+    weight: state.weightKg,
+    ageValue,
+    ageUnit,
+    neutered: state.neutered,
+    activityLevel,
+    gender: null,
+  }
+  const surveyAnswers: SurveyAnswers = {
+    bodyCondition: 'ideal', // bcsExact 가 우선이라 무시됨
+    allergies: [],
+    healthConcerns: [],
+    bcsExact,
+  }
+
+  try {
+    const result = calculateNutrition(dogInfo, surveyAnswers)
+    return result.feedG
+  } catch {
+    // 실 calculation 실패 시 단순 fallback (이전 모델 그대로)
+    const rer = 70 * Math.pow(state.weightKg, 0.75)
+    let factor = state.activityFactor
+    if (state.bcs >= 7) factor *= 0.85
+    if (state.bcs <= 3) factor *= 1.15
+    if (state.lifeStage === 'puppy') factor *= 1.4
+    if (state.lifeStage === 'senior') factor *= 0.9
+    if (state.neutered) factor *= 0.9
+    return Math.round((rer * factor) / KCAL_PER_GRAM)
+  }
 }
 
 export type Perturbation =

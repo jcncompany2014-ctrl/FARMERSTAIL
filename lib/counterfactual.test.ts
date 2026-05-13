@@ -42,10 +42,16 @@ describe('feedGramsModel', () => {
     assert.ok(puppy > adult)
   })
 
-  it('senior 는 adult 보다 grams 작음', () => {
-    const adult = feedGramsModel(base)
-    const senior = feedGramsModel({ ...base, lifeStage: 'senior' })
-    assert.ok(senior < adult)
+  it('senior 는 활동 보통/높음 adult 보다 grams 작음 (A2: calculateNutrition 통합)', () => {
+    // A2 fix 후: calculateNutrition 사용. adult low(1.2) ≈ senior(1.2) 일 수
+    // 있으니, adult medium(1.6) 과 비교해야 senior 가 분명히 작음.
+    const adultMedium = feedGramsModel({ ...base, activityFactor: 1.6 })
+    const senior = feedGramsModel({
+      ...base,
+      activityFactor: 1.6,
+      lifeStage: 'senior',
+    })
+    assert.ok(senior < adultMedium, `senior=${senior} adult=${adultMedium}`)
   })
 
   it('neutered 는 ~10% 감소', () => {
