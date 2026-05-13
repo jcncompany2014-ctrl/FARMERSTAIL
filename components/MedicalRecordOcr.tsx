@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import type { MedicalRecordExtract } from '@/lib/vision/parseMedicalRecord'
+import { isAdvancedUiEnabled } from '@/lib/ui-flags'
 
 /**
  * 진료 영수증 / 처방전 OCR 진입 컴포넌트.
@@ -54,6 +55,8 @@ export default function MedicalRecordOcr({
   const toast = useToast()
   const inputRef = useRef<HTMLInputElement>(null)
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
+  // 초기 단계 — 사용자 부담 ↓. default OFF.
+  if (!isAdvancedUiEnabled('ocr')) return null
 
   async function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]

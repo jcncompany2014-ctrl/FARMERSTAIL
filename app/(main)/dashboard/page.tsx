@@ -45,6 +45,7 @@ import AccuracyBreakdown, {
   type AccuracyVar,
 } from '@/components/dashboard/AccuracyBreakdown'
 import InsightChip from '@/components/dashboard/InsightChip'
+import { isInventionEnabled } from '@/lib/invention-flags'
 import {
   feedReliability,
   activityReliability,
@@ -776,8 +777,9 @@ export default async function DashboardPage() {
       )}
 
       {/* ── 맞춤도 카드 — 측정 도구 + 최근성 기반. accuracyScore null 이면
-          비표시 (가입 7일 미만 / dog 없음). 발명 모듈 C UI. ── */}
-      {accuracyScore !== null && (
+          비표시 (가입 7일 미만 / dog 없음). 발명 모듈 C UI.
+          INVENTION_CORE OFF 면 카드 hide. ── */}
+      {isInventionEnabled('core') && accuracyScore !== null && (
         <AccuracyCard
           score={accuracyScore}
           dogId={firstDog?.id ?? null}
@@ -788,8 +790,8 @@ export default async function DashboardPage() {
       {/* ── 변수별 맞춤도 자세히 — accuracy 카드 아래에 expandable (P3).
           가장 약한 변수 highlight + 개선 hint. P7 — 자기 표명 boost
           토글 추가 (User Sovereignty). P27 — convenience 페르소나는
-          정보 밀도 ↓ 위해 자동 숨김 (A-38). ── */}
-      {accuracyVars.length > 0 && personaResult.dominant !== 'convenience' && (
+          정보 밀도 ↓ 위해 자동 숨김 (A-38). INVENTION_CORE OFF 면 hide. ── */}
+      {isInventionEnabled('core') && accuracyVars.length > 0 && personaResult.dominant !== 'convenience' && (
         <AccuracyBreakdown
           variables={accuracyVars}
           dogId={firstDog?.id ?? null}
@@ -799,8 +801,9 @@ export default async function DashboardPage() {
       )}
 
       {/* P8 — sensitivity snapshot 의 가장 영향 큰 변수 1줄 chip.
-          7일 이상 된 snapshot 이 있을 때만 노출 — 신규 사용자에게는 X. */}
-      {pastSnapshotData && (
+          7일 이상 된 snapshot 이 있을 때만 노출 — 신규 사용자에게는 X.
+          INVENTION_COUNTERFACTUAL OFF 면 hide. */}
+      {isInventionEnabled('counterfactual') && pastSnapshotData && (
         <InsightChip
           topVariable={
             (pastSnapshotData as { top_variable: string }).top_variable

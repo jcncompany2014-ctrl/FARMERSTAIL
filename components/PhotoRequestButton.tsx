@@ -9,6 +9,7 @@ import {
   Heart,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { isAdvancedUiEnabled } from '@/lib/ui-flags'
 
 /**
  * PhotoRequestButton — 친구·가족에게 강아지 사진 한 장 부탁하는 토큰
@@ -34,6 +35,8 @@ export default function PhotoRequestButton({
   const [busy, setBusy] = useState(false)
   const [url, setUrl] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
+  // 초기 단계 — 사용자 부담 ↓. default OFF.
+  if (!isAdvancedUiEnabled('photo_request')) return null
 
   async function generate() {
     if (busy) return

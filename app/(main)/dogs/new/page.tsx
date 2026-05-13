@@ -15,6 +15,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import DogPhotoPicker from '@/components/DogPhotoPicker'
 import { resolvePhotoState, type PhotoState } from '@/lib/dogPhotos'
+import { isAdvancedUiEnabled } from '@/lib/ui-flags'
 
 /**
  * datepicker (YYYY-MM-DD) → 자정 KST 의 timestamptz ISO 변환.
@@ -371,36 +372,40 @@ export default function NewDogPage() {
             enterKeyHint="done"
           />
           {/* 측정 도구 — 발명 모듈 A. 정확도가 높을수록 맞춤도 ↑.
-              voice-guidelines §7 "모름" 옵션 기본값. 강제 X. */}
-          <select
-            value={weightMethod}
-            onChange={(e) =>
-              setWeightMethod(e.target.value as typeof weightMethod)
-            }
-            className={`${inputCls} mt-2 text-[12px]`}
-            aria-label="체중 측정 도구"
-          >
-            <option value="unknown">측정 방법 — 모름</option>
-            <option value="vet_scale">동물병원 체중계</option>
-            <option value="home_digital">가정용 디지털</option>
-            <option value="home_analog">가정용 아날로그</option>
-            <option value="hold">안고 재기</option>
-            <option value="eyeball">눈으로 추정</option>
-          </select>
-          <p className="mt-1.5 text-[10px] text-muted">
-            정확한 도구일수록 맞춤도가 올라가요. 모르면 그대로 두셔도 돼요.
-          </p>
-          {/* 측정 일자 datepicker — default 오늘. (Claude 100 #2) */}
-          <input
-            type="date"
-            value={weightMeasuredAt}
-            onChange={(e) => setWeightMeasuredAt(e.target.value)}
-            className={`${inputCls} mt-2 text-[12px]`}
-            aria-label="체중 측정 일자"
-          />
-          <p className="mt-1 text-[10px] text-muted">
-            측정 일자가 오늘에 가까울수록 맞춤도가 올라가요
-          </p>
+              voice-guidelines §7 "모름" 옵션 기본값. 강제 X.
+              초기 단계 — ui-flag 'advanced_inputs' OFF 면 hide. */}
+          {isAdvancedUiEnabled('advanced_inputs') && (
+            <>
+              <select
+                value={weightMethod}
+                onChange={(e) =>
+                  setWeightMethod(e.target.value as typeof weightMethod)
+                }
+                className={`${inputCls} mt-2 text-[12px]`}
+                aria-label="체중 측정 도구"
+              >
+                <option value="unknown">측정 방법 — 모름</option>
+                <option value="vet_scale">동물병원 체중계</option>
+                <option value="home_digital">가정용 디지털</option>
+                <option value="home_analog">가정용 아날로그</option>
+                <option value="hold">안고 재기</option>
+                <option value="eyeball">눈으로 추정</option>
+              </select>
+              <p className="mt-1.5 text-[10px] text-muted">
+                정확한 도구일수록 맞춤도가 올라가요. 모르면 그대로 두셔도 돼요.
+              </p>
+              <input
+                type="date"
+                value={weightMeasuredAt}
+                onChange={(e) => setWeightMeasuredAt(e.target.value)}
+                className={`${inputCls} mt-2 text-[12px]`}
+                aria-label="체중 측정 일자"
+              />
+              <p className="mt-1 text-[10px] text-muted">
+                측정 일자가 오늘에 가까울수록 맞춤도가 올라가요
+              </p>
+            </>
+          )}
         </div>
 
         <div>
@@ -458,45 +463,47 @@ export default function NewDogPage() {
               )
             })}
           </div>
-          {/* 활동량 측정 도구 — Claude 100 #4. 만보계/GPS 면 신뢰도 0.95.
-              voice-guidelines §7 "모름" 기본. */}
-          <select
-            value={activityMethod}
-            onChange={(e) =>
-              setActivityMethod(e.target.value as typeof activityMethod)
-            }
-            className={`${inputCls} mt-2 text-[12px]`}
-            aria-label="활동량 측정 도구"
-          >
-            <option value="unknown">측정 도구 — 모름</option>
-            <option value="pedometer">만보계 / 스마트태그</option>
-            <option value="gps">GPS 트래커</option>
-            <option value="subjective">주관 추정</option>
-          </select>
+          {/* 활동량 측정 도구 — Claude 100 #4. ui-flag 'advanced_inputs' OFF 면 hide. */}
+          {isAdvancedUiEnabled('advanced_inputs') && (
+            <select
+              value={activityMethod}
+              onChange={(e) =>
+                setActivityMethod(e.target.value as typeof activityMethod)
+              }
+              className={`${inputCls} mt-2 text-[12px]`}
+              aria-label="활동량 측정 도구"
+            >
+              <option value="unknown">측정 도구 — 모름</option>
+              <option value="pedometer">만보계 / 스마트태그</option>
+              <option value="gps">GPS 트래커</option>
+              <option value="subjective">주관 추정</option>
+            </select>
+          )}
         </div>
 
-        {/* 급여량 측정 도구 — Claude 100 #8. auto_delivery 정기배송 시 자동
-            추적 1.0. voice-guidelines §7 "모름" 기본. */}
-        <div>
-          <label className={labelCls}>급여량 측정 도구</label>
-          <select
-            value={feedMethod}
-            onChange={(e) =>
-              setFeedMethod(e.target.value as typeof feedMethod)
-            }
-            className={`${inputCls} text-[12px]`}
-            aria-label="급여량 측정 도구"
-          >
-            <option value="unknown">측정 도구 — 모름</option>
-            <option value="auto_delivery">자체 사료 자동 추적</option>
-            <option value="scale">저울</option>
-            <option value="cup">계량컵</option>
-            <option value="eyeball">눈대중</option>
-          </select>
-          <p className="mt-1 text-[10px] text-muted">
-            정기배송을 이용하시면 자동 추적이 가능해요
-          </p>
-        </div>
+        {/* 급여량 측정 도구 — Claude 100 #8. ui-flag 'advanced_inputs' OFF 면 hide. */}
+        {isAdvancedUiEnabled('advanced_inputs') && (
+          <div>
+            <label className={labelCls}>급여량 측정 도구</label>
+            <select
+              value={feedMethod}
+              onChange={(e) =>
+                setFeedMethod(e.target.value as typeof feedMethod)
+              }
+              className={`${inputCls} text-[12px]`}
+              aria-label="급여량 측정 도구"
+            >
+              <option value="unknown">측정 도구 — 모름</option>
+              <option value="auto_delivery">자체 사료 자동 추적</option>
+              <option value="scale">저울</option>
+              <option value="cup">계량컵</option>
+              <option value="eyeball">눈대중</option>
+            </select>
+            <p className="mt-1 text-[10px] text-muted">
+              정기배송을 이용하시면 자동 추적이 가능해요
+            </p>
+          </div>
+        )}
 
         {error && (
           <div className="flex items-start gap-2 text-[12px] text-sale font-semibold bg-[#FFF5F3] border border-sale/20 rounded-xl px-4 py-3">

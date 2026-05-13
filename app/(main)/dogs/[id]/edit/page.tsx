@@ -17,6 +17,7 @@ import { useToast } from '@/components/ui/Toast'
 import DogPhotoPicker from '@/components/DogPhotoPicker'
 import { resolvePhotoState, type PhotoState } from '@/lib/dogPhotos'
 import { isUpgrade, type MethodKind } from '@/lib/rewards/measurement-upgrade'
+import { isAdvancedUiEnabled } from '@/lib/ui-flags'
 
 const BREEDS = [
   '포메라니안', '말티즈', '푸들', '토이푸들', '시츄', '비숑 프리제',
@@ -477,7 +478,9 @@ export default function EditDogPage() {
           </div>
         </div>
 
-        {/* Phase P10 — 측정 도구 메타. 변경 시 업그레이드 보상 1,000P. */}
+        {/* Phase P10 — 측정 도구 메타. 변경 시 업그레이드 보상 1,000P.
+            초기 단계 — ui-flag 'advanced_inputs' OFF 면 hide. */}
+        {isAdvancedUiEnabled('advanced_inputs') && (
         <div className="border-t border-rule pt-4 space-y-3">
           <div className="text-[11px] font-bold uppercase tracking-widest text-muted">
             측정 도구 (선택)
@@ -528,8 +531,11 @@ export default function EditDogPage() {
             정확한 도구로 바꾸면 응원 포인트 1,000P 적립돼요 (kind 별 1회).
           </p>
         </div>
+        )}
 
-        {/* Phase P19 — 추가 입력 메타 (옵션). voice-guidelines §7 — 모름 default. */}
+        {/* Phase P19 — 추가 입력 메타 (옵션). voice-guidelines §7 — 모름 default.
+            ui-flag 'advanced_inputs' OFF 면 hide. */}
+        {isAdvancedUiEnabled('advanced_inputs') && (
         <div className="border-t border-rule pt-4 space-y-3">
           <div className="text-[11px] font-bold uppercase tracking-widest text-muted">
             상세 입력 (선택)
@@ -647,6 +653,7 @@ export default function EditDogPage() {
             </div>
           </div>
         </div>
+        )}
 
         {error && (
           <div className="flex items-start gap-2 text-[12px] text-sale font-semibold bg-[#FFF5F3] border border-sale/20 rounded-xl px-4 py-3">

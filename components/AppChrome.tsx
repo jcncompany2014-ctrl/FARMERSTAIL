@@ -44,9 +44,16 @@ const TABS: Tab[] = [
   { href: '/mypage', label: '내 정보', Icon: User },
 ]
 
+/**
+ * 액션 집중 라우트 — 상단 header / 하단 nav 모두 hide. 설문 / 체크인 /
+ * 처방 승인 같은 step-by-step 흐름에서 시각 부담 ↓. 사용자 피드백 반영.
+ */
+const FOCUS_PATHS = ['/survey', '/checkin', '/approve']
+
 export default function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const supabase = createClient()
+  const focusMode = FOCUS_PATHS.some((p) => pathname.includes(p))
 
   const [cartCount, setCartCount] = useState(0)
   const [scrolled, setScrolled] = useState(false)
@@ -140,7 +147,8 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     // 주석 참고. 바깥 body도 --bg-2로 어두워져 "프레임 밖" 느낌이 산다.
     <WishlistProvider>
     <div className="phone-frame min-h-screen bg-bg" data-ft-chrome="app">
-      {/* 상단 헤더 */}
+      {/* 상단 헤더 — focus mode (설문/체크인 등) 에서는 hide */}
+      {!focusMode && (
       <header
         className={`sticky top-0 z-40 bg-bg/90 backdrop-blur-xl transition-all duration-200 ${
           scrolled
@@ -225,11 +233,19 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
+      )}
 
       {/* 페이지 컨텐츠 — main padding-bottom 도 nav 키운 만큼 같이 키워야
           마지막 컨텐츠가 nav 에 가려지지 않음. nav 내부 = 8px tap padding +
-          88px tab content + 12px home-bar gap. */}
-      <main className="max-w-md mx-auto pb-[calc(100px+env(safe-area-inset-bottom))]">
+          88px tab content + 12px home-bar gap.
+          focus mode (설문 등) 에선 nav 가 없으니 padding 줄임. */}
+      <main
+        className={`max-w-md mx-auto ${
+          focusMode
+            ? 'pb-[env(safe-area-inset-bottom)]'
+            : 'pb-[calc(100px+env(safe-area-inset-bottom))]'
+        }`}
+      >
         {children}
         {/* 앱 컨텍스트는 SiteFooter 숨김 — 사업자 정보 / 약관 / 환불정책 등은
             마이페이지 메뉴에서 진입. 매 페이지 하단에 노출되면 한국 앱 사용자
@@ -240,7 +256,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       {/* PWA 설치 프롬프트 — 스마트하게 한 번만 노출 */}
       <InstallPrompt />
 
-      {/* 하단 탭 네비게이션.
+      {/* 하단 탭 네비게이션. focus mode (설문 등) 에서는 hide.
           모바일(<md): viewport 전폭으로 붙는다 (left-0 right-0).
           데스크톱(≥md): 폰 프레임 폭으로 재조준. `fixed` 자체는 viewport에
           고정시켜야 스크롤 상관없이 하단에 박히므로, frame 안에 containing-
@@ -248,6 +264,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           - `md:left-1/2 md:right-auto`: viewport 중앙에서 출발
           - `md:-translate-x-1/2`: 자기 폭의 절반만큼 왼쪽으로 당겨 센터링
           - `md:w-full md:max-w-md`: 프레임과 같은 폭(448px) 확보 */}
+      {!focusMode && (
       <nav
         className="fixed bottom-0 left-0 right-0 z-40 bg-bg/95 backdrop-blur-xl border-t border-rule md:left-1/2 md:right-auto md:w-full md:max-w-md md:-translate-x-1/2 md:rounded-b-[inherit]"
         // iOS home indicator 와 충분히 거리. safe-area-inset-bottom 만 적용
@@ -304,6 +321,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+      )}
 
       {/* 전역 미니 카트 토스트 — 'ft:cart:add' 이벤트 listen */}
       <MiniCartToast />

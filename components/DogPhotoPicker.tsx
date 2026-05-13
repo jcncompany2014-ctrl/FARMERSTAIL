@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Camera, Dog as DogIcon, X, Lightbulb, HelpCircle } from 'lucide-react'
 import { MAX_PHOTO_BYTES, type PhotoState } from '@/lib/dogPhotos'
 import PhotoFrameGuide from './PhotoFrameGuide'
+import { isAdvancedUiEnabled } from '@/lib/ui-flags'
 
 const ACCEPTED = 'image/jpeg,image/png,image/webp,image/gif'
 
@@ -27,6 +28,8 @@ export default function DogPhotoPicker({
   // 촬영 가이드 모달 — 신분증 촬영처럼 frame 안내. 발명 모듈 B 보조.
   // 가이드 모달 닫힐 때 또는 "이대로 사진 선택" 시 file input 트리거.
   const [guideOpen, setGuideOpen] = useState(false)
+  // 초기 단계 — 촬영 팁 / 신용카드 안내 hide. default OFF.
+  const showPhotoTips = isAdvancedUiEnabled('photo_tips')
 
   // revoke any created object URLs on unmount / replacement
   useEffect(() => {
@@ -142,8 +145,9 @@ export default function DogPhotoPicker({
             : '강아지 사진을 올려주세요 (최대 3MB)'}
         </div>
         {/* 발명 모듈 B 안내 — 참조 객체 함께 촬영 시 절대 크기 보정.
-            voice-guidelines §11 사진은 옵션. 강제 X. */}
-        {!displayUrl && state.action !== 'remove' && (
+            voice-guidelines §11 사진은 옵션. 강제 X.
+            초기 단계 — ui-flag 'photo_tips' OFF 면 hide. */}
+        {showPhotoTips && !displayUrl && state.action !== 'remove' && (
           <div
             className="mt-2 inline-flex items-start gap-1.5 text-[10.5px] leading-relaxed"
             style={{ color: 'var(--terracotta)' }}
@@ -165,16 +169,19 @@ export default function DogPhotoPicker({
             <Camera className="w-3 h-3" strokeWidth={2} />
             {displayUrl ? '변경' : '선택'}
           </button>
-          {/* 촬영 가이드 — 모달 트리거. 작은 보조 링크라 강제감 없음. */}
-          <button
-            type="button"
-            onClick={() => setGuideOpen(true)}
-            className="inline-flex items-center gap-1 px-2 py-1.5 text-[11px] font-bold text-muted hover:text-terracotta transition"
-            aria-label="촬영 가이드 보기"
-          >
-            <HelpCircle className="w-3 h-3" strokeWidth={2} />
-            촬영 팁
-          </button>
+          {/* 촬영 가이드 — 모달 트리거. 작은 보조 링크라 강제감 없음.
+              ui-flag 'photo_tips' OFF 면 hide. */}
+          {showPhotoTips && (
+            <button
+              type="button"
+              onClick={() => setGuideOpen(true)}
+              className="inline-flex items-center gap-1 px-2 py-1.5 text-[11px] font-bold text-muted hover:text-terracotta transition"
+              aria-label="촬영 가이드 보기"
+            >
+              <HelpCircle className="w-3 h-3" strokeWidth={2} />
+              촬영 팁
+            </button>
+          )}
           {canRemove && (
             <button
               type="button"

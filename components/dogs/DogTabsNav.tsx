@@ -71,8 +71,15 @@ const TABS: readonly Tab[] = [
   },
 ] as const
 
+/**
+ * 액션 중심 sub-route (survey/checkin/approve) 에서는 tab nav 자체를 숨김.
+ * 사용자가 흐름에 집중할 수 있게 시각 부담 ↓. 사용자 피드백 반영.
+ */
+const HIDE_ON_PATHS = ['/survey', '/checkin', '/approve']
+
 export default function DogTabsNav({ dogId }: { dogId: string }) {
   const pathname = usePathname()
+  if (HIDE_ON_PATHS.some((p) => pathname.includes(p))) return null
 
   return (
     <nav

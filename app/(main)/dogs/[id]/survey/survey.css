@@ -9,7 +9,7 @@
    ========================================================================= */
 
 /* Step header */
-.s-stepwrap { padding: 14px 22px 8px; }
+.s-stepwrap { padding: 8px 22px 4px; }
 .s-stepwrap .s-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .s-stepwrap .s-step-no {
   font-family: var(--font-mono), "JetBrains Mono", monospace;
@@ -39,9 +39,11 @@
 .s-progress .s-ticks span:first-child,
 .s-progress .s-ticks span:last-child { visibility: hidden; }
 
-/* Page chrome — step 전환 시 부드러운 slide-up + fade animation */
+/* Page chrome — step 전환 시 부드러운 slide-up + fade animation.
+   focus mode (AppChrome 의 header/nav hide) 적용으로 한 화면 fit
+   가능하게 padding 축소. 사용자 피드백 반영. */
 .s-page {
-  padding: 18px 22px 32px;
+  padding: 10px 22px 16px;
   animation: s-page-enter 220ms cubic-bezier(.32, .72, .0, 1);
 }
 @keyframes s-page-enter {
@@ -57,8 +59,8 @@
   letter-spacing: -0.025em;
   color: var(--ink);
   line-height: 1.18;
-  font-size: 26px;
-  margin: 6px 0 10px;
+  font-size: 22px;
+  margin: 4px 0 6px;
   /* programmatic focus (step 전환 시 a11y) — 시각 outline 제거,
      keyboard tab focus 시는 outline 유지 */
   outline: none;
@@ -69,8 +71,8 @@
   border-radius: 4px;
 }
 .s-page p.s-sub {
-  font-size: 13px; color: var(--muted); line-height: 1.6;
-  margin: 0 0 22px;
+  font-size: 12px; color: var(--muted); line-height: 1.5;
+  margin: 0 0 12px;
   text-wrap: pretty;
 }
 .s-page p.s-sub .s-pill {
@@ -102,7 +104,7 @@
 }
 
 /* Echo summary chips */
-.s-echo { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.s-echo { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .s-echo .s-e {
   display: inline-flex; align-items: center; gap: 5px;
   background: var(--bg-2); color: var(--ink);
@@ -128,7 +130,7 @@
   flex: 0 0 auto;
   white-space: nowrap;
 }
-.s-sect { margin-top: 24px; }
+.s-sect { margin-top: 14px; }
 .s-sect:first-of-type { margin-top: 6px; }
 
 /* Pickcard 3-grid (BCS) */
