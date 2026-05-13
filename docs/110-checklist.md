@@ -119,13 +119,13 @@
 | # | 디테일 | 상태 | 비고 |
 |---|--------|------|------|
 | 1 | 체중 측정 도구 select | ✅ | dogs.weight_method CHECK + new 페이지 select |
-| 2 | 체중 측정 일자 datepicker | 🟨 | weight_measured_at 컬럼 있음. **신규 등록 시 datepicker UI X (default=today)** |
+| 2 | 체중 측정 일자 datepicker | ✅ | P1 — input[type=date] default=오늘, KST 자정 ISO 변환 |
 | 3 | 체중 측정자 select (본인/가족/수의사) | ⬜ | dogs 컬럼 추가 필요 |
-| 4 | 활동량 측정 도구 select | 🟨 | activity_method CHECK 있음. **UI select X** |
+| 4 | 활동량 측정 도구 select | ✅ | P1 — pedometer/gps/subjective/unknown |
 | 5 | 활동량 측정 기간 select | ⬜ | 컬럼/UI 모두 X |
 | 6 | 산책 강도 select | ⬜ | 컬럼/UI X |
 | 7 | 주말·평일 활동량 구분 | ⬜ | 후속 |
-| 8 | 급여량 측정 도구 select | 🟨 | feed_method CHECK 있음. **UI select X** |
+| 8 | 급여량 측정 도구 select | ✅ | P1 — auto_delivery/scale/cup/eyeball/unknown |
 | 9 | 간식 빈도 select | ⬜ | 후속 |
 | 10 | 간식 종류 multi-select | ⬜ | 후속 |
 | 11 | 인간 음식 급여 toggle | ⬜ | 후속 |

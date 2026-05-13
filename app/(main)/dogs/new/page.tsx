@@ -16,6 +16,18 @@ import { createClient } from '@/lib/supabase/client'
 import DogPhotoPicker from '@/components/DogPhotoPicker'
 import { resolvePhotoState, type PhotoState } from '@/lib/dogPhotos'
 
+/**
+ * datepicker (YYYY-MM-DD) → 자정 KST 의 timestamptz ISO 변환.
+ * 측정 일자가 오늘이면 현재 시각 그대로 — recencyScore 1.0 보존.
+ */
+function weightMeasuredAtIso(yyyymmdd: string): string {
+  const today = new Date()
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  if (yyyymmdd === todayKey) return today.toISOString()
+  // KST 자정으로 해석 (서울 UTC+9)
+  return new Date(`${yyyymmdd}T00:00:00+09:00`).toISOString()
+}
+
 const BREEDS = [
   '포메라니안', '말티즈', '푸들', '토이푸들', '시츄', '비숑 프리제',
   '골든 리트리버', '래브라도 리트리버', '진돗개', '웰시코기',
@@ -44,9 +56,24 @@ export default function NewDogPage() {
   const [weightMethod, setWeightMethod] = useState<
     'vet_scale' | 'home_digital' | 'home_analog' | 'hold' | 'eyeball' | 'unknown'
   >('unknown')
+  // 체중 측정 일자 — default 오늘. recencyScore 입력값. (Claude 100 #2)
+  const [weightMeasuredAt, setWeightMeasuredAt] = useState<string>(() => {
+    const d = new Date()
+    const yy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yy}-${mm}-${dd}`
+  })
   const [activityLevel, setActivityLevel] = useState<
     'low' | 'medium' | 'high' | ''
   >('')
+  // 활동량 측정 도구 (Claude 100 #4) + 급여량 측정 도구 (#8).
+  const [activityMethod, setActivityMethod] = useState<
+    'pedometer' | 'gps' | 'subjective' | 'unknown'
+  >('unknown')
+  const [feedMethod, setFeedMethod] = useState<
+    'auto_delivery' | 'scale' | 'cup' | 'eyeball' | 'unknown'
+  >('unknown')
   const [photoState, setPhotoState] = useState<PhotoState>({ action: 'keep' })
 
   useEffect(() => {
@@ -119,7 +146,10 @@ export default function NewDogPage() {
         weight: parseFloat(weight),
         activity_level: activityLevel,
         weight_method: weightMethod,
-        weight_measured_at: new Date().toISOString(),
+        // datepicker (YYYY-MM-DD) → 자정 KST ISO. 'today' default 면 현재 시각.
+        weight_measured_at: weightMeasuredAtIso(weightMeasuredAt),
+        activity_method: activityMethod,
+        feed_method: feedMethod,
       })
       .select('id')
       .single()
@@ -360,6 +390,17 @@ export default function NewDogPage() {
           <p className="mt-1.5 text-[10px] text-muted">
             정확한 도구일수록 맞춤도가 올라가요. 모르면 그대로 두셔도 돼요.
           </p>
+          {/* 측정 일자 datepicker — default 오늘. (Claude 100 #2) */}
+          <input
+            type="date"
+            value={weightMeasuredAt}
+            onChange={(e) => setWeightMeasuredAt(e.target.value)}
+            className={`${inputCls} mt-2 text-[12px]`}
+            aria-label="체중 측정 일자"
+          />
+          <p className="mt-1 text-[10px] text-muted">
+            측정 일자가 오늘에 가까울수록 맞춤도가 올라가요
+          </p>
         </div>
 
         <div>
@@ -417,6 +458,44 @@ export default function NewDogPage() {
               )
             })}
           </div>
+          {/* 활동량 측정 도구 — Claude 100 #4. 만보계/GPS 면 신뢰도 0.95.
+              voice-guidelines §7 "모름" 기본. */}
+          <select
+            value={activityMethod}
+            onChange={(e) =>
+              setActivityMethod(e.target.value as typeof activityMethod)
+            }
+            className={`${inputCls} mt-2 text-[12px]`}
+            aria-label="활동량 측정 도구"
+          >
+            <option value="unknown">측정 도구 — 모름</option>
+            <option value="pedometer">만보계 / 스마트태그</option>
+            <option value="gps">GPS 트래커</option>
+            <option value="subjective">주관 추정</option>
+          </select>
+        </div>
+
+        {/* 급여량 측정 도구 — Claude 100 #8. auto_delivery 정기배송 시 자동
+            추적 1.0. voice-guidelines §7 "모름" 기본. */}
+        <div>
+          <label className={labelCls}>급여량 측정 도구</label>
+          <select
+            value={feedMethod}
+            onChange={(e) =>
+              setFeedMethod(e.target.value as typeof feedMethod)
+            }
+            className={`${inputCls} text-[12px]`}
+            aria-label="급여량 측정 도구"
+          >
+            <option value="unknown">측정 도구 — 모름</option>
+            <option value="auto_delivery">자체 사료 자동 추적</option>
+            <option value="scale">저울</option>
+            <option value="cup">계량컵</option>
+            <option value="eyeball">눈대중</option>
+          </select>
+          <p className="mt-1 text-[10px] text-muted">
+            정기배송을 이용하시면 자동 추적이 가능해요
+          </p>
         </div>
 
         {error && (
