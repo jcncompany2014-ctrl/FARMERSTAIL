@@ -787,8 +787,9 @@ export default async function DashboardPage() {
 
       {/* ── 변수별 맞춤도 자세히 — accuracy 카드 아래에 expandable (P3).
           가장 약한 변수 highlight + 개선 hint. P7 — 자기 표명 boost
-          토글 추가 (User Sovereignty). ── */}
-      {accuracyVars.length > 0 && (
+          토글 추가 (User Sovereignty). P27 — convenience 페르소나는
+          정보 밀도 ↓ 위해 자동 숨김 (A-38). ── */}
+      {accuracyVars.length > 0 && personaResult.dominant !== 'convenience' && (
         <AccuracyBreakdown
           variables={accuracyVars}
           dogId={firstDog?.id ?? null}

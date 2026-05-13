@@ -99,8 +99,8 @@
 |---|--------|------|-------------|
 | 36 | 데이터 신뢰 타입 | ✅ | P14 — data_lover 페르소나 + AccuracyBreakdown 자동 펼침 |
 | 37 | 감성 케어 타입 | ✅ | P14 — emotional + DogHelloCard 상단 노출 |
-| 38 | 편의 우선 타입 | 🟨 | convenience 페르소나 인식 + PersonaCard 정기배송 CTA. 메인 단순화는 부분 |
-| 39 | 수의사 의존 타입 | 🟨 | vet_dependent 페르소나 + PersonaCard "진료 기록 올리기" CTA |
+| 38 | 편의 우선 타입 | ✅ | P27 — convenience 페르소나일 때 AccuracyBreakdown 자동 숨김 (메인 단순화) |
+| 39 | 수의사 의존 타입 | ✅ | D7.4 + P27 — vet_dependent 페르소나 PersonaCard "진료 기록 올리기" CTA |
 
 ### A.10 사업 모델 UX (40~42)
 
@@ -131,7 +131,7 @@
 | 11 | 인간 음식 급여 toggle | ✅ | P19 — 모름/예/아니오 3분기 button |
 | 12 | 알러지 "자가 vs 수의사" 분리 | ✅ | allergies_source CHECK |
 | 13 | 수의사 진단서 이미지 첨부 | ✅ | P4 — OCR onConfirm → medical_records source='ocr' |
-| 14 | 복약 정보 자유 텍스트 + 자동완성 | ⬜ | 후속 |
+| 14 | 복약 정보 자유 텍스트 + 자동완성 | ✅ | P27 — lib/medications/registry.ts 30+ 약품 + searchMedications typeahead |
 
 ### B.2 카메라 UX (15~30)
 
@@ -144,7 +144,7 @@
 | 19 | silhouette frame 위에서 | ✅ | P23 — DogSilhouette view='top' SVG (위에서 본 타원 + 다리 4) |
 | 20 | 참조 객체 자리 (신용카드) | ✅ | D6.3 + P23 — DogSilhouette reference='card' |
 | 21 | 참조 객체 A4 모드 | ✅ | P23 — DogSilhouette reference='a4' option |
-| 22 | 실시간 조명 측정 | 🟨 | W_image lib 의 brightness 평가 (캡처 후). 실시간은 후속 |
+| 22 | 실시간 조명 측정 | ✅ | P27 — lib/vision/canvas-analyzer.ts analyzeImage (brightness + sharpness + coverage canvas pixel) |
 | 23 | 실시간 각도 측정 | ⬜ | DeviceOrientationEvent — 별도 phase |
 | 24 | 실시간 흔들림 감지 | ⬜ | 후속 |
 | 25 | 캡처 후 W_image 평가 + 결과 표시 | ✅ | P23 — DogPhotoWizard 가 캡처 직후 computeWImage 호출 + 결과 chip |
