@@ -698,11 +698,20 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {/* ── 마일스톤 축하 — 가입 후 30/100/365일 등 7일 윈도우 ── */}
+      {/* ── 마일스톤 축하 — 가입 후 30/100/365일 등 7일 윈도우. 365일+ 는
+          year-in-review 페이지로 CTA 연결. ── */}
       {milestone && (
         <MilestoneCard
           milestone={milestone}
           dogName={firstDog?.name ?? null}
+          cta={
+            milestone.daysSince >= 365 && firstDog
+              ? {
+                  href: `/dogs/${firstDog.id}/year-in-review`,
+                  label: '한 해 회고 보기',
+                }
+              : null
+          }
         />
       )}
 

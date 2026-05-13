@@ -1,4 +1,5 @@
-import { PartyPopper } from 'lucide-react'
+import Link from 'next/link'
+import { PartyPopper, ArrowRight } from 'lucide-react'
 import type { Milestone } from '@/lib/dashboard/milestones'
 import { renderMilestoneMessage } from '@/lib/dashboard/milestones'
 
@@ -10,13 +11,19 @@ import { renderMilestoneMessage } from '@/lib/dashboard/milestones'
  *
  * 마일스톤 도달 후 7일 동안 자동 노출. 같은 마일스톤이 다시 안 보이도록
  * 도달 날짜 기록은 클라이언트 localStorage (server snapshot 부담 ↓).
+ *
+ * # CTA (옵션)
+ * 365일+ 마일스톤은 호출처가 cta { href, label } 을 전달 — "회고 보기"
+ * 같은 행동 유도. 미전달 시 카드는 read-only 축하만.
  */
 export default function MilestoneCard({
   milestone,
   dogName,
+  cta,
 }: {
   milestone: Milestone
   dogName: string | null
+  cta?: { href: string; label: string } | null
 }) {
   const message = renderMilestoneMessage(milestone, dogName)
 
@@ -61,6 +68,16 @@ export default function MilestoneCard({
             >
               {message}
             </p>
+            {cta && (
+              <Link
+                href={cta.href}
+                className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold text-white transition active:scale-[0.99]"
+                style={{ background: accent }}
+              >
+                {cta.label}
+                <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
+              </Link>
+            )}
           </div>
         </div>
       </div>
