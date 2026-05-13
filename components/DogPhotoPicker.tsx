@@ -137,6 +137,19 @@ export default function DogPhotoPicker({
             ? '탭해서 사진을 변경할 수 있어요'
             : '강아지 사진을 올려주세요 (최대 3MB)'}
         </div>
+        {/* 발명 모듈 B 안내 — 참조 객체 함께 촬영 시 절대 크기 보정.
+            voice-guidelines §11 사진은 옵션. 강제 X. */}
+        {!displayUrl && state.action !== 'remove' && (
+          <div
+            className="mt-2 inline-flex items-start gap-1.5 text-[10.5px] leading-relaxed"
+            style={{ color: 'var(--terracotta)' }}
+          >
+            <span aria-hidden>💡</span>
+            <span>
+              신용카드를 같이 찍으면 맞춤도가 더 정확해요
+            </span>
+          </div>
+        )}
         <div className="flex items-center gap-2 mt-2">
           <button
             type="button"

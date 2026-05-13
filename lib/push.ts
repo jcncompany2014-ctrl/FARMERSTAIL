@@ -130,6 +130,23 @@ export async function pushToUser(
     }
   }
 
+  // 능동 개입 빈도 상한 — voice-guidelines §5 정책 (주 2건).
+  // marketing / order 같이 정보 / 거래 사유는 제외. 'cart' / 'restock' 같이
+  // 사용자 행동 권유성 push 만 빈도 체크. category 없거나 정보성이면 통과.
+  // 7일 sliding window 으로 같은 user 의 권유성 push 가 2건 이상이면 skip.
+  if (opts?.category === 'cart' || opts?.category === 'restock') {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
+    const { count } = await supabase
+      .from('push_log')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .in('category', ['cart', 'restock'])
+      .gte('sent_at', sevenDaysAgo)
+    if ((count ?? 0) >= 2) {
+      return { ok: true, sent: 0, dead: 0, reason: 'RATE_LIMITED_WEEKLY' }
+    }
+  }
+
   const { data: subs } = await supabase
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth')
