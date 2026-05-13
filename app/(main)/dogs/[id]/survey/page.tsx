@@ -760,6 +760,38 @@ export default function SurveyPage() {
       }
     }
 
+    // 설문 완료 응원 포인트 — voice-guidelines §10. 강제 보상이 아닌
+    // "정성 들였으니 감사" 톤. apply_point_delta 의 partial unique index
+    // (user_id, reference_type, reference_id) 가 같은 survey 재적립 차단 →
+    // 사용자가 분석 페이지 다시 방문해도 중복 발생 X.
+    try {
+      const { data: rewardData } = await supabase.rpc('apply_point_delta', {
+        p_user_id: user.id,
+        p_delta: 1000,
+        p_reason: '정성껏 답변해주신 설문 응원 포인트',
+        p_reference_type: 'survey_completion',
+        p_reference_id: surveyData.id,
+      })
+      const row = Array.isArray(rewardData) ? rewardData[0] : rewardData
+      // already_applied 면 row.ok=true 이지만 message 로 구분 — 토스트 X.
+      if (
+        row?.ok &&
+        row?.message !== 'already_applied' &&
+        typeof window !== 'undefined'
+      ) {
+        sessionStorage.setItem(
+          'ft:survey-reward',
+          JSON.stringify({
+            amount: 1000,
+            balanceAfter: row.balance_after ?? null,
+            ts: Date.now(),
+          }),
+        )
+      }
+    } catch {
+      // 보상 적립 실패는 분석 흐름에 영향 X — 조용히 넘어감.
+    }
+
     trackSurveyCompleted(dogId)
     router.push(`/dogs/${dogId}/analysis`)
     router.refresh()
