@@ -223,13 +223,13 @@
 
 | # | 디테일 | 상태 | 비고 |
 |---|--------|------|------|
-| 71 | 4주 후 자동 trigger cron | 🟨 | D8.3 주간 cron. **4주 trigger 별도 X** |
+| 71 | 4주 후 자동 trigger cron | ✅ | P25 — /api/cron/reanalyze-trigger 주간 (월 06:00 KST) |
 | 72 | 변수별 1차 기여도 (가지치기) | ✅ | sensitivityAnalysis 6 perturbation |
-| 73 | 상위 변수만 본격 시뮬레이션 | 🟨 | top_variable 추출 있음. **재시뮬레이션 X** |
-| 74 | P(실측\|X정확) - P(실측\|X부정확) | 🟦 | Phase 3 |
-| 75 | 신뢰도 점수 갱신 (모멘텀) | 🟦 | Phase 3 |
-| 76 | 트리거 조건 5가지 | 🟨 | 주간 cron 하나만 |
-| 77 | 결과 사용자 nudge 자동 생성 | ⬜ | 후속 |
+| 73 | 상위 변수만 본격 시뮬레이션 | 🟨 | top_variable 추출 있음. 재시뮬레이션은 PCT 후 |
+| 74 | P(실측\|X정확) - P(실측\|X부정확) | 🟨 | reanalyze-trigger 의 weight_drift 조건. P_diff 정밀 계산은 PCT 후 |
+| 75 | 신뢰도 점수 갱신 (모멘텀) | 🟦 | Phase 4 (P26 메타학습) |
+| 76 | 트리거 조건 5가지 | ✅ | P25 — shouldReanalyze lib + 5 reasons + flag 가드 |
+| 77 | 결과 사용자 nudge 자동 생성 | ✅ | P25 — pushToUser ("새 분석을 받아볼까요?" + reason text) |
 
 ### B.9 능동 개입/푸시 (78~85)
 

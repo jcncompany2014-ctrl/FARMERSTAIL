@@ -85,6 +85,10 @@
     {
       "path": "/api/cron/meta-weights",
       "schedule": "0 5 1 * *"
+    },
+    {
+      "path": "/api/cron/reanalyze-trigger",
+      "schedule": "0 6 * * 1"
     }
   ]
 }
