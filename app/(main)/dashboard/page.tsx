@@ -30,6 +30,8 @@ import NextActionCard from '@/components/dashboard/NextActionCard'
 import OnboardingTutorial from '@/components/dashboard/OnboardingTutorial'
 import MilestoneCard from '@/components/dashboard/MilestoneCard'
 import { currentMilestone } from '@/lib/dashboard/milestones'
+import StreakCard from '@/components/dashboard/StreakCard'
+import { computeStreak, type CheckinRow } from '@/lib/dashboard/streaks'
 
 /**
  * Dashboard — 로그인 후 홈 화면.
@@ -205,6 +207,7 @@ export default async function DashboardPage() {
     { data: latestWeightsData },
     { data: dogAnalysesData },
     { data: onboardData },
+    { data: checkinsData },
   ] = await Promise.all([
     supabase.rpc('dashboard_user_snapshot', { p_user_id: user.id }),
     // 대시보드 제품 — 4개만. 더 보고 싶으면 "전체 →" 로 /products 진입.
@@ -245,6 +248,14 @@ export default async function DashboardPage() {
       .select('onboarded_at')
       .eq('id', user.id)
       .maybeSingle(),
+    // 체크인 스트릭 계산용 — 첫 dog 의 cycle 만 client filter. user-level 전체
+    // row 라 다중 견에도 호환. cycle_number 오름차순으로 받아 streak 계산이
+    // 그대로 통과. 사용자당 통상 수십 row → 비용 무시 가능.
+    supabase
+      .from('dog_checkins')
+      .select('dog_id, created_at, cycle_number, checkpoint')
+      .eq('user_id', user.id)
+      .order('cycle_number', { ascending: true }),
   ])
 
   const showOnboarding =
@@ -390,6 +401,15 @@ export default async function DashboardPage() {
   // 첫 강아지 기준 (가족 다중 견은 추후 phase). voice-guidelines §10 정책.
   const firstDog = dogs[0]
   const milestone = currentMilestone(userCreatedAt)
+
+  // 체크인 스트릭 — 첫 강아지의 cycle 카운트. currentStreak >= 2 일 때만
+  // StreakCard 가 렌더. 다중 견 합산은 D7 phase 에서 분리.
+  type CheckinRowFull = CheckinRow & { dog_id: string }
+  const allCheckins = (checkinsData ?? []) as CheckinRowFull[]
+  const firstDogCheckins = firstDog
+    ? allCheckins.filter((c) => c.dog_id === firstDog.id)
+    : []
+  const streak = computeStreak(firstDogCheckins)
 
   // 분석 받은 강아지가 1마리도 없으면 = 신규 사용자 / 첫 설문 안 한 상태.
   // (참고용 변수 — 현재 secondary 영역 자체가 모두 false 로 잠겨 있어 분기
@@ -598,6 +618,10 @@ export default async function DashboardPage() {
           dogName={firstDog?.name ?? null}
         />
       )}
+
+      {/* ── 체크인 스트릭 — currentStreak >= 2 일 때만 카드가 자체 노출.
+          1회는 압박이 되므로 비표시. voice-guidelines §10. ── */}
+      <StreakCard streak={streak} dogName={firstDog?.name ?? null} />
 
       {/* ── 오늘 할 일 — 매일 들렀을 때 한 가지 액션. nextAction null 이면
           렌더 안 함 (모든 상태 정상 = 카드 비표시 → 화면 가벼워짐). ── */}
