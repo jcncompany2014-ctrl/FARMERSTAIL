@@ -54,6 +54,14 @@ export default function EditDogPage() {
   const [initialWeightMethod, setInitialWeightMethod] = useState<string>('unknown')
   const [initialActivityMethod, setInitialActivityMethod] = useState<string>('unknown')
   const [initialFeedMethod, setInitialFeedMethod] = useState<string>('unknown')
+  // Phase P19 — 추가 입력 메타 (B-3, B-5, B-6, B-9, B-10, B-11).
+  // 모두 nullable / unknown default. voice-guidelines §7.
+  const [weightMeasuredBy, setWeightMeasuredBy] = useState<string>('unknown')
+  const [activityPeriod, setActivityPeriod] = useState<string>('unknown')
+  const [walkIntensity, setWalkIntensity] = useState<string>('unknown')
+  const [treatFrequency, setTreatFrequency] = useState<string>('unknown')
+  const [treatTypes, setTreatTypes] = useState<string[]>([])
+  const [humanFoodGiven, setHumanFoodGiven] = useState<boolean | null>(null)
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [photoState, setPhotoState] = useState<PhotoState>({ action: 'keep' })
@@ -100,6 +108,13 @@ export default function EditDogPage() {
       setInitialWeightMethod(wm)
       setInitialActivityMethod(am)
       setInitialFeedMethod(fm)
+      // Phase P19 — 추가 메타 (nullable). null 이면 'unknown' fallback.
+      setWeightMeasuredBy(data.weight_measured_by ?? 'unknown')
+      setActivityPeriod(data.activity_period ?? 'unknown')
+      setWalkIntensity(data.walk_intensity ?? 'unknown')
+      setTreatFrequency(data.treat_frequency ?? 'unknown')
+      setTreatTypes(Array.isArray(data.treat_types) ? data.treat_types : [])
+      setHumanFoodGiven(data.human_food_given ?? null)
       setPhotoUrl(data.photo_url ?? null)
       setUserId(user.id)
       setLoadingInit(false)
@@ -174,6 +189,13 @@ export default function EditDogPage() {
         weight_method: weightMethod,
         activity_method: activityMethod,
         feed_method: feedMethod,
+        // Phase P19 — 추가 메타. 'unknown' 은 null 로 저장해 컬럼 CHECK 통과
+        weight_measured_by: weightMeasuredBy === 'unknown' ? null : weightMeasuredBy,
+        activity_period: activityPeriod === 'unknown' ? null : activityPeriod,
+        walk_intensity: walkIntensity === 'unknown' ? null : walkIntensity,
+        treat_frequency: treatFrequency === 'unknown' ? null : treatFrequency,
+        treat_types: treatTypes.length > 0 ? treatTypes : null,
+        human_food_given: humanFoodGiven,
         // 체중 input 변경 시 measured_at 도 갱신 (사용자가 바로 잰 것)
         weight_measured_at:
           weight !== '' ? new Date().toISOString() : undefined,
@@ -505,6 +527,125 @@ export default function EditDogPage() {
           <p className="text-[10.5px] text-muted leading-relaxed">
             정확한 도구로 바꾸면 응원 포인트 1,000P 적립돼요 (kind 별 1회).
           </p>
+        </div>
+
+        {/* Phase P19 — 추가 입력 메타 (옵션). voice-guidelines §7 — 모름 default. */}
+        <div className="border-t border-rule pt-4 space-y-3">
+          <div className="text-[11px] font-bold uppercase tracking-widest text-muted">
+            상세 입력 (선택)
+          </div>
+          <div>
+            <label className={labelCls}>체중 측정자</label>
+            <select
+              value={weightMeasuredBy}
+              onChange={(e) => setWeightMeasuredBy(e.target.value)}
+              className={`${inputCls} text-[12px]`}
+            >
+              <option value="unknown">모름</option>
+              <option value="self">본인</option>
+              <option value="family">가족</option>
+              <option value="vet">수의사</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>활동량 측정 기간</label>
+            <select
+              value={activityPeriod}
+              onChange={(e) => setActivityPeriod(e.target.value)}
+              className={`${inputCls} text-[12px]`}
+            >
+              <option value="unknown">모름</option>
+              <option value="daily">1일 평균</option>
+              <option value="weekly">1주 평균</option>
+              <option value="monthly">1개월 평균</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>산책 강도</label>
+            <select
+              value={walkIntensity}
+              onChange={(e) => setWalkIntensity(e.target.value)}
+              className={`${inputCls} text-[12px]`}
+            >
+              <option value="unknown">모름</option>
+              <option value="walk">걷기</option>
+              <option value="jog">조깅</option>
+              <option value="run">뜀</option>
+              <option value="mixed">섞임</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>간식 빈도</label>
+            <select
+              value={treatFrequency}
+              onChange={(e) => setTreatFrequency(e.target.value)}
+              className={`${inputCls} text-[12px]`}
+            >
+              <option value="unknown">모름</option>
+              <option value="none">안 줌</option>
+              <option value="rare">가끔</option>
+              <option value="weekly">주 1~2회</option>
+              <option value="daily">매일</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>간식 종류 (복수 선택)</label>
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {['육포', '껌', '과일', '채소', '쿠키', '동결건조'].map((t) => {
+                const active = treatTypes.includes(t)
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() =>
+                      setTreatTypes((prev) =>
+                        active
+                          ? prev.filter((x) => x !== t)
+                          : [...prev, t],
+                      )
+                    }
+                    aria-pressed={active}
+                    className="px-3 py-1.5 rounded-full text-[11px] font-bold transition"
+                    style={{
+                      background: active ? 'var(--ink)' : 'white',
+                      color: active ? 'white' : 'var(--text)',
+                      border: '1px solid var(--rule)',
+                    }}
+                  >
+                    {t}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <div>
+            <label className={labelCls}>인간 음식 급여</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { v: null, t: '모름' },
+                { v: true, t: '예' },
+                { v: false, t: '아니오' },
+              ].map((o) => {
+                const active = humanFoodGiven === o.v
+                return (
+                  <button
+                    key={String(o.v)}
+                    type="button"
+                    onClick={() => setHumanFoodGiven(o.v)}
+                    aria-pressed={active}
+                    className="py-2 rounded-lg text-[12px] font-bold transition"
+                    style={{
+                      background: active ? 'var(--ink)' : 'white',
+                      color: active ? 'white' : 'var(--text)',
+                      border: '1px solid var(--rule)',
+                    }}
+                  >
+                    {o.t}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </div>
 
         {error && (

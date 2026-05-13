@@ -120,15 +120,15 @@
 |---|--------|------|------|
 | 1 | 체중 측정 도구 select | ✅ | dogs.weight_method CHECK + new 페이지 select |
 | 2 | 체중 측정 일자 datepicker | ✅ | P1 — input[type=date] default=오늘, KST 자정 ISO 변환 |
-| 3 | 체중 측정자 select (본인/가족/수의사) | 🟨 | P17 — dogs.weight_measured_by 컬럼 추가. UI 후속 |
+| 3 | 체중 측정자 select (본인/가족/수의사) | ✅ | P19 — edit 페이지 select UI |
 | 4 | 활동량 측정 도구 select | ✅ | P1 — pedometer/gps/subjective/unknown |
-| 5 | 활동량 측정 기간 select | 🟨 | P17 — dogs.activity_period 컬럼 추가. UI 후속 |
-| 6 | 산책 강도 select | 🟨 | P17 — dogs.walk_intensity 컬럼 추가. UI 후속 |
+| 5 | 활동량 측정 기간 select | ✅ | P19 — edit 페이지 select UI (daily/weekly/monthly) |
+| 6 | 산책 강도 select | ✅ | P19 — edit 페이지 select UI (walk/jog/run/mixed) |
 | 7 | 주말·평일 활동량 구분 | ⬜ | 후속 |
 | 8 | 급여량 측정 도구 select | ✅ | P1 — auto_delivery/scale/cup/eyeball/unknown |
-| 9 | 간식 빈도 select | 🟨 | P17 — dogs.treat_frequency 컬럼 추가. UI 후속 |
-| 10 | 간식 종류 multi-select | 🟨 | P17 — dogs.treat_types text[] 컬럼 추가. UI 후속 |
-| 11 | 인간 음식 급여 toggle | 🟨 | P17 — dogs.human_food_given boolean 컬럼 추가. UI 후속 |
+| 9 | 간식 빈도 select | ✅ | P19 — none/rare/weekly/daily |
+| 10 | 간식 종류 multi-select | ✅ | P19 — 육포/껌/과일/채소/쿠키/동결건조 토글 chip |
+| 11 | 인간 음식 급여 toggle | ✅ | P19 — 모름/예/아니오 3분기 button |
 | 12 | 알러지 "자가 vs 수의사" 분리 | ✅ | allergies_source CHECK |
 | 13 | 수의사 진단서 이미지 첨부 | ✅ | P4 — OCR onConfirm → medical_records source='ocr' |
 | 14 | 복약 정보 자유 텍스트 + 자동완성 | ⬜ | 후속 |
