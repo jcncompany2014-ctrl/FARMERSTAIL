@@ -270,9 +270,9 @@
 | # | 디테일 | 상태 | 비고 |
 |---|--------|------|------|
 | 97 | admin raw 데이터 CSV 다운로드 | 🟨 | admin 페이지 csv 일부. **차등 프라이버시 옵션 X** |
-| 98 | admin 변수별 신뢰도 분포 대시보드 | ⬜ | 후속 |
-| 99 | admin 반사실 시뮬레이션 모니터링 | ⬜ | 후속 |
-| 100 | admin 능동 개입 A/B 효과 패널 | ⬜ | 후속 |
+| 98 | admin 변수별 신뢰도 분포 대시보드 | ✅ | P16 — /admin/personalization-insights 측정 도구 + boost 분포 |
+| 99 | admin 반사실 시뮬레이션 모니터링 | ✅ | P16 — top_variable 30일 히스토그램 |
+| 100 | admin 능동 개입 A/B 효과 패널 | 🟨 | P16 — push 카테고리 분포 (CTR / open rate 는 후속) |
 
 ---
 
