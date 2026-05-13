@@ -41,6 +41,7 @@ import WeightSparkline from './_components/WeightSparkline'
 import CurrentFormulaCard from './_components/CurrentFormulaCard'
 import SubscriptionCard from './_components/SubscriptionCard'
 import DogFamilyMembers from '@/components/DogFamilyMembers'
+import VetShareButton from '@/components/VetShareButton'
 
 export default function DogDetailPage() {
   const router = useRouter()
@@ -693,6 +694,11 @@ export default function DogDetailPage() {
           isOwner={true}
           ownerName={ownerName}
         />
+      </section>
+
+      {/* Phase D8.2 — 수의사 read-only 공유 토큰. 클립보드 자동 복사 + revoke. */}
+      <section className="px-5 mt-3">
+        <VetShareButton dogId={dog.id} dogName={dog.name} />
       </section>
 
       {/* Secondary actions */}
