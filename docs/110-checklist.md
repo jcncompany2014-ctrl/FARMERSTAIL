@@ -120,15 +120,15 @@
 |---|--------|------|------|
 | 1 | 체중 측정 도구 select | ✅ | dogs.weight_method CHECK + new 페이지 select |
 | 2 | 체중 측정 일자 datepicker | ✅ | P1 — input[type=date] default=오늘, KST 자정 ISO 변환 |
-| 3 | 체중 측정자 select (본인/가족/수의사) | ⬜ | dogs 컬럼 추가 필요 |
+| 3 | 체중 측정자 select (본인/가족/수의사) | 🟨 | P17 — dogs.weight_measured_by 컬럼 추가. UI 후속 |
 | 4 | 활동량 측정 도구 select | ✅ | P1 — pedometer/gps/subjective/unknown |
-| 5 | 활동량 측정 기간 select | ⬜ | 컬럼/UI 모두 X |
-| 6 | 산책 강도 select | ⬜ | 컬럼/UI X |
+| 5 | 활동량 측정 기간 select | 🟨 | P17 — dogs.activity_period 컬럼 추가. UI 후속 |
+| 6 | 산책 강도 select | 🟨 | P17 — dogs.walk_intensity 컬럼 추가. UI 후속 |
 | 7 | 주말·평일 활동량 구분 | ⬜ | 후속 |
 | 8 | 급여량 측정 도구 select | ✅ | P1 — auto_delivery/scale/cup/eyeball/unknown |
-| 9 | 간식 빈도 select | ⬜ | 후속 |
-| 10 | 간식 종류 multi-select | ⬜ | 후속 |
-| 11 | 인간 음식 급여 toggle | ⬜ | 후속 |
+| 9 | 간식 빈도 select | 🟨 | P17 — dogs.treat_frequency 컬럼 추가. UI 후속 |
+| 10 | 간식 종류 multi-select | 🟨 | P17 — dogs.treat_types text[] 컬럼 추가. UI 후속 |
+| 11 | 인간 음식 급여 toggle | 🟨 | P17 — dogs.human_food_given boolean 컬럼 추가. UI 후속 |
 | 12 | 알러지 "자가 vs 수의사" 분리 | ✅ | allergies_source CHECK |
 | 13 | 수의사 진단서 이미지 첨부 | ✅ | P4 — OCR onConfirm → medical_records source='ocr' |
 | 14 | 복약 정보 자유 텍스트 + 자동완성 | ⬜ | 후속 |
@@ -190,7 +190,7 @@
 | 50 | 다목적 최적화 (영양·알러지·선호·비용) | 🟦 | Phase 3 |
 | 51 | 4종 사료 라인 매칭 | ✅ | `lib/personalization/firstBox.ts` 룰 30+ 항목 + 알레르기/만성질환/BCS 가중치 |
 | 52 | 점진적 라인 전환 (100:0 → 80:20) | ✅ | `lib/personalization/transfers.ts` + `TransitionStrategy` |
-| 53 | 메타학습 가중치 갱신 | 🟨 | D8.3 sensitivity_snapshots cron. **갱신 RPC X** |
+| 53 | 메타학습 가중치 갱신 | ✅ | P17 — algorithm_meta_weights 테이블 + 월간 cron /api/cron/meta-weights (skeleton) |
 
 ### B.6 분석 결과 UX (54~61)
 
@@ -250,7 +250,7 @@
 |---|--------|------|------|
 | 86 | `/vet` portal | ✅ | D8.2 `/vet/[token]` |
 | 87 | 수의사 입력값 W=1.0 골든 | ⬜ | 수의사 직접 입력 endpoint X |
-| 88 | 시스템 자가 보정 (수의사 데이터 학습) | 🟦 | Phase 4 |
+| 88 | 시스템 자가 보정 (수의사 데이터 학습) | 🟨 | P17 — meta-weights cron 에 medical_records source='vet' 카운트 적재 (실 calibration 알고리즘은 PCT 후) |
 | 89 | 사전 진료 리포트 PDF | ✅ | P15 — window.print() + @media print 인쇄 friendly CSS |
 | 90 | 수의사 처방 자동 사료 조성 반영 | 🟦 | Phase 4 |
 | 91 | 수의사 인증 / 면허 verification | 🟦 | Phase 4 |

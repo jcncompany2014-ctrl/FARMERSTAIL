@@ -34,7 +34,12 @@ import StreakCard from '@/components/dashboard/StreakCard'
 import { computeStreak, type CheckinRow } from '@/lib/dashboard/streaks'
 import PersonaCard from '@/components/dashboard/PersonaCard'
 import DogHelloCard from '@/components/dashboard/DogHelloCard'
-import { computePersona, daysSinceIso, personaCardSpec } from '@/lib/persona'
+import {
+  computePersona,
+  daysSinceIso,
+  isoDaysAgo,
+  personaCardSpec,
+} from '@/lib/persona'
 import AccuracyCard from '@/components/dashboard/AccuracyCard'
 import AccuracyBreakdown, {
   type AccuracyVar,
@@ -299,10 +304,7 @@ export default async function DashboardPage() {
       .from('dog_sensitivity_snapshots')
       .select('snapshot_at, baseline_state, top_variable, top_delta')
       .eq('user_id', user.id)
-      .lte(
-        'snapshot_at',
-        new Date(Date.now() - 6 * 86_400_000).toISOString(),
-      )
+      .lte('snapshot_at', isoDaysAgo(6))
       .order('snapshot_at', { ascending: false })
       .limit(1)
       .maybeSingle(),

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
+import { isoDaysAgo } from '@/lib/persona'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,7 +56,7 @@ export default async function PersonalizationInsightsPage() {
     .select('top_variable')
     .gte(
       'snapshot_at',
-      new Date(Date.now() - 30 * 86_400_000).toISOString(),
+      isoDaysAgo(30),
     )
     .limit(5000)
 
@@ -63,7 +64,7 @@ export default async function PersonalizationInsightsPage() {
   const { data: pushRows } = await supabase
     .from('push_log')
     .select('category')
-    .gte('sent_at', new Date(Date.now() - 30 * 86_400_000).toISOString())
+    .gte('sent_at', isoDaysAgo(30))
     .limit(5000)
 
   const weightHist = histogram(

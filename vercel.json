@@ -81,6 +81,10 @@
     {
       "path": "/api/cron/sensitivity-snapshots",
       "schedule": "0 4 * * 1"
+    },
+    {
+      "path": "/api/cron/meta-weights",
+      "schedule": "0 5 1 * *"
     }
   ]
 }

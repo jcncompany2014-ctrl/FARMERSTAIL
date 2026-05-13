@@ -138,6 +138,13 @@ export function daysSinceIso(
 }
 
 /**
+ * 현재 시각 - N 일 의 ISO. lib 캡슐화 (react-hooks/purity 회피).
+ */
+export function isoDaysAgo(days: number, nowMs: number = Date.now()): string {
+  return new Date(nowMs - days * 86_400_000).toISOString()
+}
+
+/**
  * 페르소나별 dashboard 권유 카드 카피.
  * dashboard 에서 PersonaCard 로 표시.
  */
