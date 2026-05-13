@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import MedicalRecordOcr from '@/components/MedicalRecordOcr'
 
 export type HealthLog = {
   id: string
@@ -341,6 +342,20 @@ export default function HealthLogClient({
             </button>
           </div>
         )}
+      </section>
+
+      {/* 진료 영수증 OCR — Claude Vision 스켈레톤. 자동 적용 X, 사용자
+          확인 후 onConfirm 콜백에서 별도 mutation 으로 반영. 지금은
+          저장 endpoint 가 아직 없어 콜백이 toast 만 표시. */}
+      <section className="px-5 mt-4">
+        <MedicalRecordOcr
+          dogId={dogId}
+          onConfirm={async () => {
+            // TODO(D7+): /api/health/records POST 로 health_logs 또는
+            // 새로 만들 medical_records 테이블에 저장. 지금은 미리보기
+            // + toast 만 — DB 자동 저장 금지 정책.
+          }}
+        />
       </section>
 
       {/* 기록 리스트 */}
