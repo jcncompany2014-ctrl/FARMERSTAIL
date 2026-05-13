@@ -32,6 +32,8 @@ import MilestoneCard from '@/components/dashboard/MilestoneCard'
 import { currentMilestone } from '@/lib/dashboard/milestones'
 import StreakCard from '@/components/dashboard/StreakCard'
 import { computeStreak, type CheckinRow } from '@/lib/dashboard/streaks'
+import PersonaCard from '@/components/dashboard/PersonaCard'
+import { computePersona, daysSinceIso, personaCardSpec } from '@/lib/persona'
 
 /**
  * Dashboard — 로그인 후 홈 화면.
@@ -208,6 +210,9 @@ export default async function DashboardPage() {
     { data: dogAnalysesData },
     { data: onboardData },
     { data: checkinsData },
+    { data: dogMetaData },
+    { count: chatCount },
+    { count: diaryCount },
   ] = await Promise.all([
     supabase.rpc('dashboard_user_snapshot', { p_user_id: user.id }),
     // 대시보드 제품 — 4개만. 더 보고 싶으면 "전체 →" 로 /products 진입.
@@ -256,6 +261,23 @@ export default async function DashboardPage() {
       .select('dog_id, created_at, cycle_number, checkpoint')
       .eq('user_id', user.id)
       .order('cycle_number', { ascending: true }),
+    // Phase D7.4 — 페르소나 계산용 dog meta (photo_url + allergies_source).
+    // snapshot RPC 가 select 안 하는 컬럼이라 별도 fetch — row 수 작음.
+    supabase
+      .from('dogs')
+      .select('id, photo_url, allergies_source')
+      .eq('user_id', user.id),
+    // chatbot 사용자 발화 수 — 챗봇 의존 신호
+    supabase
+      .from('chatbot_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('role', 'user'),
+    // 일지 작성 수 — 감성형 신호
+    supabase
+      .from('dog_diary')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id),
   ])
 
   const showOnboarding =
@@ -410,6 +432,39 @@ export default async function DashboardPage() {
     ? allCheckins.filter((c) => c.dog_id === firstDog.id)
     : []
   const streak = computeStreak(firstDogCheckins)
+
+  // ── Phase D7.4 — 페르소나 추론 + 카드 ──────────────────────────────────
+  // 첫 강아지의 photo / allergies 신호 + 챗봇·일지·체크인·분석 카운트로
+  // 4-페르소나 점수 계산. dominant null 이면 카드 비표시 (신호 부족).
+  type DogMetaRow = {
+    id: string
+    photo_url: string | null
+    allergies_source:
+      | 'self_suspected'
+      | 'vet_diagnosed'
+      | 'unknown'
+      | null
+  }
+  const dogMetaList = (dogMetaData ?? []) as DogMetaRow[]
+  const firstDogMeta = firstDog
+    ? dogMetaList.find((d) => d.id === firstDog.id) ?? null
+    : null
+
+  const daysSinceSignup = daysSinceIso(userCreatedAt)
+
+  const personaResult = computePersona({
+    chatCount: chatCount ?? 0,
+    analysisCount: dogIdsWithAnalyses.size,
+    checkinCount: firstDogCheckins.length,
+    diaryCount: diaryCount ?? 0,
+    hasPhoto: !!firstDogMeta?.photo_url,
+    hasSubscription: hasActiveSub,
+    allergiesSource: firstDogMeta?.allergies_source ?? null,
+    daysSinceSignup,
+  })
+  const personaSpec = personaResult.dominant
+    ? personaCardSpec(personaResult.dominant, firstDog?.id ?? null)
+    : null
 
   // 분석 받은 강아지가 1마리도 없으면 = 신규 사용자 / 첫 설문 안 한 상태.
   // (참고용 변수 — 현재 secondary 영역 자체가 모두 false 로 잠겨 있어 분기
@@ -626,6 +681,10 @@ export default async function DashboardPage() {
       {/* ── 오늘 할 일 — 매일 들렀을 때 한 가지 액션. nextAction null 이면
           렌더 안 함 (모든 상태 정상 = 카드 비표시 → 화면 가벼워짐). ── */}
       {nextAction && <NextActionCard action={nextAction} />}
+
+      {/* ── 페르소나 카드 — 행동 패턴에 맞춘 가벼운 권유 1건. dominant
+          null 이면 카드 비표시. 가입 1주 미만은 자동 skip. ── */}
+      {personaSpec && <PersonaCard spec={personaSpec} />}
 
       {/* ── 다음 배송 히어로 (D-N 강조) ── */}
       {hasActiveSub && (

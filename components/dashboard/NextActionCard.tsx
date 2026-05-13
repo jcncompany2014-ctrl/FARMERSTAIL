@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, EyeOff } from 'lucide-react'
 import type { NextAction } from '@/lib/dashboard/next-action'
@@ -22,17 +22,22 @@ import type { NextAction } from '@/lib/dashboard/next-action'
  * 다시 표시.
  */
 export default function NextActionCard({ action }: { action: NextAction }) {
-  const [dismissed, setDismissed] = useState(false)
-
-  useEffect(() => {
-    const key = `ft:next-action:dismiss:${action.type}`
-    const value = localStorage.getItem(key)
-    if (!value) return
-    const ts = Number(value)
-    if (Number.isFinite(ts) && Date.now() - ts < 24 * 60 * 60 * 1000) {
-      setDismissed(true)
+  // lazy initializer — useEffect 안에서 setState 호출하면 react-hooks/set-state
+  // -in-effect 룰 위반 (cascading render). mount 시 1회만 localStorage 읽고
+  // 결정. action.type 변경에 따른 reset 은 server 가 새 컴포넌트 instance
+  // 로 마운트하므로 추가 effect 불필요.
+  const [dismissed, setDismissed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      const key = `ft:next-action:dismiss:${action.type}`
+      const value = localStorage.getItem(key)
+      if (!value) return false
+      const ts = Number(value)
+      return Number.isFinite(ts) && Date.now() - ts < 24 * 60 * 60 * 1000
+    } catch {
+      return false
     }
-  }, [action.type])
+  })
 
   function handleDismiss() {
     setDismissed(true)

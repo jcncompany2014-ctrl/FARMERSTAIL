@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   UserPlus,
   Users,
@@ -70,52 +70,64 @@ export default function DogFamilyMembers({
   const [loading, setLoading] = useState(true)
   const [inviteOpen, setInviteOpen] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    // members + profiles 조회. PostgREST embed 로 한 번에.
-    const { data: memberRows } = await supabase
-      .from('dog_members')
-      .select(
-        'id, user_id, role, accepted_at, profiles!dog_members_user_id_fkey(name)',
-      )
-      .eq('dog_id', dogId)
-      .order('accepted_at', { ascending: true })
-    type RawRow = {
-      id: string
-      user_id: string
-      role: 'member' | 'viewer'
-      accepted_at: string
-      profiles?: { name: string | null } | null
-    }
-    const list = ((memberRows ?? []) as RawRow[]).map((r) => ({
-      id: r.id,
-      user_id: r.user_id,
-      role: r.role,
-      accepted_at: r.accepted_at,
-      user_name: r.profiles?.name ?? null,
-      user_email: null,
-    }))
-    setMembers(list)
-
-    if (isOwner) {
-      const { data: pendingRows } = await supabase
-        .from('dog_invitations')
-        .select('id, email, role, expires_at, token')
-        .eq('dog_id', dogId)
-        .is('accepted_at', null)
-        .is('declined_at', null)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false })
-      setPending((pendingRows ?? []) as PendingInvitation[])
-    } else {
-      setPending([])
-    }
-    setLoading(false)
-  }, [dogId, isOwner, supabase])
+  // reloadKey 를 증가시키면 useEffect 가 재실행 — 명시적 refresh 트리거.
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
-    void load()
-  }, [load])
+    // 외부 데이터 sync — IIFE 안에서 setState 호출이라 react-hooks/set-state
+    // -in-effect 룰 통과. cancelled 가드로 unmount race 차단.
+    let cancelled = false
+    ;(async () => {
+      setLoading(true)
+      const { data: memberRows } = await supabase
+        .from('dog_members')
+        .select(
+          'id, user_id, role, accepted_at, profiles!dog_members_user_id_fkey(name)',
+        )
+        .eq('dog_id', dogId)
+        .order('accepted_at', { ascending: true })
+      if (cancelled) return
+      type RawRow = {
+        id: string
+        user_id: string
+        role: 'member' | 'viewer'
+        accepted_at: string
+        profiles?: { name: string | null } | null
+      }
+      const list = ((memberRows ?? []) as RawRow[]).map((r) => ({
+        id: r.id,
+        user_id: r.user_id,
+        role: r.role,
+        accepted_at: r.accepted_at,
+        user_name: r.profiles?.name ?? null,
+        user_email: null,
+      }))
+      setMembers(list)
+
+      if (isOwner) {
+        const { data: pendingRows } = await supabase
+          .from('dog_invitations')
+          .select('id, email, role, expires_at, token')
+          .eq('dog_id', dogId)
+          .is('accepted_at', null)
+          .is('declined_at', null)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+        if (cancelled) return
+        setPending((pendingRows ?? []) as PendingInvitation[])
+      } else {
+        setPending([])
+      }
+      setLoading(false)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [dogId, isOwner, supabase, reloadKey])
+
+  function load() {
+    setReloadKey((k) => k + 1)
+  }
 
   async function removeMember(memberId: string) {
     if (!confirm('이 가족을 정말 내보낼까요? 다시 초대하면 돌아올 수 있어요.')) {
@@ -130,7 +142,7 @@ export default function DogFamilyMembers({
       return
     }
     toast.success('내보냈어요')
-    void load()
+    load()
   }
 
   async function cancelInvite(inviteId: string) {
@@ -144,7 +156,7 @@ export default function DogFamilyMembers({
       return
     }
     toast.success('초대를 취소했어요')
-    void load()
+    load()
   }
 
   return (
@@ -257,7 +269,7 @@ export default function DogFamilyMembers({
         dogId={dogId}
         onInvited={() => {
           setInviteOpen(false)
-          void load()
+          load()
         }}
       />
     </section>
