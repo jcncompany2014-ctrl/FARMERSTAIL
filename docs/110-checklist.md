@@ -235,13 +235,13 @@
 
 | # | 디테일 | 상태 | 비고 |
 |---|--------|------|------|
-| 78 | 사용자 응답 프로파일링 | 🟨 | D7.4 페르소나 lib. **응답 학습 X** |
-| 79 | 사용자 클러스터링 | ✅ | D7.4 4-페르소나 (data_lover/emotional/convenience/vet_dependent) |
-| 80 | 개입 효과 윈도우 예측 | 🟦 | Phase 4 |
-| 81 | 학습 목표 = 장기 건강 개선 | 🟦 | Phase 4 |
-| 82 | 메시지 요소 분해 학습 | 🟦 | Phase 4 |
-| 83 | exploration-exploitation 균형 | 🟦 | Phase 4 |
-| 84 | 채널별 응답 학습 (push/email/in-app) | 🟦 | Phase 4 |
+| 78 | 사용자 응답 프로파일링 | 🟨 | D7.4 페르소나 + P26 exploration. 응답 학습 cron 후속 |
+| 79 | 사용자 클러스터링 | ✅ | D7.4 4-페르소나 + flag 가드 |
+| 80 | 개입 효과 윈도우 예측 | ✅ | P26 — predictBestTiming lib (시간/요일 응답률, flag 가드) |
+| 81 | 학습 목표 = 장기 건강 개선 | ✅ | P26 — longTermOutcomeScore (BCS 시계열 → target 수렴) |
+| 82 | 메시지 요소 분해 학습 | ✅ | P26 — message-decomposition 5 요소 + 5 template + selector |
+| 83 | exploration-exploitation 균형 | ✅ | P26 — epsilonGreedy + decayingEpsilon + recordReward |
+| 84 | 채널별 응답 학습 (push/email/in-app) | 🟨 | epsilonGreedy generic arm 지원. 채널 specific 후속 |
 | 85 | NextActionCard 통일된 channel | ✅ | dashboard NextActionCard |
 
 ### B.10 수의사 통합 (86~91)

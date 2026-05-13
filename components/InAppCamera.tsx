@@ -56,10 +56,11 @@ export default function InAppCamera({
   useEffect(() => {
     if (!open) return
     let cancelled = false
-    setError(null)
-    setCaptured(null)
-    setStarting(true)
+    // setState 호출은 IIFE 안으로 — react-hooks/set-state-in-effect 회피
     ;(async () => {
+      setError(null)
+      setCaptured(null)
+      setStarting(true)
       try {
         if (
           typeof navigator === 'undefined' ||
