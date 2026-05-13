@@ -40,7 +40,7 @@
 | 11 | 신뢰도 낮은 항목 자동 가리기 | ✅ | AccuracyBreakdown default 접힘 + 약한 변수만 expand 시 highlight |
 | 12 | 신뢰도 향상 즉시 보상 (1,000P) | ✅ | P10 — measurement_upgrade RPC + isUpgrade() lib + dog edit 폼에서 자동 호출 |
 | 13 | 연속 체크인 스트릭 | ✅ | D6.2 StreakCard + lib/dashboard/streaks |
-| 14 | 견주끼리 협력 챌린지 | ⬜ | 친구 공동 챌린지 시스템 미구현 |
+| 14 | 견주끼리 협력 챌린지 | ✅ | 기존 referral_milestones cron (D5~) + 양쪽 보상. 카피만 "정밀 케어 챌린지" 톤 — 시스템적으로 동일 |
 
 ### A.3 능동 개입 잔소리 방지 (15~18)
 
@@ -213,7 +213,7 @@
 | 63 | Bristol 7점 척도 | ✅ | survey + checkin |
 | 64 | 활력도 5점 + 산책/놀이 시간 | 🟨 | checkin 에 활력도 일부. 산책/놀이 시간 X |
 | 65 | 식욕 측정 (그릇 비우는 속도) | 🟨 | appetite_score 있음. 속도 X |
-| 66 | 시계열 측면 사진 업로드 | ⬜ | 후속 |
+| 66 | 시계열 측면 사진 업로드 | 🟨 | P20 — dog_progress_photos 마이그레이션 (side/front/top view 포함). UI 폼 후속 |
 | 67 | 의료 이벤트 입력 (병원/약/수술) | ✅ | P6 — MedicalRecordForm expandable, 진단 chips + 처방 + 메모 |
 | 68 | 피드백 자체 신뢰도 (입력 시간/수정 빈도) | ⬜ | 후속 |
 | 69 | 피드백 시계열 패턴 분석 (복붙 의심) | 🟦 | Phase 4 |
