@@ -7,6 +7,7 @@ import {
   type DogState,
   type LifeStage,
 } from '@/lib/counterfactual'
+import { isInventionEnabled } from '@/lib/invention-flags'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -38,6 +39,14 @@ export async function GET(req: Request) {
       { code: 'UNAUTHORIZED', message: 'invalid cron secret' },
       { status: 401 },
     )
+  }
+  // 발명 핵심 — counterfactual flag OFF 면 skip. cron 동작 자체를 차단.
+  if (!isInventionEnabled('counterfactual')) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: 'INVENTION_COUNTERFACTUAL_DISABLED',
+    })
   }
 
   const supabase = createAdminClient()

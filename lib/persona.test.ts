@@ -1,6 +1,17 @@
-import { describe, it } from 'node:test'
+import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { computePersona } from './persona.ts'
+
+// persona flag default OFF → 테스트 전체에서 ON 으로 강제.
+// PCT 가드 (lib/invention-flags) 는 별도 invention-flags.test.ts 가 검증.
+before(() => {
+  process.env.NEXT_PUBLIC_INVENTION_CORE = 'on'
+  process.env.NEXT_PUBLIC_INVENTION_PERSONA = 'on'
+})
+after(() => {
+  delete process.env.NEXT_PUBLIC_INVENTION_CORE
+  delete process.env.NEXT_PUBLIC_INVENTION_PERSONA
+})
 
 const base = {
   chatCount: 0,

@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test'
+import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   counterfactual,
@@ -6,6 +6,17 @@ import {
   sensitivityAnalysis,
   type DogState,
 } from './counterfactual.ts'
+
+// counterfactual flag default OFF → sensitivityAnalysis 가 빈 array 반환.
+// 테스트 전체에서 ON 으로 강제.
+before(() => {
+  process.env.NEXT_PUBLIC_INVENTION_CORE = 'on'
+  process.env.NEXT_PUBLIC_INVENTION_COUNTERFACTUAL = 'on'
+})
+after(() => {
+  delete process.env.NEXT_PUBLIC_INVENTION_CORE
+  delete process.env.NEXT_PUBLIC_INVENTION_COUNTERFACTUAL
+})
 
 const base: DogState = {
   weightKg: 5,

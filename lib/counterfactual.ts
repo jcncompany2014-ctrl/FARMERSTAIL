@@ -142,7 +142,18 @@ export function counterfactual(
  *
  * 결과를 수의사 / 보호자가 "가장 영향 큰 변수" 로 인식.
  */
+/**
+ * 발명 핵심 — counterfactual flag 가드. PCT 출원 전 kill switch.
+ * 일반 feedGramsModel/counterfactual 단일 호출은 가드 X (단순 추정).
+ * 전체 sensitivityAnalysis (do-calculus 핵심) 만 flag 가드.
+ */
+function counterfactualFlagOn(): boolean {
+  if (process.env.NEXT_PUBLIC_INVENTION_CORE !== 'on') return false
+  return process.env.NEXT_PUBLIC_INVENTION_COUNTERFACTUAL !== 'off'
+}
+
 export function sensitivityAnalysis(baseline: DogState): CounterfactualOutcome[] {
+  if (!counterfactualFlagOn()) return []
   const perts: Perturbation[] = [
     { variable: 'weightKg', delta: 1 },
     { variable: 'weightKg', delta: -1 },

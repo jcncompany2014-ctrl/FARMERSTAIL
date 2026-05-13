@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { isInventionEnabled } from '@/lib/invention-flags'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,6 +25,14 @@ export async function GET(req: Request) {
       { code: 'UNAUTHORIZED', message: 'invalid cron secret' },
       { status: 401 },
     )
+  }
+  // 발명 핵심 — meta_learning flag OFF 면 skip.
+  if (!isInventionEnabled('meta_learning')) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: 'INVENTION_META_LEARNING_DISABLED',
+    })
   }
   const supabase = createAdminClient()
 

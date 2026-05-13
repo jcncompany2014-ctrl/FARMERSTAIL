@@ -54,6 +54,13 @@ export type PersonaResult = {
 
 const THRESHOLD = 0.25
 
+// 발명 핵심 — feature flag 가드. PCT 출원 전 kill switch.
+// 이 lib 가 server/client 모두에서 import 되므로 env var 직접 읽기로 단순화.
+function personaFlagOn(): boolean {
+  if (process.env.NEXT_PUBLIC_INVENTION_CORE !== 'on') return false
+  return process.env.NEXT_PUBLIC_INVENTION_PERSONA !== 'off'
+}
+
 /** 0~max 사이 값을 0~1 로 saturating. */
 function sat(value: number, max: number): number {
   if (value <= 0 || max <= 0) return 0
@@ -66,6 +73,14 @@ function sat(value: number, max: number): number {
  * 가중치는 휴리스틱. 실데이터로 calibration 후 조정 예정 (메타학습 D8).
  */
 export function computePersona(input: PersonaInput): PersonaResult {
+  // 발명 핵심 — persona flag OFF 면 dominant null 로 fallback. UI 카드 자동 hide.
+  if (!personaFlagOn()) {
+    return {
+      scores: { data_lover: 0, emotional: 0, convenience: 0, vet_dependent: 0 },
+      dominant: null,
+      secondary: null,
+    }
+  }
   // 가입 1주 미만 / 데이터 거의 없으면 모두 0
   if (input.daysSinceSignup < 7) {
     const zero: PersonaScores = {
