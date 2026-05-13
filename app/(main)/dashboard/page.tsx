@@ -28,6 +28,8 @@ import {
 } from '@/lib/dashboard/next-action'
 import NextActionCard from '@/components/dashboard/NextActionCard'
 import OnboardingTutorial from '@/components/dashboard/OnboardingTutorial'
+import MilestoneCard from '@/components/dashboard/MilestoneCard'
+import { currentMilestone } from '@/lib/dashboard/milestones'
 
 /**
  * Dashboard — 로그인 후 홈 화면.
@@ -384,6 +386,11 @@ export default async function DashboardPage() {
   }
   const nextAction = computeNextAction(nextActionInput)
 
+  // 마일스톤 축하 — 가입 후 30/100/365/730/1095일 도달 시점 7일 노출.
+  // 첫 강아지 기준 (가족 다중 견은 추후 phase). voice-guidelines §10 정책.
+  const firstDog = dogs[0]
+  const milestone = currentMilestone(userCreatedAt)
+
   // 분석 받은 강아지가 1마리도 없으면 = 신규 사용자 / 첫 설문 안 한 상태.
   // (참고용 변수 — 현재 secondary 영역 자체가 모두 false 로 잠겨 있어 분기
   // 효과는 없지만, SHOW_SECONDARY_DASHBOARD 를 true 로 복원하면 다시
@@ -583,6 +590,14 @@ export default async function DashboardPage() {
           />
         </div>
       </section>
+
+      {/* ── 마일스톤 축하 — 가입 후 30/100/365일 등 7일 윈도우 ── */}
+      {milestone && (
+        <MilestoneCard
+          milestone={milestone}
+          dogName={firstDog?.name ?? null}
+        />
+      )}
 
       {/* ── 오늘 할 일 — 매일 들렀을 때 한 가지 액션. nextAction null 이면
           렌더 안 함 (모든 상태 정상 = 카드 비표시 → 화면 가벼워짐). ── */}
