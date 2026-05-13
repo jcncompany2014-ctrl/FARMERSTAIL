@@ -71,15 +71,27 @@ export function reliabilityWeightedMean(
  *
  * cluster 평균이 정확한 baseline 보다 정밀한 이유: 같은 size 안에서도
  * "Maltese 와 Pug" 가 다른 신체 구성. 향후 Parker 거리 가중 평균으로 확장.
+ *
+ * [A5] memoize — registry 가 module-level const 라 영구 캐시 안전.
  */
+const CLUSTER_MEAN_CACHE = new Map<
+  DogSize,
+  { avgWeight: number; avgLifespan: number; activityBaseline: number }
+>()
+
 export function clusterMeanBySize(size: DogSize): {
   avgWeight: number
   avgLifespan: number
   activityBaseline: number
 } {
+  const cached = CLUSTER_MEAN_CACHE.get(size)
+  if (cached) return cached
+
   const members = BREEDS.filter((b: BreedInfo) => b.size === size)
   if (members.length === 0) {
-    return { avgWeight: 0, avgLifespan: 0, activityBaseline: 3 }
+    const empty = { avgWeight: 0, avgLifespan: 0, activityBaseline: 3 }
+    CLUSTER_MEAN_CACHE.set(size, empty)
+    return empty
   }
   const sum = members.reduce(
     (acc, b) => ({
@@ -89,11 +101,13 @@ export function clusterMeanBySize(size: DogSize): {
     }),
     { w: 0, l: 0, a: 0 },
   )
-  return {
+  const result = {
     avgWeight: Math.round((sum.w / members.length) * 100) / 100,
     avgLifespan: Math.round((sum.l / members.length) * 10) / 10,
     activityBaseline: Math.round(sum.a / members.length),
   }
+  CLUSTER_MEAN_CACHE.set(size, result)
+  return result
 }
 
 /**
