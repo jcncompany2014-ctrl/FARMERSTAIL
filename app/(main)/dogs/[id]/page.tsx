@@ -40,6 +40,7 @@ import {
 import WeightSparkline from './_components/WeightSparkline'
 import CurrentFormulaCard from './_components/CurrentFormulaCard'
 import SubscriptionCard from './_components/SubscriptionCard'
+import DogFamilyMembers from '@/components/DogFamilyMembers'
 
 export default function DogDetailPage() {
   const router = useRouter()
@@ -53,6 +54,8 @@ export default function DogDetailPage() {
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  // Phase D7.3 — 가족 멤버 UI 에 전달할 owner 이름
+  const [ownerName, setOwnerName] = useState<string | null>(null)
 
   const [weightLogs, setWeightLogs] = useState<WeightLog[]>([])
   const [currentFormula, setCurrentFormula] = useState<CurrentFormula | null>(
@@ -143,6 +146,18 @@ export default function DogDetailPage() {
       }
 
       setDog(data)
+
+      // owner 이름 — DogFamilyMembers 에 표시. 본인 프로필에서 가져오고
+      // 없으면 user.email 의 local part. fire-and-forget — UI 차단 X.
+      void supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .maybeSingle()
+        .then((res: { data: { name?: string | null } | null }) => {
+          const fallback = user.email ? user.email.split('@')[0] : null
+          setOwnerName(res.data?.name ?? fallback)
+        })
 
       const [{ data: logs }, { data: formula }, { data: subs }] =
         await Promise.all([
@@ -667,6 +682,17 @@ export default function DogDetailPage() {
             </div>
           </div>
         </Link>
+      </section>
+
+      {/* Phase D7.3 — 가족 멤버 + 초대. owner 가 아닌 view 는 D7.4 RLS 확장
+          후에야 진입 가능. 지금은 dog.user_id 본인만 이 페이지에 들어오므로
+          isOwner=true 로 단순화 — 추후 멤버도 접근하게 되면 분기. */}
+      <section className="px-5 mt-3">
+        <DogFamilyMembers
+          dogId={dog.id}
+          isOwner={true}
+          ownerName={ownerName}
+        />
       </section>
 
       {/* Secondary actions */}
