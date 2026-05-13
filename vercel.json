@@ -77,6 +77,10 @@
     {
       "path": "/api/cron/inactive-coupons",
       "schedule": "0 1 15 * *"
+    },
+    {
+      "path": "/api/cron/sensitivity-snapshots",
+      "schedule": "0 4 * * 1"
     }
   ]
 }
