@@ -4,8 +4,9 @@
  * 자가보고 데이터의 측정 메타데이터로부터 변수별 신뢰도 점수 0~1 산출.
  * 신뢰도 = w1×W_method + w2×W_recency + w3×W_population.
  *
- * (W_population 클러스터 정합성은 별도 RPC — 추후 phase. 여기선 method +
- * recency 만 1차 산출.)
+ * [C3] W_population 클러스터 정합성도 이제 lib 안에 구현. clusterMeanBySize
+ * 와 결합 — 사용자 입력값이 같은 size 견종 평균과 얼마나 가까운지로 신뢰도
+ * 가중. 이상값 (예: toy 견인데 50kg 입력) 일수록 W_population ↓.
  *
  * 사용자 노출: voice-guidelines §1 — "신뢰도" 단어 금지. UI 라벨은
  * "맞춤도" / "정밀 분석 진행률" 사용. 이 함수는 내부 도메인 용어 (reliability)
@@ -125,6 +126,47 @@ export function overallReliability(scores: number[]): number {
   const min = Math.min(...scores)
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length
   return Math.round((0.4 * min + 0.6 * avg) * 100) / 100
+}
+
+/**
+ * [C3] W_population — 클러스터 정합성 점수.
+ *
+ * 입력값이 같은 size 견종의 평균에서 얼마나 떨어져있는지로 0~1 산출.
+ * 평균과 일치 = 1.0, 표준편차 1.5배 이상 떨어지면 0.
+ *
+ * 발명 명세 6.3 — 신뢰도 가중 회귀의 W_population 컴포넌트.
+ * clusterMeanBySize 와 결합 사용.
+ *
+ * @param value 사용자 입력값 (체중·활동 baseline 등)
+ * @param clusterMean 같은 size 견종 평균
+ * @param tolerance 표준편차 기준 (default 0.3 — 30% 차이까지 허용)
+ */
+export function populationReliability(
+  value: number,
+  clusterMean: number,
+  tolerance: number = 0.3,
+): number {
+  if (clusterMean <= 0 || value <= 0) return 0.5 // 데이터 부족 시 중립
+  const deviation = Math.abs(value - clusterMean) / clusterMean
+  if (deviation <= tolerance) return 1.0
+  // tolerance ~ 2×tolerance 범위에서 1.0 → 0.0 선형 감소
+  if (deviation >= 2 * tolerance) return 0
+  return Math.round((1 - (deviation - tolerance) / tolerance) * 100) / 100
+}
+
+/**
+ * [C3] 종합 신뢰도 + W_population. weightReliability 가 method/recency 만
+ * 본다면 이 함수는 cluster 정합성까지 결합.
+ *
+ * 산출: 0.5 × (method+recency 평균) + 0.3 × population + 0.2 × min
+ */
+export function compositeReliabilityWithPopulation(
+  methodRecency: number,
+  population: number,
+): number {
+  const avg = (methodRecency + population) / 2
+  const min = Math.min(methodRecency, population)
+  return Math.round((0.5 * avg + 0.3 * population + 0.2 * min) * 100) / 100
 }
 
 /**

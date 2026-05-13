@@ -11,6 +11,8 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import VetSharePrintButton from './VetSharePrintButton'
+import { sensitivityAnalysis, type DogState } from '@/lib/counterfactual'
+import { TrendingUp } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -262,6 +264,61 @@ export default async function VetSharePage({
           </div>
         </section>
       )}
+
+      {/* [C1] 반사실 sensitivity — 발명 모듈 G UI 노출. flag OFF 면 빈 array
+          반환 → section hide. 수의사가 어떤 변수 변화가 식단에 가장 큰 영향
+          줄지 판단 보조. */}
+      {(() => {
+        if (!analysis || !dog.weight) return null
+        const lifeStage: DogState['lifeStage'] = analysis.stage.includes('성장')
+          ? 'puppy'
+          : analysis.stage.includes('노령')
+            ? 'senior'
+            : 'adult'
+        const baseline: DogState = {
+          weightKg: dog.weight,
+          bcs: analysis.bcs_score ?? 5,
+          activityFactor: analysis.factor ?? 1.2,
+          lifeStage,
+          neutered: !!dog.neutered,
+        }
+        const results = sensitivityAnalysis(baseline)
+        if (results.length === 0) return null
+        return (
+          <section className="px-5 mt-3">
+            <div className="rounded-2xl border bg-white px-5 py-4" style={{ borderColor: 'var(--rule)' }}>
+              <span className="kicker flex items-center gap-1.5" style={{ color: 'var(--moss)' }}>
+                <TrendingUp className="w-3 h-3" strokeWidth={2.2} />
+                반사실 sensitivity (식단 영향력)
+              </span>
+              <p className="mt-1 text-[11.5px] text-muted leading-relaxed">
+                각 변수 1단위 변화 시 권장 그램의 변화량. 가장 영향이 큰 변수
+                를 보면 케어 priority 결정에 도움.
+              </p>
+              <ul className="mt-2 space-y-1">
+                {results.slice(0, 4).map((r) => (
+                  <li
+                    key={`${r.variable}-${r.delta}`}
+                    className="flex items-center justify-between text-[12px]"
+                  >
+                    <span style={{ color: 'var(--ink)' }}>{r.description}</span>
+                    <span
+                      className="font-mono tabular-nums"
+                      style={{
+                        color:
+                          r.delta > 0 ? 'var(--moss)' : 'var(--terracotta)',
+                      }}
+                    >
+                      {r.delta > 0 ? '+' : ''}
+                      {r.delta} g/일
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        )
+      })()}
 
       {/* 푸터 — 안내 + 만료 */}
       <section className="px-5 mt-6">

@@ -87,10 +87,10 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
   // Step 5d (v1.2) — 실내 활동 + 산책 부족.
   lineRatios = applyIndoorActivityAdjustments(lineRatios, input, reasoning)
 
-  // Step 4.5 (v1.4) — 품종 predispose. chronicConditions 에 자동 추가 +
-  //   caution chip. 룰은 chronic adjust 다음에 처리 (이미 명시 진단된
-  //   사용자 입력 우선, 품종 predispose 는 보조).
-  applyBreedPredispose(input, reasoning)
+  // Step 4.5 (v1.4) — 품종 predispose + [C4] soft chronic adjust.
+  // 사용자 명시 진단 없을 때만 ratio +5% 부드러운 대비. chip + ratio
+  // 둘 다 적용 (이전엔 chip 만 발화).
+  lineRatios = applyBreedPredispose(lineRatios, input, reasoning)
 
   // Step 5e (v1.2) — 만성질환 조합 (Polzin 2011 + IRIS 2019 + Vandeweerd 2012).
   lineRatios = applyChronicComboAdjustments(lineRatios, input, reasoning)
@@ -377,21 +377,24 @@ function breedKeywordMatches(breed: string, kw: string): boolean {
 }
 
 function applyBreedPredispose(
+  ratios: Record<FoodLine, Ratio>,
   input: AlgorithmInput,
   reasoning: Reasoning[],
-): void {
+): Record<FoodLine, Ratio> {
   const breed = input.breed?.trim().toLowerCase()
-  if (!breed) return
+  if (!breed) return ratios
   const matrix = input.breedPredisposeMap
-  if (!matrix || matrix.length === 0) return
+  if (!matrix || matrix.length === 0) return ratios
+
+  let nextRatios = ratios
+  const userConditions = new Set(input.chronicConditions)
+
   for (const entry of matrix) {
     const matched = entry.breedKeywords.some((kw) =>
       breedKeywordMatches(breed, kw),
     )
     if (!matched) continue
-    // 사용자 입력 chronicConditions 와 union — chip 만 발화, 실제 ratio 변경
-    // 은 후속 chronic 룰 (위 step 4) 이 input.chronicConditions 기반으로 함.
-    // 단, predispose_conditions 가 사용자 입력에 없으면 알리는 caution chip.
+    // caution chip — 기존 동작
     for (const caution of entry.cautions) {
       reasoning.push({
         trigger: `${entry.koreanLabel} 품종 호발`,
@@ -401,9 +404,50 @@ function applyBreedPredispose(
         ruleId: `breed-${entry.breedKey}`,
       })
     }
+    // [C4] soft chronic adjust — 사용자 명시 진단이 없는 predispose 만 적용.
+    // 라인 +5% (full chronic 30% 의 1/6 강도) — 보호자에게 부담 X, 그러나
+    // 품종 호발 질환은 약간 대비. predispose_conditions 가 array 라 가정
+    // (algorithm_breed_predispose 마이그레이션 컬럼).
+    const preds = (entry as { predisposeConditions?: string[] }).predisposeConditions
+    if (Array.isArray(preds)) {
+      for (const pred of preds) {
+        if (userConditions.has(pred as never)) continue
+        const targetLine: FoodLine | null =
+          pred === 'arthritis' || pred === 'ivdd' || pred === 'patellar_luxation'
+            ? 'joint'
+            : pred === 'allergy_skin'
+              ? 'skin'
+              : pred === 'kidney' || pred === 'urinary_stone' || pred === 'cardiac' || pred === 'mmvd'
+                ? 'premium'
+                : pred === 'obesity'
+                  ? 'weight'
+                  : null
+        if (!targetLine) continue
+        // 이미 0.1+ 면 추가 적용 X (다른 룰이 이미 처치)
+        if (nextRatios[targetLine] >= 0.1) continue
+        // basic 에서 5% 이동
+        const from: FoodLine = 'basic'
+        const give = Math.min(0.05, nextRatios[from])
+        if (give > 0) {
+          nextRatios = {
+            ...nextRatios,
+            [from]: nextRatios[from] - give,
+            [targetLine]: nextRatios[targetLine] + give,
+          }
+          reasoning.push({
+            trigger: `${entry.koreanLabel} 호발 ${pred}`,
+            action: `${FOOD_LINE_META[targetLine].name} +${Math.round(give * 100)}% 부드러운 대비 (사용자 진단 없음)`,
+            chipLabel: `호발 대비 ${FOOD_LINE_META[targetLine].name} +${Math.round(give * 100)}%`,
+            priority: 2,
+            ruleId: `breed-soft-${entry.breedKey}-${pred}`,
+          })
+        }
+      }
+    }
     // 품종은 보통 1개만 매칭 — 첫 매칭 후 break (성능 + 중복 방지).
     break
   }
+  return nextRatios
 }
 
 // ──────────────────────────────────────────────────────────────────────────

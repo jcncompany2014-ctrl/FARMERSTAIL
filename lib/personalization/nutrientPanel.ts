@@ -179,6 +179,8 @@ export function clinicalCheckForPanel(
     hasPancreatitis: boolean
     hasCardiac: boolean
     irisStage: number | null
+    // [C5] senior 진입 여부 — AAFCO senior upper bound 검증
+    isSenior?: boolean
   },
 ): ClinicalCheck {
   const w: ClinicalCheck['warnings'] = []
@@ -202,6 +204,29 @@ export function clinicalCheckForPanel(
       actual: `${panel.fatPctDM}% DM`,
       target: '≥5.5%',
     })
+  }
+
+  // [C5] AAFCO senior protein/fat upper bound — getAAFCORanges 와 일치.
+  // senior 의 권장 max 는 protein 35% / fat 18%. 초과 시 신장·췌장 부담.
+  // CKD 후기 (irisStage 3+) 는 이미 별도 룰로 더 strict 적용. 여기는 일반
+  // senior 견 보호.
+  if (context.isSenior) {
+    if (panel.proteinPctDM > 35) {
+      w.push({
+        code: 'senior-protein-high',
+        label: 'senior 단백질 상한 초과',
+        actual: `${panel.proteinPctDM}% DM`,
+        target: '≤35% (AAFCO Senior + IRIS 권고)',
+      })
+    }
+    if (panel.fatPctDM > 18) {
+      w.push({
+        code: 'senior-fat-high',
+        label: 'senior 지방 상한 초과',
+        actual: `${panel.fatPctDM}% DM`,
+        target: '≤18% (췌장·심장 부담 회피)',
+      })
+    }
   }
 
   // 췌장염 fat ceiling
