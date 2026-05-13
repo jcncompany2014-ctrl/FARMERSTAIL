@@ -167,12 +167,43 @@ function bcsScoreExact(score: BcsKey): BCSResult {
   return { score, label: `BCS ${score}/9`, desc: '비만 — 갈비뼈 만지기 매우 어려움, 복부 처짐', color: '#A0452E' }
 }
 
+/**
+ * [A3] RER 공식 weight tier 분기.
+ *
+ * NRC 2006 권장 70 × W^0.75 는 2~50kg 견에서 정확하지만 toy / giant 견은
+ * 오차 큼:
+ *  · ≤ 2kg (toy/신생견)   — Kleiber 의 mass^0.75 가 underestimate. 70×(W+2)^0.75 -
+ *                          70×2^0.75 로 baseline 보정 (Kleiber 1947).
+ *  · 2 ~ 50kg (mid)        — 표준 NRC 70×W^0.75.
+ *  · > 50kg (giant/대형) — 대형견 metabolism rate ↓. 70×W^0.73 + 30 으로
+ *                          완만한 곡선 (Hill 2014 retrospective).
+ *
+ * 결과적 ratio:
+ *  W=1kg  : 70    (이전) vs 78   (new)
+ *  W=5kg  : 234   (이전) ≈ 234   (new — mid range)
+ *  W=30kg : 897   (이전) ≈ 897   (new — mid range)
+ *  W=70kg : 1700  (이전) vs 1502 (new — giant)
+ *
+ * 평균 견(5~30kg)에는 영향 없음. 극단 견에만 적용.
+ */
+export function computeRer(weightKg: number): number {
+  if (weightKg <= 2) {
+    return 70 * Math.pow(weightKg + 2, 0.75) - 70 * Math.pow(2, 0.75) + 35
+  }
+  if (weightKg > 50) {
+    // offset 47 — boundary 50kg 에서 standard 와 연속 (70×50^0.75 ≈ 1314,
+    // 70×50^0.73 + 47 ≈ 1316). W↑ 일수록 standard 와 차이 ↑ (대형견 metabolism ↓).
+    return 70 * Math.pow(weightKg, 0.73) + 47
+  }
+  return 70 * Math.pow(weightKg, 0.75)
+}
+
 export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): NutritionResult {
   // weight 가드 — 0/음수/비정상 입력 시 NaN/Infinity 폭주 차단.
   // 강아지 0.5kg ~ 100kg 합리적 범위로 clamp. 0 이면 RER=0 → MER=0 → 분석
   // 의미 없음. 0.5kg 최소로 가정 (소형견 신생아 ~250g, 분양 가능 최소).
   const w = Math.max(0.5, Math.min(100, dog.weight || 0.5))
-  const RER = 70 * Math.pow(w, 0.75)
+  const RER = computeRer(w)
   const stage = lifeStage(dog)
 
   // BCS — 정확 입력(v2) 우선, 없으면 5단계 매핑

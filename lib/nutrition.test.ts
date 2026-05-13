@@ -258,8 +258,8 @@ describe('calculateNutrition — weight 가드', () => {
       baseDog({ weight: 0 }),
       baseAnswers(),
     )
-    // RER = 70 × 0.5^0.75 ≈ 41.6
-    assert.ok(r.rer > 40 && r.rer < 50)
+    // A3 tier 후: toy 보정 적용. RER = 70 × 2.5^0.75 - 70 × 2^0.75 + 35 ≈ 56.5
+    assert.ok(r.rer > 50 && r.rer < 70, `rer=${r.rer}`)
     assert.ok(r.mer > 0)
   })
 
@@ -268,7 +268,8 @@ describe('calculateNutrition — weight 가드', () => {
       baseDog({ weight: -5 }),
       baseAnswers(),
     )
-    assert.ok(r.rer > 40 && r.rer < 50)
+    // A3 tier 후: toy 보정 적용 (위와 동일)
+    assert.ok(r.rer > 50 && r.rer < 70)
   })
 
   it('weight 200kg — 100kg 으로 clamp', () => {
