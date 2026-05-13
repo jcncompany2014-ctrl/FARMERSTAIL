@@ -27,6 +27,10 @@ import { useToast } from '@/components/ui/Toast'
 import { getAAFCORanges, stageFromKR, type MacroRange } from '@/lib/nutrition'
 import StructuredAnalysis from '@/components/analysis/StructuredAnalysis'
 import RecommendationBox from '@/components/analysis/RecommendationBox'
+import {
+  merConfidenceInterval,
+  formatRange,
+} from '@/lib/nutrition/confidence-interval'
 
 type Analysis = {
   id: string
@@ -366,6 +370,11 @@ export default function AnalysisView({
                 <span className="text-[14px] text-muted ml-1 font-sans">
                   kcal
                 </span>
+              </div>
+              {/* 신뢰구간 — P2 / B-49. 단일 값이 아닌 범위로 표시해 데이터
+                  정밀도의 실재감 전달. accuracyScore 없을 때 default 0.7. */}
+              <div className="mt-1 text-[10.5px] font-bold text-muted">
+                범위 {formatRange(merConfidenceInterval(analysis.mer, null))}
               </div>
             </div>
             <div className="text-right text-[9px] text-moss font-semibold leading-tight">
