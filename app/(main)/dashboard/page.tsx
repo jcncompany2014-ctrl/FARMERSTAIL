@@ -34,6 +34,13 @@ import StreakCard from '@/components/dashboard/StreakCard'
 import { computeStreak, type CheckinRow } from '@/lib/dashboard/streaks'
 import PersonaCard from '@/components/dashboard/PersonaCard'
 import { computePersona, daysSinceIso, personaCardSpec } from '@/lib/persona'
+import AccuracyCard from '@/components/dashboard/AccuracyCard'
+import {
+  feedReliability,
+  activityReliability,
+  weightReliability,
+  overallReliability,
+} from '@/lib/personalization/reliability'
 
 /**
  * Dashboard — 로그인 후 홈 화면.
@@ -261,11 +268,13 @@ export default async function DashboardPage() {
       .select('dog_id, created_at, cycle_number, checkpoint')
       .eq('user_id', user.id)
       .order('cycle_number', { ascending: true }),
-    // Phase D7.4 — 페르소나 계산용 dog meta (photo_url + allergies_source).
-    // snapshot RPC 가 select 안 하는 컬럼이라 별도 fetch — row 수 작음.
+    // Phase D7.4 + D7.5 — 페르소나 + 맞춤도 계산용 dog meta.
+    // snapshot RPC 가 select 안 하는 컬럼이라 별도 fetch.
     supabase
       .from('dogs')
-      .select('id, photo_url, allergies_source')
+      .select(
+        'id, photo_url, allergies_source, weight_method, activity_method, feed_method, weight_measured_at',
+      )
       .eq('user_id', user.id),
     // chatbot 사용자 발화 수 — 챗봇 의존 신호
     supabase
@@ -444,6 +453,10 @@ export default async function DashboardPage() {
       | 'vet_diagnosed'
       | 'unknown'
       | null
+    weight_method: string | null
+    activity_method: string | null
+    feed_method: string | null
+    weight_measured_at: string | null
   }
   const dogMetaList = (dogMetaData ?? []) as DogMetaRow[]
   const firstDogMeta = firstDog
@@ -465,6 +478,25 @@ export default async function DashboardPage() {
   const personaSpec = personaResult.dominant
     ? personaCardSpec(personaResult.dominant, firstDog?.id ?? null)
     : null
+
+  // ── Phase D7.5 — 맞춤도 카드 ──────────────────────────────────────────
+  // firstDog 의 측정 도구 + 최근 측정일 → 종합 reliability. 0~1.
+  // 가입 < 7일 또는 dog 없으면 카드 비표시.
+  const accuracyScore =
+    firstDog && firstDogMeta && daysSinceSignup >= 7
+      ? overallReliability([
+          weightReliability(
+            firstDogMeta.weight_method,
+            firstDogMeta.weight_measured_at,
+          ),
+          activityReliability(firstDogMeta.activity_method),
+          feedReliability(
+            // 자동배송 활성이면 feed_method 가 unknown 이어도 auto_delivery 로
+            // 간주 — 자체 사료 D2C 의 차별화 신호 (overrride).
+            hasActiveSub ? 'auto_delivery' : firstDogMeta.feed_method,
+          ),
+        ])
+      : null
 
   // 분석 받은 강아지가 1마리도 없으면 = 신규 사용자 / 첫 설문 안 한 상태.
   // (참고용 변수 — 현재 secondary 영역 자체가 모두 false 로 잠겨 있어 분기
@@ -670,6 +702,16 @@ export default async function DashboardPage() {
       {milestone && (
         <MilestoneCard
           milestone={milestone}
+          dogName={firstDog?.name ?? null}
+        />
+      )}
+
+      {/* ── 맞춤도 카드 — 측정 도구 + 최근성 기반. accuracyScore null 이면
+          비표시 (가입 7일 미만 / dog 없음). 발명 모듈 C UI. ── */}
+      {accuracyScore !== null && (
+        <AccuracyCard
+          score={accuracyScore}
+          dogId={firstDog?.id ?? null}
           dogName={firstDog?.name ?? null}
         />
       )}

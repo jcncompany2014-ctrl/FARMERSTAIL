@@ -62,10 +62,13 @@ const FEED_METHOD_SCORE: Record<FeedMethod, number> = {
  *   6개월 이내  0.4
  *   그 외       0.2
  */
-export function recencyScore(measuredAt: string | Date | null | undefined): number {
+export function recencyScore(
+  measuredAt: string | Date | null | undefined,
+  nowMs: number = Date.now(),
+): number {
   if (!measuredAt) return 0.2
   const t = typeof measuredAt === 'string' ? new Date(measuredAt) : measuredAt
-  const days = (Date.now() - t.getTime()) / 86_400_000
+  const days = (nowMs - t.getTime()) / 86_400_000
   if (days <= 7) return 1.0
   if (days <= 30) return 0.85
   if (days <= 90) return 0.6
@@ -81,10 +84,11 @@ export function recencyScore(measuredAt: string | Date | null | undefined): numb
 export function weightReliability(
   method: WeightMethod | string | null | undefined,
   measuredAt: string | Date | null | undefined,
+  nowMs?: number,
 ): number {
   const m = (method ?? 'unknown') as WeightMethod
   const methodScore = WEIGHT_METHOD_SCORE[m] ?? WEIGHT_METHOD_SCORE.unknown
-  const recScore = recencyScore(measuredAt)
+  const recScore = recencyScore(measuredAt, nowMs)
   return Math.round((0.7 * methodScore + 0.3 * recScore) * 100) / 100
 }
 
