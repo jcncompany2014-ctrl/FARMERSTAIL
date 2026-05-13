@@ -1027,9 +1027,17 @@ export default function SurveyPage() {
                 onClick={() => setMcs(null)}
                 aria-pressed={mcs === null}
               >
-                {mcs === null
-                  ? '✓ 이번엔 건너뛸게요'
-                  : '💭 잘 모르겠어요 — 건너뛸게요'}
+                {mcs === null ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+                    이번엔 건너뛸게요
+                  </>
+                ) : (
+                  <>
+                    <HelpCircle className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />
+                    잘 모르겠어요 — 건너뛸게요
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1108,9 +1116,17 @@ export default function SurveyPage() {
                 onClick={() => setBristol(null)}
                 aria-pressed={bristol === null}
               >
-                {bristol === null
-                  ? '✓ 이번엔 건너뛸게요'
-                  : '💭 잘 모르겠어요 — 건너뛸게요'}
+                {bristol === null ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+                    이번엔 건너뛸게요
+                  </>
+                ) : (
+                  <>
+                    <HelpCircle className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />
+                    잘 모르겠어요 — 건너뛸게요
+                  </>
+                )}
               </button>
             </div>
 

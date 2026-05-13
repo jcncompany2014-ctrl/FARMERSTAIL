@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, X } from 'lucide-react'
+import { ArrowRight, EyeOff } from 'lucide-react'
 import type { NextAction } from '@/lib/dashboard/next-action'
 
 /**
@@ -11,19 +11,19 @@ import type { NextAction } from '@/lib/dashboard/next-action'
  * # 디자인
  * - tone 별 다른 accent 색 (terracotta=강조, gold=권유, moss=리마인더)
  * - 단일 CTA — 과한 선택지 X. 사용자가 매일 들어와 한 번에 흐름 진입.
- * - 카드 자체가 Link — 모바일 탭 영역 보장 (CTA 버튼만 작아도 카드 어디든 탭).
- * - kicker "오늘의 한 가지" — 매일 들러도 자기 위치 알 수 있게.
+ * - 카드 자체가 Link — 모바일 탭 영역 보장.
  *
- * # 견주 자율성 — "지금은 괜찮아요" dismiss 옵션
- * docs/voice-guidelines.md §5 정책: 모든 개입은 거부 가능해야 함.
- * action.type + 오늘 날짜 키로 24시간 dismiss. 다음 날 다시 표시.
- * 사용자가 같은 action 을 N번 연속 dismiss 하면 더 긴 cooldown 적용.
+ * # 견주 자율성 — "이 안내 숨기기"
+ * docs/voice-guidelines.md §5 정책. dismiss 는 카드 외곽이 아닌 카드
+ * 아래의 별도 텍스트 링크. 카드 안 absolute X 버튼은 CTA pill 과 위치
+ * 충돌이 발생해서 footer 패턴으로 변경.
+ *
+ * type 별 24h dismiss (localStorage). 동일 type 의 안내는 다음 day 부터
+ * 다시 표시.
  */
 export default function NextActionCard({ action }: { action: NextAction }) {
   const [dismissed, setDismissed] = useState(false)
 
-  // 24h dismiss 체크 — 같은 action.type + 같은 날 거부 이력 있으면 안 보임.
-  // server 가 다시 결정한 action 이라도 사용자 의사 존중.
   useEffect(() => {
     const key = `ft:next-action:dismiss:${action.type}`
     const value = localStorage.getItem(key)
@@ -34,9 +34,7 @@ export default function NextActionCard({ action }: { action: NextAction }) {
     }
   }, [action.type])
 
-  function handleDismiss(e: React.MouseEvent) {
-    e.preventDefault()
-    e.stopPropagation()
+  function handleDismiss() {
     setDismissed(true)
     try {
       localStorage.setItem(
@@ -44,13 +42,12 @@ export default function NextActionCard({ action }: { action: NextAction }) {
         String(Date.now()),
       )
     } catch {
-      /* localStorage 차단 환경에선 세션 동안만 숨김 */
+      /* localStorage 차단 환경은 세션 동안만 숨김 */
     }
   }
 
   if (dismissed) return null
 
-  // tone 별 색 매핑. CSS variable 로 디자인 토큰 일관성.
   const toneColor: Record<NextAction['tone'], string> = {
     terracotta: 'var(--terracotta)',
     gold: 'var(--gold)',
@@ -59,7 +56,7 @@ export default function NextActionCard({ action }: { action: NextAction }) {
   const accent = toneColor[action.tone]
 
   return (
-    <div className="relative mx-5 mt-3">
+    <div className="mx-5 mt-3">
       <Link
         href={action.href}
         className="group block px-5 py-4 rounded-2xl border bg-white active:scale-[0.99] transition"
@@ -70,7 +67,7 @@ export default function NextActionCard({ action }: { action: NextAction }) {
         aria-label={`${action.title} — ${action.cta}`}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0 pr-6">
+          <div className="flex-1 min-w-0">
             <span
               className="kicker"
               style={{ color: accent }}
@@ -107,15 +104,15 @@ export default function NextActionCard({ action }: { action: NextAction }) {
           </span>
         </div>
       </Link>
-      {/* 우상단 dismiss — 견주 자율성 우선 (voice-guidelines §5).
-          24h 동안 같은 action.type 숨김. localStorage 기반이라 device 별 동작. */}
+      {/* dismiss — 카드 아래 별도 line. 카드 위 absolute X 는 CTA pill 과
+          충돌. 작은 텍스트 링크로 시각적 부담 ↓. */}
       <button
         type="button"
         onClick={handleDismiss}
         aria-label="이 안내 24시간 동안 숨기기"
-        className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-muted hover:bg-bg transition"
+        className="mt-1.5 ml-1 inline-flex items-center gap-1 px-2 py-1 text-[10.5px] font-semibold text-muted/70 hover:text-muted transition"
       >
-        <X className="w-3.5 h-3.5" strokeWidth={2} />
+        <EyeOff className="w-3 h-3" strokeWidth={2} />이 안내 숨기기
       </button>
     </div>
   )

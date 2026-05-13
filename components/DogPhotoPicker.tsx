@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Dog as DogIcon, X } from 'lucide-react'
+import { Camera, Dog as DogIcon, X, Lightbulb } from 'lucide-react'
 import { MAX_PHOTO_BYTES, type PhotoState } from '@/lib/dogPhotos'
 
 const ACCEPTED = 'image/jpeg,image/png,image/webp,image/gif'
@@ -144,10 +144,12 @@ export default function DogPhotoPicker({
             className="mt-2 inline-flex items-start gap-1.5 text-[10.5px] leading-relaxed"
             style={{ color: 'var(--terracotta)' }}
           >
-            <span aria-hidden>💡</span>
-            <span>
-              신용카드를 같이 찍으면 맞춤도가 더 정확해요
-            </span>
+            <Lightbulb
+              className="w-3 h-3 shrink-0 mt-0.5"
+              strokeWidth={2}
+              aria-hidden
+            />
+            <span>신용카드를 같이 찍으면 맞춤도가 더 정확해요</span>
           </div>
         )}
         <div className="flex items-center gap-2 mt-2">
