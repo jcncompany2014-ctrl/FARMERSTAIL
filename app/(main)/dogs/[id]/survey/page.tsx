@@ -1020,12 +1020,16 @@ export default function SurveyPage() {
                   </button>
                 )
               })}
+              <div className="s-skip-divider"><span>또는</span></div>
               <button
                 type="button"
                 className={'s-skipbtn' + (mcs === null ? ' s-active' : '')}
                 onClick={() => setMcs(null)}
+                aria-pressed={mcs === null}
               >
-                {mcs === null ? '✓ 잘 모르겠어요 — 건너뛸게요' : '잘 모르겠어요 — 건너뛸게요'}
+                {mcs === null
+                  ? '✓ 이번엔 건너뛸게요'
+                  : '💭 잘 모르겠어요 — 건너뛸게요'}
               </button>
             </div>
           </div>
@@ -1097,12 +1101,16 @@ export default function SurveyPage() {
                   </button>
                 )
               })}
+              <div className="s-skip-divider"><span>또는</span></div>
               <button
                 type="button"
                 className={'s-skipbtn' + (bristol === null ? ' s-active' : '')}
                 onClick={() => setBristol(null)}
+                aria-pressed={bristol === null}
               >
-                {bristol === null ? '✓ 잘 모르겠어요 — 건너뛸게요' : '잘 모르겠어요 — 건너뛸게요'}
+                {bristol === null
+                  ? '✓ 이번엔 건너뛸게요'
+                  : '💭 잘 모르겠어요 — 건너뛸게요'}
               </button>
             </div>
 

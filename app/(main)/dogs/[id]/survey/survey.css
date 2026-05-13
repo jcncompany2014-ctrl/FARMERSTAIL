@@ -239,17 +239,70 @@
 .s-lb-title { font-size: 13.5px; font-weight: 700; color: var(--ink); display: block; }
 .s-lb-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; display: block; }
 
-/* Skip pill — Apple HIG 44px tap target */
+/* Skip pill — 직관성 강화 (dashed border + active fill).
+   이전: bg/border 없어 일반 텍스트로 보였고, active 도 색만 바뀜.
+   개선:
+     1) idle: dashed border + emoji prefix — "옵션 영역" 시각화
+     2) hover: dashed → solid + 옅은 fill — 인터랙티브 명확
+     3) active: solid border 1.5px + fill 8% + bold — 선택 시 명확
+     4) min-height 48px — Apple HIG 44px 초과 확실히 보장
+   voice-guidelines §7 "모름" 옵션 항상 — 직관적으로 보여야 부담 ↓ */
 .s-skipbtn {
-  appearance: none; border: 0; cursor: pointer;
-  width: 100%; margin-top: 6px; padding: 13px 11px;
-  min-height: 44px;
-  background: transparent; color: var(--muted);
-  font-weight: 600; font-size: 12px;
-  border-radius: 12px; font-family: inherit;
+  appearance: none; cursor: pointer;
+  width: 100%; margin-top: 10px; padding: 13px 14px;
+  min-height: 48px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600; font-size: 12.5px;
+  border: 1px dashed var(--rule-2);
+  border-radius: 12px;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  letter-spacing: -0.005em;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, border-style 0.15s ease, transform 0.1s ease;
 }
-.s-skipbtn:hover { color: var(--terracotta); }
-.s-skipbtn.s-active { color: var(--terracotta); }
+.s-skipbtn:hover {
+  border-style: solid;
+  border-color: var(--terracotta);
+  background: color-mix(in srgb, var(--terracotta) 4%, transparent);
+  color: var(--terracotta);
+}
+.s-skipbtn:active {
+  transform: scale(0.99);
+}
+.s-skipbtn.s-active {
+  border: 1.5px solid var(--terracotta);
+  background: color-mix(in srgb, var(--terracotta) 8%, transparent);
+  color: var(--terracotta);
+  font-weight: 700;
+}
+
+/* "또는" divider — 옵션 list 와 skip 버튼 사이의 시각적 분리. */
+.s-skip-divider {
+  position: relative;
+  text-align: center;
+  margin: 14px 0 -2px;
+  height: 14px;
+}
+.s-skip-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 0; right: 0;
+  border-top: 1px solid var(--rule);
+}
+.s-skip-divider span {
+  position: relative;
+  background: var(--bg);
+  padding: 0 10px;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-weight: 700;
+}
 
 /* Chip row */
 .s-chiprow { display: flex; flex-wrap: wrap; gap: 7px; }

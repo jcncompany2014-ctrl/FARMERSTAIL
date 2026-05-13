@@ -39,6 +39,11 @@ export default function NewDogPage() {
   const [ageValue, setAgeValue] = useState('')
   const [ageUnit, setAgeUnit] = useState<'years' | 'months'>('years')
   const [weight, setWeight] = useState('')
+  // 발명 모듈 A — 측정 도구 메타데이터. unknown 기본 (강제 입력 X).
+  // voice-guidelines §7 — "모름" 옵션 항상.
+  const [weightMethod, setWeightMethod] = useState<
+    'vet_scale' | 'home_digital' | 'home_analog' | 'hold' | 'eyeball' | 'unknown'
+  >('unknown')
   const [activityLevel, setActivityLevel] = useState<
     'low' | 'medium' | 'high' | ''
   >('')
@@ -113,6 +118,8 @@ export default function NewDogPage() {
         age_unit: ageUnit,
         weight: parseFloat(weight),
         activity_level: activityLevel,
+        weight_method: weightMethod,
+        weight_measured_at: new Date().toISOString(),
       })
       .select('id')
       .single()
@@ -333,6 +340,26 @@ export default function NewDogPage() {
             inputMode="decimal"
             enterKeyHint="done"
           />
+          {/* 측정 도구 — 발명 모듈 A. 정확도가 높을수록 맞춤도 ↑.
+              voice-guidelines §7 "모름" 옵션 기본값. 강제 X. */}
+          <select
+            value={weightMethod}
+            onChange={(e) =>
+              setWeightMethod(e.target.value as typeof weightMethod)
+            }
+            className={`${inputCls} mt-2 text-[12px]`}
+            aria-label="체중 측정 도구"
+          >
+            <option value="unknown">측정 방법 — 모름</option>
+            <option value="vet_scale">동물병원 체중계</option>
+            <option value="home_digital">가정용 디지털</option>
+            <option value="home_analog">가정용 아날로그</option>
+            <option value="hold">안고 재기</option>
+            <option value="eyeball">눈으로 추정</option>
+          </select>
+          <p className="mt-1.5 text-[10px] text-muted">
+            정확한 도구일수록 맞춤도가 올라가요. 모르면 그대로 두셔도 돼요.
+          </p>
         </div>
 
         <div>
