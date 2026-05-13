@@ -344,16 +344,30 @@ export default function HealthLogClient({
         )}
       </section>
 
-      {/* 진료 영수증 OCR — Claude Vision 스켈레톤. 자동 적용 X, 사용자
-          확인 후 onConfirm 콜백에서 별도 mutation 으로 반영. 지금은
-          저장 endpoint 가 아직 없어 콜백이 toast 만 표시. */}
+      {/* 진료 영수증 OCR — Claude Vision. 사용자 확인 후 POST /api/health/
+          records 로 source='ocr' 저장 (P4). 자동 저장 X 정책 유지: 사용자가
+          "이대로 저장" 클릭해야만 onConfirm 호출됨. */}
       <section className="px-5 mt-4">
         <MedicalRecordOcr
           dogId={dogId}
-          onConfirm={async () => {
-            // TODO(D7+): /api/health/records POST 로 health_logs 또는
-            // 새로 만들 medical_records 테이블에 저장. 지금은 미리보기
-            // + toast 만 — DB 자동 저장 금지 정책.
+          onConfirm={async (extract) => {
+            const res = await fetch('/api/health/records', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                dogId,
+                visitDate: extract.visitDate,
+                diagnosis: extract.diagnosis,
+                medications: extract.medications,
+                vetNotes: extract.vetNotes,
+                weightKg: extract.weightKg,
+                source: 'ocr',
+                ocrConfidence: extract.confidence,
+              }),
+            })
+            if (!res.ok) {
+              throw new Error('save failed')
+            }
           }}
         />
       </section>

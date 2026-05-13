@@ -24,7 +24,7 @@
 |---|--------|------|-------------|
 | 1 | 만보계·스마트워치 자동 연동 (Tractive/Fi API) | 🟦 | 외부 API. activity_method='pedometer'/'gps' 옵션만 추가 |
 | 2 | 스마트 사료 그릇 (옵션 판매) | 🟦 | 하드웨어 product. 향후 |
-| 3 | 동물병원 데이터 OCR | 🟨 | D6.5 OCR lib + UI + API. **onConfirm 저장 endpoint 미완** |
+| 3 | 동물병원 데이터 OCR | ✅ | P4 — `medical_records` 테이블 + POST `/api/health/records` source='ocr' 저장 |
 | 4 | 사료 배송 시 무게 자동 기록 | ✅ | D2 `feed_intake_history` RPC + `avg_daily_feed_grams` RPC |
 | 5 | 점진적 입력 (progressive disclosure) | 🟨 | ProgressiveDisclosure 컴포넌트 + grace-period lib. 입력 폼에 N개 항목 한 번에 X 정책은 일부만 |
 | 6 | "모름" 옵션 적극 활용 | ✅ | D4 dogs 메타 5컬럼 CHECK 'unknown' DEFAULT |
@@ -130,7 +130,7 @@
 | 10 | 간식 종류 multi-select | ⬜ | 후속 |
 | 11 | 인간 음식 급여 toggle | ⬜ | 후속 |
 | 12 | 알러지 "자가 vs 수의사" 분리 | ✅ | allergies_source CHECK |
-| 13 | 수의사 진단서 이미지 첨부 | 🟨 | D6.5 OCR 도구 있음. 진단서 영구 저장 endpoint X |
+| 13 | 수의사 진단서 이미지 첨부 | ✅ | P4 — OCR onConfirm → medical_records source='ocr' |
 | 14 | 복약 정보 자유 텍스트 + 자동완성 | ⬜ | 후속 |
 
 ### B.2 카메라 UX (15~30)
@@ -214,7 +214,7 @@
 | 64 | 활력도 5점 + 산책/놀이 시간 | 🟨 | checkin 에 활력도 일부. 산책/놀이 시간 X |
 | 65 | 식욕 측정 (그릇 비우는 속도) | 🟨 | appetite_score 있음. 속도 X |
 | 66 | 시계열 측면 사진 업로드 | ⬜ | 후속 |
-| 67 | 의료 이벤트 입력 (병원/약/수술) | ⬜ | health_logs 있지만 의료 이벤트 별도 X |
+| 67 | 의료 이벤트 입력 (병원/약/수술) | 🟨 | P4 — medical_records 테이블 + API. **수동 입력 UI 폼은 후속** |
 | 68 | 피드백 자체 신뢰도 (입력 시간/수정 빈도) | ⬜ | 후속 |
 | 69 | 피드백 시계열 패턴 분석 (복붙 의심) | 🟦 | Phase 4 |
 | 70 | 피드백 D-1 push 알림 | ✅ | personalization-cycle |
