@@ -195,6 +195,7 @@ export type ChronicConditionKey =
   | 'ivdd'                 // 추간판 탈출증 — 닥스훈트/시바/비숑 호발
   | 'tracheal_collapse'    // 기관 허탈 — 토이/포메/요크셔 호발
   | 'mmvd'                 // 점액종성 이첨판 변성 (MMVD) — 소형견 호발
+  | 'obesity'              // [B3] 비만 — drugs w/d 자동 매핑 + BCS 7+ 검출 위한 정식 키
 
 export const CHRONIC_CONDITION_LABELS: Record<ChronicConditionKey, string> = {
   diabetes: '당뇨',
@@ -217,6 +218,7 @@ export const CHRONIC_CONDITION_LABELS: Record<ChronicConditionKey, string> = {
   ivdd: '추간판 탈출증 (IVDD)',
   tracheal_collapse: '기관 허탈',
   mmvd: '점액종성 이첨판 변성 (MMVD)',
+  obesity: '비만 (체중 관리 필요)',
 }
 
 /**
@@ -259,7 +261,8 @@ export const CONDITION_ADJUSTMENTS: Record<ChronicConditionKey, DietAdjustment> 
     fiberDelta: 6,        // 고섬유 — 혈당 안정
     supplements: ['크롬', 'L-카르니틴'],
     riskFlags: ['DIABETIC_DIET_REQUIRED'],
-    cite: ['iris_ckd', 'fediaf2021'],
+    // [B2 fix] cite 정정 — iris_ckd 는 신장 가이드라인. 당뇨에는 AAFCO + NRC.
+    cite: ['aafco2024', 'nrc2006', 'fediaf2021'],
     vetConsult: true,
   },
   kidney: {
@@ -491,6 +494,18 @@ export const CONDITION_ADJUSTMENTS: Record<ChronicConditionKey, DietAdjustment> 
       sodiumFactor: 0.5,     // ACVIM Stage C/D 저나트륨 (Keene 2019)
       omega3Factor: 1.5,
     },
+  },
+  // [B3] 비만 — 체중 관리 식이. WSAVA + AAFCO 권고 — 단백질 유지, 지방·탄수
+  // 강 ↓, 섬유 ↑. weight loss 시 muscle 보존이 핵심 (단백질 보존).
+  obesity: {
+    proteinDelta: 6,        // 근육 보존 + 포만감
+    fatDelta: -8,           // 칼로리 ↓
+    carbDelta: -6,
+    fiberDelta: 8,          // 포만감
+    supplements: ['L-카르니틴', '오메가-3'],
+    riskFlags: ['WEIGHT_LOSS_DIET'],
+    cite: ['aafco2024', 'nrc2006'],
+    vetConsult: false,      // 자가 관리 가능, 단 체중 -1kg/월 이상이면 수의사
   },
 }
 

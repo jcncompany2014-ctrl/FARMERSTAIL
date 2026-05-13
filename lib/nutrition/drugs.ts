@@ -306,9 +306,7 @@ export const DRUG_RULES: DrugRule[] = [
     label: 'CKD (처방식 신장)',
   },
   // Hill's u/d (Urinary stones) + Royal Canin Urinary — 요결석
-  // 현재 ChronicConditionKey 에 urinary_stone 미등재 — kidney 로 임시 매핑.
-  // (요결석은 신장이 아니지만 영양 처방 priority 상 낮은 인 + 미네랄 균형
-  // 측면에서 kidney 와 일부 겹침. 향후 별도 키 추가 시 분리.)
+  // [B3 fix] ChronicConditionKey 에 urinary_stone 키 존재 — kidney → urinary_stone.
   {
     keywords: [
       "u/d",
@@ -322,7 +320,7 @@ export const DRUG_RULES: DrugRule[] = [
       's/o',
       'royal canin so',
     ],
-    condition: 'kidney',
+    condition: 'urinary_stone',
     label: '요결석/요로 (처방식)',
   },
   // Hill's i/d (GI) + Royal Canin Gastrointestinal — 만성 위장
@@ -361,9 +359,8 @@ export const DRUG_RULES: DrugRule[] = [
     label: '식이 알레르기 (처방식 가수분해)',
   },
   // Hill's w/d (Weight) + Royal Canin Satiety / Obesity
-  // 현재 obesity 별도 키 없음 — arthritis 와 자주 동반 (관절 부담).
-  // 보호자에게 표시 chip 만 (chronic 진단 자동 추가 안 함이 안전).
-  // 임시: 'arthritis' 매핑 (체중↑ → 관절 부하). 향후 'obesity' 키 추가 시 분리.
+  // [B3 fix] ChronicConditionKey 에 obesity 키 신규 추가 — arthritis → obesity.
+  // 체중 감량 처방식 사용자 → 비만 진단 직접 적용.
   {
     keywords: [
       'w/d',
@@ -378,8 +375,8 @@ export const DRUG_RULES: DrugRule[] = [
       'metabolic',
       'royal canin metabolic',
     ],
-    condition: 'arthritis',
-    label: '비만 관리 (처방식 체중) — 관절 보호 동반',
+    condition: 'obesity',
+    label: '비만 관리 (처방식 체중)',
   },
   // Hill's r/d (Weight reduction — 강한 감량) — w/d 보다 강한 감량용.
   // 동일 매핑.
@@ -390,7 +387,7 @@ export const DRUG_RULES: DrugRule[] = [
       "hill's r/d",
       '힐스 r/d',
     ],
-    condition: 'arthritis',
+    condition: 'obesity',
     label: '비만 감량 (처방식 r/d)',
   },
   // Hill's j/d (Joint Mobility) + Royal Canin Mobility

@@ -102,10 +102,18 @@ export function computePersona(input: PersonaInput): PersonaResult {
   const emotional =
     0.7 * sat(input.diaryCount, 8) + (input.hasPhoto ? 0.3 : 0)
 
-  // convenience — 정기배송 필수. 활성 사용 기간 bonus.
-  // 정기배송 없으면 점수 0 — daysSinceSignup 만으로 convenience 분류 X.
+  // [B6 fix] convenience — 정기배송 + 능동성 지표 결합.
+  // 이전: hasSubscription 만으로 0.7+ 부여 → 정기배송 사용자는 항상
+  // dominant=convenience 되어 emotional/data_lover 신호 묻힘.
+  // 새 공식: hasSubscription 가 base 0.4, 다른 페르소나 신호 부재 (저활동)
+  // 일수록 가중. 즉 정기배송 + 다이어리/분석 활동 적은 사용자가 진짜 convenience.
+  const otherActivity =
+    sat(input.diaryCount, 8) +
+    sat(input.analysisCount, 4) +
+    sat(input.chatCount, 10)
+  const isLowActivity = otherActivity < 1.0 // 0~3 합산. 1.0 미만 = 낮음.
   const convenience = input.hasSubscription
-    ? 0.7 + 0.3 * sat(input.daysSinceSignup, 60)
+    ? 0.4 + (isLowActivity ? 0.3 : 0) + 0.2 * sat(input.daysSinceSignup, 60)
     : 0
 
   // vet_dependent — 챗봇 + vet_diagnosed

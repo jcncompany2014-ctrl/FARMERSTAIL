@@ -58,7 +58,10 @@ export function shouldReanalyze(
     const errPct =
       Math.abs(input.actualWeight - input.predictedWeight) /
       input.predictedWeight
-    if (errPct > 0.1) reasons.push('weight_drift')
+    // [B9 fix] puppy 는 정상 성장도 50%+. lifeStage='puppy' 면 임계 50% 로
+    // 완화 → 정상 성장이 false positive trigger 방지.
+    const threshold = input.currentStage === 'puppy' ? 0.5 : 0.1
+    if (errPct > threshold) reasons.push('weight_drift')
   }
 
   // 2) 측정 도구 업그레이드

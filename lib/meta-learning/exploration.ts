@@ -55,11 +55,15 @@ export function epsilonGreedy<T>(
     const idx = Math.floor(random() * arms.length)
     return arms[Math.min(idx, arms.length - 1)]
   }
-  // exploit — best mean reward
+  // [B7 fix] exploit — Optimistic Initial Value.
+  // 이전: trials=0 새 arm 은 mean=0 → 영원히 explore 시 들어가야만 시도됨.
+  // 새 arm 들이 1회 trial 후 reward 낮으면 다음엔 안 뽑힘.
+  // Optimistic init: 새 arm 은 mean=1.0 가정 → 적어도 1번 exploit 으로도 선택.
+  const OPTIMISTIC_INIT = 1.0
   let best = arms[0]
-  let bestMean = best.trials > 0 ? best.reward / best.trials : -Infinity
+  let bestMean = best.trials > 0 ? best.reward / best.trials : OPTIMISTIC_INIT
   for (const arm of arms.slice(1)) {
-    const mean = arm.trials > 0 ? arm.reward / arm.trials : 0
+    const mean = arm.trials > 0 ? arm.reward / arm.trials : OPTIMISTIC_INIT
     if (mean > bestMean) {
       best = arm
       bestMean = mean
@@ -76,7 +80,11 @@ export function epsilonGreedy<T>(
 export function decayingEpsilon(
   totalTrials: number,
   initialEpsilon: number = 0.3,
-  decay: number = 0.95,
+  // [B7 fix] decay 0.95 → 0.99. 이전 decay 0.95 면 100 trials 후
+  // 0.3 × 0.006 ≈ 0.002 < min=0.01 → epsilon 거의 0. 1000+ trials 운영 시
+  // explore 사실상 정지. 새 decay 0.99 면 100 trials 후 약 0.11, 500 trials
+  // 후 약 0.02 — 천천히 감소.
+  decay: number = 0.99,
   min: number = 0.01,
 ): number {
   const e = initialEpsilon * Math.pow(decay, totalTrials)

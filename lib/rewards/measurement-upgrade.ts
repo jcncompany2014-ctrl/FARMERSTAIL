@@ -21,12 +21,17 @@
  *   - HIGH: scale / auto_delivery
  */
 
+// [B12 fix] home_analog 그룹 일관성.
+// reliability.ts 의 WEIGHT_METHOD_SCORE: vet_scale 1.0 / home_digital 0.9 /
+// home_analog 0.7 / hold 0.6 / eyeball 0.4 / unknown 0.3
+// 이전: home_analog 가 HIGH 그룹 — 0.7 인데 hold 0.6 보다 약간 높은 것 뿐.
+// 새: home_analog 를 MID 로 분리. HIGH = vet_scale + home_digital 만. MID 는 보상 X.
 const WEIGHT_HIGH = new Set([
   'vet_scale',
   'home_digital',
-  'home_analog',
 ])
 const WEIGHT_LOW = new Set(['unknown', 'eyeball', 'hold'])
+// home_analog 는 LOW 도 HIGH 도 아닌 mid — 업그레이드 보상 안 함 (양방향).
 
 const ACTIVITY_HIGH = new Set(['pedometer', 'gps'])
 const ACTIVITY_LOW = new Set(['unknown', 'subjective'])

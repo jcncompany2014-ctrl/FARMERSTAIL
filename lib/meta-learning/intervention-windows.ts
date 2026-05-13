@@ -41,7 +41,9 @@ export function predictBestTiming(
   respondedRows: Array<{ hour: number; dayOfWeek: number }>,
 ): InterventionTimingHint {
   if (!isInventionEnabled('meta_learning')) return DEFAULT_HINT
-  if (sentRows.length < 10) return DEFAULT_HINT // 표본 부족
+  // [B8 fix] 표본 임계 10 → 3. 단일 사용자 데이터 부족 시 호출처가
+  // cross-user cohort 합산 데이터 전달 가능. 빠른 학습 진입.
+  if (sentRows.length < 3) return DEFAULT_HINT
 
   // 시간대별 응답률 = responded / sent
   const sentByHour = new Map<number, number>()
@@ -77,11 +79,13 @@ export function predictBestTiming(
   let bestDow: number | null = null
   let bestDowRate = 0
   const overallRate = respondedRows.length / sentRows.length
+  // [B8 fix] threshold: 절대 +0.2 (20%p) → relative 1.5×. 평균 0.1
+  // 환경에서 0.3 필요였던 게 0.15 면 OK. 현실적.
   for (const [dow, sent] of sentByDow) {
     if (sent < 3) continue
     const responded = respByDow.get(dow) ?? 0
     const rate = responded / sent
-    if (rate > bestDowRate && rate > overallRate + 0.2) {
+    if (rate > bestDowRate && rate >= overallRate * 1.5) {
       bestDowRate = rate
       bestDow = dow
     }

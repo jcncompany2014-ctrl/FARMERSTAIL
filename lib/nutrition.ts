@@ -166,13 +166,18 @@ function lifeStageKR(stage: 'puppy' | 'adult' | 'senior'): string {
   return '성견 (유지기)'
 }
 
-function bcsScore(body: SurveyAnswers['bodyCondition']): BCSResult {
+function bcsScore(body: SurveyAnswers['bodyCondition'] | null | undefined): BCSResult {
   switch (body) {
     case 'skinny': return { score: 1, label: 'BCS 1-2', desc: '저체중 — 갈비뼈가 육안으로 확인됨', color: '#A6BEDA' }
     case 'slim': return { score: 3, label: 'BCS 3-4', desc: '약간 저체중 — 갈비뼈가 쉽게 촉진됨', color: '#8BA05A' }
     case 'ideal': return { score: 5, label: 'BCS 4-5', desc: '이상적 체중 — 허리 라인이 적절', color: '#6B7F3A' }
     case 'chubby': return { score: 7, label: 'BCS 6-7', desc: '과체중 — 갈비뼈 촉진이 어려움', color: '#D4B872' }
     case 'obese': return { score: 9, label: 'BCS 8-9', desc: '비만 — 지방 침착이 과도함', color: '#A0452E' }
+    default:
+      // [B1] bcsExact + bodyCondition 둘 다 null/undefined 시 crash 회피.
+      // ideal (5) fallback — 보수적이고 voice-guidelines §4 부정 정보
+      // 자제. 분석 결과 chip 에는 "체형 정보 미입력" 안내 별도.
+      return { score: 5, label: 'BCS (미입력)', desc: '체형 정보 없음 — 이상 체중 가정', color: '#A0A0A0' }
   }
 }
 

@@ -106,3 +106,40 @@ export function searchMedications(
     )
   }).slice(0, limit)
 }
+
+/**
+ * [B13] OCR 출력 약명 → registry entry 매칭.
+ *
+ * 진료 영수증 OCR 가 "Apoquel 5.4mg" / "프레드니솔론 정 5mg" 같은 mixed
+ * 출력. 용량·단위 제거 + 부분 매칭.
+ */
+export function matchMedicationFromOcr(
+  ocrText: string,
+): MedicationEntry | null {
+  if (!ocrText) return null
+  const cleaned = ocrText
+    .toLowerCase()
+    .replace(/\d+(\.\d+)?\s*(mg|ml|kg|lbs?|iu|단위)/gi, '')
+    .replace(/\d+\s*(회|일|표|정|캡슐|알)/g, '')
+    .replace(/\/[a-z]+/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  for (const m of MEDICATIONS) {
+    if (
+      cleaned.includes(m.name.toLowerCase()) ||
+      (m.generic && cleaned.includes(m.generic.toLowerCase().split(' ')[0]))
+    ) {
+      return m
+    }
+  }
+  const tokens = cleaned.split(/[\s,()/]+/).filter((t) => t.length >= 2)
+  for (const tok of tokens) {
+    const found = MEDICATIONS.find(
+      (m) =>
+        m.name.toLowerCase().startsWith(tok) ||
+        m.generic?.toLowerCase().startsWith(tok),
+    )
+    if (found) return found
+  }
+  return null
+}

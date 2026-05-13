@@ -94,12 +94,27 @@ export function analyzeImage(
   }
   const sharpness = count > 0 ? sumSq / count : 0
 
-  // coverage — 평균 밝기보다 어두운 픽셀이 비-배경 (대략적). 실측 정확도 X
-  let darkCount = 0
-  for (const p of grayBuf) {
-    if (p < brightness * 0.85) darkCount += 1
+  // [B5 fix] coverage — 어두운 픽셀 = 비-배경 단순 가정은 흰 강아지
+  // (말티즈/사모예드) 가 밝은 배경에서 0 에 가까워지는 false negative.
+  // saturation (HSL S 채널) 도 함께 사용 — 단조로운 배경 (낮은 S) vs
+  // 강아지 털/얼굴 (높은 S 또는 강한 edge) 분리.
+  //   coverageRatio = (어둠 마스크 OR 채도 마스크) / total
+  let foregroundCount = 0
+  for (let i = 0; i < grayBuf.length; i += 1) {
+    const o = i * 4
+    const r = pixels[o]
+    const g = pixels[o + 1]
+    const b = pixels[o + 2]
+    // 어두운 픽셀 (이전 룰)
+    const isDark = grayBuf[i] < brightness * 0.85
+    // 채도 = (max - min) / max  (간단 saturation)
+    const maxC = Math.max(r, g, b)
+    const minC = Math.min(r, g, b)
+    const sat = maxC === 0 ? 0 : (maxC - minC) / maxC
+    const isSaturated = sat > 0.20
+    if (isDark || isSaturated) foregroundCount += 1
   }
-  const coverageRatio = darkCount / grayBuf.length
+  const coverageRatio = foregroundCount / grayBuf.length
 
   return {
     brightness: Math.round(brightness),

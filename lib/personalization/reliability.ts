@@ -108,17 +108,23 @@ export function feedReliability(
 
 /**
  * 종합 신뢰도 — "가장 약한 고리" 가중 (발명 명세 6.3-(7)).
- * 단순 평균이 아닌 최소값 weight ↑ 방식.
- * 한 변수의 신뢰도가 매우 낮으면 종합이 크게 떨어져 입력 체인의 가장 약한
- * 고리를 정확히 반영.
  *
- * 산출: 0.6 × min + 0.4 × avg
+ * # [B4 fix] 가중치 재조정
+ * 이전: 0.6 × min + 0.4 × avg — min 가중 너무 강해 한 변수만 약해도
+ * (예: 사진 미업로드로 w_image=0.3) 전체가 50% 미만 → 사용자 좌절.
+ *
+ * 새 공식: 0.4 × min + 0.6 × avg
+ *  · min 영향력은 유지 (1개 약하면 전체 ↓) 하되 강도 완화.
+ *  · scores=[0.95, 0.95, 0.3] → 이전 0.47 / 새 0.72 ("안정적")
+ *  · scores=[0.95, 0.95, 0.95] → 이전 0.95 / 새 0.95 (변동 X)
+ *  · scores=[0.3, 0.3, 0.3] → 이전 0.30 / 새 0.30 (변동 X)
+ *  · 변수 다수 약할 땐 그대로 낮지만, 1개만 약하면 가혹하지 않음.
  */
 export function overallReliability(scores: number[]): number {
   if (scores.length === 0) return 0
   const min = Math.min(...scores)
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length
-  return Math.round((0.6 * min + 0.4 * avg) * 100) / 100
+  return Math.round((0.4 * min + 0.6 * avg) * 100) / 100
 }
 
 /**

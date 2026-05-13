@@ -58,12 +58,13 @@ function wImageFlagOn(): boolean {
  *
  * w_image = w1·coverage + w2·brightness + w3·sharpness + w4·reference + w5·view
  *
- * 가중치 (발명 명세 6.2-(3) 기반):
- *  · coverage    0.25
- *  · brightness  0.15
+ * [B11 fix] 가중치 재배분 — BCS 추정 정확도 영향력 기준:
+ *  · view        0.30  (측면 vs 정면이 가장 큰 영향)
  *  · sharpness   0.25
+ *  · brightness  0.15
+ *  · coverage    0.15  (reference 와 결합 시 의미)
  *  · reference   0.15
- *  · view        0.20
+ * 이전: coverage 0.25 / view 0.20 — 학술 근거에 맞춰 view 우선.
  */
 export function computeWImage(input: WImageInput): WImageResult {
   if (!wImageFlagOn()) {
@@ -115,12 +116,14 @@ export function computeWImage(input: WImageInput): WImageResult {
     issues.push('어떤 각도인지 모름 — 측면 사진이 가장 정확해요')
   }
 
+  // [B11] 가중치 재배분 — view 0.30 / sharpness 0.25 / brightness 0.15 /
+  // coverage 0.15 / reference 0.15. 합 1.00.
   const score =
-    0.25 * covScore +
+    0.15 * covScore +
     0.15 * brightnessScore +
     0.25 * sharpScore +
     0.15 * refScore +
-    0.2 * viewScore
+    0.3 * viewScore
 
   const rounded = Math.round(score * 100) / 100
   return {
