@@ -10,6 +10,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { business } from '@/lib/business'
+import ConsentLevelCard from '@/components/ConsentLevelCard'
 
 export const metadata: Metadata = {
   title: '내 데이터 (개인정보 열람권)',
@@ -64,6 +65,15 @@ export default async function PrivacyDashboardPage() {
 
   const totalRows = counts.reduce((s, c) => s + c.count, 0)
 
+  // P13 — 현재 동의 단계 fetch
+  const { data: profileRow } = await supabase
+    .from('profiles')
+    .select('consent_level')
+    .eq('id', user.id)
+    .maybeSingle()
+  const consentLevel = ((profileRow as { consent_level?: number } | null)
+    ?.consent_level ?? 1) as 1 | 2 | 3 | 4
+
   return (
     <main className="px-5 pb-24 pt-6 max-w-2xl mx-auto">
       <div className="flex items-center gap-2 mb-1">
@@ -88,8 +98,13 @@ export default async function PrivacyDashboardPage() {
         정정·삭제하실 수 있어요.
       </p>
 
+      {/* P13 — 단계적 동의 4단계 UI (B-92, B-94) */}
+      <div className="mt-6">
+        <ConsentLevelCard initialLevel={consentLevel} />
+      </div>
+
       {/* 보유 항목 카운트 */}
-      <section className="mt-6 bg-white rounded-2xl border border-rule p-5">
+      <section className="mt-4 bg-white rounded-2xl border border-rule p-5">
         <div className="flex items-center gap-2 mb-3">
           <Database className="w-3.5 h-3.5 text-text" strokeWidth={2} />
           <h2 className="text-[12px] font-bold uppercase tracking-widest text-muted">
