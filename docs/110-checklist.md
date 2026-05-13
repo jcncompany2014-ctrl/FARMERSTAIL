@@ -38,7 +38,7 @@
 | 9 | 절대 점수가 아닌 변화율 강조 | 🟨 | P8 — sensitivity snapshot 의 top_variable + delta chip. **점수 변화율 직접 표시는 후속** |
 | 10 | "다른 견주 평균" 비교 금지 | ✅ | 정책. 코드 어디에도 비교 X |
 | 11 | 신뢰도 낮은 항목 자동 가리기 | ✅ | AccuracyBreakdown default 접힘 + 약한 변수만 expand 시 highlight |
-| 12 | 신뢰도 향상 즉시 보상 (1,000P) | 🟨 | D6.1 설문 완료 1,000P. **측정 도구 개선 트리거 X** |
+| 12 | 신뢰도 향상 즉시 보상 (1,000P) | ✅ | P10 — measurement_upgrade RPC + isUpgrade() lib + dog edit 폼에서 자동 호출 |
 | 13 | 연속 체크인 스트릭 | ✅ | D6.2 StreakCard + lib/dashboard/streaks |
 | 14 | 견주끼리 협력 챌린지 | ⬜ | 친구 공동 챌린지 시스템 미구현 |
 

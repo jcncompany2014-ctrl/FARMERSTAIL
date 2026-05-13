@@ -13,8 +13,10 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 import DogPhotoPicker from '@/components/DogPhotoPicker'
 import { resolvePhotoState, type PhotoState } from '@/lib/dogPhotos'
+import { isUpgrade, type MethodKind } from '@/lib/rewards/measurement-upgrade'
 
 const BREEDS = [
   '포메라니안', '말티즈', '푸들', '토이푸들', '시츄', '비숑 프리제',
@@ -44,9 +46,19 @@ export default function EditDogPage() {
   const [activityLevel, setActivityLevel] = useState<
     'low' | 'medium' | 'high' | ''
   >('')
+  // Phase P10 — 측정 도구 메타데이터 (업그레이드 보상 트리거).
+  const [weightMethod, setWeightMethod] = useState<string>('unknown')
+  const [activityMethod, setActivityMethod] = useState<string>('unknown')
+  const [feedMethod, setFeedMethod] = useState<string>('unknown')
+  // 초기값 — 업그레이드 비교용
+  const [initialWeightMethod, setInitialWeightMethod] = useState<string>('unknown')
+  const [initialActivityMethod, setInitialActivityMethod] = useState<string>('unknown')
+  const [initialFeedMethod, setInitialFeedMethod] = useState<string>('unknown')
+
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [photoState, setPhotoState] = useState<PhotoState>({ action: 'keep' })
   const [userId, setUserId] = useState<string | null>(null)
+  const toast = useToast()
 
   useEffect(() => {
     async function loadDog() {
@@ -78,6 +90,16 @@ export default function EditDogPage() {
       setAgeUnit(data.age_unit ?? 'years')
       setWeight(data.weight?.toString() ?? '')
       setActivityLevel(data.activity_level ?? '')
+      // P10 — 측정 도구 초기값. 업그레이드 비교용으로 별도 저장.
+      const wm = data.weight_method ?? 'unknown'
+      const am = data.activity_method ?? 'unknown'
+      const fm = data.feed_method ?? 'unknown'
+      setWeightMethod(wm)
+      setActivityMethod(am)
+      setFeedMethod(fm)
+      setInitialWeightMethod(wm)
+      setInitialActivityMethod(am)
+      setInitialFeedMethod(fm)
       setPhotoUrl(data.photo_url ?? null)
       setUserId(user.id)
       setLoadingInit(false)
@@ -149,12 +171,50 @@ export default function EditDogPage() {
         age_unit: ageUnit,
         weight: parseFloat(weight),
         activity_level: activityLevel,
+        weight_method: weightMethod,
+        activity_method: activityMethod,
+        feed_method: feedMethod,
+        // 체중 input 변경 시 measured_at 도 갱신 (사용자가 바로 잰 것)
+        weight_measured_at:
+          weight !== '' ? new Date().toISOString() : undefined,
         photo_url: finalPhotoUrl,
         updated_at: new Date().toISOString(),
       })
       .eq('id', dogId)
       .eq('user_id', userId!)
       .select('id')
+
+    // P10 — 측정 도구 업그레이드 보상 (best-effort, 흐름 차단 X)
+    const upgrades: Array<{ kind: MethodKind; prev: string; next: string }> = []
+    if (isUpgrade('weight', initialWeightMethod, weightMethod)) {
+      upgrades.push({ kind: 'weight', prev: initialWeightMethod, next: weightMethod })
+    }
+    if (isUpgrade('activity', initialActivityMethod, activityMethod)) {
+      upgrades.push({ kind: 'activity', prev: initialActivityMethod, next: activityMethod })
+    }
+    if (isUpgrade('feed', initialFeedMethod, feedMethod)) {
+      upgrades.push({ kind: 'feed', prev: initialFeedMethod, next: feedMethod })
+    }
+    for (const up of upgrades) {
+      try {
+        const res = await fetch(`/api/dogs/${dogId}/measurement-upgrade`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(up),
+        })
+        if (res.ok) {
+          const data = (await res.json()) as {
+            ok?: boolean
+            amount?: number
+          }
+          if (data.ok && data.amount) {
+            toast.success(`측정 도구 업그레이드 응원 ${data.amount.toLocaleString()}P 적립`)
+          }
+        }
+      } catch {
+        /* silent */
+      }
+    }
 
     setLoading(false)
 
@@ -393,6 +453,58 @@ export default function EditDogPage() {
               )
             })}
           </div>
+        </div>
+
+        {/* Phase P10 — 측정 도구 메타. 변경 시 업그레이드 보상 1,000P. */}
+        <div className="border-t border-rule pt-4 space-y-3">
+          <div className="text-[11px] font-bold uppercase tracking-widest text-muted">
+            측정 도구 (선택)
+          </div>
+          <div>
+            <label className={labelCls}>체중 측정 도구</label>
+            <select
+              value={weightMethod}
+              onChange={(e) => setWeightMethod(e.target.value)}
+              className={`${inputCls} text-[12px]`}
+            >
+              <option value="unknown">측정 도구 — 모름</option>
+              <option value="vet_scale">동물병원 체중계</option>
+              <option value="home_digital">가정용 디지털</option>
+              <option value="home_analog">가정용 아날로그</option>
+              <option value="hold">안고 재기</option>
+              <option value="eyeball">눈으로 추정</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>활동량 측정 도구</label>
+            <select
+              value={activityMethod}
+              onChange={(e) => setActivityMethod(e.target.value)}
+              className={`${inputCls} text-[12px]`}
+            >
+              <option value="unknown">측정 도구 — 모름</option>
+              <option value="pedometer">만보계 / 스마트태그</option>
+              <option value="gps">GPS 트래커</option>
+              <option value="subjective">주관 추정</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>급여량 측정 도구</label>
+            <select
+              value={feedMethod}
+              onChange={(e) => setFeedMethod(e.target.value)}
+              className={`${inputCls} text-[12px]`}
+            >
+              <option value="unknown">측정 도구 — 모름</option>
+              <option value="auto_delivery">자체 사료 자동 추적</option>
+              <option value="scale">저울</option>
+              <option value="cup">계량컵</option>
+              <option value="eyeball">눈대중</option>
+            </select>
+          </div>
+          <p className="text-[10.5px] text-muted leading-relaxed">
+            정확한 도구로 바꾸면 응원 포인트 1,000P 적립돼요 (kind 별 1회).
+          </p>
         </div>
 
         {error && (
