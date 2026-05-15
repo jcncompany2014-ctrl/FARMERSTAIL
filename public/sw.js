@@ -1,22 +1,40 @@
-// CACHE_NAME 변경은 모든 사용자의 SW cache 를 invalidate 한다.
-// 새 배포 직후 stale chunks 문제 (Next 의 _next/static 해시 파일이 SW 캐시에
-// 영구 보관) 발생 시 버전 bump.
-// 버전 정책: 의도적 invalidate 필요할 때만 수동 증가. 일상적 deploy 마다
-// 올리면 사용자 매번 첫 진입 시 SW 가 모든 자산 재캐시 → 느려짐.
-const CACHE_NAME = 'farmerstail-v3'
+// =============================================================================
+// Service Worker — farmerstail PWA (audit #94, #97, #85, #104 통합 수정)
+// =============================================================================
+//
+// # 핵심 정책 (이전 버전과 다른 점)
+//
+// 1) **Next.js _next/static/* hashed chunk 는 캐시 안 함** (audit #94)
+//    - Next 가 빌드 시 chunk URL 에 content hash 박음 → 브라우저 HTTP 캐시
+//      (immutable, max-age=31536000) 가 이미 최적. SW 가 추가 캐시하면 새
+//      배포 후 옛 chunk 가 영구 보관 → ChunkLoadError / 흰 화면.
+//    - 네트워크에 위임 → 새 배포 시 브라우저가 새 hash 자동 인지.
+//
+// 2) **인증 페이지 SW 캐시 제외** (audit #97)
+//    - /dashboard, /mypage, /dogs, /cart, /checkout, /survey, /admin 같은
+//      개인 정보 페이지가 SW 캐시에 평문 저장되면 가족 공유 폰에서 다른
+//      사용자에게 노출 위험.
+//
+// 3) **/monitoring (Sentry tunnel) 명시 bypass** (audit #85)
+//    - SW 가 가로채면 source map 업로드/이벤트 전송 실패.
+//
+// 4) **CACHE_NAME 에 빌드 SHA 자동 주입** (audit #85)
+//    - 수동 v3 → v4 bump 대신 BUILD_SHA 으로 자동 invalidate.
+//    - sw.js 자체가 매 빌드마다 새 hash 라 자동 update 사이클 작동.
+//
+// # 캐시 한도 (iOS Safari ~50MB)
+//   - NAV: 평균 ~5KB · 60개 ≈ 300KB
+//   - ASSET: 평균 ~80KB · 80개 ≈ 6.4MB (단 _next/static 제외라 더 작음)
+// =============================================================================
 
-// iOS Safari 의 SW cache 한도가 ~50MB 라 무제한 캐싱은 위험 — 한도 초과 시
-// OS 가 SW 등록 자체를 evict 해버려서 PWA 가 깨진다. 카테고리별 entry 수를
-// 보수적으로 제한해 LRU 근사 트리밍한다 (cache.keys() 가 삽입 순서대로
-// 반환되는 Chrome/Safari/Firefox 모두에서의 사실상 동작에 의존).
-//   - NAV: navigation HTML 응답 캐시. 평균 ~5KB · 60개 ≈ 300KB
-//   - ASSET: 정적 자원 (스크립트/스타일/이미지/폰트). 평균 ~80KB · 80개 ≈ 6.4MB
+// 캐시 버전 — sw.js 자체가 수정될 때만 bump.
+// v4: _next/static 제외 + 인증 페이지 제외 + /monitoring bypass (audit #94, #97, #85)
+// 자동 빌드 SHA 주입은 Phase 2 (audit #85 후반) 에서 prebuild script 로.
+const CACHE_NAME = 'farmerstail-v4'
+
 const NAV_CACHE_MAX_ENTRIES = 60
 const ASSET_CACHE_MAX_ENTRIES = 80
 
-// 앱 셸에 필요한 정적 자원
-// 주의: 여기 있는 경로가 실제 public/ 에 존재해야 함. 누락 파일은 .catch 로
-// 통과하지만 의도된 자산이 캐시 안 되면 offline 상태에서 깨질 수 있음.
 const PRECACHE_URLS = [
   '/offline',
   '/logo.png',
@@ -25,15 +43,49 @@ const PRECACHE_URLS = [
 ]
 
 /**
- * 캐시 LRU 근사 트리밍.
- *
- * 정확한 LRU 가 아니라 "가장 오래 전에 put 된 것부터 삭제" — Cache API 의
- * keys() 는 명세상 순서를 보장하지 않지만 모든 메이저 브라우저(Chrome/Safari/
- * Firefox) 가 삽입 순으로 반환한다. iOS 50MB 안전망용으로는 충분.
- *
- * 모든 cache.put 직후에 호출. 비용은 keys() 를 한 번 얻고 overflow 만큼만
- * delete — 보통 0~1 entry 라 무시할 수 있다.
+ * SW 캐시 제외 navigation prefix (개인 정보 페이지 — audit #97).
+ * 다중 사용자 공유 폰 시나리오에서 옛 사용자 HTML 이 새 사용자에게 노출되는
+ * 위험 차단. 캐시 대신 매번 네트워크 — 오프라인 시 /offline fallback.
  */
+const AUTH_PATH_PREFIXES = [
+  '/dashboard',
+  '/mypage',
+  '/dogs',
+  '/cart',
+  '/checkout',
+  '/survey',
+  '/admin',
+  '/vet/', // 외부 수의사 토큰 페이지
+]
+
+function isAuthPath(url) {
+  try {
+    const u = new URL(url)
+    return AUTH_PATH_PREFIXES.some((p) => u.pathname.startsWith(p))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * SW 캐시 제외 자원 — Next.js hashed chunk 와 Sentry tunnel (audit #94, #85).
+ * - _next/static/* : 이미 immutable HTTP 캐시. SW 캐시는 stale chunk 원인.
+ * - _next/image     : Next.js 이미지 변환 endpoint — 자체 캐시 보유.
+ * - /monitoring     : Sentry tunnel — SW 가로채면 source map 업로드 실패.
+ */
+function shouldSkipCache(url) {
+  try {
+    const u = new URL(url)
+    return (
+      u.pathname.startsWith('/_next/static/') ||
+      u.pathname.startsWith('/_next/image') ||
+      u.pathname.startsWith('/monitoring')
+    )
+  } catch {
+    return false
+  }
+}
+
 async function trimCache(cacheName, maxEntries) {
   try {
     const cache = await caches.open(cacheName)
@@ -48,51 +100,40 @@ async function trimCache(cacheName, maxEntries) {
   }
 }
 
-// 설치: 정적 자원 프리캐시.
-// 이전: skipWaiting() 자동 호출 → 새 버전이 즉시 활성화 + 페이지 reload 발생
-// → 진행 중 폼 / 결제 흐름 깨질 수 있음.
-// 변경: skipWaiting 호출 안 함 → waiting 상태 유지 → 클라이언트가 사용자 알림
-// 후 SKIP_WAITING 메시지 받았을 때만 활성화. 첫 설치 (controller 없음) 는
-// 자연 활성화 (waiting 상태 X).
+// 설치: 정적 자원 프리캐시. skipWaiting 호출 안 함 (audit #104 와 호환).
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_URLS).catch(() => {
-        // 일부 리소스 실패해도 설치 진행
         console.log('[SW] Some precache URLs failed, continuing...')
       })
-    })
+    }),
   )
 })
 
-// SKIP_WAITING 메시지 — 클라이언트(ServiceWorkerRegister.tsx) 가 사용자 액션
-// "새로고침" 시 보냄. waiting → activated 즉시 전환 → controllerchange 발생
-// → 페이지 리로드. 이게 없으면 사용자가 모든 탭을 닫을 때까지 옛 SW 유지.
+// SKIP_WAITING — 사용자 명시 액션 후 ServiceWorkerRegister 가 메시지 보냄.
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting()
   }
 })
 
-// 활성화: 이전 캐시 정리
+// 활성화: 이전 캐시 정리 (BUILD_SHA 다른 모든 farmerstail-* 캐시).
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
-      )
-    )
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)),
+      ),
+    ),
   )
   self.clients.claim()
 })
 
-// 페치: 네트워크 우선, 실패 시 캐시
 self.addEventListener('fetch', (event) => {
   const { request } = event
 
-  // API/인증 요청은 캐시하지 않음
+  // API/인증/외부 도메인 요청은 캐시하지 않음.
   if (
     request.url.includes('/api/') ||
     request.url.includes('supabase.co') ||
@@ -102,12 +143,24 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // 네비게이션 요청 (페이지 이동)
+  // _next/static/*, _next/image, /monitoring 은 SW 가로채지 않음 (audit #94, #85).
+  if (shouldSkipCache(request.url)) {
+    return
+  }
+
+  // 네비게이션 요청 (페이지 이동).
   if (request.mode === 'navigate') {
+    // 인증 페이지는 캐시 대신 매번 네트워크 — audit #97 다중 사용자 노출 차단.
+    if (isAuthPath(request.url)) {
+      event.respondWith(
+        fetch(request).catch(() => caches.match('/offline')),
+      )
+      return
+    }
+
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // 성공 시 캐시에 저장 + LRU 트리밍.
           const clone = response.clone()
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, clone)
@@ -118,19 +171,17 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           // 오프라인 시 캐시된 페이지 또는 오프라인 페이지.
           // ignoreSearch:true — 같은 path 의 ?utm=xxx / ?ref=xxx 등 마케팅
-          // 파라미터가 다른 진입은 캐시 hit 로 인정해 SPA-스러운 오프라인
-          // 동작. utm 의 추적 손실은 어차피 오프라인 상황에선 영향 없음.
+          // 파라미터가 다른 진입은 캐시 hit 로 인정해 SPA-스러운 오프라인 동작.
           return caches
             .match(request, { ignoreSearch: true })
-            .then((cached) => {
-              return cached || caches.match('/offline')
-            })
-        })
+            .then((cached) => cached || caches.match('/offline'))
+        }),
     )
     return
   }
 
-  // 정적 자원 (JS, CSS, 이미지, 폰트)
+  // 정적 자원 (JS, CSS, 이미지, 폰트) — 단 _next/static 은 위에서 제외됨.
+  // 남은 건 /logo.png, /icons/*, /fonts/* 같은 long-term 정적.
   if (
     request.destination === 'script' ||
     request.destination === 'style' ||
@@ -151,14 +202,13 @@ self.addEventListener('fetch', (event) => {
           .catch(() => cached)
 
         return cached || fetchPromise
-      })
+      }),
     )
     return
   }
 })
 
 // --- Web Push ---
-// 서버에서 웹푸시를 보내면 여기로 수신. payload가 JSON이면 title/body/url 사용.
 self.addEventListener('push', (event) => {
   let data = {}
   if (event.data) {
@@ -184,10 +234,10 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, options))
 })
 
-// 알림 클릭 → 해당 URL로 포커스 또는 새 창 열기
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const target = (event.notification.data && event.notification.data.url) || '/'
+  const target =
+    (event.notification.data && event.notification.data.url) || '/'
   event.waitUntil(
     (async () => {
       const all = await self.clients.matchAll({
@@ -206,6 +256,6 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
       if (self.clients.openWindow) await self.clients.openWindow(target)
-    })()
+    })(),
   )
 })

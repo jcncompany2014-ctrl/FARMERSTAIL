@@ -424,45 +424,54 @@ export default function SurveyPage() {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // 2) 저장 — state 변경 시. loading step 중엔 저장 안 함 (이미 제출).
+  // audit #96: 이전엔 deps 한 변경마다 동기 JSON.stringify + localStorage.setItem
+  // 호출 (26개 deps) → 한 글자 칠 때마다 입력 지연. 500ms debounce 로 결정적 저장.
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (!dog || !restoredRef.current || typeof window === 'undefined') return
     if (currentStep === 'loading') return
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          bcs,
-          mcs,
-          bristol,
-          foodType,
-          snackFreq,
-          taste,
-          walkMinutes,
-          currentBrand,
-          dlMode,
-          allergies,
-          chronicConditions,
-          prescriptionDiet,
-          medications,
-          irisStage,
-          pregnancy,
-          coat,
-          pregnancyWeek,
-          litterSize,
-          expectedAdultWeightKg,
-          weightTrend,
-          giSensitivity,
-          indoorActivity,
-          homeCookingExp,
-          dietSatisfaction,
-          preferredProteins,
-          careGoal,
-          currentStep,
-          _ts: Date.now(),
-        }),
-      )
-    } catch {
-      // quota exceeded — silently ignore
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            bcs,
+            mcs,
+            bristol,
+            foodType,
+            snackFreq,
+            taste,
+            walkMinutes,
+            currentBrand,
+            dlMode,
+            allergies,
+            chronicConditions,
+            prescriptionDiet,
+            medications,
+            irisStage,
+            pregnancy,
+            coat,
+            pregnancyWeek,
+            litterSize,
+            expectedAdultWeightKg,
+            weightTrend,
+            giSensitivity,
+            indoorActivity,
+            homeCookingExp,
+            dietSatisfaction,
+            preferredProteins,
+            careGoal,
+            currentStep,
+            _ts: Date.now(),
+          }),
+        )
+      } catch {
+        // quota exceeded — silently ignore
+      }
+    }, 500)
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     }
   }, [
     dog,

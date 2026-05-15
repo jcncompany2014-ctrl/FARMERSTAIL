@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Heart,
 } from 'lucide-react'
+import { downscaleImage } from '@/lib/imageDownscale'
 
 type Initial =
   | {
@@ -77,13 +78,21 @@ export default function PhotoUploadClient({
     setStatus({ kind: 'uploading' })
 
     try {
-      const dataUrl = await fileToDataUrl(file)
+      // audit #95: base64 인라인 대신 다운스케일된 Blob 을 FormData 로 전송.
+      // 5MB 카메라 JPEG → ~300-500KB 으로 모바일 메모리 spike 해결.
+      const downscaled = await downscaleImage(file, {
+        maxEdge: 1280,
+        quality: 0.85,
+        mime: 'image/jpeg',
+      })
+      const form = new FormData()
+      form.append('image', downscaled, 'photo.jpg')
+
       const res = await fetch(
         `/api/photo-upload/${encodeURIComponent(token)}`,
         {
           method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ imageDataUrl: dataUrl }),
+          body: form,
         },
       )
       const data = (await res.json()) as { ok?: boolean; message?: string }
@@ -208,15 +217,6 @@ export default function PhotoUploadClient({
       </div>
     </main>
   )
-}
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(new Error('read failed'))
-    reader.onload = () => resolve(String(reader.result ?? ''))
-    reader.readAsDataURL(file)
-  })
 }
 
 function fmtExpire(iso: string): string {

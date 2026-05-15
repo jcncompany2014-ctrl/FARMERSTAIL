@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
 /**
  * PWA 서비스 워커 등록 + 새 버전 detect 시 사용자 toast.
@@ -29,6 +29,10 @@ export default function ServiceWorkerRegister() {
   const hasMounted = useHasMounted()
   const [waitingReg, setWaitingReg] =
     useState<ServiceWorkerRegistration | null>(null)
+  // audit #104: controllerchange 가 자연 활성화(다른 탭에서 SKIP_WAITING) /
+  // 첫 SW 설치 등으로 발생할 수도 있는데 그때마다 reload 하면 진행 중인 결제·
+  // 설문 입력이 손실됨. 사용자가 명시적으로 "새로고침" 버튼 누른 경우만 reload.
+  const userInitiatedReload = useRef(false)
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
@@ -75,7 +79,10 @@ export default function ServiceWorkerRegister() {
       })
 
     // controllerchange 이벤트 — skipWaiting 후 새 SW 가 활성화되면 페이지 reload.
+    // audit #104: 자연 활성화 / 다른 탭의 SKIP_WAITING / 첫 SW 설치 등에서도
+    // 발생할 수 있으므로 userInitiatedReload flag 가 true 일 때만 reload.
     const onControllerChange = () => {
+      if (!userInitiatedReload.current) return
       if (typeof window !== 'undefined') window.location.reload()
     }
     navigator.serviceWorker.addEventListener(
@@ -107,6 +114,8 @@ export default function ServiceWorkerRegister() {
       <button
         type="button"
         onClick={() => {
+          // audit #104: 사용자 명시 액션 → 이후 controllerchange 시 reload 허용.
+          userInitiatedReload.current = true
           waitingReg.waiting?.postMessage({ type: 'SKIP_WAITING' })
           // controllerchange 가 reload 트리거. fallback: 5초 후 강제.
           setTimeout(() => window.location.reload(), 5000)

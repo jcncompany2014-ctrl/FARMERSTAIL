@@ -12,6 +12,7 @@ import {
 import { useToast } from '@/components/ui/Toast'
 import type { MedicalRecordExtract } from '@/lib/vision/parseMedicalRecord'
 import { isAdvancedUiEnabled } from '@/lib/ui-flags'
+import { downscaleImage } from '@/lib/imageDownscale'
 
 /**
  * 진료 영수증 / 처방전 OCR 진입 컴포넌트.
@@ -73,14 +74,20 @@ export default function MedicalRecordOcr({
 
     setStatus({ kind: 'uploading' })
     try {
-      const dataUrl = await fileToDataUrl(file)
+      // audit #95: base64 인라인 대신 다운스케일된 Blob 을 FormData 로 전송.
+      // 5MB → ~300-500KB. OCR 정확도는 1280px 으로 충분 (영수증 글자 가독).
+      const downscaled = await downscaleImage(file, {
+        maxEdge: 1600, // OCR 은 글자 가독 위해 일반 사진보다 큰 해상도
+        quality: 0.88,
+        mime: 'image/jpeg',
+      })
+      const form = new FormData()
+      form.append('image', downscaled, 'medical.jpg')
+      if (dogId) form.append('dogId', dogId)
+
       const res = await fetch('/api/health/ocr', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          imageDataUrl: dataUrl,
-          dogId: dogId || undefined,
-        }),
+        body: form,
       })
       const json = (await res.json()) as
         | { ok: true; data: MedicalRecordExtract }
@@ -298,11 +305,3 @@ function Field({ label, value }: { label: string; value: string }) {
   )
 }
 
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(new Error('read failed'))
-    reader.onload = () => resolve(String(reader.result ?? ''))
-    reader.readAsDataURL(file)
-  })
-}

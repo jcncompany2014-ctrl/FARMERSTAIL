@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { parseRequest } from '@/lib/api/parseRequest'
 import { DOG_AVATARS_BUCKET, MAX_PHOTO_BYTES } from '@/lib/dogPhotos'
 
 export const runtime = 'nodejs'
@@ -15,6 +13,10 @@ export const dynamic = 'force-dynamic'
  * service_role 로 storage 업로드 → submit_photo_request RPC 로 dog.photo_url
  * 자동 적용.
  *
+ * # 입력 (audit #95)
+ * multipart/form-data
+ *   image: Blob (JPEG/PNG/WebP, ≤3MB — 클라이언트에서 다운스케일 후 전송)
+ *
  * # 보안
  *  - token unique + expires_at + uploaded_photo_url IS NULL 조건 RPC 검증
  *  - 파일 크기 3MB, mime 화이트리스트
@@ -23,15 +25,15 @@ export const dynamic = 'force-dynamic'
 
 type Params = { params: Promise<{ token: string }> }
 
-const zUpload = z.object({
-  // data url base64 (앱 측에서 변환)
-  imageDataUrl: z.string().min(20).max(7_500_000),
-})
+const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'] as const
 
 function extFromMime(mime: string): string {
   return (
-    { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[mime] ??
-    'jpg'
+    {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+    }[mime] ?? 'jpg'
   )
 }
 
@@ -55,30 +57,36 @@ export async function POST(req: Request, { params }: Params) {
     )
   }
 
-  const parsed = await parseRequest(req, zUpload)
-  if (!parsed.ok) return parsed.response
-  const { imageDataUrl } = parsed.data
-
-  // data url → buffer + mime
-  const m = /^data:([^;]+);base64,(.*)$/.exec(imageDataUrl)
-  if (!m) {
+  // multipart 파싱 — formData() 가 Next.js Edge/Node 모두 지원.
+  // audit #95: 이전엔 base64 dataUrl 을 JSON 으로 받았으나 (5MB → 6.7MB 메모리),
+  // 이제 Blob 을 직접 받아 메모리 spike + payload 크기 절감.
+  let imageBlob: Blob | null = null
+  try {
+    const form = await req.formData()
+    const value = form.get('image')
+    if (value instanceof Blob) imageBlob = value
+  } catch {
     return NextResponse.json(
-      { code: 'INVALID_IMAGE', message: '이미지 형식이 올바르지 않아요' },
+      { code: 'INVALID_FORM', message: '요청 형식이 올바르지 않아요' },
       { status: 400 },
     )
   }
-  const mime = m[1]
-  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp']
-  if (!allowedMimes.includes(mime)) {
+  if (!imageBlob) {
     return NextResponse.json(
-      { code: 'INVALID_MIME', message: 'JPG/PNG/WebP 만 지원해요' },
+      { code: 'MISSING_IMAGE', message: '이미지가 없어요' },
       { status: 400 },
     )
   }
-  const buffer = Buffer.from(m[2], 'base64')
-  if (buffer.byteLength > MAX_PHOTO_BYTES) {
+  if (imageBlob.size > MAX_PHOTO_BYTES) {
     return NextResponse.json(
       { code: 'TOO_LARGE', message: '3MB 이하만 업로드 가능해요' },
+      { status: 400 },
+    )
+  }
+  const mime = imageBlob.type
+  if (!ALLOWED_MIMES.includes(mime as (typeof ALLOWED_MIMES)[number])) {
+    return NextResponse.json(
+      { code: 'INVALID_MIME', message: 'JPG/PNG/WebP 만 지원해요' },
       { status: 400 },
     )
   }
@@ -87,6 +95,7 @@ export async function POST(req: Request, { params }: Params) {
   const admin = createAdminClient()
   const ext = extFromMime(mime)
   const path = `photo-requests/${token}.${ext}`
+  const buffer = Buffer.from(await imageBlob.arrayBuffer())
   const { error: upErr } = await admin.storage
     .from(DOG_AVATARS_BUCKET)
     .upload(path, buffer, {
