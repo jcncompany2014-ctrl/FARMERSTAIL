@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useCallback } from 'react'
+import { Search } from 'lucide-react'
 
 // Daum Postcode API 타입
 
@@ -98,9 +99,10 @@ export default function AddressSearch({
     <button
       type="button"
       onClick={handleClick}
-      className={`px-4 py-3 rounded-lg border border-rule bg-white text-[12px] font-bold text-text hover:border-terracotta hover:text-terracotta transition active:scale-95 ${className}`}
+      className={`inline-flex items-center gap-1.5 px-4 py-3 rounded-lg border border-rule bg-white text-[12px] font-bold text-text hover:border-terracotta hover:text-terracotta transition active:scale-95 ${className}`}
     >
-      🔍 {buttonText}
+      <Search className="w-4 h-4" strokeWidth={2} />
+      {buttonText}
     </button>
   )
 }

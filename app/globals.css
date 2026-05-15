@@ -910,3 +910,26 @@ button:focus:not(:focus-visible) {
     outline: 2px solid CanvasText;
   }
 }
+
+/* =============================================================================
+   iOS auto-zoom 방지 (audit #41).
+   ---------------------------------------------------------------------------
+   iOS Safari 는 form 입력 요소의 computed font-size 가 16px 미만일 때 포커스 시
+   자동으로 페이지 줌인 (사용자 핀치 줌과 별개). 이 줌은 사용자가 직접 줌-아웃
+   해야 풀려서 UX 가 불편. 16px 이상이면 자동 줌 발생 안 함.
+   viewport 의 userScalable: false 를 제거하면서 (audit #41 — WCAG 1.4.4) 인풋
+   자동 줌 문제를 16px 폰트 사이즈로 해결.
+   ============================================================================= */
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+/* 데스크톱에서는 작은 폰트 허용 — 디자인 의도 보존. */
+@media (min-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: inherit;
+  }
+}

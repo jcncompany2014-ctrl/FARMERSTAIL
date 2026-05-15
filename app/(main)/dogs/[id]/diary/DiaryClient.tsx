@@ -3,7 +3,19 @@
 import { useState, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Camera, Plus, Heart, Trash2, ImageIcon } from 'lucide-react'
+import {
+  Camera,
+  Plus,
+  Heart,
+  Trash2,
+  ImageIcon,
+  Frown,
+  Annoyed,
+  Meh,
+  Smile,
+  Laugh,
+  type LucideIcon,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
@@ -30,7 +42,17 @@ type Entry = {
   created_at: string
 }
 
-const MOODS = ['😢', '😟', '😐', '🙂', '😊'] as const
+/**
+ * audit #44: 이전엔 mood 이모지 5개 (😢😟😐🙂😊) — Lucide canon 위반 + 플랫폼별
+ * 렌더링 격차. Frown/Annoyed/Meh/Smile/Laugh 로 1:1 매핑.
+ */
+const MOODS: ReadonlyArray<{ Icon: LucideIcon; label: string }> = [
+  { Icon: Frown, label: '많이 안 좋아요' },
+  { Icon: Annoyed, label: '조금 안 좋아요' },
+  { Icon: Meh, label: '평범해요' },
+  { Icon: Smile, label: '좋아요' },
+  { Icon: Laugh, label: '아주 좋아요' },
+]
 const MAX_PHOTOS = 5
 
 export default function DiaryClient({
@@ -262,9 +284,23 @@ export default function DiaryClient({
               <div className="px-4 py-3">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    {entry.mood !== null && (
-                      <span className="text-[16px]" aria-label={`기분 ${entry.mood}/5`}>
-                        {MOODS[entry.mood - 1]}
+                    {entry.mood !== null && MOODS[entry.mood - 1] && (
+                      <span
+                        className="inline-flex items-center"
+                        aria-label={`기분 ${MOODS[entry.mood - 1]?.label ?? entry.mood}`}
+                      >
+                        {(() => {
+                          const M = MOODS[entry.mood - 1]
+                          if (!M) return null
+                          const Icon = M.Icon
+                          return (
+                            <Icon
+                              className="w-5 h-5"
+                              strokeWidth={1.8}
+                              style={{ color: 'var(--terracotta)' }}
+                            />
+                          )
+                        })()}
                       </span>
                     )}
                     <span className="text-[10.5px] text-muted font-mono">
@@ -387,21 +423,29 @@ export default function DiaryClient({
             <div className="mb-5">
               <label className="text-[11px] font-bold text-text">오늘 기분</label>
               <div className="mt-2 flex gap-1.5">
-                {MOODS.map((emoji, i) => {
+                {MOODS.map(({ Icon, label }, i) => {
                   const score = i + 1
                   const active = draftMood === score
                   return (
                     <button
                       key={score}
                       type="button"
+                      aria-label={label}
+                      aria-pressed={active}
                       onClick={() => setDraftMood(active ? null : score)}
-                      className={`flex-1 py-2 rounded-lg border text-[20px] transition ${
+                      className={`flex-1 py-2.5 rounded-lg border flex items-center justify-center transition ${
                         active
                           ? 'border-terracotta bg-terracotta/8'
                           : 'border-rule bg-white'
                       }`}
                     >
-                      {emoji}
+                      <Icon
+                        className="w-6 h-6"
+                        strokeWidth={1.8}
+                        style={{
+                          color: active ? 'var(--terracotta)' : 'var(--muted)',
+                        }}
+                      />
                     </button>
                   )
                 })}

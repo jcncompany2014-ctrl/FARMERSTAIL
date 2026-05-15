@@ -179,8 +179,9 @@ export const viewport: Viewport = {
   themeColor: "#A0452E",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // audit #41: maximumScale=1 + userScalable=false 는 WCAG 1.4.4 (Resize Text)
+  // 명백 위반. 시니어 / 저시력 사용자가 핀치 줌으로 가독성 확보 가능해야 함.
+  // 인풋 자동 줌 (iOS) 은 input { font-size: 16px } 로 별도 처리.
 };
 
 export default function RootLayout({

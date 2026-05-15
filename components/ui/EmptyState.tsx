@@ -35,13 +35,26 @@
  */
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import {
+  ShoppingCart,
+  Heart,
+  Package,
+  FileText,
+  Bell,
+  Dog,
+  Search,
+  Ticket,
+  Sparkles,
+  Inbox,
+  type LucideIcon,
+} from 'lucide-react'
 import { cn } from '@/lib/ui/cn'
 import { Button } from './Button'
 
 // ──────────────────────────────────────────────────────────────────────────
-// Illustrations — SVG/이모지 기반, 가볍고 브랜드 톤에 맞춤.
-// 이모지는 플랫폼별 렌더링이 달라 일부는 SVG로 제공. 당장은 이모지로 시작하고
-// 아트팀이 정식 아이콘 세트를 주면 교체.
+// Illustrations — Lucide 아이콘 기반 (audit #42).
+// 이전: 이모지로 시작. 플랫폼별 렌더링 격차 + canon 위반 (AGENTS.md — Lucide 만)
+// → 모든 kind 를 Lucide 1:1 매핑. ring + bg-bg-2 원형 frame 유지.
 // ──────────────────────────────────────────────────────────────────────────
 
 type EmptyKind =
@@ -56,32 +69,38 @@ type EmptyKind =
   | 'points'
   | 'generic'
 
-const defaults: Record<EmptyKind, { icon: string; label: string }> = {
-  cart: { icon: '🛒', label: '빈 장바구니' },
-  wishlist: { icon: '🤎', label: '빈 위시리스트' },
-  orders: { icon: '📦', label: '주문 내역 없음' },
-  reviews: { icon: '📝', label: '리뷰 없음' },
-  notifications: { icon: '🔔', label: '알림 없음' },
-  dogs: { icon: '🐕', label: '등록된 반려견 없음' },
-  search: { icon: '🔍', label: '검색 결과 없음' },
-  coupons: { icon: '🎟️', label: '쿠폰 없음' },
-  points: { icon: '✨', label: '포인트 없음' },
-  generic: { icon: '🍂', label: '아직 없음' },
+const defaults: Record<EmptyKind, { Icon: LucideIcon; label: string }> = {
+  cart: { Icon: ShoppingCart, label: '빈 장바구니' },
+  wishlist: { Icon: Heart, label: '빈 위시리스트' },
+  orders: { Icon: Package, label: '주문 내역 없음' },
+  reviews: { Icon: FileText, label: '리뷰 없음' },
+  notifications: { Icon: Bell, label: '알림 없음' },
+  dogs: { Icon: Dog, label: '등록된 반려견 없음' },
+  search: { Icon: Search, label: '검색 결과 없음' },
+  coupons: { Icon: Ticket, label: '쿠폰 없음' },
+  points: { Icon: Sparkles, label: '포인트 없음' },
+  generic: { Icon: Inbox, label: '아직 없음' },
 }
 
 function DefaultIllustration({ kind }: { kind: EmptyKind }) {
   const d = defaults[kind]
+  const Icon = d.Icon
   return (
     <div
       role="img"
       aria-label={d.label}
       className={cn(
         'w-20 h-20 rounded-full bg-bg-2 ring-1 ring-rule-2',
-        'flex items-center justify-center text-3xl',
-        'mx-auto mb-4'
+        'flex items-center justify-center',
+        'mx-auto mb-4',
       )}
     >
-      <span aria-hidden>{d.icon}</span>
+      <Icon
+        className="w-7 h-7"
+        strokeWidth={1.8}
+        style={{ color: 'var(--muted)' }}
+        aria-hidden
+      />
     </div>
   )
 }
