@@ -52,14 +52,17 @@ export function formatLineRatios(formula: Formula): string {
  *   "야채 +10%, 육류 +5%"
  */
 export function formatToppers(formula: Formula): string {
-  const parts: string[] = []
-  if (formula.toppers.vegetable > 0) {
-    parts.push(`야채 +${Math.round(formula.toppers.vegetable * 100)}%`)
-  }
-  if (formula.toppers.protein > 0) {
-    parts.push(`육류 +${Math.round(formula.toppers.protein * 100)}%`)
-  }
-  return parts.join(', ')
+  // audit #35: 이전엔 야채 → 육류 순서 hardcoded. 비중 큰 토퍼 먼저 표시
+  // — 사용자 시각 우선순위와 일치.
+  const items = [
+    { label: '야채', value: formula.toppers.vegetable },
+    { label: '육류', value: formula.toppers.protein },
+  ]
+  items.sort((a, b) => b.value - a.value)
+  return items
+    .filter((it) => it.value > 0)
+    .map((it) => `${it.label} +${Math.round(it.value * 100)}%`)
+    .join(', ')
 }
 
 /**

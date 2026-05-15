@@ -50,6 +50,8 @@ export type PersonaResult = {
   scores: PersonaScores
   dominant: Persona | null
   secondary: Persona | null
+  /** audit #31: 데이터 충분도 — UI 에 "더 사용하면 추천 정확도 ↑" 안내. */
+  dataSufficiency: 'low' | 'mid' | 'high'
 }
 
 const THRESHOLD = 0.25
@@ -139,7 +141,13 @@ export function computePersona(input: PersonaInput): PersonaResult {
   const secondary =
     dominant && secondScore >= THRESHOLD ? secondName : null
 
-  return { scores, dominant, secondary }
+  // audit #31: 신호 부족 시 사용자에게 "분류 가능한 행동 데이터가 적다" 안내
+  // 가능하도록 dataSufficiency 노출. topScore 기준:
+  //   high (>=0.7): 충분 / mid (0.4-0.7): 보통 / low (<0.4): 데이터 부족
+  const dataSufficiency: 'low' | 'mid' | 'high' =
+    topScore >= 0.7 ? 'high' : topScore >= 0.4 ? 'mid' : 'low'
+
+  return { scores, dominant, secondary, dataSufficiency }
 }
 
 function round(n: number): number {

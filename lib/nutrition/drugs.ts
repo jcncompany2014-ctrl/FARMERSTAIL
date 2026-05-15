@@ -463,30 +463,50 @@ export const DRUG_RULES: DrugRule[] = [
 export type DrugMatch = {
   condition: ChronicConditionKey
   label: string
+  /** 첫 매칭 키워드 (legacy 호환). */
   keyword: string
+  /** audit #39: 같은 condition 의 모든 매칭 키워드. UI 에 "프레드니솔론 + 메칠프레드니솔론" 같이 표시 가능. */
+  keywords?: string[]
 }
 
 /**
- * 입력 텍스트에서 키워드 매칭. 같은 condition 은 한 번만 (가장 첫 매칭).
+ * 입력 텍스트에서 키워드 매칭.
+ *
+ * audit #39: 이전엔 같은 condition 첫 매칭 후 break → 다른 키워드 정보 손실.
+ * 새: condition 별 매칭된 키워드 모두 수집 → keyword 는 array (호출처가 모든
+ * 검출 약물명 표시 가능).
  */
 export function detectChronicFromMedications(text: string): DrugMatch[] {
   if (!text || text.trim().length === 0) return []
   const lower = text.toLowerCase()
-  const seen = new Set<ChronicConditionKey>()
-  const results: DrugMatch[] = []
+  const byCondition = new Map<
+    ChronicConditionKey,
+    { label: string; keywords: string[] }
+  >()
   for (const rule of DRUG_RULES) {
-    if (seen.has(rule.condition)) continue
     for (const kw of rule.keywords) {
       if (lower.includes(kw.toLowerCase())) {
-        results.push({
-          condition: rule.condition,
-          label: rule.label,
-          keyword: kw,
-        })
-        seen.add(rule.condition)
-        break
+        const existing = byCondition.get(rule.condition)
+        if (existing) {
+          if (!existing.keywords.includes(kw)) existing.keywords.push(kw)
+        } else {
+          byCondition.set(rule.condition, {
+            label: rule.label,
+            keywords: [kw],
+          })
+        }
       }
     }
+  }
+  const results: DrugMatch[] = []
+  for (const [condition, { label, keywords }] of byCondition) {
+    // keyword 필드는 첫 매칭 유지 (호환). keywords 가 새 array 필드.
+    results.push({
+      condition,
+      label,
+      keyword: keywords[0],
+      keywords,
+    })
   }
   return results
 }

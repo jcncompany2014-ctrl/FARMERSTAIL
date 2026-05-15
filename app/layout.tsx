@@ -172,11 +172,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // theme-color 는 모바일 브라우저의 주소바/PWA 헤더 배경에 쓰인다. 라이트에선
-  // 시그니처 terracotta, 다크에선 iOS 상태바 아이콘(흰색)과 겹치지 않도록
-  // --bg 다크 값(#171310)로 연속시킨다.
-  // 다크 자동 트리거 비활성 — 라이트 톤 단일.
-  themeColor: "#A0452E",
+  // audit #110: theme-color media 분기 — 다크모드 OS 사용자의 status bar 아이콘
+  // (흰색) 과 terracotta 배경 충돌 방지. 라이트는 시그니처 terracotta 유지,
+  // 다크는 --bg 다크 값으로 연속.
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#171310" },
+    { media: "(prefers-color-scheme: light)", color: "#A0452E" },
+  ],
   width: "device-width",
   initialScale: 1,
   // audit #41: maximumScale=1 + userScalable=false 는 WCAG 1.4.4 (Resize Text)
