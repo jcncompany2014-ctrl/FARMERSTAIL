@@ -108,3 +108,24 @@ export function recordReward<T>(arm: Arm<T>, reward: number): Arm<T> {
     trials: arm.trials + 1,
   }
 }
+
+/**
+ * audit #32: epsilonGreedy + decayingEpsilon 통합 헬퍼.
+ *
+ * 이전엔 호출처가 직접 decayingEpsilon(totalTrials) 계산 후 epsilonGreedy 호출 →
+ * trials 정의가 호출처마다 어긋날 위험. 단일 진실 wrapper.
+ *
+ * @param arms - 후보 arms
+ * @param totalTrials - decay 입력 — 보통 모든 arm 의 trials 합산
+ * @param initialEpsilon - default 0.3
+ * @param random - 테스트 주입용
+ */
+export function epsilonGreedyWithDecay<T>(
+  arms: Arm<T>[],
+  totalTrials: number,
+  initialEpsilon: number = 0.3,
+  random: () => number = Math.random,
+): Arm<T> | null {
+  const eps = decayingEpsilon(totalTrials, initialEpsilon)
+  return epsilonGreedy(arms, eps, random)
+}

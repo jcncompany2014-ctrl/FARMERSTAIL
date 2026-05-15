@@ -118,21 +118,33 @@ export function diffFormulas(
     }
   }
 
-  // 만성질환 새로 추가 → 강제 (식이 안전성)
-  const prevChronicRules = new Set(
-    prev.reasoning
-      .filter((r) => r.ruleId.startsWith('chronic-'))
-      .map((r) => r.ruleId),
-  )
-  const nextChronicRules = next.reasoning
-    .filter((r) => r.ruleId.startsWith('chronic-'))
-    .map((r) => r.ruleId)
+  // 만성질환 새로 추가 또는 severity 변경 → 강제 (식이 안전성).
+  // audit #40: 이전엔 ruleId 만 비교 → 같은 chronic rule 의 severity 변경 (mild
+  // → severe 같은 action 변경) 감지 못 함 → 전자상거래법 §13의2 동의 흐름
+  // missed. ruleId + action hash 로 비교.
+  function chronicSignature(reasoning: typeof prev.reasoning): Map<string, string> {
+    const m = new Map<string, string>()
+    for (const r of reasoning) {
+      if (r.ruleId.startsWith('chronic-')) {
+        m.set(r.ruleId, r.action ?? '')
+      }
+    }
+    return m
+  }
+  const prevChronicSig = chronicSignature(prev.reasoning)
+  const nextChronicSig = chronicSignature(next.reasoning)
 
-  for (const rule of nextChronicRules) {
-    if (!prevChronicRules.has(rule)) {
+  for (const [rule, action] of nextChronicSig) {
+    const prevAction = prevChronicSig.get(rule)
+    if (prevAction === undefined) {
       forced = true
       meaningful = true
       forceReasons.push(`만성질환 추가 (${rule}) — 강제 적용`)
+    } else if (prevAction !== action) {
+      // 같은 rule 의 severity / 처방 변경.
+      forced = true
+      meaningful = true
+      forceReasons.push(`만성질환 처방 변경 (${rule}) — 강제 적용`)
     }
   }
 
