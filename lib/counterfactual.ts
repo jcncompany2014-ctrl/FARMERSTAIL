@@ -40,6 +40,12 @@ export type DogState = {
   lifeStage: LifeStage
   /** 중성화 여부 — neutered 면 -10% MER. */
   neutered: boolean
+  /**
+   * audit #18: 대형견 puppy 분류용. nutrition.ts lifestage() 가 puppy 분기 시
+   * expectedAdultWeight 우선 사용 (소형견 puppy 의 weight 가 적어 medium 으로
+   * 잘못 분류되는 케이스 방어). counterfactual 시뮬레이션에서도 같은 매핑 보장.
+   */
+  expectedAdultWeightKg?: number | null
 }
 
 /**
@@ -87,6 +93,8 @@ export function feedGramsModel(state: DogState): number {
     neutered: state.neutered,
     activityLevel,
     gender: null,
+    // audit #18: expectedAdultWeight 전달 — do-calculus 청구항 정합성.
+    expectedAdultWeight: state.expectedAdultWeightKg ?? null,
   }
   const surveyAnswers: SurveyAnswers = {
     bodyCondition: 'ideal', // bcsExact 가 우선이라 무시됨

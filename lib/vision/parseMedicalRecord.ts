@@ -200,8 +200,13 @@ export function normalize(raw: unknown): MedicalRecordExtract {
     : []
   return {
     visitDate: typeof r.visitDate === 'string' ? r.visitDate : null,
+    // audit #27: OCR 이 "5.2g" 를 "5.2" 로 또는 "52" (kg 단위 누락) 로 추출 시
+    // null 처리. 0.1~150kg 합리적 범위 외는 신뢰 불가.
     weightKg:
-      typeof r.weightKg === 'number' && Number.isFinite(r.weightKg)
+      typeof r.weightKg === 'number' &&
+      Number.isFinite(r.weightKg) &&
+      r.weightKg >= 0.1 &&
+      r.weightKg <= 150
         ? r.weightKg
         : null,
     diagnosis,

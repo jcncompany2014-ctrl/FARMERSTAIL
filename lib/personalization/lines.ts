@@ -180,12 +180,19 @@ export function dailyGramsFromMix(
   override?: Record<string, { kcalPer100g?: number } | undefined>,
 ): number {
   let total = 0
+  let weightSum = 0
   for (const line of ALL_LINES) {
     const ratio = lineRatios[line] ?? 0
     if (ratio <= 0) continue
+    weightSum += ratio
     const kcal100 =
       override?.[line]?.kcalPer100g ?? FOOD_LINE_META[line].kcalPer100g
     total += (ratio * dailyKcal) / kcal100 * 100
+  }
+  // audit #30: 모든 라인 0 (호출처가 normalize 안 통과) 시 silent 0 반환 위험 →
+  // 분석 페이지에 "0g 급여" 잘못 표시. 평균 2.0 kcal/g fallback.
+  if (weightSum <= 0) {
+    return Math.round(dailyKcal / 2.0)
   }
   return Math.round(total)
 }

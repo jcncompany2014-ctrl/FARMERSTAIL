@@ -1507,7 +1507,9 @@ function applyPreferredProteinBonus(
   const bumpAmount = input.preferredProteins.length === 1 ? 0.05 : 0.03
   for (const protein of input.preferredProteins) {
     const line = PROTEIN_TO_LINE[protein]
-    if (!line || out[line] === 0) continue
+    // audit #38: 0% 만 가드하면 잔차 (0.001 같은 dead value) 가 가산되어 quantize
+    // 후 0.1 으로 부풀려질 수 있음. quantize step 의 절반 (1%) 미만은 skip.
+    if (!line || out[line] < 0.01) continue
     out[line] += bumpAmount
     bumped = true
   }
@@ -1620,7 +1622,10 @@ function decideTransition(input: AlgorithmInput): TransitionStrategy {
     return 'conservative'
   }
   if (input.homeCookingExperience === 'occasional') return 'gradual'
-  return 'aggressive'
+  if (input.homeCookingExperience === 'frequent') return 'aggressive'
+  // audit #17: 미입력 (null) 이면 'aggressive' 폴백 → 위장 적응 실패 위험.
+  // 안전 default 는 'gradual' — 모를 때 천천히.
+  return 'gradual'
 }
 
 // ──────────────────────────────────────────────────────────────────────────

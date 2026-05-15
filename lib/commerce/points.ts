@@ -111,7 +111,15 @@ export async function creditPoints(
 }
 
 /**
- * 편의 wrapper — 차감만 하는 경우. 현재 잔액을 미리 확인해 부족하면 실패.
+ * 편의 wrapper — 차감만 하는 경우.
+ *
+ * audit #29: 이전엔 getCurrentBalance 로 사전 검증 후 RPC 호출 → 두 단계가
+ * lock 밖이라 동시 debit 시 둘 다 통과 가능 (RPC 내부에서 두 번째는 음수
+ * 잔액으로 거부). 사용자에게 보이는 메시지가 RPC 내부 에러로 새서 UX 깨짐.
+ *
+ * 새: 사전 read 제거 — RPC 의 advisory_lock + balance < 0 검증이 단일 진실.
+ * RPC 가 음수 시 ok=false + "포인트 잔액이 부족해요" 메시지 반환 → 호출처는
+ * 그대로 매핑.
  */
 export async function debitPoints(
   supabase: SupabaseClient,
@@ -119,10 +127,6 @@ export async function debitPoints(
 ) {
   if (input.amount <= 0) {
     return { ok: false as const, reason: '차감 금액은 양수여야 해요' }
-  }
-  const balance = await getCurrentBalance(supabase, input.userId)
-  if (balance < input.amount) {
-    return { ok: false as const, reason: '포인트 잔액이 부족해요' }
   }
   return appendLedger(supabase, { ...input, delta: -input.amount })
 }

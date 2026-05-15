@@ -112,8 +112,14 @@ export function composeMessage(
   template: MessageTemplate,
   parts: Partial<Record<MessageElement, string>>,
 ): string {
-  return template.elements
+  // audit #28: 빈 template.elements 또는 parts 가 모두 undefined 면 빈 문자열
+  // 푸시 알림으로 발송되는 위험. action 또는 generic fallback.
+  const result = template.elements
     .map((el) => parts[el])
     .filter((x): x is string => !!x)
     .join(' · ')
+  if (!result) {
+    return parts.action ?? parts.intro ?? '알림'
+  }
+  return result
 }

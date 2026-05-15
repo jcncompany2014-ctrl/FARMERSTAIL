@@ -89,9 +89,9 @@ export function clusterMeanBySize(size: DogSize): {
 
   const members = BREEDS.filter((b: BreedInfo) => b.size === size)
   if (members.length === 0) {
-    const empty = { avgWeight: 0, avgLifespan: 0, activityBaseline: 3 }
-    CLUSTER_MEAN_CACHE.set(size, empty)
-    return empty
+    // audit #26: 빈 cluster fallback 은 cache 안 함 — BREEDS 가 hot-reload /
+    // 테스트 환경에서 갱신되면 stale. 빈 cluster 시나리오는 거의 발생 안 함.
+    return { avgWeight: 0, avgLifespan: 0, activityBaseline: 3 }
   }
   const sum = members.reduce(
     (acc, b) => ({
