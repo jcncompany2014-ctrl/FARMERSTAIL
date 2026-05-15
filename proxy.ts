@@ -253,6 +253,56 @@ async function checkAdminAccess(request: NextRequest): Promise<NextResponse | nu
   return null // 통과 — 계속 진행
 }
 
+// audit #73: CSRF — sensitive POST 에 Origin/Referer 검증.
+// SameSite=Lax 가 cross-site form POST 를 차단하지만 top-level navigation POST
+// 는 통과. account-delete / order-cancel / payments-confirm 같은 액션은
+// Origin allowlist 추가 검증.
+const CSRF_PROTECTED_PATHS = [
+  '/api/account/delete',
+  '/api/orders/',
+  '/api/payments/confirm',
+  '/api/subscriptions/',
+] as const
+
+function isAllowedOrigin(origin: string): boolean {
+  if (!origin) return false
+  try {
+    const u = new URL(origin)
+    const host = u.hostname.toLowerCase()
+    // production 도메인 + vercel preview + 로컬 dev
+    return (
+      host === 'farmerstail.kr' ||
+      host === 'www.farmerstail.kr' ||
+      host.endsWith('.farmerstail.kr') ||
+      host.endsWith('.vercel.app') ||
+      host === 'localhost' ||
+      host === '127.0.0.1'
+    )
+  } catch {
+    return false
+  }
+}
+
+function checkCsrf(request: NextRequest): NextResponse | null {
+  if (request.method !== 'POST' && request.method !== 'DELETE' && request.method !== 'PUT' && request.method !== 'PATCH') {
+    return null
+  }
+  const { pathname } = request.nextUrl
+  const protectedPath = CSRF_PROTECTED_PATHS.some((p) => pathname.startsWith(p))
+  if (!protectedPath) return null
+
+  const origin = request.headers.get('origin') ?? ''
+  const referer = request.headers.get('referer') ?? ''
+  // 둘 중 하나라도 신뢰 가능 도메인이면 통과.
+  if (origin && isAllowedOrigin(origin)) return null
+  if (referer && isAllowedOrigin(referer)) return null
+
+  return NextResponse.json(
+    { code: 'FORBIDDEN_ORIGIN', message: '허용되지 않은 origin' },
+    { status: 403 },
+  )
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -261,6 +311,10 @@ export async function proxy(request: NextRequest) {
     const blocked = await checkAdminAccess(request)
     if (blocked) return blocked
   }
+
+  // 0.5) CSRF — sensitive POST 에 Origin 검증
+  const csrfBlocked = checkCsrf(request)
+  if (csrfBlocked) return csrfBlocked
 
   // 1) 앱 전용 라우트 보호 — rate limit 보다 먼저. 웹 사용자에겐 곧장
   // /app-required 로 redirect.

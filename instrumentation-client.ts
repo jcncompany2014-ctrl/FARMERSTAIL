@@ -34,9 +34,22 @@ Sentry.init({
   // 공개 접근 가능한 형태로 inline 해준다 (빌드 타임). 클라이언트에서 환경
   // 변수를 읽어야 하므로 NEXT_PUBLIC_ 접두사 필요.
   release: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA,
-  // 브라우저 세션 기반 트랜잭션 샘플링. 0.1은 1시간 1000 page view 기준
-  // ~100 transaction — 무료 한도 안에서 병목 추적에 충분.
-  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+  // audit #88: 결제·핵심 funnel 페이지는 100% 샘플, 나머지는 0.1. 이전 균일 0.1
+  // 은 결제 web vitals 90% 누락 → CR funnel 분석에 구멍.
+  tracesSampler: (samplingContext) => {
+    if (process.env.NODE_ENV !== 'production') return 1.0
+    const name = samplingContext.name ?? ''
+    // pageload / navigation transaction 의 transaction name 은 보통 pathname.
+    if (
+      name.startsWith('/checkout') ||
+      name.startsWith('/cart') ||
+      name.startsWith('/onboarding') ||
+      name.startsWith('/survey')
+    ) {
+      return 1.0
+    }
+    return 0.1
+  },
   // Replay는 모바일 PWA 특성상 유용 — 결제 fail 시 사용자 액션 재생.
   // 용량 절약을 위해 세션 0%, error 발생 세션만 100% 기록.
   replaysSessionSampleRate: 0,

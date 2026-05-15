@@ -52,6 +52,15 @@ export async function POST(req: Request) {
 
   const rawBody = await req.text()
 
+  // audit #71: secret 누락 시 production 에서는 즉시 503. 이전엔 secret undefined
+  // 일 때 검증 skip → 임의 payload 로 unsubscribe 가능. fail-fast 가드.
+  if (!secret && process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { code: 'WEBHOOK_NOT_CONFIGURED' },
+      { status: 503 },
+    )
+  }
+
   if (secret) {
     if (!svixId || !svixTs || !svixSig) {
       return NextResponse.json(

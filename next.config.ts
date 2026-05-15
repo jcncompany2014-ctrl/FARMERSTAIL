@@ -96,9 +96,14 @@ const nextConfig: NextConfig = {
     // 갱신되지 않고, 갱신 시엔 admin 이 new file 으로 업로드하면서 경로가
     // 변경되는 패턴. 1년 캐시로 CDN 부담 + 사용자 응답 둘 다 개선.
     // 갱신 즉시 반영이 필요하면 Vercel 의 image cache invalidate API 호출.
-    minimumCacheTTL: 31536000,
+    // audit #86: production 1년 캐시 유지, dev 에서는 0 — 디자인 검토 / 이미지
+    // 교체 작업 시 즉시 반영. AVIF 변환 부담도 prod-only 가 자연스러움.
+    minimumCacheTTL: process.env.NODE_ENV === 'production' ? 31536000 : 0,
     // AVIF + WebP 우선 — JPEG 대비 ~30% 작음. 비호환 브라우저는 자동 fallback.
-    formats: ['image/avif', 'image/webp'],
+    formats:
+      process.env.NODE_ENV === 'production'
+        ? ['image/avif', 'image/webp']
+        : ['image/webp'],
   },
   // Tree-shaking 보강 — lucide-react 같은 barrel-import 라이브러리에서 import 한
   // 아이콘만 번들에 들어가게. 127 파일이 lucide-react 사용 중이라 번들 임팩트 큼.
