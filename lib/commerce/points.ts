@@ -14,7 +14,17 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 /** ledger에 기록되는 참조 타입. 문자열 enum이 DB 컬럼 값과 일치해야 함. */
 export type PointReferenceType =
   | 'order'
+  /**
+   * 환급/회수 분리 (audit #64).
+   * - `order_refund_credit`: 사용자가 결제 시 쓴 points_used 환급
+   * - `order_refund_revoke`: 결제 적립된 points_earned 회수 (음수 delta)
+   * 같은 reference_id (order.id) 로 두 row 가 필요해 reference_type 으로 분리.
+   *
+   * `order_refund` 는 legacy — 새 코드는 위 둘을 사용. 기존 row 호환을 위해 유지.
+   */
   | 'order_refund'
+  | 'order_refund_credit'
+  | 'order_refund_revoke'
   | 'review'
   | 'signup_bonus'
   | 'referral'

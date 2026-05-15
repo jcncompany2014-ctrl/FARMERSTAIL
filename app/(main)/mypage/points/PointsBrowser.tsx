@@ -50,6 +50,8 @@ function iconFor(refType: string | null, isEarn: boolean) {
   if (!refType) return isEarn ? Coins : RotateCcw
   if (refType === 'order') return ShoppingBag
   if (refType === 'order_refund') return RotateCcw
+  if (refType === 'order_refund_credit') return RotateCcw
+  if (refType === 'order_refund_revoke') return RotateCcw
   if (refType === 'order_expire') return RotateCcw
   if (refType === 'review') return Star
   if (refType === 'referral') return UserPlus

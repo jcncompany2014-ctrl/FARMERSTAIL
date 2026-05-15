@@ -198,12 +198,15 @@ export async function POST(
   }
 
   // 3) Refund used points — appendLedger 헬퍼로 일원화.
+  // audit #64: 환급/회수가 같은 reference_id 로 두 row 시도 → uq_point_ledger_reference
+  // 가 두 번째를 차단 → RPC 가 silent ok=true (already_applied) 로 반환 → 둘 중 하나만
+  // 적용되는 무한 적립 버그. referenceType 을 분리해 unique 충돌 회피.
   if (order.points_used > 0) {
     await creditPoints(supabase, {
       userId: user.id,
       amount: order.points_used,
       reason: '주문 취소 포인트 환급',
-      referenceType: 'order_refund',
+      referenceType: 'order_refund_credit',
       referenceId: order.id,
     })
   }
@@ -214,7 +217,7 @@ export async function POST(
       userId: user.id,
       delta: -order.points_earned,
       reason: '주문 취소 적립 회수',
-      referenceType: 'order_refund',
+      referenceType: 'order_refund_revoke',
       referenceId: order.id,
     })
   }
