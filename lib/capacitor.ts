@@ -72,21 +72,21 @@ export async function registerNativePush(): Promise<
       // registration 이벤트가 와야 토큰을 알 수 있음. 이벤트 핸들러는 한
       // 번만 unbind 해서 메모리 누수 방지.
       const success = PushNotifications.addListener('registration', (t) => {
-        success.then((s) => s.remove())
-        error.then((e) => e.remove())
+        void success.then((s) => s.remove())
+        void error.then((e) => e.remove())
         resolve({ ok: true, token: t.value })
       })
       const error = PushNotifications.addListener(
         'registrationError',
         (err) => {
-          success.then((s) => s.remove())
-          error.then((e) => e.remove())
+          void success.then((s) => s.remove())
+          void error.then((e) => e.remove())
           resolve({ ok: false, reason: err.error })
         },
       )
       PushNotifications.register().catch((err: Error) => {
-        success.then((s) => s.remove())
-        error.then((e) => e.remove())
+        void success.then((s) => s.remove())
+        void error.then((e) => e.remove())
         resolve({ ok: false, reason: err.message })
       })
     })
@@ -270,7 +270,7 @@ export async function onAppResume(cb: () => void): Promise<() => void> {
         if (state.isActive) cb()
       })
       return () => {
-        handle.remove()
+        void handle.remove()
       }
     } catch {
       /* fall through to web */

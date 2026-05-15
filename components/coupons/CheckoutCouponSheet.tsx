@@ -246,7 +246,7 @@ export default function CheckoutCouponSheet({
                   onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 32))}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && code.trim()) {
-                      handleApply(code)
+                      void handleApply(code)
                     }
                   }}
                   placeholder="쿠폰 코드 직접 입력"

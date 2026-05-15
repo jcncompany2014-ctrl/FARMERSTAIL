@@ -1,6 +1,30 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["icn1"],
+  "functions": {
+    "app/api/cron/subscription-charge/route.ts": { "maxDuration": 300 },
+    "app/api/cron/personalization-progression/route.ts": { "maxDuration": 300 },
+    "app/api/cron/cart-recovery/route.ts": { "maxDuration": 300 },
+    "app/api/cron/subscription-reminders/route.ts": { "maxDuration": 120 },
+    "app/api/cron/restock-alerts/route.ts": { "maxDuration": 120 },
+    "app/api/cron/birthday-coupons/route.ts": { "maxDuration": 120 },
+    "app/api/cron/review-prompts/route.ts": { "maxDuration": 120 },
+    "app/api/cron/coupon-expiry/route.ts": { "maxDuration": 60 },
+    "app/api/cron/dog-age-update/route.ts": { "maxDuration": 120 },
+    "app/api/cron/personalization-approval-timeout/route.ts": { "maxDuration": 60 },
+    "app/api/cron/weight-reminder/route.ts": { "maxDuration": 120 },
+    "app/api/cron/subscription-cleanup/route.ts": { "maxDuration": 120 },
+    "app/api/cron/order-expire/route.ts": { "maxDuration": 60 },
+    "app/api/cron/account-purge/route.ts": { "maxDuration": 300 },
+    "app/api/cron/tracking-poll/route.ts": { "maxDuration": 300 },
+    "app/api/cron/onboarding-funnel/route.ts": { "maxDuration": 120 },
+    "app/api/cron/referral-milestones/route.ts": { "maxDuration": 120 },
+    "app/api/cron/vip-coupons/route.ts": { "maxDuration": 120 },
+    "app/api/cron/inactive-coupons/route.ts": { "maxDuration": 60 },
+    "app/api/cron/sensitivity-snapshots/route.ts": { "maxDuration": 120 },
+    "app/api/cron/meta-weights/route.ts": { "maxDuration": 120 },
+    "app/api/cron/reanalyze-trigger/route.ts": { "maxDuration": 120 }
+  },
   "crons": [
     {
       "path": "/api/cron/cart-recovery",

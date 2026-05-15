@@ -2,6 +2,9 @@
   "name": "farmerstail-app",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev:clean": "taskkill /F /IM node.exe 2>nul & next dev",
     "dev": "next dev",
@@ -9,8 +12,9 @@
     "start": "next start",
     "lint": "eslint",
     "verify": "npx eslint . && npx tsc --noEmit && npm test",
-    "test": "node --experimental-strip-types --no-warnings --test \"lib/**/*.test.ts\" \"lib/**/*.test.tsx\"",
-    "test:watch": "node --experimental-strip-types --no-warnings --test --watch \"lib/**/*.test.ts\"",
+    "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test \"lib/**/*.test.ts\"",
+    "test:watch": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test --watch \"lib/**/*.test.ts\"",
+    "test:coverage": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout \"lib/**/*.test.ts\"",
     "analyze": "ANALYZE=true next build",
     "analyze:win": "powershell -Command \"$env:ANALYZE='true'; next build\"",
     "cap:webdir": "node -e \"require('fs').mkdirSync('capacitor-web',{recursive:true});require('fs').writeFileSync('capacitor-web/index.html','<!doctype html><meta charset=\\\"utf-8\\\"><title>Farmer\\u0027s Tail</title>')\"",
@@ -21,7 +25,7 @@
     "cap:open:ios": "npx cap open ios",
     "cap:dev:android": "powershell -Command \"$env:CAPACITOR_SERVER_URL='http://10.0.2.2:3000'; npx cap sync android; npx cap run android\"",
     "cap:dev:ios": "CAPACITOR_SERVER_URL=http://localhost:3000 npx cap sync ios && npx cap run ios",
-    "cap:assets": "npx @capacitor/assets generate --iconBackgroundColor '#F5F0E6' --iconBackgroundColorDark '#171310' --splashBackgroundColor '#F5F0E6' --splashBackgroundColorDark '#171310'"
+    "cap:assets": "npx -p @capacitor/assets@latest cap-assets generate --iconBackgroundColor '#F5F0E6' --iconBackgroundColorDark '#171310' --splashBackgroundColor '#F5F0E6' --splashBackgroundColorDark '#171310'"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.1",
@@ -54,7 +58,6 @@
     "rollup": "npm:@rollup/wasm-node@^4.60.2"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
     "@next/bundle-analyzer": "^16.2.3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

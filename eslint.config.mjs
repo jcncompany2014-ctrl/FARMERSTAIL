@@ -17,6 +17,37 @@ const eslintConfig = defineConfig([
     // IOSDevice from a sibling <script> tag. Linting them is noise.
     ".claude-design/**",
   ]),
+  // audit #83: floating promise 차단. `await` 누락 / `.catch()` 누락 시 silent fail.
+  // 외부 호출 많은 lib/payments, lib/email, lib/commerce, app/api 에서 데이터
+  // 유실 위험 큼. nextTs preset 은 type-aware 룰 비활성이라 projectService 를
+  // 직접 활성화. fire-and-forget 패턴은 명시적 void op 또는 .catch(() => {}) 로
+  // 의도 표시.
+  {
+    files: ["**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-floating-promises": [
+        "warn",
+        {
+          ignoreVoid: true,
+          ignoreIIFE: true,
+        },
+      ],
+    },
+  },
+  // node:test 의 describe()/it() 는 sync API 처럼 보이지만 Promise 반환 →
+  // floating promise 로 잡힘. 의도된 라이브러리 패턴이라 test 파일만 예외.
+  {
+    files: ["**/*.test.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-floating-promises": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

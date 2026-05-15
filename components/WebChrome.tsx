@@ -183,8 +183,8 @@ export default function WebChrome({
       )
       setCartCount(total)
     }
-    fetchCount()
-    const onCartAdd = () => fetchCount()
+    void fetchCount()
+    const onCartAdd = () => void fetchCount()
     window.addEventListener('ft:cart:add', onCartAdd)
     return () => {
       mounted = false

@@ -26,7 +26,7 @@ export default function WishlistButton({
     e.preventDefault()
     e.stopPropagation()
     if (busy) return
-    toggle(productId, productSlug)
+    void toggle(productId, productSlug)
   }
 
   // ready 전에는 neutral heart — flicker 방지

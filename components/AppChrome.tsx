@@ -85,9 +85,9 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       if (mounted) setCartCount(total)
     }
 
-    fetchCount()
+    void fetchCount()
 
-    const onCartAdd = () => fetchCount()
+    const onCartAdd = () => void fetchCount()
     window.addEventListener('ft:cart:add', onCartAdd)
     return () => {
       mounted = false

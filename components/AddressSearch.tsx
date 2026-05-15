@@ -71,7 +71,8 @@ export default function AddressSearch({
 
   useEffect(() => {
     if (!scriptReady.current) {
-      loadScript()
+      // fire-and-forget: script load error 는 handleClick 호출 시 검증 (try/catch).
+      void loadScript()
       scriptReady.current = true
     }
   }, [])

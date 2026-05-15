@@ -38,12 +38,15 @@ export default function ServiceWorkerRegister() {
     if (!('serviceWorker' in navigator)) return
 
     if (process.env.NODE_ENV !== 'production') {
-      // Dev: 기존 등록 모두 해제해서 캐시 꼬임 방지.
-      navigator.serviceWorker.getRegistrations().then((regs) => {
-        regs.forEach((r) => r.unregister())
+      // Dev: 기존 등록 모두 해제해서 캐시 꼬임 방지. fire-and-forget — 실패해도
+      // dev 환경이라 영향 없음.
+      void navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((r) => void r.unregister())
       })
       if (typeof caches !== 'undefined') {
-        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)))
+        void caches
+          .keys()
+          .then((keys) => keys.forEach((k) => void caches.delete(k)))
       }
       return
     }
