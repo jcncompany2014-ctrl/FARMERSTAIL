@@ -88,14 +88,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, message: '로그인이 필요해요' })
   }
 
-  // GET 은 검증만 (수락 X) — invitation 정보 미리보기에 사용
-  const { data: inv } = await supabase
-    .from('dog_invitations')
-    .select(
-      'dog_id, email, role, expires_at, accepted_at, declined_at, invited_by',
-    )
-    .eq('token', token)
-    .maybeSingle()
+  // audit #67: token RPC 경유 (RLS 우회 SECURITY DEFINER).
+  const { data: invRows } = await supabase.rpc('lookup_invitation_by_token', {
+    p_token: token,
+  })
+  const inv = Array.isArray(invRows) && invRows.length > 0 ? invRows[0] : null
   if (!inv) {
     return NextResponse.json({ ok: false, message: '유효하지 않은 초대예요' })
   }

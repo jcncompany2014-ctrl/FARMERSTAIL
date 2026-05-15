@@ -39,9 +39,21 @@ type SuggestItem = {
 
 const MAX_RESULTS = 6
 
+/**
+ * audit #66: PostgREST `.or()` 문법 인젝션 차단.
+ * `.or("name.ilike.%X%")` 에서 X 에 콤마/괄호/점 등이 들어가면 새 filter
+ * 체인이 추가될 수 있음 (`.or("name.ilike.%X%,is_active.eq.false")` 식).
+ * supabase-js 가 ilike 인자는 escape 하지만 `.or()` expression string 은
+ * 그대로 파싱되는 구조. PostgREST 문법 토큰만 strip.
+ */
+function sanitizeQuery(raw: string): string {
+  // PostgREST 문법 토큰: , ( ) . * % \  → 모두 제거. % 도 제거 (와일드카드는 따로 wrap)
+  return raw.replace(/[,()*.%\\]/g, '')
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url)
-  const q = (url.searchParams.get('q') ?? '').trim().slice(0, 40)
+  const q = sanitizeQuery((url.searchParams.get('q') ?? '').trim()).slice(0, 40)
 
   // 빈 쿼리 — 즉시 빈 응답. rate limit 도 이 경우엔 카운트 안 함.
   if (q.length === 0) {

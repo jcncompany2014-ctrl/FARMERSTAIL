@@ -33,14 +33,12 @@ export default async function InvitationPage({ params }: { params: Params }) {
     redirect(`/login?next=/invitations/${encodeURIComponent(token)}`)
   }
 
-  // 토큰 정보 조회 — RLS 가 (invited_by 본인 OR email 매칭) 으로 통과
-  const { data: inv } = await supabase
-    .from('dog_invitations')
-    .select(
-      'dog_id, email, role, expires_at, accepted_at, declined_at, invited_by',
-    )
-    .eq('token', token)
-    .maybeSingle()
+  // audit #67: RLS 강화로 받은 사람은 row SELECT 불가 → RPC 로 token 조회.
+  // token 자체가 access control. lookup_invitation_by_token RPC 가 SECURITY DEFINER.
+  const { data: invRows } = await supabase.rpc('lookup_invitation_by_token', {
+    p_token: token,
+  })
+  const inv = Array.isArray(invRows) && invRows.length > 0 ? invRows[0] : null
 
   let dogName: string | null = null
   let inviterName: string | null = null

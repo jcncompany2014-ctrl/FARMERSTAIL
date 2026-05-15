@@ -117,6 +117,16 @@ const RULES: readonly Rule[] = [
     limit: 30,
     windowMs: 60_000,
   },
+  // audit #65: 수의사 외부 토큰 페이지 — token brute-force 방어.
+  // 토큰 27자 base64 (160-bit) 라 추측 어렵지만, leak 후 단톡방 등에서 무한
+  // 호출 가능. 분당 10회 임계 — 정상 수의사는 페이지 1-2회 새로고침.
+  {
+    path: '/vet/',
+    methods: ['GET'],
+    bucket: 'vet-share',
+    limit: 10,
+    windowMs: 60_000,
+  },
 ]
 
 function findRule(pathname: string, method: string): Rule | undefined {
@@ -359,5 +369,7 @@ export const config = {
     '/dogs',
     '/welcome',
     '/mypage/:path*',
+    // audit #65: vet share rate limit
+    '/vet/:path*',
   ],
 }
