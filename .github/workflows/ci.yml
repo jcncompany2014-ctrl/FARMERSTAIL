@@ -1,12 +1,13 @@
 name: CI
 
-# PR 과 main push 시 lint + tsc + tests 자동 검증.
+# PR 과 main push 시 lint + tsc + tests + build + audit 검증.
 # 솔로 개발자 안전망 — push 전 자동 확인.
 #
 # Vercel build 도 별도로 동작하지만 CI 가 더 빠르고 PR 단계 차단 가능.
 #
-# Secret 가 필요 없는 검증만 — Supabase / Anthropic 등의 통합 테스트는
-# 별도 workflow (이번 phase 범위 밖) 에서.
+# audit #81: build + audit (prod-only) 추가 — generateStaticParams /
+# force-dynamic 충돌, env schema parse 실패, prod 의존성 high+ vuln 을 PR 단계
+# 에서 적발.
 
 on:
   push:
@@ -31,8 +32,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          # 24.x — 로컬 dev 와 일치 (--experimental-strip-types 없이도 .ts 실행 안정).
-          node-version: 24
+          # 24.x — 로컬 dev 와 일치. .nvmrc 도 동일.
+          node-version-file: '.nvmrc'
           cache: npm
 
       - name: Install
@@ -46,3 +47,60 @@ jobs:
 
       - name: Tests
         run: npm test
+
+  build:
+    name: next build
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    needs: validate
+
+    # PR 의 fork branch 는 secret 접근 불가 — build 시 placeholder env 만 사용.
+    # 실제 deploy 는 Vercel 이 처리.
+    env:
+      # Build-time 에 zod parse 통과만 하면 충분 — 런타임 값은 Vercel 환경.
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+      NEXT_PUBLIC_SITE_URL: https://placeholder.farmerstail.kr
+      NEXT_PUBLIC_BIZ_OWNER: placeholder
+      NEXT_PUBLIC_BIZ_NUMBER: 000-00-00000
+      NEXT_PUBLIC_BIZ_ADDRESS: placeholder
+      NEXT_PUBLIC_CS_EMAIL: placeholder@farmerstail.kr
+      NEXT_PUBLIC_CS_PHONE: 02-0000-0000
+      NEXT_PUBLIC_BIZ_ECOMMERCE_NUMBER: '제2026-서울-0000호'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  audit:
+    name: npm audit (prod high+)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - name: Install (no-audit init, audit 검증은 별 step)
+        run: npm ci --no-audit
+
+      - name: Audit (prod-only, high 이상만 게이트)
+        # devDep audit (@capacitor/assets 같은 tar 깊은 의존) 은 게이트 안 함.
+        # production 의존성 high+ vuln 만 PR fail. moderate 는 별도 검토.
+        run: npm audit --omit=dev --audit-level=high
