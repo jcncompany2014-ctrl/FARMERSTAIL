@@ -57,19 +57,25 @@ export function epsilonGreedy<T>(
   }
   // [B7 fix] exploit — Optimistic Initial Value.
   // 이전: trials=0 새 arm 은 mean=0 → 영원히 explore 시 들어가야만 시도됨.
-  // 새 arm 들이 1회 trial 후 reward 낮으면 다음엔 안 뽑힘.
   // Optimistic init: 새 arm 은 mean=1.0 가정 → 적어도 1번 exploit 으로도 선택.
+  //
+  // audit #4: 이전 strict `>` 비교는 OIV trials=0 arm 5개일 때 모두 mean=1.0 이라
+  // 첫 arm 만 선택됨 (결정성 깨짐 + 균등 기회 손실). tied arm 들 사이에서는 무작위
+  // 선택으로 균등 분배 보장.
   const OPTIMISTIC_INIT = 1.0
-  let best = arms[0]
-  let bestMean = best.trials > 0 ? best.reward / best.trials : OPTIMISTIC_INIT
-  for (const arm of arms.slice(1)) {
-    const mean = arm.trials > 0 ? arm.reward / arm.trials : OPTIMISTIC_INIT
-    if (mean > bestMean) {
-      best = arm
-      bestMean = mean
-    }
+  const meanOf = (arm: Arm<T>) =>
+    arm.trials > 0 ? arm.reward / arm.trials : OPTIMISTIC_INIT
+  let bestMean = -Infinity
+  for (const arm of arms) {
+    const m = meanOf(arm)
+    if (m > bestMean) bestMean = m
   }
-  return best
+  const EPS = 1e-9
+  const ties = arms.filter((a) => Math.abs(meanOf(a) - bestMean) < EPS)
+  if (ties.length === 1) return ties[0]
+  // tie 시 무작위 (균등) — 같은 mean 의 arm 들에 공정한 기회.
+  const idx = Math.floor(random() * ties.length)
+  return ties[Math.min(idx, ties.length - 1)]
 }
 
 /**

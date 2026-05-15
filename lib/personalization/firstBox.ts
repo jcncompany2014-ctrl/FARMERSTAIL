@@ -302,7 +302,33 @@ function applyAgeStage(
     input.ageMonths < 18 &&
     input.expectedAdultWeightKg !== null &&
     input.expectedAdultWeightKg >= 25
-  if (input.ageMonths < 12) {
+
+  // audit #1: 이전엔 `<12mo` 분기 + `isLargeBreedPuppy` 분기가 둘 다 실행 →
+  // chip 2개 발화 + mass 회계 오차 (weight*0.5 가 두 번 흘러감). 단일 분기로
+  // 정리: 대형견 puppy 면 그 룰만, 아니면 일반 puppy 룰만.
+  if (isLargeBreedPuppy) {
+    // 대형견 puppy (0-18mo) — Joint/Weight/Premium 차단 (고-Ca 부담 ↓ + 성장기
+    // 다이어트 부적절), Basic 위주. AAFCO Ca 1.8% DM 상한 압력 ↓.
+    const oldJoint = ratios.joint
+    const oldWeight = ratios.weight
+    const oldPremium = ratios.premium
+    ratios = {
+      ...ratios,
+      joint: 0,
+      weight: 0,
+      premium: 0,
+      basic: ratios.basic + oldJoint + oldWeight + oldPremium,
+    }
+    reasoning.push({
+      trigger: `대형견 puppy (성견 ${input.expectedAdultWeightKg}kg 예상, ${input.ageMonths}개월)`,
+      action:
+        'Joint/Weight/Premium 차단 (고-Ca/단백질 부담 ↓), Basic 위주. Ca:P ≤1.8 + Ca ≤1.8% DM 권장 (AAFCO 2024 Large-size Growth, NRC 2006 ch.15). 수의사 정기 검진 권장.',
+      chipLabel: '대형견 puppy → 골격 보호',
+      priority: 2,
+      ruleId: 'age-puppy-large-breed',
+    })
+  } else if (input.ageMonths < 12) {
+    // 일반 (소·중형) puppy — Joint 0, Weight 0, Basic + Premium 위주.
     const oldJoint = ratios.joint
     const oldWeight = ratios.weight
     ratios = {
@@ -318,26 +344,6 @@ function applyAgeStage(
       chipLabel: '강아지 → 성장기 처방',
       priority: 2,
       ruleId: 'age-puppy',
-    })
-  }
-  if (isLargeBreedPuppy) {
-    // 대형견 puppy — Premium ↓, Basic 위주 + Joint 차단 (Joint 의 사골육수
-    // 고-Ca 우려). AAFCO Ca 1.8% DM 상한 압력 ↓.
-    const oldPremium = ratios.premium
-    const oldJoint = ratios.joint
-    ratios = {
-      ...ratios,
-      premium: 0,
-      joint: 0,
-      basic: ratios.basic + oldPremium + oldJoint,
-    }
-    reasoning.push({
-      trigger: `대형견 puppy (성견 ${input.expectedAdultWeightKg}kg 예상, ${input.ageMonths}개월)`,
-      action:
-        'Joint/Premium 차단 (고-Ca/단백질 부담 ↓), Basic 위주. Ca:P ≤1.8 + Ca ≤1.8% DM 권장 (AAFCO 2024 Large-size Growth, NRC 2006 ch.15). 수의사 정기 검진 권장.',
-      chipLabel: '대형견 puppy → 골격 보호',
-      priority: 2,
-      ruleId: 'age-puppy-large-breed',
     })
   }
   return ratios
@@ -1555,9 +1561,17 @@ function decideToppers(
     protein *= factor
   }
 
+  // audit #6: 이전엔 vegetable/protein 각각 round → (0.165, 0.135) → (0.17, 0.14) = 0.31
+  // 으로 cap (0.3) 초과. vegetable 만 먼저 round 한 후 protein = max(0, cap - vegetable)
+  // 으로 합이 항상 cap 이하 보장. 화식 주식 지위 보호 의도 일관성.
+  const vegetableR = Math.round(vegetable * 100) / 100
+  const proteinR = Math.round(protein * 100) / 100
+  const capped = vegetableR + proteinR > MAX_TOPPER_TOTAL
   return {
-    vegetable: Math.round(vegetable * 100) / 100,
-    protein: Math.round(protein * 100) / 100,
+    vegetable: vegetableR,
+    protein: capped
+      ? Math.max(0, Math.round((MAX_TOPPER_TOTAL - vegetableR) * 100) / 100)
+      : proteinR,
   }
 }
 

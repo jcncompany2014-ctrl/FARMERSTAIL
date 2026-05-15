@@ -55,14 +55,34 @@ export function predictBestTiming(
     respByHour.set(r.hour, (respByHour.get(r.hour) ?? 0) + 1)
   }
 
+  // audit #5: 단순 rate 비교는 표본 적은 hour 의 noise 에 휘둘리고, 한 hour 에
+   // 응답이 한 번이라도 들어오면 bestHour 가 거기로 lock 되며 다른 hour 가 평가
+  // 자체 못 받음 (sent < 3 임계). Wilson score interval 의 하한 (95% conf) 으로
+  // 비교 → 표본 큰 hour 가 신뢰도 우위, tied 시 default 9시 우선.
+  //
+  // Wilson lower bound for Bernoulli proportion:
+  //   p̂ = k/n, z = 1.96 (95% CI), denom = 1 + z²/n
+  //   p̂ + z²/(2n) − z√(p̂(1-p̂)/n + z²/(4n²))   all divided by denom
+  function wilsonLower(k: number, n: number): number {
+    if (n === 0) return 0
+    const z = 1.96
+    const z2 = z * z
+    const phat = k / n
+    const denom = 1 + z2 / n
+    const center = phat + z2 / (2 * n)
+    const margin = z * Math.sqrt((phat * (1 - phat)) / n + z2 / (4 * n * n))
+    return Math.max(0, (center - margin) / denom)
+  }
+
   let bestHour = 9
-  let bestRate = 0
+  let bestScore = -Infinity
   for (const [hour, sent] of sentByHour) {
     if (sent < 3) continue // 표본 미달
     const responded = respByHour.get(hour) ?? 0
-    const rate = responded / sent
-    if (rate > bestRate) {
-      bestRate = rate
+    const score = wilsonLower(responded, sent)
+    // strict `>` — tied 시 default 9 와 가까운 첫 hour 유지 (결정성).
+    if (score > bestScore) {
+      bestScore = score
       bestHour = hour
     }
   }

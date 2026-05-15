@@ -106,6 +106,7 @@ export function decideNextBox(input: NextBoxInput): Formula {
       week4,
       week2 ?? null,
       reasoning,
+      blocked,
     )
 
     // 털 — Skin (오메가-3) ↑.
@@ -241,22 +242,43 @@ function applyWeek4StoolSignal(
   week4: Checkin,
   week2: Checkin | null,
   reasoning: Reasoning[],
+  blocked: Set<FoodLine> = new Set(),
 ): Record<FoodLine, Ratio> {
   if (week4.stoolScore === null) return ratios
 
   // week_2 와 week_4 둘 다 무름 — 적응 실패. 단일 단백질로 collapse.
+  // audit #2: 이전엔 `week2?.stoolScore !== null` 가 undefined !== null = true 라
+  // 가드 무효 (week2 가 아예 없을 때도 분기 안 됨, 그 후 ?? 0 으로 우연히 막힘).
+  // 명시적 null/undefined 가드로 의도 분명히.
   if (
     week4.stoolScore >= 5 &&
-    week2?.stoolScore !== null &&
-    (week2?.stoolScore ?? 0) >= 5
+    week2 != null &&
+    week2.stoolScore !== null &&
+    week2.stoolScore >= 5
   ) {
-    let mainLine: FoodLine = 'basic'
+    // audit #3: mainLine 선택 시 blocked 라인 회피 — 알레르기 차단된 라인이
+    // 100% 가 되어 정규화에서 다른 라인으로 fallback → mainLine 의도와 어긋남.
+    let mainLine: FoodLine | null = null
     let max = 0
     for (const line of ALL_LINES) {
+      if (blocked.has(line)) continue
       if (ratios[line] > max) {
         max = ratios[line]
         mainLine = line
       }
+    }
+    // 모든 라인이 blocked 거나 ratio 가 0 이면 — 정규화 단계가 fallback 으로
+    // 강제 라인 1개 100% 만들지만 여기서는 chip 정확성을 위해 정규화 결과와
+    // 일치하도록 단순 collapse 안 함.
+    if (mainLine === null) {
+      reasoning.push({
+        trigger: '2주+4주 변 무름 지속 (사용 가능 라인 부족)',
+        action: '모든 단백질 라인이 차단됨 — 알레르기/제한 조건 재확인 권장',
+        chipLabel: '지속 무름 → 사용 가능 라인 부족',
+        priority: 3,
+        ruleId: 'next-stool-persistent-no-line',
+      })
+      return ratios
     }
     const collapsed: Record<FoodLine, Ratio> = {
       basic: 0,
