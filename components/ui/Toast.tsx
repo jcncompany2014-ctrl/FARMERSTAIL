@@ -55,6 +55,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/ui/cn'
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -383,13 +384,14 @@ function ToastCard({
           {item.action.label}
         </button>
       )}
+      {/* audit #49: ASCII × + p-1 4px → Lucide X + p-2 16px (시각) 터치 영역 32px. */}
       <button
         type="button"
         aria-label="닫기"
         onClick={() => onDismiss(item.id)}
-        className="shrink-0 -mr-1 -mt-1 p-1 rounded hover:bg-black/10 text-[13px] leading-none"
+        className="shrink-0 -mr-1.5 -mt-1.5 p-2 rounded hover:bg-black/10 flex items-center justify-center"
       >
-        ×
+        <X className="w-4 h-4" strokeWidth={2} />
       </button>
     </div>
   )

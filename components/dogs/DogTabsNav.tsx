@@ -83,9 +83,12 @@ export default function DogTabsNav({ dogId }: { dogId: string }) {
 
   return (
     <nav
-      className="sticky top-14 z-30 bg-bg/95 backdrop-blur-xl border-b border-rule"
+      className="sticky top-[60px] z-30 bg-bg/95 backdrop-blur-xl border-b border-rule"
       aria-label="강아지 메뉴"
     >
+      {/* audit #47: 아이콘 18→20px, 라벨 10.5→11px, py-2→py-2.5, underline w-8→w-10
+          — 시니어 사용자 / iOS HIG 권장 24px 에 한 단계 가까워지고 터치 row
+          height 48px 이상 확보. AppChrome top h-14→h-[60px] 와 sticky top 동기화. */}
       <div className="grid grid-cols-5">
         {TABS.map(({ href, isActive, label, Icon }) => {
           const active = isActive(pathname, dogId)
@@ -93,17 +96,17 @@ export default function DogTabsNav({ dogId }: { dogId: string }) {
             <Link
               key={label}
               href={href(dogId)}
-              className="relative flex flex-col items-center justify-center py-2 transition active:scale-[0.97]"
+              className="relative flex flex-col items-center justify-center py-2.5 transition active:scale-[0.97]"
               aria-current={active ? 'page' : undefined}
             >
               <Icon
-                className={`w-[18px] h-[18px] transition ${
+                className={`w-5 h-5 transition ${
                   active ? 'text-text' : 'text-muted'
                 }`}
                 strokeWidth={active ? 2 : 1.5}
               />
               <span
-                className={`mt-1 text-[10.5px] font-bold tracking-tight ${
+                className={`mt-1 text-[11px] font-bold tracking-tight ${
                   active ? 'text-text' : 'text-muted'
                 }`}
               >
@@ -112,7 +115,7 @@ export default function DogTabsNav({ dogId }: { dogId: string }) {
               {active && (
                 <span
                   aria-hidden
-                  className="absolute -bottom-px left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full"
+                  className="absolute -bottom-px left-1/2 -translate-x-1/2 h-0.5 w-10 rounded-full"
                   style={{ background: 'var(--terracotta)' }}
                 />
               )}

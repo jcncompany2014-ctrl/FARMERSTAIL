@@ -173,7 +173,9 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
             둘 다 negative margin 으로 visual edge 를 컨텐츠 컬럼의
             padding box 에 맞춘다. Touch target (히트 영역) 은 그대로
             44px 확보 — 접근성/탭 편의 저해 없음. */}
-        <div className="max-w-md mx-auto px-5 h-14 flex items-center justify-between">
+        {/* audit #46: h-14 (56px) → h-[60px] — h-11 로고 + h-10 아이콘 + 카트
+            뱃지를 위한 시각/터치 호흡 확보. 카트 뱃지도 min-w 확장. */}
+        <div className="max-w-md mx-auto px-5 h-[60px] flex items-center justify-between">
           {/* 좌측: 로고 + 에디토리얼 데이트 스탬프.
               스탬프는 client island (lib/dateStamp 의 cached snapshot 사용) 라
               hydration 후에 채워지지만 `min-w` 로 자리 예약해 layout shift 없음. */}
@@ -215,7 +217,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                 strokeWidth={1.75}
               />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-terracotta text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute top-1 right-1 min-w-[20px] h-[18px] px-1.5 rounded-full bg-terracotta text-white text-[10px] font-bold flex items-center justify-center">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -230,7 +232,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                 strokeWidth={1.75}
               />
               {cartCount > 0 && (
-                <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-terracotta text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute top-1 right-1 min-w-[20px] h-[18px] px-1.5 rounded-full bg-terracotta text-white text-[10px] font-bold flex items-center justify-center">
                   {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}
