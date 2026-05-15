@@ -59,16 +59,13 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const [scrolled, setScrolled] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
 
-  // Fetch cart count on mount / route change AND on `ft:cart:add` event.
-  // 이전: pathname change 만 트리거 → 같은 페이지에서 카트 담기 후 badge 안 변함.
-  // 지금: ProductDetailClient 등 add-to-cart 가 dispatch 하는 'ft:cart:add'
-  // 이벤트 listen 으로 즉시 refetch. 비로그인 / fetch 실패는 조용히 0 유지.
+  // audit #99: 이전엔 pathname 변경마다 cart count fetch → 모든 라우트 이동 시
+  // Supabase RTT 추가. cart 는 사용자 액션 (add-to-cart) 에서만 변함 — visibility
+  // 복귀 + 'ft:cart:add' event 만 refetch.
   useEffect(() => {
     let mounted = true
 
     async function fetchCount() {
-      // getSession() — JWT 검증 RTT 회피 (50-100ms). cart 자체는 RLS 가
-      // user_id 검증해 spoof 안전.
       const {
         data: { session },
       } = await supabase.auth.getSession()
@@ -88,12 +85,20 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     void fetchCount()
 
     const onCartAdd = () => void fetchCount()
+    // 다른 탭/디바이스에서 변경 가능 → visibility 복귀 시 invalidate.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void fetchCount()
+    }
     window.addEventListener('ft:cart:add', onCartAdd)
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
       mounted = false
       window.removeEventListener('ft:cart:add', onCartAdd)
+      document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [supabase, pathname])
+    // pathname 의도적 제외 — cart count 는 라우트 변경과 무관.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase])
 
   // 알림 unread 카운트 — 라우트 전환마다 다시 가져온다 (사용자가 다른 탭에서
   // 주문 상태를 봤을 수도 있고, 마이페이지 진입으로 seen 처리됐을 수도 있음).
