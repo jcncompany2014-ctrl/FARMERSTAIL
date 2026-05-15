@@ -63,7 +63,11 @@ const MILESTONES: Milestone[] = [
 
 /**
  * 가장 최근 도달한 마일스톤 (지난 7일 이내 도달). 없으면 null.
- * 7일 윈도우 — 정확히 그 날에만 보이면 놓치기 쉬워서 일주일 동안 노출.
+ *
+ * audit #15: 365일 이상 anniversary milestone 은 윤년 보정 — 가입일 (월/일)
+ * 과 일치하는 anniversary 를 ±3일 윈도우로 확인. 1년 = 365.25일 평균이라
+ * 단순 days 365 비교는 4년에 1일씩 어긋남. 사용자 직관 "2주년 = 같은 월일"
+ * 과 일치하도록 calendar-aware 비교.
  */
 export function currentMilestone(
   joinedAt: string | Date | null | undefined,
@@ -72,9 +76,23 @@ export function currentMilestone(
   if (!joinedAt) return null
   const joined = typeof joinedAt === 'string' ? new Date(joinedAt) : joinedAt
   const days = Math.floor((nowMs - joined.getTime()) / 86_400_000)
-  // 지난 7일 이내 도달한 가장 큰 마일스톤. 내림차순으로 검색.
+  const now = new Date(nowMs)
+
+  // 내림차순으로 가장 큰 milestone 부터 확인.
   for (let i = MILESTONES.length - 1; i >= 0; i -= 1) {
     const m = MILESTONES[i]
+
+    // 365+ 일 anniversary 는 calendar-aware (월/일 매칭 ±3일).
+    if (m.daysSince >= 365) {
+      const years = Math.round(m.daysSince / 365)
+      const anniversary = new Date(joined.getTime())
+      anniversary.setFullYear(joined.getFullYear() + years)
+      const diff = (now.getTime() - anniversary.getTime()) / 86_400_000
+      if (diff >= -3 && diff <= 7) return m
+      continue
+    }
+
+    // 1년 미만 milestone (30/100/200일 등) — 단순 days.
     if (days >= m.daysSince && days < m.daysSince + 7) return m
   }
   return null

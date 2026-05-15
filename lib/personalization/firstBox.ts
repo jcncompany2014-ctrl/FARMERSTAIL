@@ -46,6 +46,10 @@ import {
 } from './lines.ts'
 import { quantizeAndNormalize } from './quantize.ts'
 import { transferToTarget } from './transfers.ts'
+import {
+  PREGNANCY_RER_MULTIPLIER,
+  pregnancyTrimester,
+} from '../nutrition/guidelines.ts'
 
 // v1.6.1 — audit: bcsMerFactor 보정 (1.4 → 1.20), pregnancy/lactation gender
 // 게이트, NRC pregnancy/lactation REPLACE activity base (stack 버그 fix),
@@ -490,23 +494,61 @@ function applyChronicAdjustments(
         priority: 3,
         ruleId: 'chronic-kidney-early',
       })
-    } else {
-      // Stage 3-4 또는 stage 미입력 (보수적). 단백질 제한.
+    } else if (stage === 4) {
+      // audit #7: IRIS Stage 4 (severe azotemia). Premium 0 + Weight 도 0
+      // (체중 감소 = 근감소 + 영양 부족 가속). Basic 위주, 단백질 강제한
+      // (NRC 2006 ch.15 — Stage 4 단백질 ≤14% DM 목표). 수의사 처방식 필수.
+      const oldPremium = ratios.premium
+      const oldWeight = ratios.weight
+      ratios = {
+        ...ratios,
+        premium: 0,
+        weight: 0,
+        basic: ratios.basic + oldPremium + oldWeight,
+      }
+      reasoning.push({
+        trigger: '만성 신장질환 (IRIS Stage 4 — 심한 azotemia)',
+        action:
+          'Premium/Weight 0%, Basic 으로 이전. 단백질 강제한 (≤14% DM), 인 binder 필수. 응급 처방식 (Royal Canin Renal, Hill\'s k/d Early Support) 수의사 상담 필수. IRIS 2019.',
+        chipLabel: 'CKD Stage 4 → 응급 저단백',
+        priority: 3,
+        ruleId: 'chronic-kidney-stage4',
+      })
+    } else if (stage === 3) {
+      // Stage 3 — moderate azotemia. Premium 0 + 단백질 적당 제한.
       const oldPremium = ratios.premium
       ratios = {
         ...ratios,
         premium: 0,
         basic: ratios.basic + oldPremium,
       }
-      const stageLabel =
-        stage === 3 || stage === 4
-          ? `IRIS Stage ${stage}`
-          : 'stage 미진단 (보수적)'
       reasoning.push({
-        trigger: `만성 신장질환 (${stageLabel})`,
+        trigger: '만성 신장질환 (IRIS Stage 3)',
         action:
-          'Premium 0% (단백질·인 부담), Basic 으로 이전. 수의사 처방식 상담 필수. IRIS 2019 — Stage 3+ 단백질 제한.',
-        chipLabel: 'CKD 후기 → 저단백 처방',
+          'Premium 0%, Basic 으로 이전. 단백질 적당 제한 + 인 강제한. 수의사 처방식 상담 필수. IRIS 2019.',
+        chipLabel: 'CKD Stage 3 → 저단백 처방',
+        priority: 3,
+        ruleId: 'chronic-kidney-stage3',
+      })
+    } else {
+      // stage 미진단 / invalid — 보수적으로 Stage 3 처방 (premium 0). 정확한
+      // 진단 없이 단백질 정상 유지는 신장 부담 가속 위험. 진단 후 Stage 1-2 면
+      // premium 복원 가능. ruleId 는 통합 'chronic-kidney' — 테스트 호환.
+      const invalidStage =
+        stage !== null && stage !== undefined && (stage < 1 || stage > 4)
+      const oldPremium = ratios.premium
+      ratios = {
+        ...ratios,
+        premium: 0,
+        basic: ratios.basic + oldPremium,
+      }
+      reasoning.push({
+        trigger: invalidStage
+          ? `만성 신장질환 (입력값 ${stage} 비정상 — Stage 1-4 만 유효, 보수적 처방)`
+          : '만성 신장질환 (stage 미진단 — 보수적)',
+        action:
+          'Premium 0% (보수적 단백질 제한). 정확한 처방을 위해 수의사 진단 (creatinine + SDMA + 인 측정) 권장 — Stage 1-2 면 단백질 복원 가능. IRIS 2019.',
+        chipLabel: 'CKD 보수적 → 저단백 처방',
         priority: 3,
         ruleId: 'chronic-kidney',
       })
@@ -1328,25 +1370,18 @@ function applyPregnancyNote(
   reasoning: Reasoning[],
 ): void {
   if (input.pregnancy === 'pregnant') {
+    // audit #12: chip 텍스트와 실제 calculateNutrition factor 가 다르던 문제 SSOT 해결.
+    // PREGNANCY_RER_MULTIPLIER (guidelines.ts) 값으로 chip 생성.
     const w = input.pregnancyWeek
-    let mul: string
-    let action: string
-    if (w !== null && w >= 6) {
-      mul = '1.6-2.0×'
-      action = `임신 후기 (${w}주차) — RER × 1.6~2.0 (NRC 2006 ch.15). 태아 성장기.`
-    } else if (w !== null && w >= 1) {
-      mul = '~1.0×'
-      action = `임신 초기 (${w}주차) — RER × 1.0~1.2 권장. 후기 (6주+) 부터 본격 ↑.`
-    } else {
-      // 주차 미입력 — 보수적으로 평균 1.5× chip (기존 v1.2 동작 유지).
-      mul = '~1.5× (주차 미입력)'
-      action =
-        '임신 중 — 보수적 RER × 1.5 (정확한 multiplier 는 주차 입력 시 자동). 후기는 1.6-2.0× 권장 (NRC 2006).'
-    }
+    const trimester = pregnancyTrimester(w)
+    const mul = PREGNANCY_RER_MULTIPLIER[trimester]
+    const trimesterKo =
+      trimester === 'late' ? '후기' : trimester === 'mid' ? '중기' : '초기'
+    const weekLabel = w !== null && w >= 1 ? `${w}주차` : '주차 미입력'
     reasoning.push({
       trigger: '임신 중',
-      action,
-      chipLabel: `임신 → kcal ${mul}`,
+      action: `임신 ${trimesterKo} (${weekLabel}) — RER × ${mul} (NRC 2006 ch.15).`,
+      chipLabel: `임신 → kcal × ${mul}`,
       priority: 5,
       ruleId: 'pregnancy-pregnant',
     })

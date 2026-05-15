@@ -23,10 +23,12 @@ describe('computeRer (A3 tier 분기)', () => {
     assert.ok(r > 0 && r < 100)
   })
 
-  it('giant 70kg → 0.73 거듭제곱', () => {
+  it('giant 70kg → 표준 NRC 공식 (audit #10)', () => {
+    // audit #10: 이전 ^0.73 + 47 분기 (Hill 2014 retrospective) 가
+    // ~200 kcal underestimate. 표준 NRC 0.75 로 통일.
     const r = computeRer(70)
     const standard = 70 * Math.pow(70, 0.75)
-    assert.ok(r < standard, `giant 보정 = ${r} < standard = ${standard}`)
+    assert.ok(Math.abs(r - standard) < 0.5, `${r} vs ${standard}`)
   })
 
   it('monotonic — 체중 증가 시 RER 증가', () => {

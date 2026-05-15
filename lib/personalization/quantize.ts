@@ -48,32 +48,61 @@ export function normalize(
   return out
 }
 
-/** 0.1 단위로 round, 합 1.0 보장. 잔차는 가장 큰 라인이 흡수. */
+/**
+ * 0.1 단위로 round, 합 1.0 보장. Hamilton (largest-remainder) 방식 (audit #9).
+ *
+ * 이전: 모든 라인을 단순 round → diff 를 1개 라인이 흡수. 잔차 |diff| 가
+ * 큰 케이스 (5개 라인 모두 0.123 → 모두 0.1 round → 합 0.5, diff 0.5) 에서
+ * 1개 라인에 몰아넣기 부적절. 또한 음수 diff 흡수 시 target 이 0 으로 클램프
+ * 되어 합이 1.0 미만으로 다시 어긋남.
+ *
+ * Hamilton:
+ *   1) 각 라인을 floor(x*10) 으로 quota 확정
+ *   2) 남은 잔차 = 10 - sum(quotas) 만큼 "원본 - floor" 값이 큰 라인부터
+ *      차례로 +0.1 분배
+ *   3) blocked 라인은 quantize 단계 이전 normalize 가 이미 0 — 여기선 그대로
+ *
+ * 결과: 항상 합 = 1.0 정확, 결정성, 음수 클램프 위험 없음.
+ */
 export function quantize(
   ratios: Record<FoodLine, Ratio>,
 ): Record<FoodLine, Ratio> {
-  const rounded = ALL_LINES.reduce(
-    (acc, l) => {
-      acc[l] = cleanFloat(Math.round(ratios[l] / QUANTIZE_STEP) * QUANTIZE_STEP)
-      return acc
-    },
-    {} as Record<FoodLine, Ratio>,
-  )
-  const sum = ALL_LINES.reduce((s, l) => s + rounded[l], 0)
-  const diff = 1 - sum
-  if (Math.abs(diff) > EPS) {
-    // 잔차 흡수 대상: 0% 가 아닌 가장 큰 라인. 결정적 — ALL_LINES 의 순서가 고정.
-    const target =
-      ALL_LINES.reduce<FoodLine | null>(
-        (best, l) =>
-          rounded[l] > 0 && (best === null || rounded[l] > rounded[best])
-            ? l
-            : best,
-        null,
-      ) ?? 'basic'
-    rounded[target] = Math.max(0, cleanFloat(rounded[target] + diff))
+  // 1) floor (정수 quota): 각 라인의 0.1 단위 내림.
+  const SCALE = 1 / QUANTIZE_STEP // 10
+  const quotas: Record<FoodLine, number> = {} as Record<FoodLine, number>
+  const remainders: Array<{ line: FoodLine; remainder: number }> = []
+  let totalQuota = 0
+  for (const line of ALL_LINES) {
+    const scaled = ratios[line] * SCALE
+    const floor = Math.floor(scaled)
+    quotas[line] = floor
+    remainders.push({ line, remainder: scaled - floor })
+    totalQuota += floor
   }
-  return rounded
+
+  // 2) 부족분 = 10 - totalQuota. remainder 큰 라인부터 +1.
+  let deficit = Math.round(SCALE - totalQuota) // 보통 0~9
+  if (deficit > 0) {
+    // remainder 내림차순 정렬 — 동률 시 ALL_LINES 순서 유지 (결정성).
+    remainders.sort((a, b) => {
+      if (Math.abs(a.remainder - b.remainder) < EPS) {
+        return ALL_LINES.indexOf(a.line) - ALL_LINES.indexOf(b.line)
+      }
+      return b.remainder - a.remainder
+    })
+    for (const { line } of remainders) {
+      if (deficit === 0) break
+      quotas[line] += 1
+      deficit -= 1
+    }
+  }
+
+  // 3) 0.1 단위로 변환.
+  const out = {} as Record<FoodLine, Ratio>
+  for (const line of ALL_LINES) {
+    out[line] = cleanFloat(quotas[line] * QUANTIZE_STEP)
+  }
+  return out
 }
 
 /** normalize → quantize 한 번에. 가장 흔한 호출 경로. */

@@ -68,7 +68,23 @@ export function recencyScore(
   nowMs: number = Date.now(),
 ): number {
   if (!measuredAt) return 0.2
-  const t = typeof measuredAt === 'string' ? new Date(measuredAt) : measuredAt
+  // audit #14: date-only ISO ("2026-05-15") 가 들어오면 UTC 00:00 으로 파싱 →
+  // KST 09:00. 한국 사용자가 "오늘 측정" 표시한 게 9시간 어긋남 → 1주 7일
+  // threshold 근처에서 점수 1.0 vs 0.85 (15%p 차이). date-only 입력은 KST 정오
+  // (12:00 KST = 03:00 UTC) 로 normalize 해 시간대 노이즈 제거.
+  let t: Date
+  if (typeof measuredAt === 'string') {
+    // YYYY-MM-DD 만 있는 경우 (시간 정보 없음).
+    const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(measuredAt)
+    if (dateOnly) {
+      // KST 정오 = UTC 03:00.
+      t = new Date(`${measuredAt}T03:00:00Z`)
+    } else {
+      t = new Date(measuredAt)
+    }
+  } else {
+    t = measuredAt
+  }
   const days = (nowMs - t.getTime()) / 86_400_000
   if (days <= 7) return 1.0
   if (days <= 30) return 0.85

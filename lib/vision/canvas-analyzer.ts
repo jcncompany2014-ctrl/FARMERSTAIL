@@ -59,7 +59,17 @@ export function analyzeImage(
     return { brightness: 0, sharpness: 0, coverageRatio: 0 }
   }
   ctx.drawImage(source, 0, 0, w, h)
-  const imgData = ctx.getImageData(0, 0, w, h)
+  // audit #13: getImageData 가 cross-origin 이미지 (Supabase Storage 의 public
+  // URL 도 CORS 헤더 없으면) 에서 SecurityError 던짐 → tainted canvas. silent
+  // crash 시 W_image 점수 0 으로 떨어져 BCS 추정 사용 불가. try/catch 로 안전
+  // fallback + 호출처가 raw `<img crossOrigin="anonymous">` 사용 권장.
+  let imgData: ImageData
+  try {
+    imgData = ctx.getImageData(0, 0, w, h)
+  } catch {
+    // SecurityError (tainted canvas) — CORS 미설정. fallback 0.
+    return { brightness: 0, sharpness: 0, coverageRatio: 0 }
+  }
   const pixels = imgData.data
 
   // brightness — 평균 luminance (Rec. 601)

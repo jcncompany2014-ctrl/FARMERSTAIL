@@ -49,18 +49,27 @@ export function transferBetween(
  *
  * 예: chronic-arthritis 가 Joint 0.3 으로 늘리려는데, basic 0.05 만 남으면
  *     basic 0.05 + skin 일부 + premium 일부 식으로 fallback.
+ *
+ * # audit #8 — protectedLines
+ * cross-rule 충돌 시 임상적으로 안전한 라인을 donor 에서 자동 제외.
+ * 예: BCS 8 (비만, weight ≥0.5 보장) + 관절염 (joint 늘리려고) → weight 를
+ * donor 로 쓰면 BCS 의도 위반. 호출처가 protectedLines: ['weight'] 전달.
+ * 또한 'to' 라인은 항상 자동 제외 (silent no-op 방지).
  */
 export function transferToTarget(
   ratios: Record<FoodLine, Ratio>,
   to: FoodLine,
   target: number,
   donors: FoodLine[],
+  protectedLines: Set<FoodLine> = new Set(),
 ): { ratios: Record<FoodLine, Ratio>; finalValue: number } {
   if (ratios[to] >= target) return { ratios, finalValue: ratios[to] }
   let need = target - ratios[to]
   let cur = ratios
   for (const donor of donors) {
     if (need <= 1e-9) break
+    if (donor === to) continue // self-transfer 차단 (audit #24)
+    if (protectedLines.has(donor)) continue // 임상 보호 라인
     const { ratios: next, transferred } = transferBetween(cur, donor, to, need)
     cur = next
     need -= transferred

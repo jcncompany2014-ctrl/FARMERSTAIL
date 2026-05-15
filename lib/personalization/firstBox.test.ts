@@ -640,7 +640,9 @@ describe('decideFirstBox v1.3 — algorithmVersion', () => {
 })
 
 describe('decideFirstBox v1.3 — 임신 multiplier 정밀화 (NRC 2006 ch.15)', () => {
-  it('pregnancyWeek=null → "주차 미입력" chip', () => {
+  it('pregnancyWeek=null → 초기 (1.3× default) chip', () => {
+    // audit #12: SSOT 사용 후 chip 텍스트가 단일 multiplier 값. null → early
+    // trimester default → 1.3×.
     const f = decideFirstBox({
       ...baseInput(),
       pregnancy: 'pregnant',
@@ -648,10 +650,11 @@ describe('decideFirstBox v1.3 — 임신 multiplier 정밀화 (NRC 2006 ch.15)',
     })
     const r = f.reasoning.find((x) => x.ruleId === 'pregnancy-pregnant')
     assert.ok(r)
-    assert.match(r!.chipLabel, /주차 미입력|1\.5/)
+    assert.match(r!.chipLabel, /1\.3/)
   })
 
-  it('pregnancyWeek=7 (late) → 1.6-2.0× chip', () => {
+  it('pregnancyWeek=7 (late) → 1.8× chip', () => {
+    // audit #12: late trimester → 1.8× (NRC 2006 §15.6).
     const f = decideFirstBox({
       ...baseInput(),
       pregnancy: 'pregnant',
@@ -659,7 +662,7 @@ describe('decideFirstBox v1.3 — 임신 multiplier 정밀화 (NRC 2006 ch.15)',
     })
     const r = f.reasoning.find((x) => x.ruleId === 'pregnancy-pregnant')
     assert.ok(r)
-    assert.match(r!.chipLabel, /1\.6-2\.0/)
+    assert.match(r!.chipLabel, /1\.8/)
   })
 
   it('pregnancyWeek=2 (early) → ~1.0× chip', () => {
@@ -803,24 +806,32 @@ describe('decideFirstBox v1.3 — CKD IRIS staging (IRIS 2019)', () => {
     assert.match(early!.chipLabel, /Stage 2/)
   })
 
-  it('Stage 3 → Premium 0% (저단백)', () => {
+  it('Stage 3 → Premium 0% (저단백, audit #7: ruleId 분리)', () => {
     const f = decideFirstBox({
       ...baseInput(),
       chronicConditions: ['kidney'],
       irisStage: 3,
     })
-    const late = f.reasoning.find((r) => r.ruleId === 'chronic-kidney')
-    assert.ok(late, '후기 CKD chip 발화')
+    const late = f.reasoning.find(
+      (r) => r.ruleId === 'chronic-kidney-stage3',
+    )
+    assert.ok(late, 'Stage 3 chip 발화')
     assert.equal(f.lineRatios.premium, 0)
   })
 
-  it('Stage 4 → Premium 0%', () => {
+  it('Stage 4 → Premium 0% + Weight 0% (audit #7: 더 강한 제한)', () => {
     const f = decideFirstBox({
       ...baseInput(),
       chronicConditions: ['kidney'],
       irisStage: 4,
     })
     assert.equal(f.lineRatios.premium, 0)
+    // Stage 4 는 weight 도 0 — 근감소 + 영양 부족 가속 방어.
+    assert.equal(f.lineRatios.weight, 0)
+    const stage4 = f.reasoning.find(
+      (r) => r.ruleId === 'chronic-kidney-stage4',
+    )
+    assert.ok(stage4, 'Stage 4 응급 chip 발화')
   })
 
   it('stage 미입력 → 보수적 (Stage 3+ 처방)', () => {

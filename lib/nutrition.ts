@@ -2,6 +2,9 @@ import {
   bcsMerFactor,
   CONDITION_ADJUSTMENTS,
   GUIDELINE_VERSION,
+  PREGNANCY_RER_MULTIPLIER,
+  pregnancyTrimester,
+  lactationRerMultiplier,
   type BcsKey,
   type ChronicConditionKey,
   type McsKey,
@@ -213,11 +216,11 @@ export function computeRer(weightKg: number): number {
   if (weightKg <= 2) {
     return 70 * Math.pow(weightKg + 2, 0.75) - 70 * Math.pow(2, 0.75) + 35
   }
-  if (weightKg > 50) {
-    // offset 47 — boundary 50kg 에서 standard 와 연속 (70×50^0.75 ≈ 1314,
-    // 70×50^0.73 + 47 ≈ 1316). W↑ 일수록 standard 와 차이 ↑ (대형견 metabolism ↓).
-    return 70 * Math.pow(weightKg, 0.73) + 47
-  }
+  // audit #10: 이전 giant 분기 (W>50kg, ^0.73 + 47) 는 70kg 견에서 1502 kcal —
+  // standard 70*W^0.75 (1697 kcal) 대비 ~200kcal underestimate. 출처 불분명.
+  // NRC 2006 표준 70*W^0.75 로 통일 — 모든 체중 동일 공식. 거대견 metabolism
+  // 차이는 activityLevel('low') 와 BCS factor 로 보정 (보호자가 활동량 신호로
+  // 표현 가능). 50kg+ 견은 vetConsult flag 발화 (별도 calculateNutrition).
   return 70 * Math.pow(weightKg, 0.75)
 }
 
@@ -238,6 +241,14 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   const riskFlags: string[] = []
   const citations = new Set<string>(['nrc2006', 'aafco2024', 'fediaf2021'])
   let vetConsult = false
+
+  // audit #10: 거대견 (50kg+) — metabolism rate 가 표준 NRC 공식보다 낮을 수
+  // 있어 표준 RER 사용 시 과식 위험. activityLevel='low' 권장 + 수의사 상담
+  // flag. 정확한 보정은 임상 측정 (DEXA / indirect calorimetry) 필요.
+  if (w >= 50) {
+    riskFlags.push('GIANT_BREED')
+    vetConsult = true
+  }
 
   // 생애주기 / 활동량 기반 base factor (NRC 2006 권장 범위)
   if (stage === 'puppy') {
@@ -262,7 +273,15 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
       vetConsult = true
     } else if (answers.bcsExact >= 7) {
       riskFlags.push('OVERWEIGHT')
-    } else if (answers.bcsExact <= 2) {
+    } else if (answers.bcsExact === 1) {
+      // audit #11: BCS 1 은 생명을 위협하는 emergency 케이스. 단순 ×1.20 으로
+      // 급격 증량 시 refeeding syndrome (전해질 불균형 → 부정맥 / 호흡부전)
+      // 위험. factor 는 보수적으로 유지하되 REFEEDING_RISK flag + 단계적
+      // 증량 권장 (Day 1-3 25%, Day 4-7 50%, Day 8+ 100%) — 수의사 지도 필수.
+      riskFlags.push('SEVERE_UNDERWEIGHT')
+      riskFlags.push('REFEEDING_RISK')
+      vetConsult = true
+    } else if (answers.bcsExact === 2) {
       riskFlags.push('SEVERE_UNDERWEIGHT')
       vetConsult = true
     } else if (answers.bcsExact <= 3) {
@@ -288,16 +307,11 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   const canBePregnantOrLactating =
     !dog.neutered && (dog.gender === 'female' || dog.gender == null)
   if (canBePregnantOrLactating && answers.pregnancyStatus === 'pregnant') {
-    // NRC 2006 §15.6: 임신 1-3주차 RER × 1.3, 4-5주차 ×1.5, 6-9주차 ×1.8.
-    const wk = answers.pregnancyWeek
-    let pregFactor = 1.3
-    if (typeof wk === 'number' && wk >= 1 && wk <= 9) {
-      if (wk >= 6) pregFactor = 1.8 // 후기 (gestation last 1/3)
-      else if (wk >= 4) pregFactor = 1.5
-      else pregFactor = 1.3 // 초기
-    }
-    // BCS 보정 보존 — bcsMerFactor 가 이미 factor 에 반영됨. 앞 stage_base
-    // 만 제거하고 BCS / 기타는 그대로.
+    // audit #12: PREGNANCY_RER_MULTIPLIER SSOT (guidelines.ts) 사용. 이전엔
+    // chip 과 factor 분리 → 보호자 신뢰 깨짐. firstBox.applyPregnancyNote 와
+    // 같은 trimester 값 보장.
+    const trimester = pregnancyTrimester(answers.pregnancyWeek ?? null)
+    const pregFactor = PREGNANCY_RER_MULTIPLIER[trimester]
     const bcsModifier =
       typeof answers.bcsExact === 'number'
         ? bcsMerFactor(answers.bcsExact)
@@ -309,12 +323,8 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     canBePregnantOrLactating &&
     answers.pregnancyStatus === 'lactating'
   ) {
-    // NRC 2006 §15.7: 수유 RER × (1.5 + 0.7 × pups), peak week 3-4.
-    const pups = answers.litterSize
-    let lactFactor = 2.5
-    if (typeof pups === 'number' && pups >= 1) {
-      lactFactor = Math.min(5.0, 1.5 + 0.7 * Math.min(pups, 8))
-    }
+    // audit #12: lactationRerMultiplier SSOT (guidelines.ts) 사용.
+    const lactFactor = lactationRerMultiplier(answers.litterSize ?? null)
     const bcsModifier =
       typeof answers.bcsExact === 'number'
         ? bcsMerFactor(answers.bcsExact)

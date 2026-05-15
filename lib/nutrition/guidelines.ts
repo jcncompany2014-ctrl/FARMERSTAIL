@@ -157,6 +157,50 @@ export function bcsMerFactor(bcs: BcsKey): number {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// Pregnancy / Lactation multipliers (audit #12 SSOT)
+// ────────────────────────────────────────────────────────────────────────────
+//
+// 임신/수유 multiplier 가 firstBox.applyPregnancyNote 의 chip ("~1.0×" /
+// "1.6-2.0×") 와 nutrition.calculateNutrition 의 실제 factor (1.3/1.5/1.8)
+// 가 어긋나 있었음 (보호자 chip 과 실제 칼로리 모순). 단일 진실 소스.
+//
+// 출처: NRC 2006 §15.6 (임신) / §15.7 (수유).
+
+export type PregnancyTrimester = 'early' | 'mid' | 'late'
+
+/** 임신 주차 → trimester 매핑. wk 1-3 = early, 4-5 = mid, 6-9 = late. */
+export function pregnancyTrimester(weekNumber: number | null): PregnancyTrimester {
+  if (typeof weekNumber !== 'number' || weekNumber < 1) return 'early'
+  if (weekNumber >= 6) return 'late'
+  if (weekNumber >= 4) return 'mid'
+  return 'early'
+}
+
+/** NRC 2006 §15.6 임신 RER 배수. */
+export const PREGNANCY_RER_MULTIPLIER: Record<PregnancyTrimester, number> = {
+  early: 1.3, // 1-3주차
+  mid: 1.5, // 4-5주차
+  late: 1.8, // 6-9주차 (gestation last 1/3)
+}
+
+/**
+ * 수유 RER multiplier = min(5.0, 1.5 + 0.7 × litterSize).
+ * peak week 3-4. litterSize 미상이면 default 2.5 (≈ 1.4 pups).
+ */
+export function lactationRerMultiplier(litterSize: number | null): number {
+  if (typeof litterSize !== 'number' || litterSize < 1) return 2.5
+  return Math.min(5.0, 1.5 + 0.7 * Math.min(litterSize, 8))
+}
+
+/** chip / UI 텍스트용 임신 multiplier 범위 라벨 (보호자 친화). */
+export function pregnancyChipLabel(weekNumber: number | null): string {
+  const t = pregnancyTrimester(weekNumber)
+  if (t === 'late') return '1.6-2.0× 칼로리 증량'
+  if (t === 'mid') return '1.4-1.6× 칼로리 증량'
+  return '1.2-1.4× 칼로리 증량'
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Muscle Condition Score (WSAVA 4-grade)
 // ────────────────────────────────────────────────────────────────────────────
 
