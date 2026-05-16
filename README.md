@@ -156,7 +156,7 @@ capacitor.config.ts   네이티브 앱 셸 (com.farmerstail.app)
 ### 현재 상태 (2026-05-16)
 - **562 테스트** 통과 (lib + e2e)
 - **tsc 0 에러** — `strict: true` + `noUncheckedIndexedAccess: true` 활성화
-- **eslint 7 warnings** (모두 unused-vars, 별 영향 없음)
+- **eslint 0 errors / 0 warnings** — react-hooks/purity + set-state-in-effect 포함 clean
 - **Supabase Database typed** — browser/server/admin 모두 generic 활성화
 - **18개 (main) 페이지 RSC** — server prefetch + 빈 spinner 제거
 - **Playwright E2E** 3 happy paths — CI 자동 실행
