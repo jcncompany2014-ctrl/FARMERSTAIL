@@ -14,6 +14,7 @@ import {
   Meh,
   Smile,
   Laugh,
+  ChevronRight,
   type LucideIcon,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -225,6 +226,16 @@ export default function DiaryClient({
             기록 남기기
           </button>
         </div>
+        {/* B-66 — 시계열 진행 사진 진입점. 일기 (daily) 와 별개 surface. */}
+        <Link
+          href={`/dogs/${dogId}/photos`}
+          className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold hover:opacity-80"
+          style={{ color: 'var(--muted)' }}
+        >
+          <ImageIcon className="w-3.5 h-3.5" strokeWidth={2} />
+          진행 사진 (시계열) 보기
+          <ChevronRight className="w-3 h-3" strokeWidth={2.4} />
+        </Link>
       </section>
 
       {entries.length === 0 ? (
