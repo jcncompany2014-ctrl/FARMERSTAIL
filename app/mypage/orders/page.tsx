@@ -243,10 +243,12 @@ export default async function OrdersPage() {
                     order.payment_status
 
               return (
-                <li key={order.id}>
+                <li key={order.id} className="md:h-full">
+                  {/* UI audit #2: grid 자식 h-full + flex-col 으로 row 높이 통일.
+                      짧은 카드 / 긴 카드 (외 N건) 가 같은 행에서 baseline 어긋남 차단. */}
                   <Link
                     href={`/mypage/orders/${order.id}`}
-                    className="block bg-white rounded-xl border border-rule px-4 py-4 md:px-5 md:py-5 hover:border-text transition-all"
+                    className="block md:h-full bg-white rounded-xl border border-rule px-4 py-4 md:px-5 md:py-5 hover:border-text transition-all"
                   >
                     <div className="flex items-center justify-between mb-3 md:mb-4">
                       <span className="text-[11px] md:text-[12.5px] text-muted font-bold">
@@ -293,7 +295,7 @@ export default async function OrdersPage() {
                           </p>
                           <div className="mt-1 md:mt-2 flex items-baseline gap-1">
                             <span
-                              className="font-serif text-[14px] md:text-[18px]"
+                              className="font-serif text-[14px] md:text-[18px] tabular-nums"
                               style={{
                                 fontWeight: 800,
                                 color: 'var(--terracotta)',
