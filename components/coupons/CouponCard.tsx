@@ -211,7 +211,7 @@ export default function CouponCard({
                   color: 'white',
                 }}
               >
-                <Clock className="w-2.5 h-2.5" strokeWidth={2.5} />
+                <Clock className="w-3 h-3" strokeWidth={2.5} />
                 D-{days}
               </span>
             )}

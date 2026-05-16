@@ -252,7 +252,7 @@ export default function DogDetailClient({
             ) : (
               <DogIcon
                 className="w-10 h-10 text-muted"
-                strokeWidth={1.3}
+                strokeWidth={1.5}
               />
             )}
           </div>

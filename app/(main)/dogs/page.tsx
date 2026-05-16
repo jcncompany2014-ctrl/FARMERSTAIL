@@ -91,7 +91,7 @@ export default async function DogsPage() {
             >
               <DogIcon
                 className="w-7 h-7 text-terracotta"
-                strokeWidth={1.3}
+                strokeWidth={1.5}
               />
             </div>
             <span className="kicker">First Dog · 시작하기</span>

@@ -246,7 +246,7 @@ export default function DiaryClient({
                 border: '1px solid var(--rule-2)',
               }}
             >
-              <Camera className="w-6 h-6 text-muted" strokeWidth={1.3} />
+              <Camera className="w-6 h-6 text-muted" strokeWidth={1.5} />
             </div>
             <span className="kicker kicker-muted">First Page · 첫 페이지</span>
             <h3

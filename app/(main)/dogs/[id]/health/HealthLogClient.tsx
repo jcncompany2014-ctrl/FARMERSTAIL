@@ -387,7 +387,7 @@ export default function HealthLogClient({
           <div className="bg-white rounded-2xl border border-dashed border-rule-2 p-8 text-center">
             <Heart
               className="w-9 h-9 text-muted mx-auto mb-3"
-              strokeWidth={1.3}
+              strokeWidth={1.5}
             />
             <p className="text-[12px] text-muted">
               아직 기록이 없어요. 오늘부터 시작해볼까요?
