@@ -218,3 +218,103 @@ aa8c689  vercel cron + eslint + audit + test scripts
 ```
 
 각 commit 은 audit-110.md 의 항목 번호 (#1~#110) 와 직접 연결됨.
+
+---
+
+# Phase 2 (2026-05-16) — 보안 패치 + 회귀 가드 + Sprint 추가
+
+> 26 commits + 552 tests 시점 이후 후속 작업. 30+ commits, **959 tests pass**,
+> 마이그레이션 prod 적용 8건 누적, CI green.
+
+## 🔴 보안 — Next.js CVE 11건 일괄 패치
+
+5/14~5/16 사이 GitHub Security Advisories 에 Next.js 16 high-severity CVE 11건
+공개. CI 의 `npm audit --omit=dev --audit-level=high` gate (audit #81) 가 매 push
+fail. patch 업그레이드로 해결:
+
+  - GHSA-3g8h-86w9-wvmq: Middleware/Proxy cache poisoning
+  - GHSA-ffhc-5mcf-pf4q: CSP nonce XSS (App Router)
+  - GHSA-vfv6-92ff-j949: React Server Component cache-buster collision
+  - GHSA-gx5p-jg67-6x7h: beforeInteractive 스크립트 XSS
+  - GHSA-mg66-mrh9-m8jx: Cache Components DoS
+  - GHSA-h64f-5h5j-jqjh: Image Optimization API DoS
+  - GHSA-c4j6-fc7j-m34r: WebSocket SSRF
+  - GHSA-492v-c6pp-mqqv: Middleware 라우트 파라미터 우회
+  - GHSA-wfc6-r584-vfw7: RSC 응답 cache poisoning
+  - GHSA-267c-6grr-h53f: segment-prefetch Middleware 우회
+  - GHSA-36qx-fr4f-26g5: Pages Router i18n Middleware 우회
+
+**변경**: next 16.2.3 → 16.2.6 / react / react-dom 19.2.4 → 19.2.6 / 관련 패치.
+`npm audit fix` 로 fast-uri high 도 같이 해결. 0 high / 0 critical.
+
+## 🟠 CI fix — Linux dot-dir parse error
+
+`app/.well-known/{apple-app-site-association,assetlinks.json}/route.ts` 가
+typescript-eslint projectService 의 tsconfig include 매치에서 Linux 만 누락 →
+Windows 로컬 통과, CI fail. `tsconfig.json` include 에 `app/.well-known/**/*.ts`
+명시 추가로 양쪽 OS 호환.
+
+## 🟢 회귀 가드 — 17 lib 모듈 단위 테스트 (+379)
+
+580 → 959 tests. 모두 사용자 facing 변경 X, 회귀 가드 위주. 솔로 운영자가
+audit fix 후 리팩토링 / 의존성 업그레이드 시 깨지는 영역을 단위 테스트로 가드.
+
+| 모듈 | tests | 회귀 가드 영역 |
+|------|-------|---------------|
+| `lib/api/parseRequest-body` | 8 | dev/prod `_debug` mask (audit #69) |
+| `lib/personalization/reliability` | 42 | KST normalize (#14), toy tolerance (#20), composite weights (#22), B4 overall |
+| `lib/personalization/transfers` | 17 | mass leak 방지 (C-1/C-5), protectedLines (#8), self-transfer (#24) |
+| `lib/commerce/order-fsm` | 32 | terminal 보호 + customer self-cancel + 결제 가드 |
+| `lib/commerce/addresses` | 23 | phone/zip regex + null→empty 변환 |
+| `lib/nutrition/guidelines` | 39 | BCS audit v1.6, 임신 SSOT (#12), diabetes cite (B2), obesity (B3) |
+| `lib/payments/billing-error-classify` | 27 | permanent vs transient 분류 (Toss CVE 회피 X) |
+| `lib/payments/toss` (pure) | 18 | paymentMethod / bankCode / dueDate 라벨 |
+| `lib/medications/registry` | 25 | typeahead (B-14) + OCR 매칭 (B-13) |
+| `lib/business` | 13 | 사업자 SSOT (전자상거래법 §10) |
+| `lib/breeds/registry` | 21 | 한국 견종 (진돗개/풍산/삽살) + size threshold (B-40) |
+| `lib/rewards/measurement-upgrade` | 30 | 3-tier 부분 보상 (audit #25) |
+| `lib/ui/cn` | 10 | classname merger + falsy 제거 |
+| `lib/auth/admin` | 18 | **audit #62 self-elevation 회귀** (app_metadata only) |
+| `lib/cron-auth` | 14 | Bearer + timing-safe + dev/prod 분기 |
+| `lib/coupons` | 16 | percent/fixed/cap + 음수 결제 차단 |
+| `lib/consent` | 5 | 정보통신망법 §50 marketing 동의 |
+| `lib/dateStamp` | 9 | useSyncExternalStore stable reference |
+| `lib/email/escape` | 12 | HTML XSS 가드 (5 entity) |
+
+신규 모듈 분리:
+- `lib/api/errors-body.ts` (#69 pure 분리 — node:test 가능)
+- `lib/api/parseRequest-body.ts` (동일 패턴)
+- `lib/email/escape.ts` (XSS 가드 단독)
+
+## 🟦 의도적 보류 — B-66 시계열 진행 사진
+
+table + bucket + page + API endpoint + lib helper + test 10 모두 구현 완료
+(commits a718cf0, f8f8bf1, 839ae01, e9c580a) 후 사용자 결정으로 진입점 차단.
+`/dogs/[id]/photos` → `/dogs/[id]` server redirect, diary 진입 Link 제거.
+
+**재활성 매뉴얼**: `page.tsx` 를 commit `839ae01` 로 되돌리고 `DiaryClient.tsx`
+의 진입 Link 1개만 복원하면 즉시 부활 — PhotosClient / API route / Storage 마이그
+레이션 모두 보존.
+
+## 🟢 추가 사용자 facing 기능
+
+- **B-28**: InAppCamera 캡처/재촬영/확정 햅틱 피드백 — `navigator.vibrate` Android,
+  iOS Safari noop.
+- **A-9**: AccuracyDeltaChip — dashboard 정확도 변화율 chip (지난 방문 대비
+  +N%p), `useSyncExternalStore` + localStorage 패턴, SSR getServerSnapshot null.
+
+## 📦 마이그레이션 추가
+
+5. `progress_photos_storage` — Storage bucket + 4 RLS 정책 (B-66 — 비활성이지만
+   파일 보존)
+
+## 🚀 상태 (Phase 2 마무리)
+
+- **959 tests** (580 + 379) — node:test + Playwright e2e 3
+- **0 errors / 0 warnings** — tsc strict + eslint type-aware
+- **CI 4 job** 모두 green (validate / build / audit / e2e)
+- **prod CVE 0** (high+ 기준)
+- audit-110 진행률: B-66 의도적 보류 (🟦) 로 분류 변경
+
+다음 Phase 3 후보: `lib/analytics.ts` / `lib/sentry/trace.ts` / `lib/capacitor.ts`
+test (mock 비용 ↑), schema-drift cast 점진 제거 (DB types regenerate).
