@@ -728,21 +728,25 @@ export default function CheckoutForm({
             </span>
           </div>
           <div className="flex gap-2">
+            {/* UX audit #11: 100 단위 강제 (step=100 인데 input 자체는 1단위 허용했음).
+                Math.floor(v/100)*100 로 commit 시 반올림 — 결제 단계 reject 차단. */}
             <input
               type="number"
+              inputMode="numeric"
               min={0}
               max={maxPointsUsable}
               step={100}
               value={usePoints}
               onChange={(e) => {
-                const v = Math.max(
+                const raw = Math.max(
                   0,
                   Math.min(maxPointsUsable, Number(e.target.value) || 0)
                 )
+                const v = Math.floor(raw / 100) * 100
                 setUsePoints(v)
               }}
               placeholder="0"
-              className="flex-1 px-3 py-2.5 rounded-lg bg-bg border border-rule text-[13px] font-bold text-text focus:outline-none focus:border-terracotta"
+              className="flex-1 px-3 py-2.5 rounded-lg bg-bg border border-rule text-[13px] font-bold text-text focus:outline-none focus:border-terracotta tabular-nums"
             />
             <button
               type="button"
@@ -890,6 +894,8 @@ export default function CheckoutForm({
                 onClick={() => setCashReceiptType('지출증빙')}
               />
             </div>
+            {/* UX audit #10: cashReceipt 검증 — 휴대폰 010-XXXX-XXXX 10자리, 사업자 10자리.
+                숫자만 허용 + maxLength + 자동 형식 검증. */}
             {cashReceiptType !== '' && (
               <input
                 type="text"
@@ -897,13 +903,19 @@ export default function CheckoutForm({
                   cashReceiptType === '지출증빙' ? 'numeric' : 'tel'
                 }
                 value={cashReceiptNumber}
-                onChange={(e) => setCashReceiptNumber(e.target.value)}
+                onChange={(e) => {
+                  // 숫자만 추출, 11자리 cap (휴대폰) / 10자리 (사업자)
+                  const digits = e.target.value.replace(/\D/g, '')
+                  const max = cashReceiptType === '지출증빙' ? 10 : 11
+                  setCashReceiptNumber(digits.slice(0, max))
+                }}
+                maxLength={11}
                 placeholder={
                   cashReceiptType === '소득공제'
                     ? '휴대폰번호 (숫자만, 예: 01012345678)'
                     : '사업자등록번호 (숫자만, 예: 1234567890)'
                 }
-                className="mt-2 w-full px-3.5 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[12px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta"
+                className="mt-2 w-full px-3.5 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[12px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta tabular-nums"
               />
             )}
             <p className="mt-2 text-[10px] text-muted leading-relaxed">
