@@ -217,7 +217,7 @@ export default function CouponCard({
             )}
           </div>
           <h3
-            className="text-[13px] font-black leading-tight"
+            className="text-[13px] font-black leading-tight line-clamp-2"
             style={{ color: isInactive ? 'var(--muted)' : 'var(--ink)' }}
           >
             {coupon.name}

@@ -261,7 +261,7 @@ export default function DogDetailClient({
             {dog.name}
           </h1>
           {dog.breed && (
-            <p className="text-[12px] text-muted mt-1.5">{dog.breed}</p>
+            <p className="text-[12px] text-muted mt-1.5 truncate">{dog.breed}</p>
           )}
         </div>
       </section>
