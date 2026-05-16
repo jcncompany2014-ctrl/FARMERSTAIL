@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { parseRequest } from '@/lib/api/parseRequest'
+import { dbError } from '@/lib/api/errors'
 import {
   UPGRADE_REWARD_AMOUNT,
   isUpgrade,
@@ -79,10 +80,7 @@ export async function POST(req: Request, { params }: Params) {
     p_reference_id: makeReferenceId(dogId, kind as MethodKind),
   })
   if (error) {
-    return NextResponse.json(
-      { code: 'RPC_ERROR', message: error.message },
-      { status: 500 },
-    )
+    return dbError(error, 'measurement_upgrade', '측정 도구 업그레이드 처리에 실패했어요')
   }
   type Row = { ok: boolean; balance_after: number; message: string }
   const row = (Array.isArray(data) ? data[0] : data) as Row | null

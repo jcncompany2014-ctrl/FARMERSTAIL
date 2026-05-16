@@ -259,7 +259,7 @@ export default function InstallPrompt() {
               >
                 {ios
                   ? '홈 화면에 추가하면 바로 실행돼요'
-                  : '홈 화면에 추가해서 더 빠르게 만나보세요'}
+                  : '홈 화면에 추가하면 더 빠르게 만나볼 수 있어요'}
               </div>
               <div className="flex items-center gap-2 mt-2.5">
                 <button

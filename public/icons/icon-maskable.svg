@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Farmer's Tail maskable icon">
+  <!--
+    audit #45: Maskable 전용 SVG — Android adaptive icon 의 safe zone 고려.
+    런처가 원형/사각형/스쿼클 등 다양한 mask 로 자르는데, inner 60% (102~410) 만
+    의미있게 유지. background 가 전체 채워 어떤 mask 든 잘려도 brand color.
+  -->
+  <rect width="512" height="512" fill="#A0452E"/>
+  <!-- 모노그램은 safe zone 내부 (160~352 즉 inner 60%) -->
+  <g fill="#F5F0E6" transform="translate(0, 24)">
+    <rect x="170" y="180" width="40" height="160" rx="3"/>
+    <rect x="170" y="180" width="120" height="36" rx="3"/>
+    <rect x="170" y="240" width="90" height="32" rx="3"/>
+    <rect x="252" y="180" width="120" height="36" rx="3"/>
+    <rect x="296" y="180" width="40" height="160" rx="3"/>
+  </g>
+</svg>

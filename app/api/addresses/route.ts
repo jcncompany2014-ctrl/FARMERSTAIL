@@ -6,6 +6,7 @@ import {
   rowToAddress,
   type AddressRow,
 } from '@/lib/commerce/addresses'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -35,7 +36,8 @@ export async function GET() {
     .order('created_at', { ascending: false })
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    // audit #69
+    return dbError(error, 'addresses', '배송지 처리에 실패했어요')
   }
 
   const rows = (data ?? []) as AddressRow[]
@@ -83,7 +85,8 @@ export async function POST(req: Request) {
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    // audit #69
+    return dbError(error, 'addresses', '배송지 처리에 실패했어요')
   }
 
   return NextResponse.json({ address: rowToAddress(data as AddressRow) }, { status: 201 })

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { computeCouponDiscount, type Coupon } from '@/lib/coupons'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -86,10 +87,7 @@ export async function GET(req: Request) {
     .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
 
   if (error) {
-    return NextResponse.json(
-      { code: 'QUERY_FAILED', message: error.message },
-      { status: 500 },
-    )
+    return dbError(error, 'coupons_applicable', '쿠폰을 불러오지 못했어요')
   }
 
   // 사용자 본인의 redemption 카운트 — per_user_limit 비교용.

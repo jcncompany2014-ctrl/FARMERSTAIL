@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { zNativePushRegister } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -64,10 +65,7 @@ export async function POST(req: Request) {
   )
 
   if (error) {
-    return NextResponse.json(
-      { code: 'DB_ERROR', message: error.message },
-      { status: 500 },
-    )
+    return dbError(error, 'push_native_register', '푸시 등록에 실패했어요')
   }
 
   return NextResponse.json({ ok: true })

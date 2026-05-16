@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -53,10 +54,7 @@ export async function POST(req: Request) {
   })
 
   if (error) {
-    return NextResponse.json(
-      { ok: false, error: error.message },
-      { status: 500 },
-    )
+    return dbError(error, 'cs_reply', '문의 답변 처리에 실패했어요')
   }
   return NextResponse.json({ ok: true })
 }
@@ -78,7 +76,7 @@ export async function GET() {
     .limit(50)
 
   if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+    return dbError(error, 'cs_reply_load', '문의를 불러오지 못했어요')
   }
 
   // desc 로 가져와 reverse — 사용자 화면에선 시간순 (오래된 → 최근).

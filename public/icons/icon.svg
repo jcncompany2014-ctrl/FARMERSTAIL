@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Farmer's Tail">
+  <!--
+    audit #45: PNG (icon-192/icon-512) 외에 vector SVG icon 추가 — 모든 size
+    동일 source. iOS/Android maskable safe-zone (inner 80%) 도 같은 SVG 가
+    cover. background terracotta (#A0452E) + 흰색 모노그램 "FT".
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#A0452E"/>
+      <stop offset="100%" stop-color="#8A3822"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <!-- 모노그램 "F" + "T" 합자 (Pretendard-Bold 모사 vector path)  -->
+  <g fill="#F5F0E6">
+    <!-- F -->
+    <rect x="130" y="148" width="48" height="216" rx="4"/>
+    <rect x="130" y="148" width="160" height="44" rx="4"/>
+    <rect x="130" y="232" width="120" height="40" rx="4"/>
+    <!-- T -->
+    <rect x="240" y="148" width="160" height="44" rx="4"/>
+    <rect x="296" y="148" width="48" height="216" rx="4"/>
+  </g>
+</svg>

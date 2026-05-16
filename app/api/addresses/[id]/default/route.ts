@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -30,7 +31,7 @@ export async function POST(_req: Request, { params }: Params) {
     .select('id')
     .maybeSingle()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return dbError(error, 'addresses_default', '기본 배송지 설정에 실패했어요')
   if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 })
 
   return NextResponse.json({ ok: true })

@@ -211,12 +211,14 @@ function EmptyAction({
 // 호출처에서 reasoning 없이 "쓰면 맞는" 디폴트 카피.
 // ──────────────────────────────────────────────────────────────────────────
 
+// audit #53: voice-guidelines 해요체 통일. 버튼 라벨은 동사형 명사 (~기).
+// 안내 본문은 진술형 (~ 있어요/와요), 명령형 (~세요) 제거.
 export const CartEmpty = () => (
   <EmptyState
     kind="cart"
     title="장바구니가 비어 있어요"
-    description="오늘의 한 끼를 담아보세요."
-    action={{ label: '제품 둘러보기', href: '/products' }}
+    description="마음에 드는 제품을 담아볼 수 있어요."
+    action={{ label: '둘러보기', href: '/products' }}
   />
 )
 
@@ -224,8 +226,8 @@ export const WishlistEmpty = () => (
   <EmptyState
     kind="wishlist"
     title="위시리스트가 비어 있어요"
-    description="하트를 누르면 여기에 모여요."
-    action={{ label: '제품 둘러보기', href: '/products' }}
+    description="하트를 누른 제품이 여기에 모여요."
+    action={{ label: '둘러보기', href: '/products' }}
   />
 )
 
@@ -234,7 +236,7 @@ export const OrdersEmpty = () => (
     kind="orders"
     title="아직 주문 내역이 없어요"
     description="첫 주문을 기다리고 있어요."
-    action={{ label: '제품 보러 가기', href: '/products' }}
+    action={{ label: '둘러보기', href: '/products' }}
   />
 )
 
@@ -242,7 +244,7 @@ export const ReviewsEmpty = () => (
   <EmptyState
     kind="reviews"
     title="작성한 리뷰가 없어요"
-    description="구매한 제품의 후기를 남겨주세요."
+    description="구매한 제품의 후기를 남길 수 있어요."
   />
 )
 
@@ -250,7 +252,7 @@ export const NotificationsEmpty = () => (
   <EmptyState
     kind="notifications"
     title="새 알림이 없어요"
-    description="주문·배송 알림이 오면 여기에 표시됩니다."
+    description="주문·배송 알림이 오면 여기에 표시돼요."
   />
 )
 
@@ -258,8 +260,8 @@ export const DogsEmpty = () => (
   <EmptyState
     kind="dogs"
     title="등록된 반려견이 없어요"
-    description="아이 정보를 등록하고 맞춤 레시피를 추천받으세요."
-    action={{ label: '반려견 등록', href: '/dogs/new' }}
+    description="아이 정보를 등록하면 맞춤 레시피를 추천해드려요."
+    action={{ label: '반려견 등록하기', href: '/dogs/new' }}
   />
 )
 
@@ -271,7 +273,7 @@ export function SearchEmpty({ query }: { query?: string }) {
     <EmptyState
       kind="search"
       title={query ? `"${query}" 검색 결과가 없어요` : '검색 결과가 없어요'}
-      description="다른 키워드로 다시 시도해 보세요."
+      description="다른 키워드로 다시 시도해볼 수 있어요."
       compact
     />
   )

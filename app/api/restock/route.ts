@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { zRestockRequest } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -88,10 +89,7 @@ export async function POST(req: Request) {
     if (error.code === '23505') {
       return NextResponse.json({ ok: true, alreadySubscribed: true })
     }
-    return NextResponse.json(
-      { code: 'SUBSCRIBE_FAILED', message: error.message },
-      { status: 500 }
-    )
+    return dbError(error, 'restock_subscribe', '재입고 알림 등록에 실패했어요')
   }
 
   return NextResponse.json({ ok: true })
@@ -125,10 +123,7 @@ export async function DELETE(req: Request) {
     : await q.is('variant_id', null)
 
   if (error) {
-    return NextResponse.json(
-      { code: 'UNSUBSCRIBE_FAILED', message: error.message },
-      { status: 500 }
-    )
+    return dbError(error, 'restock_unsubscribe', '재입고 알림 해제에 실패했어요')
   }
   return NextResponse.json({ ok: true })
 }

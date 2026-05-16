@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -98,10 +99,7 @@ export async function POST(req: Request) {
       .eq('id', (pending as { id: string }).id)
 
     if (error) {
-      return NextResponse.json(
-        { code: 'DB_ERROR', message: error.message },
-        { status: 500 },
-      )
+      return dbError(error, 'personalization_approve', '확정에 실패했어요')
     }
     return NextResponse.json({ ok: true, decision: 'approved' })
   }
