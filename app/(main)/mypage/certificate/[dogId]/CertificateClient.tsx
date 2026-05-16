@@ -116,7 +116,7 @@ export default function CertificateClient({
           멤버십
         </Link>
         <div className="mt-3">
-          <span className="kicker">Certificate · 강아지 등록증</span>
+          <span className="kicker">Certificate</span>
           <h1
             className="font-serif mt-1.5"
             style={{

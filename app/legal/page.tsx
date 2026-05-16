@@ -47,7 +47,7 @@ export default function LegalHubPage() {
   return (
     <main className="pb-12 px-5 max-w-md mx-auto">
       <section className="pt-6 pb-2">
-        <span className="kicker">Legal · 약관 & 정책</span>
+        <span className="kicker">Legal& 정책</span>
         <h1
           className="font-serif mt-1.5"
           style={{

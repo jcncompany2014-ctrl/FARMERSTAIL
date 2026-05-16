@@ -144,7 +144,7 @@ export default async function CheckoutPage() {
                 strokeWidth={1.5}
               />
             </div>
-            <span className="kicker mt-4 block">Empty · 비어 있음</span>
+            <span className="kicker mt-4 block">Empty</span>
             <p
               className="font-serif mt-2"
               style={{
@@ -187,7 +187,7 @@ export default async function CheckoutPage() {
       <AuthAwareShell>
         <main className="pb-8 mx-auto" style={{ maxWidth: 1200 }}>
         <section className="px-5 pt-6">
-          <span className="kicker">Checkout · 주문/결제</span>
+          <span className="kicker">Checkout/결제</span>
           <h1
             className="font-serif mt-1.5"
             style={{
@@ -308,7 +308,7 @@ export default async function CheckoutPage() {
     <AuthAwareShell>
       <main className="pb-40 md:max-w-5xl md:mx-auto md:pt-4">
       <section className="px-5 pt-6 md:pt-8 pb-2 md:pb-4 md:px-6">
-        <span className="kicker">Checkout · 주문/결제</span>
+        <span className="kicker">Checkout/결제</span>
         <h1
           className="font-serif mt-1.5 md:mt-3 text-[22px] md:text-[34px] lg:text-[40px]"
           style={{

@@ -218,7 +218,7 @@ export default function NotificationSettingsClient({
         >
           ← 마이페이지
         </Link>
-        <span className="kicker mt-3 block">Notifications · 알림 설정</span>
+        <span className="kicker mt-3 block">Notifications</span>
         <h1
           className="font-serif mt-1.5"
           style={{
@@ -382,7 +382,7 @@ export default function NotificationSettingsClient({
       {/* 등록된 기기 */}
       <section className="px-5 mt-3">
         <div className="mb-2">
-          <span className="kicker kicker-muted">Devices · 등록된 기기</span>
+          <span className="kicker kicker-muted">Devices</span>
         </div>
         {subs.length === 0 ? (
           <div className="bg-white rounded-xl border border-dashed border-rule-2 p-6 text-center">

@@ -388,7 +388,7 @@ export default function ReferralView({
               background: 'var(--terracotta)',
             }}
           />
-          <span className="kicker">Milestones · 단계별 보상</span>
+          <span className="kicker">Milestones</span>
         </div>
 
         {/* 진행률 bar */}
@@ -498,7 +498,7 @@ export default function ReferralView({
                 background: 'var(--terracotta)',
               }}
             />
-            <span className="kicker">Share · 강아지 사진과 함께</span>
+            <span className="kicker">Share</span>
           </div>
           <p className="text-[11px] text-muted leading-relaxed mb-3">
             강아지 사진 + 한마디 + 추천 코드를 한 묶음으로. 신뢰감 ↑
@@ -602,7 +602,7 @@ export default function ReferralView({
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-moss" strokeWidth={2} />
-            <span className="kicker">Friends · 함께한 친구</span>
+            <span className="kicker">Friends</span>
           </div>
           <span className="text-[11px] text-muted font-bold">
             {referredCount}명

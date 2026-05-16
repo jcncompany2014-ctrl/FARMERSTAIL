@@ -31,7 +31,7 @@ export default function BusinessPage() {
     <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--bg)" }}>
       {/* ── Hero ───────────────────────────────────────── */}
       <section className="px-5 md:px-6 pt-8 md:pt-16 pb-2 md:pb-6 text-center">
-        <span className="kicker">Business · 사업자 정보</span>
+        <span className="kicker">Business</span>
         <h1
           className="font-serif mt-3 md:mt-5 leading-tight text-[26px] md:text-[48px] lg:text-[56px]"
           style={{
@@ -54,7 +54,7 @@ export default function BusinessPage() {
       {/* ── Registry Card ─────────────────────────────── */}
       <section className="px-5 md:px-6 mt-6 md:mt-8">
         <div className="flex items-center gap-2 mb-3">
-          <span className="kicker kicker-muted">Registry · 등록</span>
+          <span className="kicker kicker-muted">Registry</span>
           <div
             className="flex-1 h-px"
             style={{ background: 'var(--rule-2)' }}
@@ -198,7 +198,7 @@ export default function BusinessPage() {
       {/* ── Dispute ────────────────────────────────────── */}
       <section className="px-5 md:px-6 mt-4 md:mt-5 pb-10 md:pb-16">
         <div className="flex items-center gap-2 mb-3 md:mb-4">
-          <span className="kicker kicker-muted">Dispute · 분쟁 해결</span>
+          <span className="kicker kicker-muted">Dispute</span>
           <div
             className="flex-1 h-px"
             style={{ background: 'var(--rule-2)' }}

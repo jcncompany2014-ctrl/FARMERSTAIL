@@ -299,7 +299,7 @@ export default async function BlogPostPage({ params }: { params: Params }) {
       {relatedPosts.length > 0 && (
         <section className="px-5 md:px-8 mt-12 md:mt-16 pb-12 md:pb-20">
           <div className="flex items-center gap-2 mb-3 md:mb-5">
-            <span className="kicker kicker-muted">Related · 관련 글</span>
+            <span className="kicker kicker-muted">Related</span>
             <div
               className="flex-1 h-px"
               style={{ background: 'var(--rule-2)' }}

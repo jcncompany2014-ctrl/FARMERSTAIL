@@ -616,7 +616,7 @@ export default async function DashboardPage() {
               flexShrink: 0,
             }}
           />
-          <span className="kicker">Good day · 오늘의 한 끼</span>
+          <span className="kicker">Good day</span>
           <span
             aria-hidden
             style={{
@@ -988,7 +988,7 @@ export default async function DashboardPage() {
                   strokeWidth={1.5}
                 />
               </div>
-              <span className="kicker">First Dog · 시작하기</span>
+              <span className="kicker">First Dog</span>
               <div
                 className="font-serif mt-2"
                 style={{

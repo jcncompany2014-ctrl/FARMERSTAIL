@@ -249,7 +249,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
     >
       {/* 헤더 */}
       <div className="flex items-center gap-2 mb-4 md:mb-5">
-        <span className="kicker">Reviews · 리뷰</span>
+        <span className="kicker">Reviews</span>
         <div
           className="flex-1 h-px"
           style={{ background: 'var(--rule-2)' }}
@@ -284,7 +284,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
               color="var(--muted)"
             />
           </div>
-          <span className="kicker kicker-muted">Empty · 리뷰 없음</span>
+          <span className="kicker kicker-muted">Empty</span>
           <p
             className="font-serif mt-2 text-[14px] font-black"
             style={{ color: 'var(--text)' }}

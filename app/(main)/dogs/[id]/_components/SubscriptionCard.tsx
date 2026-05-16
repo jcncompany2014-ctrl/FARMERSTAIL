@@ -40,7 +40,7 @@ export default function SubscriptionCard({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Repeat className="w-3.5 h-3.5 text-moss" strokeWidth={2} />
-            <span className="kicker">Subscription · 정기배송</span>
+            <span className="kicker">Subscription</span>
           </div>
           {subscriptions.length > 0 && (
             <Link

@@ -539,7 +539,7 @@ export default function AboutPage() {
             overflow: 'hidden',
           }}
         >
-          <span className="kicker kicker-cream">Start · 시작하기</span>
+          <span className="kicker kicker-cream">Start</span>
           <h3
             className="font-serif"
             style={{

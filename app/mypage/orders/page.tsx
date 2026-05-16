@@ -117,7 +117,7 @@ export default async function OrdersPage() {
         >
           ← 내 정보
         </Link>
-        <span className="kicker mt-3 block">Orders · 주문 내역</span>
+        <span className="kicker mt-3 block">Orders</span>
         <h1
           className="font-serif mt-1.5"
           style={{
@@ -196,7 +196,7 @@ export default async function OrdersPage() {
                 strokeWidth={1.5}
               />
             </div>
-            <span className="kicker mt-4 block">Empty · 내역 없음</span>
+            <span className="kicker mt-4 block">Empty</span>
             <p
               className="font-serif mt-2"
               style={{

@@ -207,7 +207,7 @@ export default async function ProductDetailPage({
               color="var(--muted)"
             />
           </div>
-          <span className="kicker kicker-muted">Not Found · 찾을 수 없음</span>
+          <span className="kicker kicker-muted">Not Found</span>
           <p
             className="font-serif mt-2 text-[15px] font-black"
             style={{ color: 'var(--text)' }}

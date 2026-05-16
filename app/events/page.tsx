@@ -67,7 +67,7 @@ export default async function EventsIndexPage() {
     <main className="pb-12 mx-auto" style={{ background: 'var(--bg)', maxWidth: 1280 }}>
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="px-5 md:px-6 pt-10 md:pt-16 pb-6 md:pb-10 text-center">
-        <span className="kicker">Ongoing · 진행중</span>
+        <span className="kicker">Ongoing</span>
         <h1
           className="font-serif mt-3 md:mt-5 text-[30px] md:text-[64px] lg:text-[80px]"
           style={{

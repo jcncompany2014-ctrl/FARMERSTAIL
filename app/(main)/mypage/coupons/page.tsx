@@ -112,7 +112,7 @@ export default async function CouponsPage() {
         >
           ← 내 정보
         </Link>
-        <span className="kicker mt-3 block">Coupons · 쿠폰함</span>
+        <span className="kicker mt-3 block">Coupons</span>
         <h1
           className="font-serif mt-1.5"
           style={{

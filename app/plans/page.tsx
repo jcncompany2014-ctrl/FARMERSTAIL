@@ -729,7 +729,7 @@ export default function PlansPage() {
             overflow: 'hidden',
           }}
         >
-          <span className="kicker kicker-cream">Begin · 시작하기</span>
+          <span className="kicker kicker-cream">Begin</span>
           <h3
             className="font-serif"
             style={{

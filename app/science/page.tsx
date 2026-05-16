@@ -85,7 +85,7 @@ export default function SciencePage() {
       {/* 4-step 방법론 */}
       <section className="px-5 md:px-8 mb-10 md:mb-14">
         <div className="flex items-center gap-2 mb-5 md:mb-7">
-          <span className="kicker">Method · 방법론</span>
+          <span className="kicker">Method</span>
           <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
@@ -119,7 +119,7 @@ export default function SciencePage() {
       {/* 가이드라인 인용 */}
       <section className="px-5 md:px-8 mb-10 md:mb-14">
         <div className="flex items-center gap-2 mb-5 md:mb-7">
-          <span className="kicker">Citations · 출처</span>
+          <span className="kicker">Citations</span>
           <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
         </div>
         <ul
@@ -189,7 +189,7 @@ export default function SciencePage() {
       {/* 분기 가능한 만성질환 */}
       <section className="px-5 md:px-8 mb-10 md:mb-14">
         <div className="flex items-center gap-2 mb-5 md:mb-7">
-          <span className="kicker">Conditions · 분기 가능한 질환</span>
+          <span className="kicker">Conditions</span>
           <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
         </div>
         <p
@@ -230,7 +230,7 @@ export default function SciencePage() {
               strokeWidth={2}
               color="var(--gold)"
             />
-            <span className="kicker kicker-gold">Limits · 한계와 면책</span>
+            <span className="kicker kicker-gold">Limits</span>
           </div>
           <h2
             className="font-serif text-[18px] md:text-[24px] mb-3 md:mb-4"

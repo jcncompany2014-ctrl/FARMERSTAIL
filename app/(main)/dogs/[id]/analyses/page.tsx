@@ -237,7 +237,7 @@ export default async function AnalysesTimelinePage({
               aria-hidden
               style={{ width: 16, height: 1.5, background: 'var(--terracotta)' }}
             />
-            <span className="kicker">History · 이전 분석</span>
+            <span className="kicker">History</span>
           </div>
           <ol className="relative space-y-3">
             {/* 세로 타임라인 축 */}
@@ -409,7 +409,7 @@ function LatestAnalysisHero({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Sparkles className="w-3.5 h-3.5 text-gold" strokeWidth={2} />
-              <span className="kicker kicker-gold">Latest · 최근 분석</span>
+              <span className="kicker kicker-gold">Latest</span>
             </div>
             <span className="text-[10px] text-white/70 font-mono tabular-nums">
               {formatDate(analysis.created_at)}

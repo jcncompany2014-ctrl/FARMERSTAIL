@@ -90,7 +90,7 @@ export default async function PrivacyDashboardPage() {
     <main className="px-5 pb-24 pt-6 max-w-2xl mx-auto">
       <div className="flex items-center gap-2 mb-1">
         <Shield className="w-3.5 h-3.5 text-terracotta" strokeWidth={2} />
-        <span className="kicker">Privacy · 내 정보</span>
+        <span className="kicker">Privacy</span>
       </div>
       <h1
         className="font-serif text-[24px] mt-1.5"

@@ -372,7 +372,7 @@ export default async function EventDetailPage({ params }: PageProps) {
       {/* ── Perks ───────────────────────────────────────────── */}
       <section className="px-5 md:px-10 pt-10 md:pt-14">
         <div className="flex items-center gap-2 mb-5 md:mb-7">
-          <span className="kicker">Perks · 혜택</span>
+          <span className="kicker">Perks</span>
           <div
             className="flex-1 h-px"
             style={{ background: 'var(--rule-2)' }}
@@ -418,7 +418,7 @@ export default async function EventDetailPage({ params }: PageProps) {
       {/* ── Terms ───────────────────────────────────────────── */}
       <section className="px-5 md:px-10 pt-10 md:pt-14">
         <div className="flex items-center gap-2 mb-4 md:mb-5">
-          <span className="kicker kicker-muted">Terms · 유의사항</span>
+          <span className="kicker kicker-muted">Terms</span>
           <div
             className="flex-1 h-px"
             style={{ background: 'var(--rule-2)' }}

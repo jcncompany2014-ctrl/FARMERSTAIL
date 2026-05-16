@@ -93,7 +93,7 @@ export default async function AddressesPage() {
                 strokeWidth={1.5}
               />
             </div>
-            <span className="kicker">Empty · 등록 없음</span>
+            <span className="kicker">Empty</span>
             <h3
               className="font-serif mt-2"
               style={{

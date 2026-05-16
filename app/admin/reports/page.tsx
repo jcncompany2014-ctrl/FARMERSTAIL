@@ -233,7 +233,7 @@ export default async function AdminReportsPage({
             'linear-gradient(135deg, var(--ink) 0%, #3a2f1d 60%, #5b4720 100%)',
         }}
       >
-        <span className="kicker kicker-gold">Net Revenue · 순매출</span>
+        <span className="kicker kicker-gold">Net Revenue</span>
         <div className="mt-2 flex items-baseline gap-1.5">
           <span
             className="font-serif leading-none tabular-nums text-gold"
@@ -298,7 +298,7 @@ export default async function AdminReportsPage({
 
       {/* 차감 합계 */}
       <section className="bg-white rounded-xl border border-rule px-5 py-4 mb-6 print:break-inside-avoid">
-        <span className="kicker kicker-muted">Deductions · 차감</span>
+        <span className="kicker kicker-muted">Deductions</span>
         <div className="mt-2 grid grid-cols-3 gap-2 text-[12px]">
           <div>
             <span className="text-muted">쿠폰 할인</span>
@@ -324,7 +324,7 @@ export default async function AdminReportsPage({
       {/* Top 5 상품 */}
       {topProducts.length > 0 && (
         <section className="mb-6 print:break-inside-avoid">
-          <span className="kicker mb-2 block">Top Products · 인기 상품</span>
+          <span className="kicker mb-2 block">Top Products</span>
           <ol className="bg-white rounded-xl border border-rule overflow-hidden">
             {topProducts.map((p, i) => (
               <li

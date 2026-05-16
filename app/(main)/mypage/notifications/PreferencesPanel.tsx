@@ -89,7 +89,7 @@ export default function PreferencesPanel() {
   return (
     <div className="bg-white rounded-2xl border border-rule p-5 space-y-4">
       <div>
-        <span className="kicker kicker-muted">Categories · 카테고리</span>
+        <span className="kicker kicker-muted">Categories</span>
         <ul className="mt-3 space-y-3">
           {CATEGORIES.map((c) => {
             const on = Boolean(prefs[c.key])
@@ -128,7 +128,7 @@ export default function PreferencesPanel() {
       <div className="border-t border-rule pt-4">
         <div className="flex items-center gap-2">
           <Moon className="w-3.5 h-3.5 text-muted" strokeWidth={2} />
-          <span className="kicker kicker-muted">Quiet hours · 조용한 시간</span>
+          <span className="kicker kicker-muted">Quiet hours</span>
         </div>
         <p className="text-[10px] text-muted mt-1.5 leading-relaxed">
           이 시간대에는 푸시가 울리지 않아요. 한국 시간 기준이에요.

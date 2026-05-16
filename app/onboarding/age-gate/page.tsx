@@ -112,7 +112,7 @@ function AgeGateInner() {
       style={{ background: 'var(--bg)' }}
     >
       <div className="max-w-sm w-full">
-        <span className="kicker">Age Verification · 만 14세 확인</span>
+        <span className="kicker">Age Verification14세 확인</span>
         <h1
           className="font-serif mt-2 text-[24px]"
           style={{

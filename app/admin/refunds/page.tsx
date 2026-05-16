@@ -140,7 +140,7 @@ export default async function AdminRefundsPage() {
       {/* 환불 list */}
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <span className="kicker">Recent · 최근 100건</span>
+          <span className="kicker">Recent100건</span>
         </div>
         {list.length === 0 ? (
           <div className="rounded-xl border border-rule px-5 py-12 text-center bg-white">

@@ -129,7 +129,7 @@ export default function ConsentSettingsClient({
         >
           ← 마이페이지
         </Link>
-        <span className="kicker mt-3 block">Consent · 수신동의</span>
+        <span className="kicker mt-3 block">Consent</span>
         <h1
           className="font-serif mt-1.5"
           style={{
@@ -187,7 +187,7 @@ export default function ConsentSettingsClient({
 
       <section className="px-5 mt-6">
         <div className="mb-2">
-          <span className="kicker kicker-muted">History · 최근 변경 이력</span>
+          <span className="kicker kicker-muted">History</span>
         </div>
         {hist.length === 0 ? (
           <div className="bg-white rounded-xl border border-dashed border-rule-2 p-6 text-center">

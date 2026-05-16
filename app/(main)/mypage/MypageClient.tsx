@@ -26,6 +26,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { tierMeta } from '@/lib/tiers'
 
 type Profile = {
   name: string | null
@@ -70,7 +71,7 @@ export default function MypageClient({
     <main className="pb-8">
       {/* 헤더 — kicker + sans h1 */}
       <section className="px-5 pt-6 pb-2">
-        <span className="kicker">My Account · 내 정보</span>
+        <span className="kicker">My Account</span>
         <h1
           className="font-serif mt-1.5"
           style={{
@@ -128,32 +129,66 @@ export default function MypageClient({
         </div>
       </section>
 
-      {/* 포인트 하이라이트 */}
+      {/* 포인트 + 등급 hero — mypage/points 페이지와 동일 디자인.
+          gradient + radial accent + 등급 chip + 다음 등급 안내. */}
       <section className="px-5 mt-3">
         <Link
           href="/mypage/points"
-          className="block rounded-2xl px-5 py-4 text-white hover:shadow-md transition-all"
-          style={{ background: 'var(--ink)' }}
+          className="relative block overflow-hidden rounded-3xl px-6 pt-5 pb-5 text-white hover:shadow-md transition-all"
+          style={{
+            background:
+              'linear-gradient(135deg, #1E1A14 0%, #3a2f1d 60%, #5b4720 100%)',
+          }}
         >
-          <div className="flex items-center justify-between">
-            <div>
+          {/* 우상단 골드 글로우 */}
+          <div
+            aria-hidden
+            className="absolute -top-12 -right-10 w-44 h-44 rounded-full pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(circle, rgba(212,169,74,0.25) 0%, transparent 70%)',
+            }}
+          />
+          <div
+            aria-hidden
+            className="absolute -bottom-12 -left-12 w-36 h-36 rounded-full pointer-events-none"
+            style={{ background: 'rgba(255,255,255,0.05)' }}
+          />
+
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Coins className="w-3.5 h-3.5 text-gold" strokeWidth={2} />
               <span className="kicker kicker-gold">Points</span>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span
-                  className="font-serif leading-none"
-                  style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}
-                >
-                  {pointBalance.toLocaleString()}
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span
+                className="font-serif leading-none tabular-nums text-gold"
+                style={{
+                  fontSize: 36,
+                  fontWeight: 800,
+                  letterSpacing: '-0.025em',
+                }}
+              >
+                {pointBalance.toLocaleString()}
+              </span>
+              <span className="text-[14px] text-white/85 font-bold">P</span>
+            </div>
+
+            {profile?.tier && (
+              <div className="mt-3 flex items-center gap-2.5 px-3 py-2 rounded-xl"
+                style={{ background: 'rgba(255,255,255,0.08)' }}
+              >
+                <span className="text-[18px] leading-none">
+                  {TIER_EMOJI[profile.tier] ?? '🌱'}
                 </span>
-                <span className="text-[12px] text-white/80">P</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] font-bold text-white">
+                    {tierMeta(profile.tier).label} 등급 · {tierMeta(profile.tier).earnRate}% 적립
+                  </div>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-white/70" strokeWidth={2} />
               </div>
-              <p className="text-[10px] text-white/70 mt-1">
-                리뷰 작성·친구 초대로 적립
-              </p>
-            </div>
-            <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center">
-              <Coins className="w-5 h-5 text-gold" strokeWidth={2} />
-            </div>
+            )}
           </div>
         </Link>
       </section>
@@ -302,23 +337,32 @@ export default function MypageClient({
 
 /**
  * 등급 chip — 프로필 카드에 인라인.
+ * lib/tiers 의 5단계 시스템 (씨앗/새싹/꽃/열매/단짝) 통합.
  */
 function TierChip({ tier }: { tier: string }) {
-  const meta: Record<string, { label: string; bg: string; ink: string }> = {
-    bronze: { label: 'BRONZE', bg: '#C49A6C', ink: '#FFFFFF' },
-    silver: { label: 'SILVER', bg: '#A8A8AE', ink: '#1E1A14' },
-    gold: { label: 'GOLD', bg: '#D4A94A', ink: '#1E1A14' },
-    vip: { label: 'VIP', bg: '#1E1A14', ink: '#D4A94A' },
-  }
-  const m = meta[tier] ?? meta.bronze!
+  const meta = tierMeta(tier)
   return (
     <span
-      className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded font-mono"
-      style={{ background: m.bg, color: m.ink, letterSpacing: '0.04em' }}
+      className="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-1 rounded-full"
+      style={{
+        background: meta.bg,
+        color: meta.ink,
+        letterSpacing: '-0.01em',
+        boxShadow: '0 1px 0 rgba(30,26,20,0.05)',
+      }}
     >
-      {m.label}
+      <span className="text-[14px] leading-none">{TIER_EMOJI[meta.key]}</span>
+      {meta.label}
     </span>
   )
+}
+
+const TIER_EMOJI: Record<string, string> = {
+  seed: '🌱',
+  sprout: '🌿',
+  bloom: '🌸',
+  fruit: '🍎',
+  mate: '💛',
 }
 
 function StatCard({

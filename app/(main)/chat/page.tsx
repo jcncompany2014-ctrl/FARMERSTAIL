@@ -60,7 +60,7 @@ export default async function ChatPage() {
           <div className="relative">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-3.5 h-3.5 text-gold" strokeWidth={2} />
-              <span className="kicker kicker-gold">AI · 영양사</span>
+              <span className="kicker kicker-gold">AI</span>
             </div>
             <h1
               className="font-serif leading-tight"

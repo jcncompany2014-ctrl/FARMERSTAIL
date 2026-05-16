@@ -145,7 +145,7 @@ export default function CookieConsent() {
               className="w-4 h-4 text-terracotta"
               strokeWidth={2}
             />
-            <span className="kicker">Cookies · 쿠키 설정</span>
+            <span className="kicker">Cookies</span>
           </div>
           <h2
             id="cookie-consent-title"

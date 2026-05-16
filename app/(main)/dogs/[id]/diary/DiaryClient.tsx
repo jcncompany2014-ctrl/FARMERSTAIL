@@ -202,7 +202,7 @@ export default function DiaryClient({
         </Link>
         <div className="mt-3 flex items-end justify-between">
           <div>
-            <span className="kicker">Diary · 사진 일기</span>
+            <span className="kicker">Diary</span>
             <h1
               className="font-serif mt-1.5"
               style={{
@@ -248,7 +248,7 @@ export default function DiaryClient({
             >
               <Camera className="w-6 h-6 text-muted" strokeWidth={1.5} />
             </div>
-            <span className="kicker kicker-muted">First Page · 첫 페이지</span>
+            <span className="kicker kicker-muted">First Page</span>
             <h3
               className="font-serif mt-2"
               style={{
@@ -343,7 +343,7 @@ export default function DiaryClient({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <span className="kicker">New · 새 기록</span>
+              <span className="kicker">New</span>
               <button
                 type="button"
                 onClick={() => !submitting && setShowNew(false)}

@@ -41,7 +41,7 @@ export default async function WishlistPage() {
         >
           ← 내 정보
         </Link>
-        <span className="kicker mt-3 block">Wishlist · 찜한 상품</span>
+        <span className="kicker mt-3 block">Wishlist</span>
         <h1
           className="font-serif mt-1.5"
           style={{
@@ -78,7 +78,7 @@ export default async function WishlistPage() {
                 strokeWidth={1.5}
               />
             </div>
-            <span className="kicker">Empty · 찜 없음</span>
+            <span className="kicker">Empty</span>
             <h3
               className="font-serif mt-2"
               style={{

@@ -322,7 +322,7 @@ export default function SubscriptionsClient({
         >
           ← 내 정보
         </Link>
-        <span className="kicker mt-3 block">Subscriptions · 정기배송</span>
+        <span className="kicker mt-3 block">Subscriptions</span>
         <h1
           className="font-serif mt-1.5 flex items-center gap-2"
           style={{
@@ -369,7 +369,7 @@ export default function SubscriptionsClient({
                 strokeWidth={1.3}
               />
             </div>
-            <span className="kicker kicker-moss">Start · 시작하기</span>
+            <span className="kicker kicker-moss">Start</span>
             <h3
               className="font-serif mt-2"
               style={{

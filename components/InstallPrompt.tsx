@@ -324,7 +324,7 @@ export default function InstallPrompt() {
           >
             <div className="flex items-start justify-between">
               <div>
-                <span className="kicker">Install · 홈 화면 추가</span>
+                <span className="kicker">Install</span>
                 <h2
                   className="font-serif mt-1.5"
                   style={{

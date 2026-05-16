@@ -127,7 +127,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
         >
           ← 주문 내역
         </Link>
-        <span className="kicker mt-3 block">Order Detail · 주문 상세</span>
+        <span className="kicker mt-3 block">Order Detail</span>
         <h1
           className="font-serif mt-1.5 md:mt-3 text-[22px] md:text-[34px] lg:text-[40px]"
           style={{

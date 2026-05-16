@@ -54,7 +54,7 @@ export default async function TrackPage({ params }: { params: Params }) {
         >
           ← 주문 상세
         </Link>
-        <span className="kicker mt-3 block">Tracking · 운송장</span>
+        <span className="kicker mt-3 block">Tracking</span>
         <h1
           className="font-serif mt-1.5 md:mt-3 text-[22px] md:text-[34px] lg:text-[40px]"
           style={{

@@ -68,7 +68,7 @@ export default async function MyReviewsPage() {
         >
           ← 내 정보
         </Link>
-        <span className="kicker mt-3 block">My Reviews · 내 리뷰</span>
+        <span className="kicker mt-3 block">My Reviews</span>
         <h1
           className="font-serif mt-1.5"
           style={{
@@ -107,7 +107,7 @@ export default async function MyReviewsPage() {
                 strokeWidth={1.3}
               />
             </div>
-            <span className="kicker">Empty · 리뷰 없음</span>
+            <span className="kicker">Empty</span>
             <h3
               className="font-serif mt-2"
               style={{

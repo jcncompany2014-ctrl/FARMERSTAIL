@@ -136,7 +136,7 @@ export function OngoingEvents({
               style={{ color: 'var(--terracotta)' }}
               strokeWidth={2}
             />
-            <span className="kicker">Ongoing · 진행중</span>
+            <span className="kicker">Ongoing</span>
           </div>
           <h2
             className="font-serif"

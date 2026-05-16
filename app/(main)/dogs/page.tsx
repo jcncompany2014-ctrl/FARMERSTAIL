@@ -51,7 +51,7 @@ export default async function DogsPage() {
         </Link>
         <div className="mt-3 flex items-end justify-between">
           <div>
-            <span className="kicker">Our Dogs · 내 아이들</span>
+            <span className="kicker">Our Dogs</span>
             <h1
               className="font-serif mt-1.5"
               style={{
@@ -95,7 +95,7 @@ export default async function DogsPage() {
                 strokeWidth={1.5}
               />
             </div>
-            <span className="kicker">First Dog · 시작하기</span>
+            <span className="kicker">First Dog</span>
             <h3
               className="font-serif mt-2"
               style={{

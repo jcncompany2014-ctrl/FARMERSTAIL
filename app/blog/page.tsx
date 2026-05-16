@@ -119,7 +119,7 @@ export default async function BlogIndexPage({
       <div className="mx-auto" style={{ maxWidth: 1024, background: 'var(--bg)' }}>
       {/* ── Hero title ──────────────────────────────────── */}
       <section className="px-5 md:px-6 pt-10 md:pt-16 pb-5 md:pb-10 text-center">
-        <span className="kicker">Magazine · 매거진</span>
+        <span className="kicker">Magazine</span>
         <h1
           className="font-serif mt-3 md:mt-5 leading-tight text-[30px] md:text-[56px] lg:text-[64px]"
           style={{
@@ -141,7 +141,7 @@ export default async function BlogIndexPage({
       {/* ── Chapter nav · 카테고리 ─────────────────────── */}
       <section className="px-5">
         <div className="flex items-center gap-2 mb-3">
-          <span className="kicker">Chapters · 카테고리</span>
+          <span className="kicker">Chapters</span>
           <div
             className="flex-1 h-px"
             style={{ background: 'var(--rule-2)' }}
@@ -203,7 +203,7 @@ export default async function BlogIndexPage({
                 color="var(--muted)"
               />
             </div>
-            <span className="kicker kicker-muted">Coming Soon · 준비 중</span>
+            <span className="kicker kicker-muted">Coming Soon</span>
             <p
               className="font-serif mt-2 text-[15px] font-black"
               style={{ color: 'var(--text)' }}

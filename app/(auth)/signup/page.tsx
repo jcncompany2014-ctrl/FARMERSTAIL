@@ -443,7 +443,7 @@ function SignupForm() {
               strokeWidth={2}
               color="var(--gold)"
             />
-            <span className="kicker kicker-gold">Welcome · 가입 혜택</span>
+            <span className="kicker kicker-gold">Welcome</span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span
@@ -552,7 +552,7 @@ function SignupForm() {
               >
                 01
               </span>
-              <span className="kicker">Account · 계정 정보</span>
+              <span className="kicker">Account</span>
             </div>
 
             <div className="space-y-3">
@@ -898,7 +898,7 @@ function SignupForm() {
               >
                 02
               </span>
-              <span className="kicker">Shipping · 기본 배송지 (선택)</span>
+              <span className="kicker">Shipping(선택)</span>
               <span
                 className="ml-auto text-[10px] font-semibold"
                 style={{ color: 'var(--muted)' }}
@@ -977,7 +977,7 @@ function SignupForm() {
               >
                 03
               </span>
-              <span className="kicker">Invite · 초대 코드</span>
+              <span className="kicker">Invite</span>
               <span
                 className="ml-auto text-[10px] font-semibold"
                 style={{ color: 'var(--muted)' }}
@@ -1078,7 +1078,7 @@ function SignupForm() {
               >
                 04
               </span>
-              <span className="kicker">Consent · 약관 동의</span>
+              <span className="kicker">Consent</span>
             </div>
 
             <div

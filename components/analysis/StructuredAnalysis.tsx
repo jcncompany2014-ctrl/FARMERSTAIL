@@ -163,7 +163,7 @@ export default function StructuredAnalysis({
       <div className="rounded-2xl bg-white border border-rule p-5">
         <div className="flex items-center gap-1.5 mb-3">
           <Sparkles className="w-3.5 h-3.5 text-terracotta" strokeWidth={2.25} />
-          <span className="kicker">AI Analysis · 종합 의견</span>
+          <span className="kicker">AI Analysis</span>
         </div>
         <p
           className="text-[13.5px] leading-[1.85]"
@@ -234,7 +234,7 @@ export default function StructuredAnalysis({
         <div className="rounded-2xl bg-white border border-rule p-5">
           <div className="flex items-center gap-1.5 mb-3">
             <CheckCircle2 className="w-3.5 h-3.5 text-moss" strokeWidth={2.25} />
-            <span className="kicker">Next · 다음 행동</span>
+            <span className="kicker">Next</span>
           </div>
           <ul className="space-y-2">
             {data.nextActions.map((a, i) => (
@@ -311,7 +311,7 @@ export default function StructuredAnalysis({
         <div className="rounded-2xl bg-bg-2 border border-rule p-4">
           <div className="flex items-center gap-1.5 mb-2.5">
             <BookOpen className="w-3 h-3 text-muted" strokeWidth={2.25} />
-            <span className="kicker">Citations · 출처</span>
+            <span className="kicker">Citations</span>
           </div>
           <ul className="space-y-1.5">
             {data.citations

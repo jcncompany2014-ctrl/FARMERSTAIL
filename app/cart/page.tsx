@@ -115,7 +115,7 @@ export default async function CartPage() {
     <main className="pb-40 md:max-w-6xl md:mx-auto md:pt-4 md:pb-16">
       {/* 헤더 */}
       <section className="px-5 pt-6 md:pt-8 pb-2 md:pb-4 md:px-6">
-        <span className="kicker">Cart · 장바구니</span>
+        <span className="kicker">Cart</span>
         <h1
           className="font-serif mt-1.5 md:mt-3 text-[22px] md:text-[36px] lg:text-[42px]"
           style={{
@@ -156,7 +156,7 @@ export default async function CartPage() {
                 strokeWidth={1.5}
               />
             </div>
-            <span className="kicker mt-4 md:mt-6 block">Empty · 비어 있음</span>
+            <span className="kicker mt-4 md:mt-6 block">Empty</span>
             <p
               className="font-serif mt-2 md:mt-3 text-[16px] md:text-[26px]"
               style={{

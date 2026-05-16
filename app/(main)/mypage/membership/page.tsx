@@ -275,7 +275,7 @@ export default async function MembershipPage() {
                 background: 'var(--terracotta)',
               }}
             />
-            <span className="kicker">Certificate · 단짝 등록증</span>
+            <span className="kicker">Certificate</span>
           </div>
           <div
             className="rounded-2xl px-5 py-5"
@@ -347,7 +347,7 @@ export default async function MembershipPage() {
             aria-hidden
             style={{ width: 16, height: 1.5, background: 'var(--terracotta)' }}
           />
-          <span className="kicker">My Benefits · 현재 등급 혜택</span>
+          <span className="kicker">My Benefits</span>
         </div>
         <ul className="bg-white rounded-2xl border border-rule overflow-hidden">
           {meta.benefits.map((b, i) => {
@@ -391,7 +391,7 @@ export default async function MembershipPage() {
             aria-hidden
             style={{ width: 16, height: 1.5, background: 'var(--terracotta)' }}
           />
-          <span className="kicker">All Tiers · 등급 안내</span>
+          <span className="kicker">All Tiers</span>
         </div>
         <div className="space-y-2">
           {TIERS.map((t) => (
