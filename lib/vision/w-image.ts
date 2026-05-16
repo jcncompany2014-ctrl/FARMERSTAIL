@@ -78,20 +78,24 @@ export function computeWImage(input: WImageInput): WImageResult {
   if (cov < 0.4) issues.push('강아지가 너무 작게 찍혔어요')
 
   // brightness 80~200 sweet spot. 그 외는 선형 감점.
+  // audit #34: issue threshold 와 score weight 임계 일치 — 점수 영향 적은 (마지막
+  // 30 단계) 임계에서는 issue 도 push 안 함. 사용자에게 score 와 chip 일관성.
   const b = input.brightness
   let brightnessScore = 1
+  const BRIGHTNESS_ISSUE_THRESHOLD = 0.7 // 점수 70% 이하 일 때만 issue
   if (b < 50) {
     brightnessScore = 0
-    issues.push('너무 어두워요')
   } else if (b < 80) {
     brightnessScore = (b - 50) / 30
-    issues.push('조명이 부족해요')
   } else if (b > 230) {
     brightnessScore = 0
-    issues.push('너무 밝아요')
   } else if (b > 200) {
     brightnessScore = (230 - b) / 30
-    issues.push('역광/과노출')
+  }
+  // issue push — score 가 threshold 이하일 때만 (chip 진실성)
+  if (brightnessScore < BRIGHTNESS_ISSUE_THRESHOLD) {
+    if (b < 80) issues.push(b < 50 ? '너무 어두워요' : '조명이 부족해요')
+    else if (b > 200) issues.push(b > 230 ? '너무 밝아요' : '역광/과노출')
   }
 
   // sharpness — Laplacian variance 100+ 권장

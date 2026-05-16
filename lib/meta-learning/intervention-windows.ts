@@ -87,7 +87,10 @@ export function predictBestTiming(
     }
   }
 
-  // 요일별 응답률 — 가장 높은 요일이 평균보다 20%p+ 높으면 추천
+  // 요일별 응답률 — 가장 높은 요일이 평균보다 20%p+ 높으면 추천.
+  // audit #23: prior smoothing (Beta) — 작은 표본에서 noise 에 휘둘리는 것
+  // 차단. posterior_rate = (k + α) / (n + α + β) where α=overallRate*prior_n,
+  // β=(1-overallRate)*prior_n. prior_n=5 → 5 sample 가치의 prior.
   const sentByDow = new Map<number, number>()
   const respByDow = new Map<number, number>()
   for (const s of sentRows) {
@@ -98,15 +101,18 @@ export function predictBestTiming(
   }
   let bestDow: number | null = null
   let bestDowRate = 0
-  const overallRate = respondedRows.length / sentRows.length
-  // [B8 fix] threshold: 절대 +0.2 (20%p) → relative 1.5×. 평균 0.1
-  // 환경에서 0.3 필요였던 게 0.15 면 OK. 현실적.
+  const overallRate =
+    sentRows.length > 0 ? respondedRows.length / sentRows.length : 0
+  const PRIOR_N = 5
+  const alpha = overallRate * PRIOR_N
+  const beta = (1 - overallRate) * PRIOR_N
   for (const [dow, sent] of sentByDow) {
     if (sent < 3) continue
     const responded = respByDow.get(dow) ?? 0
-    const rate = responded / sent
-    if (rate > bestDowRate && rate >= overallRate * 1.5) {
-      bestDowRate = rate
+    // Beta posterior mean (prior smoothing 으로 표본 작을 때 overall 로 shrink).
+    const posteriorRate = (responded + alpha) / (sent + alpha + beta)
+    if (posteriorRate > bestDowRate && posteriorRate >= overallRate * 1.5) {
+      bestDowRate = posteriorRate
       bestDow = dow
     }
   }

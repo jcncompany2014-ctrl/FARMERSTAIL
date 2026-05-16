@@ -44,9 +44,11 @@ export function breedDistance(a: string, b: string): number {
   if (!ba || !bb) return 0.7
   const sameSize = ba.size === bb.size
   const actDiff = Math.abs(ba.activityBaseline - bb.activityBaseline)
-  if (sameSize && actDiff <= 1) return 0.2
+  // audit #21: floating-point friendly — activityBaseline 이 정수만이 아니라
+  // 1.5 같은 mid-value 가 추후 추가되어도 작동 (<1.5 임계).
+  if (sameSize && actDiff < 1.5) return 0.2
   if (sameSize) return 0.4
-  if (actDiff <= 1) return 0.6
+  if (actDiff < 1.5) return 0.6
   return 0.8
 }
 

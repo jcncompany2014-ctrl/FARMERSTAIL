@@ -1103,9 +1103,15 @@ function applyActivityAdjustments(
     const before = ratios.premium
     const target = 0.25
     const delta = target - before
-    // 가장 큰 라인에서 가져옴 (단, 알레르기 차단 라인 / 의학적 우선 라인 제외)
+    // audit #19: donor 임계 0.15 hardcoded → max(ratios) * 0.3 동적. BCS 8 룰 등
+    // 으로 한 라인이 0.6 인 케이스에서 다른 라인이 모두 0.05-0.08 → donor 없음.
+    // 동적 임계는 가장 큰 라인의 30% 이상이면 donor 후보 (BCS 8: 0.6 × 0.3 = 0.18).
+    const maxLineValue = Math.max(
+      ...ALL_LINES.filter((l) => l !== 'premium').map((l) => ratios[l]),
+    )
+    const donorThreshold = Math.max(0.1, maxLineValue * 0.3)
     const donor = ALL_LINES.filter(
-      (l) => l !== 'premium' && ratios[l] > 0.15,
+      (l) => l !== 'premium' && ratios[l] > donorThreshold,
     ).sort((a, b) => ratios[b] - ratios[a])[0]
     if (donor) {
       const taken = Math.min(delta, ratios[donor] - 0.1)
@@ -1284,6 +1290,8 @@ function applyChronicComboAdjustments(
   }
 
   // 췌장염 + 비만 (BCS 6+) — 둘 다 저지방 권장. Weight 라인 강제 50%+.
+  // audit #16: chip 진실성 — BCS 룰이 이미 weight 를 0.5+ 로 올렸으면 ratio 변경
+  // 없이도 chip 발화해 보호자에게 "췌장+비만 적용됨" 안내 (이전엔 silent skip).
   if (c.includes('pancreatitis') && (input.bcs ?? 0) >= 6) {
     if (ratios.weight < 0.5) {
       const before = ratios.weight
@@ -1307,6 +1315,15 @@ function applyChronicComboAdjustments(
           })
         }
       }
+    } else {
+      // 이미 weight ≥ 0.5 — BCS 룰이 충족시킨 경우. chip 만 발화해 진실성 보장.
+      reasoning.push({
+        trigger: '췌장염 + BCS 6+',
+        action: `Weight 라인 ${(ratios.weight * 100).toFixed(0)}% (BCS 룰이 이미 충족)`,
+        chipLabel: '췌장+비만 → Weight ≥50% (충족)',
+        priority: 3,
+        ruleId: 'chronic-combo-pancr-obese',
+      })
     }
   }
 
@@ -1434,7 +1451,11 @@ function applyGiSensitivity(
   //   2) collapse 강도를 intensity 단계로 (always=85% / frequent=75% / ibd=85%).
   //      잔여 (1-intensity) 는 다른 non-zero 라인에 비례 분배 — chronic
   //      라인이 main 이 아닐 때도 그 라인의 chronic 의도가 남음.
-  const chronicLines: FoodLine[] = ['joint', 'skin', 'weight']
+  // audit #37: EPI (외분비 췌장 부전) 환자는 premium 30%+ 강제 라인.
+  // chronic 라인 선택 시 EPI 면 premium 도 우선 후보 — 흡수율 보조 의도 보존.
+  const chronicLines: FoodLine[] = input.chronicConditions.includes('epi')
+    ? ['premium', 'joint', 'skin', 'weight']
+    : ['joint', 'skin', 'weight']
   let mainLine: FoodLine = 'basic'
   // chronic 라인이 0.2+ 면 그게 우선
   for (const line of chronicLines) {

@@ -84,21 +84,26 @@ export function computeStreak(rows: CheckinRow[] | null | undefined): StreakInfo
 
   if (cycles.length === 0) return empty
 
-  // currentStreak — 가장 큰 cycle 부터 거꾸로 인접 cycle 1 차이 검사
+  // currentStreak — 가장 큰 cycle 부터 거꾸로 인접 cycle 차이 검사.
+  // audit #36: 1 cycle gap 까지 허용 (voice-guidelines §10 "끊겨도 다시 시작"
+  // 톤). 즉 cycle 1, 3 도 streak 유지 (한 번 missed 후 복귀). 2+ gap 만 break.
+  const GAP_TOLERANCE = 1
   let current = 1
   for (let i = cycles.length - 1; i > 0; i -= 1) {
-    if (cycles[i] - cycles[i - 1] === 1) {
+    const diff = cycles[i] - cycles[i - 1]
+    if (diff >= 1 && diff <= GAP_TOLERANCE + 1) {
       current += 1
     } else {
       break
     }
   }
 
-  // longestStreak — sliding 최대
+  // longestStreak — sliding 최대 (같은 gap tolerance 적용)
   let longest = 1
   let run = 1
   for (let i = 1; i < cycles.length; i += 1) {
-    if (cycles[i] - cycles[i - 1] === 1) {
+    const diff = cycles[i] - cycles[i - 1]
+    if (diff >= 1 && diff <= GAP_TOLERANCE + 1) {
       run += 1
       if (run > longest) longest = run
     } else {

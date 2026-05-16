@@ -148,14 +148,13 @@ export function overallReliability(scores: number[]): number {
  * [C3] W_population — 클러스터 정합성 점수.
  *
  * 입력값이 같은 size 견종의 평균에서 얼마나 떨어져있는지로 0~1 산출.
- * 평균과 일치 = 1.0, 표준편차 1.5배 이상 떨어지면 0.
  *
- * 발명 명세 6.3 — 신뢰도 가중 회귀의 W_population 컴포넌트.
- * clusterMeanBySize 와 결합 사용.
+ * audit #20: 이전 default 0.3 은 toy 견 (2-4kg) 에서 ±30% = ±0.6-1.2kg 로
+ * 너무 관대 → 말티즈 3kg 의 비만 (4.5kg+) 신호 미검출. size 별 tolerance 옵션.
  *
  * @param value 사용자 입력값 (체중·활동 baseline 등)
  * @param clusterMean 같은 size 견종 평균
- * @param tolerance 표준편차 기준 (default 0.3 — 30% 차이까지 허용)
+ * @param tolerance 표준편차 기준. size 별 권장: toy 0.15 / small 0.20 / medium 0.25 / large 0.30 / giant 0.30
  */
 export function populationReliability(
   value: number,
@@ -171,18 +170,53 @@ export function populationReliability(
 }
 
 /**
+ * audit #20: size 별 권장 tolerance 매핑. clusterMeanBySize 와 함께 사용 권장.
+ *   const cluster = clusterMeanBySize(size)
+ *   const tol = populationToleranceForSize(size)
+ *   const score = populationReliability(weight, cluster.avgWeight, tol)
+ */
+export function populationToleranceForSize(
+  size: 'toy' | 'small' | 'medium' | 'large' | 'giant',
+): number {
+  switch (size) {
+    case 'toy':
+      return 0.15
+    case 'small':
+      return 0.20
+    case 'medium':
+      return 0.25
+    case 'large':
+    case 'giant':
+      return 0.30
+  }
+}
+
+/**
  * [C3] 종합 신뢰도 + W_population. weightReliability 가 method/recency 만
  * 본다면 이 함수는 cluster 정합성까지 결합.
  *
- * 산출: 0.5 × (method+recency 평균) + 0.3 × population + 0.2 × min
+ * audit #22: 이전 0.5 × avg + 0.3 × population + 0.2 × min 는 avg 안에 이미
+ * population 이 들어있어 population 영향력 0.55 (≈ 0.5/2 + 0.3) 로 의도와 불일치.
+ * 명시적 가중치 분리: w_method=0.5, w_pop=0.3, w_robust(min)=0.2. 합 1.0.
  */
+const W_METHOD = 0.5
+const W_POP = 0.3
+const W_ROBUST = 0.2
+// 합 1.0 invariant.
+if (Math.abs(W_METHOD + W_POP + W_ROBUST - 1) > 1e-9) {
+  throw new Error('compositeReliability weights must sum to 1.0')
+}
+
 export function compositeReliabilityWithPopulation(
   methodRecency: number,
   population: number,
 ): number {
-  const avg = (methodRecency + population) / 2
   const min = Math.min(methodRecency, population)
-  return Math.round((0.5 * avg + 0.3 * population + 0.2 * min) * 100) / 100
+  return (
+    Math.round(
+      (W_METHOD * methodRecency + W_POP * population + W_ROBUST * min) * 100,
+    ) / 100
+  )
 }
 
 /**
