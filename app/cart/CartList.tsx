@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, ShoppingBag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -32,6 +32,35 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
   const router = useRouter()
   const supabase = createClient()
   const toast = useToast()
+
+  // audit 2-13: 카트 탭을 오래 열어두면 stock 이 stale. 다른 탭/앱 사용 후
+  // 돌아왔을 때 (visibilitychange) 자동으로 서버 데이터 재요청. 5분 이상
+  // 가만히 두면 (visibilitychange 없이도) 다시 요청. router.refresh() 가
+  // RSC 만 다시 fetch — 사용자 인터랙션 흐름은 끊지 않음.
+  useEffect(() => {
+    let lastRefreshedAt = Date.now()
+    const STALE_MS = 5 * 60_000
+
+    function maybeRefresh() {
+      if (Date.now() - lastRefreshedAt < 30_000) return // 30초 디바운스
+      lastRefreshedAt = Date.now()
+      startTransition(() => router.refresh())
+    }
+
+    function onVisible() {
+      if (document.visibilityState === 'visible') maybeRefresh()
+    }
+
+    const interval = setInterval(() => {
+      if (Date.now() - lastRefreshedAt >= STALE_MS) maybeRefresh()
+    }, 60_000)
+
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [router])
 
   async function updateQty(id: string, nextInput: number) {
     let next = nextInput

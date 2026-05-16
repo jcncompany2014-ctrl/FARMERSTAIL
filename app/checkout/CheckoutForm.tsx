@@ -315,7 +315,7 @@ export default function CheckoutForm({
 
       const orderNumber = generateOrderNumber()
 
-      // Tier 기반 cashback (브론즈 1% / 실버 1.5% / 골드 2% / VIP 3%) — 결제 net
+      // Tier 기반 cashback (씨앗 1% / 새싹 1.5% / 꽃 2% / 열매 2.5% / 단짝 3%) — 결제 net
       // 금액 × 적립률 / 100. 적립은 배송 완료 시점에 credit (lib/commerce/points).
       const pointsEarned = Math.floor((total * earnRate) / 100)
 
