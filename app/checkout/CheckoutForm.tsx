@@ -926,15 +926,17 @@ export default function CheckoutForm({
         <h2 className="text-[13px] md:text-[14px] font-black text-text mb-3 md:mb-4">
           결제 정보
         </h2>
+        {/* UI audit: 결제 합계 row — 우측 가격이 모두 tabular-nums 로 자릿수 정렬
+            (39,000원 / 8,400원 / 250,000원 우측 끝 일직선). */}
         <div className="flex justify-between text-[12px] text-text">
           <span>상품 금액</span>
-          <span className="font-bold text-text">
+          <span className="font-bold text-text tabular-nums">
             {subtotal.toLocaleString()}원
           </span>
         </div>
         <div className="flex justify-between text-[12px] text-text mt-2">
           <span>배송비</span>
-          <span className="font-bold text-text">
+          <span className="font-bold text-text tabular-nums">
             {shippingLabel(dynamicShipping)}
           </span>
         </div>
@@ -946,7 +948,7 @@ export default function CheckoutForm({
         {couponDiscount > 0 && (
           <div className="flex justify-between text-[12px] mt-2">
             <span className="text-terracotta">쿠폰 할인</span>
-            <span className="font-bold text-terracotta">
+            <span className="font-bold text-terracotta tabular-nums">
               −{couponDiscount.toLocaleString()}원
             </span>
           </div>
@@ -954,7 +956,7 @@ export default function CheckoutForm({
         {effectivePointsUsed > 0 && (
           <div className="flex justify-between text-[12px] mt-2">
             <span className="text-terracotta">포인트 사용</span>
-            <span className="font-bold text-terracotta">
+            <span className="font-bold text-terracotta tabular-nums">
               −{effectivePointsUsed.toLocaleString()}원
             </span>
           </div>
@@ -965,13 +967,13 @@ export default function CheckoutForm({
             총 결제금액
           </span>
           <div className="flex items-baseline gap-1">
-            <span className="text-[18px] font-black text-terracotta">
+            <span className="text-[18px] font-black text-terracotta tabular-nums">
               {total.toLocaleString()}
             </span>
             <span className="text-[11px] text-muted">원</span>
           </div>
         </div>
-        <div className="mt-2 text-right text-[10px] text-moss font-bold">
+        <div className="mt-2 text-right text-[10px] text-moss font-bold tabular-nums">
           결제 완료 시 {Math.floor(total * 0.01).toLocaleString()}P 적립 예정
         </div>
       </section>

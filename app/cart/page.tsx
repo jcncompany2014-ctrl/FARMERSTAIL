@@ -230,15 +230,16 @@ export default async function CartPage() {
               <section className="px-5 mt-4 md:px-0 md:mt-3 ft-sticky-product-col">
                 <div className="bg-white rounded-xl border border-rule px-5 py-4 md:px-6 md:py-5">
                   <h2 className="hidden md:block font-serif font-black mb-4 md:mb-5 text-[16px]" style={{ color: 'var(--ink)', letterSpacing: '-0.015em' }}>주문 요약</h2>
+                  {/* UI audit: 가격 row 우측 tabular-nums — 자릿수 정렬. */}
                   <div className="flex justify-between text-[12px] md:text-[13px] text-text">
                     <span>상품 금액</span>
-                    <span className="font-bold text-text">
+                    <span className="font-bold text-text tabular-nums">
                       {subtotal.toLocaleString()}원
                     </span>
                   </div>
                   <div className="flex justify-between text-[12px] md:text-[13px] text-text mt-2">
                     <span>배송비</span>
-                    <span className="font-bold text-text">
+                    <span className="font-bold text-text tabular-nums">
                       {shipping === 0
                         ? "무료"
                         : `${shipping.toLocaleString()}원`}
@@ -259,7 +260,7 @@ export default async function CartPage() {
                     </span>
                     <div className="flex items-baseline gap-1">
                       <span
-                        className="font-serif text-[18px] md:text-[24px]"
+                        className="font-serif text-[18px] md:text-[24px] tabular-nums"
                         style={{
                           fontWeight: 800,
                           color: 'var(--terracotta)',

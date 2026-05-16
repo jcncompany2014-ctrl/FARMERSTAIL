@@ -357,11 +357,11 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
                       <p className="text-[12px] font-bold text-text leading-snug line-clamp-2">
                         {it.product_name}
                       </p>
-                      <p className="text-[10px] text-muted mt-0.5">
+                      <p className="text-[10px] text-muted mt-0.5 tabular-nums">
                         {it.unit_price.toLocaleString()}원 × {it.quantity}
                       </p>
                     </div>
-                    <p className="text-[12px] font-black text-text whitespace-nowrap">
+                    <p className="text-[12px] font-black text-text whitespace-nowrap tabular-nums">
                       {it.line_total.toLocaleString()}원
                     </p>
                   </div>
@@ -429,7 +429,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
                 )}
                 <div className="flex justify-between border-t border-gold/30 pt-2 mt-2">
                   <dt className="text-text font-bold">입금 금액</dt>
-                  <dd className="text-terracotta font-black">
+                  <dd className="text-terracotta font-black tabular-nums">
                     {order.total_amount.toLocaleString()}원
                   </dd>
                 </div>
@@ -529,16 +529,17 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
 
           <div className="border-t border-rule my-4" />
 
+          {/* UI audit: 가격 합계 우측 — tabular-nums 로 자릿수 정렬 (우측 끝 일직선). */}
           <dl className="space-y-2 text-[12px]">
             <div className="flex justify-between">
               <dt className="text-muted">상품 금액</dt>
-              <dd className="text-text font-bold">
+              <dd className="text-text font-bold tabular-nums">
                 {order.subtotal.toLocaleString()}원
               </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted">배송비</dt>
-              <dd className="text-text font-bold">
+              <dd className="text-text font-bold tabular-nums">
                 {order.shipping_fee === 0
                   ? '무료'
                   : `${order.shipping_fee.toLocaleString()}원`}
@@ -553,7 +554,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
               </dt>
               <dd className="flex items-baseline gap-1">
                 <span
-                  className="font-serif"
+                  className="font-serif tabular-nums"
                   style={{
                     fontSize: 18,
                     fontWeight: 800,
@@ -569,7 +570,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
             {(order.refunded_amount ?? 0) > 0 && (
               <div className="flex justify-between items-center">
                 <dt className="text-[12px] text-muted">환불 금액</dt>
-                <dd className="text-[13px] font-bold text-sale">
+                <dd className="text-[13px] font-bold text-sale tabular-nums">
                   −{(order.refunded_amount ?? 0).toLocaleString()}원
                 </dd>
               </div>
