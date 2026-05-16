@@ -42,7 +42,7 @@ export const dynamic = 'force-dynamic'
  * idempotencyKey 는 cancelAmount 포함이라 같은 amount 두 번이면 자동 dedupe.
  */
 const zCancelItems = z.object({
-  itemIds: z.array(z.string().uuid()).min(1, '취소할 상품을 선택해주세요').max(50),
+  itemIds: z.array(z.string().uuid()).min(1, '취소할 상품을 선택해 주세요').max(50),
   reason: z.string().max(200).optional(),
 })
 
@@ -185,7 +185,7 @@ export async function POST(
           code: cancelResult.error.code || 'TOSS_CANCEL_FAILED',
           message:
             cancelResult.error.message ||
-            '결제 취소에 실패했어요. 잠시 후 다시 시도해주세요',
+            '결제 취소에 실패했어요. 잠시 후 다시 시도해 주세요',
         },
         { status: 400 },
       )

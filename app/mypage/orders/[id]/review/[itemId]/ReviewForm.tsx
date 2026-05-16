@@ -151,7 +151,7 @@ export default function ReviewForm({
       .single()
 
     if (insertErr || !review) {
-      setError('리뷰 등록에 실패했어요. 잠시 후 다시 시도해주세요.')
+      setError('리뷰 등록에 실패했어요. 잠시 후 다시 시도해 주세요.')
       setSubmitting(false)
       return
     }

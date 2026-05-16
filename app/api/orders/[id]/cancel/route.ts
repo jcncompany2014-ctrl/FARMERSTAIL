@@ -125,7 +125,7 @@ export async function POST(
           code: cancelResult.error.code || 'TOSS_CANCEL_FAILED',
           message:
             cancelResult.error.message ||
-            '결제 취소에 실패했어요. 잠시 후 다시 시도해주세요',
+            '결제 취소에 실패했어요. 잠시 후 다시 시도해 주세요',
         },
         { status: 400 }
       )

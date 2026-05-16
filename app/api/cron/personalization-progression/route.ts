@@ -438,7 +438,7 @@ export async function GET(req: Request) {
         ? `${dogTyped.name} 다음 박스 확인이 필요해요`
         : `${dogTyped.name} 다음 박스 준비됐어요 🐾`
       const pushBody = requiresApproval
-        ? `이번 달 비율이 바뀔 수 있어요 — ${main.name} ${main.pct}% 제안. 5일 안에 확인해주세요.`
+        ? `이번 달 비율이 바뀔 수 있어요 — ${main.name} ${main.pct}% 제안. 5일 안에 확인해 주세요.`
         : `이번 달은 ${main.name} ${main.pct}% 메인. 자세한 비율 보기 →`
       const pushUrl = requiresApproval
         ? `/dogs/${cur.dog_id}/approve?cycle=${next.cycleNumber}`

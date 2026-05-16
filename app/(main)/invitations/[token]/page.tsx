@@ -67,7 +67,7 @@ export default async function InvitationPage({ params }: { params: Params }) {
     } else if (
       invRow.email.toLowerCase() !== (user.email ?? '').toLowerCase()
     ) {
-      invalidReason = `이 초대는 ${invRow.email} 으로 발송됐어요. 해당 계정으로 로그인 후 다시 시도해주세요.`
+      invalidReason = `이 초대는 ${invRow.email} 으로 발송됐어요. 해당 계정으로 로그인 후 다시 시도해 주세요.`
     } else {
       // dog name — dog_invitations RLS 가 통과해도 dogs RLS 는 별도라 직접 조회
       const { data: dog } = await supabase

@@ -45,7 +45,7 @@ export async function POST(req: Request, { params }: Params) {
   })
   if (!rl.ok) {
     return NextResponse.json(
-      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해주세요' },
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
       { status: 429 },
     )
   }
