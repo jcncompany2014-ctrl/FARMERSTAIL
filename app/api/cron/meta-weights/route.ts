@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { isInventionEnabled } from '@/lib/invention-flags'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -82,10 +83,7 @@ export async function GET(req: Request) {
   })
 
   if (error) {
-    return NextResponse.json(
-      { ok: false, error: error.message },
-      { status: 500 },
-    )
+    return dbError(error, 'cron_meta_weights', '메타 학습 가중치 갱신 실패')
   }
   return NextResponse.json({ ok: true, version, weights })
 }

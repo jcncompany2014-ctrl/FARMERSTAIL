@@ -1,11 +1,11 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+// audit #101: 'use client' → server component RSC.
+// 이전: client 가 useEffect 에서 auth + supabase fetch → spinner 800ms+.
+// 새: server 에서 prefetch → 즉시 페인트. 인증 redirect 도 server.
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Dog as DogIcon, Plus, ChevronRight } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 
 type Dog = {
   id: string
@@ -19,47 +19,25 @@ type Dog = {
   created_at: string
 }
 
-export default function DogsPage() {
-  const router = useRouter()
-  const supabase = createClient()
-  const [dogs, setDogs] = useState<Dog[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function loadDogs() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      // Explicit user_id filter (defense-in-depth: RLS admin policy would
-      // otherwise leak other users' dogs to admin-role accounts on this route).
-      const { data, error } = await supabase
-        .from('dogs')
-        .select(
-          'id, name, breed, gender, weight, age_value, age_unit, photo_url, created_at'
-        )
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-
-      if (!error && data) {
-        setDogs(data)
-      }
-      setLoading(false)
-    }
-    loadDogs()
-  }, [router, supabase])
-
-  if (loading) {
-    return (
-      <main className="min-h-[80vh] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
-      </main>
-    )
+export default async function DogsPage() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    redirect('/login?next=/dogs')
   }
+
+  // Explicit user_id filter (defense-in-depth).
+  const { data } = await supabase
+    .from('dogs')
+    .select(
+      'id, name, breed, gender, weight, age_value, age_unit, photo_url, created_at',
+    )
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  const dogs = (data ?? []) as Dog[]
 
   return (
     <main className="pb-8">
@@ -97,7 +75,7 @@ export default function DogsPage() {
         </div>
       </section>
 
-      {/* Empty state — editorial paper-tone, landing/dashboard와 동일 문법 */}
+      {/* Empty state */}
       {dogs.length === 0 && (
         <section className="px-5 mt-6">
           <div
@@ -131,7 +109,7 @@ export default function DogsPage() {
             <p className="text-[12px] text-muted mt-2 leading-relaxed">
               첫 번째 강아지를 등록하고
               <br />
-              맞춤 영양 분석을 받아보세요
+              맞춤 영양 분석을 받아볼 수 있어요
             </p>
             <Link
               href="/dogs/new"
@@ -183,8 +161,6 @@ export default function DogsPage() {
                     >
                       {dog.name}
                     </h3>
-                    {/* meta — mono 9.5 muted, separator는 rule-2 톤 dot.
-                        상품/블로그 카드와 동일한 secondary typography 톤. */}
                     <div
                       className="flex flex-wrap items-center gap-x-1.5 mt-1 font-mono"
                       style={{

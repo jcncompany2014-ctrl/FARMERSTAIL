@@ -475,15 +475,17 @@ export default function DiaryClient({
 }
 
 function PhotoGrid({ urls }: { urls: string[] }) {
+  // audit #102: raw <img> → next/image. supabase storage URL 은
+  // next.config.ts remotePatterns 에 등록되어 자동 AVIF/WebP 변환.
   if (urls.length === 1) {
     return (
       <div className="relative aspect-[4/3] bg-bg-2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={urls[0]}
+        <Image
+          src={urls[0]!}
           alt=""
-          className="w-full h-full object-cover"
-          loading="lazy"
+          fill
+          sizes="(max-width: 768px) 100vw, 600px"
+          className="object-cover"
         />
       </div>
     )
@@ -493,8 +495,13 @@ function PhotoGrid({ urls }: { urls: string[] }) {
       <div className="grid grid-cols-2 gap-px bg-rule">
         {urls.map((u, i) => (
           <div key={i} className="relative aspect-square bg-bg-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={u} alt="" className="w-full h-full object-cover" loading="lazy" />
+            <Image
+              src={u}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 50vw, 300px"
+              className="object-cover"
+            />
           </div>
         ))}
       </div>
@@ -504,8 +511,13 @@ function PhotoGrid({ urls }: { urls: string[] }) {
     <div className="grid grid-cols-3 gap-px bg-rule">
       {urls.slice(0, 3).map((u, i) => (
         <div key={i} className="relative aspect-square bg-bg-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={u} alt="" className="w-full h-full object-cover" loading="lazy" />
+          <Image
+            src={u}
+            alt=""
+            fill
+            sizes="(max-width: 768px) 33vw, 200px"
+            className="object-cover"
+          />
           {i === 2 && urls.length > 3 && (
             <div className="absolute inset-0 bg-ink/50 flex items-center justify-center text-white font-bold text-[14px]">
               +{urls.length - 3}
