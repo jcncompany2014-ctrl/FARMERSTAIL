@@ -35,7 +35,7 @@
 | # | 디테일 | 상태 | 위치 / 비고 |
 |---|--------|------|-------------|
 | 8 | "신뢰도" → "맞춤도" | ✅ | voice-guidelines §1 + accuracyLabel + AccuracyCard |
-| 9 | 절대 점수가 아닌 변화율 강조 | 🟨 | P8 — sensitivity snapshot 의 top_variable + delta chip. **점수 변화율 직접 표시는 후속** |
+| 9 | 절대 점수가 아닌 변화율 강조 | ✅ | P8 sensitivity top_variable chip + AccuracyDeltaChip (localStorage 기반 useSyncExternalStore, dashboard AccuracyCard 하단 "+N%p ↑") |
 | 10 | "다른 견주 평균" 비교 금지 | ✅ | 정책. 코드 어디에도 비교 X |
 | 11 | 신뢰도 낮은 항목 자동 가리기 | ✅ | AccuracyBreakdown default 접힘 + 약한 변수만 expand 시 highlight |
 | 12 | 신뢰도 향상 즉시 보상 (1,000P) | ✅ | P10 — measurement_upgrade RPC + isUpgrade() lib + dog edit 폼에서 자동 호출 |

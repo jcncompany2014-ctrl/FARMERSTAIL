@@ -41,6 +41,7 @@ import {
   personaCardSpec,
 } from '@/lib/persona'
 import AccuracyCard from '@/components/dashboard/AccuracyCard'
+import AccuracyDeltaChip from '@/components/dashboard/AccuracyDeltaChip'
 import AccuracyBreakdown, {
   type AccuracyVar,
 } from '@/components/dashboard/AccuracyBreakdown'
@@ -780,11 +781,15 @@ export default async function DashboardPage() {
           비표시 (가입 7일 미만 / dog 없음). 발명 모듈 C UI.
           INVENTION_CORE OFF 면 카드 hide. ── */}
       {isInventionEnabled('core') && accuracyScore !== null && (
-        <AccuracyCard
-          score={accuracyScore}
-          dogId={firstDog?.id ?? null}
-          dogName={firstDog?.name ?? null}
-        />
+        <>
+          <AccuracyCard
+            score={accuracyScore}
+            dogId={firstDog?.id ?? null}
+            dogName={firstDog?.name ?? null}
+          />
+          {/* A-9 — 지난 방문 대비 변화율 chip. localStorage 기반 client-only. */}
+          <AccuracyDeltaChip score={accuracyScore} />
+        </>
       )}
 
       {/* ── 변수별 맞춤도 자세히 — accuracy 카드 아래에 expandable (P3).
