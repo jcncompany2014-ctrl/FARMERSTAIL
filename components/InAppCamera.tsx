@@ -9,6 +9,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
+import { haptic } from '@/lib/haptic'
 
 /**
  * InAppCamera — getUserMedia 기반 in-app 카메라 모달 (B-16).
@@ -126,14 +127,18 @@ export default function InAppCamera({
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
     setCaptured(dataUrl)
+    // 셔터 피드백 — Android Chrome vibrate, iOS Safari 는 noop (B-28)
+    haptic('confirm')
   }
 
   function retake() {
     setCaptured(null)
+    haptic('tick')
   }
 
   function confirm() {
     if (!captured) return
+    haptic('tap')
     onCapture(captured)
     onClose()
   }

@@ -150,7 +150,7 @@
 | 25 | 캡처 후 W_image 평가 + 결과 표시 | ✅ | P23 — DogPhotoWizard 가 캡처 직후 computeWImage 호출 + 결과 chip |
 | 26 | 임계치 미달 시 어떤 부분 문제인지 짚기 | ✅ | P22 — W_image.issues array (어두움/흐림/참조 없음 등) |
 | 27 | multi-step wizard (3장 사진) | ✅ | P23 — DogPhotoWizard 컴포넌트 (측면 → 정면 → 위, 건너뛰기 + 진행 stepper) |
-| 28 | 햅틱 + 셔터 sound 피드백 | 🟨 | haptic.ts 있음. **사진 캡처 시 vibrate 호출 X** |
+| 28 | 햅틱 + 셔터 sound 피드백 | ✅ | InAppCamera 캡처(confirm) / 재촬영(tick) / 확정(tap) navigator.vibrate. iOS Safari noop |
 | 29 | 음성 안내 | 🟦 | 옵션 (⚪) |
 | 30 | 참조 객체 자동 감지 | 🟦 | 옵션 (⚪) |
 
