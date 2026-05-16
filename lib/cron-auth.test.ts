@@ -19,6 +19,14 @@ function makeReq(authHeader: string | null): Request {
   return new Request('http://test/api/cron/x', { headers })
 }
 
+// Next.js / @types/node 24 가 process.env.NODE_ENV 를 readonly 로 narrow —
+// test override 용 cast helper. mutation 자체는 process 가 항상 허용함.
+const env = process.env as Record<string, string | undefined>
+function setEnv(k: string, v: string | undefined): void {
+  if (v === undefined) delete env[k]
+  else env[k] = v
+}
+
 describe('isAuthorizedCronRequest — secret 정상 설정', () => {
   const ORIGINAL = {
     CRON_SECRET: process.env.CRON_SECRET,
@@ -26,22 +34,13 @@ describe('isAuthorizedCronRequest — secret 정상 설정', () => {
   }
 
   before(() => {
-    process.env.CRON_SECRET = 'test-secret-abc123'
-    // production-like behavior — secret 매치만 통과
-    process.env.NODE_ENV = 'production'
+    setEnv('CRON_SECRET', 'test-secret-abc123')
+    setEnv('NODE_ENV', 'production')
   })
 
   after(() => {
-    if (ORIGINAL.CRON_SECRET === undefined) {
-      delete process.env.CRON_SECRET
-    } else {
-      process.env.CRON_SECRET = ORIGINAL.CRON_SECRET
-    }
-    if (ORIGINAL.NODE_ENV === undefined) {
-      delete process.env.NODE_ENV
-    } else {
-      process.env.NODE_ENV = ORIGINAL.NODE_ENV
-    }
+    setEnv('CRON_SECRET', ORIGINAL.CRON_SECRET)
+    setEnv('NODE_ENV', ORIGINAL.NODE_ENV)
   })
 
   it('정상 Bearer + 일치 secret → true', () => {
@@ -104,19 +103,13 @@ describe('isAuthorizedCronRequest — secret 미설정 + dev', () => {
   }
 
   before(() => {
-    delete process.env.CRON_SECRET
-    process.env.NODE_ENV = 'development'
+    setEnv('CRON_SECRET', undefined)
+    setEnv('NODE_ENV', 'development')
   })
 
   after(() => {
-    if (ORIGINAL.CRON_SECRET !== undefined) {
-      process.env.CRON_SECRET = ORIGINAL.CRON_SECRET
-    }
-    if (ORIGINAL.NODE_ENV === undefined) {
-      delete process.env.NODE_ENV
-    } else {
-      process.env.NODE_ENV = ORIGINAL.NODE_ENV
-    }
+    setEnv('CRON_SECRET', ORIGINAL.CRON_SECRET)
+    setEnv('NODE_ENV', ORIGINAL.NODE_ENV)
   })
 
   it('dev + secret 미설정 → true (로컬 cron 트리거 편의)', () => {
@@ -137,19 +130,13 @@ describe('isAuthorizedCronRequest — secret 미설정 + prod (defense in depth)
   }
 
   before(() => {
-    delete process.env.CRON_SECRET
-    process.env.NODE_ENV = 'production'
+    setEnv('CRON_SECRET', undefined)
+    setEnv('NODE_ENV', 'production')
   })
 
   after(() => {
-    if (ORIGINAL.CRON_SECRET !== undefined) {
-      process.env.CRON_SECRET = ORIGINAL.CRON_SECRET
-    }
-    if (ORIGINAL.NODE_ENV === undefined) {
-      delete process.env.NODE_ENV
-    } else {
-      process.env.NODE_ENV = ORIGINAL.NODE_ENV
-    }
+    setEnv('CRON_SECRET', ORIGINAL.CRON_SECRET)
+    setEnv('NODE_ENV', ORIGINAL.NODE_ENV)
   })
 
   it('prod + secret 미설정 → false (env.ts 가 차단하지만 방어)', () => {

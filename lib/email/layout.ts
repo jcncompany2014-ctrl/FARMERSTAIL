@@ -20,6 +20,7 @@
  */
 
 import { business } from '@/lib/business'
+import { escape } from './escape'
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://farmerstail.kr'
@@ -207,14 +208,6 @@ export const block = {
   },
 }
 
-/** HTML 삽입용 안전 escape (attribute/text 공용). */
-export function escape(s: string): string {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
+// escape 는 ./escape 에서 re-export (이미 import 됨)
+export { escape }
 export { SITE_URL }
