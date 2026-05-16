@@ -17,6 +17,10 @@
  * # 보안 트레이드오프
  * 개발 환경 (NODE_ENV !== production) 에서는 디버깅 편의 위해 원본 메시지
  * 그대로 노출 — production 만 mask.
+ *
+ * # 테스트
+ * next/server import 라 node:test 단위 테스트 어려움 → Playwright e2e
+ * (tests/e2e/*) 로 통합 검증. dev/prod 메시지 차이는 수동 검증.
  */
 import { NextResponse } from 'next/server'
 import * as Sentry from '@sentry/nextjs'

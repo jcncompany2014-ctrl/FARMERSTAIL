@@ -147,6 +147,21 @@ capacitor.config.ts   네이티브 앱 셸 (com.farmerstail.app)
 - Sentry tracesSampler — 결제 / cron 1.0, analysis 1.0, health 0.01
 - 실시간 주문 알림 — admin 헤더 OrderRealtimeBell (Supabase Realtime)
 
+## 코드 품질 / Audit
+
+→ **`docs/audit-110.md`** — 110개 이슈 발견 (보안 / 알고리즘 / UI / 성능 / 인프라)
+→ **`docs/audit-110-summary.md`** — 사용자용 정리 (이전 vs 이후)
+→ **`docs/sentry-preview-setup.md`** — Vercel Preview 환경 source map 설정
+
+### 현재 상태 (2026-05-16)
+- **562 테스트** 통과 (lib + e2e)
+- **tsc 0 에러** — `strict: true` + `noUncheckedIndexedAccess: true` 활성화
+- **eslint 7 warnings** (모두 unused-vars, 별 영향 없음)
+- **Supabase Database typed** — browser/server/admin 모두 generic 활성화
+- **18개 (main) 페이지 RSC** — server prefetch + 빈 spinner 제거
+- **Playwright E2E** 3 happy paths — CI 자동 실행
+- **마이그레이션 8건** prod 적용 (보안 + types + bucket)
+
 ## 출시 전 체크리스트
 
 → **`LAUNCH_CHECKLIST.md`** 참조. 환경변수 / 외부 서비스 / 도메인 / 신고 / 앱스토어
