@@ -79,8 +79,10 @@ export function currentMilestone(
   const now = new Date(nowMs)
 
   // 내림차순으로 가장 큰 milestone 부터 확인.
+  // audit #78: noUncheckedIndexedAccess — MILESTONES[i] 가 undefined 가능 (TS).
+  // 실제로는 length 안의 인덱스라 안전 — non-null assertion.
   for (let i = MILESTONES.length - 1; i >= 0; i -= 1) {
-    const m = MILESTONES[i]
+    const m = MILESTONES[i]!
 
     // 365+ 일 anniversary 는 calendar-aware (월/일 매칭 ±3일).
     if (m.daysSince >= 365) {

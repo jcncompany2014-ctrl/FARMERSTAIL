@@ -33,8 +33,10 @@ export function summarizeHistory(
 
   // 가장 최근 + 가장 오래된 비교
   const sorted = [...points].sort((a, b) => a.date.localeCompare(b.date))
-  const oldest = sorted[0]
-  const latest = sorted[sorted.length - 1]
+  // audit #78: noUncheckedIndexedAccess — sorted[0] / sorted[N-1] 가 undefined
+  // 가능. 위에서 points.length 가드 있지만 TS 가 못 따라감 → non-null 보장.
+  const oldest = sorted[0]!
+  const latest = sorted[sorted.length - 1]!
 
   const name = dogName?.trim() || '강아지'
 
