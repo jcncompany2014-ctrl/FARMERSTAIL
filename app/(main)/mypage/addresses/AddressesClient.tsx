@@ -39,7 +39,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
       startTransition(() => router.refresh())
     } catch {
       setList(prev)
-      toast.error('기본 배송지를 설정하지 못했어요')
+      toast.error('기본 배송지로 바꾸지 못했어요')
     } finally {
       setBusyId(null)
     }

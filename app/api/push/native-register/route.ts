@@ -47,7 +47,7 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json(
-      { code: 'UNAUTHORIZED', message: '로그인이 필요합니다' },
+      { code: 'UNAUTHORIZED', message: '로그인이 필요해요' },
       { status: 401 },
     )
   }
@@ -82,7 +82,7 @@ export async function DELETE(req: Request) {
   } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json(
-      { code: 'UNAUTHORIZED', message: '로그인이 필요합니다' },
+      { code: 'UNAUTHORIZED', message: '로그인이 필요해요' },
       { status: 401 },
     )
   }
@@ -91,7 +91,7 @@ export async function DELETE(req: Request) {
   const deviceId = url.searchParams.get('deviceId')
   if (!deviceId) {
     return NextResponse.json(
-      { code: 'INVALID_BODY', message: 'deviceId 가 필요합니다' },
+      { code: 'INVALID_BODY', message: 'deviceId 가 필요해요' },
       { status: 400 },
     )
   }

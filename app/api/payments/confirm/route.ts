@@ -66,7 +66,7 @@ export async function POST(req: Request) {
 
   if (!user) {
     return NextResponse.json(
-      { code: 'UNAUTHORIZED', message: '로그인이 필요합니다' },
+      { code: 'UNAUTHORIZED', message: '로그인이 필요해요' },
       { status: 401 }
     )
   }
@@ -83,14 +83,14 @@ export async function POST(req: Request) {
 
   if (orderError || !order) {
     return NextResponse.json(
-      { code: 'ORDER_NOT_FOUND', message: '주문을 찾을 수 없습니다' },
+      { code: 'ORDER_NOT_FOUND', message: '주문을 찾을 수 없어요' },
       { status: 404 }
     )
   }
 
   if (order.total_amount !== amount) {
     return NextResponse.json(
-      { code: 'AMOUNT_MISMATCH', message: '결제 금액이 일치하지 않습니다' },
+      { code: 'AMOUNT_MISMATCH', message: '결제 금액이 맞지 않아요' },
       { status: 400 }
     )
   }

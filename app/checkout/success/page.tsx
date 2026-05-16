@@ -60,7 +60,7 @@ export default async function CheckoutSuccessPage({
   const { paymentKey, orderId, amount } = await searchParams
 
   if (!paymentKey || !orderId || !amount) {
-    redirect('/checkout/fail?code=MISSING_PARAMS&message=필수%20정보가%20없습니다')
+    redirect('/checkout/fail?code=MISSING_PARAMS&message=필수%20정보가%20없어요')
   }
 
   const supabase = await createClient()
@@ -80,11 +80,11 @@ export default async function CheckoutSuccessPage({
     .single<OrderForSuccess>()
 
   if (orderError || !order) {
-    redirect('/checkout/fail?code=ORDER_NOT_FOUND&message=주문을%20찾을%20수%20없습니다')
+    redirect('/checkout/fail?code=ORDER_NOT_FOUND&message=주문을%20찾을%20수%20없어요')
   }
 
   if (order.total_amount !== Number(amount)) {
-    redirect('/checkout/fail?code=AMOUNT_MISMATCH&message=결제%20금액이%20일치하지%20않습니다')
+    redirect('/checkout/fail?code=AMOUNT_MISMATCH&message=결제%20금액이%20맞지%20않아요')
   }
 
   // 이미 서버에서 상태가 확정된 경우는 confirm을 다시 호출할 필요 없음.
@@ -218,7 +218,7 @@ function SuccessView({
         <p className="mt-2 md:mt-4 text-[12px] md:text-[15px] text-muted text-center leading-relaxed max-w-md">
           {isWaitingDeposit
             ? '가상계좌가 발급되었어요. 안내된 계좌로 24시간 내에 입금해 주세요.'
-            : '주문이 정상적으로 접수되었습니다'}
+            : '주문이 잘 접수됐어요'}
         </p>
       </section>
 

@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json(
-      { code: 'UNAUTHORIZED', message: '로그인이 필요합니다' },
+      { code: 'UNAUTHORIZED', message: '로그인이 필요해요' },
       { status: 401 }
     )
   }
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
   if (aErr || !analysis) {
     return NextResponse.json(
-      { code: 'NOT_FOUND', message: '분석을 찾을 수 없습니다' },
+      { code: 'NOT_FOUND', message: '분석을 찾을 수 없어요' },
       { status: 404 }
     )
   }
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
 
   if (!dog) {
     return NextResponse.json(
-      { code: 'NOT_FOUND', message: '강아지 정보를 찾을 수 없습니다' },
+      { code: 'NOT_FOUND', message: '강아지 정보를 찾을 수 없어요' },
       { status: 404 }
     )
   }

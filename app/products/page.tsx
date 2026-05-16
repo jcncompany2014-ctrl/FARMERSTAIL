@@ -251,8 +251,10 @@ export default async function ProductsPage({
 
         <div className="mt-2 md:mt-3 flex items-end justify-between gap-3 flex-wrap">
           <div className="min-w-0">
+            {/* audit 3-10: 카탈로그 hero 가 메뉴 같았음 — kicker 추가로 매거진 톤 */}
+            <span className="kicker mb-1.5 block">Catalog</span>
             <h1
-              className="font-serif text-[20px] md:text-[26px]"
+              className="font-serif text-[22px] md:text-[28px]"
               style={{
                 fontWeight: 800,
                 color: 'var(--ink)',

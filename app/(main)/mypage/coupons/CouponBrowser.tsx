@@ -86,11 +86,11 @@ export default function CouponBrowser({
         .maybeSingle()
 
       if (!data) {
-        toast.error('유효하지 않은 쿠폰 코드예요')
+        toast.error('쓸 수 없는 쿠폰 코드예요')
         return
       }
       if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) {
-        toast.error('이미 만료된 쿠폰이에요')
+        toast.error('기간이 지난 쿠폰이에요')
         return
       }
       // 클립보드 복사 + 안내
