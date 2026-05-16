@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { pushToUser } from '@/lib/push'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -96,10 +97,8 @@ export async function POST(req: Request) {
     .single()
 
   if (insErr || !campaign) {
-    return NextResponse.json(
-      { ok: false, error: insErr?.message ?? 'insert_failed' },
-      { status: 500 },
-    )
+    // audit #69: 원본 DB error message client 노출 제거.
+    return dbError(insErr ?? new Error('insert_failed'), 'push_campaign_create', '캠페인 등록에 실패했어요')
   }
 
   // 3) fan-out — 동시 5건씩 chunk. quiet hours / preference gating 안 함
