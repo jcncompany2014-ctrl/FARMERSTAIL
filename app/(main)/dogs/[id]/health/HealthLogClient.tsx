@@ -272,8 +272,10 @@ export default function HealthLogClient({
               <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
                 변 횟수 (오늘)
               </label>
+              {/* UI audit J-3: iOS 키보드 숫자패드 표시 위해 inputMode="numeric". */}
               <input
                 type="number"
+                inputMode="numeric"
                 min="0"
                 max="10"
                 value={poopCount}

@@ -64,9 +64,10 @@ export default async function DogsPage() {
               내 강아지
             </h1>
           </div>
+          {/* UI audit F-1: 44px touch target — py-2 → py-2.5 + min-h. iOS HIG. */}
           <Link
             href="/dogs/new"
-            className="inline-flex items-center gap-1 px-4 py-2 text-[12px] font-bold rounded-full active:scale-[0.98] transition"
+            className="inline-flex items-center gap-1 px-4 py-2.5 min-h-[40px] text-[12px] font-bold rounded-full active:scale-[0.98] transition"
             style={{ background: 'var(--ink)', color: 'var(--bg)' }}
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
