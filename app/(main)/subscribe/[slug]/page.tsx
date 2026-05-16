@@ -106,7 +106,7 @@ export default function SubscribePage() {
   }, [interval])
 
   useEffect(() => {
-    loadDaumPostcode()
+    void loadDaumPostcode()
   }, [])
 
   useEffect(() => {
@@ -151,7 +151,7 @@ export default function SubscribePage() {
       }
       setLoading(false)
     }
-    load()
+    void load()
   }, [slug, router, supabase])
 
   const openAddressSearch = useCallback(async () => {

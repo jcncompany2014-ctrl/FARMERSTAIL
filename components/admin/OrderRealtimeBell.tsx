@@ -89,7 +89,7 @@ export default function OrderRealtimeBell() {
     }
 
     return () => {
-      supabase.removeChannel(channel)
+      void supabase.removeChannel(channel)
     }
   }, [supabase])
 

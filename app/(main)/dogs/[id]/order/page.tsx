@@ -253,7 +253,7 @@ export default function OrderPage() {
   }, [])
 
   useEffect(() => {
-    loadDaumPostcode()
+    void loadDaumPostcode()
   }, [])
 
   // 첫 배송 예상일 — 신청일 + 4-7일 (택배 대기) 가정. 이후 한달 단위 청구.

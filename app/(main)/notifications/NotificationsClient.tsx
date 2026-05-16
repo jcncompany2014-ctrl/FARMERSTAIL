@@ -268,7 +268,7 @@ export default function NotificationsClient({
                     key={row.id}
                     row={row}
                     onClick={() => {
-                      if (row.read_at === null) markOneRead(row.id)
+                      if (row.read_at === null) void markOneRead(row.id)
                       if (row.url) router.push(row.url)
                     }}
                   />

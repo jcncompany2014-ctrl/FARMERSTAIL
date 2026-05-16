@@ -367,7 +367,7 @@ export default function ChatClient({
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault()
-                send(input)
+                void send(input)
               }
             }}
             rows={2}

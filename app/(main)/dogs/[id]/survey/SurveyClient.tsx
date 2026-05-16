@@ -181,7 +181,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       setDog(data as unknown as Dog)
       trackSurveyStarted(dogId)
     }
-    load()
+    void load()
   }, [dogId, router, supabase])
 
   // ── Autosave (localStorage) ──────────────────────────────────────────
@@ -845,7 +845,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             onRetry={() => {
               setErr('')
               setLoadingStage(0)
-              saveAndGoResult()
+              void saveAndGoResult()
             }}
           />
         )}

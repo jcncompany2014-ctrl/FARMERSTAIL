@@ -90,7 +90,7 @@ export default function ShareClient({
       }
     }
     // fallback — 전체 텍스트 복사
-    copy(shareText, 'link')
+    void copy(shareText, 'link')
   }
 
   return (

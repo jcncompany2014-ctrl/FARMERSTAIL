@@ -581,7 +581,7 @@ export default function AdminCouponsClient({
                   value={grantQuery}
                   onChange={(e) => setGrantQuery(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') searchUsers()
+                    if (e.key === 'Enter') void searchUsers()
                   }}
                   placeholder="이메일 또는 이름 (앞글자)"
                   className="input flex-1"

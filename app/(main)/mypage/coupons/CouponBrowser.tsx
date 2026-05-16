@@ -141,7 +141,7 @@ export default function CouponBrowser({
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 32))}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') lookupAndCopy()
+              if (e.key === 'Enter') void lookupAndCopy()
             }}
             placeholder="받은 쿠폰 코드 입력"
             autoComplete="off"

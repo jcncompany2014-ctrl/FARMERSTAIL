@@ -73,7 +73,7 @@ function BillingAuthInner() {
       }
     }
 
-    trigger()
+    void trigger()
     // ANONYMOUS 는 `loadTossPayments(ANONYMOUS)` 로 빈 함수 prevent — 실 사용 안 함.
     void ANONYMOUS
 

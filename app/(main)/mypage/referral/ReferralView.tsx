@@ -132,7 +132,7 @@ export default function ReferralView({
         return
       }
     }
-    copy(shareUrl, 'link')
+    void copy(shareUrl, 'link')
   }
 
   async function handleRedeem(e: React.FormEvent) {

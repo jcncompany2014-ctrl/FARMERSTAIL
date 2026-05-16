@@ -61,7 +61,7 @@ export default function AdminSubscriptionsPage() {
   const [bulkResult, setBulkResult] = useState<string | null>(null)
 
   useEffect(() => {
-    loadAll()
+    void loadAll()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

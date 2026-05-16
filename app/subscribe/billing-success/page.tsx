@@ -77,7 +77,7 @@ function BillingSuccessInner() {
       }
     }
 
-    exchange()
+    void exchange()
     return () => {
       cancelled = true
     }

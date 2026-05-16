@@ -202,7 +202,7 @@ export default function AnalysisView({
       setHistory(points)
       setLoading(false)
     }
-    load()
+    void load()
   }, [dogId, analysisId, router, supabase])
 
   // Legacy commentary fetch effect 는 StructuredAnalysis v2 가 대체. 제거.

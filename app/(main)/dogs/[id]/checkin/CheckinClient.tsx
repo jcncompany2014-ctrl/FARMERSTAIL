@@ -481,7 +481,7 @@ export default function CheckinClient({
               disabled={uploading}
               onChange={(e) => {
                 const f = e.target.files?.[0]
-                if (f) uploadPhoto(f)
+                if (f) void uploadPhoto(f)
                 e.target.value = '' // 같은 파일 재선택 가능
               }}
               style={{ display: 'none' }}

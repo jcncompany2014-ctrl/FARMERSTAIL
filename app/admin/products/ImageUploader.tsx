@@ -213,7 +213,7 @@ export default function ImageUploader({
           multiple
           className="hidden"
           onChange={(e) => {
-            handleFiles(e.target.files)
+            void handleFiles(e.target.files)
             e.target.value = ''
           }}
         />

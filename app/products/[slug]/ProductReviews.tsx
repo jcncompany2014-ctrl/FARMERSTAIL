@@ -168,7 +168,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
       setHelpful(userHelpful)
       setLoading(false)
     }
-    load()
+    void load()
     return () => {
       mounted = false
     }

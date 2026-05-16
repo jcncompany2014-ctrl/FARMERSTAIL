@@ -436,7 +436,7 @@ export default function BlogPostForm({
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0]
-                  if (f) handleInlineImage(f)
+                  if (f) void handleInlineImage(f)
                   e.target.value = ''
                 }}
               />
@@ -595,7 +595,7 @@ export default function BlogPostForm({
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0]
-              if (f) handleCover(f)
+              if (f) void handleCover(f)
               e.target.value = ''
             }}
           />

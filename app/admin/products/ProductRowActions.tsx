@@ -113,7 +113,7 @@ function StockEditor({
           onChange={(e) => setValue(Number(e.target.value))}
           onBlur={save}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') save()
+            if (e.key === 'Enter') void save()
             if (e.key === 'Escape') {
               setValue(initialValue)
               setEditing(false)
