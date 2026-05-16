@@ -423,7 +423,7 @@ function SignupForm() {
                 {kicker}
               </span>
               <span
-                className="text-[10.5px] font-bold leading-tight"
+                className="text-[11px] font-bold leading-tight"
                 style={{ color: 'var(--text)' }}
               >
                 {label}
@@ -461,7 +461,7 @@ function SignupForm() {
             </span>
             {hasReferral && (
               <span
-                className="ml-auto text-[10px] font-black rounded-full px-2 py-0.5"
+                className="ml-auto text-[11px] font-black rounded-full px-2 py-0.5"
                 style={{
                   background: 'var(--gold)',
                   color: 'var(--ink)',
@@ -496,7 +496,7 @@ function SignupForm() {
 
         {/* 카카오 로그인은 별도 동의 UI 없이 진행되므로 묵시적 동의 근거 제공. */}
         <p
-          className="mb-6 text-[10.5px] text-center leading-relaxed"
+          className="mb-6 text-[11px] text-center leading-relaxed"
           style={{ color: 'var(--muted)' }}
         >
           카카오로 계속하면{' '}
@@ -579,7 +579,7 @@ function SignupForm() {
                   placeholder="홍길동"
                 />
                 <p
-                  className="text-[10px] mt-1"
+                  className="text-[11px] mt-1"
                   style={{ color: 'var(--muted)' }}
                 >
                   배송 시 받는 분 이름의 기본값으로 사용돼요
@@ -651,7 +651,7 @@ function SignupForm() {
                   </button>
                 </div>
                 <p
-                  className="text-[10px] mt-1"
+                  className="text-[11px] mt-1"
                   style={{ color: 'var(--muted)' }}
                 >
                   영문, 숫자 포함 6자 이상 권장
@@ -708,7 +708,7 @@ function SignupForm() {
                 </div>
                 {passwordMismatch && (
                   <p
-                    className="text-[10.5px] mt-1 flex items-center gap-1 font-semibold"
+                    className="text-[11px] mt-1 flex items-center gap-1 font-semibold"
                     style={{ color: 'var(--sale)' }}
                   >
                     <AlertCircle className="w-3 h-3" strokeWidth={2.5} />
@@ -719,7 +719,7 @@ function SignupForm() {
                   passwordConfirm.length > 0 &&
                   password.length >= 6 && (
                     <p
-                      className="text-[10.5px] mt-1 flex items-center gap-1 font-semibold"
+                      className="text-[11px] mt-1 flex items-center gap-1 font-semibold"
                       style={{ color: 'var(--moss)' }}
                     >
                       <Check className="w-3 h-3" strokeWidth={3} />
@@ -765,7 +765,7 @@ function SignupForm() {
                 />
                 {!phoneValid && (
                   <p
-                    className="text-[10.5px] mt-1 flex items-center gap-1 font-semibold"
+                    className="text-[11px] mt-1 flex items-center gap-1 font-semibold"
                     style={{ color: 'var(--sale)' }}
                   >
                     <AlertCircle className="w-3 h-3" strokeWidth={2.5} />
@@ -807,7 +807,7 @@ function SignupForm() {
                 />
                 {birthYearUnder14 ? (
                   <p
-                    className="text-[10.5px] mt-1 flex items-start gap-1 font-semibold leading-relaxed"
+                    className="text-[11px] mt-1 flex items-start gap-1 font-semibold leading-relaxed"
                     style={{ color: 'var(--sale)' }}
                   >
                     <AlertCircle
@@ -818,7 +818,7 @@ function SignupForm() {
                   </p>
                 ) : (
                   <p
-                    className="text-[10px] mt-1"
+                    className="text-[11px] mt-1"
                     style={{ color: 'var(--muted)' }}
                   >
                     만 14세 이상만 가입할 수 있어요 (개인정보보호법)
@@ -871,7 +871,7 @@ function SignupForm() {
                   </select>
                 </div>
                 <p
-                  className="text-[10px] mt-1"
+                  className="text-[11px] mt-1"
                   style={{ color: 'var(--muted)' }}
                 >
                   채우시면 생일 당일 쿠폰을 자동으로 보내드려요 (마케팅 수신
@@ -898,7 +898,7 @@ function SignupForm() {
               </span>
               <span className="kicker">Shipping(선택)</span>
               <span
-                className="ml-auto text-[10px] font-semibold"
+                className="ml-auto text-[11px] font-semibold"
                 style={{ color: 'var(--muted)' }}
               >
                 선택
@@ -952,7 +952,7 @@ function SignupForm() {
               />
             </div>
             <p
-              className="text-[10px] mt-1.5"
+              className="text-[11px] mt-1.5"
               style={{ color: 'var(--muted)' }}
             >
               지금 입력하면 첫 주문 시 자동 채워져요. 나중에 마이페이지에서도
@@ -977,7 +977,7 @@ function SignupForm() {
               </span>
               <span className="kicker">Invite</span>
               <span
-                className="ml-auto text-[10px] font-semibold"
+                className="ml-auto text-[11px] font-semibold"
                 style={{ color: 'var(--muted)' }}
               >
                 선택
@@ -1024,7 +1024,7 @@ function SignupForm() {
               )}
             </div>
             <p
-              className="text-[10.5px] mt-1.5 font-semibold"
+              className="text-[11px] mt-1.5 font-semibold"
               style={{ color: 'var(--terracotta)' }}
             >
               코드를 입력하면 가입 시 3,000P를 추가로 드려요
