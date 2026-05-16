@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+// audit #79: types.ts 의 Database 타입 생성. Generic 활성화는 점진 sprint
+// (활성화 시 ~70개 호환 에러 — null 가드 / Json 강타이핑 / 누락 table 등).
 export async function createClient() {
   const cookieStore = await cookies()
 

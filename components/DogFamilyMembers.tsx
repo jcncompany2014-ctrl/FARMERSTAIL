@@ -94,7 +94,8 @@ export default function DogFamilyMembers({
         accepted_at: string
         profiles?: { name: string | null } | null
       }
-      const list = ((memberRows ?? []) as RawRow[]).map((r) => ({
+      // audit #79: Supabase typed select 가 profiles relation 을 모름 → unknown cast.
+      const list = ((memberRows ?? []) as unknown as RawRow[]).map((r) => ({
         id: r.id,
         user_id: r.user_id,
         role: r.role,

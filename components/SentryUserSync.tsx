@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import * as Sentry from '@sentry/nextjs'
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
 /**
@@ -20,22 +21,26 @@ export default function SentryUserSync() {
   useEffect(() => {
     const supabase = createClient()
     // 1) 첫 마운트 — getSession 으로 현재 user 즉시 동기화.
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.id) {
-        Sentry.setUser({ id: session.user.id })
-      } else {
-        Sentry.setUser(null)
-      }
-    })
+    void supabase.auth
+      .getSession()
+      .then(({ data: { session } }: { data: { session: Session | null } }) => {
+        if (session?.user?.id) {
+          Sentry.setUser({ id: session.user.id })
+        } else {
+          Sentry.setUser(null)
+        }
+      })
 
     // 2) auth state 변경 (로그인/로그아웃/토큰 refresh) 시 자동 갱신.
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user?.id) {
-        Sentry.setUser({ id: session.user.id })
-      } else {
-        Sentry.setUser(null)
-      }
-    })
+    const { data: sub } = supabase.auth.onAuthStateChange(
+      (_event: AuthChangeEvent, session: Session | null) => {
+        if (session?.user?.id) {
+          Sentry.setUser({ id: session.user.id })
+        } else {
+          Sentry.setUser(null)
+        }
+      },
+    )
 
     return () => {
       sub.subscription.unsubscribe()

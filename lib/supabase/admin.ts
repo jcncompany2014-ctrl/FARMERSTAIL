@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+// audit #79: Database generic 활성화는 점진 sprint (호환 에러 ~70개).
 
 /**
  * Service-role Supabase client for server-only code paths that need to

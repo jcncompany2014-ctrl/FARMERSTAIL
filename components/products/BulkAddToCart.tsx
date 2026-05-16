@@ -66,10 +66,12 @@ export default function BulkAddToCart({
       const cap = Math.min(p.stock, 1)
       if (cap <= 0) continue
 
+      // audit #79: generated types 가 p_variant_id 를 non-nullable 추론 — 실제론
+      // null 허용. 'as never' 로 narrowing 우회 (DB 함수 signature 가 nullable).
       const { error: rpcErr } = await supabase.rpc('upsert_cart_item', {
         p_user_id: user.id,
         p_product_id: p.id,
-        p_variant_id: null,
+        p_variant_id: null as unknown as string,
         p_quantity: cap,
         p_max_qty: p.stock,
       })

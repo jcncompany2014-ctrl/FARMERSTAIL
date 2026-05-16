@@ -62,7 +62,17 @@ export default async function WelcomeCouponBanner({
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  coupon = audienceResult.data
+  // audit #79: Supabase generated types 에서 discount_type 이 string 으로
+  // 추론 (DB enum 정의 부재) → app-level narrowing.
+  if (audienceResult.data) {
+    const r = audienceResult.data
+    coupon = {
+      ...r,
+      discount_type: (r.discount_type === 'percent' || r.discount_type === 'fixed')
+        ? r.discount_type
+        : 'fixed',
+    }
+  }
 
   if (!coupon) {
     const fallbackCode =
@@ -74,7 +84,16 @@ export default async function WelcomeCouponBanner({
       )
       .eq('code', fallbackCode)
       .maybeSingle()
-    coupon = fallbackResult.data
+    if (fallbackResult.data) {
+      const r = fallbackResult.data
+      coupon = {
+        ...r,
+        discount_type:
+          r.discount_type === 'percent' || r.discount_type === 'fixed'
+            ? r.discount_type
+            : 'fixed',
+      }
+    }
   }
 
   if (!coupon || !coupon.is_active) return null

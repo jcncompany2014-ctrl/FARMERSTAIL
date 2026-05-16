@@ -154,10 +154,17 @@ async function fetchAllFlags(): Promise<RawFlagRow[]> {
   // dynamic import 로 supabase server client — module cycle 방지.
   const { createClient } = await import('@/lib/supabase/server')
   const supabase = await createClient()
-  const { data } = await supabase
+  // audit #79: feature_flags 테이블이 generated types 에 없음 (생성 후 미반영
+  // 또는 schema 차이) — 'unknown' 경유 cast. 다음 supabase gen types 재실행 시
+  // 자동 해결.
+  const { data } = await (supabase as unknown as {
+    from: (t: string) => {
+      select: (cols: string) => Promise<{ data: unknown }>
+    }
+  })
     .from('feature_flags')
     .select('key, enabled, variants, default_variant')
-  const rows = (data ?? []) as RawFlagRow[]
+  const rows = ((data as unknown) ?? []) as RawFlagRow[]
   serverCache = { rows, expiresAt: now + TTL_MS }
   return rows
 }

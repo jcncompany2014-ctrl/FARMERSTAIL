@@ -81,6 +81,7 @@ export function computePersona(input: PersonaInput): PersonaResult {
       scores: { data_lover: 0, emotional: 0, convenience: 0, vet_dependent: 0 },
       dominant: null,
       secondary: null,
+      dataSufficiency: 'low',
     }
   }
   // 가입 1주 미만 / 데이터 거의 없으면 모두 0
@@ -91,7 +92,7 @@ export function computePersona(input: PersonaInput): PersonaResult {
       convenience: 0,
       vet_dependent: 0,
     }
-    return { scores: zero, dominant: null, secondary: null }
+    return { scores: zero, dominant: null, secondary: null, dataSufficiency: 'low' }
   }
 
   // data_lover — 분석 + 체크인 + (분석/체크인 비율)

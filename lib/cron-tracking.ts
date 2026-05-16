@@ -63,12 +63,18 @@ async function recordHealth(
 ): Promise<void> {
   try {
     const admin = createAdminClient()
+    // audit #79: summary 는 Record → Json 으로 캐스트 (Supabase types Json 정의가
+    // primitive | array | object 인데 Record<string, unknown> 가 Json[] 와 호환
+    // 안 됨. JSON.parse(JSON.stringify(x)) 로 정규화).
+    const summaryJson = summary
+      ? (JSON.parse(JSON.stringify(summary)) as Record<string, unknown>)
+      : null
     await admin.from('cron_health').insert({
       path,
       status,
       duration_ms: durationMs,
       error_message: errorMessage,
-      result_summary: summary,
+      result_summary: summaryJson,
     })
   } catch {
     // cron_health insert 실패가 cron 본체에 영향 X — 조용히 통과.
