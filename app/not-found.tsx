@@ -18,9 +18,9 @@ export default function NotFound() {
   return (
     <ErrorScreen
       code="404"
-      kicker="Wandering · 길을 잃으셨어요"
-      title="찾으시는 페이지가 없어요"
-      description="주소가 잘못되었거나, 페이지가 옮겨졌을 수 있어요."
+      kicker="Wandering"
+      title="찾는 페이지가 없어요"
+      description="주소가 잘못됐거나 페이지가 옮겨졌을 수 있어요."
       icon={<Compass className="w-6 h-6" strokeWidth={2} aria-hidden />}
       tone="terracotta"
       primary={{ label: '홈으로', href: '/' }}
