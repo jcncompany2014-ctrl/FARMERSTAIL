@@ -182,7 +182,7 @@ export default function CouponCard({
         </div>
         <span
           className="kicker mt-1"
-          style={{ color: accentColor, fontSize: 9 }}
+          style={{ color: accentColor, fontSize: 9.5 }}
         >
           DISCOUNT
         </span>
@@ -197,7 +197,7 @@ export default function CouponCard({
           <div className="flex items-center gap-1.5 mb-1">
             {recommended && (
               <span
-                className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                className="text-[9.5px] font-bold px-1.5 py-0.5 rounded"
                 style={{ background: 'var(--terracotta)', color: 'white' }}
               >
                 BEST
@@ -205,7 +205,7 @@ export default function CouponCard({
             )}
             {isUrgent && state === 'available' && (
               <span
-                className="text-[9px] font-bold px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"
+                className="text-[9.5px] font-bold px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"
                 style={{
                   background: 'var(--sale)',
                   color: 'white',

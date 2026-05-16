@@ -419,7 +419,7 @@ function WeekStat({
   return (
     <div>
       <div
-        className={`text-[9px] font-semibold uppercase tracking-[0.2em] ${
+        className={`text-[9.5px] font-semibold uppercase tracking-[0.2em] ${
           tone === 'light' ? 'text-gold' : 'text-muted'
         }`}
       >
@@ -544,14 +544,14 @@ function LogRow({
             {chips.slice(0, 3).map((c) => (
               <span
                 key={c.key}
-                className="inline-block text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full whitespace-nowrap"
+                className="inline-block text-[9.5px] font-bold text-white px-1.5 py-0.5 rounded-full whitespace-nowrap"
                 style={{ backgroundColor: c.color }}
               >
                 {c.label}
               </span>
             ))}
             {chips.length > 3 && (
-              <span className="text-[9px] font-bold text-muted">
+              <span className="text-[9.5px] font-bold text-muted">
                 +{chips.length - 3}
               </span>
             )}
@@ -571,7 +571,7 @@ function LogRow({
               {chips.map((c) => (
                 <span
                   key={c.key}
-                  className="inline-block text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full"
+                  className="inline-block text-[9.5px] font-bold text-white px-1.5 py-0.5 rounded-full"
                   style={{ backgroundColor: c.color }}
                 >
                   {c.label}
