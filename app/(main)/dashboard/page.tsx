@@ -641,10 +641,15 @@ export default async function DashboardPage() {
             letterSpacing: '-0.025em',
           }}
         >
-          {userName ? `${userName}님,` : ''}
-          <br />
+          {/* UI audit #1: 빈 username 시 <br> 만 남아 빈 줄 → conditional.
+              userName 없으면 인사말만 한 줄로. */}
+          {userName && (
+            <>
+              <span className="block">{userName}님,</span>
+            </>
+          )}
           <span
-            className="italic"
+            className="block italic"
             style={{
               fontWeight: 600,
               color: 'var(--terracotta)',

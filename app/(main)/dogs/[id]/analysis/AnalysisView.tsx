@@ -380,11 +380,12 @@ export default function AnalysisView({
                 범위 {formatRange(merConfidenceInterval(analysis.mer, null))}
               </div>
             </div>
-            <div className="text-right text-[9px] text-moss font-semibold leading-tight">
-              RER {analysis.rer}
-              <br />× {analysis.factor}
-              <br />
-              <span className="text-[8px] text-muted">NRC 2006</span>
+            {/* UI audit #5: 우측 mini-meta — RER / factor 자릿수 정렬 + 분기마다 block.
+                <br> 줄바뀜 대신 block span 으로 자연 줄, tabular-nums 로 우측 edge 통일. */}
+            <div className="text-right text-[9.5px] text-moss font-semibold leading-tight tabular-nums">
+              <span className="block">RER {analysis.rer}</span>
+              <span className="block">× {analysis.factor}</span>
+              <span className="block text-[9px] text-muted mt-0.5">NRC 2006</span>
             </div>
           </div>
           <hr className="my-4 border-t border-dashed border-rule-2" />

@@ -260,18 +260,19 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
                   운송장
                 </h2>
               </div>
+              {/* UI audit #4: 운송장 dt 라벨 column w-20 통일 — 결제 정보 dl 과 동일. */}
               <dl className="space-y-2 text-[12px]">
                 {order.carrier && (
                   <div className="flex justify-between">
-                    <dt className="text-muted">택배사</dt>
-                    <dd className="text-text font-bold">
+                    <dt className="text-muted w-20 shrink-0">택배사</dt>
+                    <dd className="text-text font-bold text-right">
                       {carrierLabel(order.carrier)}
                     </dd>
                   </div>
                 )}
                 {order.tracking_number && (
                   <div className="flex justify-between items-center gap-2">
-                    <dt className="text-muted">송장번호</dt>
+                    <dt className="text-muted w-20 shrink-0">송장번호</dt>
                     <dd className="text-text font-mono text-[11px] break-all text-right">
                       {order.tracking_number}
                     </dd>
@@ -279,16 +280,16 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
                 )}
                 {order.shipped_at && (
                   <div className="flex justify-between">
-                    <dt className="text-muted">발송 일시</dt>
-                    <dd className="text-text">
+                    <dt className="text-muted w-20 shrink-0">발송 일시</dt>
+                    <dd className="text-text text-right tabular-nums">
                       {formatDateTime(order.shipped_at)}
                     </dd>
                   </div>
                 )}
                 {order.delivered_at && (
                   <div className="flex justify-between">
-                    <dt className="text-muted">도착 일시</dt>
-                    <dd className="text-text font-bold">
+                    <dt className="text-muted w-20 shrink-0">도착 일시</dt>
+                    <dd className="text-text font-bold text-right tabular-nums">
                       {formatDateTime(order.delivered_at)}
                     </dd>
                   </div>
@@ -479,40 +480,42 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
           <h2 className="text-[13px] font-black text-text mb-3">
             결제 정보
           </h2>
+          {/* UI audit #4: dt 라벨 column width 통일 (w-20) — 결제 상태 / 결제 수단 /
+              결제 일시 / 현금영수증 / 영수증 라벨 끝 위치 row 마다 일직선. */}
           <dl className="space-y-2 text-[12px]">
             <div className="flex justify-between">
-              <dt className="text-muted">결제 상태</dt>
-              <dd className="text-text font-bold">
+              <dt className="text-muted w-20 shrink-0">결제 상태</dt>
+              <dd className="text-text font-bold text-right">
                 {PAYMENT_STATUS_LABEL[order.payment_status] ??
                   order.payment_status}
               </dd>
             </div>
             {order.payment_method && (
               <div className="flex justify-between">
-                <dt className="text-muted">결제 수단</dt>
-                <dd className="text-text">
+                <dt className="text-muted w-20 shrink-0">결제 수단</dt>
+                <dd className="text-text text-right">
                   {paymentMethodLabel(order.payment_method)}
                 </dd>
               </div>
             )}
             {order.paid_at && (
               <div className="flex justify-between">
-                <dt className="text-muted">결제 일시</dt>
-                <dd className="text-text">{formatDateTime(order.paid_at)}</dd>
+                <dt className="text-muted w-20 shrink-0">결제 일시</dt>
+                <dd className="text-text text-right tabular-nums">{formatDateTime(order.paid_at)}</dd>
               </div>
             )}
             {order.cash_receipt_type && (
               <div className="flex justify-between">
-                <dt className="text-muted">현금영수증</dt>
-                <dd className="text-text font-bold">
+                <dt className="text-muted w-20 shrink-0">현금영수증</dt>
+                <dd className="text-text font-bold text-right">
                   {order.cash_receipt_type}
                 </dd>
               </div>
             )}
             {order.receipt_url && (
               <div className="flex justify-between items-center">
-                <dt className="text-muted">영수증</dt>
-                <dd>
+                <dt className="text-muted w-20 shrink-0">영수증</dt>
+                <dd className="text-right">
                   <a
                     href={order.receipt_url}
                     target="_blank"
