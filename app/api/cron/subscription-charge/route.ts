@@ -450,7 +450,7 @@ async function runSubscriptionCharge(): Promise<Response> {
       // 이메일과 별개로 push ON 사용자에게도 닿게. permanent / transient /
       // unknown 별로 톤 다르게.
       const pushTitle = shouldMarkRenewal
-        ? '카드 정보를 다시 등록해주세요 💳'
+        ? '카드 정보를 다시 등록해 주세요 💳'
         : shouldPause
           ? '정기배송이 일시중단됐어요'
           : errorClass === 'transient'

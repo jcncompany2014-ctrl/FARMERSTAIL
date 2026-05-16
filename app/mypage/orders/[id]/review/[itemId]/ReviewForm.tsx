@@ -122,7 +122,7 @@ export default function ReviewForm({
       return
     }
     if (uploadingCount > 0) {
-      setError('사진 업로드가 끝난 뒤 등록해주세요')
+      setError('사진 업로드가 끝난 뒤 등록해 주세요')
       return
     }
     setSubmitting(true)
@@ -401,7 +401,7 @@ export default function ReviewForm({
             onChange={handlePhotoPick}
           />
           <p className="text-[10px] text-muted mt-2 leading-relaxed">
-            장당 5MB 이하, 최대 {MAX_PHOTOS}장. 반려견 얼굴이 나오는 사진은 자제해주세요.
+            장당 5MB 이하, 최대 {MAX_PHOTOS}장. 반려견 얼굴이 나오는 사진은 자제해 주세요.
           </p>
         </div>
       </section>

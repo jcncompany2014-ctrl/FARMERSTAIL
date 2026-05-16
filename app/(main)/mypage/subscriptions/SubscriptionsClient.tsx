@@ -474,7 +474,7 @@ export default function SubscriptionsClient({
                             }`}
                           >
                             {needsRenewal
-                              ? '카드 정보를 다시 등록해주세요'
+                              ? '카드 정보를 다시 등록해 주세요'
                               : sub.next_retry_at
                                 ? '결제가 일시 실패했어요'
                                 : `결제 ${sub.failed_charge_count}회 실패`}
