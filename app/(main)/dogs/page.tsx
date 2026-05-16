@@ -161,8 +161,9 @@ export default async function DogsPage() {
                     >
                       {dog.name}
                     </h3>
+                    {/* UI audit A-1/A-2: items-baseline + tabular-nums — meta row baseline 정렬 + 자릿수 정렬. */}
                     <div
-                      className="flex flex-wrap items-center gap-x-1.5 mt-1 font-mono"
+                      className="flex flex-wrap items-baseline gap-x-1.5 mt-1 font-mono tabular-nums"
                       style={{
                         fontSize: 9.5,
                         fontWeight: 600,

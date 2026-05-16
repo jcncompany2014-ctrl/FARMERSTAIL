@@ -306,12 +306,13 @@ export default function SubscribeClient({
         {/* 배송 주기 */}
         <div className="mt-3 bg-white rounded-2xl border border-rule p-5">
           <div className={labelCls}>배송 주기</div>
+          {/* UI audit A-7: 3 카드 h-full + min-h — 한국어 길이 차로 row 높이 변동 차단. */}
           <div className="grid grid-cols-3 gap-2">
             {INTERVALS.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setInterval(opt.value)}
-                className={`py-3 px-2 rounded-xl border text-center transition ${
+                className={`h-full min-h-[72px] py-3 px-2 rounded-xl border text-center transition ${
                   interval === opt.value
                     ? 'border-moss bg-moss/10'
                     : 'border-rule bg-white hover:border-muted'
@@ -459,29 +460,30 @@ export default function SubscribeClient({
         {/* 결제 요약 */}
         <div className="mt-3 bg-white rounded-2xl border border-rule p-5">
           <div className={labelCls}>결제 요약 (회당)</div>
+          {/* UI audit A-6: 결제 요약 4 row 우측 가격 tabular-nums — 자릿수 정렬. */}
           <div className="space-y-2 text-[13px]">
             <div className="flex justify-between">
               <span className="text-muted">상품 금액</span>
-              <span className="text-text font-bold">
+              <span className="text-text font-bold tabular-nums">
                 {subtotal.toLocaleString()}원
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted">배송비</span>
-              <span className="text-text font-bold">
+              <span className="text-text font-bold tabular-nums">
                 {shippingFee === 0
                   ? '무료'
                   : `${shippingFee.toLocaleString()}원`}
               </span>
             </div>
             {shippingFee > 0 && (
-              <div className="text-[10px] text-muted">
+              <div className="text-[10px] text-muted tabular-nums">
                 {(SHIPPING_FREE_THRESHOLD - subtotal).toLocaleString()}원 더 담으면 무료배송!
               </div>
             )}
             <div className="pt-2 border-t border-rule flex justify-between">
               <span className="font-bold text-text">회당 결제 금액</span>
-              <span className="text-[18px] font-black text-terracotta">
+              <span className="text-[18px] font-black text-terracotta tabular-nums">
                 {totalAmount.toLocaleString()}원
               </span>
             </div>

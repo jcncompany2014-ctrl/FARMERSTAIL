@@ -534,14 +534,14 @@ export default function SubscriptionsClient({
                           <div className="font-bold text-[12px] text-text truncate">
                             {item.product_name}
                           </div>
-                          <div className="text-[10px] text-muted mt-0.5">
+                          <div className="text-[10px] text-muted mt-0.5 tabular-nums">
                             {item.unit_price.toLocaleString()}원 ×{' '}
                             {item.quantity}개
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
                           <div
-                            className="font-serif"
+                            className="font-serif tabular-nums"
                             style={{
                               fontSize: 12,
                               fontWeight: 800,

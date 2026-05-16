@@ -793,12 +793,13 @@ function InfoRow({
   valueNode?: React.ReactNode
 }) {
   return (
-    <div className="flex justify-between items-center py-2.5 border-b border-bg last:border-0">
-      <span className="text-[10px] font-semibold text-muted uppercase tracking-[0.22em]">
+    // UI audit A-3: dt 라벨 column min-w-[88px] 통일 + tracking 0.22 → 0.18 (한국어 가독성)
+    <div className="flex justify-between items-center py-2.5 border-b border-bg last:border-0 gap-3">
+      <span className="text-[10px] font-semibold text-muted uppercase tracking-[0.18em] min-w-[88px] shrink-0">
         {label}
       </span>
       {valueNode ?? (
-        <span className="text-[13px] font-bold text-text">{value}</span>
+        <span className="text-[13px] font-bold text-text text-right">{value}</span>
       )}
     </div>
   )

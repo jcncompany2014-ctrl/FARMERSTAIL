@@ -114,9 +114,10 @@ export default async function WishlistPage() {
               ? Math.round(((p.price - (p.sale_price ?? p.price)) / p.price) * 100)
               : 0
             return (
+              // UI audit A-10: 카드 h-full + flex-col — 가격 row 위치 row 간 통일.
               <div
                 key={p.id}
-                className="relative bg-white rounded-xl border border-rule overflow-hidden hover:border-text hover:shadow-sm transition-all"
+                className="relative bg-white rounded-xl border border-rule overflow-hidden hover:border-text hover:shadow-sm transition-all h-full flex flex-col"
               >
                 <Link href={`/products/${p.slug}`} className="block">
                   <div className="aspect-square bg-bg relative overflow-hidden">
