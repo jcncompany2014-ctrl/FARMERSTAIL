@@ -912,6 +912,31 @@ button:focus:not(:focus-visible) {
 }
 
 /* =============================================================================
+   AppChrome phone-frame 안 product grid 강제 2열 (audit #54).
+   ProductGridSkeleton 이 desktop viewport 에서 4열 깜빡 후 phone-frame override
+   되어 2열로 jump → CLS. data-skeleton 마크를 phone-frame 안에서는 항상 2열.
+   ============================================================================= */
+[data-ft-chrome="app"] [data-skeleton="product-grid"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+/* =============================================================================
+   backdrop-blur 비호환 브라우저 fallback (audit #58).
+   Android Chrome <91 / 일부 인앱 브라우저에서 backdrop-filter 미지원 →
+   반투명 배경이 90% 불투명으로 보임. fallback 으로 98% 불투명 (사실상 단색)
+   적용해 일관성 보장.
+   ============================================================================= */
+@supports not (backdrop-filter: blur(0)) {
+  .backdrop-blur-xl,
+  .backdrop-blur-lg,
+  .backdrop-blur-md,
+  .backdrop-blur-sm {
+    /* 색상은 토큰 그대로 — backdrop 만 제거하면 배경의 알파 채널이 그대로 노출 */
+    background-color: var(--bg) !important;
+  }
+}
+
+/* =============================================================================
    iOS auto-zoom 방지 (audit #41).
    ---------------------------------------------------------------------------
    iOS Safari 는 form 입력 요소의 computed font-size 가 16px 미만일 때 포커스 시

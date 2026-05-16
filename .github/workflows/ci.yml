@@ -83,6 +83,23 @@ jobs:
       - name: Build
         run: npm run build
 
+      # audit #90: bundle analyzer report 를 artifact 로 보존 — PR 마다
+      # client.html / nodejs.html / edge.html 확인 가능. ANALYZE=true 시 next 가
+      # .next/analyze/ 에 HTML 출력.
+      - name: Build (bundle analyzer)
+        env:
+          ANALYZE: 'true'
+        run: npm run build
+
+      - name: Upload bundle analyzer report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-analyzer
+          path: .next/analyze/
+          retention-days: 14
+          if-no-files-found: ignore
+
   audit:
     name: npm audit (prod high+)
     runs-on: ubuntu-latest

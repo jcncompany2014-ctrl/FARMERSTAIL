@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { parseRequest } from '@/lib/api/parseRequest'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -88,10 +89,8 @@ export async function POST(req: Request) {
     .single()
 
   if (error) {
-    return NextResponse.json(
-      { code: 'DB_ERROR', message: error.message },
-      { status: 500 },
-    )
+    // audit #69: 원본 message 노출 X — Sentry 만 보존.
+    return dbError(error, 'health_records', '의료 기록을 저장하지 못했어요')
   }
 
   return NextResponse.json({ ok: true, id: inserted.id })
@@ -128,10 +127,8 @@ export async function GET(req: Request) {
     .limit(50)
 
   if (error) {
-    return NextResponse.json(
-      { code: 'DB_ERROR', message: error.message },
-      { status: 500 },
-    )
+    // audit #69: 원본 message 노출 X — Sentry 만 보존.
+    return dbError(error, 'health_records', '의료 기록을 저장하지 못했어요')
   }
   return NextResponse.json({ ok: true, records: data ?? [] })
 }

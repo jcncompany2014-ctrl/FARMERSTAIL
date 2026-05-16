@@ -82,12 +82,18 @@ export function ProductCardSkeleton() {
 
 /**
  * PLP 페이지 전체 — 2열 그리드 × N.
+ *
+ * audit #54: 이전 grid-cols-2 sm:3 lg:4 → AppChrome phone-frame (max-w 440px)
+ * 안에서 desktop viewport 일 때 4열 잠시 깜빡 후 globals.css override 로 2열
+ * → CLS. data-skeleton="product-grid" 마크 + globals.css 의 phone-frame
+ * selector 가 강제 2열.
  */
 export function ProductGridSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div
       role="status"
       aria-label="제품 목록 로딩 중"
+      data-skeleton="product-grid"
       className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-5"
     >
       {Array.from({ length: count }).map((_, i) => (

@@ -120,6 +120,30 @@ const nextConfig: NextConfig = {
         headers: securityHeaders,
       },
       {
+        // audit #87: 결제 / 개인정보 페이지 strict CSP (Report-Only — 30일 수집
+        // 후 enforce 전환). script-src 'self' + Toss 결제 도메인만, 'unsafe-inline'
+        // 은 Next.js script chunks 호환 위해 일단 허용 (점진 제거 검토).
+        source: '/(checkout|mypage)/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy-Report-Only',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.tosspayments.com https://*.toss.im https://*.vercel-insights.com https://*.vercel.app",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https:",
+              "font-src 'self' data:",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tosspayments.com https://*.toss.im https://*.sentry.io https://*.ingest.sentry.io https://api.anthropic.com",
+              "frame-src 'self' https://*.tosspayments.com https://*.toss.im",
+              "frame-ancestors 'self'",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self' https://*.tosspayments.com https://*.toss.im",
+            ].join('; '),
+          },
+        ],
+      },
+      {
         // 정적 자원 (Next 가 hash 박은 _next/static/*) — immutable + 1년.
         // CDN 과 브라우저 모두 강력 캐시. hash 가 바뀌면 새 URL 이라 staleness X.
         source: '/_next/static/:path*',
@@ -166,6 +190,11 @@ const sentryOptions = {
   hideSourceMaps: true,
   tunnelRoute: '/monitoring',
   // DSN이 아예 없으면 플러그인 동작도 건너뜀.
+  //
+  // audit #89: PR Preview 에서 source map 업로드 끊김 위험 — Vercel Preview
+  // environment 에 SENTRY_AUTH_TOKEN (sourceMap read-only 권한 별도 발급 권장)
+  // 추가 시 release 매핑이 main 머지 전 디버깅 가능. 그게 없으면 minified
+  // stack 그대로 — main merge 후만 정상.
   disableServerWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
   disableClientWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
 }

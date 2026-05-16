@@ -247,7 +247,8 @@ export default function CookieConsent() {
                 onClick={() => save(true, true)}
                 className="flex-1 py-2.5 rounded-full text-[12px] font-bold active:scale-[0.98] transition-all inline-flex items-center justify-center gap-1.5"
                 style={{
-                  background: 'var(--ink)',
+                  // audit #60: 회색조 톤 단절 해소 — terracotta CTA + 브랜드 일관성.
+                  background: 'var(--terracotta)',
                   color: 'var(--bg)',
                 }}
               >
