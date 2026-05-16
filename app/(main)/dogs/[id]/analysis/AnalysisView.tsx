@@ -799,12 +799,13 @@ function Bar({
 
   return (
     <div className="mb-4 last:mb-0">
+      {/* UI audit: 영양소 4 row (단백질/지방/탄수/식이섬유) 퍼센트 자릿수 정렬. */}
       <div className="flex justify-between items-center mb-1.5">
         <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-text">
           <Icon className="w-3.5 h-3.5 text-muted" strokeWidth={1.8} />
           {label}
         </span>
-        <span className="text-[12px] font-black text-terracotta">{pct}%</span>
+        <span className="text-[12px] font-black text-terracotta tabular-nums">{pct}%</span>
       </div>
       <div className="relative h-2.5 bg-rule rounded-full overflow-hidden">
         <div
@@ -817,7 +818,7 @@ function Bar({
         />
       </div>
       <div className="flex justify-between items-center mt-1.5">
-        <span className="text-[9px] text-muted font-semibold">
+        <span className="text-[9px] text-muted font-semibold tabular-nums">
           {g}g/일 · 권장 {min}–{max}%
         </span>
         <span
