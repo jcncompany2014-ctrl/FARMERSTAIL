@@ -11,6 +11,7 @@ import "./globals.css";
 // 적용된다 (같은 모듈 그래프).
 import "@/lib/forms/zod-ko";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import SentryUserSync from "@/components/SentryUserSync";
 import AnalyticsScripts from "@/components/AnalyticsScripts";
 import { KakaoInitScript } from "@/components/ShareButton";
 import OnboardingGate from "@/components/OnboardingGate";
@@ -263,6 +264,8 @@ export default function RootLayout({
           {children}
         </ToastProvider>
         <ServiceWorkerRegister />
+        {/* audit #107: Supabase auth → Sentry.setUser({ id }) 동기화 */}
+        <SentryUserSync />
         <AnalyticsScripts />
         {/* 카카오톡 공유 SDK — NEXT_PUBLIC_KAKAO_JS_KEY 가 있을 때만 활성화 */}
         <KakaoInitScript />

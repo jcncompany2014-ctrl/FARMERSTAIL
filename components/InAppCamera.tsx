@@ -112,12 +112,20 @@ export default function InAppCamera({
     const video = videoRef.current
     const canvas = canvasRef.current
     if (!video || !canvas) return
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+    // audit #105: native resolution (예: 4032×3024) 그대로 캡처 시 dataUrl 이 수
+    // MB → react state 에 유지되며 GC 압력. long edge 1280 으로 다운스케일.
+    const MAX_EDGE = 1280
+    const srcW = video.videoWidth
+    const srcH = video.videoHeight
+    if (srcW === 0 || srcH === 0) return
+    const longest = Math.max(srcW, srcH)
+    const scale = longest > MAX_EDGE ? MAX_EDGE / longest : 1
+    canvas.width = Math.round(srcW * scale)
+    canvas.height = Math.round(srcH * scale)
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
     setCaptured(dataUrl)
   }
 
