@@ -187,6 +187,10 @@
 ## 🔑 commit log (audit-110 작업 전체)
 
 ```
+e082406  checkin page server wrapper
+fe64579  noUncheckedIndexedAccess lib/ 일부 fix
+4721c79  admin + server Database generic 활성화 + 42 fix
+abb7b89  audit-110 사용자용 정리 보고서
 71dadcc  sprint: cron + Diary next/image + /dogs RSC
 3a63abb  TS strict 옵션 + survey RSC + Playwright + SWR-lite
 34c2551  Supabase types + opt-in 점진 sprint
