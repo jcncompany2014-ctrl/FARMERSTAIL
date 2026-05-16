@@ -148,6 +148,27 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
     desc: '수분 보충 + 크랜베리. Ca 0.9× 약간 제한 — 결석 종류별 처방 다름.',
     severity: 'high',
   },
+  // nutrition.ts 의 임신 / 수유 / factor cap 분기에서 emit.
+  PREGNANT: {
+    label: '임신 중',
+    desc: 'NRC 2006 임신 RER multiplier 적용. 수의사 정기 검진 + 4주 후 wk 4 사진 권장.',
+    severity: 'high',
+  },
+  LACTATING: {
+    label: '수유 중',
+    desc: '리터 크기에 따라 RER×2.2~5.0 적용. 24/7 자율 급여 권장 — 수의사 상담 동행.',
+    severity: 'high',
+  },
+  FACTOR_CAPPED_HIGH: {
+    label: '계산 상한 도달',
+    desc: '입력값 (BCS / 임신 / 활동량) 조합이 NRC 한계 초과 — 5.0× 로 clamp 됨. 입력 재확인 권장.',
+    severity: 'info',
+  },
+  FACTOR_CAPPED_LOW: {
+    label: '계산 하한 도달',
+    desc: '감량 protocol 하한 (0.5×) 으로 clamp 됨. 정상 범위지만 수의사 점검 권장.',
+    severity: 'info',
+  },
 }
 
 /**

@@ -264,9 +264,20 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     else factor = 1.6
   }
 
-  // BCS 보정 — v2 의 정확 9점 factor 우선
+  // BCS 보정 — v2 의 정확 9점 factor 우선.
+  //
+  // # audit #11 v2 — BCS 1 응급 케이스 factor 보수화
+  // bcsMerFactor 가 1-2 모두 1.20 리턴하지만 BCS 1 은 refeeding syndrome
+  // 위험이라 +20% 칼로리 즉시 적용 X. factor *= 1.0 으로 baseline 유지 +
+  // 사용자 chip 으로 단계적 증량 안내 (Day 1-3 25%, Day 4-7 50%, Day 8+ 100%).
+  // 시스템은 초기 baseline 제공, 보호자가 수의사 지도 하에 분할 적용.
   if (answers.bcsExact) {
-    factor *= bcsMerFactor(answers.bcsExact)
+    if (answers.bcsExact === 1) {
+      // 응급 — bcsMerFactor 1.20 곱하지 않음. baseline 유지.
+      // factor *= 1.0 (no-op, 의도 명시)
+    } else {
+      factor *= bcsMerFactor(answers.bcsExact)
+    }
     citations.add('wsava')
     if (answers.bcsExact >= 8) {
       riskFlags.push('SEVERE_OBESITY')
@@ -274,10 +285,7 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     } else if (answers.bcsExact >= 7) {
       riskFlags.push('OVERWEIGHT')
     } else if (answers.bcsExact === 1) {
-      // audit #11: BCS 1 은 생명을 위협하는 emergency 케이스. 단순 ×1.20 으로
-      // 급격 증량 시 refeeding syndrome (전해질 불균형 → 부정맥 / 호흡부전)
-      // 위험. factor 는 보수적으로 유지하되 REFEEDING_RISK flag + 단계적
-      // 증량 권장 (Day 1-3 25%, Day 4-7 50%, Day 8+ 100%) — 수의사 지도 필수.
+      // factor 는 위에서 baseline 유지 (×1.20 skip).
       riskFlags.push('SEVERE_UNDERWEIGHT')
       riskFlags.push('REFEEDING_RISK')
       vetConsult = true

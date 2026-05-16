@@ -124,6 +124,10 @@ describe('회귀 가드 — flag 정합성', () => {
       'OVERWEIGHT',
       'SEVERE_OBESITY',
       'GIANT_BREED',
+      'PREGNANT',
+      'LACTATING',
+      'FACTOR_CAPPED_HIGH',
+      'FACTOR_CAPPED_LOW',
     ]
     for (const flag of emittedFlags) {
       assert.ok(
