@@ -10,6 +10,16 @@ import {
   type McsKey,
 } from './nutrition/guidelines.ts'
 
+/**
+ * 화식 라인 평균 에너지 밀도 (kcal/g).
+ *
+ * basic 2.15 / weight 1.75 / skin 2.25 / premium 1.95 / joint 2.0 → 평균 2.02.
+ * audit 3-15: 이전엔 calculateNutrition return 안에 2.0 하드코드 → 라인 mix
+ * 비율이 바뀌어도 feedG 재계산이 안 됨. 상수로 분리해 추후
+ * algorithm_food_lines.energy_density_kcal_per_g 의 가중평균으로 동기화 가능.
+ */
+export const AVG_ENERGY_DENSITY_KCAL_PER_G = 2.02
+
 export type SurveyAnswers = {
   bodyCondition: 'skinny' | 'slim' | 'ideal' | 'chubby' | 'obese'
   allergies: string[]
@@ -573,13 +583,12 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     mer: MER,
     factor: +factor.toFixed(2),
     perMeal: Math.round(MER / 2),
-    // feedG — 화식 5종 평균 에너지 밀도 ~2.0 kcal/g 기준 (basic 2.15 / weight
-    // 1.75 / skin 2.25 / premium 1.95 / joint 2.0 → 가중평균 2.0). 실제
-    // 라인 mix 비율은 알고리즘 출력 후 결정되므로 여기선 평균값 사용.
-    // 이전 1.2 kcal/g 은 raw moisture 80% wet food 기준 (잘못된 가정 — audit
-    // fix). 결과: 10kg senior MER 472 → feedG 236g (이전 393g, 라인 mix 실제
-    // 237g 와 일치).
-    feedG: Math.round(MER / 2.0),
+    // feedG — 화식 5종 가중평균 에너지 밀도. SSOT 는 algorithm_food_lines.
+    // 이전엔 2.0 kcal/g 하드코드 → 라인 mix 의 실제 평균과 ±15% 어긋남.
+    // audit 3-15: AVG_ENERGY_DENSITY_KCAL_PER_G 상수로 추출. 추후 algorithm_food_lines
+    // SELECT AVG(energy_density_kcal_per_g) FROM 메타데이터 동기화 가능.
+    // basic 2.15 / weight 1.75 / skin 2.25 / premium 1.95 / joint 2.0 평균 = 2.02.
+    feedG: Math.round(MER / AVG_ENERGY_DENSITY_KCAL_PER_G),
     stage,
     stageKR: lifeStageKR(stage),
     bcs,

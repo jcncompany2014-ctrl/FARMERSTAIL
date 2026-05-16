@@ -782,31 +782,29 @@ function SignupForm() {
                 >
                   출생 연도
                 </label>
-                <select
+                {/* audit 3-14: 101개 옵션 셀렉트 → 4자리 숫자 입력. iOS 숫자
+                    패드 자동, 입력 자체가 3-4 타이핑이면 끝나 옵션 스크롤 보다
+                    빠름. 범위 검증은 birthYearValid 가 inline 메시지로 처리. */}
+                <input
                   required
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  placeholder={`예: ${currentYear - 30}`}
                   value={birthYear}
-                  onChange={(e) => setBirthYear(e.target.value)}
+                  onChange={(e) =>
+                    setBirthYear(e.target.value.replace(/[^0-9]/g, ''))
+                  }
                   className={baseInputCls}
                   style={{
                     ...baseInputStyle,
                     borderColor: birthYearUnder14
                       ? 'var(--sale)'
                       : 'var(--rule-2)',
+                    fontVariantNumeric: 'tabular-nums',
                   }}
-                >
-                  <option value="">선택해 주세요</option>
-                  {Array.from({ length: currentYear - MIN_BIRTH_YEAR + 1 }).map(
-                    (_, i) => {
-                      // 최근 해부터 과거로 (사용 빈도 가장 높은 성인 연령대가 상단)
-                      const y = currentYear - i
-                      return (
-                        <option key={y} value={y}>
-                          {y}년
-                        </option>
-                      )
-                    },
-                  )}
-                </select>
+                />
                 {birthYearUnder14 ? (
                   <p
                     className="text-[10.5px] mt-1 flex items-start gap-1 font-semibold leading-relaxed"

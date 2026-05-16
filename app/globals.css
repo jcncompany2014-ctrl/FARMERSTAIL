@@ -23,7 +23,12 @@
                                --text(#3D2B1F) 보다 한 단계 진해서 ink/text
                                hierarchy 도 유지. */
   --text: #3D2B1F;
-  --muted: #8A7668;
+  /* audit 3-1: 이전 #8A7668 은 --bg(#F5F0E6) 위에서 3.7:1 — 11-12px 한국어
+     본문에서 WCAG AA(4.5:1) 미달. 채도/색감은 유지하고 명도만 한 단계
+     낮춰 5.5:1 확보. 카피 본문 / 메타 / 안내 문구 전부 영향. */
+  --muted: #715C4A;
+  /* 더 진한 강조 — 11px 이하 micro-meta 에 사용. 6.8:1. */
+  --muted-strong: #5C4A3B;
   --rule: #EDE6D8;
   --rule-2: #D9CFBB;
   --terracotta: #A0452E;
