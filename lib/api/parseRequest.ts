@@ -13,6 +13,10 @@
  */
 import { NextResponse } from 'next/server'
 import type { z } from 'zod'
+import {
+  buildInvalidJsonBody,
+  buildValidationFailedBody,
+} from './parseRequest-body.ts'
 
 export async function parseRequest<T extends z.ZodTypeAny>(
   req: Request,
@@ -27,30 +31,17 @@ export async function parseRequest<T extends z.ZodTypeAny>(
   } catch {
     return {
       ok: false,
-      response: NextResponse.json(
-        { code: 'INVALID_BODY', message: '요청 형식이 올바르지 않아요' },
-        { status: 400 },
-      ),
+      response: NextResponse.json(buildInvalidJsonBody(), { status: 400 }),
     }
   }
 
   const result = schema.safeParse(raw)
   if (!result.success) {
-    // 첫 번째 오류만 message 로 노출 — 나머지는 details 로 디버그.
-    const first = result.error.issues[0]
     return {
       ok: false,
-      response: NextResponse.json(
-        {
-          code: 'VALIDATION_FAILED',
-          message: first?.message ?? '입력값이 올바르지 않아요',
-          details: result.error.issues.map((i) => ({
-            path: i.path.join('.'),
-            message: i.message,
-          })),
-        },
-        { status: 422 },
-      ),
+      response: NextResponse.json(buildValidationFailedBody(result.error), {
+        status: 422,
+      }),
     }
   }
 
