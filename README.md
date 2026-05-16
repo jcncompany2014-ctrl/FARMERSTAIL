@@ -2,7 +2,7 @@
 
 수의영양학으로 설계한 D2C 반려견 식품 플랫폼. Next.js 16 + Supabase + Capacitor 기반의 웹 + iOS / Android 앱.
 
-> 프로젝트는 Solo dev (안성민 · 이준호) 운영. 출시 전 점검은 **`LAUNCH_CHECKLIST.md`** 우선 — 키 발급 / 신고 / 도메인 / 마이그레이션 적용 등 외부 사전 작업 정리되어 있어요.
+> 프로젝트는 Solo dev (안성민 · 이준호) 운영. 출시 전 점검은 **`LAUNCH_CHECKLIST.md`** 우선 — 키 발급 / 신고 / 도메인 / 마이그레이션 적용 등 외부 사전 작업 정리되어 있음
 
 ---
 

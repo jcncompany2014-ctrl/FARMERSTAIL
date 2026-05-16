@@ -111,7 +111,9 @@ export default function SubscriptionCard({
                       {s.total_amount.toLocaleString()}원/월
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-[10.5px] text-muted">
+                  {/* UI audit M4: meta row flex-wrap — 좁은 카드 + 긴 d-day 라벨 시
+                      가로 overflow 대신 자연 줄바뀜. */}
+                  <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[10.5px] text-muted">
                     {next && (
                       <span className="inline-flex items-center gap-1">
                         <CalendarDays

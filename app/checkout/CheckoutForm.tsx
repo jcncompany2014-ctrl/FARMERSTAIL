@@ -530,7 +530,7 @@ export default function CheckoutForm({
                       </span>
                       {a.isDefault && (
                         <span
-                          className="shrink-0 text-[8.5px] font-black px-1.5 py-0.5 rounded"
+                          className="shrink-0 text-[9.5px] font-black px-1.5 py-0.5 rounded tracking-wider"
                           style={{
                             background: isActive
                               ? 'rgba(255,255,255,0.18)'

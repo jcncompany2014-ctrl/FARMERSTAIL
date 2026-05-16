@@ -122,11 +122,13 @@ export default function MiniCartToast() {
           <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
         </Link>
 
+        {/* UI audit H3: 375px viewport 에서 X 가 CTA pill 우측 모서리 침범.
+            자동 5초 dismiss 가 이미 있으니 sm 미만에서는 X 숨김. */}
         <button
           type="button"
           onClick={() => setToast(null)}
           aria-label="닫기"
-          className="shrink-0 w-10 h-10 -mr-2 flex items-center justify-center rounded-full transition active:scale-90"
+          className="hidden sm:flex shrink-0 w-10 h-10 -mr-2 items-center justify-center rounded-full transition active:scale-90"
           style={{ color: 'rgba(245,240,230,0.6)' }}
         >
           <X className="w-4 h-4" strokeWidth={2} />

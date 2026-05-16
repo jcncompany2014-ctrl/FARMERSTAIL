@@ -409,7 +409,7 @@ export default function NotificationSettingsClient({
                         {prettyUA(s.user_agent)}
                       </p>
                       {isCurrent && (
-                        <span className="shrink-0 inline-block px-1.5 py-0.5 rounded-full bg-moss text-white text-[8px] font-black tracking-wider">
+                        <span className="shrink-0 inline-block px-1.5 py-0.5 rounded-full bg-moss text-white text-[9.5px] font-black tracking-wider">
                           이 기기
                         </span>
                       )}

@@ -91,7 +91,10 @@ export default function NextActionCard({ action }: { action: NextAction }) {
         }}
         aria-label={`${action.title} — ${action.cta}`}
       >
-        <div className="flex items-start justify-between gap-3">
+        {/* UI audit M1: 좁은 viewport (375px) + 긴 title + 긴 CTA (정기배송 시작하기)
+            동시 발생 시 pill 이 title wrap zone 시각 침범. flex-col on <sm.
+            기본 layout (sm+): horizontal pill 우측. 모바일: pill 아래. */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
           <div className="flex-1 min-w-0">
             <span
               className="kicker"
@@ -118,7 +121,7 @@ export default function NextActionCard({ action }: { action: NextAction }) {
             </p>
           </div>
           <span
-            className="shrink-0 mt-0.5 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold transition group-hover:translate-x-0.5"
+            className="self-start sm:self-auto shrink-0 sm:mt-0.5 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold transition group-hover:translate-x-0.5"
             style={{
               background: accent,
               color: '#FFFFFF',
