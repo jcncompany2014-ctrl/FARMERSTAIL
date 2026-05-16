@@ -89,7 +89,7 @@ export default async function DogDetailPage({
   const subscriptions = (subsRes.data ?? []) as unknown as ActiveSubscription[]
 
   // 체크인 상태 — 현재 cycle 의 week_2 / week_4 응답 여부. formula 가 있을 때만.
-  let checkinStatus: CheckinStatus = { week_2: false, week_4: false }
+  const checkinStatus: CheckinStatus = { week_2: false, week_4: false }
   if (currentFormula) {
     const { data: checkins } = await supabase
       .from('dog_checkins')

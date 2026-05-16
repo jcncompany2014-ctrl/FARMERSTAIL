@@ -264,10 +264,13 @@ export default function SubscriptionsClient({
   function handleReRegisterCard(sub: Subscription) {
     let customerKey = sub.billing_customer_key
     if (!customerKey) {
+      // event handler 안 — render 중이 아니지만 React compiler 가 false positive.
+      // eslint-disable-next-line react-hooks/purity
       customerKey =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
           ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+          : // eslint-disable-next-line react-hooks/purity
+            `${Date.now()}-${Math.random().toString(36).slice(2)}`
     }
     const url = `/subscribe/billing-auth?subscriptionId=${encodeURIComponent(
       sub.id,
