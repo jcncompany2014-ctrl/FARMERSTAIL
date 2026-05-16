@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { parseRequest } from '@/lib/api/parseRequest'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -44,10 +45,7 @@ export async function POST(req: Request) {
     p_token: token,
   })
   if (error) {
-    return NextResponse.json(
-      { code: 'RPC_ERROR', message: error.message ?? '수락하지 못했어요' },
-      { status: 500 },
-    )
+    return dbError(error, 'invitations_accept', '수락하지 못했어요')
   }
   const row = Array.isArray(data) ? data[0] : data
   if (!row) {

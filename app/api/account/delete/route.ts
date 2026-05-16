@@ -179,24 +179,32 @@ export async function POST(req: Request) {
   // 보관 의무 (subscription_charges) 와 별개로 토큰은 결제수단 정보라 즉시
   // 삭제. 카드사에 알리는 별도 절차는 필요 없음 (Toss 측에서 토큰 invalidation
   // 은 미사용 기간 자동 만료).
-  await admin
+  // audit #79: subscriptions 익명화 payload — generated types 가 NOT NULL 로
+  // 추론하는 컬럼들이 있어 cast (의도는 NULL 로 익명화).
+  const anonymizePayload: Record<string, unknown> = {
+    status: 'cancelled',
+    billing_key: null,
+    billing_customer_key: null,
+    billing_card_brand: null,
+    billing_card_last4: null,
+    requires_billing_key_renewal: false,
+    next_retry_at: null,
+    next_delivery_date: null,
+    recipient_name: '탈퇴회원',
+    recipient_phone: null,
+    recipient_zip: null,
+    recipient_address: null,
+    recipient_address_detail: null,
+  }
+  await (admin as unknown as {
+    from: (t: string) => {
+      update: (r: Record<string, unknown>) => {
+        eq: (c: string, v: string) => Promise<unknown>
+      }
+    }
+  })
     .from('subscriptions')
-    .update({
-      status: 'cancelled',
-      billing_key: null,
-      billing_customer_key: null,
-      billing_card_brand: null,
-      billing_card_last4: null,
-      requires_billing_key_renewal: false,
-      next_retry_at: null,
-      next_delivery_date: null,
-      // recipient_* 도 PII — 익명화.
-      recipient_name: '탈퇴회원',
-      recipient_phone: null,
-      recipient_zip: null,
-      recipient_address: null,
-      recipient_address_detail: null,
-    })
+    .update(anonymizePayload)
     .eq('user_id', user.id)
 
   // product_qna / reviews — 작성자 user_id 는 보존 (다른 사용자에게 도움이

@@ -119,7 +119,16 @@ export async function GET(req: Request) {
   // 검색어 로깅 — fire-and-forget. q 길이 < 2 면 사용자가 입력 중 — 의미 약함.
   // 사용자 식별자 / IP 저장 X (개인 검색 이력 ≠ 운영 인사이트).
   if (q.length >= 2) {
-    void supabase
+    // audit #79: search_queries table 이 generated types 에 없음.
+    void (
+      supabase as unknown as {
+        from: (t: string) => {
+          insert: (r: Record<string, unknown>) => {
+            then: (cb: () => void) => void
+          }
+        }
+      }
+    )
       .from('search_queries')
       .insert({
         q_normalized: q.toLowerCase(),

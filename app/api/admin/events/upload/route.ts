@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
+import { dbError } from '@/lib/api/errors'
 
 /**
  * POST /api/admin/events/upload
@@ -186,10 +187,7 @@ export async function DELETE(req: Request) {
 
   const { error } = await supabase.storage.from('event-images').remove([path])
   if (error) {
-    return NextResponse.json(
-      { code: 'DELETE_FAILED', message: error.message },
-      { status: 500 }
-    )
+    return dbError(error, 'admin_events_upload_delete', '파일 삭제에 실패했어요')
   }
   return NextResponse.json({ ok: true })
 }

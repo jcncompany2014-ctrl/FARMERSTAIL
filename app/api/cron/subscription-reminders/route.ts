@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { notifySubscriptionReminder } from '@/lib/email'
 import { pushToUser } from '@/lib/push'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -73,11 +74,7 @@ export async function GET(req: Request) {
     .not('next_delivery_date', 'is', null)
 
   if (error) {
-    console.error('[cron/subscription-reminders] subscriptions query failed', error)
-    return NextResponse.json(
-      { code: 'QUERY_FAILED', message: error.message },
-      { status: 500 },
-    )
+    return dbError(error, 'cron_subscription_reminders', '정기배송 알림 큐 조회 실패')
   }
 
   // 오늘 KST 자정 ms.

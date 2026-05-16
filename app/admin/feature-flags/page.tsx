@@ -15,12 +15,24 @@ export default async function FeatureFlagsPage() {
   if (!user) redirect('/login')
   if (!(await isAdmin(supabase, user))) redirect('/')
 
-  const { data } = await supabase
+  // audit #79: feature_flags table 이 generated types 에 없음.
+  const { data } = await (
+    supabase as unknown as {
+      from: (t: string) => {
+        select: (cols: string) => {
+          order: (
+            c: string,
+            opts: { ascending: boolean },
+          ) => Promise<{ data: unknown }>
+        }
+      }
+    }
+  )
     .from('feature_flags')
     .select('*')
     .order('key', { ascending: true })
 
-  const rows = (data ?? []) as FeatureFlagRow[]
+  const rows = ((data as unknown) ?? []) as FeatureFlagRow[]
 
   return (
     <div>

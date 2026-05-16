@@ -63,13 +63,16 @@ async function recordHealth(
 ): Promise<void> {
   try {
     const admin = createAdminClient()
-    // audit #79: summary 는 Record → Json 으로 캐스트 (Supabase types Json 정의가
-    // primitive | array | object 인데 Record<string, unknown> 가 Json[] 와 호환
-    // 안 됨. JSON.parse(JSON.stringify(x)) 로 정규화).
+    // audit #79: cron_health.path 컬럼 누락 (generated types 미갱신) → untyped cast.
+    // summary 는 Record → JSON 정규화.
     const summaryJson = summary
-      ? (JSON.parse(JSON.stringify(summary)) as Record<string, unknown>)
+      ? JSON.parse(JSON.stringify(summary))
       : null
-    await admin.from('cron_health').insert({
+    await (admin as unknown as {
+      from: (t: string) => {
+        insert: (r: Record<string, unknown>) => Promise<unknown>
+      }
+    }).from('cron_health').insert({
       path,
       status,
       duration_ms: durationMs,

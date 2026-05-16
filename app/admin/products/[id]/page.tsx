@@ -38,7 +38,9 @@ export default async function AdminProductEditPage({
         <p className="text-xs text-muted mt-1">{product.name}</p>
       </div>
 
-      <ProductForm mode="edit" initialData={product} />
+      {/* audit #79: generated Product 타입과 ProductData (form schema) 컬럼 nullable
+          차이 — admin only 페이지라 cast 우회. ProductForm 내부에서 default 처리. */}
+      <ProductForm mode="edit" initialData={product as unknown as Parameters<typeof ProductForm>[0]['initialData']} />
     </div>
   )
 }

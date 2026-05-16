@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-// audit #79: Database generic 활성화는 sprint — cron route 19개 호환 에러.
+import type { Database } from './types'
 
 /**
  * Service-role Supabase client for server-only code paths that need to
@@ -22,7 +22,8 @@ export function createAdminClient() {
     )
   }
 
-  return createClient(url, key, {
+  // audit #79: Database generic 활성화 — server-side admin 라우트가 typed select.
+  return createClient<Database>(url, key, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

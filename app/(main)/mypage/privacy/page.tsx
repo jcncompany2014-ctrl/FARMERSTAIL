@@ -55,7 +55,19 @@ export default async function PrivacyDashboardPage() {
       ['point_ledger', 'point_ledger'],
       ['consent_log', 'consent_log'],
     ].map(async ([table, label]) => {
-      const { count } = await supabase
+      // audit #79: dynamic table 이름 → typed from() 호환 X. untyped cast.
+      const { count } = await (
+        supabase as unknown as {
+          from: (t: string) => {
+            select: (
+              cols: string,
+              opts: { count: 'exact'; head: boolean },
+            ) => {
+              eq: (c: string, v: string) => Promise<{ count: number | null }>
+            }
+          }
+        }
+      )
         .from(table)
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)

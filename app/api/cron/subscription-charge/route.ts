@@ -148,7 +148,8 @@ async function runSubscriptionCharge(): Promise<Response> {
     )
   }
 
-  const targets = (subs ?? []) as SubscriptionRow[]
+  // audit #79: SubscriptionRow 가 generated types schema 와 다름 (recipient_zip 등).
+  const targets = ((subs ?? []) as unknown) as SubscriptionRow[]
   let succeeded = 0
   let failed = 0
   let skipped = 0
@@ -156,7 +157,21 @@ async function runSubscriptionCharge(): Promise<Response> {
   for (const sub of targets) {
     // 2-a) charge row insert. UNIQUE (subscription_id, scheduled_for) 충돌 시
     //      이미 처리됨 — skip.
-    const { data: chargeRow, error: chargeErr } = await supabase
+    // audit #79: subscription_charges schema-drift cast.
+    const { data: chargeRow, error: chargeErr } = await (
+      supabase as unknown as {
+        from: (t: string) => {
+          insert: (r: Record<string, unknown>) => {
+            select: (cols: string) => {
+              single: () => Promise<{
+                data: { id: string } | null
+                error: { code?: string; message?: string } | null
+              }>
+            }
+          }
+        }
+      }
+    )
       .from('subscription_charges')
       .insert({
         subscription_id: sub.id,
@@ -184,19 +199,35 @@ async function runSubscriptionCharge(): Promise<Response> {
     //      청구 요청에 필요. user 가 직접 결제한 주문과 구분되도록 source 컬럼
     //      이 있다면 'subscription' 마킹 권장 (없으면 일반 주문과 동일 처리).
     const orderName = `Farmer's Tail 정기배송 #${sub.total_deliveries + 1}`
-    const { data: orderRow, error: orderErr } = await supabase
+    // audit #79: orders.recipient_zip 등 generated types 가 일부 컬럼 추론
+    // 불일치 — record cast.
+    const orderInsertPayload: Record<string, unknown> = {
+      user_id: sub.user_id,
+      order_status: 'pending',
+      payment_status: 'pending',
+      total_amount: sub.total_amount,
+      recipient_name: sub.recipient_name,
+      recipient_phone: sub.recipient_phone,
+      recipient_zip: sub.recipient_zip,
+      recipient_address: sub.recipient_address,
+      recipient_address_detail: sub.recipient_address_detail,
+    }
+    const { data: orderRow, error: orderErr } = await (
+      supabase as unknown as {
+        from: (t: string) => {
+          insert: (r: Record<string, unknown>) => {
+            select: (cols: string) => {
+              single: () => Promise<{
+                data: { id: string; order_number: string } | null
+                error: { message?: string } | null
+              }>
+            }
+          }
+        }
+      }
+    )
       .from('orders')
-      .insert({
-        user_id: sub.user_id,
-        order_status: 'pending',
-        payment_status: 'pending',
-        total_amount: sub.total_amount,
-        recipient_name: sub.recipient_name,
-        recipient_phone: sub.recipient_phone,
-        recipient_zip: sub.recipient_zip,
-        recipient_address: sub.recipient_address,
-        recipient_address_detail: sub.recipient_address_detail,
-      })
+      .insert(orderInsertPayload)
       .select('id, order_number')
       .single()
 
@@ -209,7 +240,7 @@ async function runSubscriptionCharge(): Promise<Response> {
           error_message: orderErr?.message ?? 'unknown',
           completed_at: new Date().toISOString(),
         })
-        .eq('id', chargeRow.id)
+        .eq('id', chargeRow!.id)
       failed += 1
       continue
     }
@@ -229,17 +260,24 @@ async function runSubscriptionCharge(): Promise<Response> {
       unit_price: number
     }>
     if (subItemsArr.length > 0) {
-      await supabase.from('order_items').insert(
-        subItemsArr.map((it) => ({
-          order_id: orderRow.id,
-          product_id: it.product_id,
-          product_name: it.product_name,
-          product_image_url: it.product_image_url,
-          quantity: it.quantity,
-          unit_price: it.unit_price,
-          line_total: it.unit_price * it.quantity,
-        })),
-      )
+      // audit #79: order_items insert payload cast (product_id nullable 등 추론 차이).
+      await (supabase as unknown as {
+        from: (t: string) => {
+          insert: (r: Record<string, unknown>[]) => Promise<unknown>
+        }
+      })
+        .from('order_items')
+        .insert(
+          subItemsArr.map((it) => ({
+            order_id: orderRow!.id,
+            product_id: it.product_id,
+            product_name: it.product_name,
+            product_image_url: it.product_image_url,
+            quantity: it.quantity,
+            unit_price: it.unit_price,
+            line_total: it.unit_price * it.quantity,
+          })),
+        )
     }
 
     // 2-c) Toss 청구. 비즈니스 span 으로 wrap — Sentry 트랜잭션에서 실패율 +
@@ -279,15 +317,22 @@ async function runSubscriptionCharge(): Promise<Response> {
             paid_at: successIso,
           })
           .eq('id', orderRow.id),
-        supabase
+        // audit #79: subscription_charges schema-drift cast.
+        (supabase as unknown as {
+          from: (t: string) => {
+            update: (r: Record<string, unknown>) => {
+              eq: (c: string, v: string) => Promise<unknown>
+            }
+          }
+        })
           .from('subscription_charges')
           .update({
             status: 'succeeded',
             payment_key: result.paymentKey,
-            order_id: orderRow.id,
+            order_id: orderRow!.id,
             completed_at: successIso,
           })
-          .eq('id', chargeRow.id),
+          .eq('id', chargeRow!.id),
         supabase
           .from('subscriptions')
           .update({
@@ -351,8 +396,16 @@ async function runSubscriptionCharge(): Promise<Response> {
       if (shouldPause) subUpdate.status = 'paused'
       if (shouldMarkRenewal) subUpdate.requires_billing_key_renewal = true
 
+      // audit #79: orders/subscriptions/subscription_charges schema-drift cast.
+      const untyped = supabase as unknown as {
+        from: (t: string) => {
+          update: (r: Record<string, unknown>) => {
+            eq: (c: string, v: string) => Promise<unknown>
+          }
+        }
+      }
       await Promise.all([
-        supabase
+        untyped
           .from('orders')
           .update({
             payment_status: 'failed',
@@ -360,8 +413,8 @@ async function runSubscriptionCharge(): Promise<Response> {
             cancel_reason: result.error?.message ?? '결제 실패',
             cancelled_at: nowIso2,
           })
-          .eq('id', orderRow.id),
-        supabase
+          .eq('id', orderRow!.id),
+        untyped
           .from('subscription_charges')
           .update({
             status: 'failed',
@@ -369,8 +422,8 @@ async function runSubscriptionCharge(): Promise<Response> {
             error_message: result.error?.message,
             completed_at: nowIso2,
           })
-          .eq('id', chargeRow.id),
-        supabase.from('subscriptions').update(subUpdate).eq('id', sub.id),
+          .eq('id', chargeRow!.id),
+        untyped.from('subscriptions').update(subUpdate).eq('id', sub.id),
       ])
 
       // 매출 영향 이벤트 — Sentry breadcrumb 분류 가능하게 errorClass 같이 기록.

@@ -1,12 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import type { Database } from './types'
 
-// audit #79: types.ts 의 Database 타입 생성. Generic 활성화는 점진 sprint
-// (활성화 시 ~70개 호환 에러 — null 가드 / Json 강타이핑 / 누락 table 등).
+// audit #79: Database generic 활성화 — 서버 라우트 typed select.
 export async function createClient() {
   const cookieStore = await cookies()
 
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {

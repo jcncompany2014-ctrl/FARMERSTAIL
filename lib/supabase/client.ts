@@ -3,18 +3,9 @@ import { createBrowserClient } from '@supabase/ssr'
 /**
  * 브라우저용 Supabase 클라이언트 — 모듈 스코프 싱글톤.
  *
- * 왜 싱글톤?
- * ─────────
- * `createClient()` 가 매 호출마다 새 인스턴스를 반환하면, 컴포넌트가 이걸
- * useEffect deps 에 넣었을 때 (deps 에 `supabase` 가 있으면) 부모가 리렌더
- * 될 때마다 effect 가 새로 실행됨. 14개 파일에서 같은 패턴이 발견됨 →
- * Auth + DB 라운드트립 폭증. 모듈 스코프 캐싱으로 한 방에 해결.
- *
- * audit #79: lib/supabase/types.ts 에 generated Database 타입 보존.
- * Database generic 활성화 시 ~70개 기존 코드 에러 발생 (null 가드, JSON
- * 강타이핑 등) → 점진 sprint 로 마이그. 그때까지 generic OFF 유지.
- *   - import type { Database } from './types' — 직접 import 하면 옵트인 사용 가능.
- *   - 점진 마이그 후 createBrowserClient<Database>(...) 로 활성화.
+ * audit #79: server + admin client 는 Database generic 활성화 완료. client 는
+ * setState type 충돌 30+ 개 (사용자 페이지 useState 가 generated row type 과
+ * 미스매치) → 별도 sprint 에서 마이그. 그때까지 untyped 유지.
  */
 let _client: ReturnType<typeof createBrowserClient> | null = null
 

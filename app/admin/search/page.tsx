@@ -40,11 +40,16 @@ export default async function AdminSearchPage({
 
   let popular: PopularRow[] = []
   try {
-    const { data } = await supabase.rpc('popular_search_queries', {
-      p_days: days,
-      p_limit: 30,
-    })
-    popular = (data ?? []) as PopularRow[]
+    // audit #79: popular_search_queries RPC 가 generated types 에 없음.
+    const { data } = await (
+      supabase as unknown as {
+        rpc: (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: unknown }>
+      }
+    ).rpc('popular_search_queries', { p_days: days, p_limit: 30 })
+    popular = ((data as unknown) ?? []) as PopularRow[]
   } catch {
     /* 마이그레이션 미적용 */
   }

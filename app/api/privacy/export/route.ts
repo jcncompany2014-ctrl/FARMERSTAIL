@@ -91,9 +91,27 @@ export async function GET(req: Request) {
     supabase.from('dog_reminders').select('*').eq('user_id', user.id),
     supabase.from('addresses').select('*').eq('user_id', user.id),
     supabase.from('orders').select('*').eq('user_id', user.id),
-    supabase.from('order_items').select('*').eq('user_id', user.id),
+    // audit #79: order_items / subscription_items 는 generated types 에서
+    // user_id 컬럼 없음 (orders/subscriptions 통한 RLS). untyped cast 유지.
+    (
+      supabase as unknown as {
+        from: (t: string) => {
+          select: (cols: string) => {
+            eq: (c: string, v: string) => Promise<{ data: unknown }>
+          }
+        }
+      }
+    ).from('order_items').select('*').eq('user_id', user.id),
     supabase.from('subscriptions').select('*').eq('user_id', user.id),
-    supabase.from('subscription_items').select('*').eq('user_id', user.id),
+    (
+      supabase as unknown as {
+        from: (t: string) => {
+          select: (cols: string) => {
+            eq: (c: string, v: string) => Promise<{ data: unknown }>
+          }
+        }
+      }
+    ).from('subscription_items').select('*').eq('user_id', user.id),
     supabase.from('subscription_charges').select('*').eq('user_id', user.id),
     supabase.from('reviews').select('*').eq('user_id', user.id),
     supabase.from('wishlists').select('*').eq('user_id', user.id),

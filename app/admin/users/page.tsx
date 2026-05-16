@@ -7,7 +7,8 @@ type SearchParams = Promise<{
   q?: string
 }>
 
-function formatDate(iso: string) {
+function formatDate(iso: string | null) {
+  if (!iso) return '-'
   const d = new Date(iso)
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -132,6 +133,7 @@ export default async function AdminUsersPage({
                 </tr>
               </thead>
               <tbody>
+                {/* audit #79: generated 에서 created_at 도 nullable 추론 */}
                 {users.map((u: {
                   id: string
                   email: string | null
@@ -141,7 +143,7 @@ export default async function AdminUsersPage({
                   address: string | null
                   address_detail: string | null
                   role: string | null
-                  created_at: string
+                  created_at: string | null
                 }) => {
                   const stats = orderStats[u.id] ?? { count: 0, total: 0 }
                   return (

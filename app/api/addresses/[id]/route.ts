@@ -54,9 +54,27 @@ export async function PATCH(req: Request, { params }: Params) {
     )
   }
 
-  const payload = toDbPayload(parsed.data)
+  // audit #79: toDbPayload Record<string, unknown> vs typed insert.
+  const payload = toDbPayload(parsed.data) as Record<string, unknown>
 
-  const { data, error } = await supabase
+  const { data, error } = await (
+    supabase as unknown as {
+      from: (t: string) => {
+        update: (r: Record<string, unknown>) => {
+          eq: (c: string, v: string) => {
+            eq: (c: string, v: string) => {
+              select: (cols: string) => {
+                single: () => Promise<{
+                  data: unknown
+                  error: { message?: string } | null
+                }>
+              }
+            }
+          }
+        }
+      }
+    }
+  )
     .from('addresses')
     .update(payload)
     .eq('id', id)

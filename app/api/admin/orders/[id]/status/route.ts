@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { pushToUser } from '@/lib/push'
 import { isAdmin } from '@/lib/auth/admin'
+import { dbError } from '@/lib/api/errors'
 import {
   canTransitionOrderStatus,
   isOrderStatus,
@@ -145,16 +146,22 @@ export async function POST(
     // 되돌리기(shipping → preparing)는 드물지만 허용. 발송 타임스탬프는 남겨 둡니다.
   }
 
-  const { error: updateError } = await supabase
+  // audit #79: orders update payload schema-drift cast.
+  const { error: updateError } = await (
+    supabase as unknown as {
+      from: (t: string) => {
+        update: (r: Record<string, unknown>) => {
+          eq: (c: string, v: string) => Promise<{ error: { message?: string } | null }>
+        }
+      }
+    }
+  )
     .from('orders')
     .update(update)
     .eq('id', id)
 
   if (updateError) {
-    return NextResponse.json(
-      { code: 'UPDATE_FAILED', message: updateError.message },
-      { status: 500 }
-    )
+    return dbError(updateError, 'admin_order_status', '주문 상태 변경에 실패했어요')
   }
 
   // 5) 고객 푸시 알림 (배송 시작 · 배송 완료 · 취소). 실패해도 전환은 성공.

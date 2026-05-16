@@ -90,14 +90,28 @@ export async function GET(req: Request) {
     if (profileList.length === 0) continue
 
     // 3) 이미 알림 발송된 (user, coupon) 제외
+    // audit #79: coupon_expiry_notifications 테이블이 generated types 에 없음
+    // (마이그레이션 이후 types 미갱신) → cast 우회.
     const userIds = profileList.map((p) => p.id)
-    const { data: alreadyNotified } = await supabase
+    const { data: alreadyNotified } = await (
+      supabase as unknown as {
+        from: (t: string) => {
+          select: (cols: string) => {
+            eq: (c: string, v: string) => {
+              in: (c: string, v: string[]) => Promise<{ data: unknown }>
+            }
+          }
+        }
+      }
+    )
       .from('coupon_expiry_notifications')
       .select('user_id')
       .eq('coupon_id', coupon.id)
       .in('user_id', userIds)
     const notifiedSet = new Set(
-      ((alreadyNotified ?? []) as { user_id: string }[]).map((r) => r.user_id),
+      ((alreadyNotified as unknown as { user_id: string }[]) ?? []).map(
+        (r) => r.user_id,
+      ),
     )
 
     // 이미 사용한 사용자도 제외 — per_user_limit 도달 시.
@@ -160,13 +174,16 @@ export async function GET(req: Request) {
         tag: `coupon-expiry-${coupon.id}`,
       }).catch(() => {})
 
-      // ledger insert (멱등 — UNIQUE 제약).
-      await supabase
+      // ledger insert (멱등 — UNIQUE 제약). audit #79 table not in types.
+      await (
+        supabase as unknown as {
+          from: (t: string) => {
+            insert: (r: Record<string, unknown>) => Promise<unknown>
+          }
+        }
+      )
         .from('coupon_expiry_notifications')
         .insert({ user_id: target.id, coupon_id: coupon.id })
-        .then(() => {
-          /* swallow conflict */
-        })
     }
   }
 

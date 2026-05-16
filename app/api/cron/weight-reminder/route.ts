@@ -40,7 +40,16 @@ export async function GET(req: Request) {
   }
 
   // dogs + 각 dog 의 max(measured_at). subquery 로 단일 round-trip.
-  const { data: rows, error } = await supabase.rpc('weight_reminder_targets', {
+  // audit #79: weight_reminder_targets RPC 가 generated types 에 없음 — types
+  // 미갱신 또는 optional RPC (fallback path 존재). cast.
+  const { data: rows, error } = await (
+    supabase as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message?: string } | null }>
+    }
+  ).rpc('weight_reminder_targets', {
     cutoff_date: cutoff,
     max_rows: 200,
   })

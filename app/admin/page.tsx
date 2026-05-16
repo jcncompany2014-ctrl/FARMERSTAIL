@@ -274,13 +274,18 @@ export default async function AdminHome() {
 
   // 코호트 리텐션 — RPC. RPC 함수가 prod 에 없으면 (마이그레이션 미적용)
   // 빈 배열로 fallback. admin 가드는 RPC 자체가 함.
+  // audit #79: cohort_retention_weekly RPC 가 generated types 에 없음.
   let cohortRows: CohortRow[] = []
   try {
-    const { data: cohortData } = await supabase.rpc(
-      'cohort_retention_weekly',
-      { p_max_cohorts: 12 },
-    )
-    cohortRows = (cohortData ?? []) as CohortRow[]
+    const { data: cohortData } = await (
+      supabase as unknown as {
+        rpc: (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: unknown }>
+      }
+    ).rpc('cohort_retention_weekly', { p_max_cohorts: 12 })
+    cohortRows = ((cohortData as unknown) ?? []) as CohortRow[]
   } catch {
     /* 마이그레이션 미적용 / 권한 미확보 — UI 가 빈 상태 처리 */
   }

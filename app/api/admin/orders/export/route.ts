@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { toCsvWithBom } from '@/lib/csv'
+import { dbError } from '@/lib/api/errors'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -132,10 +133,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await query
   if (error) {
-    return NextResponse.json(
-      { error: 'query_failed', detail: error.message },
-      { status: 500 },
-    )
+    return dbError(error, 'admin_orders_export', '주문 export 조회 실패')
   }
 
   const rows = ((data ?? []) as unknown as OrderRow[]).map((o) => {

@@ -72,9 +72,23 @@ export async function POST(req: Request) {
     )
   }
 
-  const payload = toDbPayload(parsed.data, user.id)
+  // audit #79: toDbPayload Record<string, unknown> vs typed insert.
+  const payload = toDbPayload(parsed.data, user.id) as Record<string, unknown>
 
-  const { data, error } = await supabase
+  const { data, error } = await (
+    supabase as unknown as {
+      from: (t: string) => {
+        insert: (r: Record<string, unknown>) => {
+          select: (cols: string) => {
+            single: () => Promise<{
+              data: unknown
+              error: { message?: string } | null
+            }>
+          }
+        }
+      }
+    }
+  )
     .from('addresses')
     .insert(payload)
     .select(

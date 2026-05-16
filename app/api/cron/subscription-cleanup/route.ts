@@ -82,8 +82,8 @@ export async function GET(req: Request) {
       status: 'cancelled',
       // last_failed_charge_reason 컬럼 활용 — abandoned 사유 기록.
       last_failed_charge_reason: 'abandoned-billing-not-registered-7d',
-      // next_delivery_date 도 NULL — 잔존 cron 부하 ↓.
-      next_delivery_date: null,
+      // next_delivery_date 도 NULL — 잔존 cron 부하 ↓. audit #79 cast.
+      next_delivery_date: null as unknown as string,
     })
     .in('id', ids)
 

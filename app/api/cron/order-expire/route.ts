@@ -116,15 +116,22 @@ async function runOrderExpire(): Promise<Response> {
       .eq('id', ord.id)
 
     // 3) 포인트 환급 — pending 단계에서 사용한 포인트가 있으면 회수.
+    // audit #79: 테이블명 schema-drift (points_ledger vs point_ledger) cast 우회 —
+    // 별도 sprint 에서 apply_point_delta RPC 로 통일 권장.
     if (ord.points_used > 0) {
-      await supabase.from('points_ledger').insert({
-        user_id: ord.user_id,
-        delta: ord.points_used,
-        reason: '주문 만료 포인트 환급',
-        reference_type: 'order_expire',
-        reference_id: ord.id,
+      await (supabase as unknown as {
+        from: (t: string) => {
+          insert: (r: Record<string, unknown>) => Promise<unknown>
+        }
       })
-      // points_balance 함수가 ledger 합으로 계산되면 row insert 만으로 충분.
+        .from('points_ledger')
+        .insert({
+          user_id: ord.user_id,
+          delta: ord.points_used,
+          reason: '주문 만료 포인트 환급',
+          reference_type: 'order_expire',
+          reference_id: ord.id,
+        })
     }
 
     expired += 1

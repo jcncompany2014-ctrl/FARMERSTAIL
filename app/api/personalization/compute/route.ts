@@ -224,8 +224,12 @@ export async function POST(req: Request) {
   }
 
   // 4) AlgorithmInput 조립.
+  // audit #79: dog.age_value / weight / neutered / activity_level 가 generated
+  // types 에서 nullable — 필수 입력이라 default fallback.
   const ageMonths =
-    dog.age_unit === 'years' ? dog.age_value * 12 : dog.age_value
+    dog.age_unit === 'years'
+      ? (dog.age_value ?? 0) * 12
+      : dog.age_value ?? 0
   // answers JSONB 의 bcsExact 가 5점 척도 BCS. 없으면 null.
   const answers =
     (survey.answers as { bcsExact?: number; allergies?: string[] }) ?? {}
@@ -240,9 +244,10 @@ export async function POST(req: Request) {
     dogId: dog.id,
     dogName: dog.name,
     ageMonths,
-    weightKg: dog.weight,
-    neutered: dog.neutered,
-    activityLevel: dog.activity_level,
+    weightKg: dog.weight ?? 0,
+    neutered: dog.neutered ?? false,
+    activityLevel:
+      (dog.activity_level as 'low' | 'medium' | 'high' | null) ?? 'medium',
     bcs,
     allergies: Array.isArray(answers.allergies) ? answers.allergies : [],
     chronicConditions: Array.isArray(survey.chronic_conditions)

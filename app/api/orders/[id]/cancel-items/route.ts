@@ -234,7 +234,14 @@ export async function POST(
     orderUpdate.cancelled_at = nowIso
     orderUpdate.cancel_reason = reason || '고객 부분 취소 (전량)'
   }
-  await admin.from('orders').update(orderUpdate).eq('id', order.id)
+  // audit #79: orders Record<string, unknown> 호환 cast.
+  await (admin as unknown as {
+    from: (t: string) => {
+      update: (r: Record<string, unknown>) => {
+        eq: (c: string, v: string) => Promise<unknown>
+      }
+    }
+  }).from('orders').update(orderUpdate).eq('id', order.id)
 
   // refunds audit row.
   await admin.from('refunds').insert({

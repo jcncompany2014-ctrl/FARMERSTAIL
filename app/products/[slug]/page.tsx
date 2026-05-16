@@ -61,7 +61,22 @@ const getReviewAggregate = cache(
   ): Promise<{ ratingValue: number; reviewCount: number } | null> => {
     const supabase = await createClient()
     try {
-      const { data, error } = await supabase
+      // audit #79: reviews.is_published 컬럼이 generated types 에 없음 (마이그
+      // 후 types 미갱신). untyped cast.
+      const { data, error } = await (
+        supabase as unknown as {
+          from: (t: string) => {
+            select: (cols: string) => {
+              eq: (c: string, v: string) => {
+                eq: (c: string, v: boolean) => Promise<{
+                  data: unknown[] | null
+                  error: { message?: string } | null
+                }>
+              }
+            }
+          }
+        }
+      )
         .from('reviews')
         .select('rating')
         .eq('product_id', productId)
@@ -277,9 +292,11 @@ export default async function ProductDetailPage({
     <>
       <JsonLd id={`ld-product-${product.slug}`} data={productLd} />
       <JsonLd id={`ld-breadcrumb-${product.slug}`} data={breadcrumbLd} />
+      {/* audit #79: generated Product/Variant 타입과 domain 타입의 nullable
+          차이 — 그대로 prop 전달 (ProductDetailClient 내부에서 default 처리). */}
       <ProductDetailClient
-        product={product}
-        variants={variants}
+        product={product as unknown as Parameters<typeof ProductDetailClient>[0]['product']}
+        variants={variants as unknown as Parameters<typeof ProductDetailClient>[0]['variants']}
         isApp={isApp}
         longDescSlot={
           isApp ? null : (

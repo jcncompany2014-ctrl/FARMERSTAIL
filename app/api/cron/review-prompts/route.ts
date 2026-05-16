@@ -78,7 +78,15 @@ export async function GET(req: Request) {
       .maybeSingle()
     if (!profile?.email) {
       // 익명화된 사용자 — silent skip + prompted_at 으로 마킹해 재발송 차단.
-      await supabase
+      // audit #79: review_prompted_at 컬럼이 generated types 에 없음 — supabase
+      // client 자체를 untyped로 cast 해 update 통과.
+      await (supabase as unknown as {
+        from: (t: string) => {
+          update: (r: Record<string, unknown>) => {
+            eq: (c: string, v: string) => Promise<unknown>
+          }
+        }
+      })
         .from('orders')
         .update({ review_prompted_at: new Date().toISOString() })
         .eq('id', order.id)
@@ -106,8 +114,14 @@ export async function GET(req: Request) {
     }
 
     // prompted_at 마킹 — 발송 실패해도 한 번만. 사용자에게 같은 메일이 5번
-    // 가는 것보다 한 번 누락되는 게 낫다.
-    await supabase
+    // 가는 것보다 한 번 누락되는 게 낫다. audit #79 cast.
+    await (supabase as unknown as {
+      from: (t: string) => {
+        update: (r: Record<string, unknown>) => {
+          eq: (c: string, v: string) => Promise<unknown>
+        }
+      }
+    })
       .from('orders')
       .update({ review_prompted_at: new Date().toISOString() })
       .eq('id', order.id)

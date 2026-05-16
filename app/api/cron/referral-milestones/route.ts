@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { pushToUser } from '@/lib/push'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,10 +48,7 @@ async function runMilestones(): Promise<Response> {
 
   const { data, error } = await supabase.rpc('issue_referral_milestones')
   if (error) {
-    return NextResponse.json(
-      { ok: false, error: error.message },
-      { status: 500 },
-    )
+    return dbError(error, 'cron_referral_milestones', '추천 마일스톤 조회 실패')
   }
 
   const granted = (data as { granted?: number } | null)?.granted ?? 0

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { pushToUser } from '@/lib/push'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -46,10 +47,7 @@ export async function GET(req: Request) {
     .limit(MAX_PER_RUN)
 
   if (error) {
-    return NextResponse.json(
-      { ok: false, error: error.message },
-      { status: 500 },
-    )
+    return dbError(error, 'cron_dog_age_update', '강아지 나이 업데이트 실패')
   }
 
   type DogRow = {
