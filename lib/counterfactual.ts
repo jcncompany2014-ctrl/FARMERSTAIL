@@ -107,11 +107,17 @@ export function feedGramsModel(state: DogState): number {
     const result = calculateNutrition(dogInfo, surveyAnswers)
     return result.feedG
   } catch {
-    // 실 calculation 실패 시 단순 fallback (이전 모델 그대로)
+    // 실 calculation 실패 시 단순 fallback.
+    //
+    // audit #11 정합성 — BCS 1 (응급 refeeding) 은 calculateNutrition 와
+    // 동일하게 baseline 유지 (×1.15 곱셈 skip). fallback path 도 같은
+    // 보수적 정책 적용 — 호출처가 두 path 결과 차이로 혼란 X.
     const rer = 70 * Math.pow(state.weightKg, 0.75)
     let factor = state.activityFactor
     if (state.bcs >= 7) factor *= 0.85
-    if (state.bcs <= 3) factor *= 1.15
+    else if (state.bcs === 1) {
+      // BCS 1 응급 — baseline 유지 (refeeding syndrome 위험)
+    } else if (state.bcs <= 3) factor *= 1.15
     if (state.lifeStage === 'puppy') factor *= 1.4
     if (state.lifeStage === 'senior') factor *= 0.9
     if (state.neutered) factor *= 0.9
