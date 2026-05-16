@@ -107,11 +107,10 @@ export async function requireAdmin(supabase: SupabaseClient): Promise<User> {
 export type AdminAuthReason = 'UNAUTHORIZED' | 'FORBIDDEN'
 
 export class AdminAuthError extends Error {
-  constructor(
-    readonly reason: AdminAuthReason,
-    message: string
-  ) {
+  readonly reason: AdminAuthReason
+  constructor(reason: AdminAuthReason, message: string) {
     super(message)
+    this.reason = reason
     this.name = 'AdminAuthError'
   }
 }
