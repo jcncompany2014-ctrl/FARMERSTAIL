@@ -801,7 +801,7 @@ export default function CheckoutForm({
                   {it.unitPrice.toLocaleString()}원 × {it.quantity}
                 </p>
               </div>
-              <p className="text-[12px] font-black text-text whitespace-nowrap">
+              <p className="text-[12px] font-black text-text whitespace-nowrap tabular-nums">
                 {it.lineTotal.toLocaleString()}원
               </p>
             </li>

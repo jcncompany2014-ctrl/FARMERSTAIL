@@ -217,7 +217,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               />
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 min-w-[20px] h-[18px] px-1.5 rounded-full bg-terracotta text-white text-[10px] font-bold flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </Link>

@@ -332,8 +332,15 @@ export default async function DashboardPage() {
     subscription: null,
   }) as SnapshotShape
 
-  const userName =
+  // UI audit H4: email 에서 derive 한 userName 이 너무 길면 (예: 'park.jieun.kim')
+  // 28px h1 + `<br/>` 강제 줄바꿈 패턴에서 3줄로 늘어남. 12자 cap + ellipsis.
+  // profile.name (사용자 직접 입력) 은 보통 짧으니 그대로.
+  const rawUserName =
     snapshot.profile?.name || user.email?.split('@')[0] || null
+  const userName =
+    rawUserName && rawUserName.length > 12
+      ? `${rawUserName.slice(0, 12)}…`
+      : rawUserName
   const userCreatedAt = user.created_at ?? null
   const dogs = (snapshot.dogs ?? []) as DogRow[]
   const products = (prodData ?? []) as ProductRow[]

@@ -84,10 +84,12 @@ export default function SubscriptionCard({
                   key={s.id}
                   className="rounded-xl border border-rule px-4 py-3 flex flex-col gap-1.5 bg-bg-2/30"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
+                  {/* UI audit H2: 좌측 (badge + plan) flex-1 min-w-0 + truncate.
+                      긴 가격 (1,234,567원/월) 시 plan 라벨이 잘리되 layout 안 깨짐. */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0 flex items-center gap-1.5">
                       <span
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                        className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                           paused
                             ? 'bg-muted/15 text-muted'
                             : noBilling
@@ -101,11 +103,11 @@ export default function SubscriptionCard({
                             ? '카드 등록 필요'
                             : '진행중'}
                       </span>
-                      <span className="text-[11.5px] font-bold text-text">
+                      <span className="text-[11.5px] font-bold text-text truncate">
                         {s.coverage_weeks === 2 ? '2주치 · 하이브리드' : '4주치 · 풀 화식'}
                       </span>
                     </div>
-                    <span className="text-[12px] font-bold text-text font-mono whitespace-nowrap">
+                    <span className="shrink-0 text-[12px] font-bold text-text font-mono whitespace-nowrap tabular-nums">
                       {s.total_amount.toLocaleString()}원/월
                     </span>
                   </div>

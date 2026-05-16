@@ -102,10 +102,11 @@ export default function MypageClient({
               href="/account/profile"
               className="flex-1 min-w-0 group"
             >
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <div className="text-[14px] font-bold text-text truncate group-hover:text-terracotta transition">
-                  {displayName}님
-                </div>
+              {/* UI audit H1: flex-wrap 제거 — 내부 child 가 단일이라 wrap 의미 X.
+                  긴 한국어 이름 시 wrap 이 truncate 와 충돌해 tier chip 이 2번째 줄로
+                  밀려나던 issue. truncate 단독 적용으로 단순화. */}
+              <div className="text-[14px] font-bold text-text truncate group-hover:text-terracotta transition">
+                {displayName}님
               </div>
               <div className="text-[11px] text-muted truncate mt-0.5">
                 {email ?? '—'}
