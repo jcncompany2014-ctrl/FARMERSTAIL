@@ -1,34 +1,20 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+// audit #101 — /dogs/[id]/formulas server component. interactivity 0 (timeline
+// read-only). 이전 client 버전은 loading spinner + useEffect 한 번 후 render.
+// 이제 server fetch + 즉시 페인트.
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import {
   ChevronLeft,
-  Loader2,
   Heart,
   Check,
   AlertCircle,
   Sparkles,
   ArrowRight,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { Spinner } from '@/components/ui/Spinner'
+import { createClient } from '@/lib/supabase/server'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import type { FoodLine } from '@/lib/personalization/types'
 import './formulas.css'
-
-/**
- * /dogs/[id]/formulas — 강아지의 cycle 별 처방 히스토리 timeline.
- *
- * 가장 최근 cycle 위 → 첫 cycle 아래. 각 row 에 stacked bar + 핵심 reasoning
- * chip + cycle 적용 기간 + approval_status.
- *
- * # 데이터
- *   - dog_formulas (cycle_number desc) — 모든 cycle
- *   - 인접 cycle 비교는 inline (전 cycle 의 ratio 기억해 +X% 표시 가능하지만
- *     v1 은 단순 timeline)
- */
 
 type FormulaRow = {
   id: string
@@ -45,68 +31,46 @@ type FormulaRow = {
   created_at: string
 }
 
-export default function FormulasHistoryPage() {
-  const params = useParams()
-  const router = useRouter()
-  const supabase = createClient()
-  const dogId = params.id as string
+export default async function FormulasHistoryPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id: dogId } = await params
 
-  const [loading, setLoading] = useState(true)
-  const [dogName, setDogName] = useState('')
-  const [rows, setRows] = useState<FormulaRow[]>([])
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.push(`/login?next=${encodeURIComponent(`/dogs/${dogId}/formulas`)}`)
-        return
-      }
-      const [{ data: dog }, { data: formulas }] = await Promise.all([
-        supabase
-          .from('dogs')
-          .select('name')
-          .eq('id', dogId)
-          .eq('user_id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('dog_formulas')
-          .select(
-            'id, cycle_number, approval_status, formula, reasoning, ' +
-              'daily_kcal, daily_grams, applied_from, applied_until, ' +
-              'user_adjusted, algorithm_version, created_at',
-          )
-          .eq('dog_id', dogId)
-          .eq('user_id', user.id)
-          .order('cycle_number', { ascending: false }),
-      ])
-      if (cancelled) return
-      if (!dog) {
-        router.push('/dogs')
-        return
-      }
-      setDogName((dog as { name: string }).name)
-      setRows(((formulas ?? []) as unknown) as FormulaRow[])
-      setLoading(false)
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [dogId, router, supabase])
-
-  if (loading) {
-    return (
-      <main className="fh-page">
-        <div className="fh-state">
-          <Spinner size={18} />
-          박스 히스토리 불러오는 중...
-        </div>
-      </main>
-    )
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(`/dogs/${dogId}/formulas`)}`)
   }
+
+  const [{ data: dog }, { data: formulas }] = await Promise.all([
+    supabase
+      .from('dogs')
+      .select('name')
+      .eq('id', dogId)
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('dog_formulas')
+      .select(
+        'id, cycle_number, approval_status, formula, reasoning, ' +
+          'daily_kcal, daily_grams, applied_from, applied_until, ' +
+          'user_adjusted, algorithm_version, created_at',
+      )
+      .eq('dog_id', dogId)
+      .eq('user_id', user.id)
+      .order('cycle_number', { ascending: false }),
+  ])
+
+  if (!dog) {
+    redirect('/dogs')
+  }
+
+  const dogName = (dog as { name: string }).name
+  const rows = ((formulas ?? []) as unknown) as FormulaRow[]
 
   return (
     <main className="fh-page">
