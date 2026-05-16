@@ -1050,9 +1050,9 @@ export default function CheckoutForm({
         </div>
       </section>
 
-      <p className="text-[10px] md:text-[11.5px] text-muted leading-relaxed px-1">
-        주문 내용을 확인했으며, 결제 진행에 동의합니다.
-        <br />이 결제는 토스페이먼츠 테스트 모드로 진행됩니다.
+      <p className="text-[11px] md:text-[11.5px] text-muted leading-relaxed px-1">
+        주문 내용을 확인했으며, 결제를 진행할게요.
+        <br />이 결제는 토스페이먼츠 테스트 모드로 진행돼요.
       </p>
 
       {/* 데스크톱 inline 결제 버튼 */}
