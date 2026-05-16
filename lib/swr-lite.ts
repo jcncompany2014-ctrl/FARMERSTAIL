@@ -1,14 +1,19 @@
 /**
  * SWR-lite — react-query 없이 가벼운 dedup + cache + revalidation (audit #103).
  *
- * react-query (~25KB gzipped) 도입 대신 50줄 헬퍼로 가장 흔한 needs 충족:
+ * react-query (~25KB gzipped) 도입 **거절** — 이 50줄 헬퍼로 흔한 needs 충족:
  *   - 같은 key 동시 호출 dedup (Map<key, Promise>)
  *   - staleTime 동안 cache 재사용
  *   - 'ft:cache:invalidate' window event 로 강제 무효화
  *   - visibilitychange 시 자동 revalidate (선택)
  *
- * 본격적인 query/mutation/optimistic update 가 필요해지면 react-query 도입
- * sprint — 그때 이 헬퍼 호출처를 useQuery 로 마이그.
+ * # 결정 근거 (2026-05-16)
+ * - 솔로 창업자 단계 → 25KB 추가 의존성은 부담
+ * - 본 앱은 RSC 전환 진행 중 — 서버 fetch 가 70% 이상 처리 (audit #101)
+ * - useQuery 의 mutation/optimistic update 필요 surface 거의 없음
+ *   (대부분 server form submission)
+ * - 필요 시점에 마이그: SWR-lite 호출처를 useQuery 로 변경
+ *   현재 호출처: 없음 (RSC 가 dedup 대체). 기능 보존용 lib 만 유지.
  *
  * # 사용
  *   const cache = createSwrCache()

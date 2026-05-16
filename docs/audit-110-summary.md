@@ -187,6 +187,11 @@
 ## 🔑 commit log (audit-110 작업 전체)
 
 ```
+242f028  (main) 페이지 9개 RSC 전환 (dogs/[id], mypage, edit, approve, formulas,
+         analyses/[id], dogs/new, mypage/subscriptions, notifications)
+a10d4f8  survey 8 step 컴포넌트 분할 (SurveyClient 2061 → 885줄)
+82ad5f6  noUncheckedIndexedAccess 활성화 + 265 batch fix
+9e2215b  browser supabase client Database generic 활성화 + 30 fix
 e082406  checkin page server wrapper
 fe64579  noUncheckedIndexedAccess lib/ 일부 fix
 4721c79  admin + server Database generic 활성화 + 42 fix
