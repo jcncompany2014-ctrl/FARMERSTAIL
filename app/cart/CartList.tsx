@@ -78,16 +78,19 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
   }
 
   async function removeItem(id: string) {
-    if (!confirm('이 상품을 장바구니에서 뺄까요?')) return
-
+    // UX audit #8: window.confirm → optimistic remove + toast undo.
+    // 사용자 1번 클릭으로 즉시 삭제, 4초 동안 '되돌리기' 버튼 — 실수 회복 가능.
     setBusyId(id)
     const prev = items
+    const removed = items.find((i) => i.id === id)
+    if (!removed) return
     setItems((p) => p.filter((i) => i.id !== id))
 
     const {
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
+      toast.warning('로그인이 필요해요')
       router.push('/login')
       return
     }
@@ -105,6 +108,26 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
       setItems(prev)
       return
     }
+    toast.success('장바구니에서 뺐어요', {
+      action: {
+        label: '되돌리기',
+        onClick: async () => {
+          // 다시 cart_items insert. 실패 시 toast.error.
+          const { error: insErr } = await supabase
+            .from('cart_items')
+            .insert({
+              user_id: user.id,
+              product_id: removed.product.id,
+              quantity: removed.quantity,
+            })
+          if (insErr) {
+            toast.error('되돌리지 못했어요. 다시 추가해 주세요')
+            return
+          }
+          startTransition(() => router.refresh())
+        },
+      },
+    })
     startTransition(() => router.refresh())
   }
 

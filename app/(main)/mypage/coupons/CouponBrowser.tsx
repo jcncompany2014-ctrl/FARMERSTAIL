@@ -112,7 +112,13 @@ export default function CouponBrowser({
       await navigator.clipboard.writeText(c)
       setCopied(c)
       setTimeout(() => setCopied(null), 1500)
-      toast.success('코드를 복사했어요')
+      // UX audit #16: 복사 후 "장바구니로" action — 사용자가 다음 단계 알게.
+      toast.success('코드를 복사했어요', {
+        action: {
+          label: '장바구니로',
+          onClick: () => router.push('/cart'),
+        },
+      })
     } catch {
       toast.error('복사하지 못했어요')
     }
