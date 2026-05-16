@@ -504,7 +504,7 @@ export function detectChronicFromMedications(text: string): DrugMatch[] {
     results.push({
       condition,
       label,
-      keyword: keywords[0],
+      keyword: keywords[0]!,
       keywords,
     })
   }

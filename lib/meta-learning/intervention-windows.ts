@@ -139,7 +139,7 @@ export function longTermOutcomeScore(
   if (!isInventionEnabled('meta_learning')) return 0
   if (bcsByWeek.length === 0) return 0
   // 마지막 시점의 BCS 가 targetBcs 에 가까울수록 +
-  const last = bcsByWeek[bcsByWeek.length - 1]
+  const last = bcsByWeek[bcsByWeek.length - 1]!
   const distance = Math.abs(last.bcs - targetBcs)
   // 0 거리 = 1.0, 4+ 거리 = 0
   return Math.max(0, 1 - distance / 4)

@@ -30,8 +30,8 @@ export default function WeightSparkline({ logs }: { logs: WeightLog[] }) {
     return { x, y, v: s.weight }
   })
   const polyline = points.map((p) => `${p.x},${p.y}`).join(' ')
-  const area = `${points[0].x},${H} ${polyline} ${points[points.length - 1].x},${H}`
-  const last = points[points.length - 1]
+  const area = `${points[0]!.x},${H} ${polyline} ${points[points.length - 1]!.x},${H}`
+  const last = points[points.length - 1]!
 
   return (
     <div className="relative">

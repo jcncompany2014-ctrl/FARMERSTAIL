@@ -81,7 +81,7 @@ export default function AccuracyBreakdown({
   if (variables.length === 0) return null
 
   // 가장 약한 변수 1개 찾기 (점수 < 0.7 일 때만)
-  const weakest = [...variables].sort((a, b) => a.score - b.score)[0]
+  const weakest = [...variables].sort((a, b) => a.score - b.score)[0]!
   const showWeakHighlight = weakest.score < 0.7
 
   return (

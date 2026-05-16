@@ -158,7 +158,7 @@ export default function DogDetailPage() {
         .eq('id', user.id)
         .maybeSingle()
         .then((res: { data: { name?: string | null } | null }) => {
-          const fallback = user.email ? user.email.split('@')[0] : null
+          const fallback = user.email ? user.email.split('@')[0] ?? null : null
           setOwnerName(res.data?.name ?? fallback)
         })
 

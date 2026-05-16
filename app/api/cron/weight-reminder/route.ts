@@ -132,7 +132,7 @@ export async function GET(req: Request) {
           body,
           url:
             dogs.length === 1
-              ? `/dogs/${dogs[0].id}`
+              ? `/dogs/${dogs[0]!.id}`
               : '/dogs',
         },
         { category: 'order' }, // PushCategory 'order' 재사용 (기존 카테고리 유지)

@@ -34,7 +34,7 @@ describe('normalize', () => {
     assert.equal(r.weightKg, 5.2)
     assert.deepEqual(r.diagnosis, ['아토피 피부염'])
     assert.equal(r.medications.length, 1)
-    assert.equal(r.medications[0].name, '사이클로스포린')
+    assert.equal(r.medications[0]!.name, '사이클로스포린')
     assert.equal(r.confidence, 0.85)
   })
 
@@ -67,8 +67,8 @@ describe('normalize', () => {
       ],
     })
     assert.equal(r.medications.length, 2)
-    assert.equal(r.medications[0].name, 'A')
-    assert.equal(r.medications[1].name, 'B')
-    assert.equal(r.medications[1].dosage, null)
+    assert.equal(r.medications[0]!.name, 'A')
+    assert.equal(r.medications[1]!.name, 'B')
+    assert.equal(r.medications[1]!.dosage, null)
   })
 })

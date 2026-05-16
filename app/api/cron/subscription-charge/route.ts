@@ -494,8 +494,8 @@ async function runSubscriptionCharge(): Promise<Response> {
             itemsArr.length === 0
               ? '정기배송 상품'
               : itemsArr.length === 1
-                ? itemsArr[0].product_name
-                : `${itemsArr[0].product_name} 외 ${itemsArr.length - 1}개`
+                ? itemsArr[0]!.product_name
+                : `${itemsArr[0]!.product_name} 외 ${itemsArr.length - 1}개`
           await notifySubscriptionChargeFailed({
             email: profile.email,
             name: profile.name ?? null,

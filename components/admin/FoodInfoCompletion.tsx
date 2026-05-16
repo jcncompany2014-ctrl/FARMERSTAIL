@@ -147,7 +147,7 @@ export default function FoodInfoCompletion({
       </div>
 
       {/* 누락 가장 많은 항목 Top 3 */}
-      {missingByField[0]?.missing > 0 && (
+      {(missingByField[0]?.missing ?? 0) > 0 && (
         <div className="mt-5">
           <p className="text-[11px] font-bold text-muted uppercase tracking-wider mb-2">
             가장 많이 빠진 항목

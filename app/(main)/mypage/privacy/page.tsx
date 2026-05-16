@@ -68,10 +68,10 @@ export default async function PrivacyDashboardPage() {
           }
         }
       )
-        .from(table)
+        .from(table!)
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-      return { label, count: count ?? 0 }
+      return { label: label!, count: count ?? 0 }
     }),
   )
 

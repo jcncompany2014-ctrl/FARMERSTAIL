@@ -27,8 +27,8 @@ describe('parseMedicalRecord — normalize edge cases', () => {
       medications: [{ name: '아포퀠' }],
     })
     assert.equal(r.medications.length, 1)
-    assert.equal(r.medications[0].dosage, null)
-    assert.equal(r.medications[0].frequency, null)
+    assert.equal(r.medications[0]!.dosage, null)
+    assert.equal(r.medications[0]!.frequency, null)
   })
 
   it('visitDate 비-string → null', () => {

@@ -336,8 +336,8 @@ export default function AdminCollectionsClient({
     const swapWith = direction === 'up' ? idx - 1 : idx + 1
     if (swapWith < 0 || swapWith >= list.length) return
 
-    const a = list[idx]
-    const b = list[swapWith]
+    const a = list[idx]!
+    const b = list[swapWith]!
 
     // position 두 행을 swap. 동시 update 가 안 되니 sequential 로 처리.
     const { error: e1 } = await supabase

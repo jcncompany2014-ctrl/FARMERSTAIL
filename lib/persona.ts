@@ -136,8 +136,8 @@ export function computePersona(input: PersonaInput): PersonaResult {
   const sorted = (Object.entries(scores) as Array<[Persona, number]>).sort(
     (a, b) => b[1] - a[1],
   )
-  const [topName, topScore] = sorted[0]
-  const [secondName, secondScore] = sorted[1]
+  const [topName, topScore] = sorted[0]!
+  const [secondName, secondScore] = sorted[1]!
   const dominant = topScore >= THRESHOLD ? topName : null
   const secondary =
     dominant && secondScore >= THRESHOLD ? secondName : null

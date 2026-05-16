@@ -96,7 +96,7 @@ export default async function AdminPersonalizationPage() {
     Record<number, { week_2: number; week_4: number }>
   >((acc, r) => {
     acc[r.cycle_number] ??= { week_2: 0, week_4: 0 }
-    acc[r.cycle_number][r.checkpoint] += 1
+    acc[r.cycle_number]![r.checkpoint] += 1
     return acc
   }, {})
 

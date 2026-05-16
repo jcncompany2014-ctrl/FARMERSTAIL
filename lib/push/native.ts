@@ -95,15 +95,15 @@ function generateApnsJwt(): string | null {
  */
 function derToJose(der: Buffer): Buffer | null {
   // SEQUENCE { INTEGER r, INTEGER s }
-  if (der[0] !== 0x30) return null
+  if (der.length < 8 || der[0] !== 0x30) return null
   let offset = 2
-  if (der[1] & 0x80) offset = 2 + (der[1] & 0x7f) // 긴 length
+  if ((der[1] ?? 0) & 0x80) offset = 2 + ((der[1] ?? 0) & 0x7f) // 긴 length
   if (der[offset] !== 0x02) return null
-  const rLen = der[offset + 1]
+  const rLen = der[offset + 1] ?? 0
   const r = der.subarray(offset + 2, offset + 2 + rLen)
   offset = offset + 2 + rLen
   if (der[offset] !== 0x02) return null
-  const sLen = der[offset + 1]
+  const sLen = der[offset + 1] ?? 0
   const s = der.subarray(offset + 2, offset + 2 + sLen)
 
   const out = Buffer.alloc(64)

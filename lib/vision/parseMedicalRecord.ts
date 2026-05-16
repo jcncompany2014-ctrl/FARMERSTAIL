@@ -89,8 +89,8 @@ export async function parseMedicalRecord(
   let base64Data: string
   const m = /^data:([^;]+);base64,(.*)$/.exec(imageDataUrl)
   if (m) {
-    mediaType = m[1]
-    base64Data = m[2]
+    mediaType = m[1]!
+    base64Data = m[2]!
   } else {
     // mime 모르면 png 로 가정 (Anthropic 도 fallback). 실패하면 error 응답.
     mediaType = 'image/jpeg'

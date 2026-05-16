@@ -127,7 +127,7 @@ export function matchMedicationFromOcr(
   for (const m of MEDICATIONS) {
     if (
       cleaned.includes(m.name.toLowerCase()) ||
-      (m.generic && cleaned.includes(m.generic.toLowerCase().split(' ')[0]))
+      (m.generic && cleaned.includes(m.generic.toLowerCase().split(' ')[0]!))
     ) {
       return m
     }

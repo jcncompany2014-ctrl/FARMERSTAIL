@@ -154,7 +154,7 @@ export async function GET(req: Request) {
           r.user_id,
           {
             title: '새 분석을 받아볼까요?',
-            body: reasonText[firstReason] ?? '식단을 다시 점검할 시기예요',
+            body: (firstReason ? reasonText[firstReason] : undefined) ?? '식단을 다시 점검할 시기예요',
             url: `/dogs/${r.dog_id}/survey`,
           },
           { category: 'order' }, // 정보성 — 빈도 제한 X

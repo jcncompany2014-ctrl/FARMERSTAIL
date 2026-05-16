@@ -103,15 +103,15 @@ describe('buildBreadcrumbJsonLd', () => {
       { name: '제품', path: '/products' },
     ])
     assert.equal(ld.itemListElement.length, 2)
-    assert.equal(ld.itemListElement[0].item, `${SITE_URL}/`)
-    assert.equal(ld.itemListElement[1].item, `${SITE_URL}/products`)
+    assert.equal(ld.itemListElement[0]!.item, `${SITE_URL}/`)
+    assert.equal(ld.itemListElement[1]!.item, `${SITE_URL}/products`)
   })
 
   it('leaves absolute URLs untouched', () => {
     const ld = buildBreadcrumbJsonLd([
       { name: '외부', path: 'https://example.com/x' },
     ])
-    assert.equal(ld.itemListElement[0].item, 'https://example.com/x')
+    assert.equal(ld.itemListElement[0]!.item, 'https://example.com/x')
   })
 
   it('numbers positions starting from 1', () => {

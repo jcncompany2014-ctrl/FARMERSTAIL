@@ -139,7 +139,7 @@ describe('applyConsentToTrackers', () => {
     })
 
     assert.equal(gtag.mock.callCount(), 1)
-    assert.deepEqual(gtag.mock.calls[0].arguments, [
+    assert.deepEqual(gtag.mock.calls[0]!.arguments, [
       'consent',
       'update',
       {
@@ -163,7 +163,7 @@ describe('applyConsentToTrackers', () => {
       decidedAt: '2026-01-01T00:00:00Z',
     })
     assert.equal(fbq.mock.callCount(), 1)
-    assert.deepEqual(fbq.mock.calls[0].arguments, ['consent', 'grant'])
+    assert.deepEqual(fbq.mock.calls[0]!.arguments, ['consent', 'grant'])
   })
 
   it('is a no-op when trackers are not loaded', () => {

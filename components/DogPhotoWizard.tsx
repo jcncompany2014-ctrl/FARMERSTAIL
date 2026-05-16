@@ -133,6 +133,7 @@ export default function DogPhotoWizard({
   if (!open) return null
 
   const current = STEPS[step]
+  if (!current) return null
   const captured = photos[step]?.dataUrl
 
   return (

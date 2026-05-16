@@ -225,14 +225,14 @@ export const TIERS: TierMeta[] = [
 ]
 
 export function tierMeta(key: string | null | undefined): TierMeta {
-  return TIERS.find((t) => t.key === key) ?? TIERS[0]
+  return TIERS.find((t) => t.key === key) ?? TIERS[0]!
 }
 
 /** 다음 등급 정보 (이미 최고면 null). progress bar 용. */
 export function nextTier(key: string | null | undefined): TierMeta | null {
   const idx = TIERS.findIndex((t) => t.key === key)
   if (idx < 0 || idx === TIERS.length - 1) return null
-  return TIERS[idx + 1]
+  return TIERS[idx + 1] ?? null
 }
 
 /** 다음 등급까지 남은 금액 (이미 최고면 0). */

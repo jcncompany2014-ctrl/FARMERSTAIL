@@ -90,7 +90,7 @@ export function computeStreak(rows: CheckinRow[] | null | undefined): StreakInfo
   const GAP_TOLERANCE = 1
   let current = 1
   for (let i = cycles.length - 1; i > 0; i -= 1) {
-    const diff = cycles[i] - cycles[i - 1]
+    const diff = cycles[i]! - cycles[i - 1]!
     if (diff >= 1 && diff <= GAP_TOLERANCE + 1) {
       current += 1
     } else {
@@ -102,7 +102,7 @@ export function computeStreak(rows: CheckinRow[] | null | undefined): StreakInfo
   let longest = 1
   let run = 1
   for (let i = 1; i < cycles.length; i += 1) {
-    const diff = cycles[i] - cycles[i - 1]
+    const diff = cycles[i]! - cycles[i - 1]!
     if (diff >= 1 && diff <= GAP_TOLERANCE + 1) {
       run += 1
       if (run > longest) longest = run

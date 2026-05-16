@@ -409,7 +409,7 @@ function MySubscriptionsPageInner() {
         ) : (
           <div className="mt-4 space-y-3">
             {subs.map((sub) => {
-              const status = STATUS_MAP[sub.status] || STATUS_MAP.active
+              const status = STATUS_MAP[sub.status] || STATUS_MAP.active!
               const isActive = sub.status === 'active'
               const isPaused = sub.status === 'paused'
               const isCancelled = sub.status === 'cancelled'

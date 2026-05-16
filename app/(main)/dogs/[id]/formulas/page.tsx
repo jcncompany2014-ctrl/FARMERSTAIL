@@ -198,9 +198,9 @@ function FormulaCard({
         <MiniBar lineRatios={row.formula.lineRatios} />
 
         <div className="fh-legend">
-          {ALL_LINES.filter((l) => row.formula.lineRatios[l] > 0)
+          {ALL_LINES.filter((l) => (row.formula.lineRatios[l] ?? 0) > 0)
             .sort(
-              (a, b) => row.formula.lineRatios[b] - row.formula.lineRatios[a],
+              (a, b) => (row.formula.lineRatios[b] ?? 0) - (row.formula.lineRatios[a] ?? 0),
             )
             .map((line) => (
               <span key={line} className="fh-legend-item">
@@ -212,7 +212,7 @@ function FormulaCard({
                   {FOOD_LINE_META[line as FoodLine].name}
                 </span>
                 <span className="fh-legend-pct">
-                  {Math.round(row.formula.lineRatios[line] * 100)}%
+                  {Math.round((row.formula.lineRatios[line] ?? 0) * 100)}%
                 </span>
               </span>
             ))}
@@ -299,15 +299,15 @@ function FormulaCard({
 function MiniBar({ lineRatios }: { lineRatios: Record<string, number> }) {
   return (
     <div className="fh-bar">
-      {ALL_LINES.filter((l) => lineRatios[l] > 0).map((line) => (
+      {ALL_LINES.filter((l) => (lineRatios[l] ?? 0) > 0).map((line) => (
         <i
           key={line}
           style={{
-            width: `${Math.round(lineRatios[line] * 100)}%`,
+            width: `${Math.round((lineRatios[line] ?? 0) * 100)}%`,
             background: FOOD_LINE_META[line as FoodLine].color,
           }}
           title={`${FOOD_LINE_META[line as FoodLine].name} ${Math.round(
-            lineRatios[line] * 100,
+            (lineRatios[line] ?? 0) * 100,
           )}%`}
         />
       ))}

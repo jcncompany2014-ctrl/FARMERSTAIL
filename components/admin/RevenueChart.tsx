@@ -31,7 +31,7 @@ function formatKRW(n: number): string {
 
 function shortDate(iso: string): string {
   const [, m, d] = iso.split('-')
-  return `${parseInt(m, 10)}.${parseInt(d, 10)}`
+  return `${parseInt(m ?? '0', 10)}.${parseInt(d ?? '0', 10)}`
 }
 
 export default function RevenueChart({
@@ -78,7 +78,7 @@ export default function RevenueChart({
   // 어제까지 합계 / 평균
   const total = data.reduce((s, p) => s + p.revenue, 0)
   const avg = Math.round(total / data.length)
-  const lastPoint = data[data.length - 1]
+  const lastPoint = data[data.length - 1]!
 
   return (
     <div className="rounded-2xl bg-white border border-rule p-5 md:p-6">
@@ -91,7 +91,7 @@ export default function RevenueChart({
         </div>
         <div className="text-right">
           <div className="text-[10px] text-muted font-mono">
-            {data[0].date} ~ {lastPoint.date}
+            {data[0]!.date} ~ {lastPoint.date}
           </div>
           <div className="text-[16px] md:text-[20px] font-bold text-ink font-mono tabular-nums">
             {lastPoint.revenue.toLocaleString('ko-KR')}원
@@ -172,7 +172,7 @@ export default function RevenueChart({
             fill="#7B6F5C"
             fontFamily="JetBrains Mono, monospace"
           >
-            {shortDate(data[i].date)}
+            {shortDate(data[i]!.date)}
           </text>
         ))}
       </svg>

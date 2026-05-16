@@ -244,15 +244,15 @@ export default function AdjustSheet({
     setErr(null)
     try {
       const lineRatios = {
-        basic: ratios.basic / 100,
-        weight: ratios.weight / 100,
-        skin: ratios.skin / 100,
-        premium: ratios.premium / 100,
-        joint: ratios.joint / 100,
+        basic: (ratios.basic ?? 0) / 100,
+        weight: (ratios.weight ?? 0) / 100,
+        skin: (ratios.skin ?? 0) / 100,
+        premium: (ratios.premium ?? 0) / 100,
+        joint: (ratios.joint ?? 0) / 100,
       }
       const toppers = {
-        vegetable: ratios.vegetable / 100,
-        protein: ratios.protein / 100,
+        vegetable: (ratios.vegetable ?? 0) / 100,
+        protein: (ratios.protein ?? 0) / 100,
       }
       const res = await fetch('/api/personalization/adjust', {
         method: 'POST',

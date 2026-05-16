@@ -176,9 +176,9 @@ function buildContextCard(opts: {
   if (opts.dogs.length > 0) {
     return {
       enLabel: 'FAMILY',
-      primary: opts.dogs[0].name,
+      primary: opts.dogs[0]!.name,
       tone: 'terracotta',
-      href: `/dogs/${opts.dogs[0].id}`,
+      href: `/dogs/${opts.dogs[0]!.id}`,
     }
   }
   return {
@@ -426,8 +426,8 @@ export default async function DashboardPage() {
             items.length === 0
               ? '정기배송'
               : items.length === 1
-                ? items[0].product_name
-                : `${items[0].product_name} 외 ${items.length - 1}개`
+                ? items[0]!.product_name
+                : `${items[0]!.product_name} 외 ${items.length - 1}개`
           return { daysUntil: days, productLabel }
         })()
       : null

@@ -504,34 +504,34 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   }
 
   if (answers.healthConcerns.includes('피부/털')) {
-    daily.omega3.val *= 1.5
-    daily.omega6.val *= 1.2
-    daily.zinc.val *= 1.3
+    daily.omega3!.val *= 1.5
+    daily.omega6!.val *= 1.2
+    daily.zinc!.val *= 1.3
   }
-  if (answers.healthConcerns.includes('관절')) daily.omega3.val *= 1.5
-  if (answers.healthConcerns.includes('신장')) daily.phosphorus.val *= 0.7
+  if (answers.healthConcerns.includes('관절')) daily.omega3!.val *= 1.5
+  if (answers.healthConcerns.includes('신장')) daily.phosphorus!.val *= 0.7
 
   // v2: 만성질환 micro factors 적용 (가장 보수적인 값 사용 — 위 microFactors 가
   // 이미 min/max 로 결합됨).
-  if (microFactors.phosphorus !== undefined) daily.phosphorus.val *= microFactors.phosphorus
-  if (microFactors.omega3 !== undefined) daily.omega3.val *= microFactors.omega3
-  if (microFactors.omega6 !== undefined) daily.omega6.val *= microFactors.omega6
-  if (microFactors.zinc !== undefined) daily.zinc.val *= microFactors.zinc
-  if (microFactors.calcium !== undefined) daily.calcium.val *= microFactors.calcium
+  if (microFactors.phosphorus !== undefined) daily.phosphorus!.val *= microFactors.phosphorus
+  if (microFactors.omega3 !== undefined) daily.omega3!.val *= microFactors.omega3
+  if (microFactors.omega6 !== undefined) daily.omega6!.val *= microFactors.omega6
+  if (microFactors.zinc !== undefined) daily.zinc!.val *= microFactors.zinc
+  if (microFactors.calcium !== undefined) daily.calcium!.val *= microFactors.calcium
 
   // 모질·피부 condition (v2)
   if (answers.coatCondition === 'dull' || answers.coatCondition === 'shedding') {
-    daily.omega3.val *= 1.3
-    daily.zinc.val *= 1.2
+    daily.omega3!.val *= 1.3
+    daily.zinc!.val *= 1.2
   } else if (answers.coatCondition === 'itchy' || answers.coatCondition === 'lesions') {
-    daily.omega3.val *= 1.5
-    daily.zinc.val *= 1.3
+    daily.omega3!.val *= 1.5
+    daily.zinc!.val *= 1.3
     riskFlags.push('SKIN_BARRIER_COMPROMISED')
   }
 
-  for (const k in daily) daily[k].val = +daily[k].val.toFixed(2)
+  for (const k in daily) daily[k]!.val = +daily[k]!.val.toFixed(2)
 
-  const caPRatio = (daily.calcium.val / daily.phosphorus.val).toFixed(1)
+  const caPRatio = (daily.calcium!.val / daily.phosphorus!.val).toFixed(1)
 
   return {
     rer: Math.round(RER),

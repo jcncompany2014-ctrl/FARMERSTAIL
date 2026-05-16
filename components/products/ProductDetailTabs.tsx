@@ -52,8 +52,8 @@ export default function ProductDetailTabs({ tabs }: { tabs: PdpTab[] }) {
         const visible = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-        if (visible.length > 0 && visible[0].target.id) {
-          setActive(visible[0].target.id)
+        if (visible.length > 0 && visible[0]!.target.id) {
+          setActive(visible[0]!.target.id)
         }
       },
       {

@@ -100,6 +100,7 @@ export default function OnboardingTutorial() {
   if (hidden) return null
 
   const current = STEPS[step]
+  if (!current) return null
   const Icon = current.Icon
 
   return (

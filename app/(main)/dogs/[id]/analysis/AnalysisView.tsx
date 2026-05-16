@@ -652,8 +652,8 @@ function TrendRow({
   format: (v: number) => string
   color: string
 }) {
-  const first = values[0]
-  const last = values[values.length - 1]
+  const first = values[0]!
+  const last = values[values.length - 1]!
   const delta = last - first
   const deltaSign =
     delta === 0
@@ -679,9 +679,9 @@ function TrendRow({
   const path = pts
     .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
     .join(' ')
-  const areaPath = `${path} L ${pts[pts.length - 1].x.toFixed(1)} ${
+  const areaPath = `${path} L ${pts[pts.length - 1]!.x.toFixed(1)} ${
     H - PAD
-  } L ${pts[0].x.toFixed(1)} ${H - PAD} Z`
+  } L ${pts[0]!.x.toFixed(1)} ${H - PAD} Z`
 
   return (
     <div>

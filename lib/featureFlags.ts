@@ -106,6 +106,13 @@ export function pickVariant(
   }
   // 부동소수점 끝자락 — 마지막 variant fallback.
   const last = flag.variants[flag.variants.length - 1]
+  if (!last) {
+    return {
+      enabled: true,
+      variant: flag.default_variant,
+      payload: defaultPayload(flag),
+    }
+  }
   return {
     enabled: true,
     variant: last.key,

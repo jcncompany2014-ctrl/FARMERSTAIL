@@ -497,30 +497,38 @@ function LogRow({
 }) {
   const [open, setOpen] = useState(false)
   const chips: { key: string; color: string; label: string }[] = []
-  if (log.poop_quality)
-    chips.push({
+  if (log.poop_quality) {
+    const entry = POOP_LABEL[log.poop_quality]
+    if (entry) chips.push({
       key: 'poop',
-      color: POOP_LABEL[log.poop_quality].color,
-      label: `변 ${POOP_LABEL[log.poop_quality].label}`,
+      color: entry.color,
+      label: `변 ${entry.label}`,
     })
-  if (log.activity_level)
-    chips.push({
+  }
+  if (log.activity_level) {
+    const entry = ACTIVITY_LABEL[log.activity_level]
+    if (entry) chips.push({
       key: 'activity',
-      color: ACTIVITY_LABEL[log.activity_level].color,
-      label: `활동 ${ACTIVITY_LABEL[log.activity_level].label}`,
+      color: entry.color,
+      label: `활동 ${entry.label}`,
     })
-  if (log.mood)
-    chips.push({
+  }
+  if (log.mood) {
+    const entry = MOOD_LABEL[log.mood]
+    if (entry) chips.push({
       key: 'mood',
-      color: MOOD_LABEL[log.mood].color,
-      label: `기분 ${MOOD_LABEL[log.mood].label}`,
+      color: entry.color,
+      label: `기분 ${entry.label}`,
     })
-  if (log.appetite)
-    chips.push({
+  }
+  if (log.appetite) {
+    const entry = APPETITE_LABEL[log.appetite]
+    if (entry) chips.push({
       key: 'appetite',
-      color: APPETITE_LABEL[log.appetite].color,
-      label: `식욕 ${APPETITE_LABEL[log.appetite].label}`,
+      color: entry.color,
+      label: `식욕 ${entry.label}`,
     })
+  }
 
   return (
     <li className="bg-white rounded-xl border border-rule px-4 py-3">

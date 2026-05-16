@@ -117,7 +117,7 @@ export default function OngoingEvents({
   // hooks 이후의 early return — 컨텐츠 없으면 섹션 자체를 렌더하지 않는다.
   if (events.length === 0) return null
 
-  const active = events[idx] ?? events[0]
+  const active = events[idx] ?? events[0]!
 
   return (
     <section

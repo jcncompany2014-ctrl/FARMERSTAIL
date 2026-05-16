@@ -385,7 +385,7 @@ function TierChip({ tier }: { tier: string }) {
     gold: { label: 'GOLD', bg: '#D4A94A', ink: '#1E1A14' },
     vip: { label: 'VIP', bg: '#1E1A14', ink: '#D4A94A' },
   }
-  const m = meta[tier] ?? meta.bronze
+  const m = meta[tier] ?? meta.bronze!
   return (
     <span
       className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded font-mono"

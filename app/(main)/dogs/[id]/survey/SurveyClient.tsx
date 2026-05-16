@@ -573,14 +573,14 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       setTimeout(() => saveAndGoResult(), 2800)
       return
     }
-    if (idx < STEPS.length - 1) setCurrentStep(STEPS[idx + 1])
+    if (idx < STEPS.length - 1) setCurrentStep(STEPS[idx + 1]!)
   }
 
   function goPrev() {
     const idx = STEPS.indexOf(currentStep)
     if (idx > 0) {
       setErr('')
-      setCurrentStep(STEPS[idx - 1])
+      setCurrentStep(STEPS[idx - 1]!)
     }
   }
 
@@ -618,7 +618,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       .filter(Boolean)
 
     const answers: SurveyAnswers = {
-      bodyCondition: bodyMap[bcs ?? 5],
+      bodyCondition: bodyMap[bcs ?? 5]!,
       allergies,
       healthConcerns: legacyHealthConcerns,
       foodType,
@@ -1105,7 +1105,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
                 const active = bristol === s
                 const view = STOOL_VIEW[s]
                 const Icon = view.Icon
-                const meta = BRISTOL_INTERPRETATION[s]
+                const meta = BRISTOL_INTERPRETATION[s]!
                 return (
                   <button
                     key={s}

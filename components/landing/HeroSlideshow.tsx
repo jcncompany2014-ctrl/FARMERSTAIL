@@ -181,7 +181,7 @@ export default function HeroSlideshow() {
                 letterSpacing: '-0.01em',
               }}
             >
-              {SLIDES[idx].ko}
+              {SLIDES[idx]?.ko}
             </span>
             <span
               className="font-serif text-[12px] md:text-[15px] ml-1.5"
@@ -189,7 +189,7 @@ export default function HeroSlideshow() {
                 color: 'var(--muted)',
               }}
             >
-              — {SLIDES[idx].caption}
+              — {SLIDES[idx]?.caption}
             </span>
           </div>
           <div

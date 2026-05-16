@@ -47,13 +47,13 @@ export function epsilonGreedy<T>(
     return arms[0] ?? null
   }
   if (arms.length === 0) return null
-  if (arms.length === 1) return arms[0]
+  if (arms.length === 1) return arms[0]!
 
   const eps = Math.max(0, Math.min(1, epsilon))
   if (random() < eps) {
     // explore — 무작위
     const idx = Math.floor(random() * arms.length)
-    return arms[Math.min(idx, arms.length - 1)]
+    return arms[Math.min(idx, arms.length - 1)]!
   }
   // [B7 fix] exploit — Optimistic Initial Value.
   // 이전: trials=0 새 arm 은 mean=0 → 영원히 explore 시 들어가야만 시도됨.
@@ -72,10 +72,10 @@ export function epsilonGreedy<T>(
   }
   const EPS = 1e-9
   const ties = arms.filter((a) => Math.abs(meanOf(a) - bestMean) < EPS)
-  if (ties.length === 1) return ties[0]
+  if (ties.length === 1) return ties[0]!
   // tie 시 무작위 (균등) — 같은 mean 의 arm 들에 공정한 기회.
   const idx = Math.floor(random() * ties.length)
-  return ties[Math.min(idx, ties.length - 1)]
+  return ties[Math.min(idx, ties.length - 1)]!
 }
 
 /**

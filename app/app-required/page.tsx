@@ -213,7 +213,7 @@ function eunNeun(word: string): '은' | '는' {
 }
 
 function friendlyLabel(path: string): string | null {
-  const clean = path.split('?')[0]
+  const clean = path.split('?')[0] ?? ''
   if (clean === '/dashboard') return '홈 대시보드'
   if (clean.startsWith('/dogs')) return '강아지 정보'
   if (clean === '/welcome') return '앱 시작 화면'

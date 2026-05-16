@@ -189,7 +189,7 @@ export default async function CollectionsPage() {
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {collections.map((c, i) => {
               const pal =
-                PALETTE[c.palette ?? 'ink'] ?? PALETTE.ink
+                PALETTE[c.palette ?? 'ink'] ?? PALETTE.ink!
               const num = String(i + 1).padStart(2, '0')
               return (
                 <li key={c.id}>

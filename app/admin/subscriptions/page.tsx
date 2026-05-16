@@ -78,7 +78,7 @@ export default function AdminSubscriptionsPage() {
   }
 
   // 필터링
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toISOString().split('T')[0] ?? ''
   const filtered = subs.filter((s) => {
     // 탭 필터
     if (tab === 'upcoming') {
@@ -354,7 +354,7 @@ export default function AdminSubscriptionsPage() {
               </thead>
               <tbody className="divide-y divide-rule">
                 {filtered.map((sub) => {
-                  const badge = STATUS_BADGE[sub.status] || STATUS_BADGE.active
+                  const badge = STATUS_BADGE[sub.status] || STATUS_BADGE.active!
                   const isLoading = actionLoading === sub.id
 
                   return (

@@ -370,7 +370,7 @@ function applyAppetiteSignal(
   // appetite <= 3 — 선호 단백질이 있다면 그쪽 ↑. 없으면 기호성 좋은 Premium ↑.
   const prefLine =
     surveyInput.preferredProteins.length > 0
-      ? lineForProtein(surveyInput.preferredProteins[0])
+      ? lineForProtein(surveyInput.preferredProteins[0]!)
       : 'premium'
   if (!prefLine || blocked.has(prefLine)) return ratios
   const target = Math.min(0.5, ratios[prefLine] + 0.1)

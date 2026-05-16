@@ -49,7 +49,7 @@ export default async function PointsPage() {
   ])
 
   const balance =
-    entries && entries.length > 0 ? entries[0].balance_after : 0
+    entries && entries.length > 0 ? entries[0]!.balance_after : 0
 
   // Server component 매 요청마다 실행 — 의도된 동작.
   // eslint-disable-next-line react-hooks/purity

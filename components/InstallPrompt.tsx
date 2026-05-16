@@ -92,7 +92,7 @@ export default function InstallPrompt() {
     //    setTimeout 0 — animation 시작 직후 focus 이동이 layout 충돌 안 일으키게.
     const focusables = getFocusables()
     if (focusables.length > 0) {
-      window.setTimeout(() => focusables[0].focus(), 0)
+      window.setTimeout(() => focusables[0]!.focus(), 0)
     }
 
     // 5) 키보드 핸들러 — ESC 닫기 + Tab/Shift+Tab 순환.
@@ -108,8 +108,8 @@ export default function InstallPrompt() {
           e.preventDefault()
           return
         }
-        const first = list[0]
-        const last = list[list.length - 1]
+        const first = list[0]!
+        const last = list[list.length - 1]!
         const active = document.activeElement
         // 마지막에서 Tab → 첫번째로, 첫번째에서 Shift+Tab → 마지막으로 wrap.
         if (e.shiftKey && active === first) {

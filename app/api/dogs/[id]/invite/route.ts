@@ -137,7 +137,7 @@ export async function POST(req: Request, { params }: Params) {
   // 메일 발송 (best-effort) — 실패해도 흐름 진행
   const inviterName =
     (user.user_metadata?.name as string | undefined) ||
-    (user.email ? user.email.split('@')[0] : '가족 한 분')
+    (user.email ? user.email.split('@')[0] ?? '가족 한 분' : '가족 한 분')
   const { subject, html } = renderDogInvitation({
     inviterName,
     dogName: (dog as { name: string }).name,

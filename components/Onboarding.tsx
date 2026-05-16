@@ -51,9 +51,9 @@ const TINT: Record<Tint, string> = {
 }
 
 function sizeClass(size: Size): string {
-  if (size === 'lg') return styles.illoLg
-  if (size === 'sm') return styles.illoSm
-  return styles.illoTile
+  if (size === 'lg') return styles.illoLg ?? ''
+  if (size === 'sm') return styles.illoSm ?? ''
+  return styles.illoTile ?? ''
 }
 
 function PhotoTile({
@@ -108,9 +108,9 @@ function PhotoTile({
 type Align = 'center' | 'top' | 'bottom'
 
 function alignClass(align: Align): string {
-  if (align === 'top') return styles.alignTop
-  if (align === 'bottom') return styles.alignBottom
-  return styles.alignCenter
+  if (align === 'top') return styles.alignTop ?? ''
+  if (align === 'bottom') return styles.alignBottom ?? ''
+  return styles.alignCenter ?? ''
 }
 
 function SlideFrame({

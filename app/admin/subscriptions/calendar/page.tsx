@@ -34,7 +34,7 @@ function parseYm(ym: string | undefined): { year: number; month: number } {
   if (!ym || !/^\d{4}-\d{2}$/.test(ym)) {
     return { year: now.getFullYear(), month: now.getMonth() + 1 }
   }
-  const [y, m] = ym.split('-').map(Number)
+  const [y, m] = ym.split('-').map(Number) as [number, number]
   if (m < 1 || m > 12) return { year: now.getFullYear(), month: now.getMonth() + 1 }
   return { year: y, month: m }
 }

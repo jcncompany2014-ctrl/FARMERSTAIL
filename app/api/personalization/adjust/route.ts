@@ -121,15 +121,15 @@ export async function POST(req: Request) {
     },
     {} as Record<string, number>,
   )
-  const qSum = ALL_LINES.reduce((s, l) => s + quantized[l], 0)
+  const qSum = ALL_LINES.reduce((s, l) => s + (quantized[l] ?? 0), 0)
   if (Math.abs(qSum - 1) > 1e-9) {
     // 가장 큰 라인이 잔차 흡수.
     const target = ALL_LINES.reduce((best, l) =>
-      quantized[l] > quantized[best] ? l : best,
+      (quantized[l] ?? 0) > (quantized[best] ?? 0) ? l : best,
     )
     quantized[target] = Math.max(
       0,
-      Math.round((quantized[target] + (1 - qSum)) * 10) / 10,
+      Math.round(((quantized[target] ?? 0) + (1 - qSum)) * 10) / 10,
     )
   }
 
@@ -139,8 +139,8 @@ export async function POST(req: Request) {
     ...existingReasoning,
     {
       trigger: '사용자 직접 조정',
-      action: `라인 비율 ${ALL_LINES.filter((l) => quantized[l] > 0)
-        .map((l) => `${FOOD_LINE_META[l].name} ${Math.round(quantized[l] * 100)}%`)
+      action: `라인 비율 ${ALL_LINES.filter((l) => (quantized[l] ?? 0) > 0)
+        .map((l) => `${FOOD_LINE_META[l].name} ${Math.round((quantized[l] ?? 0) * 100)}%`)
         .join(' / ')}`,
       chipLabel: '사용자 조정됨',
       priority: 9, // 가장 낮은 우선순위 — 노출은 마지막

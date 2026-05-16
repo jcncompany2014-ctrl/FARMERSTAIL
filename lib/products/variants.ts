@@ -109,5 +109,5 @@ export function defaultVariant(
   if (actives.length === 0) return null
   const sorted = [...actives].sort((a, b) => a.position - b.position)
   const available = sorted.find((v) => stockState(v.stock) !== 'out')
-  return available ?? sorted[0]
+  return available ?? sorted[0] ?? null
 }

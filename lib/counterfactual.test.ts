@@ -115,8 +115,8 @@ describe('sensitivityAnalysis', () => {
     const results = sensitivityAnalysis(base)
     for (let i = 0; i < results.length - 1; i += 1) {
       assert.ok(
-        Math.abs(results[i].delta) >= Math.abs(results[i + 1].delta),
-        `${i}: ${results[i].delta} < ${results[i + 1].delta}`,
+        Math.abs(results[i]!.delta) >= Math.abs(results[i + 1]!.delta),
+        `${i}: ${results[i]!.delta} < ${results[i + 1]!.delta}`,
       )
     }
   })

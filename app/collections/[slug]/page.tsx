@@ -136,7 +136,7 @@ export default async function CollectionDetailPage({
 
   if (!collection) notFound()
 
-  const pal = PALETTE[collection.palette ?? 'ink'] ?? PALETTE.ink
+  const pal = PALETTE[collection.palette ?? 'ink'] ?? PALETTE.ink!
 
   const collectionLd = buildCollectionPageJsonLd({
     name: collection.title,

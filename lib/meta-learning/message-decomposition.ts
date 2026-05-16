@@ -74,12 +74,12 @@ export function selectTemplate(
   ctrByTemplate?: Map<string, number>,
 ): MessageTemplate {
   if (!isInventionEnabled('meta_learning')) {
-    return TEMPLATES[0] // full fallback
+    return TEMPLATES[0]! // full fallback
   }
 
   // 학습 데이터 있으면 best
   if (ctrByTemplate && ctrByTemplate.size > 0) {
-    let bestId = TEMPLATES[0].id
+    let bestId = TEMPLATES[0]!.id
     let bestCtr = -1
     for (const [id, ctr] of ctrByTemplate) {
       if (ctr > bestCtr) {
@@ -87,21 +87,21 @@ export function selectTemplate(
         bestCtr = ctr
       }
     }
-    return TEMPLATES.find((t) => t.id === bestId) ?? TEMPLATES[0]
+    return TEMPLATES.find((t) => t.id === bestId) ?? TEMPLATES[0]!
   }
 
   // default heuristic
   switch (persona) {
     case 'data_lover':
-      return TEMPLATES.find((t) => t.id === 'full') ?? TEMPLATES[0]
+      return TEMPLATES.find((t) => t.id === 'full') ?? TEMPLATES[0]!
     case 'emotional':
-      return TEMPLATES.find((t) => t.id === 'no_problem') ?? TEMPLATES[0]
+      return TEMPLATES.find((t) => t.id === 'no_problem') ?? TEMPLATES[0]!
     case 'convenience':
-      return TEMPLATES.find((t) => t.id === 'action_only') ?? TEMPLATES[0]
+      return TEMPLATES.find((t) => t.id === 'action_only') ?? TEMPLATES[0]!
     case 'vet_dependent':
-      return TEMPLATES.find((t) => t.id === 'no_evidence') ?? TEMPLATES[0]
+      return TEMPLATES.find((t) => t.id === 'no_evidence') ?? TEMPLATES[0]!
     default:
-      return TEMPLATES[0]
+      return TEMPLATES[0]!
   }
 }
 

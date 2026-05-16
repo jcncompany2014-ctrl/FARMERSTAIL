@@ -54,8 +54,8 @@ export default async function AdminUsersPage({
       if (!orderStats[o.user_id]) {
         orderStats[o.user_id] = { count: 0, total: 0 }
       }
-      orderStats[o.user_id].count += 1
-      orderStats[o.user_id].total += o.total_amount
+      orderStats[o.user_id]!.count += 1
+      orderStats[o.user_id]!.total += o.total_amount
     })
   }
 

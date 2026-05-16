@@ -370,7 +370,7 @@ export default function CheckoutForm({
             : []
         const firstShort =
           insufficientList.length > 0
-            ? orderItems.find((it) => it.productId === insufficientList[0].product_id)?.name
+            ? orderItems.find((it) => it.productId === insufficientList[0]!.product_id)?.name
             : null
         throw new Error(
           firstShort
@@ -388,7 +388,7 @@ export default function CheckoutForm({
       const tossPayments = await loadTossPayments(clientKey)
       const payment = tossPayments.payment({ customerKey: ANONYMOUS })
 
-      const firstItem = orderItems[0]
+      const firstItem = orderItems[0]!
       const orderName =
         orderItems.length === 1
           ? firstItem.name

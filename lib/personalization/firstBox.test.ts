@@ -71,7 +71,7 @@ describe('decideFirstBox — 기본 sanity', () => {
       careGoal: 'weight_management',
     })
     for (let i = 1; i < f.reasoning.length; i++) {
-      assert.ok(f.reasoning[i].priority >= f.reasoning[i - 1].priority)
+      assert.ok(f.reasoning[i]!.priority >= f.reasoning[i - 1]!.priority)
     }
   })
 

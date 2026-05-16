@@ -128,7 +128,7 @@ function toRailProduct(p: SupabaseProduct, i: number): RailProduct {
     body: p.short_description ?? '수의영양학 기반의 프리미엄 라인.',
     price,
     weight: '—',
-    tint: PRODUCT_TINTS[i % PRODUCT_TINTS.length],
+    tint: PRODUCT_TINTS[i % PRODUCT_TINTS.length]!,
     imageUrl: p.image_url,
     tag: p.sale_price ? 'SALE' : undefined,
   }
@@ -586,7 +586,7 @@ function ThreePromises() {
       <div className="mt-10 md:mt-14 px-5 md:px-12">
         {/* 01 — oversized */}
         <div className="mb-9 md:mb-14">
-          <SerialNo n={items[0].n} label={items[0].en} />
+          <SerialNo n={items[0]!.n} label={items[0]!.en} />
           <div className="mt-3.5 md:mt-5">
             <Placeholder label="01 · 4:3 · Ingredient macro" aspect="4 / 3">
               <CornerTicks />
@@ -600,7 +600,7 @@ function ThreePromises() {
               letterSpacing: '-0.02em',
             }}
           >
-            {items[0].ko}
+            {items[0]!.ko}
           </h3>
           <p
             className="text-[13.5px] md:text-[16px]"
@@ -611,13 +611,13 @@ function ThreePromises() {
               maxWidth: 720,
             }}
           >
-            {items[0].body}
+            {items[0]!.body}
           </p>
         </div>
 
         {/* 02 + 03 — asymmetric side-by-side */}
         <div className="grid grid-cols-2 gap-3.5 md:gap-8">
-          {[items[1], items[2]].map((it) => (
+          {[items[1]!, items[2]!].map((it) => (
             <div key={it.n}>
               <SerialNo n={it.n} label={it.en} />
               <div className="mt-3 md:mt-4">

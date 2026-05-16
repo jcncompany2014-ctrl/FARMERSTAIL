@@ -140,7 +140,7 @@ export default async function AnalysesTimelinePage({
   // 첫 row (LATEST) 가 stale 면 "재분석 권장" hint.
   const latestIsStale =
     analyses.length > 0 &&
-    analyses[0].guideline_version !== CURRENT_GUIDELINE_VERSION
+    analyses[0]!.guideline_version !== CURRENT_GUIDELINE_VERSION
 
   return (
     <main className="pb-10">
@@ -225,7 +225,7 @@ export default async function AnalysesTimelinePage({
         <LatestAnalysisHero
           dogId={dogId}
           dogName={dog.name}
-          analysis={analyses[0]}
+          analysis={analyses[0]!}
           isStale={latestIsStale}
         />
 
@@ -382,7 +382,7 @@ function LatestAnalysisHero({
   const carb = analysis.carb_pct ?? Math.max(0, 100 - protein - fat - (analysis.fiber_pct ?? 0))
   // 단축 코멘터리 (첫 문장 또는 80자)
   const commentSnippet = analysis.commentary
-    ? analysis.commentary.split(/[.!?。]\s*/)[0].slice(0, 90)
+    ? (analysis.commentary.split(/[.!?。]\s*/)[0] ?? '').slice(0, 90)
     : null
 
   return (

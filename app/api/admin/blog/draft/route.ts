@@ -148,7 +148,7 @@ ${audience ? `\n# 타겟 독자\n${audience}` : ''}`
     // JSON parse — Haiku 가 가끔 ```json wrapper 붙이는 경우 strip.
     let jsonText = text
     const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
-    if (fenceMatch) jsonText = fenceMatch[1]
+    if (fenceMatch) jsonText = fenceMatch[1]!
 
     let draft: {
       title?: string

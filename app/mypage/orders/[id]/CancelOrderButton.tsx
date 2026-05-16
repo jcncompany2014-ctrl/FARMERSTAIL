@@ -16,7 +16,7 @@ const REASONS = [
 export default function CancelOrderButton({ orderId }: { orderId: string }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [reason, setReason] = useState<string>(REASONS[0])
+  const [reason, setReason] = useState<string>(REASONS[0]!)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

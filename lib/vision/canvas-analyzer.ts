@@ -77,9 +77,9 @@ export function analyzeImage(
   const grayBuf = new Uint8Array(w * h)
   for (let i = 0; i < grayBuf.length; i += 1) {
     const o = i * 4
-    const r = pixels[o]
-    const g = pixels[o + 1]
-    const b = pixels[o + 2]
+    const r = pixels[o]!
+    const g = pixels[o + 1]!
+    const b = pixels[o + 2]!
     const y = (0.299 * r + 0.587 * g + 0.114 * b) | 0
     grayBuf[i] = y
     lumSum += y
@@ -93,11 +93,11 @@ export function analyzeImage(
     for (let x = 1; x < w - 1; x += 1) {
       const i = y * w + x
       const lap =
-        4 * grayBuf[i] -
-        grayBuf[i - 1] -
-        grayBuf[i + 1] -
-        grayBuf[i - w] -
-        grayBuf[i + w]
+        4 * grayBuf[i]! -
+        grayBuf[i - 1]! -
+        grayBuf[i + 1]! -
+        grayBuf[i - w]! -
+        grayBuf[i + w]!
       sumSq += lap * lap
       count += 1
     }
@@ -112,11 +112,11 @@ export function analyzeImage(
   let foregroundCount = 0
   for (let i = 0; i < grayBuf.length; i += 1) {
     const o = i * 4
-    const r = pixels[o]
-    const g = pixels[o + 1]
-    const b = pixels[o + 2]
+    const r = pixels[o]!
+    const g = pixels[o + 1]!
+    const b = pixels[o + 2]!
     // 어두운 픽셀 (이전 룰)
-    const isDark = grayBuf[i] < brightness * 0.85
+    const isDark = grayBuf[i]! < brightness * 0.85
     // 채도 = (max - min) / max  (간단 saturation)
     const maxC = Math.max(r, g, b)
     const minC = Math.min(r, g, b)

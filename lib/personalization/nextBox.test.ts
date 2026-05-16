@@ -349,7 +349,7 @@ describe('decideNextBox — 복합 시나리오', () => {
       cycleNumber: 2,
     })
     for (let i = 1; i < f.reasoning.length; i++) {
-      assert.ok(f.reasoning[i].priority >= f.reasoning[i - 1].priority)
+      assert.ok(f.reasoning[i]!.priority >= f.reasoning[i - 1]!.priority)
     }
   })
 })
