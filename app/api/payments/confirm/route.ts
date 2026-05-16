@@ -7,7 +7,7 @@ import { confirmPayment, cancelPayment } from '@/lib/payments/toss'
 import { notifyOrderPlaced, notifyVirtualAccountWaiting } from '@/lib/email'
 import { zPaymentConfirm } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
-import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { rateLimitDB, ipFromRequest } from '@/lib/rate-limit'
 import { tierMeta } from '@/lib/tiers'
 import {
   traceBusiness,
@@ -35,8 +35,15 @@ export const dynamic = 'force-dynamic'
  * - Rate limit: IP 당 10/min (정상 결제 흐름 + 새로고침 1-2회 여유)
  */
 export async function POST(req: Request) {
-  // Rate limit — payment 위조 시도 / 무한 재시도 방어
-  const rl = rateLimit({
+  // Rate limit — payment 위조 시도 / 무한 재시도 방어. audit 1-9: DB 백업
+  // (Vercel isolate 분산 시 in-memory 만으로는 한도가 quota × N 으로 뻥튀기).
+  const parsed = await parseRequest(req, zPaymentConfirm)
+  if (!parsed.ok) return parsed.response
+  const { paymentKey, orderId, amount } = parsed.data
+
+  const supabase = await createClient()
+  const rl = await rateLimitDB({
+    supabase,
     bucket: 'payments-confirm',
     key: ipFromRequest(req),
     limit: 10,
@@ -48,12 +55,6 @@ export async function POST(req: Request) {
       { status: 429, headers: rl.headers },
     )
   }
-
-  const parsed = await parseRequest(req, zPaymentConfirm)
-  if (!parsed.ok) return parsed.response
-  const { paymentKey, orderId, amount } = parsed.data
-
-  const supabase = await createClient()
 
   // Sentry — user.id + route 도메인 태깅 (PII 미포함, id 만).
   tagSentryRoute('order.payment.confirm')
