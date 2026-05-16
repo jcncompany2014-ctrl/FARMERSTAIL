@@ -144,15 +144,21 @@ export async function POST(req: Request) {
         .eq('id', order.id)
 
       // Award points if the order has earn amount and we haven't credited yet.
-      // 멱등성 체크: 같은 주문의 같은 delta 적립 row가 있으면 스킵 —
-      // Toss가 중복 웹훅을 보낼 수 있어서 (동일 eventId, 재시도 등).
+      // 멱등성 체크 (audit 2-4 강화):
+      //   1) DB: partial unique index (user_id, reference_type, reference_id)
+      //      가 같은 (user_id, 'order', order.id) 의 두 번째 row 를 차단.
+      //   2) App: 그 전에 delta 의 *부호* 만 검사 — 양수 row 가 이미 있으면
+      //      double credit 시도 자체를 안 함. 이전 코드는 delta 값까지 정확
+      //      비교했는데 audit 1-2 validation 으로 points_earned 가 보정되면
+      //      DB 값과 다를 수 있어 스킵을 못 함 → unique index 거의 항상 막아
+      //      주지만 명시 확인.
       if (order.points_earned && order.points_earned > 0) {
         const { data: already } = await supabase
           .from('point_ledger')
           .select('id')
           .eq('reference_type', 'order')
           .eq('reference_id', order.id)
-          .eq('delta', order.points_earned)
+          .gt('delta', 0)
           .maybeSingle()
         if (!already) {
           await creditPoints(supabase, {

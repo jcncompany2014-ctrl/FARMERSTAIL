@@ -21,6 +21,8 @@ type Props = {
   items: AnalyticsItem[]
   shipping?: number
   coupon?: string | null
+  /** audit 2-1: 자동저장 draft 를 지우기 위한 userId. 옵셔널 — 익명 결제 X 라 사실상 항상 있음. */
+  userId?: string | null
 }
 
 export default function PurchaseTracker({
@@ -29,6 +31,7 @@ export default function PurchaseTracker({
   items,
   shipping,
   coupon,
+  userId,
 }: Props) {
   useEffect(() => {
     const key = `ft-purchase-tracked-${transactionId}`
@@ -39,7 +42,16 @@ export default function PurchaseTracker({
       /* storage 차단된 경우 그냥 한 번 쏘고 진행 */
     }
     trackPurchase({ transactionId, value, items, shipping, coupon })
-  }, [transactionId, value, items, shipping, coupon])
+
+    // audit 2-1: 결제 성공이 확인된 시점에 체크아웃 draft 지움.
+    if (userId) {
+      try {
+        localStorage.removeItem(`ft:checkout-draft:${userId}`)
+      } catch {
+        /* noop */
+      }
+    }
+  }, [transactionId, value, items, shipping, coupon, userId])
 
   return null
 }

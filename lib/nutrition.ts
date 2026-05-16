@@ -302,7 +302,11 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     factor *= bcsMerFactor(bcs.score as BcsKey)
   }
 
-  if (dog.neutered) factor *= 0.9
+  // audit 2-14: 중성화 ×0.9 보정은 성견/노령견 한정 (NRC 2006 §11).
+  // 자견(puppy)은 성장 호르몬 활성 + 골격 발달 단계라 중성화에 따른 BMR
+  // 감소가 미미함. 자견에 0.9 곱하면 underfeed → 발달 저해 위험.
+  // 임신/수유견은 아래에서 factor 가 REPLACE 되므로 여기 분기 무관.
+  if (dog.neutered && stage !== 'puppy') factor *= 0.9
 
   // 임신/수유 보정 (NRC 2006 §15). female + non-neutered 만 적용 — 수컷/
   // 중성화견에 임신/수유 잘못 켜져도 factor 폭주 차단.
@@ -414,9 +418,19 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   } = {}
   const conditionSupplements = new Set<string>()
 
+  // audit 2-15: 만성 질환이 두 가지 이상 선택됐을 때, delta 가 서로 상쇄/충돌
+  // 하는지 추적. 예: 신장병(저단백) + 근육감소(고단백) → 둘이 0 으로 상쇄돼도
+  // 권장은 둘 다 못 만족함. 자동 매크로 비율이 의미 없어지므로 수의사 상담
+  // flag.
+  const chronicCount = (answers.chronicConditions ?? []).length
+  const proteinDeltas: number[] = []
+  const fatDeltas: number[] = []
+
   for (const cond of answers.chronicConditions ?? []) {
     const adj = CONDITION_ADJUSTMENTS[cond]
     if (!adj) continue
+    proteinDeltas.push(adj.proteinDelta)
+    fatDeltas.push(adj.fatDelta)
     proteinPct += adj.proteinDelta
     fatPct += adj.fatDelta
     carbPct += adj.carbDelta
@@ -442,6 +456,19 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     }
     if (adj.micro?.calciumFactor !== undefined) {
       microFactors.calcium = Math.min(microFactors.calcium ?? 1, adj.micro.calciumFactor)
+    }
+  }
+
+  // audit 2-15: chronic delta 충돌 감지. 한 매크로 안에서 양수/음수 delta 가
+  // 동시에 있으면 conditions 간 권장이 모순 → 수의사 상담 강제.
+  if (chronicCount >= 2) {
+    const hasPosProtein = proteinDeltas.some((d) => d > 0)
+    const hasNegProtein = proteinDeltas.some((d) => d < 0)
+    const hasPosFat = fatDeltas.some((d) => d > 0)
+    const hasNegFat = fatDeltas.some((d) => d < 0)
+    if ((hasPosProtein && hasNegProtein) || (hasPosFat && hasNegFat)) {
+      riskFlags.push('CHRONIC_CONFLICT')
+      vetConsult = true
     }
   }
 

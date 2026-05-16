@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { dbError } from '@/lib/api/errors'
 import {
-  UPGRADE_REWARD_AMOUNT,
-  isUpgrade,
+  upgradeTier,
+  rewardAmount,
   makeReferenceId,
   rewardReason,
   type MethodKind,
 } from '@/lib/rewards/measurement-upgrade'
+import { capAllowance, annualCapFor } from '@/lib/rewards/cap'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -18,11 +21,15 @@ export const dynamic = 'force-dynamic'
  * POST /api/dogs/[id]/measurement-upgrade
  *
  * 입력: { kind: 'weight'|'activity'|'feed', prev, next }
- * 동작: isUpgrade 확인 → apply_point_delta RPC 로 1,000P 적립.
- *      멱등 — partial unique index (user_id, reference_type, reference_id)
- *      가 같은 dog 의 같은 kind 재적립 차단.
+ * 동작:
+ *   1. upgradeTier 로 LOW→MID(500P) / MID→HIGH(500P) / LOW→HIGH(1000P) 판정
+ *   2. 연 cap (3,000P) 검사 — 잔여분만 부분 적립
+ *   3. service-role 로 ledger 기록 (멱등성 partial unique index)
  *
- * 응답: { ok, balanceAfter?, reason }
+ * 변경 이력:
+ *   - audit #25 의 partial reward (UPGRADE_REWARD_PARTIAL=500P) 가 dead code 였음
+ *     → 본 라우트에서 사용하도록 통합 (1-4 부정 적립 차단 보조).
+ *   - audit 1-4: 강아지 N마리 등록 시 N×3,000P 무한 적립 → 연 3,000P cap.
  */
 
 const zUpgrade = z.object({
@@ -34,6 +41,20 @@ const zUpgrade = z.object({
 type Params = { params: Promise<{ id: string }> }
 
 export async function POST(req: Request, { params }: Params) {
+  // Rate limit — IP 분당 30회. 정상 흐름은 1콜.
+  const rl = rateLimit({
+    bucket: 'rewards-measurement',
+    key: ipFromRequest(req),
+    limit: 30,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
+    return NextResponse.json(
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rl.headers },
+    )
+  }
+
   const { id: dogId } = await params
   const supabase = await createClient()
   const {
@@ -64,7 +85,9 @@ export async function POST(req: Request, { params }: Params) {
     )
   }
 
-  if (!isUpgrade(kind as MethodKind, prev, next)) {
+  const tier = upgradeTier(kind as MethodKind, prev, next)
+  const baseReward = rewardAmount(tier)
+  if (baseReward === 0) {
     return NextResponse.json({
       ok: false,
       reason: 'NOT_UPGRADE',
@@ -72,9 +95,31 @@ export async function POST(req: Request, { params }: Params) {
     })
   }
 
-  const { data, error } = await supabase.rpc('apply_point_delta', {
+  // 연 cap 검사 — service-role 클라이언트로 ledger 합산.
+  const admin = createAdminClient()
+  const allowed = await capAllowance(
+    admin,
+    user.id,
+    'measurement_upgrade',
+    baseReward,
+  )
+
+  if (allowed === 0) {
+    return NextResponse.json({
+      ok: true,
+      amount: 0,
+      capped: true,
+      annualCap: annualCapFor('measurement_upgrade'),
+      message:
+        '올해 측정 도구 업그레이드 응원 한도(' +
+        annualCapFor('measurement_upgrade').toLocaleString() +
+        'P) 에 도달했어요.',
+    })
+  }
+
+  const { data, error } = await admin.rpc('apply_point_delta', {
     p_user_id: user.id,
-    p_delta: UPGRADE_REWARD_AMOUNT,
+    p_delta: allowed,
     p_reason: rewardReason(kind as MethodKind),
     p_reference_type: 'measurement_upgrade',
     p_reference_id: makeReferenceId(dogId, kind as MethodKind),
@@ -101,7 +146,9 @@ export async function POST(req: Request, { params }: Params) {
   }
   return NextResponse.json({
     ok: true,
-    amount: UPGRADE_REWARD_AMOUNT,
+    amount: allowed,
+    tier,
+    capped: allowed < baseReward,
     balanceAfter: row.balance_after,
   })
 }

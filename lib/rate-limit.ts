@@ -151,3 +151,66 @@ export function ipFromRequest(req: Request): string {
   if (real) return real
   return 'unknown'
 }
+
+// ──────────────────────────────────────────────────────────────────────────
+// audit 1-9: DB-backed rate limit (옵션)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// 인-메모리 rateLimit() 은 Vercel isolate 별로 카운터가 분리되므로 실 한도가
+// quota × isolate 수가 됨. attacker 가 부하를 주거나 isolate cold-start 가
+// 잦으면 차단이 약해짐. 정밀 한도가 필요한 엔드포인트(결제 confirm,
+// 회원가입 등)는 본 함수를 호출.
+//
+// 정책 (in-memory 와 DB 의 합성):
+//   1. 먼저 in-memory rateLimit() 로 1차 거름 — 같은 isolate 안의 burst 차단.
+//   2. 1차 통과 시에만 DB RPC `incr_rate_limit_counter` 호출 — 전역 카운트
+//      증가. 한도 초과면 차단.
+//
+// 비용: DB 호출 1회 (~1-2ms). burst trafic 의 99% 는 in-memory 에서 차단되니
+// DB hit 는 정상 통과 트래픽만 발생 → 무시할 만한 수준.
+
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+export type RateLimitDBArgs = RateLimitArgs & {
+  supabase: SupabaseClient
+}
+
+/**
+ * DB-backed rate limit. in-memory 1차 + DB 2차 검사.
+ */
+export async function rateLimitDB(
+  args: RateLimitDBArgs,
+): Promise<RateLimitResult> {
+  const { supabase, bucket, key, limit, windowMs } = args
+  // 1차: in-memory.
+  const local = rateLimit({ bucket, key, limit, windowMs })
+  if (!local.ok) return local
+
+  // 2차: DB 카운터. window_start_ms = floor(now/windowMs) × windowMs.
+  const now = Date.now()
+  const windowStart = Math.floor(now / windowMs) * windowMs
+  try {
+    const { data, error } = await supabase.rpc('incr_rate_limit_counter', {
+      p_bucket: bucket,
+      p_key: key,
+      p_window_start_ms: windowStart,
+    })
+    if (error || typeof data !== 'number') {
+      // DB 호출 실패 — fail open. local 결과 사용 (이미 ok 였음).
+      return local
+    }
+    const count = data as number
+    const remaining = Math.max(0, limit - count)
+    const retryAfter = Math.max(0, Math.ceil((windowStart + windowMs - now) / 1000))
+    const ok = count <= limit
+    const headers = new Headers({
+      'RateLimit-Limit': String(limit),
+      'RateLimit-Remaining': String(remaining),
+      'RateLimit-Reset': String(retryAfter),
+    })
+    if (!ok) headers.set('Retry-After', String(retryAfter))
+    return { ok, remaining, retryAfter, headers }
+  } catch {
+    return local
+  }
+}

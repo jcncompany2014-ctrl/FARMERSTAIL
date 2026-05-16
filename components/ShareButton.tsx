@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Share2, Check, Link as LinkIcon } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 /**
  * ShareButton — 공유 버튼.
@@ -59,6 +60,7 @@ export default function ShareButton({
   style,
 }: ShareButtonProps) {
   const [copied, setCopied] = useState(false)
+  const toast = useToast()
 
   function resolveAbsoluteUrl(): string {
     if (typeof window === 'undefined') return url
@@ -71,9 +73,17 @@ export default function ShareButton({
       await navigator.clipboard.writeText(absoluteUrl)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+      toast.success('주소를 복사했어요. 원하는 곳에 붙여넣으세요.')
     } catch {
-      // 일부 환경에서 clipboard 권한 없을 때 — alert 폴백
-      window.prompt('공유 URL 을 복사하세요', absoluteUrl)
+      // 일부 환경(권한 차단/non-HTTPS)에서 clipboard 거부 — Toast 로 URL 표시.
+      // audit 2-7: 이전 window.prompt 는 사용자가 알아채기 어려운 모달 → 보이는
+      // 토스트 + 액션 버튼으로 대체. 사용자가 select-all 한 뒤 수동 복사 가능.
+      toast.show({
+        intent: 'info',
+        title: '주소를 길게 눌러 복사해 주세요',
+        description: absoluteUrl,
+        duration: 8000,
+      })
     }
   }
 
@@ -218,6 +228,7 @@ export function LinkCopyButton({
   label?: string
 }) {
   const [copied, setCopied] = useState(false)
+  const toast = useToast()
 
   async function copy() {
     const absoluteUrl =
@@ -228,8 +239,14 @@ export function LinkCopyButton({
       await navigator.clipboard.writeText(absoluteUrl)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+      toast.success('주소를 복사했어요')
     } catch {
-      window.prompt('URL 을 복사하세요', absoluteUrl)
+      toast.show({
+        intent: 'info',
+        title: '주소를 길게 눌러 복사해 주세요',
+        description: absoluteUrl,
+        duration: 8000,
+      })
     }
   }
 

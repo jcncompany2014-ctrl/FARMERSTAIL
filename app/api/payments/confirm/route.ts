@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { creditPoints } from '@/lib/commerce/points'
-import { confirmPayment } from '@/lib/payments/toss'
+import { confirmPayment, cancelPayment } from '@/lib/payments/toss'
 import { notifyOrderPlaced, notifyVirtualAccountWaiting } from '@/lib/email'
 import { zPaymentConfirm } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { tierMeta } from '@/lib/tiers'
 import {
   traceBusiness,
   captureBusinessEvent,
@@ -73,7 +75,7 @@ export async function POST(req: Request) {
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .select(
-      'id, order_number, total_amount, payment_status, user_id, points_earned, shipping_fee, recipient_name'
+      'id, order_number, total_amount, payment_status, user_id, points_earned, points_used, discount_amount, shipping_fee, subtotal, recipient_name'
     )
     .eq('order_number', orderId)
     .eq('user_id', user.id)
@@ -96,6 +98,81 @@ export async function POST(req: Request) {
   // 이미 승인된 경우 idempotent하게 성공 응답
   if (order.payment_status === 'paid') {
     return NextResponse.json({ ok: true, alreadyPaid: true })
+  }
+
+  // 2-b) 서버사이드 가격/포인트 재검증 (audit 1-1, 1-2)
+  // 클라이언트가 CheckoutForm 에서 insert 한 total_amount/points_earned 를
+  // 그대로 신뢰하지 않는다. order_items 의 unit_price 합 + 등급 적립률 +
+  // 쿠폰 할인 + 사용 포인트 + 배송비로 다시 계산해 위변조를 차단.
+  const { data: items } = await supabase
+    .from('order_items')
+    .select('unit_price, quantity, line_total')
+    .eq('order_id', order.id)
+
+  if (items && items.length > 0) {
+    const recomputedSubtotal = items.reduce(
+      (sum, it) => sum + (it.unit_price ?? 0) * (it.quantity ?? 0),
+      0,
+    )
+    const storedSubtotal = order.subtotal ?? 0
+    if (recomputedSubtotal !== storedSubtotal) {
+      captureBusinessEvent('warning', 'order.payment.subtotal_mismatch', {
+        orderId,
+        storedSubtotal,
+        recomputedSubtotal,
+      })
+      return NextResponse.json(
+        { code: 'PRICE_TAMPERED', message: '상품 금액이 일치하지 않아요. 주문을 새로 만들어 주세요.' },
+        { status: 400 },
+      )
+    }
+
+    const recomputedTotal =
+      recomputedSubtotal +
+      (order.shipping_fee ?? 0) -
+      (order.discount_amount ?? 0) -
+      (order.points_used ?? 0)
+
+    if (recomputedTotal !== order.total_amount) {
+      captureBusinessEvent('warning', 'order.payment.total_mismatch', {
+        orderId,
+        storedTotal: order.total_amount,
+        recomputedTotal,
+      })
+      return NextResponse.json(
+        { code: 'PRICE_TAMPERED', message: '결제 금액이 일치하지 않아요. 주문을 새로 만들어 주세요.' },
+        { status: 400 },
+      )
+    }
+
+    // 포인트 적립 — 사용자 등급의 실제 earnRate 로 재계산.
+    // 클라이언트가 적은 points_earned 가 등급 한도를 넘으면 거부 (저장 안 함).
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tier')
+      .eq('id', user.id)
+      .maybeSingle()
+    const tier = tierMeta(profile?.tier)
+    const expectedPointsEarned = Math.floor(
+      (Math.max(0, recomputedTotal) * tier.earnRate) / 100,
+    )
+    const storedPointsEarned = order.points_earned ?? 0
+    if (storedPointsEarned > expectedPointsEarned) {
+      captureBusinessEvent('warning', 'order.payment.points_inflated', {
+        orderId,
+        userId: user.id,
+        storedPointsEarned,
+        expectedPointsEarned,
+        tier: tier.key,
+      })
+      // 즉시 거부하지 않고 안전한 값으로 보정 — 운영 차원에서 결제 자체는
+      // 통과시키되 ledger 에 들어갈 금액만 등급 기준으로 강제.
+      await supabase
+        .from('orders')
+        .update({ points_earned: expectedPointsEarned })
+        .eq('id', order.id)
+      order.points_earned = expectedPointsEarned
+    }
   }
 
   // 3) 토스페이먼츠 승인 API 호출 — lib/payments/toss 가 Idempotency-Key 포함.
@@ -164,6 +241,39 @@ export async function POST(req: Request) {
     .eq('id', order.id)
 
   if (updateError) {
+    // audit 2-2: Toss 는 이미 승인했는데 DB 가 실패 → orphan payment 발생.
+    // 즉시 cancelPayment 로 환불 시도. 실패 시 payment_refund_queue 에 기록해
+    // 운영 cron 이 재시도.
+    captureBusinessEvent('error', 'order.payment.db_update_failed', {
+      orderId,
+      paymentKey,
+      dbError: updateError.message,
+    })
+    if (isActuallyPaid) {
+      const cancelResult = await cancelPayment({
+        paymentKey,
+        cancelReason: 'DB 업데이트 실패에 의한 자동 환불',
+      })
+      if (!cancelResult.ok) {
+        // service-role 로 queue 에 기록 — 다음 cron 사이클에서 재시도.
+        try {
+          const admin = createAdminClient()
+          // payment_refund_queue 는 migration 20260516000003 에서 추가됨.
+          // types.ts 재생성 전이라 cast — 다음 generate 후 cast 제거.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (admin.from('payment_refund_queue' as any) as any).insert({
+            order_id: order.id,
+            payment_key: paymentKey,
+            amount: amount,
+            reason: 'confirm_db_update_failed',
+            attempts: 1,
+            last_error: cancelResult.error.message,
+          })
+        } catch {
+          /* queue 도 실패하면 Sentry 만 — 운영자 수동 처리 */
+        }
+      }
+    }
     return NextResponse.json(
       { code: 'DB_UPDATE_FAILED', message: updateError.message },
       { status: 500 }

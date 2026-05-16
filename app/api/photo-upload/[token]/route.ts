@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { DOG_AVATARS_BUCKET, MAX_PHOTO_BYTES } from '@/lib/dogPhotos'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -38,7 +39,34 @@ function extFromMime(mime: string): string {
 }
 
 export async function POST(req: Request, { params }: Params) {
+  // audit 1-5: 익명 endpoint 라 IP 기반 rate limit. 한 IP 가 짧은 시간에
+  // 같은(or 다른) 토큰으로 마구 업로드해 storage 를 비싸게 만들 수 없도록
+  // 분당 6회 / 시간당 30회 로 제한. token+IP 복합 key.
   const { token } = await params
+  const rlMin = rateLimit({
+    bucket: 'photo-upload:min',
+    key: `${ipFromRequest(req)}|${token}`,
+    limit: 6,
+    windowMs: 60_000,
+  })
+  if (!rlMin.ok) {
+    return NextResponse.json(
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rlMin.headers },
+    )
+  }
+  const rlHour = rateLimit({
+    bucket: 'photo-upload:hour',
+    key: ipFromRequest(req),
+    limit: 30,
+    windowMs: 60 * 60_000,
+  })
+  if (!rlHour.ok) {
+    return NextResponse.json(
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rlHour.headers },
+    )
+  }
 
   // 토큰 검증 — anon supabase client 가 RPC 호출
   const supabase = await createClient()
@@ -96,13 +124,26 @@ export async function POST(req: Request, { params }: Params) {
   const ext = extFromMime(mime)
   const path = `photo-requests/${token}.${ext}`
   const buffer = Buffer.from(await imageBlob.arrayBuffer())
+  // audit 2-10: upsert=true 였음 → 같은 토큰 보유자가 N번 덮어쓰기 가능.
+  // submit_photo_request RPC 가 uploaded_photo_url IS NULL 조건으로 1회만
+  // dog.photo_url 을 갱신하긴 하지만, storage 비용/난입 차단을 위해 첫
+  // 업로드만 받는 정책으로 변경. 중복은 409 로 명확히 응답.
   const { error: upErr } = await admin.storage
     .from(DOG_AVATARS_BUCKET)
     .upload(path, buffer, {
       cacheControl: '3600',
-      upsert: true,
+      upsert: false,
       contentType: mime,
     })
+  if (upErr && /already exists|Duplicate/i.test(upErr.message)) {
+    return NextResponse.json(
+      {
+        code: 'ALREADY_UPLOADED',
+        message: '이미 업로드된 사진이에요. 친구에게 새 링크를 부탁해 보세요.',
+      },
+      { status: 409 },
+    )
+  }
   if (upErr) {
     return NextResponse.json(
       { code: 'UPLOAD_FAILED', message: upErr.message },

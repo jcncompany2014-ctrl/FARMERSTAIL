@@ -31,6 +31,7 @@ type SearchParams = Promise<{
 // 상태를 UI로 구분해야 한다.
 type OrderForSuccess = {
   id: string
+  user_id: string
   order_number: string
   total_amount: number
   payment_status: string | null
@@ -72,7 +73,7 @@ export default async function CheckoutSuccessPage({
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .select(
-      'id, order_number, total_amount, payment_status, payment_method, receipt_url, shipping_fee, coupon_code, virtual_account_bank, virtual_account_number, virtual_account_due_date, virtual_account_holder'
+      'id, user_id, order_number, total_amount, payment_status, payment_method, receipt_url, shipping_fee, coupon_code, virtual_account_bank, virtual_account_number, virtual_account_due_date, virtual_account_holder'
     )
     .eq('order_number', orderId)
     .eq('user_id', user.id)
@@ -127,7 +128,7 @@ export default async function CheckoutSuccessPage({
   const { data: fresh } = await supabase
     .from('orders')
     .select(
-      'id, order_number, total_amount, payment_status, payment_method, receipt_url, shipping_fee, coupon_code, virtual_account_bank, virtual_account_number, virtual_account_due_date, virtual_account_holder'
+      'id, user_id, order_number, total_amount, payment_status, payment_method, receipt_url, shipping_fee, coupon_code, virtual_account_bank, virtual_account_number, virtual_account_due_date, virtual_account_holder'
     )
     .eq('id', order.id)
     .single<OrderForSuccess>()
@@ -179,6 +180,7 @@ function SuccessView({
           items={analyticsItems}
           shipping={order.shipping_fee ?? undefined}
           coupon={order.coupon_code}
+          userId={order.user_id}
         />
       )}
       <section className="px-5 md:px-6 pt-10 md:pt-16 flex flex-col items-center">

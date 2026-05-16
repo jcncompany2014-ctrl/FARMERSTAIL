@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -14,7 +15,22 @@ export const dynamic = 'force-dynamic'
 
 type Params = { params: Promise<{ id: string }> }
 
-export async function POST(_req: Request, { params }: Params) {
+export async function POST(req: Request, { params }: Params) {
+  // audit 1-10: 같은 사용자가 토큰을 무한 발급해 storage 룸 / 카카오톡 스팸을
+  // 차단. IP 기준 분당 6회 / 사용자 기준 24h 30회.
+  const rl = rateLimit({
+    bucket: 'photo-request:min',
+    key: ipFromRequest(req),
+    limit: 6,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
+    return NextResponse.json(
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rl.headers },
+    )
+  }
+
   const { id: dogId } = await params
   const supabase = await createClient()
   const {

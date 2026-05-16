@@ -33,7 +33,8 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
   const supabase = createClient()
   const toast = useToast()
 
-  async function updateQty(id: string, next: number) {
+  async function updateQty(id: string, nextInput: number) {
+    let next = nextInput
     if (next < 1) return
     const target = items.find((i) => i.id === id)
     if (!target) return
@@ -44,8 +45,10 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
       return
     }
     if (next > maxQ) {
-      toast.warning(`재고가 ${target.product.stock}개 남았어요`)
-      return
+      // audit 2-11: 단순 경고에서 자동 보정으로 — 사용자가 maxQ 까지는
+      // 담을 수 있게 즉시 수량을 잘라 저장. Toast 로 안내만.
+      toast.warning(`재고가 ${target.product.stock}개 남았어요. ${maxQ}개로 맞췄어요.`)
+      next = maxQ
     }
 
     setBusyId(id)

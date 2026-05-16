@@ -2,7 +2,7 @@
 
 // audit #101 — NewDogClient: form state + submit. page.tsx (server) 가 auth
 // 검증 후 user.id 를 prop 으로 전달 (insert 시 user_id 명시 필요).
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -41,36 +41,136 @@ export default function NewDogClient({ userId }: { userId: string }) {
   const router = useRouter()
   const supabase = createClient()
 
+  // audit 2-5: 등록 폼이 길다 — 사진 첨부 도중 권한 거부, 네트워크 오류,
+  // 새로고침으로 다 날아가던 케이스 차단. localStorage 7일 자동저장.
+  // 사진은 File 객체라 직렬화 불가 → 사진 외 필드만 저장.
+  const AUTOSAVE_KEY = `ft:new-dog-draft:${userId}`
+  const loadDraft = () => {
+    if (typeof window === 'undefined') return null
+    try {
+      const raw = localStorage.getItem(AUTOSAVE_KEY)
+      if (!raw) return null
+      const parsed = JSON.parse(raw) as {
+        v?: number
+        ts?: number
+        name?: string
+        breed?: string
+        gender?: 'male' | 'female' | ''
+        neutered?: boolean | null
+        ageValue?: string
+        ageUnit?: 'years' | 'months'
+        weight?: string
+        weightMethod?: string
+        weightMeasuredAt?: string
+        activityLevel?: 'low' | 'medium' | 'high' | ''
+        activityMethod?: string
+        feedMethod?: string
+      }
+      if (parsed.v !== 1) return null
+      if (parsed.ts && Date.now() - parsed.ts > 7 * 86_400_000) {
+        localStorage.removeItem(AUTOSAVE_KEY)
+        return null
+      }
+      return parsed
+    } catch {
+      return null
+    }
+  }
+  const draft = typeof window !== 'undefined' ? loadDraft() : null
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const [name, setName] = useState('')
-  const [breed, setBreed] = useState('')
-  const [gender, setGender] = useState<'male' | 'female' | ''>('')
-  const [neutered, setNeutered] = useState<boolean | null>(null)
-  const [ageValue, setAgeValue] = useState('')
-  const [ageUnit, setAgeUnit] = useState<'years' | 'months'>('years')
-  const [weight, setWeight] = useState('')
+  const [name, setName] = useState(draft?.name ?? '')
+  const [breed, setBreed] = useState(draft?.breed ?? '')
+  const [gender, setGender] = useState<'male' | 'female' | ''>(
+    draft?.gender ?? '',
+  )
+  const [neutered, setNeutered] = useState<boolean | null>(
+    draft?.neutered ?? null,
+  )
+  const [ageValue, setAgeValue] = useState(draft?.ageValue ?? '')
+  const [ageUnit, setAgeUnit] = useState<'years' | 'months'>(
+    draft?.ageUnit ?? 'years',
+  )
+  const [weight, setWeight] = useState(draft?.weight ?? '')
   const [weightMethod, setWeightMethod] = useState<
     'vet_scale' | 'home_digital' | 'home_analog' | 'hold' | 'eyeball' | 'unknown'
-  >('unknown')
-  const [weightMeasuredAt, setWeightMeasuredAt] = useState<string>(() => {
-    const d = new Date()
-    const yy = d.getFullYear()
-    const mm = String(d.getMonth() + 1).padStart(2, '0')
-    const dd = String(d.getDate()).padStart(2, '0')
-    return `${yy}-${mm}-${dd}`
-  })
+  >(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (draft?.weightMethod as any) ?? 'unknown',
+  )
+  const [weightMeasuredAt, setWeightMeasuredAt] = useState<string>(
+    draft?.weightMeasuredAt ??
+      (() => {
+        const d = new Date()
+        const yy = d.getFullYear()
+        const mm = String(d.getMonth() + 1).padStart(2, '0')
+        const dd = String(d.getDate()).padStart(2, '0')
+        return `${yy}-${mm}-${dd}`
+      })(),
+  )
   const [activityLevel, setActivityLevel] = useState<
     'low' | 'medium' | 'high' | ''
-  >('')
+  >(draft?.activityLevel ?? '')
   const [activityMethod, setActivityMethod] = useState<
     'pedometer' | 'gps' | 'subjective' | 'unknown'
-  >('unknown')
+  >(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (draft?.activityMethod as any) ?? 'unknown',
+  )
   const [feedMethod, setFeedMethod] = useState<
     'auto_delivery' | 'scale' | 'cup' | 'eyeball' | 'unknown'
-  >('unknown')
+  >(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (draft?.feedMethod as any) ?? 'unknown',
+  )
   const [photoState, setPhotoState] = useState<PhotoState>({ action: 'keep' })
+
+  // 폼 변경 시 디바운스 자동저장.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          AUTOSAVE_KEY,
+          JSON.stringify({
+            v: 1,
+            ts: Date.now(),
+            name,
+            breed,
+            gender,
+            neutered,
+            ageValue,
+            ageUnit,
+            weight,
+            weightMethod,
+            weightMeasuredAt,
+            activityLevel,
+            activityMethod,
+            feedMethod,
+          }),
+        )
+      } catch {
+        /* quota — silent */
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [
+    AUTOSAVE_KEY,
+    name,
+    breed,
+    gender,
+    neutered,
+    ageValue,
+    ageUnit,
+    weight,
+    weightMethod,
+    weightMeasuredAt,
+    activityLevel,
+    activityMethod,
+    feedMethod,
+  ])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -152,6 +252,15 @@ export default function NewDogClient({ userId }: { userId: string }) {
         }
       } catch (e) {
         console.error('photo upload failed', e)
+      }
+    }
+
+    // audit 2-5: 등록 성공 → draft 지움.
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(AUTOSAVE_KEY)
+      } catch {
+        /* noop */
       }
     }
 

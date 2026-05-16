@@ -93,14 +93,48 @@ export default function CheckoutForm({
   const supabase = createClient()
   const toast = useToast()
 
-  const [name, setName] = useState(defaultProfile.name)
-  const [phone, setPhone] = useState(defaultProfile.phone)
-  const [zip, setZip] = useState(defaultProfile.zip)
-  const [address, setAddress] = useState(defaultProfile.address)
-  const [addressDetail, setAddressDetail] = useState(
-    defaultProfile.addressDetail
+  // audit 2-1: 자동저장 — 네트워크 끊김 / 새로고침 / 결제 실패 후 재진입 시
+  // 받는 분/연락처/주소/메모 가 날아가지 않게 localStorage 7일 보존. 결제
+  // 성공 시 clear. 주소 동에 PII 가 들어가지만 본인 브라우저 안에 머무름.
+  const AUTOSAVE_KEY = `ft:checkout-draft:${userId}`
+  const loadDraft = () => {
+    if (typeof window === 'undefined') return null
+    try {
+      const raw = localStorage.getItem(AUTOSAVE_KEY)
+      if (!raw) return null
+      const parsed = JSON.parse(raw) as {
+        v?: number
+        ts?: number
+        name?: string
+        phone?: string
+        zip?: string
+        address?: string
+        addressDetail?: string
+        memo?: string
+      }
+      if (parsed.v !== 1) return null
+      // 7일 지난 draft 는 무시.
+      if (parsed.ts && Date.now() - parsed.ts > 7 * 86_400_000) {
+        localStorage.removeItem(AUTOSAVE_KEY)
+        return null
+      }
+      return parsed
+    } catch {
+      return null
+    }
+  }
+  const initialDraft = typeof window !== 'undefined' ? loadDraft() : null
+
+  const [name, setName] = useState(initialDraft?.name ?? defaultProfile.name)
+  const [phone, setPhone] = useState(initialDraft?.phone ?? defaultProfile.phone)
+  const [zip, setZip] = useState(initialDraft?.zip ?? defaultProfile.zip)
+  const [address, setAddress] = useState(
+    initialDraft?.address ?? defaultProfile.address,
   )
-  const [memo, setMemo] = useState('')
+  const [addressDetail, setAddressDetail] = useState(
+    initialDraft?.addressDetail ?? defaultProfile.addressDetail,
+  )
+  const [memo, setMemo] = useState(initialDraft?.memo ?? '')
   // "기본 배송지로 저장" 체크 — 이전엔 profiles 에 업서트했는데, 이제
   // addresses 테이블에 새 row 를 insert 한다. 이미 저장된 주소를 고른
   // 경우엔 이 체크박스 자체가 숨겨진다 (중복 저장 방지).
@@ -149,6 +183,32 @@ export default function CheckoutForm({
     // orderItems/baseTotal은 props라 이 컴포넌트 수명 동안 안정 — 마운트 1회로 충분.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // audit 2-1: 폼 변경 시 500ms 디바운스로 localStorage 저장. 결제 성공/주문
+  // 생성 직후 useEffect 가 아니라 handlePay 내부에서 명시 clear.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          AUTOSAVE_KEY,
+          JSON.stringify({
+            v: 1,
+            ts: Date.now(),
+            name,
+            phone,
+            zip,
+            address,
+            addressDetail,
+            memo,
+          }),
+        )
+      } catch {
+        /* quota/disabled — silent */
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [AUTOSAVE_KEY, name, phone, zip, address, addressDetail, memo])
 
   // 결제수단 — 카드 기본. 가상계좌를 선택하면 현금영수증 옵션이
   // 노출된다. 카드 결제는 카드매출전표가 자동으로 법적 영수증
