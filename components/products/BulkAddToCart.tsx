@@ -130,7 +130,7 @@ export default function BulkAddToCart({
       >
         {done ? (
           <>
-            <Check className="w-4 h-4" strokeWidth={3} />
+            <Check className="w-4 h-4" strokeWidth={2.5} />
             컬렉션 담겼어요
           </>
         ) : busy ? (

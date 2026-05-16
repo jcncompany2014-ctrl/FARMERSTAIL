@@ -121,7 +121,7 @@ export default function OnboardingTutorial() {
           aria-label="튜토리얼 건너뛰기"
         >
           건너뛰기
-          <X className="w-3.5 h-3.5" strokeWidth={1.5} />
+          <X className="w-3.5 h-3.5" strokeWidth={2} />
         </button>
       </div>
 

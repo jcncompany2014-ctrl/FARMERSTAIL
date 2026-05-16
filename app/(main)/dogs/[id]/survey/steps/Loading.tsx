@@ -51,7 +51,7 @@ export default function Loading({
             <li key={i} className={cls}>
               <span className="s-ic-stage">
                 {i < loadingStage ? (
-                  <Check size={11} strokeWidth={3} color="#fff" />
+                  <Check size={11} strokeWidth={2.5} color="#fff" />
                 ) : i === loadingStage ? (
                   <Loader2 size={11} strokeWidth={2.5} color="#fff" />
                 ) : null}

@@ -156,12 +156,16 @@ export default function VetShareButton({ dogId, dogName }: { dogId: string; dogN
                   color: 'var(--ink)',
                 }}
               >
-                <CheckCircle2
-                  className="inline-block w-3 h-3 mr-1"
-                  strokeWidth={2.2}
-                  style={{ color: 'var(--moss)' }}
-                />
-                {url}
+                {/* UI audit #2: inline-block icon + 텍스트 baseline 어긋남.
+                    inline-flex 로 감싸서 vertical center align. */}
+                <span className="inline-flex items-center gap-1">
+                  <CheckCircle2
+                    className="w-3 h-3 shrink-0"
+                    strokeWidth={2.2}
+                    style={{ color: 'var(--moss)' }}
+                  />
+                  <span className="break-all">{url}</span>
+                </span>
               </div>
               {expiresAt && (
                 <p className="text-[10.5px] text-muted">

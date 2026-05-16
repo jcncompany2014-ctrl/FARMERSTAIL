@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import {
-  ChevronLeft,
+  X,
   Check,
   AlertCircle,
   Sparkles,
@@ -155,13 +155,14 @@ export default function DogPhotoWizard({
               <span className="text-[10.5px] font-bold uppercase tracking-widest" style={{ color: 'var(--terracotta)' }}>
                 Photo Wizard · {step + 1}/{STEPS.length}
               </span>
+              {/* UI audit #1: 닫기 버튼인데 ChevronLeft (뒤로 가기) 의미 충돌. X 로 교체. */}
               <button
                 type="button"
                 onClick={close}
                 aria-label="닫기"
-                className="text-muted hover:text-text"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-muted hover:text-text hover:bg-rule transition"
               >
-                <ChevronLeft className="w-4 h-4" strokeWidth={2.2} />
+                <X className="w-4 h-4" strokeWidth={2} />
               </button>
             </div>
             <div className="flex gap-1.5 mb-3">

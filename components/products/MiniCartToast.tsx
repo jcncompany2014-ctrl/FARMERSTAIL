@@ -131,7 +131,7 @@ export default function MiniCartToast() {
           className="hidden sm:flex shrink-0 w-10 h-10 -mr-2 items-center justify-center rounded-full transition active:scale-90"
           style={{ color: 'rgba(245,240,230,0.6)' }}
         >
-          <X className="w-4 h-4" strokeWidth={2} />
+          <X className="w-[18px] h-[18px]" strokeWidth={2} />
         </button>
       </div>
     </div>
