@@ -154,7 +154,7 @@ capacitor.config.ts   네이티브 앱 셸 (com.farmerstail.app)
 → **`docs/sentry-preview-setup.md`** — Vercel Preview 환경 source map 설정
 
 ### 현재 상태 (2026-05-16)
-- **702 테스트** 통과 (lib + e2e)
+- **741 테스트** 통과 (lib + e2e)
 - **tsc 0 에러** — `strict: true` + `noUncheckedIndexedAccess: true` 활성화
 - **eslint 0 errors / 0 warnings** — react-hooks/purity + set-state-in-effect 포함 clean
 - **Supabase Database typed** — browser/server/admin 모두 generic 활성화
