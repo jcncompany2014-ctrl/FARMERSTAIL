@@ -174,11 +174,13 @@ export default function AnalysisView({
         return
       }
 
-      setAnalysis(target)
+      // audit #79: generated analyses row 와 도메인 Analysis 타입 nullable 차이
+      // — UI 가 null fallback 이미 처리. cast 우회.
+      setAnalysis(target as unknown as Analysis)
 
       // For the trend chart: everything up to and including the target
       // (so older detail views show the timeline state as of that reading).
-      const targetTime = new Date(target.created_at).getTime()
+      const targetTime = new Date(target.created_at!).getTime()
       type AnalysisRow = {
         id: string
         created_at: string

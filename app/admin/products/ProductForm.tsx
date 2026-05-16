@@ -157,25 +157,44 @@ export default function ProductForm({
       country_of_packaging: form.country_of_packaging?.trim() || null,
     }
 
+    // audit #79: products schema-drift (admin form vs generated row).
+    const productsClient = supabase as unknown as {
+      from: (t: string) => {
+        insert: (r: Record<string, unknown>) => {
+          select: (cols: string) => {
+            single: () => Promise<{
+              data: { id: string } | null
+              error: { message?: string } | null
+            }>
+          }
+        }
+        update: (r: Record<string, unknown>) => {
+          eq: (c: string, v: string) => Promise<{
+            error: { message?: string } | null
+          }>
+        }
+      }
+    }
+
     if (mode === 'create') {
-      const { data, error } = await supabase
+      const { data, error } = await productsClient
         .from('products')
-        .insert(payload)
+        .insert(payload as Record<string, unknown>)
         .select('id')
         .single()
 
       setLoading(false)
       if (error) {
-        toast.error('등록 실패: ' + error.message)
+        toast.error('등록 실패: ' + (error.message ?? 'unknown'))
         return
       }
       toast.success('상품을 등록했어요')
-      router.push(`/admin/products/${data.id}`)
+      router.push(`/admin/products/${data!.id}`)
       router.refresh()
     } else {
-      const { error } = await supabase
+      const { error } = await productsClient
         .from('products')
-        .update(payload)
+        .update(payload as Record<string, unknown>)
         .eq('id', form.id!)
 
       setLoading(false)

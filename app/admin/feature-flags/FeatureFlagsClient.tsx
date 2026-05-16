@@ -43,13 +43,34 @@ export default function FeatureFlagsClient({
   const [newKey, setNewKey] = useState('')
   const [newDescription, setNewDescription] = useState('')
 
+  // audit #79: feature_flags 테이블이 generated types 에 없음 (마이그 후 types
+  // 미갱신). 모든 호출 untyped cast.
+  type FlagOpsClient = {
+    from: (t: string) => {
+      insert: (r: Record<string, unknown>) => Promise<{
+        error: { message?: string } | null
+      }>
+      update: (r: Record<string, unknown>) => {
+        eq: (c: string, v: string) => Promise<{
+          error: { message?: string } | null
+        }>
+      }
+      delete: () => {
+        eq: (c: string, v: string) => Promise<{
+          error: { message?: string } | null
+        }>
+      }
+    }
+  }
+  const fbClient = supabase as unknown as FlagOpsClient
+
   async function createFlag() {
     if (!/^[a-z0-9_]{3,40}$/.test(newKey)) {
       toast.error('키는 영소문자/숫자/_ 로 3~40자 이내')
       return
     }
     setSavingKey(newKey)
-    const { error } = await supabase.from('feature_flags').insert({
+    const { error } = await fbClient.from('feature_flags').insert({
       key: newKey,
       description: newDescription.trim() || null,
       enabled: false,
@@ -58,7 +79,7 @@ export default function FeatureFlagsClient({
     })
     setSavingKey(null)
     if (error) {
-      toast.error('생성 실패: ' + error.message)
+      toast.error('생성 실패: ' + (error.message ?? 'unknown'))
       return
     }
     setNewKey('')
@@ -68,7 +89,7 @@ export default function FeatureFlagsClient({
 
   async function saveRow(row: FeatureFlagRow) {
     setSavingKey(row.key)
-    const { error } = await supabase
+    const { error } = await fbClient
       .from('feature_flags')
       .update({
         description: row.description,
@@ -79,7 +100,7 @@ export default function FeatureFlagsClient({
       .eq('key', row.key)
     setSavingKey(null)
     if (error) {
-      toast.error('저장 실패: ' + error.message)
+      toast.error('저장 실패: ' + (error.message ?? 'unknown'))
       return
     }
     router.refresh()
@@ -88,10 +109,13 @@ export default function FeatureFlagsClient({
   async function deleteFlag(key: string) {
     if (!confirm(`flag '${key}' 를 삭제할까요?`)) return
     setSavingKey(key)
-    const { error } = await supabase.from('feature_flags').delete().eq('key', key)
+    const { error } = await fbClient
+      .from('feature_flags')
+      .delete()
+      .eq('key', key)
     setSavingKey(null)
     if (error) {
-      toast.error('삭제 실패: ' + error.message)
+      toast.error('삭제 실패: ' + (error.message ?? 'unknown'))
       return
     }
     setRows((prev) => prev.filter((r) => r.key !== key))

@@ -91,14 +91,18 @@ export default function EditDogPage() {
         return
       }
 
+      // audit #79: generated DB row 는 모든 string 컬럼이 string 으로 추론 →
+      // setGender/AgeUnit/ActivityLevel 의 narrow union 으로 cast 필요.
       setName(data.name ?? '')
       setBreed(data.breed ?? '')
-      setGender(data.gender ?? '')
-      setNeutered(data.neutered)
+      setGender((data.gender ?? '') as '' | 'male' | 'female')
+      setNeutered(data.neutered ?? false)
       setAgeValue(data.age_value?.toString() ?? '')
-      setAgeUnit(data.age_unit ?? 'years')
+      setAgeUnit((data.age_unit ?? 'years') as 'years' | 'months')
       setWeight(data.weight?.toString() ?? '')
-      setActivityLevel(data.activity_level ?? '')
+      setActivityLevel(
+        (data.activity_level ?? '') as '' | 'low' | 'medium' | 'high',
+      )
       // P10 — 측정 도구 초기값. 업그레이드 비교용으로 별도 저장.
       const wm = data.weight_method ?? 'unknown'
       const am = data.activity_method ?? 'unknown'

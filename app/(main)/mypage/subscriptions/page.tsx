@@ -162,7 +162,16 @@ function MySubscriptionsPageInner() {
           }
         })()
       : { status: 'paused' }
-    await supabase
+    // audit #79: subscriptions update payload Record cast.
+    await (supabase as unknown as {
+      from: (t: string) => {
+        update: (r: Record<string, unknown>) => {
+          eq: (c: string, v: string) => {
+            eq: (c: string, v: string) => Promise<unknown>
+          }
+        }
+      }
+    })
       .from('subscriptions')
       .update(update)
       .eq('id', subId)
@@ -221,7 +230,16 @@ function MySubscriptionsPageInner() {
     const uid = await requireUid()
     if (!uid) return
     const sub = subs.find((s) => s.id === subId)
-    await supabase
+    // audit #79: next_delivery_date null cast.
+    await (supabase as unknown as {
+      from: (t: string) => {
+        update: (r: Record<string, unknown>) => {
+          eq: (c: string, v: string) => {
+            eq: (c: string, v: string) => Promise<unknown>
+          }
+        }
+      }
+    })
       .from('subscriptions')
       .update({ status: 'cancelled', next_delivery_date: null })
       .eq('id', subId)

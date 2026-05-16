@@ -304,10 +304,12 @@ export default function ProductDetailClient({
 
     // Atomic upsert RPC — 두 번 빠르게 누르거나 동시 호출이 중복 row 만드는
     // race condition 차단. 함수 안에 SELECT FOR UPDATE → UPDATE 또는 INSERT.
+    // audit #79: generated RPC arg type 이 p_variant_id 를 non-nullable 추론 →
+    // 실제론 nullable. cast 우회.
     await supabase.rpc('upsert_cart_item', {
       p_user_id: user.id,
       p_product_id: product.id,
-      p_variant_id: selectedVariant?.id ?? null,
+      p_variant_id: (selectedVariant?.id ?? null) as unknown as string,
       p_quantity: capped,
       p_max_qty: qtyMax,
     })

@@ -334,7 +334,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
         router.push('/dogs')
         return
       }
-      setDog(data)
+      // audit #79: generated dogs row nullable cast.
+      setDog(data as unknown as Dog)
       trackSurveyStarted(dogId)
     }
     load()

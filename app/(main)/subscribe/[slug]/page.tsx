@@ -201,7 +201,21 @@ export default function SubscribePage() {
         ? crypto.randomUUID()
         : `c-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
-    const { data: sub, error: subErr } = await supabase
+    // audit #79: subscriptions schema-drift cast.
+    const { data: sub, error: subErr } = await (
+      supabase as unknown as {
+        from: (t: string) => {
+          insert: (r: Record<string, unknown>) => {
+            select: (cols: string) => {
+              single: () => Promise<{
+                data: { id: string } | null
+                error: { message?: string } | null
+              }>
+            }
+          }
+        }
+      }
+    )
       .from('subscriptions')
       .insert({
         user_id: user.id,

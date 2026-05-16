@@ -147,7 +147,8 @@ export default function DogDetailPage() {
         return
       }
 
-      setDog(data)
+      // audit #79: generated dogs row 와 도메인 Dog nullable 차이 — cast.
+      setDog(data as unknown as Dog)
 
       // owner 이름 — DogFamilyMembers 에 표시. 본인 프로필에서 가져오고
       // 없으면 user.email 의 local part. fire-and-forget — UI 차단 X.

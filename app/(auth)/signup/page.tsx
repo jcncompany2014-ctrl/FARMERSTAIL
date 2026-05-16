@@ -269,6 +269,8 @@ function SignupForm() {
       // consent_log 에 증적. profiles 플래그가 truth source 이고 로그는 부가적.
       // ─ 절대 await 가 throw 하면 가입 마무리 (push to /dashboard) 가 깨짐.
       //    Promise.allSettled 로 둘 다 best-effort.
+      // audit #79: Supabase PostgrestFilterBuilder 는 thenable 이지만 Promise 가
+      // 아니라 generic typed 일 때 Promise<unknown>[] 에 못 들어감. 명시 cast.
       const consentInserts: Promise<unknown>[] = []
       if (agreeMarketingEmail) {
         consentInserts.push(
@@ -278,7 +280,7 @@ function SignupForm() {
             granted: true,
             policy_version: MARKETING_POLICY_VERSION,
             source: 'signup',
-          }),
+          }) as unknown as Promise<unknown>,
         )
       }
       if (agreeMarketingSms) {
@@ -289,7 +291,7 @@ function SignupForm() {
             granted: true,
             policy_version: MARKETING_POLICY_VERSION,
             source: 'signup',
-          }),
+          }) as unknown as Promise<unknown>,
         )
       }
       if (consentInserts.length > 0) {

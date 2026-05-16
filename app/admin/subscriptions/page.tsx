@@ -72,7 +72,8 @@ export default function AdminSubscriptionsPage() {
       .select('*, profiles(name, email), subscription_items(*), dogs(id, name)')
       .order('created_at', { ascending: false })
 
-    if (data) setSubs(data as SubscriptionRow[])
+    // audit #79: generated row vs domain SubscriptionRow nullable 차이 — unknown cast.
+    if (data) setSubs(data as unknown as SubscriptionRow[])
     setLoading(false)
   }
 
@@ -132,7 +133,17 @@ export default function AdminSubscriptionsPage() {
         updates.next_delivery_date = next.toISOString().split('T')[0]
       }
     }
-    await supabase.from('subscriptions').update(updates).eq('id', subId)
+    // audit #79: subscriptions update Record cast.
+    await (supabase as unknown as {
+      from: (t: string) => {
+        update: (r: Record<string, unknown>) => {
+          eq: (c: string, v: string) => Promise<unknown>
+        }
+      }
+    })
+      .from('subscriptions')
+      .update(updates)
+      .eq('id', subId)
     await loadAll()
     setActionLoading(null)
   }
@@ -156,8 +167,21 @@ export default function AdminSubscriptionsPage() {
     for (const sub of upcoming) {
       const orderNumber = `SUB-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
 
-      // 1) 주문 생성
-      const { data: order, error: orderErr } = await supabase
+      // 1) 주문 생성 — audit #79: schema-drift cast.
+      const { data: order, error: orderErr } = await (
+        supabase as unknown as {
+          from: (t: string) => {
+            insert: (r: Record<string, unknown>) => {
+              select: (cols: string) => {
+                single: () => Promise<{
+                  data: { id: string } | null
+                  error: { message?: string } | null
+                }>
+              }
+            }
+          }
+        }
+      )
         .from('orders')
         .insert({
           user_id: sub.user_id,
@@ -194,7 +218,14 @@ export default function AdminSubscriptionsPage() {
         line_total: item.unit_price * item.quantity,
       }))
 
-      await supabase.from('order_items').insert(items)
+      // audit #79: order_items insert cast.
+      await (supabase as unknown as {
+        from: (t: string) => {
+          insert: (r: Record<string, unknown>[]) => Promise<unknown>
+        }
+      })
+        .from('order_items')
+        .insert(items)
 
       // 3) 구독 업데이트: 다음 배송일 갱신, 누적 횟수 +1
       // 박스 구독은 캘린더 월 (4주치) 또는 15일 (2주치) — cron 룰과 정합.
