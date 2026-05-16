@@ -584,103 +584,82 @@ export default async function DashboardPage() {
       {/* 가입 리퍼럴 자동 적용 — 클라이언트 섬. 세션당 1회. */}
       <ReferralAutoRedeemer />
 
-      {/* ── 인사 — kicker + serif h1 ─────────────────────────── */}
-      <section className="relative grain grain-soft px-5 pt-4 pb-5 overflow-hidden">
-        {/* 듀얼 라이트 글로우 — flat 한 베이지 배경에 깊이감. */}
+      {/* ── Hero — 매거진 톤 → 그라데이션 + 임팩트.
+          사용자 피드백: "너무 밋밋, 뻔함, 매거진 X, 와! 느낌".
+          dark gradient + 그래픽 액센트 + 큰 인사말 + 강아지 chip. ── */}
+      <section className="relative mx-3 mt-3 rounded-3xl overflow-hidden px-6 pt-7 pb-7 text-white"
+        style={{
+          background:
+            'linear-gradient(135deg, #1E1A14 0%, #3a2f1d 45%, #8a4226 100%)',
+        }}
+      >
+        {/* 우상단 따뜻한 글로우 */}
         <div
           aria-hidden
-          className="absolute inset-0 pointer-events-none"
+          className="absolute -top-16 -right-12 w-56 h-56 rounded-full pointer-events-none"
           style={{
             background:
-              'radial-gradient(ellipse 420px 260px at 108% -12%, rgba(160,69,46,0.20) 0%, transparent 60%)',
+              'radial-gradient(circle, rgba(212,169,74,0.32) 0%, transparent 65%)',
           }}
         />
+        {/* 좌하단 부드러운 글로우 */}
         <div
           aria-hidden
-          className="absolute inset-0 pointer-events-none"
+          className="absolute -bottom-20 -left-16 w-60 h-60 rounded-full pointer-events-none"
           style={{
             background:
-              'radial-gradient(ellipse 300px 180px at -8% 110%, rgba(212,169,74,0.14) 0%, transparent 60%)',
+              'radial-gradient(circle, rgba(212,169,74,0.18) 0%, transparent 70%)',
+          }}
+        />
+        {/* 미세한 grain (질감) */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none opacity-[0.07]"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 30% 20%, white 1px, transparent 1px), radial-gradient(circle at 70% 60%, white 1px, transparent 1px)',
+            backgroundSize: '40px 40px, 60px 60px',
           }}
         />
 
-        {/* terracotta tick + kicker — hairline 살짝 두껍게 (1 → 1.5px),
-            terracotta dot 추가로 magazine masthead 시그니처 강조. */}
-        <div className="relative flex items-center gap-2.5">
-          <span
-            aria-hidden
-            style={{
-              width: 24,
-              height: 1.5,
-              background: 'var(--terracotta)',
-              flexShrink: 0,
-            }}
-          />
-          <span className="kicker">Good day</span>
-          <span
-            aria-hidden
-            style={{
-              width: 4,
-              height: 4,
-              borderRadius: 1,
-              background: 'var(--terracotta)',
-              flexShrink: 0,
-              marginLeft: 'auto',
-            }}
-          />
-        </div>
-
-        {/* 인사말 — 이름 (ink) + 시간대 인사 (terracotta italic serif) 로
-            계조 강조. 한 줄 안에서 두 톤이 교차하면서 매거진 풍 hierarchy. */}
+        {/* 인사말 — 직관, 큰 폰트, 시간대 인사 hero. */}
         <h1
-          className="relative font-serif mt-3.5 leading-[1.15]"
+          className="relative leading-[1.1]"
           style={{
-            fontSize: 28,
+            fontSize: 30,
             fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.025em',
+            color: 'white',
+            letterSpacing: '-0.03em',
           }}
         >
-          {/* UI audit #1: 빈 username 시 <br> 만 남아 빈 줄 → conditional.
-              userName 없으면 인사말만 한 줄로. */}
           {userName && (
-            <>
-              <span className="block">{userName}님,</span>
-            </>
+            <span className="block text-[18px] font-bold text-gold mb-1.5"
+              style={{ letterSpacing: '-0.01em' }}
+            >
+              안녕하세요, {userName}님
+            </span>
           )}
-          <span
-            className="block italic"
-            style={{
-              fontWeight: 600,
-              color: 'var(--terracotta)',
-              letterSpacing: '-0.02em',
-            }}
-          >
+          <span className="block">
             <DashboardGreeting />
           </span>
         </h1>
 
-        {/* 부제 — 마지막 단어를 italic terracotta 로 강조해서 brand voice
-            (정성, 한 그릇) 을 매번 살짝 빛내준다. */}
-        <p
-          className="relative mt-3 leading-relaxed"
-          style={{
-            fontSize: 12.5,
-            color: 'var(--text)',
-            letterSpacing: '-0.005em',
-          }}
-        >
-          오늘도 건강한 한 끼를{' '}
-          <span
-            className="font-serif italic"
-            style={{
-              fontWeight: 700,
-              color: 'var(--terracotta)',
-            }}
+        {/* 강아지 hero chip — FAMILY 푸린 → 시각적으로 강조. */}
+        {firstDog && (
+          <Link
+            href={`/dogs/${firstDog.id}`}
+            className="relative mt-5 inline-flex items-center gap-2.5 pr-4 pl-2 py-2 rounded-full hover:opacity-90 transition active:scale-[0.98]"
+            style={{ background: 'rgba(255,255,255,0.12)' }}
           >
-            정성스럽게.
-          </span>
-        </p>
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-white/20 flex items-center justify-center shrink-0">
+              <span className="text-[16px]">🐶</span>
+            </div>
+            <span className="text-[13px] font-bold text-white">
+              {firstDog.name}와 함께
+            </span>
+            <span className="text-[14px] text-white/70">→</span>
+          </Link>
+        )}
 
         {/* Next-action 한 줄 — 활성 구독자는 바로 아래 다음 배송 히어로 카드
             가 이어받으니 표시 안 함. 비구독자에게만 가벼운 텍스트 링크로 다음
