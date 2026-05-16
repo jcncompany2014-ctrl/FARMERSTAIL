@@ -59,8 +59,8 @@ export default function DogSilhouette({
         {view === 'top' && <TopDog />}
       </g>
 
-      {reference === 'card' && <CardSlot stroke={stroke} />}
-      {reference === 'a4' && <A4Slot stroke={stroke} />}
+      {reference === 'card' && <CardSlot />}
+      {reference === 'a4' && <A4Slot />}
     </svg>
   )
 }
@@ -134,7 +134,7 @@ function TopDog() {
   )
 }
 
-function CardSlot({ stroke }: { stroke: string }) {
+function CardSlot() {
   return (
     <g>
       <rect
@@ -163,7 +163,7 @@ function CardSlot({ stroke }: { stroke: string }) {
   )
 }
 
-function A4Slot({ stroke }: { stroke: string }) {
+function A4Slot() {
   return (
     <g>
       <rect

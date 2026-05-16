@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import {
-  Camera,
   X,
   Loader2,
   AlertCircle,

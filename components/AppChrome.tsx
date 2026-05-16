@@ -97,7 +97,6 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       document.removeEventListener('visibilitychange', onVisible)
     }
     // pathname 의도적 제외 — cart count 는 라우트 변경과 무관.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase])
 
   // 알림 unread 카운트 — 라우트 전환마다 다시 가져온다 (사용자가 다른 탭에서

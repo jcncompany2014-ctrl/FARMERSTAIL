@@ -28,6 +28,18 @@ import {
   trackSubscriptionCancelled,
 } from '@/lib/analytics'
 
+/**
+ * billing-auth fallback customerKey 생성기 — module-scope 라 react-hooks/purity
+ * rule scope 밖 (rule 은 component body 안의 Date.now / Math.random 만 검사).
+ * event handler 에서만 호출되므로 render purity 와 무관하다.
+ */
+function generateFallbackCustomerKey(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID()
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
 type SubscriptionItem = {
   product_name: string
   product_image_url: string | null
@@ -94,7 +106,6 @@ export default function SubscriptionsClient({
   const [showNewBanner, setShowNewBanner] = useState(isNew)
   const [editingInterval, setEditingInterval] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [pulsedSubId, setPulsedSubId] = useState<string | null>(null)
 
   useEffect(() => {
     if (isNew) {
@@ -104,14 +115,26 @@ export default function SubscriptionsClient({
     return undefined
   }, [isNew])
 
-  // focus subId 자동 스크롤 + 1.5s pulse — 첫 페인트 직후 DOM 그려진 다음.
+  // focus subId 자동 스크롤 + 1.8s pulse — 첫 페인트 직후 DOM 그려진 다음.
+  // state 대신 inline boxShadow 직접 토글 — react-hooks/set-state-in-effect 회피
+  // 및 highlight 만 위한 re-render 제거.
   useEffect(() => {
     if (!focusSubId) return
     const el = document.getElementById(`sub-${focusSubId}`)
     if (!el) return
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    setPulsedSubId(focusSubId)
-    const t = setTimeout(() => setPulsedSubId(null), 1800)
+    const prevShadow = el.style.boxShadow
+    const prevTransition = el.style.transition
+    el.style.transition = 'box-shadow 0.25s ease-out'
+    el.style.boxShadow =
+      '0 0 0 2px rgba(196, 98, 62, 0.6), 0 0 0 4px var(--ft-bg, #faf8f4)'
+    const t = setTimeout(() => {
+      el.style.boxShadow = prevShadow
+      // transition 정리는 다음 tick 에서 (애니메이션 끊김 방지)
+      setTimeout(() => {
+        el.style.transition = prevTransition
+      }, 250)
+    }, 1800)
     return () => clearTimeout(t)
   }, [focusSubId])
 
@@ -262,16 +285,7 @@ export default function SubscriptionsClient({
   }
 
   function handleReRegisterCard(sub: Subscription) {
-    let customerKey = sub.billing_customer_key
-    if (!customerKey) {
-      // event handler 안 — render 중이 아니지만 React compiler 가 false positive.
-      // eslint-disable-next-line react-hooks/purity
-      customerKey =
-        typeof crypto !== 'undefined' && 'randomUUID' in crypto
-          ? crypto.randomUUID()
-          : // eslint-disable-next-line react-hooks/purity
-            `${Date.now()}-${Math.random().toString(36).slice(2)}`
-    }
+    const customerKey = sub.billing_customer_key ?? generateFallbackCustomerKey()
     const url = `/subscribe/billing-auth?subscriptionId=${encodeURIComponent(
       sub.id,
     )}&customerKey=${encodeURIComponent(customerKey)}`
@@ -396,14 +410,13 @@ export default function SubscriptionsClient({
                 (needsRenewal ||
                   (sub.failed_charge_count ?? 0) > 0 ||
                   !!sub.next_retry_at)
-              const isPulsed = pulsedSubId === sub.id
               return (
                 <div
                   key={sub.id}
                   id={`sub-${sub.id}`}
                   className={`bg-white rounded-2xl border overflow-hidden transition ${
                     isCancelled ? 'opacity-60 border-rule' : needsRenewal ? 'border-sale/60' : 'border-rule'
-                  } ${isPulsed ? 'ring-2 ring-terracotta/60 ring-offset-2 ring-offset-bg' : ''}`}
+                  }`}
                 >
                   <div
                     className={`px-5 py-2 flex items-center justify-between ${status.bg}`}

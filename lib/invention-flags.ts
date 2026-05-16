@@ -55,8 +55,8 @@ export function isInventionEnabled(feature: InventionFeature): boolean {
   if (!coreOn) return false
   if (feature === 'core') return true
 
-  const envVar = ENV_VAR_MAP[feature]
-  // env 시그니처는 NEXT_PUBLIC_* 라 client/server 모두 접근 가능
+  // env 시그니처는 NEXT_PUBLIC_* 라 client/server 모두 접근 가능.
+  // ENV_VAR_MAP 은 envVarFor() 에서 사용 — 여기선 process.env 직접 비교 (Next.js inline).
   const value =
     feature === 'meta_learning'
       ? process.env.NEXT_PUBLIC_INVENTION_META_LEARNING

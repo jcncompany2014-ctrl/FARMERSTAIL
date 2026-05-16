@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import {
   AlertCircle,
-  Dog as DogIcon,
   Stethoscope,
   Scale,
   ClipboardList,
