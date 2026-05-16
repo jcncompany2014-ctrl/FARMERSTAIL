@@ -16,6 +16,10 @@
     "test:watch": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test --watch \"lib/**/*.test.ts\"",
     "test:coverage": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout \"lib/**/*.test.ts\"",
     "precommit": "npx eslint --max-warnings 100 . && npx tsc --noEmit",
+    "tsc:strict": "npx tsc --noEmit --project tsconfig.strict.json",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:install": "npx playwright install --with-deps chromium webkit",
     "install:hooks": "node scripts/install-git-hooks.mjs",
     "analyze": "ANALYZE=true next build",
     "analyze:win": "powershell -Command \"$env:ANALYZE='true'; next build\"",
@@ -68,6 +72,7 @@
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
+    "@playwright/test": "^1.49.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

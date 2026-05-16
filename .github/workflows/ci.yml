@@ -121,3 +121,49 @@ jobs:
         # devDep audit (@capacitor/assets 같은 tar 깊은 의존) 은 게이트 안 함.
         # production 의존성 high+ vuln 만 PR fail. moderate 는 별도 검토.
         run: npm audit --omit=dev --audit-level=high
+
+  # audit #77: Playwright e2e job
+  # Vercel Preview URL 을 PLAYWRIGHT_BASE_URL 로 받아 happy path 3개 검증.
+  # CI 에 PR 시 deployment_status event 후 실행 권장 — 지금은 push only.
+  e2e:
+    name: playwright (happy paths)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: validate
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' }}
+
+    env:
+      # 로컬 dev 서버 띄움 (PLAYWRIGHT_BASE_URL 미설정 시).
+      # Vercel Preview 연동은 별도 workflow_run trigger 추가 필요.
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Run e2e
+        run: npm run test:e2e
+        env:
+          CI: 'true'
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore

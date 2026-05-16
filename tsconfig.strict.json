@@ -1,0 +1,7 @@
+{
+  "//": "audit #78: TS strictest 옵션 셋 — 점진 마이그용. noUncheckedIndexedAccess 활성화 시 ~280개 에러 발생 (arr[i] / obj[key] 가 T | undefined). 새 코드 검증용으로 별 sprint 에서 npx tsc --project tsconfig.strict.json 실행해 에러 카운트 추적 + 점진 fix. exactOptionalPropertyTypes 도 같이 활성화 고려.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": true
+  }
+}
