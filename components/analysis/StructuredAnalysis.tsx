@@ -13,6 +13,11 @@ import {
 } from 'lucide-react'
 import type { AiAnalysisJson } from '@/lib/nutrition/ai-prompt'
 import { GUIDELINE_CITATIONS } from '@/lib/nutrition/guidelines'
+import {
+  riskFlagLabel,
+  riskFlagSeverity,
+  riskFlagDesc,
+} from '@/lib/nutrition/risk-flags'
 
 /**
  * StructuredAnalysis — /dogs/[id]/analysis 의 AI v2 분석 카드.
@@ -251,22 +256,53 @@ export default function StructuredAnalysis({
         </div>
       )}
 
-      {/* 위험 플래그 (서버 계산) */}
+      {/* 위험 플래그 (서버 계산) — 한국어 라벨 + severity 색 + desc.
+          이전엔 raw enum (REFEEDING_RISK 등) 노출 → 사용자 의미 못 함.
+          critical/high/info 별 색상 + tooltip 으로 설명 표시. */}
       {(riskFlagsFromCalc ?? []).length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {riskFlagsFromCalc!.map((flag) => (
-            <span
-              key={flag}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-mono"
-              style={{
-                background: 'color-mix(in srgb, var(--terracotta) 8%, transparent)',
-                color: 'var(--terracotta)',
-              }}
-            >
-              <AlertTriangle className="w-2.5 h-2.5" strokeWidth={2.5} />
-              {flag}
-            </span>
-          ))}
+        <div className="flex flex-col gap-1.5">
+          {riskFlagsFromCalc!.map((flag) => {
+            const label = riskFlagLabel(flag)
+            const severity = riskFlagSeverity(flag)
+            const desc = riskFlagDesc(flag)
+            const accent =
+              severity === 'critical'
+                ? 'var(--sale, #c4623e)'
+                : severity === 'high'
+                  ? 'var(--terracotta)'
+                  : 'var(--muted)'
+            return (
+              <div
+                key={flag}
+                className="rounded-xl border p-2.5"
+                style={{
+                  background: `color-mix(in srgb, ${accent} 6%, transparent)`,
+                  borderColor: `color-mix(in srgb, ${accent} 30%, transparent)`,
+                }}
+              >
+                <div
+                  className="flex items-center gap-1.5 text-[11.5px] font-bold"
+                  style={{ color: accent }}
+                >
+                  <AlertTriangle className="w-3 h-3" strokeWidth={2.4} />
+                  {label}
+                  {severity === 'critical' && (
+                    <span className="ml-1 text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-white/60">
+                      응급
+                    </span>
+                  )}
+                </div>
+                {desc && (
+                  <p
+                    className="mt-1 text-[11px] leading-relaxed"
+                    style={{ color: 'var(--text)' }}
+                  >
+                    {desc}
+                  </p>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 

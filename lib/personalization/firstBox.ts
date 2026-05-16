@@ -972,8 +972,35 @@ function applyBcsAdjustments(
       ruleId: 'bcs-obese',
     })
   }
-  // BCS 1-3 — 저체중. Premium (단백질 ↑) 가산. v1.4 transferToTarget.
-  if (input.bcs <= 3 && ratios.premium < 0.3) {
+  // BCS 1 — 응급 (refeeding syndrome 위험). audit #11 fix.
+  // BCS 2-3 일반 저체중과 분리. nutrition.ts 에서 REFEEDING_RISK flag 발화 +
+  // vetConsult=true. 여기서는 별도 chip 으로 응급 안내.
+  //
+  // # 근거 (NRC 2006 §15.2 + ACVIM Nutritional Assessment Guidelines 2011)
+  // 심한 저체중 (BCS 1) 에 즉시 100% 칼로리 → 인슐린 spike + 세포내 K/P/Mg
+  // 이동 → 부정맥 / 호흡부전. 단계적 증량 (Day 1-3 25% → Day 4-7 50% → Day
+  // 8+ 100%) + 수의사 동행 필수.
+  if (input.bcs === 1) {
+    const before = ratios.premium
+    const { ratios: next, finalValue } = transferToTarget(
+      ratios,
+      'premium',
+      0.3,
+      ['basic', 'weight', 'joint', 'skin'],
+    )
+    ratios = next
+    reasoning.push({
+      trigger: 'BCS 1/9 (응급 — 심한 저체중)',
+      action:
+        `Premium ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}% (단백질 보충). ` +
+        '⚠️ refeeding syndrome 위험 — 수의사 동행 + 단계적 증량 (1~3일 25%, ' +
+        '4~7일 50%, 8일+ 100%) 필수. 전해질 (K/P/Mg) 모니터링 권장.',
+      chipLabel: 'BCS 1 → 응급 케어',
+      priority: 1, // 응급 — 최상위 우선순위 (다른 priority 4보다 높음)
+      ruleId: 'bcs-refeeding-risk',
+    })
+  } else if (input.bcs <= 3 && ratios.premium < 0.3) {
+    // BCS 2-3 — 일반 저체중. Premium (단백질 ↑) 가산.
     const before = ratios.premium
     const { ratios: next, finalValue } = transferToTarget(
       ratios,

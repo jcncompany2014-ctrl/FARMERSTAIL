@@ -164,11 +164,39 @@ describe('decideFirstBox — BCS 미세 조정', () => {
     assert.ok(f.lineRatios.weight >= 0.3)
   })
 
-  it('BCS 1-3 → Premium 가산 (단백질↑)', () => {
+  it('BCS 2-3 → Premium 가산 (단백질↑)', () => {
     const f = decideFirstBox({ ...baseInput(), bcs: 2 })
     assert.ok(f.lineRatios.premium >= 0.2)
     const reason = f.reasoning.find((r) => r.ruleId === 'bcs-underweight')
     assert.ok(reason)
+  })
+
+  it('audit #11 회귀 가드 — BCS 1 (응급) 별도 분기 + refeeding chip', () => {
+    const f = decideFirstBox({ ...baseInput(), bcs: 1 })
+    // BCS 1 은 별도 ruleId 사용 (일반 underweight 와 분리)
+    const refeedingReason = f.reasoning.find(
+      (r) => r.ruleId === 'bcs-refeeding-risk',
+    )
+    assert.ok(refeedingReason, 'BCS 1 응급 reasoning 누락')
+    // 응급 — 최상위 priority (1)
+    assert.equal(refeedingReason?.priority, 1)
+    // chip 텍스트에 응급 안내 포함
+    assert.match(refeedingReason?.action ?? '', /수의사|단계적|refeeding/i)
+    assert.match(refeedingReason?.chipLabel ?? '', /응급/)
+    // 일반 underweight reasoning 은 발화 안 됨 (분리됨)
+    const underweightReason = f.reasoning.find(
+      (r) => r.ruleId === 'bcs-underweight',
+    )
+    assert.equal(underweightReason, undefined, 'BCS 1 이 일반 underweight 로 잘못 분류')
+  })
+
+  it('BCS 1 + BCS 2 처방 차별화 (응급 vs 일반)', () => {
+    const f1 = decideFirstBox({ ...baseInput(), bcs: 1 })
+    const f2 = decideFirstBox({ ...baseInput(), bcs: 2 })
+    // 둘 다 Premium 가산은 같지만 reasoning 다름
+    const r1 = f1.reasoning.find((r) => r.ruleId.startsWith('bcs-'))
+    const r2 = f2.reasoning.find((r) => r.ruleId.startsWith('bcs-'))
+    assert.notEqual(r1?.ruleId, r2?.ruleId, 'BCS 1 / BCS 2 룰 ID 분리')
   })
 
   it('BCS null → 조정 없음', () => {
