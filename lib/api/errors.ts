@@ -24,25 +24,16 @@
  */
 import { NextResponse } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
+import {
+  buildErrorBody,
+  extractMessage,
+  type ApiErrorCode,
+  type ErrLike,
+} from './errors-body.ts'
 
-export type ApiErrorCode =
-  | 'DB_ERROR'
-  | 'INTERNAL'
-  | 'VALIDATION'
-  | 'NOT_FOUND'
-  | 'FORBIDDEN'
-  | 'UNAUTHORIZED'
-  | 'CONFLICT'
-  | 'RATE_LIMITED'
-  | 'EXTERNAL_FAIL'
-
-type ErrLike = { message?: string; code?: string; details?: string } | Error | null | undefined
-
-function extractMessage(err: ErrLike): string {
-  if (!err) return 'unknown'
-  if (err instanceof Error) return err.message
-  return err.message ?? 'unknown'
-}
+// Re-export — 호출처 호환성 유지 (`import { ApiErrorCode } from '@/lib/api/errors'`)
+export { buildErrorBody, extractMessage }
+export type { ApiErrorCode, ErrLike }
 
 /**
  * DB / PostgREST 에러 → 일반 메시지. 원본은 Sentry 로.
@@ -64,15 +55,13 @@ export function dbError(
     tags: { 'api.context': context, 'api.error_type': 'db' },
   })
 
-  const isDev = process.env.NODE_ENV !== 'production'
-  return NextResponse.json(
-    {
-      code: 'DB_ERROR' as ApiErrorCode,
-      message: userMessage,
-      ...(isDev ? { _debug: originalMessage } : {}),
-    },
-    { status },
-  )
+  const body = buildErrorBody({
+    code: 'DB_ERROR',
+    userMessage,
+    originalMessage,
+    isDev: process.env.NODE_ENV !== 'production',
+  })
+  return NextResponse.json(body, { status })
 }
 
 /**
@@ -88,15 +77,13 @@ export function externalError(
   Sentry.captureException(new Error(`[api.${context}] ${originalMessage}`), {
     tags: { 'api.context': context, 'api.error_type': 'external' },
   })
-  const isDev = process.env.NODE_ENV !== 'production'
-  return NextResponse.json(
-    {
-      code: 'EXTERNAL_FAIL' as ApiErrorCode,
-      message: userMessage,
-      ...(isDev ? { _debug: originalMessage } : {}),
-    },
-    { status },
-  )
+  const body = buildErrorBody({
+    code: 'EXTERNAL_FAIL',
+    userMessage,
+    originalMessage,
+    isDev: process.env.NODE_ENV !== 'production',
+  })
+  return NextResponse.json(body, { status })
 }
 
 /**
@@ -114,13 +101,11 @@ export function internalError(
     err instanceof Error ? err : new Error(`[api.${context}] ${originalMessage}`),
     { tags: { 'api.context': context, 'api.error_type': 'internal' } },
   )
-  const isDev = process.env.NODE_ENV !== 'production'
-  return NextResponse.json(
-    {
-      code: 'INTERNAL' as ApiErrorCode,
-      message: userMessage,
-      ...(isDev ? { _debug: originalMessage } : {}),
-    },
-    { status },
-  )
+  const body = buildErrorBody({
+    code: 'INTERNAL',
+    userMessage,
+    originalMessage,
+    isDev: process.env.NODE_ENV !== 'production',
+  })
+  return NextResponse.json(body, { status })
 }
