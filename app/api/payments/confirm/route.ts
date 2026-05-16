@@ -301,7 +301,7 @@ export async function POST(req: Request) {
       user.id,
       {
         title: '결제가 완료됐어요 🐾',
-        body: `${amount.toLocaleString()}원 결제가 정상 처리됐어요. 주문 상세를 확인해 주세요.`,
+        body: `${amount.toLocaleString()}원 결제가 끝났어요. 주문 상세를 확인해 주세요.`,
         url: `/mypage/orders/${order.id}`,
         tag: `order-${order.id}`,
       },

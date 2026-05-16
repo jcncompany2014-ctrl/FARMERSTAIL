@@ -124,7 +124,7 @@ export default function DiaryClient({
 
   async function handleSubmit() {
     if (draftFiles.length === 0 && !draftNote.trim()) {
-      toast.error('사진 또는 메모 중 하나는 입력해주세요')
+      toast.error('사진이나 메모 중 하나는 입력해 주세요')
       return
     }
     setSubmitting(true)

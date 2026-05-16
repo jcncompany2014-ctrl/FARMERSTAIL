@@ -282,7 +282,7 @@ export default function CheckoutForm({
 
   async function handlePay() {
     if (!name.trim() || !phone.trim() || !zip.trim() || !address.trim()) {
-      toast.error('받는 분, 연락처, 주소를 모두 입력해주세요')
+      toast.error('받는 분, 연락처, 주소를 모두 입력해 주세요')
       return
     }
 

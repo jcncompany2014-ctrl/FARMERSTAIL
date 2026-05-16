@@ -157,7 +157,7 @@ export default function ReferralView({
             ? '본인의 코드는 사용할 수 없어요'
             : raw.includes('empty code')
               ? '코드를 입력해 주세요'
-              : `오류가 발생했어요: ${raw}`
+              : `잠시 문제가 생겼어요: ${raw}`
       setRedeemMsg({ kind: 'err', text: friendly })
       return
     }

@@ -53,7 +53,7 @@ export async function POST(req: Request) {
 
   const result = await pushToUser(user.id, {
     title: '파머스테일',
-    body: '알림이 정상적으로 연결됐어요 🐾',
+    body: '알림이 잘 연결됐어요 🐾',
     url: '/mypage/notifications',
     tag: 'test',
   })
