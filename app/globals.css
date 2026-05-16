@@ -31,6 +31,24 @@
   --gold: #D4B872;
   --sale: #B83A2E;
 
+  /* audit #50: surface-card 시멘틱 토큰 — bg-3 와 동의어지만 의미 명확화.
+     컴포넌트에서 background: var(--surface-card) 사용 → globals.css 의 422줄
+     attribute-selector swap (#fff hardcoded 처리) 점진 제거 가능. */
+  --surface-card: #FFFCF2;
+  --surface-card-elevated: #FFFFFF;
+
+  /* audit #51: type scale 토큰 — 폰트 사이즈 12종 흩뿌려진 것 점진 통일.
+     한국어 가독성: 본문 14px 하한 권장. mono kicker (10-11px) 는 별도 클래스.
+     컴포넌트는 text-base / text-md / text-lg 등 Tailwind utility 또는
+     style={{ fontSize: 'var(--text-base)' }} 사용. */
+  --text-xs: 12px;    /* 캡션, 메타, 보조 */
+  --text-sm: 13px;    /* 보조 본문 (서브타이틀) */
+  --text-base: 14px;  /* 기본 본문 — 한국어 가독성 하한 */
+  --text-md: 15px;    /* 강조 본문 */
+  --text-lg: 17px;    /* 섹션 제목 */
+  --text-xl: 20px;    /* 페이지 제목 */
+  --text-2xl: 24px;   /* 대제목 (히어로) */
+
   /* Surface signals — 그림자/오버레이가 배경 위에서 "종이 결" 처럼 보이려면
      밝기 방향이 라이트/다크에서 반대. 컴포넌트는 raw rgba 대신 이 토큰 사용. */
   --shadow-ink: 30, 26, 20;             /* rgb 성분만, 알파는 쓰는 쪽에서 */
@@ -368,6 +386,11 @@ html[data-theme="dark"] {
 
   /* 로고 — black PNG → cream/white 으로 invert (brightness(0) + invert(1)). */
   --logo-filter: brightness(0) invert(1);
+
+  /* audit #50: surface-card 다크 모드 — elevated 톤 (#2E2419). 컴포넌트에서
+     var(--surface-card) 사용하면 자동 swap. */
+  --surface-card: #221C15;
+  --surface-card-elevated: #2E2419;
 
   color-scheme: dark;               /* 네이티브 스크롤바/폼 컨트롤도 다크 */
 }
