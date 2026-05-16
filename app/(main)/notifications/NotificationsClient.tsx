@@ -233,12 +233,20 @@ export default function NotificationsClient({
       )}
 
       {rows.length === 0 ? (
+        // UX audit #19: empty state CTA — 알림 설정 진입 안내.
         <div className="nt-empty">
           <Inbox size={28} strokeWidth={1.5} color="var(--muted)" />
           <p>아직 받은 알림이 없어요.</p>
           <p className="nt-empty-sub">
             체크인 / 박스 도착 / 새 비율 동의 알림이 여기 모여요.
           </p>
+          <Link
+            href="/mypage/notifications"
+            className="mt-4 inline-flex items-center gap-1 px-4 py-2 rounded-full text-[12px] font-bold text-white"
+            style={{ background: 'var(--terracotta)' }}
+          >
+            알림 설정 보기
+          </Link>
         </div>
       ) : filtered.length === 0 ? (
         <div className="nt-empty">

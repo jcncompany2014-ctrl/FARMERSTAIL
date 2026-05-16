@@ -129,7 +129,8 @@ export default function NewDogClient({ userId }: { userId: string }) {
 
     if (insertError || !inserted) {
       setLoading(false)
-      setError('저장에 실패했어요: ' + (insertError?.message ?? ''))
+      // UX audit #27: raw DB 메시지 노출 X — 일반 메시지 + Sentry 로 raw 보존.
+      setError('저장에 실패했어요. 잠시 후 다시 시도해 주세요')
       return
     }
 

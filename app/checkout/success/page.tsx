@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { Check, Clock, Receipt } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
+import CopyButton from '@/components/ui/CopyButton'
 import PurchaseTracker from './PurchaseTracker'
 import type { AnalyticsItem } from '@/lib/analytics'
 import {
@@ -278,11 +279,17 @@ function SuccessView({
                       {bankCodeLabel(order.virtual_account_bank) || '—'}
                     </dd>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <dt className="text-muted">계좌번호</dt>
-                    <dd className="text-text font-mono font-bold text-[13px] break-all text-right">
+                  {/* UX audit #4: 복사 버튼 — 길게 눌러 선택 X. */}
+                  <div className="flex justify-between items-center gap-2">
+                    <dt className="text-muted shrink-0">계좌번호</dt>
+                    <dd className="text-text font-mono font-bold text-[13px] break-all text-right flex-1 min-w-0">
                       {order.virtual_account_number}
                     </dd>
+                    <CopyButton
+                      text={order.virtual_account_number}
+                      label="복사"
+                      size="xs"
+                    />
                   </div>
                   {order.virtual_account_holder && (
                     <div className="flex justify-between">
