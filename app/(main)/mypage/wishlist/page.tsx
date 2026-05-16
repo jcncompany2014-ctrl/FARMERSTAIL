@@ -90,10 +90,8 @@ export default async function WishlistPage() {
             >
               찜한 상품이 없어요
             </h3>
-            <p className="text-[11px] text-muted mt-1.5 leading-relaxed">
-              마음에 드는 상품에 하트를 눌러
-              <br />
-              나만의 위시리스트를 만들어보세요
+            <p className="text-[11px] text-muted mt-1.5 leading-relaxed max-w-[240px] mx-auto">
+              마음에 드는 상품에 하트를 눌러 나만의 위시리스트를 만들어보세요
             </p>
             <Link
               href="/products"

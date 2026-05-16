@@ -381,10 +381,8 @@ export default function SubscriptionsClient({
             >
               아직 신청한 정기배송이 없어요
             </h3>
-            <p className="text-[12px] text-muted mt-2 leading-relaxed">
-              꾸준한 영양 공급, 더 저렴한 가격
-              <br />
-              정기배송으로 시작해보세요
+            <p className="text-[12px] text-muted mt-2 leading-relaxed max-w-[260px] mx-auto">
+              꾸준한 영양 공급, 더 저렴한 가격. 정기배송으로 시작해보세요
             </p>
             <Link
               href="/products"

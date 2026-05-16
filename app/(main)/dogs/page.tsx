@@ -106,10 +106,9 @@ export default async function DogsPage() {
             >
               아직 등록된 강아지가 없어요
             </h3>
-            <p className="text-[12px] text-muted mt-2 leading-relaxed">
-              첫 번째 강아지를 등록하고
-              <br />
-              맞춤 영양 분석을 받아볼 수 있어요
+            {/* UI audit B-1: <br/> 제거 — keep-all 전역이라 자연 wrap. */}
+            <p className="text-[12px] text-muted mt-2 leading-relaxed max-w-[240px] mx-auto">
+              첫 번째 강아지를 등록하고 맞춤 영양 분석을 받아볼 수 있어요
             </p>
             <Link
               href="/dogs/new"

@@ -260,10 +260,8 @@ export default function DiaryClient({
             >
               오늘의 한 장
             </h3>
-            <p className="text-[12px] text-muted mt-2 leading-relaxed">
-              산책 다녀온 모습, 입맛 좋은 날, 잠든 표정.
-              <br />
-              매일 한 장씩 남기면 1년이 책이 돼요.
+            <p className="text-[12px] text-muted mt-2 leading-relaxed max-w-[260px] mx-auto">
+              산책 다녀온 모습, 입맛 좋은 날, 잠든 표정. 매일 한 장씩 남기면 1년이 책이 돼요.
             </p>
             <button
               type="button"
