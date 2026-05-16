@@ -213,7 +213,7 @@
 | 63 | Bristol 7점 척도 | ✅ | survey + checkin |
 | 64 | 활력도 5점 + 산책/놀이 시간 | 🟨 | checkin 에 활력도 일부. 산책/놀이 시간 X |
 | 65 | 식욕 측정 (그릇 비우는 속도) | 🟨 | appetite_score 있음. 속도 X |
-| 66 | 시계열 측면 사진 업로드 | ✅ | P20 dog_progress_photos table + progress_photos bucket + /dogs/[id]/photos 갤러리+업로드 (view 3종 + 메모 + 5MB cap). diary 페이지에서 진입점 |
+| 66 | 시계열 측면 사진 업로드 | 🟦 | 구현 완료 (table + bucket + page + API) 후 사용자 결정으로 진입점 차단. /dogs/[id]/photos 는 redirect → /dogs/[id]. 재활성 시 page.tsx 의 redirect 1줄 + DiaryClient 진입 Link 1개 복원 |
 | 67 | 의료 이벤트 입력 (병원/약/수술) | ✅ | P6 — MedicalRecordForm expandable, 진단 chips + 처방 + 메모 |
 | 68 | 피드백 자체 신뢰도 (입력 시간/수정 빈도) | ⬜ | 후속 |
 | 69 | 피드백 시계열 패턴 분석 (복붙 의심) | 🟦 | Phase 4 |
