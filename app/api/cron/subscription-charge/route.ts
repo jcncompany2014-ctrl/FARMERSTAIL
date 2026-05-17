@@ -53,17 +53,80 @@ type SubscriptionRow = {
   billing_key: string
   billing_customer_key: string
   failed_charge_count: number
-  recipient_name: string | null
+  // audit launch-fix: subscriptions 테이블에 recipient_name/zip/address/
+  // address_detail 컬럼이 없음 (recipient_phone 만 존재). 신청 시 snapshot
+  // 안 잡혀 있어 cron 이 매번 select 실패하던 버그 → 그 컬럼들 제거.
+  // 주소는 addresses.is_default=true row 또는 profiles.* fallback 으로
+  // 매 결제 시점에 가져옴.
   recipient_phone: string | null
-  recipient_zip: string | null
-  recipient_address: string | null
-  recipient_address_detail: string | null
   interval_weeks: number
   coverage_weeks: number | null
   dog_id: string | null
   total_deliveries: number
   next_retry_at: string | null
   requires_billing_key_renewal: boolean | null
+}
+
+type ShippingTarget = {
+  name: string
+  phone: string
+  zip: string
+  address: string
+  addressDetail: string | null
+}
+
+/**
+ * 정기배송 결제 시점의 배송 주소 결정.
+ *
+ * 우선순위:
+ *   1) addresses 테이블의 is_default=true row (사용자가 명시 선택)
+ *   2) profiles 테이블 (legacy / 가입 시 기본값)
+ *   3) 둘 다 없거나 필수 값 누락이면 null → cron 이 그 결제 skip + 알림
+ *
+ * audit launch-fix: 정기배송 신청 시 subscriptions 에 주소 snapshot 안
+ * 잡힘. 출시 후 첫 정기구독 가입자 결제 100% 실패 사태를 막기 위해 매
+ * 결제 시점에 lookup. 장기 개선: subscribe 라우트가 신청 시 address_id
+ * 를 subscriptions 에 저장하게 (이사 등으로 자동 따라가는 문제 방지).
+ */
+async function resolveShippingTarget(
+  supabase: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<ShippingTarget | null> {
+  const { data: addr } = await supabase
+    .from('addresses')
+    .select('recipient_name, phone, zip, address, address_detail')
+    .eq('user_id', userId)
+    .eq('is_default', true)
+    .maybeSingle()
+
+  if (addr && addr.zip && addr.address && addr.recipient_name && addr.phone) {
+    return {
+      name: addr.recipient_name,
+      phone: addr.phone,
+      zip: addr.zip,
+      address: addr.address,
+      addressDetail: addr.address_detail ?? null,
+    }
+  }
+
+  // fallback to profiles
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('name, phone, zip, address, address_detail')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (prof && prof.zip && prof.address && prof.name && prof.phone) {
+    return {
+      name: prof.name,
+      phone: prof.phone,
+      zip: prof.zip,
+      address: prof.address,
+      addressDetail: prof.address_detail ?? null,
+    }
+  }
+
+  return null
 }
 
 const MAX_PER_RUN = 100
@@ -130,8 +193,7 @@ async function runSubscriptionCharge(): Promise<Response> {
     .select(
       `id, user_id, next_delivery_date, total_amount,
        billing_key, billing_customer_key, failed_charge_count,
-       recipient_name, recipient_phone, recipient_zip, recipient_address,
-       recipient_address_detail, interval_weeks, coverage_weeks, dog_id,
+       recipient_phone, interval_weeks, coverage_weeks, dog_id,
        total_deliveries, next_retry_at, requires_billing_key_renewal`,
     )
     .eq('status', 'active')
@@ -199,18 +261,41 @@ async function runSubscriptionCharge(): Promise<Response> {
     //      청구 요청에 필요. user 가 직접 결제한 주문과 구분되도록 source 컬럼
     //      이 있다면 'subscription' 마킹 권장 (없으면 일반 주문과 동일 처리).
     const orderName = `Farmer's Tail 정기배송 #${sub.total_deliveries + 1}`
-    // audit #79: orders.recipient_zip 등 generated types 가 일부 컬럼 추론
-    // 불일치 — record cast.
+
+    // audit launch-fix: 배송 주소를 addresses/profiles 에서 lookup. 신청
+    // 시점 snapshot 이 없으면 매번 lookup. 둘 다 없으면 결제 자체 skip.
+    const ship = await resolveShippingTarget(supabase, sub.user_id)
+    if (!ship) {
+      await supabase
+        .from('subscription_charges')
+        .update({
+          status: 'failed',
+          error_code: 'NO_SHIPPING_ADDRESS',
+          error_message:
+            '배송지가 등록되지 않아 결제를 진행할 수 없어요. 마이페이지에서 기본 배송지를 추가해 주세요.',
+        })
+        .eq('id', chargeRow!.id)
+      // 운영자 알림 — 정기구독이 무한 정지되는 것을 막기 위해.
+      captureBusinessEvent('warning', 'subscription.no_shipping_address', {
+        subscriptionId: sub.id,
+        userId: sub.user_id,
+      })
+      failed += 1
+      continue
+    }
+
+    // orders 의 실제 컬럼명은 zip / address / address_detail (recipient_ 접두사 X).
+    // recipient_name 과 recipient_phone 만 recipient_ prefix 사용.
     const orderInsertPayload: Record<string, unknown> = {
       user_id: sub.user_id,
       order_status: 'pending',
       payment_status: 'pending',
       total_amount: sub.total_amount,
-      recipient_name: sub.recipient_name,
-      recipient_phone: sub.recipient_phone,
-      recipient_zip: sub.recipient_zip,
-      recipient_address: sub.recipient_address,
-      recipient_address_detail: sub.recipient_address_detail,
+      recipient_name: ship.name,
+      recipient_phone: sub.recipient_phone ?? ship.phone,
+      zip: ship.zip,
+      address: ship.address,
+      address_detail: ship.addressDetail,
     }
     const { data: orderRow, error: orderErr } = await (
       supabase as unknown as {

@@ -190,11 +190,11 @@ export async function POST(req: Request) {
     requires_billing_key_renewal: false,
     next_retry_at: null,
     next_delivery_date: null,
-    recipient_name: '탈퇴회원',
+    // audit launch-fix: subscriptions 에는 recipient_name / recipient_zip /
+    // recipient_address / recipient_address_detail 컬럼이 없음.
+    // recipient_phone 만 존재 — 그것만 null 처리. 나머지 PII anonymize 는
+    // profiles / addresses 에서 별도 처리됨.
     recipient_phone: null,
-    recipient_zip: null,
-    recipient_address: null,
-    recipient_address_detail: null,
   }
   await (admin as unknown as {
     from: (t: string) => {

@@ -31,9 +31,12 @@ type OrderRow = {
   paid_at: string | null
   recipient_name: string | null
   recipient_phone: string | null
-  recipient_zip: string | null
-  recipient_address: string | null
-  recipient_address_detail: string | null
+  // audit launch-fix: orders 컬럼명은 zip / address / address_detail
+  // (recipient_ prefix 없음). 이전엔 recipient_zip 등으로 select 해 CSV
+  // 의 우편번호 / 주소 컬럼이 빈 값. 운영팀 배송 라벨 인쇄 시 누락.
+  zip: string | null
+  address: string | null
+  address_detail: string | null
   shipping_memo: string | null
   tracking_carrier: string | null
   tracking_number: string | null
@@ -104,8 +107,8 @@ export async function GET(request: Request) {
       id, order_number, total_amount, subtotal, shipping_fee,
       payment_status, payment_method, order_status,
       created_at, paid_at,
-      recipient_name, recipient_phone, recipient_zip,
-      recipient_address, recipient_address_detail, shipping_memo,
+      recipient_name, recipient_phone, zip,
+      address, address_detail, shipping_memo,
       tracking_carrier, tracking_number,
       order_items (product_name, quantity, unit_price, line_total)
     `,
@@ -144,7 +147,7 @@ export async function GET(request: Request) {
           `${it.product_name ?? '-'} × ${it.quantity} (${it.line_total.toLocaleString()}원)`,
       )
       .join(' | ')
-    const address = [o.recipient_address, o.recipient_address_detail]
+    const address = [o.address, o.address_detail]
       .filter(Boolean)
       .join(' ')
     return {
@@ -156,7 +159,7 @@ export async function GET(request: Request) {
       배송상태: o.order_status,
       수령인: o.recipient_name ?? '',
       연락처: o.recipient_phone ?? '',
-      우편번호: o.recipient_zip ?? '',
+      우편번호: o.zip ?? '',
       주소: address,
       배송메모: o.shipping_memo ?? '',
       상품요약: itemsSummary,
