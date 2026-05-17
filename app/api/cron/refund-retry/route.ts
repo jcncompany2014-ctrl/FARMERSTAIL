@@ -104,6 +104,31 @@ async function runRefundRetry(): Promise<Response> {
 
   for (const row of queue) {
     const attempts = row.attempts + 1
+
+    // ── pre-flight: 주문이 그 사이 다시 paid 상태로 회복됐는지 확인 ──
+    // 사용자가 결제 페이지 새로고침 → 두 번째 confirm 호출이 idempotent 하게
+    // 성공 → orders.payment_status = 'paid' 가 됐을 수 있다. 그 경우 환불
+    // 시도 자체가 잘못된 false negative (실제론 정상 주문). queue row 만
+    // succeeded 로 마무리하고 cancel 호출은 skip.
+    const { data: orderRow } = (await adminTyped
+      .from('orders')
+      .select('payment_status')
+      .eq('id', row.order_id)
+      .maybeSingle()) as { data: { payment_status: string | null } | null }
+
+    if (orderRow?.payment_status === 'paid') {
+      await adminTyped
+        .from('payment_refund_queue')
+        .update({
+          status: 'succeeded',
+          attempts,
+          last_error: 'order_recovered_paid',
+        })
+        .eq('id', row.id)
+      succeeded += 1
+      continue
+    }
+
     // Toss cancelPayment — idempotencyKey 내부 처리. 같은 paymentKey/amount 로
     // 두 번 보내도 Toss 는 첫 결과 그대로 반환.
     const result = await cancelPayment({
@@ -119,6 +144,31 @@ async function runRefundRetry(): Promise<Response> {
           status: 'succeeded',
           attempts,
           last_error: null,
+        })
+        .eq('id', row.id)
+      succeeded += 1
+      continue
+    }
+
+    // Toss "이미 취소/처리된 결제" 응답을 succeeded 로 매핑.
+    // 코드 후보: ALREADY_PROCESSED_PAYMENT / ALREADY_CANCELED_PAYMENT /
+    //   NOT_CANCELABLE_PAYMENT (이미 환불 완료) / NOT_FOUND_PAYMENT (사라짐) /
+    //   ALREADY_REFUNDED_PAYMENT. Toss 가 idempotency 보장하지 않는 케이스라
+    //   에러로 오지만 실제론 우리가 원하는 최종 상태.
+    const errCode = (result.error.code ?? '').toUpperCase()
+    const alreadySettled =
+      errCode === 'ALREADY_PROCESSED_PAYMENT' ||
+      errCode === 'ALREADY_CANCELED_PAYMENT' ||
+      errCode === 'ALREADY_REFUNDED_PAYMENT' ||
+      errCode === 'NOT_CANCELABLE_PAYMENT' ||
+      errCode === 'NOT_FOUND_PAYMENT'
+    if (alreadySettled) {
+      await adminTyped
+        .from('payment_refund_queue')
+        .update({
+          status: 'succeeded',
+          attempts,
+          last_error: `toss_already_settled:${errCode}`,
         })
         .eq('id', row.id)
       succeeded += 1

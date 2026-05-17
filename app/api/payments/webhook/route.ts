@@ -4,6 +4,7 @@ import { pushToUser } from '@/lib/push'
 import { creditPoints } from '@/lib/commerce/points'
 import { fetchPayment, type TossPaymentStatus } from '@/lib/payments/toss'
 import { notifyOrderCancelled, notifyOrderPlaced } from '@/lib/email'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -108,8 +109,16 @@ export async function POST(req: Request) {
   }
 
   // 3) Amount check — if it doesn't match we have a serious problem.
-  // Still ack with 200 (retries won't help), but log for ops.
+  // Still ack with 200 (retries won't help), but log + Sentry for ops.
   if (payment.totalAmount !== order.total_amount) {
+    // 위변조 시도 또는 Toss 와 DB 사이 데이터 불일치 — 운영자가 즉시 봐야 함.
+    captureBusinessEvent('error', 'order.webhook.amount_mismatch', {
+      orderId,
+      paymentKey,
+      orderAmount: order.total_amount,
+      tossAmount: payment.totalAmount,
+      orderStatus: order.payment_status,
+    })
     console.error(
       `[webhook] amount mismatch order=${orderId} expected=${order.total_amount} got=${payment.totalAmount}`
     )

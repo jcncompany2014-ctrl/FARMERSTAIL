@@ -197,6 +197,12 @@ export async function rateLimitDB(
     })
     if (error || typeof data !== 'number') {
       // DB 호출 실패 — fail open. local 결과 사용 (이미 ok 였음).
+      // 운영 가시성: console.warn 으로 fail-open 발생 사실은 남김. Sentry
+      // 직접 import 하면 순환 import 가능성 (rate-limit 이 lib 핵심 모듈) →
+      // 호출처가 자체적으로 Sentry breadcrumb 남기게 단순 warn 만.
+      console.warn(
+        `[rate-limit] DB rpc failed — fail-open. bucket=${bucket} err=${error?.message ?? 'no-data'}`,
+      )
       return local
     }
     const count = data as number

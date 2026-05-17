@@ -76,6 +76,36 @@ function generateOrderNumber() {
 
 const MIN_POINT_USE = 100 // 100포인트부터 사용 가능
 
+type CheckoutDraft = {
+  v?: number
+  ts?: number
+  name?: string
+  phone?: string
+  zip?: string
+  address?: string
+  addressDetail?: string
+  memo?: string
+}
+
+// 컴포넌트 외부 함수 — react-hooks/purity 규칙 회피 (Date.now / localStorage 가
+// render path 안에 있으면 lint 가 hydration mismatch 잠재 위험으로 표시).
+function loadCheckoutDraft(autosaveKey: string): CheckoutDraft | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(autosaveKey)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as CheckoutDraft
+    if (parsed.v !== 1) return null
+    if (parsed.ts && Date.now() - parsed.ts > 7 * 86_400_000) {
+      localStorage.removeItem(autosaveKey)
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
 export default function CheckoutForm({
   userId,
   userEmail,
@@ -97,33 +127,7 @@ export default function CheckoutForm({
   // 받는 분/연락처/주소/메모 가 날아가지 않게 localStorage 7일 보존. 결제
   // 성공 시 clear. 주소 동에 PII 가 들어가지만 본인 브라우저 안에 머무름.
   const AUTOSAVE_KEY = `ft:checkout-draft:${userId}`
-  const loadDraft = () => {
-    if (typeof window === 'undefined') return null
-    try {
-      const raw = localStorage.getItem(AUTOSAVE_KEY)
-      if (!raw) return null
-      const parsed = JSON.parse(raw) as {
-        v?: number
-        ts?: number
-        name?: string
-        phone?: string
-        zip?: string
-        address?: string
-        addressDetail?: string
-        memo?: string
-      }
-      if (parsed.v !== 1) return null
-      // 7일 지난 draft 는 무시.
-      if (parsed.ts && Date.now() - parsed.ts > 7 * 86_400_000) {
-        localStorage.removeItem(AUTOSAVE_KEY)
-        return null
-      }
-      return parsed
-    } catch {
-      return null
-    }
-  }
-  const initialDraft = typeof window !== 'undefined' ? loadDraft() : null
+  const initialDraft = loadCheckoutDraft(AUTOSAVE_KEY)
 
   const [name, setName] = useState(initialDraft?.name ?? defaultProfile.name)
   const [phone, setPhone] = useState(initialDraft?.phone ?? defaultProfile.phone)

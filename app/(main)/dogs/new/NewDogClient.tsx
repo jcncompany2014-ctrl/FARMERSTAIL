@@ -37,6 +37,42 @@ const BREEDS = [
   '코커 스패니얼', '파피용', '퍼그', '잭 러셀 테리어', '믹스',
 ]
 
+type NewDogDraft = {
+  v?: number
+  ts?: number
+  name?: string
+  breed?: string
+  gender?: 'male' | 'female' | ''
+  neutered?: boolean | null
+  ageValue?: string
+  ageUnit?: 'years' | 'months'
+  weight?: string
+  weightMethod?: string
+  weightMeasuredAt?: string
+  activityLevel?: 'low' | 'medium' | 'high' | ''
+  activityMethod?: string
+  feedMethod?: string
+}
+
+// audit 2-5: 컴포넌트 외부 함수 — react-hooks/purity 규칙 회피.
+// Date.now() / localStorage 가 render path 로 인식되지 않게 모듈-수준에 둠.
+function loadNewDogDraft(autosaveKey: string): NewDogDraft | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(autosaveKey)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as NewDogDraft
+    if (parsed.v !== 1) return null
+    if (parsed.ts && Date.now() - parsed.ts > 7 * 86_400_000) {
+      localStorage.removeItem(autosaveKey)
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
 export default function NewDogClient({ userId }: { userId: string }) {
   const router = useRouter()
   const supabase = createClient()
@@ -45,38 +81,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
   // 새로고침으로 다 날아가던 케이스 차단. localStorage 7일 자동저장.
   // 사진은 File 객체라 직렬화 불가 → 사진 외 필드만 저장.
   const AUTOSAVE_KEY = `ft:new-dog-draft:${userId}`
-  const loadDraft = () => {
-    if (typeof window === 'undefined') return null
-    try {
-      const raw = localStorage.getItem(AUTOSAVE_KEY)
-      if (!raw) return null
-      const parsed = JSON.parse(raw) as {
-        v?: number
-        ts?: number
-        name?: string
-        breed?: string
-        gender?: 'male' | 'female' | ''
-        neutered?: boolean | null
-        ageValue?: string
-        ageUnit?: 'years' | 'months'
-        weight?: string
-        weightMethod?: string
-        weightMeasuredAt?: string
-        activityLevel?: 'low' | 'medium' | 'high' | ''
-        activityMethod?: string
-        feedMethod?: string
-      }
-      if (parsed.v !== 1) return null
-      if (parsed.ts && Date.now() - parsed.ts > 7 * 86_400_000) {
-        localStorage.removeItem(AUTOSAVE_KEY)
-        return null
-      }
-      return parsed
-    } catch {
-      return null
-    }
-  }
-  const draft = typeof window !== 'undefined' ? loadDraft() : null
+  const draft = loadNewDogDraft(AUTOSAVE_KEY)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
