@@ -38,16 +38,27 @@ type BusinessInfo = {
 
 const placeholder = '(등록 예정)'
 
+// 운영 출시 후 정식 발급되는 항목은 env 로 주입 가능하게 — 코드 redeploy
+// 없이 admin 이 Vercel 대시보드에서 즉시 갱신할 수 있도록.
+// NEXT_PUBLIC_* 로 두면 클라이언트 footer 에서도 보임.
+const mailOrderFromEnv = process.env.NEXT_PUBLIC_MAIL_ORDER_NUMBER?.trim()
+const kakaoFromEnv = process.env.NEXT_PUBLIC_KAKAO_CHANNEL_URL?.trim()
+
 export const business: BusinessInfo = {
   companyName: "(주)Farmer's Tail",
   brandName: '파머스테일',
   ceo: '안성민, 이준호',
   businessNumber: '243-06-03606',
-  mailOrderNumber: placeholder, // 통신판매업 신고 완료 후 'XXXX-인천연수-XXXX호' 형식으로 교체
+  // 통신판매업 신고 완료 후 NEXT_PUBLIC_MAIL_ORDER_NUMBER 환경변수에
+  // 'XXXX-인천연수-XXXX호' 형식으로 등록. 미등록 시 placeholder 노출.
+  mailOrderNumber: mailOrderFromEnv && mailOrderFromEnv.length > 0
+    ? mailOrderFromEnv
+    : placeholder,
   address: '인천광역시 연수구 송도동 171, 121호',
   phone: '070-4066-1333',
   email: 'story@farmerstail.kr',
-  kakaoChannelUrl: null, // 카카오 채널 만들면 'https://pf.kakao.com/_xxxxx/chat' 로 교체
+  // 카카오 채널 발급 후 NEXT_PUBLIC_KAKAO_CHANNEL_URL 에 등록.
+  kakaoChannelUrl: kakaoFromEnv && kakaoFromEnv.length > 0 ? kakaoFromEnv : null,
   privacyOfficer: '안성민, 이준호',
   privacyOfficerEmail: 'story@farmerstail.kr',
   hostingProvider: 'Vercel Inc. / Supabase Inc.',

@@ -1050,9 +1050,15 @@ export default function CheckoutForm({
         </div>
       </section>
 
+      {/* 출시 차단 fix: production toss client key 사용 시 "테스트 모드" 문구 숨김.
+          NEXT_PUBLIC_TOSS_CLIENT_KEY 는 'test_*' (테스트) 또는 'live_*' (운영) 으로 시작. */}
       <p className="text-[11px] md:text-[11.5px] text-muted leading-relaxed px-1">
         주문 내용을 확인했으며, 결제를 진행할게요.
-        <br />이 결제는 토스페이먼츠 테스트 모드로 진행돼요.
+        {(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? '').startsWith('test_') && (
+          <>
+            <br />이 결제는 토스페이먼츠 테스트 모드로 진행돼요.
+          </>
+        )}
       </p>
 
       {/* 데스크톱 inline 결제 버튼 */}

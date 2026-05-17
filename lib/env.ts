@@ -83,6 +83,13 @@ const serverSchema = z.object({
   // 호출할 수 있는 엔드포인트라 단순 admin 쿠키 가드가 아니라 고정 토큰으로 막음.
   CRON_SECRET: optStr(),
 
+  // === 운영 출시 후 등록되는 정보 (선택) ===================================
+  // 통신판매업 신고번호 / 카카오 채널 URL. 신고 / 채널 생성 후 등록.
+  // 미등록 상태에서도 앱은 동작 — placeholder 표시.
+  NEXT_PUBLIC_MAIL_ORDER_NUMBER: optStr(),
+  NEXT_PUBLIC_KAKAO_CHANNEL_URL: optStr(),
+  NEXT_PUBLIC_KAKAO_JS_KEY: optStr(),
+
   // === Node runtime meta ===================================================
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 })
@@ -115,6 +122,9 @@ const raw = {
   EMAIL_FROM: process.env.EMAIL_FROM,
   EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO,
   CRON_SECRET: process.env.CRON_SECRET,
+  NEXT_PUBLIC_MAIL_ORDER_NUMBER: process.env.NEXT_PUBLIC_MAIL_ORDER_NUMBER,
+  NEXT_PUBLIC_KAKAO_CHANNEL_URL: process.env.NEXT_PUBLIC_KAKAO_CHANNEL_URL,
+  NEXT_PUBLIC_KAKAO_JS_KEY: process.env.NEXT_PUBLIC_KAKAO_JS_KEY,
   NODE_ENV: process.env.NODE_ENV,
 }
 
