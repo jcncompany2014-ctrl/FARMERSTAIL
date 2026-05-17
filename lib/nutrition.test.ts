@@ -12,7 +12,12 @@
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { calculateNutrition, type DogInfo, type SurveyAnswers } from './nutrition.ts'
+import {
+  calculateNutrition,
+  AVG_ENERGY_DENSITY_KCAL_PER_G,
+  type DogInfo,
+  type SurveyAnswers,
+} from './nutrition.ts'
 
 function baseDog(overrides: Partial<DogInfo> = {}): DogInfo {
   return {
@@ -168,18 +173,26 @@ describe('calculateNutrition — NRC 2006 임신/수유 정확 수식 (REPLACE a
   })
 })
 
-describe('calculateNutrition — feed_g = MER / 2.0', () => {
-  it('feedG = MER / 2.0', () => {
+// audit 3-15: feedG 분모를 AVG_ENERGY_DENSITY_KCAL_PER_G (2.02 — 라인 mix
+// 가중평균) 상수로 분리. 테스트도 SSOT 상수 import 해서 자동 동기화.
+describe('calculateNutrition — feed_g = MER / AVG_ENERGY_DENSITY_KCAL_PER_G', () => {
+  it('feedG = round(MER / density)', () => {
     const r = calculateNutrition(
       baseDog({ ageValue: 8 }),
       baseAnswers(),
     )
-    assert.equal(r.feedG, Math.round(r.mer / 2.0))
+    assert.equal(
+      r.feedG,
+      Math.round(r.mer / AVG_ENERGY_DENSITY_KCAL_PER_G),
+    )
   })
 
-  it('성견 medium 활동 — feedG = MER / 2.0', () => {
+  it('성견 medium 활동 — feedG = round(MER / density)', () => {
     const r = calculateNutrition(baseDog(), baseAnswers())
-    assert.equal(r.feedG, Math.round(r.mer / 2.0))
+    assert.equal(
+      r.feedG,
+      Math.round(r.mer / AVG_ENERGY_DENSITY_KCAL_PER_G),
+    )
   })
 })
 
