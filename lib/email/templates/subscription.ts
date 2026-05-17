@@ -133,7 +133,7 @@ export function renderSubscriptionChargeFailed(input: {
   const isTransient = input.errorClass === 'transient'
 
   const subject = isPermanent
-    ? '[파머스테일] 카드 정보를 다시 등록해주세요'
+    ? '[파머스테일] 카드 정보를 다시 등록해 주세요'
     : input.paused
       ? '[파머스테일] 정기배송이 일시중단됐어요'
       : isTransient
@@ -141,7 +141,7 @@ export function renderSubscriptionChargeFailed(input: {
         : '[파머스테일] 정기배송 결제가 실패했어요'
 
   const heading = isPermanent
-    ? '카드 정보를 다시 등록해주세요'
+    ? '카드 정보를 다시 등록해 주세요'
     : input.paused
       ? '정기배송이 일시중단됐어요'
       : isTransient
@@ -185,7 +185,7 @@ export function renderSubscriptionChargeFailed(input: {
         ${input.paused
           ? '연속 3회 실패해 자동으로 일시중단 처리됐어요.'
           : `${input.attemptCount}회째 실패했어요.`}
-        카드 만료 또는 잔액 부족이 가장 흔한 원인이에요.
+        카드 만료나 잔액 부족이 가장 흔한 원인이에요.
       </p>
     `
   }
@@ -201,8 +201,8 @@ export function renderSubscriptionChargeFailed(input: {
     )}
     <p style="margin:14px 0 0 0;font-size:12px;color:#7A7A7A;line-height:1.6;">
       ${isTransient
-        ? '재시도 전에 미리 다른 카드를 등록하셔도 좋아요. 마이페이지에서 가능해요.'
-        : '마이페이지에서 카드 정보를 새로 등록하시면 다음 배송일에 자동으로 다시 결제가 진행돼요. 일시중단 상태도 카드 등록 시 자동 해제됩니다.'}
+        ? '재시도 전에 미리 다른 카드를 등록해 두셔도 좋아요. 마이페이지에서 가능해요.'
+        : '마이페이지에서 카드 정보를 새로 등록하시면 다음 배송일에 자동으로 다시 결제돼요. 일시중단 상태도 카드 등록 시 자동 해제돼요.'}
     </p>
   `
 

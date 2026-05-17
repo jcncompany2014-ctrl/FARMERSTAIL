@@ -83,7 +83,7 @@ export function renderVipCoupon({
 
         <tr><td style="padding:0 32px 26px;border-top:1px solid #EDE6D8">
           <p style="margin:16px 0 0;font-size:11px;color:#9C9282;line-height:1.5">
-            본 메일은 마케팅 정보 수신에 동의하신 분께 발송되었어요. 수신
+            본 메일은 마케팅 정보 수신에 동의하신 분께 발송했어요. 수신
             거부는 마이페이지 → 알림 설정에서 변경하실 수 있어요.
           </p>
         </td></tr>

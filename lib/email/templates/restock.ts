@@ -43,8 +43,8 @@ export function renderRestockAlert(input: {
     </div>
     ${block.callout(
       'moss',
-      `재입고되었어요. 재고가 한정적이에요 — 보통 하루이틀 안에 다시 품절되니
-      지금 주문하시는 게 좋아요.`,
+      `재입고됐어요. 재고가 많지 않아 보통 하루이틀 안에 다시 품절되곤 해요.
+      찾으시던 분이라면 지금 담아 두시는 걸 추천드려요.`,
     )}
   `
   const html = renderLayout({

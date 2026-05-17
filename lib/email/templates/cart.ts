@@ -50,7 +50,7 @@ export function renderCartAbandoned(input: {
     </p>
     ${block.callout(
       'gold',
-      '결제까지 완료되지 않아 알려드려요. 인기 상품은 재고가 빠르게 변하니 서둘러 주세요.',
+      '결제까지 마치지 않으셨길래 한 번 더 알려드려요. 인기 상품은 재고가 빠르게 바뀔 수 있어요.',
     )}
     <div style="height:14px;"></div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">

@@ -51,10 +51,10 @@ export function renderOrderConfirmation(
     kicker: 'Order Placed · 주문 접수',
     heading: `${input.recipientName}님, 주문이 접수됐어요`,
     icon: '🐾',
-    preview: `총 ${input.totalAmount.toLocaleString()}원 주문이 접수되었어요`,
+    preview: `총 ${input.totalAmount.toLocaleString()}원 주문을 잘 받았어요`,
     body: `
       <p style="margin:0 0 16px 0;">
-        주문이 정상적으로 접수되었어요. 상품 준비가 시작되면 다시 알려드릴게요.
+        주문을 잘 받았어요. 상품 준비가 시작되면 다시 알려드릴게요.
       </p>
       <div style="margin-top:12px;">
         <div style="font-size:10px;color:#7A7A7A;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;margin-bottom:8px;">주문 상품</div>
@@ -225,8 +225,8 @@ export function renderOrderCancelled(
 
   const body = `
     <p style="margin:0 0 14px 0;">
-      ${escape(input.recipientName)}님의 주문이 취소되었어요. 결제 금액은 3~5 영업일 내
-      원 결제 수단으로 환불되고, 사용한 포인트와 쿠폰은 모두 환원돼요.
+      ${escape(input.recipientName)}님의 주문이 취소됐어요. 결제 금액은 3~5 영업일 안에
+      원 결제 수단으로 환불되고, 사용한 포인트와 쿠폰은 모두 돌려드려요.
     </p>
     ${block.dl(rows)}
   `
@@ -270,12 +270,12 @@ export function renderWelcome(input: {
     </p>
     <!-- 코드 자체는 운영 백업용으로 메일 하단에 작게. 사용자가 평소 인지할
          필요 X — 체크아웃 sheet 가 자동 추천. -->
-    <p style="margin:0;font-size:9.5px;color:#B5B5B5;font-family:monospace;letter-spacing:0.04em;">
+    <p style="margin:0;font-size:11px;color:#B5B5B5;font-family:monospace;letter-spacing:0.04em;">
       ref: ${escape(code)}
     </p>
   `
   const html = renderLayout({
-    kicker: 'Welcome · 환영합니다',
+    kicker: 'Welcome · 반가워요',
     heading: '가족이 되어주셔서 감사해요',
     icon: '🐶',
     preview: '파머스테일에 가입해주셔서 감사해요. 가입 쿠폰이 기다리고 있어요.',
