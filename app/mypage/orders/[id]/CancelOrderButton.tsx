@@ -5,18 +5,30 @@ import { useRouter } from 'next/navigation'
 import { X, Loader2 } from 'lucide-react'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 
-const REASONS = [
-  '단순 변심',
-  '배송이 너무 늦어요',
-  '다른 상품으로 변경하고 싶어요',
-  '결제 정보를 잘못 입력했어요',
-  '기타',
+// Phase 3 (2026-05-20): outcome 카테고리 분류 — palatability / digestibility / outcome.
+// admin cohort 대시보드에서 환불 사유 분포 → SKU·레시피 개선 신호.
+type ReasonCategory =
+  | 'not_eating'
+  | 'digestion_issue'
+  | 'weight_change'
+  | 'price'
+  | 'lifestyle'
+  | 'other'
+
+const REASONS: Array<{ label: string; category: ReasonCategory }> = [
+  { label: '아이가 잘 안 먹어요', category: 'not_eating' },
+  { label: '변·소화에 문제가 있어요', category: 'digestion_issue' },
+  { label: '체중 변화가 신경 쓰여요', category: 'weight_change' },
+  { label: '가격이 부담돼요', category: 'price' },
+  { label: '배송 / 단순 변심 / 일정', category: 'lifestyle' },
+  { label: '기타', category: 'other' },
 ]
 
 export default function CancelOrderButton({ orderId }: { orderId: string }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [reason, setReason] = useState<string>(REASONS[0]!)
+  const [reasonIdx, setReasonIdx] = useState<number>(0)
+  const [extraNote, setExtraNote] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -32,10 +44,17 @@ export default function CancelOrderButton({ orderId }: { orderId: string }) {
     setError(null)
     setLoading(true)
     try {
+      const selected = REASONS[reasonIdx]!
+      const fullReason = extraNote.trim()
+        ? `${selected.label} — ${extraNote.trim()}`
+        : selected.label
       const res = await fetch(`/api/orders/${orderId}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason }),
+        body: JSON.stringify({
+          reason: fullReason,
+          reason_category: selected.category,
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -91,11 +110,11 @@ export default function CancelOrderButton({ orderId }: { orderId: string }) {
                 영업일 내에 환불돼요.
               </p>
               <div className="mt-4 space-y-2">
-                {REASONS.map((r) => (
+                {REASONS.map((r, i) => (
                   <label
-                    key={r}
+                    key={r.category}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition ${
-                      reason === r
+                      reasonIdx === i
                         ? 'border-terracotta bg-terracotta/5'
                         : 'border-rule hover:border-muted'
                     }`}
@@ -103,16 +122,28 @@ export default function CancelOrderButton({ orderId }: { orderId: string }) {
                     <input
                       type="radio"
                       name="cancel-reason"
-                      value={r}
-                      checked={reason === r}
-                      onChange={(e) => setReason(e.target.value)}
+                      checked={reasonIdx === i}
+                      onChange={() => setReasonIdx(i)}
                       className="accent-terracotta"
                     />
                     <span className="text-[12px] font-bold text-text">
-                      {r}
+                      {r.label}
                     </span>
                   </label>
                 ))}
+              </div>
+              <div className="mt-3">
+                <label className="block text-[11px] text-muted font-bold mb-1.5">
+                  더 알려주실 게 있다면 (선택)
+                </label>
+                <input
+                  type="text"
+                  value={extraNote}
+                  onChange={(e) => setExtraNote(e.target.value)}
+                  maxLength={200}
+                  placeholder="자유롭게 적어주세요"
+                  className="w-full px-3 py-2.5 rounded-lg border border-rule text-[12px] focus:outline-none focus:border-terracotta"
+                />
               </div>
               {error && (
                 <p className="text-[11px] font-bold text-sale mt-3">

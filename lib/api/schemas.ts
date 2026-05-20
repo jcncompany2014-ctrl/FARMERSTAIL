@@ -59,6 +59,18 @@ export const zPaymentConfirm = z.object({
 
 export const zOrderCancel = z.object({
   reason: zShortText.optional(),
+  // Phase 3 (2026-05-20): outcome 분류 — palatability/digestibility/outcome 추적용.
+  // UI 에서 selector 1개 추가, 자유 코멘트는 reason 그대로.
+  reason_category: z
+    .enum([
+      'not_eating',         // palatability 신호
+      'digestion_issue',    // digestibility 신호
+      'weight_change',      // outcome 신호
+      'price',
+      'lifestyle',
+      'other',
+    ])
+    .optional(),
 })
 
 /**

@@ -19,6 +19,13 @@ export const dynamic = 'force-dynamic'
 
 type CancelBody = {
   reason?: string
+  reason_category?:
+    | 'not_eating'
+    | 'digestion_issue'
+    | 'weight_change'
+    | 'price'
+    | 'lifestyle'
+    | 'other'
 }
 
 /**
@@ -237,6 +244,33 @@ export async function POST(
     reason: body.reason ?? null,
     refundAmount: order.payment_status === 'paid' ? order.total_amount : null,
   }).catch(() => {})
+
+  // Phase 3 (2026-05-20): outcome 자동 기록 — 환불 사유 분류 누적.
+  // palatability(not_eating) / digestibility(digestion_issue) / outcome(weight_change)
+  // 신호가 admin cohort 대시보드의 핵심 데이터.
+  if (body.reason_category) {
+    try {
+      const { recordOutcome } = await import('@/lib/feeding-outcomes')
+      const { data: dogRow } = await supabase
+        .from('dogs')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle()
+      if (dogRow) {
+        await recordOutcome(supabase, {
+          dog_id: dogRow.id,
+          user_id: user.id,
+          source: 'refund',
+          reason_category: body.reason_category,
+          comment: body.reason ?? null,
+          order_id: order.id,
+        })
+      }
+    } catch {
+      /* best-effort — outcome 기록 실패가 환불을 막지 않도록 */
+    }
+  }
 
   return NextResponse.json({ ok: true })
 }

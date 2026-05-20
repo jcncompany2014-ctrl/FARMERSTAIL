@@ -295,6 +295,33 @@ export async function POST(req: Request) {
   // 6) 장바구니 비우기 (가상계좌 포함 — 입금 대기 중에도 재주문 방지)
   await supabase.from('cart_items').delete().eq('user_id', user.id)
 
+  // Phase 1 (2026-05-20): outcome 자동 기록 — 첫 주문 baseline / 재주문 추적.
+  // 사용자 부담 0, 시스템이 자동 누적. 첫 박스 7일 후 체크인 cron 의 candidate
+  // 가 되며, 정기구독 전환·환불·이탈 시점 LTV 추적에 활용.
+  if (isActuallyPaid) {
+    try {
+      const { isFirstBoxForDog, recordOutcome } = await import('@/lib/feeding-outcomes')
+      // dogs 가 여러 마리일 수 있으므로 첫 dog 만 (단순화 — 1주문 = 1대표 견)
+      const { data: dogRow } = await supabase
+        .from('dogs')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle()
+      if (dogRow) {
+        const isFirst = await isFirstBoxForDog(supabase, dogRow.id)
+        await recordOutcome(supabase, {
+          dog_id: dogRow.id,
+          user_id: user.id,
+          source: isFirst ? 'first_order' : 'reorder',
+          order_id: order.id,
+        })
+      }
+    } catch {
+      // best-effort — outcome 기록 실패가 결제 응답을 막지 않도록.
+    }
+  }
+
   // 7) 웹푸시 알림 — 실제 결제가 끝난 경우에만 "완료" 메시지를 보냄.
   //    가상계좌는 입금 전이니 별도의 "입금 대기" 안내는 주문 상세에서 처리.
   if (isActuallyPaid) {
