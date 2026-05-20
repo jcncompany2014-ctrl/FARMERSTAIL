@@ -33,11 +33,18 @@ export default async function CheckoutPage() {
   // 4개의 user-scoped 쿼리를 병렬 — auth 가 끝났으니 의존성 없음.
   // 이전: 직렬로 4 RTT (auth → profile → ledger → addresses → cart) =
   // 200~400ms.  이후: 1 RTT (auth) + 1 RTT (Promise.all 의 max). 100~200ms 절약.
+  //
+  // Round B (2026-05-20): 첫 박스 자동 쿠폰 prefetch 2건 추가.
+  //   - paid order count → 첫 결제 여부 판단
+  //   - audience='first_signup' 활성/미만료 쿠폰 1건 → FIRSTBOX50 등 자동 적용
+  const nowIso = new Date().toISOString()
   const [
     { data: profile },
     { data: ledger },
     { data: addrRows },
     { data: items, error },
+    { count: paidOrderCount },
+    { data: firstSignupCoupon },
   ] = await Promise.all([
     // .maybeSingle() — 신규 회원의 profile row 가 없을 때 .single() 이
     // PGRST116 throw 해 결제 페이지 통째로 깨지는 거 방지.
@@ -85,7 +92,33 @@ export default async function CheckoutPage() {
     `
       )
       .eq('user_id', user.id),
+    // Round B: 결제 완료 주문 수 — 첫 결제 여부 판단.
+    supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('payment_status', 'paid'),
+    // Round B: audience='first_signup' 활성·미만료 쿠폰 1건 (created_at desc).
+    // FIRSTBOX50 시드 후 created_at 최신 픽업 → 자동 50% off 적용.
+    // expires_at null OR > now (OR 표현 — supabase-js .or 문법).
+    supabase
+      .from('coupons')
+      .select('code')
+      .eq('audience_type', 'first_signup')
+      .eq('is_active', true)
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
+
+  // 첫 결제(0건) 면서 first_signup 쿠폰이 있으면 자동 적용 대상.
+  // per_user_limit 초과/이미 사용 등은 CheckoutForm 의 applyCouponCode
+  // → validateCoupon 가 검증하고 silent fail.
+  const autoApplyCouponCode =
+    (paidOrderCount ?? 0) === 0 && firstSignupCoupon
+      ? (firstSignupCoupon as { code: string }).code
+      : null
 
   const pointBalance = ledger?.balance_after ?? 0
   const savedAddresses = (addrRows ?? []).map((r) =>
@@ -352,6 +385,7 @@ export default async function CheckoutPage() {
         total={total}
         pointBalance={pointBalance}
         earnRate={tierMeta(profile?.tier ?? null).earnRate}
+        autoApplyCouponCode={autoApplyCouponCode}
       />
     </main>
     </AuthAwareShell>

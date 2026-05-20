@@ -63,6 +63,17 @@ type Props = {
   pointBalance: number
   /** 적립률 (%) — tier 기반. 서버에서 profile.tier → tierMeta(t).earnRate. */
   earnRate?: number
+  /**
+   * Round B (2026-05-20): 첫 박스 50% off 자동 적용용.
+   *
+   * server (checkout/page.tsx) 가 `paid orders == 0` + audience='first_signup'
+   * 활성/미만료 쿠폰 1건 prefetch 결과를 전달. CheckoutForm 은 mount 시 1회
+   * applyCouponCode 호출 → 사용자는 코드 입력 없이도 자동 할인 적용.
+   *
+   * 적용 실패해도 silent — 분석 페이지 카피와 실 결제가 어긋나면 사용자가
+   * 명시 입력으로 보완 가능.
+   */
+  autoApplyCouponCode?: string | null
 }
 
 function generateOrderNumber() {
@@ -117,6 +128,7 @@ export default function CheckoutForm({
   total: baseTotal,
   pointBalance,
   earnRate = 1,
+  autoApplyCouponCode = null,
 }: Props) {
   // useRouter 호출 흔적 — 라우팅 후 결제는 Toss SDK 가 직접 redirect 하므로
   // 여기서 router 객체가 필요 없다. 사용 안 하는 호출 제거.
@@ -270,6 +282,20 @@ export default function CheckoutForm({
   function removeCoupon() {
     setCouponApplied(null)
   }
+
+  // Round B (2026-05-20): 첫 박스 자동 쿠폰 적용 — mount 1회.
+  // server 가 paid orders 0건 + first_signup audience 활성 쿠폰 1건 prefetch
+  // 한 결과를 전달. 실패 (만료 / per_user_limit 초과 등) 시 silent — 사용자가
+  // sheet 에서 직접 선택 가능하게 두면 됨.
+  useEffect(() => {
+    if (!autoApplyCouponCode) return
+    if (couponApplied) return
+    // applyCouponCode 가 setState 호출 → mount 후 1 tick.
+    void applyCouponCode(autoApplyCouponCode)
+    // 마운트 + autoApplyCouponCode 변경시 1회. applyCouponCode 는 closure 라
+    // deps 에 넣으면 매 렌더마다 재호출 가능 → 의도적으로 제외.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoApplyCouponCode])
 
   const handleAddressComplete = useCallback(
     (data: { zip: string; address: string; buildingName: string }) => {
