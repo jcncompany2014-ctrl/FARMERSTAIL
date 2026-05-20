@@ -117,7 +117,7 @@
     },
     {
       "path": "/api/cron/refund-retry",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 20 * * *"
     }
   ]
 }
