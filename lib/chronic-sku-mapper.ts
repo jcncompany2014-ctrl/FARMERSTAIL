@@ -36,8 +36,11 @@ export type ChronicCondition =
   | 'dental'
   | 'liver'
 
-/** DCM 호발 견종 (FDA 2018 grain-free DCM 보고서 기반) */
-const DCM_RISK_BREEDS = [
+/**
+ * DCM 호발 견종 (FDA 2018 grain-free DCM 보고서 + Mooney 2024 후속 연구).
+ * Round D3 (2026-05-20): DCM screening reminder cron 에서도 import.
+ */
+export const DCM_RISK_BREEDS = [
   'doberman',
   'boxer',
   'cocker_spaniel',
