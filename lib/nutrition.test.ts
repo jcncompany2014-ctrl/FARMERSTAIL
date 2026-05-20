@@ -42,12 +42,13 @@ function baseAnswers(overrides: Partial<SurveyAnswers> = {}): SurveyAnswers {
 }
 
 describe('calculateNutrition — MER 기본 케이스', () => {
-  it('10kg 성견 BCS 5 medium 활동 = RER 393 × 1.6 ≈ 629 kcal', () => {
+  it('10kg 성견 BCS 5 medium 활동 = RER 393 × 1.57 (FEDIAF 110) ≈ 618 kcal', () => {
     const r = calculateNutrition(baseDog(), baseAnswers())
     assert.equal(r.rer, 394)
-    // RER 393.64 × 1.6 = 629.82 → Math.round = 630
-    assert.equal(r.mer, Math.round(70 * Math.pow(10, 0.75) * 1.6))
-    assert.equal(r.factor, 1.6)
+    // Tier S F2-1: medium factor 1.6 → 1.57 (FEDIAF 2024 Annex 7.2 110×BW^0.75)
+    // RER 393.64 × 1.57 = 618.01 → Math.round = 618
+    assert.equal(r.mer, Math.round(70 * Math.pow(10, 0.75) * 1.57))
+    assert.equal(r.factor, 1.57)
   })
 
   it('10kg 시니어 (8세) BCS 5 = RER × 1.2', () => {
@@ -87,8 +88,8 @@ describe('calculateNutrition — pregnancy/lactation gender 게이트', () => {
       baseDog({ gender: 'male' }),
       baseAnswers({ pregnancyStatus: 'lactating' }),
     )
-    // 수컷은 lactating 무시 → 기본 1.6 만 적용
-    assert.equal(r.factor, 1.6)
+    // 수컷은 lactating 무시 → 기본 1.57 (FEDIAF medium) 만 적용
+    assert.equal(r.factor, 1.57)
     assert.ok(!r.riskFlags.includes('LACTATING'))
   })
 
@@ -97,8 +98,8 @@ describe('calculateNutrition — pregnancy/lactation gender 게이트', () => {
       baseDog({ gender: 'female', neutered: true }),
       baseAnswers({ pregnancyStatus: 'pregnant' }),
     )
-    // 중성화 0.9 만 적용
-    assert.equal(r.factor, 1.44)
+    // 중성화 0.9 만 적용. 1.57 × 0.9 = 1.413 (Tier S F2-1: medium 1.6 → 1.57)
+    assert.equal(r.factor, 1.41)
     assert.ok(!r.riskFlags.includes('PREGNANT'))
   })
 
@@ -120,7 +121,7 @@ describe('calculateNutrition — NRC 2006 임신/수유 정확 수식 (REPLACE a
       baseDog(),
       baseAnswers({ pregnancyStatus: 'pregnant', pregnancyWeek: 1 }),
     )
-    // factor = 1.3 (NRC) × BCS 5 (1.0) = 1.3 (activity base 1.6 무시)
+    // factor = 1.3 (NRC) × BCS 5 (1.0) = 1.3 (activity base 1.57 무시)
     assert.equal(r.factor, 1.3)
   })
 

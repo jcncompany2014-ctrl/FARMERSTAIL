@@ -1,0 +1,163 @@
+/**
+ * Farmer's Tail — 통합 급여 계획 계산기 (Tier S 통합 entrypoint, 2026-05-20)
+ *
+ * 견체 정보 + 예산 응답 → 화식 비율 + SKU 사이즈 + 가격 framing 통합 계산.
+ * 분석 페이지·정기구독 신청·라벨 모든 곳에서 단일 entrypoint.
+ *
+ * # 흐름
+ *   [입력]
+ *     - dailyMerKcal (lib/nutrition.ts calculateNutrition.mer 에서)
+ *     - budgetTier (surveys.budget_tier)
+ *     - hwasikRatio (사용자 슬라이더 직접 입력, 기본은 budget default)
+ *   ↓
+ *   [계산]
+ *     1. defaultScenarioForBudget(budgetTier) — 슬라이더 default
+ *     2. calculateMix(mer, ratio) — 화식·사료 g 분배
+ *     3. matchSku(hwasik_g) — 7종 SKU 매핑 (대형견 콤보)
+ *     4. 가격 framing (한 끼 / 하루 / 월)
+ *   ↓
+ *   [출력]
+ *     FeedingPlan { skuMatch, mixCalc, pricing, scenario, copy }
+ */
+
+import {
+  BUDGET_TO_ANCHOR_KRW,
+  calculateMix,
+  defaultScenarioForBudget,
+  isOverBudget,
+  SCENARIO_HWASIK_RATIO,
+  type FeedingScenario,
+  type MixCalculation,
+} from './mix-feeding'
+import { matchSku, type SkuMatch } from './sku-size-matcher'
+import {
+  ANALYSIS_COPY,
+  PRICE_ANCHOR,
+  withDogName,
+  type BudgetTier,
+} from './copy-strings'
+
+/** 100g 화식 RRP 표준 — 5종 SKU 평균치 (FT-C01 기준) */
+const HWASIK_KRW_PER_100G = 6500
+
+export interface FeedingPlan {
+  /** SKU 매핑 결과 */
+  skuMatch: SkuMatch
+  /** 화식·사료 비율 분배 */
+  mixCalc: MixCalculation
+  /** 가격 framing (원 단위) */
+  pricing: {
+    per_meal_krw: number
+    daily_krw: number
+    monthly_krw: number
+    /** 비교 anchor 라벨 (예: "스타벅스 음료 1잔") */
+    comparison_anchor: string
+    /** 첫 박스 50% 할인 시 한 끼 가격 */
+    first_box_per_meal_krw: number
+  }
+  /** 적용된 시나리오 */
+  scenario: FeedingScenario
+  /** UI에서 즉시 사용 가능한 카피 모음 */
+  copy: {
+    sku_recommendation: string
+    price_framing: string
+    daily_total: string
+    mix_default: string
+    first_box_offer: string
+    over_budget_hint: string | null
+    combo_note: string | null
+  }
+}
+
+export interface BuildFeedingPlanInput {
+  /** 견 이름 (카피 인격화용) */
+  dogName: string
+  /** 일일 권장 kcal (calculateNutrition.mer) */
+  dailyMerKcal: number
+  /** 예산 응답 (설문 F1-1) */
+  budgetTier?: BudgetTier | null
+  /** 사용자 직접 입력 비율 (슬라이더). 미입력 시 budget default 사용. */
+  customRatio?: number | null
+}
+
+/**
+ * 통합 entrypoint — 모든 분석·구매 페이지에서 호출.
+ *
+ * @example
+ *   const plan = buildFeedingPlan({
+ *     dogName: '봉봉',
+ *     dailyMerKcal: 311,
+ *     budgetTier: '5000_10000',
+ *   })
+ *   // plan.copy.price_framing → "💚 한 끼 약 3,250원 (스타벅스 음료 1잔보다 적어요)"
+ *   // plan.skuMatch.recommended_sku_g → 170
+ */
+export function buildFeedingPlan(input: BuildFeedingPlanInput): FeedingPlan {
+  const { dogName, dailyMerKcal, budgetTier, customRatio } = input
+
+  // 1) 시나리오 결정 — customRatio 우선, 없으면 budget default
+  const scenario = defaultScenarioForBudget(budgetTier)
+  const ratio = customRatio ?? SCENARIO_HWASIK_RATIO[scenario]
+
+  // 2) 화식·사료 분배
+  const mixCalc = calculateMix(dailyMerKcal, ratio)
+
+  // 3) SKU 사이즈 매핑
+  const skuMatch = matchSku(mixCalc.hwasik_g_per_day)
+
+  // 4) 가격 framing
+  const dailyKrw = Math.round((mixCalc.hwasik_g_per_day / 100) * HWASIK_KRW_PER_100G)
+  const perMealKrw = Math.round(dailyKrw / 2)
+  const monthlyKrw = dailyKrw * 30
+  const firstBoxPerMealKrw = Math.round(perMealKrw / 2)
+  const comparisonAnchor = PRICE_ANCHOR[budgetTier ?? '5000_10000']
+
+  // 5) 카피 생성
+  const overBudgetHint = isOverBudget(budgetTier, dailyKrw)
+    ? withDogName(ANALYSIS_COPY.over_budget('○○', dailyKrw), dogName)
+    : null
+
+  const comboNote = skuMatch.combo_sku_g
+    ? withDogName(
+        ANALYSIS_COPY.combo_for_large(
+          '○○',
+          skuMatch.recommended_sku_g,
+          skuMatch.combo_sku_g,
+        ),
+        dogName,
+      )
+    : null
+
+  const mixDefaultCopy = withDogName(
+    ANALYSIS_COPY.mix_default[scenario]('○○'),
+    dogName,
+  )
+
+  return {
+    skuMatch,
+    mixCalc,
+    pricing: {
+      per_meal_krw: perMealKrw,
+      daily_krw: dailyKrw,
+      monthly_krw: monthlyKrw,
+      comparison_anchor: comparisonAnchor,
+      first_box_per_meal_krw: firstBoxPerMealKrw,
+    },
+    scenario,
+    copy: {
+      sku_recommendation: withDogName(
+        ANALYSIS_COPY.sku_recommendation('○○', skuMatch.recommended_sku_g),
+        dogName,
+      ),
+      price_framing: ANALYSIS_COPY.price_framing(perMealKrw, comparisonAnchor),
+      daily_total: ANALYSIS_COPY.daily_total(dailyKrw, monthlyKrw),
+      mix_default: mixDefaultCopy,
+      first_box_offer: withDogName(
+        ANALYSIS_COPY.first_box_offer(perMealKrw, firstBoxPerMealKrw),
+        dogName,
+      ),
+      over_budget_hint: overBudgetHint,
+      combo_note: comboNote,
+    },
+  }
+}

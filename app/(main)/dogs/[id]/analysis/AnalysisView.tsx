@@ -27,6 +27,7 @@ import { useToast } from '@/components/ui/Toast'
 import { getAAFCORanges, stageFromKR, type MacroRange } from '@/lib/nutrition'
 import StructuredAnalysis from '@/components/analysis/StructuredAnalysis'
 import RecommendationBox from '@/components/analysis/RecommendationBox'
+import FeedingPlanCard from '@/components/analysis/FeedingPlanCard'
 import {
   merConfidenceInterval,
   formatRange,
@@ -573,6 +574,19 @@ export default function AnalysisView({
           받으면 RecommendationBox 컴포넌트만 교체) */}
       {!isArchive && (
         <RecommendationBox dogId={dogId} dogName={dog.name} />
+      )}
+
+      {/* Tier S F3-4 + F3-7 (2026-05-20): 가격 framing + SKU 매핑 + 비율 슬라이더.
+          archive 모드(과거 분석 조회)에는 표시 X — 현 시점 SKU/가격 권장이라
+          과거 분석에 노출 시 혼란. */}
+      {!isArchive && (
+        <section className="px-5 mt-5">
+          <FeedingPlanCard
+            dogId={dogId}
+            dogName={dog.name}
+            dailyMerKcal={analysis.mer}
+          />
+        </section>
       )}
 
       {/* AI v2 — 구조화 분석 (위험플래그 + 전환플랜 + 출처) */}

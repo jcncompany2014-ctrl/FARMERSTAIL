@@ -260,18 +260,34 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     vetConsult = true
   }
 
-  // 생애주기 / 활동량 기반 base factor (NRC 2006 권장 범위)
+  // 생애주기 / 활동량 기반 base factor.
+  //
+  // # 변경 이력 (Tier S F2-1, 2026-05-20)
+  // FEDIAF Nutritional Guidelines 2024 Annex 7.2 명시 매핑 (참고):
+  //   - 저활동(<1h/day low-impact)     : 95 × BW^0.75 = RER × 1.36
+  //   - 평균활동(1-3h/day low-impact)   : 110 × BW^0.75 = RER × 1.57
+  //   - 활발(1-3h/day high-impact)      : 125 × BW^0.75 = RER × 1.79
+  //
+  // 본 코드는 NRC 2006 권장 factor 와 FEDIAF 2024 의 중간점 채택:
+  //   - low 1.2 (NRC 보수치, 중성화·노령 견 비만 예방 우선)
+  //   - medium 1.57 (FEDIAF 110 정확 정렬)
+  //   - high 1.8 (NRC 1.8 ≈ FEDIAF 125 거의 동일, NRC 유지)
+  //   - senior 1.2 (NRC 보수치)
+  //
+  // medium 만 FEDIAF 명시 정렬한 이유: v4.0 보고서가 4kg 평균 활동견 311 kcal
+  // 인용 (= 110 × BW^0.75 정확). low/high/senior 는 NRC 보수치가 비만 예방
+  // 측면에서 더 안전 + 기존 테스트 일관.
   if (stage === 'puppy') {
     const m = ageMonths(dog)
     if (m < 4) factor = 3.0
     else if (m < 8) factor = 2.5
     else factor = 2.0
   } else if (stage === 'senior') {
-    factor = 1.2
+    factor = 1.2 // NRC 보수치 — senior 비만·관절 부담 예방
   } else {
-    if (dog.activityLevel === 'low') factor = 1.2
-    else if (dog.activityLevel === 'high') factor = 1.8
-    else factor = 1.6
+    if (dog.activityLevel === 'low') factor = 1.2        // NRC 보수치
+    else if (dog.activityLevel === 'high') factor = 1.8  // NRC ≈ FEDIAF 125
+    else factor = 1.57                                    // FEDIAF 110 (medium)
   }
 
   // BCS 보정 — v2 의 정확 9점 factor 우선.

@@ -1,0 +1,182 @@
+/**
+ * Farmer's Tail — 만성질환 → SKU 자동 매핑 (Tier S F2-3, 2026-05-20)
+ *
+ * 사용자 설문 (surveys.chronic_conditions) 응답 → 적합 SKU 우선순위.
+ * lib/allergy-sku-matrix.ts 의 결과와 교집합 사용 (알레르기 회피 + 만성질환 적합).
+ *
+ * # 매핑 원칙
+ *   관절염 (arthritis)        → S03 우선 (EPA/DHA 자연 1.2g/100g)
+ *   비만 (obesity)            → D02·P04 우선 (지방 ↓)
+ *   피부 알레르기 (skin)       → D02·P04 우선 (novel protein)
+ *   소화 민감 (gi_sensitive)   → C01·D02 우선 (저알러지 + 가벼움)
+ *   신장 (renal, manage)      → 별도 처방식 영역 — 본 라인업 외 (v4.x)
+ *   당뇨 (diabetes)           → D02·P04 (저지방·저당)
+ *   심장 (cardiac/DCM)        → S03 + 타우린 보강 (FDA 2018 grain-free DCM)
+ *
+ * # 노령견 (senior) 별도 처리
+ *   age >= 7 (소·중형) 또는 5 (대형) → S03 + EPA/DHA 강조
+ *
+ * # 자견 (puppy) 별도 처리
+ *   age < 12개월 → 자견용 Ca:P 1.0~1.6:1 엄격 (FEDIAF Growth 표)
+ *   본 라인업 성견 표 기반이라 자견은 분량 ↑ + 수의사 상담 권고
+ */
+
+import type { SkuKey } from './allergy-sku-matrix'
+import { ALERT_COPY, RECOMMENDATION_COPY, withDogName } from './copy-strings'
+
+/** 만성질환 키 (surveys.chronic_conditions 값과 일치) */
+export type ChronicCondition =
+  | 'arthritis'
+  | 'obesity'
+  | 'skin_allergy'
+  | 'gi_sensitive'
+  | 'renal'
+  | 'diabetes'
+  | 'cardiac'
+  | 'dental'
+  | 'liver'
+
+/** DCM 호발 견종 (FDA 2018 grain-free DCM 보고서 기반) */
+const DCM_RISK_BREEDS = [
+  'doberman',
+  'boxer',
+  'cocker_spaniel',
+  'great_dane',
+  'irish_wolfhound',
+  'golden_retriever',
+  'newfoundland',
+] as const
+
+export interface ChronicSkuPriority {
+  /** 만성질환 기반 우선 SKU (가중치 순) */
+  priority_skus: SkuKey[]
+  /** 사용자 노출 카피 (만성질환별) */
+  recommendation_messages: string[]
+  /** 안전 가드레일 경고 (DCM·자견·약물 등) */
+  guardrail_alerts: string[]
+  /** 수의사 상담 권장 여부 (자견·노령·신장 등) */
+  vet_consult_recommended: boolean
+}
+
+export interface ChronicSkuInput {
+  dogName: string
+  chronicConditions: ChronicCondition[]
+  ageMonths: number
+  weightKg: number
+  breed?: string | null
+  medications?: string[] // 약물 (anticoagulant 등)
+}
+
+/**
+ * 만성질환 + 견체 정보 → SKU 우선순위 + 가드레일 메시지.
+ */
+export function mapChronicToSku(input: ChronicSkuInput): ChronicSkuPriority {
+  const { dogName, chronicConditions, ageMonths, weightKg, breed, medications } =
+    input
+
+  // SKU 가중치 (높을수록 우선) — 만성질환별 누적
+  const score: Record<SkuKey, number> = {
+    C01: 0,
+    D02: 0,
+    S03: 0,
+    P04: 0,
+    B05: 0,
+  }
+
+  const messages: string[] = []
+  const guardrails: string[] = []
+  let vetConsult = false
+
+  // ── 만성질환별 가중치 누적 ──
+  for (const cond of chronicConditions) {
+    switch (cond) {
+      case 'arthritis':
+      case 'cardiac':
+        score.S03 += 3
+        messages.push(
+          withDogName(RECOMMENDATION_COPY.chronic.arthritis('○○'), dogName),
+        )
+        break
+      case 'obesity':
+      case 'diabetes':
+        score.D02 += 3
+        score.P04 += 2
+        messages.push(
+          withDogName(RECOMMENDATION_COPY.chronic.obesity('○○'), dogName),
+        )
+        break
+      case 'skin_allergy':
+        score.D02 += 3
+        score.P04 += 2
+        messages.push(
+          withDogName(RECOMMENDATION_COPY.chronic.skin_allergy('○○'), dogName),
+        )
+        break
+      case 'gi_sensitive':
+        score.C01 += 2
+        score.D02 += 2
+        break
+      case 'renal':
+        // 신장 처방식은 본 라인업 영역 외 — 수의사 상담 강하게
+        vetConsult = true
+        break
+      case 'dental':
+        // 부드러운 화식 자체가 dental 친화 — 5종 모두 OK
+        break
+      case 'liver':
+        score.C01 += 2
+        score.D02 += 2 // 가벼운 단백 우선
+        break
+    }
+  }
+
+  // ── 노령견 (senior) — 소·중형 7세+, 대형 5세+ ──
+  const ageYears = ageMonths / 12
+  const isSenior =
+    (weightKg < 15 && ageYears >= 7) || (weightKg >= 15 && ageYears >= 5)
+  if (isSenior) {
+    score.S03 += 2
+    messages.push(
+      withDogName(RECOMMENDATION_COPY.chronic.senior('○○'), dogName),
+    )
+  }
+
+  // ── 자견 (< 12개월) — Ca:P 엄격, 수의사 상담 권장 ──
+  if (ageMonths < 12) {
+    vetConsult = true
+    guardrails.push(
+      withDogName(ALERT_COPY.puppy_ca_p_strict('○○'), dogName),
+    )
+  }
+
+  // ── DCM 위험견 ──
+  if (breed && DCM_RISK_BREEDS.includes(breed.toLowerCase() as (typeof DCM_RISK_BREEDS)[number])) {
+    score.S03 += 2
+    guardrails.push(
+      withDogName(ALERT_COPY.dcm_risk_breed('○○'), dogName),
+    )
+  }
+
+  // ── 약물 상호작용 (항응고제 + S03 EPA/DHA) ──
+  const hasAnticoagulant =
+    medications?.some((m) =>
+      /와파린|warfarin|아스피린|aspirin|클로피도그렐|clopidogrel/i.test(m),
+    ) ?? false
+  if (hasAnticoagulant && score.S03 > 0) {
+    guardrails.push(
+      withDogName(ALERT_COPY.drug_interaction_anticoagulant('○○'), dogName),
+    )
+  }
+
+  // 가중치 0 인 SKU 도 fallback 으로 포함 (모두 사용 가능)
+  const sortedSkus = (Object.keys(score) as SkuKey[]).sort(
+    (a, b) => score[b] - score[a],
+  )
+
+  return {
+    priority_skus: sortedSkus,
+    recommendation_messages: messages,
+    guardrail_alerts: guardrails,
+    vet_consult_recommended: vetConsult,
+  }
+}

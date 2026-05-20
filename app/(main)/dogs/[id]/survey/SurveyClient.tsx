@@ -33,7 +33,9 @@ import Allergy from './steps/Allergy'
 import Status from './steps/Status'
 import Pregnancy from './steps/Pregnancy'
 import Preferences, { type CareGoal } from './steps/Preferences'
+import Budget from './steps/Budget'
 import LoadingStep from './steps/Loading'
+import type { BudgetTier } from '@/lib/copy-strings'
 import './survey.css'
 
 /**
@@ -69,6 +71,8 @@ type Dog = {
   gender: 'male' | 'female' | null
 }
 
+// Tier S F1-1: 'budget' step 추가 — status 다음, loading 직전.
+// 분석 결과 직전 "jab" 효과 (가격 anchor 형성).
 const STEPS = [
   'body',
   'muscle',
@@ -77,6 +81,7 @@ const STEPS = [
   'allergy',
   'chronic',
   'status',
+  'budget',
   'loading',
 ] as const
 type Step = (typeof STEPS)[number]
@@ -150,6 +155,9 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   const [dietSatisfaction, setDietSatisfaction] = useState<1 | 2 | 3 | 4 | 5 | null>(null)
   const [preferredProteins, setPreferredProteins] = useState<string[]>([])
   const [careGoal, setCareGoal] = useState<CareGoal | ''>('')
+
+  // Tier S F1-1: 예산 4-옵션 (선택, 미응답 시 mix50 default)
+  const [budgetTier, setBudgetTier] = useState<BudgetTier | null>(null)
 
   // loading 단계 stage 인디케이터
   const [loadingStage, setLoadingStage] = useState(0)
@@ -249,11 +257,14 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
         setPreferredProteins(data.preferredProteins as string[])
       if (typeof data.careGoal === 'string')
         setCareGoal(data.careGoal as CareGoal | '')
-      // currentStep 복원 — 'loading' (제출 중간 종료) 은 'status' 로 fallback
+      // Tier S F1-1: 예산 응답 autosave 복원
+      if (typeof data.budgetTier === 'string')
+        setBudgetTier(data.budgetTier as BudgetTier)
+      // currentStep 복원 — 'loading' (제출 중간 종료) 은 'budget' 로 fallback
       // 해 사용자가 처음부터 다시 안 하도록.
       if (typeof data.currentStep === 'string') {
         if (data.currentStep === 'loading') {
-          setCurrentStep('status')
+          setCurrentStep('budget')
         } else {
           setCurrentStep(data.currentStep as Step)
         }
@@ -304,6 +315,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             dietSatisfaction,
             preferredProteins,
             careGoal,
+            budgetTier,
             currentStep,
             _ts: Date.now(),
           }),
@@ -344,6 +356,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     dietSatisfaction,
     preferredProteins,
     careGoal,
+    budgetTier,
     currentStep,
   ])
 
@@ -404,7 +417,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   async function goNext() {
     if (!validateStep()) return
     const idx = STEPS.indexOf(currentStep)
-    if (currentStep === 'status') {
+    // Tier S F1-1: budget (선택) 이 마지막 step. budget → loading.
+    if (currentStep === 'budget') {
       setCurrentStep('loading')
       setLoadingStage(0)
       // 시각적 분석 단계 보여주기 — 약 2.8초 후 실제 저장 → 결과로 이동
@@ -486,41 +500,58 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       indoorActivity: indoorActivity || undefined,
     }
 
-    const { data: surveyData, error: surveyErr } = await supabase
-      .from('surveys')
-      .insert({
-        dog_id: dogId,
-        user_id: user.id,
-        answers,
-        mcs_score: mcs,
-        bristol_stool_score: bristol,
-        chronic_conditions: chronicConditions,
-        current_medications: meds,
-        current_food_brand: currentBrand.trim() || null,
-        daily_walk_minutes: walkMinutes
-          ? Math.max(0, Math.min(300, Number(walkMinutes) || 0))
+    // Tier S F1-1: budget_tier 컬럼이 migration 20260520+ 에서 추가됨.
+    // generated types 재생성 전이라 insert payload 자체를 cast 로 우회.
+    // 다음 typegen 후 cast 제거 가능.
+    const surveyInsertPayload = {
+      dog_id: dogId,
+      user_id: user.id,
+      answers,
+      mcs_score: mcs,
+      bristol_stool_score: bristol,
+      chronic_conditions: chronicConditions,
+      current_medications: meds,
+      current_food_brand: currentBrand.trim() || null,
+      daily_walk_minutes: walkMinutes
+        ? Math.max(0, Math.min(300, Number(walkMinutes) || 0))
+        : null,
+      coat_condition: coat || null,
+      appetite: taste || null,
+      pregnancy_status: pregnancy || null,
+      care_goal: careGoal || null,
+      home_cooking_experience: homeCookingExp || null,
+      current_diet_satisfaction: dietSatisfaction,
+      weight_trend_6mo: weightTrend || null,
+      gi_sensitivity: giSensitivity || null,
+      preferred_proteins: preferredProteins,
+      indoor_activity: indoorActivity || null,
+      iris_stage: chronicConditions.includes('kidney') ? irisStage : null,
+      pregnancy_week: pregnancy === 'pregnant' ? pregnancyWeek : null,
+      litter_size: pregnancy === 'lactating' ? litterSize : null,
+      expected_adult_weight_kg:
+        dog && (dog.age_unit === 'years'
+          ? dog.age_value * 12 < 18
+          : dog.age_value < 18)
+          ? expectedAdultWeightKg
           : null,
-        coat_condition: coat || null,
-        appetite: taste || null,
-        pregnancy_status: pregnancy || null,
-        care_goal: careGoal || null,
-        home_cooking_experience: homeCookingExp || null,
-        current_diet_satisfaction: dietSatisfaction,
-        weight_trend_6mo: weightTrend || null,
-        gi_sensitivity: giSensitivity || null,
-        preferred_proteins: preferredProteins,
-        indoor_activity: indoorActivity || null,
-        // v1.3 임상 정밀화 — conditional 입력. 미입력 시 알고리즘이 보수적 처방.
-        iris_stage: chronicConditions.includes('kidney') ? irisStage : null,
-        pregnancy_week: pregnancy === 'pregnant' ? pregnancyWeek : null,
-        litter_size: pregnancy === 'lactating' ? litterSize : null,
-        expected_adult_weight_kg:
-          dog && (dog.age_unit === 'years'
-            ? dog.age_value * 12 < 18
-            : dog.age_value < 18)
-            ? expectedAdultWeightKg
-            : null,
-      })
+      // Tier S F1-1: 예산 응답 저장. 미응답이면 null → 분석 페이지에서
+      // defaultScenarioForBudget(null) → 'mix50' fallback.
+      budget_tier: budgetTier ?? null,
+    }
+
+    const { data: surveyData, error: surveyErr } = await (
+      supabase.from('surveys') as unknown as {
+        insert: (v: typeof surveyInsertPayload) => {
+          select: () => {
+            single: () => Promise<{
+              data: { id: string } | null
+              error: { message?: string } | null
+            }>
+          }
+        }
+      }
+    )
+      .insert(surveyInsertPayload)
       .select()
       .single()
 
@@ -833,6 +864,15 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
           </div>
         )}
 
+        {/* Tier S F1-1: budget step — status 다음, loading 직전 */}
+        {currentStep === 'budget' && (
+          <Budget
+            dogName={dog.name}
+            budgetTier={budgetTier}
+            setBudgetTier={setBudgetTier}
+          />
+        )}
+
         {/* Loading */}
         {isLoading && (
           <LoadingStep
@@ -872,7 +912,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
               onClick={goNext}
               disabled={saving}
             >
-              {currentStep === 'status' ? '결과 보기' : '다음'}
+              {currentStep === 'budget' ? '결과 보기' : '다음'}
               <ArrowRight size={14} strokeWidth={2.6} color="var(--bg)" />
             </button>
           </div>
