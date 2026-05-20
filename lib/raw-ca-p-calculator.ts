@@ -99,10 +99,26 @@ export interface CaPResult {
   }>
 }
 
+export interface CalculateOptions {
+  /**
+   * 자견 (< 12개월) 모드.
+   * Round E2 (2026-05-20): 자견용 Ca:P 안전 범위를 1.0~1.6 으로 좁힘
+   * (NRC 2006 Growth + FEDIAF 2024 Growth — 자견 골격 발달 안정역).
+   */
+  isPuppy?: boolean
+}
+
 /**
  * Ca:P 계산 + NSH 가드 판정.
  */
-export function calculateCaPRatio(entries: RawEntry[]): CaPResult {
+export function calculateCaPRatio(
+  entries: RawEntry[],
+  options: CalculateOptions = {},
+): CaPResult {
+  const isPuppy = options.isPuppy === true
+  // 자견은 1.0~1.6 엄격 / 성견은 1.0~2.0 표준.
+  const safeMax = isPuppy ? 1.6 : 2.0
+  const borderlineHigh = isPuppy ? 1.8 : 2.5
   let totalCa = 0
   let totalP = 0
   const perIngredient: CaPResult['per_ingredient'] = []
@@ -127,6 +143,7 @@ export function calculateCaPRatio(entries: RawEntry[]): CaPResult {
   let level: CaPResult['level']
   let message: string
 
+  const rangeLabel = isPuppy ? '1.0~1.6 (자견 엄격)' : '1.0~2.0 (성견)'
   if (totalP === 0) {
     level = 'safe'
     message = '식재료를 추가해 보세요.'
@@ -135,23 +152,30 @@ export function calculateCaPRatio(entries: RawEntry[]): CaPResult {
     message =
       `⚠️ Ca:P ${ratio.toFixed(2)} — 영양성 이차 상피소체 항진증(NSH) 위험. ` +
       `Krook 2010 — 고기 단독 급여 시 부갑상선 항진 + 골다공증. ` +
-      `닭목뼈·계란껍데기 가루·본밀로 칼슘 보강 필요.`
+      `닭목뼈·계란껍데기 가루·본밀로 칼슘 보강 필요.` +
+      (isPuppy ? ' 자견은 골격 기형 위험 더 큼.' : '')
   } else if (ratio < 1.2) {
     level = 'borderline_low'
     message =
-      `Ca:P ${ratio.toFixed(2)} — 안전 범위 하한. 1.2~1.5 정도가 이상적이에요.`
-  } else if (ratio <= 2.0) {
+      `Ca:P ${ratio.toFixed(2)} — 안전 범위 하한. 1.2~${safeMax} 정도가 이상적이에요.`
+  } else if (ratio <= safeMax) {
     level = 'safe'
-    message = `Ca:P ${ratio.toFixed(2)} — ✅ FEDIAF 권장 안 (1.0~2.0).`
-  } else if (ratio <= 2.5) {
+    message = `Ca:P ${ratio.toFixed(2)} — ✅ FEDIAF 권장 안 (${rangeLabel}).`
+  } else if (ratio <= borderlineHigh) {
     level = 'borderline_high'
     message =
-      `Ca:P ${ratio.toFixed(2)} — 안전 범위 초과 약간. 자견은 골격 발달 저해 위험.`
+      `Ca:P ${ratio.toFixed(2)} — 안전 범위 초과 약간.` +
+      (isPuppy
+        ? ' 자견은 골격 발달 저해 위험 — 뼈 비중을 줄이세요.'
+        : ' 자견은 골격 발달 저해 위험.')
   } else {
     level = 'excess'
     message =
-      `⚠️ Ca:P ${ratio.toFixed(2)} — 칼슘 과잉. 자견 골격 발달 저해 (FEDIAF Growth). ` +
-      `뼈·껍데기 가루 비중을 줄이세요.`
+      `⚠️ Ca:P ${ratio.toFixed(2)} — 칼슘 과잉. ` +
+      (isPuppy
+        ? '자견 골격 발달 저해 (FEDIAF Growth). '
+        : '') +
+      '뼈·껍데기 가루 비중을 줄이세요.'
   }
 
   return {

@@ -19,10 +19,12 @@ export default function RawCalculatorClient() {
   const [entries, setEntries] = useState<RawEntry[]>([
     { ingredient: 'chicken_breast', grams_per_day: 200 },
   ])
+  // Round E2 (2026-05-20): 자견 (< 12개월) 모드 토글 — Ca:P 안전범위 1.0~1.6.
+  const [isPuppy, setIsPuppy] = useState(false)
 
   const result: CaPResult = useMemo(
-    () => calculateCaPRatio(entries),
-    [entries],
+    () => calculateCaPRatio(entries, { isPuppy }),
+    [entries, isPuppy],
   )
 
   function addEntry() {
@@ -44,8 +46,32 @@ export default function RawCalculatorClient() {
 
   return (
     <>
+      {/* 자견 모드 토글 */}
+      <section className="mt-5 rounded-2xl border border-rule bg-white p-4 flex items-center justify-between">
+        <div>
+          <p className="text-[12.5px] font-bold text-ink">자견 (12개월 미만)</p>
+          <p className="text-[11px] text-muted mt-0.5 leading-relaxed">
+            ON 시 Ca:P 안전 범위 1.0~1.6 으로 엄격 적용 (FEDIAF Growth).
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isPuppy}
+          onClick={() => setIsPuppy((v) => !v)}
+          className={`relative w-12 h-7 rounded-full transition ${
+            isPuppy ? 'bg-terracotta' : 'bg-rule'
+          }`}
+        >
+          <span
+            className="absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white transition-transform shadow"
+            style={{ transform: isPuppy ? 'translateX(20px)' : 'translateX(0)' }}
+          />
+        </button>
+      </section>
+
       {/* 식재료 입력 */}
-      <section className="mt-5 rounded-2xl border border-rule bg-white p-5">
+      <section className="mt-3 rounded-2xl border border-rule bg-white p-5">
         <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted mb-3">
           식재료 입력
         </h2>
