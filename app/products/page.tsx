@@ -14,7 +14,9 @@ import CatalogProductCard, {
 } from '@/components/products/CatalogProductCard'
 import RecentlyViewed from '@/components/products/RecentlyViewed'
 import CatalogChrome from '@/components/products/CatalogChrome'
+import CatalogHero from '@/components/products/CatalogHero'
 import CatalogSubscribeBand from '@/components/products/CatalogSubscribeBand'
+import { getActiveEvents } from '@/lib/events/data'
 import { isAppContextServer } from '@/lib/app-context'
 import JsonLd from '@/components/JsonLd'
 import {
@@ -134,6 +136,13 @@ export default async function ProductsPage({
   } catch {
     /* silent — greeting 기본값 사용 */
   }
+
+  // 카탈로그 hero 슬라이더용 active events — 첫 페이지 + 비검색 시에만 fetch.
+  // 검색/필터 결과 페이지에선 사용자가 명확한 의도를 가지므로 hero 생략.
+  const heroEvents =
+    pageNum === 1 && !isSearching
+      ? await getActiveEvents(supabase, 5)
+      : []
 
   let dataQuery = supabase
     .from('products')
@@ -269,8 +278,11 @@ export default async function ProductsPage({
         <JsonLd id="ld-itemlist-products" data={itemListLd} />
       )}
       {/* 2026-05-21: 모바일 카탈로그 새 chrome (app-product 핸드오프 디자인).
-          데스크톱은 아래 기존 toolbar 그대로. */}
+          데스크톱은 아래 기존 toolbar 그대로.
+          CatalogChrome 사이에 CatalogHero (이벤트 슬라이더) 삽입 — 1) Greeting +
+          Search + Categories, 2) Hero events carousel, 3) ALL · 모든 메뉴 헤더. */}
       <CatalogChrome dogName={firstDogName} totalCount={total} />
+      {heroEvents.length > 0 && <CatalogHero events={heroEvents} />}
 
       {/* ── Top toolbar: breadcrumb + h1 + count + sort ─────
           앱 컨텍스트에선 breadcrumb 생략 — 상단 헤더 + 하단 탭바가 navigation
@@ -312,13 +324,17 @@ export default async function ProductsPage({
         </div>
       </section>
 
+      {/* 데스크톱만 toolbar 와 grid 사이 hairline — 모바일은 CatalogChrome
+          내부 spacing 으로 충분 (불필요한 시각적 노이즈 제거). */}
       <hr
-        className="my-4 md:my-5 mx-5 md:mx-8"
+        className="hidden md:block my-5 mx-8"
         style={{ borderColor: 'var(--rule)' }}
       />
 
-      {/* ── 2-col layout: filter sidebar + grid ─────────────── */}
-      <div className="px-5 md:px-8 md:flex md:gap-8">
+      {/* ── 2-col layout: filter sidebar + grid ───────────────
+          2026-05-21: 모바일 px-5 → px-4 로 통일 (CatalogChrome / CatalogHero
+          / CatalogSubscribeBand 와 좌우 정렬). 데스크톱은 px-8 그대로. */}
+      <div className="px-4 md:px-8 md:flex md:gap-8">
         {/*
           CatalogFilters 렌더 위치:
             • 데스크톱: 사이드바는 컴포넌트 내부에서 hidden md:block 으로 자체 노출
@@ -341,7 +357,8 @@ export default async function ProductsPage({
             />
           ) : (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5 lg:gap-6 px-1 md:px-0">
+              {/* gap 통일 — 모바일 2.5, 데스크톱 4 (gap-5/lg:gap-6 폐기) */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4">
                 {rows.map((p, i) => {
                   const rank = isBest && pageNum === 1 ? i + 1 : null
                   const isNew = raw.sort === 'new'

@@ -99,9 +99,9 @@ export default function CatalogProductCard({
       className="relative group"
       style={{
         background: '#fff',
-        borderRadius: 22,
-        padding: 10,
-        boxShadow: '0 2px 8px rgba(26,20,12,0.04), 0 8px 24px rgba(26,20,12,0.05)',
+        borderRadius: 18,
+        padding: 8,
+        boxShadow: '0 2px 8px rgba(26,20,12,0.04), 0 8px 20px rgba(26,20,12,0.04)',
       }}
     >
       {/* Wishlist heart — Link 밖에 둬서 click bubbling 분리 */}
@@ -110,9 +110,11 @@ export default function CatalogProductCard({
         href={`/products/${product.slug}`}
         className="block transition active:scale-[0.99]"
       >
+      {/* 2026-05-21: aspect 4:5 → 1:1 — 카드가 너무 세로로 길었음. 정사각형 사진 +
+          텍스트 패널 컴팩트하게. 데스크톱 (md+) 도 동일 비율로 통일. */}
       <div
-        className="relative aspect-[4/5] overflow-hidden"
-        style={{ background: '#fbf3df', borderRadius: 16 }}
+        className="relative aspect-square overflow-hidden"
+        style={{ background: '#fbf3df', borderRadius: 14 }}
       >
         {product.image_url ? (
           <Image
@@ -189,14 +191,16 @@ export default function CatalogProductCard({
         <StockOverlay stock={product.stock} />
       </div>
 
-      {/* 텍스트 패널 — app-product CP 톤. 사진 아래 살짝 padding. */}
-      <div className="pt-2.5 md:pt-3 px-1">
+      {/* 텍스트 패널 — app-product CP 톤. 사진 아래 살짝 padding.
+          2026-05-21: 카드 컴팩트화 — pt 2.5/3 → 2/2.5, minHeight 36 → 32,
+          mt 사이 간격 축소. 그리드 오·열 정렬 위해 minHeight 는 유지. */}
+      <div className="pt-2 md:pt-2.5 px-1">
         {product.category && (
           <div
-            className="font-mono text-[9.5px] md:text-[10.5px] mb-1"
+            className="font-mono text-[9px] md:text-[10px] mb-0.5"
             style={{
               color: 'var(--terracotta)',
-              letterSpacing: '0.16em',
+              letterSpacing: '0.14em',
               textTransform: 'uppercase',
               fontWeight: 700,
             }}
@@ -206,13 +210,13 @@ export default function CatalogProductCard({
         )}
 
         <h3
-          className="line-clamp-2 text-[13px] md:text-[14.5px]"
+          className="line-clamp-2 text-[12.5px] md:text-[14px]"
           style={{
             color: 'var(--ink)',
             fontWeight: 700,
             letterSpacing: '-0.015em',
-            lineHeight: 1.35,
-            minHeight: 36,
+            lineHeight: 1.3,
+            minHeight: 32,
           }}
         >
           <Highlight text={product.name} query={query} />
@@ -220,37 +224,37 @@ export default function CatalogProductCard({
 
         {product.short_description && (
           <p
-            className="mt-1 text-[11px] md:text-[12px] line-clamp-1"
+            className="mt-0.5 text-[10.5px] md:text-[11.5px] line-clamp-1"
             style={{ color: 'var(--muted)' }}
           >
             <Highlight text={product.short_description} query={query} />
           </p>
         )}
 
-        <div className="mt-2 md:mt-2.5 flex items-baseline gap-1.5 flex-wrap">
+        <div className="mt-1.5 md:mt-2 flex items-baseline gap-1 flex-wrap">
           {hasSale && discount > 0 && (
             <span
-              className="font-black text-[14px] md:text-[16px] tabular-nums"
+              className="font-black text-[13px] md:text-[15px] tabular-nums"
               style={{ color: 'var(--sale)', letterSpacing: '-0.02em' }}
             >
               {discount}%
             </span>
           )}
           <span
-            className="font-black text-[16px] md:text-[18px] tabular-nums"
+            className="font-black text-[15px] md:text-[17px] tabular-nums"
             style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
           >
             {effective.toLocaleString()}
           </span>
           <span
-            className="text-[11px] md:text-[12px]"
+            className="text-[10.5px] md:text-[11.5px]"
             style={{ color: 'var(--muted)' }}
           >
             원
           </span>
           {hasSale && (
             <span
-              className="line-through tabular-nums text-[10.5px] md:text-[12px]"
+              className="line-through tabular-nums text-[10px] md:text-[11.5px]"
               style={{ color: 'var(--muted)' }}
             >
               {product.price.toLocaleString()}원

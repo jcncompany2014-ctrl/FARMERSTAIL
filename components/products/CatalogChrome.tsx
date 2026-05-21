@@ -1,46 +1,70 @@
 'use client'
 
 /**
- * CatalogChrome — 모바일 카탈로그 상단 sections (2026-05-21).
+ * CatalogChrome — 모바일 카탈로그 상단 sections (2026-05-21 r2).
  *
  * app-product 핸드오프 디자인 적용:
  *   1. Greeting — "HELLO · 안녕 [강아지]" + "오늘은 뭐 먹을까?" 큰 헤딩
- *   2. Search bar + 검은 filter 버튼 (기존 SearchBar 컴포넌트 활용)
- *   3. Category 5 icon row (화식·토퍼·간식·체험팩·영양제)
- *   4. Hero banner — coral primary + "첫 주문 + 무료배송" + "지금 시작" CTA
+ *   2. Search bar + 검은 filter 버튼
+ *   3. Category 5 icon row (화식·간식·토퍼·체험팩·영양제·정기배송)
+ *   4. Hero 슬라이더는 **별도 컴포넌트 (CatalogHero)** 로 분리 — 이벤트 DB 연동.
+ *   5. ALL · 전체 N개 + "모든 메뉴" 헤더
+ *
+ * # spacing
+ *  - 모든 section 좌우 px-4 (16px) 통일 — 오/열 정렬 일관성.
+ *  - section 간 vertical 간격은 pb-3 (12px) 표준, hero 직전만 pb-2 더 좁게.
  *
  * 데스크톱은 기존 toolbar 그대로 — 본 컴포넌트는 md:hidden.
  */
 
 import Link from 'next/link'
-import { Search, Filter, ArrowRight, Gift, ShieldCheck } from 'lucide-react'
+import { Search, Filter } from 'lucide-react'
+import { Soup, Cookie, Gift as GiftIcon, Pill, Repeat } from 'lucide-react'
 
 interface Category {
   label: string
   href: string
-  /** 카테고리 아이콘 (이모지 X, SVG only) */
-  Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>
+  Icon: React.ComponentType<{
+    size?: number
+    color?: string
+    strokeWidth?: number
+  }>
   color: string
-  /** 새로 추가된 신상품 표시용 dot */
   hasNew?: boolean
 }
 
-// 5 카테고리 — 사용자 명시 (이모지 제외) → Lucide 아이콘 매핑.
-// 2026-05-21: 토퍼·간식 묶고 정기배송 신설 (사용자 funnel 핵심).
-import {
-  Soup,
-  Cookie,
-  Gift as GiftIcon,
-  Pill,
-  Repeat,
-} from 'lucide-react'
-
 const CATEGORIES: Category[] = [
-  { label: '화식',      href: '/products?category=meal',   Icon: Soup,    color: '#5d6f3f', hasNew: true },
-  { label: '간식·토퍼', href: '/products?category=treat',  Icon: Cookie,  color: '#e8a82e' },
-  { label: '체험팩',    href: '/products?category=set',    Icon: GiftIcon, color: '#dc532a' },
-  { label: '영양제',    href: '/products?category=supp',   Icon: Pill,    color: '#3f7fb8' },
-  { label: '정기배송',  href: '/products?subscribable=1',  Icon: Repeat,  color: '#8c3a5f' },
+  {
+    label: '화식',
+    href: '/products?category=meal',
+    Icon: Soup,
+    color: '#5d6f3f',
+    hasNew: true,
+  },
+  {
+    label: '간식·토퍼',
+    href: '/products?category=treat',
+    Icon: Cookie,
+    color: '#e8a82e',
+  },
+  {
+    label: '체험팩',
+    href: '/products?category=set',
+    Icon: GiftIcon,
+    color: '#dc532a',
+  },
+  {
+    label: '영양제',
+    href: '/products?category=supp',
+    Icon: Pill,
+    color: '#3f7fb8',
+  },
+  {
+    label: '정기배송',
+    href: '/products?subscribable=1',
+    Icon: Repeat,
+    color: '#8c3a5f',
+  },
 ]
 
 export default function CatalogChrome({
@@ -55,7 +79,7 @@ export default function CatalogChrome({
   return (
     <div className="md:hidden">
       {/* Greeting */}
-      <section className="px-5 pt-2 pb-4">
+      <section className="px-4 pt-2 pb-3">
         <div
           style={{
             fontSize: 11,
@@ -83,7 +107,7 @@ export default function CatalogChrome({
       </section>
 
       {/* Search */}
-      <section className="px-5 pb-4">
+      <section className="px-4 pb-3">
         <Link
           href="/search"
           className="flex items-center gap-2.5 px-4 py-3 bg-white"
@@ -109,7 +133,7 @@ export default function CatalogChrome({
       </section>
 
       {/* Category icons */}
-      <section className="px-4 pb-5">
+      <section className="px-4 pb-4">
         <div className="grid grid-cols-5 gap-2">
           {CATEGORIES.map((cat) => (
             <Link
@@ -145,7 +169,7 @@ export default function CatalogChrome({
                 )}
               </div>
               <span
-                className="text-[11px] font-semibold"
+                className="text-[11px] font-semibold text-center leading-tight"
                 style={{ color: '#1a140c', letterSpacing: '-0.01em' }}
               >
                 {cat.label}
@@ -155,127 +179,11 @@ export default function CatalogChrome({
         </div>
       </section>
 
-      {/* Hero banner — 첫 주문 50% off */}
-      <section className="px-4 pb-5">
-        <Link
-          href="/products?sort=best"
-          className="relative block overflow-hidden"
-          style={{
-            background: '#dc532a',
-            borderRadius: 28,
-            padding: '20px 22px',
-            color: '#fff',
-          }}
-        >
-          {/* 장식 원 */}
-          <span
-            className="absolute pointer-events-none"
-            style={{
-              top: -50,
-              right: -40,
-              width: 180,
-              height: 180,
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.14)',
-            }}
-          />
-          <span
-            className="absolute pointer-events-none"
-            style={{
-              bottom: -80,
-              right: -40,
-              width: 220,
-              height: 220,
-              borderRadius: '50%',
-              background: 'rgba(0,0,0,0.07)',
-            }}
-          />
-          {/* 선물 아이콘 (이모지 X) */}
-          <span
-            className="absolute pointer-events-none"
-            style={{ top: 26, right: 30, color: 'rgba(255,255,255,0.28)' }}
-          >
-            <Gift size={64} strokeWidth={1.8} />
-          </span>
+      {/* ============= CatalogHero (events 슬라이더) — page.tsx 가 직접 렌더 ============= */}
 
-          <div className="relative">
-            <span
-              className="inline-flex items-center font-bold"
-              style={{
-                padding: '4px 10px',
-                background: 'rgba(255,255,255,0.22)',
-                borderRadius: 10,
-                fontSize: 10,
-                letterSpacing: 1.5,
-              }}
-            >
-              NEW · 첫구매 한정
-            </span>
-            <div
-              className="font-['Archivo_Black'] mt-3.5 flex items-center gap-2"
-              style={{
-                fontSize: 30,
-                lineHeight: 0.95,
-                letterSpacing: '-0.025em',
-              }}
-            >
-              <span>
-                첫 주문
-                <br />+ 무료배송
-              </span>
-              <span style={{ marginTop: 12 }}>
-                <ShieldCheck size={28} color="#fff" strokeWidth={2} />
-              </span>
-            </div>
-            <p
-              className="mt-2.5"
-              style={{
-                fontSize: 12,
-                color: 'rgba(255,255,255,0.88)',
-                lineHeight: 1.4,
-              }}
-            >
-              지금 시작하면 체험팩 50% 할인
-              <br />+ 다음 주문 1,000P 적립
-            </p>
-            <div className="flex items-center gap-2.5 mt-4">
-              <span
-                className="inline-flex items-center gap-1.5 font-bold"
-                style={{
-                  padding: '10px 18px',
-                  background: '#fff',
-                  color: '#dc532a',
-                  borderRadius: 14,
-                  fontSize: 13,
-                }}
-              >
-                지금 시작
-                <ArrowRight size={14} color="#dc532a" strokeWidth={2} />
-              </span>
-              <span
-                style={{
-                  fontSize: 11,
-                  color: 'rgba(255,255,255,0.85)',
-                }}
-              >
-                D−5
-              </span>
-            </div>
-          </div>
-          {/* 도트 페이지네이션 (장식) */}
-          <div
-            className="absolute flex gap-1"
-            style={{ bottom: 14, right: 18 }}
-          >
-            <span style={{ width: 14, height: 5, borderRadius: 3, background: '#fff' }} />
-            <span style={{ width: 5, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.45)' }} />
-            <span style={{ width: 5, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.45)' }} />
-          </div>
-        </Link>
-      </section>
-
-      {/* 모든 메뉴 헤더 — kicker + 큰 헤딩 + 정렬 라벨 (정렬은 SortSelect 가 별도 표시) */}
-      <section className="px-5 pb-3 flex items-end justify-between">
+      {/* "모든 메뉴" 헤더 — kicker + 큰 헤딩.
+          정렬은 SortSelect 가 별도. */}
+      <section className="px-4 pb-3 flex items-end justify-between">
         <div>
           <div
             style={{
