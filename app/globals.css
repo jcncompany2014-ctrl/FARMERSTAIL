@@ -301,6 +301,30 @@ input, textarea, select {
   display: none;
 }
 
+/* ── Skeleton pulse — 1.5s opacity loop. prefers-reduced-motion 시 정적. */
+@keyframes ft-skeleton-pulse {
+  0% { opacity: 0; transform: translateX(-100%); }
+  50% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(100%); }
+}
+.ft-skeleton .ft-skeleton-pulse {
+  animation: ft-skeleton-pulse 1.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ft-skeleton .ft-skeleton-pulse {
+    animation: none;
+    opacity: 0.5;
+    transform: none;
+  }
+}
+
+/* ── baseline 정렬 utility (item 96) — 가격 + 단위 같은 inline 정렬 보강 */
+.ft-align-baseline {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
 /* ── focus ring v3 — 키보드/스크린리더 사용자 시각 가이드.
    accent color + 2px outline + 2px offset. WCAG 2.4.7. */
 [data-ft-chrome="app"] :focus-visible {
