@@ -560,8 +560,8 @@ export default function AnalysisView({
         </div>
       )}
 
-      {/* Hero — 시각적 위계: kicker → 이름 (가장 강조) → AAFCO 배지 (안심) */}
-      <section className="px-5 mt-4 text-center">
+      {/* 옛 Hero 폐기 (2026-05-21) — Magazine HeroSection + DiagnosisCard 가 대체. */}
+      <section className="px-5 mt-4 text-center" style={{ display: 'none' }}>
         <span className="kicker inline-block">Nutrition Report</span>
         <h1
           className="font-serif mt-1.5"
@@ -581,8 +581,8 @@ export default function AnalysisView({
         </div>
       </section>
 
-      {/* Energy card */}
-      <section className="px-5 mt-5">
+      {/* 옛 Energy card 폐기 (2026-05-21) — Magazine DailyEnergy + AtAGlance 가 대체. */}
+      <section className="px-5 mt-5" style={{ display: 'none' }}>
         <div className="bg-white rounded-2xl border border-rule p-5">
           <div className="flex items-start justify-between">
             <div>
@@ -724,8 +724,8 @@ export default function AnalysisView({
         </div>
       </section>
 
-      {/* 영양 비율 */}
-      <section className="px-5 mt-3">
+      {/* 옛 영양소 구성 · 권장치 비교 폐기 (2026-05-21) — Magazine NutrientsCard 가 대체. */}
+      <section className="px-5 mt-3" style={{ display: 'none' }}>
         <div className="bg-white rounded-2xl border border-rule p-5">
           <div className="flex items-center gap-2 mb-1">
             <FlaskConical
@@ -787,29 +787,29 @@ export default function AnalysisView({
         <RecommendationBox dogId={dogId} dogName={dog.name} />
       )}
 
-      {/* Tier S F3-4 + F3-7 (2026-05-20): 가격 framing + SKU 매핑 + 비율 슬라이더.
-          archive 모드(과거 분석 조회)에는 표시 X — 현 시점 SKU/가격 권장이라
-          과거 분석에 노출 시 혼란. */}
-      {!isArchive && (
+      {/* FeedingPlanCard / StructuredAnalysis / NutrientGauges38 모두 폐기
+          (2026-05-21) — 사용자 요청 "맞춤영양분석" 카드들 정리.
+          Magazine BoxMix + NutrientsCard + AtAGlance 가 시각 + 정보 일원화.
+          `false &&` dead-code 가드 안에서는 TS narrowing 이 풀려 dog/analysis
+          가 nullable 로 추론되므로 non-null assertion (`!`) 사용. */}
+      {false && !isArchive && (
         <section className="px-5 mt-5">
           <FeedingPlanCard
             dogId={dogId}
-            dogName={dog.name}
-            dailyMerKcal={analysis.mer}
+            dogName={dog!.name}
+            dailyMerKcal={analysis!.mer}
           />
         </section>
       )}
-
-      {/* AI v2 — 구조화 분석 (위험플래그 + 전환플랜 + 출처) */}
-      <StructuredAnalysis
-        analysisId={analysis.id}
-        vetConsultFromCalc={analysis.vet_consult_recommended ?? false}
-        riskFlagsFromCalc={analysis.risk_flags ?? []}
-        nextReviewDate={analysis.next_review_date ?? null}
-      />
-
-      {/* Round C2 (2026-05-20): 38영양소 게이지 — NIAS 색상 가시화. */}
-      {!isArchive && <NutrientGauges38 dogName={dog.name} />}
+      {false && (
+        <StructuredAnalysis
+          analysisId={analysis!.id}
+          vetConsultFromCalc={analysis!.vet_consult_recommended ?? false}
+          riskFlagsFromCalc={analysis!.risk_flags ?? []}
+          nextReviewDate={analysis!.next_review_date ?? null}
+        />
+      )}
+      {false && !isArchive && <NutrientGauges38 dogName={dog!.name} />}
 
       {/* Round C1 (2026-05-20): 5종 SKU 비교 페이지로 CTA. */}
       {!isArchive && (
