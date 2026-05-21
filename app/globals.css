@@ -125,6 +125,23 @@
 }
 
 /* =========================================================================
+   Cart sticky CTA ↔ BottomNav swap
+   ---------------------------------------------------------------------------
+   /cart 페이지에서 스크롤 down 시 CartStickyCTA 가 등장 + BottomNav 가
+   하단 밖으로 슬라이드 아웃. 스크롤 up 시 그 반대.
+
+   CartStickyCTA 가 body.cart-cta-active 를 토글하고, 이 규칙이 nav 만
+   translate. transition 은 nav 의 inline style 에서 이미 설정.
+
+   md+ 데스크톱에서는 BottomNav 가 다른 레이아웃이므로 swap 비활성.
+   ========================================================================= */
+@media (max-width: 767.98px) {
+  body.cart-cta-active [data-cart-bottom-nav] {
+    transform: translateY(100%);
+  }
+}
+
+/* =========================================================================
    Markdown body (.ft-md)
    ---------------------------------------------------------------------------
    admin 이 작성한 블로그 본문 / 다른 long-form 콘텐츠를 lib/markdown.ts 가

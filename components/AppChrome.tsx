@@ -274,6 +274,9 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       <nav
         // 2026-05-21: app-product handoff CP 디자인 적용 — surface white +
         // rounded-top 24px + 강한 그림자. 활성 탭 = primaryTint background.
+        // data-cart-bottom-nav: globals.css 의 body.cart-cta-active 규칙이
+        // 이 nav 만 translateY(100%) 로 밀어내 CartStickyCTA 와 swap.
+        data-cart-bottom-nav
         className="fixed bottom-0 left-0 right-0 z-40 bg-white md:left-1/2 md:right-auto md:w-full md:max-w-md md:-translate-x-1/2 md:rounded-b-[inherit]"
         style={{
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
@@ -281,6 +284,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
           boxShadow: '0 -12px 32px rgba(0,0,0,0.06)',
+          transition: 'transform 260ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
         <div className="max-w-md mx-auto px-3 grid grid-cols-5">
