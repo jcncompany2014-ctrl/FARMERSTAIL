@@ -29,6 +29,26 @@ import StructuredAnalysis from '@/components/analysis/StructuredAnalysis'
 import RecommendationBox from '@/components/analysis/RecommendationBox'
 import FeedingPlanCard from '@/components/analysis/FeedingPlanCard'
 import NutrientGauges38 from '@/components/analysis/NutrientGauges38'
+import { WARM_CREAM } from '@/components/analysis/magazine/palette'
+import { HeroSection as MagHero } from '@/components/analysis/magazine/HeroSection'
+import { DiagnosisCard as MagDiagnosis } from '@/components/analysis/magazine/DiagnosisCard'
+import { CelebrationBanner as MagCelebration } from '@/components/analysis/magazine/CelebrationBanner'
+import { AtAGlance as MagAtAGlance } from '@/components/analysis/magazine/AtAGlance'
+import { DailyEnergyCard as MagDailyEnergy } from '@/components/analysis/magazine/DailyEnergyCard'
+import {
+  NutrientsCard as MagNutrients,
+  type NutrientRow as MagNutrientRow,
+} from '@/components/analysis/magazine/NutrientsCard'
+import {
+  BoxMixCard as MagBoxMix,
+  type BoxMixItem as MagBoxMixItem,
+} from '@/components/analysis/magazine/BoxMixCard'
+import {
+  SupplementsCard as MagSupplements,
+  type SupplementItem as MagSupplementItem,
+} from '@/components/analysis/magazine/SupplementsCard'
+import { TrendsCard as MagTrends } from '@/components/analysis/magazine/TrendsCard'
+import { CTAStack as MagCTA } from '@/components/analysis/magazine/CTAStack'
 import {
   merConfidenceInterval,
   formatRange,
@@ -69,11 +89,69 @@ type HistoryPoint = {
   weight: number
 }
 
-type Dog = { id: string; name: string }
+type Dog = {
+  id: string
+  name: string
+  breed: string | null
+  birth_date: string | null
+  age_value: number | null
+  age_unit: string | null
+  photo_url: string | null
+}
 
 /** RER = 70 · w^0.75  →  w = (RER / 70)^(4/3) */
 function weightFromRER(rer: number): number {
   return Math.pow(rer / 70, 4 / 3)
+}
+
+/**
+ * Magazine HeroSection 용 나이 라벨. birth_date 우선, 없으면 age_value/unit.
+ * 출력 예: "3세 4개월" / "8개월" / "성견 (나이 미상)".
+ */
+function formatAgeLabel(dog: {
+  birth_date: string | null
+  age_value: number | null
+  age_unit: string | null
+}): string {
+  if (dog.birth_date) {
+    const b = new Date(dog.birth_date)
+    const now = new Date()
+    let years = now.getFullYear() - b.getFullYear()
+    let months = now.getMonth() - b.getMonth()
+    if (now.getDate() < b.getDate()) months -= 1
+    if (months < 0) {
+      years -= 1
+      months += 12
+    }
+    if (years <= 0 && months <= 0) return '신생견'
+    if (years <= 0) return `${months}개월`
+    if (months <= 0) return `${years}세`
+    return `${years}세 ${months}개월`
+  }
+  if (dog.age_value != null && dog.age_unit) {
+    const unit = dog.age_unit === 'years' || dog.age_unit === '년' ? '세' : '개월'
+    return `${dog.age_value}${unit}`
+  }
+  return '성견'
+}
+
+/**
+ * analysis.supplements (string[]) → magazine SupplementsCard 행.
+ * 알려진 키워드 매칭으로 icon · tag · reason 결정.
+ */
+function mapSupplements(
+  raw: string[],
+): Array<{ name: string; tag: string; reason: string; icon: 'pill' | 'drop' | 'leaf' }> {
+  return raw.slice(0, 3).map((label) => {
+    const lower = label.toLowerCase()
+    if (/오메가|epa|dha|피쉬|fish/.test(lower)) {
+      return { name: label, tag: '피부·모질', reason: 'BCS·피모 윤기 보강', icon: 'drop' as const }
+    }
+    if (/프로바이오|장|gi|소화|probiotic/.test(lower)) {
+      return { name: label, tag: '장 건강', reason: '단백 소화 보조', icon: 'leaf' as const }
+    }
+    return { name: label, tag: '기본', reason: 'AAFCO 미량성분 보강', icon: 'pill' as const }
+  })
 }
 
 export default function AnalysisView({
@@ -136,7 +214,7 @@ export default function AnalysisView({
 
       const { data: dogData } = await supabase
         .from('dogs')
-        .select('id, name')
+        .select('id, name, breed, birth_date, age_value, age_unit, photo_url')
         .eq('id', dogId)
         .eq('user_id', user.id)
         .maybeSingle()
@@ -256,6 +334,67 @@ export default function AnalysisView({
     { year: 'numeric', month: 'short', day: 'numeric' }
   )
 
+  // ────────────────────────────────────────────────────────────────
+  // Magazine Edition (2026-05-21) — Claude Design 'SURVEY TIME' handoff.
+  // 기존 컴포넌트는 보존하고 페이지 상단에 새 디자인 시각만 prepended.
+  // ────────────────────────────────────────────────────────────────
+  const magP = WARM_CREAM
+  const createdAt = new Date(analysis.created_at)
+  const magDateLabel = `${String(createdAt.getMonth() + 1).padStart(2, '0')}.${String(createdAt.getDate()).padStart(2, '0')}`
+  const magAgeLabel = formatAgeLabel(dog)
+  const magWeightKg = +weightFromRER(analysis.rer).toFixed(1)
+  // accuracyScore 미상 — null 전달 시 default 0.7 사용 (lib 기본값).
+  const magMerCi = merConfidenceInterval(analysis.mer, null)
+  const magMerMin = magMerCi.low
+  const magMerMax = magMerCi.high
+  const magNutrientRows: MagNutrientRow[] = [
+    {
+      key: 'protein',
+      name: '단백질',
+      emoji: '🍗',
+      value: Math.round(analysis.protein_pct),
+      gpd: Math.round(analysis.protein_g),
+      min: ranges.protein.min,
+      max: ranges.protein.max,
+    },
+    {
+      key: 'fat',
+      name: '지방',
+      emoji: '🥑',
+      value: Math.round(analysis.fat_pct),
+      gpd: Math.round(analysis.fat_g),
+      min: ranges.fat.min,
+      max: ranges.fat.max,
+    },
+    {
+      key: 'carb',
+      name: '탄수화물',
+      emoji: '🌽',
+      value: Math.round(analysis.carb_pct),
+      gpd: Math.round(analysis.carb_g),
+      min: ranges.carb?.min ?? 0,
+      max: ranges.carb?.max ?? 60,
+    },
+    {
+      key: 'fiber',
+      name: '식이섬유',
+      emoji: '🥕',
+      value: Math.round(analysis.fiber_pct),
+      gpd: Math.round(analysis.fiber_g),
+      min: ranges.fiber?.min ?? 1,
+      max: ranges.fiber?.max ?? 8,
+    },
+  ]
+  // 5종 박스 default 비율 — 추후 RecommendationBox / FeedingPlanCard 결과와 동기화.
+  const magBoxItems: MagBoxMixItem[] = [
+    { key: 'basic',   name: 'Basic',   ko: '닭 · 균형식',     pct: 30, kcal: Math.round(analysis.mer * 0.30), g: Math.round(analysis.feed_g * 0.30), sub: '단일 단백원 · 소화 부담 낮음' },
+    { key: 'premium', name: 'Premium', ko: '소 · 활력·근육',  pct: 30, kcal: Math.round(analysis.mer * 0.30), g: Math.round(analysis.feed_g * 0.30), sub: '철·아연·B12 풍부' },
+    { key: 'skin',    name: 'Skin',    ko: '연어 · 피부',     pct: 20, kcal: Math.round(analysis.mer * 0.20), g: Math.round(analysis.feed_g * 0.20), sub: 'Omega-3 · 피부 모질' },
+    { key: 'joint',   name: 'Joint',   ko: '오리 · 관절',     pct: 10, kcal: Math.round(analysis.mer * 0.10), g: Math.round(analysis.feed_g * 0.10), sub: '글루코사민 · MSM' },
+    { key: 'weight',  name: 'Weight',  ko: '칠면조 · 다이어트', pct: 10, kcal: Math.round(analysis.mer * 0.10), g: Math.round(analysis.feed_g * 0.10), sub: '저지방 · L-카르니틴' },
+  ]
+  const magSupplementItems: MagSupplementItem[] = mapSupplements(analysis.supplements ?? [])
+
   return (
     <main className="pb-10">
       <section className="px-5 pt-6 pb-2 flex items-center justify-between gap-3">
@@ -339,6 +478,93 @@ export default function AnalysisView({
             </Link>
           </div>
         </section>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          Magazine Edition (2026-05-21) — 새 분석 결과 카드 묶음.
+          archive 모드에서는 숨김 (역사적 데이터 컨텍스트와 충돌 방지).
+          기존 컴포넌트 (FeedingPlanCard / RecommendationBox /
+          StructuredAnalysis) 는 아래 그대로 보존.
+          ───────────────────────────────────────────────────────────── */}
+      {!isArchive && (
+        <div
+          style={{ background: magP.bg, marginTop: 12, paddingBottom: 4 }}
+        >
+          <MagHero
+            p={magP}
+            dogName={dog.name}
+            ageLabel={magAgeLabel}
+            breedLabel={dog.breed}
+            weightKg={magWeightKg}
+            photoUrl={dog.photo_url}
+          />
+          <MagDiagnosis
+            p={magP}
+            dogName={dog.name}
+            chips={[
+              { label: analysis.stage || '성견 유지', variant: 'primary' },
+              { label: `BCS ${analysis.bcs_score}/9 · ${analysis.bcs_label}`, variant: 'soft' },
+              { label: `단백 ${Math.round(analysis.protein_pct)}%`, variant: 'soft' },
+            ]}
+            headline={{
+              intro: '단백질은',
+              accentBrand: '넉넉히',
+              middle: ', 지방은',
+              accentOchre: '균형 있게',
+              body: `${dog.name}이의 ${analysis.bcs_label} 체형에`,
+              highlight: '맞춤 식단을 준비했어요.',
+            }}
+            guidelineLabel={`AAFCO ${analysis.guideline_version ?? '2024'} 영양 기준 충족`}
+            versionLabel={`분석 · ${analysisDate}`}
+          />
+          <MagCelebration
+            p={magP}
+            dogName={dog.name}
+            dateLabel={magDateLabel}
+          />
+          <MagAtAGlance
+            p={magP}
+            data={{
+              kcalPerDay: Math.round(analysis.mer),
+              feedGramPerDay: Math.round(analysis.feed_g),
+              kcalPerMeal: Math.round(analysis.mer / 2),
+              bcsLabel: `BCS ${analysis.bcs_score}/9`,
+            }}
+          />
+          <MagDailyEnergy
+            p={magP}
+            dogName={dog.name}
+            data={{
+              mer: Math.round(analysis.mer),
+              rer: analysis.rer,
+              factor: analysis.factor,
+              merMin: magMerMin,
+              merMax: magMerMax,
+              guideline: 'NRC 2006',
+            }}
+          />
+          <MagNutrients p={magP} rows={magNutrientRows} />
+          <MagBoxMix p={magP} dogName={dog.name} items={magBoxItems} />
+          <MagSupplements
+            p={magP}
+            dogName={dog.name}
+            items={magSupplementItems}
+          />
+          <MagTrends
+            p={magP}
+            dogName={dog.name}
+            totalCount={totalCount}
+            latestDateLabel={magDateLabel}
+          />
+          <MagCTA
+            p={magP}
+            dogName={dog.name}
+            primaryHref={`/dogs/${dogId}/subscribe`}
+            primaryMeta="1주분 · 39,900원 · 무료배송"
+            consultHref="/contact"
+          />
+          <div style={{ height: 12, background: magP.bg }} />
+        </div>
       )}
 
       {/* Hero — 시각적 위계: kicker → 이름 (가장 강조) → AAFCO 배지 (안심) */}
