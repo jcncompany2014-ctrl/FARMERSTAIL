@@ -21,7 +21,6 @@ export default function Budget({
         <span className="s-kicker">
           BUDGET <span className="s-dot">·</span> 식비 예산
         </span>
-        <span className="s-opt-badge">선택</span>
       </div>
       <h1 className="s-title">
         {withDogName(SURVEY_COPY.budget.question, dogName)}
@@ -81,7 +80,7 @@ export default function Budget({
       </div>
 
       <p style={{ marginTop: 24, fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
-        {SURVEY_COPY.budget.footer}
+        {withDogName(SURVEY_COPY.budget.footer, dogName)}
       </p>
     </div>
   )
