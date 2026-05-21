@@ -96,7 +96,7 @@ export default function CatalogProductCard({
 
   return (
     <div
-      className="relative group"
+      className="relative group ft-card-product"
       style={{
         background: '#fff',
         borderRadius: 18,

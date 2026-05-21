@@ -387,6 +387,15 @@ html.ft-debug-grid body::after {
   background-size: 64px 64px;
 }
 
+/* ── CatalogProductCard v3 override — 앱 안에서만 paperHi + ink rule + radius 4.
+   웹 (랜딩/blog/events) 에서는 기본 inline 스타일 (#fff / radius 18 / shadow) 유지. */
+[data-ft-chrome="app"] .ft-card-product {
+  background: var(--paper-hi) !important;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm) !important;
+  box-shadow: none !important;
+}
+
 /* ── 앱 스코프 안에서만 Korean 미세 letter-spacing 압축 + body bg 강제. */
 [data-ft-chrome="app"]:lang(ko),
 [data-ft-chrome="app"] :lang(ko) {
