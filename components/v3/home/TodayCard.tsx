@@ -1,7 +1,5 @@
-'use client'
-
 /**
- * TodayCard — "오늘의 한 가지" ink hero 카드.
+ * TodayCard — "오늘의 한 가지" ink hero 카드 (server component).
  *
  * 핸드오프 패턴:
  *   - ink bg + paper text — 검정 카드 (시각적 강조).
@@ -9,11 +7,22 @@
  *   - 본문: 26px sans 700 헤딩 (2줄 가능).
  *   - 우상단: 56×56 accent circle + icon.
  *   - 본문 설명: 13px sub 카피.
- *   - CTA: accent bg button "지금 입력하기 →".
- *   - 하단: "안내 숨기기" + "왜 이 안내?" 2개 mute link.
+ *   - CTA: accent bg "지금 입력하기 →" — Link 로 호출자가 href 지정.
+ *
+ * # 2026-05-22 — server component 로 전환
+ *  Dashboard server component 에서 LucideIcon (function reference) 를 prop
+ *  으로 넘기다가 "Functions cannot be passed to Client Components" 에러 발생.
+ *  → 'use client' 제거 + onCtaClick 함수 prop 제거 + Icon prop type 을
+ *    `LucideIcon` → `React.ReactNode` 로 변경 (Element 는 직렬화 가능).
+ *  → CTA 는 Link href 기반으로 변경. 호출자가 element 만들어 넘김:
+ *    `<TodayCard icon={<Scale size={24} color="#f4ede0" />} href="/dogs/..." ... />`
+ *
+ *  "안내 숨기기" / "왜 이 안내?" 같은 클라이언트 인터랙티브 액션은 별도
+ *  client island 로 분리 예정 (R8 이후, useDismissible 와 함께).
  */
 
-import { ArrowRight, EyeOff, HelpCircle, type LucideIcon } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 
@@ -28,14 +37,12 @@ interface TodayCardProps {
   description: string
   /** CTA 라벨. 기본 "지금 입력하기". */
   ctaLabel?: string
-  /** CTA 클릭 핸들러 — Link 동작은 호출자 책임. */
-  onCtaClick?: () => void
-  /** 우상단 큰 circle 아이콘 — 24px lucide-react Icon. */
-  Icon?: LucideIcon
-  /** "안내 숨기기" 클릭 — 옵션 (없으면 미표시). */
-  onDismiss?: () => void
-  /** "왜 이 안내?" 클릭 — 옵션. */
-  onWhy?: () => void
+  /** CTA 클릭 시 이동할 경로. */
+  href: string
+  /** 우상단 큰 circle 아이콘 — `<Scale size={24} color={V3.paper} />` 같은
+   *  미리 만든 ReactNode element. LucideIcon (function ref) 는 직렬화 불가
+   *  하므로 element 형태로 전달. */
+  icon?: React.ReactNode
 }
 
 export default function TodayCard({
@@ -44,10 +51,8 @@ export default function TodayCard({
   heading,
   description,
   ctaLabel = '지금 입력하기',
-  onCtaClick,
-  Icon,
-  onDismiss,
-  onWhy,
+  href,
+  icon,
 }: TodayCardProps) {
   const displayKicker = kicker ?? `오늘의 한 가지 · ${number}`
 
@@ -81,7 +86,7 @@ export default function TodayCard({
               {heading}
             </div>
           </div>
-          {Icon && (
+          {icon && (
             <div
               className="flex items-center justify-center shrink-0"
               style={{
@@ -92,7 +97,7 @@ export default function TodayCard({
               }}
               aria-hidden
             >
-              <Icon size={24} color={V3.paper} strokeWidth={1.75} />
+              {icon}
             </div>
           )}
         </div>
@@ -110,73 +115,24 @@ export default function TodayCard({
           {description}
         </p>
 
-        <button
-          onClick={onCtaClick}
+        <Link
+          href={href}
           className="flex items-center justify-between transition active:scale-[0.99]"
           style={{
             width: '100%',
             background: V3.accent,
             color: V3.paper,
-            border: 'none',
             borderRadius: 4,
             padding: '14px 18px',
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
             fontSize: 14,
             letterSpacing: '-0.005em',
-            cursor: 'pointer',
           }}
         >
           <span>{ctaLabel}</span>
           <ArrowRight size={16} color={V3.paper} strokeWidth={2.2} />
-        </button>
-
-        {(onDismiss || onWhy) && (
-          <div
-            className="flex justify-between"
-            style={{ marginTop: 14 }}
-          >
-            {onDismiss && (
-              <button
-                onClick={onDismiss}
-                className="inline-flex items-center"
-                style={{
-                  gap: 6,
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  color: 'rgba(244,237,224,0.55)',
-                }}
-              >
-                <EyeOff size={12} strokeWidth={1.6} />
-                <Mono color="rgba(244,237,224,0.55)" size="xxs">
-                  안내 숨기기
-                </Mono>
-              </button>
-            )}
-            {onWhy && (
-              <button
-                onClick={onWhy}
-                className="inline-flex items-center"
-                style={{
-                  gap: 6,
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  color: 'rgba(244,237,224,0.55)',
-                }}
-              >
-                <HelpCircle size={12} strokeWidth={1.6} />
-                <Mono color="rgba(244,237,224,0.55)" size="xxs">
-                  왜 이 안내?
-                </Mono>
-              </button>
-            )}
-          </div>
-        )}
-
+        </Link>
       </div>
     </section>
   )

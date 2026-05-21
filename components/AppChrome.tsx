@@ -26,10 +26,10 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import InstallPrompt from '@/components/InstallPrompt'
+import ChromeStamp from '@/components/ChromeStamp'
 import MiniCartToast from '@/components/products/MiniCartToast'
 import { WishlistProvider } from '@/components/products/WishlistContext'
 import V3Ticker from '@/components/v3/V3Ticker'
-import BrandWordmark from '@/components/v3/BrandWordmark'
 
 type Tab = {
   href: string
@@ -181,8 +181,10 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     // 주석 참고. 바깥 body도 --bg-2로 어두워져 "프레임 밖" 느낌이 산다.
     <WishlistProvider>
     <div className="phone-frame min-h-screen bg-bg" data-ft-chrome="app">
-      {/* 상단 헤더 v3 — Mono ticker + BrandWordmark + bell/cart icons.
-          focus mode (설문/체크인 등) 에서는 hide. */}
+      {/* 상단 헤더 v3 — Mono ticker + 기존 logo.png + ChromeStamp + bell/cart icons.
+          focus mode (설문/체크인 등) 에서는 hide.
+          [2026-05-22] 사용자 요청: BrandWordmark 워드마크 → 원래 logo.png 복구.
+          ChromeStamp 도 같이 살아남 (좌측 1px terracotta hairline + 날짜). */}
       {!focusMode && (
       <header
         className="sticky top-0 z-40 transition-all duration-200"
@@ -206,13 +208,24 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
             className="flex items-center justify-between"
             style={{ paddingTop: 6, paddingBottom: 12 }}
           >
-            <Link
-              href="/dashboard"
-              className="shrink-0"
-              aria-label="홈"
-            >
-              <BrandWordmark size={22} />
-            </Link>
+            <div className="flex items-center min-w-0" style={{ marginLeft: -8 }}>
+              <Link
+                href="/dashboard"
+                className="flex items-center shrink-0"
+                aria-label="홈"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo.png"
+                  alt="Farmer's Tail"
+                  className="h-11 w-auto"
+                  // LCP 후보 — 헤더 로고가 첫 viewport 가장 큰 가시 요소.
+                  fetchPriority="high"
+                  style={{ filter: 'var(--logo-filter, brightness(0))' }}
+                />
+              </Link>
+              <ChromeStamp />
+            </div>
 
             <div className="flex items-center" style={{ gap: 2, marginRight: -10 }}>
               <Link

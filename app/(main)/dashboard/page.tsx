@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { Footprints, Scale, Soup, type LucideIcon } from 'lucide-react'
+import { Footprints, Scale, Soup } from 'lucide-react'
 import {
   GreetingSection,
   ActiveDogCard,
@@ -545,14 +545,20 @@ export default async function DashboardPage() {
     },
   ]
 
-  // ── TodayCard 매핑 — nextAction.kind 별 분기.
+  // ── TodayCard 매핑 — nextAction.type 별 분기.
+  // [2026-05-22] dashboard 는 server component — TodayCard 도 server 로 전환됨.
+  // LucideIcon (function ref) 는 직렬화 불가 → server-side 에서 element 만들어
+  // icon prop 으로 전달.
   type TodayCardSpec = {
     heading: React.ReactNode
     description: string
     ctaLabel: string
     href: string
-    Icon: LucideIcon
+    icon: React.ReactNode
   } | null
+  const todayIcon = (
+    <Scale size={24} color="#f4ede0" strokeWidth={1.75} />
+  )
   const todaySpec: TodayCardSpec = (() => {
     if (!nextAction) return null
     if (nextAction.type === 'analyze' && unanalyzedDog) {
@@ -569,7 +575,7 @@ export default async function DashboardPage() {
           '체중·품종·생활 패턴 8문항으로 우리 아이에게 맞는 한 끼를 추천해드려요.',
         ctaLabel: nextAction.cta || '설문 시작하기',
         href: nextAction.href,
-        Icon: Scale,
+        icon: todayIcon,
       }
     }
     if (nextAction.type === 'approve' && pendingFormula) {
@@ -586,7 +592,7 @@ export default async function DashboardPage() {
           '수의영양학 기반 추천 식단이 도착했어요. 검토하고 확정해 주세요.',
         ctaLabel: nextAction.cta || '처방 보기',
         href: nextAction.href,
-        Icon: Scale,
+        icon: todayIcon,
       }
     }
     if (nextAction.type === 'weigh-in' && staleWeightDog) {
@@ -605,7 +611,7 @@ export default async function DashboardPage() {
               '한 달에 한 번이면 충분합니다. 권장 구간을 함께 안내해 드려요.',
         ctaLabel: nextAction.cta || '지금 입력하기',
         href: nextAction.href,
-        Icon: Scale,
+        icon: todayIcon,
       }
     }
     if (nextAction.type === 'onboarding') {
@@ -622,7 +628,7 @@ export default async function DashboardPage() {
           '맞춤 분석과 추천이 가족 정보부터 시작됩니다.',
         ctaLabel: nextAction.cta || '등록하기',
         href: nextAction.href,
-        Icon: Scale,
+        icon: todayIcon,
       }
     }
     return null
@@ -728,7 +734,8 @@ export default async function DashboardPage() {
           heading={todaySpec.heading}
           description={todaySpec.description}
           ctaLabel={todaySpec.ctaLabel}
-          Icon={todaySpec.Icon}
+          href={todaySpec.href}
+          icon={todaySpec.icon}
         />
       )}
 
