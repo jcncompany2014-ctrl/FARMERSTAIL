@@ -13,6 +13,8 @@ import CatalogProductCard, {
   type CatalogProduct,
 } from '@/components/products/CatalogProductCard'
 import RecentlyViewed from '@/components/products/RecentlyViewed'
+import CatalogChrome from '@/components/products/CatalogChrome'
+import CatalogSubscribeBand from '@/components/products/CatalogSubscribeBand'
 import { isAppContextServer } from '@/lib/app-context'
 import JsonLd from '@/components/JsonLd'
 import {
@@ -110,6 +112,29 @@ export default async function ProductsPage({
 
   // ── Supabase 쿼리 ───────────────────────────────────────
   const supabase = await createClient()
+
+  // 첫 강아지 이름 — CatalogChrome greeting "안녕 [이름]" 용.
+  // 로그인 안 했거나 강아지 없으면 '보호자' 기본.
+  let firstDogName = '보호자'
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      const { data: firstDog } = await supabase
+        .from('dogs')
+        .select('name')
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      if (firstDog?.name) firstDogName = firstDog.name
+    }
+  } catch {
+    /* silent — greeting 기본값 사용 */
+  }
+
   let dataQuery = supabase
     .from('products')
     .select(
@@ -243,10 +268,15 @@ export default async function ProductsPage({
       {itemListLd && (
         <JsonLd id="ld-itemlist-products" data={itemListLd} />
       )}
+      {/* 2026-05-21: 모바일 카탈로그 새 chrome (app-product 핸드오프 디자인).
+          데스크톱은 아래 기존 toolbar 그대로. */}
+      <CatalogChrome dogName={firstDogName} totalCount={total} />
+
       {/* ── Top toolbar: breadcrumb + h1 + count + sort ─────
           앱 컨텍스트에선 breadcrumb 생략 — 상단 헤더 + 하단 탭바가 navigation
-          이미 제공. RecentlyViewed 도 앱에선 mypage 가 자체 surface. */}
-      <section className="px-5 md:px-8 pt-4 md:pt-6">
+          이미 제공. RecentlyViewed 도 앱에선 mypage 가 자체 surface.
+          모바일은 위 CatalogChrome 이 대체 → 데스크톱 전용. */}
+      <section className="px-5 md:px-8 pt-4 md:pt-6 hidden md:block">
         {!isApp && <Breadcrumb pageTitle={pageTitle} />}
 
         <div className="mt-2 md:mt-3 flex items-end justify-between gap-3 flex-wrap">
@@ -311,7 +341,7 @@ export default async function ProductsPage({
             />
           ) : (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 lg:gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5 lg:gap-6 px-1 md:px-0">
                 {rows.map((p, i) => {
                   const rank = isBest && pageNum === 1 ? i + 1 : null
                   const isNew = raw.sort === 'new'
@@ -327,6 +357,9 @@ export default async function ProductsPage({
                   )
                 })}
               </div>
+
+              {/* Subscribe sage band — 모바일 그리드 다음. */}
+              <CatalogSubscribeBand />
 
               {/* Pagination */}
               {totalPages > 1 && (
