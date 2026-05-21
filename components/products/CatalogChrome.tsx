@@ -25,21 +25,22 @@ interface Category {
   hasNew?: boolean
 }
 
-// 5 카테고리 — 사용자 명시 (이모지 제외) → Lucide 아이콘 매핑
+// 5 카테고리 — 사용자 명시 (이모지 제외) → Lucide 아이콘 매핑.
+// 2026-05-21: 토퍼·간식 묶고 정기배송 신설 (사용자 funnel 핵심).
 import {
   Soup,
   Cookie,
   Gift as GiftIcon,
   Pill,
-  Utensils,
+  Repeat,
 } from 'lucide-react'
 
 const CATEGORIES: Category[] = [
-  { label: '화식', href: '/products?category=meal', Icon: Soup, color: '#5d6f3f', hasNew: true },
-  { label: '토퍼', href: '/products?category=topper', Icon: Utensils, color: '#e8a82e' },
-  { label: '간식', href: '/products?category=treat', Icon: Cookie, color: '#8c3a5f' },
-  { label: '체험팩', href: '/products?category=set', Icon: GiftIcon, color: '#dc532a' },
-  { label: '영양제', href: '/products?category=supp', Icon: Pill, color: '#3f7fb8' },
+  { label: '화식',      href: '/products?category=meal',   Icon: Soup,    color: '#5d6f3f', hasNew: true },
+  { label: '간식·토퍼', href: '/products?category=treat',  Icon: Cookie,  color: '#e8a82e' },
+  { label: '체험팩',    href: '/products?category=set',    Icon: GiftIcon, color: '#dc532a' },
+  { label: '영양제',    href: '/products?category=supp',   Icon: Pill,    color: '#3f7fb8' },
+  { label: '정기배송',  href: '/products?subscribable=1',  Icon: Repeat,  color: '#8c3a5f' },
 ]
 
 export default function CatalogChrome({
