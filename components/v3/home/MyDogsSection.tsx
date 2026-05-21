@@ -145,11 +145,11 @@ export default function MyDogsSection({
                   ACTIVE
                 </span>
               )}
+              {/* 2026-05-22: 130h 직사각 → 1:1 정사각형 (aspect-square) */}
               <div
-                className="relative overflow-hidden"
+                className="relative overflow-hidden ft-aspect-square"
                 style={{
                   width: '100%',
-                  height: 130,
                   borderRadius: 2,
                   background: d.toneBg,
                   boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.18)',

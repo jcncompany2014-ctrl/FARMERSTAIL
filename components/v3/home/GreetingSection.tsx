@@ -11,7 +11,7 @@
  *   05-11 → "아침" / 12-16 → "오후" / 17-20 → "저녁" / 21-04 → "밤"
  */
 
-import { V3, V3FontSize, V3FontWeight, V3LetterSpacing, V3LineHeight } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3LetterSpacing } from '@/lib/design/tokens'
 import { Mono, Signature, Mark } from '@/components/v3'
 
 interface GreetingSectionProps {
@@ -34,12 +34,12 @@ const TIME_LABEL: Record<TimeOfDay, string> = {
   night: 'late night',
 }
 
-/** 시간대별 헤딩 — 3줄 구성. */
-const HEADING_BY_TIME: Record<TimeOfDay, [string, string, string]> = {
-  morning: ['좋은', '아침', '이에요,'],
-  afternoon: ['좋은', '오후', '예요,'],
-  evening: ['좋은', '저녁', '이에요,'],
-  night: ['편안한', '밤', '되세요,'],
+/** 시간대별 헤딩 — 한 줄 구성 (2026-05-22: 3줄 → 1줄). */
+const HEADING_BY_TIME: Record<TimeOfDay, string> = {
+  morning: '좋은 아침이에요,',
+  afternoon: '좋은 오후예요,',
+  evening: '좋은 저녁이에요,',
+  night: '좋은 밤이에요,',
 }
 
 function computeTimeOfDay(): TimeOfDay {
@@ -57,7 +57,7 @@ export default function GreetingSection({
   subCopy = { lead: '오늘도 건강한 한 끼를 ', mark: '정성스럽게.' },
 }: GreetingSectionProps) {
   const tod = forceTimeOfDay ?? computeTimeOfDay()
-  const [w1, w2, w3] = HEADING_BY_TIME[tod]
+  const headingText = HEADING_BY_TIME[tod]
   const kickerLabel = `Hello, ${userName} · ${TIME_LABEL[tod]}`
 
   return (
@@ -91,25 +91,23 @@ export default function GreetingSection({
         </Mono>
       </div>
 
-      {/* 3-line hero heading — 54px sans 900 */}
+      {/* 1-line hero heading — 38px sans 900. 사용자 요청: 한 줄로 들어오게.
+          54px → 38px 로 줄여서 우상단 signature 와 줄바뀜 없이 함께 들어감.
+          가장 긴 카피 "좋은 저녁이에요," (8자) 기준 358px wide phone 에서도 OK. */}
       <h1
         style={{
           margin: 0,
           fontFamily: 'var(--font-sans)',
           fontWeight: V3FontWeight.black,
-          fontSize: V3FontSize.xxl,
-          lineHeight: V3LineHeight.tight,
+          fontSize: 38,
+          lineHeight: 1.05,
           letterSpacing: V3LetterSpacing.hero,
           color: V3.ink,
-          textWrap: 'balance',
           wordBreak: 'keep-all',
+          whiteSpace: 'nowrap',
         }}
       >
-        {w1}
-        <br />
-        {w2}
-        <br />
-        {w3}
+        {headingText}
       </h1>
 
       {/* 우상단 signature — Pretendard italic 600 (no Serif) */}

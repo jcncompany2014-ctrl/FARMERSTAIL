@@ -97,7 +97,7 @@ export default function ActiveDogCard({
         </span>
       </div>
 
-      {/* Photo + name */}
+      {/* Photo + name — 2026-05-22: 68×84 (portrait 직사각) → 80×80 (정사각) */}
       <div
         className="flex items-end"
         style={{ padding: '6px 16px 14px', gap: 14 }}
@@ -105,8 +105,8 @@ export default function ActiveDogCard({
         <div
           className="relative shrink-0 overflow-hidden"
           style={{
-            width: 68,
-            height: 84,
+            width: 80,
+            height: 80,
             borderRadius: 2,
             background: '#d6c9aa',
             boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.16)',
@@ -117,7 +117,7 @@ export default function ActiveDogCard({
               src={photoUrl}
               alt={dogName}
               fill
-              sizes="68px"
+              sizes="80px"
               className="object-cover"
             />
           ) : (

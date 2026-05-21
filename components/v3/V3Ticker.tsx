@@ -54,12 +54,19 @@ export default function V3Ticker() {
     ? `${capFirst(stamp.weekday)} ${stamp.day} ${capFirst(stamp.month)} · ${hhmm || '--:--'}`
     : '          '
 
-  // 2026-05-22 — 사용자 요청대로 우측 "· Live" 라벨 제거.
-  // 좌측 ticker (날짜 + 시간) 만 유지, 비율은 헤더 main row 와 정렬.
+  // 2026-05-22 — ticker 양쪽 끝 정렬 (사용자 요청).
+  // 좌측: 날짜 + 시간 / 우측: SEOUL · KST timezone 라벨.
+  // 좌우 padding 은 부모 header (20px) 와 동일하게 정렬.
   return (
-    <div aria-hidden>
+    <div
+      className="flex items-center justify-between"
+      aria-hidden
+    >
       <Mono color="ink" size="xxs" weight={500} letterSpacing="0.16em">
         {left}
+      </Mono>
+      <Mono color="inkMute" size="xxs" weight={500} letterSpacing="0.16em">
+        SEOUL · KST
       </Mono>
     </div>
   )
