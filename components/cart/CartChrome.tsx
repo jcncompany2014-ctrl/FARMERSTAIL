@@ -45,55 +45,78 @@ export default function CartChrome({
 
   return (
     <div className="md:hidden">
-      {/* 헤더 */}
+      {/* 헤더 — v3: paperHi + 1px rule (그림자 폐기) */}
       <section className="px-4 pt-2 pb-3 flex items-center justify-between">
         <button
           onClick={() => router.back()}
-          className="w-9 h-9 rounded-full bg-white flex items-center justify-center"
-          style={{ boxShadow: '0 2px 8px rgba(26,20,12,0.06)' }}
+          className="flex items-center justify-center transition active:scale-95"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 'var(--r-sm, 18px)',
+            background: 'var(--paper-hi, #fff)',
+            border: '1px solid var(--rule, rgba(22,20,15,0.12))',
+            cursor: 'pointer',
+          }}
           aria-label="뒤로"
         >
-          <ChevronLeft size={18} color="#1a140c" strokeWidth={1.8} />
+          <ChevronLeft size={18} color="var(--ink, #16140f)" strokeWidth={1.8} />
         </button>
         <div
-          className="font-['Archivo_Black']"
-          style={{ fontSize: 15, color: '#1a140c', letterSpacing: '-0.01em' }}
+          style={{
+            fontFamily: 'var(--font-sans)',
+            fontWeight: 900,
+            fontSize: 15,
+            color: 'var(--ink, #16140f)',
+            letterSpacing: '-0.02em',
+          }}
         >
-          장바구니 <span style={{ color: '#dc532a' }}>{count}</span>
+          장바구니{' '}
+          <span style={{ color: 'var(--accent, #c44a26)' }}>{count}</span>
         </div>
         <Link
           href="/account"
-          className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-[11px] font-bold"
-          style={{ color: '#1a140c', boxShadow: '0 2px 8px rgba(26,20,12,0.06)' }}
+          className="flex items-center justify-center"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 'var(--r-sm, 18px)',
+            background: 'var(--paper-hi, #fff)',
+            border: '1px solid var(--rule, rgba(22,20,15,0.12))',
+            fontSize: 11,
+            fontWeight: 700,
+            color: 'var(--ink, #16140f)',
+            letterSpacing: '-0.005em',
+          }}
         >
           편집
         </Link>
       </section>
 
-      {/* 무료배송 progress */}
+      {/* 무료배송 progress — v3: ink ruler + yellow triangle pointer (그라데이션 폐기) */}
       <section className="px-4 pb-3">
         <div
-          className="bg-white"
           style={{
-            borderRadius: 18,
+            background: 'var(--paper-hi, #fbf6ec)',
+            border: '1px solid var(--rule, rgba(22,20,15,0.12))',
+            borderRadius: 'var(--r-sm, 4px)',
             padding: '14px 16px',
-            boxShadow: '0 2px 8px rgba(26,20,12,0.06)',
           }}
         >
-          <div className="flex items-center gap-2 mb-2.5">
-            <Truck size={18} color="#dc532a" strokeWidth={1.8} />
+          <div className="flex items-center gap-2 mb-3">
+            <Truck size={18} color="var(--accent, #c44a26)" strokeWidth={1.8} />
             <div
               className="flex-1 font-bold"
-              style={{ fontSize: 12, color: '#1a140c' }}
+              style={{ fontSize: 12, color: 'var(--ink, #16140f)' }}
             >
               {hasFree ? (
                 <>
                   무료배송 적용!{' '}
-                  <span style={{ color: '#5d6f3f' }}>배송비 무료</span>
+                  <span style={{ color: 'var(--sage, #4f6a48)' }}>배송비 무료</span>
                 </>
               ) : (
                 <>
-                  <span style={{ color: '#dc532a' }}>
+                  <span style={{ color: 'var(--accent, #c44a26)' }}>
                     {remainingToFree.toLocaleString()}원
                   </span>{' '}
                   더 담으면 무료배송!
@@ -101,61 +124,115 @@ export default function CartChrome({
               )}
             </div>
           </div>
-          <div
-            className="relative overflow-hidden"
-            style={{
-              height: 8,
-              borderRadius: 4,
-              background: '#fbf3df',
-            }}
-          >
+
+          {/* ink ruler */}
+          <div className="relative" style={{ height: 18, marginBottom: 4 }}>
+            {/* hairline base */}
             <div
+              aria-hidden
               style={{
                 position: 'absolute',
-                inset: 0,
                 left: 0,
+                right: 0,
+                top: 8,
+                height: 2,
+                background: 'var(--ink, #16140f)',
+              }}
+            />
+            {/* tick marks (0 / 50% / 100%) */}
+            {[0, 50, 100].map((p) => (
+              <div
+                key={p}
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  left: `${p}%`,
+                  top: 4,
+                  width: 2,
+                  height: 10,
+                  background: 'var(--ink, #16140f)',
+                  transform: 'translateX(-50%)',
+                }}
+              />
+            ))}
+            {/* progress fill — sage block from 0 to pct */}
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 8,
+                height: 2,
                 width: `${pct}%`,
-                background: 'linear-gradient(90deg, #dc532a, #e8a82e)',
-                borderRadius: 4,
-                transition: 'width 0.3s',
+                background: hasFree
+                  ? 'var(--sage, #4f6a48)'
+                  : 'var(--accent, #c44a26)',
+                transition: 'width 240ms cubic-bezier(0.16,1,0.3,1)',
+              }}
+            />
+            {/* yellow triangle pointer at current pct */}
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                left: `${Math.min(100, Math.max(0, pct))}%`,
+                top: 13,
+                width: 0,
+                height: 0,
+                borderLeft: '5px solid transparent',
+                borderRight: '5px solid transparent',
+                borderTop: '6px solid var(--yellow, #e6b942)',
+                transform: 'translateX(-50%)',
+                transition: 'left 240ms cubic-bezier(0.16,1,0.3,1)',
               }}
             />
           </div>
+
+          {/* tick labels */}
           <div
-            className="flex justify-between mt-1.5 tabular-nums"
-            style={{ fontSize: 9, color: '#7a6d5b' }}
+            className="flex justify-between tabular-nums"
+            style={{
+              fontFamily:
+                "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
+              fontSize: 9,
+              color: 'var(--ink-mute, #7d7460)',
+              letterSpacing: '0.06em',
+            }}
           >
             <span>0</span>
             <span>{Math.round(freeThreshold / 2).toLocaleString()}</span>
-            <span style={{ color: '#dc532a', fontWeight: 700 }}>
+            <span
+              style={{ color: 'var(--accent, #c44a26)', fontWeight: 700 }}
+            >
               {freeThreshold.toLocaleString()}원
             </span>
           </div>
         </div>
       </section>
 
-      {/* 배송지 카드 */}
+      {/* 배송지 카드 — v3: paperHi + 1px rule + sage 4px square pin */}
       <section className="px-4 pb-3">
         <Link
           href="/account/addresses"
-          className="flex items-center gap-3 bg-white"
+          className="flex items-center gap-3"
           style={{
-            borderRadius: 18,
+            background: 'var(--paper-hi, #fbf6ec)',
+            border: '1px solid var(--rule, rgba(22,20,15,0.12))',
+            borderRadius: 'var(--r-sm, 4px)',
             padding: '14px 16px',
-            boxShadow: '0 2px 8px rgba(26,20,12,0.06)',
           }}
         >
           <div
             className="flex items-center justify-center shrink-0"
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              background: 'rgba(93, 111, 63, 0.13)',
-              color: '#5d6f3f',
+              width: 38,
+              height: 38,
+              borderRadius: 'var(--r-sm, 4px)',
+              background: 'var(--sage, #4f6a48)',
+              color: 'var(--paper-hi, #fbf6ec)',
             }}
           >
-            <MapPin size={20} color="#5d6f3f" strokeWidth={1.8} />
+            <MapPin size={18} color="var(--paper-hi, #fbf6ec)" strokeWidth={1.8} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
