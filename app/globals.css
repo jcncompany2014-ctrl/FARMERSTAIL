@@ -1,7 +1,13 @@
 @import "tailwindcss";
 
 /* =========================================================================
-   Farmer's Tail — Design tokens
+   Farmer's Tail — Design tokens (legacy, 웹 + 앱 공통 baseline)
+   ---------------------------------------------------------------------------
+   웹 (랜딩 / blog / events 데스크톱 매거진) 의 톤은 이 :root 가 정의.
+   앱 (PWA / `data-ft-chrome="app"`) 은 아래 별도 블록에서 v3 토큰으로
+   override — 같은 변수명 (--bg / --ink / --terracotta 등) 의 값을 갈아
+   끼우는 방식이라 컴포넌트 코드는 일체 변경 없음.
+
    Signature: warm editorial, paper-grain overlay, Ink Oil + Terracotta.
    Keep palette centralized here; never hard-code hex in components.
    ========================================================================= */
@@ -66,6 +72,254 @@
   /* 로고 필터 — light 에선 검정 강제 (brightness 0), 다크에선 흰색 으로 invert.
      컴포넌트에서 style={{ filter: 'var(--logo-filter)' }} 로 사용. */
   --logo-filter: brightness(0);
+}
+
+/* =========================================================================
+   v3 토큰 override — 앱 (PWA) 컨텍스트에서만.
+   ---------------------------------------------------------------------------
+   `data-ft-chrome="app"` wrapper 안의 모든 컴포넌트는 같은 변수명을
+   v3 값으로 재정의받아 자동으로 v3 톤 렌더. 웹 (data-ft-chrome=undefined
+   또는 "web") 은 영향 없음.
+
+   매거진 톤 / 종이 paper / 진한 ink / clay accent / 노란 marker / mono kicker.
+   ========================================================================= */
+[data-ft-chrome="app"] {
+  /* ─ v3 새 토큰 (앱 전용 신규 이름) ─────────────────────────
+     앱 컴포넌트는 새로 작성할 때 이 이름을 우선. legacy --bg 등도
+     아래 alias 로 동일 v3 값으로 매핑되므로 기존 코드도 자동 적용. */
+  --paper: #f4ede0;
+  --paper-hi: #fbf6ec;
+  --paper-deep: #ebe2d1;
+
+  --accent: #c44a26;
+  --accent-deep: #8a2e15;
+
+  --yellow: #e6b942;
+
+  --sage: #4f6a48;
+  --sage-soft: #7e9376;
+
+  --blue: #3b5a78;
+
+  --ink-soft: #3a342a;
+  --ink-mute: #7d7460;
+  --ink-faint: #b6ab93;
+
+  --rule-soft: rgba(22, 20, 15, 0.07);
+  --rule-ink: #16140f;
+
+  /* ─ Dark variant — black hero cards 전용 (의도적 반전) ──────
+     앱의 "오늘의 한 가지" 류 ink-bg 카드용. */
+  --ink-bg: #16140f;
+  --ink-fg: #f4ede0;
+  --ink-fg-mute: rgba(244, 237, 224, 0.65);
+  --ink-fg-faint: rgba(244, 237, 224, 0.36);
+  --ink-rule: rgba(244, 237, 224, 0.18);
+  --ink-rule-soft: rgba(244, 237, 224, 0.10);
+  --ink-yellow: #e6b942;
+
+  /* ─ legacy 변수 값을 v3 값으로 override ────────────────────
+     같은 이름을 다른 값으로 재정의 — 앱 컴포넌트는 `var(--bg)` /
+     `var(--terracotta)` 같은 기존 참조 그대로 사용해도 v3 색이 나옴. */
+  --background: var(--paper);
+  --foreground: #16140f;
+  --bg: var(--paper);
+  --bg-2: var(--paper-deep);
+  --bg-3: var(--paper-hi);
+  --surface-card: var(--paper-hi);
+  --surface-card-elevated: #ffffff;
+
+  --ink: #16140f;
+  --text: var(--ink-soft);
+  --muted: var(--ink-mute);
+  --muted-strong: var(--ink-soft);
+
+  --rule: rgba(22, 20, 15, 0.12);
+  --rule-2: rgba(22, 20, 15, 0.22);
+
+  --terracotta: var(--accent);
+  --moss: var(--sage);
+  --gold: var(--yellow);
+
+  /* ─ v3 typography scale ───────────────────────────────────
+     앱 전용 8단계. 그 외 사이즈 사용 금지. */
+  --fs-xxs: 9px;
+  --fs-xs: 10.5px;
+  --fs-sm: 12px;
+  --fs-base: 13.5px;
+  --fs-md: 16px;
+  --fs-lg: 22px;
+  --fs-xl: 32px;
+  --fs-xxl: 54px;
+
+  /* legacy text-* alias (앱 안에서만 v3 사이즈로 override) */
+  --text-xs: var(--fs-sm);
+  --text-sm: var(--fs-base);
+  --text-base: var(--fs-base);
+  --text-md: var(--fs-md);
+  --text-lg: var(--fs-md);
+  --text-xl: var(--fs-lg);
+  --text-2xl: var(--fs-xl);
+
+  /* ─ v3 border radius — 4단계만 ────────────────────────────
+     xs(badge) / sm(card) / md(modal) / pill. */
+  --r-xs: 2px;
+  --r-sm: 4px;
+  --r-md: 12px;
+  --r-pill: 999px;
+
+  /* ─ v3 Spacing — 8pt grid ─────────────────────────────────
+     4/8/12/16/20/28/40/64. 섹션 좌우 padding 표준 = 20px. */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-7: 28px;
+  --sp-10: 40px;
+  --sp-16: 64px;
+
+  /* ─ v3 Shadow — 그림자 대신 rule. 필수 시에만 사용. ──────── */
+  --shadow-card: 0 1px 0 rgba(22, 20, 15, 0.04);
+  --shadow-sheet: 0 -4px 24px rgba(22, 20, 15, 0.08);
+  --shadow-accent: 0 12px 26px rgba(196, 74, 38, 0.32);
+
+  /* ─ v3 Transition ─────────────────────────────────────────
+     prefers-reduced-motion 가드는 글로벌 @media 에서. */
+  --tr-fast: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  --tr-base: 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  --tr-slow: 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* =========================================================================
+   글로벌 a11y / 가독성 reset — 웹 + 앱 공통, 시각 변화는 미미.
+   ---------------------------------------------------------------------------
+   - Korean 본문에서 영어 단어 중간 줄바뀜 방지 (word-break: keep-all).
+   - Heading text-wrap balance — widow 한 단어 방지.
+   - iOS 입력 자동 줌 방지 (input 16px 하한).
+   - prefers-reduced-motion — a11y 의무.
+   - tabular-nums utility — 가격/수량 자릿수 정렬.
+   ========================================================================= */
+html {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  font-feature-settings: 'ss01', 'ss02', 'tnum', 'lnum';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 {
+  text-wrap: balance;
+  word-break: keep-all;
+}
+
+.tabular-nums, [data-tnum] {
+  font-feature-settings: 'tnum', 'lnum';
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+input, textarea, select {
+  font-size: max(16px, 1em);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =========================================================================
+   v3 utility classes — 앱 전용 (`data-ft-chrome="app"` 스코프 안에서만 동작).
+   ---------------------------------------------------------------------------
+   .ft-card-v3 / .ft-card-ink / .ft-rule-ink / .ft-mono / .ft-mark 등은
+   글로벌 selector 라 어디서든 명시적으로 클래스를 박으면 적용되지만, v3
+   토큰 (--paper-hi / --ink-bg / --yellow ...) 은 `[data-ft-chrome="app"]`
+   안에서만 정의되므로 웹 페이지에서 실수로 클래스를 박아도 색이 안 나옴.
+   ========================================================================= */
+
+/* ── 카드 surface — paperHi bg + 1px rule + radius 4. 그림자 없음. */
+.ft-card-v3 {
+  background: var(--paper-hi);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+}
+
+/* ── ink hero 카드 — 검정 bg + paper text. "오늘의 한 가지" 류 */
+.ft-card-ink {
+  background: var(--ink-bg);
+  color: var(--ink-fg);
+  border-radius: var(--r-sm);
+}
+.ft-card-ink hr {
+  border-color: var(--ink-rule);
+}
+
+/* ── 2px ink hairline — 섹션 위/아래 강한 분리선 */
+.ft-rule-ink {
+  height: 2px;
+  background: var(--rule-ink);
+  border: 0;
+}
+
+/* ── Mono kicker — 모든 ALL CAPS 메타데이터 */
+.ft-mono {
+  font-family: var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--ink-mute);
+}
+
+/* ── Yellow marker — 키워드 노란 하이라이트 (인라인 <mark>) */
+.ft-mark, mark.ft-mark {
+  background: var(--yellow);
+  color: var(--ink);
+  padding: 0 4px;
+  font-weight: 700;
+  border-radius: 0;
+}
+
+/* ── 줄바뀜 보호 utility (전역 안전) */
+.ft-nowrap { white-space: nowrap; }
+.ft-balance { text-wrap: balance; }
+.ft-pretty { text-wrap: pretty; }
+.ft-keep-all { word-break: keep-all; overflow-wrap: break-word; }
+
+/* ── scrollbar hide (가로 carousel 용, 전역 안전) */
+.ft-scroll-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.ft-scroll-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── 앱 스코프 안에서만 Korean 미세 letter-spacing 압축 + body bg 강제. */
+[data-ft-chrome="app"]:lang(ko),
+[data-ft-chrome="app"] :lang(ko) {
+  letter-spacing: -0.012em;
+}
+[data-ft-chrome="app"] body,
+body[data-ft-chrome-mode="app"] {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* ── Archivo Black legacy alias — 앱 안에서만 Pretendard 900 으로 매핑.
+   웹에서 Archivo Black 사용처는 없으므로 글로벌이어도 무해하지만, 의도
+   명확화 위해 앱 스코프 안에서만 강제. */
+[data-ft-chrome="app"] [class*="Archivo_Black"],
+[data-ft-chrome="app"] [class*="font-['Archivo_Black']"] {
+  font-family: var(--font-sans, 'Pretendard Variable'), 'Noto Sans KR', system-ui, sans-serif !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.025em;
 }
 
 /* =========================================================================
@@ -637,7 +891,7 @@ i,
   font-family: var(--font-mono);
 }
 
-/* Kicker — 작은 대문자 섹션 라벨 */
+/* Kicker — 웹 매거진 톤. 작은 sans 대문자 섹션 라벨. */
 .kicker {
   font-family: var(--font-sans);
   font-size: 10px;
@@ -645,6 +899,14 @@ i,
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--terracotta);
+}
+/* 앱 컨텍스트 안에서는 v3 mono 톤으로 override — 핸드오프 스펙. */
+[data-ft-chrome="app"] .kicker {
+  font-family: var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.16em;
+  font-weight: 500;
+  color: var(--accent);
 }
 .kicker-ink { color: var(--ink); }
 .kicker-cream { color: #D9CFBB; }

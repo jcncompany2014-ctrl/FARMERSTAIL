@@ -26,21 +26,19 @@ import {
 } from "@/lib/seo/jsonld";
 import { ToastProvider } from "@/components/ui/Toast";
 
-// Pretendard Variable — 본문 / UI 전체
+// Pretendard Variable — 본문 / UI 전체 (웹+앱 공통).
+// 앱 컨텍스트 (v3) 에서는 헤드라인/디스플레이도 Pretendard 만 사용 — Serif
+// 폐기. 웹 (랜딩/blog/events) 에서는 아래 Noto Serif KR / Cormorant 사용 유지.
 const pretendard = localFont({
   src: "./fonts/PretendardVariable.woff2",
   display: "swap",
-  weight: "45 920", // variable font weight range
+  weight: "45 920",
   variable: "--font-sans",
   preload: true,
 });
 
-// Noto Serif KR — 국문 에디토리얼 헤드라인 (primary serif).
-// The Claude Design handoff spec'd Nanum Myeongjo, but Nanum's build-time
-// subset surface (many Korean unicode-range slices) reliably breaks Next 16's
-// Turbopack font pipeline on spotty connections. Noto Serif KR is visually
-// close enough (both are classical Korean serifs) and its bundled weights
-// build consistently.
+// Noto Serif KR — 웹의 국문 에디토리얼 헤드라인.
+// 앱 (data-ft-chrome="app") 에서는 사용 X — Pretendard 만.
 const notoSerifKR = Noto_Serif_KR({
   subsets: ["latin"],
   weight: ["400", "700", "900"],
@@ -48,7 +46,8 @@ const notoSerifKR = Noto_Serif_KR({
   variable: "--font-serif",
 });
 
-// Cormorant Garamond — 에디토리얼 이탤릭 디스플레이 (No. 01, 까지, 중간 등)
+// Cormorant Garamond — 웹의 에디토리얼 이탤릭 디스플레이 (No. 01, 까지, 중간).
+// 앱에서는 사용 X.
 const cormorantGaramond = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["400", "500"],
@@ -57,10 +56,12 @@ const cormorantGaramond = Cormorant_Garamond({
   variable: "--font-display",
 });
 
-// JetBrains Mono — 잡지 캡션 · 메타데이터 · 크레딧
+// JetBrains Mono — kicker / 메타데이터 / 통계 숫자 (웹+앱 공통).
+// v3 핸드오프는 IBM Plex Mono 를 지정하지만 시각적으로 매우 유사 + 추가
+// 폰트 다운로드 비용 회피.
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600"],
   display: "swap",
   variable: "--font-mono",
 });
