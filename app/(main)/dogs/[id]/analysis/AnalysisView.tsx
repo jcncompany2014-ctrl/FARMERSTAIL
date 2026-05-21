@@ -11,7 +11,6 @@ import {
   Droplet,
   Wheat,
   Leaf,
-  Pill,
   ArrowRight,
   Check,
   TrendingDown,
@@ -773,29 +772,8 @@ export default function AnalysisView({
         </div>
       </section>
 
-      {/* 보충제 */}
-      {analysis.supplements && analysis.supplements.length > 0 && (
-        <section className="px-5 mt-3">
-          <div className="bg-moss/5 rounded-2xl border border-moss/30 p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Pill className="w-4 h-4 text-moss" strokeWidth={1.8} />
-              <div className="text-[13px] font-black text-moss">
-                {dog.name} 맞춤 보충제
-              </div>
-            </div>
-            <ul className="space-y-1.5">
-              {analysis.supplements.map((s, i) => (
-                <li
-                  key={i}
-                  className="text-[12px] text-text leading-relaxed"
-                >
-                  · <strong className="text-text">{s}</strong>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      )}
+      {/* 보충제 카드 — Magazine Edition 의 MagSupplements (위쪽) 가 대체.
+          기존 작은 moss 카드는 중복이라 제거 (2026-05-21). */}
 
       {/* Personalization v1 — 추천 박스 (placeholder UI, 클로드 디자인 핸드오프
           받으면 RecommendationBox 컴포넌트만 교체) */}
