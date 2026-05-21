@@ -53,6 +53,9 @@ import {
   formatRange,
 } from '@/lib/nutrition/confidence-interval'
 import { summarizeHistory } from '@/lib/analysis/narrative'
+import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import type { Formula } from '@/lib/personalization/types'
+import AnalysisTrendsCard from '@/components/analysis/AnalysisTrendsCard'
 
 type Analysis = {
   id: string
@@ -170,6 +173,10 @@ export default function AnalysisView({
   const [history, setHistory] = useState<HistoryPoint[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  // 2026-05-21: Magazine BoxMixCard 를 실제 추천 알고리즘과 연동.
+  // RecommendationBox 도 자체 fetch 중이라 중복 호출이지만 첫 박스 시점
+  // formula 는 deterministic — 가벼운 작업이라 두 번 호출 허용.
+  const [formula, setFormula] = useState<Formula | null>(null)
   // Legacy commentary fetch 는 StructuredAnalysis v2 가 대체. 상태 변수는 제거.
 
   // 설문 완료 응원 포인트 toast — survey/page.tsx 가 sessionStorage 에
@@ -284,6 +291,32 @@ export default function AnalysisView({
     void load()
   }, [dogId, analysisId, router, supabase])
 
+  // formula fetch — Magazine BoxMixCard 가 dog 별 동적 lineRatios 표시 위해.
+  useEffect(() => {
+    if (!dog || analysisId) return // archive 모드는 skip — 현 시점 formula 의미 X
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/personalization/compute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dogId, cycleNumber: 1 }),
+        })
+        if (!res.ok) return
+        const json = (await res.json()) as
+          | { ok: true; formula: Formula }
+          | { ok: false }
+        if (cancelled || !json.ok) return
+        setFormula(json.formula)
+      } catch {
+        /* silent — Magazine BoxMix 는 fallback hardcode 로 표시 */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [dogId, analysisId, dog])
+
   // Legacy commentary fetch effect 는 StructuredAnalysis v2 가 대체. 제거.
 
   if (loading)
@@ -384,14 +417,40 @@ export default function AnalysisView({
       max: ranges.fiber?.max ?? 8,
     },
   ]
-  // 5종 박스 default 비율 — 추후 RecommendationBox / FeedingPlanCard 결과와 동기화.
-  const magBoxItems: MagBoxMixItem[] = [
-    { key: 'basic',   name: 'Basic',   ko: '닭 · 균형식',     pct: 30, kcal: Math.round(analysis.mer * 0.30), g: Math.round(analysis.feed_g * 0.30), sub: '단일 단백원 · 소화 부담 낮음' },
-    { key: 'premium', name: 'Premium', ko: '소 · 활력·근육',  pct: 30, kcal: Math.round(analysis.mer * 0.30), g: Math.round(analysis.feed_g * 0.30), sub: '철·아연·B12 풍부' },
-    { key: 'skin',    name: 'Skin',    ko: '연어 · 피부',     pct: 20, kcal: Math.round(analysis.mer * 0.20), g: Math.round(analysis.feed_g * 0.20), sub: 'Omega-3 · 피부 모질' },
-    { key: 'joint',   name: 'Joint',   ko: '오리 · 관절',     pct: 10, kcal: Math.round(analysis.mer * 0.10), g: Math.round(analysis.feed_g * 0.10), sub: '글루코사민 · MSM' },
-    { key: 'weight',  name: 'Weight',  ko: '칠면조 · 다이어트', pct: 10, kcal: Math.round(analysis.mer * 0.10), g: Math.round(analysis.feed_g * 0.10), sub: '저지방 · L-카르니틴' },
-  ]
+  // 5종 박스 — 실제 추천 알고리즘 (formula.lineRatios) 결과로 동적 생성.
+  // formula fetch 실패 시 FOOD_LINE_META 기반 균등 분포 default.
+  // FOOD_LINE_META 매핑: basic=닭 / weight=오리 / skin=연어 / premium=소 / joint=돼지.
+  const MAG_LINE_SUB: Record<string, string> = {
+    basic: '단일 단백원 · 소화 부담 낮음',
+    weight: '저칼로리 · 단호박 · BCS 6+',
+    skin: 'Omega-3 · 피부·털',
+    premium: '헴 철분 · 아연 · 활동량 多',
+    joint: 'B1·콜린 · 관절·시니어',
+  }
+  const magBoxItems: MagBoxMixItem[] = (
+    formula
+      ? ALL_LINES.filter((line) => (formula.lineRatios[line] ?? 0) > 0)
+      : ALL_LINES
+  ).map((line) => {
+    const meta = FOOD_LINE_META[line]
+    const ratio = formula
+      ? (formula.lineRatios[line] ?? 0)
+      : line === 'basic' || line === 'premium'
+        ? 0.3
+        : line === 'skin'
+          ? 0.2
+          : 0.1
+    const pct = Math.round(ratio * 100)
+    return {
+      key: line,
+      name: meta.name,
+      ko: meta.subtitle,
+      pct,
+      kcal: Math.round(analysis.mer * ratio),
+      g: Math.round(analysis.feed_g * ratio),
+      sub: MAG_LINE_SUB[line] ?? meta.benefit,
+    }
+  })
   const magSupplementItems: MagSupplementItem[] = mapSupplements(analysis.supplements ?? [])
 
   return (
@@ -542,19 +601,27 @@ export default function AnalysisView({
               guideline: 'NRC 2006',
             }}
           />
-          <MagNutrients p={magP} rows={magNutrientRows} />
+          {/* 카드 순서 (사용자 지시 2026-05-21):
+              BoxMix → RecommendationBox (정기배송+비율조정+왜이비율) →
+              Nutrients (영양 균형) → 추이 → Supplements → MagCTA(보조) */}
           <MagBoxMix p={magP} dogName={dog.name} items={magBoxItems} />
+          {!isArchive && (
+            <div style={{ marginTop: 14 }}>
+              <RecommendationBox dogId={dogId} dogName={dog.name} />
+            </div>
+          )}
+          <MagNutrients p={magP} rows={magNutrientRows} />
+          <AnalysisTrendsCard
+            dogId={dogId}
+            dogName={dog.name}
+            history={history}
+            totalCount={totalCount}
+          />
           <MagSupplements
             p={magP}
             dogName={dog.name}
             items={magSupplementItems}
           />
-          {/* MagTrends 폐기 (2026-05-21) — 아래쪽 옛 "추이" 카드 (TrendRow
-              포함, 디자인 더 풍부) 에 magazine 톤 + corner mark 만 입혀
-              일원화. */}
-          {/* 정기배송 신청 메인 CTA 는 아래쪽 RecommendationBox 의 "정기배송
-              신청" 버튼이 단독 담당 (옛 디자인 기능 보존). MagCTA 는 보조
-              2버튼 (처방 상담 + 결과 공유) 만 남김. */}
           <MagCTA p={magP} consultHref="/contact" />
           <div style={{ height: 12, background: magP.bg }} />
         </div>
@@ -624,10 +691,9 @@ export default function AnalysisView({
 
       {/* 레거시 AI 코멘트 (3-4문장) 는 StructuredAnalysis v2 가 대체. 제거. */}
 
-      {/* 추이 — Magazine 톤 적용 (2026-05-21).
-          MagTrends 의 색감(WARM_CREAM cream 카드) + 3 corner mark 만 가져오고,
-          본문은 기존 TrendRow + narrative 그대로 (디자인 더 풍부). */}
-      <section className="px-5 mt-3">
+      {/* 옛 추이 카드 폐기 (2026-05-21) — AnalysisTrendsCard 컴포넌트로 추출,
+          Magazine 컨테이너 안 NutrientsCard 다음 위치에서 렌더. */}
+      <section className="px-5 mt-3" style={{ display: 'none' }}>
         <div
           className="rounded-2xl p-5 relative overflow-hidden"
           style={{
@@ -781,10 +847,10 @@ export default function AnalysisView({
       {/* 보충제 카드 — Magazine Edition 의 MagSupplements (위쪽) 가 대체.
           기존 작은 moss 카드는 중복이라 제거 (2026-05-21). */}
 
-      {/* Personalization v1 — 추천 박스 (placeholder UI, 클로드 디자인 핸드오프
-          받으면 RecommendationBox 컴포넌트만 교체) */}
-      {!isArchive && (
-        <RecommendationBox dogId={dogId} dogName={dog.name} />
+      {/* 옛 위치 RecommendationBox 폐기 (2026-05-21) — Magazine 컨테이너 안
+          BoxMix 다음 위치로 이동. */}
+      {false && !isArchive && (
+        <RecommendationBox dogId={dogId} dogName={dog!.name} />
       )}
 
       {/* FeedingPlanCard / StructuredAnalysis / NutrientGauges38 모두 폐기
