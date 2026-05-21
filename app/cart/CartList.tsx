@@ -178,12 +178,17 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
         return (
           <li
             key={row.id}
-            className="bg-white rounded-xl border border-rule overflow-hidden"
+            className="bg-white overflow-hidden"
+            style={{
+              borderRadius: 22,
+              boxShadow: '0 2px 8px rgba(26,20,12,0.04), 0 8px 20px rgba(26,20,12,0.04)',
+            }}
           >
             <div className="flex gap-3 p-3 md:gap-5 md:p-5">
               <Link
                 href={`/products/${row.product.slug}`}
-                className="shrink-0 w-20 h-20 md:w-28 md:h-28 rounded-lg bg-bg overflow-hidden relative"
+                className="shrink-0 w-20 h-20 md:w-28 md:h-28 overflow-hidden relative"
+                style={{ borderRadius: 16, background: '#fbf3df' }}
               >
                 {row.product.image_url ? (
                   <Image

@@ -525,12 +525,14 @@ export default function ProductDetailClient({
         </div>
       )}
 
-      {/* ── 모바일 sticky bottom CTA ────────────────────── */}
+      {/* ── 모바일 sticky bottom CTA — Phase 4 (app-product 톤) ─── */}
       <div
         className="ft-sticky-cta-bottom md:hidden z-30 pt-3 px-5"
         style={{
-          background: 'var(--bg)',
-          borderTop: '1px solid var(--rule)',
+          background: '#fff',
+          borderTop: 'none',
+          boxShadow: '0 -12px 32px rgba(0,0,0,0.06)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
         }}
       >
         <div className="max-w-md mx-auto">
@@ -590,12 +592,12 @@ export default function ProductDetailClient({
               <button
                 onClick={() => handleAddToCart()}
                 disabled={adding || added}
-                className="flex-1 py-3.5 rounded-full font-bold text-[13px] transition-all disabled:opacity-70 active:scale-[0.98]"
+                className="flex-1 py-4 rounded-2xl font-bold text-[13.5px] transition-all disabled:opacity-70 active:scale-[0.98]"
                 style={{
-                  background: 'var(--bg)',
+                  background: '#fff',
                   color: 'var(--ink)',
                   letterSpacing: '-0.01em',
-                  boxShadow: 'inset 0 0 0 1.5px var(--ink)',
+                  boxShadow: 'inset 0 0 0 1.5px var(--ink), 0 2px 8px rgba(0,0,0,0.04)',
                 }}
               >
                 {added ? '담겼어요' : adding ? '담는 중...' : '장바구니'}
@@ -604,15 +606,15 @@ export default function ProductDetailClient({
               <button
                 onClick={() => handleAddToCart({ redirectAfter: true })}
                 disabled={adding}
-                className="flex-1 py-3.5 rounded-full font-bold text-[13px] transition-all disabled:opacity-70 active:scale-[0.98]"
+                className="flex-1 py-4 rounded-2xl font-bold text-[13.5px] transition-all disabled:opacity-70 active:scale-[0.98]"
                 style={{
-                  background: 'var(--terracotta)',
-                  color: 'var(--bg)',
+                  background: '#dc532a',
+                  color: '#fff',
                   letterSpacing: '-0.01em',
-                  boxShadow: '0 4px 14px rgba(160,69,46,0.3)',
+                  boxShadow: '0 6px 18px rgba(220,83,42,0.35)',
                 }}
               >
-                바로구매
+                바로 구매
               </button>
             </div>
           )}
