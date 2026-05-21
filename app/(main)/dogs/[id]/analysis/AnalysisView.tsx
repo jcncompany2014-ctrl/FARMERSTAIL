@@ -46,8 +46,8 @@ import {
   SupplementsCard as MagSupplements,
   type SupplementItem as MagSupplementItem,
 } from '@/components/analysis/magazine/SupplementsCard'
-import { TrendsCard as MagTrends } from '@/components/analysis/magazine/TrendsCard'
 import { CTAStack as MagCTA } from '@/components/analysis/magazine/CTAStack'
+import { CornerMark as MagCornerMark } from '@/components/analysis/magazine/ReportCard'
 import {
   merConfidenceInterval,
   formatRange,
@@ -549,12 +549,9 @@ export default function AnalysisView({
             dogName={dog.name}
             items={magSupplementItems}
           />
-          <MagTrends
-            p={magP}
-            dogName={dog.name}
-            totalCount={totalCount}
-            latestDateLabel={magDateLabel}
-          />
+          {/* MagTrends 폐기 (2026-05-21) — 아래쪽 옛 "추이" 카드 (TrendRow
+              포함, 디자인 더 풍부) 에 magazine 톤 + corner mark 만 입혀
+              일원화. */}
           <MagCTA
             p={magP}
             dogName={dog.name}
@@ -630,9 +627,21 @@ export default function AnalysisView({
 
       {/* 레거시 AI 코멘트 (3-4문장) 는 StructuredAnalysis v2 가 대체. 제거. */}
 
-      {/* 추이 */}
+      {/* 추이 — Magazine 톤 적용 (2026-05-21).
+          MagTrends 의 색감(WARM_CREAM cream 카드) + 3 corner mark 만 가져오고,
+          본문은 기존 TrendRow + narrative 그대로 (디자인 더 풍부). */}
       <section className="px-5 mt-3">
-        <div className="bg-white rounded-2xl border border-rule p-5">
+        <div
+          className="rounded-2xl p-5 relative overflow-hidden"
+          style={{
+            background: WARM_CREAM.card,
+            border: `1px solid ${WARM_CREAM.line}`,
+            boxShadow: `0 1px 0 ${WARM_CREAM.line}55, 0 12px 28px ${WARM_CREAM.ink}10`,
+          }}
+        >
+          <MagCornerMark p={WARM_CREAM} corner="tl" />
+          <MagCornerMark p={WARM_CREAM} corner="bl" />
+          <MagCornerMark p={WARM_CREAM} corner="br" />
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <LineChart

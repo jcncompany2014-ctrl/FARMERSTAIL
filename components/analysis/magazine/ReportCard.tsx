@@ -37,7 +37,7 @@ export function ReportCard({ p, children, tint, style }: ReportCardProps) {
   )
 }
 
-function CornerMark({
+export function CornerMark({
   p,
   corner,
 }: {
