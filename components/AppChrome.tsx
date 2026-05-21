@@ -26,14 +26,44 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import InstallPrompt from '@/components/InstallPrompt'
-import ChromeStamp from '@/components/ChromeStamp'
 import MiniCartToast from '@/components/products/MiniCartToast'
 import { WishlistProvider } from '@/components/products/WishlistContext'
+import V3Ticker from '@/components/v3/V3Ticker'
+import BrandWordmark from '@/components/v3/BrandWordmark'
 
 type Tab = {
   href: string
   label: string
   Icon: LucideIcon
+}
+
+/**
+ * 상단 헤더의 bell/cart 우상단 카운트 뱃지 — v3 톤.
+ * 직사각형 (radius 8) + Mono 폰트 + accent bg + paperHi fg.
+ */
+function V3HeaderBadge({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      className="absolute flex items-center justify-center"
+      style={{
+        top: 4,
+        right: 4,
+        minWidth: 18,
+        height: 16,
+        padding: '0 4px',
+        borderRadius: 8,
+        background: 'var(--accent)',
+        color: 'var(--paper-hi)',
+        fontFamily: "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
+        fontSize: 9,
+        fontWeight: 700,
+        lineHeight: 1,
+        letterSpacing: 0,
+      }}
+    >
+      {children}
+    </span>
+  )
 }
 
 const TABS: Tab[] = [
@@ -151,93 +181,83 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     // 주석 참고. 바깥 body도 --bg-2로 어두워져 "프레임 밖" 느낌이 산다.
     <WishlistProvider>
     <div className="phone-frame min-h-screen bg-bg" data-ft-chrome="app">
-      {/* 상단 헤더 — focus mode (설문/체크인 등) 에서는 hide */}
+      {/* 상단 헤더 v3 — Mono ticker + BrandWordmark + bell/cart icons.
+          focus mode (설문/체크인 등) 에서는 hide. */}
       {!focusMode && (
       <header
-        className={`sticky top-0 z-40 bg-bg/90 backdrop-blur-xl transition-all duration-200 ${
-          scrolled
-            ? 'border-b border-rule shadow-[0_1px_0_rgba(0,0,0,0.02)]'
-            : 'border-b border-transparent'
-        }`}
+        className="sticky top-0 z-40 transition-all duration-200"
+        style={{
+          background: scrolled
+            ? 'color-mix(in srgb, var(--paper) 92%, transparent)'
+            : 'var(--paper)',
+          backdropFilter: scrolled ? 'blur(12px) saturate(140%)' : 'none',
+          WebkitBackdropFilter: scrolled ? 'blur(12px) saturate(140%)' : 'none',
+          paddingTop: 'env(safe-area-inset-top)',
+        }}
       >
-        {/* 헤더 정렬 규칙 ─────────────────────────────────────────
-            컨텐츠 본문은 전부 `max-w-md mx-auto px-5` 컬럼에 붙는다.
-            헤더도 같은 컬럼을 쓰지만, 두 가지가 시각적 엣지를 어긋
-            나게 만든다:
-              1) `/logo.png` 안에 투명 여백이 있어 `<img>` 의 실제
-                 레터글자 왼쪽이 ~8px 안쪽에서 시작.
-              2) 장바구니 버튼이 `w-10 h-10` (40px) 히트 영역인데,
-                 아이콘은 19px → 버튼 오른쪽 끝에서 ~10.5px 안쪽에
-                 보임.
-            둘 다 negative margin 으로 visual edge 를 컨텐츠 컬럼의
-            padding box 에 맞춘다. Touch target (히트 영역) 은 그대로
-            44px 확보 — 접근성/탭 편의 저해 없음. */}
-        {/* audit #46: h-14 (56px) → h-[60px] — h-11 로고 + h-10 아이콘 + 카트
-            뱃지를 위한 시각/터치 호흡 확보. 카트 뱃지도 min-w 확장. */}
-        <div className="max-w-md mx-auto px-5 h-[60px] flex items-center justify-between">
-          {/* 좌측: 로고 + 에디토리얼 데이트 스탬프.
-              스탬프는 client island (lib/dateStamp 의 cached snapshot 사용) 라
-              hydration 후에 채워지지만 `min-w` 로 자리 예약해 layout shift 없음. */}
-          <div className="flex items-center -ml-2 min-w-0">
-            <Link
-              href="/dashboard"
-              className="flex items-center shrink-0"
-              aria-label="홈"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/logo.png"
-                alt="Farmer's Tail"
-                className="h-11 w-auto"
-                // LCP 후보 — 헤더 로고가 첫 viewport 가장 큰 가시 요소가
-                // 될 수 있어 fetchpriority high 로 브라우저 우선순위 올림.
-                fetchPriority="high"
-                style={{ filter: 'var(--logo-filter, brightness(0))' }}
-              />
-            </Link>
-            <ChromeStamp />
+        <div className="max-w-md mx-auto" style={{ paddingLeft: 20, paddingRight: 20 }}>
+          {/* ── Top ticker row — "Thu 21 May · 19:01" + "Live" */}
+          <div style={{ paddingTop: 10, paddingBottom: 4 }}>
+            <V3Ticker />
           </div>
 
-          {/* 우측: 알림 + 장바구니. 둘 다 40px 히트 영역 + 24px 시각 아이콘.
-              Bell → /notifications (push_log + 주문 알림 합산). */}
-          <div className="flex items-center gap-0.5 -mr-2.5 shrink-0">
+          {/* ── Main row — wordmark + bell/cart */}
+          <div
+            className="flex items-center justify-between"
+            style={{ paddingTop: 6, paddingBottom: 12 }}
+          >
             <Link
-              href="/notifications"
-              onClick={handleBellClick}
-              aria-label={
-                unreadCount > 0
-                  ? `알림 ${unreadCount}개`
-                  : '알림 센터'
-              }
-              className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-rule transition"
+              href="/dashboard"
+              className="shrink-0"
+              aria-label="홈"
             >
-              <Bell
-                className="w-[19px] h-[19px] text-text"
-                strokeWidth={1.75}
-              />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 min-w-[20px] h-[18px] px-1.5 rounded-full bg-terracotta text-white text-[10px] font-bold flex items-center justify-center">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
+              <BrandWordmark size={22} />
             </Link>
-            <Link
-              href="/cart"
-              aria-label="장바구니"
-              className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-rule transition"
-            >
-              <ShoppingCart
-                className="w-[19px] h-[19px] text-text"
-                strokeWidth={1.75}
-              />
-              {cartCount > 0 && (
-                <span className="absolute top-1 right-1 min-w-[20px] h-[18px] px-1.5 rounded-full bg-terracotta text-white text-[10px] font-bold flex items-center justify-center">
-                  {cartCount > 99 ? '99+' : cartCount}
-                </span>
-              )}
-            </Link>
+
+            <div className="flex items-center" style={{ gap: 2, marginRight: -10 }}>
+              <Link
+                href="/notifications"
+                onClick={handleBellClick}
+                aria-label={unreadCount > 0 ? `알림 ${unreadCount}개` : '알림 센터'}
+                className="relative flex items-center justify-center transition active:scale-90"
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                }}
+              >
+                <Bell
+                  style={{ width: 19, height: 19, color: 'var(--ink)' }}
+                  strokeWidth={1.6}
+                />
+                {unreadCount > 0 && <V3HeaderBadge>{unreadCount > 99 ? '99+' : unreadCount}</V3HeaderBadge>}
+              </Link>
+              <Link
+                href="/cart"
+                aria-label="장바구니"
+                className="relative flex items-center justify-center transition active:scale-90"
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                }}
+              >
+                <ShoppingCart
+                  style={{ width: 19, height: 19, color: 'var(--ink)' }}
+                  strokeWidth={1.6}
+                />
+                {cartCount > 0 && <V3HeaderBadge>{cartCount > 99 ? '99+' : cartCount}</V3HeaderBadge>}
+              </Link>
+            </div>
           </div>
         </div>
+
+        {/* ── 2px ink hairline — 매거진 마스트헤드의 시그니처 */}
+        <div
+          className="ft-rule-ink"
+          style={{ marginLeft: 20, marginRight: 20 }}
+          aria-hidden
+        />
       </header>
       )}
 
@@ -262,32 +282,25 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       {/* PWA 설치 프롬프트 — 스마트하게 한 번만 노출 */}
       <InstallPrompt />
 
-      {/* 하단 탭 네비게이션. focus mode (설문 등) 에서는 hide.
-          모바일(<md): viewport 전폭으로 붙는다 (left-0 right-0).
-          데스크톱(≥md): 폰 프레임 폭으로 재조준. `fixed` 자체는 viewport에
-          고정시켜야 스크롤 상관없이 하단에 박히므로, frame 안에 containing-
-          block을 만들지 않고 대신 이 nav를 직접 중앙 정렬한다.
-          - `md:left-1/2 md:right-auto`: viewport 중앙에서 출발
-          - `md:-translate-x-1/2`: 자기 폭의 절반만큼 왼쪽으로 당겨 센터링
-          - `md:w-full md:max-w-md`: 프레임과 같은 폭(448px) 확보 */}
+      {/* 하단 탭 네비게이션 v3 — paperHi bg + 1px ink top hairline + 직각 모서리.
+          활성 탭: 아이콘 ink (비활성 inkMute) + 라벨 bold + 16x2 accent 막대.
+          focus mode (설문/체크인 등) 에서는 hide.
+
+          data-cart-bottom-nav: globals.css 의 body.cart-cta-active 규칙이 이
+          nav 만 translateY(100%) 로 밀어내 CartStickyCTA 와 swap. */}
       {!focusMode && (
       <nav
-        // 2026-05-21: app-product handoff CP 디자인 적용 — surface white +
-        // rounded-top 24px + 강한 그림자. 활성 탭 = primaryTint background.
-        // data-cart-bottom-nav: globals.css 의 body.cart-cta-active 규칙이
-        // 이 nav 만 translateY(100%) 로 밀어내 CartStickyCTA 와 swap.
         data-cart-bottom-nav
-        className="fixed bottom-0 left-0 right-0 z-40 bg-white md:left-1/2 md:right-auto md:w-full md:max-w-md md:-translate-x-1/2 md:rounded-b-[inherit]"
+        className="fixed bottom-0 left-0 right-0 z-40 md:left-1/2 md:right-auto md:w-full md:max-w-md md:-translate-x-1/2"
         style={{
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
+          background: 'var(--paper-hi)',
+          borderTop: '1px solid var(--ink)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
           paddingTop: 10,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          boxShadow: '0 -12px 32px rgba(0,0,0,0.06)',
           transition: 'transform 260ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
-        <div className="max-w-md mx-auto px-3 grid grid-cols-5">
+        <div className="max-w-md mx-auto grid grid-cols-5" style={{ paddingLeft: 8, paddingRight: 8 }}>
           {TABS.map(({ href, label, Icon }) => {
             const active =
               pathname === href || pathname.startsWith(href + '/')
@@ -297,33 +310,38 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               <Link
                 key={href}
                 href={href}
-                className="relative flex flex-col items-center justify-center py-2 transition active:scale-95"
+                className="relative flex flex-col items-center justify-center transition active:scale-95"
+                style={{ paddingTop: 4, paddingBottom: 2 }}
+                aria-current={active ? 'page' : undefined}
               >
-                {/* 활성 background — primaryTint 안쪽 pill */}
-                {active && (
-                  <span
-                    className="absolute rounded-2xl"
-                    style={{
-                      inset: '2px 8px',
-                      background: 'rgba(220, 83, 42, 0.12)',
-                    }}
-                  />
-                )}
-
-                <div className="relative" style={{ zIndex: 1 }}>
+                <div className="relative flex items-center justify-center">
                   <Icon
-                    className={`w-[22px] h-[22px] transition ${
-                      active ? 'text-terracotta' : 'text-ink'
-                    }`}
-                    strokeWidth={1.8}
+                    style={{
+                      width: 22,
+                      height: 22,
+                      color: active ? 'var(--ink)' : 'var(--ink-mute)',
+                      transition: 'color 200ms',
+                    }}
+                    strokeWidth={active ? 2 : 1.6}
                   />
-                  {/* 카트 뱃지 */}
+                  {/* 카트 뱃지 v3 — 직사각형 Mono badge, accent bg + paperHi fg */}
                   {isCart && cartCount > 0 && (
                     <span
-                      className="absolute -top-1 -right-2 min-w-[16px] h-[16px] px-1 rounded-full text-white text-[9px] font-bold flex items-center justify-center"
+                      className="absolute flex items-center justify-center"
                       style={{
-                        background: '#dc532a',
-                        border: '1.5px solid #fff',
+                        top: -4,
+                        right: -7,
+                        minWidth: 14,
+                        height: 14,
+                        padding: '0 3px',
+                        borderRadius: 7,
+                        background: 'var(--accent)',
+                        color: 'var(--paper-hi)',
+                        fontFamily: "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
+                        fontSize: 8,
+                        fontWeight: 700,
+                        letterSpacing: 0,
+                        lineHeight: 1,
                       }}
                     >
                       {cartCount > 99 ? '99+' : cartCount}
@@ -332,13 +350,31 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <span
-                  className={`mt-1 text-[10px] tracking-tight transition ${
-                    active ? 'font-bold text-terracotta' : 'font-medium text-ink'
-                  }`}
-                  style={{ position: 'relative', zIndex: 1 }}
+                  style={{
+                    marginTop: 4,
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 11,
+                    fontWeight: active ? 700 : 500,
+                    letterSpacing: '-0.005em',
+                    color: active ? 'var(--ink)' : 'var(--ink-mute)',
+                    transition: 'color 200ms',
+                  }}
                 >
                   {label}
                 </span>
+
+                {/* 활성 탭 — 16x2 accent 막대. 핸드오프의 시그니처 디테일. */}
+                {active && (
+                  <span
+                    aria-hidden
+                    style={{
+                      width: 16,
+                      height: 2,
+                      marginTop: 3,
+                      background: 'var(--accent)',
+                    }}
+                  />
+                )}
               </Link>
             )
           })}
