@@ -95,7 +95,15 @@ export default function CatalogProductCard({
     : 0
 
   return (
-    <div className="relative group">
+    <div
+      className="relative group"
+      style={{
+        background: '#fff',
+        borderRadius: 22,
+        padding: 10,
+        boxShadow: '0 2px 8px rgba(26,20,12,0.04), 0 8px 24px rgba(26,20,12,0.05)',
+      }}
+    >
       {/* Wishlist heart — Link 밖에 둬서 click bubbling 분리 */}
       <WishlistButton productId={product.id} productSlug={product.slug} />
       <Link
@@ -103,8 +111,8 @@ export default function CatalogProductCard({
         className="block transition active:scale-[0.99]"
       >
       <div
-        className="relative aspect-[4/5] overflow-hidden rounded-lg"
-        style={{ background: 'var(--bg-2)' }}
+        className="relative aspect-[4/5] overflow-hidden"
+        style={{ background: '#fbf3df', borderRadius: 16 }}
       >
         {product.image_url ? (
           <Image
@@ -181,8 +189,8 @@ export default function CatalogProductCard({
         <StockOverlay stock={product.stock} />
       </div>
 
-      {/* 텍스트 패널 — sans 톤. 마켓컬리/SSF 처럼 콤팩트. */}
-      <div className="pt-3 md:pt-3.5">
+      {/* 텍스트 패널 — app-product CP 톤. 사진 아래 살짝 padding. */}
+      <div className="pt-2.5 md:pt-3 px-1">
         {product.category && (
           <div
             className="font-mono text-[9.5px] md:text-[10.5px] mb-1"
