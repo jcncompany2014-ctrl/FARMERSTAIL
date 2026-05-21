@@ -385,8 +385,8 @@ function RecommendationView({
 
   return (
     <>
-      {/* Hero */}
-      <div className="fb-hero" style={{ marginTop: 24 }}>
+      {/* fb-hero 폐기 (2026-05-21) — Magazine HeroSection + DiagnosisCard 가 대체. */}
+      <div className="fb-hero" style={{ marginTop: 24, display: 'none' }}>
         <div className="fb-kicker">
           <span className="fb-kicker-dot" />
           {mainMeta
@@ -424,8 +424,8 @@ function RecommendationView({
         </div>
       </div>
 
-      {/* Bar viz — Spec A: 메인 5종만 stack (합 100%), 토퍼는 카드 아래 별도 섹션. */}
-      <div className="fb-bar-wrap">
+      {/* fb-bar-wrap 폐기 (2026-05-21) — Magazine BoxMixCard 가 대체. */}
+      <div className="fb-bar-wrap" style={{ display: 'none' }}>
         <div className="fb-bar-axis">
           <span>메인 화식 5종 100%</span>
           {topperTotalPct > 0 && (
@@ -477,8 +477,8 @@ function RecommendationView({
         </div>
       </div>
 
-      {/* SKU horizontal carousel */}
-      {selectedLines.length > 0 && (
+      {/* fb-sku-scroll 폐기 (2026-05-21) — Magazine BoxMixCard 5종 row 가 대체. */}
+      {false && selectedLines.length > 0 && (
         <div className="fb-sku-scroll" role="region" aria-label="선택된 화식 라인">
           {selectedLines.map((line, i) => {
             const meta = FOOD_LINE_META[line]
@@ -534,8 +534,8 @@ function RecommendationView({
         </div>
       )}
 
-      {/* Toppers */}
-      {(formula.toppers.vegetable > 0 || formula.toppers.protein > 0) && (
+      {/* Toppers 폐기 (2026-05-21) — Magazine 표시 일원화. AdjustSheet 안에서는 여전히 조정 가능. */}
+      {false && (formula.toppers.vegetable > 0 || formula.toppers.protein > 0) && (
         <div className="fb-toppers">
           <div className="fb-sub-lbl">
             <Plus size={11} strokeWidth={2.4} color="var(--muted)" />
@@ -558,8 +558,7 @@ function RecommendationView({
         </div>
       )}
 
-      {/* 영양 단면 — 라인 mix 의 weighted DM% (v1.5+) */}
-      <NutrientPanelCard formula={formula} />
+      {/* 영양 단면 카드 폐기 (2026-05-21) — Magazine NutrientsCard 가 대체. */}
 
       {/* Reasoning */}
       {formula.reasoning.length > 0 && (
@@ -717,6 +716,9 @@ function ReasonRow({ reasoning }: { reasoning: Reasoning }) {
  * 그리고 admin override 가 있는 경우 Ca/P/Na). 사용자에게 "내 강아지 박스의
  * 영양 균형" 을 직관적으로 보여줌.
  */
+// 2026-05-21: render 자리에서 폐기됐지만 (Magazine NutrientsCard 가 대체) 함수
+// 정의는 보존 — 추후 다른 페이지/admin override panel 에서 재사용 가능.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function NutrientPanelCard({ formula }: { formula: Formula }) {
   // override 는 v1.4+ admin GUI 가 DB 에 저장. RecommendationBox 는 이미
   // compute API 가 주입한 final formula 의 ratio 만 받아 hardcoded 라인

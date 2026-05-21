@@ -1,107 +1,50 @@
 'use client'
 
 /**
- * Magazine CTAStack — 메인 구독 CTA (full width, 적색 그림자) +
- * 보조 2버튼 (처방 상담 + 공유).
+ * Magazine CTAStack — 보조 2버튼 (처방 상담 + 공유).
+ *
+ * 메인 적색 SUBSCRIBE 버튼은 2026-05-21 폐기 — 정기배송 신청 CTA 는
+ * RecommendationBox 의 fb-totals 안 "정기배송 신청" 버튼이 단독 담당
+ * (옛 디자인 기능 보존).
  */
 
 import Link from 'next/link'
-import { ArrowRight, ClipboardList, Share2 } from 'lucide-react'
+import { ClipboardList, Share2 } from 'lucide-react'
 import type { MagazinePalette } from './palette'
 import { Reveal } from './primitives'
 
 interface CTAStackProps {
   p: MagazinePalette
-  dogName: string
-  /** 메인 CTA 클릭 시 이동할 경로 */
-  primaryHref: string
-  /** 결제 라벨 (1주분 · 39,900원 · 무료배송 등) */
-  primaryMeta: string
   /** 처방 상담 CTA 경로 */
   consultHref: string
   /** 공유 CTA 클릭 */
   onShare?: () => void
 }
 
-export function CTAStack({
-  p,
-  dogName,
-  primaryHref,
-  primaryMeta,
-  consultHref,
-  onShare,
-}: CTAStackProps) {
+export function CTAStack({ p, consultHref, onShare }: CTAStackProps) {
   return (
     <Reveal delay={60}>
       <div
         style={{
           padding: '18px 18px 22px',
           display: 'flex',
-          flexDirection: 'column',
           gap: 10,
         }}
       >
-        <Link
-          href={primaryHref}
-          style={{
-            background: p.brand,
-            color: '#fff',
-            border: 'none',
-            borderRadius: 16,
-            padding: '18px 22px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            cursor: 'pointer',
-            boxShadow: `0 8px 24px ${p.brand}55`,
-            textDecoration: 'none',
-          }}
-        >
-          <div style={{ flex: 1, textAlign: 'left' }}>
-            <div
-              style={{
-                fontFamily: 'var(--font-stencil, "Stardos Stencil", serif)',
-                fontSize: 9.5,
-                letterSpacing: '0.32em',
-                opacity: 0.8,
-                fontWeight: 700,
-              }}
-            >
-              SUBSCRIBE
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 800, marginTop: 2 }}>
-              {dogName}이 첫 박스 시작하기
-            </div>
-            <div
-              style={{
-                fontSize: 11,
-                opacity: 0.85,
-                marginTop: 1,
-                fontWeight: 500,
-              }}
-            >
-              {primaryMeta}
-            </div>
-          </div>
-          <ArrowRight size={22} color="#fff" strokeWidth={2} />
-        </Link>
-
-        <div style={{ display: 'flex', gap: 10 }}>
-          <SecondaryBtn
-            p={p}
-            href={consultHref}
-            icon={<ClipboardList size={18} color={p.ink2} strokeWidth={1.8} />}
-            label="처방 상담"
-            sub="수의사 연결"
-          />
-          <SecondaryBtnButton
-            p={p}
-            onClick={onShare}
-            icon={<Share2 size={18} color={p.ink2} strokeWidth={1.8} />}
-            label="결과 공유"
-            sub="PDF · 링크"
-          />
-        </div>
+        <SecondaryBtn
+          p={p}
+          href={consultHref}
+          icon={<ClipboardList size={18} color={p.ink2} strokeWidth={1.8} />}
+          label="처방 상담"
+          sub="수의사 연결"
+        />
+        <SecondaryBtnButton
+          p={p}
+          onClick={onShare}
+          icon={<Share2 size={18} color={p.ink2} strokeWidth={1.8} />}
+          label="결과 공유"
+          sub="PDF · 링크"
+        />
       </div>
     </Reveal>
   )

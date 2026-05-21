@@ -552,13 +552,10 @@ export default function AnalysisView({
           {/* MagTrends 폐기 (2026-05-21) — 아래쪽 옛 "추이" 카드 (TrendRow
               포함, 디자인 더 풍부) 에 magazine 톤 + corner mark 만 입혀
               일원화. */}
-          <MagCTA
-            p={magP}
-            dogName={dog.name}
-            primaryHref={`/dogs/${dogId}/subscribe`}
-            primaryMeta="1주분 · 39,900원 · 무료배송"
-            consultHref="/contact"
-          />
+          {/* 정기배송 신청 메인 CTA 는 아래쪽 RecommendationBox 의 "정기배송
+              신청" 버튼이 단독 담당 (옛 디자인 기능 보존). MagCTA 는 보조
+              2버튼 (처방 상담 + 결과 공유) 만 남김. */}
+          <MagCTA p={magP} consultHref="/contact" />
           <div style={{ height: 12, background: magP.bg }} />
         </div>
       )}
