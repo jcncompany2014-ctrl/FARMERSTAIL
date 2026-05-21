@@ -28,6 +28,7 @@ import { getAAFCORanges, stageFromKR, type MacroRange } from '@/lib/nutrition'
 import StructuredAnalysis from '@/components/analysis/StructuredAnalysis'
 import RecommendationBox from '@/components/analysis/RecommendationBox'
 import FeedingPlanCard from '@/components/analysis/FeedingPlanCard'
+import NutrientGauges38 from '@/components/analysis/NutrientGauges38'
 import {
   merConfidenceInterval,
   formatRange,
@@ -596,6 +597,31 @@ export default function AnalysisView({
         riskFlagsFromCalc={analysis.risk_flags ?? []}
         nextReviewDate={analysis.next_review_date ?? null}
       />
+
+      {/* Round C2 (2026-05-20): 38영양소 게이지 — NIAS 색상 가시화. */}
+      {!isArchive && <NutrientGauges38 dogName={dog.name} />}
+
+      {/* Round C1 (2026-05-20): 5종 SKU 비교 페이지로 CTA. */}
+      {!isArchive && (
+        <section className="px-5 mt-5">
+          <Link
+            href="/compare"
+            className="block rounded-2xl border border-rule bg-white p-4 hover:border-text transition"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-muted">
+                  5종 라인 비교
+                </p>
+                <p className="text-[13px] font-bold text-ink mt-1">
+                  닭·오리·연어·돼지·한우 영양 한눈에 보기
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted" strokeWidth={2.5} />
+            </div>
+          </Link>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="px-5 mt-5 space-y-2">

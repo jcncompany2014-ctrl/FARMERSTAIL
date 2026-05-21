@@ -13,6 +13,10 @@
     "app/api/cron/dog-age-update/route.ts": { "maxDuration": 120 },
     "app/api/cron/personalization-approval-timeout/route.ts": { "maxDuration": 60 },
     "app/api/cron/weight-reminder/route.ts": { "maxDuration": 120 },
+    "app/api/cron/weight-change-detect/route.ts": { "maxDuration": 120 },
+    "app/api/cron/protein-rotation/route.ts": { "maxDuration": 120 },
+    "app/api/cron/dcm-screening-reminder/route.ts": { "maxDuration": 120 },
+    "app/api/cron/quality-check-reminder/route.ts": { "maxDuration": 60 },
     "app/api/cron/subscription-cleanup/route.ts": { "maxDuration": 120 },
     "app/api/cron/order-expire/route.ts": { "maxDuration": 60 },
     "app/api/cron/account-purge/route.ts": { "maxDuration": 300 },
@@ -71,6 +75,22 @@
     {
       "path": "/api/cron/weight-reminder",
       "schedule": "0 0 * * 1"
+    },
+    {
+      "path": "/api/cron/weight-change-detect",
+      "schedule": "0 1 * * 1"
+    },
+    {
+      "path": "/api/cron/protein-rotation",
+      "schedule": "0 2 * * 2"
+    },
+    {
+      "path": "/api/cron/dcm-screening-reminder",
+      "schedule": "0 2 * * 3"
+    },
+    {
+      "path": "/api/cron/quality-check-reminder",
+      "schedule": "0 0 1 * *"
     },
     {
       "path": "/api/cron/subscription-cleanup",

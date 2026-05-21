@@ -69,3 +69,47 @@ ActionsPanel "24h cron 실패" 카드에서 모니터링.
 - `segment=admin/checkout/main` — error boundary 별
 
 룰 만들 때 Filter 에 위 태그 활용.
+
+## 6. Round G2 (2026-05-20) — business.alert.kind 알람 헬퍼
+
+`lib/sentry/alerts.ts` 헬퍼 함수들이 발사하는 표준화된 알람.
+모든 호출은 `business.alert.kind` 태그 + dedupe fingerprint 를 자동 설정.
+
+| 헬퍼 함수 | kind | severity | 권장 Slack 채널 |
+|---|---|---|---|
+| `alertFraud()` | `fraud` | fatal | `#critical-fraud` |
+| `alertNshRisk()` | `nsh_risk` | warning | `#critical-safety` |
+| `alertRefundFailure()` | `refund_failure` | error | `#critical-payment` |
+| `alertAmountMismatch()` | `amount_mismatch` | fatal | `#critical-payment` |
+| `alertQualityBreach()` | `quality_breach` | error | `#critical-quality` |
+| `alertPiiLeak()` | `pii_leak` | fatal | `#critical-privacy` |
+
+### Sentry 룰 등록 (콘솔)
+
+Alerts → Create Alert → Issue Alert:
+- Trigger: 'an event is seen'
+- Filter: `tag:business.alert.kind equals fraud` (kind 별)
+- Action: Send Slack notification to `#critical-fraud`
+
+각 kind 마다 룰 1개씩 만들면 라우팅 분리 완성.
+
+### 호출 예
+
+```ts
+import { alertNshRisk } from '@/lib/sentry/alerts'
+
+if (result.level === 'nsh_risk') {
+  alertNshRisk({
+    dogId: dogId,
+    ratio: result.ratio,
+    totalCaMg: result.total_ca_mg,
+    totalPMg: result.total_p_mg,
+    isPuppy: false,
+  })
+}
+```
+
+### PII 가드
+
+attribute / extra 에 email · phone · address · name 절대 넣지 말 것.
+ID (UUID) / 카운트 / 라벨만 허용.
