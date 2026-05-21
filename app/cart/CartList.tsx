@@ -4,12 +4,11 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, ShoppingBag } from 'lucide-react'
+import { X, ShoppingBag, Minus, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
-import { StockBadge } from '@/components/ui/StockBadge'
 import { BLUR_BG2 } from '@/lib/ui/blur'
-import { stockState, maxOrderable } from '@/lib/products/stock'
+import { stockState, maxOrderable, stockMessage } from '@/lib/products/stock'
 
 type Row = {
   id: string
@@ -22,7 +21,23 @@ type Row = {
     sale_price: number | null
     image_url: string | null
     stock: number
+    /** 모바일 핸드오프 — 카드에 카테고리 태그 표시 */
+    category?: string | null
+    /** 모바일 핸드오프 — name 아래 sub-info */
+    short_description?: string | null
+    /** 모바일 핸드오프 — 정기배송 가능 SKU 표시 */
+    is_subscribable?: boolean | null
   }
+}
+
+// 카테고리 라벨 → 한글 + tint 색
+const CAT_META: Record<string, { label: string; bg: string; fg: string }> = {
+  meal: { label: '화식', bg: 'rgba(93, 111, 63, 0.16)', fg: '#5d6f3f' },
+  topper: { label: '토퍼', bg: 'rgba(232, 168, 46, 0.18)', fg: '#a87520' },
+  treat: { label: '간식', bg: 'rgba(232, 168, 46, 0.18)', fg: '#a87520' },
+  set: { label: '체험팩', bg: 'rgba(220, 83, 42, 0.16)', fg: '#dc532a' },
+  supplement: { label: '영양제', bg: 'rgba(63, 127, 184, 0.14)', fg: '#3f7fb8' },
+  premium: { label: '프리미엄', bg: 'rgba(232, 168, 46, 0.18)', fg: '#a87520' },
 }
 
 export default function CartList({ initialItems }: { initialItems: Row[] }) {
@@ -69,13 +84,10 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
     if (!target) return
     const maxQ = maxOrderable(target.product.stock)
     if (maxQ <= 0) {
-      // 품절 상품이 장바구니에 남아 있는 경우 — 증가는 막고 제거를 안내.
       toast.warning('품절 상품이에요. 장바구니에서 제거해 주세요.')
       return
     }
     if (next > maxQ) {
-      // audit 2-11: 단순 경고에서 자동 보정으로 — 사용자가 maxQ 까지는
-      // 담을 수 있게 즉시 수량을 잘라 저장. Toast 로 안내만.
       toast.warning(`재고가 ${target.product.stock}개 남았어요. ${maxQ}개로 맞췄어요.`)
       next = maxQ
     }
@@ -110,8 +122,6 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
   }
 
   async function removeItem(id: string) {
-    // UX audit #8: window.confirm → optimistic remove + toast undo.
-    // 사용자 1번 클릭으로 즉시 삭제, 4초 동안 '되돌리기' 버튼 — 실수 회복 가능.
     setBusyId(id)
     const prev = items
     const removed = items.find((i) => i.id === id)
@@ -144,7 +154,6 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
       action: {
         label: '되돌리기',
         onClick: async () => {
-          // 다시 cart_items insert. 실패 시 toast.error.
           const { error: insErr } = await supabase
             .from('cart_items')
             .insert({
@@ -164,38 +173,57 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
   }
 
   return (
-    <ul className="space-y-2.5 md:space-y-3">
+    <ul className="space-y-2.5 md:space-y-3 px-4 md:px-0">
       {items.map((row) => {
         const price = row.product.sale_price ?? row.product.price
         const hasSale = row.product.sale_price !== null
+        const discountPct = hasSale
+          ? Math.round(
+              ((row.product.price - row.product.sale_price!) /
+                row.product.price) *
+                100
+            )
+          : 0
         const lineTotal = price * row.quantity
         const isBusy = busyId === row.id
-        // row-level 재고 상태 — 담아 뒀는데 그 사이 품절된 케이스 대응.
         const rowStock = stockState(row.product.stock)
         const rowSoldOut = rowStock === 'out'
         const maxQ = maxOrderable(row.product.stock)
+        const cat = row.product.category
+          ? CAT_META[row.product.category] ?? null
+          : null
+        const subInfo = row.product.short_description ?? ''
 
         return (
           <li
             key={row.id}
             className="bg-white overflow-hidden"
             style={{
-              borderRadius: 22,
+              borderRadius: 20,
               boxShadow: '0 2px 8px rgba(26,20,12,0.04), 0 8px 20px rgba(26,20,12,0.04)',
             }}
           >
-            <div className="flex gap-3 p-3 md:gap-5 md:p-5">
+            <div
+              className="grid p-3 md:p-4 gap-3 md:gap-4 items-start"
+              style={{ gridTemplateColumns: '92px 1fr' }}
+            >
+              {/* Photo */}
               <Link
                 href={`/products/${row.product.slug}`}
-                className="shrink-0 w-20 h-20 md:w-28 md:h-28 overflow-hidden relative"
-                style={{ borderRadius: 16, background: '#fbf3df' }}
+                className="block overflow-hidden relative"
+                style={{
+                  width: 92,
+                  height: 92,
+                  borderRadius: 14,
+                  background: '#fbf3df',
+                }}
               >
                 {row.product.image_url ? (
                   <Image
                     src={row.product.image_url}
                     alt={row.product.name}
                     fill
-                    sizes="(max-width: 768px) 80px, 112px"
+                    sizes="92px"
                     placeholder="blur"
                     blurDataURL={BLUR_BG2}
                     className="object-cover"
@@ -203,84 +231,179 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <ShoppingBag
-                      className="w-5 h-5 md:w-7 md:h-7 text-muted"
+                      className="w-6 h-6 text-muted"
                       strokeWidth={1.5}
                     />
                   </div>
                 )}
               </Link>
 
-              <div className="flex-1 min-w-0 flex flex-col">
+              {/* Content */}
+              <div className="flex flex-col min-w-0">
                 <div className="flex justify-between items-start gap-2">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
+                    {/* badges row */}
+                    <div className="flex gap-1.5 flex-wrap items-center mb-1">
+                      {row.product.is_subscribable && (
+                        <span
+                          className="inline-flex items-center font-bold"
+                          style={{
+                            padding: '2px 7px',
+                            background: 'rgba(93, 111, 63, 0.16)',
+                            color: '#5d6f3f',
+                            borderRadius: 6,
+                            fontSize: 9.5,
+                            letterSpacing: 0.2,
+                          }}
+                        >
+                          정기배송
+                        </span>
+                      )}
+                      {cat && (
+                        <span
+                          className="inline-flex items-center font-bold"
+                          style={{
+                            padding: '2px 7px',
+                            background: cat.bg,
+                            color: cat.fg,
+                            borderRadius: 6,
+                            fontSize: 9.5,
+                            letterSpacing: 0.2,
+                          }}
+                        >
+                          {cat.label}
+                        </span>
+                      )}
+                      {hasSale && discountPct > 0 && (
+                        <span
+                          className="inline-flex items-center font-bold"
+                          style={{
+                            padding: '2px 7px',
+                            background: '#dc532a',
+                            color: '#fff',
+                            borderRadius: 6,
+                            fontSize: 9.5,
+                            letterSpacing: 0.2,
+                          }}
+                        >
+                          −{discountPct}%
+                        </span>
+                      )}
+                    </div>
+
+                    {/* name */}
                     <Link
                       href={`/products/${row.product.slug}`}
-                      className="text-[12px] md:text-[15px] text-text font-bold leading-snug line-clamp-2"
+                      className="font-['Archivo_Black'] block leading-tight"
+                      style={{
+                        fontSize: 13,
+                        color: '#1a140c',
+                        letterSpacing: '-0.01em',
+                      }}
                     >
                       {row.product.name}
                     </Link>
-                    {/* 재고 뱃지 — low/out일 때만 렌더 */}
+
+                    {/* sub info */}
+                    {subInfo && (
+                      <div
+                        className="mt-1 truncate"
+                        style={{ fontSize: 10, color: '#7a6d5b' }}
+                      >
+                        {subInfo}
+                      </div>
+                    )}
+
+                    {/* stock — plain red text (no badge) */}
                     {rowStock !== 'in_stock' && (
-                      <div className="mt-1">
-                        <StockBadge
-                          stock={row.product.stock}
-                          placement="inline"
-                          showCount
-                        />
+                      <div
+                        className="mt-1 font-bold"
+                        style={{ fontSize: 10.5, color: 'var(--sale)' }}
+                      >
+                        {rowSoldOut ? '품절' : stockMessage(row.product.stock)}
                       </div>
                     )}
                   </div>
                   <button
                     onClick={() => removeItem(row.id)}
                     disabled={isBusy}
-                    className="shrink-0 w-10 h-10 -mr-2 -mt-1 flex items-center justify-center rounded-full text-muted hover:text-sale hover:bg-bg transition disabled:opacity-40"
+                    className="shrink-0 p-1 -mr-1 -mt-1 text-muted hover:text-sale transition disabled:opacity-40"
                     aria-label="삭제"
                   >
-                    <X className="w-4 h-4" strokeWidth={2.5} />
+                    <X size={16} strokeWidth={2.2} />
                   </button>
                 </div>
 
-                <div className="mt-auto pt-2 md:pt-3 flex items-end justify-between">
-                  {/* 수량 스텝퍼 — 품절 row는 disabled 상태로 표시. */}
+                {/* Qty stepper + price */}
+                <div className="flex justify-between items-center mt-2.5">
                   <div
                     className={
-                      'flex items-center bg-bg rounded-lg ' +
+                      'flex items-center p-0.5 ' +
                       (rowSoldOut ? 'opacity-50' : '')
                     }
+                    style={{
+                      background: '#fbf3df',
+                      borderRadius: 14,
+                    }}
                   >
                     <button
                       onClick={() => updateQty(row.id, row.quantity - 1)}
                       disabled={isBusy || row.quantity <= 1 || rowSoldOut}
-                      className="w-10 h-10 md:w-10 md:h-10 flex items-center justify-center text-text font-bold text-base disabled:opacity-30 active:scale-90 transition"
+                      className="flex items-center justify-center transition active:scale-90 disabled:opacity-30"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 12,
+                        background: '#fff',
+                        color: '#1a140c',
+                      }}
                       aria-label="수량 감소"
                     >
-                      −
+                      <Minus size={14} strokeWidth={2.4} />
                     </button>
-                    <span className="w-8 md:w-10 text-center text-[13px] md:text-[14px] font-bold text-text">
+                    <span
+                      className="text-center font-bold tabular-nums"
+                      style={{
+                        minWidth: 28,
+                        padding: '0 8px',
+                        fontSize: 13,
+                        color: '#1a140c',
+                      }}
+                    >
                       {row.quantity}
                     </span>
                     <button
                       onClick={() => updateQty(row.id, row.quantity + 1)}
                       disabled={isBusy || rowSoldOut || row.quantity >= maxQ}
-                      className="w-10 h-10 md:w-10 md:h-10 flex items-center justify-center text-text font-bold text-base disabled:opacity-30 active:scale-90 transition"
+                      className="flex items-center justify-center transition active:scale-90 disabled:opacity-30"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 12,
+                        background: '#1a140c',
+                        color: '#fff',
+                      }}
                       aria-label="수량 증가"
                     >
-                      +
+                      <Plus size={14} strokeWidth={2.4} />
                     </button>
                   </div>
 
-                  {/* 가격 */}
                   <div className="text-right">
                     {hasSale && (
-                      <div className="text-[9px] md:text-[11px] text-muted line-through leading-none">
+                      <div
+                        className="line-through leading-none tabular-nums"
+                        style={{ fontSize: 9, color: '#7a6d5b' }}
+                      >
                         {(row.product.price * row.quantity).toLocaleString()}원
                       </div>
                     )}
-                    <div className="flex items-baseline gap-0.5 mt-0.5">
-                      <span className="text-[14px] md:text-[18px] font-black text-terracotta">
-                        {lineTotal.toLocaleString()}
-                      </span>
-                      <span className="text-[10px] md:text-[12px] text-muted">원</span>
+                    <div
+                      className="font-['Archivo_Black'] mt-0.5 flex items-baseline gap-0.5 tabular-nums"
+                      style={{ fontSize: 17, color: '#1a140c', lineHeight: 1 }}
+                    >
+                      {lineTotal.toLocaleString()}
+                      <span style={{ fontSize: 11, color: '#7a6d5b' }}>원</span>
                     </div>
                   </div>
                 </div>

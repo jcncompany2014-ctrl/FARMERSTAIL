@@ -25,7 +25,7 @@ import RestockButton from './RestockButton'
 import ShareButton from '@/components/ShareButton'
 import { trackAddToCart, trackViewItem } from '@/lib/analytics'
 import { stockState, maxOrderable, stockMessage } from '@/lib/products/stock'
-import { StockBadge, StockOverlay } from '@/components/ui/StockBadge'
+import { StockOverlay } from '@/components/ui/StockBadge'
 import { VariantSelector } from '@/components/ui/VariantSelector'
 import ProductDetailTabs from '@/components/products/ProductDetailTabs'
 import RecentlyViewed from '@/components/products/RecentlyViewed'
@@ -537,12 +537,15 @@ export default function ProductDetailClient({
       >
         <div className="max-w-md mx-auto">
           {stockBucket !== 'in_stock' && (
-            <div className="flex items-center gap-1.5 mb-2 text-[11.5px]">
-              <StockBadge stock={effStock} placement="inline" showCount />
+            <div className="mb-2 text-[11.5px]">
               {stockBucket === 'out' ? (
-                <span className="text-muted">곧 다시 만나요. 재입고 알림 받기.</span>
+                <span className="text-sale font-bold">
+                  품절 · 곧 다시 만나요. 재입고 알림 받기.
+                </span>
               ) : (
-                <span className="text-muted">{stockMessage(effStock)}</span>
+                <span className="text-sale font-bold">
+                  {stockMessage(effStock)}
+                </span>
               )}
             </div>
           )}
