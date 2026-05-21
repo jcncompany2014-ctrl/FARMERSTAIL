@@ -1,3 +1,5 @@
+'use client'
+
 /**
  * ForTodaySection — 추천 상품 + delivery + bonus 3-슬롯 grid.
  *
@@ -5,6 +7,11 @@
  *   - 좌측: 대 추천 카드 — 사진 150h + "For·pur·토이푸들" + 이름 + 메타 + 가격 + + 버튼
  *   - 우측 위: ink D-1 카드 — "내일 새벽 도착" + sparkline + "주문 보기 →"
  *   - 우측 아래: yellow bonus — "다음 결제 시 10% 할인"
+ *
+ * # 2026-05-22 — client component 로 전환
+ * Plus 버튼이 `onClick={(e) => { product.onAdd() }}` 이라 server component
+ * 로 두면 "Event handlers cannot be passed to Client Components" 에러.
+ * dashboard server 가 product object (plain) 만 넘기므로 client 변환은 안전.
  */
 
 import Link from 'next/link'

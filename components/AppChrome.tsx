@@ -26,7 +26,6 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import InstallPrompt from '@/components/InstallPrompt'
-import ChromeStamp from '@/components/ChromeStamp'
 import MiniCartToast from '@/components/products/MiniCartToast'
 import { WishlistProvider } from '@/components/products/WishlistContext'
 import V3Ticker from '@/components/v3/V3Ticker'
@@ -208,24 +207,22 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
             className="flex items-center justify-between"
             style={{ paddingTop: 6, paddingBottom: 12 }}
           >
-            <div className="flex items-center min-w-0" style={{ marginLeft: -8 }}>
-              <Link
-                href="/dashboard"
-                className="flex items-center shrink-0"
-                aria-label="홈"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/logo.png"
-                  alt="Farmer's Tail"
-                  className="h-11 w-auto"
-                  // LCP 후보 — 헤더 로고가 첫 viewport 가장 큰 가시 요소.
-                  fetchPriority="high"
-                  style={{ filter: 'var(--logo-filter, brightness(0))' }}
-                />
-              </Link>
-              <ChromeStamp />
-            </div>
+            <Link
+              href="/dashboard"
+              className="flex items-center shrink-0"
+              aria-label="홈"
+              style={{ marginLeft: -4 }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="Farmer's Tail"
+                className="h-10 w-auto"
+                // LCP 후보 — 헤더 로고가 첫 viewport 가장 큰 가시 요소.
+                fetchPriority="high"
+                style={{ filter: 'var(--logo-filter, brightness(0))' }}
+              />
+            </Link>
 
             <div className="flex items-center" style={{ gap: 2, marginRight: -10 }}>
               <Link

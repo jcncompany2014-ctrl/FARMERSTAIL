@@ -54,13 +54,12 @@ export default function V3Ticker() {
     ? `${capFirst(stamp.weekday)} ${stamp.day} ${capFirst(stamp.month)} · ${hhmm || '--:--'}`
     : '          '
 
+  // 2026-05-22 — 사용자 요청대로 우측 "· Live" 라벨 제거.
+  // 좌측 ticker (날짜 + 시간) 만 유지, 비율은 헤더 main row 와 정렬.
   return (
-    <div className="flex items-center justify-between" aria-hidden>
+    <div aria-hidden>
       <Mono color="ink" size="xxs" weight={500} letterSpacing="0.16em">
         {left}
-      </Mono>
-      <Mono color="accent" size="xxs" weight={600} letterSpacing="0.16em">
-        · Live
       </Mono>
     </div>
   )
