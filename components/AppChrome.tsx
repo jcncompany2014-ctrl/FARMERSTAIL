@@ -272,16 +272,18 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           - `md:w-full md:max-w-md`: 프레임과 같은 폭(448px) 확보 */}
       {!focusMode && (
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 bg-bg/95 backdrop-blur-xl border-t border-rule md:left-1/2 md:right-auto md:w-full md:max-w-md md:-translate-x-1/2 md:rounded-b-[inherit]"
-        // iOS home indicator 와 충분히 거리. safe-area-inset-bottom 만 적용
-        // 하면 iPhone 의 home bar 가 탭바 아이콘 바로 위에 닿아 의도치 않은
-        // gesture 간섭이 잦다. 카카오톡/네이버 등이 쓰는 패턴 — safe-area +
-        // 추가 12px 여유. 디바이스가 indicator 없으면 (Android) 12px 만 적용.
+        // 2026-05-21: app-product handoff CP 디자인 적용 — surface white +
+        // rounded-top 24px + 강한 그림자. 활성 탭 = primaryTint background.
+        className="fixed bottom-0 left-0 right-0 z-40 bg-white md:left-1/2 md:right-auto md:w-full md:max-w-md md:-translate-x-1/2 md:rounded-b-[inherit]"
         style={{
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
+          paddingTop: 10,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          boxShadow: '0 -12px 32px rgba(0,0,0,0.06)',
         }}
       >
-        <div className="max-w-md mx-auto px-2 pt-2 pb-1 grid grid-cols-5 gap-0.5">
+        <div className="max-w-md mx-auto px-3 grid grid-cols-5">
           {TABS.map(({ href, label, Icon }) => {
             const active =
               pathname === href || pathname.startsWith(href + '/')
@@ -291,34 +293,45 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               <Link
                 key={href}
                 href={href}
-                className="relative flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition active:scale-95"
+                className="relative flex flex-col items-center justify-center py-2 transition active:scale-95"
               >
-                {/* 활성 인디케이터 */}
-                <span
-                  className={`absolute top-0 left-1/2 -translate-x-1/2 h-0.5 rounded-full bg-terracotta transition-all duration-200 ${
-                    active ? 'w-6 opacity-100' : 'w-0 opacity-0'
-                  }`}
-                />
+                {/* 활성 background — primaryTint 안쪽 pill */}
+                {active && (
+                  <span
+                    className="absolute rounded-2xl"
+                    style={{
+                      inset: '2px 8px',
+                      background: 'rgba(220, 83, 42, 0.12)',
+                    }}
+                  />
+                )}
 
-                <div className="relative">
+                <div className="relative" style={{ zIndex: 1 }}>
                   <Icon
                     className={`w-[22px] h-[22px] transition ${
-                      active ? 'text-text' : 'text-muted'
+                      active ? 'text-terracotta' : 'text-ink'
                     }`}
-                    strokeWidth={active ? 2 : 1.5}
+                    strokeWidth={1.8}
                   />
-                  {/* 카트 뱃지 (탭바) */}
+                  {/* 카트 뱃지 */}
                   {isCart && cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-terracotta text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
+                    <span
+                      className="absolute -top-1 -right-2 min-w-[16px] h-[16px] px-1 rounded-full text-white text-[9px] font-bold flex items-center justify-center"
+                      style={{
+                        background: '#dc532a',
+                        border: '1.5px solid #fff',
+                      }}
+                    >
                       {cartCount > 99 ? '99+' : cartCount}
                     </span>
                   )}
                 </div>
 
                 <span
-                  className={`mt-1 text-[10px] font-semibold tracking-tight ${
-                    active ? 'text-text' : 'text-muted'
+                  className={`mt-1 text-[10px] tracking-tight transition ${
+                    active ? 'font-bold text-terracotta' : 'font-medium text-ink'
                   }`}
+                  style={{ position: 'relative', zIndex: 1 }}
                 >
                   {label}
                 </span>
