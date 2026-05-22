@@ -16,7 +16,7 @@ export default function DogsLoading() {
         {[0, 1].map((i) => (
           <div
             key={i}
-            className="rounded border border-rule bg-white p-4 flex items-center gap-4"
+            className="rounded border border-rule bg-bg-3 p-4 flex items-center gap-4"
           >
             <Skeleton className="w-16 h-16 rounded-full" />
             <div className="flex-1">

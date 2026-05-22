@@ -75,7 +75,7 @@ export default async function ReferralPage() {
           >
             ← 내 정보
           </Link>
-          <div className="bg-white rounded-2xl border border-sale/30 px-5 py-6 text-center mt-4">
+          <div className="bg-bg-3 rounded border border-sale/30 px-5 py-6 text-center mt-4">
             <p className="text-[13px] font-bold text-sale">
               초대 코드를 불러오지 못했어요
             </p>

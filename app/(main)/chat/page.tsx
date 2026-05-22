@@ -86,7 +86,7 @@ export default async function ChatPage() {
       />
 
       <section className="px-5 mt-6">
-        <div className="rounded-xl bg-bg-2 px-4 py-3 text-[10.5px] text-muted leading-relaxed">
+        <div className="rounded bg-bg-2 px-4 py-3 text-[10.5px] text-muted leading-relaxed">
           <p className="font-bold text-text mb-1">⚠️ 주의</p>
           <p>
             AI 상담은 수의사 진료를 대체하지 않아요. 의학적 진단·처방·응급 상황은

@@ -319,7 +319,7 @@ export default function SubscribeClient({
                 className={`h-full min-h-[72px] py-3 px-2 rounded border text-center transition ${
                   interval === opt.value
                     ? 'border-moss bg-moss/10'
-                    : 'border-rule bg-white hover:border-muted'
+                    : 'border-rule bg-bg-3 hover:border-muted'
                 }`}
               >
                 <div
@@ -414,7 +414,7 @@ export default function SubscribeClient({
                 <button
                   type="button"
                   onClick={openAddressSearch}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded border border-rule bg-white text-[13px] font-bold text-text hover:border-moss hover:text-moss transition active:scale-95"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded border border-rule bg-bg-3 text-[13px] font-bold text-text hover:border-moss hover:text-moss transition active:scale-95"
                 >
                   <Search className="w-3.5 h-3.5" strokeWidth={2} />
                   주소 검색
