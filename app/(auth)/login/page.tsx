@@ -208,10 +208,10 @@ function LoginInner() {
               enterKeyHint="next"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border text-sm focus:outline-none transition"
+              className="w-full px-4 py-3 rounded border text-sm focus:outline-none transition"
               style={{
                 borderColor: 'var(--rule-2)',
-                background: '#FDFDFD',
+                background: 'var(--paper-hi, #fbf6ec)',
                 color: 'var(--text)',
               }}
               onFocus={(e) =>
@@ -239,10 +239,10 @@ function LoginInner() {
                 enterKeyHint="go"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-11 rounded-lg border text-sm focus:outline-none transition"
+                className="w-full px-4 py-3 pr-11 rounded border text-sm focus:outline-none transition"
                 style={{
                   borderColor: 'var(--rule-2)',
-                  background: '#FDFDFD',
+                  background: 'var(--paper-hi, #fbf6ec)',
                   color: 'var(--text)',
                 }}
                 onFocus={(e) =>

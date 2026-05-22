@@ -36,7 +36,7 @@ import {
   trackSubscriptionCancelled,
 } from '@/lib/analytics'
 import { V3, V3FontSize, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
-import { Mono, Modal } from '@/components/v3'
+import { Mono, Modal, Badge } from '@/components/v3'
 
 /**
  * billing-auth fallback customerKey 생성기 — module-scope.
@@ -524,38 +524,19 @@ export default function SubscriptionsClient({
                       {sub.dogs && (
                         <Link
                           href={`/dogs/${sub.dogs.id}`}
-                          className="truncate"
-                          style={{
-                            fontSize: 10,
-                            fontWeight: V3FontWeight.bold,
-                            padding: '2px 8px',
-                            borderRadius: V3Radius.pill,
-                            background: V3.paperHi,
-                            color: V3.ink,
-                            border: `1px solid ${V3.rule}`,
-                            textDecoration: 'none',
-                          }}
+                          style={{ textDecoration: 'none' }}
                         >
-                          🐶 {sub.dogs.name}
+                          <Badge tone="ink" shape="pill" size="sm" upper={false}>
+                            🐶 {sub.dogs.name}
+                          </Badge>
                         </Link>
                       )}
                       {sub.coverage_weeks && (
-                        <span
-                          className="truncate"
-                          style={{
-                            fontSize: 9.5,
-                            fontWeight: V3FontWeight.bold,
-                            padding: '2px 8px',
-                            borderRadius: V3Radius.pill,
-                            background: V3.paperHi,
-                            color: V3.ink,
-                            border: `1px solid ${V3.rule}`,
-                          }}
-                        >
+                        <Badge tone="ink" shape="pill" size="sm" upper={false}>
                           {sub.coverage_weeks === 2
                             ? '2주치 · 하이브리드'
                             : '4주치 · 풀 화식'}
-                        </span>
+                        </Badge>
                       )}
                     </div>
                     {sub.next_delivery_date && (

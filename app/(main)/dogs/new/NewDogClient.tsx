@@ -276,13 +276,14 @@ export default function NewDogClient({ userId }: { userId: string }) {
 
   const labelCls =
     'block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]'
+  // 2026-05-22 R10-A: v3 form 톤 — rounded-xl(12)→rounded(4), bg-white→bg-bg-3 (paperHi).
   const inputCls =
-    'w-full px-4 py-3 rounded-xl border border-rule bg-white text-[13px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition'
+    'w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition'
   const chipBase =
-    'py-3 rounded-xl border text-[12px] font-bold transition flex items-center justify-center gap-1.5'
+    'py-3 rounded border text-[12px] font-bold transition flex items-center justify-center gap-1.5'
   const chipActive = 'border-text bg-text text-white'
   const chipIdle =
-    'border-rule bg-white text-text hover:border-muted'
+    'border-rule bg-bg-3 text-text hover:border-muted'
 
   return (
     <main className="pb-10 px-5">

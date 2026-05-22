@@ -156,7 +156,7 @@ export default function PreferencesPanel() {
                 aria-label="시작 시각"
                 value={prefs.quiet_hours_start ?? 22}
                 onChange={(e) => patch({ quiet_hours_start: Number(e.target.value) }, 'quiet')}
-                className="px-2 py-1 rounded-lg bg-bg border border-rule text-[11px] font-bold text-text"
+                className="px-2 py-1 rounded bg-bg-3 border border-rule text-[11px] font-bold text-text"
               >
                 {Array.from({ length: 24 }).map((_, i) => (
                   <option key={i} value={i}>
@@ -169,7 +169,7 @@ export default function PreferencesPanel() {
                 aria-label="종료 시각"
                 value={prefs.quiet_hours_end ?? 8}
                 onChange={(e) => patch({ quiet_hours_end: Number(e.target.value) }, 'quiet')}
-                className="px-2 py-1 rounded-lg bg-bg border border-rule text-[11px] font-bold text-text"
+                className="px-2 py-1 rounded bg-bg-3 border border-rule text-[11px] font-bold text-text"
               >
                 {Array.from({ length: 24 }).map((_, i) => (
                   <option key={i} value={i}>

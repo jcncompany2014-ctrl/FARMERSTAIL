@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { Heart, Soup } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { V3, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
-import { Mono } from '@/components/v3'
+import { Mono, Badge } from '@/components/v3'
 import WishlistRemoveButton from './WishlistRemoveButton'
 
 export const dynamic = 'force-dynamic'
@@ -203,20 +203,11 @@ export default async function WishlistPage() {
                     {hasSale && discount > 0 && (
                       <div
                         className="absolute"
-                        style={{
-                          top: 8,
-                          left: 8,
-                          background: V3.accent,
-                          color: V3.paperHi,
-                          fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
-                          fontSize: 10,
-                          fontWeight: 800,
-                          padding: '2px 6px',
-                          borderRadius: V3Radius.xs,
-                          letterSpacing: '0.04em',
-                        }}
+                        style={{ top: 8, left: 8 }}
                       >
-                        {discount}%
+                        <Badge tone="accent" filled size="sm">
+                          {discount}%
+                        </Badge>
                       </div>
                     )}
                   </div>

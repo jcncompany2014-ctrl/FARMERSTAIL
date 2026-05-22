@@ -6,7 +6,7 @@ import { Package, ShoppingBag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import { V3, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
-import { Mono } from '@/components/v3'
+import { Mono, Badge, type BadgeTone } from '@/components/v3'
 
 export const dynamic = 'force-dynamic'
 
@@ -336,7 +336,9 @@ export default async function OrdersPage() {
                       order.payment_status
 
                 const tone = statusTone(displayStatus)
-                const toneColor = TONE_COLOR[tone]
+                // Badge tone 매핑 — inkMute → 'default' (Badge 의 default 가 inkMute 색).
+                const badgeTone: BadgeTone =
+                  tone === 'inkMute' ? 'default' : tone
 
                 return (
                   <li key={order.id} className="md:h-full">
@@ -365,24 +367,9 @@ export default async function OrdersPage() {
                         >
                           {formatDate(order.created_at)}
                         </Mono>
-                        <span
-                          className="inline-flex items-center"
-                          style={{
-                            gap: 4,
-                            padding: '3px 9px',
-                            borderRadius: V3Radius.xs,
-                            background: toneColor,
-                            color: tone === 'yellow' ? V3.ink : V3.paperHi,
-                            fontFamily:
-                              "var(--font-mono, 'IBM Plex Mono'), monospace",
-                            fontSize: 9.5,
-                            fontWeight: 700,
-                            letterSpacing: '0.08em',
-                            textTransform: 'uppercase',
-                          }}
-                        >
+                        <Badge tone={badgeTone} filled>
                           {label}
-                        </span>
+                        </Badge>
                       </div>
 
                       {firstItem && (

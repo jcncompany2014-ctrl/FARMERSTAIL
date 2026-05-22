@@ -352,11 +352,13 @@ function SignupForm() {
 
   // Shared input visual — 코드 중복 제거. border/focus는 inline style
   // (var(--terracotta)) 로 분기하기 위해 className에선 padding/radius만.
+  // 2026-05-22 R10-A: v3 form 톤 — rounded-lg(8)→rounded(4), bg-[#FDFDFD]→bg-3 (paperHi).
+  // signup 페이지는 web/app 공용 — AuthHero 는 serif 유지, form 만 v3 grammar.
   const baseInputCls =
-    'w-full px-4 py-3 rounded-lg border text-sm focus:outline-none transition'
+    'w-full px-4 py-3 rounded border text-sm focus:outline-none transition'
   const baseInputStyle = {
     borderColor: 'var(--rule-2)' as const,
-    background: '#FDFDFD',
+    background: 'var(--paper-hi, #fbf6ec)',
     color: 'var(--text)',
   }
   function onFocusBorder(e: React.FocusEvent<HTMLInputElement>) {

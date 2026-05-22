@@ -14,7 +14,7 @@ import { MapPin, Pencil, Star, Trash2 } from 'lucide-react'
 import type { Address } from '@/lib/commerce/addresses'
 import { useToast } from '@/components/ui/Toast'
 import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
-import { Mono, Modal } from '@/components/v3'
+import { Mono, Modal, Badge } from '@/components/v3'
 
 export default function AddressesClient({ initial }: { initial: Address[] }) {
   const router = useRouter()
@@ -90,44 +90,19 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
             style={{ padding: '12px 16px 0', gap: 6 }}
           >
             {a.isDefault ? (
-              <span
-                className="inline-flex items-center"
-                style={{
-                  gap: 4,
-                  fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  padding: '3px 8px',
-                  borderRadius: V3Radius.xs,
-                  background: V3.ink,
-                  color: V3.paperHi,
-                }}
-              >
+              <Badge tone="ink" filled size="sm">
                 <Star size={10} strokeWidth={2.5} fill="currentColor" />
                 Default
-              </span>
+              </Badge>
             ) : (
               <Mono color="inkMute" size="xxs" weight={600}>
                 Saved
               </Mono>
             )}
             {a.label && (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: V3FontWeight.bold,
-                  padding: '3px 8px',
-                  borderRadius: V3Radius.xs,
-                  color: V3.accent,
-                  background:
-                    'color-mix(in srgb, ' + V3.accent + ' 8%, transparent)',
-                  border: `1px solid ${V3.rule}`,
-                }}
-              >
+              <Badge tone="accent" size="sm" upper={false}>
                 {a.label}
-              </span>
+              </Badge>
             )}
           </header>
 
