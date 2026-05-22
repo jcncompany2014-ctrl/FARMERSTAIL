@@ -21,7 +21,7 @@ import {
   Cake,
 } from 'lucide-react'
 import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
-import { Mono } from '@/components/v3'
+import { Mono, Tabs } from '@/components/v3'
 
 type Entry = {
   id: string
@@ -80,39 +80,13 @@ export default function PointsBrowser({ entries }: { entries: Entry[] }) {
 
   return (
     <>
-      {/* filter 탭 */}
+      {/* filter 탭 — v3 Tabs primitive */}
       <section style={{ padding: '16px 20px 0' }}>
-        <div
-          className="grid grid-cols-3 overflow-hidden"
-          style={{
-            gap: 1,
-            background: V3.rule,
-            borderRadius: V3Radius.sm,
-            border: `1px solid ${V3.rule}`,
-          }}
-        >
-          {FILTERS.map((f) => {
-            const active = filter === f.key
-            return (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setFilter(f.key)}
-                className="transition"
-                style={{
-                  padding: '10px 0',
-                  fontSize: 11.5,
-                  fontWeight: V3FontWeight.bold,
-                  background: active ? V3.ink : V3.paperHi,
-                  color: active ? V3.paperHi : V3.ink,
-                  border: 'none',
-                }}
-              >
-                {f.label}
-              </button>
-            )
-          })}
-        </div>
+        <Tabs
+          value={filter}
+          onChange={(k) => setFilter(k as FilterKey)}
+          options={FILTERS.map((f) => ({ key: f.key, label: f.label }))}
+        />
       </section>
 
       {/* 월별 그룹 */}

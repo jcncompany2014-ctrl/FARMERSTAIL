@@ -19,6 +19,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
 import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
+import { Tabs } from '@/components/v3'
 import './notifications.css'
 
 export type Row = {
@@ -182,68 +183,31 @@ export default function NotificationsClient({
       </header>
 
       {rows.length > 0 && (
-        <div
-          className="grid grid-cols-4 overflow-hidden"
-          style={{
-            gap: 1,
-            background: V3.rule,
-            borderRadius: V3Radius.sm,
-            border: `1px solid ${V3.rule}`,
-            margin: '8px 0 0',
-          }}
-        >
-          {FILTERS.map((f) => {
-            const active = filter === f.key
-            const count =
-              f.key === 'all'
-                ? rows.length
-                : f.key === 'unread'
-                  ? unreadCount
-                  : f.key === 'order'
-                    ? rows.filter(
-                        (r) =>
-                          r.category === 'order' || r.category === 'restock',
-                      ).length
-                    : rows.filter(
-                        (r) =>
-                          r.category === 'marketing' || r.category === 'cart',
-                      ).length
-            return (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setFilter(f.key)}
-                className="transition"
-                style={{
-                  padding: '8px 0',
-                  fontSize: 11,
-                  fontWeight: V3FontWeight.bold,
-                  background: active ? V3.ink : V3.paperHi,
-                  color: active ? V3.paperHi : V3.ink,
-                  border: 'none',
-                }}
-              >
-                {f.label}
-                {count > 0 && (
-                  <span
-                    className="tabular-nums"
-                    style={{
-                      marginLeft: 4,
-                      display: 'inline-block',
-                      padding: '0 5px',
-                      borderRadius: V3Radius.pill,
-                      fontSize: 9.5,
-                      fontWeight: V3FontWeight.bold,
-                      background: active ? 'rgba(244,237,224,0.2)' : V3.paper,
-                      color: active ? V3.paperHi : V3.inkMute,
-                    }}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            )
-          })}
+        <div style={{ margin: '8px 0 0' }}>
+          <Tabs
+            value={filter}
+            onChange={(k) => setFilter(k as FilterKey)}
+            options={FILTERS.map((f) => ({
+              key: f.key,
+              label: f.label,
+              count:
+                f.key === 'all'
+                  ? rows.length
+                  : f.key === 'unread'
+                    ? unreadCount
+                    : f.key === 'order'
+                      ? rows.filter(
+                          (r) =>
+                            r.category === 'order' ||
+                            r.category === 'restock',
+                        ).length
+                      : rows.filter(
+                          (r) =>
+                            r.category === 'marketing' ||
+                            r.category === 'cart',
+                        ).length,
+            }))}
+          />
         </div>
       )}
 

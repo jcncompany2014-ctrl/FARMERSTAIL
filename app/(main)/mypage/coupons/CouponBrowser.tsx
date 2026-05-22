@@ -10,7 +10,7 @@ import CouponCard, {
 } from '@/components/coupons/CouponCard'
 import { useToast } from '@/components/ui/Toast'
 import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
-import { Mono } from '@/components/v3'
+import { Mono, Tabs } from '@/components/v3'
 
 type Coupon = CouponCardData & {
   per_user_limit: number | null
@@ -198,62 +198,22 @@ export default function CouponBrowser({
         </div>
       </section>
 
-      {/* 탭 */}
+      {/* 탭 — v3 Tabs primitive */}
       <section style={{ padding: '16px 20px 0' }}>
-        <div
-          className="grid grid-cols-3 overflow-hidden"
-          style={{
-            gap: 1,
-            background: V3.rule,
-            borderRadius: V3Radius.sm,
-            border: `1px solid ${V3.rule}`,
-          }}
-        >
-          {TABS.map(({ key, label }) => {
-            const count =
+        <Tabs
+          value={tab}
+          onChange={(k) => setTab(k as Tab)}
+          options={TABS.map(({ key, label }) => ({
+            key,
+            label,
+            count:
               key === 'available'
                 ? buckets.available.length
                 : key === 'used'
                   ? buckets.used.length
-                  : buckets.expired.length
-            const active = tab === key
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setTab(key)}
-                className="transition"
-                style={{
-                  padding: '10px 0',
-                  fontSize: 11.5,
-                  fontWeight: V3FontWeight.bold,
-                  background: active ? V3.ink : V3.paperHi,
-                  color: active ? V3.paperHi : V3.ink,
-                  border: 'none',
-                }}
-              >
-                {label}
-                {count > 0 && (
-                  <span
-                    className="tabular-nums"
-                    style={{
-                      marginLeft: 4,
-                      display: 'inline-block',
-                      padding: '0 6px',
-                      borderRadius: V3Radius.pill,
-                      fontSize: 10,
-                      fontWeight: V3FontWeight.bold,
-                      background: active ? 'rgba(244,237,224,0.2)' : V3.paper,
-                      color: active ? V3.paperHi : V3.inkMute,
-                    }}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
+                  : buckets.expired.length,
+          }))}
+        />
       </section>
 
       {/* 카드 list */}
