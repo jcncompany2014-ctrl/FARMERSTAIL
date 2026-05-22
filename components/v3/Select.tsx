@@ -64,16 +64,18 @@ interface SelectProps
   wrapperClassName?: string
 }
 
+// inputCls (form input) 와 동일 padding/font 로 맞춰 form-row 에서 side-by-side
+// 정렬됨. md = "px-4 py-3 text-[13px]" 와 1:1.
 const sizePadding: Record<NonNullable<SelectProps['sizeVariant']>, string> = {
-  sm: '6px 32px 6px 10px',
-  md: '10px 36px 10px 12px',
-  lg: '12px 40px 12px 14px',
+  sm: '6px 32px 6px 12px',
+  md: '12px 40px 12px 16px',
+  lg: '14px 44px 14px 18px',
 }
 
 const sizeFontSize: Record<NonNullable<SelectProps['sizeVariant']>, number> = {
-  sm: V3FontSize.sm,
-  md: V3FontSize.base,
-  lg: V3FontSize.md,
+  sm: V3FontSize.sm, // 12
+  md: 13, // form input 의 text-[13px] 와 일치
+  lg: V3FontSize.md, // 16
 }
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(

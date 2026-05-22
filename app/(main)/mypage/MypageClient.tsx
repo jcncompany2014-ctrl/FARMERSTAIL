@@ -40,7 +40,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { tierMeta } from '@/lib/tiers'
 import { V3, V3Dark, V3FontSize, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
-import { Mono, Modal } from '@/components/v3'
+import { Mono, Modal, Badge } from '@/components/v3'
 
 type Profile = {
   name: string | null
@@ -686,21 +686,9 @@ function MenuItem({
           {label}
         </span>
         {typeof badge === 'number' && badge > 0 && (
-          <span
-            className="tabular-nums"
-            style={{
-              fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
-              fontSize: 9,
-              fontWeight: 700,
-              padding: '2px 6px',
-              borderRadius: V3Radius.xs,
-              background: V3.accent,
-              color: V3.paperHi,
-              letterSpacing: '0.04em',
-            }}
-          >
+          <Badge tone="accent" filled size="sm">
             {badge > 99 ? '99+' : badge}
-          </span>
+          </Badge>
         )}
       </div>
       <ChevronRight size={16} color={V3.inkMute} strokeWidth={2} />
