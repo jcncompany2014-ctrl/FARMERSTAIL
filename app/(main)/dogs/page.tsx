@@ -51,14 +51,15 @@ export default async function DogsPage() {
         </Link>
         <div className="mt-3 flex items-end justify-between">
           <div>
-            <span className="kicker">Our Dogs</span>
+            <span className="kicker">Our Dogs · 내 강아지</span>
             <h1
-              className="font-serif mt-1.5"
+              className="font-sans mt-1.5"
               style={{
-                fontSize: 22,
+                fontSize: 28,
                 fontWeight: 800,
                 color: 'var(--ink)',
                 letterSpacing: '-0.02em',
+                lineHeight: 1,
               }}
             >
               내 강아지
@@ -80,29 +81,29 @@ export default async function DogsPage() {
       {dogs.length === 0 && (
         <section className="px-5 mt-6">
           <div
-            className="rounded-2xl border border-dashed px-6 py-12 text-center"
-            style={{ background: 'var(--bg-2)', borderColor: 'var(--rule-2)' }}
+            className="rounded border border-dashed px-6 py-12 text-center"
+            style={{ background: 'var(--bg-3)', borderColor: 'var(--rule)', borderWidth: 1.5 }}
           >
             <div
-              className="inline-flex w-16 h-16 rounded-full items-center justify-center mb-4"
+              className="inline-flex w-14 h-14 rounded-full items-center justify-center mb-4"
               style={{
                 background: 'var(--bg)',
-                border: '1px solid var(--rule-2)',
+                border: '1px solid var(--rule)',
               }}
             >
               <DogIcon
-                className="w-7 h-7 text-terracotta"
+                className="w-6 h-6 text-terracotta"
                 strokeWidth={1.5}
               />
             </div>
-            <span className="kicker">First Dog</span>
+            <span className="kicker">First Dog · 첫 강아지</span>
             <h3
-              className="font-serif mt-2"
+              className="font-sans mt-2"
               style={{
-                fontSize: 17,
+                fontSize: 18,
                 fontWeight: 800,
                 color: 'var(--ink)',
-                letterSpacing: '-0.015em',
+                letterSpacing: '-0.02em',
               }}
             >
               아직 등록된 강아지가 없어요
@@ -131,7 +132,7 @@ export default async function DogsPage() {
               <li key={dog.id}>
                 <Link
                   href={`/dogs/${dog.id}`}
-                  className="flex items-center gap-4 bg-white rounded-2xl border border-rule px-5 py-4 hover:border-text hover:shadow-sm transition-all"
+                  className="flex items-center gap-4 bg-bg-3 rounded border border-rule px-5 py-4 hover:border-text transition-all"
                 >
                   <div className="relative w-12 h-12 bg-bg rounded-full overflow-hidden flex items-center justify-center flex-shrink-0">
                     {dog.photo_url ? (
@@ -151,12 +152,12 @@ export default async function DogsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3
-                      className="font-serif truncate"
+                      className="font-sans truncate"
                       style={{
-                        fontSize: 16,
-                        fontWeight: 700,
+                        fontSize: 17,
+                        fontWeight: 800,
                         color: 'var(--ink)',
-                        letterSpacing: '-0.015em',
+                        letterSpacing: '-0.02em',
                       }}
                     >
                       {dog.name}
