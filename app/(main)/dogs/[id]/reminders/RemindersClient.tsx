@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { useConfirm } from '@/components/v3'
 
 export type ReminderType =
   | 'vaccine'
@@ -134,6 +135,7 @@ export default function RemindersClient({
 }) {
   const supabase = createClient()
   const toast = useToast()
+  const confirm = useConfirm()
   const [reminders, setReminders] = useState<Reminder[]>(initial)
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -264,7 +266,13 @@ export default function RemindersClient({
   }
 
   async function remove(id: string) {
-    if (!confirm('이 리마인더를 삭제할까요?')) return
+    const ok = await confirm({
+      title: '이 리마인더를 삭제할까요?',
+      body: '예약된 알림이 더 이상 오지 않아요.',
+      confirmLabel: '삭제',
+      tone: 'destructive',
+    })
+    if (!ok) return
     const { error } = await supabase.from('dog_reminders').delete().eq('id', id)
     if (error) {
       toast.error('삭제하지 못했어요')

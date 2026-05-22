@@ -19,6 +19,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
+import { useConfirm } from '@/components/v3'
 
 /**
  * 사진 일기 client view — list + 새 entry 모달.
@@ -66,6 +67,7 @@ export default function DiaryClient({
 }) {
   const supabase = createClient()
   const toast = useToast()
+  const confirm = useConfirm()
   const [entries, setEntries] = useState<Entry[]>(initialEntries)
   const [showNew, setShowNew] = useState(false)
   const [draftFiles, setDraftFiles] = useState<File[]>([])
@@ -178,7 +180,13 @@ export default function DiaryClient({
   }
 
   async function handleDelete(entryId: string) {
-    if (!confirm('이 일기를 삭제하시겠어요?')) return
+    const ok = await confirm({
+      title: '이 일기를 삭제할까요?',
+      body: '사진과 메모 모두 사라져요. 되돌릴 수 없어요.',
+      confirmLabel: '삭제',
+      tone: 'destructive',
+    })
+    if (!ok) return
     const { error } = await supabase
       .from('dog_diary')
       .delete()

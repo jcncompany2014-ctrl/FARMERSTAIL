@@ -21,3 +21,9 @@ export { default as MiniBars } from './MiniBars'
 export { default as Skeleton, SkeletonStack } from './Skeleton'
 export { default as Tabs, type TabOption } from './Tabs'
 export { default as Modal } from './Modal'
+export {
+  ConfirmProvider,
+  useConfirm,
+  type ConfirmOptions,
+  type ConfirmTone,
+} from './useConfirm'

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/Spinner'
+import { useConfirm } from '@/components/v3'
 import type { ChatNudge } from '@/lib/chat/proactive-nudges'
 
 /**
@@ -43,6 +44,7 @@ export default function ChatClient({
   dogs: Array<{ id: string; name: string }>
 }) {
   const toast = useToast()
+  const confirm = useConfirm()
   const [input, setInput] = useState('')
   const [selectedDogId, setSelectedDogId] = useState<string>(
     dogs[0]?.id ?? '',
@@ -180,7 +182,13 @@ export default function ChatClient({
   }
 
   async function clearHistory() {
-    if (!confirm('이 대화를 삭제할까요? 되돌릴 수 없어요.')) return
+    const ok = await confirm({
+      title: '이 대화를 삭제할까요?',
+      body: '되돌릴 수 없어요.',
+      confirmLabel: '삭제',
+      tone: 'destructive',
+    })
+    if (!ok) return
     try {
       const url = selectedDogId
         ? `/api/chatbot?dogId=${selectedDogId}`

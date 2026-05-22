@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { useConfirm } from '@/components/v3'
 import MedicalRecordOcr from '@/components/MedicalRecordOcr'
 import MedicalRecordForm from '@/components/MedicalRecordForm'
 
@@ -83,6 +84,7 @@ export default function HealthLogClient({
 }) {
   const supabase = createClient()
   const toast = useToast()
+  const confirm = useConfirm()
   const [logs, setLogs] = useState<HealthLog[]>(initialLogs)
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(initialLogs.length === 0)
@@ -165,7 +167,13 @@ export default function HealthLogClient({
   }
 
   async function deleteLog(id: string) {
-    if (!confirm('이 기록을 삭제할까요?')) return
+    const ok = await confirm({
+      title: '이 건강 기록을 삭제할까요?',
+      body: '되돌릴 수 없어요.',
+      confirmLabel: '삭제',
+      tone: 'destructive',
+    })
+    if (!ok) return
     const { error: delErr } = await supabase
       .from('health_logs')
       .delete()

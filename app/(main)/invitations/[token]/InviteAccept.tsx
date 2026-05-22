@@ -10,6 +10,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { useConfirm } from '@/components/v3'
 
 const ROLE_LABEL: Record<'member' | 'viewer', string> = {
   member: '함께 케어하는 가족',
@@ -38,6 +39,7 @@ export default function InviteAccept({
 }) {
   const router = useRouter()
   const toast = useToast()
+  const confirm = useConfirm()
   const [busy, setBusy] = useState(false)
   const [accepted, setAccepted] = useState(false)
 
@@ -78,7 +80,13 @@ export default function InviteAccept({
 
   async function handleDecline() {
     if (busy) return
-    if (!confirm('초대를 거절할까요?')) return
+    const ok = await confirm({
+      title: '초대를 거절할까요?',
+      body: '초대 링크가 더 이상 작동하지 않아요. 보호자에게 새로 부탁해야 해요.',
+      confirmLabel: '거절',
+      tone: 'destructive',
+    })
+    if (!ok) return
     setBusy(true)
     try {
       // 거절 endpoint 는 후속에 — 일단 클라이언트 측에서 뒤로가기
