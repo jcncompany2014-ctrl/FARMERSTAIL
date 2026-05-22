@@ -78,7 +78,7 @@ export default function PreferencesPanel() {
 
   if (!prefs) {
     return (
-      <div className="bg-white rounded-2xl border border-rule p-6 flex items-center justify-center">
+      <div className="bg-bg-3 rounded border border-rule p-6 flex items-center justify-center">
         <Loader2 className="w-4 h-4 animate-spin text-muted" strokeWidth={2} />
       </div>
     )
@@ -87,7 +87,7 @@ export default function PreferencesPanel() {
   const quietOn = prefs.quiet_hours_start !== null && prefs.quiet_hours_end !== null
 
   return (
-    <div className="bg-white rounded-2xl border border-rule p-5 space-y-4">
+    <div className="bg-bg-3 rounded border border-rule p-5 space-y-4">
       <div>
         <span className="kicker kicker-muted">Categories</span>
         <ul className="mt-3 space-y-3">
@@ -108,7 +108,7 @@ export default function PreferencesPanel() {
                   } disabled:opacity-50`}
                 >
                   <span
-                    className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${
+                    className={`absolute top-0.5 w-5 h-5 rounded-full bg-bg-3 transition-all ${
                       on ? 'left-[18px]' : 'left-0.5'
                     }`}
                   />

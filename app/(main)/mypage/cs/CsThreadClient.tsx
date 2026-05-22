@@ -80,7 +80,7 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
           내 정보
         </Link>
         <h1
-          className="font-serif mt-3"
+          className="font-sans mt-3"
           style={{
             fontSize: 22,
             fontWeight: 800,
@@ -98,7 +98,7 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
       {/* thread */}
       <section className="flex-1 px-5 mt-3">
         {messages.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-rule p-8 text-center">
+          <div className="bg-bg-3 rounded border border-rule p-8 text-center">
             <MessageCircle
               className="w-9 h-9 text-muted mx-auto mb-3"
               strokeWidth={1.3}
@@ -122,7 +122,7 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
 
       {/* 입력 form — sticky bottom */}
       <section className="sticky bottom-[calc(88px+env(safe-area-inset-bottom))] z-10 px-5 mt-4">
-        <div className="bg-white rounded-2xl border border-rule px-4 py-3 shadow-sm">
+        <div className="bg-bg-3 rounded border border-rule px-4 py-3 shadow-sm">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value.slice(0, 2000))}
@@ -168,10 +168,10 @@ function Bubble({ message }: { message: Msg }) {
   return (
     <li className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
+        className={`max-w-[75%] rounded px-3.5 py-2.5 ${
           mine
             ? 'bg-terracotta text-white rounded-br-md'
-            : 'bg-white border border-rule text-text rounded-bl-md'
+            : 'bg-bg-3 border border-rule text-text rounded-bl-md'
         }`}
       >
         {!mine && (

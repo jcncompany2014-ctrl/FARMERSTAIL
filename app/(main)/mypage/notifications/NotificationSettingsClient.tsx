@@ -220,7 +220,7 @@ export default function NotificationSettingsClient({
         </Link>
         <span className="kicker mt-3 block">Notifications</span>
         <h1
-          className="font-serif mt-1.5"
+          className="font-sans mt-1.5"
           style={{
             fontSize: 22,
             fontWeight: 800,
@@ -237,7 +237,7 @@ export default function NotificationSettingsClient({
 
       {/* 메인 토글 */}
       <section className="px-5 mt-4">
-        <div className="bg-white rounded-2xl border border-rule p-5">
+        <div className="bg-bg-3 rounded border border-rule p-5">
           <div className="flex items-center gap-3">
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center ${
@@ -292,7 +292,7 @@ export default function NotificationSettingsClient({
                 disabled={
                   status === 'unsubscribing' || status === 'subscribing'
                 }
-                className="py-3 rounded-xl bg-white border border-rule text-text text-[12px] font-bold hover:border-text transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                className="py-3 rounded bg-bg-3 border border-rule text-text text-[12px] font-bold hover:border-text transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
               >
                 {status === 'unsubscribing' ? (
                   <>
@@ -340,7 +340,7 @@ export default function NotificationSettingsClient({
               <button
                 onClick={sendTest}
                 disabled={testing}
-                className="py-3 rounded-xl bg-text text-white text-[12px] font-bold active:scale-[0.98] transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                className="py-3 rounded bg-text text-white text-[12px] font-bold active:scale-[0.98] transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
               >
                 {testing ? (
                   <>
@@ -385,7 +385,7 @@ export default function NotificationSettingsClient({
           <span className="kicker kicker-muted">Devices</span>
         </div>
         {subs.length === 0 ? (
-          <div className="bg-white rounded-xl border border-dashed border-rule-2 p-6 text-center">
+          <div className="bg-bg-3 rounded border border-dashed border-rule-2 p-6 text-center">
             <p className="text-[11px] text-muted">
               아직 등록된 기기가 없어요.
             </p>
@@ -397,7 +397,7 @@ export default function NotificationSettingsClient({
               return (
                 <li
                   key={s.id}
-                  className="bg-white rounded-xl border border-rule px-4 py-3 flex items-start gap-3"
+                  className="bg-bg-3 rounded border border-rule px-4 py-3 flex items-start gap-3"
                 >
                   <Smartphone
                     className="w-4 h-4 text-muted shrink-0 mt-0.5"

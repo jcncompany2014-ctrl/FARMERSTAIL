@@ -68,7 +68,7 @@ export default function DeleteAccountForm() {
   return (
     <form onSubmit={handleSubmit} className="px-5 mt-4 space-y-4">
       {/* 탈퇴 사유 */}
-      <div className="bg-white rounded-2xl border border-rule px-5 py-5">
+      <div className="bg-bg-3 rounded border border-rule px-5 py-5">
         <label className="block text-[13px] font-black text-text mb-3">
           탈퇴 사유{' '}
           <span className="text-[10px] text-muted font-semibold">
@@ -112,7 +112,7 @@ export default function DeleteAccountForm() {
       </div>
 
       {/* 동의 */}
-      <div className="bg-white rounded-2xl border border-rule px-5 py-5">
+      <div className="bg-bg-3 rounded border border-rule px-5 py-5">
         <label className="flex items-start gap-2.5 cursor-pointer">
           <input
             type="checkbox"
@@ -129,7 +129,7 @@ export default function DeleteAccountForm() {
       </div>
 
       {/* 확인 문구 */}
-      <div className="bg-white rounded-2xl border border-rule px-5 py-5">
+      <div className="bg-bg-3 rounded border border-rule px-5 py-5">
         <label className="block text-[13px] font-black text-text mb-2">
           확인 문구 입력
         </label>
@@ -149,7 +149,7 @@ export default function DeleteAccountForm() {
       </div>
 
       {error && (
-        <div className="bg-sale/5 border border-sale/30 rounded-xl px-4 py-3">
+        <div className="bg-sale/5 border border-sale/30 rounded px-4 py-3">
           <div className="flex items-start gap-2">
             <AlertTriangle
               className="w-4 h-4 text-sale shrink-0 mt-0.5"
@@ -163,7 +163,7 @@ export default function DeleteAccountForm() {
       <button
         type="submit"
         disabled={!canSubmit}
-        className="w-full py-3.5 rounded-xl bg-sale text-white text-[14px] font-black hover:brightness-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-full py-3.5 rounded bg-sale text-white text-[14px] font-black hover:brightness-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {loading ? '탈퇴 처리 중...' : '회원 탈퇴'}
       </button>

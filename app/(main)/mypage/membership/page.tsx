@@ -158,7 +158,7 @@ export default async function MembershipPage() {
                   Member · {meta.en}
                 </div>
                 <h1
-                  className="font-serif mt-1 leading-tight"
+                  className="font-sans mt-1 leading-tight"
                   style={{
                     fontSize: 28,
                     fontWeight: 800,
@@ -173,7 +173,7 @@ export default async function MembershipPage() {
             {/* 누적 + 다음 등급 */}
             <div className="mt-5 grid grid-cols-2 gap-3">
               <div
-                className="rounded-xl px-4 py-3"
+                className="rounded px-4 py-3"
                 style={{ background: 'rgba(255,255,255,0.12)' }}
               >
                 <div
@@ -184,7 +184,7 @@ export default async function MembershipPage() {
                 </div>
                 <div className="mt-1 flex items-baseline gap-0.5">
                   <span
-                    className="font-serif font-black leading-none tabular-nums"
+                    className="font-sans font-black leading-none tabular-nums"
                     style={{ fontSize: 22, letterSpacing: '-0.02em' }}
                   >
                     {cumulativeSpend.toLocaleString('ko-KR')}
@@ -195,7 +195,7 @@ export default async function MembershipPage() {
                 </div>
               </div>
               <div
-                className="rounded-xl px-4 py-3"
+                className="rounded px-4 py-3"
                 style={{ background: 'rgba(255,255,255,0.12)' }}
               >
                 <div
@@ -206,7 +206,7 @@ export default async function MembershipPage() {
                 </div>
                 <div className="mt-1 flex items-baseline gap-0.5">
                   <span
-                    className="font-serif font-black leading-none tabular-nums"
+                    className="font-sans font-black leading-none tabular-nums"
                     style={{ fontSize: 22, letterSpacing: '-0.02em' }}
                   >
                     {orderCount ?? 0}
@@ -278,7 +278,7 @@ export default async function MembershipPage() {
             <span className="kicker">Certificate</span>
           </div>
           <div
-            className="rounded-2xl px-5 py-5"
+            className="rounded px-5 py-5"
             style={{
               background: 'var(--ink)',
               color: 'var(--bg)',
@@ -293,7 +293,7 @@ export default async function MembershipPage() {
                 <Link
                   key={d.id}
                   href={`/mypage/certificate/${d.id}`}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition active:scale-[0.99]"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded transition active:scale-[0.99]"
                   style={{ background: 'rgba(255,255,255,0.08)' }}
                 >
                   <div
@@ -349,7 +349,7 @@ export default async function MembershipPage() {
           />
           <span className="kicker">My Benefits</span>
         </div>
-        <ul className="bg-white rounded-2xl border border-rule overflow-hidden">
+        <ul className="bg-bg-3 rounded border border-rule overflow-hidden">
           {meta.benefits.map((b, i) => {
             const Icon = ICON_MAP[b.Icon]
             return (
@@ -407,7 +407,7 @@ export default async function MembershipPage() {
 
       {/* 등급 산정 안내 */}
       <section className="px-5 mt-5">
-        <div className="rounded-xl bg-bg-2 px-4 py-3.5 text-[10.5px] text-text leading-relaxed">
+        <div className="rounded bg-bg-2 px-4 py-3.5 text-[10.5px] text-text leading-relaxed">
           <p className="font-bold text-text mb-1.5">등급 산정 안내</p>
           <ul className="space-y-1 text-text/80">
             <li>
@@ -443,7 +443,7 @@ function TierRow({
   const isCurrent = currentTier === t.key
   return (
     <div
-      className="rounded-xl px-4 py-3 transition"
+      className="rounded px-4 py-3 transition"
       style={{
         background: isCurrent
           ? 'color-mix(in srgb, ' + t.bg + ' 8%, white)'

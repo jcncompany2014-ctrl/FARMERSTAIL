@@ -211,7 +211,7 @@ export default function ReferralView({
               </span>
             </div>
             <h1
-              className="font-serif leading-tight"
+              className="font-sans leading-tight"
               style={{
                 fontSize: 26,
                 fontWeight: 800,
@@ -229,7 +229,7 @@ export default function ReferralView({
             {/* 누적 카운트 + 적립금 */}
             <div className="mt-5 grid grid-cols-2 gap-3">
               <div
-                className="rounded-xl px-3.5 py-3"
+                className="rounded px-3.5 py-3"
                 style={{ background: 'rgba(255,255,255,0.12)' }}
               >
                 <div className="text-[10px] text-white/70 font-bold uppercase tracking-widest">
@@ -237,7 +237,7 @@ export default function ReferralView({
                 </div>
                 <div className="mt-1 flex items-baseline gap-0.5">
                   <span
-                    className="font-serif font-black leading-none"
+                    className="font-sans font-black leading-none"
                     style={{ fontSize: 26, letterSpacing: '-0.02em' }}
                   >
                     {referredCount}
@@ -246,7 +246,7 @@ export default function ReferralView({
                 </div>
               </div>
               <div
-                className="rounded-xl px-3.5 py-3"
+                className="rounded px-3.5 py-3"
                 style={{ background: 'rgba(255,255,255,0.12)' }}
               >
                 <div className="text-[10px] text-white/70 font-bold uppercase tracking-widest">
@@ -254,7 +254,7 @@ export default function ReferralView({
                 </div>
                 <div className="mt-1 flex items-baseline gap-0.5">
                   <span
-                    className="font-serif font-black leading-none text-gold"
+                    className="font-sans font-black leading-none text-gold"
                     style={{ fontSize: 26, letterSpacing: '-0.02em' }}
                   >
                     {totalEarned.toLocaleString()}
@@ -283,7 +283,7 @@ export default function ReferralView({
 
       {/* 코드 + 링크 통합 카드 */}
       <section className="px-5 mt-3">
-        <div className="bg-white rounded-2xl border border-rule overflow-hidden">
+        <div className="bg-bg-3 rounded border border-rule overflow-hidden">
           {/* 코드 표시 + 복사 */}
           <button
             type="button"
@@ -394,7 +394,7 @@ export default function ReferralView({
         {/* 진행률 bar */}
         {nextMilestone && (
           <div
-            className="mb-3 rounded-xl border border-rule px-4 py-3"
+            className="mb-3 rounded border border-rule px-4 py-3"
             style={{ background: 'white' }}
           >
             <div className="flex items-center justify-between mb-2">
@@ -436,7 +436,7 @@ export default function ReferralView({
             return (
               <li
                 key={m.count}
-                className="rounded-xl border px-4 py-3 flex items-center justify-between"
+                className="rounded border px-4 py-3 flex items-center justify-between"
                 style={{
                   background: reached ? 'color-mix(in srgb, var(--moss) 6%, white)' : 'white',
                   borderColor: reached ? 'var(--moss)' : 'var(--rule)',
@@ -508,7 +508,7 @@ export default function ReferralView({
               <li key={d.id}>
                 <Link
                   href={`/dogs/${d.id}/share`}
-                  className="flex items-center gap-3 bg-white rounded-2xl border border-rule px-4 py-3 hover:border-terracotta transition active:scale-[0.99]"
+                  className="flex items-center gap-3 bg-bg-3 rounded border border-rule px-4 py-3 hover:border-terracotta transition active:scale-[0.99]"
                 >
                   <div className="shrink-0 w-12 h-12 rounded-full bg-bg-2 overflow-hidden flex items-center justify-center">
                     {d.photo_url ? (
@@ -548,7 +548,7 @@ export default function ReferralView({
       {/* 받은 초대 코드 입력 (아직 등록 안 한 유저만) */}
       {!alreadyRedeemed && (
         <section className="px-5 mt-5">
-          <div className="bg-white rounded-2xl border border-rule px-5 py-5">
+          <div className="bg-bg-3 rounded border border-rule px-5 py-5">
             <div className="flex items-center gap-2 mb-2">
               <Gift className="w-4 h-4 text-terracotta" strokeWidth={2} />
               <h2 className="text-[13px] font-black text-text">
@@ -611,7 +611,7 @@ export default function ReferralView({
 
         {recent.length === 0 ? (
           <div
-            className="rounded-2xl border px-5 py-10 text-center"
+            className="rounded border px-5 py-10 text-center"
             style={{
               background: 'var(--bg-2)',
               borderColor: 'var(--rule-2)',
@@ -635,7 +635,7 @@ export default function ReferralView({
             </p>
           </div>
         ) : (
-          <ul className="bg-white rounded-2xl border border-rule overflow-hidden">
+          <ul className="bg-bg-3 rounded border border-rule overflow-hidden">
             {recent.map((r, i) => (
               <li
                 key={r.id}
@@ -679,7 +679,7 @@ export default function ReferralView({
 
       {/* 안내 */}
       <section className="px-5 mt-5">
-        <div className="rounded-xl bg-bg-2 px-4 py-3.5 text-[10.5px] text-text leading-relaxed">
+        <div className="rounded bg-bg-2 px-4 py-3.5 text-[10.5px] text-text leading-relaxed">
           <p className="font-bold text-text mb-1.5">How it works</p>
           <ol className="space-y-1 text-text/80">
             <li>

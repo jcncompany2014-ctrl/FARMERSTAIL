@@ -118,7 +118,7 @@ export default function CertificateClient({
         <div className="mt-3">
           <span className="kicker">Certificate</span>
           <h1
-            className="font-serif mt-1.5"
+            className="font-sans mt-1.5"
             style={{
               fontSize: 22,
               fontWeight: 800,
@@ -391,21 +391,21 @@ export default function CertificateClient({
       <section className="px-5 mt-5 grid grid-cols-3 gap-2 print:hidden max-w-[520px] mx-auto">
         <button
           onClick={handlePrint}
-          className="flex flex-col items-center gap-1 py-3 rounded-xl border border-rule bg-white hover:border-text transition"
+          className="flex flex-col items-center gap-1 py-3 rounded border border-rule bg-bg-3 hover:border-text transition"
         >
           <Printer className="w-4 h-4" strokeWidth={2} />
           <span className="text-[11px] font-bold">인쇄·PDF</span>
         </button>
         <button
           onClick={handleDownloadImage}
-          className="flex flex-col items-center gap-1 py-3 rounded-xl bg-ink text-bg hover:opacity-95 transition"
+          className="flex flex-col items-center gap-1 py-3 rounded bg-ink text-bg hover:opacity-95 transition"
         >
           <Download className="w-4 h-4" strokeWidth={2} />
           <span className="text-[11px] font-bold">이미지 저장</span>
         </button>
         <button
           onClick={handleShare}
-          className="flex flex-col items-center gap-1 py-3 rounded-xl border border-rule bg-white hover:border-text transition"
+          className="flex flex-col items-center gap-1 py-3 rounded border border-rule bg-bg-3 hover:border-text transition"
         >
           <Share2 className="w-4 h-4" strokeWidth={2} />
           <span className="text-[11px] font-bold">공유</span>
@@ -414,7 +414,7 @@ export default function CertificateClient({
 
       <section className="px-5 mt-5 print:hidden max-w-[520px] mx-auto">
         <div
-          className="flex items-start gap-2 px-4 py-3 rounded-xl"
+          className="flex items-start gap-2 px-4 py-3 rounded"
           style={{ background: 'var(--bg-2)' }}
         >
           <Award

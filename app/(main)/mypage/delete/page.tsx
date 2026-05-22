@@ -70,7 +70,7 @@ export default async function DeleteAccountPage() {
           </span>
         </div>
         <h1
-          className="font-serif mt-1.5"
+          className="font-sans mt-1.5"
           style={{
             fontSize: 22,
             fontWeight: 800,
@@ -88,7 +88,7 @@ export default async function DeleteAccountPage() {
       {/* 진행 중 주문이 있으면 차단 */}
       {hasOpen && (
         <section className="px-5 mt-4">
-          <div className="bg-sale/5 border border-sale/30 rounded-2xl px-5 py-4">
+          <div className="bg-sale/5 border border-sale/30 rounded px-5 py-4">
             <div className="flex items-start gap-2">
               <AlertTriangle
                 className="w-4 h-4 text-sale shrink-0 mt-0.5"
@@ -129,9 +129,9 @@ export default async function DeleteAccountPage() {
 
       {/* 탈퇴 후 처리 안내 */}
       <section className="px-5 mt-4">
-        <div className="bg-white rounded-2xl border border-rule px-5 py-5">
+        <div className="bg-bg-3 rounded border border-rule px-5 py-5">
           <h2
-            className="font-serif mb-3"
+            className="font-sans mb-3"
             style={{
               fontSize: 13,
               fontWeight: 800,
@@ -179,7 +179,7 @@ export default async function DeleteAccountPage() {
         <section className="px-5 mt-4">
           <Link
             href="/mypage"
-            className="block text-center py-3 rounded-full bg-white border border-rule text-[13px] font-bold text-text hover:bg-bg transition"
+            className="block text-center py-3 rounded-full bg-bg-3 border border-rule text-[13px] font-bold text-text hover:bg-bg transition"
           >
             돌아가기
           </Link>

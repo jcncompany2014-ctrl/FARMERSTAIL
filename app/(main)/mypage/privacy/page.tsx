@@ -93,7 +93,7 @@ export default async function PrivacyDashboardPage() {
         <span className="kicker">Privacy</span>
       </div>
       <h1
-        className="font-serif text-[24px] mt-1.5"
+        className="font-sans text-[24px] mt-1.5"
         style={{
           color: 'var(--ink)',
           fontWeight: 800,
@@ -116,7 +116,7 @@ export default async function PrivacyDashboardPage() {
       </div>
 
       {/* 보유 항목 카운트 */}
-      <section className="mt-4 bg-white rounded-2xl border border-rule p-5">
+      <section className="mt-4 bg-bg-3 rounded border border-rule p-5">
         <div className="flex items-center gap-2 mb-3">
           <Database className="w-3.5 h-3.5 text-text" strokeWidth={2} />
           <h2 className="text-[12px] font-bold uppercase tracking-widest text-muted">
@@ -139,7 +139,7 @@ export default async function PrivacyDashboardPage() {
       </section>
 
       {/* JSON 다운로드 */}
-      <section className="mt-4 bg-white rounded-2xl border border-rule p-5">
+      <section className="mt-4 bg-bg-3 rounded border border-rule p-5">
         <div className="flex items-center gap-2 mb-3">
           <Download className="w-3.5 h-3.5 text-text" strokeWidth={2} />
           <h2 className="text-[12px] font-bold uppercase tracking-widest text-muted">
@@ -170,7 +170,7 @@ export default async function PrivacyDashboardPage() {
       </section>
 
       {/* 정정 · 삭제 — 정보 편집 직링크 */}
-      <section className="mt-4 bg-white rounded-2xl border border-rule p-5">
+      <section className="mt-4 bg-bg-3 rounded border border-rule p-5">
         <div className="flex items-center gap-2 mb-3">
           <FileText className="w-3.5 h-3.5 text-text" strokeWidth={2} />
           <h2 className="text-[12px] font-bold uppercase tracking-widest text-muted">
@@ -195,7 +195,7 @@ export default async function PrivacyDashboardPage() {
       </section>
 
       {/* 처리정지 / 탈퇴 */}
-      <section className="mt-4 bg-white rounded-2xl border border-rule p-5">
+      <section className="mt-4 bg-bg-3 rounded border border-rule p-5">
         <div className="flex items-center gap-2 mb-3">
           <AlertTriangle className="w-3.5 h-3.5 text-sale" strokeWidth={2} />
           <h2 className="text-[12px] font-bold uppercase tracking-widest text-muted">
@@ -218,7 +218,7 @@ export default async function PrivacyDashboardPage() {
       </section>
 
       {/* DPO */}
-      <section className="mt-4 bg-bg-2 rounded-2xl p-5">
+      <section className="mt-4 bg-bg-2 rounded p-5">
         <p
           className="text-[10.5px] uppercase tracking-widest font-bold mb-2"
           style={{ color: 'var(--muted)' }}

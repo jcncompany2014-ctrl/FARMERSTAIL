@@ -131,7 +131,7 @@ export default function ConsentSettingsClient({
         </Link>
         <span className="kicker mt-3 block">Consent</span>
         <h1
-          className="font-serif mt-1.5"
+          className="font-sans mt-1.5"
           style={{
             fontSize: 22,
             fontWeight: 800,
@@ -190,7 +190,7 @@ export default function ConsentSettingsClient({
           <span className="kicker kicker-muted">History</span>
         </div>
         {hist.length === 0 ? (
-          <div className="bg-white rounded-xl border border-dashed border-rule-2 p-6 text-center">
+          <div className="bg-bg-3 rounded border border-dashed border-rule-2 p-6 text-center">
             <p className="text-[11px] text-muted">변경 이력이 없어요.</p>
           </div>
         ) : (
@@ -198,7 +198,7 @@ export default function ConsentSettingsClient({
             {hist.map((h) => (
               <li
                 key={h.id}
-                className="bg-white rounded-xl border border-rule px-4 py-3 flex items-start gap-3"
+                className="bg-bg-3 rounded border border-rule px-4 py-3 flex items-start gap-3"
               >
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
@@ -253,7 +253,7 @@ function ConsentRow({
   onChange: (next: boolean) => void
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-rule p-5">
+    <div className="bg-bg-3 rounded border border-rule p-5">
       <div className="flex items-start gap-3">
         <div
           className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -282,7 +282,7 @@ function ConsentRow({
           } disabled:opacity-50`}
         >
           <span
-            className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${
+            className={`absolute top-0.5 w-5 h-5 rounded-full bg-bg-3 transition-all ${
               on ? 'left-[18px]' : 'left-0.5'
             }`}
           />
