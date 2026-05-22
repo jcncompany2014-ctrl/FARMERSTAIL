@@ -99,7 +99,7 @@ export default function InviteAccept({
 
   return (
     <main className="min-h-[80vh] flex items-center justify-center px-5 py-10">
-      <div className="w-full max-w-sm rounded-2xl border bg-white px-6 py-7 shadow-sm" style={{ borderColor: 'var(--rule)' }}>
+      <div className="w-full max-w-sm rounded border bg-bg-3 px-6 py-7 shadow-sm" style={{ borderColor: 'var(--rule)' }}>
         {/* 헤더 아이콘 */}
         <div className="flex justify-center mb-4">
           <div
@@ -146,7 +146,7 @@ export default function InviteAccept({
               Family · 가족 초대
             </span>
             <h1
-              className="font-serif text-center mt-1.5 leading-tight"
+              className="font-sans text-center mt-1.5 leading-tight"
               style={{
                 fontSize: 19,
                 fontWeight: 800,
@@ -163,7 +163,7 @@ export default function InviteAccept({
             )}
 
             {role && (
-              <div className="mt-5 rounded-xl border bg-bg/40 px-4 py-3" style={{ borderColor: 'var(--rule)' }}>
+              <div className="mt-5 rounded border bg-bg/40 px-4 py-3" style={{ borderColor: 'var(--rule)' }}>
                 <div className="text-[10.5px] font-bold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
                   역할
                 </div>
@@ -187,7 +187,7 @@ export default function InviteAccept({
                 type="button"
                 onClick={handleAccept}
                 disabled={busy}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl text-[13px] font-bold text-white transition active:scale-[0.99] disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded text-[13px] font-bold text-white transition active:scale-[0.99] disabled:opacity-60"
                 style={{ background: 'var(--terracotta)' }}
               >
                 {busy ? (
@@ -206,7 +206,7 @@ export default function InviteAccept({
                 type="button"
                 onClick={handleDecline}
                 disabled={busy}
-                className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-[12px] font-bold text-muted hover:text-text transition disabled:opacity-60"
+                className="inline-flex items-center justify-center px-4 py-2.5 rounded text-[12px] font-bold text-muted hover:text-text transition disabled:opacity-60"
               >
                 다음에 할게요
               </button>

@@ -43,7 +43,7 @@ export default function AppError({
           />
         </div>
         <h1
-          className="font-serif text-[20px] mb-2"
+          className="font-sans text-[20px] mb-2"
           style={{
             fontWeight: 800,
             color: 'var(--ink)',

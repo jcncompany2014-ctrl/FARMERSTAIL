@@ -36,7 +36,7 @@ export default function SubscriptionCard({
 
   return (
     <section className="px-5 mt-3">
-      <div className="bg-white rounded-2xl border border-rule p-5">
+      <div className="bg-bg-3 rounded border border-rule p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Repeat className="w-3.5 h-3.5 text-moss" strokeWidth={2} />
@@ -82,7 +82,7 @@ export default function SubscriptionCard({
               return (
                 <li
                   key={s.id}
-                  className="rounded-xl border border-rule px-4 py-3 flex flex-col gap-1.5 bg-bg-2/30"
+                  className="rounded border border-rule px-4 py-3 flex flex-col gap-1.5 bg-bg-2/30"
                 >
                   {/* UI audit H2: 좌측 (badge + plan) flex-1 min-w-0 + truncate.
                       긴 가격 (1,234,567원/월) 시 plan 라벨이 잘리되 layout 안 깨짐. */}

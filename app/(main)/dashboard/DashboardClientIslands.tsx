@@ -139,7 +139,7 @@ export function OngoingEvents({
             <span className="kicker">Ongoing</span>
           </div>
           <h2
-            className="font-serif"
+            className="font-sans"
             style={{
               fontSize: 17,
               fontWeight: 800,
@@ -284,7 +284,7 @@ function EventCard({
             {event.kicker}
           </span>
           <div
-            className="font-serif mt-1.5 leading-[0.95]"
+            className="font-sans mt-1.5 leading-[0.95]"
             style={{
               fontSize: 30,
               fontWeight: 900,
@@ -310,7 +310,7 @@ function EventCard({
               {event.koSubtitle}
             </span>
             <span
-              className="font-serif"
+              className="font-sans"
               style={{
                 fontSize: 14,
                 fontWeight: 800,
@@ -469,7 +469,7 @@ function WelcomeBenefitModal({
 
           <h3
             id="welcome-modal-title"
-            className="font-serif mt-2 leading-[0.95]"
+            className="font-sans mt-2 leading-[0.95]"
             style={{
               fontSize: 34,
               fontWeight: 900,
@@ -481,7 +481,7 @@ function WelcomeBenefitModal({
 
           {!expired && (
             <p
-              className="font-serif italic mt-2"
+              className="font-sans italic mt-2"
               style={{
                 fontSize: 16,
                 fontWeight: 500,
@@ -523,7 +523,7 @@ function WelcomeBenefitModal({
                   Benefit
                 </div>
                 <div
-                  className="font-serif mt-1"
+                  className="font-sans mt-1"
                   style={{
                     fontSize: 22,
                     fontWeight: 900,

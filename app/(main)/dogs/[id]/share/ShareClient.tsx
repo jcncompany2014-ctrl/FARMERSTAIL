@@ -110,7 +110,7 @@ export default function ShareClient({
         <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">
           PREVIEW · 미리보기
         </div>
-        <div className="rounded-3xl overflow-hidden shadow-lg bg-white border border-rule">
+        <div className="rounded-3xl overflow-hidden shadow-lg bg-bg-3 border border-rule">
           {/* 강아지 사진 */}
           <div className="relative aspect-[4/3] bg-bg-2">
             {dog.photoUrl ? (
@@ -151,7 +151,7 @@ export default function ShareClient({
           <div className="px-5 py-4">
             <div className="flex items-baseline gap-2">
               <h2
-                className="font-serif"
+                className="font-sans"
                 style={{
                   fontSize: 22,
                   fontWeight: 800,
@@ -174,7 +174,7 @@ export default function ShareClient({
 
             {/* 추천 코드 + 가입 안내 */}
             <div
-              className="mt-3 px-3 py-2.5 rounded-xl flex items-center gap-2"
+              className="mt-3 px-3 py-2.5 rounded flex items-center gap-2"
               style={{
                 background: 'color-mix(in srgb, var(--terracotta) 8%, white)',
                 border: '1px dashed var(--terracotta)',
@@ -206,7 +206,7 @@ export default function ShareClient({
         <div className="text-[10.5px] font-bold text-muted uppercase tracking-widest mb-2">
           메시지 편집
         </div>
-        <div className="bg-white rounded-2xl border border-rule px-4 py-3">
+        <div className="bg-bg-3 rounded border border-rule px-4 py-3">
           <input
             type="text"
             value={message}
@@ -258,7 +258,7 @@ export default function ShareClient({
         <button
           type="button"
           onClick={() => copy(shareUrl, 'link')}
-          className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-rule bg-white text-[12px] font-bold text-text hover:border-text transition"
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded border border-rule bg-bg-3 text-[12px] font-bold text-text hover:border-text transition"
         >
           {copied === 'link' ? (
             <>
@@ -275,7 +275,7 @@ export default function ShareClient({
         <button
           type="button"
           onClick={() => copy(referralCode, 'code')}
-          className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-rule bg-white text-[12px] font-bold text-text hover:border-text transition"
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded border border-rule bg-bg-3 text-[12px] font-bold text-text hover:border-text transition"
         >
           {copied === 'code' ? (
             <>
@@ -293,7 +293,7 @@ export default function ShareClient({
 
       {/* 안내 */}
       <section className="px-5 mt-5">
-        <div className="rounded-xl bg-bg-2 px-4 py-3.5 text-[10.5px] text-text leading-relaxed">
+        <div className="rounded bg-bg-2 px-4 py-3.5 text-[10.5px] text-text leading-relaxed">
           <p className="font-bold text-text mb-1.5 inline-flex items-center gap-1">
             <Share2 className="w-3 h-3" strokeWidth={2.5} />
             공유 효과

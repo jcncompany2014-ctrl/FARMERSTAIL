@@ -238,7 +238,7 @@ export default function DogDetailClient({
 
       {/* Hero */}
       <section className="px-5 mt-4">
-        <div className="bg-white rounded-2xl border border-rule px-6 py-8 text-center">
+        <div className="bg-bg-3 rounded border border-rule px-6 py-8 text-center">
           <div className="relative w-24 h-24 bg-bg rounded-full overflow-hidden flex items-center justify-center mx-auto mb-4">
             {dog.photo_url ? (
               <Image
@@ -257,7 +257,7 @@ export default function DogDetailClient({
             )}
           </div>
           <span className="kicker mb-2 inline-block">Dog Profile</span>
-          <h1 className="font-serif" style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+          <h1 className="font-sans" style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
             {dog.name}
           </h1>
           {dog.breed && (
@@ -268,7 +268,7 @@ export default function DogDetailClient({
 
       {/* Info card */}
       <section className="px-5 mt-3">
-        <div className="bg-white rounded-2xl border border-rule px-5 py-4">
+        <div className="bg-bg-3 rounded border border-rule px-5 py-4">
           <InfoRow
             label="성별"
             value={dog.gender ? genderText[dog.gender] ?? '-' : '-'}
@@ -338,7 +338,7 @@ export default function DogDetailClient({
 
       {/* 체중 추이 카드 */}
       <section className="px-5 mt-3">
-        <div className="bg-white rounded-2xl border border-rule p-5">
+        <div className="bg-bg-3 rounded border border-rule p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Scale className="w-3.5 h-3.5 text-moss" strokeWidth={2} />
@@ -431,7 +431,7 @@ export default function DogDetailClient({
             aria-labelledby="weight-modal-title"
             tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-t-2xl sm:rounded-2xl border-t sm:border border-rule p-6 max-w-sm w-full shadow-xl"
+            className="bg-bg-3 rounded-t-2xl sm:rounded border-t sm:border border-rule p-6 max-w-sm w-full shadow-xl"
           >
             <div className="flex items-center gap-2 mb-1">
               <Scale className="w-3.5 h-3.5 text-moss" strokeWidth={2} />
@@ -439,7 +439,7 @@ export default function DogDetailClient({
             </div>
             <h3
               id="weight-modal-title"
-              className="font-serif text-[18px] font-black text-text"
+              className="font-sans text-[18px] font-black text-text"
             >
               {dog.name}의 체중
             </h3>
@@ -492,7 +492,7 @@ export default function DogDetailClient({
               <button
                 onClick={closeWeightModal}
                 disabled={savingWeight}
-                className="w-full py-3 rounded-xl bg-white text-muted text-[13px] font-bold border border-rule hover:border-text hover:text-text transition"
+                className="w-full py-3 rounded bg-bg-3 text-muted text-[13px] font-bold border border-rule hover:border-text hover:text-text transition"
               >
                 취소
               </button>
@@ -505,9 +505,9 @@ export default function DogDetailClient({
       <section className="px-5 mt-4 space-y-2.5">
         <Link
           href={`/dogs/${dog.id}/analysis`}
-          className="flex items-center gap-3 w-full px-5 py-4 bg-text text-white rounded-2xl active:scale-[0.99] transition"
+          className="flex items-center gap-3 w-full px-5 py-4 bg-text text-white rounded active:scale-[0.99] transition"
         >
-          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full bg-bg-3/10 flex items-center justify-center">
             <BarChart3 className="w-4 h-4" strokeWidth={2} />
           </div>
           <div className="flex-1 text-left">
@@ -519,9 +519,9 @@ export default function DogDetailClient({
         </Link>
         <Link
           href={`/dogs/${dog.id}/survey`}
-          className="flex items-center gap-3 w-full px-5 py-4 bg-terracotta text-white rounded-2xl active:scale-[0.99] transition"
+          className="flex items-center gap-3 w-full px-5 py-4 bg-terracotta text-white rounded active:scale-[0.99] transition"
         >
-          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full bg-bg-3/10 flex items-center justify-center">
             <ClipboardList className="w-4 h-4" strokeWidth={2} />
           </div>
           <div className="flex-1 text-left">
@@ -537,7 +537,7 @@ export default function DogDetailClient({
       <section className="px-5 mt-3 space-y-2">
         <Link
           href={`/dogs/${dog.id}/analyses`}
-          className="flex items-center gap-3 w-full px-5 py-3.5 bg-white rounded-xl border border-rule hover:border-text transition"
+          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
         >
           <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
             <History className="w-4 h-4 text-moss" strokeWidth={2} />
@@ -553,7 +553,7 @@ export default function DogDetailClient({
         </Link>
         <Link
           href={`/dogs/${dog.id}/health`}
-          className="flex items-center gap-3 w-full px-5 py-3.5 bg-white rounded-xl border border-rule hover:border-text transition"
+          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
         >
           <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
             <Heart className="w-4 h-4 text-sale" strokeWidth={2} />
@@ -569,7 +569,7 @@ export default function DogDetailClient({
         </Link>
         <Link
           href={`/dogs/${dog.id}/reminders`}
-          className="flex items-center gap-3 w-full px-5 py-3.5 bg-white rounded-xl border border-rule hover:border-text transition"
+          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
         >
           <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
             <Bell className="w-4 h-4 text-terracotta" strokeWidth={2} />
@@ -608,14 +608,14 @@ export default function DogDetailClient({
       <section className="px-5 mt-3 grid grid-cols-2 gap-2.5">
         <Link
           href={`/dogs/${dog.id}/edit`}
-          className="flex items-center justify-center gap-1.5 py-3 bg-white text-text rounded-xl border border-rule hover:border-text text-[12px] font-bold transition"
+          className="flex items-center justify-center gap-1.5 py-3 bg-bg-3 text-text rounded border border-rule hover:border-text text-[12px] font-bold transition"
         >
           <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
           정보 수정
         </Link>
         <button
           onClick={() => setShowDeleteConfirm(true)}
-          className="flex items-center justify-center gap-1.5 py-3 bg-white text-sale rounded-xl border border-rule hover:border-sale text-[12px] font-bold transition"
+          className="flex items-center justify-center gap-1.5 py-3 bg-bg-3 text-sale rounded border border-rule hover:border-sale text-[12px] font-bold transition"
         >
           <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
           삭제
@@ -636,7 +636,7 @@ export default function DogDetailClient({
             aria-describedby="delete-modal-desc"
             tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl border border-rule p-6 max-w-sm w-full shadow-xl"
+            className="bg-bg-3 rounded border border-rule p-6 max-w-sm w-full shadow-xl"
           >
             <div className="flex justify-center mb-3">
               <div className="w-12 h-12 rounded-full bg-[#FFF5F3] flex items-center justify-center">
@@ -648,7 +648,7 @@ export default function DogDetailClient({
             </div>
             <h3
               id="delete-modal-title"
-              className="font-serif text-[18px] font-black text-text text-center mb-2"
+              className="font-sans text-[18px] font-black text-text text-center mb-2"
             >
               정말 삭제할까요?
             </h3>
@@ -674,14 +674,14 @@ export default function DogDetailClient({
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="w-full py-3 rounded-xl bg-sale text-white text-[13px] font-black active:scale-[0.98] transition disabled:opacity-50"
+                className="w-full py-3 rounded bg-sale text-white text-[13px] font-black active:scale-[0.98] transition disabled:opacity-50"
               >
                 {deleting ? '삭제 중...' : '네, 삭제할래요'}
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleting}
-                className="w-full py-3 rounded-xl bg-white text-muted text-[13px] font-bold border border-rule hover:border-text hover:text-text transition"
+                className="w-full py-3 rounded bg-bg-3 text-muted text-[13px] font-bold border border-rule hover:border-text hover:text-text transition"
               >
                 취소
               </button>
@@ -703,7 +703,7 @@ export default function DogDetailClient({
             aria-labelledby="welcome-sheet-title"
             tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-t-2xl sm:rounded-2xl border-t sm:border border-rule p-6 max-w-sm w-full shadow-xl"
+            className="bg-bg-3 rounded-t-2xl sm:rounded border-t sm:border border-rule p-6 max-w-sm w-full shadow-xl"
           >
             <div className="flex justify-center mb-3">
               <div className="w-14 h-14 rounded-full bg-bg flex items-center justify-center">
@@ -718,7 +718,7 @@ export default function DogDetailClient({
             </div>
             <h3
               id="welcome-sheet-title"
-              className="font-serif text-[20px] font-black text-text text-center"
+              className="font-sans text-[20px] font-black text-text text-center"
             >
               {dog.name} 등록 완료!
             </h3>
@@ -728,7 +728,7 @@ export default function DogDetailClient({
               알려주시면 맞춤 식단을 추천해 드려요.
             </p>
 
-            <div className="mt-5 rounded-xl bg-bg p-4 space-y-2">
+            <div className="mt-5 rounded bg-bg p-4 space-y-2">
               <div className="flex items-start gap-2.5">
                 <Sparkles
                   className="w-3.5 h-3.5 text-terracotta mt-0.5 shrink-0"
@@ -771,7 +771,7 @@ export default function DogDetailClient({
               </button>
               <button
                 onClick={() => setShowWelcomeSheet(false)}
-                className="w-full py-3 rounded-xl bg-white text-muted text-[12px] font-bold border border-rule hover:border-text hover:text-text transition"
+                className="w-full py-3 rounded bg-bg-3 text-muted text-[12px] font-bold border border-rule hover:border-text hover:text-text transition"
               >
                 먼저 둘러볼게요
               </button>

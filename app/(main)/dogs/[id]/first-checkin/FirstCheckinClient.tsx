@@ -92,7 +92,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
         <div className="text-center">
           <div className="text-5xl mb-4">💚</div>
           <h1
-            className="font-serif"
+            className="font-sans"
             style={{
               fontSize: 22,
               fontWeight: 800,
@@ -123,7 +123,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
     <main className="px-5 pt-10 pb-20 max-w-md mx-auto">
       <span className="kicker">First Box · 7일차 체크인</span>
       <h1
-        className="font-serif mt-2"
+        className="font-sans mt-2"
         style={{
           fontSize: 22,
           fontWeight: 800,
@@ -154,7 +154,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
               key={opt.value}
               type="button"
               onClick={() => setChoice(opt.value)}
-              className="flex items-center gap-4 p-4 rounded-2xl text-left active:scale-[0.98] transition"
+              className="flex items-center gap-4 p-4 rounded text-left active:scale-[0.98] transition"
               style={{
                 background: selected ? 'var(--ink)' : 'var(--bg-2)',
                 color: selected ? 'var(--bg)' : 'var(--ink)',
@@ -185,7 +185,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
           maxLength={200}
           rows={3}
           placeholder="예: 변 상태가 좋아졌어요 / 활동량이 늘었어요 / 가려움이 줄었어요…"
-          className="w-full px-4 py-3 rounded-xl text-[13px] leading-relaxed resize-none"
+          className="w-full px-4 py-3 rounded text-[13px] leading-relaxed resize-none"
           style={{
             background: 'var(--bg-2)',
             border: '1px solid var(--rule)',

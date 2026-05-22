@@ -65,10 +65,10 @@ export default function CurrentFormulaCard({
   return (
     <section className="px-5 mt-3">
       <div
-        className={`rounded-2xl p-5 ${
+        className={`rounded p-5 ${
           isPending
             ? 'bg-terracotta/5 border-2 border-terracotta/30'
-            : 'bg-white border border-rule'
+            : 'bg-bg-3 border border-rule'
         }`}
       >
         <div className="flex items-center justify-between mb-3">
@@ -134,7 +134,7 @@ export default function CurrentFormulaCard({
         {isPending ? (
           <Link
             href={`/dogs/${dogId}/approve?cycle=${formula.cycle_number}`}
-            className="block w-full py-3 px-4 rounded-xl bg-terracotta text-white text-[12.5px] font-bold text-center transition-transform active:scale-[0.98]"
+            className="block w-full py-3 px-4 rounded bg-terracotta text-white text-[12.5px] font-bold text-center transition-transform active:scale-[0.98]"
           >
             새 비율 확인하기 →
           </Link>

@@ -259,7 +259,7 @@ export default function ChatClient({
                 고치든 자유 — 자율성 유지 (voice-guidelines §5). */}
             {nudge && !nudgeDismissed && (
               <div
-                className="rounded-2xl border-2 px-4 py-3"
+                className="rounded border-2 px-4 py-3"
                 style={{
                   background: 'color-mix(in srgb, var(--terracotta) 5%, white)',
                   borderColor:
@@ -332,7 +332,7 @@ export default function ChatClient({
             ))}
             {loading && (
               <div
-                className="rounded-2xl border-2 px-4 py-3"
+                className="rounded border-2 px-4 py-3"
                 style={{
                   background: 'color-mix(in srgb, var(--moss) 4%, white)',
                   borderColor:
@@ -346,7 +346,7 @@ export default function ChatClient({
               </div>
             )}
             {error && (
-              <div className="flex items-start gap-2 text-[12px] text-sale rounded-xl bg-sale/8 px-3 py-2">
+              <div className="flex items-start gap-2 text-[12px] text-sale rounded bg-sale/8 px-3 py-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
@@ -368,7 +368,7 @@ export default function ChatClient({
 
       {/* 입력 폼 — 항상 하단 */}
       <section className="px-5 mt-4 sticky bottom-[calc(88px+env(safe-area-inset-bottom))] z-10">
-        <div className="bg-white rounded-2xl border border-rule px-4 py-3 shadow-sm">
+        <div className="bg-bg-3 rounded border border-rule px-4 py-3 shadow-sm">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value.slice(0, 500))}
@@ -447,7 +447,7 @@ function MessageBubble({ message }: { message: Message }) {
         )}
       </div>
       <div
-        className={`flex-1 min-w-0 max-w-[80%] rounded-2xl px-3.5 py-2.5 ${
+        className={`flex-1 min-w-0 max-w-[80%] rounded px-3.5 py-2.5 ${
           isUser ? 'rounded-tr-sm' : 'rounded-tl-sm'
         }`}
         style={{

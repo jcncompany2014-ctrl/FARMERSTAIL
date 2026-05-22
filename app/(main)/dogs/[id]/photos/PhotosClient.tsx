@@ -147,7 +147,7 @@ export default function PhotosClient({
           {dogName ?? '강아지'} 상세로
         </Link>
         <h1
-          className="font-serif"
+          className="font-sans"
           style={{
             fontSize: 24,
             fontWeight: 800,
@@ -164,7 +164,7 @@ export default function PhotosClient({
 
         {/* 업로드 영역 */}
         <section
-          className="mt-5 rounded-2xl border bg-white p-4"
+          className="mt-5 rounded border bg-bg-3 p-4"
           style={{ borderColor: 'var(--rule)' }}
         >
           {/* view picker */}
@@ -197,7 +197,7 @@ export default function PhotosClient({
             type="date"
             value={takenAt}
             onChange={(e) => setTakenAt(e.target.value)}
-            className="w-full rounded-xl border px-3 py-2 text-[14px]"
+            className="w-full rounded border px-3 py-2 text-[14px]"
             style={{ borderColor: 'var(--rule)' }}
           />
           <label className="block text-[11px] font-bold text-muted mt-3 mb-1">
@@ -209,13 +209,13 @@ export default function PhotosClient({
             onChange={(e) => setNote(e.target.value)}
             placeholder="예: 산책 후 / 체중 6.2kg / 털 자른 후"
             maxLength={500}
-            className="w-full rounded-xl border px-3 py-2 text-[14px]"
+            className="w-full rounded border px-3 py-2 text-[14px]"
             style={{ borderColor: 'var(--rule)' }}
           />
 
           {/* 업로드 버튼 (input file 트리거) */}
           <label
-            className={`mt-4 flex items-center justify-center gap-2 w-full rounded-xl py-3 text-[14px] font-bold cursor-pointer transition ${
+            className={`mt-4 flex items-center justify-center gap-2 w-full rounded py-3 text-[14px] font-bold cursor-pointer transition ${
               uploading
                 ? 'bg-bg text-muted'
                 : 'bg-terracotta text-white active:scale-[0.99]'
@@ -270,7 +270,7 @@ export default function PhotosClient({
         <section className="mt-6">
           {photos.length === 0 ? (
             <div
-              className="rounded-2xl border bg-white px-4 py-10 text-center"
+              className="rounded border bg-bg-3 px-4 py-10 text-center"
               style={{ borderColor: 'var(--rule)' }}
             >
               <ImageIcon

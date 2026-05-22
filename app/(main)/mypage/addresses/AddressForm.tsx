@@ -112,7 +112,7 @@ export default function AddressForm({ mode, initial }: Props) {
           {mode === 'edit' ? 'Edit · 배송지 수정' : 'New · 배송지 추가'}
         </span>
         <h1
-          className="font-serif mt-1.5"
+          className="font-sans mt-1.5"
           style={{
             fontSize: 22,
             fontWeight: 800,
