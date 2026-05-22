@@ -235,8 +235,9 @@ export default function SubscribeClient({
   // 보존 (cron 배송 메모로 옮길 예정). lint void 회피용 ref 한 줄.
   void memo
 
+  // v3: rounded-xl(12) → rounded(4), bg-[#FDFDFD] → bg-bg-3 (paperHi).
   const inputCls =
-    'w-full px-4 py-3 rounded-xl border border-rule bg-[#FDFDFD] text-[13px] text-text placeholder:text-muted focus:outline-none focus:border-moss transition'
+    'w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13px] text-text placeholder:text-muted focus:outline-none focus:border-moss transition'
   const labelCls =
     'block text-[10px] font-semibold text-muted mb-1.5 uppercase tracking-[0.2em]'
 
@@ -250,16 +251,19 @@ export default function SubscribeClient({
           ← 제품으로 돌아가기
         </Link>
         <div className="mt-3">
-          <span className="kicker inline-block">Subscribe</span>
-          <h1 className="font-serif text-[22px] font-black text-text tracking-tight mt-1.5 inline-flex items-center gap-2">
-            <Repeat className="w-5 h-5 text-moss" strokeWidth={2} />
+          <span className="kicker inline-block">Subscribe · 정기배송</span>
+          <h1
+            className="font-sans text-[28px] font-black text-text tracking-tight mt-1.5 inline-flex items-center gap-2"
+            style={{ letterSpacing: '-0.02em', lineHeight: 1 }}
+          >
+            <Repeat className="w-5 h-5 text-moss" strokeWidth={2.2} />
             정기배송 신청
           </h1>
         </div>
 
         {/* 제품 요약 */}
-        <div className="mt-4 bg-white rounded-2xl border border-rule p-4 flex gap-4 items-center">
-          <div className="w-20 h-20 rounded-xl border border-rule overflow-hidden flex-shrink-0 bg-bg">
+        <div className="mt-4 bg-bg-3 rounded border border-rule p-4 flex gap-4 items-center">
+          <div className="w-20 h-20 rounded border border-rule overflow-hidden flex-shrink-0 bg-bg">
             {product.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -304,7 +308,7 @@ export default function SubscribeClient({
         </div>
 
         {/* 배송 주기 */}
-        <div className="mt-3 bg-white rounded-2xl border border-rule p-5">
+        <div className="mt-3 bg-bg-3 rounded border border-rule p-5">
           <div className={labelCls}>배송 주기</div>
           {/* UI audit A-7: 3 카드 h-full + min-h — 한국어 길이 차로 row 높이 변동 차단. */}
           <div className="grid grid-cols-3 gap-2">
@@ -312,7 +316,7 @@ export default function SubscribeClient({
               <button
                 key={opt.value}
                 onClick={() => setInterval(opt.value)}
-                className={`h-full min-h-[72px] py-3 px-2 rounded-xl border text-center transition ${
+                className={`h-full min-h-[72px] py-3 px-2 rounded border text-center transition ${
                   interval === opt.value
                     ? 'border-moss bg-moss/10'
                     : 'border-rule bg-white hover:border-muted'
@@ -336,12 +340,12 @@ export default function SubscribeClient({
         </div>
 
         {/* 수량 */}
-        <div className="mt-3 bg-white rounded-2xl border border-rule p-5">
+        <div className="mt-3 bg-bg-3 rounded border border-rule p-5">
           <div className={labelCls}>수량 (회당)</div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="w-10 h-10 rounded-xl bg-bg font-black text-text text-xl active:scale-95 transition"
+              className="w-10 h-10 rounded bg-bg font-black text-text text-xl active:scale-95 transition"
             >
               −
             </button>
@@ -350,7 +354,7 @@ export default function SubscribeClient({
             </div>
             <button
               onClick={() => setQuantity(quantity + 1)}
-              className="w-10 h-10 rounded-xl bg-bg font-black text-text text-xl active:scale-95 transition"
+              className="w-10 h-10 rounded bg-bg font-black text-text text-xl active:scale-95 transition"
             >
               +
             </button>
@@ -358,7 +362,7 @@ export default function SubscribeClient({
         </div>
 
         {/* 배송지 */}
-        <div className="mt-3 bg-white rounded-2xl border border-rule p-5">
+        <div className="mt-3 bg-bg-3 rounded border border-rule p-5">
           <div className={labelCls}>배송지 정보</div>
           <div className="space-y-3">
             <div>
@@ -405,12 +409,12 @@ export default function SubscribeClient({
                   autoComplete="postal-code"
                   inputMode="numeric"
                   maxLength={5}
-                  className="w-28 px-4 py-3 rounded-xl border border-rule bg-bg text-[13px] text-text"
+                  className="w-28 px-4 py-3 rounded border border-rule bg-bg text-[13px] text-text"
                 />
                 <button
                   type="button"
                   onClick={openAddressSearch}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border border-rule bg-white text-[13px] font-bold text-text hover:border-moss hover:text-moss transition active:scale-95"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded border border-rule bg-white text-[13px] font-bold text-text hover:border-moss hover:text-moss transition active:scale-95"
                 >
                   <Search className="w-3.5 h-3.5" strokeWidth={2} />
                   주소 검색
@@ -422,7 +426,7 @@ export default function SubscribeClient({
                 readOnly
                 placeholder="주소 검색을 눌러주세요"
                 autoComplete="street-address"
-                className="w-full px-4 py-3 rounded-xl border border-rule bg-bg text-[13px] text-text placeholder:text-muted"
+                className="w-full px-4 py-3 rounded border border-rule bg-bg text-[13px] text-text placeholder:text-muted"
               />
             </div>
             <div>
@@ -458,7 +462,7 @@ export default function SubscribeClient({
         </div>
 
         {/* 결제 요약 */}
-        <div className="mt-3 bg-white rounded-2xl border border-rule p-5">
+        <div className="mt-3 bg-bg-3 rounded border border-rule p-5">
           <div className={labelCls}>결제 요약 (회당)</div>
           {/* UI audit A-6: 결제 요약 4 row 우측 가격 tabular-nums — 자릿수 정렬. */}
           <div className="space-y-2 text-[13px]">
@@ -488,7 +492,7 @@ export default function SubscribeClient({
               </span>
             </div>
           </div>
-          <div className="mt-3 p-3 bg-moss/10 rounded-xl">
+          <div className="mt-3 p-3 bg-moss/10 rounded">
             <div className="flex items-center gap-1.5 text-[12px] text-moss font-bold">
               <CalendarDays className="w-3.5 h-3.5" strokeWidth={2} />첫 배송
               예정일:{' '}
@@ -507,7 +511,7 @@ export default function SubscribeClient({
         </div>
 
         {/* 안내 */}
-        <div className="mt-3 p-4 bg-bg rounded-xl">
+        <div className="mt-3 p-4 bg-bg rounded">
           <div className="text-[11px] text-muted space-y-1 leading-relaxed">
             <p>· 정기배송은 배송일 전 알림을 통해 결제가 진행돼요.</p>
             <p>· 언제든지 마이페이지에서 일시정지/해지할 수 있어요.</p>
@@ -523,7 +527,7 @@ export default function SubscribeClient({
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="w-full py-4 rounded-xl text-[13px] font-black active:scale-[0.98] transition disabled:opacity-70 bg-moss text-white shadow-[0_4px_14px_rgba(107,127,58,0.25)]"
+            className="w-full py-4 rounded-full text-[13.5px] font-black active:scale-[0.98] transition disabled:opacity-70 bg-moss text-white shadow-[0_4px_14px_rgba(107,127,58,0.25)]"
           >
             {submitting
               ? '신청 중...'
