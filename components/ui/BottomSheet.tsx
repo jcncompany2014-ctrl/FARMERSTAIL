@@ -111,8 +111,9 @@ function BottomSheetRoot({
       ].join(' ')}
       style={{ maxHeight }}
     >
-      {/* 내부 컨테이너 — dialog 에 직접 bg 를 먹이면 backdrop 과 겹쳐 엉킴 */}
-      <div className="bg-bg rounded-t-3xl shadow-[0_-8px_24px_-12px_rgba(30,26,20,0.25)] flex flex-col overflow-hidden">
+      {/* 내부 컨테이너 — dialog 에 직접 bg 를 먹이면 backdrop 과 겹쳐 엉킴.
+          2026-05-22 R10: rounded-t-3xl(24) → rounded-t-md(6) v3 sharper. */}
+      <div className="bg-bg rounded-t-md shadow-[0_-8px_24px_-12px_rgba(22,20,15,0.22)] flex flex-col overflow-hidden">
         {/* Grabber — 시각적 드래그 힌트. 실제 드래그 제스처는 범위 밖. */}
         <div
           className="flex justify-center pt-2.5 pb-1 shrink-0"
