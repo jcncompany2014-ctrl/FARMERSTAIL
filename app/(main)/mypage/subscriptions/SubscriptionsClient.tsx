@@ -36,7 +36,7 @@ import {
   trackSubscriptionCancelled,
 } from '@/lib/analytics'
 import { V3, V3FontSize, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
-import { Mono } from '@/components/v3'
+import { Mono, Modal } from '@/components/v3'
 
 /**
  * billing-auth fallback customerKey 생성기 — module-scope.
@@ -115,6 +115,8 @@ export default function SubscriptionsClient({
   const [showNewBanner, setShowNewBanner] = useState(isNew)
   const [editingInterval, setEditingInterval] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  // R10-3b: browser confirm() 대체 — 해지 확인 modal 상태.
+  const [cancelSubId, setCancelSubId] = useState<string | null>(null)
 
   useEffect(() => {
     if (isNew) {
@@ -237,14 +239,17 @@ export default function SubscriptionsClient({
     setActionLoading(null)
   }
 
-  async function handleCancel(subId: string) {
-    if (
-      !confirm('정말 정기배송을 해지할까요?\n해지 후에는 다시 신청해야 해요.')
-    )
-      return
+  /**
+   * 해지 실행 — Modal 의 confirm 액션이 호출. 이전엔 browser confirm() 으로
+   * 인라인 분기했지만 Modal 도입 후 분리.
+   */
+  async function performCancel(subId: string) {
     setActionLoading(subId)
     const uid = await requireUid()
-    if (!uid) return
+    if (!uid) {
+      setActionLoading(null)
+      return
+    }
     const sub = subs.find((s) => s.id === subId)
     await (supabase as unknown as {
       from: (t: string) => {
@@ -263,6 +268,7 @@ export default function SubscriptionsClient({
       subscriptionId: subId,
       totalDeliveries: sub?.total_deliveries ?? 0,
     })
+    setCancelSubId(null)
     await reload()
     setActionLoading(null)
   }
@@ -1001,7 +1007,7 @@ export default function SubscriptionsClient({
                                 주기 변경
                               </button>
                               <button
-                                onClick={() => handleCancel(sub.id)}
+                                onClick={() => setCancelSubId(sub.id)}
                                 disabled={isLoading}
                                 className="transition disabled:opacity-50"
                                 style={{
@@ -1047,7 +1053,7 @@ export default function SubscriptionsClient({
                               )}
                             </button>
                             <button
-                              onClick={() => handleCancel(sub.id)}
+                              onClick={() => setCancelSubId(sub.id)}
                               disabled={isLoading}
                               className="transition disabled:opacity-50"
                               style={{
@@ -1073,6 +1079,60 @@ export default function SubscriptionsClient({
           </div>
         )}
       </div>
+
+      {/* R10-3b: 정기배송 해지 확인 modal — browser confirm() 대체. */}
+      <Modal
+        open={cancelSubId !== null}
+        onClose={() => {
+          if (actionLoading === cancelSubId) return
+          setCancelSubId(null)
+        }}
+        title="정기배송을 해지할까요?"
+        dismissOnBackdrop={actionLoading !== cancelSubId}
+        showClose={actionLoading !== cancelSubId}
+      >
+        <Modal.Body>
+          해지 후에는 다시 신청해야 해요. 진행 중인 회차도 더 이상 배송되지 않아요.
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            type="button"
+            onClick={() => setCancelSubId(null)}
+            disabled={actionLoading === cancelSubId}
+            style={{
+              padding: '10px 18px',
+              borderRadius: V3Radius.sm,
+              fontSize: 12.5,
+              fontWeight: V3FontWeight.bold,
+              background: V3.paperHi,
+              color: V3.inkMute,
+              border: `1px solid ${V3.rule}`,
+              cursor: actionLoading === cancelSubId ? 'not-allowed' : 'pointer',
+              opacity: actionLoading === cancelSubId ? 0.5 : 1,
+            }}
+          >
+            아니요
+          </button>
+          <button
+            type="button"
+            onClick={() => cancelSubId && void performCancel(cancelSubId)}
+            disabled={actionLoading === cancelSubId}
+            style={{
+              padding: '10px 18px',
+              borderRadius: V3Radius.sm,
+              fontSize: 12.5,
+              fontWeight: V3FontWeight.bold,
+              background: V3.sale,
+              color: V3.paperHi,
+              border: 'none',
+              cursor: actionLoading === cancelSubId ? 'not-allowed' : 'pointer',
+              opacity: actionLoading === cancelSubId ? 0.7 : 1,
+            }}
+          >
+            {actionLoading === cancelSubId ? '해지 중…' : '해지하기'}
+          </button>
+        </Modal.Footer>
+      </Modal>
     </main>
   )
 }

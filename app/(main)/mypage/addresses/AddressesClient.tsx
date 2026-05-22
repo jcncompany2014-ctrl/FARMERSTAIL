@@ -14,7 +14,7 @@ import { MapPin, Pencil, Star, Trash2 } from 'lucide-react'
 import type { Address } from '@/lib/commerce/addresses'
 import { useToast } from '@/components/ui/Toast'
 import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
-import { Mono } from '@/components/v3'
+import { Mono, Modal } from '@/components/v3'
 
 export default function AddressesClient({ initial }: { initial: Address[] }) {
   const router = useRouter()
@@ -22,6 +22,8 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
   const [list, setList] = useState<Address[]>(initial)
   const [pending, startTransition] = useTransition()
   const [busyId, setBusyId] = useState<string | null>(null)
+  // R10-3b: browser confirm() 대체 — 삭제 확인 modal 상태.
+  const [deleting, setDeleting] = useState<Address | null>(null)
 
   async function handleSetDefault(id: string) {
     if (busyId) return
@@ -43,18 +45,10 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (busyId) return
-    const target = list.find((a) => a.id === id)
-    if (!target) return
-    const name = target.label || target.address
-    const code = name.charCodeAt(name.length - 1)
-    const eulReul =
-      code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0
-        ? '을'
-        : '를'
-    if (!confirm(`"${name}"${eulReul} 삭제할까요?`)) return
-
+  /**
+   * 삭제 실행 — Modal confirm 액션에서 호출. 이전엔 confirm() 으로 분기.
+   */
+  async function performDelete(id: string) {
     setBusyId(id)
     const prev = list
     setList(list.filter((a) => a.id !== id))
@@ -68,6 +62,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
       toast.error('삭제하지 못했어요')
     } finally {
       setBusyId(null)
+      setDeleting(null)
     }
   }
 
@@ -227,7 +222,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
             </Link>
             <button
               type="button"
-              onClick={() => handleDelete(a.id)}
+              onClick={() => setDeleting(a)}
               disabled={busyId === a.id || pending}
               className="flex-1 inline-flex items-center justify-center transition disabled:opacity-50"
               style={{
@@ -246,6 +241,67 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
           </footer>
         </article>
       ))}
+
+      {/* R10-3b: 배송지 삭제 확인 modal — confirm() 대체. */}
+      <Modal
+        open={deleting !== null}
+        onClose={() => {
+          if (busyId === deleting?.id) return
+          setDeleting(null)
+        }}
+        title="배송지를 삭제할까요?"
+        dismissOnBackdrop={busyId !== deleting?.id}
+        showClose={busyId !== deleting?.id}
+      >
+        <Modal.Body>
+          {deleting && (
+            <>
+              <strong style={{ fontWeight: V3FontWeight.bold, color: V3.ink }}>
+                {deleting.label || deleting.address}
+              </strong>{' '}
+              삭제 후에는 되돌릴 수 없어요.
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            type="button"
+            onClick={() => setDeleting(null)}
+            disabled={busyId === deleting?.id}
+            style={{
+              padding: '10px 18px',
+              borderRadius: V3Radius.sm,
+              fontSize: 12.5,
+              fontWeight: V3FontWeight.bold,
+              background: V3.paperHi,
+              color: V3.inkMute,
+              border: `1px solid ${V3.rule}`,
+              cursor: busyId === deleting?.id ? 'not-allowed' : 'pointer',
+              opacity: busyId === deleting?.id ? 0.5 : 1,
+            }}
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={() => deleting && void performDelete(deleting.id)}
+            disabled={busyId === deleting?.id}
+            style={{
+              padding: '10px 18px',
+              borderRadius: V3Radius.sm,
+              fontSize: 12.5,
+              fontWeight: V3FontWeight.bold,
+              background: V3.sale,
+              color: V3.paperHi,
+              border: 'none',
+              cursor: busyId === deleting?.id ? 'not-allowed' : 'pointer',
+              opacity: busyId === deleting?.id ? 0.7 : 1,
+            }}
+          >
+            {busyId === deleting?.id ? '삭제 중…' : '삭제'}
+          </button>
+        </Modal.Footer>
+      </Modal>
     </section>
   )
 }
