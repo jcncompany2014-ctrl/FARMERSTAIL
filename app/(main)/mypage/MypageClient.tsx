@@ -14,6 +14,7 @@
  * 비즈니스 로직(로그아웃·tier·count)은 audit #101 유지.
  */
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -39,7 +40,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { tierMeta } from '@/lib/tiers'
 import { V3, V3Dark, V3FontSize, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
-import { Mono } from '@/components/v3'
+import { Mono, Modal } from '@/components/v3'
 
 type Profile = {
   name: string | null
@@ -69,9 +70,12 @@ export default function MypageClient({
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
+  // browser confirm() → v3 Modal — 톤 통일 + accessibility 강화 (focus trap).
+  const [logoutOpen, setLogoutOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
 
-  async function handleLogout() {
-    if (!confirm('로그아웃 하시겠어요?')) return
+  async function performLogout() {
+    setLoggingOut(true)
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
@@ -383,7 +387,7 @@ export default function MypageClient({
       {/* 로그아웃 */}
       <section style={{ padding: '16px 20px 0' }}>
         <button
-          onClick={handleLogout}
+          onClick={() => setLogoutOpen(true)}
           className="w-full flex items-center justify-center transition active:scale-[0.98]"
           style={{
             gap: 8,
@@ -401,6 +405,57 @@ export default function MypageClient({
           로그아웃
         </button>
       </section>
+
+      {/* Logout 확인 modal — confirm() 대체. */}
+      <Modal
+        open={logoutOpen}
+        onClose={() => !loggingOut && setLogoutOpen(false)}
+        title="로그아웃 하시겠어요?"
+        dismissOnBackdrop={!loggingOut}
+        showClose={!loggingOut}
+      >
+        <Modal.Body>
+          저장된 정보는 그대로 유지돼요. 다시 로그인하면 똑같이 사용할 수 있어요.
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            type="button"
+            onClick={() => setLogoutOpen(false)}
+            disabled={loggingOut}
+            style={{
+              padding: '10px 18px',
+              borderRadius: V3Radius.sm,
+              fontSize: 12.5,
+              fontWeight: V3FontWeight.bold,
+              background: V3.paperHi,
+              color: V3.inkMute,
+              border: `1px solid ${V3.rule}`,
+              cursor: loggingOut ? 'not-allowed' : 'pointer',
+              opacity: loggingOut ? 0.5 : 1,
+            }}
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={performLogout}
+            disabled={loggingOut}
+            style={{
+              padding: '10px 18px',
+              borderRadius: V3Radius.sm,
+              fontSize: 12.5,
+              fontWeight: V3FontWeight.bold,
+              background: V3.ink,
+              color: V3.paperHi,
+              border: 'none',
+              cursor: loggingOut ? 'not-allowed' : 'pointer',
+              opacity: loggingOut ? 0.7 : 1,
+            }}
+          >
+            {loggingOut ? '로그아웃 중…' : '로그아웃'}
+          </button>
+        </Modal.Footer>
+      </Modal>
 
       {/* 탈퇴 */}
       <section style={{ padding: '12px 20px 0', textAlign: 'center' }}>
