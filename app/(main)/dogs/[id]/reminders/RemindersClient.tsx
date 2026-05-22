@@ -291,7 +291,7 @@ export default function RemindersClient({
           ← {dogName}
         </Link>
         <span className="kicker mt-3 block">Care Reminders</span>
-        <h1 className="font-serif mt-1.5" style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
+        <h1 className="font-sans mt-1.5" style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1 }}>
           리마인더
         </h1>
         <p className="text-[11px] text-muted mt-1">
@@ -334,7 +334,7 @@ export default function RemindersClient({
             리마인더 추가
           </button>
         ) : (
-          <div className="bg-white rounded-2xl border border-rule p-5 space-y-4">
+          <div className="bg-bg-3 rounded border border-rule p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-[13px] font-black text-text">
                 새 리마인더
@@ -437,7 +437,7 @@ export default function RemindersClient({
                       className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition ${
                         active
                           ? 'bg-text text-white border-transparent'
-                          : 'bg-white text-text border-rule hover:border-muted'
+                          : 'bg-bg-3 text-text border-rule hover:border-muted'
                       }`}
                     >
                       {p.label}
@@ -470,7 +470,7 @@ export default function RemindersClient({
             <button
               onClick={add}
               disabled={saving}
-              className="w-full py-3 rounded-xl bg-text text-white text-[13px] font-black active:scale-[0.98] transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+              className="w-full py-3 rounded-full bg-text text-white text-[13.5px] font-black active:scale-[0.98] transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
             >
               {saving ? (
                 <>
@@ -530,7 +530,7 @@ export default function RemindersClient({
           </Group>
         )}
         {reminders.length === 0 && (
-          <div className="bg-white rounded-2xl border border-dashed border-rule-2 p-8 text-center">
+          <div className="bg-bg-3 rounded border border-dashed border-rule p-8 text-center" style={{ borderWidth: 1.5 }}>
             <Bell
               className="w-9 h-9 text-muted mx-auto mb-3"
               strokeWidth={1.5}
@@ -561,7 +561,7 @@ function SummaryCard({
 }) {
   return (
     <div
-      className="rounded-xl px-3 py-3 flex flex-col items-start"
+      className="rounded px-3 py-3 flex flex-col items-start"
       style={{ backgroundColor: `${color}10`, border: `1px solid ${color}25` }}
     >
       <div className="flex items-center gap-1.5">
@@ -626,7 +626,7 @@ function ReminderRow({
       : `${d}일 후`
 
   return (
-    <li className="bg-white rounded-xl border border-rule px-4 py-3">
+    <li className="bg-bg-3 rounded border border-rule px-4 py-3">
       <div className="flex items-start gap-3">
         <div
           className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
@@ -684,7 +684,7 @@ function ReminderRow({
             )}
             <button
               onClick={onToggle}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white text-text border border-rule text-[10px] font-bold hover:border-text transition"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-bg-3 text-text border border-rule text-[10px] font-bold hover:border-text transition"
             >
               {r.enabled ? (
                 <>
@@ -700,7 +700,7 @@ function ReminderRow({
             </button>
             <button
               onClick={onDelete}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white text-sale border border-rule text-[10px] font-bold hover:border-sale transition"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-bg-3 text-sale border border-rule text-[10px] font-bold hover:border-sale transition"
             >
               <Trash2 className="w-3 h-3" strokeWidth={2} />
               삭제

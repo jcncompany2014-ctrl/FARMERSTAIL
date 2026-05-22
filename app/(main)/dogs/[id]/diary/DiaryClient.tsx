@@ -210,14 +210,15 @@ export default function DiaryClient({
         </Link>
         <div className="mt-3 flex items-end justify-between">
           <div>
-            <span className="kicker">Diary</span>
+            <span className="kicker">Diary · 일상 기록</span>
             <h1
-              className="font-serif mt-1.5"
+              className="font-sans mt-1.5"
               style={{
-                fontSize: 22,
+                fontSize: 28,
                 fontWeight: 800,
                 color: 'var(--ink)',
                 letterSpacing: '-0.02em',
+                lineHeight: 1,
               }}
             >
               {dogName} 의 일상
@@ -240,30 +241,31 @@ export default function DiaryClient({
       {entries.length === 0 ? (
         <section className="mt-6">
           <div
-            className="text-center rounded-2xl border px-5 py-12"
+            className="text-center rounded border px-5 py-12"
             style={{
-              background: 'var(--bg-2)',
-              borderColor: 'var(--rule-2)',
+              background: 'var(--bg-3)',
+              borderColor: 'var(--rule)',
               borderStyle: 'dashed',
+              borderWidth: 1.5,
             }}
           >
             <div
               className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-4"
               style={{
                 background: 'var(--bg)',
-                border: '1px solid var(--rule-2)',
+                border: '1px solid var(--rule)',
               }}
             >
               <Camera className="w-6 h-6 text-muted" strokeWidth={1.5} />
             </div>
-            <span className="kicker kicker-muted">First Page</span>
+            <span className="kicker kicker-muted">First Page · 첫 장</span>
             <h3
-              className="font-serif mt-2"
+              className="font-sans mt-2"
               style={{
-                fontSize: 17,
+                fontSize: 18,
                 fontWeight: 800,
                 color: 'var(--ink)',
-                letterSpacing: '-0.015em',
+                letterSpacing: '-0.02em',
               }}
             >
               오늘의 한 장
@@ -286,7 +288,7 @@ export default function DiaryClient({
           {entries.map((entry) => (
             <article
               key={entry.id}
-              className="bg-white rounded-2xl border border-rule overflow-hidden"
+              className="bg-bg-3 rounded border border-rule overflow-hidden"
             >
               {entry.photo_urls.length > 0 && <PhotoGrid urls={entry.photo_urls} />}
               <div className="px-4 py-3">
@@ -347,7 +349,7 @@ export default function DiaryClient({
             aria-modal="true"
             aria-label="새 건강 일지"
             tabIndex={-1}
-            className="w-full md:max-w-md bg-white rounded-t-3xl md:rounded-3xl p-5 max-h-[90vh] overflow-y-auto"
+            className="w-full md:max-w-md bg-bg-3 rounded-t-md md:rounded-md p-5 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -444,7 +446,7 @@ export default function DiaryClient({
                       className={`flex-1 py-2.5 rounded-lg border flex items-center justify-center transition ${
                         active
                           ? 'border-terracotta bg-terracotta/8'
-                          : 'border-rule bg-white'
+                          : 'border-rule bg-bg-3'
                       }`}
                     >
                       <Icon

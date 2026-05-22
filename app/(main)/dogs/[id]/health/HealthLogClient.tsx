@@ -196,7 +196,7 @@ export default function HealthLogClient({
           ← {dogName}
         </Link>
         <span className="kicker mt-3 block">Health Journal</span>
-        <h1 className="font-serif mt-1.5" style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
+        <h1 className="font-sans mt-1.5" style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1 }}>
           건강 일지
         </h1>
         <p className="text-[11px] text-muted mt-1">
@@ -207,7 +207,7 @@ export default function HealthLogClient({
       {/* 이번 주 요약 */}
       <section className="px-5 mt-4">
         <div
-          className="rounded-2xl p-5 text-white"
+          className="rounded p-5 text-white"
           style={{ background: 'var(--ink)' }}
         >
           <div className="flex items-center gap-2 mb-3">
@@ -254,7 +254,7 @@ export default function HealthLogClient({
             오늘 건강 기록하기
           </button>
         ) : (
-          <div className="bg-white rounded-2xl border border-rule p-5 space-y-4">
+          <div className="bg-bg-3 rounded border border-rule p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-[13px] font-black text-text">
                 오늘 기록 · {formatLoggedAt(todayIso())}
@@ -289,7 +289,7 @@ export default function HealthLogClient({
                 value={poopCount}
                 onChange={(e) => setPoopCount(e.target.value)}
                 placeholder="예: 2"
-                className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition"
+                className="w-full px-3 py-2.5 rounded border border-rule bg-bg-3 text-[13px] focus:outline-none focus:border-terracotta transition"
               />
             </div>
             <PickerRow
@@ -337,7 +337,7 @@ export default function HealthLogClient({
             <button
               onClick={saveLog}
               disabled={saving}
-              className="w-full py-3 rounded-xl bg-text text-white text-[13px] font-black active:scale-[0.98] transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+              className="w-full py-3 rounded-full bg-text text-white text-[13.5px] font-black active:scale-[0.98] transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
             >
               {saving ? (
                 <>
@@ -394,7 +394,7 @@ export default function HealthLogClient({
           최근 30일 기록
         </h2>
         {logs.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-dashed border-rule-2 p-8 text-center">
+          <div className="bg-bg-3 rounded border border-dashed border-rule p-8 text-center" style={{ borderWidth: 1.5 }}>
             <Heart
               className="w-9 h-9 text-muted mx-auto mb-3"
               strokeWidth={1.5}
@@ -485,7 +485,7 @@ function PickerRow({
               className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition ${
                 active
                   ? 'text-white border-transparent'
-                  : 'bg-white text-text border-rule hover:border-muted'
+                  : 'bg-bg-3 text-text border-rule hover:border-muted'
               }`}
               style={active ? { backgroundColor: meta.color } : undefined}
             >
@@ -541,7 +541,7 @@ function LogRow({
   }
 
   return (
-    <li className="bg-white rounded-xl border border-rule px-4 py-3">
+    <li className="bg-bg-3 rounded border border-rule px-4 py-3">
       <button
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between gap-2 text-left"
