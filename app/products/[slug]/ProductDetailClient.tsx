@@ -584,19 +584,24 @@ export default function ProductDetailClient({
               variantId={selectedVariant?.id ?? null}
             />
           ) : (
+            // R11-4: 모바일 sticky CTA v3 — rounded-2xl → rounded(4),
+            // bg #fff → paperHi, terracotta hex → var(--terracotta) (auto v3).
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={toggleWish}
                 disabled={wishBusy}
                 aria-label={wished ? '찜 해제' : '찜하기'}
-                className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition active:scale-95"
+                className="shrink-0 flex items-center justify-center transition active:scale-95"
                 style={{
-                  background: 'var(--bg-2)',
+                  width: 48,
+                  height: 48,
+                  borderRadius: 4,
+                  background: 'var(--paper-hi, #fbf6ec)',
                   color: wished ? 'var(--terracotta)' : 'var(--muted)',
-                  boxShadow: wished
-                    ? 'inset 0 0 0 1px var(--terracotta)'
-                    : 'inset 0 0 0 1px var(--rule)',
+                  border: wished
+                    ? '1px solid var(--terracotta)'
+                    : '1px solid var(--rule)',
                 }}
               >
                 <Heart
@@ -612,26 +617,31 @@ export default function ProductDetailClient({
                 description={product.short_description ?? undefined}
                 imageUrl={product.image_url ?? undefined}
                 iconOnly
-                className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition active:scale-95"
+                className="shrink-0 flex items-center justify-center transition active:scale-95"
                 style={{
-                  background: 'var(--bg-2)',
+                  width: 48,
+                  height: 48,
+                  borderRadius: 4,
+                  background: 'var(--paper-hi, #fbf6ec)',
                   color: 'var(--muted)',
-                  boxShadow: 'inset 0 0 0 1px var(--rule)',
+                  border: '1px solid var(--rule)',
                 }}
               />
 
-              {/* R11-1: subscribe 모드면 단일 CTA "정기배송 신청하기".
-                  one-time 모드면 기존 2-button (장바구니 + 바로 구매). */}
               {effectiveMode === 'subscribe' ? (
                 <button
                   onClick={() => handleAddToCart()}
                   disabled={adding}
-                  className="flex-1 py-4 rounded-2xl font-bold text-[13.5px] transition-all disabled:opacity-70 active:scale-[0.98]"
+                  className="flex-1 font-bold transition-all disabled:opacity-70 active:scale-[0.98]"
                   style={{
-                    background: '#dc532a',
-                    color: '#fff',
+                    padding: '14px 0',
+                    borderRadius: 4,
+                    fontSize: 13.5,
+                    background: 'var(--terracotta)',
+                    color: 'var(--paper-hi, #fbf6ec)',
                     letterSpacing: '-0.01em',
-                    boxShadow: '0 6px 18px rgba(220,83,42,0.35)',
+                    boxShadow: '0 6px 18px rgba(196,74,38,0.32)',
+                    border: 'none',
                   }}
                 >
                   정기배송 신청하기
@@ -641,12 +651,15 @@ export default function ProductDetailClient({
                   <button
                     onClick={() => handleAddToCart()}
                     disabled={adding || added}
-                    className="flex-1 py-4 rounded-2xl font-bold text-[13.5px] transition-all disabled:opacity-70 active:scale-[0.98]"
+                    className="flex-1 font-bold transition-all disabled:opacity-70 active:scale-[0.98]"
                     style={{
-                      background: '#fff',
+                      padding: '14px 0',
+                      borderRadius: 4,
+                      fontSize: 13.5,
+                      background: 'var(--paper-hi, #fbf6ec)',
                       color: 'var(--ink)',
                       letterSpacing: '-0.01em',
-                      boxShadow: 'inset 0 0 0 1.5px var(--ink), 0 2px 8px rgba(0,0,0,0.04)',
+                      border: '1.5px solid var(--ink)',
                     }}
                   >
                     {added ? '담겼어요' : adding ? '담는 중...' : '장바구니'}
@@ -655,12 +668,16 @@ export default function ProductDetailClient({
                   <button
                     onClick={() => handleAddToCart({ redirectAfter: true })}
                     disabled={adding}
-                    className="flex-1 py-4 rounded-2xl font-bold text-[13.5px] transition-all disabled:opacity-70 active:scale-[0.98]"
+                    className="flex-1 font-bold transition-all disabled:opacity-70 active:scale-[0.98]"
                     style={{
-                      background: '#dc532a',
-                      color: '#fff',
+                      padding: '14px 0',
+                      borderRadius: 4,
+                      fontSize: 13.5,
+                      background: 'var(--terracotta)',
+                      color: 'var(--paper-hi, #fbf6ec)',
                       letterSpacing: '-0.01em',
-                      boxShadow: '0 6px 18px rgba(220,83,42,0.35)',
+                      boxShadow: '0 6px 18px rgba(196,74,38,0.32)',
+                      border: 'none',
                     }}
                   >
                     바로 구매
