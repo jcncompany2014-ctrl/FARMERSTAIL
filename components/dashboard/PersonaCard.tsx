@@ -37,7 +37,7 @@ export default function PersonaCard({ spec }: { spec: PersonaCardSpec }) {
               {spec.kicker}
             </span>
             <div
-              className="font-serif mt-1.5 leading-tight"
+              className="font-sans mt-1.5 leading-tight"
               style={{
                 fontSize: 15,
                 fontWeight: 800,

@@ -58,7 +58,7 @@ export default function MilestoneCard({
               {milestone.kicker} · {milestone.label}
             </span>
             <p
-              className="font-serif mt-1.5 leading-snug"
+              className="font-sans mt-1.5 leading-snug"
               style={{
                 fontSize: 14,
                 fontWeight: 700,

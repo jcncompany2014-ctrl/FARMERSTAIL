@@ -103,7 +103,7 @@ export default function NextActionCard({ action }: { action: NextAction }) {
               오늘의 한 가지
             </span>
             <div
-              className="font-serif mt-1.5 leading-tight"
+              className="font-sans mt-1.5 leading-tight"
               style={{
                 fontSize: 16,
                 fontWeight: 800,

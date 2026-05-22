@@ -81,7 +81,7 @@ export default function AccuracyCard({
               </span>
             </div>
             <p
-              className="font-serif mt-1 leading-tight"
+              className="font-sans mt-1 leading-tight"
               style={{
                 fontSize: 15,
                 fontWeight: 800,

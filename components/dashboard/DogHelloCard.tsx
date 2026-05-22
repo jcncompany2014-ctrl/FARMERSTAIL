@@ -48,7 +48,7 @@ export default function DogHelloCard({
             오늘의 가족
           </span>
           <p
-            className="font-serif mt-1 leading-tight"
+            className="font-sans mt-1 leading-tight"
             style={{
               fontSize: 17,
               fontWeight: 800,

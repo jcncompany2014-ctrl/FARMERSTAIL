@@ -146,7 +146,7 @@ export default function OnboardingTutorial() {
         </span>
         <h1
           id="onboarding-title"
-          className="font-serif mt-2 leading-tight"
+          className="font-sans mt-2 leading-tight"
           style={{
             fontSize: 26,
             fontWeight: 800,
