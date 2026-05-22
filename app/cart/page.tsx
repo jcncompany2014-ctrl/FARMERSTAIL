@@ -19,8 +19,6 @@ import CartUpsell from "@/components/cart/CartUpsell";
 import CartAddMore from "@/components/cart/CartAddMore";
 import CartReceipt from "@/components/cart/CartReceipt";
 import CartStickyCTA from "@/components/cart/CartStickyCTA";
-import { V3, V3FontWeight, V3LetterSpacing, V3Radius } from "@/lib/design/tokens";
-import { Mono } from "@/components/v3";
 
 export const dynamic = "force-dynamic";
 
@@ -114,38 +112,13 @@ export default async function CartPage() {
   if (error) {
     return (
       <AuthAwareShell>
-        <main
-          className="mx-auto"
-          style={{ maxWidth: 1200, paddingBottom: 32 }}
-        >
-          <div style={{ padding: '20px' }}>
-            <div
-              style={{
-                background: V3.paperHi,
-                border: `1px solid ${V3.sale}`,
-                borderRadius: V3Radius.sm,
-                padding: '18px 20px',
-              }}
-            >
-              <p
-                style={{
-                  fontSize: 13,
-                  fontWeight: V3FontWeight.bold,
-                  color: V3.sale,
-                  margin: 0,
-                }}
-              >
+        <main className="pb-8 mx-auto" style={{ maxWidth: 1200 }}>
+          <div className="px-5 pt-5 md:px-6">
+            <div className="bg-white rounded-xl border border-rule px-5 py-5">
+              <p className="text-[13px] font-bold text-sale">
                 장바구니를 불러오지 못했어요
               </p>
-              <p
-                style={{
-                  fontSize: 11,
-                  color: V3.inkMute,
-                  marginTop: 6,
-                }}
-              >
-                {error.message}
-              </p>
+              <p className="text-[11px] text-muted mt-1.5">{error.message}</p>
             </div>
           </div>
         </main>
@@ -190,33 +163,21 @@ export default async function CartPage() {
   return (
     <AuthAwareShell>
       <main className="pb-40 md:max-w-6xl md:mx-auto md:pt-4 md:pb-16">
-        {/* ============= 데스크톱 헤더 (md+) — v3 톤 ============= */}
-        <section className="hidden md:block" style={{ padding: '32px 24px 16px' }}>
-          <Mono color="inkMute" size="xs" weight={500}>
-            Cart · 장바구니
-          </Mono>
+        {/* ============= 데스크톱 헤더 (md+) ============= */}
+        <section className="hidden md:block px-5 pt-6 md:pt-8 pb-2 md:pb-4 md:px-6">
+          <span className="kicker">Cart</span>
           <h1
-            className="md:text-[36px] lg:text-[42px]"
+            className="font-serif mt-1.5 md:mt-3 text-[22px] md:text-[36px] lg:text-[42px]"
             style={{
-              margin: '8px 0 0',
-              fontFamily: 'var(--font-sans)',
-              fontWeight: V3FontWeight.black,
-              fontSize: 28,
-              color: V3.ink,
-              letterSpacing: V3LetterSpacing.heading,
+              fontWeight: 800,
+              color: 'var(--ink)',
+              letterSpacing: '-0.025em',
               lineHeight: 1.1,
             }}
           >
             장바구니
           </h1>
-          <p
-            className="md:text-[13px]"
-            style={{
-              fontSize: 11.5,
-              color: V3.inkMute,
-              marginTop: 6,
-            }}
-          >
+          <p className="text-[11px] md:text-[13px] text-muted mt-1 md:mt-2">
             {validRows.length > 0
               ? `${validRows.length}개의 상품이 담겨 있어요`
               : '장바구니가 비어 있어요'}
@@ -224,77 +185,45 @@ export default async function CartPage() {
         </section>
 
         {validRows.length === 0 ? (
-          <section
-            className="md:px-6"
-            style={{ padding: '56px 20px 0' }}
-          >
+          <section className="px-5 md:px-6 mt-14 md:mt-20">
             <div
-              className="text-center max-w-2xl mx-auto"
+              className="rounded-2xl border px-5 py-12 md:px-10 md:py-20 text-center max-w-2xl mx-auto"
               style={{
-                borderRadius: V3Radius.sm,
-                border: `1.5px dashed ${V3.rule}`,
-                padding: '48px 20px',
-                background: V3.paperHi,
+                background: 'var(--bg-2)',
+                borderColor: 'var(--rule-2)',
+                borderStyle: 'dashed',
               }}
             >
               <div
-                className="mx-auto flex items-center justify-center md:w-20 md:h-20"
+                className="w-14 h-14 md:w-20 md:h-20 mx-auto rounded-full flex items-center justify-center"
                 style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 28,
-                  background: V3.paper,
-                  border: `1px solid ${V3.rule}`,
+                  background: 'var(--bg)',
+                  border: '1px solid var(--rule-2)',
                 }}
               >
                 <ShoppingCart
-                  size={24}
-                  color={V3.inkMute}
+                  className="w-6 h-6 md:w-8 md:h-8 text-muted"
                   strokeWidth={1.5}
                 />
               </div>
-              <div style={{ marginTop: 16 }}>
-                <Mono color="inkMute" size="xxs" weight={600}>
-                  Empty
-                </Mono>
-              </div>
+              <span className="kicker mt-4 md:mt-6 block">Empty</span>
               <p
-                className="md:text-[26px]"
+                className="font-serif mt-2 md:mt-3 text-[16px] md:text-[26px]"
                 style={{
-                  margin: '8px 0 0',
-                  fontFamily: 'var(--font-sans)',
-                  fontWeight: V3FontWeight.black,
-                  fontSize: 18,
-                  color: V3.ink,
+                  fontWeight: 800,
+                  color: 'var(--ink)',
                   letterSpacing: '-0.02em',
                 }}
               >
                 장바구니가 비어 있어요
               </p>
-              <p
-                className="md:text-[13px]"
-                style={{
-                  fontSize: 11.5,
-                  color: V3.inkMute,
-                  marginTop: 8,
-                  lineHeight: 1.55,
-                }}
-              >
+              <p className="text-[11px] md:text-[13px] text-muted mt-1.5 md:mt-2.5 leading-relaxed">
                 우리 아이에게 딱 맞는 제품을 찾아보세요
               </p>
               <Link
                 href="/products"
-                className="inline-block active:scale-[0.98] transition md:text-[14px]"
-                style={{
-                  marginTop: 24,
-                  padding: '12px 24px',
-                  borderRadius: V3Radius.pill,
-                  fontSize: 12,
-                  fontWeight: V3FontWeight.bold,
-                  background: V3.ink,
-                  color: V3.paperHi,
-                  textDecoration: 'none',
-                }}
+                className="mt-5 md:mt-7 inline-block px-6 py-2.5 md:px-8 md:py-3.5 rounded-full text-[12px] md:text-[14px] font-bold active:scale-[0.98] transition"
+                style={{ background: 'var(--ink)', color: 'var(--bg)' }}
               >
                 제품 둘러보기
               </Link>
@@ -302,39 +231,27 @@ export default async function CartPage() {
 
             {/* 빈 장바구니 — 추천 상품. 사용자가 카트에서 그냥 이탈하지 않게 */}
             {recProducts.length > 0 && (
-              <div className="md:mt-16" style={{ marginTop: 40 }}>
-                <div
-                  className="flex items-baseline justify-between"
-                  style={{ marginBottom: 14, paddingInline: 2 }}
-                >
+              <div className="mt-10 md:mt-16">
+                <div className="flex items-baseline justify-between mb-3 md:mb-5 px-1">
                   <h2
-                    className="md:text-[22px]"
+                    className="font-serif text-[16px] md:text-[20px]"
                     style={{
-                      margin: 0,
-                      fontFamily: 'var(--font-sans)',
-                      fontWeight: V3FontWeight.black,
-                      fontSize: 18,
-                      color: V3.ink,
-                      letterSpacing: V3LetterSpacing.heading,
+                      fontWeight: 800,
+                      color: 'var(--ink)',
+                      letterSpacing: '-0.02em',
                     }}
                   >
                     이런 건 어때요?
                   </h2>
                   <Link
                     href="/products"
-                    className="md:text-[12.5px]"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: V3FontWeight.bold,
-                      color: V3.accent,
-                      textDecoration: 'underline',
-                      textUnderlineOffset: 2,
-                    }}
+                    className="text-[11px] md:text-[12.5px] font-bold underline underline-offset-2"
+                    style={{ color: 'var(--terracotta)' }}
                   >
                     전체 보기
                   </Link>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 12 }}>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
                   {recProducts.slice(0, 4).map((p) => (
                     <CatalogProductCard key={p.id} product={p} />
                   ))}
@@ -368,119 +285,60 @@ export default async function CartPage() {
                 <CartList initialItems={validRows} />
               </section>
 
-              {/* 데스크톱 전용 sticky 합계 — v3 톤 */}
+              {/* 데스크톱 전용 sticky 합계 */}
               <aside className="hidden md:block md:w-[360px] md:shrink-0">
-                <section
-                  className="md:mt-3 ft-sticky-product-col"
-                  style={{ padding: 0 }}
-                >
-                  <div
-                    style={{
-                      background: V3.paperHi,
-                      border: `1px solid ${V3.rule}`,
-                      borderRadius: V3Radius.sm,
-                      padding: '18px 22px',
-                    }}
-                  >
-                    <Mono color="inkMute" size="xs" weight={500}>
-                      Order Summary · 주문 요약
-                    </Mono>
-                    <h2
-                      style={{
-                        margin: '6px 0 18px',
-                        fontFamily: 'var(--font-sans)',
-                        fontWeight: V3FontWeight.black,
-                        fontSize: 17,
-                        color: V3.ink,
-                        letterSpacing: '-0.015em',
-                      }}
-                    >
-                      주문 요약
-                    </h2>
-                    <div className="flex justify-between" style={{ fontSize: 13 }}>
-                      <span style={{ color: V3.inkSoft }}>상품 금액</span>
-                      <span
-                        className="tabular-nums"
-                        style={{ fontWeight: V3FontWeight.bold, color: V3.ink }}
-                      >
+                <section className="md:px-0 md:mt-3 ft-sticky-product-col">
+                  <div className="bg-white rounded-xl border border-rule px-5 py-4 md:px-6 md:py-5">
+                    <h2 className="hidden md:block font-serif font-black mb-4 md:mb-5 text-[16px]" style={{ color: 'var(--ink)', letterSpacing: '-0.015em' }}>주문 요약</h2>
+                    <div className="flex justify-between text-[12px] md:text-[13px] text-text">
+                      <span>상품 금액</span>
+                      <span className="font-bold text-text tabular-nums">
                         {subtotal.toLocaleString()}원
                       </span>
                     </div>
-                    <div
-                      className="flex justify-between"
-                      style={{ fontSize: 13, marginTop: 8 }}
-                    >
-                      <span style={{ color: V3.inkSoft }}>배송비</span>
-                      <span
-                        className="tabular-nums"
-                        style={{ fontWeight: V3FontWeight.bold, color: V3.ink }}
-                      >
+                    <div className="flex justify-between text-[12px] md:text-[13px] text-text mt-2">
+                      <span>배송비</span>
+                      <span className="font-bold text-text tabular-nums">
                         {shipping === 0
-                          ? '무료'
+                          ? "무료"
                           : `${shipping.toLocaleString()}원`}
                       </span>
                     </div>
                     {shippingBreakdown.remainingToFree > 0 && (
-                      <Mono
-                        color="inkMute"
-                        size="xxs"
-                        weight={500}
-                        letterSpacing="0.04em"
-                        upper={false}
-                        style={{ marginTop: 6, display: 'inline-block' }}
-                      >
-                        {shippingBreakdown.remainingToFree.toLocaleString()}원 더
-                        담으면 무료배송
-                      </Mono>
+                      <p className="text-[10px] md:text-[11px] text-muted mt-1.5">
+                        {shippingBreakdown.remainingToFree.toLocaleString()}원 더 담으면 무료배송
+                      </p>
                     )}
-                    <div
-                      style={{
-                        borderTop: `1px solid ${V3.rule}`,
-                        margin: '16px 0',
-                      }}
-                    />
+                    <div className="border-t border-rule my-3 md:my-4" />
                     <div className="flex justify-between items-center">
                       <span
-                        style={{
-                          fontWeight: V3FontWeight.bold,
-                          fontSize: 14,
-                          color: V3.ink,
-                        }}
+                        className="font-bold text-[13px] md:text-[14px]"
+                        style={{ color: 'var(--ink)' }}
                       >
                         총 결제금액
                       </span>
-                      <div className="flex items-baseline" style={{ gap: 3 }}>
+                      <div className="flex items-baseline gap-1">
                         <span
-                          className="tabular-nums"
+                          className="font-serif text-[18px] md:text-[24px] tabular-nums"
                           style={{
-                            fontFamily: 'var(--font-sans)',
-                            fontSize: 24,
-                            fontWeight: V3FontWeight.black,
-                            color: V3.accent,
+                            fontWeight: 800,
+                            color: 'var(--terracotta)',
                             letterSpacing: '-0.02em',
                           }}
                         >
                           {total.toLocaleString()}
                         </span>
-                        <Mono color="inkMute" size="xs" weight={500}>
-                          원
-                        </Mono>
+                        <span className="text-[11px] md:text-[13px] text-muted">원</span>
                       </div>
                     </div>
 
                     <Link
                       href="/checkout"
-                      className="hidden md:block w-full text-center active:scale-[0.98] transition"
+                      className="hidden md:block mt-5 w-full text-center py-3.5 rounded-full text-[14px] font-bold active:scale-[0.98] transition"
                       style={{
-                        marginTop: 20,
-                        padding: '14px 0',
-                        borderRadius: V3Radius.pill,
-                        fontSize: 14,
-                        fontWeight: V3FontWeight.bold,
-                        background: V3.ink,
-                        color: V3.paperHi,
+                        background: 'var(--ink)',
+                        color: 'var(--bg)',
                         letterSpacing: '-0.01em',
-                        textDecoration: 'none',
                       }}
                     >
                       {total.toLocaleString()}원 결제하기
@@ -489,58 +347,22 @@ export default async function CartPage() {
                 </section>
 
                 {shippingBreakdown.remainingToFree > 0 && (
-                  <section style={{ marginTop: 12 }}>
-                    <div
-                      style={{
-                        background: V3.paper,
-                        border: `1px solid ${V3.rule}`,
-                        borderRadius: V3Radius.sm,
-                        padding: '12px 16px',
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span
-                          className="inline-flex items-center"
-                          style={{
-                            fontSize: 11,
-                            color: V3.ink,
-                            fontWeight: V3FontWeight.semibold,
-                            gap: 6,
-                          }}
-                        >
-                          <Truck size={14} strokeWidth={2} />
+                  <section className="md:px-0 mt-3">
+                    <div className="bg-bg rounded-2xl border border-rule px-4 py-3">
+                      <div className="flex items-center justify-between text-[11px] text-text">
+                        <span className="font-semibold inline-flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5" strokeWidth={2} />
                           무료배송까지
                         </span>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: V3FontWeight.bold,
-                            color: V3.accent,
-                          }}
-                        >
+                        <span className="font-bold text-terracotta">
                           {shippingBreakdown.remainingToFree.toLocaleString()}원 남음
                         </span>
                       </div>
-                      <div
-                        style={{
-                          marginTop: 8,
-                          height: 6,
-                          background: V3.paperHi,
-                          borderRadius: V3Radius.pill,
-                          overflow: 'hidden',
-                          border: `1px solid ${V3.rule}`,
-                        }}
-                      >
+                      <div className="mt-2 h-1.5 bg-white rounded-full overflow-hidden">
                         <div
-                          className="transition-all"
+                          className="h-full bg-moss rounded-full transition-all"
                           style={{
-                            height: '100%',
-                            background: V3.sage,
-                            borderRadius: V3Radius.pill,
-                            width: `${Math.min(
-                              100,
-                              (subtotal / FREE_SHIPPING_THRESHOLD) * 100,
-                            )}%`,
+                            width: `${Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100)}%`,
                           }}
                         />
                       </div>

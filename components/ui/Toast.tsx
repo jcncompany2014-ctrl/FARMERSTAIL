@@ -340,8 +340,7 @@ function ToastCard({
       onFocus={() => onPauseTimer(item.id)}
       onBlur={() => onResumeTimer(item.id)}
       className={cn(
-        // 2026-05-22 R10: rounded-xl(12) → rounded(4) v3 sharper. shadow-lg 유지 (떠 있는 surface).
-        'pointer-events-auto rounded shadow-lg ring-1',
+        'pointer-events-auto rounded-xl shadow-lg ring-1',
         // motion-safe에서만 slide-in. reduce-motion이면 즉시 표시.
         'motion-safe:animate-[toast-in_180ms_ease-out]',
         style.bg,

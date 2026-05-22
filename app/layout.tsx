@@ -25,7 +25,6 @@ import {
   buildWebSiteJsonLd,
 } from "@/lib/seo/jsonld";
 import { ToastProvider } from "@/components/ui/Toast";
-import { ConfirmProvider } from "@/components/v3";
 
 // Pretendard Variable — 본문 / UI 전체 (웹+앱 공통).
 // 앱 컨텍스트 (v3) 에서는 헤드라인/디스플레이도 Pretendard 만 사용 — Serif
@@ -261,12 +260,11 @@ export default function RootLayout({
         >
           본문 바로가기
         </a>
-        {/* Toast provider — 앱 전체에서 useToast() 가능. viewport는 하단 중앙
-            Confirm provider — useConfirm() 가능. browser confirm() 대체. */}
+        {/* Toast provider — 앱 전체에서 useToast() 가능. viewport는 하단 중앙.
+            Confirm provider 는 web 컨텍스트엔 mount 되지 않게 (main) layout
+            안쪽에서만 wrap (AGENTS.md "web 시각 변경 금지" 정책). */}
         <ToastProvider>
-          <ConfirmProvider>
-            {children}
-          </ConfirmProvider>
+          {children}
         </ToastProvider>
         <ServiceWorkerRegister />
         {/* audit #107: Supabase auth → Sentry.setUser({ id }) 동기화 */}

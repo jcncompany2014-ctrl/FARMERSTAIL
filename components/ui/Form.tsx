@@ -311,12 +311,10 @@ export function FieldError({
 
 /**
  * 모든 컨트롤이 공유하는 박스 스타일. 컨트롤 종류별로 rounded만 다르게 쓰지
- * 않고 통일.
- *
- * 2026-05-22 R10: rounded-lg(8px) → rounded(4px) v3 sharper.
+ * 않고 통일 (rounded-lg, 14px body).
  */
 const controlBase = [
-  'w-full px-3.5 py-3 rounded text-[14px] text-text',
+  'w-full px-3.5 py-3 rounded-lg text-[14px] text-text',
   // 배경: 종이 톤 위에 조금 밝은 흰지 — #FDFDFD 을 bg-bg-2 로 대체하면
   // 대비가 약해서 전용 near-white 토큰이 필요. 현재는 bg-[#FDFDFD]로 고정.
   'bg-[#FDFDFD]',

@@ -18,7 +18,6 @@ import AppleLoginButton from '@/components/AppleLoginButton'
 import AuthHero from '@/components/auth/AuthHero'
 import AddressSearch from '@/components/AddressSearch'
 import { trackSignUp } from '@/lib/analytics'
-import { Select } from '@/components/v3'
 import { MARKETING_POLICY_VERSION } from '@/lib/consent'
 import { formatPhone, stripHyphens } from '@/lib/formatters'
 
@@ -353,13 +352,11 @@ function SignupForm() {
 
   // Shared input visual — 코드 중복 제거. border/focus는 inline style
   // (var(--terracotta)) 로 분기하기 위해 className에선 padding/radius만.
-  // 2026-05-22 R10-A: v3 form 톤 — rounded-lg(8)→rounded(4), bg-[#FDFDFD]→bg-3 (paperHi).
-  // signup 페이지는 web/app 공용 — AuthHero 는 serif 유지, form 만 v3 grammar.
   const baseInputCls =
-    'w-full px-4 py-3 rounded border text-sm focus:outline-none transition'
+    'w-full px-4 py-3 rounded-lg border text-sm focus:outline-none transition'
   const baseInputStyle = {
     borderColor: 'var(--rule-2)' as const,
-    background: 'var(--paper-hi, #fbf6ec)',
+    background: '#FDFDFD',
     color: 'var(--text)',
   }
   function onFocusBorder(e: React.FocusEvent<HTMLInputElement>) {
@@ -838,9 +835,11 @@ function SignupForm() {
                   생일 <span style={{ color: 'var(--muted)' }}>(선택)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  <Select
+                  <select
                     value={birthMonth}
                     onChange={(e) => setBirthMonth(e.target.value)}
+                    className={baseInputCls}
+                    style={baseInputStyle}
                   >
                     <option value="">월</option>
                     {Array.from({ length: 12 }).map((_, i) => (
@@ -848,10 +847,12 @@ function SignupForm() {
                         {i + 1}월
                       </option>
                     ))}
-                  </Select>
-                  <Select
+                  </select>
+                  <select
                     value={birthDay}
                     onChange={(e) => setBirthDay(e.target.value)}
+                    className={baseInputCls}
+                    style={baseInputStyle}
                   >
                     <option value="">일</option>
                     {Array.from({
@@ -867,7 +868,7 @@ function SignupForm() {
                         {i + 1}일
                       </option>
                     ))}
-                  </Select>
+                  </select>
                 </div>
                 <p
                   className="text-[11px] mt-1"

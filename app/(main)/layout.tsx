@@ -21,11 +21,18 @@
  * component 라 zero-overhead 로 통과.
  */
 import AppChrome from '@/components/AppChrome'
+import { ConfirmProvider } from '@/components/v3'
 
 export default function MainLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <AppChrome>{children}</AppChrome>
+  // ConfirmProvider 는 useConfirm() hook 의 공급자. (main) 안에서만 mount —
+  // app 컨텍스트 전용. web 페이지 (cart/checkout/products 등) 은 영향 없음.
+  return (
+    <AppChrome>
+      <ConfirmProvider>{children}</ConfirmProvider>
+    </AppChrome>
+  )
 }

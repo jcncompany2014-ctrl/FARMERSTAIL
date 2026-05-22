@@ -65,9 +65,8 @@ export function VariantSelector({
               }}
               className={cn(
                 'relative text-left transition active:scale-[0.99]',
-                // 2026-05-22 R10: tiles rounded-xl(12) → rounded(4) v3 sharper.
                 layout === 'tiles'
-                  ? 'rounded border px-3 py-2.5 md:px-4 md:py-3.5'
+                  ? 'rounded-xl border px-3 py-2.5 md:px-4 md:py-3.5'
                   : 'rounded-full border px-3 py-1.5 md:px-4 md:py-2',
                 // 선택 상태
                 selected

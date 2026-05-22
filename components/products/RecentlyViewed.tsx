@@ -89,15 +89,12 @@ export default function RecentlyViewed({
   if (products.length === 0) return null
 
   return (
-    <section className="md:px-6 md:mt-16" style={{ padding: '0 20px', marginTop: 40, marginBottom: 16 }}>
-      <div className="flex items-baseline justify-between" style={{ marginBottom: 14 }}>
+    <section className="px-5 md:px-6 mt-10 md:mt-16 mb-4">
+      <div className="flex items-baseline justify-between mb-3 md:mb-5">
         <h2
-          className="md:text-[22px]"
+          className="font-serif text-[16px] md:text-[20px]"
           style={{
-            margin: 0,
-            fontFamily: 'var(--font-sans)',
             fontWeight: 800,
-            fontSize: 18,
             color: 'var(--ink)',
             letterSpacing: '-0.02em',
           }}
@@ -105,14 +102,8 @@ export default function RecentlyViewed({
           {title}
         </h2>
         <span
-          className="font-mono"
-          style={{
-            fontSize: 10.5,
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-            color: 'var(--muted)',
-            fontWeight: 500,
-          }}
+          className="font-mono text-[10px] md:text-[11px] tracking-[0.18em] uppercase"
+          style={{ color: 'var(--muted)' }}
         >
           {products.length} items
         </span>

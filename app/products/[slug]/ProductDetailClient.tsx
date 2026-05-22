@@ -27,7 +27,6 @@ import { trackAddToCart, trackViewItem } from '@/lib/analytics'
 import { stockState, maxOrderable, stockMessage } from '@/lib/products/stock'
 import { StockOverlay } from '@/components/ui/StockBadge'
 import { VariantSelector } from '@/components/ui/VariantSelector'
-import { PdpSubscribeToggle, type PurchaseMode } from '@/components/v3/pdp'
 import ProductDetailTabs from '@/components/products/ProductDetailTabs'
 import RecentlyViewed from '@/components/products/RecentlyViewed'
 import ProductImageLightbox from '@/components/products/ProductImageLightbox'
@@ -135,8 +134,6 @@ export default function ProductDetailClient({
   const [quantity, setQuantity] = useState(1)
   const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
-  // R11-1: 일회 vs 정기 토글. 비구독 상품에서도 state 는 유지하되 UI 만 분기.
-  const [purchaseMode, setPurchaseMode] = useState<PurchaseMode>('one-time')
 
   const activeVariants = variants.filter((v) => v.is_active)
   const hasVariants = activeVariants.length > 0
@@ -295,18 +292,6 @@ export default function ProductDetailClient({
 
     const capped = Math.min(quantity, qtyMax)
     if (capped <= 0) return
-
-    // R11-1: subscribe 모드면 cart 우회 → /subscribe/[slug] 페이지로.
-    // 옵션/수량은 query string 으로 전달.
-    if (effectiveMode === 'subscribe') {
-      const params = new URLSearchParams()
-      if (selectedVariant) params.set('variantId', selectedVariant.id)
-      if (capped > 1) params.set('qty', String(capped))
-      const q = params.toString()
-      router.push(`/subscribe/${product.slug}${q ? `?${q}` : ''}`)
-      return
-    }
-
     setAdding(true)
 
     const {
@@ -361,16 +346,7 @@ export default function ProductDetailClient({
     }
   }
 
-  // R11-1: purchaseMode 가 'subscribe' 이면 10% 추가 할인.
-  // 비구독 상품은 toggle 안 보이고 항상 one-time 모드.
-  const SUBSCRIBE_DISCOUNT_PCT = 10
-  const oneTimeUnitPrice = effPrice
-  const subscribeUnitPrice = Math.round(effPrice * (1 - SUBSCRIBE_DISCOUNT_PCT / 100))
-  const effectiveMode: PurchaseMode = product.is_subscribable
-    ? purchaseMode
-    : 'one-time'
-  const displayPrice =
-    effectiveMode === 'subscribe' ? subscribeUnitPrice : oneTimeUnitPrice
+  const displayPrice = effPrice
   const total = displayPrice * quantity
   const discount = effIsSale
     ? Math.round(((effListPrice - effPrice) / effListPrice) * 100)
@@ -468,10 +444,6 @@ export default function ProductDetailClient({
             freeShipping={freeShipping}
             earnPoints={earnPoints}
             total={total}
-            purchaseMode={effectiveMode}
-            setPurchaseMode={setPurchaseMode}
-            oneTimeUnitPrice={oneTimeUnitPrice}
-            subscribeUnitPrice={subscribeUnitPrice}
           />
         </div>
       </section>
@@ -584,24 +556,19 @@ export default function ProductDetailClient({
               variantId={selectedVariant?.id ?? null}
             />
           ) : (
-            // R11-4: 모바일 sticky CTA v3 — rounded-2xl → rounded(4),
-            // bg #fff → paperHi, terracotta hex → var(--terracotta) (auto v3).
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={toggleWish}
                 disabled={wishBusy}
                 aria-label={wished ? '찜 해제' : '찜하기'}
-                className="shrink-0 flex items-center justify-center transition active:scale-95"
+                className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition active:scale-95"
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 4,
-                  background: 'var(--paper-hi, #fbf6ec)',
+                  background: 'var(--bg-2)',
                   color: wished ? 'var(--terracotta)' : 'var(--muted)',
-                  border: wished
-                    ? '1px solid var(--terracotta)'
-                    : '1px solid var(--rule)',
+                  boxShadow: wished
+                    ? 'inset 0 0 0 1px var(--terracotta)'
+                    : 'inset 0 0 0 1px var(--rule)',
                 }}
               >
                 <Heart
@@ -617,73 +584,41 @@ export default function ProductDetailClient({
                 description={product.short_description ?? undefined}
                 imageUrl={product.image_url ?? undefined}
                 iconOnly
-                className="shrink-0 flex items-center justify-center transition active:scale-95"
+                className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition active:scale-95"
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 4,
-                  background: 'var(--paper-hi, #fbf6ec)',
+                  background: 'var(--bg-2)',
                   color: 'var(--muted)',
-                  border: '1px solid var(--rule)',
+                  boxShadow: 'inset 0 0 0 1px var(--rule)',
                 }}
               />
 
-              {effectiveMode === 'subscribe' ? (
-                <button
-                  onClick={() => handleAddToCart()}
-                  disabled={adding}
-                  className="flex-1 font-bold transition-all disabled:opacity-70 active:scale-[0.98]"
-                  style={{
-                    padding: '14px 0',
-                    borderRadius: 4,
-                    fontSize: 13.5,
-                    background: 'var(--terracotta)',
-                    color: 'var(--paper-hi, #fbf6ec)',
-                    letterSpacing: '-0.01em',
-                    boxShadow: '0 6px 18px rgba(196,74,38,0.32)',
-                    border: 'none',
-                  }}
-                >
-                  정기배송 신청하기
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={() => handleAddToCart()}
-                    disabled={adding || added}
-                    className="flex-1 font-bold transition-all disabled:opacity-70 active:scale-[0.98]"
-                    style={{
-                      padding: '14px 0',
-                      borderRadius: 4,
-                      fontSize: 13.5,
-                      background: 'var(--paper-hi, #fbf6ec)',
-                      color: 'var(--ink)',
-                      letterSpacing: '-0.01em',
-                      border: '1.5px solid var(--ink)',
-                    }}
-                  >
-                    {added ? '담겼어요' : adding ? '담는 중...' : '장바구니'}
-                  </button>
+              <button
+                onClick={() => handleAddToCart()}
+                disabled={adding || added}
+                className="flex-1 py-4 rounded-2xl font-bold text-[13.5px] transition-all disabled:opacity-70 active:scale-[0.98]"
+                style={{
+                  background: '#fff',
+                  color: 'var(--ink)',
+                  letterSpacing: '-0.01em',
+                  boxShadow: 'inset 0 0 0 1.5px var(--ink), 0 2px 8px rgba(0,0,0,0.04)',
+                }}
+              >
+                {added ? '담겼어요' : adding ? '담는 중...' : '장바구니'}
+              </button>
 
-                  <button
-                    onClick={() => handleAddToCart({ redirectAfter: true })}
-                    disabled={adding}
-                    className="flex-1 font-bold transition-all disabled:opacity-70 active:scale-[0.98]"
-                    style={{
-                      padding: '14px 0',
-                      borderRadius: 4,
-                      fontSize: 13.5,
-                      background: 'var(--terracotta)',
-                      color: 'var(--paper-hi, #fbf6ec)',
-                      letterSpacing: '-0.01em',
-                      boxShadow: '0 6px 18px rgba(196,74,38,0.32)',
-                      border: 'none',
-                    }}
-                  >
-                    바로 구매
-                  </button>
-                </>
-              )}
+              <button
+                onClick={() => handleAddToCart({ redirectAfter: true })}
+                disabled={adding}
+                className="flex-1 py-4 rounded-2xl font-bold text-[13.5px] transition-all disabled:opacity-70 active:scale-[0.98]"
+                style={{
+                  background: '#dc532a',
+                  color: '#fff',
+                  letterSpacing: '-0.01em',
+                  boxShadow: '0 6px 18px rgba(220,83,42,0.35)',
+                }}
+              >
+                바로 구매
+              </button>
             </div>
           )}
         </div>
@@ -869,11 +804,6 @@ type InfoColumnProps = {
   freeShipping: boolean
   earnPoints: number
   total: number
-  // R11-1: subscribe toggle
-  purchaseMode: PurchaseMode
-  setPurchaseMode: (mode: PurchaseMode) => void
-  oneTimeUnitPrice: number
-  subscribeUnitPrice: number
 }
 
 function InfoColumn(p: InfoColumnProps) {
@@ -995,29 +925,15 @@ function InfoColumn(p: InfoColumnProps) {
             <span style={{ color: 'var(--muted)' }}>· 결제 금액의 1%</span>
           </div>
         </Row>
+        {p.product.is_subscribable && (
+          <Row label="정기배송">
+            <div className="flex items-center gap-1.5">
+              <Repeat className="w-3.5 h-3.5 md:w-4 md:h-4" strokeWidth={2} color="var(--moss)" />
+              <span style={{ color: 'var(--moss)', fontWeight: 700 }}>최대 10% 추가 할인</span>
+            </div>
+          </Row>
+        )}
       </dl>
-
-      {/* R11-1: subscribe toggle — 일회 vs 정기 (10% off).
-          정적 "최대 10% 추가 할인" 라벨 → 인터랙티브 카드 토글로 승격.
-          비구독 상품은 토글 자체 안 보임. */}
-      {p.product.is_subscribable && (
-        <div className="mt-5 md:mt-6">
-          <div
-            className="text-[11px] md:text-[12px] font-black mb-2 md:mb-3"
-            style={{ color: 'var(--ink)' }}
-          >
-            구매 방식
-          </div>
-          <PdpSubscribeToggle
-            value={p.purchaseMode}
-            onChange={p.setPurchaseMode}
-            oneTimePrice={p.oneTimeUnitPrice}
-            subscribePrice={p.subscribeUnitPrice}
-            subscribeDiscountPct={10}
-            unit={p.selectedVariant?.name ?? '단품'}
-          />
-        </div>
-      )}
 
       {/* Variants */}
       {p.hasVariants && (
@@ -1137,22 +1053,6 @@ function InfoColumn(p: InfoColumnProps) {
             productId={p.product.id}
             variantId={p.selectedVariant?.id ?? null}
           />
-        ) : p.purchaseMode === 'subscribe' ? (
-          // R11-1: subscribe 모드 — 단일 큰 CTA "정기배송 신청하기".
-          <button
-            type="button"
-            onClick={p.onAddToCart}
-            disabled={p.adding}
-            className="flex-1 py-4 rounded-full font-bold text-[14.5px] transition active:scale-[0.98] disabled:opacity-70"
-            style={{
-              background: 'var(--terracotta)',
-              color: 'var(--bg)',
-              boxShadow: '0 4px 14px rgba(160,69,46,0.3)',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            정기배송 신청하기
-          </button>
         ) : (
           <>
             <button

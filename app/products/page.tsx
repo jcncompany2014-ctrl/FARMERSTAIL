@@ -296,14 +296,12 @@ export default async function ProductsPage({
             {/* audit 3-10: 카탈로그 hero 가 메뉴 같았음 — kicker 추가로 매거진 톤 */}
             <span className="kicker mb-1.5 block">Catalog</span>
             <h1
-              className="text-[28px] md:text-[32px]"
+              className="font-serif text-[22px] md:text-[28px]"
               style={{
-                margin: 0,
-                fontFamily: 'var(--font-sans)',
                 fontWeight: 800,
                 color: 'var(--ink)',
                 letterSpacing: '-0.025em',
-                lineHeight: 1,
+                lineHeight: 1.1,
               }}
             >
               {pageTitle}
@@ -515,39 +513,22 @@ function EmptyState({
 }) {
   return (
     <div
-      className="flex flex-col items-center text-center"
-      style={{
-        padding: '56px 20px',
-        borderRadius: 4,
-        background: 'var(--paper-hi, #fbf6ec)',
-        border: '1.5px dashed var(--rule)',
-      }}
+      className="rounded-2xl py-14 md:py-20 px-6 flex flex-col items-center text-center"
+      style={{ background: 'var(--bg-2)', border: '1px dashed var(--rule-2)' }}
     >
       <div
-        className="flex items-center justify-center"
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          background: 'var(--paper, #f4ede0)',
-          border: '1px solid var(--rule)',
-          marginBottom: 14,
-        }}
+        className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3 md:mb-4"
+        style={{ background: 'var(--bg)' }}
       >
         <Search
-          size={24}
+          className="w-5 h-5 md:w-6 md:h-6"
           strokeWidth={1.8}
           color="var(--muted)"
         />
       </div>
       <p
-        className="text-[16px] md:text-[20px] font-black"
-        style={{
-          margin: 0,
-          fontFamily: 'var(--font-sans)',
-          color: 'var(--ink)',
-          letterSpacing: '-0.02em',
-        }}
+        className="font-serif text-[16px] md:text-[20px] font-black"
+        style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
       >
         {isSearching
           ? `"${query}" 와 일치하는 상품이 없어요`

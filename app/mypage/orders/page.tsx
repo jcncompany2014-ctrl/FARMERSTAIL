@@ -5,8 +5,6 @@ import { redirect } from 'next/navigation'
 import { Package, ShoppingBag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
-import { V3, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
-import { Mono, Badge, type BadgeTone } from '@/components/v3'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,37 +30,23 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   refunded: '환불',
 }
 
-// StatCell + 상태 badge 가 공유. statusTone() 은 상태→토큰 매핑이라 'ink' 는
-// 안 쓰지만, StatCell 의 "전체" cell 이 tone="ink" 를 명시적으로 받기 때문에
-// union 에 포함시켜야 한다. (Vercel build 의 strict tsc 가 잡음.)
-type StatusTone = 'sage' | 'accent' | 'yellow' | 'sale' | 'inkMute' | 'ink'
-
-function statusTone(status: string): StatusTone {
+function statusBadge(status: string) {
   switch (status) {
     case 'paid':
     case 'delivered':
-      return 'sage'
+      return 'bg-moss text-white'
     case 'preparing':
     case 'shipping':
-      return 'accent'
+      return 'bg-terracotta text-white'
     case 'pending':
-      return 'yellow'
+      return 'bg-gold text-text'
     case 'failed':
     case 'cancelled':
     case 'refunded':
-      return 'sale'
+      return 'bg-sale text-white'
     default:
-      return 'inkMute'
+      return 'bg-rule text-text'
   }
-}
-
-const TONE_COLOR: Record<StatusTone, string> = {
-  sage: V3.sage,
-  accent: V3.accent,
-  yellow: V3.yellow,
-  sale: V3.sale,
-  inkMute: V3.inkMute,
-  ink: V3.ink,
 }
 
 function formatDate(iso: string) {
@@ -74,11 +58,6 @@ function formatDate(iso: string) {
   })
 }
 
-/**
- * /mypage/orders — 주문 내역 리스트 (v3 reskin, 2026-05-22 R9 Gap-A).
- *
- * 상태별 mini-stat 3-col + 주문 카드 (날짜·상태·아이템·금액).
- */
 export default async function OrdersPage() {
   const supabase = await createClient()
 
@@ -113,38 +92,13 @@ export default async function OrdersPage() {
   if (error) {
     return (
       <AuthAwareShell>
-        <main
-          className="mx-auto"
-          style={{ maxWidth: 1024, paddingBottom: 32 }}
-        >
-          <div style={{ padding: '20px' }}>
-            <div
-              style={{
-                background: V3.paperHi,
-                border: `1px solid ${V3.sale}`,
-                borderRadius: V3Radius.sm,
-                padding: '18px 20px',
-              }}
-            >
-              <p
-                style={{
-                  fontSize: 13,
-                  fontWeight: V3FontWeight.bold,
-                  color: V3.sale,
-                  margin: 0,
-                }}
-              >
+        <main className="pb-8 mx-auto" style={{ maxWidth: 1024 }}>
+          <div className="px-5 pt-5 md:px-6">
+            <div className="bg-white rounded-xl border border-rule px-5 py-5">
+              <p className="text-[13px] font-bold text-sale">
                 주문 내역을 불러오지 못했어요
               </p>
-              <p
-                style={{
-                  fontSize: 11,
-                  color: V3.inkMute,
-                  marginTop: 6,
-                }}
-              >
-                {error.message}
-              </p>
+              <p className="text-[11px] text-muted mt-1.5">{error.message}</p>
             </div>
           </div>
         </main>
@@ -154,389 +108,278 @@ export default async function OrdersPage() {
 
   return (
     <AuthAwareShell>
-      <main className="mx-auto" style={{ maxWidth: 1024, paddingBottom: 32 }}>
-        {/* 헤더 */}
-        <section style={{ padding: '24px 20px 8px' }} className="md:px-6">
-          <Link
-            href="/mypage"
-            style={{
-              fontSize: 11,
-              fontWeight: V3FontWeight.semibold,
-              color: V3.inkMute,
-              textDecoration: 'none',
-              display: 'inline-block',
-              marginBottom: 14,
-            }}
-          >
-            ← 내 정보
-          </Link>
-          <Mono color="inkMute" size="xs" weight={500}>
-            Orders · 주문 내역
-          </Mono>
-          <h1
-            style={{
-              margin: '6px 0 0',
-              fontFamily: 'var(--font-sans)',
-              fontWeight: V3FontWeight.black,
-              fontSize: 28,
-              lineHeight: 1,
-              color: V3.ink,
-              letterSpacing: V3LetterSpacing.heading,
-            }}
-          >
-            주문 내역
-          </h1>
-        </section>
+    <main className="pb-8 mx-auto" style={{ maxWidth: 1024 }}>
+      {/* 헤더 */}
+      <section className="px-5 pt-6 pb-2 md:px-6">
+        <Link
+          href="/mypage"
+          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+        >
+          ← 내 정보
+        </Link>
+        <span className="kicker mt-3 block">Orders</span>
+        <h1
+          className="font-serif mt-1.5"
+          style={{
+            fontSize: 22,
+            fontWeight: 800,
+            color: 'var(--ink)',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          주문 내역
+        </h1>
+      </section>
 
-        {/* 상태별 통계 */}
-        {(() => {
-          const ongoing = (orders ?? []).filter(
-            (o) =>
-              o.payment_status === 'paid' &&
-              (o.order_status === 'preparing' || o.order_status === 'shipping'),
-          ).length
-          const delivered = (orders ?? []).filter(
-            (o) => o.order_status === 'delivered',
-          ).length
-          const cancelled = (orders ?? []).filter(
-            (o) =>
-              o.order_status === 'cancelled' ||
-              o.payment_status === 'cancelled' ||
-              o.payment_status === 'refunded',
-          ).length
-          const total = orders?.length ?? 0
-          if (total === 0) return null
-          return (
-            <section style={{ padding: '12px 20px 0' }} className="md:px-6">
-              <div
-                className="grid grid-cols-3"
-                style={{
-                  gap: 0,
-                  background: V3.paperHi,
-                  border: `1px solid ${V3.rule}`,
-                  borderRadius: V3Radius.sm,
-                  overflow: 'hidden',
-                }}
-              >
-                <StatCell kicker="전체" value={total} tone="ink" isFirst />
-                <StatCell
-                  kicker="진행 중"
-                  value={ongoing}
-                  tone="accent"
-                  highlight={ongoing > 0}
-                />
-                <StatCell
-                  kicker={cancelled > 0 ? '취소·환불' : '완료'}
-                  value={cancelled > 0 ? cancelled : delivered}
-                  tone={cancelled > 0 ? 'sale' : 'sage'}
-                />
-              </div>
-            </section>
-          )
-        })()}
-
-        {!orders || orders.length === 0 ? (
-          <section style={{ padding: '56px 20px 0' }}>
-            <div
-              className="text-center"
-              style={{
-                borderRadius: V3Radius.sm,
-                border: `1.5px dashed ${V3.rule}`,
-                padding: '48px 20px',
-                background: V3.paperHi,
-              }}
-            >
-              <div
-                className="mx-auto flex items-center justify-center"
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 28,
-                  background: V3.paper,
-                  border: `1px solid ${V3.rule}`,
-                }}
-              >
-                <Package size={24} color={V3.inkMute} strokeWidth={1.5} />
-              </div>
-              <div style={{ marginTop: 14 }}>
-                <Mono color="inkMute" size="xxs" weight={600}>
-                  Empty
-                </Mono>
-              </div>
-              <p
-                style={{
-                  margin: '8px 0 0',
-                  fontFamily: 'var(--font-sans)',
-                  fontWeight: V3FontWeight.black,
-                  fontSize: 16,
-                  color: V3.ink,
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                아직 주문 내역이 없어요
-              </p>
-              <p
-                style={{
-                  fontSize: 11.5,
-                  color: V3.inkMute,
-                  marginTop: 6,
-                  lineHeight: 1.55,
-                }}
-              >
-                첫 주문을 시작해 보세요
-              </p>
-              <Link
-                href="/products"
-                className="inline-block active:scale-[0.98] transition"
-                style={{
-                  marginTop: 20,
-                  padding: '12px 24px',
-                  borderRadius: V3Radius.pill,
-                  fontSize: 12,
-                  fontWeight: V3FontWeight.bold,
-                  background: V3.ink,
-                  color: V3.paperHi,
-                  textDecoration: 'none',
-                }}
-              >
-                제품 둘러보기
-              </Link>
+      {/* 상태별 통계 — 진행 중 (preparing/shipping) / 완료 / 취소
+          0건 카드는 자동 숨김. 모두 0 이면 섹션 비표시. */}
+      {(() => {
+        const ongoing = (orders ?? []).filter(
+          (o) =>
+            o.payment_status === 'paid' &&
+            (o.order_status === 'preparing' || o.order_status === 'shipping'),
+        ).length
+        const delivered = (orders ?? []).filter(
+          (o) => o.order_status === 'delivered',
+        ).length
+        const cancelled = (orders ?? []).filter(
+          (o) =>
+            o.order_status === 'cancelled' ||
+            o.payment_status === 'cancelled' ||
+            o.payment_status === 'refunded',
+        ).length
+        const total = orders?.length ?? 0
+        if (total === 0) return null
+        return (
+          <section className="px-5 mt-3 md:px-6">
+            <div className="grid grid-cols-3 gap-2">
+              <StatChip
+                kicker="전체"
+                value={total}
+                tone="ink"
+              />
+              <StatChip
+                kicker="진행 중"
+                value={ongoing}
+                tone="terracotta"
+                highlight={ongoing > 0}
+              />
+              <StatChip
+                kicker={cancelled > 0 ? '취소·환불' : '완료'}
+                value={cancelled > 0 ? cancelled : delivered}
+                tone={cancelled > 0 ? 'sale' : 'moss'}
+              />
             </div>
           </section>
-        ) : (
-          <section style={{ padding: '12px 20px 0' }} className="md:px-6">
-            <ul
-              className="md:grid md:grid-cols-2"
+        )
+      })()}
+
+      {!orders || orders.length === 0 ? (
+        <section className="px-5 mt-14">
+          <div
+            className="rounded-2xl border px-5 py-12 text-center"
+            style={{
+              background: 'var(--bg-2)',
+              borderColor: 'var(--rule-2)',
+              borderStyle: 'dashed',
+            }}
+          >
+            <div
+              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center"
               style={{
-                margin: 0,
-                padding: 0,
-                listStyle: 'none',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 10,
+                background: 'var(--bg)',
+                border: '1px solid var(--rule-2)',
               }}
             >
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {orders.map((order: any) => {
-                const items = Array.isArray(order.order_items)
-                  ? order.order_items
-                  : []
-                const firstItem = items[0]
-                const extraCount = items.length - 1
+              <Package
+                className="w-6 h-6 text-muted"
+                strokeWidth={1.5}
+              />
+            </div>
+            <span className="kicker mt-4 block">Empty</span>
+            <p
+              className="font-serif mt-2"
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                color: 'var(--ink)',
+                letterSpacing: '-0.015em',
+              }}
+            >
+              아직 주문 내역이 없어요
+            </p>
+            <p className="text-[11px] text-muted mt-1.5 leading-relaxed">
+              첫 주문을 시작해 보세요
+            </p>
+            <Link
+              href="/products"
+              className="mt-5 inline-block px-6 py-2.5 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
+              style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+            >
+              제품 둘러보기
+            </Link>
+          </div>
+        </section>
+      ) : (
+        <section className="px-5 md:px-6 mt-3">
+          <ul className="space-y-2.5 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {orders.map((order: any) => {
+              const items = Array.isArray(order.order_items)
+                ? order.order_items
+                : []
+              const firstItem = items[0]
+              const extraCount = items.length - 1
 
-                const displayStatus =
-                  order.payment_status === 'paid'
-                    ? order.order_status
-                    : order.payment_status
-                const label =
-                  order.payment_status === 'paid'
-                    ? ORDER_STATUS_LABEL[order.order_status] ??
-                      order.order_status
-                    : PAYMENT_STATUS_LABEL[order.payment_status] ??
-                      order.payment_status
+              const displayStatus =
+                order.payment_status === 'paid'
+                  ? order.order_status
+                  : order.payment_status
+              const label =
+                order.payment_status === 'paid'
+                  ? ORDER_STATUS_LABEL[order.order_status] ??
+                    order.order_status
+                  : PAYMENT_STATUS_LABEL[order.payment_status] ??
+                    order.payment_status
 
-                const tone = statusTone(displayStatus)
-                // Badge tone 매핑 — inkMute → 'default' (Badge 의 default 가 inkMute 색).
-                const badgeTone: BadgeTone =
-                  tone === 'inkMute' ? 'default' : tone
-
-                return (
-                  <li key={order.id} className="md:h-full">
-                    <Link
-                      href={`/mypage/orders/${order.id}`}
-                      className="block transition"
-                      style={{
-                        background: V3.paperHi,
-                        border: `1px solid ${V3.rule}`,
-                        borderRadius: V3Radius.sm,
-                        padding: '14px 16px',
-                        textDecoration: 'none',
-                        color: V3.ink,
-                        height: '100%',
-                      }}
-                    >
-                      <div
-                        className="flex items-center justify-between"
-                        style={{ marginBottom: 12 }}
+              return (
+                <li key={order.id} className="md:h-full">
+                  {/* UI audit #2: grid 자식 h-full + flex-col 으로 row 높이 통일.
+                      짧은 카드 / 긴 카드 (외 N건) 가 같은 행에서 baseline 어긋남 차단. */}
+                  <Link
+                    href={`/mypage/orders/${order.id}`}
+                    className="block md:h-full bg-white rounded-xl border border-rule px-4 py-4 md:px-5 md:py-5 hover:border-text transition-all"
+                  >
+                    <div className="flex items-center justify-between mb-3 md:mb-4">
+                      <span className="text-[11px] md:text-[12.5px] text-muted font-bold">
+                        {formatDate(order.created_at)}
+                      </span>
+                      <span
+                        className={`text-[10px] md:text-[11px] font-black px-2 py-0.5 md:px-2.5 md:py-1 rounded-md ${statusBadge(
+                          displayStatus
+                        )}`}
                       >
-                        <Mono
-                          color="inkMute"
-                          size="xxs"
-                          weight={500}
-                          letterSpacing="0.08em"
-                        >
-                          {formatDate(order.created_at)}
-                        </Mono>
-                        <Badge tone={badgeTone} filled>
-                          {label}
-                        </Badge>
-                      </div>
+                        {label}
+                      </span>
+                    </div>
 
-                      {firstItem && (
-                        <div className="flex" style={{ gap: 12 }}>
-                          <div
-                            className="relative shrink-0 overflow-hidden flex items-center justify-center"
-                            style={{
-                              width: 56,
-                              height: 56,
-                              borderRadius: V3Radius.xs,
-                              background: V3.paper,
-                              border: `1px solid ${V3.rule}`,
-                            }}
-                          >
-                            {firstItem.product_image_url ? (
-                              <Image
-                                src={firstItem.product_image_url}
-                                alt={firstItem.product_name}
-                                fill
-                                sizes="(max-width: 768px) 56px, 80px"
-                                className="object-cover"
-                              />
-                            ) : (
-                              <ShoppingBag
-                                size={24}
-                                color={V3.inkMute}
-                                strokeWidth={1.5}
-                              />
+                    {firstItem && (
+                      <div className="flex gap-3 md:gap-4">
+                        <div className="relative shrink-0 w-14 h-14 md:w-20 md:h-20 rounded-lg bg-bg overflow-hidden flex items-center justify-center">
+                          {firstItem.product_image_url ? (
+                            <Image
+                              src={firstItem.product_image_url}
+                              alt={firstItem.product_name}
+                              fill
+                              sizes="(max-width: 768px) 56px, 80px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <ShoppingBag
+                              className="w-6 h-6 md:w-8 md:h-8 text-muted"
+                              strokeWidth={1.5}
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] md:text-[14px] font-bold text-text line-clamp-1">
+                            {firstItem.product_name}
+                            {extraCount > 0 && (
+                              <span className="text-muted">
+                                {' '}외 {extraCount}건
+                              </span>
                             )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className="line-clamp-1"
+                          </p>
+                          <p className="text-[10px] md:text-[11px] text-muted mt-0.5 md:mt-1 font-mono">
+                            {order.order_number}
+                          </p>
+                          <div className="mt-1 md:mt-2 flex items-baseline gap-1">
+                            <span
+                              className="font-serif text-[14px] md:text-[18px] tabular-nums"
                               style={{
-                                margin: 0,
-                                fontFamily: 'var(--font-sans)',
-                                fontSize: 13,
-                                fontWeight: V3FontWeight.bold,
-                                color: V3.ink,
-                                letterSpacing: '-0.01em',
+                                fontWeight: 800,
+                                color: 'var(--terracotta)',
+                                letterSpacing: '-0.015em',
                               }}
                             >
-                              {firstItem.product_name}
-                              {extraCount > 0 && (
-                                <span style={{ color: V3.inkMute }}>
-                                  {' '}외 {extraCount}건
-                                </span>
-                              )}
-                            </p>
-                            <Mono
-                              color="inkMute"
-                              size="xxs"
-                              weight={500}
-                              letterSpacing="0.06em"
-                              style={{ marginTop: 4, display: 'inline-block' }}
-                            >
-                              {order.order_number}
-                            </Mono>
-                            <div
-                              className="flex items-baseline"
-                              style={{ marginTop: 4, gap: 3 }}
-                            >
-                              <span
-                                className="tabular-nums"
-                                style={{
-                                  fontFamily: 'var(--font-sans)',
-                                  fontSize: 16,
-                                  fontWeight: V3FontWeight.black,
-                                  color: V3.accent,
-                                  letterSpacing: '-0.02em',
-                                }}
-                              >
-                                {order.total_amount.toLocaleString()}
-                              </span>
-                              <Mono color="inkMute" size="xxs" weight={500}>
-                                원
-                              </Mono>
-                            </div>
+                              {order.total_amount.toLocaleString()}
+                            </span>
+                            <span className="text-[10px] md:text-[12px] text-muted">
+                              원
+                            </span>
                           </div>
                         </div>
-                      )}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-        )}
-      </main>
+                      </div>
+                    )}
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
+    </main>
     </AuthAwareShell>
   )
 }
 
 /**
- * StatCell — 3-col 메트릭 strip cell.
- * highlight 이면 액센트 dot 표시 (사용자 액션 필요).
+ * StatChip — 헤더 상태 통계 카드. 0 도 표시 (전체 한 번에 보기 좋음).
+ * tone 'terracotta' + highlight 이면 sale 색 강조 + 도트 (사용자 액션 필요).
  */
-function StatCell({
+function StatChip({
   kicker,
   value,
   tone,
   highlight,
-  isFirst,
 }: {
   kicker: string
   value: number
-  tone: StatusTone
+  tone: 'ink' | 'terracotta' | 'moss' | 'sale'
   highlight?: boolean
-  isFirst?: boolean
 }) {
-  const accent = TONE_COLOR[tone]
+  const colorMap = {
+    ink: 'var(--ink)',
+    terracotta: 'var(--terracotta)',
+    moss: 'var(--moss)',
+    sale: 'var(--sale)',
+  }
+  const accent = colorMap[tone]
   return (
     <div
-      className="relative"
+      className="rounded-xl border px-3 py-2.5 transition relative"
       style={{
-        padding: '12px 14px',
-        borderLeft: isFirst ? 'none' : `1px solid ${V3.rule}`,
         background: highlight
-          ? `color-mix(in srgb, ${accent} 6%, ${V3.paperHi})`
-          : V3.paperHi,
+          ? `color-mix(in srgb, ${accent} 6%, white)`
+          : 'white',
+        borderColor: highlight ? accent : 'var(--rule)',
       }}
     >
-      <span
-        style={{
-          fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
-          fontSize: 9.5,
-          fontWeight: 600,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          color: accent,
-        }}
+      <div
+        className="text-[10px] font-bold uppercase tracking-widest"
+        style={{ color: accent }}
       >
         {kicker}
-      </span>
-      <div
-        className="flex items-baseline"
-        style={{ marginTop: 5, gap: 2 }}
-      >
+      </div>
+      <div className="mt-1 flex items-baseline gap-0.5">
         <span
-          className="tabular-nums"
+          className="font-serif tabular-nums leading-none"
           style={{
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.black,
-            fontSize: 20,
-            color: V3.ink,
-            letterSpacing: V3LetterSpacing.heading,
-            lineHeight: 1,
+            fontSize: 18,
+            fontWeight: 800,
+            color: 'var(--ink)',
+            letterSpacing: '-0.015em',
           }}
         >
           {value}
         </span>
-        <Mono color="inkMute" size="xxs" weight={500}>
-          건
-        </Mono>
+        <span className="text-[10px] text-muted">건</span>
       </div>
       {highlight && value > 0 && (
         <span
           aria-hidden
-          className="absolute"
-          style={{
-            top: 10,
-            right: 10,
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-            background: accent,
-          }}
+          className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full"
+          style={{ background: accent }}
         />
       )}
     </div>

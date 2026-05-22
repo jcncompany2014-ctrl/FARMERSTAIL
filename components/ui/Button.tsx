@@ -91,13 +91,12 @@ const sizeClass: Record<ButtonSize, string> = {
   lg: 'px-6 py-3.5 text-[15px]',
 }
 
-// shape: rect(기본), pill(rounded-full), square(작은 radius).
-// 2026-05-22 R10: v3 grammar — rect 12px → 4px, square 8px → 2px (signature sharper).
+// shape: rect(기본), pill(rounded-full), square(rounded-lg 정도의 작은 radius).
 type Shape = 'rect' | 'pill' | 'square'
 const shapeClass: Record<Shape, string> = {
-  rect: 'rounded',
+  rect: 'rounded-xl',
   pill: 'rounded-full',
-  square: 'rounded-sm',
+  square: 'rounded-lg',
 }
 
 const baseClass =
