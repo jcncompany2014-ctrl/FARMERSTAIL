@@ -28,6 +28,9 @@ export {
   type BadgeSize,
   type BadgeShape,
 } from './Badge'
+export { default as Tooltip } from './Tooltip'
+export { default as Stepper } from './Stepper'
+export { default as Toggle } from './Toggle'
 export {
   ConfirmProvider,
   useConfirm,
