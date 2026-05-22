@@ -32,7 +32,10 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   refunded: '환불',
 }
 
-type StatusTone = 'sage' | 'accent' | 'yellow' | 'sale' | 'inkMute'
+// StatCell + 상태 badge 가 공유. statusTone() 은 상태→토큰 매핑이라 'ink' 는
+// 안 쓰지만, StatCell 의 "전체" cell 이 tone="ink" 를 명시적으로 받기 때문에
+// union 에 포함시켜야 한다. (Vercel build 의 strict tsc 가 잡음.)
+type StatusTone = 'sage' | 'accent' | 'yellow' | 'sale' | 'inkMute' | 'ink'
 
 function statusTone(status: string): StatusTone {
   switch (status) {
@@ -59,6 +62,7 @@ const TONE_COLOR: Record<StatusTone, string> = {
   yellow: V3.yellow,
   sale: V3.sale,
   inkMute: V3.inkMute,
+  ink: V3.ink,
 }
 
 function formatDate(iso: string) {
