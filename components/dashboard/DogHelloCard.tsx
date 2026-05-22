@@ -16,7 +16,7 @@ export default function DogHelloCard({
   return (
     <section className="px-5 mt-3">
       <div
-        className="rounded-2xl px-5 py-4 flex items-center gap-4"
+        className="rounded px-5 py-4 flex items-center gap-4"
         style={{
           background: 'color-mix(in srgb, var(--terracotta) 6%, white)',
           border:

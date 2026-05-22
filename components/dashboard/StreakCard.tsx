@@ -42,7 +42,7 @@ export default function StreakCard({
   return (
     <section className="px-5 mt-3" aria-label="체크인 스트릭">
       <div
-        className="rounded-2xl px-5 py-4"
+        className="rounded px-5 py-4"
         style={{
           background: `color-mix(in srgb, ${accent} 8%, white)`,
           border: `1px solid color-mix(in srgb, ${accent} 28%, transparent)`,

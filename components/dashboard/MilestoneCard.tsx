@@ -37,7 +37,7 @@ export default function MilestoneCard({
   return (
     <section className="px-5 mt-3">
       <div
-        className="rounded-2xl px-5 py-4"
+        className="rounded px-5 py-4"
         style={{
           background: `color-mix(in srgb, ${accent} 8%, white)`,
           border: `1px solid color-mix(in srgb, ${accent} 30%, transparent)`,

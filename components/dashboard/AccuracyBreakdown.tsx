@@ -87,7 +87,7 @@ export default function AccuracyBreakdown({
   return (
     <section className="px-5 mt-3">
       <div
-        className="rounded-2xl border bg-white"
+        className="rounded border bg-bg-3"
         style={{ borderColor: 'var(--rule)' }}
       >
         <button
@@ -118,7 +118,7 @@ export default function AccuracyBreakdown({
 
             {showWeakHighlight && weakest.hint && (
               <div
-                className="mt-3 rounded-xl px-3 py-2.5 flex items-start gap-2"
+                className="mt-3 rounded px-3 py-2.5 flex items-start gap-2"
                 style={{
                   background: 'color-mix(in srgb, var(--gold) 10%, white)',
                   border:
@@ -144,7 +144,7 @@ export default function AccuracyBreakdown({
                 일방적으로 결정하지 않고 보호자가 직접 +0.15 boost. */}
             {dogId && (
               <div
-                className="mt-3 rounded-xl px-3 py-2.5 flex items-start gap-2"
+                className="mt-3 rounded px-3 py-2.5 flex items-start gap-2"
                 style={{
                   background: boostOn
                     ? 'color-mix(in srgb, var(--terracotta) 8%, white)'

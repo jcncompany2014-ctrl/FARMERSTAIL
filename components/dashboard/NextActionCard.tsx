@@ -84,7 +84,7 @@ export default function NextActionCard({ action }: { action: NextAction }) {
     <div className="mx-5 mt-3">
       <Link
         href={action.href}
-        className="group block px-5 py-4 rounded-2xl border bg-white active:scale-[0.99] transition"
+        className="group block px-5 py-4 rounded border bg-bg-3 active:scale-[0.99] transition"
         style={{
           borderColor: 'var(--rule)',
           boxShadow: `inset 4px 0 0 ${accent}`,

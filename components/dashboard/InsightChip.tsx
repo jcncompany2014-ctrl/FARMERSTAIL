@@ -42,7 +42,7 @@ export default function InsightChip({
     <section className="px-5 mt-3">
       <Link
         href={href}
-        className="group flex items-center gap-3 rounded-xl border bg-white px-4 py-3 active:scale-[0.99] transition"
+        className="group flex items-center gap-3 rounded border bg-bg-3 px-4 py-3 active:scale-[0.99] transition"
         style={{ borderColor: 'var(--rule)' }}
         aria-label={`이번 주 가장 영향 큰 변수: ${meta.label}`}
       >

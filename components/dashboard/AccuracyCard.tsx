@@ -53,7 +53,7 @@ export default function AccuracyCard({
     <section className="px-5 mt-3">
       <Link
         href={href}
-        className="group block rounded-2xl border bg-white px-5 py-4 active:scale-[0.99] transition"
+        className="group block rounded border bg-bg-3 px-5 py-4 active:scale-[0.99] transition"
         style={{ borderColor: 'var(--rule)', boxShadow: `inset 4px 0 0 ${accent}` }}
         aria-label={`맞춤도 ${percent}% — ${text}. 측정 도구 점검`}
       >
