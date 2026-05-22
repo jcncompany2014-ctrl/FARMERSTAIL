@@ -21,6 +21,13 @@ export { default as MiniBars } from './MiniBars'
 export { default as Skeleton, SkeletonStack } from './Skeleton'
 export { default as Tabs, type TabOption } from './Tabs'
 export { default as Modal } from './Modal'
+export { default as Select, type SelectOption } from './Select'
+export {
+  default as Badge,
+  type BadgeTone,
+  type BadgeSize,
+  type BadgeShape,
+} from './Badge'
 export {
   ConfirmProvider,
   useConfirm,
