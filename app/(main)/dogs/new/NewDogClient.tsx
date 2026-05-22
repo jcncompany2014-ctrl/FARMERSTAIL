@@ -307,7 +307,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5 mt-4">
-        <div className="bg-white rounded-2xl border border-rule p-4">
+        <div className="bg-bg-3 rounded border border-rule p-4">
           <DogPhotoPicker
             currentUrl={null}
             onChange={setPhotoState}
@@ -410,10 +410,10 @@ export default function NewDogClient({ userId }: { userId: string }) {
             <button
               type="button"
               onClick={() => setAgeUnit('years')}
-              className={`px-4 rounded-xl border text-[12px] font-bold transition ${
+              className={`px-4 rounded border text-[12px] font-bold transition ${
                 ageUnit === 'years'
                   ? 'border-text bg-bg text-text'
-                  : 'border-rule bg-white text-muted'
+                  : 'border-rule bg-bg-3 text-muted'
               }`}
             >
               살
@@ -421,10 +421,10 @@ export default function NewDogClient({ userId }: { userId: string }) {
             <button
               type="button"
               onClick={() => setAgeUnit('months')}
-              className={`px-4 rounded-xl border text-[12px] font-bold transition ${
+              className={`px-4 rounded border text-[12px] font-bold transition ${
                 ageUnit === 'months'
                   ? 'border-text bg-bg text-text'
-                  : 'border-rule bg-white text-muted'
+                  : 'border-rule bg-bg-3 text-muted'
               }`}
             >
               개월
@@ -510,10 +510,10 @@ export default function NewDogClient({ userId }: { userId: string }) {
                   key={a.v}
                   type="button"
                   onClick={() => setActivityLevel(a.v)}
-                  className={`w-full py-3 px-4 rounded-xl border text-left transition flex items-center gap-3 ${
+                  className={`w-full py-3 px-4 rounded border text-left transition flex items-center gap-3 ${
                     active
                       ? 'border-text bg-text text-white'
-                      : 'border-rule bg-white text-text hover:border-muted'
+                      : 'border-rule bg-bg-3 text-text hover:border-muted'
                   }`}
                 >
                   <a.Icon
@@ -578,7 +578,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
         )}
 
         {error && (
-          <div className="flex items-start gap-2 text-[12px] text-sale font-semibold bg-[#FFF5F3] border border-sale/20 rounded-xl px-4 py-3">
+          <div className="flex items-start gap-2 text-[12px] text-sale font-semibold border rounded px-4 py-3" style={{ background: 'color-mix(in srgb, var(--sale) 6%, transparent)', borderColor: 'color-mix(in srgb, var(--sale) 25%, transparent)' }}>
             <AlertCircle
               className="w-4 h-4 shrink-0 mt-0.5"
               strokeWidth={2}
