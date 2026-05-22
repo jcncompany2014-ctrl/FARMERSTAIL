@@ -18,10 +18,10 @@ export default function SurveyLoading() {
         <Skeleton className="h-3 w-1/2 mt-2" />
       </section>
       <section className="px-5 mt-8 flex-1">
-        <Skeleton className="h-40 w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded" />
         <div className="mt-4 grid grid-cols-2 gap-3">
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-16 rounded-xl" />
+            <Skeleton key={i} className="h-16 rounded" />
           ))}
         </div>
       </section>

@@ -335,12 +335,12 @@ export default function AnalysisView({
         >
           ← 돌아가기
         </Link>
-        <div className="mt-6 text-center bg-white rounded-2xl border border-dashed border-rule-2 px-5 py-10">
+        <div className="mt-6 text-center bg-bg-3 rounded border border-dashed border-rule-2 px-5 py-10">
           <ClipboardList
             className="w-10 h-10 text-muted mx-auto mb-4"
             strokeWidth={1.2}
           />
-          <h3 className="font-serif font-black text-[16px] text-text">
+          <h3 className="font-sans font-black text-[16px] text-text">
             분석 결과가 없어요
           </h3>
           <p className="text-[12px] text-muted mt-2 leading-relaxed">
@@ -350,7 +350,7 @@ export default function AnalysisView({
           </p>
           <Link
             href={`/dogs/${dogId}/survey`}
-            className="inline-flex items-center gap-1 mt-5 px-5 py-2.5 bg-terracotta text-white rounded-xl text-[12px] font-bold active:scale-[0.98] transition"
+            className="inline-flex items-center gap-1 mt-5 px-5 py-2.5 bg-terracotta text-white rounded text-[12px] font-bold active:scale-[0.98] transition"
           >
             설문 시작하기
           </Link>
@@ -521,7 +521,7 @@ export default function AnalysisView({
       {/* 히스토리 뷰: 이 분석이 언제 것인지 명시 */}
       {isArchive && (
         <section className="px-5 mt-3">
-          <div className="bg-text/5 border border-text/15 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+          <div className="bg-text/5 border border-text/15 rounded px-4 py-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-[11px] text-text min-w-0">
               <History className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
               <span className="font-bold truncate">
@@ -631,7 +631,7 @@ export default function AnalysisView({
       <section className="px-5 mt-4 text-center" style={{ display: 'none' }}>
         <span className="kicker inline-block">Nutrition Report</span>
         <h1
-          className="font-serif mt-1.5"
+          className="font-sans mt-1.5"
           style={{
             fontSize: 24,
             fontWeight: 800,
@@ -650,13 +650,13 @@ export default function AnalysisView({
 
       {/* 옛 Energy card 폐기 (2026-05-21) — Magazine DailyEnergy + AtAGlance 가 대체. */}
       <section className="px-5 mt-5" style={{ display: 'none' }}>
-        <div className="bg-white rounded-2xl border border-rule p-5">
+        <div className="bg-bg-3 rounded border border-rule p-5">
           <div className="flex items-start justify-between">
             <div>
               <div className="text-[10px] font-semibold text-muted uppercase tracking-[0.2em]">
                 Daily Energy · MER
               </div>
-              <div className="font-serif text-[36px] font-black text-terracotta tracking-tight leading-none mt-1.5">
+              <div className="font-sans text-[36px] font-black text-terracotta tracking-tight leading-none mt-1.5">
                 {analysis.mer.toLocaleString()}
                 <span className="text-[14px] text-muted ml-1 font-sans">
                   kcal
@@ -695,7 +695,7 @@ export default function AnalysisView({
           Magazine 컨테이너 안 NutrientsCard 다음 위치에서 렌더. */}
       <section className="px-5 mt-3" style={{ display: 'none' }}>
         <div
-          className="rounded-2xl p-5 relative overflow-hidden"
+          className="rounded p-5 relative overflow-hidden"
           style={{
             background: WARM_CREAM.card,
             border: `1px solid ${WARM_CREAM.line}`,
@@ -730,7 +730,7 @@ export default function AnalysisView({
             {formatDate(history[history.length - 1]?.date)}
           </div>
           {history.length < 2 ? (
-            <div className="flex items-center gap-2 text-[11px] text-muted bg-bg rounded-xl px-4 py-3">
+            <div className="flex items-center gap-2 text-[11px] text-muted bg-bg rounded px-4 py-3">
               <Minus className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
               <span>
                 설문을 2회 이상 완료하면 {dog.name}의 체형·체중 변화가 여기
@@ -758,7 +758,7 @@ export default function AnalysisView({
                       : 'var(--muted)'
                 return (
                   <div
-                    className="rounded-xl px-4 py-3 text-[12.5px] leading-relaxed font-bold"
+                    className="rounded px-4 py-3 text-[12.5px] leading-relaxed font-bold"
                     style={{
                       background: `color-mix(in srgb, ${accent} 8%, white)`,
                       border: `1px solid color-mix(in srgb, ${accent} 28%, transparent)`,
@@ -792,7 +792,7 @@ export default function AnalysisView({
 
       {/* 옛 영양소 구성 · 권장치 비교 폐기 (2026-05-21) — Magazine NutrientsCard 가 대체. */}
       <section className="px-5 mt-3" style={{ display: 'none' }}>
-        <div className="bg-white rounded-2xl border border-rule p-5">
+        <div className="bg-bg-3 rounded border border-rule p-5">
           <div className="flex items-center gap-2 mb-1">
             <FlaskConical
               className="w-4 h-4 text-moss"
@@ -882,7 +882,7 @@ export default function AnalysisView({
         <section className="px-5 mt-5">
           <Link
             href="/compare"
-            className="block rounded-2xl border border-rule bg-white p-4 hover:border-text transition"
+            className="block rounded border border-rule bg-bg-3 p-4 hover:border-text transition"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -905,14 +905,14 @@ export default function AnalysisView({
           <>
             <Link
               href={`/dogs/${dogId}/analysis`}
-              className="flex items-center justify-center gap-1.5 w-full py-4 rounded-xl bg-text text-white text-[13px] font-black active:scale-[0.98] transition"
+              className="flex items-center justify-center gap-1.5 w-full py-4 rounded bg-text text-white text-[13px] font-black active:scale-[0.98] transition"
             >
               최신 분석 보기
               <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />
             </Link>
             <Link
               href={`/dogs/${dogId}/analyses`}
-              className="block w-full py-3 text-center rounded-xl bg-white text-muted text-[12px] font-bold border border-rule hover:border-text hover:text-text transition"
+              className="block w-full py-3 text-center rounded bg-bg-3 text-muted text-[12px] font-bold border border-rule hover:border-text hover:text-text transition"
             >
               히스토리 목록
             </Link>
@@ -928,14 +928,14 @@ export default function AnalysisView({
             </Link>
             <Link
               href={`/dogs/${dogId}/survey`}
-              className="block w-full py-3 text-center rounded-xl bg-white text-muted text-[12px] font-bold border border-rule hover:border-text hover:text-text transition"
+              className="block w-full py-3 text-center rounded bg-bg-3 text-muted text-[12px] font-bold border border-rule hover:border-text hover:text-text transition"
             >
               다시 분석하기
             </Link>
             {totalCount > 1 && (
               <Link
                 href={`/dogs/${dogId}/analyses`}
-                className="block w-full py-3 text-center rounded-xl bg-white text-muted text-[12px] font-bold border border-rule hover:border-text hover:text-text transition"
+                className="block w-full py-3 text-center rounded bg-bg-3 text-muted text-[12px] font-bold border border-rule hover:border-text hover:text-text transition"
               >
                 이전 분석 히스토리 {totalCount}회 →
               </Link>

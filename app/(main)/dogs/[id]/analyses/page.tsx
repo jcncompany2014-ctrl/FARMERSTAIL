@@ -153,7 +153,7 @@ export default async function AnalysesTimelinePage({
           ← {dog.name}
         </Link>
         <span className="kicker mt-3 block">Analysis History</span>
-        <h1 className="font-serif mt-1.5" style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
+        <h1 className="font-sans mt-1.5" style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
           분석 히스토리
         </h1>
         <p className="text-[11px] text-muted mt-1">
@@ -165,7 +165,7 @@ export default async function AnalysesTimelinePage({
       {latestIsStale && (
         <section className="px-5 mt-3">
           <div
-            className="rounded-2xl px-4 py-3 border-2 flex items-start gap-2.5"
+            className="rounded px-4 py-3 border-2 flex items-start gap-2.5"
             style={{
               background: 'color-mix(in srgb, var(--gold) 8%, white)',
               borderColor: 'color-mix(in srgb, var(--gold) 35%, transparent)',
@@ -200,12 +200,12 @@ export default async function AnalysesTimelinePage({
 
       {analyses.length === 0 ? (
         <section className="px-5 mt-6">
-          <div className="text-center bg-white rounded-2xl border border-dashed border-rule-2 px-5 py-10">
+          <div className="text-center bg-bg-3 rounded border border-dashed border-rule-2 px-5 py-10">
             <ClipboardList
               className="w-10 h-10 text-muted mx-auto mb-4"
               strokeWidth={1.2}
             />
-            <h3 className="font-serif font-black text-[15px] text-text">
+            <h3 className="font-sans font-black text-[15px] text-text">
               아직 분석 기록이 없어요
             </h3>
             <p className="text-[11px] text-muted mt-2 leading-relaxed">
@@ -213,7 +213,7 @@ export default async function AnalysesTimelinePage({
             </p>
             <Link
               href={`/dogs/${dogId}/survey`}
-              className="inline-flex items-center gap-1 mt-5 px-5 py-2.5 bg-terracotta text-white rounded-xl text-[12px] font-bold active:scale-[0.98] transition"
+              className="inline-flex items-center gap-1 mt-5 px-5 py-2.5 bg-terracotta text-white rounded text-[12px] font-bold active:scale-[0.98] transition"
             >
               설문 시작하기
             </Link>
@@ -262,7 +262,7 @@ export default async function AnalysesTimelinePage({
                   />
                   <Link
                     href={`/dogs/${dogId}/analyses/${a.id}`}
-                    className="block bg-white rounded-2xl border border-rule hover:border-terracotta transition p-4 active:scale-[0.99]"
+                    className="block bg-bg-3 rounded border border-rule hover:border-terracotta transition p-4 active:scale-[0.99]"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
@@ -340,7 +340,7 @@ export default async function AnalysesTimelinePage({
         <div className="mt-5 px-5">
           <Link
             href={`/dogs/${dogId}/survey`}
-            className="block w-full py-3 text-center rounded-xl bg-white text-text text-[12px] font-bold border border-rule hover:border-terracotta hover:text-terracotta transition"
+            className="block w-full py-3 text-center rounded bg-bg-3 text-text text-[12px] font-bold border border-rule hover:border-terracotta hover:text-terracotta transition"
           >
             새 설문으로 다시 분석하기
           </Link>
@@ -417,7 +417,7 @@ function LatestAnalysisHero({
           </div>
 
           <h2
-            className="font-serif leading-tight"
+            className="font-sans leading-tight"
             style={{
               fontSize: 22,
               fontWeight: 800,
@@ -477,7 +477,7 @@ function LatestAnalysisHero({
           {/* AI 코멘터리 snippet (있으면) */}
           {commentSnippet && (
             <div
-              className="mt-4 px-3.5 py-2.5 rounded-xl text-[11.5px] leading-relaxed"
+              className="mt-4 px-3.5 py-2.5 rounded text-[11.5px] leading-relaxed"
               style={{
                 background: 'rgba(255,255,255,0.10)',
                 color: '#F5E0C2',
@@ -559,7 +559,7 @@ function HeroStat({
 }) {
   return (
     <div
-      className="rounded-xl px-3 py-2.5"
+      className="rounded px-3 py-2.5"
       style={{ background: 'rgba(255,255,255,0.12)' }}
     >
       <div className="flex items-center gap-1">
@@ -572,7 +572,7 @@ function HeroStat({
         </span>
       </div>
       <div
-        className="font-serif tabular-nums leading-none mt-1"
+        className="font-sans tabular-nums leading-none mt-1"
         style={{
           fontSize: 17,
           fontWeight: 800,

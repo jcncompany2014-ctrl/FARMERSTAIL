@@ -140,7 +140,7 @@ export default async function YearInReviewPage({
         className="min-h-[80vh] flex items-center justify-center px-5 py-10"
         style={{ background: 'var(--bg)' }}
       >
-        <div className="max-w-sm w-full text-center rounded-2xl border bg-white px-6 py-7" style={{ borderColor: 'var(--rule)' }}>
+        <div className="max-w-sm w-full text-center rounded border bg-bg-3 px-6 py-7" style={{ borderColor: 'var(--rule)' }}>
           <PartyPopper
             className="w-9 h-9 mx-auto"
             strokeWidth={1.8}
@@ -148,7 +148,7 @@ export default async function YearInReviewPage({
             aria-hidden
           />
           <h1
-            className="font-serif mt-3"
+            className="font-sans mt-3"
             style={{
               fontSize: 18,
               fontWeight: 800,
@@ -193,7 +193,7 @@ export default async function YearInReviewPage({
           Year in Review · 한 해 회고
         </span>
         <h1
-          className="font-serif mt-2 leading-tight"
+          className="font-sans mt-2 leading-tight"
           style={{
             fontSize: 26,
             fontWeight: 800,
@@ -240,7 +240,7 @@ export default async function YearInReviewPage({
       {weightDelta !== null && weightStart != null && weightEnd != null && (
         <section className="px-5 mt-5">
           <div
-            className="rounded-2xl border bg-white px-5 py-4"
+            className="rounded border bg-bg-3 px-5 py-4"
             style={{ borderColor: 'var(--rule)' }}
           >
             <span className="kicker" style={{ color: 'var(--moss)' }}>
@@ -268,7 +268,7 @@ export default async function YearInReviewPage({
               )}
               <div className="flex-1 min-w-0">
                 <p
-                  className="font-serif leading-tight"
+                  className="font-sans leading-tight"
                   style={{
                     fontSize: 14,
                     fontWeight: 700,
@@ -297,7 +297,7 @@ export default async function YearInReviewPage({
       {/* 감사 메시지 */}
       <section className="px-5 mt-5">
         <div
-          className="rounded-2xl px-5 py-5"
+          className="rounded px-5 py-5"
           style={{
             background: 'color-mix(in srgb, var(--terracotta) 8%, white)',
             border: '1px solid color-mix(in srgb, var(--terracotta) 25%, transparent)',
@@ -310,7 +310,7 @@ export default async function YearInReviewPage({
             aria-hidden
           />
           <p
-            className="mt-2 font-serif leading-snug"
+            className="mt-2 font-sans leading-snug"
             style={{
               fontSize: 15,
               fontWeight: 700,
@@ -331,14 +331,14 @@ export default async function YearInReviewPage({
       <section className="px-5 mt-5 grid grid-cols-2 gap-2.5">
         <Link
           href={`/dogs/${dogRow.id}/share`}
-          className="flex items-center justify-center gap-1.5 py-3 rounded-xl border border-rule bg-white text-[12px] font-bold text-text hover:border-terracotta hover:text-terracotta transition"
+          className="flex items-center justify-center gap-1.5 py-3 rounded border border-rule bg-bg-3 text-[12px] font-bold text-text hover:border-terracotta hover:text-terracotta transition"
         >
           <Share2 className="w-3.5 h-3.5" strokeWidth={2} />
           공유하기
         </Link>
         <Link
           href={`/dogs/${dogRow.id}`}
-          className="flex items-center justify-center gap-1.5 py-3 rounded-xl text-[12px] font-bold text-white transition active:scale-[0.99]"
+          className="flex items-center justify-center gap-1.5 py-3 rounded text-[12px] font-bold text-white transition active:scale-[0.99]"
           style={{ background: 'var(--terracotta)' }}
         >
           돌아가기
@@ -361,7 +361,7 @@ function StatCard({
 }) {
   return (
     <div
-      className="rounded-2xl border bg-white px-4 py-4 flex flex-col gap-2"
+      className="rounded border bg-bg-3 px-4 py-4 flex flex-col gap-2"
       style={{ borderColor: 'var(--rule)' }}
     >
       <span
@@ -382,7 +382,7 @@ function StatCard({
           {label}
         </span>
         <p
-          className="font-serif mt-0.5"
+          className="font-sans mt-0.5"
           style={{
             fontSize: 18,
             fontWeight: 800,

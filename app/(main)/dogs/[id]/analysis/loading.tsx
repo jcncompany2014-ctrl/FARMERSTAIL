@@ -15,15 +15,15 @@ export default function AnalysisLoading() {
         <Skeleton className="h-3 w-1/2 mt-2" />
       </section>
       <section className="px-5 mt-6">
-        <Skeleton className="h-48 w-full rounded-2xl" />
+        <Skeleton className="h-48 w-full rounded" />
       </section>
       <section className="px-5 mt-4 grid grid-cols-2 gap-3">
         {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-24 rounded-xl" />
+          <Skeleton key={i} className="h-24 rounded" />
         ))}
       </section>
       <section className="px-5 mt-6">
-        <Skeleton className="h-32 w-full rounded-2xl" />
+        <Skeleton className="h-32 w-full rounded" />
       </section>
     </main>
   )
