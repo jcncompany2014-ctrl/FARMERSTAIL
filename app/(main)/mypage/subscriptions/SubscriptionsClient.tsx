@@ -1,8 +1,16 @@
 'use client'
 
-// audit #101 — SubscriptionsClient: subs 표시 + 일시정지/재개/해지/주기변경/
-// 알림 토글 같은 interactive 동작. page.tsx (server) 가 auth + 초기 subs +
-// new=1 banner / focus=id 파라미터를 prefetch + parse.
+/**
+ * SubscriptionsClient — v3 reskin (2026-05-22, R9-3).
+ *
+ * 비즈니스 로직(일시정지/재개/해지/주기변경/알림/카드재등록)은 audit #101 그대로.
+ * 시각만 v3 톤 통일:
+ *   - 카드: paperHi + 1px ink rule + radius 4
+ *   - 상태 행: 컬러 bg 대신 Mono 상태 키커 + 점/Chip
+ *   - 결제 실패 배너: accent / sale tint + AlertTriangle 유지
+ *   - 액션 버튼: ink rule outline + 액센트 텍스트
+ */
+
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -27,11 +35,11 @@ import {
   trackSubscriptionResumed,
   trackSubscriptionCancelled,
 } from '@/lib/analytics'
+import { V3, V3FontSize, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
+import { Mono } from '@/components/v3'
 
 /**
- * billing-auth fallback customerKey 생성기 — module-scope 라 react-hooks/purity
- * rule scope 밖 (rule 은 component body 안의 Date.now / Math.random 만 검사).
- * event handler 에서만 호출되므로 render purity 와 무관하다.
+ * billing-auth fallback customerKey 생성기 — module-scope.
  */
 function generateFallbackCustomerKey(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -76,10 +84,11 @@ export type Subscription = {
   requires_billing_key_renewal: boolean
 }
 
-const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  active: { label: '구독 중', color: 'text-moss', bg: 'bg-moss/10' },
-  paused: { label: '일시정지', color: 'text-gold', bg: 'bg-gold/10' },
-  cancelled: { label: '해지됨', color: 'text-muted', bg: 'bg-muted/10' },
+type StatusToken = 'sage' | 'yellow' | 'inkMute'
+const STATUS_MAP: Record<Subscription['status'], { label: string; tone: StatusToken }> = {
+  active: { label: '구독 중', tone: 'sage' },
+  paused: { label: '일시정지', tone: 'yellow' },
+  cancelled: { label: '해지됨', tone: 'inkMute' },
 }
 
 const INTERVAL_LABELS: Record<number, string> = {
@@ -115,9 +124,6 @@ export default function SubscriptionsClient({
     return undefined
   }, [isNew])
 
-  // focus subId 자동 스크롤 + 1.8s pulse — 첫 페인트 직후 DOM 그려진 다음.
-  // state 대신 inline boxShadow 직접 토글 — react-hooks/set-state-in-effect 회피
-  // 및 highlight 만 위한 re-render 제거.
   useEffect(() => {
     if (!focusSubId) return
     const el = document.getElementById(`sub-${focusSubId}`)
@@ -127,10 +133,9 @@ export default function SubscriptionsClient({
     const prevTransition = el.style.transition
     el.style.transition = 'box-shadow 0.25s ease-out'
     el.style.boxShadow =
-      '0 0 0 2px rgba(196, 98, 62, 0.6), 0 0 0 4px var(--ft-bg, #faf8f4)'
+      `0 0 0 2px ${V3.accent}, 0 0 0 4px ${V3.paper}`
     const t = setTimeout(() => {
       el.style.boxShadow = prevShadow
-      // transition 정리는 다음 tick 에서 (애니메이션 끊김 방지)
       setTimeout(() => {
         el.style.transition = prevTransition
       }, 250)
@@ -314,35 +319,69 @@ export default function SubscriptionsClient({
   }
 
   return (
-    <main className="px-5 py-6 pb-32">
+    <main style={{ padding: '24px 20px 128px' }}>
       <div className="max-w-md mx-auto">
+        {/* Back link */}
         <Link
           href="/mypage"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          style={{
+            fontSize: 11,
+            color: V3.inkMute,
+            textDecoration: 'none',
+            fontWeight: V3FontWeight.semibold,
+          }}
         >
           ← 내 정보
         </Link>
-        <span className="kicker mt-3 block">Subscriptions</span>
+
+        {/* Heading */}
+        <div style={{ marginTop: 14 }}>
+          <Mono color="inkMute" size="xs" weight={500}>
+            Subscriptions · 정기배송
+          </Mono>
+        </div>
         <h1
-          className="font-serif mt-1.5 flex items-center gap-2"
+          className="flex items-center"
           style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            margin: '6px 0 0',
+            gap: 8,
+            fontFamily: 'var(--font-sans)',
+            fontWeight: V3FontWeight.black,
+            fontSize: 28,
+            color: V3.ink,
+            letterSpacing: V3LetterSpacing.heading,
+            lineHeight: 1,
           }}
         >
-          <Repeat className="w-5 h-5 text-moss" strokeWidth={2} />
+          <Repeat size={22} color={V3.sage} strokeWidth={2.2} />
           내 정기배송
         </h1>
 
         {showNewBanner && (
-          <div className="mt-4 p-4 bg-moss/10 border border-moss/40 rounded-xl">
-            <div className="flex items-center gap-2 text-[13px] font-bold text-moss">
-              <Check className="w-4 h-4" strokeWidth={2.5} />
+          <div
+            style={{
+              marginTop: 16,
+              padding: '14px 16px',
+              background: 'color-mix(in srgb, ' + V3.sage + ' 10%, transparent)',
+              border: `1px solid ${V3.sage}`,
+              borderRadius: V3Radius.sm,
+            }}
+          >
+            <div
+              className="flex items-center"
+              style={{
+                gap: 6,
+                fontSize: 13,
+                fontWeight: V3FontWeight.bold,
+                color: V3.sage,
+              }}
+            >
+              <Check size={16} strokeWidth={2.5} />
               정기배송이 신청되었어요!
             </div>
-            <div className="text-[11px] text-muted mt-1">
+            <div
+              style={{ fontSize: 11, color: V3.inkMute, marginTop: 4 }}
+            >
               배송일 전에 안내 연락을 드릴게요.
             </div>
           </div>
@@ -350,52 +389,77 @@ export default function SubscriptionsClient({
 
         {subs.length === 0 ? (
           <div
-            className="mt-8 text-center rounded-2xl border px-5 py-12"
+            className="text-center"
             style={{
-              background: 'var(--bg-2)',
-              borderColor: 'var(--rule-2)',
-              borderStyle: 'dashed',
+              marginTop: 32,
+              borderRadius: V3Radius.sm,
+              border: `1.5px dashed ${V3.rule}`,
+              padding: '48px 20px',
+              background: V3.paperHi,
             }}
           >
             <div
-              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-4"
+              className="mx-auto flex items-center justify-center"
               style={{
-                background: 'var(--bg)',
-                border: '1px solid var(--rule-2)',
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                background: V3.paper,
+                border: `1px solid ${V3.rule}`,
+                marginBottom: 16,
               }}
             >
-              <Package
-                className="w-6 h-6 text-muted"
-                strokeWidth={1.3}
-              />
+              <Package size={24} color={V3.inkMute} strokeWidth={1.3} />
             </div>
-            <span className="kicker kicker-moss">Start</span>
+            <Mono color="sage" size="xxs" weight={600}>
+              Start
+            </Mono>
             <h3
-              className="font-serif mt-2"
               style={{
-                fontSize: 17,
-                fontWeight: 800,
-                color: 'var(--ink)',
-                letterSpacing: '-0.015em',
+                margin: '8px 0 0',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: V3FontWeight.black,
+                fontSize: 18,
+                color: V3.ink,
+                letterSpacing: V3LetterSpacing.heading,
               }}
             >
               아직 신청한 정기배송이 없어요
             </h3>
-            <p className="text-[12px] text-muted mt-2 leading-relaxed max-w-[260px] mx-auto">
+            <p
+              style={{
+                fontSize: 12,
+                color: V3.inkMute,
+                marginTop: 8,
+                lineHeight: 1.55,
+                maxWidth: 260,
+                marginInline: 'auto',
+              }}
+            >
               꾸준한 영양 공급, 더 저렴한 가격. 정기배송으로 시작해보세요
             </p>
             <Link
               href="/products"
-              className="mt-5 inline-flex items-center gap-1 px-6 py-2.5 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
-              style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+              className="inline-flex items-center active:scale-[0.98] transition"
+              style={{
+                marginTop: 20,
+                gap: 4,
+                padding: '12px 24px',
+                borderRadius: V3Radius.pill,
+                fontSize: 12,
+                fontWeight: V3FontWeight.bold,
+                background: V3.ink,
+                color: V3.paperHi,
+                textDecoration: 'none',
+              }}
             >
               제품 둘러보기
             </Link>
           </div>
         ) : (
-          <div className="mt-4 space-y-3">
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {subs.map((sub) => {
-              const status = STATUS_MAP[sub.status] || STATUS_MAP.active!
+              const status = STATUS_MAP[sub.status] || STATUS_MAP.active
               const isActive = sub.status === 'active'
               const isPaused = sub.status === 'paused'
               const isCancelled = sub.status === 'cancelled'
@@ -408,70 +472,127 @@ export default function SubscriptionsClient({
                 (needsRenewal ||
                   (sub.failed_charge_count ?? 0) > 0 ||
                   !!sub.next_retry_at)
+
+              const statusToneColor =
+                status.tone === 'sage'
+                  ? V3.sage
+                  : status.tone === 'yellow'
+                    ? V3.yellow
+                    : V3.inkMute
+
               return (
                 <div
                   key={sub.id}
                   id={`sub-${sub.id}`}
-                  className={`bg-white rounded-2xl border overflow-hidden transition ${
-                    isCancelled ? 'opacity-60 border-rule' : needsRenewal ? 'border-sale/60' : 'border-rule'
-                  }`}
+                  style={{
+                    background: V3.paperHi,
+                    border: `1px solid ${needsRenewal ? V3.sale : V3.rule}`,
+                    borderRadius: V3Radius.sm,
+                    overflow: 'hidden',
+                    opacity: isCancelled ? 0.55 : 1,
+                    transition: 'box-shadow 0.25s ease-out',
+                  }}
                 >
+                  {/* Status header */}
                   <div
-                    className={`px-5 py-2 flex items-center justify-between ${status.bg}`}
+                    className="flex items-center justify-between"
+                    style={{
+                      padding: '10px 16px',
+                      borderBottom: `1px solid ${V3.rule}`,
+                      background: V3.paper,
+                    }}
                   >
-                    <span className="flex items-center gap-1.5">
+                    <div className="flex items-center" style={{ gap: 8, flex: 1, minWidth: 0 }}>
                       <span
-                        className={`text-[11px] font-bold ${status.color}`}
-                      >
+                        aria-hidden
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: 3,
+                          background: statusToneColor,
+                        }}
+                      />
+                      <Mono color={status.tone} size="xxs" weight={700}>
                         {status.label}
-                      </span>
+                      </Mono>
                       {sub.dogs && (
                         <Link
                           href={`/dogs/${sub.dogs.id}`}
-                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/60 text-text hover:bg-white transition"
+                          className="truncate"
+                          style={{
+                            fontSize: 10,
+                            fontWeight: V3FontWeight.bold,
+                            padding: '2px 8px',
+                            borderRadius: V3Radius.pill,
+                            background: V3.paperHi,
+                            color: V3.ink,
+                            border: `1px solid ${V3.rule}`,
+                            textDecoration: 'none',
+                          }}
                         >
                           🐶 {sub.dogs.name}
                         </Link>
                       )}
                       {sub.coverage_weeks && (
-                        <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-full bg-white/60 text-text">
+                        <span
+                          className="truncate"
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: V3FontWeight.bold,
+                            padding: '2px 8px',
+                            borderRadius: V3Radius.pill,
+                            background: V3.paperHi,
+                            color: V3.ink,
+                            border: `1px solid ${V3.rule}`,
+                          }}
+                        >
                           {sub.coverage_weeks === 2
                             ? '2주치 · 하이브리드'
                             : '4주치 · 풀 화식'}
                         </span>
                       )}
-                    </span>
+                    </div>
                     {sub.next_delivery_date && (
-                      <span className="text-[10px] text-muted">
-                        다음 배송:{' '}
+                      <Mono
+                        color="inkMute"
+                        size="xxs"
+                        weight={500}
+                        letterSpacing="0.08em"
+                      >
+                        D ·{' '}
                         {new Date(sub.next_delivery_date).toLocaleDateString(
                           'ko-KR',
                           { month: 'long', day: 'numeric' }
                         )}
-                      </span>
+                      </Mono>
                     )}
                   </div>
 
+                  {/* Failure signal banner */}
                   {hasFailureSignal && (
                     <div
-                      className={`px-5 py-3 border-b ${
-                        needsRenewal
-                          ? 'bg-sale/8 border-sale/30'
-                          : 'bg-gold/8 border-gold/30'
-                      }`}
+                      style={{
+                        padding: '12px 16px',
+                        borderBottom: `1px solid ${needsRenewal ? V3.sale : V3.yellow}`,
+                        background: needsRenewal
+                          ? 'color-mix(in srgb, ' + V3.sale + ' 8%, transparent)'
+                          : 'color-mix(in srgb, ' + V3.yellow + ' 12%, transparent)',
+                      }}
                     >
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start" style={{ gap: 8 }}>
                         <AlertTriangle
-                          className={`w-4 h-4 shrink-0 mt-0.5 ${
-                            needsRenewal ? 'text-sale' : 'text-gold'
-                          }`}
+                          size={16}
+                          color={needsRenewal ? V3.sale : V3.yellow}
                           strokeWidth={2.2}
+                          style={{ marginTop: 2, flexShrink: 0 }}
                         />
                         <div className="flex-1 min-w-0">
                           <div
-                            className={`text-[12px] font-bold ${
-                              needsRenewal ? 'text-sale' : 'text-text'
-                            }`}
+                            style={{
+                              fontSize: 12,
+                              fontWeight: V3FontWeight.bold,
+                              color: needsRenewal ? V3.sale : V3.ink,
+                            }}
                           >
                             {needsRenewal
                               ? '카드 정보를 다시 등록해 주세요'
@@ -480,13 +601,28 @@ export default function SubscriptionsClient({
                                 : `결제 ${sub.failed_charge_count}회 실패`}
                           </div>
                           {sub.last_failed_charge_reason && (
-                            <div className="text-[11px] text-muted mt-0.5 leading-snug">
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: V3.inkMute,
+                                marginTop: 2,
+                                lineHeight: 1.4,
+                              }}
+                            >
                               사유: {sub.last_failed_charge_reason}
                             </div>
                           )}
                           {sub.next_retry_at && !needsRenewal && (
-                            <div className="text-[10.5px] text-muted mt-1 inline-flex items-center gap-1">
-                              <Clock className="w-3 h-3" strokeWidth={2} />
+                            <div
+                              className="inline-flex items-center"
+                              style={{
+                                fontSize: 10.5,
+                                color: V3.inkMute,
+                                marginTop: 4,
+                                gap: 4,
+                              }}
+                            >
+                              <Clock size={11} strokeWidth={2} />
                               {formatRetryAt(sub.next_retry_at)} 자동 재시도
                             </div>
                           )}
@@ -497,9 +633,19 @@ export default function SubscriptionsClient({
                             type="button"
                             onClick={() => handleReRegisterCard(sub)}
                             disabled={isLoading}
-                            className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-white bg-sale hover:bg-sale/90 transition disabled:opacity-50"
+                            className="shrink-0 inline-flex items-center transition disabled:opacity-50"
+                            style={{
+                              gap: 4,
+                              padding: '6px 10px',
+                              borderRadius: V3Radius.xs,
+                              fontSize: 11,
+                              fontWeight: V3FontWeight.bold,
+                              color: V3.paperHi,
+                              background: V3.sale,
+                              border: 'none',
+                            }}
                           >
-                            <CreditCard className="w-3 h-3" strokeWidth={2.5} />
+                            <CreditCard size={12} strokeWidth={2.5} />
                             재등록
                           </button>
                         )}
@@ -507,10 +653,24 @@ export default function SubscriptionsClient({
                     </div>
                   )}
 
-                  <div className="p-5">
+                  {/* Card body */}
+                  <div style={{ padding: '16px' }}>
                     {sub.subscription_items.map((item, i) => (
-                      <div key={i} className="flex gap-3 items-center">
-                        <div className="relative w-14 h-14 rounded-lg border border-rule overflow-hidden flex-shrink-0 bg-bg">
+                      <div
+                        key={i}
+                        className="flex items-center"
+                        style={{ gap: 12, marginBottom: i < sub.subscription_items.length - 1 ? 8 : 0 }}
+                      >
+                        <div
+                          className="relative overflow-hidden flex-shrink-0"
+                          style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: V3Radius.xs,
+                            border: `1px solid ${V3.rule}`,
+                            background: V3.paper,
+                          }}
+                        >
                           {item.product_image_url ? (
                             <Image
                               src={item.product_image_url}
@@ -521,81 +681,124 @@ export default function SubscriptionsClient({
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <Soup
-                                className="w-5 h-5 text-muted"
-                                strokeWidth={1.5}
-                              />
+                              <Soup size={20} color={V3.inkMute} strokeWidth={1.5} />
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-bold text-[12px] text-text truncate">
-                            {item.product_name}
-                          </div>
-                          <div className="text-[10px] text-muted mt-0.5 tabular-nums">
-                            {item.unit_price.toLocaleString()}원 ×{' '}
-                            {item.quantity}개
-                          </div>
-                        </div>
-                        <div className="text-right flex-shrink-0">
                           <div
-                            className="font-serif tabular-nums"
+                            className="truncate"
                             style={{
-                              fontSize: 12,
-                              fontWeight: 800,
-                              color: 'var(--terracotta)',
+                              fontFamily: 'var(--font-sans)',
+                              fontSize: 13,
+                              fontWeight: V3FontWeight.bold,
+                              color: V3.ink,
                               letterSpacing: '-0.015em',
                             }}
                           >
-                            {(item.unit_price * item.quantity).toLocaleString()}원
+                            {item.product_name}
                           </div>
+                          <Mono
+                            color="inkMute"
+                            size="xxs"
+                            weight={500}
+                            letterSpacing="0.04em"
+                            style={{ marginTop: 3, display: 'inline-block' }}
+                          >
+                            {item.unit_price.toLocaleString()}원 × {item.quantity}개
+                          </Mono>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <span
+                            className="tabular-nums"
+                            style={{
+                              fontFamily: 'var(--font-sans)',
+                              fontSize: 13,
+                              fontWeight: V3FontWeight.black,
+                              color: V3.accent,
+                              letterSpacing: '-0.02em',
+                            }}
+                          >
+                            {(item.unit_price * item.quantity).toLocaleString()}원
+                          </span>
                         </div>
                       </div>
                     ))}
 
-                    <div className="mt-4 pt-3 border-t border-rule space-y-1.5 text-[11px]">
+                    {/* Meta strip */}
+                    <div
+                      style={{
+                        marginTop: 14,
+                        paddingTop: 12,
+                        borderTop: `1px solid ${V3.rule}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        fontSize: 11,
+                      }}
+                    >
                       <div className="flex justify-between">
-                        <span className="text-muted">배송 주기</span>
-                        <span className="font-bold text-text">
+                        <span style={{ color: V3.inkMute }}>배송 주기</span>
+                        <span style={{ fontWeight: V3FontWeight.bold, color: V3.ink }}>
                           {INTERVAL_LABELS[sub.interval_weeks] ||
                             `${sub.interval_weeks}주마다`}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted">회당 결제</span>
-                        <span className="font-bold text-text">
+                        <span style={{ color: V3.inkMute }}>회당 결제</span>
+                        <span style={{ fontWeight: V3FontWeight.bold, color: V3.ink }}>
                           {sub.total_amount.toLocaleString()}원
                           {sub.shipping_fee === 0 && (
-                            <span className="ml-1 text-[10px] text-moss">
+                            <span style={{ marginLeft: 4, fontSize: 10, color: V3.sage }}>
                               (배송비 무료)
                             </span>
                           )}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted">누적 배송</span>
-                        <span className="font-bold text-text">
+                        <span style={{ color: V3.inkMute }}>누적 배송</span>
+                        <span style={{ fontWeight: V3FontWeight.bold, color: V3.ink }}>
                           {sub.total_deliveries}회
                         </span>
                       </div>
                     </div>
 
+                    {/* Interval edit panel */}
                     {isEditing && (
-                      <div className="mt-3 p-3 bg-bg rounded-xl">
-                        <div className="text-[10px] font-semibold text-muted uppercase tracking-[0.2em] mb-2">
+                      <div
+                        style={{
+                          marginTop: 12,
+                          padding: 12,
+                          background: V3.paper,
+                          borderRadius: V3Radius.sm,
+                          border: `1px solid ${V3.rule}`,
+                        }}
+                      >
+                        <Mono color="inkMute" size="xxs" weight={600}>
                           배송 주기 변경
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
+                        </Mono>
+                        <div className="grid grid-cols-3" style={{ gap: 8, marginTop: 8 }}>
                           {[1, 2, 4].map((w) => (
                             <button
                               key={w}
                               onClick={() => handleChangeInterval(sub.id, w)}
                               disabled={isLoading}
-                              className={`py-2 rounded-lg border text-[11px] font-bold transition ${
-                                sub.interval_weeks === w
-                                  ? 'border-moss bg-moss/10 text-moss'
-                                  : 'border-rule bg-white text-text hover:border-muted'
-                              }`}
+                              style={{
+                                padding: '8px 0',
+                                borderRadius: V3Radius.xs,
+                                fontSize: 11,
+                                fontWeight: V3FontWeight.bold,
+                                border:
+                                  sub.interval_weeks === w
+                                    ? `1.5px solid ${V3.sage}`
+                                    : `1px solid ${V3.rule}`,
+                                background:
+                                  sub.interval_weeks === w
+                                    ? 'color-mix(in srgb, ' + V3.sage + ' 10%, transparent)'
+                                    : V3.paperHi,
+                                color: sub.interval_weeks === w ? V3.sage : V3.ink,
+                                transition: 'all 160ms',
+                              }}
                             >
                               {INTERVAL_LABELS[w]}
                             </button>
@@ -603,23 +806,45 @@ export default function SubscriptionsClient({
                         </div>
                         <button
                           onClick={() => setEditingInterval(null)}
-                          className="mt-2 w-full text-[11px] text-muted hover:text-text"
+                          style={{
+                            marginTop: 8,
+                            width: '100%',
+                            fontSize: 11,
+                            color: V3.inkMute,
+                            background: 'transparent',
+                            border: 'none',
+                          }}
                         >
                           취소
                         </button>
                       </div>
                     )}
 
+                    {/* Reminder toggle */}
                     {!isCancelled && (
-                      <div className="mt-4 bg-bg rounded-xl px-4 py-3">
+                      <div
+                        style={{
+                          marginTop: 14,
+                          padding: '12px 14px',
+                          background: V3.paper,
+                          borderRadius: V3Radius.sm,
+                          border: `1px solid ${V3.rule}`,
+                        }}
+                      >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center" style={{ gap: 8 }}>
                             {sub.reminder_enabled ? (
-                              <Bell className="w-3.5 h-3.5 text-terracotta" strokeWidth={2} />
+                              <Bell size={14} color={V3.accent} strokeWidth={2} />
                             ) : (
-                              <BellOff className="w-3.5 h-3.5 text-muted" strokeWidth={2} />
+                              <BellOff size={14} color={V3.inkMute} strokeWidth={2} />
                             )}
-                            <span className="text-[11px] font-bold text-text">
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: V3FontWeight.bold,
+                                color: V3.ink,
+                              }}
+                            >
                               배송 알림
                             </span>
                           </div>
@@ -628,23 +853,40 @@ export default function SubscriptionsClient({
                               handleToggleReminder(sub.id, !sub.reminder_enabled)
                             }
                             disabled={isLoading}
-                            className={`relative inline-flex items-center h-5 w-9 rounded-full transition ${
-                              sub.reminder_enabled ? 'bg-moss' : 'bg-rule-2'
-                            } disabled:opacity-50`}
+                            className="relative inline-flex items-center disabled:opacity-50"
+                            style={{
+                              width: 36,
+                              height: 20,
+                              borderRadius: 10,
+                              background: sub.reminder_enabled ? V3.sage : V3.rule,
+                              border: 'none',
+                              transition: 'background 160ms',
+                            }}
                             aria-label="배송 알림 토글"
                           >
                             <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
-                                sub.reminder_enabled ? 'translate-x-4' : 'translate-x-0.5'
-                              }`}
+                              style={{
+                                position: 'absolute',
+                                top: 2,
+                                left: sub.reminder_enabled ? 18 : 2,
+                                width: 16,
+                                height: 16,
+                                borderRadius: 8,
+                                background: V3.paperHi,
+                                transition: 'left 160ms',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                              }}
                             />
                           </button>
                         </div>
                         {sub.reminder_enabled && (
-                          <div className="mt-2 flex items-center gap-1.5">
-                            <span className="text-[10px] text-muted">
+                          <div
+                            className="flex items-center"
+                            style={{ marginTop: 8, gap: 6 }}
+                          >
+                            <Mono color="inkMute" size="xxs" weight={500}>
                               D-
-                            </span>
+                            </Mono>
                             {[1, 2, 3, 5].map((d) => (
                               <button
                                 key={d}
@@ -652,31 +894,47 @@ export default function SubscriptionsClient({
                                   handleChangeReminderDays(sub.id, d)
                                 }
                                 disabled={isLoading}
-                                className={`w-7 h-6 rounded-md text-[10px] font-bold transition ${
-                                  sub.reminder_days_before === d
-                                    ? 'bg-moss text-white'
-                                    : 'bg-white text-muted border border-rule hover:border-moss'
-                                }`}
+                                style={{
+                                  width: 28,
+                                  height: 24,
+                                  borderRadius: V3Radius.xs,
+                                  fontSize: 10,
+                                  fontWeight: V3FontWeight.bold,
+                                  background:
+                                    sub.reminder_days_before === d
+                                      ? V3.sage
+                                      : V3.paperHi,
+                                  color:
+                                    sub.reminder_days_before === d
+                                      ? V3.paperHi
+                                      : V3.inkMute,
+                                  border:
+                                    sub.reminder_days_before === d
+                                      ? 'none'
+                                      : `1px solid ${V3.rule}`,
+                                  transition: 'all 160ms',
+                                }}
                               >
                                 {d}
                               </button>
                             ))}
-                            <span className="ml-1 text-[10px] text-muted">
+                            <Mono color="inkMute" size="xxs" weight={500} style={{ marginLeft: 4 }}>
                               일 전
-                            </span>
+                            </Mono>
                           </div>
                         )}
                       </div>
                     )}
 
+                    {/* Action buttons */}
                     {!isCancelled && (
-                      <div className="mt-4 space-y-2">
+                      <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {isActive && (
                           <>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] text-muted shrink-0">
+                            <div className="flex items-center" style={{ gap: 6 }}>
+                              <Mono color="inkMute" size="xxs" weight={500} style={{ flexShrink: 0 }}>
                                 건너뛰기
-                              </span>
+                              </Mono>
                               {[1, 2, 4].map((w) => (
                                 <button
                                   key={w}
@@ -684,26 +942,42 @@ export default function SubscriptionsClient({
                                     handlePause(sub.id, w as 1 | 2 | 4)
                                   }
                                   disabled={isLoading}
-                                  className="flex-1 py-1.5 rounded-lg border border-rule bg-bg text-[10.5px] font-bold text-text hover:border-text transition disabled:opacity-50"
+                                  className="flex-1 transition disabled:opacity-50"
+                                  style={{
+                                    padding: '6px 0',
+                                    borderRadius: V3Radius.xs,
+                                    border: `1px solid ${V3.rule}`,
+                                    background: V3.paper,
+                                    fontSize: 10.5,
+                                    fontWeight: V3FontWeight.bold,
+                                    color: V3.ink,
+                                  }}
                                 >
                                   {w}주
                                 </button>
                               ))}
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex" style={{ gap: 8 }}>
                               <button
                                 onClick={() => handlePause(sub.id)}
                                 disabled={isLoading}
-                                className="flex-1 inline-flex items-center justify-center gap-1 py-2.5 rounded-xl text-[11px] font-bold border border-rule text-muted hover:border-muted transition disabled:opacity-50"
+                                className="flex-1 inline-flex items-center justify-center transition disabled:opacity-50"
+                                style={{
+                                  gap: 4,
+                                  padding: '10px 0',
+                                  borderRadius: V3Radius.sm,
+                                  fontSize: 11,
+                                  fontWeight: V3FontWeight.bold,
+                                  border: `1px solid ${V3.rule}`,
+                                  color: V3.inkMute,
+                                  background: V3.paperHi,
+                                }}
                               >
                                 {isLoading ? (
                                   '처리 중...'
                                 ) : (
                                   <>
-                                    <Pause
-                                      className="w-3 h-3"
-                                      strokeWidth={2.5}
-                                    />
+                                    <Pause size={12} strokeWidth={2.5} />
                                     일시정지
                                   </>
                                 )}
@@ -711,15 +985,34 @@ export default function SubscriptionsClient({
                               <button
                                 onClick={() => setEditingInterval(sub.id)}
                                 disabled={isLoading}
-                                className="flex-1 inline-flex items-center justify-center gap-1 py-2.5 rounded-xl text-[11px] font-bold border border-rule text-moss hover:border-moss transition disabled:opacity-50"
+                                className="flex-1 inline-flex items-center justify-center transition disabled:opacity-50"
+                                style={{
+                                  gap: 4,
+                                  padding: '10px 0',
+                                  borderRadius: V3Radius.sm,
+                                  fontSize: 11,
+                                  fontWeight: V3FontWeight.bold,
+                                  border: `1px solid ${V3.rule}`,
+                                  color: V3.sage,
+                                  background: V3.paperHi,
+                                }}
                               >
-                                <RefreshCw className="w-3 h-3" strokeWidth={2.5} />
+                                <RefreshCw size={12} strokeWidth={2.5} />
                                 주기 변경
                               </button>
                               <button
                                 onClick={() => handleCancel(sub.id)}
                                 disabled={isLoading}
-                                className="py-2.5 px-3 rounded-xl text-[11px] font-bold border border-rule text-sale hover:border-sale transition disabled:opacity-50"
+                                className="transition disabled:opacity-50"
+                                style={{
+                                  padding: '10px 14px',
+                                  borderRadius: V3Radius.sm,
+                                  fontSize: 11,
+                                  fontWeight: V3FontWeight.bold,
+                                  border: `1px solid ${V3.rule}`,
+                                  color: V3.sale,
+                                  background: V3.paperHi,
+                                }}
                               >
                                 해지
                               </button>
@@ -727,20 +1020,28 @@ export default function SubscriptionsClient({
                           </>
                         )}
                         {isPaused && (
-                          <div className="flex gap-2">
+                          <div className="flex" style={{ gap: 8 }}>
                             <button
                               onClick={() => handleResume(sub.id)}
                               disabled={isLoading}
-                              className="flex-1 inline-flex items-center justify-center gap-1 py-2.5 rounded-xl text-[11px] font-bold border border-moss bg-moss/10 text-moss hover:bg-moss/20 transition disabled:opacity-50"
+                              className="flex-1 inline-flex items-center justify-center transition disabled:opacity-50"
+                              style={{
+                                gap: 4,
+                                padding: '10px 0',
+                                borderRadius: V3Radius.sm,
+                                fontSize: 11,
+                                fontWeight: V3FontWeight.bold,
+                                border: `1.5px solid ${V3.sage}`,
+                                color: V3.sage,
+                                background:
+                                  'color-mix(in srgb, ' + V3.sage + ' 10%, transparent)',
+                              }}
                             >
                               {isLoading ? (
                                 '처리 중...'
                               ) : (
                                 <>
-                                  <Play
-                                    className="w-3 h-3"
-                                    strokeWidth={2.5}
-                                  />
+                                  <Play size={12} strokeWidth={2.5} />
                                   다시 시작
                                 </>
                               )}
@@ -748,7 +1049,16 @@ export default function SubscriptionsClient({
                             <button
                               onClick={() => handleCancel(sub.id)}
                               disabled={isLoading}
-                              className="py-2.5 px-4 rounded-xl text-[11px] font-bold border border-rule text-sale hover:border-sale transition disabled:opacity-50"
+                              className="transition disabled:opacity-50"
+                              style={{
+                                padding: '10px 18px',
+                                borderRadius: V3Radius.sm,
+                                fontSize: 11,
+                                fontWeight: V3FontWeight.bold,
+                                border: `1px solid ${V3.rule}`,
+                                color: V3.sale,
+                                background: V3.paperHi,
+                              }}
                             >
                               해지
                             </button>
@@ -785,3 +1095,6 @@ function formatRetryAt(iso: string): string {
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
   return `${get('month')}월 ${get('day')}일 ${get('hour')}:${get('minute')}`
 }
+
+// V3FontSize 도 import 했지만 위에서 numeric 으로만 쓰니 명시적으로 사용 없음 — 향후 확장 대비.
+void V3FontSize

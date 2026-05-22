@@ -12,6 +12,8 @@ import {
   formatDueDate,
   paymentMethodLabel,
 } from '@/lib/payments/toss'
+import { V3, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
+import { Mono } from '@/components/v3'
 
 export const dynamic = 'force-dynamic'
 
@@ -183,73 +185,121 @@ function SuccessView({
           userId={order.user_id}
         />
       )}
-      <section className="px-5 md:px-6 pt-10 md:pt-16 flex flex-col items-center">
+      <section
+        className="flex flex-col items-center md:pt-16"
+        style={{ padding: '40px 20px 0' }}
+      >
         <div
-          className={`w-16 h-16 md:w-24 md:h-24 rounded-full flex items-center justify-center text-white ${
-            isWaitingDeposit
-              ? 'bg-gold shadow-[0_8px_24px_rgba(212,184,114,0.3)]'
-              : 'bg-moss shadow-[0_8px_24px_rgba(107,127,58,0.3)]'
-          }`}
+          className="flex items-center justify-center md:w-24 md:h-24"
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            background: isWaitingDeposit ? V3.yellow : V3.sage,
+            color: V3.paperHi,
+            boxShadow: isWaitingDeposit
+              ? '0 8px 24px rgba(230,185,66,0.3)'
+              : '0 8px 24px rgba(79,106,72,0.3)',
+          }}
         >
           {isWaitingDeposit ? (
-            <Clock className="w-8 h-8 md:w-11 md:h-11" strokeWidth={2.5} />
+            <Clock size={32} strokeWidth={2.5} />
           ) : (
-            <Check className="w-8 h-8 md:w-11 md:h-11" strokeWidth={3} />
+            <Check size={32} strokeWidth={3} />
           )}
         </div>
-        <span
-          className={`kicker mt-6 md:mt-8 ${
-            isWaitingDeposit ? 'kicker-muted' : 'kicker-moss'
-          }`}
-        >
-          {isWaitingDeposit ? 'Awaiting Deposit · 입금 대기' : 'Payment Complete · 결제 완료'}
-        </span>
+        <div style={{ marginTop: 24 }}>
+          <Mono color={isWaitingDeposit ? 'yellow' : 'sage'} size="xs" weight={600}>
+            {isWaitingDeposit
+              ? 'Awaiting Deposit · 입금 대기'
+              : 'Payment Complete · 결제 완료'}
+          </Mono>
+        </div>
         <h1
-          className="font-serif mt-2 md:mt-3 text-center text-[22px] md:text-[36px] lg:text-[42px]"
+          className="text-center md:text-[36px] lg:text-[42px]"
           style={{
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.025em',
+            margin: '8px 0 0',
+            fontFamily: 'var(--font-sans)',
+            fontWeight: V3FontWeight.black,
+            fontSize: 26,
+            color: V3.ink,
+            letterSpacing: V3LetterSpacing.heading,
             lineHeight: 1.15,
           }}
         >
           {isWaitingDeposit ? '입금을 기다리고 있어요' : '결제가 완료됐어요'}
         </h1>
-        <p className="mt-2 md:mt-4 text-[12px] md:text-[15px] text-muted text-center leading-relaxed max-w-md">
+        <p
+          className="text-center md:text-[15px] max-w-md"
+          style={{
+            marginTop: 8,
+            fontSize: 12.5,
+            color: V3.inkMute,
+            lineHeight: 1.55,
+          }}
+        >
           {isWaitingDeposit
             ? '가상계좌가 발급되었어요. 안내된 계좌로 24시간 내에 입금해 주세요.'
             : '주문이 잘 접수됐어요'}
         </p>
       </section>
 
-      <section className="px-5 md:px-6 mt-7 md:mt-10">
-        <div className="bg-white rounded-xl border border-rule px-5 py-5 md:px-7 md:py-7">
-          <div className="flex justify-between items-center text-[12px] md:text-[14px]">
-            <span className="text-muted">주문번호</span>
-            <span className="text-text font-bold font-mono">
+      <section style={{ padding: '28px 20px 0' }}>
+        <div
+          style={{
+            background: V3.paperHi,
+            border: `1px solid ${V3.rule}`,
+            borderRadius: V3Radius.sm,
+            padding: '18px 20px',
+          }}
+        >
+          <div
+            className="flex justify-between items-center"
+            style={{ fontSize: 12 }}
+          >
+            <span style={{ color: V3.inkMute }}>주문번호</span>
+            <span
+              style={{
+                color: V3.ink,
+                fontWeight: V3FontWeight.bold,
+                fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
+              }}
+            >
               {order.order_number}
             </span>
           </div>
-          <div className="border-t border-rule my-3 md:my-4" />
+          <div
+            style={{
+              borderTop: `1px solid ${V3.rule}`,
+              margin: '14px 0',
+            }}
+          />
           <div className="flex justify-between items-center">
             <span
-              className="font-bold text-[13px] md:text-[15px]"
-              style={{ color: 'var(--ink)' }}
+              style={{
+                fontWeight: V3FontWeight.bold,
+                fontSize: 13,
+                color: V3.ink,
+              }}
             >
               {isWaitingDeposit ? '입금 예정 금액' : '결제금액'}
             </span>
-            <div className="flex items-baseline gap-1">
+            <div className="flex items-baseline" style={{ gap: 3 }}>
               <span
-                className="font-serif text-[18px] md:text-[26px]"
+                className="tabular-nums md:text-[26px]"
                 style={{
-                  fontWeight: 800,
-                  color: 'var(--terracotta)',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 22,
+                  fontWeight: V3FontWeight.black,
+                  color: V3.accent,
                   letterSpacing: '-0.02em',
                 }}
               >
                 {order.total_amount.toLocaleString()}
               </span>
-              <span className="text-[11px] md:text-[13px] text-muted">원</span>
+              <Mono color="inkMute" size="xxs" weight={500}>
+                원
+              </Mono>
             </div>
           </div>
           {order.receipt_url && (
@@ -257,9 +307,21 @@ function SuccessView({
               href={order.receipt_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 md:mt-5 flex items-center justify-center gap-1.5 py-2.5 md:py-3 rounded-lg bg-bg text-[12px] md:text-[13px] font-bold text-terracotta hover:bg-rule transition"
+              className="flex items-center justify-center transition"
+              style={{
+                marginTop: 16,
+                gap: 6,
+                padding: '10px 0',
+                borderRadius: V3Radius.xs,
+                background: V3.paper,
+                border: `1px solid ${V3.rule}`,
+                fontSize: 12.5,
+                fontWeight: V3FontWeight.bold,
+                color: V3.accent,
+                textDecoration: 'none',
+              }}
             >
-              <Receipt className="w-3.5 h-3.5 md:w-4 md:h-4" strokeWidth={2.25} />
+              <Receipt size={14} strokeWidth={2.25} />
               영수증 보기
             </a>
           )}
@@ -267,24 +329,60 @@ function SuccessView({
       </section>
 
       {isWaitingDeposit ? (
-        <section className="px-5 md:px-6 mt-4 md:mt-5">
-          <div className="bg-[#FFF6E0] rounded-xl border border-gold/50 px-4 py-4 md:px-6 md:py-6">
-            <div className="text-[10px] text-muted font-bold uppercase tracking-widest">
+        <section style={{ padding: '16px 20px 0' }}>
+          <div
+            style={{
+              background:
+                'color-mix(in srgb, ' + V3.yellow + ' 12%, ' + V3.paperHi + ')',
+              border: `1px solid ${V3.yellow}`,
+              borderRadius: V3Radius.sm,
+              padding: '16px 18px',
+            }}
+          >
+            <Mono color="inkMute" size="xxs" weight={700} letterSpacing="0.16em">
               입금 안내
-            </div>
+            </Mono>
             {order.virtual_account_number ? (
               <>
-                <dl className="mt-2.5 space-y-1.5 text-[12px]">
+                <dl
+                  style={{
+                    marginTop: 10,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    fontSize: 12,
+                  }}
+                >
                   <div className="flex justify-between">
-                    <dt className="text-muted">입금 은행</dt>
-                    <dd className="text-text font-bold">
+                    <dt style={{ color: V3.inkMute }}>입금 은행</dt>
+                    <dd
+                      style={{
+                        color: V3.ink,
+                        fontWeight: V3FontWeight.bold,
+                      }}
+                    >
                       {bankCodeLabel(order.virtual_account_bank) || '—'}
                     </dd>
                   </div>
-                  {/* UX audit #4: 복사 버튼 — 길게 눌러 선택 X. */}
-                  <div className="flex justify-between items-center gap-2">
-                    <dt className="text-muted shrink-0">계좌번호</dt>
-                    <dd className="text-text font-mono font-bold text-[13px] break-all text-right flex-1 min-w-0">
+                  <div
+                    className="flex justify-between items-center"
+                    style={{ gap: 8 }}
+                  >
+                    <dt
+                      className="shrink-0"
+                      style={{ color: V3.inkMute }}
+                    >
+                      계좌번호
+                    </dt>
+                    <dd
+                      className="break-all text-right flex-1 min-w-0"
+                      style={{
+                        color: V3.ink,
+                        fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
+                        fontWeight: V3FontWeight.bold,
+                        fontSize: 13,
+                      }}
+                    >
                       {order.virtual_account_number}
                     </dd>
                     <CopyButton
@@ -295,74 +393,144 @@ function SuccessView({
                   </div>
                   {order.virtual_account_holder && (
                     <div className="flex justify-between">
-                      <dt className="text-muted">예금주</dt>
-                      <dd className="text-text">
+                      <dt style={{ color: V3.inkMute }}>예금주</dt>
+                      <dd style={{ color: V3.ink }}>
                         {order.virtual_account_holder}
                       </dd>
                     </div>
                   )}
                   {order.virtual_account_due_date && (
                     <div className="flex justify-between">
-                      <dt className="text-muted">입금 기한</dt>
-                      <dd className="text-sale font-bold">
+                      <dt style={{ color: V3.inkMute }}>입금 기한</dt>
+                      <dd
+                        style={{
+                          color: V3.sale,
+                          fontWeight: V3FontWeight.bold,
+                        }}
+                      >
                         {formatDueDate(order.virtual_account_due_date)}
                       </dd>
                     </div>
                   )}
                 </dl>
-                <p className="text-[11px] text-muted mt-3 leading-relaxed">
+                <p
+                  style={{
+                    fontSize: 11,
+                    color: V3.inkMute,
+                    marginTop: 12,
+                    lineHeight: 1.55,
+                  }}
+                >
                   입금이 확인되면 상품 준비가 시작되고 알림을 보내드려요.
                   기한까지 입금되지 않으면 주문이 자동 취소됩니다.
                 </p>
               </>
             ) : (
               <>
-                <p className="text-[12px] text-text mt-1.5 leading-relaxed">
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: V3.ink,
+                    marginTop: 6,
+                    lineHeight: 1.55,
+                  }}
+                >
                   발급된 가상계좌 정보는 결제 직후 토스페이먼츠에서 보낸
                   안내(이메일/문자)에서 확인하실 수 있어요. 입금이 확인되면
                   상품 준비가 시작되고 알림을 보내드려요.
                 </p>
-                <p className="text-[11px] text-muted mt-2 leading-relaxed">
+                <p
+                  style={{
+                    fontSize: 11,
+                    color: V3.inkMute,
+                    marginTop: 8,
+                    lineHeight: 1.55,
+                  }}
+                >
                   * 24시간 내 입금되지 않으면 주문이 자동 취소됩니다.
                 </p>
               </>
             )}
           </div>
           {order.payment_method && (
-            <p className="text-[10px] text-muted mt-2 text-center">
+            <p
+              className="text-center"
+              style={{
+                fontSize: 10,
+                color: V3.inkMute,
+                marginTop: 8,
+              }}
+            >
               결제 수단 · {paymentMethodLabel(order.payment_method)}
             </p>
           )}
         </section>
       ) : (
-        <section className="px-5 md:px-6 mt-4 md:mt-5">
-          <div className="bg-bg rounded-xl border border-rule px-4 py-3 md:px-6 md:py-5">
-            <div className="text-[10px] md:text-[11px] text-muted font-bold uppercase tracking-widest">
+        <section style={{ padding: '16px 20px 0' }}>
+          <div
+            style={{
+              background: V3.paperHi,
+              border: `1px solid ${V3.rule}`,
+              borderRadius: V3Radius.sm,
+              padding: '14px 16px',
+            }}
+          >
+            <Mono color="inkMute" size="xxs" weight={700} letterSpacing="0.16em">
               배송 안내
-            </div>
-            <p className="text-[12px] md:text-[14px] text-text mt-1.5 md:mt-2 leading-relaxed">
+            </Mono>
+            <p
+              style={{
+                fontSize: 13,
+                color: V3.ink,
+                marginTop: 6,
+                lineHeight: 1.55,
+              }}
+            >
               주문하신 상품은 평일 기준 2~3일 내 출고됩니다.
             </p>
           </div>
         </section>
       )}
 
-      <section className="px-5 md:px-6 mt-6 md:mt-8 space-y-2 md:space-y-3 md:flex md:gap-3 md:space-y-0">
+      <section
+        className="md:flex md:gap-3"
+        style={{
+          padding: '24px 20px 0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+        }}
+      >
         <Link
           href={`/mypage/orders/${order.id}`}
-          className="block w-full md:flex-1 text-center py-4 md:py-4.5 rounded-full text-[14px] md:text-[15px] font-bold active:scale-[0.98] transition"
+          className="text-center w-full md:flex-1 active:scale-[0.98] transition"
           style={{
-            background: 'var(--ink)',
-            color: 'var(--bg)',
+            padding: '15px 0',
+            borderRadius: V3Radius.pill,
+            fontSize: 14,
+            fontWeight: V3FontWeight.bold,
+            background: V3.ink,
+            color: V3.paperHi,
             letterSpacing: '-0.01em',
-            boxShadow: '0 4px 14px rgba(30,26,20,0.25)',
+            boxShadow: '0 4px 14px rgba(22,20,15,0.2)',
+            textDecoration: 'none',
           }}
         >
           주문 상세 보기
         </Link>
         <Link
           href="/products"
-          className="block w-full md:flex-1 text-center py-4 md:py-4.5 rounded-full bg-white border border-rule text-[13px] md:text-[14px] font-bold text-muted active:scale-[0.98] transition"
+          className="text-center w-full md:flex-1 active:scale-[0.98] transition"
+          style={{
+            padding: '15px 0',
+            borderRadius: V3Radius.pill,
+            background: V3.paperHi,
+            border: `1px solid ${V3.rule}`,
+            fontSize: 13,
+            fontWeight: V3FontWeight.bold,
+            color: V3.inkMute,
+            textDecoration: 'none',
+          }}
         >
           쇼핑 계속하기
         </Link>

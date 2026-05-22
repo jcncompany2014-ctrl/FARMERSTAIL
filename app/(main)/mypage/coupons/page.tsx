@@ -104,27 +104,53 @@ export default async function CouponsPage() {
   )
 
   return (
-    <main className="pb-8">
-      <section className="px-5 pt-6 pb-2">
+    <main style={{ paddingBottom: 32 }}>
+      <section style={{ padding: '24px 20px 8px' }}>
         <Link
           href="/mypage"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'var(--ink-mute, #7d7460)',
+            textDecoration: 'none',
+            display: 'inline-block',
+            marginBottom: 14,
+          }}
         >
           ← 내 정보
         </Link>
-        <span className="kicker mt-3 block">Coupons</span>
-        <h1
-          className="font-serif mt-1.5"
+        <div
           style={{
-            fontSize: 22,
+            fontFamily: "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
+            fontSize: 10.5,
+            fontWeight: 500,
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
+            color: '#7d7460',
+          }}
+        >
+          Coupons · 쿠폰함
+        </div>
+        <h1
+          style={{
+            margin: '6px 0 0',
+            fontFamily: 'var(--font-sans)',
             fontWeight: 800,
-            color: 'var(--ink)',
+            fontSize: 28,
+            lineHeight: 1,
+            color: '#16140f',
             letterSpacing: '-0.02em',
           }}
         >
           내 쿠폰함
         </h1>
-        <p className="text-[11px] text-muted mt-1">
+        <p
+          style={{
+            fontSize: 11.5,
+            color: '#7d7460',
+            marginTop: 6,
+          }}
+        >
           체크아웃 시 사용 가능한 쿠폰이 자동으로 표시돼요
         </p>
       </section>

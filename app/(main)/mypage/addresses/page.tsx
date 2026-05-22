@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation'
 import { MapPin, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { rowToAddress, type AddressRow } from '@/lib/commerce/addresses'
+import { V3, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
+import { Mono } from '@/components/v3'
 import AddressesClient from './AddressesClient'
 
 export const dynamic = 'force-dynamic'
@@ -14,14 +16,11 @@ export const metadata: Metadata = {
 }
 
 /**
- * /mypage/addresses — 배송지 리스트.
+ * /mypage/addresses — 배송지 리스트 (v3 reskin, 2026-05-22 R9-5).
  *
- * 톤: 다른 mypage 서브페이지(/wishlist, /orders 등) 와 동일.
- * - 상단에 "← 내 정보" 뒤로가기 + kicker + 한국어 제목
- * - 목록: 카드형, 기본 배송지는 상단 고정 + 배지
- * - 추가 CTA 는 리스트 맨 위에 (empty state 일 땐 중앙 empty 카드 안에)
- *
- * 상호작용(삭제/기본 설정/수정 이동) 은 client component 에 위임.
+ * - 헤더: Mono kicker + sans 800 헤딩 + 카운트 hint
+ * - 목록: AddressesClient (낙관적 update + 삭제/기본 설정)
+ * - empty state: dashed 카드 + ink CTA
  */
 export default async function AddressesPage() {
   const supabase = await createClient()
@@ -42,29 +41,44 @@ export default async function AddressesPage() {
   const addresses = ((rows ?? []) as AddressRow[]).map(rowToAddress)
 
   return (
-    <main className="pb-8">
-      <section className="px-5 pt-6 pb-2">
+    <main style={{ paddingBottom: 32 }}>
+      <section style={{ padding: '24px 20px 8px' }}>
         <Link
           href="/mypage"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          style={{
+            fontSize: 11,
+            fontWeight: V3FontWeight.semibold,
+            color: V3.inkMute,
+            textDecoration: 'none',
+            display: 'inline-block',
+            marginBottom: 14,
+          }}
         >
           ← 내 정보
         </Link>
-        <span className="kicker mt-3 block">
-          Addresses · 배송지 관리
-        </span>
+        <Mono color="inkMute" size="xs" weight={500}>
+          Addresses · 배송지
+        </Mono>
         <h1
-          className="font-serif mt-1.5"
           style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            margin: '6px 0 0',
+            fontFamily: 'var(--font-sans)',
+            fontWeight: V3FontWeight.black,
+            fontSize: 28,
+            lineHeight: 1,
+            color: V3.ink,
+            letterSpacing: V3LetterSpacing.heading,
           }}
         >
           배송지 관리
         </h1>
-        <p className="text-[11px] text-muted mt-1">
+        <p
+          style={{
+            fontSize: 11.5,
+            color: V3.inkMute,
+            marginTop: 6,
+          }}
+        >
           {addresses.length > 0
             ? `${addresses.length}개 · 기본 배송지는 체크아웃에서 자동 선택됩니다`
             : '첫 배송지를 등록하면 체크아웃이 빨라져요'}
@@ -72,67 +86,95 @@ export default async function AddressesPage() {
       </section>
 
       {addresses.length === 0 ? (
-        <section className="px-5 mt-6">
+        <section style={{ padding: '20px 20px 0' }}>
           <div
-            className="rounded-2xl border px-6 py-12 text-center"
+            className="text-center"
             style={{
-              background: 'var(--bg-2)',
-              borderColor: 'var(--rule-2)',
-              borderStyle: 'dashed',
+              borderRadius: V3Radius.sm,
+              border: `1.5px dashed ${V3.rule}`,
+              padding: '48px 24px',
+              background: V3.paperHi,
             }}
           >
             <div
-              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-4"
+              className="mx-auto flex items-center justify-center"
               style={{
-                background: 'var(--bg)',
-                border: '1px solid var(--rule-2)',
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                background: V3.paper,
+                border: `1px solid ${V3.rule}`,
+                marginBottom: 14,
               }}
             >
-              <MapPin
-                className="w-6 h-6 text-terracotta"
-                strokeWidth={1.5}
-              />
+              <MapPin size={24} color={V3.accent} strokeWidth={1.5} />
             </div>
-            <span className="kicker">Empty</span>
+            <Mono color="accent" size="xxs" weight={600}>
+              Empty
+            </Mono>
             <h3
-              className="font-serif mt-2"
               style={{
-                fontSize: 17,
-                fontWeight: 800,
-                color: 'var(--ink)',
-                letterSpacing: '-0.015em',
+                margin: '8px 0 0',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: V3FontWeight.black,
+                fontSize: 18,
+                color: V3.ink,
+                letterSpacing: '-0.02em',
               }}
             >
               등록된 배송지가 없어요
             </h3>
-            <p className="text-[11px] text-muted mt-1.5 leading-relaxed">
+            <p
+              style={{
+                fontSize: 11.5,
+                color: V3.inkMute,
+                marginTop: 8,
+                lineHeight: 1.55,
+              }}
+            >
               자주 쓰는 집·회사 주소를 저장해두면
               <br />
               체크아웃이 훨씬 빨라져요
             </p>
             <Link
               href="/mypage/addresses/new"
-              className="mt-5 inline-flex items-center gap-1.5 px-6 py-2.5 text-[12px] font-bold rounded-full active:scale-[0.98] transition"
-              style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+              className="inline-flex items-center active:scale-[0.98] transition"
+              style={{
+                marginTop: 20,
+                gap: 6,
+                padding: '12px 22px',
+                fontSize: 12,
+                fontWeight: V3FontWeight.bold,
+                borderRadius: V3Radius.pill,
+                background: V3.ink,
+                color: V3.paperHi,
+                textDecoration: 'none',
+              }}
             >
-              <Plus className="w-4 h-4" strokeWidth={2.5} />
+              <Plus size={16} strokeWidth={2.5} />
               배송지 추가
             </Link>
           </div>
         </section>
       ) : (
         <>
-          <section className="px-5 mt-3">
+          <section style={{ padding: '12px 20px 0' }}>
             <Link
               href="/mypage/addresses/new"
-              className="flex items-center justify-center gap-1.5 py-3 w-full rounded-xl border text-[12.5px] font-bold active:scale-[0.98] transition"
+              className="flex items-center justify-center w-full active:scale-[0.98] transition"
               style={{
-                background: 'var(--ink)',
-                color: 'var(--bg)',
-                borderColor: 'var(--ink)',
+                gap: 6,
+                padding: '12px 0',
+                borderRadius: V3Radius.sm,
+                border: `1px solid ${V3.ink}`,
+                background: V3.ink,
+                color: V3.paperHi,
+                fontSize: 12.5,
+                fontWeight: V3FontWeight.bold,
+                textDecoration: 'none',
               }}
             >
-              <Plus className="w-4 h-4" strokeWidth={2.5} />
+              <Plus size={16} strokeWidth={2.5} />
               새 배송지 추가
             </Link>
           </section>

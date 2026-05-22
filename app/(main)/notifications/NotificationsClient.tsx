@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
+import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
 import './notifications.css'
 
 export type Row = {
@@ -42,13 +43,13 @@ const CATEGORY_LABEL: Record<string, string> = {
 }
 
 const CATEGORY_COLOR: Record<string, string> = {
-  order: 'var(--moss)',
-  restock: 'var(--terracotta)',
-  marketing: 'var(--gold)',
-  cart: 'var(--gold)',
-  reminder: 'var(--terracotta)',
-  approval: 'var(--terracotta)',
-  checkin: 'var(--moss)',
+  order: V3.sage,
+  restock: V3.accent,
+  marketing: V3.yellow,
+  cart: V3.yellow,
+  reminder: V3.accent,
+  approval: V3.accent,
+  checkin: V3.sage,
 }
 
 const FILTERS = [
@@ -182,8 +183,14 @@ export default function NotificationsClient({
 
       {rows.length > 0 && (
         <div
-          className="grid grid-cols-4 gap-px rounded-xl overflow-hidden mx-5 mt-2"
-          style={{ background: 'var(--rule)' }}
+          className="grid grid-cols-4 overflow-hidden"
+          style={{
+            gap: 1,
+            background: V3.rule,
+            borderRadius: V3Radius.sm,
+            border: `1px solid ${V3.rule}`,
+            margin: '8px 0 0',
+          }}
         >
           {FILTERS.map((f) => {
             const active = filter === f.key
@@ -206,21 +213,29 @@ export default function NotificationsClient({
                 key={f.key}
                 type="button"
                 onClick={() => setFilter(f.key)}
-                className="py-2 text-[11px] font-bold transition"
+                className="transition"
                 style={{
-                  background: active ? 'var(--ink)' : 'white',
-                  color: active ? 'white' : 'var(--text)',
+                  padding: '8px 0',
+                  fontSize: 11,
+                  fontWeight: V3FontWeight.bold,
+                  background: active ? V3.ink : V3.paperHi,
+                  color: active ? V3.paperHi : V3.ink,
+                  border: 'none',
                 }}
               >
                 {f.label}
                 {count > 0 && (
                   <span
-                    className="ml-1 inline-block px-1 rounded-full text-[9.5px] font-bold tabular-nums"
+                    className="tabular-nums"
                     style={{
-                      background: active
-                        ? 'rgba(255,255,255,0.18)'
-                        : 'var(--bg-2)',
-                      color: active ? 'white' : 'var(--muted)',
+                      marginLeft: 4,
+                      display: 'inline-block',
+                      padding: '0 5px',
+                      borderRadius: V3Radius.pill,
+                      fontSize: 9.5,
+                      fontWeight: V3FontWeight.bold,
+                      background: active ? 'rgba(244,237,224,0.2)' : V3.paper,
+                      color: active ? V3.paperHi : V3.inkMute,
                     }}
                   >
                     {count}
@@ -242,8 +257,18 @@ export default function NotificationsClient({
           </p>
           <Link
             href="/mypage/notifications"
-            className="mt-4 inline-flex items-center gap-1 px-4 py-2 rounded-full text-[12px] font-bold text-white"
-            style={{ background: 'var(--terracotta)' }}
+            className="inline-flex items-center"
+            style={{
+              marginTop: 16,
+              gap: 4,
+              padding: '8px 18px',
+              borderRadius: V3Radius.pill,
+              fontSize: 12,
+              fontWeight: V3FontWeight.bold,
+              background: V3.ink,
+              color: V3.paperHi,
+              textDecoration: 'none',
+            }}
           >
             알림 설정 보기
           </Link>
@@ -255,18 +280,35 @@ export default function NotificationsClient({
           <p className="nt-empty-sub">다른 카테고리를 골라 보세요</p>
         </div>
       ) : (
-        <div className="px-5 mt-3 space-y-5">
+        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {groups.map((g) => (
             <div key={g.label}>
-              <div className="flex items-center gap-1.5 mb-2 px-1">
-                <Calendar
-                  className="w-3 h-3 text-muted"
-                  strokeWidth={2}
-                />
-                <span className="text-[11px] font-bold text-text">
+              <div
+                className="flex items-center"
+                style={{ gap: 6, marginBottom: 8, paddingLeft: 2 }}
+              >
+                <Calendar size={11} color={V3.inkMute} strokeWidth={2} />
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    letterSpacing: '0.16em',
+                    textTransform: 'uppercase',
+                    color: V3.ink,
+                  }}
+                >
                   {g.label}
                 </span>
-                <span className="text-[10px] text-muted tabular-nums">
+                <span
+                  className="tabular-nums"
+                  style={{
+                    fontSize: 10,
+                    color: V3.inkMute,
+                    fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
+                    fontWeight: 500,
+                  }}
+                >
                   {g.items.length}
                 </span>
               </div>
@@ -324,17 +366,17 @@ function NotificationCard({
       >
         <div className="flex items-start gap-3">
           <div
-            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+            className="shrink-0 flex items-center justify-center"
             style={{
-              background: `color-mix(in srgb, ${catColor} 12%, white)`,
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              background: `color-mix(in srgb, ${catColor} 14%, ${V3.paperHi})`,
+              border: `1px solid ${V3.rule}`,
             }}
             aria-hidden
           >
-            <Icon
-              className="w-3.5 h-3.5"
-              style={{ color: catColor }}
-              strokeWidth={2}
-            />
+            <Icon size={14} color={catColor} strokeWidth={2} />
           </div>
 
           <div className="flex-1 min-w-0 text-left">

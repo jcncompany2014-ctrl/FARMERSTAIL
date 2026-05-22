@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { X } from 'lucide-react'
 import AuthAwareShell from '@/components/AuthAwareShell'
+import { V3, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
+import { Mono } from '@/components/v3'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +18,9 @@ type SearchParams = Promise<{
   orderId?: string
 }>
 
+/**
+ * /checkout/fail — 결제 실패 페이지 (v3 reskin, 2026-05-22 R9-9).
+ */
 export default async function CheckoutFailPage({
   searchParams,
 }: {
@@ -25,79 +30,166 @@ export default async function CheckoutFailPage({
 
   return (
     <AuthAwareShell>
-    <main className="pb-8 md:pb-16 mx-auto" style={{ maxWidth: 720 }}>
-      <section className="px-5 md:px-6 pt-10 md:pt-16 flex flex-col items-center">
-        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-sale flex items-center justify-center text-white shadow-[0_8px_24px_rgba(184,58,46,0.3)]">
-          <X className="w-8 h-8 md:w-11 md:h-11" strokeWidth={3} />
-        </div>
-        <span className="kicker mt-6 md:mt-8" style={{ color: 'var(--sale)' }}>
-          Payment Failed · 결제 실패
-        </span>
-        <h1
-          className="font-serif mt-2 md:mt-3 text-center text-[22px] md:text-[36px] lg:text-[42px]"
-          style={{
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.025em',
-            lineHeight: 1.15,
-          }}
+      <main
+        className="mx-auto"
+        style={{ maxWidth: 720, paddingBottom: 32 }}
+      >
+        <section
+          className="flex flex-col items-center"
+          style={{ padding: '40px 20px 0' }}
         >
-          결제가 완료되지 않았어요
-        </h1>
-        <p className="mt-2 md:mt-4 text-[12px] md:text-[15px] text-muted text-center">
-          다시 시도하거나 장바구니로 돌아가 확인해 주세요
-        </p>
-      </section>
-
-      {(orderId || code || message) && (
-        <section className="px-5 md:px-6 mt-7 md:mt-10">
-          <div className="bg-white rounded-xl border border-rule px-5 py-5 md:px-7 md:py-7 space-y-3 md:space-y-4">
-            {orderId && (
-              <div className="flex justify-between items-center text-[12px] md:text-[14px]">
-                <span className="text-muted">주문번호</span>
-                <span className="text-text font-bold font-mono">
-                  {orderId}
-                </span>
-              </div>
-            )}
-            {code && (
-              <div className="flex justify-between items-center text-[12px] md:text-[14px]">
-                <span className="text-muted">오류 코드</span>
-                <span className="text-text font-mono text-[11px] md:text-[12.5px]">
-                  {code}
-                </span>
-              </div>
-            )}
-            {message && (
-              <div className="text-[12px] md:text-[14px] text-text pt-3 md:pt-4 border-t border-rule leading-relaxed">
-                {decodeURIComponent(message)}
-              </div>
-            )}
+          <div
+            className="flex items-center justify-center"
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 32,
+              background: V3.sale,
+              color: V3.paperHi,
+              boxShadow: '0 8px 24px rgba(184,58,46,0.3)',
+            }}
+          >
+            <X size={32} strokeWidth={3} />
           </div>
+          <div style={{ marginTop: 24 }}>
+            <Mono color="sale" size="xs" weight={600}>
+              Payment Failed · 결제 실패
+            </Mono>
+          </div>
+          <h1
+            className="text-center md:text-[36px] lg:text-[42px]"
+            style={{
+              margin: '8px 0 0',
+              fontFamily: 'var(--font-sans)',
+              fontWeight: V3FontWeight.black,
+              fontSize: 26,
+              color: V3.ink,
+              letterSpacing: V3LetterSpacing.heading,
+              lineHeight: 1.15,
+            }}
+          >
+            결제가 완료되지 않았어요
+          </h1>
+          <p
+            className="text-center"
+            style={{
+              marginTop: 8,
+              fontSize: 12.5,
+              color: V3.inkMute,
+            }}
+          >
+            다시 시도하거나 장바구니로 돌아가 확인해 주세요
+          </p>
         </section>
-      )}
 
-      <section className="px-5 md:px-6 mt-6 md:mt-8 space-y-2 md:flex md:gap-3 md:space-y-0">
-        <Link
-          href="/cart"
-          className="block w-full md:flex-1 text-center py-4 md:py-4.5 rounded-full text-[14px] md:text-[15px] font-bold active:scale-[0.98] transition"
+        {(orderId || code || message) && (
+          <section style={{ padding: '28px 20px 0' }}>
+            <div
+              style={{
+                background: V3.paperHi,
+                border: `1px solid ${V3.rule}`,
+                borderRadius: V3Radius.sm,
+                padding: '18px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}
+            >
+              {orderId && (
+                <div
+                  className="flex justify-between items-center"
+                  style={{ fontSize: 12 }}
+                >
+                  <span style={{ color: V3.inkMute }}>주문번호</span>
+                  <span
+                    style={{
+                      color: V3.ink,
+                      fontWeight: V3FontWeight.bold,
+                      fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
+                    }}
+                  >
+                    {orderId}
+                  </span>
+                </div>
+              )}
+              {code && (
+                <div
+                  className="flex justify-between items-center"
+                  style={{ fontSize: 12 }}
+                >
+                  <span style={{ color: V3.inkMute }}>오류 코드</span>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
+                      fontSize: 11,
+                      color: V3.ink,
+                    }}
+                  >
+                    {code}
+                  </span>
+                </div>
+              )}
+              {message && (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: V3.ink,
+                    paddingTop: 12,
+                    borderTop: `1px solid ${V3.rule}`,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  {decodeURIComponent(message)}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        <section
+          className="md:flex md:gap-3"
           style={{
-            background: 'var(--ink)',
-            color: 'var(--bg)',
-            letterSpacing: '-0.01em',
-            boxShadow: '0 4px 14px rgba(30,26,20,0.25)',
+            padding: '24px 20px 0',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
           }}
         >
-          장바구니로 돌아가기
-        </Link>
-        <Link
-          href="/products"
-          className="block w-full md:flex-1 text-center py-4 md:py-4.5 rounded-full bg-white border border-rule text-[13px] md:text-[14px] font-bold text-muted active:scale-[0.98] transition"
-        >
-          쇼핑 계속하기
-        </Link>
-      </section>
-    </main>
+          <Link
+            href="/cart"
+            className="text-center w-full md:flex-1 active:scale-[0.98] transition"
+            style={{
+              padding: '15px 0',
+              borderRadius: V3Radius.pill,
+              fontSize: 14,
+              fontWeight: V3FontWeight.bold,
+              background: V3.ink,
+              color: V3.paperHi,
+              letterSpacing: '-0.01em',
+              boxShadow: '0 4px 14px rgba(22,20,15,0.2)',
+              textDecoration: 'none',
+            }}
+          >
+            장바구니로 돌아가기
+          </Link>
+          <Link
+            href="/products"
+            className="text-center w-full md:flex-1 active:scale-[0.98] transition"
+            style={{
+              padding: '15px 0',
+              borderRadius: V3Radius.pill,
+              background: V3.paperHi,
+              border: `1px solid ${V3.rule}`,
+              fontSize: 13,
+              fontWeight: V3FontWeight.bold,
+              color: V3.inkMute,
+              textDecoration: 'none',
+            }}
+          >
+            쇼핑 계속하기
+          </Link>
+        </section>
+      </main>
     </AuthAwareShell>
   )
 }

@@ -1,5 +1,12 @@
 'use client'
 
+/**
+ * PointsBrowser — v3 reskin (2026-05-22 R9-4).
+ *
+ * 필터 탭 (전체/적립/사용) + 월별 그룹 ledger.
+ * v3 톤: paperHi 카드 + ink rule + Mono kicker + sage/accent 정/부호.
+ */
+
 import { useState, useMemo } from 'react'
 import {
   Coins,
@@ -13,18 +20,8 @@ import {
   UserPlus,
   Cake,
 } from 'lucide-react'
-
-/**
- * PointsBrowser — ledger filter 탭 + 월별 그룹.
- *
- * 사용자가 보고 싶은 카테고리 (전체 / 적립 / 사용) 만 분리하고, 같은 월의
- * 항목들을 하나의 group 으로 묶어 시각적 위계를 더한다.
- *
- * 카드 디자인 (vs 이전 단조로운 list):
- *  - 좌측 32px 원형 아이콘 (reference_type 별 다른 모양)
- *  - 가운데 reason / 시각
- *  - 우측 +/- 큰 숫자 (적립=moss / 사용=terracotta)
- */
+import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
+import { Mono } from '@/components/v3'
 
 type Entry = {
   id: string
@@ -44,7 +41,7 @@ const FILTERS = [
 type FilterKey = (typeof FILTERS)[number]['key']
 
 /**
- * reference_type 별 적절한 아이콘. unknown 은 Coins 폴백.
+ * reference_type 별 적절한 아이콘.
  */
 function iconFor(refType: string | null, isEarn: boolean) {
   if (!refType) return isEarn ? Coins : RotateCcw
@@ -60,11 +57,7 @@ function iconFor(refType: string | null, isEarn: boolean) {
   return Coins
 }
 
-export default function PointsBrowser({
-  entries,
-}: {
-  entries: Entry[]
-}) {
+export default function PointsBrowser({ entries }: { entries: Entry[] }) {
   const [filter, setFilter] = useState<FilterKey>('all')
 
   const filtered = useMemo(() => {
@@ -73,7 +66,6 @@ export default function PointsBrowser({
     return entries.filter((e) => e.delta < 0)
   }, [entries, filter])
 
-  // 월별 그룹화 — "2026.05" 같은 키.
   const groups = useMemo(() => {
     const m = new Map<string, Entry[]>()
     for (const e of filtered) {
@@ -89,10 +81,15 @@ export default function PointsBrowser({
   return (
     <>
       {/* filter 탭 */}
-      <section className="px-5 mt-4">
+      <section style={{ padding: '16px 20px 0' }}>
         <div
-          className="grid grid-cols-3 gap-px rounded-xl overflow-hidden"
-          style={{ background: 'var(--rule)' }}
+          className="grid grid-cols-3 overflow-hidden"
+          style={{
+            gap: 1,
+            background: V3.rule,
+            borderRadius: V3Radius.sm,
+            border: `1px solid ${V3.rule}`,
+          }}
         >
           {FILTERS.map((f) => {
             const active = filter === f.key
@@ -101,10 +98,14 @@ export default function PointsBrowser({
                 key={f.key}
                 type="button"
                 onClick={() => setFilter(f.key)}
-                className="py-2.5 text-[11.5px] font-bold transition"
+                className="transition"
                 style={{
-                  background: active ? 'var(--ink)' : 'white',
-                  color: active ? 'white' : 'var(--text)',
+                  padding: '10px 0',
+                  fontSize: 11.5,
+                  fontWeight: V3FontWeight.bold,
+                  background: active ? V3.ink : V3.paperHi,
+                  color: active ? V3.paperHi : V3.ink,
+                  border: 'none',
                 }}
               >
                 {f.label}
@@ -115,36 +116,41 @@ export default function PointsBrowser({
       </section>
 
       {/* 월별 그룹 */}
-      <section className="px-5 mt-3">
+      <section style={{ padding: '12px 20px 0' }}>
         {filtered.length === 0 ? (
           <div
-            className="rounded-2xl border px-5 py-12 text-center"
+            className="text-center"
             style={{
-              background: 'var(--bg-2)',
-              borderColor: 'var(--rule-2)',
-              borderStyle: 'dashed',
+              borderRadius: V3Radius.sm,
+              border: `1.5px dashed ${V3.rule}`,
+              padding: '48px 20px',
+              background: V3.paperHi,
             }}
           >
             <div
-              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3"
+              className="mx-auto flex items-center justify-center"
               style={{
-                background: 'var(--bg)',
-                border: '1px solid var(--rule-2)',
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                background: V3.paper,
+                border: `1px solid ${V3.rule}`,
+                marginBottom: 12,
               }}
             >
-              <Coins
-                className="w-6 h-6 text-muted"
-                strokeWidth={1.3}
-              />
+              <Coins size={24} color={V3.inkMute} strokeWidth={1.3} />
             </div>
-            <span className="kicker kicker-muted">Empty</span>
+            <Mono color="inkMute" size="xxs" weight={600}>
+              Empty
+            </Mono>
             <h3
-              className="font-serif mt-2"
               style={{
+                margin: '8px 0 0',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: V3FontWeight.black,
                 fontSize: 16,
-                fontWeight: 800,
-                color: 'var(--ink)',
-                letterSpacing: '-0.015em',
+                color: V3.ink,
+                letterSpacing: '-0.02em',
               }}
             >
               {filter === 'earn'
@@ -153,12 +159,18 @@ export default function PointsBrowser({
                   ? '사용 내역이 없어요'
                   : '아직 포인트 내역이 없어요'}
             </h3>
-            <p className="text-[11px] text-muted mt-1.5">
+            <p
+              style={{
+                fontSize: 11,
+                color: V3.inkMute,
+                marginTop: 6,
+              }}
+            >
               리뷰·주문·친구 초대로 포인트를 적립해보세요
             </p>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {groups.map(([month, items]) => {
               const groupEarn = items.reduce(
                 (s, e) => s + (e.delta > 0 ? e.delta : 0),
@@ -171,24 +183,27 @@ export default function PointsBrowser({
               return (
                 <div key={month}>
                   {/* 월 헤더 */}
-                  <div className="flex items-center justify-between mb-2 px-1">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar
-                        className="w-3 h-3 text-muted"
-                        strokeWidth={2}
-                      />
-                      <span className="text-[11px] font-bold text-text">
+                  <div
+                    className="flex items-center justify-between"
+                    style={{ marginBottom: 8, paddingLeft: 4, paddingRight: 4 }}
+                  >
+                    <div className="flex items-center" style={{ gap: 6 }}>
+                      <Calendar size={11} color={V3.inkMute} strokeWidth={2} />
+                      <Mono color="ink" size="xxs" weight={700}>
                         {month.replace('.', '년 ')}월
-                      </span>
+                      </Mono>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] font-bold tabular-nums">
+                    <div
+                      className="flex items-center tabular-nums"
+                      style={{ gap: 8, fontSize: 10, fontWeight: V3FontWeight.bold }}
+                    >
                       {groupEarn > 0 && (
-                        <span style={{ color: 'var(--moss)' }}>
+                        <span style={{ color: V3.sage }}>
                           +{groupEarn.toLocaleString()}
                         </span>
                       )}
                       {groupUse > 0 && (
-                        <span style={{ color: 'var(--terracotta)' }}>
+                        <span style={{ color: V3.accent }}>
                           −{groupUse.toLocaleString()}
                         </span>
                       )}
@@ -196,67 +211,100 @@ export default function PointsBrowser({
                   </div>
 
                   {/* 카드 list */}
-                  <ul className="bg-white rounded-2xl border border-rule overflow-hidden">
+                  <ul
+                    className="overflow-hidden"
+                    style={{
+                      background: V3.paperHi,
+                      border: `1px solid ${V3.rule}`,
+                      borderRadius: V3Radius.sm,
+                      margin: 0,
+                      padding: 0,
+                      listStyle: 'none',
+                    }}
+                  >
                     {items.map((e, i) => {
                       const isEarn = e.delta > 0
                       const Icon = iconFor(e.reference_type, isEarn)
-                      const accent = isEarn
-                        ? 'var(--moss)'
-                        : 'var(--terracotta)'
+                      const accent = isEarn ? V3.sage : V3.accent
                       return (
                         <li
                           key={e.id}
-                          className={`flex items-center gap-3 px-4 py-3 ${
-                            i < items.length - 1 ? 'border-b border-rule' : ''
-                          }`}
+                          className="flex items-center"
+                          style={{
+                            gap: 12,
+                            padding: '12px 14px',
+                            borderBottom:
+                              i < items.length - 1
+                                ? `1px solid ${V3.rule}`
+                                : 'none',
+                          }}
                         >
                           <div
-                            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+                            className="shrink-0 flex items-center justify-center"
                             style={{
-                              background: `color-mix(in srgb, ${accent} 12%, white)`,
+                              width: 32,
+                              height: 32,
+                              borderRadius: 16,
+                              background: `color-mix(in srgb, ${accent} 14%, ${V3.paperHi})`,
+                              border: `1px solid ${V3.rule}`,
                             }}
                           >
-                            <Icon
-                              className="w-3.5 h-3.5"
-                              style={{ color: accent }}
-                              strokeWidth={2}
-                            />
+                            <Icon size={14} color={accent} strokeWidth={2} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[12.5px] font-bold text-text truncate">
+                            <p
+                              className="truncate"
+                              style={{
+                                margin: 0,
+                                fontFamily: 'var(--font-sans)',
+                                fontSize: 12.5,
+                                fontWeight: V3FontWeight.bold,
+                                color: V3.ink,
+                                letterSpacing: '-0.01em',
+                              }}
+                            >
                               {e.reason}
                             </p>
-                            <p className="text-[10.5px] text-muted mt-0.5">
+                            <Mono
+                              color="inkMute"
+                              size="xxs"
+                              weight={500}
+                              letterSpacing="0.06em"
+                              style={{ marginTop: 3, display: 'inline-block' }}
+                            >
                               {formatDateTime(e.created_at)}
-                            </p>
+                            </Mono>
                           </div>
                           <div className="text-right shrink-0">
                             <div
-                              className="font-serif tabular-nums leading-none flex items-center gap-0.5"
+                              className="tabular-nums flex items-center"
                               style={{
+                                gap: 2,
+                                fontFamily: 'var(--font-sans)',
                                 fontSize: 13,
-                                fontWeight: 800,
+                                fontWeight: V3FontWeight.black,
                                 color: accent,
-                                letterSpacing: '-0.015em',
+                                letterSpacing: '-0.02em',
+                                lineHeight: 1,
                               }}
                             >
                               {isEarn ? (
-                                <ArrowUpRight
-                                  className="w-3 h-3"
-                                  strokeWidth={2.5}
-                                />
+                                <ArrowUpRight size={12} strokeWidth={2.5} />
                               ) : (
-                                <ArrowDownRight
-                                  className="w-3 h-3"
-                                  strokeWidth={2.5}
-                                />
+                                <ArrowDownRight size={12} strokeWidth={2.5} />
                               )}
                               {isEarn ? '+' : ''}
                               {e.delta.toLocaleString()}P
                             </div>
-                            <div className="text-[10px] text-muted mt-0.5 tabular-nums">
+                            <Mono
+                              color="inkMute"
+                              size="xxs"
+                              weight={500}
+                              letterSpacing="0.04em"
+                              style={{ marginTop: 4, display: 'inline-block' }}
+                            >
                               잔 {e.balance_after.toLocaleString()}P
-                            </div>
+                            </Mono>
                           </div>
                         </li>
                       )

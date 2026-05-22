@@ -9,6 +9,8 @@ import CouponCard, {
   type CouponCardState,
 } from '@/components/coupons/CouponCard'
 import { useToast } from '@/components/ui/Toast'
+import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
+import { Mono } from '@/components/v3'
 
 type Coupon = CouponCardData & {
   per_user_limit: number | null
@@ -137,10 +139,16 @@ export default function CouponBrowser({
   return (
     <>
       {/* 코드 등록 (외부 코드 — 이메일 / SNS 받았을 때) */}
-      <section className="px-5 mt-3">
+      <section style={{ padding: '12px 20px 0' }}>
         <div
-          className="rounded-2xl border px-4 py-3 flex gap-2"
-          style={{ background: 'white', borderColor: 'var(--rule)' }}
+          className="flex"
+          style={{
+            gap: 8,
+            padding: '10px 12px',
+            background: V3.paperHi,
+            border: `1px solid ${V3.rule}`,
+            borderRadius: V3Radius.sm,
+          }}
         >
           <input
             type="text"
@@ -155,26 +163,51 @@ export default function CouponBrowser({
             autoCorrect="off"
             spellCheck={false}
             enterKeyHint="search"
-            className="flex-1 px-3 py-2 rounded-lg bg-bg border border-rule text-[12px] font-mono font-bold text-text placeholder:text-muted/60 placeholder:font-sans focus:outline-none focus:border-terracotta"
+            className="flex-1 focus:outline-none"
+            style={{
+              padding: '8px 10px',
+              borderRadius: V3Radius.xs,
+              background: V3.paper,
+              border: `1px solid ${V3.rule}`,
+              fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
+              fontSize: 12,
+              fontWeight: V3FontWeight.bold,
+              color: V3.ink,
+              letterSpacing: '0.04em',
+            }}
           />
           <button
             type="button"
             onClick={lookupAndCopy}
             disabled={registering || !code.trim()}
-            className="shrink-0 px-4 py-2 rounded-lg text-[12px] font-bold inline-flex items-center gap-1 transition disabled:opacity-50"
-            style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+            className="shrink-0 inline-flex items-center transition disabled:opacity-50"
+            style={{
+              gap: 4,
+              padding: '8px 14px',
+              borderRadius: V3Radius.xs,
+              fontSize: 12,
+              fontWeight: V3FontWeight.bold,
+              background: V3.ink,
+              color: V3.paperHi,
+              border: 'none',
+            }}
           >
-            <Search className="w-3.5 h-3.5" strokeWidth={2.5} />
+            <Search size={14} strokeWidth={2.5} />
             {registering ? '확인 중' : '등록'}
           </button>
         </div>
       </section>
 
       {/* 탭 */}
-      <section className="px-5 mt-4">
+      <section style={{ padding: '16px 20px 0' }}>
         <div
-          className="grid grid-cols-3 gap-px rounded-xl overflow-hidden"
-          style={{ background: 'var(--rule)' }}
+          className="grid grid-cols-3 overflow-hidden"
+          style={{
+            gap: 1,
+            background: V3.rule,
+            borderRadius: V3Radius.sm,
+            border: `1px solid ${V3.rule}`,
+          }}
         >
           {TABS.map(({ key, label }) => {
             const count =
@@ -189,19 +222,29 @@ export default function CouponBrowser({
                 key={key}
                 type="button"
                 onClick={() => setTab(key)}
-                className="py-2.5 text-[11.5px] font-bold transition"
+                className="transition"
                 style={{
-                  background: active ? 'var(--ink)' : 'white',
-                  color: active ? 'white' : 'var(--text)',
+                  padding: '10px 0',
+                  fontSize: 11.5,
+                  fontWeight: V3FontWeight.bold,
+                  background: active ? V3.ink : V3.paperHi,
+                  color: active ? V3.paperHi : V3.ink,
+                  border: 'none',
                 }}
               >
                 {label}
                 {count > 0 && (
                   <span
-                    className="ml-1 inline-block px-1.5 rounded-full text-[10px] font-bold"
+                    className="tabular-nums"
                     style={{
-                      background: active ? 'rgba(255,255,255,0.18)' : 'var(--bg-2)',
-                      color: active ? 'white' : 'var(--muted)',
+                      marginLeft: 4,
+                      display: 'inline-block',
+                      padding: '0 6px',
+                      borderRadius: V3Radius.pill,
+                      fontSize: 10,
+                      fontWeight: V3FontWeight.bold,
+                      background: active ? 'rgba(244,237,224,0.2)' : V3.paper,
+                      color: active ? V3.paperHi : V3.inkMute,
                     }}
                   >
                     {count}
@@ -214,36 +257,48 @@ export default function CouponBrowser({
       </section>
 
       {/* 카드 list */}
-      <section className="px-5 mt-3 space-y-2.5">
+      <section
+        style={{
+          padding: '12px 20px 0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+        }}
+      >
         {list.length === 0 ? (
           <div
-            className="rounded-2xl border px-5 py-12 text-center"
+            className="text-center"
             style={{
-              background: 'var(--bg-2)',
-              borderColor: 'var(--rule-2)',
-              borderStyle: 'dashed',
+              borderRadius: V3Radius.sm,
+              border: `1.5px dashed ${V3.rule}`,
+              padding: '48px 20px',
+              background: V3.paperHi,
             }}
           >
             <div
-              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3"
+              className="mx-auto flex items-center justify-center"
               style={{
-                background: 'var(--bg)',
-                border: '1px solid var(--rule-2)',
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                background: V3.paper,
+                border: `1px solid ${V3.rule}`,
+                marginBottom: 12,
               }}
             >
-              <Ticket
-                className="w-6 h-6 text-muted"
-                strokeWidth={1.3}
-              />
+              <Ticket size={24} color={V3.inkMute} strokeWidth={1.3} />
             </div>
-            <span className="kicker kicker-muted">Empty</span>
+            <Mono color="inkMute" size="xxs" weight={600}>
+              Empty
+            </Mono>
             <h3
-              className="font-serif mt-2"
               style={{
+                margin: '8px 0 0',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: V3FontWeight.black,
                 fontSize: 16,
-                fontWeight: 800,
-                color: 'var(--ink)',
-                letterSpacing: '-0.015em',
+                color: V3.ink,
+                letterSpacing: '-0.02em',
               }}
             >
               {tab === 'available'
@@ -252,7 +307,13 @@ export default function CouponBrowser({
                   ? '사용한 쿠폰이 없어요'
                   : '만료된 쿠폰이 없어요'}
             </h3>
-            <p className="text-[11px] text-muted mt-1.5">
+            <p
+              style={{
+                fontSize: 11,
+                color: V3.inkMute,
+                marginTop: 6,
+              }}
+            >
               {tab === 'available'
                 ? '이벤트 / 가입 쿠폰이 발급되면 여기에 표시돼요'
                 : '아직이에요'}

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { tierMeta, nextTier } from '@/lib/tiers'
+import { V3, V3Dark, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
 import PointsBrowser from './PointsBrowser'
 
 export const dynamic = 'force-dynamic'
@@ -22,10 +23,10 @@ export const metadata: Metadata = {
 }
 
 /**
- * /mypage/points — 적립금 hub.
+ * /mypage/points — 적립금 hub (v3 reskin, 2026-05-22 R9-4).
  *
- * Hero (gold-on-ink gradient) + stat 4-grid (이번달 적립/사용 + 누적 적립/사용)
- * + 등급 적립률 안내 + filter 탭 (전체/적립/사용) + 월별 그룹 ledger.
+ * V3Dark ink hero + yellow accent + 4-stat metric strip + 등급 적립률 안내.
+ * ledger 는 PointsBrowser (client) — filter 탭 + 월별 그룹.
  */
 export default async function PointsPage() {
   const supabase = await createClient()
@@ -83,131 +84,223 @@ export default async function PointsPage() {
   const remainToNext = next ? Math.max(0, next.threshold - cumulativeSpend) : 0
 
   return (
-    <main className="pb-10">
-      <section className="px-5 pt-6 pb-3">
+    <main style={{ paddingBottom: 40 }}>
+      {/* Back link */}
+      <section style={{ padding: '24px 20px 12px' }}>
         <Link
           href="/mypage"
-          className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-terracotta font-semibold"
+          className="inline-flex items-center"
+          style={{
+            gap: 4,
+            fontSize: 11,
+            fontWeight: V3FontWeight.semibold,
+            color: V3.inkMute,
+            textDecoration: 'none',
+          }}
         >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
+          <ChevronLeft size={12} strokeWidth={2.5} />
           내 정보
         </Link>
       </section>
 
-      {/* HERO — gold-on-ink + 큰 잔액 + 등급 적립률 */}
-      <section className="px-5">
+      {/* HERO — V3Dark ink + yellow accent */}
+      <section style={{ padding: '0 20px' }}>
         <div
-          className="relative overflow-hidden rounded-3xl px-6 pt-6 pb-7 text-white"
+          className="relative overflow-hidden"
           style={{
-            background:
-              'linear-gradient(135deg, #1E1A14 0%, #3a2f1d 60%, #5b4720 100%)',
+            background: V3Dark.bg,
+            borderRadius: V3Radius.sm,
+            padding: '22px 22px 22px',
+            color: V3Dark.fg,
           }}
         >
+          {/* 우상단 yellow glow */}
           <div
             aria-hidden
-            className="absolute -top-12 -right-10 w-44 h-44 rounded-full pointer-events-none"
+            className="absolute pointer-events-none"
             style={{
+              top: -40,
+              right: -40,
+              width: 170,
+              height: 170,
+              borderRadius: 999,
               background:
-                'radial-gradient(circle, rgba(212,169,74,0.25) 0%, transparent 70%)',
+                'radial-gradient(circle, rgba(230,185,66,0.22) 0%, transparent 70%)',
             }}
           />
           <div
             aria-hidden
-            className="absolute -bottom-12 -left-12 w-36 h-36 rounded-full pointer-events-none"
-            style={{ background: 'rgba(255,255,255,0.05)' }}
+            className="absolute pointer-events-none"
+            style={{
+              bottom: -50,
+              left: -50,
+              width: 140,
+              height: 140,
+              borderRadius: 999,
+              background: 'rgba(244,237,224,0.04)',
+            }}
           />
 
           <div className="relative">
-            <div className="flex items-center gap-2 mb-2">
-              <Coins className="w-3.5 h-3.5 text-gold" strokeWidth={2} />
-              <span className="kicker kicker-gold">
+            <div className="flex items-center" style={{ gap: 6, marginBottom: 6 }}>
+              <Coins size={14} color={V3.yellow} strokeWidth={2} />
+              <span
+                style={{
+                  fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  letterSpacing: '0.16em',
+                  textTransform: 'uppercase',
+                  color: V3.yellow,
+                }}
+              >
                 Points · 사용 가능
               </span>
             </div>
-            <div className="flex items-baseline gap-1.5">
+            <div className="flex items-baseline" style={{ gap: 6 }}>
               <span
-                className="font-serif leading-none tabular-nums text-gold"
+                className="tabular-nums"
                 style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontWeight: V3FontWeight.black,
                   fontSize: 44,
-                  fontWeight: 800,
-                  letterSpacing: '-0.025em',
+                  color: V3.yellow,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1,
                 }}
               >
                 {balance.toLocaleString()}
               </span>
-              <span className="text-[16px] text-white/85 font-bold">P</span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  letterSpacing: '0.08em',
+                  color: V3Dark.fgMute,
+                  textTransform: 'uppercase',
+                }}
+              >
+                P
+              </span>
             </div>
 
-            {/* 등급 적립률 안내 → 멤버십 hub 진입 */}
+            {/* 등급 적립률 안내 → 멤버십 hub */}
             <Link
               href="/mypage/membership"
-              className="mt-5 flex items-center gap-3 px-4 py-2.5 rounded-xl hover:opacity-95 transition"
-              style={{ background: 'rgba(255,255,255,0.08)' }}
+              className="flex items-center transition"
+              style={{
+                marginTop: 18,
+                gap: 12,
+                padding: '10px 14px',
+                borderRadius: V3Radius.xs,
+                background: V3Dark.ruleSoft,
+                border: `1px solid ${V3Dark.rule}`,
+                color: V3Dark.fg,
+                textDecoration: 'none',
+              }}
             >
               <div
-                className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ background: meta.bg, color: meta.ink }}
+                className="shrink-0 flex items-center justify-center"
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  background: meta.bg,
+                  color: meta.ink,
+                }}
               >
                 {meta.key === 'mate' ? (
-                  <Crown className="w-3.5 h-3.5" strokeWidth={2} />
+                  <Crown size={14} strokeWidth={2} />
                 ) : (
-                  <Sparkles className="w-3.5 h-3.5" strokeWidth={2} />
+                  <Sparkles size={14} strokeWidth={2} />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[11px] font-bold text-white">
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: V3FontWeight.bold,
+                    color: V3Dark.fg,
+                  }}
+                >
                   {meta.label} 등급 — {meta.earnRate}% 적립
                 </div>
                 {next ? (
-                  <div className="text-[10px] text-white/70 mt-0.5">
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: V3Dark.fgMute,
+                      marginTop: 2,
+                    }}
+                  >
                     {next.label} ({next.earnRate}%) 까지{' '}
                     {remainToNext.toLocaleString()}원 더
                   </div>
                 ) : (
-                  <div className="text-[10px] text-white/70 mt-0.5">
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: V3Dark.fgMute,
+                      marginTop: 2,
+                    }}
+                  >
                     최고 적립률 도달 ✓
                   </div>
                 )}
               </div>
-              <ChevronRight className="w-4 h-4 text-white/70" strokeWidth={2} />
+              <ChevronRight size={16} color={V3Dark.fgMute} strokeWidth={2} />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* stat 4-grid */}
-      <section className="px-5 mt-3">
-        <div className="grid grid-cols-2 gap-2">
-          <StatCard
+      {/* stat 4-grid — metric strip 패턴 */}
+      <section style={{ padding: '12px 20px 0' }}>
+        <div
+          className="grid grid-cols-2"
+          style={{
+            gap: 0,
+            background: V3.paperHi,
+            border: `1px solid ${V3.rule}`,
+            borderRadius: V3Radius.sm,
+            overflow: 'hidden',
+          }}
+        >
+          <StatCell
             kicker="이번 달 적립"
             value={earnedThisMonth}
-            tone="moss"
+            tone="sage"
             Icon={TrendingUp}
+            isFirstRow
+            isFirstCol
           />
-          <StatCard
+          <StatCell
             kicker="이번 달 사용"
             value={usedThisMonth}
-            tone="terracotta"
+            tone="accent"
             Icon={TrendingDown}
+            isFirstRow
           />
-          <StatCard
+          <StatCell
             kicker="누적 적립"
             value={earnedTotal}
             tone="ink"
             Icon={TrendingUp}
             small
+            isFirstCol
           />
-          <StatCard
+          <StatCell
             kicker="누적 사용"
             value={usedTotal}
-            tone="muted"
+            tone="inkMute"
             Icon={TrendingDown}
             small
           />
         </div>
       </section>
 
-      {/* ledger — client island (filter 탭 + 월별 그룹) */}
+      {/* ledger — client island */}
       <PointsBrowser
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         entries={(entries ?? []) as any[]}
@@ -216,58 +309,80 @@ export default async function PointsPage() {
   )
 }
 
-function StatCard({
+type ToneKey = 'sage' | 'accent' | 'ink' | 'inkMute'
+const TONE_COLOR: Record<ToneKey, string> = {
+  sage: V3.sage,
+  accent: V3.accent,
+  ink: V3.ink,
+  inkMute: V3.inkMute,
+}
+
+function StatCell({
   kicker,
   value,
   tone,
   Icon,
   small,
+  isFirstRow,
+  isFirstCol,
 }: {
   kicker: string
   value: number
-  tone: 'moss' | 'terracotta' | 'ink' | 'muted'
+  tone: ToneKey
   Icon: typeof TrendingUp
   small?: boolean
+  isFirstRow?: boolean
+  isFirstCol?: boolean
 }) {
-  const colorMap = {
-    moss: 'var(--moss)',
-    terracotta: 'var(--terracotta)',
-    ink: 'var(--ink)',
-    muted: 'var(--muted)',
-  }
-  const accent = colorMap[tone]
+  const accent = TONE_COLOR[tone]
   return (
     <div
-      className="rounded-xl border px-4 py-3 transition"
       style={{
-        background: 'white',
-        borderColor: 'var(--rule)',
+        padding: '12px 14px',
+        borderLeft: isFirstCol ? 'none' : `1px solid ${V3.rule}`,
+        borderTop: isFirstRow ? 'none' : `1px solid ${V3.rule}`,
       }}
     >
-      <div className="inline-flex items-center gap-1">
-        <Icon
-          className="w-3 h-3"
-          style={{ color: accent }}
-          strokeWidth={2.5}
-        />
+      <div className="inline-flex items-center" style={{ gap: 4 }}>
+        <Icon size={11} color={accent} strokeWidth={2.5} />
         <span
-          className="text-[10px] font-bold uppercase tracking-widest"
-          style={{ color: accent }}
+          style={{
+            fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
+            fontSize: 9.5,
+            fontWeight: 600,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: accent,
+          }}
         >
           {kicker}
         </span>
       </div>
       <div
-        className="mt-1 font-serif tabular-nums"
+        className="tabular-nums"
         style={{
-          fontSize: small ? 14 : 18,
-          fontWeight: 800,
-          color: 'var(--ink)',
-          letterSpacing: '-0.015em',
+          marginTop: 5,
+          fontFamily: 'var(--font-sans)',
+          fontWeight: V3FontWeight.black,
+          fontSize: small ? 16 : 22,
+          color: V3.ink,
+          letterSpacing: V3LetterSpacing.heading,
+          lineHeight: 1,
         }}
       >
         {value.toLocaleString()}
-        <span className="text-[10px] text-muted ml-0.5 font-sans">P</span>
+        <span
+          style={{
+            fontSize: 10,
+            color: V3.inkMute,
+            marginLeft: 3,
+            fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
+            fontWeight: 500,
+            letterSpacing: '0.08em',
+          }}
+        >
+          P
+        </span>
       </div>
     </div>
   )

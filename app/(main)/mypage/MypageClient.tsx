@@ -1,8 +1,19 @@
 'use client'
 
-// audit #101 — MypageClient: 로그아웃 버튼 + tier chip / stat / menu 렌더링.
-// page.tsx (server) 가 auth, profile, orders/subs/points/wish/coupons 카운트를
-// 모두 prefetch → 여기에 prop drill. 로그아웃은 supabase client auth.signOut.
+/**
+ * MypageClient — v3 reskin (2026-05-22, R9).
+ *
+ * 변경:
+ *   - 헤더: serif → sans 800 + Mono kicker.
+ *   - 프로필 카드: paperHi + 1px rule + radius 4.
+ *   - 포인트 hero: V3Dark ink 카드 + yellow accent (gradient → flat ink).
+ *   - StatCard: 4-col mini metric strip 패턴 (ActiveDogCard 와 동일 톤).
+ *   - MenuGroup: kicker (Mono) + paperHi 카드 + ink rule.
+ *   - MenuItem: chevron / badge 톤은 V3.accent.
+ *
+ * 비즈니스 로직(로그아웃·tier·count)은 audit #101 유지.
+ */
+
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -27,6 +38,8 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { tierMeta } from '@/lib/tiers'
+import { V3, V3Dark, V3FontSize, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
+import { Mono } from '@/components/v3'
 
 type Profile = {
   name: string | null
@@ -68,53 +81,88 @@ export default function MypageClient({
     profile?.name || (email ? email.split('@')[0] : null) || '고객'
 
   return (
-    <main className="pb-8">
-      {/* 헤더 — kicker + sans h1 */}
-      <section className="px-5 pt-6 pb-2">
-        <span className="kicker">My Account</span>
+    <main style={{ paddingBottom: 32 }}>
+      {/* ──────────────────────────────────────────────────────────────
+          헤더 — kicker + sans 800 h1
+          ────────────────────────────────────────────────────────────── */}
+      <section style={{ padding: '24px 20px 12px' }}>
+        <Mono color="inkMute" size="xs" weight={500}>
+          My Account · 내 정보
+        </Mono>
         <h1
-          className="font-serif mt-1.5"
           style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            margin: '6px 0 0',
+            fontFamily: 'var(--font-sans)',
+            fontWeight: V3FontWeight.black,
+            fontSize: 32,
+            lineHeight: 1,
+            color: V3.ink,
+            letterSpacing: V3LetterSpacing.heading,
           }}
         >
-          내 정보
+          마이페이지
         </h1>
       </section>
 
-      {/* 프로필 카드 */}
-      <section className="px-5 mt-4">
-        <div className="bg-white rounded-2xl border border-rule px-5 py-5">
-          <div className="flex items-center gap-3">
+      {/* ──────────────────────────────────────────────────────────────
+          프로필 카드 — paperHi + ink rule + radius 4
+          ────────────────────────────────────────────────────────────── */}
+      <section style={{ padding: '8px 20px 0' }}>
+        <div
+          style={{
+            background: V3.paperHi,
+            border: `1px solid ${V3.rule}`,
+            borderRadius: V3Radius.sm,
+            padding: '16px 18px',
+          }}
+        >
+          <div className="flex items-center" style={{ gap: 12 }}>
             <Link
               href="/account/profile"
               aria-label="프로필 수정"
-              className="w-12 h-12 rounded-full bg-bg flex items-center justify-center shrink-0 hover:bg-rule transition"
+              className="shrink-0 flex items-center justify-center"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                background: V3.paper,
+                border: `1px solid ${V3.rule}`,
+              }}
             >
-              <User
-                className="w-5 h-5 text-muted"
-                strokeWidth={1.5}
-              />
+              <User size={20} color={V3.inkMute} strokeWidth={1.5} />
             </Link>
-            <Link
-              href="/account/profile"
-              className="flex-1 min-w-0 group"
-            >
-              {/* UI audit H1: flex-wrap 제거 — 내부 child 가 단일이라 wrap 의미 X.
-                  긴 한국어 이름 시 wrap 이 truncate 와 충돌해 tier chip 이 2번째 줄로
-                  밀려나던 issue. truncate 단독 적용으로 단순화. */}
-              <div className="text-[14px] font-bold text-text truncate group-hover:text-terracotta transition">
+            <Link href="/account/profile" className="flex-1 min-w-0">
+              <div
+                className="truncate"
+                style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 15,
+                  fontWeight: V3FontWeight.bold,
+                  color: V3.ink,
+                  letterSpacing: '-0.02em',
+                }}
+              >
                 {displayName}님
               </div>
-              <div className="text-[11px] text-muted truncate mt-0.5">
+              <div
+                className="truncate"
+                style={{
+                  fontSize: 11.5,
+                  color: V3.inkMute,
+                  marginTop: 2,
+                }}
+              >
                 {email ?? '—'}
               </div>
-              <div className="text-[10px] text-terracotta font-bold mt-1">
+              <Mono
+                color="accent"
+                size="xxs"
+                weight={600}
+                letterSpacing="0.12em"
+                style={{ marginTop: 6, display: 'inline-block' }}
+              >
                 프로필 / 비밀번호 →
-              </div>
+              </Mono>
             </Link>
             {profile?.tier && (
               <Link
@@ -129,119 +177,151 @@ export default function MypageClient({
         </div>
       </section>
 
-      {/* 포인트 + 등급 hero — mypage/points 페이지와 동일 디자인.
-          gradient + radial accent + 등급 chip + 다음 등급 안내. */}
-      <section className="px-5 mt-3">
+      {/* ──────────────────────────────────────────────────────────────
+          포인트 hero — V3Dark ink 카드 + yellow accent
+          ────────────────────────────────────────────────────────────── */}
+      <section style={{ padding: '12px 20px 0' }}>
         <Link
           href="/mypage/points"
-          className="relative block overflow-hidden rounded-3xl px-6 pt-5 pb-5 text-white hover:shadow-md transition-all"
+          className="relative block overflow-hidden"
           style={{
-            background:
-              'linear-gradient(135deg, #1E1A14 0%, #3a2f1d 60%, #5b4720 100%)',
+            background: V3Dark.bg,
+            borderRadius: V3Radius.sm,
+            padding: '18px 20px',
+            color: V3Dark.fg,
+            textDecoration: 'none',
           }}
         >
-          {/* 우상단 골드 글로우 */}
+          {/* 우상단 yellow glow — accent dot 같은 시각 마커 */}
           <div
             aria-hidden
-            className="absolute -top-12 -right-10 w-44 h-44 rounded-full pointer-events-none"
+            className="absolute pointer-events-none"
             style={{
+              top: -40,
+              right: -40,
+              width: 140,
+              height: 140,
+              borderRadius: 999,
               background:
-                'radial-gradient(circle, rgba(212,169,74,0.25) 0%, transparent 70%)',
+                'radial-gradient(circle, rgba(230,185,66,0.22) 0%, transparent 70%)',
             }}
-          />
-          <div
-            aria-hidden
-            className="absolute -bottom-12 -left-12 w-36 h-36 rounded-full pointer-events-none"
-            style={{ background: 'rgba(255,255,255,0.05)' }}
           />
 
           <div className="relative">
-            <div className="flex items-center gap-2 mb-1.5">
-              <Coins className="w-3.5 h-3.5 text-gold" strokeWidth={2} />
-              <span className="kicker kicker-gold">Points</span>
+            <div className="flex items-center" style={{ gap: 6, marginBottom: 6 }}>
+              <Coins size={14} color={V3.yellow} strokeWidth={2} />
+              <Mono color={V3.yellow} size="xxs" weight={600}>
+                Points
+              </Mono>
             </div>
-            <div className="flex items-baseline gap-1.5">
+            <div className="flex items-baseline" style={{ gap: 5 }}>
               <span
-                className="font-serif leading-none tabular-nums text-gold"
+                className="tabular-nums"
                 style={{
-                  fontSize: 36,
-                  fontWeight: 800,
-                  letterSpacing: '-0.025em',
+                  fontFamily: 'var(--font-sans)',
+                  fontWeight: V3FontWeight.black,
+                  fontSize: 38,
+                  color: V3.yellow,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1,
                 }}
               >
                 {pointBalance.toLocaleString()}
               </span>
-              <span className="text-[14px] text-white/85 font-bold">P</span>
+              <Mono color={V3Dark.fgMute} size="sm" weight={600} letterSpacing="0.08em">
+                P
+              </Mono>
             </div>
 
             {profile?.tier && (
-              <div className="mt-3 flex items-center gap-2.5 px-3 py-2 rounded-xl"
-                style={{ background: 'rgba(255,255,255,0.08)' }}
+              <div
+                className="flex items-center"
+                style={{
+                  marginTop: 14,
+                  gap: 10,
+                  padding: '8px 12px',
+                  borderRadius: V3Radius.xs,
+                  background: V3Dark.ruleSoft,
+                  border: `1px solid ${V3Dark.rule}`,
+                }}
               >
-                <span className="text-[18px] leading-none">
+                <span style={{ fontSize: 18, lineHeight: 1 }}>
                   {TIER_EMOJI[profile.tier] ?? '🌱'}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[11px] font-bold text-white">
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: V3FontWeight.bold,
+                      color: V3Dark.fg,
+                    }}
+                  >
                     {tierMeta(profile.tier).label} 등급 · {tierMeta(profile.tier).earnRate}% 적립
                   </div>
                 </div>
-                <ChevronRight className="w-3.5 h-3.5 text-white/70" strokeWidth={2} />
+                <ChevronRight size={14} color={V3Dark.fgMute} strokeWidth={2} />
               </div>
             )}
           </div>
         </Link>
       </section>
 
-      {/* 요약 통계 */}
+      {/* ──────────────────────────────────────────────────────────────
+          Stat grid — orders / subs / coupons / wish (4-col)
+          ────────────────────────────────────────────────────────────── */}
       {(orderCount > 0 ||
         subCount > 0 ||
         couponCount > 0 ||
         wishCount > 0) && (
-        <section className="px-5 mt-2.5">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {orderCount > 0 && (
-              <StatCard
-                href="/mypage/orders"
-                kicker="Orders"
-                value={orderCount}
-                unit="건"
-                valueColor="var(--ink)"
-              />
-            )}
-            {subCount > 0 && (
-              <StatCard
-                href="/mypage/subscriptions"
-                kicker="Subs"
-                value={subCount}
-                unit="건"
-                valueColor="var(--moss)"
-              />
-            )}
-            {couponCount > 0 && (
-              <StatCard
-                href="/mypage/coupons"
-                kicker="Coupons"
-                value={couponCount}
-                unit="장"
-                valueColor="var(--terracotta)"
-              />
-            )}
-            {wishCount > 0 && (
-              <StatCard
-                href="/mypage/wishlist"
-                kicker="Wish"
-                value={wishCount}
-                unit="개"
-                valueColor="var(--gold)"
-              />
-            )}
+        <section style={{ padding: '10px 20px 0' }}>
+          <div
+            className="grid"
+            style={{
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 0,
+              background: V3.paperHi,
+              border: `1px solid ${V3.rule}`,
+              borderRadius: V3Radius.sm,
+              overflow: 'hidden',
+            }}
+          >
+            <StatCell
+              href="/mypage/orders"
+              kicker="Orders"
+              value={orderCount}
+              unit="건"
+              tone="ink"
+              isFirst
+            />
+            <StatCell
+              href="/mypage/subscriptions"
+              kicker="Subs"
+              value={subCount}
+              unit="건"
+              tone="sage"
+            />
+            <StatCell
+              href="/mypage/coupons"
+              kicker="Coupons"
+              value={couponCount}
+              unit="장"
+              tone="accent"
+            />
+            <StatCell
+              href="/mypage/wishlist"
+              kicker="Wish"
+              value={wishCount}
+              unit="개"
+              tone="yellow"
+            />
           </div>
         </section>
       )}
 
-      {/* 그룹 1: 주문 & 배송 */}
-      <MenuGroup kicker="Orders · 주문 & 배송" className="mt-6">
+      {/* ──────────────────────────────────────────────────────────────
+          Menu groups — kicker + paperHi 카드 + ink rule
+          ────────────────────────────────────────────────────────────── */}
+      <MenuGroup kicker="Orders · 주문 & 배송" topPad={28}>
         <MenuItem href="/mypage/orders" Icon={Package} label="주문 내역" />
         <MenuItem
           href="/mypage/subscriptions"
@@ -251,13 +331,8 @@ export default function MypageClient({
         <MenuItem href="/mypage/addresses" Icon={MapPin} label="배송지 관리" last />
       </MenuGroup>
 
-      {/* 그룹 2: 혜택 & 활동 */}
-      <MenuGroup kicker="Benefits · 혜택" className="mt-5">
-        <MenuItem
-          href="/mypage/membership"
-          Icon={Crown}
-          label="멤버십 등급"
-        />
+      <MenuGroup kicker="Benefits · 혜택" topPad={20}>
+        <MenuItem href="/mypage/membership" Icon={Crown} label="멤버십 등급" />
         <MenuItem href="/mypage/wishlist" Icon={Heart} label="찜한 상품" />
         <MenuItem href="/mypage/reviews" Icon={Star} label="내 리뷰" />
         <MenuItem
@@ -269,18 +344,13 @@ export default function MypageClient({
         />
       </MenuGroup>
 
-      {/* 그룹 3: 설정 */}
-      <MenuGroup kicker="Settings · 설정" className="mt-5">
+      <MenuGroup kicker="Settings · 설정" topPad={20}>
         <MenuItem
           href="/mypage/notifications"
           Icon={Bell}
           label="알림 받기 설정"
         />
-        <MenuItem
-          href="/mypage/consent"
-          Icon={Mail}
-          label="광고 수신 설정"
-        />
+        <MenuItem href="/mypage/consent" Icon={Mail} label="광고 수신 설정" />
         <MenuItem
           href="/mypage/privacy"
           Icon={Shield}
@@ -289,8 +359,7 @@ export default function MypageClient({
         />
       </MenuGroup>
 
-      {/* 그룹 4: 도움말 */}
-      <MenuGroup kicker="Help · 도움말" className="mt-5">
+      <MenuGroup kicker="Help · 도움말" topPad={20}>
         <MenuItem href="/chat" Icon={Sparkles} label="AI 영양사 상담" />
         <MenuItem href="/business" Icon={HelpCircle} label="고객센터" />
         <MenuItem href="/faq" Icon={FileText} label="자주 묻는 질문" />
@@ -303,30 +372,46 @@ export default function MypageClient({
       </MenuGroup>
 
       {/* 약관·정책 */}
-      <section className="px-5 mt-6 mb-2">
-        <div className="text-[10.5px] text-muted">
-          <Link href="/legal" className="hover:text-text">
+      <section style={{ padding: '24px 20px 8px' }}>
+        <Mono color="inkMute" size="xxs" weight={500} letterSpacing="0.12em">
+          <Link href="/legal" style={{ color: V3.inkMute, textDecoration: 'none' }}>
             약관 · 정책
           </Link>
-        </div>
+        </Mono>
       </section>
 
       {/* 로그아웃 */}
-      <section className="px-5 mt-4">
+      <section style={{ padding: '16px 20px 0' }}>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white border border-rule text-[13px] font-semibold text-muted hover:text-sale hover:border-sale transition active:scale-[0.98]"
+          className="w-full flex items-center justify-center transition active:scale-[0.98]"
+          style={{
+            gap: 8,
+            padding: '14px 16px',
+            background: V3.paperHi,
+            border: `1px solid ${V3.rule}`,
+            borderRadius: V3Radius.sm,
+            fontFamily: 'var(--font-sans)',
+            fontSize: 13,
+            fontWeight: V3FontWeight.semibold,
+            color: V3.inkMute,
+          }}
         >
-          <LogOut className="w-4 h-4" strokeWidth={2} />
+          <LogOut size={16} strokeWidth={2} />
           로그아웃
         </button>
       </section>
 
       {/* 탈퇴 */}
-      <section className="px-5 mt-3 text-center">
+      <section style={{ padding: '12px 20px 0', textAlign: 'center' }}>
         <Link
           href="/mypage/delete"
-          className="inline-block text-[11px] text-muted hover:text-sale transition underline underline-offset-2"
+          style={{
+            fontSize: 11,
+            color: V3.inkMute,
+            textDecoration: 'underline',
+            textUnderlineOffset: 2,
+          }}
         >
           회원 탈퇴
         </Link>
@@ -335,23 +420,28 @@ export default function MypageClient({
   )
 }
 
-/**
- * 등급 chip — 프로필 카드에 인라인.
- * lib/tiers 의 5단계 시스템 (씨앗/새싹/꽃/열매/단짝) 통합.
- */
+// ──────────────────────────────────────────────────────────────
+// TierChip — 5단계 등급 시스템 (씨앗/새싹/꽃/열매/단짝)
+// ──────────────────────────────────────────────────────────────
 function TierChip({ tier }: { tier: string }) {
   const meta = tierMeta(tier)
   return (
     <span
-      className="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-1 rounded-full"
+      className="inline-flex items-center"
       style={{
+        gap: 4,
+        fontFamily: 'var(--font-sans)',
+        fontSize: 11,
+        fontWeight: V3FontWeight.black,
+        padding: '4px 10px',
+        borderRadius: V3Radius.pill,
         background: meta.bg,
         color: meta.ink,
         letterSpacing: '-0.01em',
-        boxShadow: '0 1px 0 rgba(30,26,20,0.05)',
+        border: `1px solid ${V3.rule}`,
       }}
     >
-      <span className="text-[14px] leading-none">{TIER_EMOJI[meta.key]}</span>
+      <span style={{ fontSize: 13, lineHeight: 1 }}>{TIER_EMOJI[meta.key]}</span>
       {meta.label}
     </span>
   )
@@ -365,66 +455,101 @@ const TIER_EMOJI: Record<string, string> = {
   mate: '💛',
 }
 
-function StatCard({
+// ──────────────────────────────────────────────────────────────
+// StatCell — 4-col 메트릭 strip 한 cell
+// ──────────────────────────────────────────────────────────────
+function StatCell({
   href,
   kicker,
   value,
   unit,
-  valueColor,
+  tone,
+  isFirst,
 }: {
   href: string
   kicker: string
   value: number
   unit: string
-  valueColor: string
+  tone: 'ink' | 'sage' | 'accent' | 'yellow'
+  isFirst?: boolean
 }) {
+  const toneColor: Record<typeof tone, string> = {
+    ink: V3.ink,
+    sage: V3.sage,
+    accent: V3.accent,
+    yellow: V3.yellow,
+  }
   return (
     <Link
       href={href}
-      className="bg-white rounded-2xl border border-rule px-3 py-3 hover:border-text transition-all"
+      style={{
+        padding: '12px 10px',
+        borderLeft: isFirst ? 'none' : `1px solid ${V3.rule}`,
+        textDecoration: 'none',
+        display: 'block',
+      }}
     >
-      <span className="kicker kicker-muted" style={{ fontSize: 9 }}>
+      <Mono color="inkMute" size="xxs" weight={500}>
         {kicker}
-      </span>
-      <div className="mt-1.5 flex items-baseline gap-0.5">
+      </Mono>
+      <div className="flex items-baseline" style={{ marginTop: 6, gap: 3 }}>
         <span
-          className="font-serif leading-none"
+          className="tabular-nums"
           style={{
-            fontSize: 20,
-            fontWeight: 800,
-            color: valueColor,
-            letterSpacing: '-0.015em',
+            fontFamily: 'var(--font-sans)',
+            fontWeight: V3FontWeight.black,
+            fontSize: 22,
+            color: toneColor[tone],
+            letterSpacing: '-0.025em',
+            lineHeight: 1,
           }}
         >
           {value}
         </span>
-        <span className="text-[10px] text-muted">{unit}</span>
+        <Mono color="inkMute" size="xxs" weight={500} letterSpacing="0.04em">
+          {unit}
+        </Mono>
       </div>
     </Link>
   )
 }
 
+// ──────────────────────────────────────────────────────────────
+// MenuGroup — kicker label + paperHi 카드 wrapper
+// ──────────────────────────────────────────────────────────────
 function MenuGroup({
   kicker,
-  className,
+  topPad,
   children,
 }: {
   kicker: string
-  className?: string
+  topPad: number
   children: React.ReactNode
 }) {
   return (
-    <section className={`px-5 ${className ?? ''}`}>
-      <div className="mb-2 px-1">
-        <span className="kicker kicker-muted">{kicker}</span>
+    <section style={{ padding: `${topPad}px 20px 0` }}>
+      <div style={{ marginBottom: 8, paddingLeft: 2 }}>
+        <Mono color="inkMute" size="xxs" weight={500}>
+          {kicker}
+        </Mono>
       </div>
-      <div className="bg-white rounded-2xl border border-rule overflow-hidden">
+      <div
+        style={{
+          background: V3.paperHi,
+          border: `1px solid ${V3.rule}`,
+          borderRadius: V3Radius.sm,
+          overflow: 'hidden',
+        }}
+      >
         {children}
       </div>
     </section>
   )
 }
 
+// ──────────────────────────────────────────────────────────────
+// MenuItem — 단일 row (icon + label + chevron, optional badge)
+// ──────────────────────────────────────────────────────────────
 function MenuItem({
   href,
   Icon,
@@ -434,31 +559,49 @@ function MenuItem({
   badge,
 }: {
   href?: string
-  Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+  Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>
   label: string
   comingSoon?: boolean
   last?: boolean
   badge?: number
 }) {
-  const borderCls = last ? '' : 'border-b border-rule'
+  const borderBottom = last ? 'none' : `1px solid ${V3.rule}`
 
   if (comingSoon || !href) {
     return (
       <div
-        className={`flex items-center justify-between px-4 py-3.5 ${borderCls}`}
+        className="flex items-center justify-between"
+        style={{
+          padding: '14px 16px',
+          borderBottom,
+        }}
       >
-        <div className="flex items-center gap-3">
-          <Icon
-            className="w-[18px] h-[18px] text-muted"
-            strokeWidth={1.5}
-          />
-          <span className="text-[13px] font-semibold text-muted">
+        <div className="flex items-center" style={{ gap: 12 }}>
+          <Icon size={18} color={V3.inkMute} strokeWidth={1.5} />
+          <span
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: V3FontSize.base,
+              fontWeight: V3FontWeight.semibold,
+              color: V3.inkMute,
+            }}
+          >
             {label}
           </span>
         </div>
-        <span className="text-[10px] text-muted bg-bg px-2 py-0.5 rounded-md">
+        <Mono
+          color="inkMute"
+          size="xxs"
+          weight={500}
+          letterSpacing="0.08em"
+          style={{
+            padding: '2px 8px',
+            background: V3.paper,
+            borderRadius: V3Radius.xs,
+          }}
+        >
           준비 중
-        </span>
+        </Mono>
       </div>
     )
   }
@@ -466,32 +609,46 @@ function MenuItem({
   return (
     <Link
       href={href}
-      className={`flex items-center justify-between px-4 py-3.5 hover:bg-bg transition ${borderCls}`}
+      className="flex items-center justify-between transition"
+      style={{
+        padding: '14px 16px',
+        borderBottom,
+        textDecoration: 'none',
+      }}
     >
-      <div className="flex items-center gap-3 min-w-0">
-        <Icon
-          className="w-[18px] h-[18px] text-text"
-          strokeWidth={1.5}
-        />
-        <span className="text-[13px] font-semibold text-text truncate">
+      <div className="flex items-center min-w-0" style={{ gap: 12 }}>
+        <Icon size={18} color={V3.ink} strokeWidth={1.5} />
+        <span
+          className="truncate"
+          style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: V3FontSize.base,
+            fontWeight: V3FontWeight.semibold,
+            color: V3.ink,
+            letterSpacing: '-0.01em',
+          }}
+        >
           {label}
         </span>
         {typeof badge === 'number' && badge > 0 && (
           <span
-            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+            className="tabular-nums"
             style={{
-              background: 'var(--terracotta)',
-              color: 'white',
+              fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
+              fontSize: 9,
+              fontWeight: 700,
+              padding: '2px 6px',
+              borderRadius: V3Radius.xs,
+              background: V3.accent,
+              color: V3.paperHi,
+              letterSpacing: '0.04em',
             }}
           >
             {badge > 99 ? '99+' : badge}
           </span>
         )}
       </div>
-      <ChevronRight
-        className="w-4 h-4 text-muted"
-        strokeWidth={2}
-      />
+      <ChevronRight size={16} color={V3.inkMute} strokeWidth={2} />
     </Link>
   )
 }

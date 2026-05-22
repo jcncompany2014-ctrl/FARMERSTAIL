@@ -4,6 +4,8 @@ import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { Star, MessageSquare } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { V3, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
+import { Mono } from '@/components/v3'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,24 +25,23 @@ function formatDate(iso: string) {
 
 function Stars({ value }: { value: number }) {
   return (
-    <div className="inline-flex items-center gap-0.5">
+    <div className="inline-flex items-center" style={{ gap: 2 }}>
       {[1, 2, 3, 4, 5].map((i) => (
         <Star
           key={i}
-          width={12}
-          height={12}
+          size={12}
           strokeWidth={1.5}
-          className={
-            i <= value
-              ? 'fill-gold text-gold'
-              : 'fill-none text-rule-2'
-          }
+          color={i <= value ? V3.yellow : V3.inkFaint}
+          fill={i <= value ? V3.yellow : 'none'}
         />
       ))}
     </div>
   )
 }
 
+/**
+ * /mypage/reviews — 내 리뷰 리스트 (v3 reskin, 2026-05-22 R9-7).
+ */
 export default async function MyReviewsPage() {
   const supabase = await createClient()
   const {
@@ -60,89 +61,148 @@ export default async function MyReviewsPage() {
   const list = (reviews ?? []) as any[]
 
   return (
-    <main className="pb-8">
-      <section className="px-5 pt-6 pb-2">
+    <main style={{ paddingBottom: 32 }}>
+      <section style={{ padding: '24px 20px 8px' }}>
         <Link
           href="/mypage"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          style={{
+            fontSize: 11,
+            fontWeight: V3FontWeight.semibold,
+            color: V3.inkMute,
+            textDecoration: 'none',
+            display: 'inline-block',
+            marginBottom: 14,
+          }}
         >
           ← 내 정보
         </Link>
-        <span className="kicker mt-3 block">My Reviews</span>
+        <Mono color="inkMute" size="xs" weight={500}>
+          Reviews · 내 리뷰
+        </Mono>
         <h1
-          className="font-serif mt-1.5"
           style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            margin: '6px 0 0',
+            fontFamily: 'var(--font-sans)',
+            fontWeight: V3FontWeight.black,
+            fontSize: 28,
+            lineHeight: 1,
+            color: V3.ink,
+            letterSpacing: V3LetterSpacing.heading,
           }}
         >
           내 리뷰
         </h1>
-        <p className="text-[11px] text-muted mt-1">
-          {list.length}개의 리뷰
-        </p>
+        <Mono
+          color="inkMute"
+          size="xxs"
+          weight={500}
+          letterSpacing="0.08em"
+          style={{ marginTop: 6, display: 'inline-block' }}
+        >
+          ({String(list.length).padStart(2, '0')})
+        </Mono>
       </section>
 
       {list.length === 0 ? (
-        <section className="px-5 mt-6">
+        <section style={{ padding: '20px 20px 0' }}>
           <div
-            className="rounded-2xl border px-6 py-12 text-center"
+            className="text-center"
             style={{
-              background: 'var(--bg-2)',
-              borderColor: 'var(--rule-2)',
-              borderStyle: 'dashed',
+              borderRadius: V3Radius.sm,
+              border: `1.5px dashed ${V3.rule}`,
+              padding: '48px 24px',
+              background: V3.paperHi,
             }}
           >
             <div
-              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3"
+              className="mx-auto flex items-center justify-center"
               style={{
-                background: 'var(--bg)',
-                border: '1px solid var(--rule-2)',
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                background: V3.paper,
+                border: `1px solid ${V3.rule}`,
+                marginBottom: 12,
               }}
             >
-              <MessageSquare
-                className="w-6 h-6 text-muted"
-                strokeWidth={1.3}
-              />
+              <MessageSquare size={24} color={V3.inkMute} strokeWidth={1.3} />
             </div>
-            <span className="kicker">Empty</span>
+            <Mono color="inkMute" size="xxs" weight={600}>
+              Empty
+            </Mono>
             <h3
-              className="font-serif mt-2"
               style={{
+                margin: '8px 0 0',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: V3FontWeight.black,
                 fontSize: 16,
-                fontWeight: 800,
-                color: 'var(--ink)',
-                letterSpacing: '-0.015em',
+                color: V3.ink,
+                letterSpacing: '-0.02em',
               }}
             >
               아직 작성한 리뷰가 없어요
             </h3>
-            <p className="text-[11px] text-muted mt-1.5">
+            <p
+              style={{
+                fontSize: 11,
+                color: V3.inkMute,
+                marginTop: 6,
+              }}
+            >
               주문 상세에서 구매한 상품에 리뷰를 남겨보세요
             </p>
             <Link
               href="/mypage/orders"
-              className="mt-5 inline-block px-6 py-2.5 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
-              style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+              className="inline-block active:scale-[0.98] transition"
+              style={{
+                marginTop: 20,
+                padding: '12px 22px',
+                fontSize: 12,
+                fontWeight: V3FontWeight.bold,
+                borderRadius: V3Radius.pill,
+                background: V3.ink,
+                color: V3.paperHi,
+                textDecoration: 'none',
+              }}
             >
               주문 내역 보기
             </Link>
           </div>
         </section>
       ) : (
-        <section className="px-5 mt-3 space-y-2.5">
+        <section
+          style={{
+            padding: '12px 20px 0',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+          }}
+        >
           {list.map((r) => (
             <div
               key={r.id}
-              className="bg-white rounded-xl border border-rule px-4 py-4"
+              style={{
+                background: V3.paperHi,
+                border: `1px solid ${V3.rule}`,
+                borderRadius: V3Radius.sm,
+                padding: '14px 16px',
+              }}
             >
               <Link
                 href={`/products/${r.products?.slug ?? ''}#reviews`}
-                className="flex items-center gap-3"
+                className="flex items-center"
+                style={{ gap: 12, textDecoration: 'none', color: V3.ink }}
               >
-                <div className="relative w-12 h-12 rounded-lg bg-bg overflow-hidden flex items-center justify-center shrink-0">
+                <div
+                  className="relative overflow-hidden flex items-center justify-center shrink-0"
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: V3Radius.xs,
+                    background: V3.paper,
+                    border: `1px solid ${V3.rule}`,
+                  }}
+                >
                   {r.products?.image_url ? (
                     <Image
                       src={r.products.image_url}
@@ -154,35 +214,70 @@ export default async function MyReviewsPage() {
                   ) : null}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-bold text-text truncate">
+                  <p
+                    className="truncate"
+                    style={{
+                      margin: 0,
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: 12.5,
+                      fontWeight: V3FontWeight.bold,
+                      color: V3.ink,
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
                     {r.products?.name ?? '삭제된 상품'}
                   </p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div
+                    className="flex items-center"
+                    style={{ gap: 8, marginTop: 4 }}
+                  >
                     <Stars value={r.rating} />
-                    <span className="text-[10px] text-muted">
+                    <Mono
+                      color="inkMute"
+                      size="xxs"
+                      weight={500}
+                      letterSpacing="0.06em"
+                    >
                       {formatDate(r.created_at)}
-                    </span>
+                    </Mono>
                   </div>
                 </div>
               </Link>
               {r.title && (
                 <h3
-                  className="mt-3 font-serif"
                   style={{
-                    fontSize: 13,
-                    fontWeight: 800,
-                    color: 'var(--ink)',
-                    letterSpacing: '-0.015em',
+                    margin: '12px 0 0',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 14,
+                    fontWeight: V3FontWeight.black,
+                    color: V3.ink,
+                    letterSpacing: '-0.02em',
                   }}
                 >
                   {r.title}
                 </h3>
               )}
-              <p className="mt-1 text-[12px] text-text leading-relaxed whitespace-pre-line line-clamp-4">
+              <p
+                className="line-clamp-4"
+                style={{
+                  margin: '4px 0 0',
+                  fontSize: 12,
+                  color: V3.ink,
+                  lineHeight: 1.55,
+                  whiteSpace: 'pre-line',
+                }}
+              >
                 {r.content}
               </p>
               {r.helpful_count > 0 && (
-                <p className="mt-2 text-[10px] text-terracotta font-bold">
+                <p
+                  style={{
+                    margin: '8px 0 0',
+                    fontSize: 10,
+                    color: V3.accent,
+                    fontWeight: V3FontWeight.bold,
+                  }}
+                >
                   👍 {r.helpful_count}명에게 도움이 됐어요
                 </p>
               )}
