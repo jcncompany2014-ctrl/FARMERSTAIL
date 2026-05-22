@@ -37,7 +37,7 @@ export default function WishlistRemoveButton({
       onClick={remove}
       disabled={busy}
       aria-label="찜 해제"
-      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/95 backdrop-blur border border-rule text-terracotta flex items-center justify-center shadow-sm hover:bg-white active:scale-95 transition disabled:opacity-50 z-10"
+      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-bg-3/95 backdrop-blur border border-rule text-terracotta flex items-center justify-center shadow-sm hover:bg-bg-3 active:scale-95 transition disabled:opacity-50 z-10"
     >
       <Heart className="w-4 h-4 fill-terracotta" strokeWidth={2} />
     </button>

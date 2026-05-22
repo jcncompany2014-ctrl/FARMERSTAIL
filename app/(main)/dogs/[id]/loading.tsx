@@ -16,7 +16,7 @@ export default function DogDetailLoading() {
       </section>
       <section className="px-5 mt-6 space-y-3">
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-20 w-full rounded-xl" />
+          <Skeleton key={i} className="h-20 w-full rounded" />
         ))}
       </section>
     </main>

@@ -63,7 +63,7 @@ export default async function ChatPage() {
               <span className="kicker kicker-gold">AI</span>
             </div>
             <h1
-              className="font-serif leading-tight"
+              className="font-sans leading-tight"
               style={{
                 fontSize: 24,
                 fontWeight: 800,
