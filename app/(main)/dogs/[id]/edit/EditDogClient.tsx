@@ -20,6 +20,7 @@ import DogPhotoPicker from '@/components/DogPhotoPicker'
 import { resolvePhotoState, type PhotoState } from '@/lib/dogPhotos'
 import { isUpgrade, type MethodKind } from '@/lib/rewards/measurement-upgrade'
 import { isAdvancedUiEnabled } from '@/lib/ui-flags'
+import { Select } from '@/components/v3'
 
 const BREEDS = [
   '포메라니안', '말티즈', '푸들', '토이푸들', '시츄', '비숑 프리제',
@@ -271,10 +272,9 @@ export default function EditDogClient({
 
         <div>
           <label className={labelCls}>견종 *</label>
-          <select
+          <Select
             value={breed}
             onChange={(e) => setBreed(e.target.value)}
-            className={inputCls}
           >
             <option value="">선택하세요</option>
             {BREEDS.map((b) => (
@@ -282,7 +282,7 @@ export default function EditDogClient({
                 {b}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div>
@@ -446,10 +446,10 @@ export default function EditDogClient({
           </div>
           <div>
             <label className={labelCls}>체중 측정 도구</label>
-            <select
+            <Select
               value={weightMethod}
               onChange={(e) => setWeightMethod(e.target.value)}
-              className={`${inputCls} text-[12px]`}
+              sizeVariant="sm"
             >
               <option value="unknown">측정 도구 — 모름</option>
               <option value="vet_scale">동물병원 체중계</option>
@@ -457,34 +457,34 @@ export default function EditDogClient({
               <option value="home_analog">가정용 아날로그</option>
               <option value="hold">안고 재기</option>
               <option value="eyeball">눈으로 추정</option>
-            </select>
+            </Select>
           </div>
           <div>
             <label className={labelCls}>활동량 측정 도구</label>
-            <select
+            <Select
               value={activityMethod}
               onChange={(e) => setActivityMethod(e.target.value)}
-              className={`${inputCls} text-[12px]`}
+              sizeVariant="sm"
             >
               <option value="unknown">측정 도구 — 모름</option>
               <option value="pedometer">만보계 / 스마트태그</option>
               <option value="gps">GPS 트래커</option>
               <option value="subjective">주관 추정</option>
-            </select>
+            </Select>
           </div>
           <div>
             <label className={labelCls}>급여량 측정 도구</label>
-            <select
+            <Select
               value={feedMethod}
               onChange={(e) => setFeedMethod(e.target.value)}
-              className={`${inputCls} text-[12px]`}
+              sizeVariant="sm"
             >
               <option value="unknown">측정 도구 — 모름</option>
               <option value="auto_delivery">자체 사료 자동 추적</option>
               <option value="scale">저울</option>
               <option value="cup">계량컵</option>
               <option value="eyeball">눈대중</option>
-            </select>
+            </Select>
           </div>
           <p className="text-[10.5px] text-muted leading-relaxed">
             정확한 도구로 바꾸면 응원 포인트 1,000P 적립돼요 (kind 별 1회).
@@ -500,57 +500,57 @@ export default function EditDogClient({
           </div>
           <div>
             <label className={labelCls}>체중 측정자</label>
-            <select
+            <Select
               value={weightMeasuredBy}
               onChange={(e) => setWeightMeasuredBy(e.target.value)}
-              className={`${inputCls} text-[12px]`}
+              sizeVariant="sm"
             >
               <option value="unknown">모름</option>
               <option value="self">본인</option>
               <option value="family">가족</option>
               <option value="vet">수의사</option>
-            </select>
+            </Select>
           </div>
           <div>
             <label className={labelCls}>활동량 측정 기간</label>
-            <select
+            <Select
               value={activityPeriod}
               onChange={(e) => setActivityPeriod(e.target.value)}
-              className={`${inputCls} text-[12px]`}
+              sizeVariant="sm"
             >
               <option value="unknown">모름</option>
               <option value="daily">1일 평균</option>
               <option value="weekly">1주 평균</option>
               <option value="monthly">1개월 평균</option>
-            </select>
+            </Select>
           </div>
           <div>
             <label className={labelCls}>산책 강도</label>
-            <select
+            <Select
               value={walkIntensity}
               onChange={(e) => setWalkIntensity(e.target.value)}
-              className={`${inputCls} text-[12px]`}
+              sizeVariant="sm"
             >
               <option value="unknown">모름</option>
               <option value="walk">걷기</option>
               <option value="jog">조깅</option>
               <option value="run">뜀</option>
               <option value="mixed">섞임</option>
-            </select>
+            </Select>
           </div>
           <div>
             <label className={labelCls}>간식 빈도</label>
-            <select
+            <Select
               value={treatFrequency}
               onChange={(e) => setTreatFrequency(e.target.value)}
-              className={`${inputCls} text-[12px]`}
+              sizeVariant="sm"
             >
               <option value="unknown">모름</option>
               <option value="none">안 줌</option>
               <option value="rare">가끔</option>
               <option value="weekly">주 1~2회</option>
               <option value="daily">매일</option>
-            </select>
+            </Select>
           </div>
           <div>
             <label className={labelCls}>간식 종류 (복수 선택)</label>

@@ -18,6 +18,7 @@ import AppleLoginButton from '@/components/AppleLoginButton'
 import AuthHero from '@/components/auth/AuthHero'
 import AddressSearch from '@/components/AddressSearch'
 import { trackSignUp } from '@/lib/analytics'
+import { Select } from '@/components/v3'
 import { MARKETING_POLICY_VERSION } from '@/lib/consent'
 import { formatPhone, stripHyphens } from '@/lib/formatters'
 
@@ -837,11 +838,9 @@ function SignupForm() {
                   생일 <span style={{ color: 'var(--muted)' }}>(선택)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  <select
+                  <Select
                     value={birthMonth}
                     onChange={(e) => setBirthMonth(e.target.value)}
-                    className={baseInputCls}
-                    style={baseInputStyle}
                   >
                     <option value="">월</option>
                     {Array.from({ length: 12 }).map((_, i) => (
@@ -849,12 +848,10 @@ function SignupForm() {
                         {i + 1}월
                       </option>
                     ))}
-                  </select>
-                  <select
+                  </Select>
+                  <Select
                     value={birthDay}
                     onChange={(e) => setBirthDay(e.target.value)}
-                    className={baseInputCls}
-                    style={baseInputStyle}
                   >
                     <option value="">일</option>
                     {Array.from({
@@ -870,7 +867,7 @@ function SignupForm() {
                         {i + 1}일
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <p
                   className="text-[11px] mt-1"

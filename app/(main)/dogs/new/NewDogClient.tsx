@@ -18,6 +18,7 @@ import { createClient } from '@/lib/supabase/client'
 import DogPhotoPicker from '@/components/DogPhotoPicker'
 import { resolvePhotoState, type PhotoState } from '@/lib/dogPhotos'
 import { isAdvancedUiEnabled } from '@/lib/ui-flags'
+import { Select } from '@/components/v3'
 
 /**
  * datepicker (YYYY-MM-DD) → 자정 KST 의 timestamptz ISO 변환.
@@ -330,10 +331,9 @@ export default function NewDogClient({ userId }: { userId: string }) {
 
         <div>
           <label className={labelCls}>견종 *</label>
-          <select
+          <Select
             value={breed}
             onChange={(e) => setBreed(e.target.value)}
-            className={inputCls}
           >
             <option value="">선택하세요</option>
             {BREEDS.map((b) => (
@@ -341,7 +341,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
                 {b}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div>
@@ -448,12 +448,13 @@ export default function NewDogClient({ userId }: { userId: string }) {
           />
           {isAdvancedUiEnabled('advanced_inputs') && (
             <>
-              <select
+              <Select
                 value={weightMethod}
                 onChange={(e) =>
                   setWeightMethod(e.target.value as typeof weightMethod)
                 }
-                className={`${inputCls} mt-2 text-[12px]`}
+                sizeVariant="sm"
+                wrapperClassName="mt-2"
                 aria-label="체중 측정 도구"
               >
                 <option value="unknown">측정 방법 — 모름</option>
@@ -462,7 +463,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
                 <option value="home_analog">가정용 아날로그</option>
                 <option value="hold">안고 재기</option>
                 <option value="eyeball">눈으로 추정</option>
-              </select>
+              </Select>
               <p className="mt-1.5 text-[10px] text-muted">
                 정확한 도구일수록 맞춤도가 올라가요. 모르면 그대로 두셔도 돼요.
               </p>
@@ -536,31 +537,32 @@ export default function NewDogClient({ userId }: { userId: string }) {
             })}
           </div>
           {isAdvancedUiEnabled('advanced_inputs') && (
-            <select
+            <Select
               value={activityMethod}
               onChange={(e) =>
                 setActivityMethod(e.target.value as typeof activityMethod)
               }
-              className={`${inputCls} mt-2 text-[12px]`}
+              sizeVariant="sm"
+              wrapperClassName="mt-2"
               aria-label="활동량 측정 도구"
             >
               <option value="unknown">측정 도구 — 모름</option>
               <option value="pedometer">만보계 / 스마트태그</option>
               <option value="gps">GPS 트래커</option>
               <option value="subjective">주관 추정</option>
-            </select>
+            </Select>
           )}
         </div>
 
         {isAdvancedUiEnabled('advanced_inputs') && (
           <div>
             <label className={labelCls}>급여량 측정 도구</label>
-            <select
+            <Select
               value={feedMethod}
               onChange={(e) =>
                 setFeedMethod(e.target.value as typeof feedMethod)
               }
-              className={`${inputCls} text-[12px]`}
+              sizeVariant="sm"
               aria-label="급여량 측정 도구"
             >
               <option value="unknown">측정 도구 — 모름</option>
@@ -568,7 +570,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
               <option value="scale">저울</option>
               <option value="cup">계량컵</option>
               <option value="eyeball">눈대중</option>
-            </select>
+            </Select>
             <p className="mt-1 text-[10px] text-muted">
               정기배송을 이용하시면 자동 추적이 가능해요
             </p>
