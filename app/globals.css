@@ -1384,3 +1384,207 @@ select {
     font-size: inherit;
   }
 }
+
+/* =============================================================================
+   R14-3: Cart / Products app-scope 시각 polish (items 51-60).
+
+   web/app 공유 페이지 (`app/cart/**`, `app/products/**`, `components/products/**`,
+   `components/cart/**`) 는 AGENTS.md 정책상 직접 수정 금지. 대신 여기서
+   `[data-ft-chrome="app"]` 스코프 안에서만 동작하는 CSS override 로 v3 톤을
+   강제. web 사용자는 영향 없음.
+
+   사용자 피드백:
+     "장바구니, 제품 목록, 설문 시스템 UI 폰트 크기가 부자연스럽다 / 배열이
+      안 맞는다 / 여백이 일정하지 않다 / 둥근 느낌이 너무 많다"
+   ============================================================================= */
+
+/* --- 51: 장바구니 line item 폰트 위계 통일 ----------------------------- */
+/* CartList row — 상품명/가격 통일. CartList 는 CartItemRow 컴포넌트 사용. */
+[data-ft-chrome="app"] .ft-cart-row {
+  /* line item 외곽 — 1px ink rule + 16px padding */
+  border-bottom: 1px solid var(--rule);
+  padding: 14px 4px;
+}
+
+[data-ft-chrome="app"] .ft-cart-row .ft-cart-row-title {
+  font-family: var(--font-sans), 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+[data-ft-chrome="app"] .ft-cart-row .ft-cart-row-opt {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+[data-ft-chrome="app"] .ft-cart-row .ft-cart-row-price {
+  font-family: var(--font-sans), 'Pretendard', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- 52: Quantity stepper 통일 ------------------------------------------ */
+[data-ft-chrome="app"] .ft-qty-stepper {
+  height: 32px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--paper-hi, var(--bg-3));
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+[data-ft-chrome="app"] .ft-qty-stepper button {
+  width: 32px;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+[data-ft-chrome="app"] .ft-qty-stepper button:hover {
+  background: var(--paper-deep, var(--bg-2));
+}
+[data-ft-chrome="app"] .ft-qty-stepper [data-qty-value] {
+  min-width: 36px;
+  text-align: center;
+  font-family: var(--font-sans), 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- 53: CartReceipt 가격 합계 위계 정리 -------------------------------- */
+/* CartReceipt 의 Archivo_Black 폰트는 sans 로 통일 + 위계만 다르게. */
+[data-ft-chrome="app"] [class*="font-['Archivo_Black']"] {
+  font-family: var(--font-sans), 'Pretendard', sans-serif !important;
+  letter-spacing: -0.015em !important;
+}
+
+/* 부분합/배송비/할인 — 본문 톤 */
+[data-ft-chrome="app"] .ft-receipt-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+[data-ft-chrome="app"] .ft-receipt-line strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+/* 총합 — 강조 */
+[data-ft-chrome="app"] .ft-receipt-total {
+  border-top: 1px solid var(--rule);
+  margin-top: 8px;
+  padding-top: 12px;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+/* --- 54: 빈 장바구니 empty state — 일러스트 + CTA pill ------------------- */
+[data-ft-chrome="app"] .ft-cart-empty {
+  padding: 48px 24px;
+  text-align: center;
+}
+[data-ft-chrome="app"] .ft-cart-empty h2 {
+  font-family: var(--font-sans), 'Pretendard', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin: 16px 0 4px;
+}
+[data-ft-chrome="app"] .ft-cart-empty p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* --- 55: CartStickyCTA 통일 ---------------------------------------------- */
+/* 이미 ft-sticky-cta-bottom 정의 존재. 추가로 둥근 과다 → rounded 4. */
+[data-ft-chrome="app"] .ft-sticky-cta-bottom button[type='submit'],
+[data-ft-chrome="app"] .ft-sticky-cta-bottom a[role='button'] {
+  border-radius: 4px !important;
+}
+
+/* --- 56: 제품 카드 grid 간격 통일 ---------------------------------------- */
+[data-ft-chrome="app"] [data-skeleton="product-grid"],
+[data-ft-chrome="app"] .ft-product-grid {
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  [data-ft-chrome="app"] [data-skeleton="product-grid"],
+  [data-ft-chrome="app"] .ft-product-grid {
+    gap: 16px;
+  }
+}
+
+/* --- 57: 가격 / 할인율 위계 정리 ----------------------------------------- */
+[data-ft-chrome="app"] .ft-card-product .text-\[13px\],
+[data-ft-chrome="app"] .ft-card-product .text-\[15px\] {
+  letter-spacing: -0.015em;
+}
+/* 할인율 chip — accent 강조 */
+[data-ft-chrome="app"] .ft-card-product [class*="discount"] {
+  color: var(--sale, #b83a2e);
+}
+
+/* --- 58: Sticky filter bar 디자인 ---------------------------------------- */
+[data-ft-chrome="app"] .ft-catalog-filter-sticky {
+  background: var(--paper-hi, var(--bg-3));
+  border-bottom: 1px solid var(--rule);
+  padding: 10px 20px;
+  position: sticky;
+  top: 56px; /* TopBar 아래 */
+  z-index: 20;
+}
+
+/* --- 59: 정렬 dropdown 통일 ---------------------------------------------- */
+/* SortSelect 가 native select 사용 시 v3 톤으로 표시. */
+[data-ft-chrome="app"] select.ft-sort-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 8px 30px 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--paper-hi, var(--bg-3));
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+}
+
+/* --- 60: 카드 마이크로 인터랙션 + 둥근 정리 ------------------------------ */
+[data-ft-chrome="app"] .ft-card-product {
+  border-radius: 4px;
+  overflow: hidden;
+}
+[data-ft-chrome="app"] .ft-card-product img {
+  border-radius: 0;
+}
+/* 카드 안의 rounded-md (6px), rounded-lg (8px) 다 4px 로 통일. */
+[data-ft-chrome="app"] .ft-card-product .rounded-md,
+[data-ft-chrome="app"] .ft-card-product .rounded-lg,
+[data-ft-chrome="app"] .ft-card-product .rounded-xl,
+[data-ft-chrome="app"] .ft-card-product .rounded-2xl {
+  border-radius: 4px !important;
+}
+/* 활성 상태 transform 통일 — 0.99 scale. */
+[data-ft-chrome="app"] .ft-card-product a:active {
+  transform: scale(0.99);
+}
+
