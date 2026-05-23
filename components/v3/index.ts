@@ -51,6 +51,11 @@ export {
 } from './DailyCheckinStack'
 export { default as StreakRewards } from './StreakRewards'
 export {
+  default as PhotoTimeline,
+  type TimelinePhoto,
+} from './PhotoTimeline'
+export { default as InlineReviewForm } from './InlineReviewForm'
+export {
   ConfirmProvider,
   useConfirm,
   type ConfirmOptions,
