@@ -110,7 +110,7 @@ export default function ShareClient({
         <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">
           PREVIEW · 미리보기
         </div>
-        <div className="rounded-3xl overflow-hidden shadow-lg bg-bg-3 border border-rule">
+        <div className="rounded-[12px] overflow-hidden shadow-lg bg-bg-3 border border-rule">
           {/* 강아지 사진 */}
           <div className="relative aspect-[4/3] bg-bg-2">
             {dog.photoUrl ? (

@@ -388,7 +388,7 @@ function LatestAnalysisHero({
   return (
     <section className="px-5 mt-3">
       <div
-        className="relative overflow-hidden rounded-3xl px-6 pt-6 pb-7 text-white"
+        className="relative overflow-hidden rounded-[12px] px-6 pt-6 pb-7 text-white"
         style={{
           background:
             'linear-gradient(135deg, var(--terracotta) 0%, #8B3923 100%)',

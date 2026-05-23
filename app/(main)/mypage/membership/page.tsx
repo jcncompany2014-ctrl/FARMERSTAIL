@@ -118,7 +118,7 @@ export default async function MembershipPage() {
       {/* HERO 카드 — 등급 색 기반, 누적 + 진행률 + 다음 등급 */}
       <section className="px-5">
         <div
-          className="relative overflow-hidden rounded-3xl px-6 pt-6 pb-7"
+          className="relative overflow-hidden rounded-[12px] px-6 pt-6 pb-7"
           style={{ background: meta.bg, color: meta.ink }}
         >
           <div

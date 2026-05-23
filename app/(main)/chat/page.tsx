@@ -46,7 +46,7 @@ export default async function ChatPage() {
       {/* Hero */}
       <section className="px-5">
         <div
-          className="relative overflow-hidden rounded-3xl px-6 pt-6 pb-7 text-white"
+          className="relative overflow-hidden rounded-[12px] px-6 pt-6 pb-7 text-white"
           style={{
             background:
               'linear-gradient(135deg, var(--moss) 0%, #5a6e2a 100%)',

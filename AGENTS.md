@@ -105,3 +105,81 @@ Before `git push`, mentally run through:
 3. Touched a server↔client boundary or route signature? → consider `rm -rf .next && npx next build` once before push.
 
 Skipping #1 is how ~10 Vercel builds failed in this repo. Don't.
+
+# v3 Design scale — single source of truth
+
+R14 (2026-05-23) 에서 정리된 표준 스케일. 새 코드는 이 외 값을 쓰지 않는다.
+미준수 발견 시 그 자리에서 정리.
+
+## Spacing scale (8pt 베이스)
+
+| Token | px | 용도 |
+|---|---|---|
+| 1 | 4 | icon gap, tag inner |
+| 2 | 8 | inline gap (text-icon, button label-icon) |
+| 3 | 12 | card 내부 row gap, 카드 사이 간격 (`mt-3`) |
+| 4 | 16 | card 외곽 padding (`p-4`) |
+| 5 | 20 | section 좌우 padding 표준 (`px-5`) |
+| 7 | 28 | 큰 hero 카드 padding |
+| 10 | 40 | 페이지 상단/하단 여백 |
+| 16 | 64 | 섹션 사이 큰 여백 (rare) |
+
+표준 패턴: `mx-5 mt-3 gap-3 px-5 py-4`. 이 외 mx-/mt-/p- 값이 등장하면 정리 대상.
+
+## Typography scale (`V3FontSize`)
+
+| Token | px | 용도 |
+|---|---|---|
+| xxs | 9 | 페이지네이션 카운터 |
+| xs | 10.5 | mono kicker, badge |
+| sm | 12 | 보조 본문, subtitle |
+| base | 13.5 | 본문 (한국어 가독성 하한) |
+| md | 16 | 카드 제목, 강조 본문 |
+| lg | 22 | section heading (h2) |
+| xl | 32 | 페이지 헤더 (h1 small) |
+| xxl | 54 | hero display |
+
+**그 외 px 금지.** 13/14/15 같은 임의 값은 V3FontSize 의 base/md 로 정리.
+
+## Letter spacing
+
+| Use | Value |
+|---|---|
+| hero display (xxl) | -0.025em |
+| heading (h1/h2) | -0.02em |
+| body (md/base) | -0.015em / -0.01em |
+| mono kicker | 0.16em |
+
+## Line height
+
+| Use | Value (class) |
+|---|---|
+| hero display | `leading-tight` (0.95) |
+| h2/h3 | `leading-snug` (1.1) |
+| card title | `leading-snug` ~ `leading-normal` (1.1-1.35) |
+| body / paragraph | `leading-relaxed` (1.55) |
+
+## Border radius
+
+| Token | px | 용도 |
+|---|---|---|
+| xs | 2 | badge, chip |
+| sm | 4 | **signature** — card, button, input |
+| md | 12 | modal, sheet header, hero card |
+| pill | 999 | pill button, status dot |
+
+`rounded-xl` (12), `rounded-2xl` (16), `rounded-3xl` (24) 는 v3 어디서도 쓰지 않는다.
+hero gradient 카드는 `rounded-[12px]` (md tier) 명시. 일반 카드는 `rounded` (4).
+
+## Color contrast — WCAG audit
+
+`lib/design/contrast.ts` 의 `V3_CONTRAST_PAIRS` 가 표준 조합. 요약:
+
+- `ink` (#16140f) on `paper` (#f4ede0) — 14.6:1 — AAA pass
+- `inkSoft` (#3a342a) on `paper` — 9.7:1 — AAA pass
+- `inkMute` (#7d7460) on `paper` — 3.7:1 — **AA large only**
+- `inkFaint` (#b6ab93) on `paper` — 1.9:1 — **텍스트 금지** (UI hint 전용)
+
+**규칙:** 13.5px 이하 본문은 `inkSoft` 권장. `inkMute` 는 14px bold 또는 16px 이상에서만.
+
+
