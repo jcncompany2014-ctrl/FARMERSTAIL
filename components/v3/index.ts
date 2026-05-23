@@ -44,6 +44,12 @@ export {
 } from './RadioGroup'
 export { default as Checkbox } from './Checkbox'
 export { default as Slider } from './Slider'
+export { default as AllergyBanner } from './AllergyBanner'
+export {
+  default as DailyCheckinStack,
+  type CheckinCard,
+} from './DailyCheckinStack'
+export { default as StreakRewards } from './StreakRewards'
 export {
   ConfirmProvider,
   useConfirm,

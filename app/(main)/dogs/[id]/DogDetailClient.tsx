@@ -583,6 +583,71 @@ export default function DogDetailClient({
             </div>
           </div>
         </Link>
+        {/* R14 B8-B11 — 새 feature 페이지 4개 navigation. */}
+        <Link
+          href={`/dogs/${dog.id}/milestones`}
+          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
+        >
+          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
+            <History className="w-4 h-4 text-gold" strokeWidth={2} />
+          </div>
+          <div className="flex-1 text-left">
+            <div className="text-[12px] font-black text-text">
+              마일스톤
+            </div>
+            <div className="text-[10px] text-muted mt-0.5">
+              함께한 시간의 기념일을 한눈에 봐요
+            </div>
+          </div>
+        </Link>
+        <Link
+          href={`/dogs/${dog.id}/vaccinations`}
+          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
+        >
+          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
+            <Heart className="w-4 h-4 text-terracotta" strokeWidth={2} />
+          </div>
+          <div className="flex-1 text-left">
+            <div className="text-[12px] font-black text-text">
+              예방접종 기록
+            </div>
+            <div className="text-[10px] text-muted mt-0.5">
+              접종 일정과 다음 일정을 관리해요
+            </div>
+          </div>
+        </Link>
+        <Link
+          href={`/dogs/${dog.id}/medications`}
+          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
+        >
+          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
+            <Bell className="w-4 h-4 text-sale" strokeWidth={2} />
+          </div>
+          <div className="flex-1 text-left">
+            <div className="text-[12px] font-black text-text">
+              복약 관리
+            </div>
+            <div className="text-[10px] text-muted mt-0.5">
+              약물·영양제 복용 시간과 알림
+            </div>
+          </div>
+        </Link>
+        <Link
+          href={`/dogs/${dog.id}/expenses`}
+          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
+        >
+          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
+            <History className="w-4 h-4 text-moss" strokeWidth={2} />
+          </div>
+          <div className="flex-1 text-left">
+            <div className="text-[12px] font-black text-text">
+              지출 트래커
+            </div>
+            <div className="text-[10px] text-muted mt-0.5">
+              사료·병원·간식 비용을 한 곳에서
+            </div>
+          </div>
+        </Link>
       </section>
 
       {/* Phase D7.3 — 가족 멤버 + 초대. */}
