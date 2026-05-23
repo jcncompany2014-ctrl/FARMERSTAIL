@@ -23,7 +23,7 @@ export type Milestone = {
   tone: 'gold' | 'terracotta' | 'moss'
 }
 
-const MILESTONES: Milestone[] = [
+export const MILESTONES: Milestone[] = [
   {
     daysSince: 30,
     label: '한 달 함께',
