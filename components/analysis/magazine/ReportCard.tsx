@@ -22,7 +22,7 @@ export function ReportCard({ p, children, tint, style }: ReportCardProps) {
         margin: '14px 18px 0',
         position: 'relative',
         background: tint || p.card,
-        borderRadius: 22,
+        borderRadius: 12,
         padding: '22px 22px 22px',
         boxShadow: `0 1px 0 ${p.line}55, 0 12px 28px ${p.ink}10`,
         overflow: 'hidden',

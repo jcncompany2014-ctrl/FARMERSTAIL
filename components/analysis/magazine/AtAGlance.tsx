@@ -61,7 +61,7 @@ export function AtAGlance({ p, data }: { p: MagazinePalette; data: AtAGlanceData
           margin: '14px 18px 0',
           padding: '14px 6px',
           background: p.card,
-          borderRadius: 18,
+          borderRadius: 12,
           display: 'flex',
           boxShadow: `0 1px 0 ${p.line}66, 0 8px 22px ${p.ink}08`,
         }}

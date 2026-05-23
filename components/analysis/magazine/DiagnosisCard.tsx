@@ -55,7 +55,7 @@ export function DiagnosisCard({
           zIndex: 2,
           padding: '20px 22px 18px',
           background: p.card,
-          borderRadius: 22,
+          borderRadius: 12,
           boxShadow: `0 18px 40px ${p.ink}1c, 0 1px 0 ${p.line}55`,
         }}
       >

@@ -47,14 +47,14 @@ export function SupplementsCard({
                   gap: 12,
                   padding: '12px 14px',
                   background: p.card,
-                  borderRadius: 14,
+                  borderRadius: 8,
                 }}
               >
                 <div
                   style={{
                     width: 36,
                     height: 36,
-                    borderRadius: 10,
+                    borderRadius: 6,
                     background: `${p.accentOlive}22`,
                     display: 'flex',
                     alignItems: 'center',

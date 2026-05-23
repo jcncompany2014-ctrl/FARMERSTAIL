@@ -184,14 +184,14 @@ function BoxRow({
         gap: 12,
         padding: '12px 14px',
         background: p.cardSoft,
-        borderRadius: 14,
+        borderRadius: 8,
       }}
     >
       <div
         style={{
           width: 38,
           height: 38,
-          borderRadius: 10,
+          borderRadius: 6,
           background: `${color}22`,
           display: 'flex',
           alignItems: 'center',

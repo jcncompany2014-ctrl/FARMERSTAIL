@@ -33,7 +33,7 @@ export function TrendsCard({
             marginTop: 14,
             padding: '18px 16px',
             background: p.cardSoft,
-            borderRadius: 14,
+            borderRadius: 8,
             display: 'flex',
             alignItems: 'center',
             gap: 12,

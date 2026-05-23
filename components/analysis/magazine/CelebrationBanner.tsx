@@ -25,7 +25,7 @@ export function CelebrationBanner({ p, dogName, dateLabel }: CelebrationBannerPr
           padding: '14px 16px',
           background: `${p.brand}12`,
           color: p.ink,
-          borderRadius: 14,
+          borderRadius: 8,
           display: 'flex',
           alignItems: 'center',
           gap: 12,
