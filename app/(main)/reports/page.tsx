@@ -91,7 +91,7 @@ export default async function ReportsPage() {
               fontWeight: 800,
               color: 'var(--ink)',
               letterSpacing: '-0.02em',
-              lineHeight: 1,
+              lineHeight: 1.2,
             }}
           >
             {monthLabel} 리포트

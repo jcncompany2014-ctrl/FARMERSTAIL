@@ -59,7 +59,7 @@ export default async function DogsPage() {
                 fontWeight: 800,
                 color: 'var(--ink)',
                 letterSpacing: '-0.02em',
-                lineHeight: 1,
+                lineHeight: 1.2,
               }}
             >
               내 강아지

@@ -134,7 +134,7 @@ export default function ActiveDogCard({
               fontSize: 34,
               color: V3.ink,
               letterSpacing: '-0.04em',
-              lineHeight: 1,
+              lineHeight: 1.15,
               wordBreak: 'keep-all',
             }}
           >

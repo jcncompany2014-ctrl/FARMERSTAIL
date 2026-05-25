@@ -46,7 +46,7 @@ export default async function ExpensesPage({
               fontWeight: 800,
               color: 'var(--ink)',
               letterSpacing: '-0.02em',
-              lineHeight: 1,
+              lineHeight: 1.2,
             }}
           >
             지출 트래커

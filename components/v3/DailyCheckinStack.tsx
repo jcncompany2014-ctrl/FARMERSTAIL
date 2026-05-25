@@ -62,8 +62,10 @@ export default function DailyCheckinStack({
 
   if (pending.length === 0) {
     return (
-      <div
-        className="px-5 mt-3"
+      <section
+        // R19: v3 home section spacing 통일 — `padding: '0 20px 30px'`
+        // (다른 ActiveDogCard / TodayCard / ThisWeekSection 등과 동일)
+        style={{ padding: '0 20px 30px' }}
         role="status"
       >
         <div
@@ -96,7 +98,7 @@ export default function DailyCheckinStack({
             내일 다시 만나요
           </p>
         </div>
-      </div>
+      </section>
     )
   }
 
@@ -104,7 +106,7 @@ export default function DailyCheckinStack({
   if (!top) return null
 
   return (
-    <div className="px-5 mt-3">
+    <section style={{ padding: '0 20px 30px' }}>
       <div className="relative" style={{ minHeight: 92 }}>
         {/* stack underlayers — 살짝 보이는 배경 카드 */}
         {pending.slice(1, 3).map((c, idx) => {
@@ -185,6 +187,6 @@ export default function DailyCheckinStack({
           <ArrowRight size={16} color={V3.inkMute} strokeWidth={2.5} />
         </button>
       </div>
-    </div>
+    </section>
   )
 }

@@ -744,9 +744,10 @@ export default async function DashboardPage() {
       {/* R15-C27: Daily check-in card stack — firstDog 가 있을 때만 노출 */}
       {firstDog && <DashboardDailyChecks dogId={firstDog.id} />}
 
-      {/* R15-C28: Streak rewards — 7일 이상 연속일 때만 노출 */}
+      {/* R15-C28: Streak rewards — 7일 이상 연속일 때만 노출.
+          R19: section spacing 통일 — 다른 home sections 와 동일 padding. */}
       {firstDog && streak.currentStreak >= 7 && (
-        <section className="px-5 mt-3">
+        <section style={{ padding: '0 20px 30px' }}>
           <StreakRewards currentStreak={streak.currentStreak} />
         </section>
       )}

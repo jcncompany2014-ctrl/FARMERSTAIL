@@ -2,13 +2,18 @@
  * GreetingSection — v3 홈 화면 상단 Hero greeting.
  *
  * 핸드오프 패턴:
- *   - 좌측: accent dot + Mono kicker "Hello, {name} · {timeOfDay}"
- *           54px sans 900 "좋은 / 저녁 / 이에요,"
- *   - 우측: Signature 블록 (이름 italic + FAMILY · N + 4px ink bar)
- *   - 하단: 14.5px sub 카피 + yellow Mark 강조
+ *   - 좌측: accent dot + Mono kicker "Hello · {timeOfDay}"
+ *           (사용자 요청 2026-05-25: 사용자 이름 kicker 에서 제거)
+ *   - 우측: Signature 블록 ({name}님 + FAMILY · N + 4px ink bar)
+ *   - 하단: 14px sub 카피 + yellow Mark 강조
  *
  * timeOfDay 는 KST 시간 기준 자동 분기:
- *   05-11 → "아침" / 12-16 → "오후" / 17-20 → "저녁" / 21-04 → "밤"
+ *   05-11 → morning / 12-16 → afternoon / 17-20 → evening / 21-04 → night
+ *
+ * # 멘트 다양화 (사용자 요청 2026-05-25)
+ *
+ * 같은 시간대에서도 5가지 멘트 중 day-of-year 기반 deterministic rotation.
+ * 새로고침 시 안 바뀜 (혼란 방지). 다음날 자동 변경.
  */
 
 import { V3, V3FontWeight, V3LetterSpacing } from '@/lib/design/tokens'
@@ -21,6 +26,8 @@ interface GreetingSectionProps {
   familyCount: number
   /** 강제 timeOfDay override (테스트용). 일반적으로 prop 안 줌. */
   forceTimeOfDay?: TimeOfDay
+  /** 멘트 variant override (테스트용). 0-based index. */
+  forceVariant?: number
   /** 하단 yellow-marker 카피. 기본 "오늘도 건강한 한 끼를 정성스럽게." */
   subCopy?: { lead: string; mark: string }
 }
@@ -28,18 +35,45 @@ interface GreetingSectionProps {
 type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night'
 
 const TIME_LABEL: Record<TimeOfDay, string> = {
-  morning: 'morning',
-  afternoon: 'afternoon',
-  evening: 'evening',
-  night: 'late night',
+  morning: 'good morning',
+  afternoon: 'good afternoon',
+  evening: 'good evening',
+  night: 'good night',
 }
 
-/** 시간대별 헤딩 — 한 줄 구성 (2026-05-22: 3줄 → 1줄). */
-const HEADING_BY_TIME: Record<TimeOfDay, string> = {
-  morning: '좋은 아침이에요,',
-  afternoon: '좋은 오후예요,',
-  evening: '좋은 저녁이에요,',
-  night: '좋은 밤이에요,',
+/**
+ * 시간대별 헤딩 5종 — day-of-year mod 5 로 rotation.
+ * 사용자 요청 2026-05-25: 항상 같은 멘트 X.
+ */
+const HEADINGS_BY_TIME: Record<TimeOfDay, string[]> = {
+  morning: [
+    '좋은 아침이에요,',
+    '상쾌한 아침이에요,',
+    '활기찬 시작이에요,',
+    '오늘도 좋은 하루,',
+    '잘 일어나셨어요,',
+  ],
+  afternoon: [
+    '좋은 오후예요,',
+    '점심은 챙기셨죠,',
+    '따뜻한 오후예요,',
+    '오후도 활기차게,',
+    '오늘은 어떠세요,',
+  ],
+  evening: [
+    '좋은 저녁이에요,',
+    '오늘도 수고하셨어요,',
+    '따뜻한 저녁이에요,',
+    '하루 잘 마무리해요,',
+    '저녁은 편안하게,',
+  ],
+  night: [
+    '좋은 밤이에요,',
+    '늦은 시간 고생 많아요,',
+    '푹 쉬는 밤 되세요,',
+    '오늘도 함께해줘 고마워요,',
+    '편안한 밤 보내요,',
+  ],
 }
 
 function computeTimeOfDay(): TimeOfDay {
@@ -50,15 +84,41 @@ function computeTimeOfDay(): TimeOfDay {
   return 'night'
 }
 
+/**
+ * day-of-year (1-366) — KST 기준 매일 다른 값.
+ * 같은 날엔 새로고침해도 같은 멘트, 다음 날엔 새 멘트.
+ */
+function dayOfYear(): number {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), 0, 0)
+  const diff = now.getTime() - start.getTime()
+  return Math.floor(diff / 86400000)
+}
+
+/**
+ * 한국어 이름에 "님" 자동 부착. 이미 끝이 "님" 이면 중복 X.
+ * 영문 이름은 그대로 (대문자 시작 + 영문자 only 휴리스틱).
+ */
+function withHonorific(name: string): string {
+  const trimmed = name.trim()
+  if (!trimmed) return ''
+  if (trimmed.endsWith('님')) return trimmed
+  if (/^[A-Za-z][A-Za-z\s'-]*$/.test(trimmed)) return trimmed
+  return `${trimmed}님`
+}
+
 export default function GreetingSection({
   userName,
   familyCount,
   forceTimeOfDay,
+  forceVariant,
   subCopy = { lead: '오늘도 건강한 한 끼를 ', mark: '정성스럽게.' },
 }: GreetingSectionProps) {
   const tod = forceTimeOfDay ?? computeTimeOfDay()
-  const headingText = HEADING_BY_TIME[tod]
-  const kickerLabel = `Hello, ${userName} · ${TIME_LABEL[tod]}`
+  const variants = HEADINGS_BY_TIME[tod]
+  const idx = forceVariant ?? dayOfYear() % variants.length
+  const headingText = variants[idx] ?? variants[0]!
+  const kickerLabel = `Hello · ${TIME_LABEL[tod]}`
 
   return (
     <section
@@ -67,7 +127,7 @@ export default function GreetingSection({
         position: 'relative',
       }}
     >
-      {/* kicker: accent dot + greeting label */}
+      {/* kicker: accent dot + greeting label (no name) */}
       <div
         style={{
           display: 'flex',
@@ -91,16 +151,14 @@ export default function GreetingSection({
         </Mono>
       </div>
 
-      {/* 1-line hero heading — 38px sans 900. 사용자 요청: 한 줄로 들어오게.
-          54px → 38px 로 줄여서 우상단 signature 와 줄바뀜 없이 함께 들어감.
-          가장 긴 카피 "좋은 저녁이에요," (8자) 기준 358px wide phone 에서도 OK. */}
+      {/* 1-line hero heading — 38px sans 900. line-height 1.2 (사용자 요청: 줄간격 넓힘). */}
       <h1
         style={{
           margin: 0,
           fontFamily: 'var(--font-sans)',
           fontWeight: V3FontWeight.black,
           fontSize: 38,
-          lineHeight: 1.05,
+          lineHeight: 1.2,
           letterSpacing: V3LetterSpacing.hero,
           color: V3.ink,
           wordBreak: 'keep-all',
@@ -110,7 +168,7 @@ export default function GreetingSection({
         {headingText}
       </h1>
 
-      {/* 우상단 signature — Pretendard italic 600 (no Serif) */}
+      {/* 우상단 signature — 사용자 이름 뒤 "님" 부착 (2026-05-25 사용자 요청) */}
       <div
         style={{
           position: 'absolute',
@@ -119,7 +177,7 @@ export default function GreetingSection({
         }}
       >
         <Signature
-          name={userName}
+          name={withHonorific(userName)}
           metaKicker={`FAMILY · ${familyCount}`}
           align="right"
           size={22}

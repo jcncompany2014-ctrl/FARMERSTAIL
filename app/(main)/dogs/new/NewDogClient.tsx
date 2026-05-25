@@ -297,7 +297,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
         </Link>
         <div className="mt-3">
           <span className="kicker inline-block">New Dog</span>
-          <h1 className="font-sans mt-1.5" style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+          <h1 className="font-sans mt-1.5" style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
             강아지 등록
           </h1>
           <p className="text-[12px] text-muted mt-1.5">

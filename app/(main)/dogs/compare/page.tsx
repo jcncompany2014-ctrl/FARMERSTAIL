@@ -80,7 +80,7 @@ export default async function CompareDogsPage() {
               fontWeight: 800,
               color: 'var(--ink)',
               letterSpacing: '-0.02em',
-              lineHeight: 1,
+              lineHeight: 1.2,
             }}
           >
             우리 집 강아지 비교
