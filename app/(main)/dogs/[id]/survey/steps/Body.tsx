@@ -88,7 +88,11 @@ export default function Body({
             <button
               key={s}
               type="button"
-              className="s-pickcard"
+              // R34: BCS 5 (IDEAL) 만 sage tint default 강조. selected 시는
+              // 다른 카드와 동일한 terracotta override (일관성).
+              className={
+                's-pickcard' + (s === 5 ? ' s-pickcard-ideal' : '')
+              }
               aria-pressed={active}
               onClick={() => setBcs(s)}
             >
