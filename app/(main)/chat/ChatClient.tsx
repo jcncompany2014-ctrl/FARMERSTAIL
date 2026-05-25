@@ -143,11 +143,16 @@ export default function ChatClient({
     const sentDogKey = selectedDogId
     setLoading(true)
     setError(null)
-    // optimistic — user message append 즉시
-    setMessages((prev) => [...prev, { role: 'user', content: text }])
+    // optimistic — user message + 빈 assistant placeholder
+    // R17-C30: streaming 패턴 — placeholder 의 content 를 chunk 마다 append.
+    setMessages((prev) => [
+      ...prev,
+      { role: 'user', content: text },
+      { role: 'assistant', content: '' },
+    ])
     setInput('')
     try {
-      const res = await fetch('/api/chatbot', {
+      const res = await fetch('/api/chatbot/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -155,26 +160,62 @@ export default function ChatClient({
           dogId: selectedDogId || undefined,
         }),
       })
-      const data = (await res.json()) as { reply?: string; message?: string }
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
+        const data = (await res
+          .json()
+          .catch(() => ({}))) as { message?: string }
         throw new Error(data.message ?? '응답에 실패했어요')
       }
-      // 응답 도착 시 사용자가 다른 대화로 옮겨갔다면 silent drop —
-      // history 가 useEffect 에서 새로 fetch 되었으므로 이전 reply 는 이미
-      // 무관. server 는 이미 chatbot_messages 에 저장했으므로 다음 history
-      // fetch 시 자동 노출.
-      if (sentDogKey !== selectedDogId) return
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: data.reply ?? '' },
-      ])
+
+      // SSE 파싱 — data: <JSON>\n\n  형식. {delta} 또는 [DONE].
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let aborted = false
+      for (;;) {
+        const { value, done } = await reader.read()
+        if (done) break
+        if (sentDogKey !== selectedDogId) {
+          aborted = true
+          break
+        }
+        buffer += decoder.decode(value, { stream: true })
+        const events = buffer.split('\n\n')
+        buffer = events.pop() ?? ''
+        for (const ev of events) {
+          const m = /^data:\s*(.+)$/m.exec(ev)
+          if (!m) continue
+          const body = m[1]
+          if (!body || body === '[DONE]') continue
+          try {
+            const obj = JSON.parse(body) as { delta?: string; error?: string }
+            if (obj.error) {
+              throw new Error(obj.error)
+            }
+            if (obj.delta) {
+              setMessages((prev) => {
+                const next = prev.slice()
+                const last = next[next.length - 1]
+                if (last && last.role === 'assistant') {
+                  next[next.length - 1] = {
+                    ...last,
+                    content: last.content + obj.delta,
+                  }
+                }
+                return next
+              })
+            }
+          } catch (e) {
+            console.error('chatbot stream parse', e)
+          }
+        }
+      }
+      if (aborted) return
     } catch (err) {
-      // stale 응답 에러는 무시 — 이미 다른 대화로 이동했으므로 사용자에게
-      // 잘못된 alert 띄우지 않음.
       if (sentDogKey !== selectedDogId) return
       setError(err instanceof Error ? err.message : '오류가 발생했어요')
-      // 실패하면 마지막 user message 도 제거 (재시도 가능)
-      setMessages((prev) => prev.slice(0, -1))
+      // 실패 시 user + 빈 assistant placeholder 둘 다 제거.
+      setMessages((prev) => prev.slice(0, -2))
     } finally {
       // loading 은 stale 하더라도 항상 false 로 — 다음 send 가능하게.
       setLoading(false)

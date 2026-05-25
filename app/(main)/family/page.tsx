@@ -3,7 +3,14 @@
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronLeft, UserPlus, Crown } from 'lucide-react'
+import {
+  ChevronLeft,
+  UserPlus,
+  Crown,
+  Clock,
+  CheckCircle,
+  XCircle,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -15,13 +22,59 @@ export default async function FamilyPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/family')
 
-  // 멤버 라우팅 베타 — profiles 의 user_id 가 같은 사람들 묶음.
-  // 실제 family_members 테이블이 없으므로 본인만 표시.
   const { data: profile } = await supabase
     .from('profiles')
     .select('name, email')
     .eq('id', user.id)
     .maybeSingle()
+
+  // R17-E42: 내가 보낸 초대 list + 상태.
+  const { data: invites } = await supabase
+    .from('dog_invitations')
+    .select('id, email, role, accepted_at, declined_at, expires_at, dog_id, created_at')
+    .eq('invited_by', user.id)
+    .order('created_at', { ascending: false })
+    .limit(20)
+  const invitations = (invites ?? []) as Array<{
+    id: string
+    email: string
+    role: string
+    accepted_at: string | null
+    declined_at: string | null
+    expires_at: string
+    dog_id: string
+    created_at: string
+  }>
+
+  // 견 이름 lookup (초대 표시용)
+  const dogIds = Array.from(new Set(invitations.map((i) => i.dog_id)))
+  let dogNames: Record<string, string> = {}
+  if (dogIds.length > 0) {
+    const { data: dogs } = await supabase
+      .from('dogs')
+      .select('id, name')
+      .in('id', dogIds)
+    dogNames = Object.fromEntries(
+      ((dogs ?? []) as Array<{ id: string; name: string }>).map((d) => [
+        d.id,
+        d.name,
+      ]),
+    )
+  }
+
+  const now = new Date()
+
+  function inviteStatus(inv: typeof invitations[number]):
+    | { label: string; tone: string; Icon: typeof Clock }
+    | null {
+    if (inv.accepted_at)
+      return { label: '수락', tone: 'var(--moss)', Icon: CheckCircle }
+    if (inv.declined_at)
+      return { label: '거절', tone: 'var(--muted)', Icon: XCircle }
+    if (new Date(inv.expires_at) < now)
+      return { label: '만료', tone: 'var(--muted)', Icon: XCircle }
+    return { label: '대기', tone: 'var(--terracotta)', Icon: Clock }
+  }
 
   return (
     <main className="pb-10">
@@ -121,11 +174,63 @@ export default async function FamilyPage() {
         </Link>
       </section>
 
+      {/* R17-E42: 내가 보낸 초대 list */}
+      {invitations.length > 0 && (
+        <section className="px-5 mt-6">
+          <h2 className="kicker mb-2">보낸 초대 · {invitations.length}건</h2>
+          <div className="space-y-2">
+            {invitations.map((inv) => {
+              const status = inviteStatus(inv)
+              if (!status) return null
+              const Icon = status.Icon
+              return (
+                <div
+                  key={inv.id}
+                  className="rounded border border-rule bg-bg-3 px-4 py-3"
+                >
+                  <div className="flex items-start gap-3">
+                    <Icon
+                      className="w-4 h-4 shrink-0 mt-0.5"
+                      strokeWidth={2}
+                      style={{ color: status.tone }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p
+                          className="font-sans truncate"
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: 'var(--ink)',
+                          }}
+                        >
+                          {inv.email}
+                        </p>
+                        <span
+                          className="text-[10px] font-bold uppercase tracking-widest shrink-0"
+                          style={{ color: status.tone }}
+                        >
+                          {status.label}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted mt-0.5">
+                        {dogNames[inv.dog_id] ?? '강아지'} ·{' '}
+                        {inv.role === 'viewer' ? '뷰어' : '공동 보호자'} ·{' '}
+                        {new Date(inv.created_at).toLocaleDateString('ko-KR')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
       <section className="px-5 mt-6">
         <p className="text-[11px] text-muted leading-relaxed">
-          현재 베타 — 1인 보호자만 표시되며, 가족 초대 시 자동으로 멤버
-          목록에 추가됩니다. 역할별 권한 (공동보호자 / 뷰어) 은 곧 추가
-          예정.
+          가족 초대 시 견 정보 공유 + 활동 기록 가시화. 역할별 권한은
+          확장 중 — 현재는 조회 위주.
         </p>
       </section>
     </main>
