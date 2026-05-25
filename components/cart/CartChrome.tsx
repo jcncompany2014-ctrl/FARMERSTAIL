@@ -170,18 +170,18 @@ export default function CartChrome({
                 transition: 'width 240ms cubic-bezier(0.16,1,0.3,1)',
               }}
             />
-            {/* yellow triangle pointer at current pct */}
+            {/* yellow triangle pointer at current pct — ▲ ruler 위쪽에 위치 */}
             <div
               aria-hidden
               style={{
                 position: 'absolute',
                 left: `${Math.min(100, Math.max(0, pct))}%`,
-                top: 13,
+                top: 1,
                 width: 0,
                 height: 0,
                 borderLeft: '5px solid transparent',
                 borderRight: '5px solid transparent',
-                borderTop: '6px solid var(--yellow, #e6b942)',
+                borderBottom: '6px solid var(--yellow, #e6b942)',
                 transform: 'translateX(-50%)',
                 transition: 'left 240ms cubic-bezier(0.16,1,0.3,1)',
               }}

@@ -96,12 +96,16 @@ export default function CatalogChrome({
           HELLO · 안녕 {dogName}
         </div>
         <h1
-          className="font-['Archivo_Black']"
+          className={isApp ? undefined : "font-['Archivo_Black']"}
           style={{
-            fontSize: 34,
+            fontSize: 26,
             color: '#1a140c',
-            lineHeight: 0.95,
+            lineHeight: 1.0,
             letterSpacing: '-0.025em',
+            fontFamily: isApp
+              ? "var(--font-sans), 'Pretendard', sans-serif"
+              : undefined,
+            fontWeight: isApp ? 900 : undefined,
           }}
         >
           오늘은

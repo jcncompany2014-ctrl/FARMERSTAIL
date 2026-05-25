@@ -185,7 +185,7 @@ export default async function CartPage() {
         </section>
 
         {validRows.length === 0 ? (
-          <section className="px-5 md:px-6 mt-14 md:mt-20">
+          <section className="px-4 md:px-6 mt-14 md:mt-20">
             <div
               className="rounded-2xl border px-5 py-12 md:px-10 md:py-20 text-center max-w-2xl mx-auto"
               style={{

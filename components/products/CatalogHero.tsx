@@ -252,9 +252,9 @@ function HeroSlide({
         <h2
           className="font-['Archivo_Black'] mt-3"
           style={{
-            fontSize: 28,
-            lineHeight: 0.98,
-            letterSpacing: '-0.025em',
+            fontSize: 22,
+            lineHeight: 1.05,
+            letterSpacing: '-0.02em',
             color: p.accent,
           }}
         >
