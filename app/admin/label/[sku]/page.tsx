@@ -57,12 +57,15 @@ export default async function LabelPdfPage({
   const nutrition = SKU_NUTRITION[skuKey]
   if (!meta || !nutrition) notFound()
 
-  // 사업자 정보 — ENV 또는 상수. solo 운영자 본인 정보.
+  // R38b (#31) — 사업자 정보 ENV 우선. 미설정 시 placeholder fallback.
+  // 사용자가 사업자 등록·사료영업등록 완료 후 Vercel env 셋팅하면 즉시 반영.
+  // 별표 15의2 의무 항목 6 (제조원 이름·소재지·전화번호) + 9 (영업등록번호).
   const business = {
-    name: "파머스테일 (Farmer's Tail)",
-    address: '서울특별시 [TODO 입력]',
-    phone: '[TODO]',
-    biz_reg_no: '[사료영업등록번호 TODO]',
+    name: process.env.NEXT_PUBLIC_BUSINESS_NAME ?? "파머스테일 (Farmer's Tail)",
+    address: process.env.NEXT_PUBLIC_BUSINESS_ADDRESS ?? '서울특별시 [등록 후 입력]',
+    phone: process.env.NEXT_PUBLIC_BUSINESS_PHONE ?? '[전화번호 등록 후 입력]',
+    biz_reg_no:
+      process.env.NEXT_PUBLIC_FEED_BIZ_REG_NO ?? '[사료영업등록번호 미발급]',
   }
 
   // 원료 매핑 — SKU 별 대표 원료 (R&D 명세 기반 단순화).
