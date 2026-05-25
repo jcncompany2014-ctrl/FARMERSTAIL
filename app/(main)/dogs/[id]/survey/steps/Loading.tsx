@@ -22,7 +22,11 @@ export default function Loading({
         <DogIcon size={38} strokeWidth={1.4} />
       </div>
       <span className="s-kicker">ANALYZING</span>
-      <h2 className="s-title" style={{ fontSize: 24, margin: '6px 0 8px' }}>
+      <h2
+        className="s-title"
+        // R34e: line-height 1.25 명시 — 두 줄 호흡 (홈/카탈로그/카트 heading 통일).
+        style={{ fontSize: 24, margin: '6px 0 8px', lineHeight: 1.25 }}
+      >
         {dogName} 맞춤 영양<br />설계 중이에요
       </h2>
       <p
@@ -84,18 +88,25 @@ export default function Loading({
           type="button"
           onClick={onRetry}
           disabled={saving}
+          // R34e: 다시 시도 CTA 를 다른 step 의 next-btn 과 동일 grammar
+          // (terracotta fill + 그라데이션 shadow + inset highlight). 강한
+          // 행동 유도. 카트 sticky CTA / 설문 next-btn 호응.
           style={{
             marginTop: 14,
             appearance: 'none',
-            border: '1px solid var(--terracotta)',
-            background: '#fff',
-            color: 'var(--terracotta)',
-            padding: '10px 20px',
+            border: '1px solid rgba(178, 58, 26, 0.6)',
+            background: 'var(--terracotta)',
+            color: '#fff',
+            padding: '11px 22px',
             borderRadius: 99,
-            fontSize: 12,
-            fontWeight: 700,
+            fontSize: 13,
+            fontWeight: 800,
             cursor: 'pointer',
             fontFamily: 'inherit',
+            boxShadow:
+              '0 8px 22px -6px rgba(220, 83, 42, 0.48), 0 2px 8px rgba(220, 83, 42, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
+            opacity: saving ? 0.6 : 1,
+            transition: 'opacity 0.15s',
           }}
         >
           다시 시도
