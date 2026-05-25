@@ -170,7 +170,8 @@ export default function CartChrome({
                 transition: 'width 240ms cubic-bezier(0.16,1,0.3,1)',
               }}
             />
-            {/* yellow triangle pointer at current pct — ▲ ruler 위쪽에 위치 */}
+            {/* yellow triangle pointer at current pct — ▽ ruler 위쪽 위치,
+                뾰족한 끝은 아래쪽 ruler 라인 가리킴. */}
             <div
               aria-hidden
               style={{
@@ -181,7 +182,7 @@ export default function CartChrome({
                 height: 0,
                 borderLeft: '5px solid transparent',
                 borderRight: '5px solid transparent',
-                borderBottom: '6px solid var(--yellow, #e6b942)',
+                borderTop: '6px solid var(--yellow, #e6b942)',
                 transform: 'translateX(-50%)',
                 transition: 'left 240ms cubic-bezier(0.16,1,0.3,1)',
               }}

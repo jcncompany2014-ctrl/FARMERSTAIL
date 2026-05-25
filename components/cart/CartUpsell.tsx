@@ -40,7 +40,7 @@ export default function CartUpsell({
   return (
     <div className="md:hidden">
       {/* 1. Sage 정기배송 upsell */}
-      <section className="px-4 pt-1 pb-3">
+      <section className="px-4 pt-3 pb-3">
         <Link
           href="/products?subscribable=1"
           className="relative flex items-center gap-3 overflow-hidden"

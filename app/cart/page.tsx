@@ -286,7 +286,7 @@ export default async function CartPage() {
                 모바일은 단일 열 + 하단 고정 결제 버튼 (CartStickyCTA). */}
             <div className="md:flex md:gap-8 md:px-6 md:mt-4">
               <section className="mt-1 md:mt-0 md:px-0 md:flex-1">
-                <CartList initialItems={validRows} />
+                <CartList initialItems={validRows} variant={isApp ? 'app' : 'web'} />
               </section>
 
               {/* 데스크톱 전용 sticky 합계 */}

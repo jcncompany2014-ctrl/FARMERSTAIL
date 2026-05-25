@@ -40,13 +40,28 @@ const CAT_META: Record<string, { label: string; bg: string; fg: string }> = {
   premium: { label: '프리미엄', bg: 'rgba(232, 168, 46, 0.18)', fg: '#a87520' },
 }
 
-export default function CartList({ initialItems }: { initialItems: Row[] }) {
+export default function CartList({
+  initialItems,
+  variant = 'web',
+}: {
+  initialItems: Row[]
+  /** 'web' (기본) / 'app' — v3 톤 분기. R19. */
+  variant?: 'web' | 'app'
+}) {
   const [items, setItems] = useState<Row[]>(initialItems)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
   const router = useRouter()
   const supabase = createClient()
   const toast = useToast()
+  const isApp = variant === 'app'
+  // v3 톤: borderRadius 20 → 8, shadow 약화, photo radius 14 → 4
+  const cardRadius = isApp ? 8 : 20
+  const photoRadius = isApp ? 4 : 14
+  const cardShadow = isApp
+    ? '0 1px 0 rgba(22,20,15,0.04)'
+    : '0 2px 8px rgba(26,20,12,0.04), 0 8px 20px rgba(26,20,12,0.04)'
+  const cardBg = isApp ? 'var(--bg-3)' : '#fff'
 
   // audit 2-13: 카트 탭을 오래 열어두면 stock 이 stale. 다른 탭/앱 사용 후
   // 돌아왔을 때 (visibilitychange) 자동으로 서버 데이터 재요청. 5분 이상
@@ -197,10 +212,12 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
         return (
           <li
             key={row.id}
-            className="bg-white overflow-hidden"
+            className="overflow-hidden"
             style={{
-              borderRadius: 20,
-              boxShadow: '0 2px 8px rgba(26,20,12,0.04), 0 8px 20px rgba(26,20,12,0.04)',
+              borderRadius: cardRadius,
+              boxShadow: cardShadow,
+              background: cardBg,
+              border: isApp ? '1px solid var(--rule)' : undefined,
             }}
           >
             <div
@@ -214,7 +231,7 @@ export default function CartList({ initialItems }: { initialItems: Row[] }) {
                 style={{
                   width: 92,
                   height: 92,
-                  borderRadius: 14,
+                  borderRadius: photoRadius,
                   background: '#fbf3df',
                 }}
               >

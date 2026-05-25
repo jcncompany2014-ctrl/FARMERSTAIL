@@ -64,7 +64,7 @@ export default function CartReceipt({
 
   return (
     <div className="md:hidden">
-      <section className="px-4 pt-2 pb-0">
+      <section className="px-4 pt-3 pb-3">
         <div
           style={{
             background: cardBg,
@@ -167,7 +167,7 @@ export default function CartReceipt({
       </section>
 
       {/* QUICK PAY */}
-      <section className="px-4 pt-4">
+      <section className="px-4 pt-3 pb-3">
         <div
           style={{
             fontSize: 10,
