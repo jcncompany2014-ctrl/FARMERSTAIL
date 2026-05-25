@@ -180,6 +180,17 @@ export default function AnalysisView({
   // Legacy commentary fetch 는 StructuredAnalysis v2 가 대체. 상태 변수는 제거.
 
   // 설문 완료 응원 포인트 toast — survey/page.tsx 가 sessionStorage 에
+  // R37b — 설문에서 넘어온 직후 (?fromSurvey=1) 스크롤 위치 reset.
+  // 라우터 캐시로 인해 이전 페이지의 스크롤 위치가 유지될 수 있음. 결과
+  // 페이지는 항상 top 부터 — 사용자 경험상 처음부터 읽도록.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const q = new URLSearchParams(window.location.search)
+    if (q.get('fromSurvey') === '1') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    }
+  }, [])
+
   // 저장해두면 마운트 시 한 번 표시 후 제거. 멱등성은 ledger RPC 가 보장.
   // 5분 만료 — 새 탭/리프레시 후 한참 뒤 들어오면 노출 X.
   useEffect(() => {

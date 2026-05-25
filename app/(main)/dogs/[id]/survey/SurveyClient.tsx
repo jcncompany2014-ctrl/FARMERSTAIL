@@ -161,6 +161,23 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
 
   // loading 단계 stage 인디케이터
   const [loadingStage, setLoadingStage] = useState(0)
+
+  // R37c (#3) — 설문 진행 중 (입력 일부 완료) 이탈 시 browser confirm.
+  // autosave 가 작동하지만 사용자에게 명시적 안내. 'loading' step 은 제외
+  // (submit 직후 router.push 가 unload 트리거 — 막으면 안 됨).
+  useEffect(() => {
+    if (currentStep === 'loading') return
+    const hasAnyInput =
+      bcs !== null || mcs !== null || bristol !== null || foodType !== ''
+    if (!hasAnyInput) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [currentStep, bcs, mcs, bristol, foodType])
+
   // autosave 복원 한 번만 — 진입 시 localStorage 의 이전 진행 상태 복원.
   // ref 사용 — React 19 'set-state-in-effect' 룰 회피 (effect 안에서 setState
   // 직접 호출 금지). 복원은 mount 직후 1회 mutation 이라 ref 충분.
