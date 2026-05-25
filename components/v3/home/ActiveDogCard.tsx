@@ -131,10 +131,11 @@ export default function ActiveDogCard({
             style={{
               fontFamily: 'var(--font-sans)',
               fontWeight: V3FontWeight.black,
-              fontSize: 34,
+              // R23: 34 → 22 (사용자 보고: hero 텍스트 전반 다운)
+              fontSize: 22,
               color: V3.ink,
-              letterSpacing: '-0.04em',
-              lineHeight: 1.15,
+              letterSpacing: '-0.025em',
+              lineHeight: 1.25,
               wordBreak: 'keep-all',
             }}
           >

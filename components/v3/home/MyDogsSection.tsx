@@ -63,10 +63,11 @@ export default function MyDogsSection({
             margin: 0,
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.black,
-            fontSize: 32,
-            lineHeight: 1,
+            // R23: 32 → 20 (사용자 보고: hero 폰트 전반 다운)
+            fontSize: 20,
+            lineHeight: 1.25,
             color: V3.ink,
-            letterSpacing: '-0.025em',
+            letterSpacing: '-0.02em',
             wordBreak: 'keep-all',
           }}
         >

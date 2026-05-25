@@ -151,15 +151,16 @@ export default function GreetingSection({
         </Mono>
       </div>
 
-      {/* 1-line hero heading — 38px sans 900. line-height 1.2 (사용자 요청: 줄간격 넓힘). */}
+      {/* hero heading — R23: 38 → 24 (사용자 보고: 글씨 너무 큼).
+          line-height 1.25 — 한 줄이지만 다음 sub copy 와 호흡. */}
       <h1
         style={{
           margin: 0,
           fontFamily: 'var(--font-sans)',
           fontWeight: V3FontWeight.black,
-          fontSize: 38,
-          lineHeight: 1.2,
-          letterSpacing: V3LetterSpacing.hero,
+          fontSize: 24,
+          lineHeight: 1.25,
+          letterSpacing: V3LetterSpacing.heading,
           color: V3.ink,
           wordBreak: 'keep-all',
           whiteSpace: 'nowrap',
@@ -168,7 +169,8 @@ export default function GreetingSection({
         {headingText}
       </h1>
 
-      {/* 우상단 signature — 사용자 이름 뒤 "님" 부착 (2026-05-25 사용자 요청) */}
+      {/* 우상단 signature — R23: size 22 → 15, barHeight 60 → 28
+          (사용자 보고: 우상단 글씨 너무 큼) */}
       <div
         style={{
           position: 'absolute',
@@ -180,7 +182,8 @@ export default function GreetingSection({
           name={withHonorific(userName)}
           metaKicker={`FAMILY · ${familyCount}`}
           align="right"
-          size={22}
+          size={15}
+          barHeight={28}
         />
       </div>
 
