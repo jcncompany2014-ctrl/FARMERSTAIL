@@ -252,7 +252,7 @@ export default function MyDogsSection({
             style={{
               width: 36,
               height: 36,
-              borderRadius: 18,
+              borderRadius: 999,
               background: V3.paperHi,
               border: `1px solid ${V3.rule}`,
             }}

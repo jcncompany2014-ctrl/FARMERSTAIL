@@ -54,7 +54,7 @@ export default function DogSwitcher({
             style={{
               width: 36,
               height: 36,
-              borderRadius: 18,
+              borderRadius: 999,
               background: d.toneBg ?? '#d6c9aa',
               border: active
                 ? `2px solid ${V3.ink}`
@@ -102,7 +102,7 @@ export default function DogSwitcher({
           style={{
             width: 36,
             height: 36,
-            borderRadius: 18,
+            borderRadius: 999,
             background: 'transparent',
             border: `1.5px dashed ${V3.rule}`,
             cursor: 'pointer',
