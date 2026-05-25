@@ -485,6 +485,11 @@ input.s-inp[type="number"] {
   background: var(--terracotta); color: #fff;
 }
 .s-seg button[aria-pressed="true"].s-danger svg { color: #fff; }
+/* R34d — "안전" 선택 (예: 알레르기 없어요) sage fill 보조 신호. */
+.s-seg button[aria-pressed="true"].s-safe {
+  background: var(--moss); color: #fff;
+}
+.s-seg button[aria-pressed="true"].s-safe svg { color: #fff; }
 .s-seg button svg { width: 16px; height: 16px; color: var(--muted); }
 .s-seg button[aria-pressed="true"] svg { color: var(--ink); }
 

@@ -63,6 +63,8 @@ export default function Allergy({
         <div className="s-seg">
           <button
             type="button"
+            // R34d — "없어요" sage fill (안전 신호) — "있어요" 와 시각 대비
+            className="s-safe"
             aria-pressed={dlMode === 'none'}
             onClick={() => {
               setDlMode('none')
@@ -85,6 +87,9 @@ export default function Allergy({
           </button>
           <button
             type="button"
+            // R34d — "있어요" terracotta fill (위험 신호) — survey.css 에 정의된
+            // .s-seg button[aria-pressed="true"].s-danger 룰 활성화.
+            className="s-danger"
             aria-pressed={dlMode === 'has'}
             onClick={() => setDlMode('has')}
           >
