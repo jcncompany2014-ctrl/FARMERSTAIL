@@ -63,8 +63,8 @@ export default function Allergy({
         <div className="s-seg">
           <button
             type="button"
-            // R34d — "없어요" sage fill (안전 신호) — "있어요" 와 시각 대비
-            className="s-safe"
+            // R35 revert: "없어요" sage 강조 제거. 사용자가 "안전" 을 default
+            // 정답으로 유도받는 느낌 차단. "있어요" 만 위험 신호 (s-danger 유지).
             aria-pressed={dlMode === 'none'}
             onClick={() => {
               setDlMode('none')

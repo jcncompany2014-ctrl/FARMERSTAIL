@@ -77,10 +77,9 @@ export default function Stool({
             <button
               key={s}
               type="button"
-              // R34: Bristol 4 (이상적 변) default 강조 — Body BCS 5 / Muscle MCS 1 패턴.
-              className={
-                's-listbtn' + (s === 4 ? ' s-listbtn-ideal' : '')
-              }
+              // R35 revert: R34b 의 Bristol 4 sage default 강조 제거.
+              // 모든 카드 default 동일 — Body / Muscle 과 동일 정책.
+              className="s-listbtn"
               aria-pressed={active}
               onClick={() => setBristol(active ? null : s)}
             >

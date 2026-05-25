@@ -192,35 +192,12 @@
 }
 .s-pickcard[aria-pressed="true"] .s-ideal { color: #F8E7A0; }
 
-/* R34 — BCS 5 (IDEAL) default 강조. sage 옅은 tint + prominent IDEAL 라벨.
-   selected 시는 기본 .s-pickcard[aria-pressed="true"] 의 terracotta 가
-   override (일관성 위해). 9개 카드 중 5번만 "이상적 포인트" 라는 시각 단서. */
-.s-pickcard.s-pickcard-ideal {
-  background: color-mix(in srgb, var(--moss) 5%, var(--surface-card));
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--moss) 32%, var(--rule));
-}
-.s-pickcard.s-pickcard-ideal:hover {
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--moss) 50%, var(--rule));
-}
-.s-pickcard.s-pickcard-ideal .s-ideal {
-  /* 라벨 자체를 chip 식으로 — uppercase Mono kicker 톤 (V3LetterSpacing) */
-  top: 6px;
-  right: 6px;
-  font-size: 8.5px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--moss);
-  color: #fff;
-}
-.s-pickcard.s-pickcard-ideal[aria-pressed="true"] .s-ideal {
-  /* selected 시 카드 자체가 terracotta 라 라벨은 그대로 sage 유지하면 충돌.
-     반투명 흰 배경 + 흰 텍스트로 chip 시각 유지. */
-  background: rgba(255, 255, 255, 0.22);
-  color: #fff;
-}
+/* R35: R34 의 .s-pickcard-ideal default 강조 제거.
+   디자인 원칙 — 시스템이 default 에서 정답을 시각적으로 유도하지 않는다.
+   사용자 의도: "ideal 한 카드를 누르면 흰색으로 다른거랑 느낌 다르게 나오면
+   일부러 사람들이 저걸 고르게 되는 느낌". 9개 카드 모두 default 동일,
+   selected 후에만 terracotta. 위험 상태는 hint 카드 안의 tag (s-tag s-bad)
+   로만 노출. */
 .s-pickcard .s-swatch {
   display: flex; align-items: center; justify-content: center;
   height: 34px;
@@ -280,16 +257,8 @@
 .s-listbtn[aria-pressed="true"] .s-lb-icon { background: rgba(255, 255, 255, .18); color: #fff; }
 .s-listbtn[aria-pressed="true"] .s-lb-num { color: #fff; opacity: .6; }
 
-/* R34 — listbtn 의 "ideal default" 강조 (Muscle MCS 1, Stool Bristol 4 등).
-   Body .s-pickcard-ideal 와 동일한 sage tint 패턴. selected 시는
-   terracotta override (일관성). */
-.s-listbtn.s-listbtn-ideal {
-  background: color-mix(in srgb, var(--moss) 5%, var(--surface-card));
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--moss) 32%, var(--rule));
-}
-.s-listbtn.s-listbtn-ideal:hover {
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--moss) 50%, var(--rule));
-}
+/* R35: R34b 의 .s-listbtn-ideal default 강조 제거.
+   Muscle MCS 1 / Stool Bristol 4 모두 default 동일 톤. 시스템 정답 유도 X. */
 .s-lb-num {
   flex: 0 0 auto; width: 22px;
   font-family: var(--font-mono), "JetBrains Mono", monospace;
@@ -485,11 +454,8 @@ input.s-inp[type="number"] {
   background: var(--terracotta); color: #fff;
 }
 .s-seg button[aria-pressed="true"].s-danger svg { color: #fff; }
-/* R34d — "안전" 선택 (예: 알레르기 없어요) sage fill 보조 신호. */
-.s-seg button[aria-pressed="true"].s-safe {
-  background: var(--moss); color: #fff;
-}
-.s-seg button[aria-pressed="true"].s-safe svg { color: #fff; }
+/* R35: R34d 의 .s-safe sage 강조 제거. "없어요" 가 default 정답으로 유도되는
+   느낌 차단. 진짜 위험 신호인 .s-danger ("있어요") 만 terracotta 유지. */
 .s-seg button svg { width: 16px; height: 16px; color: var(--muted); }
 .s-seg button[aria-pressed="true"] svg { color: var(--ink); }
 

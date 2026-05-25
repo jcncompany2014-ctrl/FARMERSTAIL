@@ -88,11 +88,11 @@ export default function Body({
             <button
               key={s}
               type="button"
-              // R34: BCS 5 (IDEAL) 만 sage tint default 강조. selected 시는
-              // 다른 카드와 동일한 terracotta override (일관성).
-              className={
-                's-pickcard' + (s === 5 ? ' s-pickcard-ideal' : '')
-              }
+              // R35 revert: R34 의 BCS 5 sage default 강조 제거.
+              // 사용자 의도 — 시스템이 default 에서 정답을 시각적으로 유도하면
+              // 사용자가 "이거 골라" 라고 느낀다. 모든 카드 default 동일,
+              // selected 후에만 terracotta. 위험 상태는 hint 카드 안의 tag.
+              className="s-pickcard"
               aria-pressed={active}
               onClick={() => setBcs(s)}
             >

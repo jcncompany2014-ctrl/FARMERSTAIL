@@ -54,10 +54,9 @@ export default function Muscle({ mcs, setMcs }: MuscleProps) {
             <button
               key={s}
               type="button"
-              // R34: MCS 1 (양호) default 강조 — Body BCS 5 패턴과 동일.
-              className={
-                's-listbtn' + (s === 1 ? ' s-listbtn-ideal' : '')
-              }
+              // R35 revert: R34b 의 MCS 1 sage default 강조 제거. 모든 카드
+              // default 동일 — 시스템이 정답 유도 X. (Body 와 동일 정책)
+              className="s-listbtn"
               aria-pressed={active}
               onClick={() => setMcs(active ? null : s)}
             >
