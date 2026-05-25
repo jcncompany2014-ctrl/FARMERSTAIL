@@ -12,6 +12,7 @@ import "./globals.css";
 import "@/lib/forms/zod-ko";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import SentryUserSync from "@/components/SentryUserSync";
+import UtmCapture from "@/components/UtmCapture";
 import AnalyticsScripts from "@/components/AnalyticsScripts";
 import { KakaoInitScript } from "@/components/ShareButton";
 import OnboardingGate from "@/components/OnboardingGate";
@@ -269,6 +270,8 @@ export default function RootLayout({
         <ServiceWorkerRegister />
         {/* audit #107: Supabase auth → Sentry.setUser({ id }) 동기화 */}
         <SentryUserSync />
+        {/* R39c (#29): URL 의 utm_* 파라미터 → sessionStorage. conversion 시 함께 보냄. */}
+        <UtmCapture />
         <AnalyticsScripts />
         {/* 카카오톡 공유 SDK — NEXT_PUBLIC_KAKAO_JS_KEY 가 있을 때만 활성화 */}
         <KakaoInitScript />
