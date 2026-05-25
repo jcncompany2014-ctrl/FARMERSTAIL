@@ -11,6 +11,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check:design": "node scripts/check-design-scale.mjs",
     "verify": "npx eslint . && npx tsc --noEmit && npm test",
     "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test \"lib/**/*.test.ts\"",
     "test:watch": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test --watch \"lib/**/*.test.ts\"",
