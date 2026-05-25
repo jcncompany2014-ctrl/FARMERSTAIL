@@ -54,7 +54,10 @@ export default function Muscle({ mcs, setMcs }: MuscleProps) {
             <button
               key={s}
               type="button"
-              className="s-listbtn"
+              // R34: MCS 1 (양호) default 강조 — Body BCS 5 패턴과 동일.
+              className={
+                's-listbtn' + (s === 1 ? ' s-listbtn-ideal' : '')
+              }
               aria-pressed={active}
               onClick={() => setMcs(active ? null : s)}
             >

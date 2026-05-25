@@ -77,7 +77,10 @@ export default function Stool({
             <button
               key={s}
               type="button"
-              className="s-listbtn"
+              // R34: Bristol 4 (이상적 변) default 강조 — Body BCS 5 / Muscle MCS 1 패턴.
+              className={
+                's-listbtn' + (s === 4 ? ' s-listbtn-ideal' : '')
+              }
               aria-pressed={active}
               onClick={() => setBristol(active ? null : s)}
             >

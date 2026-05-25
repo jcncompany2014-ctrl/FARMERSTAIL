@@ -265,6 +265,17 @@
 .s-listbtn[aria-pressed="true"] .s-lb-sub { color: #fff; opacity: .75; }
 .s-listbtn[aria-pressed="true"] .s-lb-icon { background: rgba(255, 255, 255, .18); color: #fff; }
 .s-listbtn[aria-pressed="true"] .s-lb-num { color: #fff; opacity: .6; }
+
+/* R34 — listbtn 의 "ideal default" 강조 (Muscle MCS 1, Stool Bristol 4 등).
+   Body .s-pickcard-ideal 와 동일한 sage tint 패턴. selected 시는
+   terracotta override (일관성). */
+.s-listbtn.s-listbtn-ideal {
+  background: color-mix(in srgb, var(--moss) 5%, var(--surface-card));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--moss) 32%, var(--rule));
+}
+.s-listbtn.s-listbtn-ideal:hover {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--moss) 50%, var(--rule));
+}
 .s-lb-num {
   flex: 0 0 auto; width: 22px;
   font-family: var(--font-mono), "JetBrains Mono", monospace;
