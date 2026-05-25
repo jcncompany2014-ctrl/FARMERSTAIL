@@ -147,7 +147,7 @@
     },
     {
       "path": "/api/cron/push-lifecycle",
-      "schedule": "0 * * * *"
+      "schedule": "0 10 * * *"
     }
   ]
 }
