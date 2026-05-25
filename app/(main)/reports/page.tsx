@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ChevronLeft, TrendingUp, BookOpen, FlaskConical } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import ReportExportButton from './ReportExportButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -98,10 +99,13 @@ export default async function ReportsPage() {
           <p className="text-[12px] text-muted mt-1.5">
             이번 달 우리 가족이 함께 한 기록을 한눈에
           </p>
+          <div className="mt-3">
+            <ReportExportButton monthLabel={monthLabel} />
+          </div>
         </div>
       </div>
 
-      <section className="px-5 mt-4">
+      <section className="px-5 mt-4 ft-report-capture">
         <div className="grid grid-cols-3 gap-2">
           {stats.map(({ Icon, label, value, tone }) => (
             <div
