@@ -17,6 +17,8 @@ import {
   type QuickAction,
   type JournalEntry,
 } from '@/components/v3/home'
+import DashboardDailyChecks from '@/components/dashboard/DashboardDailyChecks'
+import { StreakRewards } from '@/components/v3'
 import { createClient } from '@/lib/supabase/server'
 import ReferralAutoRedeemer from '@/components/ReferralAutoRedeemer'
 import { getActiveEvents } from '@/lib/events/data'
@@ -737,6 +739,16 @@ export default async function DashboardPage() {
           href={todaySpec.href}
           icon={todaySpec.icon}
         />
+      )}
+
+      {/* R15-C27: Daily check-in card stack — firstDog 가 있을 때만 노출 */}
+      {firstDog && <DashboardDailyChecks dogId={firstDog.id} />}
+
+      {/* R15-C28: Streak rewards — 7일 이상 연속일 때만 노출 */}
+      {firstDog && streak.currentStreak >= 7 && (
+        <section className="px-5 mt-3">
+          <StreakRewards currentStreak={streak.currentStreak} />
+        </section>
       )}
 
       {/* 4. 이번 주 7일 그리드 + Quick Actions */}

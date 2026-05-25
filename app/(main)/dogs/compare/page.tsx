@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ChevronLeft, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { Sparkline } from '@/components/v3'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +33,33 @@ export default async function CompareDogsPage() {
     .order('created_at', { ascending: true })
 
   const dogs = (rows ?? []) as DogRow[]
+
+  // R15-C22: 각 견의 최근 12개 체중 로그 — Sparkline 비교.
+  let weightSeries: Record<string, number[]> = {}
+  if (dogs.length >= 2) {
+    const { data: logs } = await supabase
+      .from('weight_logs')
+      .select('dog_id, weight, measured_at')
+      .eq('user_id', user.id)
+      .in(
+        'dog_id',
+        dogs.map((d) => d.id),
+      )
+      .order('measured_at', { ascending: true })
+      .limit(120) // 견 4마리 * 12 = 48 logs 정도 여유
+    const grouped = new Map<string, number[]>()
+    for (const row of (logs ?? []) as Array<{
+      dog_id: string
+      weight: number
+    }>) {
+      const arr = grouped.get(row.dog_id) ?? []
+      arr.push(row.weight)
+      grouped.set(row.dog_id, arr)
+    }
+    weightSeries = Object.fromEntries(
+      Array.from(grouped.entries()).map(([k, v]) => [k, v.slice(-12)]),
+    )
+  }
 
   return (
     <main className="pb-10">
@@ -124,6 +152,28 @@ export default async function CompareDogsPage() {
                 dogs={dogs}
                 pick={(d) => d.body_condition ?? '—'}
               />
+              <tr className="border-t border-rule">
+                <td className="p-2 text-muted">체중 추이</td>
+                {dogs.map((d) => {
+                  const series = weightSeries[d.id] ?? []
+                  return (
+                    <td key={d.id} className="p-2">
+                      {series.length >= 2 ? (
+                        <Sparkline
+                          data={series}
+                          width={88}
+                          height={28}
+                          color="var(--terracotta)"
+                        />
+                      ) : (
+                        <span className="text-[11px] text-muted">
+                          기록 부족
+                        </span>
+                      )}
+                    </td>
+                  )
+                })}
+              </tr>
             </tbody>
           </table>
         </section>

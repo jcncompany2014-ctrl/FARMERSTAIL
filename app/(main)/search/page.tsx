@@ -3,7 +3,13 @@
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronLeft, Search, Dog as DogIcon, BookOpen } from 'lucide-react'
+import {
+  ChevronLeft,
+  Search,
+  Dog as DogIcon,
+  BookOpen,
+  ShoppingBag,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -29,11 +35,23 @@ export default async function SearchPage({
   if (!user) redirect(`/login?next=/search${q ? `?q=${encodeURIComponent(q)}` : ''}`)
 
   let dogs: Array<{ id: string; name: string; breed: string | null }> = []
-  let diary: Array<{ id: string; dog_id: string; note: string | null; created_at: string }> = []
+  let diary: Array<{
+    id: string
+    dog_id: string
+    note: string | null
+    created_at: string
+  }> = []
+  let products: Array<{
+    id: string
+    name: string
+    slug: string
+    short_description: string | null
+    category: string | null
+  }> = []
 
   if (query) {
     const safe = escapeIlike(query)
-    const [dRes, jRes] = await Promise.all([
+    const [dRes, jRes, pRes] = await Promise.all([
       supabase
         .from('dogs')
         .select('id, name, breed')
@@ -47,9 +65,19 @@ export default async function SearchPage({
         .ilike('note', `%${safe}%`)
         .order('created_at', { ascending: false })
         .limit(10),
+      // R15-C21: 상품 검색 추가 — name + short_description ILIKE.
+      supabase
+        .from('products')
+        .select('id, name, slug, short_description, category')
+        .eq('is_active', true)
+        .or(
+          `name.ilike.%${safe}%,short_description.ilike.%${safe}%`,
+        )
+        .limit(10),
     ])
     dogs = (dRes.data ?? []) as typeof dogs
     diary = (jRes.data ?? []) as typeof diary
+    products = (pRes.data ?? []) as typeof products
   }
 
   return (
@@ -136,6 +164,45 @@ export default async function SearchPage({
                       </p>
                       {d.breed && (
                         <p className="text-[11px] text-muted">{d.breed}</p>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="px-5 mt-4">
+            <h2 className="kicker mb-2">상품 · {products.length}건</h2>
+            {products.length === 0 ? (
+              <p className="text-[11px] text-muted">결과가 없어요</p>
+            ) : (
+              <div className="space-y-2">
+                {products.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/products/${p.slug}`}
+                    className="flex items-center gap-3 rounded border border-rule bg-bg-3 px-4 py-3 active:scale-[0.99] transition"
+                  >
+                    <ShoppingBag
+                      className="w-4 h-4 text-gold shrink-0"
+                      strokeWidth={2}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="font-sans"
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: 'var(--ink)',
+                        }}
+                      >
+                        {p.name}
+                      </p>
+                      {p.short_description && (
+                        <p className="text-[11px] text-muted line-clamp-1">
+                          {p.short_description}
+                        </p>
                       )}
                     </div>
                   </Link>
