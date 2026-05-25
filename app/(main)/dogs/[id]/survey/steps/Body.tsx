@@ -88,11 +88,13 @@ export default function Body({
             <button
               key={s}
               type="button"
-              // R35 revert: R34 의 BCS 5 sage default 강조 제거.
-              // 사용자 의도 — 시스템이 default 에서 정답을 시각적으로 유도하면
-              // 사용자가 "이거 골라" 라고 느낀다. 모든 카드 default 동일,
-              // selected 후에만 terracotta. 위험 상태는 hint 카드 안의 tag.
-              className="s-pickcard"
+              // R37 — 위험 카드 (BCS 1/8/9 = tagTone 'bad') 만 selected 시
+              // sale 색. default 는 모두 동일 (정답 유도 X). 사용자 의도:
+              // "심각한걸 골랐을 때만 위험한 상태라는게 느껴지게".
+              className={
+                's-pickcard' +
+                (view.tagTone === 'bad' ? ' s-pickcard-danger' : '')
+              }
               aria-pressed={active}
               onClick={() => setBcs(s)}
             >

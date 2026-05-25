@@ -77,9 +77,13 @@ export default function Stool({
             <button
               key={s}
               type="button"
-              // R35 revert: R34b 의 Bristol 4 sage default 강조 제거.
-              // 모든 카드 default 동일 — Body / Muscle 과 동일 정책.
-              className="s-listbtn"
+              // R37 — Bristol 1 (강한 변비) / 7 (완전 설사) 극단만 selected 시
+              // sale 색. 2 (가벼운 변비) / 6 (가벼운 설사) 는 warn 으로 유지.
+              // 사용자 의도 "심각한 걸 골랐을 때만" 의 "심각" 기준.
+              className={
+                's-listbtn' +
+                (s === 1 || s === 7 ? ' s-listbtn-danger' : '')
+              }
               aria-pressed={active}
               onClick={() => setBristol(active ? null : s)}
             >

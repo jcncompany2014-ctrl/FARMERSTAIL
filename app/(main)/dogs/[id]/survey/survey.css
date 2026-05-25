@@ -194,10 +194,22 @@
 
 /* R35: R34 의 .s-pickcard-ideal default 강조 제거.
    디자인 원칙 — 시스템이 default 에서 정답을 시각적으로 유도하지 않는다.
-   사용자 의도: "ideal 한 카드를 누르면 흰색으로 다른거랑 느낌 다르게 나오면
-   일부러 사람들이 저걸 고르게 되는 느낌". 9개 카드 모두 default 동일,
-   selected 후에만 terracotta. 위험 상태는 hint 카드 안의 tag (s-tag s-bad)
-   로만 노출. */
+
+   R37: 위험 카드 (BCS 1·8·9 / MCS 4 / Bristol 1·7) 만 selected 시 sale 색
+   (terracotta 보다 짙은 빨강). default 는 모두 동일 — 사용자가 "심각한 걸
+   골랐을 때만 위험한 상태라는게 느껴지게" 의도. */
+.s-pickcard.s-pickcard-danger[aria-pressed="true"] {
+  background: var(--sale);
+  box-shadow:
+    inset 0 0 0 1px var(--sale),
+    0 6px 20px -8px color-mix(in srgb, var(--sale) 50%, transparent);
+}
+.s-listbtn.s-listbtn-danger[aria-pressed="true"] {
+  background: var(--sale);
+  box-shadow:
+    inset 0 0 0 1px var(--sale),
+    0 8px 22px -10px color-mix(in srgb, var(--sale) 50%, transparent);
+}
 .s-pickcard .s-swatch {
   display: flex; align-items: center; justify-content: center;
   height: 34px;
