@@ -56,10 +56,7 @@ export async function requestReview(): Promise<boolean> {
     // dynamic require — 미설치 패키지 typed import 우회.
     const mod = (await import(
       /* webpackIgnore: true */ '@capacitor-community/in-app-review' as string
-    ).catch(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      () => null,
-    )) as { InAppReview?: { requestReview: () => Promise<void> } } | null
+    ).catch(() => null)) as { InAppReview?: { requestReview: () => Promise<void> } } | null
     if (!mod?.InAppReview) return false
     await mod.InAppReview.requestReview()
     return true

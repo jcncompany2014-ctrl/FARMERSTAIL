@@ -16,6 +16,10 @@ const eslintConfig = defineConfig([
     // They intentionally ship unescaped entities and use globals like
     // IOSDevice from a sibling <script> tag. Linting them is noise.
     ".claude-design/**",
+    // Storybook config — main.ts / preview.ts 는 tsconfig include 밖이라
+    // projectService 가 parse 못 함. stories 자체는 정상.
+    ".storybook/**",
+    "storybook-static/**",
   ]),
   // audit #83: floating promise 차단. `await` 누락 / `.catch()` 누락 시 silent fail.
   // 외부 호출 많은 lib/payments, lib/email, lib/commerce, app/api 에서 데이터

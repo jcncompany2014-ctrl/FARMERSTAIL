@@ -12,6 +12,8 @@
     "start": "next start",
     "lint": "eslint",
     "check:design": "node scripts/check-design-scale.mjs",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
     "verify": "npx eslint . && npx tsc --noEmit && npm test",
     "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test \"lib/**/*.test.ts\"",
     "test:watch": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test --watch \"lib/**/*.test.ts\"",
@@ -68,6 +70,8 @@
   "devDependencies": {
     "@next/bundle-analyzer": "^16.2.6",
     "@playwright/test": "^1.49.0",
+    "@storybook/nextjs-vite": "^10.4.1",
+    "@storybook/react-vite": "^10.4.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -75,7 +79,9 @@
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "storybook": "^10.4.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^8.0.14"
   }
 }
