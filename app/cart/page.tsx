@@ -253,7 +253,11 @@ export default async function CartPage() {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
                   {recProducts.slice(0, 4).map((p) => (
-                    <CatalogProductCard key={p.id} product={p} />
+                    <CatalogProductCard
+                      key={p.id}
+                      product={p}
+                      variant={isApp ? 'app' : 'web'}
+                    />
                   ))}
                 </div>
               </div>
@@ -373,13 +377,14 @@ export default async function CartPage() {
             </div>
 
             {/* ============= 모바일 핸드오프 — items 아래 sections ============= */}
-            <CartUpsell />
+            <CartUpsell variant={isApp ? 'app' : 'web'} />
             <CartAddMore products={addMoreProducts} />
             <CartReceipt
               subtotal={subtotal}
               shipping={shipping}
               pointsEarned={pointsEarned}
               remainingToFree={shippingBreakdown.remainingToFree}
+              variant={isApp ? 'app' : 'web'}
             />
 
             {/* 모바일 sticky CTA — 하단 고정 dual-pane pill (handoff) */}

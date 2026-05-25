@@ -70,12 +70,16 @@ const CATEGORIES: Category[] = [
 export default function CatalogChrome({
   dogName,
   totalCount,
+  variant = 'web',
 }: {
   /** 첫 강아지 이름 (없으면 '보호자') */
   dogName: string
   /** 전체 상품 수 (검색바 placeholder 보조) */
   totalCount: number
+  /** 'web' (기본) 또는 'app' — v3 톤 분기 (R14 cleanup) */
+  variant?: 'web' | 'app'
 }) {
+  const isApp = variant === 'app'
   return (
     <div className="md:hidden">
       {/* Greeting */}
@@ -112,8 +116,9 @@ export default function CatalogChrome({
           href="/search"
           className="flex items-center gap-2.5 px-4 py-3 bg-white"
           style={{
-            borderRadius: 18,
-            boxShadow: '0 2px 8px rgba(26,20,12,0.04)',
+            borderRadius: isApp ? 4 : 18,
+            boxShadow: isApp ? '0 1px 0 rgba(22,20,15,0.04)' : '0 2px 8px rgba(26,20,12,0.04)',
+            border: isApp ? '1px solid var(--rule)' : undefined,
           }}
         >
           <Search size={18} color="#7a6d5b" strokeWidth={1.8} />
@@ -146,9 +151,10 @@ export default function CatalogChrome({
                 style={{
                   width: 54,
                   height: 54,
-                  borderRadius: 18,
-                  background: '#fff',
-                  boxShadow: '0 2px 8px rgba(26,20,12,0.06)',
+                  borderRadius: isApp ? 8 : 18,
+                  background: isApp ? 'var(--bg-3)' : '#fff',
+                  boxShadow: isApp ? '0 1px 0 rgba(22,20,15,0.04)' : '0 2px 8px rgba(26,20,12,0.06)',
+                  border: isApp ? '1px solid var(--rule)' : undefined,
                   color: cat.color,
                 }}
               >

@@ -10,7 +10,13 @@
 import Link from 'next/link'
 import { Calendar, ChevronRight } from 'lucide-react'
 
-export default function CatalogSubscribeBand() {
+export default function CatalogSubscribeBand({
+  variant = 'web',
+}: {
+  /** 'web' (기본) 또는 'app' — v3 톤 분기 (R14 cleanup) */
+  variant?: 'web' | 'app'
+} = {}) {
+  const isApp = variant === 'app'
   return (
     <section className="px-4 mt-6 md:hidden">
       <Link
@@ -18,7 +24,7 @@ export default function CatalogSubscribeBand() {
         className="relative flex items-center gap-3.5 overflow-hidden"
         style={{
           background: '#5d6f3f',
-          borderRadius: 24,
+          borderRadius: isApp ? 8 : 24,
           padding: 16,
           color: '#fff',
         }}
@@ -41,7 +47,7 @@ export default function CatalogSubscribeBand() {
           style={{
             width: 56,
             height: 56,
-            borderRadius: 18,
+            borderRadius: isApp ? 4 : 18,
             background: 'rgba(255,255,255,0.18)',
             color: '#fff',
           }}
@@ -61,11 +67,13 @@ export default function CatalogSubscribeBand() {
             SUBSCRIBE · 정기배송
           </div>
           <div
-            className="font-['Archivo_Black'] mt-0.5"
+            className={isApp ? 'mt-0.5' : "font-['Archivo_Black'] mt-0.5"}
             style={{
               fontSize: 16,
               lineHeight: 1.1,
               letterSpacing: '-0.015em',
+              fontFamily: isApp ? "var(--font-sans), 'Pretendard', sans-serif" : undefined,
+              fontWeight: isApp ? 900 : undefined,
             }}
           >
             2주마다 자동 배송 + 10% 할인

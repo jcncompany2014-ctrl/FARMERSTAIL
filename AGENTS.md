@@ -22,7 +22,7 @@ editorial (serif heading / white card / rounded-xl) 톤은 유지해야 한다.
 | `lib/design/tokens.ts` 의 v3 추가 | app 컨텍스트에서만 import 되면 OK |
 | `app/globals.css` 의 `[data-ft-chrome="app"]` 스코프 안 룰 | scope 자동 분리 |
 
-## ⛔ 금지 (touch 시 web 도 변경됨)
+## ⛔ 여전히 금지 — 직접 시각 수정
 
 | 경로 / 파일 | Web 영향 이유 |
 |---|---|
@@ -30,15 +30,37 @@ editorial (serif heading / white card / rounded-xl) 톤은 유지해야 한다.
 | `app/cart/page.tsx`, `app/cart/CartList.tsx` | top-level, AuthAwareShell 분기 |
 | `app/checkout/**` | top-level, AuthAwareShell 분기 |
 | `app/products/page.tsx`, `app/products/[slug]/**` | top-level, AuthAwareShell 분기 |
-| `app/mypage/orders/**` (note: 이건 `app/(main)/mypage` 와 다른 경로 — top-level web/app 공유) | top-level, AuthAwareShell 분기 |
-| `components/products/**` (CatalogProductCard, RelatedProducts, RecentlyViewed, ProductReviews 등) | catalog/PDP 양쪽 컨텍스트에서 import |
-| `components/cart/**` | 모바일 핸드오프 전용처럼 보이지만 page.tsx 가 양쪽에서 import |
+| `app/mypage/orders/**` | top-level web/app 공유 |
 | `components/ui/**` (Toast, Button, Form, BottomSheet, VariantSelector, EmptyState, Skeleton, Spinner, ErrorScreen, CopyButton, StockBadge, Motion, ProgressiveDisclosure) | UI primitives — web 페이지도 import |
 | `components/auth/AuthHero.tsx` | login/signup 에서 사용 — web/app 공통 |
 
-## 변경 시 분리 패턴
+## ✅ R14 — variant prop 으로 공유 컴포넌트 분기
 
-공유 페이지 / 컴포넌트에서 **반드시** 시각이 바뀌어야 할 때:
+R14 (2026-05-25) 부터 일부 공유 컴포넌트는 **`variant: 'web' | 'app'` prop** 으로
+시각 분기. 같은 컴포넌트 안에서 borderRadius / boxShadow / fontFamily 만 다르게,
+코드 fork 없이 web editorial 톤 + app v3 톤 동시 지원.
+
+| 컴포넌트 | variant 적용 |
+|---|---|
+| `components/cart/CartReceipt.tsx` | ✅ |
+| `components/cart/CartUpsell.tsx` | ✅ |
+| `components/products/CatalogProductCard.tsx` | ✅ |
+| `components/products/CatalogChrome.tsx` | ✅ |
+| `components/products/CatalogHero.tsx` | ✅ |
+| `components/products/CatalogSubscribeBand.tsx` | ✅ |
+
+페이지에서 호출 시:
+```tsx
+const isApp = await isAppContextServer()
+return <CatalogProductCard product={p} variant={isApp ? 'app' : 'web'} />
+```
+
+이 컴포넌트들은 **variant prop 추가 / 확장은 OK**. 단 web variant 의 기존
+시각 (borderRadius 18/22, archivo black 등) 은 default 로 유지.
+
+## 변경 시 분리 패턴 (다른 공유 영역)
+
+variant prop 이 아직 안 들어간 다른 공유 영역에선 다음 중 하나:
 
 ```tsx
 // 1) responsive boundary — mobile=app, desktop=web 으로 분기
@@ -50,8 +72,11 @@ import { isAppContextServer } from '@/lib/app-context'
 const isApp = await isAppContextServer()
 return isApp ? <V3View /> : <WebView />
 
-// 3) CSS scope (globals.css)
-[data-ft-chrome="app"] .my-component { /* app-only override */ }
+// 3) variant prop 신규 추가 (권장 — R14 패턴)
+function MyComponent({ variant = 'web' }: { variant?: 'web' | 'app' }) {
+  const isApp = variant === 'app'
+  // borderRadius: isApp ? 4 : 18, ...
+}
 ```
 
 ## 빠른 self-check
@@ -59,9 +84,8 @@ return isApp ? <V3View /> : <WebView />
 새 코드 작성 / 수정 전에 1초 답:
 
 1. 이 파일이 `app/(main)/**` 또는 `components/v3/**` 안에 있나? → **OK**
-2. 그 외라면: web 에도 노출되나? → 조사 필요. 답이 yes 면 **금지**.
-
-이 규칙 위반은 web editorial 톤 손상 → 사용자 즉시 revert 요청 → 작업 손실.
+2. variant prop 지원 컴포넌트인가? → **`isApp ? 'app' : 'web'` 패스만 OK**
+3. 그 외 공유 영역이면: web default 톤 보존 + variant 추가하거나 컨텍스트 분기.
 
 # Verification before push — DO NOT shortcut this
 

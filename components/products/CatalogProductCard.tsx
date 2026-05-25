@@ -42,6 +42,8 @@ type Props = {
   query?: string
   /** LCP 후보 첫 카드만 priority. */
   priority?: boolean
+  /** 'web' (기본) 또는 'app' — v3 톤 분기 (R14 cleanup) */
+  variant?: 'web' | 'app'
 }
 
 function CategoryIcon({
@@ -87,21 +89,26 @@ export default function CatalogProductCard({
   isNew = false,
   query = '',
   priority = false,
+  variant = 'web',
 }: Props) {
   const hasSale = product.sale_price !== null
   const effective = product.sale_price ?? product.price
   const discount = hasSale
     ? Math.round(((product.price - effective) / product.price) * 100)
     : 0
+  const isApp = variant === 'app'
 
   return (
     <div
       className="relative group ft-card-product"
       style={{
-        background: '#fff',
-        borderRadius: 18,
+        background: isApp ? 'var(--bg-3)' : '#fff',
+        borderRadius: isApp ? 4 : 18,
         padding: 8,
-        boxShadow: '0 2px 8px rgba(26,20,12,0.04), 0 8px 20px rgba(26,20,12,0.04)',
+        boxShadow: isApp
+          ? '0 1px 0 rgba(22,20,15,0.04)'
+          : '0 2px 8px rgba(26,20,12,0.04), 0 8px 20px rgba(26,20,12,0.04)',
+        border: isApp ? '1px solid var(--rule)' : undefined,
       }}
     >
       {/* Wishlist heart — Link 밖에 둬서 click bubbling 분리 */}
@@ -114,7 +121,7 @@ export default function CatalogProductCard({
           텍스트 패널 컴팩트하게. 데스크톱 (md+) 도 동일 비율로 통일. */}
       <div
         className="relative aspect-square overflow-hidden"
-        style={{ background: '#fbf3df', borderRadius: 14 }}
+        style={{ background: '#fbf3df', borderRadius: isApp ? 2 : 14 }}
       >
         {product.image_url ? (
           <Image

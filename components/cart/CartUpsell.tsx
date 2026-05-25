@@ -21,14 +21,21 @@ interface Props {
   pointsBalance?: number
   /** 적립금 사용 가능 최소 금액 */
   pointsMinUse?: number
+  /** 'web' (기본) 또는 'app' — v3 톤 분기 (R14 cleanup) */
+  variant?: 'web' | 'app'
 }
 
 export default function CartUpsell({
   couponCount = 0,
   pointsBalance = 0,
   pointsMinUse = 5000,
+  variant = 'web',
 }: Props) {
   const [giftWrap, setGiftWrap] = useState(false)
+  const isApp = variant === 'app'
+  // v3 톤: 카드 radius 18 → 8, 내부 chip radius 10/12 → 4/4
+  const cardRadius = isApp ? 8 : 18
+  const chipRadius = isApp ? 4 : 10
 
   return (
     <div className="md:hidden">
@@ -39,7 +46,7 @@ export default function CartUpsell({
           className="relative flex items-center gap-3 overflow-hidden"
           style={{
             background: '#5d6f3f',
-            borderRadius: 20,
+            borderRadius: isApp ? 8 : 20,
             padding: '14px 16px',
             color: '#fff',
           }}
@@ -94,9 +101,11 @@ export default function CartUpsell({
         <div
           className="flex items-center gap-2.5 bg-white"
           style={{
-            borderRadius: 18,
+            borderRadius: cardRadius,
             padding: '12px 14px',
-            boxShadow: '0 2px 8px rgba(26,20,12,0.06)',
+            boxShadow: isApp ? '0 1px 0 rgba(22,20,15,0.04)' : '0 2px 8px rgba(26,20,12,0.06)',
+            border: isApp ? '1px solid var(--rule)' : undefined,
+            background: isApp ? 'var(--bg-3)' : undefined,
           }}
         >
           <div
@@ -104,7 +113,7 @@ export default function CartUpsell({
             style={{
               width: 32,
               height: 32,
-              borderRadius: 10,
+              borderRadius: chipRadius,
               background: 'rgba(220, 83, 42, 0.12)',
               color: '#dc532a',
             }}
@@ -160,9 +169,11 @@ export default function CartUpsell({
           href="/account/coupons"
           className="flex items-center gap-2.5 bg-white"
           style={{
-            borderRadius: 18,
+            borderRadius: cardRadius,
             padding: '14px 16px',
-            boxShadow: '0 2px 8px rgba(26,20,12,0.06)',
+            boxShadow: isApp ? '0 1px 0 rgba(22,20,15,0.04)' : '0 2px 8px rgba(26,20,12,0.06)',
+            border: isApp ? '1px solid var(--rule)' : undefined,
+            background: isApp ? 'var(--bg-3)' : undefined,
           }}
         >
           <div
@@ -170,7 +181,7 @@ export default function CartUpsell({
             style={{
               width: 36,
               height: 36,
-              borderRadius: 12,
+              borderRadius: isApp ? 4 : 12,
               background: 'rgba(220, 83, 42, 0.12)',
               color: '#dc532a',
             }}
@@ -205,9 +216,11 @@ export default function CartUpsell({
           href="/account/points"
           className="flex items-center gap-2.5 bg-white"
           style={{
-            borderRadius: 18,
+            borderRadius: cardRadius,
             padding: '14px 16px',
-            boxShadow: '0 2px 8px rgba(26,20,12,0.06)',
+            boxShadow: isApp ? '0 1px 0 rgba(22,20,15,0.04)' : '0 2px 8px rgba(26,20,12,0.06)',
+            border: isApp ? '1px solid var(--rule)' : undefined,
+            background: isApp ? 'var(--bg-3)' : undefined,
           }}
         >
           <div
@@ -215,7 +228,7 @@ export default function CartUpsell({
             style={{
               width: 36,
               height: 36,
-              borderRadius: 12,
+              borderRadius: isApp ? 4 : 12,
               background: 'rgba(232, 168, 46, 0.18)',
               color: '#a87520',
             }}

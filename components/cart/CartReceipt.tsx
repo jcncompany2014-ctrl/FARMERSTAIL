@@ -8,6 +8,14 @@
  *   - hairline divider → 총 결제 금액 큰 숫자 (terracotta)
  *   - "결제 시 NP 적립 예정" sage tinted banner
  *   - QUICK PAY 4 buttons (시각만, 모두 /checkout 로)
+ *
+ * # variant prop (R14 cleanup)
+ *
+ * web / app 톤 분기. 같은 컴포넌트 안에서 styling 만 다르게 — 코드 fork
+ * 없이 web editorial 톤 보존 + app v3 톤 적용.
+ *
+ *   - web (default): borderRadius 22/14, archivo black 폰트, 기존 톤
+ *   - app: borderRadius 12/4 (V3Radius.md/sm), sans 폰트 통일, v3 grammar
  */
 
 import Link from 'next/link'
@@ -20,6 +28,8 @@ interface Props {
   pointsEarned: number
   /** 무료배송까지 모자란 금액 — 0 이면 무료 */
   remainingToFree: number
+  /** 'web' (기본) 또는 'app' — v3 톤 분기. */
+  variant?: 'web' | 'app'
 }
 
 const QUICK_PAY: Array<{ label: string; bg: string; fg: string }> = [
@@ -34,20 +44,34 @@ export default function CartReceipt({
   shipping,
   pointsEarned,
   remainingToFree,
+  variant = 'web',
 }: Props) {
   const total = subtotal + shipping
   const isFreeShipping = shipping === 0
+  const isApp = variant === 'app'
+
+  // v3 톤은 둥근 모서리 ↓ + 그림자 ↓ + 폰트 sans 통일.
+  const cardRadius = isApp ? 12 : 22
+  const quickPayRadius = isApp ? 4 : 14
+  const cardBg = isApp ? 'var(--bg-3)' : '#ffffff'
+  const cardShadow = isApp
+    ? '0 1px 0 rgba(22,20,15,0.04)'
+    : '0 4px 16px rgba(26,20,12,0.06), 0 2px 8px rgba(26,20,12,0.04)'
+  const totalFontFamily = isApp
+    ? "var(--font-sans), 'Pretendard', sans-serif"
+    : undefined
+  const totalLetterSpacing = isApp ? '-0.015em' : '-0.025em'
 
   return (
     <div className="md:hidden">
       <section className="px-4 pt-2 pb-0">
         <div
-          className="bg-white"
           style={{
-            borderRadius: 22,
+            background: cardBg,
+            borderRadius: cardRadius,
             padding: 18,
-            boxShadow:
-              '0 4px 16px rgba(26,20,12,0.06), 0 2px 8px rgba(26,20,12,0.04)',
+            boxShadow: cardShadow,
+            border: isApp ? '1px solid var(--rule)' : undefined,
           }}
         >
           <div
@@ -87,19 +111,27 @@ export default function CartReceipt({
 
           <div className="flex justify-between items-baseline">
             <span
-              className="font-['Archivo_Black']"
-              style={{ fontSize: 16, color: '#1a140c' }}
+              className={isApp ? undefined : "font-['Archivo_Black']"}
+              style={{
+                fontSize: 16,
+                color: '#1a140c',
+                fontFamily: totalFontFamily,
+                fontWeight: isApp ? 900 : undefined,
+                letterSpacing: isApp ? '-0.015em' : undefined,
+              }}
             >
               총 결제 금액
             </span>
             <div className="text-right">
               <div
-                className="font-['Archivo_Black'] tabular-nums"
+                className={`${isApp ? '' : "font-['Archivo_Black']"} tabular-nums`}
                 style={{
                   fontSize: 28,
                   color: '#dc532a',
                   lineHeight: 1,
-                  letterSpacing: '-0.025em',
+                  letterSpacing: totalLetterSpacing,
+                  fontFamily: totalFontFamily,
+                  fontWeight: isApp ? 900 : undefined,
                 }}
               >
                 {total.toLocaleString()}
@@ -122,7 +154,7 @@ export default function CartReceipt({
             style={{
               padding: '8px 12px',
               background: 'rgba(93, 111, 63, 0.13)',
-              borderRadius: 10,
+              borderRadius: isApp ? 4 : 10,
               fontSize: 11,
               color: '#5d6f3f',
               fontWeight: 700,
@@ -156,7 +188,7 @@ export default function CartReceipt({
               style={{
                 background: p.bg,
                 color: p.fg,
-                borderRadius: 14,
+                borderRadius: quickPayRadius,
                 padding: '12px 6px',
                 fontSize: 11,
               }}

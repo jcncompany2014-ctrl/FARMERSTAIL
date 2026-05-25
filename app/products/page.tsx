@@ -281,8 +281,14 @@ export default async function ProductsPage({
           데스크톱은 아래 기존 toolbar 그대로.
           CatalogChrome 사이에 CatalogHero (이벤트 슬라이더) 삽입 — 1) Greeting +
           Search + Categories, 2) Hero events carousel, 3) ALL · 모든 메뉴 헤더. */}
-      <CatalogChrome dogName={firstDogName} totalCount={total} />
-      {heroEvents.length > 0 && <CatalogHero events={heroEvents} />}
+      <CatalogChrome
+        dogName={firstDogName}
+        totalCount={total}
+        variant={isApp ? 'app' : 'web'}
+      />
+      {heroEvents.length > 0 && (
+        <CatalogHero events={heroEvents} variant={isApp ? 'app' : 'web'} />
+      )}
 
       {/* ── Top toolbar: breadcrumb + h1 + count + sort ─────
           앱 컨텍스트에선 breadcrumb 생략 — 상단 헤더 + 하단 탭바가 navigation
@@ -370,13 +376,14 @@ export default async function ProductsPage({
                       isNew={isNew}
                       query={query}
                       priority={i < 4}
+                      variant={isApp ? 'app' : 'web'}
                     />
                   )
                 })}
               </div>
 
               {/* Subscribe sage band — 모바일 그리드 다음. */}
-              <CatalogSubscribeBand />
+              <CatalogSubscribeBand variant={isApp ? 'app' : 'web'} />
 
               {/* Pagination */}
               {totalPages > 1 && (

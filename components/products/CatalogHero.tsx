@@ -65,10 +65,19 @@ const PALETTE_MAP: Record<EventPalette, Palette> = {
 const AUTOPLAY_MS = 5000
 const USER_PAUSE_MS = 6000
 
-export default function CatalogHero({ events }: { events: EventItem[] }) {
+export default function CatalogHero({
+  events,
+  variant = 'web',
+}: {
+  events: EventItem[]
+  /** 'web' (기본) 또는 'app' — v3 톤 분기 (R14 cleanup) */
+  variant?: 'web' | 'app'
+}) {
   const [active, setActive] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const userPausedUntil = useRef<number>(0)
+  const isApp = variant === 'app'
+  const ctaRadius = isApp ? 4 : 14
 
   // autoplay — 5초마다 next slide. 사용자가 swipe 한 직후 6초는 일시정지.
   useEffect(() => {
@@ -126,7 +135,13 @@ export default function CatalogHero({ events }: { events: EventItem[] }) {
         }}
       >
         {events.map((event) => (
-          <HeroSlide key={event.id} event={event} />
+          <HeroSlide
+            key={event.id}
+            event={event}
+            ctaRadius={ctaRadius}
+            cardRadius={isApp ? 12 : 28}
+            kickerRadius={isApp ? 4 : 10}
+          />
         ))}
       </div>
 
@@ -161,7 +176,17 @@ export default function CatalogHero({ events }: { events: EventItem[] }) {
   )
 }
 
-function HeroSlide({ event }: { event: EventItem }) {
+function HeroSlide({
+  event,
+  ctaRadius,
+  cardRadius,
+  kickerRadius,
+}: {
+  event: EventItem
+  ctaRadius: number
+  cardRadius: number
+  kickerRadius: number
+}) {
   const p = PALETTE_MAP[event.palette] ?? PALETTE_MAP.terracotta
   return (
     <Link
@@ -172,7 +197,7 @@ function HeroSlide({ event }: { event: EventItem }) {
         width: '100%',
         background: p.bg,
         color: p.accent,
-        borderRadius: 28,
+        borderRadius: cardRadius,
         padding: '22px 22px 20px',
       }}
     >
@@ -216,7 +241,7 @@ function HeroSlide({ event }: { event: EventItem }) {
           style={{
             padding: '4px 10px',
             background: p.perkBg,
-            borderRadius: 10,
+            borderRadius: kickerRadius,
             fontSize: 10,
             letterSpacing: 1.5,
             color: p.accent,
@@ -253,7 +278,7 @@ function HeroSlide({ event }: { event: EventItem }) {
               padding: '10px 18px',
               background: '#fff',
               color: p.ctaFg,
-              borderRadius: 14,
+              borderRadius: ctaRadius,
               fontSize: 13,
             }}
           >
