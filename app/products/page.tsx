@@ -155,7 +155,6 @@ export default async function ProductsPage({
 
   // 정렬 모드별 .order 적용
   if (sortMode === 'new' || raw.sort === 'new') {
-    // eslint-disable-next-line react-hooks/purity
     const nowMs = Date.now()
     const since = new Date(
       nowMs - NEW_WINDOW_DAYS * 24 * 60 * 60 * 1000,

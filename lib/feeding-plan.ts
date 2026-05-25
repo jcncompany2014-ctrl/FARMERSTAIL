@@ -21,7 +21,6 @@
  */
 
 import {
-  BUDGET_TO_ANCHOR_KRW,
   calculateMix,
   defaultScenarioForBudget,
   isOverBudget,
