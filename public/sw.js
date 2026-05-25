@@ -27,10 +27,13 @@
 //   - ASSET: 평균 ~80KB · 80개 ≈ 6.4MB (단 _next/static 제외라 더 작음)
 // =============================================================================
 
-// 캐시 버전 — sw.js 자체가 수정될 때만 bump.
-// v4: _next/static 제외 + 인증 페이지 제외 + /monitoring bypass (audit #94, #97, #85)
-// 자동 빌드 SHA 주입은 Phase 2 (audit #85 후반) 에서 prebuild script 로.
-const CACHE_NAME = 'farmerstail-v4'
+// 캐시 버전 — 매 빌드마다 scripts/inject-build-sha.mjs (prebuild) 가 자동
+// 으로 git SHA + timestamp 주입. 이 placeholder 'farmerstail-v5' 는 dev 용
+// 기본값이며 build 시점에 'farmerstail-<sha12>-<ts>' 로 교체됨. SW 자체
+// 내용이 변경되면 브라우저가 새 sw.js 받아 → install → activate → 옛 캐시
+// 자동 정리. 사용자가 PWA 다시 켤 때 toast "새 버전이 준비됐어요" 노출.
+// (audit #85 후반 — R29 에서 prebuild 자동화 완성)
+const CACHE_NAME = 'farmerstail-v5'
 
 const NAV_CACHE_MAX_ENTRIES = 60
 const ASSET_CACHE_MAX_ENTRIES = 80

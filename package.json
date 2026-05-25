@@ -8,6 +8,7 @@
   "scripts": {
     "dev:clean": "taskkill /F /IM node.exe 2>nul & next dev",
     "dev": "next dev",
+    "prebuild": "node scripts/inject-build-sha.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
