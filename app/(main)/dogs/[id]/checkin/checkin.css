@@ -44,7 +44,8 @@
   font-family: var(--font-sans), 'Pretendard', sans-serif;
   font-weight: 800;
   font-size: 26px;
-  line-height: 1.18;
+  /* R26: 1.18 → 1.25 — heading 호흡 통일 */
+  line-height: 1.25;
   color: var(--ink);
   letter-spacing: -.025em;
   margin: 0 0 12px;
@@ -153,8 +154,9 @@
 .ck-existing strong { color: var(--ink); }
 .ck-edit-btn {
   appearance: none; border: 0; cursor: pointer;
-  background: var(--ink);
-  color: var(--bg);
+  /* R26: ink → terracotta — primary 액션 accent */
+  background: var(--terracotta);
+  color: #fff;
   padding: 7px 12px;
   border-radius: 99px;
   font-size: 11px;
@@ -175,7 +177,8 @@
 .ck-sect-lbl {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
   font-size: 10px;
-  letter-spacing: .22em;
+  /* R26: 0.22 → 0.16em (V3LetterSpacing.kicker) */
+  letter-spacing: 0.16em;
   font-weight: 700;
   color: var(--ink);
   text-transform: uppercase;
@@ -199,9 +202,10 @@
 .ck-stool {
   appearance: none;
   border: 0; cursor: pointer;
-  background: #fff;
+  /* R26: #fff → var(--surface-card), 14 → 12 (V3Radius.md) */
+  background: var(--surface-card);
   box-shadow: inset 0 0 0 1px var(--rule);
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 12px 12px 11px;
   text-align: left;
   display: flex;
@@ -213,10 +217,11 @@
 }
 .ck-stool:hover { box-shadow: inset 0 0 0 1px var(--rule-2); }
 .ck-stool.on {
-  background: var(--ink);
-  color: var(--bg);
-  box-shadow: inset 0 0 0 1px var(--ink),
-              0 6px 20px -8px rgba(46, 31, 20, 0.45);
+  /* R26: ink → terracotta accent (카트 grammar 호응) */
+  background: var(--terracotta);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px var(--terracotta),
+              0 6px 20px -8px rgba(220, 83, 42, 0.45);
   transform: translateY(-1px);
 }
 .ck-stool-num {
@@ -240,7 +245,7 @@
 .ck-stool.good .ck-stool-hint { color: #566729; }
 .ck-stool.warn .ck-stool-hint { color: #7A5B1B; }
 .ck-stool.bad .ck-stool-hint { color: var(--terracotta); }
-.ck-stool.on .ck-stool-hint { color: var(--bg); opacity: 0.7; }
+.ck-stool.on .ck-stool-hint { color: #fff; opacity: 0.85; }
 
 /* 5-scale */
 .ck-five {
@@ -250,7 +255,8 @@
 }
 .ck-five-btn {
   appearance: none; border: 0; cursor: pointer;
-  background: #fff;
+  /* R26: #fff → var(--surface-card) */
+  background: var(--surface-card);
   box-shadow: inset 0 0 0 1px var(--rule);
   border-radius: 12px;
   padding: 11px 4px;
@@ -264,9 +270,10 @@
 }
 .ck-five-btn:hover { box-shadow: inset 0 0 0 1px var(--rule-2); }
 .ck-five-btn.on {
-  background: var(--ink);
-  color: var(--bg);
-  box-shadow: inset 0 0 0 1px var(--ink);
+  /* R26: ink → terracotta accent */
+  background: var(--terracotta);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px var(--terracotta), 0 6px 20px -8px rgba(220, 83, 42, 0.4);
 }
 .ck-five-btn .num {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
@@ -299,7 +306,8 @@
 /* Textarea */
 .ck-textarea {
   width: 100%;
-  background: #fff;
+  /* R26: #fff → var(--surface-card) */
+  background: var(--surface-card);
   border: 0;
   box-shadow: inset 0 0 0 1px var(--rule);
   border-radius: 12px;
@@ -362,10 +370,10 @@
 }
 .ck-submit {
   appearance: none;
-  border: 0;
   cursor: pointer;
-  background: var(--ink);
-  color: var(--bg);
+  /* R26: ink → terracotta — 카트 sticky CTA grammar 통일 */
+  background: var(--terracotta);
+  color: #fff;
   font-size: 14px;
   font-weight: 800;
   padding: 14px 22px;
@@ -376,7 +384,11 @@
   gap: 8px;
   width: 100%;
   font-family: inherit;
-  box-shadow: 0 8px 22px -8px rgba(46, 31, 20, 0.45);
+  border: 1px solid rgba(178, 58, 26, 0.6);
+  box-shadow:
+    0 8px 22px -6px rgba(220, 83, 42, 0.48),
+    0 2px 8px rgba(220, 83, 42, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
   transition: transform 120ms;
 }
 .ck-submit:active { transform: scale(0.98); }
