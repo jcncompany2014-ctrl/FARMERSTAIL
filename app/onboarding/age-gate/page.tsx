@@ -114,12 +114,13 @@ function AgeGateInner() {
       <div className="max-w-sm w-full">
         <span className="kicker">Age Verification14세 확인</span>
         <h1
-          className="font-serif mt-2 text-[24px]"
+          // R28: font-serif → font-sans (v3 app 톤 — onboarding 흐름은 app 컨텍스트)
+          className="font-sans mt-2 text-[24px]"
           style={{
             color: 'var(--ink)',
             fontWeight: 800,
-            letterSpacing: '-0.02em',
-            lineHeight: 1.15,
+            letterSpacing: '-0.025em',
+            lineHeight: 1.25,
           }}
         >
           출생 연도를 알려주세요
@@ -185,8 +186,15 @@ function AgeGateInner() {
           disabled={saving || !year || (!isUnder14 && !isValid)}
           className="mt-5 w-full py-3.5 rounded-full text-[13px] font-bold disabled:opacity-50 transition active:scale-[0.98]"
           style={{
-            background: isUnder14 ? 'var(--sale)' : 'var(--ink)',
-            color: 'var(--bg)',
+            // R28: ink → terracotta primary CTA + 카트 grammar 그림자.
+            // under-14 거부 케이스는 sale 색 유지 (위험/거부 시그널).
+            background: isUnder14 ? 'var(--sale)' : 'var(--terracotta)',
+            color: '#fff',
+            border: '1px solid',
+            borderColor: isUnder14 ? 'transparent' : 'rgba(178, 58, 26, 0.6)',
+            boxShadow: isUnder14
+              ? 'none'
+              : '0 6px 20px -8px rgba(220, 83, 42, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
             letterSpacing: '-0.01em',
           }}
         >
