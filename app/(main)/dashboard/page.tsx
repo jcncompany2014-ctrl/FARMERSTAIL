@@ -35,7 +35,9 @@ import {
   isoDaysAgo,
   personaCardSpec,
 } from '@/lib/persona'
-import type { AccuracyVar } from '@/components/dashboard/AccuracyBreakdown'
+import AccuracyBreakdown, {
+  type AccuracyVar,
+} from '@/components/dashboard/AccuracyBreakdown'
 import {
   feedReliability,
   activityReliability,
@@ -46,6 +48,7 @@ import {
   getAvgDailyFeedG,
   formatAutoIntakeLabel,
 } from '@/lib/feeding/auto-intake'
+import type { Json } from '@/lib/supabase/types'
 
 /**
  * Dashboard — 로그인 후 홈 화면.
@@ -189,7 +192,7 @@ export default async function DashboardPage() {
     supabase
       .from('dogs')
       .select(
-        'id, photo_url, allergies_source, weight_method, activity_method, feed_method, weight_measured_at, accuracy_user_boost',
+        'id, photo_url, allergies_source, weight_method, activity_method, feed_method, weight_measured_at, accuracy_user_boost, user_method_lock',
       )
       .eq('user_id', user.id),
     // chatbot 사용자 발화 수 — 챗봇 의존 신호
@@ -392,6 +395,7 @@ export default async function DashboardPage() {
     feed_method: string | null
     weight_measured_at: string | null
     accuracy_user_boost: number | null
+    user_method_lock: Json | null
   }
   const dogMetaList = (dogMetaData ?? []) as DogMetaRow[]
   const firstDogMeta = firstDog
@@ -845,14 +849,24 @@ export default async function DashboardPage() {
         ctaLabel="이야기 읽기"
       />
 
-      {/* events / accuracy / persona / milestone — 후속 라운드에서 v3
-          surface 로 재도입 예정. lint 침묵 위해 noop reference. */}
+      {/* R32 #20 — 맞춤도 자세히 + 변수별 측정도구 lock 토글. 1주차 grace
+          period (silent) 에는 숨김, 그 이후 자율 펼침. voice-guidelines §9. */}
+      {firstDog && firstDogMeta && accuracyVars.length > 0 && (
+        <AccuracyBreakdown
+          variables={accuracyVars}
+          dogId={firstDog.id}
+          userBoost={userBoost}
+          userMethodLock={firstDogMeta.user_method_lock ?? null}
+        />
+      )}
+
+      {/* events / persona / milestone — 후속 라운드에서 v3 surface 로
+          재도입 예정. lint 침묵 위해 noop reference. */}
       <span style={{ display: 'none' }} aria-hidden>
         {String(events.length)}
         {milestone ? '·' : ''}
         {personaSpec ? '·' : ''}
         {accuracyScore ?? ''}
-        {String(accuracyVars.length)}
         {pastSnapshotData ? '·' : ''}
         {hasAnyAnalysis ? '1' : '0'}
       </span>

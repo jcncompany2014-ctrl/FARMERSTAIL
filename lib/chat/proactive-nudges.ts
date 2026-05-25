@@ -45,6 +45,12 @@ export type NudgeContext = {
     | null
   /** 가입일로부터 며칠 — 첫 4주 보호 phase 판단용. null=알 수 없음. */
   daysSinceSignup: number | null
+  /** R32 #20 — dogs.user_method_lock. 변수별 권유 차단. voice-guidelines §9. */
+  methodLock?: {
+    weight?: boolean
+    activity?: boolean
+    feed?: boolean
+  }
 }
 
 const GRACE_PERIOD_DAYS = 28
@@ -70,11 +76,13 @@ export function computeChatNudge(ctx: NudgeContext): ChatNudge | null {
       promptSuggestion: `${name}의 체중을 늘리는 식단 추천해주세요`,
     }
   }
-  // 14일+ 체중 미기록
+  // 14일+ 체중 미기록 — R32 #20: weight 측정도구 lock 이면 권유 skip
+  // (voice-guidelines §9 견주 자율성). 잠긴 사용자는 stale_weight 무시.
   if (
     ctx.daysSinceLastWeight != null &&
     ctx.daysSinceLastWeight >= 14 &&
-    !inGrace
+    !inGrace &&
+    !ctx.methodLock?.weight
   ) {
     return {
       reason: 'stale_weight',

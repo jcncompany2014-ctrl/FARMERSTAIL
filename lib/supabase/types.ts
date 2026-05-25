@@ -1252,6 +1252,7 @@ export type Database = {
           treat_types: string[] | null
           updated_at: string | null
           user_id: string
+          user_method_lock: Json
           walk_intensity: string | null
           weight: number | null
           weight_measured_at: string | null
@@ -1288,6 +1289,7 @@ export type Database = {
           treat_types?: string[] | null
           updated_at?: string | null
           user_id: string
+          user_method_lock?: Json
           walk_intensity?: string | null
           weight?: number | null
           weight_measured_at?: string | null
@@ -1324,6 +1326,7 @@ export type Database = {
           treat_types?: string[] | null
           updated_at?: string | null
           user_id?: string
+          user_method_lock?: Json
           walk_intensity?: string | null
           weight?: number | null
           weight_measured_at?: string | null

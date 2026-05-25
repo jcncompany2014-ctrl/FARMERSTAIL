@@ -11,9 +11,17 @@ import {
   AlertCircle,
   Sparkles,
   Loader2,
+  Lock,
+  LockOpen,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import {
+  isLocked,
+  withLockToggled,
+  type LockableMethodKey,
+} from '@/lib/personalization/method-lock'
+import type { Json } from '@/lib/supabase/types'
 
 /**
  * AccuracyBreakdown — 변수별 신뢰도 progress bar.
@@ -42,6 +50,7 @@ export default function AccuracyBreakdown({
   variables,
   dogId,
   userBoost,
+  userMethodLock,
   defaultOpen = false,
 }: {
   variables: AccuracyVar[]
@@ -49,6 +58,8 @@ export default function AccuracyBreakdown({
   dogId?: string | null
   /** 현재 dogs.accuracy_user_boost. 0 이면 토글 OFF, 0.15 면 ON. */
   userBoost?: number
+  /** R32 #20 — 현재 dogs.user_method_lock JSONB. 변수별 lock 토글에 사용. */
+  userMethodLock?: Json | null
   /** P14 — data_lover 페르소나용 자동 펼침 */
   defaultOpen?: boolean
 }) {
@@ -57,7 +68,33 @@ export default function AccuracyBreakdown({
   const supabase = createClient()
   const [open, setOpen] = useState(defaultOpen)
   const [busy, setBusy] = useState(false)
+  // R32 #20 — 각 변수의 lock 상태 업데이트 중인지 추적 (변수 키 단위)
+  const [lockBusy, setLockBusy] = useState<LockableMethodKey | null>(null)
   const boostOn = (userBoost ?? 0) > 0
+
+  // R32 #20 — 변수별 lock 토글. voice-guidelines §9 User Sovereignty.
+  // 잠그면 시스템이 더 이상 해당 변수의 측정 도구 권유를 안 보냄.
+  async function toggleLock(key: LockableMethodKey) {
+    if (!dogId || lockBusy) return
+    setLockBusy(key)
+    const currentlyLocked = isLocked(userMethodLock, key)
+    const next = withLockToggled(userMethodLock, key, !currentlyLocked)
+    const { error } = await supabase
+      .from('dogs')
+      .update({ user_method_lock: next as Json })
+      .eq('id', dogId)
+    setLockBusy(null)
+    if (error) {
+      toast.error('저장하지 못했어요')
+      return
+    }
+    toast.success(
+      currentlyLocked
+        ? '권유를 다시 받을게요'
+        : '이 측정 그대로 쓸게요. 권유 안 보낼게요',
+    )
+    router.refresh()
+  }
 
   async function toggleBoost() {
     if (!dogId || busy) return
@@ -113,7 +150,14 @@ export default function AccuracyBreakdown({
             className="px-5 pb-4 space-y-3"
           >
             {variables.map((v) => (
-              <Row key={v.key} variable={v} />
+              <Row
+                key={v.key}
+                variable={v}
+                locked={isLocked(userMethodLock, v.key)}
+                canLock={!!dogId}
+                lockBusy={lockBusy === v.key}
+                onToggleLock={() => toggleLock(v.key)}
+              />
             ))}
 
             {showWeakHighlight && weakest.hint && (
@@ -198,7 +242,23 @@ export default function AccuracyBreakdown({
   )
 }
 
-function Row({ variable }: { variable: AccuracyVar }) {
+function Row({
+  variable,
+  locked,
+  canLock,
+  lockBusy,
+  onToggleLock,
+}: {
+  variable: AccuracyVar
+  /** R32 #20 — 현재 잠금 상태 */
+  locked: boolean
+  /** dogId 있을 때만 토글 가능 */
+  canLock: boolean
+  /** 토글 진행 중 */
+  lockBusy: boolean
+  /** 클릭 시 부모가 supabase update */
+  onToggleLock: () => void
+}) {
   const pct = Math.round(variable.score * 100)
   const accent =
     variable.score >= 0.85
@@ -257,6 +317,41 @@ function Row({ variable }: { variable: AccuracyVar }) {
           />
         </div>
       </div>
+      {/* R32 #20 — 변수별 lock 토글. voice-guidelines §9. */}
+      {canLock && (
+        <button
+          type="button"
+          onClick={onToggleLock}
+          disabled={lockBusy}
+          aria-pressed={locked}
+          aria-label={
+            locked
+              ? `${variable.label} 권유 해제`
+              : `${variable.label} 이 측정 그대로 쓰기`
+          }
+          title={
+            locked
+              ? '권유를 다시 받을게요'
+              : '이 측정 그대로 — 권유 안 받을게요'
+          }
+          className="shrink-0 w-7 h-7 rounded-full inline-flex items-center justify-center transition disabled:opacity-50"
+          style={{
+            background: locked
+              ? 'color-mix(in srgb, var(--ink) 8%, white)'
+              : 'transparent',
+            border: `1px solid ${locked ? 'var(--ink)' : 'var(--rule)'}`,
+            color: locked ? 'var(--ink)' : 'var(--muted)',
+          }}
+        >
+          {lockBusy ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : locked ? (
+            <Lock className="w-3 h-3" strokeWidth={2.2} />
+          ) : (
+            <LockOpen className="w-3 h-3" strokeWidth={2.2} />
+          )}
+        </button>
+      )}
     </div>
   )
 }

@@ -4,6 +4,8 @@ import {
   computeChatNudge,
   type NudgeContext,
 } from '@/lib/chat/proactive-nudges'
+import { parseLock } from '@/lib/personalization/method-lock'
+import type { Json } from '@/lib/supabase/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -57,7 +59,7 @@ export async function GET(req: Request) {
     await Promise.all([
       supabase
         .from('dogs')
-        .select('name, allergies_source')
+        .select('name, allergies_source, user_method_lock')
         .eq('id', dogId)
         .eq('user_id', user.id)
         .maybeSingle(),
@@ -90,6 +92,12 @@ export async function GET(req: Request) {
       )
     : null
 
+  // R32 #20 — user_method_lock parse. weight/activity/feed 각 변수의
+  // 측정도구 권유 차단 여부. voice-guidelines §9.
+  const lock = parseLock(
+    (dog as { user_method_lock: Json | null }).user_method_lock ?? null,
+  )
+
   const ctx: NudgeContext = {
     dogName: (dog as { name: string | null }).name,
     latestBcs:
@@ -99,6 +107,7 @@ export async function GET(req: Request) {
       ((dog as { allergies_source: string | null }).allergies_source as
         | NudgeContext['allergiesSource']) ?? null,
     daysSinceSignup,
+    methodLock: lock,
   }
   return NextResponse.json({ nudge: computeChatNudge(ctx) })
 }
