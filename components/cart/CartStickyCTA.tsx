@@ -114,11 +114,13 @@ export default function CartStickyCTA({
       className="md:hidden fixed left-0 right-0 z-50"
       style={{
         bottom: 0,
-        paddingTop: 10,
-        paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
+        // R23: 결제바와 화면 바닥 사이 여유 — 사용자 보고: 너무 딱 붙음.
+        // paddingBottom safe-area + 12 → 24 (모바일 폰 하단 여백 자연스럽게)
+        paddingTop: 14,
+        paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)',
         background:
-          'linear-gradient(to top, #fbf3df 70%, rgba(251,243,223,0))',
-        transform: visible ? 'translateY(0)' : 'translateY(120%)',
+          'linear-gradient(to top, #fbf3df 78%, rgba(251,243,223,0))',
+        transform: visible ? 'translateY(0)' : 'translateY(130%)',
         transition: 'transform 260ms cubic-bezier(0.16, 1, 0.3, 1)',
         pointerEvents: visible ? 'auto' : 'none',
       }}
