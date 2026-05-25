@@ -339,7 +339,13 @@ export default async function CheckoutPage() {
 
   return (
     <AuthAwareShell>
-      <main className="pb-40 md:max-w-5xl md:mx-auto md:pt-4">
+      {/* R25: app 컨텍스트에서 form-tone="app" — globals.css 가 bg-white /
+          rounded-xl / font-serif 등 v2 grammar 를 v3 톤으로 자동 변환.
+          web 사용자는 attr 없어 기존 editorial 톤 그대로. */}
+      <main
+        className="pb-40 md:max-w-5xl md:mx-auto md:pt-4"
+        data-form-tone={isApp ? 'app' : undefined}
+      >
       <section className="px-5 pt-6 md:pt-8 pb-2 md:pb-4 md:px-6">
         <span className="kicker">Checkout/결제</span>
         <h1

@@ -734,6 +734,44 @@ body[data-ft-chrome-mode="app"] {
   bottom: calc(180px + env(safe-area-inset-bottom)) !important;
 }
 
+/* =============================================================================
+   R25 (2026-05-25): app 컨텍스트 v2 → v3 grammar 자동 변환.
+
+   사용자 요청: "결제창 등 v3 톤 미적용 페이지 전면 리디자인". checkout /
+   billing 등 web-shared 페이지의 Tailwind class (font-serif / rounded-xl /
+   rounded-2xl / rounded-3xl / font-['Archivo_Black']) 가 app 컨텍스트 안에선
+   자동으로 v3 톤으로 렌더되게 generic override.
+
+   web 사용자 (data-ft-chrome 없음) 는 무영향 — 기존 editorial 톤 유지.
+   ============================================================================= */
+
+[data-ft-chrome="app"] .font-serif {
+  font-family: var(--font-sans), 'Pretendard', sans-serif !important;
+}
+[data-ft-chrome="app"] .rounded-xl {
+  border-radius: var(--r-sm, 4px) !important;
+}
+[data-ft-chrome="app"] .rounded-2xl {
+  border-radius: 8px !important;
+}
+[data-ft-chrome="app"] .rounded-3xl {
+  border-radius: 12px !important;
+}
+/* Archivo Black 폰트 — app 에선 sans 900 으로 통일 (R14-3 cleanup 패턴 재도입) */
+[data-ft-chrome="app"] [class*="font-['Archivo_Black']"] {
+  font-family: var(--font-sans), 'Pretendard', sans-serif !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.015em !important;
+}
+/* 카드 흰 배경 — app 에선 paperHi 로 (단, button / input 같이 white 의도된
+   곳이 있어 carefully — Tailwind .bg-white 만 변환, inline style 은 보존). */
+[data-ft-chrome="app"] section.bg-white,
+[data-ft-chrome="app"] div.bg-white,
+[data-ft-chrome="app"] article.bg-white,
+[data-ft-chrome="app"] li.bg-white {
+  background-color: var(--paper-hi, #fbf6ec) !important;
+}
+
 /* 수동 오버라이드 — 위 media 규칙보다 뒤에 나와서 가중치 우위.
  *
  * 다크 팔레트 v2 — "blackout" 느낌 회피하기 위해 3-tier surface system

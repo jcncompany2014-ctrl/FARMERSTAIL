@@ -37,14 +37,19 @@ export default function Budget({
               onClick={() => setBudgetTier(selected ? null : opt.value)}
               className="s-card"
               style={{
-                background: selected ? 'var(--ink)' : 'var(--bg-2)',
-                color: selected ? 'var(--bg)' : 'var(--ink)',
+                // R26 v3 polish: selected fill ink → terracotta + radius 14 → 12
+                // (다른 모든 step 큰 카드 selected 와 grammar 통일).
+                background: selected ? 'var(--terracotta)' : 'var(--bg-2)',
+                color: selected ? '#fff' : 'var(--ink)',
                 border: '1px solid',
-                borderColor: selected ? 'var(--ink)' : 'var(--rule)',
-                borderRadius: 14,
+                borderColor: selected ? 'var(--terracotta)' : 'var(--rule)',
+                borderRadius: 12,
                 padding: '14px 16px',
                 textAlign: 'left',
                 cursor: 'pointer',
+                boxShadow: selected
+                  ? '0 6px 20px -8px rgba(220, 83, 42, 0.45)'
+                  : 'none',
                 transition: 'all 0.15s',
               }}
             >
@@ -55,15 +60,21 @@ export default function Budget({
                     height: 20,
                     borderRadius: '50%',
                     border: '1.5px solid',
-                    borderColor: selected ? 'var(--bg)' : 'var(--rule)',
-                    background: selected ? 'var(--bg)' : 'transparent',
+                    borderColor: selected ? '#fff' : 'var(--rule)',
+                    background: selected ? '#fff' : 'transparent',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}
                 >
-                  {selected && <Check className="w-3 h-3" style={{ color: 'var(--ink)' }} strokeWidth={3} />}
+                  {selected && (
+                    <Check
+                      className="w-3 h-3"
+                      style={{ color: 'var(--terracotta)' }}
+                      strokeWidth={3}
+                    />
+                  )}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em' }}>
