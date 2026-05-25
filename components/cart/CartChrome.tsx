@@ -203,11 +203,12 @@ export default function CartChrome({
               letterSpacing: '0.06em',
             }}
           >
+            {/* R24: 양 끝 label 박스 밖 노출 방지 — 좌끝 좌측 정렬,
+                우끝 우측 정렬, 가운데만 translateX(-50%) (commerce 표준). */}
             <span
               style={{
                 position: 'absolute',
                 left: '0%',
-                transform: 'translateX(-50%)',
                 whiteSpace: 'nowrap',
               }}
             >
@@ -227,7 +228,7 @@ export default function CartChrome({
               style={{
                 position: 'absolute',
                 left: '100%',
-                transform: 'translateX(-50%)',
+                transform: 'translateX(-100%)',
                 whiteSpace: 'nowrap',
                 color: 'var(--accent, #c44a26)',
                 fontWeight: 700,
