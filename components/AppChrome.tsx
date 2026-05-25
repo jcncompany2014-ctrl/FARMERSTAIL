@@ -12,8 +12,8 @@
  * gating remains the caller's responsibility; AppChrome itself assumes the
  * user is signed in and renders accordingly.
  */
-import { useEffect, useState } from 'react'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   Bell,
@@ -79,13 +79,33 @@ const TABS: Tab[] = [
  */
 const FOCUS_PATHS = ['/survey', '/checkin', '/approve']
 
+/**
+ * R36b — 'fromSurvey' query 검사 hook. useSearchParams() 는 Next 15+ 에서
+ * Suspense boundary 필수라 layout 에서 wrap 시 모든 prerender 페이지에
+ * 영향. useSyncExternalStore 로 SSR-safe (server snapshot = false) +
+ * hydration-safe (client snapshot = window.location 검사) 구현.
+ */
+function useFromSurveyQuery(): boolean {
+  return useSyncExternalStore(
+    // Subscribe — popstate 만 listening. router.push 시 발생하는 pathname
+    // 변경은 AppChrome 의 usePathname() 이 별도로 트리거 (re-render).
+    (cb) => {
+      window.addEventListener('popstate', cb)
+      return () => window.removeEventListener('popstate', cb)
+    },
+    // Client snapshot — 매 re-render 마다 query 재검사.
+    () => new URLSearchParams(window.location.search).get('fromSurvey') === '1',
+    // Server snapshot — prerender 시 false (hydration mismatch 회피).
+    () => false,
+  )
+}
+
 export default function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   // R36 — 분석 결과 페이지 (/analysis) 첫 진입 (= 설문 직후) 은 focusMode 로
   // 자연스러운 연속 흐름. 사용자가 추후 직접 진입 (query 없음) 시는 정상
   // 노출. SurveyClient 의 router.push 가 ?fromSurvey=1 부착.
-  const searchParams = useSearchParams()
-  const fromSurvey = searchParams.get('fromSurvey') === '1'
+  const fromSurvey = useFromSurveyQuery()
   const supabase = createClient()
   const focusMode =
     FOCUS_PATHS.some((p) => pathname.includes(p)) ||
