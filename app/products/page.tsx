@@ -280,13 +280,20 @@ export default async function ProductsPage({
           데스크톱은 아래 기존 toolbar 그대로.
           CatalogChrome 사이에 CatalogHero (이벤트 슬라이더) 삽입 — 1) Greeting +
           Search + Categories, 2) Hero events carousel, 3) ALL · 모든 메뉴 헤더. */}
-      <CatalogChrome
-        dogName={firstDogName}
-        totalCount={total}
-        variant={isApp ? 'app' : 'web'}
-      />
-      {heroEvents.length > 0 && (
-        <CatalogHero events={heroEvents} variant={isApp ? 'app' : 'web'} />
+      {/* R21 (2026-05-25): app 컨텍스트에서만 mobile handoff 노출.
+          web 사용자는 모바일이든 데스크톱이든 editorial toolbar (아래 hidden md:block)
+          만 보게 — 사용자 요청: "원래대로 되돌려놨으니 web 에 앱화면 나오게 X". */}
+      {isApp && (
+        <>
+          <CatalogChrome
+            dogName={firstDogName}
+            totalCount={total}
+            variant="app"
+          />
+          {heroEvents.length > 0 && (
+            <CatalogHero events={heroEvents} variant="app" />
+          )}
+        </>
       )}
 
       {/* ── Top toolbar: breadcrumb + h1 + count + sort ─────
@@ -381,8 +388,8 @@ export default async function ProductsPage({
                 })}
               </div>
 
-              {/* Subscribe sage band — 모바일 그리드 다음. */}
-              <CatalogSubscribeBand variant={isApp ? 'app' : 'web'} />
+              {/* Subscribe sage band — 모바일 그리드 다음. app 만. */}
+              {isApp && <CatalogSubscribeBand variant="app" />}
 
               {/* Pagination */}
               {totalPages > 1 && (

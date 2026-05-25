@@ -265,15 +265,19 @@ export default async function CartPage() {
           </section>
         ) : (
           <>
-            {/* ============= 모바일 핸드오프 (md:hidden, 본 컴포넌트들이 처리) ============= */}
-            <CartChrome
-              count={validRows.length}
-              subtotal={subtotal}
-              freeThreshold={FREE_SHIPPING_THRESHOLD}
-              remainingToFree={shippingBreakdown.remainingToFree}
-              addressLine={addressLine}
-              arrivalLabel={arrivalLabel}
-            />
+            {/* R21 (2026-05-25): app 컨텍스트에서만 mobile handoff 렌더.
+                web 사용자는 데스크톱 헤더 + CartList + sticky sidebar 만 봄
+                (사용자 요청: web 시각에 app 화면 노출 X). */}
+            {isApp && (
+              <CartChrome
+                count={validRows.length}
+                subtotal={subtotal}
+                freeThreshold={FREE_SHIPPING_THRESHOLD}
+                remainingToFree={shippingBreakdown.remainingToFree}
+                addressLine={addressLine}
+                arrivalLabel={arrivalLabel}
+              />
+            )}
 
             {/* 배송 마감 카운트다운 배너 — 웹 마케팅 톤. 앱 컨텍스트 생략. (데스크톱만) */}
             {!isApp && (
@@ -376,19 +380,21 @@ export default async function CartPage() {
               </aside>
             </div>
 
-            {/* ============= 모바일 핸드오프 — items 아래 sections ============= */}
-            <CartUpsell variant={isApp ? 'app' : 'web'} />
-            <CartAddMore products={addMoreProducts} />
-            <CartReceipt
-              subtotal={subtotal}
-              shipping={shipping}
-              pointsEarned={pointsEarned}
-              remainingToFree={shippingBreakdown.remainingToFree}
-              variant={isApp ? 'app' : 'web'}
-            />
-
-            {/* 모바일 sticky CTA — 하단 고정 dual-pane pill (handoff) */}
-            <CartStickyCTA count={validRows.length} total={total} />
+            {/* R21: items 아래 mobile handoff — app 일 때만 */}
+            {isApp && (
+              <>
+                <CartUpsell variant="app" />
+                <CartAddMore products={addMoreProducts} />
+                <CartReceipt
+                  subtotal={subtotal}
+                  shipping={shipping}
+                  pointsEarned={pointsEarned}
+                  remainingToFree={shippingBreakdown.remainingToFree}
+                  variant="app"
+                />
+                <CartStickyCTA count={validRows.length} total={total} />
+              </>
+            )}
           </>
         )}
       </main>
