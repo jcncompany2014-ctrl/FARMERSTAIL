@@ -13,7 +13,7 @@
  * user is signed in and renders accordingly.
  */
 import { useEffect, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Bell,
@@ -81,8 +81,15 @@ const FOCUS_PATHS = ['/survey', '/checkin', '/approve']
 
 export default function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  // R36 — 분석 결과 페이지 (/analysis) 첫 진입 (= 설문 직후) 은 focusMode 로
+  // 자연스러운 연속 흐름. 사용자가 추후 직접 진입 (query 없음) 시는 정상
+  // 노출. SurveyClient 의 router.push 가 ?fromSurvey=1 부착.
+  const searchParams = useSearchParams()
+  const fromSurvey = searchParams.get('fromSurvey') === '1'
   const supabase = createClient()
-  const focusMode = FOCUS_PATHS.some((p) => pathname.includes(p))
+  const focusMode =
+    FOCUS_PATHS.some((p) => pathname.includes(p)) ||
+    (pathname.includes('/analysis') && fromSurvey)
 
   const [cartCount, setCartCount] = useState(0)
   const [scrolled, setScrolled] = useState(false)

@@ -530,7 +530,18 @@ input.s-inp[type="number"] {
 }
 
 /* Loading state */
-.s-loading-page { text-align: center; padding: 60px 26px; }
+/* R36 — 분석 진행 화면을 viewport 정중앙. 이전엔 padding-top 60px 만 있어
+   상단으로 치우침. AppChrome 의 focusMode 가 header/nav hide 라 화면 거의
+   전체 사용 가능 — flex column center 로 orb + h2 + stages 한 덩어리 가운데. */
+.s-loading-page {
+  text-align: center;
+  padding: 26px 26px;
+  min-height: calc(100svh - 80px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
 .s-loading-page .s-orb {
   width: 88px; height: 88px; border-radius: 50%;
   /* R26: #fff → var(--surface-card) */

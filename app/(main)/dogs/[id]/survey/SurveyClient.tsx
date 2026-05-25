@@ -668,7 +668,10 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     }
 
     trackSurveyCompleted(dogId)
-    router.push(`/dogs/${dogId}/analysis`)
+    // R36 — 설문→로딩→결과 흐름은 상단 메뉴 hide. ?fromSurvey=1 query 가
+    // AppChrome 의 focusMode 분기에 사용됨. 사용자가 추후 직접 진입
+    // (예: 이전 결과 다시 보기) 시는 query 없으니 정상 노출.
+    router.push(`/dogs/${dogId}/analysis?fromSurvey=1`)
     router.refresh()
   }
 
