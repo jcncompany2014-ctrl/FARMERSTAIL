@@ -137,6 +137,20 @@
 .s-sect { margin-top: 14px; }
 .s-sect:first-of-type { margin-top: 6px; }
 
+/* R34c — section group divider. Diet step 처럼 sub-sections 가 많은 곳에서
+   큰 logical 그룹 사이에 시각적 호흡. 양쪽 fade 그라데이션으로 자연스러움. */
+.s-sect-divider {
+  height: 1px;
+  margin: 24px 0 18px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--rule-2) 20%,
+    var(--rule-2) 80%,
+    transparent 100%
+  );
+}
+
 /* Pickcard 3-grid (BCS) */
 .s-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .s-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }

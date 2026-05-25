@@ -166,6 +166,9 @@ export default function Diet({
         </div>
       </div>
 
+      {/* R34c — 첫 그룹 (식사·기호 1~4) 와 활동 그룹 (5~6) 사이 시각 분리. */}
+      <div className="s-sect-divider" aria-hidden />
+
       <div className="s-sect">
         <div className="s-sect-lbl">
           <span className="s-label-text">하루 산책 시간</span>
@@ -213,6 +216,9 @@ export default function Diet({
           })}
         </div>
       </div>
+
+      {/* R34c — 활동 그룹 (5~6) 와 경험·평가 그룹 (7~8) 사이 시각 분리. */}
+      <div className="s-sect-divider" aria-hidden />
 
       <div className="s-sect">
         <div className="s-sect-lbl"><span className="s-label-text">화식 경험</span></div>
