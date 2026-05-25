@@ -198,7 +198,8 @@ function HeroSlide({
         background: p.bg,
         color: p.accent,
         borderRadius: cardRadius,
-        padding: '22px 22px 20px',
+        // R22: 위아래 여백 ↑ (사용자 보고: 텍스트 따닥따닥)
+        padding: '26px 24px 24px',
       }}
     >
       {/* 장식 원 */}
@@ -227,59 +228,65 @@ function HeroSlide({
           background: 'rgba(0,0,0,0.07)',
         }}
       />
-      {/* 우상단 Gift 일러스트 */}
+      {/* 우상단 Gift 일러스트 — 더 흐릿하게 (사용자: 가시성 ↓ → 텍스트 우선) */}
       <span
         className="absolute pointer-events-none"
-        style={{ top: 26, right: 30, color: p.giftTint }}
+        style={{ top: 22, right: 22, color: p.giftTint, opacity: 0.7 }}
       >
-        <Gift size={64} strokeWidth={1.8} />
+        <Gift size={56} strokeWidth={1.6} />
       </span>
 
       <div className="relative">
         <span
           className="inline-flex items-center font-bold"
           style={{
-            padding: '4px 10px',
+            padding: '5px 11px',
             background: p.perkBg,
             borderRadius: kickerRadius,
-            fontSize: 10,
-            letterSpacing: 1.5,
+            fontSize: 10.5,
+            letterSpacing: 1.6,
             color: p.accent,
+            lineHeight: 1,
           }}
         >
           {event.kicker}
         </span>
         <h2
-          className="font-['Archivo_Black'] mt-3"
+          className="font-['Archivo_Black']"
           style={{
+            // R22: tagline 여백 + 줄간 정리 (이전: 따닥따닥)
+            marginTop: 14,
             fontSize: 22,
-            lineHeight: 1.05,
+            lineHeight: 1.25,
             letterSpacing: '-0.02em',
             color: p.accent,
+            wordBreak: 'keep-all',
           }}
         >
           {event.tagline}
         </h2>
         <p
-          className="mt-2.5"
           style={{
-            fontSize: 12,
-            lineHeight: 1.4,
+            marginTop: 12,
+            fontSize: 12.5,
+            lineHeight: 1.55,
             color: p.accent,
-            opacity: 0.88,
+            opacity: 0.86,
+            wordBreak: 'keep-all',
           }}
         >
           {event.highlight}
         </p>
-        <div className="flex items-center gap-2.5 mt-4">
+        <div className="flex items-center gap-2.5" style={{ marginTop: 18 }}>
           <span
             className="inline-flex items-center gap-1.5 font-bold"
             style={{
-              padding: '10px 18px',
+              padding: '11px 20px',
               background: '#fff',
               color: p.ctaFg,
               borderRadius: ctaRadius,
               fontSize: 13,
+              lineHeight: 1,
             }}
           >
             지금 시작

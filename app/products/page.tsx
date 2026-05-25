@@ -115,23 +115,20 @@ export default async function ProductsPage({
   // ── Supabase 쿼리 ───────────────────────────────────────
   const supabase = await createClient()
 
-  // 첫 강아지 이름 — CatalogChrome greeting "안녕 [이름]" 용.
-  // 로그인 안 했거나 강아지 없으면 '보호자' 기본.
-  let firstDogName = '보호자'
+  // 보호자 이름 — CatalogChrome greeting "Hello, [이름]님" 용.
+  // 로그인 안 했거나 profile 없으면 '보호자' 기본.
+  let firstUserName = '보호자'
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser()
     if (user) {
-      const { data: firstDog } = await supabase
-        .from('dogs')
+      const { data: profile } = await supabase
+        .from('profiles')
         .select('name')
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: true })
-        .limit(1)
+        .eq('id', user.id)
         .maybeSingle()
-      if (firstDog?.name) firstDogName = firstDog.name
+      if (profile?.name) firstUserName = profile.name as string
     }
   } catch {
     /* silent — greeting 기본값 사용 */
@@ -286,7 +283,7 @@ export default async function ProductsPage({
       {isApp && (
         <>
           <CatalogChrome
-            dogName={firstDogName}
+            userName={firstUserName}
             totalCount={total}
             variant="app"
           />

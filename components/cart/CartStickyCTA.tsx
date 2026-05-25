@@ -8,13 +8,13 @@
  *   우측  : "결제하기 →" (font-bold, arrow)
  *   사이  : vertical hairline divider
  *
- * # 스크롤 reveal
- *  - 초기 상태 = BottomNav 보임, CTA 숨김.
- *  - 스크롤 down → CTA가 BottomNav 자리로 슬라이드 인 (body.cart-cta-active
- *    클래스 → globals.css 가 BottomNav 를 translateY(100%) 로 밀어냄).
- *  - 스크롤 up → CTA 사라지고 BottomNav 복귀.
- *  - 페이지 상단 40px 이내는 무조건 nav 모드 (CTA 안 띄움).
- *  - 8px 임계 hysteresis 로 jitter 방지.
+ * # 스크롤 reveal (R22 — 사용자 요청: CTA 쪽으로 유리하게)
+ *  - 초기 상태 = CTA 보임 (즉시 결제 가능 — 모바일 commerce UX 표준).
+ *  - 스크롤 up (위로 올림, 메뉴 보고 싶을 때) → nav 복귀.
+ *  - 스크롤 down (아래 — 더 보거나 결제 직전) → CTA 유지.
+ *  - 페이지 바닥에서 살짝 위로 끌어올려도 CTA 유지 (사용자 보고: 끝까지
+ *    내리면 갑자기 사라지는 버그 — bounce / overscroll 무시).
+ *  - 14px 임계 hysteresis — up 으로 명확히 끌어올릴 때만 nav.
  */
 
 import { useEffect, useState } from 'react'
@@ -30,7 +30,8 @@ export default function CartStickyCTA({
   count: number
   total: number
 }) {
-  const [mode, setMode] = useState<Mode>('nav')
+  // R22: default 'cta' — 모바일 commerce 표준 (즉시 결제 가능).
+  const [mode, setMode] = useState<Mode>('cta')
 
   useEffect(() => {
     let lastY = window.scrollY
@@ -43,6 +44,21 @@ export default function CartStickyCTA({
       requestAnimationFrame(() => {
         const y = window.scrollY
         const delta = y - lastY
+        // 페이지 바닥 근접 (overscroll bounce 영역). CTA 유지 — 사용자 보고:
+        // 끝까지 내릴 때 갑자기 사라지던 버그 차단.
+        const docHeight = document.documentElement.scrollHeight
+        const winHeight = window.innerHeight
+        const nearBottom = y + winHeight >= docHeight - 80
+
+        if (nearBottom) {
+          if (lastDir !== 'down') {
+            setMode('cta')
+            lastDir = 'down'
+          }
+          lastY = y
+          pending = false
+          return
+        }
 
         // 상단 근접 — 항상 nav 모드.
         if (y < 40) {
@@ -55,12 +71,21 @@ export default function CartStickyCTA({
           return
         }
 
-        // 방향 전환은 8px 누적 후에만 확정 (jitter 방지).
-        if (Math.abs(delta) > 8) {
-          const dir: 'up' | 'down' = delta > 0 ? 'down' : 'up'
-          if (dir !== lastDir) {
-            setMode(dir === 'down' ? 'cta' : 'nav')
-            lastDir = dir
+        // 방향 전환 — up 으로 명확히 끌어올릴 때만 nav, 그 외엔 CTA 유지
+        // (사용자 요청: CTA 쪽으로 유리). hysteresis 14px — down 은 4px 만으로
+        // CTA 진입, up 은 14px 확실히 올린 후만 nav.
+        if (delta > 4) {
+          // 아래로 — CTA
+          if (lastDir !== 'down') {
+            setMode('cta')
+            lastDir = 'down'
+          }
+          lastY = y
+        } else if (delta < -14) {
+          // 위로 (충분히 올림) — nav
+          if (lastDir !== 'up') {
+            setMode('nav')
+            lastDir = 'up'
           }
           lastY = y
         }
@@ -104,11 +129,14 @@ export default function CartStickyCTA({
           href="/checkout"
           className="flex items-center transition active:scale-[0.99]"
           style={{
-            height: 54,
-            borderRadius: 27,
+            height: 58,
+            borderRadius: 29,
             background: '#dc532a',
             color: '#fff',
-            boxShadow: '0 12px 26px rgba(220,83,42,0.4)',
+            // R22: 시인성 강화 — shadow 더 진하게 + accent 발광.
+            boxShadow:
+              '0 16px 36px rgba(220,83,42,0.48), 0 4px 12px rgba(220,83,42,0.28), inset 0 1px 0 rgba(255,255,255,0.22)',
+            border: '1px solid rgba(178, 58, 26, 0.6)',
           }}
         >
           {/* 좌측 — 금액. 폭 fit-content, padding 14/12 */}

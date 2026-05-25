@@ -67,13 +67,25 @@ const CATEGORIES: Category[] = [
   },
 ]
 
+/**
+ * 한국어 이름 끝 "님" 자동 부착. 이미 "님" 으로 끝나면 그대로.
+ * 영문 이름은 그대로 (Greeting kicker 톤).
+ */
+function withHonorific(name: string): string {
+  const t = name.trim()
+  if (!t) return ''
+  if (t.endsWith('님')) return t
+  if (/^[A-Za-z][A-Za-z\s'-]*$/.test(t)) return t
+  return `${t}님`
+}
+
 export default function CatalogChrome({
-  dogName,
+  userName,
   totalCount,
   variant = 'web',
 }: {
-  /** 첫 강아지 이름 (없으면 '보호자') */
-  dogName: string
+  /** 보호자 이름. */
+  userName: string
   /** 전체 상품 수 (검색바 placeholder 보조) */
   totalCount: number
   /** 'web' (기본) 또는 'app' — v3 톤 분기 (R14 cleanup) */
@@ -93,24 +105,24 @@ export default function CatalogChrome({
             marginBottom: 6,
           }}
         >
-          HELLO · 안녕 {dogName}
+          Hello, {withHonorific(userName)}
         </div>
         <h1
           className={isApp ? undefined : "font-['Archivo_Black']"}
           style={{
-            fontSize: 26,
+            fontSize: 22,
             color: '#1a140c',
-            lineHeight: 1.0,
-            letterSpacing: '-0.025em',
+            lineHeight: 1.25,
+            letterSpacing: '-0.02em',
             fontFamily: isApp
               ? "var(--font-sans), 'Pretendard', sans-serif"
               : undefined,
             fontWeight: isApp ? 900 : undefined,
           }}
         >
-          오늘은
+          오늘은 우리 아이에게
           <br />
-          뭐 먹을까?
+          무엇을 먹여볼까요?
         </h1>
       </section>
 

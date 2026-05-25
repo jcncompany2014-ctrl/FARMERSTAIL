@@ -189,10 +189,13 @@ export default function CartChrome({
             />
           </div>
 
-          {/* tick labels */}
+          {/* tick labels — R22: absolute 로 tick (0% / 50% / 100%) 가운데
+              translateX(-50%) 정렬. flex justify-between 으로는 텍스트 폭
+              차이 때문에 tick line 가운데에 안 옴. */}
           <div
-            className="flex justify-between tabular-nums"
+            className="relative tabular-nums"
             style={{
+              height: 12,
               fontFamily:
                 "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
               fontSize: 9,
@@ -200,10 +203,35 @@ export default function CartChrome({
               letterSpacing: '0.06em',
             }}
           >
-            <span>0</span>
-            <span>{Math.round(freeThreshold / 2).toLocaleString()}</span>
             <span
-              style={{ color: 'var(--accent, #c44a26)', fontWeight: 700 }}
+              style={{
+                position: 'absolute',
+                left: '0%',
+                transform: 'translateX(-50%)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              0
+            </span>
+            <span
+              style={{
+                position: 'absolute',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {Math.round(freeThreshold / 2).toLocaleString()}
+            </span>
+            <span
+              style={{
+                position: 'absolute',
+                left: '100%',
+                transform: 'translateX(-50%)',
+                whiteSpace: 'nowrap',
+                color: 'var(--accent, #c44a26)',
+                fontWeight: 700,
+              }}
             >
               {freeThreshold.toLocaleString()}원
             </span>
@@ -236,7 +264,7 @@ export default function CartChrome({
             <MapPin size={18} color="var(--paper-hi, #fbf6ec)" strokeWidth={1.8} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5" style={{ paddingBottom: 2 }}>
               <span
                 className="font-bold"
                 style={{ fontSize: 10, color: '#7a6d5b', letterSpacing: 1 }}
@@ -252,25 +280,27 @@ export default function CartChrome({
                   borderRadius: 8,
                   fontSize: 9.5,
                   letterSpacing: 0.3,
+                  lineHeight: 1,
                 }}
               >
                 기본
               </span>
             </div>
             <div
-              className="font-['Archivo_Black'] mt-0.5 truncate"
+              className="font-['Archivo_Black'] truncate"
               style={{
+                marginTop: 6,
                 fontSize: 13,
                 color: '#1a140c',
                 letterSpacing: '-0.01em',
-                lineHeight: 1.25,
+                lineHeight: 1.35,
               }}
             >
               {addressLine ?? '배송지를 등록해 주세요'}
             </div>
             <div
-              className="flex items-center gap-1.5 mt-1"
-              style={{ fontSize: 10, color: '#dc532a', fontWeight: 700 }}
+              className="flex items-center gap-1.5"
+              style={{ marginTop: 4, fontSize: 10, color: '#dc532a', fontWeight: 700 }}
             >
               <span
                 style={{
