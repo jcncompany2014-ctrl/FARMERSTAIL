@@ -5,6 +5,7 @@ import { Camera, Dog as DogIcon, X, Lightbulb, HelpCircle } from 'lucide-react'
 import { MAX_PHOTO_BYTES, type PhotoState } from '@/lib/dogPhotos'
 import PhotoFrameGuide from './PhotoFrameGuide'
 import { isAdvancedUiEnabled } from '@/lib/ui-flags'
+import { Modal, Cropper } from '@/components/v3'
 
 const ACCEPTED = 'image/jpeg,image/png,image/webp,image/gif'
 
@@ -15,12 +16,18 @@ type Props = {
   onChange: (state: PhotoState) => void
   /** Size in pixels (square). Default 96. */
   size?: number
+  /**
+   * R15-C29: 사용자가 파일 선택 후 Cropper modal 띄워 정사각 crop.
+   * default false (기존 동작). NewDogClient / EditDogClient 에서 true 권장.
+   */
+  enableCrop?: boolean
 }
 
 export default function DogPhotoPicker({
   currentUrl,
   onChange,
   size = 96,
+  enableCrop = false,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [state, setState] = useState<PhotoState>({ action: 'keep' })
@@ -28,6 +35,9 @@ export default function DogPhotoPicker({
   // 촬영 가이드 모달 — 신분증 촬영처럼 frame 안내. 발명 모듈 B 보조.
   // 가이드 모달 닫힐 때 또는 "이대로 사진 선택" 시 file input 트리거.
   const [guideOpen, setGuideOpen] = useState(false)
+  // R15-C29: enableCrop 일 때 file pick → cropper 띄움.
+  const [pendingFileUrl, setPendingFileUrl] = useState<string | null>(null)
+  const [pendingFileName, setPendingFileName] = useState<string>('photo.jpg')
   // 초기 단계 — 촬영 팁 / 신용카드 안내 hide. default OFF.
   const showPhotoTips = isAdvancedUiEnabled('photo_tips')
 
@@ -65,8 +75,31 @@ export default function DogPhotoPicker({
       return
     }
 
+    if (enableCrop) {
+      // Cropper modal 띄움 — crop 완료 후 update().
+      const url = URL.createObjectURL(file)
+      setPendingFileName(file.name || 'photo.jpg')
+      setPendingFileUrl(url)
+      return
+    }
+
     const previewUrl = URL.createObjectURL(file)
     update({ action: 'replace', file, previewUrl })
+  }
+
+  function handleCropDone(blob: Blob) {
+    const cropped = new File([blob], pendingFileName.replace(/\.[^.]+$/, '.jpg'), {
+      type: 'image/jpeg',
+    })
+    const previewUrl = URL.createObjectURL(blob)
+    update({ action: 'replace', file: cropped, previewUrl })
+    if (pendingFileUrl) URL.revokeObjectURL(pendingFileUrl)
+    setPendingFileUrl(null)
+  }
+
+  function handleCropCancel() {
+    if (pendingFileUrl) URL.revokeObjectURL(pendingFileUrl)
+    setPendingFileUrl(null)
   }
 
   function handleRemove() {
@@ -225,6 +258,29 @@ export default function DogPhotoPicker({
         onClose={() => setGuideOpen(false)}
         onTakePhoto={() => inputRef.current?.click()}
       />
+
+      {/* R15-C29: Cropper modal — enableCrop 일 때 file pick 직후 노출. */}
+      {enableCrop && (
+        <Modal
+          open={pendingFileUrl !== null}
+          onClose={handleCropCancel}
+          title="사진 크롭"
+          dismissOnBackdrop={false}
+          maxWidth={360}
+        >
+          <Modal.Body>
+            {pendingFileUrl && (
+              <Cropper
+                src={pendingFileUrl}
+                viewportSize={280}
+                outputSize={512}
+                onCrop={handleCropDone}
+                onCancel={handleCropCancel}
+              />
+            )}
+          </Modal.Body>
+        </Modal>
+      )}
     </div>
   )
 }

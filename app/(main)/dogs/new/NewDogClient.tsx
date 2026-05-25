@@ -311,6 +311,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
           <DogPhotoPicker
             currentUrl={null}
             onChange={setPhotoState}
+            enableCrop
           />
         </div>
 
