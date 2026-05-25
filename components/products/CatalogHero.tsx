@@ -139,7 +139,7 @@ export default function CatalogHero({
             key={event.id}
             event={event}
             ctaRadius={ctaRadius}
-            cardRadius={isApp ? 12 : 28}
+            cardRadius={isApp ? 12 : 18}
             kickerRadius={isApp ? 4 : 10}
           />
         ))}

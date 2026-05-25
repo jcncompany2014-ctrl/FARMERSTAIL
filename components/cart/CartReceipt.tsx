@@ -69,7 +69,7 @@ export default function CartReceipt({
           style={{
             background: cardBg,
             borderRadius: cardRadius,
-            padding: 18,
+            padding: 16,
             boxShadow: cardShadow,
             border: isApp ? '1px solid var(--rule)' : undefined,
           }}
