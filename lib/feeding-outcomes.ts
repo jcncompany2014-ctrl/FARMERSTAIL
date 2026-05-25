@@ -53,6 +53,8 @@ export interface FeedingOutcomeInput {
   weight_kg?: number | null
   bcs_score?: number | null
   reason_category?: ReasonCategory | null
+  /** R39e (#25) — 자유 입력 사유. category enum 보완. NLP/토픽 모델링 input. */
+  reason_detail?: string | null
   sku_code?: string | null
   comment?: string | null
   photo_url?: string | null
