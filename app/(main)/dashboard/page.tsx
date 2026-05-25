@@ -42,6 +42,10 @@ import {
   weightReliability,
   overallReliability,
 } from '@/lib/personalization/reliability'
+import {
+  getAvgDailyFeedG,
+  formatAutoIntakeLabel,
+} from '@/lib/feeding/auto-intake'
 
 /**
  * Dashboard — 로그인 후 홈 화면.
@@ -247,6 +251,15 @@ export default async function DashboardPage() {
   const hasActiveSub =
     subscription !== null && subscription.next_delivery_date !== null
 
+  // R31 — #4 사료 배송 시 무게 자동 기록 (발명 모듈 A 차별화 정점).
+  // 활성 구독자에 한해 avg_daily_feed_grams RPC 호출 → "최근 30일 자동 측정
+  // 평균 185g/일" UI 노출. 견주 자가 측정 (계량컵 ±15%) 불필요. 신뢰도 1.0.
+  // 첫 박스 아직 결제 안 된 경우 (가입 직후) null 반환 → 기본 카피로 fallback.
+  const autoIntakeAvgG = hasActiveSub
+    ? await getAvgDailyFeedG(supabase, user.id, 30)
+    : null
+  const autoIntakeLabel = formatAutoIntakeLabel(autoIntakeAvgG, 30)
+
   // ── "오늘 할 일" 카드 — computeNextAction 으로 우선순위 결정 ──────────
   // 강아지 ID set 으로 분석 받은 강아지 / 분석 미실행 강아지 분리.
   const dogIdsWithAnalyses = new Set(
@@ -444,7 +457,11 @@ export default async function DashboardPage() {
           key: 'feed',
           label: '급여',
           score: feedR,
-          hint: '정기배송을 이용하면 자동 추적이 가능해요',
+          // R31 — hasActiveSub 면 자동 측정 g/일 hint 우선. RPC 결과 없으면
+          // (첫 박스 결제 직후 / 데이터 부족) 짧은 안내로 fallback.
+          hint: hasActiveSub
+            ? (autoIntakeLabel ?? '다음 박스부터 자동 추적이 시작돼요')
+            : '정기배송을 이용하면 자동 추적이 가능해요',
         },
       ]
     : []
