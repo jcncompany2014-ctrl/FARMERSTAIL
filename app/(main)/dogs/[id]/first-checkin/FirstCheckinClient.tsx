@@ -110,7 +110,12 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
             type="button"
             onClick={() => router.push(`/dogs/${dogId}`)}
             className="px-6 py-3 rounded-full text-[13px] font-bold"
-            style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+            style={{
+              // R27 v3 polish: ink → terracotta accent (카트 CTA grammar 호응)
+              background: 'var(--terracotta)',
+              color: '#fff',
+              boxShadow: '0 6px 20px -8px rgba(220, 83, 42, 0.45)',
+            }}
           >
             {dogName}이 정보 보기 →
           </button>
@@ -156,10 +161,14 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
               onClick={() => setChoice(opt.value)}
               className="flex items-center gap-4 p-4 rounded text-left active:scale-[0.98] transition"
               style={{
-                background: selected ? 'var(--ink)' : 'var(--bg-2)',
-                color: selected ? 'var(--bg)' : 'var(--ink)',
+                // R27 v3 polish: selected ink → terracotta (R26/R27 grammar 통일)
+                background: selected ? 'var(--terracotta)' : 'var(--bg-2)',
+                color: selected ? '#fff' : 'var(--ink)',
                 border: '1px solid',
-                borderColor: selected ? 'var(--ink)' : 'var(--rule)',
+                borderColor: selected ? 'var(--terracotta)' : 'var(--rule)',
+                boxShadow: selected
+                  ? '0 6px 20px -8px rgba(220, 83, 42, 0.4)'
+                  : 'none',
               }}
             >
               <div className="text-3xl shrink-0">{opt.emoji}</div>
@@ -199,7 +208,14 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
         onClick={submit}
         disabled={!choice || submitting}
         className="mt-8 w-full py-4 rounded-full text-[14px] font-black active:scale-[0.98] transition disabled:opacity-50"
-        style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+        style={{
+          // R27 v3 polish: ink → terracotta + 카트 sticky CTA grammar 동일.
+          background: 'var(--terracotta)',
+          color: '#fff',
+          border: '1px solid rgba(178, 58, 26, 0.6)',
+          boxShadow:
+            '0 8px 22px -6px rgba(220, 83, 42, 0.48), 0 2px 8px rgba(220, 83, 42, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
+        }}
       >
         {submitting ? '저장 중…' : '의견 보내기 (+100P)'}
       </button>
