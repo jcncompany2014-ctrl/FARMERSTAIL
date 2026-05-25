@@ -1,24 +1,34 @@
 'use client'
 
+// B13 — expenses DB 마이그 (R15-B). localStorage → Supabase.
+
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Trash2, ShoppingBag, Stethoscope, Cookie, Sparkles } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  ShoppingBag,
+  Stethoscope,
+  Cookie,
+  Sparkles,
+} from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { Modal, DatePicker, Select, useConfirm } from '@/components/v3'
+import {
+  listExpenses,
+  insertExpense,
+  deleteExpense,
+  type ExpenseRow,
+} from '@/lib/dog-records'
 
-const STORAGE_KEY = (dogId: string) => `ft:exp:${dogId}`
-
-type ExpCategory = 'food' | 'vet' | 'snack' | 'supplies' | 'etc'
-
-interface ExpRecord {
-  id: string
-  category: ExpCategory
-  amount: number
-  date: string
-  memo?: string
-}
+type ExpCategory = ExpenseRow['category']
 
 const CATEGORY_META: Record<
   ExpCategory,
-  { label: string; Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; tone: string }
+  {
+    label: string
+    Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+    tone: string
+  }
 > = {
   food: { label: '사료', Icon: ShoppingBag, tone: 'var(--terracotta)' },
   vet: { label: '병원', Icon: Stethoscope, tone: 'var(--sale)' },
@@ -27,41 +37,36 @@ const CATEGORY_META: Record<
   etc: { label: '기타', Icon: ShoppingBag, tone: 'var(--muted)' },
 }
 
-function load(dogId: string): ExpRecord[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY(dogId))
-    return raw ? (JSON.parse(raw) as ExpRecord[]) : []
-  } catch {
-    return []
-  }
-}
-
-function save(dogId: string, records: ExpRecord[]) {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(STORAGE_KEY(dogId), JSON.stringify(records))
-  } catch {
-    /* noop */
-  }
-}
-
 function formatKRW(n: number): string {
   return `${n.toLocaleString('ko-KR')}원`
 }
 
 export default function ExpensesClient({ dogId }: { dogId: string }) {
-  const [records, setRecords] = useState<ExpRecord[]>([])
+  const supabase = createClient()
+  const [records, setRecords] = useState<ExpenseRow[]>([])
+  const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [category, setCategory] = useState<ExpCategory>('food')
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [memo, setMemo] = useState('')
+  const [saving, setSaving] = useState(false)
   const confirm = useConfirm()
 
   useEffect(() => {
-    setRecords(load(dogId))
-  }, [dogId])
+    let mounted = true
+    listExpenses(supabase, dogId)
+      .then((rows) => {
+        if (mounted) setRecords(rows)
+      })
+      .catch((e) => console.error('listExpenses', e))
+      .finally(() => {
+        if (mounted) setLoading(false)
+      })
+    return () => {
+      mounted = false
+    }
+  }, [supabase, dogId])
 
   const monthTotal = useMemo(() => {
     const month = new Date().toISOString().slice(0, 7)
@@ -80,27 +85,34 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1])
   }, [records])
 
-  function persist(updated: ExpRecord[]) {
-    setRecords(updated)
-    save(dogId, updated)
-  }
-
-  function handleAdd() {
+  async function handleAdd() {
     const n = parseInt(amount, 10)
-    if (!Number.isFinite(n) || n <= 0) return
-    const id =
-      typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random()}`
-    const rec: ExpRecord = { id, category, amount: n, date }
-    if (memo) rec.memo = memo
-    const updated = [rec, ...records].sort((a, b) =>
-      b.date.localeCompare(a.date),
-    )
-    persist(updated)
-    setOpen(false)
-    setAmount('')
-    setMemo('')
+    if (!Number.isFinite(n) || n <= 0 || saving) return
+    setSaving(true)
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error('not-authed')
+      const rec = await insertExpense(supabase, {
+        dog_id: dogId,
+        user_id: user.id,
+        category,
+        amount: n,
+        date,
+        memo: memo || null,
+      })
+      setRecords((rs) =>
+        [rec, ...rs].sort((a, b) => b.date.localeCompare(a.date)),
+      )
+      setOpen(false)
+      setAmount('')
+      setMemo('')
+    } catch (e) {
+      console.error('insertExpense', e)
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleDelete(id: string) {
@@ -111,7 +123,12 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
       tone: 'destructive',
     })
     if (!ok) return
-    persist(records.filter((r) => r.id !== id))
+    try {
+      await deleteExpense(supabase, id)
+      setRecords((rs) => rs.filter((r) => r.id !== id))
+    } catch (e) {
+      console.error('deleteExpense', e)
+    }
   }
 
   return (
@@ -140,10 +157,7 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
                     key={cat}
                     className="rounded border border-rule bg-bg px-3 py-2 flex items-center gap-2"
                   >
-                    <Icon
-                      className="w-3.5 h-3.5"
-                      strokeWidth={2}
-                    />
+                    <Icon className="w-3.5 h-3.5" strokeWidth={2} />
                     <div className="flex-1 min-w-0">
                       <p
                         className="text-[10.5px] uppercase tracking-widest"
@@ -184,7 +198,11 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
 
       <section className="px-5 mt-4">
         <h2 className="kicker mb-2">최근 기록</h2>
-        {records.length === 0 ? (
+        {loading ? (
+          <p className="text-[12px] text-muted text-center py-8">
+            불러오는 중…
+          </p>
+        ) : records.length === 0 ? (
           <p className="text-[12px] text-muted text-center py-8">
             아직 기록이 없어요.
           </p>
@@ -198,10 +216,7 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
                   key={r.id}
                   className="rounded border border-rule bg-bg-3 px-4 py-3 flex items-center gap-3"
                 >
-                  <Icon
-                    className="w-4 h-4 shrink-0"
-                    strokeWidth={2}
-                  />
+                  <Icon className="w-4 h-4 shrink-0" strokeWidth={2} />
                   <div className="flex-1 min-w-0">
                     <p
                       className="font-sans"
@@ -296,9 +311,10 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
           <button
             type="button"
             onClick={handleAdd}
-            className="px-4 py-2 rounded bg-text text-bg text-[12px] font-bold"
+            disabled={saving}
+            className="px-4 py-2 rounded bg-text text-bg text-[12px] font-bold disabled:opacity-50"
           >
-            저장
+            {saving ? '저장 중…' : '저장'}
           </button>
         </Modal.Footer>
       </Modal>

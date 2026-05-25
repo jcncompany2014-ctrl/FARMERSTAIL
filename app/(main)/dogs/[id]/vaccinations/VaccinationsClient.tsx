@@ -1,18 +1,18 @@
 'use client'
 
+// B11 — vaccinations DB 마이그 (R15-B). localStorage → Supabase.
+// 기존 localStorage 데이터는 마이그레이션 X (베타 단계, 사용자 거의 없음).
+
 import { useEffect, useState } from 'react'
 import { Plus, Syringe, Trash2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { Modal, DatePicker, Select, useConfirm } from '@/components/v3'
-
-const STORAGE_KEY = (dogId: string) => `ft:vax:${dogId}`
-
-interface VaxRecord {
-  id: string
-  vaccine: string
-  date: string // ISO yyyy-mm-dd
-  next?: string
-  note?: string
-}
+import {
+  listVaccinations,
+  insertVaccination,
+  deleteVaccination,
+  type VaccinationRow,
+} from '@/lib/dog-records'
 
 // 한국 견 예방접종 표준 (DHPPL, 코로나, 켄넬코프, 광견병).
 const VACCINE_OPTIONS = [
@@ -24,27 +24,6 @@ const VACCINE_OPTIONS = [
   { value: 'Other', label: '기타' },
 ]
 
-function load(dogId: string): VaxRecord[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY(dogId))
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-function save(dogId: string, records: VaxRecord[]) {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(STORAGE_KEY(dogId), JSON.stringify(records))
-  } catch {
-    /* noop */
-  }
-}
-
 export default function VaccinationsClient({
   dogId,
   dogName,
@@ -52,37 +31,64 @@ export default function VaccinationsClient({
   dogId: string
   dogName: string
 }) {
-  const [records, setRecords] = useState<VaxRecord[]>([])
+  const supabase = createClient()
+  const [records, setRecords] = useState<VaccinationRow[]>([])
+  const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [vaccine, setVaccine] = useState('')
   const [date, setDate] = useState('')
   const [next, setNext] = useState('')
   const [note, setNote] = useState('')
+  const [saving, setSaving] = useState(false)
   const confirm = useConfirm()
 
   useEffect(() => {
-    setRecords(load(dogId))
-  }, [dogId])
+    let mounted = true
+    listVaccinations(supabase, dogId)
+      .then((rows) => {
+        if (!mounted) return
+        setRecords(rows)
+      })
+      .catch((e) => {
+        console.error('listVaccinations', e)
+      })
+      .finally(() => {
+        if (mounted) setLoading(false)
+      })
+    return () => {
+      mounted = false
+    }
+  }, [supabase, dogId])
 
-  function handleAdd() {
-    if (!vaccine || !date) return
-    const id =
-      typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random()}`
-    const rec: VaxRecord = { id, vaccine, date }
-    if (next) rec.next = next
-    if (note) rec.note = note
-    const updated = [rec, ...records].sort((a, b) =>
-      b.date.localeCompare(a.date),
-    )
-    setRecords(updated)
-    save(dogId, updated)
-    setOpen(false)
-    setVaccine('')
-    setDate('')
-    setNext('')
-    setNote('')
+  async function handleAdd() {
+    if (!vaccine || !date || saving) return
+    setSaving(true)
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error('not-authed')
+      const rec = await insertVaccination(supabase, {
+        dog_id: dogId,
+        user_id: user.id,
+        vaccine,
+        date,
+        next_date: next || null,
+        note: note || null,
+      })
+      setRecords((rs) =>
+        [rec, ...rs].sort((a, b) => b.date.localeCompare(a.date)),
+      )
+      setOpen(false)
+      setVaccine('')
+      setDate('')
+      setNext('')
+      setNote('')
+    } catch (e) {
+      console.error('insertVaccination', e)
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleDelete(id: string) {
@@ -94,15 +100,18 @@ export default function VaccinationsClient({
       tone: 'destructive',
     })
     if (!ok) return
-    const updated = records.filter((r) => r.id !== id)
-    setRecords(updated)
-    save(dogId, updated)
+    try {
+      await deleteVaccination(supabase, id)
+      setRecords((rs) => rs.filter((r) => r.id !== id))
+    } catch (e) {
+      console.error('deleteVaccination', e)
+    }
   }
 
   const today = new Date().toISOString().slice(0, 10)
   const upcoming = records
-    .filter((r) => r.next && r.next >= today)
-    .sort((a, b) => (a.next ?? '').localeCompare(b.next ?? ''))
+    .filter((r) => r.next_date && r.next_date >= today)
+    .sort((a, b) => (a.next_date ?? '').localeCompare(b.next_date ?? ''))
 
   return (
     <>
@@ -139,7 +148,7 @@ export default function VaccinationsClient({
                       r.vaccine}
                   </p>
                   <p className="text-[11px] text-muted mt-0.5">
-                    다음 일정 {r.next}
+                    다음 일정 {r.next_date}
                   </p>
                 </div>
                 <Syringe className="w-4 h-4 text-terracotta" strokeWidth={2} />
@@ -151,7 +160,9 @@ export default function VaccinationsClient({
 
       <section className="px-5 mt-4">
         <h2 className="kicker mb-2">기록</h2>
-        {records.length === 0 ? (
+        {loading ? (
+          <p className="text-[12px] text-muted text-center py-8">불러오는 중…</p>
+        ) : records.length === 0 ? (
           <p className="text-[12px] text-muted text-center py-8">
             아직 기록이 없어요. {dogName}의 첫 접종 기록을 추가해 보세요.
           </p>
@@ -177,7 +188,7 @@ export default function VaccinationsClient({
                     </p>
                     <p className="text-[11px] text-muted mt-0.5">
                       접종일 {r.date}
-                      {r.next && ` · 다음 ${r.next}`}
+                      {r.next_date && ` · 다음 ${r.next_date}`}
                     </p>
                     {r.note && (
                       <p className="text-[12px] text-text mt-1">{r.note}</p>
@@ -263,10 +274,10 @@ export default function VaccinationsClient({
           <button
             type="button"
             onClick={handleAdd}
-            disabled={!vaccine || !date}
+            disabled={!vaccine || !date || saving}
             className="px-4 py-2 rounded bg-text text-bg text-[12px] font-bold disabled:opacity-50"
           >
-            저장
+            {saving ? '저장 중…' : '저장'}
           </button>
         </Modal.Footer>
       </Modal>

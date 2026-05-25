@@ -1,85 +1,94 @@
 'use client'
 
+// B12 — medications DB 마이그 (R15-B). localStorage → Supabase.
+
 import { useEffect, useState } from 'react'
 import { Plus, Pill, Trash2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { Modal, Select, useConfirm, Toggle } from '@/components/v3'
-
-const STORAGE_KEY = (dogId: string) => `ft:meds:${dogId}`
-
-interface MedRecord {
-  id: string
-  name: string
-  dose: string
-  schedule: 'daily' | 'weekly' | 'asneeded'
-  time?: string
-  enabled: boolean
-  note?: string
-}
-
-function load(dogId: string): MedRecord[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY(dogId))
-    return raw ? (JSON.parse(raw) as MedRecord[]) : []
-  } catch {
-    return []
-  }
-}
-
-function save(dogId: string, records: MedRecord[]) {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(STORAGE_KEY(dogId), JSON.stringify(records))
-  } catch {
-    /* noop */
-  }
-}
+import {
+  listMedications,
+  insertMedication,
+  deleteMedication,
+  setMedicationEnabled,
+  type MedicationRow,
+} from '@/lib/dog-records'
 
 export default function MedicationsClient({ dogId }: { dogId: string }) {
-  const [records, setRecords] = useState<MedRecord[]>([])
+  const supabase = createClient()
+  const [records, setRecords] = useState<MedicationRow[]>([])
+  const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [dose, setDose] = useState('')
-  const [schedule, setSchedule] = useState<MedRecord['schedule']>('daily')
+  const [schedule, setSchedule] =
+    useState<MedicationRow['schedule']>('daily')
   const [time, setTime] = useState('')
   const [note, setNote] = useState('')
+  const [saving, setSaving] = useState(false)
   const confirm = useConfirm()
 
   useEffect(() => {
-    setRecords(load(dogId))
-  }, [dogId])
-
-  function persist(updated: MedRecord[]) {
-    setRecords(updated)
-    save(dogId, updated)
-  }
-
-  function handleAdd() {
-    if (!name) return
-    const id =
-      typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random()}`
-    const rec: MedRecord = {
-      id,
-      name,
-      dose,
-      schedule,
-      enabled: true,
+    let mounted = true
+    listMedications(supabase, dogId)
+      .then((rows) => {
+        if (mounted) setRecords(rows)
+      })
+      .catch((e) => console.error('listMedications', e))
+      .finally(() => {
+        if (mounted) setLoading(false)
+      })
+    return () => {
+      mounted = false
     }
-    if (time) rec.time = time
-    if (note) rec.note = note
-    persist([rec, ...records])
-    setOpen(false)
-    setName('')
-    setDose('')
-    setSchedule('daily')
-    setTime('')
-    setNote('')
+  }, [supabase, dogId])
+
+  async function handleAdd() {
+    if (!name || saving) return
+    setSaving(true)
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error('not-authed')
+      const rec = await insertMedication(supabase, {
+        dog_id: dogId,
+        user_id: user.id,
+        name,
+        schedule,
+        dose: dose || null,
+        time: time || null,
+        enabled: true,
+        note: note || null,
+      })
+      setRecords((rs) => [rec, ...rs])
+      setOpen(false)
+      setName('')
+      setDose('')
+      setSchedule('daily')
+      setTime('')
+      setNote('')
+    } catch (e) {
+      console.error('insertMedication', e)
+    } finally {
+      setSaving(false)
+    }
   }
 
-  function handleToggle(id: string, next: boolean) {
-    persist(records.map((r) => (r.id === id ? { ...r, enabled: next } : r)))
+  async function handleToggle(id: string, next: boolean) {
+    // optimistic
+    setRecords((rs) =>
+      rs.map((r) => (r.id === id ? { ...r, enabled: next } : r)),
+    )
+    try {
+      await setMedicationEnabled(supabase, id, next)
+    } catch (e) {
+      console.error('setMedicationEnabled', e)
+      // rollback
+      setRecords((rs) =>
+        rs.map((r) => (r.id === id ? { ...r, enabled: !next } : r)),
+      )
+    }
   }
 
   async function handleDelete(id: string) {
@@ -91,10 +100,15 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
       tone: 'destructive',
     })
     if (!ok) return
-    persist(records.filter((r) => r.id !== id))
+    try {
+      await deleteMedication(supabase, id)
+      setRecords((rs) => rs.filter((r) => r.id !== id))
+    } catch (e) {
+      console.error('deleteMedication', e)
+    }
   }
 
-  const SCHED_LABEL: Record<MedRecord['schedule'], string> = {
+  const SCHED_LABEL: Record<MedicationRow['schedule'], string> = {
     daily: '매일',
     weekly: '매주',
     asneeded: '필요할 때',
@@ -114,7 +128,11 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
       </section>
 
       <section className="px-5 mt-4">
-        {records.length === 0 ? (
+        {loading ? (
+          <p className="text-[12px] text-muted text-center py-8">
+            불러오는 중…
+          </p>
+        ) : records.length === 0 ? (
           <p className="text-[12px] text-muted text-center py-8">
             등록된 약물이 없어요. 정기 복약이 필요한 약을 추가해 보세요.
           </p>
@@ -209,7 +227,7 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
               <Select
                 value={schedule}
                 onChange={(e) =>
-                  setSchedule(e.target.value as MedRecord['schedule'])
+                  setSchedule(e.target.value as MedicationRow['schedule'])
                 }
                 options={[
                   { value: 'daily', label: '매일' },
@@ -254,10 +272,10 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
           <button
             type="button"
             onClick={handleAdd}
-            disabled={!name}
+            disabled={!name || saving}
             className="px-4 py-2 rounded bg-text text-bg text-[12px] font-bold disabled:opacity-50"
           >
-            저장
+            {saving ? '저장 중…' : '저장'}
           </button>
         </Modal.Footer>
       </Modal>
