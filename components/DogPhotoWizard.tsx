@@ -243,7 +243,8 @@ export default function DogPhotoWizard({
                         style={{ color: 'var(--moss)' }}
                       />
                       <span style={{ color: 'var(--ink)' }}>
-                        사진 신뢰도 {Math.round(lastWImage.score * 100)}%
+                        {/* R30: voice-guidelines §1 — "신뢰도" 단어 금지. "촬영 품질" 로 우회 */}
+                        촬영 품질 {Math.round(lastWImage.score * 100)}%
                       </span>
                     </>
                   ) : (
