@@ -96,13 +96,13 @@ export default async function InterventionWindowCard({ dogId }: Props) {
       className={`mx-5 mt-3 rounded border p-4 ${
         isUrgent
           ? 'border-sale bg-sale/8'
-          : 'border-amber-500/60 bg-amber-500/8'
+          : 'border-gold bg-gold/15'
       }`}
     >
       <div className="flex items-start gap-3">
         <div
           className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-            isUrgent ? 'bg-sale/15 text-sale' : 'bg-amber-500/15 text-amber-700'
+            isUrgent ? 'bg-sale/15 text-sale' : 'bg-gold/30 text-ink'
           }`}
         >
           <Icon className="w-4 h-4" strokeWidth={2.4} />
@@ -119,7 +119,7 @@ export default async function InterventionWindowCard({ dogId }: Props) {
           </p>
           <div className="text-[10.5px] text-mute mt-1.5">
             추세: {window.weightSlopeKgPerDay > 0 ? '+' : ''}
-            {(window.weightSlopeKgPerDay * 30).toFixed(2)} kg/월 · 신뢰도{' '}
+            {(window.weightSlopeKgPerDay * 30).toFixed(2)} kg/월 · 정밀도{' '}
             {(window.rSquared * 100).toFixed(0)}%
           </div>
           <Link

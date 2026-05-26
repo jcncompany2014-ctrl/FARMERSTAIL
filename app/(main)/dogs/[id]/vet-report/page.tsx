@@ -189,7 +189,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
             <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
             {dog.name}
           </Link>
-          <h1 className="font-['Archivo_Black'] text-2xl text-ink">
+          <h1 className="text-2xl font-black text-ink tracking-tight leading-snug">
             수의사 진료 보고서
           </h1>
           <p className="text-[12px] text-mute mt-1">
@@ -216,7 +216,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
               <p className="text-[10px] font-bold uppercase tracking-widest text-mute">
                 Veterinary Pre-Consult Report
               </p>
-              <h2 className="font-['Archivo_Black'] text-xl text-ink mt-1">
+              <h2 className="text-xl font-black text-ink mt-1 tracking-tight leading-snug">
                 수의사 진료 보고서
               </h2>
             </div>

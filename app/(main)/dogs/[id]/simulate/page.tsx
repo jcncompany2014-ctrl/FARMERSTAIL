@@ -64,7 +64,7 @@ export default async function SimulatePage({ params }: { params: Params }) {
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           {dog.name}
         </Link>
-        <h1 className="text-2xl font-['Archivo_Black'] text-ink">
+        <h1 className="text-2xl font-black text-ink tracking-tight">
           식단 시뮬레이션
         </h1>
         <p className="text-sm text-mute mt-3">
@@ -106,7 +106,7 @@ export default async function SimulatePage({ params }: { params: Params }) {
         <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
         {dog.name}
       </Link>
-      <h1 className="text-2xl font-['Archivo_Black'] text-ink">
+      <h1 className="text-2xl font-black text-ink tracking-tight leading-snug">
         식단 시뮬레이션
       </h1>
       <p className="text-xs text-mute mt-1 leading-relaxed">
