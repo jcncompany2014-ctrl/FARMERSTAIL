@@ -5,6 +5,7 @@
  * 현재 분석결과를 baseline 으로, 4 시나리오 (또는 custom slider) 의
  * 30일 후 BCS·체중·Bristol 예상 변화를 비교.
  */
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
@@ -13,6 +14,12 @@ import type { DietSimBaseline } from '@/lib/diet-simulation'
 import SimulateClient from './SimulateClient'
 
 export const dynamic = 'force-dynamic'
+
+// 개인 강아지 데이터 노출 차단 — vet-report 와 같은 보안 정책.
+export const metadata: Metadata = {
+  title: '식단 시뮬레이션',
+  robots: { index: false, follow: false },
+}
 
 type Params = Promise<{ id: string }>
 
