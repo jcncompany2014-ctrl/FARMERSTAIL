@@ -4,70 +4,23 @@
  * 체중 추세 기반 위험 도달 ETA 경보. 'urgent' 일 때만 빨간 카드,
  * 'watch' 일 때 노란, 'safe'/'insufficient_data'/'noisy' 는 미렌더.
  *
- * Server component — Supabase fetch + 평가 후 결과만 클라이언트로.
+ * # R55 perf 정리
+ *  - server component fetch 제거 → 부모 (dogs/[id]/page.tsx) 가 데이터
+ *    Promise.all 안에서 fetch 후 props 로 전달.
+ *  - 이전: 강아지 상세 진입 시 dog + weight_logs + surveys 3건 추가
+ *    fetch (부모와 중복).
+ *  - 이후: window evaluate 만 — 순수 함수 컴포넌트.
  */
 import Link from 'next/link'
 import { TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
-import { evaluateInterventionWindow } from '@/lib/intervention-window'
+import type { InterventionWindow } from '@/lib/intervention-window'
 
 interface Props {
   dogId: string
+  window: InterventionWindow
 }
 
-// React 19 purity rule — Date.now() 를 컴포넌트 body 밖 helper 로.
-function sixMonthsAgoIso(): string {
-  return new Date(Date.now() - 180 * 86_400_000).toISOString()
-}
-
-export default async function InterventionWindowCard({ dogId }: Props) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return null
-
-  const { data: dog } = await supabase
-    .from('dogs')
-    .select('id, name, weight')
-    .eq('id', dogId)
-    .maybeSingle()
-  if (!dog || !dog.weight) return null
-
-  // 최근 6개월 체중 추이 (12개월은 너무 길어 추세 흐려질 수 있음)
-  const sinceIso = sixMonthsAgoIso()
-  const { data: logs } = await supabase
-    .from('weight_logs')
-    .select('measured_at, weight')
-    .eq('dog_id', dogId)
-    .eq('user_id', user.id)
-    .gte('measured_at', sinceIso)
-    .order('measured_at', { ascending: true })
-    .limit(40)
-
-  // 최근 survey 의 BCS
-  const { data: survey } = await supabase
-    .from('surveys')
-    .select('answers')
-    .eq('dog_id', dogId)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  const surveyAnswers =
-    ((survey?.answers as unknown) ?? {}) as { bcsExact?: number }
-
-  const window = evaluateInterventionWindow({
-    weightLogs: (logs ?? []).map((l) => ({
-      date: l.measured_at,
-      weightKg: l.weight,
-    })),
-    currentBcs: surveyAnswers.bcsExact ?? 5,
-    currentWeightKg: dog.weight,
-    idealWeightKg: null,
-  })
-
+export default function InterventionWindowCard({ dogId, window }: Props) {
   // safe / insufficient_data / noisy → 미렌더 (잡음 방지)
   if (
     window.verdict === 'safe' ||
@@ -94,9 +47,7 @@ export default async function InterventionWindowCard({ dogId }: Props) {
       aria-live={isUrgent ? 'assertive' : 'polite'}
       aria-label="체중 추세 분석"
       className={`mx-5 mt-3 rounded border p-4 ${
-        isUrgent
-          ? 'border-sale bg-sale/8'
-          : 'border-gold bg-gold/15'
+        isUrgent ? 'border-sale bg-sale/8' : 'border-gold bg-gold/15'
       }`}
     >
       <div className="flex items-start gap-3">
@@ -123,7 +74,7 @@ export default async function InterventionWindowCard({ dogId }: Props) {
             {(window.rSquared * 100).toFixed(0)}%
           </div>
           <Link
-            href={`/dogs/${dog.id}/simulate`}
+            href={`/dogs/${dogId}/simulate`}
             className="inline-block mt-2.5 text-[11px] font-semibold text-ink underline decoration-1 underline-offset-2"
           >
             식단 시뮬레이션으로 시나리오 비교 →

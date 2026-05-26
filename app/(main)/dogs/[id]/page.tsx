@@ -8,6 +8,10 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DogDetailClient from './DogDetailClient'
 import InterventionWindowCard from '@/components/dog/InterventionWindowCard'
+import {
+  evaluateInterventionWindow,
+  type InterventionWindow,
+} from '@/lib/intervention-window'
 import type {
   Dog,
   WeightLog,
@@ -15,6 +19,11 @@ import type {
   CheckinStatus,
   ActiveSubscription,
 } from './_components/types'
+
+// R55 perf — Date.now() 를 helper 로 (React 19 purity rule + 컴포넌트 body 외).
+function sixMonthsAgoIso(): string {
+  return new Date(Date.now() - 180 * 86_400_000).toISOString()
+}
 
 export default async function DogDetailPage({
   params,
@@ -46,38 +55,59 @@ export default async function DogDetailPage({
   // audit #79: generated dogs row 와 도메인 Dog nullable 차이 — cast.
   const dog = dogRow as unknown as Dog
 
-  // 병렬 fetch — profile, weight logs, formula, subs.
-  const [profileRes, logsRes, formulaRes, subsRes] = await Promise.all([
-    supabase.from('profiles').select('name').eq('id', user.id).maybeSingle(),
-    supabase
-      .from('weight_logs')
-      .select('id, weight, measured_at, note')
-      .eq('dog_id', dogId)
-      .eq('user_id', user.id)
-      .order('measured_at', { ascending: false })
-      .limit(10),
-    supabase
-      .from('dog_formulas')
-      .select(
-        'cycle_number, approval_status, applied_from, applied_until, ' +
-          'formula, daily_grams, daily_kcal, user_adjusted',
-      )
-      .eq('dog_id', dogId)
-      .eq('user_id', user.id)
-      .order('cycle_number', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from('subscriptions')
-      .select(
-        'id, status, interval_weeks, coverage_weeks, next_delivery_date, ' +
-          'total_deliveries, total_amount, billing_key, created_at',
-      )
-      .eq('dog_id', dogId)
-      .eq('user_id', user.id)
-      .in('status', ['active', 'paused'])
-      .order('created_at', { ascending: false }),
-  ])
+  // R55 perf — 모든 server fetch 통합. 기존 6건 + Intervention 카드 데이터
+  // (이전엔 컴포넌트 안에서 sequential fetch — 중복 + waterfall) 1 Promise.all.
+  const trendSinceIso = sixMonthsAgoIso()
+  const [profileRes, logsRes, formulaRes, subsRes, weightTrendRes, surveyRes] =
+    await Promise.all([
+      supabase.from('profiles').select('name').eq('id', user.id).maybeSingle(),
+      supabase
+        .from('weight_logs')
+        .select('id, weight, measured_at, note')
+        .eq('dog_id', dogId)
+        .eq('user_id', user.id)
+        .order('measured_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('dog_formulas')
+        .select(
+          'cycle_number, approval_status, applied_from, applied_until, ' +
+            'formula, daily_grams, daily_kcal, user_adjusted',
+        )
+        .eq('dog_id', dogId)
+        .eq('user_id', user.id)
+        .order('cycle_number', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('subscriptions')
+        .select(
+          'id, status, interval_weeks, coverage_weeks, next_delivery_date, ' +
+            'total_deliveries, total_amount, billing_key, created_at',
+        )
+        .eq('dog_id', dogId)
+        .eq('user_id', user.id)
+        .in('status', ['active', 'paused'])
+        .order('created_at', { ascending: false }),
+      // 추세 분석용 — 6개월치 체중 (위의 logs 는 최근 10건만이라 별도 fetch)
+      supabase
+        .from('weight_logs')
+        .select('measured_at, weight')
+        .eq('dog_id', dogId)
+        .eq('user_id', user.id)
+        .gte('measured_at', trendSinceIso)
+        .order('measured_at', { ascending: true })
+        .limit(40),
+      // BCS — 최신 survey
+      supabase
+        .from('surveys')
+        .select('answers')
+        .eq('dog_id', dogId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
 
   const ownerFallback = user.email ? user.email.split('@')[0] ?? null : null
   const ownerName =
@@ -105,10 +135,32 @@ export default async function DogDetailPage({
     }
   }
 
+  // R55 perf — 개입 윈도우 사전 계산. lib 함수 (pure) → 추가 fetch 없음.
+  let interventionWindow: InterventionWindow | null = null
+  if (dog.weight) {
+    const surveyAnswers = ((surveyRes.data?.answers as unknown) ?? {}) as {
+      bcsExact?: number
+    }
+    const trendLogs = (weightTrendRes.data ?? []) as Array<{
+      measured_at: string
+      weight: number
+    }>
+    interventionWindow = evaluateInterventionWindow({
+      weightLogs: trendLogs.map((l) => ({
+        date: l.measured_at,
+        weightKg: l.weight,
+      })),
+      currentBcs: surveyAnswers.bcsExact ?? 5,
+      currentWeightKg: dog.weight,
+    })
+  }
+
   return (
     <>
       {/* XL-4 (#13) — 모듈 G 개입 윈도우 카드. urgent/watch 일 때만 렌더. */}
-      <InterventionWindowCard dogId={dogId} />
+      {interventionWindow && (
+        <InterventionWindowCard dogId={dogId} window={interventionWindow} />
+      )}
       <DogDetailClient
         dog={dog}
         ownerName={ownerName}
