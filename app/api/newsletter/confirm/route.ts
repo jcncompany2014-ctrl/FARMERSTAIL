@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { notifyNewsletterWelcome } from '@/lib/email'
 
 /**
  * GET /api/newsletter/confirm?token=...
@@ -48,10 +49,11 @@ export async function GET(req: Request) {
 
   const supabase = createAdminClient()
 
-  // 1) token 매칭 row 찾기
+  // 1) token 매칭 row 찾기 — unsubscribe_token 도 함께 select. 환영 메일에
+  //    수신거부 링크를 박으려면 영구 토큰이 필요.
   const { data: row } = await supabase
     .from('newsletter_subscribers')
-    .select('id, email, status')
+    .select('id, email, status, unsubscribe_token')
     .eq('confirm_token', token)
     .maybeSingle()
 
@@ -77,6 +79,16 @@ export async function GET(req: Request) {
   if (error) {
     return NextResponse.redirect(`${baseUrl}/newsletter?status=error`)
   }
+
+  // 3) 환영 메일 — fire-and-forget. confirm 성공 후 1회만. Resend 미설정 시
+  //    조용히 no-op 처리되므로 로컬/스테이징에서도 안전. 발송 실패가 confirm
+  //    응답을 막아선 안 됨.
+  notifyNewsletterWelcome({
+    email: row.email,
+    unsubscribeToken: row.unsubscribe_token,
+  }).catch(() => {
+    /* swallow — 환영 메일 실패가 confirm flow 를 막을 이유 X */
+  })
 
   return NextResponse.redirect(`${baseUrl}/newsletter?status=confirmed`)
 }

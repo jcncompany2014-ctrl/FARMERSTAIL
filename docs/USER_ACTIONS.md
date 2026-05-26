@@ -134,6 +134,53 @@ Push 후 2~3분 안에 Vercel 새 배포 Ready. 그 뒤 본 문서의 액션 진
 
 ---
 
+## 📧 뉴스레터 발송 (자동 + 수동)
+
+### 자동 — 환영 메일 (사용자 액션 0)
+- **트리거:** 가입자가 뉴스레터 구독 confirm 링크 클릭 직후 자동 발송
+- **내용:** 환영 인사 + 첫 주문 5,000원 할인 쿠폰 안내 (`WELCOME5000`)
+- **사용자 액션:** 없음 (이미 코드에 자동 wired)
+
+⚠️ **단, 한 가지만 확인:** `WELCOME5000` 쿠폰이 admin/coupons 에 활성 상태로 존재하는지.
+- https://www.farmerstail.kr/admin/coupons 접속
+- 검색: `WELCOME5000`
+- 없으면 새로 생성:
+  - 코드: `WELCOME5000`
+  - 할인 유형: 정액 5,000원
+  - 사용 조건: 최소 주문 15,000원 (또는 본인 결정)
+  - 사용 가능 횟수: 사용자당 1회
+  - 만료일: 6개월 후 (또는 무제한)
+
+### 수동 — 정기 뉴스레터 (Tail Letter Vol. 01)
+- **첫 뉴스레터 준비 완료** — 내용: BCS 자가 체크 + 오션 오메가 믹스 + 화식 전환 Q&A
+- **발송 방법:**
+  1. 터미널에서:
+     ```powershell
+     cd C:\Users\A\Desktop\projects\farmerstail-app
+     # 1) 발송 대상 수 확인 (실제 발송 X)
+     npm run newsletter:vol-01:dry
+     # 2) 본인 메일로 테스트 발송
+     npm run newsletter:vol-01:test story@farmerstail.kr
+     # 3) 미리보기 OK 면 실제 일괄 발송
+     npm run newsletter:vol-01:send
+     ```
+  2. `SUPABASE_SERVICE_ROLE_KEY` 가 셸 환경변수로 잡혀있어야 함:
+     ```powershell
+     $env:SUPABASE_SERVICE_ROLE_KEY="eyJxxxxx..."
+     $env:RESEND_API_KEY="re_xxxxx..."
+     $env:EMAIL_FROM="파머스테일 <no-reply@farmerstail.kr>"
+     ```
+  3. 발송 후 `newsletter_subscribers.last_sent_at` 자동 업데이트 → 24h 안에 재실행 시 중복 발송 차단
+- **언제 보낼지:** 베타 사용자 첫 20명 모이면 — 출시 D+7~10일 정도
+
+### 향후 뉴스레터 (Vol. 02, 03 ...)
+- 같은 패턴: `lib/email/templates/newsletter-vol-02.ts` 새로 만들기
+- `scripts/send-newsletter-vol-02.ts` 복제
+- `package.json` 에 npm scripts 추가
+- **나중에 cron으로 자동화** (월/격주) 시: `app/api/cron/newsletter-broadcast/route.ts` 신설 + Vercel cron 등록
+
+---
+
 ## 🟡 Tier 2 — 출시 직후 1주 안에
 
 ### 9. Anthropic API 카드 등록 재시도 (AI 분석 활성)

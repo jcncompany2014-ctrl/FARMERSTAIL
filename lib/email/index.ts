@@ -33,6 +33,8 @@ import {
   renderNewsletterConfirm,
   renderUnsubscribeAck,
 } from './templates/newsletter'
+import { renderNewsletterWelcome } from './templates/newsletter-welcome'
+import { renderNewsletterVol01 } from './templates/newsletter-vol-01'
 import { renderPersonalizationCycle } from './templates/personalization-cycle'
 import { paymentMethodLabel } from '@/lib/payments/toss'
 import { pushToUser } from '@/lib/push'
@@ -580,6 +582,128 @@ export async function notifyNewsletterConfirm(input: {
     // 같은 토큰엔 24h 안에 한 번만 — 재전송 트리거 시 새 토큰 받아야 함.
     idempotencyKey: `newsletter-confirm:${input.confirmToken}`,
   })
+}
+
+/**
+ * 뉴스레터 confirm 직후 1회 발송하는 환영 메일.
+ *
+ * 호출 시점: /api/newsletter/confirm 이 status='confirmed' 마킹 직후 fire-and-
+ * forget. unsubscribeToken 은 confirm 라우트에서 select 해 함께 넘긴다.
+ *
+ * 본문에 첫 주문 5,000원 할인 코드가 포함되어 (광고) 제목 + unsubscribe 링크
+ * 가 들어있는 템플릿. idempotencyKey 로 중복 발송 방지 (동일 이메일에 24h
+ * 안에 한 번만).
+ */
+export async function notifyNewsletterWelcome(input: {
+  email: string
+  unsubscribeToken: string
+}) {
+  const couponCode = (process.env.WELCOME_COUPON_CODE ?? 'WELCOME5000').toUpperCase()
+  const { subject, html } = renderNewsletterWelcome({
+    email: input.email,
+    unsubscribeToken: input.unsubscribeToken,
+    couponCode,
+  })
+  return sendEmail({
+    to: input.email,
+    subject,
+    html,
+    tag: 'newsletter-welcome',
+    idempotencyKey: `newsletter-welcome:${input.email}`,
+  })
+}
+
+/**
+ * Tail Letter Vol. 01 일괄 발송.
+ *
+ * status='confirmed' 인 newsletter_subscribers 전체를 돌며 배치 발송. 호출처
+ * (scripts/send-newsletter-vol-01.ts 또는 추후 cron route) 는 service_role 클
+ * 라이언트를 넘긴다.
+ *
+ * Rate limit: Resend free 는 2 rps, 유료는 10 rps. 안전하게 sequential 발송
+ * + 200ms delay 로 충분. 사용자 규모가 커지면 Promise.allSettled + chunked
+ * concurrency 로 옮기되 Resend 의 batch endpoint (POST /emails/batch, 100건/요청)
+ * 로 옮기는 게 더 깔끔.
+ *
+ * idempotency: tag 에 'newsletter-vol-01' 박혀 있어서 Resend 대시보드에서
+ * 같은 발송 묶음 집계 가능. 같은 이메일에 2번 발송 방지는 last_sent_at 으로
+ * 막는다 (cron 옮긴 후엔 필수, 수동 스크립트는 호출자가 알아서).
+ */
+export async function broadcastNewsletterVol01(
+  supabase: AnySupabase,
+  options?: {
+    /** 발송 후 last_sent_at 업데이트 여부. 테스트 시 false. */
+    markSent?: boolean
+    /** dry-run — 실제로 발송하지 않고 대상자 수만 리턴. */
+    dryRun?: boolean
+  },
+): Promise<{ total: number; sent: number; failed: number; skipped: number }> {
+  const markSent = options?.markSent ?? true
+  const dryRun = options?.dryRun ?? false
+
+  // confirmed 상태 + 같은 이슈를 아직 못 받은 구독자만. last_sent_at 이 24h
+  // 이내면 스킵 — 실수로 두 번 트리거해도 중복 발송 차단.
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { data: rows, error } = await supabase
+    .from('newsletter_subscribers')
+    .select('id, email, unsubscribe_token, last_sent_at')
+    .eq('status', 'confirmed')
+
+  if (error || !rows) {
+    return { total: 0, sent: 0, failed: 0, skipped: 0 }
+  }
+
+  type Row = {
+    id: string
+    email: string
+    unsubscribe_token: string
+    last_sent_at: string | null
+  }
+  const subscribers = rows as Row[]
+  const eligible = subscribers.filter(
+    (r) => !r.last_sent_at || r.last_sent_at < cutoff,
+  )
+  const skipped = subscribers.length - eligible.length
+
+  if (dryRun) {
+    return { total: subscribers.length, sent: 0, failed: 0, skipped }
+  }
+
+  let sent = 0
+  let failed = 0
+  for (const r of eligible) {
+    try {
+      const { subject, html } = renderNewsletterVol01({
+        email: r.email,
+        unsubscribeToken: r.unsubscribe_token,
+      })
+      const result = await sendEmail({
+        to: r.email,
+        subject,
+        html,
+        tag: 'newsletter-vol-01',
+        // 같은 (이슈, 이메일) 페어로 24h 내 중복 발송 방지.
+        idempotencyKey: `newsletter-vol-01:${r.email}`,
+      })
+      if (result.ok) {
+        sent += 1
+        if (markSent) {
+          await supabase
+            .from('newsletter_subscribers')
+            .update({ last_sent_at: new Date().toISOString() })
+            .eq('id', r.id)
+        }
+      } else {
+        failed += 1
+      }
+    } catch {
+      failed += 1
+    }
+    // Resend free tier 는 2 rps — 안전하게 250ms 텀.
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+
+  return { total: subscribers.length, sent, failed, skipped }
 }
 
 /**
