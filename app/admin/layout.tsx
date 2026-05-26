@@ -64,6 +64,7 @@ export default async function AdminLayout({
   <NavItem href="/admin/subscriptions" icon="🔁" label="정기배송" />
   <NavItem href="/admin/subscriptions/charges" icon="💳" label="자동결제 이력" />
   <NavItem href="/admin/refunds" icon="↩️" label="환불 관리" />
+  <NavItem href="/admin/finance" icon="💰" label="결제 원장" />
   <NavItem href="/admin/reports" icon="📈" label="매출 리포트" />
   <NavItem href="/admin/cohort" icon="🧪" label="Cohort 분석" />
   <NavItem href="/admin/beta-cohort" icon="🧬" label="베타 Cohort" />

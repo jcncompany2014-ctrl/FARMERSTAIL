@@ -32,7 +32,8 @@
     "app/api/cron/first-box-checkin/route.ts": { "maxDuration": 120 },
     "app/api/cron/push-lifecycle/route.ts": { "maxDuration": 120 },
     "app/api/cron/inventory-forecast/route.ts": { "maxDuration": 120 },
-    "app/api/cron/intervention-alerts/route.ts": { "maxDuration": 180 }
+    "app/api/cron/intervention-alerts/route.ts": { "maxDuration": 180 },
+    "app/api/cron/payment-ledger-reconcile/route.ts": { "maxDuration": 120 }
   },
   "crons": [
     {
@@ -158,6 +159,10 @@
     {
       "path": "/api/cron/intervention-alerts",
       "schedule": "0 9 * * 2"
+    },
+    {
+      "path": "/api/cron/payment-ledger-reconcile",
+      "schedule": "0 3 * * 0"
     }
   ]
 }
