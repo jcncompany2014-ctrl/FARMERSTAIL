@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import OrderStatusControl from './OrderStatusControl'
 import ShippingControl from './ShippingControl'
+import PaymentEventTimeline from './PaymentEventTimeline'
 import { carrierLabel } from '@/lib/tracking'
 
 export const dynamic = 'force-dynamic'
@@ -261,6 +262,9 @@ export default async function AdminOrderDetailPage({
               </dl>
             </section>
           )}
+
+          {/* R63 — 결제 원장 시계열 (CS 도구) */}
+          <PaymentEventTimeline orderId={id} />
 
           {/* 메타 정보 */}
           <section className="p-6 rounded-2xl bg-white border border-rule">
