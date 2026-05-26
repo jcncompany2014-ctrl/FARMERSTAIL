@@ -199,33 +199,34 @@ WHERE table_schema='public'
 ## 3. 외부 서비스 사전 설정
 
 ### Toss Payments
-- [ ] 가맹점 등록 완료 (사업자등록증 제출)
-- [ ] 운영 클라이언트키 / 시크릿키 발급 (test_*, live_* 구분)
-- [ ] 결제 webhook URL 등록: `https://[domain]/api/payments/webhook`
+- [x] 가맹점 등록 완료 (사업자등록증 제출) — 2026-05-26
+- [ ] 운영 클라이언트키 / 시크릿키 발급 (test_*, live_* 구분) — 심사 결과 대기 (1~3일)
+- [ ] 결제 webhook URL 등록: `https://www.farmerstail.kr/api/payments/webhook`
 - [ ] 환불/취소 권한 활성화
 - [ ] **정기결제(빌링) 사용 신청** — 자동결제 cron 동작에 필수
 - [ ] billingAuth successUrl / failUrl 등록:
-      `https://[domain]/subscribe/billing-success`
-      `https://[domain]/subscribe/billing-fail`
+      `https://www.farmerstail.kr/subscribe/billing-success`
+      `https://www.farmerstail.kr/subscribe/billing-fail`
 
 ### Resend
-- [ ] 도메인 추가 (`farmerstail.kr`)
-- [ ] DKIM/SPF/DMARC DNS 레코드 등록 + 검증 통과
-- [ ] `EMAIL_FROM` 의 도메인이 인증된 도메인과 일치 확인
+- [x] 도메인 추가 (`farmerstail.kr`) — 2026-05-26 Verified
+- [x] DKIM/SPF/DMARC DNS 레코드 등록 + 검증 통과 — 모두 Verified
+- [x] `EMAIL_FROM` 의 도메인이 인증된 도메인과 일치 확인 — `파머스테일 <no-reply@farmerstail.kr>`
 
 ### Sentry
-- [ ] 프로젝트 생성 (Next.js 템플릿)
-- [ ] DSN 복사 → env
-- [ ] Auth Token 발급 (source map 업로드용 권한)
-- [ ] Slack/이메일 알림 채널 연동
+- [x] 프로젝트 생성 (Next.js 템플릿) — farmerstail-app
+- [x] DSN 복사 → env — `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN`
+- [x] Auth Token 발급 (source map 업로드용 권한) — `SENTRY_AUTH_TOKEN`
+- [ ] Slack/이메일 알림 채널 연동 — 이메일은 default ON. Slack 은 베타 사용자 후
 
 ### Supabase
-- [ ] RLS 정책 활성 확인 (`auth.uid()` 기반)
-- [ ] Storage 버킷 권한 (products / blog / events / dog-photos)
-- [ ] Email Auth → 비밀번호 재설정 메일 템플릿 (Supabase 측에서 설정)
-- [ ] OAuth 카카오 provider 등록 (redirect URL: `https://[domain]/auth/callback`)
-- [ ] **OAuth Apple provider 등록** — Apple Guideline 4.8 SIWA 충족
+- [ ] RLS 정책 활성 확인 (`auth.uid()` 기반) — 41+ migration 적용, 개별 정책 audit 필요
+- [ ] Storage 버킷 권한 (products / blog / events / dog-photos) — 점검 필요
+- [ ] Email Auth → 비밀번호 재설정 메일 템플릿 (Supabase 측에서 설정) — 한글 템플릿 USER_ACTIONS.md 참조
+- [ ] OAuth 카카오 provider 등록 (redirect URL: `https://www.farmerstail.kr/auth/callback`) — 카페24 락 해제 후
+- [ ] **OAuth Apple provider 등록** — Apple Guideline 4.8 SIWA 충족 (앱스토어 출시 시점)
       필요 항목: Services ID, Team ID, Key ID, .p8 key 파일
+      현재는 `NEXT_PUBLIC_DISABLE_SIWA=1` 으로 임시 비활성
 
 ### Apple Developer (iOS App Store 출시 시)
 - [ ] Apple Developer Program 가입 ($99/yr)
