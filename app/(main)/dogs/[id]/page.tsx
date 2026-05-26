@@ -7,6 +7,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DogDetailClient from './DogDetailClient'
+import InterventionWindowCard from '@/components/dog/InterventionWindowCard'
 import type {
   Dog,
   WeightLog,
@@ -105,13 +106,17 @@ export default async function DogDetailPage({
   }
 
   return (
-    <DogDetailClient
-      dog={dog}
-      ownerName={ownerName}
-      initialWeightLogs={initialWeightLogs}
-      currentFormula={currentFormula}
-      checkinStatus={checkinStatus}
-      subscriptions={subscriptions}
-    />
+    <>
+      {/* XL-4 (#13) — 모듈 G 개입 윈도우 카드. urgent/watch 일 때만 렌더. */}
+      <InterventionWindowCard dogId={dogId} />
+      <DogDetailClient
+        dog={dog}
+        ownerName={ownerName}
+        initialWeightLogs={initialWeightLogs}
+        currentFormula={currentFormula}
+        checkinStatus={checkinStatus}
+        subscriptions={subscriptions}
+      />
+    </>
   )
 }

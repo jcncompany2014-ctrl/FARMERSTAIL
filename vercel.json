@@ -31,7 +31,8 @@
     "app/api/cron/refund-retry/route.ts": { "maxDuration": 120 },
     "app/api/cron/first-box-checkin/route.ts": { "maxDuration": 120 },
     "app/api/cron/push-lifecycle/route.ts": { "maxDuration": 120 },
-    "app/api/cron/inventory-forecast/route.ts": { "maxDuration": 120 }
+    "app/api/cron/inventory-forecast/route.ts": { "maxDuration": 120 },
+    "app/api/cron/intervention-alerts/route.ts": { "maxDuration": 180 }
   },
   "crons": [
     {
@@ -153,6 +154,10 @@
     {
       "path": "/api/cron/inventory-forecast",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/intervention-alerts",
+      "schedule": "0 9 * * 2"
     }
   ]
 }
