@@ -666,6 +666,23 @@ export default function DogDetailClient({
             </div>
           </div>
         </Link>
+        {/* XL-3 (#12) — 30일 식단 시뮬레이션 (모듈 F). */}
+        <Link
+          href={`/dogs/${dog.id}/simulate`}
+          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
+        >
+          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
+            <TrendingUp className="w-4 h-4 text-moss" strokeWidth={2} />
+          </div>
+          <div className="flex-1 text-left">
+            <div className="text-[12px] font-black text-text">
+              식단 시뮬레이션
+            </div>
+            <div className="text-[10px] text-muted mt-0.5">
+              다른 식단·운동의 30일 후 변화 예상
+            </div>
+          </div>
+        </Link>
       </section>
 
       {/* Phase D7.3 — 가족 멤버 + 초대. */}
