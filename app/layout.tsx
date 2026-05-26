@@ -153,6 +153,14 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  // 검색엔진 소유권 인증 — Google 은 DNS TXT (카페24 DNS) 로 인증되어 있으므로
+  // 여기에는 메타 태그 방식 인증만 추가. 네이버 서치어드바이저는 DNS TXT 옵션이
+  // 없어서 meta 태그 필수. 추후 Bing / Yandex 등 추가 시 같은 패턴으로.
+  verification: {
+    other: {
+      "naver-site-verification": "07c56c3989f7a5031e8658da749c47bb7f731819",
+    },
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
