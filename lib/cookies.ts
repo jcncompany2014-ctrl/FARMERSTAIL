@@ -90,6 +90,8 @@ export function applyConsentToTrackers(c: CookieConsent) {
     gtag?: (...args: unknown[]) => void
     fbq?: (...args: unknown[]) => void
     dataLayer?: unknown[]
+    // Microsoft Clarity — analytics 카테고리 (heatmap / session recording).
+    clarity?: (...args: unknown[]) => void
   }
   try {
     w.gtag?.('consent', 'update', {
@@ -103,6 +105,13 @@ export function applyConsentToTrackers(c: CookieConsent) {
   }
   try {
     w.fbq?.('consent', c.marketing ? 'grant' : 'revoke')
+  } catch {
+    /* noop */
+  }
+  // Clarity 는 GA4 와 다르게 boolean 한 개만 받음. analytics 동의 시
+  // 풀 추적 (heatmap + session recording + page metrics) 활성화.
+  try {
+    w.clarity?.('consent', c.analytics)
   } catch {
     /* noop */
   }

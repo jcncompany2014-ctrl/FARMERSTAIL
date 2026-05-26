@@ -18,6 +18,9 @@ import Script from 'next/script'
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
+// Microsoft Clarity — 무료 heatmap / 세션 녹화. analytics 카테고리.
+// 셋업: Bing Webmaster Tools → Microsoft Clarity → Project ID 가져옴.
+const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID
 
 // Consent 기본값 — 모든 tracker 호출보다 먼저 실행되도록 같은 Script 안에서
 // 순차 실행. afterInteractive 로도 순서는 보장되며 (GA4 init 자체가
@@ -103,6 +106,27 @@ export default function AnalyticsScripts() {
             />
           </noscript>
         </>
+      )}
+      {CLARITY_ID && (
+        <Script
+          id="ms-clarity-init"
+          strategy="afterInteractive"
+          // Clarity 는 자체 consent API 를 사용한다. 스크립트는 로드하되 기본을
+          // denied 로 설정 → analytics 동의 시 lib/cookies.ts 가
+          // clarity('consent', true) 로 풀어준다. ?ref=bwt 는 Bing Webmaster
+          // Tools 셋업 식별자 (분석에는 영향 없음).
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i+"?ref=bwt";
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+              })(window, document, "clarity", "script", "${CLARITY_ID}");
+              // 기본 denied — ConsentBootstrap 이 저장된 동의를 흘려준다.
+              window.clarity && window.clarity('consent', false);
+            `,
+          }}
+        />
       )}
     </>
   )
