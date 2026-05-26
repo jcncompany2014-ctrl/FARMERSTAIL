@@ -21,6 +21,24 @@ git push origin main            # push (Vercel 자동 배포 트리거됨)
 
 Push 후 2~3분 안에 Vercel 새 배포 Ready. 그 뒤 본 문서의 액션 진행.
 
+### 어젯밤 작업 요약 (자고 있는 동안)
+
+총 **10+ commit** 누적. 주요 변경:
+
+1. `docs/USER_ACTIONS.md` 신규 — 이 문서
+2. `app/admin/products/ProductForm.tsx` — placeholder "(주)강진팜" → "강원평창팜"
+3. `lib/email/templates/newsletter-welcome.ts` 신규 — 구독 confirm 후 자동 환영 메일
+4. `lib/email/templates/newsletter-vol-01.ts` 신규 — 첫 정기 뉴스레터 (BCS 자가 체크)
+5. `scripts/send-newsletter-vol-01.ts` 신규 — 수동 발송 스크립트
+6. `supabase/seed/blog-posts.sql` 신규 — 블로그 글 5편 (BCS / 화식 FAQ / 단백질 알레르기 / 글루코사민 / 정기배송 vs 단품)
+7. `docs/CHEATSHEET.md` 신규 — 운영 1페이지 명령어 모음
+8. Audit 결과 자잘한 fix — 도메인 오타 (vet-report `.com` → `.kr`), 이메일 일관성 (`hello@` → `story@`), URL canonical 통일 (10곳 fallback `www.` 추가)
+9. `app/api/payments/webhook/route.ts` + `app/api/payments/confirm/route.ts` — 결제 실패 시 payment_events 원장 wiring 보강 (audit G1 — CRITICAL)
+10. `app/(main)/layout.tsx` — robots noindex 가드 추가 (50+ 인증 페이지 일괄 보호)
+11. `eslint.config.mjs` — _ prefix unused vars 의도 ignore 패턴
+12. `.env.example` — 누락된 13개 env 추가 (APNS/FCM/RESEND_WEBHOOK_SECRET 등)
+13. `LAUNCH_CHECKLIST.md` — 진행 상황 체크박스 업데이트
+
 ---
 
 ## 🔴 Tier 1 — 출시 전 무조건 (이번 주 안에)
@@ -358,6 +376,53 @@ SELECT COUNT(*) FROM public.blog_posts WHERE is_published = true;
 - [ ] VAPID 키 회전 (보안 — 푸시 사용 결정 후)
 - [ ] Resend 도메인 reputation 점검
 - [ ] Supabase 사용량 / 비용 점검 → 필요 시 plan 업그레이드
+
+---
+
+## 🤔 사용자 결정 사항 (Audit 발견)
+
+자고 일어났을 때 시간 날 때 결정하면 됨. 결정 후 알려주면 내가 반영.
+
+### 1. 가격 표기: ₩ vs 원 통일
+- 현재 v3 컴포넌트는 `₩5,000` 사용
+- 사업자 정보 / 이벤트 / 무료배송 안내는 `5,000원` 사용
+- 일관성 X (28+ 파일 "원", 4 파일 "₩")
+- **추천:** 한글 `5,000원` 으로 통일 (한국 사용자 가독성 더 좋음)
+- 다른 선택지: v3 톤 통일을 위해 `₩` 사용
+
+### 2. 사용자 페이지 `confirm()` 4곳 → useConfirm Modal 마이그
+- `EliminationDietClient.tsx:162` (8주 elimination diet 시작)
+- `DogFamilyMembers.tsx:134, 150` (가족 멤버 내보내기 / 초대 취소)
+- `VetShareButton.tsx:62` (수의사 공유 링크 취소)
+- 브라우저 native `confirm()` 대신 v3 Modal 사용 — UX 일관성
+- **결정:** 처리할까? (작은 작업, 1-2시간)
+
+### 3. `any` 타입 잔존 (10 파일)
+- 주로 Supabase row 처리 (`map((it: any) =>`)
+- 타입 안전성 손실이지만 큰 위험 X
+- **결정:** 점진 정리할까 vs 미루기 (web/app 공유 영역이라 신중)
+
+### 4. "오류" → 부드러운 표현 (30+ 파일)
+- voice-guidelines §2 권장
+- 큰 sweep
+- **결정:** 출시 후 점진 처리 권장
+
+### 5. 큰 client component 분할 (500+ lines)
+- `app/page.tsx` 2153줄 (server라면 OK)
+- `app/(auth)/signup/page.tsx` 1241줄 (⛔ web/app 공유 영역, 시각 변경 X)
+- `app/(main)/dogs/[id]/analysis/AnalysisView.tsx` 1161줄 (app-only)
+- **결정:** PMF 후 별도 R-cycle
+
+### 6. next.config.ts Supabase 프로젝트 ID 하드코딩
+- `adynmnrzffidoilnxutg.supabase.co` fallback에 박힘
+- 코드 공개 시 정찰 정보 노출
+- **결정:** dev fallback 의도라면 별도 dev project ID 분리하거나 throw 권장
+
+### 7. 정기배송 cancel 시 Toss billing key 정리
+- 사용자가 정기배송 해지 시 `status='cancelled'` 만 UPDATE
+- `billing_key` / `billing_customer_key` 정리 + Toss billing 해지 호출 누락
+- R71 이후 재발급 흐름 있어 큰 문제는 아님
+- **결정:** PMF 후 정리 권장
 
 ---
 
