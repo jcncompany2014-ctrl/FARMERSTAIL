@@ -134,6 +134,52 @@ Push 후 2~3분 안에 Vercel 새 배포 Ready. 그 뒤 본 문서의 액션 진
 
 ---
 
+## 📝 블로그 5편 적용 (SQL 1회 실행)
+
+블로그 콘텐츠 5편이 미리 작성됨 (`supabase/seed/blog-posts.sql`). 한 번만 SQL 실행하면 `/blog` 인덱스에 등록됨.
+
+### 5편 목록
+
+| # | slug | 카테고리 | 주제 |
+|---|---|---|---|
+| 1 | `bcs-body-condition-score-5-stages` | 건강 | BCS 9단계 체형 점수 + 견종별 평가 팁 |
+| 2 | `starting-fresh-cooked-food-faq` | 영양 | 화식 입문 FAQ 5가지 (AAFCO/FEDIAF 기반) |
+| 3 | `protein-allergy-chicken-beef-salmon` | 영양 | 단백질 알러지 + 로테이션 전략 |
+| 4 | `senior-dog-joint-care-glucosamine-evidence` | 건강 | 글루코사민 임상 근거 + 효과 조건 |
+| 5 | `subscription-vs-single-purchase-guide` | 가이드 | 정기배송 vs 단품 비용 비교 |
+
+전부 1700~2100자, 학술 출처 명시 (WSAVA / AAFCO / FEDIAF 등), voice guidelines 준수.
+
+### 적용 방법 (1분)
+
+**방법 A — Supabase SQL Editor (가장 쉬움)**
+1. https://app.supabase.com/project/adynmnrzffidoilnxutg/sql 접속
+2. 파일 열기: `C:\Users\A\Desktop\projects\farmerstail-app\supabase\seed\blog-posts.sql`
+3. 전체 내용 복사 → SQL Editor에 붙여넣기 → **RUN**
+4. 결과: `INSERT 0 5` 같은 메시지 = 5편 등록됨
+
+**방법 B — migration 으로 영구 적용 (재배포 안전)**
+```powershell
+cd C:\Users\A\Desktop\projects\farmerstail-app
+Copy-Item supabase\seed\blog-posts.sql supabase\migrations\20260526000004_seed_blog_posts.sql
+# 그 다음 git commit + push (Vercel 배포 시 자동 적용 X — supabase db push 별도 필요)
+```
+
+### 적용 후 검증
+
+```sql
+SELECT COUNT(*) FROM public.blog_posts WHERE is_published = true;
+-- 결과: 5 이상이면 성공
+```
+
+또는 직접 https://www.farmerstail.kr/blog 접속해서 5개 글 보이는지.
+
+### 커버 이미지 교체 (선택)
+- 현재 임시 Unsplash CC-0 이미지 사용
+- `/admin/blog/{id}` 편집 화면에서 `blog-covers` 버킷에 자체 이미지 업로드 후 교체 권장
+
+---
+
 ## 📧 뉴스레터 발송 (자동 + 수동)
 
 ### 자동 — 환영 메일 (사용자 액션 0)
