@@ -15,7 +15,6 @@ import {
   simulateTrajectory,
   defaultDietScenarios,
   type DietSimBaseline,
-  type DietSimScenario,
 } from './diet-simulation.ts'
 
 function baseline(overrides: Partial<DietSimBaseline> = {}): DietSimBaseline {
