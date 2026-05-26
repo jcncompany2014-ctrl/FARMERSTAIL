@@ -281,6 +281,26 @@ export async function POST(req: Request) {
     )
   }
 
+  // R60 — 결제 원장에 event 한 줄 insert. update 성공 후 즉시 기록.
+  // best-effort: 실패해도 결제 흐름 막지 X (Sentry 에 잡힘).
+  {
+    const { recordPaymentEvent } = await import('@/lib/payment-events')
+    await recordPaymentEvent(supabase, {
+      orderId: order.id,
+      paymentKey,
+      eventType: isActuallyPaid ? 'paid' : 'webhook_received',
+      amount: isActuallyPaid ? amount : 0,
+      prevStatus: order.payment_status,
+      newStatus: isActuallyPaid ? 'paid' : 'pending',
+      source: 'user_checkout',
+      actorUserId: user.id,
+      metadata: {
+        method: payment.method ?? null,
+        isWaitingDeposit,
+      },
+    })
+  }
+
   // 5) 포인트 적립 — 실제 결제 완료(DONE)일 때만. 가상계좌는 입금 웹훅에서 처리.
   if (isActuallyPaid && order.points_earned && order.points_earned > 0) {
     await creditPoints(supabase, {

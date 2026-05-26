@@ -152,6 +152,21 @@ export async function POST(req: Request) {
         })
         .eq('id', order.id)
 
+      // R60 — 결제 원장 event. 가상계좌 입금 완료 또는 confirm 누락 케이스.
+      {
+        const { recordPaymentEvent } = await import('@/lib/payment-events')
+        await recordPaymentEvent(supabase, {
+          orderId: order.id,
+          paymentKey,
+          eventType: 'paid',
+          amount: payment.totalAmount,
+          prevStatus: order.payment_status,
+          newStatus: 'paid',
+          source: 'toss_webhook',
+          metadata: { method: payment.method ?? null, approvedAt: payment.approvedAt ?? null },
+        })
+      }
+
       // Award points if the order has earn amount and we haven't credited yet.
       // 멱등성 체크 (audit 2-4 강화):
       //   1) DB: partial unique index (user_id, reference_type, reference_id)

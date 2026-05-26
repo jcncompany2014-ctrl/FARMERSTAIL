@@ -256,6 +256,26 @@ export async function POST(
     is_partial: !willBecomeFullyCancelled,
   })
 
+  // R60 — 결제 원장 event. 부분 환불 (-cancelAmount) 또는 전량 환불.
+  {
+    const { recordPaymentEvent } = await import('@/lib/payment-events')
+    await recordPaymentEvent(admin, {
+      orderId: order.id,
+      paymentKey: order.payment_key ?? null,
+      eventType: willBecomeFullyCancelled ? 'refunded' : 'partial_refunded',
+      amount: -cancelAmount,
+      prevStatus: order.payment_status,
+      newStatus: willBecomeFullyCancelled ? 'cancelled' : 'partial_refund',
+      source: 'partial_cancel',
+      actorUserId: user.id,
+      metadata: {
+        reason: reason ?? null,
+        itemIds,
+        tossTransactionKey,
+      },
+    })
+  }
+
   // 9) 이메일 안내 — fire-and-forget.
   notifyOrderCancelled(supabase, {
     orderId: order.id,

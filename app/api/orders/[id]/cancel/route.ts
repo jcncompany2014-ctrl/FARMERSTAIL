@@ -154,6 +154,22 @@ export async function POST(
     .eq('id', order.id)
     .eq('user_id', user.id)
 
+  // R60 — 결제 원장 event. 환불은 음수 amount (sum=0 = 완전 환불).
+  {
+    const { recordPaymentEvent } = await import('@/lib/payment-events')
+    await recordPaymentEvent(supabase, {
+      orderId: order.id,
+      paymentKey: order.payment_key ?? null,
+      eventType: refundAmount > 0 ? 'refunded' : 'cancel_requested',
+      amount: refundAmount > 0 ? -refundAmount : 0,
+      prevStatus: order.payment_status,
+      newStatus: 'cancelled',
+      source: 'user_cancel',
+      actorUserId: user.id,
+      metadata: { reason: body.reason || '고객 요청' },
+    })
+  }
+
   // 2b) 항목 단위 cancelled_at 마킹 + stock 복원 + refunds audit row.
   // RLS 우회 필요 작업 (stock RPC + refunds insert) 은 admin client.
   // 본인 주문 검증은 위에서 이미 완료.
