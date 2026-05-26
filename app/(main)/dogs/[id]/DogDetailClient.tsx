@@ -31,6 +31,7 @@ import {
   Bell,
   Sparkles,
   PartyPopper,
+  Stethoscope,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -645,6 +646,23 @@ export default function DogDetailClient({
             </div>
             <div className="text-[10px] text-muted mt-0.5">
               사료·병원·간식 비용을 한 곳에서
+            </div>
+          </div>
+        </Link>
+        {/* XL-2 (#14) — 수의사 진료 보조 보고서 (모듈 H). */}
+        <Link
+          href={`/dogs/${dog.id}/vet-report`}
+          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
+        >
+          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
+            <Stethoscope className="w-4 h-4 text-ink" strokeWidth={2} />
+          </div>
+          <div className="flex-1 text-left">
+            <div className="text-[12px] font-black text-text">
+              수의사 보고서
+            </div>
+            <div className="text-[10px] text-muted mt-0.5">
+              병원 갈 때 인쇄해서 가져가는 진료 요약
             </div>
           </div>
         </Link>
