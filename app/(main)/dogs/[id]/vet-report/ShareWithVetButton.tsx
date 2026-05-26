@@ -101,22 +101,25 @@ export default function ShareWithVetButton({ dogId }: { dogId: string }) {
     )
   }
 
+  // R57 — container p-3→p-4, input/button padding 늘림, kicker→input mb-1.5
+  // → mb-2 (6→8), input→만료 안내 mb-2 → mb-2.5.
   return (
-    <div className="no-print rounded border border-line bg-paperHi p-3 max-w-md">
-      <p className="text-[10px] uppercase tracking-widest font-semibold text-mute mb-1.5">
+    <div className="no-print rounded border border-line bg-paperHi p-4 max-w-md">
+      <p className="text-[10px] uppercase tracking-widest font-semibold text-mute mb-2">
         공유 링크 (14일 만료)
       </p>
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-2.5">
         <input
           readOnly
           value={state.url}
-          className="flex-1 rounded border border-line bg-paper px-2.5 py-1.5 text-[11px] font-mono text-ink"
+          className="flex-1 rounded border border-line bg-paper px-3 py-2 text-[11px] font-mono text-ink"
           onClick={(e) => e.currentTarget.select()}
         />
         <button
           type="button"
           onClick={copy}
-          className="rounded border border-line px-3 py-1.5 text-[11px] font-semibold hover:border-ink active:scale-95"
+          aria-label="링크 복사"
+          className="rounded border border-line px-3 py-2 text-[11px] font-semibold hover:border-ink active:scale-95"
         >
           {state.copied ? (
             <Check className="w-3.5 h-3.5 inline" strokeWidth={2.5} />
@@ -129,13 +132,14 @@ export default function ShareWithVetButton({ dogId }: { dogId: string }) {
             <button
               type="button"
               onClick={nativeShare}
-              className="rounded border border-line px-3 py-1.5 text-[11px] font-semibold hover:border-ink active:scale-95"
+              aria-label="시스템 공유"
+              className="rounded border border-line px-3 py-2 text-[11px] font-semibold hover:border-ink active:scale-95"
             >
               <Share2 className="w-3.5 h-3.5 inline" strokeWidth={2.5} />
             </button>
           )}
       </div>
-      <p className="text-[10px] text-mute">
+      <p className="text-[10px] text-mute leading-relaxed">
         만료:{' '}
         {state.expiresAt
           ? new Date(state.expiresAt).toLocaleDateString('ko-KR')

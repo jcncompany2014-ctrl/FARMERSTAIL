@@ -177,9 +177,11 @@ function NutrientField({
     spec.aafcoMax != null && numeric != null && numeric > spec.aafcoMax
   const flag = below || above
 
+  // R57 — label↔input 사이 mb-1 (4px) → mb-1.5 (6px). 38개 입력 필드라
+  // 누적되면 빽빽해 보이던 문제 완화. hint mt-1 (4px) → mt-1.5 (6px).
   return (
     <label className="block">
-      <div className="flex items-baseline justify-between mb-1">
+      <div className="flex items-baseline justify-between mb-1.5">
         <span className="text-sm text-ink">{spec.label}</span>
         <span className="text-xs text-mute">
           {spec.aafcoMin != null && `min ${spec.aafcoMin}`}
@@ -202,7 +204,7 @@ function NutrientField({
         <span className="text-xs text-mute w-14 text-right">{spec.unit}</span>
       </div>
       {spec.hint && (
-        <div className="mt-1 text-xs text-mute leading-snug">{spec.hint}</div>
+        <div className="mt-1.5 text-xs text-mute leading-snug">{spec.hint}</div>
       )}
     </label>
   )

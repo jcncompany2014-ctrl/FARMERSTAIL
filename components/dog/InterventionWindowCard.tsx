@@ -65,7 +65,7 @@ export default function InterventionWindowCard({ dogId, window }: Props) {
               (체중 추세 분석)
             </span>
           </div>
-          <p className="text-[13.5px] font-semibold text-ink mt-1 leading-snug">
+          <p className="text-[13.5px] font-semibold text-ink mt-1.5 leading-snug">
             {window.userMessage}
           </p>
           <div className="text-[10.5px] text-mute mt-1.5">

@@ -66,7 +66,7 @@ export default function SimulateClient({ dogName, baseline }: Props) {
         <h2 className="text-[11px] uppercase tracking-widest text-mute font-semibold mb-2">
           시나리오 선택
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {scenarios.map((s) => (
             <button
               key={s.id}
@@ -202,12 +202,14 @@ export default function SimulateClient({ dogName, baseline }: Props) {
 // ─── sub components ───
 
 function Stat({ label, value }: { label: string; value: string }) {
+  // R57 — label↔value 사이 mt-0.5 (2px) 추가. baseline 요약 4개 stat 이
+  // 그리드 안에서 한 칸씩 차지 — label-value 따닥붙음 방지.
   return (
     <div>
       <div className="text-[10px] uppercase tracking-wider text-mute">
         {label}
       </div>
-      <div className="text-base font-semibold text-ink">{value}</div>
+      <div className="text-base font-semibold text-ink mt-0.5">{value}</div>
     </div>
   )
 }
@@ -221,12 +223,13 @@ function ResultStat({
   value: string
   delta: string
 }) {
+  // R57 — label↔value mt-0.5 추가.
   return (
     <div>
       <div className="text-[10px] uppercase tracking-wider text-mute">
         {label}
       </div>
-      <div className="text-lg font-semibold text-ink">{value}</div>
+      <div className="text-lg font-semibold text-ink mt-0.5">{value}</div>
       <div className="text-[11px] text-mute mt-0.5">{delta}</div>
     </div>
   )

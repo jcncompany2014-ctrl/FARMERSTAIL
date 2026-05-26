@@ -249,27 +249,27 @@ export default async function ProductInsightsPage({
         <table className="w-full text-xs">
           <thead className="text-mute">
             <tr className="border-b border-line">
-              <th className="text-left py-2 px-2 font-semibold">User</th>
-              <th className="text-right py-2 px-2 font-semibold">총 LTV</th>
-              <th className="text-right py-2 px-2 font-semibold">이 제품 매출</th>
-              <th className="text-right py-2 px-2 font-semibold">주문 수</th>
-              <th className="text-right py-2 px-2 font-semibold">첫 구매</th>
+              <th className="text-left py-2.5 px-3 font-semibold">User</th>
+              <th className="text-right py-2.5 px-3 font-semibold">총 LTV</th>
+              <th className="text-right py-2.5 px-3 font-semibold">이 제품 매출</th>
+              <th className="text-right py-2.5 px-3 font-semibold">주문 수</th>
+              <th className="text-right py-2.5 px-3 font-semibold">첫 구매</th>
             </tr>
           </thead>
           <tbody>
             {topBuyers.map((b) => (
               <tr key={b.userId} className="border-b border-line/60">
-                <td className="py-2 px-2 text-ink font-mono text-[10.5px]">
+                <td className="py-2.5 px-3 text-ink font-mono text-[10.5px]">
                   {b.userId.slice(0, 8)}…
                 </td>
-                <td className="py-2 px-2 text-right">
+                <td className="py-2.5 px-3 text-right">
                   ₩{b.totalRevenue.toLocaleString()}
                 </td>
-                <td className="py-2 px-2 text-right">
+                <td className="py-2.5 px-3 text-right">
                   ₩{b.productRevenue.toLocaleString()}
                 </td>
-                <td className="py-2 px-2 text-right">{b.orderCount}</td>
-                <td className="py-2 px-2 text-right text-mute">
+                <td className="py-2.5 px-3 text-right">{b.orderCount}</td>
+                <td className="py-2.5 px-3 text-right text-mute">
                   {b.firstOrderAt
                     ? new Date(b.firstOrderAt).toLocaleDateString('ko-KR')
                     : '—'}
@@ -297,13 +297,15 @@ function Kpi({
   value: string
   hint?: string
 }) {
+  // R57 — KPI 카드 padding p-3 → p-4 (16px), label-value mt-1 → mt-1.5,
+  // value-hint mt-1 → mt-1.5. text-xl(32px) 큰 텍스트라 mt-1 (4px) 은 좁음.
   return (
-    <div className="rounded border border-line p-3">
+    <div className="rounded border border-line p-4">
       <div className="text-[10px] uppercase tracking-wider text-mute font-semibold">
         {label}
       </div>
-      <div className="text-xl text-ink mt-1">{value}</div>
-      {hint && <div className="text-[10px] text-mute mt-1">{hint}</div>}
+      <div className="text-xl text-ink mt-1.5">{value}</div>
+      {hint && <div className="text-[10px] text-mute mt-1.5">{hint}</div>}
     </div>
   )
 }

@@ -234,7 +234,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
                 수의사 진료 보고서
               </h2>
             </div>
-            <div className="text-right text-[11px] text-mute">
+            <div className="text-right text-[11px] text-mute leading-relaxed">
               <div>발행: {todayStr}</div>
               <div>파머스테일 (Farmer&apos;s Tail)</div>
             </div>
@@ -363,7 +363,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
         <Section title="5. 알러지 · 만성 질환 (견주 보고)">
           <div className="grid grid-cols-2 gap-4 text-[11.5px]">
             <div>
-              <p className="font-semibold text-ink mb-1">알러지</p>
+              <p className="font-semibold text-ink mb-1.5">알러지</p>
               {answers.allergies && answers.allergies.length > 0 ? (
                 <ul className="list-disc pl-4 text-ink/80">
                   {answers.allergies.map((a, i) => (
@@ -375,7 +375,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
               )}
             </div>
             <div>
-              <p className="font-semibold text-ink mb-1">만성 질환</p>
+              <p className="font-semibold text-ink mb-1.5">만성 질환</p>
               {answers.chronicDiseases && answers.chronicDiseases.length > 0 ? (
                 <ul className="list-disc pl-4 text-ink/80">
                   {answers.chronicDiseases.map((c, i) => (
@@ -458,10 +458,10 @@ export default async function VetReportPage({ params }: { params: Params }) {
             <table className="w-full text-[11px] border-collapse">
               <thead>
                 <tr className="border-b border-ink/30 text-mute">
-                  <th className="text-left py-1.5 px-2 font-semibold">약물명</th>
-                  <th className="text-left py-1.5 px-2 font-semibold">용량</th>
-                  <th className="text-left py-1.5 px-2 font-semibold">스케줄</th>
-                  <th className="text-left py-1.5 px-2 font-semibold">비고</th>
+                  <th className="text-left py-2 px-2.5 font-semibold">약물명</th>
+                  <th className="text-left py-2 px-2.5 font-semibold">용량</th>
+                  <th className="text-left py-2 px-2.5 font-semibold">스케줄</th>
+                  <th className="text-left py-2 px-2.5 font-semibold">비고</th>
                 </tr>
               </thead>
               <tbody>
@@ -469,13 +469,13 @@ export default async function VetReportPage({ params }: { params: Params }) {
                   .filter((m) => m.enabled !== false)
                   .map((m) => (
                     <tr key={m.id} className="border-b border-ink/10">
-                      <td className="py-1.5 px-2 text-ink">{m.name}</td>
-                      <td className="py-1.5 px-2 text-ink/80">{m.dose ?? '—'}</td>
-                      <td className="py-1.5 px-2 text-ink/80">
+                      <td className="py-2 px-2.5 text-ink">{m.name}</td>
+                      <td className="py-2 px-2.5 text-ink/80">{m.dose ?? '—'}</td>
+                      <td className="py-2 px-2.5 text-ink/80">
                         {m.schedule ?? '—'}
                         {m.time ? ` · ${m.time}` : ''}
                       </td>
-                      <td className="py-1.5 px-2 text-ink/60 text-[10px]">
+                      <td className="py-2 px-2.5 text-ink/60 text-[10px]">
                         {m.note ?? '—'}
                       </td>
                     </tr>
@@ -533,9 +533,11 @@ function Section({
   title: string
   children: React.ReactNode
 }) {
+  // R57 — Section title 과 내용 사이 mb-2 → mb-2.5 (8→10px). border-bottom
+  // pb-1 → pb-1.5 로 약간 숨통. Section 간 mb-5 (20px) 유지.
   return (
     <section className="mb-5 print:break-inside-avoid">
-      <h3 className="text-[11px] font-bold uppercase tracking-widest text-ink/70 mb-2 border-b border-ink/20 pb-1">
+      <h3 className="text-[11px] font-bold uppercase tracking-widest text-ink/70 mb-2.5 border-b border-ink/20 pb-1.5">
         {title}
       </h3>
       {children}
@@ -544,8 +546,9 @@ function Section({
 }
 
 function Grid({ children }: { children: React.ReactNode }) {
+  // R57 — gap-y-2 (8px) → gap-y-3 (12px). 정보 카드 사이 숨 쉴 공간.
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2 text-[11.5px]">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3 text-[11.5px]">
       {children}
     </div>
   )
@@ -560,12 +563,14 @@ function Field({
   value: string
   hint?: string
 }) {
+  // R57 — label↔value 사이 mt-0.5 (2px) 추가. 라인 height 만으로 분리되던
+  // 두 줄이 따닥따닥 붙어보이던 문제 해소.
   return (
     <div>
       <div className="text-[9.5px] uppercase tracking-wider text-mute">
         {label}
       </div>
-      <div className="text-[12.5px] text-ink font-medium">{value}</div>
+      <div className="text-[12.5px] text-ink font-medium mt-0.5">{value}</div>
       {hint && <div className="text-[9.5px] text-mute mt-0.5">{hint}</div>}
     </div>
   )
