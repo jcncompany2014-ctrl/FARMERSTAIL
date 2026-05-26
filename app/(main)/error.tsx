@@ -69,6 +69,7 @@ export default function AppError({
         )}
         <div className="flex flex-col gap-2">
           <button
+            type="button"
             onClick={reset}
             className="inline-flex items-center justify-center gap-1.5 w-full py-3 rounded-full font-bold text-[13px] transition active:scale-[0.97]"
             style={{
