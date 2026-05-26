@@ -49,12 +49,16 @@ export const business: BusinessInfo = {
   brandName: '파머스테일',
   ceo: '안성민, 이준호',
   businessNumber: '243-06-03606',
-  // 통신판매업 신고 완료 후 NEXT_PUBLIC_MAIL_ORDER_NUMBER 환경변수에
-  // 'XXXX-인천연수-XXXX호' 형식으로 등록. 미등록 시 placeholder 노출.
+  // 통신판매업 신고증 — 인천연수구청장 발급, 2026-05-21.
+  // 신고번호는 NEXT_PUBLIC_MAIL_ORDER_NUMBER 로 override 가능 (변경 시
+  // 코드 redeploy 없이 Vercel env 만 갱신). 미설정 시 아래 default 사용.
   mailOrderNumber: mailOrderFromEnv && mailOrderFromEnv.length > 0
     ? mailOrderFromEnv
-    : placeholder,
-  address: '인천광역시 연수구 송도동 171, 121호',
+    : '제2026-인천연수구-1436호',
+  // 사업자등록증 / 통신판매업 신고증 상의 도로명 주소 — Toss 입점심사 시
+  // "홈페이지 하단 사업자등록증 상의 사업장 주소" 항목 검수 대상.
+  address:
+    '인천광역시 연수구 송도과학로28번길 50, 더샵 송도트리플타워 West 1층 121호',
   phone: '070-4066-1333',
   email: 'story@farmerstail.kr',
   // 카카오 채널 발급 후 NEXT_PUBLIC_KAKAO_CHANNEL_URL 에 등록.
