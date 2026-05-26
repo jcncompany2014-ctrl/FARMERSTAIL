@@ -13,6 +13,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
+// React 19 purity rule — Date.now() 를 컴포넌트 body 밖 helper 로.
+function oneYearAgoIsoString(): string {
+  return new Date(Date.now() - 365 * 86_400_000).toISOString()
+}
+
 /**
  * XL-2 (#14) — /dogs/[id]/vet-report
  *
@@ -83,61 +88,11 @@ export default async function VetReportPage({ params }: { params: Params }) {
   } = await supabase.auth.getUser()
   if (!user) redirect(`/login?next=/dogs/${dogId}/vet-report`)
 
-  const { data: dog } = await supabase
-    .from('dogs')
-    .select(
-      'id, name, breed, weight, age_value, age_unit, gender, neutered, photo_url, user_id',
-    )
-    .eq('id', dogId)
-    .maybeSingle()
-  if (!dog || dog.user_id !== user.id) notFound()
+  // R55 perf — 6 sequential fetch → 1 Promise.all (6 parallel).
+  // 이전: dog → profile → survey → analysis → weights → meds = 6 round-trip.
+  // 이후: 1 round-trip. dog 검증은 Promise.all 결과 받은 후 즉시 체크.
 
-  // 견주 정보 (profile)
-  const { data: owner } = await supabase
-    .from('profiles')
-    .select('name, phone')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  // 최신 survey
-  const { data: surveyRaw } = await supabase
-    .from('surveys')
-    .select('answers, created_at')
-    .eq('dog_id', dogId)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  const answers = ((surveyRaw?.answers as unknown) ?? {}) as SurveyAnswers
-
-  // 최신 analysis
-  const { data: analysisRaw } = await supabase
-    .from('analyses')
-    .select(
-      'id, created_at, mer, rer, stage, bcs_label, bcs_score, feed_g, protein_pct, fat_pct, carb_pct, fiber_pct, vet_consult_recommended, next_review_date, commentary',
-    )
-    .eq('dog_id', dogId)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  const analysis = analysisRaw as AnalysisRow | null
-
-  // 체중 추이 (12개월)
-  const oneYearAgo = new Date()
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
-  const { data: weightsRaw } = await supabase
-    .from('weight_logs')
-    .select('measured_at, weight')
-    .eq('dog_id', dogId)
-    .eq('user_id', user.id)
-    .gte('measured_at', oneYearAgo.toISOString())
-    .order('measured_at', { ascending: true })
-    .limit(60)
-  const weights = (weightsRaw ?? []) as WeightLog[]
-
-  // medications — table 명 dog_medications (R15-B).
-  // generated types 가 아직 dog_medications 미포함 → 명시 cast.
+  // medications — generated types 가 아직 dog_medications 미포함 → cast.
   const medsClient = supabase.from('dog_medications' as never) as unknown as {
     select: (cols: string) => {
       eq: (col: string, val: string) => {
@@ -157,13 +112,68 @@ export default async function VetReportPage({ params }: { params: Params }) {
       }
     }
   }
-  const { data: medsRaw } = await medsClient
-    .select('id, name, dose, schedule, time, note, enabled')
-    .eq('dog_id', dogId)
-    .eq('user_id', user.id)
-    .order('enabled', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(20)
+
+  const oneYearAgoIso = oneYearAgoIsoString()
+
+  const [
+    { data: dog },
+    { data: owner },
+    { data: surveyRaw },
+    { data: analysisRaw },
+    { data: weightsRaw },
+    { data: medsRaw },
+  ] = await Promise.all([
+    supabase
+      .from('dogs')
+      .select(
+        'id, name, breed, weight, age_value, age_unit, gender, neutered, photo_url, user_id',
+      )
+      .eq('id', dogId)
+      .maybeSingle(),
+    supabase
+      .from('profiles')
+      .select('name, phone')
+      .eq('id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('surveys')
+      .select('answers, created_at')
+      .eq('dog_id', dogId)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('analyses')
+      .select(
+        'id, created_at, mer, rer, stage, bcs_label, bcs_score, feed_g, protein_pct, fat_pct, carb_pct, fiber_pct, vet_consult_recommended, next_review_date, commentary',
+      )
+      .eq('dog_id', dogId)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('weight_logs')
+      .select('measured_at, weight')
+      .eq('dog_id', dogId)
+      .eq('user_id', user.id)
+      .gte('measured_at', oneYearAgoIso)
+      .order('measured_at', { ascending: true })
+      .limit(60),
+    medsClient
+      .select('id, name, dose, schedule, time, note, enabled')
+      .eq('dog_id', dogId)
+      .eq('user_id', user.id)
+      .order('enabled', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(20),
+  ])
+  if (!dog || dog.user_id !== user.id) notFound()
+
+  const answers = ((surveyRaw?.answers as unknown) ?? {}) as SurveyAnswers
+  const analysis = analysisRaw as AnalysisRow | null
+  const weights = (weightsRaw ?? []) as WeightLog[]
   const meds = (medsRaw ?? []) as MedicationRow[]
 
   const todayStr = new Date().toLocaleDateString('ko-KR')

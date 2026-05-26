@@ -25,34 +25,35 @@ export default async function SimulatePage({ params }: { params: Params }) {
   } = await supabase.auth.getUser()
   if (!user) redirect(`/login?next=/dogs/${dogId}/simulate`)
 
-  const { data: dog } = await supabase
-    .from('dogs')
-    .select('id, name, weight, user_id')
-    .eq('id', dogId)
-    .maybeSingle()
+  // R55 — dog + analyses + survey 3건 1 round-trip Promise.all.
+  // 이전: dog sequential → analyses+survey parallel (2 round-trip).
+  const [{ data: dog }, { data: analysisRaw }, { data: surveyRaw }] =
+    await Promise.all([
+      supabase
+        .from('dogs')
+        .select('id, name, weight, user_id')
+        .eq('id', dogId)
+        .maybeSingle(),
+      supabase
+        .from('analyses')
+        .select(
+          'mer, bcs_score, protein_pct, fat_pct, carb_pct, fiber_pct, created_at',
+        )
+        .eq('dog_id', dogId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('surveys')
+        .select('answers')
+        .eq('dog_id', dogId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
   if (!dog || dog.user_id !== user.id) notFound()
-
-  // 최신 분석 + 최신 survey (BCS, Bristol)
-  const [{ data: analysisRaw }, { data: surveyRaw }] = await Promise.all([
-    supabase
-      .from('analyses')
-      .select(
-        'mer, bcs_score, protein_pct, fat_pct, carb_pct, fiber_pct, created_at',
-      )
-      .eq('dog_id', dogId)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from('surveys')
-      .select('answers')
-      .eq('dog_id', dogId)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ])
 
   if (!analysisRaw) {
     return (
