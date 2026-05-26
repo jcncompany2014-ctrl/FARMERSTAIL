@@ -42,6 +42,8 @@ interface ActiveDogCardProps {
   metrics: DogMetric[]
   /** 카드 클릭 시 이동할 경로. 옵션. */
   href?: string
+  /** XL-9 (#10) — LCP 후보. dashboard 첫 카드면 true 로 우선 로드. */
+  priority?: boolean
 }
 
 const TONE_COLOR: Record<NonNullable<DogMetric['tone']>, string> = {
@@ -59,6 +61,7 @@ export default function ActiveDogCard({
   statusTone = 'sage',
   metrics,
   href,
+  priority = false,
 }: ActiveDogCardProps) {
   const card = (
     <div
@@ -119,6 +122,8 @@ export default function ActiveDogCard({
               fill
               sizes="80px"
               className="object-cover"
+              priority={priority}
+              fetchPriority={priority ? 'high' : 'auto'}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">

@@ -282,7 +282,7 @@ function TrajectoryChart({
   const W = 600
   const H = 140
   const points = trajectory
-    .map((p, i) => {
+    .map((p) => {
       const x = (p.day / 30) * (W - 30) + 25
       const y = H - ((p.weightKg - minW) / range) * (H - 30) - 15
       return `${x},${y}`

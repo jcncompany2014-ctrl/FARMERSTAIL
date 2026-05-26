@@ -747,6 +747,7 @@ export default async function DashboardPage() {
             },
           ]}
           href={`/dogs/${firstDog.id}`}
+          priority
         />
       )}
 
