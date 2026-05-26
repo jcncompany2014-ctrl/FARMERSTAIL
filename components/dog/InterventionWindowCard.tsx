@@ -90,6 +90,9 @@ export default async function InterventionWindowCard({ dogId }: Props) {
 
   return (
     <section
+      role={isUrgent ? 'alert' : 'region'}
+      aria-live={isUrgent ? 'assertive' : 'polite'}
+      aria-label="체중 추세 분석"
       className={`mx-5 mt-3 rounded border p-4 ${
         isUrgent
           ? 'border-sale bg-sale/8'
