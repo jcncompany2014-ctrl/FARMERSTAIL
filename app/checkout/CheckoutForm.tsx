@@ -550,7 +550,11 @@ export default function CheckoutForm({
         })
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '결제 요청 중 오류'
+      // R66 — 사용자 fallback 카피 부드럽게 (voice-guidelines).
+      const msg =
+        err instanceof Error
+          ? err.message
+          : '결제를 진행하지 못했어요. 잠시 후 다시 시도해 주세요.'
       toast.error(msg)
       setLoading(false)
     }

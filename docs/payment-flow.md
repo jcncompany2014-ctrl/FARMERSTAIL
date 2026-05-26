@@ -103,3 +103,33 @@ NEXT_PUBLIC_SITE_URL=https://www.farmerstail.kr
 - /admin/finance 월간 추이
 - 환불률 trend
 - Toss 정산 vs DB 매출 reconciliation
+
+## 9. 원장 trigger 검증 SQL — 운영자 sanity check
+
+운영 시작 후 한 번씩 trigger 동작 확인. Supabase SQL Editor:
+
+```sql
+-- 1. 임의 row insert (orders 의 실 ID 필요)
+INSERT INTO payment_events (
+  order_id, event_type, amount, source
+) VALUES (
+  (SELECT id FROM orders LIMIT 1), 'paid', 0, 'admin_panel'
+) RETURNING id;
+
+-- 2. UPDATE 시도 → 에러 발생해야 정상
+UPDATE payment_events SET amount = 99999 WHERE id = '...';
+-- ERROR: payment_events is insert-only ledger; UPDATE/DELETE forbidden
+
+-- 3. DELETE 시도 → 에러 발생해야 정상
+DELETE FROM payment_events WHERE id = '...';
+-- ERROR: payment_events is insert-only ledger; UPDATE/DELETE forbidden
+
+-- 정리 — service_role 도 trigger 에 막힘. 실수로 만든 row 라도 못 지움.
+-- → 운영 후 잘못된 데이터 영원히 남음. 신중하게 insert.
+```
+
+## 10. 미래 정리 백로그 (별도 R-cycle)
+
+- **legacy CSS alias 정리**: `bg-bg-3`, `text-text` 같은 v3 token alias 53+/file 사용 중. globals.css 의 alias 정의는 시각 영향 0 (v3 token 의 alias) 이라 코드 일관성만 영향. 한 PR 에 한 파일씩 점진적 마이그레이션 권장.
+- **off-scale font** 일괄 정리: `text-[11px]`, `text-[13px]` 등 V3FontSize 외 값. 마찬가지로 점진적.
+- **멀티 PG 추상화**: 현재 Toss 직접 호출. 다른 PG (네이버페이/카카오페이) 추가 시점에 abstract layer 만들기. over-engineering 위험이라 PMF 후 진행.
