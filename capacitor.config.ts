@@ -55,7 +55,7 @@ const config: CapacitorConfig = {
   server: {
     // 운영: Vercel 도메인을 그대로 로드. NEXT_PUBLIC_SITE_URL 와 일치.
     // 빈 값이면 webDir 의 정적 파일을 로드 (정적 export 모드 — 미사용).
-    url: process.env.CAPACITOR_SERVER_URL ?? 'https://farmerstail.kr',
+    url: process.env.CAPACITOR_SERVER_URL ?? 'https://www.farmerstail.kr',
     // androidScheme=https 로 두면 service worker / Storage API 가 origin
     // 일관성 검사를 통과해 PWA 와 동일한 동작 (push subscription, IndexedDB 등).
     androidScheme: 'https',

@@ -79,7 +79,7 @@ export async function POST(_req: Request, { params }: Params) {
 
   const origin =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ||
-    'https://farmerstail.kr'
+    'https://www.farmerstail.kr'
   const url = `${origin}/vet/${encodeURIComponent(token)}`
 
   return NextResponse.json({ ok: true, token, url, expiresAt })

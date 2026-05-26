@@ -246,7 +246,7 @@ export default async function ProductsPage({
   // ── Structured data — ItemList + Breadcrumb. Google Shopping / Naver
   // search 의 rich result 파싱용. 첫 페이지만 (page 2+ 는 canonical 충돌 방지).
   const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.farmerstail.kr'
   const itemListLd =
     pageNum === 1 && rows.length > 0
       ? buildItemListJsonLd({

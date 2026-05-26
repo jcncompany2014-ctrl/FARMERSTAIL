@@ -9,7 +9,7 @@ import { renderLayout } from '../layout'
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ||
-  'https://farmerstail.kr'
+  'https://www.farmerstail.kr'
 
 export type DogInvitationEmailInput = {
   inviterName: string
