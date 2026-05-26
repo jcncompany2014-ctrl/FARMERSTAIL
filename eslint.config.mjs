@@ -52,6 +52,25 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-floating-promises": "off",
     },
   },
+  // underscore prefix 는 "의도적으로 안 쓰는 인자/변수" convention. 보통
+  // mock 객체의 시그니처 매칭 (예: select(_cols: string) — 인자 받지만 무시)
+  // 이나 destructuring 에서 일부 키만 사용할 때. Next.js / typescript-eslint
+  // 의 no-unused-vars 가 기본 옵션으로는 _ prefix 도 잡아내서 warning 빈도가
+  // 높아짐. 의도 명시적이므로 ignore 패턴 활성화.
+  {
+    files: ["**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
