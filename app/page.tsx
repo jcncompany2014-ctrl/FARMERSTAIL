@@ -1941,7 +1941,7 @@ function EditorialFooter() {
         { label: '자주 묻는 질문', href: '/faq' },
         {
           label: '1:1 문의',
-          href: 'mailto:hello@farmerstail.kr?subject=1:1 문의',
+          href: 'mailto:story@farmerstail.kr?subject=1:1 문의',
           external: true,
         },
         { label: '식단 분석', href: '/app-required' },

@@ -29,9 +29,12 @@
 
 /** 사이트 전역 기본값 — NEXT_PUBLIC_SITE_URL 이 없으면 운영 도메인으로 fallback.
  * 도메인 미연결 환경에선 NEXT_PUBLIC_SITE_URL 을 명시적으로 Vercel preview 등으로
- * 덮어 써야 한다 (LAUNCH_CHECKLIST.md 의 env 표 참고). */
+ * 덮어 써야 한다 (LAUNCH_CHECKLIST.md 의 env 표 참고).
+ *
+ * canonical 은 www 포함 (app/layout.tsx, app/sitemap.ts, app/robots.ts 와 통일).
+ */
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.farmerstail.kr'
 
 /**
  * /api/og 의 dynamic share card URL 을 만들어 주는 헬퍼.
@@ -88,7 +91,7 @@ export function buildOrganizationJsonLd() {
       contactType: 'customer service',
       areaServed: 'KR',
       availableLanguage: ['Korean'],
-      email: 'hello@farmerstail.kr',
+      email: 'story@farmerstail.kr',
     },
   } as const
 }

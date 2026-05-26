@@ -200,7 +200,7 @@ export default async function FaqPage() {
         >
           원하는 답이 없다면{' '}
           <a
-            href="mailto:hello@farmerstail.kr?subject=문의"
+            href="mailto:story@farmerstail.kr?subject=문의"
             className="font-bold underline underline-offset-2"
             style={{ color: 'var(--terracotta)' }}
           >

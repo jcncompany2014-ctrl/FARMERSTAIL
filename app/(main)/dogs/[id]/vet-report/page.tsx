@@ -515,7 +515,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
             자료로 활용해 주세요.
           </p>
           <p className="mt-1">
-            발행처: 파머스테일 (Farmer&apos;s Tail) · farmerstail.com ·{' '}
+            발행처: 파머스테일 (Farmer&apos;s Tail) · farmerstail.kr ·{' '}
             {todayStr}
           </p>
         </footer>
