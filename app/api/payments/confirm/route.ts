@@ -188,11 +188,29 @@ export async function POST(req: Request) {
   )
 
   if (!result.ok) {
+    const prevStatus = order.payment_status
     // 승인 실패 → 주문 상태 failed로
     await supabase
       .from('orders')
       .update({ payment_status: 'failed' })
       .eq('id', order.id)
+
+    // R60 결제 원장 — 사용자 체크아웃 단계 실패도 ledger 기록.
+    // 환불/조정 시 추적 가능. amount=0 (실제 청구 안 됨).
+    const { recordPaymentEvent } = await import('@/lib/payment-events')
+    await recordPaymentEvent(supabase, {
+      orderId: order.id,
+      paymentKey,
+      eventType: 'failed',
+      amount: 0,
+      prevStatus,
+      newStatus: 'failed',
+      source: 'user_checkout',
+      metadata: {
+        error_code: result.error.code ?? null,
+        error_message: result.error.message ?? null,
+      },
+    })
 
     // 매출 영향 이벤트 — Sentry 운영 채널에 알림.
     captureBusinessEvent('warning', 'order.payment.confirm.failed', {

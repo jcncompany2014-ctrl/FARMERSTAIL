@@ -20,8 +20,24 @@
  * 빈 스피너 200~500ms 가 깜빡이는 원인이었다. 제거 — 이제 layout 은 server
  * component 라 zero-overhead 로 통과.
  */
+import type { Metadata } from 'next'
 import AppChrome from '@/components/AppChrome'
 import { ConfirmProvider } from '@/components/v3'
+
+/**
+ * SEO 가드 — (main) 그룹 모든 페이지 noindex.
+ *
+ * 이 그룹은 인증이 필요한 개인화된 페이지들 (대시보드 / 강아지 상세 / 분석 /
+ * 채팅 / 알림 / 마이페이지 등). robots.ts 의 disallow 가 1차 보호하지만,
+ * 검색엔진이 우회로 (인링크, sitemap 누락 등) 로 도달했을 때 2차 보호.
+ *
+ * 자식 페이지에서 명시적으로 metadata.robots 를 override 하지 않으면 이 값이
+ * 상속됨. 명시적 override 가 필요한 케이스 (예: 공유용 OG 카드 페이지) 가
+ * 생기면 자식에서 robots: { index: true } 로 덮어쓰기 가능.
+ */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 export default function MainLayout({
   children,

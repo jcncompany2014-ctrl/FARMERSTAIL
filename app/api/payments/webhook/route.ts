@@ -284,10 +284,28 @@ export async function POST(req: Request) {
       if (order.payment_status === 'failed') {
         return NextResponse.json({ ok: true, skipped: 'already_failed' })
       }
+      const prevStatus = order.payment_status
       await supabase
         .from('orders')
         .update({ payment_status: 'failed' })
         .eq('id', order.id)
+      // R60 결제 원장 (payment_events) — 실패 이벤트도 insert-only ledger 에
+      // 기록. 환불/조정 시 어떤 결제가 어떤 사유로 실패했는지 reconciliation
+      // 가능. amount=0 (실패라 금전 이동 X).
+      const { recordPaymentEvent } = await import('@/lib/payment-events')
+      await recordPaymentEvent(supabase, {
+        orderId: order.id,
+        paymentKey,
+        eventType: 'failed',
+        amount: 0,
+        prevStatus,
+        newStatus: 'failed',
+        source: 'toss_webhook',
+        metadata: {
+          toss_status: payment.status,
+          reason: payment.status === 'ABORTED' ? '사용자 중단' : '결제 만료',
+        },
+      })
       break
     }
 
