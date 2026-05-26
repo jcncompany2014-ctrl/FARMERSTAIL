@@ -115,6 +115,20 @@ async function runOrderExpire(): Promise<Response> {
       })
       .eq('id', ord.id)
 
+    // R61 — 결제 원장 event. 미완료 만료는 결제 자체 없으니 amount=0.
+    {
+      const { recordPaymentEvent } = await import('@/lib/payment-events')
+      await recordPaymentEvent(supabase, {
+        orderId: ord.id,
+        eventType: 'cancel_requested',
+        amount: 0,
+        prevStatus: 'pending',
+        newStatus: 'cancelled',
+        source: 'cron_order_expire',
+        metadata: { reason: '30분 결제 미완료 자동 만료' },
+      })
+    }
+
     // 3) 포인트 환급 — pending 단계에서 사용한 포인트가 있으면 회수.
     // audit #79: 테이블명 schema-drift (points_ledger vs point_ledger) cast 우회 —
     // 별도 sprint 에서 apply_point_delta RPC 로 통일 권장.

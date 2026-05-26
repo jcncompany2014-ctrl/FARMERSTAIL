@@ -392,6 +392,25 @@ async function runSubscriptionCharge(): Promise<Response> {
       // 카드 재등록 받은 후 정상화 케이스 포함).
       const successIso = new Date().toISOString()
       const nextDate = nextDeliveryDate(sub, today)
+
+      // R61 — 결제 원장 event (정기구독 자동 결제).
+      {
+        const { recordPaymentEvent } = await import('@/lib/payment-events')
+        await recordPaymentEvent(supabase, {
+          orderId: orderRow.id,
+          paymentKey: result.paymentKey,
+          eventType: 'paid',
+          amount: sub.total_amount,
+          prevStatus: 'pending',
+          newStatus: 'paid',
+          source: 'cron_subscription_charge',
+          metadata: {
+            subscriptionId: sub.id,
+            idempotencyKey: `sub-charge:${sub.id}:${today}`,
+          },
+        })
+      }
+
       await Promise.all([
         supabase
           .from('orders')

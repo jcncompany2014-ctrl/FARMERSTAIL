@@ -57,6 +57,8 @@ export type PaymentEventSource =
   | 'user_cancel'
   | 'partial_cancel'
   | 'cron_refund_queue'
+  | 'cron_subscription_charge'
+  | 'cron_order_expire'
   | 'admin_panel'
 
 export interface PaymentEventInput {
