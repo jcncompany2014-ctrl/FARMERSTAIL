@@ -45,7 +45,10 @@ const mailOrderFromEnv = process.env.NEXT_PUBLIC_MAIL_ORDER_NUMBER?.trim()
 const kakaoFromEnv = process.env.NEXT_PUBLIC_KAKAO_CHANNEL_URL?.trim()
 
 export const business: BusinessInfo = {
-  companyName: "(주)Farmer's Tail",
+  // 사업자등록증 / 통신판매업 신고증 상의 정식 상호 (개인사업자 — 법인 X).
+  // 상법 §20: 회사가 아닌 자가 상호에 (주)·㈜·주식회사 등 회사 표기
+  // 사용 시 과태료. Toss 입점심사 검수 항목 (홈페이지 하단 상호 일치).
+  companyName: "파머스테일 (farmer's tail)",
   brandName: '파머스테일',
   ceo: '안성민, 이준호',
   businessNumber: '243-06-03606',
