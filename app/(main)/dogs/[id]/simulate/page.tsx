@@ -86,9 +86,38 @@ export default async function SimulatePage({ params }: { params: Params }) {
       bristolScore?: number
     }
 
+  // 가드: dog.weight 또는 mer 가 누락이면 시뮬레이션 의미 없음 (division by
+  // zero 위험). 분석 다시 권유.
+  if (!dog.weight || !analysisRaw.mer) {
+    return (
+      <div className="px-5 py-10 max-w-xl">
+        <Link
+          href={`/dogs/${dogId}`}
+          className="inline-flex items-center gap-1 text-[11px] text-mute hover:text-terracotta font-semibold mb-5"
+        >
+          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
+          {dog.name}
+        </Link>
+        <h1 className="text-2xl font-black text-ink tracking-tight leading-snug">
+          식단 시뮬레이션
+        </h1>
+        <p className="text-sm text-mute mt-3">
+          체중·일일 권장 칼로리 데이터가 부족해 시뮬레이션할 수 없어요.
+          분석을 다시 진행해 주세요.
+        </p>
+        <Link
+          href={`/dogs/${dogId}/survey`}
+          className="inline-block mt-4 rounded bg-terracotta px-5 py-2.5 text-sm font-semibold text-paper"
+        >
+          분석 다시 하기
+        </Link>
+      </div>
+    )
+  }
+
   const baseline: DietSimBaseline = {
-    mer: analysisRaw.mer ?? 0,
-    weightKg: dog.weight ?? 0,
+    mer: analysisRaw.mer,
+    weightKg: dog.weight,
     bcs: surveyAnswers.bcsExact ?? analysisRaw.bcs_score ?? 5,
     proteinPct: analysisRaw.protein_pct ?? 25,
     fatPct: analysisRaw.fat_pct ?? 15,

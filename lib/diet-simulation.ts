@@ -85,7 +85,11 @@ export function simulateScenario(
   const cumulativeKcalDelta = dailyKcalDelta * 30
   const weightDeltaKg = cumulativeKcalDelta / 7700
   const predictedWeightKg = round1(base.weightKg + weightDeltaKg)
-  const bcsDelta = (weightDeltaKg / base.weightKg) * 5
+  // base.weightKg <= 0 (잘못된 입력) 가드 — division by zero 회피.
+  // 이 경우 BCS 변화 0 으로 fallback. simulate page 가 weight 미입력 강아지
+  // 진입 차단해야 정상이지만 lib 자체에서도 방어.
+  const bcsDelta =
+    base.weightKg > 0 ? (weightDeltaKg / base.weightKg) * 5 : 0
   const predictedBcs = clamp(round1(base.bcs + bcsDelta), 1, 9)
 
   const baseBristol = base.bristol ?? 4

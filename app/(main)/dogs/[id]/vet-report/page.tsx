@@ -207,7 +207,11 @@ export default async function VetReportPage({ params }: { params: Params }) {
       {/* 보고서 본문 */}
       <article
         className="vet-report-page bg-white border border-ink/20 mx-auto"
-        style={{ maxWidth: 760, padding: '28px 36px', fontFamily: 'system-ui, sans-serif' }}
+        style={{
+          maxWidth: 760,
+          padding: '28px 36px',
+          fontFamily: 'var(--font-sans), Pretendard, system-ui, sans-serif',
+        }}
       >
         {/* 제목 + 발행 정보 */}
         <header className="border-b-2 border-ink pb-3 mb-5">
@@ -236,12 +240,25 @@ export default async function VetReportPage({ params }: { params: Params }) {
               label="나이"
               value={
                 dog.age_value
-                  ? `${dog.age_value} ${dog.age_unit === 'month' ? '개월' : '세'}`
+                  ? `${dog.age_value} ${
+                      dog.age_unit === 'years' || dog.age_unit === 'year'
+                        ? '세'
+                        : '개월'
+                    }`
                   : '—'
               }
             />
-            <Field label="성별" value={dog.gender ?? '—'} />
-            <Field label="중성화" value={dog.neutered ? 'O' : 'X'} />
+            <Field
+              label="성별"
+              value={
+                dog.gender === 'male'
+                  ? '수컷'
+                  : dog.gender === 'female'
+                    ? '암컷'
+                    : '—'
+              }
+            />
+            <Field label="중성화" value={dog.neutered ? '예' : '아니오'} />
             <Field
               label="현재 체중"
               value={dog.weight ? `${dog.weight} kg` : '—'}
