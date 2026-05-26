@@ -397,7 +397,7 @@ export default function ProductForm({
                 type="text"
                 value={form.manufacturer ?? ''}
                 onChange={(e) => update('manufacturer', e.target.value)}
-                placeholder="예: (주)강진팜 / 수입원: ABC 무역"
+                placeholder="예: 강원평창팜 / 수입원: 한국유통"
                 className={inputClass}
               />
             </Field>
