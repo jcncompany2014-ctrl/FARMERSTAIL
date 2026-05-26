@@ -352,7 +352,7 @@ export default function MypageClient({
         <MenuItem
           href="/mypage/notifications"
           Icon={Bell}
-          label="알림 받기 설정"
+          label="알림 받기 · 화면 테마"
         />
         <MenuItem href="/mypage/consent" Icon={Mail} label="광고 수신 설정" />
         <MenuItem
