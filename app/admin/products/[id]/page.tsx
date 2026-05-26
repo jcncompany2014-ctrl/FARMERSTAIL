@@ -36,12 +36,18 @@ export default async function AdminProductEditPage({
           EDIT PRODUCT
         </h1>
         <p className="text-xs text-muted mt-1">{product.name}</p>
-        <div className="mt-3 flex gap-3 text-xs">
+        <div className="mt-3 flex gap-3 text-xs flex-wrap">
           <Link
             href={`/admin/products/${id}/nutrients`}
             className="rounded border border-line px-3 py-1.5 hover:border-terracotta hover:text-terracotta"
           >
             38 영양소 편집 →
+          </Link>
+          <Link
+            href={`/admin/products/${id}/insights`}
+            className="rounded border border-line px-3 py-1.5 hover:border-terracotta hover:text-terracotta"
+          >
+            LTV 인사이트 →
           </Link>
           <Link
             href={`/admin/label/${id}`}
