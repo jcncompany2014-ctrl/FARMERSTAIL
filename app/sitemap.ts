@@ -1,8 +1,10 @@
 import type { MetadataRoute } from 'next'
 import { createClient } from '@/lib/supabase/server'
 
+// R72 — production fallback 을 www. 으로 통일 (Vercel 의 primary 도메인).
+// NEXT_PUBLIC_SITE_URL env 가 우선 — 셋업돼 있으면 그 값 사용.
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.farmerstail.kr'
 
 export const revalidate = 3600 // 1시간마다 재생성
 

@@ -67,8 +67,9 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
+// R72 — fallback www. (Vercel primary). NEXT_PUBLIC_SITE_URL env 우선.
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://farmerstail.kr";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.farmerstail.kr";
 
 // Supabase Storage 도메인 — preconnect / dns-prefetch 힌트용. NEXT_PUBLIC_
 // SUPABASE_URL 에서 origin 추출 (next.config.ts 의 supabaseHostname() 와 동일

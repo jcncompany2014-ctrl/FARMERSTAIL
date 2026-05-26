@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next'
 
+// R72 — production fallback www. 으로 통일 (sitemap.ts 와 동기).
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.farmerstail.kr'
 
 export default function robots(): MetadataRoute.Robots {
   return {
