@@ -35,7 +35,7 @@ export default async function AdminProductNutrientsPage({
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-5">
         <Link
           href={`/admin/products/${id}`}
           className="text-xs text-mute hover:text-terracotta"

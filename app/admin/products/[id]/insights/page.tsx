@@ -169,7 +169,7 @@ export default async function ProductInsightsPage({
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-5">
         <Link
           href={`/admin/products/${id}`}
           className="inline-flex items-center gap-1 text-xs text-mute hover:text-terracotta font-semibold"
@@ -186,7 +186,7 @@ export default async function ProductInsightsPage({
       </div>
 
       {/* KPI grid */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <Kpi
           label="구매자 수"
           value={`${buyerCount.toLocaleString()}명`}
@@ -209,7 +209,7 @@ export default async function ProductInsightsPage({
       </section>
 
       {/* LTV histogram */}
-      <section className="rounded border border-line p-4 mb-6">
+      <section className="rounded border border-line p-4 mb-5">
         <h2 className="text-sm font-semibold text-ink mb-3">LTV 분포</h2>
         <div className="space-y-2">
           {histogram.map((count: number, i: number) => {
@@ -279,7 +279,7 @@ export default async function ProductInsightsPage({
           </tbody>
         </table>
         {buyerCount === 0 && (
-          <p className="text-xs text-mute py-6 text-center">
+          <p className="text-xs text-mute py-5 text-center">
             아직 구매 기록이 없어요.
           </p>
         )}

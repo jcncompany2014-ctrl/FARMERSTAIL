@@ -47,7 +47,7 @@ export default function SimulateClient({ dogName, baseline }: Props) {
   )
 
   return (
-    <div className="mt-6 space-y-6">
+    <div className="mt-5 space-y-5">
       {/* Baseline 요약 */}
       <section className="rounded border border-line bg-paperHi p-4">
         <h2 className="text-[11px] uppercase tracking-widest text-mute font-semibold mb-2">
@@ -70,13 +70,14 @@ export default function SimulateClient({ dogName, baseline }: Props) {
           {scenarios.map((s) => (
             <button
               key={s.id}
+              type="button"
               onClick={() => setActiveId(s.id)}
+              aria-pressed={activeId === s.id}
               className={`text-left p-3 rounded border ${
                 activeId === s.id
                   ? 'border-terracotta bg-terracotta/5'
                   : 'border-line hover:border-ink/40'
               }`}
-              type="button"
             >
               <div className="text-sm font-semibold text-ink">{s.label}</div>
               <div className="text-xs text-mute mt-0.5">{s.description}</div>

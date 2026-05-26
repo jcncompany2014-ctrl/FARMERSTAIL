@@ -76,7 +76,7 @@ export default function NutrientsForm({
   ]
 
   return (
-    <form onSubmit={onSubmit} className="space-y-8">
+    <form onSubmit={onSubmit} className="space-y-7">
       {/* AAFCO 평가 카드 */}
       <div className="rounded border border-line bg-paperHi p-4 text-sm">
         <div className="font-semibold text-ink mb-2">AAFCO Adult Maintenance 평가</div>

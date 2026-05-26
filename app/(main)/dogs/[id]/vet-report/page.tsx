@@ -169,7 +169,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
   const todayStr = new Date().toLocaleDateString('ko-KR')
 
   return (
-    <div className="px-5 py-6 print:px-0 print:py-0 bg-paper print:bg-white min-h-screen">
+    <div className="px-5 py-5 print:px-0 print:py-0 bg-paper print:bg-white min-h-screen">
       <style>
         {`@media print {
           @page { size: A4 portrait; margin: 14mm; }
@@ -180,7 +180,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
       </style>
 
       {/* 헤더 (인쇄 제외) */}
-      <div className="flex items-end justify-between mb-6 no-print max-w-4xl mx-auto">
+      <div className="flex items-end justify-between mb-5 no-print max-w-4xl mx-auto">
         <div>
           <Link
             href={`/dogs/${dogId}`}
@@ -200,7 +200,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
       </div>
 
       {/* XL-7 (#49) 수의사 공유 링크 — 인쇄 대신 URL 전달 */}
-      <div className="max-w-4xl mx-auto mb-6 no-print">
+      <div className="max-w-4xl mx-auto mb-5 no-print">
         <ShareWithVetButton dogId={dogId} />
       </div>
 
@@ -464,7 +464,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
             <Field
               label="수의사 진료 권고 여부"
               value={
-                analysis?.vet_consult_recommended ? '권고됨 ⚠️' : '권고 없음'
+                analysis?.vet_consult_recommended ? '권고됨' : '권고 없음'
               }
             />
             <Field
