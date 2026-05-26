@@ -173,4 +173,4 @@ capacitor.config.ts   네이티브 앱 셸 (com.farmerstail.app)
 
 ## 라이선스
 
-Private — 모든 권리는 파머스테일 (farmer's tail) 에 있어요.
+Private — 모든 권리는 파머스테일 (Farmer's Tail) 에 있어요.
