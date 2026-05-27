@@ -146,21 +146,35 @@ export default function ProductReviews({ productId }: { productId: string }) {
       }
 
       if (!mounted) return
+      type ReviewRow = {
+        id: string
+        user_id: string
+        rating: number
+        title: string | null
+        content: string
+        helpful_count: number
+        image_urls: string[] | null
+        order_item_id: string | null
+        created_at: string
+        dogs: { name: string } | { name: string }[] | null
+      }
       setReviews(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (rows ?? []).map((r: any) => ({
-          id: r.id,
-          user_id: r.user_id,
-          rating: r.rating,
-          title: r.title,
-          content: r.content,
-          helpful_count: r.helpful_count,
-          image_urls: (r.image_urls ?? []) as string[],
-          verified: Boolean(r.order_item_id),
-          created_at: r.created_at,
-          dog: r.dogs ?? null,
-          author: { name: profMap.get(r.user_id) ?? null },
-        }))
+        ((rows ?? []) as ReviewRow[]).map((r) => {
+          const dog = Array.isArray(r.dogs) ? r.dogs[0] ?? null : r.dogs
+          return {
+            id: r.id,
+            user_id: r.user_id,
+            rating: r.rating,
+            title: r.title,
+            content: r.content,
+            helpful_count: r.helpful_count,
+            image_urls: r.image_urls ?? [],
+            verified: Boolean(r.order_item_id),
+            created_at: r.created_at,
+            dog,
+            author: { name: profMap.get(r.user_id) ?? null },
+          }
+        })
       )
       setCount(totalCount)
       setAvg(totalCount > 0 ? sum / totalCount : null)

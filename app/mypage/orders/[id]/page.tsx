@@ -88,10 +88,21 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
     notFound()
   }
 
-  const items = Array.isArray(order.order_items) ? order.order_items : []
+  type OrderItemRow = {
+    id: string
+    product_id: string
+    product_name: string
+    product_image_url: string | null
+    unit_price: number
+    quantity: number
+    line_total: number
+  }
+  const items: OrderItemRow[] = Array.isArray(order.order_items)
+    ? (order.order_items as OrderItemRow[])
+    : []
 
   // Which items has this user already reviewed?
-  const itemIds = items.map((it: { id: string }) => it.id)
+  const itemIds = items.map((it) => it.id)
   const { data: existingReviews } =
     itemIds.length > 0
       ? await supabase
@@ -333,8 +344,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
             <span className="text-muted font-bold">({items.length})</span>
           </h2>
           <ul className="space-y-3">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {items.map((it: any) => {
+            {items.map((it) => {
               const reviewed = reviewedSet.has(it.id)
               return (
                 <li key={it.id}>

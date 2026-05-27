@@ -1,8 +1,11 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/lib/supabase/types'
 import ProductRowActions from './ProductRowActions'
 
 export const dynamic = 'force-dynamic'
+
+type ProductRow = Database['public']['Tables']['products']['Row']
 
 export default async function AdminProductsPage() {
   const supabase = await createClient()
@@ -54,8 +57,7 @@ export default async function AdminProductsPage() {
                 </tr>
               </thead>
               <tbody>
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {products.map((p: any) => (
+                {(products as ProductRow[]).map((p) => (
                   <tr
                     key={p.id}
                     className="border-b border-bg hover:bg-bg transition"
@@ -103,14 +105,14 @@ export default async function AdminProductsPage() {
                       <ProductRowActions
                         productId={p.id}
                         field="stock"
-                        initialValue={p.stock}
+                        initialValue={p.stock ?? 0}
                       />
                     </td>
                     <td className="py-3">
                       <ProductRowActions
                         productId={p.id}
                         field="is_active"
-                        initialValue={p.is_active}
+                        initialValue={p.is_active ?? false}
                       />
                     </td>
                     <td className="py-3 text-center">

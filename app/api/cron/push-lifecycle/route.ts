@@ -11,9 +11,16 @@
 // cron-auth 헤더 검증으로 외부 호출 차단.
 
 import { NextResponse } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+
+// dog_subscriptions / dog_medications 는 lib/supabase/types.ts 가 자동 재생성되지
+// 않아 Database 제네릭에 미포함 (lib/dog-records.ts 의 정책과 같음). 그래서 admin
+// client 를 untyped 제네릭으로 받고, 각 query 결과는 Array<...> 로 명시 캐스팅.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AdminSupabase = SupabaseClient<any, 'public', any>
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -46,8 +53,10 @@ export async function GET(req: Request): Promise<NextResponse> {
   return NextResponse.json({ ok: true, results })
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function runWelcome(supabase: any, now: Date): Promise<CampaignResult> {
+async function runWelcome(
+  supabase: AdminSupabase,
+  now: Date,
+): Promise<CampaignResult> {
   const since = new Date(now.getTime() - 25 * 3600 * 1000).toISOString()
   const until = new Date(now.getTime() - 24 * 3600 * 1000).toISOString()
   const { data: rows } = await supabase
@@ -74,8 +83,10 @@ async function runWelcome(supabase: any, now: Date): Promise<CampaignResult> {
   return { campaign: 'd1_welcome', sent, skipped: 0, errors }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function runAnalysisReminder(supabase: any, now: Date): Promise<CampaignResult> {
+async function runAnalysisReminder(
+  supabase: AdminSupabase,
+  now: Date,
+): Promise<CampaignResult> {
   const since = new Date(now.getTime() - 8 * 24 * 3600 * 1000).toISOString()
   const until = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString()
   const { data: rows } = await supabase
@@ -112,8 +123,10 @@ async function runAnalysisReminder(supabase: any, now: Date): Promise<CampaignRe
   return { campaign: 'd7_analysis', sent, skipped, errors }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function runSubscribeNudge(supabase: any, now: Date): Promise<CampaignResult> {
+async function runSubscribeNudge(
+  supabase: AdminSupabase,
+  now: Date,
+): Promise<CampaignResult> {
   const since = new Date(now.getTime() - 31 * 24 * 3600 * 1000).toISOString()
   const until = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
   const { data: rows } = await supabase
@@ -151,8 +164,10 @@ async function runSubscribeNudge(supabase: any, now: Date): Promise<CampaignResu
   return { campaign: 'd30_subscribe', sent, skipped, errors }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function runMedicationReminder(supabase: any, now: Date): Promise<CampaignResult> {
+async function runMedicationReminder(
+  supabase: AdminSupabase,
+  now: Date,
+): Promise<CampaignResult> {
   // medications.enabled = true + schedule = 'daily' + time 이 현재 ±30분 안.
   const hh = String(now.getHours()).padStart(2, '0')
   const { data: rows } = await supabase

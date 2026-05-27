@@ -127,14 +127,46 @@ export default async function CartPage() {
   }
 
   // products가 배열로 올 수 있어서 정규화
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = (items ?? []).map((it: any) => ({
-    id: it.id as string,
-    quantity: it.quantity as number,
-    product: Array.isArray(it.products) ? it.products[0] : it.products,
-  }));
+  type CartProductRow = {
+    id: string;
+    name: string;
+    slug: string;
+    price: number;
+    sale_price: number | null;
+    image_url: string | null;
+    stock: number | null;
+    is_active: boolean | null;
+    category: string | null;
+    short_description: string | null;
+    is_subscribable: boolean | null;
+  };
+  type CartItemJoin = {
+    id: string;
+    quantity: number;
+    product_id: string;
+    products: CartProductRow | CartProductRow[] | null;
+  };
+  // CartList 의 Row 는 stock: number (non-null) 을 요구. supabase 의 nullable
+  // stock 은 0 으로 정규화. (null = 무제한 정책이 아니라 데이터 부재 → 안전쪽으로
+  // 0 처리, 어차피 buy-flow 의 재고 검사는 서버에서 다시 한다.)
+  type NormalizedProduct = Omit<CartProductRow, "stock"> & { stock: number };
+  type NormalizedRow = {
+    id: string;
+    quantity: number;
+    product: NormalizedProduct | null;
+  };
+  const rows: NormalizedRow[] = ((items ?? []) as CartItemJoin[]).map((it) => {
+    const raw = Array.isArray(it.products) ? it.products[0] : it.products;
+    const product: NormalizedProduct | null = raw
+      ? { ...raw, stock: raw.stock ?? 0 }
+      : null;
+    return { id: it.id, quantity: it.quantity, product };
+  });
 
-  const validRows = rows.filter((r) => r.product && r.product.is_active);
+  const validRows = rows.filter(
+    (r): r is NormalizedRow & { product: NormalizedProduct } =>
+      !!r.product && !!r.product.is_active,
+  );
 
   const subtotal = validRows.reduce((sum, r) => {
     const price = r.product.sale_price ?? r.product.price;

@@ -60,7 +60,18 @@ export default async function AdminOrderDetailPage({
     .eq('id', order.user_id)
     .single()
 
-  const items = Array.isArray(order.order_items) ? order.order_items : []
+  type AdminOrderItem = {
+    id: string
+    product_id: string
+    product_name: string
+    product_image_url: string | null
+    unit_price: number
+    quantity: number
+    line_total: number
+  }
+  const items: AdminOrderItem[] = Array.isArray(order.order_items)
+    ? (order.order_items as AdminOrderItem[])
+    : []
 
   return (
     <div>
@@ -88,8 +99,7 @@ export default async function AdminOrderDetailPage({
               주문 상품 ({items.length})
             </h2>
             <ul className="space-y-3">
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {items.map((it: any) => (
+              {items.map((it) => (
                 <li key={it.id} className="flex gap-3 items-center">
                   <div className="shrink-0 w-12 h-12 rounded-lg bg-bg overflow-hidden flex items-center justify-center">
                     {it.product_image_url ? (

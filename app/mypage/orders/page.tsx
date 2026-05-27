@@ -223,10 +223,16 @@ export default async function OrdersPage() {
       ) : (
         <section className="px-5 md:px-6 mt-3">
           <ul className="space-y-2.5 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {orders.map((order: any) => {
-              const items = Array.isArray(order.order_items)
-                ? order.order_items
+            {orders.map((order) => {
+              type OrderItemRow = {
+                id: string
+                product_name: string
+                product_image_url: string | null
+                quantity: number
+                unit_price: number
+              }
+              const items: OrderItemRow[] = Array.isArray(order.order_items)
+                ? (order.order_items as OrderItemRow[])
                 : []
               const firstItem = items[0]
               const extraCount = items.length - 1

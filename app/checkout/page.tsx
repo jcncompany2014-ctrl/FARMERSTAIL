@@ -143,14 +143,36 @@ export default async function CheckoutPage() {
     )
   }
 
-  const rows = (items ?? [])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((it: any) => ({
-      id: it.id as string,
-      quantity: it.quantity as number,
+  type CheckoutProductRow = {
+    id: string
+    name: string
+    slug: string
+    price: number
+    sale_price: number | null
+    image_url: string | null
+    stock: number | null
+    is_active: boolean | null
+  }
+  type CheckoutCartItem = {
+    id: string
+    quantity: number
+    product_id: string
+    products: CheckoutProductRow | CheckoutProductRow[] | null
+  }
+  type CheckoutRow = {
+    id: string
+    quantity: number
+    product: CheckoutProductRow
+  }
+  const rows: CheckoutRow[] = ((items ?? []) as CheckoutCartItem[])
+    .map((it) => ({
+      id: it.id,
+      quantity: it.quantity,
       product: Array.isArray(it.products) ? it.products[0] : it.products,
     }))
-    .filter((r) => r.product && r.product.is_active)
+    .filter(
+      (r): r is CheckoutRow => !!r.product && !!r.product.is_active,
+    )
 
   if (rows.length === 0) {
     return (

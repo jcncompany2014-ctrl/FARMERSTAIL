@@ -14,7 +14,12 @@
  *   }, [supabase, userId])
  */
 
-import type { SupabaseClient, RealtimeChannel } from '@supabase/supabase-js'
+import type {
+  SupabaseClient,
+  RealtimeChannel,
+  RealtimePostgresInsertPayload,
+} from '@supabase/supabase-js'
+import { REALTIME_LISTEN_TYPES } from '@supabase/supabase-js'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyClient = SupabaseClient<any, 'public', any>
@@ -39,18 +44,16 @@ export function subscribeWeightLogs(
 ): () => void {
   const channel: RealtimeChannel = supabase
     .channel(`weight_logs:${userId}`)
-    .on(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      'postgres_changes' as any,
+    .on<WeightLogRow>(
+      REALTIME_LISTEN_TYPES.POSTGRES_CHANGES,
       {
         event: 'INSERT',
         schema: 'public',
         table: 'weight_logs',
         filter: `user_id=eq.${userId}`,
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (payload: any) => {
-        if (payload?.new) onInsert(payload.new as WeightLogRow)
+      (payload: RealtimePostgresInsertPayload<WeightLogRow>) => {
+        if (payload?.new) onInsert(payload.new)
       },
     )
     .subscribe()
@@ -81,18 +84,16 @@ export function subscribeNotifications(
 ): () => void {
   const channel: RealtimeChannel = supabase
     .channel(`notifications:${userId}`)
-    .on(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      'postgres_changes' as any,
+    .on<NotificationRow>(
+      REALTIME_LISTEN_TYPES.POSTGRES_CHANGES,
       {
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
         filter: `user_id=eq.${userId}`,
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (payload: any) => {
-        if (payload?.new) onInsert(payload.new as NotificationRow)
+      (payload: RealtimePostgresInsertPayload<NotificationRow>) => {
+        if (payload?.new) onInsert(payload.new)
       },
     )
     .subscribe()
