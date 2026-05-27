@@ -107,7 +107,7 @@
     },
     {
       "path": "/api/cron/account-purge",
-      "schedule": "0 19 1 * *"
+      "schedule": "0 16 1 * *"
     },
     {
       "path": "/api/cron/tracking-poll",
@@ -123,7 +123,7 @@
     },
     {
       "path": "/api/cron/vip-coupons",
-      "schedule": "0 0 1 * *"
+      "schedule": "0 20 1 * *"
     },
     {
       "path": "/api/cron/inactive-coupons",

@@ -77,6 +77,21 @@ const serverSchema = z.object({
   RESEND_API_KEY: optStr(),
   EMAIL_FROM: optStr(),
   EMAIL_REPLY_TO: optStr(),
+  // Resend webhook svix 서명 검증 — prod 에서 누락 시 위조 위험.
+  // R82-G1: optStr() 이지만 prod 분기에서 별도 throw.
+  RESEND_WEBHOOK_SECRET: optStr(),
+
+  // === 쿠폰 코드 (선택 — cron / banner 가 사용) ============================
+  // R82-G1: 미설정 시 cron 들 silent fail. 신규 쿠폰 추가 시 같은 패턴.
+  WELCOME_COUPON_CODE: optStr(),
+  BIRTHDAY_COUPON_CODE: optStr(),
+  NEXT_PUBLIC_WELCOME_COUPON_CODE: optStr(),
+
+  // === 라벨 PDF / 사업자 정보 (선택 — 라벨 출력 시 표시) ===================
+  // R82-G1: admin/label 페이지 에서 식약처 별표15의2 의무 항목으로 표시.
+  // BUSINESS_NAME 은 코드 호출처와 .env.example 양쪽 통일.
+  NEXT_PUBLIC_BUSINESS_NAME: optStr(),
+  NEXT_PUBLIC_FEED_BIZ_REG_NO: optStr(),
 
   // === Cron job bearer secret (선택 — 없으면 /api/cron/* 은 503 반환) =======
   // Vercel Cron 이 붙인 `Authorization: Bearer <secret>` 를 검증. 외부 툴이
@@ -121,6 +136,12 @@ const raw = {
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   EMAIL_FROM: process.env.EMAIL_FROM,
   EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO,
+  RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET,
+  WELCOME_COUPON_CODE: process.env.WELCOME_COUPON_CODE,
+  BIRTHDAY_COUPON_CODE: process.env.BIRTHDAY_COUPON_CODE,
+  NEXT_PUBLIC_WELCOME_COUPON_CODE: process.env.NEXT_PUBLIC_WELCOME_COUPON_CODE,
+  NEXT_PUBLIC_BUSINESS_NAME: process.env.NEXT_PUBLIC_BUSINESS_NAME,
+  NEXT_PUBLIC_FEED_BIZ_REG_NO: process.env.NEXT_PUBLIC_FEED_BIZ_REG_NO,
   CRON_SECRET: process.env.CRON_SECRET,
   NEXT_PUBLIC_MAIL_ORDER_NUMBER: process.env.NEXT_PUBLIC_MAIL_ORDER_NUMBER,
   NEXT_PUBLIC_KAKAO_CHANNEL_URL: process.env.NEXT_PUBLIC_KAKAO_CHANNEL_URL,

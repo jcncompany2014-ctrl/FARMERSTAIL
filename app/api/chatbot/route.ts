@@ -132,7 +132,7 @@ export async function POST(req: Request) {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: (await import('@/lib/anthropic-models')).MODEL_CHATBOT,
         max_tokens: 400,
         system: systemPrompt,
         messages: [

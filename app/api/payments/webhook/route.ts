@@ -264,6 +264,35 @@ export async function POST(req: Request) {
         })
         .eq('id', order.id)
 
+      // R82-G2: payment_events ledger 기록 — 이전 코드 (R81 audit 발견) 가
+      // Toss 대시보드에서 직접 환불한 케이스의 ledger event 미기록 →
+      // reconcile cron 이 mismatch 잡지만 영구 false positive.
+      // 부분 환불은 cancel_amount 정확값 추출이 어려워 metadata 만 기록,
+      // 전액은 -total_amount 금액으로 ledger 잔액 0 으로 정합.
+      {
+        // TossPayment 타입에 cancels 없으나 실제 API 응답엔 포함 (PARTIAL_CANCELED 케이스)
+        const tossCancels = (payment as unknown as {
+          cancels?: Array<{ cancelAmount: number }>
+        }).cancels
+        const cancelAmt = isPartial
+          ? (tossCancels?.[0]?.cancelAmount ?? 0)
+          : order.total_amount
+        const { recordPaymentEvent } = await import('@/lib/payment-events')
+        await recordPaymentEvent(supabase, {
+          orderId: order.id,
+          paymentKey,
+          eventType: isPartial ? 'partial_refunded' : 'refunded',
+          amount: -cancelAmt,
+          prevStatus: order.payment_status,
+          newStatus: isPartial ? 'partially_refunded' : 'cancelled',
+          source: 'toss_webhook',
+          metadata: {
+            tossStatus: payment.status,
+            cancels: tossCancels ?? null,
+          },
+        })
+      }
+
       // 전액 취소일 때만 고객 메일을 보냄 — 부분 환불은 ops 가 별도 커뮤니케이션.
       if (!isPartial) {
         notifyOrderCancelled(supabase, {

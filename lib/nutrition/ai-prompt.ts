@@ -285,9 +285,16 @@ export function parseAiAnalysis(text: string): AiAnalysisJson | null {
     ? (o.nextActions as unknown[]).filter((s): s is string => typeof s === 'string')
     : []
 
-  const citations = Array.isArray(o.citations)
-    ? (o.citations as unknown[]).filter((s): s is string => typeof s === 'string')
-    : []
+  // R82-G4: citations 검증 — AI 가 임의 key (예: "fake_journal", "nrc2999") 반환
+  // 시 그대로 표시되면 사용자 신뢰 손상. GUIDELINE_CITATIONS 의 key 만 허용.
+  const validCitationKeys: Set<string> = new Set(
+    GUIDELINE_CITATIONS.map((g) => g.key),
+  )
+  const citations = (Array.isArray(o.citations)
+    ? (o.citations as unknown[]).filter(
+        (s): s is string => typeof s === 'string' && validCitationKeys.has(s),
+      )
+    : []) as Array<(typeof GUIDELINE_CITATIONS)[number]['key']>
 
   const vc = (o.vetConsult ?? {}) as Record<string, unknown>
   const vetConsult = {

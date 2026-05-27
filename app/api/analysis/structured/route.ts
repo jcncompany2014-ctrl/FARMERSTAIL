@@ -181,7 +181,7 @@ export async function POST(req: Request) {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5',
+        model: (await import('@/lib/anthropic-models')).MODEL_HAIKU,
         max_tokens: 1500,
         system: prompt.system,
         messages: [{ role: 'user', content: prompt.user }],

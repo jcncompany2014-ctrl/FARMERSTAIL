@@ -51,6 +51,38 @@
 
 ## 🟡 1-3개월차 — 성장 인프라
 
+### 🔒 PIPA 강화 — 탈퇴자 데이터 익명화 (D+30, 1-2시간)
+
+R82 검토 결과 발견된 PIPA 보강 항목 — 데이터 손실 위험이 있어 PMF 검증 후
+신중하게 처리. 정책 페이지엔 이미 명시되어 있지만 실제 코드 동작은 불완전.
+
+#### C2: orders.recipient_* 익명화
+- 회원 탈퇴 시 `orders.recipient_name/phone/address/zip` 평문 5년 보관
+- PIPA §21 "보존 기록은 별도 DB 분리 + 익명화" 원칙 위배 소지
+- Fix: `/api/account/delete` 에 orders / subscriptions / cs_messages 익명화
+  (이름→`탈퇴회원-{userId8}`, phone→마스킹, address→마스킹)
+
+#### C3: auth.users hard-delete
+- 현재 `supabase.auth.admin.deleteUser(id, true)` soft-delete → email 영구 보존
+- privacy 정책 "5년 후 즉시 파기" 와 불일치
+- Fix: `account-purge` cron 끝에 `deleteUser(id, false)` hard-delete 추가
+- 주의: ON DELETE CASCADE 다른 테이블 영향 — orders 5년 보존 위해
+  `orders.user_id ON DELETE SET NULL` 또는 별도 archive 테이블 필요
+
+#### C5: 의료·일지·사진 데이터 정리
+- 현재 `/api/account/delete` 가 dog_invitations / medical_records /
+  progress_photos / sensitivity_snapshots / dog_diary / feed_intake_history /
+  chatbot_history / cs_messages / coupon_redemptions / user_integrations /
+  feeding_outcomes / meta_learning_events / inactive_coupons 정리 안 함
+- auth.users soft-delete 라 ON DELETE CASCADE 도 동작 안 함
+- Fix: delete route 의 Promise.all 에 명시 delete 추가
+
+#### Migration 작업
+별도 R-cycle (R90+) 로 진행. archive 테이블 + cron + 단위 테스트 필요.
+PMF 후 베타 50명 데이터 안정화된 다음 진행 권장.
+
+---
+
 ### 🐕 AI 사진 분석 (핵심 차별화 기능) — D+30 ~ D+60
 
 펫푸드 D2C 의 진짜 차별화 — 사료 회사는 못 함. Claude vision (claude-haiku-4-5)

@@ -313,6 +313,34 @@ export default function PrivacyPage() {
                     거래·알림 이메일 발송
                   </td>
                 </tr>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Anthropic, PBC
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    반려견 영양 분석 AI (Claude) — 익명화된 설문 응답 전송
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Meta Platforms Ireland Ltd.
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    광고 추적·전환 측정 (Meta Pixel) — 동의 시
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -525,6 +553,31 @@ export default function PrivacyPage() {
                     분석 쿠키 동의 시점부터 상시
                     <br />
                     HTTPS / 암호화 (입력 필드 자동 마스킹)
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Meta Platforms Ireland Ltd.
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    아일랜드 (EU 데이터센터)
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Meta Pixel — 익명 사용자 ID(_fbp), 페이지 view, 결제 전환
+                    이벤트
+                    <br />
+                    광고 쿠키 동의 시점부터 상시
+                    <br />
+                    HTTPS / 암호화
                   </td>
                 </tr>
               </tbody>

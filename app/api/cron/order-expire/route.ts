@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
+import { appendLedger } from '@/lib/commerce/points'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -130,22 +131,23 @@ async function runOrderExpire(): Promise<Response> {
     }
 
     // 3) 포인트 환급 — pending 단계에서 사용한 포인트가 있으면 회수.
-    // audit #79: 테이블명 schema-drift (points_ledger vs point_ledger) cast 우회 —
-    // 별도 sprint 에서 apply_point_delta RPC 로 통일 권장.
+    // R82-G2: 이전 코드 (R81 audit 발견) 가 잘못된 테이블 'points_ledger' (복수형)
+    // 에 직접 insert 했음. 실제 테이블은 'point_ledger'. 게다가 raw insert 는
+    // apply_point_delta RPC 의 advisory lock / balance_after / 멱등성 unique
+    // index 우회. 이제 appendLedger() helper 사용 — RPC + lock + 멱등 보장.
     if (ord.points_used > 0) {
-      await (supabase as unknown as {
-        from: (t: string) => {
-          insert: (r: Record<string, unknown>) => Promise<unknown>
-        }
+      const result = await appendLedger(supabase, {
+        userId: ord.user_id,
+        delta: ord.points_used,
+        reason: '주문 만료 포인트 환급',
+        referenceType: 'order_refund_credit',
+        referenceId: ord.id,
       })
-        .from('points_ledger')
-        .insert({
-          user_id: ord.user_id,
-          delta: ord.points_used,
-          reason: '주문 만료 포인트 환급',
-          reference_type: 'order_expire',
-          reference_id: ord.id,
-        })
+      if (!result.ok) {
+        console.warn(
+          `[order-expire] point refund failed for order ${ord.id}: ${result.reason}`,
+        )
+      }
     }
 
     expired += 1

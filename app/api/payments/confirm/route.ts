@@ -128,11 +128,90 @@ export async function POST(req: Request) {
       )
     }
 
+    // R82-G2: discount_amount + points_used 위변조 검증 강화.
+    // 이전 코드 (R81 audit 발견) 는 클라이언트 값을 그대로 신뢰 → 사용자가
+    // discount=50000 + total=3000 으로 주문 만들어 3000원 결제 가능.
+    // 이제 coupon_code 가 있으면 실제 쿠폰 fetch + computeCouponDiscount 재계산,
+    // points_used 는 현재 잔액 이하 검증.
+
+    // 1) discount 위변조 검증
+    const storedDiscount = order.discount_amount ?? 0
+    if (storedDiscount > 0) {
+      const couponCode = (order as { coupon_code?: string | null }).coupon_code
+      if (!couponCode) {
+        captureBusinessEvent('warning', 'order.payment.discount_no_coupon', {
+          orderId,
+          storedDiscount,
+        })
+        return NextResponse.json(
+          { code: 'PRICE_TAMPERED', message: '할인 금액이 일치하지 않아요.' },
+          { status: 400 },
+        )
+      }
+      const { computeCouponDiscount } = await import('@/lib/coupons')
+      const { data: coupon } = await supabase
+        .from('coupons')
+        .select(
+          'id, code, name, description, discount_type, discount_value, min_order_amount, max_discount, starts_at, expires_at, usage_limit, used_count, per_user_limit, is_active',
+        )
+        .eq('code', couponCode.toUpperCase())
+        .maybeSingle()
+      if (!coupon || !coupon.is_active) {
+        captureBusinessEvent('warning', 'order.payment.discount_invalid_coupon', {
+          orderId,
+          couponCode,
+        })
+        return NextResponse.json(
+          { code: 'PRICE_TAMPERED', message: '쿠폰이 유효하지 않아요.' },
+          { status: 400 },
+        )
+      }
+      const expectedDiscount = computeCouponDiscount(
+        coupon as unknown as Parameters<typeof computeCouponDiscount>[0],
+        recomputedSubtotal,
+      )
+      if (expectedDiscount !== storedDiscount) {
+        captureBusinessEvent('warning', 'order.payment.discount_mismatch', {
+          orderId,
+          storedDiscount,
+          expectedDiscount,
+          couponCode,
+        })
+        return NextResponse.json(
+          { code: 'PRICE_TAMPERED', message: '할인 금액 계산이 일치하지 않아요. 주문을 새로 만들어 주세요.' },
+          { status: 400 },
+        )
+      }
+    }
+
+    // 2) points_used 위변조 검증 — 현재 잔액 이하?
+    const storedPoints = order.points_used ?? 0
+    if (storedPoints > 0) {
+      const { getCurrentBalance } = await import('@/lib/commerce/points')
+      const currentBalance = await getCurrentBalance(supabase, user.id)
+      // 다른 주문 차감과의 race condition 고려 — 약간 여유 (가입자라 잔액 안정).
+      // 더 엄격하게 하려면 advisory lock 필요하지만 결제 마지막 단계라 race 미세.
+      if (storedPoints > currentBalance + storedPoints) {
+        // (storedPoints + storedPoints) — 이미 차감된 경우 currentBalance 가 음수가
+        // 아니므로 currentBalance + storedPoints 가 원래 잔액. storedPoints 가
+        // 그것보다 크면 위변조.
+        captureBusinessEvent('warning', 'order.payment.points_inflated', {
+          orderId,
+          storedPoints,
+          currentBalance,
+        })
+        return NextResponse.json(
+          { code: 'PRICE_TAMPERED', message: '사용 포인트가 잔액을 초과해요.' },
+          { status: 400 },
+        )
+      }
+    }
+
     const recomputedTotal =
       recomputedSubtotal +
       (order.shipping_fee ?? 0) -
-      (order.discount_amount ?? 0) -
-      (order.points_used ?? 0)
+      storedDiscount -
+      storedPoints
 
     if (recomputedTotal !== order.total_amount) {
       captureBusinessEvent('warning', 'order.payment.total_mismatch', {

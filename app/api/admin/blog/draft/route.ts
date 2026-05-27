@@ -115,7 +115,7 @@ ${audience ? `\n# 타겟 독자\n${audience}` : ''}`
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: (await import('@/lib/anthropic-models')).MODEL_BLOG_DRAFT,
         max_tokens: 2400,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { recordAdminAction } from '@/lib/admin-audit'
+import { recordPaymentEvent } from '@/lib/payment-events'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -249,6 +250,24 @@ export async function POST(
       { status: 500 }
     )
   }
+
+  // R82-G2: payment_events ledger 기록 — 이전 코드 (R81 audit 발견) 가 누락 →
+  // orders.refunded_amount 만 갱신해서 reconcile cron 이 ledger SUM 과
+  // 불일치 false positive 발생. fail-silent.
+  await recordPaymentEvent(admin, {
+    orderId: order.id,
+    paymentKey: null, // admin 수동 환불 — Toss key 가 없을 수도
+    eventType: isFullyRefunded ? 'refunded' : 'partial_refunded',
+    amount: -cancelAmount,
+    prevStatus: order.payment_status,
+    newStatus: nextStatus,
+    source: 'admin_panel',
+    actorUserId: user.id,
+    metadata: {
+      cancelReason: cancelReason ?? null,
+      isPartialAdmin: true,
+    },
+  })
 
   // Audit log — 환불은 돈 관련 critical action. fail-silent.
   await recordAdminAction(supabase, {
