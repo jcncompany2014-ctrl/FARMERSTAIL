@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import {
   feedGramsModel,
   sensitivityAnalysis,
@@ -48,8 +49,9 @@ export async function GET(req: Request) {
       reason: 'INVENTION_COUNTERFACTUAL_DISABLED',
     })
   }
-
-  const supabase = createAdminClient()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('sensitivity-snapshots', async () => {
+    const supabase = createAdminClient()
 
   // 활성 dog 의 최신 analysis + dog 메타 join
   // 1) 최근 90일 분석 있는 dog_id distinct
@@ -183,10 +185,11 @@ export async function GET(req: Request) {
     inserted += 1
   }
 
-  return NextResponse.json({
-    ok: true,
-    inserted,
-    skipped,
-    totalCandidates: latestPerDog.length,
+    return NextResponse.json({
+      ok: true,
+      inserted,
+      skipped,
+      totalCandidates: latestPerDog.length,
+    })
   })
 }

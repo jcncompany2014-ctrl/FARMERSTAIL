@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { isInventionEnabled } from '@/lib/invention-flags'
 import { dbError } from '@/lib/api/errors'
 
@@ -35,7 +36,9 @@ export async function GET(req: Request) {
       reason: 'INVENTION_META_LEARNING_DISABLED',
     })
   }
-  const supabase = createAdminClient()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('meta-weights', async () => {
+    const supabase = createAdminClient()
 
   // 최근 30일 sensitivity_snapshots
   const since = new Date(Date.now() - 30 * 86_400_000).toISOString()
@@ -82,8 +85,9 @@ export async function GET(req: Request) {
     notes: `monthly skeleton run @ ${d.toISOString()}`,
   })
 
-  if (error) {
-    return dbError(error, 'cron_meta_weights', '메타 학습 가중치 갱신 실패')
-  }
-  return NextResponse.json({ ok: true, version, weights })
+    if (error) {
+      return dbError(error, 'cron_meta_weights', '메타 학습 가중치 갱신 실패')
+    }
+    return NextResponse.json({ ok: true, version, weights })
+  })
 }
