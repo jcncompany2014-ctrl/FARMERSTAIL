@@ -247,17 +247,18 @@ SELECT COUNT(*) FROM public.blog_posts WHERE is_published = true;
 
 ## 🟡 Tier 2 — 출시 직후 1주 안에
 
-### 9. Anthropic API 카드 등록 재시도 (AI 분석 활성)
-- **현재 상태:** 카드 결제 차단으로 막힘 (시도 다 실패)
-- **재시도 방법 (가장 빠른 순):**
-  1. **다른 신용카드** (신한 / 삼성 / 현대 추천, 카카오뱅크 X)
-  2. **시크릿 창** + 광고 차단기 OFF
-  3. **다른 브라우저** (Edge 추천)
-  4. **다른 컴퓨터 / 다른 IP**
-- **그래도 안 되면:**
-  - **Anthropic 지원팀 영문 이메일:** support@anthropic.com  
-    제목: `Cannot add payment method — button disabled despite all fields filled`  
-    내용: 시도한 브라우저 / 환경 / 에러 메시지 정리
+### 9. Anthropic API 카드 등록 ✅ 완료
+- **결과:** 결제 성공, US$20 크레딧 충전됨 (2026-05-27)
+- **API 키 발급:** `farmerstail-prod` (platform.claude.com)
+- **Vercel ENV 등록:** `ANTHROPIC_API_KEY` 추가 + redeploy 완료
+- **검증:** `curl https://www.farmerstail.kr/api/health` → `integrations.anthropic = true`
+- **활성된 기능 6개:**
+  - 38영양소 구조화 분석 (claude-haiku-4-5)
+  - 분석 결과 코멘트
+  - 챗봇 (/api/chatbot + stream)
+  - admin 블로그 글 초안 생성
+  - 건강검진서 OCR
+  - 의료 기록 비전 파싱
 - **풀린 후:**
   1. Anthropic Console → API Keys → Create Key
   2. Vercel env 추가: `ANTHROPIC_API_KEY` = `sk-ant-xxx`
@@ -469,7 +470,7 @@ SELECT COUNT(*) FROM public.blog_posts WHERE is_published = true;
 - ⏳ Toss 입점 심사 (1~3일)
 - ⏳ 카페24 호스팅 해지 (1:1 문의 답변 대기, 전화가 빠름)
 - ⏳ 카카오 디벨로퍼 락 (카페24 해지 → unlink 자동 처리)
-- ⏳ Anthropic API 카드 결제 (재시도 필요)
+- ✅ Anthropic API 카드 결제 (2026-05-27 성공, US$20 크레딧)
 
 ### 다음 검토 시점
 - 자고 일어났을 때: Toss 결과 + 카페24 답변 확인
