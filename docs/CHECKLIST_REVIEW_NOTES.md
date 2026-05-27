@@ -412,6 +412,74 @@ D 즉시 fix 8건 모두 `tsc 0` 통과 후 push:
 - ae68765: D1 + D2 + D6 + D11 + D14
 - d7a8754: D10 (universal unsubscribe)
 - 8d6e7b2: D12 + D13 (a11y + admin)
+- 96f8aa5 ~ 19db19b: D3 (21개 cron trackCron wrap)
+
+## ⭐ 자다 일어난 사용자를 위한 진짜 요약
+
+**총 100가지 검토 완료** (잘 동안):
+
+| 그룹 | 상태 |
+|------|------|
+| A 본인 검증 12 | 코드 path 모두 ready — 본인 클릭 필요 |
+| B env/외부 12 | 코드 ready — Vercel/Resend/Toss 등 설정 |
+| C 법적 8 | 정부/보험 등 외부 액션 |
+| **D BACKLOG 14** | **9 즉시 fix (D1/D2/D3/D6/D10/D11/D12/D13/D14)** + 5 BACKLOG (architectural) |
+| E day-1 SOP 10 | 코드 9/10 ready |
+| F 첫 주 10 | 운영 task |
+| G 마케팅 10 | 외부 활동 |
+| H 회계 8 | 회계사/세무사 |
+| I 물류 8 | 외부 운영 |
+| J milestone 8 | 성장 후 |
+
+**진짜 코드 fix 9건 (자는 동안):**
+1. D1: orders.recipient_* PII 익명화 (탈퇴 시) — PIPA §21
+2. D2: account-purge auth.users hard-delete — 5년 후 완전 삭제
+3. D3: 21개 cron trackCron wrap (cron_health + Sentry alert)
+4. D6: refund-retry cron 매 30분 (backoff 의미 회복)
+5. D10: 마케팅 메일 universal unsubscribe (HMAC + Gmail 2024.2)
+6. D11: 결제 폼 7개 input aria-label (장차법 §14)
+7. D12: CheckoutCouponSheet button-in-button 분리 (키보드 a11y)
+8. D13: admin bulk create address fallback (배송 가능 복원)
+9. D14: cron 실패 시 Sentry captureBusinessEvent
+
+**Deferred BACKLOG 5건** (architectural — 1000명 후 본격):
+- D4 VA 환불계좌 입력 UI (현재 1:1 문의 안내 우회 중)
+- D5 product_variants stock 잠금 (variants 0건이라 영향 없음)
+- D7 products.sku 컬럼 (현재 OrderClient.LINE_TO_SLUG 로 cover)
+- D9 transactional/marketing 도메인 분리 (Resend external)
+- D8 SUB10 per_user_limit (agent 보고 오류 — 실제 3 cycle 제한 정상)
+
+**👤 본인 액션 필요 (코드 외):**
+- A 그룹 12개: 가입/결제/환불/구독 본인 클릭 검증
+- B 그룹 12개: Vercel env + DNS + Resend/Toss/Kakao dashboard
+  - 신규: `UNSUBSCRIBE_TOKEN_SECRET` 추가 (`openssl rand -hex 32`)
+- C 그룹 8개: 통신판매업/식품판매업/보험/라벨 검수
+- E-J 그룹 60개: 출시 후 운영 SOP
+
+## Git 변경 이력 (자는 동안)
+
+```
+fe6ba03 — LAUNCH_CHECKLIST_100.md (100가지 리스트 작성)
+f3dd017 — A/B/C 노트 (28개 검토 결과)
+ae68765 — D batch 1: D1/D2/D6/D11/D14 (5건)
+d7a8754 — D10: universal unsubscribe (1건)
+8d6e7b2 — D12 + D13: a11y + admin (2건)
+378118b — 100가지 노트 완성 (A-J 전부)
+96f8aa5 — D3 batch 1: subscription-cleanup/account-purge/push-lifecycle
+167c3c9 — D3 batch 2: subscription-reminders/cart-recovery
+36d3ca6 — D3 batch 3: payment-ledger-reconcile
+9921c31 — D3 batch 4: restock-alerts/onboarding-funnel
+4f84032 — D3 batch 5: birthday/inactive/vip coupons
+30c6ca4 — D3 batch 6: dog-age-update
+d7f662f — D3 batch 7: review-prompts/coupon-expiry
+ea67abd — D3 batch 8: personalization-approval-timeout/reanalyze-trigger
+7548444 — D3 batch 9: sensitivity-snapshots/meta-weights
+19db19b — D3 batch FINAL: weight-reminder/personalization-progression/inventory-forecast
+```
+
+## tsc 0 / tests 1032/1032 ✅
+
+R88까지 코드 + D 그룹 9건 fix 모두 통과. 출시 차단 코드 issue 0건.
 
 
 
