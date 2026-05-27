@@ -396,21 +396,26 @@ SELECT COUNT(*) FROM public.blog_posts WHERE is_published = true;
 - 브라우저 native `confirm()` 대신 v3 Modal 사용 — UX 일관성
 - **결정:** 처리할까? (작은 작업, 1-2시간)
 
-### 3. `any` 타입 잔존 (10 파일)
-- 주로 Supabase row 처리 (`map((it: any) =>`)
-- 타입 안전성 손실이지만 큰 위험 X
-- **결정:** 점진 정리할까 vs 미루기 (web/app 공유 영역이라 신중)
+### 3. `any` 타입 잔존 (10 파일) ✅ 처리 진행
+- **결정:** 사용자 요청으로 정리 진행 (background agent)
+- 대상: cart, checkout, mypage/orders, admin/orders, admin/products, ProductReviews, lib/realtime, cron/push-lifecycle
+- 제외: `src/types/global.d.ts` Daum SDK (외부 SDK)
+- 검증: tsc + lint 통과
 
-### 4. "오류" → 부드러운 표현 (30+ 파일)
-- voice-guidelines §2 권장
-- 큰 sweep
-- **결정:** 출시 후 점진 처리 권장
+### 4. "오류" → 부드러운 표현 (30+ 파일) ✅ 처리 진행
+- **결정:** 사용자 요청으로 sweep 진행 (background agent)
+- 스코프: 사용자 노출 영역만 (app/(main), app/cart, app/checkout, app/products 등)
+- 제외: admin (운영자 전용), api routes (개발자 카피), test
+- 예: "오류가 발생했습니다" → "잠시 후 다시 시도해 주세요"
 
-### 5. 큰 client component 분할 (500+ lines)
-- `app/page.tsx` 2153줄 (server라면 OK)
-- `app/(auth)/signup/page.tsx` 1241줄 (⛔ web/app 공유 영역, 시각 변경 X)
-- `app/(main)/dogs/[id]/analysis/AnalysisView.tsx` 1161줄 (app-only)
-- **결정:** PMF 후 별도 R-cycle
+### 5. 큰 client component 분할 (500+ lines) ⚠️ 부분 처리
+- **결정:** app-only 2개만 분할 (background agent)
+  - ✅ `app/(main)/dogs/[id]/analysis/AnalysisView.tsx` 1161줄
+  - ✅ `app/(main)/mypage/subscriptions/SubscriptionsClient.tsx` 1141줄
+- **스킵 (회귀 risk):**
+  - ⏭ `app/page.tsx` 2153줄 — server component, bundle 영향 X
+  - ⏭ `app/(auth)/signup/page.tsx` 1241줄 — ⛔ web/app 공유, PMF 후 R-cycle
+  - ⏭ `app/checkout/CheckoutForm.tsx` 1175줄 — ⛔ web/app 공유, PMF 후 R-cycle
 
 ### 6. next.config.ts Supabase 프로젝트 ID 하드코딩
 - `adynmnrzffidoilnxutg.supabase.co` fallback에 박힘
