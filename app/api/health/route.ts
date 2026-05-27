@@ -49,7 +49,16 @@ export async function GET() {
     dbStatus = 'fail'
   }
 
-  const ok = dbStatus === 'ok'
+  // ENV 키 점검 — 필수 키 누락 시 degraded. prod 에선 이름만 노출.
+  const requiredEnvs = [
+    'NEXT_PUBLIC_SUPABASE_URL',
+    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+    'SUPABASE_SERVICE_ROLE_KEY',
+  ]
+  const missingEnvs = requiredEnvs.filter((k) => !process.env[k])
+  const envStatus: 'ok' | 'degraded' = missingEnvs.length === 0 ? 'ok' : 'degraded'
+
+  const ok = dbStatus === 'ok' && envStatus === 'ok'
   const body = {
     status: ok ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
@@ -57,6 +66,8 @@ export async function GET() {
     dependencies: {
       db: dbStatus,
       ...(dbLatencyMs !== null ? { db_latency_ms: dbLatencyMs } : {}),
+      env: envStatus,
+      ...(missingEnvs.length > 0 ? { env_missing: missingEnvs } : {}),
     },
     build: buildInfo,
   }
