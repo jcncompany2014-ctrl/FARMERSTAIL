@@ -117,7 +117,24 @@ export async function GET(req: Request) {
       // 5) profile row 도 삭제 (이미 익명화 상태).
       await deleteStep('profiles', 'id')
 
-      // 6) account_deletions 에 purged_at 마킹.
+      // 6) R83-C3 (D2): auth.users hard-delete.
+      // 5년 보존 후 PIPA §21 즉시 파기 의무 — auth.users 도 익명화 아니라 hard-delete.
+      // admin.auth.admin.deleteUser 사용. 실패해도 다른 데이터는 이미 삭제됐으므로
+      // 다음 cron 에서 재시도 — auth row 만 남은 상태 (사용자 로그인 불가).
+      try {
+        const { error: authErr } = await supabase.auth.admin.deleteUser(p.id)
+        if (authErr && !/not.*found|user.*does.*not.*exist/i.test(authErr.message)) {
+          console.warn(
+            `[account-purge] auth user ${p.id} delete failed (will retry):`,
+            authErr.message,
+          )
+          // throw 안 함 — auth 만 남은 상태로 다음 cron 에서 재시도. purged_at 안 박힘.
+        }
+      } catch (authErr) {
+        console.warn(`[account-purge] auth.deleteUser ${p.id}:`, authErr)
+      }
+
+      // 7) account_deletions 에 purged_at 마킹.
       const { error: markErr } = await supabase
         .from('account_deletions')
         .update({ purged_at: new Date().toISOString() })

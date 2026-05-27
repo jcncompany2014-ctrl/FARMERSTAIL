@@ -749,10 +749,14 @@ export default function CheckoutForm({
           </div>
         )}
 
+        {/* R87-B2 (D11): WCAG 1.3.1/3.3.2 + 장차법 §14 — input 별 aria-label
+            추가. 시각 변경 없이 스크린리더 사용자에게 컨텍스트 제공. placeholder
+            만 의존하면 입력 시 사라져 IME 사용자가 무엇을 입력하는지 잃음. */}
         <div className="space-y-2">
           <input
             type="text"
             placeholder="받는 분 이름"
+            aria-label="받는 분 이름"
             value={name}
             onChange={(e) => {
               setName(e.target.value)
@@ -765,6 +769,7 @@ export default function CheckoutForm({
           <input
             type="tel"
             placeholder="연락처 (예: 010-1234-5678)"
+            aria-label="연락처"
             value={phone}
             onChange={(e) => {
               // 숫자만 추출 → 자동 하이픈. 사용자가 010 입력 → 010-, 7자리 → 010-1234-...
@@ -781,6 +786,7 @@ export default function CheckoutForm({
             <input
               type="text"
               placeholder="우편번호"
+              aria-label="우편번호"
               value={zip}
               readOnly
               inputMode="numeric"
@@ -796,6 +802,7 @@ export default function CheckoutForm({
           <input
             type="text"
             placeholder="주소 (검색 버튼으로 입력)"
+            aria-label="주소"
             value={address}
             readOnly
             autoComplete="street-address"
@@ -804,6 +811,7 @@ export default function CheckoutForm({
           <input
             type="text"
             placeholder="상세 주소 (동/호수 등)"
+            aria-label="상세 주소"
             value={addressDetail}
             onChange={(e) => {
               setAddressDetail(e.target.value)
@@ -816,6 +824,7 @@ export default function CheckoutForm({
           <input
             type="text"
             placeholder="배송 메모 (선택)"
+            aria-label="배송 메모 (선택사항)"
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             enterKeyHint="done"
@@ -890,6 +899,7 @@ export default function CheckoutForm({
                 setUsePoints(v)
               }}
               placeholder="0"
+              aria-label={`사용할 포인트 (최대 ${maxPointsUsable.toLocaleString()}P, 100P 단위)`}
               className="flex-1 px-3 py-2.5 rounded-lg bg-bg border border-rule text-[13px] font-bold text-text focus:outline-none focus:border-terracotta tabular-nums"
             />
             <button

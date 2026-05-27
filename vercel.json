@@ -143,7 +143,7 @@
     },
     {
       "path": "/api/cron/refund-retry",
-      "schedule": "0 20 * * *"
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron/first-box-checkin",

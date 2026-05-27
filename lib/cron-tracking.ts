@@ -50,7 +50,28 @@ export async function trackCron<T extends Response>(
     const message =
       err instanceof Error ? err.message : 'unknown cron error'
     void recordHealth(path, 'error', durationMs, message, null)
+    // R87-C5 (D14): cron 실패는 매일 admin 대시보드 직접 확인이 필요 — 알림 보강.
+    // Sentry breadcrumb + captureBusinessEvent 로 운영자에게 즉시 가시화.
+    // Sentry alert rule 에서 `cron.error` 태그로 Slack/email 발화 (B7 user action).
+    void notifyCronError(path, message, durationMs)
     throw err
+  }
+}
+
+async function notifyCronError(
+  path: string,
+  message: string,
+  durationMs: number,
+): Promise<void> {
+  try {
+    const { captureBusinessEvent } = await import('@/lib/sentry/trace')
+    captureBusinessEvent('error', 'cron.error', {
+      cron_path: path,
+      duration_ms: durationMs,
+      error_message: message.slice(0, 500),
+    })
+  } catch {
+    /* Sentry 없으면 무시 — cron_health 테이블에 이미 기록됨 */
   }
 }
 

@@ -211,6 +211,31 @@ export async function POST(req: Request) {
   // 되는 컨텐츠). profile.name 이 익명화 ("탈퇴회원") 됐으니 join 결과는
   // 자동으로 탈퇴회원 표시. 별도 author_name 캐시 컬럼은 현재 스키마에 없음.
 
+  // R83-C2 (D1): orders.recipient_* PII 익명화.
+  // 전자상거래법 §6 = 거래기록 5년 보존 의무. 하지만 PII (이름/전화/주소) 는
+  // PIPA §21 즉시 파기 (수집 목적 달성). recipient_phone/zip/address/address_detail
+  // 익명화 + recipient_name "탈퇴회원" 으로 set. 회계 audit 필요 column (총액/
+  // 결제수단/결제일/refunded_amount 등) 은 보존.
+  await (admin as unknown as {
+    from: (t: string) => {
+      update: (r: Record<string, unknown>) => {
+        eq: (c: string, v: string) => Promise<unknown>
+      }
+    }
+  })
+    .from('orders')
+    .update({
+      recipient_name: '탈퇴회원',
+      recipient_phone: '000-0000-0000',
+      zip: '00000',
+      address: '(주소 익명화 처리됨)',
+      address_detail: null,
+      delivery_memo: null,
+      // cash_receipt_number 도 PII (전화번호) 라 익명화.
+      cash_receipt_number: null,
+    })
+    .eq('user_id', user.id)
+
   // Audit row — sha256(email) only, so "did the same person sign up
   // again?" is detectable without keeping the plaintext email.
   // sha256_hex is a security-invoker sql function (public) defined in
