@@ -76,14 +76,15 @@ export async function GET(req: Request) {
   const ids = rows.map((r) => r.id)
   const nowIso = new Date().toISOString()
 
+  // R84-D5: next_delivery_date 는 NOT NULL 제약. 이전 코드는 null 박아서 update
+  // 자체가 fail → cron 실패. status='cancelled' 만 set 하면 cron loop 가 그 row
+  // 를 skip 하므로 next_delivery_date 는 그대로 둬도 부하 영향 없음.
   const { error: upErr } = await supabase
     .from('subscriptions')
     .update({
       status: 'cancelled',
-      // last_failed_charge_reason 컬럼 활용 — abandoned 사유 기록.
       last_failed_charge_reason: 'abandoned-billing-not-registered-7d',
-      // next_delivery_date 도 NULL — 잔존 cron 부하 ↓. audit #79 cast.
-      next_delivery_date: null as unknown as string,
+      cancelled_at: nowIso,
     })
     .in('id', ids)
 

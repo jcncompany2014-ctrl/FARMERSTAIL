@@ -256,6 +256,41 @@ function SignupForm() {
       // (카카오 로그인은 callback이 서버라 여기서 추적 못 함.)
       trackSignUp('email')
 
+      // R84-1: Supabase 프로젝트 설정에서 "Confirm email" 이 ON 이면
+      // signUp 직후 data.user 는 있지만 data.session === null.
+      // RLS 가 미인증 요청을 거부하므로 profile update / consent_log insert /
+      // referral redeem 이 전부 실패하고, 사용자는 "가입은 됐는데 아무것도 저장 안 됨"
+      // 상태가 됨. 이때는 별도 안내 화면으로 유도.
+      if (!data.session) {
+        setLoading(false)
+        setInfo(
+          `${email.trim()} 로 인증 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인하시면 가입이 완료돼요.`,
+        )
+        // 입력했던 프로필 정보를 잠시 보관 — 로그인 후 자동 복원 가능.
+        // (실제 복원 로직은 추후 R-cycle. 지금은 데이터 유실 방지용 캐시.)
+        try {
+          sessionStorage.setItem(
+            'pending_signup_profile',
+            JSON.stringify({
+              name: name.trim(),
+              phone,
+              zip,
+              address,
+              addressDetail,
+              birthYear: birthYearNum,
+              birthMonth: birthMonth && birthDay ? Number(birthMonth) : null,
+              birthDay: birthMonth && birthDay ? Number(birthDay) : null,
+              agreeMarketingEmail,
+              agreeMarketingSms,
+              referralCode: referralCode.trim().toUpperCase(),
+            }),
+          )
+        } catch {
+          /* noop — quota 초과 등 */
+        }
+        return
+      }
+
       // profiles 업데이트 — 트리거가 만들어 둔 row에 사용자 입력을
       // 채워 넣는다. 주소/전화번호 저장 실패는 가입 자체를 되돌리지
       // 않는다 (다음 단계에서 수정 가능). 다만 에러는 info 노트로 노출.

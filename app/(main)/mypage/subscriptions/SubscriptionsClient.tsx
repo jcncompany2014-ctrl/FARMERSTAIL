@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Repeat } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/Toast'
 import {
   trackSubscriptionPaused,
   trackSubscriptionResumed,
@@ -85,6 +86,7 @@ export default function SubscriptionsClient({
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
+  const toast = useToast()
 
   const [subs, setSubs] = useState<Subscription[]>(initialSubs)
   const [showNewBanner, setShowNewBanner] = useState(isNew)
@@ -188,7 +190,23 @@ export default function SubscriptionsClient({
     const uid = await requireUid()
     if (!uid) return
     const sub = subs.find((s) => s.id === subId)
-    if (!sub) return
+    if (!sub) {
+      setActionLoading(null)
+      return
+    }
+
+    // R84-D3: requires_billing_key_renewal=true 인 paused 구독은 cron 의 fetch
+    // 조건 `.eq('requires_billing_key_renewal', false)` 에 막혀서 결제 영원히 skip.
+    // 그냥 status='active' 만 set 하면 사용자는 정상으로 보이지만 박스 안 옴.
+    // → 카드 재등록 후 자동 false 로 풀리는 경로로 안내.
+    if (sub.requires_billing_key_renewal) {
+      toast.info(
+        '카드 재등록이 필요해요. 결제 카드를 다시 등록한 뒤 자동으로 다시 시작돼요.',
+      )
+      setActionLoading(null)
+      return
+    }
+
     const nextDate = new Date()
     const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null
     if (isBoxSub) {

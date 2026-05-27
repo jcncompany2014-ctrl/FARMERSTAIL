@@ -441,6 +441,25 @@ export default function CheckoutForm({
         .insert(itemsPayload)
 
       if (itemsError) {
+        // R84-B3: items insert 실패 시 points/coupon 도 롤백.
+        // 이전엔 throw 만 하고 points debit row 와 coupon redemption 이 orphan
+        // 으로 남아 사용자 잔액 잠김. order-expire cron 이 30분 후 정리하지만
+        // 그 사이 사용자가 같은 상품 다시 결제하려 하면 잔액 부족.
+        if (effectivePointsUsed > 0) {
+          await appendLedger(supabase, {
+            userId,
+            delta: effectivePointsUsed,
+            reason: '주문 실패 포인트 환급 (아이템 저장 실패)',
+            referenceType: 'order_refund_credit',
+            referenceId: order.id,
+          })
+        }
+        if (couponApplied) {
+          await revokeCouponRedemption(supabase, {
+            couponCode: couponApplied.coupon.code,
+          })
+        }
+        await supabase.from('orders').delete().eq('id', order.id)
         throw new Error(itemsError.message)
       }
 

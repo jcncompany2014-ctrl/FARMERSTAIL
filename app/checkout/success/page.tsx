@@ -36,6 +36,8 @@ type OrderForSuccess = {
   total_amount: number
   payment_status: string | null
   payment_method: string | null
+  // R84-B1: payment_key 추가 — 첫 방문 가드 정확화에 필요.
+  payment_key: string | null
   receipt_url: string | null
   shipping_fee: number | null
   coupon_code: string | null
@@ -73,7 +75,7 @@ export default async function CheckoutSuccessPage({
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .select(
-      'id, user_id, order_number, total_amount, payment_status, payment_method, receipt_url, shipping_fee, coupon_code, virtual_account_bank, virtual_account_number, virtual_account_due_date, virtual_account_holder'
+      'id, user_id, order_number, total_amount, payment_status, payment_method, payment_key, receipt_url, shipping_fee, coupon_code, virtual_account_bank, virtual_account_number, virtual_account_due_date, virtual_account_holder'
     )
     .eq('order_number', orderId)
     .eq('user_id', user.id)
@@ -87,10 +89,18 @@ export default async function CheckoutSuccessPage({
     redirect('/checkout/fail?code=AMOUNT_MISMATCH&message=결제%20금액이%20맞지%20않아요')
   }
 
-  // 이미 서버에서 상태가 확정된 경우는 confirm을 다시 호출할 필요 없음.
-  // 'paid'면 정상 완료, 'pending'이면 가상계좌 입금 대기(confirm API는
-  // 이미 첫 콜에서 WAITING_FOR_DEPOSIT을 반환한 상태).
-  if (order.payment_status === 'paid' || order.payment_status === 'pending') {
+  // R84-B1: 이전 가드 (`payment_status === 'pending'`) 는 CheckoutForm:378 이
+  // 모든 신규 주문을 `pending` 으로 insert 하므로 첫 방문 시 ALWAYS true → confirm
+  // API 가 호출되지 않고 가상계좌 UI 만 표시 + cart 미정리 (cart delete 는 confirm:427
+  // 안에만 있음). 카드 사용자도 "입금 대기" 화면 봄.
+  //
+  // 새 가드: 'paid' 면 정상, 'pending' + payment_key 있으면 가상계좌 (confirm 이
+  // 첫 콜에서 WAITING_FOR_DEPOSIT 반환한 케이스). payment_key 없는 pending 은
+  // 결제 직후 첫 redirect → confirm 호출 진행.
+  if (
+    order.payment_status === 'paid' ||
+    (order.payment_status === 'pending' && order.payment_key)
+  ) {
     const items = await loadItems(supabase, order.id)
     return <SuccessView order={order} items={items} />
   }
@@ -128,7 +138,7 @@ export default async function CheckoutSuccessPage({
   const { data: fresh } = await supabase
     .from('orders')
     .select(
-      'id, user_id, order_number, total_amount, payment_status, payment_method, receipt_url, shipping_fee, coupon_code, virtual_account_bank, virtual_account_number, virtual_account_due_date, virtual_account_holder'
+      'id, user_id, order_number, total_amount, payment_status, payment_method, payment_key, receipt_url, shipping_fee, coupon_code, virtual_account_bank, virtual_account_number, virtual_account_due_date, virtual_account_holder'
     )
     .eq('id', order.id)
     .single<OrderForSuccess>()

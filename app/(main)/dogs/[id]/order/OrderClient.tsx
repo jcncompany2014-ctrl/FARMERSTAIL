@@ -510,9 +510,10 @@ export default function OrderClient({
           total_deliveries: 0,
           recipient_name: recipientName,
           recipient_phone: recipientPhone,
-          recipient_zip: recipientZip,
-          recipient_address: recipientAddress,
-          recipient_address_detail: recipientAddressDetail,
+          // R84-D1: DB schema = zip/address/address_detail (no recipient_ prefix).
+          zip: recipientZip,
+          address: recipientAddress,
+          address_detail: recipientAddressDetail,
           subtotal: subSubtotal,
           shipping_fee: subShipping,
           total_amount: subTotal,

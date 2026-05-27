@@ -89,7 +89,7 @@ export async function POST(
   const { data: order } = await supabase
     .from('orders')
     .select(
-      'id, user_id, order_number, payment_status, order_status, payment_key, total_amount, points_used, points_earned, coupon_code, recipient_name'
+      'id, user_id, order_number, payment_status, order_status, payment_key, payment_method, total_amount, points_used, points_earned, coupon_code, recipient_name'
     )
     .eq('id', id)
     .eq('user_id', user.id)
@@ -117,6 +117,29 @@ export async function POST(
     return NextResponse.json(
       { code: 'NOT_CANCELLABLE', message: transition.reason },
       { status: 400 }
+    )
+  }
+
+  // R84-C1: 가상계좌/계좌이체 self-cancel 은 Toss 가 refundReceiveAccount 필수.
+  // 현재 UI 가 환불계좌 입력 폼이 없어서 호출 시 Toss 400. 임시: VA 사용자는
+  // self-cancel 차단 + 1:1 문의 안내. 본격적인 환불계좌 입력 UI 는 BACKLOG.
+  const isVirtualAccountLike =
+    order.payment_method === '가상계좌' ||
+    order.payment_method === 'VIRTUAL_ACCOUNT' ||
+    order.payment_method === '계좌이체' ||
+    order.payment_method === 'TRANSFER'
+  if (
+    order.payment_status === 'paid' &&
+    isVirtualAccountLike &&
+    order.payment_key
+  ) {
+    return NextResponse.json(
+      {
+        code: 'VA_REFUND_NEEDS_CS',
+        message:
+          '가상계좌/계좌이체 환불은 환불 계좌 정보가 필요해요. 1:1 문의로 신청해 주시면 영업일 기준 1-3일 안에 환불해 드릴게요.',
+      },
+      { status: 400 },
     )
   }
 
@@ -260,6 +283,31 @@ export async function POST(
     reason: body.reason ?? null,
     refundAmount: order.payment_status === 'paid' ? order.total_amount : null,
   }).catch(() => {})
+
+  // R84-C3: 취소 push 알림 추가. 이전엔 메일만 — 사용자가 push 만 켠 경우
+  // 환불 처리 사실 모름. 카드 3-5영업일 / VA 1-3영업일 안내.
+  try {
+    const { pushToUser } = await import('@/lib/push')
+    const refundDays =
+      order.payment_method === '가상계좌' || order.payment_method === 'VIRTUAL_ACCOUNT'
+        ? '1-3영업일'
+        : '3-5영업일'
+    await pushToUser(
+      order.user_id,
+      {
+        title: '주문이 취소됐어요',
+        body:
+          order.payment_status === 'paid'
+            ? `환불은 ${refundDays} 안에 진행돼요.`
+            : '주문이 취소 처리됐어요.',
+        url: `/mypage/orders/${order.id}`,
+        tag: `order-cancel-${order.id}`,
+      },
+      { category: 'order' },
+    )
+  } catch {
+    /* push 실패 — 메일이 이미 발송됨 */
+  }
 
   // Phase 3 (2026-05-20): outcome 자동 기록 — 환불 사유 분류 누적.
   // palatability(not_eating) / digestibility(digestion_issue) / outcome(weight_change)

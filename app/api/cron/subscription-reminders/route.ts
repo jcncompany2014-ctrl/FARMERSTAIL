@@ -151,22 +151,26 @@ export async function GET(req: Request) {
         : days === 1
           ? '내일 정기배송이 출발해요 🐾'
           : `D-${days} · 정기배송 알림`
-    pushToUser(
-      sub.user_id,
-      {
-        title: pushTitle,
-        body: itemCountLabel,
-        // ?focus 로 해당 구독 카드까지 자동 스크롤 + highlight + skip/pause 강조.
-        // 결제 전 마지막 컨트롤 권한 — 1탭으로 도달.
-        url: `/mypage/subscriptions?focus=${sub.id}`,
-        tag: `sub-reminder-${sub.id}-${sub.next_delivery_date}`,
-      },
-      { category: 'order' },
-    )
-      .then((res) => {
-        if (res.ok && res.sent > 0) pushed++
-      })
-      .catch(() => {})
+    // R84-D4: 이전엔 fire-and-forget (.then/.catch) → Vercel function 종료 시
+    //   background promise 절단 가능. R83-6 에서 subscription-charge 는 잡았는데
+    //   reminders 는 누락. await 으로 안전화 + try/catch 격리.
+    try {
+      const res = await pushToUser(
+        sub.user_id,
+        {
+          title: pushTitle,
+          body: itemCountLabel,
+          // ?focus 로 해당 구독 카드까지 자동 스크롤 + highlight + skip/pause 강조.
+          // 결제 전 마지막 컨트롤 권한 — 1탭으로 도달.
+          url: `/mypage/subscriptions?focus=${sub.id}`,
+          tag: `sub-reminder-${sub.id}-${sub.next_delivery_date}`,
+        },
+        { category: 'order' },
+      )
+      if (res.ok && res.sent > 0) pushed++
+    } catch {
+      /* push 실패 — 다음 cycle 에 retry */
+    }
   }
 
   return NextResponse.json({ checked: subs?.length ?? 0, sent, errors, pushed })

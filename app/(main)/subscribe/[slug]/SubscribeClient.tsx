@@ -191,9 +191,11 @@ export default function SubscribeClient({
         total_deliveries: 0,
         recipient_name: recipientName,
         recipient_phone: recipientPhone,
-        recipient_zip: recipientZip,
-        recipient_address: recipientAddress,
-        recipient_address_detail: recipientAddressDetail,
+        // R84-D1: DB schema 는 zip/address/address_detail (no recipient_ prefix).
+        // 이전 코드는 존재하지 않는 컬럼 박아서 출시 직후 정기배송 100% 실패였음.
+        zip: recipientZip,
+        address: recipientAddress,
+        address_detail: recipientAddressDetail,
         subtotal,
         shipping_fee: shippingFee,
         total_amount: totalAmount,

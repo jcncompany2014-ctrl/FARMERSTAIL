@@ -287,4 +287,43 @@ R83 (2026-05-27) 의 5개 그룹 병렬 audit 에서 발견된 32+ Critical 중 
 | E10 restock-alerts retry cap | 푸시 폭주 방지 | 1h |
 | B6 부분 cancel 쿠폰 | 환불 정합 | 2h |
 | C4 timestamp 중복 확인 | DB schema 점검 | 30m |
+
+---
+
+## 🔍 R84 user-journey audit deferred (출시 후 1-2주)
+
+R84 (2026-05-27) 의 4개 사용자 동선 (온보딩 / 구매 / 사후 / 구독) audit 에서
+발견된 14 Critical 중 출시 차단급은 즉시 fix, 나머지 deferred:
+
+### 사용자 동선 잔여 (보강 영역)
+- **C1 (확장)**: VA self-cancel 환불계좌 입력 UI** — 현재는 1:1 문의로 우회.
+  사용자가 직접 은행/계좌/예금주 입력하고 self-cancel 완료할 수 있도록
+  `CancelOrderButton` 에 `payment_method='가상계좌'/TRANSFER' 일 때 입력 폼 표시 +
+  `cancelPayment` 에 `refundReceiveAccount` 옵션 추가 + cancel route 가 body 받아 전달.
+  (R84 즉시: VA 사용자는 1:1 문의 안내 메시지 — 운영 부담 + UX↓)
+- **C4: 사용자 부분 취소 UI** — `/api/orders/[id]/cancel-items` API 는 있지만
+  `/mypage/orders/[id]` 에 부분 취소 버튼 없음. admin 만 부분 취소 가능. 사용자가
+  "2번 상품만 빼고 싶다" 시 전체 취소 → 재주문 안내. 운영 CS 부담 증가.
+- **C5: 환불 안내 문구 불일치** — `/legal/refund` "3-7영업일" vs `CancelOrderButton`
+  "3-5영업일". 단일 문구로 통일 (refund 정책 + 알림 메시지 + push 내용).
+- **B2: 재고 변종(variant) 단위 잠금** — `reserve_order_stock` RPC 가 `products.stock`
+  만 잠금. PDP/cart 는 `product_variants.stock` 도 표시. 같은 variant 두 사용자
+  동시 결제 시 oversell. variant_id 받는 RPC v2 필요 + 마이그레이션.
+- **D2: subscription-charge 주소 우선순위** — cron 이 `addresses` 또는 `profiles`
+  에서만 lookup. `subscriptions.address/zip/recipient_name` (R84-D1 fix 후) 이 1순위
+  여야 함. 신청서 입력 주소가 silently 폐기됨.
+
+### 온보딩 정책 결정 필요
+- **A3: 알러지/만성질환 폼이 `/dogs/new` 에 없음** — 설계상 `/survey` 에서 입력하지만
+  사용자 기대치는 "강아지 등록 = 모든 기본 정보". CS 폭주 우려. 결정:
+  옵션 (a) `/dogs/new` 에 간단한 알러지 체크 한 줄 추가
+  옵션 (b) `/survey` 진입 시 "알러지 정보는 다음 단계에서 입력해요" 안내 명시
+- **A4: under-14 cleanup ordering** — Supabase 트리거가 UNDER_14 거부 시점에
+  이미 consent_log row inserted. minor PII (생년월일/marketing opt-in) leak.
+  consent_log inserts 를 profErr 체크 뒤로 이동.
+
+### Admin 내부 도구
+- **admin/subscriptions/page.tsx**: `SubscriptionRow` 타입이 `recipient_address/_detail/zip`
+  로 선언돼 있지만 실제 DB 는 `zip/address/address_detail`. 화면이 NULL 표시.
+  + 부분취소 시 orders.recipient_* 에 NULL 입력. admin 운영 시 발견 후 fix.
 | LTV 코호트 분석 | 의사결정 | 2d | ⬜ |
