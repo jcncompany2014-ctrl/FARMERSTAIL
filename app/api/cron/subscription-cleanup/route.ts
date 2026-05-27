@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -39,8 +40,9 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
-
-  const supabase = createAdminClient()
+  // R83-E3 (D3): trackCron 으로 wrap — cron_health 기록 + 실패 시 Sentry alert.
+  return trackCron('subscription-cleanup', async () => {
+    const supabase = createAdminClient()
   const sevenDaysAgo = new Date(
     Date.now() - 7 * 24 * 60 * 60 * 1000,
   ).toISOString()
@@ -99,5 +101,6 @@ export async function GET(req: Request) {
     ok: true,
     cleaned: rows.length,
     cleanedAt: nowIso,
+  })
   })
 }

@@ -15,6 +15,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 
 // dog_subscriptions / dog_medications 는 lib/supabase/types.ts 가 자동 재생성되지
 // 않아 Database 제네릭에 미포함 (lib/dog-records.ts 의 정책과 같음). 그래서 admin
@@ -32,25 +33,27 @@ interface CampaignResult {
   errors: number
 }
 
-export async function GET(req: Request): Promise<NextResponse> {
+export async function GET(req: Request): Promise<Response> {
   if (!isAuthorizedCronRequest(req)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('push-lifecycle', async () => {
+    const supabase = createAdminClient()
+    const now = new Date()
+    const results: CampaignResult[] = []
 
-  const supabase = createAdminClient()
-  const now = new Date()
-  const results: CampaignResult[] = []
+    // D+1 환영 — profiles.created_at 24시간 ~ 25시간 사이
+    results.push(await runWelcome(supabase, now))
+    // D+7 분석 리마인드
+    results.push(await runAnalysisReminder(supabase, now))
+    // D+30 정기배송 권유
+    results.push(await runSubscribeNudge(supabase, now))
+    // 복약 시간 alert
+    results.push(await runMedicationReminder(supabase, now))
 
-  // D+1 환영 — profiles.created_at 24시간 ~ 25시간 사이
-  results.push(await runWelcome(supabase, now))
-  // D+7 분석 리마인드
-  results.push(await runAnalysisReminder(supabase, now))
-  // D+30 정기배송 권유
-  results.push(await runSubscribeNudge(supabase, now))
-  // 복약 시간 alert
-  results.push(await runMedicationReminder(supabase, now))
-
-  return NextResponse.json({ ok: true, results })
+    return NextResponse.json({ ok: true, results })
+  })
 }
 
 async function runWelcome(

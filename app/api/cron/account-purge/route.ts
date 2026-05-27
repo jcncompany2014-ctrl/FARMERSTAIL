@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -38,11 +39,12 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
-
-  const supabase = createAdminClient()
-  const cutoff = new Date(
-    Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000,
-  ).toISOString()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('account-purge', async () => {
+    const supabase = createAdminClient()
+    const cutoff = new Date(
+      Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString()
 
   // 1) 5년 + 탈퇴 누적된 profile select.
   const { data: profiles, error: fetchErr } = await supabase
@@ -155,5 +157,6 @@ export async function GET(req: Request) {
     checked: targets.length,
     purged,
     failed,
+  })
   })
 }
