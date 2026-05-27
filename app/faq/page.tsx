@@ -247,14 +247,14 @@ export default async function FaqPage() {
           style={{ color: 'var(--muted)' }}
         >
           원하는 답이 없다면{' '}
-          <a
-            href="mailto:story@farmerstail.kr?subject=문의"
+          <Link
+            href="/contact"
             className="font-bold underline underline-offset-2"
             style={{ color: 'var(--terracotta)' }}
           >
-            고객센터
-          </a>
-          로 문의해 주세요. 평일 영업일 24시간 이내 답변드립니다.
+            문의하기
+          </Link>
+          로 메시지를 보내주세요. 평일 영업일 24시간 이내 답변드립니다.
         </p>
       </section>
 

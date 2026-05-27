@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ChevronRight, FileText, RotateCcw, Shield, Building } from 'lucide-react'
+import { ChevronRight, FileText, RotateCcw, Shield, Building, HelpCircle, Mail } from 'lucide-react'
 
 /**
  * /legal — 약관·정책 hub.
@@ -17,6 +17,18 @@ export const metadata: Metadata = {
 }
 
 const ITEMS = [
+  {
+    href: '/faq',
+    Icon: HelpCircle,
+    label: '자주 묻는 질문',
+    desc: '식단 · 배송 · 결제 · 정기배송',
+  },
+  {
+    href: '/contact',
+    Icon: Mail,
+    label: '문의하기',
+    desc: '1:1 메시지 · 평일 24시간 이내 답변',
+  },
   {
     href: '/legal/terms',
     Icon: FileText,

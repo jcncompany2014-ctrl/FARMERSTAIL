@@ -79,6 +79,20 @@ export default function SiteFooter() {
               aria-label="Legal"
             >
               <Link
+                href="/faq"
+                className="text-text hover:text-terracotta transition"
+              >
+                자주 묻는 질문
+              </Link>
+              <span className="md:hidden text-[#D4C8B3]">·</span>
+              <Link
+                href="/contact"
+                className="text-text hover:text-terracotta transition"
+              >
+                문의하기
+              </Link>
+              <span className="md:hidden text-[#D4C8B3]">·</span>
+              <Link
                 href="/legal/terms"
                 className="text-text hover:text-terracotta transition"
               >

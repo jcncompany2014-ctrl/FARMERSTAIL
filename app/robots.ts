@@ -43,6 +43,9 @@ export default function robots(): MetadataRoute.Robots {
           // /app-required — 비-PWA 사용자에게 앱 설치 안내 페이지. 검색 결과
           // 직접 노출되면 사용자 혼란. internal redirect 전용.
           '/app-required',
+          // /r/[code] — 친구 초대 짧은 링크 redirect. 검색 색인 의미 없음.
+          '/r/',
+          '/r/*',
         ],
       },
     ],
