@@ -203,6 +203,12 @@ export default function AdminSubscriptionsPage() {
         .single()
 
       if (orderErr || !order) {
+        // R87-C1: 이전엔 silent fail → 운영자가 어느 sub 가 실패했는지 모름.
+        // RLS denial / NULL recipient_address 등 fail 케이스 visibility 보강.
+        console.error(
+          `[admin/subscriptions] bulk create order failed for sub ${sub.id}:`,
+          orderErr?.message ?? 'unknown',
+        )
         failed++
         continue
       }
