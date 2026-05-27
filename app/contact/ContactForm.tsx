@@ -148,8 +148,9 @@ export default function ContactForm() {
       </div>
 
       <div>
-        <Label>문의 카테고리</Label>
+        <Label htmlFor="ft-category">문의 카테고리</Label>
         <select
+          id="ft-category"
           name="category"
           defaultValue="product"
           className="w-full px-3 py-2.5 md:py-3 rounded text-[13px] md:text-[14px] bg-bg focus:outline-none transition"
@@ -167,8 +168,9 @@ export default function ContactForm() {
       </div>
 
       <div>
-        <Label>메시지</Label>
+        <Label htmlFor="ft-message">메시지</Label>
         <textarea
+          id="ft-message"
           name="message"
           required
           minLength={10}
@@ -249,10 +251,12 @@ function Field({
   autoComplete?: string
   inputMode?: 'text' | 'email' | 'tel' | 'numeric'
 }) {
+  const id = `ft-${name}`
   return (
     <div>
-      <Label>{label}</Label>
+      <Label htmlFor={id}>{label}</Label>
       <input
+        id={id}
         name={name}
         type={type}
         required={required}
@@ -270,9 +274,16 @@ function Field({
   )
 }
 
-function Label({ children }: { children: React.ReactNode }) {
+function Label({
+  htmlFor,
+  children,
+}: {
+  htmlFor?: string
+  children: React.ReactNode
+}) {
   return (
     <label
+      htmlFor={htmlFor}
       className="block mb-1.5 md:mb-2 text-[11px] md:text-[12px] font-bold"
       style={{
         color: 'var(--muted)',

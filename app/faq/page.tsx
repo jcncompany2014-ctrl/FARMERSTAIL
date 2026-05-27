@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react'
 import JsonLd from '@/components/JsonLd'
 import { buildFaqJsonLd, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 import { createClient } from '@/lib/supabase/server'
+import AuthAwareShell from '@/components/AuthAwareShell'
 
 /**
  * /faq — 자주 묻는 질문.
@@ -203,10 +204,11 @@ export default async function FaqPage() {
   ])
 
   return (
-    <main
-      className="pb-12 md:pb-20 mx-auto"
-      style={{ background: 'var(--bg)', maxWidth: 880 }}
-    >
+    <AuthAwareShell>
+      <main
+        className="pb-12 md:pb-20 mx-auto"
+        style={{ background: 'var(--bg)', maxWidth: 880 }}
+      >
       <JsonLd id="ld-faq" data={faqLd} />
       <JsonLd id="ld-faq-crumbs" data={crumbLd} />
 
@@ -321,6 +323,7 @@ export default async function FaqPage() {
           </section>
         ))}
       </div>
-    </main>
+      </main>
+    </AuthAwareShell>
   )
 }

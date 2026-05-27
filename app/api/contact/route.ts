@@ -64,8 +64,9 @@ export async function POST(req: Request) {
     )
   }
 
-  // honeypot — 봇이 채우면 silently 200
-  if (body.website && body.website.trim().length > 0) {
+  // honeypot — 봇이 채우면 silently 200.
+  // typeof check 까지 — JSON 에서 `false` / `0` / `null` 등 falsy 우회 차단.
+  if (typeof body.website === 'string' && body.website.trim().length > 0) {
     return NextResponse.json({ ok: true }, { status: 200 })
   }
 
@@ -105,22 +106,39 @@ export async function POST(req: Request) {
     tag: 'contact-admin',
   })
 
-  // 2) 사용자 확인 메일
+  // admin 메일 진짜 실패 (skipped=false 인데 ok=false) → 사용자에게도 알림.
+  // 이 경우 사용자 confirm 메일도 보내지 않음 — bounce reflect 방지
+  // (악의적 사용자가 임의 이메일 입력하면 무한 bounce 가능성).
+  if (adminResult.ok === false && adminResult.skipped !== true) {
+    console.error('[/api/contact] admin email failed:', adminResult)
+    return NextResponse.json(
+      { error: '메시지 전송이 실패했어요. 이메일로 직접 보내주세요.' },
+      { status: 500 },
+    )
+  }
+
+  // ENV 미설정 (skipped=true) → 운영 가시성 확보 위한 로그
+  if (adminResult.ok === false && adminResult.skipped === true) {
+    console.warn(
+      '[/api/contact] RESEND_API_KEY 미설정 — admin 알림 발송 안 됨. user confirm 메일도 skip',
+    )
+    // 봇 차단 효과를 위해 200 응답 유지 — 사용자 입장에선 성공처럼 보이지만
+    // 실제론 ENV 누락 사고. Sentry 가 잡아야 함.
+    return NextResponse.json({ ok: true }, { status: 200 })
+  }
+
+  // 2) 사용자 확인 메일 — admin 메일 성공한 경우에만
   const userHtml = renderUserEmail({ name, categoryLabel, message })
-  await sendEmail({
+  const userResult = await sendEmail({
     to: email,
     subject: '[파머스테일] 문의가 접수됐어요',
     html: userHtml,
     tag: 'contact-user',
   })
 
-  if (adminResult.ok === false && adminResult.skipped !== true) {
-    // 진짜 실패 — Resend API 가 4xx/5xx 응답. fail open 하면 운영자 모름.
-    console.error('[/api/contact] admin email failed:', adminResult)
-    return NextResponse.json(
-      { error: '메시지 전송이 실패했어요. 이메일로 직접 보내주세요.' },
-      { status: 500 },
-    )
+  // 사용자 메일 실패는 silent — admin 은 받았으니 운영 가능
+  if (userResult.ok === false && userResult.skipped !== true) {
+    console.warn('[/api/contact] user confirmation email failed:', userResult)
   }
 
   return NextResponse.json({ ok: true }, { status: 200 })

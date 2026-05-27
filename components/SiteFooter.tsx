@@ -119,9 +119,10 @@ export default function SiteFooter() {
               >
                 사업자정보
               </Link>
+              <span className="md:hidden text-[#D4C8B3]">·</span>
               <Link
                 href="/legal/refund"
-                className="hidden md:inline text-text hover:text-terracotta transition"
+                className="text-text hover:text-terracotta transition"
               >
                 환불정책
               </Link>

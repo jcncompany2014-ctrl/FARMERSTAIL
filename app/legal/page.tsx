@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ChevronRight, FileText, RotateCcw, Shield, Building, HelpCircle, Mail } from 'lucide-react'
+import AuthAwareShell from '@/components/AuthAwareShell'
 
 /**
  * /legal — 약관·정책 hub.
@@ -12,8 +13,9 @@ import { ChevronRight, FileText, RotateCcw, Shield, Building, HelpCircle, Mail }
 
 export const metadata: Metadata = {
   title: '약관 · 정책 | 파머스테일',
-  description: '이용약관 · 개인정보처리방침 · 환불 정책 · 사업자 정보',
+  description: '이용약관 · 개인정보처리방침 · 환불 정책 · 사업자 정보 · 자주 묻는 질문 · 문의하기',
   alternates: { canonical: '/legal' },
+  robots: { index: true, follow: true },
 }
 
 const ITEMS = [
@@ -57,9 +59,10 @@ const ITEMS = [
 
 export default function LegalHubPage() {
   return (
-    <main className="pb-12 px-5 max-w-md mx-auto">
+    <AuthAwareShell>
+      <main className="pb-12 px-5 max-w-md mx-auto">
       <section className="pt-6 pb-2">
-        <span className="kicker">Legal& 정책</span>
+        <span className="kicker">Legal · 정책</span>
         <h1
           className="font-serif mt-1.5"
           style={{
@@ -97,6 +100,7 @@ export default function LegalHubPage() {
           ))}
         </ul>
       </section>
-    </main>
+      </main>
+    </AuthAwareShell>
   )
 }

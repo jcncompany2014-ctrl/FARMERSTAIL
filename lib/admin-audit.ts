@@ -61,6 +61,9 @@ export type AdminAuditAction =
   | 'blog_post_unpublish'
   | 'faq_publish'
   | 'event_publish'
+  // CS / Communication
+  | 'user_message_send'
+  | 'push_campaign_send'
   // System
   | 'admin_login'
   | 'admin_password_change'

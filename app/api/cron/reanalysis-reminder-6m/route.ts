@@ -50,16 +50,19 @@ async function runReminder(): Promise<Response> {
   const twoTenDaysAgo = new Date(now - 210 * 86_400_000).toISOString()
   const thirtyDaysAgo = new Date(now - 30 * 86_400_000).toISOString()
 
-  // 마지막 분석이 180~210일 전인 (즉, 6개월 ~ 7개월 전) analyses 의 dog 후보.
-  // 더 오래된 (210일+) 사용자는 이미 한 번 푸시 받고 그래도 안 들어온 것 ⇒
-  // 같은 사용자에게 30일 마다 한 번씩만 (push_log spam 가드).
+  // dog 별 *최신 분석* 이 180~210일 전인 케이스만 — N+1 회피.
+  // 전략: 한 번에 dog 별 max(created_at) 을 가져온 뒤 정렬·필터.
+  //
+  // 1) 최근 210일 안에 분석 있는 dogs 들의 raw rows (max ~5k).
+  // 2) 같은 dog 의 row 중 가장 최신 created_at 만 dedup.
+  // 3) 그 최신 created_at 이 [210d ago, 180d ago] window 면 candidate.
+  // 이렇게 하면 candidate 마다 추가 쿼리 없음 (1 round-trip).
   const { data: analyses } = await admin
     .from('analyses')
     .select('dog_id, user_id, created_at, dogs(name)')
-    .lte('created_at', oneEightyDaysAgo)
-    .gte('created_at', twoTenDaysAgo)
+    .gte('created_at', twoTenDaysAgo) // 210일 이전은 cutoff
     .order('created_at', { ascending: false })
-    .limit(MAX_PER_RUN * 2)
+    .limit(5000) // dog 마다 평균 2-3 row 가정 → ~1700 unique dogs cap
 
   type Row = {
     dog_id: string
@@ -72,23 +75,21 @@ async function runReminder(): Promise<Response> {
   }
   const rows = (analyses ?? []) as Row[]
 
-  // dog 별 최신 1건만 (이미 더 새 분석 있으면 skip)
-  const seenDog = new Set<string>()
-  const candidates: Row[] = []
+  // dog 별 최신 row 만 (created_at DESC 정렬이라 첫 출현 = 최신)
+  const latestByDog = new Map<string, Row>()
   for (const r of rows) {
-    if (seenDog.has(r.dog_id)) continue
-    seenDog.add(r.dog_id)
+    if (!latestByDog.has(r.dog_id)) latestByDog.set(r.dog_id, r)
+  }
 
-    // 더 최신 분석 있는지 점검 (같은 dog 의 newer analyses)
-    const { count: newer } = await admin
-      .from('analyses')
-      .select('id', { count: 'exact', head: true })
-      .eq('dog_id', r.dog_id)
-      .gt('created_at', r.created_at)
-    if ((newer ?? 0) > 0) continue
-
-    candidates.push(r)
-    if (candidates.length >= MAX_PER_RUN) break
+  // window 필터: 최신 분석이 [210d, 180d] 사이 → 6개월 도달했지만 아직 7개월 X
+  const eighteenZeroDaysMs = new Date(oneEightyDaysAgo).getTime()
+  const candidates: Row[] = []
+  for (const r of latestByDog.values()) {
+    const t = new Date(r.created_at).getTime()
+    if (t <= eighteenZeroDaysMs) {
+      candidates.push(r)
+      if (candidates.length >= MAX_PER_RUN) break
+    }
   }
 
   let sent = 0

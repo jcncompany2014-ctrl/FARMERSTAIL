@@ -51,14 +51,15 @@ export async function POST(req: Request) {
     )
   }
 
-  // 3. 본인이 referee 인 redemption 이 있는지 — 없으면 발급 안 함
-  const { data: redemption } = await supabase
+  // 3. 본인이 referee 인 redemption 이 있는지 — 없으면 발급 안 함.
+  // .maybeSingle() 대신 .limit(1) — 데이터 이상으로 row 2+ 생겨도 PGRST 406 미발생.
+  const { data: redemptions } = await supabase
     .from('referral_redemptions')
     .select('id')
     .eq('referee_id', user.id)
-    .maybeSingle()
+    .limit(1)
 
-  if (!redemption) {
+  if (!redemptions || redemptions.length === 0) {
     // referral 가입 아님 — 정상. silent ok.
     return NextResponse.json({ ok: true, granted: false })
   }
