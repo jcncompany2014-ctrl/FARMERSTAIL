@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -33,9 +34,10 @@ export async function GET(req: Request) {
   if (!isAuthorizedCronRequest(req)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-
-  const supabase = createAdminClient()
-  const fiveDaysAgo = new Date(
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('personalization-approval-timeout', async () => {
+    const supabase = createAdminClient()
+    const fiveDaysAgo = new Date(
     Date.now() - 5 * 24 * 60 * 60 * 1000,
   ).toISOString()
   const now = new Date().toISOString()
@@ -126,11 +128,12 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    pending: rows.length,
-    declined,
-    extended,
-    failed,
+    return NextResponse.json({
+      ok: true,
+      pending: rows.length,
+      declined,
+      extended,
+      failed,
+    })
   })
 }

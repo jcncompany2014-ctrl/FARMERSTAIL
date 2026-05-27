@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { isInventionEnabled } from '@/lib/invention-flags'
 import { shouldReanalyze } from '@/lib/personalization/reanalyze-triggers'
 import { stageFromKR } from '@/lib/nutrition'
@@ -41,7 +42,9 @@ export async function GET(req: Request) {
       reason: 'INVENTION_COUNTERFACTUAL_DISABLED',
     })
   }
-  const supabase = createAdminClient()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('reanalyze-trigger', async () => {
+    const supabase = createAdminClient()
 
   // 분석 1건 이상 있는 dog 의 최신 analysis
   const { data: analyses } = await supabase
@@ -168,10 +171,11 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    candidates: latest.length,
-    triggered,
-    skipped,
+    return NextResponse.json({
+      ok: true,
+      candidates: latest.length,
+      triggered,
+      skipped,
+    })
   })
 }
