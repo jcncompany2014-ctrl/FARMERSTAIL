@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { sendEmail } from '@/lib/email/client'
 import { renderLayout, escape, SITE_URL, block } from '@/lib/email/layout'
 
@@ -42,9 +43,10 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
-
-  const supabase = createAdminClient()
-  const cutoff = new Date(
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('review-prompts', async () => {
+    const supabase = createAdminClient()
+    const cutoff = new Date(
     Date.now() - PROMPT_DELAY_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString()
 
@@ -127,13 +129,14 @@ export async function GET(req: Request) {
       .eq('id', order.id)
   }
 
-  return NextResponse.json({
-    ok: true,
-    cutoff,
-    checked: targets.length,
-    sent,
-    failed,
-    skipped,
+    return NextResponse.json({
+      ok: true,
+      cutoff,
+      checked: targets.length,
+      sent,
+      failed,
+      skipped,
+    })
   })
 }
 

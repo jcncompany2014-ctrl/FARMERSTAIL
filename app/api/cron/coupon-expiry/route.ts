@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { sendEmail } from '@/lib/email/client'
 import { renderLayout, escape, SITE_URL, block } from '@/lib/email/layout'
 import { pushToUser } from '@/lib/push'
@@ -37,9 +38,10 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
-
-  const supabase = createAdminClient()
-  const now = new Date()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('coupon-expiry', async () => {
+    const supabase = createAdminClient()
+    const now = new Date()
   const in2d = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString()
   const in3d = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString()
 
@@ -187,11 +189,12 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    expiringCoupons: couponList.length,
-    sent,
-    skipped,
+    return NextResponse.json({
+      ok: true,
+      expiringCoupons: couponList.length,
+      sent,
+      skipped,
+    })
   })
 }
 
