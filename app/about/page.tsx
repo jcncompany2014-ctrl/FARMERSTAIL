@@ -158,7 +158,7 @@ export default function AboutPage() {
             marginTop: 22,
           }}
         >
-          FARMER&rsquo;S TAIL — EST. 2024, SEOUL
+          FARMER&rsquo;S TAIL — EST. 2026, INCHEON SONGDO
         </p>
       </section>
 

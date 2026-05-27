@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-const EFFECTIVE_DATE = '2026-04-22'
+const EFFECTIVE_DATE = '2026-05-27'
 
 /**
  * 환불 정책.
@@ -97,7 +97,33 @@ export default function RefundPage() {
           </p>
         </Section>
 
-        <Section title="4. 상품 하자·오배송에 의한 환불">
+        <Section title="4. 냉장 · 냉동 식품 수령 시 안내">
+          <UL>
+            <li>
+              <b>수령 즉시 포장 상태 확인:</b> 외부 박스 파손, 보냉재 누수,
+              내용물 해동·이상 변색이 발견되면 <b>택배 기사 앞에서
+              수령을 거부</b>해 주세요. 사진을 함께 보내주시면 처리가
+              빠릅니다.
+            </li>
+            <li>
+              <b>수령 후 보관:</b> 냉장 제품은 0~10℃, 냉동 제품은 -18℃
+              이하 보관이 권장됩니다. 보관 부주의로 인한 변질은 환불
+              대상에서 제외될 수 있습니다.
+            </li>
+            <li>
+              <b>도서 · 산간 지역:</b> 일반 지역 대비 1영업일 추가 소요될
+              수 있으며, 신선 상태 유지에 영향이 있는 경우 결제 전
+              고객센터로 문의해 주세요.
+            </li>
+            <li>
+              <b>장기 부재 시:</b> 휴가·출장 등으로 3일 이상 수령이 어려운
+              경우 마이페이지 &gt; 정기배송 관리에서 출고일을 미리
+              조정하거나 일시정지 해주세요.
+            </li>
+          </UL>
+        </Section>
+
+        <Section title="5. 상품 하자·오배송에 의한 환불">
           <UL>
             <li>
               <b>기간:</b> 상품 수령일로부터 <b>3개월 이내</b> 또는
@@ -122,7 +148,7 @@ export default function RefundPage() {
           </UL>
         </Section>
 
-        <Section title="5. 환불 방법 및 기간">
+        <Section title="6. 환불 방법 및 기간">
           <UL>
             <li>
               <b>신용/체크카드:</b> 카드 승인 취소 (카드사에 따라 영업일
@@ -146,7 +172,7 @@ export default function RefundPage() {
           </p>
         </Section>
 
-        <Section title="6. 정기배송 해지 및 환불">
+        <Section title="7. 정기배송 해지 및 환불">
           <UL>
             <li>
               회원은 마이페이지 &gt; 정기배송 관리에서 언제든지 정기배송을
@@ -163,7 +189,7 @@ export default function RefundPage() {
           </UL>
         </Section>
 
-        <Section title="7. 포인트·쿠폰 환불">
+        <Section title="8. 포인트·쿠폰 환불">
           <UL>
             <li>
               결제 시 사용한 포인트는 환불 금액에 비례하여 계정에
@@ -180,7 +206,7 @@ export default function RefundPage() {
           </UL>
         </Section>
 
-        <Section title="8. 반품 주소">
+        <Section title="9. 반품 주소">
           <UL>
             <li>{business.address}</li>
             <li>
@@ -191,7 +217,7 @@ export default function RefundPage() {
           </UL>
         </Section>
 
-        <Section title="9. 문의">
+        <Section title="10. 문의">
           <p>
             환불 관련 문의는{' '}
             <a

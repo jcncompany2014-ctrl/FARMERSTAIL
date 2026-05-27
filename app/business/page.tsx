@@ -182,7 +182,7 @@ export default function BusinessPage() {
             >
               이용약관
             </Link>{' '}
-            제8조 및{' '}
+            제9조 및{' '}
             <Link
               href="/legal/refund"
               className="font-bold hover:underline"

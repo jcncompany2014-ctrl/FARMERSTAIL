@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-const EFFECTIVE_DATE = '2026-04-22'
+const EFFECTIVE_DATE = '2026-05-27'
 
 /**
  * 개인정보처리방침.
@@ -257,6 +257,62 @@ export default function PrivacyPage() {
                     상품 배송
                   </td>
                 </tr>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Google LLC
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    이용 통계 분석 (Google Analytics 4) — 동의 시
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Microsoft Corporation
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    사용성 분석 (Microsoft Clarity) — 동의 시
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Functional Software Inc. (Sentry)
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    오류 모니터링
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Recur Labs Inc. (Resend)
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    거래·알림 이메일 발송
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -421,6 +477,56 @@ export default function PrivacyPage() {
                     HTTPS / 암호화
                   </td>
                 </tr>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Google LLC
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    미국
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Google Analytics 4 — 익명 식별자(_ga, _gid), 접속 URL,
+                    referrer, 디바이스 메타
+                    <br />
+                    분석 쿠키 동의 시점부터 상시
+                    <br />
+                    HTTPS / 암호화
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Microsoft Corporation
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    미국
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--rule)' }}
+                  >
+                    Microsoft Clarity — 익명 세션 ID, 페이지 내 클릭/스크롤
+                    좌표, 마스킹된 입력 필드 메타
+                    <br />
+                    분석 쿠키 동의 시점부터 상시
+                    <br />
+                    HTTPS / 암호화 (입력 필드 자동 마스킹)
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -505,8 +611,9 @@ export default function PrivacyPage() {
             </li>
             <li>
               <b>분석 쿠키:</b> 방문 패턴, 페이지 체류 시간, 클릭 흐름을
-              집계해 서비스 개선에 활용합니다 (Google Analytics 4 — _ga, _gid).
-              개별 식별 불가능한 익명 통계만 수집합니다.
+              집계해 서비스 개선에 활용합니다 (Google Analytics 4 — _ga, _gid;
+              Microsoft Clarity — _clck, _clsk, MUID). 개별 식별 불가능한
+              익명 통계만 수집하며, 입력 필드는 자동 마스킹됩니다.
             </li>
             <li>
               <b>광고·마케팅 쿠키:</b> 관심사 기반 광고, 전환 추적에
