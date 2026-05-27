@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { pushToUser } from '@/lib/push'
 
 export const runtime = 'nodejs'
@@ -40,8 +41,9 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
-
-  const supabase = createAdminClient()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('onboarding-funnel', async () => {
+    const supabase = createAdminClient()
 
   // 단계 1: 가입 24h+ + 강아지 0
   const { data: signupOnly } = await supabase
@@ -107,9 +109,10 @@ export async function GET(req: Request) {
     if (stage2Sent >= MAX_PER_STAGE) break
   }
 
-  return NextResponse.json({
-    ok: true,
-    stage1Sent,
-    stage2Sent,
+    return NextResponse.json({
+      ok: true,
+      stage1Sent,
+      stage2Sent,
+    })
   })
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { notifyRestock } from '@/lib/email'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 
@@ -34,8 +35,9 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
-
-  const admin = createAdminClient()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('restock-alerts', async () => {
+    const admin = createAdminClient()
 
   // 1) 미통지 알림 — 어떤 (product, variant) 조합이 대기 중인지 distinct.
   const { data: pending, error: pendErr } = await admin
@@ -126,10 +128,11 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    checked: pairs.size,
-    dispatched,
-    totalNotified,
+    return NextResponse.json({
+      ok: true,
+      checked: pairs.size,
+      dispatched,
+      totalNotified,
+    })
   })
 }
