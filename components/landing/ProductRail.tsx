@@ -244,7 +244,7 @@ export default function ProductRail({ items }: { items: RailProduct[] }) {
                       letterSpacing: '-0.015em',
                     }}
                   >
-                    ₩{p.price.toLocaleString('ko-KR')}
+                    {p.price.toLocaleString('ko-KR')}원
                   </span>
                   <span
                     className="font-mono text-[10px] md:text-[11.5px]"

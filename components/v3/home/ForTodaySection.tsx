@@ -206,7 +206,7 @@ function ProductPanel({ product }: { product: ForTodayProduct }) {
               letterSpacing: '-0.015em',
             }}
           >
-            ₩ {product.price.toLocaleString()}
+            {product.price.toLocaleString()}원
           </div>
         </div>
         <button

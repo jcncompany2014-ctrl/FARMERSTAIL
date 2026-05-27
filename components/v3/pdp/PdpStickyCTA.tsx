@@ -81,7 +81,7 @@ export default function PdpStickyCTA({
                 lineHeight: 1,
               }}
             >
-              ₩ {originalPrice!.toLocaleString()}
+              {originalPrice!.toLocaleString()}원
             </span>
           )}
           <div
@@ -99,7 +99,7 @@ export default function PdpStickyCTA({
                 letterSpacing: '-0.025em',
               }}
             >
-              ₩ {price.toLocaleString()}
+              {price.toLocaleString()}원
             </span>
             {unit && (
               <Mono color="inkMute" size="xs" weight={500} letterSpacing="0.06em">

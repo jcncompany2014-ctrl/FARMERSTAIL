@@ -193,7 +193,7 @@ export default async function ProductInsightsPage({
         />
         <Kpi
           label="평균 LTV"
-          value={`₩${Math.round(avgLtv).toLocaleString()}`}
+          value={`${Math.round(avgLtv).toLocaleString()}원`}
           hint="이 제품 산 유저의 총 결제 평균"
         />
         <Kpi
@@ -217,8 +217,8 @@ export default async function ProductInsightsPage({
             const hi = buckets[i + 1]!
             const label =
               hi === Infinity
-                ? `₩${(lo / 10000).toFixed(0)}만+`
-                : `₩${(lo / 10000).toFixed(0)}만 ~ ₩${(hi / 10000).toFixed(0)}만`
+                ? `${(lo / 10000).toFixed(0)}만원+`
+                : `${(lo / 10000).toFixed(0)}만 ~ ${(hi / 10000).toFixed(0)}만원`
             const pct =
               buyerCount === 0 ? 0 : (count / buyerCount) * 100
             return (
@@ -263,10 +263,10 @@ export default async function ProductInsightsPage({
                   {b.userId.slice(0, 8)}…
                 </td>
                 <td className="py-2.5 px-3 text-right">
-                  ₩{b.totalRevenue.toLocaleString()}
+                  {b.totalRevenue.toLocaleString()}원
                 </td>
                 <td className="py-2.5 px-3 text-right">
-                  ₩{b.productRevenue.toLocaleString()}
+                  {b.productRevenue.toLocaleString()}원
                 </td>
                 <td className="py-2.5 px-3 text-right">{b.orderCount}</td>
                 <td className="py-2.5 px-3 text-right text-mute">

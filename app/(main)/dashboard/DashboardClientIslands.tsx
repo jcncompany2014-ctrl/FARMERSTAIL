@@ -531,7 +531,7 @@ function WelcomeBenefitModal({
                     letterSpacing: '-0.025em',
                   }}
                 >
-                  ₩5,000 + 무료배송
+                  5,000원 + 무료배송
                 </div>
                 <p
                   className="mt-2 leading-relaxed"

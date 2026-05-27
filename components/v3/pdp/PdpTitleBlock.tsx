@@ -126,7 +126,7 @@ export default function PdpTitleBlock({
             lineHeight: 1,
           }}
         >
-          ₩ {price.toLocaleString()}
+          {price.toLocaleString()}원
         </span>
         {unit && (
           <Mono color="inkMute" size="xs" weight={500} letterSpacing="0.06em">
@@ -144,7 +144,7 @@ export default function PdpTitleBlock({
               textDecoration: 'line-through',
             }}
           >
-            ₩ {originalPrice!.toLocaleString()}
+            {originalPrice!.toLocaleString()}원
           </span>
         )}
       </div>

@@ -1479,7 +1479,7 @@ function AppInstallBanner() {
           boxShadow: '0 18px 40px rgba(30,26,20,0.22)',
         }}
       >
-        {/* Rotated corner stamp — "first order ₩5,000" */}
+        {/* Rotated corner stamp — "first order 5,000원" */}
         <div
           style={{
             position: 'absolute',
@@ -1531,7 +1531,7 @@ function AppInstallBanner() {
                 fontVariantNumeric: 'lining-nums tabular-nums',
               }}
             >
-              ₩5,000
+              5,000원
             </div>
           </div>
         </div>

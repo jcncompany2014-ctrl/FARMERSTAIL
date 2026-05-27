@@ -88,7 +88,7 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
       <div className="flex justify-between items-baseline mb-4">
         <h2 className="text-sm font-bold text-ink">결제 원장 (Payment Events)</h2>
         <div className="text-xs text-mute">
-          잔액: <span className="font-mono font-semibold text-ink">₩{balance.toLocaleString()}</span>
+          잔액: <span className="font-mono font-semibold text-ink">{balance.toLocaleString()}원</span>
         </div>
       </div>
 
@@ -120,7 +120,7 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
                         isRefund ? 'text-sale' : 'text-ink'
                       }`}
                     >
-                      {e.amount > 0 ? '+' : ''}₩{e.amount.toLocaleString()}
+                      {e.amount > 0 ? '+' : ''}{e.amount.toLocaleString()}원
                     </span>
                   </div>
                   <div className="text-[10.5px] text-mute mt-0.5">

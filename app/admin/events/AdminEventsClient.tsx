@@ -940,7 +940,7 @@ export default function AdminEventsClient({
                   onChange={(ev) => setPerksText(ev.target.value)}
                   rows={4}
                   className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm resize-none"
-                  placeholder="전 라인 최대 50% 할인&#10;₩70,000 이상 무료배송&#10;정기배송 가입 추가 10%"
+                  placeholder="전 라인 최대 50% 할인&#10;70,000원 이상 무료배송&#10;정기배송 가입 추가 10%"
                 />
               </Field>
 

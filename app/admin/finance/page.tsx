@@ -143,20 +143,20 @@ export default async function AdminFinancePage({
 
       {/* KPI 그리드 */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <Kpi label="총 매출 (paid)" value={`₩${totalPaid.toLocaleString()}`} />
+        <Kpi label="총 매출 (paid)" value={`${totalPaid.toLocaleString()}원`} />
         <Kpi
           label="총 환불 (refund)"
-          value={`₩${totalRefunded.toLocaleString()}`}
+          value={`${totalRefunded.toLocaleString()}원`}
           tone={totalRefunded > 0 ? 'sale' : undefined}
         />
         <Kpi
           label="순 매출"
-          value={`₩${netTotal.toLocaleString()}`}
+          value={`${netTotal.toLocaleString()}원`}
           tone="moss"
         />
         <Kpi
           label="객단가 평균"
-          value={`₩${avgOrderValue.toLocaleString()}`}
+          value={`${avgOrderValue.toLocaleString()}원`}
           hint={`주문 ${orderCount}건 / 환불률 ${refundRate.toFixed(1)}%`}
         />
       </section>
@@ -177,14 +177,14 @@ export default async function AdminFinancePage({
                   <div className="flex justify-between mb-0.5">
                     <span className="text-ink font-mono">{d.date}</span>
                     <span className="text-mute">
-                      paid ₩{d.paid.toLocaleString()}
+                      paid {d.paid.toLocaleString()}원
                       {d.refunded > 0 && (
                         <span className="text-sale ml-2">
-                          -₩{d.refunded.toLocaleString()}
+                          -{d.refunded.toLocaleString()}원
                         </span>
                       )}
                       <span className="ml-2 text-ink font-semibold">
-                        net ₩{d.net.toLocaleString()}
+                        net {d.net.toLocaleString()}원
                       </span>
                       <span className="ml-2 text-mute">
                         ({d.orderCount.size}건)

@@ -383,12 +383,11 @@ SELECT COUNT(*) FROM public.blog_posts WHERE is_published = true;
 
 자고 일어났을 때 시간 날 때 결정하면 됨. 결정 후 알려주면 내가 반영.
 
-### 1. 가격 표기: ₩ vs 원 통일
-- 현재 v3 컴포넌트는 `₩5,000` 사용
-- 사업자 정보 / 이벤트 / 무료배송 안내는 `5,000원` 사용
-- 일관성 X (28+ 파일 "원", 4 파일 "₩")
-- **추천:** 한글 `5,000원` 으로 통일 (한국 사용자 가독성 더 좋음)
-- 다른 선택지: v3 톤 통일을 위해 `₩` 사용
+### 1. 가격 표기: ₩ vs 원 통일 ✅ 완료
+- **결정:** "원" 으로 통일
+- **반영:** commit 으로 ₩ → 원 sweep (v3 PDP / Home / Catalog / Dashboard / Landing / Admin Finance·Insights·PaymentEventTimeline·Events placeholder 모두)
+- **DB seed:** `supabase/migrations/20260527000000_events_currency_korean.sql` — events 테이블 row UPDATE
+- **DB migration 적용 필요:** Supabase SQL Editor 에서 위 SQL 한 번 실행 (`supabase db push` 시 자동 적용)
 
 ### 2. 사용자 페이지 `confirm()` 4곳 → useConfirm Modal 마이그
 - `EliminationDietClient.tsx:162` (8주 elimination diet 시작)

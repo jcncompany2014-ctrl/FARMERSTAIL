@@ -225,7 +225,7 @@ function FeaturedCard({
             letterSpacing: '-0.015em',
           }}
         >
-          ₩ {product.price.toLocaleString()}
+          {product.price.toLocaleString()}원
         </span>
         <button
           onClick={onAdd}
