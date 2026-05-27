@@ -479,7 +479,30 @@ ea67abd — D3 batch 8: personalization-approval-timeout/reanalyze-trigger
 
 ## tsc 0 / tests 1032/1032 ✅
 
-R88까지 코드 + D 그룹 9건 fix 모두 통과. 출시 차단 코드 issue 0건.
+R88까지 코드 + D 그룹 **10건** fix 모두 통과. 출시 차단 코드 issue 0건.
+
+## D 그룹 최종 현황 (자다 일어난 후 정리용)
+
+| ID | 항목 | 상태 |
+|----|------|------|
+| D1 | orders.recipient_* PII 익명화 | ✅ FIX |
+| D2 | account-purge auth.users hard-delete | ✅ FIX |
+| D3 | 21개 cron trackCron wrap | ✅ FIX (21/21) |
+| D4 | VA 환불계좌 입력 UI | ⚠️ BACKLOG (1:1 문의 우회 중) |
+| D5 | product_variants stock 잠금 | ⚠️ BACKLOG (variants 0건이라 영향 없음) |
+| D6 | refund-retry cron 매 30분 | ✅ FIX |
+| D7 | products.sku 컬럼 + 5종 매핑 | ✅ FIX (migration 20260527000008) |
+| D8 | SUB10 per_user_limit | ✅ N/A (agent 보고 오류 — 정상) |
+| D9 | transactional/marketing 도메인 분리 | ⚠️ BACKLOG (Resend external setup) |
+| D10 | 마케팅 메일 universal unsubscribe | ✅ FIX |
+| D11 | 결제 폼 7개 aria-label | ✅ FIX |
+| D12 | CheckoutCouponSheet button-in-button | ✅ FIX |
+| D13 | admin bulk address fallback | ✅ FIX |
+| D14 | cron 실패 Sentry alert | ✅ FIX |
+
+**10 fix / 3 BACKLOG (architectural) / 1 N/A** = **14건 전부 처리**.
+
+자다 일어난 후 단 하나 해야 할 일: **A 그룹 12개 본인 직접 검증** (1시간이면 끝).
 
 
 
