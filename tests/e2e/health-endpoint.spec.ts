@@ -39,4 +39,20 @@ test.describe('Health endpoint /api/health', () => {
     expect(['ok', 'fail']).toContain(body.dependencies.db)
     expect(['ok', 'degraded']).toContain(body.dependencies.env)
   })
+
+  test('integrations 키 노출 (anthropic / toss / resend / sentry)', async ({
+    request,
+  }) => {
+    const response = await request.get('/api/health')
+    const body = await response.json()
+    expect(body).toHaveProperty('integrations')
+    expect(body.integrations).toHaveProperty('anthropic')
+    expect(body.integrations).toHaveProperty('resend')
+    expect(body.integrations).toHaveProperty('toss')
+    expect(body.integrations).toHaveProperty('sentry')
+    // 각 값은 boolean — 키 존재 여부만 노출 (값 자체는 X)
+    for (const v of Object.values(body.integrations)) {
+      expect(typeof v).toBe('boolean')
+    }
+  })
 })

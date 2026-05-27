@@ -58,6 +58,19 @@ export async function GET() {
   const missingEnvs = requiredEnvs.filter((k) => !process.env[k])
   const envStatus: 'ok' | 'degraded' = missingEnvs.length === 0 ? 'ok' : 'degraded'
 
+  // Optional integrations — 부재 시 503 으로 가지 않지만 운영자가 가시성 확보.
+  // anthropic / toss / resend / sentry 키만 점검 (값 미노출 — 존재 여부만).
+  const optional = {
+    anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
+    resend: Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM),
+    toss: Boolean(
+      process.env.TOSS_SECRET_KEY && process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
+    ),
+    sentry: Boolean(
+      process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN,
+    ),
+  }
+
   const ok = dbStatus === 'ok' && envStatus === 'ok'
   const body = {
     status: ok ? 'ok' : 'degraded',
@@ -69,6 +82,7 @@ export async function GET() {
       env: envStatus,
       ...(missingEnvs.length > 0 ? { env_missing: missingEnvs } : {}),
     },
+    integrations: optional,
     build: buildInfo,
   }
 
