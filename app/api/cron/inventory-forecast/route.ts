@@ -15,6 +15,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
@@ -44,7 +45,9 @@ export async function GET(req: Request) {
   if (!isAuthorizedCronRequest(req)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  const supabase = createAdminClient()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('inventory-forecast', async () => {
+    const supabase = createAdminClient()
 
   // 1) 활성 정기구독 list + items 한 번에.
   const { data: subsRaw } = await supabase
@@ -136,11 +139,12 @@ export async function GET(req: Request) {
     })
   }
 
-  return NextResponse.json({
-    ok: true,
-    activeSubscriptions: subs.length,
-    productsChecked: products.length,
-    shortageCount: shortages.length,
-    shortages,
+    return NextResponse.json({
+      ok: true,
+      activeSubscriptions: subs.length,
+      productsChecked: products.length,
+      shortageCount: shortages.length,
+      shortages,
+    })
   })
 }

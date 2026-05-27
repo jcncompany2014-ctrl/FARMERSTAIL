@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { decideNextBox } from '@/lib/personalization/nextBox'
 import type { AlgorithmInput, Checkin, Formula } from '@/lib/personalization/types'
 import { mainLineOf } from '@/lib/personalization/format'
@@ -66,10 +67,11 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
-
-  const supabase = createAdminClient()
-  const today = todayKstIsoDate()
-  const cycleAgo = addDaysIso(today, -CYCLE_DAYS)
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('personalization-progression', async () => {
+    const supabase = createAdminClient()
+    const today = todayKstIsoDate()
+    const cycleAgo = addDaysIso(today, -CYCLE_DAYS)
 
   // 1) 만료된 cycle 의 가장 최신 처방 식별. dog 별 max(cycle_number) 만 봐야
   //    같은 강아지의 옛 cycle 까지 진행시키지 않음. window function 으로
@@ -497,12 +499,13 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    today,
-    candidates: targets.length,
-    succeeded,
-    failed,
-    skipped,
+    return NextResponse.json({
+      ok: true,
+      today,
+      candidates: targets.length,
+      succeeded,
+      failed,
+      skipped,
+    })
   })
 }

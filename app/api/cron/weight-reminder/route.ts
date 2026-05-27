@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -26,9 +27,10 @@ export async function GET(req: Request) {
   if (!isAuthorizedCronRequest(req)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-
-  const supabase = createAdminClient()
-  const cutoff = new Date(
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('weight-reminder', async () => {
+    const supabase = createAdminClient()
+    const cutoff = new Date(
     Date.now() - 30 * 24 * 60 * 60 * 1000,
   ).toISOString().slice(0, 10) // YYYY-MM-DD
 
@@ -143,11 +145,12 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    targets: targets.length,
-    users: byUser.size,
-    sent,
-    skipped,
+    return NextResponse.json({
+      ok: true,
+      targets: targets.length,
+      users: byUser.size,
+      sent,
+      skipped,
+    })
   })
 }
