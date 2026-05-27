@@ -41,10 +41,14 @@ const sizePadding: Record<NonNullable<DatePickerProps['sizeVariant']>, string> =
     lg: '14px 44px 14px 18px',
   }
 
+// R86-A1: iOS Safari 는 input font-size < 16px 면 focus 시 자동 zoom in.
+// 강아지 생년월일 입력 폼이 sm 사용 → 가입 직후 첫 입력에서 zoom 후 수동 zoom out 필요.
+// globals.css 의 `input { font-size: max(16px, 1em) }` 룰이 있지만 inline style
+// (DatePicker 가 V3 토큰 직접 적용) 이 이김. 모든 사이즈 16+ 강제.
 const sizeFontSize: Record<NonNullable<DatePickerProps['sizeVariant']>, number> =
   {
-    sm: V3FontSize.sm,
-    md: 13,
+    sm: 16,
+    md: 16,
     lg: V3FontSize.md,
   }
 

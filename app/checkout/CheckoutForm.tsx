@@ -1130,7 +1130,9 @@ export default function CheckoutForm({
           </div>
         </div>
         <div className="mt-2 text-right text-[10px] text-moss font-bold tabular-nums">
-          결제 완료 시 {Math.floor(total * 0.01).toLocaleString()}P 적립 예정
+          {/* R86-C4: 이전엔 하드코드 0.01 (=1%) — Mate/단짝 3% 사용자에게 1/3 가치로
+              잘못 표시 (표시광고법 위반 가능). earnRate (등급별) 로 정정. */}
+          결제 완료 시 {Math.floor((total * earnRate) / 100).toLocaleString()}P 적립 예정
         </div>
       </section>
 

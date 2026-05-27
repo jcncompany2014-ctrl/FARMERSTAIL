@@ -369,4 +369,35 @@ R85 (2026-05-27) 의 5개 영역 audit (외부 API / 동시성 / OAuth / 시간 
 ### OAuth 보강
 - **C-minor: KakaoLoginButton 원본 에러 노출** — provider 에러 코드를
   사용자에게 그대로 표시. 안정 코드 매핑은 callback 만 있음.
+
+---
+
+## 🔍 R86 viewport audit deferred (출시 후 1-2주)
+
+R86 (2026-05-27) 의 4개 viewport audit (iOS Safari / 카피 / 비즈니스 / PII+법적)
+에서 발견된 issue 중 출시 차단급은 즉시 fix, 나머지 deferred.
+
+### 즉시 fix
+- A1: DatePicker inline fontSize → 16+ (iOS Safari zoom 차단)
+- B: global-error 영어 → 한국어 / lib/email/index.ts + cron 5곳 "고객" → "보호자"
+- C3: chronic-sku-mapper enum 확장 — guidelines.ts alias (allergy_skin/kidney/mmvd/ibd)
+  + 추가 13종 chronic 인식 (long_term_steroid/epilepsy/epi/patellar/tracheal/hypothyroid/cushings/ivdd/pancreatitis/urinary_stone/cognitive_decline)
+- C4: CheckoutForm 적립률 UI 하드코드 1% → earnRate (등급별) 표시 — 표시광고법 회피
+- D1: nutrition.ts "초록입홍합 천연 항염, 관절 통증 완화" → "오메가-3 · 관절 윤활 보조"
+- D2: RecommendationBox.tsx "오메가-3 · 항염증 지원" → "오메가-3 · 피부 장벽 보조"
+
+### Deferred (post-PMF / 출시 후 첫 주)
+- **A2: 100vh in 6 pages** → 100dvh (notifications/order/formulas/approve/checkin/SurveyClient).
+  사용 막힘 아니지만 iOS 주소창 노출 시 페이지 하단 잘림.
+- **B-minor: 합니다 vs 해요 혼재** — signup/checkout 폼 일부. 점진적 정리.
+- **B-minor: CTA 4가지 표현** (구매/결제/주문) — PDP 는 "장바구니에 담기" + cart/checkout 은
+  "결제하기" + restock/analysis 는 "주문하기" 로 통일.
+- **C1+C2: SKU 식별 시스템** — `products` 에 `sku` 컬럼 추가 + `FT-C01..FT-B05` UPDATE
+  (또는 mapper.SKU_META 에 `slug` 필드 추가). 현재는 OrderClient.LINE_TO_SLUG 한 곳만 매핑.
+  사이즈 7종 알고리즘 vs DB 100g 단일 — `product_variants` 7 사이즈 row 추가 또는 단일 사이즈로 알고리즘 단순화.
+- **C5: SUB10 per_user_limit null** — `coupons` DB 에 `per_user_limit = 1` UPDATE.
+  현재는 정기배송 cycle 마다 무제한 사용 가능.
+- **D-medium: personalization-cycle 이메일 (광고) prefix 누락** —
+  `lib/email/templates/personalization-cycle.ts:28` subject 에 (광고) + 본문 unsubscribe.
+- **D-low: 개인정보보호책임자 = 대표 동일** — 실무상 OK 지만 분리 권장.
 | LTV 코호트 분석 | 의사결정 | 2d | ⬜ |

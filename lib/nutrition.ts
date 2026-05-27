@@ -694,7 +694,9 @@ export function getSupplements(concerns: string[]): Array<{ emoji: string; name:
   }
   if (concerns.includes('관절')) {
     s.push({ emoji: '🦴', name: '글루코사민 + 콘드로이틴', desc: '연골 보호, 관절 윤활' })
-    s.push({ emoji: '🌿', name: '초록입홍합', desc: '천연 항염, 관절 통증 완화' })
+    // R86-D1: 사료관리법 §13 / 표시광고법 §3 — "통증 완화/항염" 의약품 효능
+    // 오인 표현 금지. 식이 보조 표현으로.
+    s.push({ emoji: '🌿', name: '초록입홍합', desc: '오메가-3 · 관절 윤활 보조' })
   }
   if (concerns.includes('소화')) {
     s.push({ emoji: '🦠', name: '프로바이오틱스', desc: '장내 유익균 증식' })

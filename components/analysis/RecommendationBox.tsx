@@ -69,7 +69,8 @@ type Scale = '1w' | '2w' | '4w'
 const LINE_BLURBS: Record<FoodLine, string> = {
   basic: '단일 단백원 · 소화 부담 낮음',
   weight: '고단백 · 저지방 · 체중관리',
-  skin: '오메가-3 · 항염증 지원',
+  // R86-D2: 사료에 "항염증" 표현 금지 (의약품 효능 오인). 식이 보조 표현으로.
+  skin: '오메가-3 · 피부 장벽 보조',
   premium: '철·아연·B12 풍부',
   joint: 'B1·콜린 풍부 · 인지 기능 지원',
 }

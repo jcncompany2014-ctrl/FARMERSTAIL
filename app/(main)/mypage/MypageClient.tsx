@@ -82,7 +82,7 @@ export default function MypageClient({
   }
 
   const displayName =
-    profile?.name || (email ? email.split('@')[0] : null) || '고객'
+    profile?.name || (email ? email.split('@')[0] : null) || '보호자'
 
   return (
     <main style={{ paddingBottom: 32 }}>

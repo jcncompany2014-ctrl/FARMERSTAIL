@@ -24,8 +24,15 @@
 import type { SkuKey } from './allergy-sku-matrix'
 import { ALERT_COPY, RECOMMENDATION_COPY, withDogName } from './copy-strings'
 
-/** 만성질환 키 (surveys.chronic_conditions 값과 일치) */
+/**
+ * 만성질환 키 (surveys.chronic_conditions 값과 일치).
+ *
+ * R86-C3: lib/nutrition/guidelines.ts 의 `ChronicConditionKey` (22개) 와 키 이름이
+ *   달라 사용자가 설문에서 "allergy_skin" 선택해도 mapper 가 default 만 반환했음.
+ *   이제 양쪽 네이밍 모두 인식 (alias) + 추가 chronic 13종 vetConsult 처리.
+ */
 export type ChronicCondition =
+  // legacy mapper 키
   | 'arthritis'
   | 'obesity'
   | 'skin_allergy'
@@ -35,6 +42,23 @@ export type ChronicCondition =
   | 'cardiac'
   | 'dental'
   | 'liver'
+  // guidelines.ts 네이밍 alias (DB surveys.chronic_conditions 가 이쪽 사용)
+  | 'allergy_skin'
+  | 'kidney'
+  | 'mmvd'
+  | 'ibd'
+  // guidelines.ts 추가 만성질환 (mapper 가 SKU 가중치 없으면 vetConsult only)
+  | 'long_term_steroid'
+  | 'epilepsy'
+  | 'epi'
+  | 'patellar_luxation'
+  | 'tracheal_collapse'
+  | 'hypothyroid'
+  | 'cushings'
+  | 'ivdd'
+  | 'pancreatitis'
+  | 'urinary_stone'
+  | 'cognitive_decline'
 
 /**
  * DCM 호발 견종 (FDA 2018 grain-free DCM 보고서 + Mooney 2024 후속 연구).
@@ -91,10 +115,12 @@ export function mapChronicToSku(input: ChronicSkuInput): ChronicSkuPriority {
   let vetConsult = false
 
   // ── 만성질환별 가중치 누적 ──
+  // R86-C3: legacy 키 + guidelines.ts alias 키 모두 인식.
   for (const cond of chronicConditions) {
     switch (cond) {
       case 'arthritis':
       case 'cardiac':
+      case 'mmvd': // alias: guidelines.ts (Myxomatous Mitral Valve Disease)
         score.S03 += 3
         messages.push(
           withDogName(RECOMMENDATION_COPY.chronic.arthritis('○○'), dogName),
@@ -109,6 +135,7 @@ export function mapChronicToSku(input: ChronicSkuInput): ChronicSkuPriority {
         )
         break
       case 'skin_allergy':
+      case 'allergy_skin': // alias: guidelines.ts
         score.D02 += 3
         score.P04 += 2
         messages.push(
@@ -116,10 +143,13 @@ export function mapChronicToSku(input: ChronicSkuInput): ChronicSkuPriority {
         )
         break
       case 'gi_sensitive':
+      case 'ibd': // alias: guidelines.ts (Inflammatory Bowel Disease)
+      case 'pancreatitis':
         score.C01 += 2
         score.D02 += 2
         break
       case 'renal':
+      case 'kidney': // alias: guidelines.ts
         // 신장 처방식은 본 라인업 영역 외 — 수의사 상담 강하게
         vetConsult = true
         break
@@ -129,6 +159,20 @@ export function mapChronicToSku(input: ChronicSkuInput): ChronicSkuPriority {
       case 'liver':
         score.C01 += 2
         score.D02 += 2 // 가벼운 단백 우선
+        break
+      // R86-C3: 추가 만성질환 — SKU 가중치 영향 없지만 수의사 상담 권장.
+      // 추후 데이터 누적 후 가중치 룰 추가.
+      case 'long_term_steroid':
+      case 'epilepsy':
+      case 'epi':
+      case 'patellar_luxation':
+      case 'tracheal_collapse':
+      case 'hypothyroid':
+      case 'cushings':
+      case 'ivdd':
+      case 'urinary_stone':
+      case 'cognitive_decline':
+        vetConsult = true
         break
     }
   }

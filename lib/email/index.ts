@@ -60,7 +60,7 @@ async function resolveRecipient(
   if (!data?.email) return null
   return {
     email: data.email,
-    name: data.name ?? fallbackName ?? '고객',
+    name: data.name ?? fallbackName ?? '보호자',
   }
 }
 
@@ -484,7 +484,7 @@ export async function notifyWelcome(
   // admin/coupons 에 활성화된 동일 코드가 있어야 실제 적용됨.
   const couponCode = (process.env.WELCOME_COUPON_CODE ?? 'WELCOME5000').toUpperCase()
   const { subject, html } = renderWelcome({
-    recipientName: input.name ?? '고객',
+    recipientName: input.name ?? '보호자',
     couponCode,
   })
   await sendEmail({
@@ -510,7 +510,7 @@ export async function notifySubscriptionReminder(input: {
   daysBefore: number
 }) {
   const { subject, html } = renderSubscriptionReminder({
-    recipientName: input.name ?? '고객',
+    recipientName: input.name ?? '보호자',
     items: input.items,
     nextDeliveryDate: input.nextDeliveryDate,
     daysBefore: input.daysBefore,
@@ -543,7 +543,7 @@ export async function notifySubscriptionChargeFailed(input: {
   nextRetryAt?: string | null
 }) {
   const { subject, html } = renderSubscriptionChargeFailed({
-    recipientName: input.name ?? '고객',
+    recipientName: input.name ?? '보호자',
     productLabel: input.productLabel,
     amount: input.amount,
     attemptCount: input.attemptCount,
