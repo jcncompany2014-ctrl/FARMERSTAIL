@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { pushToUser } from '@/lib/push'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { recordAdminAction } from '@/lib/admin-audit'
 
 /**
  * POST /api/admin/users/[id]/message
@@ -113,6 +114,17 @@ export async function POST(
     sender: 'admin',
     sender_id: user.id,
     body: title === body ? body : `${title}\n\n${body}`,
+  })
+
+  // Audit log — admin 이 사용자에게 보낸 메시지 추적 (분쟁 시 증거).
+  await recordAdminAction(supabase, {
+    action: 'user_message_send',
+    entityType: 'user',
+    entityId: targetUserId,
+    diff: {
+      after: { title, body_length: body.length, url: url ?? null },
+    },
+    req,
   })
 
   // pushToUser 자체도 { ok, sent, dead, reason } 를 반환 — sent>0 이면 ok 가 true.

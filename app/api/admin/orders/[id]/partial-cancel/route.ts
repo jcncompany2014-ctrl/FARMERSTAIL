@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
+import { recordAdminAction } from '@/lib/admin-audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -248,6 +249,22 @@ export async function POST(
       { status: 500 }
     )
   }
+
+  // Audit log — 환불은 돈 관련 critical action. fail-silent.
+  await recordAdminAction(supabase, {
+    action: isFullyRefunded ? 'order_refund' : 'order_partial_refund',
+    entityType: 'order',
+    entityId: order.id,
+    diff: {
+      before: {
+        refunded_amount: order.refunded_amount ?? 0,
+        payment_status: order.payment_status,
+      },
+      after: { refunded_amount: nextRefunded, payment_status: nextStatus },
+      meta: { cancelAmount, cancelReason: cancelReason ?? null },
+    },
+    req,
+  })
 
   return NextResponse.json({
     ok: true,

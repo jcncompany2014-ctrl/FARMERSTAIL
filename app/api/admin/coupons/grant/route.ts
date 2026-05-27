@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { recordAdminAction } from '@/lib/admin-audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -108,6 +109,18 @@ export async function POST(req: Request) {
       { status: 500 },
     )
   }
+
+  // Audit log — 쿠폰 수동 발급. fail-silent.
+  await recordAdminAction(supabase, {
+    action: 'user_coupon_grant',
+    entityType: 'user',
+    entityId: user_id,
+    diff: {
+      after: { coupon_id, coupon_name: coupon.name },
+      meta: { granted_by_admin: user.id },
+    },
+    req,
+  })
 
   // 사용자에게 push 알림 (best-effort). 실패해도 grant 자체는 성공.
   // category 안 줌 — admin 의도된 1:1 발급이라 marketing 동의 여부와 무관하게

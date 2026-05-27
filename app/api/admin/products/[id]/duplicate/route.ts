@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
+import { recordAdminAction } from '@/lib/admin-audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,7 +20,7 @@ type Params = Promise<{ id: string }>
  * This flow is much faster than re-typing a near-identical product and avoids
  * the brittle client-side "clone then save" pattern.
  */
-export async function POST(_req: Request, { params }: { params: Params }) {
+export async function POST(req: Request, { params }: { params: Params }) {
   const { id } = await params
   const supabase = await createClient()
 
@@ -89,6 +90,18 @@ export async function POST(_req: Request, { params }: { params: Params }) {
       { status: 500 }
     )
   }
+
+  // Audit log — 상품 복제. fail-silent.
+  await recordAdminAction(supabase, {
+    action: 'product_create',
+    entityType: 'product',
+    entityId: inserted.id,
+    diff: {
+      after: { name: payload.name, slug: payload.slug, source_product_id: id },
+      meta: { reason: 'duplicate' },
+    },
+    req,
+  })
 
   return NextResponse.json({ ok: true, id: inserted.id })
 }

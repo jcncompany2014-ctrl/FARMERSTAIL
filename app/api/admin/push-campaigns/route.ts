@@ -6,6 +6,7 @@ import { isAdmin } from '@/lib/auth/admin'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { pushToUser } from '@/lib/push'
 import { dbError } from '@/lib/api/errors'
+import { recordAdminAction } from '@/lib/admin-audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -129,6 +130,24 @@ export async function POST(req: Request) {
     .from('push_campaigns')
     .update({ sent_count: sent, failed_count: failed })
     .eq('id', campaign.id)
+
+  // Audit log — 대량 푸시 발송은 정보통신망법 §50 광고성 정보 기록 의무 + 분쟁
+  // 대응. recipient_count / sent / failed 모두 기록.
+  await recordAdminAction(supabase, {
+    action: 'push_campaign_send',
+    entityType: 'system',
+    entityId: campaign.id,
+    diff: {
+      after: {
+        title: parsed.data.title,
+        segment: parsed.data.segment,
+        recipient_count: userIds.length,
+        sent,
+        failed,
+      },
+    },
+    req,
+  })
 
   return NextResponse.json({
     ok: true,

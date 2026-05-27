@@ -16,6 +16,7 @@ import {
   notifyOrderDelivered,
   notifyOrderShipped,
 } from '@/lib/email'
+import { recordAdminAction } from '@/lib/admin-audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -235,6 +236,24 @@ export async function POST(
       }).catch(() => {})
     }
   }
+
+  // Audit log — order status 변경은 cs 추적에 필수. fail-silent.
+  await recordAdminAction(supabase, {
+    action: 'order_status_change',
+    entityType: 'order',
+    entityId: order.id,
+    diff: {
+      before: { order_status: order.order_status },
+      after: { order_status: orderStatus },
+      meta: {
+        order_number: order.order_number,
+        carrier: carrier ?? null,
+        tracking_number: trackingNumber ?? null,
+        reason: reason ?? null,
+      },
+    },
+    req,
+  })
 
   return NextResponse.json({
     ok: true,
