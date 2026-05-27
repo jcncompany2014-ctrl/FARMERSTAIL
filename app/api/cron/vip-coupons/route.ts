@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { sendEmail } from '@/lib/email'
 import { renderVipCoupon } from '@/lib/email/templates/vip'
 
@@ -50,9 +51,10 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
-
-  const admin = createAdminClient()
-  const { yearMonth } = todayKst()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('vip-coupons', async () => {
+    const admin = createAdminClient()
+    const { yearMonth } = todayKst()
 
   // 1) 쿠폰 pick — audience_type='vip_tier' 활성/미만료.
   type CouponRow = {
@@ -188,12 +190,13 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    matched: candidates.length,
-    eligible: eligible.length,
-    sent,
-    failed,
-    skipped: candidates.length - eligible.length,
+    return NextResponse.json({
+      ok: true,
+      matched: candidates.length,
+      eligible: eligible.length,
+      sent,
+      failed,
+      skipped: candidates.length - eligible.length,
+    })
   })
 }

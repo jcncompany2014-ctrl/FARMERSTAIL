@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { sendEmail } from '@/lib/email'
 import { renderBirthdayCoupon } from '@/lib/email/templates/birthday'
 
@@ -42,9 +43,10 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
-
-  const admin = createAdminClient()
-  const today = todayKst()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('birthday-coupons', async () => {
+    const admin = createAdminClient()
+    const today = todayKst()
 
   // 쿠폰 picking — admin 의 audience_type='birthday' 우선, ENV fallback.
   //
@@ -208,12 +210,13 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    matched: candidates.length,
-    eligible: eligible.length,
-    sent,
-    failed,
-    skipped: candidates.length - eligible.length,
+    return NextResponse.json({
+      ok: true,
+      matched: candidates.length,
+      eligible: eligible.length,
+      sent,
+      failed,
+      skipped: candidates.length - eligible.length,
+    })
   })
 }
