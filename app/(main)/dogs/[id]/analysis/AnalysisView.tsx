@@ -98,14 +98,37 @@ type Dog = {
 export default function AnalysisView({
   dogId,
   analysisId,
+  surveyBlockedDays,
 }: {
   dogId: string
   /** When set, load this specific historical analysis instead of the latest. */
   analysisId?: string
+  /**
+   * R80-P1: survey 30일 가드로 redirect 된 경우 남은 일수 (1-30).
+   * useEffect 에서 1회 toast 표시 후 URL 정리.
+   */
+  surveyBlockedDays?: number | null
 }) {
   const router = useRouter()
   const supabase = createClient()
   const toast = useToast()
+
+  // R80-P1: 30일 가드 안내 toast — server page 에서 prop 으로 받음.
+  // mount 직후 1회만, URL 의 from/days query 제거해 새로고침 시 재발 X.
+  useEffect(() => {
+    if (!surveyBlockedDays || surveyBlockedDays <= 0) return
+    toast.info(
+      `지난 분석 후 30일이 안 됐어요. ${surveyBlockedDays}일 후 다시 진단하실 수 있어요. 6개월마다 알림을 보내드릴게요.`,
+    )
+    // URL 정리
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('from')
+      url.searchParams.delete('days')
+      window.history.replaceState({}, '', url.toString())
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const [dog, setDog] = useState<Dog | null>(null)
   const [analysis, setAnalysis] = useState<Analysis | null>(null)

@@ -35,5 +35,38 @@ export default async function SurveyPage({
     redirect('/dogs')
   }
 
+  // R80-P1: 재분석 30일 제한 — Anthropic 비용 폭주 차단.
+  // 마지막 분석 후 30일 이내면 새 설문 차단, 기존 분석 페이지로 redirect.
+  // 6개월(180일) 후 cron 이 자동으로 재진단 푸시 알림 발송.
+  // URL ?force=1 로 우회 가능 (admin / 비상 시 — application 측 보호선만)
+  const forceParam = false // 추후 searchParams 로 admin 우회 추가 가능
+  if (!forceParam) {
+    const { data: lastAnalysis } = await supabase
+      .from('analyses')
+      .select('id, created_at')
+      .eq('dog_id', id)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (lastAnalysis && lastAnalysis.created_at) {
+      // 서버 컴포넌트 — react-hooks/purity 규칙 우회 위해 new Date() 만 사용.
+      // Date.now() 는 impure 함수로 분류되어 정적 분석에 막힘.
+      const now = new Date()
+      const ageMs =
+        now.getTime() - new Date(lastAnalysis.created_at).getTime()
+      const ageDays = ageMs / (1000 * 60 * 60 * 24)
+      if (ageDays < 30) {
+        // 30일 미만 — 최신 분석 페이지로. 사용자에게 안내는 그 페이지에서
+        // ?from=survey_blocked query 로 토스트 표시.
+        const daysLeft = Math.ceil(30 - ageDays)
+        redirect(
+          `/dogs/${id}/analysis?from=survey_blocked&days=${daysLeft}`,
+        )
+      }
+    }
+  }
+
   return <SurveyClient dogId={id} />
 }

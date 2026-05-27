@@ -9,9 +9,19 @@ import AnalysisView from './AnalysisView'
 
 export default async function AnalysisPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ from?: string; days?: string }>
 }) {
   const { id } = await params
-  return <AnalysisView dogId={id} />
+  const sp = await searchParams
+  // R80-P1: survey 페이지에서 30일 가드로 redirect 된 경우 안내 메시지 prop.
+  const surveyBlockedDays =
+    sp.from === 'survey_blocked' && sp.days
+      ? Number.isFinite(Number(sp.days))
+        ? Math.max(1, Math.min(30, Number(sp.days)))
+        : null
+      : null
+  return <AnalysisView dogId={id} surveyBlockedDays={surveyBlockedDays} />
 }
