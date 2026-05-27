@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { notifyAbandonedCart } from '@/lib/email'
 
 export const runtime = 'nodejs'
@@ -33,9 +34,10 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
-
-  const admin = createAdminClient()
-  const now = Date.now()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('cart-recovery', async () => {
+    const admin = createAdminClient()
+    const now = Date.now()
   const windowStart = new Date(now - RECOVERY_WINDOW_START_H * 3600 * 1000).toISOString()
   const windowEnd = new Date(now - RECOVERY_WINDOW_END_D * 24 * 3600 * 1000).toISOString()
   const cooldown = new Date(now - COOLDOWN_D * 24 * 3600 * 1000).toISOString()
@@ -84,10 +86,11 @@ export async function GET(req: Request) {
     sent += results.filter((r) => r.sent).length
   }
 
-  return NextResponse.json({
-    ok: true,
-    checked: candidateIds.length,
-    eligible: eligible.length,
-    sent,
+    return NextResponse.json({
+      ok: true,
+      checked: candidateIds.length,
+      eligible: eligible.length,
+      sent,
+    })
   })
 }

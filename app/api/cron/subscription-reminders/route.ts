@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { notifySubscriptionReminder } from '@/lib/email'
 import { pushToUser } from '@/lib/push'
 import { dbError } from '@/lib/api/errors'
@@ -50,8 +51,9 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
-
-  const admin = createAdminClient()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('subscription-reminders', async () => {
+    const admin = createAdminClient()
 
   // 오늘 (KST) 자정 기준 ISO. KST = UTC+9 → 그 자정이 ms 로는
   // (NOW + 9h 의 날짜의) 00:00 KST = (NOW + 9h 의 날짜) + UTC offset −9h.
@@ -173,5 +175,6 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ checked: subs?.length ?? 0, sent, errors, pushed })
+    return NextResponse.json({ checked: subs?.length ?? 0, sent, errors, pushed })
+  })
 }
