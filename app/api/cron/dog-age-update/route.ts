@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { pushToUser } from '@/lib/push'
 import { dbError } from '@/lib/api/errors'
 
@@ -36,8 +37,9 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
-
-  const supabase = createAdminClient()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('dog-age-update', async () => {
+    const supabase = createAdminClient()
 
   // birth_date 가 있는 dogs.
   const { data: dogs, error } = await supabase
@@ -124,12 +126,13 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    checked: list.length,
-    updated,
-    unchanged,
-    invalid,
-    birthdays,
+    return NextResponse.json({
+      ok: true,
+      checked: list.length,
+      updated,
+      unchanged,
+      invalid,
+      birthdays,
+    })
   })
 }
