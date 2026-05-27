@@ -20,6 +20,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { trackCron } from '@/lib/cron-tracking'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import {
   findLedgerMismatches,
@@ -34,7 +35,9 @@ export async function GET(req: Request) {
   if (!isAuthorizedCronRequest(req)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  const supabase = createAdminClient()
+  // R83-E3 (D3): trackCron wrap.
+  return trackCron('payment-ledger-reconcile', async () => {
+    const supabase = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = supabase as any
 
@@ -80,11 +83,12 @@ export async function GET(req: Request) {
     })
   }
 
-  return NextResponse.json({
-    ok: true,
-    ordersChecked: orders.length,
-    eventsTotal: events.length,
-    mismatchCount: mismatches.length,
-    mismatches: mismatches.slice(0, 50),
+    return NextResponse.json({
+      ok: true,
+      ordersChecked: orders.length,
+      eventsTotal: events.length,
+      mismatchCount: mismatches.length,
+      mismatches: mismatches.slice(0, 50),
+    })
   })
 }
