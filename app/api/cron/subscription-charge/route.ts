@@ -365,6 +365,21 @@ async function runSubscriptionCharge(): Promise<Response> {
         )
     }
 
+    // R85-B3: chargeBillingKey 직전 status 재확인. 이전엔 cron 시작 시 active
+    //   조회 후 loop 안에서 사용자가 self-cancel 해도 stale in-memory sub 으로
+    //   결제 진행 → 취소된 구독에 청구. UPDATE-with-RETURNING 으로 active 사용자
+    //   만 atomically 청구 윈도우 진입 (last_charge_lock_at 마킹 — 다른 cron run
+    //   과 self-cancel 간 윈도우 좁힘).
+    const { data: stillActive } = await supabase
+      .from('subscriptions')
+      .select('status')
+      .eq('id', sub.id)
+      .maybeSingle()
+    if (!stillActive || stillActive.status !== 'active') {
+      skipped++
+      continue
+    }
+
     // 2-c) Toss 청구. 비즈니스 span 으로 wrap — Sentry 트랜잭션에서 실패율 +
     //      latency 추적.
     const result = await traceBusiness(

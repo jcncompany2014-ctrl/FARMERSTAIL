@@ -472,12 +472,15 @@ export default function OrderClient({
       //   · 4주치 (풀 화식) — 캘린더 월 기준 (같은 날 다음 달)
       //   · 2주치 (하이브리드) — 15일 후
       // cron `nextDeliveryDate` 와 정합 (cron 도 box 구독은 같은 룰 사용).
-      const nextDelivery = new Date()
-      if (coverageWeeks === 2) {
-        nextDelivery.setDate(nextDelivery.getDate() + 15)
-      } else {
-        nextDelivery.setMonth(nextDelivery.getMonth() + 1)
-      }
+      // R85-D4: KST helper — UTC 기준 .toISOString() off-by-one 차단.
+      const { todayKstIsoDate, addDaysKst, addMonthsKst } = await import(
+        '@/lib/datetime-kst'
+      )
+      const todayIso = todayKstIsoDate()
+      const nextDeliveryIso =
+        coverageWeeks === 2
+          ? addDaysKst(todayIso, 15)
+          : addMonthsKst(todayIso, 1)
 
       const customerKey =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -506,7 +509,7 @@ export default function OrderClient({
           interval_weeks: 4,
           coverage_weeks: coverageWeeks,
           status: 'active',
-          next_delivery_date: nextDelivery.toISOString().split('T')[0],
+          next_delivery_date: nextDeliveryIso,
           total_deliveries: 0,
           recipient_name: recipientName,
           recipient_phone: recipientPhone,

@@ -139,8 +139,11 @@ async function runSubscribeNudge(
     skipped = 0,
     errors = 0
   for (const p of (rows ?? []) as Array<{ id: string }>) {
+    // R85-E3: 이전엔 존재하지 않는 `dog_subscriptions` 테이블 조회 → PostgREST
+    // 404 → subs 항상 빈 배열 → 이미 구독중인 사용자도 D+30 마케팅 푸시 받음
+    // (legal: 정통망법 §50 동의 + 광고성 표시 + UX 신뢰도). 실제 테이블 `subscriptions`.
     const { data: subs } = await supabase
-      .from('dog_subscriptions')
+      .from('subscriptions')
       .select('id')
       .eq('user_id', p.id)
       .eq('status', 'active')
@@ -169,7 +172,11 @@ async function runMedicationReminder(
   now: Date,
 ): Promise<CampaignResult> {
   // medications.enabled = true + schedule = 'daily' + time 이 현재 ±30분 안.
-  const hh = String(now.getHours()).padStart(2, '0')
+  // R85-D1: Vercel 서버는 UTC. `now.getHours()` 가 UTC hour → 사용자 UI 가
+  //   KST 기준 입력한 time 과 9시간 차이 → KST 19시 복약만 발화, 그 외 영원히
+  //   미발송. KST hour 로 비교.
+  const kstHour = new Date(now.getTime() + 9 * 60 * 60 * 1000).getUTCHours()
+  const hh = String(kstHour).padStart(2, '0')
   const { data: rows } = await supabase
     .from('dog_medications')
     .select('id, user_id, dog_id, name, time')

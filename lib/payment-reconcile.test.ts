@@ -63,7 +63,7 @@ describe('findLedgerMismatches', () => {
     const orders: OrderSnapshot[] = [
       {
         id: 'o1',
-        payment_status: 'partial_refund',
+        payment_status: 'partially_refunded',
         total_amount: 50000,
         refunded_amount: 10000,
       },

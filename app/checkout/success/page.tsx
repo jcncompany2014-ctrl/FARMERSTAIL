@@ -114,16 +114,33 @@ export default async function CheckoutSuccessPage({
       '[checkout/success] NEXT_PUBLIC_SITE_URL is not set — production-fatal',
     )
   }
-  const confirmRes = await fetch(`${baseUrl}/api/payments/confirm`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      paymentKey,
-      orderId,
-      amount: Number(amount),
-    }),
-    cache: 'no-store',
-  })
+  // R85-A2: timeout/try-catch 추가. Toss confirm 이 hang → Vercel function
+  // timeout → 504 blank screen → 사용자 새로고침/재주문 → 중복결제 위험.
+  // 25s 마진 (Toss timeout 15s + DB update + cancel queue 시간).
+  let confirmRes: Response
+  try {
+    confirmRes = await fetch(`${baseUrl}/api/payments/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paymentKey,
+        orderId,
+        amount: Number(amount),
+      }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(25_000),
+    })
+  } catch (err) {
+    const isTimeout =
+      err instanceof DOMException && err.name === 'TimeoutError'
+    redirect(
+      `/checkout/fail?code=${isTimeout ? 'CONFIRM_TIMEOUT' : 'CONFIRM_NETWORK'}&message=${encodeURIComponent(
+        isTimeout
+          ? '결제 승인이 늦어지고 있어요. 마이페이지에서 결제 상태를 확인해 주세요.'
+          : '결제 서버와 통신할 수 없어요. 마이페이지에서 결제 상태를 확인해 주세요.',
+      )}`,
+    )
+  }
 
   if (!confirmRes.ok) {
     const data = await confirmRes.json().catch(() => ({}))

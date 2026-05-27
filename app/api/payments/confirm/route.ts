@@ -337,7 +337,12 @@ export async function POST(req: Request) {
       }
     : {}
 
-  const { error: updateError } = await supabase
+  // R85-B1: payment_status='pending' 가드 추가. 이전엔 이 가드 없어서
+  // 사용자가 Toss 결제창 30분+ 머무는 사이 order-expire cron 이 만료 처리해
+  // (status='cancelled' + 재고 복원 + 쿠폰 revoke + 포인트 환급) → 그 후
+  // confirm 이 도착해 'paid' 로 덮어씀 → 결제 + 환불 동시 상태 → 고객은 돈도
+  // 내고 환불도 받음. .eq + .select() 로 0-row 감지 시 자동 환불.
+  const { data: updateRows, error: updateError } = await supabase
     .from('orders')
     .update({
       payment_status: isActuallyPaid ? 'paid' : 'pending',
@@ -351,6 +356,50 @@ export async function POST(req: Request) {
       ...vaFields,
     })
     .eq('id', order.id)
+    .eq('payment_status', 'pending')
+    .select('id')
+
+  // 0-row update = 다른 흐름 (cron expire, webhook, admin cancel) 이 이미
+  // payment_status 를 변경함. 결제는 성공했지만 우리가 paid 로 못 박았으므로
+  // 즉시 Toss 환불 + payment_refund_queue 로 fallback.
+  if (!updateError && isActuallyPaid && (!updateRows || updateRows.length === 0)) {
+    captureBusinessEvent('error', 'order.payment.race_already_terminal', {
+      orderId,
+      paymentKey,
+    })
+    const cancelResult = await cancelPayment({
+      paymentKey,
+      cancelReason: '주문 상태 race — 결제 후 만료 감지',
+    })
+    if (!cancelResult.ok) {
+      try {
+        const admin = createAdminClient()
+        await (admin as unknown as {
+          from: (t: string) => {
+            insert: (r: Record<string, unknown>) => Promise<unknown>
+          }
+        })
+          .from('payment_refund_queue')
+          .insert({
+            order_id: order.id,
+            payment_key: paymentKey,
+            amount: payment.totalAmount,
+            reason: 'race_already_terminal',
+            last_error: cancelResult.error.message,
+          })
+      } catch {
+        /* queue insert 도 실패 — Sentry 로 이미 잡힘 */
+      }
+    }
+    return NextResponse.json(
+      {
+        code: 'ORDER_ALREADY_TERMINAL',
+        message:
+          '주문이 이미 다른 흐름으로 처리됐어요. 환불 처리 중이니 마이페이지에서 확인해 주세요.',
+      },
+      { status: 409 },
+    )
+  }
 
   if (updateError) {
     // audit 2-2: Toss 는 이미 승인했는데 DB 가 실패 → orphan payment 발생.

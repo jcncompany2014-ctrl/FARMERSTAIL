@@ -95,16 +95,38 @@ async function tossFetch<T>(
   init: RequestInit & { idempotencyKey?: string } = {},
 ): Promise<TossResult<T>> {
   const { idempotencyKey, headers, ...rest } = init
-  const res = await fetch(`${TOSS_API_BASE}${path}`, {
-    ...rest,
-    headers: {
-      Authorization: authHeader(),
-      'Content-Type': 'application/json',
-      ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
-      ...headers,
-    },
-    cache: 'no-store',
-  })
+  // R85-A1: 이전엔 timeout 도 try/catch 도 없어서 Toss 가 hang 하면 fetch 가
+  // 무한 대기 → Vercel function timeout(10s) → 504 blank → 사용자 cart 미정리 →
+  // 재주문 시 두 번 결제 위험. AbortSignal.timeout(15s) + try/catch 로 안전화.
+  // chargeBillingKey/issueBillingKey 는 이미 timeout 있음 — v1 confirm/cancel/fetch
+  // 만 누락이었음.
+  let res: Response
+  try {
+    res = await fetch(`${TOSS_API_BASE}${path}`, {
+      ...rest,
+      headers: {
+        Authorization: authHeader(),
+        'Content-Type': 'application/json',
+        ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+        ...headers,
+      },
+      cache: 'no-store',
+      signal: rest.signal ?? AbortSignal.timeout(15_000),
+    })
+  } catch (err) {
+    const isAbort =
+      err instanceof DOMException && err.name === 'TimeoutError'
+    return {
+      ok: false,
+      status: 0,
+      error: {
+        code: isAbort ? 'TOSS_TIMEOUT' : 'TOSS_NETWORK',
+        message: isAbort
+          ? '결제 서버 응답이 늦어요. 잠시 후 다시 시도해 주세요.'
+          : '결제 서버와 통신할 수 없어요. 잠시 후 다시 시도해 주세요.',
+      },
+    }
+  }
   const body = await res.json().catch(() => ({}))
   if (!res.ok) {
     return {

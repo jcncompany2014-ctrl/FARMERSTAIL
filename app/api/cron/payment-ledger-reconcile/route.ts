@@ -44,7 +44,10 @@ export async function GET(req: Request) {
     .from('orders')
     .select('id, payment_status, total_amount, refunded_amount')
     .gte('created_at', since)
-    .in('payment_status', ['paid', 'cancelled', 'partial_refund', 'refunded'])
+    // R85-E4: 'partial_refund' (밑줄 1개) 는 DB CHECK 에 없는 잘못된 enum.
+    // R83-1 + R85-E1 후 정식 값은 'partially_refunded'. 이전엔 reconcile 이
+    // 부분환불 주문 영구 누락 (false negative ledger mismatch).
+    .in('payment_status', ['paid', 'cancelled', 'partially_refunded', 'refunded'])
     .limit(2000)
   const orders = (ordersRaw ?? []) as OrderSnapshot[]
   if (orders.length === 0) {

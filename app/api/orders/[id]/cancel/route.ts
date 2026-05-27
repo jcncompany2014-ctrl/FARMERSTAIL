@@ -163,9 +163,13 @@ export async function POST(
   }
 
   // 2) Flip order row + 부분취소 audit/stock 복원과 동일한 토대로 통일.
+  // R85-B2: 이전 payment_status 가드 추가 + 0-row 감지로 더블클릭 차단.
+  //   두 요청이 동시 도착하면: 둘 다 .is('cancelled_at', null) order_items 읽고
+  //   restore_stock 두 번 호출 → 재고 부풀려짐 + refunds 중복 row. 첫 UPDATE
+  //   에 .eq('payment_status', order.payment_status) 가드 추가하고 0-row 면 bail.
   const nowIso = new Date().toISOString()
   const refundAmount = order.payment_status === 'paid' ? order.total_amount : 0
-  await supabase
+  const { data: cancelRows } = await supabase
     .from('orders')
     .update({
       payment_status: 'cancelled',
@@ -176,6 +180,19 @@ export async function POST(
     })
     .eq('id', order.id)
     .eq('user_id', user.id)
+    .eq('payment_status', order.payment_status)
+    .select('id')
+
+  if (!cancelRows || cancelRows.length === 0) {
+    // 다른 요청 (더블클릭 두 번째 / admin cancel / cron expire) 이 이미 처리.
+    return NextResponse.json(
+      {
+        code: 'ALREADY_PROCESSED',
+        message: '이미 처리된 주문이에요.',
+      },
+      { status: 409 },
+    )
+  }
 
   // R60 — 결제 원장 event. 환불은 음수 amount (sum=0 = 완전 환불).
   {

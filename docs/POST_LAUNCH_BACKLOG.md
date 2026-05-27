@@ -326,4 +326,47 @@ R84 (2026-05-27) 의 4개 사용자 동선 (온보딩 / 구매 / 사후 / 구독
 - **admin/subscriptions/page.tsx**: `SubscriptionRow` 타입이 `recipient_address/_detail/zip`
   로 선언돼 있지만 실제 DB 는 `zip/address/address_detail`. 화면이 NULL 표시.
   + 부분취소 시 orders.recipient_* 에 NULL 입력. admin 운영 시 발견 후 fix.
+
+---
+
+## 🔍 R85 deep-edge audit deferred (출시 후 1-2주)
+
+R85 (2026-05-27) 의 5개 영역 audit (외부 API / 동시성 / OAuth / 시간 / schema)
+에서 발견된 14 Critical 중 출시 차단급은 즉시 fix, 나머지 deferred.
+
+### 즉시 fix 한 것 (참고):
+- A1: tossFetch timeout(15s) + try/catch — 외부 hang 차단
+- A2: /checkout/success 서버 fetch timeout(25s) + redirect
+- B1: confirm UPDATE 에 payment_status='pending' 가드 + 0-row 자동 환불
+- B2: cancel UPDATE 가드 + 0-row 감지 → 더블클릭 차단
+- B3: subscription-charge mid-loop status 재확인 → 취소된 구독 결제 차단
+- D1: push-lifecycle KST hour 비교 + schedule hourly
+- D4: SubscriptionsClient/SubscribeClient/OrderClient KST off-by-one fix
+- E1: orders CHECK 에 'partially_refunded' 추가 (R83 누락)
+- E3: push-lifecycle dog_subscriptions → subscriptions
+- E4: payment-ledger-reconcile 'partial_refund' → 'partially_refunded'
+- vercel.json: push-lifecycle hourly, vip-coupons KST 0시
+
+### Deferred (post-PMF)
+- **D2 (남은 파일)**: admin/subscriptions/page.tsx + api/personalization/approve KST off-by-one
+- **D5: vip-coupons schedule** — KST 1일 09시 의도 → `0 0 1 * *` (KST 9시) 또는 `0 0 1 * *`. (UI/KST 일치)
+  → **수정 완료** (`0 20 1 * *` → `0 0 1 * *`)
+- **D6: refund-retry backoff vs daily schedule**: 현재 `0 20 * * *` daily. backoff
+  설계는 5분/15분/1h/6h 인데 daily 라 의미 무력. Vercel Hobby 한도 확인 후 `*/30 * * * *`.
+- **D7: account-purge schedule comment 불일치**: `0 16 1 * *` = KST 1일 새벽 01시.
+  주석은 KST 04시 의도. 주석 정정 또는 schedule `0 19 1 * *`.
+
+### 외부 API 추가 보강
+- **A3: AI 분석 retry button** — `StructuredAnalysis.tsx` 가 Anthropic 실패 시
+  새로고침만 가능. "다시 시도" 버튼 + exponential backoff.
+- **A4: 상품 이미지 CDN fallback** — `CatalogProductCard` 이미지 onError 핸들러 +
+  CategoryIcon fallback.
+
+### 동시성 보강
+- **B4: cart_items quantity race** — 두 빠른 클릭이 read-then-update lost update.
+  RPC 또는 atomic SQL `SET quantity = quantity + 1` 로 변경.
+
+### OAuth 보강
+- **C-minor: KakaoLoginButton 원본 에러 노출** — provider 에러 코드를
+  사용자에게 그대로 표시. 안정 코드 매핑은 callback 만 있음.
 | LTV 코호트 분석 | 의사결정 | 2d | ⬜ |

@@ -123,7 +123,7 @@
     },
     {
       "path": "/api/cron/vip-coupons",
-      "schedule": "0 20 1 * *"
+      "schedule": "0 0 1 * *"
     },
     {
       "path": "/api/cron/inactive-coupons",
@@ -151,7 +151,7 @@
     },
     {
       "path": "/api/cron/push-lifecycle",
-      "schedule": "0 10 * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/inventory-forecast",

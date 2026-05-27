@@ -22,6 +22,7 @@ import Link from 'next/link'
 import { Repeat } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { todayKstIsoDate, addDaysKst, addMonthsKst } from '@/lib/datetime-kst'
 import {
   trackSubscriptionPaused,
   trackSubscriptionResumed,
@@ -155,13 +156,12 @@ export default function SubscriptionsClient({
     if (!uid) return
     const update: Record<string, unknown> = weeks
       ? (() => {
+          // R85-D4: KST 자정 직후 (00-08:59) base.toISOString() 이 UTC 전날 반환 →
+          // date string 이 KST 의도일보다 1일 빠름. todayKstIsoDate/addDaysKst 사용.
           const sub = subs.find((s) => s.id === subId)
-          const base = sub?.next_delivery_date
-            ? new Date(sub.next_delivery_date)
-            : new Date()
-          base.setDate(base.getDate() + weeks * 7)
+          const baseIso = sub?.next_delivery_date ?? todayKstIsoDate()
           return {
-            next_delivery_date: base.toISOString().split('T')[0],
+            next_delivery_date: addDaysKst(baseIso, weeks * 7),
           }
         })()
       : { status: 'paused' }
@@ -207,23 +207,20 @@ export default function SubscriptionsClient({
       return
     }
 
-    const nextDate = new Date()
+    // R85-D4: KST helper 사용 — 자정 직후 off-by-one 차단.
+    const todayIso = todayKstIsoDate()
     const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null
-    if (isBoxSub) {
-      if (sub.coverage_weeks === 2) {
-        nextDate.setDate(nextDate.getDate() + 15)
-      } else {
-        nextDate.setMonth(nextDate.getMonth() + 1)
-      }
-    } else {
-      nextDate.setDate(nextDate.getDate() + sub.interval_weeks * 7)
-    }
+    const nextIso = isBoxSub
+      ? sub.coverage_weeks === 2
+        ? addDaysKst(todayIso, 15)
+        : addMonthsKst(todayIso, 1)
+      : addDaysKst(todayIso, sub.interval_weeks * 7)
 
     await supabase
       .from('subscriptions')
       .update({
         status: 'active',
-        next_delivery_date: nextDate.toISOString().split('T')[0],
+        next_delivery_date: nextIso,
       })
       .eq('id', subId)
       .eq('user_id', uid)
