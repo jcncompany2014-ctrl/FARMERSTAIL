@@ -105,7 +105,7 @@ export default function PhotosClient({
           contentType: file.type,
         })
       if (upErr) {
-        setError('업로드 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요')
+        setError('사진을 올리지 못했어요. 잠시 후 다시 시도해 주세요')
         return
       }
 

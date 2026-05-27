@@ -69,7 +69,7 @@ export default function PreferencesPanel() {
         setPrefs(prev)
       }
     } catch {
-      setError('네트워크 오류')
+      setError('네트워크가 불안정해요. 다시 시도해 주세요')
       setPrefs(prev)
     } finally {
       setSaving(null)

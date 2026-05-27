@@ -213,7 +213,7 @@ export default function ChatClient({
       if (aborted) return
     } catch (err) {
       if (sentDogKey !== selectedDogId) return
-      setError(err instanceof Error ? err.message : '오류가 발생했어요')
+      setError(err instanceof Error ? err.message : '잠시 문제가 있었어요. 다시 시도해 주세요')
       // 실패 시 user + 빈 assistant placeholder 둘 다 제거.
       setMessages((prev) => prev.slice(0, -2))
     } finally {

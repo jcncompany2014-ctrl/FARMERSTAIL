@@ -35,7 +35,7 @@ function humanizeAuthError(code: string): string {
     case 'oauth_exchange_failed':
       return '로그인 세션을 만들지 못했어요. 페이지를 새로고침하고 다시 시도해 주세요.'
     case 'oauth_unexpected':
-      return '예상치 못한 오류가 발생했어요. 잠시 후 다시 시도해 주세요.'
+      return '예상하지 못한 문제가 있었어요. 잠시 후 다시 시도해 주세요.'
     default:
       // 옛 링크 호환을 위해 raw 메시지를 그대로. 단 너무 길면 잘라서.
       return code.length > 200 ? code.slice(0, 200) + '…' : code

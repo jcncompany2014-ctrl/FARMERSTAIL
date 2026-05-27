@@ -223,7 +223,7 @@ export default function CheckinClient({
       }
       haptic('tap')
     } catch (e) {
-      setErr(e instanceof Error ? e.message : '업로드 오류')
+      setErr(e instanceof Error ? e.message : '업로드를 마치지 못했어요')
     } finally {
       setUploading(false)
     }
@@ -240,7 +240,7 @@ export default function CheckinClient({
         return next
       })
     } catch (e) {
-      setErr(e instanceof Error ? e.message : '삭제 오류')
+      setErr(e instanceof Error ? e.message : '사진을 지우지 못했어요')
     }
   }
 
@@ -282,7 +282,7 @@ export default function CheckinClient({
       toast.success(`${dogName}이를 더 잘 챙길게요 🐾`)
       router.push(`/dogs/${dogId}/analysis`)
     } catch (e) {
-      setErr(e instanceof Error ? e.message : '네트워크 오류')
+      setErr(e instanceof Error ? e.message : '네트워크가 불안정해요. 다시 시도해 주세요')
     } finally {
       setSaving(false)
     }

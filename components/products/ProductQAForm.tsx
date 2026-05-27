@@ -65,8 +65,8 @@ export default function ProductQAForm({
       router.refresh()
     } catch (err) {
       setError(
-        '오류가 발생했어요: ' +
-          (err instanceof Error ? err.message : '알 수 없는 오류'),
+        '문의를 보내지 못했어요: ' +
+          (err instanceof Error ? err.message : '예상하지 못한 문제'),
       )
     } finally {
       setSubmitting(false)

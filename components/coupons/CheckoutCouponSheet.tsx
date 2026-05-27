@@ -88,7 +88,7 @@ export default function CheckoutCouponSheet({
         }
       } catch (err) {
         if (!cancelled) {
-          setErrMsg(err instanceof Error ? err.message : '오류')
+          setErrMsg(err instanceof Error ? err.message : '쿠폰을 불러오지 못했어요')
         }
       } finally {
         if (!cancelled) setLoading(false)

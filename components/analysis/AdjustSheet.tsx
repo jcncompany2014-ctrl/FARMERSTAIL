@@ -286,7 +286,7 @@ export default function AdjustSheet({
       })
       onClose()
     } catch (e) {
-      setErr(e instanceof Error ? e.message : '네트워크 오류')
+      setErr(e instanceof Error ? e.message : '네트워크가 불안정해요. 다시 시도해 주세요')
     } finally {
       setSaving(false)
     }

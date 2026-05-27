@@ -62,7 +62,7 @@ export default async function CheckoutFailPage({
             )}
             {code && (
               <div className="flex justify-between items-center text-[12px] md:text-[14px]">
-                <span className="text-muted">오류 코드</span>
+                <span className="text-muted">문제 코드</span>
                 <span className="text-text font-mono text-[11px] md:text-[12.5px]">
                   {code}
                 </span>

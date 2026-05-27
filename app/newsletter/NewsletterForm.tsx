@@ -53,7 +53,7 @@ export default function NewsletterForm() {
       }
       setDone(true)
     } catch {
-      setError('네트워크 오류가 발생했어요. 잠시 후 다시 시도해 주세요.')
+      setError('잠시 네트워크가 불안정한 것 같아요. 다시 시도해 주세요.')
     } finally {
       setSubmitting(false)
     }

@@ -123,7 +123,7 @@ export default function StructuredAnalysis({
     return (
       <section className="px-5 mt-6">
         <div className="rounded-2xl bg-bg-2 border border-rule p-5 text-[12px] text-muted leading-relaxed">
-          AI 분석 생성 중 오류가 발생했어요. 잠시 후 페이지를 새로고침해 주세요.
+          AI 분석을 만들지 못했어요. 잠시 후 페이지를 새로고침해 주세요.
         </div>
       </section>
     )

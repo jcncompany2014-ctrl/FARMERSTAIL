@@ -50,7 +50,7 @@ export default function NewInviteClient({ dogs }: { dogs: DogOption[] }) {
       setResult(payload as SuccessResult)
     } catch (e) {
       console.error('invitation submit', e)
-      setError('네트워크 오류 — 다시 시도해 주세요')
+      setError('네트워크가 불안정해요. 다시 시도해 주세요')
     } finally {
       setSubmitting(false)
     }

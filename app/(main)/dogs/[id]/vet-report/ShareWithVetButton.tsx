@@ -50,7 +50,7 @@ export default function ShareWithVetButton({ dogId }: { dogId: string }) {
       setState((s) => ({
         ...s,
         loading: false,
-        error: e instanceof Error ? e.message : '네트워크 오류',
+        error: e instanceof Error ? e.message : '네트워크가 불안정해요. 다시 시도해 주세요',
       }))
     }
   }

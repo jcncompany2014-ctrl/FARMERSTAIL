@@ -33,7 +33,7 @@ export default function AppError({
       code="500"
       kicker="Oh Dear · 잠깐 멈췄어요"
       title="문제가 발생했어요"
-      description="잠시 후 다시 시도해 주세요. 반복되면 오류 ID를 고객센터에 알려 주세요."
+      description="잠시 후 다시 시도해 주세요. 반복되면 문제 코드를 고객센터에 알려 주세요."
       icon={<AlertTriangle className="w-6 h-6" strokeWidth={2} aria-hidden />}
       tone="sale"
       primary={{ label: '다시 시도', onClick: reset }}

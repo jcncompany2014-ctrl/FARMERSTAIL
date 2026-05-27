@@ -102,7 +102,7 @@ export default function PhotoUploadClient({
       }
       setStatus({ kind: 'success' })
     } catch {
-      setStatus({ kind: 'error', message: '네트워크 오류' })
+      setStatus({ kind: 'error', message: '네트워크가 불안정해요. 다시 시도해 주세요' })
     }
   }
 

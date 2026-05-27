@@ -194,11 +194,11 @@ function TraceIdBlock({ id }: { id: string }) {
   }
   return (
     <div className="mt-3 inline-flex items-center gap-1.5 text-[10.5px] font-mono text-muted">
-      <span>오류 ID · {id}</span>
+      <span>문제 코드 · {id}</span>
       <button
         type="button"
         onClick={handleCopy}
-        aria-label={copied ? '복사됨' : '오류 ID 복사'}
+        aria-label={copied ? '복사됨' : '문제 코드 복사'}
         className={cn(
           'inline-flex items-center justify-center w-5 h-5 rounded',
           'hover:bg-black/5 transition-colors',

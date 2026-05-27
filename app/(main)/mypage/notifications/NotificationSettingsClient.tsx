@@ -159,7 +159,7 @@ export default function NotificationSettingsClient({
       setStatus('on')
       setMsg('알림을 켰어요')
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : '구독 중 오류가 발생했어요')
+      setMsg(err instanceof Error ? err.message : '알림 켜는 데 실패했어요. 잠시 후 다시 시도해 주세요')
       setStatus('off')
     }
   }
@@ -184,7 +184,7 @@ export default function NotificationSettingsClient({
       setStatus('off')
       setMsg('알림을 껐어요')
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : '구독 해제 중 오류가 발생했어요')
+      setMsg(err instanceof Error ? err.message : '알림 끄는 데 실패했어요. 잠시 후 다시 시도해 주세요')
     }
   }
 

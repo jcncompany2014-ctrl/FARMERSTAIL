@@ -79,7 +79,7 @@ export default function PhotoRequestButton({
         toast.info('링크가 만들어졌어요. 길게 눌러 복사해주세요')
       }
     } catch {
-      toast.error('네트워크 오류가 발생했어요')
+      toast.error('잠시 네트워크가 불안정한 것 같아요. 다시 시도해 주세요')
     } finally {
       setBusy(false)
     }

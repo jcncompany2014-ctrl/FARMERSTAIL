@@ -45,7 +45,7 @@ const STATUS_MESSAGES: Record<
   },
   error: {
     tone: 'error',
-    title: '처리 중 오류가 발생했어요',
+    title: '지금 처리하지 못했어요',
     body: '잠시 후 다시 시도해 주세요. 계속되면 story@farmerstail.kr 로 연락해 주세요.',
   },
 }

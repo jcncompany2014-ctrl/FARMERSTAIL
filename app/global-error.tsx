@@ -118,7 +118,7 @@ export default function GlobalError({
               wordBreak: 'keep-all',
             }}
           >
-            새로고침으로 해결되지 않으면 오류 ID를 고객센터에 알려 주세요.
+            새로고침으로 해결되지 않으면 문제 코드를 고객센터에 알려 주세요.
           </p>
 
           {error.digest && (
@@ -134,10 +134,10 @@ export default function GlobalError({
                 gap: 6,
               }}
             >
-              <span>오류 ID · {error.digest}</span>
+              <span>문제 코드 · {error.digest}</span>
               <button
                 onClick={copyDigest}
-                aria-label={copied ? '복사됨' : '오류 ID 복사'}
+                aria-label={copied ? '복사됨' : '문제 코드 복사'}
                 style={{
                   width: 20,
                   height: 20,

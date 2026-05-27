@@ -99,7 +99,7 @@ export default function TrackingView({
     } catch {
       setFetchState({
         status: 'error',
-        message: '네트워크 오류가 발생했어요',
+        message: '잠시 네트워크가 불안정한 것 같아요. 다시 시도해 주세요',
       })
     }
   }, [carrier, trackingNumber, supportsInline])
