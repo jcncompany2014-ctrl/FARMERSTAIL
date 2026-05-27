@@ -456,6 +456,12 @@ export async function notifyAbandonedCart(
     items,
     subtotal,
   })
+  // R87-A3 (D10): 광고성 메일 universal unsubscribe URL.
+  const { generateMarketingUnsubscribeToken } = await import('@/lib/email/unsubscribe-token')
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
+  const unsubscribeToken = generateMarketingUnsubscribeToken(input.userId)
+  const unsubscribeUrl = `${siteUrl}/api/marketing/unsubscribe?uid=${encodeURIComponent(input.userId)}&token=${unsubscribeToken}`
+
   const sendResult = await sendEmail({
     to: recipient.email,
     subject,
@@ -463,6 +469,7 @@ export async function notifyAbandonedCart(
     tag: 'cart-abandoned',
     // sent_at 일자별 dedupe — 같은 날 중복 트리거는 Resend 측에서 1건으로 접음.
     idempotencyKey: `cart-abandoned:${input.userId}:${new Date().toISOString().slice(0, 10)}`,
+    unsubscribeUrl,
   })
 
   // 3) 로그 기록 — 쿨다운 판정용. 이메일이 skipped 됐어도 "트리거 됐다"는 기록은 남김.

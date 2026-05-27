@@ -105,6 +105,12 @@ const serverSchema = z.object({
   NEXT_PUBLIC_KAKAO_CHANNEL_URL: optStr(),
   NEXT_PUBLIC_KAKAO_JS_KEY: optStr(),
 
+  // === R87-A3 (D10) 광고성 메일 universal unsubscribe HMAC secret ===========
+  // newsletter_subscribers 외 일반 app user 에게 보내는 광고 메일
+  // (cart-abandoned / vip / birthday / comeback) 의 List-Unsubscribe URL token.
+  // prod 에서 누락 시 광고 메일 발송 skip 됨 (가입 환영 등 transactional 은 영향 X).
+  UNSUBSCRIBE_TOKEN_SECRET: optStr(),
+
   // === Node runtime meta ===================================================
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 })
@@ -146,6 +152,7 @@ const raw = {
   NEXT_PUBLIC_MAIL_ORDER_NUMBER: process.env.NEXT_PUBLIC_MAIL_ORDER_NUMBER,
   NEXT_PUBLIC_KAKAO_CHANNEL_URL: process.env.NEXT_PUBLIC_KAKAO_CHANNEL_URL,
   NEXT_PUBLIC_KAKAO_JS_KEY: process.env.NEXT_PUBLIC_KAKAO_JS_KEY,
+  UNSUBSCRIBE_TOKEN_SECRET: process.env.UNSUBSCRIBE_TOKEN_SECRET,
   NODE_ENV: process.env.NODE_ENV,
 }
 
