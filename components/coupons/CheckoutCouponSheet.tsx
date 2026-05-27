@@ -129,13 +129,21 @@ export default function CheckoutCouponSheet({
 
   return (
     <>
-      {/* 트리거 row — 항상 보이는 진입점 */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-between rounded-xl bg-white border border-rule px-4 py-3.5 hover:border-text transition active:scale-[0.99] text-left"
+      {/* 트리거 row — 항상 보이는 진입점.
+          R87-B3 (D12): button-in-button 제거 — 부모 button 안에 role="button"
+          + tabIndex=-1 인 X 가 있었음. HTML invalid + 키보드 접근 불가.
+          이제 div role="group" 안에 trigger button + remove button 분리. */}
+      <div
+        role="group"
+        aria-label="쿠폰 적용"
+        className="w-full flex items-center justify-between rounded-xl bg-white border border-rule pl-4 pr-1 py-1.5 hover:border-text transition"
       >
-        <div className="flex items-center gap-2.5 min-w-0">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={applied ? '다른 쿠폰 선택' : '쿠폰 선택 열기'}
+          className="flex-1 flex items-center gap-2.5 min-w-0 text-left py-2 active:scale-[0.99] transition"
+        >
           <div
             className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
             style={{
@@ -177,24 +185,28 @@ export default function CheckoutCouponSheet({
               </>
             )}
           </div>
-        </div>
+        </button>
         {applied ? (
-          <span
-            className="shrink-0 inline-flex items-center text-[10.5px] font-bold"
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label="쿠폰 제거"
+            className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-bg-2 active:scale-95 transition"
             style={{ color: 'var(--muted)' }}
-            onClick={(e) => {
-              e.stopPropagation()
-              onRemove()
-            }}
-            role="button"
-            tabIndex={-1}
           >
             <X className="w-3.5 h-3.5" strokeWidth={2.5} />
-          </span>
+          </button>
         ) : (
-          <ChevronRight className="w-4 h-4 text-muted shrink-0" strokeWidth={2} />
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="쿠폰 선택 열기"
+            className="shrink-0 inline-flex items-center justify-center w-9 h-9"
+          >
+            <ChevronRight className="w-4 h-4 text-muted" strokeWidth={2} />
+          </button>
         )}
-      </button>
+      </div>
 
       {/* Sheet */}
       {open && (

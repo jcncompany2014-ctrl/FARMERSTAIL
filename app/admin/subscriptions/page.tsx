@@ -161,10 +161,82 @@ export default function AdminSubscriptionsPage() {
       return diff >= 0 && diff <= 7
     })
 
+    // R87-C1 (D13): subscriptions 에 recipient_zip/_address/_address_detail 컬럼이
+    // 없음 (R84-D1). 주문 생성 전 addresses 테이블에서 사용자 기본 주소 + profiles
+    // fallback 으로 주소 조회 — cron/subscription-charge 의 resolveShippingTarget
+    // 패턴과 일치. 이전엔 NULL 주소로 주문 만들어 배송 불가능했음.
+    const userIds = Array.from(new Set(upcoming.map((s) => s.user_id)))
+    const addressMap = new Map<
+      string,
+      { name: string; phone: string; zip: string; address: string; detail: string | null }
+    >()
+
+    if (userIds.length > 0) {
+      // addresses.is_default=true 1순위. column 명: recipient_name + phone (no recipient prefix)
+      const { data: addrRows } = await supabase
+        .from('addresses')
+        .select('user_id, recipient_name, phone, zip, address, address_detail')
+        .in('user_id', userIds)
+        .eq('is_default', true)
+      for (const r of (addrRows ?? []) as unknown as Array<{
+        user_id: string
+        recipient_name: string
+        phone: string
+        zip: string
+        address: string
+        address_detail: string | null
+      }>) {
+        addressMap.set(r.user_id, {
+          name: r.recipient_name,
+          phone: r.phone,
+          zip: r.zip,
+          address: r.address,
+          detail: r.address_detail,
+        })
+      }
+      // 2순위: addresses 없는 user 만 profiles 에서.
+      const missing = userIds.filter((id) => !addressMap.has(id))
+      if (missing.length > 0) {
+        const { data: profRows } = await supabase
+          .from('profiles')
+          .select('id, name, phone, zip, address, address_detail')
+          .in('id', missing)
+        for (const r of (profRows ?? []) as Array<{
+          id: string
+          name: string | null
+          phone: string | null
+          zip: string | null
+          address: string | null
+          address_detail: string | null
+        }>) {
+          if (r.zip && r.address && r.name && r.phone) {
+            addressMap.set(r.id, {
+              name: r.name,
+              phone: r.phone,
+              zip: r.zip,
+              address: r.address,
+              detail: r.address_detail,
+            })
+          }
+        }
+      }
+    }
+
     let created = 0
     let failed = 0
+    let skippedNoAddress = 0
 
     for (const sub of upcoming) {
+      const addr = addressMap.get(sub.user_id)
+      if (!addr) {
+        console.warn(
+          `[admin/subscriptions] bulk create skipped — no address for user ${sub.user_id}`,
+        )
+        skippedNoAddress++
+        failed++
+        continue
+      }
+
       const orderNumber = `SUB-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
 
       // 1) 주문 생성 — audit #79: schema-drift cast.
@@ -189,11 +261,12 @@ export default function AdminSubscriptionsPage() {
           subtotal: sub.subtotal,
           shipping_fee: sub.shipping_fee,
           total_amount: sub.total_amount,
-          recipient_name: sub.recipient_name,
-          recipient_phone: sub.recipient_phone,
-          recipient_zip: sub.recipient_zip,
-          recipient_address: sub.recipient_address,
-          recipient_address_detail: sub.recipient_address_detail,
+          // R87-C1 (D13): addresses/profiles fallback (위에서 lookup).
+          recipient_name: addr.name,
+          recipient_phone: addr.phone,
+          zip: addr.zip,
+          address: addr.address,
+          address_detail: addr.detail,
           payment_status: 'pending',
           payment_method: 'subscription',
           order_status: 'preparing',
