@@ -485,8 +485,10 @@ SELECT COUNT(*) FROM public.blog_posts WHERE is_published = true;
 ## 📚 참고 문서 (이 repo 안)
 
 - `LAUNCH_CHECKLIST.md` — 전체 출시 체크리스트 (SSOT)
+- `docs/CHEATSHEET.md` — 운영 명령어 1페이지 ⭐
+- `docs/CS_TEMPLATES.md` — 자주 받을 문의 응답 템플릿 (copy-paste용) ⭐
+- `docs/BETA_OUTREACH.md` — 첫 베타 사용자 10명 모집 메시지 + 인터뷰 가이드 ⭐
 - `docs/payment-flow.md` — 결제 시스템 (#9 trigger 검증 SQL 포함)
 - `docs/RUNBOOK.md` — 운영 런북
 - `docs/a11y-audit-2026-05-26.md` — 접근성 검증
-- `docs/AUDIT_REPORT.md` — 코드 audit 결과 (어젯밤 작업)
 - `AGENTS.md` — 코딩 컨벤션 + web/app 분리 규칙
