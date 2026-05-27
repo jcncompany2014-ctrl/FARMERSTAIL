@@ -60,15 +60,21 @@ export default function QuickLogSheet({
   const [kind, setKind] = useState<QuickLogKind>(initialKind)
   const [memo, setMemo] = useState('')
   const [busy, setBusy] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   if (!open) return null
 
   async function handleConfirm() {
     if (busy) return
     setBusy(true)
+    setErrorMsg(null)
     try {
       await onAction(kind, kind === 'memo' ? { memo } : undefined)
       onClose()
+    } catch (err) {
+      // R83-9: 이전엔 catch 누락 → sheet 가 안 닫히고 사용자는 침묵 → 다시 눌러 중복 기록.
+      const msg = err instanceof Error ? err.message : '기록에 실패했어요'
+      setErrorMsg(msg)
     } finally {
       setBusy(false)
     }
@@ -266,6 +272,20 @@ export default function QuickLogSheet({
           borderTop: `1px solid ${V3.rule}`,
         }}
       >
+        {errorMsg && (
+          <p
+            role="alert"
+            style={{
+              margin: '0 0 10px',
+              fontSize: 12,
+              color: '#b03a2e',
+              letterSpacing: '-0.01em',
+              lineHeight: 1.4,
+            }}
+          >
+            {errorMsg}
+          </p>
+        )}
         <button
           onClick={handleConfirm}
           disabled={busy || (kind === 'memo' && memo.trim().length === 0)}

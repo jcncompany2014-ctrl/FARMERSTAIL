@@ -565,29 +565,34 @@ async function runSubscriptionCharge(): Promise<Response> {
         : shouldPause
           ? '연속 3회 실패. 마이페이지에서 카드 확인'
           : reasonShort
-      pushToUser(
-        sub.user_id,
-        {
-          title: pushTitle,
-          body: pushBody,
-          url: '/mypage/subscriptions',
-          tag: `sub-charge-failed-${sub.id}-${today}`,
-          requireInteraction: shouldMarkRenewal,
-        },
-        { category: 'order' },
-      ).catch(() => {})
+      // R83-6: 이전엔 `.catch(() => {})` + `void (async () => ...)` 로 fire-and-forget.
+      // Vercel function 은 handler return 시 background promise 를 절단하므로 push/email
+      // 이 실제로 발송 안 될 가능성 존재. cron 은 사용자 응답 latency 압박 없음 →
+      // 안전하게 await. push/email 실패가 결제 전체를 막진 않게 try/catch 로 격리.
+      try {
+        await pushToUser(
+          sub.user_id,
+          {
+            title: pushTitle,
+            body: pushBody,
+            url: '/mypage/subscriptions',
+            tag: `sub-charge-failed-${sub.id}-${today}`,
+            requireInteraction: shouldMarkRenewal,
+          },
+          { category: 'order' },
+        )
+      } catch {
+        /* push 실패 — 다음 cycle 에 retry 됨 */
+      }
 
-      // 사용자에게 결제 실패 이메일 발송 — fire-and-forget. 메일 발송 실패가
-      // cron 흐름을 막아서는 안 됨. profiles 와 subscription_items 에서
-      // recipient + 상품명 조회 후 발송.
-      void (async () => {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('email, name')
-            .eq('id', sub.user_id)
-            .maybeSingle()
-          if (!profile?.email) return
+      // 사용자에게 결제 실패 이메일 발송.
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email, name')
+          .eq('id', sub.user_id)
+          .maybeSingle()
+        if (profile?.email) {
           const { data: items } = await supabase
             .from('subscription_items')
             .select('product_name, quantity')
@@ -613,10 +618,10 @@ async function runSubscriptionCharge(): Promise<Response> {
             errorClass,
             nextRetryAt,
           })
-        } catch {
-          /* swallow — 다음 cron 시 재발송 idempotencyKey 가 차단 */
         }
-      })()
+      } catch {
+        /* email 발송 실패 — 다음 cron 시 재발송 idempotencyKey 가 차단 */
+      }
     }
 
     // QPS 보호 — Toss 분당 제한 안 넘게 100ms 간격.

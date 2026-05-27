@@ -29,7 +29,13 @@
  * delivered/cancelled 에서의 역행은 금지(환불은 별도 액션으로).
  */
 
-export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled'
+export type PaymentStatus =
+  | 'pending'
+  | 'paid'
+  | 'failed'
+  | 'cancelled'
+  | 'partially_refunded'
+  | 'refunded'
 export type OrderStatus =
   | 'pending'
   | 'preparing'
@@ -51,6 +57,8 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
   paid: '결제 완료',
   failed: '결제 실패',
   cancelled: '환불 완료',
+  partially_refunded: '부분 환불',
+  refunded: '전액 환불',
 }
 
 /** 모든 order_status 값 배열 (enum 검증용). */
@@ -67,6 +75,8 @@ export const PAYMENT_STATUSES: readonly PaymentStatus[] = [
   'paid',
   'failed',
   'cancelled',
+  'partially_refunded',
+  'refunded',
 ]
 
 export function isOrderStatus(v: unknown): v is OrderStatus {
@@ -198,13 +208,25 @@ export function canTransitionPaymentStatus(
   // pending → any (최초 결제 시도 결과 반영).
   if (from === 'pending') return { ok: true }
 
-  // paid → cancelled : 환불. 정상 경로.
+  // paid → cancelled : 환불 (전액). 정상 경로.
   if (from === 'paid' && to === 'cancelled') return { ok: true }
+  // paid → partially_refunded : 첫 부분 환불.
+  if (from === 'paid' && to === 'partially_refunded') return { ok: true }
+  // paid → refunded : 전액 환불 (직접 진입 — Toss 전체 cancel).
+  if (from === 'paid' && to === 'refunded') return { ok: true }
+
+  // partially_refunded → partially_refunded : 두 번째 부분 환불 (같은 상태 유지).
+  // 같은 상태 전이는 위 from===to 가드에서 막히지만 의미상 허용해야 하므로 호출처는
+  // payment_status update 만 새로 적용하지 않고 refunded_amount 만 누적 — 이 함수
+  // 는 첫 진입만 검증.
+  // partially_refunded → refunded : 누적 환불액이 total_amount 도달.
+  if (from === 'partially_refunded' && to === 'refunded') return { ok: true }
+  if (from === 'partially_refunded' && to === 'cancelled') return { ok: true }
 
   // paid → failed : 의미 없음 — 이미 성공한 결제. 방어적으로 막음.
   // failed → pending : 재시도를 위해 pending 으로 되돌리는 건 별도 주문 생성 패턴이
   //   더 깔끔해서 여기서는 막음.
-  // cancelled → any : terminal.
+  // cancelled / refunded → any : terminal.
 
   return {
     ok: false,

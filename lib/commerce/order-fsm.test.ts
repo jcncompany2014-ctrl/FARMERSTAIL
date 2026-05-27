@@ -38,7 +38,9 @@ describe('isOrderStatus / isPaymentStatus', () => {
   it('알 수 없는 문자열 → false', () => {
     assert.equal(isOrderStatus('unknown'), false)
     assert.equal(isOrderStatus('PAID'), false) // case-sensitive
-    assert.equal(isPaymentStatus('refunded'), false)
+    // R83-1: 'refunded' / 'partially_refunded' 가 enum 에 추가됐으므로 알려진 값.
+    assert.equal(isPaymentStatus('unknown_status'), false)
+    assert.equal(isPaymentStatus('PARTIALLY_REFUNDED'), false) // case-sensitive
   })
 
   it('non-string → false', () => {

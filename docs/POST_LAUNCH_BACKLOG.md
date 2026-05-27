@@ -209,4 +209,82 @@ PMF 후 베타 50명 데이터 안정화된 다음 진행 권장.
 | Meta Pixel 검증 | 광고 ROAS | 0.5d | 🟡 |
 | 블로그 article 정기 | SEO 트래픽 | 매주 4h | 🟡 |
 | 네이티브 앱 store 제출 | 채널 확장 | 1주 | ⬜ |
+
+---
+
+## 🔍 R83 6-agent audit deferred (출시 후 1-2주)
+
+R83 (2026-05-27) 의 5개 그룹 병렬 audit 에서 발견된 32+ Critical 중 출시
+차단급은 즉시 fix, 나머지는 베타 50명 데이터 누적 후 우선순위 재조정.
+
+### 결제·환불 (B)
+- **B3: webhook CANCELED race** — 동시 CANCELED webhook 두 개가 거의 동시에 들어오면
+  payment_events 에 음수 amount row 두 개 insert 가능. 발생 확률 매우 낮음 (Toss 가
+  같은 paymentKey 에 cancel 두 번 동시 안 보냄). 보강: payment_events 에
+  (order_id, event_type, amount) partial unique index 추가.
+- **B4: webhook DONE race** — `paid → paid` 동시 webhook 시 `.eq('payment_status', 'pending')`
+  조건절을 update 에 추가하면 first-write-wins. ledger unique index 가 보호 중이라
+  대부분 안전하지만 명시화.
+- **B6: 부분 cancel 시 쿠폰 환급 누락** — cancel-items 코멘트에 명시. 부분 환불에서
+  쿠폰 사용 카운트 그대로 유지. 베타에서 부분 환불 빈도 낮음 → post-PMF.
+- **B8: subscription-charge orderId 비대칭** — confirm route 는 order_number(short)
+  로 추적, subscription-charge 는 order.id(UUID). reconcile 시 cross-ref 어려움.
+  운영 confusion 만 (catastrophic 아님).
+
+### DB migration (C)
+- **C4: 20260525000001/2 timestamp 중복 4개 파일** — Supabase CLI 가 사전식 정렬로
+  실행하므로 실제 적용은 됐을 가능성. `select * from supabase_migrations.schema_migrations
+  where version like '20260525%'` 로 row 수 확인 후 누락 있으면 재적용.
+
+### 프론트엔드 (D)
+- **D2: Toss SDK reject → 고아 주문** — `payment.requestPayment(...)` reject 시 catch
+  에서 order 를 cancel/delete 처리. 사용자가 SDK 모달 ESC 로 닫으면 pending order 가
+  DB 에 누적. 사용자 다음 결제 시 새 주문번호 생성 → 고아 누적. order-expire cron 이
+  20시간 후 정리하지만 명시 cleanup 권장.
+- **D3: CartList undo 토스트 stale user closure** — 다른 탭 로그아웃 후 클릭 시 만료
+  user.id 로 insert 시도 → RLS 거부. UI 정합하지만 의도와 다름.
+- **D4: RestockButton fetch 후 race** — `setSubscribed(!subscribed)` 가 클로저 값 사용.
+  `setSubscribed((prev) => !prev)` 로 변경 + body.success 도 체크.
+- **D6: CheckoutCouponSheet button-in-button** — `<button>` 안에 `<span role="button">`
+  중첩. 브라우저별 동작 차이. 외부 sibling 으로 분리.
+- **D7: addresses POST 응답 무시** — best-effort 의도지만 실패 시 토스트 1줄 안내.
+
+### Cron / 인프라 (E)
+- **E3: 21개 cron `trackCron` 누락** — 실패 시 cron_health 미기록 → Slack 알림 안 옴.
+  cart-recovery / subscription-reminders / restock-alerts / birthday-coupons /
+  review-prompts / coupon-expiry / dog-age-update / personalization-progression /
+  personalization-approval-timeout / weight-reminder / subscription-cleanup /
+  account-purge / onboarding-funnel / vip-coupons / inactive-coupons /
+  sensitivity-snapshots / meta-weights / reanalyze-trigger / push-lifecycle /
+  inventory-forecast / reanalysis-reminder-6m. 일괄 trackCron wrap.
+- **E4: onboarding-funnel push ledger 누락** — push tag OS dedupe 만 의존 →
+  사용자가 7일 이내 매일 같은 알림 받을 수 있음. `onboarding_push_log` 테이블 추가.
+- **E5: inactive-coupons pagination 누락** — `listUsers({perPage:1000})` 단일 페이지.
+  1000명 초과 시 영구 누락. nextPage 루프.
+- **E6: 3개 cron UTC 0시 동시 발화** — subscription-reminders / birthday-coupons /
+  reanalysis-reminder-6m 동시 발화 → DB connection burst. 1~3분 stagger.
+- **E7: weight-reminder N+1** — RPC 없으면 dogs N마리 × weight_logs query.
+  단일 join query 로 재작성.
+- **E8: personalization-progression batch** — dogs 별 `for...of` sequential lookup.
+  IN-list 단일 query 로.
+- **E9: coupon-expiry 비결정적** — `profiles.limit(MAX_PER_RUN=200)` 을 쿠폰마다
+  fetch. 5개 쿠폰이면 1000명 처리. cursor-based.
+- **E10: restock-alerts 영구 실패 retry** — notifyRestock 실패 시 notified_at 안
+  박혀서 다음 cron 재시도 → 푸시 폭주 가능. fail_count 컬럼 또는 강제 마킹.
+- **E11: push-lifecycle 의도 vs 실제** — 주석 "hourly" 인데 schedule `0 10 * * *` 일
+  1회. medication reminder 가 19시(KST)만 발화. Pro plan 으로 hourly 권장 또는 의도 명시.
+- **E12: refund-retry schedule 누락** — vercel.json 에 cron 등록 없음. 일 1회 (`0 20`)
+  로 추정되는데 backoff (5분/15분/1시간/6시간) 의미 무력. Pro plan `*/15 * * * *` 권장.
+
+### 우선순위 (포스트-PMF, 베타 50명 데이터 후)
+| 영역 | 임팩트 | 노력 |
+|---|---|---|
+| E3 trackCron 일괄 wrap | 운영 안전망 | 2h |
+| E5 inactive-coupons pagination | 사용자 누락 | 1h |
+| E4 onboarding-funnel ledger | UX (반복 알림) | 2h |
+| D2 Toss SDK reject orphan | 결제 흐름 정합 | 1h |
+| E7/E8/E9 N+1 + batch | cron timeout 회피 | 1d |
+| E10 restock-alerts retry cap | 푸시 폭주 방지 | 1h |
+| B6 부분 cancel 쿠폰 | 환불 정합 | 2h |
+| C4 timestamp 중복 확인 | DB schema 점검 | 30m |
 | LTV 코호트 분석 | 의사결정 | 2d | ⬜ |

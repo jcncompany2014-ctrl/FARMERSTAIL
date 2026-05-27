@@ -256,7 +256,16 @@ export async function POST(
   // - points_used × (cancelAmount / total_amount) 만큼 ledger 환급
   // - 전량 취소면 cancel route 가 처리하므로 여기선 부분 환불만 처리
   if (!willBecomeFullyCancelled && order.points_used && order.points_used > 0) {
-    const refundRatio = cancelAmount / order.total_amount
+    // R83 fix: ratio base = user 가 지불한 총 가치 (cash + points).
+    // 이전: total_amount (=cash only) 만 사용 → 포인트 환급액 과대 산정.
+    // 예: 50000원 결제 + 10000P 사용, 30000원 cancel
+    //   - 이전: ratio = 30000/50000 = 0.6 → 6000P 환급 (사용자 가치 +36000)
+    //   - 수정: ratio = 30000/60000 = 0.5 → 5000P 환급 (사용자 가치 +30000) ✓
+    // total_amount = 0 (전액 포인트 결제) edge 도 division-by-zero 회피.
+    const userPaidValue = (order.total_amount ?? 0) + (order.points_used ?? 0)
+    const refundRatio = userPaidValue > 0
+      ? Math.min(1, cancelAmount / userPaidValue)
+      : 0
     const pointsToRefund = Math.floor(order.points_used * refundRatio)
     if (pointsToRefund > 0) {
       const result = await appendLedger(admin, {

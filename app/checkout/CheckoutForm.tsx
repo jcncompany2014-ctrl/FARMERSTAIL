@@ -19,9 +19,10 @@ import { formatPhone } from '@/lib/formatters'
 import {
   validateCoupon,
   applyCouponRedemption,
+  revokeCouponRedemption,
   type Coupon,
 } from '@/lib/coupons'
-import { debitPoints } from '@/lib/commerce/points'
+import { debitPoints, appendLedger } from '@/lib/commerce/points'
 import { trackBeginCheckout } from '@/lib/analytics'
 import CheckoutCouponSheet from '@/components/coupons/CheckoutCouponSheet'
 import { calculateShipping, shippingLabel } from '@/lib/commerce/shipping'
@@ -389,24 +390,40 @@ export default function CheckoutForm({
       }
 
       // Record coupon redemption + bump usage count (lib/coupons로 일원화).
+      // R83-5: ok 체크 추가. coupon 사용 race / per_user_limit 초과 시 빠르게 실패.
       if (couponApplied) {
-        await applyCouponRedemption(supabase, {
+        const couponResult = await applyCouponRedemption(supabase, {
           coupon: couponApplied.coupon,
           userId,
           orderId: order.id,
         })
+        if (!couponResult.ok) {
+          await supabase.from('orders').delete().eq('id', order.id)
+          throw new Error(couponResult.reason ?? '쿠폰 사용에 실패했어요.')
+        }
       }
 
       // 주문 생성 시점에 바로 포인트 차감 — 취소 시 환급은 cancel route에서.
-      // debitPoints 는 balance 재확인 + 음수 금액 방어가 포함돼 있음.
+      // R83-5: result.ok 체크 추가. RPC 실패(잔액 부족/위변조) 시 order + coupon
+      // 롤백 후 사용자에게 에러 표시. 이전엔 무시 → ledger 미차감 + order.points_used
+      // 그대로 → 위변조 가능했음.
       if (effectivePointsUsed > 0) {
-        await debitPoints(supabase, {
+        const debitResult = await debitPoints(supabase, {
           userId,
           amount: effectivePointsUsed,
           reason: '주문 결제 포인트 사용',
           referenceType: 'order',
           referenceId: order.id,
         })
+        if (!debitResult.ok) {
+          if (couponApplied) {
+            await revokeCouponRedemption(supabase, {
+              couponCode: couponApplied.coupon.code,
+            })
+          }
+          await supabase.from('orders').delete().eq('id', order.id)
+          throw new Error(debitResult.reason ?? '포인트 차감에 실패했어요.')
+        }
       }
 
       const itemsPayload = orderItems.map((it) => ({
@@ -447,10 +464,24 @@ export default function CheckoutForm({
         'ok' in (reserveResult as Record<string, unknown>) &&
         (reserveResult as { ok: boolean }).ok === true
       if (!reserveOk) {
-        // 롤백 — order_items 가 ON DELETE CASCADE 라 order 삭제 한 번이면 충분.
+        // R83-5: 롤백 — 포인트 환급 + 쿠폰 revoke 까지 명시 처리.
+        // 이전엔 "보수적으로 생략" → 사용자가 다시 시도해도 포인트 비어 있음.
+        // 순서: ledger credit → coupon revoke → order delete (CASCADE order_items).
+        if (effectivePointsUsed > 0) {
+          await appendLedger(supabase, {
+            userId,
+            delta: effectivePointsUsed,
+            reason: '주문 실패 포인트 환급 (재고 부족)',
+            referenceType: 'order_refund_credit',
+            referenceId: order.id,
+          })
+        }
+        if (couponApplied) {
+          await revokeCouponRedemption(supabase, {
+            couponCode: couponApplied.coupon.code,
+          })
+        }
         await supabase.from('orders').delete().eq('id', order.id)
-        // 쿠폰 redemption / 포인트 차감 롤백은 보수적으로 생략 — 매우 드문
-        // 케이스이며 사용자가 다시 시도 시 자동 정합. 운영 발견 시 admin 보정.
         const insufficientList =
           reserveResult &&
           typeof reserveResult === 'object' &&

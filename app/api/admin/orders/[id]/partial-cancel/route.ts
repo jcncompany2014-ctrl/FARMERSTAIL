@@ -170,7 +170,10 @@ export async function POST(
         'Content-Type': 'application/json',
         // 같은 payment에 대해 여러 번 부분 취소를 보낼 때 네트워크
         // 재시도/더블클릭으로 중복 취소가 발생하지 않도록 멱등 키.
-        'Idempotency-Key': `partial-cancel-${order.id}-${Date.now()}`,
+        // R83: 결정적 키 — (orderId, cancelAmount, refunded_amount before this call).
+        // refunded_amount 는 각 성공 후 누적되어 자동 변별. 같은 admin 액션의 retry
+        // 는 같은 키 → Toss dedup. 다른 회차 부분 취소는 다른 키 → 정상 처리.
+        'Idempotency-Key': `partial-cancel-${order.id}-${order.refunded_amount ?? 0}-${cancelAmount}`,
       },
       body: JSON.stringify({
         cancelReason: cancelReason?.trim() || '부분 환불',

@@ -46,6 +46,7 @@ export default function WeightInputSheet({
 }: WeightInputSheetProps) {
   const [val, setVal] = useState<number>(initialKg)
   const [saving, setSaving] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -78,8 +79,13 @@ export default function WeightInputSheet({
   async function handleSave() {
     if (saving) return
     setSaving(true)
+    setErrorMsg(null)
     try {
       await onSave(val)
+    } catch (err) {
+      // R83-9: 이전엔 catch 누락 → sheet 가 안 닫히고 사용자 침묵 → 반복 시도.
+      const msg = err instanceof Error ? err.message : '체중 저장에 실패했어요'
+      setErrorMsg(msg)
     } finally {
       setSaving(false)
     }
@@ -307,6 +313,20 @@ export default function WeightInputSheet({
           borderTop: `1px solid ${V3.rule}`,
         }}
       >
+        {errorMsg && (
+          <p
+            role="alert"
+            style={{
+              margin: '0 0 10px',
+              fontSize: 12,
+              color: '#b03a2e',
+              letterSpacing: '-0.01em',
+              lineHeight: 1.4,
+            }}
+          >
+            {errorMsg}
+          </p>
+        )}
         <button
           onClick={handleSave}
           disabled={saving}

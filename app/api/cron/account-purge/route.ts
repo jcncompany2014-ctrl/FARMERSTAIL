@@ -65,34 +65,71 @@ export async function GET(req: Request) {
   }>
 
   let purged = 0
+  let failed = 0
   for (const p of targets) {
-    // Transactional 데이터 hard-delete. ON DELETE CASCADE 로 묶여 있는 표는
-    // orders 만 지워도 자동 정리되지만 일부는 user_id 직접 보유.
-    await Promise.all([
-      supabase.from('refunds').delete().eq('user_id', p.id),
-      supabase.from('subscription_charges').delete().eq('user_id', p.id),
-      supabase.from('coupon_redemptions').delete().eq('user_id', p.id),
-      supabase.from('birthday_coupon_log').delete().eq('user_id', p.id),
-      supabase.from('point_ledger').delete().eq('user_id', p.id),
-      // orders ON DELETE CASCADE 로 order_items / refunds(다시) 도 정리.
-      supabase.from('orders').delete().eq('user_id', p.id),
-      supabase.from('subscriptions').delete().eq('user_id', p.id),
-    ])
+    // R83-7: sequential delete (이전 Promise.all 은 race 위험).
+    // R83-8 에서 refunds.order_id FK 를 RESTRICT 로 바꿨으므로 순서가 중요:
+    //   refunds / payment_refund_queue → orders 순서로 삭제.
+    // 한 row 라도 실패하면 이 user 는 다음 cron 에서 재시도 (purged_at 미박힘).
+    // R83-7: 환경별 schema 차이 회피 위해 generic table arg — 강한 타입은
+    // supabase-js 의 union 제약을 우회하기 위해 cast.
+    const deleteStep = async (table: string, col: string = 'user_id') => {
+      const { error } = await (
+        supabase.from(
+          table as 'profiles', // any-of-tables placeholder; runtime 만 사용.
+        ) as unknown as {
+          delete: () => {
+            eq: (
+              c: string,
+              v: string,
+            ) => Promise<{ error: { message: string } | null }>
+          }
+        }
+      )
+        .delete()
+        .eq(col, p.id)
+      if (
+        error &&
+        !/(does not exist|relation .* does not exist)/i.test(error.message)
+      ) {
+        throw new Error(`${table} delete failed: ${error.message}`)
+      }
+    }
 
-    // consent_log 는 동의 입증 용 → 5년 + α 보존이라 보수적으로 함께 삭제.
-    await supabase.from('consent_log').delete().eq('user_id', p.id)
+    try {
+      // 1) FK RESTRICT 가 걸린 audit 테이블 먼저 (orders 보다 먼저).
+      await deleteStep('refunds')
+      await deleteStep('payment_refund_queue')
 
-    // profile row 도 삭제 (이미 익명화 상태). account_deletions 의 email_hash
-    // 만 남아 재가입 detect 가능.
-    await supabase.from('profiles').delete().eq('id', p.id)
+      // 2) user_id 직접 보유한 보조 테이블.
+      await deleteStep('subscription_charges')
+      await deleteStep('coupon_redemptions')
+      await deleteStep('birthday_coupon_log')
+      await deleteStep('point_ledger')
 
-    // account_deletions 에 purged_at 마킹 (있으면).
-    await supabase
-      .from('account_deletions')
-      .update({ purged_at: new Date().toISOString() })
-      .eq('user_id', p.id)
+      // 3) orders / subscriptions — 이제 FK 위반 위험 없음.
+      await deleteStep('orders')
+      await deleteStep('subscriptions')
 
-    purged += 1
+      // 4) consent_log 는 동의 입증 용 → 5년 + α 보존이라 보수적으로 함께 삭제.
+      await deleteStep('consent_log')
+
+      // 5) profile row 도 삭제 (이미 익명화 상태).
+      await deleteStep('profiles', 'id')
+
+      // 6) account_deletions 에 purged_at 마킹.
+      const { error: markErr } = await supabase
+        .from('account_deletions')
+        .update({ purged_at: new Date().toISOString() })
+        .eq('user_id', p.id)
+      if (markErr) throw new Error(`account_deletions mark failed: ${markErr.message}`)
+
+      purged += 1
+    } catch (err) {
+      failed += 1
+      console.error(`[account-purge] user ${p.id} failed:`, err)
+      // purged_at 미박힘 → 다음 cron 에서 자동 retry.
+    }
   }
 
   return NextResponse.json({
@@ -100,5 +137,6 @@ export async function GET(req: Request) {
     cutoff,
     checked: targets.length,
     purged,
+    failed,
   })
 }

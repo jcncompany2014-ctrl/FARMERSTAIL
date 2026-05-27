@@ -41,13 +41,20 @@ export default function InlineReviewForm({
   const [text, setText] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   async function handleSubmit() {
     if (rating === 0 || submitting) return
     setSubmitting(true)
+    setErrorMsg(null)
     try {
       await onSubmit({ rating, text: text.trim() })
       setSubmitted(true)
+    } catch (err) {
+      // R83-9: 이전엔 catch 누락 → submitting 만 풀리고 사용자는 아무 피드백 없음.
+      // 같은 폼 다시 눌러서 중복 리뷰 발생 가능.
+      const msg = err instanceof Error ? err.message : '리뷰 등록에 실패했어요'
+      setErrorMsg(msg)
     } finally {
       setSubmitting(false)
     }
@@ -194,6 +201,20 @@ export default function InlineReviewForm({
           {submitting ? '등록 중…' : '등록'}
         </button>
       </div>
+
+      {errorMsg && (
+        <p
+          role="alert"
+          style={{
+            marginTop: 8,
+            fontSize: 11,
+            color: '#b03a2e',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          {errorMsg}
+        </p>
+      )}
     </div>
   )
 }

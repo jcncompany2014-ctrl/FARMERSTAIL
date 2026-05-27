@@ -184,24 +184,38 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2) points_used 위변조 검증 — 현재 잔액 이하?
+    // 2) points_used 위변조 검증 — checkout 흐름에서 ledger debit 가 실제로
+    //    storedPoints 만큼 발생했는지 확인.
+    //
+    // 이전 가드 (R82-G2 이전): `storedPoints > currentBalance + storedPoints` =
+    //    `0 > currentBalance` 인데 잔액은 음수가 될 수 없어 dead code. 무한 포인트
+    //    위변조 (DevTools 로 points_used 부풀려 결제 금액 줄이기) 차단 불가.
+    //
+    // 새 가드: ledger 에 (user_id=user, reference_type='order', reference_id=orderId,
+    //    delta<0) row 가 존재하고 |delta| === storedPoints 인지 검사. checkout
+    //    이 debit 안 했거나 금액 다르면 위변조.
     const storedPoints = order.points_used ?? 0
     if (storedPoints > 0) {
-      const { getCurrentBalance } = await import('@/lib/commerce/points')
-      const currentBalance = await getCurrentBalance(supabase, user.id)
-      // 다른 주문 차감과의 race condition 고려 — 약간 여유 (가입자라 잔액 안정).
-      // 더 엄격하게 하려면 advisory lock 필요하지만 결제 마지막 단계라 race 미세.
-      if (storedPoints > currentBalance + storedPoints) {
-        // (storedPoints + storedPoints) — 이미 차감된 경우 currentBalance 가 음수가
-        // 아니므로 currentBalance + storedPoints 가 원래 잔액. storedPoints 가
-        // 그것보다 크면 위변조.
-        captureBusinessEvent('warning', 'order.payment.points_inflated', {
+      const { data: debitRow } = await supabase
+        .from('point_ledger')
+        .select('delta')
+        .eq('user_id', user.id)
+        .eq('reference_type', 'order')
+        .eq('reference_id', orderId)
+        .lt('delta', 0)
+        .maybeSingle()
+      const actualDebited = debitRow ? Math.abs(debitRow.delta) : 0
+      if (!debitRow || actualDebited !== storedPoints) {
+        captureBusinessEvent('warning', 'order.payment.points_debit_mismatch', {
           orderId,
           storedPoints,
-          currentBalance,
+          actualDebited,
         })
         return NextResponse.json(
-          { code: 'PRICE_TAMPERED', message: '사용 포인트가 잔액을 초과해요.' },
+          {
+            code: 'PRICE_TAMPERED',
+            message: '포인트 처리에 문제가 있어요. 주문을 새로 만들어 주세요.',
+          },
           { status: 400 },
         )
       }
