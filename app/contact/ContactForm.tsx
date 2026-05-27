@@ -127,7 +127,14 @@ export default function ContactForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
       <div className="grid md:grid-cols-2 gap-3 md:gap-4">
-        <Field label="이름" name="name" required maxLength={40} placeholder="안성민" />
+        <Field
+          label="이름"
+          name="name"
+          required
+          maxLength={40}
+          placeholder="안성민"
+          autoComplete="name"
+        />
         <Field
           label="이메일"
           name="email"
@@ -135,6 +142,8 @@ export default function ContactForm() {
           required
           maxLength={120}
           placeholder="story@example.com"
+          autoComplete="email"
+          inputMode="email"
         />
       </div>
 
@@ -228,6 +237,8 @@ function Field({
   required,
   maxLength,
   placeholder,
+  autoComplete,
+  inputMode,
 }: {
   label: string
   name: string
@@ -235,6 +246,8 @@ function Field({
   required?: boolean
   maxLength?: number
   placeholder?: string
+  autoComplete?: string
+  inputMode?: 'text' | 'email' | 'tel' | 'numeric'
 }) {
   return (
     <div>
@@ -245,6 +258,8 @@ function Field({
         required={required}
         maxLength={maxLength}
         placeholder={placeholder}
+        autoComplete={autoComplete}
+        inputMode={inputMode}
         className="w-full px-3 py-2.5 md:py-3 rounded text-[13px] md:text-[14px] bg-bg focus:outline-none transition"
         style={{
           boxShadow: 'inset 0 0 0 1px var(--rule)',

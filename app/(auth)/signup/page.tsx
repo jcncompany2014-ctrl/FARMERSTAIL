@@ -371,6 +371,11 @@ function SignupForm() {
           // 피초대자 환영 쿠폰 발급 (REFER_FRIEND_5000) — fire-and-forget.
           // 실패해도 가입 자체와 referrer 보상은 이미 처리됨.
           fetch('/api/referral/welcome-coupon', { method: 'POST' }).catch(() => {})
+          // 사용자에게 양쪽 보상을 명시 — referral 시스템의 UX 핵심.
+          // 받았는데 모르면 가입자 입장에선 시스템 자체가 없는 것과 동일.
+          setInfo(
+            '친구 초대 코드가 적용됐어요! 마이페이지 → 쿠폰에서 5,000원 환영 쿠폰을 확인하실 수 있어요.',
+          )
         }
       }
       // 환영 메일 fire-and-forget — 서버 라우트가 본인 세션으로 검증 후
