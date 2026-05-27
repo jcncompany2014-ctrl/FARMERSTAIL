@@ -59,7 +59,9 @@ function SignupForm() {
 
   // Hydrate the referral field from the `?ref=CODE` shared link the
   // invite flow builds. Read it lazily in the useState initializer so
-  // we don't trigger react-hooks/set-state-in-effect.
+  // we don't trigger react-hooks/set-state-in-effect. URL 만 SSR-safe —
+  // cookie / sessionStorage fallback 은 mount 후 useEffect 에서 처리
+  // (hydration mismatch 방지).
   const initialCode = (() => {
     const fromUrl = params.get('ref')
     return fromUrl ? fromUrl.trim().toUpperCase().slice(0, 16) : ''
@@ -163,6 +165,28 @@ function SignupForm() {
       /* noop */
     }
   }, [initialCode])
+
+  // /r/[code] 진입점이 set 한 ft_ref cookie 또는 Kakao OAuth roundtrip 직전
+  // 저장된 sessionStorage 의 pending_referral 을 픽업. URL ?ref= 가 없을 때만
+  // (URL 우선). hydration mismatch 방지 위해 mount 후 useEffect 에서.
+  useEffect(() => {
+    if (referralCode) return
+    try {
+      const m = document.cookie.match(/(?:^|;\s*)ft_ref=([^;]+)/)
+      if (m && m[1]) {
+        const fromCookie = decodeURIComponent(m[1]).trim().toUpperCase().slice(0, 16)
+        if (fromCookie) {
+          setReferralCode(fromCookie)
+          return
+        }
+      }
+      const sess = sessionStorage.getItem('pending_referral')
+      if (sess) setReferralCode(sess.trim().toUpperCase().slice(0, 16))
+    } catch {
+      /* noop */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleAddressComplete(data: {
     zip: string
@@ -338,6 +362,15 @@ function SignupForm() {
           } catch {
             /* noop */
           }
+          // ft_ref cookie 삭제 (이미 사용됨)
+          try {
+            document.cookie = 'ft_ref=; path=/; max-age=0; SameSite=Lax'
+          } catch {
+            /* noop */
+          }
+          // 피초대자 환영 쿠폰 발급 (REFER_FRIEND_5000) — fire-and-forget.
+          // 실패해도 가입 자체와 referrer 보상은 이미 처리됨.
+          fetch('/api/referral/welcome-coupon', { method: 'POST' }).catch(() => {})
         }
       }
       // 환영 메일 fire-and-forget — 서버 라우트가 본인 세션으로 검증 후
