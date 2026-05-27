@@ -37,6 +37,14 @@ export type SendEmailInput = {
   replyTo?: string
   /** 멱등 재시도 방지용 키 — Resend 자체 지원은 없지만 의도 표시용 로깅. */
   idempotencyKey?: string
+  /**
+   * R87-A1: 광고성 메일 1-click unsubscribe URL. 넘기면 RFC 8058 헤더 추가:
+   *   List-Unsubscribe: <https://...>, <mailto:...>
+   *   List-Unsubscribe-Post: List-Unsubscribe=One-Click
+   * Gmail/Yahoo 2024.2 bulk-sender 정책에서 mandatory — 누락 시 spam 폴더 직행.
+   * Transactional 메일에는 unset (배송/결제 안내까지 unsubscribe 옵션 노출 안 함).
+   */
+  unsubscribeUrl?: string
 }
 
 export type SendEmailResult =
@@ -62,6 +70,18 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
   const tags = input.tag ? [{ name: 'category', value: input.tag }] : undefined
 
+  // R87-A1: RFC 8058 List-Unsubscribe + List-Unsubscribe-Post 헤더 — 광고성 메일에만.
+  // Resend body.headers 객체로 전달 (REST API 가 그대로 전달).
+  // mailto fallback 은 사용자가 mail client 에서 답장으로 해지 의사 전달 가능.
+  const mailtoFallback =
+    process.env.EMAIL_REPLY_TO ?? 'help@farmerstail.kr'
+  const extraHeaders: Record<string, string> | undefined = input.unsubscribeUrl
+    ? {
+        'List-Unsubscribe': `<${input.unsubscribeUrl}>, <mailto:${mailtoFallback}?subject=unsubscribe>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      }
+    : undefined
+
   try {
     const res = await fetch(RESEND_ENDPOINT, {
       method: 'POST',
@@ -77,6 +97,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
         text: input.text ?? stripHtml(input.html),
         reply_to: input.replyTo ?? replyTo,
         tags,
+        ...(extraHeaders ? { headers: extraHeaders } : {}),
       }),
       cache: 'no-store',
       signal: AbortSignal.timeout(10_000),

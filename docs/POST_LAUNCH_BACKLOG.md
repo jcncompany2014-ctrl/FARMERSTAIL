@@ -400,4 +400,30 @@ R86 (2026-05-27) 의 4개 viewport audit (iOS Safari / 카피 / 비즈니스 / P
 - **D-medium: personalization-cycle 이메일 (광고) prefix 누락** —
   `lib/email/templates/personalization-cycle.ts:28` subject 에 (광고) + 본문 unsubscribe.
 - **D-low: 개인정보보호책임자 = 대표 동일** — 실무상 OK 지만 분리 권장.
+
+---
+
+## 🔍 R87 thin-viewport audit (출시 후 첫 주)
+
+R87 (2026-05-27) — 이메일 deliverability / a11y 결제 동선 / admin+에러 경계.
+
+### 즉시 fix
+- A1: sendEmail 에 unsubscribeUrl 옵션 추가 + RFC 8058 List-Unsubscribe + One-Click 헤더 (Gmail/Yahoo 2024.2 mandatory). 뉴스레터 (welcome + vol-01) 적용 완료.
+- B1: login/signup error 메시지 role="alert" + aria-live="assertive" 추가.
+
+### Deferred (출시 후 첫 주)
+- **A2 transactional vs marketing 도메인 분리** — 현재 같은 from. Resend Domains
+  에 별도 서브도메인 (tx.farmerstail.kr vs news.farmerstail.kr) 추가 + EMAIL_FROM_MARKETING
+  env 신설 + lib/email/client.ts 에 kind 인자 추가. 환경 변경 필요.
+- **A3 cart-abandoned / vip / birthday / comeback 등 마케팅 메일 unsubscribeUrl**
+  — 이 메일들은 newsletter_subscribers 가 아닌 app users 대상이라 별도 토큰 필요.
+  HMAC(user_id) 기반 universal unsubscribe endpoint 신설 + 각 호출처에 unsubscribeUrl 전달.
+- **B2 결제 폼 7개 input <label> 누락** — `app/checkout/CheckoutForm.tsx:753-824, 877-894`.
+  WCAG 1.3.1 + 3.3.2 fail. 장차법 §14 직접 저촉. placeholder 만 사용 → 스크린리더 안 읽음.
+  각 input 에 `<label htmlFor>` 추가 (signup 패턴 재사용). 1-2h 작업.
+- **B3 CheckoutCouponSheet button-in-button** — 트리거 row `<button>` 안에
+  `<span role="button" tabIndex={-1}>` 제거 X. 키보드 사용자 쿠폰 제거 불가.
+  외부 sibling button 으로 분리 필요.
+- **B4 Toss 테스트 모드 안내 text-muted 10px** — 폰트 크기 임계 아래.
+  text-text (강 대비) 로 승격.
 | LTV 코호트 분석 | 의사결정 | 2d | ⬜ |

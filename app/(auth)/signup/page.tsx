@@ -1106,6 +1106,8 @@ function SignupForm() {
 
           {error && (
             <div
+              role="alert"
+              aria-live="assertive"
               className="text-[12px] font-bold rounded-lg px-3.5 py-2.5 flex items-start gap-2"
               style={{
                 color: 'var(--sale)',

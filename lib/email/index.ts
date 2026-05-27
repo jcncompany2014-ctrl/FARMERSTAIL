@@ -604,12 +604,15 @@ export async function notifyNewsletterWelcome(input: {
     unsubscribeToken: input.unsubscribeToken,
     couponCode,
   })
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
   return sendEmail({
     to: input.email,
     subject,
     html,
     tag: 'newsletter-welcome',
     idempotencyKey: `newsletter-welcome:${input.email}`,
+    // R87-A1: RFC 8058 List-Unsubscribe + One-Click — Gmail 2024.2 mandatory.
+    unsubscribeUrl: `${baseUrl}/api/newsletter/unsubscribe?token=${encodeURIComponent(input.unsubscribeToken)}`,
   })
 }
 
@@ -677,6 +680,7 @@ export async function broadcastNewsletterVol01(
         email: r.email,
         unsubscribeToken: r.unsubscribe_token,
       })
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
       const result = await sendEmail({
         to: r.email,
         subject,
@@ -684,6 +688,8 @@ export async function broadcastNewsletterVol01(
         tag: 'newsletter-vol-01',
         // 같은 (이슈, 이메일) 페어로 24h 내 중복 발송 방지.
         idempotencyKey: `newsletter-vol-01:${r.email}`,
+        // R87-A1: RFC 8058 — Gmail/Yahoo 2024.2 mandatory for bulk senders.
+        unsubscribeUrl: `${baseUrl}/api/newsletter/unsubscribe?token=${encodeURIComponent(r.unsubscribe_token)}`,
       })
       if (result.ok) {
         sent += 1
