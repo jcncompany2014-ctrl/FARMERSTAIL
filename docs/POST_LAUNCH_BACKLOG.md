@@ -5,6 +5,60 @@
 
 ---
 
+## 🔴 R90 (D7) — 5개 영역 정밀 검토 잔여 (총 44건 발견)
+
+### Critical 즉시 fix 완료 (4건)
+- **R90-D C2**: `lib/business.ts` dynamic key access 가 client bundle inline 안 됨 → R89 fix 실수 교정 (`process.env[key]` → literal `process.env.NEXT_PUBLIC_X`) ✅
+- **R90-A C1**: 8개 테이블 RLS UPDATE WITH CHECK 누락 → user_id 위조 방지 migration 작성 (적용은 supabase MCP 로 정책 이름 검증 후) ✅
+- **R90-C C2**: `parseMedicalRecord` 모델 SSOT drift → `MODEL_VISION_HIGH` import 로 통일 ✅
+- **R90-E H1**: OAuth callback `deleted_at` 가드 부재 → 탈퇴자 재로그인 차단 ✅
+
+### Critical / High 1주 내 fix 권장 (잔여 9건)
+- **R90-A C2**: `reserve_order_stock` RPC 가 variant stock 무시 → variant 옵션 있는 상품 oversell 위험. RPC signature 변경 + CheckoutForm reservePayload 에 variant_id 추가
+- **R90-A C3**: `chatbot_messages` FK 없음 + 30일 cleanup cron 없음 → PIPA 보유기간 위반
+- **R90-A H1**: `refunds` 테이블 FK + UNIQUE 누락 → 환불 이중 계산 위험
+- **R90-A H2**: `product_reviews` UNIQUE 가 NULL order_id 로 무력 → 평점 조작 가능
+- **R90-A H3**: `native_push_tokens` UNIQUE NULL device_id 무력 → push 중복
+- **R90-C C1**: Anthropic 토큰 usage 모니터링 부재 → 비용 폭발 위험. `ai_usage_log` 테이블 + 일일 한도
+- **R90-C H1**: Tractive fetch timeout 없음 → cron hang
+- **R90-C H2**: Resend webhook svix-timestamp staleness 검증 없음 → replay 공격 가능
+- **R90-C H3**: Daum Postcode CDN `onerror` 없음 → 체크아웃/가입 영구 hang
+- **R90-D C1**: Supabase migration timestamp 충돌 4개 → 환경별 schema drift
+- **R90-D H1**: `npm run verify` 가 next build 미실행 → Vercel 빌드 실패 사전 차단 불가
+- **R90-E H2**: 비밀번호 변경 후 global signOut 부재 → 다른 디바이스 세션 잔존
+
+### Medium / Low (잔여 27건 — 출시 1개월 내)
+- **R90-A M1**: `issue_referral_milestones` balance race condition
+- **R90-A M2**: `feeding_outcomes` FK 누락
+- **R90-A M3**: UPDATE policy 누락 (feeding_outcomes / chatbot_messages)
+- **R90-A L1**: `payment_events` admin 체크 `is_admin()` 미사용
+- **R90-B H1**: 거래성 메일 fire-and-forget Sentry 미보고
+- **R90-B H2**: pushToUser fire-and-forget Sentry 미보고
+- **R90-B M1**: CheckoutForm Supabase raw error.message 노출
+- **R90-B M2**: AdjustSheet / RecommendationBox fetch timeout 없음
+- **R90-B M3**: admin async event handler try/catch 누락
+- **R90-B M4**: RecommendationBox raw error.message 표시
+- **R90-B L1**: `app/(auth)/error.tsx` 부재
+- **R90-B L2**: VetShareButton / PartialCancelPanel / OrderStatusControl / CampaignBuilder native confirm 잔재
+- **R90-C M1**: Resend rate limit 직렬 발송 (2000+ 구독자 시 timeout)
+- **R90-C M2**: Toss webhook schema drift 방어 (zod parse)
+- **R90-C M3**: APNs JWT 캐시 동시성 race
+- **R90-C M4**: Web Push 403/412 dead 처리 누락
+- **R90-C M5**: Apple SIWA private email relay 처리
+- **R90-C M6**: Kakao SDK init 실패 silent
+- **R90-C L1**: Resend Idempotency-Key 헤더 미전송
+- **R90-C L2**: Anthropic timeout 일관성 (라우트별 20-45s)
+- **R90-D H2**: Service Worker `farmerstail-v5` placeholder accidental commit 위험
+- **R90-D M1**: `next.config.ts` Vercel preview 도 production cache TTL 적용
+- **R90-E M1**: 비밀번호 5회 실패 lockout / brute force 방어 없음
+- **R90-E M2**: 로그아웃 시 sessionStorage / localStorage cleanup 누락
+- **R90-E M3**: 동일 디바이스 사용자 전환 시 push_subscriptions 잔존
+- **R90-E L1**: 이메일 변경 흐름 부재 + admin 우회 시 sync 위험
+- **R90-E L2**: admin 계정 2FA/MFA 부재
+- **R90-E L3**: 세션 hijacking (IP/UA 변경) 감지 없음
+
+---
+
 ## 🔴 R89 (D7) — 5개 영역 정밀 검토 잔여
 
 ### Critical / 출시 1주 내 fix 권장

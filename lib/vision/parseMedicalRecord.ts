@@ -16,9 +16,16 @@
  * 호출처에서 미리보기 화면 → confirm → 별도 endpoint 호출.
  *
  * # 모델
- * claude-3-5-sonnet-20241022 — vision 지원, 한글 의무 텍스트 인식 OK.
- * haiku 는 vision OCR 정확도가 떨어져 sonnet 채택. 단가는 호출당 ~5원 추정.
+ * MODEL_VISION_HIGH (claude-sonnet-4) — vision 정확도 우선. 한글 의무 텍스트
+ * 인식 OK. haiku 는 vision OCR 정확도가 떨어져 sonnet 채택. 단가는 호출당 ~5원.
+ * R90-C C2 (D7): 이전엔 'claude-3-5-sonnet-20241022' 하드코딩 — Anthropic
+ * deprecate 시 silent break. lib/anthropic-models.ts SSOT 로 통일.
  */
+import {
+  ANTHROPIC_MESSAGES_URL,
+  ANTHROPIC_VERSION,
+  MODEL_VISION_HIGH,
+} from '@/lib/anthropic-models'
 
 export type MedicalRecordExtract = {
   /** 진료/내원 날짜 (YYYY-MM-DD). 불명 시 null. */
@@ -102,15 +109,15 @@ export async function parseMedicalRecord(
   }
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(ANTHROPIC_MESSAGES_URL, {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        'anthropic-version': ANTHROPIC_VERSION,
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: MODEL_VISION_HIGH,
         max_tokens: 800,
         system: SYSTEM_PROMPT,
         messages: [

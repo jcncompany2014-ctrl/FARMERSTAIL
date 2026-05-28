@@ -91,6 +91,11 @@ export async function GET(request: Request) {
   // 수 있다. 개인정보보호법 제22조의2 (만 14세 미만 차단) 강제. 기준 연도
   // 미입력이면 onboarding 으로 redirect 하여 입력 강제 — 입력 전엔 dashboard
   // 진입 불가. (이메일 가입은 form 자체가 birth_year 강제라 영향 없음.)
+  //
+  // R90-E H1 (D7): deleted_at 가드 추가. account/delete 흐름은 admin.deleteUser
+  // (soft) 가 auth.users.banned_until=infinity 로 막지만, 운영자가 SQL editor
+  // 에서 profiles.deleted_at 만 set 한 경우 (account_purge cron 이전 단계)
+  // OAuth 로그인은 그대로 통과. 여기서 deleted_at 도 함께 검사.
   const supabaseAfter = await createClient()
   const {
     data: { user },
@@ -98,9 +103,16 @@ export async function GET(request: Request) {
   if (user) {
     const { data: profile } = await supabaseAfter
       .from('profiles')
-      .select('birth_year')
+      .select('birth_year, deleted_at')
       .eq('id', user.id)
       .maybeSingle()
+    // 탈퇴 처리된 계정 — 즉시 signOut + 안내 화면.
+    if (profile?.deleted_at) {
+      await supabaseAfter.auth.signOut()
+      return NextResponse.redirect(
+        `${origin}/login?error=oauth_account_deleted`,
+      )
+    }
     if (!profile?.birth_year) {
       const target =
         '/onboarding/age-gate?next=' + encodeURIComponent(safeNext)

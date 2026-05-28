@@ -38,18 +38,21 @@ type BusinessInfo = {
 
 const placeholder = '(등록 예정)'
 
-// R89-A (D7): 사업자 정보 SSOT — process.env 우선 + 코드 default fallback.
+// R90-D C2 (D7): R89 fix 의 dynamic key access (`process.env[key]`) 는
+// Next.js client bundle 에서 inline 되지 않음 — 모든 NEXT_PUBLIC_ 키가
+// client 측에선 undefined 가 되어 default fallback 만 노출되는 버그.
+// SiteFooter / error.tsx 등 client 컴포넌트에서 business 를 import 하므로,
+// 모든 키를 literal `process.env.NEXT_PUBLIC_X` 비교로 unrolled —
+// build 시점에 webpack/turbopack 이 string 으로 inline.
 //
-// LAUNCH_CHECKLIST 가 NEXT_PUBLIC_BUSINESS_* 7개 키를 안내해 왔지만
-// 실제 코드가 default const 만 사용 → Vercel env 갱신해도 footer 가
-// 안 바뀌는 버그. 모든 필드를 env-우선 패턴으로 통일해서
-// 통신판매업 / Toss 검수 표시가 admin redeploy 없이 갱신 가능하도록.
-function envOrDefault(key: string, fallback: string): string {
-  const v = process.env[key]?.trim()
+// 참고: `process.env[키변수]` 는 build 시 정적 분석 불가능 → client 번들에
+// 그대로 남음 → 런타임에 client 의 `process.env` 는 {} 라 항상 undefined.
+function pickEnv(value: string | undefined, fallback: string): string {
+  const v = value?.trim()
   return v && v.length > 0 ? v : fallback
 }
-function envOrNull(key: string): string | null {
-  const v = process.env[key]?.trim()
+function pickEnvNullable(value: string | undefined): string | null {
+  const v = value?.trim()
   return v && v.length > 0 ? v : null
 }
 
@@ -59,41 +62,47 @@ export const business: BusinessInfo = {
   // 신고증에는 소문자로 등재됐으나 Toss 검수는 사업자등록증 우선).
   // 상법 §20: 회사가 아닌 자가 상호에 (주)·㈜·주식회사 등 회사 표기
   // 사용 시 과태료. Toss 입점심사 검수 항목 (홈페이지 하단 상호 일치).
-  companyName: envOrDefault(
-    'NEXT_PUBLIC_BUSINESS_COMPANY_NAME',
+  companyName: pickEnv(
+    process.env.NEXT_PUBLIC_BUSINESS_COMPANY_NAME,
     "파머스테일 (Farmer's Tail)",
   ),
-  brandName: envOrDefault('NEXT_PUBLIC_BUSINESS_BRAND_NAME', '파머스테일'),
-  ceo: envOrDefault('NEXT_PUBLIC_BUSINESS_CEO', '안성민, 이준호'),
-  businessNumber: envOrDefault(
-    'NEXT_PUBLIC_BUSINESS_NUMBER',
+  brandName: pickEnv(
+    process.env.NEXT_PUBLIC_BUSINESS_BRAND_NAME,
+    '파머스테일',
+  ),
+  ceo: pickEnv(process.env.NEXT_PUBLIC_BUSINESS_CEO, '안성민, 이준호'),
+  businessNumber: pickEnv(
+    process.env.NEXT_PUBLIC_BUSINESS_NUMBER,
     '243-06-03606',
   ),
   // 통신판매업 신고증 — 인천연수구청장 발급, 2026-05-21.
-  mailOrderNumber: envOrDefault(
-    'NEXT_PUBLIC_MAIL_ORDER_NUMBER',
+  mailOrderNumber: pickEnv(
+    process.env.NEXT_PUBLIC_MAIL_ORDER_NUMBER,
     '제2026-인천연수구-1436호',
   ),
   // 사업자등록증 / 통신판매업 신고증 상의 도로명 주소 — Toss 입점심사 시
   // "홈페이지 하단 사업자등록증 상의 사업장 주소" 항목 검수 대상.
-  address: envOrDefault(
-    'NEXT_PUBLIC_BUSINESS_ADDRESS',
+  address: pickEnv(
+    process.env.NEXT_PUBLIC_BUSINESS_ADDRESS,
     '인천광역시 연수구 송도과학로28번길 50, 더샵 송도트리플타워 West 1층 121호',
   ),
-  phone: envOrDefault('NEXT_PUBLIC_BUSINESS_PHONE', '070-4066-1333'),
-  email: envOrDefault('NEXT_PUBLIC_BUSINESS_EMAIL', 'story@farmerstail.kr'),
-  // 카카오 채널 발급 후 NEXT_PUBLIC_KAKAO_CHANNEL_URL 에 등록.
-  kakaoChannelUrl: envOrNull('NEXT_PUBLIC_KAKAO_CHANNEL_URL'),
-  privacyOfficer: envOrDefault(
-    'NEXT_PUBLIC_BUSINESS_PRIVACY_OFFICER',
-    '안성민, 이준호',
-  ),
-  privacyOfficerEmail: envOrDefault(
-    'NEXT_PUBLIC_BUSINESS_PRIVACY_OFFICER_EMAIL',
+  phone: pickEnv(process.env.NEXT_PUBLIC_BUSINESS_PHONE, '070-4066-1333'),
+  email: pickEnv(
+    process.env.NEXT_PUBLIC_BUSINESS_EMAIL,
     'story@farmerstail.kr',
   ),
-  hostingProvider: envOrDefault(
-    'NEXT_PUBLIC_BUSINESS_HOSTING_PROVIDER',
+  // 카카오 채널 발급 후 NEXT_PUBLIC_KAKAO_CHANNEL_URL 에 등록.
+  kakaoChannelUrl: pickEnvNullable(process.env.NEXT_PUBLIC_KAKAO_CHANNEL_URL),
+  privacyOfficer: pickEnv(
+    process.env.NEXT_PUBLIC_BUSINESS_PRIVACY_OFFICER,
+    '안성민, 이준호',
+  ),
+  privacyOfficerEmail: pickEnv(
+    process.env.NEXT_PUBLIC_BUSINESS_PRIVACY_OFFICER_EMAIL,
+    'story@farmerstail.kr',
+  ),
+  hostingProvider: pickEnv(
+    process.env.NEXT_PUBLIC_BUSINESS_HOSTING_PROVIDER,
     'Vercel Inc. / Supabase Inc.',
   ),
 }
