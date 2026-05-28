@@ -42,7 +42,7 @@
 
 import { forwardRef, type SelectHTMLAttributes, type ReactNode } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { V3, V3FontSize, V3FontWeight, V3Radius } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
 
 export interface SelectOption {
   value: string
