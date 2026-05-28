@@ -38,11 +38,20 @@ type BusinessInfo = {
 
 const placeholder = '(등록 예정)'
 
-// 운영 출시 후 정식 발급되는 항목은 env 로 주입 가능하게 — 코드 redeploy
-// 없이 admin 이 Vercel 대시보드에서 즉시 갱신할 수 있도록.
-// NEXT_PUBLIC_* 로 두면 클라이언트 footer 에서도 보임.
-const mailOrderFromEnv = process.env.NEXT_PUBLIC_MAIL_ORDER_NUMBER?.trim()
-const kakaoFromEnv = process.env.NEXT_PUBLIC_KAKAO_CHANNEL_URL?.trim()
+// R89-A (D7): 사업자 정보 SSOT — process.env 우선 + 코드 default fallback.
+//
+// LAUNCH_CHECKLIST 가 NEXT_PUBLIC_BUSINESS_* 7개 키를 안내해 왔지만
+// 실제 코드가 default const 만 사용 → Vercel env 갱신해도 footer 가
+// 안 바뀌는 버그. 모든 필드를 env-우선 패턴으로 통일해서
+// 통신판매업 / Toss 검수 표시가 admin redeploy 없이 갱신 가능하도록.
+function envOrDefault(key: string, fallback: string): string {
+  const v = process.env[key]?.trim()
+  return v && v.length > 0 ? v : fallback
+}
+function envOrNull(key: string): string | null {
+  const v = process.env[key]?.trim()
+  return v && v.length > 0 ? v : null
+}
 
 export const business: BusinessInfo = {
   // 사업자등록증 상의 정식 상호 (개인사업자 — 법인 X).
@@ -50,27 +59,43 @@ export const business: BusinessInfo = {
   // 신고증에는 소문자로 등재됐으나 Toss 검수는 사업자등록증 우선).
   // 상법 §20: 회사가 아닌 자가 상호에 (주)·㈜·주식회사 등 회사 표기
   // 사용 시 과태료. Toss 입점심사 검수 항목 (홈페이지 하단 상호 일치).
-  companyName: "파머스테일 (Farmer's Tail)",
-  brandName: '파머스테일',
-  ceo: '안성민, 이준호',
-  businessNumber: '243-06-03606',
+  companyName: envOrDefault(
+    'NEXT_PUBLIC_BUSINESS_COMPANY_NAME',
+    "파머스테일 (Farmer's Tail)",
+  ),
+  brandName: envOrDefault('NEXT_PUBLIC_BUSINESS_BRAND_NAME', '파머스테일'),
+  ceo: envOrDefault('NEXT_PUBLIC_BUSINESS_CEO', '안성민, 이준호'),
+  businessNumber: envOrDefault(
+    'NEXT_PUBLIC_BUSINESS_NUMBER',
+    '243-06-03606',
+  ),
   // 통신판매업 신고증 — 인천연수구청장 발급, 2026-05-21.
-  // 신고번호는 NEXT_PUBLIC_MAIL_ORDER_NUMBER 로 override 가능 (변경 시
-  // 코드 redeploy 없이 Vercel env 만 갱신). 미설정 시 아래 default 사용.
-  mailOrderNumber: mailOrderFromEnv && mailOrderFromEnv.length > 0
-    ? mailOrderFromEnv
-    : '제2026-인천연수구-1436호',
+  mailOrderNumber: envOrDefault(
+    'NEXT_PUBLIC_MAIL_ORDER_NUMBER',
+    '제2026-인천연수구-1436호',
+  ),
   // 사업자등록증 / 통신판매업 신고증 상의 도로명 주소 — Toss 입점심사 시
   // "홈페이지 하단 사업자등록증 상의 사업장 주소" 항목 검수 대상.
-  address:
+  address: envOrDefault(
+    'NEXT_PUBLIC_BUSINESS_ADDRESS',
     '인천광역시 연수구 송도과학로28번길 50, 더샵 송도트리플타워 West 1층 121호',
-  phone: '070-4066-1333',
-  email: 'story@farmerstail.kr',
+  ),
+  phone: envOrDefault('NEXT_PUBLIC_BUSINESS_PHONE', '070-4066-1333'),
+  email: envOrDefault('NEXT_PUBLIC_BUSINESS_EMAIL', 'story@farmerstail.kr'),
   // 카카오 채널 발급 후 NEXT_PUBLIC_KAKAO_CHANNEL_URL 에 등록.
-  kakaoChannelUrl: kakaoFromEnv && kakaoFromEnv.length > 0 ? kakaoFromEnv : null,
-  privacyOfficer: '안성민, 이준호',
-  privacyOfficerEmail: 'story@farmerstail.kr',
-  hostingProvider: 'Vercel Inc. / Supabase Inc.',
+  kakaoChannelUrl: envOrNull('NEXT_PUBLIC_KAKAO_CHANNEL_URL'),
+  privacyOfficer: envOrDefault(
+    'NEXT_PUBLIC_BUSINESS_PRIVACY_OFFICER',
+    '안성민, 이준호',
+  ),
+  privacyOfficerEmail: envOrDefault(
+    'NEXT_PUBLIC_BUSINESS_PRIVACY_OFFICER_EMAIL',
+    'story@farmerstail.kr',
+  ),
+  hostingProvider: envOrDefault(
+    'NEXT_PUBLIC_BUSINESS_HOSTING_PROVIDER',
+    'Vercel Inc. / Supabase Inc.',
+  ),
 }
 
 /**

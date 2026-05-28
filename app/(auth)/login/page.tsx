@@ -80,6 +80,8 @@ function LoginInner() {
   const urlError = rawUrlError ? humanizeAuthError(rawUrlError) : ''
   const error = formError || urlError
   const justDeleted = searchParams.get('deleted') === '1'
+  // R89-E (D7): /reset-password 에서 비밀번호 변경 후 redirect.
+  const justReset = searchParams.get('reset') === '1'
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -127,6 +129,40 @@ function LoginInner() {
           title={<>이메일로 로그인</>}
           subtitle="계정이 있다면 로그인하고, 처음이라면 아래에서 가입해 주세요."
         />
+
+        {/* R89-E (D7): 비밀번호 재설정 완료 안내 — /reset-password → /login?reset=1 */}
+        {justReset && (
+          <div
+            className="mb-5 rounded-xl px-4 py-3.5"
+            style={{
+              background: 'color-mix(in srgb, var(--moss) 10%, transparent)',
+              boxShadow:
+                'inset 0 0 0 1px color-mix(in srgb, var(--moss) 30%, transparent)',
+            }}
+          >
+            <div className="flex items-start gap-2.5">
+              <CheckCircle2
+                className="w-4 h-4 shrink-0 mt-0.5"
+                strokeWidth={2.25}
+                color="var(--moss)"
+              />
+              <div className="min-w-0">
+                <p
+                  className="text-[12px] font-bold"
+                  style={{ color: 'var(--text)' }}
+                >
+                  비밀번호가 변경됐어요
+                </p>
+                <p
+                  className="text-[11px] mt-1 leading-relaxed"
+                  style={{ color: 'var(--muted)' }}
+                >
+                  새 비밀번호로 로그인해 주세요.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 탈퇴 완료 안내 — /api/account/delete 후 router.replace('/login?deleted=1') */}
         {justDeleted && (
@@ -302,10 +338,21 @@ function LoginInner() {
           </button>
         </form>
 
-        {/* 하단 링크 — 카카오 블록은 상단으로 승격됐으므로 여기엔
-            회원가입 유도 링크만 남는다. */}
+        {/* 하단 링크 — 회원가입 + 비밀번호 찾기 (R89-E D7). */}
         <div
-          className="text-center mt-8 text-[12.5px]"
+          className="text-center mt-6 text-[12.5px]"
+          style={{ color: 'var(--muted)' }}
+        >
+          <Link
+            href="/forgot-password"
+            className="font-semibold underline underline-offset-2"
+            style={{ color: 'var(--muted)' }}
+          >
+            비밀번호를 잊으셨나요?
+          </Link>
+        </div>
+        <div
+          className="text-center mt-3 text-[12.5px]"
           style={{ color: 'var(--muted)' }}
         >
           아직 계정이 없으신가요?{' '}

@@ -240,8 +240,9 @@ export default function SubscribeClient({
   void memo
 
   // v3: rounded-xl(12) → rounded(4), bg-[#FDFDFD] → bg-bg-3 (paperHi).
+  // R89-B (D7): iOS Safari 는 input font-size < 16px 시 focus 자동 zoom-in.
   const inputCls =
-    'w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13px] text-text placeholder:text-muted focus:outline-none focus:border-moss transition'
+    'w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[16px] text-text placeholder:text-muted focus:outline-none focus:border-moss transition'
   const labelCls =
     'block text-[10px] font-semibold text-muted mb-1.5 uppercase tracking-[0.2em]'
 

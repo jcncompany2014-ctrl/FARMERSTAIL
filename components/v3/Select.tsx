@@ -72,10 +72,14 @@ const sizePadding: Record<NonNullable<SelectProps['sizeVariant']>, string> = {
   lg: '14px 44px 14px 18px',
 }
 
+// R89-B (D7): iOS Safari 는 select font-size < 16px 면 focus 시 자동 zoom in
+// (DatePicker.tsx 도 동일 fix). visual scale 은 padding 으로만 분리, 모든
+// sizeVariant 가 16px 로 강제. text 가 약간 커 보여도 iOS first-impression
+// (가입 폼 zoom 사고) 보다 훨씬 안전.
 const sizeFontSize: Record<NonNullable<SelectProps['sizeVariant']>, number> = {
-  sm: V3FontSize.sm, // 12
-  md: 13, // form input 의 text-[13px] 와 일치
-  lg: V3FontSize.md, // 16
+  sm: 16,
+  md: 16,
+  lg: 16,
 }
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(

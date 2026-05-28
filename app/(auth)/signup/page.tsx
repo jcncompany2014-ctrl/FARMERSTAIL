@@ -52,6 +52,40 @@ function isValidKoreanMobile(value: string): boolean {
   return /^01[016789]\d{7,8}$/.test(stripHyphens(value))
 }
 
+/**
+ * R89-E (D7): Supabase auth signUp 에러를 enumeration-safe 카피로.
+ *
+ * "User already registered" 같은 메시지를 그대로 노출하면 공격자가
+ * 임의 이메일로 가입 시도 → 회원 여부가 즉시 드러남 (enumeration).
+ * login 의 humanizeAuthError 와 동일 원칙: 안전한 카테고리만 구체 노출.
+ */
+function humanizeSignupError(raw: string): string {
+  const msg = raw.toLowerCase()
+  // 이미 가입된 이메일 — 일반화 (안내는 "로그인 시도" 로 자연스럽게 유도)
+  if (
+    msg.includes('already') ||
+    msg.includes('registered') ||
+    msg.includes('duplicate') ||
+    msg.includes('exists')
+  ) {
+    return '가입을 완료하지 못했어요. 입력 정보를 확인하시거나, 이미 계정이 있다면 로그인을 시도해 주세요.'
+  }
+  // 비밀번호 약함 — 카테고리 안전 (이미 사용자가 입력한 값)
+  if (msg.includes('password') || msg.includes('weak')) {
+    return '비밀번호가 정책에 맞지 않아요. 영문·숫자 포함 6자 이상으로 다시 입력해 주세요.'
+  }
+  // rate limit — 안전 (시도 횟수만 노출)
+  if (msg.includes('rate') || msg.includes('too many')) {
+    return '잠시 후 다시 시도해 주세요.'
+  }
+  // 이메일 형식 — 안전
+  if (msg.includes('email') && msg.includes('invalid')) {
+    return '이메일 형식이 올바르지 않아요.'
+  }
+  // 그 외 — 일반화
+  return '가입에 실패했어요. 잠시 후 다시 시도해 주세요.'
+}
+
 function SignupForm() {
   const router = useRouter()
   const params = useSearchParams()
@@ -247,7 +281,8 @@ function SignupForm() {
 
     if (authErr) {
       setLoading(false)
-      setError(authErr.message)
+      // R89-E (D7): enumeration-safe 카피로 변환 (raw message 노출 금지).
+      setError(humanizeSignupError(authErr.message ?? ''))
       return
     }
 

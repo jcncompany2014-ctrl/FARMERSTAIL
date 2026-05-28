@@ -5,6 +5,71 @@
 
 ---
 
+## 🔴 R89 (D7) — 5개 영역 정밀 검토 잔여
+
+### Critical / 출시 1주 내 fix 권장
+
+- **R89-C #1**: Webhook idempotency race (`app/api/payments/webhook/route.ts:132-225`)
+  - `.eq('payment_status','pending').select('id')` 가드 추가 또는 `webhook_events` 테이블 신설
+- **R89-C #2**: 빌링키 만료 추적 부재
+  - `subscriptions` 테이블에 `billing_key_issued_at` / `billing_key_expires_at` 컬럼 추가
+  - 신규 cron `subscription-billing-expiry-notify` — D-30/14/7 사전 알림
+  - 실제 만료자 발생 = 첫 정기구독자 +365일 — 출시 1년 시점에 임박
+- **R89-C #3**: payment_events ledger race / 중복 insert
+  - `UNIQUE(order_id, payment_key, event_type, source)` partial index 추가
+- **R89-C #7**: Webhook PARTIAL_CANCELED cancelAmt 계산 오류
+  - `cancels[0]` → `cancels[cancels.length - 1]` 또는 `totalAmount - balanceAmount - 기존 refunded_amount` delta
+
+### High / 출시 2-4주 내
+
+- **R89-C #4**: refund-retry concurrent run race
+  - atomic claim — `FOR UPDATE SKIP LOCKED` 또는 advisory lock
+- **R89-C #5**: subscription-charge cron 동시 실행 시 orphan order
+  - chargeRow insert 와 orders insert 를 같은 RPC 트랜잭션으로
+- **R89-C #6**: payment_refund_queue `(payment_key, reason)` UNIQUE 변형 무력화
+  - `UNIQUE(payment_key)` partial (status='pending') 만 유지
+- **R89-C #8**: self-cancel partial→full 환불 무효
+  - 조건 `(payment_status === 'paid' || payment_status === 'partially_refunded')` 로 확장
+- **R89-C #9**: confirm route 더블 클릭 race window
+  - `payment_status='confirming'` 단기 lock state 도입
+- **R89-B #4**: 안드로이드 백버튼 → 모달/시트 close 안 됨 (Capacitor APK)
+  - `lib/capacitor.ts` 에 `onBackButton(cb)` 헬퍼 + BottomSheet/Modal hook
+- **R89-D H1**: manifest start_url=/dashboard vs robots disallow 충돌
+  - `/dashboard` → `/` 또는 robots 정책 정렬
+
+### Medium / 출시 1개월 내
+
+- **R89-A #3**: `lib/env.ts` SSOT 주석과 실제 코드 참조 18키 불일치
+  - tractive / APNS / FCM / 기타 키 raw 객체에 추가 또는 주석 정정
+- **R89-A #4**: `lib/integrations/tractive.ts` non-null assert 가드
+- **R89-B #3**: `100vh` → `100dvh` 일괄 (iOS PWA viewport 짤림)
+- **R89-B #5**: 햅틱 부재 — PDP 장바구니 / 카트 결제 / subscribe submit 에 추가
+- **R89-B #6**: CartAddMoreButton 24×24 → 40×40 hit area
+- **R89-B #7**: CatalogFilters sticky safe-area-inset-bottom 추가
+- **R89-D M1**: root `opengraph-image.tsx` vs layout `/api/og` OG 중복
+- **R89-D M2**: PDP/블로그 OG image width/height fallback
+- **R89-D M3**: PDP description 120자 단절 → 160자 + 마침표 경계
+- **R89-E #3**: CheckoutForm 폼 에러 inline `aria-invalid` + `aria-describedby`
+- **R89-E #4**: checkout `text-[10-11px] text-muted` → `text-text` (contrast)
+
+### Low / 출시 3개월 내 또는 nice-to-have
+
+- **R89-A #2**: `.env.example` 의 `NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY` dead key 삭제
+- **R89-B #8**: Pull-to-refresh — 홈/주문내역/강아지 목록
+- **R89-D L1**: maskable PNG 별도 (192/512-maskable)
+- **R89-D L2**: `app/manifest.ts` 마이그레이션
+- **R89-D L3**: `apple-touch-icon` 180×180 PNG
+- **R89-D L4**: JSON-LD `sameAs` SNS URL 검증
+- **R89-E #5**: payment confirm rate limit 중첩 정리
+
+### 이번 라운드 (R89) fix 완료
+- **R89-A #1**: `lib/business.ts` env-우선 패턴 8개 필드 확장 → NEXT_PUBLIC_BUSINESS_* 키로 redeploy 없이 footer/사업자정보 갱신 가능 ✅
+- **R89-B #1, #2**: iOS Safari input/select zoom 방지 (5개 폼 + Select primitive) ✅
+- **R89-E #1**: signup enumeration → `humanizeSignupError` 일반화 ✅
+- **R89-E #2**: 비밀번호 재설정 — `/forgot-password` + `/reset-password` 페이지 + login 링크 ✅
+
+---
+
 ## 🟠 1주차 — 운영 가동 직후
 
 ### a11y / WCAG

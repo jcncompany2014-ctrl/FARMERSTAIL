@@ -425,7 +425,7 @@ export default function ChatClient({
                 ? '우리 아이 식이에 대해 궁금한 점을 적어주세요...'
                 : '이어서 질문하기...'
             }
-            className="w-full text-[13px] text-text placeholder:text-muted/60 focus:outline-none resize-none"
+            className="w-full text-[16px] text-text placeholder:text-muted/60 focus:outline-none resize-none"
           />
           <div className="mt-1 flex items-center justify-between">
             <span className="text-[10px] text-muted">
