@@ -9,6 +9,10 @@ import { zPaymentConfirm } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimitDB, ipFromRequest } from '@/lib/rate-limit'
 import { tierMeta } from '@/lib/tiers'
+// R91-D #1 (D7): 결제 위변조 / 금액 불일치 발생 시 즉시 fatal Sentry alert.
+// captureBusinessEvent 만 호출하던 흐름을 alert helper 로 통일해서
+// business.alert.kind 태그가 박혀 Sentry rule 가 라우팅 가능.
+import { alertAmountMismatch, alertFraud } from '@/lib/sentry/alerts'
 import {
   traceBusiness,
   captureBusinessEvent,
@@ -90,6 +94,13 @@ export async function POST(req: Request) {
   }
 
   if (order.total_amount !== amount) {
+    // R91-D #1: fatal alert — Sentry rule 가 business.alert.kind='amount_mismatch'
+    // 로 즉시 Slack/email 라우팅 가능. 클라이언트가 임의 amount 로 confirm 시도.
+    alertAmountMismatch({
+      orderId: order.id,
+      expected: order.total_amount,
+      actual: amount,
+    })
     return NextResponse.json(
       { code: 'AMOUNT_MISMATCH', message: '결제 금액이 맞지 않아요' },
       { status: 400 }
@@ -121,6 +132,11 @@ export async function POST(req: Request) {
         orderId,
         storedSubtotal,
         recomputedSubtotal,
+      })
+      // R91-D #1: 상품 가격 위변조 — fatal fraud alert.
+      alertFraud({
+        orderId: order.id,
+        reason: 'subtotal_mismatch',
       })
       return NextResponse.json(
         { code: 'PRICE_TAMPERED', message: '상품 금액이 일치하지 않아요. 주문을 새로 만들어 주세요.' },
@@ -232,6 +248,11 @@ export async function POST(req: Request) {
         orderId,
         storedTotal: order.total_amount,
         recomputedTotal,
+      })
+      // R91-D #1: 최종 결제 금액 위변조 — fatal fraud alert.
+      alertFraud({
+        orderId: order.id,
+        reason: 'total_mismatch',
       })
       return NextResponse.json(
         { code: 'PRICE_TAMPERED', message: '결제 금액이 일치하지 않아요. 주문을 새로 만들어 주세요.' },

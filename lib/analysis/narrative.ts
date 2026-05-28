@@ -75,7 +75,7 @@ export function summarizeHistory(
     if (bcsDelta > 0) {
       if ((oldest.bcs ?? 5) <= 3) {
         return {
-          text: `${name}의 체형이 ${weeksSpan}주 전보다 건강한 방향으로 회복하고 있어요`,
+          text: `${name}의 체형이 ${weeksSpan}주 전보다 건강한 방향으로 돌아가고 있어요`,
           tone: 'positive',
         }
       }

@@ -5,6 +5,79 @@
 
 ---
 
+## 🔴 R91 (D7) — 5개 영역 정밀 검토 잔여 (총 44건 발견)
+
+### Critical 즉시 fix 완료 (5건)
+- **R91-A A1**: 블로그 효능 표현 17줄 정리 (항염/예방/치료/회복/효능) — 식약처/공정위 신고 위험 해소 ✅
+- **R91-A A2-A6**: copy-strings/nutrition/narrative/RecommendationBox/Status 효능 단어 정리 ✅
+- **R91-D #1**: lib/sentry/alerts.ts 헬퍼 4개 실제 호출 (payments/confirm AMOUNT_MISMATCH + PRICE_TAMPERED 2곳 + webhook amount_mismatch + refund-retry permanent_failure) ✅
+- **R91-E #1**: 환불 정책 "마이페이지 반품 신청" 문구 → "출고 전/배송 중 self-cancel + 수령 후 CS" 명확화 ✅
+- **R91-E #2**: privacy 페이지의 `ft_consent` (쿠키) → `ft_cookie_consent` (localStorage) 정정 ✅
+
+### Critical / High 1주 내 fix 권장 (잔여 14건)
+
+**한국 법규**:
+- **R91-A B1**: PDP에 사료 종류 등록번호 + 성분 등록번호 누락 (사료관리법 §13)
+- **R91-A B2**: PDP에 동물용의약품 첨가 여부 표시 누락 (사료관리법 §13)
+- **R91-A B3**: 사료 등급 + 주의사항 별도 컬럼 부재
+- **R91-A C1**: 식약처 21종 알레르기 원료 자동 매칭 부재
+- **R91-A D1**: 환불 기한 "3영업일" vs UI "3-5영업일" 불일치
+- **R91-A F1**: NEXT_PUBLIC_BUSINESS_* env Vercel 실제 등록 검증 부재
+
+**결제 흐름 corner case**:
+- **R91-B F-1**: 0원 결제 시 사용자 안내 부재
+- **R91-B F-2**: VA 환불 사용자 환불계좌 입력 UI 부재 (전자상거래법 §17)
+- **R91-B F-3**: 가상계좌 부분 입금 / 초과 입금 처리 흐름 없음
+- **R91-B F-4**: billing-auth 도중 이탈 → orphan subscription
+- **R91-B F-5**: admin 가격 수정 후 사용자 결제 시 동의 흐름 없음
+- **R91-B F-6**: Toss 결제 취소 후 orders pending 그대로 (사용자 중복 결제 위험)
+- **R91-B F-7**: 정기구독 첫 결제 실패 시 사용자 알림 + UI 불일치
+
+**PWA / 푸시**:
+- **R91-C #1**: manifest start_url=/dashboard — 미인증 신규 PWA 진입 시 /login 무한 redirect
+- **R91-C #2**: OAuth/Toss 외부 redirect 시 PWA standalone 컨텍스트 이탈
+- **R91-C #3**: InstallPrompt가 (main) 그룹 안에만 mount — 비인증 사용자에게 안 보임
+- **R91-C #4**: iOS Safari 16.4+ Web Push PWA 설치 필수 안내 부재
+- **R91-C #5**: Service Worker tag default 'farmerstail' — 모든 푸시 같은 슬롯 덮어쓰기
+
+**관측성**:
+- **R91-D #2**: Sentry alert rule 실제 채널 연결 검증 불가
+- **R91-D #3**: cron 연속 실패 패턴 감지 / 평균 실행 시간 트래킹 미구현
+- **R91-D #4**: /api/health 외부 의존성 실제 ping 없음 (ENV 존재만 확인)
+
+**콘텐츠 정합성**:
+- **R91-E #3**: FAQ "결제일 변경 / 상품 변경" — UI 미구현
+- **R91-E #4**: privacy "Anthropic 익명화" 표현 vs 강아지 이름 포함
+- **R91-E #5**: FAQ "미개봉만 환불" — 환불 정책보다 엄격
+
+### Medium / Low (잔여 17건)
+
+**한국 법규**:
+- R91-A E1: PIPA 탈퇴 보관 기간 문구 vs 실제 cron 매핑 검증 미흡
+
+**관측성**:
+- R91-D #5: CS 미응답 N시간 모니터링 cron 부재
+- R91-D #6: Reorder/wishlist add-to-cart funnel 트래킹 누락
+- R91-D #7: `/admin?tab=cron-health` dead link
+- R91-D #8: contact route RESEND_API_KEY 미설정 silent
+- R91-D #9: trackCron 부분 실패가 success 로 기록
+
+**PWA / 푸시**:
+- R91-C #6: notificationclick 매칭 query string 무시
+- R91-C #7: Capacitor PushNotifications listener 일회성 — deep link / foreground 미처리
+- R91-C #8: OS 알림 권한 변경 감지 없음
+
+**결제 시나리오 미발견 (확인 완료)**:
+- 시나리오 1 step 5 (성공 직후 새로고침): R84-B1 가드 OK
+- 시나리오 3 step 3 (입금 후 webhook 안 옴): 마이페이지 영수증 가시화 OK
+
+**콘텐츠**:
+- R91-E #6: About §03 "AAFCO+WSAVA" vs FAQ "FEDIAF" 기준 표기 혼용
+- R91-E #7: 환불 정책 "회사 3영업일" vs UI "3-5 영업일" (D1과 중복)
+- R91-E #8: 이용약관 §4 회원가입 14세 명시 부재
+
+---
+
 ## 🔴 R90 (D7) — 5개 영역 정밀 검토 잔여 (총 44건 발견)
 
 ### Critical 즉시 fix 완료 (4건)

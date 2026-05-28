@@ -690,7 +690,7 @@ export function getSupplements(concerns: string[]): Array<{ emoji: string; name:
   const s: Array<{ emoji: string; name: string; desc: string }> = []
   if (concerns.includes('피부/털')) {
     s.push({ emoji: '🐟', name: '오메가-3 (EPA/DHA)', desc: '피부 장벽 강화, 모질 개선' })
-    s.push({ emoji: '🧬', name: '아연 (Zinc)', desc: '피부 세포 재생 촉진' })
+    s.push({ emoji: '🧬', name: '아연 (Zinc)', desc: '피부 세포 영양 보조' })
   }
   if (concerns.includes('관절')) {
     s.push({ emoji: '🦴', name: '글루코사민 + 콘드로이틴', desc: '연골 보호, 관절 윤활' })
@@ -699,15 +699,15 @@ export function getSupplements(concerns: string[]): Array<{ emoji: string; name:
     s.push({ emoji: '🌿', name: '초록입홍합', desc: '오메가-3 · 관절 윤활 보조' })
   }
   if (concerns.includes('소화')) {
-    s.push({ emoji: '🦠', name: '프로바이오틱스', desc: '장내 유익균 증식' })
-    s.push({ emoji: '🎃', name: '식이섬유 보충', desc: '장 운동 촉진, 변 상태 개선' })
+    s.push({ emoji: '🦠', name: '프로바이오틱스', desc: '장내 유익균 영양 보조' })
+    s.push({ emoji: '🎃', name: '식이섬유 보충', desc: '장 운동 보조, 변 상태 도움' })
   }
   if (concerns.includes('체중')) {
-    s.push({ emoji: '🔥', name: 'L-카르니틴', desc: '지방 산화 촉진' })
+    s.push({ emoji: '🔥', name: 'L-카르니틴', desc: '체중 케어 영양 보조' })
   }
   if (concerns.includes('신장')) {
     s.push({ emoji: '💧', name: '수분 보충 강화', desc: '저인 식이와 충분한 수분' })
-    s.push({ emoji: '🌱', name: '오메가-3 (EPA)', desc: '신장 염증 억제' })
+    s.push({ emoji: '🌱', name: '오메가-3 (EPA)', desc: '신장 영양 보조' })
   }
   if (concerns.includes('치아')) {
     s.push({ emoji: '🦷', name: '치석 관리 효소', desc: '치태 분해 효소' })

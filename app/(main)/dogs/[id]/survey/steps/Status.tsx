@@ -45,7 +45,7 @@ export default function Status({
       </div>
       <h1 className="s-title">현재 진단받은<br />질환이 있나요?</h1>
       <p className="s-sub">
-        식이가 핵심 치료의 일부인 질환은 분기에 꼭 필요해요.
+        식이 관리가 중요한 질환은 분기에 꼭 필요해요.
         <span className="s-pill">없으면 건너뛰세요</span>
       </p>
 

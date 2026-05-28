@@ -52,8 +52,10 @@ export default function RefundPage() {
               <b>기간:</b> 상품 수령일로부터 <b>7일 이내</b>
             </li>
             <li>
-              <b>방법:</b> 마이페이지 &gt; 주문내역에서 &ldquo;반품
-              신청&rdquo; 또는 고객센터({business.email}) 문의
+              <b>방법:</b> 출고 전 / 배송 중에는 마이페이지 &gt; 주문내역
+              &gt; &ldquo;주문 취소&rdquo; 로 즉시 신청 가능. 수령 후
+              반품은 고객센터({business.email}) 로 1:1 접수해 주세요
+              (현재 발송 후 반품 self-service UI는 준비 중).
             </li>
             <li>
               <b>반품 비용:</b> 회원 부담 (왕복 배송비)

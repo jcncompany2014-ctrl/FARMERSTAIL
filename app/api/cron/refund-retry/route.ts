@@ -4,6 +4,9 @@ import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { cancelPayment } from '@/lib/payments/toss'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
+// R91-D #1 (D7): 환불 영구 실패 시 운영자 수동 개입 필수 → fatal alert helper
+// 로 Sentry rule 라우팅 가능하게.
+import { alertRefundFailure } from '@/lib/sentry/alerts'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -188,6 +191,12 @@ async function runRefundRetry(): Promise<Response> {
       captureBusinessEvent('error', 'refund_queue.permanent_failure', {
         orderId: row.order_id,
         paymentKey: row.payment_key,
+        attempts,
+        lastError: result.error.message,
+      })
+      // R91-D #1: 운영자가 수동 환불 진행해야 함 → fatal alert.
+      alertRefundFailure({
+        orderId: row.order_id,
         attempts,
         lastError: result.error.message,
       })

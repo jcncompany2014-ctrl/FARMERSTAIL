@@ -65,7 +65,7 @@ export const SURVEY_COPY = {
       {
         value: 'no_limit' as BudgetTier,
         label: '예산은 크게 신경 쓰지 않아요',
-        sub: '최고 영양 우선',
+        sub: '프리미엄 영양 우선',
       },
     ],
     footer: '💚 어떤 답을 하셔도 ○○이에게 맞춰 드려요',
@@ -120,7 +120,7 @@ export const ANALYSIS_COPY = {
     full: (name: string) =>
       `${name}이를 위한 프리미엄 맞춤 영양\n` +
       `🥗 화식 100% 단독 급여\n\n` +
-      `최고 영양·자연 단백·EPA/DHA 풍부.`,
+      `프리미엄 영양·자연 단백·EPA/DHA 풍부.`,
   },
 
   slider_label: '다른 비율도 한 번 보세요 ▼',
@@ -210,7 +210,7 @@ export const RECOMMENDATION_COPY = {
   },
 
   rotation_4week: (name: string, currentProtein: string, nextProtein: string) =>
-    `${name}이의 입맛도 챙기고 알레르기도 예방할 겸, ` +
+    `${name}이의 입맛도 챙기고 알레르기 가능성도 줄일 겸, ` +
     `다음 박스에는 새로운 단백질을 한 번 시도해 보시는 건 어떨까요?\n\n` +
     `이번 달 ${currentProtein} → 다음 달 ${nextProtein}는 어떠세요?\n` +
     `같은 영양 균형, 새로운 맛 🐾`,

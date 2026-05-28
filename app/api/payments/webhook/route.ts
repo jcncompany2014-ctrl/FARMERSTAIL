@@ -5,6 +5,10 @@ import { creditPoints } from '@/lib/commerce/points'
 import { fetchPayment, type TossPaymentStatus } from '@/lib/payments/toss'
 import { notifyOrderCancelled, notifyOrderPlaced } from '@/lib/email'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
+// R91-D #1 (D7): amount mismatch / 위변조는 fatal alert helper 로 통일.
+// captureBusinessEvent 옆에 alert 호출도 추가 → Sentry rule 의 kind 태그
+// 매칭으로 즉시 운영자 채널 라우팅.
+import { alertAmountMismatch } from '@/lib/sentry/alerts'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -118,6 +122,13 @@ export async function POST(req: Request) {
       orderAmount: order.total_amount,
       tossAmount: payment.totalAmount,
       orderStatus: order.payment_status,
+    })
+    // R91-D #1 (D7): fatal alert — business.alert.kind='amount_mismatch'
+    // 태그로 Sentry rule 가 즉시 운영자 채널 라우팅.
+    alertAmountMismatch({
+      orderId,
+      expected: order.total_amount,
+      actual: payment.totalAmount,
     })
     console.error(
       `[webhook] amount mismatch order=${orderId} expected=${order.total_amount} got=${payment.totalAmount}`

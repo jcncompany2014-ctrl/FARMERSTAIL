@@ -657,10 +657,11 @@ export default function PrivacyPage() {
           </p>
           <UL>
             <li>
-              <b>필수 쿠키:</b> 로그인 세션 (sb-access-token, sb-refresh-token),
-              장바구니 (cart 식별), 보안 토큰 (CSRF), 앱 컨텍스트 감지
-              (ft_app), 쿠키 동의 기록 (ft_consent) 등. 서비스 기본 기능에
-              필요해 동의 여부와 무관하게 사용됩니다.
+              <b>필수 쿠키 및 로컬 스토리지:</b> 로그인 세션 쿠키
+              (sb-access-token, sb-refresh-token), 보안 토큰 (CSRF), 앱
+              컨텍스트 감지 쿠키 (ft_app), 동의 기록 로컬 스토리지
+              (ft_cookie_consent) 등. 서비스 기본 기능에 필요해 동의 여부와
+              무관하게 사용됩니다.
             </li>
             <li>
               <b>분석 쿠키:</b> 방문 패턴, 페이지 체류 시간, 클릭 흐름을
