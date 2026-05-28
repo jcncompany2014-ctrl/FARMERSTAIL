@@ -2,7 +2,8 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { X, Loader2, AlertCircle } from 'lucide-react'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 
 // Phase 3 (2026-05-20): outcome 카테고리 분류 — palatability / digestibility / outcome.
@@ -31,6 +32,9 @@ export default function CancelOrderButton({ orderId }: { orderId: string }) {
   const [extraNote, setExtraNote] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // R91-B F-2 (D7): 가상계좌/계좌이체 결제의 self-cancel 은 환불계좌 정보가
+  // 필요해 별도 CS 흐름으로. 사용자가 어디로 가야 할지 명확하게.
+  const [vaRefundNeeded, setVaRefundNeeded] = useState(false)
 
   const dialogRef = useRef<HTMLDivElement>(null)
   useModalA11y({
@@ -42,6 +46,7 @@ export default function CancelOrderButton({ orderId }: { orderId: string }) {
 
   async function submitCancel() {
     setError(null)
+    setVaRefundNeeded(false)
     setLoading(true)
     try {
       const selected = REASONS[reasonIdx]!
@@ -56,8 +61,14 @@ export default function CancelOrderButton({ orderId }: { orderId: string }) {
           reason_category: selected.category,
         }),
       })
-      const data = await res.json()
+      const data = (await res.json()) as { code?: string; message?: string }
       if (!res.ok) {
+        // R91-B F-2 (D7): VA/계좌이체 결제는 환불계좌 정보 입력이 필요한
+        // 별도 흐름. 사용자가 막막한 raw 에러 메시지 대신 명확한 CTA로 유도.
+        if (data?.code === 'VA_REFUND_NEEDS_CS') {
+          setVaRefundNeeded(true)
+          return
+        }
         throw new Error(data?.message ?? '취소 실패')
       }
       setOpen(false)
@@ -105,6 +116,47 @@ export default function CancelOrderButton({ orderId }: { orderId: string }) {
               </button>
             </div>
             <div className="px-5 py-4">
+              {vaRefundNeeded ? (
+                /* R91-B F-2 (D7): VA 환불 안내 패널 — 1:1 문의로 환불계좌
+                   정보 받아 운영자 수동 처리. /contact 에 주제 + 주문번호
+                   프리필해서 사용자 입력 부담 ↓. */
+                <div
+                  className="rounded-xl px-4 py-4"
+                  style={{
+                    background: 'rgba(217,119,87,0.06)',
+                    boxShadow: 'inset 0 0 0 1px rgba(217,119,87,0.25)',
+                  }}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle
+                      className="w-4 h-4 shrink-0 mt-0.5 text-terracotta"
+                      strokeWidth={2.5}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-[12.5px] font-bold text-text leading-relaxed">
+                        가상계좌·계좌이체 환불은 환불받으실 계좌 정보가
+                        필요해요.
+                      </p>
+                      <p className="text-[11.5px] text-muted mt-2 leading-relaxed">
+                        1:1 문의로 다음 정보를 보내주시면 영업일 기준 1~3일
+                        안에 환불해 드릴게요:
+                      </p>
+                      <ul className="text-[11.5px] text-muted mt-1.5 leading-relaxed list-disc pl-4 space-y-0.5">
+                        <li>은행명</li>
+                        <li>계좌번호</li>
+                        <li>예금주명</li>
+                      </ul>
+                      <Link
+                        href={`/contact?topic=va_refund&order_id=${encodeURIComponent(orderId)}`}
+                        className="inline-block mt-3 text-[12px] font-bold underline underline-offset-2 text-terracotta"
+                      >
+                        1:1 문의로 이동 →
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
               <p className="text-[12px] text-text leading-relaxed">
                 취소 시 사용한 포인트와 쿠폰은 환원되고, 결제 금액은 3-5
                 영업일 내에 환불돼요.
@@ -150,28 +202,42 @@ export default function CancelOrderButton({ orderId }: { orderId: string }) {
                   {error}
                 </p>
               )}
+                </>
+              )}
             </div>
             <div className="px-5 py-3 border-t border-rule flex gap-2">
-              <button
-                onClick={() => !loading && setOpen(false)}
-                className="flex-1 py-2.5 rounded-lg border border-rule text-[12px] font-bold text-text hover:bg-bg transition"
-              >
-                유지
-              </button>
-              <button
-                onClick={submitCancel}
-                disabled={loading}
-                className="flex-1 py-2.5 rounded-lg bg-sale text-white text-[12px] font-bold active:scale-[0.98] disabled:opacity-50 transition inline-flex items-center justify-center gap-1"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} />
-                    처리 중...
-                  </>
-                ) : (
-                  '취소 확정'
-                )}
-              </button>
+              {vaRefundNeeded ? (
+                /* R91-B F-2 (D7): VA 안내 상태 — 단일 "닫기" 버튼만. */
+                <button
+                  onClick={() => setOpen(false)}
+                  className="flex-1 py-2.5 rounded-lg border border-rule text-[12px] font-bold text-text hover:bg-bg transition"
+                >
+                  닫기
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => !loading && setOpen(false)}
+                    className="flex-1 py-2.5 rounded-lg border border-rule text-[12px] font-bold text-text hover:bg-bg transition"
+                  >
+                    유지
+                  </button>
+                  <button
+                    onClick={submitCancel}
+                    disabled={loading}
+                    className="flex-1 py-2.5 rounded-lg bg-sale text-white text-[12px] font-bold active:scale-[0.98] disabled:opacity-50 transition inline-flex items-center justify-center gap-1"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} />
+                        처리 중...
+                      </>
+                    ) : (
+                      '취소 확정'
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

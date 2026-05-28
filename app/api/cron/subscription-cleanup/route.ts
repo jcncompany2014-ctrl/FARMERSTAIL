@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 /**
  * GET /api/cron/subscription-cleanup
  *
- * 매일 1회 실행 — billing_key 미등록 (NULL) + 7일 이상 경과한 subscriptions
+ * 매일 1회 실행 — billing_key 미등록 (NULL) + 1시간 이상 경과한 subscriptions
  * 를 자동 'cancelled' 로 전환. 사용자가 정기배송 신청 후 카드 등록 페이지에서
  * 이탈한 abandoned 구독 정리.
  *
@@ -22,9 +22,11 @@ export const dynamic = 'force-dynamic'
  *   - admin 통계 노이즈
  *
  * # 정책
- *  · billing_key IS NULL AND created_at < now() - 7d → status='cancelled'
- *  · 사용자가 7일 안에 카드 등록 시도 안 했으면 의도적 abandon 으로 간주.
- *  · 카드 등록은 "다시 시작" 으로 새 구독 신청 가능 (마이페이지 가이드).
+ *  · billing_key IS NULL AND created_at < now() - 1h → status='cancelled'
+ *  · R91-B F-4 (D7): 기존 7일 → 1시간으로 단축. 사용자가 billing-auth 페이지
+ *    에서 이탈한 직후 재신청 시도 시 "이미 정기배송 중" 차단에 걸리지 않게.
+ *    Toss billing-auth 자체는 보통 수 분 안에 끝나므로 1시간이면 정상 흐름
+ *    영향 X (사용자가 카드 등록 1시간+ 미루는 케이스는 사실상 의도적 이탈).
  *
  * # 보안
  *  · CRON_SECRET 검증 (timing-safe).
@@ -43,18 +45,19 @@ export async function GET(req: Request) {
   // R83-E3 (D3): trackCron 으로 wrap — cron_health 기록 + 실패 시 Sentry alert.
   return trackCron('subscription-cleanup', async () => {
     const supabase = createAdminClient()
-  const sevenDaysAgo = new Date(
-    Date.now() - 7 * 24 * 60 * 60 * 1000,
+  // R91-B F-4 (D7): cutoff 7일 → 1시간.
+  const oneHourAgo = new Date(
+    Date.now() - 60 * 60 * 1000,
   ).toISOString()
 
-  // billing_key NULL + 7일+ + active 상태인 row 만 정리. paused/cancelled
+  // billing_key NULL + 1시간+ + active 상태인 row 만 정리. paused/cancelled
   // 는 손대지 않음 (사용자/운영자가 의도적으로 일시정지/해지 처리한 상태).
   const { data: targets, error: fetchErr } = await supabase
     .from('subscriptions')
     .select('id, user_id, dog_id, created_at')
     .is('billing_key', null)
     .eq('status', 'active')
-    .lt('created_at', sevenDaysAgo)
+    .lt('created_at', oneHourAgo)
     .limit(200)
 
   if (fetchErr) {
@@ -85,7 +88,7 @@ export async function GET(req: Request) {
     .from('subscriptions')
     .update({
       status: 'cancelled',
-      last_failed_charge_reason: 'abandoned-billing-not-registered-7d',
+      last_failed_charge_reason: 'abandoned-billing-not-registered-1h',
       cancelled_at: nowIso,
     })
     .in('id', ids)

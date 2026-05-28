@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { CheckCircle2 } from 'lucide-react'
 
 /**
@@ -27,6 +28,16 @@ type Status = 'idle' | 'submitting' | 'success' | 'error'
 export default function ContactForm() {
   const [status, setStatus] = useState<Status>('idle')
   const [errorMsg, setErrorMsg] = useState<string>('')
+  // R91-B F-2 (D7): CancelOrderButton 의 VA 환불 deeplink 가 ?topic=va_refund
+  // &order_id=... 로 진입 시 category + message 프리필 → 사용자 입력 부담 ↓.
+  const searchParams = useSearchParams()
+  const topic = searchParams.get('topic') ?? ''
+  const orderId = searchParams.get('order_id') ?? ''
+  const isVaRefund = topic === 'va_refund'
+  const defaultCategory = isVaRefund ? 'refund' : 'product'
+  const defaultMessage = isVaRefund
+    ? `[가상계좌 환불 신청]\n주문번호: ${orderId}\n\n환불받으실 계좌 정보를 적어 주세요:\n- 은행명:\n- 계좌번호:\n- 예금주명:\n\n추가 메모(선택):\n`
+    : ''
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -152,7 +163,7 @@ export default function ContactForm() {
         <select
           id="ft-category"
           name="category"
-          defaultValue="product"
+          defaultValue={defaultCategory}
           className="w-full px-3 py-2.5 md:py-3 rounded text-[13px] md:text-[14px] bg-bg focus:outline-none transition"
           style={{
             boxShadow: 'inset 0 0 0 1px var(--rule)',
@@ -176,6 +187,7 @@ export default function ContactForm() {
           minLength={10}
           maxLength={3000}
           rows={6}
+          defaultValue={defaultMessage}
           placeholder="자세한 내용을 적어 주세요. (10자 이상)"
           className="w-full px-3 py-2.5 md:py-3 rounded text-[13px] md:text-[14px] bg-bg focus:outline-none transition resize-y leading-relaxed"
           style={{

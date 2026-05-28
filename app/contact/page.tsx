@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Mail, MessageCircle, Phone, ArrowRight } from 'lucide-react'
@@ -115,7 +116,11 @@ export default function ContactPage() {
               boxShadow: 'inset 0 0 0 1px var(--rule)',
             }}
           >
-            <ContactForm />
+            {/* R91-B F-2 (D7): ContactForm 이 useSearchParams 사용 →
+                Next.js 16 의 Suspense boundary 필수. fallback null 로 충분. */}
+            <Suspense fallback={null}>
+              <ContactForm />
+            </Suspense>
           </div>
         </section>
 
