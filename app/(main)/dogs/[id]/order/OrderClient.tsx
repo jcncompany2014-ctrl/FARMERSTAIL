@@ -975,9 +975,18 @@ export default function OrderClient({
               <ArrowRight size={12} strokeWidth={2.4} color="#fff" />
             </button>
           </div>
+          {/* R92-S (D7): 정기과금 명시 동의 — 전자상거래법 §13 / 콘텐츠산업
+              진흥법 고지 의무. 신청 = 자동결제 동의 간주 근거. */}
+          <p
+            className="ord-foot"
+            style={{ fontSize: 10, opacity: 0.85, marginTop: 6 }}
+          >
+            신청 · 카드 등록을 누르면 매월 자동결제에 동의하는 것으로
+            간주됩니다.
+          </p>
           <p className="ord-foot">
             <Check size={11} strokeWidth={2.6} color="var(--moss)" />
-            언제든 마이페이지에서 주기 변경 · 일시정지 · 해지 가능
+            언제든 마이페이지에서 주기 변경 · 일시정지 · 해지 가능 (위약금 없음)
           </p>
         </>
       )}

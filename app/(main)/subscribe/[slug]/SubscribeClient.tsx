@@ -510,16 +510,25 @@ export default function SubscribeClient({
                 : '계산 중...'}
             </div>
             <div className="text-[10px] text-muted mt-1 leading-relaxed">
-              이후 {interval}주마다 자동으로 배송 안내 연락을 드려요.
+              이후 {interval}주마다 등록하신 카드로 자동 결제 후 배송돼요.
             </div>
           </div>
         </div>
 
-        {/* 안내 */}
+        {/* 안내 — R92-S (D7): 전자상거래법 §13 + 콘텐츠산업진흥법 정기과금
+            고지 의무. 자동결제 여부 / 금액 / 주기 / 결제 시점 / 해지 방법을
+            명확히 표시 ("배송 안내 연락" 같은 완곡 표현 금지). */}
         <div className="mt-3 p-4 bg-bg rounded">
           <div className="text-[11px] text-muted space-y-1 leading-relaxed">
-            <p>· 정기배송은 배송일 전 알림을 통해 결제가 진행돼요.</p>
-            <p>· 언제든지 마이페이지에서 일시정지/해지할 수 있어요.</p>
+            <p>
+              · <b className="text-text">자동결제 안내:</b> 등록하신 카드로{' '}
+              <b className="text-text">
+                {interval}주마다 {totalAmount.toLocaleString()}원
+              </b>
+              이 자동 청구됩니다.
+            </p>
+            <p>· 매 결제 전 알림을 보내드려, 미리 변경·해지하실 수 있어요.</p>
+            <p>· 언제든지 마이페이지 → 정기배송에서 일시정지/해지할 수 있어요 (위약금 없음).</p>
             <p>· 배송 주기, 수량, 배송지는 자유롭게 변경 가능해요.</p>
           </div>
         </div>
@@ -529,6 +538,11 @@ export default function SubscribeClient({
           web 에선 viewport bottom, app 에선 탭바 위로 자동 정렬 + safe-area. */}
       <div className="ft-sticky-cta-bottom bg-bg border-t border-rule px-5 py-3 z-30">
         <div className="max-w-md mx-auto">
+          {/* R92-S (D7): 정기과금 명시 동의 — 신청 = 자동결제 동의 간주 근거. */}
+          <p className="text-[10px] text-muted text-center mb-2 leading-relaxed">
+            신청하기를 누르면 {interval}주 주기 자동결제(
+            {totalAmount.toLocaleString()}원/회)에 동의하는 것으로 간주됩니다.
+          </p>
           <button
             onClick={handleSubmit}
             disabled={submitting}
