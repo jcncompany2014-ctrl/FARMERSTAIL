@@ -97,7 +97,7 @@ export async function GET(req: Request) {
     }
 
     const { subject, html } = renderReviewPrompt({
-      recipientName: profile.name ?? order.recipient_name ?? '고객',
+      recipientName: profile.name ?? order.recipient_name ?? '보호자',
       orderNumber: order.order_number,
       orderId: order.id,
     })

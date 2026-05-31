@@ -6,6 +6,7 @@
  */
 
 import { renderLayout } from '../layout'
+import { escape } from '../escape'
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ||
@@ -28,9 +29,13 @@ const ROLE_LABEL: Record<'member' | 'viewer', string> = {
   viewer: '함께 지켜보는 가족',
 }
 
+// R94 (D7): KST 강제 — 이전엔 서버 UTC 기준이라 만료일이 하루 밀려 표시.
 function fmtDate(iso: string): string {
-  const d = new Date(iso)
-  return `${d.getMonth() + 1}월 ${d.getDate()}일`
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date(iso))
 }
 
 export function renderDogInvitation(
@@ -41,18 +46,24 @@ export function renderDogInvitation(
 
   const subject = `${inviterName}님이 ${dogName}의 가족으로 초대했어요`
 
+  // R94 (D7): body 의 사용자 입력(inviterName, dogName)은 renderLayout 이
+  // escape 하지 않는 raw HTML 영역이므로 직접 escape (heading/preview 는
+  // renderLayout 이 escape). dogName 은 사용자 자유 입력 강아지 이름,
+  // inviterName 은 user_metadata.name — 둘 다 사용자 통제값 → XSS 차단.
+  const safeDog = escape(dogName)
+  const safeInviter = escape(inviterName)
   const html = renderLayout({
     preview: `${dogName} 케어를 함께 해보실래요?`,
     kicker: 'Family · 가족 초대',
     heading: `${dogName}의 가족이 되어주세요`,
     body: `
       <p style="margin:0 0 12px;font-size:14px;line-height:1.7;color:#2C2A26;">
-        <strong>${inviterName}</strong>님이 <strong>${dogName}</strong>의
-        ${ROLE_LABEL[role]} 으로 초대했어요.
+        <strong>${safeInviter}</strong>님이 <strong>${safeDog}</strong>의
+        ${escape(ROLE_LABEL[role])}으로 초대했어요.
       </p>
       <p style="margin:0 0 6px;font-size:13px;line-height:1.7;color:#7A7A7A;">
-        링크를 누르면 ${dogName}의 일지·체크인을 함께 보실 수 있어요.
-        초대는 <strong>${fmtDate(expiresAt)}</strong>까지 유효해요.
+        링크를 누르면 ${safeDog}의 일지·체크인을 함께 보실 수 있어요.
+        초대는 <strong>${escape(fmtDate(expiresAt))}</strong>까지 유효해요.
       </p>
     `,
     cta: {

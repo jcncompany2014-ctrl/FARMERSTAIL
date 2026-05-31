@@ -149,7 +149,7 @@ export async function GET(req: Request) {
 
     for (const target of targets) {
       const { subject, html } = renderCouponExpiry({
-        recipientName: target.name ?? '고객',
+        recipientName: target.name ?? '보호자',
         couponCode: coupon.code,
         couponName: coupon.name ?? discountLabel,
         discountLabel,

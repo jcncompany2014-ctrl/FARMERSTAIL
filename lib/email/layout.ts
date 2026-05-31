@@ -208,6 +208,35 @@ export const block = {
   },
 }
 
+/**
+ * R94 (D7): 마케팅 메일 (vip/birthday/comeback) 전용 사업자 정보 푸터 <tr>.
+ *
+ * 이 3개는 renderLayout 을 안 쓰고 자체 <html> 을 그려서, 전자상거래법
+ * 제10조 (통신판매업자 신원정보 표시) 가 요구하는 상호/대표/사업자번호/
+ * 통신판매업신고/주소/고객센터 푸터가 통째로 빠져 있었다. business.ts
+ * SSOT 기반 푸터를 한 곳에서 만들어 재사용.
+ *
+ * 마케팅 메일이므로 수신거부 안내도 포함 (정보통신망법 §50).
+ */
+export function marketingFooterRow(): string {
+  return `<tr><td style="padding:20px 32px 28px;border-top:1px solid #EDE6D8;background:#F5F0E6;">
+    <div style="font-size:10px;color:#9C9282;line-height:1.6;">
+      <strong style="color:#3A3128;">${escape(business.companyName)}</strong><br/>
+      대표 ${escape(business.ceo)} · 사업자등록번호 ${escape(business.businessNumber)}<br/>
+      통신판매업신고 ${escape(business.mailOrderNumber)}<br/>
+      ${escape(business.address)}<br/>
+      고객센터 <a href="mailto:${escape(business.email)}" style="color:#9C9282;text-decoration:none;">${escape(business.email)}</a>${
+        business.phone ? ` · ${escape(business.phone)}` : ''
+      }
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:#9C9282;line-height:1.5;">
+      본 메일은 마케팅 정보 수신에 동의하신 분께 발송했어요. 수신 거부는
+      <a href="${escape(SITE_URL)}/mypage/notifications" style="color:#9C9282;text-decoration:underline;">알림 설정</a>
+      에서 변경하실 수 있어요.
+    </div>
+  </td></tr>`
+}
+
 // escape 는 ./escape 에서 re-export (이미 import 됨)
 export { escape }
 export { SITE_URL }

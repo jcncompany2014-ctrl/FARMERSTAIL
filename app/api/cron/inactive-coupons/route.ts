@@ -174,7 +174,7 @@ export async function GET(req: Request) {
       batch.map(async (user) => {
         try {
           const { subject, html } = renderComebackCoupon({
-            recipientName: user.name ?? '고객',
+            recipientName: user.name ?? '보호자',
             discountLabel,
             validUntil: coupon.expires_at,
           })

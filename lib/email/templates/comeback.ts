@@ -5,6 +5,9 @@
  * 형식은 birthday 템플릿 패턴 따라감 (paper-tone + serif + 큰 쿠폰 박스).
  */
 
+import { escape } from '../escape'
+import { marketingFooterRow } from '../layout'
+
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.farmerstail.kr'
 
@@ -15,10 +18,18 @@ export type ComebackEmailInput = {
   validUntil?: string | null
 }
 
+// R94 (D7): KST 강제 (서버 UTC 기준 하루 밀림 방지).
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return ''
-  const d = new Date(iso)
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+    .format(new Date(iso))
+    .replace(/\. /g, '.')
+    .replace(/\.$/, '')
 }
 
 export function renderComebackCoupon({
@@ -42,7 +53,7 @@ export function renderComebackCoupon({
         <tr><td style="padding:36px 32px 12px">
           <div style="font-family:'Archivo Black',Arial,sans-serif;font-size:11px;letter-spacing:0.22em;color:#A0452E;text-transform:uppercase">Comeback · 다시 만나요</div>
           <h1 style="margin:14px 0 0;font-family:'Noto Serif KR',serif;font-size:28px;line-height:1.2;letter-spacing:-0.02em;font-weight:900">
-            ${recipientName} 님,<br>오랜만이에요 🐾
+            ${escape(recipientName)} 님,<br>오랜만이에요 🐾
           </h1>
           <p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#3A3128">
             우리 아이는 잘 있나요? 그동안 자리를 비우신 사이 새로운 메뉴와
@@ -55,7 +66,7 @@ export function renderComebackCoupon({
           <div style="background:#9CB35F;border-radius:14px;padding:24px 24px 22px;text-align:center;color:#1E1A14">
             <div style="font-family:'Archivo Black',Arial,sans-serif;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;opacity:0.7">재참여 쿠폰</div>
             <div style="margin-top:6px;font-family:'Noto Serif KR',serif;font-size:24px;font-weight:900;letter-spacing:-0.02em">
-              ${discountLabel}
+              ${escape(discountLabel)}
             </div>
             <div style="margin-top:10px;font-size:13px;opacity:0.78">결제 단계에서 자동으로 적용돼요</div>
             ${validBlock}
@@ -73,12 +84,7 @@ export function renderComebackCoupon({
           </p>
         </td></tr>
 
-        <tr><td style="padding:0 32px 26px;border-top:1px solid #EDE6D8">
-          <p style="margin:16px 0 0;font-size:11px;color:#9C9282;line-height:1.5">
-            본 메일은 마케팅 정보 수신에 동의하신 분께 발송했어요. 수신
-            거부는 마이페이지 → 알림 설정에서 변경하실 수 있어요.
-          </p>
-        </td></tr>
+        ${marketingFooterRow()}
       </table>
     </td></tr>
   </table>

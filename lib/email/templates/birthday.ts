@@ -5,6 +5,9 @@
  * 형식은 lib/email/templates/orders.ts 의 표준과 맞춤.
  */
 
+import { escape } from '../escape'
+import { marketingFooterRow } from '../layout'
+
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.farmerstail.kr'
 
@@ -17,10 +20,18 @@ export type BirthdayEmailInput = {
   validUntil?: string | null
 }
 
+// R94 (D7): KST 강제 (서버 UTC 기준 하루 밀림 방지).
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return ''
-  const d = new Date(iso)
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+    .format(new Date(iso))
+    .replace(/\. /g, '.')
+    .replace(/\.$/, '')
 }
 
 export function renderBirthdayCoupon({
@@ -45,7 +56,7 @@ export function renderBirthdayCoupon({
         <tr><td style="padding:36px 32px 12px">
           <div style="font-family:'Archivo Black',Arial,sans-serif;font-size:11px;letter-spacing:0.22em;color:#A0452E;text-transform:uppercase">Birthday · 생일 축하</div>
           <h1 style="margin:14px 0 0;font-family:'Noto Serif KR',serif;font-size:28px;line-height:1.2;letter-spacing:-0.02em;font-weight:900">
-            ${recipientName} 님,<br>오늘이 그날이에요 🎂
+            ${escape(recipientName)} 님,<br>오늘이 그날이에요 🎂
           </h1>
           <p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#3A3128">
             우리 아이의 생일도 챙기시느라 바쁘셨죠. 오늘만큼은 사람도 함께
@@ -58,10 +69,10 @@ export function renderBirthdayCoupon({
           <div style="background:#D4A94A;border-radius:14px;padding:24px 24px 22px;text-align:center;color:#1E1A14">
             <div style="font-family:'Archivo Black',Arial,sans-serif;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;opacity:0.7">생일 쿠폰</div>
             <div style="margin-top:6px;font-family:'Noto Serif KR',serif;font-size:24px;font-weight:900;letter-spacing:-0.02em">
-              ${discountLabel}
+              ${escape(discountLabel)}
             </div>
             <div style="margin:14px auto 0;display:inline-block;background:#1E1A14;color:#D4A94A;font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;letter-spacing:0.18em;padding:10px 18px;border-radius:8px">
-              ${couponCode}
+              ${escape(couponCode)}
             </div>
             ${validBlock}
           </div>
@@ -78,9 +89,7 @@ export function renderBirthdayCoupon({
           </p>
         </td></tr>
 
-        <tr><td style="background:#F5F0E6;padding:18px 32px;font-size:11px;color:#7B6F5C;text-align:center">
-          파머스테일 · ${SITE_URL.replace(/^https?:\/\//, '')}
-        </td></tr>
+        ${marketingFooterRow()}
       </table>
     </td></tr>
   </table>
