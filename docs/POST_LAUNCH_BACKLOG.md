@@ -14,6 +14,7 @@
 - **R100-2 High**: `order-expire` cron 이 stock 복원 후 가드 없이 orders UPDATE → 후보 SELECT 직후 confirm 으로 paid 전환된 주문을 expired 로 덮고 재고 환원. 선점(`payment_status='pending'` 가드 + select)을 stock 복원보다 먼저 → 0-row 면 주문 전체 skip ✅
 - **R100-3 High**: admin `partial-cancel` 전액환불 재고복구가 SELECT-then-update (주석은 "멱등"이라 했으나 실제 TOCTOU) → 동시 더블클릭 재고 2배. UPDATE+`.is(null).select()` 원자화 ✅
 - **R100-4 마이그레이션 (실측 검증 + 적용)**: 에이전트가 "재실행 시 깨짐 High"로 본 dog_records/product_reviews/user_integrations 3종은 Supabase version 대조 결과 **이미 프로덕션 적용 완료** → 위험 미실현, 사실상 false-positive라 사후 수정 안 함(검증 불가 SQL 리스크만 추가). 대신 R96 작성 후 **미적용**이던 2종을 발견·실측 검증·적용: `subscription_status_guard` 트리거(해지구독 부활+즉시청구 차단) + `products` CHECK 3종(price/stock≥0, sale≤price). products 위반 데이터 0건 실측 후 NOT VALID 아닌 **VALID 즉시**(기존 22건 전부 검증). 창업자 승인 → MCP apply_migration, 트리거1+제약3 생성·VALID 검증 완료 ✅
+- **R100-B High (포인트)**: 주문취소 시 적립P 회수(`cancel/route.ts:278`) 결과 미검사 → 이미 쓴 포인트면 `apply_point_delta` 의 `v_next<0` 거부를 무시해 적립금 순증("적립 → 그 포인트로 결제 → 원주문 취소"). 결과 검사 + 현재 잔액만큼 **부분 회수**(RPC 는 거부 시 INSERT 안 해 같은 reference 재시도 안전) + 부족분 `console.error` 로깅 ✅ — 완전 음수허용 회수/clawback 큐는 RPC(apply_point_delta) 변경 필요라 잔존(아래 Medium)
 
 ### 🟡 정책 판단 필요 (코드 아닌 비즈니스 결정 — 창업자 확인 후 별도 라운드)
 - **R100-A Critical (어뷰징)**: 첫박스 50% 쿠폰(FIRSTBOX50, 최대 3만원)이 `user_id` 기준 1회 제한뿐 → 신규 계정 생성만으로 무한 반복 수령. phone/주소 정규화 해시 기준 중복차단 필요. **트레이드오프**: 초기 성장 단계엔 가입 마찰↑ 우려 → 출시 후 어뷰징 실측 보고 결정. (`20260520000002_first_box_50_coupon.sql:42`)
@@ -21,9 +22,10 @@
 - **R100-C High (네이티브)**: 네이티브 푸시 탭 딥링크(`pushNotificationActionPerformed`)·유니버설링크(`appUrlOpen`) 핸들러 둘 다 없음 — 서버는 url 실어 보내고 AASA/assetlinks 갖췄으나 라우팅 안 됨. **네이티브 앱(Capacitor) 실제 스토어 출시 시점에 처리** (PWA/web 출시엔 영향 0). `lib/capacitor.ts` 리스너 2개 추가.
 
 ### High 1주 내 fix 권장 (잔여 — 다음 라운드)
-- **R100-B High (포인트)**: 주문취소 시 적립P 회수(`cancel/route.ts:278` appendLedger `-points_earned`)가 결과 미검사 — 이미 쓴 포인트면 `v_next<0` 거부를 무시 → "결제→적립→적립금 사용→원주문 취소" 로 적립금 순증. 회수 실패분 deferred-clawback 큐 또는 음수 허용 회수 경로.
+- (이번 라운드에서 R100-1~4 + R100-B 모두 처리 — High 잔여 없음. 아래는 정책 판단 항목 + Medium/Low)
 
 ### Medium / Low (잔여)
+- **R100-B 잔존 (포인트, RPC 변경 필요)**: 적립 회수 부족분의 **완전 회수**는 음수 잔액 허용(clawback 빚 기록 후 차기 적립 상계) 또는 deferred-clawback 큐가 필요한데, `apply_point_delta` RPC 의 `v_next<0` 가드 수정 = prod 마이그레이션이라 보류. 현재는 부분회수 + error 로깅으로 관측·완화. 실측 빈도 낮음(적립률 1~5% 소액 + 취소 가능 상태 제한)
 - **R100-C M (PWA)**: `/sw.js`·`/manifest.json` 명시적 `Cache-Control` 없음 (빌드 SHA 무효화와 정합성 리스크) / `start_url=/dashboard`(app-only) cold-start 시 `ft_app` 쿠키 부재 → `/app-required` 막다른 페이지(PWA 첫 실행) → `start_url=/` 권장 / SW navigate 캐싱이 redirect 응답 미가드(`!response.redirected`)
 - **R100-2 M (재고)**: 체크아웃 주문생성이 클라발 다중 await (orders→coupon→points→items→reserve_stock 각 독립 커밋) → 단일 `create_order` RPC 트랜잭션화 대공사. 현행 보상 롤백 + order-expire 사후정리로 차선 방어 중
 - **R100-B M (포인트)**: point_ledger INTEGER 오버플로우 상한 가드 없음(`v_next<0` 하한만) → BIGINT 또는 상한 가드 / 부분취소 시 쿠폰 used_count 미복원(의도적 보류, CS 부담)

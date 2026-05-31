@@ -6,7 +6,11 @@ import {
   isOrderStatus,
   isPaymentStatus,
 } from '@/lib/commerce/order-fsm'
-import { creditPoints, appendLedger } from '@/lib/commerce/points'
+import {
+  creditPoints,
+  appendLedger,
+  getCurrentBalance,
+} from '@/lib/commerce/points'
 import { revokeCouponRedemption } from '@/lib/coupons'
 import { cancelPayment } from '@/lib/payments/toss'
 import { notifyOrderCancelled } from '@/lib/email'
@@ -276,13 +280,38 @@ export async function POST(
   // 4) Revoke earned points (only if they were actually credited — paid orders).
   //    음수 delta를 직접 넣어야 하므로 creditPoints/debitPoints 대신 appendLedger.
   if (order.points_earned > 0 && order.payment_status !== 'pending') {
-    await appendLedger(supabase, {
+    const revoke = await appendLedger(supabase, {
       userId: user.id,
       delta: -order.points_earned,
       reason: '주문 취소 적립 회수',
       referenceType: 'order_refund_revoke',
       referenceId: order.id,
     })
+    // R100-B: 회수 결과 검사 + 부분 회수 fallback. 이전엔 결과를 무시해서,
+    // 사용자가 적립 포인트를 이미 다른 주문에 써서 잔액 < points_earned 면
+    // apply_point_delta 가 v_next<0 으로 거부(ok=false)한 걸 흘려보내 적립금이
+    // 순증했다 ("적립 → 그 포인트로 결제 → 원주문 취소"). RPC 는 거부 시 row
+    // INSERT 를 하지 않으므로(같은 reference 재시도 가능) 현재 잔액만큼 부분
+    // 회수하고, 그래도 남는 부족분은 error 로깅해 운영자가 인지/수동 정산한다.
+    if (!revoke.ok) {
+      const balance = await getCurrentBalance(supabase, user.id)
+      const partial = Math.min(order.points_earned, Math.max(0, balance))
+      if (partial > 0) {
+        await appendLedger(supabase, {
+          userId: user.id,
+          delta: -partial,
+          reason: '주문 취소 적립 부분 회수(잔액 한도)',
+          referenceType: 'order_refund_revoke',
+          referenceId: order.id,
+        })
+      }
+      const shortfall = order.points_earned - partial
+      if (shortfall > 0) {
+        console.error(
+          `[cancel] earned-point clawback shortfall: order=${order.id} user=${user.id} earned=${order.points_earned} revoked=${partial} shortfall=${shortfall}`,
+        )
+      }
+    }
   }
 
   // 5) Decrement coupon usage — redemption 행은 감사 목적으로 보존.
