@@ -100,4 +100,38 @@ describe('findLedgerMismatches', () => {
     // null total + null refunded = 0 net. ledger 0. → match.
     assert.equal(findLedgerMismatches(orders, events).length, 0)
   })
+
+  it('R101: 결제 미완료 만료 cancelled (total 보존, ledger 0) → mismatch 아님 (false positive 제거)', () => {
+    // order-expire 가 pending→cancelled 로 바꾸되 total_amount 보존 + amount=0
+    // 이벤트만. 결제 캡처가 없으므로 net 도 0 — 가짜 불일치를 만들면 안 됨.
+    const orders: OrderSnapshot[] = [
+      { id: 'o1', payment_status: 'cancelled', total_amount: 50000, refunded_amount: 0 },
+    ]
+    const events: LedgerEvent[] = [{ order_id: 'o1', amount: 0 }]
+    assert.equal(findLedgerMismatches(orders, events).length, 0)
+  })
+
+  it('R101: 결제 후 전액환불 cancelled (ledger 0) → mismatch 아님 (기존 동작 유지)', () => {
+    const orders: OrderSnapshot[] = [
+      { id: 'o1', payment_status: 'cancelled', total_amount: 50000, refunded_amount: 50000 },
+    ]
+    const events: LedgerEvent[] = [
+      { order_id: 'o1', amount: 50000 },
+      { order_id: 'o1', amount: -50000 },
+    ]
+    assert.equal(findLedgerMismatches(orders, events).length, 0)
+  })
+
+  it('R101: cancelled 라도 ledger≠0 이면 진짜 mismatch 는 계속 감지', () => {
+    const orders: OrderSnapshot[] = [
+      { id: 'o1', payment_status: 'cancelled', total_amount: 30000, refunded_amount: 0 },
+    ]
+    const events: LedgerEvent[] = [
+      { order_id: 'o1', amount: 30000 },
+      { order_id: 'o1', amount: 10000 }, // 이상 이벤트
+    ]
+    const result = findLedgerMismatches(orders, events)
+    assert.equal(result.length, 1)
+    assert.equal(result[0]!.ledgerBalance, 40000)
+  })
 })

@@ -4,6 +4,7 @@ import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { sendEmail } from '@/lib/email'
 import { renderVipCoupon } from '@/lib/email/templates/vip'
+import { generateMarketingUnsubscribeToken } from '@/lib/email/unsubscribe-token'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -167,6 +168,9 @@ export async function GET(req: Request) {
             html,
             tag: 'vip-coupon',
             idempotencyKey: `vip:${user.id}:${yearMonth}`,
+            // R101: RFC 8058 List-Unsubscribe — Gmail/Yahoo 2024 대량발송 필수.
+            //   누락 시 광고성 메일이 스팸함 직행. (notifyAbandonedCart 와 동일 패턴)
+            unsubscribeUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'}/api/marketing/unsubscribe?uid=${encodeURIComponent(user.id)}&token=${generateMarketingUnsubscribeToken(user.id)}`,
           })
           await admin.from('vip_coupon_log').insert({
             user_id: user.id,

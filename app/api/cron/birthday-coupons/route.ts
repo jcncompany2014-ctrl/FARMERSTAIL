@@ -4,6 +4,7 @@ import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { sendEmail } from '@/lib/email'
 import { renderBirthdayCoupon } from '@/lib/email/templates/birthday'
+import { generateMarketingUnsubscribeToken } from '@/lib/email/unsubscribe-token'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -187,6 +188,8 @@ export async function GET(req: Request) {
             html,
             tag: 'birthday-coupon',
             idempotencyKey: `birthday:${user.id}:${today.year}`,
+            // R101: RFC 8058 List-Unsubscribe — Gmail/Yahoo 2024 대량발송 필수.
+            unsubscribeUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'}/api/marketing/unsubscribe?uid=${encodeURIComponent(user.id)}&token=${generateMarketingUnsubscribeToken(user.id)}`,
           })
           // 발송 성공 여부와 무관하게 log 기록 — 재시도 무한 루프 방지.
           await admin.from('birthday_coupon_log').insert({

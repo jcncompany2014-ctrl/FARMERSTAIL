@@ -38,9 +38,28 @@ type ResendEvent = {
     to?: string[] | string
     from?: string
     subject?: string
-    bounce?: { reason?: string }
+    bounce?: { reason?: string; message?: string; type?: string; subType?: string }
     [k: string]: unknown
   }
+}
+
+/**
+ * 하드바운스/스팸신고/명시적 수신거부 시 마케팅 발송 차단 처리.
+ * - newsletter_subscribers.status='unsubscribed'
+ * - profiles.agree_email=false (정보통신망법 §50④ 자동 수신거부 처리)
+ */
+async function applySuppression(
+  supabase: ReturnType<typeof createAdminClient>,
+  lowered: string[],
+): Promise<void> {
+  await supabase
+    .from('newsletter_subscribers')
+    .update({ status: 'unsubscribed', unsubscribed_at: new Date().toISOString() })
+    .in('email', lowered)
+  await supabase
+    .from('profiles')
+    .update({ agree_email: false, agree_email_at: null })
+    .in('email', lowered)
 }
 
 export async function POST(req: Request) {
@@ -113,31 +132,35 @@ export async function POST(req: Request) {
   const lowered = recipients.map((e) => e.toLowerCase())
 
   switch (event.type) {
-    case 'email.bounced':
+    case 'email.bounced': {
+      if (lowered.length === 0) break
+      // R101: Permanent(하드) 바운스만 영구 수신거부. 이전엔 bounce.type 을
+      // 무시하고 모든 바운스를 차단 → 메일함 꽉참/그레이리스팅 같은 Transient
+      // (일시) 바운스 한 번에 정상 구독자가 영구 제거됐다(재동의 전 복구 불가).
+      // Resend(SES) 는 type=Permanent|Transient|Undetermined 제공. 정상 주소를
+      // 잃는 손해가 더 크므로 Permanent 가 명확할 때만 suppression, 그 외 카운트만.
+      const bounceType = event.data?.bounce?.type
+      if (bounceType !== 'Permanent') {
+        captureBusinessEvent('info', 'email.bounced.transient', {
+          recipients: lowered.length,
+          bounceType: bounceType ?? 'unknown',
+        })
+        break
+      }
+      await applySuppression(supabase, lowered)
+      captureBusinessEvent('warning', 'email.bounced.permanent', {
+        recipients: lowered.length,
+        reason: event.data?.bounce?.message ?? event.data?.bounce?.reason,
+      })
+      break
+    }
     case 'email.complained':
     case 'email.unsubscribed': {
       if (lowered.length === 0) break
-      // newsletter 구독 차단
-      await supabase
-        .from('newsletter_subscribers')
-        .update({
-          status: 'unsubscribed',
-          unsubscribed_at: new Date().toISOString(),
-        })
-        .in('email', lowered)
-
-      // profiles 의 마케팅 동의 강제 철회
-      await supabase
-        .from('profiles')
-        .update({
-          agree_email: false,
-          agree_email_at: null,
-        })
-        .in('email', lowered)
-
+      // 명시적 수신거부 의사(스팸신고 / List-Unsubscribe) — 즉시 차단.
+      await applySuppression(supabase, lowered)
       captureBusinessEvent('warning', `email.${event.type.split('.')[1]}`, {
         recipients: lowered.length,
-        reason: event.data?.bounce?.reason,
       })
       break
     }

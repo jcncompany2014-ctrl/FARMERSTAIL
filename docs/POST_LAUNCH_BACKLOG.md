@@ -5,6 +5,39 @@
 
 ---
 
+## 🔴 R101 (D7) — 대규모 4영역 (인증·세션 / 이메일 전달성 / 정합성·reconcile / admin 권한·감사)
+
+결제 실테스트 불가. 아직 안 본 4영역 병렬. admin 권한 게이트는 **API 12개 전수 통과(견고)** 확인.
+
+### 이번 라운드 fix 완료
+- **R101-1 Critical (이메일)**: vip/birthday/inactive cron 마케팅 메일에 `List-Unsubscribe` 헤더(unsubscribeUrl) 누락 → Gmail/Yahoo 2024 정책상 첫 발송부터 스팸함 직행. `generateMarketingUnsubscribeToken` + `/api/marketing/unsubscribe` 추가(notifyAbandonedCart 동일 패턴) ✅
+- **R101-2 Critical (이메일)**: Resend webhook 이 `email.bounced`를 `bounce.type` 무시하고 전부 영구 수신거부 → 메일함 꽉참/그레이리스팅 같은 Transient(일시) 바운스 한 번에 정상 구독자 영구 제거. `type==='Permanent'` 만 suppression, 그 외 카운트만. complained/unsubscribed(명시적 의사)는 분리 유지 ✅
+- **R101-3 High (인증)**: 비번 재설정이 로컬 `signOut()` 만 → 계정 탈취 시 공격자의 다른 기기 세션 유지. `signOut({scope:'global'})` 로 전 디바이스 refresh token 폐기 ✅
+- **R101-4 High (reconcile)**: 결제 미완료 만료 cancelled 주문(total 보존, ledger=0)이 `orderNet=total≠0` 으로 매주 가짜 mismatch → 진짜 불일치 묻힘. `cancelled && ledger===0 → net=0` 분기(결제 캡처 없음). 회귀 테스트 3 추가 ✅
+
+### 🟡 안전한 Medium (잔여 — 다음 phase)
+- **R101-A (인증)**: `(auth)`/`/auth/callback` 이 proxy matcher 누락 + password 로그인에 `deleted_at` 가드 부재(OAuth 만 있음) → soft-delete 계정이 이메일 로그인으로 통과. 로그인/`(main)` 레이아웃에 deleted_at 검사
+- **R101-B (인증)**: OAuth/login `next` 파라미터가 `/api/admin`·`/admin` 등 내부 경로 redirect 허용 → allowlist 로 앱 화면 경로만
+- **R101-C (인증)**: `lib/auth/admin.ts` 의 `isAdmin()` 이 `profiles.role` fallback 잔존(DB `is_admin()` 는 제거됨) → 코드/DB SSOT 불일치. fallback 삭제 + admin.test.ts 갱신 (트리거가 self-elevation 막아 즉시 악용은 불가)
+- **R101-D (정합성)**: admin/users 누적금액이 `payment_status='paid'` 만 합산 → partially_refunded 주문 통째 누락. `IN ('paid','partially_refunded')` + `total-refunded` net
+- **R101-E (계정)**: account/delete 보조테이블 18개 `Promise.all` → 부분실패 침묵 유실. `allSettled` + Sentry
+
+### 🔵 큰 작업 → BACKLOG (RPC/테이블/마이그레이션 변경 필요)
+- **R101-F (이메일)**: `email_suppressions` 테이블 신설 — 트랜잭션 메일도 하드바운스/complained 주소로 재발송 막아 도메인 평판 보호. webhook upsert + sendEmail 진입부 조회
+- **R101-G (이메일)**: 광고성 야간발송 제한(정보통신망법 §50⑧, 21–08시 KST) 공용 가드
+- **R101-H (정합성/Critical급)**: `partially_refunded → cancelled` 전량취소 시 sales_count·cumulative_spend 미차감(트리거가 `old='paid'` 만 매치) → 베스트정렬 왜곡 + VIP등급 인플레. 트리거를 `IN('paid','partially_refunded')` 로 확장하되 부분환불 기차감분 제외하게 재설계 (prod 마이그)
+- **R101-I (정합성)**: webhook PARTIAL_CANCELED 가 refunded_amount 미갱신 + refunds row 미삽입 → reconcile mismatch + 집계 누락. Toss balance 기준 동기화
+- **R101-J (감사)**: 쿠폰 생성/삭제·feature flag 가 브라우저 직접 DML → recordAdminAction 안 탐(감사로그 전무). 서버 라우트 경유로 전환해 coupon_create/revoke 기록. orders/export PII 추출도 admin_data_export 미기록
+- **R101-K (이메일)**: webhook 이 `data.to` 만 보고 recipient 누락 시 침묵 → email_id 역조회 또는 Sentry warning
+
+### 견고 확인 (발견 0 / 모범)
+- **admin 권한**: API 라우트 12개 전수 `getUser()`(위조불가)+`isAdmin()` 게이트 통과, self-elevation 다층 차단(app_metadata 단일소스 + profiles.role 변경 트리거 + user_metadata.role 제거), IDOR 방어(createAdminClient 전 isAdmin 필수)
+- **인증 신뢰경계**: 서버 보안결정은 전부 getUser()(JWT 재검증), getSession 은 UI-only, exchangeCodeForSession 에러 안정 매핑, enumeration 방어
+- **이메일**: 마케팅 unsubscribe 토큰 HMAC+timingSafeEqual, webhook svix 서명 fail-fast, 트랜잭션/마케팅 동의 분리, confirm_token 일회용
+- **정합성 cron**: subscription-charge UNIQUE+상태재확인, refund-retry FIFO+backoff+이어받기, payment_events 불변 트리거, inactive-coupons 월 dedup
+
+---
+
 ## 🔴 R100 (D7) — 대규모 4영역 (재고동시성 / 쿠폰·포인트 악용 / PWA·네이티브 / 마이그레이션)
 
 결제 실테스트 불가 상황 → 정적 분석으로만 잡히는 동시성·악용 결함 집중. 4 병렬 에이전트.

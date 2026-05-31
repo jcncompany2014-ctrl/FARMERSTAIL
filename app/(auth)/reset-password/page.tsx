@@ -105,7 +105,11 @@ export default function ResetPasswordPage() {
     }
 
     // 변경 직후 recovery 세션 종료 → 새 비밀번호로 다시 로그인하도록.
-    await supabase.auth.signOut()
+    // R101: scope:'global' 로 전 디바이스 refresh token 폐기. 기본 signOut() 은
+    // 현재 디바이스 세션만 종료해서, 계정 탈취 후 "비번 변경으로 차단" 을 시도해도
+    // 공격자의 다른 기기 세션이 그대로 살아남는다(Supabase 는 비번 변경 시 다른
+    // 세션을 자동 폐기하지 않음). 비밀번호 재설정의 핵심 목적이 계정 복구이므로 global.
+    await supabase.auth.signOut({ scope: 'global' })
     setDone(true)
 
     // 3초 후 자동 이동
