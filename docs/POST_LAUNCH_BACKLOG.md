@@ -5,6 +5,40 @@
 
 ---
 
+## 🔴 R96 (D7) — 대규모 6영역 병렬 검토 (IDOR/race/validation/a11y/구독/admin)
+
+### 이번 라운드 fix 완료
+- **R96-C** admin/orders/export `.or()` PostgREST 인젝션 → sanitize 적용 ✅
+- **R96-D** AppChrome skip-link 타깃 `#main` 추가 (장차법 §14 / WCAG 2.4.1) ✅
+- **R96-D** CartList 행별 버튼 aria-label 에 상품명 (다중 상품 식별) ✅
+- **R96-E** changeInterval KST 헬퍼 통일 (R85-D 누락분, 즉시청구 위험) ✅
+- **R96-E** migration 20260527000010 — cancelled 구독 부활 차단 트리거 (작성, 적용 대기) ✅
+- **R96-F** migration 20260527000011 — products price/stock/sale_price CHECK (NOT VALID, 작성) ✅
+
+### migration 적용 필요 (출시 전, 데이터 확인 후)
+- **20260527000010** subscription status guard — 안전 (트리거, 미래 UPDATE 만)
+- **20260527000011** products CHECK — NOT VALID 라 안전. 적용 전 위반 데이터 확인 SQL 주석 참조
+
+### 출시차단/High 1주 내 fix 권장 (잔여)
+- **R96-E 출시차단**: paused→active resume 시 `billing_key IS NULL` 미체크 → 카드 미등록 구독이 active 되어 cron 청구 불가 (유령 active). cleanup 도 안 잡힘. `handleResume` 에 NULL 가드 + billing-auth redirect (Subscription 타입에 billing_key 추가 필요)
+- **R96-E High**: 단일 SKU `/subscribe/[slug]` 중복 구독 가드 없음 (박스 흐름만 있음) → 같은 상품 N중 청구. user_id+product_id 중복 조회 추가
+- **R96-E High**: subscription-charge `nextDeliveryDate(sub, today)` 가 today 기준 → 연체/cron지연 시 결제일 드리프트. base 를 `sub.next_delivery_date` 로 + `while(next<=today) advance`
+- **R96-E High**: billing-issue 재등록 시 `next_delivery_date` 미갱신 → 즉시 청구 또는 NULL 영구 미청구. 정책 결정 후 set
+- **R96-F High**: admin 정기배송 "일괄 주문 생성" 이 anon client 라 RLS 로 타 회원 건 전부 실패 (운영자 모름). `/api/admin/subscriptions/create-orders` route + createAdminClient 로 이전
+- **R96-F High**: 일괄 주문 생성 비-트랜잭션 + order_items 에러 미체크 → 고아 주문. RPC 로 원자화
+- **R96-B High**: 설문 재진단 30일 제한이 동시 제출(탭2개)로 우회 → AI 비용 + 1000P 중복 적립. analyses insert 를 서버 RPC (advisory lock + 직전 분석 재확인) 로
+- **R96-D High**: 설문 입력 필드 (Diet/Status/Pregnancy 의 브랜드/처방식/약/임신주차/산자수/예상체중) 프로그램적 라벨 없음 (placeholder만) → 스크린리더 "편집창" 으로만. aria-label 추가
+
+### Medium / Low (잔여)
+- **R96-B Med**: 보상 연 cap(capAllowance) non-atomic — survey_completion 만 노출 (cap 초과 가능). RPC 트랜잭션화
+- **R96-C 관찰**: partial-cancel refundReceiveAccount zod 검증 / push/preferences zPushPreferences 적용 / invitations dog_id UUID 검증
+- **R96-D Med**: 설문 로딩 진행 aria-live + focus 셀렉터 확장 / login·signup label htmlFor+id 연결 / 쿠폰 코드 input aria-label
+- **R96-E Med**: 해지 시 "마지막 배송 정상 발송" 안내 + orders.subscription_id FK / 청구 시 재고 0 검증 (현재 돈 받고 발송불가 가능)
+- **R96-F Med**: 쿠폰 정률 >100% 입력 (계산시 클램프돼 무해하나 입력가드 없음) / admin UI write 경로 recordAdminAction 누락 / 쿠폰 만료일 과거 입력 / 단건 해지 confirm 없음
+- **R96-A IDOR**: 발견 0건 (견고 — 모든 소유권 가드 + admin client 선검증)
+
+---
+
 ## 🔴 R91 (D7) — 5개 영역 정밀 검토 잔여 (총 44건 발견)
 
 ### Critical 즉시 fix 완료 (5건)

@@ -345,7 +345,7 @@ export default function CartList({
                     onClick={() => removeItem(row.id)}
                     disabled={isBusy}
                     className="shrink-0 p-1 -mr-1 -mt-1 text-muted hover:text-sale transition disabled:opacity-40"
-                    aria-label="삭제"
+                    aria-label={`${row.product.name} 삭제`}
                   >
                     <X size={16} strokeWidth={2.2} />
                   </button>
@@ -374,7 +374,7 @@ export default function CartList({
                         background: '#fff',
                         color: '#1a140c',
                       }}
-                      aria-label="수량 감소"
+                      aria-label={`${row.product.name} 수량 줄이기`}
                     >
                       <Minus size={14} strokeWidth={2.4} />
                     </button>
@@ -400,7 +400,7 @@ export default function CartList({
                         background: '#1a140c',
                         color: '#fff',
                       }}
-                      aria-label="수량 증가"
+                      aria-label={`${row.product.name} 수량 늘리기`}
                     >
                       <Plus size={14} strokeWidth={2.4} />
                     </button>

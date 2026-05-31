@@ -130,8 +130,15 @@ export async function GET(request: Request) {
   }
 
   if (q) {
-    // 주문번호 · 수령자명 부분 일치. SQL injection 은 supabase-js 가 이스케이프.
-    query = query.or(`order_number.ilike.%${q}%,recipient_name.ilike.%${q}%`)
+    // R96-C (D7): PostgREST `.or()` expression string 은 supabase-js 가 escape
+    // 하지 않는다 (.ilike() 의 *값* 인자만 escape). 문법 토큰(,()*.%\)을 strip
+    // 해 새 filter 절 주입을 차단 — search/suggest 의 sanitizeQuery 와 동일 패턴.
+    const safeQ = q.replace(/[,()*.%\\]/g, '').slice(0, 80)
+    if (safeQ) {
+      query = query.or(
+        `order_number.ilike.%${safeQ}%,recipient_name.ilike.%${safeQ}%`,
+      )
+    }
   }
 
   const { data, error } = await query

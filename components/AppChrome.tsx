@@ -303,6 +303,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           88px tab content + 12px home-bar gap.
           focus mode (설문 등) 에선 nav 가 없으니 padding 줄임. */}
       <main
+        id="main"
         className={`max-w-md mx-auto ${
           focusMode
             ? 'pb-[env(safe-area-inset-bottom)]'

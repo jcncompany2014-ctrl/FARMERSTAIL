@@ -297,14 +297,17 @@ export default function SubscriptionsClient({
     setActionLoading(subId)
     const uid = await requireUid()
     if (!uid) return
-    const nextDate = new Date()
-    nextDate.setDate(nextDate.getDate() + newInterval * 7)
+    // R96-E (D7): KST 헬퍼로 통일 — raw Date 는 KST 00:00~08:59 구간에 UTC 가
+    // 전날이라 next_delivery_date 가 하루 빠르게 저장됨. 주기를 짧게 바꾸며
+    // 그 날짜가 오늘/과거가 되면 다음 cron 이 즉시 청구하는 위험. R85-D 에서
+    // pause/resume 은 전환됐는데 이 핸들러만 raw Date 잔존했음.
+    const nextDate = addDaysKst(todayKstIsoDate(), newInterval * 7)
 
     await supabase
       .from('subscriptions')
       .update({
         interval_weeks: newInterval,
-        next_delivery_date: nextDate.toISOString().split('T')[0],
+        next_delivery_date: nextDate,
       })
       .eq('id', subId)
       .eq('user_id', uid)
