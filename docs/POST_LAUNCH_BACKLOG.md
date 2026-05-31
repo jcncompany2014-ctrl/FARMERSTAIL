@@ -5,6 +5,42 @@
 
 ---
 
+## 🔴 R100 (D7) — 대규모 4영역 (재고동시성 / 쿠폰·포인트 악용 / PWA·네이티브 / 마이그레이션)
+
+결제 실테스트 불가 상황 → 정적 분석으로만 잡히는 동시성·악용 결함 집중. 4 병렬 에이전트.
+
+### 이번 라운드 fix 완료
+- **R100-1 Critical**: `cancel-items` 부분취소 원자성 부재 — `cancelled_at IS NULL` SELECT 후 무조건 UPDATE 라 동시 더블클릭 2요청이 둘 다 통과 → restore_stock 2회(재고 부풀림) + refunds row 2개 + sales_count/cumulative_spend 트리거 중복 차감. `.is('cancelled_at',null).select()` 원자적 선점 + 0-row 409 + 이후 처리 전부 claimed 기준 ✅
+- **R100-2 High**: `order-expire` cron 이 stock 복원 후 가드 없이 orders UPDATE → 후보 SELECT 직후 confirm 으로 paid 전환된 주문을 expired 로 덮고 재고 환원. 선점(`payment_status='pending'` 가드 + select)을 stock 복원보다 먼저 → 0-row 면 주문 전체 skip ✅
+- **R100-3 High**: admin `partial-cancel` 전액환불 재고복구가 SELECT-then-update (주석은 "멱등"이라 했으나 실제 TOCTOU) → 동시 더블클릭 재고 2배. UPDATE+`.is(null).select()` 원자화 ✅
+
+### 🟡 정책 판단 필요 (코드 아닌 비즈니스 결정 — 창업자 확인 후 별도 라운드)
+- **R100-A Critical (어뷰징)**: 첫박스 50% 쿠폰(FIRSTBOX50, 최대 3만원)이 `user_id` 기준 1회 제한뿐 → 신규 계정 생성만으로 무한 반복 수령. phone/주소 정규화 해시 기준 중복차단 필요. **트레이드오프**: 초기 성장 단계엔 가입 마찰↑ 우려 → 출시 후 어뷰징 실측 보고 결정. (`20260520000002_first_box_50_coupon.sql:42`)
+- **R100-A Critical (어뷰징)**: 리퍼럴 보상이 "가입 즉시" 적립(초대자 5천P+피초대자 3천P+보너스 3천P) → 다계정 파밍·가입후탈퇴. "첫 결제 완료" 시점 이연 권장. **선결**: `redeem_referral_code` RPC 가 마이그레이션에 없음(live DB only) → 버전관리 편입부터.
+- **R100-C High (네이티브)**: 네이티브 푸시 탭 딥링크(`pushNotificationActionPerformed`)·유니버설링크(`appUrlOpen`) 핸들러 둘 다 없음 — 서버는 url 실어 보내고 AASA/assetlinks 갖췄으나 라우팅 안 됨. **네이티브 앱(Capacitor) 실제 스토어 출시 시점에 처리** (PWA/web 출시엔 영향 0). `lib/capacitor.ts` 리스너 2개 추가.
+
+### High 1주 내 fix 권장 (잔여 — 다음 라운드)
+- **R100-4 High**: 마이그레이션 3종(dog_records/product_reviews/user_integrations) `DROP POLICY IF EXISTS` + `BEGIN/COMMIT` 누락 → 부분 적용 시 재실행 깨짐. **적용 여부 확인 후** 멱등 보강 (이미 적용됐으면 무해, 미적용/새환경 대비).
+- **R100-B High (포인트)**: 주문취소 시 적립P 회수(`cancel/route.ts:278` appendLedger `-points_earned`)가 결과 미검사 — 이미 쓴 포인트면 `v_next<0` 거부를 무시 → "결제→적립→적립금 사용→원주문 취소" 로 적립금 순증. 회수 실패분 deferred-clawback 큐 또는 음수 허용 회수 경로.
+
+### Medium / Low (잔여)
+- **R100-C M (PWA)**: `/sw.js`·`/manifest.json` 명시적 `Cache-Control` 없음 (빌드 SHA 무효화와 정합성 리스크) / `start_url=/dashboard`(app-only) cold-start 시 `ft_app` 쿠키 부재 → `/app-required` 막다른 페이지(PWA 첫 실행) → `start_url=/` 권장 / SW navigate 캐싱이 redirect 응답 미가드(`!response.redirected`)
+- **R100-2 M (재고)**: 체크아웃 주문생성이 클라발 다중 await (orders→coupon→points→items→reserve_stock 각 독립 커밋) → 단일 `create_order` RPC 트랜잭션화 대공사. 현행 보상 롤백 + order-expire 사후정리로 차선 방어 중
+- **R100-B M (포인트)**: point_ledger INTEGER 오버플로우 상한 가드 없음(`v_next<0` 하한만) → BIGINT 또는 상한 가드 / 부분취소 시 쿠폰 used_count 미복원(의도적 보류, CS 부담)
+- **R100-4 M (마이그)**: products CHECK 3종 `NOT VALID` 잔존 → 출시 전 위반 0건 확인 후 `VALIDATE CONSTRAINT` / 동일 타임스탬프 4건(현재 사전식 정렬로 안전, 컨벤션만 주의)
+- **R100-C L (네이티브)**: native token 정리 cron 보강, registerNativePush timeout, iOS denied 게이트가 네이티브 토글 막을 여지
+
+### 견고 확인 (발견 0 / 모범)
+- **마지막-1개 oversell 방어**: `reserve_order_stock` RPC 가 `FOR UPDATE` 락 + 조건부 decrement, Toss redirect 전 확정 — read-then-write 아님
+- **결제 보상 트랜잭션**: confirm DB 실패/0-row 레이스 시 `cancelPayment` → `payment_refund_queue` → retry cron. orphan payment 방어 견고
+- **포인트 원장**: `apply_point_delta` advisory lock + 멱등 unique index + UPDATE/DELETE 금지 트리거(불변)
+- **쿠폰 더블스펜드**: `redeem_coupon` `FOR UPDATE` + `coupon_redemptions` UNIQUE 멱등
+- **결제 멱등**: confirm/구독청구/취소 전부 결정적 Idempotency-Key, webhook 은 Toss 재조회를 진실원천
+- **SW 캐시 함정 회피**: `/api/`·supabase·toss·인증경로 navigate 무캐시, activate 구버전 전체 삭제, build SHA 주입
+- **마이그레이션 모범**: `security_critical_fixes` BEGIN/COMMIT+`DO $$ 존재확인`, RLS WITH CHECK 하드닝(`20260527000009`), NOT NULL 9건 전부 DEFAULT 동반
+
+---
+
 ## 🔴 R99 (D7) — 대규모 2영역 (SEO·메타 / 영양 알고리즘 정확성)
 
 ### 이번 라운드 fix 완료

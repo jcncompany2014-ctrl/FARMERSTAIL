@@ -82,7 +82,34 @@ async function runOrderExpire(): Promise<Response> {
 
   let expired = 0
   for (const ord of targets) {
-    // 1) 항목 fetch + stock 복원.
+    const nowIso = new Date().toISOString()
+
+    // R100-2 (High): 주문을 stock 복원보다 먼저 원자적으로 선점한다.
+    //   payment_status='pending' AND order_status='pending' 가드 + .select() 로
+    //   0-row 면 그 주문 전체를 skip. 이전엔 stock 복원/cancelled_at 마킹을 먼저
+    //   하고 orders UPDATE 에 가드가 없어서, 후보 SELECT(line 59) 직후 사용자가
+    //   confirm 으로 paid 전환하면 cron 이 그 paid 주문을 expired 로 덮고 재고까지
+    //   복원 → 결제 성사 주문이 사라지고 재고가 유령 증가했다. confirm 라우트는
+    //   반대 방향(.eq('payment_status','pending'))을 자체 가드하므로, 선점 가드를
+    //   여기에 추가하면 양방향 레이스가 닫힌다.
+    const { data: claimed } = await supabase
+      .from('orders')
+      .update({
+        payment_status: 'cancelled',
+        order_status: 'expired',
+        cancelled_at: nowIso,
+        cancel_reason: '30분 결제 미완료 자동 만료',
+      })
+      .eq('id', ord.id)
+      .eq('payment_status', 'pending')
+      .eq('order_status', 'pending')
+      .select('id')
+    if (!claimed || claimed.length === 0) {
+      // 사용자가 그 사이 결제 완료(confirm → paid) → 건드리지 않고 다음 주문.
+      continue
+    }
+
+    // 1) 항목 fetch + stock 복원. (선점 성공한 주문만)
     const { data: items } = await supabase
       .from('order_items')
       .select('id, product_id, quantity, line_total')
@@ -94,7 +121,6 @@ async function runOrderExpire(): Promise<Response> {
       quantity: number
       line_total: number
     }>
-    const nowIso = new Date().toISOString()
 
     for (const it of itemsArr) {
       await supabase.rpc('restore_stock', {
@@ -106,17 +132,6 @@ async function runOrderExpire(): Promise<Response> {
         .update({ cancelled_at: nowIso })
         .eq('id', it.id)
     }
-
-    // 2) order 마감.
-    await supabase
-      .from('orders')
-      .update({
-        payment_status: 'cancelled',
-        order_status: 'expired',
-        cancelled_at: nowIso,
-        cancel_reason: '30분 결제 미완료 자동 만료',
-      })
-      .eq('id', ord.id)
 
     // R61 — 결제 원장 event. 미완료 만료는 결제 자체 없으니 amount=0.
     {

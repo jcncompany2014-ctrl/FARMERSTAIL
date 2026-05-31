@@ -261,35 +261,28 @@ export async function POST(
 
   // R93 (D7): 전액 환불 완료 시 재고 복구 — cancel route 와 동일 패턴.
   // 이전엔 admin 전액 환불 후 재고가 차감된 채 방치 → 품절 오인 + 판매 손실.
-  // order_items.cancelled_at IS NULL 가드로 멱등성 (중복 환불/재시도 시
-  // 두 번째는 0-row → 재고 중복 복구 방지). 포인트/쿠폰 자동 조정은 기존
-  // 설계대로 운영자 수동 (금액 분배 복잡 — 주석 상단 참조).
+  // R100-3: UPDATE + `.is('cancelled_at', null)` 가드 + `.select()` 로 원자적
+  // 선점. 이전 구현은 "멱등"이라 주석했으나 실제로는 SELECT-then-update 라
+  // 동시 전액환불 더블클릭 시 두 요청이 둘 다 cancelled_at IS NULL 을 통과 →
+  // restore_stock 2회(재고 2배 복구) 가능했다. 이제 선점 성공분만 복구.
+  // 포인트/쿠폰 자동 조정은 기존 설계대로 운영자 수동 (금액 분배 복잡 — 상단 주석).
   if (isFullyRefunded) {
-    const { data: itemsToRestore } = await admin
+    const { data: claimedRestore } = await admin
       .from('order_items')
-      .select('id, product_id, quantity')
+      .update({ cancelled_at: new Date().toISOString() })
       .eq('order_id', order.id)
       .is('cancelled_at', null)
-    const restoreArr = (itemsToRestore ?? []) as Array<{
+      .select('id, product_id, quantity')
+    const restoreArr = (claimedRestore ?? []) as Array<{
       id: string
       product_id: string
       quantity: number
     }>
-    if (restoreArr.length > 0) {
-      const cancelTime = new Date().toISOString()
-      await admin
-        .from('order_items')
-        .update({ cancelled_at: cancelTime })
-        .in(
-          'id',
-          restoreArr.map((it) => it.id),
-        )
-      for (const it of restoreArr) {
-        await admin.rpc('restore_stock', {
-          p_product_id: it.product_id,
-          p_qty: it.quantity,
-        })
-      }
+    for (const it of restoreArr) {
+      await admin.rpc('restore_stock', {
+        p_product_id: it.product_id,
+        p_qty: it.quantity,
+      })
     }
   }
 

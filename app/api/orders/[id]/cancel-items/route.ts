@@ -203,33 +203,70 @@ export async function POST(
   const admin = createAdminClient()
   const nowIso = new Date().toISOString()
 
-  // order_items 취소 표기 + refunded_amount 채움 (line_total 그대로).
-  await admin
+  // R100-1 (Critical): order_items 원자적 선점. `.is('cancelled_at', null)`
+  //   가드 + `.select()` 로 "내가 실제로 취소시킨 행" 만 회수해서 동시 더블클릭의
+  //   두 번째 요청을 0-row 로 차단한다. 검증된 전체취소(cancel/route.ts:172) 패턴을
+  //   item 단위로 적용. 이전엔 무조건 UPDATE 라 동시 2요청이 둘 다 통과 →
+  //   restore_stock 2회(재고 부풀림) + refunds row 2개 + sales_count/
+  //   cumulative_spend 트리거 중복 차감. Toss 는 idempotencyKey(amount 포함)로
+  //   자체 dedupe 되지만 DB 부수효과는 멱등이 아니므로 이 선점이 진실의 원천이다.
+  //   이후 모든 DB 처리는 claimedItems(선점 성공분) 기준.
+  const { data: claimedRows } = await admin
     .from('order_items')
-    .update({ cancelled_at: nowIso, refunded_amount: 0 })
+    .update({ cancelled_at: nowIso })
     .in('id', itemIds)
-  // refunded_amount 는 line_total 동일 값으로 일괄 업데이트
-  for (const it of itemsArr) {
+    .is('cancelled_at', null)
+    .select('id, product_id, quantity, line_total, product_name')
+
+  const claimedItems = (claimedRows ?? []) as Array<{
+    id: string
+    product_id: string
+    quantity: number
+    line_total: number
+    product_name: string
+  }>
+  if (claimedItems.length === 0) {
+    // 동시 더블클릭 / cron expire / admin cancel 이 이미 이 항목들을 취소함.
+    return NextResponse.json(
+      { code: 'ALREADY_PROCESSED', message: '이미 처리된 주문이에요.' },
+      { status: 409 },
+    )
+  }
+  const claimedIds = claimedItems.map((i) => i.id)
+  const claimedCancelAmount = claimedItems.reduce((s, it) => s + it.line_total, 0)
+
+  // 선점한 항목의 refunded_amount = line_total 로 기록.
+  for (const it of claimedItems) {
     await admin
       .from('order_items')
       .update({ refunded_amount: it.line_total })
       .eq('id', it.id)
   }
 
-  // products.stock 복원 — RPC.
-  for (const it of itemsArr) {
+  // products.stock 복원 — RPC. 선점 성공분만.
+  for (const it of claimedItems) {
     await admin.rpc('restore_stock', {
       p_product_id: it.product_id,
       p_qty: it.quantity,
     })
   }
 
-  // orders.refunded_amount 누적.
-  const newRefundedAmount = (order.refunded_amount ?? 0) + cancelAmount
+  // 선점 후 남은 미취소 항목 수로 전량취소 여부 확정. 선점 전 추정값
+  // (willBecomeFullyCancelled, Toss amount 결정용) 과 흔한 케이스엔 동일하나,
+  // 부분 겹침 동시요청 대비 선점 후 재확인이 정확하다.
+  const { count: remainingActive } = await admin
+    .from('order_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('order_id', order.id)
+    .is('cancelled_at', null)
+  const fullyCancelled = (remainingActive ?? 0) === 0
+
+  // orders.refunded_amount 누적. (선점 성공분 claimedCancelAmount 기준)
+  const newRefundedAmount = (order.refunded_amount ?? 0) + claimedCancelAmount
   const orderUpdate: Record<string, unknown> = {
     refunded_amount: newRefundedAmount,
   }
-  if (willBecomeFullyCancelled) {
+  if (fullyCancelled) {
     orderUpdate.payment_status = 'cancelled'
     orderUpdate.order_status = 'cancelled'
     orderUpdate.cancelled_at = nowIso
@@ -255,7 +292,7 @@ export async function POST(
   // 영구 소실 + 쿠폰 사용 횟수 그대로. 이제 비율 따라 환급:
   // - points_used × (cancelAmount / total_amount) 만큼 ledger 환급
   // - 전량 취소면 cancel route 가 처리하므로 여기선 부분 환불만 처리
-  if (!willBecomeFullyCancelled && order.points_used && order.points_used > 0) {
+  if (!fullyCancelled && order.points_used && order.points_used > 0) {
     // R83 fix: ratio base = user 가 지불한 총 가치 (cash + points).
     // 이전: total_amount (=cash only) 만 사용 → 포인트 환급액 과대 산정.
     // 예: 50000원 결제 + 10000P 사용, 30000원 cancel
@@ -264,7 +301,7 @@ export async function POST(
     // total_amount = 0 (전액 포인트 결제) edge 도 division-by-zero 회피.
     const userPaidValue = (order.total_amount ?? 0) + (order.points_used ?? 0)
     const refundRatio = userPaidValue > 0
-      ? Math.min(1, cancelAmount / userPaidValue)
+      ? Math.min(1, claimedCancelAmount / userPaidValue)
       : 0
     const pointsToRefund = Math.floor(order.points_used * refundRatio)
     if (pointsToRefund > 0) {
@@ -285,35 +322,35 @@ export async function POST(
   // 전량 환불은 별도 cancel route 흐름에서 쿠폰 revoke 처리됨.
   // 부분 환불에서는 쿠폰 사용 횟수 그대로 — per_user_limit 영향은 향후 R-cycle.
 
-  // refunds audit row.
+  // refunds audit row. (선점 성공분 claimedIds / claimedCancelAmount 기준)
   await admin.from('refunds').insert({
     order_id: order.id,
     user_id: user.id,
-    amount: cancelAmount,
+    amount: claimedCancelAmount,
     reason: reason ?? null,
     toss_transaction_key: tossTransactionKey,
     refunded_by: null, // self-service
     status: 'succeeded',
-    order_item_ids: itemIds,
-    is_partial: !willBecomeFullyCancelled,
+    order_item_ids: claimedIds,
+    is_partial: !fullyCancelled,
   })
 
-  // R60 — 결제 원장 event. 부분 환불 (-cancelAmount) 또는 전량 환불.
+  // R60 — 결제 원장 event. 부분 환불 (-claimedCancelAmount) 또는 전량 환불.
   {
     const { recordPaymentEvent } = await import('@/lib/payment-events')
     await recordPaymentEvent(admin, {
       orderId: order.id,
       paymentKey: order.payment_key ?? null,
-      eventType: willBecomeFullyCancelled ? 'refunded' : 'partial_refunded',
-      amount: -cancelAmount,
+      eventType: fullyCancelled ? 'refunded' : 'partial_refunded',
+      amount: -claimedCancelAmount,
       prevStatus: order.payment_status,
       // R82-G2: payment_status enum 통일 — 'partial_refund' → 'partially_refunded'
-      newStatus: willBecomeFullyCancelled ? 'cancelled' : 'partially_refunded',
+      newStatus: fullyCancelled ? 'cancelled' : 'partially_refunded',
       source: 'partial_cancel',
       actorUserId: user.id,
       metadata: {
         reason: reason ?? null,
-        itemIds,
+        itemIds: claimedIds,
         tossTransactionKey,
       },
     })
@@ -326,18 +363,18 @@ export async function POST(
     orderNumber: order.order_number,
     recipientName: order.recipient_name ?? null,
     totalAmount: order.total_amount,
-    reason: willBecomeFullyCancelled
+    reason: fullyCancelled
       ? reason ?? '고객 부분 취소 (전량)'
-      : `부분 취소: ${itemsArr
+      : `부분 취소: ${claimedItems
           .map((it) => `${it.product_name} ×${it.quantity}`)
           .join(', ')}`,
-    refundAmount: cancelAmount,
+    refundAmount: claimedCancelAmount,
   }).catch(() => {})
 
   return NextResponse.json({
     ok: true,
-    cancelledItemCount: itemsArr.length,
-    refundAmount: cancelAmount,
-    fullyCancelled: willBecomeFullyCancelled,
+    cancelledItemCount: claimedItems.length,
+    refundAmount: claimedCancelAmount,
+    fullyCancelled,
   })
 }
