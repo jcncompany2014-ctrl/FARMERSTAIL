@@ -6,6 +6,11 @@ import { Plus, Trash2, Ticket, X, Send, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
+import {
+  createCouponAction,
+  toggleCouponActiveAction,
+  deleteCouponAction,
+} from './actions'
 
 type AudienceType =
   | 'all'
@@ -117,23 +122,23 @@ export default function AdminCouponsClient({
       return
     }
     setSaving(true)
-    const { error } = await supabase.from('coupons').insert({
+    // R101-J: server action 경유 — recordAdminAction(coupon_create) 감사 로그.
+    const result = await createCouponAction({
       code: code.trim().toUpperCase(),
       name: name.trim(),
       description: description.trim() || null,
-      discount_type: discountType,
-      discount_value: discountValue,
-      min_order_amount: minOrderAmount,
-      max_discount: maxDiscount === '' ? null : maxDiscount,
-      expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
-      usage_limit: usageLimit === '' ? null : usageLimit,
-      per_user_limit: perUserLimit === '' ? null : perUserLimit,
-      is_active: true,
-      audience_type: audienceType,
+      discountType,
+      discountValue,
+      minOrderAmount,
+      maxDiscount: maxDiscount === '' ? null : maxDiscount,
+      expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+      usageLimit: usageLimit === '' ? null : usageLimit,
+      perUserLimit: perUserLimit === '' ? null : perUserLimit,
+      audienceType,
     })
     setSaving(false)
-    if (error) {
-      toast.error('쿠폰 생성 실패: ' + error.message)
+    if (!result.ok) {
+      toast.error('쿠폰 생성 실패: ' + (result.error ?? ''))
       return
     }
     setModalOpen(false)
@@ -146,16 +151,23 @@ export default function AdminCouponsClient({
   }
 
   async function toggleActive(c: Coupon) {
-    await supabase
-      .from('coupons')
-      .update({ is_active: !c.is_active })
-      .eq('id', c.id)
+    // R101-J: server action 경유 — recordAdminAction(coupon_update) 감사 로그.
+    const result = await toggleCouponActiveAction(c.id, !c.is_active)
+    if (!result.ok) {
+      toast.error('변경 실패: ' + (result.error ?? ''))
+      return
+    }
     router.refresh()
   }
 
   async function removeCoupon(c: Coupon) {
     if (!confirm(`"${c.name}" 쿠폰을 삭제할까요?`)) return
-    await supabase.from('coupons').delete().eq('id', c.id)
+    // R101-J: server action 경유 — recordAdminAction(coupon_revoke) 감사 로그.
+    const result = await deleteCouponAction(c.id, c.name)
+    if (!result.ok) {
+      toast.error('삭제 실패: ' + (result.error ?? ''))
+      return
+    }
     router.refresh()
   }
 

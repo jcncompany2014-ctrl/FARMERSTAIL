@@ -27,7 +27,7 @@
 - **R101-G (이메일)** ✅: 광고성 cron 3종(vip/birthday/inactive) trackCron 진입부에 KST 21–08시 발송 skip 가드 추가 (정보통신망법 §50⑧)
 - **R101-H (정합성/Critical급)**: `partially_refunded → cancelled` 전량취소 시 sales_count·cumulative_spend 미차감(트리거가 `old='paid'` 만 매치) → 베스트정렬 왜곡 + VIP등급 인플레. 트리거를 `IN('paid','partially_refunded')` 로 확장하되 부분환불 기차감분 제외하게 재설계 (prod 마이그)
 - **R101-I (정합성)**: webhook PARTIAL_CANCELED 가 refunded_amount 미갱신 + refunds row 미삽입 → reconcile mismatch + 집계 누락. Toss balance 기준 동기화
-- **R101-J (감사)**: 쿠폰 생성/삭제·feature flag 가 브라우저 직접 DML → recordAdminAction 안 탐(감사로그 전무). 서버 라우트 경유로 전환해 coupon_create/revoke 기록. orders/export PII 추출도 admin_data_export 미기록
+- **R101-J (감사)** ✅(쿠폰): 쿠폰 생성/활성토글/삭제를 server action(`app/admin/coupons/actions.ts`) 경유로 전환 → coupon_create/update/revoke 감사 로그 기록. RLS(is_admin) 그대로 + isAdmin 명시 가드 추가(회귀 최소). **잔여(작음)**: feature_flags(FeatureFlagsClient) 동일 패턴 + orders/export 의 admin_data_export 기록
 - **R101-K (이메일)** ✅: webhook 이 suppression 이벤트인데 recipient 비면 `captureBusinessEvent` warning 으로 가시화(이전 침묵 무시)
 
 ### ⚠️ 실테스트(결제키) 필요 — 추측 수정 보류
