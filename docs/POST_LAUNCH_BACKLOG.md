@@ -5,6 +5,35 @@
 
 ---
 
+## 🔴 R97 (D7) — 대규모 4영역 (성능N+1 / 에러fallback / React hooks / rate limit·비용)
+
+### 이번 라운드 fix 완료
+- **R97-B High**: AnalysisView fetch 실패 시 무한 스피너 먹통 → `load().catch` 로 graceful (분석 화면 2개 라우트) ✅
+- **R97-C High**: SurveyClient 2.8초 타이머 cleanup (언마운트 후 setState/navigation/중복insert) + !user setSaving(false) ✅
+- **R97-A High**: first-box-checkin 무제한 조회 → `.limit(200)` ✅
+
+### High 1주 내 fix 권장 (잔여)
+- **R97-A H1**: pushToUser 호출당 4~6 쿼리 (모든 cron N+1 증폭기). `pushToUsers(ids[])` 배치 변형 — push_preferences/subscriptions/native_tokens `.in()` prefetch
+- **R97-A H2**: mypage/orders 사용자 주문 전량 로드 + JS 통계. `.limit(20)` 페이지네이션 + count 쿼리
+- **R97-A H4**: admin finance/insights/cohort 집계 (`.limit(50000/20000/10000)` 메모리 적재) → Postgres GROUP BY RPC. 6~12개월 후 시한폭탄
+- **R97-D H1**: AI/OCR rate limit 이 IP-only + in-memory → isolate scale-out 시 한도 배수 + IP 로테이션 우회 + 일/월 cap 없음. user-id 키 + rateLimitDB 승격 + 사용자별 일일 cap (결제 confirm 패턴 재사용)
+- **R97-D M2**: OCR(Sonnet ~5원/건) proxy RULES 누락 + 일일 cap 없음
+- **R97-D M3**: chatbot/structured/ocr/blog-draft proxy RULES 누락 (핸들러 self-limit 1겹)
+
+### Medium / Low (잔여)
+- **R97-A M1~M5**: cron profile/dogs N+1 (배치 캡 안), push-lifecycle medication 무제한 스캔, cart-recovery JS dedup, dashboard weight_logs/checkins 무제한, ledger-reconcile 2000 적재
+- **R97-A L1**: partners 페이지 raw img → next/image
+- **R97-C Low**: Tooltip/TrackingView/AdjustSheet/OrderClient 단발 setTimeout cleanup, magazine primitives useReveal opts useMemo
+- **R97-D M4**: Anthropic 일/월 누적 비용 cap (대시보드 spend limit + Sentry 권장)
+- **R97-B Low**: AnalysisView 에러 시 "분석 없음" 대신 "불러오기 실패·재시도" 카드 (현재 EmptyState 로 graceful)
+
+### 견고 확인 (발견 0 / 모범)
+- 에러 boundary 3종 + EmptyState/ErrorScreen 전반, 체크아웃 timeout, /offline — 매우 성숙
+- React hooks: 카메라 스트림/AbortController/realtime/Toast/모달 cleanup 전부 정석
+- 결제·이메일 rate limit: confirm rateLimitDB 2겹, cron 35개 cron-secret 게이트, Idempotency-Key — 단단
+
+---
+
 ## 🔴 R96 (D7) — 대규모 6영역 병렬 검토 (IDOR/race/validation/a11y/구독/admin)
 
 ### 이번 라운드 fix 완료

@@ -48,7 +48,11 @@ async function runCheckinReminder(): Promise<Response> {
     .select('id, user_id, delivered_at')
     .eq('payment_status', 'paid')
     .gte('delivered_at', eightDaysAgo.toISOString())
-    .lt('delivered_at', sevenDaysAgo.toISOString())) as {
+    .lt('delivered_at', sevenDaysAgo.toISOString())
+    // R97-A (D7): 배치 캡 — 다른 cron 처럼 .limit 추가. 세일 후 배송 폭증
+    // 시 후보가 수백~수천이면 후보당 dogs+feeding_outcomes 2쿼리 N+1 으로
+    // maxDuration(120s) 압박. 200 초과분은 다음 run (윈도우 7~8일이라 여유).
+    .limit(200)) as {
     data: Array<{ id: string; user_id: string; delivered_at: string }> | null
     error: { message: string } | null
   }

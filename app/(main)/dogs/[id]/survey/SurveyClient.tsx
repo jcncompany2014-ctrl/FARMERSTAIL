@@ -297,6 +297,16 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   // audit #96: 이전엔 deps 한 변경마다 동기 JSON.stringify + localStorage.setItem
   // 호출 (26개 deps) → 한 글자 칠 때마다 입력 지연. 500ms debounce 로 결정적 저장.
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // R97-C (D7): budget→loading 단계의 2.8초 연출 타이머. ref 에 저장해서
+  // 언마운트 시 clear — 사용자가 loading 중 뒤로가기/탭전환으로 언마운트되면
+  // saveAndGoResult 가 언마운트 후 setState + 원치 않는 router.push + 중복
+  // surveys/analyses insert 를 일으켰음.
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    return () => {
+      if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current)
+    }
+  }, [])
   useEffect(() => {
     if (!dog || !restoredRef.current || typeof window === 'undefined') return
     if (currentStep === 'loading') return
@@ -438,8 +448,9 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     if (currentStep === 'budget') {
       setCurrentStep('loading')
       setLoadingStage(0)
-      // 시각적 분석 단계 보여주기 — 약 2.8초 후 실제 저장 → 결과로 이동
-      setTimeout(() => saveAndGoResult(), 2800)
+      // 시각적 분석 단계 보여주기 — 약 2.8초 후 실제 저장 → 결과로 이동.
+      // R97-C: ref 저장 → 언마운트 cleanup 에서 clear (위 useEffect).
+      loadingTimerRef.current = setTimeout(() => saveAndGoResult(), 2800)
       return
     }
     if (idx < STEPS.length - 1) setCurrentStep(STEPS[idx + 1]!)
@@ -461,6 +472,9 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
+      // R97-C (D7): setSaving(false) 누락 시 세션 만료 사용자의 제출 버튼이
+      // 영구 disabled(saving=true) 로 굳음. login redirect 전 해제.
+      setSaving(false)
       router.push('/login')
       return
     }

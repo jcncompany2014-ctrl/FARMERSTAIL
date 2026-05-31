@@ -261,7 +261,11 @@ export default function AnalysisView({
       setHistory(points)
       setLoading(false)
     }
-    void load()
+    // R97-B (D7): load() 내부 auth/dogs/analyses fetch 중 throw (네트워크
+    // 끊김 / Supabase 5xx / RLS 거부) 시 setLoading(false) 미도달 → 무한
+    // 스피너 먹통이었음. rejected promise 를 .catch 로 잡아 loading 해제 →
+    // AnalysisEmptyState (돌아가기 + 설문 CTA) 로 graceful 후퇴.
+    void load().catch(() => setLoading(false))
   }, [dogId, analysisId, router, supabase])
 
   // formula fetch — Magazine BoxMixCard 가 dog 별 동적 lineRatios 표시 위해.
