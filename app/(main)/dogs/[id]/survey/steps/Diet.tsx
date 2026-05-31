@@ -109,6 +109,7 @@ export default function Diet({
         <input
           type="text"
           className="s-inp"
+          aria-label="현재 사용 중인 사료 브랜드"
           value={currentBrand}
           onChange={(e) => setCurrentBrand(e.target.value)}
           placeholder="예: 로얄캐닌 미니어처닥스훈트"
@@ -181,6 +182,7 @@ export default function Diet({
             min={0}
             max={300}
             className="s-inp"
+            aria-label="하루 산책 시간 (분)"
             value={walkMinutes}
             onChange={(e) => setWalkMinutes(e.target.value)}
             placeholder="30"

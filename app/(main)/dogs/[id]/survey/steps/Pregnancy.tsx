@@ -118,6 +118,7 @@ export default function Pregnancy({
             inputMode="numeric"
             enterKeyHint="next"
             className="s-inp"
+            aria-label="임신 주차"
             min={1}
             max={9}
             step={1}
@@ -146,6 +147,7 @@ export default function Pregnancy({
             inputMode="numeric"
             enterKeyHint="next"
             className="s-inp"
+            aria-label="산자 수 (출산한 새끼 마릿수)"
             min={1}
             max={15}
             step={1}
@@ -177,6 +179,7 @@ export default function Pregnancy({
             inputMode="decimal"
             enterKeyHint="done"
             className="s-inp"
+            aria-label="예상 성견 체중 (kg)"
             min={0.5}
             max={100}
             step={0.5}

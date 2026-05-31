@@ -207,6 +207,21 @@ export default function SubscriptionsClient({
       return
     }
 
+    // R96-E (D7): 카드 미등록(billing_card_last4 NULL) 구독을 resume 하면
+    // status='active' 가 되지만, charge cron 은 `.not('billing_key','is',null)`
+    // 로 skip → 청구·배송이 영원히 안 되는 "유령 active". cleanup cron 도
+    // 한번 paused 거친 NULL 구독은 안 잡음. 카드 등록 페이지로 유도해 차단.
+    if (!sub.billing_card_last4) {
+      toast.info('결제 카드 등록이 필요해요. 카드를 등록하면 정기배송이 시작돼요.')
+      const customerKey =
+        sub.billing_customer_key ?? generateFallbackCustomerKey()
+      router.push(
+        `/subscribe/billing-auth?subscriptionId=${sub.id}&customerKey=${encodeURIComponent(customerKey)}`,
+      )
+      setActionLoading(null)
+      return
+    }
+
     // R85-D4: KST helper 사용 — 자정 직후 off-by-one 차단.
     const todayIso = todayKstIsoDate()
     const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null

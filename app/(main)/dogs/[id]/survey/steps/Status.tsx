@@ -117,6 +117,7 @@ export default function Status({
         <input
           type="text"
           className="s-inp"
+          aria-label="처방식 이름"
           value={prescriptionDiet}
           onChange={(e) => setPrescriptionDiet(e.target.value)}
           placeholder="예: Royal Canin Renal RF14"
@@ -131,6 +132,7 @@ export default function Status({
         <textarea
           className="s-inp"
           rows={2}
+          aria-label="복용 중인 약 / 보충제"
           value={medications}
           onChange={(e) => setMedications(e.target.value)}
           placeholder="예: 갑상선 호르몬, 글루코사민, 오메가-3"
