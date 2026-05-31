@@ -35,7 +35,12 @@ export type SendEmailInput = {
   tag?: string
   /** 기본 replyTo 를 덮어쓰고 싶을 때. */
   replyTo?: string
-  /** 멱등 재시도 방지용 키 — Resend 자체 지원은 없지만 의도 표시용 로깅. */
+  /**
+   * 멱등 재시도 방지용 키 — R95 (D7): Resend `Idempotency-Key` 헤더로 실제
+   * 전달한다 (24시간 윈도우 dedup). 이전엔 body 어디에도 안 실리는 no-op
+   * 이라, 이 키에만 의존하던 cron (subscription-reminders 등) 이 하루 2회
+   * 발사 시 중복 발송될 수 있었다. 1~256자 권장.
+   */
   idempotencyKey?: string
   /**
    * R87-A1: 광고성 메일 1-click unsubscribe URL. 넘기면 RFC 8058 헤더 추가:
@@ -88,6 +93,12 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
+        // R95 (D7): Resend 가 지원하는 멱등 헤더 — 같은 키로 24h 내 재요청
+        // 시 Resend 가 첫 전송의 결과를 그대로 반환 (중복 발송 차단).
+        // 키는 1~256자. cron 들이 `xxx-${id}-${date}` 형태로 전달.
+        ...(input.idempotencyKey
+          ? { 'Idempotency-Key': input.idempotencyKey.slice(0, 256) }
+          : {}),
       },
       body: JSON.stringify({
         from,
