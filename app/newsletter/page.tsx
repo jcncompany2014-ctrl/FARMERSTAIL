@@ -11,6 +11,7 @@ import {
   Info,
 } from 'lucide-react'
 import NewsletterForm from './NewsletterForm'
+import { ogImageUrl } from '@/lib/seo/jsonld'
 
 type SearchParamsT = Promise<{ status?: string }>
 
@@ -58,6 +59,13 @@ const STATUS_MESSAGES: Record<
  * collection 에 저장.
  */
 
+// R99-A (D7): openGraph images 누락 → 공유 카드 썸네일 0 (shallow merge).
+const NEWSLETTER_OG = ogImageUrl({
+  title: '파머스테일 뉴스레터',
+  subtitle: '월 1회, 농장 + 신상 + 케어 가이드',
+  tag: 'Newsletter',
+})
+
 export const metadata: Metadata = {
   title: '뉴스레터 구독 | 파머스테일',
   description:
@@ -68,6 +76,15 @@ export const metadata: Metadata = {
     description: '월 1회, 농장 + 신상 + 케어 가이드.',
     type: 'website',
     url: '/newsletter',
+    images: [
+      { url: NEWSLETTER_OG, width: 1200, height: 630, alt: '파머스테일 뉴스레터' },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '파머스테일 뉴스레터 — 월 1회',
+    description: '월 1회, 농장 + 신상 + 케어 가이드.',
+    images: [NEWSLETTER_OG],
   },
   robots: { index: true, follow: true },
 }

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ChevronRight, MapPin, Sprout, Award } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { ogImageUrl } from '@/lib/seo/jsonld'
 
 /**
  * /partners — 농장 파트너 소개 페이지.
@@ -11,6 +12,13 @@ import { createClient } from '@/lib/supabase/server'
  * 을 그대로 보여줘서 페이지가 절대 빈 채로 노출되지 않도록 한다.
  */
 export const revalidate = 300
+
+// R99-A (D7): openGraph images 누락 → 공유 카드 썸네일 0 (shallow merge).
+const PARTNERS_OG = ogImageUrl({
+  title: '농장 파트너',
+  subtitle: '재료의 출처를 농가 단위까지',
+  tag: 'Partners',
+})
 
 export const metadata: Metadata = {
   title: '농장 파트너 | 파머스테일',
@@ -23,6 +31,14 @@ export const metadata: Metadata = {
       '재료의 출처를 농가 단위까지 추적합니다. 익명의 “수입산”은 들어가지 않아요.',
     type: 'article',
     url: '/partners',
+    images: [{ url: PARTNERS_OG, width: 1200, height: 630, alt: '농장 파트너' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '농장 파트너 | 파머스테일',
+    description:
+      '재료의 출처를 농가 단위까지 추적합니다. 익명의 “수입산”은 들어가지 않아요.',
+    images: [PARTNERS_OG],
   },
   robots: { index: true, follow: true },
 }

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ChevronRight, ArrowUpRight, Leaf, ShieldCheck, Sparkles, Repeat } from 'lucide-react'
 import JsonLd from '@/components/JsonLd'
 import {
+  ogImageUrl,
   buildAboutPageJsonLd,
   buildBreadcrumbJsonLd,
   SITE_URL,
@@ -21,6 +22,14 @@ export const revalidate = 3600
  * 둘 다 sitemap 등록. /about → 모바일/SEO 우선 / /brand → 웹 컨버전 우선.
  */
 
+// R99-A (D7): openGraph 에 images 누락 시 Next 가 루트 layout 의 images +
+// opengraph-image.tsx 를 shallow-merge 로 교체(무효화) → 공유 카드 썸네일 0.
+const BRAND_OG = ogImageUrl({
+  title: '브랜드 이야기',
+  subtitle: '농장에서 꼬리까지, 사람이 먹는 등급의 재료로',
+  tag: 'Brand',
+})
+
 export const metadata: Metadata = {
   title: '브랜드 이야기 | 파머스테일',
   description:
@@ -32,6 +41,14 @@ export const metadata: Metadata = {
     description:
       '농장에서 꼬리까지. 사람이 먹는 등급의 재료로 시작된 파머스테일의 약속과 여정.',
     url: '/brand',
+    images: [{ url: BRAND_OG, width: 1200, height: 630, alt: '브랜드 이야기' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '브랜드 이야기 | 파머스테일',
+    description:
+      '농장에서 꼬리까지. 사람이 먹는 등급의 재료로 시작된 파머스테일의 약속과 여정.',
+    images: [BRAND_OG],
   },
   robots: { index: true, follow: true },
 }

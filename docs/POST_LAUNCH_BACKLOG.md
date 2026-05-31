@@ -5,6 +5,28 @@
 
 ---
 
+## 🔴 R99 (D7) — 대규모 2영역 (SEO·메타 / 영양 알고리즘 정확성)
+
+### 이번 라운드 fix 완료
+- **R99-A High**: brand/partners/newsletter 3개 페이지 OG 이미지 완전 누락 — `generateMetadata`/openGraph shallow-merge 라 부모(layout) images 가 안 내려와 공유 카드 썸네일 0. `ogImageUrl({title,subtitle,tag})` + `twitter:summary_large_image` 추가 (about 패턴 복제) ✅
+
+### High 1주 내 fix 권장 (잔여)
+- **R99-B H1 (영양)**: 임신/수유견 MER 매크로 미분기 — 임신 후기 ×3, 비유기 ×4~6 에너지 폭증을 표준 성견 ×1.6 으로 과소 산출. nutrition.ts 에 gestation/lactation 단계 입력 + 수의사 자문 필요 → vetConsult 완충 카피로 1차 대응, 알고리즘은 자문 후
+- **R99-B H2 (영양)**: CKD(만성신장) 단백질 상한 미반영 — chronic-sku-mapper 가 신장 질환에도 고단백 라인 추천 가능. 단백질 제한 + 인(P) 제한 매트릭스 필요 (수의 처방식 영역이라 "수의사 상담" 게이트가 우선)
+- **R99-B H3 (영양)**: 거대견(대형견 초과) 자견 MER 계수 — 성장기 거대견은 과영양 시 정형외과 질환(HOD/OCD) 위험이라 표준 자견 ×2.0 보다 보수적 계수 필요. puppy 분기에 거대견 sub-case
+- **R99-A H2 (SEO)**: 동적 라우트(products/[slug], blog/[slug]) OG 이미지 generateMetadata 점검 — SKU OG 는 R21 적용됐으나 blog 글별 OG 확인 필요
+
+### Medium / Low (잔여)
+- **R99-A M1**: sitemap.xml lastmod 정적 — DB 글 updated_at 반영
+- **R99-A M2**: JSON-LD Organization/Product 스키마는 견고하나 BreadcrumbList 일부 페이지 누락
+- **R99-B M1**: 활동량(activity level) 4단계가 MER 계수에 선형 반영 — 실제 견종/중성화 상태 교차항 미반영 (현 수준도 업계 평균 이상)
+
+### 견고 확인 (발견 0 / 모범)
+- SEO: canonical 전 페이지, robots index/follow, JSON-LD Organization+Website+Product, /api/og 동적 생성, sitemap 동적 — 성숙
+- 영양 표준: FEDIAF MER 95/110/125 (R-F2), 알러지 SSOT(R92), NSH Ca:P 가드(E1), 자견 분기(E2), 35견종 priority(E3) — 학술 근거 견고
+
+---
+
 ## 🔴 R98 (D7) — 대규모 3영역 (타임존 / 카피·법적 / 파일업로드 보안)
 
 ### 이번 라운드 fix 완료
