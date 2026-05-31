@@ -21,11 +21,15 @@
  * R90-C C2 (D7): 이전엔 'claude-3-5-sonnet-20241022' 하드코딩 — Anthropic
  * deprecate 시 silent break. lib/anthropic-models.ts SSOT 로 통일.
  */
+// R95-c (D7): lib 내부는 상대경로 + 명시적 .ts 확장자 컨벤션
+// (node --experimental-strip-types 테스트 러너가 @/ alias 미해석 + 확장자
+// 생략 불가). R90 에서 `@/lib/anthropic-models` (alias + 무확장) 로 추가
+// 했다가 parseMedicalRecord 테스트 2개 + CI 가 R90 부터 계속 깨졌음.
 import {
   ANTHROPIC_MESSAGES_URL,
   ANTHROPIC_VERSION,
   MODEL_VISION_HIGH,
-} from '@/lib/anthropic-models'
+} from '../anthropic-models.ts'
 
 export type MedicalRecordExtract = {
   /** 진료/내원 날짜 (YYYY-MM-DD). 불명 시 null. */

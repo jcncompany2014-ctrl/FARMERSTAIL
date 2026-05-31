@@ -1122,16 +1122,19 @@ describe('decideFirstBox v1.4 — 품종 predispose', () => {
 })
 
 describe('decideFirstBox v1.3 — IgE cross-reactivity chip', () => {
-  it('양고기 알레르기 → Premium 라인 cross-react chip (차단 안 함)', () => {
+  it('양고기 알레르기 → Premium 라인 차단 (R92 — 소/양 BSA cross)', () => {
     const f = decideFirstBox({ ...baseInput(), allergies: ['양고기'] })
-    const cross = f.reasoning.find((r) => r.ruleId === 'cross-react-premium')
-    assert.ok(cross, 'cross-react chip 발화')
-    // Premium 라인은 차단 안 됨 — ratio 살아있어야 함 (general_upgrade 시작값)
-    // 또는 다른 룰로 0 가능하지만 cross-react 가 차단 자체는 안 함
+    // R92: premium.blockingAllergies 에 '양고기' 추가 (소/양 BSA cross-react —
+    // 양 알레르기견의 ~30% 가 소도 동시 양성). 이전엔 chip 만 띄우고 차단 안
+    // 했으나, "양고기만 선택한 사용자에게 소 메인 SKU 추천" 알레르기 사고
+    // vector 라 보수적 차단으로 전환.
+    const blocked = f.reasoning.find((r) => r.ruleId === 'allergy-premium')
+    assert.ok(blocked, '양고기 알레르기는 Premium(소) 라인 차단')
+    // 이미 차단된 라인엔 cross-react chip 을 띄우지 않음 (무의미).
     assert.equal(
-      f.reasoning.find((r) => r.ruleId === 'allergy-premium'),
+      f.reasoning.find((r) => r.ruleId === 'cross-react-premium'),
       undefined,
-      'cross-react 만으로는 차단 안 함',
+      '차단된 라인엔 cross-react chip 안 띄움',
     )
   })
 
