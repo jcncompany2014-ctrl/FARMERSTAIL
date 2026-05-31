@@ -15,19 +15,16 @@
  * 사실상 권한 체크가 없는 것과 같았다. `20260423000000_admin_role_to_app_metadata.sql`
  * 마이그레이션이 기존 데이터를 옮기고, 이 헬퍼가 새 체크 경로의 단일 진입점이다.
  *
- * # 이중 경로 (defense in depth)
+ * # 단일 권위: app_metadata.role (R101-C)
  *
- * 1. 1차: `user.app_metadata.role === 'admin'` — JWT에서 즉시 읽음, DB 라운드트립 없음.
- * 2. 2차(fallback): `profiles.role === 'admin'` — DB 조회.
+ * admin 판정은 `app_metadata.role === 'admin'` **단일 소스**다. service_role로만
+ * 쓸 수 있고 anon 키로 못 바꾸며(self-elevation 불가), DB `is_admin()` +
+ * `prevent_profile_role_change` 트리거가 같은 기준을 강제한다.
  *
- * 둘 다 성공해야 admin으로 인정되는 건 아니고, **둘 중 하나만 true면 admin**이다.
- * 이유: 마이그레이션 중간에 한쪽만 업데이트됐거나, 새 admin을 app_metadata에만 부여하고
- * profiles 동기화를 깜빡한 운영 상태에서도 정상 동작하게 하기 위함. 한쪽을 단일 소스로
- * 강제하면 operational gap이 곧바로 장애가 된다.
- *
- * 우선순위가 app_metadata인 이유: 빠르고(JWT), anon 키로 못 바꾸고, service_role로만
- * 부여 가능 → 신뢰할 수 있는 1순위. profiles는 app DB라 RLS bug로 뚫릴 수 있음 →
- * 보조 경로.
+ * 과거엔 `profiles.role === 'admin'` 2차 fallback이 있었으나(둘 중 하나면 admin),
+ * DB `is_admin()`(20260515000001)이 fallback을 제거하면서 코드와 어긋났다.
+ * R101-C에서 코드도 app_metadata SSOT로 통일 — 프로덕션 admin은 둘 다 설정돼 있어
+ * 회수 영향 0 (2026-05-31 실측). profiles.role은 표시/조회용으로만 남는다.
  *
  * # 사용법
  *
@@ -60,27 +57,12 @@ export function isAdminByJwt(user: User | null | undefined): boolean {
  * 조합해서 쓰자. 대부분의 호출자는 admin인지 아닌지만 알면 된다.
  */
 export async function isAdmin(
-  supabase: SupabaseClient,
+  _supabase: SupabaseClient,
   user: User | null | undefined
 ): Promise<boolean> {
-  if (!user) return false
-  if (isAdminByJwt(user)) return true
-
-  // fallback: profiles.role 조회. RLS 하에 본인 row만 읽히면 충분 — profiles
-  // self-select policy를 전제로 한다.
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (error) {
-    // 조회 자체가 실패한 경우, fail closed — admin 아님으로 처리.
-    // 이 경로는 JWT가 admin이 아닐 때만 도는 fallback이라 false를 내도
-    // 정상 admin에게 피해 없음 (JWT에 role 박혀 있는 한).
-    return false
-  }
-  return data?.role === 'admin'
+  // R101-C: app_metadata.role 단일 소스. profiles.role 2차 fallback 제거 —
+  // DB is_admin()와 일치(SSOT). supabase 인자는 호출처 시그니처 호환 위해 유지.
+  return Promise.resolve(isAdminByJwt(user))
 }
 
 /**

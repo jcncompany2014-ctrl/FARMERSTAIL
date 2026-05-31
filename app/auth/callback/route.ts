@@ -83,7 +83,11 @@ export async function GET(request: Request) {
   // 두 번째 조건이 false 가 되어 fallback. backslash 변형 (`/\evil.com`) 도
   // 함께 차단.
   const safeNext =
-    next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\')
+    next.startsWith('/') &&
+    !next.startsWith('//') &&
+    !next.startsWith('/\\') &&
+    // R101-B: /api 경로 redirect 금지 (인증 직후 GET 으로 부작용 엔드포인트 유도 방어).
+    !next.startsWith('/api')
       ? next
       : '/dashboard'
 

@@ -113,17 +113,19 @@ describe('isAdminByJwt — app_metadata 만 (audit #62 self-elevation 차단)', 
   })
 })
 
-describe('isAdmin — JWT 1차 + profiles 2차 fallback', () => {
+describe('isAdmin — app_metadata SSOT (R101-C, profiles fallback 제거)', () => {
   it('JWT admin → true (DB 안 봄)', async () => {
     const user = makeUser({ appRole: 'admin' })
     const supabase = makeMockClient(null) // profiles 가 null 이어도
     assert.equal(await isAdmin(supabase, user), true)
   })
 
-  it('JWT non-admin + profiles.role=admin → true (fallback 경로)', async () => {
+  it('R101-C: JWT non-admin 이면 profiles.role=admin 이어도 false (app_metadata SSOT)', async () => {
+    // profiles.role 변경은 prevent_profile_role_change 트리거가 막으므로
+    // app_metadata 만 권위. profiles fallback 으로 admin 인정하면 코드/DB 불일치.
     const user = makeUser({}) // app_metadata 없음
     const supabase = makeMockClient('admin')
-    assert.equal(await isAdmin(supabase, user), true)
+    assert.equal(await isAdmin(supabase, user), false)
   })
 
   it('JWT non-admin + profiles.role=user → false', async () => {

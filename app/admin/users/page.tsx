@@ -44,19 +44,28 @@ export default async function AdminUsersPage({
   const orderStats: Record<string, { count: number; total: number }> = {}
 
   if (userIds.length > 0) {
+    // R101-D: 누적 결제액에 partially_refunded 주문도 포함 + net(환불 제외)으로
+    // 합산. 이전엔 'paid' 만 봐서 부분환불된 주문이 통째로 누락됐다(5만원 결제 후
+    // 1만원만 환불해도 4만원이 0 으로 사라짐).
     const { data: orders } = await supabase
       .from('orders')
-      .select('user_id, total_amount, payment_status')
+      .select('user_id, total_amount, refunded_amount, payment_status')
       .in('user_id', userIds)
-      .eq('payment_status', 'paid')
+      .in('payment_status', ['paid', 'partially_refunded'])
 
-    ;(orders ?? []).forEach((o: { user_id: string; total_amount: number }) => {
-      if (!orderStats[o.user_id]) {
-        orderStats[o.user_id] = { count: 0, total: 0 }
-      }
-      orderStats[o.user_id]!.count += 1
-      orderStats[o.user_id]!.total += o.total_amount
-    })
+    ;(orders ?? []).forEach(
+      (o: {
+        user_id: string
+        total_amount: number
+        refunded_amount: number | null
+      }) => {
+        if (!orderStats[o.user_id]) {
+          orderStats[o.user_id] = { count: 0, total: 0 }
+        }
+        orderStats[o.user_id]!.count += 1
+        orderStats[o.user_id]!.total += o.total_amount - (o.refunded_amount ?? 0)
+      },
+    )
   }
 
   return (

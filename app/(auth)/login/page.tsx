@@ -96,18 +96,45 @@ function LoginInner() {
       password,
     })
 
-    setLoading(false)
-
     if (error) {
+      setLoading(false)
       setFormError('이메일 또는 비밀번호가 올바르지 않아요')
       return
     }
 
+    // R101-A: soft-delete 계정 가드. OAuth 콜백(app/auth/callback)은 deleted_at
+    // 을 검사하는데 password 로그인엔 없어서, 운영자가 profiles.deleted_at 만 set
+    // 한 (account_purge cron 이전) 계정이 이메일 로그인으로 통과했다. 동일 가드.
+    const {
+      data: { user: signedIn },
+    } = await supabase.auth.getUser()
+    if (signedIn) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('deleted_at')
+        .eq('id', signedIn.id)
+        .maybeSingle()
+      if (profile?.deleted_at) {
+        await supabase.auth.signOut()
+        setLoading(false)
+        setFormError(
+          '탈퇴 처리된 계정이에요. 도움이 필요하면 고객센터로 문의해 주세요.',
+        )
+        return
+      }
+    }
+
+    setLoading(false)
+
     // 분기: 앱 사용자는 /dashboard (케어), 웹 사용자는 /mypage/orders (주문 확인).
     // ?next= 가 명시되어 있으면 그쪽 우선 (예: /checkout 으로 가다가 로그인 통과).
+    // R101-B: /api 경로는 redirect 금지 (인증 직후 GET 으로 부작용 엔드포인트 유도 방어).
     const nextParam = searchParams.get('next')
     const safeNext =
-      nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')
+      nextParam &&
+      nextParam.startsWith('/') &&
+      !nextParam.startsWith('//') &&
+      !nextParam.startsWith('/api')
         ? nextParam
         : null
     const destination = safeNext ?? (isApp ? '/dashboard' : '/mypage/orders')

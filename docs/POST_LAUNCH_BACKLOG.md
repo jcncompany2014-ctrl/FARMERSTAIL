@@ -15,12 +15,12 @@
 - **R101-3 High (인증)**: 비번 재설정이 로컬 `signOut()` 만 → 계정 탈취 시 공격자의 다른 기기 세션 유지. `signOut({scope:'global'})` 로 전 디바이스 refresh token 폐기 ✅
 - **R101-4 High (reconcile)**: 결제 미완료 만료 cancelled 주문(total 보존, ledger=0)이 `orderNet=total≠0` 으로 매주 가짜 mismatch → 진짜 불일치 묻힘. `cancelled && ledger===0 → net=0` 분기(결제 캡처 없음). 회귀 테스트 3 추가 ✅
 
-### 🟡 안전한 Medium (잔여 — 다음 phase)
-- **R101-A (인증)**: `(auth)`/`/auth/callback` 이 proxy matcher 누락 + password 로그인에 `deleted_at` 가드 부재(OAuth 만 있음) → soft-delete 계정이 이메일 로그인으로 통과. 로그인/`(main)` 레이아웃에 deleted_at 검사
-- **R101-B (인증)**: OAuth/login `next` 파라미터가 `/api/admin`·`/admin` 등 내부 경로 redirect 허용 → allowlist 로 앱 화면 경로만
-- **R101-C (인증)**: `lib/auth/admin.ts` 의 `isAdmin()` 이 `profiles.role` fallback 잔존(DB `is_admin()` 는 제거됨) → 코드/DB SSOT 불일치. fallback 삭제 + admin.test.ts 갱신 (트리거가 self-elevation 막아 즉시 악용은 불가)
-- **R101-D (정합성)**: admin/users 누적금액이 `payment_status='paid'` 만 합산 → partially_refunded 주문 통째 누락. `IN ('paid','partially_refunded')` + `total-refunded` net
-- **R101-E (계정)**: account/delete 보조테이블 18개 `Promise.all` → 부분실패 침묵 유실. `allSettled` + Sentry
+### 🟢 안전한 Medium — R101 Phase2 fix 완료 ✅
+- **R101-A (인증)** ✅: password 로그인에 `deleted_at` 가드 추가(OAuth 콜백과 동일) → soft-delete 계정 이메일 로그인 차단 + signOut
+- **R101-B (인증)** ✅: login/OAuth `next` 파라미터가 `/api` 로 시작하면 redirect 금지(인증 직후 GET 부작용 엔드포인트 유도 방어). `/admin` 은 자체 가드 있어 유지
+- **R101-C (인증)** ✅: `isAdmin()` 의 `profiles.role` fallback 제거 → app_metadata SSOT 로 DB `is_admin()` 와 통일. docstring + admin.test 갱신. 프로덕션 admin 1명이 app_metadata·profiles 둘 다 설정(app_only=0,profiles_only=0 실측) 이라 회수 영향 0
+- **R101-D (정합성)** ✅: admin/users 누적금액에 partially_refunded 포함 + `total-refunded` net 합산
+- **R101-E (계정)** ✅: account/delete 18개 테이블 `Promise.allSettled` + 실패 건수 `console.error` 가시화(PIPA)
 
 ### 🔵 큰 작업 → BACKLOG (RPC/테이블/마이그레이션 변경 필요)
 - **R101-F (이메일)**: `email_suppressions` 테이블 신설 — 트랜잭션 메일도 하드바운스/complained 주소로 재발송 막아 도메인 평판 보호. webhook upsert + sendEmail 진입부 조회

@@ -153,7 +153,7 @@ export async function POST(req: Request) {
   //   • native_push_tokens / newsletter_subscribers — 통신 채널, 즉시 해제
   //   • addresses — 배송지 저장본 (orders 행에 snapshot 이 별도)
   //   • push_log — 발송 이력 audit 가 user 떠나면 의미 없음
-  await Promise.all([
+  const deletionOps = await Promise.allSettled([
     admin.from('dogs').delete().eq('user_id', user.id),
     admin.from('cart_items').delete().eq('user_id', user.id),
     admin.from('wishlists').delete().eq('user_id', user.id),
@@ -174,6 +174,21 @@ export async function POST(req: Request) {
     admin.from('addresses').delete().eq('user_id', user.id),
     admin.from('push_log').delete().eq('user_id', user.id),
   ])
+  // R101-E: 부분 실패 가시화. Supabase 쿼리는 보통 reject 대신 {error} 를 resolve
+  // 하므로 rejected(네트워크)와 fulfilled 의 error 를 모두 검사. 이전엔 Promise.all
+  // 결과를 안 봐서 일부 테이블 삭제 실패가 침묵 유실 → PII 잔존(deleted_at 만 찍힘).
+  // PIPA 즉시파기 관점에서 로깅해 운영자가 인지/수동 정리하도록.
+  const deletionFailures = deletionOps.filter(
+    (r) =>
+      r.status === 'rejected' ||
+      (r.status === 'fulfilled' &&
+        (r.value as { error?: unknown } | null)?.error),
+  )
+  if (deletionFailures.length > 0) {
+    console.error(
+      `[account/delete] ${deletionFailures.length}/${deletionOps.length} table deletions failed for user ${user.id}`,
+    )
+  }
 
   // 정기배송 — billing_key 카드 토큰 즉시 해제 + cancel 처리. 전자상거래법
   // 보관 의무 (subscription_charges) 와 별개로 토큰은 결제수단 정보라 즉시
