@@ -33,7 +33,7 @@
 // 내용이 변경되면 브라우저가 새 sw.js 받아 → install → activate → 옛 캐시
 // 자동 정리. 사용자가 PWA 다시 켤 때 toast "새 버전이 준비됐어요" 노출.
 // (audit #85 후반 — R29 에서 prebuild 자동화 완성)
-const CACHE_NAME = 'farmerstail-7d8141d1421f-mptncetu'
+const CACHE_NAME = 'farmerstail-v4'
 
 const NAV_CACHE_MAX_ENTRIES = 60
 const ASSET_CACHE_MAX_ENTRIES = 80
