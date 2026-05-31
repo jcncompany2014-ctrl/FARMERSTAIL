@@ -5,6 +5,7 @@ import { trackCron } from '@/lib/cron-tracking'
 import { sendEmail } from '@/lib/email'
 import { renderVipCoupon } from '@/lib/email/templates/vip'
 import { generateMarketingUnsubscribeToken } from '@/lib/email/unsubscribe-token'
+import { currentKstHour } from '@/lib/datetime-kst'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -54,6 +55,12 @@ export async function GET(req: Request) {
   }
   // R83-E3 (D3): trackCron wrap.
   return trackCron('vip-coupons', async () => {
+    // R101-G: 광고성 메일 야간 발송 제한 (정보통신망법 §50⑧, 21~08시 KST).
+    //   정상 스케줄은 주간이나 수동 트리거/재시도/스케줄 변경 대비 방어.
+    const kstHour = currentKstHour()
+    if (kstHour >= 21 || kstHour < 8) {
+      return NextResponse.json({ ok: true, skipped: 'night_quiet_hours', kstHour })
+    }
     const admin = createAdminClient()
     const { yearMonth } = todayKst()
 

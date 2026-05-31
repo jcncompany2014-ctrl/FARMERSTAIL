@@ -131,6 +131,21 @@ export async function POST(req: Request) {
   }
   const lowered = recipients.map((e) => e.toLowerCase())
 
+  // R101-K: suppression 대상 이벤트인데 recipient 가 비면(Resend 버전차로 data.to
+  // 누락 / email_id 만 옴) 이전엔 조용히 무시 → 막아야 할 주소가 차단 안 되는
+  // 누락을 감지 못했다. 최소한 경고로 가시화해 운영자가 인지하도록.
+  if (
+    ['email.bounced', 'email.complained', 'email.unsubscribed'].includes(
+      event.type,
+    ) &&
+    lowered.length === 0
+  ) {
+    captureBusinessEvent('warning', 'email.webhook.no_recipient', {
+      type: event.type,
+      emailId: event.data?.email_id ?? null,
+    })
+  }
+
   switch (event.type) {
     case 'email.bounced': {
       if (lowered.length === 0) break

@@ -24,11 +24,15 @@
 
 ### 🔵 큰 작업 → BACKLOG (RPC/테이블/마이그레이션 변경 필요)
 - **R101-F (이메일)**: `email_suppressions` 테이블 신설 — 트랜잭션 메일도 하드바운스/complained 주소로 재발송 막아 도메인 평판 보호. webhook upsert + sendEmail 진입부 조회
-- **R101-G (이메일)**: 광고성 야간발송 제한(정보통신망법 §50⑧, 21–08시 KST) 공용 가드
+- **R101-G (이메일)** ✅: 광고성 cron 3종(vip/birthday/inactive) trackCron 진입부에 KST 21–08시 발송 skip 가드 추가 (정보통신망법 §50⑧)
 - **R101-H (정합성/Critical급)**: `partially_refunded → cancelled` 전량취소 시 sales_count·cumulative_spend 미차감(트리거가 `old='paid'` 만 매치) → 베스트정렬 왜곡 + VIP등급 인플레. 트리거를 `IN('paid','partially_refunded')` 로 확장하되 부분환불 기차감분 제외하게 재설계 (prod 마이그)
 - **R101-I (정합성)**: webhook PARTIAL_CANCELED 가 refunded_amount 미갱신 + refunds row 미삽입 → reconcile mismatch + 집계 누락. Toss balance 기준 동기화
 - **R101-J (감사)**: 쿠폰 생성/삭제·feature flag 가 브라우저 직접 DML → recordAdminAction 안 탐(감사로그 전무). 서버 라우트 경유로 전환해 coupon_create/revoke 기록. orders/export PII 추출도 admin_data_export 미기록
-- **R101-K (이메일)**: webhook 이 `data.to` 만 보고 recipient 누락 시 침묵 → email_id 역조회 또는 Sentry warning
+- **R101-K (이메일)** ✅: webhook 이 suppression 이벤트인데 recipient 비면 `captureBusinessEvent` warning 으로 가시화(이전 침묵 무시)
+
+### ⚠️ 실테스트(결제키) 필요 — 추측 수정 보류
+- **R101-I (정합성)**: webhook PARTIAL_CANCELED 가 refunded_amount 미갱신 → reconcile mismatch. Toss balanceAmount 기준 동기화 + refunds row insert 필요한데, **webhook 은 Toss 자동 재시도라 멱등성 설계 필수** + Toss 응답 구조(balanceAmount) 실측 필요. 결제키 발급 후 실환경에서 처리. (운영자는 보통 admin partial-cancel 경유라 빈도 낮음 — 그 경로는 정합 견고)
+- **R101-H (정합성/Critical급)**: `partially_refunded → cancelled` 전량취소 시 sales_count·cumulative_spend 미차감(트리거 `old='paid'` 만 매치) → 베스트정렬·VIP등급 왜곡. 트리거를 `IN('paid','partially_refunded')` 확장하되 부분환불 기차감분 제외하게 재설계 = **prod 마이그 + 집계 회귀 위험**이라 실데이터 검증 환경에서. 출시 초기 부분취소→전량취소 빈도 낮아 누적 영향 작음
 
 ### 견고 확인 (발견 0 / 모범)
 - **admin 권한**: API 라우트 12개 전수 `getUser()`(위조불가)+`isAdmin()` 게이트 통과, self-elevation 다층 차단(app_metadata 단일소스 + profiles.role 변경 트리거 + user_metadata.role 제거), IDOR 방어(createAdminClient 전 isAdmin 필수)
