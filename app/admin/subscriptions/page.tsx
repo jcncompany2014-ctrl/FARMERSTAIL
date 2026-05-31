@@ -332,7 +332,13 @@ export default function AdminSubscriptionsPage() {
       created++
     }
 
-    setBulkResult(`✅ ${created}건 주문 생성 완료${failed > 0 ? `, ${failed}건 실패` : ''}`)
+    // R95: skippedNoAddress 를 결과에 노출 — 운영자가 "주소 미등록으로
+    // 스킵된 구독" 을 인지하고 해당 사용자 주소 보완 후 재시도 가능.
+    setBulkResult(
+      `✅ ${created}건 주문 생성 완료${failed > 0 ? `, ${failed}건 실패` : ''}${
+        skippedNoAddress > 0 ? ` (주소 미등록 ${skippedNoAddress}건 포함)` : ''
+      }`,
+    )
     await loadAll()
     setBulkLoading(false)
   }
