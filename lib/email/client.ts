@@ -54,7 +54,7 @@ export type SendEmailInput = {
 
 export type SendEmailResult =
   | { ok: true; id: string }
-  | { ok: false; skipped: true; reason: 'not_configured' }
+  | { ok: false; skipped: true; reason: 'not_configured' | 'suppressed' }
   | { ok: false; skipped: false; status: number; error: string }
 
 /**
@@ -71,6 +71,12 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   const replyTo = process.env.EMAIL_REPLY_TO
   if (!apiKey || !from) {
     return { ok: false, skipped: true, reason: 'not_configured' }
+  }
+
+  // R101-F: suppression 체크 — 하드바운스/스팸신고 주소엔 발송 안 함(도메인 평판).
+  // fail-open: 조회 실패(테이블 부재/네트워크)면 그냥 발송(메일 누락 < 평판 리스크).
+  if (await isAnyEmailSuppressed(input.to)) {
+    return { ok: false, skipped: true, reason: 'suppressed' }
   }
 
   const tags = input.tag ? [{ name: 'category', value: input.tag }] : undefined
@@ -133,6 +139,39 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       status: 0,
       error: e instanceof Error ? e.message : 'unknown',
     }
+  }
+}
+
+/**
+ * R101-F: 수신자 중 하나라도 email_suppressions(하드바운스/스팸신고)에 있으면 true.
+ * createAdminClient 는 동적 import — client 번들/빌드 env 평가 영향 회피(상단 NOTE).
+ * fail-open: 어떤 실패든 false 반환해 발송을 막지 않는다.
+ */
+async function isAnyEmailSuppressed(to: string | string[]): Promise<boolean> {
+  const emails = (Array.isArray(to) ? to : [to]).map((e) => e.toLowerCase())
+  if (emails.length === 0) return false
+  try {
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const admin = createAdminClient()
+    const { data } = await (
+      admin as unknown as {
+        from: (t: string) => {
+          select: (c: string) => {
+            in: (
+              c: string,
+              v: string[],
+            ) => { limit: (n: number) => Promise<{ data: unknown[] | null }> }
+          }
+        }
+      }
+    )
+      .from('email_suppressions')
+      .select('email')
+      .in('email', emails)
+      .limit(1)
+    return (data?.length ?? 0) > 0
+  } catch {
+    return false
   }
 }
 

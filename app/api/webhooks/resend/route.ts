@@ -51,6 +51,10 @@ type ResendEvent = {
 async function applySuppression(
   supabase: ReturnType<typeof createAdminClient>,
   lowered: string[],
+  opts: {
+    reason: 'hard_bounce' | 'complaint' | 'unsubscribe'
+    fullSuppress: boolean
+  },
 ): Promise<void> {
   await supabase
     .from('newsletter_subscribers')
@@ -60,6 +64,26 @@ async function applySuppression(
     .from('profiles')
     .update({ agree_email: false, agree_email_at: null })
     .in('email', lowered)
+  // R101-F: 하드바운스/스팸신고는 email_suppressions 에 등록 → sendEmail 이
+  // 트랜잭션 포함 전 발송을 차단(도메인 평판). unsubscribe(마케팅 거부)는
+  // 트랜잭션 메일은 계속 가야 하므로 제외(위 profiles.agree_email 로 마케팅만 차단).
+  if (opts.fullSuppress && (opts.reason === 'hard_bounce' || opts.reason === 'complaint')) {
+    await (
+      supabase as unknown as {
+        from: (t: string) => {
+          upsert: (
+            rows: Array<{ email: string; reason: string }>,
+            o: { onConflict: string },
+          ) => Promise<unknown>
+        }
+      }
+    )
+      .from('email_suppressions')
+      .upsert(
+        lowered.map((email) => ({ email, reason: opts.reason })),
+        { onConflict: 'email' },
+      )
+  }
 }
 
 export async function POST(req: Request) {
@@ -162,19 +186,36 @@ export async function POST(req: Request) {
         })
         break
       }
-      await applySuppression(supabase, lowered)
+      await applySuppression(supabase, lowered, {
+        reason: 'hard_bounce',
+        fullSuppress: true,
+      })
       captureBusinessEvent('warning', 'email.bounced.permanent', {
         recipients: lowered.length,
         reason: event.data?.bounce?.message ?? event.data?.bounce?.reason,
       })
       break
     }
-    case 'email.complained':
+    case 'email.complained': {
+      if (lowered.length === 0) break
+      // 스팸신고 — 강한 거부 의사. 트랜잭션 포함 전 발송 차단(평판 직결).
+      await applySuppression(supabase, lowered, {
+        reason: 'complaint',
+        fullSuppress: true,
+      })
+      captureBusinessEvent('warning', 'email.complained', {
+        recipients: lowered.length,
+      })
+      break
+    }
     case 'email.unsubscribed': {
       if (lowered.length === 0) break
-      // 명시적 수신거부 의사(스팸신고 / List-Unsubscribe) — 즉시 차단.
-      await applySuppression(supabase, lowered)
-      captureBusinessEvent('warning', `email.${event.type.split('.')[1]}`, {
+      // List-Unsubscribe — 마케팅 거부. 트랜잭션 메일은 유지(fullSuppress=false).
+      await applySuppression(supabase, lowered, {
+        reason: 'unsubscribe',
+        fullSuppress: false,
+      })
+      captureBusinessEvent('warning', 'email.unsubscribed', {
         recipients: lowered.length,
       })
       break

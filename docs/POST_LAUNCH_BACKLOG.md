@@ -23,7 +23,7 @@
 - **R101-E (계정)** ✅: account/delete 18개 테이블 `Promise.allSettled` + 실패 건수 `console.error` 가시화(PIPA)
 
 ### 🔵 큰 작업 → BACKLOG (RPC/테이블/마이그레이션 변경 필요)
-- **R101-F (이메일)**: `email_suppressions` 테이블 신설 — 트랜잭션 메일도 하드바운스/complained 주소로 재발송 막아 도메인 평판 보호. webhook upsert + sendEmail 진입부 조회
+- **R101-F (이메일)** ✅: `email_suppressions` 테이블 신설(prod 적용) — webhook 이 hard_bounce(Permanent)/complaint 시 upsert, sendEmail 진입부에서 조회해 전 발송 skip(fail-open). unsubscribe 는 트랜잭션 메일 유지 위해 제외. 도메인 평판 보호
 - **R101-G (이메일)** ✅: 광고성 cron 3종(vip/birthday/inactive) trackCron 진입부에 KST 21–08시 발송 skip 가드 추가 (정보통신망법 §50⑧)
 - **R101-H (정합성/Critical급)**: `partially_refunded → cancelled` 전량취소 시 sales_count·cumulative_spend 미차감(트리거가 `old='paid'` 만 매치) → 베스트정렬 왜곡 + VIP등급 인플레. 트리거를 `IN('paid','partially_refunded')` 로 확장하되 부분환불 기차감분 제외하게 재설계 (prod 마이그)
 - **R101-I (정합성)**: webhook PARTIAL_CANCELED 가 refunded_amount 미갱신 + refunds row 미삽입 → reconcile mismatch + 집계 누락. Toss balance 기준 동기화
