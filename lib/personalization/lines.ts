@@ -41,7 +41,10 @@ export const FOOD_LINE_META: Record<FoodLineMeta['line'], FoodLineMeta> = {
     mainProtein: 'duck',
     // 오리는 노블 프로틴 — 닭 알레르기 견의 옵션. 다만 오리 알레르기도 드물게
     // 보고됨. 사용자가 명시적으로 오리 표기하면 차단.
-    blockingAllergies: [],
+    // R92 (D7): 이전 빈 배열로 표기만 하고 실제 차단 누락 → Allergy.tsx UI
+    // 의 "오리" 옵션 선택해도 오리 메인 SKU 추천되는 알레르기 사고 vector.
+    // 키 이름은 ALLERGY_OPTIONS 의 "오리" 와 정확히 일치.
+    blockingAllergies: ['오리'],
     crossReactWith: ['닭·칠면조'],
     benefit: '저칼로리 + 단호박, BCS 6+ 권장',
     kcalPer100g: 175,
@@ -54,7 +57,11 @@ export const FOOD_LINE_META: Record<FoodLineMeta['line'], FoodLineMeta> = {
     name: 'Skin',
     subtitle: '연어 · 피부·털',
     mainProtein: 'salmon',
-    blockingAllergies: ['연어·생선'],
+    // R92 (D7): Allergy.tsx UI 가 "연어·생선" + "흰살생선" 두 옵션 노출. 어류
+    // parvalbumin cross-reactivity (Bexley 2019) 로 한 어종 알레르기 견은 다른
+    // 어종도 보수적으로 차단. "흰살생선" 만 단독 선택한 사용자가 연어 메인
+    // SKU 추천받는 알레르기 사고 vector 차단.
+    blockingAllergies: ['연어·생선', '흰살생선'],
     // 연어 알레르기 ↔ 다른 어류 cross-react (Bexley 2019 Vet Dermatol 30:25-e8).
     // chip 으로 "다른 어류 토퍼 주의" 알림.
     crossReactWith: [],
@@ -69,7 +76,10 @@ export const FOOD_LINE_META: Record<FoodLineMeta['line'], FoodLineMeta> = {
     name: 'Premium',
     subtitle: '소 · 활력·근육',
     mainProtein: 'beef',
-    blockingAllergies: ['소고기'],
+    // R92 (D7): Allergy.tsx UI 가 "양고기" 옵션 노출. 소/양 BSA cross-react
+    // (양 알레르기견의 ~30% 소 동시 양성). chip 알림만으로는 사용자가 양고기
+    // 만 표기하면 소 메인 SKU 추천됨. 보수적 차단.
+    blockingAllergies: ['소고기', '양고기'],
     // 소/양 BSA 부분 cross — 양고기 알레르기견은 소도 주의 (반대도).
     crossReactWith: ['양고기'],
     benefit: '헴 철분 + 아연, 활동량 많은 견',

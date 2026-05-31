@@ -74,6 +74,43 @@ export const DCM_RISK_BREEDS = [
   'newfoundland',
 ] as const
 
+/**
+ * R92 (D7): DCM 위험견 한국어 keyword 매칭.
+ *
+ * NewDog / EditDog 가 견종을 free text 로 입력받음 (dropdown / SSOT 매트릭스
+ * 없음). 사용자가 "도베르만" 등 한국어로 입력하면 영문 키만 비교하는
+ * isDcmRiskBreed 가 매칭 못 함 → DCM guardrail 누락 → 보호자 신뢰 손상.
+ *
+ * 보수적 substring 매칭 — 견종명에 keyword 포함 시 모두 위험견 처리.
+ * (예: "골든리트리버 믹스" 도 매칭)
+ *
+ * BACKLOG: NewDog / EditDog 에 견종 dropdown + KO ↔ EN SSOT 매트릭스
+ * 구축 후 이 함수 제거.
+ */
+const DCM_RISK_BREEDS_KO = [
+  '도베르만',
+  '복서',
+  '코커스파니엘',
+  '코카스파니엘',
+  '그레이트데인',
+  '아이리시울프하운드',
+  '아이리쉬울프하운드',
+  '골든리트리버',
+  '골든리트리바',
+  '뉴펀들랜드',
+] as const
+
+export function isDcmRiskBreed(breed?: string | null): boolean {
+  if (!breed) return false
+  const lower = breed.toLowerCase().replace(/[\s_-]/g, '')
+  if (
+    DCM_RISK_BREEDS.some((b) => lower.includes(b.replace(/_/g, '')))
+  ) {
+    return true
+  }
+  return DCM_RISK_BREEDS_KO.some((b) => breed.includes(b))
+}
+
 export interface ChronicSkuPriority {
   /** 만성질환 기반 우선 SKU (가중치 순) */
   priority_skus: SkuKey[]
@@ -197,7 +234,9 @@ export function mapChronicToSku(input: ChronicSkuInput): ChronicSkuPriority {
   }
 
   // ── DCM 위험견 ──
-  if (breed && DCM_RISK_BREEDS.includes(breed.toLowerCase() as (typeof DCM_RISK_BREEDS)[number])) {
+  // R92 (D7): 한국어 / 변종 표기 / substring 모두 인식 (isDcmRiskBreed).
+  // 이전엔 영문 정확 매칭만 → "도베르만" 한글 입력 시 guardrail 누락.
+  if (isDcmRiskBreed(breed)) {
     score.S03 += 2
     guardrails.push(
       withDogName(ALERT_COPY.dcm_risk_breed('○○'), dogName),
