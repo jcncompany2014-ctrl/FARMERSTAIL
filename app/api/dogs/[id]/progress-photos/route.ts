@@ -66,6 +66,17 @@ export async function POST(req: Request, { params }: Params) {
     )
   }
 
+  // R98-C (D7): photoUrl(스토리지 path)이 본인 폴더 prefix 로 시작하는지 검증.
+  // 이전엔 클라가 보낸 path 를 그대로 insert → 타인 폴더 path 를 자기 row 에
+  // 기록해 갤러리 무결성 오염 + 향후 버킷 public 화/admin signing 시 IDOR 로
+  // 승격 가능. 스토리지 RLS 가 read 를 막지만 write 무결성은 별개.
+  if (!data.photoUrl.startsWith(`${user.id}/`)) {
+    return NextResponse.json(
+      { code: 'INVALID_PATH', message: '잘못된 사진 경로예요' },
+      { status: 400 },
+    )
+  }
+
   const { data: inserted, error } = await (
     supabase as unknown as {
       from: (t: string) => {

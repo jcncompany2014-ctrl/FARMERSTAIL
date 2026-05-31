@@ -111,9 +111,15 @@ export async function GET(req: Request) {
     // 강아지 생일 — 보호자에게 푸시 알림. 한 강아지당 하루 1회.
     // (dog_id, today) 기반 idempotency 는 push tag 로 충분 — 같은 날 같은 tag
     // 두 번 보내도 OS 가 dedupe.
+    // R98-A (D7): birth.getMonth()/getDate() 는 서버 UTC 기준이라 KST 자정의
+    // 절대시각(birth)을 전날 15:00 으로 읽어 생일 푸시가 하루 전 발송됐음.
+    // birth_date 문자열(YYYY-MM-DD)을 직접 split 해 KST month/day 와 비교.
+    const [, bMonthStr, bDayStr] = dog.birth_date.split('-')
+    const birthMonth = Number(bMonthStr)
+    const birthDay = Number(bDayStr)
     if (
-      birth.getMonth() + 1 === todayMonth &&
-      birth.getDate() === todayDay &&
+      birthMonth === todayMonth &&
+      birthDay === todayDay &&
       years >= 0.083 // 약 1개월 이상 — 너무 어린 강아지 첫 입력 직후 생일 알림 회피
     ) {
       pushToUser(dog.user_id, {

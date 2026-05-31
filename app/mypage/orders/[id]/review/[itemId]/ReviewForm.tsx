@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { Star, ShoppingBag, Loader2, Check, Camera, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { creditPoints } from '@/lib/commerce/points'
+import { downscaleImage } from '@/lib/imageDownscale'
 
 type Dog = { id: string; name: string }
 
@@ -82,13 +83,22 @@ export default function ReviewForm({
           setError('이미지 파일만 올릴 수 있어요')
           continue
         }
-        const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
-        // 경로는 `<uid>/<random>.<ext>` — 스토리지 RLS 가 폴더 첫 세그먼트를
+        // R98-C (D7): canvas 재인코딩으로 EXIF(GPS 좌표·기기정보) 제거.
+        // review-photos 는 public 버킷이라 원본 사진의 거주지 GPS 가 리뷰
+        // 목록에서 무인증 다운로드 가능 — PIPA 위치정보 유출. downscaleImage
+        // 가 jpeg 로 재인코딩하며 메타데이터를 떨어낸다. 실패 시(드문 포맷)
+        // 원본 fallback 보다 차단이 안전하지만, 사용자 경험 위해 throw 는
+        // 상위 try 가 처리(전체 핸들러 에러 표시).
+        const safeBlob = await downscaleImage(file)
+        // 경로는 `<uid>/<random>.jpg` — 스토리지 RLS 가 폴더 첫 세그먼트를
         // auth.uid() 와 비교하므로 이 네이밍을 유지해야 한다.
-        const path = `${user.id}/${crypto.randomUUID()}.${ext}`
+        const path = `${user.id}/${crypto.randomUUID()}.jpg`
         const { error: upErr } = await supabase.storage
           .from('review-photos')
-          .upload(path, file, { contentType: file.type, upsert: false })
+          .upload(path, safeBlob, {
+            contentType: 'image/jpeg',
+            upsert: false,
+          })
         if (upErr) {
           setError('사진 업로드에 실패했어요')
           continue

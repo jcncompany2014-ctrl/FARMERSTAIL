@@ -5,6 +5,32 @@
 
 ---
 
+## 🔴 R98 (D7) — 대규모 3영역 (타임존 / 카피·법적 / 파일업로드 보안)
+
+### 이번 라운드 fix 완료
+- **R98-C H-2**: ReviewForm 사진 EXIF(GPS) strip — review-photos public 버킷에 원본 거주지 좌표 무인증 노출(PIPA 위치정보). downscaleImage canvas 재인코딩 ✅
+- **R98-A Medium**: 생일 푸시 하루 전 발송 — birth.getMonth/getDate UTC → birth_date split KST 비교 ✅
+- **R98-C H-3**: progress-photos POST 가 클라 photoUrl path 무검증 insert → `${user.id}/` prefix 검증 ✅
+- **R98-B Medium**: 블로그 효능 표현 3줄 ("가려움 잡혀요/염증 가라앉히는/80% 가라앉아요" → 보조·도움 톤) ✅
+
+### High/Medium 1주 내 fix 권장 (잔여)
+- **R98-C H-1**: dog-avatars 버킷이 public + 서버 MIME/size 재검증 0 + 사용자 파일명 그대로. 버킷을 migration 으로 MIME/size 명시 + uploadDogPhoto canvas 재인코딩 (호출흐름 서버/클라 검증 후). EXIF GPS 도 동시 해결
+- **R98-A High**: cart 배송일 라벨 KST off-by-one (nextArrivalLabel getHours/getDate UTC). app/cart/page.tsx — web 공유지만 날짜 계산 로직만이라 헬퍼 교체 안전
+- **R98-C M-1**: products 버킷 MIME/size migration 누락 (서버 라우트 8MB+image allowlist 로 1차 방어는 됨)
+- **R98-C M-2**: 매직바이트 검증 없음 (Content-Type 헤더만). OCR/photo-upload 서버 경유처에 시그니처 검사
+
+### Medium / Low (잔여)
+- **R98-A**: DashboardDailyChecks localStorage 키 / ExpensesClient 날짜 기본값 / Vaccinations 필터 / dashboard makeWeekDays / formatAgeLabel / cart-abandoned 멱등키 — 클라 `.toISOString().slice(0,10)` → todayKstIsoDate
+- **R98-C M-3~M-5**: OCR dogId 소유검증(현재 미사용), 이미지 폭탄 픽셀 차원 상한, photo-upload 토큰 만료 storage 고아 정리 cron
+- **R98-B Low**: copy-strings 자기 블랙리스트("프리미엄") 모순 — 블랙리스트에서 제거 권장 / nutrition.ts getSupplements desc dead copy ("개선/강화/보장") / 호칭 강아지vs반려견 (의도적 분리 가능)
+
+### 견고 확인 (발견 0 / 모범)
+- 카피 법적: 효능표현 R86/R91 정리 견고 유지, voice §1 "신뢰도" 사용자노출 0, 환불/배송/정기결제 고지 terms↔refund↔FAQ 일치
+- 파일 보안: SVG XSS 0 (allowlist 에 svg 없음), private 버킷 RLS self-folder + signed URL, path traversal 가드, next/image remotePatterns 제한
+- 타임존: cron 결제/만료 판정 KST 정석 (Date.now+9h getUTC), 이메일 timeZone:Asia/Seoul (R94), 쿠폰 timestamp 비교
+
+---
+
 ## 🔴 R97 (D7) — 대규모 4영역 (성능N+1 / 에러fallback / React hooks / rate limit·비용)
 
 ### 이번 라운드 fix 완료
