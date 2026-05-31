@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import OrderStatusControl from './OrderStatusControl'
 import ShippingControl from './ShippingControl'
+import PartialCancelPanel from './PartialCancelPanel'
 import PaymentEventTimeline from './PaymentEventTimeline'
 import { carrierLabel } from '@/lib/tracking'
 
@@ -226,6 +227,20 @@ export default async function AdminOrderDetailPage({
             paymentStatus={order.payment_status}
             currentCarrier={order.carrier}
             currentTrackingNumber={order.tracking_number}
+          />
+
+          {/* R93 (D7): 부분/전액 환불 패널 — 이전엔 컴포넌트가 구현돼 있었으나
+              page 에 렌더링 안 됨 (dead). 그 결과 운영자가 결제완료 주문을
+              환불하려면 status route 로 cancelled 전이밖에 못 했고, 그 경로는
+              Toss 환불/재고/포인트/쿠폰을 전부 누락했다. 이제 결제완료 주문의
+              유일·정식 환불 경로로 연결. status route 는 결제완료 cancelled 를
+              막으므로(REFUND_REQUIRED) 환불은 반드시 이 패널을 통한다. */}
+          <PartialCancelPanel
+            orderId={order.id}
+            paymentMethod={order.payment_method ?? null}
+            totalAmount={order.total_amount}
+            refundedAmount={order.refunded_amount ?? 0}
+            paymentStatus={order.payment_status}
           />
 
           {/* 현재 송장 (shipping 이후에만) */}

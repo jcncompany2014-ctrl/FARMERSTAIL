@@ -141,6 +141,31 @@ export async function POST(
     // delivered는 shipping 을 건너뛰고 바로 찍혀도 되지만, shipped_at은 한 번은 남겨둡니다.
     if (!order.shipped_at) update.shipped_at = now
   } else if (orderStatus === 'cancelled') {
+    // R93 (D7): 결제 완료(paid) / 부분환불(partially_refunded) 주문을 이
+    // 경로로 취소하면 Toss 환불 / 재고 복원 / 포인트 환급·회수 / 쿠폰 원복
+    // 이 전부 누락된다 (이 분기는 cancelled_at 만 set). 그 결과 고객은 결제
+    // 된 채 방치되고 재고·쿠폰·포인트 정합성이 조용히 깨진다.
+    //
+    // 환불이 필요한 주문은 "부분취소/환불" 패널(partial-cancel route)에서
+    // 처리해야 한다 — 그쪽은 Toss cancelPayment + refunded_amount +
+    // payment_events ledger 를 제대로 기록한다. 따라서 결제완료 주문의
+    // status-route 취소는 막고 환불 패널로 유도한다.
+    //
+    // 이 분기의 cancelled 는 미결제(pending) / 결제실패(failed) 주문 취소
+    // 에만 안전하다 (환불할 돈이 없으므로 누락 사고가 없음).
+    if (
+      order.payment_status === 'paid' ||
+      order.payment_status === 'partially_refunded'
+    ) {
+      return NextResponse.json(
+        {
+          code: 'REFUND_REQUIRED',
+          message:
+            '결제가 완료된 주문은 환불 처리가 필요해요. 주문 상세의 “부분취소/환불” 패널에서 환불 금액(전액 가능)을 지정해 취소해 주세요.',
+        },
+        { status: 400 },
+      )
+    }
     update.cancelled_at = order.cancelled_at ?? now
     if (reason !== undefined) update.cancel_reason = reason?.trim() || null
   } else if (orderStatus === 'preparing') {

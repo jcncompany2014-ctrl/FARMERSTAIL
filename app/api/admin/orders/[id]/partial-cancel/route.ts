@@ -18,10 +18,15 @@ export const dynamic = 'force-dynamic'
  *       - refunded_amount == total_amount → 'refunded'
  *   • 가상계좌 주문은 refundReceiveAccount(환불 계좌 정보)가 필수 —
  *     body에 전달된 계좌 정보를 그대로 Toss에 패스. 카드 결제는 불필요.
+ *   • R93: 전액 환불 완료(refunded_amount == total_amount) 시 재고를
+ *     자동 복구한다 (order_items.cancelled_at 멱등 가드). admin 이 결제
+ *     완료 주문을 전액 취소하는 정식 경로 — status route 의 cancelled 는
+ *     결제완료 주문을 막으므로(REFUND_REQUIRED) 이 패널이 유일한 환불
+ *     경로다. cancelAmount = total_amount - refunded_amount 로 호출.
  *   • 포인트/쿠폰은 부분 취소에서 자동 조정하지 않는다 (금액 분배
  *     로직이 복잡하고 운영자가 컨텍스트에 맞춰 수동 처리하는 쪽이
- *     에러가 적음). 전액 환불이 필요하면 기존 /api/orders/[id]/cancel
- *     플로우를 사용.
+ *     에러가 적음). 전액 환불 시에도 포인트/쿠폰은 운영자가 마이페이지
+ *     /admin 에서 수동 복구 (BACKLOG: 전액 환불 시 자동 복구).
  *
  * 권한: profiles.role = 'admin'만 허용.
  */
@@ -252,6 +257,40 @@ export async function POST(
       { code: 'DB_UPDATE_FAILED', message: updateErr.message },
       { status: 500 }
     )
+  }
+
+  // R93 (D7): 전액 환불 완료 시 재고 복구 — cancel route 와 동일 패턴.
+  // 이전엔 admin 전액 환불 후 재고가 차감된 채 방치 → 품절 오인 + 판매 손실.
+  // order_items.cancelled_at IS NULL 가드로 멱등성 (중복 환불/재시도 시
+  // 두 번째는 0-row → 재고 중복 복구 방지). 포인트/쿠폰 자동 조정은 기존
+  // 설계대로 운영자 수동 (금액 분배 복잡 — 주석 상단 참조).
+  if (isFullyRefunded) {
+    const { data: itemsToRestore } = await admin
+      .from('order_items')
+      .select('id, product_id, quantity')
+      .eq('order_id', order.id)
+      .is('cancelled_at', null)
+    const restoreArr = (itemsToRestore ?? []) as Array<{
+      id: string
+      product_id: string
+      quantity: number
+    }>
+    if (restoreArr.length > 0) {
+      const cancelTime = new Date().toISOString()
+      await admin
+        .from('order_items')
+        .update({ cancelled_at: cancelTime })
+        .in(
+          'id',
+          restoreArr.map((it) => it.id),
+        )
+      for (const it of restoreArr) {
+        await admin.rpc('restore_stock', {
+          p_product_id: it.product_id,
+          p_qty: it.quantity,
+        })
+      }
+    }
   }
 
   // R82-G2: payment_events ledger 기록 — 이전 코드 (R81 audit 발견) 가 누락 →
