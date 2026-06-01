@@ -12,8 +12,9 @@
  * # 일정 — 매주 일 03:00 KST (조용한 시간)
  *
  * # Side effects
- *  - 불일치 row 식별 → Sentry breadcrumb (warning)
- *  - 결과 sample top 20 admin email 알림 (NEXT_PUBLIC_ADMIN_EMAIL)
+ *  - 불일치 row 식별 → Sentry 이벤트 기록 (captureBusinessEvent, warning).
+ *    직접 메일 발송은 안 한다 — 운영 이상 통보는 매일 ops-digest cron 이
+ *    cron_health 등과 함께 운영자(business.email)에게 종합 메일로 보낸다.
  *
  * # 보안 — Bearer CRON_SECRET
  */

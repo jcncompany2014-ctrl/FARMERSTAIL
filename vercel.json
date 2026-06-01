@@ -34,7 +34,8 @@
     "app/api/cron/inventory-forecast/route.ts": { "maxDuration": 120 },
     "app/api/cron/intervention-alerts/route.ts": { "maxDuration": 180 },
     "app/api/cron/payment-ledger-reconcile/route.ts": { "maxDuration": 120 },
-    "app/api/cron/reanalysis-reminder-6m/route.ts": { "maxDuration": 120 }
+    "app/api/cron/reanalysis-reminder-6m/route.ts": { "maxDuration": 120 },
+    "app/api/cron/ops-digest/route.ts": { "maxDuration": 120 }
   },
   "crons": [
     {
@@ -168,6 +169,10 @@
     {
       "path": "/api/cron/reanalysis-reminder-6m",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/ops-digest",
+      "schedule": "0 23 * * *"
     }
   ]
 }

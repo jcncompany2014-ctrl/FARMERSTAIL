@@ -5,7 +5,9 @@
  *   1) 활성 정기구독자의 next_delivery_date + mix_ratio + 일일 g 합산
  *   2) 향후 7/14/30일 동안 SKU 별 필요량 계산
  *   3) products.stock 과 비교 → 부족 SKU 식별
- *   4) Sentry breadcrumb + admin 이메일 (NEXT_PUBLIC_ADMIN_EMAIL)
+ *   4) Sentry 이벤트로 기록 (captureBusinessEvent). 별도 직접 메일 발송은
+ *      안 한다 — 매일 ops-digest cron 이 cron_health 등 운영 이상을 모아
+ *      운영자(business.email)에게 종합 메일을 보낸다.
  *
  * 솔로 운영자 의존도 ↓ — 매일 자동 점검으로 품절 직전 알림.
  *
