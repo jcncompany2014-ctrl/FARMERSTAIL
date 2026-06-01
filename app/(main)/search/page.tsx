@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import {
   ChevronLeft,
   Search,
+  SearchX,
   Dog as DogIcon,
   BookOpen,
   ShoppingBag,
@@ -132,6 +133,46 @@ export default async function SearchPage({
           <p className="text-[12px] text-muted text-center py-8">
             검색어를 입력해 보세요.
           </p>
+        </section>
+      ) : dogs.length + products.length + diary.length === 0 ? (
+        // 마스터피스 P1-D3: 전체 검색 결과 0 → 섹션별 "결과가 없어요" 3개 나열 대신
+        // 아이콘 + 검색어 + 안내가 있는 큰 빈상태. (섹션별 빈줄은 결과가 일부 있을 때만.)
+        <section className="px-5 mt-10">
+          <div
+            className="flex flex-col items-center text-center rounded px-6 py-12"
+            style={{
+              background: 'var(--bg-2)',
+              boxShadow: 'inset 0 0 0 1px var(--rule)',
+            }}
+          >
+            <SearchX
+              className="w-9 h-9 mb-3"
+              strokeWidth={1.6}
+              color="var(--muted)"
+            />
+            <p
+              style={{
+                fontSize: 16,
+                color: 'var(--ink)',
+                fontWeight: 700,
+                letterSpacing: '-0.01em',
+              }}
+            >
+              ‘{query}’ 검색 결과가 없어요
+            </p>
+            <p
+              style={{
+                fontSize: 13.5,
+                color: 'var(--muted)',
+                lineHeight: 1.6,
+                marginTop: 6,
+              }}
+            >
+              다른 검색어로 찾아보거나 철자를 확인해 주세요.
+              <br />
+              강아지 이름·다이어리 내용·상품명으로 찾을 수 있어요.
+            </p>
+          </div>
         </section>
       ) : (
         <>
