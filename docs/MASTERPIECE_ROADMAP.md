@@ -57,8 +57,8 @@
 - **P1-O5. 프로덕션 SENTRY_DSN 주입 + 콘솔 룰/채널 연결**: 🙋 창업자(Vercel env + Sentry 콘솔) — 출시 체크리스트에 못 박기.
 
 ### 디자인·접근성
-- **P1-D1. `rounded-full` → `rounded`(4) 정리**: 41개 파일이 v3 시그니처 radius 이탈(DogDetailClient 16·ReferralView 12·membership 9 등). 진짜 pill만 유지하고 카드/버튼/입력은 4px. 🤖 내가 가능(파일별 pill 의도 구분).
-- **P1-D2. 타이포 px 리터럴 → V3FontSize**: `text-[13/14/15/18/20px]` 269+곳이 스케일 이탈(SSOT인 components/v3조차 일부 위반). 화면군 단위 토큰화. 🤖 내가 가능(점진).
+- **P1-D1. `rounded-full` radius** ✅ (브라우저 실측 → 비이슈 확정): 테스트 계정 로그인 후 dashboard·dogs·dog상세·mypage·membership·subscriptions·analysis + web(landing·catalog·login) **9개 화면을 computed border-radius로 전수 실측** → **카드/버튼급 rounded-full 위반 = 전 화면 0건**. 소스 grep "41파일·DogDetailClient 16·membership 9"은 전부 정상 pill(상태점·등급뱃지)·장식 blur(`pointer-events-none`)·조건부 렌더였음 — 시각 드리프트 아님. 별도 수정 불요.
+- **P1-D2. 타이포 px 리터럴 → V3FontSize** (실측 → P2 하향): off-scale leaf 실재(화면당 ~20, 콘텐츠 밀집 analysis 127)하나 **값이 13 vs 13.5 / 11 vs 10.5 수준 = 육안 무해**. 시각 하자가 아니라 SSOT 코드 정합 이슈 → 출시 비차단. 점진 토큰화 가능. 🤖 내가 가능(점진).
 - **P1-D3. 검색 빈 상태 보강**: `search/page.tsx` "결과 없어요"가 맨 텍스트 한 줄 → AnalysisEmptyState 패턴(아이콘+안내+추천). 🤖 내가 가능.
 - **P1-A1. 중첩 `<main>` 랜드마크** ✅: (main) 하위 58파일 64개 `<main>` → `<div>` 강등(속성 보존), AppChrome 의 `<main id="main">` landmark 만 유지. 중첩 0건 확인 + 1035 테스트 통과.
 - **P1-A2. app 라이트 mute 대비 미달** ✅: `inkMute #7d7460`(paper 3.97:1, AA 미달, ~859곳) → `#706854`(4.75:1 AA pass) darken. CSS var(`--ink-mute`) + `tokens.ts` + 인라인 하드코딩 4파일(coupons/CartChrome/notifications.css) 정합 + contrast.test 회귀(≥4.5) + AGENTS.md 문서. inkSoft(9.7) 와 구분되어 mute 위계 유지.
