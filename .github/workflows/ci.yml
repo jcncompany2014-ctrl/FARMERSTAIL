@@ -60,6 +60,12 @@ jobs:
       # Build-time 에 zod parse 통과만 하면 충분 — 런타임 값은 Vercel 환경.
       NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+      # lib/env.ts 는 production(= next build)에서 service_role 키가 비면 throw 한다.
+      # Vercel 은 실제 키를 갖지만 CI 는 placeholder 로 "env shape 검증만" 통과시킨다.
+      # 이 줄 누락이 마스터피스 P1 직후 CI 3연속 실패의 원인이었다 — analysis 라우트
+      # page-data 수집 중 env.ts throw. scripts/ci-build.mjs 가 이 블록을 그대로
+      # 재현하므로 push 전 로컬에서 동일 실패를 잡는다.
+      SUPABASE_SERVICE_ROLE_KEY: placeholder
       NEXT_PUBLIC_SITE_URL: https://placeholder.farmerstail.kr
       NEXT_PUBLIC_BIZ_OWNER: placeholder
       NEXT_PUBLIC_BIZ_NUMBER: 000-00-00000

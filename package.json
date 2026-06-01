@@ -16,6 +16,8 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "verify": "npx eslint . && npx tsc --noEmit && npm test",
+    "build:ci": "node scripts/ci-build.mjs",
+    "verify:push": "npm run verify && npm run build:ci",
     "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test \"lib/**/*.test.ts\"",
     "test:watch": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test --watch \"lib/**/*.test.ts\"",
     "test:coverage": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout \"lib/**/*.test.ts\"",
