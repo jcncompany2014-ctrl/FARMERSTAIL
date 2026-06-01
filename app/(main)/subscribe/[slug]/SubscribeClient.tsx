@@ -373,7 +373,7 @@ export default function SubscribeClient({
               {quantity}
             </div>
             <button
-              onClick={() => setQuantity(quantity + 1)}
+              onClick={() => setQuantity(Math.min(20, quantity + 1))}
               className="w-10 h-10 rounded bg-bg font-black text-text text-xl active:scale-95 transition"
             >
               +

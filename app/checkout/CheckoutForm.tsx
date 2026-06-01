@@ -317,6 +317,18 @@ export default function CheckoutForm({
       return
     }
 
+    // 현금영수증 발급번호 자릿수 검증 — 가상계좌 + 발급유형 선택 시 번호가 너무
+    // 짧으면(휴대폰 10~11 / 사업자 10 미만) 입금 후 국세청 등록이 조용히 실패해
+    // 주문은 성공하는데 영수증만 안 나온다. 제출 전 차단(disputed audit 후속).
+    if (
+      paymentMethod === 'VIRTUAL_ACCOUNT' &&
+      cashReceiptType !== '' &&
+      cashReceiptNumber.trim().length < 10
+    ) {
+      toast.error('현금영수증 번호를 정확히 입력해 주세요 (휴대폰 10~11자리 · 사업자 10자리)')
+      return
+    }
+
     setLoading(true)
     try {
       // "기본 배송지로 저장" 체크 + 저장된 주소가 아닐 때만 addresses
