@@ -153,7 +153,10 @@ export default function SubscriptionsClient({
   async function handlePause(subId: string, weeks?: 1 | 2 | 4) {
     setActionLoading(subId)
     const uid = await requireUid()
-    if (!uid) return
+    if (!uid) {
+      setActionLoading(null)
+      return
+    }
     const update: Record<string, unknown> = weeks
       ? (() => {
           // R85-D4: KST 자정 직후 (00-08:59) base.toISOString() 이 UTC 전날 반환 →
@@ -193,7 +196,10 @@ export default function SubscriptionsClient({
   async function handleResume(subId: string) {
     setActionLoading(subId)
     const uid = await requireUid()
-    if (!uid) return
+    if (!uid) {
+      setActionLoading(null)
+      return
+    }
     const sub = subs.find((s) => s.id === subId)
     if (!sub) {
       setActionLoading(null)
@@ -329,7 +335,10 @@ export default function SubscriptionsClient({
   async function handleChangeInterval(subId: string, newInterval: number) {
     setActionLoading(subId)
     const uid = await requireUid()
-    if (!uid) return
+    if (!uid) {
+      setActionLoading(null)
+      return
+    }
     // R96-E (D7): KST 헬퍼로 통일 — raw Date 는 KST 00:00~08:59 구간에 UTC 가
     // 전날이라 next_delivery_date 가 하루 빠르게 저장됨. 주기를 짧게 바꾸며
     // 그 날짜가 오늘/과거가 되면 다음 cron 이 즉시 청구하는 위험. R85-D 에서

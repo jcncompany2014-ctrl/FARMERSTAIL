@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Share2, Check, Link as LinkIcon } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 
@@ -186,32 +186,31 @@ export default function ShareButton({
  */
 export function KakaoInitScript() {
   const key = process.env.NEXT_PUBLIC_KAKAO_JS_KEY
-  if (!key) return null
-  return (
-    <>
-      <script
-        async
-        src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"
-        crossOrigin="anonymous"
-      />
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            (function() {
-              function tryInit(){
-                if (window.Kakao && !window.Kakao.isInitialized()) {
-                  try { window.Kakao.init(${JSON.stringify(key)}); } catch(e){}
-                }
-              }
-              if (document.readyState === 'complete') tryInit();
-              else window.addEventListener('load', tryInit);
-              setTimeout(tryInit, 1500);
-            })();
-          `,
-        }}
-      />
-    </>
-  )
+  // 이전: JSX 로 raw <script> 2개를 렌더 → 'use client' 컴포넌트라 React 가
+  // client 렌더 때마다 "Encountered a script tag while rendering React component"
+  // 경고를 냈다(dev 콘솔 23x). prod 빌드에선 제거되지만 마스터피스 콘솔 청결을
+  // 위해 useEffect 로 SDK 를 DOM 에 직접 주입한다(멱등 — id 체크). 동작 동일.
+  useEffect(() => {
+    if (!key) return
+    if (document.getElementById('kakao-sdk')) return
+    const s = document.createElement('script')
+    s.id = 'kakao-sdk'
+    s.async = true
+    s.src = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js'
+    s.crossOrigin = 'anonymous'
+    s.onload = () => {
+      const k = window.Kakao
+      if (k && !k.isInitialized()) {
+        try {
+          k.init(key)
+        } catch {
+          // SDK init 실패는 공유 폴백(클립보드)으로 흡수 — 치명적 아님.
+        }
+      }
+    }
+    document.head.appendChild(s)
+  }, [key])
+  return null
 }
 
 /**
