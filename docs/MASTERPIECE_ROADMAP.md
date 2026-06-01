@@ -45,7 +45,7 @@
 
 ### 콘텐츠
 - **P1-C1. FAQ·파트너 fallback→DB 승격** ✅: seed 마이그(20260601000002, prod 적용) — FALLBACK_GROUPS 24문항(4카테고리) + FALLBACK_PARTNERS 6곳을 DB 로 옮겨 즉시 라이브(이전엔 얇은 6/4건만 노출). fallback 원문 byte-정확(프로그램 추출+비교, 맞춤법 보존). 검증: faqs 24/24 published·4카테고리(CHECK 일치)·partners 6. 코드 FALLBACK 상수는 안전망으로 유지.
-- **P1-C2. 컬렉션 4개 상품 매핑**: `collection_items=0`이라 4개 컬렉션 전부 빈 껍데기. 컬렉션별 3~6개 product_id 매핑 + hero_image. 🤝 매핑은 내가, 이미지는 창업자.
+- **P1-C2. 컬렉션 4개 상품 매핑** ✅(매핑): collection_items seed(20260601000003, prod 적용) — 첫화식4/노령견6/체중관리4/알레르기5, 각 컬렉션 curator_note 의도에 맞춰 매핑(빈상태·ItemList 빈배열 해소). admin/collections 에서 조정 가능. **잔여**: hero_image_url/card_image_url(🙋 창업자 이미지).
 - **P1-C3. 카테고리 taxonomy 정합** ✅: 칩(영어슬러그 meal/treat/set/supp)·ALLOWED(한글부분집합)·DB(한글5종) 3중 불일치로 카테고리 필터 4/5 가 통째로 깨져 있던 걸 발견 → 음식종류 4분류(화식/간식/영양제/체험팩)로 통일. 정기배송·구독 → 화식 rename(마이그 20260601000000, 코드영향 0 확인) + 앱칩 href + ALLOWED + 데스크톱 CatalogFilters 3곳 DB값 정합.
 - **P1-C4. 이벤트 3개 이미지**: hero 슬라이더·Event JSON-LD용 배너. 🙋 창업자.
 
