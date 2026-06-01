@@ -41,7 +41,7 @@ export default async function AddressesPage() {
   const addresses = ((rows ?? []) as AddressRow[]).map(rowToAddress)
 
   return (
-    <main style={{ paddingBottom: 32 }}>
+    <div style={{ paddingBottom: 32 }}>
       <section style={{ padding: '24px 20px 8px' }}>
         <Link
           href="/mypage"
@@ -181,6 +181,6 @@ export default async function AddressesPage() {
           <AddressesClient initial={addresses} />
         </>
       )}
-    </main>
+    </div>
   )
 }

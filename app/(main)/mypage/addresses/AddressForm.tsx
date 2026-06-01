@@ -100,7 +100,7 @@ export default function AddressForm({ mode, initial }: Props) {
   }
 
   return (
-    <main className="pb-10" style={{ background: 'var(--bg)' }}>
+    <div className="pb-10" style={{ background: 'var(--bg)' }}>
       <section className="px-5 pt-6 pb-2">
         <Link
           href="/mypage/addresses"
@@ -267,7 +267,7 @@ export default function AddressForm({ mode, initial }: Props) {
           opacity: 0.7;
         }
       `}</style>
-    </main>
+    </div>
   )
 }
 

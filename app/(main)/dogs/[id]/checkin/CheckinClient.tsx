@@ -290,17 +290,17 @@ export default function CheckinClient({
 
   if (loading) {
     return (
-      <main className="ck-page">
+      <div className="ck-page">
         <div className="ck-state">
           <Spinner size={18} />
           체크인 정보 불러오는 중...
         </div>
-      </main>
+      </div>
     )
   }
 
   return (
-    <main className="ck-page">
+    <div className="ck-page">
       <Link href={`/dogs/${dogId}`} className="ck-back" aria-label="돌아가기">
         <ChevronLeft size={16} strokeWidth={2.2} />
         {dogName}이의 페이지
@@ -542,7 +542,7 @@ export default function CheckinClient({
           </button>
         </div>
       )}
-    </main>
+    </div>
   )
 }
 

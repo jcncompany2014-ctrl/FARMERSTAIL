@@ -599,7 +599,7 @@ export default function OrderClient({
   }
 
   return (
-    <main className="ord-page">
+    <div className="ord-page">
       <Link href={`/dogs/${dogId}/analysis`} className="ord-back">
         <ChevronLeft size={14} strokeWidth={2.2} />
         분석 결과
@@ -990,6 +990,6 @@ export default function OrderClient({
           </p>
         </>
       )}
-    </main>
+    </div>
   )
 }

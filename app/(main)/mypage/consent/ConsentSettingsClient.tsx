@@ -121,7 +121,7 @@ export default function ConsentSettingsClient({
   }
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       <section className="px-5 pt-6 pb-2">
         <Link
           href="/mypage"
@@ -233,7 +233,7 @@ export default function ConsentSettingsClient({
           정보 발송이 중단됩니다.
         </p>
       </section>
-    </main>
+    </div>
   )
 }
 

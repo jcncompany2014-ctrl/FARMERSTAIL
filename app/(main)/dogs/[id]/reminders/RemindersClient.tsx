@@ -282,7 +282,7 @@ export default function RemindersClient({
   }
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       <section className="px-5 pt-6 pb-2">
         <Link
           href={`/dogs/${dogId}`}
@@ -544,7 +544,7 @@ export default function RemindersClient({
           </div>
         )}
       </section>
-    </main>
+    </div>
   )
 }
 

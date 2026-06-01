@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 
 export default function DogsLoading() {
   return (
-    <main className="pb-8" style={{ background: 'var(--bg)' }}>
+    <div className="pb-8" style={{ background: 'var(--bg)' }}>
       <section className="px-5 pt-6">
         <Skeleton className="h-3 w-16" />
         <Skeleton className="h-7 w-1/2 mt-3" />
@@ -26,6 +26,6 @@ export default function DogsLoading() {
           </div>
         ))}
       </section>
-    </main>
+    </div>
   )
 }

@@ -73,7 +73,7 @@ export default async function ReportsPage() {
   const dogs = (dogsRes.data ?? []) as Array<{ id: string; name: string }>
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       <div className="px-5 pt-6 pb-2">
         <Link
           href="/dashboard"
@@ -167,6 +167,6 @@ export default async function ReportsPage() {
           </div>
         </section>
       )}
-    </main>
+    </div>
   )
 }

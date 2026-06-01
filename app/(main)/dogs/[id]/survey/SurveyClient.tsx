@@ -708,9 +708,9 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
 
   if (!dog) {
     return (
-      <main className="flex items-center justify-center min-h-[80vh]" style={{ background: 'var(--bg)' }}>
+      <div className="flex items-center justify-center min-h-[80vh]" style={{ background: 'var(--bg)' }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--terracotta)' }} strokeWidth={1.6} />
-      </main>
+      </div>
     )
   }
 
@@ -732,7 +732,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   const isLoading = currentStep === 'loading'
 
   return (
-    <main style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <div className="max-w-md mx-auto" style={{ background: 'var(--bg)' }}>
         {!isLoading && (
           <>
@@ -952,6 +952,6 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
           </div>
         )}
       </div>
-    </main>
+    </div>
   )
 }

@@ -98,7 +98,7 @@ export default function InviteAccept({
   }
 
   return (
-    <main className="min-h-[80vh] flex items-center justify-center px-5 py-10">
+    <div className="min-h-[80vh] flex items-center justify-center px-5 py-10">
       <div className="w-full max-w-sm rounded border bg-bg-3 px-6 py-7 shadow-sm" style={{ borderColor: 'var(--rule)' }}>
         {/* 헤더 아이콘 */}
         <div className="flex justify-center mb-4">
@@ -214,7 +214,7 @@ export default function InviteAccept({
           </>
         )}
       </div>
-    </main>
+    </div>
   )
 }
 

@@ -143,7 +143,7 @@ export default async function AnalysesTimelinePage({
     analyses[0]!.guideline_version !== CURRENT_GUIDELINE_VERSION
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       {/* 헤더 */}
       <section className="px-5 pt-6 pb-2">
         <Link
@@ -347,7 +347,7 @@ export default async function AnalysesTimelinePage({
         </div>
         </>
       )}
-    </main>
+    </div>
   )
 }
 

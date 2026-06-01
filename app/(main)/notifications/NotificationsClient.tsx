@@ -149,7 +149,7 @@ export default function NotificationsClient({
   }
 
   return (
-    <main className="nt-page">
+    <div className="nt-page">
       <Link href="/" className="nt-back">
         <ChevronLeft size={14} strokeWidth={2.2} />홈
       </Link>
@@ -292,7 +292,7 @@ export default function NotificationsClient({
           ))}
         </div>
       )}
-    </main>
+    </div>
   )
 }
 

@@ -32,7 +32,7 @@ export default async function ChatPage() {
     .order('created_at', { ascending: true })
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       <section className="px-5 pt-6 pb-3">
         <Link
           href="/dashboard"
@@ -94,6 +94,6 @@ export default async function ChatPage() {
           </p>
         </div>
       </section>
-    </main>
+    </div>
   )
 }

@@ -694,7 +694,7 @@ export default async function DashboardPage() {
   const journalEntries: JournalEntry[] = []
 
   return (
-    <main className="pb-8">
+    <div className="pb-8">
       {/* 가입 후 첫 진입 튜토리얼 — onboarded_at IS NULL 인 경우만 1회. */}
       {showOnboarding && <OnboardingTutorial />}
 
@@ -871,7 +871,7 @@ export default async function DashboardPage() {
         {pastSnapshotData ? '·' : ''}
         {hasAnyAnalysis ? '1' : '0'}
       </span>
-    </main>
+    </div>
   )
 }
 

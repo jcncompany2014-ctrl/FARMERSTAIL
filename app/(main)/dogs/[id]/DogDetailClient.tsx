@@ -226,7 +226,7 @@ export default function DogDetailClient({
   }
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       {/* Header */}
       <section className="px-5 pt-6 pb-2">
         <Link
@@ -879,7 +879,7 @@ export default function DogDetailClient({
           </div>
         </div>
       )}
-    </main>
+    </div>
   )
 }
 

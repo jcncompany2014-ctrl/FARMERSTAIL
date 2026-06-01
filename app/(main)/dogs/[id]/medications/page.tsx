@@ -28,7 +28,7 @@ export default async function MedicationsPage({
   if (!dog) redirect('/dogs')
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       <div className="px-5 pt-6 pb-2">
         <Link
           href={`/dogs/${dogId}`}
@@ -57,6 +57,6 @@ export default async function MedicationsPage({
         </div>
       </div>
       <MedicationsClient dogId={dogId} />
-    </main>
+    </div>
   )
 }

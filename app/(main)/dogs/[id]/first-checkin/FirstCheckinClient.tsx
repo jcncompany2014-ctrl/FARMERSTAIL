@@ -88,7 +88,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
 
   if (done) {
     return (
-      <main className="px-5 pt-16 pb-20 max-w-md mx-auto">
+      <div className="px-5 pt-16 pb-20 max-w-md mx-auto">
         <div className="text-center">
           <div className="text-5xl mb-4">💚</div>
           <h1
@@ -120,12 +120,12 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
             {dogName}이 정보 보기 →
           </button>
         </div>
-      </main>
+      </div>
     )
   }
 
   return (
-    <main className="px-5 pt-10 pb-20 max-w-md mx-auto">
+    <div className="px-5 pt-10 pb-20 max-w-md mx-auto">
       <span className="kicker">First Box · 7일차 체크인</span>
       <h1
         className="font-sans mt-2"
@@ -223,6 +223,6 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
       <p className="text-[11px] text-muted text-center mt-4">
         나중에 응답하시려면 그냥 닫으셔도 돼요 🐾
       </p>
-    </main>
+    </div>
   )
 }

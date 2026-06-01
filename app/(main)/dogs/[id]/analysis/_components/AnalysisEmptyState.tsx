@@ -10,7 +10,7 @@ import { ClipboardList } from 'lucide-react'
 
 export default function AnalysisEmptyState({ dogId }: { dogId: string }) {
   return (
-    <main className="px-5 py-6 max-w-md mx-auto">
+    <div className="px-5 py-6 max-w-md mx-auto">
       <Link
         href={`/dogs/${dogId}`}
         className="text-[11px] text-muted hover:text-terracotta font-semibold"
@@ -37,6 +37,6 @@ export default function AnalysisEmptyState({ dogId }: { dogId: string }) {
           설문 시작하기
         </Link>
       </div>
-    </main>
+    </div>
   )
 }

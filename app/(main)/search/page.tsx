@@ -81,7 +81,7 @@ export default async function SearchPage({
   }
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       <div className="px-5 pt-6 pb-2">
         <Link
           href="/dashboard"
@@ -247,6 +247,6 @@ export default async function SearchPage({
           </section>
         </>
       )}
-    </main>
+    </div>
   )
 }

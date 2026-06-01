@@ -9,7 +9,7 @@ import { Skeleton, ProductGridSkeleton } from '@/components/ui/Skeleton'
 
 export default function DashboardLoading() {
   return (
-    <main className="pb-8" style={{ background: 'var(--bg)' }}>
+    <div className="pb-8" style={{ background: 'var(--bg)' }}>
       {/* 마스트헤드 (terracotta tick + 인사) */}
       <section className="px-5 pt-4 pb-5">
         <div className="flex items-center gap-2.5">
@@ -56,6 +56,6 @@ export default function DashboardLoading() {
         <Skeleton className="h-5 w-24 mb-3" />
         <ProductGridSkeleton count={4} />
       </section>
-    </main>
+    </div>
   )
 }

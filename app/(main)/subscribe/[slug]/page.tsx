@@ -47,7 +47,7 @@ export default async function SubscribePage({
     // 정기배송 불가 안내 — 기존 client fallback 과 동일 UI. server-rendered 면
     // 깜빡임 없이 즉시 노출.
     return (
-      <main className="px-5 py-10 max-w-md mx-auto text-center">
+      <div className="px-5 py-10 max-w-md mx-auto text-center">
         <p className="text-[12px] text-muted">
           정기배송이 가능한 제품이 아니에요
         </p>
@@ -57,7 +57,7 @@ export default async function SubscribePage({
         >
           ← 제품 목록
         </Link>
-      </main>
+      </div>
     )
   }
 

@@ -136,7 +136,7 @@ export default async function YearInReviewPage({
 
   if (daysIn < 30) {
     return (
-      <main
+      <div
         className="min-h-[80vh] flex items-center justify-center px-5 py-10"
         style={{ background: 'var(--bg)' }}
       >
@@ -170,12 +170,12 @@ export default async function YearInReviewPage({
             돌아가기
           </Link>
         </div>
-      </main>
+      </div>
     )
   }
 
   return (
-    <main className="pb-12" style={{ background: 'var(--bg)' }}>
+    <div className="pb-12" style={{ background: 'var(--bg)' }}>
       {/* 헤더 */}
       <section className="px-5 pt-5 pb-2">
         <Link
@@ -344,7 +344,7 @@ export default async function YearInReviewPage({
           돌아가기
         </Link>
       </section>
-    </main>
+    </div>
   )
 }
 

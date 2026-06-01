@@ -333,7 +333,7 @@ export default function SubscriptionsClient({
   }
 
   return (
-    <main style={{ padding: '24px 20px 128px' }}>
+    <div style={{ padding: '24px 20px 128px' }}>
       <div className="max-w-md mx-auto">
         {/* Back link */}
         <Link
@@ -404,7 +404,7 @@ export default function SubscriptionsClient({
         onClose={() => setCancelSubId(null)}
         onConfirm={(subId) => void performCancel(subId)}
       />
-    </main>
+    </div>
   )
 }
 

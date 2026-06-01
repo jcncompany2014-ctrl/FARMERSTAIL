@@ -30,7 +30,7 @@ export default function AppError({
   }, [error])
 
   return (
-    <main className="min-h-[60vh] flex items-center justify-center px-6 py-12">
+    <div className="min-h-[60vh] flex items-center justify-center px-6 py-12">
       <div className="max-w-sm w-full text-center">
         <div
           className="mx-auto mb-5 w-14 h-14 rounded-full flex items-center justify-center"
@@ -94,6 +94,6 @@ export default function AppError({
           </Link>
         </div>
       </div>
-    </main>
+    </div>
   )
 }

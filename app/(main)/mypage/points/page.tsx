@@ -84,7 +84,7 @@ export default async function PointsPage() {
   const remainToNext = next ? Math.max(0, next.threshold - cumulativeSpend) : 0
 
   return (
-    <main style={{ paddingBottom: 40 }}>
+    <div style={{ paddingBottom: 40 }}>
       {/* Back link */}
       <section style={{ padding: '24px 20px 12px' }}>
         <Link
@@ -305,7 +305,7 @@ export default async function PointsPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         entries={(entries ?? []) as any[]}
       />
-    </main>
+    </div>
   )
 }
 

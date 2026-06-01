@@ -85,7 +85,7 @@ export default function MypageClient({
     profile?.name || (email ? email.split('@')[0] : null) || '보호자'
 
   return (
-    <main style={{ paddingBottom: 32 }}>
+    <div style={{ paddingBottom: 32 }}>
       {/* ──────────────────────────────────────────────────────────────
           헤더 — kicker + sans 800 h1
           ────────────────────────────────────────────────────────────── */}
@@ -471,7 +471,7 @@ export default function MypageClient({
           회원 탈퇴
         </Link>
       </section>
-    </main>
+    </div>
   )
 }
 

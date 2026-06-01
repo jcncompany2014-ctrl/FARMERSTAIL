@@ -73,7 +73,7 @@ export default async function FormulasHistoryPage({
   const rows = ((formulas ?? []) as unknown) as FormulaRow[]
 
   return (
-    <main className="fh-page">
+    <div className="fh-page">
       <Link href={`/dogs/${dogId}`} className="fh-back">
         <ChevronLeft size={14} strokeWidth={2.2} />
         {dogName}이의 페이지
@@ -110,7 +110,7 @@ export default async function FormulasHistoryPage({
           ))}
         </ol>
       )}
-    </main>
+    </div>
   )
 }
 

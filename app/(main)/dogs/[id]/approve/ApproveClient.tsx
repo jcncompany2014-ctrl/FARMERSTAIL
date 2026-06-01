@@ -81,7 +81,7 @@ export default function ApproveClient({
 
   if (!pending) {
     return (
-      <main className="ap-page">
+      <div className="ap-page">
         <Link href={`/dogs/${dogId}`} className="ap-back">
           <ChevronLeft size={14} strokeWidth={2.2} />
           {dogName ? `${dogName}이의 페이지` : '돌아가기'}
@@ -96,14 +96,14 @@ export default function ApproveClient({
             현재 박스 보기
           </Link>
         </div>
-      </main>
+      </div>
     )
   }
 
   const lineChanges = previous ? computeLineChanges(previous, pending) : []
 
   return (
-    <main className="ap-page">
+    <div className="ap-page">
       <Link href={`/dogs/${dogId}`} className="ap-back">
         <ChevronLeft size={14} strokeWidth={2.2} />
         {dogName}이의 페이지
@@ -219,7 +219,7 @@ export default function ApproveClient({
         <Sparkles size={11} strokeWidth={2} color="var(--terracotta)" />
         5일 안에 응답 안 하시면 자동으로 이전 비율 유지됩니다.
       </p>
-    </main>
+    </div>
   )
 }
 

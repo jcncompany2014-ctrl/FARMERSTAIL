@@ -61,7 +61,7 @@ export default async function MyReviewsPage() {
   const list = (reviews ?? []) as any[]
 
   return (
-    <main style={{ paddingBottom: 32 }}>
+    <div style={{ paddingBottom: 32 }}>
       <section style={{ padding: '24px 20px 8px' }}>
         <Link
           href="/mypage"
@@ -285,6 +285,6 @@ export default async function MyReviewsPage() {
           ))}
         </section>
       )}
-    </main>
+    </div>
   )
 }

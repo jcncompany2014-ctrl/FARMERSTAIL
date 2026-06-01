@@ -87,7 +87,7 @@ export default async function PrivacyDashboardPage() {
     ?.consent_level ?? 1) as 1 | 2 | 3 | 4
 
   return (
-    <main className="px-5 pb-24 pt-6 max-w-2xl mx-auto">
+    <div className="px-5 pb-24 pt-6 max-w-2xl mx-auto">
       <div className="flex items-center gap-2 mb-1">
         <Shield className="w-3.5 h-3.5 text-terracotta" strokeWidth={2} />
         <span className="kicker">Privacy</span>
@@ -247,7 +247,7 @@ export default async function PrivacyDashboardPage() {
           분쟁조정 등) 은 책임자에게 직접 연락해 주세요.
         </p>
       </section>
-    </main>
+    </div>
   )
 }
 

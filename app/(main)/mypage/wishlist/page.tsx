@@ -41,7 +41,7 @@ export default async function WishlistPage() {
   const items = (rows ?? []) as any[]
 
   return (
-    <main style={{ paddingBottom: 32 }}>
+    <div style={{ paddingBottom: 32 }}>
       <section style={{ padding: '24px 20px 8px' }}>
         <Link
           href="/mypage"
@@ -258,6 +258,6 @@ export default async function WishlistPage() {
           })}
         </section>
       )}
-    </main>
+    </div>
   )
 }

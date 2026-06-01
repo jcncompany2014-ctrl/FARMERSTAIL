@@ -25,7 +25,7 @@ export default async function NewInvitationPage() {
   const dogs = (dogRows ?? []) as Array<{ id: string; name: string }>
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       <div className="px-5 pt-6 pb-2">
         <Link
           href="/family"
@@ -54,6 +54,6 @@ export default async function NewInvitationPage() {
         </div>
       </div>
       <NewInviteClient dogs={dogs} />
-    </main>
+    </div>
   )
 }

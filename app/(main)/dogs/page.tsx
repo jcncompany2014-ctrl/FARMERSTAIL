@@ -40,7 +40,7 @@ export default async function DogsPage() {
   const dogs = (data ?? []) as Dog[]
 
   return (
-    <main className="pb-8">
+    <div className="pb-8">
       {/* Header */}
       <section className="px-5 pt-6 pb-2">
         <Link
@@ -206,6 +206,6 @@ export default async function DogsPage() {
           </ul>
         </section>
       )}
-    </main>
+    </div>
   )
 }

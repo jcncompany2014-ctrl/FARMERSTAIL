@@ -58,7 +58,7 @@ export default async function IntegrationsPage({
   const isConnected = tractive?.status === 'active'
 
   return (
-    <main className="pb-20 max-w-md mx-auto" data-form-tone="app">
+    <div className="pb-20 max-w-md mx-auto" data-form-tone="app">
       <div className="px-5 pt-4 pb-2">
         <Link
           href="/mypage"
@@ -239,6 +239,6 @@ export default async function IntegrationsPage({
           </p>
         </div>
       </section>
-    </main>
+    </div>
   )
 }

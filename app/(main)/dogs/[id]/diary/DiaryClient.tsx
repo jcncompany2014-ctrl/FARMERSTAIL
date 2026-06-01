@@ -200,7 +200,7 @@ export default function DiaryClient({
   }
 
   return (
-    <main className="pb-20 px-5 max-w-md mx-auto">
+    <div className="pb-20 px-5 max-w-md mx-auto">
       <section className="pt-6 pb-2">
         <Link
           href={`/dogs/${dogId}`}
@@ -480,7 +480,7 @@ export default function DiaryClient({
           </div>
         </div>
       )}
-    </main>
+    </div>
   )
 }
 

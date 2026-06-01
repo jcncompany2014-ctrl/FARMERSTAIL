@@ -62,7 +62,7 @@ export default async function CompareDogsPage() {
   }
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       <div className="px-5 pt-6 pb-2">
         <Link
           href="/dogs"
@@ -178,7 +178,7 @@ export default async function CompareDogsPage() {
           </table>
         </section>
       )}
-    </main>
+    </div>
   )
 }
 

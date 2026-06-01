@@ -247,7 +247,7 @@ export default function SubscribeClient({
     'block text-[10px] font-semibold text-muted mb-1.5 uppercase tracking-[0.2em]'
 
   return (
-    <main className="px-5 py-6 pb-32">
+    <div className="px-5 py-6 pb-32">
       <div className="max-w-md mx-auto">
         <Link
           href={`/products/${slug}`}
@@ -554,6 +554,6 @@ export default function SubscribeClient({
           </button>
         </div>
       </div>
-    </main>
+    </div>
   )
 }

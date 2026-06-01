@@ -105,7 +105,7 @@ export default function CertificateClient({
   }
 
   return (
-    <main className="pb-12 print:pb-0">
+    <div className="pb-12 print:pb-0">
       {/* 상단 — 인쇄 시 숨김 */}
       <section className="px-5 pt-6 pb-3 print:hidden">
         <Link
@@ -442,7 +442,7 @@ export default function CertificateClient({
           }
         }
       `}</style>
-    </main>
+    </div>
   )
 }
 

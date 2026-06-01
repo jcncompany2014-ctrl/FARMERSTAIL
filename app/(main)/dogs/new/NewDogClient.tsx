@@ -289,7 +289,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
     'border-rule bg-bg-3 text-text hover:border-muted'
 
   return (
-    <main className="pb-10 px-5">
+    <div className="pb-10 px-5">
       <div className="pt-6 pb-2">
         <Link
           href="/dogs"
@@ -601,6 +601,6 @@ export default function NewDogClient({ userId }: { userId: string }) {
           )}
         </button>
       </form>
-    </main>
+    </div>
   )
 }

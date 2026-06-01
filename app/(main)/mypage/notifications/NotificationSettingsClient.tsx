@@ -210,7 +210,7 @@ export default function NotificationSettingsClient({
   const isOn: boolean = status === 'on'
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       <section className="px-5 pt-6 pb-2">
         <Link
           href="/mypage"
@@ -424,7 +424,7 @@ export default function NotificationSettingsClient({
           </ul>
         )}
       </section>
-    </main>
+    </div>
   )
 }
 

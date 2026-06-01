@@ -60,7 +60,7 @@
 - **P1-D1. `rounded-full` → `rounded`(4) 정리**: 41개 파일이 v3 시그니처 radius 이탈(DogDetailClient 16·ReferralView 12·membership 9 등). 진짜 pill만 유지하고 카드/버튼/입력은 4px. 🤖 내가 가능(파일별 pill 의도 구분).
 - **P1-D2. 타이포 px 리터럴 → V3FontSize**: `text-[13/14/15/18/20px]` 269+곳이 스케일 이탈(SSOT인 components/v3조차 일부 위반). 화면군 단위 토큰화. 🤖 내가 가능(점진).
 - **P1-D3. 검색 빈 상태 보강**: `search/page.tsx` "결과 없어요"가 맨 텍스트 한 줄 → AnalysisEmptyState 패턴(아이콘+안내+추천). 🤖 내가 가능.
-- **P1-A1. 중첩 `<main>` 랜드마크**: AppChrome이 `<main>` 렌더하는데 (main) 하위 58페이지가 또 `<main>` → `<main><main>` ARIA 위반. 내부 58개를 `<div>`/`<section>`으로 강등. 🤖 내가 가능(일괄).
+- **P1-A1. 중첩 `<main>` 랜드마크** ✅: (main) 하위 58파일 64개 `<main>` → `<div>` 강등(속성 보존), AppChrome 의 `<main id="main">` landmark 만 유지. 중첩 0건 확인 + 1035 테스트 통과.
 - **P1-A2. app 라이트 mute 대비 미달**: `inkMute #7d7460` on paper = 3.97:1 (AA 4.5 미달), ≤13.5px 본문 ~859곳. inkSoft 치환 또는 `--ink-mute` darken + contrast 회귀 테스트. 🤖 내가 가능.
 
 ---

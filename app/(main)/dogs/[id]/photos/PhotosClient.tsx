@@ -136,7 +136,7 @@ export default function PhotosClient({
   }
 
   return (
-    <main className="px-5 py-6 pb-32">
+    <div className="px-5 py-6 pb-32">
       <div className="max-w-md mx-auto">
         {/* 헤더 */}
         <Link
@@ -319,6 +319,6 @@ export default function PhotosClient({
           )}
         </section>
       </div>
-    </main>
+    </div>
   )
 }

@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 
 export default function MypageLoading() {
   return (
-    <main className="pb-8" style={{ background: 'var(--bg)' }}>
+    <div className="pb-8" style={{ background: 'var(--bg)' }}>
       <section className="px-5 pt-6">
         <Skeleton className="h-3 w-16" />
         <Skeleton className="h-6 w-1/3 mt-3" />
@@ -15,6 +15,6 @@ export default function MypageLoading() {
           <Skeleton key={i} className="h-14 w-full rounded" />
         ))}
       </section>
-    </main>
+    </div>
   )
 }

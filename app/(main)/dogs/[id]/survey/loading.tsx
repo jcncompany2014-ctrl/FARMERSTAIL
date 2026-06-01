@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 
 export default function SurveyLoading() {
   return (
-    <main
+    <div
       className="min-h-screen flex flex-col"
       style={{ background: 'var(--bg)' }}
     >
@@ -28,6 +28,6 @@ export default function SurveyLoading() {
       <section className="px-5 pb-6">
         <Skeleton className="h-12 w-full rounded-full" />
       </section>
-    </main>
+    </div>
   )
 }

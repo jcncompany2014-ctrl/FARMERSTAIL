@@ -104,7 +104,7 @@ export default async function CouponsPage() {
   )
 
   return (
-    <main style={{ paddingBottom: 32 }}>
+    <div style={{ paddingBottom: 32 }}>
       <section style={{ padding: '24px 20px 8px' }}>
         <Link
           href="/mypage"
@@ -163,6 +163,6 @@ export default async function CouponsPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         redemptions={(redemptions ?? []) as any[]}
       />
-    </main>
+    </div>
   )
 }

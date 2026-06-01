@@ -69,7 +69,7 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
   }
 
   return (
-    <main className="pb-32 min-h-screen flex flex-col">
+    <div className="pb-32 min-h-screen flex flex-col">
       {/* 헤더 */}
       <section className="px-5 pt-6 pb-3">
         <Link
@@ -159,7 +159,7 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
           </div>
         </div>
       </section>
-    </main>
+    </div>
   )
 }
 

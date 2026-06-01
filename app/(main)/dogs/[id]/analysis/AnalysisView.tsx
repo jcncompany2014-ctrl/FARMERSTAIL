@@ -298,9 +298,9 @@ export default function AnalysisView({
 
   if (loading)
     return (
-      <main className="flex items-center justify-center min-h-[80vh]">
+      <div className="flex items-center justify-center min-h-[80vh]">
         <div className="w-8 h-8 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
-      </main>
+      </div>
     )
 
   if (!analysis || !dog) {
@@ -401,7 +401,7 @@ export default function AnalysisView({
   const magSupplementItems: MagSupplementItem[] = mapSupplements(analysis.supplements ?? [])
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       <AnalysisTopNav
         dogId={dogId}
         dogName={dog.name}
@@ -737,6 +737,6 @@ export default function AnalysisView({
         isArchive={isArchive}
         totalCount={totalCount}
       />
-    </main>
+    </div>
   )
 }

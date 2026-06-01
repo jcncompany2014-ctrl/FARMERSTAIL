@@ -104,7 +104,7 @@ export default async function MembershipPage() {
       : 100
 
   return (
-    <main className="pb-12">
+    <div className="pb-12">
       <section className="px-5 pt-6 pb-3">
         <Link
           href="/mypage"
@@ -426,7 +426,7 @@ export default async function MembershipPage() {
           )}
         </div>
       </section>
-    </main>
+    </div>
   )
 }
 

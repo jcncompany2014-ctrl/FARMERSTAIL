@@ -236,7 +236,7 @@ export default function EditDogClient({
     'border-rule bg-bg-3 text-text hover:border-muted'
 
   return (
-    <main className="pb-10 px-5">
+    <div className="pb-10 px-5">
       <div className="pt-6 pb-2">
         <Link
           href={`/dogs/${dogId}`}
@@ -635,6 +635,6 @@ export default function EditDogClient({
           )}
         </button>
       </form>
-    </main>
+    </div>
   )
 }

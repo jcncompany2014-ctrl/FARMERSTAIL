@@ -66,7 +66,7 @@ export default async function ReferralPage() {
     ) ?? 0
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       {codeError || !code ? (
         <section className="px-5 mt-6">
           <Link
@@ -100,6 +100,6 @@ export default async function ReferralPage() {
           }
         />
       )}
-    </main>
+    </div>
   )
 }

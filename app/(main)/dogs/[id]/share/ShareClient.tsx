@@ -94,7 +94,7 @@ export default function ShareClient({
   }
 
   return (
-    <main className="pb-10">
+    <div className="pb-10">
       <section className="px-5 pt-6 pb-3">
         <Link
           href={`/dogs/${dog.id}`}
@@ -311,6 +311,6 @@ export default function ShareClient({
           </Link>
         </div>
       </section>
-    </main>
+    </div>
   )
 }
