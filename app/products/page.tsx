@@ -67,7 +67,11 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-const ALLOWED_CATEGORIES = ['화식', '간식', '체험팩'] as const
+// 마스터피스 P1-C3: 음식 종류 4분류(화식/간식/영양제/체험팩)로 DB category 와 정합.
+// 정기배송·구독 → 화식 통합(20260601000000 마이그). query param 은 line 183
+// .eq('category', category) 로 DB 값과 직접 비교되므로 DB 실값이어야 필터가 작동한다.
+// 구독 여부는 별도 ?subscribable=1 필터(카테고리 아님).
+const ALLOWED_CATEGORIES = ['화식', '간식', '영양제', '체험팩'] as const
 
 function parseSort(raw: string | undefined): SortKey {
   switch (raw) {

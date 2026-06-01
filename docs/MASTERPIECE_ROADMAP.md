@@ -46,7 +46,7 @@
 ### 콘텐츠
 - **P1-C1. FAQ·파트너 fallback→DB 승격**: 잘 쓴 FAQ 24문항·파트너 6곳이 코드 `FALLBACK_*`에 갇혀 미노출(DB의 얇은 6건/4건만 라이브). FALLBACK을 DB에 insert → 즉시 풍부한 콘텐츠 노출. 🤖 내가 가능.
 - **P1-C2. 컬렉션 4개 상품 매핑**: `collection_items=0`이라 4개 컬렉션 전부 빈 껍데기. 컬렉션별 3~6개 product_id 매핑 + hero_image. 🤝 매핑은 내가, 이미지는 창업자.
-- **P1-C3. 카테고리 taxonomy 정합**: `ALLOWED_CATEGORIES=['화식','간식','체험팩']` ≠ DB `정기배송/간식/영양제/구독/체험팩`. 카테고리 필터 딥링크 미작동. 🤖 코드 수정.
+- **P1-C3. 카테고리 taxonomy 정합** ✅: 칩(영어슬러그 meal/treat/set/supp)·ALLOWED(한글부분집합)·DB(한글5종) 3중 불일치로 카테고리 필터 4/5 가 통째로 깨져 있던 걸 발견 → 음식종류 4분류(화식/간식/영양제/체험팩)로 통일. 정기배송·구독 → 화식 rename(마이그 20260601000000, 코드영향 0 확인) + 앱칩 href + ALLOWED + 데스크톱 CatalogFilters 3곳 DB값 정합.
 - **P1-C4. 이벤트 3개 이미지**: hero 슬라이더·Event JSON-LD용 배너. 🙋 창업자.
 
 ### 운영

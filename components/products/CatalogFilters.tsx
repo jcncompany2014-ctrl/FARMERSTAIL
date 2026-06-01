@@ -15,7 +15,9 @@ import { useModalA11y } from '@/lib/ui/useModalA11y'
  * 모든 변경은 router.replace + scroll:false 로 그리드만 갱신.
  */
 
-const CATEGORIES = ['화식', '간식', '체험팩'] as const
+// 마스터피스 P1-C3: DB category 4분류와 정합(화식/간식/영양제/체험팩).
+// '영양제' 누락 보강 + '화식'은 정기배송·구독 통합 rename(20260601000000)으로 유효.
+const CATEGORIES = ['화식', '간식', '영양제', '체험팩'] as const
 type Cat = (typeof CATEGORIES)[number]
 
 const PRICE_PRESETS: { label: string; min: number | null; max: number | null }[] = [

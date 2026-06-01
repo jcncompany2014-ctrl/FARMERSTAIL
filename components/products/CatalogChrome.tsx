@@ -33,29 +33,32 @@ interface Category {
   hasNew?: boolean
 }
 
+// 마스터피스 P1-C3: href 를 DB 실제 category 값(한글)으로 정합. 이전 영어 슬러그
+// (meal/treat/set/supp)는 DB(한글)와 안 맞아 칩 클릭 필터가 전부 깨져 있었다.
+// '정기배송' 칩은 음식 카테고리가 아니라 구독상품 필터(?subscribable=1)로 유지.
 const CATEGORIES: Category[] = [
   {
     label: '화식',
-    href: '/products?category=meal',
+    href: '/products?category=화식',
     Icon: Soup,
     color: '#5d6f3f',
     hasNew: true,
   },
   {
     label: '간식·토퍼',
-    href: '/products?category=treat',
+    href: '/products?category=간식',
     Icon: Cookie,
     color: '#e8a82e',
   },
   {
     label: '체험팩',
-    href: '/products?category=set',
+    href: '/products?category=체험팩',
     Icon: GiftIcon,
     color: '#dc532a',
   },
   {
     label: '영양제',
-    href: '/products?category=supp',
+    href: '/products?category=영양제',
     Icon: Pill,
     color: '#3f7fb8',
   },
