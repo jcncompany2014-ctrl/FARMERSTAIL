@@ -23,12 +23,12 @@
  *
  *  - ink/paper: 14.6:1 — AAA pass
  *  - inkSoft/paper: 9.7:1 — AAA pass
- *  - inkMute/paper: 3.7:1 — AA large text only (본문엔 inkSoft 권장)
+ *  - inkMute/paper: 4.75:1 — AA pass (마스터피스 P1-A2: #7d7460→#706854 darken)
  *  - inkFaint/paper: 1.9:1 — UI 분리선/icon hint 전용. 텍스트엔 금지.
  *  - paperHi 위에서도 대략 동일 (paper vs paperHi 차이 미미).
  *
- * 결론: **inkMute 는 12px+ 본문에서 가능하지만, 14px bold 또는 18px 이상에서만**
- * 안전. 가독성 우선 자리는 inkSoft 권장.
+ * 결론: **inkMute(#706854) 는 본문 AA(4.5:1) 통과** — app 라이트 ≤13.5px 보조
+ * 본문에 안전. 더 강한 강조는 inkSoft(9.7:1) 권장.
  */
 
 /**
@@ -106,7 +106,7 @@ export const V3_CONTRAST_PAIRS = [
   { name: 'ink/paperHi', fg: '#16140f', bg: '#fbf6ec', purpose: 'card 본문' },
   { name: 'inkSoft/paper', fg: '#3a342a', bg: '#f4ede0', purpose: 'secondary body' },
   { name: 'inkSoft/paperHi', fg: '#3a342a', bg: '#fbf6ec', purpose: 'secondary body' },
-  { name: 'inkMute/paper', fg: '#7d7460', bg: '#f4ede0', purpose: 'subtitle / large text only' },
+  { name: 'inkMute/paper', fg: '#706854', bg: '#f4ede0', purpose: 'secondary body (P1-A2: 4.75:1 AA)' },
   { name: 'accent/paper', fg: '#c44a26', bg: '#f4ede0', purpose: 'accent text' },
   { name: 'sage/paper', fg: '#4f6a48', bg: '#f4ede0', purpose: 'success text' },
   { name: 'sale/paper', fg: '#b83a2e', bg: '#f4ede0', purpose: 'error text' },

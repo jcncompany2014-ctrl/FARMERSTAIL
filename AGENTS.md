@@ -201,9 +201,9 @@ hero gradient 카드는 `rounded-[12px]` (md tier) 명시. 일반 카드는 `rou
 
 - `ink` (#16140f) on `paper` (#f4ede0) — 14.6:1 — AAA pass
 - `inkSoft` (#3a342a) on `paper` — 9.7:1 — AAA pass
-- `inkMute` (#7d7460) on `paper` — 3.7:1 — **AA large only**
+- `inkMute` (#706854) on `paper` — 4.75:1 — **AA pass** (마스터피스 P1-A2 darken, 이전 #7d7460=3.7)
 - `inkFaint` (#b6ab93) on `paper` — 1.9:1 — **텍스트 금지** (UI hint 전용)
 
-**규칙:** 13.5px 이하 본문은 `inkSoft` 권장. `inkMute` 는 14px bold 또는 16px 이상에서만.
+**규칙:** `inkMute`(#706854) 는 본문 AA(4.5:1) 통과 — app 라이트 ≤13.5px 보조 본문에 안전. 더 강한 강조는 `inkSoft`(9.7:1).
 
 

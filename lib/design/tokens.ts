@@ -26,7 +26,7 @@ export const V3 = {
   // Ink — 본문 텍스트 + 강조 검정.
   ink: '#16140f',
   inkSoft: '#3a342a',
-  inkMute: '#7d7460',
+  inkMute: '#706854',
   inkFaint: '#b6ab93',
 
   // Rule — 경계선 / 분리선.

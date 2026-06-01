@@ -17,7 +17,7 @@
 .nt-back {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 11px; font-weight: 600;
-  color: var(--ink-mute, #7d7460);
+  color: var(--ink-mute, #706854);
   letter-spacing: 0.04em;
   text-decoration: none;
   margin-bottom: 16px;
@@ -30,7 +30,7 @@
   font-family: var(--font-mono), 'IBM Plex Mono', 'JetBrains Mono', monospace;
   font-size: 10.5px; letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--ink-mute, #7d7460);
+  color: var(--ink-mute, #706854);
   font-weight: 500;
   margin-bottom: 6px;
   display: inline-flex; align-items: center; gap: 6px;
@@ -55,7 +55,7 @@
   margin: 0 0 8px;
 }
 .nt-hero p {
-  font-size: 11.5px; color: var(--ink-mute, #7d7460);
+  font-size: 11.5px; color: var(--ink-mute, #706854);
   line-height: 1.55;
   margin: 0;
 }
@@ -81,7 +81,7 @@
   display: flex; align-items: center; justify-content: center;
   gap: 10px;
   padding: 60px 22px;
-  font-size: 13px; color: var(--ink-mute, #7d7460);
+  font-size: 13px; color: var(--ink-mute, #706854);
 }
 .nt-empty {
   text-align: center;
@@ -99,7 +99,7 @@
 }
 .nt-empty-sub {
   font-size: 11.5px !important;
-  color: var(--ink-mute, #7d7460) !important;
+  color: var(--ink-mute, #706854) !important;
   margin-top: 6px !important;
   line-height: 1.5;
   font-weight: 400 !important;
@@ -157,7 +157,7 @@
 .nt-time {
   font-family: var(--font-mono), 'IBM Plex Mono', 'JetBrains Mono', monospace;
   font-size: 10px;
-  color: var(--ink-mute, #7d7460);
+  color: var(--ink-mute, #706854);
   flex-shrink: 0;
   letter-spacing: 0.06em;
 }

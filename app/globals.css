@@ -102,7 +102,10 @@
   --blue: #3b5a78;
 
   --ink-soft: #3a342a;
-  --ink-mute: #7d7460;
+  /* 마스터피스 P1-A2: paper 위 4.75:1 (WCAG AA 통과). 이전 #7d7460 = 3.97:1 로
+     ≤13.5px 본문 ~859곳이 AA 미달이었음. inkSoft(9.7:1)와는 충분히 구분되어
+     mute 위계 유지. app 라이트 스코프 전용(web #715C4A·다크 #A89580 는 이미 통과). */
+  --ink-mute: #706854;
   --ink-faint: #b6ab93;
 
   --rule-soft: rgba(22, 20, 15, 0.07);

@@ -111,7 +111,7 @@ export default async function CouponsPage() {
           style={{
             fontSize: 11,
             fontWeight: 600,
-            color: 'var(--ink-mute, #7d7460)',
+            color: 'var(--ink-mute, #706854)',
             textDecoration: 'none',
             display: 'inline-block',
             marginBottom: 14,
@@ -126,7 +126,7 @@ export default async function CouponsPage() {
             fontWeight: 500,
             letterSpacing: '0.16em',
             textTransform: 'uppercase',
-            color: '#7d7460',
+            color: '#706854',
           }}
         >
           Coupons · 쿠폰함
@@ -147,7 +147,7 @@ export default async function CouponsPage() {
         <p
           style={{
             fontSize: 11.5,
-            color: '#7d7460',
+            color: '#706854',
             marginTop: 6,
           }}
         >

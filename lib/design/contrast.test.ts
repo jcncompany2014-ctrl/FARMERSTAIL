@@ -25,10 +25,12 @@ describe('contrast', () => {
     assert.equal(passesAAA('#16140f', '#f4ede0'), true)
   })
 
-  it('inkMute on paper passes AA large only', () => {
-    const r = contrastRatio('#7d7460', '#f4ede0')
-    assert.equal(passesAA('#7d7460', '#f4ede0', 'large'), true)
-    assert.ok(r < 4.5, `expected <4.5, got ${r}`)
+  it('inkMute on paper passes AA body (P1-A2 darken)', () => {
+    // 마스터피스 P1-A2: app 라이트 mute 를 #7d7460(3.97, AA large only) →
+    // #706854(4.75, AA body) 로 darken. ≤13.5px 본문 ~859곳 AA 충족.
+    const r = contrastRatio('#706854', '#f4ede0')
+    assert.equal(passesAA('#706854', '#f4ede0'), true)
+    assert.ok(r >= 4.5, `expected >=4.5, got ${r}`)
   })
 
   it('inkSoft on paper passes AA body', () => {

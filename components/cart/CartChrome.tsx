@@ -199,7 +199,7 @@ export default function CartChrome({
               fontFamily:
                 "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
               fontSize: 9,
-              color: 'var(--ink-mute, #7d7460)',
+              color: 'var(--ink-mute, #706854)',
               letterSpacing: '0.06em',
             }}
           >
