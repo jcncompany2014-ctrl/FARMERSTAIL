@@ -1,0 +1,17 @@
+-- Fix: profiles.tier DEFAULT 'bronze' → 'seed' (데이터 정합성 감사 — LIVE CRITICAL)
+--
+-- # 문제
+-- profiles.tier 는 20260425000011_user_tiers.sql 에서 `not null default 'bronze'`
+-- 로 생성됐다. 이후 20260512000005_tier_rebrand.sql 이 CHECK 를 신 등급
+-- (seed/sprout/bloom/fruit/mate)으로 교체하고 기존 데이터만 UPDATE 했을 뿐,
+-- **컬럼 DEFAULT 는 'bronze' 그대로** 남았다. 'bronze' 는 새 CHECK 에 없는 값.
+--
+-- handle_new_user() 트리거는 `insert into public.profiles (id,email,name,
+-- created_at,updated_at)` 로 tier 를 명시하지 않으므로, 신규 가입마다 DEFAULT
+-- 'bronze' 가 적용 → profiles_tier_check 위반 → INSERT 실패 → 트리거 RAISE →
+-- **회원가입 전면 차단**. tier_rebrand 적용일(2026-05-12) 이후의 라이브 회귀.
+--
+-- # 수정
+-- DEFAULT 를 신규 최하위 등급 'seed' 로 정정한다. 기존 행은 건드리지 않으며
+-- (이미 신 등급으로 이행됨), 트리거/앱 코드 변경 불요 — 컬럼 DEFAULT 만 교정.
+ALTER TABLE public.profiles ALTER COLUMN tier SET DEFAULT 'seed';

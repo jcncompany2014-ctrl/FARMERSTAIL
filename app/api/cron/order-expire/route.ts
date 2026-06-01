@@ -96,7 +96,11 @@ async function runOrderExpire(): Promise<Response> {
       .from('orders')
       .update({
         payment_status: 'cancelled',
-        order_status: 'expired',
+        // 데이터정합 감사: order_status FSM(lib/commerce/order-fsm.ts)에 'expired'
+        // 미정의 → 마이페이지 라벨 공란 + cancel 라우트 INVALID_DB_STATE 500.
+        // 'cancelled' 로 통일(자동만료 구분은 cancel_reason 에 보존). 기존 expired
+        // 주문 0건 확인.
+        order_status: 'cancelled',
         cancelled_at: nowIso,
         cancel_reason: '30분 결제 미완료 자동 만료',
       })

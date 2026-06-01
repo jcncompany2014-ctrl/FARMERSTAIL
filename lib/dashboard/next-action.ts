@@ -28,7 +28,7 @@ export type NextActionInput = {
   hasDogs: boolean
   /** 강아지 1+, but 분석 0 인 가장 오래된 강아지. */
   unanalyzedDog?: { id: string; name: string } | null
-  /** approval_status='proposed' 인 가장 오래된 처방. */
+  /** approval_status='pending_approval' 인 가장 오래된 처방. */
   pendingFormula?: {
     dogId: string
     dogName: string
@@ -124,7 +124,7 @@ export function computeNextAction(input: NextActionInput): NextAction | null {
     }
   }
 
-  // 3) 처방 승인 대기 — proposed 상태. 사용자 한 번 검토 후 active 로 적용.
+  // 3) 처방 승인 대기 — pending_approval 상태. 사용자 한 번 검토 후 active 로 적용.
   if (input.pendingFormula) {
     return {
       type: 'approve',

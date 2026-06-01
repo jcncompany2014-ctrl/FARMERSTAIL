@@ -79,6 +79,36 @@
 
 ---
 
+## 🔬 데이터 정합성 심층감사 (2026-06-01, 적대적 2-에이전트)
+
+> 브라우저 실측 중 "철저" 재감사가 정적 리뷰가 못 본 **실 DB 버그**를 다수 발견.
+> 안전 fix 6건은 즉시 적용/커밋(✅), risky/대형/실테스트필요 3건은 정확한 플랜 보존.
+
+**✅ 즉시 수정·적용 완료**
+- 🔴 정기결제 cron orders insert 에 order_number·subtotal 누락(NOT NULL, prod 기본값
+  없음) → 정기배송 자동결제 전면 실패하던 것 보강(637eba8).
+- 🔴 profiles.tier DEFAULT 'bronze'(CHECK 위반)→'seed' prod 적용(20260601000004).
+  tier_rebrand 이후 신규 가입 INSERT 차단 launch-blocker(rebrand 후 가입 0건 확인).
+- 🟠 dashboard 처방 승인 카드 'proposed'(없는 값)→'pending_approval'(영구 0건 해소).
+- 🟠 order-expire cron order_status 'expired'(FSM 미정의)→'cancelled'(라벨 공란 +
+  cancel 500 해소, 만료구분은 cancel_reason 보존).
+- 🟡 order_items product_id null skip / status 'canceled'→'cancelled' / vip tier
+  fallback 'gold'→'fruit'.
+
+**🔒 보류 — risky / 대형 / 실테스트 필요**
+- **DI-A2 (HIGH, 대형)**: lib/supabase/types.ts 1주 stale(14테이블 누락) → 코드 전반
+  `as any`/`as unknown as` 캐스트가 스키마 드리프트를 숨김(위 CRITICAL 2건의 근본원인).
+  플랜: `generate_typescript_types` 재생성 → cron/헬퍼 캐스트 제거로 컴파일러 검증
+  복구. 재생성은 safe지만 캐스트 제거가 cascade(컴파일에러 표면화)라 별도 라운드.
+- **DI-B1 (CRITICAL, 결제 실테스트 필요)**: 부분환불 후 잔여 전량취소 / admin 부분
+  환불 시 sales_count·cumulative_spend 영구 과대계상(R101-H 재확인+확대). 플랜: orders
+  트리거 차감조건 `old IN ('paid','partially_refunded')` 확장 + admin partial-cancel
+  도 refunds row INSERT. 회계 트리거라 결제 실테스트 라운드에서.
+- **DI-B6 (MEDIUM, 기록용)**: 중복 timestamp 마이그 2쌍(이미 prod 적용) — 파일명
+  유일화 rename 권장하나 적용 환경 재적용 주의.
+
+---
+
 ## 🗺️ 실행 순서 제안
 
 1. **내가 바로 할 수 있는 P0/P1 코드·데이터 작업** (창업자 입력 불요):
