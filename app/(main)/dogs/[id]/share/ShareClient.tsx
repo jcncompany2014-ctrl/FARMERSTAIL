@@ -301,7 +301,7 @@ export default function ShareClient({
           <ul className="space-y-1 text-text/80">
             <li>· 친구가 가입하고 코드 등록 시 둘 다 3,000P 받아요</li>
             <li>· 5명 / 10명 / 20명 달성마다 추가 보상</li>
-            <li>· 강아지 사진은 OG 메타로만 노출 (체중·알러지 등 비공개)</li>
+            <li>· 강아지 사진은 OG 메타로만 노출 (체중·알레르기 등 비공개)</li>
           </ul>
           <Link
             href="/mypage/referral"

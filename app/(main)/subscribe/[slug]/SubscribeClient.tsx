@@ -212,14 +212,29 @@ export default function SubscribeClient({
       return
     }
 
-    await supabase.from('subscription_items').insert({
-      subscription_id: sub.id,
-      product_id: product.id,
-      quantity,
-      unit_price: unitPrice,
-      product_name: product.name,
-      product_image_url: product.image_url,
-    })
+    const { error: itemErr } = await supabase
+      .from('subscription_items')
+      .insert({
+        subscription_id: sub.id,
+        product_id: product.id,
+        quantity,
+        unit_price: unitPrice,
+        product_name: product.name,
+        product_image_url: product.image_url,
+      })
+
+    if (itemErr) {
+      // 상품 0개 '유령 구독' + 카드 자동결제 방지 — billing-auth 로 넘어가기
+      // 전에 막아 billing_key 가 안 생기므로 cron 자동청구도 차단된다. 방금 만든
+      // 구독은 cancelled 로 정리(롤백). 사용자에게 알리고 중단.
+      await supabase
+        .from('subscriptions')
+        .update({ status: 'cancelled' })
+        .eq('id', sub.id)
+      toast.error('구독 상품을 등록하지 못했어요. 다시 시도해 주세요')
+      setSubmitting(false)
+      return
+    }
 
     // 카드 등록 페이지로 redirect — Toss billing auth 트리거. 사용자가 카드를
     // 등록하면 next_delivery_date 에 cron 이 자동 청구. 카드 등록 미완료 시에는

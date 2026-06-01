@@ -145,7 +145,7 @@ export default function CatalogChrome({
             className="flex-1 text-[13px]"
             style={{ color: '#7a6d5b' }}
           >
-            제품 · 단백질 · 알러지 검색
+            제품 · 단백질 · 알레르기 검색
           </span>
           <span
             className="w-[30px] h-[30px] rounded-[10px] flex items-center justify-center"

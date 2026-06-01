@@ -25,7 +25,7 @@ function oneYearAgoIsoString(): string {
  *
  * # 데이터
  *  - dogs 메타 (이름/견종/나이/체중)
- *  - surveys.answers (알러지·만성질환·BCS·MCS·Bristol)
+ *  - surveys.answers (알레르기·만성질환·BCS·MCS·Bristol)
  *  - analyses 최신 (MER/RER, protein/fat/fiber DM%, 추천식)
  *  - weight_logs 최근 12개월 (sparkline)
  *  - medications (active)
@@ -359,11 +359,11 @@ export default async function VetReportPage({ params }: { params: Params }) {
           )}
         </Section>
 
-        {/* 5. 알러지 + 만성 질환 */}
-        <Section title="5. 알러지 · 만성 질환 (견주 보고)">
+        {/* 5. 알레르기 + 만성 질환 */}
+        <Section title="5. 알레르기 · 만성 질환 (견주 보고)">
           <div className="grid grid-cols-2 gap-4 text-[11.5px]">
             <div>
-              <p className="font-semibold text-ink mb-1.5">알러지</p>
+              <p className="font-semibold text-ink mb-1.5">알레르기</p>
               {answers.allergies && answers.allergies.length > 0 ? (
                 <ul className="list-disc pl-4 text-ink/80">
                   {answers.allergies.map((a, i) => (

@@ -165,11 +165,11 @@ export default function SubscriptionsClient({
           }
         })()
       : { status: 'paused' }
-    await (supabase as unknown as {
+    const { error } = await (supabase as unknown as {
       from: (t: string) => {
         update: (r: Record<string, unknown>) => {
           eq: (c: string, v: string) => {
-            eq: (c: string, v: string) => Promise<unknown>
+            eq: (c: string, v: string) => Promise<{ error: unknown }>
           }
         }
       }
@@ -178,6 +178,11 @@ export default function SubscriptionsClient({
       .update(update)
       .eq('id', subId)
       .eq('user_id', uid)
+    if (error) {
+      toast.error('변경하지 못했어요. 잠시 후 다시 시도해 주세요')
+      setActionLoading(null)
+      return
+    }
     if (!weeks) {
       trackSubscriptionPaused({ subscriptionId: subId, reason: 'user_action' })
     }
@@ -231,7 +236,7 @@ export default function SubscriptionsClient({
         : addMonthsKst(todayIso, 1)
       : addDaysKst(todayIso, sub.interval_weeks * 7)
 
-    await supabase
+    const { error } = await supabase
       .from('subscriptions')
       .update({
         status: 'active',
@@ -239,6 +244,11 @@ export default function SubscriptionsClient({
       })
       .eq('id', subId)
       .eq('user_id', uid)
+    if (error) {
+      toast.error('다시 시작하지 못했어요. 잠시 후 다시 시도해 주세요')
+      setActionLoading(null)
+      return
+    }
     trackSubscriptionResumed({ subscriptionId: subId })
     await reload()
     setActionLoading(null)
@@ -256,11 +266,11 @@ export default function SubscriptionsClient({
       return
     }
     const sub = subs.find((s) => s.id === subId)
-    await (supabase as unknown as {
+    const { error } = await (supabase as unknown as {
       from: (t: string) => {
         update: (r: Record<string, unknown>) => {
           eq: (c: string, v: string) => {
-            eq: (c: string, v: string) => Promise<unknown>
+            eq: (c: string, v: string) => Promise<{ error: unknown }>
           }
         }
       }
@@ -269,6 +279,12 @@ export default function SubscriptionsClient({
       .update({ status: 'cancelled', next_delivery_date: null })
       .eq('id', subId)
       .eq('user_id', uid)
+    if (error) {
+      // 실패 시 모달 유지 — 사용자가 '해지됨'으로 오인하지 않도록.
+      toast.error('해지하지 못했어요. 잠시 후 다시 시도해 주세요')
+      setActionLoading(null)
+      return
+    }
     trackSubscriptionCancelled({
       subscriptionId: subId,
       totalDeliveries: sub?.total_deliveries ?? 0,
@@ -281,22 +297,24 @@ export default function SubscriptionsClient({
   async function handleToggleReminder(subId: string, enabled: boolean) {
     const uid = await requireUid()
     if (!uid) return
-    await supabase
+    const { error } = await supabase
       .from('subscriptions')
       .update({ reminder_enabled: enabled })
       .eq('id', subId)
       .eq('user_id', uid)
+    if (error) toast.error('알림 설정을 변경하지 못했어요')
     await reload()
   }
 
   async function handleChangeReminderDays(subId: string, days: number) {
     const uid = await requireUid()
     if (!uid) return
-    await supabase
+    const { error } = await supabase
       .from('subscriptions')
       .update({ reminder_days_before: days })
       .eq('id', subId)
       .eq('user_id', uid)
+    if (error) toast.error('알림 시점을 변경하지 못했어요')
     await reload()
   }
 
@@ -318,7 +336,7 @@ export default function SubscriptionsClient({
     // pause/resume 은 전환됐는데 이 핸들러만 raw Date 잔존했음.
     const nextDate = addDaysKst(todayKstIsoDate(), newInterval * 7)
 
-    await supabase
+    const { error } = await supabase
       .from('subscriptions')
       .update({
         interval_weeks: newInterval,
@@ -326,7 +344,11 @@ export default function SubscriptionsClient({
       })
       .eq('id', subId)
       .eq('user_id', uid)
-
+    if (error) {
+      toast.error('주기를 변경하지 못했어요. 잠시 후 다시 시도해 주세요')
+      setActionLoading(null)
+      return
+    }
     setEditingInterval(null)
     await reload()
     setActionLoading(null)

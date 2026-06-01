@@ -73,7 +73,7 @@ export default async function ChatPage() {
               궁금한 게 있나요?
             </h1>
             <p className="text-[12px] text-white/80 mt-2 leading-relaxed">
-              식이 · 알러지 · 영양에 대해 물어보세요.
+              식이 · 알레르기 · 영양에 대해 물어보세요.
               <br />
               NRC 2006 / FEDIAF 기반 답변.
             </p>
