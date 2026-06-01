@@ -70,6 +70,10 @@ const serverSchema = z.object({
 
   // === Anthropic (선택 — /api/analysis/commentary용) =======================
   ANTHROPIC_API_KEY: optStr(),
+  // 일일 전역 호출 cap (비용 가드, 마스터피스 P1-O4). 미설정/0/음수 = 무제한
+  // (opt-in, 기존 동작 보존). 양수면 오늘 전역 AI 호출수가 그 값 도달 시 503.
+  // 문자열로 받아 lib/anthropic-usage.ts 가 파싱 — 잘못된 값은 무제한 처리.
+  ANTHROPIC_DAILY_CALL_CAP: optStr(),
 
   // === Resend (선택 — 거래 메일. 없으면 모든 sendEmail 호출은 no-op) ========
   // EMAIL_FROM 은 "파머스테일 <no-reply@farmerstail.kr>" 처럼 display+addr 형식.
@@ -139,6 +143,7 @@ const raw = {
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
   VAPID_SUBJECT: process.env.VAPID_SUBJECT,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  ANTHROPIC_DAILY_CALL_CAP: process.env.ANTHROPIC_DAILY_CALL_CAP,
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   EMAIL_FROM: process.env.EMAIL_FROM,
   EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO,

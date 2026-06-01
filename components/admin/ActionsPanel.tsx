@@ -84,7 +84,7 @@ export default function ActionsPanel(props: ActionsPanelProps) {
       count: props.stockOutCount,
     },
     {
-      href: '/admin?tab=cron-health',
+      href: '/admin/cron-health',
       icon: Activity,
       label: '24h cron 실패',
       count: props.cronFailureCount ?? 0,

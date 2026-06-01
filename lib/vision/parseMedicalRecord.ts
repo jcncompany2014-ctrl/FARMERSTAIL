@@ -53,8 +53,14 @@ export type MedicalRecordExtract = {
   confidence: number
 }
 
+/** Anthropic 응답의 토큰 사용량 — 비용 추적용 (없을 수 있음). */
+export type OcrUsage = {
+  input_tokens?: number
+  output_tokens?: number
+}
+
 export type OcrResult =
-  | { ok: true; data: MedicalRecordExtract }
+  | { ok: true; data: MedicalRecordExtract; usage?: OcrUsage }
   | { ok: false; code: string; message: string }
 
 const SYSTEM_PROMPT = `당신은 한국 동물병원 진료서 / 처방전 / 영수증 이미지를
@@ -82,6 +88,7 @@ JSON 스키마:
 
 type AnthropicVisionResponse = {
   content?: Array<{ type: string; text?: string }>
+  usage?: { input_tokens?: number; output_tokens?: number }
   error?: { type?: string; message?: string }
 }
 
@@ -175,7 +182,7 @@ export async function parseMedicalRecord(
       }
     }
 
-    return { ok: true, data: normalize(parsed) }
+    return { ok: true, data: normalize(parsed), usage: data.usage }
   } catch (err) {
     return {
       ok: false,

@@ -2,9 +2,15 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { parseMedicalRecord } from '@/lib/vision/parseMedicalRecord'
+import {
+  checkAnthropicDailyCap,
+  recordAnthropicUsage,
+} from '@/lib/anthropic-usage'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+const ROUTE = 'health-ocr'
 
 /**
  * POST /api/health/ocr — 진료 영수증 / 처방전 이미지 OCR.
@@ -44,6 +50,19 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
       { status: 429 },
+    )
+  }
+
+  // 일일 전역 비용 cap 가드 (마스터피스 P1-O4). OCR 은 sonnet vision 이라
+  // 호출당 단가가 높음 — cap 보호가 특히 중요. fail-open.
+  const cap = await checkAnthropicDailyCap(ROUTE)
+  if (cap.exceeded) {
+    return NextResponse.json(
+      {
+        code: 'DAILY_CAP_EXCEEDED',
+        message: '오늘 AI 사용량이 많아 잠시 후 다시 시도해 주세요',
+      },
+      { status: 503 },
     )
   }
 
@@ -120,6 +139,9 @@ export async function POST(req: Request) {
       { status: 502 },
     )
   }
+
+  // 사용량 누적 (best-effort, fail-open — 응답 막지 않음).
+  await recordAnthropicUsage(ROUTE, result.usage)
 
   return NextResponse.json({ ok: true, data: result.data })
 }

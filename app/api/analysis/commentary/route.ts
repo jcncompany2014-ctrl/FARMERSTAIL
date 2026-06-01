@@ -4,12 +4,20 @@ import { buildCommentaryPrompt, type CommentaryContext } from '@/lib/commentary'
 import { zAnalysisRequest } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import {
+  checkAnthropicDailyCap,
+  recordAnthropicUsage,
+} from '@/lib/anthropic-usage'
+import * as Sentry from '@sentry/nextjs'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+const ROUTE = 'analysis-commentary'
+
 type AnthropicResponse = {
   content?: Array<{ type: string; text?: string }>
+  usage?: { input_tokens?: number; output_tokens?: number }
   error?: { type?: string; message?: string }
 }
 
@@ -25,6 +33,18 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
       { status: 429, headers: rl.headers },
+    )
+  }
+
+  // 일일 전역 비용 cap 가드 (마스터피스 P1-O4). fail-open — 확인 실패 시 통과.
+  const cap = await checkAnthropicDailyCap(ROUTE)
+  if (cap.exceeded) {
+    return NextResponse.json(
+      {
+        code: 'DAILY_CAP_EXCEEDED',
+        message: '오늘 AI 사용량이 많아 잠시 후 다시 시도해 주세요',
+      },
+      { status: 503 },
     )
   }
 
@@ -126,6 +146,7 @@ export async function POST(req: Request) {
   const prompt = buildCommentaryPrompt(ctx)
 
   let text: string
+  let usage: AnthropicResponse['usage']
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -149,6 +170,13 @@ export async function POST(req: Request) {
     const data = (await res.json()) as AnthropicResponse
 
     if (!res.ok) {
+      // 외부 의존성 (Anthropic) 열화 — Sentry 관측 (이전엔 502 만 반환).
+      Sentry.captureException(
+        new Error(
+          `Anthropic non-OK ${res.status}: ${data.error?.type ?? 'unknown'}`,
+        ),
+        { tags: { route: ROUTE, anthropic_status: String(res.status) } },
+      )
       return NextResponse.json(
         {
           code: data.error?.type ?? 'ANTHROPIC_ERROR',
@@ -158,6 +186,7 @@ export async function POST(req: Request) {
       )
     }
 
+    usage = data.usage
     text =
       (data.content ?? [])
         .filter((b) => b.type === 'text')
@@ -172,6 +201,8 @@ export async function POST(req: Request) {
       )
     }
   } catch (e) {
+    // fetch 실패 (timeout / 네트워크 / Anthropic 다운) — Sentry 관측.
+    Sentry.captureException(e, { tags: { route: ROUTE } })
     return NextResponse.json(
       {
         code: 'FETCH_FAILED',
@@ -180,6 +211,9 @@ export async function POST(req: Request) {
       { status: 502 }
     )
   }
+
+  // 사용량 누적 (best-effort, fail-open — 응답 막지 않음).
+  await recordAnthropicUsage(ROUTE, usage)
 
   // 5) 저장 (실패해도 생성된 텍스트는 반환 — best effort)
   await supabase

@@ -52,8 +52,8 @@
 ### 운영
 - **P1-O1. 코드 독립 알림 fallback** ✅: `ops-digest` cron 신설 — 매일 KST 8시 cron_health 24h 실패 + refund 큐 적체(pending/permanently_failed) + 24h+ 미결제 적체를 집계해 `business.email` 로 HTML 다이제스트(이상 0건이면 skip, 스팸 방지). Sentry 콘솔 설정과 무관하게 메일로 도달. vercel.json 등록(cron 34개).
 - **P1-O2. 문서-코드 정합** ✅: 운영자 메일은 `business.email`(이미 존재, contact 가 사용) 사용 — 새 env 불필요. inventory-forecast/reconcile docstring 의 허위 "admin 이메일(NEXT_PUBLIC_ADMIN_EMAIL)" → "Sentry 기록 + ops-digest 종합 메일" 로 정정.
-- **P1-O3. cron-health admin 탭**: "24h cron 실패" 카드가 `/admin?tab=cron-health`로 링크하나 해당 탭 렌더링 없음(죽은 링크). 실패 cron 목록 화면 구현. 🤖 내가 가능.
-- **P1-O4. AI 비용 가드**: rate-limit만 있고 일·월 예산 cap·누적 추적·초과 알림 없음. `anthropic_usage` 테이블 + 일 cap + commentary fetch 실패 captureException. 🤖 내가 가능.
+- **P1-O3. cron-health admin 탭** ✅: `/admin/cron-health` 신설(서버 컴포넌트 — 7일 cron 실패 로그 + cron별 성공/실패 요약 + 정상 시 빈상태) + ActionsPanel 죽은 링크(`?tab=cron-health` → `/admin/cron-health`) 정합.
+- **P1-O4. AI 비용 가드** ✅: `anthropic_usage`(day,route PK 누적, prod 적용) + atomic upsert RPC + `lib/anthropic-usage`(cap 가드/기록, fail-open) + `ANTHROPIC_DAILY_CALL_CAP` env(opt-in, 미설정=무제한) + commentary/structured/ocr 3라우트 일일 cap 503 + commentary fetch 실패 captureException 2곳.
 - **P1-O5. 프로덕션 SENTRY_DSN 주입 + 콘솔 룰/채널 연결**: 🙋 창업자(Vercel env + Sentry 콘솔) — 출시 체크리스트에 못 박기.
 
 ### 디자인·접근성

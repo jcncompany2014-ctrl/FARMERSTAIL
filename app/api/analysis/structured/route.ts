@@ -9,9 +9,15 @@ import type { ChronicConditionKey } from '@/lib/nutrition/guidelines'
 import { zAnalysisRequest } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import {
+  checkAnthropicDailyCap,
+  recordAnthropicUsage,
+} from '@/lib/anthropic-usage'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+const ROUTE = 'analysis-structured'
 
 /**
  * POST /api/analysis/structured
@@ -32,6 +38,7 @@ export const dynamic = 'force-dynamic'
 
 type AnthropicResponse = {
   content?: Array<{ type: string; text?: string }>
+  usage?: { input_tokens?: number; output_tokens?: number }
   error?: { type?: string; message?: string }
 }
 
@@ -51,6 +58,18 @@ export async function POST(req: Request) {
         message: '잠시 후 다시 시도해 주세요',
       },
       { status: 429, headers: rl.headers },
+    )
+  }
+
+  // 1.5) 일일 전역 비용 cap 가드 (마스터피스 P1-O4). fail-open.
+  const cap = await checkAnthropicDailyCap(ROUTE)
+  if (cap.exceeded) {
+    return NextResponse.json(
+      {
+        code: 'DAILY_CAP_EXCEEDED',
+        message: '오늘 AI 사용량이 많아 잠시 후 다시 시도해 주세요',
+      },
+      { status: 503 },
     )
   }
 
@@ -172,6 +191,7 @@ export async function POST(req: Request) {
   const prompt = buildAnalysisPrompt(ctx)
 
   let text: string
+  let usage: AnthropicResponse['usage']
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -191,6 +211,7 @@ export async function POST(req: Request) {
       signal: AbortSignal.timeout(20_000),
     })
     const data = (await res.json()) as AnthropicResponse
+    usage = data.usage
     if (!res.ok) {
       return NextResponse.json(
         {
@@ -221,6 +242,10 @@ export async function POST(req: Request) {
       { status: 502 },
     )
   }
+
+  // 사용량 누적 (best-effort). 호출은 성공했으니 parse 결과와 무관하게 기록
+  // — 응답 토큰은 이미 과금됨.
+  await recordAnthropicUsage(ROUTE, usage)
 
   const structured = parseAiAnalysis(text)
   if (!structured) {
