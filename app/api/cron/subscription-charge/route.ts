@@ -286,10 +286,24 @@ async function runSubscriptionCharge(): Promise<Response> {
 
     // orders 의 실제 컬럼명은 zip / address / address_detail (recipient_ 접두사 X).
     // recipient_name 과 recipient_phone 만 recipient_ prefix 사용.
+    // 데이터정합 감사(CRITICAL): orders.order_number / subtotal 은 NOT NULL +
+    // DB 기본값 없음(prod 확인). 누락 시 정기결제가 주문 생성 단계에서 NOT NULL
+    // 위반으로 전부 실패한다(체크아웃·admin 경로는 둘 다 채워서 베타에 안 드러남).
+    // order_number 는 CheckoutForm.generateOrderNumber 와 동일 포맷(FT-YYYYMMDD-RAND),
+    // subtotal 은 구독 total_amount(구독 단가에 배송비 포함, 별도 분리 없음).
+    const orderNow = new Date()
+    const orderNumber = `FT-${orderNow.getFullYear()}${String(
+      orderNow.getMonth() + 1,
+    ).padStart(2, '0')}${String(orderNow.getDate()).padStart(2, '0')}-${Math.random()
+      .toString(36)
+      .slice(2, 8)
+      .toUpperCase()}`
     const orderInsertPayload: Record<string, unknown> = {
       user_id: sub.user_id,
+      order_number: orderNumber,
       order_status: 'pending',
       payment_status: 'pending',
+      subtotal: sub.total_amount,
       total_amount: sub.total_amount,
       recipient_name: ship.name,
       recipient_phone: sub.recipient_phone ?? ship.phone,
@@ -344,7 +358,11 @@ async function runSubscriptionCharge(): Promise<Response> {
       quantity: number
       unit_price: number
     }>
-    if (subItemsArr.length > 0) {
+    // 데이터정합 감사: order_items.product_id 는 NOT NULL. subItemsArr 타입은
+    // product_id: string|null(캐스트로 추론 완화)이라 null 이 섞이면 insert 가
+    // NOT NULL 위반 → 품목 없는 orphan 주문. null product_id 는 skip.
+    const validItems = subItemsArr.filter((it) => it.product_id != null)
+    if (validItems.length > 0) {
       // audit #79: order_items insert payload cast (product_id nullable 등 추론 차이).
       await (supabase as unknown as {
         from: (t: string) => {
@@ -353,7 +371,7 @@ async function runSubscriptionCharge(): Promise<Response> {
       })
         .from('order_items')
         .insert(
-          subItemsArr.map((it) => ({
+          validItems.map((it) => ({
             order_id: orderRow!.id,
             product_id: it.product_id,
             product_name: it.product_name,

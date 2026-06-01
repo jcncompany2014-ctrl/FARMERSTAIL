@@ -47,7 +47,7 @@ export type CheckinStatus = {
 /** 강아지 정기배송 카드 — subscriptions 테이블 from dog_id. */
 export type ActiveSubscription = {
   id: string
-  status: 'active' | 'paused' | 'canceled'
+  status: 'active' | 'paused' | 'cancelled'
   interval_weeks: number
   coverage_weeks: number
   next_delivery_date: string | null

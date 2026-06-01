@@ -159,7 +159,7 @@ export default async function DashboardPage() {
       .from('dog_formulas')
       .select('id, dog_id, proposed_at, dogs(name)')
       .eq('user_id', user.id)
-      .eq('approval_status', 'proposed')
+      .eq('approval_status', 'pending_approval')
       .order('proposed_at', { ascending: true })
       .limit(1),
     // 각 강아지의 최근 체중 측정일. 14일+ 미기록인 가장 오래된 강아지 찾기.

@@ -165,7 +165,7 @@ export async function GET(req: Request) {
         try {
           const { subject, html } = renderVipCoupon({
             recipientName: user.name ?? '보호자',
-            tier: user.tier ?? 'gold',
+            tier: user.tier ?? 'fruit',
             discountLabel,
             validUntil: coupon.expires_at,
           })
@@ -183,7 +183,7 @@ export async function GET(req: Request) {
             user_id: user.id,
             year_month: yearMonth,
             coupon_code: coupon.code,
-            tier: user.tier ?? 'gold',
+            tier: user.tier ?? 'fruit',
           })
           return r.ok === true
         } catch (err) {
