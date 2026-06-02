@@ -109,6 +109,37 @@
 
 ---
 
+## 🔭 5영역 클린 재감사 (2026-06-01, 독립 에이전트)
+
+> data-integrity 재감사가 CRITICAL 2건을 잡은 뒤, 1차 워크플로의 검증 실패로
+> 과소집계 의심됐던 나머지 영역을 독립 에이전트로 재감사. **보안은 critical/high
+> 0 — 매우 견고함 확인**(XSS·RLS·IDOR·인가·시크릿·injection·SSRF·CSRF·rate-limit
+> 전수 "정상" 근거 배제). 나머지에서 실재 findings.
+
+**✅ batch 1 수정·푸시(7d4bd70)**: UX 침묵실패 3종(지출/복약/예방접종 toast) +
+리뷰·찜 버튼 영구잠금 해제 + CSV formula injection 가드 + survey placeholder 대비 AA.
+
+**🔧 남은 safe (actionable — file/line은 감사 리포트 참조)**
+- **a11y**: NewDogClient/EditDogClient 폼 — ① `<label>` htmlFor/id 연결(useId) ②
+  성별·중성화·활동량·나이단위 토글 `aria-pressed` ③ 에러 div `role="alert"`. v3
+  RadioGroup/Checkbox `:focus-within` ring. checkout 현금영수증 pill `aria-pressed`(시각 무변경).
+- **성능**: `/compare`(공개 SEO·ProductReviews.tsx) recharts → `next/dynamic(ssr:false)`
+  (초기 번들 수백KB↓) · admin/cohort 동일 · family/page 쿼리 `Promise.all` ·
+  ForTodaySection 불필요 'use client' 분리 · PDP ProductReviews useEffect 워터폴 →
+  `Promise.all` + 평점 집계 RPC(무제한 row 전송 제거).
+- **결제(safe)**: cancel-items 전액-via-부분취소 시 쿠폰 `revokeCouponRedemption` 추가 ·
+  admin partial-cancel 낙관적잠금(`refunded_amount` 가드 0-row 409) · chargeBillingKey
+  `status==='DONE'` 가드.
+
+**🔒 risky / 결제 실키 실테스트 필요** (DI-B1 환불회계와 함께 한 라운드로)
+- 정기결제 transient 타임아웃 → 다음날 중복청구(멱등키 `today`→회차 고정값 재설계).
+- 부분취소 2회차 포인트 환급 silent drop(referenceId 회차 유일화).
+- 부분취소 동시성: Toss 전액 vs DB 일부(claim→금액확정→Toss 호출 순서 재배치).
+- 설문 부분실패 재시도 시 surveys 중복행(surveyId 보존 후 analyses 만 재시도).
+- 체크인/다이어리 사진 업로드 후 미제출 시 스토리지 orphan(제출 후 확정 or GC).
+
+---
+
 ## 🗺️ 실행 순서 제안
 
 1. **내가 바로 할 수 있는 P0/P1 코드·데이터 작업** (창업자 입력 불요):
