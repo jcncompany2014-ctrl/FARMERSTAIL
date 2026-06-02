@@ -352,6 +352,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
+              aria-pressed={gender === 'male'}
               onClick={() => setGender('male')}
               className={`${chipBase} ${
                 gender === 'male' ? chipActive : chipIdle
@@ -361,6 +362,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
             </button>
             <button
               type="button"
+              aria-pressed={gender === 'female'}
               onClick={() => setGender('female')}
               className={`${chipBase} ${
                 gender === 'female' ? chipActive : chipIdle
@@ -376,6 +378,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
+              aria-pressed={neutered === true}
               onClick={() => setNeutered(true)}
               className={`${chipBase} ${
                 neutered === true ? chipActive : chipIdle
@@ -386,6 +389,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
             </button>
             <button
               type="button"
+              aria-pressed={neutered === false}
               onClick={() => setNeutered(false)}
               className={`${chipBase} ${
                 neutered === false ? chipActive : chipIdle
@@ -412,6 +416,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
             />
             <button
               type="button"
+              aria-pressed={ageUnit === 'years'}
               onClick={() => setAgeUnit('years')}
               className={`px-4 rounded border text-[12px] font-bold transition ${
                 ageUnit === 'years'
@@ -423,6 +428,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
             </button>
             <button
               type="button"
+              aria-pressed={ageUnit === 'months'}
               onClick={() => setAgeUnit('months')}
               className={`px-4 rounded border text-[12px] font-bold transition ${
                 ageUnit === 'months'
@@ -512,6 +518,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
                 <button
                   key={a.v}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => setActivityLevel(a.v)}
                   className={`w-full py-3 px-4 rounded border text-left transition flex items-center gap-3 ${
                     active
@@ -581,7 +588,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
         )}
 
         {error && (
-          <div className="flex items-start gap-2 text-[12px] text-sale font-semibold border rounded px-4 py-3" style={{ background: 'color-mix(in srgb, var(--sale) 6%, transparent)', borderColor: 'color-mix(in srgb, var(--sale) 25%, transparent)' }}>
+          <div role="alert" aria-live="assertive" className="flex items-start gap-2 text-[12px] text-sale font-semibold border rounded px-4 py-3" style={{ background: 'color-mix(in srgb, var(--sale) 6%, transparent)', borderColor: 'color-mix(in srgb, var(--sale) 25%, transparent)' }}>
             <AlertCircle
               className="w-4 h-4 shrink-0 mt-0.5"
               strokeWidth={2}

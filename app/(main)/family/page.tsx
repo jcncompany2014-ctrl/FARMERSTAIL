@@ -22,19 +22,17 @@ export default async function FamilyPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/family')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('name, email')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  // R17-E42: 내가 보낸 초대 list + 상태.
-  const { data: invites } = await supabase
-    .from('dog_invitations')
-    .select('id, email, role, accepted_at, declined_at, expires_at, dog_id, created_at')
-    .eq('invited_by', user.id)
-    .order('created_at', { ascending: false })
-    .limit(20)
+  // 성능: profile · invites 는 서로 독립이라 병렬(직렬 RTT 1회 제거).
+  const [{ data: profile }, { data: invites }] = await Promise.all([
+    supabase.from('profiles').select('name, email').eq('id', user.id).maybeSingle(),
+    // R17-E42: 내가 보낸 초대 list + 상태.
+    supabase
+      .from('dog_invitations')
+      .select('id, email, role, accepted_at, declined_at, expires_at, dog_id, created_at')
+      .eq('invited_by', user.id)
+      .order('created_at', { ascending: false })
+      .limit(20),
+  ])
   const invitations = (invites ?? []) as Array<{
     id: string
     email: string
