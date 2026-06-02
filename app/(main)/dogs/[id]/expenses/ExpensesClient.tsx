@@ -19,6 +19,7 @@ import {
   deleteExpense,
   type ExpenseRow,
 } from '@/lib/dog-records'
+import { useToast } from '@/components/ui/Toast'
 
 type ExpCategory = ExpenseRow['category']
 
@@ -52,6 +53,7 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
   const [memo, setMemo] = useState('')
   const [saving, setSaving] = useState(false)
   const confirm = useConfirm()
+  const toast = useToast()
 
   useEffect(() => {
     let mounted = true
@@ -110,6 +112,7 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
       setMemo('')
     } catch (e) {
       console.error('insertExpense', e)
+      toast.error('저장하지 못했어요. 잠시 후 다시 시도해 주세요')
     } finally {
       setSaving(false)
     }

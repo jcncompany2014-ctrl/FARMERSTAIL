@@ -13,6 +13,7 @@ import {
   setMedicationEnabled,
   type MedicationRow,
 } from '@/lib/dog-records'
+import { useToast } from '@/components/ui/Toast'
 
 export default function MedicationsClient({ dogId }: { dogId: string }) {
   const supabase = createClient()
@@ -27,6 +28,7 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
   const confirm = useConfirm()
+  const toast = useToast()
 
   useEffect(() => {
     let mounted = true
@@ -70,6 +72,7 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
       setNote('')
     } catch (e) {
       console.error('insertMedication', e)
+      toast.error('저장하지 못했어요. 잠시 후 다시 시도해 주세요')
     } finally {
       setSaving(false)
     }

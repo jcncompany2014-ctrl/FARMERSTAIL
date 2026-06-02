@@ -15,7 +15,13 @@ export type CsvRow = Record<string, unknown>
 
 function escapeCell(value: unknown): string {
   if (value === null || value === undefined) return ''
-  const s = typeof value === 'string' ? value : String(value)
+  let s = typeof value === 'string' ? value : String(value)
+  // 보안: CSV formula injection 방지(OWASP). =,+,-,@,탭,CR 로 시작하는 셀은 앞에
+  // ' 를 붙여 Excel/Sheets 가 수식으로 실행하지 못하게 한다. 주문 export 의
+  // 수령인·배송메모·상품명이 사용자 제어값이라 운영자 PC 에서 열 때 위험.
+  if (/^[=+\-@\t\r]/.test(s)) {
+    s = `'${s}`
+  }
   // RFC 4180 §2: 필드가 ", CR, LF, , 를 포함하면 쌍따옴표로 감싸고 " → "" 로.
   if (/[",\r\n]/.test(s)) {
     return `"${s.replace(/"/g, '""')}"`

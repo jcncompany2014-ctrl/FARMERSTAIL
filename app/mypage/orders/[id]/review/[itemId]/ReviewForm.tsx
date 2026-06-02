@@ -141,6 +141,7 @@ export default function ReviewForm({
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
+      setSubmitting(false)
       router.push('/login')
       return
     }

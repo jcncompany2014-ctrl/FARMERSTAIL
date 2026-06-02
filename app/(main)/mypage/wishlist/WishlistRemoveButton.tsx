@@ -21,14 +21,20 @@ export default function WishlistRemoveButton({
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
+      setBusy(false)
       router.push('/login')
       return
     }
-    await supabase
+    const { error } = await supabase
       .from('wishlists')
       .delete()
       .eq('user_id', user.id)
       .eq('product_id', productId)
+    if (error) {
+      // 실패 시 버튼 영구잠금 방지 — 하트 유지(목록 그대로).
+      setBusy(false)
+      return
+    }
     router.refresh()
   }
 
