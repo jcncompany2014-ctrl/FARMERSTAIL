@@ -77,11 +77,11 @@ export default function Checkbox({
         disabled={disabled}
         aria-label={ariaLabel}
         onChange={(e) => onChange(e.target.checked)}
-        className="sr-only"
+        className="sr-only peer"
       />
       <span
         aria-hidden
-        className="shrink-0 inline-flex items-center justify-center"
+        className="shrink-0 inline-flex items-center justify-center peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--accent)]"
         style={{
           width: 18,
           height: 18,

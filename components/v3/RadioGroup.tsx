@@ -94,11 +94,11 @@ export default function RadioGroup({
               checked={selected}
               disabled={opt.disabled}
               onChange={() => onChange(opt.value)}
-              className="sr-only"
+              className="sr-only peer"
             />
             <span
               aria-hidden
-              className="shrink-0 inline-flex items-center justify-center"
+              className="shrink-0 inline-flex items-center justify-center peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--accent)]"
               style={{
                 width: 18,
                 height: 18,

@@ -1236,6 +1236,7 @@ function ReceiptOption({
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={`px-2 py-2 rounded-lg text-[11.5px] font-bold transition ${
         active
