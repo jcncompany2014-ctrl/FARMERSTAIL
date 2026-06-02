@@ -77,7 +77,7 @@ export default function Budget({
                   )}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em' }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.01em' }}>
                     {opt.label}
                   </div>
                   <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>

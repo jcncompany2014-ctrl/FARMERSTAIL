@@ -141,7 +141,7 @@ export function OngoingEvents({
           <h2
             className="font-sans"
             style={{
-              fontSize: 17,
+              fontSize: 16,
               fontWeight: 800,
               color: 'var(--ink)',
               letterSpacing: '-0.015em',
@@ -302,7 +302,7 @@ function EventCard({
               className="italic"
               style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: 15,
+                fontSize: 16,
                 fontWeight: 500,
                 color: palette.body,
               }}
@@ -312,7 +312,7 @@ function EventCard({
             <span
               className="font-sans"
               style={{
-                fontSize: 14,
+                fontSize: 13.5,
                 fontWeight: 800,
                 color: palette.accent,
                 letterSpacing: '-0.015em',
@@ -504,7 +504,7 @@ function WelcomeBenefitModal({
               <p
                 className="leading-relaxed"
                 style={{
-                  fontSize: 13,
+                  fontSize: 13.5,
                   color: 'rgba(245,240,230,0.88)',
                 }}
               >
@@ -536,7 +536,7 @@ function WelcomeBenefitModal({
                 <p
                   className="mt-2 leading-relaxed"
                   style={{
-                    fontSize: 12.5,
+                    fontSize: 12,
                     color: 'rgba(245,240,230,0.88)',
                   }}
                 >

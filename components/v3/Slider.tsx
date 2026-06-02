@@ -71,7 +71,7 @@ export default function Slider({
         <div className="flex items-center justify-between mb-1.5">
           <span
             style={{
-              fontSize: 11,
+              fontSize: 10.5,
               color: V3.inkMute,
               letterSpacing: '0.04em',
               textTransform: 'uppercase',
@@ -83,7 +83,7 @@ export default function Slider({
             style={{
               fontFamily: 'var(--font-sans)',
               fontWeight: V3FontWeight.black,
-              fontSize: 15,
+              fontSize: 16,
               color: V3.ink,
               letterSpacing: '-0.01em',
             }}
@@ -93,7 +93,7 @@ export default function Slider({
               <span
                 style={{
                   marginLeft: 3,
-                  fontSize: 11,
+                  fontSize: 10.5,
                   fontWeight: V3FontWeight.medium,
                   color: V3.inkMute,
                 }}

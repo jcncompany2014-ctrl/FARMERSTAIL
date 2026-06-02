@@ -83,7 +83,7 @@ export default function ActiveDogCard({
           style={{
             gap: 6,
             fontFamily: "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
-            fontSize: 10,
+            fontSize: 10.5,
             color: V3.inkSoft,
           }}
         >
@@ -150,7 +150,7 @@ export default function ActiveDogCard({
             className="ft-clamp-1"
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 12.5,
+              fontSize: 12,
               color: V3.inkSoft,
               marginTop: 6,
             }}

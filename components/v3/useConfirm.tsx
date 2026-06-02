@@ -118,7 +118,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               style={{
                 padding: '10px 18px',
                 borderRadius: V3Radius.sm,
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: V3FontWeight.bold,
                 background: V3.paperHi,
                 color: V3.inkMute,
@@ -142,7 +142,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               style={{
                 padding: '10px 18px',
                 borderRadius: V3Radius.sm,
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: V3FontWeight.bold,
                 background: current.tone === 'destructive' ? V3.sale : V3.ink,
                 color: V3.paperHi,

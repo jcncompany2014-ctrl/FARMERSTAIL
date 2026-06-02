@@ -96,7 +96,7 @@ export default function AllergyBanner({
         <p
           style={{
             fontFamily: 'var(--font-sans)',
-            fontSize: 13,
+            fontSize: 13.5,
             fontWeight: V3FontWeight.bold,
             color: V3.ink,
             letterSpacing: '-0.01em',
@@ -111,7 +111,7 @@ export default function AllergyBanner({
         <p
           style={{
             marginTop: 4,
-            fontSize: 11.5,
+            fontSize: 12,
             color: V3.inkMute,
             lineHeight: 1.45,
           }}

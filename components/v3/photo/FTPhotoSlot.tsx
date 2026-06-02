@@ -101,7 +101,7 @@ export default function FTPhotoSlot({
             gap: 4,
             color: textColor,
             fontFamily: 'var(--font-sans)',
-            fontSize: 10,
+            fontSize: 10.5,
             fontWeight: 600,
             letterSpacing: '0.06em',
             textTransform: 'uppercase',

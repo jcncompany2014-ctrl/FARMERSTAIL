@@ -124,7 +124,7 @@ export default async function CompareDogsPage() {
                   <th
                     key={d.id}
                     className="text-left p-2 font-bold text-text"
-                    style={{ fontSize: 13 }}
+                    style={{ fontSize: 13.5 }}
                   >
                     {d.name}
                   </th>

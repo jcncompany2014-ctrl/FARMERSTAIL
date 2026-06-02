@@ -66,7 +66,7 @@ export default async function MyReviewsPage() {
         <Link
           href="/mypage"
           style={{
-            fontSize: 11,
+            fontSize: 10.5,
             fontWeight: V3FontWeight.semibold,
             color: V3.inkMute,
             textDecoration: 'none',
@@ -144,7 +144,7 @@ export default async function MyReviewsPage() {
             </h3>
             <p
               style={{
-                fontSize: 11,
+                fontSize: 10.5,
                 color: V3.inkMute,
                 marginTop: 6,
               }}
@@ -219,7 +219,7 @@ export default async function MyReviewsPage() {
                     style={{
                       margin: 0,
                       fontFamily: 'var(--font-sans)',
-                      fontSize: 12.5,
+                      fontSize: 12,
                       fontWeight: V3FontWeight.bold,
                       color: V3.ink,
                       letterSpacing: '-0.01em',
@@ -248,7 +248,7 @@ export default async function MyReviewsPage() {
                   style={{
                     margin: '12px 0 0',
                     fontFamily: 'var(--font-sans)',
-                    fontSize: 14,
+                    fontSize: 13.5,
                     fontWeight: V3FontWeight.black,
                     color: V3.ink,
                     letterSpacing: '-0.02em',
@@ -273,7 +273,7 @@ export default async function MyReviewsPage() {
                 <p
                   style={{
                     margin: '8px 0 0',
-                    fontSize: 10,
+                    fontSize: 10.5,
                     color: V3.accent,
                     fontWeight: V3FontWeight.bold,
                   }}

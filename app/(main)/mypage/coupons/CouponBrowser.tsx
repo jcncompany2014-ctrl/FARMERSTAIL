@@ -269,7 +269,7 @@ export default function CouponBrowser({
             </h3>
             <p
               style={{
-                fontSize: 11,
+                fontSize: 10.5,
                 color: V3.inkMute,
                 marginTop: 6,
               }}

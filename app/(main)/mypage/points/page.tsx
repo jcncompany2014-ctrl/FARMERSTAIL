@@ -92,7 +92,7 @@ export default async function PointsPage() {
           className="inline-flex items-center"
           style={{
             gap: 4,
-            fontSize: 11,
+            fontSize: 10.5,
             fontWeight: V3FontWeight.semibold,
             color: V3.inkMute,
             textDecoration: 'none',
@@ -174,7 +174,7 @@ export default async function PointsPage() {
               <span
                 style={{
                   fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
-                  fontSize: 14,
+                  fontSize: 13.5,
                   fontWeight: 600,
                   letterSpacing: '0.08em',
                   color: V3Dark.fgMute,
@@ -219,7 +219,7 @@ export default async function PointsPage() {
               <div className="flex-1 min-w-0">
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 10.5,
                     fontWeight: V3FontWeight.bold,
                     color: V3Dark.fg,
                   }}
@@ -229,7 +229,7 @@ export default async function PointsPage() {
                 {next ? (
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 10.5,
                       color: V3Dark.fgMute,
                       marginTop: 2,
                     }}
@@ -240,7 +240,7 @@ export default async function PointsPage() {
                 ) : (
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 10.5,
                       color: V3Dark.fgMute,
                       marginTop: 2,
                     }}
@@ -373,7 +373,7 @@ function StatCell({
         {value.toLocaleString()}
         <span
           style={{
-            fontSize: 10,
+            fontSize: 10.5,
             color: V3.inkMute,
             marginLeft: 3,
             fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",

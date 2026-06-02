@@ -46,7 +46,7 @@ export default async function WishlistPage() {
         <Link
           href="/mypage"
           style={{
-            fontSize: 11,
+            fontSize: 10.5,
             fontWeight: V3FontWeight.semibold,
             color: V3.inkMute,
             textDecoration: 'none',
@@ -124,7 +124,7 @@ export default async function WishlistPage() {
             </h3>
             <p
               style={{
-                fontSize: 11.5,
+                fontSize: 12,
                 color: V3.inkMute,
                 marginTop: 8,
                 lineHeight: 1.55,
@@ -221,7 +221,7 @@ export default async function WishlistPage() {
                       className="line-clamp-2"
                       style={{
                         fontFamily: 'var(--font-sans)',
-                        fontSize: 11.5,
+                        fontSize: 12,
                         fontWeight: V3FontWeight.bold,
                         color: V3.ink,
                         lineHeight: 1.35,
@@ -238,7 +238,7 @@ export default async function WishlistPage() {
                       <span
                         style={{
                           fontFamily: 'var(--font-sans)',
-                          fontSize: 14,
+                          fontSize: 13.5,
                           fontWeight: V3FontWeight.black,
                           color: hasSale ? V3.accent : V3.ink,
                           letterSpacing: '-0.02em',

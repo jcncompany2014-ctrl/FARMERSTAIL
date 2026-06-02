@@ -130,7 +130,7 @@ export default async function MilestonesPage({
                   <p
                     className="font-sans mt-1 leading-snug"
                     style={{
-                      fontSize: 14,
+                      fontSize: 13.5,
                       fontWeight: reached ? 700 : 600,
                       color: reached ? 'var(--ink)' : 'var(--muted)',
                       letterSpacing: '-0.01em',

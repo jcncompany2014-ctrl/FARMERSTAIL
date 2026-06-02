@@ -24,7 +24,7 @@ export default function SubscriptionsNewBanner() {
         className="flex items-center"
         style={{
           gap: 6,
-          fontSize: 13,
+          fontSize: 13.5,
           fontWeight: V3FontWeight.bold,
           color: V3.sage,
         }}
@@ -32,7 +32,7 @@ export default function SubscriptionsNewBanner() {
         <Check size={16} strokeWidth={2.5} />
         정기배송이 신청되었어요!
       </div>
-      <div style={{ fontSize: 11, color: V3.inkMute, marginTop: 4 }}>
+      <div style={{ fontSize: 10.5, color: V3.inkMute, marginTop: 4 }}>
         배송일 전에 안내 연락을 드릴게요.
       </div>
     </div>

@@ -97,7 +97,7 @@ export default function NewInviteClient({ dogs }: { dogs: DogOption[] }) {
           <p
             className="font-sans"
             style={{
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: 700,
               color: 'var(--ink)',
             }}

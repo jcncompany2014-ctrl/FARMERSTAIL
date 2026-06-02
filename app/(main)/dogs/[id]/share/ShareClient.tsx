@@ -186,7 +186,7 @@ export default function ShareClient({
               <span
                 className="font-mono font-black tabular-nums"
                 style={{
-                  fontSize: 14,
+                  fontSize: 13.5,
                   color: 'var(--ink)',
                   letterSpacing: '0.08em',
                 }}

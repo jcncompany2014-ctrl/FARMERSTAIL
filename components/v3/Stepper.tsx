@@ -90,7 +90,7 @@ export default function Stepper({ current, total, labels }: StepperProps) {
                   style={{
                     marginTop: 6,
                     fontFamily: 'var(--font-sans)',
-                    fontSize: 10,
+                    fontSize: 10.5,
                     fontWeight: isCurrent
                       ? V3FontWeight.bold
                       : V3FontWeight.medium,

@@ -264,7 +264,7 @@ function DeliveryPanel({ delivery }: { delivery: ForTodayDelivery }) {
         className="ft-clamp-1"
         style={{
           fontFamily: 'var(--font-sans)',
-          fontSize: 11.5,
+          fontSize: 12,
           color: 'rgba(244,237,224,0.6)',
           marginTop: 6,
         }}
@@ -294,7 +294,7 @@ function DeliveryPanel({ delivery }: { delivery: ForTodayDelivery }) {
         <span
           style={{
             fontFamily: 'var(--font-sans)',
-            fontSize: 11,
+            fontSize: 10.5,
             color: V3.paper,
             fontWeight: 500,
           }}
@@ -324,7 +324,7 @@ function BonusPanel({ bonus }: { bonus: ForTodayBonus }) {
         style={{
           fontFamily: 'var(--font-sans)',
           fontWeight: V3FontWeight.bold,
-          fontSize: 13,
+          fontSize: 13.5,
           marginTop: 6,
           lineHeight: 1.2,
           letterSpacing: '-0.005em',

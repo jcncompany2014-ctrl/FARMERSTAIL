@@ -220,7 +220,7 @@ function FeaturedCard({
           style={{
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.black,
-            fontSize: 14,
+            fontSize: 13.5,
             color: V3.ink,
             letterSpacing: '-0.015em',
           }}

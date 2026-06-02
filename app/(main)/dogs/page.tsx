@@ -154,7 +154,7 @@ export default async function DogsPage() {
                     <h3
                       className="font-sans truncate"
                       style={{
-                        fontSize: 17,
+                        fontSize: 16,
                         fontWeight: 800,
                         color: 'var(--ink)',
                         letterSpacing: '-0.02em',

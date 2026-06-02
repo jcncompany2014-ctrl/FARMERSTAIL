@@ -62,7 +62,7 @@ export default function MemoTimeline({
             href={viewAllHref}
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 12.5,
+              fontSize: 12,
               color: V3.ink,
               fontWeight: 600,
               textDecoration: 'underline',

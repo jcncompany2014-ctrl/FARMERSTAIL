@@ -76,7 +76,7 @@ export default function PdpWhyRecipe({
                 style={{
                   fontFamily: 'var(--font-sans)',
                   fontWeight: V3FontWeight.bold,
-                  fontSize: 15,
+                  fontSize: 16,
                   color: V3.ink,
                   letterSpacing: '-0.015em',
                   wordBreak: 'keep-all',

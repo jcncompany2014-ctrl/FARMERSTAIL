@@ -153,7 +153,7 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
                       <p
                         className="font-sans"
                         style={{
-                          fontSize: 13,
+                          fontSize: 13.5,
                           fontWeight: 700,
                           color: 'var(--ink)',
                         }}

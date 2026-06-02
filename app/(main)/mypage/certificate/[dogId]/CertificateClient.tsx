@@ -191,7 +191,7 @@ export default function CertificateClient({
             <div
               style={{
                 fontFamily: "'Archivo Black', Arial, sans-serif",
-                fontSize: 10,
+                fontSize: 10.5,
                 letterSpacing: '0.32em',
                 color: '#A0452E',
                 textTransform: 'uppercase',
@@ -214,7 +214,7 @@ export default function CertificateClient({
             <div
               style={{
                 marginTop: 4,
-                fontSize: 10,
+                fontSize: 10.5,
                 color: '#7B6F5C',
                 fontStyle: 'italic',
               }}
@@ -304,7 +304,7 @@ export default function CertificateClient({
               borderTop: '1px solid #D7CFBC',
               borderBottom: '1px solid #D7CFBC',
               textAlign: 'center',
-              fontSize: 12.5,
+              fontSize: 12,
               lineHeight: 1.7,
               color: '#2A2118',
             }}
@@ -323,7 +323,7 @@ export default function CertificateClient({
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               gap: 14,
-              fontSize: 11,
+              fontSize: 10.5,
               color: '#3A3128',
             }}
           >

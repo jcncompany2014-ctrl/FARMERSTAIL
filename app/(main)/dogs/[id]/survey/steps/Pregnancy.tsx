@@ -109,7 +109,7 @@ export default function Pregnancy({
             <span className="s-label-text">임신 주차</span>
             <span className="s-opt">선택</span>
           </div>
-          <p className="s-sub" style={{ fontSize: 11, marginBottom: 8 }}>
+          <p className="s-sub" style={{ fontSize: 10.5, marginBottom: 8 }}>
             6주차 이후가 영양 요구량이 본격적으로 ↑. 미입력 시 보수적
             multiplier (×1.5).
           </p>
@@ -139,7 +139,7 @@ export default function Pregnancy({
             <span className="s-label-text">산자 수</span>
             <span className="s-opt">선택</span>
           </div>
-          <p className="s-sub" style={{ fontSize: 11, marginBottom: 8 }}>
+          <p className="s-sub" style={{ fontSize: 10.5, marginBottom: 8 }}>
             수유 영양 요구량은 산자 수에 비례 (×2.0~4.0). 미입력 시 ×2.0.
           </p>
           <input
@@ -170,7 +170,7 @@ export default function Pregnancy({
             <span className="s-label-text">예상 성견 체중 (kg)</span>
             <span className="s-opt">선택</span>
           </div>
-          <p className="s-sub" style={{ fontSize: 11, marginBottom: 8 }}>
+          <p className="s-sub" style={{ fontSize: 10.5, marginBottom: 8 }}>
             18개월 미만 강아지 — 25kg+ 대형견은 Ca 1.8% DM 상한
             (AAFCO 2024) 권고. 정확한 추천을 위해 입력해 주세요.
           </p>

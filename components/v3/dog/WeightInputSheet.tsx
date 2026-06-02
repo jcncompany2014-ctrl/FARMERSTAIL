@@ -135,7 +135,7 @@ export default function WeightInputSheet({
             color: V3.ink,
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.semibold,
-            fontSize: 14,
+            fontSize: 13.5,
             gap: 4,
           }}
         >
@@ -230,7 +230,7 @@ export default function WeightInputSheet({
             style={{
               fontFamily:
                 "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
-              fontSize: 14,
+              fontSize: 13.5,
               color: V3.accent,
               letterSpacing: '0.16em',
               marginLeft: 8,
@@ -293,7 +293,7 @@ export default function WeightInputSheet({
                 padding: '10px 0',
                 fontFamily: 'var(--font-sans)',
                 fontWeight: V3FontWeight.bold,
-                fontSize: 13,
+                fontSize: 13.5,
                 color: V3.ink,
                 cursor: 'pointer',
               }}
@@ -341,7 +341,7 @@ export default function WeightInputSheet({
             cursor: saving ? 'wait' : 'pointer',
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 15,
+            fontSize: 16,
             letterSpacing: '-0.005em',
           }}
         >

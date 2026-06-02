@@ -119,7 +119,7 @@ export default async function FamilyPage() {
               <p
                 className="font-sans"
                 style={{
-                  fontSize: 14,
+                  fontSize: 13.5,
                   fontWeight: 700,
                   color: 'var(--ink)',
                 }}
@@ -159,7 +159,7 @@ export default async function FamilyPage() {
               <p
                 className="font-sans"
                 style={{
-                  fontSize: 14,
+                  fontSize: 13.5,
                   fontWeight: 700,
                   color: 'var(--ink)',
                 }}
@@ -199,7 +199,7 @@ export default async function FamilyPage() {
                         <p
                           className="font-sans truncate"
                           style={{
-                            fontSize: 13,
+                            fontSize: 13.5,
                             fontWeight: 700,
                             color: 'var(--ink)',
                           }}

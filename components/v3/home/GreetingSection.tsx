@@ -192,7 +192,7 @@ export default function GreetingSection({
         <span
           style={{
             fontFamily: 'var(--font-sans)',
-            fontSize: 14,
+            fontSize: 13.5,
             color: V3.inkSoft,
             lineHeight: 1.5,
           }}

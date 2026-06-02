@@ -196,7 +196,7 @@ export default async function SearchPage({
                       <p
                         className="font-sans"
                         style={{
-                          fontSize: 13,
+                          fontSize: 13.5,
                           fontWeight: 700,
                           color: 'var(--ink)',
                         }}
@@ -233,7 +233,7 @@ export default async function SearchPage({
                       <p
                         className="font-sans"
                         style={{
-                          fontSize: 13,
+                          fontSize: 13.5,
                           fontWeight: 700,
                           color: 'var(--ink)',
                         }}

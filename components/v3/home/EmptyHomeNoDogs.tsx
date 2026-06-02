@@ -111,7 +111,7 @@ export default function EmptyHomeNoDogs({
             borderRadius: 4,
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 13,
+            fontSize: 13.5,
             letterSpacing: '-0.005em',
           }}
         >

@@ -31,7 +31,7 @@ export default function Loading({
       </h2>
       <p
         style={{
-          fontSize: 11.5,
+          fontSize: 12,
           color: 'var(--muted)',
           lineHeight: 1.7,
           fontFamily: 'var(--font-mono), JetBrains Mono, monospace',
@@ -99,7 +99,7 @@ export default function Loading({
             color: '#fff',
             padding: '11px 22px',
             borderRadius: 99,
-            fontSize: 13,
+            fontSize: 13.5,
             fontWeight: 800,
             cursor: 'pointer',
             fontFamily: 'inherit',

@@ -168,7 +168,7 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
                       <p
                         className="font-sans"
                         style={{
-                          fontSize: 13,
+                          fontSize: 13.5,
                           fontWeight: 700,
                           color: 'var(--ink)',
                           letterSpacing: '-0.01em',
@@ -221,7 +221,7 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
                     <p
                       className="font-sans"
                       style={{
-                        fontSize: 13,
+                        fontSize: 13.5,
                         fontWeight: 700,
                         color: 'var(--ink)',
                       }}

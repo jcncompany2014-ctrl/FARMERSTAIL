@@ -80,7 +80,7 @@ export default function DailyCheckinStack({
           <p
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: V3FontWeight.black,
               color: V3.ink,
               letterSpacing: '-0.01em',
@@ -91,7 +91,7 @@ export default function DailyCheckinStack({
           <p
             style={{
               marginTop: 4,
-              fontSize: 11.5,
+              fontSize: 12,
               color: V3.inkMute,
             }}
           >
@@ -152,7 +152,7 @@ export default function DailyCheckinStack({
             <span
               style={{
                 fontFamily: 'var(--font-mono)',
-                fontSize: 10,
+                fontSize: 10.5,
                 fontWeight: V3FontWeight.bold,
                 color: TONE_COLOR[top.tone],
                 letterSpacing: '0.16em',
@@ -165,7 +165,7 @@ export default function DailyCheckinStack({
               style={{
                 marginTop: 6,
                 fontFamily: 'var(--font-sans)',
-                fontSize: 15,
+                fontSize: 16,
                 fontWeight: V3FontWeight.black,
                 color: V3.ink,
                 letterSpacing: '-0.015em',
@@ -177,7 +177,7 @@ export default function DailyCheckinStack({
             <p
               style={{
                 marginTop: 2,
-                fontSize: 11.5,
+                fontSize: 12,
                 color: V3.inkMute,
               }}
             >

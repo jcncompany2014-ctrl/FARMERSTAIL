@@ -139,7 +139,7 @@ export default function RadioGroup({
                   style={{
                     display: 'block',
                     marginTop: 2,
-                    fontSize: 11.5,
+                    fontSize: 12,
                     color: V3.inkMute,
                     lineHeight: 1.4,
                   }}

@@ -88,7 +88,7 @@ export default function MyDogsSection({
             className="ft-nowrap"
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 13,
+              fontSize: 13.5,
               color: V3.ink,
               fontWeight: 600,
               textDecoration: 'underline',
@@ -264,7 +264,7 @@ export default function MyDogsSection({
             className="ft-balance"
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 11,
+              fontSize: 10.5,
               color: V3.inkMute,
               textAlign: 'center',
               lineHeight: 1.3,

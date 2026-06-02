@@ -221,7 +221,7 @@ export default function Cropper({
       <div className="w-full flex items-center gap-3" style={{ width: viewportSize }}>
         <span
           aria-hidden
-          style={{ fontSize: 11, color: V3.inkMute, minWidth: 24 }}
+          style={{ fontSize: 10.5, color: V3.inkMute, minWidth: 24 }}
         >
           축소
         </span>
@@ -237,7 +237,7 @@ export default function Cropper({
         />
         <span
           aria-hidden
-          style={{ fontSize: 11, color: V3.inkMute, minWidth: 24, textAlign: 'right' }}
+          style={{ fontSize: 10.5, color: V3.inkMute, minWidth: 24, textAlign: 'right' }}
         >
           확대
         </span>
@@ -256,7 +256,7 @@ export default function Cropper({
               color: V3.ink,
               fontFamily: 'var(--font-sans)',
               fontWeight: V3FontWeight.semibold,
-              fontSize: 13,
+              fontSize: 13.5,
               cursor: 'pointer',
             }}
           >
@@ -276,7 +276,7 @@ export default function Cropper({
             color: V3.paperHi,
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 13,
+            fontSize: 13.5,
             cursor: 'pointer',
           }}
         >

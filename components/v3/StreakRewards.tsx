@@ -73,7 +73,7 @@ export default function StreakRewards({
           <span
             style={{
               fontFamily: 'var(--font-mono)',
-              fontSize: 10,
+              fontSize: 10.5,
               fontWeight: V3FontWeight.bold,
               color: stage.tone,
               letterSpacing: '0.16em',
@@ -86,7 +86,7 @@ export default function StreakRewards({
             style={{
               marginTop: 4,
               fontFamily: 'var(--font-sans)',
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: V3FontWeight.bold,
               color: V3.ink,
               letterSpacing: '-0.01em',
@@ -127,7 +127,7 @@ export default function StreakRewards({
           <p
             style={{
               marginTop: 8,
-              fontSize: 11,
+              fontSize: 10.5,
               color: V3.inkMute,
               lineHeight: 1.4,
             }}

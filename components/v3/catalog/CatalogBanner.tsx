@@ -82,7 +82,7 @@ export default function CatalogBanner({
         style={{
           margin: '12px 0 16px',
           fontFamily: 'var(--font-sans)',
-          fontSize: 13,
+          fontSize: 13.5,
           color: 'rgba(244,237,224,0.7)',
           lineHeight: 1.5,
           maxWidth: 280,
@@ -107,7 +107,7 @@ export default function CatalogBanner({
               padding: '11px 14px',
               fontFamily: 'var(--font-sans)',
               fontWeight: V3FontWeight.black,
-              fontSize: 13,
+              fontSize: 13.5,
               gap: 8,
               letterSpacing: '-0.005em',
             }}

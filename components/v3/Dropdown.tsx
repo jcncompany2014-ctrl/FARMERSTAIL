@@ -157,7 +157,7 @@ export default function Dropdown({
                 className="w-full text-left transition disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   padding: '8px 14px',
-                  fontSize: 13,
+                  fontSize: 13.5,
                   fontFamily: 'var(--font-sans)',
                   fontWeight: V3FontWeight.medium,
                   color,

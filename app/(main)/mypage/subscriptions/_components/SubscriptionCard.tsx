@@ -185,7 +185,7 @@ export default function SubscriptionCard({
               {sub.last_failed_charge_reason && (
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 10.5,
                     color: V3.inkMute,
                     marginTop: 2,
                     lineHeight: 1.4,
@@ -220,7 +220,7 @@ export default function SubscriptionCard({
                   gap: 4,
                   padding: '6px 10px',
                   borderRadius: V3Radius.xs,
-                  fontSize: 11,
+                  fontSize: 10.5,
                   fontWeight: V3FontWeight.bold,
                   color: V3.paperHi,
                   background: V3.sale,
@@ -272,7 +272,7 @@ export default function SubscriptionCard({
                 className="truncate"
                 style={{
                   fontFamily: 'var(--font-sans)',
-                  fontSize: 13,
+                  fontSize: 13.5,
                   fontWeight: V3FontWeight.bold,
                   color: V3.ink,
                   letterSpacing: '-0.015em',
@@ -295,7 +295,7 @@ export default function SubscriptionCard({
                 className="tabular-nums"
                 style={{
                   fontFamily: 'var(--font-sans)',
-                  fontSize: 13,
+                  fontSize: 13.5,
                   fontWeight: V3FontWeight.black,
                   color: V3.accent,
                   letterSpacing: '-0.02em',
@@ -316,7 +316,7 @@ export default function SubscriptionCard({
             display: 'flex',
             flexDirection: 'column',
             gap: 6,
-            fontSize: 11,
+            fontSize: 10.5,
           }}
         >
           <div className="flex justify-between">
@@ -331,7 +331,7 @@ export default function SubscriptionCard({
             <span style={{ fontWeight: V3FontWeight.bold, color: V3.ink }}>
               {sub.total_amount.toLocaleString()}원
               {sub.shipping_fee === 0 && (
-                <span style={{ marginLeft: 4, fontSize: 10, color: V3.sage }}>
+                <span style={{ marginLeft: 4, fontSize: 10.5, color: V3.sage }}>
                   (배송비 무료)
                 </span>
               )}
@@ -368,7 +368,7 @@ export default function SubscriptionCard({
                   style={{
                     padding: '8px 0',
                     borderRadius: V3Radius.xs,
-                    fontSize: 11,
+                    fontSize: 10.5,
                     fontWeight: V3FontWeight.bold,
                     border:
                       sub.interval_weeks === w
@@ -391,7 +391,7 @@ export default function SubscriptionCard({
               style={{
                 marginTop: 8,
                 width: '100%',
-                fontSize: 11,
+                fontSize: 10.5,
                 color: V3.inkMute,
                 background: 'transparent',
                 border: 'none',
@@ -422,7 +422,7 @@ export default function SubscriptionCard({
                 )}
                 <span
                   style={{
-                    fontSize: 11,
+                    fontSize: 10.5,
                     fontWeight: V3FontWeight.bold,
                     color: V3.ink,
                   }}
@@ -478,7 +478,7 @@ export default function SubscriptionCard({
                       width: 28,
                       height: 24,
                       borderRadius: V3Radius.xs,
-                      fontSize: 10,
+                      fontSize: 10.5,
                       fontWeight: V3FontWeight.bold,
                       background:
                         sub.reminder_days_before === d
@@ -544,7 +544,7 @@ export default function SubscriptionCard({
                       gap: 4,
                       padding: '10px 0',
                       borderRadius: V3Radius.sm,
-                      fontSize: 11,
+                      fontSize: 10.5,
                       fontWeight: V3FontWeight.bold,
                       border: `1px solid ${V3.rule}`,
                       color: V3.inkMute,
@@ -568,7 +568,7 @@ export default function SubscriptionCard({
                       gap: 4,
                       padding: '10px 0',
                       borderRadius: V3Radius.sm,
-                      fontSize: 11,
+                      fontSize: 10.5,
                       fontWeight: V3FontWeight.bold,
                       border: `1px solid ${V3.rule}`,
                       color: V3.sage,
@@ -585,7 +585,7 @@ export default function SubscriptionCard({
                     style={{
                       padding: '10px 14px',
                       borderRadius: V3Radius.sm,
-                      fontSize: 11,
+                      fontSize: 10.5,
                       fontWeight: V3FontWeight.bold,
                       border: `1px solid ${V3.rule}`,
                       color: V3.sale,
@@ -607,7 +607,7 @@ export default function SubscriptionCard({
                     gap: 4,
                     padding: '10px 0',
                     borderRadius: V3Radius.sm,
-                    fontSize: 11,
+                    fontSize: 10.5,
                     fontWeight: V3FontWeight.bold,
                     border: `1.5px solid ${V3.sage}`,
                     color: V3.sage,
@@ -631,7 +631,7 @@ export default function SubscriptionCard({
                   style={{
                     padding: '10px 18px',
                     borderRadius: V3Radius.sm,
-                    fontSize: 11,
+                    fontSize: 10.5,
                     fontWeight: V3FontWeight.bold,
                     border: `1px solid ${V3.rule}`,
                     color: V3.sale,

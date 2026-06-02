@@ -91,7 +91,7 @@ export default function DogDetailFAB({
                   gap: 10,
                   fontFamily: 'var(--font-sans)',
                   fontWeight: V3FontWeight.bold,
-                  fontSize: 13,
+                  fontSize: 13.5,
                   letterSpacing: '-0.005em',
                   cursor: 'pointer',
                   boxShadow: '0 4px 16px rgba(22,20,15,0.16)',

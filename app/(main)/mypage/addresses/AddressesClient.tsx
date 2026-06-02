@@ -118,7 +118,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
                 <div
                   style={{
                     fontFamily: 'var(--font-sans)',
-                    fontSize: 13,
+                    fontSize: 13.5,
                     fontWeight: V3FontWeight.bold,
                     color: V3.ink,
                     lineHeight: 1.35,
@@ -167,7 +167,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
                 className="flex-1 transition disabled:opacity-50"
                 style={{
                   padding: '10px 0',
-                  fontSize: 11.5,
+                  fontSize: 12,
                   fontWeight: V3FontWeight.bold,
                   color: V3.inkMute,
                   background: 'transparent',
@@ -185,7 +185,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
               style={{
                 gap: 4,
                 padding: '10px 0',
-                fontSize: 11.5,
+                fontSize: 12,
                 fontWeight: V3FontWeight.bold,
                 color: V3.inkMute,
                 borderRight: `1px solid ${V3.rule}`,
@@ -203,7 +203,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
               style={{
                 gap: 4,
                 padding: '10px 0',
-                fontSize: 11.5,
+                fontSize: 12,
                 fontWeight: V3FontWeight.bold,
                 color: V3.sale,
                 background: 'transparent',
@@ -246,7 +246,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
             style={{
               padding: '10px 18px',
               borderRadius: V3Radius.sm,
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: V3FontWeight.bold,
               background: V3.paperHi,
               color: V3.inkMute,
@@ -264,7 +264,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
             style={{
               padding: '10px 18px',
               borderRadius: V3Radius.sm,
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: V3FontWeight.bold,
               background: V3.sale,
               color: V3.paperHi,

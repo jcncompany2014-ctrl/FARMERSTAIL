@@ -46,7 +46,7 @@ export default async function AddressesPage() {
         <Link
           href="/mypage"
           style={{
-            fontSize: 11,
+            fontSize: 10.5,
             fontWeight: V3FontWeight.semibold,
             color: V3.inkMute,
             textDecoration: 'none',
@@ -74,7 +74,7 @@ export default async function AddressesPage() {
         </h1>
         <p
           style={{
-            fontSize: 11.5,
+            fontSize: 12,
             color: V3.inkMute,
             marginTop: 6,
           }}
@@ -126,7 +126,7 @@ export default async function AddressesPage() {
             </h3>
             <p
               style={{
-                fontSize: 11.5,
+                fontSize: 12,
                 color: V3.inkMute,
                 marginTop: 8,
                 lineHeight: 1.55,
@@ -169,7 +169,7 @@ export default async function AddressesPage() {
                 border: `1px solid ${V3.ink}`,
                 background: V3.ink,
                 color: V3.paperHi,
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: V3FontWeight.bold,
                 textDecoration: 'none',
               }}

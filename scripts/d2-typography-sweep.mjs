@@ -59,11 +59,24 @@ for (const root of ROOTS) {
     let src = readFileSync(file, 'utf8')
     let changed = 0
     for (const [from, to] of Object.entries(MAP)) {
-      const re = new RegExp(`text-\\[${from.replace('.', '\\.')}px\\]`, 'g')
-      src = src.replace(re, () => {
+      // 1) Tailwind 클래스: text-[13px] → text-[13.5px]
+      const reClass = new RegExp(`text-\\[${from.replace('.', '\\.')}px\\]`, 'g')
+      src = src.replace(reClass, () => {
         changed++
         perValue[from] = (perValue[from] || 0) + 1
         return `text-[${to}px]`
+      })
+      // 2) inline style 숫자: fontSize: 13 → fontSize: 13.5
+      //    토큰/변수(fontSize: V3FontSize.base)는 숫자 미매칭 → 미접촉.
+      //    negative lookahead 로 13.5/135 등 오염 방지(on-scale 13.5 보호).
+      const reInline = new RegExp(
+        `fontSize: ${from.replace('.', '\\.')}(?![\\d.])`,
+        'g',
+      )
+      src = src.replace(reInline, () => {
+        changed++
+        perValue[`inline-${from}`] = (perValue[`inline-${from}`] || 0) + 1
+        return `fontSize: ${to}`
       })
     }
     if (changed > 0) {

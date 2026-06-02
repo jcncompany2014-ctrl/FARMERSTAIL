@@ -140,7 +140,7 @@ export default function MypageClient({
                 className="truncate"
                 style={{
                   fontFamily: 'var(--font-sans)',
-                  fontSize: 15,
+                  fontSize: 16,
                   fontWeight: V3FontWeight.bold,
                   color: V3.ink,
                   letterSpacing: '-0.02em',
@@ -151,7 +151,7 @@ export default function MypageClient({
               <div
                 className="truncate"
                 style={{
-                  fontSize: 11.5,
+                  fontSize: 12,
                   color: V3.inkMute,
                   marginTop: 2,
                 }}
@@ -255,7 +255,7 @@ export default function MypageClient({
                 <div className="flex-1 min-w-0">
                   <div
                     style={{
-                      fontSize: 11,
+                      fontSize: 10.5,
                       fontWeight: V3FontWeight.bold,
                       color: V3Dark.fg,
                     }}
@@ -396,7 +396,7 @@ export default function MypageClient({
             border: `1px solid ${V3.rule}`,
             borderRadius: V3Radius.sm,
             fontFamily: 'var(--font-sans)',
-            fontSize: 13,
+            fontSize: 13.5,
             fontWeight: V3FontWeight.semibold,
             color: V3.inkMute,
           }}
@@ -425,7 +425,7 @@ export default function MypageClient({
             style={{
               padding: '10px 18px',
               borderRadius: V3Radius.sm,
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: V3FontWeight.bold,
               background: V3.paperHi,
               color: V3.inkMute,
@@ -443,7 +443,7 @@ export default function MypageClient({
             style={{
               padding: '10px 18px',
               borderRadius: V3Radius.sm,
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: V3FontWeight.bold,
               background: V3.ink,
               color: V3.paperHi,
@@ -462,7 +462,7 @@ export default function MypageClient({
         <Link
           href="/mypage/delete"
           style={{
-            fontSize: 11,
+            fontSize: 10.5,
             color: V3.inkMute,
             textDecoration: 'underline',
             textUnderlineOffset: 2,
@@ -486,7 +486,7 @@ function TierChip({ tier }: { tier: string }) {
       style={{
         gap: 4,
         fontFamily: 'var(--font-sans)',
-        fontSize: 11,
+        fontSize: 10.5,
         fontWeight: V3FontWeight.black,
         padding: '4px 10px',
         borderRadius: V3Radius.pill,
@@ -496,7 +496,7 @@ function TierChip({ tier }: { tier: string }) {
         border: `1px solid ${V3.rule}`,
       }}
     >
-      <span style={{ fontSize: 13, lineHeight: 1 }}>{TIER_EMOJI[meta.key]}</span>
+      <span style={{ fontSize: 13.5, lineHeight: 1 }}>{TIER_EMOJI[meta.key]}</span>
       {meta.label}
     </span>
   )

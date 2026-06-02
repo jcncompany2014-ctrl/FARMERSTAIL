@@ -267,7 +267,7 @@ export default function NotificationsClient({
                 <span
                   className="tabular-nums"
                   style={{
-                    fontSize: 10,
+                    fontSize: 10.5,
                     color: V3.inkMute,
                     fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
                     fontWeight: 500,

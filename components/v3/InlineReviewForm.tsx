@@ -75,7 +75,7 @@ export default function InlineReviewForm({
         <p
           style={{
             fontFamily: 'var(--font-sans)',
-            fontSize: 13,
+            fontSize: 13.5,
             fontWeight: V3FontWeight.bold,
             color: V3.ink,
           }}
@@ -98,7 +98,7 @@ export default function InlineReviewForm({
       <p
         style={{
           fontFamily: 'var(--font-mono)',
-          fontSize: 10,
+          fontSize: 10.5,
           fontWeight: V3FontWeight.bold,
           color: V3.accent,
           letterSpacing: '0.16em',
@@ -149,7 +149,7 @@ export default function InlineReviewForm({
           width: '100%',
           padding: '8px 10px',
           fontFamily: 'var(--font-sans)',
-          fontSize: 13,
+          fontSize: 13.5,
           color: V3.ink,
           background: V3.paper,
           border: `1px solid ${V3.rule}`,
@@ -207,7 +207,7 @@ export default function InlineReviewForm({
           role="alert"
           style={{
             marginTop: 8,
-            fontSize: 11,
+            fontSize: 10.5,
             color: '#b03a2e',
             letterSpacing: '-0.01em',
           }}

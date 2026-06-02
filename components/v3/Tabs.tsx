@@ -77,7 +77,7 @@ export default function Tabs({
             className="transition"
             style={{
               padding: '10px 0',
-              fontSize: 11.5,
+              fontSize: 12,
               fontWeight: V3FontWeight.bold,
               background: active ? V3.ink : V3.paperHi,
               color: active ? V3.paperHi : V3.ink,
@@ -93,7 +93,7 @@ export default function Tabs({
                   display: 'inline-block',
                   padding: '0 6px',
                   borderRadius: V3Radius.pill,
-                  fontSize: 10,
+                  fontSize: 10.5,
                   fontWeight: V3FontWeight.bold,
                   background: active ? 'rgba(244,237,224,0.2)' : V3.paper,
                   color: active ? V3.paperHi : V3.inkMute,

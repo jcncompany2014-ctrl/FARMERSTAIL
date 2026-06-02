@@ -92,7 +92,7 @@ export default function PhotoGalleryGrid({
           style={{
             margin: '10px 0 0',
             fontFamily: 'var(--font-sans)',
-            fontSize: 13,
+            fontSize: 13.5,
             color: V3.inkSoft,
           }}
         >

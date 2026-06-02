@@ -84,7 +84,7 @@ export default function DogStatsGrid({ stats }: DogStatsGridProps) {
                   borderTop: `1px solid ${V3.rule}`,
                   fontFamily:
                     "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
-                  fontSize: 10,
+                  fontSize: 10.5,
                   color: V3.inkSoft,
                   letterSpacing: 0.6,
                 }}

@@ -133,7 +133,7 @@ export default async function DeleteAccountPage() {
           <h2
             className="font-sans mb-3"
             style={{
-              fontSize: 13,
+              fontSize: 13.5,
               fontWeight: 800,
               color: 'var(--ink)',
               letterSpacing: '-0.015em',

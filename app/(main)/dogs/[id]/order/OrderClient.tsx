@@ -979,7 +979,7 @@ export default function OrderClient({
               진흥법 고지 의무. 신청 = 자동결제 동의 간주 근거. */}
           <p
             className="ord-foot"
-            style={{ fontSize: 10, opacity: 0.85, marginTop: 6 }}
+            style={{ fontSize: 10.5, opacity: 0.85, marginTop: 6 }}
           >
             신청 · 카드 등록을 누르면 매월 자동결제에 동의하는 것으로
             간주됩니다.

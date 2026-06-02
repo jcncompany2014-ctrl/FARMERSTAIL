@@ -225,7 +225,7 @@ export default function QuickLogSheet({
               borderRadius: 4,
               padding: 12,
               fontFamily: 'var(--font-sans)',
-              fontSize: 14,
+              fontSize: 13.5,
               color: V3.ink,
               resize: 'none',
               outline: 'none',
@@ -303,7 +303,7 @@ export default function QuickLogSheet({
             cursor: busy ? 'wait' : 'pointer',
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 15,
+            fontSize: 16,
             letterSpacing: '-0.005em',
             gap: 8,
           }}

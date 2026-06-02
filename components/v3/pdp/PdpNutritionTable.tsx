@@ -109,7 +109,7 @@ export default function PdpNutritionTable({
                   className="tabular-nums"
                   style={{
                     fontFamily: 'var(--font-sans)',
-                    fontSize: 13,
+                    fontSize: 13.5,
                     color: V3.ink,
                     fontWeight: V3FontWeight.semibold,
                   }}
@@ -159,7 +159,7 @@ export default function PdpNutritionTable({
             href={viewAllHref}
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 12.5,
+              fontSize: 12,
               color: V3.ink,
               fontWeight: 600,
               textDecoration: 'underline',

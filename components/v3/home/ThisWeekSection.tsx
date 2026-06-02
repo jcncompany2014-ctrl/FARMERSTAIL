@@ -228,7 +228,7 @@ export default function ThisWeekSection({
                   style={{
                     fontFamily: 'var(--font-sans)',
                     fontWeight: V3FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 13.5,
                     color: V3.ink,
                     marginTop: 2,
                   }}

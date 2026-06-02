@@ -270,7 +270,7 @@ export default async function YearInReviewPage({
                 <p
                   className="font-sans leading-tight"
                   style={{
-                    fontSize: 14,
+                    fontSize: 13.5,
                     fontWeight: 700,
                     color: 'var(--ink)',
                     letterSpacing: '-0.01em',
@@ -312,7 +312,7 @@ export default async function YearInReviewPage({
           <p
             className="mt-2 font-sans leading-snug"
             style={{
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: 700,
               color: 'var(--ink)',
               letterSpacing: '-0.01em',

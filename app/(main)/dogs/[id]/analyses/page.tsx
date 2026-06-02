@@ -574,7 +574,7 @@ function HeroStat({
       <div
         className="font-sans tabular-nums leading-none mt-1"
         style={{
-          fontSize: 17,
+          fontSize: 16,
           fontWeight: 800,
           letterSpacing: '-0.015em',
         }}

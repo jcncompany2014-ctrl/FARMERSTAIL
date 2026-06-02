@@ -109,7 +109,7 @@ export default async function CouponsPage() {
         <Link
           href="/mypage"
           style={{
-            fontSize: 11,
+            fontSize: 10.5,
             fontWeight: 600,
             color: 'var(--ink-mute, #706854)',
             textDecoration: 'none',
@@ -146,7 +146,7 @@ export default async function CouponsPage() {
         </h1>
         <p
           style={{
-            fontSize: 11.5,
+            fontSize: 12,
             color: '#706854',
             marginTop: 6,
           }}

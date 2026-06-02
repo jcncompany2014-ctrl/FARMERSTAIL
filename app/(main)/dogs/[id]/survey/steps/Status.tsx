@@ -81,7 +81,7 @@ export default function Status({
             <span className="s-label-text">CKD IRIS 단계</span>
             <span className="s-opt">선택</span>
           </div>
-          <p className="s-sub" style={{ fontSize: 11, marginBottom: 8 }}>
+          <p className="s-sub" style={{ fontSize: 10.5, marginBottom: 8 }}>
             IRIS = 만성 신장질환의 국제 표준 진단 단계 (1=초기, 4=말기).
             수의사가 알려주지 않았으면 건너뛰세요 — 미입력 시 보수적
             추천 (단백질 제한) 적용.
@@ -149,7 +149,7 @@ export default function Status({
                 padding: 10,
                 background: 'var(--bg-2)',
                 borderRadius: 10,
-                fontSize: 11.5,
+                fontSize: 12,
                 color: 'var(--muted)',
                 lineHeight: 1.5,
               }}
@@ -172,7 +172,7 @@ export default function Status({
                       color: 'var(--terracotta)',
                       padding: '4px 10px',
                       borderRadius: 99,
-                      fontSize: 11,
+                      fontSize: 10.5,
                       fontWeight: 700,
                       fontFamily: 'inherit',
                       cursor: 'pointer',

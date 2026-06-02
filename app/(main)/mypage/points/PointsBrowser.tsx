@@ -135,7 +135,7 @@ export default function PointsBrowser({ entries }: { entries: Entry[] }) {
             </h3>
             <p
               style={{
-                fontSize: 11,
+                fontSize: 10.5,
                 color: V3.inkMute,
                 marginTop: 6,
               }}
@@ -169,7 +169,7 @@ export default function PointsBrowser({ entries }: { entries: Entry[] }) {
                     </div>
                     <div
                       className="flex items-center tabular-nums"
-                      style={{ gap: 8, fontSize: 10, fontWeight: V3FontWeight.bold }}
+                      style={{ gap: 8, fontSize: 10.5, fontWeight: V3FontWeight.bold }}
                     >
                       {groupEarn > 0 && (
                         <span style={{ color: V3.sage }}>
@@ -231,7 +231,7 @@ export default function PointsBrowser({ entries }: { entries: Entry[] }) {
                               style={{
                                 margin: 0,
                                 fontFamily: 'var(--font-sans)',
-                                fontSize: 12.5,
+                                fontSize: 12,
                                 fontWeight: V3FontWeight.bold,
                                 color: V3.ink,
                                 letterSpacing: '-0.01em',
@@ -255,7 +255,7 @@ export default function PointsBrowser({ entries }: { entries: Entry[] }) {
                               style={{
                                 gap: 2,
                                 fontFamily: 'var(--font-sans)',
-                                fontSize: 13,
+                                fontSize: 13.5,
                                 fontWeight: V3FontWeight.black,
                                 color: accent,
                                 letterSpacing: '-0.02em',

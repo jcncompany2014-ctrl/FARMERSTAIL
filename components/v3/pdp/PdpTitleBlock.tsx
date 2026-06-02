@@ -70,7 +70,7 @@ export default function PdpTitleBlock({
           style={{
             marginTop: 8,
             fontFamily: 'var(--font-sans)',
-            fontSize: 13,
+            fontSize: 13.5,
             color: V3.inkSoft,
             lineHeight: 1.4,
             wordBreak: 'keep-all',
@@ -139,7 +139,7 @@ export default function PdpTitleBlock({
             style={{
               marginLeft: 'auto',
               fontFamily: 'var(--font-sans)',
-              fontSize: 13,
+              fontSize: 13.5,
               color: V3.inkMute,
               textDecoration: 'line-through',
             }}

@@ -370,7 +370,7 @@ export default function SubscriptionsClient({
         <Link
           href="/mypage"
           style={{
-            fontSize: 11,
+            fontSize: 10.5,
             color: V3.inkMute,
             textDecoration: 'none',
             fontWeight: V3FontWeight.semibold,

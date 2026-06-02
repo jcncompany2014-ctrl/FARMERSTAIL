@@ -134,7 +134,7 @@ export default function FarmToTailSection({
           <span
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 14,
+              fontSize: 13.5,
               color: V3.ink,
               fontWeight: 700,
               textDecoration: 'underline',

@@ -81,7 +81,7 @@ export default function Tooltip({
             borderRadius: V3Radius.xs,
             background: V3.ink,
             color: V3.paperHi,
-            fontSize: 11.5,
+            fontSize: 12,
             fontWeight: V3FontWeight.medium,
             lineHeight: 1.4,
             letterSpacing: '-0.005em',

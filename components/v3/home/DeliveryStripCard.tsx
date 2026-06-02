@@ -64,7 +64,7 @@ export default function DeliveryStripCard({
           style={{
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 14,
+            fontSize: 13.5,
             color: V3.ink,
             marginTop: 3,
             letterSpacing: '-0.015em',

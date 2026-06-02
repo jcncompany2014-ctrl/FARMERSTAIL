@@ -105,7 +105,7 @@ export default function JournalSection({
             href={viewAllHref}
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 13,
+              fontSize: 13.5,
               color: V3.ink,
               fontWeight: 600,
               textDecoration: 'underline',
@@ -190,7 +190,7 @@ function JournalCard({ entry }: { entry: JournalEntry }) {
           style={{
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 15,
+            fontSize: 16,
             color: V3.ink,
             marginTop: 6,
             letterSpacing: '-0.015em',
@@ -203,7 +203,7 @@ function JournalCard({ entry }: { entry: JournalEntry }) {
           className="ft-clamp-2"
           style={{
             fontFamily: 'var(--font-sans)',
-            fontSize: 12.5,
+            fontSize: 12,
             color: V3.inkSoft,
             marginTop: 4,
             lineHeight: 1.4,

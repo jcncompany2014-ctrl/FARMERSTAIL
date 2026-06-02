@@ -75,7 +75,7 @@ export default function PdpStickyCTA({
               className="tabular-nums"
               style={{
                 fontFamily: 'var(--font-sans)',
-                fontSize: 11,
+                fontSize: 10.5,
                 color: V3.inkMute,
                 textDecoration: 'line-through',
                 lineHeight: 1,
@@ -144,7 +144,7 @@ export default function PdpStickyCTA({
             cursor: soldOut ? 'not-allowed' : 'pointer',
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 14,
+            fontSize: 13.5,
             letterSpacing: '-0.005em',
             gap: 8,
           }}

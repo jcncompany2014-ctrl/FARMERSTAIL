@@ -106,7 +106,7 @@ export default function TodayCard({
           style={{
             margin: '14px 0 18px',
             fontFamily: 'var(--font-sans)',
-            fontSize: 13,
+            fontSize: 13.5,
             lineHeight: 1.55,
             color: 'rgba(244,237,224,0.7)',
             wordBreak: 'keep-all',
@@ -126,7 +126,7 @@ export default function TodayCard({
             padding: '14px 18px',
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 14,
+            fontSize: 13.5,
             letterSpacing: '-0.005em',
           }}
         >
