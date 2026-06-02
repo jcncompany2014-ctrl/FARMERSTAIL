@@ -110,7 +110,7 @@ export default function CertificateClient({
       <section className="px-5 pt-6 pb-3 print:hidden">
         <Link
           href="/mypage/membership"
-          className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-terracotta font-semibold"
+          className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-terracotta font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           멤버십
@@ -128,7 +128,7 @@ export default function CertificateClient({
           >
             {dog.name}의 등록증
           </h1>
-          <p className="text-[11.5px] text-muted mt-1.5 leading-relaxed">
+          <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
             단짝 등급 도달의 증표. 저장하거나 공유해 보세요.
           </p>
         </div>
@@ -394,21 +394,21 @@ export default function CertificateClient({
           className="flex flex-col items-center gap-1 py-3 rounded border border-rule bg-bg-3 hover:border-text transition"
         >
           <Printer className="w-4 h-4" strokeWidth={2} />
-          <span className="text-[11px] font-bold">인쇄·PDF</span>
+          <span className="text-[10.5px] font-bold">인쇄·PDF</span>
         </button>
         <button
           onClick={handleDownloadImage}
           className="flex flex-col items-center gap-1 py-3 rounded bg-ink text-bg hover:opacity-95 transition"
         >
           <Download className="w-4 h-4" strokeWidth={2} />
-          <span className="text-[11px] font-bold">이미지 저장</span>
+          <span className="text-[10.5px] font-bold">이미지 저장</span>
         </button>
         <button
           onClick={handleShare}
           className="flex flex-col items-center gap-1 py-3 rounded border border-rule bg-bg-3 hover:border-text transition"
         >
           <Share2 className="w-4 h-4" strokeWidth={2} />
-          <span className="text-[11px] font-bold">공유</span>
+          <span className="text-[10.5px] font-bold">공유</span>
         </button>
       </section>
 
@@ -421,7 +421,7 @@ export default function CertificateClient({
             className="w-3.5 h-3.5 text-terracotta mt-0.5 shrink-0"
             strokeWidth={2}
           />
-          <p className="text-[11px] text-text leading-relaxed">
+          <p className="text-[10.5px] text-text leading-relaxed">
             단짝 등급은 누적 결제 300만원 이상 가족에게 발급되는 최상위 등급
             이에요. SNS 에 공유해 주시면 다음 단짝 가족에게 작은 선물이 갈 수
             있어요.

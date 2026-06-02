@@ -17,7 +17,7 @@ export default function AnalysisArchiveBanner({ dogId, analysisDate }: Props) {
   return (
     <section className="px-5 mt-3">
       <div className="bg-text/5 border border-text/15 rounded px-4 py-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-[11px] text-text min-w-0">
+        <div className="flex items-center gap-2 text-[10.5px] text-text min-w-0">
           <History className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
           <span className="font-bold truncate">
             {analysisDate} 기록 · 과거 분석 보기
@@ -25,7 +25,7 @@ export default function AnalysisArchiveBanner({ dogId, analysisDate }: Props) {
         </div>
         <Link
           href={`/dogs/${dogId}/analysis`}
-          className="shrink-0 text-[10px] font-bold text-terracotta hover:underline"
+          className="shrink-0 text-[10.5px] font-bold text-terracotta hover:underline"
         >
           최신 분석 →
         </Link>

@@ -119,7 +119,7 @@ export default function VaccinationsClient({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="w-full rounded border border-rule bg-bg-3 py-3 inline-flex items-center justify-center gap-2 text-[13px] font-bold text-text active:scale-[0.99] transition"
+          className="w-full rounded border border-rule bg-bg-3 py-3 inline-flex items-center justify-center gap-2 text-[13.5px] font-bold text-text active:scale-[0.99] transition"
         >
           <Plus className="w-4 h-4" strokeWidth={2.5} />
           새 기록 추가
@@ -147,7 +147,7 @@ export default function VaccinationsClient({
                     {VACCINE_OPTIONS.find((v) => v.value === r.vaccine)?.label ??
                       r.vaccine}
                   </p>
-                  <p className="text-[11px] text-muted mt-0.5">
+                  <p className="text-[10.5px] text-muted mt-0.5">
                     다음 일정 {r.next_date}
                   </p>
                 </div>
@@ -186,7 +186,7 @@ export default function VaccinationsClient({
                       {VACCINE_OPTIONS.find((v) => v.value === r.vaccine)
                         ?.label ?? r.vaccine}
                     </p>
-                    <p className="text-[11px] text-muted mt-0.5">
+                    <p className="text-[10.5px] text-muted mt-0.5">
                       접종일 {r.date}
                       {r.next_date && ` · 다음 ${r.next_date}`}
                     </p>
@@ -217,7 +217,7 @@ export default function VaccinationsClient({
         <Modal.Body>
           <div className="space-y-3">
             <div>
-              <label className="block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
+              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
                 백신 *
               </label>
               <Select
@@ -230,7 +230,7 @@ export default function VaccinationsClient({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
+              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
                 접종일 *
               </label>
               <DatePicker
@@ -240,7 +240,7 @@ export default function VaccinationsClient({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
+              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
                 다음 일정
               </label>
               <DatePicker
@@ -250,7 +250,7 @@ export default function VaccinationsClient({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
+              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
                 메모
               </label>
               <input
@@ -258,7 +258,7 @@ export default function VaccinationsClient({
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="예: 동물병원, 이상반응 없음"
-                className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
+                className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
               />
             </div>
           </div>

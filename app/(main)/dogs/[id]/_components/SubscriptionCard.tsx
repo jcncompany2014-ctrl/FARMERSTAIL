@@ -60,7 +60,7 @@ export default function SubscriptionCard({
             </p>
             <Link
               href={`/dogs/${dogId}/order`}
-              className="inline-flex items-center gap-1 mt-1 px-3.5 py-2 rounded-full bg-terracotta text-white text-[11.5px] font-bold hover:bg-terracotta/90 transition"
+              className="inline-flex items-center gap-1 mt-1 px-3.5 py-2 rounded-full bg-terracotta text-white text-[12px] font-bold hover:bg-terracotta/90 transition"
             >
               <Truck className="w-3 h-3" strokeWidth={2.4} />
               정기배송 시작
@@ -89,7 +89,7 @@ export default function SubscriptionCard({
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0 flex items-center gap-1.5">
                       <span
-                        className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                        className={`shrink-0 text-[10.5px] font-bold px-1.5 py-0.5 rounded-full ${
                           paused
                             ? 'bg-muted/15 text-muted'
                             : noBilling
@@ -103,7 +103,7 @@ export default function SubscriptionCard({
                             ? '카드 등록 필요'
                             : '진행중'}
                       </span>
-                      <span className="text-[11.5px] font-bold text-text truncate">
+                      <span className="text-[12px] font-bold text-text truncate">
                         {s.coverage_weeks === 2 ? '2주치 · 하이브리드' : '4주치 · 풀 화식'}
                       </span>
                     </div>
@@ -137,7 +137,7 @@ export default function SubscriptionCard({
                   {noBilling && !paused && (
                     <Link
                       href={`/subscribe/billing-auth?subscriptionId=${s.id}`}
-                      className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold text-terracotta hover:underline"
+                      className="inline-flex items-center gap-1 mt-1 text-[10.5px] font-bold text-terracotta hover:underline"
                     >
                       <Bell className="w-3 h-3" strokeWidth={2.4} />
                       카드 등록 마무리하기

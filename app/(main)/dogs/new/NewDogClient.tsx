@@ -276,7 +276,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
   }
 
   const labelCls =
-    'block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]'
+    'block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]'
   // 2026-05-22 R10-A: v3 form 톤 — rounded-xl(12)→rounded(4), bg-white→bg-bg-3 (paperHi).
   // R89-B (D7): iOS Safari 는 input font-size < 16px 시 focus 자동 zoom-in.
   // 16px 로 강제 (DatePicker / Select 와 일관성).
@@ -293,7 +293,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
       <div className="pt-6 pb-2">
         <Link
           href="/dogs"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← 돌아가기
         </Link>
@@ -467,7 +467,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
                 <option value="hold">안고 재기</option>
                 <option value="eyeball">눈으로 추정</option>
               </Select>
-              <p className="mt-1.5 text-[10px] text-muted">
+              <p className="mt-1.5 text-[10.5px] text-muted">
                 정확한 도구일수록 맞춤도가 올라가요. 모르면 그대로 두셔도 돼요.
               </p>
               <input
@@ -477,7 +477,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
                 className={`${inputCls} mt-2 text-[12px]`}
                 aria-label="체중 측정 일자"
               />
-              <p className="mt-1 text-[10px] text-muted">
+              <p className="mt-1 text-[10.5px] text-muted">
                 측정 일자가 오늘에 가까울수록 맞춤도가 올라가요
               </p>
             </>
@@ -526,9 +526,9 @@ export default function NewDogClient({ userId }: { userId: string }) {
                     strokeWidth={1.8}
                   />
                   <div>
-                    <div className="font-bold text-[13px]">{a.t}</div>
+                    <div className="font-bold text-[13.5px]">{a.t}</div>
                     <div
-                      className={`text-[11px] ${
+                      className={`text-[10.5px] ${
                         active ? 'text-white/70' : 'text-muted'
                       }`}
                     >
@@ -574,7 +574,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
               <option value="cup">계량컵</option>
               <option value="eyeball">눈대중</option>
             </Select>
-            <p className="mt-1 text-[10px] text-muted">
+            <p className="mt-1 text-[10.5px] text-muted">
               정기배송을 이용하시면 자동 추적이 가능해요
             </p>
           </div>
@@ -593,7 +593,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
         <button
           type="submit"
           disabled={loading}
-          className="flex items-center justify-center gap-1.5 w-full py-4 rounded-full bg-ink text-bg text-[13px] font-bold active:scale-[0.98] transition disabled:opacity-50"
+          className="flex items-center justify-center gap-1.5 w-full py-4 rounded-full bg-ink text-bg text-[13.5px] font-bold active:scale-[0.98] transition disabled:opacity-50"
         >
           {loading ? '저장 중...' : '등록하기'}
           {!loading && (

@@ -474,7 +474,7 @@ export default function AnalysisView({
         >
           {dog.name} 맞춤 영양 분석
         </h1>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-moss/10 text-moss text-[10px] font-bold tracking-[0.15em] uppercase mt-3">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-moss/10 text-moss text-[10.5px] font-bold tracking-[0.15em] uppercase mt-3">
           <ShieldCheck className="w-3 h-3" strokeWidth={2.5} />
           AAFCO 2024 충족
         </div>
@@ -485,12 +485,12 @@ export default function AnalysisView({
         <div className="bg-bg-3 rounded border border-rule p-5">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-[10px] font-semibold text-muted uppercase tracking-[0.2em]">
+              <div className="text-[10.5px] font-semibold text-muted uppercase tracking-[0.2em]">
                 Daily Energy · MER
               </div>
               <div className="font-sans text-[36px] font-black text-terracotta tracking-tight leading-none mt-1.5">
                 {analysis.mer.toLocaleString()}
-                <span className="text-[14px] text-muted ml-1 font-sans">
+                <span className="text-[13.5px] text-muted ml-1 font-sans">
                   kcal
                 </span>
               </div>
@@ -543,26 +543,26 @@ export default function AnalysisView({
                 className="w-4 h-4 text-moss"
                 strokeWidth={1.8}
               />
-              <div className="text-[13px] font-black text-text">
+              <div className="text-[13.5px] font-black text-text">
                 최근 추이
               </div>
             </div>
             {totalCount > 1 && (
               <Link
                 href={`/dogs/${dogId}/analyses`}
-                className="text-[10px] font-bold text-terracotta hover:underline inline-flex items-center gap-0.5"
+                className="text-[10.5px] font-bold text-terracotta hover:underline inline-flex items-center gap-0.5"
               >
                 전체 기록 {totalCount}회
                 <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
               </Link>
             )}
           </div>
-          <div className="text-[10px] text-muted font-semibold mb-4">
+          <div className="text-[10.5px] text-muted font-semibold mb-4">
             설문 기록 {history.length}회 · 최신{' '}
             {formatDate(history[history.length - 1]?.date)}
           </div>
           {history.length < 2 ? (
-            <div className="flex items-center gap-2 text-[11px] text-muted bg-bg rounded px-4 py-3">
+            <div className="flex items-center gap-2 text-[10.5px] text-muted bg-bg rounded px-4 py-3">
               <Minus className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
               <span>
                 설문을 2회 이상 완료하면 {dog.name}의 체형·체중 변화가 여기
@@ -590,7 +590,7 @@ export default function AnalysisView({
                       : 'var(--muted)'
                 return (
                   <div
-                    className="rounded px-4 py-3 text-[12.5px] leading-relaxed font-bold"
+                    className="rounded px-4 py-3 text-[12px] leading-relaxed font-bold"
                     style={{
                       background: `color-mix(in srgb, ${accent} 8%, white)`,
                       border: `1px solid color-mix(in srgb, ${accent} 28%, transparent)`,
@@ -630,11 +630,11 @@ export default function AnalysisView({
               className="w-4 h-4 text-moss"
               strokeWidth={1.8}
             />
-            <div className="text-[13px] font-black text-text">
+            <div className="text-[13.5px] font-black text-text">
               영양소 구성 · 권장치 비교
             </div>
           </div>
-          <div className="text-[10px] text-muted font-semibold mb-4">
+          <div className="text-[10.5px] text-muted font-semibold mb-4">
             AAFCO 2024 프로파일 기준 ·{' '}
             <span className="inline-flex items-center gap-1">
               <span className="inline-block w-2 h-2 rounded-sm bg-text/15 align-middle" />
@@ -718,10 +718,10 @@ export default function AnalysisView({
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-muted">
+                <p className="text-[10.5px] font-bold uppercase tracking-widest text-muted">
                   5종 라인 비교
                 </p>
-                <p className="text-[13px] font-bold text-ink mt-1">
+                <p className="text-[13.5px] font-bold text-ink mt-1">
                   닭·오리·연어·돼지·한우 영양 한눈에 보기
                 </p>
               </div>

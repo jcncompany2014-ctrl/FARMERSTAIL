@@ -224,7 +224,7 @@ export default function EditDogClient({
   }
 
   const labelCls =
-    'block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]'
+    'block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]'
   // 2026-05-22 R10-A: v3 form 톤.
   // R89-B (D7): iOS Safari 는 input font-size < 16px 시 focus 자동 zoom-in.
   const inputCls =
@@ -240,7 +240,7 @@ export default function EditDogClient({
       <div className="pt-6 pb-2">
         <Link
           href={`/dogs/${dogId}`}
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← 돌아가기
         </Link>
@@ -424,9 +424,9 @@ export default function EditDogClient({
                     strokeWidth={1.8}
                   />
                   <div>
-                    <div className="font-bold text-[13px]">{a.t}</div>
+                    <div className="font-bold text-[13.5px]">{a.t}</div>
                     <div
-                      className={`text-[11px] ${
+                      className={`text-[10.5px] ${
                         active ? 'text-white/70' : 'text-muted'
                       }`}
                     >
@@ -442,7 +442,7 @@ export default function EditDogClient({
         {/* Phase P10 — 측정 도구 메타. */}
         {isAdvancedUiEnabled('advanced_inputs') && (
         <div className="border-t border-rule pt-4 space-y-3">
-          <div className="text-[11px] font-bold uppercase tracking-widest text-muted">
+          <div className="text-[10.5px] font-bold uppercase tracking-widest text-muted">
             측정 도구 (선택)
           </div>
           <div>
@@ -496,7 +496,7 @@ export default function EditDogClient({
         {/* Phase P19 — 추가 입력 메타 (옵션). */}
         {isAdvancedUiEnabled('advanced_inputs') && (
         <div className="border-t border-rule pt-4 space-y-3">
-          <div className="text-[11px] font-bold uppercase tracking-widest text-muted">
+          <div className="text-[10.5px] font-bold uppercase tracking-widest text-muted">
             상세 입력 (선택)
           </div>
           <div>
@@ -570,7 +570,7 @@ export default function EditDogClient({
                       )
                     }
                     aria-pressed={active}
-                    className="px-3 py-1.5 rounded-full text-[11px] font-bold transition"
+                    className="px-3 py-1.5 rounded-full text-[10.5px] font-bold transition"
                     style={{
                       background: active ? 'var(--ink)' : 'white',
                       color: active ? 'white' : 'var(--text)',
@@ -627,7 +627,7 @@ export default function EditDogClient({
         <button
           type="submit"
           disabled={loading}
-          className="flex items-center justify-center gap-1.5 w-full py-4 rounded-full bg-ink text-bg text-[13px] font-bold active:scale-[0.98] transition disabled:opacity-50"
+          className="flex items-center justify-center gap-1.5 w-full py-4 rounded-full bg-ink text-bg text-[13.5px] font-bold active:scale-[0.98] transition disabled:opacity-50"
         >
           {loading ? '저장 중...' : '저장하기'}
           {!loading && (

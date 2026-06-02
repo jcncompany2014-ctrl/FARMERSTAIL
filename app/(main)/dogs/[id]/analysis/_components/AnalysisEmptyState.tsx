@@ -13,7 +13,7 @@ export default function AnalysisEmptyState({ dogId }: { dogId: string }) {
     <div className="px-5 py-6 max-w-md mx-auto">
       <Link
         href={`/dogs/${dogId}`}
-        className="text-[11px] text-muted hover:text-terracotta font-semibold"
+        className="text-[10.5px] text-muted hover:text-terracotta font-semibold"
       >
         ← 돌아가기
       </Link>

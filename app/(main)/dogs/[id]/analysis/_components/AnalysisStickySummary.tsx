@@ -23,7 +23,7 @@ export default function AnalysisStickySummary({
   return (
     <div className="sticky top-0 z-30 -mx-0 mt-2 px-5 py-2.5 bg-bg/85 backdrop-blur-md border-y border-rule">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 text-[11px] text-text">
+        <div className="flex items-center gap-3 text-[10.5px] text-text">
           <span className="inline-flex items-center gap-1 font-bold">
             <span className="text-terracotta font-black">
               {merKcal.toLocaleString()}
@@ -40,7 +40,7 @@ export default function AnalysisStickySummary({
             {bcsLabel}
           </span>
         </div>
-        <span className="text-[10px] font-bold text-muted">
+        <span className="text-[10.5px] font-bold text-muted">
           {analysisDate}
         </span>
       </div>

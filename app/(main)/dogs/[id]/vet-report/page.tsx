@@ -194,7 +194,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
         <div>
           <Link
             href={`/dogs/${dogId}`}
-            className="inline-flex items-center gap-1 text-[11px] text-mute hover:text-terracotta font-semibold mb-3"
+            className="inline-flex items-center gap-1 text-[10.5px] text-mute hover:text-terracotta font-semibold mb-3"
           >
             <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
             {dog.name}
@@ -227,14 +227,14 @@ export default async function VetReportPage({ params }: { params: Params }) {
         <header className="border-b-2 border-ink pb-3 mb-5">
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-mute">
+              <p className="text-[10.5px] font-bold uppercase tracking-widest text-mute">
                 Veterinary Pre-Consult Report
               </p>
               <h2 className="text-xl font-black text-ink mt-1 tracking-tight leading-snug">
                 수의사 진료 보고서
               </h2>
             </div>
-            <div className="text-right text-[11px] text-mute leading-relaxed">
+            <div className="text-right text-[10.5px] text-mute leading-relaxed">
               <div>발행: {todayStr}</div>
               <div>파머스테일 (Farmer&apos;s Tail)</div>
             </div>
@@ -328,11 +328,11 @@ export default async function VetReportPage({ params }: { params: Params }) {
         {/* 4. 체중 추이 (12개월) */}
         <Section title="4. 체중 추이 (최근 12개월)">
           {weights.length === 0 ? (
-            <p className="text-[11px] text-mute">기록 없음.</p>
+            <p className="text-[10.5px] text-mute">기록 없음.</p>
           ) : (
             <div>
               <WeightChart logs={weights} />
-              <div className="grid grid-cols-3 gap-3 mt-3 text-[11px]">
+              <div className="grid grid-cols-3 gap-3 mt-3 text-[10.5px]">
                 <Field
                   label="기간 시작"
                   value={`${weights[0]!.weight} kg`}
@@ -361,7 +361,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
 
         {/* 5. 알레르기 + 만성 질환 */}
         <Section title="5. 알레르기 · 만성 질환 (견주 보고)">
-          <div className="grid grid-cols-2 gap-4 text-[11.5px]">
+          <div className="grid grid-cols-2 gap-4 text-[12px]">
             <div>
               <p className="font-semibold text-ink mb-1.5">알레르기</p>
               {answers.allergies && answers.allergies.length > 0 ? (
@@ -392,7 +392,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
         {/* 6. 현재 식이 */}
         <Section title="6. 현재 식이 (파머스테일 분석 결과)">
           {!analysis ? (
-            <p className="text-[11px] text-mute">분석 기록 없음.</p>
+            <p className="text-[10.5px] text-mute">분석 기록 없음.</p>
           ) : (
             <>
               <Grid>
@@ -442,7 +442,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
                 />
               </Grid>
               {analysis.commentary && (
-                <div className="mt-3 p-3 bg-ink/5 rounded text-[11.5px] leading-relaxed">
+                <div className="mt-3 p-3 bg-ink/5 rounded text-[12px] leading-relaxed">
                   {analysis.commentary}
                 </div>
               )}
@@ -453,9 +453,9 @@ export default async function VetReportPage({ params }: { params: Params }) {
         {/* 7. 현재 복용 약물 */}
         <Section title="7. 현재 복용 약물">
           {meds.filter((m) => m.enabled !== false).length === 0 ? (
-            <p className="text-[11px] text-mute">기록 없음.</p>
+            <p className="text-[10.5px] text-mute">기록 없음.</p>
           ) : (
-            <table className="w-full text-[11px] border-collapse">
+            <table className="w-full text-[10.5px] border-collapse">
               <thead>
                 <tr className="border-b border-ink/30 text-mute">
                   <th className="text-left py-2 px-2.5 font-semibold">약물명</th>
@@ -475,7 +475,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
                         {m.schedule ?? '—'}
                         {m.time ? ` · ${m.time}` : ''}
                       </td>
-                      <td className="py-2 px-2.5 text-ink/60 text-[10px]">
+                      <td className="py-2 px-2.5 text-ink/60 text-[10.5px]">
                         {m.note ?? '—'}
                       </td>
                     </tr>
@@ -508,7 +508,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
         </Section>
 
         {/* footer */}
-        <footer className="border-t border-ink/30 pt-3 mt-5 text-[10px] text-mute leading-relaxed">
+        <footer className="border-t border-ink/30 pt-3 mt-5 text-[10.5px] text-mute leading-relaxed">
           <p>
             본 보고서는 견주의 자가 측정 + 파머스테일 알고리즘 분석 결과를
             요약한 자료입니다. 의료 진단을 대체하지 않으며 수의사 진료의 보조
@@ -537,7 +537,7 @@ function Section({
   // pb-1 → pb-1.5 로 약간 숨통. Section 간 mb-5 (20px) 유지.
   return (
     <section className="mb-5 print:break-inside-avoid">
-      <h3 className="text-[11px] font-bold uppercase tracking-widest text-ink/70 mb-2.5 border-b border-ink/20 pb-1.5">
+      <h3 className="text-[10.5px] font-bold uppercase tracking-widest text-ink/70 mb-2.5 border-b border-ink/20 pb-1.5">
         {title}
       </h3>
       {children}
@@ -548,7 +548,7 @@ function Section({
 function Grid({ children }: { children: React.ReactNode }) {
   // R57 — gap-y-2 (8px) → gap-y-3 (12px). 정보 카드 사이 숨 쉴 공간.
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3 text-[11.5px]">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3 text-[12px]">
       {children}
     </div>
   )
@@ -570,7 +570,7 @@ function Field({
       <div className="text-[9.5px] uppercase tracking-wider text-mute">
         {label}
       </div>
-      <div className="text-[12.5px] text-ink font-medium mt-0.5">{value}</div>
+      <div className="text-[12px] text-ink font-medium mt-0.5">{value}</div>
       {hint && <div className="text-[9.5px] text-mute mt-0.5">{hint}</div>}
     </div>
   )
@@ -579,7 +579,7 @@ function Field({
 function WeightChart({ logs }: { logs: WeightLog[] }) {
   if (logs.length < 2) {
     return (
-      <p className="text-[11px] text-mute">
+      <p className="text-[10.5px] text-mute">
         측정 2회 이상 필요 (현재 {logs.length}회).
       </p>
     )

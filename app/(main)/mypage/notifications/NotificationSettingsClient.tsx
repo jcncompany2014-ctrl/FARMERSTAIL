@@ -214,7 +214,7 @@ export default function NotificationSettingsClient({
       <section className="px-5 pt-6 pb-2">
         <Link
           href="/mypage"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← 마이페이지
         </Link>
@@ -230,7 +230,7 @@ export default function NotificationSettingsClient({
         >
           알림 설정
         </h1>
-        <p className="text-[11px] text-muted mt-1 leading-relaxed">
+        <p className="text-[10.5px] text-muted mt-1 leading-relaxed">
           배송 변경, 결제 완료, 리마인더를 알림으로 받을 수 있어요
         </p>
       </section>
@@ -251,17 +251,17 @@ export default function NotificationSettingsClient({
               )}
             </div>
             <div className="flex-1">
-              <div className="text-[13px] font-black text-text">
+              <div className="text-[13.5px] font-black text-text">
                 {isOn ? '알림이 켜져 있어요' : '알림이 꺼져 있어요'}
               </div>
-              <div className="text-[10px] text-muted mt-0.5">
+              <div className="text-[10.5px] text-muted mt-0.5">
                 이 기기에서의 알림 상태예요
               </div>
             </div>
           </div>
 
           {status === 'unsupported' && (
-            <div className="mt-3 flex items-start gap-2 text-[11px] text-sale bg-sale/5 rounded-lg px-3 py-2">
+            <div className="mt-3 flex items-start gap-2 text-[10.5px] text-sale bg-sale/5 rounded-lg px-3 py-2">
               <AlertCircle
                 className="w-3.5 h-3.5 shrink-0 mt-0.5"
                 strokeWidth={2}
@@ -273,7 +273,7 @@ export default function NotificationSettingsClient({
             </div>
           )}
           {status === 'blocked' && (
-            <div className="mt-3 flex items-start gap-2 text-[11px] text-sale bg-sale/5 rounded-lg px-3 py-2">
+            <div className="mt-3 flex items-start gap-2 text-[10.5px] text-sale bg-sale/5 rounded-lg px-3 py-2">
               <AlertCircle
                 className="w-3.5 h-3.5 shrink-0 mt-0.5"
                 strokeWidth={2}
@@ -361,7 +361,7 @@ export default function NotificationSettingsClient({
           </div>
 
           {msg && (
-            <p className="mt-3 text-[11px] font-bold text-moss inline-flex items-center gap-1">
+            <p className="mt-3 text-[10.5px] font-bold text-moss inline-flex items-center gap-1">
               <Check className="w-3 h-3" strokeWidth={2.5} />
               {msg}
             </p>
@@ -386,7 +386,7 @@ export default function NotificationSettingsClient({
         </div>
         {subs.length === 0 ? (
           <div className="bg-bg-3 rounded border border-dashed border-rule-2 p-6 text-center">
-            <p className="text-[11px] text-muted">
+            <p className="text-[10.5px] text-muted">
               아직 등록된 기기가 없어요.
             </p>
           </div>
@@ -414,7 +414,7 @@ export default function NotificationSettingsClient({
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-muted mt-0.5">
+                    <p className="text-[10.5px] text-muted mt-0.5">
                       {new Date(s.created_at).toLocaleDateString('ko-KR')}
                     </p>
                   </div>

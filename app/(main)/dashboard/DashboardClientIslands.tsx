@@ -151,7 +151,7 @@ export function OngoingEvents({
           </h2>
         </div>
         <div
-          className="text-[10px] font-mono tabular-nums pb-0.5"
+          className="text-[10.5px] font-mono tabular-nums pb-0.5"
           style={{ color: 'var(--muted)', letterSpacing: '0.05em' }}
         >
           {String(activeIdx + 1).padStart(2, '0')}
@@ -265,7 +265,7 @@ function EventCard({
           {event.statusLabel}
         </span>
         <span
-          className="font-mono text-[10px] tabular-nums"
+          className="font-mono text-[10.5px] tabular-nums"
           style={{ color: palette.body, letterSpacing: '0.02em' }}
         >
           {dateRange}
@@ -556,7 +556,7 @@ function WelcomeBenefitModal({
               }}
             >
               <span
-                className="text-[10px] font-semibold uppercase"
+                className="text-[10.5px] font-semibold uppercase"
                 style={{
                   color: 'rgba(245,240,230,0.72)',
                   letterSpacing: '0.18em',
@@ -584,7 +584,7 @@ function WelcomeBenefitModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full rounded-full py-3.5 text-[13px] font-semibold"
+                className="w-full rounded-full py-3.5 text-[13.5px] font-semibold"
                 style={{
                   background: 'var(--bg)',
                   color: 'var(--terracotta)',
@@ -597,7 +597,7 @@ function WelcomeBenefitModal({
               <Link
                 href="/products?welcome=1"
                 onClick={onClose}
-                className="w-full rounded-full py-3.5 text-[13px] font-semibold flex items-center justify-center gap-2"
+                className="w-full rounded-full py-3.5 text-[13.5px] font-semibold flex items-center justify-center gap-2"
                 style={{
                   background: 'var(--bg)',
                   color: 'var(--terracotta)',

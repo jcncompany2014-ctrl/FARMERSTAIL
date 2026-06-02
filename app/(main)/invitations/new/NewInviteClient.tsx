@@ -73,10 +73,10 @@ export default function NewInviteClient({ dogs }: { dogs: DogOption[] }) {
     return (
       <section className="px-5 mt-6">
         <div className="rounded border border-rule bg-bg-3 px-5 py-8 text-center">
-          <p className="text-[13px] font-bold text-text">
+          <p className="text-[13.5px] font-bold text-text">
             먼저 강아지를 등록해주세요
           </p>
-          <p className="text-[11px] text-muted mt-1.5">
+          <p className="text-[10.5px] text-muted mt-1.5">
             등록된 강아지에 한해 가족 초대가 가능해요.
           </p>
         </div>
@@ -104,7 +104,7 @@ export default function NewInviteClient({ dogs }: { dogs: DogOption[] }) {
           >
             {result.dog_name}에 가족 초대를 발급했어요
           </p>
-          <p className="text-[11px] text-muted mt-1">
+          <p className="text-[10.5px] text-muted mt-1">
             만료: {new Date(result.expires_at).toLocaleString('ko-KR')}
           </p>
         </div>
@@ -114,7 +114,7 @@ export default function NewInviteClient({ dogs }: { dogs: DogOption[] }) {
             초대 링크
           </p>
           <code
-            className="block break-all text-[11.5px] text-text"
+            className="block break-all text-[12px] text-text"
             style={{ fontFamily: 'var(--font-mono)' }}
           >
             {result.accept_url}
@@ -138,7 +138,7 @@ export default function NewInviteClient({ dogs }: { dogs: DogOption[] }) {
           </button>
         </div>
 
-        <p className="text-[11px] text-muted leading-relaxed">
+        <p className="text-[10.5px] text-muted leading-relaxed">
           링크를 카카오톡 / 메시지로 가족에게 보내주세요. 가족이 링크를
           클릭 + 로그인하면 자동으로 멤버에 추가돼요.
         </p>
@@ -149,7 +149,7 @@ export default function NewInviteClient({ dogs }: { dogs: DogOption[] }) {
             setResult(null)
             setEmail('')
           }}
-          className="text-[11px] text-terracotta font-semibold underline underline-offset-2"
+          className="text-[10.5px] text-terracotta font-semibold underline underline-offset-2"
         >
           또 다른 초대 만들기
         </button>
@@ -160,7 +160,7 @@ export default function NewInviteClient({ dogs }: { dogs: DogOption[] }) {
   return (
     <form onSubmit={handleSubmit} className="px-5 mt-4 space-y-3">
       <div>
-        <label className="block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
+        <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
           공유할 강아지 *
         </label>
         <Select
@@ -170,7 +170,7 @@ export default function NewInviteClient({ dogs }: { dogs: DogOption[] }) {
         />
       </div>
       <div>
-        <label className="block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
+        <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
           가족 이메일 *
         </label>
         <input
@@ -179,11 +179,11 @@ export default function NewInviteClient({ dogs }: { dogs: DogOption[] }) {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="family@example.com"
           required
-          className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
+          className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
         />
       </div>
       <div>
-        <label className="block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
+        <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
           역할
         </label>
         <Select
@@ -216,7 +216,7 @@ export default function NewInviteClient({ dogs }: { dogs: DogOption[] }) {
       <button
         type="submit"
         disabled={submitting || !email || !dogId}
-        className="w-full inline-flex items-center justify-center gap-2 py-3 rounded bg-text text-bg text-[13px] font-bold disabled:opacity-50 transition active:scale-[0.99]"
+        className="w-full inline-flex items-center justify-center gap-2 py-3 rounded bg-text text-bg text-[13.5px] font-bold disabled:opacity-50 transition active:scale-[0.99]"
       >
         <Send className="w-4 h-4" strokeWidth={2.5} />
         {submitting ? '발급 중…' : '초대 링크 만들기'}

@@ -66,7 +66,7 @@ function Delta({
 }) {
   if (Math.abs(value) < 0.05) {
     return (
-      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-muted">
+      <span className="inline-flex items-center gap-0.5 text-[10.5px] font-bold text-muted">
         <Minus className="w-2.5 h-2.5" strokeWidth={3} />
         변화 없음
       </span>
@@ -82,7 +82,7 @@ function Delta({
     : 'text-moss'
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-[10px] font-bold ${color}`}
+      className={`inline-flex items-center gap-0.5 text-[10.5px] font-bold ${color}`}
     >
       <Icon className="w-2.5 h-2.5" strokeWidth={2.5} />
       {up ? '+' : ''}
@@ -148,7 +148,7 @@ export default async function AnalysesTimelinePage({
       <section className="px-5 pt-6 pb-2">
         <Link
           href={`/dogs/${dogId}`}
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← {dog.name}
         </Link>
@@ -156,7 +156,7 @@ export default async function AnalysesTimelinePage({
         <h1 className="font-sans mt-1.5" style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
           분석 히스토리
         </h1>
-        <p className="text-[11px] text-muted mt-1">
+        <p className="text-[10.5px] text-muted mt-1">
           총 {analyses.length}회의 맞춤 분석 기록이 있어요
         </p>
       </section>
@@ -188,7 +188,7 @@ export default async function AnalysesTimelinePage({
               </p>
               <Link
                 href={`/dogs/${dogId}/survey`}
-                className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold"
+                className="inline-flex items-center gap-1 mt-2 text-[10.5px] font-bold"
                 style={{ color: 'var(--terracotta)' }}
               >
                 새 설문으로 다시 분석 →
@@ -205,10 +205,10 @@ export default async function AnalysesTimelinePage({
               className="w-10 h-10 text-muted mx-auto mb-4"
               strokeWidth={1.2}
             />
-            <h3 className="font-sans font-black text-[15px] text-text">
+            <h3 className="font-sans font-black text-[16px] text-text">
               아직 분석 기록이 없어요
             </h3>
-            <p className="text-[11px] text-muted mt-2 leading-relaxed">
+            <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
               설문을 완료하면 분석 결과가 여기에 쌓여요.
             </p>
             <Link
@@ -266,7 +266,7 @@ export default async function AnalysesTimelinePage({
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[11px] font-bold text-text">
+                        <span className="text-[10.5px] font-bold text-text">
                           {formatDate(a.created_at)}
                         </span>
                         {isLatest && (
@@ -287,7 +287,7 @@ export default async function AnalysesTimelinePage({
                           <Flame className="w-2.5 h-2.5" strokeWidth={2.5} />
                           MER
                         </div>
-                        <div className="text-[14px] font-black text-terracotta mt-0.5 leading-none">
+                        <div className="text-[13.5px] font-black text-terracotta mt-0.5 leading-none">
                           {a.mer.toLocaleString()}
                           <span className="text-[9px] text-muted font-sans ml-0.5">
                             kcal
@@ -300,7 +300,7 @@ export default async function AnalysesTimelinePage({
                           <Scale className="w-2.5 h-2.5" strokeWidth={2.5} />
                           체중
                         </div>
-                        <div className="text-[14px] font-black text-text mt-0.5 leading-none">
+                        <div className="text-[13.5px] font-black text-text mt-0.5 leading-none">
                           {weight.toFixed(1)}
                           <span className="text-[9px] text-muted font-sans ml-0.5">
                             kg
@@ -312,7 +312,7 @@ export default async function AnalysesTimelinePage({
                         <div className="text-[9px] font-bold text-muted uppercase tracking-wider">
                           BCS
                         </div>
-                        <div className="text-[14px] font-black text-text mt-0.5 leading-none">
+                        <div className="text-[13.5px] font-black text-text mt-0.5 leading-none">
                           {a.bcs_score}
                           <span className="text-[9px] text-muted font-sans ml-0.5">
                             /9
@@ -322,7 +322,7 @@ export default async function AnalysesTimelinePage({
                       </div>
                     </div>
 
-                    <div className="mt-2 flex items-center gap-2 text-[10px] text-muted">
+                    <div className="mt-2 flex items-center gap-2 text-[10.5px] text-muted">
                       <span className="font-semibold">{a.stage}</span>
                       <span className="w-px h-2.5 bg-rule-2" />
                       <span>{a.bcs_label}</span>
@@ -411,7 +411,7 @@ function LatestAnalysisHero({
               <Sparkles className="w-3.5 h-3.5 text-gold" strokeWidth={2} />
               <span className="kicker kicker-gold">Latest</span>
             </div>
-            <span className="text-[10px] text-white/70 font-mono tabular-nums">
+            <span className="text-[10.5px] text-white/70 font-mono tabular-nums">
               {formatDate(analysis.created_at)}
             </span>
           </div>
@@ -426,7 +426,7 @@ function LatestAnalysisHero({
           >
             {dogName}의 맞춤 영양 처방
           </h2>
-          <p className="text-[11px] text-white/80 mt-1">
+          <p className="text-[10.5px] text-white/80 mt-1">
             {analysis.stage} · BCS {analysis.bcs_score}/9 ({analysis.bcs_label})
           </p>
 
@@ -457,10 +457,10 @@ function LatestAnalysisHero({
           {/* 영양소 분포 (protein / fat / carb) — 100% stacked bar */}
           <div className="mt-4">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
+              <span className="text-[10.5px] font-bold uppercase tracking-widest text-white/70">
                 영양소 분포
               </span>
-              <span className="text-[10px] text-white/85 font-mono tabular-nums">
+              <span className="text-[10.5px] text-white/85 font-mono tabular-nums">
                 P {protein.toFixed(0)}% · F {fat.toFixed(0)}% · C {carb.toFixed(0)}%
               </span>
             </div>
@@ -477,7 +477,7 @@ function LatestAnalysisHero({
           {/* AI 코멘터리 snippet (있으면) */}
           {commentSnippet && (
             <div
-              className="mt-4 px-3.5 py-2.5 rounded text-[11.5px] leading-relaxed"
+              className="mt-4 px-3.5 py-2.5 rounded text-[12px] leading-relaxed"
               style={{
                 background: 'rgba(255,255,255,0.10)',
                 color: '#F5E0C2',

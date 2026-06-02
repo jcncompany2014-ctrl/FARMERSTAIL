@@ -32,7 +32,7 @@ export default async function ExpensesPage({
       <div className="px-5 pt-6 pb-2">
         <Link
           href={`/dogs/${dogId}`}
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           {dog.name as string}

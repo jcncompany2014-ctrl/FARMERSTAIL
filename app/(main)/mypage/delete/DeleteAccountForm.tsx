@@ -69,9 +69,9 @@ export default function DeleteAccountForm() {
     <form onSubmit={handleSubmit} className="px-5 mt-4 space-y-4">
       {/* 탈퇴 사유 */}
       <div className="bg-bg-3 rounded border border-rule px-5 py-5">
-        <label className="block text-[13px] font-black text-text mb-3">
+        <label className="block text-[13.5px] font-black text-text mb-3">
           탈퇴 사유{' '}
-          <span className="text-[10px] text-muted font-semibold">
+          <span className="text-[10.5px] text-muted font-semibold">
             (익명 통계로만 사용해요)
           </span>
         </label>
@@ -106,7 +106,7 @@ export default function DeleteAccountForm() {
           rows={2}
           className="mt-3 w-full px-3 py-2.5 rounded-lg bg-bg border border-transparent focus:border-terracotta focus:outline-none text-[12px] text-text placeholder:text-muted/55 resize-none"
         />
-        <p className="mt-1 text-right text-[10px] text-muted">
+        <p className="mt-1 text-right text-[10.5px] text-muted">
           {reasonDetail.length}/200
         </p>
       </div>
@@ -130,10 +130,10 @@ export default function DeleteAccountForm() {
 
       {/* 확인 문구 */}
       <div className="bg-bg-3 rounded border border-rule px-5 py-5">
-        <label className="block text-[13px] font-black text-text mb-2">
+        <label className="block text-[13.5px] font-black text-text mb-2">
           확인 문구 입력
         </label>
-        <p className="text-[11px] text-muted mb-3 leading-relaxed">
+        <p className="text-[10.5px] text-muted mb-3 leading-relaxed">
           실수로 탈퇴하는 것을 막기 위해, 아래 입력란에{' '}
           <b className="text-sale">&ldquo;{CONFIRM_WORD}&rdquo;</b>를
           그대로 입력해 주세요.
@@ -143,7 +143,7 @@ export default function DeleteAccountForm() {
           value={confirmText}
           onChange={(e) => setConfirmText(e.target.value)}
           placeholder={CONFIRM_WORD}
-          className="w-full px-4 py-3 rounded-lg bg-bg border border-transparent focus:border-sale focus:outline-none text-[14px] font-bold text-text placeholder:text-muted/55"
+          className="w-full px-4 py-3 rounded-lg bg-bg border border-transparent focus:border-sale focus:outline-none text-[13.5px] font-bold text-text placeholder:text-muted/55"
           autoComplete="off"
         />
       </div>
@@ -163,7 +163,7 @@ export default function DeleteAccountForm() {
       <button
         type="submit"
         disabled={!canSubmit}
-        className="w-full py-3.5 rounded bg-sale text-white text-[14px] font-black hover:brightness-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-full py-3.5 rounded bg-sale text-white text-[13.5px] font-black hover:brightness-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {loading ? '탈퇴 처리 중...' : '회원 탈퇴'}
       </button>

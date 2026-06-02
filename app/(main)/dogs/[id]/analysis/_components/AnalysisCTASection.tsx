@@ -27,7 +27,7 @@ export default function AnalysisCTASection({
         <>
           <Link
             href={`/dogs/${dogId}/analysis`}
-            className="flex items-center justify-center gap-1.5 w-full py-4 rounded bg-text text-white text-[13px] font-black active:scale-[0.98] transition"
+            className="flex items-center justify-center gap-1.5 w-full py-4 rounded bg-text text-white text-[13.5px] font-black active:scale-[0.98] transition"
           >
             최신 분석 보기
             <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />
@@ -43,7 +43,7 @@ export default function AnalysisCTASection({
         <>
           <Link
             href="/products"
-            className="flex items-center justify-center gap-1.5 w-full py-4 rounded-full bg-ink text-bg text-[13px] font-bold active:scale-[0.98] transition"
+            className="flex items-center justify-center gap-1.5 w-full py-4 rounded-full bg-ink text-bg text-[13.5px] font-bold active:scale-[0.98] transition"
           >
             {dogName} 맞춤 체험팩 주문하기
             <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />

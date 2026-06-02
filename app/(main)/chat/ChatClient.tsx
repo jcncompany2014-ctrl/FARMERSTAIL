@@ -255,7 +255,7 @@ export default function ChatClient({
             <button
               type="button"
               onClick={() => setSelectedDogId('')}
-              className="px-3 py-1.5 rounded-full text-[11px] font-bold transition"
+              className="px-3 py-1.5 rounded-full text-[10.5px] font-bold transition"
               style={{
                 background: selectedDogId === '' ? 'var(--ink)' : 'white',
                 color: selectedDogId === '' ? 'white' : 'var(--text)',
@@ -271,7 +271,7 @@ export default function ChatClient({
                   key={d.id}
                   type="button"
                   onClick={() => setSelectedDogId(d.id)}
-                  className="px-3 py-1.5 rounded-full text-[11px] font-bold transition"
+                  className="px-3 py-1.5 rounded-full text-[10.5px] font-bold transition"
                   style={{
                     background: active ? 'var(--ink)' : 'white',
                     color: active ? 'white' : 'var(--text)',
@@ -318,7 +318,7 @@ export default function ChatClient({
                   </span>
                   <div className="flex-1 min-w-0">
                     <p
-                      className="text-[12.5px] leading-relaxed"
+                      className="text-[12px] leading-relaxed"
                       style={{ color: 'var(--ink)' }}
                     >
                       {nudge.message}
@@ -330,7 +330,7 @@ export default function ChatClient({
                           onClick={() => {
                             setInput(nudge.promptSuggestion ?? '')
                           }}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold text-white"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[10.5px] font-bold text-white"
                           style={{ background: 'var(--terracotta)' }}
                         >
                           이 질문으로 시작
@@ -339,7 +339,7 @@ export default function ChatClient({
                       <button
                         type="button"
                         onClick={dismissNudge}
-                        className="text-[11px] font-bold text-muted hover:text-text transition"
+                        className="text-[10.5px] font-bold text-muted hover:text-text transition"
                       >
                         괜찮아요
                       </button>
@@ -359,7 +359,7 @@ export default function ChatClient({
                   type="button"
                   onClick={() => send(s)}
                   disabled={loading}
-                  className="px-3 py-1.5 rounded-full text-[11px] text-text bg-bg-2 border border-rule hover:border-text transition text-left max-w-full"
+                  className="px-3 py-1.5 rounded-full text-[10.5px] text-text bg-bg-2 border border-rule hover:border-text transition text-left max-w-full"
                 >
                   {s}
                 </button>
@@ -428,7 +428,7 @@ export default function ChatClient({
             className="w-full text-[16px] text-text placeholder:text-muted/60 focus:outline-none resize-none"
           />
           <div className="mt-1 flex items-center justify-between">
-            <span className="text-[10px] text-muted">
+            <span className="text-[10.5px] text-muted">
               {input.length}/500
             </span>
             <button
@@ -500,7 +500,7 @@ function MessageBubble({ message }: { message: Message }) {
             : '1px solid color-mix(in srgb, var(--moss) 35%, transparent)',
         }}
       >
-        <p className="text-[13px] text-text leading-relaxed whitespace-pre-line">
+        <p className="text-[13.5px] text-text leading-relaxed whitespace-pre-line">
           {message.content}
         </p>
       </div>

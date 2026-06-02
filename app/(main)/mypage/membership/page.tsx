@@ -108,7 +108,7 @@ export default async function MembershipPage() {
       <section className="px-5 pt-6 pb-3">
         <Link
           href="/mypage"
-          className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-terracotta font-semibold"
+          className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-terracotta font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           내 정보
@@ -152,7 +152,7 @@ export default async function MembershipPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div
-                  className="font-mono text-[10px] tracking-[0.22em] uppercase"
+                  className="font-mono text-[10.5px] tracking-[0.22em] uppercase"
                   style={{ opacity: 0.8 }}
                 >
                   Member · {meta.en}
@@ -177,7 +177,7 @@ export default async function MembershipPage() {
                 style={{ background: 'rgba(255,255,255,0.12)' }}
               >
                 <div
-                  className="text-[10px] font-bold uppercase tracking-widest"
+                  className="text-[10.5px] font-bold uppercase tracking-widest"
                   style={{ opacity: 0.7 }}
                 >
                   누적 결제
@@ -189,7 +189,7 @@ export default async function MembershipPage() {
                   >
                     {cumulativeSpend.toLocaleString('ko-KR')}
                   </span>
-                  <span className="text-[10px]" style={{ opacity: 0.85 }}>
+                  <span className="text-[10.5px]" style={{ opacity: 0.85 }}>
                     원
                   </span>
                 </div>
@@ -199,7 +199,7 @@ export default async function MembershipPage() {
                 style={{ background: 'rgba(255,255,255,0.12)' }}
               >
                 <div
-                  className="text-[10px] font-bold uppercase tracking-widest"
+                  className="text-[10.5px] font-bold uppercase tracking-widest"
                   style={{ opacity: 0.7 }}
                 >
                   주문 수
@@ -211,7 +211,7 @@ export default async function MembershipPage() {
                   >
                     {orderCount ?? 0}
                   </span>
-                  <span className="text-[10px]" style={{ opacity: 0.85 }}>
+                  <span className="text-[10.5px]" style={{ opacity: 0.85 }}>
                     건
                   </span>
                 </div>
@@ -224,13 +224,13 @@ export default async function MembershipPage() {
                 <>
                   <div className="flex items-center justify-between mb-2">
                     <span
-                      className="text-[11px] font-bold"
+                      className="text-[10.5px] font-bold"
                       style={{ opacity: 0.85 }}
                     >
                       {next.label}까지
                     </span>
                     <span
-                      className="text-[11px] font-bold tabular-nums"
+                      className="text-[10.5px] font-bold tabular-nums"
                       style={{ opacity: 0.95 }}
                     >
                       {remain.toLocaleString('ko-KR')}원 남음
@@ -312,7 +312,7 @@ export default async function MembershipPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-bold truncate">
+                    <div className="text-[13.5px] font-bold truncate">
                       {d.name}
                     </div>
                     {d.breed && (
@@ -371,10 +371,10 @@ export default async function MembershipPage() {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[12.5px] font-bold text-text">
+                  <div className="text-[12px] font-bold text-text">
                     {b.label}
                   </div>
-                  <div className="text-[11px] text-muted mt-0.5 leading-relaxed">
+                  <div className="text-[10.5px] text-muted mt-0.5 leading-relaxed">
                     {b.detail}
                   </div>
                 </div>
@@ -420,7 +420,7 @@ export default async function MembershipPage() {
             </li>
           </ul>
           {profile?.tier_updated_at && (
-            <p className="text-[10px] text-muted mt-2">
+            <p className="text-[10.5px] text-muted mt-2">
               마지막 등급 업데이트: {formatDate(profile.tier_updated_at)}
             </p>
           )}

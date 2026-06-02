@@ -98,7 +98,7 @@ export default function ShareClient({
       <section className="px-5 pt-6 pb-3">
         <Link
           href={`/dogs/${dog.id}`}
-          className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-terracotta font-semibold"
+          className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-terracotta font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           {dog.name}
@@ -107,7 +107,7 @@ export default function ShareClient({
 
       {/* 미리보기 카드 — 받는 사람이 보게 될 모습 */}
       <section className="px-5">
-        <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">
+        <div className="text-[10.5px] font-bold text-muted uppercase tracking-widest mb-2">
           PREVIEW · 미리보기
         </div>
         <div className="rounded-[12px] overflow-hidden shadow-lg bg-bg-3 border border-rule">
@@ -141,7 +141,7 @@ export default function ShareClient({
                 className="w-3 h-3 text-terracotta"
                 strokeWidth={2}
               />
-              <span className="text-[10px] font-bold text-text">
+              <span className="text-[10.5px] font-bold text-text">
                 Farmer&apos;s Tail
               </span>
             </div>
@@ -161,12 +161,12 @@ export default function ShareClient({
               >
                 {dog.name}
               </h2>
-              <span className="text-[11px] text-muted">
+              <span className="text-[10.5px] text-muted">
                 {[dog.breed, dog.ageLabel].filter(Boolean).join(' · ')}
               </span>
             </div>
             <p
-              className="mt-2 text-[13px] leading-relaxed"
+              className="mt-2 text-[13.5px] leading-relaxed"
               style={{ color: 'var(--text)' }}
             >
               &ldquo;{message}&rdquo;
@@ -180,7 +180,7 @@ export default function ShareClient({
                 border: '1px dashed var(--terracotta)',
               }}
             >
-              <span className="text-[10px] font-bold text-terracotta">
+              <span className="text-[10.5px] font-bold text-terracotta">
                 친구 코드
               </span>
               <span
@@ -193,7 +193,7 @@ export default function ShareClient({
               >
                 {referralCode}
               </span>
-              <span className="text-[10px] text-muted ml-auto">
+              <span className="text-[10.5px] text-muted ml-auto">
                 가입 시 3,000P
               </span>
             </div>
@@ -213,9 +213,9 @@ export default function ShareClient({
             onChange={(e) => setMessage(e.target.value.slice(0, 60))}
             maxLength={60}
             placeholder="우리 아이에 대한 한마디"
-            className="w-full text-[13px] text-text placeholder:text-muted/60 focus:outline-none"
+            className="w-full text-[13.5px] text-text placeholder:text-muted/60 focus:outline-none"
           />
-          <div className="text-right text-[10px] text-muted mt-1">
+          <div className="text-right text-[10.5px] text-muted mt-1">
             {message.length}/60
           </div>
         </div>
@@ -225,7 +225,7 @@ export default function ShareClient({
               key={t}
               type="button"
               onClick={() => setMessage(t)}
-              className="px-3 py-1.5 rounded-full text-[11px] text-text bg-bg-2 border border-rule hover:border-text transition"
+              className="px-3 py-1.5 rounded-full text-[10.5px] text-text bg-bg-2 border border-rule hover:border-text transition"
             >
               {t}
             </button>
@@ -238,7 +238,7 @@ export default function ShareClient({
         <button
           type="button"
           onClick={share}
-          className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-full text-[14px] font-black active:scale-[0.98] transition shadow-lg"
+          className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-full text-[13.5px] font-black active:scale-[0.98] transition shadow-lg"
           style={{
             background: '#FEE500', // KakaoTalk yellow
             color: '#191600',
@@ -248,7 +248,7 @@ export default function ShareClient({
           <MessageCircle className="w-4 h-4" strokeWidth={2.5} />
           카카오톡 / 메시지로 공유
         </button>
-        <p className="text-[10px] text-muted text-center mt-2">
+        <p className="text-[10.5px] text-muted text-center mt-2">
           공유 버튼이 작동 안 하는 환경에선 자동으로 클립보드 복사
         </p>
       </section>

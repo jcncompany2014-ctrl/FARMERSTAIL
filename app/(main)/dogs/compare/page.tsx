@@ -66,7 +66,7 @@ export default async function CompareDogsPage() {
       <div className="px-5 pt-6 pb-2">
         <Link
           href="/dogs"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           강아지 목록
@@ -98,7 +98,7 @@ export default async function CompareDogsPage() {
               className="w-8 h-8 mx-auto text-muted"
               strokeWidth={1.6}
             />
-            <p className="mt-3 text-[13px] font-bold text-text">
+            <p className="mt-3 text-[13.5px] font-bold text-text">
               비교하려면 강아지가 2마리 이상이어야 해요
             </p>
             <p className="mt-1 text-[12px] text-muted">
@@ -117,7 +117,7 @@ export default async function CompareDogsPage() {
           <table className="w-full text-[12px]">
             <thead>
               <tr>
-                <th className="text-left p-2 text-muted text-[10px] uppercase tracking-widest">
+                <th className="text-left p-2 text-muted text-[10.5px] uppercase tracking-widest">
                   항목
                 </th>
                 {dogs.map((d) => (
@@ -166,7 +166,7 @@ export default async function CompareDogsPage() {
                           color="var(--terracotta)"
                         />
                       ) : (
-                        <span className="text-[11px] text-muted">
+                        <span className="text-[10.5px] text-muted">
                           기록 부족
                         </span>
                       )}

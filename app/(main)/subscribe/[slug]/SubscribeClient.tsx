@@ -259,14 +259,14 @@ export default function SubscribeClient({
   const inputCls =
     'w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[16px] text-text placeholder:text-muted focus:outline-none focus:border-moss transition'
   const labelCls =
-    'block text-[10px] font-semibold text-muted mb-1.5 uppercase tracking-[0.2em]'
+    'block text-[10.5px] font-semibold text-muted mb-1.5 uppercase tracking-[0.2em]'
 
   return (
     <div className="px-5 py-6 pb-32">
       <div className="max-w-md mx-auto">
         <Link
           href={`/products/${slug}`}
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← 제품으로 돌아가기
         </Link>
@@ -308,18 +308,18 @@ export default function SubscribeClient({
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-bold text-text text-[13px] truncate">
+            <div className="font-bold text-text text-[13.5px] truncate">
               {product.name}
             </div>
             {product.short_description && (
-              <div className="text-[11px] text-muted mt-0.5 truncate">
+              <div className="text-[10.5px] text-muted mt-0.5 truncate">
                 {product.short_description}
               </div>
             )}
-            <div className="mt-1 font-black text-[14px] text-terracotta">
+            <div className="mt-1 font-black text-[13.5px] text-terracotta">
               {unitPrice.toLocaleString()}원
               {product.sale_price && (
-                <span className="ml-1 text-[11px] text-muted line-through font-normal">
+                <span className="ml-1 text-[10.5px] text-muted line-through font-normal">
                   {product.price.toLocaleString()}원
                 </span>
               )}
@@ -343,7 +343,7 @@ export default function SubscribeClient({
                 }`}
               >
                 <div
-                  className={`text-[13px] font-bold ${
+                  className={`text-[13.5px] font-bold ${
                     interval === opt.value
                       ? 'text-moss'
                       : 'text-text'
@@ -351,7 +351,7 @@ export default function SubscribeClient({
                 >
                   {opt.label}
                 </div>
-                <div className="text-[10px] text-muted mt-0.5">
+                <div className="text-[10.5px] text-muted mt-0.5">
                   {opt.desc}
                 </div>
               </button>
@@ -386,7 +386,7 @@ export default function SubscribeClient({
           <div className={labelCls}>배송지 정보</div>
           <div className="space-y-3">
             <div>
-              <label className="block text-[10px] font-semibold text-text mb-1 uppercase tracking-[0.2em]">
+              <label className="block text-[10.5px] font-semibold text-text mb-1 uppercase tracking-[0.2em]">
                 수령인 *
               </label>
               <input
@@ -401,7 +401,7 @@ export default function SubscribeClient({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-text mb-1 uppercase tracking-[0.2em]">
+              <label className="block text-[10.5px] font-semibold text-text mb-1 uppercase tracking-[0.2em]">
                 연락처 *
               </label>
               <input
@@ -417,7 +417,7 @@ export default function SubscribeClient({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-text mb-1 uppercase tracking-[0.2em]">
+              <label className="block text-[10.5px] font-semibold text-text mb-1 uppercase tracking-[0.2em]">
                 주소 *
               </label>
               <div className="flex gap-2 mb-2">
@@ -429,12 +429,12 @@ export default function SubscribeClient({
                   autoComplete="postal-code"
                   inputMode="numeric"
                   maxLength={5}
-                  className="w-28 px-4 py-3 rounded border border-rule bg-bg text-[13px] text-text"
+                  className="w-28 px-4 py-3 rounded border border-rule bg-bg text-[13.5px] text-text"
                 />
                 <button
                   type="button"
                   onClick={openAddressSearch}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded border border-rule bg-bg-3 text-[13px] font-bold text-text hover:border-moss hover:text-moss transition active:scale-95"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] font-bold text-text hover:border-moss hover:text-moss transition active:scale-95"
                 >
                   <Search className="w-3.5 h-3.5" strokeWidth={2} />
                   주소 검색
@@ -446,11 +446,11 @@ export default function SubscribeClient({
                 readOnly
                 placeholder="주소 검색을 눌러주세요"
                 autoComplete="street-address"
-                className="w-full px-4 py-3 rounded border border-rule bg-bg text-[13px] text-text placeholder:text-muted"
+                className="w-full px-4 py-3 rounded border border-rule bg-bg text-[13.5px] text-text placeholder:text-muted"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-text mb-1 uppercase tracking-[0.2em]">
+              <label className="block text-[10.5px] font-semibold text-text mb-1 uppercase tracking-[0.2em]">
                 상세 주소
               </label>
               <input
@@ -465,7 +465,7 @@ export default function SubscribeClient({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-text mb-1 uppercase tracking-[0.2em]">
+              <label className="block text-[10.5px] font-semibold text-text mb-1 uppercase tracking-[0.2em]">
                 배송 메모
               </label>
               <input
@@ -485,7 +485,7 @@ export default function SubscribeClient({
         <div className="mt-3 bg-bg-3 rounded border border-rule p-5">
           <div className={labelCls}>결제 요약 (회당)</div>
           {/* UI audit A-6: 결제 요약 4 row 우측 가격 tabular-nums — 자릿수 정렬. */}
-          <div className="space-y-2 text-[13px]">
+          <div className="space-y-2 text-[13.5px]">
             <div className="flex justify-between">
               <span className="text-muted">상품 금액</span>
               <span className="text-text font-bold tabular-nums">
@@ -501,7 +501,7 @@ export default function SubscribeClient({
               </span>
             </div>
             {shippingFee > 0 && (
-              <div className="text-[10px] text-muted tabular-nums">
+              <div className="text-[10.5px] text-muted tabular-nums">
                 {(SHIPPING_FREE_THRESHOLD - subtotal).toLocaleString()}원 더 담으면 무료배송!
               </div>
             )}
@@ -524,7 +524,7 @@ export default function SubscribeClient({
                   })
                 : '계산 중...'}
             </div>
-            <div className="text-[10px] text-muted mt-1 leading-relaxed">
+            <div className="text-[10.5px] text-muted mt-1 leading-relaxed">
               이후 {interval}주마다 등록하신 카드로 자동 결제 후 배송돼요.
             </div>
           </div>
@@ -534,7 +534,7 @@ export default function SubscribeClient({
             고지 의무. 자동결제 여부 / 금액 / 주기 / 결제 시점 / 해지 방법을
             명확히 표시 ("배송 안내 연락" 같은 완곡 표현 금지). */}
         <div className="mt-3 p-4 bg-bg rounded">
-          <div className="text-[11px] text-muted space-y-1 leading-relaxed">
+          <div className="text-[10.5px] text-muted space-y-1 leading-relaxed">
             <p>
               · <b className="text-text">자동결제 안내:</b> 등록하신 카드로{' '}
               <b className="text-text">
@@ -554,7 +554,7 @@ export default function SubscribeClient({
       <div className="ft-sticky-cta-bottom bg-bg border-t border-rule px-5 py-3 z-30">
         <div className="max-w-md mx-auto">
           {/* R92-S (D7): 정기과금 명시 동의 — 신청 = 자동결제 동의 간주 근거. */}
-          <p className="text-[10px] text-muted text-center mb-2 leading-relaxed">
+          <p className="text-[10.5px] text-muted text-center mb-2 leading-relaxed">
             신청하기를 누르면 {interval}주 주기 자동결제(
             {totalAmount.toLocaleString()}원/회)에 동의하는 것으로 간주됩니다.
           </p>

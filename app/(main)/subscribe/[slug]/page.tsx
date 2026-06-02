@@ -53,7 +53,7 @@ export default async function SubscribePage({
         </p>
         <Link
           href="/products"
-          className="mt-4 inline-block text-[13px] text-text font-bold underline"
+          className="mt-4 inline-block text-[13.5px] text-text font-bold underline"
         >
           ← 제품 목록
         </Link>

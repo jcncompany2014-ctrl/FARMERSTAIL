@@ -50,7 +50,7 @@ export default function SimulateClient({ dogName, baseline }: Props) {
     <div className="mt-5 space-y-5">
       {/* Baseline 요약 */}
       <section className="rounded border border-line bg-paperHi p-4">
-        <h2 className="text-[11px] uppercase tracking-widest text-mute font-semibold mb-2">
+        <h2 className="text-[10.5px] uppercase tracking-widest text-mute font-semibold mb-2">
           현재 상태 (Baseline)
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
@@ -63,7 +63,7 @@ export default function SimulateClient({ dogName, baseline }: Props) {
 
       {/* 시나리오 선택 */}
       <section>
-        <h2 className="text-[11px] uppercase tracking-widest text-mute font-semibold mb-2">
+        <h2 className="text-[10.5px] uppercase tracking-widest text-mute font-semibold mb-2">
           시나리오 선택
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -151,7 +151,7 @@ export default function SimulateClient({ dogName, baseline }: Props) {
               : 'border-line bg-paperHi'
         }`}
       >
-        <h2 className="text-[11px] uppercase tracking-widest text-mute font-semibold mb-2">
+        <h2 className="text-[10.5px] uppercase tracking-widest text-mute font-semibold mb-2">
           {dogName} · 30일 후 예상
         </h2>
         <div className="grid grid-cols-3 gap-3 mt-2">
@@ -181,7 +181,7 @@ export default function SimulateClient({ dogName, baseline }: Props) {
 
       {/* Trajectory chart */}
       <section className="rounded border border-line p-4">
-        <h2 className="text-[11px] uppercase tracking-widest text-mute font-semibold mb-3">
+        <h2 className="text-[10.5px] uppercase tracking-widest text-mute font-semibold mb-3">
           30일 체중 추이 (예상)
         </h2>
         <TrajectoryChart
@@ -206,7 +206,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   // 그리드 안에서 한 칸씩 차지 — label-value 따닥붙음 방지.
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-mute">
+      <div className="text-[10.5px] uppercase tracking-wider text-mute">
         {label}
       </div>
       <div className="text-base font-semibold text-ink mt-0.5">{value}</div>
@@ -226,11 +226,11 @@ function ResultStat({
   // R57 — label↔value mt-0.5 추가.
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-mute">
+      <div className="text-[10.5px] uppercase tracking-wider text-mute">
         {label}
       </div>
       <div className="text-lg font-semibold text-ink mt-0.5">{value}</div>
-      <div className="text-[11px] text-mute mt-0.5">{delta}</div>
+      <div className="text-[10.5px] text-mute mt-0.5">{delta}</div>
     </div>
   )
 }

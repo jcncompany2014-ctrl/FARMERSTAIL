@@ -231,7 +231,7 @@ export default function DogDetailClient({
       <section className="px-5 pt-6 pb-2">
         <Link
           href="/dogs"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← 강아지 목록
         </Link>
@@ -278,14 +278,14 @@ export default function DogDetailClient({
             label="중성화"
             valueNode={
               dog.neutered === null ? (
-                <span className="text-[13px] font-bold text-text">-</span>
+                <span className="text-[13.5px] font-bold text-text">-</span>
               ) : dog.neutered ? (
-                <span className="inline-flex items-center gap-1 text-[13px] font-bold text-moss">
+                <span className="inline-flex items-center gap-1 text-[13.5px] font-bold text-moss">
                   <Check className="w-3.5 h-3.5" strokeWidth={3} />
                   했어요
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[13px] font-bold text-muted">
+                <span className="inline-flex items-center gap-1 text-[13.5px] font-bold text-muted">
                   <X className="w-3.5 h-3.5" strokeWidth={2.5} />안 했어요
                 </span>
               )
@@ -304,13 +304,13 @@ export default function DogDetailClient({
             label="활동량"
             valueNode={(() => {
               if (!dog.activity_level)
-                return <span className="text-[13px] font-bold text-text">-</span>
+                return <span className="text-[13.5px] font-bold text-text">-</span>
               const meta = activityMeta[dog.activity_level]
               if (!meta)
-                return <span className="text-[13px] font-bold text-text">-</span>
+                return <span className="text-[13.5px] font-bold text-text">-</span>
               const { Icon, text } = meta
               return (
-                <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-text">
+                <span className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-text">
                   <Icon className="w-3.5 h-3.5 text-muted" strokeWidth={2} />
                   {text}
                 </span>
@@ -347,7 +347,7 @@ export default function DogDetailClient({
             </div>
             <button
               onClick={() => setShowWeightModal(true)}
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-terracotta hover:text-text transition"
+              className="inline-flex items-center gap-1 text-[10.5px] font-bold text-terracotta hover:text-text transition"
             >
               <Plus className="w-3 h-3" strokeWidth={2.5} />
               기록 추가
@@ -359,7 +359,7 @@ export default function DogDetailClient({
               <p className="text-[12px] text-muted">
                 아직 체중 기록이 없어요.
               </p>
-              <p className="text-[10px] text-muted/70 mt-1">
+              <p className="text-[10.5px] text-muted/70 mt-1">
                 &ldquo;기록 추가&rdquo;로 주기적으로 남겨 보세요.
               </p>
             </div>
@@ -378,7 +378,7 @@ export default function DogDetailClient({
                       key={log.id}
                       className="flex items-center justify-between text-[12px] py-1.5 px-3 rounded-lg bg-bg"
                     >
-                      <span className="text-muted text-[11px]">
+                      <span className="text-muted text-[10.5px]">
                         {new Date(log.measured_at).toLocaleDateString('ko-KR', {
                           month: 'short',
                           day: 'numeric',
@@ -390,7 +390,7 @@ export default function DogDetailClient({
                         </span>
                         {next && (
                           <span
-                            className={`inline-flex items-center gap-0.5 text-[10px] font-bold ${
+                            className={`inline-flex items-center gap-0.5 text-[10.5px] font-bold ${
                               Math.abs(delta) < 0.05
                                 ? 'text-muted'
                                 : delta > 0
@@ -444,13 +444,13 @@ export default function DogDetailClient({
             >
               {dog.name}의 체중
             </h3>
-            <p className="text-[11px] text-muted mt-1">
+            <p className="text-[10.5px] text-muted mt-1">
               기록하면 추이 차트와 대시보드에 반영돼요.
             </p>
 
             <div className="mt-5 space-y-3">
               <div>
-                <label className="block text-[11px] font-bold text-text mb-1.5">
+                <label className="block text-[10.5px] font-bold text-text mb-1.5">
                   체중 (kg)
                 </label>
                 <input
@@ -468,7 +468,7 @@ export default function DogDetailClient({
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold text-text mb-1.5">
+                <label className="block text-[10.5px] font-bold text-text mb-1.5">
                   메모 (선택)
                 </label>
                 <input
@@ -486,14 +486,14 @@ export default function DogDetailClient({
               <button
                 onClick={handleSaveWeight}
                 disabled={savingWeight || !newWeight}
-                className="w-full py-3 rounded-full bg-ink text-bg text-[13px] font-bold active:scale-[0.98] transition disabled:opacity-50"
+                className="w-full py-3 rounded-full bg-ink text-bg text-[13.5px] font-bold active:scale-[0.98] transition disabled:opacity-50"
               >
                 {savingWeight ? '저장 중...' : '저장하기'}
               </button>
               <button
                 onClick={closeWeightModal}
                 disabled={savingWeight}
-                className="w-full py-3 rounded bg-bg-3 text-muted text-[13px] font-bold border border-rule hover:border-text hover:text-text transition"
+                className="w-full py-3 rounded bg-bg-3 text-muted text-[13.5px] font-bold border border-rule hover:border-text hover:text-text transition"
               >
                 취소
               </button>
@@ -512,8 +512,8 @@ export default function DogDetailClient({
             <BarChart3 className="w-4 h-4" strokeWidth={2} />
           </div>
           <div className="flex-1 text-left">
-            <div className="text-[13px] font-black">맞춤 영양 분석 보기</div>
-            <div className="text-[10px] text-white/60 mt-0.5">
+            <div className="text-[13.5px] font-black">맞춤 영양 분석 보기</div>
+            <div className="text-[10.5px] text-white/60 mt-0.5">
               AI가 {dog.name}의 식단을 분석해요
             </div>
           </div>
@@ -526,8 +526,8 @@ export default function DogDetailClient({
             <ClipboardList className="w-4 h-4" strokeWidth={2} />
           </div>
           <div className="flex-1 text-left">
-            <div className="text-[13px] font-black">설문 시작하기</div>
-            <div className="text-[10px] text-white/70 mt-0.5">
+            <div className="text-[13.5px] font-black">설문 시작하기</div>
+            <div className="text-[10.5px] text-white/70 mt-0.5">
               맞춤 식단 추천을 위한 5분 설문
             </div>
           </div>
@@ -547,7 +547,7 @@ export default function DogDetailClient({
             <div className="text-[12px] font-black text-text">
               분석 히스토리
             </div>
-            <div className="text-[10px] text-muted mt-0.5">
+            <div className="text-[10.5px] text-muted mt-0.5">
               이전 분석 결과를 시간순으로 비교해보세요
             </div>
           </div>
@@ -563,7 +563,7 @@ export default function DogDetailClient({
             <div className="text-[12px] font-black text-text">
               건강 일지
             </div>
-            <div className="text-[10px] text-muted mt-0.5">
+            <div className="text-[10.5px] text-muted mt-0.5">
               변·활동량·기분·식욕을 매일 기록해요
             </div>
           </div>
@@ -579,7 +579,7 @@ export default function DogDetailClient({
             <div className="text-[12px] font-black text-text">
               리마인더
             </div>
-            <div className="text-[10px] text-muted mt-0.5">
+            <div className="text-[10.5px] text-muted mt-0.5">
               예방접종·투약·검진 일정을 관리해요
             </div>
           </div>
@@ -596,7 +596,7 @@ export default function DogDetailClient({
             <div className="text-[12px] font-black text-text">
               마일스톤
             </div>
-            <div className="text-[10px] text-muted mt-0.5">
+            <div className="text-[10.5px] text-muted mt-0.5">
               함께한 시간의 기념일을 한눈에 봐요
             </div>
           </div>
@@ -612,7 +612,7 @@ export default function DogDetailClient({
             <div className="text-[12px] font-black text-text">
               예방접종 기록
             </div>
-            <div className="text-[10px] text-muted mt-0.5">
+            <div className="text-[10.5px] text-muted mt-0.5">
               접종 일정과 다음 일정을 관리해요
             </div>
           </div>
@@ -628,7 +628,7 @@ export default function DogDetailClient({
             <div className="text-[12px] font-black text-text">
               복약 관리
             </div>
-            <div className="text-[10px] text-muted mt-0.5">
+            <div className="text-[10.5px] text-muted mt-0.5">
               약물·영양제 복용 시간과 알림
             </div>
           </div>
@@ -644,7 +644,7 @@ export default function DogDetailClient({
             <div className="text-[12px] font-black text-text">
               지출 트래커
             </div>
-            <div className="text-[10px] text-muted mt-0.5">
+            <div className="text-[10.5px] text-muted mt-0.5">
               사료·병원·간식 비용을 한 곳에서
             </div>
           </div>
@@ -661,7 +661,7 @@ export default function DogDetailClient({
             <div className="text-[12px] font-black text-text">
               수의사 보고서
             </div>
-            <div className="text-[10px] text-muted mt-0.5">
+            <div className="text-[10.5px] text-muted mt-0.5">
               병원 갈 때 인쇄해서 가져가는 진료 요약
             </div>
           </div>
@@ -678,7 +678,7 @@ export default function DogDetailClient({
             <div className="text-[12px] font-black text-text">
               식단 시뮬레이션
             </div>
-            <div className="text-[10px] text-muted mt-0.5">
+            <div className="text-[10.5px] text-muted mt-0.5">
               다른 식단·운동의 30일 후 변화 예상
             </div>
           </div>
@@ -774,14 +774,14 @@ export default function DogDetailClient({
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="w-full py-3 rounded bg-sale text-white text-[13px] font-black active:scale-[0.98] transition disabled:opacity-50"
+                className="w-full py-3 rounded bg-sale text-white text-[13.5px] font-black active:scale-[0.98] transition disabled:opacity-50"
               >
                 {deleting ? '삭제 중...' : '네, 삭제할래요'}
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleting}
-                className="w-full py-3 rounded bg-bg-3 text-muted text-[13px] font-bold border border-rule hover:border-text hover:text-text transition"
+                className="w-full py-3 rounded bg-bg-3 text-muted text-[13.5px] font-bold border border-rule hover:border-text hover:text-text transition"
               >
                 취소
               </button>
@@ -834,7 +834,7 @@ export default function DogDetailClient({
                   className="w-3.5 h-3.5 text-terracotta mt-0.5 shrink-0"
                   strokeWidth={2.2}
                 />
-                <p className="text-[11px] text-text leading-relaxed">
+                <p className="text-[10.5px] text-text leading-relaxed">
                   AI가 NRC 2006 / FEDIAF 기준으로 일일 칼로리·영양소를 계산해요
                 </p>
               </div>
@@ -843,7 +843,7 @@ export default function DogDetailClient({
                   className="w-3.5 h-3.5 text-terracotta mt-0.5 shrink-0"
                   strokeWidth={2.2}
                 />
-                <p className="text-[11px] text-text leading-relaxed">
+                <p className="text-[10.5px] text-text leading-relaxed">
                   알레르기·만성질환·기호도까지 반영한 1:1 처방
                 </p>
               </div>
@@ -852,7 +852,7 @@ export default function DogDetailClient({
                   className="w-3.5 h-3.5 text-terracotta mt-0.5 shrink-0"
                   strokeWidth={2.2}
                 />
-                <p className="text-[11px] text-text leading-relaxed">
+                <p className="text-[10.5px] text-text leading-relaxed">
                   설문은 언제든 다시 할 수 있어요
                 </p>
               </div>
@@ -864,7 +864,7 @@ export default function DogDetailClient({
                   setShowWelcomeSheet(false)
                   router.push(`/dogs/${dog.id}/survey`)
                 }}
-                className="flex items-center justify-center gap-1.5 w-full py-3.5 rounded-full bg-terracotta text-white text-[13px] font-black active:scale-[0.98] transition"
+                className="flex items-center justify-center gap-1.5 w-full py-3.5 rounded-full bg-terracotta text-white text-[13.5px] font-black active:scale-[0.98] transition"
               >
                 <ClipboardList className="w-4 h-4" strokeWidth={2.2} />5분 맞춤
                 설문 시작하기
@@ -895,11 +895,11 @@ function InfoRow({
   return (
     // UI audit A-3: dt 라벨 column min-w-[88px] 통일 + tracking 0.22 → 0.18 (한국어 가독성)
     <div className="flex justify-between items-center py-2.5 border-b border-bg last:border-0 gap-3">
-      <span className="text-[10px] font-semibold text-muted uppercase tracking-[0.18em] min-w-[88px] shrink-0">
+      <span className="text-[10.5px] font-semibold text-muted uppercase tracking-[0.18em] min-w-[88px] shrink-0">
         {label}
       </span>
       {valueNode ?? (
-        <span className="text-[13px] font-bold text-text text-right">{value}</span>
+        <span className="text-[13.5px] font-bold text-text text-right">{value}</span>
       )}
     </div>
   )

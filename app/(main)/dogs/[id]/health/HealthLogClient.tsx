@@ -191,7 +191,7 @@ export default function HealthLogClient({
       <section className="px-5 pt-6 pb-2">
         <Link
           href={`/dogs/${dogId}`}
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← {dogName}
         </Link>
@@ -199,7 +199,7 @@ export default function HealthLogClient({
         <h1 className="font-sans mt-1.5" style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           건강 일지
         </h1>
-        <p className="text-[11px] text-muted mt-1">
+        <p className="text-[10.5px] text-muted mt-1">
           하루 한 번 기록하면 {dogName}의 컨디션 변화를 눈으로 볼 수 있어요
         </p>
       </section>
@@ -235,7 +235,7 @@ export default function HealthLogClient({
             />
           </div>
           {weekSummary.sickMood > 0 && (
-            <p className="mt-3 text-[10px] text-[#FFB8A8] leading-relaxed">
+            <p className="mt-3 text-[10.5px] text-[#FFB8A8] leading-relaxed">
               이번 주 컨디션이 저조한 날이 {weekSummary.sickMood}일 있었어요.
               증상이 지속되면 병원 상담을 추천해요.
             </p>
@@ -248,7 +248,7 @@ export default function HealthLogClient({
         {!showForm ? (
           <button
             onClick={() => setShowForm(true)}
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-full bg-ink text-bg text-[13px] font-bold active:scale-[0.98] transition"
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-full bg-ink text-bg text-[13.5px] font-bold active:scale-[0.98] transition"
           >
             <Plus className="w-4 h-4" strokeWidth={2.5} />
             오늘 건강 기록하기
@@ -256,12 +256,12 @@ export default function HealthLogClient({
         ) : (
           <div className="bg-bg-3 rounded border border-rule p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-[13px] font-black text-text">
+              <h2 className="text-[13.5px] font-black text-text">
                 오늘 기록 · {formatLoggedAt(todayIso())}
               </h2>
               <button
                 onClick={() => setShowForm(false)}
-                className="text-[10px] font-bold text-muted hover:text-text"
+                className="text-[10.5px] font-bold text-muted hover:text-text"
               >
                 접기
               </button>
@@ -277,7 +277,7 @@ export default function HealthLogClient({
               }
             />
             <div>
-              <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
+              <label className="block text-[10.5px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
                 변 횟수 (오늘)
               </label>
               {/* UI audit J-3: iOS 키보드 숫자패드 표시 위해 inputMode="numeric". */}
@@ -289,7 +289,7 @@ export default function HealthLogClient({
                 value={poopCount}
                 onChange={(e) => setPoopCount(e.target.value)}
                 placeholder="예: 2"
-                className="w-full px-3 py-2.5 rounded border border-rule bg-bg-3 text-[13px] focus:outline-none focus:border-terracotta transition"
+                className="w-full px-3 py-2.5 rounded border border-rule bg-bg-3 text-[13.5px] focus:outline-none focus:border-terracotta transition"
               />
             </div>
             <PickerRow
@@ -317,7 +317,7 @@ export default function HealthLogClient({
             />
 
             <div>
-              <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
+              <label className="block text-[10.5px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
                 메모
               </label>
               <textarea
@@ -331,7 +331,7 @@ export default function HealthLogClient({
             </div>
 
             {error && (
-              <p className="text-[11px] font-bold text-sale">{error}</p>
+              <p className="text-[10.5px] font-bold text-sale">{error}</p>
             )}
 
             <button
@@ -390,7 +390,7 @@ export default function HealthLogClient({
 
       {/* 기록 리스트 */}
       <section className="px-5 mt-5">
-        <h2 className="text-[13px] font-black text-text mb-3">
+        <h2 className="text-[13.5px] font-black text-text mb-3">
           최근 30일 기록
         </h2>
         {logs.length === 0 ? (
@@ -444,7 +444,7 @@ function WeekStat({
           {value}
         </span>
         <span
-          className={`text-[10px] ${
+          className={`text-[10.5px] ${
             tone === 'light' ? 'text-white/70' : 'text-muted'
           }`}
         >
@@ -470,7 +470,7 @@ function PickerRow({
 }) {
   return (
     <div>
-      <label className="flex items-center gap-1 text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
+      <label className="flex items-center gap-1 text-[10.5px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
         <Icon className="w-3 h-3" strokeWidth={2} />
         {label}
       </label>
@@ -482,7 +482,7 @@ function PickerRow({
               key={key}
               type="button"
               onClick={() => onChange(active ? null : key)}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition ${
+              className={`px-3 py-1.5 rounded-full text-[10.5px] font-bold border transition ${
                 active
                   ? 'text-white border-transparent'
                   : 'bg-bg-3 text-text border-rule hover:border-muted'
@@ -547,7 +547,7 @@ function LogRow({
         className="w-full flex items-center justify-between gap-2 text-left"
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <span className="text-[11px] font-black text-text shrink-0">
+          <span className="text-[10.5px] font-black text-text shrink-0">
             {formatLoggedAt(log.logged_at)}
           </span>
           <div className="flex flex-wrap gap-1 min-w-0">
@@ -575,7 +575,7 @@ function LogRow({
         />
       </button>
       {open && (
-        <div className="mt-3 pt-3 border-t border-rule space-y-1.5 text-[11px]">
+        <div className="mt-3 pt-3 border-t border-rule space-y-1.5 text-[10.5px]">
           {chips.length > 3 && (
             <div className="flex flex-wrap gap-1">
               {chips.map((c) => (
@@ -602,7 +602,7 @@ function LogRow({
           )}
           <button
             onClick={onDelete}
-            className="inline-flex items-center gap-1 text-[10px] font-bold text-sale hover:underline mt-1"
+            className="inline-flex items-center gap-1 text-[10.5px] font-bold text-sale hover:underline mt-1"
           >
             <Trash2 className="w-3 h-3" strokeWidth={2} />
             삭제

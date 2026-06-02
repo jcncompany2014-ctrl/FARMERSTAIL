@@ -71,15 +71,15 @@ export default async function ReferralPage() {
         <section className="px-5 mt-6">
           <Link
             href="/mypage"
-            className="text-[11px] text-muted hover:text-terracotta font-semibold"
+            className="text-[10.5px] text-muted hover:text-terracotta font-semibold"
           >
             ← 내 정보
           </Link>
           <div className="bg-bg-3 rounded border border-sale/30 px-5 py-6 text-center mt-4">
-            <p className="text-[13px] font-bold text-sale">
+            <p className="text-[13.5px] font-bold text-sale">
               초대 코드를 불러오지 못했어요
             </p>
-            <p className="text-[11px] text-muted mt-1">
+            <p className="text-[10.5px] text-muted mt-1">
               {codeError?.message ?? '잠시 후 다시 시도해 주세요.'}
             </p>
           </div>

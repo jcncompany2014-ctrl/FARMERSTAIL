@@ -74,7 +74,7 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
       <section className="px-5 pt-6 pb-3">
         <Link
           href="/mypage"
-          className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-terracotta font-semibold"
+          className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-terracotta font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           내 정보
@@ -90,7 +90,7 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
         >
           고객센터 메시지
         </h1>
-        <p className="text-[11px] text-muted mt-1">
+        <p className="text-[10.5px] text-muted mt-1">
           궁금하거나 불편한 점은 직접 답장으로 알려주세요.
         </p>
       </section>
@@ -106,7 +106,7 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
             <p className="text-[12px] text-muted">
               아직 받은 메시지가 없어요.
             </p>
-            <p className="text-[10px] text-muted/70 mt-1">
+            <p className="text-[10.5px] text-muted/70 mt-1">
               궁금한 점이 있으면 아래 입력창에 자유롭게 남겨주세요.
             </p>
           </div>
@@ -129,17 +129,17 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
             placeholder="메시지를 입력해 주세요"
             rows={2}
             maxLength={2000}
-            className="w-full text-[13px] text-text placeholder:text-muted/60 focus:outline-none resize-none"
+            className="w-full text-[13.5px] text-text placeholder:text-muted/60 focus:outline-none resize-none"
           />
           <div className="flex items-center justify-between mt-2">
-            <span className="text-[10px] text-muted">
+            <span className="text-[10.5px] text-muted">
               영업일 기준 24시간 이내 답변 드려요
             </span>
             <button
               type="button"
               onClick={send}
               disabled={sending || !input.trim()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-terracotta text-white text-[11px] font-bold active:scale-[0.97] transition disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-terracotta text-white text-[10.5px] font-bold active:scale-[0.97] transition disabled:opacity-50"
             >
               {sending ? (
                 <>
@@ -179,7 +179,7 @@ function Bubble({ message }: { message: Msg }) {
             파머스테일
           </p>
         )}
-        <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap break-keep">
+        <p className="text-[12px] leading-relaxed whitespace-pre-wrap break-keep">
           {message.body}
         </p>
         <p

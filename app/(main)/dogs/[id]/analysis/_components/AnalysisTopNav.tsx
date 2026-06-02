@@ -32,7 +32,7 @@ export default function AnalysisTopNav({
     <section className="px-5 pt-6 pb-2 flex items-center justify-between gap-3">
       <Link
         href={isArchive ? `/dogs/${dogId}/analyses` : `/dogs/${dogId}`}
-        className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+        className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
       >
         ← {isArchive ? '분석 히스토리' : dogName}
       </Link>
@@ -58,7 +58,7 @@ export default function AnalysisTopNav({
             toast.success('분석 요약을 복사했어요')
           }
         }}
-        className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-terracotta font-semibold transition-colors"
+        className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-terracotta font-semibold transition-colors"
         aria-label="분석 결과 공유"
       >
         <Share2 className="w-3 h-3" strokeWidth={2.5} />

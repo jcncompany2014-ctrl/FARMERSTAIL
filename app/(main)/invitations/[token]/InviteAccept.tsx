@@ -118,11 +118,11 @@ export default function InviteAccept({
           <div className="text-center">
             <div className="flex items-center justify-center gap-1.5 mb-2">
               <AlertCircle className="w-4 h-4 text-sale" />
-              <span className="text-[11px] font-bold uppercase tracking-widest text-sale">
+              <span className="text-[10.5px] font-bold uppercase tracking-widest text-sale">
                 초대 사용 불가
               </span>
             </div>
-            <p className="text-[13px] leading-relaxed" style={{ color: 'var(--ink)' }}>
+            <p className="text-[13.5px] leading-relaxed" style={{ color: 'var(--ink)' }}>
               {invalidReason}
             </p>
             <Link
@@ -135,7 +135,7 @@ export default function InviteAccept({
         ) : accepted ? (
           <div className="text-center">
             <CheckCircle2 className="w-8 h-8 mx-auto" style={{ color: 'var(--moss)' }} />
-            <p className="mt-3 text-[14px] font-bold" style={{ color: 'var(--ink)' }}>
+            <p className="mt-3 text-[13.5px] font-bold" style={{ color: 'var(--ink)' }}>
               가족이 되었어요
             </p>
             <p className="mt-1 text-[12px] text-muted">잠시 후 강아지 페이지로 이동해요</p>
@@ -157,7 +157,7 @@ export default function InviteAccept({
               {dogName ? `${dogName}의 가족이 되어주세요` : '가족 초대를 받았어요'}
             </h1>
             {inviterName && (
-              <p className="text-center mt-2 text-[12.5px] text-text/80 leading-relaxed">
+              <p className="text-center mt-2 text-[12px] text-text/80 leading-relaxed">
                 <strong>{inviterName}</strong>님이 초대했어요
               </p>
             )}
@@ -177,7 +177,7 @@ export default function InviteAccept({
             )}
 
             {expiresAt && (
-              <p className="mt-3 text-[11px] text-center text-muted">
+              <p className="mt-3 text-[10.5px] text-center text-muted">
                 {fmtExpire(expiresAt)} 까지 유효해요
               </p>
             )}
@@ -187,7 +187,7 @@ export default function InviteAccept({
                 type="button"
                 onClick={handleAccept}
                 disabled={busy}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded text-[13px] font-bold text-white transition active:scale-[0.99] disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded text-[13.5px] font-bold text-white transition active:scale-[0.99] disabled:opacity-60"
                 style={{ background: 'var(--terracotta)' }}
               >
                 {busy ? (

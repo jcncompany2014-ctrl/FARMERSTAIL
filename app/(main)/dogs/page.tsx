@@ -45,7 +45,7 @@ export default async function DogsPage() {
       <section className="px-5 pt-6 pb-2">
         <Link
           href="/dashboard"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← 홈으로
         </Link>

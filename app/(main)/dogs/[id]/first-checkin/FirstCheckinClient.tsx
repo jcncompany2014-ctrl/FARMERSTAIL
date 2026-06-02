@@ -103,13 +103,13 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
           >
             의견 감사드려요
           </h1>
-          <p className="text-[13px] text-muted leading-relaxed mb-8">
+          <p className="text-[13.5px] text-muted leading-relaxed mb-8">
             {dogName}이의 영양 관리에 큰 도움이 돼요.
           </p>
           <button
             type="button"
             onClick={() => router.push(`/dogs/${dogId}`)}
-            className="px-6 py-3 rounded-full text-[13px] font-bold"
+            className="px-6 py-3 rounded-full text-[13.5px] font-bold"
             style={{
               // R27 v3 polish: ink → terracotta accent (카트 CTA grammar 호응)
               background: 'var(--terracotta)',
@@ -140,7 +140,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
         {dogName}이는 잘 먹고 있나요?
       </h1>
       <p
-        className="text-[12.5px] text-muted mt-2 mb-8 leading-relaxed"
+        className="text-[12px] text-muted mt-2 mb-8 leading-relaxed"
         style={{ wordBreak: 'keep-all' }}
       >
         30초만 시간 내주시면 {dogName}이에게 더 잘 맞는 추천을 드릴 수 있어요.
@@ -173,8 +173,8 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
             >
               <div className="text-3xl shrink-0">{opt.emoji}</div>
               <div className="flex-1">
-                <div className="text-[14px] font-bold">{opt.label}</div>
-                <div className="text-[11.5px] mt-0.5 opacity-75">{opt.sub}</div>
+                <div className="text-[13.5px] font-bold">{opt.label}</div>
+                <div className="text-[12px] mt-0.5 opacity-75">{opt.sub}</div>
               </div>
             </button>
           )
@@ -183,7 +183,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
 
       <div className="mt-6">
         <label
-          className="block text-[11px] text-muted font-semibold mb-2"
+          className="block text-[10.5px] text-muted font-semibold mb-2"
           style={{ letterSpacing: '0.06em', textTransform: 'uppercase' }}
         >
           더 알려주실 게 있나요? (선택)
@@ -194,7 +194,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
           maxLength={200}
           rows={3}
           placeholder="예: 변 상태가 좋아졌어요 / 활동량이 늘었어요 / 가려움이 줄었어요…"
-          className="w-full px-4 py-3 rounded text-[13px] leading-relaxed resize-none"
+          className="w-full px-4 py-3 rounded text-[13.5px] leading-relaxed resize-none"
           style={{
             background: 'var(--bg-2)',
             border: '1px solid var(--rule)',
@@ -207,7 +207,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
         type="button"
         onClick={submit}
         disabled={!choice || submitting}
-        className="mt-8 w-full py-4 rounded-full text-[14px] font-black active:scale-[0.98] transition disabled:opacity-50"
+        className="mt-8 w-full py-4 rounded-full text-[13.5px] font-black active:scale-[0.98] transition disabled:opacity-50"
         style={{
           // R27 v3 polish: ink → terracotta + 카트 sticky CTA grammar 동일.
           background: 'var(--terracotta)',
@@ -220,7 +220,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
         {submitting ? '저장 중…' : '의견 보내기 (+100P)'}
       </button>
 
-      <p className="text-[11px] text-muted text-center mt-4">
+      <p className="text-[10.5px] text-muted text-center mt-4">
         나중에 응답하시려면 그냥 닫으셔도 돼요 🐾
       </p>
     </div>

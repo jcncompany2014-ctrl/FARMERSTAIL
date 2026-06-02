@@ -286,7 +286,7 @@ export default function RemindersClient({
       <section className="px-5 pt-6 pb-2">
         <Link
           href={`/dogs/${dogId}`}
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← {dogName}
         </Link>
@@ -294,7 +294,7 @@ export default function RemindersClient({
         <h1 className="font-sans mt-1.5" style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           리마인더
         </h1>
-        <p className="text-[11px] text-muted mt-1">
+        <p className="text-[10.5px] text-muted mt-1">
           예방접종, 투약, 검진 일정을 놓치지 않게 챙겨드려요
         </p>
       </section>
@@ -328,7 +328,7 @@ export default function RemindersClient({
         {!adding ? (
           <button
             onClick={() => setAdding(true)}
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-full bg-ink text-bg text-[13px] font-bold active:scale-[0.98] transition"
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-full bg-ink text-bg text-[13.5px] font-bold active:scale-[0.98] transition"
           >
             <Plus className="w-4 h-4" strokeWidth={2.5} />
             리마인더 추가
@@ -336,7 +336,7 @@ export default function RemindersClient({
         ) : (
           <div className="bg-bg-3 rounded border border-rule p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-[13px] font-black text-text">
+              <h2 className="text-[13.5px] font-black text-text">
                 새 리마인더
               </h2>
               <button
@@ -352,7 +352,7 @@ export default function RemindersClient({
 
             {/* 타입 선택 */}
             <div>
-              <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
+              <label className="block text-[10.5px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
                 유형
               </label>
               {/* 5칼럼 → 320px 에서 칩이 너무 좁아 라벨 wrap. grid-cols-3
@@ -387,7 +387,7 @@ export default function RemindersClient({
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
+              <label className="block text-[10.5px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
                 제목
               </label>
               <input
@@ -406,24 +406,24 @@ export default function RemindersClient({
                     : '예: 미끄럼 방지 패드 교체'
                 }
                 maxLength={60}
-                className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition"
+                className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[13.5px] focus:outline-none focus:border-terracotta transition"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
+              <label className="block text-[10.5px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
                 다음 일정
               </label>
               <input
                 type="date"
                 value={nextDate}
                 onChange={(e) => setNextDate(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition"
+                className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[13.5px] focus:outline-none focus:border-terracotta transition"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
+              <label className="block text-[10.5px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
                 반복 주기
               </label>
               <div className="flex gap-1.5 flex-wrap">
@@ -434,7 +434,7 @@ export default function RemindersClient({
                       key={p.label}
                       type="button"
                       onClick={() => setRecurDays(p.days)}
-                      className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition ${
+                      className={`px-3 py-1.5 rounded-full text-[10.5px] font-bold border transition ${
                         active
                           ? 'bg-text text-white border-transparent'
                           : 'bg-bg-3 text-text border-rule hover:border-muted'
@@ -445,13 +445,13 @@ export default function RemindersClient({
                   )
                 })}
               </div>
-              <p className="text-[10px] text-muted mt-1.5 leading-relaxed">
+              <p className="text-[10.5px] text-muted mt-1.5 leading-relaxed">
                 반복을 선택하면 완료 처리 시 다음 일정이 자동으로 설정돼요.
               </p>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
+              <label className="block text-[10.5px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
                 메모
               </label>
               <textarea
@@ -465,7 +465,7 @@ export default function RemindersClient({
             </div>
 
             {err && (
-              <p className="text-[11px] font-bold text-sale">{err}</p>
+              <p className="text-[10.5px] font-bold text-sale">{err}</p>
             )}
             <button
               onClick={add}
@@ -538,7 +538,7 @@ export default function RemindersClient({
             <p className="text-[12px] text-muted">
               아직 등록된 리마인더가 없어요.
             </p>
-            <p className="text-[10px] text-muted/70 mt-1">
+            <p className="text-[10.5px] text-muted/70 mt-1">
               첫 예방접종, 심장사상충 약 등을 등록해 보세요.
             </p>
           </div>
@@ -592,7 +592,7 @@ function Group({
   return (
     <div className="mb-5 last:mb-0">
       <h3
-        className="text-[10px] font-black uppercase tracking-[0.2em] mb-2"
+        className="text-[10.5px] font-black uppercase tracking-[0.2em] mb-2"
         style={{ color: tint }}
       >
         {title}
@@ -637,7 +637,7 @@ function ReminderRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-[12.5px] font-black text-text leading-snug truncate">
+              <p className="text-[12px] font-black text-text leading-snug truncate">
                 {r.title}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
@@ -648,13 +648,13 @@ function ReminderRow({
                   {meta.label}
                 </span>
                 <span className="w-px h-2.5 bg-rule-2" />
-                <span className="text-[10px] text-muted">
+                <span className="text-[10.5px] text-muted">
                   {formatNextDate(r.next_date)} · {when}
                 </span>
                 {r.recur_interval_days && (
                   <>
                     <span className="w-px h-2.5 bg-rule-2" />
-                    <span className="text-[10px] text-muted">
+                    <span className="text-[10.5px] text-muted">
                       {r.recur_interval_days}일 주기
                     </span>
                   </>
@@ -663,12 +663,12 @@ function ReminderRow({
             </div>
           </div>
           {r.notes && (
-            <p className="text-[11px] text-text mt-2 leading-relaxed">
+            <p className="text-[10.5px] text-text mt-2 leading-relaxed">
               {r.notes}
             </p>
           )}
           {r.last_done_date && (
-            <p className="text-[10px] text-muted mt-1">
+            <p className="text-[10.5px] text-muted mt-1">
               마지막 완료 · {formatNextDate(r.last_done_date)}
             </p>
           )}
@@ -676,7 +676,7 @@ function ReminderRow({
             {r.enabled && (
               <button
                 onClick={onDone}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-moss text-white text-[10px] font-bold active:scale-[0.98] transition"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-moss text-white text-[10.5px] font-bold active:scale-[0.98] transition"
               >
                 <Check className="w-3 h-3" strokeWidth={2.5} />
                 완료
@@ -684,7 +684,7 @@ function ReminderRow({
             )}
             <button
               onClick={onToggle}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-bg-3 text-text border border-rule text-[10px] font-bold hover:border-text transition"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-bg-3 text-text border border-rule text-[10.5px] font-bold hover:border-text transition"
             >
               {r.enabled ? (
                 <>
@@ -700,7 +700,7 @@ function ReminderRow({
             </button>
             <button
               onClick={onDelete}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-bg-3 text-sale border border-rule text-[10px] font-bold hover:border-sale transition"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-bg-3 text-sale border border-rule text-[10.5px] font-bold hover:border-sale transition"
             >
               <Trash2 className="w-3 h-3" strokeWidth={2} />
               삭제

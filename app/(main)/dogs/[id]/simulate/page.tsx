@@ -67,7 +67,7 @@ export default async function SimulatePage({ params }: { params: Params }) {
       <div className="px-5 py-10 max-w-xl">
         <Link
           href={`/dogs/${dogId}`}
-          className="inline-flex items-center gap-1 text-[11px] text-mute hover:text-terracotta font-semibold mb-5"
+          className="inline-flex items-center gap-1 text-[10.5px] text-mute hover:text-terracotta font-semibold mb-5"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           {dog.name}
@@ -101,7 +101,7 @@ export default async function SimulatePage({ params }: { params: Params }) {
       <div className="px-5 py-10 max-w-xl">
         <Link
           href={`/dogs/${dogId}`}
-          className="inline-flex items-center gap-1 text-[11px] text-mute hover:text-terracotta font-semibold mb-5"
+          className="inline-flex items-center gap-1 text-[10.5px] text-mute hover:text-terracotta font-semibold mb-5"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           {dog.name}
@@ -138,7 +138,7 @@ export default async function SimulatePage({ params }: { params: Params }) {
     <div className="px-5 py-5 max-w-3xl mx-auto">
       <Link
         href={`/dogs/${dogId}`}
-        className="inline-flex items-center gap-1 text-[11px] text-mute hover:text-terracotta font-semibold mb-4"
+        className="inline-flex items-center gap-1 text-[10.5px] text-mute hover:text-terracotta font-semibold mb-4"
       >
         <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
         {dog.name}

@@ -189,7 +189,7 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="w-full rounded border border-rule bg-bg-3 py-3 inline-flex items-center justify-center gap-2 text-[13px] font-bold text-text active:scale-[0.99] transition"
+          className="w-full rounded border border-rule bg-bg-3 py-3 inline-flex items-center justify-center gap-2 text-[13.5px] font-bold text-text active:scale-[0.99] transition"
         >
           <Plus className="w-4 h-4" strokeWidth={2.5} />
           지출 추가
@@ -228,7 +228,7 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
                     >
                       {formatKRW(r.amount)}
                     </p>
-                    <p className="text-[11px] text-muted">
+                    <p className="text-[10.5px] text-muted">
                       {meta.label} · {r.date}
                       {r.memo && ` · ${r.memo}`}
                     </p>
@@ -252,7 +252,7 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
         <Modal.Body>
           <div className="space-y-3">
             <div>
-              <label className="block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
+              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
                 카테고리 *
               </label>
               <Select
@@ -265,7 +265,7 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
               />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
+              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
                 금액 (원) *
               </label>
               <input
@@ -274,11 +274,11 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="예: 35000"
-                className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
+                className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
+              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
                 날짜 *
               </label>
               <DatePicker
@@ -287,7 +287,7 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
               />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
+              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
                 메모
               </label>
               <input
@@ -295,7 +295,7 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
                 placeholder="예: 대형병원 정기검진"
-                className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
+                className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
               />
             </div>
           </div>

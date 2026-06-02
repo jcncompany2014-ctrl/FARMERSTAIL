@@ -77,7 +77,7 @@ export default async function ReportsPage() {
       <div className="px-5 pt-6 pb-2">
         <Link
           href="/dashboard"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           홈
@@ -129,7 +129,7 @@ export default async function ReportsPage() {
                 {value}
               </p>
               <p
-                className="text-[10px] uppercase tracking-widest mt-0.5"
+                className="text-[10.5px] uppercase tracking-widest mt-0.5"
                 style={{ color: tone }}
               >
                 {label}
@@ -159,7 +159,7 @@ export default async function ReportsPage() {
                 >
                   {d.name}의 연간 리뷰 →
                 </p>
-                <p className="text-[11px] text-muted mt-0.5">
+                <p className="text-[10.5px] text-muted mt-0.5">
                   지난 1년간의 성장, 변화, 감동 순간들
                 </p>
               </Link>

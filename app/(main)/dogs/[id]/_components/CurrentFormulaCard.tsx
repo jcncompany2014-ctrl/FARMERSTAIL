@@ -97,7 +97,7 @@ export default function CurrentFormulaCard({
             </Link>
             <Link
               href={`/dogs/${dogId}/analysis`}
-              className="text-[11px] font-bold text-terracotta hover:underline"
+              className="text-[10.5px] font-bold text-terracotta hover:underline"
             >
               상세 →
             </Link>
@@ -134,14 +134,14 @@ export default function CurrentFormulaCard({
         {isPending ? (
           <Link
             href={`/dogs/${dogId}/approve?cycle=${formula.cycle_number}`}
-            className="block w-full py-3 px-4 rounded bg-terracotta text-white text-[12.5px] font-bold text-center transition-transform active:scale-[0.98]"
+            className="block w-full py-3 px-4 rounded bg-terracotta text-white text-[12px] font-bold text-center transition-transform active:scale-[0.98]"
           >
             새 비율 확인하기 →
           </Link>
         ) : (
           <div className="space-y-1.5">
             {daysIntoCycle !== null && daysToEnd !== null && (
-              <div className="flex items-center justify-between text-[11px] py-1.5 px-3 rounded-lg bg-bg">
+              <div className="flex items-center justify-between text-[10.5px] py-1.5 px-3 rounded-lg bg-bg">
                 <span className="text-muted">
                   cycle {formula.cycle_number} 진행
                 </span>
@@ -153,7 +153,7 @@ export default function CurrentFormulaCard({
             {week2DueIn !== null && week2DueIn >= -3 && week2DueIn <= 7 && (
               <Link
                 href={`/dogs/${dogId}/checkin?cycle=${formula.cycle_number}&checkpoint=week_2`}
-                className="flex items-center justify-between text-[11.5px] py-2 px-3 rounded-lg bg-moss/8 hover:bg-moss/14 transition-colors"
+                className="flex items-center justify-between text-[12px] py-2 px-3 rounded-lg bg-moss/8 hover:bg-moss/14 transition-colors"
               >
                 <span className="font-bold text-moss inline-flex items-center gap-1.5">
                   <Bell className="w-3 h-3" strokeWidth={2.5} />
@@ -172,7 +172,7 @@ export default function CurrentFormulaCard({
             {week4DueIn !== null && week4DueIn >= -3 && week4DueIn <= 7 && (
               <Link
                 href={`/dogs/${dogId}/checkin?cycle=${formula.cycle_number}&checkpoint=week_4`}
-                className="flex items-center justify-between text-[11.5px] py-2 px-3 rounded-lg bg-terracotta/8 hover:bg-terracotta/14 transition-colors"
+                className="flex items-center justify-between text-[12px] py-2 px-3 rounded-lg bg-terracotta/8 hover:bg-terracotta/14 transition-colors"
               >
                 <span className="font-bold text-terracotta inline-flex items-center gap-1.5">
                   <Bell className="w-3 h-3" strokeWidth={2.5} />

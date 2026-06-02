@@ -65,7 +65,7 @@ interface SelectProps
 }
 
 // inputCls (form input) 와 동일 padding/font 로 맞춰 form-row 에서 side-by-side
-// 정렬됨. md = "px-4 py-3 text-[13px]" 와 1:1.
+// 정렬됨. md = "px-4 py-3 text-[13.5px]" 와 1:1.
 const sizePadding: Record<NonNullable<SelectProps['sizeVariant']>, string> = {
   sm: '6px 32px 6px 12px',
   md: '12px 40px 12px 16px',

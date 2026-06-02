@@ -115,7 +115,7 @@ export default function PreferencesPanel() {
                 </button>
                 <div className="flex-1">
                   <p className="text-[12px] font-bold text-text">{c.label}</p>
-                  <p className="text-[10px] text-muted mt-0.5 leading-relaxed">
+                  <p className="text-[10.5px] text-muted mt-0.5 leading-relaxed">
                     {c.hint}
                   </p>
                 </div>
@@ -130,7 +130,7 @@ export default function PreferencesPanel() {
           <Moon className="w-3.5 h-3.5 text-muted" strokeWidth={2} />
           <span className="kicker kicker-muted">Quiet hours</span>
         </div>
-        <p className="text-[10px] text-muted mt-1.5 leading-relaxed">
+        <p className="text-[10.5px] text-muted mt-1.5 leading-relaxed">
           이 시간대에는 푸시가 울리지 않아요. 한국 시간 기준이에요.
         </p>
         <div className="mt-3 flex items-center gap-2">
@@ -148,7 +148,7 @@ export default function PreferencesPanel() {
               }
               className="accent-moss"
             />
-            <span className="text-[11px] font-bold text-text">사용</span>
+            <span className="text-[10.5px] font-bold text-text">사용</span>
           </label>
           {quietOn && (
             <>
@@ -156,7 +156,7 @@ export default function PreferencesPanel() {
                 aria-label="시작 시각"
                 value={prefs.quiet_hours_start ?? 22}
                 onChange={(e) => patch({ quiet_hours_start: Number(e.target.value) }, 'quiet')}
-                className="px-2 py-1 rounded bg-bg-3 border border-rule text-[11px] font-bold text-text"
+                className="px-2 py-1 rounded bg-bg-3 border border-rule text-[10.5px] font-bold text-text"
               >
                 {Array.from({ length: 24 }).map((_, i) => (
                   <option key={i} value={i}>
@@ -164,12 +164,12 @@ export default function PreferencesPanel() {
                   </option>
                 ))}
               </select>
-              <span className="text-[10px] text-muted">부터</span>
+              <span className="text-[10.5px] text-muted">부터</span>
               <select
                 aria-label="종료 시각"
                 value={prefs.quiet_hours_end ?? 8}
                 onChange={(e) => patch({ quiet_hours_end: Number(e.target.value) }, 'quiet')}
-                className="px-2 py-1 rounded bg-bg-3 border border-rule text-[11px] font-bold text-text"
+                className="px-2 py-1 rounded bg-bg-3 border border-rule text-[10.5px] font-bold text-text"
               >
                 {Array.from({ length: 24 }).map((_, i) => (
                   <option key={i} value={i}>
@@ -177,14 +177,14 @@ export default function PreferencesPanel() {
                   </option>
                 ))}
               </select>
-              <span className="text-[10px] text-muted">까지</span>
+              <span className="text-[10.5px] text-muted">까지</span>
             </>
           )}
         </div>
       </div>
 
       {error && (
-        <p className="text-[11px] font-bold text-sale">{error}</p>
+        <p className="text-[10.5px] font-bold text-sale">{error}</p>
       )}
     </div>
   )

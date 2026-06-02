@@ -158,7 +158,7 @@ export default async function YearInReviewPage({
           >
             아직 한 해가 안 됐어요
           </h1>
-          <p className="mt-2 text-[12.5px] leading-relaxed text-text/70">
+          <p className="mt-2 text-[12px] leading-relaxed text-text/70">
             {dogRow.name}와 함께한 시간이 {daysIn}일이에요.
             <br />
             조금만 더 모이면 한 해 회고를 볼 수 있어요.
@@ -203,7 +203,7 @@ export default async function YearInReviewPage({
         >
           {dogRow.name}와 함께한 {daysIn}일
         </h1>
-        <p className="mt-2 text-[13px] leading-relaxed text-text/80">
+        <p className="mt-2 text-[13.5px] leading-relaxed text-text/80">
           정성껏 챙겨주셔서 고마워요. 한 해를 짧게 돌아볼게요.
         </p>
       </section>
@@ -320,7 +320,7 @@ export default async function YearInReviewPage({
           >
             한 해 동안 정성껏 챙겨주셔서 고마워요
           </p>
-          <p className="mt-1.5 text-[12.5px] leading-relaxed text-text/75">
+          <p className="mt-1.5 text-[12px] leading-relaxed text-text/75">
             {dogRow.name}의 작은 변화 하나하나가 모여 이번 회고가 됐어요.
             다음 한 해도 천천히, 함께 가요.
           </p>

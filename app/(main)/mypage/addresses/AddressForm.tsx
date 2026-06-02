@@ -104,7 +104,7 @@ export default function AddressForm({ mode, initial }: Props) {
       <section className="px-5 pt-6 pb-2">
         <Link
           href="/mypage/addresses"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← 배송지 관리
         </Link>
@@ -281,7 +281,7 @@ function Field({
   return (
     <div>
       <label
-        className="block text-[11px] font-bold mb-1.5"
+        className="block text-[10.5px] font-bold mb-1.5"
         style={{ color: 'var(--text)' }}
       >
         {label}

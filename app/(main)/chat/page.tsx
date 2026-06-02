@@ -36,7 +36,7 @@ export default async function ChatPage() {
       <section className="px-5 pt-6 pb-3">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-terracotta font-semibold"
+          className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-terracotta font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           홈

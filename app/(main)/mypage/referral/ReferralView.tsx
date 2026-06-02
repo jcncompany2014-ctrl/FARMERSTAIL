@@ -175,7 +175,7 @@ export default function ReferralView({
       <section className="px-5 pt-6 pb-3">
         <Link
           href="/mypage"
-          className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-terracotta font-semibold"
+          className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-terracotta font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           내 정보
@@ -232,7 +232,7 @@ export default function ReferralView({
                 className="rounded px-3.5 py-3"
                 style={{ background: 'rgba(255,255,255,0.12)' }}
               >
-                <div className="text-[10px] text-white/70 font-bold uppercase tracking-widest">
+                <div className="text-[10.5px] text-white/70 font-bold uppercase tracking-widest">
                   초대한 친구
                 </div>
                 <div className="mt-1 flex items-baseline gap-0.5">
@@ -242,14 +242,14 @@ export default function ReferralView({
                   >
                     {referredCount}
                   </span>
-                  <span className="text-[11px] text-white/80">명</span>
+                  <span className="text-[10.5px] text-white/80">명</span>
                 </div>
               </div>
               <div
                 className="rounded px-3.5 py-3"
                 style={{ background: 'rgba(255,255,255,0.12)' }}
               >
-                <div className="text-[10px] text-white/70 font-bold uppercase tracking-widest">
+                <div className="text-[10.5px] text-white/70 font-bold uppercase tracking-widest">
                   누적 적립
                 </div>
                 <div className="mt-1 flex items-baseline gap-0.5">
@@ -259,7 +259,7 @@ export default function ReferralView({
                   >
                     {totalEarned.toLocaleString()}
                   </span>
-                  <span className="text-[11px] text-white/80">P</span>
+                  <span className="text-[10.5px] text-white/80">P</span>
                 </div>
               </div>
             </div>
@@ -268,7 +268,7 @@ export default function ReferralView({
             <button
               type="button"
               onClick={share}
-              className="mt-5 w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-full text-[14px] font-black active:scale-[0.98] transition"
+              className="mt-5 w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-full text-[13.5px] font-black active:scale-[0.98] transition"
               style={{
                 background: 'white',
                 color: 'var(--terracotta)',
@@ -302,7 +302,7 @@ export default function ReferralView({
                 />
               </div>
               <div className="text-left min-w-0">
-                <div className="text-[10px] text-muted font-bold uppercase tracking-widest">
+                <div className="text-[10.5px] text-muted font-bold uppercase tracking-widest">
                   내 코드
                 </div>
                 <div
@@ -347,10 +347,10 @@ export default function ReferralView({
             className="w-full flex items-center justify-between px-4 py-3 hover:bg-bg transition"
           >
             <div className="text-left min-w-0 flex-1 pr-3">
-              <div className="text-[10px] text-muted font-bold uppercase tracking-widest">
+              <div className="text-[10.5px] text-muted font-bold uppercase tracking-widest">
                 초대 링크
               </div>
-              <div className="text-[11.5px] text-text/80 truncate font-mono">
+              <div className="text-[12px] text-text/80 truncate font-mono">
                 {shareUrl}
               </div>
             </div>
@@ -403,12 +403,12 @@ export default function ReferralView({
                   className="w-3.5 h-3.5 text-terracotta"
                   strokeWidth={2}
                 />
-                <span className="text-[11.5px] font-bold text-text">
+                <span className="text-[12px] font-bold text-text">
                   다음 보상까지 {nextMilestone.count - referredCount}명
                 </span>
               </div>
               <span
-                className="text-[10px] font-bold"
+                className="text-[10.5px] font-bold"
                 style={{ color: 'var(--terracotta)' }}
               >
                 {nextMilestone.reward}
@@ -475,7 +475,7 @@ export default function ReferralView({
                   </div>
                 </div>
                 <span
-                  className="text-[11px] font-bold"
+                  className="text-[10.5px] font-bold"
                   style={{ color: reached ? 'var(--moss)' : 'var(--text)' }}
                 >
                   {m.reward}
@@ -500,7 +500,7 @@ export default function ReferralView({
             />
             <span className="kicker">Share</span>
           </div>
-          <p className="text-[11px] text-muted leading-relaxed mb-3">
+          <p className="text-[10.5px] text-muted leading-relaxed mb-3">
             강아지 사진 + 한마디 + 추천 코드를 한 묶음으로. 신뢰감 ↑
           </p>
           <ul className="space-y-2">
@@ -527,7 +527,7 @@ export default function ReferralView({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-bold text-text">
+                    <div className="text-[13.5px] font-bold text-text">
                       {d.name}로 공유하기
                     </div>
                     <div className="text-[10.5px] text-muted mt-0.5">
@@ -551,11 +551,11 @@ export default function ReferralView({
           <div className="bg-bg-3 rounded border border-rule px-5 py-5">
             <div className="flex items-center gap-2 mb-2">
               <Gift className="w-4 h-4 text-terracotta" strokeWidth={2} />
-              <h2 className="text-[13px] font-black text-text">
+              <h2 className="text-[13.5px] font-black text-text">
                 받은 초대 코드가 있나요?
               </h2>
             </div>
-            <p className="text-[11px] text-muted leading-relaxed mb-3">
+            <p className="text-[10.5px] text-muted leading-relaxed mb-3">
               친구에게 받은 코드를 입력하면 3,000P가 즉시 적립돼요.
             </p>
             <form onSubmit={handleRedeem} className="flex items-stretch gap-2">
@@ -570,7 +570,7 @@ export default function ReferralView({
                 autoComplete="off"
                 autoCapitalize="characters"
                 spellCheck={false}
-                className="flex-1 px-3 py-2.5 rounded-lg bg-bg border border-rule text-[13px] font-mono font-bold tracking-widest text-text placeholder:text-muted/55 placeholder:font-normal placeholder:tracking-normal focus:outline-none focus:border-terracotta"
+                className="flex-1 px-3 py-2.5 rounded-lg bg-bg border border-rule text-[13.5px] font-mono font-bold tracking-widest text-text placeholder:text-muted/55 placeholder:font-normal placeholder:tracking-normal focus:outline-none focus:border-terracotta"
                 aria-label="초대 코드"
               />
               <button
@@ -584,7 +584,7 @@ export default function ReferralView({
             </form>
             {redeemMsg && (
               <div
-                className={`mt-3 text-[11px] font-semibold rounded-lg px-3 py-2 ${
+                className={`mt-3 text-[10.5px] font-semibold rounded-lg px-3 py-2 ${
                   redeemMsg.kind === 'ok'
                     ? 'bg-moss/10 text-moss'
                     : 'bg-sale/8 text-sale'
@@ -604,7 +604,7 @@ export default function ReferralView({
             <Users className="w-4 h-4 text-moss" strokeWidth={2} />
             <span className="kicker">Friends</span>
           </div>
-          <span className="text-[11px] text-muted font-bold">
+          <span className="text-[10.5px] text-muted font-bold">
             {referredCount}명
           </span>
         </div>
@@ -660,13 +660,13 @@ export default function ReferralView({
                     <div className="text-[12px] font-bold text-text">
                       함께한 친구 #{r.referee_id.slice(0, 4).toUpperCase()}
                     </div>
-                    <div className="text-[10px] text-muted mt-0.5">
+                    <div className="text-[10.5px] text-muted mt-0.5">
                       {formatDate(r.redeemed_at)} 가입
                     </div>
                   </div>
                 </div>
                 <span
-                  className="text-[11px] font-bold"
+                  className="text-[10.5px] font-bold"
                   style={{ color: 'var(--moss)' }}
                 >
                   +3,000P
@@ -701,7 +701,7 @@ export default function ReferralView({
               3,000P 즉시 지급
             </li>
           </ol>
-          <p className="text-[10px] text-muted mt-2 leading-relaxed">
+          <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
             ※ 가입 시 링크로 진입하면 자동 적용돼요. 단계별 보상은 추후 정밀화.
           </p>
         </div>

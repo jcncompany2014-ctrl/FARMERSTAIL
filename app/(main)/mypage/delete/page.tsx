@@ -56,7 +56,7 @@ export default async function DeleteAccountPage() {
       <section className="px-5 pt-6 pb-2">
         <Link
           href="/mypage"
-          className="text-[11px] text-muted hover:text-terracotta font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta font-semibold"
         >
           ← 내 정보
         </Link>
@@ -95,10 +95,10 @@ export default async function DeleteAccountPage() {
                 strokeWidth={2.25}
               />
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold text-sale">
+                <p className="text-[13.5px] font-bold text-sale">
                   진행 중인 주문이 있어요
                 </p>
-                <p className="text-[11px] text-text mt-1 leading-relaxed">
+                <p className="text-[10.5px] text-text mt-1 leading-relaxed">
                   배송이 진행 중인 주문이 있으면 탈퇴할 수 없어요. 배송
                   완료 후 다시 시도해 주세요.
                 </p>
@@ -106,7 +106,7 @@ export default async function DeleteAccountPage() {
                   {(openOrders ?? []).map((o) => (
                     <li
                       key={o.id}
-                      className="text-[11px] text-text font-mono"
+                      className="text-[10.5px] text-text font-mono"
                     >
                       • {o.order_number} ·{' '}
                       <span className="text-muted">
@@ -117,7 +117,7 @@ export default async function DeleteAccountPage() {
                 </ul>
                 <Link
                   href="/mypage/orders"
-                  className="inline-block mt-3 text-[11px] font-bold text-terracotta hover:underline"
+                  className="inline-block mt-3 text-[10.5px] font-bold text-terracotta hover:underline"
                 >
                   주문 내역 보기 →
                 </Link>
@@ -179,7 +179,7 @@ export default async function DeleteAccountPage() {
         <section className="px-5 mt-4">
           <Link
             href="/mypage"
-            className="block text-center py-3 rounded-full bg-bg-3 border border-rule text-[13px] font-bold text-text hover:bg-bg transition"
+            className="block text-center py-3 rounded-full bg-bg-3 border border-rule text-[13.5px] font-bold text-text hover:bg-bg transition"
           >
             돌아가기
           </Link>

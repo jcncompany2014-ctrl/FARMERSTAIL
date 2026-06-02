@@ -86,7 +86,7 @@ export default async function SearchPage({
       <div className="px-5 pt-6 pb-2">
         <Link
           href="/dashboard"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           홈
@@ -122,7 +122,7 @@ export default async function SearchPage({
               placeholder="강아지 이름, 다이어리 내용..."
               autoComplete="off"
               autoCapitalize="off"
-              className="flex-1 bg-transparent text-[13px] text-text placeholder:text-muted focus:outline-none"
+              className="flex-1 bg-transparent text-[13.5px] text-text placeholder:text-muted focus:outline-none"
             />
           </label>
         </form>
@@ -179,7 +179,7 @@ export default async function SearchPage({
           <section className="px-5 mt-4">
             <h2 className="kicker mb-2">강아지 · {dogs.length}건</h2>
             {dogs.length === 0 ? (
-              <p className="text-[11px] text-muted">결과가 없어요</p>
+              <p className="text-[10.5px] text-muted">결과가 없어요</p>
             ) : (
               <div className="space-y-2">
                 {dogs.map((d) => (
@@ -204,7 +204,7 @@ export default async function SearchPage({
                         {d.name}
                       </p>
                       {d.breed && (
-                        <p className="text-[11px] text-muted">{d.breed}</p>
+                        <p className="text-[10.5px] text-muted">{d.breed}</p>
                       )}
                     </div>
                   </Link>
@@ -216,7 +216,7 @@ export default async function SearchPage({
           <section className="px-5 mt-4">
             <h2 className="kicker mb-2">상품 · {products.length}건</h2>
             {products.length === 0 ? (
-              <p className="text-[11px] text-muted">결과가 없어요</p>
+              <p className="text-[10.5px] text-muted">결과가 없어요</p>
             ) : (
               <div className="space-y-2">
                 {products.map((p) => (
@@ -241,7 +241,7 @@ export default async function SearchPage({
                         {p.name}
                       </p>
                       {p.short_description && (
-                        <p className="text-[11px] text-muted line-clamp-1">
+                        <p className="text-[10.5px] text-muted line-clamp-1">
                           {p.short_description}
                         </p>
                       )}
@@ -255,7 +255,7 @@ export default async function SearchPage({
           <section className="px-5 mt-4">
             <h2 className="kicker mb-2">다이어리 · {diary.length}건</h2>
             {diary.length === 0 ? (
-              <p className="text-[11px] text-muted">결과가 없어요</p>
+              <p className="text-[10.5px] text-muted">결과가 없어요</p>
             ) : (
               <div className="space-y-2">
                 {diary.map((j) => (

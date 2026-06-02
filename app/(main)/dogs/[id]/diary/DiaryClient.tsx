@@ -204,7 +204,7 @@ export default function DiaryClient({
       <section className="pt-6 pb-2">
         <Link
           href={`/dogs/${dogId}`}
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← {dogName}
         </Link>
@@ -327,7 +327,7 @@ export default function DiaryClient({
                   </button>
                 </div>
                 {entry.note && (
-                  <p className="text-[13px] text-text leading-relaxed whitespace-pre-line">
+                  <p className="text-[13.5px] text-text leading-relaxed whitespace-pre-line">
                     {entry.note}
                   </p>
                 )}
@@ -392,7 +392,7 @@ export default function DiaryClient({
                     <button
                       type="button"
                       onClick={() => removeDraftFile(i)}
-                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-ink/70 text-white flex items-center justify-center text-[10px]"
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-ink/70 text-white flex items-center justify-center text-[10.5px]"
                       aria-label="제거"
                     >
                       ×
@@ -416,22 +416,22 @@ export default function DiaryClient({
 
             {/* 메모 */}
             <div className="mb-4">
-              <label className="text-[11px] font-bold text-text">메모</label>
+              <label className="text-[10.5px] font-bold text-text">메모</label>
               <textarea
                 value={draftNote}
                 onChange={(e) => setDraftNote(e.target.value.slice(0, 200))}
                 rows={3}
                 placeholder="오늘 특별한 일이 있었나요?"
-                className="mt-1 w-full px-3 py-2.5 rounded-lg border border-rule bg-bg text-[13px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta resize-none"
+                className="mt-1 w-full px-3 py-2.5 rounded-lg border border-rule bg-bg text-[13.5px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta resize-none"
               />
-              <div className="text-right text-[10px] text-muted mt-1">
+              <div className="text-right text-[10.5px] text-muted mt-1">
                 {draftNote.length}/200
               </div>
             </div>
 
             {/* 기분 */}
             <div className="mb-5">
-              <label className="text-[11px] font-bold text-text">오늘 기분</label>
+              <label className="text-[10.5px] font-bold text-text">오늘 기분</label>
               <div className="mt-2 flex gap-1.5">
                 {MOODS.map(({ Icon, label }, i) => {
                   const score = i + 1
@@ -466,7 +466,7 @@ export default function DiaryClient({
               type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="w-full py-3 rounded-full text-[13px] font-bold transition active:scale-[0.98] disabled:opacity-50"
+              className="w-full py-3 rounded-full text-[13.5px] font-bold transition active:scale-[0.98] disabled:opacity-50"
               style={{ background: 'var(--ink)', color: 'var(--bg)' }}
             >
               {submitting ? (
@@ -529,7 +529,7 @@ function PhotoGrid({ urls }: { urls: string[] }) {
             className="object-cover"
           />
           {i === 2 && urls.length > 3 && (
-            <div className="absolute inset-0 bg-ink/50 flex items-center justify-center text-white font-bold text-[14px]">
+            <div className="absolute inset-0 bg-ink/50 flex items-center justify-center text-white font-bold text-[13.5px]">
               +{urls.length - 3}
             </div>
           )}

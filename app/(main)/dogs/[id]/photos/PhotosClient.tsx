@@ -157,7 +157,7 @@ export default function PhotosClient({
         >
           진행 사진
         </h1>
-        <p className="mt-1 text-[12.5px] text-muted leading-relaxed">
+        <p className="mt-1 text-[12px] text-muted leading-relaxed">
           {dogName ?? '강아지'}의 시계열 사진을 자율로 기록해요. 같은
           각도로 찍으면 변화가 더 잘 보여요.
         </p>
@@ -190,17 +190,17 @@ export default function PhotosClient({
           </div>
 
           {/* 날짜 + 메모 */}
-          <label className="block text-[11px] font-bold text-muted mb-1">
+          <label className="block text-[10.5px] font-bold text-muted mb-1">
             촬영일
           </label>
           <input
             type="date"
             value={takenAt}
             onChange={(e) => setTakenAt(e.target.value)}
-            className="w-full rounded border px-3 py-2 text-[14px]"
+            className="w-full rounded border px-3 py-2 text-[13.5px]"
             style={{ borderColor: 'var(--rule)' }}
           />
-          <label className="block text-[11px] font-bold text-muted mt-3 mb-1">
+          <label className="block text-[10.5px] font-bold text-muted mt-3 mb-1">
             메모 (선택)
           </label>
           <input
@@ -209,13 +209,13 @@ export default function PhotosClient({
             onChange={(e) => setNote(e.target.value)}
             placeholder="예: 산책 후 / 체중 6.2kg / 털 자른 후"
             maxLength={500}
-            className="w-full rounded border px-3 py-2 text-[14px]"
+            className="w-full rounded border px-3 py-2 text-[13.5px]"
             style={{ borderColor: 'var(--rule)' }}
           />
 
           {/* 업로드 버튼 (input file 트리거) */}
           <label
-            className={`mt-4 flex items-center justify-center gap-2 w-full rounded py-3 text-[14px] font-bold cursor-pointer transition ${
+            className={`mt-4 flex items-center justify-center gap-2 w-full rounded py-3 text-[13.5px] font-bold cursor-pointer transition ${
               uploading
                 ? 'bg-bg text-muted'
                 : 'bg-terracotta text-white active:scale-[0.99]'
@@ -279,7 +279,7 @@ export default function PhotosClient({
                 style={{ color: 'var(--muted)' }}
                 aria-hidden
               />
-              <p className="mt-2 text-[13px] text-muted">
+              <p className="mt-2 text-[13.5px] text-muted">
                 아직 사진이 없어요. 첫 사진을 올려보세요.
               </p>
             </div>
@@ -311,7 +311,7 @@ export default function PhotosClient({
           )}
           {photos.length > 0 && (
             <p
-              className="mt-2 text-[11px] tabular-nums"
+              className="mt-2 text-[10.5px] tabular-nums"
               style={{ color: 'var(--muted)' }}
             >
               총 {photos.length}장

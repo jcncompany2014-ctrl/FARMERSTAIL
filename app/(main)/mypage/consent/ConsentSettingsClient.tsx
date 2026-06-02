@@ -125,7 +125,7 @@ export default function ConsentSettingsClient({
       <section className="px-5 pt-6 pb-2">
         <Link
           href="/mypage"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← 마이페이지
         </Link>
@@ -141,7 +141,7 @@ export default function ConsentSettingsClient({
         >
           광고·마케팅 수신 설정
         </h1>
-        <p className="text-[11px] text-muted mt-1 leading-relaxed">
+        <p className="text-[10.5px] text-muted mt-1 leading-relaxed">
           혜택·이벤트 안내 수신 여부를 채널별로 관리할 수 있어요.
           <br />
           주문/배송/환불 등 거래 정보 안내는 이 설정과 무관하게 전송됩니다.
@@ -191,7 +191,7 @@ export default function ConsentSettingsClient({
         </div>
         {hist.length === 0 ? (
           <div className="bg-bg-3 rounded border border-dashed border-rule-2 p-6 text-center">
-            <p className="text-[11px] text-muted">변경 이력이 없어요.</p>
+            <p className="text-[10.5px] text-muted">변경 이력이 없어요.</p>
           </div>
         ) : (
           <ul className="space-y-2">
@@ -208,17 +208,17 @@ export default function ConsentSettingsClient({
                   {h.granted ? (
                     <Check className="w-3 h-3 text-moss" strokeWidth={3} />
                   ) : (
-                    <span className="text-muted text-[10px] font-black">
+                    <span className="text-muted text-[10.5px] font-black">
                       ✕
                     </span>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11.5px] font-bold text-text">
+                  <p className="text-[12px] font-bold text-text">
                     {CONSENT_LABEL[h.channel]}{' '}
                     {h.granted ? '동의' : '철회'}
                   </p>
-                  <p className="text-[10px] text-muted mt-0.5">
+                  <p className="text-[10.5px] text-muted mt-0.5">
                     {new Date(h.granted_at).toLocaleString('ko-KR')}
                     {h.policy_version ? ` · ${h.policy_version}` : ''}
                     {h.source ? ` · ${h.source}` : ''}
@@ -228,7 +228,7 @@ export default function ConsentSettingsClient({
             ))}
           </ul>
         )}
-        <p className="text-[10px] text-muted mt-3 leading-relaxed">
+        <p className="text-[10.5px] text-muted mt-3 leading-relaxed">
           수신동의는 언제든 철회할 수 있으며, 철회 즉시 해당 채널의 광고·마케팅
           정보 발송이 중단됩니다.
         </p>
@@ -263,8 +263,8 @@ function ConsentRow({
           {icon}
         </div>
         <div className="flex-1">
-          <p className="text-[13px] font-black text-text">{label}</p>
-          <p className="text-[10px] text-muted mt-0.5 leading-relaxed">
+          <p className="text-[13.5px] font-black text-text">{label}</p>
+          <p className="text-[10.5px] text-muted mt-0.5 leading-relaxed">
             {on && at
               ? `${new Date(at).toLocaleDateString('ko-KR')} 동의`
               : '현재 미동의'}

@@ -91,7 +91,7 @@ export default async function IntegrationsPage({
           외부 서비스 연동
         </h1>
         <p
-          className="mt-2 text-[13px] leading-relaxed"
+          className="mt-2 text-[13.5px] leading-relaxed"
           style={{ color: 'var(--muted)' }}
         >
           만보계나 GPS tracker 를 연동하면 활동량을 자동으로 추적해 더
@@ -152,7 +152,7 @@ export default async function IntegrationsPage({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span
-                  className="text-[14px] font-bold"
+                  className="text-[13.5px] font-bold"
                   style={{ color: 'var(--ink)' }}
                 >
                   {TRACTIVE_LABEL}

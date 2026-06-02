@@ -53,7 +53,7 @@ export default function AppError({
           문제가 생겼어요
         </h1>
         <p
-          className="text-[12.5px] leading-relaxed mb-6"
+          className="text-[12px] leading-relaxed mb-6"
           style={{ color: 'var(--muted)' }}
         >
           잠시 후 다시 시도해 주세요. 문제가 계속되면 아래 ‘홈으로’ 를 눌러
@@ -61,7 +61,7 @@ export default function AppError({
         </p>
         {error.digest && (
           <p
-            className="text-[10px] font-mono mb-5"
+            className="text-[10.5px] font-mono mb-5"
             style={{ color: 'var(--muted)', opacity: 0.6 }}
           >
             ref: {error.digest}
@@ -71,7 +71,7 @@ export default function AppError({
           <button
             type="button"
             onClick={reset}
-            className="inline-flex items-center justify-center gap-1.5 w-full py-3 rounded-full font-bold text-[13px] transition active:scale-[0.97]"
+            className="inline-flex items-center justify-center gap-1.5 w-full py-3 rounded-full font-bold text-[13.5px] transition active:scale-[0.97]"
             style={{
               background: 'var(--ink)',
               color: 'var(--bg)',
@@ -83,7 +83,7 @@ export default function AppError({
           </button>
           <Link
             href="/dashboard"
-            className="inline-flex items-center justify-center w-full py-3 rounded-full font-bold text-[12.5px] transition active:scale-[0.97]"
+            className="inline-flex items-center justify-center w-full py-3 rounded-full font-bold text-[12px] transition active:scale-[0.97]"
             style={{
               background: 'transparent',
               color: 'var(--ink)',

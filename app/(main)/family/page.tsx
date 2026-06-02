@@ -81,7 +81,7 @@ export default async function FamilyPage() {
       <div className="px-5 pt-6 pb-2">
         <Link
           href="/mypage"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           내 정보
@@ -130,7 +130,7 @@ export default async function FamilyPage() {
                 </span>
               </p>
               {profile?.email && (
-                <p className="text-[11px] text-muted mt-0.5">
+                <p className="text-[10.5px] text-muted mt-0.5">
                   {profile.email as string}
                 </p>
               )}
@@ -207,13 +207,13 @@ export default async function FamilyPage() {
                           {inv.email}
                         </p>
                         <span
-                          className="text-[10px] font-bold uppercase tracking-widest shrink-0"
+                          className="text-[10.5px] font-bold uppercase tracking-widest shrink-0"
                           style={{ color: status.tone }}
                         >
                           {status.label}
                         </span>
                       </div>
-                      <p className="text-[11px] text-muted mt-0.5">
+                      <p className="text-[10.5px] text-muted mt-0.5">
                         {dogNames[inv.dog_id] ?? '강아지'} ·{' '}
                         {inv.role === 'viewer' ? '뷰어' : '공동 보호자'} ·{' '}
                         {new Date(inv.created_at).toLocaleDateString('ko-KR')}
@@ -228,7 +228,7 @@ export default async function FamilyPage() {
       )}
 
       <section className="px-5 mt-6">
-        <p className="text-[11px] text-muted leading-relaxed">
+        <p className="text-[10.5px] text-muted leading-relaxed">
           가족 초대 시 견 정보 공유 + 활동 기록 가시화. 역할별 권한은
           확장 중 — 현재는 조회 위주.
         </p>

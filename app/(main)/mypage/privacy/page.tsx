@@ -103,7 +103,7 @@ export default async function PrivacyDashboardPage() {
         내 데이터 한눈에
       </h1>
       <p
-        className="text-[12.5px] mt-2 leading-relaxed"
+        className="text-[12px] mt-2 leading-relaxed"
         style={{ color: 'var(--muted)' }}
       >
         개인정보보호법 제35조에 따라 회원님의 개인정보 처리 현황을 열람·다운로드·
@@ -156,7 +156,7 @@ export default async function PrivacyDashboardPage() {
         <a
           href="/api/privacy/export"
           download
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-ink text-white text-[12.5px] font-bold active:scale-[0.98] transition"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-ink text-white text-[12px] font-bold active:scale-[0.98] transition"
         >
           <Download className="w-3.5 h-3.5" strokeWidth={2.5} />
           JSON 파일 받기
@@ -184,10 +184,10 @@ export default async function PrivacyDashboardPage() {
                 href={link.href}
                 className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-bg hover:bg-bg-2 transition"
               >
-                <span className="text-[12.5px] font-bold text-text">
+                <span className="text-[12px] font-bold text-text">
                   {link.label}
                 </span>
-                <span className="text-[11px] text-muted">→</span>
+                <span className="text-[10.5px] text-muted">→</span>
               </Link>
             </li>
           ))}
@@ -211,7 +211,7 @@ export default async function PrivacyDashboardPage() {
         </p>
         <Link
           href="/mypage/delete"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-sale text-sale text-[12.5px] font-bold hover:bg-sale hover:text-white transition"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-sale text-sale text-[12px] font-bold hover:bg-sale hover:text-white transition"
         >
           탈퇴 절차로 이동
         </Link>
@@ -226,7 +226,7 @@ export default async function PrivacyDashboardPage() {
           DPO · 개인정보 보호책임자
         </p>
         <p
-          className="text-[12.5px] leading-relaxed"
+          className="text-[12px] leading-relaxed"
           style={{ color: 'var(--text)' }}
         >
           {business.privacyOfficer} ·{' '}

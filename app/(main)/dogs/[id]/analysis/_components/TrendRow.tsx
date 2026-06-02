@@ -65,7 +65,7 @@ export default function TrendRow({
           {label}
         </span>
         <span
-          className={`inline-flex items-center gap-0.5 text-[10px] font-bold ${dirColor}`}
+          className={`inline-flex items-center gap-0.5 text-[10.5px] font-bold ${dirColor}`}
         >
           <DirIcon className="w-3 h-3" strokeWidth={2.5} />
           {deltaSign}
@@ -111,7 +111,7 @@ export default function TrendRow({
             {labels[0]}
           </div>
           <div className="text-[9px] text-muted">↓</div>
-          <div className="text-[13px] font-black text-text">
+          <div className="text-[13.5px] font-black text-text">
             {format(last)}
           </div>
         </div>

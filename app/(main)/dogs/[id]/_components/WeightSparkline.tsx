@@ -9,7 +9,7 @@ export default function WeightSparkline({ logs }: { logs: WeightLog[] }) {
   if (series.length < 2) {
     return (
       <div className="h-16 flex items-center justify-center bg-bg rounded-lg">
-        <span className="text-[11px] text-muted">
+        <span className="text-[10.5px] text-muted">
           기록이 2개 이상 쌓이면 추이가 보여요
         </span>
       </div>

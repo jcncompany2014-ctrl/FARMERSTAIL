@@ -18,7 +18,7 @@ export default function Stat({
       <div className="text-[9px] text-muted font-semibold uppercase tracking-[0.2em]">
         {label}
       </div>
-      <div className="text-[13px] font-black text-text mt-0.5">
+      <div className="text-[13.5px] font-black text-text mt-0.5">
         {value}
       </div>
     </div>
