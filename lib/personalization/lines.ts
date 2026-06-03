@@ -5,8 +5,9 @@
  * 의 케어 목표 매핑만 손보면 됨. 실제 SKU (분량별 포장) 는 admin 이 별도로
  * products 테이블에 만들고, UI 가 line → SKU 조회.
  *
- * kcalPer100g 는 화식 5종 영양분석 보고서 v2 (2026-04) 의 이론값 평균.
- * 실제 batch 별 ±10% 변동 가능 — 박스 분량 산정 시 안전 마진 포함.
+ * kcalPer100g 는 최종 마스터 레시피 v2.1 (2026-06) sheet7 as-fed kcal/100g.
+ * 닭130·오리150·돼지140·소160. 실제 batch 별 ±10% 변동 — 안전 마진 포함.
+ * (skin=연어는 제품 보류 → 추천 게이트. 실데이터 확정 시 갱신.)
  */
 import type { FoodLineMeta } from './types.ts'
 
@@ -29,7 +30,7 @@ export const FOOD_LINE_META: Record<FoodLineMeta['line'], FoodLineMeta> = {
     // livetin/parvalbumin 공유). 차단은 안 하되 chip 으로 알림.
     crossReactWith: [],
     benefit: '균형 잡힌 기본식, 모든 단계 적합',
-    kcalPer100g: 215,
+    kcalPer100g: 130,
     proteinPctDM: 26,
     fatPctDM: 12,
     color: 'var(--terracotta)',
@@ -47,7 +48,7 @@ export const FOOD_LINE_META: Record<FoodLineMeta['line'], FoodLineMeta> = {
     blockingAllergies: ['오리'],
     crossReactWith: ['닭·칠면조'],
     benefit: '저칼로리 + 단호박, BCS 6+ 권장',
-    kcalPer100g: 175,
+    kcalPer100g: 150,
     proteinPctDM: 28,
     fatPctDM: 8,
     color: 'var(--moss)',
@@ -83,7 +84,7 @@ export const FOOD_LINE_META: Record<FoodLineMeta['line'], FoodLineMeta> = {
     // 소/양 BSA 부분 cross — 양고기 알레르기견은 소도 주의 (반대도).
     crossReactWith: ['양고기'],
     benefit: '헴 철분 + 아연, 활동량 많은 견',
-    kcalPer100g: 195,
+    kcalPer100g: 160,
     proteinPctDM: 30,
     fatPctDM: 15,
     color: '#9B5B5B',
@@ -96,7 +97,7 @@ export const FOOD_LINE_META: Record<FoodLineMeta['line'], FoodLineMeta> = {
     blockingAllergies: ['돼지고기'],
     crossReactWith: [],
     benefit: 'B1·콜린 풍부, 인지·관절 케어',
-    kcalPer100g: 200,
+    kcalPer100g: 140,
     proteinPctDM: 24,
     fatPctDM: 18,
     color: '#C97F8E',
@@ -179,10 +180,10 @@ export const PROTEIN_TO_LINE: Record<string, FoodLineMeta['line']> = {
 /**
  * 결정된 라인 mix 의 가중평균 kcal/100g 으로 일일 g 재계산.
  *
- * nutrition.ts 의 feed_g 는 평균 2.0 kcal/g 가정 — 실제 라인 mix 비율 따라
- * basic 2.15 / weight 1.75 / skin 2.25 / premium 1.95 / joint 2.0 가중평균
- * 적용해 정확도 ↑. compute API + nextBox + 분석 페이지 RecommendationBox
- * 모두 같은 룰로 통일.
+ * nutrition.ts 의 feed_g 는 평균 1.45 kcal/g 가정 — 실제 라인 mix 비율 따라
+ * basic 1.30 / weight 1.50 / joint 1.40 / premium 1.60 가중평균 (레시피 v2.1
+ * sheet7) 적용해 정확도 ↑. compute API + nextBox + 분석 페이지
+ * RecommendationBox 모두 같은 룰로 통일.
  */
 export function dailyGramsFromMix(
   lineRatios: Record<FoodLineMeta['line'], number>,
@@ -200,9 +201,9 @@ export function dailyGramsFromMix(
     total += (ratio * dailyKcal) / kcal100 * 100
   }
   // audit #30: 모든 라인 0 (호출처가 normalize 안 통과) 시 silent 0 반환 위험 →
-  // 분석 페이지에 "0g 급여" 잘못 표시. 평균 2.0 kcal/g fallback.
+  // 분석 페이지에 "0g 급여" 잘못 표시. 평균 1.45 kcal/g fallback (레시피 v2.1).
   if (weightSum <= 0) {
-    return Math.round(dailyKcal / 2.0)
+    return Math.round(dailyKcal / 1.45)
   }
   return Math.round(total)
 }

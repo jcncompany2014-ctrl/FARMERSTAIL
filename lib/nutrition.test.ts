@@ -174,8 +174,8 @@ describe('calculateNutrition — NRC 2006 임신/수유 정확 수식 (REPLACE a
   })
 })
 
-// audit 3-15: feedG 분모를 AVG_ENERGY_DENSITY_KCAL_PER_G (2.02 — 라인 mix
-// 가중평균) 상수로 분리. 테스트도 SSOT 상수 import 해서 자동 동기화.
+// audit 3-15: feedG 분모를 AVG_ENERGY_DENSITY_KCAL_PER_G (1.45 — 레시피 v2.1
+// 라인 평균) 상수로 분리. 테스트도 SSOT 상수 import 해서 자동 동기화.
 describe('calculateNutrition — feed_g = MER / AVG_ENERGY_DENSITY_KCAL_PER_G', () => {
   it('feedG = round(MER / density)', () => {
     const r = calculateNutrition(

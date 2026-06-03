@@ -64,7 +64,7 @@ export function simulateScenario(
   scenario: DietSimScenario,
 ): DietSimOutcome {
   const avgKcalPerG =
-    (base.proteinPct * 4 + base.fatPct * 9 + base.carbPct * 4) / 100 || 2.02
+    (base.proteinPct * 4 + base.fatPct * 9 + base.carbPct * 4) / 100 || 1.45
 
   const proteinKcalDelta =
     ((scenario.proteinDelta ?? 0) / 100) * base.mer * (4 / avgKcalPerG)

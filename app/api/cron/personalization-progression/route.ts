@@ -3,6 +3,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { decideNextBox } from '@/lib/personalization/nextBox'
+import {
+  deriveAvailableLines,
+  deriveAvailableToppers,
+  LINE_TO_SLUG,
+  TOPPER_TO_SLUG,
+} from '@/lib/personalization/skuMap'
 import type { AlgorithmInput, Checkin, Formula } from '@/lib/personalization/types'
 import { mainLineOf } from '@/lib/personalization/format'
 import { diffFormulas } from '@/lib/personalization/diff'
@@ -195,6 +201,22 @@ export async function GET(req: Request) {
     }
   }
 
+  // 가용성 — 활성 제품 있는 라인/토퍼 (전 강아지 공통, skuMap 게이트 입력).
+  const boxSlugs = [
+    ...Object.values(LINE_TO_SLUG).filter((s): s is string => s !== null),
+    ...Object.values(TOPPER_TO_SLUG),
+  ]
+  const { data: activeProd } = await supabase
+    .from('products')
+    .select('slug')
+    .eq('is_active', true)
+    .in('slug', boxSlugs)
+  const activeSlugs = ((activeProd ?? []) as Array<{ slug: string }>).map(
+    (p) => p.slug,
+  )
+  const availableLines = deriveAvailableLines(activeSlugs)
+  const availableToppers = deriveAvailableToppers(activeSlugs)
+
   let succeeded = 0
   let failed = 0
   let skipped = 0
@@ -340,6 +362,8 @@ export async function GET(req: Request) {
           : undefined,
         dailyKcal: analysisTyped.mer,
         dailyGrams: analysisTyped.feed_g,
+        availableLines,
+        availableToppers,
       }
 
       const checkins: Checkin[] = ((checkinsRaw ?? []) as unknown as Array<{

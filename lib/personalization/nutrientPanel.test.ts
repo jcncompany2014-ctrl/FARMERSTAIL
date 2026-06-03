@@ -20,7 +20,7 @@ describe('computeNutrientPanel — 가중평균', () => {
     })
     assert.equal(p.proteinPctDM, 26)
     assert.equal(p.fatPctDM, 12)
-    assert.equal(p.kcalPer100g, 215)
+    assert.equal(p.kcalPer100g, 130)
   })
 
   it('basic 50 + weight 50 — 평균', () => {

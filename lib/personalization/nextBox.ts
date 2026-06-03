@@ -35,6 +35,7 @@ import type {
 } from './types.ts'
 import { FOOD_LINE_META, ALL_LINES, dailyGramsFromMix } from './lines.ts'
 import { quantizeAndNormalize } from './quantize.ts'
+import { gateAvailability } from './skuMap.ts'
 
 // firstBox 와 동일 버전 — 둘 다 같은 룰셋/타입을 공유. 분리 버전은 분석/diff 깨짐.
 const ALGORITHM_VERSION = 'v1.6.1'
@@ -429,19 +430,27 @@ function finalize(
     toppers = { protein: 0, vegetable: Math.min(0.05, toppers.vegetable) }
   }
 
+  // 가용성 게이트 (skuMap) — 제품 없는 라인/토퍼 재분배 (연어 보류 등).
+  // applyCoatSignal 이 skin 을 올렸어도 연어 미출시면 weight(오리)로 자동 이동.
+  const gated = gateAvailability(finalized, toppers, {
+    availableLines: surveyInput.availableLines,
+    availableToppers: surveyInput.availableToppers,
+    reasoning,
+  })
+
   // 전환 전략 — cycle 2+ 는 항상 'gradual' (이미 적응 단계).
   const transitionStrategy: TransitionStrategy = 'gradual'
 
   // dailyGrams 라인 mix 기준 재계산 (cycle 별 비율 변경 반영).
   const dailyGramsByMix = dailyGramsFromMix(
-    finalized,
+    gated.lineRatios,
     surveyInput.dailyKcal,
     surveyInput.foodLineMetaOverride,
   )
 
   return {
-    lineRatios: finalized,
-    toppers,
+    lineRatios: gated.lineRatios,
+    toppers: gated.toppers,
     reasoning: reasoning.sort((a, b) => a.priority - b.priority),
     transitionStrategy,
     dailyKcal: surveyInput.dailyKcal,

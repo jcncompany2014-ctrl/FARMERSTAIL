@@ -5,6 +5,12 @@ import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { decideFirstBox } from '@/lib/personalization/firstBox'
 import { dailyGramsFromMix } from '@/lib/personalization/lines'
+import {
+  deriveAvailableLines,
+  deriveAvailableToppers,
+  LINE_TO_SLUG,
+  TOPPER_TO_SLUG,
+} from '@/lib/personalization/skuMap'
 import type { AlgorithmInput, Formula } from '@/lib/personalization/types'
 
 export const runtime = 'nodejs'
@@ -240,6 +246,20 @@ export async function POST(req: Request) {
       ? (answers.bcsExact as AlgorithmInput['bcs'])
       : null
 
+  // 가용성 — 활성 제품 있는 라인/토퍼만 추천 (skuMap 게이트 입력).
+  const boxSlugs = [
+    ...Object.values(LINE_TO_SLUG).filter((s): s is string => s !== null),
+    ...Object.values(TOPPER_TO_SLUG),
+  ]
+  const { data: activeProd } = await supabase
+    .from('products')
+    .select('slug')
+    .eq('is_active', true)
+    .in('slug', boxSlugs)
+  const activeSlugs = ((activeProd ?? []) as Array<{ slug: string }>).map(
+    (p) => p.slug,
+  )
+
   const input: AlgorithmInput = {
     dogId: dog.id,
     dogName: dog.name,
@@ -295,14 +315,16 @@ export async function POST(req: Request) {
       : undefined,
     dailyKcal: analysis.mer,
     dailyGrams: analysis.feed_g,
+    availableLines: deriveAvailableLines(activeSlugs),
+    availableToppers: deriveAvailableToppers(activeSlugs),
   }
 
   // 5) 알고리즘 실행 — pure function, throw 안 함.
   const formula = decideFirstBox(input)
 
   // 5.5) daily_grams 재계산 — 결정된 라인 mix 의 kcalPer100g 가중평균 기준.
-  // nutrition.ts 의 feed_g 는 평균 2.0 kcal/g 추정. 라인 mix 결정 후엔 실제
-  // 가중평균으로 재계산해 정확도 ↑.
+  // nutrition.ts 의 feed_g 는 평균 1.45 kcal/g 추정 (레시피 v2.1). 라인 mix
+  // 결정 후엔 실제 가중평균으로 재계산해 정확도 ↑.
   const dailyGramsByMix = dailyGramsFromMix(
     formula.lineRatios,
     formula.dailyKcal,

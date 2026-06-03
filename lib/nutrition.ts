@@ -13,12 +13,14 @@ import {
 /**
  * 화식 라인 평균 에너지 밀도 (kcal/g).
  *
- * basic 2.15 / weight 1.75 / skin 2.25 / premium 1.95 / joint 2.0 → 평균 2.02.
- * audit 3-15: 이전엔 calculateNutrition return 안에 2.0 하드코드 → 라인 mix
- * 비율이 바뀌어도 feedG 재계산이 안 됨. 상수로 분리해 추후
- * algorithm_food_lines.energy_density_kcal_per_g 의 가중평균으로 동기화 가능.
+ * 최종 마스터 레시피 v2.1 (2026-06) sheet7 as-fed: 닭1.30 / 오리1.50 /
+ * 돼지1.40 / 소1.60 → 평균 1.45. (이전 2.02 는 옛 v2 보고서 이론값으로
+ * 실제 화식(73% 수분) 대비 과대 → 급여량 25-40% 과소 버그였음.)
+ * 연어(skin)는 제품 보류라 평균에서 제외 — 출시 시 재계산.
+ * 라인 mix 정확 계산은 lines.ts dailyGramsFromMix. 이 상수는 라인 미정 시
+ * 분석 페이지 단일 추정용.
  */
-export const AVG_ENERGY_DENSITY_KCAL_PER_G = 2.02
+export const AVG_ENERGY_DENSITY_KCAL_PER_G = 1.45
 
 export type SurveyAnswers = {
   bodyCondition: 'skinny' | 'slim' | 'ideal' | 'chubby' | 'obese'
@@ -599,11 +601,9 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     mer: MER,
     factor: +factor.toFixed(2),
     perMeal: Math.round(MER / 2),
-    // feedG — 화식 5종 가중평균 에너지 밀도. SSOT 는 algorithm_food_lines.
-    // 이전엔 2.0 kcal/g 하드코드 → 라인 mix 의 실제 평균과 ±15% 어긋남.
-    // audit 3-15: AVG_ENERGY_DENSITY_KCAL_PER_G 상수로 추출. 추후 algorithm_food_lines
-    // SELECT AVG(energy_density_kcal_per_g) FROM 메타데이터 동기화 가능.
-    // basic 2.15 / weight 1.75 / skin 2.25 / premium 1.95 / joint 2.0 평균 = 2.02.
+    // feedG — 화식 라인 평균 에너지 밀도 (레시피 v2.1 sheet7 as-fed, 1.45 kcal/g
+    // = 닭1.30/오리1.50/돼지1.40/소1.60 평균). 라인 mix 가 정해지면 lines.ts
+    // dailyGramsFromMix 가 가중평균으로 정밀 재계산.
     feedG: Math.round(MER / AVG_ENERGY_DENSITY_KCAL_PER_G),
     stage,
     stageKR: lifeStageKR(stage),

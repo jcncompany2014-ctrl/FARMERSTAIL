@@ -187,6 +187,17 @@ export type AlgorithmInput = {
   dailyKcal: number
   /** 일일 권장 그램. */
   dailyGrams: number
+
+  // ── 가용성 게이트 (v1.7 — skuMap) ──
+  /**
+   * 추천 가능한 라인 — 활성 제품(products.is_active)이 있는 라인만.
+   * compute / cron / order 가 deriveAvailableLines(active slugs) 로 주입.
+   * undefined = 전부 가용 (테스트/하위호환). 제품 없는 라인(연어 보류 등)은
+   * gateAvailability 가 fallback 라인으로 재분배 — skuMap.ts.
+   */
+  availableLines?: FoodLine[]
+  /** 추천 가능한 토퍼 axis (활성 제품 기준). undefined = 전부 가용. */
+  availableToppers?: Array<'vegetable' | 'protein'>
 }
 
 /** 알고리즘 output — 한 강아지의 한 cycle 처방. */

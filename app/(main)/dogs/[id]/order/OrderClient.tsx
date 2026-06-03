@@ -28,6 +28,13 @@ import { haptic } from '@/lib/haptic'
 import { formatPhone } from '@/lib/formatters'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import {
+  LINE_TO_SLUG,
+  TOPPER_TO_SLUG,
+  deriveAvailableLines,
+  deriveAvailableToppers,
+  gateAvailability,
+} from '@/lib/personalization/skuMap'
 import './order.css'
 
 /**
@@ -52,18 +59,8 @@ import './order.css'
  *
  * # SKU 매핑 (현재 등록된 4 라인 + 2 토퍼; joint 미등록 시 graceful skip)
  */
-const LINE_TO_SLUG: Record<FoodLine, string | null> = {
-  basic: 'chicken-basic',
-  weight: 'duck-weight',
-  skin: 'salmon-skin',
-  premium: 'beef-premium',
-  joint: 'pork-joint',
-}
-
-const TOPPER_TO_SLUG: Record<'vegetable' | 'protein', string> = {
-  vegetable: 'harvest-veggie-mix',
-  protein: 'ocean-omega-mix',
-}
+// LINE_TO_SLUG / TOPPER_TO_SLUG 는 skuMap (단일 SSOT) 에서 import.
+// gateAvailability 가 활성 제품 없는 라인/토퍼를 가용 라인으로 재분배.
 
 /** 동결건조 토퍼 평균 kcal/100g (USDA freeze-dried meat/veggie ~370-400). */
 const TOPPER_KCAL_PER_100G = 380
@@ -314,8 +311,14 @@ export default function OrderClient({
 
   if (formula) {
     const dailyKcal = formula.dailyKcal
+    // 가용성 게이트 — 활성 제품 없는 라인/토퍼(연어 보류 등)를 가용 라인으로
+    // 재분배. 저장된 formula 가 게이트 전 버전이어도 박스는 항상 100% 충족.
+    const gated = gateAvailability(formula.lineRatios, formula.toppers, {
+      availableLines: deriveAvailableLines(Object.keys(products)),
+      availableToppers: deriveAvailableToppers(Object.keys(products)),
+    })
     for (const line of ALL_LINES) {
-      const ratio = formula.lineRatios[line] ?? 0
+      const ratio = gated.lineRatios[line] ?? 0
       if (ratio <= 0) continue
       const slug = LINE_TO_SLUG[line]
       if (!slug) continue
@@ -345,7 +348,7 @@ export default function OrderClient({
       })
     }
     for (const k of ['vegetable', 'protein'] as const) {
-      const ratio = formula.toppers[k] ?? 0
+      const ratio = gated.toppers[k] ?? 0
       if (ratio <= 0) continue
       const slug = TOPPER_TO_SLUG[k]
       const product = products[slug]

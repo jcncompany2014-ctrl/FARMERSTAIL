@@ -8,21 +8,11 @@ import OrderClient, {
   type OrderProduct,
   type OrderProfileInitial,
 } from './OrderClient'
+import { LINE_TO_SLUG, TOPPER_TO_SLUG } from '@/lib/personalization/skuMap'
 
-// client 와 동일한 slug 매핑 — server 에서 products fetch 시 사용. client 도
-// 자체 사본을 유지 (분량 계산 시 라인→slug 다시 lookup). 라이선스 가벼우니 중복
-// 허용 (라인 enum 자체가 작음).
-const LINE_TO_SLUG: Record<FoodLine, string | null> = {
-  basic: 'chicken-basic',
-  weight: 'duck-weight',
-  skin: 'salmon-skin',
-  premium: 'beef-premium',
-  joint: 'pork-joint',
-}
-const TOPPER_TO_SLUG = {
-  vegetable: 'harvest-veggie-mix',
-  protein: 'ocean-omega-mix',
-} as const
+// 라인/토퍼 → slug 매핑은 skuMap (단일 SSOT) 에서 import. 이전엔 page 와
+// OrderClient 가 각자 사본을 들고 있어 drift + 삭제된 토퍼 slug 를 가리키는
+// 버그가 있었음 (skuMap.gateAvailability 가 미오픈 제품 재분배).
 
 export default async function OrderPage({
   params,

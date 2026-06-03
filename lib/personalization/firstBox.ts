@@ -44,6 +44,7 @@ import {
   PROTEIN_TO_LINE,
   getLineFat,
 } from './lines.ts'
+import { gateAvailability } from './skuMap.ts'
 import { quantizeAndNormalize } from './quantize.ts'
 import { transferToTarget } from './transfers.ts'
 import {
@@ -117,12 +118,21 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
   // Step 10 — 토퍼 결정.
   const toppers = decideToppers(input, reasoning)
 
+  // Step 10.5 — 가용성 게이트 (skuMap). 활성 제품 없는 라인/토퍼 비율을
+  // 가용 라인으로 재분배 — 연어 보류·토퍼 미오픈 등으로 박스에서 조용히
+  // 증발(과소급여)하는 걸 차단. 제품 is_active 켜지면 자동 합류.
+  const gated = gateAvailability(lineRatios, toppers, {
+    availableLines: input.availableLines,
+    availableToppers: input.availableToppers,
+    reasoning,
+  })
+
   // Step 11 — 전환 전략.
   const transitionStrategy = decideTransition(input)
 
   return {
-    lineRatios,
-    toppers,
+    lineRatios: gated.lineRatios,
+    toppers: gated.toppers,
     reasoning: reasoning.sort((a, b) => a.priority - b.priority),
     transitionStrategy,
     dailyKcal: input.dailyKcal,
