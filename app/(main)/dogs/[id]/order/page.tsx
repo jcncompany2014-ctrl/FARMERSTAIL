@@ -3,7 +3,7 @@
 // 미통과/소유 X → server redirect (이전: client loading spinner + flash).
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { Formula, FoodLine } from '@/lib/personalization/types'
+import type { Formula } from '@/lib/personalization/types'
 import OrderClient, {
   type OrderProduct,
   type OrderProfileInitial,

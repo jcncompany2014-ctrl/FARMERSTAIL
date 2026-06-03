@@ -28,17 +28,17 @@ describe('FOOD_LINE_META', () => {
     }
   })
 
-  it('단백질 % 25~45 범위 (화식 합리적)', () => {
+  it('단백질 % 20~50 범위 (레시피 고단백 화식)', () => {
     for (const line of ALL_LINES) {
       const p = FOOD_LINE_META[line].proteinPctDM
       assert.ok(p >= 20 && p <= 50, `${line}: ${p}`)
     }
   })
 
-  it('지방 % 5~25 범위', () => {
+  it('지방 % 5~32 범위 (레시피 화식 — 소·오리 고지방)', () => {
     for (const line of ALL_LINES) {
       const f = FOOD_LINE_META[line].fatPctDM
-      assert.ok(f >= 5 && f <= 25, `${line}: ${f}`)
+      assert.ok(f >= 5 && f <= 32, `${line}: ${f}`)
     }
   })
 })

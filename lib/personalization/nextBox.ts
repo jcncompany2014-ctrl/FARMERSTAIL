@@ -38,7 +38,7 @@ import { quantizeAndNormalize } from './quantize.ts'
 import { gateAvailability } from './skuMap.ts'
 
 // firstBox 와 동일 버전 — 둘 다 같은 룰셋/타입을 공유. 분리 버전은 분석/diff 깨짐.
-const ALGORITHM_VERSION = 'v1.6.1'
+const ALGORITHM_VERSION = 'v2.0.0'
 
 // ──────────────────────────────────────────────────────────────────────────
 // 메인 진입점

@@ -10,6 +10,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { decideFirstBox } from './firstBox.ts'
+import { FOOD_LINE_META, ALL_LINES } from './lines.ts'
 import type { AlgorithmInput } from './types.ts'
 
 /** 테스트 fixture — 평범한 5kg 시바, 3세, 정상 BCS, 알레르기 없음. */
@@ -55,7 +56,7 @@ describe('decideFirstBox — 기본 sanity', () => {
 
   it('algorithmVersion 출력', () => {
     const f = decideFirstBox(baseInput())
-    assert.match(f.algorithmVersion, /^v1\./)
+    assert.match(f.algorithmVersion, /^v2\./)
   })
 
   it('userAdjusted 첫 출력은 false', () => {
@@ -99,19 +100,21 @@ describe('decideFirstBox — 케어 목표 매핑', () => {
 
   it('careGoal null → general_upgrade fallback', () => {
     const f = decideFirstBox({ ...baseInput(), careGoal: null })
-    // general_upgrade 면 Basic 0.5 + 잡다하게 분산
-    assert.ok(f.lineRatios.basic >= 0.4)
+    // v2.0 general_upgrade = 균형 변화 (특정 라인 독점 없이 3+ 라인 분산)
+    assert.ok(Math.abs(ratioSum(f.lineRatios) - 1) < 1e-6)
+    const nonZero = Object.values(f.lineRatios).filter((v) => v > 0).length
+    assert.ok(nonZero >= 3, '균형 분산')
   })
 })
 
 describe('decideFirstBox — 알레르기 차단', () => {
-  it('닭 알레르기 → Basic 0%', () => {
+  it('닭 알레르기 → 닭(Weight) 라인 0%', () => {
     const f = decideFirstBox({
       ...baseInput(),
       allergies: ['닭·칠면조'],
-      careGoal: 'general_upgrade', // Basic 가 메인일 케어목표
     })
-    assert.equal(f.lineRatios.basic, 0)
+    // v2.0 ③-A: 닭 = weight 키. 닭 알레르기 → weight 라인 차단.
+    assert.equal(f.lineRatios.weight, 0)
     assert.ok(Math.abs(ratioSum(f.lineRatios) - 1) < 1e-6, '합 1.0 유지')
   })
 
@@ -136,16 +139,17 @@ describe('decideFirstBox — 알레르기 차단', () => {
       ...baseInput(),
       allergies: ['닭·칠면조', '소고기', '연어·생선'],
     })
-    assert.equal(f.lineRatios.basic, 0)
+    // v2.0 ③-A: 닭=weight, 소=premium, 연어=skin 차단 → 오리(basic)+돼지(joint) 생존
+    assert.equal(f.lineRatios.weight, 0)
     assert.equal(f.lineRatios.premium, 0)
     assert.equal(f.lineRatios.skin, 0)
-    // Weight + Joint 만 살아남
-    assert.ok(f.lineRatios.weight + f.lineRatios.joint > 0.99)
+    assert.ok(f.lineRatios.basic + f.lineRatios.joint > 0.99)
   })
 
   it('알레르기 reasoning chip 발화', () => {
     const f = decideFirstBox({ ...baseInput(), allergies: ['닭·칠면조'] })
-    const allergyReason = f.reasoning.find((r) => r.ruleId === 'allergy-basic')
+    // v2.0 ③-A: 닭 = weight 라인
+    const allergyReason = f.reasoning.find((r) => r.ruleId === 'allergy-weight')
     assert.ok(allergyReason, '알레르기 reasoning 출력')
     assert.equal(allergyReason!.priority, 0, 'priority 0')
   })
@@ -515,7 +519,8 @@ describe('decideFirstBox — 선호 단백질', () => {
       allergies: ['닭·칠면조'],
       preferredProteins: ['chicken'],
     })
-    assert.equal(f.lineRatios.basic, 0, 'allergy 우선')
+    // v2.0 ③-A: 닭 = weight 라인 (선호 chicken→weight, 차단 우선)
+    assert.equal(f.lineRatios.weight, 0, 'allergy 우선')
   })
 })
 
@@ -660,10 +665,10 @@ describe('decideFirstBox v1.2 — 식이 만족도 신호', () => {
   })
 })
 
-describe('decideFirstBox v1.3 — algorithmVersion', () => {
-  it('v1.6.1 출력', () => {
+describe('decideFirstBox v2.0 — algorithmVersion', () => {
+  it('v2.0.0 출력', () => {
     const f = decideFirstBox(baseInput())
-    assert.equal(f.algorithmVersion, 'v1.6.1')
+    assert.equal(f.algorithmVersion, 'v2.0.0')
   })
 })
 
@@ -729,19 +734,19 @@ describe('decideFirstBox v1.3 — 임신 multiplier 정밀화 (NRC 2006 ch.15)',
 })
 
 describe('decideFirstBox v1.3 — 췌장염 fat ceiling (Xenoulis 2015)', () => {
-  it('췌장염 처방 후 DM-fat% < 15%', () => {
+  it('췌장염 처방 후 지방을 최저 라인(닭)으로 최소화', () => {
     const f = decideFirstBox({
       ...baseInput(),
       chronicConditions: ['pancreatitis'],
     })
-    // Σ ratio × fatPctDM 직접 계산
-    const fat =
-      f.lineRatios.basic * 12 +
-      f.lineRatios.weight * 8 +
-      f.lineRatios.skin * 16 +
-      f.lineRatios.premium * 15 +
-      f.lineRatios.joint * 18
-    assert.ok(fat < 15.5, `DM-fat% should be <15.5% (got ${fat.toFixed(1)}%)`)
+    // v2.0: 실제 레시피 fatPctDM 가중합. 화식 최저지방은 닭(weight, 19.1%DM) —
+    // 엄격한 <15% 는 레시피로 불가(severe 췌장염은 수의 처방식 필요). 룰은
+    // 가용 최저지방으로 최소화하는 best-effort.
+    const fat = ALL_LINES.reduce(
+      (s, l) => s + f.lineRatios[l] * FOOD_LINE_META[l].fatPctDM,
+      0,
+    )
+    assert.ok(fat < 24, `지방 최소화 (got ${fat.toFixed(1)}%DM)`)
     const r = f.reasoning.find((x) => x.ruleId === 'chronic-pancreatitis')
     assert.ok(r)
     assert.match(r!.action, /DM 지방 \d/)
@@ -752,14 +757,12 @@ describe('decideFirstBox v1.3 — 췌장염 fat ceiling (Xenoulis 2015)', () => 
       ...baseInput(),
       chronicConditions: ['pancreatitis', 'arthritis'],
     })
-    const fat =
-      f.lineRatios.basic * 12 +
-      f.lineRatios.weight * 8 +
-      f.lineRatios.skin * 16 +
-      f.lineRatios.premium * 15 +
-      f.lineRatios.joint * 18
-    // 둘 다 fired 되더라도 최종 fat 가 안전 범위
-    assert.ok(fat < 17, `fat should still be controlled (got ${fat.toFixed(1)}%)`)
+    const fat = ALL_LINES.reduce(
+      (s, l) => s + f.lineRatios[l] * FOOD_LINE_META[l].fatPctDM,
+      0,
+    )
+    // 둘 다 fired 되더라도 최종 fat 가 통제됨 (닭/돼지 최저지방 위주)
+    assert.ok(fat < 26, `fat should still be controlled (got ${fat.toFixed(1)}%DM)`)
   })
 })
 
@@ -1138,13 +1141,14 @@ describe('decideFirstBox v1.3 — IgE cross-reactivity chip', () => {
     )
   })
 
-  it('닭 알레르기 → Weight 라인 cross-react chip (오리/닭 cross)', () => {
+  it('닭 알레르기 → 오리(Basic) 라인 cross-react chip (오리/닭 cross)', () => {
     const f = decideFirstBox({
       ...baseInput(),
       allergies: ['닭·칠면조'],
     })
-    const cross = f.reasoning.find((r) => r.ruleId === 'cross-react-weight')
-    assert.ok(cross, 'Weight (오리) cross-react chip 발화')
+    // v2.0 ③-A: 오리 = basic 키. 오리 라인이 닭 cross-react 경고 대상.
+    const cross = f.reasoning.find((r) => r.ruleId === 'cross-react-basic')
+    assert.ok(cross, '오리(Basic) cross-react chip 발화')
   })
 
   it('알레르기 없으면 cross-react chip 없음', () => {

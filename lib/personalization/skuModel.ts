@@ -34,6 +34,9 @@ export type CareGoal =
   | 'allergy_avoid'
   | 'general_upgrade'
 
+/** 구 라인 키 (v1 호환 — 알고리즘 내부 식별자). lines.ts FoodLine 과 동일. */
+export type LegacyLine = 'basic' | 'weight' | 'skin' | 'premium' | 'joint'
+
 /** SKU 영양 단면 (100g DM 기준, kcal 만 as-fed). */
 export type SkuNutritionProfile = {
   /** as-fed kcal/100g (레시피 sheet7). */
@@ -75,7 +78,7 @@ export type SkuDef = {
   /** 대표 제품 slug. */
   slug: string
   /** 구 라인 키 (마이그레이션/역호환 참조용). */
-  legacyLine: 'basic' | 'weight' | 'skin' | 'premium' | 'joint'
+  legacyLine: LegacyLine
   /** 노블(novel) 단백질 여부 — 알레르기 회피 추천. */
   novel: boolean
   /** Mueller 2016 알레르기 유병률 (%). */
@@ -110,7 +113,8 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     benefit: '닭가슴살 저지방, 130kcal 최저 칼로리 + 강황',
     topping: '강황',
     slug: 'chicken-basic',
-    legacyLine: 'basic',
+    // v2.0 ③-A: 닭 = weight 키 (임상 '다이어트 라인' 룰이 닭을 가리키게).
+    legacyLine: 'weight',
     novel: false,
     muellerAllergyRate: 15.0,
     blockingAllergies: ['닭·칠면조'],
@@ -139,7 +143,8 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     benefit: '노블 단백질, 닭/소 배제 + 사과 펙틴 장케어',
     topping: '사과',
     slug: 'duck-weight',
-    legacyLine: 'weight',
+    // v2.0 ③-A: 오리 = basic 키 (노블/알레르기 라인).
+    legacyLine: 'basic',
     novel: true,
     muellerAllergyRate: 0.5,
     blockingAllergies: ['오리'],
@@ -267,10 +272,17 @@ export const CARE_GOAL_PRIMARY: Record<CareGoal, ProteinKey> = {
   general_upgrade: 'chicken', // 균형 entry
 }
 
-/** 구 라인 키 → 단백질 (dog_formulas 마이그레이션/역호환). */
-export const LEGACY_LINE_TO_PROTEIN: Record<string, ProteinKey> = {
-  basic: 'chicken',
-  weight: 'duck',
+/**
+ * 구 라인 키 → 단백질.
+ *
+ * v2.0 ③-A 리바인드: weight=닭, basic=오리. 임상 룰(BCS·당뇨·췌장염 등)이
+ * "weight 라인 = 저칼로리·저지방 다이어트" 전제로 작성돼 있어, 닭(최저
+ * 130kcal·최저지방 19%DM)을 weight 키에 바인딩하면 **룰 무변경**으로
+ * 레시피 정합(체중관리→닭, 췌장염 저지방→닭). basic 키 = 오리(노블/알레르기).
+ */
+export const LEGACY_LINE_TO_PROTEIN: Record<LegacyLine, ProteinKey> = {
+  basic: 'duck',
+  weight: 'chicken',
   skin: 'salmon',
   premium: 'beef',
   joint: 'pork',

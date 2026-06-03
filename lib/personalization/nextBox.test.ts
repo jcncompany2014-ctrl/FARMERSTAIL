@@ -104,14 +104,14 @@ describe('decideNextBox — 기본 동작', () => {
     assert.equal(f.cycleNumber, 5)
   })
 
-  it('algorithmVersion v1.6 (firstBox 와 통일)', () => {
+  it('algorithmVersion v2.0 (firstBox 와 통일)', () => {
     const f = decideNextBox({
       previousFormula: basePreviousFormula(),
       checkins: [],
       surveyInput: baseSurvey(),
       cycleNumber: 2,
     })
-    assert.match(f.algorithmVersion, /^v1\.6/)
+    assert.match(f.algorithmVersion, /^v2\./)
   })
 
   it('cycle 2+ 전환 전략 gradual', () => {
@@ -274,11 +274,12 @@ describe('decideNextBox — 식욕 신호', () => {
 
 describe('decideNextBox — 새 알레르기 (재설문)', () => {
   it('이전 처방의 라인이 새로 알레르기 → 0% 강제', () => {
-    const prev = basePreviousFormula() // basic 0.5
+    const prev = basePreviousFormula() // basic 0.5 (오리)
     const f = decideNextBox({
       previousFormula: prev,
       checkins: [],
-      surveyInput: { ...baseSurvey(), allergies: ['닭·칠면조'] },
+      // v2.0 ③-A: 오리 = basic 라인. 오리 알레르기 → basic 차단.
+      surveyInput: { ...baseSurvey(), allergies: ['오리'] },
       cycleNumber: 2,
     })
     assert.equal(f.lineRatios.basic, 0)

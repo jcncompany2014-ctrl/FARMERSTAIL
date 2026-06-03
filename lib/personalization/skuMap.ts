@@ -15,18 +15,18 @@
  */
 import type { FoodLine, Ratio, Reasoning } from './types.ts'
 import { ALL_LINES, FOOD_LINE_META } from './lines.ts'
+import { SKU_MODEL, LEGACY_LINE_TO_PROTEIN } from './skuModel.ts'
 
 export type TopperAxis = 'vegetable' | 'protein'
 
-/** 라인 → 대표 제품 slug. null = 매핑 없음(graceful skip). */
-export const LINE_TO_SLUG: Record<FoodLine, string | null> = {
-  basic: 'chicken-basic',
-  weight: 'duck-weight',
-  // 연어 — 현재 제품 보류(VitD 상한). 이 slug 로 출시 시 자동 합류.
-  skin: 'salmon-skin',
-  premium: 'beef-premium',
-  joint: 'pork-joint',
-}
+/**
+ * 라인 → 대표 제품 slug — **skuModel 파생** (③-A 리바인드 자동 반영).
+ * 예: weight 키 = 닭 → 'chicken-basic'. 연어(salmon-skin)는 보류 — 그 slug 로
+ * 출시 시 자동 합류.
+ */
+export const LINE_TO_SLUG: Record<FoodLine, string | null> = Object.fromEntries(
+  ALL_LINES.map((line) => [line, SKU_MODEL[LEGACY_LINE_TO_PROTEIN[line]].slug]),
+) as Record<FoodLine, string | null>
 
 /** 토퍼 axis → 제품 slug. */
 export const TOPPER_TO_SLUG: Record<TopperAxis, string> = {
@@ -70,7 +70,8 @@ export function deriveAvailableToppers(
 const LINE_FALLBACK: Record<FoodLine, FoodLine> = {
   basic: 'weight',
   weight: 'basic',
-  skin: 'weight',
+  // 연어 → 오리(=basic 키, omega3 0.33 최다) : 오메가-3 연속성.
+  skin: 'basic',
   premium: 'basic',
   joint: 'basic',
 }

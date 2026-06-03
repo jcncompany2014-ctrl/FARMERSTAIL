@@ -57,7 +57,9 @@ import {
 // EPI/갑상선/Cushing's/IVDD/MMVD chronic 룰, 한국 처방식 키워드, 품종 영문
 // word-boundary, omega/vitD nutrient panel, daily_grams 라인 mix 재계산,
 // factor 0.5-5.0 cap, macro 합 100% 보존, lifeStage size-aware (puppy + senior).
-const ALGORITHM_VERSION = 'v1.6.1'
+// v2.0.0 — 레시피 v2.1 재설계: skuModel SSOT + 라인 리바인드(weight=닭,
+// basic=오리) + 케어목표/임상타겟 레시피 정합 + 영양 프로파일 + 가용성 게이트.
+const ALGORITHM_VERSION = 'v2.0.0'
 /** 토퍼 합계 cap — 화식이 주식 지위를 잃지 않도록 30% 한도. */
 const MAX_TOPPER_TOTAL = 0.3
 
@@ -244,13 +246,18 @@ const CARE_GOAL_RECIPES: Record<
   allergy_avoid: {
     // allergy_avoid 는 사용자가 알레르기를 명시했을 때 — 차단 후 남은 라인
     // 균등 분배. 보통 Skin/Weight 가 살아남음.
-    ratios: { basic: 0.1, weight: 0.4, skin: 0.4, premium: 0.05, joint: 0.05 },
+    // v2.0: 노블 단백질 = 오리(basic 키)·돼지(joint)·연어(skin). 닭(weight)·소
+    // (premium)는 흔한 알레르겐이라 0%.
+    ratios: { basic: 0.5, weight: 0, skin: 0.2, premium: 0, joint: 0.3 },
     chipLabel: '알레르기 회피 → 노블 프로틴',
     trigger: '케어 목표 = 알레르기·민감 회피',
   },
   general_upgrade: {
+    // v2.0 ③-A: 일반 = 오리(basic)/연어(skin) 노블 기본 + 닭(weight)·소(premium)·
+    // 돼지(joint) 소량 baseline. 저활동/비만/시니어 룰이 weight/premium/joint 를
+    // 더 가산하므로 baseline 은 그 임계(weight<0.2·premium<0.25·joint<0.2) 미만 유지.
     ratios: { basic: 0.5, weight: 0.1, skin: 0.2, premium: 0.1, joint: 0.1 },
-    chipLabel: '일반 업그레이드 → Basic 메인',
+    chipLabel: '일반 업그레이드 → 노블 기본',
     trigger: '케어 목표 = 일반 영양 업그레이드',
   },
 }

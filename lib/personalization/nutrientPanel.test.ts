@@ -8,6 +8,7 @@ import {
   computeNutrientPanel,
   clinicalCheckForPanel,
 } from './nutrientPanel.ts'
+import { FOOD_LINE_META } from './lines.ts'
 
 describe('computeNutrientPanel — 가중평균', () => {
   it('단일 라인 100% — 메타 그대로', () => {
@@ -18,9 +19,10 @@ describe('computeNutrientPanel — 가중평균', () => {
       premium: 0,
       joint: 0,
     })
-    assert.equal(p.proteinPctDM, 26)
-    assert.equal(p.fatPctDM, 12)
-    assert.equal(p.kcalPer100g, 130)
+    // v2.0: basic = 닭 레시피 프로파일 (skuModel 파생, 자기동기화)
+    assert.equal(p.proteinPctDM, FOOD_LINE_META.basic.proteinPctDM)
+    assert.equal(p.fatPctDM, FOOD_LINE_META.basic.fatPctDM)
+    assert.equal(p.kcalPer100g, FOOD_LINE_META.basic.kcalPer100g)
   })
 
   it('basic 50 + weight 50 — 평균', () => {
@@ -31,10 +33,23 @@ describe('computeNutrientPanel — 가중평균', () => {
       premium: 0,
       joint: 0,
     })
-    // basic protein=26, weight=28 → 27
-    assert.equal(p.proteinPctDM, 27)
-    // basic fat=12, weight=8 → 10
-    assert.equal(p.fatPctDM, 10)
+    // v2.0: basic(닭) + weight(오리) 평균 (skuModel 파생, 자기동기화)
+    assert.equal(
+      p.proteinPctDM,
+      Math.round(
+        ((FOOD_LINE_META.basic.proteinPctDM +
+          FOOD_LINE_META.weight.proteinPctDM) /
+          2) *
+          10,
+      ) / 10,
+    )
+    assert.equal(
+      p.fatPctDM,
+      Math.round(
+        ((FOOD_LINE_META.basic.fatPctDM + FOOD_LINE_META.weight.fatPctDM) / 2) *
+          10,
+      ) / 10,
+    )
   })
 
   it('Ca/P/Na 메타 없으면 null', () => {

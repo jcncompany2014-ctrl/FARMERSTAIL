@@ -76,9 +76,9 @@ describe('skuModel — 케어목표 매핑 (페르소나 정합)', () => {
 })
 
 describe('skuModel — 매핑/통합', () => {
-  it('LEGACY_LINE_TO_PROTEIN: basic→chicken, weight→duck (마이그레이션)', () => {
-    assert.equal(LEGACY_LINE_TO_PROTEIN.basic, 'chicken')
-    assert.equal(LEGACY_LINE_TO_PROTEIN.weight, 'duck')
+  it('LEGACY_LINE_TO_PROTEIN: basic→duck, weight→chicken (③-A 리바인드)', () => {
+    assert.equal(LEGACY_LINE_TO_PROTEIN.basic, 'duck')
+    assert.equal(LEGACY_LINE_TO_PROTEIN.weight, 'chicken')
     assert.equal(LEGACY_LINE_TO_PROTEIN.skin, 'salmon')
     assert.equal(LEGACY_LINE_TO_PROTEIN.premium, 'beef')
     assert.equal(LEGACY_LINE_TO_PROTEIN.joint, 'pork')

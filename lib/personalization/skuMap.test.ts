@@ -59,14 +59,15 @@ describe('gateAvailability — 라인 재분배', () => {
     assert.equal(r.lineRatios.skin, 0.7)
   })
 
-  it('skin(연어) 불가 → weight(오리)로 이동, 합 1.0 유지', () => {
+  it('skin(연어) 불가 → basic(오리)로 이동, 합 1.0 유지', () => {
+    // v2.0 ③-A: 오리 = basic 키 (omega3 최다). skin fallback = basic.
     const r = gateAvailability(
       { basic: 0.3, weight: 0, skin: 0.7, premium: 0, joint: 0 },
       NO_TOPPER,
       { availableLines: ['basic', 'weight', 'premium', 'joint'] },
     )
     assert.equal(r.lineRatios.skin, 0)
-    assert.equal(r.lineRatios.weight, 0.7)
+    assert.equal(r.lineRatios.basic, 1.0)
     assert.ok(Math.abs(sum(r.lineRatios) - 1.0) < 1e-9)
   })
 

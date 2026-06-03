@@ -62,7 +62,8 @@ describe('mainLineOf', () => {
     const main = mainLineOf(f)
     assert.equal(main.line, 'joint')
     assert.equal(main.pct, 60)
-    assert.equal(main.name, 'Joint')
+    // v2.0: 라인 name = 단백질 (joint→돼지→'Pork')
+    assert.equal(main.name, 'Pork')
   })
 
   it('동률일 때 ALL_LINES 첫 라인 우선', () => {
@@ -82,13 +83,13 @@ describe('mainLineOf', () => {
 describe('formatLineRatios', () => {
   it('비중 내림차순 + 0% 제외', () => {
     const s = formatLineRatios(baseFormula())
-    assert.equal(s, 'Joint 60% / Weight 30% / Skin 10%')
+    assert.equal(s, 'Pork 60% / Chicken 30% / Salmon 10%')
   })
 
   it('단일 라인 100%', () => {
     const f = baseFormula()
     f.lineRatios = { basic: 1, weight: 0, skin: 0, premium: 0, joint: 0 }
-    assert.equal(formatLineRatios(f), 'Basic 100%')
+    assert.equal(formatLineRatios(f), 'Duck 100%')
   })
 })
 
@@ -141,7 +142,7 @@ describe('totalGrams', () => {
 describe('formatFormulaSummary', () => {
   it('한 단락 요약', () => {
     const s = formatFormulaSummary(baseFormula())
-    assert.match(s, /Joint 60%/)
+    assert.match(s, /Pork 60%/)
     assert.match(s, /야채 \+10%/)
     assert.match(s, /4주 보수적 전환/)
     assert.match(s, /280 kcal\/일/)
