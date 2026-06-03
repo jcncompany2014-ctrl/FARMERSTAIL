@@ -721,9 +721,10 @@ export default function CheckoutForm({
               <button
                 type="button"
                 onClick={() => {
+                  // "새 주소" = 같은 받는 분, 다른 배송지가 가장 흔함 → 이름/연락처는
+                  // 보존하고 주소 필드만 비운다 (이전엔 전부 지워 매번 재입력 강요).
+                  // 다른 사람에게 보낼 땐 이름/연락처를 직접 수정하면 됨.
                   setActiveAddressId(null)
-                  setName('')
-                  setPhone('')
                   setZip('')
                   setAddress('')
                   setAddressDetail('')
