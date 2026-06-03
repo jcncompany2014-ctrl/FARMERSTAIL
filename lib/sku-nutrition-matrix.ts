@@ -5,8 +5,10 @@
  *
  * # 기준
  * - 모든 % 는 dry matter (DM) 기준. NRC 2006 + FEDIAF 2024 가이드라인 권장량
- *   비교용. 자사 레시피 명세서 (R&D 2026.05) 기반 추정치.
- * - EPA+DHA 는 % w/w (지방 대비 비율). 0.3% 이상이면 관절·심혈관 supportive.
+ *   비교용. **최종 마스터 레시피 v2.1 유도값** (skuModel.ts 와 동일 DM 단면 —
+ *   protein/fat/Ca/P/omega3 는 sheet7 충족률 × target, Se 는 충족률 × 40.25
+ *   μg/100gDM × 10). 연어(S03) 만 제품 보류라 USDA 추정.
+ * - EPA+DHA 는 % DM (omega3PctDM). 0.3% 이상이면 관절·심혈관 supportive.
  * - Selenium 은 mcg/kg 사료 (DM). FEDIAF 최소 350 / 최대 1,300 권장.
  *
  * # 5축 선정 근거
@@ -58,52 +60,52 @@ export type SkuPersona =
 export const SKU_NUTRITION: Record<SkuKey, SkuNutritionRow> = {
   C01: {
     sku: 'C01',
-    protein_pct: 28.0,
-    fat_pct: 14.0,
-    ca_p_ratio: 1.3,
-    epa_dha_pct: 0.3,
-    selenium_mcg_per_kg: 450,
-    highlight_ko: '기본 균형형. 입문견·전 연령 안정 운영.',
+    protein_pct: 49.5,
+    fat_pct: 19.1,
+    ca_p_ratio: 1.11,
+    epa_dha_pct: 0.17,
+    selenium_mcg_per_kg: 688,
+    highlight_ko: '최저 130kcal·고단백 저지방. 체중관리·실내견 (모찌).',
     persona: ['beginner'],
   },
   D02: {
     sku: 'D02',
-    protein_pct: 30.0,
-    fat_pct: 12.0,
-    ca_p_ratio: 1.4,
-    epa_dha_pct: 0.4,
-    selenium_mcg_per_kg: 500,
-    highlight_ko: 'Novel protein. 알레르기·소화 민감견 1순위.',
+    protein_pct: 40.6,
+    fat_pct: 27.5,
+    ca_p_ratio: 1.22,
+    epa_dha_pct: 0.33,
+    selenium_mcg_per_kg: 547,
+    highlight_ko: 'Novel 단백질, 닭·소 배제. 알레르기·장건강 (코코).',
     persona: ['allergy', 'sensitive'],
   },
   S03: {
     sku: 'S03',
-    protein_pct: 27.0,
-    fat_pct: 15.0,
-    ca_p_ratio: 1.3,
-    epa_dha_pct: 1.2,
+    protein_pct: 26.0,
+    fat_pct: 16.0,
+    ca_p_ratio: 1.25,
+    epa_dha_pct: 6.7,
     selenium_mcg_per_kg: 600,
-    highlight_ko: '천연 EPA/DHA 4배. 관절·노령견·심혈관 supportive.',
+    highlight_ko: '천연 EPA/DHA 최다. 피부·노령 supportive (준비 중).',
     persona: ['senior'],
   },
   P04: {
     sku: 'P04',
-    protein_pct: 29.0,
-    fat_pct: 11.0,
-    ca_p_ratio: 1.4,
-    epa_dha_pct: 0.4,
-    selenium_mcg_per_kg: 480,
-    highlight_ko: 'Novel + 저지방. 비만·알레르기·당뇨 우선.',
+    protein_pct: 45.1,
+    fat_pct: 21.8,
+    ca_p_ratio: 1.10,
+    epa_dha_pct: 0.17,
+    selenium_mcg_per_kg: 986,
+    highlight_ko: '돼지 안심 + B1 압도적. 기호성·노견 케어 (토토).',
     persona: ['allergy', 'sensitive'],
   },
   B05: {
     sku: 'B05',
-    protein_pct: 32.0,
-    fat_pct: 18.0,
-    ca_p_ratio: 1.3,
-    epa_dha_pct: 0.3,
-    selenium_mcg_per_kg: 470,
-    highlight_ko: '국내산 한우. 고단백·고지방. 활동량 많은 청년견.',
+    protein_pct: 38.7,
+    fat_pct: 28.7,
+    ca_p_ratio: 1.23,
+    epa_dha_pct: 0.10,
+    selenium_mcg_per_kg: 515,
+    highlight_ko: '한우 헴철·B12. 활력·활동 많은 견 (바람이).',
     persona: ['active'],
   },
 }
@@ -118,9 +120,26 @@ export const FEDIAF_REFERENCE = {
 } as const
 
 /**
+ * 레이더 축 정규화 스케일 (차트 전용 — 표의 FEDIAF 권장 범위와 분리).
+ *
+ * 우리 화식은 고단백(38~49%DM)·고지방(19~29%DM)이라 FEDIAF 권장 상한(단백 35·
+ * 지방 20)을 넘어선다. 정규화에 FEDIAF max 를 쓰면 4종 육류가 전부 100%로
+ * 캡핑돼 스파이더가 뭉개지므로, 우리 제품군 실제 분포를 담는 별도 상한을 둔다.
+ * (표의 "FEDIAF 권장" 행은 FEDIAF_REFERENCE 의 실제 권장값 그대로 사용.)
+ */
+const RADAR_AXIS_MAX = {
+  protein_pct: 55,
+  fat_pct: 32,
+  ca_p_ideal: 1.4,
+  epa_dha_pct: 1.5,
+  selenium_mcg_per_kg: 1300,
+} as const
+
+/**
  * 5축을 0-100 스케일로 정규화 — Recharts Radar 차트 입력용.
  *
- * 각 축은 FEDIAF max 대비 % (단, ca_p 는 ideal 대비 %, 즉 1.4 = 100).
+ * 각 축은 RADAR_AXIS_MAX 대비 % (Ca:P 는 ideal 1.4 대비 %, EPA+DHA 는 연어가
+ * 압도해 1.5 상한에서 캡핑 — 의도된 표현).
  */
 export function normalizeForRadar(row: SkuNutritionRow): {
   '단백': number
@@ -130,16 +149,16 @@ export function normalizeForRadar(row: SkuNutritionRow): {
   'Se': number
 } {
   return {
-    '단백': Math.min(100, (row.protein_pct / FEDIAF_REFERENCE.protein_pct.max) * 100),
-    '지방': Math.min(100, (row.fat_pct / FEDIAF_REFERENCE.fat_pct.max) * 100),
-    'Ca:P': Math.min(100, (row.ca_p_ratio / FEDIAF_REFERENCE.ca_p_ratio.ideal) * 100),
+    '단백': Math.min(100, (row.protein_pct / RADAR_AXIS_MAX.protein_pct) * 100),
+    '지방': Math.min(100, (row.fat_pct / RADAR_AXIS_MAX.fat_pct) * 100),
+    'Ca:P': Math.min(100, (row.ca_p_ratio / RADAR_AXIS_MAX.ca_p_ideal) * 100),
     'EPA+DHA': Math.min(
       100,
-      (row.epa_dha_pct / FEDIAF_REFERENCE.epa_dha_pct.max) * 100,
+      (row.epa_dha_pct / RADAR_AXIS_MAX.epa_dha_pct) * 100,
     ),
     'Se': Math.min(
       100,
-      (row.selenium_mcg_per_kg / FEDIAF_REFERENCE.selenium_mcg_per_kg.max) * 100,
+      (row.selenium_mcg_per_kg / RADAR_AXIS_MAX.selenium_mcg_per_kg) * 100,
     ),
   }
 }

@@ -78,10 +78,23 @@ export type SurveyAnswers = {
   >
   /** 산책 외 실내 활동 수준 */
   indoorActivity?: 'calm' | 'moderate' | 'active'
+  /**
+   * 수의사 진단 중증도 (질환별). 예: { pancreatitis: 'severe' }. firstBox 가
+   * 췌장염 급성/중증 하드 게이트에 사용. calculateNutrition 은 미사용 —
+   * surveys.answers JSONB 로 라이드해 compute route 가 알고리즘에 주입.
+   */
+  diagnosedSeverity?: Record<string, 'mild' | 'moderate' | 'severe'>
 }
 
 export type DogInfo = {
   weight: number
+  /**
+   * [발명 모듈 D] 체중 측정 신뢰도 0~1 (reliability.ts weightReliability).
+   * 비대칭 케어목표(비만/저체중/자견)에서 안전 체중 보정 입력 — 신뢰도가
+   * 낮을수록 안전한 쪽으로 체중 추정을 약하게 당긴다. undefined/null = 보정
+   * 안 함 (하위호환). safetyWeightShift 참조.
+   */
+  weightReliability?: number | null
   ageValue: number
   ageUnit: 'years' | 'months'
   neutered: boolean
@@ -236,18 +249,86 @@ export function computeRer(weightKg: number): number {
   return 70 * Math.pow(weightKg, 0.75)
 }
 
+/**
+ * 간식 칼로리 비중 — 보호자 간식 빈도 → 1일 칼로리 중 간식 추정 비율.
+ *
+ * AAFCO / WSAVA "10% 룰": 간식·트릿은 1일 총칼로리의 10% 이내, 나머지 90%+
+ * 는 완전균형식에서. 보호자가 간식을 주면 그만큼 **완전식(밥)을 줄여** 총섭취
+ * 를 MER 로 유지한다 — 간식 위에 밥을 풀로 주면 과급 → 비만 (국내 반려견
+ * 비만의 최대 경로). 한국 현실 반영해 보수적으로 추정:
+ *   · 거의 안 줌 / 미입력 → 0%
+ *   · 가끔            → 5%
+ *   · 매일            → 10% (룰 상한)
+ * 출처: AAFCO 2024 Treat/Snack guidance, WSAVA Global Nutrition Toolkit.
+ */
+export function treatCalorieFraction(snackFreq?: string | null): number {
+  switch (snackFreq) {
+    case '매일':
+      return 0.1
+    case '가끔':
+      return 0.05
+    default:
+      return 0
+  }
+}
+
+/**
+ * [발명 모듈 D] 신뢰도 기반 안전 체중 보정 — 신뢰도를 영양 처방에 반영.
+ *
+ * 체중 측정 신뢰도가 낮으면 참 체중이 ±로 퍼져 있다(눈대중 10kg → 8~12kg).
+ * 불확실성 자체는 중심값을 위로도 아래로도 밀지 않는다 — 평균적으론 입력값이
+ * 최선 추정이라, 신뢰도 낮다고 기계적으로 깎으면 멀쩡한 강아지를 굶긴다.
+ * 그래서 **케어목표가 비대칭일 때만** 안전한 쪽으로 기운다 (asymmetric loss):
+ *   · 과급 위험(비만 BCS≥7 또는 체중관리 목표): 불확실 → 낮은 체중 (덜 급여)
+ *   · 저급 위험(저체중 BCS≤3 또는 성장기 자견): 불확실 → 높은 체중 (더 급여)
+ *   · 대칭(BCS 4-6 일반 유지): 보정 0 (중심값 그대로 — 데이터 부실로 굶기지 X)
+ * 강도 = 방향 × MAX_SHIFT(0.08) × (1 − 신뢰도). 신뢰도 1.0(동물병원)=0%,
+ * 0.4(눈대중)=±4.8%, 0=±8%. 비만은 이미 bcsMerFactor(×0.75)로 한 번 줄어드니
+ * 이중감산 방지로 8% 보수. 신뢰도 미입력=무변경(하위호환).
+ * 출처: 비대칭 손실 Berger (1985) Statistical Decision Theory; 측정 신뢰도
+ * reliability.ts (발명 모듈 C).
+ */
+export function safetyWeightShift(
+  weightKg: number,
+  weightReliability: number | null | undefined,
+  ctx: { bcsScore: number; careGoal?: string | null; stage: string },
+): number {
+  if (weightReliability == null) return weightKg
+  const uncertainty = 1 - Math.max(0, Math.min(1, weightReliability))
+  if (uncertainty <= 0) return weightKg
+
+  const overfeedRisk = ctx.bcsScore >= 7 || ctx.careGoal === 'weight_management'
+  const underfeedRisk = ctx.bcsScore <= 3 || ctx.stage === 'puppy'
+  // 방향: 과급 위험 우선 (동시 충돌 시 보수적으로 덜 급여). 대칭이면 0.
+  const direction = overfeedRisk ? -1 : underfeedRisk ? 1 : 0
+  if (direction === 0) return weightKg
+
+  const MAX_SHIFT = 0.08
+  const shifted = weightKg * (1 + direction * MAX_SHIFT * uncertainty)
+  return Math.max(0.5, Math.min(100, shifted))
+}
+
 export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): NutritionResult {
   // weight 가드 — 0/음수/비정상 입력 시 NaN/Infinity 폭주 차단.
   // 강아지 0.5kg ~ 100kg 합리적 범위로 clamp. 0 이면 RER=0 → MER=0 → 분석
   // 의미 없음. 0.5kg 최소로 가정 (소형견 신생아 ~250g, 분양 가능 최소).
-  const w = Math.max(0.5, Math.min(100, dog.weight || 0.5))
-  const RER = computeRer(w)
+  const w0 = Math.max(0.5, Math.min(100, dog.weight || 0.5))
   const stage = lifeStage(dog)
 
   // BCS — 정확 입력(v2) 우선, 없으면 5단계 매핑
   const bcs = answers.bcsExact
     ? bcsScoreExact(answers.bcsExact)
     : bcsScore(answers.bodyCondition)
+
+  // [발명 모듈 D] 신뢰도→처방 반영. 비대칭 케어목표(비만/저체중/자견)에서
+  // 체중 신뢰도가 낮을수록 안전한 쪽으로 체중 추정을 약하게 당긴다 (대칭·
+  // 고신뢰도/미입력은 무변경). RER 입력 체중에만 1회 적용 — safetyWeightShift.
+  const w = safetyWeightShift(w0, dog.weightReliability, {
+    bcsScore: bcs.score,
+    careGoal: answers.careGoal,
+    stage,
+  })
+  const RER = computeRer(w)
 
   let factor = 1.6
   const riskFlags: string[] = []
@@ -256,11 +337,15 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
 
   // audit #10: 거대견 (50kg+) — metabolism rate 가 표준 NRC 공식보다 낮을 수
   // 있어 표준 RER 사용 시 과식 위험. activityLevel='low' 권장 + 수의사 상담
-  // flag. 정확한 보정은 임상 측정 (DEXA / indirect calorimetry) 필요.
-  if (w >= 50) {
+  // flag. 안전보정 전 원체중(w0) 기준 — 측정 실측이 거대견 분류 신호.
+  if (w0 >= 50) {
     riskFlags.push('GIANT_BREED')
     vetConsult = true
   }
+
+  // [발명 모듈 D] 신뢰도 안전보정이 실제 적용됐으면 플래그 — 분석 페이지가
+  // "측정 정밀도가 낮아 보수적으로 계산했어요" 안내 + 측정 유도에 사용.
+  if (Math.abs(w - w0) > 0.05) riskFlags.push('RELIABILITY_SAFETY_ADJUST')
 
   // 생애주기 / 활동량 기반 base factor.
   //
@@ -287,9 +372,28 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   } else if (stage === 'senior') {
     factor = 1.2 // NRC 보수치 — senior 비만·관절 부담 예방
   } else {
-    if (dog.activityLevel === 'low') factor = 1.2        // NRC 보수치
-    else if (dog.activityLevel === 'high') factor = 1.8  // NRC ≈ FEDIAF 125
-    else factor = 1.57                                    // FEDIAF 110 (medium)
+    // 활동량 → factor. dog.activity_level(프로필의 홀리스틱 판단)을 70% 앵커로
+    // 쓰되, 설문의 산책분(walkMinutes)으로 30% 정밀화 + 실내활동 소폭 nudge.
+    // FEDIAF: 활동계수 ∝ 운동 시간. 한 신호가 과도하게 좌우하지 않게 블렌드
+    // (산책분 미입력 = 프로필 값 그대로, 하위호환).
+    //   - low 1.2 (NRC 보수치) / medium 1.57 (FEDIAF 110) / high 1.8 (FEDIAF 125)
+    const levelFactor =
+      dog.activityLevel === 'low'
+        ? 1.2
+        : dog.activityLevel === 'high'
+          ? 1.8
+          : 1.57
+    let base = levelFactor
+    const wm = answers.dailyWalkMinutes
+    if (wm != null && wm >= 0) {
+      const walkFactor =
+        wm < 30 ? 1.2 : wm < 60 ? 1.4 : wm < 120 ? 1.57 : wm < 180 ? 1.7 : 1.8
+      base = 0.7 * levelFactor + 0.3 * walkFactor
+    }
+    // 실내활동은 산책 외 추가 운동 — 소폭 보정 (프로필에 일부 반영돼 작게).
+    if (answers.indoorActivity === 'active') base += 0.05
+    else if (answers.indoorActivity === 'calm') base -= 0.03
+    factor = base
   }
 
   // BCS 보정 — v2 의 정확 9점 factor 우선.
@@ -390,6 +494,13 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   }
 
   const MER = Math.round(RER * factor)
+
+  // 간식 칼로리 차감 — 간식만큼 완전식(밥)을 줄여 총섭취를 MER 로 유지 (10%
+  // 룰). 간식 위에 밥을 풀로 주면 과급 → 비만. MER(요구량)은 그대로 두고
+  // feedG(권장 급여 그램)에만 반영. snackFreq 미입력/거의 안 줌이면 0 (무변경).
+  const treatFraction = treatCalorieFraction(answers.snackFreq)
+  const foodKcal = Math.round(MER * (1 - treatFraction))
+  if (treatFraction >= 0.1) riskFlags.push('TREAT_LOAD_DAILY')
 
   // ── 매크로 분기 (NRC + AAFCO 권장 범위 내) ──
   let proteinPct, fatPct, carbPct, fiberPct
@@ -602,9 +713,10 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     factor: +factor.toFixed(2),
     perMeal: Math.round(MER / 2),
     // feedG — 화식 라인 평균 에너지 밀도 (레시피 v2.1 sheet7 as-fed, 1.45 kcal/g
-    // = 닭1.30/오리1.50/돼지1.40/소1.60 평균). 라인 mix 가 정해지면 lines.ts
-    // dailyGramsFromMix 가 가중평균으로 정밀 재계산.
-    feedG: Math.round(MER / AVG_ENERGY_DENSITY_KCAL_PER_G),
+    // = 닭1.30/오리1.50/돼지1.40/소1.60 평균). 간식 차감된 foodKcal 기준 (간식
+    // 위에 풀 밥 방지). 라인 mix 가 정해지면 lines.ts dailyGramsFromMix 가
+    // 가중평균으로 정밀 재계산.
+    feedG: Math.round(foodKcal / AVG_ENERGY_DENSITY_KCAL_PER_G),
     stage,
     stageKR: lifeStageKR(stage),
     bcs,

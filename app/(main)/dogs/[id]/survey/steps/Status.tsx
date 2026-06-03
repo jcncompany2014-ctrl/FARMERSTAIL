@@ -8,12 +8,15 @@ import {
 import { detectChronicFromMedications } from '@/lib/nutrition/drugs'
 
 type IrisStage = 1 | 2 | 3 | 4 | null
+type PancreatitisSeverity = 'moderate' | 'severe' | null
 
 export type StatusProps = {
   chronicConditions: ChronicConditionKey[]
   setChronicConditions: (v: ChronicConditionKey[]) => void
   irisStage: IrisStage
   setIrisStage: (v: IrisStage) => void
+  pancreatitisSeverity: PancreatitisSeverity
+  setPancreatitisSeverity: (v: PancreatitisSeverity) => void
   prescriptionDiet: string
   setPrescriptionDiet: (v: string) => void
   medications: string
@@ -30,6 +33,8 @@ export default function Status({
   setChronicConditions,
   irisStage,
   setIrisStage,
+  pancreatitisSeverity,
+  setPancreatitisSeverity,
   prescriptionDiet,
   setPrescriptionDiet,
   medications,
@@ -62,6 +67,13 @@ export default function Status({
                 // CKD 토글 off 시 irisStage 자동 reset (stale 입력 방지)
                 if (k === 'kidney' && chronicConditions.includes('kidney')) {
                   setIrisStage(null)
+                }
+                // 췌장염 토글 off 시 중증도 reset (stale 입력 방지)
+                if (
+                  k === 'pancreatitis' &&
+                  chronicConditions.includes('pancreatitis')
+                ) {
+                  setPancreatitisSeverity(null)
                 }
                 toggleArr(chronicConditions, k, setChronicConditions)
               }}
@@ -103,6 +115,48 @@ export default function Status({
                   <Check size={13} strokeWidth={2.4} color="#fff" />
                 )}
                 Stage {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 췌장염 중증도 — 급성/중증은 화식(최저지방 ~19%DM)으로 관리 불가
+          (지방 <10% 필요) → 추천이 "수의 처방식 필요"로 게이트. 만성/경증은
+          저지방 닭 보조 가능. 미입력 시 만성(moderate) 기준. */}
+      {chronicConditions.includes('pancreatitis') && (
+        <div className="s-sect">
+          <div className="s-sect-lbl">
+            <span className="s-label-text">췌장염 단계</span>
+            <span className="s-opt">선택</span>
+          </div>
+          <p className="s-sub" style={{ fontSize: 10.5, marginBottom: 8 }}>
+            급성·중증(입원 또는 수의사 저지방 처방식 권고)은 화식으로 관리가
+            어려워 별도 안내가 나가요. 모르면 건너뛰세요 — 만성 기준 적용.
+          </p>
+          <div className="s-chiprow">
+            {[
+              { v: 'moderate' as const, label: '만성 · 관리 중' },
+              { v: 'severe' as const, label: '급성 · 중증' },
+            ].map(({ v, label }) => (
+              <button
+                key={v}
+                type="button"
+                className={
+                  's-chip s-terra' +
+                  (pancreatitisSeverity === v ? ' s-on' : '')
+                }
+                aria-pressed={pancreatitisSeverity === v}
+                onClick={() =>
+                  setPancreatitisSeverity(
+                    pancreatitisSeverity === v ? null : v,
+                  )
+                }
+              >
+                {pancreatitisSeverity === v && (
+                  <Check size={13} strokeWidth={2.4} color="#fff" />
+                )}
+                {label}
               </button>
             ))}
           </div>

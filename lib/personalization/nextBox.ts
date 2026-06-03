@@ -441,10 +441,24 @@ function finalize(
   // 전환 전략 — cycle 2+ 는 항상 'gradual' (이미 적응 단계).
   const transitionStrategy: TransitionStrategy = 'gradual'
 
+  // 간식 칼로리 차감 (firstBox 와 동일 — AAFCO/WSAVA 10% 룰). dailyKcal 을 줄여
+  // 박스 그램까지 반영 + chip. 미입력/0 = 무변경(하위호환).
+  const treatPct = Math.max(0, Math.min(0.1, surveyInput.treatReductionPct ?? 0))
+  const dailyKcal = Math.round(surveyInput.dailyKcal * (1 - treatPct))
+  if (treatPct > 0) {
+    reasoning.push({
+      trigger: '간식 급여 빈도',
+      action: `간식 칼로리(약 ${Math.round(treatPct * 100)}%)만큼 화식 양을 줄였어요 — 간식은 하루 칼로리의 10% 이내로 유지해 주세요.`,
+      chipLabel: `간식 ${Math.round(treatPct * 100)}% 반영 · 밥 ↓`,
+      priority: 2,
+      ruleId: 'treat-calorie-offset',
+    })
+  }
+
   // dailyGrams 라인 mix 기준 재계산 (cycle 별 비율 변경 반영).
   const dailyGramsByMix = dailyGramsFromMix(
     gated.lineRatios,
-    surveyInput.dailyKcal,
+    dailyKcal,
     surveyInput.foodLineMetaOverride,
   )
 
@@ -453,7 +467,7 @@ function finalize(
     toppers: gated.toppers,
     reasoning: reasoning.sort((a, b) => a.priority - b.priority),
     transitionStrategy,
-    dailyKcal: surveyInput.dailyKcal,
+    dailyKcal,
     dailyGrams: dailyGramsByMix,
     cycleNumber,
     algorithmVersion: ALGORITHM_VERSION,

@@ -102,3 +102,26 @@ blockingAllergies, crossReactWith, careGoalAffinity[], topping, deferred? }`.
 - **F. 테스트 전면 갱신 + 전체 검증 + v2.0 + 문서.**
 
 각 단계 끝에 `npx tsc --noEmit` + `npm test` 그린 확인. 회귀 0 목표.
+
+---
+
+## 구현 결과 (2026-06-03) — 완료
+
+- **① 에너지 + ② 게이트 + A skuModel** — 커밋 `d4d50bb`
+- **③ 컨셉 정렬 + ④ 프로파일** — 커밋 `212c9e8`
+  - ③는 **③-A 리바인드** 채택: 풀 키 rename 이 535곳/46파일이라 위험 과대 →
+    `weight` 키 = 닭 바인딩 스왑으로 **임상 룰 ~30개 무변경** 레시피 정합.
+  - 라인 키(basic/weight/…)는 내부 식별자 유지 (skuModel 이 SSOT,
+    `LEGACY_LINE_TO_PROTEIN` 매핑). 사용자 0 영향.
+  - `lines.ts` → skuModel 파생, DB `algorithm_food_lines` 프로파일 정합.
+  - `ALGORITHM_VERSION` v2.0.0, 테스트 1063 그린.
+
+### 백로그 (follow-up)
+- **칩 텍스트 한글화** — 일부 chip 이 'Weight'/'Basic' 영문 키명 하드코드
+  (③-A 에선 Weight=닭=체중관리라 의미는 맞음 — 한글화는 polish).
+- **severe 췌장염 flag** — 화식 최저지방 닭 19%DM > 엄격 <15%. severe 는
+  수의 처방식 필요 → 룰에 "화식 부적합" 경고 추가 권장.
+- **Phase D** allergy-sku-matrix 통합 — 별 시스템(SKU코드)이라 보류 (이미 정확).
+- **토퍼 4종 생성** — 가격·중량 정보 필요.
+- **제품 라벨 (원 P0)** — 4 화식 `products.nutrition_facts/ingredients/
+  feeding_guide/allergens` 를 레시피로 채우기 (사료관리법 표시기준).

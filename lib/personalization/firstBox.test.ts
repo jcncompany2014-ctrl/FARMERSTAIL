@@ -48,6 +48,79 @@ function ratioSum(r: Record<string, number>): number {
   return Object.values(r).reduce((s, v) => s + v, 0)
 }
 
+describe('decideFirstBox — 간식 칼로리 차감 (treat-calorie-offset)', () => {
+  it('treatReductionPct 0.1 (매일) → dailyKcal 10% 감소 + chip 발화', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      dailyKcal: 280,
+      treatReductionPct: 0.1,
+    })
+    assert.equal(f.dailyKcal, Math.round(280 * 0.9)) // 252
+    const chip = f.reasoning.find((r) => r.ruleId === 'treat-calorie-offset')
+    assert.ok(chip, '간식 차감 chip 발화')
+    assert.match(chip!.chipLabel, /간식/)
+  })
+
+  it('treatReductionPct 0.05 (가끔) → dailyKcal 5% 감소', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      dailyKcal: 280,
+      treatReductionPct: 0.05,
+    })
+    assert.equal(f.dailyKcal, Math.round(280 * 0.95)) // 266
+  })
+
+  it('미입력 → 무변경 + chip 없음 (하위호환)', () => {
+    const f = decideFirstBox({ ...baseInput(), dailyKcal: 280 })
+    assert.equal(f.dailyKcal, 280)
+    assert.equal(
+      f.reasoning.find((r) => r.ruleId === 'treat-calorie-offset'),
+      undefined,
+    )
+  })
+
+  it('0.1 초과 입력은 10%로 clamp (과도 차감 방지)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      dailyKcal: 300,
+      treatReductionPct: 0.5,
+    })
+    assert.equal(f.dailyKcal, Math.round(300 * 0.9)) // 270
+  })
+})
+
+describe('decideFirstBox — 중증 췌장염 하드 게이트', () => {
+  it('severe pancreatitis → 화식 부적합 critical chip (priority 0)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['pancreatitis'],
+      diagnosedSeverity: { pancreatitis: 'severe' },
+    })
+    const gate = f.reasoning.find(
+      (r) => r.ruleId === 'pancreatitis-severe-unsuitable',
+    )
+    assert.ok(gate, '중증 췌장염 하드 게이트 발화')
+    assert.equal(gate!.priority, 0)
+    assert.match(gate!.action, /처방식/)
+  })
+
+  it('만성(moderate) pancreatitis → 하드 게이트 미발화 (저지방 닭 보조)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['pancreatitis'],
+      diagnosedSeverity: { pancreatitis: 'moderate' },
+    })
+    assert.equal(
+      f.reasoning.find((r) => r.ruleId === 'pancreatitis-severe-unsuitable'),
+      undefined,
+    )
+    assert.ok(
+      f.reasoning.find((r) => r.ruleId === 'chronic-pancreatitis'),
+      '만성 췌장염 저지방 chip 은 발화',
+    )
+  })
+})
+
 describe('decideFirstBox — 기본 sanity', () => {
   it('합 1.0 보장 (quantized)', () => {
     const f = decideFirstBox(baseInput())

@@ -4,6 +4,7 @@ import { zPersonalizationCompute } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { decideFirstBox } from '@/lib/personalization/firstBox'
+import { treatCalorieFraction } from '@/lib/nutrition'
 import { dailyGramsFromMix } from '@/lib/personalization/lines'
 import {
   deriveAvailableLines,
@@ -238,7 +239,12 @@ export async function POST(req: Request) {
       : dog.age_value ?? 0
   // answers JSONB 의 bcsExact 가 5점 척도 BCS. 없으면 null.
   const answers =
-    (survey.answers as { bcsExact?: number; allergies?: string[] }) ?? {}
+    (survey.answers as {
+      bcsExact?: number
+      allergies?: string[]
+      snackFreq?: string
+      diagnosedSeverity?: Record<string, 'mild' | 'moderate' | 'severe'>
+    }) ?? {}
   const bcs =
     typeof answers.bcsExact === 'number' &&
     answers.bcsExact >= 1 &&
@@ -317,6 +323,10 @@ export async function POST(req: Request) {
     dailyGrams: analysis.feed_g,
     availableLines: deriveAvailableLines(activeSlugs),
     availableToppers: deriveAvailableToppers(activeSlugs),
+    // 간식 빈도 → 칼로리 차감 비율 (간식 위에 풀 밥 = 비만 방지, 10% 룰).
+    treatReductionPct: treatCalorieFraction(answers.snackFreq),
+    // 수의사 진단 중증도 (췌장염 급성/중증 하드 게이트 입력).
+    diagnosedSeverity: answers.diagnosedSeverity,
   }
 
   // 5) 알고리즘 실행 — pure function, throw 안 함.

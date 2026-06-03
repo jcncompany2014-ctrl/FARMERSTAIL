@@ -14,10 +14,128 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   calculateNutrition,
+  treatCalorieFraction,
+  safetyWeightShift,
   AVG_ENERGY_DENSITY_KCAL_PER_G,
   type DogInfo,
   type SurveyAnswers,
 } from './nutrition.ts'
+
+describe('safetyWeightShift — 신뢰도 기반 비대칭 안전 체중 보정 (발명 모듈 D)', () => {
+  it('신뢰도 미입력/null → 무변경 (하위호환)', () => {
+    assert.equal(
+      safetyWeightShift(10, undefined, {
+        bcsScore: 8,
+        careGoal: 'weight_management',
+        stage: 'adult',
+      }),
+      10,
+    )
+    assert.equal(safetyWeightShift(10, null, { bcsScore: 8, stage: 'adult' }), 10)
+  })
+
+  it('신뢰도 1.0 (동물병원) → 무변경 (불확실성 0)', () => {
+    assert.equal(safetyWeightShift(10, 1.0, { bcsScore: 8, stage: 'adult' }), 10)
+  })
+
+  it('비만(BCS 8) + 신뢰도 0.4 → 체중 하향 (덜 급여, 4.8%)', () => {
+    const w = safetyWeightShift(10, 0.4, { bcsScore: 8, stage: 'adult' })
+    assert.ok(Math.abs(w - 9.52) < 1e-9) // 10 × (1 − 0.08×0.6)
+  })
+
+  it('저체중(BCS 2) + 신뢰도 0.4 → 체중 상향 (더 급여)', () => {
+    const w = safetyWeightShift(10, 0.4, { bcsScore: 2, stage: 'adult' })
+    assert.ok(Math.abs(w - 10.48) < 1e-9) // 10 × (1 + 0.08×0.6)
+  })
+
+  it('체중관리 목표(BCS 정상) + 신뢰도 0 → 최대 8% 하향', () => {
+    const w = safetyWeightShift(10, 0, {
+      bcsScore: 5,
+      careGoal: 'weight_management',
+      stage: 'adult',
+    })
+    assert.ok(Math.abs(w - 9.2) < 1e-9) // 10 × (1 − 0.08×1)
+  })
+
+  it('자견 + 낮은 신뢰도 → 상향 (성장기 저급 방지)', () => {
+    const w = safetyWeightShift(5, 0.5, { bcsScore: 5, stage: 'puppy' })
+    assert.ok(w > 5)
+  })
+
+  it('대칭(BCS 5 일반유지) → 무변경 (데이터 부실로 굶기지 않음)', () => {
+    assert.equal(
+      safetyWeightShift(10, 0.3, { bcsScore: 5, stage: 'adult' }),
+      10,
+    )
+  })
+})
+
+describe('calculateNutrition — 산책분 → MER 블렌드 (②)', () => {
+  const baseDog: DogInfo = {
+    weight: 5,
+    ageValue: 3,
+    ageUnit: 'years',
+    neutered: false,
+    activityLevel: 'low',
+    gender: null,
+  }
+  const baseAns: SurveyAnswers = {
+    bodyCondition: 'ideal',
+    allergies: [],
+    healthConcerns: [],
+  }
+
+  it('산책분 미입력 → 프로필 activityLevel 그대로 (하위호환)', () => {
+    const noWalk = calculateNutrition(baseDog, baseAns).mer
+    const withWalk = calculateNutrition(baseDog, {
+      ...baseAns,
+      dailyWalkMinutes: 150,
+    }).mer
+    assert.ok(withWalk > noWalk, '산책 많으면 MER ↑ (granular 반영)')
+  })
+
+  it('high 프로필 + 산책 10분 → MER 하향하되 과도하지 않게', () => {
+    const highDog: DogInfo = { ...baseDog, activityLevel: 'high' }
+    const high = calculateNutrition(highDog, baseAns).mer
+    const highLowWalk = calculateNutrition(highDog, {
+      ...baseAns,
+      dailyWalkMinutes: 10,
+    }).mer
+    assert.ok(highLowWalk < high, '산책 적으면 ↓')
+    assert.ok(highLowWalk > high * 0.8, '드라마틱하게 깎이지 않음 (앵커 70%)')
+  })
+
+  it('실내활동 active → 소폭 가산', () => {
+    const calm = calculateNutrition(baseDog, {
+      ...baseAns,
+      dailyWalkMinutes: 60,
+      indoorActivity: 'calm',
+    }).mer
+    const active = calculateNutrition(baseDog, {
+      ...baseAns,
+      dailyWalkMinutes: 60,
+      indoorActivity: 'active',
+    }).mer
+    assert.ok(active > calm)
+  })
+})
+
+describe('treatCalorieFraction — 간식 칼로리 비중 (AAFCO/WSAVA 10% 룰)', () => {
+  it('매일 → 0.10 (룰 상한)', () => {
+    assert.equal(treatCalorieFraction('매일'), 0.1)
+  })
+  it('가끔 → 0.05', () => {
+    assert.equal(treatCalorieFraction('가끔'), 0.05)
+  })
+  it('거의 안 줌 → 0', () => {
+    assert.equal(treatCalorieFraction('거의 안 줌'), 0)
+  })
+  it('미입력/null/빈문자 → 0 (하위호환 — 무변경)', () => {
+    assert.equal(treatCalorieFraction(undefined), 0)
+    assert.equal(treatCalorieFraction(null), 0)
+    assert.equal(treatCalorieFraction(''), 0)
+  })
+})
 
 function baseDog(overrides: Partial<DogInfo> = {}): DogInfo {
   return {

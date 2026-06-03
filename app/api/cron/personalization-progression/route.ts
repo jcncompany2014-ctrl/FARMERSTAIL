@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { decideNextBox } from '@/lib/personalization/nextBox'
+import { treatCalorieFraction } from '@/lib/nutrition'
 import {
   deriveAvailableLines,
   deriveAvailableToppers,
@@ -282,7 +283,12 @@ export async function GET(req: Request) {
         breed?: string | null
       }
       const surveyTyped = survey as unknown as {
-        answers: { bcsExact?: number; allergies?: string[] }
+        answers: {
+          bcsExact?: number
+          allergies?: string[]
+          snackFreq?: string
+          diagnosedSeverity?: Record<string, 'mild' | 'moderate' | 'severe'>
+        }
         chronic_conditions: string[] | null
         pregnancy_status: string | null
         care_goal: string | null
@@ -364,6 +370,8 @@ export async function GET(req: Request) {
         dailyGrams: analysisTyped.feed_g,
         availableLines,
         availableToppers,
+        treatReductionPct: treatCalorieFraction(surveyTyped.answers?.snackFreq),
+        diagnosedSeverity: surveyTyped.answers?.diagnosedSeverity,
       }
 
       const checkins: Checkin[] = ((checkinsRaw ?? []) as unknown as Array<{

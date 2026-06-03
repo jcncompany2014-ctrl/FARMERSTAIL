@@ -11,6 +11,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { weightReliability } from '@/lib/personalization/reliability'
 import { useToast } from '@/components/ui/Toast'
 import {
   calculateNutrition,
@@ -114,6 +115,11 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
 
   // 1. body
   const [bcs, setBcs] = useState<BcsKey | null>(null)
+  // [발명 모듈 D] 체중 측정 방법 — 신뢰도(W_method) 입력. 미입력 시 dog 프로필
+  // 값 사용. 새로 고르면 dogs 갱신 + 측정일=오늘.
+  const [weightMethod, setWeightMethod] = useState<
+    'vet_scale' | 'home_digital' | 'hold' | 'eyeball' | 'unknown' | ''
+  >('')
   // 2. muscle
   const [mcs, setMcs] = useState<McsKey | null>(null)
   // 3. stool
@@ -134,6 +140,11 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   // v1.3 임상 정밀화 — 만성질환 의존 conditional input.
   // CKD 진단 시 IRIS stage (1-4) — 단백질 처방 분기 (Premium 0% 여부 결정).
   const [irisStage, setIrisStage] = useState<1 | 2 | 3 | 4 | null>(null)
+  // 췌장염 중증도 — 급성/중증 → 화식 부적합 하드 게이트 (firstBox). 미입력 =
+  // 만성(moderate). diagnosedSeverity 로 answers JSONB 에 라이드.
+  const [pancreatitisSeverity, setPancreatitisSeverity] = useState<
+    'moderate' | 'severe' | null
+  >(null)
   // 7. status
   const [pregnancy, setPregnancy] = useState<'none' | 'pregnant' | 'lactating' | ''>('')
   const [coat, setCoat] = useState<'healthy' | 'dull' | 'shedding' | 'itchy' | 'lesions' | ''>('')
@@ -194,7 +205,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       }
       const { data, error } = await supabase
         .from('dogs')
-        .select('id, name, weight, age_value, age_unit, neutered, activity_level, gender')
+        .select('id, name, weight, age_value, age_unit, neutered, activity_level, gender, weight_method, weight_measured_at')
         .eq('id', dogId)
         .eq('user_id', user.id)
         .maybeSingle()
@@ -234,6 +245,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       }
       // 핵심 state 만 복원 — undefined 아닌 값만 적용해 partial restore 안전.
       if (data.bcs !== undefined) setBcs(data.bcs as BcsKey | null)
+      if (typeof data.weightMethod === 'string')
+        setWeightMethod(data.weightMethod as typeof weightMethod)
       if (data.mcs !== undefined) setMcs(data.mcs as McsKey | null)
       if (data.bristol !== undefined)
         setBristol(data.bristol as typeof bristol)
@@ -251,6 +264,10 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       if (typeof data.medications === 'string') setMedications(data.medications)
       if (data.irisStage !== undefined)
         setIrisStage(data.irisStage as typeof irisStage)
+      if (data.pancreatitisSeverity !== undefined)
+        setPancreatitisSeverity(
+          data.pancreatitisSeverity as typeof pancreatitisSeverity,
+        )
       if (typeof data.pregnancy === 'string')
         setPregnancy(data.pregnancy as typeof pregnancy)
       if (typeof data.coat === 'string') setCoat(data.coat as typeof coat)
@@ -317,6 +334,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
           STORAGE_KEY,
           JSON.stringify({
             bcs,
+            weightMethod,
             mcs,
             bristol,
             foodType,
@@ -330,6 +348,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             prescriptionDiet,
             medications,
             irisStage,
+            pancreatitisSeverity,
             pregnancy,
             coat,
             pregnancyWeek,
@@ -358,6 +377,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     dog,
     STORAGE_KEY,
     bcs,
+    weightMethod,
     mcs,
     bristol,
     foodType,
@@ -371,6 +391,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     prescriptionDiet,
     medications,
     irisStage,
+    pancreatitisSeverity,
     pregnancy,
     coat,
     pregnancyWeek,
@@ -529,6 +550,12 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       giSensitivity: giSensitivity || undefined,
       preferredProteins: preferredProteins as SurveyAnswers['preferredProteins'],
       indoorActivity: indoorActivity || undefined,
+      // 췌장염 중증도 → answers JSONB 라이드. compute route 가 firstBox
+      // diagnosedSeverity 로 주입 (급성/중증 → 화식 부적합 하드 게이트).
+      diagnosedSeverity:
+        pancreatitisSeverity && chronicConditions.includes('pancreatitis')
+          ? { pancreatitis: pancreatitisSeverity }
+          : undefined,
     }
 
     // Tier S F1-1: budget_tier 컬럼이 migration 20260520+ 에서 추가됨.
@@ -602,6 +629,37 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
         .eq('user_id', user.id)
     }
 
+    // [발명 모듈 D] 체중 측정 방법/일자 — 설문에서 새로 고른 값 우선 (측정일=
+    // 오늘, 현 체중 affirm), 없으면 dog 프로필. 새로 고르면 dogs 갱신해 이후
+    // 분석·신뢰도가 최신 도구를 반영.
+    const effWeightMethod =
+      weightMethod ||
+      (dog as { weight_method?: string | null }).weight_method
+    const effWeightMeasuredAt = weightMethod
+      ? new Date().toISOString()
+      : (dog as { weight_measured_at?: string | null }).weight_measured_at ??
+        null
+    if (weightMethod) {
+      await (
+        supabase.from('dogs') as unknown as {
+          update: (v: {
+            weight_method: string
+            weight_measured_at: string
+          }) => {
+            eq: (c: string, v: string) => {
+              eq: (c: string, v: string) => Promise<unknown>
+            }
+          }
+        }
+      )
+        .update({
+          weight_method: weightMethod,
+          weight_measured_at: effWeightMeasuredAt as string,
+        })
+        .eq('id', dogId)
+        .eq('user_id', user.id)
+    }
+
     const nu = calculateNutrition(
       {
         weight: dog.weight,
@@ -610,6 +668,11 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
         neutered: dog.neutered,
         activityLevel: dog.activity_level,
         gender: dog.gender as 'male' | 'female' | null,
+        // [발명 모듈 D] 체중 신뢰도 → 비대칭 케어목표 안전 보정 입력.
+        weightReliability: weightReliability(
+          effWeightMethod,
+          effWeightMeasuredAt,
+        ),
       },
       answers,
     )
@@ -803,6 +866,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             setBcs={setBcs}
             weightTrend={weightTrend}
             setWeightTrend={setWeightTrend}
+            weightMethod={weightMethod}
+            setWeightMethod={setWeightMethod}
           />
         )}
 
@@ -858,6 +923,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             setChronicConditions={setChronicConditions}
             irisStage={irisStage}
             setIrisStage={setIrisStage}
+            pancreatitisSeverity={pancreatitisSeverity}
+            setPancreatitisSeverity={setPancreatitisSeverity}
             prescriptionDiet={prescriptionDiet}
             setPrescriptionDiet={setPrescriptionDiet}
             medications={medications}

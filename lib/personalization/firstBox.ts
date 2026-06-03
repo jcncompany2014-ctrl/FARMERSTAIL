@@ -129,6 +129,21 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
     reasoning,
   })
 
+  // Step 10.7 — 간식 칼로리 차감. 보호자가 간식을 주면 그만큼 밥(완전식)을
+  // 줄여 총섭취를 유지 (AAFCO/WSAVA 10% 룰). 간식 위에 풀 밥 = 과급/비만 방지.
+  // dailyKcal 을 줄이면 라우트의 dailyGramsFromMix 가 박스 그램을 자동 축소.
+  const treatPct = Math.max(0, Math.min(0.1, input.treatReductionPct ?? 0))
+  const dailyKcal = Math.round(input.dailyKcal * (1 - treatPct))
+  if (treatPct > 0) {
+    reasoning.push({
+      trigger: '간식 급여 빈도',
+      action: `간식 칼로리(약 ${Math.round(treatPct * 100)}%)만큼 화식 양을 줄였어요 — 간식 위에 밥을 풀로 주면 과급·비만 위험이라, 간식은 하루 칼로리의 10% 이내로 유지해 주세요.`,
+      chipLabel: `간식 ${Math.round(treatPct * 100)}% 반영 · 밥 ↓`,
+      priority: 2,
+      ruleId: 'treat-calorie-offset',
+    })
+  }
+
   // Step 11 — 전환 전략.
   const transitionStrategy = decideTransition(input)
 
@@ -137,7 +152,7 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
     toppers: gated.toppers,
     reasoning: reasoning.sort((a, b) => a.priority - b.priority),
     transitionStrategy,
-    dailyKcal: input.dailyKcal,
+    dailyKcal,
     dailyGrams: input.dailyGrams,
     cycleNumber: 1,
     algorithmVersion: ALGORITHM_VERSION,
@@ -649,6 +664,22 @@ function applyChronicAdjustments(
       priority: 3,
       ruleId: 'chronic-pancreatitis',
     })
+
+    // 하드 게이트 — 급성·중증 췌장염은 지방 <10% DM 처방식이 필요한데, 화식
+    // 최저지방(닭 ~19% DM)으로도 도달 불가. 부적합 제품을 추천하는 대신
+    // priority 0 critical 경고로 수의 처방식 안내 (양·비율로 풀 문제가 아니라
+    // 제품군 자체가 부적합한 안전 게이트). 출처: ACVIM (2022) JVIM 36:117 —
+    // acute pancreatitis ≤10% fat. severe 가 아니면(만성 ≤15%) 저지방 닭으로
+    // 보조 가능하므로 게이트 미발화.
+    if (severity === 'severe' && fatPct > fatCeiling) {
+      reasoning.push({
+        trigger: '급성·중증 췌장염',
+        action: `이 강아지에게는 화식 급여를 권장하지 않습니다 — 급성·중증 췌장염은 지방 <${fatCeiling}% DM 처방식이 필요한데, 화식은 최저지방(약 ${fatPct.toFixed(0)}% DM)으로도 그 기준을 맞출 수 없어요. 반드시 수의사 처방식(저지방 therapeutic diet)으로 급여해 주세요.`,
+        chipLabel: '⚠ 화식 부적합 — 수의 처방식 필요',
+        priority: 0,
+        ruleId: 'pancreatitis-severe-unsuitable',
+      })
+    }
   }
 
   // 관절염 — Joint 라인 가산. v1.4 — transferToTarget 으로 mass leak 방지 +

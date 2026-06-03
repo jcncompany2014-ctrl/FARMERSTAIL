@@ -37,6 +37,13 @@ const BCS_VIEW: Record<
 }
 
 type WeightTrend = 'stable' | 'gained' | 'lost' | 'unknown' | ''
+type WeightMethod =
+  | 'vet_scale'
+  | 'home_digital'
+  | 'hold'
+  | 'eyeball'
+  | 'unknown'
+  | ''
 
 export type BodyProps = {
   dogName: string
@@ -44,6 +51,8 @@ export type BodyProps = {
   setBcs: (v: BcsKey | null) => void
   weightTrend: WeightTrend
   setWeightTrend: (v: WeightTrend) => void
+  weightMethod: WeightMethod
+  setWeightMethod: (v: WeightMethod) => void
 }
 
 export default function Body({
@@ -52,6 +61,8 @@ export default function Body({
   setBcs,
   weightTrend,
   setWeightTrend,
+  weightMethod,
+  setWeightMethod,
 }: BodyProps) {
   return (
     <div className="s-page">
@@ -151,6 +162,43 @@ export default function Body({
                 onClick={() => setWeightTrend(v as WeightTrend)}
               >
                 <Icon size={13} strokeWidth={2} />
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* [발명 모듈 D] 체중 측정 방법 — 신뢰도(W_method)의 핵심 입력. 도구가
+          정확할수록 급여량 계산이 정밀해지고, 부정확하면 비대칭 케어목표에서
+          안전하게 보수적으로 계산. */}
+      <div className="s-sect">
+        <div className="s-sect-lbl">
+          <span className="s-label-text">체중을 어떻게 쟀어요?</span>
+          <span className="s-opt">선택</span>
+        </div>
+        <p className="s-sub" style={{ fontSize: 10.5, marginBottom: 8 }}>
+          측정 도구가 정확할수록 급여량을 더 정밀하게 계산해요.
+        </p>
+        <div className="s-chiprow">
+          {[
+            { v: 'vet_scale', label: '동물병원 체중계' },
+            { v: 'home_digital', label: '가정용 저울' },
+            { v: 'hold', label: '안고 재기' },
+            { v: 'eyeball', label: '눈대중' },
+            { v: 'unknown', label: '모름' },
+          ].map(({ v, label }) => {
+            const active = weightMethod === v
+            return (
+              <button
+                key={v}
+                type="button"
+                className={'s-chip' + (active ? ' s-on' : '')}
+                aria-pressed={active}
+                onClick={() =>
+                  setWeightMethod(active ? '' : (v as WeightMethod))
+                }
+              >
                 {label}
               </button>
             )

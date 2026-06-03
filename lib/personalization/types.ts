@@ -198,6 +198,16 @@ export type AlgorithmInput = {
   availableLines?: FoodLine[]
   /** 추천 가능한 토퍼 axis (활성 제품 기준). undefined = 전부 가용. */
   availableToppers?: Array<'vegetable' | 'protein'>
+
+  // ── 간식 칼로리 차감 (v2.1 — 비만 방지) ──
+  /**
+   * 간식 칼로리 비율 (0~0.1). 보호자 간식 빈도(snackFreq)에서 유도
+   * (nutrition.ts `treatCalorieFraction`: 가끔 0.05 / 매일 0.10). 알고리즘이
+   * dailyKcal 을 (1 − 이 값) 만큼 줄여 박스 분량을 정함 — 간식 위에 밥을
+   * 풀로 주면 과급 → 비만 (국내 최대 경로). 미입력/0 = 무변경(하위호환).
+   * 출처: AAFCO 2024 / WSAVA Global Nutrition "treats ≤10% daily kcal".
+   */
+  treatReductionPct?: number
 }
 
 /** 알고리즘 output — 한 강아지의 한 cycle 처방. */
