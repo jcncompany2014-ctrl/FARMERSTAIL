@@ -8,10 +8,11 @@
  *  1) onboarding   — 강아지 미등록  → 강아지 등록하기
  *  2) analyze      — 분석 미실행    → 무료 분석 받기
  *  3) approve      — 처방 승인 대기 → 처방 확인 + 승인
- *  4) weigh-in     — 체중 14d+ 미기록 → 체중 기록
- *  5) delivery     — 활성 정기배송 D-3 이내 → 도착 예정 안내
- *  6) subscribe    — 처방 승인 후 정기배송 미신청 → 정기배송 신청
- *  7) null         — 모든 게 정상 (NextActionCard 안 그림)
+ *  4) checkin      — 첫 박스 7일+ & 미응답 → 첫 체크인 (리텐션 핵심)
+ *  5) weigh-in     — 체중 14d+ 미기록 → 체중 기록
+ *  6) delivery     — 활성 정기배송 D-3 이내 → 도착 예정 안내
+ *  7) subscribe    — 처방 승인 후 정기배송 미신청 → 정기배송 신청
+ *  8) null         — 모든 게 정상 (NextActionCard 안 그림)
  *
  * # 디자인
  * - tone: 우선순위 4-6 은 부드러운 톤 (gold / moss). 1-2 는 강한 톤 (terracotta).
@@ -47,6 +48,8 @@ export type NextActionInput = {
   } | null
   /** 분석은 받았는데 정기배송 0 인 강아지 (선택). */
   noSubDogId?: string | null
+  /** 첫 박스 baseline(first_order) 7일+ 경과 & 첫 체크인 미응답 강아지. */
+  firstCheckinDog?: { id: string; name: string } | null
 }
 
 export type NextAction =
@@ -73,6 +76,14 @@ export type NextAction =
       cta: string
       href: string
       tone: 'gold'
+    }
+  | {
+      type: 'checkin'
+      title: string
+      subtitle: string
+      cta: string
+      href: string
+      tone: 'moss'
     }
   | {
       type: 'weigh-in'
@@ -136,7 +147,21 @@ export function computeNextAction(input: NextActionInput): NextAction | null {
     }
   }
 
-  // 4) 체중 미기록 — 14일 이상. 정기배송 진행 중인 강아지일수록 체중 변화가
+  // 4) 첫 박스 체크인 — baseline(first_order) 7일+ 경과 & 미응답. 첫 박스
+  //    경험 만족도가 재구독을 좌우하는 리텐션 핵심 순간. push 외에 대시보드
+  //    "오늘 할 일" 로도 한 번 더 surface. 부드러운 톤(moss) + 100P 유인.
+  if (input.firstCheckinDog) {
+    return {
+      type: 'checkin',
+      title: `${input.firstCheckinDog.name} 첫 박스 한 주, 어땠나요?`,
+      subtitle: '30초 체크인하고 100P 받으세요 — 다음 처방에도 반영돼요',
+      cta: '체크인하기',
+      href: `/dogs/${input.firstCheckinDog.id}/first-checkin`,
+      tone: 'moss',
+    }
+  }
+
+  // 5) 체중 미기록 — 14일 이상. 정기배송 진행 중인 강아지일수록 체중 변화가
   //    급여량 산정에 직접 영향. 부드러운 톤 (의무감 X) 으로 유도.
   if (input.staleWeightDog) {
     const days = input.staleWeightDog.daysSinceLastWeight

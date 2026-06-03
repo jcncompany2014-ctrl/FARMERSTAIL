@@ -16,6 +16,8 @@ const REASON_BY_TYPE: Record<NextAction['type'], string> = {
     '설문이 끝난 강아지만 영양 분석이 나와요. 오래 미루면 추천이 맞지 않을 수 있어요',
   approve:
     '제안한 식단을 보호자가 직접 검토하고 승인할 때 비로소 적용돼요',
+  checkin:
+    '첫 박스 한 주 경험이 다음 처방에 반영돼요. 30초면 충분해요',
   'weigh-in':
     '체중이 2주 이상 안 측정되면 추천량이 실제와 멀어질 수 있어요',
   delivery:

@@ -188,6 +188,11 @@ export default function SubscriptionsClient({
     }
     if (!weeks) {
       trackSubscriptionPaused({ subscriptionId: subId, reason: 'user_action' })
+    } else {
+      // 건너뛰기는 즉시 반영되므로 사용자가 인지하도록 피드백 + 되돌리기 안내.
+      toast.success(
+        `다음 배송을 ${weeks}주 미뤘어요. 구독 관리에서 되돌릴 수 있어요.`,
+      )
     }
     await reload()
     setActionLoading(null)
@@ -434,6 +439,14 @@ export default function SubscriptionsClient({
         actionLoading={actionLoading}
         onClose={() => setCancelSubId(null)}
         onConfirm={(subId) => void performCancel(subId)}
+        onSkipInstead={(subId) => {
+          setCancelSubId(null)
+          void handlePause(subId, 4)
+        }}
+        onPauseInstead={(subId) => {
+          setCancelSubId(null)
+          void handlePause(subId)
+        }}
       />
     </div>
   )

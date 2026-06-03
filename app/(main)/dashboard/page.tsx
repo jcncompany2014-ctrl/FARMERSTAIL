@@ -353,6 +353,56 @@ export default async function DashboardPage() {
       ? Array.from(dogIdsWithAnalyses)[0]
       : null
 
+  // 첫 박스 체크인 — feeding_outcomes baseline(first_order) 7일+ 경과 &
+  // first_box_checkin 미응답 강아지. 21일 넘으면 권유 종료(응답 창). RLS 가
+  // user_id=auth.uid() 라 user_id 로 필터(baseline insert 가 user_id 세팅).
+  // push(7~8일) 외에 대시보드에서도 한 번 더 surface — 리텐션 핵심.
+  const firstCheckinDog = await (async (): Promise<{
+    id: string
+    name: string
+  } | null> => {
+    if (dogs.length === 0) return null
+    // feeding_outcomes 는 아직 generated types 에 없어(typegen 미반영) 최소
+    // 타입 캐스트로 우회 (cron 등 다른 호출부도 동일). RLS=user_id 라 안전.
+    type OutcomeRow = { dog_id: string; source: string; created_at: string }
+    const { data: outcomes } = await (
+      supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => {
+            eq: (
+              c: string,
+              v: string,
+            ) => {
+              in: (
+                c: string,
+                v: string[],
+              ) => Promise<{ data: OutcomeRow[] | null }>
+            }
+          }
+        }
+      }
+    )
+      .from('feeding_outcomes')
+      .select('dog_id, source, created_at')
+      .eq('user_id', user.id)
+      .in('source', ['first_order', 'first_box_checkin'])
+    const rows = outcomes ?? []
+    if (rows.length === 0) return null
+    for (const d of dogs) {
+      const dogRows = rows.filter((r) => r.dog_id === d.id)
+      const baseline = dogRows.find((r) => r.source === 'first_order')
+      if (!baseline) continue
+      if (dogRows.some((r) => r.source === 'first_box_checkin')) continue
+      const daysSince = Math.floor(
+        (nowKstMs - new Date(baseline.created_at).getTime()) / 86_400_000,
+      )
+      if (daysSince >= 7 && daysSince <= 21) {
+        return { id: d.id, name: d.name }
+      }
+    }
+    return null
+  })()
+
   const nextActionInput: NextActionInput = {
     hasDogs: dogs.length > 0,
     unanalyzedDog: unanalyzedDog
@@ -362,6 +412,7 @@ export default async function DashboardPage() {
     staleWeightDog,
     upcomingDelivery,
     noSubDogId: noSubDog,
+    firstCheckinDog,
   }
   const nextAction = computeNextAction(nextActionInput)
 
@@ -650,6 +701,23 @@ export default async function DashboardPage() {
           nextAction.subtitle ||
           '맞춤 분석과 추천이 가족 정보부터 시작됩니다.',
         ctaLabel: nextAction.cta || '등록하기',
+        href: nextAction.href,
+        icon: todayIcon,
+      }
+    }
+    if (nextAction.type === 'checkin' && firstCheckinDog) {
+      return {
+        heading: (
+          <>
+            {firstCheckinDog.name} 첫 박스
+            <br />
+            한 주, 어땠나요?
+          </>
+        ),
+        description:
+          nextAction.subtitle ||
+          '30초 체크인하고 100P 받으세요 — 다음 처방에도 반영돼요.',
+        ctaLabel: nextAction.cta || '체크인하기',
         href: nextAction.href,
         icon: todayIcon,
       }

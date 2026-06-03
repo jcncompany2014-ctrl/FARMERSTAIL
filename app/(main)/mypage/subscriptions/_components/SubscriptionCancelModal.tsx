@@ -14,6 +14,10 @@ type Props = {
   actionLoading: string | null
   onClose: () => void
   onConfirm: (subId: string) => void
+  /** 해지 대신 다음 배송 4주 미루기 (off-ramp — 리텐션). */
+  onSkipInstead: (subId: string) => void
+  /** 해지 대신 일시정지 (off-ramp — 리텐션). */
+  onPauseInstead: (subId: string) => void
 }
 
 export default function SubscriptionCancelModal({
@@ -21,6 +25,8 @@ export default function SubscriptionCancelModal({
   actionLoading,
   onClose,
   onConfirm,
+  onSkipInstead,
+  onPauseInstead,
 }: Props) {
   const isLoading = actionLoading === cancelSubId
   return (
@@ -35,7 +41,72 @@ export default function SubscriptionCancelModal({
       showClose={!isLoading}
     >
       <Modal.Body>
-        해지 후에는 다시 신청해야 해요. 진행 중인 회차도 더 이상 배송되지 않아요.
+        해지하면 진행 중인 회차도 더 이상 배송되지 않고, 다시 신청해야 해요.
+        {/* off-ramp — 해지 전에 더 가벼운 대안을 먼저 제시 (리텐션). */}
+        <div
+          style={{
+            marginTop: 14,
+            padding: '12px 14px',
+            background: V3.paperHi,
+            borderRadius: V3Radius.sm,
+            border: `1px solid ${V3.rule}`,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11.5,
+              fontWeight: V3FontWeight.bold,
+              color: V3.inkMute,
+              marginBottom: 10,
+            }}
+          >
+            잠깐, 이런 방법도 있어요
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => cancelSubId && onSkipInstead(cancelSubId)}
+              disabled={isLoading}
+              style={{
+                flex: 1,
+                padding: '10px 8px',
+                borderRadius: V3Radius.sm,
+                fontSize: 11.5,
+                fontWeight: V3FontWeight.bold,
+                background: V3.paper,
+                color: V3.sage,
+                border: `1px solid ${V3.sage}`,
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.5 : 1,
+                lineHeight: 1.3,
+              }}
+            >
+              다음 배송만
+              <br />4주 미루기
+            </button>
+            <button
+              type="button"
+              onClick={() => cancelSubId && onPauseInstead(cancelSubId)}
+              disabled={isLoading}
+              style={{
+                flex: 1,
+                padding: '10px 8px',
+                borderRadius: V3Radius.sm,
+                fontSize: 11.5,
+                fontWeight: V3FontWeight.bold,
+                background: V3.paper,
+                color: V3.sage,
+                border: `1px solid ${V3.sage}`,
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.5 : 1,
+                lineHeight: 1.3,
+              }}
+            >
+              잠시
+              <br />일시정지
+            </button>
+          </div>
+        </div>
       </Modal.Body>
       <Modal.Footer>
         <button
