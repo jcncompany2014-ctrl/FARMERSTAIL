@@ -31,6 +31,10 @@ import type {
   Reasoning,
 } from '@/lib/personalization/types'
 import AdjustSheet from './AdjustSheet'
+import {
+  fetchComputedFormula,
+  invalidateComputedFormula,
+} from '@/lib/personalization/formulaCache'
 import './recommendation.css'
 import './adjust-sheet.css'
 
@@ -133,16 +137,10 @@ export default function RecommendationBox({
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch('/api/personalization/compute', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ dogId }),
-        })
-        const json = (await res.json()) as
-          | { ok: true; formula: Formula }
-          | { ok?: false; code?: string; message?: string }
+        // 공유 fetch — AnalysisView 와 중복 POST 제거 (audit P0: double-compute).
+        const { httpOk, body: json } = await fetchComputedFormula(dogId)
         if (cancelled) return
-        if (!res.ok || !('ok' in json) || json.ok !== true) {
+        if (!httpOk || !('ok' in json) || json.ok !== true) {
           if ('code' in json && json.code === 'NO_SURVEY') {
             setState({ status: 'no_survey' })
             return
@@ -315,6 +313,8 @@ export default function RecommendationBox({
         dogName={dogName}
         onSaved={(next) => {
           setState({ status: 'ready', formula: next })
+          // 처방이 바뀌었으니 공유 캐시 무효화 — 다음 마운트가 새 결과를 받도록.
+          invalidateComputedFormula(dogId)
         }}
       />
     </>

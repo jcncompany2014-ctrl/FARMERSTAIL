@@ -7,6 +7,8 @@ export type LoadingProps = {
   err: string
   saving: boolean
   onRetry: () => void
+  /** 저장 실패 시 마지막 입력 단계로 복귀 — loading 화면에 갇히지 않도록. */
+  onBack?: () => void
 }
 
 export default function Loading({
@@ -15,6 +17,7 @@ export default function Loading({
   err,
   saving,
   onRetry,
+  onBack,
 }: LoadingProps) {
   return (
     <div className="s-loading-page">
@@ -110,6 +113,31 @@ export default function Loading({
           }}
         >
           다시 시도
+        </button>
+      )}
+      {err && onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={saving}
+          // 보조(ghost) — 재시도가 계속 실패해도 갇히지 않게 입력 단계로 탈출.
+          style={{
+            marginTop: 10,
+            appearance: 'none',
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--muted)',
+            padding: '8px 14px',
+            fontSize: 12.5,
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+            opacity: saving ? 0.6 : 1,
+          }}
+        >
+          이전 단계로 돌아가기
         </button>
       )}
     </div>

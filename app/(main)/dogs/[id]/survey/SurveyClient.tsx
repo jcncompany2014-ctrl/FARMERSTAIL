@@ -319,8 +319,15 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   // saveAndGoResult 가 언마운트 후 setState + 원치 않는 router.push + 중복
   // surveys/analyses insert 를 일으켰음.
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // 설문 제출 재진입 가드 — 빠른 더블클릭/재시도로 surveys·analyses 가 중복
+  // insert 되는 것을 막는다 (saving state 는 비동기라 같은 tick 더블콜에 취약 → ref).
+  const submitGuardRef = useRef(false)
+  // 언마운트 후 navigation/타이머 발동 방지 — 저장은 즉시 하되, 결과로의
+  // 이동(타이머)은 컴포넌트가 살아있을 때만 예약한다.
+  const mountedRef = useRef(true)
   useEffect(() => {
     return () => {
+      mountedRef.current = false
       if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current)
     }
   }, [])
@@ -469,9 +476,12 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     if (currentStep === 'budget') {
       setCurrentStep('loading')
       setLoadingStage(0)
-      // 시각적 분석 단계 보여주기 — 약 2.8초 후 실제 저장 → 결과로 이동.
-      // R97-C: ref 저장 → 언마운트 cleanup 에서 clear (위 useEffect).
-      loadingTimerRef.current = setTimeout(() => saveAndGoResult(), 2800)
+      // P0(설문 유실 방지): 저장을 즉시 시작한다. 예전엔 2.8초 타이머 뒤에
+      // 저장했는데, 그 사이 사용자가 화면을 떠나면 unmount cleanup 이 타이머를
+      // 지워 저장이 영영 실행되지 않았다 → 설문·분석 통째 유실. 이제 저장은
+      // 바로 하고, "분석 중" 애니메이션 최소 노출은 saveAndGoResult 가 결과로
+      // 이동하기 직전에 확보한다 (저장이 끝난 뒤라 그 지연 중 이탈해도 안전).
+      void saveAndGoResult()
       return
     }
     if (idx < STEPS.length - 1) setCurrentStep(STEPS[idx + 1]!)
@@ -486,7 +496,9 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   }
 
   async function saveAndGoResult() {
-    if (!dog) return
+    if (!dog || submitGuardRef.current) return
+    submitGuardRef.current = true
+    const startedAt = Date.now()
     setSaving(true)
 
     const {
@@ -496,6 +508,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       // R97-C (D7): setSaving(false) 누락 시 세션 만료 사용자의 제출 버튼이
       // 영구 disabled(saving=true) 로 굳음. login redirect 전 해제.
       setSaving(false)
+      submitGuardRef.current = false
       router.push('/login')
       return
     }
@@ -617,7 +630,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       toast.error('저장하지 못했어요')
       setErr('저장하지 못했어요')
       setSaving(false)
-      // status 로 점프 대신 loading 화면 그대로 — 사용자가 inline retry.
+      submitGuardRef.current = false // 재시도 허용
+      // 실패 시 loading 화면에 inline 재시도 + "이전 단계로" 탈출구 제공.
       return
     }
 
@@ -719,6 +733,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       toast.error('분석을 저장하지 못했어요')
       setErr('분석을 저장하지 못했어요')
       setSaving(false)
+      submitGuardRef.current = false // 재시도 허용
       return
     }
 
@@ -762,11 +777,20 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     }
 
     trackSurveyCompleted(dogId)
+    // 분석 애니메이션 최소 노출(약 2.4초) 확보 후 결과로 이동. 저장은 이미
+    // 끝났으므로 이 타이머는 navigation 만 담당 — 지연 중 이탈해도 데이터 보존.
     // R36 — 설문→로딩→결과 흐름은 상단 메뉴 hide. ?fromSurvey=1 query 가
     // AppChrome 의 focusMode 분기에 사용됨. 사용자가 추후 직접 진입
     // (예: 이전 결과 다시 보기) 시는 query 없으니 정상 노출.
-    router.push(`/dogs/${dogId}/analysis?fromSurvey=1`)
-    router.refresh()
+    // 저장 도중 사용자가 이탈(언마운트)했다면 결과로 끌고가지 않는다 — 저장은
+    // 이미 끝났으니 데이터는 보존되고, 다음 /analysis 진입 시 정상 표시된다.
+    if (!mountedRef.current) return
+    if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current)
+    const remaining = Math.max(0, 2400 - (Date.now() - startedAt))
+    loadingTimerRef.current = setTimeout(() => {
+      router.push(`/dogs/${dogId}/analysis?fromSurvey=1`)
+      router.refresh()
+    }, remaining)
   }
 
   if (!dog) {
@@ -985,6 +1009,11 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
               setErr('')
               setLoadingStage(0)
               void saveAndGoResult()
+            }}
+            onBack={() => {
+              // 저장 실패로 loading 에 갇히지 않도록 — 마지막 입력 단계로 복귀.
+              setErr('')
+              setCurrentStep('budget')
             }}
           />
         )}

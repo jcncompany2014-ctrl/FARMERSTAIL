@@ -250,6 +250,24 @@ export default function ProductDetailClient({
     supabase,
   ])
 
+  // 로그인 후 복귀 — 게스트가 장바구니/바로구매를 눌러 로그인했다 돌아오면
+  // 선택했던 variant/수량을 URL 파라미터에서 복원 (audit P0: 컨텍스트 유실).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const sp = new URLSearchParams(window.location.search)
+    const v = sp.get('v')
+    const qty = sp.get('qty')
+    if (v && activeVariants.some((av) => av.id === v)) {
+      setSelectedVariantId(v)
+    }
+    if (qty) {
+      const n = Number.parseInt(qty, 10)
+      if (Number.isFinite(n) && n >= 1) setQuantity(Math.min(n, qtyMax))
+    }
+    // mount 시 1회만 — URL 파라미터에서 선택 복원.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function toggleWish() {
     if (wishBusy) return
     const wasWished = wished
@@ -298,7 +316,14 @@ export default function ProductDetailClient({
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
-      router.push(`/login?next=/products/${product.slug}`)
+      // 게스트 → 로그인. 버튼 스피너 해제 + 선택(variant/수량) 보존해서
+      // 로그인 후 같은 선택으로 복귀 (audit P0: 멈춘 버튼 + 컨텍스트 유실).
+      setAdding(false)
+      const sp = new URLSearchParams()
+      if (selectedVariant) sp.set('v', selectedVariant.id)
+      if (capped > 1) sp.set('qty', String(capped))
+      const back = `/products/${product.slug}${sp.toString() ? `?${sp.toString()}` : ''}`
+      router.push(`/login?next=${encodeURIComponent(back)}`)
       return
     }
 

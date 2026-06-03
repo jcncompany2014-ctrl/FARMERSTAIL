@@ -1,13 +1,13 @@
 'use client'
 
 /**
- * CartReceipt — 모바일 카트 결제 미리보기 카드 + Quick pay (2026-05-21).
+ * CartReceipt — 모바일 카트 결제 미리보기 카드 (2026-05-21).
  *
  * 핸드오프 패턴:
  *   - "RECEIPT · 결제 미리보기" kicker + breakdown rows
  *   - hairline divider → 총 결제 금액 큰 숫자 (terracotta)
  *   - "결제 시 NP 적립 예정" sage tinted banner
- *   - QUICK PAY 4 buttons (시각만, 모두 /checkout 로)
+ *   - 실제 결제 진입은 CartStickyCTA(하단 고정 "결제하기")가 담당
  *
  * # variant prop (R14 cleanup)
  *
@@ -18,7 +18,6 @@
  *   - app: borderRadius 12/4 (V3Radius.md/sm), sans 폰트 통일, v3 grammar
  */
 
-import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
 
 interface Props {
@@ -31,13 +30,6 @@ interface Props {
   /** 'web' (기본) 또는 'app' — v3 톤 분기. */
   variant?: 'web' | 'app'
 }
-
-const QUICK_PAY: Array<{ label: string; bg: string; fg: string }> = [
-  { label: '카카오페이', bg: '#fee500', fg: '#3c1e1e' },
-  { label: '토스페이', bg: '#0064ff', fg: '#fff' },
-  { label: '네이버페이', bg: '#03c75a', fg: '#fff' },
-  { label: '카드', bg: '#fbf3df', fg: '#1a140c' },
-]
 
 export default function CartReceipt({
   subtotal,
@@ -52,7 +44,6 @@ export default function CartReceipt({
 
   // v3 톤은 둥근 모서리 ↓ + 그림자 ↓ + 폰트 sans 통일.
   const cardRadius = isApp ? 12 : 22
-  const quickPayRadius = isApp ? 4 : 14
   const cardBg = isApp ? 'var(--bg-3)' : '#ffffff'
   const cardShadow = isApp
     ? '0 1px 0 rgba(22,20,15,0.04)'
@@ -166,38 +157,6 @@ export default function CartReceipt({
         </div>
       </section>
 
-      {/* QUICK PAY */}
-      <section className="px-4 pt-3 pb-3">
-        <div
-          style={{
-            fontSize: 10,
-            color: '#7a6d5b',
-            fontWeight: 700,
-            letterSpacing: 2,
-            marginBottom: 8,
-          }}
-        >
-          QUICK PAY · 빠른 결제
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          {QUICK_PAY.map((p) => (
-            <Link
-              key={p.label}
-              href="/checkout"
-              className="text-center font-bold transition active:scale-95"
-              style={{
-                background: p.bg,
-                color: p.fg,
-                borderRadius: quickPayRadius,
-                padding: '12px 6px',
-                fontSize: 11,
-              }}
-            >
-              {p.label}
-            </Link>
-          ))}
-        </div>
-      </section>
     </div>
   )
 }

@@ -23,6 +23,7 @@ import { useToast } from '@/components/ui/Toast'
 import { getAAFCORanges, stageFromKR } from '@/lib/nutrition'
 import StructuredAnalysis from '@/components/analysis/StructuredAnalysis'
 import RecommendationBox from '@/components/analysis/RecommendationBox'
+import { fetchComputedFormula } from '@/lib/personalization/formulaCache'
 import FeedingPlanCard from '@/components/analysis/FeedingPlanCard'
 import NutrientGauges38 from '@/components/analysis/NutrientGauges38'
 import { WARM_CREAM } from '@/components/analysis/magazine/palette'
@@ -281,16 +282,9 @@ export default function AnalysisView({
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch('/api/personalization/compute', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dogId, cycleNumber: 1 }),
-        })
-        if (!res.ok) return
-        const json = (await res.json()) as
-          | { ok: true; formula: Formula }
-          | { ok: false }
-        if (cancelled || !json.ok) return
+        // 공유 fetch — RecommendationBox 와 중복 POST 제거 (audit P0: double-compute).
+        const { httpOk, body: json } = await fetchComputedFormula(dogId, 1)
+        if (cancelled || !httpOk || json.ok !== true) return
         setFormula(json.formula)
       } catch {
         /* silent — Magazine BoxMix 는 fallback hardcode 로 표시 */

@@ -9,6 +9,7 @@
  */
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import {
   RadarChart,
   PolarGrid,
@@ -50,6 +51,16 @@ const SKU_COLORS: Record<SkuKey, string> = {
   S03: '#7A99B3', // dust blue
   P04: '#A87BA0', // mauve
   B05: '#E0B341', // mustard
+}
+
+// SKU → 제품 slug. 연어(S03)는 아직 미출시 → null (카드에 "출시 예정" 표기,
+// 404 링크 방지). 나머지 4종은 실제 PDP 로 연결 (audit P0: 비교 페이지 데드엔드).
+const SKU_SLUG: Record<SkuKey, string | null> = {
+  C01: 'chicken-basic',
+  D02: 'duck-weight',
+  S03: null,
+  P04: 'pork-joint',
+  B05: 'beef-premium',
 }
 
 export default function CompareClient({ skus }: { skus: SkuKey[] }) {
@@ -205,40 +216,57 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
           .map((sku) => {
             const meta = SKU_META[sku]
             const nutrition = SKU_NUTRITION[sku]
+            const slug = SKU_SLUG[sku]
             return (
               <article
                 key={sku}
-                className="rounded-2xl border border-rule bg-white p-4 flex items-start gap-3"
+                className="rounded-2xl border border-rule bg-white p-4 flex flex-col gap-3"
               >
-                <div
-                  className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-['Archivo_Black'] text-[14px] text-white"
-                  style={{ background: SKU_COLORS[sku] }}
-                >
-                  {meta.code.slice(-3)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-[13px] font-bold text-ink">
-                    {meta.code} · {meta.name_ko}
-                    {meta.novel && (
-                      <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tight text-moss bg-moss/10">
-                        novel
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-[11.5px] text-muted mt-1 leading-relaxed">
-                    {nutrition.highlight_ko}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {nutrition.persona.map((p) => (
-                      <span
-                        key={p}
-                        className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-bg text-text"
-                      >
-                        {PERSONA_LABEL[p]}
-                      </span>
-                    ))}
+                <div className="flex items-start gap-3">
+                  <div
+                    className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-['Archivo_Black'] text-[14px] text-white"
+                    style={{ background: SKU_COLORS[sku] }}
+                  >
+                    {meta.code.slice(-3)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[13px] font-bold text-ink">
+                      {meta.code} · {meta.name_ko}
+                      {meta.novel && (
+                        <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tight text-moss bg-moss/10">
+                          novel
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-[11.5px] text-muted mt-1 leading-relaxed">
+                      {nutrition.highlight_ko}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {nutrition.persona.map((p) => (
+                        <span
+                          key={p}
+                          className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-bg text-text"
+                        >
+                          {PERSONA_LABEL[p]}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
+                {/* PDP CTA — 비교 페이지 데드엔드 해소 (audit P0). 연어는 미출시 → 출시 예정. */}
+                {slug ? (
+                  <Link
+                    href={`/products/${slug}`}
+                    className="flex items-center justify-center gap-1 rounded-full bg-ink py-2.5 text-[12px] font-bold text-white transition active:scale-[0.98] hover:opacity-90"
+                  >
+                    {meta.name_ko} 화식 보러가기
+                    <span aria-hidden>→</span>
+                  </Link>
+                ) : (
+                  <div className="flex items-center justify-center rounded-full bg-bg py-2.5 text-[12px] font-bold text-muted">
+                    출시 예정
+                  </div>
+                )}
               </article>
             )
           })}
