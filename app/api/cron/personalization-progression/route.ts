@@ -334,8 +334,11 @@ export async function GET(req: Request) {
         chronicConditions: Array.isArray(surveyTyped.chronic_conditions)
           ? surveyTyped.chronic_conditions
           : [],
-        pregnancy:
-          (surveyTyped.pregnancy_status as AlgorithmInput['pregnancy']) ?? null,
+        // [H1] 임신/수유 게이트 — 중성화견은 임신 불가 (nutrition.ts 일관).
+        pregnancy: dogTyped.neutered
+          ? null
+          : ((surveyTyped.pregnancy_status as AlgorithmInput['pregnancy']) ??
+            null),
         careGoal: (surveyTyped.care_goal as AlgorithmInput['careGoal']) ?? null,
         homeCookingExperience:
           (surveyTyped.home_cooking_experience as AlgorithmInput['homeCookingExperience']) ??

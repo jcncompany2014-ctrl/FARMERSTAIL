@@ -550,21 +550,21 @@ export default async function DashboardPage() {
       sub: firstDog ? '오늘 기록' : '아이 등록 후',
       Icon: Soup,
       tone: 'sage',
-      href: firstDog ? `/checkin?dog=${firstDog.id}` : '/dogs/new',
+      href: firstDog ? `/dogs/${firstDog.id}/health` : '/dogs/new',
     },
     {
       label: '산책',
       sub: firstDog ? '오늘 기록' : '아이 등록 후',
       Icon: Footprints,
       tone: 'accent',
-      href: firstDog ? `/checkin?dog=${firstDog.id}` : '/dogs/new',
+      href: firstDog ? `/dogs/${firstDog.id}/health` : '/dogs/new',
     },
     {
       label: '체중',
       sub: firstDog?.weight != null ? `${firstDog.weight}kg` : '미입력',
       Icon: Scale,
       tone: 'ink',
-      href: firstDog ? `/dogs/${firstDog.id}/weight` : '/dogs/new',
+      href: firstDog ? `/dogs/${firstDog.id}?weight=open` : '/dogs/new',
     },
   ]
 
@@ -781,7 +781,7 @@ export default async function DashboardPage() {
           streak={streak.currentStreak}
           days={weekDays}
           quickActions={quickActions}
-          recordTodayHref={`/checkin?dog=${firstDog.id}`}
+          recordTodayHref={`/dogs/${firstDog.id}/health`}
         />
       )}
 

@@ -169,6 +169,48 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
     desc: '감량 protocol 하한 (0.5×) 으로 clamp 됨. 정상 범위지만 수의사 점검 권장.',
     severity: 'info',
   },
+  // 매크로/체형/소화 신호 — calculateNutrition 이 emit (이전엔 라벨 누락 → raw 노출).
+  MUSCLE_LOSS: {
+    label: '근육 감소 (MCS)',
+    desc: '단백질 보강 + 저항 운동. 진행성이면 기저질환 검진 — 수의사 상담 권장.',
+    severity: 'high',
+  },
+  CHRONIC_CONFLICT: {
+    label: '복합 질환 — 권장 충돌',
+    desc: '두 질환의 식이 방향이 상충해요 (예: 신장 단백↓ vs 근손실 단백↑). 자동 비율은 절충안 — 반드시 수의사와 우선순위를 정하세요.',
+    severity: 'high',
+  },
+  SKIN_BARRIER_COMPROMISED: {
+    label: '피부 장벽 손상',
+    desc: '오메가-3·아연 보강. 가려움/병변 지속 시 알레르기·감염 감별 — 수의사 진료 권장.',
+    severity: 'high',
+  },
+  CONSTIPATION: {
+    label: '변비 신호',
+    desc: '수분·불용성 섬유 ↑. 지속 시 수의사 점검.',
+    severity: 'info',
+  },
+  LOOSE_STOOL: {
+    label: '무른 변',
+    desc: '가용성 섬유 + 프로바이오틱스. 점진 전환 권장.',
+    severity: 'info',
+  },
+  DIARRHEA: {
+    label: '설사',
+    desc: '탈수 주의 — 24시간 지속 또는 혈변이면 즉시 수의사 진료.',
+    severity: 'high',
+  },
+  // 급여 안전·신뢰도 (v2.1) — 간식 차감 / 신뢰도 보수 보정.
+  TREAT_LOAD_DAILY: {
+    label: '매일 간식 — 비만 주의',
+    desc: '간식 칼로리만큼 밥을 줄였어요. 간식은 하루 칼로리의 10% 이내로 유지하세요.',
+    severity: 'info',
+  },
+  RELIABILITY_SAFETY_ADJUST: {
+    label: '보수적 계산 적용',
+    desc: '체중 측정 정밀도가 낮아 안전하게 보수적으로 계산했어요. 동물병원 체중계로 재면 더 정확해져요.',
+    severity: 'info',
+  },
 }
 
 /**

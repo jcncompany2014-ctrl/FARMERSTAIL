@@ -657,10 +657,17 @@ function applyChronicAdjustments(
       }
     }
     const phaseLabel = severity === 'severe' ? '급성' : '만성'
+    // 정직성 — 화식 최저지방(닭 ~19%DM)으론 ceiling(15/10%)에 못 닿는 경우가
+    // 대부분. 목표 충족인 척하지 않고 "최대한 낮췄다 + 더 엄격하면 처방식" 안내.
+    const metCeiling = fatPct <= fatCeiling
     reasoning.push({
       trigger: `췌장염 이력 (${phaseLabel})`,
-      action: `DM 지방 ${fatPct.toFixed(1)}% (목표 <${fatCeiling}% — ${phaseLabel} 췌장염, Xenoulis & Steiner 2008 / Mansfield 2012)`,
-      chipLabel: `${phaseLabel} 췌장염 → 저지방`,
+      action: metCeiling
+        ? `DM 지방 ${fatPct.toFixed(1)}% — 목표 <${fatCeiling}% 충족 (${phaseLabel} 췌장염, Xenoulis & Steiner 2008 / Mansfield 2012)`
+        : `DM 지방 ${fatPct.toFixed(1)}%로 최대한 낮췄어요 — 이상적 목표 <${fatCeiling}%는 화식 최저지방으로도 닿기 어려워요. 증상이 잦으면 수의사 저지방 처방식을 상담하세요 (${phaseLabel} 췌장염, Xenoulis 2008)`,
+      chipLabel: metCeiling
+        ? `${phaseLabel} 췌장염 → 저지방`
+        : `${phaseLabel} 췌장염 → 최대한 저지방`,
       priority: 3,
       ruleId: 'chronic-pancreatitis',
     })

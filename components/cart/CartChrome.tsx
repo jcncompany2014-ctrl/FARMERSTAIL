@@ -243,7 +243,7 @@ export default function CartChrome({
       {/* 배송지 카드 — v3: paperHi + 1px rule + sage 4px square pin */}
       <section className="px-4 pb-3">
         <Link
-          href="/account/addresses"
+          href="/mypage/addresses"
           className="flex items-center gap-3"
           style={{
             background: 'var(--paper-hi, #fbf6ec)',

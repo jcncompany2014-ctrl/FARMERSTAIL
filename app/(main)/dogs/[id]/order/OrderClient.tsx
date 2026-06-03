@@ -631,6 +631,56 @@ export default function OrderClient({
 
       {formula && items.length > 0 && (
         <>
+          {/* C2 (2026-06) — 췌장염 급성/중증 하드 게이트 surfacing. 결제 화면에
+              "화식 부적합" 신호가 없어 부적합 식단을 정기구독할 수 있던 문제
+              차단. firstBox priority-0 chip (pancreatitis-severe-unsuitable). */}
+          {(() => {
+            const gateChip = formula.reasoning?.find(
+              (r) => r.ruleId === 'pancreatitis-severe-unsuitable',
+            )
+            if (!gateChip) return null
+            return (
+              <section
+                role="alert"
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  alignItems: 'flex-start',
+                  margin: '0 0 16px',
+                  padding: '14px 16px',
+                  borderRadius: 4,
+                  background:
+                    'color-mix(in srgb, var(--terracotta) 9%, white)',
+                  border:
+                    '1px solid color-mix(in srgb, var(--terracotta) 38%, transparent)',
+                }}
+              >
+                <AlertCircle
+                  size={16}
+                  strokeWidth={2.2}
+                  color="var(--terracotta)"
+                  style={{ marginTop: 1, flexShrink: 0 }}
+                />
+                <div
+                  style={{ display: 'flex', flexDirection: 'column', gap: 3 }}
+                >
+                  <strong style={{ fontSize: 13, color: 'var(--ink)' }}>
+                    이 박스는 권장하지 않아요
+                  </strong>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      lineHeight: 1.55,
+                      color: 'var(--text)',
+                    }}
+                  >
+                    {gateChip.action}
+                  </span>
+                </div>
+              </section>
+            )
+          })()}
+
           {/* 신뢰 배지 row — AAFCO + 수의사 */}
           <section className="ord-trust">
             <span className="ord-trust-chip">

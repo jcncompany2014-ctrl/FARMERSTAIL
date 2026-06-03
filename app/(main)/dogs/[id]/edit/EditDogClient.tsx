@@ -96,6 +96,7 @@ export default function EditDogClient({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (loading) return // 더블탭 중복 저장 방지
     setError('')
 
     if (!name.trim()) {

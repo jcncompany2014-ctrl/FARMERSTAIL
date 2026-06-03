@@ -180,6 +180,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (loading) return // 모바일 더블탭 → 중복 강아지 insert 방지
     setError('')
 
     if (!name.trim()) {

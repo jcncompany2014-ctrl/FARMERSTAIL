@@ -279,7 +279,12 @@ export async function POST(req: Request) {
     chronicConditions: Array.isArray(survey.chronic_conditions)
       ? survey.chronic_conditions
       : [],
-    pregnancy: (survey.pregnancy_status as AlgorithmInput['pregnancy']) ?? null,
+    // [H1] 임신/수유 게이트 (방어심층) — 중성화견은 임신 불가. nutrition.ts
+    // MER 게이트와 일관되게 firstBox 임신 chip 도 안 뜨게 route 에서 차단.
+    // (수컷 미중성화 edge 는 설문 Pregnancy 스텝 UI 가 입력 자체를 막음.)
+    pregnancy: dog.neutered
+      ? null
+      : ((survey.pregnancy_status as AlgorithmInput['pregnancy']) ?? null),
     careGoal: (survey.care_goal as AlgorithmInput['careGoal']) ?? null,
     homeCookingExperience:
       (survey.home_cooking_experience as AlgorithmInput['homeCookingExperience']) ??

@@ -166,7 +166,7 @@ export default function CartUpsell({
       {/* 3. 쿠폰 row */}
       <section className="px-4 pb-3">
         <Link
-          href="/account/coupons"
+          href="/mypage/coupons"
           className="flex items-center gap-2.5 bg-white"
           style={{
             borderRadius: cardRadius,
@@ -213,7 +213,7 @@ export default function CartUpsell({
       {/* 4. 적립금 row */}
       <section className="px-4 pb-3">
         <Link
-          href="/account/points"
+          href="/mypage/points"
           className="flex items-center gap-2.5 bg-white"
           style={{
             borderRadius: cardRadius,

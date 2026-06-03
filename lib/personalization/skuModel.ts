@@ -235,7 +235,10 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     novel: true,
     muellerAllergyRate: 2.0,
     blockingAllergies: ['연어·생선', '흰살생선'],
-    crossReactWith: [],
+    // Bexley 2019 (Vet Dermatol 30:25) — 어류 parvalbumin ↔ 닭/칠면조 IgE
+    // 교차반응. 닭 알레르기견에게 연어 라인 제안 시 cross-react chip 경고
+    // (연어 제품 출시 시 활성). 이전 [] → 닭알레르기견 무경고 갭이었음.
+    crossReactWith: ['닭·칠면조'],
     careGoalAffinity: ['skin_coat'],
     // 제품 보류 — 프로파일은 출시 전 USDA 추정(레시피 미확정).
     deferred: true,

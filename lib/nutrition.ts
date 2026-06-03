@@ -611,6 +611,21 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     }
   }
 
+  // [H2] MCS(근손실 → 단백질 ↑)는 chronicConditions 가 아니라 별도 신호라 위
+  // chronicCount 충돌 감지에서 빠졌었음. 가장 위험한 조합 — CKD/간질환(단백
+  // 제한) + 근손실(단백 보강) — 이 silent 로 절충 평균돼 둘 다 못 맞추던 걸
+  // 명시 충돌로 승격. 수의사가 우선순위(보통 신장 제한 우선)를 정해야 함.
+  if (
+    answers.mcsScore != null &&
+    answers.mcsScore >= 2 &&
+    proteinDeltas.some((d) => d < 0)
+  ) {
+    if (!riskFlags.includes('CHRONIC_CONFLICT')) {
+      riskFlags.push('CHRONIC_CONFLICT')
+    }
+    vetConsult = true
+  }
+
   // 매크로 합 100 정규화 (audit fix — 이전 carb 에 max(20, ...) 강제로 합이
   // 110% 까지 갈 수 있었음. 예: protein 50 + fat 30 + fiber 10 + carb 20 = 110).
   // protein/fat/fiber 클램프 + 정수 반올림 후 carb 가 잔량을 흡수. carb 음수
