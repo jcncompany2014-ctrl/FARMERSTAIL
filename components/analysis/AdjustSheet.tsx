@@ -164,6 +164,7 @@ export default function AdjustSheet({
   dogId,
   dogName,
   onSaved,
+  isSenior = false,
 }: {
   open: boolean
   onClose: () => void
@@ -171,6 +172,10 @@ export default function AdjustSheet({
   dogId: string
   dogName: string
   onSaved: (next: Formula) => void
+  /** 노령기(시니어) 여부 — analysis.stage 에서 신뢰성 있게 파생. reasoning
+   *  ruleId 에는 시니어 신호가 없어 prop 으로 전달 → senior 단백/지방 상한
+   *  (35%/18% DM) 경고를 live preview 에서 켠다. */
+  isSenior?: boolean
 }) {
   // formula → ratios (퍼센트 정수). 메인 라인 + 토퍼 통합.
   const initialRatios: Ratios = useMemo(() => {
@@ -363,6 +368,7 @@ export default function AdjustSheet({
             mainSum={mainSum}
             topperSum={topperSum}
             formula={formula}
+            isSenior={isSenior}
           />
 
           {/* 메인 화식 — 5종 합 무조건 100% (정량 영양). 단일 라인 max 70%. */}
@@ -534,11 +540,13 @@ function LiveBar({
   mainSum,
   topperSum,
   formula,
+  isSenior = false,
 }: {
   ratios: Ratios
   mainSum: number
   topperSum: number
   formula: Formula
+  isSenior?: boolean
 }) {
   // Spec A — 메인 5종 (합 100% 정량 영양) 과 토퍼 (0~30% 보너스) 를 두 줄로
   // 분리 표시. 두 그룹은 합치지 않음 (서로 다른 dimension).
@@ -619,7 +627,7 @@ function LiveBar({
       </div>
 
       {/* ── 영양 단면 live preview + 임상 권고 위반 chip (v1.5+) ──────── */}
-      <NutrientLivePreview ratios={ratios} formula={formula} />
+      <NutrientLivePreview ratios={ratios} formula={formula} isSenior={isSenior} />
     </div>
   )
 }
@@ -633,15 +641,18 @@ function LiveBar({
  *  - age-puppy / age-puppy-large-breed → isPuppy / isLargeBreedPuppy
  *  - chronic-pancreatitis → hasPancreatitis
  *  - chronic-cardiac → hasCardiac
- *  - chronic-kidney (Stage 3+) → irisStage 3
+ *  - chronic-kidney-stage4 → irisStage 4
+ *  - chronic-kidney-stage3 / chronic-kidney (무스테이지) → irisStage 3
  *  - chronic-kidney-early (Stage 1-2) → irisStage 1
  */
 function NutrientLivePreview({
   ratios,
   formula,
+  isSenior = false,
 }: {
   ratios: Ratios
   formula: Formula
+  isSenior?: boolean
 }) {
   // ratios 는 0-100 percent. computeNutrientPanel 은 0-1.0 ratio 받음.
   const mainRatios = useMemo(() => {
@@ -675,14 +686,23 @@ function NutrientLivePreview({
       isLargeBreedPuppy: rules.has('age-puppy-large-breed'),
       hasPancreatitis: rules.has('chronic-pancreatitis'),
       hasCardiac: rules.has('chronic-cardiac'),
-      // chronic-kidney = Stage 3+ 보수, chronic-kidney-early = Stage 1-2.
-      irisStage: rules.has('chronic-kidney')
-        ? 3
-        : rules.has('chronic-kidney-early')
-          ? 1
-          : null,
+      // 노령기 — reasoning 에 신뢰 가능한 시니어 신호가 없어 prop 으로 받는다
+      // (analysis.stage → stageFromKR 파생). senior 단백/지방 상한 경고용.
+      isSenior,
+      // CKD 4개 ruleId 전부 매핑 (C4). firstBox 가 stage 별로 분리해 내보내므로
+      // stage4/stage3 을 놓치면 가장 위험한 케이스의 IRIS 단백 가드(<22%)가
+      // 죽는다 (무스테이지 chronic-kidney 는 보수적으로 Stage 3 취급).
+      irisStage: rules.has('chronic-kidney-stage4')
+        ? 4
+        : rules.has('chronic-kidney-stage3')
+          ? 3
+          : rules.has('chronic-kidney')
+            ? 3
+            : rules.has('chronic-kidney-early')
+              ? 1
+              : null,
     }
-  }, [formula.reasoning])
+  }, [formula.reasoning, isSenior])
 
   const check = useMemo(
     () => clinicalCheckForPanel(panel, clinicalContext),

@@ -29,6 +29,7 @@ import {
 import { CTAStack as MagCTA } from '@/components/analysis/magazine/CTAStack'
 import RecommendationBox from '@/components/analysis/RecommendationBox'
 import AnalysisTrendsCard from '@/components/analysis/AnalysisTrendsCard'
+import { stageFromKR } from '@/lib/nutrition'
 
 type HistoryPoint = {
   date: string
@@ -92,6 +93,9 @@ export default function AnalysisMagazineSection({
   totalCount,
 }: Props) {
   const magP = WARM_CREAM
+  // 노령기 여부 — AdjustSheet 의 senior 단백/지방 상한 경고에 신뢰성 있게 전달
+  // (reasoning ruleId 엔 시니어 신호가 없어 stage 에서 파생).
+  const isSenior = stageFromKR(stage) === 'senior'
   return (
     <div style={{ background: magP.bg, marginTop: 12, paddingBottom: 4 }}>
       <MagHero
@@ -149,7 +153,7 @@ export default function AnalysisMagazineSection({
       <MagBoxMix p={magP} dogName={dogName} items={boxItems} />
       {!isArchive && (
         <div style={{ marginTop: 14 }}>
-          <RecommendationBox dogId={dogId} dogName={dogName} />
+          <RecommendationBox dogId={dogId} dogName={dogName} isSenior={isSenior} />
         </div>
       )}
       <MagNutrients p={magP} rows={nutrientRows} />

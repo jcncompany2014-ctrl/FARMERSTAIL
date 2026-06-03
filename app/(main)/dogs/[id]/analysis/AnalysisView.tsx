@@ -24,6 +24,7 @@ import { getAAFCORanges, stageFromKR } from '@/lib/nutrition'
 import StructuredAnalysis from '@/components/analysis/StructuredAnalysis'
 import RecommendationBox from '@/components/analysis/RecommendationBox'
 import { fetchComputedFormula } from '@/lib/personalization/formulaCache'
+import { weightReliability } from '@/lib/personalization/reliability'
 import FeedingPlanCard from '@/components/analysis/FeedingPlanCard'
 import NutrientGauges38 from '@/components/analysis/NutrientGauges38'
 import { WARM_CREAM } from '@/components/analysis/magazine/palette'
@@ -101,6 +102,9 @@ type Dog = {
   age_value: number | null
   age_unit: string | null
   photo_url: string | null
+  // H5: MER 신뢰구간을 실제 체중 측정 신뢰도로 산정하기 위해 추가.
+  weight_method: string | null
+  weight_measured_at: string | null
 }
 
 export default function AnalysisView({
@@ -201,7 +205,9 @@ export default function AnalysisView({
 
       const { data: dogData } = await supabase
         .from('dogs')
-        .select('id, name, breed, birth_date, age_value, age_unit, photo_url')
+        .select(
+          'id, name, breed, birth_date, age_value, age_unit, photo_url, weight_method, weight_measured_at',
+        )
         .eq('id', dogId)
         .eq('user_id', user.id)
         .maybeSingle()
@@ -323,8 +329,13 @@ export default function AnalysisView({
   const magDateLabel = `${String(createdAt.getMonth() + 1).padStart(2, '0')}.${String(createdAt.getDate()).padStart(2, '0')}`
   const magAgeLabel = formatAgeLabel(dog)
   const magWeightKg = +weightFromRER(analysis.rer).toFixed(1)
-  // accuracyScore 미상 — null 전달 시 default 0.7 사용 (lib 기본값).
-  const magMerCi = merConfidenceInterval(analysis.mer, null)
+  // MER 신뢰구간 — 체중 측정 신뢰도(method+recency)로 폭 결정. MER=RER=70×W^0.75
+  // 라 체중 측정 품질이 구간을 지배한다 (H5: 이전엔 null 고정 → 가짜 ±8%).
+  const merAccuracy = weightReliability(
+    dog.weight_method,
+    dog.weight_measured_at,
+  )
+  const magMerCi = merConfidenceInterval(analysis.mer, merAccuracy)
   const magMerMin = magMerCi.low
   const magMerMax = magMerCi.high
   const magNutrientRows: MagNutrientRow[] = [
@@ -622,9 +633,9 @@ export default function AnalysisView({
                 </span>
               </div>
               {/* 신뢰구간 — P2 / B-49. 단일 값이 아닌 범위로 표시해 데이터
-                  정밀도의 실재감 전달. accuracyScore 없을 때 default 0.7. */}
+                  정밀도의 실재감 전달. 체중 측정 신뢰도(merAccuracy)로 폭 결정. */}
               <div className="mt-1 text-[10.5px] font-bold text-muted">
-                범위 {formatRange(merConfidenceInterval(analysis.mer, null))}
+                범위 {formatRange(merConfidenceInterval(analysis.mer, merAccuracy))}
               </div>
             </div>
             {/* UI audit #5: 우측 mini-meta — RER / factor 자릿수 정렬 + 분기마다 block.

@@ -23,6 +23,7 @@ import {
   Info,
 } from 'lucide-react'
 import { FOOD_LINE_META, ALL_LINES, dailyGramsFromMix } from '@/lib/personalization/lines'
+import { transitionLabel } from '@/lib/personalization/format'
 import { computeNutrientPanel } from '@/lib/personalization/nutrientPanel'
 import { trackBoxRecommended, trackAnalysisViewed } from '@/lib/analytics'
 import type {
@@ -88,6 +89,15 @@ const LINE_PROTEIN_KR: Record<FoodLine, string> = {
   joint: '돼지',
 }
 
+/** 전환 전략별 실행 가이드 한 줄 (H6 — formula.transitionStrategy 시각화). */
+const TRANSITION_HINT: Record<Formula['transitionStrategy'], string> = {
+  aggressive:
+    '바로 100% 급여해도 좋아요 — 이미 화식·생식 중이거나 첫 급여라 적응 부담이 낮아요.',
+  gradual: '기존 사료와 섞어 2주에 걸쳐 화식 비율을 천천히 늘려 주세요.',
+  conservative:
+    '소화가 예민하거나 만성질환이 있어요. 4주에 걸쳐 아주 천천히 전환하세요.',
+}
+
 /** 라인 아이콘 — 정적 분기. React 19 의 static-components 룰 충족. */
 function LineIcon({ line, size = 16, strokeWidth = 1.8 }: { line: FoodLine; size?: number; strokeWidth?: number }) {
   switch (line) {
@@ -122,9 +132,12 @@ function ReasoningIcon({ ruleId, size = 12, strokeWidth = 2, color = 'var(--mute
 export default function RecommendationBox({
   dogId,
   dogName,
+  isSenior = false,
 }: {
   dogId: string
   dogName: string
+  /** 노령기 여부 — AdjustSheet 의 senior 단백/지방 상한 경고에 사용. */
+  isSenior?: boolean
 }) {
   const [state, setState] = useState<State>({ status: 'loading' })
   const [scale, setScale] = useState<Scale>('1w')
@@ -311,6 +324,7 @@ export default function RecommendationBox({
         formula={state.formula}
         dogId={dogId}
         dogName={dogName}
+        isSenior={isSenior}
         onSaved={(next) => {
           setState({ status: 'ready', formula: next })
           // 처방이 바뀌었으니 공유 캐시 무효화 — 다음 마운트가 새 결과를 받도록.
@@ -616,6 +630,41 @@ function RecommendationView({
               style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 14 }}
             >
               {formula.algorithmVersion}
+            </div>
+          </div>
+        </div>
+        {/* 전환 급여 가이드 (H6) — formula.transitionStrategy 시각화. */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 8,
+            padding: '10px 12px',
+            marginBottom: 12,
+            background: 'rgba(79,106,72,0.08)',
+            borderRadius: 8,
+            border: '1px solid rgba(79,106,72,0.16)',
+          }}
+        >
+          <Calendar
+            size={14}
+            strokeWidth={2}
+            color="var(--moss, #4f6a48)"
+            style={{ marginTop: 1, flexShrink: 0 }}
+          />
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>
+              전환 급여 · {transitionLabel(formula)}
+            </div>
+            <div
+              style={{
+                fontSize: 10.5,
+                color: 'var(--muted)',
+                marginTop: 2,
+                lineHeight: 1.5,
+              }}
+            >
+              {TRANSITION_HINT[formula.transitionStrategy]}
             </div>
           </div>
         </div>
