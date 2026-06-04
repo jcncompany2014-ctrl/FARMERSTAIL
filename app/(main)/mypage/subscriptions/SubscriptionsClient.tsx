@@ -191,7 +191,7 @@ export default function SubscriptionsClient({
     } else {
       // 건너뛰기는 즉시 반영되므로 사용자가 인지하도록 피드백 + 되돌리기 안내.
       toast.success(
-        `다음 배송을 ${weeks}주 미뤘어요. 구독 관리에서 되돌릴 수 있어요.`,
+        `다음 배송을 ${weeks}주 미뤘어요. 정기배송 관리에서 되돌릴 수 있어요.`,
       )
     }
     await reload()

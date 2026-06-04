@@ -528,7 +528,7 @@ export default function OrderClient({
         .select('id')
         .single()
       if (subErr || !sub) {
-        setErr('구독 생성에 실패했습니다. 다시 시도해 주세요.')
+        setErr('정기배송 신청에 실패했어요. 다시 시도해 주세요.')
         return
       }
       const itemRows = subscribable.map((it) => {
@@ -556,7 +556,7 @@ export default function OrderClient({
           })
           .eq('id', (sub as { id: string }).id)
           .eq('user_id', userId)
-        setErr('상품 항목 추가에 실패했습니다. 다시 시도해 주세요.')
+        setErr('주문 상품을 담지 못했어요. 다시 시도해 주세요.')
         return
       }
       // 사용자가 옵트인했으면 profiles 도 업데이트 — 다음 정기배송 / 단건
@@ -589,7 +589,7 @@ export default function OrderClient({
           memo_provided: memo.trim().length > 0,
         })
       }
-      toast.success('카드 등록 페이지로 이동합니다')
+      toast.success('카드 등록 페이지로 이동할게요')
       router.push(
         `/subscribe/billing-auth?subscriptionId=${(sub as { id: string }).id}` +
           `&customerKey=${encodeURIComponent(customerKey)}`,

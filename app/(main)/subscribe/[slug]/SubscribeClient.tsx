@@ -207,7 +207,7 @@ export default function SubscribeClient({
       .single()
 
     if (subErr || !sub) {
-      toast.error('구독을 만들지 못했어요')
+      toast.error('정기배송 신청에 실패했어요')
       setSubmitting(false)
       return
     }
@@ -231,7 +231,7 @@ export default function SubscribeClient({
         .from('subscriptions')
         .update({ status: 'cancelled' })
         .eq('id', sub.id)
-      toast.error('구독 상품을 등록하지 못했어요. 다시 시도해 주세요')
+      toast.error('정기배송 상품을 담지 못했어요. 다시 시도해 주세요')
       setSubmitting(false)
       return
     }

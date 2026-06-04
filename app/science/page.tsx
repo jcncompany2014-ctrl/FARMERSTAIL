@@ -14,6 +14,7 @@ import {
   GUIDELINE_CITATIONS,
   CHRONIC_CONDITION_LABELS,
 } from '@/lib/nutrition/guidelines'
+import { ogImageUrl } from '@/lib/seo/jsonld'
 
 /**
  * /science — 우리가 어떻게 영양 분석을 하는지 공개하는 권위 페이지.
@@ -22,11 +23,35 @@ import {
  * 보호자가 읽고 "어 진짜 수의영양학 기반이네" 라고 납득할 수 있게 구체적으로.
  */
 
+const SCIENCE_OG = ogImageUrl({
+  title: '수의영양학 방법론',
+  subtitle: 'NRC · AAFCO · FEDIAF · WSAVA 를 어떻게 적용하는가',
+  tag: 'Science',
+  variant: 'editorial',
+})
+
 export const metadata: Metadata = {
   title: '수의영양학 — 분석 방법론 | 파머스테일',
   description:
     'NRC 2006 · AAFCO 2024 · FEDIAF 2021 · WSAVA 가이드라인을 어떻게 적용하는지, RER/MER 계산식, 만성질환 분기, AI 의 역할과 한계까지 공개합니다.',
   alternates: { canonical: '/science' },
+  openGraph: {
+    title: '수의영양학 — 분석 방법론 | 파머스테일',
+    description:
+      'NRC 2006 · AAFCO 2024 · FEDIAF 2021 · WSAVA 가이드라인 적용, RER/MER 계산식, 만성질환 분기, AI 의 역할과 한계까지 공개.',
+    type: 'article',
+    url: '/science',
+    images: [
+      { url: SCIENCE_OG, width: 1200, height: 630, alt: '수의영양학 방법론' },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '수의영양학 — 분석 방법론 | 파머스테일',
+    description:
+      'NRC · AAFCO · FEDIAF · WSAVA 적용, RER/MER 계산식, AI 의 역할과 한계까지 공개.',
+    images: [SCIENCE_OG],
+  },
   robots: { index: true, follow: true },
 }
 

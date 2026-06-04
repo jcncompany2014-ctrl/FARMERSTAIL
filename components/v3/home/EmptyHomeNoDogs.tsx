@@ -25,7 +25,7 @@ export default function EmptyHomeNoDogs({
   addDogHref = '/dogs/new',
   ctaLabel = '아이 등록하기',
   heading = '첫 아이를 등록해주세요',
-  description = '맞춤 영양 분석과 정기배송 추천이 시작됩니다.',
+  description = '맞춤 영양 분석과 정기배송 추천이 시작돼요.',
 }: EmptyHomeNoDogsProps) {
   return (
     <section style={{ padding: '0 20px 30px' }}>

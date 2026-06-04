@@ -26,9 +26,9 @@ export default function AnalysisEmptyState({ dogId }: { dogId: string }) {
           분석 결과가 없어요
         </h3>
         <p className="text-[12px] text-muted mt-2 leading-relaxed">
-          설문을 완료하면 AI가
+          설문을 완료하면
           <br />
-          맞춤 영양 분석을 제공해요
+          맞춤 영양 분석을 받아볼 수 있어요
         </p>
         <Link
           href={`/dogs/${dogId}/survey`}
