@@ -142,8 +142,19 @@ export default function CatalogProductCard({
           </div>
         )}
 
-        {/* 좌상단 뱃지 stack — 랭킹 / 신상 / 할인 / 정기배송 */}
+        {/* 좌상단 뱃지 stack — 첫주문 / 랭킹 / 신상 / 할인 / 정기배송 */}
         <div className="absolute top-2 left-2 flex flex-col gap-1 items-start z-10">
+          {/* 첫 주문 50% — FIRSTBOX50 이 첫 주문(첫 결제 0건)에 한해 체크아웃에서
+              자동 적용. "첫 주문" 으로 자가 한정 표기해 재구매 고객에게도 정직. */}
+          <span
+            className="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black tracking-tight"
+            style={{
+              background: 'var(--terracotta)',
+              color: 'var(--bg)',
+            }}
+          >
+            첫 주문 50%
+          </span>
           {hasSale && discount > 0 && (
             <span
               className="font-mono text-[10px] font-black tabular-nums px-2 py-0.5 rounded-md"
