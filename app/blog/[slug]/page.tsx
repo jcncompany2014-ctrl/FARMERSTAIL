@@ -110,6 +110,7 @@ function formatDate(iso: string | null) {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: 'Asia/Seoul',
   })
 }
 

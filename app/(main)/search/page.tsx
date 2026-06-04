@@ -277,7 +277,7 @@ export default async function SearchPage({
                           {j.note}
                         </p>
                         <p className="text-[10.5px] text-muted mt-1">
-                          {new Date(j.created_at).toLocaleDateString('ko-KR')}
+                          {new Date(j.created_at).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}
                         </p>
                       </div>
                     </div>

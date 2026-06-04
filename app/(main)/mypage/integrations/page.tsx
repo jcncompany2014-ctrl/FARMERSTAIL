@@ -193,7 +193,7 @@ export default async function IntegrationsPage({
                   className="mt-1 text-[10.5px] font-mono"
                   style={{ color: 'var(--muted)', letterSpacing: '0.04em' }}
                 >
-                  마지막 동기화 {new Date(tractive.last_synced_at).toLocaleDateString('ko-KR')}
+                  마지막 동기화 {new Date(tractive.last_synced_at).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}
                 </p>
               )}
             </div>

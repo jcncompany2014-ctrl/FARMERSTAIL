@@ -214,7 +214,7 @@ export default async function FamilyPage() {
                       <p className="text-[10.5px] text-muted mt-0.5">
                         {dogNames[inv.dog_id] ?? '강아지'} ·{' '}
                         {inv.role === 'viewer' ? '뷰어' : '공동 보호자'} ·{' '}
-                        {new Date(inv.created_at).toLocaleDateString('ko-KR')}
+                        {new Date(inv.created_at).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}
                       </p>
                     </div>
                   </div>
