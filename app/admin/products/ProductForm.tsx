@@ -89,7 +89,7 @@ export default function ProductForm({
     e.preventDefault()
 
     if (!form.name.trim() || !form.slug.trim()) {
-      toast.error('상품명과 slug는 필수에요')
+      toast.error('상품명과 slug는 필수예요')
       return
     }
     if (form.price <= 0) {

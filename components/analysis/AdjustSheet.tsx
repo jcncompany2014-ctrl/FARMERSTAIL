@@ -804,6 +804,7 @@ function LineRow({
         step={step}
         color={color}
         disabled={blocked}
+        label={label}
         onChange={onChange}
         onBlockedTouch={onBlockedTouch}
       />
@@ -829,6 +830,7 @@ function SegSlider({
   step,
   color,
   disabled,
+  label,
   onChange,
   onBlockedTouch,
 }: {
@@ -837,6 +839,7 @@ function SegSlider({
   step: number
   color: string
   disabled: boolean
+  label: string
   onChange: (v: number) => void
   onBlockedTouch: () => void
 }) {
@@ -858,6 +861,7 @@ function SegSlider({
         max={max}
         step={step}
         value={value}
+        aria-label={`${label} 비율`}
         className="adj-range-input"
         onChange={(e) => {
           if (disabled) {

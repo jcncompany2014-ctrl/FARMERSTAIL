@@ -532,7 +532,7 @@ export default function OrderClient({
         return
       }
       const itemRows = subscribable.map((it) => {
-        const portionTag = it.line ? `${it.mealG}g 한끼` : `${it.packG}g 팩`
+        const portionTag = it.line ? `${it.mealG}g 한 끼` : `${it.packG}g 팩`
         return {
           subscription_id: (sub as { id: string }).id,
           product_id: it.product.id,
@@ -804,7 +804,7 @@ export default function OrderClient({
                         <>
                           <span className="ord-divider" />
                           <span>
-                            한끼 <strong>{it.mealG}g</strong>
+                            한 끼 <strong>{it.mealG}g</strong>
                           </span>
                         </>
                       )}

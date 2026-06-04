@@ -111,6 +111,7 @@ export default function ShareWithVetButton({ dogId }: { dogId: string }) {
       <div className="flex items-center gap-2 mb-2.5">
         <input
           readOnly
+          aria-label="공유 링크"
           value={state.url}
           className="flex-1 rounded border border-line bg-paper px-3 py-2 text-[10.5px] font-mono text-ink"
           onClick={(e) => e.currentTarget.select()}

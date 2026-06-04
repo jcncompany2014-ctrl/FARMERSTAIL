@@ -204,6 +204,7 @@ function EntryRow({
       <select
         value={entry.ingredient}
         onChange={(e) => onChange({ ingredient: e.target.value })}
+        aria-label="원재료 선택"
         className="flex-1 min-w-0 px-3 py-2.5 rounded-lg border border-rule text-[12px] focus:outline-none focus:border-terracotta bg-white"
       >
         {RAW_INGREDIENTS.map((ing) => (
@@ -217,6 +218,7 @@ function EntryRow({
           type="number"
           min={0}
           max={2000}
+          aria-label="하루 급여량(g)"
           value={entry.grams_per_day}
           onChange={(e) =>
             onChange({

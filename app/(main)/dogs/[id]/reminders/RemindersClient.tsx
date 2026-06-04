@@ -340,6 +340,8 @@ export default function RemindersClient({
                 새 리마인더
               </h2>
               <button
+                type="button"
+                aria-label="닫기"
                 onClick={() => {
                   setAdding(false)
                   reset()

@@ -403,6 +403,7 @@ export default function DiaryClient({
                   <button
                     type="button"
                     onClick={pickFiles}
+                    aria-label="사진 추가"
                     className="aspect-square rounded-lg border-2 border-dashed border-rule-2 flex items-center justify-center text-muted hover:border-text transition"
                   >
                     <ImageIcon className="w-5 h-5" strokeWidth={1.5} />
