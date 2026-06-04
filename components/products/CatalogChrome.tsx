@@ -170,7 +170,8 @@ export default function CatalogChrome({
                 style={{
                   width: 54,
                   height: 54,
-                  borderRadius: isApp ? 8 : 18,
+                  // 앱: 검색바(4=sm)와 맞춰 off-token 8 제거. 웹: editorial 18 유지.
+                  borderRadius: isApp ? 4 : 18,
                   background: isApp ? 'var(--bg-3)' : '#fff',
                   boxShadow: isApp ? '0 1px 0 rgba(22,20,15,0.04)' : '0 2px 8px rgba(26,20,12,0.06)',
                   border: isApp ? '1px solid var(--rule)' : undefined,
