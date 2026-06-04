@@ -1796,8 +1796,7 @@ function AppInstallBanner() {
               textTransform: 'uppercase',
             }}
           >
-            <span>앱 최초 가입 1회</span>
-            <span>~ 05.31 까지</span>
+            <span>앱 최초 가입 혜택</span>
           </div>
         </div>
       </div>

@@ -72,8 +72,7 @@ export default function NewsletterForm() {
           className="text-[12.5px] md:text-[14px]"
           style={{ color: 'var(--bg)' }}
         >
-          신청해 주셔서 감사해요. 메일 클라이언트가 열리면 그대로 보내주시면
-          됩니다.
+          확인 메일을 보냈어요. 메일의 링크를 눌러 구독을 완료해 주세요.
         </p>
       </div>
     )
