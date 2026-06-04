@@ -432,7 +432,7 @@ export default function DogDetailClient({
             aria-labelledby="weight-modal-title"
             tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
-            className="bg-bg-3 rounded-t-2xl sm:rounded border-t sm:border border-rule p-6 max-w-sm w-full shadow-xl"
+            className="bg-bg-3 rounded-t-[12px] sm:rounded border-t sm:border border-rule p-6 max-w-sm w-full shadow-xl"
           >
             <div className="flex items-center gap-2 mb-1">
               <Scale className="w-3.5 h-3.5 text-moss" strokeWidth={2} />
@@ -464,7 +464,7 @@ export default function DogDetailClient({
                   placeholder={dog.weight ? `이전: ${dog.weight}kg` : '예: 5.4'}
                   inputMode="decimal"
                   enterKeyHint="next"
-                  className="w-full px-4 py-3 rounded-lg border border-rule bg-[#FDFDFD] text-[#2A2118] text-sm focus:outline-none focus:border-terracotta transition"
+                  className="w-full px-4 py-3 rounded-lg border border-rule bg-bg-3 text-text text-sm focus:outline-none focus:border-terracotta transition"
                 />
               </div>
               <div>
@@ -477,7 +477,7 @@ export default function DogDetailClient({
                   onChange={(e) => setNewWeightNote(e.target.value)}
                   placeholder="병원 검진, 사료 변경 등"
                   maxLength={80}
-                  className="w-full px-4 py-3 rounded-lg border border-rule bg-[#FDFDFD] text-[#2A2118] text-sm focus:outline-none focus:border-terracotta transition"
+                  className="w-full px-4 py-3 rounded-lg border border-rule bg-bg-3 text-text text-sm focus:outline-none focus:border-terracotta transition"
                 />
               </div>
             </div>
@@ -803,7 +803,7 @@ export default function DogDetailClient({
             aria-labelledby="welcome-sheet-title"
             tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
-            className="bg-bg-3 rounded-t-2xl sm:rounded border-t sm:border border-rule p-6 max-w-sm w-full shadow-xl"
+            className="bg-bg-3 rounded-t-[12px] sm:rounded border-t sm:border border-rule p-6 max-w-sm w-full shadow-xl"
           >
             <div className="flex justify-center mb-3">
               <div className="w-14 h-14 rounded-full bg-bg flex items-center justify-center">

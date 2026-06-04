@@ -176,7 +176,9 @@ export default async function VetReportPage({ params }: { params: Params }) {
   const weights = (weightsRaw ?? []) as WeightLog[]
   const meds = (medsRaw ?? []) as MedicationRow[]
 
-  const todayStr = new Date().toLocaleDateString('ko-KR')
+  const todayStr = new Date().toLocaleDateString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+  })
 
   return (
     <div className="px-5 py-5 print:px-0 print:py-0 bg-paper print:bg-white min-h-screen">
