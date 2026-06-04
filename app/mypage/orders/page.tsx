@@ -55,6 +55,8 @@ function formatDate(iso: string) {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
+    // 서버 컴포넌트 기본 UTC → 자정 직후 주문이 전날로 보이는 off-by-one 방지.
+    timeZone: 'Asia/Seoul',
   })
 }
 

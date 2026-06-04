@@ -129,6 +129,11 @@ export default function DogDetailHero({
               letterSpacing: '-0.045em',
               marginTop: 6,
               wordBreak: 'keep-all',
+              // 긴 이름(영문/4+음절)이 옆 메타 컬럼을 밀어 가로 오버플로 나는 것
+              // 방지 — min-w-0 부모 안에서 1줄 말줄임.
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
             {name}

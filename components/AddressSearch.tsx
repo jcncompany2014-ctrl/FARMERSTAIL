@@ -52,6 +52,16 @@ function loadScript(): Promise<void> {
       callbacks.forEach((cb) => cb())
       callbacks.length = 0
     }
+    script.onerror = () => {
+      // CDN 로드 실패 — awaiter 가 영원히 매달리지 않도록 resolve 하고
+      // scriptLoading 을 풀어 다음 클릭에서 재시도(새 script 태그) 가능하게.
+      // handleClick 이 window.daum 부재를 catch 로 안내 처리.
+      scriptLoading = false
+      script.remove()
+      resolve()
+      callbacks.forEach((cb) => cb())
+      callbacks.length = 0
+    }
     document.head.appendChild(script)
   })
 }
@@ -78,22 +88,33 @@ export default function AddressSearch({
   }, [])
 
   const handleClick = useCallback(async () => {
-    await loadScript()
+    try {
+      await loadScript()
+      if (typeof window === 'undefined' || !window.daum?.Postcode) {
+        throw new Error('daum postcode unavailable')
+      }
+      new window.daum.Postcode({
+        oncomplete(data: DaumPostcodeData) {
+          const address =
+            data.userSelectedType === 'R'
+              ? data.roadAddress
+              : data.jibunAddress
 
-    new window.daum.Postcode({
-      oncomplete(data: DaumPostcodeData) {
-        const address =
-          data.userSelectedType === 'R'
-            ? data.roadAddress
-            : data.jibunAddress
-
-        onCompleteRef.current({
-          zip: data.zonecode,
-          address,
-          buildingName: data.buildingName,
-        })
-      },
-    }).open()
+          onCompleteRef.current({
+            zip: data.zonecode,
+            address,
+            buildingName: data.buildingName,
+          })
+        },
+      }).open()
+    } catch {
+      // 우편번호 스크립트 로드 실패(CDN 다운 등) — 무한 hang 대신 안내 후 재시도 유도.
+      if (typeof window !== 'undefined') {
+        window.alert(
+          '주소 검색 서비스를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
+        )
+      }
+    }
   }, [])
 
   return (

@@ -38,9 +38,10 @@ export default function PreferencesPanel() {
     ;(async () => {
       try {
         const res = await fetch('/api/push/preferences')
-        const data = await res.json()
+        const data = await res.json().catch(() => null)
         if (!mounted) return
         if (data?.prefs) setPrefs(data.prefs as Prefs)
+        else setError('설정을 불러오지 못했어요')
       } catch {
         if (mounted) setError('설정을 불러오지 못했어요')
       }
@@ -77,9 +78,25 @@ export default function PreferencesPanel() {
   }
 
   if (!prefs) {
+    // 로딩 실패 시 무한 스피너에 갇히지 않도록 — 에러면 안내 + 재시도.
     return (
-      <div className="bg-bg-3 rounded border border-rule p-6 flex items-center justify-center">
-        <Loader2 className="w-4 h-4 animate-spin text-muted" strokeWidth={2} />
+      <div className="bg-bg-3 rounded border border-rule p-6 flex flex-col items-center justify-center gap-3">
+        {error ? (
+          <>
+            <p className="text-[12px] text-muted text-center">{error}</p>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined') window.location.reload()
+              }}
+              className="text-[11px] font-bold text-terracotta underline underline-offset-2"
+            >
+              다시 시도
+            </button>
+          </>
+        ) : (
+          <Loader2 className="w-4 h-4 animate-spin text-muted" strokeWidth={2} />
+        )}
       </div>
     )
   }

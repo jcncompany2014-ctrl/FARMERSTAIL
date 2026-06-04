@@ -49,6 +49,8 @@ function formatDateTime(iso: string | null) {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    // 서버 컴포넌트는 기본 UTC — 결제/배송 일시를 KST 로 고정 (영수증 페이지와 정합).
+    timeZone: 'Asia/Seoul',
   })
 }
 
