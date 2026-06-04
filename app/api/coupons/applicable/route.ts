@@ -81,7 +81,7 @@ export async function GET(req: Request) {
   const { data: coupons, error } = await supabase
     .from('coupons')
     .select(
-      'id, code, name, description, discount_type, discount_value, min_order_amount, max_discount, expires_at, usage_limit, used_count, per_user_limit, is_active',
+      'id, code, name, description, discount_type, discount_value, min_order_amount, max_discount, expires_at, usage_limit, used_count, per_user_limit, is_active, audience_type',
     )
     .eq('is_active', true)
     .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
@@ -100,6 +100,14 @@ export async function GET(req: Request) {
     usedByUser.set(r.coupon_id, (usedByUser.get(r.coupon_id) ?? 0) + 1)
   }
 
+  // 첫 구매 전용 쿠폰 필터용 — 본인 paid 주문 수 (0 이면 첫 구매자).
+  const { count: paidOrderCount } = await supabase
+    .from('orders')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('payment_status', 'paid')
+  const isFirstTimeBuyer = (paidOrderCount ?? 0) === 0
+
   type Bucket = {
     coupon: Coupon
     discount: number
@@ -115,6 +123,8 @@ export async function GET(req: Request) {
     const c = raw as Coupon
     // 전체 사용 한도 초과
     if (c.usage_limit !== null && c.used_count >= c.usage_limit) continue
+    // 첫 구매 전용인데 이미 구매 이력 있으면 본인 쿠폰 아님 → 목록에서 제외.
+    if (c.audience_type === 'first_signup' && !isFirstTimeBuyer) continue
     // 본인 사용 한도 초과 → 사용 완료로 간주, 응답에 안 포함 (mypage 와 분리)
     const userUsed = usedByUser.get(c.id) ?? 0
     if (c.per_user_limit !== null && userUsed >= c.per_user_limit) {

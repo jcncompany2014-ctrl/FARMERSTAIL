@@ -18,7 +18,8 @@ import { useModalA11y } from '@/lib/ui/useModalA11y'
  *  2. response 의 available 카드 list — 가장 큰 할인은 BEST 뱃지
  *  3. 카드 클릭 → onApply(coupon) — 부모가 lib/coupons validateCoupon 으로
  *     최종 검증 + state 갱신
- *  4. 코드 수동 입력 fallback — 외부 코드 (이메일 / SNS) 받았을 때
+ *  4. 코드 수동 입력은 기본 숨김(배민식) — "프로모션 코드" 링크로만 펼침.
+ *     외부 코드 (이메일 / SNS) 받았을 때만 사용. 평소엔 카드 1탭 적용.
  *
  * 부모 props:
  *  - subtotal: 현재 적용 가능한 주문 금액 (포인트 차감 전)
@@ -54,6 +55,8 @@ export default function CheckoutCouponSheet({
   const [data, setData] = useState<ApplicableResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [code, setCode] = useState('')
+  // 코드 직접 입력은 기본 숨김(배민식) — "프로모션 코드" 링크로만 펼친다.
+  const [showCodeEntry, setShowCodeEntry] = useState(false)
   const [applying, setApplying] = useState(false)
   const [errMsg, setErrMsg] = useState<string | null>(null)
   const lastFetchedSubtotal = useRef<number | null>(null)
@@ -249,35 +252,49 @@ export default function CheckoutCouponSheet({
               </button>
             </div>
 
-            {/* 코드 직접 입력 */}
+            {/* 코드 직접 입력 — 기본 숨김(배민식). 외부 프로모션 코드(이메일/SNS)
+                받았을 때만 링크로 펼친다. 평소엔 아래 카드 1탭으로 적용. */}
             <div className="px-5 pb-3">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 32))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && code.trim()) {
-                      void handleApply(code)
-                    }
-                  }}
-                  placeholder="쿠폰 코드 직접 입력"
-                  autoComplete="off"
-                  autoCapitalize="characters"
-                  spellCheck={false}
-                  className="flex-1 px-3 py-2.5 rounded-lg bg-white border border-rule text-[12px] font-mono font-bold text-text placeholder:text-muted/60 placeholder:font-sans focus:outline-none focus:border-terracotta"
-                />
+              {!showCodeEntry ? (
                 <button
                   type="button"
-                  onClick={() => handleApply(code)}
-                  disabled={applying || !code.trim()}
-                  className="shrink-0 px-4 py-2.5 rounded-lg text-[12px] font-bold inline-flex items-center gap-1 transition disabled:opacity-50"
-                  style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+                  onClick={() => setShowCodeEntry(true)}
+                  className="text-[11px] font-bold text-muted underline underline-offset-2 hover:text-text transition"
                 >
-                  <Search className="w-3.5 h-3.5" strokeWidth={2.5} />
-                  적용
+                  프로모션 코드가 있으신가요?
                 </button>
-              </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={code}
+                    onChange={(e) =>
+                      setCode(e.target.value.toUpperCase().slice(0, 32))
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && code.trim()) {
+                        void handleApply(code)
+                      }
+                    }}
+                    placeholder="프로모션 코드 입력"
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    autoFocus
+                    className="flex-1 px-3 py-2.5 rounded-lg bg-white border border-rule text-[12px] font-mono font-bold text-text placeholder:text-muted/60 placeholder:font-sans focus:outline-none focus:border-terracotta"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleApply(code)}
+                    disabled={applying || !code.trim()}
+                    className="shrink-0 px-4 py-2.5 rounded-lg text-[12px] font-bold inline-flex items-center gap-1 transition disabled:opacity-50"
+                    style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+                  >
+                    <Search className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    적용
+                  </button>
+                </div>
+              )}
               {errMsg && (
                 <p className="text-[11px] font-bold text-sale mt-2">
                   {errMsg}

@@ -27,6 +27,8 @@ export type Coupon = {
   used_count: number
   per_user_limit: number | null
   is_active: boolean
+  /** 대상 — 'first_signup' 은 첫 구매(paid 0건) 고객만. validateCoupon 가 강제. */
+  audience_type?: string | null
 }
 
 export type CouponValidation =
@@ -58,7 +60,7 @@ export async function validateCoupon(
   const { data: coupon } = await supabase
     .from('coupons')
     .select(
-      'id, code, name, description, discount_type, discount_value, min_order_amount, max_discount, starts_at, expires_at, usage_limit, used_count, per_user_limit, is_active'
+      'id, code, name, description, discount_type, discount_value, min_order_amount, max_discount, starts_at, expires_at, usage_limit, used_count, per_user_limit, is_active, audience_type'
     )
     .eq('code', normalized)
     .maybeSingle()
@@ -92,6 +94,20 @@ export async function validateCoupon(
       .eq('user_id', userId)
     if ((count ?? 0) >= coupon.per_user_limit) {
       return { ok: false, reason: '이미 사용하신 쿠폰이에요' }
+    }
+  }
+
+  // 첫 구매 전용 (audience='first_signup') — paid 주문이 1건이라도 있으면 사용
+  // 불가. audience_type 이 SELECTION(자동적용)에만 쓰이고 redemption 게이트엔
+  // 없어, 50% 같은 큰 쿠폰을 재구매 고객이 코드로 쓰는 누수를 막는다.
+  if ((coupon as Coupon).audience_type === 'first_signup') {
+    const { count: paidCount } = await supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('payment_status', 'paid')
+    if ((paidCount ?? 0) > 0) {
+      return { ok: false, reason: '첫 구매 고객만 사용할 수 있는 쿠폰이에요' }
     }
   }
 
