@@ -5,6 +5,32 @@
 
 ---
 
+## 🟡 ADMIN-UX (2026-06-05) — 운영 콘솔 업그레이드 후속 (저트래픽/리팩터링성)
+
+이번 라운드에서 admin 운영성을 대폭 개선했다: 네비 4그룹화 + active 하이라이트 +
+사이드바 누락 6링크 복구(블로그/배송캘린더/전환퍼널/포뮬러승인/개인화인사이트/Cron),
+주문·회원·제품 페이지네이션+검색+시인성, KST 날짜 일괄 정합(**대시보드 '오늘 매출'이
+UTC 자정 경계라 KST 09시부터 집계되던 버그** + 주문상세·결제타임라인·자동결제·환불
+월경계), 상태 배지 9~10→11px+dot. 공용 신규: `AdminNav`, `AdminPagination`,
+`lib/datetime-kst` 표시 포맷터 3종.
+
+아래는 저트래픽이거나 리팩터링 위험이 있어 **의도적으로 보류**한 후속:
+
+- **정기배송 리스트 스케일** (`app/admin/subscriptions/page.tsx`): 현재 전체 구독을
+  클라이언트로 로드 후 React 필터. **bulk 주문생성이 "전체 upcoming 집합"에 의존**해
+  단순 페이지네이션 시 깨짐. 스케일 시 [표시용 페이지네이션 + bulk 전용 upcoming 별도
+  쿼리]로 분리 필요. 현재 베타(~수십 건)에선 정상 동작.
+- **남은 리스트 페이지 페이지네이션**: blog/coupons/events/faqs/qna/partners 는 전체
+  로드(저트래픽). 데이터 늘면 신규 `AdminPagination` 패턴 적용(주문/회원/제품과 동일).
+- **분석 대시보드 클라이언트 집계**: finance(payment_events 최대 5만행)·push-stats(5천행)
+  를 클라이언트에서 일별/카테고리 집계. RPC(`daily_revenue_ledger` 등) 서버 집계로 이전 검토.
+- **force-dynamic 캐싱**: 읽기전용 분석 페이지는 ISR 검토 여지가 있으나, **인증 admin
+  페이지라 캐시 정합/세션 위험**이 있어 현 force-dynamic 유지가 안전(솔로 운영자 트래픽 미미).
+- **공용 admin 프리미티브 확장**: `AdminPagination`/`AdminNav` 외에 StatusPill·DataTable·
+  ExportButton 공용화 시 list 페이지 중복 대폭 축소.
+
+---
+
 ## 🔴 R101 (D7) — 대규모 4영역 (인증·세션 / 이메일 전달성 / 정합성·reconcile / admin 권한·감사)
 
 결제 실테스트 불가. 아직 안 본 4영역 병렬. admin 권한 게이트는 **API 12개 전수 통과(견고)** 확인.

@@ -41,8 +41,12 @@ export default function AnalysisCTASection({
         </>
       ) : (
         <>
+          {/* 개인화 박스 주문으로 직행 — /dogs/[id]/order 가 최신 dog_formulas
+              를 읽어 추천 SKU·비율·급여량·가격을 그대로 렌더한다. 이전엔
+              generic /products 로 보내 방금 만든 개인화를 전부 흘렸음
+              (RecommendationBox 의 "정기배송 신청" 과 목적지 통일). */}
           <Link
-            href="/products"
+            href={`/dogs/${dogId}/order`}
             className="flex items-center justify-center gap-1.5 w-full py-4 rounded bg-ink text-bg text-[13.5px] font-bold active:scale-[0.98] transition"
           >
             {dogName} 맞춤 체험팩 주문하기

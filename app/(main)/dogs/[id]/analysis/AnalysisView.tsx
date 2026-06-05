@@ -102,6 +102,9 @@ type Dog = {
   age_value: number | null
   age_unit: string | null
   photo_url: string | null
+  // 분석 카드에 표시할 실제 등록 체중. RER 역산(weightFromRER)은 70·W^0.75 를
+  // 뒤집는데 computeRer 가 토이견(<2kg)에 다른 식을 써서 역산이 부정확하다.
+  weight: number | null
   // H5: MER 신뢰구간을 실제 체중 측정 신뢰도로 산정하기 위해 추가.
   weight_method: string | null
   weight_measured_at: string | null
@@ -206,7 +209,7 @@ export default function AnalysisView({
       const { data: dogData } = await supabase
         .from('dogs')
         .select(
-          'id, name, breed, birth_date, age_value, age_unit, photo_url, weight_method, weight_measured_at',
+          'id, name, breed, birth_date, age_value, age_unit, photo_url, weight, weight_method, weight_measured_at',
         )
         .eq('id', dogId)
         .eq('user_id', user.id)
@@ -328,7 +331,14 @@ export default function AnalysisView({
   const createdAt = new Date(analysis.created_at)
   const magDateLabel = `${String(createdAt.getMonth() + 1).padStart(2, '0')}.${String(createdAt.getDate()).padStart(2, '0')}`
   const magAgeLabel = formatAgeLabel(dog)
-  const magWeightKg = +weightFromRER(analysis.rer).toFixed(1)
+  // 현재 분석은 등록된 실제 체중을 그대로 표시한다. RER 역산은 토이견(<2kg)
+  // 에서 +14~48% 오차 + asymmetric care goal 의 safetyWeightShift 가 섞인
+  // "내부 목표체중" 이라 사용자가 입력한 값과 다르다. archive(과거 분석)는
+  // 당시 체중을 따로 저장하지 않아 그 분석의 RER 로 역산(차선).
+  const magWeightKg =
+    !isArchive && dog.weight != null
+      ? +dog.weight.toFixed(1)
+      : +weightFromRER(analysis.rer).toFixed(1)
   // MER 신뢰구간 — 체중 측정 신뢰도(method+recency)로 폭 결정. MER=RER=70×W^0.75
   // 라 체중 측정 품질이 구간을 지배한다 (H5: 이전엔 null 고정 → 가짜 ±8%).
   const merAccuracy = weightReliability(
