@@ -12,6 +12,7 @@ import {
   Check,
   Clock,
 } from 'lucide-react'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,13 +69,10 @@ export default async function AdminRefundsPage() {
   }
   const list = (refunds ?? []) as Refund[]
 
-  // server component — 의도된 시간 의존성.
-  // eslint-disable-next-line react-hooks/purity
-  const nowMs = Date.now()
+  // 이번 달(KST) 시작 instant — Vercel UTC 환경에서 월 경계 off-by-one 방지.
+  // 이전엔 UTC 월초라 KST 월초 첫 9시간 환불이 전월로 빠졌다.
   const monthStart = new Date(
-    new Date(nowMs).getFullYear(),
-    new Date(nowMs).getMonth(),
-    1,
+    `${todayKstIsoDate().slice(0, 7)}-01T00:00:00+09:00`,
   ).getTime()
 
   let monthCount = 0
@@ -286,7 +284,7 @@ function RefundRow({
                   {refund.amount.toLocaleString()}원
                 </span>
                 <span
-                  className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded"
                   style={{
                     background: refund.is_partial
                       ? 'color-mix(in srgb, var(--gold) 15%, white)'
@@ -297,7 +295,7 @@ function RefundRow({
                   {refund.is_partial ? '부분' : '전체'}
                 </span>
                 <span
-                  className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded"
                   style={{
                     color: statusMeta.color,
                     border: `1px solid ${statusMeta.color}`,

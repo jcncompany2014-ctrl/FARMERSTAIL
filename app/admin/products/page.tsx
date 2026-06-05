@@ -2,19 +2,57 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/types'
 import ProductRowActions from './ProductRowActions'
+import AdminPagination from '@/components/admin/AdminPagination'
 
 export const dynamic = 'force-dynamic'
 
+const PER_PAGE = 50
+
 type ProductRow = Database['public']['Tables']['products']['Row']
 
-export default async function AdminProductsPage() {
+type SearchParams = Promise<{ q?: string; active?: string; page?: string }>
+
+const ACTIVE_FILTERS = [
+  { key: 'all', label: '전체' },
+  { key: 'active', label: '판매 중' },
+  { key: 'hidden', label: '숨김' },
+]
+
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams
+}) {
+  const { q = '', active = 'all', page: pageRaw } = await searchParams
+  const page = Math.max(1, parseInt(pageRaw ?? '1', 10) || 1)
+
   const supabase = await createClient()
 
-  const { data: products, error } = await supabase
+  let query = supabase
     .from('products')
-    .select('*')
+    .select('*', { count: 'exact' })
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false })
+    .range((page - 1) * PER_PAGE, page * PER_PAGE - 1)
+
+  if (active === 'active') query = query.eq('is_active', true)
+  else if (active === 'hidden') query = query.eq('is_active', false)
+
+  const trimmed = q.trim()
+  if (trimmed) {
+    const escaped = trimmed.replace(/[\\%_,()]/g, (m) => `\\${m}`)
+    query = query.or(
+      [
+        `name.ilike.%${escaped}%`,
+        `slug.ilike.%${escaped}%`,
+        `category.ilike.%${escaped}%`,
+      ].join(','),
+    )
+  }
+
+  const { data: products, error, count } = await query
+  const total = count ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE))
 
   return (
     <div>
@@ -24,7 +62,7 @@ export default async function AdminProductsPage() {
             PRODUCTS
           </h1>
           <p className="text-sm text-muted mt-1">
-            총 {products?.length ?? 0}개 상품
+            총 {total.toLocaleString()}개 상품
           </p>
         </div>
         <Link
@@ -35,12 +73,63 @@ export default async function AdminProductsPage() {
         </Link>
       </div>
 
+      {/* 필터 + 검색 */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1.5 flex-wrap">
+          {ACTIVE_FILTERS.map((f) => {
+            const isActive = active === f.key
+            const sp = new URLSearchParams()
+            if (f.key !== 'all') sp.set('active', f.key)
+            if (q) sp.set('q', q)
+            const qs = sp.toString()
+            return (
+              <Link
+                key={f.key}
+                href={`/admin/products${qs ? `?${qs}` : ''}`}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
+                  isActive
+                    ? 'bg-[#2A2118] text-white'
+                    : 'bg-white text-text border border-rule hover:border-terracotta'
+                }`}
+              >
+                {f.label}
+              </Link>
+            )
+          })}
+        </div>
+        <form
+          action="/admin/products"
+          method="get"
+          className="flex gap-2 items-center"
+        >
+          {active !== 'all' && (
+            <input type="hidden" name="active" value={active} />
+          )}
+          <input
+            type="search"
+            name="q"
+            defaultValue={q}
+            placeholder="상품명 · slug · 카테고리"
+            autoComplete="off"
+            className="px-3 py-1.5 rounded-full text-xs bg-white border border-rule focus:outline-none focus:border-terracotta w-56"
+          />
+          <button
+            type="submit"
+            className="px-4 py-1.5 rounded-full text-xs font-semibold bg-terracotta text-white hover:bg-[#8A3822] transition"
+          >
+            검색
+          </button>
+        </form>
+      </div>
+
       <div className="p-6 rounded-2xl bg-white border border-rule">
         {error ? (
           <p className="text-sale text-sm">에러: {error.message}</p>
         ) : !products || products.length === 0 ? (
           <p className="text-center text-sm text-muted py-10">
-            등록된 상품이 없어요
+            {q || active !== 'all'
+              ? '조건에 맞는 상품이 없어요'
+              : '등록된 상품이 없어요'}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -60,7 +149,7 @@ export default async function AdminProductsPage() {
                 {(products as ProductRow[]).map((p) => (
                   <tr
                     key={p.id}
-                    className="border-b border-bg hover:bg-bg transition"
+                    className="border-b border-rule/50 hover:bg-bg transition"
                   >
                     <td className="py-3">
                       <div className="w-12 h-12 rounded-lg bg-bg overflow-hidden flex items-center justify-center">
@@ -130,6 +219,19 @@ export default async function AdminProductsPage() {
           </div>
         )}
       </div>
+
+      {!error && (
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          basePath="/admin/products"
+          params={{
+            q: q || undefined,
+            active: active !== 'all' ? active : undefined,
+          }}
+          total={total}
+        />
+      )}
     </div>
   )
 }
