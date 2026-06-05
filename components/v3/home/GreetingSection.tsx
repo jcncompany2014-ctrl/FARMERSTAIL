@@ -163,7 +163,9 @@ export default function GreetingSection({
           letterSpacing: V3LetterSpacing.heading,
           color: V3.ink,
           wordBreak: 'keep-all',
-          whiteSpace: 'nowrap',
+          // 긴 야간 인사말("오늘도 함께해 주셔서 고마워요,")이 우상단 Signature 와
+          // 겹치지 않도록: nowrap 제거(자연 줄바꿈) + Signature 폭만큼 우측 거터 확보.
+          paddingRight: 112,
         }}
       >
         {headingText}
@@ -184,6 +186,7 @@ export default function GreetingSection({
           align="right"
           size={15}
           barHeight={28}
+          nameMaxWidth={104}
         />
       </div>
 

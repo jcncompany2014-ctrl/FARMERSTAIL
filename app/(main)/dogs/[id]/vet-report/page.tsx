@@ -320,7 +320,9 @@ export default async function VetReportPage({ params }: { params: Params }) {
               label="평가일"
               value={
                 surveyRaw?.created_at
-                  ? new Date(surveyRaw.created_at).toLocaleDateString('ko-KR')
+                  ? new Date(surveyRaw.created_at).toLocaleDateString('ko-KR', {
+                      timeZone: 'Asia/Seoul',
+                    })
                   : '—'
               }
             />
@@ -340,6 +342,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
                   value={`${weights[0]!.weight} kg`}
                   hint={new Date(weights[0]!.measured_at).toLocaleDateString(
                     'ko-KR',
+                    { timeZone: 'Asia/Seoul' },
                   )}
                 />
                 <Field
@@ -347,7 +350,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
                   value={`${weights[weights.length - 1]!.weight} kg`}
                   hint={new Date(
                     weights[weights.length - 1]!.measured_at,
-                  ).toLocaleDateString('ko-KR')}
+                  ).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}
                 />
                 <Field
                   label="변화"
@@ -502,6 +505,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
                 analysis?.next_review_date
                   ? new Date(analysis.next_review_date).toLocaleDateString(
                       'ko-KR',
+                      { timeZone: 'Asia/Seoul' },
                     )
                   : '—'
               }

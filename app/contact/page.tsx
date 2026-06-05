@@ -76,20 +76,16 @@ export default function ContactPage() {
               href={`tel:${business.phone.replace(/[^\d+]/g, '')}`}
               note="평일 10:00 – 18:00"
             />
-            {business.kakaoChannelUrl ? (
+            {/* 카카오 채널은 URL 이 설정된 경우에만 노출 (푸터와 동일 정책).
+                미설정 시 "준비 중" disabled 타일을 띄우지 않고 숨긴다 —
+                런칭 시점에 미완성 느낌을 주지 않기 위함. */}
+            {business.kakaoChannelUrl && (
               <Channel
                 Icon={MessageCircle}
                 label="카카오 채널"
                 value="1:1 채팅"
                 href={business.kakaoChannelUrl}
                 external
-              />
-            ) : (
-              <Channel
-                Icon={MessageCircle}
-                label="카카오 채널"
-                value="준비 중"
-                disabled
               />
             )}
           </ul>

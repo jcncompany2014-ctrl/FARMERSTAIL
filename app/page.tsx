@@ -2122,7 +2122,8 @@ export default async function LandingPage() {
       {/* 풀와이드 — 데스크톱에선 각 섹션이 100vw, 컨텐츠는 자체 max-w 로 제어.
           기존 모바일 디자인은 모바일에선 그대로, 데스크톱에선 컨텐츠 가운데
           정렬되며 양쪽 cream 배경 자연스럽게 펼침. */}
-      <main id="main" style={{ background: 'var(--bg)' }}>
+      {/* #main 앵커는 WebChrome 래퍼가 제공 — 중복 id 방지 위해 여기선 생략. */}
+      <main style={{ background: 'var(--bg)' }}>
         {/* 섹션별 max-width 통일 — 1280 단일 기준.
             데스크톱에서 좌우 비대칭/들쭉날쭉 보이는 문제 해결. */}
         <div className="mx-auto" style={{ maxWidth: 1280 }}>

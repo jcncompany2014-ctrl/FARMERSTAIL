@@ -184,7 +184,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
     setError('')
 
     if (!name.trim()) {
-      setError('강아지 이름을 입력해 주세요')
+      setError('아이 이름을 입력해 주세요')
       return
     }
     if (!breed) {
@@ -301,7 +301,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
         <div className="mt-3">
           <span className="kicker inline-block">New Dog</span>
           <h1 className="font-sans mt-1.5" style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-            강아지 등록
+            아이 등록
           </h1>
           <p className="text-[12px] text-muted mt-1.5">
             맞춤 영양 분석을 위한 기본 정보를 알려주세요

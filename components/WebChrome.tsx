@@ -760,8 +760,10 @@ export default function WebChrome({
 
       {/* 본문 — children 페이지가 자체 <main> 을 가지고 있을 수 있어
          WebChrome 은 div 로만 감싸 a11y 중복 차단 (HTML 표준: 페이지당 1개
-         <main>). a11y 'skip to main' 링크는 layout.tsx 의 #main 으로 이동. */}
-      <div className="flex-1">{children}</div>
+         <main>). layout.tsx 의 'skip to main' 링크(#main)가 항상 닿도록 이
+         래퍼가 #main 앵커를 제공한다 — 개별 에디토리얼 페이지가 <main id>
+         를 빠뜨려도 스킵 링크가 동작. (자식 <main> 은 landmark 역할만.) */}
+      <div id="main" className="flex-1">{children}</div>
 
       {/* 푸터 — 사업자 정보 + 고객 문의 */}
       <SiteFooter />

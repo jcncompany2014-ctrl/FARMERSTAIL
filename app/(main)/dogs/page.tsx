@@ -51,7 +51,7 @@ export default async function DogsPage() {
         </Link>
         <div className="mt-3 flex items-end justify-between">
           <div>
-            <span className="kicker">Our Dogs · 내 강아지</span>
+            <span className="kicker">Our Dogs · 우리 아이</span>
             <h1
               className="font-sans mt-1.5"
               style={{
@@ -62,7 +62,7 @@ export default async function DogsPage() {
                 lineHeight: 1.2,
               }}
             >
-              내 강아지
+              우리 아이
             </h1>
           </div>
           {/* UI audit F-1: 44px touch target — py-2 → py-2.5 + min-h. iOS HIG. */}
@@ -96,7 +96,7 @@ export default async function DogsPage() {
                 strokeWidth={1.5}
               />
             </div>
-            <span className="kicker">First Dog · 첫 강아지</span>
+            <span className="kicker">First Dog · 첫 아이</span>
             <h3
               className="font-sans mt-2"
               style={{
@@ -106,11 +106,11 @@ export default async function DogsPage() {
                 letterSpacing: '-0.02em',
               }}
             >
-              아직 등록된 강아지가 없어요
+              아직 등록된 아이가 없어요
             </h3>
             {/* UI audit B-1: <br/> 제거 — keep-all 전역이라 자연 wrap. */}
             <p className="text-[12px] text-muted mt-2 leading-relaxed max-w-[240px] mx-auto">
-              첫 번째 강아지를 등록하고 맞춤 영양 분석을 받아볼 수 있어요
+              첫 번째 아이를 등록하고 맞춤 영양 분석을 받아볼 수 있어요
             </p>
             <Link
               href="/dogs/new"
@@ -118,7 +118,7 @@ export default async function DogsPage() {
               style={{ background: 'var(--ink)', color: 'var(--bg)' }}
             >
               <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
-              강아지 등록하기
+              아이 등록하기
             </Link>
           </div>
         </section>

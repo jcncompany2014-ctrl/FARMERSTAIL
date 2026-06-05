@@ -31,7 +31,7 @@ const STEPS = [
     Icon: Dog,
     accent: 'var(--terracotta)',
     kicker: 'Step 1 · 시작',
-    title: '강아지를 등록해주세요',
+    title: '첫 아이를 등록해주세요',
     body: '체중·BCS·식이 정보를 입력하면\n맞춤 영양 분석을 무료로 보내드려요.',
   },
   {

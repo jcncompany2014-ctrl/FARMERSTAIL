@@ -29,6 +29,11 @@ interface SignatureProps {
   barHeight?: number
   /** name size — 기본 22(md). 강아지 detail hero 는 28~32 가능. */
   size?: number
+  /**
+   * name 최대 폭(px). 지정 시 초과분은 ellipsis 처리.
+   * 긴 영문 이름이 옆 요소(Greeting heading 등)와 겹치는 것을 방지.
+   */
+  nameMaxWidth?: number
   className?: string
   style?: React.CSSProperties
 }
@@ -39,6 +44,7 @@ export default function Signature({
   align = 'right',
   barHeight = 60,
   size = V3FontSize.lg, // 22px
+  nameMaxWidth,
   className,
   style,
 }: SignatureProps) {
@@ -63,6 +69,14 @@ export default function Signature({
           color: V3.ink,
           lineHeight: 1,
           letterSpacing: '-0.015em',
+          ...(nameMaxWidth
+            ? {
+                maxWidth: nameMaxWidth,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }
+            : null),
         }}
       >
         {name}

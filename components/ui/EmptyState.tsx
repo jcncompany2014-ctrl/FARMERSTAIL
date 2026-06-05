@@ -21,8 +21,8 @@
  *   // 커스텀 SVG/이모지 illustration:
  *   <EmptyState
  *     illustration={<MyDogSVG />}
- *     title="등록된 반려견이 없어요"
- *     action={{ label: '강아지 등록하기', href: '/dogs/new' }}
+ *     title="아직 등록된 아이가 없어요"
+ *     action={{ label: '아이 등록하기', href: '/dogs/new' }}
  *   />
  *
  * # Variants
@@ -75,7 +75,7 @@ const defaults: Record<EmptyKind, { Icon: LucideIcon; label: string }> = {
   orders: { Icon: Package, label: '주문 내역 없음' },
   reviews: { Icon: FileText, label: '리뷰 없음' },
   notifications: { Icon: Bell, label: '알림 없음' },
-  dogs: { Icon: Dog, label: '등록된 반려견 없음' },
+  dogs: { Icon: Dog, label: '등록된 아이 없음' },
   search: { Icon: Search, label: '검색 결과 없음' },
   coupons: { Icon: Ticket, label: '쿠폰 없음' },
   points: { Icon: Sparkles, label: '포인트 없음' },
@@ -259,9 +259,9 @@ export const NotificationsEmpty = () => (
 export const DogsEmpty = () => (
   <EmptyState
     kind="dogs"
-    title="등록된 반려견이 없어요"
+    title="아직 등록된 아이가 없어요"
     description="아이 정보를 등록하면 맞춤 레시피를 추천해드려요."
-    action={{ label: '반려견 등록하기', href: '/dogs/new' }}
+    action={{ label: '아이 등록하기', href: '/dogs/new' }}
   />
 )
 
