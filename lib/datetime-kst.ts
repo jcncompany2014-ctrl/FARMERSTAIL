@@ -71,3 +71,58 @@ export function diffDaysKst(a: string, b: string): number {
   const dB = new Date(b + 'T00:00:00Z').getTime()
   return Math.round((dA - dB) / 86_400_000)
 }
+
+// ── 표시용 포맷터 ──
+// 서버(Vercel)는 UTC 라 new Date(iso).getHours() 등 raw getter 로 포맷하면
+// 9시간 어긋난다. 아래 포맷터는 timeZone:'Asia/Seoul' 을 명시해 서버/브라우저
+// 어디서든 KST 로 일관 표시. admin 표/상세의 날짜·시각 표시에 사용.
+
+const KST_DATETIME_FMT = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+})
+
+const KST_DATE_FMT = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+function kstParts(fmt: Intl.DateTimeFormat, d: Date): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const p of fmt.formatToParts(d)) out[p.type] = p.value
+  return out
+}
+
+/** ISO timestamp → KST "yyyy.mm.dd HH:mm". null/invalid → '-'. */
+export function formatKstDateTime(iso: string | null | undefined): string {
+  if (!iso) return '-'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '-'
+  const p = kstParts(KST_DATETIME_FMT, d)
+  return `${p.year}.${p.month}.${p.day} ${p.hour}:${p.minute}`
+}
+
+/** ISO timestamp → KST "mm.dd HH:mm" (연도 생략, 컴팩트 표용). null/invalid → '-'. */
+export function formatKstShortDateTime(iso: string | null | undefined): string {
+  if (!iso) return '-'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '-'
+  const p = kstParts(KST_DATETIME_FMT, d)
+  return `${p.month}.${p.day} ${p.hour}:${p.minute}`
+}
+
+/** ISO timestamp → KST "yyyy.mm.dd". null/invalid → '-'. */
+export function formatKstDate(iso: string | null | undefined): string {
+  if (!iso) return '-'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '-'
+  const p = kstParts(KST_DATE_FMT, d)
+  return `${p.year}.${p.month}.${p.day}`
+}

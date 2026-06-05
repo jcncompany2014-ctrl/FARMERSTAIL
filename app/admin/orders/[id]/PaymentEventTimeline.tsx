@@ -7,6 +7,7 @@
  * Server component — admin 페이지라 RLS 자체로 admin 만 SELECT 통과.
  */
 import { createClient } from '@/lib/supabase/server'
+import { formatKstDateTime as formatDateTime } from '@/lib/datetime-kst'
 
 interface Props {
   orderId: string
@@ -45,15 +46,6 @@ const SOURCE_LABEL: Record<string, string> = {
   cron_subscription_charge: '정기구독 cron',
   cron_order_expire: '주문 만료 cron',
   admin_panel: '관리자',
-}
-
-function formatDateTime(iso: string): string {
-  const d = new Date(iso)
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${d.getFullYear()}.${m}.${day} ${hh}:${mm}`
 }
 
 export default async function PaymentEventTimeline({ orderId }: Props) {

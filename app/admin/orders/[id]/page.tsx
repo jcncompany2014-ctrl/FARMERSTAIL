@@ -6,21 +6,11 @@ import ShippingControl from './ShippingControl'
 import PartialCancelPanel from './PartialCancelPanel'
 import PaymentEventTimeline from './PaymentEventTimeline'
 import { carrierLabel } from '@/lib/tracking'
+import { formatKstDateTime as formatDateTime } from '@/lib/datetime-kst'
 
 export const dynamic = 'force-dynamic'
 
 type Params = Promise<{ id: string }>
-
-function formatDateTime(iso: string | null) {
-  if (!iso) return '-'
-  const d = new Date(iso)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${y}.${m}.${day} ${hh}:${mm}`
-}
 
 export default async function AdminOrderDetailPage({
   params,

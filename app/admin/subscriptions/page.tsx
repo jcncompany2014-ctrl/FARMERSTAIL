@@ -479,7 +479,8 @@ export default function AdminSubscriptionsPage() {
                       </td>
                       {/* 상태 */}
                       <td className="px-4 py-3 text-center">
-                        <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold ${badge.cls}`}>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-bold ${badge.cls}`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" aria-hidden />
                           {badge.label}
                         </span>
                       </td>

@@ -15,6 +15,10 @@ import CohortLtvTable, {
   type LtvRow,
 } from '@/components/admin/CohortLtvTable'
 import ActionsPanel from '@/components/admin/ActionsPanel'
+import {
+  formatKstShortDateTime as formatDate,
+  todayKstIsoDate,
+} from '@/lib/datetime-kst'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,15 +38,6 @@ type OrderItemLite = {
   product_image_url: string | null
   quantity: number
   line_total: number
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso)
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${m}.${day} ${hh}:${mm}`
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -74,9 +69,12 @@ function statusBadge(paymentStatus: string, orderStatus: string) {
 export default async function AdminHome() {
   const supabase = await createClient()
 
-  // 오늘 0시 ISO
+  // 오늘 0시 (KST) — Vercel UTC 환경에서도 KST 자정 경계로 정확히 집계.
+  // 이전엔 서버 로컬(UTC) 자정이라 "오늘 매출/주문" 이 KST 09:00 부터 집계되며
+  // 00:00–08:59 KST 주문이 전날로 빠졌다.
   const now = new Date()
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+  const todayKst = todayKstIsoDate()
+  const todayStart = new Date(`${todayKst}T00:00:00+09:00`).toISOString()
   // 30일 전
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
@@ -472,7 +470,8 @@ export default async function AdminHome() {
             DASHBOARD
           </h1>
           <p className="text-sm text-muted mt-1">
-            {now.getFullYear()}년 {now.getMonth() + 1}월 {now.getDate()}일 기준
+            {todayKst.slice(0, 4)}년 {Number(todayKst.slice(5, 7))}월{' '}
+            {Number(todayKst.slice(8, 10))}일 기준
           </p>
         </div>
       </div>

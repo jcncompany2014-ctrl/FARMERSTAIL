@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { AlertTriangle, CheckCircle2, Clock, X } from 'lucide-react'
+import { formatKstShortDateTime as formatDateTime } from '@/lib/datetime-kst'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,15 +52,6 @@ const STATUS_CONFIG: Record<
   succeeded: { label: '성공', color: 'var(--moss)', icon: CheckCircle2 },
   failed: { label: '실패', color: 'var(--sale)', icon: AlertTriangle },
   skipped: { label: '건너뜀', color: 'var(--muted)', icon: X },
-}
-
-function formatDateTime(iso: string): string {
-  const d = new Date(iso)
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${m}.${day} ${hh}:${mm}`
 }
 
 function todayKstIsoDate(): string {
