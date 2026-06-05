@@ -1,19 +1,28 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import AdminPagination from '@/components/admin/AdminPagination'
 
 export const dynamic = 'force-dynamic'
 
+const PER_PAGE = 50
+
 type SearchParams = Promise<{
   q?: string
+  page?: string
 }>
 
+// 서버(Vercel UTC) raw getter 대신 KST 로 가입일 포맷 (자정 경계 off-by-one 방지).
+const KST_DATE = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
 function formatDate(iso: string | null) {
   if (!iso) return '-'
-  const d = new Date(iso)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}.${m}.${day}`
+  const parts = KST_DATE.formatToParts(new Date(iso))
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
+  return `${get('year')}.${get('month')}.${get('day')}`
 }
 
 export default async function AdminUsersPage({
@@ -21,15 +30,19 @@ export default async function AdminUsersPage({
 }: {
   searchParams: SearchParams
 }) {
-  const { q = '' } = await searchParams
+  const { q = '', page: pageRaw } = await searchParams
+  const page = Math.max(1, parseInt(pageRaw ?? '1', 10) || 1)
 
   const supabase = await createClient()
 
   let query = supabase
     .from('profiles')
-    .select('id, email, name, phone, zip, address, address_detail, role, created_at')
+    .select(
+      'id, email, name, phone, zip, address, address_detail, role, created_at',
+      { count: 'exact' },
+    )
     .order('created_at', { ascending: false })
-    .limit(200)
+    .range((page - 1) * PER_PAGE, page * PER_PAGE - 1)
 
   if (q.trim()) {
     query = query.or(
@@ -37,9 +50,11 @@ export default async function AdminUsersPage({
     )
   }
 
-  const { data: users, error } = await query
+  const { data: users, error, count } = await query
+  const total = count ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE))
 
-  // 각 유저별 주문 수/누적 금액 집계
+  // 각 유저별 주문 수/누적 금액 집계 (현재 페이지 50명에 한정 — N+1 bounded)
   const userIds = (users ?? []).map((u) => u.id)
   const orderStats: Record<string, { count: number; total: number }> = {}
 
@@ -75,7 +90,7 @@ export default async function AdminUsersPage({
           USERS
         </h1>
         <p className="text-sm text-muted mt-1">
-          총 {users?.length ?? 0}명의 회원
+          총 {total.toLocaleString()}명의 회원
         </p>
       </div>
 
@@ -158,7 +173,7 @@ export default async function AdminUsersPage({
                   return (
                     <tr
                       key={u.id}
-                      className="border-b border-bg hover:bg-bg transition"
+                      className="border-b border-rule/50 hover:bg-bg transition"
                     >
                       <td className="py-3 text-[11px] text-ink">
                         {u.email ?? '-'}
@@ -174,13 +189,11 @@ export default async function AdminUsersPage({
                       </td>
                       <td className="py-3 text-center">
                         {u.role === 'admin' ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#2A2118] text-white">
+                          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#2A2118] text-white">
                             ADMIN
                           </span>
                         ) : (
-                          <span className="text-[10px] text-muted">
-                            user
-                          </span>
+                          <span className="text-[11px] text-muted">user</span>
                         )}
                       </td>
                       <td className="py-3 text-right text-ink font-semibold">
@@ -208,6 +221,16 @@ export default async function AdminUsersPage({
           </div>
         )}
       </div>
+
+      {!error && (
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          basePath="/admin/users"
+          params={{ q: q || undefined }}
+          total={total}
+        />
+      )}
 
       {/* 안내 */}
       <div className="mt-4 p-4 rounded-xl bg-bg border border-rule">

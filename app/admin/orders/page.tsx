@@ -1,21 +1,32 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import AdminPagination from '@/components/admin/AdminPagination'
 
 export const dynamic = 'force-dynamic'
+
+const PER_PAGE = 50
 
 type SearchParams = Promise<{
   status?: string
   q?: string
+  page?: string
 }>
 
+// 서버(Vercel)는 UTC 라 raw Date getter 를 쓰면 주문 시각이 9시간 어긋난다.
+// KST 로 명시 포맷 — "2026.06.05 14:30".
+const KST_DATETIME = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+})
 function formatDate(iso: string) {
-  const d = new Date(iso)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${y}.${m}.${day} ${hh}:${mm}`
+  const parts = KST_DATETIME.formatToParts(new Date(iso))
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
+  return `${get('year')}.${get('month')}.${get('day')} ${get('hour')}:${get('minute')}`
 }
 
 function statusBadge(paymentStatus: string, orderStatus: string) {
@@ -59,17 +70,19 @@ export default async function AdminOrdersPage({
 }: {
   searchParams: SearchParams
 }) {
-  const { status = 'all', q = '' } = await searchParams
+  const { status = 'all', q = '', page: pageRaw } = await searchParams
+  const page = Math.max(1, parseInt(pageRaw ?? '1', 10) || 1)
 
   const supabase = await createClient()
 
   let query = supabase
     .from('orders')
     .select(
-      'id, order_number, total_amount, payment_status, order_status, created_at, recipient_name, recipient_phone'
+      'id, order_number, total_amount, payment_status, order_status, created_at, recipient_name, recipient_phone',
+      { count: 'exact' },
     )
     .order('created_at', { ascending: false })
-    .limit(100)
+    .range((page - 1) * PER_PAGE, page * PER_PAGE - 1)
 
   // 상태 필터
   if (status === 'pending') {
@@ -103,7 +116,9 @@ export default async function AdminOrdersPage({
     )
   }
 
-  const { data: orders, error } = await query
+  const { data: orders, error, count } = await query
+  const total = count ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE))
 
   // CSV export URL — 현재 필터/검색을 그대로 전달.
   const exportParams = new URLSearchParams()
@@ -214,7 +229,7 @@ export default async function AdminOrdersPage({
                   return (
                     <tr
                       key={o.id}
-                      className="border-b border-bg hover:bg-bg transition"
+                      className="border-b border-rule/50 hover:bg-bg transition"
                     >
                       <td className="py-3 font-mono text-[11px] text-ink">
                         {o.order_number}
@@ -228,8 +243,12 @@ export default async function AdminOrdersPage({
                       </td>
                       <td className="py-3 text-center">
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.color}`}
+                          className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${badge.color}`}
                         >
+                          <span
+                            className="w-1.5 h-1.5 rounded-full bg-current opacity-80"
+                            aria-hidden
+                          />
                           {badge.label}
                         </span>
                       </td>
@@ -252,6 +271,19 @@ export default async function AdminOrdersPage({
           </div>
         )}
       </div>
+
+      {!error && (
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          basePath="/admin/orders"
+          params={{
+            status: status !== 'all' ? status : undefined,
+            q: q || undefined,
+          }}
+          total={total}
+        />
+      )}
     </div>
   )
 }
