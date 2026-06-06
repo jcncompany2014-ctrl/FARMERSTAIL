@@ -26,6 +26,7 @@ import RecommendationBox from '@/components/analysis/RecommendationBox'
 import { fetchComputedFormula } from '@/lib/personalization/formulaCache'
 import { weightReliability } from '@/lib/personalization/reliability'
 import FeedingPlanCard from '@/components/analysis/FeedingPlanCard'
+import PriceFramingCard from '@/components/analysis/PriceFramingCard'
 import NutrientGauges38 from '@/components/analysis/NutrientGauges38'
 import { WARM_CREAM } from '@/components/analysis/magazine/palette'
 import type { NutrientRow as MagNutrientRow } from '@/components/analysis/magazine/NutrientsCard'
@@ -877,6 +878,17 @@ export default function AnalysisView({
             </div>
           </Link>
         </section>
+      )}
+
+      {/* 주문 CTA 바로 위 "가격 안심" — 개인화 분석 직후 = 구매 의향 peak.
+          한 끼 단가 + 첫 박스 50%. 가격 숫자 편집점은 단 한 곳:
+          lib/feeding-plan.ts 의 HWASIK_KRW_PER_100G (거기 주석 참고). */}
+      {!isArchive && (analysis.mer ?? 0) > 0 && (
+        <PriceFramingCard
+          dogId={dogId}
+          dogName={dog.name}
+          dailyMerKcal={analysis.mer ?? 0}
+        />
       )}
 
       <AnalysisCTASection
