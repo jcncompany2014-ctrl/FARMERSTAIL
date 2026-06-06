@@ -5,10 +5,37 @@
  * 뽑는 얇은 결합층. 라이브 v2(decideFirstBox)와 **독립** — 같은 입력에서
  * 별도로 v3 결과를 계산해 shadow 저장/표시(라이브 박스는 v2 가 계속 구동).
  */
-import type { BaseSku, RecommendationResult } from './types.ts'
+import type { FoodLine, Ratio } from '../types.ts'
+import { PROTEIN_TO_LINE } from '../lines.ts'
+import type { BaseSku, RecommendationResult, SkuPick } from './types.ts'
 import { BASE_SKUS } from './catalog.ts'
 import { recommend } from './engine.ts'
 import { toNeedProfile, type V3SourceInput } from './profile.ts'
+
+/**
+ * v3 Layer A 픽 → v2 라인 비율(시드).
+ *
+ * v3 베이스 단백질 ↔ v2 라인은 1:1(chicken→weight, duck→basic, pork→joint,
+ * beef→premium, skuModel.legacyLine). 이 매핑으로 v3 가 고른 베이스를
+ * decideFirstBox 의 시작 비율(baseRatiosOverride)로 넘기면, v2 의 임상 안전
+ * 룰이 그 위에서 그대로 적용된다("v3 추천 + v2 안전망"). 합 = picks 비율 합(=1).
+ */
+export function v3PicksToLineRatios(
+  picks: readonly SkuPick[],
+): Record<FoodLine, Ratio> {
+  const ratios: Record<FoodLine, Ratio> = {
+    basic: 0,
+    weight: 0,
+    skin: 0,
+    premium: 0,
+    joint: 0,
+  }
+  for (const p of picks) {
+    const line = PROTEIN_TO_LINE[p.protein]
+    if (line) ratios[line] += p.ratio
+  }
+  return ratios
+}
 
 /**
  * 활성 제품 slug 로 v3 베이스 SKU 게이트.

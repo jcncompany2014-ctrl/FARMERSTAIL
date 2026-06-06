@@ -60,8 +60,15 @@ export function diffFormulas(
 
     // 라인 추가/제거
     if (p === 0 && n > 0) {
-      meaningful = true
-      changes.push(`${LINE_NAMES[line]} 라인 추가 (${Math.round(n * 100)}%)`)
+      // 0 → >0 라인 추가. 추천 v3 시드는 여러 라인이 0(희소)이라, cycle-2 의
+      // 작은 체크인 nudge(+5~10%)도 "새 라인"으로 잡혀 불필요한 동의 요청이
+      // 폭주한다. 분산 baseline 의 delta 기준과 동일하게 — n 이 임계(≈10%)
+      // 이상일 때만 meaningful. 그 미만의 작은 추가는 자동 적용(micro-adjust).
+      // 알레르기·만성질환 강제 경로(아래 section 4)는 이와 무관하게 항상 forced.
+      if (n >= LINE_RATIO_DELTA) {
+        meaningful = true
+        changes.push(`${LINE_NAMES[line]} 라인 추가 (${Math.round(n * 100)}%)`)
+      }
     } else if (p > 0 && n === 0) {
       meaningful = true
       changes.push(`${LINE_NAMES[line]} 라인 제외 (이전 ${Math.round(p * 100)}%)`)

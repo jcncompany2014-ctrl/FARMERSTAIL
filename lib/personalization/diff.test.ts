@@ -38,6 +38,25 @@ describe('diffFormulas — 미세 변화', () => {
     )
     assert.equal(d.meaningful, false)
   })
+
+  // v3 희소 시드(라인 다수 0) — cycle-2 작은 nudge(0→5%)는 micro-adjust(자동적용).
+  // 수정 전엔 "라인 추가"로 무조건 meaningful → 승인 푸시 폭주였음.
+  it('0 → 5% 작은 라인 추가 → not meaningful (자동 적용)', () => {
+    const d = diffFormulas(
+      f({ lineRatios: { basic: 0.7, weight: 0, skin: 0, premium: 0.3, joint: 0 } }),
+      f({ lineRatios: { basic: 0.65, weight: 0.05, skin: 0, premium: 0.3, joint: 0 } }),
+    )
+    assert.equal(d.meaningful, false)
+  })
+
+  it('0 → 15% 큰 라인 추가 → 여전히 meaningful (진짜 새 메인)', () => {
+    const d = diffFormulas(
+      f({ lineRatios: { basic: 0.85, weight: 0, skin: 0, premium: 0.15, joint: 0 } }),
+      f({ lineRatios: { basic: 0.7, weight: 0.15, skin: 0, premium: 0.15, joint: 0 } }),
+    )
+    assert.equal(d.meaningful, true)
+    assert.ok(d.changes.some((c) => c.includes('Weight') && c.includes('추가')))
+  })
 })
 
 describe('diffFormulas — 의미 있는 변화', () => {

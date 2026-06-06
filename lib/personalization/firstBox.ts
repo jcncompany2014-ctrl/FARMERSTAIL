@@ -73,8 +73,12 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
   // Step 1 — 알레르기 차단. 0% 가 된 라인은 이후 어떤 룰도 비율 못 줌.
   const blocked = filterByAllergies(input.allergies, reasoning)
 
-  // Step 2 — 케어 목표 → 메인 라인 선택. blocked 라인은 후보 제외.
-  let lineRatios = applyCareGoal(input, blocked, reasoning)
+  // Step 2 — 시작 라인 비율. v3 베이스 시드(baseRatiosOverride)가 있으면 그걸,
+  // 없으면 케어목표 레시피. 어느 쪽이든 이후 임상 안전 룰(Step 3+)이 그 위에서
+  // 그대로 적용 → "v3 추천 + v2 안전망" 결합. blocked 라인은 후보 제외.
+  let lineRatios = input.baseRatiosOverride
+    ? applyV3Base(input, blocked, reasoning)
+    : applyCareGoal(input, blocked, reasoning)
 
   // Step 3 — 시니어 자동 보정 (7세+). 케어목표가 다른 거여도 약간 가산.
   lineRatios = applyAgeStage(lineRatios, input, reasoning)
@@ -292,6 +296,42 @@ function applyCareGoal(
     ruleId: `goal-${goal}`,
   })
   return { ...recipe.ratios }
+}
+
+/**
+ * v3 베이스 시드 적용 — 추천 엔진 v3(Layer A)가 고른 베이스 단백질 라인 비율을
+ * 시작점으로. applyCareGoal 의 대체(케어목표 레시피 대신 v3 픽). 이후 모든
+ * 임상 안전 룰(Step 3+)은 그대로 적용된다 → "v3 추천 + v2 안전망".
+ *
+ * 안전 이중 가드:
+ *  - 알레르기로 차단된 라인은 0 (v3 도 이미 제외하지만 방어심층).
+ *  - 시드 합이 0(전부 차단 등)이면 케어목표 레시피로 안전 폴백.
+ *
+ * ruleId 는 `goal-${careGoal}` 유지 — 애널리틱스(careGoal 추출) 호환.
+ */
+function applyV3Base(
+  input: AlgorithmInput,
+  blocked: Set<FoodLine>,
+  reasoning: Reasoning[],
+): Record<FoodLine, Ratio> {
+  const raw = input.baseRatiosOverride!
+  const ratios = emptyRatios()
+  for (const line of ALL_LINES) {
+    ratios[line] = blocked.has(line) ? 0 : Math.max(0, raw[line] ?? 0)
+  }
+  const sum = ALL_LINES.reduce((s, l) => s + ratios[l], 0)
+  // 시드가 비면(전부 차단/빈 입력) 케어목표 레시피로 안전 폴백.
+  if (sum <= 0) return applyCareGoal(input, blocked, reasoning)
+
+  const goal = input.careGoal ?? 'general_upgrade'
+  reasoning.push({
+    trigger: '맞춤 추천(v3) 베이스',
+    action: `초기 비율: ${formatRatios(ratios)} (근거 기반 단백질 선택)`,
+    chipLabel: 'v3 맞춤 베이스',
+    priority: 1,
+    ruleId: `goal-${goal}`,
+  })
+  return ratios
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -763,12 +803,14 @@ function applyChronicAdjustments(
   //    Vet Clin Small Anim Pract 31(5):855-880 — 인슐린 + 고섬유 (10-15% DM).
   //  · Hand et al. Small Animal Clinical Nutrition 5e ch.27.
   if (c.includes('diabetes') && ratios.weight < 0.4) {
-    const before = ratios.weight
-    ratios = {
-      ...ratios,
-      weight: 0.4,
-      basic: Math.max(0, ratios.basic + before - 0.4),
-    }
+    // mass-conserving: 전 라인을 donor(basic 우선) → basic=0(v3 시드)에서도
+    // weight 0.4 정확 도달 + sum 1 보존 → chip 이 실제 비율과 일치.
+    ratios = transferToTarget(ratios, 'weight', 0.4, [
+      'basic',
+      'skin',
+      'premium',
+      'joint',
+    ]).ratios
     reasoning.push({
       trigger: '당뇨병 진단',
       action:
@@ -815,14 +857,12 @@ function applyChronicAdjustments(
   //  · Heath, Barabas & Craze (2007) "Nutritional supplementation in cases of
   //    canine cognitive dysfunction" Appl Anim Behav Sci 105(4):284-296.
   if (c.includes('cognitive_decline') || c.includes('cds')) {
-    if (ratios.skin < 0.3) {
-      const before = ratios.skin
-      ratios = {
-        ...ratios,
-        skin: 0.3,
-        basic: Math.max(0, ratios.basic + before - 0.3),
-      }
-    }
+    ratios = transferToTarget(ratios, 'skin', 0.3, [
+      'basic',
+      'weight',
+      'premium',
+      'joint',
+    ]).ratios
     reasoning.push({
       trigger: '인지저하증 (CDS)',
       action:
@@ -840,14 +880,12 @@ function applyChronicAdjustments(
   //    Ca/P 손실 + 근감소 + 의인성 비만.
   //  · Behrend et al. (2003) Vet Clin Small Anim — endocrine side effects.
   if (c.includes('long_term_steroid')) {
-    if (ratios.joint < 0.3) {
-      const before = ratios.joint
-      ratios = {
-        ...ratios,
-        joint: 0.3,
-        basic: Math.max(0, ratios.basic + before - 0.3),
-      }
-    }
+    ratios = transferToTarget(ratios, 'joint', 0.3, [
+      'basic',
+      'weight',
+      'premium',
+      'skin',
+    ]).ratios
     reasoning.push({
       trigger: '장기 스테로이드 복용',
       action:
@@ -870,14 +908,12 @@ function applyChronicAdjustments(
   //  · Westermarck (2012) Vet Clin Small Anim Pract 42:147 — EPI 종설.
   //  · Wiberg & Westermarck (2002) JAVMA 220:1183 — pancreatin 효소 보충.
   if (c.includes('epi')) {
-    if (ratios.premium < 0.3) {
-      const before = ratios.premium
-      ratios = {
-        ...ratios,
-        premium: 0.3,
-        basic: Math.max(0, ratios.basic + before - 0.3),
-      }
-    }
+    ratios = transferToTarget(ratios, 'premium', 0.3, [
+      'basic',
+      'weight',
+      'skin',
+      'joint',
+    ]).ratios
     reasoning.push({
       trigger: 'EPI (외분비 췌장 부전)',
       action:
@@ -894,14 +930,12 @@ function applyChronicAdjustments(
   //  · Scott-Moncrieff (2007) Vet Clin Small Anim Pract 37:709 —
   //    canine hypothyroidism 종설 + 영양 권고.
   if (c.includes('hypothyroid')) {
-    if (ratios.weight < 0.3) {
-      const before = ratios.weight
-      ratios = {
-        ...ratios,
-        weight: 0.3,
-        basic: Math.max(0, ratios.basic + before - 0.3),
-      }
-    }
+    ratios = transferToTarget(ratios, 'weight', 0.3, [
+      'basic',
+      'skin',
+      'premium',
+      'joint',
+    ]).ratios
     reasoning.push({
       trigger: '갑상선저하증',
       action:
@@ -919,14 +953,12 @@ function applyChronicAdjustments(
   //    consensus statement.
   if (c.includes('cushings')) {
     // Premium (단백질 ↑) + Weight (저칼로리) 양쪽 가산
-    if (ratios.weight < 0.25) {
-      const before = ratios.weight
-      ratios = {
-        ...ratios,
-        weight: 0.25,
-        basic: Math.max(0, ratios.basic + before - 0.25),
-      }
-    }
+    ratios = transferToTarget(ratios, 'weight', 0.25, [
+      'basic',
+      'skin',
+      'premium',
+      'joint',
+    ]).ratios
     reasoning.push({
       trigger: 'Cushing\'s (부신피질항진증)',
       action:
@@ -939,14 +971,12 @@ function applyChronicAdjustments(
 
   // 슬개골 탈구 / IVDD / 기관 허탈 — 모두 비만이 악화 요인. Weight + Joint 가산.
   if (c.includes('patellar_luxation') || c.includes('ivdd') || c.includes('tracheal_collapse')) {
-    if (ratios.weight < 0.3) {
-      const before = ratios.weight
-      ratios = {
-        ...ratios,
-        weight: 0.3,
-        basic: Math.max(0, ratios.basic + before - 0.3),
-      }
-    }
+    ratios = transferToTarget(ratios, 'weight', 0.3, [
+      'basic',
+      'skin',
+      'premium',
+      'joint',
+    ]).ratios
     const labels: string[] = []
     if (c.includes('patellar_luxation')) labels.push('슬개골 탈구')
     if (c.includes('ivdd')) labels.push('IVDD')
@@ -1126,14 +1156,16 @@ function applyWeightTrendAdjustments(
     ratios.weight < 0.5
   ) {
     const before = ratios.weight
-    ratios = {
-      ...ratios,
-      weight: 0.5,
-      basic: Math.max(0, ratios.basic + before - 0.5),
-    }
+    const { ratios: nextR, finalValue } = transferToTarget(
+      ratios,
+      'weight',
+      0.5,
+      ['basic', 'skin', 'premium', 'joint'],
+    )
+    ratios = nextR
     reasoning.push({
       trigger: '6개월 체중 증가 + BCS 6+',
-      action: `Weight ${(before * 100).toFixed(0)}% → 50% (적극 관리)`,
+      action: `Weight ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}% (적극 관리)`,
       chipLabel: '증량 추세 → Weight ↑',
       priority: 4,
       ruleId: 'weight-trend-active-gain',

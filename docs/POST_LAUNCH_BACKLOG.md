@@ -886,10 +886,17 @@ R88 (2026-05-27) — CSP+XSS / 영수증+마스킹 / DB index.
 - **표시**: 분석 페이지 v3 카드(사용자) + /admin/personalization v3 시뮬레이터
   (운영자 trace 뷰어).
 
-### 현재 상태 = shadow (라이브 v2 가 박스 구동)
-v3 는 v2(decideFirstBox)와 **독립**으로 같은 입력에서 계산돼 formula jsonb 에
-additive 저장 + 카드로 표시만. 실제 박스/주문은 여전히 v2. 충분히 검증 후
-별도 작업으로 교체.
+### 현재 상태 = v3 구동 + v2 안전망 (Phase 6 cutover, 2026-06-06)
+v3 가 **베이스 단백질 선택을 주도**(decideFirstBox 시작 비율 = v3 픽)하고,
+v2 의 모든 임상 안전 룰(알레르기·췌장염·CKD·임신·퍼피·심장 등)이 그 위에 그대로
+적용된다. 박스/주문은 동일 Formula shape 라 plumbing 무변경. 어드버서리얼 안전
+검증(7 에이전트) 후 확인된 3건 fix 동반:
+ 1. 만성질환 룰 8개 mass-leak → transferToTarget(전 라인 donor)로 임상 floor
+    정확 달성 + chip 진실(basic=0 v3 시드에서도).
+ 2. 연어(skin)→오리 게이트 시 임상 피부·CDS chip 에 "오리 대체 + 피쉬오일 보조"
+    정직 안내 덧붙임(연어 DHA 거짓 약속 제거).
+ 3. v3 희소 시드로 cycle-2 작은 nudge(0→<10%)가 동의요청 폭주하던 것 →
+    micro-adjust 자동적용(diff 임계). 강제 경로(알레르기·만성질환)는 불변.
 
 ### ★ 창업자 launch 전 액션
 - [ ] **migration 적용**: `20260606000001_source_waitlist.sql` 검토 후 적용
@@ -899,7 +906,11 @@ additive 저장 + 카드로 표시만. 실제 박스/주문은 여전히 v2. 충
 - [ ] v3 카드 노출 범위 결정: 현재 분석 페이지만. 주문/대시보드 확대는 v2→v3
       교체 시점에 함께.
 
-### Deferred (v2→v3 전환 시)
-- 베이스 SKU 믹스를 실제 주문/피킹/정기배송에 연결(현재 v2 라인 비율이 구동).
+### Deferred (post-cutover 후속)
+- 박스/주문/피킹은 이미 v3 시드 lineRatios 로 구동(Formula 경유). 추가로 v3
+  picks 의 "단일 SKU 정체성"을 주문 UI 에 더 직접 노출하는 건 후속(현재는 라인
+  비율로 표현).
 - 2주 피드백(feedback.ts)을 재분석 cron 에 연결(현재 해석 함수만 준비).
 - 기능성 소스 상품 출시 → source_waitlist 통지 cron.
+- (선택) cutover 가 만든 cycle-2 동의 빈도 변화 — 첫 50명 데이터로 diff 임계
+  재튜닝(diff.ts 주석).

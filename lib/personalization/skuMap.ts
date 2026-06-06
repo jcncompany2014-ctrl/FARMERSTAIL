@@ -64,8 +64,11 @@ export function deriveAvailableToppers(
 
 /**
  * 제품 없는 라인의 비율을 옮길 1순위 대체 라인.
- * skin(연어) → weight(오리): 연어유 함량 최다 → 오메가-3 연속성 보존.
- * 그 외 → basic(닭): 가장 균형 잡힌 기본 라인.
+ * (라인↔단백질: basic=오리, weight=닭, skin=연어, premium=소, joint=돼지)
+ * skin(연어) → basic(오리): 오리가 화식 4종 중 오메가-3 최다 → 연속성 보존
+ *   (단 연어보다는 낮아, 임상 피부·CDS 케어 시 gateAvailability 가 피쉬오일
+ *   보조 안내를 chip 에 덧붙인다).
+ * 그 외 → basic(오리): 가장 균형 잡힌 기본 라인.
  */
 const LINE_FALLBACK: Record<FoodLine, FoodLine> = {
   basic: 'weight',
@@ -127,6 +130,22 @@ export function gateAvailability(
         priority: 1,
         ruleId: `gate-line-${line}`,
       })
+
+      // 정직성 — skin(연어) 라인이 임상 룰(피부염·CDS)로 가산됐는데 연어가
+      // 미출시라 오리로 대체될 때, "연어 DHA/오메가-3" 를 약속한 임상 chip 이
+      // 거짓이 되지 않게 그 chip 에 대체·보조 안내를 덧붙인다. 오리는 화식 4종
+      // 중 오메가-3 최다지만 연어보다 낮음 → EPA/DHA(피쉬오일) 보조 권장.
+      if (line === 'skin') {
+        for (const r of opts.reasoning ?? []) {
+          if (
+            r.ruleId === 'chronic-allergy-skin' ||
+            r.ruleId === 'chronic-cognitive-decline'
+          ) {
+            r.action +=
+              ' ※ 연어 라인 준비중이라 현재는 오리로 대체돼요. 오리는 화식 중 오메가-3가 가장 높지만 연어보다는 낮아, 피부·인지 케어가 목적이면 EPA/DHA(피쉬오일) 보조를 권장해요. 연어 라인 출시 시 자동 반영.'
+          }
+        }
+      }
     }
   }
 

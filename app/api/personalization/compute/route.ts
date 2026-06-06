@@ -13,7 +13,10 @@ import {
   TOPPER_TO_SLUG,
 } from '@/lib/personalization/skuMap'
 import type { AlgorithmInput, Formula } from '@/lib/personalization/types'
-import { buildV3Recommendation } from '@/lib/personalization/v3/integrate'
+import {
+  buildV3Recommendation,
+  v3PicksToLineRatios,
+} from '@/lib/personalization/v3/integrate'
 import type { RecommendationResult } from '@/lib/personalization/v3/types'
 import type { V3SourceInput } from '@/lib/personalization/v3/profile'
 
@@ -457,10 +460,31 @@ export async function POST(req: Request) {
     diagnosedSeverity: answers.diagnosedSeverity,
   }
 
-  // 5) 알고리즘 실행 — pure function, throw 안 함.
+  // 5) v3 추천을 **먼저** 계산 — 베이스 단백질 선택(근거 기반) + 기능성 소스.
+  // pure function, throw 안 함. 실패해도 폴백되게 try 로 감싼다.
+  let v3: RecommendationResult | null = null
+  try {
+    v3 = buildV3Recommendation(input, {
+      appetite: answers.appetite,
+      activeSlugs,
+    })
+  } catch {
+    v3 = null
+  }
+
+  // 5.1) v3 picks → 시작 라인 비율 시드 주입. v3 가 베이스 단백질을 고르고,
+  //      이어지는 decideFirstBox 의 임상 안전 룰(알레르기·췌장염·CKD·임신·퍼피·
+  //      심장 등)이 그 위에서 그대로 적용된다 → "v3 추천 + v2 안전망".
+  //      v3 실패/상담 라우팅(후보 0)이면 미주입 → decideFirstBox 가 기존 케어목표
+  //      레시피로 안전 폴백(완전 하위호환).
+  if (v3 && !v3.layerA.needsConsultation && v3.layerA.picks.length > 0) {
+    input.baseRatiosOverride = v3PicksToLineRatios(v3.layerA.picks)
+  }
+
+  // 5.5) 알고리즘 실행 — v3 시드 + v2 임상 안전 룰. pure function, throw 안 함.
   const formula = decideFirstBox(input)
 
-  // 5.5) daily_grams 재계산 — 결정된 라인 mix 의 kcalPer100g 가중평균 기준.
+  // 5.6) daily_grams 재계산 — 결정된 라인 mix 의 kcalPer100g 가중평균 기준.
   // nutrition.ts 의 feed_g 는 평균 1.45 kcal/g 추정 (레시피 v2.1). 라인 mix
   // 결정 후엔 실제 가중평균으로 재계산해 정확도 ↑.
   const dailyGramsByMix = dailyGramsFromMix(
@@ -469,20 +493,6 @@ export async function POST(req: Request) {
     foodLineMetaOverride,
   )
   formula.dailyGrams = dailyGramsByMix
-
-  // 5.7) v3 추천(shadow) — 라이브 v2 박스와 **독립**. 같은 input 에서 별도로
-  // 2-레이어 추천(베이스 SKU + 기능성 소스)을 계산해 formula jsonb 에 additive
-  // 저장 + 응답에 포함. v2(decideFirstBox)가 박스를 계속 구동 — 교체 아님.
-  // pure function, throw 안 함. 실패해도 라이브에 영향 없게 try 로 감싼다.
-  let v3: RecommendationResult | null = null
-  try {
-    v3 = buildV3Recommendation(input, {
-      appetite: answers.appetite,
-      activeSlugs,
-    })
-  } catch {
-    v3 = null // v3 실패는 라이브(v2)에 영향 없음 — shadow.
-  }
 
   // 6) Persist — UNIQUE (dog_id, cycle_number) 충돌 시 race condition (다른 탭).
   //    select 한 번 더 해서 그쪽 결과 반환. 사용자 입장 idempotent.

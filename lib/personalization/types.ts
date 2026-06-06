@@ -208,6 +208,16 @@ export type AlgorithmInput = {
    * 출처: AAFCO 2024 / WSAVA Global Nutrition "treats ≤10% daily kcal".
    */
   treatReductionPct?: number
+
+  // ── v3 베이스 시드 (v6 — 추천 엔진 v3 결합) ──
+  /**
+   * 추천 엔진 v3(Layer A)가 고른 베이스 단백질의 **시작 라인 비율**.
+   * 주어지면 케어목표 레시피(applyCareGoal) 대신 이 비율을 시드로 사용하고,
+   * 이후의 모든 임상 안전 룰(알레르기·췌장염·CKD·임신·퍼피·심장 등)은 그대로
+   * 그 위에 적용된다 → "v3 추천 + v2 안전망" 결합. 미입력 = 기존 v2 동작
+   * (케어목표 레시피, 완전 하위호환). 합이 0(전부 차단 등)이면 안전하게 폴백.
+   */
+  baseRatiosOverride?: Record<FoodLine, Ratio>
 }
 
 /** 알고리즘 output — 한 강아지의 한 cycle 처방. */
