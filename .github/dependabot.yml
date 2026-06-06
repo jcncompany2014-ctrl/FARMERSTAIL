@@ -1,0 +1,37 @@
+# Dependabot — 의존성 보안·업데이트 자동 PR.
+#
+# 솔로 운영이라 노이즈를 최소화: 주 1회, minor/patch 는 그룹으로 묶어 한 PR,
+# major 는 따로(파괴적 변경 가능성). 보안 패치는 Dependabot 이 우선 처리.
+# PR 은 Claude 개발 세션에서 검토 후 머지(npm run verify 통과 확인).
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Asia/Seoul'
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore(deps)'
+    groups:
+      # minor/patch 는 한 PR 로 묶어 리뷰 부담 ↓.
+      minor-and-patch:
+        update-types:
+          - 'minor'
+          - 'patch'
+    labels:
+      - 'dependencies'
+
+  # GitHub Actions 워크플로 액션 버전도 최신·안전하게.
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      timezone: 'Asia/Seoul'
+    commit-message:
+      prefix: 'chore(ci)'
+    labels:
+      - 'dependencies'

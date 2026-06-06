@@ -164,6 +164,27 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // 서비스워커 — 절대 캐시 금지(항상 재검증). sw.js 가 캐시되면 배포해도
+        // 옛 버전이 남아 사용자가 업데이트를 영영 못 받는다(PWA staleness 버그).
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+        ],
+      },
+      {
+        // PWA 매니페스트 — 자주 안 바뀌지만 1시간 후 재검증(아이콘·이름 변경 반영).
+        source: '/manifest.json',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, must-revalidate',
+          },
+        ],
+      },
     ]
   },
 }
