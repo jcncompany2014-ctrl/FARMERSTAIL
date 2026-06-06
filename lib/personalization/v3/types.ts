@@ -86,3 +86,57 @@ export type NeedProfile = {
 
 /** 추천 결정 추적 (explainability — 설문→need→필터→선택). */
 export type TraceEntry = { step: string; detail: string }
+
+// ──────────────────────────────────────────────────────────────────────────
+// 레이어 A 엔진 결과 (Phase 2)
+// ──────────────────────────────────────────────────────────────────────────
+
+/** 선택된 베이스 SKU 한 종 + 믹스 비율. picks 의 ratio 합 = 1.0. */
+export type SkuPick = {
+  id: string
+  protein: ProteinKey
+  nameKr: string
+  /** 믹스 비율 (0~1). 단일이면 1.0, 2종 믹스면 0.7/0.3. */
+  ratio: number
+  kcalPer100g: number
+  /** 이 SKU 의 검증된 효능 문구 (catalog SSOT). */
+  claims: EvidenceClaim[]
+  /** 주(primary) SKU 면 true — UI 강조용. */
+  isPrimary: boolean
+}
+
+/** 교차반응 경고 (차단 X — chip 만). */
+export type CrossReactWarning = {
+  /** 경고를 띄운 SKU 의 단백질. */
+  protein: ProteinKey
+  /** 매칭된 알레르기 라벨. */
+  allergyLabel: string
+}
+
+/**
+ * 레이어 A 결과 — "무슨 밥?" (베이스 SKU 선택 + 분량).
+ *
+ * pure function 출력. 레이어 B(기능성 소스)는 Phase 3 에서 별도 결합.
+ * needsConsultation=true 면 picks 비어 있음(모든 단백질 알레르기 차단 등) —
+ * 호출처가 상담 라우팅.
+ */
+export type LayerAResult = {
+  /** 선택 SKU 1~2종 (ratio 합 1.0). needsConsultation 면 빈 배열. */
+  picks: SkuPick[]
+  /** 믹스 가중 평균 kcal/100g. */
+  blendedKcalPer100g: number
+  /** 입력 일일 칼로리(MER) 그대로. */
+  dailyKcal: number
+  /** 일일 급여 그램 = dailyKcal / blendedKcal × 100. */
+  dailyGrams: number
+  /** 교차반응 경고 (차단 안 함). */
+  crossReactWarnings: CrossReactWarning[]
+  /** 모든 후보가 알레르기로 차단 등 — 상담 라우팅 필요. */
+  needsConsultation: boolean
+  /** 상담 사유 (needsConsultation 일 때). */
+  consultationReason?: string
+  /** 후보별 적합도 점수 (admin 디버그/감사). */
+  scores: Array<{ protein: ProteinKey; score: number }>
+  /** 결정 추적 (explainability — admin 노출). */
+  trace: TraceEntry[]
+}
