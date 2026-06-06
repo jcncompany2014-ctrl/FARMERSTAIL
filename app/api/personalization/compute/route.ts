@@ -13,6 +13,8 @@ import {
   TOPPER_TO_SLUG,
 } from '@/lib/personalization/skuMap'
 import type { AlgorithmInput, Formula } from '@/lib/personalization/types'
+import { buildV3Recommendation } from '@/lib/personalization/v3/integrate'
+import type { RecommendationResult } from '@/lib/personalization/v3/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -111,7 +113,11 @@ export async function POST(req: Request) {
       algorithmVersion: existing.algorithm_version,
       userAdjusted: existing.user_adjusted,
     }
-    return NextResponse.json({ ok: true, formula, cached: true })
+    // v3 추천(shadow) — formula jsonb 에 같이 저장돼 있으면 반환. 레거시 row
+    // (v3 이전 생성)는 없을 수 있음 → null (표시 측이 숨김). 재분석 시 채워짐.
+    const v3 =
+      (existing.formula as { v3?: RecommendationResult }).v3 ?? null
+    return NextResponse.json({ ok: true, formula, v3, cached: true })
   }
 
   // 3) 최신 survey + analysis 조회 — 한 번에 쿼리.
@@ -243,6 +249,8 @@ export async function POST(req: Request) {
       bcsExact?: number
       allergies?: string[]
       snackFreq?: string
+      // 설문 식욕(taste): 'strong'|'normal'|'picky'|'reduced'. v3 NeedProfile 입력.
+      appetite?: string
       diagnosedSeverity?: Record<string, 'mild' | 'moderate' | 'severe'>
     }) ?? {}
   const bcs =
@@ -347,6 +355,20 @@ export async function POST(req: Request) {
   )
   formula.dailyGrams = dailyGramsByMix
 
+  // 5.7) v3 추천(shadow) — 라이브 v2 박스와 **독립**. 같은 input 에서 별도로
+  // 2-레이어 추천(베이스 SKU + 기능성 소스)을 계산해 formula jsonb 에 additive
+  // 저장 + 응답에 포함. v2(decideFirstBox)가 박스를 계속 구동 — 교체 아님.
+  // pure function, throw 안 함. 실패해도 라이브에 영향 없게 try 로 감싼다.
+  let v3: RecommendationResult | null = null
+  try {
+    v3 = buildV3Recommendation(input, {
+      appetite: answers.appetite,
+      activeSlugs,
+    })
+  } catch {
+    v3 = null // v3 실패는 라이브(v2)에 영향 없음 — shadow.
+  }
+
   // 6) Persist — UNIQUE (dog_id, cycle_number) 충돌 시 race condition (다른 탭).
   //    select 한 번 더 해서 그쪽 결과 반환. 사용자 입장 idempotent.
   const { error: insErr } = await supabase.from('dog_formulas').insert({
@@ -356,6 +378,7 @@ export async function POST(req: Request) {
     formula: {
       lineRatios: formula.lineRatios,
       toppers: formula.toppers,
+      v3,
     },
     reasoning: formula.reasoning,
     transition_strategy: formula.transitionStrategy,
@@ -380,6 +403,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
           ok: true,
           formula,
+          v3,
           cached: true,
           raced: true,
         })
@@ -391,5 +415,5 @@ export async function POST(req: Request) {
     )
   }
 
-  return NextResponse.json({ ok: true, formula, cached: false })
+  return NextResponse.json({ ok: true, formula, v3, cached: false })
 }

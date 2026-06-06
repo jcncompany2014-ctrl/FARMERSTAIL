@@ -1,4 +1,5 @@
 import type { Formula } from './types'
+import type { RecommendationResult } from './v3/types'
 
 /**
  * formulaCache — 첫 박스(cycle 1) 처방 fetch 의 단일화 레이어.
@@ -20,7 +21,7 @@ import type { Formula } from './types'
  */
 
 export type ComputeResponse =
-  | { ok: true; formula: Formula }
+  | { ok: true; formula: Formula; v3?: RecommendationResult | null }
   | { ok?: false; code?: string; message?: string }
 
 export type ComputeResult = { httpOk: boolean; body: ComputeResponse }
