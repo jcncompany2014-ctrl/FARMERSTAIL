@@ -376,7 +376,7 @@ export default function AdminCollectionsClient({
         <div>
           <h1 className="font-['Archivo_Black'] text-3xl text-ink">COLLECTIONS</h1>
           <p className="text-sm text-muted mt-1">
-            큐레이션 묶음 — /collections 인덱스 + /collections/[slug] 노출. 총{' '}
+            상품을 주제별로 묶어 /collections 페이지에 노출해요. 총{' '}
             {initialCollections.length}개 등록.
           </p>
         </div>
@@ -518,7 +518,7 @@ export default function AdminCollectionsClient({
       <div className="mt-6 p-4 rounded-xl bg-bg border border-rule text-[11px] text-muted leading-relaxed">
         <p>
           <strong className="text-ink">제품 묶음 순서</strong>는 위/아래 버튼으로
-          조정합니다. position 값은 10 단위 step 이라 중간 삽입 시 자동으로
+          조정합니다. 순서 값은 10 단위라 중간에 끼워 넣어도 자동으로
           간격이 유지돼요.
         </p>
         <p className="mt-1">
@@ -554,7 +554,7 @@ export default function AdminCollectionsClient({
             </div>
 
             <div className="p-6 space-y-5">
-              <Field label="slug (URL 조각)" hint="소문자/숫자/하이픈. 예: first-meal">
+              <Field label="영문 주소(URL)" hint="소문자/숫자/하이픈. 예: first-meal">
                 <input
                   type="text"
                   value={slug}
@@ -564,7 +564,7 @@ export default function AdminCollectionsClient({
                 />
               </Field>
 
-              <Field label="title (큰 제목)">
+              <Field label="큰 제목">
                 <input
                   type="text"
                   value={title}
@@ -574,7 +574,7 @@ export default function AdminCollectionsClient({
                 />
               </Field>
 
-              <Field label="subtitle (한 줄 요약)">
+              <Field label="한 줄 요약">
                 <input
                   type="text"
                   value={subtitle}
@@ -584,7 +584,7 @@ export default function AdminCollectionsClient({
                 />
               </Field>
 
-              <Field label="curator note (큐레이터 코멘트)">
+              <Field label="큐레이터 코멘트">
                 <textarea
                   value={curatorNote}
                   onChange={(ev) => setCuratorNote(ev.target.value)}
@@ -595,7 +595,7 @@ export default function AdminCollectionsClient({
               </Field>
 
               {/* 카드 이미지 */}
-              <Field label="card 이미지 (인덱스 카드 배경)" hint="4:5, 8MB 이하">
+              <Field label="카드 이미지 (목록 배경)" hint="4:5, 8MB 이하">
                 <div className="flex gap-3 items-start">
                   <div className="w-24 h-30 rounded border border-rule bg-bg shrink-0 overflow-hidden flex items-center justify-center" style={{ aspectRatio: '4 / 5' }}>
                     {cardImageUrl ? (
@@ -634,7 +634,7 @@ export default function AdminCollectionsClient({
               </Field>
 
               {/* 히어로 이미지 */}
-              <Field label="hero 이미지 (상세 페이지 큰 배너)" hint="16:9 또는 21:9 권장. 8MB 이하">
+              <Field label="대표 이미지 (상세 큰 배너)" hint="16:9 또는 21:9 권장. 8MB 이하">
                 <div className="flex gap-3 items-start">
                   <div className="w-32 h-18 rounded border border-rule bg-bg shrink-0 overflow-hidden flex items-center justify-center" style={{ aspectRatio: '16 / 9' }}>
                     {heroImageUrl ? (
@@ -673,7 +673,7 @@ export default function AdminCollectionsClient({
               </Field>
 
               <div className="grid grid-cols-3 gap-4">
-                <Field label="palette">
+                <Field label="색상 테마">
                   <select
                     value={palette}
                     onChange={(ev) =>
@@ -697,7 +697,7 @@ export default function AdminCollectionsClient({
                     }}
                   />
                 </Field>
-                <Field label="sort_order" hint="낮을수록 먼저">
+                <Field label="정렬 순서" hint="낮을수록 먼저">
                   <input
                     type="number"
                     value={sortOrder}
@@ -876,7 +876,7 @@ function ItemsPanel({
       )}
 
       <p className="text-[10px] text-muted mt-3 font-mono">
-        collection_id: {collection.id}
+        묶음 ID: {collection.id}
       </p>
     </div>
   )

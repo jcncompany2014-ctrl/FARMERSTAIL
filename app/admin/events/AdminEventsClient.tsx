@@ -295,11 +295,11 @@ export default function AdminEventsClient({
   async function save() {
     // Client-side validation — DB CHECK 제약과 중복되지만 UX 위해 먼저.
     if (!slug.trim() || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(slug.trim())) {
-      toast.error('slug 는 소문자/숫자/하이픈만 허용 (예: black-friday)')
+      toast.error('영문 주소는 소문자·숫자·하이픈만 가능해요 (예: black-friday)')
       return
     }
     if (!kicker.trim() || !enTitle.trim() || !koSubtitle.trim()) {
-      toast.error('kicker / enTitle / koSubtitle 은 필수입니다')
+      toast.error('상단 라벨·영문 제목·한글 부제는 필수예요')
       return
     }
     if (!startsAt || !endsAt) {
@@ -638,7 +638,7 @@ export default function AdminEventsClient({
 
             <div className="p-6 space-y-5">
               {/* 기본 식별자 */}
-              <Field label="slug (URL 조각)" hint="소문자/숫자/하이픈만. 예: black-friday">
+              <Field label="영문 주소(URL)" hint="소문자/숫자/하이픈만. 예: black-friday">
                 <input
                   type="text"
                   value={slug}
@@ -649,7 +649,7 @@ export default function AdminEventsClient({
               </Field>
 
               <div className="grid grid-cols-2 gap-4">
-                <Field label="kicker (상단 라벨)">
+                <Field label="상단 라벨">
                   <input
                     type="text"
                     value={kicker}
@@ -658,7 +658,7 @@ export default function AdminEventsClient({
                     placeholder="Limited · 블랙 프라이데이"
                   />
                 </Field>
-                <Field label="highlight (숫자 강조)">
+                <Field label="숫자 강조">
                   <input
                     type="text"
                     value={highlight}
@@ -670,7 +670,7 @@ export default function AdminEventsClient({
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <Field label="enTitle (대형 영문)">
+                <Field label="영문 제목 (크게)">
                   <input
                     type="text"
                     value={enTitle}
@@ -679,7 +679,7 @@ export default function AdminEventsClient({
                     placeholder="BLACK FRIDAY"
                   />
                 </Field>
-                <Field label="koSubtitle (한글 서브)">
+                <Field label="한글 부제">
                   <input
                     type="text"
                     value={koSubtitle}
@@ -764,7 +764,7 @@ export default function AdminEventsClient({
                 </div>
               </Field>
 
-              <Field label="tagline (요약 1~2줄)">
+              <Field label="요약 (1~2줄)">
                 <textarea
                   value={tagline}
                   onChange={(ev) => setTagline(ev.target.value)}
@@ -794,7 +794,7 @@ export default function AdminEventsClient({
                 </Field>
               </div>
 
-              <Field label="상태 라벨 (카드 우상단 chip)">
+              <Field label="상태 라벨 (카드 우상단)">
                 <div className="flex gap-2 items-center">
                   <input
                     type="text"
@@ -822,7 +822,7 @@ export default function AdminEventsClient({
 
               {/* 시각 / 분기 */}
               <div className="grid grid-cols-3 gap-4">
-                <Field label="palette">
+                <Field label="색상 테마">
                   <select
                     value={palette}
                     onChange={(ev) =>
@@ -845,7 +845,7 @@ export default function AdminEventsClient({
                     }}
                   />
                 </Field>
-                <Field label="kind">
+                <Field label="이벤트 종류">
                   <select
                     value={kind}
                     onChange={(ev) =>
@@ -853,11 +853,11 @@ export default function AdminEventsClient({
                     }
                     className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm"
                   >
-                    <option value="default">default (일반)</option>
-                    <option value="welcome">welcome (첫가입)</option>
+                    <option value="default">일반</option>
+                    <option value="welcome">첫 가입 환영</option>
                   </select>
                 </Field>
-                <Field label="CTA 성격">
+                <Field label="버튼 성격">
                   <select
                     value={ctaVariant}
                     onChange={(ev) =>
@@ -921,7 +921,7 @@ export default function AdminEventsClient({
               )}
 
               {/* 상세 본문 */}
-              <Field label="detailLede (상세 hero 아래 intro)">
+              <Field label="상세 소개글 (제목 아래)">
                 <textarea
                   value={detailLede}
                   onChange={(ev) => setDetailLede(ev.target.value)}
@@ -932,7 +932,7 @@ export default function AdminEventsClient({
               </Field>
 
               <Field
-                label="perks (혜택, 한 줄에 하나)"
+                label="혜택 (한 줄에 하나)"
                 hint="3~5개 권장. 빈 줄은 무시됩니다."
               >
                 <textarea
@@ -945,7 +945,7 @@ export default function AdminEventsClient({
               </Field>
 
               <Field
-                label="terms (유의사항, 한 줄에 하나)"
+                label="유의사항 (한 줄에 하나)"
                 hint="2~4개 권장."
               >
                 <textarea
