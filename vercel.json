@@ -100,7 +100,7 @@
     },
     {
       "path": "/api/cron/subscription-cleanup",
-      "schedule": "30 * * * *"
+      "schedule": "30 18 * * *"
     },
     {
       "path": "/api/cron/order-expire",
@@ -144,7 +144,7 @@
     },
     {
       "path": "/api/cron/refund-retry",
-      "schedule": "*/30 * * * *"
+      "schedule": "30 19 * * *"
     },
     {
       "path": "/api/cron/first-box-checkin",
@@ -152,7 +152,7 @@
     },
     {
       "path": "/api/cron/push-lifecycle",
-      "schedule": "0 * * * *"
+      "schedule": "0 23 * * *"
     },
     {
       "path": "/api/cron/inventory-forecast",
