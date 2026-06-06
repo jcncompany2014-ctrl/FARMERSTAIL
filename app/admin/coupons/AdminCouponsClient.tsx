@@ -56,22 +56,22 @@ const AUDIENCE_OPTIONS: {
   {
     value: 'birthday',
     label: '생일 축하',
-    desc: '생일 cron 이 매년 1회 자동 발송 (마케팅 수신 동의자만)',
+    desc: '생일에 매년 1회 자동 발송 (마케팅 수신 동의자만)',
   },
   {
     value: 'inactive_30d',
     label: '재참여 (30일 미접속)',
-    desc: '30일 이상 활동 없는 사용자에게 재참여 유도 (cron 추가 예정)',
+    desc: '30일 이상 활동 없는 고객에게 재참여 유도 (자동발송 준비 중)',
   },
   {
     value: 'vip_tier',
     label: 'VIP / 우수 고객',
-    desc: '등급 = gold / vip 사용자에게만 노출 (정책 확정 후 활성)',
+    desc: '우수·VIP 등급 고객에게만 노출 (정책 확정 후 활성화)',
   },
   {
     value: 'manual',
     label: '수동 발급 전용',
-    desc: 'admin 이 사용자 한 명씩 직접 지정 — 대량 발급 X',
+    desc: '관리자가 고객을 한 명씩 직접 지정 (대량 발급 안 됨)',
   },
 ]
 

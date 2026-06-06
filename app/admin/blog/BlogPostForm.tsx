@@ -339,7 +339,7 @@ export default function BlogPostForm({
               placeholder="예: 반려견 체중 관리, 어떻게 시작하지?"
             />
           </Field>
-          <Field label="Slug * (URL에 쓰임)">
+          <Field label="영문 주소(URL) *">
             <input
               type="text"
               value={form.slug}
@@ -351,7 +351,7 @@ export default function BlogPostForm({
               /blog/<span className="font-mono">{form.slug || '...'}</span>
             </p>
           </Field>
-          <Field label="요약 (리스트·OG 카드에 쓰여요)">
+          <Field label="요약 (목록·공유 카드에 쓰여요)">
             <textarea
               value={form.excerpt ?? ''}
               onChange={(e) => update('excerpt', e.target.value)}
@@ -863,8 +863,8 @@ function AiDraftHelper({
       </button>
 
       <p className="text-[10px] text-muted leading-relaxed">
-        Claude Haiku 기반. 생성된 초안은 자동으로 제목 / 요약 / 본문에 채워져요.
-        그대로 발행하지 말고 사실 / 표현 / 톤을 점검 후 게시.
+        AI 가 초안을 만들어 제목·요약·본문에 자동으로 채워줘요. 그대로
+        발행하지 말고 사실·표현·톤을 점검한 뒤 게시하세요.
       </p>
     </div>
   )

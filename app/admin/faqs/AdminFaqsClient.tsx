@@ -100,7 +100,7 @@ export default function AdminFaqsClient({
 
   async function save() {
     if (!question.trim() || !answer.trim()) {
-      toast.error('question / answer 는 필수예요')
+      toast.error('질문과 답변은 필수예요')
       return
     }
     const payload = {
@@ -309,7 +309,7 @@ export default function AdminFaqsClient({
                 </select>
               </Field>
 
-              <Field label="question (질문)">
+              <Field label="질문">
                 <input
                   type="text"
                   value={question}
@@ -319,7 +319,7 @@ export default function AdminFaqsClient({
                 />
               </Field>
 
-              <Field label="answer (답변)">
+              <Field label="답변">
                 <textarea
                   value={answer}
                   onChange={(ev) => setAnswer(ev.target.value)}
@@ -330,7 +330,7 @@ export default function AdminFaqsClient({
               </Field>
 
               <div className="grid grid-cols-2 gap-4">
-                <Field label="sort_order" hint="낮을수록 먼저">
+                <Field label="정렬 순서" hint="낮을수록 먼저">
                   <input
                     type="number"
                     value={sortOrder}

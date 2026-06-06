@@ -126,7 +126,7 @@ export default function AdminPartnersClient({
 
   async function save() {
     if (!region.trim() || !name.trim() || !ingredient.trim() || !body.trim()) {
-      toast.error('region / name / ingredient / body 는 필수예요')
+      toast.error('지역·이름·식재료·소개는 필수예요')
       return
     }
 
@@ -301,7 +301,7 @@ export default function AdminPartnersClient({
 
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-2 gap-4">
-                <Field label="region (지역)">
+                <Field label="지역">
                   <input
                     type="text"
                     value={region}
@@ -310,7 +310,7 @@ export default function AdminPartnersClient({
                     placeholder="강원 평창"
                   />
                 </Field>
-                <Field label="name (농가/조합명)">
+                <Field label="농가·조합명">
                   <input
                     type="text"
                     value={name}
@@ -321,7 +321,7 @@ export default function AdminPartnersClient({
                 </Field>
               </div>
 
-              <Field label="ingredient (어떤 식재료)">
+              <Field label="식재료">
                 <input
                   type="text"
                   value={ingredient}
@@ -331,7 +331,7 @@ export default function AdminPartnersClient({
                 />
               </Field>
 
-              <Field label="body (소개 본문)">
+              <Field label="소개 본문">
                 <textarea
                   value={body}
                   onChange={(ev) => setBody(ev.target.value)}
@@ -341,7 +341,7 @@ export default function AdminPartnersClient({
                 />
               </Field>
 
-              <Field label="cert (인증)" hint="예: 1++ / HACCP, 무농약 인증, 유기농 인증">
+              <Field label="인증" hint="예: 1++ / HACCP, 무농약 인증, 유기농 인증">
                 <input
                   type="text"
                   value={cert}
@@ -390,7 +390,7 @@ export default function AdminPartnersClient({
               </Field>
 
               <div className="grid grid-cols-2 gap-4">
-                <Field label="sort_order" hint="낮을수록 먼저">
+                <Field label="정렬 순서" hint="낮을수록 먼저">
                   <input
                     type="number"
                     value={sortOrder}

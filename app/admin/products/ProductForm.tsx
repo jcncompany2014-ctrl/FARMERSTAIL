@@ -241,7 +241,7 @@ export default function ProductForm({
               placeholder="예: 닭고기 베이직 화식"
             />
           </Field>
-          <Field label="Slug * (URL에 쓰임)">
+          <Field label="영문 주소(URL) *">
             <input
               type="text"
               value={form.slug}
@@ -500,7 +500,7 @@ export default function ProductForm({
             />
           </Field>
 
-          <Field label="영양성분 JSON">
+          <Field label="영양성분 (JSON 형식)">
             <textarea
               value={form.nutrition_facts ?? ''}
               onChange={(e) => update('nutrition_facts', e.target.value)}
