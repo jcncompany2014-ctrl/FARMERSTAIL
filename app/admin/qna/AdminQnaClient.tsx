@@ -149,7 +149,7 @@ export default function AdminQnaClient({
         <div>
           <h1 className="font-['Archivo_Black'] text-3xl text-ink">PRODUCT Q&A</h1>
           <p className="text-sm text-muted mt-1">
-            PDP 에 사용자가 남긴 상품 문의. 미답변{' '}
+            상품 페이지에 고객이 남긴 문의. 미답변{' '}
             <strong className="text-terracotta">{counts.pending}</strong>건 ·
             답변 완료 {counts.answered}건.
           </p>

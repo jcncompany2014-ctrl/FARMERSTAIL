@@ -168,12 +168,12 @@ export default async function SubscriptionChargesPage({
         <SummaryCard
           label="30일 누적 매출"
           value={`${last30dRevenue.toLocaleString()}원`}
-          sub="success 만 합산"
+          sub="성공 건만 합산"
         />
         <SummaryCard
           label="30일 실패"
           value={`${last30dFailed.length}건`}
-          sub="follow-up 필요"
+          sub="후속 조치 필요"
           tone={last30dFailed.length > 0 ? 'sale' : 'moss'}
         />
       </div>

@@ -468,7 +468,7 @@ export default function AdminSubscriptionsPage() {
                         </div>
                         {sub.coverage_weeks && (
                           <div className="text-[9px] text-muted font-normal mt-0.5">
-                            {sub.coverage_weeks === 2 ? '2주치 (하이브리드)' : '4주치 (풀)'}
+                            {sub.coverage_weeks === 2 ? '2주치 (절반 구성)' : '4주치 (전체 구성)'}
                           </div>
                         )}
                         {sub.dogs && (

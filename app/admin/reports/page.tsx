@@ -233,7 +233,7 @@ export default async function AdminReportsPage({
             'linear-gradient(135deg, var(--ink) 0%, #3a2f1d 60%, #5b4720 100%)',
         }}
       >
-        <span className="kicker kicker-gold">Net Revenue</span>
+        <span className="kicker kicker-gold">순매출</span>
         <div className="mt-2 flex items-baseline gap-1.5">
           <span
             className="font-serif leading-none tabular-nums text-gold"
@@ -298,7 +298,7 @@ export default async function AdminReportsPage({
 
       {/* 차감 합계 */}
       <section className="bg-white rounded-xl border border-rule px-5 py-4 mb-6 print:break-inside-avoid">
-        <span className="kicker kicker-muted">Deductions</span>
+        <span className="kicker kicker-muted">차감 항목</span>
         <div className="mt-2 grid grid-cols-3 gap-2 text-[12px]">
           <div>
             <span className="text-muted">쿠폰 할인</span>
@@ -324,7 +324,7 @@ export default async function AdminReportsPage({
       {/* Top 5 상품 */}
       {topProducts.length > 0 && (
         <section className="mb-6 print:break-inside-avoid">
-          <span className="kicker mb-2 block">Top Products</span>
+          <span className="kicker mb-2 block">많이 팔린 상품</span>
           <ol className="bg-white rounded-xl border border-rule overflow-hidden">
             {topProducts.map((p, i) => (
               <li
@@ -368,9 +368,7 @@ export default async function AdminReportsPage({
       {/* 결제수단 분포 */}
       {methodCount.size > 0 && (
         <section className="mb-6 print:break-inside-avoid">
-          <span className="kicker mb-2 block">
-            Payment Methods · 결제수단
-          </span>
+          <span className="kicker mb-2 block">결제수단</span>
           <div className="bg-white rounded-xl border border-rule px-4 py-3">
             {Array.from(methodCount.entries()).map(([method, count]) => {
               const pct =
@@ -405,8 +403,8 @@ export default async function AdminReportsPage({
       )}
 
       <p className="text-[10px] text-muted text-center mt-8 no-print">
-        * 본 리포트는 paid orders + succeeded refunds 기준. 입금 대기 (가상계좌)
-        는 paid_at 기준으로 자동 합산. 인쇄 시 페이지별 카드 break 방지.
+        * 결제 완료 주문과 환불 완료 건을 기준으로 해요. 입금 대기(가상계좌)는
+        입금된 날짜로 자동 합산돼요.
       </p>
     </div>
   )

@@ -97,7 +97,7 @@ export default async function AdminUnifiedSearch({
     <div>
       <header className="mb-6">
         <p className="text-[11px] text-muted uppercase tracking-widest font-bold">
-          Unified Search
+          통합 검색
         </p>
         <h1 className="text-2xl font-black text-text mt-1">통합 검색</h1>
         <p className="text-[12px] text-muted mt-1">

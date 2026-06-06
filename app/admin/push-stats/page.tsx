@@ -117,7 +117,7 @@ export default async function PushStatsPage() {
       <header className="mb-6 flex items-end justify-between">
         <div>
           <p className="text-[11px] text-muted uppercase tracking-widest font-bold">
-            Push Notification Stats
+            푸시 알림 통계
           </p>
           <h1 className="text-2xl font-black text-text mt-1">푸시 발송 통계</h1>
           <p className="text-[12px] text-muted mt-1">

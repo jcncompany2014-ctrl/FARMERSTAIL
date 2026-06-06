@@ -153,7 +153,7 @@ export default async function AdminCronHealthPage() {
           </h1>
         </div>
         <p className="text-[12px] text-muted mt-1">
-          최근 {WINDOW_DAYS}일 cron 실행 상태 — 실패한 cron 과 원인 추적
+          최근 {WINDOW_DAYS}일 자동작업 실행 상태 — 실패한 작업과 원인을 추적해요
         </p>
       </div>
 
@@ -183,7 +183,7 @@ export default async function AdminCronHealthPage() {
       {/* 실패 큐 — 가장 중요. status='error' 행 최신순. */}
       <section className="mb-6">
         <div className="flex items-center gap-2 mb-3">
-          <span className="kicker">실패 로그 · 최근 {WINDOW_DAYS}일</span>
+          <span className="kicker">실패 기록 · 최근 {WINDOW_DAYS}일</span>
         </div>
         {errorRows.length === 0 ? (
           <div className="rounded-xl border border-rule px-5 py-12 text-center bg-white">
@@ -192,10 +192,10 @@ export default async function AdminCronHealthPage() {
               strokeWidth={1.3}
             />
             <p className="text-[13px] font-bold text-text">
-              최근 {WINDOW_DAYS}일 cron 실패 없음 — 정상
+              최근 {WINDOW_DAYS}일 자동작업 실패 없음 — 정상
             </p>
             <p className="text-[11px] text-muted mt-1">
-              cron 이 실패하면 path · 에러 메시지 · 시각이 여기에 기록돼요
+              자동작업이 실패하면 작업·오류 메시지·시각이 여기에 기록돼요
             </p>
           </div>
         ) : (
@@ -204,7 +204,7 @@ export default async function AdminCronHealthPage() {
               <thead className="bg-bg-2 text-muted text-[11px] uppercase tracking-widest">
                 <tr>
                   <th className="text-left px-4 py-2.5 font-bold">실행 시각</th>
-                  <th className="text-left px-4 py-2.5 font-bold">Cron (path)</th>
+                  <th className="text-left px-4 py-2.5 font-bold">자동작업</th>
                   <th className="text-right px-4 py-2.5 font-bold">소요</th>
                   <th className="text-left px-4 py-2.5 font-bold">에러 메시지</th>
                 </tr>
@@ -262,7 +262,7 @@ export default async function AdminCronHealthPage() {
             <table className="w-full text-[13px]">
               <thead className="bg-bg-2 text-muted text-[11px] uppercase tracking-widest">
                 <tr>
-                  <th className="text-left px-4 py-2.5 font-bold">Cron (path)</th>
+                  <th className="text-left px-4 py-2.5 font-bold">자동작업</th>
                   <th className="text-center px-4 py-2.5 font-bold">마지막</th>
                   <th className="text-right px-4 py-2.5 font-bold">실행</th>
                   <th className="text-right px-4 py-2.5 font-bold">성공</th>

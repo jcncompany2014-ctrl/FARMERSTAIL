@@ -73,7 +73,7 @@ export default async function AdminCsInboxPage() {
       <header className="mb-6 flex items-end justify-between">
         <div>
           <p className="text-[11px] text-muted uppercase tracking-widest font-bold">
-            CS Inbox · 미확인 답장
+            미확인 답장
           </p>
           <h1 className="text-2xl font-black text-text mt-1">
             고객 답장 인박스

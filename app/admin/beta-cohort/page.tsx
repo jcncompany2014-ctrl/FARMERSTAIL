@@ -181,8 +181,8 @@ export default async function BetaCohortPage() {
             </h1>
           </div>
           <p className="text-[12px] text-muted mt-1">
-            closed_beta_2026_q3 — 30두 입회·진행·종료 관리 + 정부 PT/수의영양사
-            sign-off 자료.
+            2026 비공개 베타 — 강아지 30마리 진행 관리 + 정부 발표·수의영양사
+            검수 자료
           </p>
         </div>
         <BetaCohortPrintButton />
@@ -190,16 +190,16 @@ export default async function BetaCohortPage() {
 
       {/* 인쇄용 헤더 */}
       <div className="hidden print:block mb-4">
-        <h1 className="text-2xl font-bold text-ink">파머스테일 베타 cohort 리포트</h1>
+        <h1 className="text-2xl font-bold text-ink">파머스테일 베타 그룹 리포트</h1>
         <p className="text-sm text-muted mt-1">
-          cohort_id = {COHORT_ID} · 생성일{' '}
+          대상: 2026 비공개 베타 · 생성일{' '}
           {new Date().toLocaleDateString('ko-KR')}
         </p>
       </div>
 
       {/* KPI */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 print:break-inside-avoid">
-        <Kpi label="입회 두" value={`${dogSummaries.length}`} sub={`/ 30 목표`} />
+        <Kpi label="등록 마리" value={`${dogSummaries.length}`} sub={`/ 30 목표`} />
         <Kpi label="현재 활성" value={`${activeCount}`} sub="해지·환불 제외" />
         <Kpi label="누적 박스" value={`${totalBoxes}`} sub="첫 박스 + 재주문" />
         <Kpi
@@ -212,7 +212,7 @@ export default async function BetaCohortPage() {
       {/* dog 별 표 */}
       <section className="mt-6 rounded-2xl border border-rule bg-white p-5 print:break-inside-avoid">
         <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted mb-3">
-          dog 별 진행 상황
+          강아지별 진행 상황
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full text-[11.5px]">
@@ -283,9 +283,9 @@ export default async function BetaCohortPage() {
       </section>
 
       <p className="text-[10.5px] text-muted mt-6 leading-relaxed print:break-inside-avoid">
-        ※ 본 리포트는 cohort_id={COHORT_ID} 의 feeding_outcomes 자동 집계.
-        정부 R&D 평가 / 수의영양사 sign-off 자료로 활용. 인쇄 → PDF 저장
-        가능.
+        ※ 2026 비공개 베타 그룹의 반응 데이터를 자동 집계했어요. 정부 R&D
+        평가 / 수의영양사 검수 자료로 활용하세요. 인쇄해서 PDF 로 저장할 수
+        있어요.
       </p>
     </div>
   )
