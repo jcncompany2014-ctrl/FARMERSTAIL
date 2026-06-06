@@ -36,6 +36,8 @@ import {
   fetchComputedFormula,
   invalidateComputedFormula,
 } from '@/lib/personalization/formulaCache'
+import V3RecommendationCard from './V3RecommendationCard'
+import type { RecommendationResult } from '@/lib/personalization/v3/types'
 import './recommendation.css'
 import './adjust-sheet.css'
 
@@ -64,7 +66,7 @@ import './adjust-sheet.css'
 
 type State =
   | { status: 'loading' }
-  | { status: 'ready'; formula: Formula }
+  | { status: 'ready'; formula: Formula; v3: RecommendationResult | null }
   | { status: 'no_survey' }
   | { status: 'error'; message: string }
 
@@ -166,7 +168,11 @@ export default function RecommendationBox({
           })
           return
         }
-        setState({ status: 'ready', formula: json.formula })
+        setState({
+          status: 'ready',
+          formula: json.formula,
+          v3: json.v3 ?? null,
+        })
         // GA4 funnel — care goal 분포 + algorithm version 별 측정.
         trackAnalysisViewed(dogId)
         const goalReason = json.formula.reasoning.find((r) =>
@@ -312,6 +318,7 @@ export default function RecommendationBox({
     <>
       <RecommendationView
         formula={state.formula}
+        v3={state.v3}
         dogName={dogName}
         dogId={dogId}
         scale={scale}
@@ -326,7 +333,8 @@ export default function RecommendationBox({
         dogName={dogName}
         isSenior={isSenior}
         onSaved={(next) => {
-          setState({ status: 'ready', formula: next })
+          // v3 는 엔진의 독립 추천 — 사용자의 v2 비율 조정과 무관하게 유지.
+          setState({ status: 'ready', formula: next, v3: state.v3 })
           // 처방이 바뀌었으니 공유 캐시 무효화 — 다음 마운트가 새 결과를 받도록.
           invalidateComputedFormula(dogId)
         }}
@@ -337,6 +345,7 @@ export default function RecommendationBox({
 
 function RecommendationView({
   formula,
+  v3,
   dogName,
   dogId,
   scale,
@@ -344,6 +353,7 @@ function RecommendationView({
   onOpenAdjust,
 }: {
   formula: Formula
+  v3: RecommendationResult | null
   dogName: string
   dogId: string
   scale: Scale
@@ -400,6 +410,10 @@ function RecommendationView({
 
   return (
     <>
+      {/* 추천 엔진 v3 — 2-레이어(베이스 SKU + 기능성 소스) 결과 카드.
+          v3=null(레거시 formula·v3 미생성)이면 카드가 스스로 렌더 생략. */}
+      <V3RecommendationCard recommendation={v3} />
+
       {/* fb-hero 폐기 (2026-05-21) — Magazine HeroSection + DiagnosisCard 가 대체. */}
       <div className="fb-hero" style={{ marginTop: 24, display: 'none' }}>
         <div className="fb-kicker">
