@@ -871,3 +871,35 @@ R88 (2026-05-27) — CSP+XSS / 영수증+마스킹 / DB index.
 - A-minor: ReviewForm.tsx:81 클라이언트 검증 startsWith('image/') → ALLOWED set 통일.
 - C-medium: report-only CSP 30일 수집 후 enforce 전환 (next.config.ts 로드맵 명시).
 | LTV 코호트 분석 | 의사결정 | 2d | ⬜ |
+
+---
+
+## 추천 엔진 v3 (2026-06-06) — 2-레이어 redesign
+
+### 무엇이 바뀌었나
+- **레이어 A(밥)**: 베이스 SKU 4종(닭/오리/돼지/소, 연어 제외) 중 설문 신호로
+  적합도 스코어링 → 최대 2-SKU 믹스 + 급여 그램. `lib/personalization/v3/`.
+- **레이어 B(소스)**: 기능성 우려(피부/관절/소화/면역) → 기능성 토퍼 라우팅.
+  현재 소스 전부 coming_soon → "출시 알림 받기"(waitlist).
+- **효능 문구**: 마스터레시피 충족률로 검증. T1("풍부")=충족률 ≥250%, 질병
+  치료·예방 표방 전면 금지(사료법) — catalog.test 가드로 박제.
+- **표시**: 분석 페이지 v3 카드(사용자) + /admin/personalization v3 시뮬레이터
+  (운영자 trace 뷰어).
+
+### 현재 상태 = shadow (라이브 v2 가 박스 구동)
+v3 는 v2(decideFirstBox)와 **독립**으로 같은 입력에서 계산돼 formula jsonb 에
+additive 저장 + 카드로 표시만. 실제 박스/주문은 여전히 v2. 충분히 검증 후
+별도 작업으로 교체.
+
+### ★ 창업자 launch 전 액션
+- [ ] **migration 적용**: `20260606000001_source_waitlist.sql` 검토 후 적용
+      (적용 전엔 "출시 알림" 버튼이 deferred 로 no-op — 데이터 미저장).
+- [ ] (선택) 적용 후 `supabase gen types` → source-waitlist route 의 unknown
+      캐스팅 제거 가능.
+- [ ] v3 카드 노출 범위 결정: 현재 분석 페이지만. 주문/대시보드 확대는 v2→v3
+      교체 시점에 함께.
+
+### Deferred (v2→v3 전환 시)
+- 베이스 SKU 믹스를 실제 주문/피킹/정기배송에 연결(현재 v2 라인 비율이 구동).
+- 2주 피드백(feedback.ts)을 재분석 cron 에 연결(현재 해석 함수만 준비).
+- 기능성 소스 상품 출시 → source_waitlist 통지 cron.

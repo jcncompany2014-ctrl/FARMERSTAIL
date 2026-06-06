@@ -92,10 +92,22 @@ export default function V3RecommendationCard({
             color="var(--terracotta, #c4623f)"
             style={{ flexShrink: 0, marginTop: 1 }}
           />
-          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: 'var(--ink)' }}>
-            {layerA.consultationReason ??
-              '맞춤 추천을 위해 상담이 필요해요.'}
-          </p>
+          <div>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 12.5,
+                lineHeight: 1.55,
+                color: 'var(--ink)',
+              }}
+            >
+              {layerA.consultationReason ??
+                '맞춤 추천을 위해 상담이 필요해요.'}
+            </p>
+            <a href="/contact" style={consultCta}>
+              1:1 맞춤 상담 신청 →
+            </a>
+          </div>
         </div>
       </section>
     )
@@ -418,4 +430,12 @@ const consultBox: CSSProperties = {
   borderRadius: 4,
   background: 'rgba(196,98,63,0.06)',
   border: '1px solid rgba(196,98,63,0.18)',
+}
+const consultCta: CSSProperties = {
+  display: 'inline-block',
+  marginTop: 8,
+  fontSize: 12,
+  fontWeight: 700,
+  color: 'var(--terracotta, #c4623f)',
+  textDecoration: 'none',
 }

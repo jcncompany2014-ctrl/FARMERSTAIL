@@ -272,9 +272,10 @@ export function runLayerA(
   const blendedKcalPer100g = round2(
     picks.reduce((sum, p) => sum + p.ratio * p.kcalPer100g, 0),
   )
+  // 엣지 가드: 잘못된 MER(0 이하)이 음수 그램으로 새지 않게 0 하한.
   const dailyGrams =
     blendedKcalPer100g > 0
-      ? Math.round((feedKcal / blendedKcalPer100g) * 100)
+      ? Math.max(0, Math.round((feedKcal / blendedKcalPer100g) * 100))
       : 0
   trace.push({
     step: '급여 그램',
