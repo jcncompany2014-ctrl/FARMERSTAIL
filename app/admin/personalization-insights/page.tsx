@@ -118,11 +118,10 @@ export default async function PersonalizationInsightsPage() {
           letterSpacing: '-0.02em',
         }}
       >
-        Personalization Insights
+        개인화 인사이트
       </h1>
       <p className="text-[12.5px] mt-2 text-muted leading-relaxed">
-        측정 도구 분포 · 신뢰도 boost · 반사실 sensitivity · 능동 개입 A/B
-        — 발명 모듈 모니터링.
+        측정 방식 분포 · 신뢰도 보정 · 민감도 분석 · 개입 실험 모니터링
       </p>
 
       <Card icon={<BarChart3 className="w-4 h-4" />} title="측정 도구 분포">

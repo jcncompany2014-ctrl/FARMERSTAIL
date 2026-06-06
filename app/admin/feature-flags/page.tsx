@@ -41,8 +41,8 @@ export default async function FeatureFlagsPage() {
           FEATURE FLAGS
         </h1>
         <p className="text-sm text-muted mt-1">
-          Boolean on/off + A/B 테스트 variants. 코드 deploy 없이 즉시 반영
-          (캐시 60s).
+          기능을 켜고 끄거나 A/B 테스트를 해요. 코드 배포 없이 바로 반영돼요
+          (최대 60초).
         </p>
       </div>
 

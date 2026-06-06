@@ -50,7 +50,7 @@ export default async function AdminAlgorithmPage() {
             className="text-[10px] font-bold tracking-[0.2em] uppercase"
             style={{ color: 'var(--terracotta)' }}
           >
-            Admin · Algorithm Config
+알고리즘 설정
           </span>
           <h1
             className="font-serif mt-1"
@@ -64,8 +64,8 @@ export default async function AdminAlgorithmPage() {
             알고리즘 데이터 편집
           </h1>
           <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
-            라인별 영양 단면과 만성질환 진단 강도를 GUI 로 편집해요. 저장
-            즉시 다음 cycle compute 부터 반영돼요.
+            라인별 영양 구성과 만성질환 진단 강도를 직접 편집해요. 저장하면
+            다음 계산부터 바로 반영돼요.
           </p>
         </div>
         <div className="flex flex-col gap-1.5 items-end">

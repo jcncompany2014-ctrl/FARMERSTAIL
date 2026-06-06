@@ -126,7 +126,7 @@ export default async function AdminPersonalizationPage() {
             className="text-[10px] font-bold tracking-[0.2em] uppercase"
             style={{ color: 'var(--terracotta)' }}
           >
-            Admin · Personalization
+개인화
           </span>
           <h1
             className="font-serif mt-1"
@@ -163,7 +163,7 @@ export default async function AdminPersonalizationPage() {
           label="사용자 조정"
           value={`${adjustedRate}%`}
           unit={`(${adjustedFormulas ?? 0}/${totalFormulas ?? 0})`}
-          hint="↓ 일수록 알고리즘 정확"
+          hint="↓ 낮을수록 알고리즘이 정확"
         />
         <KpiCard
           label="체크인 응답"
@@ -176,8 +176,8 @@ export default async function AdminPersonalizationPage() {
           unit="건"
           hint={
             (pendingNearTimeout ?? []).length > 0
-              ? `${(pendingNearTimeout ?? []).length}건 timeout 임박`
-              : '5일 무응답 → 자동 declined'
+              ? `${(pendingNearTimeout ?? []).length}건 마감 임박`
+              : '5일간 응답 없으면 자동 거절'
           }
           warn={(pendingNearTimeout ?? []).length > 0}
         />
@@ -187,7 +187,7 @@ export default async function AdminPersonalizationPage() {
       {(pendingNearTimeout ?? []).length > 0 && (
         <section className="mb-6 bg-terracotta/5 border-2 border-terracotta/30 rounded-2xl p-5">
           <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-terracotta mb-3">
-            ⚠️ 동의 timeout 임박 ({(pendingNearTimeout ?? []).length})
+            ⚠️ 동의 마감 임박 ({(pendingNearTimeout ?? []).length})
           </h3>
           <ul className="space-y-1.5">
             {(pendingNearTimeout ?? []).map((row) => {

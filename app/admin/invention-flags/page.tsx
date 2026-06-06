@@ -79,7 +79,7 @@ export default async function InventionFlagsPage() {
 
       <div className="flex items-center gap-2 mt-3 mb-1">
         <Shield className="w-4 h-4" strokeWidth={2} style={{ color: 'var(--terracotta)' }} />
-        <span className="kicker">Invention Kill Switch</span>
+        <span className="kicker">발명 기능 차단 스위치</span>
       </div>
       <h1
         className="font-serif"
@@ -90,11 +90,11 @@ export default async function InventionFlagsPage() {
           letterSpacing: '-0.02em',
         }}
       >
-        발명 기능 flag
+        발명 기능 켜고 끄기
       </h1>
       <p className="text-[12.5px] mt-2 leading-relaxed text-text/75">
-        PCT 출원 전 핵심 알고리즘 노출 방지용. 변경은 Vercel dashboard 의
-        환경변수에서만 가능 (이 페이지는 read-only).
+        특허 출원 전 핵심 알고리즘을 가리기 위한 스위치예요. 이 페이지에서는
+        상태만 볼 수 있고, 변경은 별도 설정(환경변수)에서만 가능해요.
       </p>
 
       <section className="mt-5 rounded-2xl border bg-white p-5" style={{ borderColor: 'var(--rule)' }}>

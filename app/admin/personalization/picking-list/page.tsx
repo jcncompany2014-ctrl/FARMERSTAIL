@@ -167,7 +167,7 @@ export default async function PickingListPage({
             className="text-[10px] font-bold tracking-[0.2em] uppercase"
             style={{ color: 'var(--terracotta)' }}
           >
-            Admin · Picking List
+박스 패킹
           </span>
           <h1
             className="font-serif mt-1"
@@ -181,7 +181,7 @@ export default async function PickingListPage({
             {date} 박스 패킹 리스트
           </h1>
           <p className="text-[11.5px] text-muted mt-1">
-            오늘 active 인 박스 {rows.length}건 · 1주 분량 기준
+            오늘 진행 중인 박스 {rows.length}건 · 1주 분량 기준
           </p>
         </div>
         <div className="flex items-center gap-2">
