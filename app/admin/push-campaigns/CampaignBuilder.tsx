@@ -11,17 +11,17 @@ const SEGMENTS: { key: Segment; label: string; desc: string }[] = [
   {
     key: 'all',
     label: '전체 구독자',
-    desc: '푸시 알림 받는 모든 사용자',
+    desc: '알림을 켠 모든 고객',
   },
   {
     key: 'inactive_30d',
     label: '30일 미주문',
-    desc: '마지막 paid order 30일+ 전 — 이탈 win-back',
+    desc: '마지막 결제 후 30일 넘게 지난 고객 · 재구매 유도용',
   },
   {
     key: 'active_subscribers',
-    label: '정기배송 활성',
-    desc: 'status=active subscription 1개+',
+    label: '정기배송 중',
+    desc: '정기배송을 1건 이상 진행 중인 고객',
   },
 ]
 
@@ -109,7 +109,7 @@ export default function CampaignBuilder() {
       {/* Segment 선택 */}
       <div>
         <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
-          대상 세그먼트
+          보낼 대상
         </label>
         <div className="space-y-1.5">
           {SEGMENTS.map((s) => (

@@ -36,8 +36,8 @@ export default async function AdminPushCampaignsPage() {
 
   const segmentLabel: Record<Row['segment'], string> = {
     all: '전체 구독자',
-    inactive_30d: '30일 미주문 (win-back)',
-    active_subscribers: '정기배송 활성',
+    inactive_30d: '30일간 주문 없는 분 (재참여 유도)',
+    active_subscribers: '정기배송 이용 중',
   }
 
   return (
@@ -49,8 +49,8 @@ export default async function AdminPushCampaignsPage() {
           </p>
           <h1 className="text-2xl font-black text-text mt-1">푸시 캠페인</h1>
           <p className="text-[12px] text-muted mt-1">
-            세그먼트 선택 후 일괄 발송. 마케팅 푸시는 사용자 동의 + 방해금지
-            시간대 자동 게이팅됩니다.
+            보낼 고객 그룹을 고르고 한 번에 알림을 보내요. 광고성 알림은 수신
+            동의한 분에게만 나가고, 밤 시간대(22~08시)엔 자동으로 멈춰요.
           </p>
         </div>
         <Link
@@ -67,10 +67,10 @@ export default async function AdminPushCampaignsPage() {
           <CampaignBuilder />
           <div className="mt-3 p-3 rounded-xl bg-bg-2 border border-rule">
             <p className="text-[11px] text-text leading-relaxed">
-              ⚠️ 마케팅 푸시 — 정보통신망법 §50④ 에 따라 본문에 자동
-              <strong> [광고]</strong> 접두어가 붙고, 사용자가 알림 설정에서
-              마케팅을 OFF 했거나 방해금지 시간대(22:00–08:00 등)에는 자동
-              제외됩니다. 발송 한도 5,000명/캠페인.
+              ⚠️ 광고성 알림 — 법(정보통신망법 §50④)에 따라 제목 앞에
+              <strong> [광고]</strong> 가 자동으로 붙어요. 알림 설정에서
+              마케팅을 끈 분이나 밤 시간대(22:00~08:00)인 분은 자동으로
+              빠집니다. 한 번에 최대 5,000명까지 보낼 수 있어요.
             </p>
           </div>
         </section>

@@ -122,7 +122,7 @@ export default async function AdminFinancePage({
         </Link>
         <h1 className="font-['Archivo_Black'] text-3xl text-ink mt-2">FINANCE</h1>
         <p className="text-xs text-mute mt-1">
-          payment_events 원장 기반 일별 매출. {days}일.
+          결제 기록을 기준으로 한 하루별 매출이에요 (최근 {days}일).
         </p>
         <div className="flex gap-2 mt-3 text-xs">
           {[7, 30, 60, 90, 365].map((d) => (
@@ -143,9 +143,9 @@ export default async function AdminFinancePage({
 
       {/* KPI 그리드 */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <Kpi label="총 매출 (paid)" value={`${totalPaid.toLocaleString()}원`} />
+        <Kpi label="총 매출" value={`${totalPaid.toLocaleString()}원`} />
         <Kpi
-          label="총 환불 (refund)"
+          label="총 환불"
           value={`${totalRefunded.toLocaleString()}원`}
           tone={totalRefunded > 0 ? 'sale' : undefined}
         />
@@ -177,14 +177,14 @@ export default async function AdminFinancePage({
                   <div className="flex justify-between mb-0.5">
                     <span className="text-ink font-mono">{d.date}</span>
                     <span className="text-mute">
-                      paid {d.paid.toLocaleString()}원
+                      결제 {d.paid.toLocaleString()}원
                       {d.refunded > 0 && (
                         <span className="text-sale ml-2">
                           -{d.refunded.toLocaleString()}원
                         </span>
                       )}
                       <span className="ml-2 text-ink font-semibold">
-                        net {d.net.toLocaleString()}원
+                        순매출 {d.net.toLocaleString()}원
                       </span>
                       <span className="ml-2 text-mute">
                         ({d.orderCount.size}건)

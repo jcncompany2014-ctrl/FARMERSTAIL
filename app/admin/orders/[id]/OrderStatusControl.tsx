@@ -45,9 +45,12 @@ export default function OrderStatusControl({
   if (!isOrderStatus(currentOrderStatus) || !isPaymentStatus(paymentStatus)) {
     return (
       <section className="p-6 rounded-2xl bg-white border border-rule">
-        <h2 className="text-sm font-bold text-sale mb-1">주문 상태 손상</h2>
+        <h2 className="text-sm font-bold text-sale mb-1">
+          주문 상태에 문제가 있어요
+        </h2>
         <p className="text-[11px] text-muted">
-          DB의 상태 값이 FSM 정의 바깥이에요. 데이터 확인이 필요합니다.
+          이 주문의 상태 값이 정상 범위를 벗어났어요. 개발 담당에게 이
+          주문번호를 알려주세요.
         </p>
       </section>
     )

@@ -208,7 +208,7 @@ export default async function AdminCohortPage() {
         </h1>
       </div>
       <p className="text-[12px] text-muted mt-1">
-        feeding_outcomes — 재주문 · 환불 · 별점 · 체크인 응답률 · SKU 비교
+        재주문 · 환불 · 별점 · 체크인 응답률 · 제품별 비교
       </p>
 
       {/* 핵심 KPI 4종 */}
@@ -242,7 +242,7 @@ export default async function AdminCohortPage() {
       {/* 코호트 × source 매트릭스 */}
       <Card
         icon={<Users className="w-4 h-4" />}
-        title={`코호트 × source 매트릭스 (총 ${outcomes.length}건 · 분모: dog ${dogCount ?? 0})`}
+        title={`그룹·유형별 집계 (총 ${outcomes.length}건 · 강아지 ${dogCount ?? 0}마리 기준)`}
       >
         {cohortIds.length === 0 ? (
           <p className="text-[11.5px] text-muted">데이터 없음</p>
@@ -251,7 +251,7 @@ export default async function AdminCohortPage() {
             <table className="w-full text-[11.5px]">
               <thead>
                 <tr className="text-left text-muted border-b border-rule">
-                  <th className="py-1.5 pr-3 font-bold uppercase tracking-wider">cohort</th>
+                  <th className="py-1.5 pr-3 font-bold uppercase tracking-wider">그룹</th>
                   {sourceTypes.map((s) => (
                     <th key={s} className="py-1.5 px-2 font-bold text-right">
                       {SOURCE_SHORT[s] ?? s}
@@ -288,7 +288,7 @@ export default async function AdminCohortPage() {
       </Card>
 
       {/* 별점 분포 */}
-      <Card icon={<Star className="w-4 h-4" />} title="별점 분포 (box_rating)">
+      <Card icon={<Star className="w-4 h-4" />} title="별점 분포">
         {ratings.length === 0 ? (
           <p className="text-[11.5px] text-muted">아직 별점 없음</p>
         ) : (
@@ -349,14 +349,14 @@ export default async function AdminCohortPage() {
       {/* 시계열 12주 추이 */}
       <Card
         icon={<Repeat className="w-4 h-4" />}
-        title="최근 12주 outcome 추이"
+        title="최근 12주 반응 추이"
       >
         <CohortTrendLine data={weekBuckets} />
       </Card>
 
       <p className="text-[10.5px] text-muted mt-6 leading-relaxed">
-        ※ outcome 수집은 사용자 부담 0 (자동 + 자발). 1주마다 매주 데이터 확인
-        → SKU·레시피 개선 신호 활용.
+        ※ 데이터는 고객 부담 없이 자동·자발적으로 모여요. 매주 확인해서
+        제품·레시피 개선에 활용하세요.
       </p>
     </div>
   )

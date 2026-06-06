@@ -512,7 +512,7 @@ export default async function AdminHome() {
         <MetricCard
           label="총 회원"
           value={`${userCount}명`}
-          sub="profiles 기준"
+          sub="가입한 회원 전체"
           tone="dark"
         />
       </div>
@@ -520,7 +520,7 @@ export default async function AdminHome() {
       {/* 지표 카드 4개 — 2행: Ops 시그널 */}
       <div className="grid grid-cols-4 gap-4 mb-4">
         <MetricCard
-          label="AOV (평균 주문가)"
+          label="평균 주문 금액"
           value={`${aov.toLocaleString()}원`}
           sub={`누적 ${totalPaidCount}건 기준`}
           tone="dark"
@@ -534,7 +534,7 @@ export default async function AdminHome() {
         <MetricCard
           label="재고 경고"
           value={`${lowStockCount}개`}
-          sub={`stock ≤ ${STOCK_LOW_THRESHOLD} 기준`}
+          sub={`재고 ${STOCK_LOW_THRESHOLD}개 이하`}
           tone={lowStockCount > 0 ? 'red' : 'dark'}
         />
         <MetricCard
@@ -542,8 +542,8 @@ export default async function AdminHome() {
           value={`${failedOrderCount}건`}
           sub={
             wowDelta === 0
-              ? 'WoW 변화 없음'
-              : `WoW 매출 ${wowDelta > 0 ? '+' : ''}${wowDelta.toFixed(1)}%`
+              ? '지난주와 같음'
+              : `지난주 대비 매출 ${wowDelta > 0 ? '+' : ''}${wowDelta.toFixed(1)}%`
           }
           tone={failedOrderCount > 0 ? 'red' : 'dark'}
         />
@@ -570,7 +570,7 @@ export default async function AdminHome() {
           sub={
             churnRatePct === 0
               ? '해지 0%'
-              : `Churn ${churnRatePct.toFixed(1)}%`
+              : `해지율 ${churnRatePct.toFixed(1)}%`
           }
           tone={churnRatePct > 5 ? 'red' : 'dark'}
         />
@@ -579,8 +579,8 @@ export default async function AdminHome() {
           value={`${lastWeekRevenue.toLocaleString()}원`}
           sub={
             wowDelta === 0
-              ? 'WoW 변화 없음'
-              : `vs 전주 ${wowDelta > 0 ? '+' : ''}${wowDelta.toFixed(1)}%`
+              ? '지난주와 같음'
+              : `지난주 대비 ${wowDelta > 0 ? '+' : ''}${wowDelta.toFixed(1)}%`
           }
           tone={wowDelta >= 0 ? 'green' : 'red'}
         />
@@ -612,9 +612,11 @@ export default async function AdminHome() {
         <div className="p-6 rounded-2xl bg-white border border-rule">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-bold text-ink">Top 상품 (30일)</h2>
+              <h2 className="text-sm font-bold text-ink">
+                많이 팔린 상품 (최근 30일)
+              </h2>
               <p className="text-[11px] text-muted mt-0.5">
-                결제 완료 주문의 라인 매출 합계
+                결제 완료된 주문의 매출 합계
               </p>
             </div>
             <Link

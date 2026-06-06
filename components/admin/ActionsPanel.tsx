@@ -50,13 +50,13 @@ export default function ActionsPanel(props: ActionsPanelProps) {
     {
       href: '/admin/orders?filter=unshipped',
       icon: Package,
-      label: '미발송 (24h+)',
+      label: '미발송 (24시간+)',
       count: props.unshippedCount,
     },
     {
       href: '/admin/orders?filter=stuck',
       icon: Truck,
-      label: '배송 stuck (7d+)',
+      label: '배송 지연 (7일+)',
       count: props.shippingStuckCount,
     },
     {
@@ -68,25 +68,25 @@ export default function ActionsPanel(props: ActionsPanelProps) {
     {
       href: '/admin/subscriptions/charges?filter=failed',
       icon: AlertTriangle,
-      label: '24h 내 결제 실패',
+      label: '24시간 내 결제 실패',
       count: props.recentFailedCount,
     },
     {
       href: '/admin/orders?filter=refunds-pending',
       icon: RefreshCcw,
-      label: '환불 pending',
+      label: '환불 대기',
       count: props.refundsPendingCount,
     },
     {
       href: '/admin/products?filter=out',
       icon: Clock,
-      label: 'Stock 0 상품',
+      label: '품절 상품',
       count: props.stockOutCount,
     },
     {
       href: '/admin/cron-health',
       icon: Activity,
-      label: '24h cron 실패',
+      label: '자동작업 실패 (24시간)',
       count: props.cronFailureCount ?? 0,
     },
   ]

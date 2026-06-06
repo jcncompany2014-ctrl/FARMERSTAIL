@@ -81,7 +81,7 @@ export default async function FunnelPage({
     { label: '가입', count: total, baseline: total },
     { label: '설문 시작', count: surveyStarts ?? 0, baseline: total },
     { label: '설문 완료', count: surveyCompletes ?? 0, baseline: total },
-    { label: '분석 view', count: analysisViews ?? 0, baseline: total },
+    { label: '분석 결과 열람', count: analysisViews ?? 0, baseline: total },
     { label: '정기구독 결제', count: subscribed, baseline: total },
   ]
 
@@ -93,7 +93,7 @@ export default async function FunnelPage({
         style={{ color: 'var(--muted)' }}
       >
         <ChevronLeft className="w-4 h-4" strokeWidth={2.2} />
-        Admin
+        관리자
       </Link>
 
       <header className="mt-3 mb-6">
@@ -101,7 +101,7 @@ export default async function FunnelPage({
           className="inline-block font-mono text-[10.5px] font-semibold uppercase"
           style={{ letterSpacing: '0.16em', color: 'var(--terracotta)' }}
         >
-          Conversion Funnel · {days}일
+          전환 흐름 · {days}일
         </span>
         <h1
           className="mt-2"
@@ -120,8 +120,9 @@ export default async function FunnelPage({
           className="mt-2 text-[12.5px] leading-relaxed"
           style={{ color: 'var(--muted)' }}
         >
-          첫 박스 conversion funnel 단계별 drop-off. 베타 30명 모집 단계에서는
-          비율(%) 추이가 핵심 — 절대 수치보단 단계 간 손실 위치 파악.
+          첫 박스 구매까지 단계별로 얼마나 빠지는지 봐요. 베타 30명 모집
+          단계에선 비율(%) 추이가 핵심이에요 — 절대 수치보다 어느 단계에서
+          이탈하는지 파악하세요.
         </p>
       </header>
 
@@ -176,7 +177,7 @@ export default async function FunnelPage({
                       color: 'var(--muted)',
                     }}
                   >
-                    Step {i + 1}
+                    {i + 1}단계
                   </span>
                   <span
                     className="text-[14px] font-bold"
@@ -250,9 +251,8 @@ export default async function FunnelPage({
         className="mt-6 text-[11px] leading-relaxed"
         style={{ color: 'var(--muted)' }}
       >
-        ※ 데이터 source: profiles · analyses · subscriptions. surveys 별도
-        테이블이 미존재해 분석 row 를 설문 완료 시그널로 사용. 향후 surveys.
-        completed_at 추가 시 더 정확한 분기 가능.
+        ※ 가입·설문·분석·정기구독 데이터를 기준으로 집계해요. (설문 완료는
+        분석이 만들어진 시점으로 추정 — 추후 더 정밀하게 개선할 예정이에요.)
       </p>
     </main>
   )

@@ -104,7 +104,7 @@ export default async function AdminRefundsPage() {
             </h1>
           </div>
           <p className="text-[12px] text-muted mt-1">
-            환불 audit log — Toss transactionKey 와 매핑
+            환불 기록 — 토스 거래번호와 연결돼요
           </p>
         </div>
       </div>
@@ -138,7 +138,7 @@ export default async function AdminRefundsPage() {
       {/* 환불 list */}
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <span className="kicker">Recent 100</span>
+          <span className="kicker">최근 100건</span>
         </div>
         {list.length === 0 ? (
           <div className="rounded-xl border border-rule px-5 py-12 text-center bg-white">
@@ -150,7 +150,7 @@ export default async function AdminRefundsPage() {
               아직 환불 내역이 없어요
             </p>
             <p className="text-[11px] text-muted mt-1">
-              사용자가 self-service 또는 admin 부분취소 시 여기에 기록돼요
+              고객이 직접 환불하거나 관리자가 부분취소하면 여기에 기록돼요
             </p>
           </div>
         ) : (
@@ -244,9 +244,9 @@ function RefundRow({
   }
 }) {
   const statusMeta = {
-    pending: { label: 'Pending', Icon: Clock, color: 'var(--gold)' },
-    succeeded: { label: 'Succeeded', Icon: Check, color: 'var(--moss)' },
-    failed: { label: 'Failed', Icon: AlertTriangle, color: 'var(--sale)' },
+    pending: { label: '대기', Icon: Clock, color: 'var(--gold)' },
+    succeeded: { label: '완료', Icon: Check, color: 'var(--moss)' },
+    failed: { label: '실패', Icon: AlertTriangle, color: 'var(--sale)' },
   }[refund.status]
   const StatusIcon = statusMeta.Icon
 
@@ -315,7 +315,7 @@ function RefundRow({
               {formatDate(refund.refunded_at)}
             </div>
             {refund.refunded_by === null && (
-              <div className="text-[9px] text-muted mt-0.5">self-service</div>
+              <div className="text-[9px] text-muted mt-0.5">고객 직접 환불</div>
             )}
           </div>
         </div>

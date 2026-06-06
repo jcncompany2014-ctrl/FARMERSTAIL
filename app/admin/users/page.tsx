@@ -125,16 +125,13 @@ export default async function AdminUsersPage({
       <div className="p-6 rounded-2xl bg-white border border-rule">
         {error ? (
           <div>
-            <p className="text-sale text-sm">에러: {error.message}</p>
-            <p className="text-xs text-muted mt-2">
-              profiles 테이블 RLS 정책에 admin 조회 권한이 없을 수 있어요.
-              아래 SQL을 Supabase에서 실행해보세요:
+            <p className="text-sale text-sm">
+              회원 정보를 불러오지 못했어요.
             </p>
-            <pre className="text-[10px] font-mono bg-bg p-3 rounded mt-2 overflow-x-auto">
-{`create policy "profiles_select_admin"
-  on public.profiles for select
-  using (public.is_admin());`}
-            </pre>
+            <p className="text-xs text-muted mt-2">
+              잠시 후 다시 시도해 주세요. 계속 안 되면 개발 담당에게 이 화면을
+              알려주세요. (회원 조회 권한 설정 문제일 수 있어요.)
+            </p>
           </div>
         ) : !users || users.length === 0 ? (
           <p className="text-center text-sm text-muted py-10">
