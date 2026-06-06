@@ -16,9 +16,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DailyCheckinStack, type CheckinCard } from '@/components/v3'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 
+// KST 오늘(자정 기준). UTC 면 한국 자정~09시 사이에 '어제'로 잡혀 데일리
+// 체크가 하루 일찍/늦게 리셋되는 버그.
 const STORAGE_KEY = (dogId: string) =>
-  `ft:dailycheckin:${dogId}:${new Date().toISOString().slice(0, 10)}`
+  `ft:dailycheckin:${dogId}:${todayKstIsoDate()}`
 
 const DEFAULT_CARDS: CheckinCard[] = [
   {

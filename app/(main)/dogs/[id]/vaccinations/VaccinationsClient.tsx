@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Syringe, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { Modal, DatePicker, Select, useConfirm } from '@/components/v3'
 import {
   listVaccinations,
@@ -111,7 +112,7 @@ export default function VaccinationsClient({
     }
   }
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayKstIsoDate()
   const upcoming = records
     .filter((r) => r.next_date && r.next_date >= today)
     .sort((a, b) => (a.next_date ?? '').localeCompare(b.next_date ?? ''))

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -137,7 +138,7 @@ export default function DiaryClient({
       if (!user) throw new Error('로그인이 필요해요')
 
       // 1) 각 사진 resize + upload
-      const today = new Date().toISOString().slice(0, 10)
+      const today = todayKstIsoDate()
       const uploadedUrls: string[] = []
       for (const file of draftFiles) {
         const blob = await resizeImage(file)

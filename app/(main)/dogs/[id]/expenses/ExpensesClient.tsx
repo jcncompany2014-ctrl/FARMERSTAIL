@@ -12,6 +12,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { Modal, DatePicker, Select, useConfirm } from '@/components/v3'
 import {
   listExpenses,
@@ -49,7 +50,7 @@ export default function ExpensesClient({ dogId }: { dogId: string }) {
   const [open, setOpen] = useState(false)
   const [category, setCategory] = useState<ExpCategory>('food')
   const [amount, setAmount] = useState('')
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(todayKstIsoDate())
   const [memo, setMemo] = useState('')
   const [saving, setSaving] = useState(false)
   const confirm = useConfirm()
