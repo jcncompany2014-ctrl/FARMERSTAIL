@@ -1,7 +1,7 @@
 'use client'
 
-import type { CSSProperties } from 'react'
-import { Sparkles, AlertCircle, Clock, Beaker } from 'lucide-react'
+import { useState, type CSSProperties } from 'react'
+import { Sparkles, AlertCircle, Clock, Beaker, Check, Bell } from 'lucide-react'
 import type {
   RecommendationResult,
   SkuPick,
@@ -44,11 +44,36 @@ function claimDot(grade: EvidenceClaim['grade']): string {
 
 export default function V3RecommendationCard({
   recommendation,
+  dogId,
 }: {
   recommendation: RecommendationResult | null | undefined
+  /** 출시 알림(waitlist) 등록 컨텍스트. 없으면 버튼 미노출. */
+  dogId?: string
 }) {
+  const [waitState, setWaitState] = useState<
+    'idle' | 'loading' | 'done' | 'error'
+  >('idle')
+
   if (!recommendation) return null
   const { layerA, layerB } = recommendation
+
+  async function joinWaitlist() {
+    if (!layerB.waitlistConcerns.length) return
+    setWaitState('loading')
+    try {
+      const res = await fetch('/api/source-waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          concerns: layerB.waitlistConcerns,
+          dogId: dogId ?? null,
+        }),
+      })
+      setWaitState(res.ok ? 'done' : 'error')
+    } catch {
+      setWaitState('error')
+    }
+  }
 
   // ── 상담 라우팅 (후보 0) ──
   if (layerA.needsConsultation) {
@@ -149,8 +174,30 @@ export default function V3RecommendationCard({
           </div>
           <p style={sourceFoot}>
             {CONCERN_KR[layerB.waitlistConcerns[0]!]} 등 우려에 맞춘 기능성 토퍼를
-            준비하고 있어요. 출시되면 알려드릴게요.
+            준비하고 있어요.
           </p>
+          {dogId &&
+            (waitState === 'done' ? (
+              <div style={waitDone}>
+                <Check size={12} strokeWidth={2.6} />
+                출시되면 가장 먼저 알려드릴게요
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={joinWaitlist}
+                disabled={waitState === 'loading'}
+                style={waitBtn}
+              >
+                <Bell size={11} strokeWidth={2.2} />
+                {waitState === 'loading' ? '신청 중…' : '출시 알림 받기'}
+              </button>
+            ))}
+          {waitState === 'error' && (
+            <p style={{ ...sourceFoot, color: 'var(--terracotta, #c4623f)' }}>
+              알림 신청에 실패했어요. 잠시 후 다시 시도해 주세요.
+            </p>
+          )}
         </div>
       )}
     </section>
@@ -339,6 +386,30 @@ const sourceFoot: CSSProperties = {
   fontSize: 10.5,
   lineHeight: 1.5,
   color: 'var(--muted, #706854)',
+}
+const waitBtn: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 5,
+  marginTop: 10,
+  padding: '7px 14px',
+  borderRadius: 999,
+  border: '1px solid var(--moss, #4f6a48)',
+  background: 'var(--moss, #4f6a48)',
+  color: '#fff',
+  fontSize: 11.5,
+  fontWeight: 700,
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+}
+const waitDone: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 5,
+  marginTop: 10,
+  fontSize: 11.5,
+  fontWeight: 700,
+  color: 'var(--moss, #4f6a48)',
 }
 const consultBox: CSSProperties = {
   display: 'flex',

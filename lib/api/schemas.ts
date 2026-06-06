@@ -120,6 +120,16 @@ export const zRestockRequest = z.object({
   variantId: zUuid.optional().nullable(),
 })
 
+/** /api/source-waitlist 입력 — 기능성 소스(레이어 B) 출시 알림 구독.
+ *  concerns: 구독할 우려(피부/관절/소화/면역) 배열, dogId: 컨텍스트(선택). */
+export const zSourceWaitlist = z.object({
+  concerns: z
+    .array(z.enum(['skin', 'joint', 'digestion', 'immune']))
+    .min(1)
+    .max(4),
+  dogId: zUuid.optional().nullable(),
+})
+
 export const zNewsletterSubscribe = z.object({
   email: zEmail,
   source: z.string().max(40).optional(),

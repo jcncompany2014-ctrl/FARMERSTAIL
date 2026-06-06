@@ -412,7 +412,7 @@ function RecommendationView({
     <>
       {/* 추천 엔진 v3 — 2-레이어(베이스 SKU + 기능성 소스) 결과 카드.
           v3=null(레거시 formula·v3 미생성)이면 카드가 스스로 렌더 생략. */}
-      <V3RecommendationCard recommendation={v3} />
+      <V3RecommendationCard recommendation={v3} dogId={dogId} />
 
       {/* fb-hero 폐기 (2026-05-21) — Magazine HeroSection + DiagnosisCard 가 대체. */}
       <div className="fb-hero" style={{ marginTop: 24, display: 'none' }}>
