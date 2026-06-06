@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import SimulatorClient from './SimulatorClient'
+import V3SimulatorClient from './V3SimulatorClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -325,6 +326,9 @@ export default async function AdminPersonalizationPage() {
 
       {/* 시뮬레이터 — client component */}
       <SimulatorClient />
+
+      {/* 추천 엔진 v3 시뮬레이터 + 결정 trace 뷰어 */}
+      <V3SimulatorClient />
     </main>
   )
 }
