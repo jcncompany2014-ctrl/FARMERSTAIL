@@ -4,9 +4,9 @@
  * v2.0: 라인 키(basic/weight/skin/premium/joint)는 알고리즘 내부 식별자로
  * 유지하되, 실제 데이터(에너지·영양·페르소나·알레르기·라벨)는 전부
  * `skuModel.ts` 의 단백질 SSOT 에서 파생한다. 키 ↔ 단백질 매핑은
- * `LEGACY_LINE_TO_PROTEIN` (basic→chicken, weight→duck …).
+ * `LEGACY_LINE_TO_PROTEIN` (basic→duck, weight→chicken …).
  *
- * 즉 basic 라인은 닭(체중관리·항염), weight 라인은 오리(알레르기·장건강) 의
+ * 즉 basic 라인은 오리(알레르기·장건강), weight 라인은 닭(체중관리·항염) 의
  * **레시피 값**을 그대로 노출 — 옛 "v2 보고서 이론값"이 아니라 최종
  * 마스터 레시피 v2.1 정합.
  */

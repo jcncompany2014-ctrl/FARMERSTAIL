@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { zPersonalizationCheckin } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { interpretTwoWeekFeedback } from '@/lib/personalization/v3/feedback'
+import type { TwoWeekFeedback } from '@/lib/personalization/v3/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -99,5 +101,15 @@ export async function POST(req: Request) {
     )
   }
 
-  return NextResponse.json({ ok: true })
+  // 2주 피드백 해석 — 변/식욕/모질/만족 신호를 맞춤 안내 + 재분석 권장으로
+  // 변환해 응답에 실어 보낸다(UI 가 그 자리에서 보여줌). pure function.
+  // "점점 똑똑해지는 AI 영양사" 경험의 핵심 — 보호자가 답한 즉시 피드백.
+  const feedback = interpretTwoWeekFeedback({
+    stoolScore: data.stoolScore ?? null,
+    coatScore: data.coatScore ?? null,
+    appetiteScore: data.appetiteScore ?? null,
+    satisfaction: data.overallSatisfaction ?? null,
+  } as TwoWeekFeedback)
+
+  return NextResponse.json({ ok: true, feedback })
 }

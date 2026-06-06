@@ -73,6 +73,11 @@ export default function CheckinClient({
 }) {
   const router = useRouter()
   const supabase = createClient()
+  // 2주 피드백 해석 결과 — 제출 성공 시 맞춤 안내 + 재분석 권장 표시.
+  const [result, setResult] = useState<{
+    notes: string[]
+    shouldReanalyze: boolean
+  } | null>(null)
   const toast = useToast()
 
   const [dogName, setDogName] = useState('')
@@ -264,7 +269,10 @@ export default function CheckinClient({
         }),
       })
       const json = (await res.json()) as
-        | { ok: true }
+        | {
+            ok: true
+            feedback?: { notes: string[]; shouldReanalyze: boolean }
+          }
         | { ok?: false; code?: string; message?: string }
       if (!res.ok || !('ok' in json) || json.ok !== true) {
         const msg =
@@ -279,8 +287,16 @@ export default function CheckinClient({
         checkpoint,
         hasPhoto: photoUrls.length > 0,
       })
-      toast.success(`${dogName}이를 더 잘 챙길게요 🐾`)
-      router.push(`/dogs/${dogId}/analysis`)
+      // 피드백 해석이 있으면 그 자리에서 맞춤 안내를 보여준다(즉시 redirect 대신).
+      // "점점 똑똑해지는 AI 영양사" 경험 — 보호자가 답한 즉시 반응.
+      const fb = 'feedback' in json ? json.feedback : undefined
+      if (fb && fb.notes.length > 0) {
+        setResult({ notes: fb.notes, shouldReanalyze: fb.shouldReanalyze })
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      } else {
+        toast.success(`${dogName}이를 더 잘 챙길게요 🐾`)
+        router.push(`/dogs/${dogId}/analysis`)
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : '네트워크가 불안정해요. 다시 시도해 주세요')
     } finally {
@@ -295,6 +311,91 @@ export default function CheckinClient({
           <Spinner size={18} />
           체크인 정보 불러오는 중...
         </div>
+      </div>
+    )
+  }
+
+  // 제출 후 — 2주 피드백 맞춤 안내 결과 화면.
+  if (result) {
+    return (
+      <div className="ck-page">
+        <header className="ck-hero">
+          <div className="ck-kicker">맞춤 피드백 · CYCLE {cycleNumber}</div>
+          <h1>
+            {dogName}이의 답변을<br />
+            확인했어요
+          </h1>
+        </header>
+        <section
+          style={{
+            margin: '0 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
+        >
+          {result.notes.map((n, i) => (
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                gap: 10,
+                padding: '14px 16px',
+                borderRadius: 12,
+                background: 'var(--cream, #faf6ec)',
+                border: '1px solid var(--rule, rgba(22,20,15,0.1))',
+                fontSize: 13.5,
+                lineHeight: 1.55,
+                color: 'var(--ink, #16140f)',
+              }}
+            >
+              <Sparkles
+                size={16}
+                strokeWidth={2}
+                color="var(--terracotta, #c4623f)"
+                style={{ flexShrink: 0, marginTop: 1 }}
+              />
+              <span>{n}</span>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => {
+              haptic('tap')
+              router.push(`/dogs/${dogId}/analysis`)
+            }}
+            style={{
+              marginTop: 6,
+              padding: '14px 20px',
+              borderRadius: 999,
+              border: 'none',
+              background: 'var(--terracotta, #c4623f)',
+              color: '#fff',
+              fontSize: 14,
+              fontWeight: 800,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            {result.shouldReanalyze
+              ? '지금 다시 분석하기 →'
+              : '분석 결과 보기 →'}
+          </button>
+          <Link
+            href={`/dogs/${dogId}`}
+            style={{
+              textAlign: 'center',
+              fontSize: 12.5,
+              fontWeight: 600,
+              color: 'var(--muted, #706854)',
+              textDecoration: 'none',
+              padding: 8,
+            }}
+          >
+            {dogName}이 페이지로
+          </Link>
+        </section>
       </div>
     )
   }
