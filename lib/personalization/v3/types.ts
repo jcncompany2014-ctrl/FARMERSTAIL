@@ -140,3 +140,67 @@ export type LayerAResult = {
   /** 결정 추적 (explainability — admin 노출). */
   trace: TraceEntry[]
 }
+
+// ──────────────────────────────────────────────────────────────────────────
+// 레이어 B 라우팅 결과 (Phase 3)
+// ──────────────────────────────────────────────────────────────────────────
+
+/** 기능성 우려 1건 → 소스 라우팅. */
+export type SourceRoute = {
+  concern: ConcernKey
+  /** 매칭 소스 id (없으면 null). */
+  sourceId: string | null
+  sourceNameKr: string | null
+  /** available=출시 / coming_soon=준비중 / none=소스 없음. */
+  status: SourceStatus | 'none'
+  /** 지금 박스에 실제로 추가 가능한가. */
+  available: boolean
+}
+
+/**
+ * 레이어 B 결과 — "부족한 효능을 소스로". 베이스 SKU 위 add-on.
+ * 현재 소스 전부 coming_soon → 라우팅은 되지만 available=false(대기열).
+ */
+export type LayerBResult = {
+  routes: SourceRoute[]
+  /** coming_soon 소스로 매칭된 우려 — 출시 알림 waitlist 후보(Phase 5). */
+  waitlistConcerns: ConcernKey[]
+  trace: TraceEntry[]
+}
+
+/** 추천 최종 결과 — 레이어 A(밥) + 레이어 B(소스). */
+export type RecommendationResult = {
+  layerA: LayerAResult
+  layerB: LayerBResult
+  engineVersion: string
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// 2주 피드백 훅 (Phase 3 — 재분석 시드)
+// ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * 첫 박스 ~2주 후 보호자 체크인 1건. 라이브 dog_checkins(week_2)와 정렬:
+ * stool=Bristol 1~7(4 이상), coat/appetite/satisfaction=1~5(5 최고). null=무응답.
+ */
+export type TwoWeekFeedback = {
+  stoolScore: 1 | 2 | 3 | 4 | 5 | 6 | 7 | null
+  coatScore: 1 | 2 | 3 | 4 | 5 | null
+  appetiteScore: 1 | 2 | 3 | 4 | 5 | null
+  satisfaction: 1 | 2 | 3 | 4 | 5 | null
+}
+
+/**
+ * 2주 피드백 해석 — 재분석(runLayerA 재실행) 시드.
+ * profileNudges 를 NeedProfile 에 머지해 재추천, addConcerns 는 레이어 B 로.
+ */
+export type FeedbackInterpretation = {
+  /** 재추천 시 NeedProfile 에 머지할 신호(예: 식욕 저하→picky). */
+  profileNudges: Partial<NeedProfile>
+  /** 추가로 라우팅할 기능성 우려(예: 무른 변→소화). */
+  addConcerns: ConcernKey[]
+  /** 보호자·admin 노출 메모. */
+  notes: string[]
+  /** 재분석 권장 여부(전반 불만족 등). */
+  shouldReanalyze: boolean
+}

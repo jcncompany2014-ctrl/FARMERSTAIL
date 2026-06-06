@@ -22,58 +22,24 @@
 
 import type {
   BaseSku,
+  ConcernKey,
   CrossReactWarning,
   LayerAResult,
+  LayerBResult,
   NeedKey,
   NeedProfile,
-  ProteinKey,
+  RecommendationResult,
   SkuPick,
+  SourceRoute,
   TraceEntry,
 } from './types.ts'
-import { BASE_SKUS } from './catalog.ts'
+import { BASE_SKUS, FUNCTIONAL_SOURCES } from './catalog.ts'
+import { LAYER_A_CONFIG, LAYER_B_CONFIG } from './config.ts'
 
-const ENGINE_VERSION = 'v3.0.0-layerA'
+const ENGINE_VERSION = 'v3.0.0'
 
-/**
- * 레이어 A 튜닝 상수 — **단일 소스**(Phase 3 에서 config.ts 외부화).
- * 임의값 아님: 아래 근거.
- *  - needWeights: 설문 신호 강도. weightGoal/palatability(picky) = 최강 1.0
- *    (1차 동인), activity/senior = 0.8, activity_low/recovery/sensitive = 0.6
- *    (보조 신호). 절대 스케일은 비교용이라 무관, 상대 순위만 의미.
- *  - mix: 보조 SKU 는 "주 SKU 가 약한(<0.6) 강한 need(가중치 ≥0.7)를 다른
- *    SKU 가 잘(≥0.7) 커버"할 때만. 그 외 단일. 70/30 = 주식 지위 유지.
- */
-export const LAYER_A_CONFIG = {
-  needWeights: {
-    weightLoss: 1.0,
-    weightGain: 1.0,
-    /** maintain 은 모든 비-감량/증량 견의 baseline — 믹스 트리거 임계(0.7)
-     * 아래로 둬 균형 기본값(닭)만 고르고 보조 SKU 를 남발하지 않게. */
-    maintain: 0.6,
-    activityHigh: 0.8,
-    activityLow: 0.6,
-    /** picky = 기호성 1차 동인. */
-    palatabilityPicky: 1.0,
-    /** 식욕 저하 = 기호성 보조 + 회복기 신호. */
-    palatabilityLow: 0.7,
-    recoveryLow: 0.6,
-    senior: 0.8,
-    /** 알레르기 보유 견 → 노블/제한식 단백 선호. */
-    sensitiveFromAllergy: 0.6,
-    /** 소화 우려 → sensitive 보조. */
-    sensitiveFromDigestion: 0.5,
-  },
-  mix: {
-    /** 주 SKU 가 이 값 미만으로 커버하는 need 는 "약함". */
-    poorCoverage: 0.6,
-    /** 보조 SKU 후보는 이 값 이상 커버해야 채택. */
-    strongCoverage: 0.7,
-    /** 보조를 부를 만큼 강한 need 의 최소 가중치. */
-    secondaryNeedMinWeight: 0.7,
-    primaryRatio: 0.7,
-    secondaryRatio: 0.3,
-  },
-} as const
+// 튜닝 상수는 config.ts 가 SSOT — 호출처 편의를 위해 재노출.
+export { LAYER_A_CONFIG, LAYER_B_CONFIG }
 
 // ──────────────────────────────────────────────────────────────────────────
 // need 가중치 유도 (설문 → 적합도 축)
@@ -160,7 +126,15 @@ function toPick(sku: BaseSku, ratio: number, isPrimary: boolean): SkuPick {
 export function runLayerA(
   profile: NeedProfile,
   dailyKcal: number,
-  opts: { catalog?: readonly BaseSku[] } = {},
+  opts: {
+    catalog?: readonly BaseSku[]
+    /**
+     * 간식 칼로리 차감 비율(0~0.1). 간식만큼 밥을 줄여 총섭취를 MER 로 유지
+     * (AAFCO/WSAVA 10% 룰 — 간식 위 풀 밥 = 과급·비만). 빈도→비율 매핑은
+     * nutrition.ts `treatCalorieFraction`(SSOT). 미입력=0(무변경).
+     */
+    treatReductionPct?: number
+  } = {},
 ): LayerAResult {
   const catalog = opts.catalog ?? BASE_SKUS
   const trace: TraceEntry[] = []
@@ -280,17 +254,31 @@ export function runLayerA(
       ]
     : [toPick(primary, 1.0, true)]
 
-  // ── Step 4: 믹스 가중 칼로리 + 급여 그램 ──
+  // ── Step 4: 간식 칼로리 차감 → 믹스 가중 칼로리 → 급여 그램 ──
+  // 간식만큼 밥(완전식)을 줄여 총섭취를 MER 로 유지(10% 룰). dailyKcal(요구량)은
+  // 그대로 두고 급여 그램만 줄인다 — 라이브 firstBox.ts Step 10.7 과 동일.
+  const treatPct = Math.min(
+    LAYER_A_CONFIG.treat.maxFraction,
+    Math.max(LAYER_A_CONFIG.treat.minFraction, opts.treatReductionPct ?? 0),
+  )
+  const feedKcal = Math.round(dailyKcal * (1 - treatPct))
+  if (treatPct > 0) {
+    trace.push({
+      step: '간식 차감',
+      detail: `간식 약 ${Math.round(treatPct * 100)}% 만큼 밥 ↓ (총섭취 MER 유지, 10% 룰) — ${dailyKcal} → ${feedKcal}kcal/일`,
+    })
+  }
+
   const blendedKcalPer100g = round2(
     picks.reduce((sum, p) => sum + p.ratio * p.kcalPer100g, 0),
   )
   const dailyGrams =
     blendedKcalPer100g > 0
-      ? Math.round((dailyKcal / blendedKcalPer100g) * 100)
+      ? Math.round((feedKcal / blendedKcalPer100g) * 100)
       : 0
   trace.push({
     step: '급여 그램',
-    detail: `혼합 ${blendedKcalPer100g}kcal/100g · ${dailyKcal}kcal/일 → ${dailyGrams}g/일`,
+    detail: `혼합 ${blendedKcalPer100g}kcal/100g · ${feedKcal}kcal/일 → ${dailyGrams}g/일`,
   })
 
   return {
@@ -303,6 +291,84 @@ export function runLayerA(
     scores: scored.map((s) => ({ protein: s.sku.protein, score: s.score })),
     trace,
   }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// 레이어 B — 기능성 우려 → 소스 라우팅 (Phase 3)
+// ──────────────────────────────────────────────────────────────────────────
+
+/** concern → 소스 (catalog 파생, 데이터 주도). */
+const SOURCE_BY_CONCERN = new Map(
+  FUNCTIONAL_SOURCES.map((s) => [s.targetConcern, s]),
+)
+
+/**
+ * 레이어 B 실행 — 기능성 우려를 기능성 소스로 라우팅.
+ *
+ * 현재 소스 전부 coming_soon → 라우팅은 하되 available=false(대기열).
+ * 베이스 SKU 에 의학적 효능을 박지 않고 소스가 효능을 책임지는 분리 구조.
+ * 우려 없으면 빈 결과.
+ */
+export function runLayerB(concerns: ConcernKey[]): LayerBResult {
+  const trace: TraceEntry[] = []
+  const order = LAYER_B_CONFIG.concernPriority
+  // 중복 제거 + 우선순위 정렬.
+  const uniq = [...new Set(concerns)].sort(
+    (a, b) => order.indexOf(a) - order.indexOf(b),
+  )
+
+  const routes: SourceRoute[] = uniq.map((concern) => {
+    const src = SOURCE_BY_CONCERN.get(concern)
+    if (!src) {
+      trace.push({
+        step: '소스 라우팅',
+        detail: `'${concern}' 우려 — 매칭 소스 없음`,
+      })
+      return {
+        concern,
+        sourceId: null,
+        sourceNameKr: null,
+        status: 'none',
+        available: false,
+      }
+    }
+    const available = src.status === 'available'
+    trace.push({
+      step: '소스 라우팅',
+      detail: `'${concern}' → ${src.nameKr}${available ? '(출시)' : '(준비중 — 대기열)'}`,
+    })
+    return {
+      concern,
+      sourceId: src.id,
+      sourceNameKr: src.nameKr,
+      status: src.status,
+      available,
+    }
+  })
+
+  const waitlistConcerns = routes
+    .filter((r) => r.status === 'coming_soon')
+    .map((r) => r.concern)
+
+  return { routes, waitlistConcerns, trace }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// 최종 추천 — 레이어 A(밥) + 레이어 B(소스)
+// ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * 추천 v3 메인 — 설문 NeedProfile + 일일 칼로리(MER) → 베이스 SKU + 기능성 소스.
+ * 순수 함수. 호출처(compute route)가 MER·간식비율·가용성을 준비해 주입.
+ */
+export function recommend(
+  profile: NeedProfile,
+  dailyKcal: number,
+  opts: { catalog?: readonly BaseSku[]; treatReductionPct?: number } = {},
+): RecommendationResult {
+  const layerA = runLayerA(profile, dailyKcal, opts)
+  const layerB = runLayerB(profile.functionalConcerns)
+  return { layerA, layerB, engineVersion: ENGINE_VERSION }
 }
 
 /** 엔진 버전 (formula 메타·디버그). */
