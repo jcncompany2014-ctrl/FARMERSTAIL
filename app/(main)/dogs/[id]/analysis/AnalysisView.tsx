@@ -134,7 +134,7 @@ export default function AnalysisView({
   useEffect(() => {
     if (!surveyBlockedDays || surveyBlockedDays <= 0) return
     toast.info(
-      `지난 분석 후 30일이 안 됐어요. ${surveyBlockedDays}일 후 다시 진단하실 수 있어요. 6개월마다 알림을 보내드릴게요.`,
+      `지난 분석 후 30일이 안 됐어요 (${surveyBlockedDays}일 남음). 체중이나 건강 정보가 바뀌었다면, 정보를 고친 뒤 다시 분석할 수 있어요.`,
     )
     // URL 정리
     if (typeof window !== 'undefined') {
