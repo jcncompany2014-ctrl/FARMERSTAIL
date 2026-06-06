@@ -5,11 +5,10 @@
  * 뽑는 얇은 결합층. 라이브 v2(decideFirstBox)와 **독립** — 같은 입력에서
  * 별도로 v3 결과를 계산해 shadow 저장/표시(라이브 박스는 v2 가 계속 구동).
  */
-import type { AlgorithmInput } from '../types.ts'
 import type { BaseSku, RecommendationResult } from './types.ts'
 import { BASE_SKUS } from './catalog.ts'
 import { recommend } from './engine.ts'
-import { toNeedProfile } from './profile.ts'
+import { toNeedProfile, type V3SourceInput } from './profile.ts'
 
 /**
  * 활성 제품 slug 로 v3 베이스 SKU 게이트.
@@ -33,7 +32,7 @@ export function gateBaseSkus(
  * @param opts.activeSlugs 활성 제품 slug — 베이스 게이트.
  */
 export function buildV3Recommendation(
-  input: AlgorithmInput,
+  input: V3SourceInput,
   opts: { appetite?: string | null; activeSlugs?: readonly string[] | null } = {},
 ): RecommendationResult {
   const profile = toNeedProfile(input, { appetite: opts.appetite })

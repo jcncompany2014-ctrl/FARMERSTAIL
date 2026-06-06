@@ -15,9 +15,105 @@ import {
 import type { AlgorithmInput, Formula } from '@/lib/personalization/types'
 import { buildV3Recommendation } from '@/lib/personalization/v3/integrate'
 import type { RecommendationResult } from '@/lib/personalization/v3/types'
+import type { V3SourceInput } from '@/lib/personalization/v3/profile'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+/**
+ * 레거시(또는 v3 이전 생성) cycle-1 formula 에 v3 가 없을 때, survey + analysis
+ * 를 다시 읽어 v3 를 **lazy 백필**(재계산)하는 best-effort 헬퍼.
+ *
+ * Q2 결정("재계산, 마이그레이션 X")에 부합 — 옛 formula 를 일괄 변환하지 않고,
+ * 분석 페이지를 다시 열 때 그 강아지의 v3 만 그 자리에서 채운다. v3 만 읽는
+ * slim 입력(V3SourceInput)이라 v2 전체 입력 재조립이 불필요. 실패/데이터 없음
+ * 이면 null(표시 측이 카드 숨김) — 라이브 v2 에 영향 없음.
+ */
+async function backfillV3(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  dog: {
+    id: string
+    weight: number | null
+    age_value: number | null
+    age_unit: string | null
+    activity_level: string | null
+  },
+): Promise<RecommendationResult | null> {
+  const [surveyResp, analysisResp] = await Promise.all([
+    supabase
+      .from('surveys')
+      .select('answers, chronic_conditions, care_goal, gi_sensitivity')
+      .eq('dog_id', dog.id)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('analyses')
+      .select('mer')
+      .eq('dog_id', dog.id)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
+  const survey = surveyResp.data as unknown as {
+    answers: unknown
+    chronic_conditions: string[] | null
+    care_goal: string | null
+    gi_sensitivity: string | null
+  } | null
+  const analysis = analysisResp.data as unknown as { mer: number } | null
+  if (!survey || !analysis) return null
+
+  const answers =
+    (survey.answers as {
+      bcsExact?: number
+      allergies?: string[]
+      snackFreq?: string
+      appetite?: string
+    }) ?? {}
+  const ageMonths =
+    dog.age_unit === 'years' ? (dog.age_value ?? 0) * 12 : dog.age_value ?? 0
+  const bcs =
+    typeof answers.bcsExact === 'number' &&
+    answers.bcsExact >= 1 &&
+    answers.bcsExact <= 9
+      ? (answers.bcsExact as V3SourceInput['bcs'])
+      : null
+
+  // v3 베이스 4종 slug 중 활성 제품 — 게이트 입력.
+  const { data: activeProd } = await supabase
+    .from('products')
+    .select('slug')
+    .eq('is_active', true)
+    .in('slug', ['chicken-basic', 'duck-weight', 'pork-joint', 'beef-premium'])
+  const activeSlugs = ((activeProd ?? []) as Array<{ slug: string }>).map(
+    (p) => p.slug,
+  )
+
+  const v3Input: V3SourceInput = {
+    careGoal: (survey.care_goal as V3SourceInput['careGoal']) ?? null,
+    bcs,
+    allergies: Array.isArray(answers.allergies) ? answers.allergies : [],
+    activityLevel:
+      (dog.activity_level as 'low' | 'medium' | 'high' | null) ?? 'medium',
+    ageMonths,
+    weightKg: dog.weight ?? 0,
+    chronicConditions: Array.isArray(survey.chronic_conditions)
+      ? survey.chronic_conditions
+      : [],
+    giSensitivity:
+      (survey.gi_sensitivity as V3SourceInput['giSensitivity']) ?? null,
+    dailyKcal: analysis.mer,
+    treatReductionPct: treatCalorieFraction(answers.snackFreq),
+  }
+  return buildV3Recommendation(v3Input, {
+    appetite: answers.appetite,
+    activeSlugs,
+  })
+}
 
 /**
  * POST /api/personalization/compute
@@ -113,10 +209,29 @@ export async function POST(req: Request) {
       algorithmVersion: existing.algorithm_version,
       userAdjusted: existing.user_adjusted,
     }
-    // v3 추천(shadow) — formula jsonb 에 같이 저장돼 있으면 반환. 레거시 row
-    // (v3 이전 생성)는 없을 수 있음 → null (표시 측이 숨김). 재분석 시 채워짐.
-    const v3 =
-      (existing.formula as { v3?: RecommendationResult }).v3 ?? null
+    // v3 추천(shadow) — formula jsonb 에 같이 저장돼 있으면 반환.
+    let v3 = (existing.formula as { v3?: RecommendationResult }).v3 ?? null
+    // 레거시 row(v3 이전 생성)면 lazy 백필(재계산) — 그 자리에서 v3 채우고 저장.
+    // best-effort: 실패해도 v3=null 로 두고 라이브엔 무영향.
+    if (!v3) {
+      try {
+        v3 = await backfillV3(supabase, user.id, dog)
+        if (v3) {
+          await supabase
+            .from('dog_formulas')
+            .update({
+              formula: {
+                ...(existing.formula as Record<string, unknown>),
+                v3,
+              },
+            })
+            .eq('dog_id', dogId)
+            .eq('cycle_number', 1)
+        }
+      } catch {
+        v3 = null
+      }
+    }
     return NextResponse.json({ ok: true, formula, v3, cached: true })
   }
 

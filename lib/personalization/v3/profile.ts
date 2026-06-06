@@ -14,13 +14,33 @@
 import type { AlgorithmInput } from '../types.ts'
 import type { ConcernKey, NeedProfile } from './types.ts'
 
+/**
+ * v3 가 실제로 읽는 입력 부분집합 — AlgorithmInput 의 일부.
+ * 전체 AlgorithmInput(v2 전용 필드 다수) 없이도 v3 를 계산할 수 있게 명시
+ * (compute route 의 레거시 formula v3 lazy 백필 등에서 slim 입력으로 사용).
+ * AlgorithmInput 은 이 타입의 상위집합이라 그대로 대입 가능.
+ */
+export type V3SourceInput = Pick<
+  AlgorithmInput,
+  | 'careGoal'
+  | 'bcs'
+  | 'allergies'
+  | 'activityLevel'
+  | 'ageMonths'
+  | 'weightKg'
+  | 'chronicConditions'
+  | 'giSensitivity'
+  | 'dailyKcal'
+  | 'treatReductionPct'
+>
+
 /** WSAVA size-aware 시니어 임계(개월). 라이브 firstBox applyAgeStage 와 동일. */
 function seniorMonths(weightKg: number): number {
   return weightKg < 10 ? 108 : weightKg > 25 ? 72 : 84
 }
 
 function deriveWeightGoal(
-  input: AlgorithmInput,
+  input: V3SourceInput,
 ): NeedProfile['weightGoal'] {
   const overweight =
     input.careGoal === 'weight_management' ||
@@ -47,7 +67,7 @@ const JOINT_CONDITIONS = [
 const SKIN_CONDITIONS = ['allergy_skin', 'cds', 'cognitive_decline']
 const DIGESTION_CONDITIONS = ['ibd', 'pancreatitis', 'epi']
 
-function deriveConcerns(input: AlgorithmInput): ConcernKey[] {
+function deriveConcerns(input: V3SourceInput): ConcernKey[] {
   const set = new Set<ConcernKey>()
   if (input.careGoal === 'skin_coat') set.add('skin')
   if (input.careGoal === 'joint_senior') set.add('joint')
@@ -67,7 +87,7 @@ function deriveConcerns(input: AlgorithmInput): ConcernKey[] {
  * @param opts.appetite 설문 식욕(answers.appetite) — AlgorithmInput 밖이라 별도 주입.
  */
 export function toNeedProfile(
-  input: AlgorithmInput,
+  input: V3SourceInput,
   opts: { appetite?: string | null } = {},
 ): NeedProfile {
   return {
