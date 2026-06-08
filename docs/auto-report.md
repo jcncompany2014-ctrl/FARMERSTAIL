@@ -74,3 +74,29 @@ Opus 무인 점검 sweep 중 발견했으나 **직접 수정하지 않고 사람
   토큰 교환 호출, 빈 문자열도 통과. `lib/integrations/tractive.ts:117` 응답
   `access_token` null 미검사 → null 저장 가능. 권장: code 길이·형식 가드 +
   access_token 존재 검사. (CSRF state/secret/SSRF 는 안전 확인됨.)
+
+---
+
+## 2026-06-08 batch 5 — 보류 항목 (관찰성/네이티브, 사람 검토)
+
+### I. refund-retry Toss 에러메시지 → Sentry/Slack PII 누출 (HIGH, RESTRICTED)
+- `app/api/cron/refund-retry/route.ts:188/195/201` — `cancelPayment()` 실패 시
+  `result.error.message`(Toss 응답 body 유래)를 DB `last_error` + `captureBusinessEvent`
+  + `alertRefundFailure` 로 그대로 전달. Toss 에러문구에 카드/계좌/거래식별 PII 가
+  섞이면 Sentry UI·Slack 웹훅에 노출.
+- 권장: Sentry/alert 전달 전 카드·계좌 패턴 마스킹 + 길이 제한.
+- **RESTRICTED**: 환불(결제) cron 경로 → 무인 변경 금지. 사람이 마스킹 적용 검토.
+
+### J. 로그 위생 — 제어문자/길이 (LOW, 비차단)
+- `lib/admin-audit.ts:133/139` — Supabase `error.message` 를 console.warn 에 그대로.
+  유니크 위반 등으로 이메일 등이 섞일 수 있음 → 길이 제한·개행 제거 권장.
+- `lib/cron-tracking.ts:71` — `message.slice(0,500)` 가 개행 미제거 → DB error_message
+  /로그 라인 분할 가능. `.replace(/[\r\n]/g,' ')` 권장.
+- 보류 사유: 에러경로 로깅이라 단위테스트로 덮기 어렵고, cron-tracking 은 결제 cron
+  래퍼(인접). 저위험이나 검토 후 적용.
+
+### K. Capacitor 네이티브 가드 (LOW, 방어적/선택)
+- `lib/capacitor.ts:77/84` — push 등록 콜백 `t.value`/`err.error` 무가드(플러그인
+  타입상 항상 존재하나 방어적으로 `t?.value ?? ''` 가능). `.remove()` 정리 promise
+  rejection swallow.
+- 보류 사유: 네이티브 런타임 필요로 단위테스트 불가 + 사실상 발생 불가 케이스. 선택.
