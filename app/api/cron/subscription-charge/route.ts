@@ -217,6 +217,42 @@ async function runSubscriptionCharge(): Promise<Response> {
   let skipped = 0
 
   for (const sub of targets) {
+    // 2-0) 이중청구 가드(점검 high): 이미 Toss 청구됐으나 후속 update 실패로
+    //      미확정(status='pending' + payment_key 존재)인 charge 가 있으면 새 청구를
+    //      하지 않는다. 재청구 가드가 next_delivery_date 한 곳에만 의존하면, 후속
+    //      update 실패로 날짜가 안 밀릴 때 다음날 cron 이 다른 scheduled_for/
+    //      idempotencyKey 로 카드를 2회 청구하는 사고가 난다.
+    const { data: pendingCharges } = await (
+      supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => {
+            eq: (col: string, v: string) => {
+              eq: (col2: string, v2: string) => {
+                limit: (n: number) => Promise<{
+                  data: Array<{ id: string; payment_key: string | null }> | null
+                }>
+              }
+            }
+          }
+        }
+      }
+    )
+      .from('subscription_charges')
+      .select('id, payment_key')
+      .eq('subscription_id', sub.id)
+      .eq('status', 'pending')
+      .limit(5)
+    const unresolved = (pendingCharges ?? []).find((c) => c.payment_key)
+    if (unresolved) {
+      // 돈은 청구됐는데 주문/구독 미확정 → 재청구 금지 + 알림(수동/reconcile 처리).
+      captureBusinessEvent('error', 'subscription.charge.unresolved_skip', {
+        subscriptionId: sub.id,
+        chargeId: unresolved.id,
+      })
+      skipped++
+      continue
+    }
+
     // 2-a) charge row insert. UNIQUE (subscription_id, scheduled_for) 충돌 시
     //      이미 처리됨 — skip.
     // audit #79: subscription_charges schema-drift cast.

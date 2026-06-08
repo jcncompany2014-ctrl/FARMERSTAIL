@@ -6,11 +6,7 @@ import {
   isOrderStatus,
   isPaymentStatus,
 } from '@/lib/commerce/order-fsm'
-import {
-  creditPoints,
-  appendLedger,
-  getCurrentBalance,
-} from '@/lib/commerce/points'
+import { appendLedger, getCurrentBalance } from '@/lib/commerce/points'
 import { revokeCouponRedemption } from '@/lib/coupons'
 import { cancelPayment } from '@/lib/payments/toss'
 import { notifyOrderCancelled } from '@/lib/email'
@@ -269,49 +265,30 @@ export async function POST(
   // 가 두 번째를 차단 → RPC 가 silent ok=true (already_applied) 로 반환 → 둘 중 하나만
   // 적용되는 무한 적립 버그. referenceType 을 분리해 unique 충돌 회피.
   if (order.points_used > 0) {
-    // 점검 fix: 부분취소(cancel-items)가 먼저 일부 환급했으면 잔여분만 환급해
-    // 과다환급 방지. orders.points_refunded(누적, 신규 컬럼 → cast)를 상한으로.
-    const { data: prRow } = await (admin as unknown as {
-      from: (t: string) => {
-        select: (c: string) => {
-          eq: (col: string, val: string) => {
-            maybeSingle: () => Promise<{
-              data: { points_refunded: number | null } | null
-            }>
-          }
-        }
+    // 점검 fix: refund_order_points RPC 가 orders 행을 FOR UPDATE 잠그고
+    // points_refunded 상한으로 잔여분만 원자 환급 — 부분취소(cancel-items) 후
+    // 전량취소의 과다환급 + 동시성 과다환급을 차단(read-modify-write 제거).
+    // reference=order.id(전량취소는 주문당 1회, 잔여 0이면 RPC 가 no-op).
+    // service_role 전용 RPC 라 admin 클라이언트로 호출.
+    // refund_order_points 는 신규 RPC 라 generated types 에 없음 → cast.
+    const { error: refundPointsErr } = await (
+      admin as unknown as {
+        rpc: (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ error: { message?: string } | null }>
       }
+    ).rpc('refund_order_points', {
+      p_order_id: order.id,
+      p_user_id: user.id,
+      p_request: order.points_used,
+      p_reason: '주문 취소 포인트 환급',
+      p_reference_id: order.id,
     })
-      .from('orders')
-      .select('points_refunded')
-      .eq('id', order.id)
-      .maybeSingle()
-    const alreadyRefunded = prRow?.points_refunded ?? 0
-    const refundable = Math.max(0, order.points_used - alreadyRefunded)
-    if (refundable > 0) {
-      const credit = await creditPoints(supabase, {
-        userId: user.id,
-        amount: refundable,
-        reason: '주문 취소 포인트 환급',
-        referenceType: 'order_refund_credit',
-        referenceId: order.id,
-      })
-      if (credit.ok) {
-        await (admin as unknown as {
-          from: (t: string) => {
-            update: (r: Record<string, unknown>) => {
-              eq: (col: string, val: string) => Promise<unknown>
-            }
-          }
-        })
-          .from('orders')
-          .update({ points_refunded: alreadyRefunded + refundable })
-          .eq('id', order.id)
-      } else {
-        console.error(
-          `[cancel] point refund blocked: order=${order.id} amount=${refundable} reason=${credit.reason}`,
-        )
-      }
+    if (refundPointsErr) {
+      console.error(
+        `[cancel] refund_order_points failed: order=${order.id} ${refundPointsErr.message}`,
+      )
     }
   }
   // 4) Revoke earned points (only if they were actually credited — paid orders).

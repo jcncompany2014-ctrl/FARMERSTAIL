@@ -294,7 +294,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, skipped: 'already_cancelled' })
       }
       const isPartial = payment.status === 'PARTIAL_CANCELED'
-      await supabase
+      // 원자 전이 가드 — 다른 흐름(cancel 라우트/동시 웹훅)이 이미 payment_status
+      // 를 바꿨으면 0-row 로 bail. 점검 fix: 이전엔 read-snapshot 가드(293)만 있어
+      // cancel 라우트와 동시 진입 시 아래 recovery 의 쿠폰 회수가 이중 실행될 수
+      // 있었다(다른 취소 경로는 모두 이 0-row 가드를 둠).
+      const { data: cancelRows } = await supabase
         .from('orders')
         .update({
           payment_status: isPartial ? 'partially_refunded' : 'cancelled',
@@ -303,6 +307,11 @@ export async function POST(req: Request) {
           cancel_reason: isPartial ? null : '결제 취소 (토스)',
         })
         .eq('id', order.id)
+        .eq('payment_status', order.payment_status)
+        .select('id')
+      if (!cancelRows || cancelRows.length === 0) {
+        return NextResponse.json({ ok: true, skipped: 'already_processed' })
+      }
 
       // R82-G2: payment_events ledger 기록 — 이전 코드 (R81 audit 발견) 가
       // Toss 대시보드에서 직접 환불한 케이스의 ledger event 미기록 →
