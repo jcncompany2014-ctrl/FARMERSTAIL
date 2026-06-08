@@ -1,9 +1,9 @@
 /**
  * Supabase generated types (audit #79).
  *
- * 생성: mcp__supabase__generate_typescript_types
- * 재생성: 
- * 또는 Supabase MCP 사용.
+ * 생성: mcp__supabase__generate_typescript_types (재생성 2026-06).
+ * 점검 fix: source_waitlist·webhook_events·payment_refund_queue·points_refunded·
+ * refund_order_points 등 신규 스키마 반영 — 라우트의 as-unknown 캐스팅 의존 축소.
  */
 
 export type Json =
@@ -52,6 +52,53 @@ export type Database = {
         }
         Relationships: []
       }
+      activity_logs: {
+        Row: {
+          activity_type: string
+          amount: number | null
+          created_at: string
+          dog_id: string
+          duration_min: number | null
+          id: string
+          note: string | null
+          occurred_at: string
+          unit: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          amount?: number | null
+          created_at?: string
+          dog_id: string
+          duration_min?: number | null
+          id?: string
+          note?: string | null
+          occurred_at?: string
+          unit?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          amount?: number | null
+          created_at?: string
+          dog_id?: string
+          duration_min?: number | null
+          id?: string
+          note?: string | null
+          occurred_at?: string
+          unit?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       addresses: {
         Row: {
           address: string
@@ -91,6 +138,42 @@ export type Database = {
           updated_at?: string
           user_id?: string
           zip?: string
+        }
+        Relationships: []
+      }
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string
+          created_at: string
+          diff: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          created_at?: string
+          diff?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          created_at?: string
+          diff?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
         }
         Relationships: []
       }
@@ -358,6 +441,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      anthropic_usage: {
+        Row: {
+          calls: number
+          day: string
+          input_tokens: number
+          output_tokens: number
+          route: string
+          updated_at: string
+        }
+        Insert: {
+          calls?: number
+          day?: string
+          input_tokens?: number
+          output_tokens?: number
+          route: string
+          updated_at?: string
+        }
+        Update: {
+          calls?: number
+          day?: string
+          input_tokens?: number
+          output_tokens?: number
+          route?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       birthday_coupon_log: {
         Row: {
@@ -889,6 +999,57 @@ export type Database = {
           },
         ]
       }
+      dog_connections: {
+        Row: {
+          accepted_at: string | null
+          context: string | null
+          created_at: string
+          id: string
+          receiver_dog_id: string
+          receiver_user_id: string
+          requester_dog_id: string
+          requester_user_id: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          context?: string | null
+          created_at?: string
+          id?: string
+          receiver_dog_id: string
+          receiver_user_id: string
+          requester_dog_id: string
+          requester_user_id: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          context?: string | null
+          created_at?: string
+          id?: string
+          receiver_dog_id?: string
+          receiver_user_id?: string
+          requester_dog_id?: string
+          requester_user_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dog_connections_receiver_dog_id_fkey"
+            columns: ["receiver_dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dog_connections_requester_dog_id_fkey"
+            columns: ["requester_dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dog_diary: {
         Row: {
           created_at: string
@@ -920,6 +1081,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dog_diary_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dog_expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          date: string
+          dog_id: string
+          id: string
+          memo: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          date: string
+          dog_id: string
+          id?: string
+          memo?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          date?: string
+          dog_id?: string
+          id?: string
+          memo?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dog_expenses_dog_id_fkey"
             columns: ["dog_id"]
             isOneToOne: false
             referencedRelation: "dogs"
@@ -1038,6 +1240,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dog_invitations_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dog_medications: {
+        Row: {
+          created_at: string
+          dog_id: string
+          dose: string | null
+          enabled: boolean
+          id: string
+          name: string
+          note: string | null
+          schedule: string
+          time: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dog_id: string
+          dose?: string | null
+          enabled?: boolean
+          id?: string
+          name: string
+          note?: string | null
+          schedule: string
+          time?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dog_id?: string
+          dose?: string | null
+          enabled?: boolean
+          id?: string
+          name?: string
+          note?: string | null
+          schedule?: string
+          time?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dog_medications_dog_id_fkey"
             columns: ["dog_id"]
             isOneToOne: false
             referencedRelation: "dogs"
@@ -1221,6 +1473,50 @@ export type Database = {
           },
         ]
       }
+      dog_vaccinations: {
+        Row: {
+          created_at: string
+          date: string
+          dog_id: string
+          id: string
+          next_date: string | null
+          note: string | null
+          updated_at: string
+          user_id: string
+          vaccine: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          dog_id: string
+          id?: string
+          next_date?: string | null
+          note?: string | null
+          updated_at?: string
+          user_id: string
+          vaccine: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          dog_id?: string
+          id?: string
+          next_date?: string | null
+          note?: string | null
+          updated_at?: string
+          user_id?: string
+          vaccine?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dog_vaccinations_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dogs: {
         Row: {
           accuracy_user_boost: number
@@ -1343,6 +1639,24 @@ export type Database = {
           },
         ]
       }
+      email_suppressions: {
+        Row: {
+          created_at: string
+          email: string
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          reason?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           coupon_code: string | null
@@ -1456,6 +1770,94 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      feeding_outcomes: {
+        Row: {
+          bcs_score: number | null
+          bristol_score: number | null
+          cohort_id: string
+          comment: string | null
+          created_at: string
+          dog_id: string
+          id: string
+          order_id: string | null
+          palatability: string | null
+          photo_url: string | null
+          rating_stars: number | null
+          reason_category: string | null
+          reason_detail: string | null
+          sku_code: string | null
+          source: string
+          subscription_id: string | null
+          user_id: string
+          week_no: number | null
+          weight_kg: number | null
+        }
+        Insert: {
+          bcs_score?: number | null
+          bristol_score?: number | null
+          cohort_id?: string
+          comment?: string | null
+          created_at?: string
+          dog_id: string
+          id?: string
+          order_id?: string | null
+          palatability?: string | null
+          photo_url?: string | null
+          rating_stars?: number | null
+          reason_category?: string | null
+          reason_detail?: string | null
+          sku_code?: string | null
+          source: string
+          subscription_id?: string | null
+          user_id: string
+          week_no?: number | null
+          weight_kg?: number | null
+        }
+        Update: {
+          bcs_score?: number | null
+          bristol_score?: number | null
+          cohort_id?: string
+          comment?: string | null
+          created_at?: string
+          dog_id?: string
+          id?: string
+          order_id?: string | null
+          palatability?: string | null
+          photo_url?: string | null
+          rating_stars?: number | null
+          reason_category?: string | null
+          reason_detail?: string | null
+          sku_code?: string | null
+          source?: string
+          subscription_id?: string | null
+          user_id?: string
+          week_no?: number | null
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feeding_outcomes_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feeding_outcomes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feeding_outcomes_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       health_logs: {
         Row: {
@@ -1803,6 +2205,7 @@ export type Database = {
           payment_method: string | null
           payment_status: string
           points_earned: number
+          points_refunded: number
           points_used: number
           receipt_url: string | null
           recipient_name: string
@@ -1843,6 +2246,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string
           points_earned?: number
+          points_refunded?: number
           points_used?: number
           receipt_url?: string | null
           recipient_name: string
@@ -1883,6 +2287,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string
           points_earned?: number
+          points_refunded?: number
           points_used?: number
           receipt_url?: string | null
           recipient_name?: string
@@ -1953,6 +2358,106 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      payment_events: {
+        Row: {
+          actor_user_id: string | null
+          amount: number
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          new_status: string | null
+          order_id: string
+          payment_key: string | null
+          prev_status: string | null
+          source: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          amount: number
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          order_id: string
+          payment_key?: string | null
+          prev_status?: string | null
+          source: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          amount?: number
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          order_id?: string
+          payment_key?: string | null
+          prev_status?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_refund_queue: {
+        Row: {
+          amount: number
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          next_retry_at: string
+          order_id: string
+          payment_key: string
+          reason: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string
+          order_id: string
+          payment_key: string
+          reason: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string
+          order_id?: string
+          payment_key?: string
+          reason?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_refund_queue_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       photo_request_tokens: {
         Row: {
@@ -2081,6 +2586,75 @@ export type Database = {
           },
         ]
       }
+      product_reviews: {
+        Row: {
+          approved_at: string | null
+          body: string
+          created_at: string
+          dog_id: string | null
+          helpful_count: number
+          id: string
+          order_id: string | null
+          photo_urls: string[]
+          product_id: string
+          rating: number
+          rejected_reason: string | null
+          status: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          body: string
+          created_at?: string
+          dog_id?: string | null
+          helpful_count?: number
+          id?: string
+          order_id?: string | null
+          photo_urls?: string[]
+          product_id: string
+          rating: number
+          rejected_reason?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          body?: string
+          created_at?: string
+          dog_id?: string | null
+          helpful_count?: number
+          id?: string
+          order_id?: string | null
+          photo_urls?: string[]
+          product_id?: string
+          rating?: number
+          rejected_reason?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variants: {
         Row: {
           created_at: string
@@ -2163,6 +2737,7 @@ export type Database = {
           sales_count: number
           shelf_life_days: number | null
           short_description: string | null
+          sku: string | null
           slug: string
           sort_order: number | null
           stock: number | null
@@ -2198,6 +2773,7 @@ export type Database = {
           sales_count?: number
           shelf_life_days?: number | null
           short_description?: string | null
+          sku?: string | null
           slug: string
           sort_order?: number | null
           stock?: number | null
@@ -2233,6 +2809,7 @@ export type Database = {
           sales_count?: number
           shelf_life_days?: number | null
           short_description?: string | null
+          sku?: string | null
           slug?: string
           sort_order?: number | null
           stock?: number | null
@@ -2467,6 +3044,30 @@ export type Database = {
           p256dh?: string
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      rate_limit_counters: {
+        Row: {
+          bucket: string
+          count: number
+          key: string
+          updated_at: string
+          window_start_ms: number
+        }
+        Insert: {
+          bucket: string
+          count?: number
+          key: string
+          updated_at?: string
+          window_start_ms: number
+        }
+        Update: {
+          bucket?: string
+          count?: number
+          key?: string
+          updated_at?: string
+          window_start_ms?: number
         }
         Relationships: []
       }
@@ -2753,6 +3354,41 @@ export type Database = {
           },
         ]
       }
+      source_waitlist: {
+        Row: {
+          concern: string
+          created_at: string
+          dog_id: string | null
+          id: string
+          notified_at: string | null
+          user_id: string
+        }
+        Insert: {
+          concern: string
+          created_at?: string
+          dog_id?: string | null
+          id?: string
+          notified_at?: string | null
+          user_id: string
+        }
+        Update: {
+          concern?: string
+          created_at?: string
+          dog_id?: string | null
+          id?: string
+          notified_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_waitlist_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_charges: {
         Row: {
           amount: number
@@ -2875,6 +3511,7 @@ export type Database = {
           last_failed_charge_at: string | null
           last_failed_charge_code: string | null
           last_failed_charge_reason: string | null
+          mix_ratio: number | null
           next_delivery_date: string
           next_retry_at: string | null
           recipient_name: string
@@ -2883,6 +3520,7 @@ export type Database = {
           reminder_enabled: boolean
           requires_billing_key_renewal: boolean
           shipping_fee: number
+          sku_size_g: number | null
           status: string
           subtotal: number
           total_amount: number
@@ -2911,6 +3549,7 @@ export type Database = {
           last_failed_charge_at?: string | null
           last_failed_charge_code?: string | null
           last_failed_charge_reason?: string | null
+          mix_ratio?: number | null
           next_delivery_date: string
           next_retry_at?: string | null
           recipient_name: string
@@ -2919,6 +3558,7 @@ export type Database = {
           reminder_enabled?: boolean
           requires_billing_key_renewal?: boolean
           shipping_fee?: number
+          sku_size_g?: number | null
           status?: string
           subtotal: number
           total_amount: number
@@ -2947,6 +3587,7 @@ export type Database = {
           last_failed_charge_at?: string | null
           last_failed_charge_code?: string | null
           last_failed_charge_reason?: string | null
+          mix_ratio?: number | null
           next_delivery_date?: string
           next_retry_at?: string | null
           recipient_name?: string
@@ -2955,6 +3596,7 @@ export type Database = {
           reminder_enabled?: boolean
           requires_billing_key_renewal?: boolean
           shipping_fee?: number
+          sku_size_g?: number | null
           status?: string
           subtotal?: number
           total_amount?: number
@@ -2978,6 +3620,7 @@ export type Database = {
           answers: Json
           appetite: string | null
           bristol_stool_score: number | null
+          budget_tier: string | null
           care_goal: string | null
           chronic_conditions: string[] | null
           coat_condition: string | null
@@ -3005,6 +3648,7 @@ export type Database = {
           answers: Json
           appetite?: string | null
           bristol_stool_score?: number | null
+          budget_tier?: string | null
           care_goal?: string | null
           chronic_conditions?: string[] | null
           coat_condition?: string | null
@@ -3032,6 +3676,7 @@ export type Database = {
           answers?: Json
           appetite?: string | null
           bristol_stool_score?: number | null
+          budget_tier?: string | null
           care_goal?: string | null
           chronic_conditions?: string[] | null
           coat_condition?: string | null
@@ -3071,6 +3716,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_integrations: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          expires_at: string | null
+          external_user_id: string | null
+          id: string
+          last_synced_at: string | null
+          provider: string
+          refresh_token: string | null
+          scope: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          expires_at?: string | null
+          external_user_id?: string | null
+          id?: string
+          last_synced_at?: string | null
+          provider: string
+          refresh_token?: string | null
+          scope?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          expires_at?: string | null
+          external_user_id?: string | null
+          id?: string
+          last_synced_at?: string | null
+          provider?: string
+          refresh_token?: string | null
+          scope?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       vet_share_tokens: {
         Row: {
@@ -3139,6 +3829,44 @@ export type Database = {
           year_month?: string
         }
         Relationships: []
+      }
+      webhook_events: {
+        Row: {
+          created_at: string
+          event_key: string
+          id: string
+          order_id: string | null
+          payment_key: string | null
+          provider: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_key: string
+          id?: string
+          order_id?: string | null
+          payment_key?: string | null
+          provider?: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_key?: string
+          id?: string
+          order_id?: string | null
+          payment_key?: string | null
+          provider?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       weight_logs: {
         Row: {
@@ -3314,6 +4042,23 @@ export type Database = {
       fn_compute_tier: { Args: { spend: number }; Returns: string }
       get_or_create_my_referral_code: { Args: never; Returns: string }
       has_dog_access: { Args: { p_dog_id: string }; Returns: boolean }
+      has_dog_role: {
+        Args: { p_dog_id: string; p_min_role: string }
+        Returns: boolean
+      }
+      incr_anthropic_usage: {
+        Args: {
+          p_calls?: number
+          p_input_tokens?: number
+          p_output_tokens?: number
+          p_route: string
+        }
+        Returns: undefined
+      }
+      incr_rate_limit_counter: {
+        Args: { p_bucket: string; p_key: string; p_window_start_ms: number }
+        Returns: number
+      }
       increment_blog_view: { Args: { post_slug: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       issue_referral_milestones: { Args: never; Returns: Json }
@@ -3349,6 +4094,16 @@ export type Database = {
         }[]
       }
       redeem_referral_code: { Args: { input_code: string }; Returns: Json }
+      refund_order_points: {
+        Args: {
+          p_order_id: string
+          p_reason: string
+          p_reference_id: string
+          p_request: number
+          p_user_id: string
+        }
+        Returns: number
+      }
       reserve_order_stock: { Args: { items: Json }; Returns: Json }
       restore_stock: {
         Args: { p_product_id: string; p_qty: number }
@@ -3376,6 +4131,8 @@ export type Database = {
         Args: { p_photo_url: string; p_token: string }
         Returns: Json
       }
+      sum_anthropic_calls_today: { Args: never; Returns: number }
+      sweep_rate_limit_counters: { Args: never; Returns: number }
       upsert_cart_item: {
         Args: {
           p_max_qty?: number

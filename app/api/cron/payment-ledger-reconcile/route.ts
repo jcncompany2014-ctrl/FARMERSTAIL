@@ -66,8 +66,50 @@ export async function GET(req: Request) {
     .in('order_id', orderIds)
   const events = (eventsRaw ?? []) as LedgerEvent[]
 
-  // 3) 정합성 비교 (pure helper)
+  // 3) 정합성 비교 (pure helper) — 금액(total-refunded vs ledger) 불일치.
   const mismatches = findLedgerMismatches(orders, events)
+
+  // 3b) 필드 불일치 — '결제 캡처(양수 ledger)가 있는데 주문은 아직 pending/failed'.
+  // 금액 비교만으론 못 잡는다(pending 은 orderNet=total=ledger 라 일치로 보임).
+  // subscription-charge 등에서 청구 성공 후 orders update 가 실패하면 돈은 빠졌는데
+  // payment_status=pending 으로 정체 → 여기서 역방향(payment_events→orders)으로 탐지.
+  const { data: posEventsRaw } = await admin
+    .from('payment_events')
+    .select('order_id, amount')
+    .gte('created_at', since)
+    .gt('amount', 0)
+    .limit(3000)
+  const capturedByOrder = new Map<string, number>()
+  for (const e of (posEventsRaw ?? []) as LedgerEvent[]) {
+    capturedByOrder.set(
+      e.order_id,
+      (capturedByOrder.get(e.order_id) ?? 0) + e.amount,
+    )
+  }
+  const knownIds = new Set(orderIds)
+  const extraIds = [...capturedByOrder.keys()].filter(
+    (id) => id && !knownIds.has(id),
+  )
+  if (extraIds.length > 0) {
+    const { data: extraOrders } = await admin
+      .from('orders')
+      .select('id, payment_status, total_amount, refunded_amount')
+      .in('id', extraIds)
+    for (const o of (extraOrders ?? []) as OrderSnapshot[]) {
+      // paid/refunded 등 정상 상태는 위 1) 에서 이미 검사됨. pending/failed 인데
+      // 양수 캡처가 있으면 '결제됐는데 미확정' 이상.
+      if (o.payment_status === 'pending' || o.payment_status === 'failed') {
+        const captured = capturedByOrder.get(o.id) ?? 0
+        mismatches.push({
+          orderId: o.id,
+          status: `${o.payment_status}_but_captured`,
+          orderNetExpected: 0,
+          ledgerBalance: captured,
+          diff: captured,
+        })
+      }
+    }
+  }
 
   // 4) Sentry alert
   if (mismatches.length > 0) {
