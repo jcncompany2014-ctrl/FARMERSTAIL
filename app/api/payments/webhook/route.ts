@@ -139,6 +139,35 @@ export async function POST(req: Request) {
     )
   }
 
+  // 3.5) 멱등 게이트 — (payment_key, status) 를 webhook_events 에 원자적 INSERT.
+  // 동시 수신/재시도 webhook 이 같은 전이를 두 번 처리(이중 포인트 적립·환불)하는
+  // race 를 봉쇄한다. 상태기반 멱등(아래 switch)만으로는 두 요청이 거의 동시에
+  // "아직 paid 아님"을 읽으면 둘 다 적립하는 틈이 남는데, unique INSERT 는 한
+  // 쪽만 성공(23505 충돌)이라 직렬화된다. 테이블 미적용(42P01)이면 폴백(무영향).
+  const dedup = await (
+    supabase as unknown as {
+      from: (t: string) => {
+        insert: (
+          r: Record<string, unknown>,
+        ) => Promise<{ error: { code?: string } | null }>
+      }
+    }
+  )
+    .from('webhook_events')
+    .insert({
+      provider: 'toss',
+      event_key: `${paymentKey}:${payment.status}`,
+      order_id: order.id,
+      payment_key: paymentKey,
+      status: payment.status,
+    })
+  if (dedup.error?.code === '23505') {
+    // 이미 같은 이벤트가 기록됨 — 동시/재시도 중복. 한 번만 처리되게 skip.
+    return NextResponse.json({ ok: true, skipped: 'duplicate_event' })
+  }
+  // 42P01(테이블 미적용) 등 그 외 오류는 무시하고 진행 — 기존 상태기반 멱등이
+  // 여전히 동작하므로 결제 처리를 막지 않는다(가용성 우선).
+
   // 4) Apply state transition based on Toss status.
   switch (payment.status) {
     case 'DONE': {
