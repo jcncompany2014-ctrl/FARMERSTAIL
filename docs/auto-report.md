@@ -34,3 +34,43 @@ Opus 무인 점검 sweep 중 발견했으나 **직접 수정하지 않고 사람
 - 리뷰가 "셀이 quote 안 돼 leading `'` 보호가 약하다"고 지적했으나, leading
   apostrophe 는 OWASP 권고 방식이며 quote 여부와 무관하게 Excel/Sheets 가 셀을
   텍스트로 처리한다. 현 구현은 표준 방어로 **정상**. 변경하지 않음.
+
+---
+
+## 2026-06-08 batch 4 — 보류 항목 (저위험이나 라우트 테스트 인프라 부재로 사람 적용 권장)
+
+이 리포의 테스트는 순수 lib 함수 위주이고 API 라우트 에러경로 단위테스트 하네스가
+없어, 아래 "행위 변경"들을 무인 규칙(행위 변경엔 테스트 동반) 하에 깔끔히 덮기
+어려워 보류. 전부 기존 컨벤션(`dbError`/audit #69)과 일치하는 기계적 저위험 수정.
+
+### E. audit #69 — raw DB/스토리지 에러 메시지 노출 (MEDIUM, 정보노출)
+같은 파일 내 다른 핸들러는 `dbError()`/generic 메시지로 마스킹하는데 아래는 원시
+에러 메시지를 응답에 그대로 실어 내부 스키마/인프라 단서 노출:
+- `app/api/admin/products/[id]/duplicate/route.ts:88` — `insertError?.message` 반환
+  → `message: '복제에 실패했어요'` 또는 `dbError(insertError, 'product_duplicate')`.
+- `app/api/admin/blog/upload/route.ts:120`,
+  `app/api/admin/events/upload/route.ts:133`,
+  `app/api/admin/products/upload/route.ts:130` — `uploadError.message` 반환
+  → 원시 메시지 제거, generic 문구만.
+- 권장: 일괄로 raw message 제거. 비결제/비인증/비임상이라 저위험.
+
+### F. admin 후속 update/insert 무검사 (LOW, 상태 불일치)
+- `app/api/admin/push-campaigns/route.ts:129-132` — 캠페인 insert 후 sent/failed
+  카운트 update 의 error 미검사 → 실패해도 200. (관리자 대시보드 한정 영향)
+- `app/api/admin/users/[id]/message/route.ts:112-117` — cs_messages insert error
+  미검사. 권장: error 체크 후 dbError.
+
+### G. 챗봇 LLM 비용 일일 캡 누락 (MEDIUM, 비용 남용)
+- `app/api/chatbot/route.ts`, `app/api/chatbot/stream/route.ts` 는 IP 분당 5회
+  rate-limit 만 있고, `app/api/analysis/commentary/route.ts` 가 쓰는
+  `checkAnthropicDailyCap()` 같은 일일 호출 상한이 없음. 분산 IP/다수 사용자 시
+  24h Anthropic 비용 무제한. 권장: rate-limit 직후 `checkAnthropicDailyCap('chatbot')`
+  추가(코드 패턴은 commentary 에 이미 존재). LLM 엔드포인트 행위 변경이라 검토 후 적용.
+- 시스템 프롬프트(`lib/chatbot-system-prompt.ts`)의 프롬프트-인젝션 방어 문구는
+  임상/조언 로직이라 변경 금지(문서화만).
+
+### H. Tractive OAuth 콜백 입력검증 (LOW)
+- `app/api/integrations/tractive/callback/route.ts` — `code` 길이/형식 검증 없이
+  토큰 교환 호출, 빈 문자열도 통과. `lib/integrations/tractive.ts:117` 응답
+  `access_token` null 미검사 → null 저장 가능. 권장: code 길이·형식 가드 +
+  access_token 존재 검사. (CSRF state/secret/SSRF 는 안전 확인됨.)
