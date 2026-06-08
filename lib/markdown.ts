@@ -21,6 +21,12 @@
 const URL_RE =
   /^(https?:\/\/|mailto:|\/[^\/]|#[A-Za-z0-9_-]+)/i
 
+// 코드 자리표시자를 감싸는 sentinel. 예전엔 `CODE0`/`CODEBLOCK0` 같은 평문
+// 토큰을 썼는데, 본문에 자연스럽게 등장하는 "CODE10"(쿠폰코드 안내 등) 텍스트가
+// 복원 단계 정규식에 걸려 엉뚱한 코드로 치환되거나 undefined 로 깨졌다. NUL 은
+// 마크다운 본문에 등장하지 않고, 복원 후 남은 것은 전부 제거하므로 출력엔 없다.
+const SENT = String.fromCharCode(0)
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -39,19 +45,21 @@ function safeUrl(u: string): string | null {
 export function renderMarkdown(md: string | null | undefined): string {
   if (!md) return ''
   let s = md.replace(/\r\n?/g, '\n')
+  // sentinel 이 본문에 우연히 들어오면 자리표시자 충돌이 나므로 먼저 제거.
+  s = s.split(SENT).join('')
 
   // 1) Fenced code blocks (```...```) — 먼저 처리해 내부에서 다른 패턴이 안 잡히게.
   const codeBlocks: string[] = []
   s = s.replace(/```([a-zA-Z]*)\n([\s\S]*?)```/g, (_m, _lang, body) => {
     codeBlocks.push(escapeHtml(body))
-    return `CODEBLOCK${codeBlocks.length - 1}`
+    return `${SENT}CB${codeBlocks.length - 1}${SENT}`
   })
 
   // 2) inline code (`...`) — 내부 마크다운 무력화.
   const inlineCodes: string[] = []
   s = s.replace(/`([^`\n]+?)`/g, (_m, body) => {
     inlineCodes.push(escapeHtml(body))
-    return `CODE${inlineCodes.length - 1}`
+    return `${SENT}CI${inlineCodes.length - 1}${SENT}`
   })
 
   // 3) escape 나머지 HTML
@@ -113,13 +121,18 @@ export function renderMarkdown(md: string | null | undefined): string {
     })
     .join('\n')
 
-  // 12) 코드 블록 / 인라인 코드 복원
-  s = s.replace(/CODEBLOCK(\d+)/g, (_m, idx: string) => {
-    return `<pre><code>${codeBlocks[Number(idx)]}</code></pre>`
+  // 12) 코드 블록 / 인라인 코드 복원 (sentinel 로 감싼 토큰만 매칭)
+  const blockRe = new RegExp(`${SENT}CB(\\d+)${SENT}`, 'g')
+  s = s.replace(blockRe, (_m, idx: string) => {
+    return `<pre><code>${codeBlocks[Number(idx)] ?? ''}</code></pre>`
   })
-  s = s.replace(/CODE(\d+)/g, (_m, idx: string) => {
-    return `<code>${inlineCodes[Number(idx)]}</code>`
+  const inlineRe = new RegExp(`${SENT}CI(\\d+)${SENT}`, 'g')
+  s = s.replace(inlineRe, (_m, idx: string) => {
+    return `<code>${inlineCodes[Number(idx)] ?? ''}</code>`
   })
+
+  // 안전망: 복원되지 않은 sentinel 이 남았다면 출력에서 제거(가시 깨짐 방지).
+  s = s.split(SENT).join('')
 
   return s
 }
