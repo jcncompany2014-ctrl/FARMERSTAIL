@@ -12,7 +12,7 @@
  * PLP 가격 표시는 `variantPriceRange()`로 min/max를 뽑아 "12,000~28,000원" 같은
  * 범위로 렌더. 단일 값이면 단일 값 그대로 반환.
  */
-import { stockState, type StockState } from './stock'
+import { stockState, type StockState } from './stock.ts'
 
 /** DB product_variants row (select 공용 타입). */
 export interface ProductVariant {
