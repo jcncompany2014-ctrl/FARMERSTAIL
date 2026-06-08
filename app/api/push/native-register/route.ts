@@ -96,11 +96,15 @@ export async function DELETE(req: Request) {
     )
   }
 
-  await supabase
+  const { error } = await supabase
     .from('native_push_tokens')
     .delete()
     .eq('user_id', user.id)
     .eq('device_id', deviceId)
+  // 삭제 실패를 무시하면 OFF 토글이 성공한 듯 보이지만 토큰이 남아 푸시가 계속됨.
+  if (error) {
+    return dbError(error, 'push_native_delete', '푸시 해제에 실패했어요')
+  }
 
   return NextResponse.json({ ok: true })
 }

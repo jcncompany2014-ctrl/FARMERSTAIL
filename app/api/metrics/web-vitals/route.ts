@@ -32,6 +32,20 @@ const MAX_BODY = 2_048
 function isString(v: unknown): v is string {
   return typeof v === 'string'
 }
+
+/**
+ * path 는 Sentry captureMessage / tag 에 그대로 들어간다. 제어문자(개행 등)가
+ * 남으면 로그 인젝션(메시지 위조·이슈 그룹 오염)이 가능하므로 ASCII 제어범위
+ * (0x00–0x1f, 0x7f) 를 공백으로 치환한 뒤 길이를 제한한다.
+ */
+function sanitizePath(raw: string): string {
+  let out = ''
+  for (const ch of raw) {
+    const c = ch.charCodeAt(0)
+    out += c < 0x20 || c === 0x7f ? ' ' : ch
+  }
+  return out.slice(0, 200)
+}
 function isNumber(v: unknown): v is number {
   return typeof v === 'number' && Number.isFinite(v)
 }
@@ -69,7 +83,7 @@ export async function POST(request: Request) {
   }
 
   const rating = isString(body.rating) ? body.rating : null
-  const path = isString(body.path) ? body.path.slice(0, 200) : '(unknown)'
+  const path = isString(body.path) ? sanitizePath(body.path) : '(unknown)'
   const navigationType = isString(body.navigationType)
     ? body.navigationType
     : null

@@ -52,6 +52,9 @@ export async function GET() {
   if (orderRes.error) {
     console.error('[notifications/count] orders query failed', orderRes.error)
   }
+  if (pushRes.error) {
+    console.error('[notifications/count] push_log query failed', pushRes.error)
+  }
 
   const orderCount = orderRes.count ?? 0
   const pushCount = pushRes.count ?? 0
