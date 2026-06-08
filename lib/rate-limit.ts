@@ -143,10 +143,17 @@ export function rateLimit(args: RateLimitArgs): RateLimitResult {
  */
 export function ipFromRequest(req: Request): string {
   const h = req.headers
+  // 점검 low: cf-connecting-ip 를 먼저 신뢰하면 Cloudflare 뒤가 아닌 Vercel 환경
+  // 에선 클라이언트가 이 헤더를 위조해 레이트리밋 버킷 키를 회피할 수 있다.
+  // Vercel edge 는 x-forwarded-for 를 덮어써(leftmost=실 클라이언트) 위조 불가
+  // 이므로 이를 우선 신뢰하고, cf-connecting-ip 는 Cloudflare 사용 시 대비 fallback.
+  const xff = h.get('x-forwarded-for')
+  if (xff) {
+    const first = xff.split(',')[0]?.trim()
+    if (first) return first
+  }
   const cf = h.get('cf-connecting-ip')
   if (cf) return cf
-  const xff = h.get('x-forwarded-for')
-  if (xff) return xff.split(',')[0]!.trim()
   const real = h.get('x-real-ip')
   if (real) return real
   return 'unknown'
