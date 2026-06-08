@@ -13,6 +13,6 @@
 BEGIN;
 
 CREATE POLICY payment_refund_queue_admin_read ON public.payment_refund_queue
-  FOR SELECT USING (public.is_admin(auth.uid()));
+  FOR SELECT USING (public.is_admin());
 
 COMMIT;

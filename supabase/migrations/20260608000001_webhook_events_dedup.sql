@@ -37,7 +37,7 @@ ALTER TABLE public.webhook_events ENABLE ROW LEVEL SECURITY;
 
 -- 클라이언트 접근 전면 차단(서버 전용). 관리자만 read.
 CREATE POLICY webhook_events_admin_read ON public.webhook_events
-  FOR SELECT USING (public.is_admin(auth.uid()));
+  FOR SELECT USING (public.is_admin());
 
 COMMENT ON TABLE public.webhook_events IS
   '결제 웹훅 멱등 게이트. event_key=paymentKey:status, (provider,event_key) 유니크로 동시·재시도 중복처리 차단.';

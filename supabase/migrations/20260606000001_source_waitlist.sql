@@ -51,7 +51,7 @@ CREATE POLICY source_waitlist_self_delete ON public.source_waitlist
   FOR DELETE USING (auth.uid() = user_id);
 
 CREATE POLICY source_waitlist_admin_read ON public.source_waitlist
-  FOR SELECT USING (public.is_admin(auth.uid()));
+  FOR SELECT USING (public.is_admin());
 
 COMMENT ON TABLE public.source_waitlist IS
   '기능성 소스(레이어 B) 출시 알림 대기열. concern 단위, (user,concern) 유니크.';
