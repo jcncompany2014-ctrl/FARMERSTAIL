@@ -269,13 +269,50 @@ export async function POST(
   // 가 두 번째를 차단 → RPC 가 silent ok=true (already_applied) 로 반환 → 둘 중 하나만
   // 적용되는 무한 적립 버그. referenceType 을 분리해 unique 충돌 회피.
   if (order.points_used > 0) {
-    await creditPoints(supabase, {
-      userId: user.id,
-      amount: order.points_used,
-      reason: '주문 취소 포인트 환급',
-      referenceType: 'order_refund_credit',
-      referenceId: order.id,
+    // 점검 fix: 부분취소(cancel-items)가 먼저 일부 환급했으면 잔여분만 환급해
+    // 과다환급 방지. orders.points_refunded(누적, 신규 컬럼 → cast)를 상한으로.
+    const { data: prRow } = await (admin as unknown as {
+      from: (t: string) => {
+        select: (c: string) => {
+          eq: (col: string, val: string) => {
+            maybeSingle: () => Promise<{
+              data: { points_refunded: number | null } | null
+            }>
+          }
+        }
+      }
     })
+      .from('orders')
+      .select('points_refunded')
+      .eq('id', order.id)
+      .maybeSingle()
+    const alreadyRefunded = prRow?.points_refunded ?? 0
+    const refundable = Math.max(0, order.points_used - alreadyRefunded)
+    if (refundable > 0) {
+      const credit = await creditPoints(supabase, {
+        userId: user.id,
+        amount: refundable,
+        reason: '주문 취소 포인트 환급',
+        referenceType: 'order_refund_credit',
+        referenceId: order.id,
+      })
+      if (credit.ok) {
+        await (admin as unknown as {
+          from: (t: string) => {
+            update: (r: Record<string, unknown>) => {
+              eq: (col: string, val: string) => Promise<unknown>
+            }
+          }
+        })
+          .from('orders')
+          .update({ points_refunded: alreadyRefunded + refundable })
+          .eq('id', order.id)
+      } else {
+        console.error(
+          `[cancel] point refund blocked: order=${order.id} amount=${refundable} reason=${credit.reason}`,
+        )
+      }
+    }
   }
   // 4) Revoke earned points (only if they were actually credited — paid orders).
   //    음수 delta를 직접 넣어야 하므로 creditPoints/debitPoints 대신 appendLedger.

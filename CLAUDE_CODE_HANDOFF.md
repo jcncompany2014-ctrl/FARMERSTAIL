@@ -94,7 +94,7 @@ subscription_items — 구독 상품 (subscription_id, product_id, quantity, uni
 - 모든 테이블: 본인 데이터만 CRUD
 - products: 누구나 읽기, admin만 수정
 - `public.is_admin()` 함수: `auth.users.raw_user_meta_data->>'role' = 'admin'`
-- 관리자 이메일: `ian020529@gmail.com`
+- 관리자 계정: Supabase Auth 의 `role=admin` 사용자 (이메일은 운영 비공개)
 
 ### Supabase Storage
 - 버킷 `products` (Public): 상품 이미지

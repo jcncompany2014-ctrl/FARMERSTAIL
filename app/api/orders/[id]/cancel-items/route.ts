@@ -7,7 +7,8 @@ import { notifyOrderCancelled } from '@/lib/email'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
-import { appendLedger } from '@/lib/commerce/points'
+import { appendLedger, computePointsRefund } from '@/lib/commerce/points'
+import { revokeCouponRedemption } from '@/lib/coupons'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -88,7 +89,7 @@ export async function POST(
   const { data: order } = await supabase
     .from('orders')
     .select(
-      'id, user_id, order_number, payment_status, order_status, payment_key, total_amount, refunded_amount, recipient_name, points_used',
+      'id, user_id, order_number, payment_status, order_status, payment_key, total_amount, refunded_amount, recipient_name, points_used, coupon_code',
     )
     .eq('id', id)
     .eq('user_id', user.id)
@@ -263,8 +264,90 @@ export async function POST(
 
   // orders.refunded_amount 누적. (선점 성공분 claimedCancelAmount 기준)
   const newRefundedAmount = (order.refunded_amount ?? 0) + claimedCancelAmount
+
+  // (a) refunds 감사 row 를 먼저 insert 하고 그 id 를 포인트 환급 ledger 의
+  //     reference 로 쓴다. 점검 blocker: order.id 단독 reference 는 순차 부분취소·
+  //     전량취소와 uq_point_ledger_reference(user,type,ref) 충돌 → 2회차 이후 환급이
+  //     silent 차단(already_applied)돼 고객이 포인트를 잃었다. refunds.id 는 취소
+  //     이벤트마다 유일하므로 충돌 없이 매번 환급된다.
+  const { data: refundRow } = await admin
+    .from('refunds')
+    .insert({
+      order_id: order.id,
+      user_id: user.id,
+      amount: claimedCancelAmount,
+      reason: reason ?? null,
+      toss_transaction_key: tossTransactionKey,
+      refunded_by: null, // self-service
+      status: 'succeeded',
+      order_item_ids: claimedIds,
+      is_partial: !fullyCancelled,
+    })
+    .select('id')
+    .single()
+
+  // (b) 사용 포인트 환급. 이미 환급한 누적분(orders.points_refunded, 신규 컬럼이라
+  //     typegen 미반영 → cast 읽기)을 상한으로 둬 부분/전량 취소가 중복 환급되지
+  //     않게 한다(점검: 부분 후 전량취소 라우트가 다시 도므로 상한 필수). 전량(이
+  //     라우트에서 마지막 항목까지 취소)은 잔여 전부, 부분은 사용자 지불가치(현금+
+  //     포인트) 대비 취소 비율만큼.
+  let pointsRefundedNow = 0
+  let alreadyRefunded = 0
+  if (order.points_used && order.points_used > 0) {
+    const { data: prRow } = await (admin as unknown as {
+      from: (t: string) => {
+        select: (c: string) => {
+          eq: (col: string, val: string) => {
+            maybeSingle: () => Promise<{
+              data: { points_refunded: number | null } | null
+            }>
+          }
+        }
+      }
+    })
+      .from('orders')
+      .select('points_refunded')
+      .eq('id', order.id)
+      .maybeSingle()
+    alreadyRefunded = prRow?.points_refunded ?? 0
+    const pointsToRefund = computePointsRefund({
+      pointsUsed: order.points_used,
+      alreadyRefunded,
+      totalAmount: order.total_amount ?? 0,
+      cancelAmount: claimedCancelAmount,
+      fully: fullyCancelled,
+    })
+    if (pointsToRefund > 0 && refundRow?.id) {
+      const result = await appendLedger(admin, {
+        userId: user.id,
+        delta: pointsToRefund,
+        reason: fullyCancelled ? '주문 취소 포인트 환급' : '부분 취소 포인트 환급',
+        referenceType: 'order_refund_credit',
+        referenceId: refundRow.id,
+      })
+      if (result.ok) {
+        pointsRefundedNow = pointsToRefund
+      } else {
+        // refunds.id 는 유일하므로 already_applied 면 비정상 — 운영자 인지 필요.
+        console.error(
+          `[cancel-items] point refund unexpectedly blocked: order=${order.id} refund=${refundRow.id} amount=${pointsToRefund} reason=${result.reason}`,
+        )
+      }
+    }
+  }
+
+  // (c) 전량 취소면 쿠폰 사용 회수 — 부분 취소는 잔여 주문에 쿠폰이 여전히 유효해
+  //     유지(점검 medium: cancel-items 의 전량 도달 시 쿠폰 미회수였음).
+  if (fullyCancelled && order.coupon_code) {
+    await revokeCouponRedemption(admin, { couponCode: order.coupon_code })
+  }
+
+  // (d) 주문 상태 갱신 — refunded_amount + (전량이면)취소상태 + points_refunded 누적.
   const orderUpdate: Record<string, unknown> = {
     refunded_amount: newRefundedAmount,
+  }
+  if (pointsRefundedNow > 0) {
+    orderUpdate.points_refunded = alreadyRefunded + pointsRefundedNow
   }
   if (fullyCancelled) {
     orderUpdate.payment_status = 'cancelled'
@@ -273,7 +356,6 @@ export async function POST(
     orderUpdate.cancel_reason = reason || '고객 부분 취소 (전량)'
   } else {
     // R82-G2: 부분 환불 시 payment_status 도 'partially_refunded' 로 명시.
-    // 이전엔 'paid' 유지 → admin UI 가 부분 환불 상태 못 봄.
     // 'partially_refunded' 가 webhook / admin/partial-cancel / reconcile 표준 enum.
     orderUpdate.payment_status = 'partially_refunded'
   }
@@ -284,56 +366,10 @@ export async function POST(
         eq: (c: string, v: string) => Promise<unknown>
       }
     }
-  }).from('orders').update(orderUpdate).eq('id', order.id)
-
-  // R82-G2: 포인트/쿠폰 rollback (부분 환불 비율 계산).
-  // 이전 코드 (R81 audit 발견) 가 cancel route 와 달리 rollback 누락 →
-  // 사용자가 1만P 사용 + 10% 쿠폰 적용 주문에서 일부만 취소하면 포인트
-  // 영구 소실 + 쿠폰 사용 횟수 그대로. 이제 비율 따라 환급:
-  // - points_used × (cancelAmount / total_amount) 만큼 ledger 환급
-  // - 전량 취소면 cancel route 가 처리하므로 여기선 부분 환불만 처리
-  if (!fullyCancelled && order.points_used && order.points_used > 0) {
-    // R83 fix: ratio base = user 가 지불한 총 가치 (cash + points).
-    // 이전: total_amount (=cash only) 만 사용 → 포인트 환급액 과대 산정.
-    // 예: 50000원 결제 + 10000P 사용, 30000원 cancel
-    //   - 이전: ratio = 30000/50000 = 0.6 → 6000P 환급 (사용자 가치 +36000)
-    //   - 수정: ratio = 30000/60000 = 0.5 → 5000P 환급 (사용자 가치 +30000) ✓
-    // total_amount = 0 (전액 포인트 결제) edge 도 division-by-zero 회피.
-    const userPaidValue = (order.total_amount ?? 0) + (order.points_used ?? 0)
-    const refundRatio = userPaidValue > 0
-      ? Math.min(1, claimedCancelAmount / userPaidValue)
-      : 0
-    const pointsToRefund = Math.floor(order.points_used * refundRatio)
-    if (pointsToRefund > 0) {
-      const result = await appendLedger(admin, {
-        userId: user.id,
-        delta: pointsToRefund,
-        reason: '부분 취소 포인트 환급',
-        referenceType: 'order_refund_credit',
-        referenceId: order.id,
-      })
-      if (!result.ok) {
-        console.warn(
-          `[cancel-items] point refund failed for order ${order.id}: ${result.reason}`,
-        )
-      }
-    }
-  }
-  // 전량 환불은 별도 cancel route 흐름에서 쿠폰 revoke 처리됨.
-  // 부분 환불에서는 쿠폰 사용 횟수 그대로 — per_user_limit 영향은 향후 R-cycle.
-
-  // refunds audit row. (선점 성공분 claimedIds / claimedCancelAmount 기준)
-  await admin.from('refunds').insert({
-    order_id: order.id,
-    user_id: user.id,
-    amount: claimedCancelAmount,
-    reason: reason ?? null,
-    toss_transaction_key: tossTransactionKey,
-    refunded_by: null, // self-service
-    status: 'succeeded',
-    order_item_ids: claimedIds,
-    is_partial: !fullyCancelled,
   })
+    .from('orders')
+    .update(orderUpdate)
+    .eq('id', order.id)
 
   // R60 — 결제 원장 event. 부분 환불 (-claimedCancelAmount) 또는 전량 환불.
   {

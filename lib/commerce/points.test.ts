@@ -5,6 +5,7 @@ import {
   creditPoints,
   debitPoints,
   getCurrentBalance,
+  computePointsRefund,
 } from './points.ts'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -167,5 +168,126 @@ describe('debitPoints', () => {
       referenceId: null,
     })
     assert.equal(r.ok, true)
+  })
+})
+
+describe('computePointsRefund (취소 포인트 환급 상한)', () => {
+  // 점검 blocker 회귀: 순차 부분취소가 매번 비례 환급되고 총합이 points_used 초과 안 함.
+  it('순차 부분취소 — 각 비례 환급, 누적 합 = points_used (초과/누락 없음)', () => {
+    // 50000원 + 10000P → userPaidValue 60000. 30000씩 두 번 취소.
+    const c1 = computePointsRefund({
+      pointsUsed: 10000,
+      alreadyRefunded: 0,
+      totalAmount: 50000,
+      cancelAmount: 30000,
+      fully: false,
+    })
+    assert.equal(c1, 5000)
+    const c2 = computePointsRefund({
+      pointsUsed: 10000,
+      alreadyRefunded: c1,
+      totalAmount: 50000,
+      cancelAmount: 30000,
+      fully: false,
+    })
+    assert.equal(c2, 5000)
+    assert.equal(c1 + c2, 10000)
+  })
+
+  it('부분취소 후 전량취소 — 전량은 잔여 전부, 과다환급 없음', () => {
+    const partial = computePointsRefund({
+      pointsUsed: 10000,
+      alreadyRefunded: 0,
+      totalAmount: 50000,
+      cancelAmount: 30000,
+      fully: false,
+    })
+    assert.equal(partial, 5000)
+    const full = computePointsRefund({
+      pointsUsed: 10000,
+      alreadyRefunded: partial,
+      totalAmount: 50000,
+      cancelAmount: 30000,
+      fully: true,
+    })
+    assert.equal(full, 5000)
+    assert.equal(partial + full, 10000)
+  })
+
+  it('온전한 주문 전량취소 → 전액 환급', () => {
+    assert.equal(
+      computePointsRefund({
+        pointsUsed: 10000,
+        alreadyRefunded: 0,
+        totalAmount: 50000,
+        cancelAmount: 50000,
+        fully: true,
+      }),
+      10000,
+    )
+  })
+
+  it('이미 전액 환급됨 → 0 (중복 환급 차단)', () => {
+    assert.equal(
+      computePointsRefund({
+        pointsUsed: 10000,
+        alreadyRefunded: 10000,
+        totalAmount: 50000,
+        cancelAmount: 30000,
+        fully: false,
+      }),
+      0,
+    )
+    assert.equal(
+      computePointsRefund({
+        pointsUsed: 10000,
+        alreadyRefunded: 10000,
+        totalAmount: 50000,
+        cancelAmount: 30000,
+        fully: true,
+      }),
+      0,
+    )
+  })
+
+  it('포인트 미사용 → 0', () => {
+    assert.equal(
+      computePointsRefund({
+        pointsUsed: 0,
+        alreadyRefunded: 0,
+        totalAmount: 50000,
+        cancelAmount: 30000,
+        fully: false,
+      }),
+      0,
+    )
+  })
+
+  it('전액 포인트결제(현금 0) 부분취소 — division-by-zero 안전', () => {
+    // total_amount 0, points_used 10000 → userPaidValue 10000.
+    assert.equal(
+      computePointsRefund({
+        pointsUsed: 10000,
+        alreadyRefunded: 0,
+        totalAmount: 0,
+        cancelAmount: 5000,
+        fully: false,
+      }),
+      5000,
+    )
+  })
+
+  it('비례액이 잔여분 초과 시 잔여분으로 상한', () => {
+    // alreadyRefunded 8000 → refundable 2000. 비례 5000 이지만 2000 으로 캡.
+    assert.equal(
+      computePointsRefund({
+        pointsUsed: 10000,
+        alreadyRefunded: 8000,
+        totalAmount: 50000,
+        cancelAmount: 30000,
+        fully: false,
+      }),
+      2000,
+    )
   })
 })

@@ -130,3 +130,33 @@ export async function debitPoints(
   }
   return appendLedger(supabase, { ...input, delta: -input.amount })
 }
+
+/**
+ * 주문 취소 시 환급할 "사용 포인트(points_used)" 금액 계산.
+ *
+ * 부분/전량 취소가 섞여도 총 환급이 points_used 를 절대 넘지 않도록
+ * `alreadyRefunded`(orders.points_refunded 누적)를 상한으로 둔다.
+ *   - 전량 취소: 남은 환급가능분(refundable) 전부.
+ *   - 부분 취소: 사용자가 지불한 총 가치(현금 total_amount + 사용 포인트) 대비
+ *     이번 취소 가치 비율만큼, 단 refundable 상한.
+ *
+ * 순수 함수 — 호출처(cancel / cancel-items 라우트)가 ledger reference 는
+ * refunds.id(이벤트별 유일)로 넘기고, 결과만큼 orders.points_refunded 를 누적한다.
+ */
+export function computePointsRefund(args: {
+  pointsUsed: number
+  alreadyRefunded: number
+  totalAmount: number
+  cancelAmount: number
+  fully: boolean
+}): number {
+  const { pointsUsed, alreadyRefunded, totalAmount, cancelAmount, fully } = args
+  const refundable = Math.max(0, (pointsUsed || 0) - (alreadyRefunded || 0))
+  if (refundable === 0) return 0
+  if (fully) return refundable
+  const userPaidValue = (totalAmount || 0) + (pointsUsed || 0)
+  if (userPaidValue <= 0) return 0
+  const ratio = Math.min(1, Math.max(0, cancelAmount) / userPaidValue)
+  const proportional = Math.floor(pointsUsed * ratio)
+  return Math.min(refundable, proportional)
+}
