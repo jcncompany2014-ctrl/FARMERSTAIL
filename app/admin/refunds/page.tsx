@@ -54,6 +54,34 @@ export default async function AdminRefundsPage() {
       .eq('status', 'pending'),
   ])
 
+  // 데드레터 — 자동 재시도 모두 실패한 환불(수동 처리 필요). payment_refund_queue
+  // 는 supabase typegen 미포함이라 unknown 캐스팅. RLS admin read 정책(마이그
+  // 20260608000002) 적용 후 노출 — 미적용/RLS 차단이면 빈 배열(무해).
+  const { data: deadLetters } = await (
+    supabase as unknown as {
+      from: (t: string) => {
+        select: (c: string) => {
+          eq: (
+            col: string,
+            val: string,
+          ) => { limit: (n: number) => Promise<{ data: unknown }> }
+        }
+      }
+    }
+  )
+    .from('payment_refund_queue')
+    .select('id, order_id, amount, attempts, reason, last_error')
+    .eq('status', 'permanently_failed')
+    .limit(20)
+  const dead = ((deadLetters as unknown[]) ?? []) as Array<{
+    id: string
+    order_id: string
+    amount: number
+    attempts: number
+    reason: string | null
+    last_error: string | null
+  }>
+
   type Refund = {
     id: string
     order_id: string
@@ -134,6 +162,42 @@ export default async function AdminRefundsPage() {
           highlight={pendingCount && pendingCount > 0 ? true : false}
         />
       </div>
+
+      {/* 데드레터 — 자동 재시도 모두 실패(수동 처리 필요). 최우선 노출. */}
+      {dead.length > 0 && (
+        <section className="mb-6 rounded-xl border-2 border-sale/40 bg-sale/5 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="w-4 h-4 text-sale" strokeWidth={2.4} />
+            <h2 className="text-[13px] font-bold text-sale">
+              환불 영구 실패 — 수동 처리 필요 ({dead.length})
+            </h2>
+          </div>
+          <ul className="space-y-1.5">
+            {dead.map((d) => (
+              <li
+                key={d.id}
+                className="flex items-center justify-between gap-3 bg-white rounded-lg px-3 py-2"
+              >
+                <Link
+                  href={`/admin/orders/${d.order_id}`}
+                  className="font-mono text-[12px] text-text hover:text-terracotta truncate"
+                >
+                  주문 #{String(d.order_id).slice(0, 8)} ·{' '}
+                  {Number(d.amount).toLocaleString()}원
+                </Link>
+                <span className="text-[10px] text-muted shrink-0">
+                  {d.attempts}회 실패
+                  {d.last_error ? ` · ${String(d.last_error).slice(0, 28)}` : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
+            자동 재시도가 모두 실패했어요. Toss 콘솔에서 직접 환불 후 해당 주문을
+            처리해 주세요. (이 목록은 비어 있는 게 정상이에요)
+          </p>
+        </section>
+      )}
 
       {/* 환불 list */}
       <section>
