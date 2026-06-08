@@ -68,7 +68,7 @@ export async function POST(req: Request) {
   // 기존 formula 조회 — 알레르기 검증 + reasoning 누적.
   const { data: existing, error: fetchErr } = await supabase
     .from('dog_formulas')
-    .select('id, formula, reasoning, daily_kcal, daily_grams')
+    .select('id, formula, reasoning, daily_kcal, daily_grams, approval_status')
     .eq('dog_id', data.dogId)
     .eq('user_id', user.id)
     .eq('cycle_number', data.cycleNumber)
@@ -80,6 +80,23 @@ export async function POST(req: Request) {
         message: '해당 cycle 의 처방을 찾을 수 없어요',
       },
       { status: 404 },
+    )
+  }
+
+  // 점검 medium: 이미 확정(approved)·마감(declined)된 처방은 수정 불가.
+  // approve 라우트는 NOT_PENDING 가드를 두는데 adjust 엔 없어, 결제 확정 대상이나
+  // 마감된 cycle 의 비율·급여량을 사용자가 임의 변경(Option A 사전동의 우회)할 수
+  // 있었다. pending/null 일 때만 조정 허용.
+  const approvalStatus = (existing as { approval_status?: string | null })
+    .approval_status
+  if (approvalStatus === 'approved' || approvalStatus === 'declined') {
+    return NextResponse.json(
+      {
+        code: 'NOT_ADJUSTABLE',
+        message:
+          '이미 확정되었거나 마감된 처방은 수정할 수 없어요. 새로 분석해 주세요.',
+      },
+      { status: 409 },
     )
   }
 

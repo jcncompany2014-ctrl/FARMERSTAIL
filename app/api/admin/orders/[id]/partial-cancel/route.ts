@@ -259,6 +259,21 @@ export async function POST(
     )
   }
 
+  // 점검 medium: refunds 원장 기록. 고객용 cancel/cancel-items 는 refunds 에 적지만
+  // admin 환불(유일한 admin 환불 경로)은 빠져 /admin/refunds 환불 목록·환불액
+  // 통계에서 조용히 누락됐다. refunded_by=admin 으로 구분. fail 은 환불 자체를
+  // 막지 않음(원장은 payment_events 가 1차 진실).
+  await admin.from('refunds').insert({
+    order_id: order.id,
+    user_id: order.user_id,
+    amount: cancelAmount,
+    reason: cancelReason?.trim() || null,
+    refunded_by: user.id, // admin actor
+    status: 'succeeded',
+    order_item_ids: null,
+    is_partial: !isFullyRefunded,
+  })
+
   // R93 (D7): 전액 환불 완료 시 재고 복구 — cancel route 와 동일 패턴.
   // 이전엔 admin 전액 환불 후 재고가 차감된 채 방치 → 품절 오인 + 판매 손실.
   // R100-3: UPDATE + `.is('cancelled_at', null)` 가드 + `.select()` 로 원자적

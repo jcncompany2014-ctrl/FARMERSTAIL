@@ -45,7 +45,7 @@ export function renderComebackCoupon({
     : ''
 
   const html = `<!DOCTYPE html>
-<html lang="ko"><head><meta charset="utf-8"><title>${subject}</title></head>
+<html lang="ko"><head><meta charset="utf-8"><title>${escape(subject)}</title></head>
 <body style="margin:0;background:#F5F0E6;font-family:-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo',sans-serif;color:#1E1A14">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F5F0E6;padding:40px 16px">
     <tr><td align="center">

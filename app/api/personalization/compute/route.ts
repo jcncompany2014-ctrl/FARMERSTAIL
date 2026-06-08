@@ -194,13 +194,41 @@ export async function POST(req: Request) {
   const { data: existing } = await supabase
     .from('dog_formulas')
     .select(
-      'formula, reasoning, transition_strategy, algorithm_version, daily_kcal, daily_grams, user_adjusted, cycle_number',
+      'formula, reasoning, transition_strategy, algorithm_version, daily_kcal, daily_grams, user_adjusted, cycle_number, created_at',
     )
     .eq('dog_id', dogId)
     .eq('cycle_number', 1)
     .maybeSingle()
   if (existing) {
-    const formula: Formula = {
+    // 점검 high(임상 안전): 재설문/재분석으로 더 새로운 analysis 가 생기면 이
+    // cycle-1 formula 는 stale 이다 — 옛 알레르기 게이팅·체중·비율을 그대로 캐시
+    // 반환하면 새 알레르기가 박스 처방에 반영되지 않는다. 최신 analysis 가
+    // formula 보다 새로우면 캐시를 무효화하고 아래에서 재계산(삭제 후 재삽입).
+    const { data: latestAna } = await supabase
+      .from('analyses')
+      .select('created_at')
+      .eq('dog_id', dogId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const formulaAt = existing.created_at
+      ? new Date(existing.created_at as string).getTime()
+      : 0
+    const analysisAt = latestAna?.created_at
+      ? new Date(latestAna.created_at as string).getTime()
+      : 0
+    const isStale = analysisAt > formulaAt
+
+    if (isStale) {
+      // 옛 cycle-1 삭제 → 아래 재계산 경로가 새 analysis 기준으로 다시 만든다.
+      // (user_adjusted 도 새 분석이 기준이므로 재계산 — 임상 안전 우선.)
+      await supabase
+        .from('dog_formulas')
+        .delete()
+        .eq('dog_id', dogId)
+        .eq('cycle_number', 1)
+    } else {
+      const formula: Formula = {
       // 타입 단언 — DB 의 jsonb 는 unknown 으로 들어옴. 우리가 넣은 거라 형식 보장.
       lineRatios: (existing.formula as { lineRatios: Formula['lineRatios'] }).lineRatios,
       toppers: (existing.formula as { toppers: Formula['toppers'] }).toppers,
@@ -235,7 +263,8 @@ export async function POST(req: Request) {
         v3 = null
       }
     }
-    return NextResponse.json({ ok: true, formula, v3, cached: true })
+      return NextResponse.json({ ok: true, formula, v3, cached: true })
+    }
   }
 
   // 3) 최신 survey + analysis 조회 — 한 번에 쿼리.
