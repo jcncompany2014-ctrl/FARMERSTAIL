@@ -333,6 +333,16 @@ export async function POST(req: Request) {
         })
       }
 
+      // 전액 취소면 사용자가 쓴 포인트 환급 + 쿠폰 회수(멱등). 웹훅/토스 대시보드
+      // 환불은 cancel 라우트를 안 거치므로 여기서 복구 안 하면 고객 포인트/쿠폰이
+      // 묶인다(점검 medium). 위 payment_status='cancelled' 가드로 전이당 1회만 실행.
+      if (!isPartial) {
+        const { recoverOrderPointsAndCoupon } = await import(
+          '@/lib/commerce/refund-recovery'
+        )
+        await recoverOrderPointsAndCoupon(supabase, order.id)
+      }
+
       // 전액 취소일 때만 고객 메일을 보냄 — 부분 환불은 ops 가 별도 커뮤니케이션.
       if (!isPartial) {
         notifyOrderCancelled(supabase, {

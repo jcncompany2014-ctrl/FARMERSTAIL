@@ -412,6 +412,18 @@ export async function POST(req: Request) {
         /* queue insert 도 실패 — Sentry 로 이미 잡힘 */
       }
     }
+    // 결제 시 쓴 포인트 환급 + 쿠폰 회수(멱등). Toss 환불 성공/실패와 무관하게
+    // 사용자 자산을 복구한다(점검 medium: 이 race 분기는 포인트/쿠폰 복구 누락).
+    // 이미 복구됐으면 no-op(points_refunded 상한 + order.id reference).
+    try {
+      const recoverAdmin = createAdminClient()
+      const { recoverOrderPointsAndCoupon } = await import(
+        '@/lib/commerce/refund-recovery'
+      )
+      await recoverOrderPointsAndCoupon(recoverAdmin, order.id)
+    } catch {
+      /* 복구 실패는 409 응답을 막지 않는다 — reconcile cron/운영자가 후속 처리 */
+    }
     return NextResponse.json(
       {
         code: 'ORDER_ALREADY_TERMINAL',

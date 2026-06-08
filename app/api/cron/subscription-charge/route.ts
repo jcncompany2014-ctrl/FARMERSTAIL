@@ -444,52 +444,68 @@ async function runSubscriptionCharge(): Promise<Response> {
         })
       }
 
-      await Promise.all([
-        supabase
-          .from('orders')
-          .update({
-            payment_status: 'paid',
-            order_status: 'preparing',
-            payment_key: result.paymentKey,
-            paid_at: successIso,
-          })
-          .eq('id', orderRow.id),
-        // audit #79: subscription_charges schema-drift cast.
-        (supabase as unknown as {
-          from: (t: string) => {
-            update: (r: Record<string, unknown>) => {
-              eq: (c: string, v: string) => Promise<unknown>
-            }
-          }
+      // 2-d) orders / subscription 업데이트 — 결과(error)를 검사한다. 돈은 이미
+      //   Toss 에서 청구(capture)됐으므로 후속 update 실패를 silent 통과시키면
+      //   '결제됐는데 payment_status=pending' 불일치가 남는다(점검 high). 실패 시
+      //   charge 를 'succeeded' 로 마킹하지 않고 즉시 알림 → 수동/cron 재정산.
+      const ordersUpd = await supabase
+        .from('orders')
+        .update({
+          payment_status: 'paid',
+          order_status: 'preparing',
+          payment_key: result.paymentKey,
+          paid_at: successIso,
         })
-          .from('subscription_charges')
-          .update({
-            status: 'succeeded',
-            payment_key: result.paymentKey,
-            order_id: orderRow!.id,
-            completed_at: successIso,
-          })
-          .eq('id', chargeRow!.id),
-        supabase
-          .from('subscriptions')
-          .update({
-            next_delivery_date: nextDate,
-            last_charged_at: successIso,
-            failed_charge_count: 0,
-            next_retry_at: null,
-            last_failed_charge_at: null,
-            last_failed_charge_reason: null,
-            last_failed_charge_code: null,
-            requires_billing_key_renewal: false,
-            total_deliveries: sub.total_deliveries + 1,
-          })
-          .eq('id', sub.id),
-      ])
-      captureBusinessEvent('info', 'subscription.charge.succeeded', {
-        subscriptionId: sub.id,
-        amount: sub.total_amount,
-        attemptCount: sub.failed_charge_count + 1,
+        .eq('id', orderRow.id)
+      const subUpd = await supabase
+        .from('subscriptions')
+        .update({
+          next_delivery_date: nextDate,
+          last_charged_at: successIso,
+          failed_charge_count: 0,
+          next_retry_at: null,
+          last_failed_charge_at: null,
+          last_failed_charge_reason: null,
+          last_failed_charge_code: null,
+          requires_billing_key_renewal: false,
+          total_deliveries: sub.total_deliveries + 1,
+        })
+        .eq('id', sub.id)
+      const postOk = !ordersUpd.error && !subUpd.error
+      // audit #79: subscription_charges schema-drift cast.
+      await (supabase as unknown as {
+        from: (t: string) => {
+          update: (r: Record<string, unknown>) => {
+            eq: (c: string, v: string) => Promise<unknown>
+          }
+        }
       })
+        .from('subscription_charges')
+        .update({
+          // 후속 update 실패 시 'succeeded' 금지 → 'pending' 유지(payment_key 존재 =
+          // '청구됐으나 미확정' reconcile 신호). payment_events 엔 이미 paid 기록.
+          status: postOk ? 'succeeded' : 'pending',
+          payment_key: result.paymentKey,
+          order_id: orderRow!.id,
+          completed_at: postOk ? successIso : null,
+        })
+        .eq('id', chargeRow!.id)
+      if (postOk) {
+        captureBusinessEvent('info', 'subscription.charge.succeeded', {
+          subscriptionId: sub.id,
+          amount: sub.total_amount,
+          attemptCount: sub.failed_charge_count + 1,
+        })
+      } else {
+        // 돈은 청구됐는데 주문/구독 갱신 실패 → 즉시 알림(수동 재정산 필요).
+        captureBusinessEvent('error', 'subscription.charge.post_update_failed', {
+          subscriptionId: sub.id,
+          orderId: orderRow!.id,
+          paymentKey: result.paymentKey,
+          ordersError: ordersUpd.error?.message ?? null,
+          subError: subUpd.error?.message ?? null,
+        })
+      }
       succeeded += 1
     } else {
       // 2-e) 실패 → 에러 코드 분류해서 분기.
