@@ -9,6 +9,10 @@ import KakaoLoginButton from '@/components/KakaoLoginButton'
 import AppleLoginButton from '@/components/AppleLoginButton'
 import AuthHero from '@/components/auth/AuthHero'
 import { useIsAppContext } from '@/hooks/useIsAppContext'
+import {
+  applySignupProfile,
+  normalizeSignupMeta,
+} from '@/lib/auth/applySignupProfile'
 
 /**
  * /login — 기존 계정 로그인.
@@ -121,6 +125,42 @@ function LoginInner() {
           '탈퇴 처리된 계정이에요. 도움이 필요하면 고객센터로 문의해 주세요.',
         )
         return
+      }
+
+      // R-fix(이메일확인 데이터유실 복원): Confirm email 이 ON 이면 signUp 직후
+      // 세션이 없어 프로필이 비어 있다. signUp 때 auth 메타데이터(signup_profile)
+      // 에 보관해 둔 가입 입력값을 "첫 로그인"에 복원한다(이름·전화·주소·생일·
+      // 마케팅동의·추천인보상·환영쿠폰). profiles.name 이 비어 있을 때만 실행(멱등)
+      // 하고, 성공 후 메타데이터 PII 를 즉시 비운다(PIPA). 복원 실패는 로그인을
+      // 막지 않는다 — 프로필은 마이페이지에서 수정 가능.
+      try {
+        const pending = normalizeSignupMeta(
+          (signedIn.user_metadata as Record<string, unknown> | null)
+            ?.signup_profile,
+        )
+        if (pending) {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', signedIn.id)
+            .maybeSingle()
+          const needsRestore = !prof?.name || prof.name.trim().length === 0
+          if (needsRestore) {
+            const r = await applySignupProfile(supabase, signedIn.id, pending)
+            if (r.underAge) {
+              await supabase.auth.signOut()
+              setLoading(false)
+              setFormError('만 14세 미만은 가입할 수 없어요.')
+              return
+            }
+          }
+          // 복원 여부와 무관하게 메타데이터 PII 는 비운다(PIPA, fire-and-forget).
+          supabase.auth
+            .updateUser({ data: { signup_profile: null } })
+            .catch(() => {})
+        }
+      } catch {
+        /* 복원 실패는 로그인 자체를 막지 않는다 */
       }
     }
 

@@ -277,6 +277,30 @@ function SignupForm() {
     const { data, error: authErr } = await supabase.auth.signUp({
       email: email.trim(),
       password,
+      // R-fix(이메일확인 데이터유실): Confirm email 이 ON 이면 signUp 직후
+      // data.session === null 이라 RLS 가 프로필 쓰기를 막는다. 입력값을 auth
+      // 메타데이터(signup_profile)로 함께 보관 → 첫 로그인 시
+      // lib/auth/applySignupProfile 로 복원(다른 탭/기기에서도 생존).
+      // ※ 'name' 을 top-level data 에 두면 handle_new_user 트리거가 profiles.name
+      //    을 채워 "name 비어있음 = 복원신호" 가 깨지므로 반드시 signup_profile
+      //    안에 중첩한다(트리거는 top-level 'name' 만 읽음 → 영향 0).
+      options: {
+        data: {
+          signup_profile: {
+            name: name.trim(),
+            phone,
+            zip,
+            address,
+            address_detail: addressDetail,
+            birth_year: Number.isFinite(birthYearNum) ? birthYearNum : null,
+            birth_month: birthMonth && birthDay ? Number(birthMonth) : null,
+            birth_day: birthMonth && birthDay ? Number(birthDay) : null,
+            agree_email: agreeMarketingEmail,
+            agree_sms: agreeMarketingSms,
+            referral_code: referralCode.trim().toUpperCase(),
+          },
+        },
+      },
     })
 
     if (authErr) {
@@ -452,6 +476,11 @@ function SignupForm() {
       // Resend 로 발송. 실패해도 가입 플로우엔 영향 없음 (idempotencyKey
       // 덕분에 중복 호출도 안전).
       fetch('/api/auth/welcome-email', { method: 'POST' }).catch(() => {})
+
+      // PIPA: 이 분기(이메일확인 OFF)는 입력값을 즉시 반영했으므로 signUp 때
+      // 보관한 메타데이터 signup_profile(PII)을 비운다. fire-and-forget 이라
+      // redirect 지연 없음. (이미 profiles 가 채워져 로그인 복원 경로도 재실행 안 됨.)
+      supabase.auth.updateUser({ data: { signup_profile: null } }).catch(() => {})
 
       setLoading(false)
       router.push('/dashboard')
