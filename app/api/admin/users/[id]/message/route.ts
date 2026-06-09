@@ -4,6 +4,7 @@ import { isAdmin } from '@/lib/auth/admin'
 import { pushToUser } from '@/lib/push'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { recordAdminAction } from '@/lib/admin-audit'
+import { sanitizeLogText } from '@/lib/log-sanitize'
 
 /**
  * POST /api/admin/users/[id]/message
@@ -109,12 +110,19 @@ export async function POST(
   // CS 양방향 thread 에도 같은 메시지 기록 — 사용자가 /mypage/cs 에서 답장
   // 가능. push 발송 실패해도 thread 에는 남도록 별도 처리. RLS 가 admin
   // role 만 insert 허용하므로 sender_id=user.id (현재 admin).
-  await supabase.from('cs_messages').insert({
+  // 점검 F: cs_messages insert error 무검사 → 스레드 누락을 조용히 삼키지 않도록
+  // 경고 로그(요청 자체는 push 결과로 응답하므로 실패시켜 admin 을 혼란시키지 않음).
+  const { error: csErr } = await supabase.from('cs_messages').insert({
     user_id: targetUserId,
     sender: 'admin',
     sender_id: user.id,
     body: title === body ? body : `${title}\n\n${body}`,
   })
+  if (csErr) {
+    console.warn(
+      `[admin-message] cs_messages insert failed user=${targetUserId}: ${sanitizeLogText(csErr.message)}`,
+    )
+  }
 
   // Audit log — admin 이 사용자에게 보낸 메시지 추적 (분쟁 시 증거).
   await recordAdminAction(supabase, {

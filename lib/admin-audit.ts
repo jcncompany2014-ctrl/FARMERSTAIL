@@ -21,6 +21,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { sanitizeLogText } from '@/lib/log-sanitize'
 
 export type AdminAuditAction =
   // Product
@@ -129,14 +130,15 @@ export async function recordAdminAction(
       user_agent: userAgent?.slice(0, 500) ?? null,
     })
     if (error) {
+      // 점검 J: error.message 위생 처리(제어문자/PII/길이) 후 로깅.
       console.warn(
-        `[admin-audit] insert failed — action=${input.action}: ${error.message}`,
+        `[admin-audit] insert failed — action=${input.action}: ${sanitizeLogText(error.message)}`,
       )
     }
   } catch (e) {
     console.warn(
       `[admin-audit] exception — action=${input.action}:`,
-      e instanceof Error ? e.message : 'unknown',
+      sanitizeLogText(e instanceof Error ? e.message : 'unknown'),
     )
   }
 }

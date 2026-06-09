@@ -110,6 +110,11 @@ export async function exchangeTractiveCode(
     scope?: string | null
     user_id?: string | null
   }
+  // 점검 H: access_token 부재/비정상 응답 시 null 저장 방지 — throw 하면 콜백이
+  // token_exchange 에러로 안전 redirect.
+  if (!json.access_token || typeof json.access_token !== 'string') {
+    throw new Error('Tractive token exchange: missing access_token')
+  }
   const expiresAt = json.expires_in
     ? new Date(Date.now() + json.expires_in * 1000)
     : null

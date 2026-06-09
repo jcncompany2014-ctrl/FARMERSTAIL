@@ -119,7 +119,8 @@ export async function DELETE(_req: Request, { params }: Params) {
     .eq('user_id', user.id)
 
   if (delErr) {
-    return NextResponse.json({ error: delErr.message }, { status: 500 })
+    // 점검 A (audit #69): 원본 DB error message 노출 제거 — PATCH 와 동일 마스킹.
+    return dbError(delErr, 'addresses_delete', '배송지 처리에 실패했어요')
   }
 
   // 기본 배송지를 지웠다면 가장 최근 등록 주소를 자동 승격.

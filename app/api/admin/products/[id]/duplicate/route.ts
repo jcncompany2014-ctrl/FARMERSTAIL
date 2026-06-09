@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { recordAdminAction } from '@/lib/admin-audit'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -82,12 +83,11 @@ export async function POST(req: Request, { params }: { params: Params }) {
     .single()
 
   if (insertError || !inserted) {
-    return NextResponse.json(
-      {
-        code: 'INSERT_FAILED',
-        message: insertError?.message ?? '복제에 실패했어요',
-      },
-      { status: 500 }
+    // 점검 E (audit #69): 원본 DB error message client 노출 제거.
+    return dbError(
+      insertError ?? new Error('insert_failed'),
+      'product_duplicate',
+      '복제에 실패했어요',
     )
   }
 

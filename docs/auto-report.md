@@ -6,6 +6,31 @@ Opus 무인 점검 sweep 중 발견했으나 **직접 수정하지 않고 사람
 
 ---
 
+## 2026-06-09 — 사람 검토 후 적용 완료 (resolve 로그)
+
+세션에서 founder 승인("다 고쳐줘") 하에 아래 보류 항목을 직접 적용. 모두
+verify(eslint+tsc+test) + build:ci green 확인 후 커밋. 결제/인증/임상 핵심 로직은
+여전히 미변경 — 적용분은 전부 에러-마스킹/입력검증/로그위생/방어 default.
+
+- **A** ✅ `app/api/addresses/[id]/route.ts` DELETE → `dbError(...)` 마스킹.
+- **B** ✅ `lib/ui-flags.ts` switch `default: return false` 방어.
+- **C** ✅ (검증) 버킷 존재 + public=false 확인. storage RLS 정책 0개 = deny-all
+  (유출 위험 없음) + 헬퍼 미연결(사용 라우트 없음). owner-only 정책 마이그레이션
+  **파일** 준비(`20260609000000_medical_records_images_policy.sql`) — 운영 DB 미적용
+  (불필요 + 마이그 검토 원칙). 추후 기능 연결 시 적용.
+- **E** ✅ admin 4개 라우트(products duplicate / blog·events·products upload) raw
+  에러 메시지 → `dbError()` 마스킹.
+- **F** ✅ admin push-campaigns 카운트 update + users/[id]/message cs_messages
+  insert 에러 무검사 → 위생 처리 경고 로그(요청 의미는 유지).
+- **G** ✅ chatbot route/stream 에 `checkAnthropicDailyCap('chatbot')` 추가.
+- **H** ✅ Tractive callback code 위생 가드(빈값/공백/길이) + `tractive.ts`
+  access_token 부재 검사.
+- **I** ✅ refund-retry Toss 에러 → `sanitizeLogText()` 마스킹(Sentry/Slack/DB).
+- **J** ✅ admin-audit / cron-tracking 로그 메시지 `sanitizeLogText()` 위생 처리.
+- **D / K** — 조치 불요(D: CSV 방어 정상) / 선택(K: 네이티브 전용, 테스트 불가).
+
+---
+
 ## 2026-06-08 batch 2 — 보류 항목
 
 ### A. `app/api/addresses/[id]/route.ts:122` — DELETE 에러 메시지 raw 노출 (LOW)

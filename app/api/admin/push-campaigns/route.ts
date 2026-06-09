@@ -7,6 +7,7 @@ import { parseRequest } from '@/lib/api/parseRequest'
 import { pushToUser } from '@/lib/push'
 import { dbError } from '@/lib/api/errors'
 import { recordAdminAction } from '@/lib/admin-audit'
+import { sanitizeLogText } from '@/lib/log-sanitize'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -125,11 +126,18 @@ export async function POST(req: Request) {
     }
   }
 
-  // 4) campaign 결과 update.
-  await admin
+  // 4) campaign 결과 update. 발송은 이미 끝났으므로 카운트 갱신 실패는 치명적이
+  //    아니지만(요청 실패로 만들지 않음), 대시보드 숫자가 어긋나므로 점검 F:
+  //    무검사 → 실패 시 위생 처리한 메시지로 경고 로그.
+  const { error: countErr } = await admin
     .from('push_campaigns')
     .update({ sent_count: sent, failed_count: failed })
     .eq('id', campaign.id)
+  if (countErr) {
+    console.warn(
+      `[push-campaigns] count update failed campaign=${campaign.id}: ${sanitizeLogText(countErr.message)}`,
+    )
+  }
 
   // Audit log — 대량 푸시 발송은 정보통신망법 §50 광고성 정보 기록 의무 + 분쟁
   // 대응. recipient_count / sent / failed 모두 기록.

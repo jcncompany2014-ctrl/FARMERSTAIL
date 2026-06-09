@@ -36,5 +36,8 @@ export function isAdvancedUiEnabled(feature: AdvancedUiFeature): boolean {
       return process.env.NEXT_PUBLIC_SHOW_OCR === 'on'
     case 'photo_tips':
       return process.env.NEXT_PUBLIC_SHOW_PHOTO_TIPS === 'on'
+    // 점검 B: 타입 외 값 방어 — 알 수 없는 feature 는 OFF(안전 default).
+    default:
+      return false
   }
 }

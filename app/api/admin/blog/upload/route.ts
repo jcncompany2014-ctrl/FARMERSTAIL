@@ -114,13 +114,8 @@ export async function POST(req: Request) {
     })
 
   if (uploadError) {
-    return NextResponse.json(
-      {
-        code: 'UPLOAD_FAILED',
-        message: uploadError.message || '업로드에 실패했어요',
-      },
-      { status: 500 }
-    )
+    // 점검 E (audit #69): 원본 스토리지 에러 메시지 client 노출 제거.
+    return dbError(uploadError, 'admin_blog_upload', '업로드에 실패했어요')
   }
 
   const { data: pub } = supabase.storage

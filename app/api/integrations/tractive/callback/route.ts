@@ -33,7 +33,10 @@ export async function GET(req: Request) {
     /tractive_oauth_state=([^;]+)/,
   )?.[1]
 
-  if (!code) {
+  // 점검 H: code 위생 — 부재/빈값 + 공백(개행 포함) 또는 비정상적으로 긴 값 차단.
+  // opaque OAuth code(base64url 등)는 공백을 포함하지 않으므로 false negative 없음.
+  // 하이픈/언더스코어는 정상 code 문자라 charset 제한은 두지 않음.
+  if (!code || code.length > 2048 || /\s/.test(code)) {
     return NextResponse.redirect(
       new URL('/mypage/integrations?error=missing_code', url),
       { status: 302 },

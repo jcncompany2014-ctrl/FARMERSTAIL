@@ -24,6 +24,7 @@
  * insert. RLS 는 select 만 admin 으로 제한, write 는 service_role 자동 통과.
  */
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sanitizeLogText } from '@/lib/log-sanitize'
 
 export async function trackCron<T extends Response>(
   path: string,
@@ -47,8 +48,12 @@ export async function trackCron<T extends Response>(
     return result
   } catch (err) {
     const durationMs = Date.now() - start
-    const message =
-      err instanceof Error ? err.message : 'unknown cron error'
+    // 점검 J: 위생 처리(제어문자→공백/PII 마스킹/길이 cap)를 message 생성 시점에
+    // 한 번 — recordHealth(DB) + notifyCronError(Sentry) 양쪽에 동일 적용.
+    const message = sanitizeLogText(
+      err instanceof Error ? err.message : 'unknown cron error',
+      500,
+    )
     void recordHealth(path, 'error', durationMs, message, null)
     // R87-C5 (D14): cron 실패는 매일 admin 대시보드 직접 확인이 필요 — 알림 보강.
     // Sentry breadcrumb + captureBusinessEvent 로 운영자에게 즉시 가시화.
