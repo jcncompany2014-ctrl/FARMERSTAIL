@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           # 24.x — 로컬 dev 와 일치. .nvmrc 도 동일.
           node-version-file: '.nvmrc'
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: npm
@@ -115,7 +115,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: npm
@@ -152,7 +152,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: npm
