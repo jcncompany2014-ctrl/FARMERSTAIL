@@ -54,7 +54,9 @@ process.on('SIGTERM', () => {
 
 // ── 1) ci.yml build job 의 env 블록 파싱 (SSOT — 직접 하드코딩 안 함) ──
 function parseBuildEnv() {
-  const yml = readFileSync(CI_YML, 'utf8')
+  // CRLF 안전: Windows 체크아웃(core.autocrlf=true)으로 ci.yml 작업본이 CRLF 여도
+  // 파서(LF 가정)가 깨지지 않게 정규화. 커밋 blob 은 LF 그대로 — 영향 없음.
+  const yml = readFileSync(CI_YML, 'utf8').replace(/\r\n/g, '\n')
   const buildIdx = yml.indexOf('\n  build:')
   if (buildIdx === -1) throw new Error('ci.yml 에서 build job(\\n  build:)을 못 찾음')
   // build job 범위: 다음 2-space job(예: \n  audit:) 직전까지.
