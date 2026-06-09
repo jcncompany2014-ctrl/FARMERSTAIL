@@ -7,6 +7,7 @@ import {
   buildChatbotSystemPrompt,
   CHATBOT_HISTORY_LIMIT,
 } from '@/lib/chatbot-system-prompt'
+import { checkAnthropicDailyCap } from '@/lib/anthropic-usage'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -45,6 +46,19 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
       { status: 429, headers: rl.headers },
+    )
+  }
+
+  // 점검 G: 일일 전역 AI 비용 cap — 분산 IP/다수 사용자가 IP 분당 제한을 우회해
+  // 무제한 호출하는 비용 남용 방지(commentary/structured 와 동일 패턴). fail-open.
+  const cap = await checkAnthropicDailyCap('chatbot')
+  if (cap.exceeded) {
+    return NextResponse.json(
+      {
+        code: 'DAILY_CAP_EXCEEDED',
+        message: '오늘 AI 사용량이 많아 잠시 후 다시 시도해 주세요',
+      },
+      { status: 503 },
     )
   }
 

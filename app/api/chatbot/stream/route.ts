@@ -12,6 +12,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { parseRequest } from '@/lib/api/parseRequest'
+import { checkAnthropicDailyCap } from '@/lib/anthropic-usage'
 import {
   buildChatbotSystemPrompt,
   CHATBOT_HISTORY_LIMIT,
@@ -42,6 +43,18 @@ export async function POST(req: Request): Promise<Response> {
     return NextResponse.json(
       { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
       { status: 429, headers: rl.headers },
+    )
+  }
+
+  // 점검 G: 일일 전역 AI 비용 cap — IP 분당 제한 우회 무제한 호출 방지. fail-open.
+  const cap = await checkAnthropicDailyCap('chatbot')
+  if (cap.exceeded) {
+    return NextResponse.json(
+      {
+        code: 'DAILY_CAP_EXCEEDED',
+        message: '오늘 AI 사용량이 많아 잠시 후 다시 시도해 주세요',
+      },
+      { status: 503 },
     )
   }
 

@@ -7,6 +7,9 @@ import { captureBusinessEvent } from '@/lib/sentry/trace'
 // R91-D #1 (D7): 환불 영구 실패 시 운영자 수동 개입 필수 → fatal alert helper
 // 로 Sentry rule 라우팅 가능하게.
 import { alertRefundFailure } from '@/lib/sentry/alerts'
+// 점검 I: Toss 에러메시지(카드/계좌 PII·제어문자 가능)를 Sentry/Slack/DB last_error
+// 로 보내기 전 마스킹.
+import { sanitizeLogText } from '@/lib/log-sanitize'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -185,20 +188,20 @@ async function runRefundRetry(): Promise<Response> {
         .update({
           status: 'permanently_failed',
           attempts,
-          last_error: result.error.message,
+          last_error: sanitizeLogText(result.error.message),
         })
         .eq('id', row.id)
       captureBusinessEvent('error', 'refund_queue.permanent_failure', {
         orderId: row.order_id,
         paymentKey: row.payment_key,
         attempts,
-        lastError: result.error.message,
+        lastError: sanitizeLogText(result.error.message),
       })
       // R91-D #1: 운영자가 수동 환불 진행해야 함 → fatal alert.
       alertRefundFailure({
         orderId: row.order_id,
         attempts,
-        lastError: result.error.message,
+        lastError: sanitizeLogText(result.error.message),
       })
       failed += 1
       continue
@@ -211,7 +214,7 @@ async function runRefundRetry(): Promise<Response> {
       .from('payment_refund_queue')
       .update({
         attempts,
-        last_error: result.error.message,
+        last_error: sanitizeLogText(result.error.message),
         next_retry_at: nextRetryAt,
       })
       .eq('id', row.id)
