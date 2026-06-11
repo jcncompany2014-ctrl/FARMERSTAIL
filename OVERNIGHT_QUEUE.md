@@ -29,8 +29,8 @@
 - [x] B3. 밑줄 링크 10곳 → › 그래머 (5758ddb). 의도적 유지 3곳 로그 참조.
 - [x] B4. BottomSheet 드래그 닫기 (aabd93f) — 그래버+제목 존, 90px 임계, 스프링백.
 - [x] B5. Toast 스와이프 닫기 (757071a).
-- [ ] B6. 스크롤바 숨김(앱 chrome) + 관성 스크롤 전역 (globals.css 앱 스코프).
-- [ ] B7. user-select/touch-callout off — 앱 전역, 입력창·본문 텍스트 예외.
+- [x] B6. 스크롤바 숨김 + 관성 스크롤 (aeb3727)
+- [x] B7. user-select/touch-callout off, 입력류 예외 (aeb3727) — build:ci 권위 검증 포함
 - [ ] B8. 상태바 safe-area 색 채움 + statusBarStyle (viewportFit cover 와 세트).
 - [ ] B9. 진입 애니메이션 활용 확대 — lib/motion.ts 가 2화면뿐 → 주요 화면 목록/카드에 stagger fade-in-up.
 - [ ] B10. Tooltip hover식 → 탭 펼침 (Tooltip.tsx:61).

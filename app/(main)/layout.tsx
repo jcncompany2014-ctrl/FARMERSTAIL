@@ -20,7 +20,7 @@
  * 빈 스피너 200~500ms 가 깜빡이는 원인이었다. 제거 — 이제 layout 은 server
  * component 라 zero-overhead 로 통과.
  */
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import AppChrome from '@/components/AppChrome'
 import { ConfirmProvider } from '@/components/v3'
 
@@ -37,6 +37,19 @@ import { ConfirmProvider } from '@/components/v3'
  */
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
+}
+
+/**
+ * B8 — 앱 라우트 상태바 색. 루트의 themeColor 는 웹 시그니처 terracotta 인데,
+ * 앱 헤더는 paper(#f4ede0) 라 상태바만 주황 띠로 떠 보였음. (main) 스코프
+ * override 로 상태바가 헤더에 자연스럽게 녹아들게 한다 (웹은 루트 값 유지).
+ * 나머지 viewport 키(viewportFit 등)는 루트에서 shallow-merge 상속.
+ */
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#171310' },
+    { media: '(prefers-color-scheme: light)', color: '#f4ede0' },
+  ],
 }
 
 export default function MainLayout({
