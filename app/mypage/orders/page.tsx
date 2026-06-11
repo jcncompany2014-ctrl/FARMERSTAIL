@@ -11,6 +11,7 @@ import OrdersAppView, {
   type ReorderProduct,
 } from './OrdersAppView'
 
+// (cache-bust: Turbopack 가 편집 중간 파스 실패 청크를 캐시해 강제 재컴파일)
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
