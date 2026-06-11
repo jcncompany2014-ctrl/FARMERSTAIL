@@ -50,6 +50,9 @@ export type CouponCardProps = {
   onApply?: () => void
   /** 복사 모드 — 카드 우측에 코드 복사 버튼 노출. */
   onCopy?: () => void
+  /** 쇼핑 모드(쿠폰함) — '제품 보러가기' 버튼. 쿠폰함은 적용처가 없으니
+   *  복사 대신 제품 탭으로 보내 실제 구매 흐름으로 연결. */
+  onShop?: () => void
   /** 복사 직후 1.5s 동안 true 로 두면 "복사됨" 표시. */
   copied?: boolean
 }
@@ -97,6 +100,7 @@ export default function CouponCard({
   recommended,
   onApply,
   onCopy,
+  onShop,
   copied,
 }: CouponCardProps) {
   const { big, small } = formatDiscount(coupon)
@@ -258,7 +262,21 @@ export default function CouponCard({
               적용하기
             </span>
           )}
-          {state === 'available' && !onApply && onCopy && (
+          {state === 'available' && !onApply && onShop && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onShop()
+              }}
+              aria-label="제품 보러가기"
+              className="shrink-0 inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10.5px] font-bold transition active:scale-95"
+              style={{ background: 'var(--ink)', color: 'white' }}
+            >
+              제품 보러가기
+            </button>
+          )}
+          {state === 'available' && !onApply && !onShop && onCopy && (
             <button
               type="button"
               onClick={(e) => {

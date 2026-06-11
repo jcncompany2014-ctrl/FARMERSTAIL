@@ -47,7 +47,6 @@ export default function CouponBrowser({
   const [tab, setTab] = useState<Tab>('available')
   const [code, setCode] = useState('')
   const [registering, setRegistering] = useState(false)
-  const [copied, setCopied] = useState<string | null>(null)
 
   // redemption 카운트 — coupon_id 별 본인 사용 횟수
   const usedByCoupon = useMemo(() => {
@@ -106,23 +105,6 @@ export default function CouponBrowser({
       router.refresh()
     } finally {
       setRegistering(false)
-    }
-  }
-
-  async function copyCode(c: string) {
-    try {
-      await navigator.clipboard.writeText(c)
-      setCopied(c)
-      setTimeout(() => setCopied(null), 1500)
-      // UX audit #16: 복사 후 "장바구니로" action — 사용자가 다음 단계 알게.
-      toast.success('코드를 복사했어요', {
-        action: {
-          label: '장바구니로',
-          onClick: () => router.push('/cart'),
-        },
-      })
-    } catch {
-      toast.error('복사하지 못했어요')
     }
   }
 
@@ -285,10 +267,9 @@ export default function CouponBrowser({
               key={c.id}
               coupon={c}
               state={stateForTab}
-              onCopy={
-                tab === 'available' ? () => copyCode(c.code) : undefined
+              onShop={
+                tab === 'available' ? () => router.push('/products') : undefined
               }
-              copied={copied === c.code}
             />
           ))
         )}
