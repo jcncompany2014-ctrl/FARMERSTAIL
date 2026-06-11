@@ -41,30 +41,23 @@ export default async function DogsPage() {
 
   return (
     <div className="pb-8">
-      {/* Header */}
-      <section className="px-5 pt-6 pb-2">
-        <Link
-          href="/dashboard"
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          ← 홈으로
-        </Link>
-        <div className="mt-3 flex items-end justify-between">
-          <div>
-            <span className="kicker">Our Dogs · 우리 아이</span>
-            <h1
-              className="font-sans mt-1.5"
-              style={{
-                fontSize: 32,
-                fontWeight: 800,
-                color: 'var(--ink)',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.2,
-              }}
-            >
-              우리 아이
-            </h1>
-          </div>
+      {/* Header — 탭 루트라 상단 앱 헤더(로고+강아지 칩)가 내비를 담당.
+          '← 홈으로' + 'Our Dogs · 우리 아이' 키커는 난잡해서 제거(사장님 피드백),
+          깔끔한 제목 + 추가 버튼만. */}
+      <section className="px-5 pt-5 pb-2">
+        <div className="flex items-end justify-between">
+          <h1
+            className="font-sans"
+            style={{
+              fontSize: 32,
+              fontWeight: 800,
+              color: 'var(--ink)',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2,
+            }}
+          >
+            우리 아이
+          </h1>
           {/* UI audit F-1: 44px touch target — py-2 → py-2.5 + min-h. iOS HIG. */}
           <Link
             href="/dogs/new"

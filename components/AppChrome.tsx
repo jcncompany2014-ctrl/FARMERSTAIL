@@ -40,7 +40,7 @@ type Tab = {
 
 const TABS: Tab[] = [
   { href: '/dashboard', label: '홈', Icon: Home },
-  { href: '/dogs', label: '강아지', Icon: PawPrint },
+  { href: '/dogs', label: '우리 아이', Icon: PawPrint },
   { href: '/products', label: '제품', Icon: Store },
   { href: '/cart', label: '장바구니', Icon: ShoppingCart },
   { href: '/mypage', label: '내 정보', Icon: User },
