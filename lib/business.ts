@@ -62,6 +62,9 @@ export const business: BusinessInfo = {
   // 신고증에는 소문자로 등재됐으나 Toss 검수는 사업자등록증 우선).
   // 상법 §20: 회사가 아닌 자가 상호에 (주)·㈜·주식회사 등 회사 표기
   // 사용 시 과태료. Toss 입점심사 검수 항목 (홈페이지 하단 상호 일치).
+  // [2026-06-11] dev hydration mismatch 관측 — 클라이언트 청크에 옛 상호
+  // "(주)..." 가 인라인된 Turbopack stale cache 였음. 이 주석 추가가 모듈
+  // 재컴파일을 강제 (캐시 무효화 처방 — OVERNIGHT_LOG 의 B1 팁 참고).
   companyName: pickEnv(
     process.env.NEXT_PUBLIC_BUSINESS_COMPANY_NAME,
     "파머스테일 (Farmer's Tail)",
