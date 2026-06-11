@@ -19,6 +19,7 @@ import CartUpsell from "@/components/cart/CartUpsell";
 import CartAddMore from "@/components/cart/CartAddMore";
 import CartReceipt from "@/components/cart/CartReceipt";
 import CartStickyCTA from "@/components/cart/CartStickyCTA";
+import { CartCouponProvider } from "@/components/cart/CartCouponContext";
 
 export const dynamic = "force-dynamic";
 
@@ -412,9 +413,11 @@ export default async function CartPage() {
               </aside>
             </div>
 
-            {/* R21: items 아래 mobile handoff — app 일 때만 */}
+            {/* R21: items 아래 mobile handoff — app 일 때만.
+                CartCouponProvider: 쿠폰 인라인 적용 + 영수증/결제바 즉시 할인 반영
+                (app 전용 — web 데스크톱 사이드바는 영향 없음). */}
             {isApp && (
-              <>
+              <CartCouponProvider subtotal={subtotal}>
                 <CartUpsell variant="app" />
                 <CartAddMore products={addMoreProducts} />
                 <CartReceipt
@@ -425,7 +428,7 @@ export default async function CartPage() {
                   variant="app"
                 />
                 <CartStickyCTA count={validRows.length} total={total} />
-              </>
+              </CartCouponProvider>
             )}
           </>
         )}

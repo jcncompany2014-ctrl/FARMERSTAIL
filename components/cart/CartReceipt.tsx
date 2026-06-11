@@ -19,6 +19,7 @@
  */
 
 import { Sparkles } from 'lucide-react'
+import { useCartCoupon } from './CartCouponContext'
 
 interface Props {
   subtotal: number
@@ -38,7 +39,10 @@ export default function CartReceipt({
   remainingToFree,
   variant = 'web',
 }: Props) {
-  const total = subtotal + shipping
+  // 장바구니 쿠폰(앱) — 적용 시 즉시 할인 반영. Provider 밖이면 0.
+  const { applied } = useCartCoupon()
+  const couponDiscount = applied?.discount ?? 0
+  const total = Math.max(0, subtotal + shipping - couponDiscount)
   const isFreeShipping = shipping === 0
   const isApp = variant === 'app'
 
@@ -90,6 +94,13 @@ export default function CartReceipt({
             >
               {remainingToFree.toLocaleString()}원 더 담으면 무료
             </div>
+          )}
+          {couponDiscount > 0 && (
+            <ReceiptRow
+              label={`쿠폰 할인${applied?.name ? ` · ${applied.name}` : ''}`}
+              value={`−${couponDiscount.toLocaleString()}원`}
+              valueColor="#dc532a"
+            />
           )}
 
           <div

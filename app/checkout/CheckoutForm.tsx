@@ -282,6 +282,12 @@ export default function CheckoutForm({
 
   function removeCoupon() {
     setCouponApplied(null)
+    // 장바구니에서 넘어온 선택 쿠폰도 함께 해제 — 카트↔결제 동기화.
+    try {
+      window.localStorage.removeItem('ft_cart_coupon')
+    } catch {
+      /* noop */
+    }
   }
 
   // Round B (2026-05-20): 첫 박스 자동 쿠폰 적용 — mount 1회.
@@ -297,6 +303,23 @@ export default function CheckoutForm({
     // deps 에 넣으면 매 렌더마다 재호출 가능 → 의도적으로 제외.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoApplyCouponCode])
+
+  // 장바구니에서 선택한 쿠폰(ft_cart_coupon) 을 결제창 진입 시 자동 적용.
+  // 권위 검증(validateCoupon)을 거치므로 안전 — 만료/조건 미달이면 silent 무시
+  // (사용자가 쿠폰 시트에서 직접 선택 가능). 첫박스 autoApply 와 중복이면 skip.
+  useEffect(() => {
+    if (couponApplied) return
+    let code: string | null = null
+    try {
+      const raw = window.localStorage.getItem('ft_cart_coupon')
+      if (raw) code = (JSON.parse(raw) as { code?: string }).code ?? null
+    } catch {
+      code = null
+    }
+    if (code && code !== autoApplyCouponCode) void applyCouponCode(code)
+    // mount 1회만.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleAddressComplete = useCallback(
     (data: { zip: string; address: string; buildingName: string }) => {

@@ -20,6 +20,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { useCartCoupon } from './CartCouponContext'
 
 type Mode = 'nav' | 'cta'
 
@@ -32,6 +33,9 @@ export default function CartStickyCTA({
 }) {
   // R22: default 'cta' — 모바일 commerce 표준 (즉시 결제 가능).
   const [mode, setMode] = useState<Mode>('cta')
+  // 쿠폰(앱) 적용 시 결제바 금액도 즉시 할인 반영. Provider 밖이면 0.
+  const { applied } = useCartCoupon()
+  const payTotal = Math.max(0, total - (applied?.discount ?? 0))
 
   useEffect(() => {
     let lastY = window.scrollY
@@ -167,7 +171,7 @@ export default function CartStickyCTA({
                 whiteSpace: 'nowrap',
               }}
             >
-              {total.toLocaleString()}원
+              {payTotal.toLocaleString()}원
             </span>
           </div>
 

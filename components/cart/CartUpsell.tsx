@@ -12,7 +12,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Calendar, Gift, Ticket, Sparkles, ChevronRight } from 'lucide-react'
+import { Calendar, Gift, Sparkles, ChevronRight } from 'lucide-react'
+import CheckoutCouponSheet from '@/components/coupons/CheckoutCouponSheet'
+import { useCartCoupon } from './CartCouponContext'
 
 interface Props {
   /** 사용자가 보유한 쿠폰 수 (없으면 0) */
@@ -26,12 +28,13 @@ interface Props {
 }
 
 export default function CartUpsell({
-  couponCount = 0,
   pointsBalance = 0,
   pointsMinUse = 5000,
   variant = 'web',
 }: Props) {
   const [giftWrap, setGiftWrap] = useState(false)
+  // 장바구니 쿠폰(앱) — Provider 안에서만 실제 값. 밖이면 NOOP(쿠폰 없음).
+  const cartCoupon = useCartCoupon()
   const isApp = variant === 'app'
   // v3 톤: 카드 radius 18 → 8, 내부 chip radius 10/12 → 4/4
   const cardRadius = isApp ? 8 : 18
@@ -163,51 +166,16 @@ export default function CartUpsell({
         </div>
       </section>
 
-      {/* 3. 쿠폰 row */}
+      {/* 3. 쿠폰 — 인라인 시트. 쿠폰함 페이지로 튕기지 않고 그 자리에서 사용
+          가능한 쿠폰이 뜨고 '적용하기' 1탭으로 적용 → 아래 영수증/결제바에 즉시
+          할인 반영(체크아웃과 동일한 CheckoutCouponSheet 재사용). */}
       <section className="px-4 pb-3">
-        <Link
-          href="/mypage/coupons"
-          className="flex items-center gap-2.5 bg-white"
-          style={{
-            borderRadius: cardRadius,
-            padding: '14px 16px',
-            boxShadow: isApp ? '0 1px 0 rgba(22,20,15,0.04)' : '0 2px 8px rgba(26,20,12,0.06)',
-            border: isApp ? '1px solid var(--rule)' : undefined,
-            background: isApp ? 'var(--bg-3)' : undefined,
-          }}
-        >
-          <div
-            className="flex items-center justify-center shrink-0"
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: isApp ? 4 : 12,
-              background: 'rgba(220, 83, 42, 0.12)',
-              color: '#dc532a',
-            }}
-          >
-            <Ticket size={18} color="#dc532a" strokeWidth={1.8} />
-          </div>
-          <div className="flex-1 min-w-0 text-left">
-            <div
-              className="font-['Archivo_Black']"
-              style={{
-                fontSize: 12,
-                color: '#1a140c',
-                letterSpacing: '-0.005em',
-              }}
-            >
-              쿠폰 사용{' '}
-              <span style={{ color: '#dc532a' }}>
-                · {couponCount > 0 ? `${couponCount}장 사용 가능` : '사용 가능한 쿠폰 보기'}
-              </span>
-            </div>
-            <div className="mt-0.5" style={{ fontSize: 10, color: '#7a6d5b' }}>
-              체크아웃에서 자동 적용
-            </div>
-          </div>
-          <ChevronRight size={16} color="#7a6d5b" strokeWidth={1.8} />
-        </Link>
+        <CheckoutCouponSheet
+          subtotal={cartCoupon.subtotal}
+          applied={cartCoupon.applied}
+          onApply={cartCoupon.applyByCode}
+          onRemove={cartCoupon.remove}
+        />
       </section>
 
       {/* 4. 적립금 row */}
