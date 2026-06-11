@@ -108,11 +108,9 @@ export default function JournalSection({
               fontSize: 13.5,
               color: V3.ink,
               fontWeight: 600,
-              textDecoration: 'underline',
-              textUnderlineOffset: 3,
             }}
           >
-            전체보기
+            전체보기 ›
           </Link>
         ) : (
           <Mono color="inkMute" size="xs" weight={500}>

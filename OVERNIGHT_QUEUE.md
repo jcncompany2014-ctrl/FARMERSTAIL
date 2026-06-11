@@ -25,7 +25,7 @@
 
 ## Phase B — 인터랙션 폴리시 (앱 손맛)
 - [x] B1. 누름 피드백 — 전역 CSS 로 앱 스코프 a/button 전체 적용 (dc9ec59). 개별 active:scale 산재 정리는 자연 흡수.
-- [ ] B2. hover 전용 스타일 정리 — hover:underline 제거(5곳+), hover 색변화는 active 병행으로.
+- [x] B2. 죽은 hover:underline 6곳 제거 (3e634ae). 나머지 hover:* 는 v4 게이트로 터치 무해 — 정리 불필요 판정.
 - [ ] B3. 밑줄 텍스트 링크 → 버튼/› 화살표 그래머 (7곳).
 - [ ] B4. BottomSheet 드래그로 닫기 제스처 (BottomSheet.tsx — 그래버가 실제로 동작하게, touch 이벤트).
 - [ ] B5. Toast 스와이프로 닫기 (Toast.tsx).

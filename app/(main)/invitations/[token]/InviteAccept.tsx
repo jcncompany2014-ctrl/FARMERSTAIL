@@ -127,9 +127,9 @@ export default function InviteAccept({
             </p>
             <Link
               href="/dogs"
-              className="mt-5 inline-block text-[12px] font-bold text-muted hover:text-text underline"
+              className="mt-5 inline-block text-[12px] font-bold text-muted hover:text-text"
             >
-              내 강아지로 돌아가기
+              내 강아지로 돌아가기 ›
             </Link>
           </div>
         ) : accepted ? (

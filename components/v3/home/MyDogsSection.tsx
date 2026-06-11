@@ -91,11 +91,9 @@ export default function MyDogsSection({
               fontSize: 13.5,
               color: V3.ink,
               fontWeight: 600,
-              textDecoration: 'underline',
-              textUnderlineOffset: 3,
             }}
           >
-            전체보기
+            전체보기 ›
           </Link>
         )}
       </div>

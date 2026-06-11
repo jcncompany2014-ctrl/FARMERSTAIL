@@ -137,8 +137,6 @@ export default function FarmToTailSection({
               fontSize: 13.5,
               color: V3.ink,
               fontWeight: 700,
-              textDecoration: 'underline',
-              textUnderlineOffset: 4,
             }}
           >
             {ctaLabel}

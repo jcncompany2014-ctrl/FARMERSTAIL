@@ -65,11 +65,9 @@ export default function MemoTimeline({
               fontSize: 12,
               color: V3.ink,
               fontWeight: 600,
-              textDecoration: 'underline',
-              textUnderlineOffset: 3,
             }}
           >
-            전체보기
+            전체보기 ›
           </a>
         ) : (
           <Mono color="inkMute" size="xs" weight={500} upper={false}>

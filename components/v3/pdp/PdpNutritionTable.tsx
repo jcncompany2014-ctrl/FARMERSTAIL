@@ -162,8 +162,6 @@ export default function PdpNutritionTable({
               fontSize: 12,
               color: V3.ink,
               fontWeight: 600,
-              textDecoration: 'underline',
-              textUnderlineOffset: 3,
             }}
           >
             전체 영양소 보기 →

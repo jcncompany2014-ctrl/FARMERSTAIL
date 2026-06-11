@@ -164,9 +164,9 @@ export default async function YearInReviewPage({
           </p>
           <Link
             href={`/dogs/${dogRow.id}`}
-            className="mt-5 inline-block text-[12px] font-bold text-muted hover:text-text underline"
+            className="mt-5 inline-block text-[12px] font-bold text-muted hover:text-text"
           >
-            돌아가기
+            돌아가기 ›
           </Link>
         </div>
       </div>

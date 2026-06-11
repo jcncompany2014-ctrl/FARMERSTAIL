@@ -149,9 +149,9 @@ export default function NewInviteClient({ dogs }: { dogs: DogOption[] }) {
             setResult(null)
             setEmail('')
           }}
-          className="text-[10.5px] text-terracotta font-semibold underline underline-offset-2"
+          className="text-[10.5px] text-terracotta font-semibold"
         >
-          또 다른 초대 만들기
+          또 다른 초대 만들기 ›
         </button>
       </section>
     )
