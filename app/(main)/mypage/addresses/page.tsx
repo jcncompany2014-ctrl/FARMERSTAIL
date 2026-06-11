@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { MapPin, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { rowToAddress, type AddressRow } from '@/lib/commerce/addresses'
-import { V3, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 import AddressesClient from './AddressesClient'
 
@@ -42,28 +42,18 @@ export default async function AddressesPage() {
 
   return (
     <div style={{ paddingBottom: 32 }}>
-      <section style={{ padding: '24px 20px 8px' }}>
+      {/* 상단 헤더가 이미 '배송지 관리' 타이틀을 보여주므로, 본문은 큰 제목을
+          반복하지 않고 맥락 한 줄(eyebrow + 설명)만 슬림하게 둔다. */}
+      <section style={{ padding: '14px 20px 8px' }}>
         <Mono color="inkMute" size="xs" weight={500}>
           Addresses · 배송지
         </Mono>
-        <h1
-          style={{
-            margin: '6px 0 0',
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.black,
-            fontSize: 32,
-            lineHeight: 1,
-            color: V3.ink,
-            letterSpacing: V3LetterSpacing.heading,
-          }}
-        >
-          배송지 관리
-        </h1>
         <p
           style={{
-            fontSize: 12,
-            color: V3.inkMute,
+            fontSize: 13.5,
+            color: V3.inkSoft,
             marginTop: 6,
+            lineHeight: 1.5,
           }}
         >
           {addresses.length > 0

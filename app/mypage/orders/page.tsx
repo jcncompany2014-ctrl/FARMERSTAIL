@@ -6,6 +6,10 @@ import { Package, ShoppingBag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import { isAppContextServer } from '@/lib/app-context'
+import OrdersAppView, {
+  type OrderRow as AppOrderRow,
+  type ReorderProduct,
+} from './OrdersAppView'
 
 export const dynamic = 'force-dynamic'
 
@@ -86,6 +90,7 @@ export default async function OrdersPage() {
       created_at,
       order_items (
         id,
+        product_id,
         product_name,
         product_image_url,
         quantity,
@@ -111,6 +116,33 @@ export default async function OrdersPage() {
         </main>
       </AuthAwareShell>
     )
+  }
+
+  // 앱 전용 '다시 주문' 스트립 — 가장 최근 주문의 첫 상품이 지금도 판매 중이면
+  // 한 번에 다시 담을 수 있게. 웹은 해당 없음(추가 쿼리 안 함).
+  let reorderProduct: ReorderProduct | null = null
+  const recentOrder = orders?.[0]
+  if (isApp && recentOrder) {
+    const recentItems = Array.isArray(recentOrder.order_items)
+      ? (recentOrder.order_items as { product_id?: string }[])
+      : []
+    const pid = recentItems[0]?.product_id ?? null
+    if (pid) {
+      const { data: prod } = await supabase
+        .from('products')
+        .select('id, name, image_url, price, sale_price, is_active')
+        .eq('id', pid)
+        .eq('is_active', true)
+        .maybeSingle()
+      if (prod) {
+        reorderProduct = {
+          id: prod.id,
+          name: prod.name,
+          imageUrl: prod.image_url,
+          price: prod.sale_price ?? prod.price,
+        }
+      }
+    }
   }
 
   return (
@@ -146,6 +178,15 @@ export default async function OrdersPage() {
         )}
       </section>
 
+      {/* 앱: 필터 탭 + 다시주문 스트립 + 목록을 OrdersAppView 가 담당.
+          웹: 아래 기존 통계 + 목록 그대로(에디토리얼 톤 불변). */}
+      {isApp ? (
+        <OrdersAppView
+          orders={(orders ?? []) as unknown as AppOrderRow[]}
+          reorderProduct={reorderProduct}
+        />
+      ) : (
+      <>
       {/* 상태별 통계 — 진행 중 (preparing/shipping) / 완료 / 취소
           0건 카드는 자동 숨김. 모두 0 이면 섹션 비표시. */}
       {(() => {
@@ -338,6 +379,8 @@ export default async function OrdersPage() {
             })}
           </ul>
         </section>
+      )}
+      </>
       )}
     </main>
     </AuthAwareShell>
