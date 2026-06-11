@@ -6,7 +6,7 @@
  */
 
 import Link from 'next/link'
-import { Plus, Dog as DogIcon } from 'lucide-react'
+import { Plus, PawPrint as DogIcon } from 'lucide-react'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import {
-  Dog as DogIcon,
+  PawPrint as DogIcon,
   Camera,
   Loader2,
   CheckCircle2,

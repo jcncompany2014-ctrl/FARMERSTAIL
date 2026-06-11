@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Dog as DogIcon, X, Lightbulb, HelpCircle } from 'lucide-react'
+import { Camera, PawPrint as DogIcon, X, Lightbulb, HelpCircle } from 'lucide-react'
 import { MAX_PHOTO_BYTES, type PhotoState } from '@/lib/dogPhotos'
 import PhotoFrameGuide from './PhotoFrameGuide'
 import { isAdvancedUiEnabled } from '@/lib/ui-flags'

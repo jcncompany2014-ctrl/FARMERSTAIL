@@ -19,13 +19,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Dog, Camera, BarChart3, ClipboardList, Repeat } from 'lucide-react'
+import { PawPrint, Camera, BarChart3, ClipboardList, Repeat } from 'lucide-react'
 
 type Tab = {
   href: (id: string) => string
   isActive: (path: string, id: string) => boolean
   label: string
-  Icon: typeof Dog
+  Icon: typeof PawPrint
 }
 
 const TABS: readonly Tab[] = [
@@ -33,7 +33,7 @@ const TABS: readonly Tab[] = [
     href: (id) => `/dogs/${id}`,
     isActive: (path, id) => path === `/dogs/${id}`,
     label: '개요',
-    Icon: Dog,
+    Icon: PawPrint,
   },
   {
     // 기록 = 사진 일기 (매일 retention 핵심). 컨디션·체중 등 health log 는

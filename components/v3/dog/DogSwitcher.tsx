@@ -11,7 +11,7 @@
  */
 
 import Image from 'next/image'
-import { Plus, Dog as DogIcon } from 'lucide-react'
+import { Plus, PawPrint as DogIcon } from 'lucide-react'
 import { V3 } from '@/lib/design/tokens'
 
 export interface SwitcherDog {

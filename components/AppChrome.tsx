@@ -17,7 +17,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Home,
-  Dog,
+  PawPrint,
   Store,
   ShoppingCart,
   User,
@@ -40,7 +40,7 @@ type Tab = {
 
 const TABS: Tab[] = [
   { href: '/dashboard', label: '홈', Icon: Home },
-  { href: '/dogs', label: '강아지', Icon: Dog },
+  { href: '/dogs', label: '강아지', Icon: PawPrint },
   { href: '/products', label: '제품', Icon: Store },
   { href: '/cart', label: '장바구니', Icon: ShoppingCart },
   { href: '/mypage', label: '내 정보', Icon: User },

@@ -1,5 +1,5 @@
 // audit #96: SurveyClient.tsx 분할 — loading step. 분석 진행 stage + 실패 시 retry.
-import { Dog as DogIcon, Check, Loader2, AlertCircle } from 'lucide-react'
+import { PawPrint as DogIcon, Check, Loader2, AlertCircle } from 'lucide-react'
 
 export type LoadingProps = {
   dogName: string

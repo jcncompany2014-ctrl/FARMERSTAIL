@@ -10,7 +10,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 import {
-  Dog as DogIcon,
+  PawPrint as DogIcon,
   Moon,
   Footprints,
   Zap,

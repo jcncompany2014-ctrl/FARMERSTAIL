@@ -1,4 +1,4 @@
-import { Dog as DogIcon } from 'lucide-react'
+import { PawPrint as DogIcon } from 'lucide-react'
 
 /**
  * DogHelloCard — emotional 페르소나 전용 dashboard 헤더 카드 (A-29, A-37).

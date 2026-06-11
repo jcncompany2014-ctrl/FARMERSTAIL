@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import {
   Search,
   SearchX,
-  Dog as DogIcon,
+  PawPrint as DogIcon,
   BookOpen,
   ShoppingBag,
 } from 'lucide-react'

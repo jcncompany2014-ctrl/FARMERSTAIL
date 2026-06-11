@@ -9,7 +9,7 @@
  */
 
 import Image from 'next/image'
-import { Dog as DogIcon } from 'lucide-react'
+import { PawPrint as DogIcon } from 'lucide-react'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
 import { Mono, RibbonChip } from '@/components/v3'
 

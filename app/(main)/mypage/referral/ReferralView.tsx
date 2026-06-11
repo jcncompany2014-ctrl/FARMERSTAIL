@@ -12,7 +12,7 @@ import {
   Sparkles,
   Lock,
   ChevronRight,
-  Dog,
+  PawPrint,
 } from 'lucide-react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -508,7 +508,7 @@ export default function ReferralView({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <Dog
+                      <PawPrint
                         className="w-6 h-6 text-muted"
                         strokeWidth={1.5}
                       />

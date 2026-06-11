@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Dog, BarChart3, Repeat, Check, ArrowRight, X } from 'lucide-react'
+import { PawPrint, BarChart3, Repeat, Check, ArrowRight, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 
@@ -28,7 +28,7 @@ import { useModalA11y } from '@/lib/ui/useModalA11y'
 
 const STEPS = [
   {
-    Icon: Dog,
+    Icon: PawPrint,
     accent: 'var(--terracotta)',
     kicker: 'Step 1 · 시작',
     title: '첫 아이를 등록해주세요',
