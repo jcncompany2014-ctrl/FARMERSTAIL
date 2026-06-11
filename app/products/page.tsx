@@ -13,9 +13,8 @@ import CatalogProductCard, {
   type CatalogProduct,
 } from '@/components/products/CatalogProductCard'
 import RecentlyViewed from '@/components/products/RecentlyViewed'
-import CatalogChrome, {
-  CatalogCategoryBar,
-} from '@/components/products/CatalogChrome'
+import Image from 'next/image'
+import { CatalogCategoryBar } from '@/components/products/CatalogChrome'
 import CatalogHero from '@/components/products/CatalogHero'
 import CatalogSubscribeBand from '@/components/products/CatalogSubscribeBand'
 import { getActiveEvents } from '@/lib/events/data'
@@ -217,6 +216,29 @@ export default async function ProductsPage({
           ? '검색 결과'
           : category || '전체 상품'
 
+  // Phase P r2 (컬리 그래머): 특가 레일 — 실제 sale_price 가 설정된 상품만.
+  // 앱 1페이지 기본 피드에서만 노출, 세일 상품이 0개면 섹션 자체가 사라진다
+  // (거짓 특가/타이머 금지 — 정직 원칙).
+  type SaleRailProduct = {
+    id: string
+    name: string
+    slug: string
+    price: number
+    sale_price: number | null
+    image_url: string | null
+  }
+  let saleRows: SaleRailProduct[] = []
+  if (isApp && pageNum === 1 && !isSearching && !isFiltered) {
+    const { data: saleData } = await supabase
+      .from('products')
+      .select('id, name, slug, price, sale_price, image_url')
+      .eq('is_active', true)
+      .not('sale_price', 'is', null)
+      .order('sort_order', { ascending: true })
+      .limit(8)
+    saleRows = (saleData ?? []) as SaleRailProduct[]
+  }
+
   // ── pagination URL builder ──────────────────────────────
   const buildPageHref = (p: number): string => {
     const sp = new URLSearchParams()
@@ -271,15 +293,15 @@ export default async function ProductsPage({
           만 보게 — 사용자 요청: "원래대로 되돌려놨으니 web 에 앱화면 나오게 X". */}
       {isApp && (
         <>
-          {/* Phase P 리뉴얼 (2026-06-11): Greeting/검색바/아이콘타일 4단 chrome
-              → 타이틀 행 + sticky 카테고리 필 바로 압축. 카운트·정렬·필터는
-              그리드 직전 한 행 — 이전엔 앱 모바일에 정렬/필터 진입이 아예
-              없었다 (데스크톱 toolbar 전용이라 hidden). */}
-          <CatalogChrome variant="app" />
+          {/* Phase P r2 (2026-06-12, 컬리 그래머): 타이틀 행 제거 — 센터 로고
+              헤더(AppChrome)가 브랜딩, 검색·카트도 헤더가 담당. 구성:
+              카테고리 바(헤더 밑 sticky) → 사진 이벤트 히어로 → 특가 레일
+              → 카운트·필터·정렬 행 → 그리드. */}
+          <CatalogCategoryBar />
           {heroEvents.length > 0 && (
             <CatalogHero events={heroEvents} variant="app" />
           )}
-          <CatalogCategoryBar />
+          {saleRows.length > 0 && <SaleRail products={saleRows} />}
           <section className="md:hidden px-4 pt-3 pb-1 flex items-center justify-between">
             <span
               className="tabular-nums"
@@ -495,6 +517,128 @@ export default async function ProductsPage({
 }
 
 // ─────────────────────────── atoms ───────────────────────────
+
+/** Phase P r2: 특가 가로 레일 (앱 전용) — 실제 세일가 상품만. */
+function SaleRail({
+  products,
+}: {
+  products: {
+    id: string
+    name: string
+    slug: string
+    price: number
+    sale_price: number | null
+    image_url: string | null
+  }[]
+}) {
+  return (
+    <section className="md:hidden pt-1 pb-2">
+      <div className="px-4 pb-2 flex items-end justify-between">
+        <div>
+          <span className="kicker block mb-0.5">Deal</span>
+          <h2
+            style={{
+              fontFamily: "var(--font-sans), 'Pretendard', sans-serif",
+              fontSize: 18,
+              fontWeight: 900,
+              color: 'var(--ink)',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.1,
+            }}
+          >
+            지금 특가
+          </h2>
+        </div>
+        <Link
+          href="/products?on_sale=1"
+          className="text-[12px] font-bold"
+          style={{ color: 'var(--ink-mute, #706854)' }}
+        >
+          전체 보기 ›
+        </Link>
+      </div>
+      <div className="flex gap-2.5 overflow-x-auto no-scrollbar px-4 pb-1">
+        {products.map((p) => {
+          const discount =
+            p.sale_price !== null
+              ? Math.round(((p.price - p.sale_price) / p.price) * 100)
+              : 0
+          return (
+            <Link
+              key={p.id}
+              href={`/products/${p.slug}`}
+              className="shrink-0 transition active:scale-[0.98]"
+              style={{ width: 132 }}
+            >
+              <div
+                className="relative overflow-hidden"
+                style={{
+                  width: 132,
+                  height: 132,
+                  borderRadius: 4,
+                  background: 'var(--bg-3)',
+                  border: '1px solid var(--rule)',
+                }}
+              >
+                {p.image_url && (
+                  <Image
+                    src={p.image_url}
+                    alt={p.name}
+                    fill
+                    sizes="132px"
+                    className="object-cover"
+                  />
+                )}
+                {discount > 0 && (
+                  <span
+                    className="absolute"
+                    style={{
+                      top: 6,
+                      left: 6,
+                      padding: '2px 6px',
+                      borderRadius: 2,
+                      background: 'var(--sale)',
+                      color: 'var(--bg)',
+                      fontSize: 10,
+                      fontWeight: 900,
+                    }}
+                  >
+                    −{discount}%
+                  </span>
+                )}
+              </div>
+              <div
+                className="mt-1.5 text-[12px] font-bold line-clamp-1"
+                style={{ color: 'var(--ink)' }}
+              >
+                {p.name}
+              </div>
+              <div className="flex items-baseline gap-1">
+                {discount > 0 && (
+                  <span
+                    className="text-[13px] font-black tabular-nums"
+                    style={{ color: 'var(--sale)' }}
+                  >
+                    {discount}%
+                  </span>
+                )}
+                <span
+                  className="text-[14px] font-black tabular-nums"
+                  style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
+                >
+                  {(p.sale_price ?? p.price).toLocaleString()}
+                </span>
+                <span className="text-[11px]" style={{ color: 'var(--muted)' }}>
+                  원
+                </span>
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
 
 function FilterSidebarSlot() {
   // 데스크톱 sidebar 만 렌더 — toolbar 의 trigger 와 분리되어 중복 mount 방지.

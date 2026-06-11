@@ -20,6 +20,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight, Gift } from 'lucide-react'
 import type { EventItem, EventPalette } from '@/lib/events/data'
 
@@ -120,7 +121,9 @@ export default function CatalogHero({
   if (events.length === 0) return null
 
   return (
-    <section className="md:hidden px-4 pb-5">
+    // Phase P r2: 카테고리 바(sticky) 가 위에 오면서 pt-3 추가 — 이 컴포넌트는
+    // products 페이지 app 분기에서만 mount (web 미사용).
+    <section className="md:hidden pt-3 px-4 pb-5">
       <div
         ref={scrollRef}
         onScroll={onScroll}
@@ -191,6 +194,85 @@ function HeroSlide({
   isApp?: boolean
 }) {
   const p = PALETTE_MAP[event.palette] ?? PALETTE_MAP.terracotta
+
+  // Phase P r2 (컬리 그래머): 대표 이미지가 있는 이벤트는 사진 히어로 —
+  // 풀블리드 사진 + 하단 어두운 그라데이션 + 텍스트 오버레이. 이미지가
+  // 없으면 기존 palette 단색 카드 그대로 (admin 에서 이미지 등록 시 자동 전환).
+  if (isApp && event.imageUrl) {
+    return (
+      <Link
+        href={event.href}
+        className="shrink-0 snap-start snap-always relative block overflow-hidden"
+        style={{
+          flex: '0 0 100%',
+          width: '100%',
+          borderRadius: cardRadius,
+          aspectRatio: '16 / 10',
+          background: p.bg,
+        }}
+      >
+        <Image
+          src={event.imageUrl}
+          alt={event.imageAlt ?? event.tagline}
+          fill
+          sizes="(max-width: 768px) 100vw, 448px"
+          className="object-cover"
+        />
+        <span
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(to top, rgba(10,8,4,0.62) 0%, rgba(10,8,4,0.18) 45%, transparent 70%)',
+          }}
+        />
+        <div className="absolute" style={{ left: 20, right: 20, bottom: 18 }}>
+          <span
+            className="inline-flex items-center font-bold"
+            style={{
+              padding: '4px 10px',
+              background: 'rgba(255,255,255,0.22)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+              borderRadius: 4,
+              fontSize: 10.5,
+              letterSpacing: 1.6,
+              color: '#fff',
+              lineHeight: 1,
+            }}
+          >
+            {event.kicker}
+          </span>
+          <h2
+            style={{
+              marginTop: 10,
+              fontSize: 21,
+              lineHeight: 1.25,
+              letterSpacing: '-0.02em',
+              color: '#fff',
+              fontFamily: "var(--font-sans), 'Pretendard', sans-serif",
+              fontWeight: 900,
+              wordBreak: 'keep-all',
+              textShadow: '0 1px 8px rgba(0,0,0,0.25)',
+            }}
+          >
+            {event.tagline}
+          </h2>
+          <span
+            style={{
+              display: 'block',
+              marginTop: 6,
+              fontSize: 11.5,
+              color: 'rgba(255,255,255,0.88)',
+            }}
+          >
+            {event.statusLabel}
+          </span>
+        </div>
+      </Link>
+    )
+  }
+
   return (
     <Link
       href={event.href}

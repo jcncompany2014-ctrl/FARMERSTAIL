@@ -20,6 +20,7 @@ import {
   PawPrint,
   Store,
   ShoppingCart,
+  Search,
   User,
   ChevronDown,
   ArrowLeft,
@@ -38,11 +39,12 @@ type Tab = {
   Icon: LucideIcon
 }
 
+// Phase P (2026-06-12, 사장님 지시): 장바구니 탭 제거 — 컬리 그래머.
+// 장바구니 진입은 제품탭/제품상세 헤더 우측 카트 아이콘이 담당.
 const TABS: Tab[] = [
   { href: '/dashboard', label: '홈', Icon: Home },
   { href: '/dogs', label: '우리 아이', Icon: PawPrint },
   { href: '/products', label: '제품', Icon: Store },
-  { href: '/cart', label: '장바구니', Icon: ShoppingCart },
   { href: '/mypage', label: '내 정보', Icon: User },
 ]
 
@@ -264,12 +266,32 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const screenTitle = screenTitleForPath(pathname)
   const isDeep = screenTitle !== null
 
+  // Phase P (컬리 그래머): 제품탭/제품상세는 헤더 구성이 다르다.
+  //  - /products (탭루트): 좌 검색 · 중앙 로고 · 우 카트 (강아지 칩 대신)
+  //  - /products/[slug]:   좌 ← · 중앙 상품명(동적) · 우 카트
+  const isProductsRoot = pathname === '/products'
+  const isProductDetail = pathname.startsWith('/products/') && !isProductsRoot
+
+  // 제품상세 동적 제목 — PDP 클라이언트가 'ft:screen-title' 이벤트로 상품명
+  // 전달 (AppChrome 은 서버 데이터를 모름). 라우트 바뀌면 초기화.
+  const [dynamicTitle, setDynamicTitle] = useState<string | null>(null)
+  useEffect(() => {
+    function onTitle(e: Event) {
+      const detail = (e as CustomEvent<string>).detail
+      if (typeof detail === 'string' && detail) setDynamicTitle(detail)
+    }
+    window.addEventListener('ft:screen-title', onTitle)
+    return () => window.removeEventListener('ft:screen-title', onTitle)
+  }, [])
+
   // 강아지 드롭다운 — 라우트 이동 시 자동 닫힘 (뒤로가기 등 외부 내비 포함).
   // effect 대신 render 중 보정 — react.dev 'Adjusting state when a prop changes' 패턴.
+  // 동적 제목도 같은 타이밍에 초기화 (이전 상품명 잔상 방지).
   const [menuPathname, setMenuPathname] = useState(pathname)
   if (menuPathname !== pathname) {
     setMenuPathname(pathname)
     setDogMenuOpen(false)
+    setDynamicTitle(null)
   }
 
   // 강아지 드롭다운 — 바깥 탭/Escape 로 닫기 (열려 있을 때만 listen).
@@ -342,53 +364,95 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           {/* ── Main row — wordmark + bell/cart
               (R-clean: 상단 'THU 21 MAY · SEOUL·KST' ticker 제거 — 폰 상태바와 중복.) */}
           <div
-            className="flex items-center justify-between"
-            // A5: minHeight 64 고정 — 탭루트(로고 40px)와 깊은화면(← 31px)의
-            // 헤더 높이가 달라 화면 전환 시 ~9px 점프하던 것 제거. 값은
-            // globals.css 의 --ft-header-h(64px) 와 동기.
-            style={{ paddingTop: 12, paddingBottom: 12, minHeight: 64, boxSizing: 'border-box' }}
+            className="grid items-center"
+            // A5: minHeight 64 고정 — 값은 globals.css 의 --ft-header-h(64px) 와 동기.
+            // Phase P (컬리 그래머): 3-zone grid (좌 1fr · 중앙 auto · 우 1fr) —
+            // 로고를 센터에. 로고 40→48px(h-12) 키우면서 padding 12→8 로 64 유지.
+            style={{
+              gridTemplateColumns: '1fr auto 1fr',
+              paddingTop: 8,
+              paddingBottom: 8,
+              minHeight: 64,
+              boxSizing: 'border-box',
+            }}
           >
-            {/* R-feel: 깊은 화면 = ← 뒤로 + 제목 / 탭 루트 = 로고(장식). */}
+            {/* ── 좌측 zone — 깊은화면 ←(+제목) / 제품탭 검색 / 그 외 빈칸 ── */}
+            <div className="flex items-center justify-start min-w-0">
+              {isDeep ? (
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  aria-label="뒤로"
+                  className="flex items-center shrink-0 transition active:scale-95"
+                  style={{
+                    gap: 4,
+                    marginLeft: -8,
+                    padding: '4px 6px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <ArrowLeft
+                    style={{ width: 23, height: 23, color: 'var(--ink)' }}
+                    strokeWidth={2}
+                  />
+                  {/* 제품상세는 제목이 중앙(상품명)으로 — 좌측엔 ← 만 */}
+                  {!isProductDetail && screenTitle && (
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-sans)',
+                        fontSize: 17,
+                        fontWeight: 700,
+                        color: 'var(--ink)',
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {screenTitle}
+                    </span>
+                  )}
+                </button>
+              ) : isProductsRoot ? (
+                <Link
+                  href="/search"
+                  aria-label="제품 검색"
+                  className="flex items-center justify-center transition active:scale-95"
+                  style={{ marginLeft: -8, padding: 8 }}
+                >
+                  <Search
+                    style={{ width: 21, height: 21, color: 'var(--ink)' }}
+                    strokeWidth={2}
+                  />
+                </Link>
+              ) : null}
+            </div>
+
+            {/* ── 중앙 zone — 탭루트 로고(센터) / 제품상세 상품명(동적) ── */}
             {isDeep ? (
-              <button
-                type="button"
-                onClick={() => router.back()}
-                aria-label="뒤로"
-                className="flex items-center shrink-0 transition active:scale-95"
-                style={{
-                  gap: 4,
-                  marginLeft: -8,
-                  padding: '4px 6px',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <ArrowLeft
-                  style={{ width: 23, height: 23, color: 'var(--ink)' }}
-                  strokeWidth={2}
-                />
-                {screenTitle && (
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-sans)',
-                      fontSize: 17,
-                      fontWeight: 700,
-                      color: 'var(--ink)',
-                      letterSpacing: '-0.02em',
-                    }}
-                  >
-                    {screenTitle}
-                  </span>
-                )}
-              </button>
+              isProductDetail ? (
+                <span
+                  className="truncate text-center"
+                  style={{
+                    maxWidth: '52vw',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: 'var(--ink)',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  {dynamicTitle ?? '상품'}
+                </span>
+              ) : (
+                <span aria-hidden />
+              )
             ) : (
-              <span className="flex items-center shrink-0" style={{ marginLeft: -4 }}>
+              <span className="flex items-center justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/logo.png"
                   alt="Farmer's Tail"
-                  className="h-10 w-auto"
+                  className="h-12 w-auto"
                   // LCP 후보 — 헤더 로고가 첫 viewport 가장 큰 가시 요소.
                   fetchPriority="high"
                   style={{ filter: 'var(--logo-filter, brightness(0))' }}
@@ -396,11 +460,46 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               </span>
             )}
 
-            {/* R-feel: 우측 = 활성 강아지 칩 — 탭 루트 한정. 깊은 화면에선 숨김.
-                아이콘 없이 이름+⌄ 만 (사장님 피드백: 칩 앞 강아지 아이콘은 군더더기).
-                누르면 강아지 빠른 전환 드롭다운 — 선택 시 그 아이 페이지로 이동.
-                강아지가 없으면 등록 링크. fetch 전엔 비워서 잘못된 칩 깜빡임 방지. */}
-            {!isDeep && dogsLoaded && (
+            {/* ── 우측 zone — 제품탭/제품상세 = 카트 아이콘(뱃지) /
+                그 외 탭루트 = 활성 강아지 칩 (기존). 깊은 화면 숨김. ── */}
+            <div className="flex items-center justify-end min-w-0">
+            {isProductsRoot || isProductDetail ? (
+              <Link
+                href="/cart"
+                aria-label={
+                  cartCount > 0 ? `장바구니 — ${cartCount}개 담김` : '장바구니'
+                }
+                className="relative flex items-center justify-center transition active:scale-95"
+                style={{ marginRight: -8, padding: 8 }}
+              >
+                <ShoppingCart
+                  style={{ width: 22, height: 22, color: 'var(--ink)' }}
+                  strokeWidth={1.8}
+                />
+                {cartCount > 0 && (
+                  <span
+                    className="absolute flex items-center justify-center"
+                    style={{
+                      top: 2,
+                      right: 0,
+                      minWidth: 14,
+                      height: 14,
+                      padding: '0 3px',
+                      borderRadius: 7,
+                      background: 'var(--accent)',
+                      color: 'var(--paper-hi)',
+                      fontFamily:
+                        "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
+                      fontSize: 8,
+                      fontWeight: 700,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </span>
+                )}
+              </Link>
+            ) : !isDeep && dogsLoaded && (
               dogs.length === 0 ? (
                 <Link
                   href="/dogs/new"
@@ -576,6 +675,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                 </div>
               )
             )}
+            </div>
           </div>
         </div>
 
@@ -622,11 +722,10 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           transition: 'transform 260ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
-        <div className="max-w-md mx-auto grid grid-cols-5" style={{ paddingLeft: 8, paddingRight: 8 }}>
+        <div className="max-w-md mx-auto grid grid-cols-4" style={{ paddingLeft: 8, paddingRight: 8 }}>
           {TABS.map(({ href, label, Icon }) => {
             const active =
               pathname === href || pathname.startsWith(href + '/')
-            const isCart = href === '/cart'
 
             return (
               <Link
@@ -646,29 +745,6 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                     }}
                     strokeWidth={active ? 2 : 1.6}
                   />
-                  {/* 카트 뱃지 v3 — 직사각형 Mono badge, accent bg + paperHi fg */}
-                  {isCart && cartCount > 0 && (
-                    <span
-                      className="absolute flex items-center justify-center"
-                      style={{
-                        top: -4,
-                        right: -7,
-                        minWidth: 14,
-                        height: 14,
-                        padding: '0 3px',
-                        borderRadius: 7,
-                        background: 'var(--accent)',
-                        color: 'var(--paper-hi)',
-                        fontFamily: "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
-                        fontSize: 8,
-                        fontWeight: 700,
-                        letterSpacing: 0,
-                        lineHeight: 1,
-                      }}
-                    >
-                      {cartCount > 99 ? '99+' : cartCount}
-                    </span>
-                  )}
                 </div>
 
                 <span

@@ -179,6 +179,16 @@ export default function ProductDetailClient({
   const [wished, setWished] = useState(false)
   const [wishBusy, setWishBusy] = useState(false)
 
+  // Phase P (컬리 그래머): 앱 헤더 중앙에 상품명 — AppChrome 이 듣는
+  // 'ft:screen-title' 커스텀 이벤트로 전달 (서버 데이터를 chrome 이 모름).
+  // 웹은 AppChrome 미장착이라 무해하지만 isApp 게이트로 명시.
+  useEffect(() => {
+    if (!isApp) return
+    window.dispatchEvent(
+      new CustomEvent('ft:screen-title', { detail: product.name }),
+    )
+  }, [isApp, product.name])
+
   // 통합 effect — recently-viewed push (sync) / analytics + reviews + wishlist
   // (deferred). hot path 와 분리하기 위해 idle scheduling 으로 fetch 를 미룸.
   useEffect(() => {

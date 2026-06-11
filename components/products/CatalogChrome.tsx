@@ -18,53 +18,10 @@
  * '정기배송'은 카테고리가 아니라 ?subscribable=1 필터.
  */
 
-// [2026-06-12] cache-bust: 구버전 chunk 가 lucide Filter 모듈을 참조하던
-// Turbopack stale cache 강제 무효화 (OVERNIGHT_LOG B1 팁 — 재컴파일 처방).
+// Phase P r2 (컬리 그래머): 타이틀 행("메뉴"+검색버튼) 제거 — 센터 로고
+// 헤더(AppChrome)가 브랜딩·검색·카트를 담당. 이 파일은 카테고리 바만 남긴다.
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Search } from 'lucide-react'
-
-export default function CatalogChrome({}: {
-  /** 'web' | 'app' — 호출부 호환용. web 은 이 컴포넌트를 mount 하지 않는다. */
-  variant?: 'web' | 'app'
-}) {
-  return (
-    <div className="md:hidden">
-      {/* Title row — 페이지 정체성 + 검색 진입 */}
-      <section className="px-4 pt-3 pb-3 flex items-end justify-between">
-        <div>
-          <span className="kicker block mb-1">Menu</span>
-          <h1
-            style={{
-              fontSize: 32,
-              color: 'var(--ink)',
-              lineHeight: 1,
-              letterSpacing: '-0.02em',
-              fontFamily: "var(--font-sans), 'Pretendard', sans-serif",
-              fontWeight: 900,
-            }}
-          >
-            메뉴
-          </h1>
-        </div>
-        <Link
-          href="/search"
-          aria-label="제품 검색"
-          className="flex items-center justify-center transition active:scale-[0.96]"
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 4,
-            background: 'var(--bg-3)',
-            boxShadow: 'inset 0 0 0 1px var(--rule)',
-          }}
-        >
-          <Search size={18} color="var(--ink)" strokeWidth={2} />
-        </Link>
-      </section>
-    </div>
-  )
-}
 
 // ─────────────────────────────────────────────────────────────
 // CatalogCategoryBar — sticky 카테고리 필 바
