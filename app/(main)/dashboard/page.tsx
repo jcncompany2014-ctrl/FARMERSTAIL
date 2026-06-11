@@ -8,7 +8,6 @@ import {
   TodayCard,
   ThisWeekSection,
   MyDogsSection,
-  ForTodaySection,
   JournalSection,
   DeliveryStripCard,
   EmptyHomeNoDogs,
@@ -73,18 +72,6 @@ type DogRow = {
   weight: number | null
 }
 
-type ProductRow = {
-  id: string
-  name: string
-  slug: string
-  price: number
-  sale_price: number | null
-  image_url: string | null
-  category: string | null
-  short_description: string | null
-  is_subscribable: boolean
-}
-
 type SubscriptionRow = {
   id: string
   status: string
@@ -115,7 +102,6 @@ export default async function DashboardPage() {
   //   - 가시성: Sentry 로 보내서 운영자는 인지. 사용자 경로는 유지.
   const [
     { data: snapshotData, error: snapshotErr },
-    { data: prodData, error: prodErr },
     events,
     { data: pendingFormulasData },
     { data: latestWeightsData },
@@ -128,16 +114,6 @@ export default async function DashboardPage() {
     { data: pastSnapshotData },
   ] = await Promise.all([
     supabase.rpc('dashboard_user_snapshot', { p_user_id: user.id }),
-    // 대시보드 제품 — 4개만. 더 보고 싶으면 "전체 →" 로 /products 진입.
-    // 매일 사용 surface 의 시각적 무게 ↓.
-    supabase
-      .from('products')
-      .select(
-        'id, name, slug, price, sale_price, image_url, category, short_description, is_subscribable',
-      )
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true })
-      .limit(4),
     // getActiveEvents 는 내부에서 catch + empty 반환 — 실패해도 대시보드 전체
     // 가 깨지지 않는다.
     getActiveEvents(supabase, 3),
@@ -211,7 +187,6 @@ export default async function DashboardPage() {
   if (snapshotErr) {
     console.error('[dashboard] user_snapshot rpc failed', snapshotErr)
   }
-  if (prodErr) console.error('[dashboard] products query failed', prodErr)
 
   // RPC 가 JSONB 로 { profile, dogs, subscription } 반환. 실패시 모두 null/[].
   type SnapshotShape = {
@@ -248,7 +223,6 @@ export default async function DashboardPage() {
     if (idx <= 0) return list
     return [list[idx]!, ...list.slice(0, idx), ...list.slice(idx + 1)]
   })()
-  const products = (prodData ?? []) as ProductRow[]
   const subscription = snapshot.subscription
   const hasActiveSub =
     subscription !== null && subscription.next_delivery_date !== null
@@ -667,38 +641,8 @@ export default async function DashboardPage() {
     return null
   })()
 
-  // ── ForToday 추천 제품 + 배송.
-  const firstProduct = products[0]
-  const forTodayProduct = firstProduct
-    ? {
-        id: firstProduct.id,
-        name: firstProduct.name,
-        meta: firstProduct.short_description ?? '',
-        price: firstProduct.sale_price ?? firstProduct.price,
-        imageUrl: firstProduct.image_url ?? null,
-        kicker: firstDog
-          ? `For · ${firstDog.name} · ${firstDog.breed ?? '강아지'}`
-          : 'For · 우리 아이',
-        href: `/products/${firstProduct.slug}`,
-      }
-    : null
-
-  const forTodayDelivery = upcomingDelivery
-    ? {
-        dLabel:
-          upcomingDelivery.daysUntil <= 0
-            ? '곧 도착'
-            : `D-${upcomingDelivery.daysUntil}`,
-        arrivalLabel:
-          upcomingDelivery.daysUntil <= 0
-            ? '곧\n도착해요'
-            : upcomingDelivery.daysUntil === 1
-              ? '내일\n새벽 도착'
-              : `${upcomingDelivery.daysUntil}일 후\n도착 예정`,
-        itemLabel: upcomingDelivery.productLabel,
-        href: '/mypage/subscriptions',
-      }
-    : null
+  // [2026-06-11] 홈 "○○를 위한 추천" 제품 섹션(ForTodaySection)은 사장님
+  // 지시로 제거. 배송 D-day 정보는 아래 DeliveryStripCard 로 단독 노출.
 
   // Journal 엔트리 — first cut 에서는 비활성 (dog_diary fetch 는 R6 phase).
   const journalEntries: JournalEntry[] = []
@@ -806,22 +750,8 @@ export default async function DashboardPage() {
         <EmptyHomeNoDogs addDogHref="/dogs/new" />
       )}
 
-      {/* 6. {dogName}를 위한 추천 — 제품 + 배송 + bonus */}
-      {forTodayProduct && firstDog && (
-        <ForTodaySection
-          dogName={firstDog.name}
-          cursor="01 / 04"
-          product={forTodayProduct}
-          delivery={forTodayDelivery ?? undefined}
-          bonus={{
-            kicker: 'Bonus',
-            body: '다음 결제 시\n10% 추가 할인',
-          }}
-        />
-      )}
-
-      {/* 7. 다음 배송 D-N strip (구독 활성 시, ForToday delivery 와 중복 안 되게) */}
-      {upcomingDelivery && !forTodayProduct && (
+      {/* 다음 배송 D-N strip (구독 활성 시). */}
+      {upcomingDelivery && (
         <DeliveryStripCard
           dLabel={
             upcomingDelivery.daysUntil <= 0

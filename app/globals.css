@@ -1375,6 +1375,13 @@ html:has([data-ft-chrome="app"])::-webkit-scrollbar,
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* ── 발바닥(PawPrint) 아이콘 각도 보정 — lucide 기본 글리프가 오른쪽으로
+   기울어 보여(발가락이 우하향) 혼자 누운 느낌. 앱 스코프에서 반시계로 살짝
+   세워 수직에 가깝게. (사장님 피드백) 각도는 -15deg 기준, 필요 시 조정. */
+[data-ft-chrome="app"] .lucide-paw-print {
+  transform: rotate(-15deg);
+}
+
 /* ── B7: 앱 텍스트 선택/롱프레스 콜아웃 차단 — 카드 꾹 누르면 텍스트가
    파랗게 선택되던 '웹스러움' 제거. 입력류 + .ft-selectable 은 예외. */
 [data-ft-chrome="app"] {
