@@ -1,18 +1,18 @@
 'use client'
 
 /**
- * CartUpsell — 모바일 장바구니 mid-section (2026-05-21).
+ * CartUpsell — 모바일 장바구니 mid-section (Phase P r3, 2026-06-12).
  *
- * 핸드오프 cp-cart.jsx 의 4개 row 모음:
  *   1. Sage 정기배송 upsell 배너 (전환 → /products?subscribable=1)
- *   2. 선물 포장 toggle (로컬 client state — v2에서 결제 sync)
- *   3. 쿠폰 사용 row (→ /account/coupons)
- *   4. 적립금 사용 row (→ /account/points)
+ *   2. 쿠폰 인라인 시트 (CheckoutCouponSheet 재사용 — 즉시 할인 반영)
+ *   3. 적립금 row (→ /mypage/points)
+ *
+ * P5 에서 '선물 포장 +1,500원' 토글 제거 — 로컬 state 뿐이라 결제에 반영되지
+ * 않는데 금액을 표기 (기만 위험). 실제 결제 연동이 생기면 그때 복원.
  */
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { Calendar, Gift, Sparkles, ChevronRight } from 'lucide-react'
+import { Calendar, Sparkles, ChevronRight } from 'lucide-react'
 import CheckoutCouponSheet from '@/components/coupons/CheckoutCouponSheet'
 import { useCartCoupon } from './CartCouponContext'
 
@@ -32,13 +32,11 @@ export default function CartUpsell({
   pointsMinUse = 5000,
   variant = 'web',
 }: Props) {
-  const [giftWrap, setGiftWrap] = useState(false)
   // 장바구니 쿠폰(앱) — Provider 안에서만 실제 값. 밖이면 NOOP(쿠폰 없음).
   const cartCoupon = useCartCoupon()
   const isApp = variant === 'app'
-  // v3 톤: 카드 radius 18 → 8, 내부 chip radius 10/12 → 4/4
-  const cardRadius = isApp ? 8 : 18
-  const chipRadius = isApp ? 4 : 10
+  // v3 톤: 카드 radius 4 (sm 시그니처 — P5: 8→4 정렬)
+  const cardRadius = isApp ? 4 : 18
 
   return (
     <div className="md:hidden">
@@ -49,7 +47,8 @@ export default function CartUpsell({
           className="relative flex items-center gap-3 overflow-hidden"
           style={{
             background: '#5d6f3f',
-            borderRadius: isApp ? 8 : 20,
+            // P5: hero 카드 그래머 md tier 12 (제품탭 SubscribeBand 와 정합)
+            borderRadius: isApp ? 12 : 20,
             padding: '14px 16px',
             color: '#fff',
           }}
@@ -68,8 +67,15 @@ export default function CartUpsell({
           <Calendar size={26} color="#fff" strokeWidth={1.8} />
           <div className="flex-1 relative min-w-0">
             <div
-              className="font-['Archivo_Black']"
-              style={{ fontSize: 13, lineHeight: 1.15 }}
+              className={isApp ? undefined : "font-['Archivo_Black']"}
+              style={{
+                fontSize: 13,
+                lineHeight: 1.15,
+                fontFamily: isApp
+                  ? "var(--font-sans), 'Pretendard', sans-serif"
+                  : undefined,
+                fontWeight: isApp ? 900 : undefined,
+              }}
             >
               정기배송으로 바꾸면 추가 10%↓
             </div>
@@ -99,74 +105,7 @@ export default function CartUpsell({
         </Link>
       </section>
 
-      {/* 2. 선물 포장 toggle */}
-      <section className="px-4 pb-3">
-        <div
-          className="flex items-center gap-2.5 bg-white"
-          style={{
-            borderRadius: cardRadius,
-            padding: '12px 14px',
-            boxShadow: isApp ? '0 1px 0 rgba(22,20,15,0.04)' : '0 2px 8px rgba(26,20,12,0.06)',
-            border: isApp ? '1px solid var(--rule)' : undefined,
-            background: isApp ? 'var(--bg-3)' : undefined,
-          }}
-        >
-          <div
-            className="flex items-center justify-center shrink-0"
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: chipRadius,
-              background: 'rgba(220, 83, 42, 0.12)',
-              color: '#dc532a',
-            }}
-          >
-            <Gift size={18} color="#dc532a" strokeWidth={1.8} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div
-              className="font-['Archivo_Black']"
-              style={{
-                fontSize: 12,
-                color: '#1a140c',
-                letterSpacing: '-0.005em',
-              }}
-            >
-              선물 포장 추가
-            </div>
-            <div className="mt-0.5" style={{ fontSize: 10, color: '#7a6d5b' }}>
-              리본 + 손편지 카드 · +1,500원
-            </div>
-          </div>
-          <button
-            onClick={() => setGiftWrap((v) => !v)}
-            className="flex items-center transition shrink-0"
-            style={{
-              width: 42,
-              height: 24,
-              borderRadius: 12,
-              background: giftWrap ? '#dc532a' : '#fbf3df',
-              padding: 2,
-              justifyContent: giftWrap ? 'flex-end' : 'flex-start',
-            }}
-            aria-label={giftWrap ? '선물 포장 끄기' : '선물 포장 켜기'}
-            aria-pressed={giftWrap}
-          >
-            <span
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: 10,
-                background: '#fff',
-                boxShadow: '0 1px 3px rgba(26,20,12,0.16)',
-                display: 'block',
-              }}
-            />
-          </button>
-        </div>
-      </section>
-
-      {/* 3. 쿠폰 — 인라인 시트. 쿠폰함 페이지로 튕기지 않고 그 자리에서 사용
+      {/* 2. 쿠폰 — 인라인 시트. 쿠폰함 페이지로 튕기지 않고 그 자리에서 사용
           가능한 쿠폰이 뜨고 '적용하기' 1탭으로 적용 → 아래 영수증/결제바에 즉시
           할인 반영(체크아웃과 동일한 CheckoutCouponSheet 재사용). */}
       <section className="px-4 pb-3">
@@ -178,7 +117,7 @@ export default function CartUpsell({
         />
       </section>
 
-      {/* 4. 적립금 row */}
+      {/* 3. 적립금 row */}
       <section className="px-4 pb-3">
         <Link
           href="/mypage/points"
@@ -205,11 +144,15 @@ export default function CartUpsell({
           </div>
           <div className="flex-1 min-w-0 text-left">
             <div
-              className="font-['Archivo_Black']"
+              className={isApp ? undefined : "font-['Archivo_Black']"}
               style={{
                 fontSize: 12,
                 color: '#1a140c',
                 letterSpacing: '-0.005em',
+                fontFamily: isApp
+                  ? "var(--font-sans), 'Pretendard', sans-serif"
+                  : undefined,
+                fontWeight: isApp ? 800 : undefined,
               }}
             >
               적립금 사용

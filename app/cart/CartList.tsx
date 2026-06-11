@@ -30,8 +30,16 @@ type Row = {
   }
 }
 
-// 카테고리 라벨 → 한글 + tint 색
+// 카테고리 라벨 → 한글 + tint 색.
+// P5 버그픽스(2026-06-12): DB category 는 한글 실값(화식/간식/영양제/체험팩 —
+// 마스터피스 P1-C3)인데 키가 영어뿐이라 뱃지가 한 번도 안 떴다. 한글 키 추가
+// (영어 키는 과거 데이터 호환용 유지).
 const CAT_META: Record<string, { label: string; bg: string; fg: string }> = {
+  화식: { label: '화식', bg: 'rgba(93, 111, 63, 0.16)', fg: '#5d6f3f' },
+  간식: { label: '간식', bg: 'rgba(232, 168, 46, 0.18)', fg: '#a87520' },
+  토퍼: { label: '토퍼', bg: 'rgba(232, 168, 46, 0.18)', fg: '#a87520' },
+  체험팩: { label: '체험팩', bg: 'rgba(220, 83, 42, 0.16)', fg: '#dc532a' },
+  영양제: { label: '영양제', bg: 'rgba(63, 127, 184, 0.14)', fg: '#3f7fb8' },
   meal: { label: '화식', bg: 'rgba(93, 111, 63, 0.16)', fg: '#5d6f3f' },
   topper: { label: '토퍼', bg: 'rgba(232, 168, 46, 0.18)', fg: '#a87520' },
   treat: { label: '간식', bg: 'rgba(232, 168, 46, 0.18)', fg: '#a87520' },
@@ -55,9 +63,18 @@ export default function CartList({
   const supabase = createClient()
   const toast = useToast()
   const isApp = variant === 'app'
-  // v3 톤: borderRadius 20 → 8, shadow 약화, photo radius 14 → 4
-  const cardRadius = isApp ? 8 : 20
+  // v3 톤: 카드 radius 4(sm 시그니처), shadow 약화, photo radius 4.
+  // P5: 8 → 4 (v3 스케일 정렬 — rounded 4 가 카드 표준).
+  const cardRadius = isApp ? 4 : 20
   const photoRadius = isApp ? 4 : 14
+  // 앱은 sans 900 (Archivo Black 은 웹 에디토리얼 전용 — 앱 누수 차단)
+  const nameFontProps = isApp
+    ? {
+        fontFamily: "var(--font-sans), 'Pretendard', sans-serif",
+        fontWeight: 800,
+      }
+    : {}
+  const badgeRadius = isApp ? 2 : 6
   const cardShadow = isApp
     ? '0 1px 0 rgba(22,20,15,0.04)'
     : '0 2px 8px rgba(26,20,12,0.04), 0 8px 20px rgba(26,20,12,0.04)'
@@ -268,7 +285,7 @@ export default function CartList({
                             padding: '2px 7px',
                             background: 'rgba(93, 111, 63, 0.16)',
                             color: '#5d6f3f',
-                            borderRadius: 6,
+                            borderRadius: badgeRadius,
                             fontSize: 9.5,
                             letterSpacing: 0.2,
                           }}
@@ -283,7 +300,7 @@ export default function CartList({
                             padding: '2px 7px',
                             background: cat.bg,
                             color: cat.fg,
-                            borderRadius: 6,
+                            borderRadius: badgeRadius,
                             fontSize: 9.5,
                             letterSpacing: 0.2,
                           }}
@@ -298,7 +315,7 @@ export default function CartList({
                             padding: '2px 7px',
                             background: '#dc532a',
                             color: '#fff',
-                            borderRadius: 6,
+                            borderRadius: badgeRadius,
                             fontSize: 9.5,
                             letterSpacing: 0.2,
                           }}
@@ -308,14 +325,19 @@ export default function CartList({
                       )}
                     </div>
 
-                    {/* name */}
+                    {/* name — 앱: sans 800 (Archivo 누수 차단), 웹: 기존 */}
                     <Link
                       href={`/products/${row.product.slug}`}
-                      className="font-['Archivo_Black'] block leading-tight"
+                      className={
+                        isApp
+                          ? 'block leading-tight'
+                          : "font-['Archivo_Black'] block leading-tight"
+                      }
                       style={{
                         fontSize: 13,
                         color: '#1a140c',
                         letterSpacing: '-0.01em',
+                        ...nameFontProps,
                       }}
                     >
                       {row.product.name}
@@ -360,7 +382,7 @@ export default function CartList({
                     }
                     style={{
                       background: '#fbf3df',
-                      borderRadius: 14,
+                      borderRadius: isApp ? 999 : 14,
                     }}
                   >
                     <button
@@ -370,7 +392,7 @@ export default function CartList({
                       style={{
                         width: 28,
                         height: 28,
-                        borderRadius: 12,
+                        borderRadius: isApp ? 999 : 12,
                         background: '#fff',
                         color: '#1a140c',
                       }}
@@ -396,7 +418,7 @@ export default function CartList({
                       style={{
                         width: 28,
                         height: 28,
-                        borderRadius: 12,
+                        borderRadius: isApp ? 999 : 12,
                         background: '#1a140c',
                         color: '#fff',
                       }}
@@ -416,8 +438,18 @@ export default function CartList({
                       </div>
                     )}
                     <div
-                      className="font-['Archivo_Black'] mt-0.5 flex items-baseline gap-0.5 tabular-nums"
-                      style={{ fontSize: 17, color: '#1a140c', lineHeight: 1 }}
+                      className={
+                        isApp
+                          ? 'mt-0.5 flex items-baseline gap-0.5 tabular-nums'
+                          : "font-['Archivo_Black'] mt-0.5 flex items-baseline gap-0.5 tabular-nums"
+                      }
+                      style={{
+                        fontSize: 17,
+                        color: '#1a140c',
+                        lineHeight: 1,
+                        letterSpacing: isApp ? '-0.02em' : undefined,
+                        ...(isApp ? { ...nameFontProps, fontWeight: 900 } : {}),
+                      }}
                     >
                       {lineTotal.toLocaleString()}
                       <span style={{ fontSize: 11, color: '#7a6d5b' }}>원</span>

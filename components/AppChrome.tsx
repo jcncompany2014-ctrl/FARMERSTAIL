@@ -62,15 +62,12 @@ const FOCUS_PATHS = ['/survey', '/checkin', '/approve']
  * screenTitleForPath: null → 탭 루트(기본 헤더). 문자열 → 깊은 화면 제목
  * (빈 문자열이면 ← 만, 제목 없음).
  */
-const TAB_ROOTS = new Set([
-  '/dashboard',
-  '/dogs',
-  '/products',
-  '/cart',
-  '/mypage',
-])
+// Phase P r3: '/cart' 는 더이상 탭 루트가 아님 — 제품탭/PDP 헤더 카트
+// 아이콘으로 진입하는 깊은 화면 (← 장바구니).
+const TAB_ROOTS = new Set(['/dashboard', '/dogs', '/products', '/mypage'])
 
 const DEEP_TITLES: Record<string, string> = {
+  '/cart': '장바구니',
   '/dogs/new': '강아지 등록',
   '/dogs/:id': '우리 아이',
   '/dogs/:id/edit': '정보 수정',

@@ -303,7 +303,6 @@ export default async function CartPage() {
                 (사용자 요청: web 시각에 app 화면 노출 X). */}
             {isApp && (
               <CartChrome
-                count={validRows.length}
                 subtotal={subtotal}
                 freeThreshold={FREE_SHIPPING_THRESHOLD}
                 remainingToFree={shippingBreakdown.remainingToFree}
