@@ -148,7 +148,7 @@ export default function DogDetailHero({
               fontFamily: 'var(--font-sans)',
               fontStyle: 'italic',
               fontWeight: V3FontWeight.semibold,
-              fontSize: 18,
+              fontSize: 16,
               color: V3.ink,
               marginTop: 4,
               letterSpacing: '-0.015em',

@@ -154,7 +154,7 @@ function ModalRoot({
                   margin: 0,
                   fontFamily: 'var(--font-sans)',
                   fontWeight: V3FontWeight.black,
-                  fontSize: 18,
+                  fontSize: 16,
                   color: V3.ink,
                   letterSpacing: V3LetterSpacing.heading,
                   lineHeight: 1.3,

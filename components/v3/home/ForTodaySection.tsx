@@ -249,7 +249,7 @@ function DeliveryPanel({ delivery }: { delivery: ForTodayDelivery }) {
         style={{
           fontFamily: 'var(--font-sans)',
           fontWeight: V3FontWeight.bold,
-          fontSize: 18,
+          fontSize: 16,
           marginTop: 8,
           lineHeight: 1.15,
           letterSpacing: '-0.025em',
