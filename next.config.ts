@@ -143,17 +143,27 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      {
-        // 정적 자원 (Next 가 hash 박은 _next/static/*) — immutable + 1년.
-        // CDN 과 브라우저 모두 강력 캐시. hash 가 바뀌면 새 URL 이라 staleness X.
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
+      // 정적 자원 (Next 가 hash 박은 _next/static/*) — immutable + 1년.
+      // CDN 과 브라우저 모두 강력 캐시. hash 가 바뀌면 새 URL 이라 staleness X.
+      //
+      // ⚠️ production 전용. dev(Turbopack) 청크는 content-hash URL 이 아니라
+      // 같은 URL 의 내용이 코드 수정마다 바뀐다 — immutable 이 브라우저에 옛
+      // 청크를 영구 고정시켜 "고쳐도 옛 화면 / 모듈 없음 / hydration 깨짐"
+      // (B1 상호명, orders 파싱, 2026-06-12 lucide Filter) 의 단일 근원이었다.
+      // Next 부팅 경고("Custom Cache-Control ... can break development") 도 이것.
+      ...(process.env.NODE_ENV === 'production'
+        ? [
+            {
+              source: '/_next/static/:path*',
+              headers: [
+                {
+                  key: 'Cache-Control',
+                  value: 'public, max-age=31536000, immutable',
+                },
+              ],
+            },
+          ]
+        : []),
       {
         // 폰트 파일 — Pretendard 등 webfont. 1년 immutable.
         source: '/(.*)\\.(woff2|woff|ttf|otf)',
