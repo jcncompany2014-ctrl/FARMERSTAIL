@@ -111,7 +111,7 @@ export default async function DeleteAccountPage() {
                 </ul>
                 <Link
                   href="/mypage/orders"
-                  className="inline-block mt-3 text-[10.5px] font-bold text-terracotta hover:underline"
+                  className="inline-block mt-3 text-[10.5px] font-bold text-terracotta"
                 >
                   주문 내역 보기 →
                 </Link>

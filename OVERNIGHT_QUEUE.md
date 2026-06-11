@@ -24,7 +24,7 @@
 - [x] A5. 헤더 높이 64px 고정 + --ft-header-h 변수 + DogTabsNav safe-area 보정 (ba4771d)
 
 ## Phase B — 인터랙션 폴리시 (앱 손맛)
-- [ ] B1. 탭 가능한 카드 전부 press 피드백(active:scale-[0.98] + transition) — TodayCard 등 홈/목록 카드 전수.
+- [x] B1. 누름 피드백 — 전역 CSS 로 앱 스코프 a/button 전체 적용 (dc9ec59). 개별 active:scale 산재 정리는 자연 흡수.
 - [ ] B2. hover 전용 스타일 정리 — hover:underline 제거(5곳+), hover 색변화는 active 병행으로.
 - [ ] B3. 밑줄 텍스트 링크 → 버튼/› 화살표 그래머 (7곳).
 - [ ] B4. BottomSheet 드래그로 닫기 제스처 (BottomSheet.tsx — 그래버가 실제로 동작하게, touch 이벤트).

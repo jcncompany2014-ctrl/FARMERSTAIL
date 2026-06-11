@@ -595,7 +595,7 @@ function LogRow({
           )}
           <button
             onClick={onDelete}
-            className="inline-flex items-center gap-1 text-[10.5px] font-bold text-sale hover:underline mt-1"
+            className="inline-flex items-center gap-1 text-[10.5px] font-bold text-sale mt-1"
           >
             <Trash2 className="w-3 h-3" strokeWidth={2} />
             삭제

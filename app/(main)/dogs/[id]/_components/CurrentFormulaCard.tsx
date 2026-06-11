@@ -97,7 +97,7 @@ export default function CurrentFormulaCard({
             </Link>
             <Link
               href={`/dogs/${dogId}/analysis`}
-              className="text-[10.5px] font-bold text-terracotta hover:underline"
+              className="text-[10.5px] font-bold text-terracotta"
             >
               상세 →
             </Link>

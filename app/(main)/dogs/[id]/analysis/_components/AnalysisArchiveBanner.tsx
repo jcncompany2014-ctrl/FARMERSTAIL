@@ -25,7 +25,7 @@ export default function AnalysisArchiveBanner({ dogId, analysisDate }: Props) {
         </div>
         <Link
           href={`/dogs/${dogId}/analysis`}
-          className="shrink-0 text-[10.5px] font-bold text-terracotta hover:underline"
+          className="shrink-0 text-[10.5px] font-bold text-terracotta"
         >
           최신 분석 →
         </Link>

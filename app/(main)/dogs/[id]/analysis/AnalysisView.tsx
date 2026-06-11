@@ -690,7 +690,7 @@ export default function AnalysisView({
             {totalCount > 1 && (
               <Link
                 href={`/dogs/${dogId}/analyses`}
-                className="text-[10.5px] font-bold text-terracotta hover:underline inline-flex items-center gap-0.5"
+                className="text-[10.5px] font-bold text-terracotta inline-flex items-center gap-0.5"
               >
                 전체 기록 {totalCount}회
                 <ArrowRight className="w-3 h-3" strokeWidth={2.5} />

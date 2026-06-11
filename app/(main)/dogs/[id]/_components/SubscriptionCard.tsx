@@ -137,7 +137,7 @@ export default function SubscriptionCard({
                   {noBilling && !paused && (
                     <Link
                       href={`/subscribe/billing-auth?subscriptionId=${s.id}`}
-                      className="inline-flex items-center gap-1 mt-1 text-[10.5px] font-bold text-terracotta hover:underline"
+                      className="inline-flex items-center gap-1 mt-1 text-[10.5px] font-bold text-terracotta"
                     >
                       <Bell className="w-3 h-3" strokeWidth={2.4} />
                       카드 등록 마무리하기
