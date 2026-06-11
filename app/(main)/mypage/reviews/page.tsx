@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { Star, MessageSquare } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { V3, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 
 export const dynamic = 'force-dynamic'
@@ -63,23 +63,10 @@ export default async function MyReviewsPage() {
 
   return (
     <div style={{ paddingBottom: 32 }}>
-      <section style={{ padding: '24px 20px 8px' }}>
+      <section style={{ padding: '14px 20px 8px' }}>
         <Mono color="inkMute" size="xs" weight={500}>
           Reviews · 내 리뷰
         </Mono>
-        <h1
-          style={{
-            margin: '6px 0 0',
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.black,
-            fontSize: 32,
-            lineHeight: 1,
-            color: V3.ink,
-            letterSpacing: V3LetterSpacing.heading,
-          }}
-        >
-          내 리뷰
-        </h1>
         <Mono
           color="inkMute"
           size="xxs"

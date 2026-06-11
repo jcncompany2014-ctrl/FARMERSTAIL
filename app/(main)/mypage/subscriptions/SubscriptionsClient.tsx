@@ -18,7 +18,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Repeat } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { todayKstIsoDate, addDaysKst, addMonthsKst } from '@/lib/datetime-kst'
@@ -27,7 +26,7 @@ import {
   trackSubscriptionResumed,
   trackSubscriptionCancelled,
 } from '@/lib/analytics'
-import { V3, V3FontSize, V3FontWeight, V3LetterSpacing } from '@/lib/design/tokens'
+import { V3, V3FontSize } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 import {
   generateFallbackCustomerKey,
@@ -368,30 +367,14 @@ export default function SubscriptionsClient({
   }
 
   return (
-    <div style={{ padding: '24px 20px 128px' }}>
+    <div style={{ padding: '14px 20px 128px' }}>
       <div className="max-w-md mx-auto">
         {/* Heading */}
-        <div style={{ marginTop: 14 }}>
+        <div>
           <Mono color="inkMute" size="xs" weight={500}>
             Subscriptions · 정기배송
           </Mono>
         </div>
-        <h1
-          className="flex items-center"
-          style={{
-            margin: '6px 0 0',
-            gap: 8,
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.black,
-            fontSize: 32,
-            color: V3.ink,
-            letterSpacing: V3LetterSpacing.heading,
-            lineHeight: 1,
-          }}
-        >
-          <Repeat size={22} color={V3.sage} strokeWidth={2.2} />
-          내 정기배송
-        </h1>
 
         {showNewBanner && <SubscriptionsNewBanner />}
 

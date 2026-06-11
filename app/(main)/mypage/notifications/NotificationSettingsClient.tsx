@@ -210,20 +210,9 @@ export default function NotificationSettingsClient({
 
   return (
     <div className="pb-10">
-      <section className="px-5 pt-6 pb-2">
+      <section className="px-5 pt-4 pb-2">
         <span className="kicker mt-3 block">Notifications</span>
-        <h1
-          className="font-sans mt-1.5"
-          style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          알림 설정
-        </h1>
-        <p className="text-[10.5px] text-muted mt-1 leading-relaxed">
+        <p className="text-[13.5px] text-muted mt-1.5 leading-relaxed">
           배송 변경, 결제 완료, 리마인더를 알림으로 받을 수 있어요
         </p>
       </section>

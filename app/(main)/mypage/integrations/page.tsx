@@ -58,28 +58,17 @@ export default async function IntegrationsPage({
 
   return (
     <div className="pb-20 max-w-md mx-auto" data-form-tone="app">
-      <header className="px-5 pt-6 pb-6">
+      {/* 상단 헤더가 이미 '연동' 타이틀을 보여주므로, 본문은 큰 제목을
+          반복하지 않고 맥락 한 줄(eyebrow + 설명)만 슬림하게 둔다. */}
+      <header className="px-5 pt-4 pb-6">
         <span
           className="inline-block font-mono text-[10.5px] font-semibold uppercase"
           style={{ letterSpacing: '0.16em', wordSpacing: '-0.12em', color: 'var(--terracotta)' }}
         >
           Integrations
         </span>
-        <h1
-          className="mt-2"
-          style={{
-            fontFamily: 'var(--font-sans), Pretendard, sans-serif',
-            fontWeight: 800,
-            fontSize: 32,
-            color: 'var(--ink)',
-            letterSpacing: '-0.025em',
-            lineHeight: 1.25,
-          }}
-        >
-          외부 서비스 연동
-        </h1>
         <p
-          className="mt-2 text-[13.5px] leading-relaxed"
+          className="mt-1.5 text-[13.5px] leading-relaxed"
           style={{ color: 'var(--muted)' }}
         >
           만보계나 GPS tracker 를 연동하면 활동량을 자동으로 추적해 더

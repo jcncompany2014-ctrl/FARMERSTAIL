@@ -90,6 +90,8 @@ const DEEP_TITLES: Record<string, string> = {
   '/mypage/addresses': '배송지 관리',
   '/mypage/membership': '멤버십',
   '/mypage/accuracy': '분석 맞춤도',
+  '/mypage/integrations': '연동',
+  '/mypage/cs': '1:1 문의',
   '/mypage/referral': '친구 초대',
   '/mypage/notifications': '알림 설정',
   '/mypage/consent': '광고 수신 설정',

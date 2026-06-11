@@ -121,20 +121,12 @@ export default function ConsentSettingsClient({
 
   return (
     <div className="pb-10">
-      <section className="px-5 pt-6 pb-2">
+      <section className="px-5 pt-4 pb-2">
         <span className="kicker mt-3 block">Consent</span>
-        <h1
-          className="font-sans mt-1.5"
-          style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.02em',
-          }}
+        <p
+          className="mt-1.5 leading-relaxed"
+          style={{ fontSize: 13.5, color: 'var(--muted-strong)' }}
         >
-          광고·마케팅 수신 설정
-        </h1>
-        <p className="text-[10.5px] text-muted mt-1 leading-relaxed">
           혜택·이벤트 안내 수신 여부를 채널별로 관리할 수 있어요.
           <br />
           주문/배송/환불 등 거래 정보 안내는 이 설정과 무관하게 전송됩니다.

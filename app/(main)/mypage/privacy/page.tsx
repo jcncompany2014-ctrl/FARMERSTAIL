@@ -87,24 +87,14 @@ export default async function PrivacyDashboardPage() {
     ?.consent_level ?? 1) as 1 | 2 | 3 | 4
 
   return (
-    <div className="px-5 pb-24 pt-6 max-w-2xl mx-auto">
+    <div className="px-5 pb-24 pt-4 max-w-2xl mx-auto">
       <div className="flex items-center gap-2 mb-1">
         <Shield className="w-3.5 h-3.5 text-terracotta" strokeWidth={2} />
         <span className="kicker">Privacy</span>
       </div>
-      <h1
-        className="font-sans text-[24px] mt-1.5"
-        style={{
-          color: 'var(--ink)',
-          fontWeight: 800,
-          letterSpacing: '-0.02em',
-        }}
-      >
-        내 데이터 한눈에
-      </h1>
       <p
-        className="text-[12px] mt-2 leading-relaxed"
-        style={{ color: 'var(--muted)' }}
+        className="text-[13.5px] mt-1.5 leading-relaxed"
+        style={{ color: 'var(--muted-strong)' }}
       >
         개인정보보호법 제35조에 따라 회원님의 개인정보 처리 현황을 열람·다운로드·
         정정·삭제하실 수 있어요.

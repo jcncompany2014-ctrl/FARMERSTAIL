@@ -104,7 +104,7 @@ export default async function CouponsPage() {
 
   return (
     <div style={{ paddingBottom: 32 }}>
-      <section style={{ padding: '24px 20px 8px' }}>
+      <section style={{ padding: '14px 20px 8px' }}>
         <div
           style={{
             fontFamily: "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
@@ -118,24 +118,12 @@ export default async function CouponsPage() {
         >
           Coupons · 쿠폰함
         </div>
-        <h1
-          style={{
-            margin: '6px 0 0',
-            fontFamily: 'var(--font-sans)',
-            fontWeight: 800,
-            fontSize: 32,
-            lineHeight: 1,
-            color: '#16140f',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          내 쿠폰함
-        </h1>
         <p
           style={{
-            fontSize: 12,
-            color: '#706854',
+            fontSize: 13.5,
+            color: '#3a342a',
             marginTop: 6,
+            lineHeight: 1.5,
           }}
         >
           체크아웃 시 사용 가능한 쿠폰이 자동으로 표시돼요

@@ -70,19 +70,8 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
   return (
     <div className="pb-32 min-h-screen flex flex-col">
       {/* 헤더 */}
-      <section className="px-5 pt-6 pb-3">
-        <h1
-          className="font-sans mt-3"
-          style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          고객센터 메시지
-        </h1>
-        <p className="text-[10.5px] text-muted mt-1">
+      <section className="px-5 pt-4 pb-3">
+        <p className="text-[13.5px] text-muted mt-1 leading-relaxed">
           궁금하거나 불편한 점은 직접 답장으로 알려주세요.
         </p>
       </section>
