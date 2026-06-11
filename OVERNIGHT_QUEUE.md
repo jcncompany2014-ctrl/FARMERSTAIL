@@ -27,7 +27,7 @@
 - [x] B1. 누름 피드백 — 전역 CSS 로 앱 스코프 a/button 전체 적용 (dc9ec59). 개별 active:scale 산재 정리는 자연 흡수.
 - [x] B2. 죽은 hover:underline 6곳 제거 (3e634ae). 나머지 hover:* 는 v4 게이트로 터치 무해 — 정리 불필요 판정.
 - [x] B3. 밑줄 링크 10곳 → › 그래머 (5758ddb). 의도적 유지 3곳 로그 참조.
-- [ ] B4. BottomSheet 드래그로 닫기 제스처 (BottomSheet.tsx — 그래버가 실제로 동작하게, touch 이벤트).
+- [x] B4. BottomSheet 드래그 닫기 (aabd93f) — 그래버+제목 존, 90px 임계, 스프링백.
 - [ ] B5. Toast 스와이프로 닫기 (Toast.tsx).
 - [ ] B6. 스크롤바 숨김(앱 chrome) + 관성 스크롤 전역 (globals.css 앱 스코프).
 - [ ] B7. user-select/touch-callout off — 앱 전역, 입력창·본문 텍스트 예외.

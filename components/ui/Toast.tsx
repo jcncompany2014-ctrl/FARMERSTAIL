@@ -330,8 +330,54 @@ function ToastCard({
   }
   const style = intentStyle[item.intent]
 
+  // 스와이프로 닫기 — 좌우로 64px 이상 밀면 그 방향으로 날아가며 dismiss,
+  // 미만이면 스프링백. touchAction pan-y 라 세로 스크롤은 그대로.
+  // 버튼(액션/닫기) 위에서 시작한 제스처는 무시 — 탭과 충돌 방지.
+  const cardRef = useRef<HTMLDivElement | null>(null)
+  const swipe = useRef({ startX: 0, dx: 0, active: false })
+  const onSwipeStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('button')) return
+    swipe.current = { startX: e.clientX, dx: 0, active: true }
+    e.currentTarget.setPointerCapture(e.pointerId)
+    const el = cardRef.current
+    if (el) el.style.transition = 'none'
+    onPauseTimer(item.id)
+  }
+  const onSwipeMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const s = swipe.current
+    if (!s.active) return
+    s.dx = e.clientX - s.startX
+    const el = cardRef.current
+    if (el) {
+      el.style.transform = `translateX(${s.dx}px)`
+      el.style.opacity = String(Math.max(0.3, 1 - Math.abs(s.dx) / 240))
+    }
+  }
+  const onSwipeEnd = () => {
+    const s = swipe.current
+    if (!s.active) return
+    s.active = false
+    const el = cardRef.current
+    if (!el) return
+    if (Math.abs(s.dx) > 64) {
+      el.style.transition = 'transform 140ms ease-out, opacity 140ms ease-out'
+      el.style.transform = `translateX(${s.dx > 0 ? 420 : -420}px)`
+      el.style.opacity = '0'
+      window.setTimeout(() => onDismiss(item.id), 130)
+    } else {
+      el.style.transition = 'transform 160ms ease, opacity 160ms ease'
+      el.style.transform = ''
+      el.style.opacity = ''
+      onResumeTimer(item.id)
+      window.setTimeout(() => {
+        el.style.transition = ''
+      }, 180)
+    }
+  }
+
   return (
     <div
+      ref={cardRef}
       role={item.intent === 'error' ? 'alert' : 'status'}
       tabIndex={0}
       onKeyDown={onKeyDown}
@@ -339,6 +385,11 @@ function ToastCard({
       onMouseLeave={() => onResumeTimer(item.id)}
       onFocus={() => onPauseTimer(item.id)}
       onBlur={() => onResumeTimer(item.id)}
+      onPointerDown={onSwipeStart}
+      onPointerMove={onSwipeMove}
+      onPointerUp={onSwipeEnd}
+      onPointerCancel={onSwipeEnd}
+      style={{ touchAction: 'pan-y' }}
       className={cn(
         'pointer-events-auto rounded-xl shadow-lg ring-1',
         // motion-safe에서만 slide-in. reduce-motion이면 즉시 표시.
