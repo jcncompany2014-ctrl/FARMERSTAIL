@@ -64,8 +64,8 @@ export default async function MyReviewsPage() {
   return (
     <div style={{ paddingBottom: 32 }}>
       <section style={{ padding: '14px 20px 8px' }}>
-        <Mono color="inkMute" size="xs" weight={500}>
-          Reviews · 내 리뷰
+        <Mono color="accent" size="xs" weight={600}>
+          Reviews
         </Mono>
         <Mono
           color="inkMute"

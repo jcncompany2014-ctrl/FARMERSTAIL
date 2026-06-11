@@ -113,10 +113,10 @@ export default async function CouponsPage() {
             letterSpacing: '0.16em',
             wordSpacing: '-0.12em',
             textTransform: 'uppercase',
-            color: '#706854',
+            color: 'var(--accent)',
           }}
         >
-          Coupons · 쿠폰함
+          Coupons
         </div>
         <p
           style={{

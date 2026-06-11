@@ -134,8 +134,8 @@ export default async function AccuracyPage() {
   return (
     <div style={{ paddingBottom: 32 }}>
       <section style={{ padding: '18px 20px 4px' }}>
-        <Mono color="inkMute" size="xs" weight={500}>
-          {activeDog ? `${activeDog.name} · 측정 정밀도` : '측정 정밀도'}
+        <Mono color="accent" size="xs" weight={600}>
+          Accuracy
         </Mono>
         <p
           style={{

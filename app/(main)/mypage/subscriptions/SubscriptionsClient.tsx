@@ -371,8 +371,8 @@ export default function SubscriptionsClient({
       <div className="max-w-md mx-auto">
         {/* Heading */}
         <div>
-          <Mono color="inkMute" size="xs" weight={500}>
-            Subscriptions · 정기배송
+          <Mono color="accent" size="xs" weight={600}>
+            Subscriptions
           </Mono>
         </div>
 

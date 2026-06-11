@@ -45,8 +45,8 @@ export default async function AddressesPage() {
       {/* 상단 헤더가 이미 '배송지 관리' 타이틀을 보여주므로, 본문은 큰 제목을
           반복하지 않고 맥락 한 줄(eyebrow + 설명)만 슬림하게 둔다. */}
       <section style={{ padding: '14px 20px 8px' }}>
-        <Mono color="inkMute" size="xs" weight={500}>
-          Addresses · 배송지
+        <Mono color="accent" size="xs" weight={600}>
+          Addresses
         </Mono>
         <p
           style={{

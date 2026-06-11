@@ -43,8 +43,8 @@ export default async function WishlistPage() {
   return (
     <div style={{ paddingBottom: 32 }}>
       <section style={{ padding: '14px 20px 8px' }}>
-        <Mono color="inkMute" size="xs" weight={500}>
-          Wishlist · 찜한 상품
+        <Mono color="accent" size="xs" weight={600}>
+          Wishlist
         </Mono>
         <Mono
           color="inkMute"

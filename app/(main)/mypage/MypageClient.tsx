@@ -91,8 +91,8 @@ export default function MypageClient({
           헤더 — kicker + sans 800 h1
           ────────────────────────────────────────────────────────────── */}
       <section style={{ padding: '24px 20px 12px' }}>
-        <Mono color="inkMute" size="xs" weight={500}>
-          My Account · 내 정보
+        <Mono color="accent" size="xs" weight={600}>
+          My Account
         </Mono>
         <h1
           style={{
