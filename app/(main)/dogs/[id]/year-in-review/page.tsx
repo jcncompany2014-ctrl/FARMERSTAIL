@@ -183,7 +183,7 @@ export default async function YearInReviewPage({
         <h1
           className="font-sans mt-2 leading-tight"
           style={{
-            fontSize: 26,
+            fontSize: 32,
             fontWeight: 800,
             color: 'var(--ink)',
             letterSpacing: '-0.02em',

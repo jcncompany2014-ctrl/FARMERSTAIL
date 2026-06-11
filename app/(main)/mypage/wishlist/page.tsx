@@ -51,7 +51,7 @@ export default async function WishlistPage() {
             margin: '6px 0 0',
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.black,
-            fontSize: 28,
+            fontSize: 32,
             lineHeight: 1,
             color: V3.ink,
             letterSpacing: V3LetterSpacing.heading,

@@ -140,7 +140,7 @@ export default function PhotosClient({
         <h1
           className="font-sans"
           style={{
-            fontSize: 24,
+            fontSize: 32,
             fontWeight: 800,
             color: 'var(--ink)',
             letterSpacing: '-0.02em',

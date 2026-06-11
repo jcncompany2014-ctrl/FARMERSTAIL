@@ -70,7 +70,7 @@ export default async function IntegrationsPage({
           style={{
             fontFamily: 'var(--font-sans), Pretendard, sans-serif',
             fontWeight: 800,
-            fontSize: 24,
+            fontSize: 32,
             color: 'var(--ink)',
             letterSpacing: '-0.025em',
             lineHeight: 1.25,

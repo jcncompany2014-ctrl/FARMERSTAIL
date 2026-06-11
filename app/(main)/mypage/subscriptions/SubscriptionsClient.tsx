@@ -383,7 +383,7 @@ export default function SubscriptionsClient({
             gap: 8,
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.black,
-            fontSize: 28,
+            fontSize: 32,
             color: V3.ink,
             letterSpacing: V3LetterSpacing.heading,
             lineHeight: 1,

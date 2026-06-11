@@ -605,7 +605,7 @@ export default function AnalysisView({
         <h1
           className="font-sans mt-1.5"
           style={{
-            fontSize: 24,
+            fontSize: 32,
             fontWeight: 800,
             color: 'var(--ink)',
             letterSpacing: '-0.02em',

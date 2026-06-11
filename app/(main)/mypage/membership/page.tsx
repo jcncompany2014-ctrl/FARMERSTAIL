@@ -149,7 +149,7 @@ export default async function MembershipPage() {
                 <h1
                   className="font-sans mt-1 leading-tight"
                   style={{
-                    fontSize: 28,
+                    fontSize: 32,
                     fontWeight: 800,
                     letterSpacing: '-0.02em',
                   }}

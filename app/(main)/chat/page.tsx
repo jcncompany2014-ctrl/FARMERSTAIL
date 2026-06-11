@@ -54,7 +54,7 @@ export default async function ChatPage() {
             <h1
               className="font-sans leading-tight"
               style={{
-                fontSize: 24,
+                fontSize: 32,
                 fontWeight: 800,
                 letterSpacing: '-0.02em',
               }}

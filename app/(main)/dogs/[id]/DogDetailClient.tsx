@@ -248,7 +248,7 @@ export default function DogDetailClient({
             )}
           </div>
           <span className="kicker mb-2 inline-block">Dog Profile</span>
-          <h1 className="font-sans" style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+          <h1 className="font-sans" style={{ fontSize: 32, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
             {dog.name}
           </h1>
           {dog.breed && (

@@ -123,7 +123,7 @@ export default async function CouponsPage() {
             margin: '6px 0 0',
             fontFamily: 'var(--font-sans)',
             fontWeight: 800,
-            fontSize: 28,
+            fontSize: 32,
             lineHeight: 1,
             color: '#16140f',
             letterSpacing: '-0.02em',

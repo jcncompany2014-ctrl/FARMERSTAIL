@@ -201,7 +201,7 @@ export default function ReferralView({
             <h1
               className="font-sans leading-tight"
               style={{
-                fontSize: 26,
+                fontSize: 32,
                 fontWeight: 800,
                 letterSpacing: '-0.02em',
               }}

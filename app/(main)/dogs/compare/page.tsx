@@ -69,7 +69,7 @@ export default async function CompareDogsPage() {
           <h1
             className="font-sans mt-1.5"
             style={{
-              fontSize: 28,
+              fontSize: 32,
               fontWeight: 800,
               color: 'var(--ink)',
               letterSpacing: '-0.02em',

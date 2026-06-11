@@ -283,7 +283,7 @@ export default function RemindersClient({
     <div className="pb-10">
       <section className="px-5 pt-6 pb-2">
         <span className="kicker mt-3 block">Care Reminders</span>
-        <h1 className="font-sans mt-1.5" style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+        <h1 className="font-sans mt-1.5" style={{ fontSize: 32, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           리마인더
         </h1>
         <p className="text-[10.5px] text-muted mt-1">

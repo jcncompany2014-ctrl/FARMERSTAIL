@@ -293,7 +293,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
       <div className="pt-6 pb-2">
         <div className="mt-3">
           <span className="kicker inline-block">New Dog</span>
-          <h1 className="font-sans mt-1.5" style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+          <h1 className="font-sans mt-1.5" style={{ fontSize: 32, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
             아이 등록
           </h1>
           <p className="text-[12px] text-muted mt-1.5">
