@@ -288,7 +288,10 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               (R-clean: 상단 'THU 21 MAY · SEOUL·KST' ticker 제거 — 폰 상태바와 중복.) */}
           <div
             className="flex items-center justify-between"
-            style={{ paddingTop: 12, paddingBottom: 12 }}
+            // A5: minHeight 64 고정 — 탭루트(로고 40px)와 깊은화면(← 31px)의
+            // 헤더 높이가 달라 화면 전환 시 ~9px 점프하던 것 제거. 값은
+            // globals.css 의 --ft-header-h(64px) 와 동기.
+            style={{ paddingTop: 12, paddingBottom: 12, minHeight: 64, boxSizing: 'border-box' }}
           >
             {/* R-feel: 깊은 화면 = ← 뒤로 + 제목 / 탭 루트 = 로고(장식). */}
             {isDeep ? (

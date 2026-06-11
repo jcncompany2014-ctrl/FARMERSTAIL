@@ -83,7 +83,10 @@ export default function DogTabsNav({ dogId }: { dogId: string }) {
 
   return (
     <nav
-      className="sticky top-[60px] z-30 bg-bg/95 backdrop-blur-xl border-b border-rule"
+      className="sticky z-30 bg-bg/95 backdrop-blur-xl border-b border-rule"
+      // A5: 60px 하드코딩 → 헤더 높이 변수 + 노치 safe-area 보정. 하드코딩
+      // 시절엔 노치 기기에서 헤더와 겹쳤음.
+      style={{ top: 'calc(var(--ft-header-h, 64px) + env(safe-area-inset-top))' }}
       aria-label="강아지 메뉴"
     >
       {/* audit #47: 아이콘 18→20px, 라벨 10.5→11px, py-2→py-2.5, underline w-8→w-10

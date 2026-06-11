@@ -94,6 +94,11 @@
   --accent: #c44a26;
   --accent-deep: #8a2e15;
 
+  /* 상단 헤더 고정 높이 — AppChrome 헤더 row(40) + 상하 padding(12+12).
+     sticky 서브내브(DogTabsNav 등)의 top 오프셋이 이 변수를 참조한다.
+     safe-area 는 사용처에서 calc 로 더할 것. */
+  --ft-header-h: 64px;
+
   --yellow: #e6b942;
 
   --sage: #4f6a48;
