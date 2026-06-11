@@ -762,7 +762,8 @@ export default async function DashboardPage() {
   const journalEntries: JournalEntry[] = []
 
   return (
-    <div className="pb-8">
+    // ft-stagger: 홈 섹션들이 위에서 순서대로 떠오르는 진입 연출 (B9).
+    <div className="pb-8 ft-stagger">
       {/* 가입 후 첫 진입 튜토리얼 — onboarded_at IS NULL 인 경우만 1회. */}
       {showOnboarding && <OnboardingTutorial />}
 

@@ -31,7 +31,7 @@
 - [x] B5. Toast 스와이프 닫기 (757071a).
 - [x] B6. 스크롤바 숨김 + 관성 스크롤 (aeb3727)
 - [x] B7. user-select/touch-callout off, 입력류 예외 (aeb3727) — build:ci 권위 검증 포함
-- [ ] B8. 상태바 safe-area 색 채움 + statusBarStyle (viewportFit cover 와 세트).
+- [x] B8. 상태바 색 — (main) viewport override, paper 톤 (cadbc1b).
 - [ ] B9. 진입 애니메이션 활용 확대 — lib/motion.ts 가 2화면뿐 → 주요 화면 목록/카드에 stagger fade-in-up.
 - [ ] B10. Tooltip hover식 → 탭 펼침 (Tooltip.tsx:61).
 

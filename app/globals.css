@@ -1349,6 +1349,20 @@ html:has([data-ft-chrome="app"])::-webkit-scrollbar,
   -webkit-overflow-scrolling: touch;
 }
 
+/* ── B9: 섹션 stagger 진입 — .ft-stagger 컨테이너의 직계 자식들이 위에서
+   순서대로 떠오른다(45ms 간격). 8번째 이후는 동일 딜레이(스크롤 밖).
+   reduced-motion 은 전역 가드가 끔. */
+[data-ft-chrome="app"] .ft-stagger > * {
+  animation: fade-in-up 360ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+[data-ft-chrome="app"] .ft-stagger > *:nth-child(2) { animation-delay: 45ms; }
+[data-ft-chrome="app"] .ft-stagger > *:nth-child(3) { animation-delay: 90ms; }
+[data-ft-chrome="app"] .ft-stagger > *:nth-child(4) { animation-delay: 135ms; }
+[data-ft-chrome="app"] .ft-stagger > *:nth-child(5) { animation-delay: 180ms; }
+[data-ft-chrome="app"] .ft-stagger > *:nth-child(6) { animation-delay: 225ms; }
+[data-ft-chrome="app"] .ft-stagger > *:nth-child(7) { animation-delay: 270ms; }
+[data-ft-chrome="app"] .ft-stagger > *:nth-child(n + 8) { animation-delay: 300ms; }
+
 /* ── B7: 앱 텍스트 선택/롱프레스 콜아웃 차단 — 카드 꾹 누르면 텍스트가
    파랗게 선택되던 '웹스러움' 제거. 입력류 + .ft-selectable 은 예외. */
 [data-ft-chrome="app"] {
