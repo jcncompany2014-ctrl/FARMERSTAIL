@@ -286,16 +286,24 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     }
   }, [dogMenuOpen])
 
-  // 드롭다운에서 강아지 선택 — 활성 강아지로 기억 + 그 아이 페이지로 이동.
+  // 드롭다운에서 강아지 선택 — 활성 강아지로 기억 + 홈(대시보드)의 표시
+  // 정보를 그 아이로 전환. 강아지 상세로 이동하는 게 아니라, 홈 spotlight
+  // (인사·활성카드·이번주·맞춤 추천 등 firstDog 기반 섹션)가 선택한 아이로 바뀐다.
+  // 홈은 서버 컴포넌트라 localStorage 를 못 읽음 → 쿠키에도 기록해 서버가 읽게 함.
   function selectDog(id: string) {
     setActiveDogId(id)
     try {
       window.localStorage.setItem('ft_active_dog', id)
+      // path=/ 전역, 1년 보존, lax — 홈 서버 컴포넌트가 활성 강아지 식별.
+      // eslint-disable-next-line react-hooks/immutability -- document.cookie 쓰기는 정당한 부수효과(오탐)
+      document.cookie = `ft_active_dog=${id}; path=/; max-age=31536000; samesite=lax`
     } catch {
-      /* storage 불가 환경 — 칩 표시만 전환 */
+      /* storage/cookie 불가 환경 — 칩 표시만 전환 */
     }
     setDogMenuOpen(false)
-    router.push(`/dogs/${id}`)
+    // 홈으로 이동 + 서버 재렌더(refresh)로 선택한 아이 정보 반영.
+    router.push('/dashboard')
+    router.refresh()
   }
 
   return (
@@ -489,51 +497,23 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                             onClick={() => selectDog(d.id)}
                             className="flex items-center w-full text-left"
                             style={{
-                              gap: 10,
-                              padding: '9px 10px',
+                              gap: 8,
+                              padding: '11px 12px',
                               borderRadius: 4,
-                              background: 'none',
+                              background: isActive
+                                ? 'color-mix(in srgb, var(--accent) 7%, transparent)'
+                                : 'none',
                               border: 'none',
                               cursor: 'pointer',
                             }}
                           >
                             <span
-                              className="overflow-hidden flex items-center justify-center shrink-0"
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 999,
-                                background: 'var(--paper)',
-                                border: '1px solid var(--ink-rule, rgba(22,20,15,0.12))',
-                              }}
-                            >
-                              {d.photoUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={d.photoUrl}
-                                  alt=""
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                />
-                              ) : (
-                                <span
-                                  style={{
-                                    fontFamily: 'var(--font-sans)',
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                    color: 'var(--ink-soft, #3a342a)',
-                                  }}
-                                >
-                                  {d.name.charAt(0)}
-                                </span>
-                              )}
-                            </span>
-                            <span
                               style={{
                                 fontFamily: 'var(--font-sans)',
-                                fontSize: 13.5,
+                                fontSize: 14,
                                 fontWeight: isActive ? 700 : 500,
                                 color: 'var(--ink)',
-                                maxWidth: 120,
+                                maxWidth: 140,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
@@ -570,22 +550,12 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                         role="menuitem"
                         onClick={() => setDogMenuOpen(false)}
                         className="flex items-center"
-                        style={{ gap: 10, padding: '9px 10px', borderRadius: 4 }}
+                        style={{ gap: 7, padding: '11px 12px', borderRadius: 4 }}
                       >
-                        <span
-                          className="flex items-center justify-center shrink-0"
-                          style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: 999,
-                            border: '1px dashed var(--ink-faint, #b6ab93)',
-                          }}
-                        >
-                          <Plus
-                            style={{ width: 14, height: 14, color: 'var(--ink-mute)' }}
-                            strokeWidth={2}
-                          />
-                        </span>
+                        <Plus
+                          style={{ width: 15, height: 15, color: 'var(--ink-mute)', flexShrink: 0 }}
+                          strokeWidth={2}
+                        />
                         <span
                           style={{
                             fontFamily: 'var(--font-sans)',

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Footprints, Scale, Soup } from 'lucide-react'
 import {
@@ -248,7 +249,19 @@ export default async function DashboardPage() {
       ? `${rawUserName.slice(0, 12)}…`
       : rawUserName
   const userCreatedAt = user.created_at ?? null
-  const dogs = (snapshot.dogs ?? []) as DogRow[]
+  // 헤더 강아지 칩에서 선택한 활성 강아지(쿠키)를 맨 앞으로 올린다. 홈의
+  // spotlight 섹션들은 모두 firstDog = dogs[0] 기반이라, 이 한 번의 재정렬로
+  // 인사·활성카드·이번주·맞춤추천이 전부 선택한 아이 기준으로 전환된다.
+  // 쿠키 없거나 해당 강아지가 없으면 등록 순서(기본) 유지.
+  const cookieStore = await cookies()
+  const activeDogIdCookie = cookieStore.get('ft_active_dog')?.value ?? null
+  const dogs = (() => {
+    const list = (snapshot.dogs ?? []) as DogRow[]
+    if (!activeDogIdCookie) return list
+    const idx = list.findIndex((d) => d.id === activeDogIdCookie)
+    if (idx <= 0) return list
+    return [list[idx]!, ...list.slice(0, idx), ...list.slice(idx + 1)]
+  })()
   const products = (prodData ?? []) as ProductRow[]
   const subscription = snapshot.subscription
   const hasActiveSub =
