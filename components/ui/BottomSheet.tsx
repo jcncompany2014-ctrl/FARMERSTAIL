@@ -53,6 +53,10 @@ function BottomSheetRoot({
   children,
 }: BottomSheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null)
+  // 드래그로 닫기 — 그래버/헤더 영역을 아래로 끌면 시트가 따라 내려오고,
+  // 90px 이상이면 닫힘 / 미만이면 스프링백. 시각 변화 없음(동작만 추가).
+  const sheetRef = useRef<HTMLDivElement | null>(null)
+  const drag = useRef({ startY: 0, dy: 0, active: false })
   // open prop 변화에 따라 native dialog 제어.
   useEffect(() => {
     const el = dialogRef.current
@@ -64,10 +68,55 @@ function BottomSheetRoot({
         /* Safari < 15.4 fallback — showModal 지원 안 하면 .show() 로 flat fallback */
         el.show()
       }
+      // 이전 드래그 잔여 transform 제거 — 새로 열릴 때 항상 제자리.
+      const sheet = sheetRef.current
+      if (sheet) {
+        sheet.style.transition = ''
+        sheet.style.transform = ''
+      }
     } else if (!open && el.open) {
       el.close()
     }
   }, [open])
+
+  // 드래그 핸들러 — 그래버+제목 영역 한정 (본문 스크롤과 충돌 방지).
+  // dismissOnBackdrop=false(저장 중 등 닫기 잠금)면 드래그 닫기도 잠금.
+  const onDragStart = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!dismissOnBackdrop) return
+      drag.current = { startY: e.clientY, dy: 0, active: true }
+      e.currentTarget.setPointerCapture(e.pointerId)
+      const sheet = sheetRef.current
+      if (sheet) sheet.style.transition = 'none'
+    },
+    [dismissOnBackdrop],
+  )
+  const onDragMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const s = drag.current
+    if (!s.active) return
+    s.dy = Math.max(0, e.clientY - s.startY)
+    const sheet = sheetRef.current
+    if (sheet) sheet.style.transform = `translateY(${s.dy}px)`
+  }, [])
+  const onDragEnd = useCallback(() => {
+    const s = drag.current
+    if (!s.active) return
+    s.active = false
+    const sheet = sheetRef.current
+    if (!sheet) return
+    if (s.dy > 90) {
+      sheet.style.transition = ''
+      sheet.style.transform = ''
+      onClose()
+    } else {
+      sheet.style.transition = 'transform 180ms ease'
+      sheet.style.transform = 'translateY(0)'
+      window.setTimeout(() => {
+        sheet.style.transition = ''
+        sheet.style.transform = ''
+      }, 200)
+    }
+  }, [onClose])
 
   // ESC / dialog native close → onClose 호출. native close 는 사용자의 ESC,
   // form method=dialog submit, 스크립트의 .close() 등으로 발화.
@@ -112,24 +161,37 @@ function BottomSheetRoot({
       style={{ maxHeight }}
     >
       {/* 내부 컨테이너 — dialog 에 직접 bg 를 먹이면 backdrop 과 겹쳐 엉킴 */}
-      <div className="bg-bg rounded-t-3xl shadow-[0_-8px_24px_-12px_rgba(30,26,20,0.25)] flex flex-col overflow-hidden">
-        {/* Grabber — 시각적 드래그 힌트. 실제 드래그 제스처는 범위 밖. */}
+      <div
+        ref={sheetRef}
+        className="bg-bg rounded-t-3xl shadow-[0_-8px_24px_-12px_rgba(30,26,20,0.25)] flex flex-col overflow-hidden"
+      >
+        {/* 드래그 존 — 그래버 + 제목. touchAction none 으로 스크롤 대신
+            pointermove 수신. 본문(Body) 스크롤은 영향 없음. */}
         <div
-          className="flex justify-center pt-2.5 pb-1 shrink-0"
-          aria-hidden="true"
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
+          onPointerCancel={onDragEnd}
+          style={{ touchAction: 'none' }}
         >
-          <span className="block h-1 w-10 rounded-full bg-rule-2" />
+          {/* Grabber — 드래그로 닫기 가능. */}
+          <div
+            className="flex justify-center pt-2.5 pb-1 shrink-0"
+            aria-hidden="true"
+          >
+            <span className="block h-1 w-10 rounded-full bg-rule-2" />
+          </div>
+          {title && (
+            <header className="px-5 pt-2 pb-3 shrink-0 border-b border-rule">
+              <h2
+                id={titleId}
+                className="text-base font-bold text-ink leading-snug"
+              >
+                {title}
+              </h2>
+            </header>
+          )}
         </div>
-        {title && (
-          <header className="px-5 pt-2 pb-3 shrink-0 border-b border-rule">
-            <h2
-              id={titleId}
-              className="text-base font-bold text-ink leading-snug"
-            >
-              {title}
-            </h2>
-          </header>
-        )}
         {children}
       </div>
     </dialog>
