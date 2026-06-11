@@ -53,7 +53,7 @@ export default function SubscriptionCancelModal({
         >
           <div
             style={{
-              fontSize: 11.5,
+              fontSize: 12,
               fontWeight: V3FontWeight.bold,
               color: V3.inkMute,
               marginBottom: 10,
@@ -70,7 +70,7 @@ export default function SubscriptionCancelModal({
                 flex: 1,
                 padding: '10px 8px',
                 borderRadius: V3Radius.sm,
-                fontSize: 11.5,
+                fontSize: 12,
                 fontWeight: V3FontWeight.bold,
                 background: V3.paper,
                 color: V3.sage,
@@ -91,7 +91,7 @@ export default function SubscriptionCancelModal({
                 flex: 1,
                 padding: '10px 8px',
                 borderRadius: V3Radius.sm,
-                fontSize: 11.5,
+                fontSize: 12,
                 fontWeight: V3FontWeight.bold,
                 background: V3.paper,
                 color: V3.sage,

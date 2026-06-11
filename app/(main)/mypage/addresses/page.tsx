@@ -104,7 +104,7 @@ export default async function AddressesPage() {
                 margin: '8px 0 0',
                 fontFamily: 'var(--font-sans)',
                 fontWeight: V3FontWeight.black,
-                fontSize: 18,
+                fontSize: 16,
                 color: V3.ink,
                 letterSpacing: '-0.02em',
               }}

@@ -100,7 +100,7 @@ export default async function DogsPage() {
             <h3
               className="font-sans mt-2"
               style={{
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: 800,
                 color: 'var(--ink)',
                 letterSpacing: '-0.02em',

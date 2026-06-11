@@ -16,7 +16,8 @@
 ## Phase A — 시각 기반 (파운데이션 일관성)
 - [ ] A1. 타이포 스케일 위반 정리 — 앱 스코프에서 V3FontSize(9/10.5/12/13.5/16/22/32/54) 외 임의 px (13/14/15/11/28 등) 전수 → 가장 가까운 토큰으로. 화면 단위로 쪼개서 여러 커밋 OK.
   - [x] A1-1: 페이지 h1 32 통일 (156fdf9)
-  - [ ] A1-2: 본문/보조 텍스트 off-scale (text-[11px]·[14px]·fontSize 11/14/15/17/18/20 등) — components/v3 부터.
+  - [x] A1-2: components/v3 off-scale 정렬 (4ef4e2b) — 예외: 날짜 숫자 디스플레이, MyDogsSection 20(R23)
+  - [ ] A1-3: app/(main) 화면들 본문 off-scale (text-[11px]·text-[14px]·fontSize 11/14/15/17/18 등) — 묶음별로.
 - [ ] A2. spacing 표준 위반 정리 — px-5/mt-3/p-4/gap-3 표준 외 잡값 정리 (화면 단위).
 - [ ] A3. radius 위반 정리 — 앱 스코프 rounded-xl/2xl/3xl 잔재 → 4px(카드)/12px(시트·히어로) 체계로.
 - [ ] A4. 색 일관성 — terracotta(웹 잔재) vs accent 혼용 정리, inkFaint 텍스트 사용처 제거(대비 위반), sale/sage/gold 역할 일관성.

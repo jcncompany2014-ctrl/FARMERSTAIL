@@ -541,7 +541,7 @@ export default function AnalysisView({
                           </span>
                           {riskFlagDesc(f) && (
                             <p
-                              className="text-[11px] leading-relaxed mt-0.5"
+                              className="text-[12px] leading-relaxed mt-0.5"
                               style={{ color: 'var(--muted)' }}
                             >
                               {riskFlagDesc(f)}

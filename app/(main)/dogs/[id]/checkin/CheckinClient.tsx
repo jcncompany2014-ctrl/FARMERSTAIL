@@ -371,7 +371,7 @@ export default function CheckinClient({
               border: 'none',
               background: 'var(--terracotta, #c4623f)',
               color: '#fff',
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: 800,
               cursor: 'pointer',
               fontFamily: 'inherit',

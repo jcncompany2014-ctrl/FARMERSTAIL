@@ -89,7 +89,7 @@ export default function PreferencesPanel() {
               onClick={() => {
                 if (typeof window !== 'undefined') window.location.reload()
               }}
-              className="text-[11px] font-bold text-terracotta underline underline-offset-2"
+              className="text-[12px] font-bold text-terracotta underline underline-offset-2"
             >
               다시 시도
             </button>

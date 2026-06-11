@@ -430,7 +430,7 @@ export default function DogDetailClient({
             </div>
             <h3
               id="weight-modal-title"
-              className="font-sans text-[18px] font-black text-text"
+              className="font-sans text-[16px] font-black text-text"
             >
               {dog.name}의 체중
             </h3>
@@ -738,7 +738,7 @@ export default function DogDetailClient({
             </div>
             <h3
               id="delete-modal-title"
-              className="font-sans text-[18px] font-black text-text text-center mb-2"
+              className="font-sans text-[16px] font-black text-text text-center mb-2"
             >
               정말 삭제할까요?
             </h3>
