@@ -1333,6 +1333,39 @@ html[data-theme="dark"] .fiber::after {
   }
 }
 
+/* ── B6: 앱 스크롤바 숨김 — 네이티브 앱처럼 트랙 없이. 스크롤 동작은 그대로.
+   페이지 스크롤바(html)는 :has 로 앱 chrome 일 때만. + 구형 iOS 관성 스크롤. */
+html:has([data-ft-chrome="app"]) {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html:has([data-ft-chrome="app"])::-webkit-scrollbar,
+[data-ft-chrome="app"] ::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+[data-ft-chrome="app"] {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── B7: 앱 텍스트 선택/롱프레스 콜아웃 차단 — 카드 꾹 누르면 텍스트가
+   파랗게 선택되던 '웹스러움' 제거. 입력류 + .ft-selectable 은 예외. */
+[data-ft-chrome="app"] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+[data-ft-chrome="app"] input,
+[data-ft-chrome="app"] textarea,
+[data-ft-chrome="app"] select,
+[data-ft-chrome="app"] [contenteditable],
+[data-ft-chrome="app"] .ft-selectable {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 /* =========================================================================
    Reduced motion — 전역 safety net
    ========================================================================= */
