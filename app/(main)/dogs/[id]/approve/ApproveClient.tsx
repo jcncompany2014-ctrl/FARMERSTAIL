@@ -6,7 +6,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ChevronLeft,
   Check,
   X,
   Loader2,
@@ -82,10 +81,6 @@ export default function ApproveClient({
   if (!pending) {
     return (
       <div className="ap-page">
-        <Link href={`/dogs/${dogId}`} className="ap-back">
-          <ChevronLeft size={14} strokeWidth={2.2} />
-          {dogName ? `${dogName}이의 페이지` : '돌아가기'}
-        </Link>
         <div className="ap-empty">
           <p>
             cycle {cycleNumber} 의 동의 대기 박스를 찾을 수 없어요.
@@ -104,11 +99,6 @@ export default function ApproveClient({
 
   return (
     <div className="ap-page">
-      <Link href={`/dogs/${dogId}`} className="ap-back">
-        <ChevronLeft size={14} strokeWidth={2.2} />
-        {dogName}이의 페이지
-      </Link>
-
       <header className="ap-hero">
         <div className="ap-kicker">
           <span className="ap-pill">CYCLE {cycleNumber}</span>

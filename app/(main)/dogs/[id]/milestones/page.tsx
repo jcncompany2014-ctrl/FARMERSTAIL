@@ -1,9 +1,8 @@
 // B8 — 마일스톤 standalone 페이지. dashboard 의 카드와 다르게 모든 도달한
 // 마일스톤 + 다음 마일스톤까지의 진행률을 timeline 으로 보여준다.
 
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronLeft, PartyPopper, Lock } from 'lucide-react'
+import { PartyPopper, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { MILESTONES, type Milestone } from '@/lib/dashboard/milestones'
 
@@ -44,13 +43,6 @@ export default async function MilestonesPage({
   return (
     <div className="pb-10">
       <div className="px-5 pt-6 pb-2">
-        <Link
-          href={`/dogs/${dogId}`}
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          {dog.name as string}
-        </Link>
         <div className="mt-3">
           <span className="kicker inline-block">Milestones</span>
           <h1

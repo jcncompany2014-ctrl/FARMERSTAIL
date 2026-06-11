@@ -20,8 +20,11 @@ interface MonoProps {
   color?: keyof typeof V3 | (string & {})
   /** font-weight — 400(default) / 500(medium) / 600(semibold) / 700(bold). */
   weight?: 400 | 500 | 600 | 700
-  /** letter-spacing override. 기본 0.16em. */
+  /** letter-spacing override. 기본 0.04em (R-clean: 한글에서 과한 자간 제거). */
   letterSpacing?: string | number
+  /** word-spacing override. 기본 -0.12em — letter-spacing 이 공백에도 더해져
+   *  단어 사이가 과하게 벌어지는 걸 상쇄(특히 한글 띄어쓰기). */
+  wordSpacing?: string | number
   /** uppercase 끄기. 기본 true. */
   upper?: boolean
   /** 인라인 / 블록. 기본 inline (span). */
@@ -35,7 +38,8 @@ export default function Mono({
   size = 'xs',
   color = 'inkMute',
   weight = 500,
-  letterSpacing = '0.16em',
+  letterSpacing = '0.04em',
+  wordSpacing = '-0.12em',
   upper = true,
   as: Tag = 'span',
   className,
@@ -52,6 +56,7 @@ export default function Mono({
         fontSize: V3FontSize[size],
         fontWeight: weight,
         letterSpacing,
+        wordSpacing,
         textTransform: upper ? 'uppercase' : 'none',
         color: resolvedColor,
         ...style,

@@ -147,12 +147,6 @@ export default async function AnalysesTimelinePage({
     <div className="pb-10">
       {/* 헤더 */}
       <section className="px-5 pt-6 pb-2">
-        <Link
-          href={`/dogs/${dogId}`}
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          ← {dog.name}
-        </Link>
         <span className="kicker mt-3 block">Analysis History</span>
         <h1 className="font-sans mt-1.5" style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
           분석 히스토리

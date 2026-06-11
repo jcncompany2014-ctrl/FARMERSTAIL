@@ -5,7 +5,6 @@ import {
   Coins,
   TrendingUp,
   TrendingDown,
-  ChevronLeft,
   ChevronRight,
   Sparkles,
   Crown,
@@ -85,26 +84,8 @@ export default async function PointsPage() {
 
   return (
     <div style={{ paddingBottom: 40 }}>
-      {/* Back link */}
-      <section style={{ padding: '24px 20px 12px' }}>
-        <Link
-          href="/mypage"
-          className="inline-flex items-center"
-          style={{
-            gap: 4,
-            fontSize: 10.5,
-            fontWeight: V3FontWeight.semibold,
-            color: V3.inkMute,
-            textDecoration: 'none',
-          }}
-        >
-          <ChevronLeft size={12} strokeWidth={2.5} />
-          내 정보
-        </Link>
-      </section>
-
       {/* HERO — V3Dark ink + yellow accent */}
-      <section style={{ padding: '0 20px' }}>
+      <section style={{ padding: '24px 20px 0' }}>
         <div
           className="relative overflow-hidden"
           style={{
@@ -150,6 +131,7 @@ export default async function PointsPage() {
                   fontSize: 10.5,
                   fontWeight: 600,
                   letterSpacing: '0.16em',
+                  wordSpacing: '-0.12em',
                   textTransform: 'uppercase',
                   color: V3.yellow,
                 }}
@@ -351,6 +333,7 @@ function StatCell({
             fontSize: 9.5,
             fontWeight: 600,
             letterSpacing: '0.12em',
+            wordSpacing: '-0.12em',
             textTransform: 'uppercase',
             color: accent,
           }}

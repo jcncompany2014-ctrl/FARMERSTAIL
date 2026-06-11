@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ChevronLeft,
   PartyPopper,
   Scale,
   ClipboardList,
@@ -176,19 +175,8 @@ export default async function YearInReviewPage({
 
   return (
     <div className="pb-12" style={{ background: 'var(--bg)' }}>
-      {/* 헤더 */}
-      <section className="px-5 pt-5 pb-2">
-        <Link
-          href={`/dogs/${dogRow.id}`}
-          className="inline-flex items-center gap-1 text-[12px] font-bold text-muted hover:text-text transition"
-        >
-          <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.2} />
-          {dogRow.name}으로 돌아가기
-        </Link>
-      </section>
-
       {/* 히어로 */}
-      <section className="px-5 mt-5">
+      <section className="px-5 pt-6">
         <span className="kicker" style={{ color: 'var(--terracotta)' }}>
           Year in Review · 한 해 회고
         </span>

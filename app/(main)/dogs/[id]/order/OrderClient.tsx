@@ -7,7 +7,6 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ChevronLeft,
   Loader2,
   Check,
   AlertCircle,
@@ -603,11 +602,6 @@ export default function OrderClient({
 
   return (
     <div className="ord-page">
-      <Link href={`/dogs/${dogId}/analysis`} className="ord-back">
-        <ChevronLeft size={14} strokeWidth={2.2} />
-        분석 결과
-      </Link>
-
       <header className="ord-hero">
         <span className="ord-kicker">CUSTOM BOX · CYCLE {formula?.cycleNumber ?? '–'}</span>
         <h1>

@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
 import {
   Activity,
   Heart,
@@ -189,12 +188,6 @@ export default function HealthLogClient({
     <div className="pb-10">
       {/* 헤더 */}
       <section className="px-5 pt-6 pb-2">
-        <Link
-          href={`/dogs/${dogId}`}
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          ← {dogName}
-        </Link>
         <span className="kicker mt-3 block">Health Journal</span>
         <h1 className="font-sans mt-1.5" style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           건강 일지

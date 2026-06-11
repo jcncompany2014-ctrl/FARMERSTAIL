@@ -54,12 +54,6 @@ export default async function DeleteAccountPage() {
   return (
     <div className="pb-10">
       <section className="px-5 pt-6 pb-2">
-        <Link
-          href="/mypage"
-          className="text-[10.5px] text-muted hover:text-terracotta font-semibold"
-        >
-          ← 내 정보
-        </Link>
         <div className="flex items-center gap-2 mt-3">
           <AlertTriangle
             className="w-4 h-4 text-sale"

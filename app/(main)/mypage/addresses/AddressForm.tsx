@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import AddressSearch from '@/components/AddressSearch'
 import type { Address, AddressInput } from '@/lib/commerce/addresses'
 import { formatPhone } from '@/lib/formatters'
@@ -102,12 +101,6 @@ export default function AddressForm({ mode, initial }: Props) {
   return (
     <div className="pb-10" style={{ background: 'var(--bg)' }}>
       <section className="px-5 pt-6 pb-2">
-        <Link
-          href="/mypage/addresses"
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          ← 배송지 관리
-        </Link>
         <span className="kicker mt-3 block">
           {mode === 'edit' ? 'Edit · 배송지 수정' : 'New · 배송지 추가'}
         </span>

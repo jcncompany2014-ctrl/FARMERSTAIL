@@ -9,7 +9,6 @@ import {
   Share2,
   Gift,
   Users,
-  ChevronLeft,
   Sparkles,
   Lock,
   ChevronRight,
@@ -171,19 +170,8 @@ export default function ReferralView({
 
   return (
     <>
-      {/* 헤더 */}
-      <section className="px-5 pt-6 pb-3">
-        <Link
-          href="/mypage"
-          className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-terracotta font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          내 정보
-        </Link>
-      </section>
-
       {/* HERO 카드 — gradient + 누적 적립금 + 큰 공유 CTA */}
-      <section className="px-5">
+      <section className="px-5 pt-6">
         <div
           className="relative overflow-hidden rounded-[12px] px-6 pt-6 pb-7 text-white"
           style={{

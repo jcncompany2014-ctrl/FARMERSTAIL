@@ -102,6 +102,7 @@ export default function InlineReviewForm({
           fontWeight: V3FontWeight.bold,
           color: V3.accent,
           letterSpacing: '0.16em',
+          wordSpacing: '-0.12em',
           textTransform: 'uppercase',
         }}
       >

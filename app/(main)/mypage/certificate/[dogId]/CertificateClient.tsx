@@ -1,8 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import Image from 'next/image'
-import { ChevronLeft, Award, Printer, Download, Share2 } from 'lucide-react'
+import { Award, Printer, Download, Share2 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 
 type Dog = {
@@ -108,13 +107,6 @@ export default function CertificateClient({
     <div className="pb-12 print:pb-0">
       {/* 상단 — 인쇄 시 숨김 */}
       <section className="px-5 pt-6 pb-3 print:hidden">
-        <Link
-          href="/mypage/membership"
-          className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-terracotta font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          멤버십
-        </Link>
         <div className="mt-3">
           <span className="kicker">Certificate</span>
           <h1
@@ -193,6 +185,7 @@ export default function CertificateClient({
                 fontFamily: "'Archivo Black', Arial, sans-serif",
                 fontSize: 10.5,
                 letterSpacing: '0.32em',
+                wordSpacing: '-0.12em',
                 color: '#A0452E',
                 textTransform: 'uppercase',
               }}
@@ -462,6 +455,7 @@ function Row({
           fontSize: 9,
           color: '#9C9282',
           letterSpacing: '0.18em',
+          wordSpacing: '-0.12em',
           textTransform: 'uppercase',
           fontWeight: 700,
         }}

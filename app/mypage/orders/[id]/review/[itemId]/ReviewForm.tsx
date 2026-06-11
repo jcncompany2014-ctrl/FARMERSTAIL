@@ -190,7 +190,7 @@ export default function ReviewForm({
       <section className="px-5 md:px-6 pt-6 md:pt-8 pb-2 md:pb-4">
         <Link
           href={`/mypage/orders/${orderId}`}
-          className="text-[11px] md:text-[12.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="ft-app-back-hide text-[11px] md:text-[12.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← 주문 상세
         </Link>

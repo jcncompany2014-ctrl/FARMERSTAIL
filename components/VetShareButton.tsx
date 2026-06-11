@@ -9,6 +9,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { useConfirm } from '@/components/v3/useConfirm'
 
 /**
  * VetShareButton — 수의사 read-only 공유 토큰 발급 카드.
@@ -21,6 +22,7 @@ import { useToast } from '@/components/ui/Toast'
  */
 export default function VetShareButton({ dogId, dogName }: { dogId: string; dogName: string | null }) {
   const toast = useToast()
+  const confirm = useConfirm()
   const [busy, setBusy] = useState(false)
   const [url, setUrl] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
@@ -59,7 +61,14 @@ export default function VetShareButton({ dogId, dogName }: { dogId: string; dogN
   }
 
   async function revoke() {
-    if (!confirm('이 공유 링크를 취소할까요? 수의사가 더 이상 접근할 수 없게 돼요.')) {
+    if (
+      !(await confirm({
+        title: '이 공유 링크를 취소할까요?',
+        body: '수의사가 더 이상 접근할 수 없게 돼요.',
+        confirmLabel: '링크 취소',
+        tone: 'destructive',
+      }))
+    ) {
       return
     }
     setBusy(true)

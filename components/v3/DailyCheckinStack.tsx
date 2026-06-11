@@ -156,6 +156,7 @@ export default function DailyCheckinStack({
                 fontWeight: V3FontWeight.bold,
                 color: TONE_COLOR[top.tone],
                 letterSpacing: '0.16em',
+                wordSpacing: '-0.12em',
                 textTransform: 'uppercase',
               }}
             >

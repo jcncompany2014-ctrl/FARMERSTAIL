@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { useConfirm } from '@/components/v3/useConfirm'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 
 /**
@@ -65,6 +66,7 @@ export default function DogFamilyMembers({
 }) {
   const supabase = createClient()
   const toast = useToast()
+  const confirm = useConfirm()
   const [members, setMembers] = useState<MemberRow[]>([])
   const [pending, setPending] = useState<PendingInvitation[]>([])
   const [loading, setLoading] = useState(true)
@@ -131,7 +133,14 @@ export default function DogFamilyMembers({
   }
 
   async function removeMember(memberId: string) {
-    if (!confirm('이 가족을 정말 내보낼까요? 다시 초대하면 돌아올 수 있어요.')) {
+    if (
+      !(await confirm({
+        title: '이 가족을 정말 내보낼까요?',
+        body: '다시 초대하면 돌아올 수 있어요.',
+        confirmLabel: '내보내기',
+        tone: 'destructive',
+      }))
+    ) {
       return
     }
     const { error } = await supabase
@@ -147,7 +156,14 @@ export default function DogFamilyMembers({
   }
 
   async function cancelInvite(inviteId: string) {
-    if (!confirm('초대를 취소할까요?')) return
+    if (
+      !(await confirm({
+        title: '초대를 취소할까요?',
+        confirmLabel: '초대 취소',
+        tone: 'destructive',
+      }))
+    )
+      return
     const { error } = await supabase
       .from('dog_invitations')
       .update({ declined_at: new Date().toISOString() })

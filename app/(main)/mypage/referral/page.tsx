@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import ReferralView from './ReferralView'
@@ -69,12 +68,6 @@ export default async function ReferralPage() {
     <div className="pb-10">
       {codeError || !code ? (
         <section className="px-5 mt-6">
-          <Link
-            href="/mypage"
-            className="text-[10.5px] text-muted hover:text-terracotta font-semibold"
-          >
-            ← 내 정보
-          </Link>
           <div className="bg-bg-3 rounded border border-sale/30 px-5 py-6 text-center mt-4">
             <p className="text-[13.5px] font-bold text-sale">
               초대 코드를 불러오지 못했어요

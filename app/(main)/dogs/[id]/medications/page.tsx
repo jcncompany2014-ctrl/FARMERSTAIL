@@ -1,9 +1,7 @@
 // B10 — 복약 관리 페이지 (app-only).
 // 시간 / 주기 / 리마인더 기록. localStorage 기반 시작 후 DB migration.
 
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import MedicationsClient from './MedicationsClient'
 
@@ -30,14 +28,8 @@ export default async function MedicationsPage({
   return (
     <div className="pb-10">
       <div className="px-5 pt-6 pb-2">
-        <Link
-          href={`/dogs/${dogId}`}
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          {dog.name as string}
-        </Link>
-        <div className="mt-3">
+        {/* R-feel: 본문 뒤로가기 제거 — 헤더 ← 가 대신함(이중 방지). */}
+        <div>
           <span className="kicker inline-block">Medications</span>
           <h1
             className="font-sans mt-1.5"

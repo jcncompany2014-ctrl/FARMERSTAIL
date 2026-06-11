@@ -7,7 +7,7 @@
 'use client'
 
 import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
-import { Modal } from '@/components/v3'
+import BottomSheet from '@/components/ui/BottomSheet'
 
 type Props = {
   cancelSubId: string | null
@@ -30,7 +30,7 @@ export default function SubscriptionCancelModal({
 }: Props) {
   const isLoading = actionLoading === cancelSubId
   return (
-    <Modal
+    <BottomSheet
       open={cancelSubId !== null}
       onClose={() => {
         if (isLoading) return
@@ -38,9 +38,8 @@ export default function SubscriptionCancelModal({
       }}
       title="정기배송을 해지할까요?"
       dismissOnBackdrop={!isLoading}
-      showClose={!isLoading}
     >
-      <Modal.Body>
+      <BottomSheet.Body>
         해지하면 진행 중인 회차도 더 이상 배송되지 않고, 다시 신청해야 해요.
         {/* off-ramp — 해지 전에 더 가벼운 대안을 먼저 제시 (리텐션). */}
         <div
@@ -107,45 +106,51 @@ export default function SubscriptionCancelModal({
             </button>
           </div>
         </div>
-      </Modal.Body>
-      <Modal.Footer>
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={isLoading}
-          style={{
-            padding: '10px 18px',
-            borderRadius: V3Radius.sm,
-            fontSize: 12,
-            fontWeight: V3FontWeight.bold,
-            background: V3.paperHi,
-            color: V3.inkMute,
-            border: `1px solid ${V3.rule}`,
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            opacity: isLoading ? 0.5 : 1,
-          }}
-        >
-          아니요
-        </button>
-        <button
-          type="button"
-          onClick={() => cancelSubId && onConfirm(cancelSubId)}
-          disabled={isLoading}
-          style={{
-            padding: '10px 18px',
-            borderRadius: V3Radius.sm,
-            fontSize: 12,
-            fontWeight: V3FontWeight.bold,
-            background: V3.sale,
-            color: V3.paperHi,
-            border: 'none',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            opacity: isLoading ? 0.7 : 1,
-          }}
-        >
-          {isLoading ? '해지 중…' : '해지하기'}
-        </button>
-      </Modal.Footer>
-    </Modal>
+      </BottomSheet.Body>
+      <BottomSheet.Footer>
+        {/* R-feel: 시트 바닥 풀폭 버튼. '아니요'를 크게(머무르게 유도), '해지'는
+            sale red 이되 동등 폭. */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isLoading}
+            style={{
+              flex: 1,
+              padding: '14px 18px',
+              borderRadius: V3Radius.sm,
+              fontSize: 14,
+              fontWeight: V3FontWeight.bold,
+              background: V3.ink,
+              color: V3.paperHi,
+              border: 'none',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              opacity: isLoading ? 0.5 : 1,
+            }}
+          >
+            계속 받을게요
+          </button>
+          <button
+            type="button"
+            onClick={() => cancelSubId && onConfirm(cancelSubId)}
+            disabled={isLoading}
+            style={{
+              flex: 1,
+              padding: '14px 18px',
+              borderRadius: V3Radius.sm,
+              fontSize: 14,
+              fontWeight: V3FontWeight.bold,
+              background: V3.paperHi,
+              color: V3.sale,
+              border: `1px solid ${V3.sale}`,
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              opacity: isLoading ? 0.7 : 1,
+            }}
+          >
+            {isLoading ? '해지 중…' : '해지하기'}
+          </button>
+        </div>
+      </BottomSheet.Footer>
+    </BottomSheet>
   )
 }

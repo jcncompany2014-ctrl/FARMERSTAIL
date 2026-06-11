@@ -44,7 +44,7 @@ import {
   type ReactNode,
 } from 'react'
 import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
-import Modal from './Modal'
+import BottomSheet from '@/components/ui/BottomSheet'
 
 export type ConfirmTone = 'default' | 'destructive'
 
@@ -99,7 +99,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={value}>
       {children}
       {current && (
-        <Modal
+        <BottomSheet
           open={!!current}
           onClose={() => {
             if (busy) return
@@ -107,54 +107,58 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           }}
           title={current.title}
           dismissOnBackdrop={!busy}
-          showClose={!busy}
         >
-          {current.body && <Modal.Body>{current.body}</Modal.Body>}
-          <Modal.Footer>
-            <button
-              type="button"
-              onClick={() => close(false)}
-              disabled={busy}
-              style={{
-                padding: '10px 18px',
-                borderRadius: V3Radius.sm,
-                fontSize: 12,
-                fontWeight: V3FontWeight.bold,
-                background: V3.paperHi,
-                color: V3.inkMute,
-                border: `1px solid ${V3.rule}`,
-                cursor: busy ? 'not-allowed' : 'pointer',
-                opacity: busy ? 0.5 : 1,
-              }}
-            >
-              {current.cancelLabel ?? '취소'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                // busy 표시는 짧게 — perform 실행은 호출자 책임이라 즉시 close.
-                // 호출자가 비동기 작업 도중 dismiss 막고 싶으면 본인 state 로.
-                setBusy(true)
-                close(true)
-              }}
-              disabled={busy}
-              autoFocus
-              style={{
-                padding: '10px 18px',
-                borderRadius: V3Radius.sm,
-                fontSize: 12,
-                fontWeight: V3FontWeight.bold,
-                background: current.tone === 'destructive' ? V3.sale : V3.ink,
-                color: V3.paperHi,
-                border: 'none',
-                cursor: busy ? 'not-allowed' : 'pointer',
-                opacity: busy ? 0.7 : 1,
-              }}
-            >
-              {current.confirmLabel ?? '확인'}
-            </button>
-          </Modal.Footer>
-        </Modal>
+          {current.body && <BottomSheet.Body>{current.body}</BottomSheet.Body>}
+          <BottomSheet.Footer>
+            {/* R-feel: 시트 바닥에 가로 꽉 찬 버튼 — 취소(연회색) + 확인(ink/red). */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => close(false)}
+                disabled={busy}
+                style={{
+                  flex: 1,
+                  padding: '14px 18px',
+                  borderRadius: V3Radius.sm,
+                  fontSize: 14,
+                  fontWeight: V3FontWeight.bold,
+                  background: V3.paperHi,
+                  color: V3.inkMute,
+                  border: `1px solid ${V3.rule}`,
+                  cursor: busy ? 'not-allowed' : 'pointer',
+                  opacity: busy ? 0.5 : 1,
+                }}
+              >
+                {current.cancelLabel ?? '취소'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  // busy 표시는 짧게 — perform 실행은 호출자 책임이라 즉시 close.
+                  // 호출자가 비동기 작업 도중 dismiss 막고 싶으면 본인 state 로.
+                  setBusy(true)
+                  close(true)
+                }}
+                disabled={busy}
+                autoFocus
+                style={{
+                  flex: 1,
+                  padding: '14px 18px',
+                  borderRadius: V3Radius.sm,
+                  fontSize: 14,
+                  fontWeight: V3FontWeight.bold,
+                  background: current.tone === 'destructive' ? V3.sale : V3.ink,
+                  color: V3.paperHi,
+                  border: 'none',
+                  cursor: busy ? 'not-allowed' : 'pointer',
+                  opacity: busy ? 0.7 : 1,
+                }}
+              >
+                {current.confirmLabel ?? '확인'}
+              </button>
+            </div>
+          </BottomSheet.Footer>
+        </BottomSheet>
       )}
     </Ctx.Provider>
   )

@@ -1,7 +1,5 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import Link from 'next/link'
-import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import VetReportPrintButton from './VetReportPrintButton'
 import ShareWithVetButton from './ShareWithVetButton'
@@ -194,13 +192,6 @@ export default async function VetReportPage({ params }: { params: Params }) {
       {/* 헤더 (인쇄 제외) */}
       <div className="flex items-end justify-between mb-5 no-print max-w-4xl mx-auto">
         <div>
-          <Link
-            href={`/dogs/${dogId}`}
-            className="inline-flex items-center gap-1 text-[10.5px] text-mute hover:text-terracotta font-semibold mb-3"
-          >
-            <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-            {dog.name}
-          </Link>
           <h1 className="text-2xl font-black text-ink tracking-tight leading-snug">
             수의사 진료 보고서
           </h1>

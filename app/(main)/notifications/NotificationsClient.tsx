@@ -6,7 +6,6 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ChevronLeft,
   Bell,
   Check,
   Inbox,
@@ -150,10 +149,6 @@ export default function NotificationsClient({
 
   return (
     <div className="nt-page">
-      <Link href="/" className="nt-back">
-        <ChevronLeft size={14} strokeWidth={2.2} />홈
-      </Link>
-
       <header className="nt-hero">
         <div className="nt-kicker">
           <Bell size={11} strokeWidth={2.4} />
@@ -258,6 +253,7 @@ export default function NotificationsClient({
                     fontSize: 10.5,
                     fontWeight: 700,
                     letterSpacing: '0.16em',
+                    wordSpacing: '-0.12em',
                     textTransform: 'uppercase',
                     color: V3.ink,
                   }}

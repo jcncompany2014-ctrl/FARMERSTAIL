@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { ChevronLeft, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import ChatClient from './ChatClient'
 
@@ -33,18 +32,8 @@ export default async function ChatPage() {
 
   return (
     <div className="pb-10">
-      <section className="px-5 pt-6 pb-3">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-terracotta font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          홈
-        </Link>
-      </section>
-
       {/* Hero */}
-      <section className="px-5">
+      <section className="px-5 pt-6">
         <div
           className="relative overflow-hidden rounded-[12px] px-6 pt-6 pb-7 text-white"
           style={{

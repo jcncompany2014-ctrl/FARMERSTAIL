@@ -3,7 +3,7 @@
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronLeft, TrendingUp, BookOpen, FlaskConical } from 'lucide-react'
+import { TrendingUp, BookOpen, FlaskConical } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import ReportExportButton from './ReportExportButton'
 
@@ -75,13 +75,6 @@ export default async function ReportsPage() {
   return (
     <div className="pb-10">
       <div className="px-5 pt-6 pb-2">
-        <Link
-          href="/dashboard"
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          홈
-        </Link>
         <div className="mt-3">
           <span className="kicker inline-block">Reports</span>
           <h1

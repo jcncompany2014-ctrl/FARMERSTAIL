@@ -18,7 +18,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { Repeat } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -371,19 +370,6 @@ export default function SubscriptionsClient({
   return (
     <div style={{ padding: '24px 20px 128px' }}>
       <div className="max-w-md mx-auto">
-        {/* Back link */}
-        <Link
-          href="/mypage"
-          style={{
-            fontSize: 10.5,
-            color: V3.inkMute,
-            textDecoration: 'none',
-            fontWeight: V3FontWeight.semibold,
-          }}
-        >
-          ← 내 정보
-        </Link>
-
         {/* Heading */}
         <div style={{ marginTop: 14 }}>
           <Mono color="inkMute" size="xs" weight={500}>

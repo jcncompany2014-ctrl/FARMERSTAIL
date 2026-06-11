@@ -822,7 +822,6 @@ export default async function DashboardPage() {
       {/* 3. 오늘의 한 가지 — ink hero card (nextAction 우선순위) */}
       {todaySpec && (
         <TodayCard
-          number="№01"
           heading={todaySpec.heading}
           description={todaySpec.description}
           ctaLabel={todaySpec.ctaLabel}

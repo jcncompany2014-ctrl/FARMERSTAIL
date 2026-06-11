@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { Search } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 // Daum Postcode API 타입
 
@@ -71,6 +72,7 @@ export default function AddressSearch({
   className = '',
   buttonText = '주소 검색',
 }: AddressSearchProps) {
+  const toast = useToast()
   const scriptReady = useRef(false)
   // ref로 최신 콜백 유지 — Daum Postcode 클로저 안에서도 항상 최신 참조
   // React 19: ref는 render 중에 mutate하면 안 됨. useEffect에서 갱신한다.
@@ -108,14 +110,11 @@ export default function AddressSearch({
         },
       }).open()
     } catch {
-      // 우편번호 스크립트 로드 실패(CDN 다운 등) — 무한 hang 대신 안내 후 재시도 유도.
-      if (typeof window !== 'undefined') {
-        window.alert(
-          '주소 검색 서비스를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
-        )
-      }
+      // 우편번호 스크립트 로드 실패(CDN 다운 등) — 무한 hang 대신 토스트로 안내 후
+      // 재시도 유도 (R-feel: 브라우저 alert 회색창 제거).
+      toast.error('주소 검색 서비스를 잠시 불러오지 못했어요. 잠시 후 다시 시도해 주세요')
     }
-  }, [])
+  }, [toast])
 
   return (
     <button

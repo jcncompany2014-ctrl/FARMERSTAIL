@@ -4,7 +4,6 @@
 // 가 auth + product + profile 을 prefetch. 빈 spinner 800ms+ 제거.
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import {
   Repeat,
   Soup,
@@ -89,7 +88,6 @@ export type SubscribeClientProps = {
 }
 
 export default function SubscribeClient({
-  slug,
   userId,
   product,
   profile,
@@ -264,12 +262,6 @@ export default function SubscribeClient({
   return (
     <div className="px-5 py-6 pb-32">
       <div className="max-w-md mx-auto">
-        <Link
-          href={`/products/${slug}`}
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          ← 제품으로 돌아가기
-        </Link>
         <div className="mt-3">
           <span className="kicker inline-block">Subscribe · 정기배송</span>
           <h1

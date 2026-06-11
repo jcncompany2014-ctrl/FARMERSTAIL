@@ -349,6 +349,9 @@ export default function MypageClient({
       </MenuGroup>
 
       <MenuGroup kicker="Settings · 설정" topPad={20}>
+        {/* R-feel: 상단 헤더에서 알림 종을 강아지 칩으로 교체 → 알림함 진입을
+            마이페이지로 이동(고립 방지). */}
+        <MenuItem href="/notifications" Icon={Bell} label="받은 알림" />
         <MenuItem
           href="/mypage/notifications"
           Icon={Bell}

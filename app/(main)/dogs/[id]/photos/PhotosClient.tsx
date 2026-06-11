@@ -13,9 +13,8 @@
 //   - 측면/정면/위 3 view 를 28일 cycle 마다 1장씩 추적 → 체형 변화 가시화.
 //   - "보호자 자율" — 강제 X. 입력 부담 ↓.
 import { useState } from 'react'
-import Link from 'next/link'
 import Image from 'next/image'
-import { ChevronLeft, Camera, ImageIcon, Loader2, CheckCircle2 } from 'lucide-react'
+import { Camera, ImageIcon, Loader2, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
   PROGRESS_PHOTOS_BUCKET,
@@ -138,14 +137,6 @@ export default function PhotosClient({
   return (
     <div className="px-5 py-6 pb-32">
       <div className="max-w-md mx-auto">
-        {/* 헤더 */}
-        <Link
-          href={`/dogs/${dogId}`}
-          className="inline-flex items-center gap-1 text-muted text-[12px] mb-3 hover:text-ink"
-        >
-          <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.2} />
-          {dogName ?? '강아지'} 상세로
-        </Link>
         <h1
           className="font-sans"
           style={{

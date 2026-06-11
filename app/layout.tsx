@@ -196,6 +196,10 @@ export const viewport: Viewport = {
   // audit #41: maximumScale=1 + userScalable=false 는 WCAG 1.4.4 (Resize Text)
   // 명백 위반. 시니어 / 저시력 사용자가 핀치 줌으로 가독성 확보 가능해야 함.
   // 인풋 자동 줌 (iOS) 은 input { font-size: 16px } 로 별도 처리.
+  // R-feel: 노치/홈인디케이터 아래 안전영역까지 화면을 펼친다. AppChrome 헤더가
+  // 이미 env(safe-area-inset-*) 패딩으로 노치를 피하므로, 이 값이 있어야 그
+  // 패딩이 실제 값으로 작동하고 standalone 에서 위아래 띠가 사라진다.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

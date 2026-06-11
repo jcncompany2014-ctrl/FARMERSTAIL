@@ -1,9 +1,7 @@
 // R15-C24: 가족 초대 발송 페이지. /family 의 "가족 초대하기" → 여기.
 // 강아지 선택 + email + role → POST /api/invitations/create → 토큰 URL.
 
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import NewInviteClient from './NewInviteClient'
 
@@ -27,13 +25,6 @@ export default async function NewInvitationPage() {
   return (
     <div className="pb-10">
       <div className="px-5 pt-6 pb-2">
-        <Link
-          href="/family"
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          가족 멤버
-        </Link>
         <div className="mt-3">
           <span className="kicker inline-block">New invite</span>
           <h1

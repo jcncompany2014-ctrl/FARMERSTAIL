@@ -210,6 +210,11 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* 앱 느낌(R-feel): 당겨서새로고침·세로 고무줄 바운스 차단 → '브라우저' 티 제거. */
+  overscroll-behavior-y: none;
+  /* OS 글자 자동확대 / 가로회전 본문 부풀림 차단 → v3 타이포 스케일 고정. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 h1, h2, h3, h4 {
@@ -994,6 +999,16 @@ button,
   -webkit-tap-highlight-color: transparent;
 }
 
+/* 앱 느낌(R-feel): 앱 chrome 안에서는 링크(a)·아이콘 등 모든 탭 가능한 요소의
+   기본 탭 하이라이트(파란/회색 사각형)를 끈다 → 탭바·헤더 아이콘이 '웹 링크'가
+   아닌 '앱 버튼'처럼. web(브라우저)은 영향 없음(data-ft-chrome="app" 스코프). */
+[data-ft-chrome="app"] a,
+[data-ft-chrome="app"] [role="link"],
+[data-ft-chrome="app"] [role="button"],
+[data-ft-chrome="app"] button {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* In-page anchor nav on the editorial landing: scroll smoothly, and offset
    the scroll target below the sticky EditorialHeader (≈ 86px: safe-area
    padding + top bar + sub-nav). Gated on prefers-reduced-motion so users who
@@ -1276,6 +1291,24 @@ html[data-theme="dark"] .fiber::after {
 @keyframes shimmer {
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
+}
+
+/* ── 라우트 전환 — 새 화면이 살짝 아래서 페이드인 (app/(main)/template.tsx).
+   backwards fill: 애니 종료 후 transform 미잔류 → 내부 position:fixed 안전. */
+.ft-page-enter {
+  animation: fade-in-up 280ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* ── 브랜드 로더 — /logo.png 워드마크가 은은하게 숨쉰다 (BrandLoader). */
+@keyframes ft-brand-breathe {
+  0%, 100% { opacity: 0.5; transform: scale(0.97); }
+  50%      { opacity: 1; transform: scale(1.02); }
+}
+
+/* ── 공유(web+app) 라우트의 editorial 본문 뒤로가기 링크 — 앱에선 상단 헤더
+   ← 와 중복이라 숨긴다. 웹은 per-screen 헤더가 없어 그대로 유지. */
+[data-ft-chrome="app"] .ft-app-back-hide {
+  display: none !important;
 }
 
 /* =========================================================================

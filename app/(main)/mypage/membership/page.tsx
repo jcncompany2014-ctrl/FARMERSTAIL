@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import {
-  ChevronLeft,
   Coins,
   Truck,
   Ticket,
@@ -105,18 +104,8 @@ export default async function MembershipPage() {
 
   return (
     <div className="pb-12">
-      <section className="px-5 pt-6 pb-3">
-        <Link
-          href="/mypage"
-          className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-terracotta font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          내 정보
-        </Link>
-      </section>
-
       {/* HERO 카드 — 등급 색 기반, 누적 + 진행률 + 다음 등급 */}
-      <section className="px-5">
+      <section className="px-5 pt-6">
         <div
           className="relative overflow-hidden rounded-[12px] px-6 pt-6 pb-7"
           style={{ background: meta.bg, color: meta.ink }}

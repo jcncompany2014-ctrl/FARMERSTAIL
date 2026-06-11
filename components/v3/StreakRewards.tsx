@@ -77,6 +77,7 @@ export default function StreakRewards({
               fontWeight: V3FontWeight.bold,
               color: stage.tone,
               letterSpacing: '0.16em',
+              wordSpacing: '-0.12em',
               textTransform: 'uppercase',
             }}
           >

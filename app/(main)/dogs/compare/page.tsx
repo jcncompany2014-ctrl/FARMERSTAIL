@@ -3,7 +3,7 @@
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronLeft, BarChart3 } from 'lucide-react'
+import { BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Sparkline } from '@/components/v3'
 
@@ -64,13 +64,6 @@ export default async function CompareDogsPage() {
   return (
     <div className="pb-10">
       <div className="px-5 pt-6 pb-2">
-        <Link
-          href="/dogs"
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          강아지 목록
-        </Link>
         <div className="mt-3">
           <span className="kicker inline-block">Compare</span>
           <h1

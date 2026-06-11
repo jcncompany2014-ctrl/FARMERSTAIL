@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { Loader2, Mail, MessageSquare, Check, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { MARKETING_POLICY_VERSION, CONSENT_LABEL } from '@/lib/consent'
@@ -123,12 +122,6 @@ export default function ConsentSettingsClient({
   return (
     <div className="pb-10">
       <section className="px-5 pt-6 pb-2">
-        <Link
-          href="/mypage"
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          ← 마이페이지
-        </Link>
         <span className="kicker mt-3 block">Consent</span>
         <h1
           className="font-sans mt-1.5"

@@ -43,19 +43,6 @@ export default async function AddressesPage() {
   return (
     <div style={{ paddingBottom: 32 }}>
       <section style={{ padding: '24px 20px 8px' }}>
-        <Link
-          href="/mypage"
-          style={{
-            fontSize: 10.5,
-            fontWeight: V3FontWeight.semibold,
-            color: V3.inkMute,
-            textDecoration: 'none',
-            display: 'inline-block',
-            marginBottom: 14,
-          }}
-        >
-          ← 내 정보
-        </Link>
         <Mono color="inkMute" size="xs" weight={500}>
           Addresses · 배송지
         </Mono>

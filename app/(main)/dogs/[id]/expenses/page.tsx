@@ -1,9 +1,7 @@
 // B11 — 견별 지출 트래커 (app-only).
 // 사료/병원/용품 카테고리별 합계 + 월별 추이.
 
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import ExpensesClient from './ExpensesClient'
 
@@ -30,13 +28,6 @@ export default async function ExpensesPage({
   return (
     <div className="pb-10">
       <div className="px-5 pt-6 pb-2">
-        <Link
-          href={`/dogs/${dogId}`}
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          {dog.name as string}
-        </Link>
         <div className="mt-3">
           <span className="kicker inline-block">Expenses</span>
           <h1

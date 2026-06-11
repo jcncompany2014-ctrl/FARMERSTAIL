@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ChevronLeft,
   Check,
   Loader2,
   AlertCircle,
@@ -402,11 +401,6 @@ export default function CheckinClient({
 
   return (
     <div className="ck-page">
-      <Link href={`/dogs/${dogId}`} className="ck-back" aria-label="돌아가기">
-        <ChevronLeft size={16} strokeWidth={2.2} />
-        {dogName}이의 페이지
-      </Link>
-
       <header className="ck-hero">
         <div className="ck-kicker">
           {checkpoint === 'week_2' ? 'WEEK 2 · 적응 체크' : 'WEEK 4 · 종합 평가'}

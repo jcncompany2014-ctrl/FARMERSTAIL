@@ -35,8 +35,34 @@ declare global {
   }
 }
 
+// ── 개발 전용 미리보기 오버라이드 ────────────────────────────────────────
+// PC 브라우저에서 앱 화면을 즉석 확인하기 위한 dev 훅 (디자인 작업용).
+// URL 에 ?ft-app=1 (강제 app) / ?ft-app=0 (강제 web) 을 한 번 붙이면
+// localStorage 에 기억돼 이후 모든 페이지에 유지된다. 값이 hook → 쿠키
+// (AppContextCookieSync) 로 흘러가 server chrome dispatch 까지 일치.
+// production 번들에선 NODE_ENV 인라인으로 dead-code 제거 — 운영 동작 불변.
+const PREVIEW_KEY = 'ft_app_preview'
+
+function devPreviewOverride(): boolean | null {
+  if (process.env.NODE_ENV === 'production') return null
+  if (typeof window === 'undefined') return null
+  try {
+    const q = new URLSearchParams(window.location.search).get('ft-app')
+    if (q === '1' || q === '0') window.localStorage.setItem(PREVIEW_KEY, q)
+    const stored = window.localStorage.getItem(PREVIEW_KEY)
+    if (stored === '1') return true
+    if (stored === '0') return false
+  } catch {
+    /* localStorage 차단 환경 — override 비활성 */
+  }
+  return null
+}
+
 function readAppContext(): boolean | null {
   if (typeof window === 'undefined') return null
+  // 0) dev 미리보기 오버라이드 (?ft-app=1/0) — production 에선 항상 null
+  const override = devPreviewOverride()
+  if (override !== null) return override
   // 1) Capacitor — 가장 확실한 신호
   if (window.Capacitor?.isNativePlatform() === true) return true
   // 2) PWA standalone media query

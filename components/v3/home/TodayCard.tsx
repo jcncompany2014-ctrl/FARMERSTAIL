@@ -27,9 +27,7 @@ import { V3, V3FontWeight } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 
 interface TodayCardProps {
-  /** 누적 액션 번호. №01 등. */
-  number?: string
-  /** 상단 kicker — 기본 "오늘의 한 가지 · {number}". */
+  /** 상단 kicker — 기본 "오늘의 한 가지". (R-clean: №NN 장식 카운터 제거) */
   kicker?: string
   /** 헤딩 본문 (2줄 가능). */
   heading: React.ReactNode
@@ -46,7 +44,6 @@ interface TodayCardProps {
 }
 
 export default function TodayCard({
-  number = '№01',
   kicker,
   heading,
   description,
@@ -54,7 +51,7 @@ export default function TodayCard({
   href,
   icon,
 }: TodayCardProps) {
-  const displayKicker = kicker ?? `오늘의 한 가지 · ${number}`
+  const displayKicker = kicker ?? '오늘의 한 가지'
 
   return (
     <section style={{ padding: '0 20px 30px' }}>

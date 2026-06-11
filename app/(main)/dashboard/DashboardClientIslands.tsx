@@ -279,6 +279,7 @@ function EventCard({
             style={{
               color: palette.body,
               letterSpacing: '0.18em',
+              wordSpacing: '-0.12em',
             }}
           >
             {event.kicker}
@@ -560,6 +561,7 @@ function WelcomeBenefitModal({
                 style={{
                   color: 'rgba(245,240,230,0.72)',
                   letterSpacing: '0.18em',
+                  wordSpacing: '-0.12em',
                 }}
               >
                 남은 시간

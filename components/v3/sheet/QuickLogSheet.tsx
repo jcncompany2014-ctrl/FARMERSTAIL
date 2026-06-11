@@ -3,19 +3,23 @@
 /**
  * QuickLogSheet — 1탭 기록 sheet (item 79).
  *
- * 4-옵션 carousel sheet — 식사 / 산책 / 체중 / 메모 각각 ONE TAP 으로 완료.
+ * 4-옵션 sheet — 식사 / 산책 / 체중 / 메모 각각 ONE TAP 으로 완료.
  *   - 식사: "오늘 식사 완료 ✓" → POST 1회
  *   - 산책: "산책 시작" → 카운터 시작 (별도 페이지로)
  *   - 체중: WeightInputSheet 호출
  *   - 메모: 텍스트 입력 textarea + 사진 추가 옵션
  *
  * 호출자는 onAction 으로 분기 — 실제 DB write 책임.
+ *
+ * R-feel(2026-06-10): 풀스크린 takeover → 공용 BottomSheet 로 전환.
+ * 아래서 슬라이드업 + 백드롭 블러 + 그래버(native <dialog>). 풀스크린 깜빡 제거.
  */
 
 import { useState } from 'react'
-import { X, Check, Soup, Footprints, Scale, Pencil, type LucideIcon } from 'lucide-react'
+import { Check, Soup, Footprints, Scale, Pencil, type LucideIcon } from 'lucide-react'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
+import BottomSheet from '@/components/ui/BottomSheet'
 
 type QuickLogKind = 'meal' | 'walk' | 'weight' | 'memo'
 
@@ -62,8 +66,6 @@ export default function QuickLogSheet({
   const [busy, setBusy] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  if (!open) return null
-
   async function handleConfirm() {
     if (busy) return
     setBusy(true)
@@ -81,197 +83,125 @@ export default function QuickLogSheet({
   }
 
   const activeAction = ACTIONS.find((a) => a.kind === kind) ?? ACTIONS[0]!
-  const ActiveIcon = activeAction.Icon
+  const memoEmpty = kind === 'memo' && memo.trim().length === 0
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="빠른 기록"
-      className="fixed inset-0 z-[60] flex flex-col"
-      style={{
-        background: V3.paper,
-        color: V3.ink,
-      }}
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      ariaLabel="빠른 기록"
+      dismissOnBackdrop={!busy}
     >
-      {/* drag handle */}
-      <div
-        aria-hidden
-        style={{
-          width: 36,
-          height: 4,
-          borderRadius: 2,
-          background: V3.ink,
-          margin: '8px auto 0',
-          opacity: 0.4,
-        }}
-      />
-
-      {/* header */}
-      <div
-        className="flex justify-between items-center"
-        style={{ padding: '18px 20px 12px' }}
-      >
+      <BottomSheet.Body>
         <Mono color="accent" size="xs" weight={600}>
           빠른 기록 · QUICK LOG
         </Mono>
-        <button
-          onClick={onClose}
-          className="flex items-center justify-center"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            padding: 4,
-            cursor: 'pointer',
-            color: V3.ink,
-          }}
-          aria-label="닫기"
-        >
-          <X size={18} color={V3.ink} strokeWidth={2} />
-        </button>
-      </div>
-      <div className="ft-rule-ink" style={{ marginLeft: 20, marginRight: 20 }} />
 
-      {/* 4 액션 picker — 큰 카드 grid */}
-      <div
-        className="grid"
-        style={{
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 8,
-          padding: '20px',
-        }}
-      >
-        {ACTIONS.map((a) => {
-          const active = a.kind === kind
-          return (
-            <button
-              key={a.kind}
-              onClick={() => setKind(a.kind)}
-              className="flex flex-col items-center transition active:scale-95"
-              style={{
-                background: active ? V3.ink : V3.paperHi,
-                color: active ? V3.paperHi : V3.ink,
-                border: `1px solid ${active ? V3.ink : V3.rule}`,
-                borderRadius: 4,
-                padding: '14px 8px',
-                cursor: 'pointer',
-                gap: 6,
-              }}
-              aria-pressed={active}
-            >
-              <a.Icon
-                size={22}
-                color={active ? V3.paperHi : TONE_COLOR[a.tone]}
-                strokeWidth={1.8}
-              />
-              <span
+        {/* 4 액션 picker — 큰 카드 grid */}
+        <div
+          className="grid"
+          style={{
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 8,
+            marginTop: 12,
+          }}
+        >
+          {ACTIONS.map((a) => {
+            const active = a.kind === kind
+            return (
+              <button
+                key={a.kind}
+                onClick={() => setKind(a.kind)}
+                className="flex flex-col items-center transition active:scale-95"
                 style={{
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: 12,
-                  fontWeight: V3FontWeight.bold,
-                  letterSpacing: '-0.005em',
+                  background: active ? V3.ink : V3.paperHi,
+                  color: active ? V3.paperHi : V3.ink,
+                  border: `1px solid ${active ? V3.ink : V3.rule}`,
+                  borderRadius: 4,
+                  padding: '14px 8px',
+                  cursor: 'pointer',
+                  gap: 6,
                 }}
+                aria-pressed={active}
               >
-                {a.label}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+                <a.Icon
+                  size={22}
+                  color={active ? V3.paperHi : TONE_COLOR[a.tone]}
+                  strokeWidth={1.8}
+                />
+                <span
+                  style={{
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 12,
+                    fontWeight: V3FontWeight.bold,
+                    letterSpacing: '-0.005em',
+                  }}
+                >
+                  {a.label}
+                </span>
+              </button>
+            )
+          })}
+        </div>
 
-      {/* 큰 헤딩 + 설명 */}
-      <div style={{ padding: '0 20px 20px' }}>
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.display,
-            fontSize: 32,
-            color: V3.ink,
-            letterSpacing: '-0.025em',
-            lineHeight: 1.05,
-            wordBreak: 'keep-all',
-          }}
-        >
-          {dogName ? `${dogName}의 ` : ''}
-          {activeAction.label}
-        </h2>
-        <p
-          style={{
-            margin: '8px 0 0',
-            fontFamily: 'var(--font-sans)',
-            fontSize: 13.5,
-            color: V3.inkSoft,
-            lineHeight: 1.55,
-            wordBreak: 'keep-all',
-          }}
-        >
-          {activeAction.description}
-        </p>
-      </div>
-
-      {/* memo 액션이면 textarea 노출 */}
-      {kind === 'memo' && (
-        <div style={{ padding: '0 20px 12px' }}>
-          <textarea
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            placeholder="오늘의 한 줄을 적어주세요…"
-            rows={4}
+        {/* 큰 헤딩 + 설명 */}
+        <div style={{ marginTop: 20 }}>
+          <h2
             style={{
-              width: '100%',
-              background: V3.paperHi,
-              border: `1px solid ${V3.rule}`,
-              borderRadius: 4,
-              padding: 12,
+              margin: 0,
+              fontFamily: 'var(--font-sans)',
+              fontWeight: V3FontWeight.display,
+              fontSize: 30,
+              color: V3.ink,
+              letterSpacing: '-0.025em',
+              lineHeight: 1.05,
+              wordBreak: 'keep-all',
+            }}
+          >
+            {dogName ? `${dogName}의 ` : ''}
+            {activeAction.label}
+          </h2>
+          <p
+            style={{
+              margin: '8px 0 0',
               fontFamily: 'var(--font-sans)',
               fontSize: 13.5,
-              color: V3.ink,
-              resize: 'none',
-              outline: 'none',
-              lineHeight: 1.5,
+              color: V3.inkSoft,
+              lineHeight: 1.55,
+              wordBreak: 'keep-all',
             }}
-          />
-        </div>
-      )}
-
-      {/* 큰 visual icon — 액션 확인 */}
-      <div
-        className="flex items-center justify-center"
-        style={{ flex: 1, padding: '0 20px' }}
-      >
-        <div
-          className="flex items-center justify-center"
-          style={{
-            width: 120,
-            height: 120,
-            borderRadius: 60,
-            background: TONE_COLOR[activeAction.tone],
-            opacity: 0.18,
-            position: 'relative',
-          }}
-          aria-hidden
-        >
-          <div
-            className="absolute inset-0 flex items-center justify-center"
-            style={{ opacity: 1 / 0.18 }}
           >
-            <ActiveIcon
-              size={56}
-              color={TONE_COLOR[activeAction.tone]}
-              strokeWidth={1.4}
+            {activeAction.description}
+          </p>
+        </div>
+
+        {/* memo 액션이면 textarea 노출 */}
+        {kind === 'memo' && (
+          <div style={{ marginTop: 14 }}>
+            <textarea
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              placeholder="오늘의 한 줄을 적어주세요…"
+              rows={4}
+              style={{
+                width: '100%',
+                background: V3.paperHi,
+                border: `1px solid ${V3.rule}`,
+                borderRadius: 4,
+                padding: 12,
+                fontFamily: 'var(--font-sans)',
+                fontSize: 13.5,
+                color: V3.ink,
+                resize: 'none',
+                outline: 'none',
+                lineHeight: 1.5,
+              }}
             />
           </div>
-        </div>
-      </div>
+        )}
+      </BottomSheet.Body>
 
-      {/* 확인 CTA */}
-      <div
-        style={{
-          padding: '16px 20px calc(env(safe-area-inset-bottom) + 16px)',
-          borderTop: `1px solid ${V3.rule}`,
-        }}
-      >
+      <BottomSheet.Footer>
         {errorMsg && (
           <p
             role="alert"
@@ -288,16 +218,13 @@ export default function QuickLogSheet({
         )}
         <button
           onClick={handleConfirm}
-          disabled={busy || (kind === 'memo' && memo.trim().length === 0)}
+          disabled={busy || memoEmpty}
           className="flex items-center justify-center transition active:scale-[0.98]"
           style={{
             width: '100%',
             height: 52,
             borderRadius: 4,
-            background:
-              busy || (kind === 'memo' && memo.trim().length === 0)
-                ? V3.inkMute
-                : V3.ink,
+            background: busy || memoEmpty ? V3.inkMute : V3.ink,
             color: V3.paperHi,
             border: 'none',
             cursor: busy ? 'wait' : 'pointer',
@@ -311,7 +238,7 @@ export default function QuickLogSheet({
           <Check size={18} color={V3.paperHi} strokeWidth={2.2} />
           {busy ? '저장 중...' : `${activeAction.label} 기록 완료`}
         </button>
-      </div>
-    </div>
+      </BottomSheet.Footer>
+    </BottomSheet>
   )
 }

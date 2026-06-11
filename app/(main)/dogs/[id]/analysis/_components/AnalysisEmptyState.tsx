@@ -11,13 +11,7 @@ import { ClipboardList } from 'lucide-react'
 export default function AnalysisEmptyState({ dogId }: { dogId: string }) {
   return (
     <div className="px-5 py-6 max-w-md mx-auto">
-      <Link
-        href={`/dogs/${dogId}`}
-        className="text-[10.5px] text-muted hover:text-terracotta font-semibold"
-      >
-        ← 돌아가기
-      </Link>
-      <div className="mt-6 text-center bg-bg-3 rounded border border-dashed border-rule-2 px-5 py-10">
+      <div className="text-center bg-bg-3 rounded border border-dashed border-rule-2 px-5 py-10">
         <ClipboardList
           className="w-10 h-10 text-muted mx-auto mb-4"
           strokeWidth={1.2}

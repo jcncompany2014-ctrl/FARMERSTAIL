@@ -5,9 +5,8 @@
  * Mock mode (TRACTIVE_CLIENT_ID 미셋) 시 "준비 중" badge 표시 + 연동
  * 버튼은 mock URL 로 redirect → UI 테스트 가능, 실제 OAuth 진입 X.
  */
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronLeft, ExternalLink, Check } from 'lucide-react'
+import { ExternalLink, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import {
   tractiveMode,
@@ -59,21 +58,10 @@ export default async function IntegrationsPage({
 
   return (
     <div className="pb-20 max-w-md mx-auto" data-form-tone="app">
-      <div className="px-5 pt-4 pb-2">
-        <Link
-          href="/mypage"
-          className="inline-flex items-center gap-1 text-[12px] font-bold"
-          style={{ color: 'var(--muted)' }}
-        >
-          <ChevronLeft className="w-4 h-4" strokeWidth={2.2} />
-          마이페이지
-        </Link>
-      </div>
-
-      <header className="px-5 pt-2 pb-6">
+      <header className="px-5 pt-6 pb-6">
         <span
           className="inline-block font-mono text-[10.5px] font-semibold uppercase"
-          style={{ letterSpacing: '0.16em', color: 'var(--terracotta)' }}
+          style={{ letterSpacing: '0.16em', wordSpacing: '-0.12em', color: 'var(--terracotta)' }}
         >
           Integrations
         </span>

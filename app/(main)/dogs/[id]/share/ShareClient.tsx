@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
-  ChevronLeft,
   Share2,
   Copy,
   Check,
@@ -95,18 +94,8 @@ export default function ShareClient({
 
   return (
     <div className="pb-10">
-      <section className="px-5 pt-6 pb-3">
-        <Link
-          href={`/dogs/${dog.id}`}
-          className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-terracotta font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          {dog.name}
-        </Link>
-      </section>
-
       {/* 미리보기 카드 — 받는 사람이 보게 될 모습 */}
-      <section className="px-5">
+      <section className="px-5 pt-6">
         <div className="text-[10.5px] font-bold text-muted uppercase tracking-widest mb-2">
           PREVIEW · 미리보기
         </div>

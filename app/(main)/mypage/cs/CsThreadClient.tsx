@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
-import { Send, Loader2, MessageCircle, ChevronLeft } from 'lucide-react'
+import { Send, Loader2, MessageCircle } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 
 type Msg = {
@@ -72,13 +71,6 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
     <div className="pb-32 min-h-screen flex flex-col">
       {/* 헤더 */}
       <section className="px-5 pt-6 pb-3">
-        <Link
-          href="/mypage"
-          className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-terracotta font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          내 정보
-        </Link>
         <h1
           className="font-sans mt-3"
           style={{

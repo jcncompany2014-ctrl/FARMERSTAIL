@@ -3,7 +3,6 @@
 import { useState, useRef } from 'react'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import Image from 'next/image'
-import Link from 'next/link'
 import {
   Camera,
   Plus,
@@ -203,12 +202,6 @@ export default function DiaryClient({
   return (
     <div className="pb-20 px-5 max-w-md mx-auto">
       <section className="pt-6 pb-2">
-        <Link
-          href={`/dogs/${dogId}`}
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          ← {dogName}
-        </Link>
         <div className="mt-3 flex items-end justify-between">
           <div>
             <span className="kicker">Diary · 일상 기록</span>

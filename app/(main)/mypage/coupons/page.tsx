@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import CouponBrowser from './CouponBrowser'
@@ -106,25 +105,13 @@ export default async function CouponsPage() {
   return (
     <div style={{ paddingBottom: 32 }}>
       <section style={{ padding: '24px 20px 8px' }}>
-        <Link
-          href="/mypage"
-          style={{
-            fontSize: 10.5,
-            fontWeight: 600,
-            color: 'var(--ink-mute, #706854)',
-            textDecoration: 'none',
-            display: 'inline-block',
-            marginBottom: 14,
-          }}
-        >
-          ← 내 정보
-        </Link>
         <div
           style={{
             fontFamily: "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
             fontSize: 10.5,
             fontWeight: 500,
             letterSpacing: '0.16em',
+            wordSpacing: '-0.12em',
             textTransform: 'uppercase',
             color: '#706854',
           }}

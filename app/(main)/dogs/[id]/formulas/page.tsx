@@ -4,7 +4,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ChevronLeft,
   Heart,
   Check,
   AlertCircle,
@@ -74,11 +73,6 @@ export default async function FormulasHistoryPage({
 
   return (
     <div className="fh-page">
-      <Link href={`/dogs/${dogId}`} className="fh-back">
-        <ChevronLeft size={14} strokeWidth={2.2} />
-        {dogName}이의 페이지
-      </Link>
-
       <header className="fh-hero">
         <span className="fh-kicker">FORMULA HISTORY</span>
         <h1>

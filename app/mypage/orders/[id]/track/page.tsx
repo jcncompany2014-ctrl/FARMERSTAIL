@@ -50,7 +50,7 @@ export default async function TrackPage({ params }: { params: Params }) {
       <section className="px-5 pt-6 md:pt-8 md:px-6">
         <Link
           href={`/mypage/orders/${order.id}`}
-          className="text-[11px] md:text-[12.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="ft-app-back-hide text-[11px] md:text-[12.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← 주문 상세
         </Link>

@@ -227,18 +227,8 @@ export default function DogDetailClient({
 
   return (
     <div className="pb-10">
-      {/* Header */}
-      <section className="px-5 pt-6 pb-2">
-        <Link
-          href="/dogs"
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          ← 강아지 목록
-        </Link>
-      </section>
-
       {/* Hero */}
-      <section className="px-5 mt-4">
+      <section className="px-5 pt-6">
         <div className="bg-bg-3 rounded border border-rule px-6 py-8 text-center">
           <div className="relative w-24 h-24 bg-bg rounded-full overflow-hidden flex items-center justify-center mx-auto mb-4">
             {dog.photo_url ? (

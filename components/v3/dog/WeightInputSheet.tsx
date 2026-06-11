@@ -1,21 +1,24 @@
 'use client'
 
 /**
- * WeightInputSheet — 체중 입력 풀스크린 sheet (item 50).
+ * WeightInputSheet — 체중 입력 sheet (item 50).
  *
  * 핸드오프 패턴:
- *   - 상단: 36×4 drag handle + STEP kicker + 닫기 + Hero heading "{name}의 / 오늘 체중."
+ *   - 상단: STEP kicker + Hero heading "{name}의 / 오늘 체중."
  *   - 본문: 96px 큰 숫자 + .소수점 작은 mute + KG accent mono
  *   - delta hint: ± 0.0 kg sage / 안정 구간 mute
  *   - 권장 구간 안내 + 저장 CTA (ink button)
  *
  * 이 컴포넌트는 controlled sheet — open/onClose/onSave 호출자 책임.
+ *
+ * R-feel(2026-06-10): 풀스크린 takeover → 공용 BottomSheet 로 전환.
+ * 아래서 슬라이드업 + 백드롭 블러 + 그래버 + ESC(native <dialog>). 깜빡 제거.
  */
 
-import { useState, useEffect, useRef } from 'react'
-import { X } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
+import BottomSheet from '@/components/ui/BottomSheet'
 
 interface WeightInputSheetProps {
   open: boolean
@@ -47,23 +50,10 @@ export default function WeightInputSheet({
   const [val, setVal] = useState<number>(initialKg)
   const [saving, setSaving] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (open) setVal(initialKg)
   }, [open, initialKg])
-
-  // ESC 키로 close
-  useEffect(() => {
-    if (!open) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-
-  if (!open) return null
 
   const delta = lastKg != null ? val - lastKg : 0
   const deltaSign = delta > 0 ? '+' : delta < 0 ? '−' : '±'
@@ -92,67 +82,26 @@ export default function WeightInputSheet({
   }
 
   return (
-    <div
-      ref={containerRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${dogName} 체중 입력`}
-      className="fixed inset-0 z-[60] flex flex-col"
-      style={{
-        background: 'var(--paper, #f4ede0)',
-        color: V3.ink,
-      }}
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      ariaLabel={`${dogName} 체중 입력`}
+      dismissOnBackdrop={!saving}
     >
-      {/* drag handle */}
-      <div
-        aria-hidden
-        style={{
-          width: 36,
-          height: 4,
-          borderRadius: 2,
-          background: V3.ink,
-          margin: '8px auto 0',
-          opacity: 0.4,
-        }}
-      />
-
-      {/* header */}
-      <div
-        className="flex justify-between items-center"
-        style={{ padding: '18px 20px 0' }}
-      >
+      <BottomSheet.Body>
         <Mono color="accent" size="xs" weight={600}>
           입력 · STEP 01 / 01
         </Mono>
-        <button
-          onClick={onClose}
-          className="flex items-center transition"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            color: V3.ink,
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.semibold,
-            fontSize: 13.5,
-            gap: 4,
-          }}
-        >
-          닫기 <X size={14} color={V3.ink} strokeWidth={2} />
-        </button>
-      </div>
 
-      <div style={{ padding: '8px 20px 18px' }}>
-        <h1
+        <h2
           style={{
-            margin: 0,
+            margin: '8px 0 0',
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.display,
-            fontSize: 38,
+            fontSize: 34,
             color: V3.ink,
             letterSpacing: '-0.025em',
-            lineHeight: 1,
+            lineHeight: 1.02,
             wordBreak: 'keep-all',
             textWrap: 'balance',
           }}
@@ -160,7 +109,7 @@ export default function WeightInputSheet({
           <span style={{ letterSpacing: '-0.04em' }}>{dogName}</span>의
           <br />
           <span style={{ color: V3.accent }}>오늘 체중.</span>
-        </h1>
+        </h2>
         <p
           style={{
             margin: '12px 0 0',
@@ -182,11 +131,10 @@ export default function WeightInputSheet({
             </>
           )}
         </p>
-      </div>
-      <div className="ft-rule-ink" style={{ marginLeft: 20, marginRight: 20 }} />
 
-      {/* 큰 숫자 입력 */}
-      <section style={{ padding: '24px 20px 28px' }}>
+        <div className="ft-rule-ink" style={{ margin: '18px 0' }} />
+
+        {/* 큰 숫자 입력 */}
         <Mono color="inkMute" size="xs" weight={500} style={{ display: 'inline-block', marginBottom: 10 }}>
           오늘의 체중 (KG)
         </Mono>
@@ -233,6 +181,7 @@ export default function WeightInputSheet({
               fontSize: 13.5,
               color: V3.accent,
               letterSpacing: '0.16em',
+              wordSpacing: '-0.12em',
               marginLeft: 8,
               alignSelf: 'flex-end',
               paddingBottom: 12,
@@ -302,17 +251,9 @@ export default function WeightInputSheet({
             </button>
           ))}
         </div>
-      </section>
+      </BottomSheet.Body>
 
-      <div style={{ flex: 1 }} />
-
-      {/* 저장 CTA */}
-      <div
-        style={{
-          padding: '16px 20px calc(env(safe-area-inset-bottom) + 16px)',
-          borderTop: `1px solid ${V3.rule}`,
-        }}
-      >
+      <BottomSheet.Footer>
         {errorMsg && (
           <p
             role="alert"
@@ -347,7 +288,7 @@ export default function WeightInputSheet({
         >
           {saving ? '저장 중...' : `${val.toFixed(1)} kg 으로 저장`}
         </button>
-      </div>
-    </div>
+      </BottomSheet.Footer>
+    </BottomSheet>
   )
 }

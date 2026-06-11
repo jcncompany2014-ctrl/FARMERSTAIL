@@ -136,7 +136,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
       <section className="px-5 pt-6 md:pt-8 pb-2 md:pb-3 md:px-6">
         <Link
           href="/mypage/orders"
-          className="text-[11px] md:text-[12.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+          className="ft-app-back-hide text-[11px] md:text-[12.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
         >
           ← 주문 내역
         </Link>

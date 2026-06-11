@@ -52,7 +52,6 @@ import {
   formatDate,
 } from '@/lib/v3-helpers/analysis-view'
 import AnalysisEmptyState from './_components/AnalysisEmptyState'
-import AnalysisTopNav from './_components/AnalysisTopNav'
 import AnalysisStickySummary from './_components/AnalysisStickySummary'
 import AnalysisArchiveBanner from './_components/AnalysisArchiveBanner'
 import AnalysisMagazineSection from './_components/AnalysisMagazineSection'
@@ -424,17 +423,9 @@ export default function AnalysisView({
   const magSupplementItems: MagSupplementItem[] = mapSupplements(analysis.supplements ?? [])
 
   return (
-    <div className="pb-10">
-      <AnalysisTopNav
-        dogId={dogId}
-        dogName={dog.name}
-        isArchive={isArchive}
-        analysisMerKcal={analysis.mer}
-        analysisFeedG={analysis.feed_g}
-        analysisBcsLabel={analysis.bcs_label}
-      />
-
+    <div className="pb-10 pt-1">
       <AnalysisStickySummary
+        dogName={dog.name}
         merKcal={analysis.mer}
         feedG={analysis.feed_g}
         bcsLabel={analysis.bcs_label}

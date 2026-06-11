@@ -1,9 +1,7 @@
 // B9 — 예방접종 기록 페이지 (app-only).
 // 첫 진입 시 localStorage 기반 client 입력 + 다음 일정 자동 계산.
 
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import VaccinationsClient from './VaccinationsClient'
 
@@ -30,13 +28,6 @@ export default async function VaccinationsPage({
   return (
     <div className="pb-10">
       <div className="px-5 pt-6 pb-2">
-        <Link
-          href={`/dogs/${dogId}`}
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          {dog.name as string}
-        </Link>
         <div className="mt-3">
           <span className="kicker inline-block">Vaccinations</span>
           <h1

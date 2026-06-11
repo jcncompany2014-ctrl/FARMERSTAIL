@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { Package, ShoppingBag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
+import { isAppContextServer } from '@/lib/app-context'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,6 +70,10 @@ export default async function OrdersPage() {
 
   if (!user) redirect('/login?next=/mypage/orders')
 
+  // 앱: 상단 헤더(← 주문 내역)가 제목/뒤로가기를 담당 → 본문 중복 헤더 제거.
+  // 웹: per-screen 헤더가 없으므로 editorial 뒤로가기 + serif 제목 유지.
+  const isApp = await isAppContextServer()
+
   const { data: orders, error } = await supabase
     .from('orders')
     .select(
@@ -113,24 +118,32 @@ export default async function OrdersPage() {
     <main className="pb-8 mx-auto" style={{ maxWidth: 1024 }}>
       {/* 헤더 */}
       <section className="px-5 pt-6 pb-2 md:px-6">
-        <Link
-          href="/mypage"
-          className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          ← 내 정보
-        </Link>
-        <span className="kicker mt-3 block">Orders</span>
-        <h1
-          className="font-serif mt-1.5"
-          style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          주문 내역
-        </h1>
+        {isApp ? (
+          // 앱: 헤더 ← 가 '주문 내역' 제목/뒤로가기를 이미 담당 → 본문은
+          // kicker 만. 아래 상태 통계(전체/진행 중/취소·환불)가 공간을 채운다.
+          <span className="kicker block">Orders</span>
+        ) : (
+          <>
+            <Link
+              href="/mypage"
+              className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
+            >
+              ← 내 정보
+            </Link>
+            <span className="kicker mt-3 block">Orders</span>
+            <h1
+              className="font-serif mt-1.5"
+              style={{
+                fontSize: 22,
+                fontWeight: 800,
+                color: 'var(--ink)',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              주문 내역
+            </h1>
+          </>
+        )}
       </section>
 
       {/* 상태별 통계 — 진행 중 (preparing/shipping) / 완료 / 취소

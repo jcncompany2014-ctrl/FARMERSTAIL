@@ -50,6 +50,9 @@ export default async function ProfileEditPage() {
         className="pb-12 md:pb-20 mx-auto"
         style={{ background: 'var(--bg)', maxWidth: 880 }}
       >
+        {/* 앱: 상단 ← 헤더가 뒤로가기를 담당 → 본문 뒤로가기 + 브레드크럼(웹
+            패턴) 숨김. 웹: per-screen 헤더 없음 → editorial 뒤로가기/브레드크럼 유지. */}
+        {!isApp && (
         <div className="px-5 md:px-8 pt-4 md:pt-6">
           <Link
             href={backHref}
@@ -75,6 +78,7 @@ export default async function ProfileEditPage() {
             <span style={{ color: 'var(--ink)', fontWeight: 700 }}>프로필</span>
           </nav>
         </div>
+        )}
 
         <section className="px-5 md:px-8 pt-6 md:pt-10 pb-4 md:pb-6">
           <span

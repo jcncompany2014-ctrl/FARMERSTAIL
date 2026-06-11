@@ -4,7 +4,6 @@
 // dog ownership 검증하고 초기 dog row 를 prop drill.
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import {
   Check,
   X,
@@ -239,12 +238,6 @@ export default function EditDogClient({
   return (
     <div className="pb-10 px-5">
       <div className="pt-6 pb-2">
-        <Link
-          href={`/dogs/${dogId}`}
-          className="text-[10.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          ← 돌아가기
-        </Link>
         <div className="mt-3">
           <span className="kicker inline-block">Edit Profile</span>
           <h1 className="font-sans mt-1.5" style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
