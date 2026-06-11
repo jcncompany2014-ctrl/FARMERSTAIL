@@ -44,6 +44,9 @@ type Props = {
   priority?: boolean
   /** 'web' (기본) 또는 'app' — v3 톤 분기 (R14 cleanup) */
   variant?: 'web' | 'app'
+  /** 앱 전용(Phase P): 그리드 첫 카드를 2칸 와이드 대표 카드로.
+   *  web 에선 무시 — page.tsx 가 isApp 일 때만 true 전달. */
+  featured?: boolean
 }
 
 function CategoryIcon({
@@ -90,6 +93,7 @@ export default function CatalogProductCard({
   query = '',
   priority = false,
   variant = 'web',
+  featured = false,
 }: Props) {
   const hasSale = product.sale_price !== null
   const effective = product.sale_price ?? product.price
@@ -97,10 +101,12 @@ export default function CatalogProductCard({
     ? Math.round(((product.price - effective) / product.price) * 100)
     : 0
   const isApp = variant === 'app'
+  // featured 는 앱에서만 유효 — 안전 가드 (web 진입 시 무조건 false).
+  const isFeat = isApp && featured
 
   return (
     <div
-      className="relative group ft-card-product"
+      className={`relative group ft-card-product${isFeat ? ' col-span-2' : ''}`}
       style={{
         background: isApp ? 'var(--bg-3)' : '#fff',
         borderRadius: isApp ? 4 : 18,
@@ -120,7 +126,9 @@ export default function CatalogProductCard({
       {/* 2026-05-21: aspect 4:5 → 1:1 — 카드가 너무 세로로 길었음. 정사각형 사진 +
           텍스트 패널 컴팩트하게. 데스크톱 (md+) 도 동일 비율로 통일. */}
       <div
-        className="relative aspect-square overflow-hidden"
+        className={`relative overflow-hidden ${
+          isFeat ? 'aspect-[16/9]' : 'aspect-square'
+        }`}
         style={{ background: '#fbf3df', borderRadius: isApp ? 2 : 14 }}
       >
         {product.image_url ? (
@@ -128,7 +136,11 @@ export default function CatalogProductCard({
             src={product.image_url}
             alt={product.name}
             fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
+            sizes={
+              isFeat
+                ? '(max-width: 640px) 100vw, 560px'
+                : '(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px'
+            }
             priority={priority}
             // priority=true 인 LCP 후보는 blur placeholder 가 LCP 측정에서
             // 손해 — placeholder 도 화면에 그려지므로. lazy 인 카드만 blur.
@@ -228,13 +240,17 @@ export default function CatalogProductCard({
         )}
 
         <h3
-          className="line-clamp-2 text-[12.5px] md:text-[14px]"
+          className={
+            isFeat
+              ? 'line-clamp-2 text-[16px]'
+              : 'line-clamp-2 text-[12.5px] md:text-[14px]'
+          }
           style={{
             color: 'var(--ink)',
-            fontWeight: 700,
+            fontWeight: isFeat ? 800 : 700,
             letterSpacing: '-0.015em',
             lineHeight: 1.3,
-            minHeight: 32,
+            minHeight: isFeat ? undefined : 32,
           }}
         >
           <Highlight text={product.name} query={query} />
@@ -242,7 +258,11 @@ export default function CatalogProductCard({
 
         {product.short_description && (
           <p
-            className="mt-0.5 text-[10.5px] md:text-[11.5px] line-clamp-1"
+            className={
+              isFeat
+                ? 'mt-0.5 text-[12px] line-clamp-2'
+                : 'mt-0.5 text-[10.5px] md:text-[11.5px] line-clamp-1'
+            }
             style={{ color: 'var(--muted)' }}
           >
             <Highlight text={product.short_description} query={query} />
@@ -252,14 +272,18 @@ export default function CatalogProductCard({
         <div className="mt-1.5 md:mt-2 flex items-baseline gap-1 flex-wrap">
           {hasSale && discount > 0 && (
             <span
-              className="font-black text-[13px] md:text-[15px] tabular-nums"
+              className={`font-black tabular-nums ${
+                isFeat ? 'text-[16px]' : 'text-[13px] md:text-[15px]'
+              }`}
               style={{ color: 'var(--sale)', letterSpacing: '-0.02em' }}
             >
               {discount}%
             </span>
           )}
           <span
-            className="font-black text-[15px] md:text-[17px] tabular-nums"
+            className={`font-black tabular-nums ${
+              isFeat ? 'text-[18px]' : 'text-[15px] md:text-[17px]'
+            }`}
             style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
           >
             {effective.toLocaleString()}

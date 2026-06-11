@@ -24,7 +24,8 @@ export default function CatalogSubscribeBand({
         className="relative flex items-center gap-3.5 overflow-hidden"
         style={{
           background: '#5d6f3f',
-          borderRadius: isApp ? 8 : 24,
+          // Phase P: off-token 8 → md tier 12 (hero 카드 그래머 정합)
+          borderRadius: isApp ? 12 : 24,
           padding: 16,
           color: '#fff',
         }}

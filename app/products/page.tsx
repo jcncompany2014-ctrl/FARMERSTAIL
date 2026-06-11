@@ -13,7 +13,9 @@ import CatalogProductCard, {
   type CatalogProduct,
 } from '@/components/products/CatalogProductCard'
 import RecentlyViewed from '@/components/products/RecentlyViewed'
-import CatalogChrome from '@/components/products/CatalogChrome'
+import CatalogChrome, {
+  CatalogCategoryBar,
+} from '@/components/products/CatalogChrome'
 import CatalogHero from '@/components/products/CatalogHero'
 import CatalogSubscribeBand from '@/components/products/CatalogSubscribeBand'
 import { getActiveEvents } from '@/lib/events/data'
@@ -119,25 +121,6 @@ export default async function ProductsPage({
   // ── Supabase 쿼리 ───────────────────────────────────────
   const supabase = await createClient()
 
-  // 보호자 이름 — CatalogChrome greeting "Hello, [이름]님" 용.
-  // 로그인 안 했거나 profile 없으면 '보호자' 기본.
-  let firstUserName = '보호자'
-  try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', user.id)
-        .maybeSingle()
-      if (profile?.name) firstUserName = profile.name as string
-    }
-  } catch {
-    /* silent — greeting 기본값 사용 */
-  }
-
   // 카탈로그 hero 슬라이더용 active events — 첫 페이지 + 비검색 시에만 fetch.
   // 검색/필터 결과 페이지에선 사용자가 명확한 의도를 가지므로 hero 생략.
   const heroEvents =
@@ -156,6 +139,8 @@ export default async function ProductsPage({
 
   // 정렬 모드별 .order 적용
   if (sortMode === 'new' || raw.sort === 'new') {
+    // 서버 컴포넌트의 요청 시점 계산 (신상 30일 윈도우) — 렌더 순수성 무관.
+    // eslint-disable-next-line react-hooks/purity
     const nowMs = Date.now()
     const since = new Date(
       nowMs - NEW_WINDOW_DAYS * 24 * 60 * 60 * 1000,
@@ -286,14 +271,27 @@ export default async function ProductsPage({
           만 보게 — 사용자 요청: "원래대로 되돌려놨으니 web 에 앱화면 나오게 X". */}
       {isApp && (
         <>
-          <CatalogChrome
-            userName={firstUserName}
-            totalCount={total}
-            variant="app"
-          />
+          {/* Phase P 리뉴얼 (2026-06-11): Greeting/검색바/아이콘타일 4단 chrome
+              → 타이틀 행 + sticky 카테고리 필 바로 압축. 카운트·정렬·필터는
+              그리드 직전 한 행 — 이전엔 앱 모바일에 정렬/필터 진입이 아예
+              없었다 (데스크톱 toolbar 전용이라 hidden). */}
+          <CatalogChrome variant="app" />
           {heroEvents.length > 0 && (
             <CatalogHero events={heroEvents} variant="app" />
           )}
+          <CatalogCategoryBar />
+          <section className="md:hidden px-4 pt-3 pb-1 flex items-center justify-between">
+            <span
+              className="tabular-nums"
+              style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}
+            >
+              {pageTitle} · {total.toLocaleString()}개
+            </span>
+            <div className="flex items-center gap-3">
+              <CatalogFilterTrigger />
+              <SortSelect current={sortMode} />
+            </div>
+          </section>
         </>
       )}
 
@@ -367,14 +365,23 @@ export default async function ProductsPage({
               isSearching={isSearching}
               isFiltered={isFiltered}
               query={query}
+              isApp={isApp}
             />
           ) : (
             <>
-              {/* gap 통일 — 모바일 2.5, 데스크톱 4 (gap-5/lg:gap-6 폐기) */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4">
+              {/* gap 통일 — 모바일 2.5, 데스크톱 4 (gap-5/lg:gap-6 폐기).
+                  앱: ft-stagger 진입 + 첫 카드 featured(2칸 와이드) — 큐레이션
+                  1번(sort_order)을 대표 자리로. 검색/2페이지+ 는 균등 그리드. */}
+              <div
+                className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4${
+                  isApp ? ' ft-stagger' : ''
+                }`}
+              >
                 {rows.map((p, i) => {
                   const rank = isBest && pageNum === 1 ? i + 1 : null
                   const isNew = raw.sort === 'new'
+                  const featured =
+                    isApp && pageNum === 1 && !isSearching && i === 0
                   return (
                     <CatalogProductCard
                       key={p.id}
@@ -384,6 +391,7 @@ export default async function ProductsPage({
                       query={query}
                       priority={i < 4}
                       variant={isApp ? 'app' : 'web'}
+                      featured={featured}
                     />
                   )
                 })}
@@ -406,6 +414,7 @@ export default async function ProductsPage({
                         color: 'var(--text)',
                         boxShadow: 'inset 0 0 0 1px var(--rule)',
                         background: 'var(--bg)',
+                        borderRadius: isApp ? 4 : undefined,
                       }}
                       aria-label="이전 페이지"
                     >
@@ -448,6 +457,7 @@ export default async function ProductsPage({
                           boxShadow: active
                             ? 'none'
                             : 'inset 0 0 0 1px var(--rule)',
+                          borderRadius: isApp ? 4 : undefined,
                         }}
                       >
                         {p}
@@ -463,6 +473,7 @@ export default async function ProductsPage({
                         color: 'var(--text)',
                         boxShadow: 'inset 0 0 0 1px var(--rule)',
                         background: 'var(--bg)',
+                        borderRadius: isApp ? 4 : undefined,
                       }}
                       aria-label="다음 페이지"
                     >
@@ -520,15 +531,22 @@ function EmptyState({
   isSearching,
   isFiltered,
   query,
+  isApp = false,
 }: {
   isSearching: boolean
   isFiltered: boolean
   query: string
+  isApp?: boolean
 }) {
   return (
     <div
-      className="rounded-2xl py-14 md:py-20 px-6 flex flex-col items-center text-center"
-      style={{ background: 'var(--bg-2)', border: '1px dashed var(--rule-2)' }}
+      className="py-14 md:py-20 px-6 flex flex-col items-center text-center"
+      style={{
+        background: 'var(--bg-2)',
+        border: '1px dashed var(--rule-2)',
+        // 앱 v3 는 rounded-2xl(16) 금지 — md tier 12. 웹은 기존 16 유지.
+        borderRadius: isApp ? 12 : 16,
+      }}
     >
       <div
         className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3 md:mb-4"

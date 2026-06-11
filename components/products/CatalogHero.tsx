@@ -141,6 +141,7 @@ export default function CatalogHero({
             ctaRadius={ctaRadius}
             cardRadius={isApp ? 12 : 18}
             kickerRadius={isApp ? 4 : 10}
+            isApp={isApp}
           />
         ))}
       </div>
@@ -181,11 +182,13 @@ function HeroSlide({
   ctaRadius,
   cardRadius,
   kickerRadius,
+  isApp = false,
 }: {
   event: EventItem
   ctaRadius: number
   cardRadius: number
   kickerRadius: number
+  isApp?: boolean
 }) {
   const p = PALETTE_MAP[event.palette] ?? PALETTE_MAP.terracotta
   return (
@@ -252,7 +255,8 @@ function HeroSlide({
           {event.kicker}
         </span>
         <h2
-          className="font-['Archivo_Black']"
+          // Phase P: 앱은 Archivo Black 누수 차단 — sans 900 (다른 app 헤딩 정합)
+          className={isApp ? undefined : "font-['Archivo_Black']"}
           style={{
             // R22: tagline 여백 + 줄간 정리 (이전: 따닥따닥)
             marginTop: 14,
@@ -261,6 +265,10 @@ function HeroSlide({
             letterSpacing: '-0.02em',
             color: p.accent,
             wordBreak: 'keep-all',
+            fontFamily: isApp
+              ? "var(--font-sans), 'Pretendard', sans-serif"
+              : undefined,
+            fontWeight: isApp ? 900 : undefined,
           }}
         >
           {event.tagline}
