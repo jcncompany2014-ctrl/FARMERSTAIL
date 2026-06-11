@@ -12,7 +12,7 @@
  * gating remains the caller's responsibility; AppChrome itself assumes the
  * user is signed in and renders accordingly.
  */
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -23,6 +23,8 @@ import {
   User,
   ChevronDown,
   ArrowLeft,
+  Check,
+  Plus,
   type LucideIcon,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -154,6 +156,11 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     { id: string; name: string; photoUrl: string | null }[]
   >([])
   const [activeDogId, setActiveDogId] = useState<string | null>(null)
+  // 강아지 전환 드롭다운 — 헤더 칩을 누르면 작게 펼쳐지는 빠른 전환 목록.
+  const [dogMenuOpen, setDogMenuOpen] = useState(false)
+  // fetch 완료 전 '강아지 등록' 칩이 잘못 깜빡이지 않게 — 로드 후에만 렌더.
+  const [dogsLoaded, setDogsLoaded] = useState(false)
+  const dogMenuRef = useRef<HTMLDivElement | null>(null)
 
   // audit #99: 이전엔 pathname 변경마다 cart count fetch → 모든 라우트 이동 시
   // Supabase RTT 추가. cart 는 사용자 액션 (add-to-cart) 에서만 변함 — visibility
@@ -222,6 +229,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           : null
       const active = list.find((d) => d.id === stored) ?? list[0] ?? null
       setActiveDogId(active?.id ?? null)
+      setDogsLoaded(true)
     }
     void fetchDogs()
     const onVisible = () => {
@@ -245,14 +253,50 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // R-feel: 헤더 우측 강아지 칩 — 활성 강아지 + 이동 경로(없으면 등록).
+  // R-feel: 헤더 우측 강아지 칩 — 활성 강아지 이름 + 전환 드롭다운(없으면 등록).
   const activeDog = dogs.find((d) => d.id === activeDogId) ?? dogs[0] ?? null
-  const dogChipHref = dogs.length === 0 ? '/dogs/new' : '/dogs'
 
   // R-feel: 화면별 헤더 — 깊은 화면이면 ← 뒤로 + 제목(탭 루트면 null).
   const router = useRouter()
   const screenTitle = screenTitleForPath(pathname)
   const isDeep = screenTitle !== null
+
+  // 강아지 드롭다운 — 라우트 이동 시 자동 닫힘 (뒤로가기 등 외부 내비 포함).
+  // effect 대신 render 중 보정 — react.dev 'Adjusting state when a prop changes' 패턴.
+  const [menuPathname, setMenuPathname] = useState(pathname)
+  if (menuPathname !== pathname) {
+    setMenuPathname(pathname)
+    setDogMenuOpen(false)
+  }
+
+  // 강아지 드롭다운 — 바깥 탭/Escape 로 닫기 (열려 있을 때만 listen).
+  useEffect(() => {
+    if (!dogMenuOpen) return
+    function onPointerDown(e: PointerEvent) {
+      if (!dogMenuRef.current?.contains(e.target as Node)) setDogMenuOpen(false)
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setDogMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [dogMenuOpen])
+
+  // 드롭다운에서 강아지 선택 — 활성 강아지로 기억 + 그 아이 페이지로 이동.
+  function selectDog(id: string) {
+    setActiveDogId(id)
+    try {
+      window.localStorage.setItem('ft_active_dog', id)
+    } catch {
+      /* storage 불가 환경 — 칩 표시만 전환 */
+    }
+    setDogMenuOpen(false)
+    router.push(`/dogs/${id}`)
+  }
 
   return (
     // `phone-frame`: 데스크톱/태블릿(≥md)에서 이 래퍼를 "책상 위 폰"으로
@@ -342,60 +386,222 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
             )}
 
             {/* R-feel: 우측 = 활성 강아지 칩 — 탭 루트 한정. 깊은 화면에선 숨김.
-                장바구니는 하단 탭, 알림은 마이페이지에서 진입. */}
-            {!isDeep && (
-            <Link
-              href={dogChipHref}
-              aria-label={activeDog ? `${activeDog.name} — 강아지 선택` : '강아지 등록'}
-              className="flex items-center shrink-0 transition active:scale-95"
-              style={{ gap: 7, marginRight: -2, padding: '4px 8px 4px 4px', borderRadius: 999 }}
-            >
-              <span
-                className="overflow-hidden flex items-center justify-center shrink-0"
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 999,
-                  background: 'var(--paper-hi)',
-                  border: '1px solid var(--ink-rule, rgba(22,20,15,0.14))',
-                }}
-              >
-                {activeDog?.photoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={activeDog.photoUrl}
-                    alt={activeDog.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <Dog
-                    style={{ width: 17, height: 17, color: 'var(--ink-mute)' }}
-                    strokeWidth={1.5}
-                  />
-                )}
-              </span>
-              {activeDog && (
-                <span
-                  style={{
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: 'var(--ink)',
-                    maxWidth: 84,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    letterSpacing: '-0.01em',
-                  }}
+                아이콘 없이 이름+⌄ 만 (사장님 피드백: 칩 앞 강아지 아이콘은 군더더기).
+                누르면 강아지 빠른 전환 드롭다운 — 선택 시 그 아이 페이지로 이동.
+                강아지가 없으면 등록 링크. fetch 전엔 비워서 잘못된 칩 깜빡임 방지. */}
+            {!isDeep && dogsLoaded && (
+              dogs.length === 0 ? (
+                <Link
+                  href="/dogs/new"
+                  aria-label="강아지 등록"
+                  className="flex items-center shrink-0 transition active:scale-95"
+                  style={{ gap: 4, marginRight: -8, padding: '6px 8px', borderRadius: 999 }}
                 >
-                  {activeDog.name}
-                </span>
-              )}
-              <ChevronDown
-                style={{ width: 15, height: 15, color: 'var(--ink-mute)', marginLeft: -2, flexShrink: 0 }}
-                strokeWidth={2}
-              />
-            </Link>
+                  <Plus
+                    style={{ width: 15, height: 15, color: 'var(--ink-mute)' }}
+                    strokeWidth={2}
+                  />
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      color: 'var(--ink)',
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    강아지 등록
+                  </span>
+                </Link>
+              ) : (
+                <div ref={dogMenuRef} className="relative flex items-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setDogMenuOpen((v) => !v)}
+                    aria-haspopup="menu"
+                    aria-expanded={dogMenuOpen}
+                    aria-label={activeDog ? `${activeDog.name} — 강아지 전환` : '강아지 전환'}
+                    className="flex items-center transition active:scale-95"
+                    style={{
+                      gap: 3,
+                      marginRight: -8,
+                      padding: '6px 8px',
+                      borderRadius: 999,
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-sans)',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: 'var(--ink)',
+                        maxWidth: 110,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
+                      {activeDog?.name}
+                    </span>
+                    <ChevronDown
+                      style={{
+                        width: 15,
+                        height: 15,
+                        color: 'var(--ink-mute)',
+                        flexShrink: 0,
+                        transform: dogMenuOpen ? 'rotate(180deg)' : 'none',
+                        transition: 'transform 200ms ease',
+                      }}
+                      strokeWidth={2}
+                    />
+                  </button>
+
+                  {dogMenuOpen && (
+                    <div
+                      role="menu"
+                      aria-label="내 강아지 목록"
+                      className="ft-dropdown-pop absolute"
+                      style={{
+                        top: 'calc(100% + 6px)',
+                        right: 0,
+                        minWidth: 188,
+                        maxHeight: '55vh',
+                        overflowY: 'auto',
+                        padding: 6,
+                        borderRadius: 12,
+                        background: 'var(--paper-hi)',
+                        border: '1px solid var(--ink-rule, rgba(22,20,15,0.14))',
+                        boxShadow:
+                          '0 18px 44px -16px rgba(22,20,15,0.35), 0 2px 8px rgba(22,20,15,0.08)',
+                      }}
+                    >
+                      {dogs.map((d) => {
+                        const isActive = d.id === activeDog?.id
+                        return (
+                          <button
+                            key={d.id}
+                            type="button"
+                            role="menuitem"
+                            onClick={() => selectDog(d.id)}
+                            className="flex items-center w-full text-left"
+                            style={{
+                              gap: 10,
+                              padding: '9px 10px',
+                              borderRadius: 4,
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <span
+                              className="overflow-hidden flex items-center justify-center shrink-0"
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: 999,
+                                background: 'var(--paper)',
+                                border: '1px solid var(--ink-rule, rgba(22,20,15,0.12))',
+                              }}
+                            >
+                              {d.photoUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={d.photoUrl}
+                                  alt=""
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              ) : (
+                                <span
+                                  style={{
+                                    fontFamily: 'var(--font-sans)',
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color: 'var(--ink-soft, #3a342a)',
+                                  }}
+                                >
+                                  {d.name.charAt(0)}
+                                </span>
+                              )}
+                            </span>
+                            <span
+                              style={{
+                                fontFamily: 'var(--font-sans)',
+                                fontSize: 13.5,
+                                fontWeight: isActive ? 700 : 500,
+                                color: 'var(--ink)',
+                                maxWidth: 120,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                letterSpacing: '-0.01em',
+                              }}
+                            >
+                              {d.name}
+                            </span>
+                            {isActive && (
+                              <Check
+                                className="shrink-0"
+                                style={{
+                                  width: 15,
+                                  height: 15,
+                                  color: 'var(--accent)',
+                                  marginLeft: 'auto',
+                                }}
+                                strokeWidth={2.5}
+                              />
+                            )}
+                          </button>
+                        )
+                      })}
+                      <div
+                        aria-hidden
+                        style={{
+                          height: 1,
+                          margin: '4px 8px',
+                          background: 'var(--ink-rule, rgba(22,20,15,0.10))',
+                        }}
+                      />
+                      <Link
+                        href="/dogs/new"
+                        role="menuitem"
+                        onClick={() => setDogMenuOpen(false)}
+                        className="flex items-center"
+                        style={{ gap: 10, padding: '9px 10px', borderRadius: 4 }}
+                      >
+                        <span
+                          className="flex items-center justify-center shrink-0"
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 999,
+                            border: '1px dashed var(--ink-faint, #b6ab93)',
+                          }}
+                        >
+                          <Plus
+                            style={{ width: 14, height: 14, color: 'var(--ink-mute)' }}
+                            strokeWidth={2}
+                          />
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-sans)',
+                            fontSize: 13.5,
+                            fontWeight: 500,
+                            color: 'var(--ink-mute)',
+                            letterSpacing: '-0.01em',
+                          }}
+                        >
+                          강아지 추가
+                        </span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )
             )}
           </div>
         </div>

@@ -32,7 +32,7 @@
 - [x] B6. 스크롤바 숨김 + 관성 스크롤 (aeb3727)
 - [x] B7. user-select/touch-callout off, 입력류 예외 (aeb3727) — build:ci 권위 검증 포함
 - [x] B8. 상태바 색 — (main) viewport override, paper 톤 (cadbc1b).
-- [ ] B9. 진입 애니메이션 활용 확대 — lib/motion.ts 가 2화면뿐 → 주요 화면 목록/카드에 stagger fade-in-up.
+- [x] B9. .ft-stagger 유틸 + 홈 적용 (43fece9). 다른 목록 화면 적용은 Phase C 화면 패스에서.
 - [ ] B10. Tooltip hover식 → 탭 펼침 (Tooltip.tsx:61).
 
 ## Phase C — 화면별 마스터피스 패스 (정독 → 난잡 요소 제거 → 위계 재정리)

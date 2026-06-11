@@ -1363,6 +1363,18 @@ html:has([data-ft-chrome="app"])::-webkit-scrollbar,
 [data-ft-chrome="app"] .ft-stagger > *:nth-child(7) { animation-delay: 270ms; }
 [data-ft-chrome="app"] .ft-stagger > *:nth-child(n + 8) { animation-delay: 300ms; }
 
+/* ── 헤더 강아지 전환 드롭다운 — 칩 아래에서 살짝 떠오르며 펼쳐짐 (AppChrome).
+   backwards fill: 첫 프레임부터 투명 시작 → 깜빡임 없음. reduced-motion 은
+   전역 safety net 이 끔. */
+[data-ft-chrome="app"] .ft-dropdown-pop {
+  transform-origin: top right;
+  animation: ft-dropdown-pop 180ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+@keyframes ft-dropdown-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* ── B7: 앱 텍스트 선택/롱프레스 콜아웃 차단 — 카드 꾹 누르면 텍스트가
    파랗게 선택되던 '웹스러움' 제거. 입력류 + .ft-selectable 은 예외. */
 [data-ft-chrome="app"] {
