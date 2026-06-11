@@ -36,6 +36,7 @@ import {
   Shield,
   Crown,
   Sparkles,
+  Gauge,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { tierMeta } from '@/lib/tiers'
@@ -349,6 +350,8 @@ export default function MypageClient({
       </MenuGroup>
 
       <MenuGroup kicker="Settings · 설정" topPad={20}>
+        {/* 변수별 분석 맞춤도 — 홈에서 분리해 이쪽으로 이동(2026-06-11). */}
+        <MenuItem href="/mypage/accuracy" Icon={Gauge} label="분석 맞춤도" />
         {/* R-feel: 상단 헤더에서 알림 종을 강아지 칩으로 교체 → 알림함 진입을
             마이페이지로 이동(고립 방지). */}
         <MenuItem href="/notifications" Icon={Bell} label="받은 알림" />

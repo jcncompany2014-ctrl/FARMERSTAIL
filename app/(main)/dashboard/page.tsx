@@ -11,7 +11,6 @@ import {
   ForTodaySection,
   JournalSection,
   DeliveryStripCard,
-  FarmToTailSection,
   EmptyHomeNoDogs,
   type DogCardData,
   type WeekDay,
@@ -36,19 +35,6 @@ import {
   isoDaysAgo,
   personaCardSpec,
 } from '@/lib/persona'
-import AccuracyBreakdown, {
-  type AccuracyVar,
-} from '@/components/dashboard/AccuracyBreakdown'
-import {
-  feedReliability,
-  activityReliability,
-  weightReliability,
-  overallReliability,
-} from '@/lib/personalization/reliability'
-import {
-  getAvgDailyFeedG,
-  formatAutoIntakeLabel,
-} from '@/lib/feeding/auto-intake'
 import type { Json } from '@/lib/supabase/types'
 
 /**
@@ -267,15 +253,6 @@ export default async function DashboardPage() {
   const hasActiveSub =
     subscription !== null && subscription.next_delivery_date !== null
 
-  // R31 — #4 사료 배송 시 무게 자동 기록 (발명 모듈 A 차별화 정점).
-  // 활성 구독자에 한해 avg_daily_feed_grams RPC 호출 → "최근 30일 자동 측정
-  // 평균 185g/일" UI 노출. 견주 자가 측정 (계량컵 ±15%) 불필요. 신뢰도 1.0.
-  // 첫 박스 아직 결제 안 된 경우 (가입 직후) null 반환 → 기본 카피로 fallback.
-  const autoIntakeAvgG = hasActiveSub
-    ? await getAvgDailyFeedG(supabase, user.id, 30)
-    : null
-  const autoIntakeLabel = formatAutoIntakeLabel(autoIntakeAvgG, 30)
-
   // ── "오늘 할 일" 카드 — computeNextAction 으로 우선순위 결정 ──────────
   // 강아지 ID set 으로 분석 받은 강아지 / 분석 미실행 강아지 분리.
   const dogIdsWithAnalyses = new Set(
@@ -482,57 +459,9 @@ export default async function DashboardPage() {
     ? personaCardSpec(personaResult.dominant, firstDog?.id ?? null)
     : null
 
-  // ── Phase D7.5 — 맞춤도 카드 ──────────────────────────────────────────
-  // firstDog 의 측정 도구 + 최근 측정일 → 종합 reliability. 0~1.
-  // 가입 < 7일 또는 dog 없으면 카드 비표시.
-  // 변수별 reliability — breakdown 카드 props 로도 사용
-  const weightR =
-    firstDogMeta &&
-    weightReliability(
-      firstDogMeta.weight_method,
-      firstDogMeta.weight_measured_at,
-    )
-  const activityR =
-    firstDogMeta && activityReliability(firstDogMeta.activity_method)
-  const feedR =
-    firstDogMeta &&
-    feedReliability(
-      // 자동배송 활성이면 feed_method 가 unknown 이어도 auto_delivery 로
-      // 간주 — 자체 사료 D2C 의 차별화 신호 (override).
-      hasActiveSub ? 'auto_delivery' : firstDogMeta.feed_method,
-    )
-  // P7 — 사용자 자기 표명 boost 합산. 최종 [0,1] clamp.
-  const userBoost = firstDogMeta?.accuracy_user_boost ?? 0
-  const accuracyScore =
-    firstDog && firstDogMeta && daysSinceSignup >= 7 && weightR != null && activityR != null && feedR != null
-      ? Math.min(1, overallReliability([weightR, activityR, feedR]) + userBoost)
-      : null
-  const accuracyVars: AccuracyVar[] = accuracyScore !== null && weightR != null && activityR != null && feedR != null
-    ? [
-        {
-          key: 'weight',
-          label: '체중',
-          score: weightR,
-          hint: '동물병원/디지털 체중계로 재면 정밀도가 올라가요',
-        },
-        {
-          key: 'activity',
-          label: '활동',
-          score: activityR,
-          hint: '만보계나 스마트태그를 연동하면 정밀도가 올라가요',
-        },
-        {
-          key: 'feed',
-          label: '급여',
-          score: feedR,
-          // R31 — hasActiveSub 면 자동 측정 g/일 hint 우선. RPC 결과 없으면
-          // (첫 박스 결제 직후 / 데이터 부족) 짧은 안내로 fallback.
-          hint: hasActiveSub
-            ? (autoIntakeLabel ?? '다음 박스부터 자동 추적이 시작돼요')
-            : '정기배송을 이용하면 자동 추적이 가능해요',
-        },
-      ]
-    : []
+  // [2026-06-11] 변수별 맞춤도(AccuracyBreakdown)는 홈에서 분리해 마이페이지
+  // 전용 화면(/mypage/accuracy)으로 이동(사장님 지시 — 홈 시각 위계 정리).
+  // 계산식은 동일하게 그 페이지에서 활성 강아지 기준으로 수행.
 
   // 분석 받은 강아지가 1마리도 없으면 = 신규 사용자 / 첫 설문 안 한 상태.
   // 참고용 — 모든 강아지의 분석 존재 여부. v3 후속 라운드에서 분기에 사용.
@@ -920,35 +849,12 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* 9. Farm to Tail — 매거진 brand story */}
-      <FarmToTailSection
-        issueLabel="Vol. 02"
-        dateLabel="MAY 21"
-        heading1="농장에서"
-        heading2="꼬리까지."
-        body="수의영양학 기반 레시피, 화천 농장의 재료부터 그릇에 담기까지 — 매일의 한 끼를 정성껏 짓습니다."
-        storyHref="/about"
-        ctaLabel="이야기 읽기"
-      />
-
-      {/* R32 #20 — 맞춤도 자세히 + 변수별 측정도구 lock 토글. 1주차 grace
-          period (silent) 에는 숨김, 그 이후 자율 펼침. voice-guidelines §9. */}
-      {firstDog && firstDogMeta && accuracyVars.length > 0 && (
-        <AccuracyBreakdown
-          variables={accuracyVars}
-          dogId={firstDog.id}
-          userBoost={userBoost}
-          userMethodLock={firstDogMeta.user_method_lock ?? null}
-        />
-      )}
-
       {/* events / persona / milestone — 후속 라운드에서 v3 surface 로
           재도입 예정. lint 침묵 위해 noop reference. */}
       <span style={{ display: 'none' }} aria-hidden>
         {String(events.length)}
         {milestone ? '·' : ''}
         {personaSpec ? '·' : ''}
-        {accuracyScore ?? ''}
         {pastSnapshotData ? '·' : ''}
         {hasAnyAnalysis ? '1' : '0'}
       </span>

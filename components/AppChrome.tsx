@@ -89,6 +89,7 @@ const DEEP_TITLES: Record<string, string> = {
   '/mypage/reviews': '내 리뷰',
   '/mypage/addresses': '배송지 관리',
   '/mypage/membership': '멤버십',
+  '/mypage/accuracy': '분석 맞춤도',
   '/mypage/referral': '친구 초대',
   '/mypage/notifications': '알림 설정',
   '/mypage/consent': '광고 수신 설정',
