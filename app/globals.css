@@ -1316,6 +1316,23 @@ html[data-theme="dark"] .fiber::after {
   display: none !important;
 }
 
+/* ── B1: 앱 전역 누름 피드백 — 모든 탭 가능한 요소가 눌리는 순간 살짝
+   가라앉는다(0.98). 파일별 active:scale-* 산재 대신 한 곳에서 통일.
+   transition 을 :active 상태에만 둬서 누를 때만 부드럽고(100ms) 뗄 때는
+   즉각 복귀(스냅) — 베이스 transition 유틸리티와 충돌 없음.
+   opt-out: .ft-no-press */
+[data-ft-chrome="app"] a:not(.ft-no-press):active,
+[data-ft-chrome="app"] button:not(:disabled):not(.ft-no-press):active {
+  transform: scale(0.98);
+  transition: transform 100ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-ft-chrome="app"] a:active,
+  [data-ft-chrome="app"] button:active {
+    transform: none;
+  }
+}
+
 /* =========================================================================
    Reduced motion — 전역 safety net
    ========================================================================= */

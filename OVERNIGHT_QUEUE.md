@@ -18,10 +18,10 @@
   - [x] A1-1: 페이지 h1 32 통일 (156fdf9)
   - [x] A1-2: components/v3 off-scale 정렬 (4ef4e2b) — 예외: 날짜 숫자 디스플레이, MyDogsSection 20(R23)
   - [x] A1-3: app/(main) 본문 off-scale 정렬 (5b7b4d7) — 예외: 이모지·통계 숫자·가격 디스플레이
-- [ ] A2. spacing 표준 위반 정리 — px-5/mt-3/p-4/gap-3 표준 외 잡값 정리 (화면 단위).
-- [ ] A3. radius 위반 정리 — 앱 스코프 rounded-xl/2xl/3xl 잔재 → 4px(카드)/12px(시트·히어로) 체계로.
-- [ ] A4. 색 일관성 — terracotta(웹 잔재) vs accent 혼용 정리, inkFaint 텍스트 사용처 제거(대비 위반), sale/sage/gold 역할 일관성.
-- [ ] A5. 헤더 높이 하드코딩(60px) → CSS 변수 (DogTabsNav.tsx:86 외).
+- [x] A2. spacing — 점검 결과 위반 없음(카드16/섹션20/히어로24 일관 패턴). 변경 안 함 (ba4771d 메모)
+- [x] A3. radius — 실위반 0 (잔재 2건은 과거 정리 주석). 변경 안 함
+- [x] A4. 색 — terracotta 는 앱 스코프 alias(--terracotta: var(--accent))로 이미 해결, inkFaint 4건은 전부 아이콘(허용). 변경 안 함
+- [x] A5. 헤더 높이 64px 고정 + --ft-header-h 변수 + DogTabsNav safe-area 보정 (ba4771d)
 
 ## Phase B — 인터랙션 폴리시 (앱 손맛)
 - [ ] B1. 탭 가능한 카드 전부 press 피드백(active:scale-[0.98] + transition) — TodayCard 등 홈/목록 카드 전수.
