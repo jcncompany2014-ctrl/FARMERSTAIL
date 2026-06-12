@@ -97,14 +97,76 @@ function PlanCTA({
 // 1. 히어로 — 약속 한 문장 + 단일 CTA
 // ---------------------------------------------------------------------------
 
+/**
+ * 농장 지평선 일러스트 — farm v4 세계관의 첫 조각.
+ * 동화책 톤의 겹친 언덕 + 해 + 나무. 실사진이 준비되어도 이 일러스트 레이어는
+ * 브랜드 시그니처로 유지 (일러스트 = 세계관, 실사 = 음식 — 합의된 규칙).
+ */
+function FarmHorizon() {
+  return (
+    <div
+      aria-hidden
+      className="relative w-full overflow-hidden"
+      style={{ height: 'clamp(150px, 24vw, 260px)' }}
+    >
+      <svg
+        viewBox="0 0 1440 300"
+        preserveAspectRatio="xMidYMax slice"
+        className="absolute inset-0 w-full h-full"
+      >
+        {/* 해 — 모바일 crop(가시 영역 x≈345~1095)을 감안해 안쪽 배치 */}
+        <circle cx="995" cy="84" r="44" fill="#E9C46A" />
+        <circle cx="995" cy="84" r="62" fill="#E9C46A" opacity="0.18" />
+        {/* 새 두 마리 */}
+        <path
+          d="M505 92 q9 -9 18 0 q9 -9 18 0"
+          stroke="#9C8F77"
+          strokeWidth="2.4"
+          fill="none"
+          strokeLinecap="round"
+        />
+        <path
+          d="M575 64 q7 -7 14 0 q7 -7 14 0"
+          stroke="#9C8F77"
+          strokeWidth="2"
+          fill="none"
+          strokeLinecap="round"
+        />
+        {/* 뒷 언덕 */}
+        <path
+          d="M0 190 Q 300 110 640 170 T 1440 150 V 300 H 0 Z"
+          fill="#DFE5C6"
+        />
+        {/* 나무 — 뒷 언덕 위 */}
+        <g>
+          <rect x="922" y="140" width="7" height="26" rx="3" fill="#7A6A4F" />
+          <circle cx="925.5" cy="124" r="26" fill="#A9BC81" />
+        </g>
+        <g>
+          <rect x="982" y="152" width="5" height="18" rx="2.5" fill="#7A6A4F" />
+          <circle cx="984.5" cy="142" r="17" fill="#B5C48F" />
+        </g>
+        {/* 중간 언덕 */}
+        <path
+          d="M0 235 Q 380 160 800 225 T 1440 210 V 300 H 0 Z"
+          fill="#C5D1A4"
+        />
+        {/* 앞 언덕 */}
+        <path
+          d="M0 282 Q 460 222 940 272 T 1440 258 V 300 H 0 Z"
+          fill="#A9BC81"
+        />
+      </svg>
+    </div>
+  )
+}
+
 function FarmHero({ isAuthed }: { isAuthed: boolean }) {
   return (
     // Q3 폴리시 패스: 더파머스독 규율 — 한 화면 = 한 메시지.
-    // 매거진 잔재(장식선 키커 / mono 대문자 마이크로카피 / placeholder 슬라이드 /
-    // grain 텍스처) 전부 제거. 실사진이 준비되면 이 아래에 풀블리드 사진 한 장이
-    // 들어간다 — 그 전까지는 타이포만으로 조용하게.
+    // Q4: 농장 지평선 일러스트로 세계관 레이어 추가 — 빈 종이의 밋밋함 해소.
     <section style={{ position: 'relative', background: 'var(--bg)' }}>
-      <div className="px-6 pt-16 md:pt-28 pb-16 md:pb-24 text-center">
+      <div className="px-6 pt-14 md:pt-24 pb-8 md:pb-12 text-center">
         <h1
           className="font-serif text-[34px] md:text-[58px] lg:text-[68px]"
           style={{
@@ -144,6 +206,8 @@ function FarmHero({ isAuthed }: { isAuthed: boolean }) {
           </p>
         </div>
       </div>
+
+      <FarmHorizon />
     </section>
   )
 }
