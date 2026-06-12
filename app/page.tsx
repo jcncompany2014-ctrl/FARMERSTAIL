@@ -8,7 +8,6 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
-import HeroSlideshow from '@/components/landing/HeroSlideshow'
 
 /**
  * 웹 랜딩 — Farm v4 (Phase Q 피벗, 2026-06-12).
@@ -52,24 +51,16 @@ function planHref(isAuthed: boolean) {
   return isAuthed ? '/dogs/new' : '/signup'
 }
 
+/** 섹션 라벨 — 매거진式 장식선/대문자 자간 제거 (Q3 폴리시 패스).
+    작고 조용한 테라코타 한 단어만. */
 function SectionKicker({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-center gap-2.5">
-      <span style={{ width: 18, height: 1, background: 'var(--terracotta)' }} />
-      <span
-        className="font-mono"
-        style={{
-          fontSize: 10.5,
-          letterSpacing: '0.18em',
-          textTransform: 'uppercase',
-          color: 'var(--terracotta)',
-          fontWeight: 700,
-        }}
-      >
-        {children}
-      </span>
-      <span style={{ width: 18, height: 1, background: 'var(--terracotta)' }} />
-    </div>
+    <p
+      className="text-center text-[13px]"
+      style={{ color: 'var(--terracotta)', fontWeight: 700 }}
+    >
+      {children}
+    </p>
   )
 }
 
@@ -108,19 +99,18 @@ function PlanCTA({
 
 function FarmHero({ isAuthed }: { isAuthed: boolean }) {
   return (
-    <section
-      className="grain grain-soft"
-      style={{ position: 'relative', background: 'var(--bg)' }}
-    >
-      <div className="px-5 md:px-6 pt-10 md:pt-16 text-center">
-        <SectionKicker>Farm to Tail · 농장에서 식탁까지</SectionKicker>
-
+    // Q3 폴리시 패스: 더파머스독 규율 — 한 화면 = 한 메시지.
+    // 매거진 잔재(장식선 키커 / mono 대문자 마이크로카피 / placeholder 슬라이드 /
+    // grain 텍스처) 전부 제거. 실사진이 준비되면 이 아래에 풀블리드 사진 한 장이
+    // 들어간다 — 그 전까지는 타이포만으로 조용하게.
+    <section style={{ position: 'relative', background: 'var(--bg)' }}>
+      <div className="px-6 pt-16 md:pt-28 pb-16 md:pb-24 text-center">
         <h1
-          className="font-serif text-[30px] md:text-[56px] lg:text-[66px]"
+          className="font-serif text-[34px] md:text-[58px] lg:text-[68px]"
           style={{
-            margin: '14px auto 0',
+            margin: '0 auto',
             maxWidth: 760,
-            lineHeight: 1.18,
+            lineHeight: 1.22,
             fontWeight: 700,
             color: 'var(--ink)',
             letterSpacing: '-0.02em',
@@ -132,42 +122,27 @@ function FarmHero({ isAuthed }: { isAuthed: boolean }) {
         </h1>
 
         <p
-          className="text-[14px] md:text-[17px]"
+          className="text-[15px] md:text-[17px]"
           style={{
-            margin: '14px auto 0',
-            maxWidth: 480,
-            lineHeight: 1.65,
-            color: 'var(--text)',
+            margin: '18px auto 0',
+            maxWidth: 440,
+            lineHeight: 1.7,
+            color: 'var(--muted-strong)',
           }}
         >
-          이름, 나이, 몸무게 — 2분 설문이면
-          <br className="md:hidden" /> 우리 아이만의 식단과{' '}
-          <strong style={{ color: 'var(--ink)' }}>하루 가격</strong>이 나옵니다.
+          2분 설문이면 우리 아이 맞춤 식단과
+          <br className="md:hidden" /> 하루 가격을 바로 알 수 있어요.
         </p>
 
-        <div className="pt-6 md:pt-8 flex flex-col items-center gap-3">
+        <div className="pt-9 md:pt-10 flex flex-col items-center gap-4">
           <PlanCTA isAuthed={isAuthed} />
-          <Link
-            href="/products"
-            className="inline-flex items-center gap-1.5 no-underline text-[13px] md:text-[14px]"
-            style={{ color: 'var(--muted-strong)', fontWeight: 600 }}
+          <p
+            className="text-[13px]"
+            style={{ color: 'var(--muted)', lineHeight: 1.5 }}
           >
-            우리 밥 먼저 구경하기
-            <ArrowRight size={14} strokeWidth={2} />
-          </Link>
+            체험팩부터 시작 · 언제든 해지
+          </p>
         </div>
-
-        <p
-          className="font-mono pt-5 pb-2 text-[10px] md:text-[11px]"
-          style={{ letterSpacing: '0.14em', color: 'var(--muted)' }}
-        >
-          구독 강요 없음 · 체험팩부터 · 언제든 해지
-        </p>
-      </div>
-
-      {/* 실사진 슬라이드 — 농장 → 주방 → 그릇. 일러스트는 세계관, 음식은 실사. */}
-      <div className="pt-4 md:pt-6">
-        <HeroSlideshow />
       </div>
     </section>
   )
@@ -267,7 +242,7 @@ function HowItWorks({ isAuthed }: { isAuthed: boolean }) {
       style={{ background: 'var(--bg-2)' }}
     >
       <div className="max-w-[1000px] mx-auto">
-        <SectionKicker>How it works</SectionKicker>
+        <SectionKicker>이렇게 시작해요</SectionKicker>
         <h2
           className="font-serif text-center pt-3 text-[24px] md:text-[36px]"
           style={{ fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}
