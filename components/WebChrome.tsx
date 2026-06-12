@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import {
-  Search,
   ShoppingCart,
   User,
   Menu,
@@ -13,13 +12,9 @@ import {
   ArrowRight,
   Truck,
   Soup,
-  Cookie,
-  PackageOpen,
+  Sprout,
   BookOpen,
-  Sparkles,
-  Flame,
-  Tag,
-  Zap,
+  HelpCircle,
   type LucideIcon,
 } from 'lucide-react'
 import SiteFooter from '@/components/SiteFooter'
@@ -27,26 +22,25 @@ import MiniCartToast from '@/components/products/MiniCartToast'
 import { WishlistProvider } from '@/components/products/WishlistContext'
 
 /**
- * WebChrome — Web (브라우저) 사용자용 풀와이드 모바일 쇼핑몰 chrome.
+ * WebChrome — Web (브라우저) 사용자용 chrome. Phase Q (2026-06-12) 피벗:
+ * 쇼핑몰 헤더(검색/카테고리/세일) → 설문 퍼널 사이트 헤더 (더파머스독 뼈대).
  *
- * 마켓컬리 / 무신사 / SSF 같은 한국 D2C 쇼핑몰 톤. 데스크톱 max-w-screen-2xl
- * 풀와이드 레이아웃, 모바일은 햄버거 헤더로 자연스럽게 반응형.
- *
- * # 구조 (3-tier 헤더)
+ * # 구조
  *
  *  ┌─ 데스크톱 (≥md) ─────────────────────────────────────────────────────┐
- *  │ Tier 1 (얇은 promo bar) — 무료배송 / 신규 혜택                          │
+ *  │ Tier 1 (얇은 promo bar) — 무료배송 / 체험팩부터                        │
  *  │ ─────────────────────────────────────────────────────────────────── │
- *  │ Tier 2 (큰 헤더)  [LOGO]   [큰 검색 input]    [내정보] [카트] [앱받기] │
- *  │ ─────────────────────────────────────────────────────────────────── │
- *  │ Tier 3 (카테고리 nav)   화식 · 간식 · 체험팩 · 매거진 · 이벤트         │
+ *  │ Tier 2  [LOGO]  우리 밥 · 이야기 · 매거진 · FAQ   [내정보][카트][플랜 CTA] │
  *  └─────────────────────────────────────────────────────────────────────┘
  *
  *  ┌─ 모바일 (<md) ─┐
- *  │ ☰  LOGO  🛒  │   ← 햄버거 + 가운데 로고 + 카트
+ *  │ ☰  LOGO  👤🛒 │   ← 햄버거 + 가운데 로고 + 계정/카트
  *  │ ────────────  │
- *  │ 화식 간식 ...  │   ← 가로 스크롤 chip nav
+ *  │ 우리 밥 이야기… │   ← 가로 스크롤 tab nav
  *  └────────────────┘
+ *
+ * 구매 동선은 nav 가 아니라 단일 CTA("우리 아이 플랜 보기")로만 — 카트 아이콘은
+ * 기존 주문/체험팩 결제 흐름이 살아 있는 동안 유지.
  *
  * # 비교 — AppChrome
  *
@@ -55,22 +49,17 @@ import { WishlistProvider } from '@/components/products/WishlistContext'
  */
 
 /**
- * 카테고리 모델 — 데스크톱 nav / 모바일 chip nav / drawer 모두 한 소스에서.
+ * 내비 모델 — 데스크톱 nav / 모바일 chip nav / drawer 모두 한 소스에서.
  *
- * 마켓컬리/SSF/무신사 톤으로 "판매 동선" 중심 재구성:
- *   1) 베스트  — 사회적 증거 (가장 잘 팔리는 것)
- *   2) 신상   — 신선도 (이번 주 새로 들어온 것)
- *   3) 화식 / 간식 / 체험팩 — 제품 카테고리
- *   4) 세일   — 가격 인센티브 (할인 전용 모음)
- *   5) 이벤트 — 시간 제한 혜택
+ * Phase Q (2026-06-12) 피벗: 커머스 카테고리(베스트/신상/세일/이벤트…) 폐기.
+ * 더파머스독 뼈대 — 페이지마다 "신뢰의 다른 조각"을 담당하는 최소 메뉴:
+ *   1) 우리 밥        — 식단 철학 + 공개 가격 (토스 심사 안전핀)
+ *   2) 브랜드 이야기   — 농장·창업 스토리
+ *   3) 매거진         — 콘텐츠/블로그
+ *   4) 자주 묻는 질문  — FAQ
+ * 구매 동선은 nav 가 아니라 단일 CTA("우리 아이 플랜 보기" → 설문)로만.
  *
- * 매거진은 footer / drawer 만으로 회수 — top nav 는 commerce 동선 전용.
- *
- * kind:
- *   - "shop"  : 제품 카탈로그
- *   - "feat"  : 큐레이션 모음 (베스트/신상)
- *   - "deal"  : 가격/할인 — 세일 (sale red dot)
- *   - "promo" : 이벤트 — 시간 제한 (terracotta+gold dot)
+ * kind 는 색 분기 호환용으로 유지 (현재 전부 'shop' = ink 텍스트, dot 없음).
  */
 type CategoryKind = 'shop' | 'feat' | 'deal' | 'promo'
 type Category = {
@@ -83,59 +72,33 @@ type Category = {
 
 const CATEGORIES: readonly Category[] = [
   {
-    href: '/products?sort=best',
-    label: '베스트',
-    en: 'Best',
-    kind: 'feat',
-    icon: Flame,
-  },
-  {
-    href: '/products?sort=new',
-    label: '신상',
-    en: 'New',
-    kind: 'feat',
-    icon: Zap,
-  },
-  {
-    href: '/products?category=화식',
-    label: '화식',
-    en: 'Meals',
+    href: '/products',
+    label: '우리 밥',
+    en: 'Our Food',
     kind: 'shop',
     icon: Soup,
   },
   {
-    href: '/products?category=간식',
-    label: '간식',
-    en: 'Snacks',
+    href: '/about',
+    label: '브랜드 이야기',
+    en: 'Story',
     kind: 'shop',
-    icon: Cookie,
+    icon: Sprout,
   },
   {
-    href: '/products?category=체험팩',
-    label: '체험팩',
-    en: 'Trial',
+    href: '/blog',
+    label: '매거진',
+    en: 'Magazine',
     kind: 'shop',
-    icon: PackageOpen,
+    icon: BookOpen,
   },
   {
-    href: '/products?on_sale=1',
-    label: '세일',
-    en: 'Sale',
-    kind: 'deal',
-    icon: Tag,
+    href: '/faq',
+    label: '자주 묻는 질문',
+    en: 'FAQ',
+    kind: 'shop',
+    icon: HelpCircle,
   },
-  {
-    href: '/events',
-    label: '이벤트',
-    en: 'Events',
-    kind: 'promo',
-    icon: Sparkles,
-  },
-] as const
-
-/** 메인 nav 외 보조 진입로 — drawer 하단에 별도 그룹으로 노출. */
-const SECONDARY_LINKS: readonly { href: string; label: string; en: string; icon: LucideIcon }[] = [
-  { href: '/blog', label: '매거진', en: 'Magazine', icon: BookOpen },
 ] as const
 
 export default function WebChrome({
@@ -148,7 +111,6 @@ export default function WebChrome({
   cartCount?: number
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   const [cartCount, setCartCount] = useState(cartCountProp ?? 0)
   // 헤더의 마이페이지/로그인 아이콘 분기용. null = 미확인 (서버 렌더 직후), false = 비로그인, true = 로그인
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null)
@@ -207,7 +169,7 @@ export default function WebChrome({
         <div className="max-w-[1280px] mx-auto px-6 h-9 flex items-center justify-between text-[11px]">
           <div className="flex items-center gap-1.5" style={{ letterSpacing: '-0.005em' }}>
             <Truck className="w-3.5 h-3.5" strokeWidth={2} />
-            <span>30,000원 이상 무료배송 · 신규 가입 첫 주문 10% 할인</span>
+            <span>30,000원 이상 무료배송 · 구독 강요 없음, 체험팩부터</span>
           </div>
           <div className="flex items-center gap-4">
             <Link
@@ -256,14 +218,28 @@ export default function WebChrome({
               />
             </Link>
 
-            {/* 큰 검색 input — 가운데 차지 */}
-            <div className="flex-1 max-w-2xl">
-              <SearchInput
-                value={searchQuery}
-                onChange={setSearchQuery}
-                size="lg"
-              />
-            </div>
+            {/* 메인 nav — 검색창 자리 (Phase Q: 커머스 검색 폐기, 최소 메뉴) */}
+            <nav
+              className="flex-1 flex items-center gap-1"
+              aria-label="메뉴"
+            >
+              {CATEGORIES.map((c) => (
+                <Link
+                  key={c.href}
+                  href={c.href}
+                  className="relative px-4 h-20 flex items-center text-[14px] font-bold transition group"
+                  style={{ color: 'var(--ink)', letterSpacing: '-0.01em' }}
+                >
+                  <span className="group-hover:text-terracotta transition">
+                    {c.label}
+                  </span>
+                  <span
+                    className="absolute bottom-0 left-2 right-2 h-0.5 opacity-0 group-hover:opacity-100 transition"
+                    style={{ background: 'var(--terracotta)' }}
+                  />
+                </Link>
+              ))}
+            </nav>
 
             {/* 우측 액션 */}
             <div className="flex items-center gap-1 shrink-0">
@@ -310,76 +286,18 @@ export default function WebChrome({
                 )}
               </Link>
               <Link
-                href="/app-required"
-                className="ml-3 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[12px] font-bold transition active:scale-[0.98]"
+                href={isAuthed ? '/dogs/new' : '/signup'}
+                className="ml-3 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[12.5px] font-bold transition active:scale-[0.98]"
                 style={{
-                  background: 'var(--ink)',
-                  color: 'var(--bg)',
+                  background: 'var(--terracotta)',
+                  color: '#FFFEFA',
                   letterSpacing: '-0.01em',
                 }}
               >
-                앱 받기
+                우리 아이 플랜 보기
                 <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
               </Link>
             </div>
-          </div>
-        </div>
-
-        {/* ── Tier 3 (데스크톱) — 카테고리 nav ────────────────────────── */}
-        <div className="hidden md:block border-t" style={{ borderColor: 'var(--rule)' }}>
-          <div className="max-w-[1280px] mx-auto px-6">
-            <nav
-              className="flex items-center h-12 gap-1"
-              aria-label="카테고리"
-            >
-              {CATEGORIES.map((c) => {
-                const isDeal = c.kind === 'deal'
-                const isPromo = c.kind === 'promo'
-                const isFeat = c.kind === 'feat'
-
-                let dotColor: string | null = null
-                let dotRing: string | null = null
-                let labelColor = 'var(--ink)'
-                if (isDeal) {
-                  dotColor = 'var(--sale)'
-                  labelColor = 'var(--sale)'
-                } else if (isPromo) {
-                  dotColor = 'var(--terracotta)'
-                  dotRing =
-                    '0 0 0 3px color-mix(in srgb, var(--terracotta) 18%, transparent)'
-                  labelColor = 'var(--terracotta)'
-                } else if (isFeat) {
-                  dotColor = 'var(--ink)'
-                }
-
-                return (
-                  <Link
-                    key={c.href}
-                    href={c.href}
-                    className="relative px-4 h-full flex items-center gap-2 text-[13.5px] font-bold transition group"
-                    style={{ color: labelColor, letterSpacing: '-0.01em' }}
-                  >
-                    {dotColor && (
-                      <span
-                        aria-hidden
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{
-                          background: dotColor,
-                          ...(dotRing ? { boxShadow: dotRing } : null),
-                        }}
-                      />
-                    )}
-                    <span className="group-hover:text-terracotta transition">
-                      {c.label}
-                    </span>
-                    <span
-                      className="absolute bottom-0 left-2 right-2 h-0.5 opacity-0 group-hover:opacity-100 transition"
-                      style={{ background: 'var(--terracotta)' }}
-                    />
-                  </Link>
-                )
-              })}
-            </nav>
           </div>
         </div>
 
@@ -456,15 +374,6 @@ export default function WebChrome({
                 )}
               </Link>
             </div>
-          </div>
-
-          {/* 모바일 검색바 */}
-          <div className="px-4 pb-3">
-            <SearchInput
-              value={searchQuery}
-              onChange={setSearchQuery}
-              size="md"
-            />
           </div>
 
           {/*
@@ -636,48 +545,6 @@ export default function WebChrome({
                 )
               })}
 
-              {/* 보조 진입 — 매거진 / 추후 콘텐츠 채널 */}
-              {SECONDARY_LINKS.length > 0 && (
-                <div className="pt-2">
-                  {SECONDARY_LINKS.map((s) => (
-                    <Link
-                      key={s.href}
-                      href={s.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 py-3 px-5 transition active:bg-bg-2"
-                      style={{
-                        color: 'var(--muted)',
-                        borderBottom: '1px solid var(--rule)',
-                      }}
-                    >
-                      <span
-                        aria-hidden
-                        className="w-1 h-1 rounded-full shrink-0"
-                        style={{ background: 'transparent' }}
-                      />
-                      <span
-                        className="flex-1 min-w-0 font-serif text-[14px]"
-                        style={{
-                          fontWeight: 600,
-                          letterSpacing: '-0.015em',
-                        }}
-                      >
-                        {s.label}
-                      </span>
-                      <span
-                        className="font-mono shrink-0 text-[9px]"
-                        style={{
-                          letterSpacing: '0.2em',
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        {s.en}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-
               {/* 계정 / 주문 — 카테고리와 같은 flat row 언어 */}
               <div className="pt-2">
                 <Link
@@ -736,20 +603,20 @@ export default function WebChrome({
                 </Link>
               </div>
 
-              {/* 앱 받기 — drawer 하단 sticky 느낌으로 강조 CTA. 둥근 pill 유지
-                  (이건 카테고리가 아니라 conversion CTA 라 의도적으로 다른 도형). */}
+              {/* 설문 퍼널 CTA — drawer 하단 강조. 둥근 pill 유지
+                  (카테고리가 아니라 conversion CTA 라 의도적으로 다른 도형). */}
               <div className="px-5 mt-5">
                 <Link
-                  href="/app-required"
+                  href={isAuthed ? '/dogs/new' : '/signup'}
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center justify-center gap-1.5 py-3.5 rounded-full text-[14px] font-bold"
                   style={{
-                    background: 'var(--ink)',
-                    color: 'var(--bg)',
+                    background: 'var(--terracotta)',
+                    color: '#FFFEFA',
                     letterSpacing: '-0.01em',
                   }}
                 >
-                  앱 받기
+                  우리 아이 플랜 보기
                   <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />
                 </Link>
               </div>
@@ -775,63 +642,4 @@ export default function WebChrome({
   )
 }
 
-function SearchInput({
-  value,
-  onChange,
-  size = 'md',
-  className,
-}: {
-  value: string
-  onChange: (v: string) => void
-  size?: 'md' | 'lg'
-  className?: string
-}) {
-  const heights = { md: 'h-10', lg: 'h-12' }
-  const iconSize = { md: 'w-4 h-4', lg: 'w-[18px] h-[18px]' }
-  const padding = { md: 'pl-10 pr-4', lg: 'pl-12 pr-5' }
-  const fontSize = { md: 14, lg: 15 }
-
-  return (
-    <form
-      role="search"
-      action="/products"
-      method="get"
-      className={`relative flex items-center w-full ${className ?? ''}`}
-    >
-      <Search
-        className={`absolute pointer-events-none ${iconSize[size]}`}
-        style={{
-          color: 'var(--muted)',
-          left: size === 'lg' ? 16 : 14,
-        }}
-        strokeWidth={2}
-      />
-      <input
-        type="search"
-        name="q"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="상품명, 카테고리로 검색"
-        aria-label="제품 검색"
-        autoComplete="off"
-        inputMode="search"
-        className={`w-full ${heights[size]} ${padding[size]} rounded-full focus:outline-none transition`}
-        style={{
-          background: 'var(--bg-2)',
-          color: 'var(--ink)',
-          border: '1.5px solid transparent',
-          fontSize: fontSize[size],
-          fontWeight: 500,
-        }}
-        onFocus={(e) => {
-          e.currentTarget.style.borderColor = 'var(--ink)'
-          e.currentTarget.style.background = 'white'
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.borderColor = 'transparent'
-          e.currentTarget.style.background = 'var(--bg-2)'
-        }}
-      />
-    </form>
-  )
-}
+// (Phase Q) 커머스 검색 SearchInput 제거 — 퍼널 웹에는 상품 검색 동선이 없다.

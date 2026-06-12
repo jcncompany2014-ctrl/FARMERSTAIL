@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import {
-  Noto_Serif_KR,
   Cormorant_Garamond,
   JetBrains_Mono,
 } from "next/font/google";
@@ -38,11 +37,18 @@ const pretendard = localFont({
   preload: true,
 });
 
-// Noto Serif KR — 웹의 국문 에디토리얼 헤드라인.
-// 앱 (data-ft-chrome="app") 에서는 사용 X — Pretendard 만.
-const notoSerifKR = Noto_Serif_KR({
-  subsets: ["latin"],
-  weight: ["400", "700", "900"],
+// 마루부리 (MaruBuri) — 웹 farm v4 의 국문 헤드라인 서체 (Phase Q, 2026-06-12).
+// 네이버 마루 프로젝트 무료 글꼴 (https://hangeul.naver.com/maru) — self-host
+// (CSP font-src 'self' 준수). 동화책/붓느낌 명조 — 농장 세계관의 감성 축.
+// 기존 Noto Serif KR 을 같은 변수(--font-serif)로 대체 → 웹의 모든 serif
+// 헤드라인이 자동 전환. 800/900 weight 사용처는 700 에서 synthetic bold 렌더.
+// 앱 (data-ft-chrome="app") 에서는 여전히 사용 X — Pretendard 만.
+const maruBuri = localFont({
+  src: [
+    { path: "./fonts/MaruBuri-Regular.woff2", weight: "400" },
+    { path: "./fonts/MaruBuri-SemiBold.woff2", weight: "600" },
+    { path: "./fonts/MaruBuri-Bold.woff2", weight: "700" },
+  ],
   display: "swap",
   variable: "--font-serif",
 });
@@ -216,7 +222,7 @@ export default function RootLayout({
       // 애니메이션을 유발한다. 이 속성을 달면 Next 가 route transition 동안만
       // 일시적으로 smooth 를 끄고, 같은 페이지 내 앵커 이동에서는 유지해 준다.
       data-scroll-behavior="smooth"
-      className={`h-full antialiased ${pretendard.variable} ${notoSerifKR.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable}`}
+      className={`h-full antialiased ${pretendard.variable} ${maruBuri.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         {/*

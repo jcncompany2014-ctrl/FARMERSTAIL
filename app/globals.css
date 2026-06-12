@@ -1031,20 +1031,17 @@ html {
 /* =========================================================================
    Editorial typography helpers
 
-   Single-font policy (2026-04 update):
-     한글 지면 위에서 세리프/이탤릭을 섞으니 글꼴 가족이 튀고 가독성이 떨어진다.
-     결정: 본문 sans 1종으로 전부 통일. 변화는 color / weight만으로.
-     - `.font-serif` 클래스가 마크업 곳곳에 남아 있어서 일일이 지우는 대신
-       여기서 sans로 remap해 버린다 (영향 범위가 50+ 파일).
-     - `.font-display-italic`도 동일 원칙으로 sans + normal로 고정.
-     - `em` 기본 italic도 전역에서 해제 — 기존 `<em>` 마크업은 의미(semantic)만
-       남고 시각적으로는 평문과 동일하게 렌더.
+   Single-font policy (2026-04) → **Farm v4 에서 반전 (2026-06-12 Phase Q)**:
+     예전 결정은 "한글 지면에서 세리프가 튀어서 sans 1종 통일 + .font-serif 를
+     sans 로 remap"이었다. farm v4 디자인 언어는 반대 — 동화책 명조(마루부리)가
+     감성의 축이라 **웹의 .font-serif 를 진짜 serif(--font-serif = MaruBuri)로
+     복원**한다. 앱(data-ft-chrome="app")은 아래 별도 규칙이 sans 로 강제해서
+     영향 없음. 이탤릭 전역 금지는 유지 (한글 이탤릭은 여전히 가독성 해침).
    ========================================================================= */
 
-/* 히어로/에디토리얼 세리프 — 지금은 전부 sans로 통일.
-   클래스명은 호환성을 위해 유지한다. */
+/* 히어로/에디토리얼 세리프 — farm v4: 마루부리 복원. */
 .font-serif {
-  font-family: var(--font-sans);
+  font-family: var(--font-serif), 'MaruBuri', serif;
   letter-spacing: -0.015em;
 }
 
