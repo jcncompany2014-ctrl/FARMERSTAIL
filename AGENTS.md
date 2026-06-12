@@ -6,6 +6,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # ⛔ App / Web 분리 — 절대 web 시각 변경 금지
 
+> **⚠️ 2026-06-12 Phase Q 피벗 — 이 섹션 부분 해제.** 사장님 지시로 전면 전환:
+> 웹 = 설문 퍼널(브랜드 스토리 → 설문 → 맞춤 플랜 → 체험팩), 앱 = 기록·캐릭터
+> 농장(커머스 제거). 이에 따라 **웹 랜딩/퍼널 페이지의 farm v4 리디자인은 허용**
+> (배경 #FAF9F5 near-white, serif 제목, pill 버튼, rounded-3xl 카드 — app/page.tsx
+> docstring 참조). 단 ① app/web dispatch 구조(AuthAwareShell · ft_app cookie)
+> ② 결제/체크아웃 로직 ③ 법정 푸터(SiteFooter 사업자 정보)는 여전히 불변.
+> 아래 기존 규칙은 "v3 app 작업이 web 을 침범하지 않기 위한" 가드로서 유효.
+
 이 repo 는 **app (PWA / Capacitor) 과 web (browser) 을 같은 URL 로 호스팅**하면서
 chrome / 시각만 다르게 dispatch 한다 (`AuthAwareShell` → `AppChrome` | `WebChrome`,
 구분 cookie `ft_app`). **현재 진행 중인 v3 redesign 은 app 전용**. Web 의

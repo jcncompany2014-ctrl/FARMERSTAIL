@@ -13,15 +13,16 @@
    ========================================================================= */
 :root {
   /* Legacy aliases (kept so existing views don't break) */
-  --background: #F5F0E6;
+  --background: #FAF9F5;
   --foreground: #3D2B1F;
 
-  /* New palette — matches Claude Design handoff */
-  --bg: #F5F0E6;
-  --bg-2: #EFE8D9;
-  /* bg-3 — 카드/sheet/raised surface 용 최상위 paper. 라이트에선 거의 백색에
-     가까운 cream-tinted off-white, 다크에선 elevated 톤 (#2E2419). */
-  --bg-3: #FCF8EE;
+  /* Farm v4 palette (2026-06-12 피벗) — 사장님 지시: "메인 배경이 너무 누렇지
+     않게". 기존 #F5F0E6 (노란 크림) → 종이 느낌만 살짝 남긴 near-white.
+     따뜻함은 배경이 아니라 서체·일러스트·테라코타 강조색이 담당한다. */
+  --bg: #FAF9F5;
+  --bg-2: #F2F0E9;
+  /* bg-3 — 카드/sheet/raised surface 용 최상위 paper. */
+  --bg-3: #FFFEFB;
   --ink: #2E1F14;           /* signature: Mahogany — 진한 고동색.
                                이전엔 #1E1A14 (거의 검정) 이었는데 단색 배경
                                (CTA 버튼 / brand 패널) 에 쓰이면 그냥 검정으로
@@ -35,8 +36,8 @@
   --muted: #715C4A;
   /* 더 진한 강조 — 11px 이하 micro-meta 에 사용. 6.8:1. */
   --muted-strong: #5C4A3B;
-  --rule: #EDE6D8;
-  --rule-2: #D9CFBB;
+  --rule: #ECEAE2;
+  --rule-2: #DBD7CB;
   --terracotta: #A0452E;
   --moss: #6B7F3A;
   --gold: #D4B872;
@@ -45,7 +46,7 @@
   /* audit #50: surface-card 시멘틱 토큰 — bg-3 와 동의어지만 의미 명확화.
      컴포넌트에서 background: var(--surface-card) 사용 → globals.css 의 422줄
      attribute-selector swap (#fff hardcoded 처리) 점진 제거 가능. */
-  --surface-card: #FFFCF2;
+  --surface-card: #FFFEFA;
   --surface-card-elevated: #FFFFFF;
 
   /* audit #51: type scale 토큰 — 폰트 사이즈 12종 흩뿌려진 것 점진 통일.
