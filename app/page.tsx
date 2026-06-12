@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Fragment } from 'react'
 import Link from 'next/link'
 import {
   ArrowRight,
@@ -10,6 +11,11 @@ import { createClient } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
 import FarmHorizon from '@/components/landing/FarmHorizon'
 import Reveal from '@/components/landing/Reveal'
+import {
+  ScribbleArrow,
+  ScribbleBlobNum,
+  ScribbleUnderline,
+} from '@/components/landing/Scribble'
 
 /**
  * 웹 랜딩 — Farm v4 (Phase Q 피벗, 2026-06-12).
@@ -53,13 +59,16 @@ function planHref(isAuthed: boolean) {
   return isAuthed ? '/dogs/new' : '/signup'
 }
 
-/** 섹션 라벨 — 매거진式 장식선/대문자 자간 제거 (Q3 폴리시 패스).
-    작고 조용한 테라코타 한 단어만. */
+/** 섹션 라벨 — Q6: 손글씨(개구체)로. 포인트에만 쓰는 손글씨 용처 1호. */
 function SectionKicker({ children }: { children: React.ReactNode }) {
   return (
     <p
-      className="text-center text-[13px]"
-      style={{ color: 'var(--terracotta)', fontWeight: 700 }}
+      className="text-center text-[18px]"
+      style={{
+        fontFamily: "var(--font-hand), 'Gaegu', cursive",
+        color: 'var(--terracotta)',
+        fontWeight: 700,
+      }}
     >
       {children}
     </p>
@@ -106,19 +115,19 @@ function FarmHero({ isAuthed }: { isAuthed: boolean }) {
     <section style={{ position: 'relative', background: 'var(--bg)' }}>
       <div className="px-6 pt-14 md:pt-24 pb-8 md:pb-12 text-center">
         <h1
-          className="fv-rise font-serif text-[34px] md:text-[58px] lg:text-[68px]"
+          className="fv-rise text-[33px] md:text-[56px] lg:text-[64px]"
           style={{
             margin: '0 auto',
             maxWidth: 760,
-            lineHeight: 1.22,
-            fontWeight: 700,
+            lineHeight: 1.24,
+            fontWeight: 900,
             color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.03em',
           }}
         >
           농장에서 만든
           <br />
-          우리 아이의 진짜 한 끼
+          우리 아이의 <ScribbleUnderline>진짜</ScribbleUnderline> 한 끼
         </h1>
 
         <p
@@ -197,8 +206,8 @@ function TrustStrip() {
               <Icon size={22} strokeWidth={1.8} />
             </div>
             <h3
-              className="font-serif pt-4 text-[17px] md:text-[18px]"
-              style={{ fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3 }}
+              className="pt-4 text-[16.5px] md:text-[17.5px]"
+              style={{ fontWeight: 800, color: 'var(--ink)', lineHeight: 1.3, letterSpacing: '-0.02em' }}
             >
               {title}
             </h3>
@@ -248,32 +257,22 @@ function HowItWorks({ isAuthed }: { isAuthed: boolean }) {
         <Reveal>
           <SectionKicker>이렇게 시작해요</SectionKicker>
           <h2
-            className="font-serif text-center pt-3 text-[24px] md:text-[36px]"
-            style={{ fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}
+            className="text-center pt-2 text-[24px] md:text-[34px]"
+            style={{ fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.03em' }}
           >
             시작은 이렇게 쉬워요
           </h2>
         </Reveal>
 
-        <div className="grid md:grid-cols-3 gap-3 md:gap-5 pt-8 md:pt-12">
+        <div className="grid md:grid-cols-[1fr_auto_1fr_auto_1fr] gap-3 md:gap-2 pt-8 md:pt-12 md:items-stretch">
           {STEPS.map((s, i) => (
-            <Reveal key={s.no} delay={i * 90}>
+            <Fragment key={s.no}>
+            <Reveal delay={i * 90}>
             <div
               className="h-full rounded-3xl p-6 md:p-7"
               style={{ background: 'var(--bg)', border: '1px solid var(--rule)' }}
             >
-              <span
-                className="font-serif inline-flex items-center justify-center rounded-full text-[16px]"
-                style={{
-                  width: 36,
-                  height: 36,
-                  background: 'var(--terracotta)',
-                  color: '#FFFEFA',
-                  fontWeight: 700,
-                }}
-              >
-                {s.no}
-              </span>
+              <ScribbleBlobNum n={s.no} />
               <h3
                 className="pt-4 text-[16px] md:text-[17px]"
                 style={{ fontWeight: 700, color: 'var(--ink)' }}
@@ -288,6 +287,12 @@ function HowItWorks({ isAuthed }: { isAuthed: boolean }) {
               </p>
             </div>
             </Reveal>
+            {i < STEPS.length - 1 && (
+              <div className="hidden md:flex items-center justify-center px-1">
+                <ScribbleArrow width={54} />
+              </div>
+            )}
+            </Fragment>
           ))}
         </div>
 
@@ -314,8 +319,8 @@ function PricePromise() {
         style={{ background: 'var(--ink)', color: 'var(--bg)' }}
       >
         <h2
-          className="font-serif text-[22px] md:text-[32px]"
-          style={{ fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.3 }}
+          className="text-[22px] md:text-[30px]"
+          style={{ fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.3 }}
         >
           가격을 숨기지 않을게요
         </h2>
@@ -401,12 +406,12 @@ function FinalCTA({ isAuthed }: { isAuthed: boolean }) {
     >
       <Reveal>
       <h2
-        className="font-serif text-[24px] md:text-[38px] mx-auto"
+        className="text-[24px] md:text-[36px] mx-auto"
         style={{
           maxWidth: 640,
-          fontWeight: 700,
+          fontWeight: 800,
           color: 'var(--ink)',
-          letterSpacing: '-0.02em',
+          letterSpacing: '-0.03em',
           lineHeight: 1.3,
         }}
       >

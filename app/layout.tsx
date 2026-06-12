@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import {
   Cormorant_Garamond,
+  Gaegu,
   JetBrains_Mono,
 } from "next/font/google";
 import "./globals.css";
@@ -61,6 +62,16 @@ const cormorantGaramond = Cormorant_Garamond({
   style: ["italic", "normal"],
   display: "swap",
   variable: "--font-display",
+});
+
+// 개구체 (Gaegu) — farm v4 포인트 손글씨 (Q6, 사장님 결정 B).
+// 제목은 Pretendard 헤비, 손글씨는 "통고기가 먼저!" 류 강조 한두 단어와
+// 섹션 라벨에만. 전면 사용 금지 — 전단지化 방지.
+const gaegu = Gaegu({
+  subsets: ["latin"],
+  weight: ["700"],
+  display: "swap",
+  variable: "--font-hand",
 });
 
 // JetBrains Mono — kicker / 메타데이터 / 통계 숫자 (웹+앱 공통).
@@ -222,7 +233,7 @@ export default function RootLayout({
       // 애니메이션을 유발한다. 이 속성을 달면 Next 가 route transition 동안만
       // 일시적으로 smooth 를 끄고, 같은 페이지 내 앵커 이동에서는 유지해 준다.
       data-scroll-behavior="smooth"
-      className={`h-full antialiased ${pretendard.variable} ${maruBuri.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable}`}
+      className={`h-full antialiased ${pretendard.variable} ${maruBuri.variable} ${gaegu.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         {/*

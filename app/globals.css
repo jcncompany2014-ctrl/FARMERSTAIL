@@ -1039,10 +1039,14 @@ html {
      영향 없음. 이탤릭 전역 금지는 유지 (한글 이탤릭은 여전히 가독성 해침).
    ========================================================================= */
 
-/* 히어로/에디토리얼 세리프 — farm v4: 마루부리 복원. */
+/* 히어로/에디토리얼 제목 — farm v4 Q6 (사장님 결정 B):
+   마루부리(명조)는 한글에서 궁서체로 읽히는 함정 → 제목은 Pretendard 헤비로.
+   귀여움은 폰트가 아니라 크레용 낙서(components/landing/Scribble.tsx)가 담당
+   — nuffjuice 공식 (그쪽 제목도 평범한 Inter). 명조(--font-serif=MaruBuri)는
+   매거진 본문(.ft-md) 전용으로만 유지. */
 .font-serif {
-  font-family: var(--font-serif), 'MaruBuri', serif;
-  letter-spacing: -0.015em;
+  font-family: var(--font-sans);
+  letter-spacing: -0.02em;
 }
 
 /* 레거시 이탤릭 강조 클래스 — sans + normal로 중화. */
