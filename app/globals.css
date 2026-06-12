@@ -1069,6 +1069,56 @@ i,
   font-family: var(--font-mono);
 }
 
+/* =========================================================================
+   farm v4 모션 유틸 (Q5, 2026-06-12) — nuffjuice/Framer 톤의 스크롤 모션.
+   - .fv-reveal: IntersectionObserver(components/landing/Reveal.tsx)가
+     .is-in 을 붙이면 아래→위로 떠오름. 한 번만.
+   - .fv-rise: 첫 로드 시 순서대로 떠오르는 히어로용 (JS 불필요, 순수 CSS).
+   reduced-motion 이면 전부 즉시 표시.
+   ========================================================================= */
+.fv-reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.fv-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes fvRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.fv-rise {
+  animation: fvRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.fv-rise-2 {
+  animation-delay: 0.12s;
+}
+.fv-rise-3 {
+  animation-delay: 0.24s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fv-reveal,
+  .fv-rise {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    animation: none;
+  }
+}
+
 /* Kicker — 웹 매거진 톤. 작은 sans 대문자 섹션 라벨. */
 .kicker {
   font-family: var(--font-sans);

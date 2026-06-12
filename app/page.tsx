@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
+import FarmHorizon from '@/components/landing/FarmHorizon'
+import Reveal from '@/components/landing/Reveal'
 
 /**
  * 웹 랜딩 — Farm v4 (Phase Q 피벗, 2026-06-12).
@@ -97,70 +99,6 @@ function PlanCTA({
 // 1. 히어로 — 약속 한 문장 + 단일 CTA
 // ---------------------------------------------------------------------------
 
-/**
- * 농장 지평선 일러스트 — farm v4 세계관의 첫 조각.
- * 동화책 톤의 겹친 언덕 + 해 + 나무. 실사진이 준비되어도 이 일러스트 레이어는
- * 브랜드 시그니처로 유지 (일러스트 = 세계관, 실사 = 음식 — 합의된 규칙).
- */
-function FarmHorizon() {
-  return (
-    <div
-      aria-hidden
-      className="relative w-full overflow-hidden"
-      style={{ height: 'clamp(150px, 24vw, 260px)' }}
-    >
-      <svg
-        viewBox="0 0 1440 300"
-        preserveAspectRatio="xMidYMax slice"
-        className="absolute inset-0 w-full h-full"
-      >
-        {/* 해 — 모바일 crop(가시 영역 x≈345~1095)을 감안해 안쪽 배치 */}
-        <circle cx="995" cy="84" r="44" fill="#E9C46A" />
-        <circle cx="995" cy="84" r="62" fill="#E9C46A" opacity="0.18" />
-        {/* 새 두 마리 */}
-        <path
-          d="M505 92 q9 -9 18 0 q9 -9 18 0"
-          stroke="#9C8F77"
-          strokeWidth="2.4"
-          fill="none"
-          strokeLinecap="round"
-        />
-        <path
-          d="M575 64 q7 -7 14 0 q7 -7 14 0"
-          stroke="#9C8F77"
-          strokeWidth="2"
-          fill="none"
-          strokeLinecap="round"
-        />
-        {/* 뒷 언덕 */}
-        <path
-          d="M0 190 Q 300 110 640 170 T 1440 150 V 300 H 0 Z"
-          fill="#DFE5C6"
-        />
-        {/* 나무 — 뒷 언덕 위 */}
-        <g>
-          <rect x="922" y="140" width="7" height="26" rx="3" fill="#7A6A4F" />
-          <circle cx="925.5" cy="124" r="26" fill="#A9BC81" />
-        </g>
-        <g>
-          <rect x="982" y="152" width="5" height="18" rx="2.5" fill="#7A6A4F" />
-          <circle cx="984.5" cy="142" r="17" fill="#B5C48F" />
-        </g>
-        {/* 중간 언덕 */}
-        <path
-          d="M0 235 Q 380 160 800 225 T 1440 210 V 300 H 0 Z"
-          fill="#C5D1A4"
-        />
-        {/* 앞 언덕 */}
-        <path
-          d="M0 282 Q 460 222 940 272 T 1440 258 V 300 H 0 Z"
-          fill="#A9BC81"
-        />
-      </svg>
-    </div>
-  )
-}
-
 function FarmHero({ isAuthed }: { isAuthed: boolean }) {
   return (
     // Q3 폴리시 패스: 더파머스독 규율 — 한 화면 = 한 메시지.
@@ -168,7 +106,7 @@ function FarmHero({ isAuthed }: { isAuthed: boolean }) {
     <section style={{ position: 'relative', background: 'var(--bg)' }}>
       <div className="px-6 pt-14 md:pt-24 pb-8 md:pb-12 text-center">
         <h1
-          className="font-serif text-[34px] md:text-[58px] lg:text-[68px]"
+          className="fv-rise font-serif text-[34px] md:text-[58px] lg:text-[68px]"
           style={{
             margin: '0 auto',
             maxWidth: 760,
@@ -184,7 +122,7 @@ function FarmHero({ isAuthed }: { isAuthed: boolean }) {
         </h1>
 
         <p
-          className="text-[15px] md:text-[17px]"
+          className="fv-rise fv-rise-2 text-[15px] md:text-[17px]"
           style={{
             margin: '18px auto 0',
             maxWidth: 440,
@@ -196,7 +134,7 @@ function FarmHero({ isAuthed }: { isAuthed: boolean }) {
           <br className="md:hidden" /> 하루 가격을 바로 알 수 있어요.
         </p>
 
-        <div className="pt-9 md:pt-10 flex flex-col items-center gap-4">
+        <div className="fv-rise fv-rise-3 pt-9 md:pt-10 flex flex-col items-center gap-4">
           <PlanCTA isAuthed={isAuthed} />
           <p
             className="text-[13px]"
@@ -238,10 +176,10 @@ function TrustStrip() {
   return (
     <section className="px-5 md:px-6 py-12 md:py-20">
       <div className="grid md:grid-cols-3 gap-3 md:gap-5 max-w-[1000px] mx-auto">
-        {TRUST_ITEMS.map(({ icon: Icon, title, body }) => (
+        {TRUST_ITEMS.map(({ icon: Icon, title, body }, i) => (
+          <Reveal key={title} delay={i * 90}>
           <div
-            key={title}
-            className="rounded-3xl p-6 md:p-7"
+            className="h-full rounded-3xl p-6 md:p-7"
             style={{
               background: 'var(--surface-card)',
               border: '1px solid var(--rule)',
@@ -271,6 +209,7 @@ function TrustStrip() {
               {body}
             </p>
           </div>
+          </Reveal>
         ))}
       </div>
     </section>
@@ -306,19 +245,21 @@ function HowItWorks({ isAuthed }: { isAuthed: boolean }) {
       style={{ background: 'var(--bg-2)' }}
     >
       <div className="max-w-[1000px] mx-auto">
-        <SectionKicker>이렇게 시작해요</SectionKicker>
-        <h2
-          className="font-serif text-center pt-3 text-[24px] md:text-[36px]"
-          style={{ fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}
-        >
-          시작은 이렇게 쉬워요
-        </h2>
+        <Reveal>
+          <SectionKicker>이렇게 시작해요</SectionKicker>
+          <h2
+            className="font-serif text-center pt-3 text-[24px] md:text-[36px]"
+            style={{ fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}
+          >
+            시작은 이렇게 쉬워요
+          </h2>
+        </Reveal>
 
         <div className="grid md:grid-cols-3 gap-3 md:gap-5 pt-8 md:pt-12">
-          {STEPS.map((s) => (
+          {STEPS.map((s, i) => (
+            <Reveal key={s.no} delay={i * 90}>
             <div
-              key={s.no}
-              className="rounded-3xl p-6 md:p-7"
+              className="h-full rounded-3xl p-6 md:p-7"
               style={{ background: 'var(--bg)', border: '1px solid var(--rule)' }}
             >
               <span
@@ -346,12 +287,15 @@ function HowItWorks({ isAuthed }: { isAuthed: boolean }) {
                 {s.body}
               </p>
             </div>
+            </Reveal>
           ))}
         </div>
 
-        <div className="flex justify-center pt-8 md:pt-10">
-          <PlanCTA isAuthed={isAuthed} size="md" label="2분 설문 시작하기" />
-        </div>
+        <Reveal delay={120}>
+          <div className="flex justify-center pt-8 md:pt-10">
+            <PlanCTA isAuthed={isAuthed} size="md" label="2분 설문 시작하기" />
+          </div>
+        </Reveal>
       </div>
     </section>
   )
@@ -364,6 +308,7 @@ function HowItWorks({ isAuthed }: { isAuthed: boolean }) {
 function PricePromise() {
   return (
     <section className="px-5 md:px-6 py-12 md:py-20">
+      <Reveal>
       <div
         className="max-w-[860px] mx-auto rounded-3xl px-6 md:px-12 py-10 md:py-14 text-center"
         style={{ background: 'var(--ink)', color: 'var(--bg)' }}
@@ -396,6 +341,7 @@ function PricePromise() {
           </Link>
         </div>
       </div>
+      </Reveal>
     </section>
   )
 }
@@ -414,6 +360,7 @@ function FaqTeaser() {
   return (
     <section className="px-5 md:px-6 pb-12 md:pb-20">
       <div className="max-w-[680px] mx-auto">
+        <Reveal>
         <SectionKicker>자주 묻는 질문</SectionKicker>
         <div className="pt-5 flex flex-col gap-2.5">
           {FAQ_TEASERS.map((q) => (
@@ -436,6 +383,7 @@ function FaqTeaser() {
             </Link>
           ))}
         </div>
+        </Reveal>
       </div>
     </section>
   )
@@ -451,6 +399,7 @@ function FinalCTA({ isAuthed }: { isAuthed: boolean }) {
       className="px-5 md:px-6 py-14 md:py-24 text-center"
       style={{ background: 'var(--bg-2)' }}
     >
+      <Reveal>
       <h2
         className="font-serif text-[24px] md:text-[38px] mx-auto"
         style={{
@@ -473,6 +422,7 @@ function FinalCTA({ isAuthed }: { isAuthed: boolean }) {
       <div className="pt-6 md:pt-8 flex justify-center">
         <PlanCTA isAuthed={isAuthed} />
       </div>
+      </Reveal>
     </section>
   )
 }
