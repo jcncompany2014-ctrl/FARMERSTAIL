@@ -1173,6 +1173,34 @@ i,
   .fv-bounce { animation: none; }
 }
 
+/* ── 무한 마퀴 (Q9 콘텐츠3 제조 갤러리) ─────────────────────────────────
+   아이템을 2배 복제 → -50% 이동으로 끊김 없는 루프. 호버 시 일시정지. */
+.fv-marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.fv-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: fvMarquee linear infinite;
+}
+.fv-marquee:hover .fv-marquee-track {
+  animation-play-state: paused;
+}
+@keyframes fvMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fv-marquee-track { animation: none; transform: none; }
+}
+
+/* Archivo Black 넘버링 유틸 */
+.font-archivo {
+  font-family: var(--font-archivo), 'Archivo Black', system-ui, sans-serif;
+}
+
 /* Kicker — 웹 매거진 톤. 작은 sans 대문자 섹션 라벨. */
 .kicker {
   font-family: var(--font-sans);

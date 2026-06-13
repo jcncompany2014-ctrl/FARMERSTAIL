@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import {
+  Archivo_Black,
   Cormorant_Garamond,
   Gaegu,
   JetBrains_Mono,
@@ -62,6 +63,15 @@ const cormorantGaramond = Cormorant_Garamond({
   style: ["italic", "normal"],
   display: "swap",
   variable: "--font-display",
+});
+
+// Archivo Black — farm v4 영문 넘버링(001~005)·로고 전용 (Q9, 기획서 스펙).
+// 절제 사용: SKU 넘버링 등 포인트에만. 한글엔 미사용.
+const archivoBlack = Archivo_Black({
+  subsets: ["latin"],
+  weight: ["400"],
+  display: "swap",
+  variable: "--font-archivo",
 });
 
 // 개구체 (Gaegu) — farm v4 포인트 손글씨 (Q6, 사장님 결정 B).
@@ -233,7 +243,7 @@ export default function RootLayout({
       // 애니메이션을 유발한다. 이 속성을 달면 Next 가 route transition 동안만
       // 일시적으로 smooth 를 끄고, 같은 페이지 내 앵커 이동에서는 유지해 준다.
       data-scroll-behavior="smooth"
-      className={`h-full antialiased ${pretendard.variable} ${maruBuri.variable} ${gaegu.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable}`}
+      className={`h-full antialiased ${pretendard.variable} ${maruBuri.variable} ${gaegu.variable} ${archivoBlack.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         {/*
