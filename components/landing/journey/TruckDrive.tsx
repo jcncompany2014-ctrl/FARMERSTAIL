@@ -165,15 +165,16 @@ export default function TruckDrive({ stage }: { stage: 1 | 2 | 3 }) {
           }}
         >
           <span
-            className="ft-sticker"
             style={{
               display: 'inline-block',
               padding: '8px 18px',
+              borderRadius: 999,
+              background: 'rgba(255,255,255,0.86)',
               fontSize: 'clamp(14px, 3.6vw, 18px)',
-              fontWeight: 800,
+              fontWeight: 700,
               color: 'var(--walnut)',
               letterSpacing: '-0.01em',
-              boxShadow: '4px 4px 0 var(--wheat)',
+              boxShadow: '0 8px 22px -10px rgba(61,43,31,0.4)',
             }}
           >
             {cfg?.caption}

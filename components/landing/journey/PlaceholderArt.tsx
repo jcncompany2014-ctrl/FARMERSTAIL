@@ -25,12 +25,13 @@ export function JourneyDefs() {
         <filter id="jr-rough" x="-20%" y="-20%" width="140%" height="140%">
           <feTurbulence
             type="fractalNoise"
-            baseFrequency="0.018"
+            baseFrequency="0.012"
             numOctaves="2"
             seed="7"
             result="n"
           />
-          <feDisplacementMap in="SourceGraphic" in2="n" scale="4" />
+          {/* Q10: 크레용 질감 완화 (scale 4→1.6) — 카툰 느낌 줄이고 종이결만. */}
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="1.6" />
         </filter>
       </defs>
     </svg>
@@ -90,11 +91,11 @@ function WindmillArt({ className, style }: ArtProps) {
       style={style}
       aria-hidden
     >
-      <g filter={ROUGH} stroke="#3D2B1F" strokeWidth="3" strokeLinejoin="round">
+      <g filter={ROUGH} stroke="rgba(61,43,31,0.22)" strokeWidth="1.4" strokeLinejoin="round">
         <rect x="78" y="150" width="44" height="150" rx="8" fill="#F3EEE2" />
-        <path d="M70 150 L100 96 L130 150 Z" fill="#A0452E" />
+        <path d="M70 150 L100 96 L130 150 Z" fill="#B0573C" />
         {/* 날개 */}
-        <g stroke="#3D2B1F" strokeWidth="6" strokeLinecap="round">
+        <g stroke="#8A7B62" strokeWidth="3.4" strokeLinecap="round">
           <line x1="100" y1="128" x2="100" y2="60" />
           <line x1="100" y1="128" x2="158" y2="150" />
           <line x1="100" y1="128" x2="42" y2="150" />
@@ -168,7 +169,7 @@ function TruckSideArt({ className, style }: ArtProps) {
       style={style}
       aria-hidden
     >
-      <g filter={ROUGH} stroke="#3D2B1F" strokeWidth="3.5" strokeLinejoin="round">
+      <g filter={ROUGH} stroke="rgba(61,43,31,0.24)" strokeWidth="1.4" strokeLinejoin="round">
         {/* 적재함 */}
         <rect x="128" y="92" width="206" height="64" rx="6" fill="#B98A4E" />
         {/* 원물 빼꼼 */}
@@ -203,7 +204,7 @@ function TruckFrontArt({ className, style }: ArtProps) {
       style={style}
       aria-hidden
     >
-      <g filter={ROUGH} stroke="#3D2B1F" strokeWidth="3.5" strokeLinejoin="round">
+      <g filter={ROUGH} stroke="rgba(61,43,31,0.24)" strokeWidth="1.4" strokeLinejoin="round">
         {/* 적재함 (뒤로 넓게) + 원물 */}
         <rect x="46" y="28" width="308" height="96" rx="8" fill="#B98A4E" />
         <g strokeWidth="3">
@@ -244,7 +245,7 @@ function DogArt({ className, style }: ArtProps) {
       style={style}
       aria-hidden
     >
-      <g filter={ROUGH} stroke="#3D2B1F" strokeWidth="3.5" strokeLinejoin="round" strokeLinecap="round">
+      <g filter={ROUGH} stroke="rgba(61,43,31,0.24)" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round">
         {/* 꼬리 (살랑) */}
         <path d="M176 78 q 34 -8 44 -34" fill="none" strokeWidth="9" stroke="#F0E7D6" />
         {/* 몸통 */}

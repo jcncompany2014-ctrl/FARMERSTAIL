@@ -455,8 +455,13 @@ function JourneyCTA({ isAuthed }: { isAuthed: boolean }) {
           {/* TODO(Q? 버튼 인터랙션): 텍스트 스왑 호버. 지금은 sticker 버튼. */}
           <Link
             href={planHref(isAuthed)}
-            className="ft-sticker inline-flex items-center justify-center gap-2.5 no-underline transition active:translate-y-[2px] active:shadow-none h-[58px] px-9 text-[16px]"
-            style={{ color: 'var(--walnut)', fontWeight: 800 }}
+            className="inline-flex items-center justify-center gap-2.5 rounded-full no-underline transition active:translate-y-[1px] h-[58px] px-9 text-[16px]"
+            style={{
+              background: '#FFFEFA',
+              color: 'var(--walnut)',
+              fontWeight: 800,
+              boxShadow: '0 14px 30px -12px rgba(61,43,31,0.5)',
+            }}
           >
             우리 아이 플랜 보기
             <ArrowRight size={19} strokeWidth={2.4} />

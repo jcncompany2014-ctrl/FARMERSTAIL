@@ -56,15 +56,16 @@ export function ScribbleUnderline({
         preserveAspectRatio="none"
       >
         <defs>
-          <RoughFilter id={id} />
+          <RoughFilter id={id} scale={1.4} />
         </defs>
         <path
           d="M6 14 Q 60 8 114 13"
           stroke={color}
-          strokeWidth="5.5"
+          strokeWidth="3.4"
           fill="none"
           strokeLinecap="round"
           filter={`url(#${id})`}
+          opacity="0.85"
         />
       </svg>
     </span>

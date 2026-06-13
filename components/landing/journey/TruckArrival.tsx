@@ -144,14 +144,15 @@ export default function TruckArrival() {
           }}
         >
           <span
-            className="ft-sticker"
             style={{
               display: 'inline-block',
               padding: '8px 18px',
+              borderRadius: 999,
+              background: 'rgba(255,255,255,0.88)',
               fontSize: 'clamp(15px, 4vw, 20px)',
-              fontWeight: 800,
+              fontWeight: 700,
               color: 'var(--walnut)',
-              boxShadow: '4px 4px 0 var(--brick)',
+              boxShadow: '0 8px 22px -10px rgba(61,43,31,0.4)',
             }}
           >
             {ARRIVAL.caption}

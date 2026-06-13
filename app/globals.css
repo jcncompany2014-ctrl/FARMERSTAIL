@@ -1141,19 +1141,22 @@ i,
   }
 }
 
-/* ── farm v4 시그니처 (Q8) — 두꺼운 월넛 외곽선 + 위트골드 하드 섀도우 ──
-   기획서 디자인 시스템: 글래스/네온/그라데이션 금지, 스티커 톤. */
+/* ── farm v4 카드 시그니처 (Q10 수채 톤 전환) ──────────────────────────
+   이전(Q8): 두꺼운 월넛 외곽선 + 위트골드 하드섀도우(스티커/팝 톤) →
+   수채화 사실감 방향과 충돌해 "카툰/유치" 로 읽힘 (사장님 지적).
+   변경: 종이처럼 얇은 헤어라인 + 부드러운 그림자 + 살짝 반투명.
+   사진·일러스트가 주인공, UI 는 뒤로 빠진다. */
 .ft-sticker {
-  background: #fff;
-  border: 2.5px solid var(--walnut);
-  border-radius: 18px;
-  box-shadow: 5px 5px 0 var(--wheat);
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(61, 43, 31, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 12px 30px -16px rgba(61, 43, 31, 0.28);
+  backdrop-filter: saturate(1.04);
+  -webkit-backdrop-filter: saturate(1.04);
 }
-.ft-sticker-brick {
-  box-shadow: 5px 5px 0 var(--brick);
-}
+.ft-sticker-brick,
 .ft-sticker-sage {
-  box-shadow: 5px 5px 0 var(--sage);
+  box-shadow: 0 12px 30px -16px rgba(61, 43, 31, 0.28);
 }
 
 /* small viewport 단위 — 긴 스크롤 sticky 캔버스에서 모바일 주소창 수축
