@@ -38,6 +38,24 @@
   --muted-strong: #5C4A3B;
   --rule: #ECEAE2;
   --rule-2: #DBD7CB;
+
+  /* farm v4 Q7 — 섹션 색 블로킹 (사장님 지적: 칸 구분이 안 됨).
+     배경끼리 한 끗 차이가 아니라, 섹션마다 "여기는 다른 칸" 이 보이게.
+     흰 카드가 이 틴트 위에 떠야 대비가 산다. */
+  --tint-sage: #EDF1DE;   /* 연한 풀색 — 언덕에서 이어지는 들판 */
+  --tint-cream: #F6EFE0;  /* 연한 밀짚색 — 따뜻한 정보 칸 */
+
+  /* ── farm v4 랜딩 기획서 스펙 토큰 (Q8 "트럭의 여정") ──────────────
+     기획서가 지정한 토큰명. 기존과 같은 값은 별칭으로 매핑하고,
+     신규(sage-light/cream-dark)만 추가. 배경(--bg)은 사장님 결정대로
+     #FAF9F5 유지 — cream(#F5F0E6)은 섹션 틴트·종이용으로만 쓴다. */
+  --walnut: #3D2B1F;       /* 두꺼운 외곽선·어두운 면 (= --text) */
+  --brick: #A0452E;        /* 트럭·CTA (= --terracotta) */
+  --sage: #6B7F3A;         /* 풀밭 (= --moss) */
+  --sage-light: #8A9E5B;   /* 밝은 풀 */
+  --wheat: #D4B872;        /* 하드 섀도우·포인트 (= --gold) */
+  --cream: #F5F0E6;        /* 종이·틴트 (배경 아님) */
+  --cream-dark: #EAE1CF;   /* 흙길 색 */
   --terracotta: #A0452E;
   --moss: #6B7F3A;
   --gold: #D4B872;
@@ -1121,6 +1139,38 @@ i,
     transition: none;
     animation: none;
   }
+}
+
+/* ── farm v4 시그니처 (Q8) — 두꺼운 월넛 외곽선 + 위트골드 하드 섀도우 ──
+   기획서 디자인 시스템: 글래스/네온/그라데이션 금지, 스티커 톤. */
+.ft-sticker {
+  background: #fff;
+  border: 2.5px solid var(--walnut);
+  border-radius: 18px;
+  box-shadow: 5px 5px 0 var(--wheat);
+}
+.ft-sticker-brick {
+  box-shadow: 5px 5px 0 var(--brick);
+}
+.ft-sticker-sage {
+  box-shadow: 5px 5px 0 var(--sage);
+}
+
+/* small viewport 단위 — 긴 스크롤 sticky 캔버스에서 모바일 주소창 수축
+   점프 방지 (기획서 8번). 미지원 브라우저는 100vh 로 폴백. */
+.h-screen-s {
+  height: 100vh;
+  height: 100svh;
+}
+
+/* 히어로 스크롤 유도 — 살짝 까딱이는 화살표. */
+@keyframes fvBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+.fv-bounce { animation: fvBounce 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .fv-bounce { animation: none; }
 }
 
 /* Kicker — 웹 매거진 톤. 작은 sans 대문자 섹션 라벨. */

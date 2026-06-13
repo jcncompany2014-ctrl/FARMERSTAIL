@@ -194,13 +194,12 @@ export default function WebChrome({
       <header
         className="sticky top-0 z-40 border-b"
         style={{
-          // 다크모드는 cream backdrop 이 그대로 떠 있으면 헤더 텍스트가 cream
-          // on cream 으로 invisible. 토큰으로 swap — bg-2 의 96% alpha.
-          background:
-            'color-mix(in srgb, var(--bg-2) 96%, transparent)',
+          // Q7 색 블로킹: 헤더는 페이지 종이색과 분리된 "흰 띠" — 본문과
+          // 한 끗 차이라 구분이 안 가던 문제 해결 (사장님 지적).
+          background: 'rgba(255, 255, 255, 0.92)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          borderColor: 'var(--rule)',
+          borderColor: 'var(--rule-2)',
         }}
       >
         {/* 데스크톱 메인 헤더 */}
