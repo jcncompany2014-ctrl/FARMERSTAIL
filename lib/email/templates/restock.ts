@@ -31,13 +31,13 @@ export function renderRestockAlert(input: {
     </p>
     ${heroImage}
     <div style="text-align:center;margin:8px 0;">
-      <div style="font-size:16px;font-weight:800;color:#1E1A14;margin-bottom:6px;letter-spacing:-0.01em;">
+      <div style="font-size:16px;font-weight:800;color:#173B33;margin-bottom:6px;letter-spacing:-0.01em;">
         ${escape(input.productName)}
       </div>
       ${input.variantName
-        ? `<div style="font-size:11px;color:#7A7A7A;margin-bottom:6px;">옵션 · ${escape(input.variantName)}</div>`
+        ? `<div style="font-size:11px;color:#5A6C61;margin-bottom:6px;">옵션 · ${escape(input.variantName)}</div>`
         : ''}
-      <div style="font-size:20px;font-weight:800;color:#B5533A;font-family:'Archivo Black',sans-serif;letter-spacing:-0.01em;">
+      <div style="font-size:20px;font-weight:800;color:#B63619;font-family:'Archivo Black',sans-serif;letter-spacing:-0.01em;">
         ${input.price.toLocaleString()}원
       </div>
     </div>

@@ -47,13 +47,13 @@ export default function BrandLoader({
           --logo-filter override). 1.6s 숨쉬기. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/logo.png"
+        src="/logo-brush.png"
         alt="Farmer's Tail"
-        width={138}
+        width={150}
         style={{
-          width: 138,
+          width: 150,
           height: 'auto',
-          filter: 'var(--logo-filter, brightness(0))',
+          filter: 'none',
           animation: 'ft-brand-breathe 1.6s ease-in-out infinite',
         }}
       />

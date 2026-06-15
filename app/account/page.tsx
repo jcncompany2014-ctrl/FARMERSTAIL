@@ -19,6 +19,7 @@ import LogoutButton from '@/components/account/LogoutButton'
 import WelcomeCouponBanner from '@/components/account/WelcomeCouponBanner'
 import TierBadge from '@/components/account/TierBadge'
 import { isAppContextServer } from '@/lib/app-context'
+import { Eyebrow } from '@/components/web/fd/ui'
 
 /**
  * /account — 웹 사용자용 마이페이지 hub.
@@ -39,7 +40,8 @@ import { isAppContextServer } from '@/lib/app-context'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '내 계정 | 파머스테일',
+  // layout template "%s | 파머스테일" 가 브랜드명 1회 부착 → 페이지명만(중복 방지, 회차151).
+  title: '내 계정',
   description: '주문 내역, 구독, 고객센터를 한 곳에서 확인하세요.',
   alternates: { canonical: '/account' },
   robots: { index: false, follow: false },
@@ -146,45 +148,40 @@ export default async function AccountPage() {
     <AuthAwareShell>
     <main
       className="pb-12 md:pb-20 mx-auto"
-      style={{ background: 'var(--bg)', maxWidth: 1280 }}
+      style={{ background: 'var(--fd-offwhite)', maxWidth: 1280 }}
     >
       <div className="px-5 md:px-8 pt-4 md:pt-6">
         <nav
           aria-label="현재 위치"
           className="flex items-center gap-1 text-[11px] md:text-[12px]"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--fd-muted)' }}
         >
-          <Link href="/" className="hover:text-terracotta transition">
+          <Link href="/" className="hover:opacity-70 transition">
             홈
           </Link>
           <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
-          <span style={{ color: 'var(--ink)', fontWeight: 700 }}>내 계정</span>
+          <span style={{ color: 'var(--fd-pine)', fontWeight: 700 }}>내 계정</span>
         </nav>
       </div>
 
       <section className="px-5 md:px-8 pt-6 md:pt-12 pb-6 md:pb-10">
-        <span
-          className="font-mono text-[10px] md:text-[12px] tracking-[0.22em] uppercase"
-          style={{ color: 'var(--terracotta)' }}
-        >
-          My Account · 내 계정
-        </span>
+        <Eyebrow>My Account · 내 계정</Eyebrow>
         <h1
-          className="font-serif mt-3 md:mt-4 text-[26px] md:text-[40px]"
+          className="mt-3 md:mt-4 text-[26px] md:text-[40px]"
           style={{
             fontWeight: 800,
-            color: 'var(--ink)',
+            color: 'var(--fd-pine)',
             letterSpacing: '-0.025em',
             lineHeight: 1.15,
           }}
         >
           {displayName} 님,
           <br />
-          <span style={{ color: 'var(--terracotta)' }}>오늘도 좋은 한 끼.</span>
+          <span style={{ color: 'var(--fd-coral-text)' }}>오늘도 좋은 한 끼.</span>
         </h1>
         <p
           className="mt-2 md:mt-3 text-[12px] md:text-[14px]"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--fd-muted)' }}
         >
           {profile?.email ?? user.email}
         </p>
@@ -218,24 +215,19 @@ export default async function AccountPage() {
       {!isApp && (
       <section className="px-5 md:px-8 mt-8 md:mt-12">
         <div
-          className="rounded-2xl px-5 py-5 md:px-8 md:py-7"
-          style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+          className="rounded-lg px-5 py-5 md:px-8 md:py-7"
+          style={{ background: 'var(--fd-pine)', color: '#FFFFFF' }}
         >
           <div className="flex items-center gap-2 mb-2 md:mb-3">
             <Smartphone
               className="w-4 h-4 md:w-5 md:h-5"
               strokeWidth={2}
-              color="var(--gold)"
+              color="var(--fd-green-soft)"
             />
-            <span
-              className="font-mono text-[10px] md:text-[11px] tracking-[0.22em] uppercase"
-              style={{ color: 'var(--gold)' }}
-            >
-              App Only
-            </span>
+            <Eyebrow color="var(--fd-green-soft)">App Only</Eyebrow>
           </div>
           <h2
-            className="font-serif text-[18px] md:text-[24px]"
+            className="text-[18px] md:text-[24px]"
             style={{ fontWeight: 800, letterSpacing: '-0.02em' }}
           >
             정기배송 · 포인트 · 우리 아이 케어는 앱에서
@@ -254,10 +246,10 @@ export default async function AccountPage() {
                 <Link
                   key={it.label}
                   href={it.href}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 transition active:scale-[0.99]"
+                  className="flex items-center gap-3 rounded-lg px-4 py-3 transition active:scale-[0.99]"
                   style={{
-                    background: 'rgba(245,240,230,0.08)',
-                    color: 'var(--bg)',
+                    background: 'rgba(255,255,255,0.08)',
+                    color: '#FFFFFF',
                   }}
                 >
                   <Icon
@@ -303,15 +295,15 @@ function ItemCard({ item }: { item: SectionItem }) {
   return (
     <Link
       href={item.href}
-      className="group flex items-center gap-4 rounded-2xl px-5 py-4 md:px-6 md:py-5 transition active:scale-[0.99]"
+      className="group flex items-center gap-4 rounded-lg px-5 py-4 md:px-6 md:py-5 transition active:scale-[0.99]"
       style={{
-        background: 'var(--bg-2)',
-        boxShadow: 'inset 0 0 0 1px var(--rule)',
+        background: '#FFFFFF',
+        boxShadow: 'inset 0 0 0 1px var(--fd-line)',
       }}
     >
       <span
         className="inline-flex w-10 h-10 md:w-12 md:h-12 rounded-full items-center justify-center shrink-0"
-        style={{ background: 'var(--bg)' }}
+        style={{ background: 'var(--fd-offwhite)' }}
       >
         <Icon
           className="w-4 h-4 md:w-[18px] md:h-[18px]"
@@ -321,10 +313,10 @@ function ItemCard({ item }: { item: SectionItem }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <div
-            className="font-serif text-[14px] md:text-[16px]"
+            className="text-[14px] md:text-[16px]"
             style={{
               fontWeight: 800,
-              color: 'var(--ink)',
+              color: 'var(--fd-pine)',
               letterSpacing: '-0.015em',
             }}
           >
@@ -334,8 +326,8 @@ function ItemCard({ item }: { item: SectionItem }) {
             <span
               className="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
               style={{
-                background: 'var(--terracotta)',
-                color: 'var(--bg)',
+                background: 'var(--fd-coral)',
+                color: '#FFFFFF',
               }}
             >
               {item.badge}
@@ -345,7 +337,7 @@ function ItemCard({ item }: { item: SectionItem }) {
         {item.description && (
           <div
             className="mt-0.5 text-[11.5px] md:text-[13px]"
-            style={{ color: 'var(--muted)' }}
+            style={{ color: 'var(--fd-muted)' }}
           >
             {item.description}
           </div>
@@ -354,7 +346,7 @@ function ItemCard({ item }: { item: SectionItem }) {
       <ChevronRight
         className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5"
         strokeWidth={2}
-        style={{ color: 'var(--muted)' }}
+        style={{ color: 'var(--fd-muted)' }}
       />
     </Link>
   )

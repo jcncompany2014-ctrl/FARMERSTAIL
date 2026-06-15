@@ -56,6 +56,30 @@
   --wheat: #D4B872;        /* 하드 섀도우·포인트 (= --gold) */
   --cream: #F5F0E6;        /* 종이·틴트 (배경 아님) */
   --cream-dark: #EAE1CF;   /* 흙길 색 */
+
+  /* farm v5 따뜻한 파스텔 (2026-06-13 rev2, 사장님: "제각각 말고 전체 따뜻한
+     톤으로"). 초록 제거 — Monchies 처럼 크림→피치→클레이→코랄→골드 까지
+     전부 warm 한 가족. 버튼은 pastel fill + walnut 텍스트로 대비(AA) 확보. */
+  --c-coral: #E0936F;        /* 포인트 — 버튼/마퀴/CTA (warm 클레이코랄) */
+  --c-coral-soft: #F3D8C4;   /* 옅은 피치 — 칩·아이콘 배경 */
+  --c-clay: #ECCDB3;         /* 따뜻한 클레이 패널 (구 sage 대체) */
+  --c-butter: #F1DCA6;       /* 따뜻한 골든 (절제 사용) */
+  --c-peach-cream: #F8E9D8;  /* 히어로/선언 섹션 warm bg (피치) */
+  --c-warm-cream: #F5EDDF;   /* 일반 섹션 warm bg (크림) */
+
+  /* ── farm v6 = The Farmer's Dog 클론 디자인 토큰 (2026-06-13) ──────────
+     라이브 추출 팔레트. 딥 파인그린 + 오트밀 크림 + 코랄 포인트. */
+  --fd-pine: #173B33;        /* 주력 다크 그린 — 본문 텍스트, 다크 섹션 bg */
+  --fd-green: #3C725E;       /* 미디엄 그린 — 보조 버튼/아이콘/섹션 */
+  --fd-green-soft: #7A8B7B;  /* 세이지 그린 — 다크 위 보조 텍스트/장식 (뮤트 어스 톤, 2026-06-15 사장님 자연색 전환) */
+  --fd-cream: #EDE8D9;       /* 따뜻한 오트밀 — 라이트 섹션 bg */
+  --fd-offwhite: #F7F5F0;    /* 웜 오프화이트 — 기본 페이지 bg */
+  --fd-coral: #C86B45;       /* 테라코타 포인트 — 주력 CTA pill (흰 텍스트). 자연 어스톤(2026-06-15 사장님, 옛 #F2674B 쨍한 코랄 대체) */
+  --fd-coral-ink: #782E22;   /* 적갈색 — hover/진한 포인트 (테라코타의 딥 변형) */
+  --fd-coral-text: #782E22;  /* 적갈색 텍스트/링크 — 밝은 bg 위 고대비(약 9:1). 작은 링크 전용. CTA pill 은 --fd-coral. */
+  --fd-gold: #E5A93B;        /* 앰버 — 따뜻한 골드 포인트(로고 'FARM·TO·TAIL' 톤). 다크 위/장식 절제 사용 */
+  --fd-muted: #5A6C61;       /* 뮤트 그린그레이 — 보조 텍스트 */
+  --fd-line: #DCD6C4;        /* 크림 위 옅은 구분선 */
   --terracotta: #A0452E;
   --moss: #6B7F3A;
   --gold: #D4B872;
@@ -1199,9 +1223,38 @@ i,
   .fv-marquee-track { animation: none; transform: none; }
 }
 
+/* 모바일 nav 메뉴 — FD식 "뒤에서 확대" 모션(스케일 0.9→1 + 페이드, 상단 기점).
+   회차210: 사장님 지시로 옆 슬라이드 → 뒤쪽에서 확대되는 느낌 전환. */
+@keyframes fvDrawerIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+@keyframes fvScrimIn { from { opacity: 0; } to { opacity: 1; } }
+.fv-drawer-panel { animation: fvDrawerIn 0.3s cubic-bezier(0.22, 0.61, 0.36, 1); transform-origin: top center; will-change: transform, opacity; }
+.fv-drawer-scrim { animation: fvScrimIn 0.2s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .fv-drawer-panel, .fv-drawer-scrim { animation: none; }
+}
+
 /* Archivo Black 넘버링 유틸 */
 .font-archivo {
   font-family: var(--font-archivo), 'Archivo Black', system-ui, sans-serif;
+}
+
+/* farm v5 회전 씰(도장) — 거대 타이포 옆 프리미엄 에디토리얼 모티프.
+   천천히 도는 원형 텍스트 스탬프. reduced-motion 이면 정지. */
+@keyframes ftSpin {
+  to { transform: rotate(360deg); }
+}
+.ft-spin { animation: ftSpin 20s linear infinite; transform-origin: 50% 50%; }
+@media (prefers-reduced-motion: reduce) {
+  .ft-spin { animation: none; }
+}
+
+/* Bungee 통통체 디스플레이 유틸 (farm v5, Monchies 레퍼런스) —
+   영문/숫자는 Bungee, 한글은 글리프가 없어 Pretendard 900 으로 자동 폴백.
+   제목/스텝 숫자/로고 포인트 전용. 본문엔 쓰지 말 것. */
+.font-chunky {
+  font-family: var(--font-chunky), 'Bungee', var(--font-archivo), 'Archivo Black', sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.01em;
 }
 
 /* Kicker — 웹 매거진 톤. 작은 sans 대문자 섹션 라벨. */

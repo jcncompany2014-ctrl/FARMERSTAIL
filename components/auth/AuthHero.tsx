@@ -1,18 +1,19 @@
 import Link from 'next/link'
 
 /**
- * Shared hero block for auth screens (/login, /signup, 추후 /password-reset 등).
+ * Shared hero block for 보조 인증 화면 — 현재 /forgot-password · /reset-password.
+ * (회차17 FD 마이그레이션 + 회차131 docstring 정정.)
  *
  * Why this exists:
- *   온보딩 carousel은 editorial tone(세리프 헤드라인, 여백, kicker)로 끝난다.
- *   그런데 이후 뜨는 로그인/회원가입이 앱 폼 언어로 뚝 끊기면 사용자 입장에선
- *   갑자기 다른 브랜드로 넘어간 것처럼 느껴진다. Hero 영역만이라도 landing /
- *   onboarding과 같은 조판 언어로 맞춰서 전환을 부드럽게 한다.
+ *   비밀번호 찾기/재설정 같은 트랜잭션성 인증 화면을 중앙 정렬 단일 컬럼 hero
+ *   로 통일해, 두 페이지가 서로 일관된 FD 언어를 갖게 한다. (주 진입점인
+ *   /login·/signup 은 별도로 2단 split 브랜드 패널을 인라인으로 갖는다 — 회차129.
+ *   AuthHero 를 브랜드 패널로 승격하는 대신, 두 tier 를 의도적으로 구분: 주
+ *   진입=브랜드 패널, 보조 트랜잭션=집중형 중앙 hero.)
  *
- *   폼 입력/버튼/체크박스는 기능성을 지키기 위해 기존 sans UI를 유지한다 —
- *   "웹은 웹답게, 앱은 앱답게"의 연장선에서 hero만 에디토리얼, form은 앱.
- *
- *   모든 헤더 타이포는 한 폰트(serif)로 고정, 변화는 italic / weight / color.
+ *   타이포는 FD 디자인시스템: kicker=eyebrow(--fd-green, mono-uppercase),
+ *   헤드라인=Pretendard 헤비 --fd-pine(세리프 아님), subtitle=--fd-muted.
+ *   옛 v4 토큰 0. 폼 입력/버튼은 각 페이지가 FD 토큰으로 직접 렌더.
  */
 export default function AuthHero({
   kicker,
@@ -38,24 +39,25 @@ export default function AuthHero({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/logo.png"
+          src="/logo-brush.png"
           alt="Farmer's Tail"
-          className="h-9 md:h-11 w-auto block"
+          className="h-10 md:h-12 w-auto block"
           // 로그인/회원가입 페이지의 LCP 후보 — 로고 외 큰 시각 요소 없음.
           fetchPriority="high"
-          style={{ filter: 'var(--logo-filter, brightness(0))' }}
+          style={{ filter: 'none' }}
         />
       </Link>
 
-      <span className="kicker">{kicker}</span>
+      {/* 회차17 FD: eyebrow 그린, 헤드라인 Pretendard 헤비 파인(serif 제거). */}
+      <span style={{ display: 'inline-block', fontSize: 12.5, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--fd-green)' }}>{kicker}</span>
 
       <h1
-        className="font-serif mt-2.5 md:mt-3.5 text-[24px] md:text-[34px] lg:text-[40px]"
+        className="mt-2.5 md:mt-3.5 text-[26px] md:text-[36px] lg:text-[42px]"
         style={{
-          lineHeight: 1.15,
-          fontWeight: 800,
-          color: 'var(--ink)',
-          letterSpacing: '-0.025em',
+          lineHeight: 1.12,
+          fontWeight: 900,
+          color: 'var(--fd-pine)',
+          letterSpacing: '-0.03em',
         }}
       >
         {title}
@@ -66,7 +68,7 @@ export default function AuthHero({
           className="mt-2.5 md:mt-3.5 text-[13px] md:text-[15px]"
           style={{
             lineHeight: 1.6,
-            color: 'var(--muted)',
+            color: 'var(--fd-muted)',
           }}
         >
           {subtitle}

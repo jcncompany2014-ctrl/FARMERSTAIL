@@ -15,7 +15,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
 import AppleLoginButton from '@/components/AppleLoginButton'
-import AuthHero from '@/components/auth/AuthHero'
+import { Eyebrow, PhotoSlot } from '@/components/web/fd/ui'
 import AddressSearch from '@/components/AddressSearch'
 import { trackSignUp } from '@/lib/analytics'
 import { MARKETING_POLICY_VERSION } from '@/lib/consent'
@@ -488,133 +488,115 @@ function SignupForm() {
   }
 
   // Shared input visual — 코드 중복 제거. border/focus는 inline style
-  // (var(--terracotta)) 로 분기하기 위해 className에선 padding/radius만.
+  // (var(--fd-coral)) 로 분기하기 위해 className에선 padding/radius만.
   const baseInputCls =
     'w-full px-4 py-3 rounded-lg border text-sm focus:outline-none transition'
   const baseInputStyle = {
-    borderColor: 'var(--rule-2)' as const,
-    background: '#FDFDFD',
-    color: 'var(--text)',
+    borderColor: 'var(--fd-line)' as const,
+    background: '#FFFFFF',
+    color: 'var(--fd-pine)',
   }
   function onFocusBorder(e: React.FocusEvent<HTMLInputElement>) {
-    e.currentTarget.style.borderColor = 'var(--terracotta)'
+    e.currentTarget.style.borderColor = 'var(--fd-coral)'
   }
   function onBlurBorder(e: React.FocusEvent<HTMLInputElement>) {
-    e.currentTarget.style.borderColor = 'var(--rule-2)'
+    e.currentTarget.style.borderColor = 'var(--fd-line)'
   }
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center px-6 pt-7 md:pt-12 pb-16 md:pb-20"
-      style={{ background: 'var(--bg)' }}
+      className="min-h-screen grid lg:grid-cols-2"
+      style={{ background: 'var(--fd-offwhite)' }}
     >
-      <div className="w-full max-w-sm md:max-w-md">
-        <AuthHero
-          kicker="Begin · 시작하기"
-          title={<>3분 만에 시작</>}
-          subtitle="이메일 또는 카카오로 계정을 만들 수 있어요."
-        />
+      {/* ── 좌: 브랜드 패널 (모바일=상단 밴드, 데스크톱=풀하이트 파인) ── */}
+      <aside
+        className="relative flex flex-col justify-center px-6 py-10 lg:px-14 lg:py-14 lg:min-h-screen"
+        style={{ background: 'var(--fd-pine)', color: '#FFFFFF' }}
+      >
+        <Link href="/" aria-label="파머스테일 홈" className="inline-flex">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-brush.png"
+            alt="Farmer's Tail"
+            className="h-10 lg:h-12 w-auto"
+            fetchPriority="high"
+            style={{ filter: 'none' }}
+          />
+        </Link>
 
-        {/* Benefits strip */}
-        <div
-          className="grid grid-cols-3 gap-2 mb-5 rounded-2xl px-3 py-4"
-          style={{
-            background: 'var(--bg-2)',
-            boxShadow: 'inset 0 0 0 1px var(--rule)',
-          }}
-        >
-          {[
-            {
-              icon: Gift,
-              tone: 'var(--terracotta)',
-              kicker: '+3,000P',
-              label: '가입 혜택',
-            },
-            {
-              icon: Sparkles,
-              tone: 'var(--moss)',
-              kicker: 'AI',
-              label: '맞춤 영양 분석',
-            },
-            {
-              icon: Repeat,
-              tone: 'var(--ink)',
-              kicker: 'Auto',
-              label: '정기배송',
-            },
-          ].map(({ icon: Icon, tone, kicker, label }) => (
-            <div
-              key={label}
-              className="flex flex-col items-center text-center gap-1.5"
-            >
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ background: 'var(--bg)' }}
-              >
-                <Icon className="w-3.5 h-3.5" strokeWidth={2} color={tone} />
-              </div>
-              <span
-                className="kicker"
-                style={{ color: tone, fontSize: 9.5 }}
-              >
-                {kicker}
+        <div className="mt-8 lg:mt-12 max-w-md">
+          <Eyebrow color="var(--fd-green-soft)">Begin · 시작하기</Eyebrow>
+          <h1
+            className="mt-3 text-[28px] lg:text-[40px]"
+            style={{ fontWeight: 900, letterSpacing: '-0.035em', lineHeight: 1.08 }}
+          >
+            3분이면,
+            <br />
+            우리 아이 맞춤 식단의 시작
+          </h1>
+          <p
+            className="mt-4 text-[14px] lg:text-[15px]"
+            style={{ color: 'rgba(255,255,255,0.78)', lineHeight: 1.65, maxWidth: 380 }}
+          >
+            이메일 또는 카카오로 계정을 만들면, 바로 우리 아이에게 맞는
+            수의영양 기반 식단을 받아볼 수 있어요.
+          </p>
+
+          {/* 환영 리워드 */}
+          <div
+            className="mt-7 flex items-center gap-3 rounded-[12px] px-4 py-3.5"
+            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)' }}
+          >
+            <Gift className="w-5 h-5 shrink-0" strokeWidth={2} color="var(--fd-coral)" />
+            <div className="flex items-baseline gap-2">
+              <span style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1 }}>
+                {hasReferral ? '6,000P' : '3,000P'}
               </span>
-              <span
-                className="text-[11px] font-bold leading-tight"
-                style={{ color: 'var(--text)' }}
-              >
-                {label}
+              <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+                {hasReferral ? '가입 + 초대 즉시 적립' : '가입 즉시 적립'}
               </span>
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* Welcome reward */}
-        <div
-          className="mb-6 rounded-2xl px-5 py-5 text-white"
-          style={{ background: 'var(--ink)' }}
-        >
-          <div className="flex items-center gap-2">
-            <Sparkles
-              className="w-3.5 h-3.5"
-              strokeWidth={2}
-              color="var(--gold)"
-            />
-            <span className="kicker kicker-gold">Welcome</span>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span
-              className="font-serif leading-none"
-              style={{
-                fontSize: 34,
-                fontWeight: 800,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              3,000P
-            </span>
-            <span className="text-[11px] text-white/70 font-semibold">
-              즉시 적립
-            </span>
-            {hasReferral && (
-              <span
-                className="ml-auto text-[11px] font-black rounded-full px-2 py-0.5"
-                style={{
-                  background: 'var(--gold)',
-                  color: 'var(--ink)',
-                  letterSpacing: '0.02em',
-                }}
+          {/* 혜택 3 포인트 */}
+          <ul className="mt-6 grid gap-2.5">
+            {[
+              { Icon: Sparkles, t: 'AI 맞춤 영양 분석' },
+              { Icon: Repeat, t: '필요할 때 받는 정기배송' },
+              { Icon: Check, t: '언제든 해지 · 구속 없는 구독' },
+            ].map(({ Icon, t }) => (
+              <li
+                key={t}
+                className="flex items-center gap-2.5 text-[13.5px]"
+                style={{ color: 'rgba(255,255,255,0.9)' }}
               >
-                +3,000P
-              </span>
-            )}
+                <span
+                  className="inline-flex w-6 h-6 rounded-full items-center justify-center shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.12)' }}
+                >
+                  <Icon className="w-3.5 h-3.5" strokeWidth={2.2} color="var(--fd-green-soft)" />
+                </span>
+                {t}
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-8 hidden lg:block">
+            <PhotoSlot
+              label="신선한 화식을 먹는 반려견"
+              sub="브랜드 이미지 자리"
+              ratio="16 / 10"
+              tone="green"
+              rounded={12}
+              className="w-full"
+            />
           </div>
-          <p className="mt-2 text-[11.5px] text-white/70 leading-relaxed">
-            {hasReferral
-              ? '초대 코드 확인됨 — 가입 즉시 총 6,000P가 적립돼요.'
-              : '가입만 해도 3,000P. 초대 코드가 있다면 3,000P 더.'}
-          </p>
         </div>
+      </aside>
+
+      {/* ── 우: 폼 컬럼 ── */}
+      <div className="flex flex-col px-6 py-10 lg:px-14 lg:py-14 lg:min-h-screen lg:overflow-y-auto">
+        <div className="w-full max-w-md mx-auto">
 
         {/*
           카카오 가입 — 프라이머리 CTA 위치로 승격.
@@ -634,14 +616,14 @@ function SignupForm() {
         {/* 카카오 로그인은 별도 동의 UI 없이 진행되므로 묵시적 동의 근거 제공. */}
         <p
           className="mb-6 text-[11px] text-center leading-relaxed"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--fd-muted)' }}
         >
           카카오로 계속하면{' '}
           <Link
             href="/legal/terms"
             target="_blank"
             className="underline underline-offset-2 font-bold"
-            style={{ color: 'var(--text)' }}
+            style={{ color: 'var(--fd-pine)' }}
           >
             이용약관
           </Link>
@@ -650,7 +632,7 @@ function SignupForm() {
             href="/legal/privacy"
             target="_blank"
             className="underline underline-offset-2 font-bold"
-            style={{ color: 'var(--text)' }}
+            style={{ color: 'var(--fd-pine)' }}
           >
             개인정보처리방침
           </Link>
@@ -663,14 +645,13 @@ function SignupForm() {
             선택지로 제시했는데, 이제 카카오가 primary 라 방향을 뒤집어
             "소셜이 안 맞으면 이메일로" 라는 의미로 라벨도 구체화한다. */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
+          <div className="flex-1 h-px" style={{ background: 'var(--fd-line)' }} />
           <span
-            className="kicker"
-            style={{ color: 'var(--muted)', fontSize: 9 }}
+            style={{ color: 'var(--fd-muted)', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}
           >
             Or Email · 이메일로 가입
           </span>
-          <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
+          <div className="flex-1 h-px" style={{ background: 'var(--fd-line)' }} />
         </div>
 
         <form onSubmit={handleSignup} className="space-y-6">
@@ -678,9 +659,9 @@ function SignupForm() {
           <section>
             <div className="flex items-baseline gap-2.5 mb-3">
               <span
-                className="font-serif leading-none tnum"
+                className="leading-none tnum"
                 style={{
-                  color: 'var(--terracotta)',
+                  color: 'var(--fd-coral)',
                   fontSize: 16,
                   fontWeight: 800,
                   letterSpacing: '-0.02em',
@@ -689,7 +670,7 @@ function SignupForm() {
               >
                 01
               </span>
-              <span className="kicker">Account</span>
+              <Eyebrow>Account</Eyebrow>
             </div>
 
             <div className="space-y-3">
@@ -697,7 +678,7 @@ function SignupForm() {
               <div>
                 <label
                   className="block text-[11px] font-bold mb-1.5"
-                  style={{ color: 'var(--text)' }}
+                  style={{ color: 'var(--fd-pine)' }}
                 >
                   이름
                 </label>
@@ -717,7 +698,7 @@ function SignupForm() {
                 />
                 <p
                   className="text-[11px] mt-1"
-                  style={{ color: 'var(--muted)' }}
+                  style={{ color: 'var(--fd-muted)' }}
                 >
                   배송 시 받는 분 이름의 기본값으로 사용돼요
                 </p>
@@ -727,7 +708,7 @@ function SignupForm() {
               <div>
                 <label
                   className="block text-[11px] font-bold mb-1.5"
-                  style={{ color: 'var(--text)' }}
+                  style={{ color: 'var(--fd-pine)' }}
                 >
                   이메일
                 </label>
@@ -754,7 +735,7 @@ function SignupForm() {
               <div>
                 <label
                   className="block text-[11px] font-bold mb-1.5"
-                  style={{ color: 'var(--text)' }}
+                  style={{ color: 'var(--fd-pine)' }}
                 >
                   비밀번호
                 </label>
@@ -777,7 +758,7 @@ function SignupForm() {
                     onClick={() => setShowPw((v) => !v)}
                     aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 표시'}
                     className="absolute inset-y-0 right-1 my-auto h-10 w-10 flex items-center justify-center rounded-md hover:bg-black/5 transition"
-                    style={{ color: 'var(--muted)' }}
+                    style={{ color: 'var(--fd-muted)' }}
                     tabIndex={-1}
                   >
                     {showPw ? (
@@ -789,7 +770,7 @@ function SignupForm() {
                 </div>
                 <p
                   className="text-[11px] mt-1"
-                  style={{ color: 'var(--muted)' }}
+                  style={{ color: 'var(--fd-muted)' }}
                 >
                   영문, 숫자 포함 6자 이상 권장
                 </p>
@@ -799,7 +780,7 @@ function SignupForm() {
               <div>
                 <label
                   className="block text-[11px] font-bold mb-1.5"
-                  style={{ color: 'var(--text)' }}
+                  style={{ color: 'var(--fd-pine)' }}
                 >
                   비밀번호 확인
                 </label>
@@ -815,16 +796,16 @@ function SignupForm() {
                       ...baseInputStyle,
                       borderColor: passwordMismatch
                         ? 'var(--sale)'
-                        : 'var(--rule-2)',
+                        : 'var(--fd-line)',
                     }}
                     onFocus={(e) => {
                       if (!passwordMismatch)
-                        e.currentTarget.style.borderColor = 'var(--terracotta)'
+                        e.currentTarget.style.borderColor = 'var(--fd-coral)'
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.borderColor = passwordMismatch
                         ? 'var(--sale)'
-                        : 'var(--rule-2)'
+                        : 'var(--fd-line)'
                     }}
                     placeholder="비밀번호 다시 입력"
                   />
@@ -833,7 +814,7 @@ function SignupForm() {
                     onClick={() => setShowPw2((v) => !v)}
                     aria-label={showPw2 ? '비밀번호 숨기기' : '비밀번호 표시'}
                     className="absolute inset-y-0 right-1 my-auto h-10 w-10 flex items-center justify-center rounded-md hover:bg-black/5 transition"
-                    style={{ color: 'var(--muted)' }}
+                    style={{ color: 'var(--fd-muted)' }}
                     tabIndex={-1}
                   >
                     {showPw2 ? (
@@ -857,7 +838,7 @@ function SignupForm() {
                   password.length >= 6 && (
                     <p
                       className="text-[11px] mt-1 flex items-center gap-1 font-semibold"
-                      style={{ color: 'var(--moss)' }}
+                      style={{ color: 'var(--fd-green)' }}
                     >
                       <Check className="w-3 h-3" strokeWidth={3} />
                       비밀번호가 일치해요
@@ -869,7 +850,7 @@ function SignupForm() {
               <div>
                 <label
                   className="block text-[11px] font-bold mb-1.5"
-                  style={{ color: 'var(--text)' }}
+                  style={{ color: 'var(--fd-pine)' }}
                 >
                   휴대폰 번호
                 </label>
@@ -887,16 +868,16 @@ function SignupForm() {
                     ...baseInputStyle,
                     borderColor: !phoneValid
                       ? 'var(--sale)'
-                      : 'var(--rule-2)',
+                      : 'var(--fd-line)',
                   }}
                   onFocus={(e) => {
                     if (phoneValid)
-                      e.currentTarget.style.borderColor = 'var(--terracotta)'
+                      e.currentTarget.style.borderColor = 'var(--fd-coral)'
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.borderColor = !phoneValid
                       ? 'var(--sale)'
-                      : 'var(--rule-2)'
+                      : 'var(--fd-line)'
                   }}
                   placeholder="010-1234-5678"
                 />
@@ -915,7 +896,7 @@ function SignupForm() {
               <div>
                 <label
                   className="block text-[11px] font-bold mb-1.5"
-                  style={{ color: 'var(--text)' }}
+                  style={{ color: 'var(--fd-pine)' }}
                 >
                   출생 연도
                 </label>
@@ -938,7 +919,7 @@ function SignupForm() {
                     ...baseInputStyle,
                     borderColor: birthYearUnder14
                       ? 'var(--sale)'
-                      : 'var(--rule-2)',
+                      : 'var(--fd-line)',
                     fontVariantNumeric: 'tabular-nums',
                   }}
                 />
@@ -956,7 +937,7 @@ function SignupForm() {
                 ) : (
                   <p
                     className="text-[11px] mt-1"
-                    style={{ color: 'var(--muted)' }}
+                    style={{ color: 'var(--fd-muted)' }}
                   >
                     만 14세 이상만 가입할 수 있어요 (개인정보보호법)
                   </p>
@@ -967,9 +948,9 @@ function SignupForm() {
               <div>
                 <label
                   className="flex items-center gap-1 text-[11px] font-bold mb-1.5"
-                  style={{ color: 'var(--text)' }}
+                  style={{ color: 'var(--fd-pine)' }}
                 >
-                  생일 <span style={{ color: 'var(--muted)' }}>(선택)</span>
+                  생일 <span style={{ color: 'var(--fd-muted)' }}>(선택)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <select
@@ -1009,7 +990,7 @@ function SignupForm() {
                 </div>
                 <p
                   className="text-[11px] mt-1"
-                  style={{ color: 'var(--muted)' }}
+                  style={{ color: 'var(--fd-muted)' }}
                 >
                   채우시면 생일 당일 쿠폰을 자동으로 보내드려요 (마케팅 수신
                   동의 필요)
@@ -1022,9 +1003,9 @@ function SignupForm() {
           <section>
             <div className="flex items-baseline gap-2.5 mb-3">
               <span
-                className="font-serif leading-none tnum"
+                className="leading-none tnum"
                 style={{
-                  color: 'var(--terracotta)',
+                  color: 'var(--fd-coral)',
                   fontSize: 16,
                   fontWeight: 800,
                   letterSpacing: '-0.02em',
@@ -1033,10 +1014,10 @@ function SignupForm() {
               >
                 02
               </span>
-              <span className="kicker">Shipping(선택)</span>
+              <Eyebrow>Shipping(선택)</Eyebrow>
               <span
                 className="ml-auto text-[11px] font-semibold"
-                style={{ color: 'var(--muted)' }}
+                style={{ color: 'var(--fd-muted)' }}
               >
                 선택
               </span>
@@ -1054,9 +1035,9 @@ function SignupForm() {
                   maxLength={5}
                   className="flex-1 px-4 py-3 rounded-lg border text-sm"
                   style={{
-                    borderColor: 'var(--rule-2)',
-                    background: 'var(--bg)',
-                    color: 'var(--text)',
+                    borderColor: 'var(--fd-line)',
+                    background: 'var(--fd-offwhite)',
+                    color: 'var(--fd-pine)',
                   }}
                 />
                 <AddressSearch
@@ -1071,9 +1052,9 @@ function SignupForm() {
                 placeholder="주소 (검색 버튼으로 입력)"
                 className="w-full px-4 py-3 rounded-lg border text-sm"
                 style={{
-                  borderColor: 'var(--rule-2)',
-                  background: 'var(--bg)',
-                  color: 'var(--text)',
+                  borderColor: 'var(--fd-line)',
+                  background: 'var(--fd-offwhite)',
+                  color: 'var(--fd-pine)',
                 }}
               />
               <input
@@ -1090,7 +1071,7 @@ function SignupForm() {
             </div>
             <p
               className="text-[11px] mt-1.5"
-              style={{ color: 'var(--muted)' }}
+              style={{ color: 'var(--fd-muted)' }}
             >
               지금 입력하면 첫 주문 시 자동 채워져요. 나중에 마이페이지에서도
               추가/변경할 수 있어요.
@@ -1101,9 +1082,9 @@ function SignupForm() {
           <section>
             <div className="flex items-baseline gap-2.5 mb-3">
               <span
-                className="font-serif leading-none tnum"
+                className="leading-none tnum"
                 style={{
-                  color: 'var(--terracotta)',
+                  color: 'var(--fd-coral)',
                   fontSize: 16,
                   fontWeight: 800,
                   letterSpacing: '-0.02em',
@@ -1112,10 +1093,10 @@ function SignupForm() {
               >
                 03
               </span>
-              <span className="kicker">Invite</span>
+              <Eyebrow>Invite</Eyebrow>
               <span
                 className="ml-auto text-[11px] font-semibold"
-                style={{ color: 'var(--muted)' }}
+                style={{ color: 'var(--fd-muted)' }}
               >
                 선택
               </span>
@@ -1131,18 +1112,18 @@ function SignupForm() {
                 className="w-full px-4 py-3 rounded-lg border text-sm font-mono tracking-widest focus:outline-none transition"
                 style={{
                   borderColor: hasReferral
-                    ? 'var(--terracotta)'
-                    : 'var(--rule-2)',
-                  background: '#FDFDFD',
-                  color: 'var(--text)',
+                    ? 'var(--fd-coral)'
+                    : 'var(--fd-line)',
+                  background: '#FFFFFF',
+                  color: 'var(--fd-pine)',
                 }}
                 onFocus={(e) =>
-                  (e.currentTarget.style.borderColor = 'var(--terracotta)')
+                  (e.currentTarget.style.borderColor = 'var(--fd-coral)')
                 }
                 onBlur={(e) =>
                   (e.currentTarget.style.borderColor = hasReferral
-                    ? 'var(--terracotta)'
-                    : 'var(--rule-2)')
+                    ? 'var(--fd-coral)'
+                    : 'var(--fd-line)')
                 }
                 placeholder="친구에게 받은 코드"
               />
@@ -1150,8 +1131,8 @@ function SignupForm() {
                 <div
                   className="absolute inset-y-0 right-3 my-auto h-6 flex items-center gap-1 px-2 rounded-full text-[9.5px] font-black"
                   style={{
-                    background: 'var(--terracotta)',
-                    color: 'var(--bg)',
+                    background: 'var(--fd-coral)',
+                    color: 'var(--fd-offwhite)',
                     letterSpacing: '0.04em',
                   }}
                 >
@@ -1162,7 +1143,7 @@ function SignupForm() {
             </div>
             <p
               className="text-[11px] mt-1.5 font-semibold"
-              style={{ color: 'var(--terracotta)' }}
+              style={{ color: 'var(--fd-coral)' }}
             >
               코드를 입력하면 가입 시 3,000P를 추가로 드려요
             </p>
@@ -1192,8 +1173,8 @@ function SignupForm() {
             <div
               className="text-[12px] font-semibold rounded-lg px-3.5 py-2.5"
               style={{
-                color: 'var(--muted)',
-                background: 'var(--bg-2)',
+                color: 'var(--fd-muted)',
+                background: 'var(--fd-cream)',
               }}
             >
               {info}
@@ -1204,9 +1185,9 @@ function SignupForm() {
           <section>
             <div className="flex items-baseline gap-2.5 mb-3">
               <span
-                className="font-serif leading-none tnum"
+                className="leading-none tnum"
                 style={{
-                  color: 'var(--terracotta)',
+                  color: 'var(--fd-coral)',
                   fontSize: 16,
                   fontWeight: 800,
                   letterSpacing: '-0.02em',
@@ -1215,14 +1196,14 @@ function SignupForm() {
               >
                 04
               </span>
-              <span className="kicker">Consent</span>
+              <Eyebrow>Consent</Eyebrow>
             </div>
 
             <div
-              className="rounded-2xl px-4 py-4 space-y-3"
+              className="rounded-lg px-4 py-4 space-y-3"
               style={{
-                background: 'var(--bg-2)',
-                boxShadow: 'inset 0 0 0 1px var(--rule)',
+                background: 'var(--fd-cream)',
+                boxShadow: 'inset 0 0 0 1px var(--fd-line)',
               }}
             >
               <label className="flex items-center gap-2 cursor-pointer">
@@ -1231,11 +1212,11 @@ function SignupForm() {
                   checked={allChecked}
                   onChange={(e) => toggleAll(e.target.checked)}
                   className="w-4 h-4"
-                  style={{ accentColor: 'var(--ink)' }}
+                  style={{ accentColor: 'var(--fd-pine)' }}
                 />
                 <span
                   className="text-[12px] font-black"
-                  style={{ color: 'var(--text)' }}
+                  style={{ color: 'var(--fd-pine)' }}
                 >
                   전체 동의
                 </span>
@@ -1243,7 +1224,7 @@ function SignupForm() {
 
               <div
                 className="pt-3 space-y-2.5"
-                style={{ borderTop: '1px solid var(--rule-2)' }}
+                style={{ borderTop: '1px solid var(--fd-line)' }}
               >
                 <label className="flex items-start gap-2 cursor-pointer">
                   <input
@@ -1251,19 +1232,19 @@ function SignupForm() {
                     checked={agreeRequired}
                     onChange={(e) => setAgreeRequired(e.target.checked)}
                     className="mt-0.5 w-4 h-4"
-                    style={{ accentColor: 'var(--ink)' }}
+                    style={{ accentColor: 'var(--fd-pine)' }}
                   />
                   <span
                     className="text-[11.5px] leading-relaxed"
-                    style={{ color: 'var(--text)' }}
+                    style={{ color: 'var(--fd-pine)' }}
                   >
-                    <b style={{ color: 'var(--terracotta)' }}>[필수]</b> 만
+                    <b style={{ color: 'var(--fd-coral)' }}>[필수]</b> 만
                     14세 이상이며,{' '}
                     <Link
                       href="/legal/terms"
                       target="_blank"
                       className="underline underline-offset-2 font-bold"
-                      style={{ color: 'var(--text)' }}
+                      style={{ color: 'var(--fd-pine)' }}
                     >
                       이용약관
                     </Link>
@@ -1272,7 +1253,7 @@ function SignupForm() {
                       href="/legal/privacy"
                       target="_blank"
                       className="underline underline-offset-2 font-bold"
-                      style={{ color: 'var(--text)' }}
+                      style={{ color: 'var(--fd-pine)' }}
                     >
                       개인정보처리방침
                     </Link>
@@ -1288,11 +1269,11 @@ function SignupForm() {
                       setAgreeMarketingEmail(e.target.checked)
                     }
                     className="mt-0.5 w-4 h-4"
-                    style={{ accentColor: 'var(--muted)' }}
+                    style={{ accentColor: 'var(--fd-muted)' }}
                   />
                   <span
                     className="text-[11.5px] leading-relaxed"
-                    style={{ color: 'var(--muted)' }}
+                    style={{ color: 'var(--fd-muted)' }}
                   >
                     <span className="font-bold">[선택]</span> 혜택·이벤트
                     이메일 수신에 동의합니다
@@ -1305,11 +1286,11 @@ function SignupForm() {
                     checked={agreeMarketingSms}
                     onChange={(e) => setAgreeMarketingSms(e.target.checked)}
                     className="mt-0.5 w-4 h-4"
-                    style={{ accentColor: 'var(--muted)' }}
+                    style={{ accentColor: 'var(--fd-muted)' }}
                   />
                   <span
                     className="text-[11.5px] leading-relaxed"
-                    style={{ color: 'var(--muted)' }}
+                    style={{ color: 'var(--fd-muted)' }}
                   >
                     <span className="font-bold">[선택]</span> 혜택·이벤트
                     SMS/카카오톡 수신에 동의합니다
@@ -1319,16 +1300,18 @@ function SignupForm() {
             </div>
           </section>
 
-          {/* Ink 계열 CTA */}
+          {/* FD CTA — 파인 그린 pill (흰 텍스트 AA pass). */}
           <button
             type="submit"
             disabled={!canSubmit}
-            className="w-full py-4 rounded-full font-bold text-[13.5px] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full font-bold text-[14px] active:translate-y-[1px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              background: 'var(--ink)',
-              color: 'var(--bg)',
+              height: 56,
+              borderRadius: 9999,
+              background: 'var(--fd-pine)',
+              color: '#FFFFFF',
               letterSpacing: '-0.01em',
-              boxShadow: '0 4px 14px rgba(30,26,20,0.25)',
+              boxShadow: '0 6px 18px -8px rgba(23,59,51,0.5)',
             }}
           >
             {loading ? '가입 중...' : '회원가입 완료'}
@@ -1339,16 +1322,17 @@ function SignupForm() {
             여기엔 기존 사용자 로그인 유도 링크만 남는다. */}
         <div
           className="text-center mt-8 text-[12.5px]"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--fd-muted)' }}
         >
           이미 계정이 있으신가요?{' '}
           <Link
             href="/login"
             className="font-bold underline underline-offset-2"
-            style={{ color: 'var(--terracotta)' }}
+            style={{ color: 'var(--fd-coral-text)' }}
           >
             로그인
           </Link>
+        </div>
         </div>
       </div>
     </main>
@@ -1362,12 +1346,12 @@ export default function SignupPage() {
       fallback={
         <main
           className="min-h-screen flex items-center justify-center"
-          style={{ background: 'var(--bg)' }}
+          style={{ background: 'var(--fd-offwhite)' }}
         >
           <div
             className="w-8 h-8 border-2 rounded-full animate-spin"
             style={{
-              borderColor: 'var(--terracotta)',
+              borderColor: 'var(--fd-coral)',
               borderTopColor: 'transparent',
             }}
           />

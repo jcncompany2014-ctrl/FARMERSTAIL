@@ -8,6 +8,7 @@ import ProfileForm from '@/components/account/ProfileForm'
 import PasswordChangeButton from '@/components/account/PasswordChangeButton'
 import TierBadge from '@/components/account/TierBadge'
 import { isAppContextServer } from '@/lib/app-context'
+import { Eyebrow } from '@/components/web/fd/ui'
 
 /**
  * /account/profile — 기본 프로필 편집.
@@ -48,7 +49,7 @@ export default async function ProfileEditPage() {
     <AuthAwareShell>
       <main
         className="pb-12 md:pb-20 mx-auto"
-        style={{ background: 'var(--bg)', maxWidth: 880 }}
+        style={{ background: 'var(--fd-offwhite)', maxWidth: 880 }}
       >
         {/* 앱: 상단 ← 헤더가 뒤로가기를 담당 → 본문 뒤로가기 + 브레드크럼(웹
             패턴) 숨김. 웹: per-screen 헤더 없음 → editorial 뒤로가기/브레드크럼 유지. */}
@@ -57,7 +58,7 @@ export default async function ProfileEditPage() {
           <Link
             href={backHref}
             className="inline-flex items-center gap-1 text-[11px] md:text-[12px] hover:opacity-70 transition"
-            style={{ color: 'var(--muted)' }}
+            style={{ color: 'var(--fd-muted)' }}
           >
             <ArrowLeft className="w-3 h-3" strokeWidth={2.5} />
             {backLabel}
@@ -65,33 +66,28 @@ export default async function ProfileEditPage() {
           <nav
             aria-label="현재 위치"
             className="flex items-center gap-1 text-[11px] md:text-[12px] mt-2"
-            style={{ color: 'var(--muted)' }}
+            style={{ color: 'var(--fd-muted)' }}
           >
-            <Link href="/" className="hover:text-terracotta transition">
+            <Link href="/" className="hover:opacity-70 transition">
               홈
             </Link>
             <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
-            <Link href={backHref} className="hover:text-terracotta transition">
+            <Link href={backHref} className="hover:opacity-70 transition">
               {backLabel}
             </Link>
             <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
-            <span style={{ color: 'var(--ink)', fontWeight: 700 }}>프로필</span>
+            <span style={{ color: 'var(--fd-pine)', fontWeight: 700 }}>프로필</span>
           </nav>
         </div>
         )}
 
         <section className="px-5 md:px-8 pt-6 md:pt-10 pb-4 md:pb-6">
-          <span
-            className="font-mono text-[10px] md:text-[12px] tracking-[0.22em] uppercase"
-            style={{ color: 'var(--terracotta)' }}
-          >
-            Profile · 내 프로필
-          </span>
+          <Eyebrow>Profile · 내 프로필</Eyebrow>
           <h1
-            className="font-serif mt-2 md:mt-3 text-[24px] md:text-[36px]"
+            className="mt-2 md:mt-3 text-[24px] md:text-[36px]"
             style={{
               fontWeight: 800,
-              color: 'var(--ink)',
+              color: 'var(--fd-pine)',
               letterSpacing: '-0.025em',
               lineHeight: 1.15,
             }}
@@ -100,7 +96,7 @@ export default async function ProfileEditPage() {
           </h1>
           <p
             className="mt-2 text-[12px] md:text-[14px]"
-            style={{ color: 'var(--muted)' }}
+            style={{ color: 'var(--fd-muted)' }}
           >
             이름·연락처·생일을 변경할 수 있어요. 이메일은 변경 시 별도 인증
             절차가 필요해요.
@@ -122,10 +118,10 @@ export default async function ProfileEditPage() {
 
         <section className="px-5 md:px-8">
           <div
-            className="rounded-2xl p-5 md:p-7"
+            className="rounded-lg p-5 md:p-7"
             style={{
-              background: 'var(--bg)',
-              boxShadow: 'inset 0 0 0 1px var(--rule)',
+              background: '#FFFFFF',
+              boxShadow: 'inset 0 0 0 1px var(--fd-line)',
             }}
           >
             <ProfileForm
@@ -141,23 +137,23 @@ export default async function ProfileEditPage() {
 
           {/* 비밀번호 변경 — 별도 카드. 직접 update 가 아니라 reset 메일 발송. */}
           <div
-            className="mt-4 rounded-2xl p-5"
+            className="mt-4 rounded-lg p-5"
             style={{
-              background: 'var(--bg-2)',
-              boxShadow: 'inset 0 0 0 1px var(--rule)',
+              background: 'var(--fd-cream)',
+              boxShadow: 'inset 0 0 0 1px var(--fd-line)',
             }}
           >
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
                 <div
                   className="text-[12px] font-bold"
-                  style={{ color: 'var(--ink)' }}
+                  style={{ color: 'var(--fd-pine)' }}
                 >
                   비밀번호 변경
                 </div>
                 <p
                   className="text-[11px] mt-1 leading-relaxed"
-                  style={{ color: 'var(--muted)' }}
+                  style={{ color: 'var(--fd-muted)' }}
                 >
                   가입 이메일 ({user.email}) 로 재설정 링크를 보내드려요.
                 </p>
@@ -169,13 +165,13 @@ export default async function ProfileEditPage() {
           {!profile?.agree_email && (
             <p
               className="mt-4 text-[11.5px] md:text-[12.5px] leading-relaxed"
-              style={{ color: 'var(--muted)' }}
+              style={{ color: 'var(--fd-muted)' }}
             >
               ※ 생일 쿠폰 메일을 받으시려면{' '}
               <Link
                 href="/mypage/consent"
                 className="font-bold underline underline-offset-2"
-                style={{ color: 'var(--terracotta)' }}
+                style={{ color: 'var(--fd-coral-text)' }}
               >
                 마케팅 수신 동의
               </Link>{' '}
@@ -187,13 +183,13 @@ export default async function ProfileEditPage() {
         <section className="px-5 md:px-8 mt-8 md:mt-12">
           <p
             className="text-[11.5px] md:text-[12.5px]"
-            style={{ color: 'var(--muted)' }}
+            style={{ color: 'var(--fd-muted)' }}
           >
             이메일 / 비밀번호 변경, 회원 탈퇴는{' '}
             <Link
               href="/mypage/delete"
               className="font-bold underline underline-offset-2"
-              style={{ color: 'var(--terracotta)' }}
+              style={{ color: 'var(--fd-coral-text)' }}
             >
               계정 관리
             </Link>{' '}

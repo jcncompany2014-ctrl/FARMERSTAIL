@@ -7,7 +7,7 @@ import { CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
 import AppleLoginButton from '@/components/AppleLoginButton'
-import AuthHero from '@/components/auth/AuthHero'
+import { Eyebrow, PhotoSlot } from '@/components/web/fd/ui'
 import { useIsAppContext } from '@/hooks/useIsAppContext'
 import {
   applySignupProfile,
@@ -15,11 +15,17 @@ import {
 } from '@/lib/auth/applySignupProfile'
 
 /**
- * /login — 기존 계정 로그인.
+ * /login — 기존 계정 로그인 (FD 2단 split 재설계, 회차129).
  *
- * 톤: /signup과 같은 editorial hero + sans 폼. 색은 모두 토큰
- * (--ink, --bg, --terracotta, --muted, --rule, --rule-2, --moss, --sale,
- *  --text) 경유 — 하드코딩 hex 제거.
+ * 레이아웃: 데스크톱 좌 파인 브랜드 패널(로고 + Eyebrow + 헤드라인 + 혜택
+ * 리스트 + PhotoSlot) / 우 폼 컬럼, 모바일은 위→아래로 스택. /signup 과 동일한
+ * FD 언어 — components/web/fd 프리미티브(Eyebrow·PhotoSlot) + --fd-* 토큰만
+ * 사용(옛 v4 토큰 0). 카카오·애플 OAuth 를 이메일 폼 위로 승격(한국 유저 단축
+ * 경로). 에러/검증 상태는 signup 과 공유하는 destructive 토큰 --sale.
+ *
+ * 인증 로직은 보존(불변): soft-delete 가드 · Confirm-email 후 signup_profile
+ * 복원(applySignupProfile) · app/web 분기(/dashboard vs /mypage/orders) ·
+ * ?next= safe-redirect.
  */
 
 /**
@@ -184,48 +190,103 @@ function LoginInner() {
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-center px-6 py-10 md:py-16"
-      style={{ background: 'var(--bg)' }}
+      className="min-h-screen grid lg:grid-cols-2"
+      style={{ background: 'var(--fd-offwhite)' }}
     >
-      <div className="w-full max-w-sm md:max-w-md">
-        {/*
-          랜딩 "시작하기" 버튼이 이 페이지로 직접 오기 때문에,
-          카피는 returning user 에만 맞춰선 안 된다 ("다시 오셨군요" 금지).
-          첫 방문자는 바로 아래 "회원가입" 링크로 갈 수 있도록 가이드하고,
-          문구는 재방문/첫방문 모두에 자연스러운 중립 톤으로 둔다.
-        */}
-        <AuthHero
-          kicker="Sign In · 로그인"
-          title={<>이메일로 로그인</>}
-          subtitle="계정이 있다면 로그인하고, 처음이라면 아래에서 가입해 주세요."
-        />
+      {/* ── 좌: 브랜드 패널 (모바일=상단 밴드, 데스크톱=풀하이트 파인) ── */}
+      <aside
+        className="relative flex flex-col justify-center px-6 py-10 lg:px-14 lg:py-14 lg:min-h-screen"
+        style={{ background: 'var(--fd-pine)', color: '#FFFFFF' }}
+      >
+        <Link href="/" aria-label="파머스테일 홈" className="inline-flex">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-brush.png"
+            alt="Farmer's Tail"
+            className="h-10 lg:h-12 w-auto"
+            fetchPriority="high"
+            style={{ filter: 'none' }}
+          />
+        </Link>
+
+        <div className="mt-8 lg:mt-12 max-w-md">
+          <Eyebrow color="var(--fd-green-soft)">Sign In · 로그인</Eyebrow>
+          <h1
+            className="mt-3 text-[28px] lg:text-[40px]"
+            style={{ fontWeight: 900, letterSpacing: '-0.035em', lineHeight: 1.08 }}
+          >
+            반가워요,
+            <br />
+            우리 아이 식단 이어가기
+          </h1>
+          <p
+            className="mt-4 text-[14px] lg:text-[15px]"
+            style={{ color: 'rgba(255,255,255,0.78)', lineHeight: 1.65, maxWidth: 380 }}
+          >
+            계정이 있다면 로그인하고, 처음이라면 회원가입으로 시작해 주세요.
+            우리 아이의 맞춤 식단과 기록이 그대로 이어집니다.
+          </p>
+
+          <ul className="mt-7 grid gap-2.5">
+            {['맞춤 영양 분석과 기록 그대로', '정기배송 일정 관리', '언제든 해지 · 구속 없는 구독'].map((t) => (
+              <li
+                key={t}
+                className="flex items-center gap-2.5 text-[13.5px]"
+                style={{ color: 'rgba(255,255,255,0.9)' }}
+              >
+                <span
+                  aria-hidden
+                  className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ background: 'var(--fd-green-soft)' }}
+                />
+                {t}
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-8 hidden lg:block">
+            <PhotoSlot
+              label="반려견 / 브랜드 사진"
+              sub="브랜드 이미지 자리"
+              ratio="16 / 10"
+              tone="green"
+              rounded={12}
+              className="w-full"
+            />
+          </div>
+        </div>
+      </aside>
+
+      {/* ── 우: 폼 컬럼 ── */}
+      <div className="flex flex-col px-6 py-10 lg:px-14 lg:py-14 lg:min-h-screen lg:justify-center">
+        <div className="w-full max-w-md mx-auto">
 
         {/* R89-E (D7): 비밀번호 재설정 완료 안내 — /reset-password → /login?reset=1 */}
         {justReset && (
           <div
             className="mb-5 rounded-xl px-4 py-3.5"
             style={{
-              background: 'color-mix(in srgb, var(--moss) 10%, transparent)',
+              background: 'color-mix(in srgb, var(--fd-green) 10%, transparent)',
               boxShadow:
-                'inset 0 0 0 1px color-mix(in srgb, var(--moss) 30%, transparent)',
+                'inset 0 0 0 1px color-mix(in srgb, var(--fd-green) 30%, transparent)',
             }}
           >
             <div className="flex items-start gap-2.5">
               <CheckCircle2
                 className="w-4 h-4 shrink-0 mt-0.5"
                 strokeWidth={2.25}
-                color="var(--moss)"
+                color="var(--fd-green)"
               />
               <div className="min-w-0">
                 <p
                   className="text-[12px] font-bold"
-                  style={{ color: 'var(--text)' }}
+                  style={{ color: 'var(--fd-pine)' }}
                 >
                   비밀번호가 변경됐어요
                 </p>
                 <p
                   className="text-[11px] mt-1 leading-relaxed"
-                  style={{ color: 'var(--muted)' }}
+                  style={{ color: 'var(--fd-muted)' }}
                 >
                   새 비밀번호로 로그인해 주세요.
                 </p>
@@ -239,27 +300,27 @@ function LoginInner() {
           <div
             className="mb-5 rounded-xl px-4 py-3.5"
             style={{
-              background: 'color-mix(in srgb, var(--moss) 10%, transparent)',
+              background: 'color-mix(in srgb, var(--fd-green) 10%, transparent)',
               boxShadow:
-                'inset 0 0 0 1px color-mix(in srgb, var(--moss) 30%, transparent)',
+                'inset 0 0 0 1px color-mix(in srgb, var(--fd-green) 30%, transparent)',
             }}
           >
             <div className="flex items-start gap-2.5">
               <CheckCircle2
                 className="w-4 h-4 shrink-0 mt-0.5"
                 strokeWidth={2.25}
-                color="var(--moss)"
+                color="var(--fd-green)"
               />
               <div className="min-w-0">
                 <p
                   className="text-[12px] font-bold"
-                  style={{ color: 'var(--text)' }}
+                  style={{ color: 'var(--fd-pine)' }}
                 >
                   탈퇴가 완료됐어요
                 </p>
                 <p
                   className="text-[11px] mt-1 leading-relaxed"
-                  style={{ color: 'var(--muted)' }}
+                  style={{ color: 'var(--fd-muted)' }}
                 >
                   그동안 파머스테일을 이용해 주셔서 감사해요. 언제든 다시 찾아
                   주세요.
@@ -284,14 +345,13 @@ function LoginInner() {
 
         {/* "또는 이메일로" 디바이더 */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
+          <div className="flex-1 h-px" style={{ background: 'var(--fd-line)' }} />
           <span
-            className="kicker"
-            style={{ color: 'var(--muted)', fontSize: 9 }}
+            style={{ color: 'var(--fd-muted)', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}
           >
             Or Email · 이메일로 로그인
           </span>
-          <div className="flex-1 h-px" style={{ background: 'var(--rule-2)' }} />
+          <div className="flex-1 h-px" style={{ background: 'var(--fd-line)' }} />
         </div>
 
         {/* 폼 — 흰 카드 대신 종이 톤 지면 위에 직접. */}
@@ -299,7 +359,7 @@ function LoginInner() {
           <div>
             <label
               className="block text-[11px] font-bold mb-1.5"
-              style={{ color: 'var(--text)' }}
+              style={{ color: 'var(--fd-pine)' }}
             >
               이메일
             </label>
@@ -316,15 +376,15 @@ function LoginInner() {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 rounded-lg border text-sm focus:outline-none transition"
               style={{
-                borderColor: 'var(--rule-2)',
-                background: '#FDFDFD',
-                color: 'var(--text)',
+                borderColor: 'var(--fd-line)',
+                background: '#FFFFFF',
+                color: 'var(--fd-pine)',
               }}
               onFocus={(e) =>
-                (e.currentTarget.style.borderColor = 'var(--terracotta)')
+                (e.currentTarget.style.borderColor = 'var(--fd-coral)')
               }
               onBlur={(e) =>
-                (e.currentTarget.style.borderColor = 'var(--rule-2)')
+                (e.currentTarget.style.borderColor = 'var(--fd-line)')
               }
               placeholder="example@email.com"
             />
@@ -333,7 +393,7 @@ function LoginInner() {
           <div>
             <label
               className="block text-[11px] font-bold mb-1.5"
-              style={{ color: 'var(--text)' }}
+              style={{ color: 'var(--fd-pine)' }}
             >
               비밀번호
             </label>
@@ -347,15 +407,15 @@ function LoginInner() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 pr-11 rounded-lg border text-sm focus:outline-none transition"
                 style={{
-                  borderColor: 'var(--rule-2)',
-                  background: '#FDFDFD',
-                  color: 'var(--text)',
+                  borderColor: 'var(--fd-line)',
+                  background: '#FFFFFF',
+                  color: 'var(--fd-pine)',
                 }}
                 onFocus={(e) =>
-                  (e.currentTarget.style.borderColor = 'var(--terracotta)')
+                  (e.currentTarget.style.borderColor = 'var(--fd-coral)')
                 }
                 onBlur={(e) =>
-                  (e.currentTarget.style.borderColor = 'var(--rule-2)')
+                  (e.currentTarget.style.borderColor = 'var(--fd-line)')
                 }
                 placeholder="비밀번호를 입력하세요"
               />
@@ -364,7 +424,7 @@ function LoginInner() {
                 onClick={() => setShowPw((v) => !v)}
                 aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 표시'}
                 className="absolute inset-y-0 right-1 my-auto h-10 w-10 flex items-center justify-center rounded-md hover:bg-black/5 transition"
-                style={{ color: 'var(--muted)' }}
+                style={{ color: 'var(--fd-muted)' }}
                 tabIndex={-1}
               >
                 {showPw ? (
@@ -392,16 +452,18 @@ function LoginInner() {
             </div>
           )}
 
-          {/* Ink 계열 CTA — 온보딩 '시작하기'와 동일 톤. */}
+          {/* FD CTA — 파인 그린 pill (흰 텍스트 AA pass, 로그인 신뢰 톤). */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 rounded-full font-bold text-[13.5px] active:scale-[0.98] transition-all disabled:opacity-50"
+            className="w-full font-bold text-[14px] active:translate-y-[1px] transition-all disabled:opacity-50"
             style={{
-              background: 'var(--ink)',
-              color: 'var(--bg)',
+              height: 56,
+              borderRadius: 9999,
+              background: 'var(--fd-pine)',
+              color: '#FFFFFF',
               letterSpacing: '-0.01em',
-              boxShadow: '0 4px 14px rgba(30,26,20,0.25)',
+              boxShadow: '0 6px 18px -8px rgba(23,59,51,0.5)',
             }}
           >
             {loading ? '로그인 중...' : '로그인'}
@@ -411,28 +473,29 @@ function LoginInner() {
         {/* 하단 링크 — 회원가입 + 비밀번호 찾기 (R89-E D7). */}
         <div
           className="text-center mt-6 text-[12.5px]"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--fd-muted)' }}
         >
           <Link
             href="/forgot-password"
             className="font-semibold underline underline-offset-2"
-            style={{ color: 'var(--muted)' }}
+            style={{ color: 'var(--fd-muted)' }}
           >
             비밀번호를 잊으셨나요?
           </Link>
         </div>
         <div
           className="text-center mt-3 text-[12.5px]"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--fd-muted)' }}
         >
           아직 계정이 없으신가요?{' '}
           <Link
             href="/signup"
             className="font-bold underline underline-offset-2"
-            style={{ color: 'var(--terracotta)' }}
+            style={{ color: 'var(--fd-coral-text)' }}
           >
             회원가입
           </Link>
+        </div>
         </div>
       </div>
     </main>

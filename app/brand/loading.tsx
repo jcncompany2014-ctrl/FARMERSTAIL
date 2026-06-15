@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 
 export default function BrandLoading() {
   return (
-    <main className="pb-16 md:pb-28" style={{ background: 'var(--bg)' }}>
+    <main className="pb-16 md:pb-28" style={{ background: 'var(--fd-offwhite)' }}>
       <div
         className="px-5 md:px-8 pt-4 md:pt-6 mx-auto"
         style={{ maxWidth: 1280 }}

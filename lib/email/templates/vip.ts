@@ -51,30 +51,30 @@ export function renderVipCoupon({
   const subject = `(광고) ${recipientName}님께, ${tierLabel} 감사 쿠폰`
 
   const validBlock = validUntil
-    ? `<p style="margin:8px 0 0;font-size:13px;color:#7B6F5C">유효기간: ~${fmtDate(validUntil)}</p>`
+    ? `<p style="margin:8px 0 0;font-size:13px;color:#F7F5F0;opacity:0.78">유효기간: ~${fmtDate(validUntil)}</p>`
     : ''
 
   const html = `<!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8"><title>${escape(subject)}</title></head>
-<body style="margin:0;background:#F5F0E6;font-family:-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo',sans-serif;color:#1E1A14">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F5F0E6;padding:40px 16px">
+<body style="margin:0;background:#F7F5F0;font-family:-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo',sans-serif;color:#173B33">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F7F5F0;padding:40px 16px">
     <tr><td align="center">
-      <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;background:#FFF;border:1px solid #E5DCC9;border-radius:16px;overflow:hidden">
+      <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;background:#FFF;border:1px solid #DCD6C4;border-radius:16px;overflow:hidden">
         <tr><td style="padding:36px 32px 12px">
-          <div style="font-family:'Archivo Black',Arial,sans-serif;font-size:11px;letter-spacing:0.22em;color:#A0452E;text-transform:uppercase">${escape(tierLabel)} · 등급 감사</div>
+          <div style="font-family:'Archivo Black',Arial,sans-serif;font-size:11px;letter-spacing:0.22em;color:#B63619;text-transform:uppercase">${escape(tierLabel)} · 등급 감사</div>
           <h1 style="margin:14px 0 0;font-family:'Noto Serif KR',serif;font-size:28px;line-height:1.2;letter-spacing:-0.02em;font-weight:900">
             ${escape(recipientName)} 님,<br>오래 함께해 주셨네요
           </h1>
-          <p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#3A3128">
+          <p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#173B33">
             우리 아이의 한 끼를 매번 챙겨주신 덕분에 ${escape(tierLabel)} 등급에
             도달하셨어요. 작은 보답으로 이번 달 쿠폰을 준비했어요.
           </p>
         </td></tr>
 
         <tr><td style="padding:6px 32px 24px">
-          <div style="background:#1E1A14;border-radius:14px;padding:24px 24px 22px;text-align:center;color:#D4A94A">
+          <div style="background:#173B33;border-radius:14px;padding:24px 24px 22px;text-align:center;color:#F7F5F0">
             <div style="font-family:'Archivo Black',Arial,sans-serif;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;opacity:0.7">${escape(tierLabel)} 쿠폰</div>
-            <div style="margin-top:6px;font-family:'Noto Serif KR',serif;font-size:24px;font-weight:900;letter-spacing:-0.02em">
+            <div style="margin-top:6px;font-family:'Noto Serif KR',serif;font-size:24px;font-weight:900;letter-spacing:-0.02em;color:#B8893A">
               ${escape(discountLabel)}
             </div>
             <div style="margin-top:10px;font-size:13px;opacity:0.85">결제 단계에서 자동으로 적용돼요</div>
@@ -84,10 +84,10 @@ export function renderVipCoupon({
 
         <tr><td style="padding:0 32px 32px">
           <a href="${SITE_URL}/products"
-             style="display:block;background:#1E1A14;color:#F5F0E6;text-align:center;text-decoration:none;font-weight:700;font-size:14px;padding:14px 0;border-radius:999px">
+             style="display:block;background:#173B33;color:#F7F5F0;text-align:center;text-decoration:none;font-weight:700;font-size:14px;padding:14px 0;border-radius:999px">
              지금 둘러보기 →
           </a>
-          <p style="margin:18px 0 0;font-size:12px;color:#7B6F5C;line-height:1.6">
+          <p style="margin:18px 0 0;font-size:12px;color:#5A6C61;line-height:1.6">
             * 자동 적용 — 별도 코드 입력 불필요.<br>
             * 1인 1회 사용. 다른 쿠폰과 중복 사용 불가.
           </p>

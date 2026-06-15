@@ -33,7 +33,7 @@ const EFFECTIVE_DATE = '2026-05-27'
  */
 export default function PrivacyPage() {
   return (
-    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--bg)" }}>
+    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--fd-offwhite)" }}>
       <LegalDocument
         eyebrow="Privacy Policy"
         title="개인정보처리방침"
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
 
           <p
             className="font-bold text-[12.5px] mt-3"
-            style={{ color: 'var(--ink)' }}
+            style={{ color: 'var(--fd-pine)' }}
           >
             필수 항목
           </p>
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
 
           <p
             className="font-bold text-[12.5px] mt-3"
-            style={{ color: 'var(--ink)' }}
+            style={{ color: 'var(--fd-pine)' }}
           >
             선택 항목
           </p>
@@ -168,19 +168,19 @@ export default function PrivacyPage() {
               <thead>
                 <tr
                   style={{
-                    background: 'var(--bg)',
-                    color: 'var(--ink)',
+                    background: 'var(--fd-offwhite)',
+                    color: 'var(--fd-pine)',
                   }}
                 >
                   <th
                     className="px-2 py-1.5 text-left font-bold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     수탁사
                   </th>
                   <th
                     className="px-2 py-1.5 text-left font-bold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     위탁 업무
                   </th>
@@ -190,13 +190,13 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     토스페이먼츠(주)
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     결제 처리, 환불 처리
                   </td>
@@ -204,13 +204,13 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Supabase Inc.
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     회원 인증, 데이터베이스 운영
                   </td>
@@ -218,13 +218,13 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Vercel Inc.
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     웹 서비스 호스팅, CDN
                   </td>
@@ -232,13 +232,13 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     (주)카카오
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     카카오 소셜 로그인, 주소 검색 API
                   </td>
@@ -246,13 +246,13 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     택배 운송업체
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     상품 배송
                   </td>
@@ -260,13 +260,13 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Google LLC
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     이용 통계 분석 (Google Analytics 4) — 동의 시
                   </td>
@@ -274,13 +274,13 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Microsoft Corporation
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     사용성 분석 (Microsoft Clarity) — 동의 시
                   </td>
@@ -288,13 +288,13 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Functional Software Inc. (Sentry)
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     오류 모니터링
                   </td>
@@ -302,13 +302,13 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Recur Labs Inc. (Resend)
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     거래·알림 이메일 발송
                   </td>
@@ -316,13 +316,13 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Anthropic, PBC
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     반려견 영양 분석 AI (Claude) — 익명화된 설문 응답 전송
                   </td>
@@ -330,13 +330,13 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Meta Platforms Ireland Ltd.
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     광고 추적·전환 측정 (Meta Pixel) — 동의 시
                   </td>
@@ -352,7 +352,7 @@ export default function PrivacyPage() {
             처리하는지를 감독하고 있습니다.
           </p>
 
-          <p className="mt-4 font-bold" style={{ color: 'var(--text)' }}>
+          <p className="mt-4 font-bold" style={{ color: 'var(--fd-pine)' }}>
             국외 이전 (개인정보보호법 제28조의8)
           </p>
           <div className="mt-2 overflow-x-auto">
@@ -361,22 +361,22 @@ export default function PrivacyPage() {
               style={{ borderCollapse: 'collapse' }}
             >
               <thead>
-                <tr style={{ background: 'var(--bg-2)' }}>
+                <tr style={{ background: 'var(--fd-cream)' }}>
                   <th
                     className="text-left px-2 py-1.5 font-bold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     수탁자
                   </th>
                   <th
                     className="text-left px-2 py-1.5 font-bold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     이전 국가
                   </th>
                   <th
                     className="text-left px-2 py-1.5 font-bold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     이전 항목·시기·방법
                   </th>
@@ -386,19 +386,19 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Supabase Inc.
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     미국 (AWS us-east)
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     회원가입·로그인 정보, 주문/결제 메타데이터
                     <br />
@@ -410,19 +410,19 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Vercel Inc.
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     미국 (글로벌 CDN, 1차 KR 리전)
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     웹 요청 헤더, IP, User-Agent
                     <br />
@@ -434,19 +434,19 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Resend (Recur Labs Inc.)
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     미국
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     이메일 주소, 거래·알림 메시지 본문
                     <br />
@@ -458,19 +458,19 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Anthropic, PBC
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     미국
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     반려견 영양 분석을 위한 익명화된 설문 응답 (이름·연락처
                     포함하지 않음)
@@ -483,19 +483,19 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Sentry (Functional Software Inc.)
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     미국
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     오류 발생 시 stack trace, route, 사용자 식별번호
                     (PII 자동 스크러빙)
@@ -508,19 +508,19 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Google LLC
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     미국
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Google Analytics 4 — 익명 식별자(_ga, _gid), 접속 URL,
                     referrer, 디바이스 메타
@@ -533,19 +533,19 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Microsoft Corporation
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     미국
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Microsoft Clarity — 익명 세션 ID, 페이지 내 클릭/스크롤
                     좌표, 마스킹된 입력 필드 메타
@@ -558,19 +558,19 @@ export default function PrivacyPage() {
                 <tr>
                   <td
                     className="px-2 py-1.5 font-semibold"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Meta Platforms Ireland Ltd.
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     아일랜드 (EU 데이터센터)
                   </td>
                   <td
                     className="px-2 py-1.5"
-                    style={{ border: '1px solid var(--rule)' }}
+                    style={{ border: '1px solid var(--fd-line)' }}
                   >
                     Meta Pixel — 익명 사용자 ID(_fbp), 페이지 view, 결제 전환
                     이벤트
@@ -606,7 +606,7 @@ export default function PrivacyPage() {
             <Link
               href="/mypage/delete"
               className="font-bold hover:underline"
-                style={{ color: 'var(--terracotta)' }}
+                style={{ color: 'var(--fd-coral)' }}
             >
               회원 탈퇴
             </Link>
@@ -676,7 +676,7 @@ export default function PrivacyPage() {
             </li>
           </UL>
 
-          <p className="mt-3 font-bold" style={{ color: 'var(--text)' }}>
+          <p className="mt-3 font-bold" style={{ color: 'var(--fd-pine)' }}>
             자동 수집 항목
           </p>
           <UL>
@@ -732,7 +732,7 @@ export default function PrivacyPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-bold hover:underline"
-                style={{ color: 'var(--terracotta)' }}
+                style={{ color: 'var(--fd-coral)' }}
               >
                 privacy.kisa.or.kr
               </a>{' '}
@@ -745,7 +745,7 @@ export default function PrivacyPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-bold hover:underline"
-                style={{ color: 'var(--terracotta)' }}
+                style={{ color: 'var(--fd-coral)' }}
               >
                 www.kopico.go.kr
               </a>{' '}
@@ -758,7 +758,7 @@ export default function PrivacyPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-bold hover:underline"
-                style={{ color: 'var(--terracotta)' }}
+                style={{ color: 'var(--fd-coral)' }}
               >
                 www.spo.go.kr
               </a>{' '}
@@ -771,7 +771,7 @@ export default function PrivacyPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-bold hover:underline"
-                style={{ color: 'var(--terracotta)' }}
+                style={{ color: 'var(--fd-coral)' }}
               >
                 ecrm.cyber.go.kr
               </a>{' '}

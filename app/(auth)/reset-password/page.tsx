@@ -121,7 +121,7 @@ export default function ResetPasswordPage() {
   return (
     <main
       className="min-h-screen flex flex-col items-center justify-center px-6 py-10 md:py-16"
-      style={{ background: 'var(--bg)' }}
+      style={{ background: 'var(--fd-offwhite)' }}
     >
       <div className="w-full max-w-sm md:max-w-md">
         <AuthHero
@@ -135,7 +135,7 @@ export default function ResetPasswordPage() {
             <div
               className="w-8 h-8 border-2 rounded-full animate-spin"
               style={{
-                borderColor: 'var(--terracotta)',
+                borderColor: 'var(--fd-coral)',
                 borderTopColor: 'transparent',
               }}
             />
@@ -165,7 +165,7 @@ export default function ResetPasswordPage() {
                 <Link
                   href="/forgot-password"
                   className="inline-block mt-3 text-[12px] font-bold underline underline-offset-2"
-                  style={{ color: 'var(--terracotta)' }}
+                  style={{ color: 'var(--fd-coral-text)' }}
                 >
                   메일 다시 받기
                 </Link>
@@ -176,27 +176,27 @@ export default function ResetPasswordPage() {
           <div
             className="rounded-xl px-4 py-5 mb-5"
             style={{
-              background: 'color-mix(in srgb, var(--moss) 10%, transparent)',
+              background: 'color-mix(in srgb, var(--fd-green) 10%, transparent)',
               boxShadow:
-                'inset 0 0 0 1px color-mix(in srgb, var(--moss) 30%, transparent)',
+                'inset 0 0 0 1px color-mix(in srgb, var(--fd-green) 30%, transparent)',
             }}
           >
             <div className="flex items-start gap-2.5">
               <CheckCircle2
                 className="w-4 h-4 shrink-0 mt-0.5"
                 strokeWidth={2.25}
-                color="var(--moss)"
+                color="var(--fd-green)"
               />
               <div className="min-w-0">
                 <p
                   className="text-[12.5px] font-bold"
-                  style={{ color: 'var(--text)' }}
+                  style={{ color: 'var(--fd-pine)' }}
                 >
                   비밀번호가 변경됐어요
                 </p>
                 <p
                   className="text-[11.5px] mt-1.5 leading-relaxed"
-                  style={{ color: 'var(--muted)' }}
+                  style={{ color: 'var(--fd-muted)' }}
                 >
                   잠시 후 로그인 페이지로 이동해요. 새 비밀번호로 다시
                   로그인해 주세요.
@@ -210,7 +210,7 @@ export default function ResetPasswordPage() {
               <label
                 className="block text-[11px] font-bold mb-1.5"
                 htmlFor="new-password"
-                style={{ color: 'var(--text)' }}
+                style={{ color: 'var(--fd-pine)' }}
               >
                 새 비밀번호
               </label>
@@ -225,9 +225,9 @@ export default function ResetPasswordPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 pr-11 rounded-lg border text-[16px] focus:outline-none transition"
                   style={{
-                    borderColor: 'var(--rule-2)',
-                    background: '#FDFDFD',
-                    color: 'var(--text)',
+                    borderColor: 'var(--fd-line)',
+                    background: '#FFFFFF',
+                    color: 'var(--fd-pine)',
                   }}
                   placeholder="6자 이상"
                 />
@@ -236,7 +236,7 @@ export default function ResetPasswordPage() {
                   onClick={() => setShowPw((v) => !v)}
                   aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 표시'}
                   className="absolute inset-y-0 right-1 my-auto h-10 w-10 flex items-center justify-center rounded-md hover:bg-black/5 transition"
-                  style={{ color: 'var(--muted)' }}
+                  style={{ color: 'var(--fd-muted)' }}
                   tabIndex={-1}
                 >
                   {showPw ? (
@@ -252,7 +252,7 @@ export default function ResetPasswordPage() {
               <label
                 className="block text-[11px] font-bold mb-1.5"
                 htmlFor="confirm-password"
-                style={{ color: 'var(--text)' }}
+                style={{ color: 'var(--fd-pine)' }}
               >
                 새 비밀번호 확인
               </label>
@@ -266,9 +266,9 @@ export default function ResetPasswordPage() {
                   onChange={(e) => setConfirm(e.target.value)}
                   className="w-full px-4 py-3 pr-11 rounded-lg border text-[16px] focus:outline-none transition"
                   style={{
-                    borderColor: mismatch ? 'var(--sale)' : 'var(--rule-2)',
-                    background: '#FDFDFD',
-                    color: 'var(--text)',
+                    borderColor: mismatch ? 'var(--sale)' : 'var(--fd-line)',
+                    background: '#FFFFFF',
+                    color: 'var(--fd-pine)',
                   }}
                   placeholder="비밀번호 다시 입력"
                 />
@@ -277,7 +277,7 @@ export default function ResetPasswordPage() {
                   onClick={() => setShowPw2((v) => !v)}
                   aria-label={showPw2 ? '비밀번호 숨기기' : '비밀번호 표시'}
                   className="absolute inset-y-0 right-1 my-auto h-10 w-10 flex items-center justify-center rounded-md hover:bg-black/5 transition"
-                  style={{ color: 'var(--muted)' }}
+                  style={{ color: 'var(--fd-muted)' }}
                   tabIndex={-1}
                 >
                   {showPw2 ? (
@@ -322,12 +322,14 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={updating || mismatch || password.length < 6}
-              className="w-full py-4 rounded-full font-bold text-[13.5px] active:scale-[0.98] transition-all disabled:opacity-50"
+              className="w-full font-bold text-[14px] active:translate-y-[1px] transition-all disabled:opacity-50"
               style={{
-                background: 'var(--ink)',
-                color: 'var(--bg)',
+                height: 56,
+                borderRadius: 9999,
+                background: 'var(--fd-pine)',
+                color: '#FFFFFF',
                 letterSpacing: '-0.01em',
-                boxShadow: '0 4px 14px rgba(30,26,20,0.25)',
+                boxShadow: '0 6px 18px -8px rgba(23,59,51,0.5)',
               }}
             >
               {updating ? '변경 중...' : '비밀번호 변경'}

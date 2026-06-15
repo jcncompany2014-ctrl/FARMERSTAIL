@@ -34,25 +34,25 @@ export function renderPersonalizationCycle(
         <span style="
           display:inline-block;
           background:#FFFFFF;
-          color:#3D2B1F;
+          color:#173B33;
           font-size:11px;
           font-weight:700;
           padding:4px 10px;
           border-radius:99px;
           margin:0 4px 6px 0;
-          box-shadow:inset 0 0 0 1px #EDE6D8;
+          box-shadow:inset 0 0 0 1px #DCD6C4;
         ">${escape(label)}</span>`,
     )
     .join('')
 
   const calloutHtml = `
-    <div style="font-size:11px;font-weight:800;color:#A0452E;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;">
+    <div style="font-size:11px;font-weight:800;color:#B63619;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;">
       이번 달 메인
     </div>
-    <div style="font-family:Pretendard,sans-serif;font-size:22px;font-weight:800;color:#2E1F14;letter-spacing:-0.02em;line-height:1.2;">
+    <div style="font-family:Pretendard,sans-serif;font-size:22px;font-weight:800;color:#173B33;letter-spacing:-0.02em;line-height:1.2;">
       ${escape(input.mainLineName)} ${input.mainLinePct}%
     </div>
-    <div style="font-size:13px;color:#7A7A7A;margin-top:4px;">
+    <div style="font-size:13px;color:#5A6C61;margin-top:4px;">
       ${escape(input.mainLineSubtitle)}
     </div>
   `
@@ -62,7 +62,7 @@ export function renderPersonalizationCycle(
       ${escape(input.recipientName)}님, 안녕하세요.
     </p>
     <p style="margin:0 0 18px 0;">
-      <strong style="color:#1E1A14;">${escape(input.dogName)}이의
+      <strong style="color:#173B33;">${escape(input.dogName)}이의
       ${input.cycleNumber}번째 박스</strong>가 준비됐어요. 그동안의 체크인
       응답을 반영해 비율을 조정했어요.
     </p>
@@ -73,7 +73,7 @@ export function renderPersonalizationCycle(
       reasoningChips
         ? `
     <div style="margin:22px 0 8px 0;">
-      <div style="font-size:11px;font-weight:700;color:#7A7A7A;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:8px;">
+      <div style="font-size:11px;font-weight:700;color:#5A6C61;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:8px;">
         결정 근거
       </div>
       <div>${reasoningChips}</div>
@@ -81,15 +81,15 @@ export function renderPersonalizationCycle(
         : ''
     }
 
-    <p style="margin:24px 0 0 0;font-size:13px;color:#3D2B1F;line-height:1.7;">
+    <p style="margin:24px 0 0 0;font-size:13px;color:#173B33;line-height:1.7;">
       라인별 분배, 토퍼 비중, 이번 cycle 의 결정 이유 — 모두 박스 페이지에서
       확인할 수 있어요. 마음에 안 드는 부분이 있으면 직접 비율을 조정할 수도
       있어요.
     </p>
 
-    <p style="margin:18px 0 0 0;font-size:11px;color:#7A7A7A;line-height:1.65;">
+    <p style="margin:18px 0 0 0;font-size:11px;color:#5A6C61;line-height:1.65;">
       박스가 도착하기 약 일주일 전에 정기 결제가 진행돼요. 바꾸고 싶은 게 있다면
-      <a href="${SITE_URL}/mypage/subscriptions" style="color:#A0452E;">구독 관리</a>
+      <a href="${SITE_URL}/mypage/subscriptions" style="color:#B63619;">구독 관리</a>
       에서 언제든 조정할 수 있어요.
     </p>
   `

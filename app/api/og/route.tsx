@@ -2,14 +2,16 @@ import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
 
-// Brand palette
-const CREAM = '#F5F0E6'
-const CREAM_DEEP = '#EDE6D8'
-const INK = '#3D2B1F'
-const TERRA = '#A0452E'
-const OLIVE = '#6B7F3A'
-const GOLD = '#D4B872'
-const MUTE = '#8A7668'
+// FD 브랜드 팔레트 — ImageResponse(edge)는 globals var(--fd-*) 를 못 쓰므로
+// 헥스 inline mirror. globals.css 가 바뀌면 여기도 맞춰야 한다(회차171: 옛 v4
+// warm-brown → FD 동기화. 공유 카드가 옛 브랜드색으로 렌더되던 결손 해소).
+const CREAM = '#F7F5F0' // --fd-offwhite
+const CREAM_DEEP = '#EFEADF' // 깊은 cream(그라데이션용)
+const INK = '#173B33' // --fd-pine
+const TERRA = '#B63619' // --fd-coral-text (accent, cream 위 AA)
+const OLIVE = '#3C725E' // --fd-green
+const GOLD = '#B8893A' // 따뜻한 editorial accent(FD 톤)
+const MUTE = '#5A6C61' // --fd-muted
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)

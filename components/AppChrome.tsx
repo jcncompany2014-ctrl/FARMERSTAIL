@@ -447,12 +447,12 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               <span className="flex items-center justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/logo.png"
+                  src="/logo-brush.png"
                   alt="Farmer's Tail"
                   className="h-12 w-auto"
                   // LCP 후보 — 헤더 로고가 첫 viewport 가장 큰 가시 요소.
                   fetchPriority="high"
-                  style={{ filter: 'var(--logo-filter, brightness(0))' }}
+                  style={{ filter: 'none' }}
                 />
               </span>
             )}

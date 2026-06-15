@@ -68,6 +68,17 @@ const SITE_NAME_EN = "Farmer's Tail"
 const LOGO_URL = `${SITE_URL}/icons/icon-512.png`
 
 /**
+ * 브랜드 공식 소셜/채널 — SSOT.
+ * Organization JSON-LD 의 `sameAs`(검색엔진 동일-엔티티 병합)와 FdFooter 의
+ * "Connect" 가 이 한 배열을 공유한다. 새 채널 추가/변경 시 여기 한 곳만 수정하면
+ * 구조화데이터와 푸터가 동시에 갱신된다. (가짜 채널 금지 — 실재 계정만.)
+ */
+export const SOCIAL_PROFILES: { label: string; href: string }[] = [
+  { label: 'Instagram', href: 'https://www.instagram.com/farmerstail' },
+  { label: '네이버 블로그', href: 'https://blog.naver.com/farmerstail' },
+]
+
+/**
  * Organization + LocalBusiness 혼합 스키마. 브랜드 검색 시 Knowledge Panel 에
  * 노출될 핵심 정보. sameAs 에 SNS 링크가 있으면 동일 엔티티로 병합해준다.
  */
@@ -82,10 +93,7 @@ export function buildOrganizationJsonLd() {
     logo: LOGO_URL,
     description:
       '수의영양학 기반 레시피로 만든 프리미엄 반려견 식품 브랜드. Farm to Tail.',
-    sameAs: [
-      'https://www.instagram.com/farmerstail',
-      'https://blog.naver.com/farmerstail',
-    ],
+    sameAs: SOCIAL_PROFILES.map((s) => s.href),
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer service',

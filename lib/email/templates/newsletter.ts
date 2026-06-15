@@ -79,7 +79,7 @@ export function renderUnsubscribeAck(input: {
       'moss',
       `더 이상 ${escape(channelLabel)} 마케팅 메시지를 보내드리지 않아요. 거래·배송·결제 안내처럼 서비스 이용에 꼭 필요한 메시지는 계속 발송돼요.`,
     )}
-    <p style="margin:14px 0 0 0;font-size:11.5px;color:#7A7A7A;line-height:1.6;">
+    <p style="margin:14px 0 0 0;font-size:11.5px;color:#5A6C61;line-height:1.6;">
       마음이 바뀌셨거나 다시 받고 싶다면 언제든 마이페이지의 알림 설정에서
       재구독하실 수 있어요.
     </p>

@@ -21,14 +21,15 @@
 import { useEffect, useState } from 'react'
 import * as Sentry from '@sentry/nextjs'
 
-// 브랜드 토큰 inline mirror — globals.css 없이도 쓰려고 복제.
-// globals.css가 바뀌면 여기도 수동으로 맞춰야 한다.
+// FD 브랜드 토큰 inline mirror — globals.css 없이도 쓰려고 복제(루트 layout 붕괴
+// 시엔 var(--fd-*) 가 안 잡힘). globals.css 가 바뀌면 여기도 수동으로 맞춰야 한다.
+// (회차170: 옛 v4 warm-brown → FD 팔레트로 동기화. accent 는 흰 텍스트 AA pass.)
 const TOKENS = {
-  bg: '#F5F0E6',
-  text: '#3D2B1F',
-  muted: '#8A7668',
-  terracotta: '#A0452E',
-  rule: '#D9CFBB',
+  bg: '#F7F5F0', // --fd-offwhite
+  text: '#173B33', // --fd-pine
+  muted: '#5A6C61', // --fd-muted
+  terracotta: '#B63619', // --fd-coral-text (흰 텍스트 버튼 배경, AA pass)
+  rule: '#DCD6C4', // --fd-line
 } as const
 
 export default function GlobalError({

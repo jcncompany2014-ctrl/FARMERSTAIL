@@ -24,7 +24,7 @@ const EFFECTIVE_DATE = '2026-05-27'
  */
 export default function RefundPage() {
   return (
-    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--bg)" }}>
+    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--fd-offwhite)" }}>
       <LegalDocument
         eyebrow="Refund Policy"
         title="환불 정책"
@@ -92,7 +92,7 @@ export default function RefundPage() {
           </UL>
           <p
             className="mt-2 text-[11.5px]"
-            style={{ color: 'var(--muted)' }}
+            style={{ color: 'var(--fd-muted)' }}
           >
             ※ 단순 개봉 후 미섭취 상태의 반품은 가능 여부를 고객센터에
             먼저 문의해 주세요.
@@ -225,7 +225,7 @@ export default function RefundPage() {
             <a
               href={`mailto:${business.email}`}
               className="font-bold hover:underline"
-              style={{ color: 'var(--terracotta)' }}
+              style={{ color: 'var(--fd-coral)' }}
             >
               {business.email}
             </a>{' '}
@@ -233,7 +233,7 @@ export default function RefundPage() {
             <a
               href={`tel:${business.phone}`}
               className="font-bold hover:underline"
-              style={{ color: 'var(--terracotta)' }}
+              style={{ color: 'var(--fd-coral)' }}
             >
               {business.phone}
             </a>
@@ -241,7 +241,7 @@ export default function RefundPage() {
             <Link
               href="/legal/terms"
               className="font-bold hover:underline"
-              style={{ color: 'var(--terracotta)' }}
+              style={{ color: 'var(--fd-coral)' }}
             >
               이용약관
             </Link>

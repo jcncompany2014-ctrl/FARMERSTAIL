@@ -7,7 +7,7 @@ export default function BlogLoading() {
   return (
     <main
       className="min-h-screen pb-12"
-      style={{ background: 'var(--bg)' }}
+      style={{ background: 'var(--fd-offwhite)' }}
     >
       <section className="px-5 pt-7">
         <Skeleton className="h-2.5 w-24" />

@@ -1,12 +1,14 @@
-import AuthAwareShell from '@/components/AuthAwareShell'
-
-// /science 는 형제 에디토리얼 페이지(/brand·/about·/partners 등)와 달리 layout
-// 이 없어 헤더/카테고리 네비/푸터(사업자정보) 없이 floating 컬럼으로 렌더됐다.
-// /brand/layout 과 동일하게 WebChrome 으로 감싸 전역 chrome 을 복원한다.
+/**
+ * /science 레이아웃 — pass-through (앱/웹 완벽분리, 2026-06-13 사장님 지시).
+ *
+ * 이전: AuthAwareShell → PWA 에서 AppChrome 가 깔려 페이지의 WebChrome 와
+ * 이중 래핑. /science 페이지가 직접 WebChrome 를 렌더하므로 레이아웃은
+ * chrome 을 강제하지 않는다(웹 전용 고정).
+ */
 export default function ScienceLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <AuthAwareShell>{children}</AuthAwareShell>
+  return children
 }

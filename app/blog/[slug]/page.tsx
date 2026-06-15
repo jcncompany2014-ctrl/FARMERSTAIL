@@ -5,12 +5,14 @@ import { notFound } from 'next/navigation'
 import { cache } from 'react'
 import { BookOpen, Eye, ArrowUpRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import AuthAwareShell from '@/components/AuthAwareShell'
+import WebChrome from '@/components/WebChrome'
 import ShareButton from '@/components/ShareButton'
 import { renderMarkdown } from '@/lib/markdown'
 import { BLUR_BG2 } from '@/lib/ui/blur'
 import JsonLd from '@/components/JsonLd'
 import { buildArticleJsonLd, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
+import { Container, Display, Eyebrow, Section } from '@/components/web/fd/ui'
+import StickyCta from '@/components/web/fd/StickyCta'
 
 /**
  * /blog/[slug] — 매거진 상세.
@@ -174,208 +176,153 @@ export default async function BlogPostPage({ params }: { params: Params }) {
     { name: post.title, path: `/blog/${post.slug}` },
   ])
 
+  // 읽는 시간 추정 — 한국어 ~500자/분, 마크업 제거 후 길이 기준, 최소 1분(회차122).
+  const readingMin = Math.max(
+    1,
+    Math.round((post.content || '').replace(/<[^>]+>/g, '').length / 500),
+  )
+
   return (
-    <AuthAwareShell>
-      <article className="mx-auto" style={{ maxWidth: 820, background: 'var(--bg)' }}>
-      <JsonLd id={`ld-article-${post.slug}`} data={articleLd} />
-      <JsonLd id={`ld-breadcrumb-blog-${post.slug}`} data={breadcrumbLd} />
-      <div className="px-5 md:px-8 pt-5 md:pt-7">
-        <Link
-          href="/blog"
-          className="inline-flex items-center gap-0.5 text-[11px] md:text-[12.5px] font-bold transition"
-          style={{ color: 'var(--muted)' }}
-        >
-          ← 매거진
-        </Link>
-      </div>
-      {/* ── Cover ──────────────────────────────────────── */}
-      {post.cover_url ? (
-        <div
-          className="relative w-full aspect-[16/9] overflow-hidden mt-3 md:mt-5 md:rounded-2xl"
-          style={{ background: '#E4DBC2' }}
-        >
-          <Image
-            src={post.cover_url}
-            alt={post.title}
-            fill
-            priority
-            sizes="(max-width: 768px) 100vw, 820px"
-            className="object-cover"
-          />
-        </div>
-      ) : (
-        <div
-          className="w-full aspect-[16/9] flex items-center justify-center mt-3 md:mt-5 md:rounded-2xl"
-          style={{ background: '#E4DBC2' }}
-        >
-          <BookOpen
-            className="w-12 h-12 md:w-16 md:h-16"
-            strokeWidth={1.2}
-            color="var(--ink)"
-            style={{ opacity: 0.35 }}
-          />
-        </div>
-      )}
+    <WebChrome cartCount={0}>
+      <main>
+        <JsonLd id={`ld-article-${post.slug}`} data={articleLd} />
+        <JsonLd id={`ld-breadcrumb-blog-${post.slug}`} data={breadcrumbLd} />
 
-      {/* ── Header ─────────────────────────────────────── */}
-      <header className="px-5 md:px-8 pt-6 md:pt-10 pb-4 md:pb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="kicker" style={{ color: 'var(--terracotta)' }}>
-            Article · 매거진
-          </span>
-          <div
-            className="flex-1 h-px"
-            style={{ background: 'var(--rule-2)' }}
-          />
-        </div>
+        {/* Header */}
+        <Section bg="offwhite" pad="sm">
+          <Container size="md">
+            <Link
+              href="/blog"
+              className="inline-flex items-center gap-1 no-underline text-[13px]"
+              style={{ color: 'var(--fd-muted)', fontWeight: 700 }}
+            >
+              ← 매거진
+            </Link>
+            <div className="pt-5">
+              {cat && (
+                <Link href={`/blog?category=${cat.slug}`} className="no-underline">
+                  <Eyebrow>{cat.name}</Eyebrow>
+                </Link>
+              )}
+              <Display as="h1" size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
+                {post.title}
+              </Display>
+              {post.excerpt && (
+                <p className="pt-4 text-[14px] md:text-[17px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>
+                  {post.excerpt}
+                </p>
+              )}
+              <div className="pt-5 flex items-center gap-3 text-[12px] flex-wrap" style={{ color: 'var(--fd-muted)' }}>
+                <span>{formatDate(post.published_at)}</span>
+                <span style={{ opacity: 0.5 }}>·</span>
+                <span>{readingMin}분 읽기</span>
+                <span style={{ opacity: 0.5 }}>·</span>
+                <span className="inline-flex items-center gap-1">
+                  <Eye className="w-3.5 h-3.5" strokeWidth={2} />
+                  {(post.views ?? 0).toLocaleString()}
+                </span>
+                <span className="ml-auto">
+                  <ShareButton
+                    url={`/blog/${post.slug}`}
+                    title={post.title}
+                    description={post.excerpt ?? undefined}
+                    imageUrl={post.cover_url ?? undefined}
+                  />
+                </span>
+              </div>
+            </div>
+          </Container>
+        </Section>
 
-        {cat && (
-          <Link
-            href={`/blog?category=${cat.slug}`}
-            className="inline-block transition"
-          >
-            <span className="kicker kicker-moss">{cat.name}</span>
-          </Link>
-        )}
-        <h1
-          className="font-serif mt-2 md:mt-3 leading-tight text-[26px] md:text-[40px] lg:text-[48px]"
-          style={{
-            fontWeight: 900,
-            color: 'var(--ink)',
-            letterSpacing: '-0.025em',
-          }}
-        >
-          {post.title}
-        </h1>
-        {post.excerpt && (
-          <p
-            className="mt-3 md:mt-5 text-[13px] md:text-[16px] leading-relaxed"
-            style={{ color: 'var(--muted)' }}
-          >
-            {post.excerpt}
-          </p>
-        )}
-        <div
-          className="mt-4 md:mt-6 flex items-center gap-3 text-[11px] md:text-[12.5px] flex-wrap"
-          style={{ color: 'var(--muted)' }}
-        >
-          <span>{formatDate(post.published_at)}</span>
-          <span style={{ opacity: 0.5 }}>·</span>
-          <span className="inline-flex items-center gap-1">
-            <Eye className="w-3 h-3 md:w-3.5 md:h-3.5" strokeWidth={2} />
-            {(post.views ?? 0).toLocaleString()}
-          </span>
-          <span className="ml-auto">
-            <ShareButton
-              url={`/blog/${post.slug}`}
-              title={post.title}
-              description={post.excerpt ?? undefined}
-              imageUrl={post.cover_url ?? undefined}
-            />
-          </span>
-        </div>
-      </header>
+        {/* Cover */}
+        <Container size="md" className="pb-2">
+          {post.cover_url ? (
+            <div className="relative w-full aspect-[16/9] overflow-hidden" style={{ background: 'var(--fd-cream)', borderRadius: 8 }}>
+              <Image
+                src={post.cover_url}
+                alt={post.title}
+                fill
+                priority
+                sizes="(max-width: 768px) 100vw, 760px"
+                className="object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-full aspect-[16/9] flex items-center justify-center" style={{ background: 'var(--fd-cream)', borderRadius: 8 }}>
+              <BookOpen className="w-12 h-12 md:w-16 md:h-16" strokeWidth={1.2} color="var(--fd-green)" style={{ opacity: 0.4 }} />
+            </div>
+          )}
+        </Container>
 
-      {/* ── Rule ───────────────────────────────────────── */}
-      <div className="px-5 md:px-8">
-        <div
-          className="h-px"
-          style={{ background: 'var(--rule-2)' }}
-        />
-      </div>
-
-      {/* ── Body ───────────────────────────────────────── */}
-      <article className="px-5 md:px-8 pt-6 md:pt-10">
-        <div
-          className="ft-md text-[14px] md:text-[17px]"
-          style={{
-            color: 'var(--text)',
-            lineHeight: 1.85,
-          }}
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
-        />
-      </article>
-
-      {/* ── Related ────────────────────────────────────── */}
-      {relatedPosts.length > 0 && (
-        <section className="px-5 md:px-8 mt-12 md:mt-16 pb-12 md:pb-20">
-          <div className="flex items-center gap-2 mb-3 md:mb-5">
-            <span className="kicker kicker-muted">Related</span>
+        {/* Body */}
+        <Section bg="offwhite" pad="md">
+          <Container size="md">
             <div
-              className="flex-1 h-px"
-              style={{ background: 'var(--rule-2)' }}
+              className="ft-md text-[15px] md:text-[17px]"
+              style={{ color: 'var(--fd-pine)', lineHeight: 1.85 }}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
             />
-          </div>
-          <ul className="space-y-3 md:grid md:grid-cols-3 md:gap-4 md:space-y-0">
-            {relatedPosts.map((r) => (
-              <li key={r.id}>
-                <Link
-                  href={`/blog/${r.slug}`}
-                  className="group block rounded-xl overflow-hidden transition active:scale-[0.99] h-full"
-                  style={{
-                    background: 'var(--bg-2)',
-                    boxShadow: 'inset 0 0 0 1px var(--rule)',
-                  }}
-                >
-                  <article className="flex md:flex-col gap-3 md:gap-0 h-full">
-                    <div
-                      className="relative shrink-0 w-24 aspect-square md:w-full md:aspect-[4/3] overflow-hidden"
-                      style={{ background: 'var(--rule-2)' }}
-                    >
+          </Container>
+        </Section>
+
+        {/* Related */}
+        {relatedPosts.length > 0 && (
+          <Section bg="cream" pad="md">
+            <Container size="lg">
+              <Eyebrow>RELATED</Eyebrow>
+              <h2 className="sr-only">관련 글</h2>
+              <div className="pt-5 grid grid-cols-2 md:grid-cols-3 gap-4">
+                {relatedPosts.map((r) => (
+                  <Link
+                    key={r.id}
+                    href={`/blog/${r.slug}`}
+                    className="group block no-underline"
+                    style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 8, overflow: 'hidden' }}
+                  >
+                    <div className="relative w-full aspect-[4/3] overflow-hidden" style={{ background: 'var(--fd-cream)' }}>
                       {r.cover_url ? (
                         <Image
                           src={r.cover_url}
                           alt={r.title}
                           fill
-                          sizes="(max-width: 768px) 96px, 260px"
+                          sizes="(max-width: 768px) 50vw, 260px"
                           loading="lazy"
                           placeholder="blur"
                           blurDataURL={BLUR_BG2}
-                          className="object-cover"
+                          className="object-cover group-hover:scale-[1.02] transition-transform duration-500"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <BookOpen
-                            className="w-5 h-5 md:w-7 md:h-7"
-                            strokeWidth={1.5}
-                            color="var(--ink)"
-                            style={{ opacity: 0.35 }}
-                          />
+                          <BookOpen className="w-7 h-7" strokeWidth={1.4} color="var(--fd-green)" style={{ opacity: 0.4 }} />
                         </div>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0 py-2.5 pr-3 md:p-4">
-                      <h3
-                        className="font-serif text-[13px] md:text-[15px] font-black leading-snug line-clamp-2"
-                        style={{
-                          color: 'var(--ink)',
-                          letterSpacing: '-0.01em',
-                        }}
-                      >
+                    <div className="p-4">
+                      <h3 className="text-[14px] line-clamp-2" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em', lineHeight: 1.3 }}>
                         {r.title}
                       </h3>
-                      <div className="mt-1.5 md:mt-3 flex items-center justify-between">
-                        <p
-                          className="text-[10px] md:text-[11px]"
-                          style={{ color: 'var(--muted)' }}
-                        >
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-[11px]" style={{ color: 'var(--fd-muted)', fontWeight: 600 }}>
                           {formatDate(r.published_at)}
                         </p>
-                        <ArrowUpRight
-                          className="w-3 h-3 md:w-3.5 md:h-3.5"
-                          strokeWidth={2.5}
-                          color="var(--terracotta)"
-                        />
+                        <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={2.5} color="var(--fd-coral)" />
                       </div>
                     </div>
-                  </article>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      </article>
-    </AuthAwareShell>
+                  </Link>
+                ))}
+              </div>
+            </Container>
+          </Section>
+        )}
+      </main>
+      {/*
+        FD 패턴: 기사 스크롤 끝에서 모바일 하단 sticky CTA(설문 퍼널). /blog
+        인덱스(회차98)와 동일 노출. 단 이 페이지는 ISR(revalidate 300) 최적화를
+        보존해야 하므로 isAuthed 분기를 위한 getUser 를 호출하지 않고 정적
+        /signup 으로 보낸다(authed 는 /signup 이 리다이렉트 처리 — not-found.tsx
+        회차125 선례와 동일). 캐시 보존 > authed/anon href 미세 구분.
+      */}
+      <StickyCta href="/signup" />
+    </WebChrome>
   )
 }

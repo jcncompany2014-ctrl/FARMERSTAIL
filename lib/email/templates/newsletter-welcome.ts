@@ -48,29 +48,29 @@ export function renderNewsletterWelcome(input: {
     ${block.callout(
       'moss',
       `<strong>· 이번 달의 영양 인사이트</strong> — BCS, 단백질 알레르기 같은 보호자 입장에서 알아두면 좋은 이야기<br />
-       <strong>· 이번 주의 추천 메뉴</strong> — 실제로 인기 많은 상품과 보호자분들 후기<br />
+       <strong>· 이번 주의 추천 메뉴</strong> — 그 주의 메뉴와, 산지·재료를 고른 기준<br />
        <strong>· 보호자 Q&amp;A</strong> — 자주 받는 질문에 수의영양 관점에서 답변`,
     )}
     <p style="margin:14px 0 0 0;">
       그리고 첫 메일이니, 작은 인사 하나 드릴게요.
       아래 쿠폰은 첫 주문에 자동으로 적용돼요. 따로 코드를 입력하실 필요 없어요.
     </p>
-    <div style="margin:18px 0 6px 0;background:#F3ECDC;border:1px solid #E6DDC8;border-radius:8px;padding:18px 20px;text-align:center;">
-      <div style="font-size:10px;color:#7A7A7A;letter-spacing:0.16em;text-transform:uppercase;font-weight:700;">First Order · 첫 주문</div>
-      <div style="margin-top:6px;font-size:20px;font-weight:800;color:#1E1A14;letter-spacing:-0.02em;">5,000원 할인</div>
-      <div style="margin-top:8px;font-size:11px;color:#7A7A7A;font-family:monospace;letter-spacing:0.04em;">ref: ${escape(code)}</div>
+    <div style="margin:18px 0 6px 0;background:#EFEADF;border:1px solid #DCD6C4;border-radius:8px;padding:18px 20px;text-align:center;">
+      <div style="font-size:10px;color:#5A6C61;letter-spacing:0.16em;text-transform:uppercase;font-weight:700;">First Order · 첫 주문</div>
+      <div style="margin-top:6px;font-size:20px;font-weight:800;color:#173B33;letter-spacing:-0.02em;">5,000원 할인</div>
+      <div style="margin-top:8px;font-size:11px;color:#5A6C61;font-family:monospace;letter-spacing:0.04em;">ref: ${escape(code)}</div>
     </div>
-    <p style="margin:14px 0 0 0;font-size:11.5px;color:#7A7A7A;line-height:1.6;">
+    <p style="margin:14px 0 0 0;font-size:11.5px;color:#5A6C61;line-height:1.6;">
       쿠폰은 결제 단계에서 자동으로 안내돼요. 다른 쿠폰과 중복 사용은 안 돼요.
     </p>
     <p style="margin:18px 0 0 0;">
       다음 메일에서 만나요.<br />
       — 파머스테일 드림
     </p>
-    <div style="margin-top:22px;padding-top:14px;border-top:1px solid #E6DDC8;font-size:10px;color:#9A9A9A;line-height:1.6;">
+    <div style="margin-top:22px;padding-top:14px;border-top:1px solid #DCD6C4;font-size:10px;color:#9A9A9A;line-height:1.6;">
       본 메일은 ${escape(input.email)} 으로 신청해 주신 파머스테일 뉴스레터예요.
       더 이상 받지 않으시려면
-      <a href="${escape(unsubscribeUrl)}" style="color:#7A7A7A;text-decoration:underline;">여기에서 수신거부</a> 하실 수 있어요.
+      <a href="${escape(unsubscribeUrl)}" style="color:#5A6C61;text-decoration:underline;">여기에서 수신거부</a> 하실 수 있어요.
     </div>
   `
 

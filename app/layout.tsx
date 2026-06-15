@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import {
   Archivo_Black,
+  Bungee,
   Cormorant_Garamond,
   Gaegu,
   JetBrains_Mono,
@@ -72,6 +73,17 @@ const archivoBlack = Archivo_Black({
   weight: ["400"],
   display: "swap",
   variable: "--font-archivo",
+});
+
+// Bungee — farm v5 영문/숫자 디스플레이 (2026-06-13, Monchies 레퍼런스 채택).
+// 통통하고 각진 대문자 디스플레이 — 제목 영문·숫자·로고에만. 한글 글리프 없음
+// → 한글 헤드라인은 Pretendard 900 이 담당 (.font-chunky 가 자동 폴백).
+// 절제 사용: 전면 도배 금지 (전단지化 방지). 앱(data-ft-chrome="app")엔 미사용.
+const bungee = Bungee({
+  subsets: ["latin"],
+  weight: ["400"],
+  display: "swap",
+  variable: "--font-chunky",
 });
 
 // 개구체 (Gaegu) — farm v4 포인트 손글씨 (Q6, 사장님 결정 B).
@@ -243,7 +255,7 @@ export default function RootLayout({
       // 애니메이션을 유발한다. 이 속성을 달면 Next 가 route transition 동안만
       // 일시적으로 smooth 를 끄고, 같은 페이지 내 앵커 이동에서는 유지해 준다.
       data-scroll-behavior="smooth"
-      className={`h-full antialiased ${pretendard.variable} ${maruBuri.variable} ${gaegu.variable} ${archivoBlack.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable}`}
+      className={`h-full antialiased ${pretendard.variable} ${maruBuri.variable} ${gaegu.variable} ${archivoBlack.variable} ${bungee.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         {/*
@@ -297,7 +309,7 @@ export default function RootLayout({
         */}
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-ink focus:text-bg focus:rounded-md focus:font-bold focus:text-sm"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-[var(--fd-pine)] focus:text-white focus:rounded-md focus:font-bold focus:text-sm"
         >
           본문 바로가기
         </a>

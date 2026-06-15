@@ -44,7 +44,8 @@ export default function AppError({
           도움이 필요하신가요?{' '}
           <a
             href={`mailto:${business.email}`}
-            className="font-bold underline underline-offset-2 text-terracotta"
+            className="font-bold underline underline-offset-2"
+            style={{ color: 'var(--fd-coral-text)' }}
           >
             고객센터 문의
           </a>

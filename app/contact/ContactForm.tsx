@@ -107,18 +107,18 @@ export default function ContactForm() {
     return (
       <div className="text-center py-6 md:py-10">
         <div className="inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-full mb-4 md:mb-5"
-          style={{ background: 'color-mix(in srgb, var(--moss) 16%, transparent)' }}>
-          <CheckCircle2 className="w-6 h-6 md:w-7 md:h-7" strokeWidth={2} color="var(--moss)" />
+          style={{ background: 'color-mix(in srgb, var(--fd-green) 16%, transparent)' }}>
+          <CheckCircle2 className="w-6 h-6 md:w-7 md:h-7" strokeWidth={2} color="var(--fd-green)" />
         </div>
         <h3
-          className="font-serif text-[18px] md:text-[24px] font-black mb-2 md:mb-3"
-          style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
+          className="text-[18px] md:text-[24px] font-black mb-2 md:mb-3"
+          style={{ color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}
         >
           메시지 잘 받았어요.
         </h3>
         <p
           className="text-[12.5px] md:text-[14px] leading-relaxed mb-5 md:mb-6"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--fd-muted)' }}
         >
           평일 영업일 24시간 이내, 가능하면 더 빨리 답변드릴게요.
           <br />입력하신 이메일로 접수 확인 메일도 함께 보냈어요.
@@ -127,7 +127,7 @@ export default function ContactForm() {
           type="button"
           onClick={() => setStatus('idle')}
           className="text-[12px] md:text-[13px] font-bold underline underline-offset-2 hover:opacity-70"
-          style={{ color: 'var(--terracotta)' }}
+          style={{ color: 'var(--fd-coral-text)' }}
         >
           다른 문의 보내기
         </button>
@@ -164,10 +164,10 @@ export default function ContactForm() {
           id="ft-category"
           name="category"
           defaultValue={defaultCategory}
-          className="w-full px-3 py-2.5 md:py-3 rounded text-[13px] md:text-[14px] bg-bg focus:outline-none transition"
+          className="w-full px-3 py-2.5 md:py-3 rounded text-[13px] md:text-[14px] bg-white focus:outline-none transition"
           style={{
-            boxShadow: 'inset 0 0 0 1px var(--rule)',
-            color: 'var(--ink)',
+            boxShadow: 'inset 0 0 0 1px var(--fd-line)',
+            color: 'var(--fd-pine)',
           }}
         >
           {CATEGORIES.map((c) => (
@@ -189,10 +189,10 @@ export default function ContactForm() {
           rows={6}
           defaultValue={defaultMessage}
           placeholder="자세한 내용을 적어 주세요. (10자 이상)"
-          className="w-full px-3 py-2.5 md:py-3 rounded text-[13px] md:text-[14px] bg-bg focus:outline-none transition resize-y leading-relaxed"
+          className="w-full px-3 py-2.5 md:py-3 rounded text-[13px] md:text-[14px] bg-white focus:outline-none transition resize-y leading-relaxed"
           style={{
-            boxShadow: 'inset 0 0 0 1px var(--rule)',
-            color: 'var(--ink)',
+            boxShadow: 'inset 0 0 0 1px var(--fd-line)',
+            color: 'var(--fd-pine)',
             minHeight: 140,
           }}
         />
@@ -223,17 +223,17 @@ export default function ContactForm() {
       <div className="flex items-center justify-between gap-3 pt-1">
         <p
           className="text-[10.5px] md:text-[11.5px] leading-relaxed flex-1"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--fd-muted)' }}
         >
           개인정보 처리방침에 따라 문의 응대 목적에만 사용됩니다.
         </p>
         <button
           type="submit"
           disabled={status === 'submitting'}
-          className="px-5 py-2.5 md:px-7 md:py-3 rounded text-[12px] md:text-[14px] font-bold transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          className="px-6 py-2.5 md:px-8 md:py-3.5 rounded-full text-[12px] md:text-[14px] font-bold transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           style={{
-            background: 'var(--ink)',
-            color: 'var(--bg)',
+            background: 'var(--fd-pine)',
+            color: '#FFFFFF',
             letterSpacing: '-0.01em',
           }}
         >
@@ -276,10 +276,10 @@ function Field({
         placeholder={placeholder}
         autoComplete={autoComplete}
         inputMode={inputMode}
-        className="w-full px-3 py-2.5 md:py-3 rounded text-[13px] md:text-[14px] bg-bg focus:outline-none transition"
+        className="w-full px-3 py-2.5 md:py-3 rounded text-[13px] md:text-[14px] bg-white focus:outline-none transition"
         style={{
-          boxShadow: 'inset 0 0 0 1px var(--rule)',
-          color: 'var(--ink)',
+          boxShadow: 'inset 0 0 0 1px var(--fd-line)',
+          color: 'var(--fd-pine)',
         }}
       />
     </div>
@@ -298,7 +298,7 @@ function Label({
       htmlFor={htmlFor}
       className="block mb-1.5 md:mb-2 text-[11px] md:text-[12px] font-bold"
       style={{
-        color: 'var(--muted)',
+        color: 'var(--fd-muted)',
         letterSpacing: '0.08em',
         textTransform: 'uppercase',
       }}

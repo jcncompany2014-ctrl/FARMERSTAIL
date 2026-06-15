@@ -12,7 +12,8 @@ import AuthAwareShell from '@/components/AuthAwareShell'
  */
 
 export const metadata: Metadata = {
-  title: '약관 · 정책 | 파머스테일',
+  // layout template "%s | 파머스테일" 가 브랜드명 1회 부착 → 페이지명만(중복 방지, 회차152).
+  title: '약관 · 정책',
   description: '이용약관 · 개인정보처리방침 · 환불 정책 · 사업자 정보 · 자주 묻는 질문 · 문의하기',
   alternates: { canonical: '/legal' },
   robots: { index: true, follow: true },
@@ -62,39 +63,39 @@ export default function LegalHubPage() {
     <AuthAwareShell>
       <main className="pb-12 px-5 max-w-md mx-auto">
       <section className="pt-6 pb-2">
-        <span className="kicker">Legal · 정책</span>
+        <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--fd-green)' }}>Legal · 정책</span>
         <h1
-          className="font-serif mt-1.5"
+          className="mt-1.5"
           style={{
             fontSize: 22,
             fontWeight: 800,
-            color: 'var(--ink)',
+            color: 'var(--fd-pine)',
             letterSpacing: '-0.02em',
           }}
         >
           약관 · 정책
         </h1>
-        <p className="text-[12px] text-muted mt-2 leading-relaxed">
+        <p className="text-[12px] text-[var(--fd-muted)] mt-2 leading-relaxed">
           전자상거래법·개인정보보호법·정보통신망법에 따른 표시 의무 항목이에요.
         </p>
       </section>
 
       <section className="mt-4">
-        <ul className="bg-white rounded-2xl border border-rule overflow-hidden">
+        <ul className="bg-white rounded-[12px] border border-[var(--fd-line)] overflow-hidden">
           {ITEMS.map(({ href, Icon, label, desc }, i) => (
             <li key={href}>
               <Link
                 href={href}
-                className={`flex items-center gap-3 px-4 py-3.5 hover:bg-bg transition ${
-                  i < ITEMS.length - 1 ? 'border-b border-rule' : ''
+                className={`flex items-center gap-3 px-4 py-3.5 hover:bg-[var(--fd-cream)] transition ${
+                  i < ITEMS.length - 1 ? 'border-b border-[var(--fd-line)]' : ''
                 }`}
               >
-                <Icon className="w-4 h-4 text-text" strokeWidth={1.5} />
+                <Icon className="w-4 h-4 text-[var(--fd-pine)]" strokeWidth={1.5} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-bold text-text">{label}</div>
-                  <div className="text-[11px] text-muted mt-0.5">{desc}</div>
+                  <div className="text-[13px] font-bold text-[var(--fd-pine)]">{label}</div>
+                  <div className="text-[11px] text-[var(--fd-muted)] mt-0.5">{desc}</div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted" strokeWidth={2} />
+                <ChevronRight className="w-4 h-4 text-[var(--fd-muted)]" strokeWidth={2} />
               </Link>
             </li>
           ))}

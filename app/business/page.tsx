@@ -3,15 +3,43 @@ import Link from 'next/link'
 import { Building2, ExternalLink } from 'lucide-react'
 import { business, ftcLookupUrl } from '@/lib/business'
 import AuthAwareShell from "@/components/AuthAwareShell"
+import { Eyebrow } from '@/components/web/fd/ui'
+import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
+import JsonLd from '@/components/JsonLd'
 
 // 1시간 ISR — 사업자 정보 변경 빈도 낮음. 통신판매 신고번호 등록 시
 // revalidatePath('/business') 로 강제 갱신.
 export const revalidate = 3600
 
+const BUSINESS_OG = ogImageUrl({
+  title: '사업자 정보',
+  subtitle: '사업자 등록 · 통신판매 신고 · 고객센터',
+  tag: 'Business',
+  variant: 'editorial',
+})
+
 export const metadata: Metadata = {
   title: '사업자 정보',
   description:
     '파머스테일 사업자 등록 정보, 통신판매업 신고번호, 고객센터 안내.',
+  alternates: { canonical: '/business' },
+  openGraph: {
+    title: '사업자 정보 | 파머스테일',
+    description:
+      '파머스테일 사업자 등록 정보, 통신판매업 신고번호, 고객센터 안내.',
+    type: 'website',
+    locale: 'ko_KR',
+    siteName: '파머스테일',
+    url: '/business',
+    images: [{ url: BUSINESS_OG, width: 1200, height: 630, alt: '사업자 정보' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '사업자 정보 | 파머스테일',
+    description:
+      '파머스테일 사업자 등록 정보, 통신판매업 신고번호, 고객센터 안내.',
+    images: [BUSINESS_OG],
+  },
   robots: { index: true, follow: true },
 }
 
@@ -22,21 +50,29 @@ export const metadata: Metadata = {
  * 전자우편/사업자등록번호/통신판매업 신고번호를 소비자가 쉽게
  * 확인할 수 있도록 이 한 페이지에 모두 모아 둔다.
  *
- * 톤: /blog, /products와 통일 — kicker + serif + paper-tone 카드 + 토큰.
+ * 톤: FD 디자인시스템 — Eyebrow + Pretendard 헤비 + 흰 카드 + --fd-* 토큰
+ * (farm v6, 2026-06-14 회차24). AuthAwareShell·사업자 데이터·법정 구조 보존.
  */
 export default function BusinessPage() {
   const ftcLink = ftcLookupUrl()
 
+  // 검색엔진용 BreadcrumbList 구조화데이터(회차124, breadcrumb 커버리지 마무리).
+  const crumbLd = buildBreadcrumbJsonLd([
+    { name: '홈', path: '/' },
+    { name: '사업자 정보', path: '/business' },
+  ])
+
   return (
-    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--bg)" }}>
+    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--fd-offwhite)" }}>
+      <JsonLd id="ld-business-crumbs" data={crumbLd} />
       {/* ── Hero ───────────────────────────────────────── */}
       <section className="px-5 md:px-6 pt-8 md:pt-16 pb-2 md:pb-6 text-center">
-        <span className="kicker">Business</span>
+        <Eyebrow>Business</Eyebrow>
         <h1
-          className="font-serif mt-3 md:mt-5 leading-tight text-[26px] md:text-[48px] lg:text-[56px]"
+          className="mt-3 md:mt-5 leading-tight text-[26px] md:text-[48px] lg:text-[56px]"
           style={{
             fontWeight: 900,
-            color: 'var(--ink)',
+            color: 'var(--fd-pine)',
             letterSpacing: '-0.025em',
           }}
         >
@@ -44,7 +80,7 @@ export default function BusinessPage() {
         </h1>
         <p
           className="mx-auto mt-3 md:mt-5 text-[12px] md:text-[15px] leading-relaxed max-w-[300px] md:max-w-[480px]"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--fd-muted)' }}
         >
           전자상거래법 제10조에 따라 파머스테일의 사업자 등록 정보를
           공개합니다.
@@ -54,39 +90,39 @@ export default function BusinessPage() {
       {/* ── Registry Card ─────────────────────────────── */}
       <section className="px-5 md:px-6 mt-6 md:mt-8">
         <div className="flex items-center gap-2 mb-3">
-          <span className="kicker kicker-muted">Registry</span>
+          <Eyebrow color="var(--fd-muted)">Registry</Eyebrow>
           <div
             className="flex-1 h-px"
-            style={{ background: 'var(--rule-2)' }}
+            style={{ background: 'var(--fd-line)' }}
           />
         </div>
 
         <div
-          className="rounded-2xl px-5 py-5 md:px-8 md:py-7"
+          className="rounded-lg px-5 py-5 md:px-8 md:py-7"
           style={{
-            background: 'var(--bg-2)',
-            boxShadow: 'inset 0 0 0 1px var(--rule)',
+            background: '#FFFFFF',
+            boxShadow: 'inset 0 0 0 1px var(--fd-line)',
           }}
         >
           <div
             className="flex items-center gap-2.5 md:gap-4 pb-3 md:pb-5"
-            style={{ borderBottom: '1px solid var(--rule-2)' }}
+            style={{ borderBottom: '1px solid var(--fd-line)' }}
           >
             <div
               className="w-9 h-9 md:w-12 md:h-12 rounded-full flex items-center justify-center"
-              style={{ background: 'var(--bg)' }}
+              style={{ background: 'var(--fd-offwhite)' }}
             >
               <Building2
                 className="w-4 h-4 md:w-5 md:h-5"
                 strokeWidth={2}
-                color="var(--terracotta)"
+                color="var(--fd-coral)"
               />
             </div>
             <div>
               <div
-                className="font-serif text-[14px] md:text-[20px] font-black leading-tight"
+                className="text-[14px] md:text-[20px] font-black leading-tight"
                 style={{
-                  color: 'var(--ink)',
+                  color: 'var(--fd-pine)',
                   letterSpacing: '-0.015em',
                 }}
               >
@@ -94,7 +130,7 @@ export default function BusinessPage() {
               </div>
               <div
                 className="text-[10px] md:text-[12px] mt-0.5 md:mt-1"
-                style={{ color: 'var(--muted)' }}
+                style={{ color: 'var(--fd-muted)' }}
               >
                 {business.brandName}
               </div>
@@ -139,30 +175,25 @@ export default function BusinessPage() {
       {/* ── Payments & Refund ─────────────────────────── */}
       <section className="px-5 md:px-6 mt-6 md:mt-8">
         <div className="flex items-center gap-2 mb-3 md:mb-4">
-          <span
-            className="kicker"
-            style={{ color: 'var(--moss)' }}
-          >
-            Payments · 결제와 환불
-          </span>
+          <Eyebrow>Payments · 결제와 환불</Eyebrow>
           <div
             className="flex-1 h-px"
-            style={{ background: 'var(--rule-2)' }}
+            style={{ background: 'var(--fd-line)' }}
           />
         </div>
         <div
-          className="rounded-2xl px-5 py-4 md:px-7 md:py-6"
+          className="rounded-lg px-5 py-4 md:px-7 md:py-6"
           style={{
             background:
-              'color-mix(in srgb, var(--moss) 8%, transparent)',
+              'color-mix(in srgb, var(--fd-green) 8%, transparent)',
             boxShadow:
-              'inset 0 0 0 1px color-mix(in srgb, var(--moss) 30%, transparent)',
+              'inset 0 0 0 1px color-mix(in srgb, var(--fd-green) 30%, transparent)',
           }}
         >
           <h2
-            className="font-serif text-[14px] md:text-[18px] font-black"
+            className="text-[14px] md:text-[18px] font-black"
             style={{
-              color: 'var(--ink)',
+              color: 'var(--fd-pine)',
               letterSpacing: '-0.015em',
             }}
           >
@@ -170,7 +201,7 @@ export default function BusinessPage() {
           </h2>
           <p
             className="mt-2 md:mt-3 text-[11.5px] md:text-[13.5px] leading-relaxed"
-            style={{ color: 'var(--text)' }}
+            style={{ color: 'var(--fd-pine)' }}
           >
             파머스테일은 토스페이먼츠(주)를 통해 결제를 처리하며, 카드
             정보 등 민감 정보는 당사 서버에 저장하지 않습니다. 구매 후
@@ -178,7 +209,7 @@ export default function BusinessPage() {
             <Link
               href="/legal/terms"
               className="font-bold hover:underline"
-              style={{ color: 'var(--terracotta)' }}
+              style={{ color: 'var(--fd-coral-text)' }}
             >
               이용약관
             </Link>{' '}
@@ -186,7 +217,7 @@ export default function BusinessPage() {
             <Link
               href="/legal/refund"
               className="font-bold hover:underline"
-              style={{ color: 'var(--terracotta)' }}
+              style={{ color: 'var(--fd-coral-text)' }}
             >
               환불 정책
             </Link>
@@ -198,23 +229,23 @@ export default function BusinessPage() {
       {/* ── Dispute ────────────────────────────────────── */}
       <section className="px-5 md:px-6 mt-4 md:mt-5 pb-10 md:pb-16">
         <div className="flex items-center gap-2 mb-3 md:mb-4">
-          <span className="kicker kicker-muted">Dispute</span>
+          <Eyebrow color="var(--fd-muted)">Dispute</Eyebrow>
           <div
             className="flex-1 h-px"
-            style={{ background: 'var(--rule-2)' }}
+            style={{ background: 'var(--fd-line)' }}
           />
         </div>
         <div
-          className="rounded-2xl px-5 py-4 md:px-7 md:py-6"
+          className="rounded-lg px-5 py-4 md:px-7 md:py-6"
           style={{
-            background: 'var(--bg-2)',
-            boxShadow: 'inset 0 0 0 1px var(--rule)',
+            background: '#FFFFFF',
+            boxShadow: 'inset 0 0 0 1px var(--fd-line)',
           }}
         >
           <h2
-            className="font-serif text-[14px] md:text-[18px] font-black"
+            className="text-[14px] md:text-[18px] font-black"
             style={{
-              color: 'var(--ink)',
+              color: 'var(--fd-pine)',
               letterSpacing: '-0.015em',
             }}
           >
@@ -222,7 +253,7 @@ export default function BusinessPage() {
           </h2>
           <p
             className="mt-2 md:mt-3 text-[11.5px] md:text-[13.5px] leading-relaxed"
-            style={{ color: 'var(--text)' }}
+            style={{ color: 'var(--fd-pine)' }}
           >
             고객 불만 및 분쟁 처리는 고객센터({business.email})로 문의해
             주시기 바랍니다. 당사와의 분쟁이 원만히 해결되지 않을 경우,
@@ -232,7 +263,7 @@ export default function BusinessPage() {
               target="_blank"
               rel="noopener noreferrer"
               className="font-bold hover:underline inline-flex items-center gap-0.5"
-              style={{ color: 'var(--terracotta)' }}
+              style={{ color: 'var(--fd-coral-text)' }}
             >
               전자거래분쟁조정위원회
               <ExternalLink className="w-3 h-3" strokeWidth={2} />
@@ -243,7 +274,7 @@ export default function BusinessPage() {
               target="_blank"
               rel="noopener noreferrer"
               className="font-bold hover:underline inline-flex items-center gap-0.5"
-              style={{ color: 'var(--terracotta)' }}
+              style={{ color: 'var(--fd-coral-text)' }}
             >
               한국소비자원
               <ExternalLink className="w-3 h-3" strokeWidth={2} />
@@ -269,13 +300,13 @@ function Row({
     <div className="flex gap-3 md:gap-4">
       <dt
         className="shrink-0 w-[92px] md:w-[140px] text-[11px] md:text-[13px] font-semibold pt-0.5"
-        style={{ color: 'var(--muted)' }}
+        style={{ color: 'var(--fd-muted)' }}
       >
         {label}
       </dt>
       <dd
         className="flex-1 min-w-0 font-semibold break-words"
-        style={{ color: 'var(--ink)' }}
+        style={{ color: 'var(--fd-pine)' }}
       >
         {value}
         {link && (
@@ -290,7 +321,7 @@ function Row({
                   : undefined
               }
               className="inline-flex items-center gap-0.5 text-[10px] font-bold hover:underline ml-1"
-              style={{ color: 'var(--terracotta)' }}
+              style={{ color: 'var(--fd-coral-text)' }}
             >
               [{link.label}]
             </a>

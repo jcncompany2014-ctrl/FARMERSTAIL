@@ -41,21 +41,21 @@ export function renderComebackCoupon({
   const subject = `(광고) ${recipientName}님, 오랜만이에요 🐾`
 
   const validBlock = validUntil
-    ? `<p style="margin:8px 0 0;font-size:13px;color:#7B6F5C">유효기간: ~${fmtDate(validUntil)}</p>`
+    ? `<p style="margin:8px 0 0;font-size:13px;color:#F7F5F0;opacity:0.78">유효기간: ~${fmtDate(validUntil)}</p>`
     : ''
 
   const html = `<!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8"><title>${escape(subject)}</title></head>
-<body style="margin:0;background:#F5F0E6;font-family:-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo',sans-serif;color:#1E1A14">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F5F0E6;padding:40px 16px">
+<body style="margin:0;background:#F7F5F0;font-family:-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo',sans-serif;color:#173B33">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F7F5F0;padding:40px 16px">
     <tr><td align="center">
-      <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;background:#FFF;border:1px solid #E5DCC9;border-radius:16px;overflow:hidden">
+      <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;background:#FFF;border:1px solid #DCD6C4;border-radius:16px;overflow:hidden">
         <tr><td style="padding:36px 32px 12px">
-          <div style="font-family:'Archivo Black',Arial,sans-serif;font-size:11px;letter-spacing:0.22em;color:#A0452E;text-transform:uppercase">Comeback · 다시 만나요</div>
+          <div style="font-family:'Archivo Black',Arial,sans-serif;font-size:11px;letter-spacing:0.22em;color:#B63619;text-transform:uppercase">Comeback · 다시 만나요</div>
           <h1 style="margin:14px 0 0;font-family:'Noto Serif KR',serif;font-size:28px;line-height:1.2;letter-spacing:-0.02em;font-weight:900">
             ${escape(recipientName)} 님,<br>오랜만이에요 🐾
           </h1>
-          <p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#3A3128">
+          <p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#173B33">
             우리 아이는 잘 있나요? 그동안 자리를 비우신 사이 새로운 메뉴와
             산지 이야기가 많이 쌓였어요. 다시 들러주신다면 작은 보답으로
             할인을 준비했어요.
@@ -63,7 +63,7 @@ export function renderComebackCoupon({
         </td></tr>
 
         <tr><td style="padding:6px 32px 24px">
-          <div style="background:#9CB35F;border-radius:14px;padding:24px 24px 22px;text-align:center;color:#1E1A14">
+          <div style="background:#3C725E;border-radius:14px;padding:24px 24px 22px;text-align:center;color:#F7F5F0">
             <div style="font-family:'Archivo Black',Arial,sans-serif;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;opacity:0.7">재참여 쿠폰</div>
             <div style="margin-top:6px;font-family:'Noto Serif KR',serif;font-size:24px;font-weight:900;letter-spacing:-0.02em">
               ${escape(discountLabel)}
@@ -75,10 +75,10 @@ export function renderComebackCoupon({
 
         <tr><td style="padding:0 32px 32px">
           <a href="${SITE_URL}/products"
-             style="display:block;background:#1E1A14;color:#F5F0E6;text-align:center;text-decoration:none;font-weight:700;font-size:14px;padding:14px 0;border-radius:999px">
+             style="display:block;background:#173B33;color:#F7F5F0;text-align:center;text-decoration:none;font-weight:700;font-size:14px;padding:14px 0;border-radius:999px">
              다시 둘러보기 →
           </a>
-          <p style="margin:18px 0 0;font-size:12px;color:#7B6F5C;line-height:1.6">
+          <p style="margin:18px 0 0;font-size:12px;color:#5A6C61;line-height:1.6">
             * 자동 적용 — 별도 코드 입력 불필요.<br>
             * 1인 1회 사용. 다른 쿠폰과 중복 사용 불가.
           </p>

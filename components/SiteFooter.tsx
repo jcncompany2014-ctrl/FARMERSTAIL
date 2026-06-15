@@ -21,7 +21,7 @@ export default function SiteFooter() {
   const [open, setOpen] = useState(false)
 
   return (
-    <footer className="mt-14 md:mt-20 border-t border-rule bg-bg text-text/70">
+    <footer className="mt-14 md:mt-20 border-t border-[var(--fd-line)] bg-[var(--fd-offwhite)] text-[var(--fd-muted)]">
       <div className="px-5 py-5 max-w-md mx-auto md:max-w-[1280px] md:px-6 md:py-12">
         {/* 데스크톱 4열 그리드 — 마켓컬리 톤. 모바일은 단일 열 stack. */}
         <div className="md:grid md:grid-cols-4 md:gap-10">
@@ -29,25 +29,25 @@ export default function SiteFooter() {
               이전: rounded-full bg-white border 박스가 모바일 폭 좁아서 눌림 / 정렬 깨짐.
               현재: 라벨 + 값 평문 한 줄씩, 클릭 가능한 텍스트만 강조. */}
           <div className="mb-4 md:mb-0">
-            <div className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-muted mb-2 md:mb-3">
+            <div className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--fd-muted)] mb-2 md:mb-3">
               고객 문의
             </div>
             <ul className="space-y-1.5 text-[12px] md:text-[13px] leading-relaxed">
               <li className="flex items-center gap-2">
-                <Mail className="w-3 h-3 text-muted shrink-0" strokeWidth={2} />
+                <Mail className="w-3 h-3 text-[var(--fd-muted)] shrink-0" strokeWidth={2} />
                 <a
                   href={`mailto:${business.email}`}
-                  className="text-text hover:text-terracotta transition"
+                  className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
                 >
                   {business.email}
                 </a>
               </li>
               {business.phone && business.phone !== '(등록 예정)' && (
                 <li className="flex items-center gap-2">
-                  <Phone className="w-3 h-3 text-muted shrink-0" strokeWidth={2} />
+                  <Phone className="w-3 h-3 text-[var(--fd-muted)] shrink-0" strokeWidth={2} />
                   <a
                     href={`tel:${business.phone.replace(/[^\d+]/g, '')}`}
-                    className="text-text hover:text-terracotta transition font-mono tabular-nums"
+                    className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition font-mono tabular-nums"
                   >
                     {business.phone}
                   </a>
@@ -55,12 +55,12 @@ export default function SiteFooter() {
               )}
               {business.kakaoChannelUrl && (
                 <li className="flex items-center gap-2">
-                  <MessageCircle className="w-3 h-3 text-muted shrink-0" strokeWidth={2} />
+                  <MessageCircle className="w-3 h-3 text-[var(--fd-muted)] shrink-0" strokeWidth={2} />
                   <a
                     href={business.kakaoChannelUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-text hover:text-terracotta transition"
+                    className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
                   >
                     카카오 채널
                   </a>
@@ -71,7 +71,7 @@ export default function SiteFooter() {
 
           {/* Legal nav — 데스크톱 두번째 컬럼 */}
           <div className="md:col-span-1">
-            <div className="hidden md:block text-[11px] font-bold uppercase tracking-[0.2em] text-muted mb-3">
+            <div className="hidden md:block text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--fd-muted)] mb-3">
               안내
             </div>
             <nav
@@ -80,49 +80,49 @@ export default function SiteFooter() {
             >
               <Link
                 href="/about"
-                className="text-text hover:text-terracotta transition"
+                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
               >
                 브랜드 스토리
               </Link>
               <span className="md:hidden text-[#D4C8B3]">·</span>
               <Link
                 href="/faq"
-                className="text-text hover:text-terracotta transition"
+                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
               >
                 자주 묻는 질문
               </Link>
               <span className="md:hidden text-[#D4C8B3]">·</span>
               <Link
                 href="/contact"
-                className="text-text hover:text-terracotta transition"
+                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
               >
                 문의하기
               </Link>
               <span className="md:hidden text-[#D4C8B3]">·</span>
               <Link
                 href="/legal/terms"
-                className="text-text hover:text-terracotta transition"
+                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
               >
                 이용약관
               </Link>
               <span className="md:hidden text-[#D4C8B3]">·</span>
               <Link
                 href="/legal/privacy"
-                className="text-terracotta hover:underline"
+                className="text-[var(--fd-coral-text)] hover:underline"
               >
                 <b>개인정보처리방침</b>
               </Link>
               <span className="md:hidden text-[#D4C8B3]">·</span>
               <Link
                 href="/business"
-                className="text-text hover:text-terracotta transition"
+                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
               >
                 사업자정보
               </Link>
               <span className="md:hidden text-[#D4C8B3]">·</span>
               <Link
                 href="/legal/refund"
-                className="text-text hover:text-terracotta transition"
+                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
               >
                 환불정책
               </Link>
@@ -137,7 +137,7 @@ export default function SiteFooter() {
               onClick={() => setOpen((v) => !v)}
               aria-expanded={open}
               aria-controls="site-footer-biz"
-              className="md:hidden mt-4 flex items-center gap-1 text-[11px] font-bold text-text hover:text-terracotta transition"
+              className="md:hidden mt-4 flex items-center gap-1 text-[11px] font-bold text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
             >
               {business.companyName}
               <ChevronDown
@@ -146,16 +146,16 @@ export default function SiteFooter() {
               />
             </button>
 
-            <div className="hidden md:block text-[11px] font-bold uppercase tracking-[0.2em] text-muted mb-3">
+            <div className="hidden md:block text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--fd-muted)] mb-3">
               사업자 정보
             </div>
-            <div className="hidden md:block font-serif text-[15px] font-black text-text mb-2" style={{ letterSpacing: '-0.015em' }}>
+            <div className="hidden md:block text-[15px] font-black mb-2" style={{ letterSpacing: '-0.015em', color: 'var(--fd-pine)' }}>
               {business.companyName}
             </div>
 
             <dl
               id="site-footer-biz"
-              className={`mt-2.5 md:mt-0 text-[10.5px] md:text-[12px] leading-relaxed text-text/70 space-y-0.5 md:space-y-1 ${open ? '' : 'hidden md:block'}`}
+              className={`mt-2.5 md:mt-0 text-[10.5px] md:text-[12px] leading-relaxed text-[var(--fd-muted)] space-y-0.5 md:space-y-1 ${open ? '' : 'hidden md:block'}`}
             >
               <Row label="대표" value={business.ceo} />
               <Row
@@ -180,14 +180,14 @@ export default function SiteFooter() {
         </div>
 
         {/* 법적 고지 + 카피라이트 */}
-        <div className="md:border-t md:border-rule md:mt-10 md:pt-6">
-          <p className="mt-4 md:mt-0 text-[10px] md:text-[11px] text-muted leading-relaxed md:max-w-3xl">
+        <div className="md:border-t md:border-[var(--fd-line)] md:mt-10 md:pt-6">
+          <p className="mt-4 md:mt-0 text-[10px] md:text-[11px] text-[var(--fd-muted)] leading-relaxed md:max-w-3xl">
             파머스테일은 통신판매중개자가 아닌 통신판매업자로서, 상품
             주문·결제·배송·환불에 대한 책임을 직접 부담합니다. 결제 정보는
             토스페이먼츠를 통해 안전하게 처리되며, 당사는 카드번호 등 민감
             정보를 저장하지 않습니다.
           </p>
-          <p className="mt-2 md:mt-3 text-[10px] md:text-[11px] text-muted">
+          <p className="mt-2 md:mt-3 text-[10px] md:text-[11px] text-[var(--fd-muted)]">
             © {new Date().getFullYear()} {business.brandName}. All rights reserved.
           </p>
         </div>
@@ -209,7 +209,7 @@ function Row({
 }) {
   return (
     <div className="flex gap-2 md:gap-3">
-      <dt className="shrink-0 w-24 md:w-32 font-semibold text-muted">{label}</dt>
+      <dt className="shrink-0 w-24 md:w-32 font-semibold text-[var(--fd-muted)]">{label}</dt>
       <dd className="flex-1 min-w-0 break-words">
         {value}
         {link && link !== '#' && linkLabel && (
@@ -219,7 +219,7 @@ function Row({
               href={link}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-terracotta hover:underline"
+              className="text-[var(--fd-coral-text)] hover:underline"
             >
               [{linkLabel}]
             </a>

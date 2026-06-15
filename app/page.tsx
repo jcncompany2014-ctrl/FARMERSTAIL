@@ -1,566 +1,795 @@
 import type { Metadata } from 'next'
+import {
+  ArrowRight,
+  Check,
+  Minus,
+  Leaf,
+  ShieldCheck,
+  Soup,
+  Stethoscope,
+  ClipboardList,
+  Truck,
+  Quote,
+  RefreshCw,
+  MessageCircle,
+} from 'lucide-react'
 import Link from 'next/link'
-import { ArrowRight, ChevronDown } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
 import Reveal from '@/components/landing/Reveal'
-import { ScribbleUnderline } from '@/components/landing/Scribble'
-import { JourneyDefs } from '@/components/landing/journey/PlaceholderArt'
-import TruckDrive from '@/components/landing/journey/TruckDrive'
-import TruckArrival from '@/components/landing/journey/TruckArrival'
-import CountUp from '@/components/landing/journey/CountUp'
-import Marquee, { type MarqueeItem } from '@/components/landing/journey/Marquee'
-
-type Sku = {
-  id: string
-  name: string
-  slug: string
-  price: number
-  sale_price: number | null
-  image_url: string | null
-  short_description: string | null
-}
+import StickyCta from '@/components/web/fd/StickyCta'
+import FdSlider from '@/components/web/fd/FdSlider'
+import { ogImageUrl } from '@/lib/seo/jsonld'
+import {
+  Button,
+  Container,
+  Display,
+  Eyebrow,
+  PhotoSlot,
+  Section,
+} from '@/components/web/fd/ui'
 
 /**
- * 웹 랜딩 — Farm v4 / "원물 트럭의 여정" (Phase Q8, 2026-06-12).
+ * 웹 홈 — farm v6 (The Farmer's Dog 충실 복제, 2026-06-13 / 재구축).
  *
- * 뼈대: 원물 트럭이 농장에서 우리에게 오는 스크롤 서사. 트럭이 3번에 걸쳐
- * 언덕을 넘으며 점점 가까워지고(작게→크게), 주행 사이사이 콘텐츠가 끼어든다.
- * 마지막에 정면 도착 → CTA(설문).
- *
- *   [Hero] 타이틀 → [A]주행1 → [콘텐츠1] → [B]주행2 → [콘텐츠2] →
- *   [C]주행3 → [콘텐츠3] → [도착] → [CTA] → [FAQ]
- *
- * ▸ 에셋: 지금은 SVG 크레용 placeholder. 그림 교체는 lib/landing/journeyConfig.ts
- *   의 src 경로만 바꾸면 됨 (코드 불변). 슬롯 번호 = 에셋 스펙 문서와 1:1.
- * ▸ 콘텐츠 섹션 1/2/3 은 이번 단계에선 placeholder (TODO). 실제 SKU 스택·
- *   카운트업·마퀴 갤러리는 다음 단계(Phase Q9)에서 제작.
- * ▸ 모션: 스크롤 연동 transform/opacity 만, rAF 스로틀, reduced-motion 대응.
+ * thefarmersdog.com 실구조(리더 프록시 분석, FARMERSDOG_FIDELITY_SPEC.md)의
+ * 섹션 순서·유형·인터랙션을 복제: 히어로 → 신뢰 → 가치제안 → 4 피처카드 →
+ * 비교 → 건강 3단 → 듀얼 제품 → 3스텝 → 과학/근거 → 수의자문 캐러셀 →
+ * 후기 캐러셀 → 마무리 CTA. 카피는 한글 신규, 사진은 PhotoSlot,
+ * 모든 CTA → 설문 퍼널. 가짜 기관/언론 보증·가짜 후기·질병 단정 금지(정직 가드).
  */
 
 export const revalidate = 300
 
+// R99-A 패턴: Next openGraph shallow-merge 라 페이지가 images 미지정 시 layout
+// 기본 OG 상속 못 함 → 공유 카드 썸네일 0. 홈 명시 OG 추가(회차161).
+const HOME_OG = ogImageUrl({
+  title: '사료 대신, 진짜 음식 한 끼',
+  subtitle: '수의영양 기준 신선 화식 · 2분 맞춤 설문',
+})
+
 export const metadata: Metadata = {
-  title: '파머스테일 — 농장에서 온 우리 아이의 진짜 한 끼',
+  title: '파머스테일 — 사료 대신, 진짜 음식 한 끼',
   description:
-    '농장에서 출발한 원물이 우리 아이 식탁까지. 2분 설문이면 맞춤 식단과 하루 가격을 바로 확인할 수 있어요. 체험팩부터 부담 없이.',
+    '사람이 먹을 수 있는 신선한 재료를 수의영양 기준에 맞춰. 2분 설문이면 우리 아이 몸에 딱 맞는 맞춤 화식을 시작할 수 있어요. 체험팩부터, 언제든 해지.',
   alternates: { canonical: '/' },
   openGraph: {
-    title: '파머스테일 — 농장에서 온 우리 아이의 진짜 한 끼',
+    title: '파머스테일 — 사료 대신, 진짜 음식 한 끼',
     description:
-      '농장에서 출발한 원물이 우리 아이 식탁까지. 2분 설문이면 맞춤 식단과 하루 가격을 바로 확인할 수 있어요.',
+      '사람이 먹을 수 있는 신선한 재료를 수의영양 기준에 맞춰. 2분 설문이면 우리 아이 맞춤 화식을 시작할 수 있어요.',
+    type: 'website',
+    // Next openGraph shallow-merge: 페이지 openGraph 설정 시 layout 의 locale/
+    // siteName 상속 못 함 → 명시(회차163). 공유 카드 브랜드명·언어 정보.
+    locale: 'ko_KR',
+    siteName: '파머스테일',
     url: '/',
+    images: [{ url: HOME_OG, width: 1200, height: 630, alt: '파머스테일' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '파머스테일 — 사료 대신, 진짜 음식 한 끼',
+    description: '사람이 먹는 등급의 신선한 재료, 2분 맞춤 설문으로.',
+    images: [HOME_OG],
   },
 }
 
-// ---------------------------------------------------------------------------
-// 공용 소품
-// ---------------------------------------------------------------------------
-
-/** 설문 퍼널 진입 경로 — 모든 CTA 가 이 한 곳으로 수렴한다. */
 function planHref(isAuthed: boolean) {
   return isAuthed ? '/dogs/new' : '/signup'
 }
 
-/** 섹션 라벨 — 손글씨(개구체), 포인트 전용. */
-function SectionKicker({ children }: { children: React.ReactNode }) {
+// 1. ========================================================================
+// Hero — 풀폭 2단 + 듀얼 CTA
+// ===========================================================================
+function HomeHero({ isAuthed }: { isAuthed: boolean }) {
+  // FD식 풀배경 사진 히어로(사장님 2026-06-15). 사진 위 하단 정렬 흰 텍스트 +
+  // 코랄 CTA + 'Or give us a call' 식 작은 흰 밑줄 링크('우리 음식 보기').
   return (
-    <p
-      className="text-center text-[18px]"
-      style={{
-        fontFamily: "var(--font-hand), 'Gaegu', cursive",
-        color: 'var(--terracotta)',
-        fontWeight: 700,
-      }}
-    >
-      {children}
-    </p>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// 1. 히어로 — 타이틀 카드 (CTA 는 헤더 상시 + 마지막 도착에서 페이오프)
-// ---------------------------------------------------------------------------
-
-function FarmHero() {
-  return (
-    <section
-      className="px-6 pt-16 md:pt-24 pb-12 md:pb-16 text-center"
-      style={{ background: 'var(--bg)' }}
-    >
-      <h1
-        className="fv-rise text-[33px] md:text-[56px] lg:text-[64px]"
-        style={{
-          margin: '0 auto',
-          maxWidth: 760,
-          lineHeight: 1.24,
-          fontWeight: 900,
-          color: 'var(--ink)',
-          letterSpacing: '-0.03em',
-        }}
-      >
-        농장에서 만든
-        <br />
-        우리 아이의 <ScribbleUnderline>진짜</ScribbleUnderline> 한 끼
-      </h1>
-
-      <p
-        className="fv-rise fv-rise-2 text-[15px] md:text-[17px]"
-        style={{
-          margin: '18px auto 0',
-          maxWidth: 440,
-          lineHeight: 1.7,
-          color: 'var(--muted-strong)',
-        }}
-      >
-        농장에서 출발한 원물이
-        <br className="md:hidden" /> 우리 아이 식탁까지 오는 길.
-      </p>
-
+    <section className="relative overflow-hidden" aria-label="히어로">
+      {/* 풀배경 사진(사장님 제공). LCP 후보라 우선 로드. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/hero-dog.jpg"
+        alt="신선한 화식 한 그릇을 받는 강아지"
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ objectPosition: '50% 30%' }}
+        fetchPriority="high"
+      />
+      {/* 텍스트 가독성 — 하단을 어둡게 하는 그라데이션 오버레이 */}
       <div
-        className="fv-rise fv-rise-3 pt-10 flex flex-col items-center gap-1.5"
-        style={{ color: 'var(--muted)' }}
-      >
-        <span className="text-[12px]" style={{ letterSpacing: '0.04em' }}>
-          스크롤해서 따라와 보세요
-        </span>
-        <ChevronDown className="fv-bounce" size={22} strokeWidth={2} />
-      </div>
-    </section>
-  )
-}
-
-/** 섹션 제목 묶음 — 손글씨 kicker + 고딕 헤비 h2. */
-function SectionHead({
-  kicker,
-  title,
-  sub,
-}: {
-  kicker: string
-  title: string
-  sub?: string
-}) {
-  return (
-    <div className="text-center">
-      <SectionKicker>{kicker}</SectionKicker>
-      <h2
-        className="pt-2 text-[24px] md:text-[34px] mx-auto"
+        aria-hidden
+        className="absolute inset-0"
         style={{
-          maxWidth: 620,
-          fontWeight: 900,
-          color: 'var(--ink)',
-          letterSpacing: '-0.03em',
-          lineHeight: 1.28,
+          background:
+            'linear-gradient(to bottom, rgba(22,20,15,0.06) 0%, rgba(22,20,15,0) 28%, rgba(22,20,15,0.48) 70%, rgba(22,20,15,0.82) 100%)',
         }}
-      >
-        {title}
-      </h2>
-      {sub && (
-        <p
-          className="pt-3 text-[13.5px] md:text-[15px] mx-auto"
-          style={{ maxWidth: 460, color: 'var(--muted-strong)', lineHeight: 1.65 }}
-        >
-          {sub}
-        </p>
-      )}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// 콘텐츠 1 — 농장에서 온 원물
-// ---------------------------------------------------------------------------
-
-const VEG_CHIPS: { label: string; color: string }[] = [
-  { label: '단호박', color: '#E08A3C' },
-  { label: '당근', color: '#D86A2E' },
-  { label: '브로콜리', color: '#6B7F3A' },
-  { label: '잎채소', color: '#7C9442' },
-]
-
-function Content1() {
-  return (
-    <section
-      className="px-5 md:px-6 py-16 md:py-24"
-      style={{ background: 'var(--tint-cream)' }}
-    >
-      <div className="max-w-[760px] mx-auto">
-        <Reveal>
-          <SectionHead
-            kicker="농장에서"
-            title="좋은 재료에서 시작합니다"
-            sub="농장에서 온 재료를 사람이 먹는 기준으로 다듬고, 저온에서 천천히 익혀요."
-          />
-        </Reveal>
-        <Reveal delay={100}>
-          <div className="flex justify-center flex-wrap gap-4 md:gap-6 pt-9">
-            {VEG_CHIPS.map((v) => (
-              <div key={v.label} className="flex flex-col items-center gap-2">
-                <span
-                  className="ft-sticker flex items-center justify-center"
-                  style={{
-                    width: 'clamp(64px, 18vw, 84px)',
-                    height: 'clamp(64px, 18vw, 84px)',
-                    borderRadius: '50%',
-                  }}
-                >
-                  <span
-                    style={{
-                      width: '46%',
-                      height: '46%',
-                      borderRadius: '50%',
-                      background: v.color,
-                      filter: 'url(#jr-rough)',
-                    }}
-                  />
-                </span>
-                <span
-                  className="text-[12.5px] md:text-[13.5px]"
-                  style={{ fontWeight: 700, color: 'var(--ink)' }}
-                >
-                  {v.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-        {/* TODO(에셋): 색칠 단순 원 → 실제 스팟 일러스트(스펙 4번)로 교체 */}
-      </div>
-    </section>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// 콘텐츠 2 — 화식 + 영양 알고리즘 (실제 SKU 스티키 스택 + 카운트업)
-// ---------------------------------------------------------------------------
-
-function SkuCard({ sku, index }: { sku: Sku; index: number }) {
-  const no = String(index + 1).padStart(3, '0')
-  return (
-    <div
-      className="ft-sticker"
-      style={{
-        position: 'sticky',
-        top: 'clamp(80px, 14vh, 110px)',
-        zIndex: index + 1,
-        marginBottom: 22,
-        padding: 16,
-        display: 'flex',
-        gap: 14,
-        alignItems: 'center',
-        minHeight: 168,
-      }}
-    >
-      <div
-        style={{
-          position: 'relative',
-          width: 'clamp(96px, 26vw, 128px)',
-          aspectRatio: '1 / 1',
-          borderRadius: 12,
-          overflow: 'hidden',
-          flexShrink: 0,
-          background: 'linear-gradient(135deg, #EFE4CC 0%, #DFE4C6 100%)',
-        }}
-      >
-        {sku.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={sku.image_url}
-            alt={sku.name}
-            loading="lazy"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        ) : null}
-      </div>
-      <div className="flex-1 min-w-0">
-        <span
-          className="font-archivo"
-          style={{ fontSize: 13, color: 'var(--brick)', letterSpacing: '0.04em' }}
-        >
-          {no}
-        </span>
-        <h3
-          className="pt-0.5 text-[17px] md:text-[19px] truncate"
-          style={{ fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}
-        >
-          {sku.name}
-        </h3>
-        {sku.short_description && (
-          <p
-            className="pt-1 text-[12.5px] md:text-[13px]"
-            style={{ color: 'var(--muted-strong)', lineHeight: 1.5 }}
-          >
-            {sku.short_description}
-          </p>
-        )}
-        <div className="pt-2.5 flex items-center gap-3">
-          {/* TODO(단위 표기): 100g/팩 기준 — 사장님 확정 */}
-          <span
-            className="text-[15px]"
-            style={{ fontWeight: 800, color: 'var(--ink)' }}
-          >
-            {(sku.sale_price ?? sku.price).toLocaleString()}원
-          </span>
-          <Link
-            href={`/products/${sku.slug}`}
-            className="inline-flex items-center gap-1 no-underline text-[12.5px]"
-            style={{ color: 'var(--brick)', fontWeight: 700 }}
-          >
-            자세히 보기
-            <ArrowRight size={13} strokeWidth={2.2} />
-          </Link>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-const NUTRI_STATS: { to: number; suffix: string; label: string }[] = [
-  // TODO(수치 확정): 시스템 실제 값 기준 — 사장님 검수
-  { to: 38, suffix: '종', label: '관리 영양소' },
-  { to: 35, suffix: '견종', label: '맞춤 데이터' },
-  { to: 2, suffix: '분', label: '설문 시간' },
-]
-
-function Content2({ skus }: { skus: Sku[] }) {
-  return (
-    <section
-      className="px-5 md:px-6 py-16 md:py-24"
-      style={{ background: 'var(--tint-sage)' }}
-    >
-      <div className="max-w-[760px] mx-auto">
-        <Reveal>
-          <SectionHead
-            kicker="맞춤 화식"
-            title="우리 아이에게 딱 맞는 한 끼"
-            sub="수의영양학 표준 공식으로, 우리 아이의 몸에 맞는 식단과 양을 계산해요."
-          />
-        </Reveal>
-
-        {/* 영양 알고리즘 카운트업 */}
-        <Reveal delay={100}>
-          <div className="grid grid-cols-3 gap-2.5 md:gap-4 pt-9">
-            {NUTRI_STATS.map((s) => (
-              <div
-                key={s.label}
-                className="ft-sticker text-center"
-                style={{ padding: '16px 8px' }}
+      />
+      <Container size="xl">
+        <div className="relative flex min-h-[76vh] md:min-h-[82vh] flex-col justify-end pt-20 pb-12 md:pb-16">
+          <Reveal>
+            <div className="max-w-[600px] text-center md:text-left">
+              <Eyebrow color="#FFFFFF">FRESH FOOD FOR DOGS</Eyebrow>
+              <Display
+                as="h1"
+                size="xl"
+                className="pt-3"
+                style={{ color: '#FFFFFF', textShadow: '0 2px 18px rgba(0,0,0,0.35)' }}
               >
-                <div
-                  className="font-archivo"
-                  style={{
-                    fontSize: 'clamp(24px, 7vw, 34px)',
-                    color: 'var(--brick)',
-                    lineHeight: 1,
-                  }}
-                >
-                  <CountUp to={s.to} suffix={s.suffix} />
-                </div>
-                <div
-                  className="pt-1.5 text-[11.5px] md:text-[12.5px]"
-                  style={{ color: 'var(--muted-strong)', fontWeight: 600 }}
-                >
-                  {s.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-
-        {/* SKU 스티키 카드 스택 */}
-        {skus.length > 0 && (
-          <div className="pt-12 md:pt-16">
-            {skus.map((s, i) => (
-              <SkuCard key={s.id} sku={s} index={i} />
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// 콘텐츠 3 — 제조 현장 갤러리 (무한 마퀴 2줄)
-// ---------------------------------------------------------------------------
-
-// TODO(에셋): 실제 제조 현장 촬영본으로 교체 (정직 원칙 — 음식·현장은 실사진).
-const GALLERY_ROW_A: MarqueeItem[] = [
-  { label: '제조 현장 01' },
-  { label: '제조 현장 02' },
-  { label: '제조 현장 03' },
-  { label: '제조 현장 04' },
-]
-const GALLERY_ROW_B: MarqueeItem[] = [
-  { label: '제조 현장 05' },
-  { label: '제조 현장 06' },
-  { label: '제조 현장 07' },
-  { label: '제조 현장 08' },
-]
-
-function Content3() {
-  return (
-    <section
-      className="py-16 md:py-24"
-      style={{ background: 'var(--tint-cream)' }}
-    >
-      <div className="px-5 md:px-6">
-        <Reveal>
-          <SectionHead
-            kicker="제조 현장"
-            title="이렇게 만들어요"
-            sub="사진은 실제 제조 현장 촬영본으로 교체될 예정이에요."
-          />
-        </Reveal>
-      </div>
-      <div className="pt-9 flex flex-col gap-3.5">
-        <Marquee items={GALLERY_ROW_A} />
-        <Marquee items={GALLERY_ROW_B} reverse speedSec={36} />
-      </div>
-    </section>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// 도착 직후 CTA — brick 배경
-// ---------------------------------------------------------------------------
-
-function JourneyCTA({ isAuthed }: { isAuthed: boolean }) {
-  return (
-    <section
-      className="px-5 md:px-6 py-16 md:py-24 text-center"
-      style={{ background: 'var(--brick)' }}
-    >
-      <Reveal>
-        <h2
-          className="mx-auto text-[25px] md:text-[38px]"
-          style={{
-            maxWidth: 620,
-            fontWeight: 900,
-            color: '#FFFEFA',
-            letterSpacing: '-0.03em',
-            lineHeight: 1.3,
-          }}
-        >
-          이제 우리 아이 차례예요
-        </h2>
-        <p
-          className="pt-3 text-[14px] md:text-[15.5px] mx-auto"
-          style={{ maxWidth: 460, lineHeight: 1.7, color: 'rgba(255,254,250,0.86)' }}
-        >
-          2분 설문이면 맞춤 식단과 하루 가격을 바로 확인할 수 있어요.
-          체험팩부터, 언제든 해지.
-        </p>
-        <div className="pt-8 flex justify-center">
-          {/* TODO(Q? 버튼 인터랙션): 텍스트 스왑 호버. 지금은 sticker 버튼. */}
-          <Link
-            href={planHref(isAuthed)}
-            className="inline-flex items-center justify-center gap-2.5 rounded-full no-underline transition active:translate-y-[1px] h-[58px] px-9 text-[16px]"
-            style={{
-              background: '#FFFEFA',
-              color: 'var(--walnut)',
-              fontWeight: 800,
-              boxShadow: '0 14px 30px -12px rgba(61,43,31,0.5)',
-            }}
-          >
-            우리 아이 플랜 보기
-            <ArrowRight size={19} strokeWidth={2.4} />
-          </Link>
-        </div>
-      </Reveal>
-    </section>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// FAQ 발췌
-// ---------------------------------------------------------------------------
-
-const FAQ_TEASERS = [
-  '정기배송은 언제든 해지할 수 있나요?',
-  '우리 아이가 안 먹으면 어떻게 하나요?',
-  '재료는 어디에서 오나요?',
-] as const
-
-function FaqTeaser() {
-  return (
-    <section
-      className="px-5 md:px-6 py-16 md:py-20"
-      style={{ background: 'var(--bg)' }}
-    >
-      <div className="max-w-[680px] mx-auto">
-        <Reveal>
-          <SectionKicker>자주 묻는 질문</SectionKicker>
-          <div className="pt-5 flex flex-col gap-2.5">
-            {FAQ_TEASERS.map((q) => (
-              <Link
-                key={q}
-                href="/faq"
-                className="flex items-center justify-between rounded-2xl px-5 py-4 no-underline"
+                사료 대신,
+                <br />
+                진짜 음식 한 끼
+              </Display>
+              <p
+                className="pt-4 mx-auto md:mx-0 text-[15px] md:text-[18px]"
                 style={{
-                  background: '#FFFFFF',
-                  border: '1px solid var(--rule-2)',
+                  maxWidth: 460,
+                  lineHeight: 1.6,
+                  color: 'rgba(255,255,255,0.94)',
+                  textShadow: '0 1px 10px rgba(0,0,0,0.3)',
                 }}
               >
-                <span
-                  className="text-[13.5px] md:text-[14.5px]"
-                  style={{ fontWeight: 600, color: 'var(--ink)' }}
+                사람이 먹을 수 있는 신선한 재료를, 수의영양 기준에 맞춰 우리 아이
+                몸에 딱 맞게. 2분이면 시작해요.
+              </p>
+              <div className="pt-7 flex flex-col items-center md:items-start gap-4">
+                <Button href={planHref(isAuthed)} tone="coral" size="lg">
+                  2분 설문 시작하기
+                  <ArrowRight size={19} strokeWidth={2.4} />
+                </Button>
+                {/* FD 'Or give us a call' 식 — 작은 흰 밑줄 텍스트 링크 */}
+                <Link
+                  href="/our-food"
+                  className="text-[14px] font-bold underline underline-offset-[5px]"
+                  style={{ color: '#FFFFFF', textShadow: '0 1px 8px rgba(0,0,0,0.4)' }}
                 >
-                  {q}
-                </span>
-                <ArrowRight size={16} strokeWidth={2} color="var(--muted)" />
-              </Link>
-            ))}
-          </div>
-        </Reveal>
-      </div>
+                  우리 음식 보기
+                </Link>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </Container>
     </section>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Page composition
-// ---------------------------------------------------------------------------
+// 2. ========================================================================
+// Trust strip — 신뢰 band (가짜 로고/보증 X, 사실 태그)
+// ===========================================================================
+const TRUST = ['수의영양학 기준 설계', '사람이 먹는 등급 원물', '무항생제', '국내 제조 · 정직한 표시', '언제든 해지']
 
+function TrustStrip() {
+  // FD 신뢰 strip — 정적 행이 아니라 가로로 끊김없이 흐르는 마퀴(회차27).
+  // globals .fv-marquee(가장자리 페이드·호버 일시정지·reduced-motion 가드 내장)
+  // + 아이템 2배 복제 → -50% 이동 무한 루프. 복제본은 aria-hidden(SR 중복 방지).
+  // 각 아이템 동일 marginRight → 절반 지점 seam 정확히 일치(끊김 없음).
+  return (
+    <div style={{ background: '#FFFFFF', borderTop: '1px solid var(--fd-line)', borderBottom: '1px solid var(--fd-line)' }}>
+      <div className="fv-marquee py-4">
+        <div className="fv-marquee-track" style={{ animationDuration: '38s' }}>
+          {[...TRUST, ...TRUST].map((t, i) => (
+            <span
+              key={`${t}-${i}`}
+              aria-hidden={i >= TRUST.length || undefined}
+              className="inline-flex items-center gap-1.5 text-[12.5px] md:text-[13.5px] shrink-0"
+              style={{ fontWeight: 700, color: 'var(--fd-muted)', letterSpacing: '-0.01em', marginRight: 40 }}
+            >
+              <Check size={14} strokeWidth={2.6} color="var(--fd-green)" />
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 3. ========================================================================
+// Value proposition — 신념 band + CTA
+// ===========================================================================
+function ValueProp({ isAuthed }: { isAuthed: boolean }) {
+  return (
+    <Section bg="cream" pad="md">
+      <Container size="md">
+        <Reveal>
+          <div className="text-center">
+            <Eyebrow>WHY FRESH</Eyebrow>
+            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
+              제품을 파는 게 아니라,
+              <br />한 끼를 책임집니다
+            </Display>
+            <p className="pt-5 mx-auto text-[15px] md:text-[17px]" style={{ maxWidth: 520, lineHeight: 1.7, color: 'var(--fd-muted)' }}>
+              화식은 ‘일관된 영양’과 ‘신선도’를 동시에 잡는 방식이에요. 우리 아이가
+              평생 먹을 음식이라면, 사람의 식탁과 같은 기준으로 만들어야 한다고
+              생각했어요.
+            </p>
+            <div className="pt-7 flex justify-center">
+              <Button href={planHref(isAuthed)} tone="coral" size="md">
+                맞춤 플랜 만들기
+                <ArrowRight size={18} strokeWidth={2.4} />
+              </Button>
+            </div>
+          </div>
+        </Reveal>
+      </Container>
+    </Section>
+  )
+}
+
+// 4. ========================================================================
+// Feature cards ×4 — 진짜 음식 / 사람 등급 / 저온 조리 / 수의 설계
+// ===========================================================================
+const FEATURES = [
+  { Icon: Leaf, k: 'REAL FOOD', t: '진짜 음식', d: '눈에 보이는 신선한 원물. 정체 모를 첨가물 없이, 사람이 먹는 재료 그대로.' },
+  { Icon: ShieldCheck, k: 'SAFE', t: '사람 등급 안전', d: '사람이 먹어도 되는 등급의 재료를 식품 안전 기준에 맞춰 다룹니다.' },
+  { Icon: Soup, k: 'SOUS-VIDE', t: '수비드 저온 조리', d: '고온 압출 대신 수비드(진공 저온)로 천천히 익혀 영양·수분·풍미를 지키고, 바로 급속 냉동해요.' },
+  { Icon: Stethoscope, k: 'VET-DEVELOPED', t: '수의영양 설계', d: '수의영양 자문으로 단백질·지방·미네랄 비율을 표준 기준에 맞춰 설계.' },
+]
+
+function FeatureCards() {
+  return (
+    <Section bg="white" pad="md">
+      <Container size="xl">
+        <Reveal>
+          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
+            <Eyebrow>WHAT MAKES IT DIFFERENT</Eyebrow>
+            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
+              네 가지를 타협하지 않아요
+            </Display>
+          </div>
+        </Reveal>
+        <div className="pt-10 md:pt-14 grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
+          {FEATURES.map((f, i) => {
+            const Icon = f.Icon
+            return (
+              <Reveal key={f.t} delay={i * 80}>
+                <div className="h-full" style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 8, padding: 'clamp(18px,4vw,26px)' }}>
+                  <span className="inline-flex items-center justify-center" style={{ width: 52, height: 52, borderRadius: 999, background: '#FFFFFF', border: '1px solid var(--fd-line)' }}>
+                    <Icon size={24} strokeWidth={2} color="var(--fd-coral)" />
+                  </span>
+                  <div className="pt-4 text-[10px]" style={{ fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)' }}>{f.k}</div>
+                  <h3 className="pt-1.5 text-[16px] md:text-[18px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>{f.t}</h3>
+                  <p className="pt-2 text-[12.5px] md:text-[13.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.55 }}>{f.d}</p>
+                </div>
+              </Reveal>
+            )
+          })}
+        </div>
+      </Container>
+    </Section>
+  )
+}
+
+// 5. ========================================================================
+// Comparison — 2단 대비(그동안의 사료 vs 파머스테일). 정직: 카테고리 사실 대비.
+// ===========================================================================
+const COMPARE_ROWS = [
+  { label: '보관 방식', old: '상온 수개월 유통기한 재고', us: '주문 후 만들어 급속 냉동' },
+  { label: '원료 표기', old: '‘수입산 육류’ 같은 익명', us: '농가 · 품목 · 시기 표기' },
+  { label: '조리', old: '고온 압출 가공', us: '수비드 저온 조리로 영양 보존' },
+  { label: '급여량', old: '한 봉지 일괄 기준', us: '우리 아이 맞춤 정량' },
+]
+
+function Comparison() {
+  return (
+    <Section bg="offwhite" pad="md">
+      <Container size="lg">
+        <Reveal>
+          <div className="text-center mx-auto" style={{ maxWidth: 560 }}>
+            <Eyebrow>THE DIFFERENCE</Eyebrow>
+            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
+              그동안의 사료와는
+              <br />다르게 만듭니다
+            </Display>
+          </div>
+        </Reveal>
+        <div className="pt-9 md:pt-12 grid md:grid-cols-2 gap-3 md:gap-4">
+          {/* 그동안의 사료 */}
+          <Reveal>
+            <div className="h-full" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '22px 22px' }}>
+              <div className="flex items-center gap-2" style={{ color: 'var(--fd-muted)' }}>
+                <Minus size={18} strokeWidth={3} aria-hidden />
+                <span className="text-[13px]" style={{ fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>그동안의 사료</span>
+              </div>
+              <ul className="pt-4 grid gap-3">
+                {COMPARE_ROWS.map((r) => (
+                  <li key={r.label} className="grid items-baseline" style={{ gridTemplateColumns: '76px 1fr', gap: 10 }}>
+                    <span className="text-[11.5px]" style={{ fontWeight: 700, color: 'var(--fd-muted)', opacity: 0.8 }}>{r.label}</span>
+                    <span className="text-[13.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.5 }}>{r.old}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Reveal>
+          {/* 파머스테일 */}
+          <Reveal delay={90}>
+            <div className="h-full" style={{ background: 'var(--fd-pine)', borderRadius: 10, padding: '22px 22px' }}>
+              <div className="flex items-center gap-2" style={{ color: 'var(--fd-coral)' }}>
+                <Check size={18} strokeWidth={3} aria-hidden />
+                <span className="text-[13px]" style={{ fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>파머스테일</span>
+              </div>
+              <ul className="pt-4 grid gap-3">
+                {COMPARE_ROWS.map((r) => (
+                  <li key={r.label} className="grid items-baseline" style={{ gridTemplateColumns: '76px 1fr', gap: 10 }}>
+                    <span className="text-[11.5px]" style={{ fontWeight: 700, color: 'var(--fd-green-soft)' }}>{r.label}</span>
+                    <span className="text-[13.5px]" style={{ color: '#FFFFFF', fontWeight: 600, lineHeight: 1.5 }}>{r.us}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Reveal>
+        </div>
+
+        {/* 교육 페이지 딥링크 — 비교에서 '왜 신선식인가' /why-fresh 로 (FD IA: 홈→교육) */}
+        <Reveal delay={120}>
+          <div className="pt-8 flex justify-center">
+            <Button href="/why-fresh" tone="outline" size="sm">
+              왜 신선식인지 더 알아보기
+              <ArrowRight size={15} strokeWidth={2.4} />
+            </Button>
+          </div>
+        </Reveal>
+      </Container>
+    </Section>
+  )
+}
+
+// 6. ========================================================================
+// How we make it healthy — 3단
+// ===========================================================================
+const MAKE = [
+  { Icon: ShieldCheck, t: '사람 등급 기준', d: '사람이 먹는 등급의 재료를, 사람 식품과 같은 위생 기준으로 다룹니다.' },
+  { Icon: ClipboardList, t: '우리 아이 맞춤', d: '견종·체중·활동량·민감한 음식을 반영해 식단과 정량을 계산해요.' },
+  { Icon: Truck, t: '며칠 내 신선 배송', d: '주문이 확정된 만큼만 조리·냉동해 콜드체인으로 문 앞까지.' },
+]
+
+function HowWeMakeIt() {
+  return (
+    <Section bg="cream" pad="md">
+      <Container size="xl">
+        <Reveal>
+          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
+            <Eyebrow>OUR PROCESS</Eyebrow>
+            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
+              건강한 한 끼는 이렇게 만들어져요
+            </Display>
+          </div>
+        </Reveal>
+        <div className="pt-10 md:pt-14 grid md:grid-cols-3 gap-4 md:gap-6">
+          {MAKE.map((m, i) => {
+            const Icon = m.Icon
+            return (
+              <Reveal key={m.t} delay={i * 80}>
+                <div className="text-center px-4">
+                  <div className="mx-auto flex items-center justify-center" style={{ width: 64, height: 64, borderRadius: 999, background: '#FFFFFF', border: '1px solid var(--fd-line)' }}>
+                    <Icon size={28} strokeWidth={2} color="var(--fd-green)" />
+                  </div>
+                  <h3 className="pt-4 text-[17px] md:text-[18px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>{m.t}</h3>
+                  <p className="pt-1.5 text-[13.5px] md:text-[14px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.55 }}>{m.d}</p>
+                </div>
+              </Reveal>
+            )
+          })}
+        </div>
+      </Container>
+    </Section>
+  )
+}
+
+// 7. ========================================================================
+// Complete meal plan — 듀얼 제품 쇼케이스
+// ===========================================================================
+function CompleteMealPlan({ isAuthed }: { isAuthed: boolean }) {
+  return (
+    <Section bg="white" pad="md">
+      <Container size="xl">
+        <Reveal>
+          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
+            <Eyebrow>A COMPLETE BOWL</Eyebrow>
+            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
+              한 그릇을 완성하는 구성
+            </Display>
+          </div>
+        </Reveal>
+        <div className="pt-10 md:pt-14 grid md:grid-cols-2 gap-4 md:gap-6">
+          {[
+            { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/meal-main.jpg' },
+            { label: '영양제 소스 사진', sub: '한 끼에 더하는 영양 소스', k: '플러스', t: '영양제 소스', d: '하루 한 캡슐, 목적별 영양을 한 끼에 더하는 데일리 소스.', img: '/meal-supplement.jpg' },
+          ].map((p, i) => (
+            <Reveal key={p.t} delay={i * 80}>
+              <div style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>
+                <PhotoSlot label={p.label} sub={p.sub} src={p.img} ratio="16 / 10" tone="cream" rounded={0} className="w-full" />
+                <div style={{ padding: '20px 22px' }}>
+                  <div className="text-[10px]" style={{ fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)' }}>{p.k}</div>
+                  <h3 className="pt-1.5 text-[18px] md:text-[20px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>{p.t}</h3>
+                  <p className="pt-2 text-[13.5px] md:text-[14.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>{p.d}</p>
+                </div>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+        <Reveal delay={120}>
+          <div className="pt-9 flex justify-center">
+            <Button href={planHref(isAuthed)} tone="coral" size="lg">
+              우리 아이 구성 보기
+              <ArrowRight size={19} strokeWidth={2.4} />
+            </Button>
+          </div>
+        </Reveal>
+      </Container>
+    </Section>
+  )
+}
+
+// 7.5 ======================================================================
+// Plan benefits — 서비스/배송 혜택 4아이콘 (FD #9, FIDELITY_SPEC §8 보강).
+// 커머스 거래 아님: 무료배송·콜드체인·유연성·문의지원 = 사실 기반 신뢰/서비스
+// 메시지(프로모바와 일치). 가짜 숫자·미검증 친환경 주장 없음.
+// ===========================================================================
+const BENEFITS = [
+  { Icon: Truck, t: '무료배송', d: '3만 원 이상 무료. 부담 없이 시작해요.' },
+  { Icon: Leaf, t: '콜드체인 신선', d: '급속 냉동해 신선함 그대로 문 앞까지.' },
+  { Icon: RefreshCw, t: '구독 강요 없음', d: '체험팩부터. 주기 변경·해지는 언제든 자유.' },
+  { Icon: MessageCircle, t: '1:1 문의 지원', d: '궁금한 점은 언제든 답해 드려요.' },
+]
+
+function PlanBenefits() {
+  return (
+    <Section bg="offwhite" pad="md">
+      <Container size="xl">
+        <Reveal>
+          <div className="text-center mx-auto" style={{ maxWidth: 560 }}>
+            <Eyebrow>WHY IT&rsquo;S EASY</Eyebrow>
+            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
+              시작도, 이어가기도 쉽게
+            </Display>
+          </div>
+        </Reveal>
+        <div className="pt-9 md:pt-12 grid grid-cols-2 lg:grid-cols-4 gap-7 md:gap-8">
+          {BENEFITS.map((b, i) => {
+            const Icon = b.Icon
+            return (
+              <Reveal key={b.t} delay={i * 80}>
+                <div className="text-center">
+                  <span
+                    className="inline-flex items-center justify-center"
+                    style={{ width: 54, height: 54, borderRadius: 999, background: '#FFFFFF', border: '1px solid var(--fd-line)' }}
+                  >
+                    <Icon size={24} strokeWidth={2} color="var(--fd-green)" />
+                  </span>
+                  <h3 className="pt-4 text-[16px] md:text-[18px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>{b.t}</h3>
+                  <p className="pt-2 text-[12.5px] md:text-[13.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.55, maxWidth: 220, marginLeft: 'auto', marginRight: 'auto' }}>{b.d}</p>
+                </div>
+              </Reveal>
+            )
+          })}
+        </div>
+      </Container>
+    </Section>
+  )
+}
+
+// 8. ========================================================================
+// How it works — 3스텝 (다크)
+// ===========================================================================
+const STEPS = [
+  { n: '01', t: '우리 아이 알려주기', d: '2분 설문으로 견종·나이·체중·활동량·민감한 음식을 알려주세요.' },
+  { n: '02', t: '맞춤 조리 · 배송', d: '수의영양 기준에 맞춰 신선하게 만들고 정량 포장해 문 앞까지.' },
+  { n: '03', t: '더 건강한 하루', d: '잘 먹고, 잘 싸고, 컨디션 좋은 매일. 잘 맞으면 정기배송으로.' },
+]
+
+function HowItWorks({ isAuthed }: { isAuthed: boolean }) {
+  return (
+    <Section bg="pine" pad="md">
+      <Container size="xl">
+        <Reveal>
+          <div className="text-center">
+            <Eyebrow color="var(--fd-green-soft)">HOW IT WORKS</Eyebrow>
+            <Display size="lg" className="pt-3" style={{ color: '#FFFFFF' }}>
+              3단계면 시작이에요
+            </Display>
+          </div>
+        </Reveal>
+        <div className="pt-10 md:pt-16 grid md:grid-cols-3 gap-8 md:gap-10">
+          {STEPS.map((s, i) => (
+            <Reveal key={s.n} delay={i * 80}>
+              <div className="text-center md:text-left">
+                <span className="font-chunky" style={{ fontSize: 'clamp(40px, 9vw, 58px)', color: 'var(--fd-coral)', lineHeight: 1 }}>{s.n}</span>
+                <h3 className="pt-3 text-[19px] md:text-[21px]" style={{ fontWeight: 800, color: '#FFFFFF' }}>{s.t}</h3>
+                <p className="pt-2 text-[14px] md:text-[15px]" style={{ color: 'var(--fd-green-soft)', lineHeight: 1.6 }}>{s.d}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+        <Reveal delay={120}>
+          <div className="pt-11 md:pt-14 flex justify-center">
+            <Button href={planHref(isAuthed)} tone="coral" size="lg">
+              2분 설문 시작하기
+              <ArrowRight size={19} strokeWidth={2.4} />
+            </Button>
+          </div>
+        </Reveal>
+      </Container>
+    </Section>
+  )
+}
+
+// 9. ========================================================================
+// Science & expertise — 불릿 + /science
+// ===========================================================================
+const SCIENCE = [
+  '수의영양학 표준 기준에 맞춘 영양 설계',
+  '단백질·지방·미네랄·미량영양소 비율 균형',
+  '견종·나이·체중·활동량 반영한 1일 권장 칼로리',
+  '근거가 되는 가이드라인을 공개 — 슬로건이 아니라 출처로',
+]
+
+function ScienceExpertise() {
+  return (
+    <Section bg="offwhite" pad="md">
+      <Container size="xl">
+        <div className="grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
+          <Reveal>
+            <div>
+              <Eyebrow>THE SCIENCE</Eyebrow>
+              <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
+                마케팅이 아니라
+                <br />수의영양학으로
+              </Display>
+              <ul className="pt-6 grid gap-3">
+                {SCIENCE.map((s) => (
+                  <li key={s} className="grid items-baseline" style={{ gridTemplateColumns: '20px 1fr', gap: 10 }}>
+                    <Check size={17} strokeWidth={3} color="var(--fd-coral)" />
+                    <span className="text-[14px] md:text-[15px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>{s}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="pt-7">
+                <Button href="/science" tone="pine" size="md">
+                  영양 설계 근거 보기
+                  <ArrowRight size={18} strokeWidth={2.4} />
+                </Button>
+              </div>
+            </div>
+          </Reveal>
+          <Reveal delay={100}>
+            <PhotoSlot label="레시피 설계 / 영양 분석 사진" sub="원물 계량 · 영양 차트" ratio="5 / 4" tone="green" rounded={10} className="w-full" />
+          </Reveal>
+        </div>
+      </Container>
+    </Section>
+  )
+}
+
+// 10. =======================================================================
+// Vet voices — 수의 자문 캐러셀 (placeholder, 가짜 인용 X)
+// ===========================================================================
+function QuoteCard({ tag }: { tag: string }) {
+  return (
+    <div className="snap-start shrink-0 w-[280px] md:w-[360px]" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '24px 22px' }}>
+      <Quote size={26} strokeWidth={2} color="var(--fd-coral)" />
+      <div className="pt-4 flex flex-col gap-2" aria-hidden>
+        <span style={{ display: 'block', height: 9, width: '92%', borderRadius: 4, background: '#EDEAE0' }} />
+        <span style={{ display: 'block', height: 9, width: '84%', borderRadius: 4, background: '#EDEAE0' }} />
+        <span style={{ display: 'block', height: 9, width: '66%', borderRadius: 4, background: '#EDEAE0' }} />
+      </div>
+      <div className="pt-5 flex items-center gap-3">
+        <span style={{ width: 38, height: 38, borderRadius: 999, background: 'var(--fd-cream)', display: 'inline-block' }} />
+        <span className="text-[12.5px]" style={{ fontWeight: 700, color: 'var(--fd-muted)' }}>{tag}</span>
+      </div>
+    </div>
+  )
+}
+
+function VetVoices() {
+  return (
+    <Section bg="pine" pad="md">
+      <Container size="xl">
+        <Reveal>
+          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
+            <Eyebrow color="var(--fd-green-soft)">VET PROFESSIONALS</Eyebrow>
+            <Display size="lg" className="pt-3" style={{ color: '#FFFFFF' }}>
+              전문가의 시선으로
+            </Display>
+            <p className="pt-4 mx-auto text-[14px] md:text-[15px]" style={{ maxWidth: 460, color: 'var(--fd-green-soft)', lineHeight: 1.6 }}>
+              수의 자문과 전문가 의견이 모이면 이 자리에 채워집니다.
+            </p>
+          </div>
+        </Reveal>
+        <div className="pt-9">
+          <Reveal>
+            <FdSlider ariaLabel="전문가 의견">
+              <QuoteCard tag="수의 자문 자리 · 직함" />
+              <QuoteCard tag="수의 자문 자리 · 직함" />
+              <QuoteCard tag="수의 자문 자리 · 직함" />
+              <QuoteCard tag="수의 자문 자리 · 직함" />
+            </FdSlider>
+          </Reveal>
+        </div>
+      </Container>
+    </Section>
+  )
+}
+
+// 10b. ======================================================================
+// Study / 근거 — "기대 변화" 4콜아웃 (FD Study 섹션 대응). 정직: 가이드라인 근거 ·
+// 생활개선 표현(질병 치료/효능 단정 금지) · 가짜 수치 없음 · /science 링크.
+// ===========================================================================
+const EVIDENCE = [
+  { n: '01', t: '소화 · 변 상태', d: '소화가 잘 되는 재료와 균형으로 매일의 컨디션을 살펴요.' },
+  { n: '02', t: '피부 · 모질', d: '단백질·필수지방산 균형으로 윤기와 피부 컨디션을 챙겨요.' },
+  { n: '03', t: '활력 · 하루 컨디션', d: '필요 칼로리에 맞춘 급여로 하루 활력을 지켜요.' },
+  { n: '04', t: '적정 체중', d: '몸에 맞춘 정량 급여로 적정 체중 관리를 도와요.' },
+]
+
+function Evidence() {
+  return (
+    <Section bg="offwhite" pad="md">
+      <Container size="lg">
+        <Reveal>
+          <div className="text-center mx-auto" style={{ maxWidth: 620 }}>
+            <Eyebrow>WHY IT MATTERS</Eyebrow>
+            <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
+              꾸준한 균형 식단이
+              <br className="hidden md:block" /> 만드는 변화
+            </Display>
+            <p className="pt-4 text-[14px] md:text-[15px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.7 }}>
+              매 끼니 같은 수의영양 기준으로 균형 잡힌 신선식을 이어갈 때, 보호자분들이
+              일상에서 살펴볼 수 있는 부분이에요. 개체차가 있으며 치료 효과를 보장하지는
+              않아요.
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="pt-8 md:pt-10 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          {EVIDENCE.map((it, i) => (
+            <Reveal key={it.n} delay={i * 80}>
+              <div
+                style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 8, padding: '20px 18px', height: '100%' }}
+              >
+                <span className="font-chunky" style={{ fontSize: 18, color: 'var(--fd-coral)' }}>{it.n}</span>
+                <div className="mt-2.5 text-[15px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.015em' }}>{it.t}</div>
+                <p className="mt-1.5 text-[12.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>{it.d}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+
+        <Reveal delay={120}>
+          <div className="pt-7 md:pt-9 text-center">
+            <Link
+              href="/science"
+              className="inline-flex items-center gap-1.5 no-underline text-[13.5px]"
+              style={{ color: 'var(--fd-coral-text)', fontWeight: 700 }}
+            >
+              영양 설계 근거 보기
+              <ArrowRight size={15} strokeWidth={2.4} />
+            </Link>
+          </div>
+        </Reveal>
+      </Container>
+    </Section>
+  )
+}
+
+// 11. =======================================================================
+// Social proof — 고객 후기 캐러셀 (placeholder, 가짜 후기 X)
+// ===========================================================================
+function ReviewCard() {
+  return (
+    <div className="snap-start shrink-0 w-[280px] md:w-[340px]" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '24px 22px' }}>
+      {/* 정직: 실제 후기 전엔 채운 별점 금지 — 윤곽선 빈 점(=후기 자리 표시).
+          /reviews StarDots 회차51 과 동일 처리(가짜 5점 오인 방지). */}
+      <div className="flex gap-1" aria-hidden>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <span key={i} style={{ width: 14, height: 14, borderRadius: 999, background: 'transparent', border: '1.5px solid var(--fd-line)', display: 'inline-block' }} />
+        ))}
+      </div>
+      <div className="pt-4 flex flex-col gap-2" aria-hidden>
+        <span style={{ display: 'block', height: 9, width: '94%', borderRadius: 4, background: '#EDEAE0' }} />
+        <span style={{ display: 'block', height: 9, width: '88%', borderRadius: 4, background: '#EDEAE0' }} />
+        <span style={{ display: 'block', height: 9, width: '72%', borderRadius: 4, background: '#EDEAE0' }} />
+      </div>
+      <div className="pt-5 flex items-center gap-3">
+        <span style={{ width: 38, height: 38, borderRadius: 999, background: 'var(--fd-cream)', display: 'inline-block' }} />
+        <span className="text-[12.5px]" style={{ fontWeight: 700, color: 'var(--fd-muted)' }}>후기 자리 · 아이 이름</span>
+      </div>
+    </div>
+  )
+}
+
+function SocialProof() {
+  return (
+    <Section bg="cream" pad="md">
+      <Container size="xl">
+        <Reveal>
+          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
+            <Eyebrow>REVIEWS</Eyebrow>
+            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
+              보호자도, 아이도 좋아해요
+            </Display>
+            <p className="pt-4 mx-auto text-[14px] md:text-[15px]" style={{ maxWidth: 440, color: 'var(--fd-muted)', lineHeight: 1.6 }}>
+              실제 후기가 모이면 이 자리에 채워집니다.
+            </p>
+          </div>
+        </Reveal>
+        <div className="pt-9">
+          <Reveal>
+            <FdSlider ariaLabel="고객 후기">
+              <ReviewCard />
+              <ReviewCard />
+              <ReviewCard />
+              <ReviewCard />
+              <ReviewCard />
+            </FdSlider>
+          </Reveal>
+        </div>
+      </Container>
+    </Section>
+  )
+}
+
+// 12. =======================================================================
+// Final CTA
+// ===========================================================================
+function FinalCta({ isAuthed }: { isAuthed: boolean }) {
+  return (
+    <Section bg="coral" pad="md">
+      <Container size="md">
+        <Reveal>
+          <div className="text-center">
+            <Display size="lg" style={{ color: '#FFFFFF' }}>
+              우리 아이의 진짜 한 끼,
+              <br />
+              오늘 시작해요
+            </Display>
+            <p className="pt-4 mx-auto text-[15px] md:text-[16px]" style={{ maxWidth: 420, lineHeight: 1.65, color: 'rgba(255,255,255,0.92)' }}>
+              체험팩부터 부담 없이. 언제든 해지.
+            </p>
+            <div className="pt-8 flex justify-center">
+              <Button href={planHref(isAuthed)} tone="cream" size="lg">
+                2분 설문 시작하기
+                <ArrowRight size={19} strokeWidth={2.4} />
+              </Button>
+            </div>
+            <p className="pt-5 text-[12.5px]" style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
+              수의영양학 기반 · 무항생제 원물 · 3만원 이상 무료배송
+            </p>
+          </div>
+        </Reveal>
+      </Container>
+    </Section>
+  )
+}
+
+// ===========================================================================
+// Page — FD 실구조 순서
+// ===========================================================================
 export default async function LandingPage() {
   const supabase = await createClient()
-
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  // 로그인 유저도 랜딩 자유 탐색 — CTA 만 auth 상태로 분기 (기존 정책 유지).
   const isAuthed = !!user
-
-  // 콘텐츠2 SKU 스택 — 실제 화식 제품 (가짜 카드 아님).
-  const { data: hwsik } = await supabase
-    .from('products')
-    .select('id, name, slug, price, sale_price, image_url, short_description')
-    .eq('is_active', true)
-    .eq('category', '화식')
-    .order('sort_order', { ascending: true })
-  const skus: Sku[] = hwsik ?? []
 
   return (
     <WebChrome cartCount={0}>
-      {/* 트럭/언덕 SVG 공유 크레용 필터 — 1회 렌더 */}
-      <JourneyDefs />
-      <main style={{ background: 'var(--bg)' }}>
-        <FarmHero />
-
-        <TruckDrive stage={1} />
-        <Content1 />
-
-        <TruckDrive stage={2} />
-        <Content2 skus={skus} />
-
-        <TruckDrive stage={3} />
-        <Content3 />
-
-        <TruckArrival />
-        <JourneyCTA isAuthed={isAuthed} />
-        <FaqTeaser />
+      <main>
+        <HomeHero isAuthed={isAuthed} />
+        <TrustStrip />
+        <ValueProp isAuthed={isAuthed} />
+        <FeatureCards />
+        <Comparison />
+        <HowWeMakeIt />
+        <CompleteMealPlan isAuthed={isAuthed} />
+        <PlanBenefits />
+        <HowItWorks isAuthed={isAuthed} />
+        <ScienceExpertise />
+        <VetVoices />
+        <Evidence />
+        <SocialProof />
+        <FinalCta isAuthed={isAuthed} />
       </main>
+      <StickyCta href={planHref(isAuthed)} />
     </WebChrome>
   )
 }

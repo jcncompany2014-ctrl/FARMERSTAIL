@@ -27,7 +27,7 @@ const EFFECTIVE_DATE = '2026-05-27'
  */
 export default function TermsPage() {
   return (
-    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--bg)" }}>
+    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--fd-offwhite)" }}>
       <LegalDocument
         eyebrow="Terms of Service"
         title="이용약관"
@@ -40,7 +40,7 @@ export default function TermsPage() {
             <Link
               href="/legal/refund"
               className="font-bold hover:underline"
-                style={{ color: 'var(--terracotta)' }}
+                style={{ color: 'var(--fd-coral)' }}
             >
               환불 정책 전문
             </Link>
@@ -48,7 +48,7 @@ export default function TermsPage() {
             <Link
               href="/legal/privacy"
               className="font-bold hover:underline"
-                style={{ color: 'var(--terracotta)' }}
+                style={{ color: 'var(--fd-coral)' }}
             >
               개인정보처리방침
             </Link>
@@ -259,7 +259,7 @@ export default function TermsPage() {
               <Link
                 href="/legal/refund"
                 className="font-bold hover:underline"
-                style={{ color: 'var(--terracotta)' }}
+                style={{ color: 'var(--fd-coral)' }}
               >
                 환불 정책
               </Link>
@@ -311,7 +311,7 @@ export default function TermsPage() {
               <Link
                 href="/legal/privacy"
                 className="font-bold hover:underline"
-                style={{ color: 'var(--terracotta)' }}
+                style={{ color: 'var(--fd-coral)' }}
               >
                 개인정보처리방침
               </Link>
@@ -342,7 +342,7 @@ export default function TermsPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-bold hover:underline"
-                style={{ color: 'var(--terracotta)' }}
+                style={{ color: 'var(--fd-coral)' }}
               >
                 전자거래분쟁조정위원회
               </a>

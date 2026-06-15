@@ -2,7 +2,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ChevronRight, MapPin, Sprout, Award } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { ogImageUrl } from '@/lib/seo/jsonld'
+import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
+import JsonLd from '@/components/JsonLd'
+import WebChrome from '@/components/WebChrome'
+import StickyCta from '@/components/web/fd/StickyCta'
 
 /**
  * /partners — 농장 파트너 소개 페이지.
@@ -21,7 +24,8 @@ const PARTNERS_OG = ogImageUrl({
 })
 
 export const metadata: Metadata = {
-  title: '농장 파트너 | 파머스테일',
+  // layout template "%s | 파머스테일" 가 브랜드명 1회 부착 → 페이지명만(중복 방지, 회차149).
+  title: '농장 파트너',
   description:
     '강원 평창의 한우, 전남 완도의 자연산 연어, 제주 구좌의 당근 — 파머스테일이 직접 계약한 농가와 작업장.',
   alternates: { canonical: '/partners' },
@@ -30,6 +34,8 @@ export const metadata: Metadata = {
     description:
       '재료의 출처를 농가 단위까지 추적합니다. 익명의 “수입산”은 들어가지 않아요.',
     type: 'article',
+    locale: 'ko_KR',
+    siteName: '파머스테일',
     url: '/partners',
     images: [{ url: PARTNERS_OG, width: 1200, height: 630, alt: '농장 파트너' }],
   },
@@ -103,8 +109,16 @@ const FALLBACK_PARTNERS: Partner[] = [
   },
 ]
 
+function planHref(isAuthed: boolean) {
+  return isAuthed ? '/dogs/new' : '/signup'
+}
+
 export default async function PartnersPage() {
   const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const isAuthed = !!user
   let partners: Partner[] = []
   try {
     const { data, error } = await supabase
@@ -119,27 +133,35 @@ export default async function PartnersPage() {
     // table missing — fallback below
   }
   if (partners.length === 0) partners = FALLBACK_PARTNERS
+
+  const crumbLd = buildBreadcrumbJsonLd([
+    { name: '홈', path: '/' },
+    { name: '농장 파트너', path: '/partners' },
+  ])
+
   return (
+    <WebChrome cartCount={0}>
+    <JsonLd id="ld-partners-crumbs" data={crumbLd} />
     <main
       className="pb-12 md:pb-20 mx-auto"
-      style={{ background: 'var(--bg)', maxWidth: 1280 }}
+      style={{ background: 'var(--fd-offwhite)', maxWidth: 1280 }}
     >
       {/* breadcrumb */}
       <div className="px-5 md:px-8 pt-4 md:pt-6">
         <nav
           aria-label="현재 위치"
           className="flex items-center gap-1 text-[11px] md:text-[12px]"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--fd-muted)' }}
         >
-          <Link href="/" className="hover:text-terracotta transition">
+          <Link href="/" className="hover:opacity-70 transition">
             홈
           </Link>
           <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
-          <Link href="/brand" className="hover:text-terracotta transition">
+          <Link href="/brand" className="hover:opacity-70 transition">
             브랜드
           </Link>
           <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
-          <span style={{ color: 'var(--ink)', fontWeight: 700 }}>
+          <span style={{ color: 'var(--fd-pine)', fontWeight: 700 }}>
             농장 파트너
           </span>
         </nav>
@@ -148,26 +170,26 @@ export default async function PartnersPage() {
       <section className="px-5 md:px-12 pt-6 md:pt-14 pb-8 md:pb-12">
         <span
           className="font-mono text-[10px] md:text-[12px] tracking-[0.22em] uppercase"
-          style={{ color: 'var(--terracotta)' }}
+          style={{ color: 'var(--fd-coral-text)' }}
         >
           Partners · 농장 파트너
         </span>
         <h1
-          className="font-serif mt-3 md:mt-5 text-[28px] md:text-[52px] lg:text-[64px]"
+          className="font-chunky mt-3 md:mt-5 text-[28px] md:text-[52px] lg:text-[64px]"
           style={{
             fontWeight: 800,
-            color: 'var(--ink)',
+            color: 'var(--fd-pine)',
             letterSpacing: '-0.03em',
             lineHeight: 1.05,
           }}
         >
           재료에는
           <br />
-          <span style={{ color: 'var(--terracotta)' }}>이름이 있어야 해요</span>
+          <span style={{ color: 'var(--fd-coral-text)' }}>이름이 있어야 해요</span>
         </h1>
         <p
           className="mt-4 md:mt-6 text-[13px] md:text-[16.5px] leading-relaxed max-w-xl"
-          style={{ color: 'var(--text)' }}
+          style={{ color: 'var(--fd-muted)' }}
         >
           강원 평창의 한우, 전남 완도의 자연산 연어, 제주 구좌의 당근. 우리는
           재료의 원산지를 농가 단위까지 표기합니다. 익명의 ‘수입산 육류’나
@@ -180,10 +202,10 @@ export default async function PartnersPage() {
           {partners.map((p) => (
             <li
               key={p.name}
-              className="rounded-2xl overflow-hidden"
+              className="rounded-[12px] overflow-hidden"
               style={{
-                background: 'var(--bg-2)',
-                boxShadow: 'inset 0 0 0 1px var(--rule)',
+                background: 'var(--fd-cream)',
+                boxShadow: 'inset 0 0 0 1px var(--fd-line)',
               }}
             >
               {p.image_url && (
@@ -202,20 +224,20 @@ export default async function PartnersPage() {
                       <MapPin
                         className="w-3.5 h-3.5"
                         strokeWidth={2}
-                        color="var(--terracotta)"
+                        color="var(--fd-coral-text)"
                       />
                       <span
                         className="font-mono text-[10px] md:text-[11px] tracking-[0.18em] uppercase"
-                        style={{ color: 'var(--terracotta)', fontWeight: 700 }}
+                        style={{ color: 'var(--fd-coral-text)', fontWeight: 700 }}
                       >
                         {p.region}
                       </span>
                     </div>
                     <h2
-                      className="font-serif text-[18px] md:text-[22px]"
+                      className="font-bold text-[18px] md:text-[22px]"
                       style={{
                         fontWeight: 800,
-                        color: 'var(--ink)',
+                        color: 'var(--fd-pine)',
                         letterSpacing: '-0.02em',
                         lineHeight: 1.2,
                       }}
@@ -224,7 +246,7 @@ export default async function PartnersPage() {
                     </h2>
                     <div
                       className="mt-1 md:mt-1.5 text-[12px] md:text-[13.5px]"
-                      style={{ color: 'var(--muted)' }}
+                      style={{ color: 'var(--fd-muted)' }}
                     >
                       {p.ingredient}
                     </div>
@@ -233,8 +255,8 @@ export default async function PartnersPage() {
                     <span
                       className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9.5px] md:text-[10.5px] font-bold"
                       style={{
-                        background: 'color-mix(in srgb, var(--moss) 12%, var(--bg))',
-                        color: 'var(--moss)',
+                        background: 'color-mix(in srgb, var(--fd-green) 12%, var(--fd-offwhite))',
+                        color: 'var(--fd-green)',
                       }}
                     >
                       <Award className="w-3 h-3" strokeWidth={2.25} />
@@ -245,7 +267,7 @@ export default async function PartnersPage() {
 
                 <p
                   className="mt-3 md:mt-5 text-[13px] md:text-[15px] leading-relaxed"
-                  style={{ color: 'var(--text)' }}
+                  style={{ color: 'var(--fd-muted)' }}
                 >
                   {p.body}
                 </p>
@@ -257,16 +279,16 @@ export default async function PartnersPage() {
 
       <section className="px-5 md:px-12">
         <div
-          className="rounded-2xl px-5 py-6 md:px-10 md:py-10 text-center"
-          style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+          className="rounded-[12px] px-5 py-6 md:px-10 md:py-10 text-center"
+          style={{ background: 'var(--fd-pine)', color: 'var(--fd-offwhite)' }}
         >
           <Sprout
             className="w-7 h-7 md:w-9 md:h-9 mx-auto"
             strokeWidth={1.6}
-            color="var(--gold)"
+            color="var(--fd-coral)"
           />
           <h2
-            className="font-serif mt-3 md:mt-4 text-[19px] md:text-[28px]"
+            className="font-chunky mt-3 md:mt-4 text-[19px] md:text-[28px]"
             style={{ fontWeight: 800, letterSpacing: '-0.02em' }}
           >
             농장과 함께 키우는 식탁
@@ -281,12 +303,14 @@ export default async function PartnersPage() {
           <a
             href="mailto:b2b@farmerstail.kr?subject=농가 파트너 제안"
             className="inline-flex items-center gap-1.5 mt-5 md:mt-7 px-5 md:px-7 py-2.5 md:py-3 rounded-full text-[12.5px] md:text-[14px] font-bold"
-            style={{ background: 'var(--gold)', color: 'var(--ink)' }}
+            style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
           >
             농가 제안 보내기
           </a>
         </div>
       </section>
     </main>
+      <StickyCta href={planHref(isAuthed)} />
+    </WebChrome>
   )
 }

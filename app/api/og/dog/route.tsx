@@ -12,10 +12,12 @@ import { createClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs' // Supabase 사용 → edge X
 
-const CREAM = '#F5F0E6'
-const INK = '#16140F'
-const TERRA = '#C44A26'
-const MUTE = '#7D7460'
+// FD 브랜드 팔레트 inline mirror — ImageResponse 는 var(--fd-*) 못 씀.
+// globals.css 바뀌면 수동 동기화(회차172: 옛 v4 → FD. /api/og 와 통일).
+const CREAM = '#F7F5F0' // --fd-offwhite
+const INK = '#173B33' // --fd-pine
+const TERRA = '#B63619' // --fd-coral-text (AA)
+const MUTE = '#5A6C61' // --fd-muted
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)

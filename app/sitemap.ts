@@ -46,6 +46,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${siteUrl}/our-food`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    // 신선식 교육 페이지 (왜 화식인가) — FD /why-fresh 대응. 브랜드 핵심
+    // 메시지라 우리음식 다음 우선순위로 인덱싱.
+    {
+      url: `${siteUrl}/why-fresh`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${siteUrl}/reviews`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+    {
       url: `${siteUrl}/collections`,
       lastModified: now,
       changeFrequency: 'weekly',

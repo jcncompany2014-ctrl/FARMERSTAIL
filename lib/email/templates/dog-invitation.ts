@@ -57,11 +57,11 @@ export function renderDogInvitation(
     kicker: 'Family · 가족 초대',
     heading: `${dogName}의 가족이 되어주세요`,
     body: `
-      <p style="margin:0 0 12px;font-size:14px;line-height:1.7;color:#2C2A26;">
+      <p style="margin:0 0 12px;font-size:14px;line-height:1.7;color:#173B33;">
         <strong>${safeInviter}</strong>님이 <strong>${safeDog}</strong>의
         ${escape(ROLE_LABEL[role])}으로 초대했어요.
       </p>
-      <p style="margin:0 0 6px;font-size:13px;line-height:1.7;color:#7A7A7A;">
+      <p style="margin:0 0 6px;font-size:13px;line-height:1.7;color:#5A6C61;">
         링크를 누르면 ${safeDog}의 일지·체크인을 함께 보실 수 있어요.
         초대는 <strong>${escape(fmtDate(expiresAt))}</strong>까지 유효해요.
       </p>

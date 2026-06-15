@@ -64,13 +64,13 @@ export default function NewsletterForm() {
       <div className="mt-5 md:mt-7 flex items-center gap-3">
         <span
           className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: 'var(--moss)', color: 'var(--bg)' }}
+          style={{ background: 'var(--fd-green)', color: '#FFFFFF' }}
         >
           <Check className="w-4 h-4" strokeWidth={3} />
         </span>
         <p
           className="text-[12.5px] md:text-[14px]"
-          style={{ color: 'var(--bg)' }}
+          style={{ color: '#FFFFFF' }}
         >
           확인 메일을 보냈어요. 메일의 링크를 눌러 구독을 완료해 주세요.
         </p>
@@ -85,35 +85,36 @@ export default function NewsletterForm() {
     >
       <input
         type="email"
+        aria-label="이메일 주소"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="hello@example.com"
         autoComplete="email"
         inputMode="email"
-        className="w-full h-12 md:h-14 px-4 md:px-5 rounded-xl text-[13px] md:text-[15px] focus:outline-none transition"
+        className="w-full h-12 md:h-14 px-4 md:px-5 rounded-lg text-[13px] md:text-[15px] focus:outline-none transition"
         style={{
-          background: 'rgba(245,240,230,0.08)',
-          color: 'var(--bg)',
-          border: '1px solid rgba(245,240,230,0.18)',
+          background: 'rgba(255,255,255,0.08)',
+          color: '#FFFFFF',
+          border: '1px solid rgba(255,255,255,0.18)',
         }}
         onFocus={(e) =>
-          (e.currentTarget.style.borderColor = 'var(--gold)')
+          (e.currentTarget.style.borderColor = 'var(--fd-green-soft)')
         }
         onBlur={(e) =>
-          (e.currentTarget.style.borderColor = 'rgba(245,240,230,0.18)')
+          (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)')
         }
       />
 
       <label
         className="flex items-start gap-2.5 cursor-pointer text-[11.5px] md:text-[13px] leading-relaxed"
-        style={{ color: 'rgba(245,240,230,0.78)' }}
+        style={{ color: 'rgba(255,255,255,0.78)' }}
       >
         <input
           type="checkbox"
           checked={agreed}
           onChange={(e) => setAgreed(e.target.checked)}
           className="mt-0.5 w-4 h-4 shrink-0"
-          style={{ accentColor: 'var(--gold)' }}
+          style={{ accentColor: 'var(--fd-green-soft)' }}
         />
         <span>
           마케팅 정보 수신에 동의합니다. (월 1회 발송 · 언제든 구독 해지 가능)
@@ -135,8 +136,8 @@ export default function NewsletterForm() {
         disabled={submitting}
         className="inline-flex items-center justify-center gap-2 mt-1 md:mt-2 px-6 py-3 md:py-3.5 rounded-full text-[13px] md:text-[15px] font-bold transition active:scale-[0.98] disabled:opacity-60"
         style={{
-          background: 'var(--gold)',
-          color: 'var(--ink)',
+          background: 'var(--fd-coral)',
+          color: '#FFFFFF',
           letterSpacing: '-0.01em',
         }}
       >

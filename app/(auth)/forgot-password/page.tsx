@@ -81,7 +81,7 @@ export default function ForgotPasswordPage() {
   return (
     <main
       className="min-h-screen flex flex-col items-center justify-center px-6 py-10 md:py-16"
-      style={{ background: 'var(--bg)' }}
+      style={{ background: 'var(--fd-offwhite)' }}
     >
       <div className="w-full max-w-sm md:max-w-md">
         <AuthHero
@@ -94,34 +94,34 @@ export default function ForgotPasswordPage() {
           <div
             className="rounded-xl px-4 py-5 mb-5"
             style={{
-              background: 'color-mix(in srgb, var(--moss) 10%, transparent)',
+              background: 'color-mix(in srgb, var(--fd-green) 10%, transparent)',
               boxShadow:
-                'inset 0 0 0 1px color-mix(in srgb, var(--moss) 30%, transparent)',
+                'inset 0 0 0 1px color-mix(in srgb, var(--fd-green) 30%, transparent)',
             }}
           >
             <div className="flex items-start gap-2.5">
               <CheckCircle2
                 className="w-4 h-4 shrink-0 mt-0.5"
                 strokeWidth={2.25}
-                color="var(--moss)"
+                color="var(--fd-green)"
               />
               <div className="min-w-0">
                 <p
                   className="text-[12.5px] font-bold leading-relaxed"
-                  style={{ color: 'var(--text)' }}
+                  style={{ color: 'var(--fd-pine)' }}
                 >
                   메일을 보냈어요
                 </p>
                 <p
                   className="text-[11.5px] mt-2 leading-relaxed"
-                  style={{ color: 'var(--muted)' }}
+                  style={{ color: 'var(--fd-muted)' }}
                 >
                   {email} 로 재설정 링크를 보냈어요. 메일이 안 보이면
                   스팸함도 확인해 주세요. 링크는 1시간 동안 유효해요.
                 </p>
                 <p
                   className="text-[11px] mt-3 leading-relaxed"
-                  style={{ color: 'var(--muted)' }}
+                  style={{ color: 'var(--fd-muted)' }}
                 >
                   (가입하지 않은 이메일은 메일이 발송되지 않아요.)
                 </p>
@@ -134,7 +134,7 @@ export default function ForgotPasswordPage() {
               <label
                 className="block text-[11px] font-bold mb-1.5"
                 htmlFor="forgot-email"
-                style={{ color: 'var(--text)' }}
+                style={{ color: 'var(--fd-pine)' }}
               >
                 이메일
               </label>
@@ -152,15 +152,15 @@ export default function ForgotPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg border text-[16px] focus:outline-none transition"
                 style={{
-                  borderColor: 'var(--rule-2)',
-                  background: '#FDFDFD',
-                  color: 'var(--text)',
+                  borderColor: 'var(--fd-line)',
+                  background: '#FFFFFF',
+                  color: 'var(--fd-pine)',
                 }}
                 onFocus={(e) =>
-                  (e.currentTarget.style.borderColor = 'var(--terracotta)')
+                  (e.currentTarget.style.borderColor = 'var(--fd-coral)')
                 }
                 onBlur={(e) =>
-                  (e.currentTarget.style.borderColor = 'var(--rule-2)')
+                  (e.currentTarget.style.borderColor = 'var(--fd-line)')
                 }
                 placeholder="example@email.com"
               />
@@ -190,12 +190,14 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 rounded-full font-bold text-[13.5px] active:scale-[0.98] transition-all disabled:opacity-50"
+              className="w-full font-bold text-[14px] active:translate-y-[1px] transition-all disabled:opacity-50"
               style={{
-                background: 'var(--ink)',
-                color: 'var(--bg)',
+                height: 56,
+                borderRadius: 9999,
+                background: 'var(--fd-pine)',
+                color: '#FFFFFF',
                 letterSpacing: '-0.01em',
-                boxShadow: '0 4px 14px rgba(30,26,20,0.25)',
+                boxShadow: '0 6px 18px -8px rgba(23,59,51,0.5)',
               }}
             >
               {loading ? '발송 중...' : '재설정 메일 보내기'}
@@ -205,13 +207,13 @@ export default function ForgotPasswordPage() {
 
         <div
           className="text-center mt-8 text-[12.5px]"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--fd-muted)' }}
         >
           비밀번호가 기억나셨나요?{' '}
           <Link
             href="/login"
             className="font-bold underline underline-offset-2"
-            style={{ color: 'var(--terracotta)' }}
+            style={{ color: 'var(--fd-coral-text)' }}
           >
             로그인
           </Link>
