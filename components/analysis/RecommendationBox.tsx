@@ -21,6 +21,7 @@ import {
   Beef,
   Sprout,
   Info,
+  ChevronDown,
 } from 'lucide-react'
 import { FOOD_LINE_META, ALL_LINES, dailyGramsFromMix } from '@/lib/personalization/lines'
 import { transitionLabel } from '@/lib/personalization/format'
@@ -36,7 +37,6 @@ import {
   fetchComputedFormula,
   invalidateComputedFormula,
 } from '@/lib/personalization/formulaCache'
-import V3RecommendationCard from './V3RecommendationCard'
 import type { RecommendationResult } from '@/lib/personalization/v3/types'
 import './recommendation.css'
 import './adjust-sheet.css'
@@ -318,7 +318,6 @@ export default function RecommendationBox({
     <>
       <RecommendationView
         formula={state.formula}
-        v3={state.v3}
         dogName={dogName}
         dogId={dogId}
         scale={scale}
@@ -345,7 +344,6 @@ export default function RecommendationBox({
 
 function RecommendationView({
   formula,
-  v3,
   dogName,
   dogId,
   scale,
@@ -353,7 +351,6 @@ function RecommendationView({
   onOpenAdjust,
 }: {
   formula: Formula
-  v3: RecommendationResult | null
   dogName: string
   dogId: string
   scale: Scale
@@ -365,6 +362,8 @@ function RecommendationView({
   // 1w = 7일, 2w = 15일 (반달 portion), 4w = 30일 (한달 풀 portion)
   // — order 페이지 cycleDays 와 일치 (calendar month).
   const days = scale === '1w' ? 7 : scale === '2w' ? 15 : 30
+  // 사장님 2026-06-19 "왜 이 비율 공간차지 심해" — 기본 접힘, 탭해서 펼침.
+  const [whyOpen, setWhyOpen] = useState(false)
   const totalKcal = useMemo(() => formula.dailyKcal, [formula.dailyKcal])
   /**
    * 라인 mix 기준 실제 일일 화식 g — order 페이지 / compute API 와 동일
@@ -410,9 +409,9 @@ function RecommendationView({
 
   return (
     <>
-      {/* 추천 엔진 v3 — 2-레이어(베이스 SKU + 기능성 소스) 결과 카드.
-          v3=null(레거시 formula·v3 미생성)이면 카드가 스스로 렌더 생략. */}
-      <V3RecommendationCard recommendation={v3} dogId={dogId} />
+      {/* 2026-06-19 사장님 "없애": '맞춤 베이스 레시피'(V3RecommendationCard) 제거 —
+          바로 위 Magazine BoxMix 와 닭·비율·g/kcal 중복 + dailyKcal(v3 435) vs
+          아래 다크카드(v2 392) 숫자 충돌의 원인. v3 fetch/state 는 유지(무해). */}
 
       {/* fb-hero 폐기 (2026-05-21) — Magazine HeroSection + DiagnosisCard 가 대체. */}
       <div className="fb-hero" style={{ marginTop: 24, display: 'none' }}>
@@ -589,34 +588,8 @@ function RecommendationView({
 
       {/* 영양 단면 카드 폐기 (2026-05-21) — Magazine NutrientsCard 가 대체. */}
 
-      {/* Reasoning */}
-      {formula.reasoning.length > 0 && (
-        <div className="fb-reasoning">
-          <div className="fb-sub-lbl">
-            <GitBranch size={11} strokeWidth={2} color="var(--muted)" />왜 이 비율일까요
-            {formula.userAdjusted && (
-              <span className="fb-adj">사용자 조정됨</span>
-            )}
-          </div>
-          <ul className="fb-reason-list">
-            {formula.reasoning.slice(0, 6).map((r, i) => (
-              <ReasonRow key={i} reasoning={r} />
-            ))}
-          </ul>
-          {formula.reasoning.length > 6 && (
-            <p
-              style={{
-                fontSize: 10,
-                color: 'var(--muted)',
-                marginTop: 8,
-                textAlign: 'center',
-              }}
-            >
-              +{formula.reasoning.length - 6}개 룰 더 적용됨
-            </p>
-          )}
-        </div>
-      )}
+      {/* 왜 이 비율(접기) — 정기배송 신청 박스 아래로 이동(사장님 2026-06-19).
+          렌더는 아래 fb-totals 다음. */}
 
       {/* Totals + CTA */}
       <div className="fb-totals">
@@ -700,6 +673,63 @@ function RecommendationView({
           </a>
         </div>
       </div>
+
+      {/* 왜 이 비율(접기) — 정기배송 신청 박스 바로 아래(사장님 2026-06-19). */}
+      {formula.reasoning.length > 0 && (
+        <div className="fb-reasoning" style={{ marginTop: 14 }}>
+          <button
+            type="button"
+            className="fb-sub-lbl"
+            onClick={() => setWhyOpen((v) => !v)}
+            aria-expanded={whyOpen}
+            style={{
+              width: '100%',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              font: 'inherit',
+              padding: 0,
+              margin: 0,
+            }}
+          >
+            <GitBranch size={11} strokeWidth={2} color="var(--muted)" />왜 이 비율일까요
+            {formula.userAdjusted && (
+              <span className="fb-adj">사용자 조정됨</span>
+            )}
+            <ChevronDown
+              size={14}
+              strokeWidth={2.2}
+              color="var(--muted)"
+              style={{
+                marginLeft: 'auto',
+                transition: 'transform 200ms',
+                transform: whyOpen ? 'rotate(180deg)' : 'none',
+              }}
+            />
+          </button>
+          {whyOpen && (
+            <>
+              <ul className="fb-reason-list" style={{ marginTop: 10 }}>
+                {formula.reasoning.slice(0, 6).map((r, i) => (
+                  <ReasonRow key={i} reasoning={r} />
+                ))}
+              </ul>
+              {formula.reasoning.length > 6 && (
+                <p
+                  style={{
+                    fontSize: 10,
+                    color: 'var(--muted)',
+                    marginTop: 8,
+                    textAlign: 'center',
+                  }}
+                >
+                  +{formula.reasoning.length - 6}개 룰 더 적용됨
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </>
   )
 }

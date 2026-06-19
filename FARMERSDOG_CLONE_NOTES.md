@@ -65,16 +65,17 @@
 
 ## 2. 페이지 인벤토리
 
-핵심(복제):
-- [ ] `/` 홈
-- [ ] `/our-food` 우리 음식(신선식 이유 + 재료 + 사료 비교)
-- [ ] `/reviews` 후기
-- [ ] `/about-us` 브랜드 스토리
-- [ ] `/faq` 자주 묻는 질문 (아코디언 + 카테고리)
+핵심(복제) — ✅전부 완료(회차230 인벤토리 정정):
+- [x] `/` 홈 (회차13·157 14섹션 FD 패리티)
+- [x] `/our-food` 우리 음식 (회차15)
+- [x] `/reviews` 후기 (회차16)
+- [x] `/about-us` → `/about` 브랜드 스토리 (회차20)
+- [x] `/faq` 자주 묻는 질문 (아코디언+카테고리, 회차12)
+- [x] `/why-fresh` 신선식 이유 교육 페이지 (회차195~202, 인벤토리 추가분)
 부가(후순위):
-- [ ] `/digest` 매거진(기존 /blog 활용)
-- [ ] `/breed` 견종별
-- [ ] `/diy` (선택)
+- [x] `/digest` → 기존 `/blog` 매거진 활용 (회차1·2)
+- [ ] `/breed` 견종별 — **미빌드**. FD엔 견종 콘텐츠 있으나 신규 페이지 = 스코프 확장 → 사장님 요청 시 진행(자동 착수 보류).
+- [~] `/diy` — **범위 밖**(DIY 레시피 = 레시피 노출 정직성 가드 금지). 빌드 안 함.
 제외: ~~설문/signup quiz~~, 외부(vets/affiliates/careers 외부화)
 
 글로벌: 헤더 nav = 우리 음식 / 후기 / 브랜드 / FAQ + 로그인 + 코랄 "시작하기".
@@ -195,7 +196,7 @@ dev 주의: WebChrome import 변경 후엔 `.next` 비우고 재시작(스테일
 - **D16 (보조 라우트 분류, 회차54)**: 미분류 6종 점검 결과 —
   - `/best`·`/new` = `redirect('/products?sort=…')` **리다이렉트 stub** → 작업 불필요.
   - `/compare`(옛토큰0)·`/collections`(옛토큰21)·`/events`(옛토큰20·쿠폰/이벤트 허브) = `/products`·결제·쿠폰 참조하는 **커머스/프로모 surface → 피벗 보류**(cart/checkout/products와 동일). 커머스 정책 확정 시 진행.
-  - `/partners`(옛토큰18) = **"농장 파트너 소개" 브랜드 마케팅 페이지**(소싱 스토리=설문 퍼널 브랜드와 부합) — 그런데 **bare `<main>`(WebChrome 없음→FD 헤더/푸터·앱웹 dispatch 누락) + 옛 v4 토큰 18개**. **FD화 대상**(큐 J 신설, 작게 쪼개 진행). 292줄.
+  - `/partners` = **"농장 파트너 소개" 브랜드 마케팅 페이지** — ✅**FD화 완료 확인(회차230)**: WebChrome 래핑(page.tsx:143) + 전부 FD 토큰(--fd-offwhite/pine/coral-text/muted/cream/line/green), 옛 v4 토큰(--ink/terracotta/moss/gold) **0건**. (위 "bare main + 옛토큰18" 기록은 과거 상태로 이미 해소됨.) ※잔여=brand/about과 공통 "72°C 저온 스팀" 카피 사실확인만 사장님 게이트(FD_CLONE_QUEUE Section0 스팀 항목).
 
 ### 달성 밀스톤 (회차11~133, 상세는 FD_CLONE_QUEUE.md 로그)
 - **옛 색 0 — 전 web 표면**: 마케팅 13페이지 + 공유컴포넌트(web/fd·WebChrome·SiteFooter·auth·landing) + 루트 layout + error/404 + (auth)·account + legal 4페이지까지 var()형·Tailwind 클래스형·font-serif·rounded-2xl 모두 0(회차80 재스윕 검증). globals 정의부만 앱v3용 잔존=정상.

@@ -156,7 +156,7 @@ export default async function CompareDogsPage() {
                           data={series}
                           width={88}
                           height={28}
-                          color="var(--terracotta)"
+                          color="var(--accent)"
                         />
                       ) : (
                         <span className="text-[10.5px] text-muted">

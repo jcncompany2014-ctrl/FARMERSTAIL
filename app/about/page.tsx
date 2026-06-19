@@ -58,7 +58,7 @@ export const metadata: Metadata = {
 }
 
 function planHref(isAuthed: boolean) {
-  return isAuthed ? '/dogs/new' : '/signup'
+  return isAuthed ? '/dogs/new' : '/start'
 }
 
 const SOURCING = [
@@ -71,7 +71,7 @@ const SOURCING = [
 const STEPS = [
   ['01', '원료 입고 · 농장 단위 로트 번호 기록'],
   ['02', '저온 세척 및 수의영양 기준 계량'],
-  ['03', '스팀 조리 또는 저온 동결건조'],
+  ['03', '수비드 조리 또는 저온 동결건조'],
   ['04', '급속 냉동 후 다중 포장 · 품질 검사'],
   ['05', '주 1회 냉동 배송'],
 ]

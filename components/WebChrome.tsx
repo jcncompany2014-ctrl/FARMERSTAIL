@@ -246,11 +246,10 @@ export default function WebChrome({
             <Link href="/" className="flex items-center shrink-0" aria-label="홈">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/logo-brush.png"
+                src="/logo-mark.png"
                 alt="Farmer's Tail"
-                className="h-14 w-auto"
+                className="h-9 w-auto"
                 fetchPriority="high"
-                style={{ filter: 'none' }}
               />
             </Link>
 
@@ -326,7 +325,7 @@ export default function WebChrome({
                 )}
               </Link>
               <Link
-                href={isAuthed ? '/dogs/new' : '/signup'}
+                href={isAuthed ? '/dogs/new' : '/start'}
                 className="ml-3 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[12.5px] font-bold transition hover:brightness-[0.94] active:scale-[0.98]"
                 style={{
                   background: 'var(--fd-coral)',
@@ -392,7 +391,7 @@ export default function WebChrome({
               style={{
                 // 로고는 헤더 가운데 + 아래로 살짝 침범(spill). 스크롤 시 opacity 로
                 // pill 과 크로스페이드(순수 opacity = 버벅임 없음).
-                transform: 'translate(-50%, calc(-50% + 13px))',
+                transform: 'translate(-50%, -50%)',
                 opacity: showLogo ? 1 : 0,
                 pointerEvents: showLogo ? 'auto' : 'none',
                 transition: 'opacity 220ms ease-out',
@@ -401,18 +400,17 @@ export default function WebChrome({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/logo-brush.png"
+                src="/logo-mark.png"
                 alt="Farmer's Tail"
-                className="h-[54px] w-auto block select-none"
+                className="h-8 w-auto block select-none"
                 fetchPriority="high"
-                style={{ filter: 'none' }}
               />
             </Link>
             {/* CTA pill — 스크롤 내리면 로고 자리에 등장(FD 'Redeem 50% off' pill 대응).
                 '첫 주문 50% 할인'=실구현 첫 박스 50% 쿠폰(Round B) 실제 프로모라 정직성 OK.
                 링크=signup→설문→첫 주문에 쿠폰 적용(사장님 2026-06-15). */}
             <Link
-              href={isAuthed ? '/dogs/new' : '/signup'}
+              href={isAuthed ? '/dogs/new' : '/start'}
               aria-hidden={showLogo}
               tabIndex={showLogo ? -1 : undefined}
               className="absolute left-1/2 top-1/2 z-10 inline-flex items-center justify-center whitespace-nowrap rounded-full px-7 h-10 text-[14px] font-extrabold no-underline"
@@ -506,7 +504,7 @@ export default function WebChrome({
           {/* 하단 풀폭 그린 pill — 설문 CTA (FD bottom CTA 대응) */}
           <div className="p-4" style={{ borderTop: '1px solid var(--fd-line)' }}>
             <Link
-              href={isAuthed ? '/dogs/new' : '/signup'}
+              href={isAuthed ? '/dogs/new' : '/start'}
               onClick={() => setMobileMenuOpen(false)}
               className="flex w-full items-center justify-center gap-2 rounded-full py-4 text-[15px] font-extrabold no-underline"
               style={{
@@ -530,7 +528,7 @@ export default function WebChrome({
       <div id="main" className="flex-1">{children}</div>
 
       {/* FD 마케팅 푸터 (nav/브랜드) → 그 아래 법정 SiteFooter(불변) */}
-      <FdFooter planHref={isAuthed ? '/dogs/new' : '/signup'} />
+      <FdFooter planHref={isAuthed ? '/dogs/new' : '/start'} />
       {/* 푸터 — 사업자 정보 + 고객 문의 */}
       <SiteFooter />
 

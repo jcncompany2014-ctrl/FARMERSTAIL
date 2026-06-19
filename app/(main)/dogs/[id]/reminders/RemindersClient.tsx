@@ -54,7 +54,7 @@ const TYPE_META: Record<
     label: '예방접종',
     Icon: Syringe,
     color: 'var(--terracotta)',
-    bg: '#A0452E15',
+    bg: '#C86B4515',
   },
   medication: {
     label: '투약',
@@ -66,7 +66,7 @@ const TYPE_META: Record<
     label: '건강검진',
     Icon: Stethoscope,
     color: 'var(--moss)',
-    bg: '#6B7F3A15',
+    bg: '#3C725E15',
   },
   grooming: {
     label: '미용/목욕',
@@ -400,7 +400,7 @@ export default function RemindersClient({
                     : '예: 미끄럼 방지 패드 교체'
                 }
                 maxLength={60}
-                className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[13.5px] focus:outline-none focus:border-terracotta transition"
+                className="w-full px-3 py-2.5 rounded-lg border border-rule bg-white text-[13.5px] focus:outline-none focus:border-terracotta transition"
               />
             </div>
 
@@ -412,7 +412,7 @@ export default function RemindersClient({
                 type="date"
                 value={nextDate}
                 onChange={(e) => setNextDate(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[13.5px] focus:outline-none focus:border-terracotta transition"
+                className="w-full px-3 py-2.5 rounded-lg border border-rule bg-white text-[13.5px] focus:outline-none focus:border-terracotta transition"
               />
             </div>
 
@@ -454,7 +454,7 @@ export default function RemindersClient({
                 placeholder="예: 병원 이름, 약 용량"
                 rows={2}
                 maxLength={200}
-                className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[12px] focus:outline-none focus:border-terracotta transition resize-none"
+                className="w-full px-3 py-2.5 rounded-lg border border-rule bg-white text-[12px] focus:outline-none focus:border-terracotta transition resize-none"
               />
             </div>
 

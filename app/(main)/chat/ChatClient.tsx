@@ -470,7 +470,7 @@ function MessageBubble({ message }: { message: Message }) {
         className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5`}
         style={{
           background: isUser
-            ? 'var(--bg-2)'
+            ? 'var(--paper-deep)'
             : 'color-mix(in srgb, var(--moss) 12%, white)',
         }}
       >

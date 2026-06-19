@@ -2,13 +2,13 @@
 
 import { useRef, useState } from 'react'
 import {
-  PawPrint as DogIcon,
   Camera,
   Loader2,
   CheckCircle2,
   AlertCircle,
   Heart,
 } from 'lucide-react'
+import DogPawMark from '@/components/DogPawMark'
 import { downscaleImage } from '@/lib/imageDownscale'
 
 type Initial =
@@ -121,7 +121,7 @@ export default function PhotoUploadClient({
             }}
             aria-hidden
           >
-            <DogIcon className="w-7 h-7" strokeWidth={1.8} />
+            <DogPawMark className="w-7 h-7" />
           </div>
         </div>
 

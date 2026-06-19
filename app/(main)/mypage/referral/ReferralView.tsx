@@ -12,9 +12,9 @@ import {
   Sparkles,
   Lock,
   ChevronRight,
-  PawPrint,
 } from 'lucide-react'
 import Image from 'next/image'
+import DogPawMark from '@/components/DogPawMark'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 
@@ -71,8 +71,8 @@ export default function ReferralView({
   const toast = useToast()
 
   const shareUrl = useMemo(() => {
-    if (typeof window === 'undefined') return `/signup?ref=${code}`
-    return `${window.location.origin}/signup?ref=${code}`
+    if (typeof window === 'undefined') return `/r/${code}`
+    return `${window.location.origin}/r/${code}`
   }, [code])
 
   const shareText = useMemo(
@@ -176,7 +176,7 @@ export default function ReferralView({
           className="relative overflow-hidden rounded-[12px] px-6 pt-6 pb-7 text-white"
           style={{
             background:
-              'linear-gradient(135deg, var(--terracotta) 0%, #8B3923 100%)',
+              'linear-gradient(135deg, var(--terracotta) 0%, var(--accent-deep) 100%)',
           }}
         >
           {/* 장식 — 우측 상단 큰 원, 좌측 하단 작은 원 */}
@@ -508,10 +508,7 @@ export default function ReferralView({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <PawPrint
-                        className="w-6 h-6 text-muted"
-                        strokeWidth={1.5}
-                      />
+                      <DogPawMark className="w-6 h-6 text-muted" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">

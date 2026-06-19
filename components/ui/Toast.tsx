@@ -103,7 +103,7 @@ const ToastContext = createContext<ToastContextValue | null>(null)
 // ──────────────────────────────────────────────────────────────────────────
 
 const DEFAULT_DURATION: Record<ToastIntent, number> = {
-  success: 3000,
+  success: 2000,
   info: 3000,
   warning: 4000,
   error: 5000,
@@ -396,7 +396,9 @@ function ToastCard({
         'motion-safe:animate-[toast-in_180ms_ease-out]',
         style.bg,
         style.ring,
-        'px-4 py-3 flex items-start gap-3'
+        'px-4 py-3 flex gap-3',
+        // 1줄(설명 없음)은 아이콘과 세로 중앙 정렬, 2줄이면 상단 정렬.
+        item.description ? 'items-start' : 'items-center'
       )}
     >
       <span

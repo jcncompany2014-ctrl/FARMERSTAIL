@@ -156,7 +156,7 @@ export default async function PlansPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const planHref = user ? '/dogs/new' : '/signup'
+  const planHref = user ? '/dogs/new' : '/start'
 
   const crumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },
@@ -208,7 +208,7 @@ export default async function PlansPage() {
         <Section bg="cream" pad="md">
           <Container size="lg">
             <Eyebrow>WHY SUBSCRIBE</Eyebrow>
-            <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>왜 정기배송인가</Display>
+            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>왜 정기배송인가</Display>
             <div className="pt-7 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {WHY.map((r, i) => (
                 <Reveal key={r.n} delay={i * 70}>
@@ -229,7 +229,7 @@ export default async function PlansPage() {
         <Section bg="white" pad="md">
           <Container size="xl">
             <Eyebrow>CHOOSE YOUR CADENCE</Eyebrow>
-            <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>세 가지 리듬</Display>
+            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>세 가지 리듬</Display>
             <p className="pt-3 text-[13.5px] md:text-[15px]" style={{ color: 'var(--fd-muted)', maxWidth: 560, lineHeight: 1.6 }}>
               견종·활동량에 맞춰 2분 설문을 마치면, 화면에서 우리 아이 맞춤 견적이 확정됩니다.
             </p>
@@ -250,7 +250,7 @@ export default async function PlansPage() {
         <Section bg="offwhite" pad="md">
           <Container size="md">
             <Eyebrow>HOW IT WORKS</Eyebrow>
-            <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>시작은 2분, 이후는 자동으로</Display>
+            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>시작은 2분, 이후는 자동으로</Display>
             <Reveal>
               <ol className="pt-6" style={{ borderTop: '1px solid var(--fd-line)' }}>
                 {STEPS.map(([n, t]) => (
@@ -268,7 +268,7 @@ export default async function PlansPage() {
         <Section bg="cream" pad="md">
           <Container size="md">
             <Eyebrow>FAQ</Eyebrow>
-            <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>자주 묻는 질문</Display>
+            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>자주 묻는 질문</Display>
             <Reveal>
               <div className="pt-6" style={{ borderRadius: 8, overflow: 'hidden' }}>
                 {FAQS.map((row, i) => (

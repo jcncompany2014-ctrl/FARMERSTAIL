@@ -13,11 +13,7 @@ export { default as Mono } from './Mono'
 export { default as Mark } from './Mark'
 export { default as Signature } from './Signature'
 export { default as BrandWordmark } from './BrandWordmark'
-export { default as RibbonChip } from './RibbonChip'
-export { default as V3Ticker } from './V3Ticker'
-export { default as V3Section } from './V3Section'
 export { default as Sparkline } from './Sparkline'
-export { default as MiniBars } from './MiniBars'
 export { default as Skeleton, SkeletonStack } from './Skeleton'
 export { default as Tabs, type TabOption } from './Tabs'
 export { default as Modal } from './Modal'
@@ -28,33 +24,14 @@ export {
   type BadgeSize,
   type BadgeShape,
 } from './Badge'
-export { default as Tooltip } from './Tooltip'
-export { default as Stepper } from './Stepper'
 export { default as Toggle } from './Toggle'
 export { default as DatePicker } from './DatePicker'
-export {
-  default as Dropdown,
-  type DropdownItem,
-} from './Dropdown'
 export { default as Avatar } from './Avatar'
 export { default as Cropper } from './Cropper'
-export {
-  default as RadioGroup,
-  type RadioOption,
-} from './RadioGroup'
-export { default as Checkbox } from './Checkbox'
 export { default as Slider } from './Slider'
 export { default as AllergyBanner } from './AllergyBanner'
-export {
-  default as DailyCheckinStack,
-  type CheckinCard,
-} from './DailyCheckinStack'
 export { default as StreakRewards } from './StreakRewards'
-export {
-  default as PhotoTimeline,
-  type TimelinePhoto,
-} from './PhotoTimeline'
-export { default as InlineReviewForm } from './InlineReviewForm'
+export { default as PawFab } from './PawFab'
 export {
   ConfirmProvider,
   useConfirm,

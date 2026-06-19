@@ -16,6 +16,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { petName } from '@/lib/korean'
 
 type Props = {
   dogId: string
@@ -104,7 +105,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
             의견 감사드려요
           </h1>
           <p className="text-[13.5px] text-muted leading-relaxed mb-8">
-            {dogName}이의 영양 관리에 큰 도움이 돼요.
+            {petName(dogName)}의 영양 관리에 큰 도움이 돼요.
           </p>
           <button
             type="button"
@@ -117,7 +118,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
               boxShadow: '0 6px 20px -8px rgba(220, 83, 42, 0.45)',
             }}
           >
-            {dogName}이 정보 보기 →
+            {petName(dogName)} 정보 보기 →
           </button>
         </div>
       </div>
@@ -137,13 +138,13 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
           lineHeight: 1.3,
         }}
       >
-        {dogName}이는 잘 먹고 있나요?
+        {petName(dogName)}는 잘 먹고 있나요?
       </h1>
       <p
         className="text-[12px] text-muted mt-2 mb-8 leading-relaxed"
         style={{ wordBreak: 'keep-all' }}
       >
-        30초만 시간 내주시면 {dogName}이에게 더 잘 맞는 추천을 드릴 수 있어요.
+        30초만 시간 내주시면 {petName(dogName)}에게 더 잘 맞는 추천을 드릴 수 있어요.
         응답해 주시면 100P 적립해 드려요.
       </p>
 

@@ -121,7 +121,7 @@ export default async function CouponsPage() {
         <p
           style={{
             fontSize: 13.5,
-            color: '#3a342a',
+            color: 'var(--ink-soft)',
             marginTop: 6,
             lineHeight: 1.5,
           }}

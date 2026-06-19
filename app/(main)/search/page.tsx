@@ -6,10 +6,10 @@ import { redirect } from 'next/navigation'
 import {
   Search,
   SearchX,
-  PawPrint as DogIcon,
   BookOpen,
   ShoppingBag,
 } from 'lucide-react'
+import DogPawMark from '@/components/DogPawMark'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -180,10 +180,7 @@ export default async function SearchPage({
                     href={`/dogs/${d.id}`}
                     className="flex items-center gap-3 rounded border border-rule bg-bg-3 px-4 py-3 active:scale-[0.99] transition"
                   >
-                    <DogIcon
-                      className="w-4 h-4 text-terracotta shrink-0"
-                      strokeWidth={2}
-                    />
+                    <DogPawMark className="w-4 h-4 text-terracotta shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p
                         className="font-sans"

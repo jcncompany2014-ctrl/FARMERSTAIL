@@ -1,11 +1,9 @@
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { Footprints, Scale, Soup } from 'lucide-react'
 import {
   GreetingSection,
   ActiveDogCard,
-  TodayCard,
   ThisWeekSection,
   MyDogsSection,
   JournalSection,
@@ -16,15 +14,10 @@ import {
   type QuickAction,
   type JournalEntry,
 } from '@/components/v3/home'
-import DashboardDailyChecks from '@/components/dashboard/DashboardDailyChecks'
 import { StreakRewards } from '@/components/v3'
 import { createClient } from '@/lib/supabase/server'
 import ReferralAutoRedeemer from '@/components/ReferralAutoRedeemer'
 import { getActiveEvents } from '@/lib/events/data'
-import {
-  computeNextAction,
-  type NextActionInput,
-} from '@/lib/dashboard/next-action'
 import OnboardingTutorial from '@/components/dashboard/OnboardingTutorial'
 import { currentMilestone } from '@/lib/dashboard/milestones'
 import { computeStreak, type CheckinRow } from '@/lib/dashboard/streaks'
@@ -103,8 +96,6 @@ export default async function DashboardPage() {
   const [
     { data: snapshotData, error: snapshotErr },
     events,
-    { data: pendingFormulasData },
-    { data: latestWeightsData },
     { data: dogAnalysesData },
     { data: onboardData },
     { data: checkinsData },
@@ -117,20 +108,6 @@ export default async function DashboardPage() {
     // getActiveEvents 는 내부에서 catch + empty 반환 — 실패해도 대시보드 전체
     // 가 깨지지 않는다.
     getActiveEvents(supabase, 3),
-    // 처방 승인 대기 — 가장 오래된 1건 (사용자가 가장 먼저 확인해야 할 것)
-    supabase
-      .from('dog_formulas')
-      .select('id, dog_id, proposed_at, dogs(name)')
-      .eq('user_id', user.id)
-      .eq('approval_status', 'pending_approval')
-      .order('proposed_at', { ascending: true })
-      .limit(1),
-    // 각 강아지의 최근 체중 측정일. 14일+ 미기록인 가장 오래된 강아지 찾기.
-    supabase
-      .from('weight_logs')
-      .select('dog_id, measured_at')
-      .eq('user_id', user.id)
-      .order('measured_at', { ascending: false }),
     // 각 강아지의 분석 존재 여부. 분석 0 인 강아지 picking 용.
     supabase
       .from('analyses')
@@ -227,66 +204,18 @@ export default async function DashboardPage() {
   const hasActiveSub =
     subscription !== null && subscription.next_delivery_date !== null
 
-  // ── "오늘 할 일" 카드 — computeNextAction 으로 우선순위 결정 ──────────
-  // 강아지 ID set 으로 분석 받은 강아지 / 분석 미실행 강아지 분리.
+  // 강아지 ID set — ActiveDog 카드의 "분석 N/전체" 메트릭용.
   const dogIdsWithAnalyses = new Set(
     ((dogAnalysesData ?? []) as Array<{ dog_id: string }>).map(
       (a) => a.dog_id,
     ),
   )
-  const unanalyzedDog =
-    dogs.find((d) => !dogIdsWithAnalyses.has(d.id)) ?? null
 
-  // 가장 오래된 처방 승인 대기 1건.
-  type PendingFormulaRow = {
-    id: string
-    dog_id: string
-    dogs: { name: string } | { name: string }[] | null
-  }
-  const firstPending =
-    (pendingFormulasData ?? [])[0] as PendingFormulaRow | undefined
-  const pendingFormula = firstPending
-    ? {
-        dogId: firstPending.dog_id,
-        dogName: Array.isArray(firstPending.dogs)
-          ? (firstPending.dogs[0]?.name ?? '강아지')
-          : (firstPending.dogs?.name ?? '강아지'),
-        formulaId: firstPending.id,
-      }
-    : null
-
-  // 14일+ 체중 미기록 강아지 — 모든 강아지 중 가장 오래된 미기록.
-  // weight_logs 는 measured_at desc 정렬 → 각 dog 의 최신 1건만 사용.
-  const lastWeightByDog = new Map<string, string>()
-  for (const w of (latestWeightsData ?? []) as Array<{
-    dog_id: string
-    measured_at: string
-  }>) {
-    if (!lastWeightByDog.has(w.dog_id)) {
-      lastWeightByDog.set(w.dog_id, w.measured_at)
-    }
-  }
-  const STALE_DAYS = 14
   // Server component 는 매 요청마다 실행돼 Date.now() 사용이 정상이지만
   // react-hooks/purity 룰이 hook 가정으로 잡음. 이 컴포넌트는 force-dynamic
-  // 으로 캐시 안 됨 — 의도된 동작.
+  // 으로 캐시 안 됨 — 의도된 동작. (배송 D-day 계산용.)
   // eslint-disable-next-line react-hooks/purity
   const nowKstMs = Date.now() + 9 * 3600 * 1000
-  const staleWeightDog = (() => {
-    for (const d of dogs) {
-      const last = lastWeightByDog.get(d.id)
-      if (!last) {
-        // 한 번도 기록 안 한 강아지 — 1번 입력 권유.
-        return { id: d.id, name: d.name, daysSinceLastWeight: null }
-      }
-      const lastMs = new Date(`${last}T00:00:00+09:00`).getTime()
-      const days = Math.floor((nowKstMs - lastMs) / 86_400_000)
-      if (days >= STALE_DAYS) {
-        return { id: d.id, name: d.name, daysSinceLastWeight: days }
-      }
-    }
-    return null
-  })()
 
   // 활성 구독 D-day 카운트.
   const upcomingDelivery =
@@ -310,75 +239,6 @@ export default async function DashboardPage() {
           return { daysUntil: days, productLabel }
         })()
       : null
-
-  // 분석 받았지만 정기배송 미신청 강아지 (한 단계 더 권유).
-  const noSubDog =
-    !hasActiveSub && dogs.length > 0 && dogIdsWithAnalyses.size > 0
-      ? Array.from(dogIdsWithAnalyses)[0]
-      : null
-
-  // 첫 박스 체크인 — feeding_outcomes baseline(first_order) 7일+ 경과 &
-  // first_box_checkin 미응답 강아지. 21일 넘으면 권유 종료(응답 창). RLS 가
-  // user_id=auth.uid() 라 user_id 로 필터(baseline insert 가 user_id 세팅).
-  // push(7~8일) 외에 대시보드에서도 한 번 더 surface — 리텐션 핵심.
-  const firstCheckinDog = await (async (): Promise<{
-    id: string
-    name: string
-  } | null> => {
-    if (dogs.length === 0) return null
-    // feeding_outcomes 는 아직 generated types 에 없어(typegen 미반영) 최소
-    // 타입 캐스트로 우회 (cron 등 다른 호출부도 동일). RLS=user_id 라 안전.
-    type OutcomeRow = { dog_id: string; source: string; created_at: string }
-    const { data: outcomes } = await (
-      supabase as unknown as {
-        from: (t: string) => {
-          select: (c: string) => {
-            eq: (
-              c: string,
-              v: string,
-            ) => {
-              in: (
-                c: string,
-                v: string[],
-              ) => Promise<{ data: OutcomeRow[] | null }>
-            }
-          }
-        }
-      }
-    )
-      .from('feeding_outcomes')
-      .select('dog_id, source, created_at')
-      .eq('user_id', user.id)
-      .in('source', ['first_order', 'first_box_checkin'])
-    const rows = outcomes ?? []
-    if (rows.length === 0) return null
-    for (const d of dogs) {
-      const dogRows = rows.filter((r) => r.dog_id === d.id)
-      const baseline = dogRows.find((r) => r.source === 'first_order')
-      if (!baseline) continue
-      if (dogRows.some((r) => r.source === 'first_box_checkin')) continue
-      const daysSince = Math.floor(
-        (nowKstMs - new Date(baseline.created_at).getTime()) / 86_400_000,
-      )
-      if (daysSince >= 7 && daysSince <= 21) {
-        return { id: d.id, name: d.name }
-      }
-    }
-    return null
-  })()
-
-  const nextActionInput: NextActionInput = {
-    hasDogs: dogs.length > 0,
-    unanalyzedDog: unanalyzedDog
-      ? { id: unanalyzedDog.id, name: unanalyzedDog.name }
-      : null,
-    pendingFormula,
-    staleWeightDog,
-    upcomingDelivery,
-    noSubDogId: noSubDog,
-    firstCheckinDog,
-  }
-  const nextAction = computeNextAction(nextActionInput)
 
   // 마일스톤 축하 — 가입 후 30/100/365/730/1095일 도달 시점 7일 노출.
   // 첫 강아지 기준 (가족 다중 견은 추후 phase). voice-guidelines §10 정책.
@@ -515,131 +375,25 @@ export default async function DashboardPage() {
     {
       label: '식사',
       sub: firstDog ? '오늘 기록' : '아이 등록 후',
-      Icon: Soup,
+      kind: 'meal',
       tone: 'sage',
       href: firstDog ? `/dogs/${firstDog.id}/health` : '/dogs/new',
     },
     {
       label: '산책',
       sub: firstDog ? '오늘 기록' : '아이 등록 후',
-      Icon: Footprints,
+      kind: 'walk',
       tone: 'accent',
       href: firstDog ? `/dogs/${firstDog.id}/health` : '/dogs/new',
     },
     {
       label: '체중',
       sub: firstDog?.weight != null ? `${firstDog.weight}kg` : '미입력',
-      Icon: Scale,
+      kind: 'weight',
       tone: 'ink',
       href: firstDog ? `/dogs/${firstDog.id}?weight=open` : '/dogs/new',
     },
   ]
-
-  // ── TodayCard 매핑 — nextAction.type 별 분기.
-  // [2026-05-22] dashboard 는 server component — TodayCard 도 server 로 전환됨.
-  // LucideIcon (function ref) 는 직렬화 불가 → server-side 에서 element 만들어
-  // icon prop 으로 전달.
-  type TodayCardSpec = {
-    heading: React.ReactNode
-    description: string
-    ctaLabel: string
-    href: string
-    icon: React.ReactNode
-  } | null
-  const todayIcon = (
-    <Scale size={24} color="#f4ede0" strokeWidth={1.75} />
-  )
-  const todaySpec: TodayCardSpec = (() => {
-    if (!nextAction) return null
-    if (nextAction.type === 'analyze' && unanalyzedDog) {
-      return {
-        heading: (
-          <>
-            {unanalyzedDog.name} 맞춤
-            <br />
-            분석 시작하기
-          </>
-        ),
-        description:
-          nextAction.subtitle ||
-          '체중·품종·생활 패턴 8문항으로 우리 아이에게 맞는 한 끼를 추천해드려요.',
-        ctaLabel: nextAction.cta || '설문 시작하기',
-        href: nextAction.href,
-        icon: todayIcon,
-      }
-    }
-    if (nextAction.type === 'approve' && pendingFormula) {
-      return {
-        heading: (
-          <>
-            {pendingFormula.dogName} 처방
-            <br />
-            승인 대기 중
-          </>
-        ),
-        description:
-          nextAction.subtitle ||
-          '수의영양학 기반 추천 식단이 도착했어요. 검토하고 확정해 주세요.',
-        ctaLabel: nextAction.cta || '처방 보기',
-        href: nextAction.href,
-        icon: todayIcon,
-      }
-    }
-    if (nextAction.type === 'weigh-in' && staleWeightDog) {
-      return {
-        heading: (
-          <>
-            {staleWeightDog.name} 체중
-            <br />
-            기록할 시간이에요
-          </>
-        ),
-        description:
-          staleWeightDog.daysSinceLastWeight != null
-            ? `마지막 기록 ${staleWeightDog.daysSinceLastWeight}일 전 · 한 달에 한 번이면 충분합니다`
-            : nextAction.subtitle ||
-              '한 달에 한 번이면 충분합니다. 권장 구간을 함께 안내해 드려요.',
-        ctaLabel: nextAction.cta || '지금 입력하기',
-        href: nextAction.href,
-        icon: todayIcon,
-      }
-    }
-    if (nextAction.type === 'onboarding') {
-      return {
-        heading: (
-          <>
-            우리 아이를
-            <br />
-            등록해 주세요
-          </>
-        ),
-        description:
-          nextAction.subtitle ||
-          '맞춤 분석과 추천이 가족 정보부터 시작됩니다.',
-        ctaLabel: nextAction.cta || '등록하기',
-        href: nextAction.href,
-        icon: todayIcon,
-      }
-    }
-    if (nextAction.type === 'checkin' && firstCheckinDog) {
-      return {
-        heading: (
-          <>
-            {firstCheckinDog.name} 첫 박스
-            <br />
-            한 주, 어땠나요?
-          </>
-        ),
-        description:
-          nextAction.subtitle ||
-          '30초 체크인하고 100P 받으세요 — 다음 처방에도 반영돼요.',
-        ctaLabel: nextAction.cta || '체크인하기',
-        href: nextAction.href,
-        icon: todayIcon,
-      }
-    }
-    return null
-  })()
 
   // [2026-06-11] 홈 "○○를 위한 추천" 제품 섹션(ForTodaySection)은 사장님
   // 지시로 제거. 배송 D-day 정보는 아래 DeliveryStripCard 로 단독 노출.
@@ -706,20 +460,6 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* 3. 오늘의 한 가지 — ink hero card (nextAction 우선순위) */}
-      {todaySpec && (
-        <TodayCard
-          heading={todaySpec.heading}
-          description={todaySpec.description}
-          ctaLabel={todaySpec.ctaLabel}
-          href={todaySpec.href}
-          icon={todaySpec.icon}
-        />
-      )}
-
-      {/* R15-C27: Daily check-in card stack — firstDog 가 있을 때만 노출 */}
-      {firstDog && <DashboardDailyChecks dogId={firstDog.id} />}
-
       {/* R15-C28: Streak rewards — 7일 이상 연속일 때만 노출.
           R19: section spacing 통일 — 다른 home sections 와 동일 padding. */}
       {firstDog && streak.currentStreak >= 7 && (
@@ -731,6 +471,7 @@ export default async function DashboardPage() {
       {/* 4. 이번 주 7일 그리드 + Quick Actions */}
       {firstDog && (
         <ThisWeekSection
+          dogId={firstDog.id}
           dogName={firstDog.name}
           streak={streak.currentStreak}
           days={weekDays}
@@ -739,16 +480,17 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* 5. 내 아이들 asymmetric — 또는 EmptyHomeNoDogs */}
-      {dogs.length > 0 ? (
+      {/* 5. 내 아이들 — 2마리 이상일 때만 (1마리면 위 spotlight 와 중복).
+          강아지 0 이면 EmptyHomeNoDogs 안내. */}
+      {dogs.length > 1 ? (
         <MyDogsSection
           dogs={dogCards}
           viewAllHref="/dogs"
           addDogHref="/dogs/new"
         />
-      ) : (
+      ) : dogs.length === 0 ? (
         <EmptyHomeNoDogs addDogHref="/dogs/new" />
-      )}
+      ) : null}
 
       {/* 다음 배송 D-N strip (구독 활성 시). */}
       {upcomingDelivery && (

@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test'
  *
  * /r/[code] 가:
  *   1. 형식 안 맞으면 / 로 redirect (cookie 안 set)
- *   2. 형식 맞으면 익명 사용자 → /signup?ref=CODE 로 redirect
+ *   2. 형식 맞으면 익명 사용자 → /start?ref=CODE 로 redirect
  *   3. ft_ref cookie set (httpOnly=false, 30일)
  *
  * DB write 없음 — pure redirect 라우트.
@@ -26,14 +26,14 @@ test.describe('Referral redirect /r/[code]', () => {
     expect(ref).toBeUndefined()
   })
 
-  test('형식 맞는 코드 → /signup?ref=CODE redirect + cookie set', async ({
+  test('형식 맞는 코드 → /start?ref=CODE redirect + cookie set', async ({
     page,
     context,
   }) => {
     await context.clearCookies()
     await page.goto('/r/FT-AB12CD')
-    // signup 으로 redirect, ref query 포함
-    expect(page.url()).toContain('/signup')
+    // start(설문 자동가입) 로 redirect, ref query 포함
+    expect(page.url()).toContain('/start')
     expect(page.url()).toContain('ref=FT-AB12CD')
     // ft_ref cookie set
     const cookies = await context.cookies()

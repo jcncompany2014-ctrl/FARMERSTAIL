@@ -4,6 +4,7 @@
  * Magazine DailyEnergyCard — 88px 거대한 MER 카운트업 + range bar + 계산식.
  */
 
+import { petName } from '@/lib/korean'
 import type { MagazinePalette } from './palette'
 import { Reveal, CountUp, BarFill } from './primitives'
 import { ReportCard } from './ReportCard'
@@ -50,7 +51,7 @@ export function DailyEnergyCard({
           DAILY ENERGY · MER
         </div>
         <div style={{ fontSize: 12.5, color: p.muted, marginTop: 2 }}>
-          {dogName}이가 하루에 필요한 에너지
+          {petName(dogName)}가 하루 체중 유지에 필요한 에너지
         </div>
 
         <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 6 }}>

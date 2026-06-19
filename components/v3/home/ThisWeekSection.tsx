@@ -10,9 +10,12 @@
  */
 
 import Link from 'next/link'
-import { ArrowRight, type LucideIcon } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
+import QuickActionChips, { type QuickAction } from './QuickActionChips'
+
+export type { QuickAction }
 
 export type DayStatus = 'full' | 'partial' | 'miss' | 'today' | 'future'
 
@@ -24,17 +27,9 @@ export interface WeekDay {
   status: DayStatus
 }
 
-export interface QuickAction {
-  /** 라벨 — 식사 / 산책 / 체중. */
-  label: string
-  /** 보조 텍스트 — "2 / 2", "0 / 1", "4.0kg". */
-  sub: string
-  Icon: LucideIcon
-  tone: 'sage' | 'accent' | 'ink' | 'yellow'
-  href?: string
-}
-
 interface ThisWeekSectionProps {
+  /** 활성 강아지 id — 체중 등 퀵 시트에 전달. */
+  dogId?: string
   /** 활성 강아지 이름 — heading 에 사용. */
   dogName: string
   /** 연속 기록 일수. */
@@ -45,13 +40,6 @@ interface ThisWeekSectionProps {
   quickActions: QuickAction[]
   /** "오늘 기록하기" CTA 경로. */
   recordTodayHref?: string
-}
-
-const TONE_COLOR: Record<QuickAction['tone'], string> = {
-  sage: V3.sage,
-  accent: V3.accent,
-  ink: V3.ink,
-  yellow: V3.yellow,
 }
 
 function bgForStatus(status: DayStatus): string {
@@ -85,6 +73,7 @@ function fgForStatus(status: DayStatus): string {
 }
 
 export default function ThisWeekSection({
+  dogId,
   dogName,
   streak,
   days,
@@ -196,64 +185,8 @@ export default function ThisWeekSection({
         </div>
       </div>
 
-      {/* Quick Action chips */}
-      <div
-        className="grid"
-        style={{
-          gridTemplateColumns: `repeat(${quickActions.length}, 1fr)`,
-          gap: 8,
-          marginTop: 10,
-        }}
-      >
-        {quickActions.map((a) => {
-          const inner = (
-            <div className="flex items-center" style={{ gap: 10 }}>
-              <span
-                className="flex items-center justify-center"
-                style={{
-                  width: 32,
-                  height: 32,
-                  background: V3.paper,
-                  borderRadius: 4,
-                }}
-              >
-                <a.Icon size={18} color={TONE_COLOR[a.tone]} strokeWidth={1.75} />
-              </span>
-              <span className="flex flex-col items-start min-w-0">
-                <Mono color="inkMute" size="xxs" weight={500}>
-                  {a.label}
-                </Mono>
-                <span
-                  className="ft-nowrap"
-                  style={{
-                    fontFamily: 'var(--font-sans)',
-                    fontWeight: V3FontWeight.bold,
-                    fontSize: 13.5,
-                    color: V3.ink,
-                    marginTop: 2,
-                  }}
-                >
-                  {a.sub}
-                </span>
-              </span>
-            </div>
-          )
-          const className = 'ft-card-v3 transition active:scale-[0.98]'
-          const style: React.CSSProperties = {
-            padding: 12,
-            cursor: a.href ? 'pointer' : 'default',
-          }
-          return a.href ? (
-            <Link key={a.label} href={a.href} className={className} style={style}>
-              {inner}
-            </Link>
-          ) : (
-            <div key={a.label} className={className} style={style}>
-              {inner}
-            </div>
-          )
-        })}
-      </div>
+      {/* Quick Action chips — 식사·산책·체중 (체중은 그 자리에서 시트). */}
+      <QuickActionChips dogId={dogId} dogName={dogName} actions={quickActions} />
     </section>
   )
 }

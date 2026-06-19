@@ -12,9 +12,9 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { PawPrint as DogIcon } from 'lucide-react'
 import { V3, V3FontSize, V3FontWeight } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
+import DogPawMark from '@/components/DogPawMark'
 
 interface DogMetric {
   /** 라벨 — Mono kicker (식사/산책/체중/연속). */
@@ -127,7 +127,7 @@ export default function ActiveDogCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <DogIcon size={28} color={V3.inkMute} strokeWidth={1.4} />
+              <DogPawMark size={26} color={V3.inkMute} />
             </div>
           )}
         </div>

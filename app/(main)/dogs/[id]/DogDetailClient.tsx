@@ -9,8 +9,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
+import DogPawMark from '@/components/DogPawMark'
 import {
-  PawPrint as DogIcon,
   Moon,
   Footprints,
   Zap,
@@ -241,10 +241,7 @@ export default function DogDetailClient({
                 priority
               />
             ) : (
-              <DogIcon
-                className="w-10 h-10 text-muted"
-                strokeWidth={1.5}
-              />
+              <DogPawMark className="w-10 h-10 text-muted" />
             )}
           </div>
           <span className="kicker mb-2 inline-block">Dog Profile</span>
@@ -502,9 +499,9 @@ export default function DogDetailClient({
             <BarChart3 className="w-4 h-4" strokeWidth={2} />
           </div>
           <div className="flex-1 text-left">
-            <div className="text-[13.5px] font-black">맞춤 영양 분석 보기</div>
+            <div className="text-[13.5px] font-black">설문 결과 · 맞춤 영양 분석</div>
             <div className="text-[10.5px] text-white/60 mt-0.5">
-              AI가 {dog.name}의 식단을 분석해요
+              설문을 바탕으로 {dog.name}의 식단을 분석해요
             </div>
           </div>
         </Link>
@@ -518,7 +515,7 @@ export default function DogDetailClient({
           <div className="flex-1 text-left">
             <div className="text-[13.5px] font-black">설문 시작하기</div>
             <div className="text-[10.5px] text-white/70 mt-0.5">
-              맞춤 식단 추천을 위한 5분 설문
+              맞춤 분석을 위한 5분 설문 · 결과는 분석에서
             </div>
           </div>
         </Link>
@@ -574,23 +571,6 @@ export default function DogDetailClient({
             </div>
           </div>
         </Link>
-        {/* R14 B8-B11 — 새 feature 페이지 4개 navigation. */}
-        <Link
-          href={`/dogs/${dog.id}/milestones`}
-          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
-        >
-          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
-            <History className="w-4 h-4 text-gold" strokeWidth={2} />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-[12px] font-black text-text">
-              마일스톤
-            </div>
-            <div className="text-[10.5px] text-muted mt-0.5">
-              함께한 시간의 기념일을 한눈에 봐요
-            </div>
-          </div>
-        </Link>
         <Link
           href={`/dogs/${dog.id}/vaccinations`}
           className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
@@ -623,22 +603,6 @@ export default function DogDetailClient({
             </div>
           </div>
         </Link>
-        <Link
-          href={`/dogs/${dog.id}/expenses`}
-          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
-        >
-          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
-            <History className="w-4 h-4 text-moss" strokeWidth={2} />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-[12px] font-black text-text">
-              지출 트래커
-            </div>
-            <div className="text-[10.5px] text-muted mt-0.5">
-              사료·병원·간식 비용을 한 곳에서
-            </div>
-          </div>
-        </Link>
         {/* XL-2 (#14) — 수의사 진료 보조 보고서 (모듈 H). */}
         <Link
           href={`/dogs/${dog.id}/vet-report`}
@@ -653,23 +617,6 @@ export default function DogDetailClient({
             </div>
             <div className="text-[10.5px] text-muted mt-0.5">
               병원 갈 때 인쇄해서 가져가는 진료 요약
-            </div>
-          </div>
-        </Link>
-        {/* XL-3 (#12) — 30일 식단 시뮬레이션 (모듈 F). */}
-        <Link
-          href={`/dogs/${dog.id}/simulate`}
-          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
-        >
-          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
-            <TrendingUp className="w-4 h-4 text-moss" strokeWidth={2} />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-[12px] font-black text-text">
-              식단 시뮬레이션
-            </div>
-            <div className="text-[10.5px] text-muted mt-0.5">
-              다른 식단·운동의 30일 후 변화 예상
             </div>
           </div>
         </Link>

@@ -6,6 +6,7 @@
  */
 
 import { Check, Sparkles } from 'lucide-react'
+import { petName } from '@/lib/korean'
 import type { MagazinePalette } from './palette'
 import { Reveal } from './primitives'
 
@@ -116,7 +117,7 @@ export function CelebrationBanner({ p, dogName, dateLabel }: CelebrationBannerPr
               letterSpacing: '-0.005em',
             }}
           >
-            {dogName}이 맞춤 처방이 준비됐어요
+            {petName(dogName)} 맞춤 처방이 준비됐어요
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 import DogTabsNav from '@/components/dogs/DogTabsNav'
 
 /**
- * 강아지 detail layout — 모든 sub-route 에 5개 탭 nav (개요/기록/분석/처방/구독)
+ * 강아지 detail layout — 모든 sub-route 에 4개 탭 nav (개요/기록/분석/구독)
  * 자동 적용. params.id 를 client component 에 전달 — usePathname 으로 active
  * 탭 결정.
  *

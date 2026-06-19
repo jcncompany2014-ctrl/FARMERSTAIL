@@ -322,7 +322,7 @@ export default async function BlogPostPage({ params }: { params: Params }) {
         /signup 으로 보낸다(authed 는 /signup 이 리다이렉트 처리 — not-found.tsx
         회차125 선례와 동일). 캐시 보존 > authed/anon href 미세 구분.
       */}
-      <StickyCta href="/signup" />
+      <StickyCta href="/start" />
     </WebChrome>
   )
 }

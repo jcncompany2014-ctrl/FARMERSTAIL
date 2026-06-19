@@ -1,5 +1,6 @@
 // audit #96: SurveyClient.tsx 분할 — loading step. 분석 진행 stage + 실패 시 retry.
-import { PawPrint as DogIcon, Check, Loader2, AlertCircle } from 'lucide-react'
+import { Check, Loader2, AlertCircle } from 'lucide-react'
+import DogPawMark from '@/components/DogPawMark'
 
 export type LoadingProps = {
   dogName: string
@@ -22,22 +23,22 @@ export default function Loading({
   return (
     <div className="s-loading-page">
       <div className="s-orb">
-        <DogIcon size={38} strokeWidth={1.4} />
+        <DogPawMark size={38} />
       </div>
       <span className="s-kicker">ANALYZING</span>
       <h2
         className="s-title"
         // R34e: line-height 1.25 명시 — 두 줄 호흡 (홈/카탈로그/카트 heading 통일).
-        style={{ fontSize: 24, margin: '6px 0 8px', lineHeight: 1.25 }}
+        style={{ margin: '6px 0 8px', lineHeight: 1.25 }}
       >
         {dogName} 맞춤 영양<br />설계 중이에요
       </h2>
       <p
         style={{
           fontSize: 12,
-          color: 'var(--muted)',
+          color: 'var(--fd-muted)',
           lineHeight: 1.7,
-          fontFamily: 'var(--font-mono), JetBrains Mono, monospace',
+          fontFamily: 'var(--font-sans), Pretendard, sans-serif',
           letterSpacing: 0.04,
         }}
       >
@@ -47,19 +48,24 @@ export default function Loading({
       </p>
       <ul className="s-stages">
         {[
-          '체형 평가 처리',
-          'RER · MER 계산 중',
+          '체형 평가',
+          'RER · MER 계산',
           'AAFCO 매크로 비교',
           '맞춤 보충제 매핑',
-        ].map((s, i) => {
+        ].map((s, i, arr) => {
+          // 로딩 화면이 떠 있는 동안 마지막 단계가 '완료(체크)'로 보이면
+          // "다 됐는데 왜 안 넘어가지" 모순(스샷처럼 4개 다 체크인데 계속 분석중).
+          // → activeIdx 를 length-1 로 클램프 = 마지막 단계는 결과로 넘어가기
+          // 전까지 항상 진행중(spinner). 라벨에서 '처리/중' 제거(체크=완료로 읽힘).
+          const activeIdx = Math.min(loadingStage, arr.length - 1)
           const cls =
-            i < loadingStage ? 's-done' : i === loadingStage ? 's-active' : ''
+            i < activeIdx ? 's-done' : i === activeIdx ? 's-active' : ''
           return (
             <li key={i} className={cls}>
               <span className="s-ic-stage">
-                {i < loadingStage ? (
+                {i < activeIdx ? (
                   <Check size={11} strokeWidth={2.5} color="#fff" />
-                ) : i === loadingStage ? (
+                ) : i === activeIdx ? (
                   <Loader2 size={11} strokeWidth={2.5} color="#fff" />
                 ) : null}
               </span>
@@ -91,23 +97,21 @@ export default function Loading({
           type="button"
           onClick={onRetry}
           disabled={saving}
-          // R34e: 다시 시도 CTA 를 다른 step 의 next-btn 과 동일 grammar
-          // (terracotta fill + 그라데이션 shadow + inset highlight). 강한
-          // 행동 유도. 카트 sticky CTA / 설문 next-btn 호응.
+          // 다시 시도 CTA — 설문 next-btn 과 동일 FD pill grammar
+          // (평면 coral fill, 글로우 그림자 제거). [회차313 FD 정렬]
           style={{
             marginTop: 14,
             appearance: 'none',
-            border: '1px solid rgba(178, 58, 26, 0.6)',
-            background: 'var(--terracotta)',
+            border: 'none',
+            background: 'var(--fd-coral)',
             color: '#fff',
-            padding: '11px 22px',
+            padding: '13px 22px',
             borderRadius: 99,
             fontSize: 13.5,
             fontWeight: 800,
             cursor: 'pointer',
             fontFamily: 'inherit',
-            boxShadow:
-              '0 8px 22px -6px rgba(220, 83, 42, 0.48), 0 2px 8px rgba(220, 83, 42, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
+            boxShadow: 'none',
             opacity: saving ? 0.6 : 1,
             transition: 'opacity 0.15s',
           }}
@@ -126,7 +130,7 @@ export default function Loading({
             appearance: 'none',
             border: 'none',
             background: 'transparent',
-            color: 'var(--muted)',
+            color: 'var(--fd-muted)',
             padding: '8px 14px',
             fontSize: 12.5,
             fontWeight: 700,

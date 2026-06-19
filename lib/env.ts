@@ -1,8 +1,7 @@
 /**
  * 환경변수 검증 레이어 — 서버 전용.
  *
- * 이 파일은 **server/edge 런타임에서만** import해야 한다. 클라이언트 전용
- * 변수(NEXT_PUBLIC_*)는 `lib/env.client.ts`에서 별도 검증. Next.js는
+ * 이 파일은 **server/edge 런타임에서만** import해야 한다. Next.js는
  * NEXT_PUBLIC_* 접두사만 클라이언트 번들에 inline하기 때문에, 서버 시크릿을
  * 섞어 놓은 스키마를 client에서 import하면 undefined 필드 때문에 전부 실패.
  *

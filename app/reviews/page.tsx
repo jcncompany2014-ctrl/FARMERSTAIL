@@ -61,7 +61,7 @@ export const metadata: Metadata = {
 }
 
 function planHref(isAuthed: boolean) {
-  return isAuthed ? '/dogs/new' : '/signup'
+  return isAuthed ? '/dogs/new' : '/start'
 }
 
 function StarDots() {

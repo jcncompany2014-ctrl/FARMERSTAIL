@@ -89,12 +89,12 @@ export default function Body({
           const color = active
             ? 'var(--bg)'
             : view.group === 'ideal'
-              ? '#566729'
+              ? 'var(--sage)'
               : view.group === 'under'
                 ? '#A6BEDA'
                 : view.tagTone === 'bad'
-                  ? 'var(--terracotta)'
-                  : '#D4B872'
+                  ? 'var(--accent)'
+                  : 'var(--gold)'
           return (
             <button
               key={s}

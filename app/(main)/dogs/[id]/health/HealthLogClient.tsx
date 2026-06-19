@@ -319,7 +319,7 @@ export default function HealthLogClient({
                 placeholder="특이사항, 산책 시간, 간식 등"
                 rows={3}
                 maxLength={200}
-                className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[12px] focus:outline-none focus:border-terracotta transition resize-none"
+                className="w-full px-3 py-2.5 rounded-lg border border-rule bg-white text-[12px] focus:outline-none focus:border-terracotta transition resize-none"
               />
             </div>
 

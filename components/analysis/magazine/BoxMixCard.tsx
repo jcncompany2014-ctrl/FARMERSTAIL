@@ -6,7 +6,9 @@
  */
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { Bone, Droplet, Sparkles, Leaf } from 'lucide-react'
+import { petName } from '@/lib/korean'
 import type { MagazinePalette, BoxLineKey } from './palette'
 import { lineColors } from './palette'
 import { Reveal, useReveal } from './primitives'
@@ -26,6 +28,8 @@ export interface BoxMixItem {
   kcal: number
   /** 1주분 일일 평균 g */
   g: number
+  /** 누끼 제품 사진 URL — 있으면 원형 슬롯에 표시, 없으면 아이콘 placeholder. */
+  photoUrl?: string | null
 }
 
 type PeriodKey = '1주분' | '2주분' | '4주분'
@@ -54,8 +58,8 @@ export function BoxMixCard({
         <SectionHeader
           p={p}
           eyebrow="RECOMMENDED"
-          title={`${dogName}이의 첫 박스`}
-          tail="화식 5종 믹스"
+          title={`${petName(dogName)}의 첫 박스`}
+          tail={`화식 ${items.length}종 레시피`}
         />
 
         <div
@@ -187,19 +191,35 @@ function BoxRow({
         borderRadius: 8,
       }}
     >
+      {/* 원형 제품사진 슬롯 — 누끼 제품 사진 자리(사장님 지시 2026-06-19).
+          photoUrl 있으면 원형 안에 표시, 없으면 라인색 틴트 원 + 아이콘
+          placeholder. 레시피 2종 박스라 행이 적어 큼직한 원형이 자연스러움. */}
       <div
         style={{
-          width: 38,
-          height: 38,
-          borderRadius: 6,
-          background: `${color}22`,
+          width: 52,
+          height: 52,
+          borderRadius: '50%',
+          background: `color-mix(in srgb, ${color} 12%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${color} 28%, transparent)`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
+          overflow: 'hidden',
+          position: 'relative',
         }}
       >
-        <IconComp size={18} color={color} strokeWidth={1.9} />
+        {item.photoUrl ? (
+          <Image
+            src={item.photoUrl}
+            alt={item.ko}
+            fill
+            sizes="52px"
+            style={{ objectFit: 'contain' }}
+          />
+        ) : (
+          <IconComp size={22} color={color} strokeWidth={1.9} />
+        )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>

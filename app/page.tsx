@@ -9,7 +9,6 @@ import {
   Stethoscope,
   ClipboardList,
   Truck,
-  Quote,
   RefreshCw,
   MessageCircle,
 } from 'lucide-react'
@@ -18,7 +17,6 @@ import { createClient } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
 import Reveal from '@/components/landing/Reveal'
 import StickyCta from '@/components/web/fd/StickyCta'
-import FdSlider from '@/components/web/fd/FdSlider'
 import { ogImageUrl } from '@/lib/seo/jsonld'
 import {
   Button,
@@ -74,7 +72,7 @@ export const metadata: Metadata = {
 }
 
 function planHref(isAuthed: boolean) {
-  return isAuthed ? '/dogs/new' : '/signup'
+  return isAuthed ? '/dogs/new' : '/start'
 }
 
 // 1. ========================================================================
@@ -165,7 +163,7 @@ function TrustStrip() {
   return (
     <div style={{ background: '#FFFFFF', borderTop: '1px solid var(--fd-line)', borderBottom: '1px solid var(--fd-line)' }}>
       <div className="fv-marquee py-4">
-        <div className="fv-marquee-track" style={{ animationDuration: '38s' }}>
+        <div className="fv-marquee-track" style={{ animationDuration: '22s' }}>
           {[...TRUST, ...TRUST].map((t, i) => (
             <span
               key={`${t}-${i}`}
@@ -392,12 +390,12 @@ function CompleteMealPlan({ isAuthed }: { isAuthed: boolean }) {
         </Reveal>
         <div className="pt-10 md:pt-14 grid md:grid-cols-2 gap-4 md:gap-6">
           {[
-            { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/meal-main.jpg' },
-            { label: '영양제 소스 사진', sub: '한 끼에 더하는 영양 소스', k: '플러스', t: '영양제 소스', d: '하루 한 캡슐, 목적별 영양을 한 끼에 더하는 데일리 소스.', img: '/meal-supplement.jpg' },
+            { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/meal-main.jpg', alt: '신선 화식 한 그릇' },
+            { label: '영양제 소스 사진', sub: '한 끼에 더하는 영양 소스', k: '플러스', t: '영양제 소스', d: '하루 한 캡슐, 목적별 영양을 한 끼에 더하는 데일리 소스.', img: '/meal-supplement.jpg', alt: '영양제 소스 캡슐' },
           ].map((p, i) => (
             <Reveal key={p.t} delay={i * 80}>
               <div style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>
-                <PhotoSlot label={p.label} sub={p.sub} src={p.img} ratio="16 / 10" tone="cream" rounded={0} className="w-full" />
+                <PhotoSlot label={p.label} sub={p.sub} src={p.img} alt={p.alt} ratio="16 / 10" tone="cream" rounded={0} className="w-full" />
                 <div style={{ padding: '20px 22px' }}>
                   <div className="text-[10px]" style={{ fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)' }}>{p.k}</div>
                   <h3 className="pt-1.5 text-[18px] md:text-[20px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>{p.t}</h3>
@@ -563,22 +561,8 @@ function ScienceExpertise() {
 // 10. =======================================================================
 // Vet voices — 수의 자문 캐러셀 (placeholder, 가짜 인용 X)
 // ===========================================================================
-function QuoteCard({ tag }: { tag: string }) {
-  return (
-    <div className="snap-start shrink-0 w-[280px] md:w-[360px]" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '24px 22px' }}>
-      <Quote size={26} strokeWidth={2} color="var(--fd-coral)" />
-      <div className="pt-4 flex flex-col gap-2" aria-hidden>
-        <span style={{ display: 'block', height: 9, width: '92%', borderRadius: 4, background: '#EDEAE0' }} />
-        <span style={{ display: 'block', height: 9, width: '84%', borderRadius: 4, background: '#EDEAE0' }} />
-        <span style={{ display: 'block', height: 9, width: '66%', borderRadius: 4, background: '#EDEAE0' }} />
-      </div>
-      <div className="pt-5 flex items-center gap-3">
-        <span style={{ width: 38, height: 38, borderRadius: 999, background: 'var(--fd-cream)', display: 'inline-block' }} />
-        <span className="text-[12.5px]" style={{ fontWeight: 700, color: 'var(--fd-muted)' }}>{tag}</span>
-      </div>
-    </div>
-  )
-}
+// 가짜 전문가 자문 카드(QuoteCard) 제거 — 표시광고법(미검증 전문가 보증 금지).
+// VetVoices 는 자사 영양 설계 원칙(실사실)으로 대체. 실 자문 확보 시 별도 섹션.
 
 function VetVoices() {
   return (
@@ -586,23 +570,29 @@ function VetVoices() {
       <Container size="xl">
         <Reveal>
           <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
-            <Eyebrow color="var(--fd-green-soft)">VET PROFESSIONALS</Eyebrow>
+            <Eyebrow color="var(--fd-green-soft)">OUR STANDARD · 영양 설계</Eyebrow>
             <Display size="lg" className="pt-3" style={{ color: '#FFFFFF' }}>
-              전문가의 시선으로
+              표준에 맞춰, 빠짐없이
             </Display>
-            <p className="pt-4 mx-auto text-[14px] md:text-[15px]" style={{ maxWidth: 460, color: 'var(--fd-green-soft)', lineHeight: 1.6 }}>
-              수의 자문과 전문가 의견이 모이면 이 자리에 채워집니다.
+            <p className="pt-4 mx-auto text-[14px] md:text-[15px]" style={{ maxWidth: 480, color: 'var(--fd-green-soft)', lineHeight: 1.6 }}>
+              미국 AAFCO · 유럽 FEDIAF · 국내 NIAS, 세 영양 표준을 동시에 충족하도록 설계했어요.
             </p>
           </div>
         </Reveal>
         <div className="pt-9">
           <Reveal>
-            <FdSlider ariaLabel="전문가 의견">
-              <QuoteCard tag="수의 자문 자리 · 직함" />
-              <QuoteCard tag="수의 자문 자리 · 직함" />
-              <QuoteCard tag="수의 자문 자리 · 직함" />
-              <QuoteCard tag="수의 자문 자리 · 직함" />
-            </FdSlider>
+            <ul className="grid gap-3 md:grid-cols-2 mx-auto" style={{ maxWidth: 720 }}>
+              {[
+                '세 영양 표준 중 가장 엄격한 기준을 채택하고, +15% 안전 마진을 더했어요.',
+                '단백질·지방·미네랄 비율을 표준에 맞춰 균형 있게 구성했어요.',
+                '심장 등 자연 원물에서 타우린을, 연어유에서 오메가-3를 공급해요.',
+                '급여 전환은 7~10일에 걸쳐 천천히 — 아이의 변 상태를 보며 조절하길 권장해요.',
+              ].map((t) => (
+                <li key={t} className="rounded-[12px] px-5 py-4 text-left" style={{ background: 'rgba(255,255,255,0.06)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.14)' }}>
+                  <span className="text-[14px]" style={{ lineHeight: 1.6, color: '#FFFFFF' }}>{t}</span>
+                </li>
+              ))}
+            </ul>
           </Reveal>
         </div>
       </Container>
@@ -674,28 +664,8 @@ function Evidence() {
 // 11. =======================================================================
 // Social proof — 고객 후기 캐러셀 (placeholder, 가짜 후기 X)
 // ===========================================================================
-function ReviewCard() {
-  return (
-    <div className="snap-start shrink-0 w-[280px] md:w-[340px]" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '24px 22px' }}>
-      {/* 정직: 실제 후기 전엔 채운 별점 금지 — 윤곽선 빈 점(=후기 자리 표시).
-          /reviews StarDots 회차51 과 동일 처리(가짜 5점 오인 방지). */}
-      <div className="flex gap-1" aria-hidden>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <span key={i} style={{ width: 14, height: 14, borderRadius: 999, background: 'transparent', border: '1.5px solid var(--fd-line)', display: 'inline-block' }} />
-        ))}
-      </div>
-      <div className="pt-4 flex flex-col gap-2" aria-hidden>
-        <span style={{ display: 'block', height: 9, width: '94%', borderRadius: 4, background: '#EDEAE0' }} />
-        <span style={{ display: 'block', height: 9, width: '88%', borderRadius: 4, background: '#EDEAE0' }} />
-        <span style={{ display: 'block', height: 9, width: '72%', borderRadius: 4, background: '#EDEAE0' }} />
-      </div>
-      <div className="pt-5 flex items-center gap-3">
-        <span style={{ width: 38, height: 38, borderRadius: 999, background: 'var(--fd-cream)', display: 'inline-block' }} />
-        <span className="text-[12.5px]" style={{ fontWeight: 700, color: 'var(--fd-muted)' }}>후기 자리 · 아이 이름</span>
-      </div>
-    </div>
-  )
-}
+// 가짜 후기 카드(ReviewCard) 제거 — 표시광고법(허위 후기 금지).
+// SocialProof 는 "후기 준비중" 정직 placeholder 로 대체. 실 후기 도착 시 교체.
 
 function SocialProof() {
   return (
@@ -708,19 +678,18 @@ function SocialProof() {
               보호자도, 아이도 좋아해요
             </Display>
             <p className="pt-4 mx-auto text-[14px] md:text-[15px]" style={{ maxWidth: 440, color: 'var(--fd-muted)', lineHeight: 1.6 }}>
-              실제 후기가 모이면 이 자리에 채워집니다.
+              출시 후, 신선식으로 한 끼를 바꾼 보호자들의 진짜 이야기를 이곳에 담을게요.
             </p>
           </div>
         </Reveal>
         <div className="pt-9">
           <Reveal>
-            <FdSlider ariaLabel="고객 후기">
-              <ReviewCard />
-              <ReviewCard />
-              <ReviewCard />
-              <ReviewCard />
-              <ReviewCard />
-            </FdSlider>
+            <div className="rounded-[12px] mx-auto text-center" style={{ maxWidth: 520, background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px var(--fd-line)', padding: '28px 24px' }}>
+              <p className="text-[14px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.65 }}>
+                아직 후기를 모으는 중이에요. 첫 보호자들의 솔직한 후기가 도착하면
+                이곳에서 그대로 보여드릴게요.
+              </p>
+            </div>
           </Reveal>
         </div>
       </Container>

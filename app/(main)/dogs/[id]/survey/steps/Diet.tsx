@@ -90,7 +90,7 @@ export default function Diet({
                   <Icon
                     size={20}
                     strokeWidth={1.7}
-                    color={active ? 'var(--bg)' : 'var(--ink)'}
+                    color={active ? 'var(--bg)' : 'var(--fd-pine)'}
                   />
                 </span>
                 <span className="s-tile-lb">{label}</span>
@@ -243,7 +243,7 @@ export default function Diet({
                   <Icon
                     size={20}
                     strokeWidth={1.7}
-                    color={active ? 'var(--bg)' : 'var(--ink)'}
+                    color={active ? 'var(--bg)' : 'var(--fd-pine)'}
                   />
                 </span>
                 <span className="s-tile-lb">{label}</span>

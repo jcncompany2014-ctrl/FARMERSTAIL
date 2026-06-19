@@ -39,9 +39,9 @@ export default function AuthHero({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/logo-brush.png"
+          src="/logo-ink.png"
           alt="Farmer's Tail"
-          className="h-10 md:h-12 w-auto block"
+          className="h-7 md:h-8 w-auto block"
           // 로그인/회원가입 페이지의 LCP 후보 — 로고 외 큰 시각 요소 없음.
           fetchPriority="high"
           style={{ filter: 'none' }}

@@ -94,7 +94,7 @@ export default async function WhyFreshPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const planHref = user ? '/dogs/new' : '/signup'
+  const planHref = user ? '/dogs/new' : '/start'
 
   const crumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },
@@ -115,7 +115,7 @@ export default async function WhyFreshPage() {
         {/* Hero */}
         <Section bg="offwhite" pad="md">
           <Container>
-            <div className="grid items-center gap-10 md:grid-cols-2">
+            <div className="grid items-center gap-8 md:gap-12 md:grid-cols-2">
               <Reveal>
                 <Eyebrow>Why Fresh</Eyebrow>
                 <Display as="h1" size="xl">
@@ -159,12 +159,9 @@ export default async function WhyFreshPage() {
             <Reveal>
               <div className="mx-auto max-w-[640px] text-center">
                 <Eyebrow>Fresh vs Kibble</Eyebrow>
-                <h2
-                  className="mx-auto mt-3 max-w-[18ch] text-[clamp(26px,4.6vw,46px)] font-black leading-[1.08] tracking-[-0.02em]"
-                  style={{ color: 'var(--fd-pine)' }}
-                >
+                <Display as="h2" size="lg" className="mx-auto mt-3 max-w-[18ch]" style={{ color: 'var(--fd-pine)' }}>
                   무엇이 다른가요?
-                </h2>
+                </Display>
                 <p
                   className="mx-auto mt-4 max-w-[40ch] text-[clamp(14px,1.7vw,17px)] leading-relaxed"
                   style={{ color: 'var(--fd-muted)' }}
@@ -252,15 +249,12 @@ export default async function WhyFreshPage() {
         {/* 원물 등급 — 사람이 먹는 등급 (사실 기반·레시피 노출 금지) */}
         <Section bg="offwhite" pad="md">
           <Container>
-            <div className="grid items-center gap-10 md:grid-cols-2">
+            <div className="grid items-center gap-8 md:gap-12 md:grid-cols-2">
               <Reveal>
                 <Eyebrow>Real Ingredients</Eyebrow>
-                <h2
-                  className="mt-3 max-w-[18ch] text-[clamp(26px,4.6vw,46px)] font-black leading-[1.08] tracking-[-0.02em]"
-                  style={{ color: 'var(--fd-pine)' }}
-                >
+                <Display as="h2" size="lg" className="mt-3 max-w-[18ch]" style={{ color: 'var(--fd-pine)' }}>
                   사람이 먹는 등급, 그대로
-                </h2>
+                </Display>
                 <p
                   className="mt-4 max-w-[44ch] text-[clamp(14px,1.7vw,17px)] leading-relaxed"
                   style={{ color: 'var(--fd-muted)' }}
@@ -430,12 +424,9 @@ export default async function WhyFreshPage() {
             <Reveal>
               <div className="mx-auto max-w-[640px] text-center">
                 <Eyebrow>Start here</Eyebrow>
-                <h2
-                  className="mx-auto mt-3 max-w-[20ch] text-[clamp(26px,4.4vw,44px)] font-black leading-[1.08] tracking-[-0.02em]"
-                  style={{ color: 'var(--fd-pine)' }}
-                >
+                <Display as="h2" size="lg" className="mx-auto mt-3 max-w-[20ch]" style={{ color: 'var(--fd-pine)' }}>
                   우리 아이에게 신선식이 맞을까요?
-                </h2>
+                </Display>
                 <p
                   className="mx-auto mt-4 max-w-[34ch] text-[clamp(14px,1.7vw,17px)] leading-relaxed"
                   style={{ color: 'var(--fd-muted)' }}

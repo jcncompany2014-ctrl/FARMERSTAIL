@@ -246,7 +246,7 @@ export default function AddressForm({ mode, initial }: Props) {
           padding: 12px 14px;
           border-radius: 10px;
           border: 1px solid var(--rule-2);
-          background: #fdfdfd;
+          background: var(--surface-card-elevated);
           color: var(--text);
           font-size: 14px;
           transition: border-color 0.15s;

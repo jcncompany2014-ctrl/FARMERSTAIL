@@ -68,7 +68,7 @@
 .ck-photo-thumb {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
   background: var(--bg-2);
   border: 1px solid var(--rule);
@@ -242,7 +242,7 @@
   margin-top: 2px;
   opacity: 0.7;
 }
-.ck-stool.good .ck-stool-hint { color: #566729; }
+.ck-stool.good .ck-stool-hint { color: var(--sage); }
 .ck-stool.warn .ck-stool-hint { color: #7A5B1B; }
 .ck-stool.bad .ck-stool-hint { color: var(--terracotta); }
 .ck-stool.on .ck-stool-hint { color: #fff; opacity: 0.85; }
@@ -321,7 +321,7 @@
   transition: box-shadow 160ms;
 }
 .ck-textarea:focus { box-shadow: inset 0 0 0 1.5px var(--ink); }
-.ck-textarea::placeholder { color: #B6A990; }
+.ck-textarea::placeholder { color: var(--ink-faint); }
 .ck-charcount {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
   font-size: 10px;
@@ -349,9 +349,9 @@
 /* Error */
 .ck-err {
   background: #FFF5F2;
-  color: #8A3923;
+  color: var(--accent-deep);
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 11.5px;
   font-weight: 600;
   display: flex;

@@ -96,7 +96,7 @@ export default async function IntegrationsPage({
           style={{
             background: '#FFF5F2',
             border: '1px solid color-mix(in srgb, var(--terracotta) 22%, transparent)',
-            color: '#8A3923',
+            color: 'var(--accent-deep)',
           }}
         >
           연동 중 문제가 있었어요 ({sp.error}). 다시 시도해 주세요.
@@ -151,7 +151,7 @@ export default async function IntegrationsPage({
                     className="text-[9px] font-bold px-1.5 py-0.5 rounded"
                     style={{
                       background: 'color-mix(in srgb, var(--moss) 16%, white)',
-                      color: '#566729',
+                      color: 'var(--sage)',
                       letterSpacing: '0.08em',
                     }}
                   >

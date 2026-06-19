@@ -37,19 +37,17 @@ export default function Budget({
               onClick={() => setBudgetTier(selected ? null : opt.value)}
               className="s-card"
               style={{
-                // R26 v3 polish: selected fill ink → terracotta + radius 14 → 12
-                // (다른 모든 step 큰 카드 selected 와 grammar 통일).
-                background: selected ? 'var(--terracotta)' : 'var(--bg-2)',
-                color: selected ? '#fff' : 'var(--ink)',
+                // selected fill → FD coral (평면, 글로우 제거) + radius 12
+                // (다른 모든 step 큰 카드 selected 와 grammar 통일). [회차314 FD 정렬]
+                background: selected ? 'var(--fd-coral)' : 'var(--bg-2)',
+                color: selected ? '#fff' : 'var(--fd-pine)',
                 border: '1px solid',
-                borderColor: selected ? 'var(--terracotta)' : 'var(--rule)',
+                borderColor: selected ? 'var(--fd-coral)' : 'var(--rule)',
                 borderRadius: 12,
                 padding: '14px 16px',
                 textAlign: 'left',
                 cursor: 'pointer',
-                boxShadow: selected
-                  ? '0 6px 20px -8px rgba(220, 83, 42, 0.45)'
-                  : 'none',
+                boxShadow: 'none',
                 transition: 'all 0.15s',
               }}
             >
@@ -71,7 +69,7 @@ export default function Budget({
                   {selected && (
                     <Check
                       className="w-3 h-3"
-                      style={{ color: 'var(--terracotta)' }}
+                      style={{ color: 'var(--fd-coral)' }}
                       strokeWidth={3}
                     />
                   )}

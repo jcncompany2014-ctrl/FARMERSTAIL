@@ -72,7 +72,7 @@ const STATS: { n: string; label: string }[] = [
 const PILLARS = [
   { icon: Leaf, label: 'SOURCING', title: '국내 농가에서, 직접', body: '강원·전남·제주 등 30여 곳의 계약 농가에서 주 2회 입고. 도축·수확 24시간 안에 작업장에 도착하고, 원산지·농가는 패키지에 표기.' },
   { icon: ShieldCheck, label: 'RECIPE', title: '수의영양학 자문 레시피', body: '수의영양학 자문으로 단백질·지방·미네랄 비율을 맞춰 설계. 표준 영양 기준에 맞춘 배합으로 영양 격차 없이.' },
-  { icon: Sparkles, label: 'COOKING', title: '저온 스팀 조리', body: '72°C 저온 스팀으로 단백질 변성·영양 손실을 최소화. 조리 후 즉시 급속 냉동해 효소·풍미를 그대로 유지.' },
+  { icon: Sparkles, label: 'COOKING', title: '수비드 저온 조리', body: '72°C 수비드 저온 조리로 단백질 변성·영양 손실을 최소화. 조리 후 즉시 급속 냉동해 효소·풍미를 그대로 유지.' },
   { icon: Repeat, label: 'CARE', title: '식단 그 이후의 케어', body: '앱에서 매일 식사·체중·산책을 기록하고, 매달 식단 노트를 받아요. 식단을 사고 끝나는 게 아니라 같이 사는 동안 옆에 있는 브랜드.' },
 ]
 
@@ -123,7 +123,7 @@ export default async function BrandPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const planHref = user ? '/dogs/new' : '/signup'
+  const planHref = user ? '/dogs/new' : '/start'
 
   const aboutLd = buildAboutPageJsonLd({
     name: '브랜드 이야기 — 파머스테일',
@@ -264,7 +264,7 @@ export default async function BrandPage() {
           bg="offwhite"
           title="작업장에 사람의 부엌과 같은 규칙을"
           body={[
-            '식품 안전 기준(HACCP 준비 단계)에 맞춘 작업장에서, 도축·수확된 원료는 24시간 내에 손질이 시작됩니다. 72°C 저온 스팀으로 단백질을 익히고, 조리 직후 급속 냉동 — 이 흐름이 영양 손실을 가장 적게 두는 구간이에요.',
+            '식품 안전 기준(HACCP 준비 단계)에 맞춘 작업장에서, 도축·수확된 원료는 24시간 내에 손질이 시작됩니다. 72°C 수비드 저온 조리로 단백질을 익히고, 조리 직후 급속 냉동 — 이 흐름이 영양 손실을 가장 적게 두는 구간이에요.',
             '주 단위 소량 생산이라 재고가 거의 0 입니다. 무리하게 양을 쌓아 두지 않아도 일정이 돌아가도록, 정기배송과 알림이 한 시스템으로 묶여 있어요.',
           ]}
         />

@@ -5,7 +5,7 @@
  * 막대 = 회색 트랙 + 권장 범위 음영 + 솔리드 fill (0% → value, 1100ms ease-out).
  */
 
-import { Check } from 'lucide-react'
+import { Check, Info } from 'lucide-react'
 import type { MagazinePalette } from './palette'
 import { Reveal, CountUp, useReveal } from './primitives'
 import { ReportCard, SectionHeader } from './ReportCard'
@@ -65,7 +65,7 @@ export function NutrientsCard({
           style={{
             marginTop: 18,
             padding: '12px 14px',
-            background: allInRange ? `${p.accentOlive}14` : `${p.brand}14`,
+            background: allInRange ? `${p.accentOlive}14` : `${p.accentOchre}18`,
             borderRadius: 12,
             display: 'flex',
             alignItems: 'center',
@@ -77,26 +77,30 @@ export function NutrientsCard({
               width: 24,
               height: 24,
               borderRadius: 999,
-              background: allInRange ? p.accentOlive : p.brand,
+              background: allInRange ? p.accentOlive : p.accentOchre,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            <Check size={14} color="#fff" strokeWidth={3} />
+            {allInRange ? (
+              <Check size={14} color="#fff" strokeWidth={3} />
+            ) : (
+              <Info size={14} color="#fff" strokeWidth={2.6} />
+            )}
           </div>
           <div
             style={{
               fontSize: 13,
               fontWeight: 700,
-              color: allInRange ? p.accentOlive : p.brand,
+              color: allInRange ? p.accentOlive : p.accentOchre,
               letterSpacing: '-0.01em',
             }}
           >
             {allInRange
               ? `${rows.length}가지 영양소 모두 권장 범위 안이에요`
-              : `일부 영양소가 권장 범위 밖이에요`}
+              : `일부 영양소는 맞춤 설계로 AAFCO 권장 범위와 달라요`}
           </div>
         </div>
       </ReportCard>
@@ -221,10 +225,10 @@ function NutrientRowView({
             right: 0,
             fontSize: 10.5,
             fontWeight: 700,
-            color: inRange ? p.accentOlive : p.brand,
+            color: inRange ? p.accentOlive : p.accentOchre,
           }}
         >
-          {inRange ? '권장 범위 안' : '확인 필요'}
+          {inRange ? '권장 범위 안' : n.value > n.max ? '권장 이상' : '권장 이하'}
         </span>
       </div>
     </div>

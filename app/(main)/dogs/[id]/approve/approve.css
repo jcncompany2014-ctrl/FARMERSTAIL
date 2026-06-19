@@ -248,7 +248,7 @@
 /* Error */
 .ap-err {
   background: #FFF5F2;
-  color: #8A3923;
+  color: var(--accent-deep);
   padding: 10px 12px;
   border-radius: 10px;
   font-size: 11.5px;

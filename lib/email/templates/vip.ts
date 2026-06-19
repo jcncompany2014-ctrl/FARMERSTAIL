@@ -19,7 +19,7 @@ export type VipEmailInput = {
 }
 
 const TIER_LABELS: Record<string, string> = {
-  mate: 'MATE · 단짝',
+  mate: 'TREE · 나무',
   fruit: 'FRUIT · 열매',
   bloom: 'BLOOM · 꽃',
   sprout: 'SPROUT · 새싹',

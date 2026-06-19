@@ -8,16 +8,12 @@
  */
 'use client'
 
+import { petName } from '@/lib/korean'
 import { WARM_CREAM } from '@/components/analysis/magazine/palette'
 import { HeroSection as MagHero } from '@/components/analysis/magazine/HeroSection'
 import { DiagnosisCard as MagDiagnosis } from '@/components/analysis/magazine/DiagnosisCard'
-import { CelebrationBanner as MagCelebration } from '@/components/analysis/magazine/CelebrationBanner'
-import { AtAGlance as MagAtAGlance } from '@/components/analysis/magazine/AtAGlance'
 import { DailyEnergyCard as MagDailyEnergy } from '@/components/analysis/magazine/DailyEnergyCard'
-import {
-  NutrientsCard as MagNutrients,
-  type NutrientRow as MagNutrientRow,
-} from '@/components/analysis/magazine/NutrientsCard'
+import { type NutrientRow as MagNutrientRow } from '@/components/analysis/magazine/NutrientsCard'
 import {
   BoxMixCard as MagBoxMix,
   type BoxMixItem as MagBoxMixItem,
@@ -73,20 +69,16 @@ export default function AnalysisMagazineSection({
   isArchive,
   ageLabel,
   weightKg,
-  dateLabel,
   stage,
   bcsScore,
   bcsLabel,
   proteinPct,
   analysisDate,
-  guidelineVersion,
   merKcal,
   merMin,
   merMax,
   rer,
   factor,
-  feedG,
-  nutrientRows,
   boxItems,
   supplementItems,
   history,
@@ -111,7 +103,7 @@ export default function AnalysisMagazineSection({
         dogName={dogName}
         chips={[
           { label: stage || '성견 유지', variant: 'primary' },
-          { label: `BCS ${bcsScore}/9 · ${bcsLabel}`, variant: 'soft' },
+          { label: `BCS ${bcsScore}/9`, variant: 'soft' },
           { label: `단백 ${Math.round(proteinPct)}%`, variant: 'soft' },
         ]}
         headline={{
@@ -119,22 +111,16 @@ export default function AnalysisMagazineSection({
           accentBrand: '넉넉히',
           middle: ', 지방은',
           accentOchre: '균형 있게',
-          body: `${dogName}이의 ${bcsLabel} 체형에`,
+          body: `${petName(dogName)}의 ${bcsLabel} 체형에`,
           highlight: '맞춤 식단을 준비했어요.',
         }}
-        guidelineLabel={`AAFCO ${guidelineVersion ?? '2024'} 영양 기준 충족`}
+        guidelineLabel="AAFCO 2024 · NRC 2006 기준 충족"
         versionLabel={`분석 · ${analysisDate}`}
       />
-      <MagCelebration p={magP} dogName={dogName} dateLabel={dateLabel} />
-      <MagAtAGlance
-        p={magP}
-        data={{
-          kcalPerDay: Math.round(merKcal),
-          feedGramPerDay: Math.round(feedG),
-          kcalPerMeal: Math.round(merKcal / 2),
-          bcsLabel: `BCS ${bcsScore}/9`,
-        }}
-      />
+      {/* 2026-06-19 사장님 "전체적으로 마음에 안듦 — 강력 업그레이드": 중복 제거.
+          · Celebration("처방 준비됐어요") = 바로 위 Diagnosis 메시지와 중복 → 삭제
+          · AtAGlance(435·270·BCS) = 상단 sticky바 + 아래 DailyEnergy 와 숫자 중복 → 삭제
+          숫자 반복(435 ×4·BCS ×3)·preamble 과부하 완화. */}
       <MagDailyEnergy
         p={magP}
         dogName={dogName}
@@ -156,13 +142,17 @@ export default function AnalysisMagazineSection({
           <RecommendationBox dogId={dogId} dogName={dogName} isSenior={isSenior} />
         </div>
       )}
-      <MagNutrients p={magP} rows={nutrientRows} />
-      <AnalysisTrendsCard
-        dogId={dogId}
-        dogName={dogName}
-        history={history}
-        totalCount={totalCount}
-      />
+      {/* 2026-06-19 사장님 "영양 균형 카드 아예 없애" — NutrientsCard 제거. */}
+      {/* 추이 카드는 비교할 기록(2회+)이 있을 때만 — 첫 분석에선 "2회 이상
+          하면 표시돼요" 빈 placeholder 가 전환 화면을 어수선하게 했음(2026-06-19). */}
+      {history.length >= 2 && (
+        <AnalysisTrendsCard
+          dogId={dogId}
+          dogName={dogName}
+          history={history}
+          totalCount={totalCount}
+        />
+      )}
       <MagSupplements p={magP} dogName={dogName} items={supplementItems} />
       <MagCTA p={magP} consultHref="/contact" />
       <div style={{ height: 12, background: magP.bg }} />

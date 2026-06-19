@@ -320,7 +320,7 @@ export default async function FaqPage() {
                 2분 설문이면 우리 아이에게 맞는 식단을 바로 확인할 수 있어요.
               </p>
               <div className="pt-7 flex justify-center">
-                <Button href={isAuthed ? '/dogs/new' : '/signup'} tone="coral" size="lg">
+                <Button href={isAuthed ? '/dogs/new' : '/start'} tone="coral" size="lg">
                   2분 설문 시작하기
                   <ArrowRight size={19} strokeWidth={2.4} />
                 </Button>
@@ -329,7 +329,7 @@ export default async function FaqPage() {
           </Container>
         </Section>
       </main>
-      <StickyCta href={isAuthed ? '/dogs/new' : '/signup'} />
+      <StickyCta href={isAuthed ? '/dogs/new' : '/start'} />
     </WebChrome>
   )
 }

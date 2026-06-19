@@ -10,9 +10,10 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Plus, PawPrint as DogIcon } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
+import DogPawMark from '@/components/DogPawMark'
 
 export interface DogCardData {
   id: string
@@ -164,7 +165,7 @@ export default function MyDogsSection({
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <DogIcon size={36} color={V3.inkMute} strokeWidth={1.4} />
+                    <DogPawMark size={34} color={V3.inkMute} />
                   </div>
                 )}
               </div>

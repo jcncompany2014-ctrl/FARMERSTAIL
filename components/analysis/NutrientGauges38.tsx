@@ -17,6 +17,7 @@
 
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { petName } from '@/lib/korean'
 import {
   NUTRIENT_SPECS,
   CATEGORY_LABEL,
@@ -51,7 +52,7 @@ export default function NutrientGauges38({ dogName }: { dogName: string }) {
               letterSpacing: '-0.02em',
             }}
           >
-            {dogName}이의 하루 영양 38가지 한눈에 보기 🐾
+            {petName(dogName)}의 하루 영양 38가지 한눈에 보기 🐾
           </h2>
           <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
             FEDIAF 2024 / NRC 2006 권장 범위와 자사 평균 화식 영양 매트릭스를

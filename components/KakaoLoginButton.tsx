@@ -51,7 +51,7 @@ export default function KakaoLoginButton({
         type="button"
         onClick={handleClick}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#FEE500] text-[#191919] font-bold text-[14px] active:scale-[0.98] transition-all disabled:opacity-60"
+        className="w-full flex items-center justify-center gap-2 h-[58px] rounded-full bg-[#FEE500] text-[#191919] font-bold text-[15px] active:scale-[0.98] transition-all disabled:opacity-60"
       >
         <KakaoMark />
         {loading ? '연결 중...' : label}

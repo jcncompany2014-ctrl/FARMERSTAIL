@@ -86,7 +86,7 @@ export default function CertificateClient({
 
   async function handleShare() {
     const shareUrl = window.location.href
-    const shareText = `${dog.name} · 파머스테일 등록증 (단짝 등급)`
+    const shareText = `${dog.name} · 파머스테일 등록증 (나무 등급)`
     if (navigator.share) {
       try {
         await navigator.share({ title: shareText, url: shareUrl })
@@ -121,7 +121,7 @@ export default function CertificateClient({
             {dog.name}의 등록증
           </h1>
           <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
-            단짝 등급 도달의 증표. 저장하거나 공유해 보세요.
+            나무 등급 도달의 증표. 저장하거나 공유해 보세요.
           </p>
         </div>
       </section>
@@ -133,7 +133,7 @@ export default function CertificateClient({
           className="relative mx-auto"
           style={{
             maxWidth: 520,
-            background: '#FAF6EC',
+            background: 'var(--paper-hi)',
             border: '2px solid #2A2118',
             borderRadius: 12,
             padding: '32px 28px 36px',
@@ -153,26 +153,26 @@ export default function CertificateClient({
                 ...(pos === 'tl' && {
                   top: 10,
                   left: 10,
-                  borderTop: '2px solid #A0452E',
-                  borderLeft: '2px solid #A0452E',
+                  borderTop: '2px solid var(--accent-deep)',
+                  borderLeft: '2px solid var(--accent-deep)',
                 }),
                 ...(pos === 'tr' && {
                   top: 10,
                   right: 10,
-                  borderTop: '2px solid #A0452E',
-                  borderRight: '2px solid #A0452E',
+                  borderTop: '2px solid var(--accent-deep)',
+                  borderRight: '2px solid var(--accent-deep)',
                 }),
                 ...(pos === 'bl' && {
                   bottom: 10,
                   left: 10,
-                  borderBottom: '2px solid #A0452E',
-                  borderLeft: '2px solid #A0452E',
+                  borderBottom: '2px solid var(--accent-deep)',
+                  borderLeft: '2px solid var(--accent-deep)',
                 }),
                 ...(pos === 'br' && {
                   bottom: 10,
                   right: 10,
-                  borderBottom: '2px solid #A0452E',
-                  borderRight: '2px solid #A0452E',
+                  borderBottom: '2px solid var(--accent-deep)',
+                  borderRight: '2px solid var(--accent-deep)',
                 }),
               }}
             />
@@ -186,7 +186,7 @@ export default function CertificateClient({
                 fontSize: 10.5,
                 letterSpacing: '0.32em',
                 wordSpacing: '-0.12em',
-                color: '#A0452E',
+                color: 'var(--accent-deep)',
                 textTransform: 'uppercase',
               }}
             >
@@ -198,7 +198,7 @@ export default function CertificateClient({
                 fontFamily: 'serif',
                 fontSize: 22,
                 fontWeight: 900,
-                color: '#1E1A14',
+                color: 'var(--ink)',
                 letterSpacing: '-0.02em',
               }}
             >
@@ -208,7 +208,7 @@ export default function CertificateClient({
               style={{
                 marginTop: 4,
                 fontSize: 10.5,
-                color: '#7B6F5C',
+                color: 'var(--ink-mute)',
                 fontStyle: 'italic',
               }}
             >
@@ -219,7 +219,7 @@ export default function CertificateClient({
                 marginTop: 12,
                 width: 60,
                 height: 1.5,
-                background: '#A0452E',
+                background: 'var(--accent-deep)',
                 margin: '12px auto 0',
               }}
             />
@@ -269,7 +269,7 @@ export default function CertificateClient({
                 fontFamily: 'serif',
                 fontSize: 30,
                 fontWeight: 900,
-                color: '#1E1A14',
+                color: 'var(--ink)',
                 letterSpacing: '-0.025em',
               }}
             >
@@ -280,7 +280,7 @@ export default function CertificateClient({
                 style={{
                   marginTop: 2,
                   fontSize: 12,
-                  color: '#7B6F5C',
+                  color: 'var(--ink-mute)',
                 }}
               >
                 {dog.breed}
@@ -304,7 +304,7 @@ export default function CertificateClient({
           >
             위 강아지는
             <br />
-            <strong style={{ color: '#A0452E' }}>파머스테일 산지 가족</strong>의
+            <strong style={{ color: 'var(--accent-deep)' }}>파머스테일 산지 가족</strong>의
             구성원으로
             <br />그 정성과 한 끼를 함께해 왔음을 증명합니다.
           </div>
@@ -321,7 +321,7 @@ export default function CertificateClient({
             }}
           >
             <Row label="보호자" value={ownerName} />
-            <Row label="등급" value="단짝 · MATE" />
+            <Row label="등급" value="나무 · TREE" />
             <Row label="가입일" value={memberSinceLabel} />
             <Row label="발급일" value={issueDate} />
             <Row
@@ -360,12 +360,12 @@ export default function CertificateClient({
                 width: 54,
                 height: 54,
                 borderRadius: '50%',
-                border: '2px solid #A0452E',
+                border: '2px solid var(--accent-deep)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 8,
-                color: '#A0452E',
+                color: 'var(--accent-deep)',
                 fontWeight: 800,
                 lineHeight: 1.15,
                 textAlign: 'center',
@@ -415,8 +415,8 @@ export default function CertificateClient({
             strokeWidth={2}
           />
           <p className="text-[10.5px] text-text leading-relaxed">
-            단짝 등급은 누적 결제 300만원 이상 가족에게 발급되는 최상위 등급
-            이에요. SNS 에 공유해 주시면 다음 단짝 가족에게 작은 선물이 갈 수
+            나무 등급은 누적 결제 300만원 이상 가족에게 발급되는 최상위 등급
+            이에요. SNS 에 공유해 주시면 다음 나무 등급 가족에게 작은 선물이 갈 수
             있어요.
           </p>
         </div>
@@ -467,7 +467,7 @@ function Row({
           marginTop: 2,
           fontSize: 12,
           fontWeight: 700,
-          color: '#1E1A14',
+          color: 'var(--ink)',
           fontFamily: mono ? 'JetBrains Mono, monospace' : 'inherit',
           letterSpacing: mono ? '0.05em' : '-0.005em',
           wordBreak: 'break-all',

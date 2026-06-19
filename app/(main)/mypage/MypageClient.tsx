@@ -18,17 +18,13 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  User,
   Package,
   Repeat,
   Bell,
   MapPin,
   ChevronRight,
   LogOut,
-  Star,
-  Heart,
   Coins,
-  Ticket,
   UserPlus,
   Mail,
   HelpCircle,
@@ -40,8 +36,9 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { tierMeta } from '@/lib/tiers'
-import { V3, V3Dark, V3FontSize, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
+import { V3, V3FontSize, V3FontWeight, V3Radius } from '@/lib/design/tokens'
 import { Mono, Modal, Badge } from '@/components/v3'
+import DogPawMark from '@/components/DogPawMark'
 
 type Profile = {
   name: string | null
@@ -57,7 +54,6 @@ type Props = {
   subCount: number
   pointBalance: number
   wishCount: number
-  couponCount: number
 }
 
 export default function MypageClient({
@@ -67,7 +63,6 @@ export default function MypageClient({
   subCount,
   pointBalance,
   wishCount,
-  couponCount,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -84,138 +79,106 @@ export default function MypageClient({
 
   const displayName =
     profile?.name || (email ? email.split('@')[0] : null) || '보호자'
+  // 포인트 카드 등급별 수채화 배경 키 (seed/sprout/bloom/fruit/mate).
+  const tierKey = profile?.tier ?? 'seed'
 
   return (
     <div style={{ paddingBottom: 32 }}>
       {/* ──────────────────────────────────────────────────────────────
-          헤더 — kicker + sans 800 h1
+          내 정보 헤더 — 박스 없이 큰 이름(27 black)으로 "여기가 내 정보"임을
+          한눈에. 상단 'My Account/마이페이지' 헤더 제거 후 이름이 곧 헤더 역할.
           ────────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '24px 20px 12px' }}>
-        <Mono color="accent" size="xs" weight={600}>
-          My Account
-        </Mono>
-        <h1
-          style={{
-            margin: '6px 0 0',
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.black,
-            fontSize: 32,
-            lineHeight: 1,
-            color: V3.ink,
-            letterSpacing: V3LetterSpacing.heading,
-          }}
-        >
-          마이페이지
-        </h1>
-      </section>
-
-      {/* ──────────────────────────────────────────────────────────────
-          프로필 카드 — paperHi + ink rule + radius 4
-          ────────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '8px 20px 0' }}>
-        <div
-          style={{
-            background: V3.paperHi,
-            border: `1px solid ${V3.rule}`,
-            borderRadius: V3Radius.sm,
-            padding: '16px 18px',
-          }}
-        >
-          <div className="flex items-center" style={{ gap: 12 }}>
-            <Link
-              href="/account/profile"
-              aria-label="프로필 수정"
-              className="shrink-0 flex items-center justify-center"
+      <section style={{ padding: '30px 20px 4px', position: 'relative', overflow: 'hidden' }}>
+        {/* 빈 공간 — 발자국 트레일(배열 그대로). 이름정보와 씨앗 칩 사이 정가운데
+            정렬: 섹션 중앙(50%) + 칩쪽 약간 바이어스. 폭 달라도 가운데 유지. 클릭 통과. */}
+        <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: 0, bottom: 0, left: 'calc(50% + 34px)', width: 0 }}>
+            <span style={{ position: 'absolute', left: -96, top: 30, opacity: 0.07, transform: 'rotate(20deg)' }}>
+              <DogPawMark size={18} color={V3.ink} />
+            </span>
+            <span style={{ position: 'absolute', left: -44, top: 52, opacity: 0.08, transform: 'rotate(30deg)' }}>
+              <DogPawMark size={21} color={V3.ink} />
+            </span>
+            <span style={{ position: 'absolute', left: 14, top: 26, opacity: 0.06, transform: 'rotate(18deg)' }}>
+              <DogPawMark size={18} color={V3.ink} />
+            </span>
+            <span style={{ position: 'absolute', left: 76, top: 48, opacity: 0.07, transform: 'rotate(28deg)' }}>
+              <DogPawMark size={21} color={V3.ink} />
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center" style={{ gap: 12, position: 'relative' }}>
+          <Link href="/account/profile" className="flex-1 min-w-0">
+            <div
+              className="truncate"
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                background: V3.paper,
-                border: `1px solid ${V3.rule}`,
+                fontFamily: 'var(--font-sans)',
+                fontSize: 27,
+                fontWeight: V3FontWeight.black,
+                color: V3.ink,
+                letterSpacing: '-0.025em',
+                lineHeight: 1.1,
               }}
             >
-              <User size={20} color={V3.inkMute} strokeWidth={1.5} />
+              {displayName}님
+            </div>
+            <div
+              className="truncate"
+              style={{
+                fontSize: 13,
+                color: V3.inkMute,
+                marginTop: 4,
+              }}
+            >
+              {email ?? '—'}
+            </div>
+            <Mono
+              color="accent"
+              size="xs"
+              weight={600}
+              letterSpacing="0.1em"
+              style={{ marginTop: 8, display: 'inline-block' }}
+            >
+              프로필 / 비밀번호 →
+            </Mono>
+          </Link>
+          {profile?.tier && (
+            <Link
+              href="/mypage/membership"
+              aria-label="멤버십 등급 보기"
+              className="shrink-0 active:scale-95 transition"
+            >
+              <TierChip tier={profile.tier} />
             </Link>
-            <Link href="/account/profile" className="flex-1 min-w-0">
-              <div
-                className="truncate"
-                style={{
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: 16,
-                  fontWeight: V3FontWeight.bold,
-                  color: V3.ink,
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                {displayName}님
-              </div>
-              <div
-                className="truncate"
-                style={{
-                  fontSize: 12,
-                  color: V3.inkMute,
-                  marginTop: 2,
-                }}
-              >
-                {email ?? '—'}
-              </div>
-              <Mono
-                color="accent"
-                size="xxs"
-                weight={600}
-                letterSpacing="0.12em"
-                style={{ marginTop: 6, display: 'inline-block' }}
-              >
-                프로필 / 비밀번호 →
-              </Mono>
-            </Link>
-            {profile?.tier && (
-              <Link
-                href="/mypage/membership"
-                aria-label="멤버십 등급 보기"
-                className="shrink-0 active:scale-95 transition"
-              >
-                <TierChip tier={profile.tier} />
-              </Link>
-            )}
-          </div>
+          )}
         </div>
       </section>
 
       {/* ──────────────────────────────────────────────────────────────
-          포인트 hero — V3Dark ink 카드 + yellow accent
+          포인트 hero — 등급별 수채화 배경(씨앗→나무). 왼쪽 paper gradient 로
+          어두운 글자 가독성 확보, 오른쪽엔 등급 식물 그림이 보인다.
           ────────────────────────────────────────────────────────────── */}
       <section style={{ padding: '12px 20px 0' }}>
         <Link
           href="/mypage/points"
           className="relative block overflow-hidden"
           style={{
-            background: V3Dark.bg,
             borderRadius: V3Radius.sm,
             padding: '18px 20px',
-            color: V3Dark.fg,
             textDecoration: 'none',
+            color: V3.ink,
+            border: `1px solid ${V3.rule}`,
+            backgroundColor: V3.paperHi,
+            backgroundImage: `linear-gradient(95deg, rgba(252,251,247,0.95) 0%, rgba(252,251,247,0.66) 40%, rgba(252,251,247,0.10) 70%), url(/tiers/${tierKey}.webp)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'right center',
+            backgroundRepeat: 'no-repeat',
           }}
         >
-          {/* 우상단 yellow glow — accent dot 같은 시각 마커 */}
-          <div
-            aria-hidden
-            className="absolute pointer-events-none"
-            style={{
-              top: -40,
-              right: -40,
-              width: 140,
-              height: 140,
-              borderRadius: 999,
-              background:
-                'radial-gradient(circle, rgba(230,185,66,0.22) 0%, transparent 70%)',
-            }}
-          />
-
           <div className="relative">
             <div className="flex items-center" style={{ gap: 6, marginBottom: 6 }}>
-              <Coins size={14} color={V3.yellow} strokeWidth={2} />
-              <Mono color={V3.yellow} size="xxs" weight={600}>
+              <Coins size={14} color={V3.accentDeep} strokeWidth={2} />
+              <Mono color={V3.accentDeep} size="xxs" weight={600}>
                 Points
               </Mono>
             </div>
@@ -226,14 +189,14 @@ export default function MypageClient({
                   fontFamily: 'var(--font-sans)',
                   fontWeight: V3FontWeight.black,
                   fontSize: 38,
-                  color: V3.yellow,
+                  color: V3.ink,
                   letterSpacing: '-0.03em',
                   lineHeight: 1,
                 }}
               >
                 {pointBalance.toLocaleString()}
               </span>
-              <Mono color={V3Dark.fgMute} size="sm" weight={600} letterSpacing="0.08em">
+              <Mono color="inkMute" size="sm" weight={600} letterSpacing="0.08em">
                 P
               </Mono>
             </div>
@@ -246,25 +209,22 @@ export default function MypageClient({
                   gap: 10,
                   padding: '8px 12px',
                   borderRadius: V3Radius.xs,
-                  background: V3Dark.ruleSoft,
-                  border: `1px solid ${V3Dark.rule}`,
+                  background: 'rgba(255,255,255,0.68)',
+                  border: `1px solid ${V3.rule}`,
                 }}
               >
-                <span style={{ fontSize: 18, lineHeight: 1 }}>
-                  {TIER_EMOJI[profile.tier] ?? '🌱'}
-                </span>
                 <div className="flex-1 min-w-0">
                   <div
                     style={{
                       fontSize: 10.5,
                       fontWeight: V3FontWeight.bold,
-                      color: V3Dark.fg,
+                      color: V3.ink,
                     }}
                   >
                     {tierMeta(profile.tier).label} 등급 · {tierMeta(profile.tier).earnRate}% 적립
                   </div>
                 </div>
-                <ChevronRight size={14} color={V3Dark.fgMute} strokeWidth={2} />
+                <ChevronRight size={14} color={V3.inkMute} strokeWidth={2} />
               </div>
             )}
           </div>
@@ -274,15 +234,12 @@ export default function MypageClient({
       {/* ──────────────────────────────────────────────────────────────
           Stat grid — orders / subs / coupons / wish (4-col)
           ────────────────────────────────────────────────────────────── */}
-      {(orderCount > 0 ||
-        subCount > 0 ||
-        couponCount > 0 ||
-        wishCount > 0) && (
+      {(orderCount > 0 || subCount > 0 || wishCount > 0) && (
         <section style={{ padding: '10px 20px 0' }}>
           <div
             className="grid"
             style={{
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: 'repeat(3, 1fr)',
               gap: 0,
               background: V3.paperHi,
               border: `1px solid ${V3.rule}`,
@@ -304,13 +261,6 @@ export default function MypageClient({
               value={subCount}
               unit="건"
               tone="sage"
-            />
-            <StatCell
-              href="/mypage/coupons"
-              kicker="Coupons"
-              value={couponCount}
-              unit="장"
-              tone="accent"
             />
             <StatCell
               href="/mypage/wishlist"
@@ -337,16 +287,7 @@ export default function MypageClient({
       </MenuGroup>
 
       <MenuGroup kicker="Benefits · 혜택" topPad={20}>
-        <MenuItem href="/mypage/membership" Icon={Crown} label="멤버십 등급" />
-        <MenuItem href="/mypage/wishlist" Icon={Heart} label="찜한 상품" />
-        <MenuItem href="/mypage/reviews" Icon={Star} label="내 리뷰" />
-        <MenuItem
-          href="/mypage/coupons"
-          Icon={Ticket}
-          label="내 쿠폰"
-          badge={couponCount}
-          last
-        />
+        <MenuItem href="/mypage/membership" Icon={Crown} label="멤버십 등급" last />
       </MenuGroup>
 
       <MenuGroup kicker="Settings · 설정" topPad={20}>
@@ -502,18 +443,9 @@ function TierChip({ tier }: { tier: string }) {
         border: `1px solid ${V3.rule}`,
       }}
     >
-      <span style={{ fontSize: 13.5, lineHeight: 1 }}>{TIER_EMOJI[meta.key]}</span>
       {meta.label}
     </span>
   )
-}
-
-const TIER_EMOJI: Record<string, string> = {
-  seed: '🌱',
-  sprout: '🌿',
-  bloom: '🌸',
-  fruit: '🍎',
-  mate: '💛',
 }
 
 // ──────────────────────────────────────────────────────────────

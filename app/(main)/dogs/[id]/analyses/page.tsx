@@ -152,7 +152,7 @@ export default async function AnalysesTimelinePage({
           분석 히스토리
         </h1>
         <p className="text-[10.5px] text-muted mt-1">
-          총 {analyses.length}회의 맞춤 분석 기록이 있어요
+          설문으로 받은 맞춤 분석 결과 · 총 {analyses.length}회
         </p>
       </section>
 
@@ -351,7 +351,7 @@ export default async function AnalysesTimelinePage({
  *
  * 사용자가 분석 페이지 들어왔을 때 가장 먼저 보이는 영역. 핵심 stat (체중 /
  * MER / 급여량 / BCS) + 영양소 분포 (protein/fat/carb mini bar) + AI 코멘터리
- * 첫 줄 + CTA (처방 보러가기).
+ * 첫 줄 + CTA (박스 보러가기).
  */
 function LatestAnalysisHero({
   dogId,
@@ -386,7 +386,7 @@ function LatestAnalysisHero({
         className="relative overflow-hidden rounded-[12px] px-6 pt-6 pb-7 text-white"
         style={{
           background:
-            'linear-gradient(135deg, var(--terracotta) 0%, #8B3923 100%)',
+            'linear-gradient(135deg, var(--terracotta) 0%, var(--accent-deep) 100%)',
         }}
       >
         <div
@@ -484,26 +484,19 @@ function LatestAnalysisHero({
             </div>
           )}
 
-          {/* CTA — 처방 / 주문 / 분석 상세 */}
-          <div className="mt-5 flex gap-2">
+          {/* CTA — 전체 분석 결과(영양 분석 + 추천 박스 + 정기배송)로 직행.
+              2026-06-19 (사장님 "분석→박스 점프 비효율"): 옛 '자세히 보기'
+              (→/analyses/[id] archive 뷰 = 박스믹스·CTA 빠진 축약본) + '박스 보기'
+              (→/formulas 점프) 2버튼 폐기. 최신 결과는 /analysis 한 곳에 분석+박스+
+              정기배송이 다 있어 점프가 불필요 → 단일 CTA. */}
+          <div className="mt-5">
             <Link
-              href={`/dogs/${dogId}/analyses/${analysis.id}`}
-              className="flex-1 inline-flex items-center justify-center gap-1 py-2.5 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
+              href={`/dogs/${dogId}/analysis`}
+              className="w-full inline-flex items-center justify-center gap-1 py-3 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
               style={{ background: 'white', color: 'var(--terracotta)' }}
             >
-              자세히 보기
+              전체 분석 결과 보기
               <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
-            </Link>
-            <Link
-              href={`/dogs/${dogId}/formulas`}
-              className="flex-1 inline-flex items-center justify-center gap-1 py-2.5 rounded-full text-[12px] font-bold transition"
-              style={{
-                background: 'rgba(255,255,255,0.15)',
-                color: 'white',
-                border: '1px solid rgba(255,255,255,0.25)',
-              }}
-            >
-              처방 확인
             </Link>
           </div>
 

@@ -4,7 +4,8 @@
  * Magazine SupplementsCard — 올리브 톤 보충제 추천 카드.
  */
 
-import { Pill, Droplet, Leaf, Plus } from 'lucide-react'
+import { Pill, Droplet, Leaf, Check } from 'lucide-react'
+import { petName } from '@/lib/korean'
 import type { MagazinePalette } from './palette'
 import { Reveal } from './primitives'
 import { ReportCard, SectionHeader } from './ReportCard'
@@ -31,9 +32,9 @@ export function SupplementsCard({
       <ReportCard p={p} tint={`${p.accentOlive}14`}>
         <SectionHeader
           p={p}
-          eyebrow="SUPPLEMENT"
-          title={`${dogName}이 맞춤 보충제`}
-          tail={`${items.length}가지 추천`}
+          eyebrow="맞춤 영양"
+          title={`${petName(dogName)}에게 더 챙겨주는 영양`}
+          tail="우리 소스·화식으로"
         />
         <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {items.map((s) => {
@@ -88,11 +89,16 @@ export function SupplementsCard({
                     {s.reason}
                   </div>
                 </div>
-                <Plus size={18} color={p.accentOlive} strokeWidth={2.2} />
+                <Check size={18} color={p.accentOlive} strokeWidth={2.4} />
               </div>
             )
           })}
         </div>
+        {/* reframe(사장님 2026-06-19): 알약 추천 X → 우리 제품이 챙긴다. */}
+        <p style={{ marginTop: 12, fontSize: 11, lineHeight: 1.55, color: p.muted }}>
+          {petName(dogName)} 화식 박스와 맞춤 데일리 소스로 한 끼에 자연스럽게
+          더해드려요. 따로 영양제를 챙기실 필요 없어요.
+        </p>
       </ReportCard>
     </Reveal>
   )

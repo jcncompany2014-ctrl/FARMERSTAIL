@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { Search, ChevronLeft, ChevronRight, ChevronRight as Crumb } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import SearchBar from '@/components/SearchBar'
@@ -98,6 +99,11 @@ export default async function ProductsPage({
   searchParams: SearchParamsT
 }) {
   const [raw, isApp] = await Promise.all([searchParams, isAppContextServer()])
+
+  // 2026-06-19 사장님 "제품탭 아예 없애" — 앱은 분석→박스→정기배송 퍼널만(커머스
+  // 제거 방침). 카탈로그는 앱에서 제거: 어떤 경로로 들어와도 홈으로 보낸다.
+  // 웹(editorial 카탈로그)은 그대로 — isApp 게이트라 web 영향 0.
+  if (isApp) redirect('/dashboard')
 
   // ── filter / sort 파싱 ──────────────────────────────────
   const category =

@@ -13,6 +13,7 @@ import {
   Share2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { josa } from '@/lib/korean'
 
 export const dynamic = 'force-dynamic'
 
@@ -158,7 +159,7 @@ export default async function YearInReviewPage({
             아직 한 해가 안 됐어요
           </h1>
           <p className="mt-2 text-[12px] leading-relaxed text-text/70">
-            {dogRow.name}와 함께한 시간이 {daysIn}일이에요.
+            {josa(dogRow.name, '과', '와')} 함께한 시간이 {daysIn}일이에요.
             <br />
             조금만 더 모이면 한 해 회고를 볼 수 있어요.
           </p>
@@ -189,7 +190,7 @@ export default async function YearInReviewPage({
             letterSpacing: '-0.02em',
           }}
         >
-          {dogRow.name}와 함께한 {daysIn}일
+          {josa(dogRow.name, '과', '와')} 함께한 {daysIn}일
         </h1>
         <p className="mt-2 text-[13.5px] leading-relaxed text-text/80">
           정성껏 챙겨주셔서 고마워요. 한 해를 짧게 돌아볼게요.

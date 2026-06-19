@@ -87,9 +87,11 @@ export default function AppleLoginButton({
         type="button"
         onClick={handleClick}
         disabled={loading}
-        // Apple HIG 색상: 시스템 black on white 또는 white on black. 라이트
-        // 톤 사이트라 black 박스가 가장 클래식. 카카오 노랑과 시각적 균형.
-        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-black text-white font-bold text-[14px] active:scale-[0.98] transition-all disabled:opacity-60"
+        // Apple HIG 색상: black-on-white / white-on-black 둘 다 공식 변형. 사장님
+        // 2026-06-17 결정 = **흰 배경 + 검정 테두리/로고**(라이트 크림 톤에 무거운
+        // 검정 바 대신 차분하게 녹아듦). 크기·위치는 카카오와 동일 = App Store 4.8
+        // 동등 비중 충족. 카카오 노랑과 함께 둘 다 pill.
+        className="w-full flex items-center justify-center gap-2 h-[58px] rounded-full bg-white text-[#191919] font-bold text-[15px] border border-[#191919] active:scale-[0.98] transition-all disabled:opacity-60"
         aria-label={label}
       >
         <AppleMark />

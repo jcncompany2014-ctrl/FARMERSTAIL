@@ -81,6 +81,39 @@
   text-decoration: none;
 }
 
+/* 한눈에 요약 카드 — 뭘·언제·얼마 (2026-06-19 사장님 "난잡·이해 안됨" 개편).
+   스크롤 없이 상단에서 핵심 3줄 즉시 파악. portion 선택에 반응. 결제 계산은
+   하단 상세 요약(.ord-summary)과 동일 소스. */
+.ord-glance {
+  background: var(--surface-card-elevated, #fff);
+  border: 1.5px solid color-mix(in srgb, var(--terracotta) 28%, transparent);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.ord-glance-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+}
+.ord-glance-label {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  letter-spacing: 0.02em; flex-shrink: 0;
+}
+.ord-glance-val {
+  font-size: 12.5px; font-weight: 700; color: var(--ink);
+  text-align: right; letter-spacing: -0.01em; line-height: 1.4;
+}
+.ord-glance-divide { height: 1px; background: var(--rule-2); margin: 1px 0; }
+.ord-glance-price {
+  font-family: var(--font-sans), 'Pretendard', sans-serif;
+  font-size: 20px; font-weight: 800; color: var(--terracotta);
+  letter-spacing: -0.025em; line-height: 1;
+}
+.ord-glance-per {
+  font-size: 12px; color: var(--muted); font-weight: 700; margin-left: 2px;
+  letter-spacing: 0;
+}
+
 /* Trust chips — AAFCO + NRC + 사료관리법 */
 .ord-trust {
   display: flex; flex-wrap: wrap; gap: 6px;
@@ -157,8 +190,7 @@
 }
 .ord-interval-card {
   appearance: none; cursor: pointer;
-  /* R26: #fff → var(--surface-card), 14 → 12 */
-  background: var(--surface-card);
+  background: var(--surface-card-elevated, #fff);
   border: 1.5px solid var(--rule);
   border-radius: 12px;
   padding: 11px 8px 12px;
@@ -172,7 +204,7 @@
 .ord-interval-card.ord-interval-on {
   border-color: var(--terracotta);
   background: color-mix(in srgb, var(--terracotta) 6%, white);
-  box-shadow: 0 4px 14px -8px rgba(160, 69, 46, 0.4);
+  box-shadow: 0 4px 14px -8px rgba(200, 107, 69, 0.4);
 }
 .ord-interval-label {
   font-size: 13px; font-weight: 800;
@@ -235,11 +267,10 @@
   gap: 8px;
 }
 .ord-item {
-  /* R26: #fff → var(--surface-card), 14 → 12 */
-  background: var(--surface-card);
+  background: var(--surface-card-elevated, #fff);
   border: 1px solid var(--rule);
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   display: flex; align-items: stretch;
   gap: 12px;
   position: relative;
@@ -335,10 +366,10 @@
 }
 .ord-input {
   width: 100%;
-  padding: 11px 13px;
+  padding: 12px 14px;
   border: 1px solid var(--rule);
-  background: #FDFDFD;
-  border-radius: 10px;
+  background: var(--surface-card-elevated, #fff);
+  border-radius: 12px;
   font-size: 13px;
   color: var(--ink);
   font-family: inherit;
@@ -353,10 +384,10 @@
 }
 .ord-textarea {
   width: 100%;
-  padding: 11px 13px;
+  padding: 12px 14px;
   border: 1px solid var(--rule);
-  background: #FDFDFD;
-  border-radius: 10px;
+  background: var(--surface-card-elevated, #fff);
+  border-radius: 12px;
   font-size: 12.5px;
   color: var(--ink);
   font-family: inherit;
@@ -431,12 +462,14 @@
 
 /* Summary */
 .ord-summary {
-  background: var(--bg-2);
-  /* R26: 14 → 12 (V3Radius.md) */
+  /* 2026-06-19 사장님 "글랜스 카드 느낌으로 밑도 통일" — bg-2(탄) → 흰 elevated
+     카드(글랜스와 동일 surface). */
+  background: var(--surface-card-elevated, #fff);
+  border: 1px solid var(--rule);
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: 16px;
   display: flex; flex-direction: column;
-  gap: 8px;
+  gap: 9px;
   margin-bottom: 14px;
 }
 .ord-summary-row {
@@ -519,7 +552,7 @@
   background: var(--terracotta);
   color: #fff;
   font-size: 13px;
-  box-shadow: 0 8px 22px -8px rgba(160, 69, 46, 0.45);
+  box-shadow: 0 8px 22px -8px rgba(200, 107, 69, 0.45);
   min-height: 44px;
 }
 

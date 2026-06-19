@@ -59,7 +59,7 @@ export default function NotFound() {
         </p>
 
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Button href="/signup" tone="coral" size="lg">
+          <Button href="/start" tone="coral" size="lg">
             2분 설문 시작하기
           </Button>
           <Button href="/" tone="outline" size="lg">

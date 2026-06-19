@@ -6,9 +6,10 @@
  */
 
 import Link from 'next/link'
-import { Plus, PawPrint as DogIcon } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
+import DogPawMark from '@/components/DogPawMark'
 
 interface EmptyHomeNoDogsProps {
   /** "아이 추가" 링크. */
@@ -46,13 +47,13 @@ export default function EmptyHomeNoDogs({
           style={{
             width: 56,
             height: 56,
-            borderRadius: 28,
+            borderRadius: 999,
             background: V3.paperHi,
             border: `1px solid ${V3.rule}`,
             position: 'relative',
           }}
         >
-          <DogIcon size={28} color={V3.inkMute} strokeWidth={1.4} />
+          <DogPawMark size={26} color={V3.inkMute} />
           <span
             className="absolute flex items-center justify-center"
             style={{

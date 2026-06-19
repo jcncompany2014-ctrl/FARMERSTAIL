@@ -47,9 +47,9 @@ export default async function AdminLayout({
           <Link href="/admin" className="block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo-brush.png"
+              src="/logo-paper.png"
               alt="Farmer's Tail"
-              className="h-12 w-auto"
+              className="h-8 w-auto"
             />
           </Link>
           <p className="text-[10px] text-muted mt-2 tracking-widest">

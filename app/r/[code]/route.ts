@@ -3,7 +3,7 @@
  *
  * Flow:
  *   1. URL path 의 코드 sanity check (영숫자 4-16자)
- *   2. 익명 사용자 → /signup?ref=CODE (기존 signup ?ref= 흐름과 통합)
+ *   2. 익명 사용자 → /start?ref=CODE (설문 자동가입 퍼널)
  *      로그인 사용자 → / (이미 가입했으면 referrer 보상 받을 수 없음)
  *   3. cookie ft_ref 도 set (30일) — Kakao OAuth 같은 redirect 후 복구용 fallback
  *
@@ -51,8 +51,9 @@ export async function GET(
 
   let target: URL
   if (!user) {
-    // 익명 — signup 페이지 (?ref= 흐름과 통합, 자동 입력됨)
-    target = new URL('/signup', SITE_URL)
+    // 익명 — 설문 자동가입 퍼널(/start)로. signup 페이지 폐지(2026-06-19),
+    // 추천 attribution 은 아래 ft_ref 쿠키가 운반한다.
+    target = new URL('/start', SITE_URL)
     target.searchParams.set('ref', code)
   } else {
     // 이미 로그인 — 친구 초대 보상은 못 받음. 홈 + 안내 query

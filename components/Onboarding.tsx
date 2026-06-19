@@ -408,7 +408,7 @@ export default function Onboarding({
   // doesn't dump the user back into slide N; onboarding is one-and-done
   // via the `ft_onboarded` flag in lib/onboarding.ts.
   const complete = useCallback(
-    (to: '/signup' | '/login') => {
+    (to: '/start' | '/login') => {
       try {
         window.localStorage.removeItem(LS_INDEX_KEY)
       } catch {
@@ -475,7 +475,7 @@ export default function Onboarding({
         <Slide05 />
         <Slide06
           variant={slide6Variant}
-          onStart={() => complete('/signup')}
+          onStart={() => complete('/start')}
           onLogin={() => complete('/login')}
         />
       </div>

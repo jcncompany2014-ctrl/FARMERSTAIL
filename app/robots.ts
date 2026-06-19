@@ -23,7 +23,6 @@ export default function robots(): MetadataRoute.Robots {
           '/dogs',
           '/dogs/*',
           '/login',
-          '/signup',
           // 인증 영역 — (main) 그룹의 dashboard / chat / notifications.
           // 실제로는 인증 미들웨어가 막지만, robots 에 명시해야 GSC 의
           // "Crawled — not indexed" / "Indexed though blocked" 경고 예방.

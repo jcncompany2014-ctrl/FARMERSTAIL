@@ -221,9 +221,9 @@ export default function Status({
                     }
                     style={{
                       appearance: 'none',
-                      border: '1px solid var(--terracotta)',
+                      border: '1px solid var(--fd-coral)',
                       background: '#fff',
-                      color: 'var(--terracotta)',
+                      color: 'var(--fd-coral)',
                       padding: '4px 10px',
                       borderRadius: 99,
                       fontSize: 10.5,

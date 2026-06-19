@@ -19,6 +19,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { Heart, Gift } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { buildFeedingPlan } from '@/lib/feeding-plan'
 import type { BudgetTier } from '@/lib/copy-strings'
@@ -93,22 +94,32 @@ export default function PriceFramingCard({
           Price · 한 끼 가격
         </p>
 
-        {/* 한 끼 단가 + 비교 anchor */}
+        {/* 한 끼 단가 + 비교 anchor — 💚 이모지 → lucide Heart(moss)로 교체
+            (사장님 지시 2026-06-19: 나머지 lucide 아이콘과 통일). */}
         <p
-          className="text-[16px] font-black text-ink mt-2 leading-snug"
+          className="text-[16px] font-black text-ink mt-2 leading-snug flex items-start gap-1.5"
           style={{ letterSpacing: '-0.02em' }}
         >
-          {plan.copy.price_framing}
+          <Heart
+            className="w-4 h-4 mt-0.5 shrink-0 text-moss"
+            strokeWidth={2.2}
+            fill="currentColor"
+          />
+          <span>{plan.copy.price_framing}</span>
         </p>
         <p className="text-[12px] text-muted mt-1">{plan.copy.daily_total}</p>
 
-        {/* 첫 박스 50% */}
+        {/* 첫 박스 50% — 🎁 이모지 → lucide Gift(terracotta)로 교체. */}
         <div className="mt-3 rounded border border-terracotta/30 bg-terracotta/10 p-3">
           <p
-            className="text-[12px] text-ink leading-relaxed"
+            className="text-[12px] text-ink leading-relaxed flex items-start gap-1.5"
             style={{ whiteSpace: 'pre-line' }}
           >
-            {plan.copy.first_box_offer}
+            <Gift
+              className="w-3.5 h-3.5 mt-0.5 shrink-0 text-terracotta"
+              strokeWidth={2.2}
+            />
+            <span>{plan.copy.first_box_offer}</span>
           </p>
         </div>
       </div>

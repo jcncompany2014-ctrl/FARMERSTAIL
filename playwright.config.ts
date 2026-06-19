@@ -11,7 +11,7 @@
  *
  * # 첫 happy path 3개
  *   - tests/e2e/landing.spec.ts        — 마케팅 페이지 진입
- *   - tests/e2e/signup.spec.ts         — 회원가입 폼 검증
+ *   - tests/e2e/referral-redirect.spec.ts — 추천 링크 진입(/start 자동가입)
  *   - tests/e2e/checkout-guard.spec.ts — 미로그인 시 checkout 차단
  *
  * 실제 결제 / Supabase write 는 test 환경에서만 (mock or test project).

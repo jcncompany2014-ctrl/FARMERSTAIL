@@ -195,7 +195,7 @@ export default function FdSlider({
             className={`${arrowBase} bg-white text-[var(--fd-pine)] border-[var(--fd-line)] ${
               atStart
                 ? 'opacity-40 cursor-default'
-                : 'cursor-pointer hover:bg-[var(--fd-cream)] hover:border-[var(--fd-pine)]'
+                : 'cursor-pointer hover:bg-[var(--fd-cream)] hover:border-[var(--fd-pine)] hover:-translate-y-0.5 hover:shadow-md'
             }`}
           >
             <ChevronLeft size={20} strokeWidth={2.4} />
@@ -208,7 +208,7 @@ export default function FdSlider({
             className={`${arrowBase} bg-[var(--fd-pine)] text-white border-[var(--fd-pine)] ${
               atEnd
                 ? 'opacity-40 cursor-default'
-                : 'cursor-pointer hover:bg-[var(--fd-green)] hover:border-[var(--fd-green)]'
+                : 'cursor-pointer hover:bg-[var(--fd-green)] hover:border-[var(--fd-green)] hover:-translate-y-0.5 hover:shadow-md'
             }`}
           >
             <ChevronRight size={20} strokeWidth={2.4} />

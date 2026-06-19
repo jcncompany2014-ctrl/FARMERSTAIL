@@ -19,9 +19,9 @@
 // ──────────────────────────────────────────────────────────────────
 export const V3 = {
   // Surface — 종이 paper. Light cream 베이스.
-  paper: '#f4ede0',
-  paperHi: '#fbf6ec', // 카드 / sheet / raised surface
-  paperDeep: '#ebe2d1', // 프레임 outer / scroll shadow
+  paper: '#F7F5F0', // 2026-06-17 웹 톤 통일 = --fd-offwhite (CSS --paper 와 동일)
+  paperHi: '#FCFBF7', // 카드 / sheet / raised surface (중성 라이트)
+  paperDeep: '#EDE8D9', // 프레임 outer / scroll shadow = --fd-cream
 
   // Ink — 본문 텍스트 + 강조 검정.
   ink: '#16140f',
@@ -34,16 +34,16 @@ export const V3 = {
   ruleSoft: 'rgba(22,20,15,0.07)',
   ruleInk: '#16140f', // 2px ink hairline (섹션 분리용)
 
-  // Accent — 시그니처 clay red.
-  accent: '#c44a26',
-  accentDeep: '#8a2e15',
+  // Accent — 테라코타 포인트 (2026-06-17 웹 FD 정렬, = --fd-coral). CSS var(--accent) 와 동일값.
+  accent: '#C86B45',
+  accentDeep: '#782E22', // = --fd-coral-ink (텍스트/hover 딥)
 
   // Highlight — 노란 마커 (텍스트 강조).
   yellow: '#e6b942',
 
-  // Sage — 안정 / 완료 / 사용 가능.
-  sage: '#4f6a48',
-  sageSoft: '#7e9376',
+  // Sage — 안정 / 완료 / 사용 가능 (2026-06-17 웹 FD 정렬, = --fd-green).
+  sage: '#3C725E',
+  sageSoft: '#7A8B7B',
 
   // Blue — 분석용 / 정보.
   blue: '#3b5a78',

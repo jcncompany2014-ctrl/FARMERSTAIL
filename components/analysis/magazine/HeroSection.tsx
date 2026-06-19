@@ -6,6 +6,7 @@
  */
 
 import Image from 'next/image'
+import { petName } from '@/lib/korean'
 import type { MagazinePalette } from './palette'
 import { Reveal } from './primitives'
 
@@ -36,9 +37,9 @@ export function HeroSection({
         position: 'relative',
         overflow: 'hidden',
         background: `
-          radial-gradient(circle at 50% 0%, ${p.brand}22 0%, transparent 55%),
-          radial-gradient(circle at 0% 100%, ${p.accentOchre}1f 0%, transparent 50%),
-          radial-gradient(circle at 100% 100%, ${p.accentOlive}1c 0%, transparent 50%),
+          radial-gradient(circle at 50% 40%, ${p.brand}1f 0%, transparent 60%),
+          radial-gradient(circle at 0% 100%, ${p.accentOchre}1a 0%, transparent 48%),
+          radial-gradient(circle at 100% 100%, ${p.accentOlive}18 0%, transparent 48%),
           ${p.bg}
         `,
         paddingTop: 18,
@@ -104,7 +105,7 @@ export function HeroSection({
                   letterSpacing: '-0.01em',
                 }}
               >
-                {dogName}이
+                {petName(dogName)}
               </div>
             )}
           </div>
@@ -123,7 +124,7 @@ export function HeroSection({
               lineHeight: 1.1,
             }}
           >
-            {dogName}이의 식단
+            {petName(dogName)}의 식단
           </div>
           <div
             style={{

@@ -97,7 +97,7 @@ const FALLBACK_PARTNERS: Partner[] = [
     name: '이천 작업장 (자체)',
     ingredient: '조리 · 소분 · 냉동',
     body:
-      'HACCP 준비 단계 시설. 72°C 저온 스팀 조리 → 급속 냉동 (−40°C) 콜드체인.',
+      'HACCP 준비 단계 시설. 72°C 수비드 저온 조리 → 급속 냉동 (−40°C) 콜드체인.',
     cert: 'HACCP 준비',
   },
   {
@@ -110,7 +110,7 @@ const FALLBACK_PARTNERS: Partner[] = [
 ]
 
 function planHref(isAuthed: boolean) {
-  return isAuthed ? '/dogs/new' : '/signup'
+  return isAuthed ? '/dogs/new' : '/start'
 }
 
 export default async function PartnersPage() {

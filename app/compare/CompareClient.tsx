@@ -9,7 +9,6 @@
  */
 
 import { useState, useMemo } from 'react'
-import Link from 'next/link'
 import {
   RadarChart,
   PolarGrid,
@@ -27,6 +26,8 @@ import {
   type SkuPersona,
 } from '@/lib/sku-nutrition-matrix'
 import { SKU_META, type SkuKey } from '@/lib/allergy-sku-matrix'
+import { WEB_RECIPES, type WebRecipe } from '@/lib/web-recipes'
+import FdRecipeSheet from '@/components/web/fd/FdRecipeSheet'
 
 const PERSONA_LABEL: Record<SkuPersona, string> = {
   beginner: '입문',
@@ -53,14 +54,15 @@ const SKU_COLORS: Record<SkuKey, string> = {
   B05: '#E0B341', // mustard
 }
 
-// SKU → 제품 slug. 연어(S03)는 아직 미출시 → null (카드에 "출시 예정" 표기,
-// 404 링크 방지). 나머지 4종은 실제 PDP 로 연결 (audit P0: 비교 페이지 데드엔드).
-const SKU_SLUG: Record<SkuKey, string | null> = {
-  C01: 'chicken-basic',
-  D02: 'duck-weight',
+// SKU → 웹 레시피 단백질 키. 연어(S03)는 아직 미출시 → null (카드에 "출시 예정"
+// 표기). 나머지 4종은 "화식 보러가기" → FD식 제품정보 퀵뷰 시트로 연결
+// (2026-06-19 사장님 "보러가기 = 페이지 점프 말고 제품정보 퀵바로" — PDP 점프 폐기).
+const SKU_RECIPE_PROTEIN: Record<SkuKey, WebRecipe['protein'] | null> = {
+  C01: 'chicken',
+  D02: 'duck',
   S03: null,
-  P04: 'pork-joint',
-  B05: 'beef-premium',
+  P04: 'pork',
+  B05: 'beef',
 }
 
 export default function CompareClient({ skus }: { skus: SkuKey[] }) {
@@ -68,6 +70,8 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
     Object.fromEntries(skus.map((s) => [s, true])) as Record<SkuKey, boolean>,
   )
   const [persona, setPersona] = useState<SkuPersona | null>(null)
+  // "화식 보러가기" → FD 제품정보 퀵뷰 시트 (null = 닫힘)
+  const [openRecipe, setOpenRecipe] = useState<WebRecipe | null>(null)
 
   // 페르소나 토글: 클릭 시 추천 SKU 만 켜기. 같은 페르소나 재클릭 시 전체 ON.
   function pickPersona(p: SkuPersona) {
@@ -216,7 +220,8 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
           .map((sku) => {
             const meta = SKU_META[sku]
             const nutrition = SKU_NUTRITION[sku]
-            const slug = SKU_SLUG[sku]
+            const recipeProtein = SKU_RECIPE_PROTEIN[sku]
+            const recipe = recipeProtein ? WEB_RECIPES[recipeProtein] : null
             return (
               <article
                 key={sku}
@@ -253,15 +258,17 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
                     </div>
                   </div>
                 </div>
-                {/* PDP CTA — 비교 페이지 데드엔드 해소 (audit P0). 연어는 미출시 → 출시 예정. */}
-                {slug ? (
-                  <Link
-                    href={`/products/${slug}`}
+                {/* 제품정보 퀵뷰 — 페이지 점프 대신 그 자리에서 시트로(데드엔드 0).
+                    연어는 미출시 → 출시 예정. */}
+                {recipe ? (
+                  <button
+                    type="button"
+                    onClick={() => setOpenRecipe(recipe)}
                     className="flex items-center justify-center gap-1 rounded-full bg-ink py-2.5 text-[12px] font-bold text-white transition active:scale-[0.98] hover:opacity-90"
                   >
                     {meta.name_ko} 화식 보러가기
                     <span aria-hidden>→</span>
-                  </Link>
+                  </button>
                 ) : (
                   <div className="flex items-center justify-center rounded-full bg-bg py-2.5 text-[12px] font-bold text-muted">
                     출시 예정
@@ -271,6 +278,9 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
             )
           })}
       </section>
+
+      {/* 제품정보 퀵뷰 — FD PDP 느낌(누끼·원재료·성분분석·AAFCO·칼로리) */}
+      <FdRecipeSheet recipe={openRecipe} onClose={() => setOpenRecipe(null)} />
     </>
   )
 }

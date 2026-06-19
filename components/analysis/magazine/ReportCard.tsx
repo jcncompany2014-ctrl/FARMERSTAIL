@@ -24,14 +24,15 @@ export function ReportCard({ p, children, tint, style }: ReportCardProps) {
         background: tint || p.card,
         borderRadius: 12,
         padding: '22px 22px 22px',
-        boxShadow: `0 1px 0 ${p.line}55, 0 12px 28px ${p.ink}10`,
+        /* 2026-06-19 사장님 "분석결과도 구독 카드 느낌으로" — 매거진 떠 있는
+           소프트 그림자 → /order 와 동일한 평면 흰 카드 + 1px 보더로 통일. */
+        border: `1px solid ${p.line}`,
         overflow: 'hidden',
         ...style,
       }}
     >
-      <CornerMark p={p} corner="tl" />
-      <CornerMark p={p} corner="bl" />
-      <CornerMark p={p} corner="br" />
+      {/* 2026-06-19: 코너 톤보(등록마크) 제거 — /order 클린 카드와 통일(보더로
+          카드 경계 충분, 인쇄 플러리시는 과함). CornerMark export 는 유지. */}
       {children}
     </div>
   )

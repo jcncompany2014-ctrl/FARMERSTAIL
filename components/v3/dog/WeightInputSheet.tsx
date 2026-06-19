@@ -89,13 +89,9 @@ export default function WeightInputSheet({
       dismissOnBackdrop={!saving}
     >
       <BottomSheet.Body>
-        <Mono color="accent" size="xs" weight={600}>
-          입력 · STEP 01 / 01
-        </Mono>
-
         <h2
           style={{
-            margin: '8px 0 0',
+            margin: 0,
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.display,
             fontSize: 34,
@@ -239,7 +235,7 @@ export default function WeightInputSheet({
                 background: V3.paperHi,
                 border: `1px solid ${V3.rule}`,
                 borderRadius: 4,
-                padding: '10px 0',
+                padding: '12px 0',
                 fontFamily: 'var(--font-sans)',
                 fontWeight: V3FontWeight.bold,
                 fontSize: 13.5,
@@ -260,7 +256,7 @@ export default function WeightInputSheet({
             style={{
               margin: '0 0 10px',
               fontSize: 12,
-              color: '#b03a2e',
+              color: V3.sale,
               letterSpacing: '-0.01em',
               lineHeight: 1.4,
             }}

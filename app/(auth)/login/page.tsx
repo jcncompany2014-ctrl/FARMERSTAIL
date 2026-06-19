@@ -7,12 +7,17 @@ import { CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
 import AppleLoginButton from '@/components/AppleLoginButton'
-import { Eyebrow, PhotoSlot } from '@/components/web/fd/ui'
 import { useIsAppContext } from '@/hooks/useIsAppContext'
 import {
   applySignupProfile,
   normalizeSignupMeta,
 } from '@/lib/auth/applySignupProfile'
+import { applyAutosignupDraft } from '@/lib/auth/applyAutosignupDraft'
+import {
+  loadAutosignupDraft,
+  isDogDraftComplete,
+  clearAutosignupDraft,
+} from '@/lib/autosignup-draft'
 
 /**
  * /login — 기존 계정 로그인 (FD 2단 split 재설계, 회차129).
@@ -168,6 +173,31 @@ function LoginInner() {
       } catch {
         /* 복원 실패는 로그인 자체를 막지 않는다 */
       }
+
+      // 트랙B B5-2: 익명 드립 설문(localStorage 초안) → 계정 이관(메일 인증 후
+      // 첫 로그인 1회). signup_profile 복원 직후·일반 redirect 앞. 초안이 완성돼
+      // 있으면 dogs+surveys+analyses 생성 후 분석 화면으로. 이관 실패는 로그인을
+      // 막지 않는다(일반 흐름 진행). 초안 없는 일반 로그인은 영향 0.
+      try {
+        const draft = loadAutosignupDraft()
+        if (draft && isDogDraftComplete(draft.dog)) {
+          const dogName = (draft.dog.name || '').trim()
+          const dogId = await applyAutosignupDraft(signedIn.id, draft)
+          if (dogId) {
+            clearAutosignupDraft()
+            setLoading(false)
+            // 앱=정밀 분석 종착점, 웹=가입 완료 핸드오프(/dogs app-only 벽 우회, A안).
+            router.replace(
+              isApp
+                ? `/dogs/${dogId}/analysis?fromSurvey=1`
+                : `/start/done?name=${encodeURIComponent(dogName)}`,
+            )
+            return
+          }
+        }
+      } catch {
+        /* 이관 실패는 로그인을 막지 않는다 */
+      }
     }
 
     setLoading(false)
@@ -183,88 +213,60 @@ function LoginInner() {
       !nextParam.startsWith('/api')
         ? nextParam
         : null
-    const destination = safeNext ?? (isApp ? '/dashboard' : '/mypage/orders')
+    let destination = safeNext ?? (isApp ? '/dashboard' : '/mypage/orders')
+    // 설문(=강아지) 없이 로그인한 신규/미완성 유저는 설문으로 (사장님 2026-06-16:
+    // 설문 없이 진입 불가). 명시적 ?next=(예: /checkout) 가 있으면 그쪽 우선.
+    if (!safeNext && signedIn) {
+      const { count } = await supabase
+        .from('dogs')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', signedIn.id)
+      if (!count) destination = '/start'
+    }
     router.push(destination)
     router.refresh()
   }
 
   return (
     <main
-      className="min-h-screen grid lg:grid-cols-2"
+      className="min-h-screen flex flex-col"
       style={{ background: 'var(--fd-offwhite)' }}
     >
-      {/* ── 좌: 브랜드 패널 (모바일=상단 밴드, 데스크톱=풀하이트 파인) ── */}
-      <aside
-        className="relative flex flex-col justify-center px-6 py-10 lg:px-14 lg:py-14 lg:min-h-screen"
-        style={{ background: 'var(--fd-pine)', color: '#FFFFFF' }}
-      >
+      {/* 상단 — 중앙 로고 (FD 헤더 대응, 미니멀). */}
+      <header className="flex items-center justify-center px-6 py-5">
         <Link href="/" aria-label="파머스테일 홈" className="inline-flex">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo-brush.png"
+            src="/logo-ink.png"
             alt="Farmer's Tail"
-            className="h-10 lg:h-12 w-auto"
+            className="h-8 w-auto"
             fetchPriority="high"
-            style={{ filter: 'none' }}
           />
         </Link>
+      </header>
 
-        <div className="mt-8 lg:mt-12 max-w-md">
-          <Eyebrow color="var(--fd-green-soft)">Sign In · 로그인</Eyebrow>
+      {/* 본문 — FD식 단일 중앙 컬럼(좌우 브랜드 패널 없음). */}
+      <div className="flex-1 flex flex-col items-center px-6 pb-20">
+        <div className="w-full max-w-[420px] mx-auto pt-4 lg:pt-10">
+          {/* 헤드라인 — 큰 "환영해요!" 중앙 (FD "Welcome!" 대응, 균형 잡힌 크기). */}
           <h1
-            className="mt-3 text-[28px] lg:text-[40px]"
-            style={{ fontWeight: 900, letterSpacing: '-0.035em', lineHeight: 1.08 }}
+            className="text-center text-[clamp(36px,11vw,50px)]"
+            style={{ fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, color: 'var(--fd-pine)' }}
           >
-            반가워요,
-            <br />
-            우리 아이 식단 이어가기
+            환영해요!
           </h1>
           <p
-            className="mt-4 text-[14px] lg:text-[15px]"
-            style={{ color: 'rgba(255,255,255,0.78)', lineHeight: 1.65, maxWidth: 380 }}
+            className="text-center mt-3.5 text-[14px] md:text-[15px]"
+            style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}
           >
-            계정이 있다면 로그인하고, 처음이라면 회원가입으로 시작해 주세요.
-            우리 아이의 맞춤 식단과 기록이 그대로 이어집니다.
+            로그인하고 우리 아이 식단 이어가기
           </p>
 
-          <ul className="mt-7 grid gap-2.5">
-            {['맞춤 영양 분석과 기록 그대로', '정기배송 일정 관리', '언제든 해지 · 구속 없는 구독'].map((t) => (
-              <li
-                key={t}
-                className="flex items-center gap-2.5 text-[13.5px]"
-                style={{ color: 'rgba(255,255,255,0.9)' }}
-              >
-                <span
-                  aria-hidden
-                  className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ background: 'var(--fd-green-soft)' }}
-                />
-                {t}
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-8 hidden lg:block">
-            <PhotoSlot
-              label="반려견 / 브랜드 사진"
-              sub="브랜드 이미지 자리"
-              ratio="16 / 10"
-              tone="green"
-              rounded={12}
-              className="w-full"
-            />
-          </div>
-        </div>
-      </aside>
-
-      {/* ── 우: 폼 컬럼 ── */}
-      <div className="flex flex-col px-6 py-10 lg:px-14 lg:py-14 lg:min-h-screen lg:justify-center">
-        <div className="w-full max-w-md mx-auto">
 
         {/* R89-E (D7): 비밀번호 재설정 완료 안내 — /reset-password → /login?reset=1 */}
         {justReset && (
           <div
-            className="mb-5 rounded-xl px-4 py-3.5"
+            className="mt-7 rounded-xl px-4 py-3.5"
             style={{
               background: 'color-mix(in srgb, var(--fd-green) 10%, transparent)',
               boxShadow:
@@ -298,7 +300,7 @@ function LoginInner() {
         {/* 탈퇴 완료 안내 — /api/account/delete 후 router.replace('/login?deleted=1') */}
         {justDeleted && (
           <div
-            className="mb-5 rounded-xl px-4 py-3.5"
+            className="mt-7 rounded-xl px-4 py-3.5"
             style={{
               background: 'color-mix(in srgb, var(--fd-green) 10%, transparent)',
               boxShadow:
@@ -336,46 +338,72 @@ function LoginInner() {
           올려 단축 경로로 둔다. 이메일은 카카오를 안 쓰는 유저를 위한
           fallback.
         */}
-        <div className="mb-3 space-y-2">
-          <KakaoLoginButton variant="login" />
+        {/* next=/start/claim — 인증 후 라우팅 허브. 강아지 없으면 설문(/start)
+            으로 보내 "설문 없이 가입 불가" 보장(사장님 2026-06-16). 기존 카카오
+            회원은 강아지 보유 → 홈으로. */}
+        <div className="mt-9 space-y-3">
+          <KakaoLoginButton variant="login" next="/start/claim" />
           {/* Apple Guideline 4.8 — Kakao 와 동등 비중. iOS 빌드는 거부 사유
               해소 위해 동일 화면 노출, 웹은 미국/일본 사용자 도움. */}
-          <AppleLoginButton variant="login" />
+          <AppleLoginButton variant="login" next="/start/claim" />
         </div>
 
-        {/* "또는 이메일로" 디바이더 */}
-        <div className="flex items-center gap-3 mb-5">
+        {/* 디바이더 — FD처럼 간결하게 "또는". 넉넉한 상하 여백으로 소셜/이메일 분리. */}
+        <div className="flex items-center gap-4 my-7">
           <div className="flex-1 h-px" style={{ background: 'var(--fd-line)' }} />
-          <span
-            style={{ color: 'var(--fd-muted)', fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}
-          >
-            Or Email · 이메일로 로그인
+          <span style={{ color: 'var(--fd-muted)', fontSize: 12, fontWeight: 600 }}>
+            또는
           </span>
           <div className="flex-1 h-px" style={{ background: 'var(--fd-line)' }} />
         </div>
 
         {/* 폼 — 흰 카드 대신 종이 톤 지면 위에 직접. */}
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label
-              className="block text-[11px] font-bold mb-1.5"
-              style={{ color: 'var(--fd-pine)' }}
-            >
-              이메일
-            </label>
+        <form onSubmit={handleLogin} className="space-y-3.5">
+          {/* FD식 둥근 pill 인풋 — 라벨은 placeholder + aria-label(시각 미니멀·a11y 유지). */}
+          <input
+            type="email"
+            required
+            aria-label="이메일"
+            autoComplete="email"
+            inputMode="email"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="next"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-full border text-[15px] focus:outline-none transition"
+            style={{
+              height: 58,
+              paddingLeft: 22,
+              paddingRight: 22,
+              borderColor: 'var(--fd-line)',
+              background: '#FFFFFF',
+              color: 'var(--fd-pine)',
+            }}
+            onFocus={(e) =>
+              (e.currentTarget.style.borderColor = 'var(--fd-coral)')
+            }
+            onBlur={(e) =>
+              (e.currentTarget.style.borderColor = 'var(--fd-line)')
+            }
+            placeholder="이메일"
+          />
+
+          <div className="relative">
             <input
-              type="email"
+              type={showPw ? 'text' : 'password'}
               required
-              autoComplete="email"
-              inputMode="email"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              enterKeyHint="next"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border text-sm focus:outline-none transition"
+              aria-label="비밀번호"
+              autoComplete="current-password"
+              enterKeyHint="go"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-full border text-[15px] focus:outline-none transition"
               style={{
+                height: 58,
+                paddingLeft: 22,
+                paddingRight: 52,
                 borderColor: 'var(--fd-line)',
                 background: '#FFFFFF',
                 color: 'var(--fd-pine)',
@@ -386,54 +414,22 @@ function LoginInner() {
               onBlur={(e) =>
                 (e.currentTarget.style.borderColor = 'var(--fd-line)')
               }
-              placeholder="example@email.com"
+              placeholder="비밀번호"
             />
-          </div>
-
-          <div>
-            <label
-              className="block text-[11px] font-bold mb-1.5"
-              style={{ color: 'var(--fd-pine)' }}
+            <button
+              type="button"
+              onClick={() => setShowPw((v) => !v)}
+              aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 표시'}
+              className="absolute inset-y-0 right-2.5 my-auto h-10 w-10 flex items-center justify-center rounded-full hover:bg-black/5 transition"
+              style={{ color: 'var(--fd-muted)' }}
+              tabIndex={-1}
             >
-              비밀번호
-            </label>
-            <div className="relative">
-              <input
-                type={showPw ? 'text' : 'password'}
-                required
-                autoComplete="current-password"
-                enterKeyHint="go"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-11 rounded-lg border text-sm focus:outline-none transition"
-                style={{
-                  borderColor: 'var(--fd-line)',
-                  background: '#FFFFFF',
-                  color: 'var(--fd-pine)',
-                }}
-                onFocus={(e) =>
-                  (e.currentTarget.style.borderColor = 'var(--fd-coral)')
-                }
-                onBlur={(e) =>
-                  (e.currentTarget.style.borderColor = 'var(--fd-line)')
-                }
-                placeholder="비밀번호를 입력하세요"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw((v) => !v)}
-                aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 표시'}
-                className="absolute inset-y-0 right-1 my-auto h-10 w-10 flex items-center justify-center rounded-md hover:bg-black/5 transition"
-                style={{ color: 'var(--fd-muted)' }}
-                tabIndex={-1}
-              >
-                {showPw ? (
-                  <EyeOff className="w-4 h-4" strokeWidth={2} />
-                ) : (
-                  <Eye className="w-4 h-4" strokeWidth={2} />
-                )}
-              </button>
-            </div>
+              {showPw ? (
+                <EyeOff className="w-4 h-4" strokeWidth={2} />
+              ) : (
+                <Eye className="w-4 h-4" strokeWidth={2} />
+              )}
+            </button>
           </div>
 
           {error && (
@@ -442,7 +438,7 @@ function LoginInner() {
               aria-live="assertive"
               className="text-[12px] font-bold rounded-lg px-3.5 py-2.5"
               style={{
-                color: 'var(--sale)',
+                color: 'var(--fd-coral-text)',
                 background: 'color-mix(in srgb, var(--sale) 6%, transparent)',
                 boxShadow:
                   'inset 0 0 0 1px color-mix(in srgb, var(--sale) 25%, transparent)',
@@ -452,18 +448,19 @@ function LoginInner() {
             </div>
           )}
 
-          {/* FD CTA — 파인 그린 pill (흰 텍스트 AA pass, 로그인 신뢰 톤). */}
+          {/* 브랜드 기본 CTA = 코랄(사장님 2026-06-17 "초록 별로" → 사이트 표준
+              코랄로). 마케팅 전 CTA 와 통일·따뜻한 톤. */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full font-bold text-[14px] active:translate-y-[1px] transition-all disabled:opacity-50"
+            className="w-full font-bold text-[15px] active:translate-y-[1px] transition-all disabled:opacity-50 mt-1"
             style={{
-              height: 56,
+              height: 58,
               borderRadius: 9999,
-              background: 'var(--fd-pine)',
+              background: 'var(--fd-coral)',
               color: '#FFFFFF',
               letterSpacing: '-0.01em',
-              boxShadow: '0 6px 18px -8px rgba(23,59,51,0.5)',
+              boxShadow: '0 6px 18px -8px rgba(242,103,75,0.5)',
             }}
           >
             {loading ? '로그인 중...' : '로그인'}
@@ -483,17 +480,29 @@ function LoginInner() {
             비밀번호를 잊으셨나요?
           </Link>
         </div>
-        <div
-          className="text-center mt-3 text-[12.5px]"
-          style={{ color: 'var(--fd-muted)' }}
-        >
-          아직 계정이 없으신가요?{' '}
-          <Link
-            href="/signup"
-            className="font-bold underline underline-offset-2"
-            style={{ color: 'var(--fd-coral-text)' }}
+        {/* FD 패턴 — 로그인은 기존 회원 전용. 신규는 "회원가입" 폼이 아니라
+            무료 분석(설문) 퍼널로만 진입(설문 없이 가입 불가, 사장님 2026-06-16).
+            FD 의 "New to The Farmer's Dog? → Build your plan" 대응. */}
+        <div className="mt-7 pt-6" style={{ borderTop: '1px solid var(--fd-line)' }}>
+          <p
+            className="text-center text-[14px]"
+            style={{ color: 'var(--fd-pine)', fontWeight: 800, letterSpacing: '-0.01em' }}
           >
-            회원가입
+            파머스테일이 처음이세요?
+          </p>
+          <Link
+            href="/start"
+            className="mt-3.5 mx-auto block text-center font-bold text-[13.5px] active:translate-y-[1px] transition-all"
+            style={{
+              maxWidth: 300,
+              padding: '14px 24px',
+              borderRadius: 9999,
+              border: '1.5px solid var(--fd-coral)',
+              color: 'var(--fd-coral-text)',
+              background: 'transparent',
+            }}
+          >
+            무료 맞춤 분석 시작하기
           </Link>
         </div>
         </div>

@@ -16,9 +16,6 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  Home,
-  PawPrint,
-  Store,
   ShoppingCart,
   Search,
   User,
@@ -26,27 +23,17 @@ import {
   ArrowLeft,
   Check,
   Plus,
-  type LucideIcon,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import InstallPrompt from '@/components/InstallPrompt'
 import MiniCartToast from '@/components/products/MiniCartToast'
 import { WishlistProvider } from '@/components/products/WishlistContext'
-
-type Tab = {
-  href: string
-  label: string
-  Icon: LucideIcon
-}
+import { PawFab } from '@/components/v3'
 
 // Phase P (2026-06-12, 사장님 지시): 장바구니 탭 제거 — 컬리 그래머.
 // 장바구니 진입은 제품탭/제품상세 헤더 우측 카트 아이콘이 담당.
-const TABS: Tab[] = [
-  { href: '/dashboard', label: '홈', Icon: Home },
-  { href: '/dogs', label: '우리 아이', Icon: PawPrint },
-  { href: '/products', label: '제품', Icon: Store },
-  { href: '/mypage', label: '내 정보', Icon: User },
-]
+// 홈 허브형(사장님 2026-06-17) — 하단 탭바 제거. TABS 배열 폐기.
+// 내비 = 로고(→/dashboard) + 헤더 좌측 계정(→/mypage) + 홈 카드/강아지 칩 + ← 뒤로.
 
 /**
  * 액션 집중 라우트 — 상단 header / 하단 nav 모두 hide. 설문 / 체크인 /
@@ -64,7 +51,7 @@ const FOCUS_PATHS = ['/survey', '/checkin', '/approve']
  */
 // Phase P r3: '/cart' 는 더이상 탭 루트가 아님 — 제품탭/PDP 헤더 카트
 // 아이콘으로 진입하는 깊은 화면 (← 장바구니).
-const TAB_ROOTS = new Set(['/dashboard', '/dogs', '/products', '/mypage'])
+const TAB_ROOTS = new Set(['/dashboard', '/dogs', '/mypage'])
 
 const DEEP_TITLES: Record<string, string> = {
   '/cart': '장바구니',
@@ -117,6 +104,40 @@ function screenTitleForPath(pathname: string): string | null {
   if (p.startsWith('/mypage/')) return '내 정보'
   // 알 수 없는 깊은 화면 — ← 만(제목 없음).
   return ''
+}
+
+/**
+ * R-feel (2026-06-19, 사장님 "뒤로가기가 웹스타일 — 직전 화면으로 되돌아감") —
+ * 네이티브식 계층 '위로(up)' 내비. router.back()(브라우저 히스토리 되감기)
+ * 대신 각 깊은 화면의 **구조상 부모**로 이동한다. 폼 작성 중 이탈→복귀해도
+ * 히스토리를 되짚지 않고 항상 같은 상위 화면으로 — 앱다운 예측 가능한 동선.
+ *
+ *   /dogs/:id/<sub>         → /dogs/:id        (강아지 하위 화면 → 강아지 상세=개요)
+ *   /dogs/:id/<a>/<b>       → /dogs/:id/<a>     (중첩은 한 단계만 위로)
+ *   /dogs/:id               → /dashboard        (강아지 상세 → 홈 허브)
+ *   /cart · /products/:slug → /products
+ *   /mypage/orders/:id      → /mypage/orders
+ *   /mypage/<sub>           → /mypage
+ *   그 외(강아지 등록·검색·알림·상담 등) → /dashboard
+ */
+const UUID_RE =
+  '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+
+function parentForPath(pathname: string): string {
+  const dogMatch = pathname.match(new RegExp(`^/dogs/(${UUID_RE})(/.+)?$`))
+  if (dogMatch) {
+    const dogBase = `/dogs/${dogMatch[1]}`
+    const sub = dogMatch[2]
+    if (!sub) return '/dashboard'
+    const segs = sub.split('/').filter(Boolean)
+    if (segs.length >= 2) return `${dogBase}/${segs.slice(0, -1).join('/')}`
+    return dogBase
+  }
+  if (pathname === '/cart') return '/products'
+  if (pathname.startsWith('/products/')) return '/products'
+  if (pathname.startsWith('/mypage/orders/')) return '/mypage/orders'
+  if (pathname.startsWith('/mypage/')) return '/mypage'
+  return '/dashboard'
 }
 
 /**
@@ -378,7 +399,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               {isDeep ? (
                 <button
                   type="button"
-                  onClick={() => router.back()}
+                  onClick={() => router.push(parentForPath(pathname))}
                   aria-label="뒤로"
                   className="flex items-center shrink-0 transition active:scale-95"
                   style={{
@@ -421,7 +442,20 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                     strokeWidth={2}
                   />
                 </Link>
-              ) : null}
+              ) : (
+                /* 홈 허브형: 탭루트(홈·우리아이·내정보)에서 좌측 = 내 정보 진입. */
+                <Link
+                  href="/mypage"
+                  aria-label="내 정보"
+                  className="flex items-center justify-center transition active:scale-95"
+                  style={{ marginLeft: -8, padding: 8 }}
+                >
+                  <User
+                    style={{ width: 22, height: 22, color: 'var(--ink)' }}
+                    strokeWidth={1.8}
+                  />
+                </Link>
+              )}
             </div>
 
             {/* ── 중앙 zone — 탭루트 로고(센터) / 제품상세 상품명(동적) ── */}
@@ -444,17 +478,19 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                 <span aria-hidden />
               )
             ) : (
-              <span className="flex items-center justify-center">
+              <Link
+                href="/dashboard"
+                aria-label="홈"
+                className="flex items-center justify-center transition active:scale-95"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/logo-brush.png"
+                  src="/logo-ink.png"
                   alt="Farmer's Tail"
-                  className="h-12 w-auto"
-                  // LCP 후보 — 헤더 로고가 첫 viewport 가장 큰 가시 요소.
+                  className="h-8 w-auto"
                   fetchPriority="high"
-                  style={{ filter: 'none' }}
                 />
-              </span>
+              </Link>
             )}
 
             {/* ── 우측 zone — 제품탭/제품상세 = 카트 아이콘(뱃지) /
@@ -688,7 +724,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
         className={`max-w-md mx-auto ${
           focusMode
             ? 'pb-[env(safe-area-inset-bottom)]'
-            : 'pb-[calc(100px+env(safe-area-inset-bottom))]'
+            : 'pb-[calc(40px+env(safe-area-inset-bottom))]'
         }`}
       >
         {children}
@@ -701,81 +737,18 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       {/* PWA 설치 프롬프트 — 스마트하게 한 번만 노출 */}
       <InstallPrompt />
 
+      {/* 빠른 기입 — 하단 중앙 발바닥 FAB(홈 허브형에서 자주 기입 진입 대체).
+          활성 강아지 기준 라우팅, 몰입 화면(설문/체크인)에선 숨김. */}
+      <PawFab activeDogId={activeDog?.id ?? null} hidden={focusMode} />
+
       {/* 하단 탭 네비게이션 v3 — paperHi bg + 1px ink top hairline + 직각 모서리.
           활성 탭: 아이콘 ink (비활성 inkMute) + 라벨 bold + 16x2 accent 막대.
           focus mode (설문/체크인 등) 에서는 hide.
 
           data-cart-bottom-nav: globals.css 의 body.cart-cta-active 규칙이 이
           nav 만 translateY(100%) 로 밀어내 CartStickyCTA 와 swap. */}
-      {!focusMode && (
-      <nav
-        data-cart-bottom-nav
-        className="fixed bottom-0 left-0 right-0 z-40 md:left-1/2 md:right-auto md:w-full md:max-w-md md:-translate-x-1/2"
-        style={{
-          background: 'var(--paper-hi)',
-          borderTop: '1px solid var(--ink)',
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
-          paddingTop: 10,
-          transition: 'transform 260ms cubic-bezier(0.16, 1, 0.3, 1)',
-        }}
-      >
-        <div className="max-w-md mx-auto grid grid-cols-4" style={{ paddingLeft: 8, paddingRight: 8 }}>
-          {TABS.map(({ href, label, Icon }) => {
-            const active =
-              pathname === href || pathname.startsWith(href + '/')
-
-            return (
-              <Link
-                key={href}
-                href={href}
-                className="relative flex flex-col items-center justify-center transition active:scale-95"
-                style={{ paddingTop: 4, paddingBottom: 2 }}
-                aria-current={active ? 'page' : undefined}
-              >
-                <div className="relative flex items-center justify-center">
-                  <Icon
-                    style={{
-                      width: 22,
-                      height: 22,
-                      color: active ? 'var(--ink)' : 'var(--ink-mute)',
-                      transition: 'color 200ms',
-                    }}
-                    strokeWidth={active ? 2 : 1.6}
-                  />
-                </div>
-
-                <span
-                  style={{
-                    marginTop: 4,
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 11,
-                    fontWeight: active ? 700 : 500,
-                    letterSpacing: '-0.005em',
-                    color: active ? 'var(--ink)' : 'var(--ink-mute)',
-                    transition: 'color 200ms',
-                  }}
-                >
-                  {label}
-                </span>
-
-                {/* 활성 탭 — 16x2 accent 막대. 핸드오프의 시그니처 디테일. */}
-                {active && (
-                  <span
-                    aria-hidden
-                    style={{
-                      width: 16,
-                      height: 2,
-                      marginTop: 3,
-                      background: 'var(--accent)',
-                    }}
-                  />
-                )}
-              </Link>
-            )
-          })}
-        </div>
-      </nav>
-      )}
+      {/* 홈 허브형(사장님 2026-06-17): 하단 탭바 제거. 내비 = 로고(→홈) +
+          헤더 좌측 계정 아이콘(→내정보) + 홈 카드/강아지 칩. 깊은 화면은 ← 뒤로. */}
 
       {/* 전역 미니 카트 토스트 — 'ft:cart:add' 이벤트 listen */}
       <MiniCartToast />

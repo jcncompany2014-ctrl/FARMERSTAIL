@@ -11,6 +11,7 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { petName } from '@/lib/korean'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import type { FoodLine } from '@/lib/personalization/types'
 import './formulas.css'
@@ -74,14 +75,14 @@ export default async function FormulasHistoryPage({
   return (
     <div className="fh-page">
       <header className="fh-hero">
-        <span className="fh-kicker">FORMULA HISTORY</span>
+        <span className="fh-kicker">MY BOX · 맞춤 박스</span>
         <h1>
-          {dogName}이의<br />
-          박스 타임라인
+          {petName(dogName)}의<br />
+          맞춤 박스 구성
         </h1>
         <p>
-          매 cycle (보통 4주) 마다 알고리즘이 비율을 조정해요. 가장 최근부터
-          순서대로 보여드려요.
+          분석 결과로 만든 우리 아이 전용 레시피예요. 매 cycle(약 4주)마다
+          알고리즘이 비율을 다듬고, 이 구성 그대로 정기배송으로 받아요.
         </p>
       </header>
 

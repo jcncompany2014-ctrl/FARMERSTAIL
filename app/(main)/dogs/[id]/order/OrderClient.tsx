@@ -609,8 +609,8 @@ export default function OrderClient({
           정기배송으로 시작할까요?
         </h1>
         <p>
-          분석된 비율 그대로 분량 산정 — 한달 1회 배송 (4주치 풀, 2주치 하이브리드).
-          사료관리법 ±5% 허용 오차 내 팩 수 자동 반올림.
+          분석 결과 그대로 만든 박스를 한 달에 한 번 보내드려요. 분량은 우리
+          아이에 맞게 자동으로 계산되고, 언제든 일시정지·해지할 수 있어요.
         </p>
       </header>
 
@@ -658,7 +658,7 @@ export default function OrderClient({
                 <div
                   style={{ display: 'flex', flexDirection: 'column', gap: 3 }}
                 >
-                  <strong style={{ fontSize: 13, color: 'var(--ink)' }}>
+                  <strong style={{ fontSize: 13.5, color: 'var(--ink)' }}>
                     이 박스는 권장하지 않아요
                   </strong>
                   <span
@@ -674,6 +674,39 @@ export default function OrderClient({
               </section>
             )
           })()}
+
+          {/* 한눈에 — 뭘·언제·얼마. 사장님 "난잡·이해 안됨" 개편: 스크롤 없이
+              상단에서 핵심 3줄 즉시 파악. 값은 portion 선택에 반응(하단 상세
+              요약과 동일 소스). 결제/계산 로직 불변 — 표시만. */}
+          <section className="ord-glance" aria-label="주문 한눈에 보기">
+            <div className="ord-glance-row">
+              <span className="ord-glance-label">받는 것</span>
+              <span className="ord-glance-val">
+                {dogName} 맞춤 박스 ·{' '}
+                {coverageWeeks === 4 ? '4주치 (한달)' : '2주치 (반달)'}
+              </span>
+            </div>
+            <div className="ord-glance-row">
+              <span className="ord-glance-label">첫 배송</span>
+              <span className="ord-glance-val">
+                {firstDeliveryAt !== null
+                  ? `${new Date(firstDeliveryAt).toLocaleDateString('ko-KR', {
+                      month: 'long',
+                      day: 'numeric',
+                      weekday: 'short',
+                    })} · 이후 매월 자동`
+                  : '신청 후 안내 · 매월 자동'}
+              </span>
+            </div>
+            <div className="ord-glance-divide" />
+            <div className="ord-glance-row">
+              <span className="ord-glance-label">월 결제</span>
+              <span className="ord-glance-price">
+                {totalAmount.toLocaleString()}원
+                <span className="ord-glance-per">/월</span>
+              </span>
+            </div>
+          </section>
 
           {/* 신뢰 배지 row — AAFCO + 수의사 */}
           <section className="ord-trust">
@@ -753,6 +786,10 @@ export default function OrderClient({
           </section>
 
           {/* 라인 + 토퍼 분량 카드 */}
+          <h2 className="ord-section-h">
+            <PackageOpen size={13} strokeWidth={2.2} color="var(--moss)" />
+            추천 박스 구성
+          </h2>
           <ul className="ord-list">
             {items.map((it) => {
               const meta = it.line ? FOOD_LINE_META[it.line] : null
@@ -948,6 +985,10 @@ export default function OrderClient({
           </section>
 
           {/* 결제 요약 */}
+          <h2 className="ord-section-h">
+            <CreditCard size={13} strokeWidth={2.2} color="var(--moss)" />
+            결제 요약
+          </h2>
           <section className="ord-summary">
             <div className="ord-summary-row">
               <span>

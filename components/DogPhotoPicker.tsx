@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Camera, PawPrint as DogIcon, X, Lightbulb, HelpCircle } from 'lucide-react'
+import { Camera, X, Lightbulb, HelpCircle } from 'lucide-react'
+import DogPawMark from '@/components/DogPawMark'
 import { MAX_PHOTO_BYTES, type PhotoState } from '@/lib/dogPhotos'
 import PhotoFrameGuide from './PhotoFrameGuide'
 import { isAdvancedUiEnabled } from '@/lib/ui-flags'
@@ -144,10 +145,7 @@ export default function DogPhotoPicker({
             />
           ) : (
             <span className="w-full h-full flex items-center justify-center">
-              <DogIcon
-                className="w-8 h-8 text-muted"
-                strokeWidth={1.3}
-              />
+              <DogPawMark className="w-8 h-8 text-muted" />
             </span>
           )}
           {/* Camera overlay (inside mask) */}

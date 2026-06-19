@@ -59,7 +59,7 @@ const TOPPER_META: Record<
   protein: {
     label: '육류 토퍼',
     sub: '동결건조 · 닭가슴·연어',
-    color: '#A86B4A',
+    color: '#C86B45',
   },
 }
 
@@ -494,7 +494,7 @@ export default function AdjustSheet({
           {/* footer note */}
           <div className="adj-footer-note">
             <div className="ic">
-              <Sparkles size={13} strokeWidth={2} color="#566729" />
+              <Sparkles size={13} strokeWidth={2} color="#3C725E" />
             </div>
             <div>
               저장하면 <b>&apos;사용자 조정됨&apos;</b>으로 마킹돼요. 다음
@@ -565,11 +565,11 @@ function LiveBar({
         <div className={'r' + (mainOk ? '' : ' warn')}>
           {mainOk ? (
             <>
-              <Check size={10} strokeWidth={2.6} color="#566729" />합 100%
+              <Check size={10} strokeWidth={2.6} color="#3C725E" />합 100%
             </>
           ) : (
             <>
-              <AlertCircle size={10} strokeWidth={2.2} color="#A0452E" />
+              <AlertCircle size={10} strokeWidth={2.2} color="#b83a2e" />
               {mainSum > 100
                 ? `${Math.round(mainSum - 100)}% 초과`
                 : `${Math.round(100 - mainSum)}% 부족`}
@@ -603,7 +603,7 @@ function LiveBar({
             <>{TOPPER_CAP}% cap 이내</>
           ) : (
             <>
-              <AlertCircle size={10} strokeWidth={2.2} color="#A0452E" />
+              <AlertCircle size={10} strokeWidth={2.2} color="#b83a2e" />
               {`${Math.round(topperSum - TOPPER_CAP)}% 초과`}
             </>
           )}
@@ -730,7 +730,7 @@ function NutrientLivePreview({
         <div className="adj-live-warn">
           {check.warnings.map((w) => (
             <div key={w.code} className="adj-live-warn-row">
-              <AlertCircle size={11} strokeWidth={2.4} color="#A0452E" />
+              <AlertCircle size={11} strokeWidth={2.4} color="#b83a2e" />
               <span className="adj-live-warn-label">{w.label}</span>
               <span className="adj-live-warn-actual">{w.actual}</span>
               <span className="adj-live-warn-target">{w.target}</span>

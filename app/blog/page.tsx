@@ -264,7 +264,7 @@ export default async function BlogIndexPage({
         </Section>
       </main>
       {/* 모바일 sticky 설문 CTA — 다른 마케팅 페이지와 동일(회차98 재추가, blog 정상화 후) */}
-      <StickyCta href={isAuthed ? '/dogs/new' : '/signup'} />
+      <StickyCta href={isAuthed ? '/dogs/new' : '/start'} />
     </WebChrome>
   )
 }

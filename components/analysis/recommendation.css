@@ -386,47 +386,49 @@
 
 /* Totals + CTA */
 .fb-totals {
+  /* 2026-06-19 사장님 "다크카드 디자인 별로" — 흰 elevated 카드로 통일(/order·
+     매거진과 동일 언어). 정기배송 버튼만 테라코타로 강조. */
   margin: 6px 22px 0;
-  background: var(--ink);
-  border-radius: 18px;
-  padding: 14px 16px;
-  color: var(--bg);
+  background: var(--surface-card-elevated, #fff);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 16px;
 }
 .fb-totals-stat {
   display: grid; grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
   padding-bottom: 12px; margin-bottom: 12px;
-  border-bottom: 1px solid rgba(245, 240, 230, 0.12);
+  border-bottom: 1px solid var(--rule);
 }
 .fb-totals-stat .l {
   font-size: 9px; font-weight: 600; letter-spacing: .18em;
-  color: var(--bg); opacity: .55; text-transform: uppercase;
+  color: var(--muted); text-transform: uppercase;
   margin-bottom: 4px;
 }
 .fb-totals-stat .v {
-  font-family: var(--font-serif), 'Fraunces', serif;
-  font-weight: 700; font-size: 22px;
-  color: var(--bg); letter-spacing: -.02em;
+  font-family: var(--font-sans), 'Pretendard', sans-serif;
+  font-weight: 800; font-size: 22px;
+  color: var(--ink); letter-spacing: -.02em;
   line-height: 1;
 }
 .fb-totals-stat .v small {
   font-family: var(--font-sans), 'Pretendard', sans-serif;
-  font-size: 11px; font-weight: 600; opacity: .7;
+  font-size: 11px; font-weight: 600; color: var(--muted);
   margin-left: 1px;
 }
 .fb-cta-row { display: grid; grid-template-columns: auto 1fr; gap: 8px; }
 .fb-cta-ghost {
   appearance: none; border: 0; cursor: pointer;
   background: transparent;
-  color: var(--bg);
-  box-shadow: inset 0 0 0 1px rgba(245, 240, 230, 0.25);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--rule);
   padding: 10px 14px; border-radius: 99px;
   font-size: 12px; font-weight: 700; letter-spacing: .02em;
   font-family: inherit;
   display: inline-flex; align-items: center; gap: 5px;
   transition: background 180ms;
 }
-.fb-cta-ghost:hover { background: rgba(245, 240, 230, 0.08); }
+.fb-cta-ghost:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
 .fb-cta-prim {
   appearance: none; border: 0; cursor: pointer;
   background: var(--terracotta); color: #fff;
@@ -435,7 +437,7 @@
   font-family: inherit;
   display: inline-flex; align-items: center; gap: 6px; justify-content: center;
 }
-.fb-cta-prim:hover { background: #8A3923; }
+.fb-cta-prim:hover { background: var(--accent-deep, #782E22); }
 
 /* 로딩 / 에러 placeholder */
 .fb-state {

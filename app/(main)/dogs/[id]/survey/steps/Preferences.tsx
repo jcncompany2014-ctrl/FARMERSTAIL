@@ -131,7 +131,7 @@ export default function Preferences({
                   <Icon
                     size={20}
                     strokeWidth={1.8}
-                    color={active ? 'var(--bg)' : 'var(--terracotta)'}
+                    color={active ? 'var(--bg)' : 'var(--fd-coral)'}
                   />
                 </span>
                 <span className="s-lb-body">

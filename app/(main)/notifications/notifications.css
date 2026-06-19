@@ -23,7 +23,7 @@
   margin-bottom: 16px;
   transition: color 120ms;
 }
-.nt-back:hover { color: var(--accent, #c44a26); }
+.nt-back:hover { color: var(--accent, #C86B45); }
 
 .nt-hero { margin-bottom: 18px; position: relative; }
 .nt-kicker {
@@ -38,7 +38,7 @@
 .nt-unread-badge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 18px; height: 18px; padding: 0 6px;
-  background: var(--accent, #c44a26);
+  background: var(--accent, #C86B45);
   color: var(--paper-hi, #fbf6ec);
   border-radius: 99px;
   font-size: 9.5px;
@@ -127,8 +127,8 @@
 }
 .nt-card:hover { background: var(--paper-deep, #ebe2d1); }
 .nt-card.nt-unread {
-  border-color: var(--accent, #c44a26);
-  background: color-mix(in srgb, var(--accent, #c44a26) 4%, var(--paper-hi, #fbf6ec));
+  border-color: var(--accent, #C86B45);
+  background: color-mix(in srgb, var(--accent, #C86B45) 4%, var(--paper-hi, #fbf6ec));
 }
 
 .nt-card-head {
@@ -142,7 +142,7 @@
 .nt-dot {
   width: 7px; height: 7px;
   border-radius: 50%;
-  background: var(--accent, #c44a26);
+  background: var(--accent, #C86B45);
   flex-shrink: 0;
 }
 .nt-title {
@@ -195,6 +195,6 @@
   display: inline-flex; align-items: center; gap: 3px;
   font-size: 10.5px;
   font-weight: 700;
-  color: var(--accent, #c44a26);
+  color: var(--accent, #C86B45);
   letter-spacing: 0.04em;
 }

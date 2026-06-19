@@ -73,7 +73,7 @@ export const metadata: Metadata = {
 }
 
 function planHref(isAuthed: boolean) {
-  return isAuthed ? '/dogs/new' : '/signup'
+  return isAuthed ? '/dogs/new' : '/start'
 }
 
 // 1. Hero ====================================================================
@@ -129,7 +129,7 @@ const INGREDIENTS = [
 
 function Ingredients() {
   return (
-    <Section bg="cream">
+    <Section bg="cream" pad="md">
       <Container size="xl">
         <Reveal>
           <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
@@ -205,7 +205,7 @@ function FeatureCards() {
 // 4. How it's made ===========================================================
 function HowItsMade() {
   return (
-    <Section bg="cream">
+    <Section bg="cream" pad="md">
       <Container size="xl">
         <div className="grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
           <Reveal>
@@ -245,7 +245,7 @@ const NUTRITION_POINTS = [
 
 function CompleteBalanced() {
   return (
-    <Section bg="offwhite">
+    <Section bg="offwhite" pad="md">
       <Container size="lg">
         <Reveal>
           <div className="text-center mx-auto" style={{ maxWidth: 640 }}>
@@ -395,7 +395,7 @@ function DualProduct({ isAuthed }: { isAuthed: boolean }) {
 // 8. Personalized 안내 (green) ===============================================
 function FoodPersonalized({ isAuthed }: { isAuthed: boolean }) {
   return (
-    <Section bg="green">
+    <Section bg="green" pad="md">
       <Container size="md">
         <Reveal>
           <div className="text-center">
@@ -425,7 +425,7 @@ function FoodPersonalized({ isAuthed }: { isAuthed: boolean }) {
 // 9. Social proof carousel (FD 핵심, placeholder) ============================
 function ReviewCard() {
   return (
-    <div className="snap-start shrink-0 w-[280px] md:w-[340px]" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '24px 22px' }}>
+    <div className="snap-start shrink-0 w-[280px] md:w-[340px]" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '24px 22px', minHeight: 208 }}>
       {/* 정직: 실제 후기 전엔 채운 별점 금지 — 윤곽선 빈 점(회차51/107/120 동일). */}
       <div className="flex gap-1" aria-hidden>
         {Array.from({ length: 5 }).map((_, i) => (
@@ -548,7 +548,7 @@ function FoodFaq() {
 
 function FinalCta({ isAuthed }: { isAuthed: boolean }) {
   return (
-    <Section bg="coral">
+    <Section bg="coral" pad="md">
       <Container size="md">
         <Reveal>
           <div className="text-center">

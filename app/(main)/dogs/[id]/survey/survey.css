@@ -1,12 +1,20 @@
 /* =========================================================================
-   Survey v3 — Claude Design 핸드오프 (2026-05-03) 적용 컴포넌트 스타일
+   Survey — FD 마케팅 디자인 언어 전면 재설계 (2026-06-16, FD 회차)
    ---------------------------------------------------------------------------
-   설문 페이지 전용. farm v6 = The Farmer's Dog 클론 톤으로 색 토큰 리맵
-   (2026-06-13, 회차7). 구조·클래스·애니메이션·radius 전부 그대로 두고
-   **색만** FD 팔레트로: 악센트 --terracotta→--fd-coral, 텍스트/다크
-   --ink→--fd-pine, 양호/완료 --moss→--fd-green. 중립 톤(--bg/--bg-2/--rule/
-   --rule-2/--muted/--surface-card/--text/--sale)은 워밍 크림 계열이라 유지.
-   SurveyClient.tsx 등 로직/DB/제출은 일절 미수정(presentation only).
+   설문 페이지 전용. 옛 v3-앱/매거진 톤(모노 키커·inset/hairline 카드·
+   terracotta 글로우 그림자·중립 크림 near-white·mahogany ink)을 걷어내고
+   The Farmer's Dog 마케팅 FD 디자인 언어로 갈아엎음:
+     · green sans Eyebrow (모노 키커 제거)
+     · 흰 카드 + 1px var(--fd-line) hairline (글로우 그림자 0)
+     · 오트밀 크림(--fd-cream/--fd-offwhite) + pine 그린 잉크
+     · coral pill / coral fill 선택 (과한 글로우 제거)
+
+   presentation only — 구조·클래스·layout(grid/flex/gap/padding)·@keyframes·
+   미디어쿼리(reduced-motion, 다크모드 토큰 swap)는 전부 그대로.
+   SurveyClient.tsx · steps/*.tsx 가 의존하는 .s-* 셀렉터 집합 완전 보존.
+   카드 surface 는 다크모드 자동 swap 되는 legacy 토큰(--surface-card/--bg-2/
+   --bg/--rule)을 유지하되, 보더는 FD hairline(--fd-line)으로, 잉크/악센트/
+   eyebrow 는 실재하는 --fd-* 토큰으로만 치환. (없는 --fd-* 토큰 생성 금지.)
 
    접두어 `s-` = survey. 다른 페이지에서 collision 없도록 격리.
    ========================================================================= */
@@ -15,14 +23,16 @@
 .s-stepwrap { padding: 8px 22px 4px; }
 .s-stepwrap .s-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .s-stepwrap .s-step-no {
-  font-family: var(--font-mono), "JetBrains Mono", monospace;
-  /* R26 v3 polish: 0.24 → 0.16em (V3LetterSpacing.kicker) — 홈/카탈로그 Mono kicker 통일 */
-  font-size: 10px; letter-spacing: 0.16em;
-  color: var(--fd-pine); font-weight: 600;
+  /* FD eyebrow — 옛 mono kicker 제거. green sans, 0.14em / 800. */
+  font-family: var(--font-sans), "Pretendard", sans-serif;
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--fd-green); font-weight: 800;
 }
 .s-stepwrap .s-step-pct {
-  font-size: 10px; font-weight: 700; color: var(--fd-coral);
-  font-family: var(--font-mono), "JetBrains Mono", monospace;
+  /* 진행률 숫자 — coral 포인트, sans tabular (mono 키커 톤 제거) */
+  font-size: 11px; font-weight: 800; color: var(--fd-coral);
+  font-family: var(--font-sans), "Pretendard", sans-serif;
+  letter-spacing: -0.01em;
 }
 .s-progress {
   height: 3px; background: var(--rule); border-radius: 99px;
@@ -39,7 +49,7 @@
   display: flex; justify-content: space-between;
   pointer-events: none;
 }
-.s-progress .s-ticks span { width: 1px; height: 100%; background: var(--bg); }
+.s-progress .s-ticks span { width: 1px; height: 100%; background: var(--fd-offwhite); }
 .s-progress .s-ticks span:first-child,
 .s-progress .s-ticks span:last-child { visibility: hidden; }
 
@@ -59,12 +69,12 @@
 }
 .s-page h1.s-title {
   font-family: var(--font-sans), "Pretendard", sans-serif;
-  /* 회차7 FD: Display 헤비. 800→900, -0.025→-0.03em, 22→24px */
+  /* FD Display — 파인 헤비 900 타이트 (-0.035em), pine 잉크 */
   font-weight: 900;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   color: var(--fd-pine);
-  line-height: 1.2;
-  font-size: 24px;
+  line-height: 1.04;
+  font-size: 25px;
   margin: 4px 0 6px;
   /* programmatic focus (step 전환 시 a11y) — 시각 outline 제거,
      keyboard tab focus 시는 outline 유지 */
@@ -76,35 +86,36 @@
   border-radius: 4px;
 }
 .s-page p.s-sub {
-  font-size: 12px; color: var(--muted); line-height: 1.5;
+  font-size: 12px; color: var(--fd-muted); line-height: 1.55;
   margin: 0 0 12px;
   text-wrap: pretty;
 }
 .s-page p.s-sub .s-pill {
   display: inline-block; padding: 1px 7px; border-radius: 99px;
-  background: var(--bg-2); color: var(--fd-pine); font-size: 10.5px;
-  font-weight: 600; letter-spacing: 0.02em;
+  background: var(--fd-cream); color: var(--fd-pine); font-size: 10.5px;
+  font-weight: 700; letter-spacing: 0.01em;
   margin-left: 4px; vertical-align: middle;
 }
 
-/* Kicker — 회차7 FD: eyebrow 는 그린 (FD eyebrow grammar). */
+/* Kicker — FD eyebrow (green sans, 0.14em / 800). */
 .s-kicker {
-  font-size: 10.5px;
-  font-weight: 700;
+  font-family: var(--font-sans), "Pretendard", sans-serif;
+  font-size: 11px;
+  font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--fd-green);
 }
-.s-kicker .s-dot { color: var(--rule-2); margin: 0 .35em; }
+.s-kicker .s-dot { color: var(--fd-line); margin: 0 .35em; }
 
 /* Optional badge */
 .s-opt-badge {
   display: inline-flex; align-items: center; gap: 3px;
-  font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em;
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.14em;
   text-transform: uppercase;
   padding: 3px 7px; border-radius: 99px;
-  background: transparent; color: var(--muted);
-  border: 1px solid var(--rule-2);
+  background: transparent; color: var(--fd-muted);
+  border: 1px solid var(--fd-line);
   margin-left: 6px;
 }
 
@@ -112,26 +123,26 @@
 .s-echo { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .s-echo .s-e {
   display: inline-flex; align-items: center; gap: 5px;
-  background: var(--bg-2); color: var(--fd-pine);
+  background: var(--fd-cream); color: var(--fd-pine);
   padding: 5px 9px; border-radius: 99px;
-  font-size: 10.5px; font-weight: 600;
+  font-size: 10.5px; font-weight: 700;
   letter-spacing: 0.01em;
 }
 .s-echo .s-e svg { width: 11px; height: 11px; color: var(--fd-green); }
 
-/* Section labels */
+/* Section labels — FD eyebrow grammar (green sans, 0.14em / 800). */
 .s-sect-lbl {
-  /* R26: 0.22 → 0.16em (V3LetterSpacing.kicker 통일) */
-  font-size: 10px; font-weight: 700; letter-spacing: 0.16em;
-  text-transform: uppercase; color: var(--fd-pine);
+  font-family: var(--font-sans), "Pretendard", sans-serif;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--fd-green);
   margin: 0 0 10px; display: flex; align-items: center; gap: 7px;
   flex-wrap: nowrap;
 }
 .s-sect-lbl > .s-label-text { flex: 0 1 auto; }
 .s-sect-lbl .s-opt {
-  font-size: 9px; font-weight: 600; letter-spacing: .14em;
-  color: var(--muted);
-  padding: 2px 6px; border-radius: 99px; background: var(--bg-2);
+  font-size: 9px; font-weight: 700; letter-spacing: .14em;
+  color: var(--fd-muted);
+  padding: 2px 6px; border-radius: 99px; background: var(--fd-cream);
   text-transform: uppercase;
   flex: 0 0 auto;
   white-space: nowrap;
@@ -147,8 +158,8 @@
   background: linear-gradient(
     to right,
     transparent 0%,
-    var(--rule-2) 20%,
-    var(--rule-2) 80%,
+    var(--fd-line) 20%,
+    var(--fd-line) 80%,
     transparent 100%
   );
 }
@@ -158,112 +169,111 @@
 .s-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .s-pickcard {
   appearance: none; -webkit-appearance: none; border: 0;
-  /* audit #50: hardcoded #fff → var(--surface-card) — 다크모드 자동 swap */
+  /* FD 흰 카드 — 다크모드 자동 swap 되는 surface-card 유지 */
   background: var(--surface-card); padding: 14px 10px 12px;
-  /* R26: 18 → 12 (V3Radius.md) — 홈/카탈로그/카트 카드 톤 통일 */
-  border-radius: 12px; text-align: center;
-  box-shadow: inset 0 0 0 1px var(--rule);
+  /* FD 카드 radius 10 */
+  border-radius: 10px; text-align: center;
+  /* FD hairline — 1px var(--fd-line), 그림자 없음 */
+  box-shadow: inset 0 0 0 1px var(--fd-line);
   color: var(--fd-pine);
   transition: all 200ms cubic-bezier(.2, .7, .2, 1);
   position: relative; cursor: pointer;
   font-family: inherit;
 }
-.s-pickcard:hover { box-shadow: inset 0 0 0 1px var(--rule-2); }
+.s-pickcard:hover { box-shadow: inset 0 0 0 1px var(--fd-green); }
 .s-pickcard[aria-pressed="true"] {
-  /* R26: ink → terracotta accent — 선택 강조를 카트 sticky CTA grammar 호응 */
+  /* FD coral fill 선택 — 글로우 제거, 평면 coral hairline 만 */
   background: var(--fd-coral);
   color: #fff;
-  box-shadow: inset 0 0 0 1px var(--fd-coral), 0 6px 20px -8px rgba(220, 83, 42, 0.45);
+  box-shadow: inset 0 0 0 1px var(--fd-coral);
   transform: translateY(-1px);
 }
 .s-pickcard[aria-pressed="true"] .s-num { color: #fff; opacity: .65; }
 .s-pickcard[aria-pressed="true"] .s-lbl { color: #fff; }
 .s-pickcard .s-num {
-  font-family: var(--font-mono), "JetBrains Mono", monospace;
-  font-size: 10px; color: var(--muted); font-weight: 600;
+  /* 숫자 라벨 — tabular sans, FD muted */
+  font-family: var(--font-sans), "Pretendard", sans-serif;
+  font-size: 10px; color: var(--fd-muted); font-weight: 700;
   margin-bottom: 6px; letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
 }
 .s-pickcard .s-lbl {
-  font-size: 12px; font-weight: 700; color: var(--fd-pine);
-  margin-top: 6px;
+  font-size: 12px; font-weight: 800; color: var(--fd-pine);
+  margin-top: 6px; letter-spacing: -0.01em;
 }
 .s-pickcard .s-ideal {
   position: absolute; top: 8px; right: 8px;
-  font-size: 8.5px; font-weight: 700; letter-spacing: .12em;
+  font-size: 8.5px; font-weight: 800; letter-spacing: .12em;
   color: var(--fd-green); text-transform: uppercase;
 }
-.s-pickcard[aria-pressed="true"] .s-ideal { color: #F8E7A0; }
+.s-pickcard[aria-pressed="true"] .s-ideal { color: var(--fd-gold); }
 
 /* R35: R34 의 .s-pickcard-ideal default 강조 제거.
    디자인 원칙 — 시스템이 default 에서 정답을 시각적으로 유도하지 않는다.
 
-   R37: 위험 카드 (BCS 1·8·9 / MCS 4 / Bristol 1·7) 만 selected 시 sale 색
-   (terracotta 보다 짙은 빨강). default 는 모두 동일 — 사용자가 "심각한 걸
-   골랐을 때만 위험한 상태라는게 느껴지게" 의도. */
+   R37: 위험 카드 (BCS 1·8·9 / MCS 4 / Bristol 1·7) 만 selected 시 짙은
+   적갈색(--fd-coral-ink, coral 보다 짙음). default 는 모두 동일 — 사용자가
+   "심각한 걸 골랐을 때만 위험한 상태라는게 느껴지게" 의도. */
 .s-pickcard.s-pickcard-danger[aria-pressed="true"] {
-  background: var(--sale);
-  box-shadow:
-    inset 0 0 0 1px var(--sale),
-    0 6px 20px -8px color-mix(in srgb, var(--sale) 50%, transparent);
+  background: var(--fd-coral-ink);
+  box-shadow: inset 0 0 0 1px var(--fd-coral-ink);
 }
 .s-listbtn.s-listbtn-danger[aria-pressed="true"] {
-  background: var(--sale);
-  box-shadow:
-    inset 0 0 0 1px var(--sale),
-    0 8px 22px -10px color-mix(in srgb, var(--sale) 50%, transparent);
+  background: var(--fd-coral-ink);
+  box-shadow: inset 0 0 0 1px var(--fd-coral-ink);
 }
 .s-pickcard .s-swatch {
   display: flex; align-items: center; justify-content: center;
   height: 34px;
 }
 
-/* Hint card under grid */
+/* Hint card under grid — FD 오트밀 크림 surface + hairline */
 .s-hint {
   margin-top: 14px;
   padding: 12px 14px;
-  /* R26: 14 → 12 (V3Radius.md) */
-  border-radius: 12px;
-  background: #FFFCF2;
-  box-shadow: inset 0 0 0 1px var(--rule);
-  font-size: 12px; line-height: 1.55; color: var(--text);
+  border-radius: 10px;
+  background: var(--fd-cream);
+  box-shadow: inset 0 0 0 1px var(--fd-line);
+  font-size: 12px; line-height: 1.6; color: var(--fd-pine);
   display: flex; align-items: flex-start; gap: 10px;
 }
 .s-hint .s-iconwrap {
   flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px;
-  background: var(--bg-2);
+  background: var(--fd-offwhite);
   display: flex; align-items: center; justify-content: center;
   color: var(--fd-coral);
 }
 .s-hint strong { color: var(--fd-pine); font-weight: 800; }
 .s-hint .s-row { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
 .s-tag {
-  font-size: 9.5px; font-weight: 700; letter-spacing: .04em;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .04em;
   text-transform: uppercase;
   padding: 2px 8px; border-radius: 6px;
   /* 한국어 두 글자 ("양호") 가 좁은 cell 안에서 세로 줄바꿈되는 문제 방지 */
   white-space: nowrap;
   flex-shrink: 0;
 }
-.s-tag.s-good { background: #E6EBD2; color: #566729; }
-.s-tag.s-warn { background: #F5E5C7; color: #7A5B1B; }
-.s-tag.s-bad { background: #F0D8CF; color: #8A3923; }
+/* FD 자연 어스톤 — 양호=그린, 주의=골드, 위험=적갈 (글로우 없는 평면 틴트) */
+.s-tag.s-good { background: color-mix(in srgb, var(--fd-green) 16%, transparent); color: var(--fd-green); }
+.s-tag.s-warn { background: color-mix(in srgb, var(--fd-gold) 20%, transparent); color: #7A5B1B; }
+.s-tag.s-bad { background: color-mix(in srgb, var(--fd-coral) 16%, transparent); color: var(--fd-coral-ink); }
 
 /* List buttons (MCS, Bristol, care_goal) */
 .s-listbtn {
   appearance: none; -webkit-appearance: none; border: 0; cursor: pointer;
   width: 100%; padding: 14px 16px;
-  /* R26: 14 → 12, #fff → var(--surface-card) */
-  border-radius: 12px; background: var(--surface-card);
-  box-shadow: inset 0 0 0 1px var(--rule);
+  /* FD 흰 카드 + radius 10 + hairline */
+  border-radius: 10px; background: var(--surface-card);
+  box-shadow: inset 0 0 0 1px var(--fd-line);
   display: flex; align-items: center; gap: 14px; text-align: left;
   transition: all 180ms cubic-bezier(.2, .7, .2, 1);
   color: var(--fd-pine); font-family: inherit;
 }
-.s-listbtn:hover { box-shadow: inset 0 0 0 1px var(--rule-2); }
+.s-listbtn:hover { box-shadow: inset 0 0 0 1px var(--fd-green); }
 .s-listbtn[aria-pressed="true"] {
-  /* R26: ink → terracotta accent (카트 CTA grammar 호응) */
+  /* FD coral fill 선택 — 글로우 제거 */
   background: var(--fd-coral); color: #fff;
-  box-shadow: inset 0 0 0 1px var(--fd-coral), 0 8px 22px -10px rgba(220, 83, 42, 0.45);
+  box-shadow: inset 0 0 0 1px var(--fd-coral);
   transform: translateY(-1px);
 }
 .s-listbtn[aria-pressed="true"] .s-lb-title { color: #fff; }
@@ -275,19 +285,21 @@
    Muscle MCS 1 / Stool Bristol 4 모두 default 동일 톤. 시스템 정답 유도 X. */
 .s-lb-num {
   flex: 0 0 auto; width: 22px;
-  font-family: var(--font-mono), "JetBrains Mono", monospace;
-  font-size: 11px; font-weight: 600; color: var(--muted);
+  /* tabular sans (mono 키커 톤 제거) */
+  font-family: var(--font-sans), "Pretendard", sans-serif;
+  font-size: 11px; font-weight: 700; color: var(--fd-muted);
   text-align: left;
+  font-variant-numeric: tabular-nums;
 }
 .s-lb-icon {
-  flex: 0 0 auto; width: 38px; height: 38px; border-radius: 11px;
-  background: var(--bg-2);
+  flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px;
+  background: var(--fd-cream);
   display: flex; align-items: center; justify-content: center;
   color: var(--fd-pine);
 }
 .s-lb-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-.s-lb-title { font-size: 13.5px; font-weight: 700; color: var(--fd-pine); display: block; }
-.s-lb-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; display: block; }
+.s-lb-title { font-size: 13.5px; font-weight: 800; color: var(--fd-pine); display: block; letter-spacing: -0.01em; }
+.s-lb-sub { font-size: 11.5px; color: var(--fd-muted); margin-top: 2px; line-height: 1.45; display: block; }
 
 /* Skip pill — 직관성 강화 (dashed border + active fill).
    이전: bg/border 없어 일반 텍스트로 보였고, active 도 색만 바뀜.
@@ -302,10 +314,10 @@
   width: 100%; margin-top: 10px; padding: 13px 14px;
   min-height: 48px;
   background: transparent;
-  color: var(--muted);
-  font-weight: 600; font-size: 12.5px;
-  border: 1px dashed var(--rule-2);
-  border-radius: 12px;
+  color: var(--fd-muted);
+  font-weight: 700; font-size: 12.5px;
+  border: 1px dashed var(--fd-line);
+  border-radius: 10px;
   font-family: inherit;
   display: inline-flex;
   align-items: center;
@@ -327,7 +339,7 @@
   border: 1.5px solid var(--fd-coral);
   background: color-mix(in srgb, var(--fd-coral) 8%, transparent);
   color: var(--fd-coral);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 /* "또는" divider — 옵션 list 와 skip 버튼 사이의 시각적 분리. */
@@ -341,43 +353,45 @@
   content: '';
   position: absolute;
   top: 50%; left: 0; right: 0;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--fd-line);
 }
 .s-skip-divider span {
   position: relative;
-  background: var(--bg);
+  background: var(--fd-offwhite);
   padding: 0 10px;
   font-size: 10px;
-  color: var(--muted);
+  color: var(--fd-muted);
   text-transform: uppercase;
-  letter-spacing: 0.22em;
-  font-weight: 700;
+  letter-spacing: 0.14em;
+  font-weight: 800;
 }
 
 /* Chip row */
 .s-chiprow { display: flex; flex-wrap: wrap; gap: 7px; }
 .s-chip {
   appearance: none; -webkit-appearance: none; border: 0; cursor: pointer;
-  /* R26: #fff → var(--surface-card) — 다크모드 자동 swap */
+  /* FD 흰 카드 + hairline */
   background: var(--surface-card);
-  box-shadow: inset 0 0 0 1px var(--rule);
+  box-shadow: inset 0 0 0 1px var(--fd-line);
   color: var(--fd-pine);
   padding: 10px 14px;
   border-radius: 99px;
-  font-size: 12.5px; font-weight: 700;
+  font-size: 12.5px; font-weight: 800;
   display: inline-flex; align-items: center; gap: 6px;
   transition: all 160ms cubic-bezier(.2, .7, .2, 1);
   font-family: inherit;
   line-height: 1;
   white-space: nowrap;
+  letter-spacing: -0.01em;
 }
-.s-chip:hover { box-shadow: inset 0 0 0 1px var(--rule-2); }
+.s-chip:hover { box-shadow: inset 0 0 0 1px var(--fd-green); }
 .s-chip.s-on {
-  background: var(--fd-pine); color: var(--bg);
+  /* FD pine fill (다크 그린 잉크) — 글로우 없는 평면 */
+  background: var(--fd-pine); color: #fff;
   box-shadow: inset 0 0 0 1px var(--fd-pine);
 }
-.s-chip svg { width: 14px; height: 14px; color: var(--muted); }
-.s-chip.s-on svg { color: var(--bg); }
+.s-chip svg { width: 14px; height: 14px; color: var(--fd-muted); }
+.s-chip.s-on svg { color: #fff; }
 .s-chip.s-terra.s-on {
   background: var(--fd-coral); color: #fff;
   box-shadow: inset 0 0 0 1px var(--fd-coral);
@@ -389,38 +403,38 @@
 .s-tile {
   appearance: none; -webkit-appearance: none; border: 0; cursor: pointer;
   padding: 14px 10px;
-  /* R26: 14 → 12, #fff → var(--surface-card) */
-  border-radius: 12px; background: var(--surface-card);
-  box-shadow: inset 0 0 0 1px var(--rule);
+  /* FD 흰 카드 + radius 10 + hairline */
+  border-radius: 10px; background: var(--surface-card);
+  box-shadow: inset 0 0 0 1px var(--fd-line);
   color: var(--fd-pine);
   display: flex; flex-direction: column; align-items: center; gap: 7px;
   transition: all 180ms cubic-bezier(.2, .7, .2, 1);
   font-family: inherit;
 }
-.s-tile:hover { box-shadow: inset 0 0 0 1px var(--rule-2); }
+.s-tile:hover { box-shadow: inset 0 0 0 1px var(--fd-green); }
 .s-tile.s-on {
-  /* R26: ink → terracotta */
+  /* FD coral fill — 글로우 제거 */
   background: var(--fd-coral); color: #fff;
-  box-shadow: inset 0 0 0 1px var(--fd-coral), 0 6px 20px -8px rgba(220, 83, 42, 0.45);
+  box-shadow: inset 0 0 0 1px var(--fd-coral);
   transform: translateY(-1px);
 }
 .s-tile .s-ic {
-  width: 38px; height: 38px; border-radius: 11px;
-  background: var(--bg-2);
+  width: 38px; height: 38px; border-radius: 10px;
+  background: var(--fd-cream);
   display: flex; align-items: center; justify-content: center;
 }
 .s-tile.s-on .s-ic { background: rgba(255, 255, 255, .18); color: #fff; }
-.s-tile .s-tile-lb { font-size: 12.5px; font-weight: 700; }
-.s-tile .s-meta { font-size: 10px; color: var(--muted); margin-top: -2px; }
+.s-tile .s-tile-lb { font-size: 12.5px; font-weight: 800; letter-spacing: -0.01em; }
+.s-tile .s-meta { font-size: 10px; color: var(--fd-muted); margin-top: -2px; }
 .s-tile.s-on .s-meta { color: #fff; opacity: .75; }
 
 /* Inputs */
 .s-inp {
   width: 100%;
-  /* R26: #fff → var(--surface-card) — paperHi 및 다크모드 자동 호환 */
+  /* FD 흰 카드 + hairline */
   background: var(--surface-card);
-  box-shadow: inset 0 0 0 1px var(--rule);
-  border: 0; border-radius: 12px;
+  box-shadow: inset 0 0 0 1px var(--fd-line);
+  border: 0; border-radius: 10px;
   padding: 13px 14px;
   font-size: 13px; font-family: inherit;
   color: var(--fd-pine);
@@ -428,56 +442,57 @@
   transition: box-shadow 160ms;
 }
 .s-inp:focus { box-shadow: inset 0 0 0 1.5px var(--fd-pine); }
-.s-inp::placeholder { color: var(--muted); } /* a11y: #B6A990(2.15:1)→muted #706854(5.13:1 AA) */
+.s-inp::placeholder { color: var(--fd-muted); } /* a11y: muted 그린그레이 AA */
 textarea.s-inp { resize: none; min-height: 60px; line-height: 1.5; }
 input.s-inp[type="number"] {
-  font-family: var(--font-mono), "JetBrains Mono", monospace;
+  /* 입력 숫자 — tabular sans (mono 톤 제거) */
+  font-family: var(--font-sans), "Pretendard", sans-serif;
+  font-variant-numeric: tabular-nums;
   width: 120px;
   text-align: center;
 }
 .s-input-suffix { display: flex; align-items: center; gap: 8px; }
 .s-input-suffix .s-unit {
-  font-size: 11px; font-weight: 600; color: var(--muted);
-  letter-spacing: 0.04em;
+  font-size: 11px; font-weight: 700; color: var(--fd-muted);
+  letter-spacing: 0.02em;
 }
 
 /* Allergy mode segmented */
 .s-seg {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
-  background: var(--bg-2);
+  background: var(--fd-cream);
   padding: 4px;
-  /* R26: 14 → 12 */
-  border-radius: 12px;
+  border-radius: 10px;
 }
 .s-seg button {
   appearance: none; border: 0; cursor: pointer;
   background: transparent;
-  /* R26: 10 → 8 (V3Radius 보강) */
   padding: 11px 8px; border-radius: 8px;
-  font-size: 12.5px; font-weight: 700; color: var(--fd-pine);
+  font-size: 12.5px; font-weight: 800; color: var(--fd-pine);
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   transition: all 180ms;
   font-family: inherit;
+  letter-spacing: -0.01em;
 }
 .s-seg button[aria-pressed="true"] {
-  /* R26: #fff → var(--surface-card) */
+  /* 선택 트랙 — 흰 카드 + FD hairline, 글로우 그림자 제거 */
   background: var(--surface-card);
-  box-shadow: 0 2px 8px -2px rgba(46, 31, 20, .18);
+  box-shadow: inset 0 0 0 1px var(--fd-line);
 }
 .s-seg button[aria-pressed="true"].s-danger {
   background: var(--fd-coral); color: #fff;
+  box-shadow: inset 0 0 0 1px var(--fd-coral);
 }
 .s-seg button[aria-pressed="true"].s-danger svg { color: #fff; }
 /* R35: R34d 의 .s-safe sage 강조 제거. "없어요" 가 default 정답으로 유도되는
-   느낌 차단. 진짜 위험 신호인 .s-danger ("있어요") 만 terracotta 유지. */
-.s-seg button svg { width: 16px; height: 16px; color: var(--muted); }
+   느낌 차단. 진짜 위험 신호인 .s-danger ("있어요") 만 coral 유지. */
+.s-seg button svg { width: 16px; height: 16px; color: var(--fd-muted); }
 .s-seg button[aria-pressed="true"] svg { color: var(--fd-pine); }
 
-/* Risk note */
+/* Risk note — FD coral 절제 톤 (틴트 bg + pine 본문) */
 .s-note {
   margin-top: 14px;
-  /* R26: 14 → 12 */
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 11px 13px;
   font-size: 11.5px; line-height: 1.5;
   background: color-mix(in srgb, var(--fd-coral) 9%, transparent);
@@ -489,7 +504,7 @@ input.s-inp[type="number"] {
   background: var(--fd-coral); color: #fff;
   display: flex; align-items: center; justify-content: center;
 }
-.s-note strong { color: #8A3923; font-weight: 800; }
+.s-note strong { color: var(--fd-coral-ink); font-weight: 800; }
 
 /* Sticky CTA — iPhone home indicator safe-area 보정 */
 .s-ctabar {
@@ -502,8 +517,8 @@ input.s-inp[type="number"] {
 .s-prev-btn {
   appearance: none; border: 0; cursor: pointer;
   background: transparent;
-  color: var(--muted);
-  font-size: 12px; font-weight: 700;
+  color: var(--fd-muted);
+  font-size: 12px; font-weight: 800;
   padding: 12px 16px; border-radius: 99px;
   min-height: 44px;
   display: inline-flex; align-items: center; gap: 5px;
@@ -512,35 +527,34 @@ input.s-inp[type="number"] {
 .s-prev-btn:hover { color: var(--fd-pine); }
 .s-prev-btn:disabled { opacity: 0; pointer-events: none; }
 .s-next-btn {
-  /* R26: ink fill → terracotta accent — CartStickyCTA grammar 통일.
-     shadow / inset / border 도 카트 결제 pill 과 동일 grammar. */
+  /* FD 주력 CTA pill — coral fill, 흰 텍스트, pill 999.
+     옛 terracotta 글로우(다중 shadow + inset highlight + 보더) 전면 제거.
+     FD Button 프리미티브 grammar: 평면 coral, hover=brightness, 그림자 0. */
   appearance: none; cursor: pointer;
   background: var(--fd-coral); color: #fff;
   font-size: 13.5px; font-weight: 800;
   padding: 14px 22px;
   border-radius: 99px;
   display: inline-flex; align-items: center; gap: 8px;
-  box-shadow:
-    0 8px 22px -6px rgba(220, 83, 42, 0.48),
-    0 2px 8px rgba(220, 83, 42, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
-  border: 1px solid rgba(178, 58, 26, 0.6);
-  transition: transform 120ms, box-shadow 200ms;
+  border: 0;
+  letter-spacing: -0.01em;
+  transition: filter 160ms, transform 120ms;
   font-family: inherit;
 }
-.s-next-btn:active { transform: scale(.98); }
-.s-next-btn:disabled { opacity: .4; box-shadow: none; }
+.s-next-btn:hover { filter: brightness(0.94); }
+.s-next-btn:active { transform: translateY(1px) scale(.99); }
+.s-next-btn:disabled { opacity: .4; filter: none; }
 
-/* Error toast */
+/* Error toast — FD coral 절제 톤 */
 .s-errbar {
   margin: 10px 22px 0;
-  background: #FFF5F2;
-  color: #8A3923;
+  background: color-mix(in srgb, var(--fd-coral) 10%, var(--surface-card));
+  color: var(--fd-coral-ink);
   padding: 9px 12px;
   border-radius: 10px;
-  font-size: 11.5px; font-weight: 600;
+  font-size: 11.5px; font-weight: 700;
   display: flex; align-items: center; gap: 7px;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fd-coral) 18%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fd-coral) 22%, transparent);
 }
 
 /* Loading state */
@@ -558,9 +572,9 @@ input.s-inp[type="number"] {
 }
 .s-loading-page .s-orb {
   width: 88px; height: 88px; border-radius: 50%;
-  /* R26: #fff → var(--surface-card) */
+  /* FD 흰 카드 surface + hairline (글로우 그림자 제거) */
   background: var(--surface-card);
-  box-shadow: 0 12px 36px -12px rgba(160, 69, 46, .35), inset 0 0 0 1px var(--rule);
+  box-shadow: inset 0 0 0 1px var(--fd-line);
   margin: 0 auto 22px;
   display: flex; align-items: center; justify-content: center;
   color: var(--fd-coral);
@@ -594,24 +608,24 @@ input.s-inp[type="number"] {
   margin-top: 28px;
   display: flex; flex-direction: column; gap: 10px;
   text-align: left;
-  /* R26: #fff → var(--surface-card), 14 → 12 */
+  /* FD 흰 카드 + radius 10 + hairline */
   background: var(--surface-card);
-  box-shadow: inset 0 0 0 1px var(--rule);
+  box-shadow: inset 0 0 0 1px var(--fd-line);
   padding: 14px 16px;
-  border-radius: 12px;
+  border-radius: 10px;
   max-width: 300px; margin-left: auto; margin-right: auto;
 }
 .s-loading-page .s-stages li {
   display: flex; align-items: center; gap: 10px;
   list-style: none;
-  font-size: 11.5px; color: var(--muted);
-  font-weight: 600;
+  font-size: 11.5px; color: var(--fd-muted);
+  font-weight: 700;
 }
 .s-loading-page .s-stages li.s-done { color: var(--fd-pine); }
 .s-loading-page .s-stages li.s-active { color: var(--fd-pine); }
 .s-loading-page .s-stages li .s-ic-stage {
   width: 18px; height: 18px; border-radius: 50%;
-  background: var(--rule); color: transparent;
+  background: var(--fd-line); color: transparent;
   display: flex; align-items: center; justify-content: center;
   flex: 0 0 auto;
 }
@@ -627,76 +641,60 @@ input.s-inp[type="number"] {
 .s-rate {
   appearance: none; border: 0; cursor: pointer;
   padding: 12px 6px;
-  /* R26: 14 → 12, #fff → var(--surface-card) */
-  border-radius: 12px; background: var(--surface-card);
-  box-shadow: inset 0 0 0 1px var(--rule);
+  /* FD 흰 카드 + radius 10 + hairline */
+  border-radius: 10px; background: var(--surface-card);
+  box-shadow: inset 0 0 0 1px var(--fd-line);
   color: var(--fd-pine);
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   transition: all 180ms cubic-bezier(.2, .7, .2, 1);
   font-family: inherit;
 }
-.s-rate:hover { box-shadow: inset 0 0 0 1px var(--rule-2); }
+.s-rate:hover { box-shadow: inset 0 0 0 1px var(--fd-green); }
 .s-rate[aria-pressed="true"] {
-  /* R26: ink → terracotta accent */
+  /* FD coral fill — 글로우 제거 */
   background: var(--fd-coral); color: #fff;
-  box-shadow: inset 0 0 0 1px var(--fd-coral), 0 6px 20px -8px rgba(220, 83, 42, 0.4);
+  box-shadow: inset 0 0 0 1px var(--fd-coral);
 }
 .s-rate .s-rate-num {
-  font-family: var(--font-mono), "JetBrains Mono", monospace;
-  font-size: 17px; font-weight: 700;
+  /* tabular sans (mono 톤 제거), chunky 강조 */
+  font-family: var(--font-sans), "Pretendard", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 17px; font-weight: 800; letter-spacing: -0.02em;
 }
 .s-rate .s-rate-lb { font-size: 9.5px; opacity: .8; }
 
 /* =========================================================================
-   Magazine Edition tweaks (2026-05-21) — 분석 페이지 톤과 통일.
-   기존 클래스는 그대로 두고 추가 디테일 (corner mark, cream wash,
-   stencil 강화, stagger entry) 만 보강.
+   FD card surface tweaks — 분석/로딩 step 같은 큰 카드 영역 톤 통일.
+   기존 클래스는 그대로 두고 surface/eyebrow/orb 디테일만 FD 로 정렬.
    ========================================================================= */
 
-/* magazine 톤 카드 wrapper — Loading/Status step 같은 큰 카드 영역에 적용.
-   cream cardSoft + 4 코너 ㄱ-마크 SVG 를 ::before/::after pseudo 로 박음. */
+/* FD 톤 카드 wrapper — Loading/Status step 같은 큰 카드 영역에 적용.
+   오트밀 크림 surface + FD 라인 보더 (홈/our-food 카드 호응). */
+/* [회차311 설문 FD 개편] 옛 v4 "Magazine Edition" 잔재 제거 →
+   마케팅 FD 카드 언어로. 코너 ㄱ-마크(editorial 코너틱) 삭제, 크림 surface +
+   FD 라인 보더(홈/our-food 카드 호응). */
 .s-mag-card {
   position: relative;
-  background: #FBF6E7;
-  /* R26: 22 → 12 (V3Radius.md) — 홈 hero / 카탈로그 hero 카드 호응 */
-  border-radius: 12px;
+  background: var(--fd-cream);
+  border-radius: 10px;
   padding: 22px;
-  box-shadow: 0 1px 0 rgba(216, 205, 179, 0.4),
-              0 12px 28px rgba(27, 20, 16, 0.06);
+  box-shadow: inset 0 0 0 1px var(--fd-line);
   overflow: hidden;
 }
-.s-mag-card::before,
-.s-mag-card::after {
-  content: '';
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  background:
-    linear-gradient(to right, #7A6A5A 1px, transparent 1px) top left/100% 1px no-repeat,
-    linear-gradient(to bottom, #7A6A5A 1px, transparent 1px) top left/1px 100% no-repeat;
-  opacity: 0.32;
-  pointer-events: none;
-}
-.s-mag-card::before { top: 8px; left: 8px; }
-.s-mag-card::after {
-  bottom: 8px; right: 8px;
-  background:
-    linear-gradient(to left, #7A6A5A 1px, transparent 1px) top right/100% 1px no-repeat,
-    linear-gradient(to top, #7A6A5A 1px, transparent 1px) bottom right/1px 100% no-repeat;
-}
 
-/* magazine stencil kicker — 분석 페이지 SectionHeader 와 동일 톤 */
+/* magazine kicker → FD eyebrow (sans·그린·0.14em) — 마케팅 Eyebrow 문법 통일.
+   기존 mono 0.3em stencil = 옛 editorial 톤이라 교체. */
 .s-mag-kicker {
-  font-family: var(--font-mono), "JetBrains Mono", monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.3em;
-  color: var(--muted);
-  font-weight: 700;
+  font-family: var(--font-sans), "Pretendard", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--fd-green);
+  font-weight: 800;
   text-transform: uppercase;
 }
 
 /* Loading orb glow pulse — 분석 진행 중 살아있는 인상.
-   기존 .s-orb 외관 그대로 + 주변 부드러운 ring 박동. */
+   기존 .s-orb 외관 그대로 + 주변 부드러운 ring 박동 (FD coral). */
 .s-orb {
   position: relative;
 }
@@ -705,7 +703,7 @@ input.s-inp[type="number"] {
   position: absolute;
   inset: -8px;
   border-radius: 50%;
-  border: 1px dashed rgba(160, 67, 44, 0.4);
+  border: 1px dashed color-mix(in srgb, var(--fd-coral) 45%, transparent);
   animation: s-orb-pulse 2.4s cubic-bezier(.4, 0, .6, 1) infinite;
   pointer-events: none;
 }
@@ -756,7 +754,7 @@ input.s-inp[type="number"] {
   .s-chiprow > * { opacity: 1; transform: none; animation: none; }
 }
 
-/* 버튼 active scale micro-interaction — terracotta CTA 부드럽게 눌림 */
+/* 버튼 active scale micro-interaction — coral CTA 부드럽게 눌림 */
 .s-chip:active,
 .s-rate:active {
   transform: scale(0.97);

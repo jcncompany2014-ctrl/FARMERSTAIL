@@ -88,11 +88,11 @@ export default function Pregnancy({
           <div
             className="s-note"
             style={{
-              background: 'color-mix(in srgb, var(--gold) 14%, transparent)',
-              color: 'var(--ink)',
+              background: 'color-mix(in srgb, var(--fd-gold) 14%, transparent)',
+              color: 'var(--fd-pine)',
             }}
           >
-            <span className="s-ic-warn" style={{ background: 'var(--gold)' }}>
+            <span className="s-ic-warn" style={{ background: 'var(--fd-gold)' }}>
               <AlertCircle size={13} strokeWidth={2.2} color="#fff" />
             </span>
             <span>

@@ -2,7 +2,7 @@
 
 // audit #101 — NewDogClient: form state + submit. page.tsx (server) 가 auth
 // 검증 후 user.id 를 prop 으로 전달 (insert 시 user_id 명시 필요).
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Check,
@@ -131,11 +131,17 @@ export default function NewDogClient({ userId }: { userId: string }) {
     (draft?.feedMethod as any) ?? 'unknown',
   )
   const [photoState, setPhotoState] = useState<PhotoState>({ action: 'keep' })
+  // 제출 중 플래그 — 제출 성공 시 draft 를 지우는데, 디바운스 autosave(500ms)
+  // 가 그 뒤에 발화하면 draft 가 되살아나 다음 '강아지 추가'에서 옛 정보가 남는다.
+  // (사장님 보고 2026-06-19). 이 플래그가 true 면 autosave 가 재저장을 건너뛴다.
+  const submittingRef = useRef(false)
 
   // 폼 변경 시 디바운스 자동저장.
   useEffect(() => {
     if (typeof window === 'undefined') return
     const timer = setTimeout(() => {
+      // 제출 중/완료 후엔 재저장 금지 (clear 를 되살리는 레이스 차단).
+      if (submittingRef.current) return
       try {
         localStorage.setItem(
           AUTOSAVE_KEY,
@@ -211,6 +217,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
       return
     }
 
+    submittingRef.current = true
     setLoading(true)
 
     const { data: inserted, error: insertError } = await supabase
@@ -235,6 +242,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
 
     if (insertError || !inserted) {
       setLoading(false)
+      submittingRef.current = false // 실패 시 autosave 재개
       // UX audit #27: raw DB 메시지 노출 X — 일반 메시지 + Sentry 로 raw 보존.
       setError('저장에 실패했어요. 잠시 후 다시 시도해 주세요')
       return

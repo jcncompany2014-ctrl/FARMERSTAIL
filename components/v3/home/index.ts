@@ -7,20 +7,12 @@
 
 export { default as GreetingSection } from './GreetingSection'
 export { default as ActiveDogCard } from './ActiveDogCard'
-export { default as TodayCard } from './TodayCard'
 export { default as ThisWeekSection } from './ThisWeekSection'
 export { default as MyDogsSection } from './MyDogsSection'
-export { default as ForTodaySection } from './ForTodaySection'
 export { default as JournalSection } from './JournalSection'
 export { default as DeliveryStripCard } from './DeliveryStripCard'
-export { default as FarmToTailSection } from './FarmToTailSection'
 export { default as EmptyHomeNoDogs } from './EmptyHomeNoDogs'
 
 export type { DayStatus, WeekDay, QuickAction } from './ThisWeekSection'
 export type { DogCardData } from './MyDogsSection'
-export type {
-  ForTodayProduct,
-  ForTodayDelivery,
-  ForTodayBonus,
-} from './ForTodaySection'
 export type { JournalEntry } from './JournalSection'

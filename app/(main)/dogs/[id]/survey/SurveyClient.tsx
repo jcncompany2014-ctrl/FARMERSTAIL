@@ -750,11 +750,19 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     // "정성 들였으니 감사" 톤. audit 1-3: 서버 측 cap (연 5,000P) 검사를
     // 위해 직접 RPC 호출 → /api/rewards/survey-completion 으로 이관.
     try {
+      // 사장님 보고 2026-06-19 "로딩 15초": 분석은 이미 저장(위)됐는데 이 보상
+      // fetch 를 await 하는 동안 결과 이동(아래 timer)이 막혀 있었음. 보상은
+      // 비핵심(실패해도 흐름 영향 X)이라 4s 타임아웃을 걸어 navigation 을
+      // 절대 붙들지 않게 한다. 느리면 보상 토스트만 생략하고 결과로 이동.
+      const rewardCtrl = new AbortController()
+      const rewardTimeout = setTimeout(() => rewardCtrl.abort(), 4000)
       const res = await fetch('/api/rewards/survey-completion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ surveyId: surveyData.id }),
+        signal: rewardCtrl.signal,
       })
+      clearTimeout(rewardTimeout)
       const payload = await res.json().catch(() => null)
       if (
         res.ok &&
@@ -796,7 +804,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   if (!dog) {
     return (
       <div className="flex items-center justify-center min-h-[80vh]" style={{ background: 'var(--bg)' }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--terracotta)' }} strokeWidth={1.6} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--fd-coral)' }} strokeWidth={1.6} />
       </div>
     )
   }

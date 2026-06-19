@@ -119,7 +119,7 @@ export function renderNewsletterVol01(input: {
     body,
     cta: {
       label: '우리 아이 분석 시작하기',
-      href: `${SITE_URL}/signup`,
+      href: `${SITE_URL}/start`,
     },
   })
 

@@ -11,7 +11,6 @@
  *    fetch (부모와 중복).
  *  - 이후: window evaluate 만 — 순수 함수 컴포넌트.
  */
-import Link from 'next/link'
 import { TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react'
 import type { InterventionWindow } from '@/lib/intervention-window'
 
@@ -20,7 +19,7 @@ interface Props {
   window: InterventionWindow
 }
 
-export default function InterventionWindowCard({ dogId, window }: Props) {
+export default function InterventionWindowCard({ window }: Props) {
   // safe / insufficient_data / noisy → 미렌더 (잡음 방지)
   if (
     window.verdict === 'safe' ||
@@ -73,12 +72,6 @@ export default function InterventionWindowCard({ dogId, window }: Props) {
             {(window.weightSlopeKgPerDay * 30).toFixed(2)} kg/월 · 정밀도{' '}
             {(window.rSquared * 100).toFixed(0)}%
           </div>
-          <Link
-            href={`/dogs/${dogId}/simulate`}
-            className="inline-block mt-2.5 text-[11px] font-semibold text-ink underline decoration-1 underline-offset-2"
-          >
-            식단 시뮬레이션으로 시나리오 비교 →
-          </Link>
         </div>
       </div>
     </section>

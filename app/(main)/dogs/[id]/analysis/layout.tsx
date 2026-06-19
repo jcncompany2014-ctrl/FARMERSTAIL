@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { petName } from '@/lib/korean'
 
 /**
  * /dogs/[id]/analysis 레이아웃 — server component 로 generateMetadata 제공.
@@ -30,10 +31,10 @@ export async function generateMetadata({
       return DEFAULT_META
     }
     return {
-      title: `${name}이 맞춤 영양 분석 · 파머스테일`,
-      description: `${name}이를 위한 NRC/AAFCO 기반 맞춤 화식 박스. 5종 메인 + 동결건조 토퍼. 매 cycle 알고리즘 자동 조정.`,
+      title: `${petName(name)} 맞춤 영양 분석 · 파머스테일`,
+      description: `${petName(name)}를 위한 NRC/AAFCO 기반 맞춤 화식 박스. 5종 메인 + 동결건조 토퍼. 매 cycle 알고리즘 자동 조정.`,
       openGraph: {
-        title: `${name}이 맞춤 영양 분석`,
+        title: `${petName(name)} 맞춤 영양 분석`,
         description:
           'AAFCO 2024 / NRC 2006 / FEDIAF 가이드라인 기반 맞춤 박스. 매 cycle 자동 조정.',
         type: 'website',
@@ -42,7 +43,7 @@ export async function generateMetadata({
       },
       twitter: {
         card: 'summary_large_image',
-        title: `${name}이 맞춤 영양 분석`,
+        title: `${petName(name)} 맞춤 영양 분석`,
       },
     }
   } catch {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -130,8 +130,12 @@ export default function AnalysisView({
 
   // R80-P1: 30일 가드 안내 toast — server page 에서 prop 으로 받음.
   // mount 직후 1회만, URL 의 from/days query 제거해 새로고침 시 재발 X.
+  // 사장님 2026-06-19: 토스트가 2번 떴음 → ref 가드로 이중 발화(StrictMode·재마운트) 차단.
+  const blockedToastShownRef = useRef(false)
   useEffect(() => {
     if (!surveyBlockedDays || surveyBlockedDays <= 0) return
+    if (blockedToastShownRef.current) return
+    blockedToastShownRef.current = true
     toast.info(
       `지난 분석 후 30일이 안 됐어요 (${surveyBlockedDays}일 남음). 체중이나 건강 정보가 바뀌었다면, 정보를 고친 뒤 다시 분석할 수 있어요.`,
     )
@@ -432,131 +436,9 @@ export default function AnalysisView({
         analysisDate={analysisDate}
       />
 
-      {/* C1 (2026-06) — 안전·주의 신호 surfacing. Magazine 리디자인이 risk
-          flag/vetConsult 렌더러(StructuredAnalysis)를 게이트아웃하면서
-          refeeding·만성충돌·췌장염 부적합 게이트 등이 계산만 되고 화면에서
-          사라졌던 걸 복원. 심각도순(critical→high→info) 정렬, 없으면 비표시. */}
-      {(() => {
-        const flags = (analysis.risk_flags ?? []).filter(Boolean)
-        const vet = analysis.vet_consult_recommended ?? false
-        // 췌장염 급성/중증 하드 게이트 (formula reasoning priority 0) — 최상위.
-        const gateChip = formula?.reasoning.find(
-          (r) => r.ruleId === 'pancreatitis-severe-unsuitable',
-        )
-        if (flags.length === 0 && !vet && !gateChip) return null
-        const rankOf = (f: string) => {
-          const s = riskFlagSeverity(f)
-          return s === 'critical' ? 0 : s === 'high' ? 1 : 2
-        }
-        const sorted = [...flags].sort((a, b) => rankOf(a) - rankOf(b))
-        const toneOf = (s: 'critical' | 'high' | 'info') =>
-          s === 'critical'
-            ? 'var(--terracotta)'
-            : s === 'high'
-              ? 'var(--gold)'
-              : 'var(--muted)'
-        return (
-          <section className="px-5 mt-4">
-            <div
-              className="rounded border p-4"
-              style={{ background: 'var(--bg-3)', borderColor: 'var(--rule)' }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle
-                  className="w-4 h-4"
-                  strokeWidth={2}
-                  color="var(--terracotta)"
-                />
-                <span className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-muted">
-                  꼭 확인하세요
-                </span>
-              </div>
-
-              {gateChip && (
-                <div
-                  className="rounded px-3 py-2.5 mb-2.5 text-[12px] leading-relaxed font-bold"
-                  style={{
-                    background:
-                      'color-mix(in srgb, var(--terracotta) 10%, white)',
-                    border:
-                      '1px solid color-mix(in srgb, var(--terracotta) 35%, transparent)',
-                    color: 'var(--ink)',
-                  }}
-                >
-                  {gateChip.action}
-                </div>
-              )}
-
-              {vet && (
-                <div className="flex items-start gap-2 mb-2.5">
-                  <Stethoscope
-                    className="w-3.5 h-3.5 mt-0.5 shrink-0"
-                    strokeWidth={2}
-                    color="var(--terracotta)"
-                  />
-                  <span
-                    className="text-[12px] font-bold leading-relaxed"
-                    style={{ color: 'var(--ink)' }}
-                  >
-                    이 분석은 수의사 상담을 권장해요.
-                  </span>
-                </div>
-              )}
-
-              {sorted.length > 0 && (
-                <ul className="space-y-2.5">
-                  {sorted.map((f) => {
-                    const sev = riskFlagSeverity(f)
-                    const c = toneOf(sev)
-                    return (
-                      <li key={f} className="flex items-start gap-2">
-                        <span
-                          className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
-                          style={{ background: c }}
-                          aria-hidden
-                        />
-                        <div className="min-w-0">
-                          {/* M7 — 색상 외 텍스트 태그로 심각도 전달 (색맹/그레이
-                              스케일 a11y). 안전 콘텐츠라 색상-only 금지. */}
-                          <span
-                            className="text-[9px] font-bold px-1.5 py-0.5 rounded mr-1.5 align-middle"
-                            style={{
-                              background: `color-mix(in srgb, ${c} 14%, white)`,
-                              color: c,
-                            }}
-                          >
-                            {sev === 'critical'
-                              ? '위험'
-                              : sev === 'high'
-                                ? '주의'
-                                : '참고'}
-                          </span>
-                          <span
-                            className="text-[12.5px] font-bold"
-                            style={{
-                              color: sev === 'info' ? 'var(--text)' : c,
-                            }}
-                          >
-                            {riskFlagLabel(f)}
-                          </span>
-                          {riskFlagDesc(f) && (
-                            <p
-                              className="text-[12px] leading-relaxed mt-0.5"
-                              style={{ color: 'var(--muted)' }}
-                            >
-                              {riskFlagDesc(f)}
-                            </p>
-                          )}
-                        </div>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </div>
-          </section>
-        )
-      })()}
+      {/* 참고할 점(안전·주의 신호) — 결과 최상단이 아니라 페이지 최하단으로 이동
+          (사장님 지시 2026-06-19, 긍정 결과 먼저·참고는 마지막). 렌더는 하단
+          AnalysisCTASection 뒤. */}
 
       {/* 히스토리 뷰: 이 분석이 언제 것인지 명시 */}
       {isArchive && (
@@ -888,6 +770,131 @@ export default function AnalysisView({
         isArchive={isArchive}
         totalCount={totalCount}
       />
+
+      {/* 참고할 점(안전·주의 신호) — 페이지 최하단(사장님 지시 2026-06-19,
+          긍정 결과 먼저·참고는 마지막). 심각도순 정렬·없으면 비표시. 참고(info)만
+          이면 차분한 톤, 위험/주의·수의상담은 경고 톤. */}
+      {(() => {
+        const flags = (analysis.risk_flags ?? []).filter(Boolean)
+        const vet = analysis.vet_consult_recommended ?? false
+        // 췌장염 급성/중증 하드 게이트 (formula reasoning priority 0) — 최상위.
+        const gateChip = formula?.reasoning.find(
+          (r) => r.ruleId === 'pancreatitis-severe-unsuitable',
+        )
+        if (flags.length === 0 && !vet && !gateChip) return null
+        const rankOf = (f: string) => {
+          const s = riskFlagSeverity(f)
+          return s === 'critical' ? 0 : s === 'high' ? 1 : 2
+        }
+        const sorted = [...flags].sort((a, b) => rankOf(a) - rankOf(b))
+        const hasSerious = !!gateChip || vet || flags.some((f) => rankOf(f) <= 1)
+        const toneOf = (s: 'critical' | 'high' | 'info') =>
+          s === 'critical'
+            ? 'var(--terracotta)'
+            : s === 'high'
+              ? 'var(--gold)'
+              : 'var(--muted)'
+        return (
+          <section className="px-5 mt-5">
+            <div
+              className="rounded border p-4"
+              style={{ background: 'var(--bg-3)', borderColor: 'var(--rule)' }}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle
+                  className="w-4 h-4"
+                  strokeWidth={2}
+                  color={hasSerious ? 'var(--terracotta)' : 'var(--gold)'}
+                />
+                <span className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-muted">
+                  {hasSerious ? '꼭 확인하세요' : '참고할 점'}
+                </span>
+              </div>
+
+              {gateChip && (
+                <div
+                  className="rounded px-3 py-2.5 mb-2.5 text-[12px] leading-relaxed font-bold"
+                  style={{
+                    background:
+                      'color-mix(in srgb, var(--terracotta) 10%, white)',
+                    border:
+                      '1px solid color-mix(in srgb, var(--terracotta) 35%, transparent)',
+                    color: 'var(--ink)',
+                  }}
+                >
+                  {gateChip.action}
+                </div>
+              )}
+
+              {vet && (
+                <div className="flex items-start gap-2 mb-2.5">
+                  <Stethoscope
+                    className="w-3.5 h-3.5 mt-0.5 shrink-0"
+                    strokeWidth={2}
+                    color="var(--terracotta)"
+                  />
+                  <span
+                    className="text-[12px] font-bold leading-relaxed"
+                    style={{ color: 'var(--ink)' }}
+                  >
+                    이 분석은 수의사 상담을 권장해요.
+                  </span>
+                </div>
+              )}
+
+              {sorted.length > 0 && (
+                <ul className="space-y-2.5">
+                  {sorted.map((f) => {
+                    const sev = riskFlagSeverity(f)
+                    const c = toneOf(sev)
+                    return (
+                      <li key={f} className="flex items-start gap-2">
+                        <span
+                          className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
+                          style={{ background: c }}
+                          aria-hidden
+                        />
+                        <div className="min-w-0">
+                          {/* M7 — 색상 외 텍스트 태그로 심각도 전달(색맹 a11y). */}
+                          <span
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded mr-1.5 align-middle"
+                            style={{
+                              background: `color-mix(in srgb, ${c} 14%, white)`,
+                              color: c,
+                            }}
+                          >
+                            {sev === 'critical'
+                              ? '위험'
+                              : sev === 'high'
+                                ? '주의'
+                                : '참고'}
+                          </span>
+                          <span
+                            className="text-[12.5px] font-bold"
+                            style={{
+                              color: sev === 'info' ? 'var(--text)' : c,
+                            }}
+                          >
+                            {riskFlagLabel(f)}
+                          </span>
+                          {riskFlagDesc(f) && (
+                            <p
+                              className="text-[12px] leading-relaxed mt-0.5"
+                              style={{ color: 'var(--muted)' }}
+                            >
+                              {riskFlagDesc(f)}
+                            </p>
+                          )}
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
+          </section>
+        )
+      })()}
     </div>
   )
 }

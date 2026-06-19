@@ -54,8 +54,8 @@ export default function ShareClient({
   const [copied, setCopied] = useState<'link' | 'code' | null>(null)
 
   const shareUrl = useMemo(() => {
-    if (typeof window === 'undefined') return `/signup?ref=${referralCode}`
-    return `${window.location.origin}/signup?ref=${referralCode}`
+    if (typeof window === 'undefined') return `/r/${referralCode}`
+    return `${window.location.origin}/r/${referralCode}`
   }, [referralCode])
 
   const shareText = useMemo(

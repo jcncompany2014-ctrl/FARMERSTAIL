@@ -2,7 +2,8 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PawPrint, BarChart3, Repeat, Check, ArrowRight, X } from 'lucide-react'
+import { BarChart3, Repeat, Check, ArrowRight, X } from 'lucide-react'
+import DogPawMark from '@/components/DogPawMark'
 import { createClient } from '@/lib/supabase/client'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 
@@ -28,7 +29,7 @@ import { useModalA11y } from '@/lib/ui/useModalA11y'
 
 const STEPS = [
   {
-    Icon: PawPrint,
+    Icon: DogPawMark,
     accent: 'var(--terracotta)',
     kicker: 'Step 1 · 시작',
     title: '첫 아이를 등록해주세요',
@@ -46,7 +47,7 @@ const STEPS = [
     accent: 'var(--moss)',
     kicker: 'Step 3 · 정기배송',
     title: '매주 또는 매월 자동 도착',
-    body: '맞춤 처방을 정기적으로 받아보세요.\n언제든 일시정지·해지 가능해요.',
+    body: '맞춤 박스를 정기적으로 받아보세요.\n언제든 일시정지·해지 가능해요.',
   },
 ] as const
 

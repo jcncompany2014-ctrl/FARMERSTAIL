@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { petName } from '@/lib/korean'
 import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/Spinner'
 import { haptic } from '@/lib/haptic'
@@ -293,7 +294,7 @@ export default function CheckinClient({
         setResult({ notes: fb.notes, shouldReanalyze: fb.shouldReanalyze })
         window.scrollTo({ top: 0, behavior: 'smooth' })
       } else {
-        toast.success(`${dogName}이를 더 잘 챙길게요 🐾`)
+        toast.success(`${petName(dogName)}를 더 잘 챙길게요 🐾`)
         router.push(`/dogs/${dogId}/analysis`)
       }
     } catch (e) {
@@ -321,7 +322,7 @@ export default function CheckinClient({
         <header className="ck-hero">
           <div className="ck-kicker">맞춤 피드백 · CYCLE {cycleNumber}</div>
           <h1>
-            {dogName}이의 답변을<br />
+            {petName(dogName)}의 답변을<br />
             확인했어요
           </h1>
         </header>
@@ -392,7 +393,7 @@ export default function CheckinClient({
               padding: 8,
             }}
           >
-            {dogName}이 페이지로
+            {petName(dogName)} 페이지로
           </Link>
         </section>
       </div>
@@ -407,7 +408,7 @@ export default function CheckinClient({
           <span className="ck-cycle">CYCLE {cycleNumber}</span>
         </div>
         <h1>
-          {dogName}이의<br />
+          {petName(dogName)}의<br />
           요즘 어때요?
         </h1>
         <p>

@@ -107,10 +107,10 @@ export default function Stool({
                     active
                       ? 'var(--bg)'
                       : view.tagTone === 'good'
-                        ? '#566729'
+                        ? 'var(--sage)'
                         : view.tagTone === 'warn'
                           ? '#7A5B1B'
-                          : 'var(--terracotta)'
+                          : 'var(--fd-coral)'
                   }
                 />
               </span>

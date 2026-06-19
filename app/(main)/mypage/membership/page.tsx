@@ -274,7 +274,7 @@ export default async function MembershipPage() {
             }}
           >
             <p className="text-[12px] leading-relaxed" style={{ opacity: 0.85 }}>
-              단짝 등급 도달의 증표로 강아지 등록증을 받으실 수 있어요. 저장
+              나무 등급 도달의 증표로 강아지 등록증을 받으실 수 있어요. 저장
               해서 보관하거나 SNS 에 공유해 보세요.
             </p>
             <div className="mt-4 space-y-2">

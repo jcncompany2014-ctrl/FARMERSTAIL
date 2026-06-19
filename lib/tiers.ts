@@ -1,12 +1,12 @@
 /**
  * 회원 등급 메타데이터 — DB CHECK 제약과 1:1 매칭.
  *
- * 5단계 lifecycle: 씨앗에서 시작해 단짝이 되는 여정.
+ * 5단계 lifecycle: 씨앗에서 시작해 나무로 자라는 여정.
  *   seed   · 씨앗     첫 한 끼 전
  *   sprout · 새싹     첫 박스 이상
  *   bloom  · 꽃       의미 있는 단골
  *   fruit  · 열매     장기 가족
- *   mate   · 단짝     최상 — 강아지 등록증 발급
+ *   mate   · 나무     최상 — 강아지 등록증 발급
  *
  * 등급 이름은 DB 와 동일 (소문자 영문). 표시명·색·혜택은 여기서.
  */
@@ -177,8 +177,8 @@ export const TIERS: TierMeta[] = [
   },
   {
     key: 'mate',
-    label: '단짝',
-    en: 'MATE',
+    label: '나무',
+    en: 'TREE',
     threshold: 3_000_000,
     bg: '#1E1A14', // 가장 어두운 ink — gold accent
     ink: '#D4A94A',
@@ -197,8 +197,8 @@ export const TIERS: TierMeta[] = [
       },
       {
         Icon: 'crown',
-        label: '단짝 한정 큐레이션',
-        detail: '시즌별 단짝 한정 메뉴 · 한정 굿즈',
+        label: '나무 한정 큐레이션',
+        detail: '시즌별 나무 등급 한정 메뉴 · 한정 굿즈',
       },
       {
         Icon: 'sparkles',

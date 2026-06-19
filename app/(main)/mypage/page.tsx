@@ -21,25 +21,25 @@ export default async function MyPage() {
     redirect('/login?next=/mypage')
   }
 
-  const nowIso = new Date().toISOString()
-
   const [
     profileRes,
     orderCountRes,
     subCountRes,
     ledgerRes,
     wishCountRes,
-    couponCountRes,
   ] = await Promise.all([
     supabase
       .from('profiles')
       .select('name, phone, tier, cumulative_spend')
       .eq('id', user.id)
       .maybeSingle(),
+    // 결제 취소·환불된 주문은 카운트에서 제외 (사장님 2026-06-19).
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
+      .eq('user_id', user.id)
+      .neq('payment_status', 'cancelled')
+      .neq('payment_status', 'refunded'),
     supabase
       .from('subscriptions')
       .select('id', { count: 'exact', head: true })
@@ -56,12 +56,6 @@ export default async function MyPage() {
       .from('wishlists')
       .select('product_id', { count: 'exact', head: true })
       .eq('user_id', user.id),
-    // 쿠폰 — 활성 + 미만료. 정밀 per_user 필터는 체크아웃에서.
-    supabase
-      .from('coupons')
-      .select('id', { count: 'exact', head: true })
-      .eq('is_active', true)
-      .or(`expires_at.is.null,expires_at.gt.${nowIso}`),
   ])
 
   const profile = (profileRes.data as Profile | null) ?? null
@@ -77,7 +71,6 @@ export default async function MyPage() {
       subCount={subCountRes.count ?? 0}
       pointBalance={pointBalance}
       wishCount={wishCountRes.count ?? 0}
-      couponCount={couponCountRes.count ?? 0}
     />
   )
 }

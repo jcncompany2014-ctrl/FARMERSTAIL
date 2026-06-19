@@ -287,7 +287,7 @@ export function PhotoSlot({
         className={`relative ${className ?? ''}`}
         style={{ aspectRatio: ratio, borderRadius: rounded, overflow: 'hidden', background: t.bg }}
       >
-        <img src={src} alt={alt ?? label} className="absolute inset-0 h-full w-full object-cover" />
+        <img src={src} alt={alt ?? label} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
       </div>
     )
   }

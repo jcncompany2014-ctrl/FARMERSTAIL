@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { cache } from 'react'
 import { Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
@@ -232,6 +233,8 @@ export default async function ProductDetailPage({
 
   const supabase = await createClient()
   const isApp = await isAppContextServer()
+  // 2026-06-19 사장님 "제품탭 아예 없애" — 앱은 커머스 제거. 제품 상세도 홈으로.
+  if (isApp) redirect('/dashboard')
   const [variants, rating, relatedRaw, userRes] = await Promise.all([
     getVariants(product.id),
     getReviewAggregate(product.id),

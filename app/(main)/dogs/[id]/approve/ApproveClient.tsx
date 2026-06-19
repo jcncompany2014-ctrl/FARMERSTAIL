@@ -16,6 +16,7 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { petName } from '@/lib/korean'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { haptic } from '@/lib/haptic'
@@ -105,7 +106,7 @@ export default function ApproveClient({
           NEEDS APPROVAL
         </div>
         <h1 className="ap-h1">
-          {dogName}이 다음 박스
+          {petName(dogName)} 다음 박스
           <br />
           비율을 바꿔봐요
         </h1>

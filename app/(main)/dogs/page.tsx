@@ -4,8 +4,9 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { PawPrint as DogIcon, Plus, ChevronRight } from 'lucide-react'
+import { Plus, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import DogPawMark from '@/components/DogPawMark'
 
 type Dog = {
   id: string
@@ -62,7 +63,7 @@ export default async function DogsPage() {
           <Link
             href="/dogs/new"
             className="inline-flex items-center gap-1 px-4 py-2.5 min-h-[40px] text-[12px] font-bold rounded-full active:scale-[0.98] transition"
-            style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+            style={{ background: 'var(--ink)', color: 'var(--paper)' }}
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
             추가
@@ -80,14 +81,11 @@ export default async function DogsPage() {
             <div
               className="inline-flex w-14 h-14 rounded-full items-center justify-center mb-4"
               style={{
-                background: 'var(--bg)',
+                background: 'var(--paper)',
                 border: '1px solid var(--rule)',
               }}
             >
-              <DogIcon
-                className="w-6 h-6 text-terracotta"
-                strokeWidth={1.5}
-              />
+              <DogPawMark className="w-6 h-6 text-terracotta" />
             </div>
             <span className="kicker">First Dog · 첫 아이</span>
             <h3
@@ -108,7 +106,7 @@ export default async function DogsPage() {
             <Link
               href="/dogs/new"
               className="mt-6 inline-flex items-center gap-1.5 px-6 py-3 text-[12px] font-bold rounded-full active:scale-[0.98] transition-all"
-              style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+              style={{ background: 'var(--ink)', color: 'var(--paper)' }}
             >
               <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
               아이 등록하기
@@ -137,10 +135,7 @@ export default async function DogsPage() {
                         className="object-cover"
                       />
                     ) : (
-                      <DogIcon
-                        className="w-5 h-5 text-muted"
-                        strokeWidth={1.5}
-                      />
+                      <DogPawMark className="w-5 h-5 text-muted" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">

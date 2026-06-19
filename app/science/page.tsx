@@ -78,7 +78,7 @@ export default async function SciencePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const planHref = user ? '/dogs/new' : '/signup'
+  const planHref = user ? '/dogs/new' : '/start'
 
   const conditionKeys = Object.keys(CHRONIC_CONDITION_LABELS) as Array<keyof typeof CHRONIC_CONDITION_LABELS>
 
@@ -174,6 +174,15 @@ export default async function SciencePage() {
                 </span>
               ))}
             </div>
+            {/* 교육 페이지 딥링크 — 영양/질환 맥락에서 '왜 신선식인가' /why-fresh 로 (FD IA: 과학→교육) */}
+            <Reveal delay={120}>
+              <div className="pt-8 flex">
+                <Button href="/why-fresh" tone="outline" size="sm">
+                  왜 신선식인지 더 알아보기
+                  <ArrowRight size={15} strokeWidth={2.4} />
+                </Button>
+              </div>
+            </Reveal>
           </Container>
         </Section>
 
