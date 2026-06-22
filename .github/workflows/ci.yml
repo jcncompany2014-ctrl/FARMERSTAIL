@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 8
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -75,7 +75,7 @@ jobs:
       NEXT_PUBLIC_BIZ_ECOMMERCE_NUMBER: '제2026-서울-0000호'
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -112,7 +112,7 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -149,7 +149,7 @@ jobs:
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
