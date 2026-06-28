@@ -25,7 +25,6 @@ import {
   ChevronRight,
   LogOut,
   Coins,
-  UserPlus,
   Mail,
   HelpCircle,
   FileText,
@@ -53,7 +52,6 @@ type Props = {
   orderCount: number
   subCount: number
   pointBalance: number
-  wishCount: number
 }
 
 export default function MypageClient({
@@ -62,7 +60,6 @@ export default function MypageClient({
   orderCount,
   subCount,
   pointBalance,
-  wishCount,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -234,7 +231,7 @@ export default function MypageClient({
       {/* ──────────────────────────────────────────────────────────────
           Stat grid — orders / subs / coupons / wish (4-col)
           ────────────────────────────────────────────────────────────── */}
-      {(orderCount > 0 || subCount > 0 || wishCount > 0) && (
+      {(orderCount > 0 || subCount > 0) && (
         <section style={{ padding: '10px 20px 0' }}>
           <div
             className="grid"
@@ -261,13 +258,6 @@ export default function MypageClient({
               value={subCount}
               unit="건"
               tone="sage"
-            />
-            <StatCell
-              href="/mypage/wishlist"
-              kicker="Wish"
-              value={wishCount}
-              unit="개"
-              tone="yellow"
             />
           </div>
         </section>
@@ -311,15 +301,9 @@ export default function MypageClient({
       </MenuGroup>
 
       <MenuGroup kicker="Help · 도움말" topPad={20}>
-        <MenuItem href="/chat" Icon={Sparkles} label="AI 영양사 상담" />
+        <MenuItem href="/chat" Icon={Sparkles} label="AI 영양 상담" />
         <MenuItem href="/business" Icon={HelpCircle} label="고객센터" />
-        <MenuItem href="/faq" Icon={FileText} label="자주 묻는 질문" />
-        <MenuItem
-          href="/mypage/referral"
-          Icon={UserPlus}
-          label="친구 초대 · 적립금"
-          last
-        />
+        <MenuItem href="/faq" Icon={FileText} label="자주 묻는 질문" last />
       </MenuGroup>
 
       {/* 약관·정책 */}
@@ -602,7 +586,7 @@ function MenuItem({
   return (
     <Link
       href={href}
-      className="flex items-center justify-between transition"
+      className="flex items-center justify-between transition active:opacity-60"
       style={{
         padding: '14px 16px',
         borderBottom,

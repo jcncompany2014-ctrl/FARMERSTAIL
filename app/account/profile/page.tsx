@@ -13,9 +13,8 @@ import { Eyebrow } from '@/components/web/fd/ui'
 /**
  * /account/profile — 기본 프로필 편집.
  *
- * /account 의 hub 에서 진입. 로그인 필수. 이름/휴대폰/생일을 편집할 수 있음.
- * 생일 (월/일) 을 채우면 생일 당일 자동으로 환영 쿠폰 메일이 발송됨
- * (cron + 마케팅 수신 동의 조건).
+ * /account 의 hub 에서 진입. 로그인 필수. 이름/휴대폰을 편집할 수 있음.
+ * (견주 생일 입력 폐기 2026-06-27 — 생일 할인은 강아지 생일 기준.)
  */
 
 export const dynamic = 'force-dynamic'
@@ -41,7 +40,7 @@ export default async function ProfileEditPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('name, phone, birth_year, birth_month, birth_day, agree_email, tier, cumulative_spend')
+    .select('name, phone, tier, cumulative_spend')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -98,7 +97,7 @@ export default async function ProfileEditPage() {
             className="mt-2 text-[12px] md:text-[14px]"
             style={{ color: 'var(--fd-muted)' }}
           >
-            이름·연락처·생일을 변경할 수 있어요. 이메일은 변경 시 별도 인증
+            이름·연락처를 변경할 수 있어요. 이메일은 변경 시 별도 인증
             절차가 필요해요.
           </p>
         </section>
@@ -128,9 +127,6 @@ export default async function ProfileEditPage() {
               initial={{
                 name: profile?.name ?? null,
                 phone: profile?.phone ?? null,
-                birth_year: profile?.birth_year ?? null,
-                birth_month: profile?.birth_month ?? null,
-                birth_day: profile?.birth_day ?? null,
               }}
             />
           </div>
@@ -162,22 +158,6 @@ export default async function ProfileEditPage() {
             <PasswordChangeButton email={user.email ?? ''} />
           </div>
 
-          {!profile?.agree_email && (
-            <p
-              className="mt-4 text-[11.5px] md:text-[12.5px] leading-relaxed"
-              style={{ color: 'var(--fd-muted)' }}
-            >
-              ※ 생일 쿠폰 메일을 받으시려면{' '}
-              <Link
-                href="/mypage/consent"
-                className="font-bold underline underline-offset-2"
-                style={{ color: 'var(--fd-coral-text)' }}
-              >
-                마케팅 수신 동의
-              </Link>{' '}
-              가 필요해요.
-            </p>
-          )}
         </section>
 
         <section className="px-5 md:px-8 mt-8 md:mt-12">

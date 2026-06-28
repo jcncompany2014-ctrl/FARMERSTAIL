@@ -114,6 +114,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         />
         <Calendar
           size={14}
+          aria-hidden
           color={disabled ? V3.inkFaint : V3.inkMute}
           strokeWidth={2}
           className="absolute pointer-events-none"

@@ -36,6 +36,7 @@ import {
 import { renderNewsletterWelcome } from './templates/newsletter-welcome'
 import { renderNewsletterVol01 } from './templates/newsletter-vol-01'
 import { renderPersonalizationCycle } from './templates/personalization-cycle'
+import { renderQuarterlyReport } from './templates/quarterly-report'
 import { paymentMethodLabel } from '@/lib/payments/toss'
 import { pushToUser } from '@/lib/push'
 
@@ -487,12 +488,8 @@ export async function notifyAbandonedCart(
 export async function notifyWelcome(
   input: { email: string; name: string | null },
 ) {
-  // 환영 쿠폰 코드는 env (WELCOME_COUPON_CODE) 우선, 기본 'WELCOME5000'.
-  // admin/coupons 에 활성화된 동일 코드가 있어야 실제 적용됨.
-  const couponCode = (process.env.WELCOME_COUPON_CODE ?? 'WELCOME5000').toUpperCase()
   const { subject, html } = renderWelcome({
     recipientName: input.name ?? '보호자',
-    couponCode,
   })
   await sendEmail({
     to: input.email,
@@ -605,11 +602,9 @@ export async function notifyNewsletterWelcome(input: {
   email: string
   unsubscribeToken: string
 }) {
-  const couponCode = (process.env.WELCOME_COUPON_CODE ?? 'WELCOME5000').toUpperCase()
   const { subject, html } = renderNewsletterWelcome({
     email: input.email,
     unsubscribeToken: input.unsubscribeToken,
-    couponCode,
   })
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
   return sendEmail({
@@ -774,5 +769,48 @@ export async function notifyPersonalizationCycle(input: {
     tag: 'personalization-cycle',
     // 같은 (dog, cycle) 조합은 한 번만 — 재전송 방지.
     idempotencyKey: `personalization-cycle:${input.dogId}:${input.cycleNumber}`,
+  })
+}
+
+/**
+ * 분기 맞춤 영양 리포트 메일. cron `/api/cron/quarterly-report` 이 새싹 이상
+ * 등급 회원에게 분기 1회 발송 (등급 혜택). 본인 강아지 데이터 요약이라
+ * 거래/정보성 — 마케팅 수신동의 게이트 없음.
+ */
+export async function notifyQuarterlyReport(input: {
+  email: string
+  recipientName: string
+  dogName: string
+  dogId: string
+  /** 멱등 키용 분기 키. 예: "2026-Q2" */
+  quarterKey: string
+  /** 표시용 분기 라벨. 예: "2026년 2분기" */
+  quarterLabel: string
+  weightKg: number | null
+  bcsLabel: string | null
+  feedG: number | null
+  merKcal: number | null
+  proteinPct: number | null
+  fatPct: number | null
+}) {
+  const { subject, html } = renderQuarterlyReport({
+    recipientName: input.recipientName,
+    dogName: input.dogName,
+    dogId: input.dogId,
+    quarterLabel: input.quarterLabel,
+    weightKg: input.weightKg,
+    bcsLabel: input.bcsLabel,
+    feedG: input.feedG,
+    merKcal: input.merKcal,
+    proteinPct: input.proteinPct,
+    fatPct: input.fatPct,
+  })
+  return sendEmail({
+    to: input.email,
+    subject,
+    html,
+    tag: 'quarterly-report',
+    // 같은 (dog, 분기) 조합은 한 번만 — 재전송 방지.
+    idempotencyKey: `quarterly-report:${input.dogId}:${input.quarterKey}`,
   })
 }

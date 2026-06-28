@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
+import { petName } from '@/lib/korean'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -104,7 +105,7 @@ async function runRotation(): Promise<Response> {
     }
 
     const cycle = Math.floor(sub.total_deliveries / 4)
-    const title = `${dog.name}이 ${sub.total_deliveries}번째 박스 — 단백질 rotation`
+    const title = `${petName(dog.name)}가 ${sub.total_deliveries}번째 박스 — 단백질 rotation`
     const body =
       cycle === 1
         ? '4번째 박스 완료! 다음엔 다른 단백질도 시도해 보세요. variety 가 알레르기 risk 를 낮춰요.'

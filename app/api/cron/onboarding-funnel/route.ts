@@ -66,7 +66,7 @@ export async function GET(req: Request) {
       p.id,
       {
         title: '강아지 등록하시고 무료 분석 받아보세요 🐶',
-        body: '체중·BCS·식이 정보만 있으면 영양사 처방을 무료로 보내드려요',
+        body: '체중·BCS·식이 정보만 있으면 맞춤 분석을 무료로 보내드려요',
         url: '/dogs/new',
         tag: `onboarding-stage1-${p.id}`,
       },

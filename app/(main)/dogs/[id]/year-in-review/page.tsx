@@ -10,7 +10,6 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Share2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { josa } from '@/lib/korean'
@@ -317,14 +316,7 @@ export default async function YearInReviewPage({
       </section>
 
       {/* CTA */}
-      <section className="px-5 mt-5 grid grid-cols-2 gap-2.5">
-        <Link
-          href={`/dogs/${dogRow.id}/share`}
-          className="flex items-center justify-center gap-1.5 py-3 rounded border border-rule bg-bg-3 text-[12px] font-bold text-text hover:border-terracotta hover:text-terracotta transition"
-        >
-          <Share2 className="w-3.5 h-3.5" strokeWidth={2} />
-          공유하기
-        </Link>
+      <section className="px-5 mt-5">
         <Link
           href={`/dogs/${dogRow.id}`}
           className="flex items-center justify-center gap-1.5 py-3 rounded text-[12px] font-bold text-white transition active:scale-[0.99]"
@@ -373,7 +365,7 @@ function StatCard({
         <p
           className="font-sans mt-0.5"
           style={{
-            fontSize: 18,
+            fontSize: 16,
             fontWeight: 800,
             color: 'var(--ink)',
             letterSpacing: '-0.015em',

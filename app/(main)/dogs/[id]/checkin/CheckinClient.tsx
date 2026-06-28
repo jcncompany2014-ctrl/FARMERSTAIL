@@ -212,7 +212,9 @@ export default function CheckinClient({
         .from('dog_checkin_photos')
         .upload(path, file, { contentType: file.type, upsert: false })
       if (upErr) {
-        setErr(upErr.message || '사진 업로드 실패')
+        // audit #69 일관성 — 원본 storage error message(내부 경로·정책 details) 노출 제거.
+        console.error('[checkin] photo upload failed:', upErr.message)
+        setErr('사진 업로드에 실패했어요')
         return
       }
       // signed URL 발급 (1시간) — bucket private 라 public URL 안 됨.
@@ -524,6 +526,7 @@ export default function CheckinClient({
           maxLength={500}
           value={freeText}
           onChange={(e) => setFreeText(e.target.value)}
+          aria-label="자유 응답 (선택)"
           placeholder="자유롭게 적어주세요. 예: 평소보다 활발해 보여요 / 가끔 토해요"
           className="ck-textarea"
         />
@@ -610,7 +613,7 @@ export default function CheckinClient({
       )}
 
       {err && (
-        <div className="ck-err">
+        <div className="ck-err" role="alert">
           <AlertCircle size={14} strokeWidth={2} />
           {err}
         </div>

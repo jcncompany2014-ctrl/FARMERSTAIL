@@ -40,7 +40,9 @@ export async function POST() {
     .eq('provider', 'tractive')
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    // audit #69: 원본 DB message 클라이언트 노출 제거 — 서버 로그만(2026-06-20).
+    console.error('[tractive/disconnect] db error:', error.message)
+    return NextResponse.json({ error: 'disconnect_failed' }, { status: 500 })
   }
   return NextResponse.json({ ok: true })
 }

@@ -89,8 +89,7 @@ const PORTION_OPTIONS = [
 ]
 type PortionWeeks = (typeof PORTION_OPTIONS)[number]['value']
 
-const SHIPPING_FREE_THRESHOLD = 30000
-const SHIPPING_FEE = 3000
+// 구독료에 배송비 포함 — 무료배송/배송비 임계 시스템 폐지(2026-06-27 사장님 지시).
 
 export type OrderProduct = {
   id: string
@@ -382,7 +381,7 @@ export default function OrderClient({
     (sum, it) => sum + it.pricePerPack * it.quantity,
     0,
   )
-  const shippingFee = subtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_FEE
+  const shippingFee = 0
   const totalAmount = subtotal + shippingFee
   const totalCycleG = items.reduce((s, it) => s + it.deliveredG, 0)
 
@@ -467,8 +466,7 @@ export default function OrderClient({
         (s, it) => s + it.pricePerPack * it.quantity,
         0,
       )
-      const subShipping =
-        subSubtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_FEE
+      const subShipping = 0
       const subTotal = subSubtotal + subShipping
       // 박스 정기배송 다음 배송일:
       //   · 4주치 (풀 화식) — 캘린더 월 기준 (같은 날 다음 달)
@@ -1003,14 +1001,6 @@ export default function OrderClient({
             <div className="ord-summary-row">
               <span>상품 합계</span>
               <span>{subtotal.toLocaleString()}원</span>
-            </div>
-            <div className="ord-summary-row">
-              <span>배송비</span>
-              <span>
-                {shippingFee === 0
-                  ? '무료'
-                  : `${shippingFee.toLocaleString()}원`}
-              </span>
             </div>
             <div className="ord-summary-divide" />
             <div className="ord-summary-row">

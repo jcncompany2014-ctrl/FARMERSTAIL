@@ -44,9 +44,9 @@
  *   - backdrop click 으로 닫힘 (dismissOnBackdrop=true 기본)
  */
 
-import { useCallback, useEffect, useRef, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
-import { V3, V3FontWeight, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3FontSize, V3LetterSpacing, V3Radius } from '@/lib/design/tokens'
 
 interface ModalProps {
   open: boolean
@@ -110,7 +110,10 @@ function ModalRoot({
     [dismissOnBackdrop, onClose],
   )
 
-  const titleId = title ? 'modal-title' : undefined
+  // 하드코딩 'modal-title' 은 같은 페이지에 Modal 2개(둘 다 open prop으로 항상 DOM
+  // 상주)면 id 중복 → aria-labelledby 깨짐. useId 로 인스턴스별 유일 id(2026-06-20).
+  const reactId = useId()
+  const titleId = title ? `${reactId}-title` : undefined
 
   return (
     <dialog
@@ -154,7 +157,7 @@ function ModalRoot({
                   margin: 0,
                   fontFamily: 'var(--font-sans)',
                   fontWeight: V3FontWeight.black,
-                  fontSize: 16,
+                  fontSize: V3FontSize.md,
                   color: V3.ink,
                   letterSpacing: V3LetterSpacing.heading,
                   lineHeight: 1.3,
@@ -211,7 +214,7 @@ function ModalBody({
       className={className}
       style={{
         padding: '12px 18px 18px',
-        fontSize: 13.5,
+        fontSize: V3FontSize.base,
         color: V3.ink,
         lineHeight: 1.55,
       }}

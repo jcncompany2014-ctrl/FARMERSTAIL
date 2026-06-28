@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { pushToUser } from '@/lib/push'
+import { petName } from '@/lib/korean'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -103,7 +104,7 @@ async function runCheckinReminder(): Promise<Response> {
       await pushToUser(
         order.user_id,
         {
-          title: `${dog.name}이는 어떠신가요? 🐾`,
+          title: `${petName(dog.name)}는 어떠신가요? 🐾`,
           body: '첫 박스 한 주가 지났네요. 30초만 시간 내주실래요?',
           url: `/dogs/${dog.id}/first-checkin`,
           tag: `first-box-checkin-${dog.id}`,

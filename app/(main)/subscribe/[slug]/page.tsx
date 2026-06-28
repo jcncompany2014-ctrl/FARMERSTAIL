@@ -52,10 +52,10 @@ export default async function SubscribePage({
           정기배송이 가능한 제품이 아니에요
         </p>
         <Link
-          href="/products"
+          href="/start"
           className="mt-4 inline-block text-[13.5px] text-text font-bold underline"
         >
-          ← 제품 목록
+          ← 맞춤 식단 시작하기
         </Link>
       </div>
     )

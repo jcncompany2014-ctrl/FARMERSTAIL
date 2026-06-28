@@ -26,7 +26,6 @@ export default async function MyPage() {
     orderCountRes,
     subCountRes,
     ledgerRes,
-    wishCountRes,
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -52,10 +51,6 @@ export default async function MyPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabase
-      .from('wishlists')
-      .select('product_id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
   ])
 
   const profile = (profileRes.data as Profile | null) ?? null
@@ -70,7 +65,6 @@ export default async function MyPage() {
       orderCount={orderCountRes.count ?? 0}
       subCount={subCountRes.count ?? 0}
       pointBalance={pointBalance}
-      wishCount={wishCountRes.count ?? 0}
     />
   )
 }

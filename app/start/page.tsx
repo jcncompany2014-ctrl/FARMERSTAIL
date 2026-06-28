@@ -34,7 +34,7 @@ const FLOW: [string, string, string, string][] = [
 
 export default function StartPage() {
   return (
-    <WebChrome cartCount={0}>
+    <WebChrome>
       <main>
         {/* Hero */}
         <Section bg="offwhite" pad="md">

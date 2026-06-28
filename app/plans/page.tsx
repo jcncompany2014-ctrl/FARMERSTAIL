@@ -171,7 +171,7 @@ export default async function PlansPage() {
   )
 
   return (
-    <WebChrome cartCount={0}>
+    <WebChrome>
       <main>
         <JsonLd id="ld-plans-crumbs" data={crumbLd} />
         <JsonLd id="ld-plans-faq" data={faqLd} />
@@ -241,7 +241,7 @@ export default async function PlansPage() {
               ))}
             </div>
             <p className="pt-5 text-[12px]" style={{ color: 'var(--fd-muted)', letterSpacing: '0.02em', lineHeight: 1.6 }}>
-              모든 주기 공통 — 3만원 이상 무료 배송, 언제든 해지, 첫 회차 미개봉 시 7일 내 환불.
+              모든 주기 공통 — 배송비 구독료 포함, 언제든 해지, 첫 회차 미개봉 시 7일 내 환불.
             </p>
           </Container>
         </Section>

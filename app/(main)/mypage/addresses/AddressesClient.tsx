@@ -13,7 +13,7 @@ import Link from 'next/link'
 import { MapPin, Pencil, Star, Trash2 } from 'lucide-react'
 import type { Address } from '@/lib/commerce/addresses'
 import { useToast } from '@/components/ui/Toast'
-import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3FontSize, V3Radius } from '@/lib/design/tokens'
 import { Mono, Modal, Badge } from '@/components/v3'
 
 export default function AddressesClient({ initial }: { initial: Address[] }) {
@@ -118,7 +118,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
                 <div
                   style={{
                     fontFamily: 'var(--font-sans)',
-                    fontSize: 13.5,
+                    fontSize: V3FontSize.base,
                     fontWeight: V3FontWeight.bold,
                     color: V3.ink,
                     lineHeight: 1.35,
@@ -138,7 +138,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
                 <div
                   style={{
                     marginTop: 8,
-                    fontSize: 12,
+                    fontSize: V3FontSize.sm,
                     color: V3.ink,
                     lineHeight: 1.55,
                   }}
@@ -167,13 +167,14 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
                 className="flex-1 transition disabled:opacity-50"
                 style={{
                   padding: '10px 0',
-                  fontSize: 12,
+                  fontSize: V3FontSize.sm,
                   fontWeight: V3FontWeight.bold,
                   color: V3.inkMute,
                   background: 'transparent',
-                  borderRight: `1px solid ${V3.rule}`,
+                  // border(shorthand)가 borderRight 뒤에 오면 우측 구분선을 리셋함
+                  // → border:none 먼저, borderRight 나중에 적용해 구분선 보존(2026-06-20 수정).
                   border: 'none',
-                  borderLeft: 'none',
+                  borderRight: `1px solid ${V3.rule}`,
                 }}
               >
                 기본으로
@@ -185,7 +186,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
               style={{
                 gap: 4,
                 padding: '10px 0',
-                fontSize: 12,
+                fontSize: V3FontSize.sm,
                 fontWeight: V3FontWeight.bold,
                 color: V3.inkMute,
                 borderRight: `1px solid ${V3.rule}`,
@@ -203,7 +204,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
               style={{
                 gap: 4,
                 padding: '10px 0',
-                fontSize: 12,
+                fontSize: V3FontSize.sm,
                 fontWeight: V3FontWeight.bold,
                 color: V3.sale,
                 background: 'transparent',
@@ -246,7 +247,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
             style={{
               padding: '10px 18px',
               borderRadius: V3Radius.sm,
-              fontSize: 12,
+              fontSize: V3FontSize.sm,
               fontWeight: V3FontWeight.bold,
               background: V3.paperHi,
               color: V3.inkMute,
@@ -264,7 +265,7 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
             style={{
               padding: '10px 18px',
               borderRadius: V3Radius.sm,
-              fontSize: 12,
+              fontSize: V3FontSize.sm,
               fontWeight: V3FontWeight.bold,
               background: V3.sale,
               color: V3.paperHi,

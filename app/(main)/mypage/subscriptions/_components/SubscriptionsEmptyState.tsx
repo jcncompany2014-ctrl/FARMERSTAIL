@@ -63,7 +63,7 @@ export default function SubscriptionsEmptyState() {
         꾸준한 영양 공급, 더 저렴한 가격. 정기배송으로 시작해보세요
       </p>
       <Link
-        href="/products"
+        href="/start"
         className="inline-flex items-center active:scale-[0.98] transition"
         style={{
           marginTop: 20,
@@ -77,7 +77,7 @@ export default function SubscriptionsEmptyState() {
           textDecoration: 'none',
         }}
       >
-        제품 둘러보기
+        정기배송 시작하기
       </Link>
     </div>
   )

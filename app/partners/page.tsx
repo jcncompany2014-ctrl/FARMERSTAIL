@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   // layout template "%s | 파머스테일" 가 브랜드명 1회 부착 → 페이지명만(중복 방지, 회차149).
   title: '농장 파트너',
   description:
-    '강원 평창의 한우, 전남 완도의 자연산 연어, 제주 구좌의 당근 — 파머스테일이 직접 계약한 농가와 작업장.',
+    '재료의 출처를 농가 단위까지 밝히는 것을 원칙으로 삼습니다. 그 원칙에 맞는 농가를 한 곳씩 찾아가고 있어요.',
   alternates: { canonical: '/partners' },
   openGraph: {
     title: '농장 파트너 | 파머스테일',
@@ -58,56 +58,11 @@ type Partner = {
   image_url?: string | null
 }
 
-// Fallback — DB 가 비어 있거나 fetch 가 실패한 환경 (개발/프리뷰) 에서 그대로 사용.
-const FALLBACK_PARTNERS: Partner[] = [
-  {
-    region: '강원 평창',
-    name: '평창 청옥 한우농가',
-    ingredient: '한우 안심 / 양지',
-    body:
-      '해발 700m 이상 청정 목초지에서 방목·곡물 병행 사육. 도축 24시간 내 작업장 도착, 익일 조리.',
-    cert: '1++ / HACCP',
-  },
-  {
-    region: '전남 완도',
-    name: '완도 청해진수산',
-    ingredient: '자연산 연어 / 황태',
-    body:
-      '양식이 아닌 자연산만 입고. 수은·중금속 검사 매 배치 외부기관 의뢰.',
-    cert: '수산물 위생증명',
-  },
-  {
-    region: '제주 구좌',
-    name: '구좌 무농약 당근밭',
-    ingredient: '당근 / 비트',
-    body:
-      '4년 윤작·무농약 인증. 화학 비료 / 제초제 일체 미사용. 수확 후 24시간 내 입고.',
-    cert: '무농약 인증',
-  },
-  {
-    region: '충북 괴산',
-    name: '괴산 유기 귀리',
-    ingredient: '귀리 / 현미',
-    body:
-      '국내 1세대 유기 곡물 농가. 잔류 농약 제로. 도정 후 1주 안에 사용.',
-    cert: '유기농 인증',
-  },
-  {
-    region: '경기 이천',
-    name: '이천 작업장 (자체)',
-    ingredient: '조리 · 소분 · 냉동',
-    body:
-      'HACCP 준비 단계 시설. 72°C 수비드 저온 조리 → 급속 냉동 (−40°C) 콜드체인.',
-    cert: 'HACCP 준비',
-  },
-  {
-    region: '전국',
-    name: 'CJ대한통운 콜드체인',
-    ingredient: '드라이아이스 배송',
-    body:
-      '조리 후 48시간 내 도착 보증. 도서산간 추가 1일. 재배송 시 신선도 보증.',
-  },
-]
+// 아직 공개할 수 있는 실제 계약 농가가 없으므로 fallback 은 비워 둔다.
+// DB(partners 테이블, /admin/partners)에 실제 계약 농가가 등록되면 그 데이터가
+// 카드로 표시되고, 비어 있는 동안에는 "함께할 농가를 찾습니다" 비전 섹션이 노출된다.
+// (실 계약·인증 확보 시 위 형태로 데이터만 채우면 자동 복원 — 회차 정리 2026-06)
+const FALLBACK_PARTNERS: Partner[] = []
 
 function planHref(isAuthed: boolean) {
   return isAuthed ? '/dogs/new' : '/start'
@@ -140,7 +95,7 @@ export default async function PartnersPage() {
   ])
 
   return (
-    <WebChrome cartCount={0}>
+    <WebChrome>
     <JsonLd id="ld-partners-crumbs" data={crumbLd} />
     <main
       className="pb-12 md:pb-20 mx-auto"
@@ -191,12 +146,13 @@ export default async function PartnersPage() {
           className="mt-4 md:mt-6 text-[13px] md:text-[16.5px] leading-relaxed max-w-xl"
           style={{ color: 'var(--fd-muted)' }}
         >
-          강원 평창의 한우, 전남 완도의 자연산 연어, 제주 구좌의 당근. 우리는
-          재료의 원산지를 농가 단위까지 표기합니다. 익명의 ‘수입산 육류’나
-          ‘복합 곡물’이 들어가는 일은 없습니다.
+          우리는 재료의 원산지를 농가 단위까지 밝히는 것을 원칙으로 삼습니다.
+          익명의 ‘수입산 육류’나 ‘복합 곡물’에 기대지 않고, 출처가 분명한
+          원료를 한 곳씩 찾아가고 있어요.
         </p>
       </section>
 
+      {partners.length > 0 ? (
       <section className="px-5 md:px-12 pb-12">
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {partners.map((p) => (
@@ -276,6 +232,78 @@ export default async function PartnersPage() {
           ))}
         </ul>
       </section>
+      ) : (
+      <section className="px-5 md:px-12 pb-12">
+        <div
+          className="rounded-[12px] px-5 py-8 md:px-10 md:py-12"
+          style={{
+            background: 'var(--fd-cream)',
+            boxShadow: 'inset 0 0 0 1px var(--fd-line)',
+          }}
+        >
+          <h2
+            className="font-chunky text-[19px] md:text-[26px]"
+            style={{
+              fontWeight: 800,
+              color: 'var(--fd-pine)',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            이런 농가와 함께하고 싶어요
+          </h2>
+          <p
+            className="mt-2 md:mt-3 text-[13px] md:text-[15px] leading-relaxed max-w-xl"
+            style={{ color: 'var(--fd-muted)' }}
+          >
+            아직 공개할 수 있는 계약 농가는 없습니다. 대신, 우리가 함께할
+            농가를 고를 때 지키려는 기준을 먼저 약속드려요. 이 기준에 맞는
+            곳들을 한 곳씩 찾아가고 있어요.
+          </p>
+          <ul className="mt-5 md:mt-7 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+            {[
+              {
+                t: '출처가 분명한 곳',
+                b: '원산지를 농가 단위까지 밝힐 수 있는 곳. 익명의 “수입산”에 기대지 않아요.',
+              },
+              {
+                t: '정직하게 기르는 곳',
+                b: '사육·재배 과정을 투명하게 보여줄 수 있는 곳. 숨길 게 없는 원료만.',
+              },
+              {
+                t: '신선하게 닿는 곳',
+                b: '수확·도축에서 조리까지 짧게. 가까운 곳에서, 빠르게.',
+              },
+            ].map((c) => (
+              <li
+                key={c.t}
+                className="rounded-[10px] p-4 md:p-5"
+                style={{ background: 'var(--fd-offwhite)' }}
+              >
+                <div className="inline-flex items-center gap-1.5 mb-2">
+                  <Sprout
+                    className="w-4 h-4"
+                    strokeWidth={2}
+                    color="var(--fd-coral-text)"
+                  />
+                  <span
+                    className="font-bold text-[14px] md:text-[16px]"
+                    style={{ color: 'var(--fd-pine)' }}
+                  >
+                    {c.t}
+                  </span>
+                </div>
+                <p
+                  className="text-[12.5px] md:text-[13.5px] leading-relaxed"
+                  style={{ color: 'var(--fd-muted)' }}
+                >
+                  {c.b}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+      )}
 
       <section className="px-5 md:px-12">
         <div
@@ -297,7 +325,7 @@ export default async function PartnersPage() {
             className="mt-2 md:mt-4 text-[12.5px] md:text-[15px] leading-relaxed mx-auto max-w-xl"
             style={{ color: 'rgba(245,240,230,0.78)' }}
           >
-            새 파트너는 매년 분기별로 합류합니다. 함께 작업하고 싶은 농가는
+            함께할 농가를 늘 찾고 있어요. 함께 작업하고 싶은 농가는
             아래 메일로 제안해 주세요.
           </p>
           <a

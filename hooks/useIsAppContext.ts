@@ -9,7 +9,7 @@ import { useSyncExternalStore } from 'react'
  * 이 훅의 결과로:
  *   - 라우팅: 앱 전용 라우트 (/dashboard, /dogs/*, /mypage/* 등) 를 웹 사용자
  *     로부터 막을 때 client-side fallback 검증
- *   - UI: 웹용 헤더 (마켓컬리 톤) vs 앱용 chrome (모바일 폰) 구분
+ *   - UI: 웹용 헤더 (파머스독/FD 톤) vs 앱용 chrome (모바일 폰) 구분
  *   - 쿠키 동기화: AppContextCookieSync 가 이 값을 보고 `ft_app` 쿠키 설정
  *
  * 권위 있는 판정은 server-side cookie 기반 (middleware) 가 한다 — 클라이언트

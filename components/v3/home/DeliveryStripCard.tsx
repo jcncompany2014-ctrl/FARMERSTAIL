@@ -10,7 +10,7 @@
 
 import Link from 'next/link'
 import { Truck, ArrowRight } from 'lucide-react'
-import { V3, V3FontWeight } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3FontSize } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 
 interface DeliveryStripCardProps {
@@ -31,7 +31,9 @@ export default function DeliveryStripCard({
   channelLabel = '정기배송',
   arrivalLabel,
   itemLabel,
-  href = '/subscriptions',
+  // 실제 라우트는 /mypage/subscriptions — `/subscriptions`(최상위) 라우트는 없어
+  // 기본값이 404 데드링크였음(2026-06-19 수정). 호출부 미지정 시에도 안전하게.
+  href = '/mypage/subscriptions',
 }: DeliveryStripCardProps) {
   const inner = (
     <div
@@ -64,7 +66,7 @@ export default function DeliveryStripCard({
           style={{
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 13.5,
+            fontSize: V3FontSize.base,
             color: V3.ink,
             marginTop: 3,
             letterSpacing: '-0.015em',
@@ -79,7 +81,13 @@ export default function DeliveryStripCard({
   )
   return (
     <section style={{ padding: '0 20px 30px' }}>
-      {href ? <Link href={href}>{inner}</Link> : inner}
+      {href ? (
+        <Link href={href} className="block transition-transform active:scale-[0.99]">
+          {inner}
+        </Link>
+      ) : (
+        inner
+      )}
     </section>
   )
 }

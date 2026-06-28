@@ -7,7 +7,7 @@ import ChatClient from './ChatClient'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'AI 영양사',
+  title: 'AI 영양 상담',
   robots: { index: false, follow: false },
 }
 

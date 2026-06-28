@@ -48,8 +48,7 @@ const INTERVALS = [
   { value: 4, label: '4주마다', desc: '4주마다 배송' },
 ]
 
-const SHIPPING_FREE_THRESHOLD = 30000
-const SHIPPING_FEE = 3000
+// 구독료에 배송비 포함 — 무료배송/배송비 임계 시스템 폐지(2026-06-27 사장님 지시).
 
 let daumScriptLoaded = false
 let daumScriptLoading = false
@@ -151,7 +150,7 @@ export default function SubscribeClient({
 
     const unitPrice = product.sale_price ?? product.price
     const subtotal = unitPrice * quantity
-    const shippingFee = subtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_FEE
+    const shippingFee = 0
     const totalAmount = subtotal + shippingFee
 
     // R85-D4: KST helper — 자정 직후 (KST 00-08:59) UTC 기준 yyyy-mm-dd 가 1일 빠른
@@ -245,7 +244,7 @@ export default function SubscribeClient({
 
   const unitPrice = product.sale_price ?? product.price
   const subtotal = unitPrice * quantity
-  const shippingFee = subtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_FEE
+  const shippingFee = 0
   const totalAmount = subtotal + shippingFee
 
   // memo 는 서버에 별도 컬럼 없음 — 현재는 사용자 입력만 받고 future use 위해
@@ -484,19 +483,6 @@ export default function SubscribeClient({
                 {subtotal.toLocaleString()}원
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted">배송비</span>
-              <span className="text-text font-bold tabular-nums">
-                {shippingFee === 0
-                  ? '무료'
-                  : `${shippingFee.toLocaleString()}원`}
-              </span>
-            </div>
-            {shippingFee > 0 && (
-              <div className="text-[10.5px] text-muted tabular-nums">
-                {(SHIPPING_FREE_THRESHOLD - subtotal).toLocaleString()}원 더 담으면 무료배송!
-              </div>
-            )}
             <div className="pt-2 border-t border-rule flex justify-between">
               <span className="font-bold text-text">회당 결제 금액</span>
               <span className="text-[18px] font-black text-terracotta tabular-nums">

@@ -1,7 +1,7 @@
 /**
  * v3 홈 화면 sections barrel export.
  *
- * **AppChrome (data-ft-chrome="app") 안에서만 사용.** 웹 (랜딩/blog/events)
+ * **AppChrome (data-ft-chrome="app") 안에서만 사용.** 웹 (랜딩/blog/마케팅)
  * 에서 import 하지 말 것.
  */
 

@@ -35,7 +35,18 @@ import KakaoLoginButton from '@/components/KakaoLoginButton'
 import { PhotoSlot } from '@/components/web/fd/ui'
 import FdRecipeSheet from '@/components/web/fd/FdRecipeSheet'
 
-type Opt = { v: string; label: string }
+type Opt = { v: string; label: string; illust?: string; src?: string; imgW?: number; flip?: boolean; desc?: string }
+/** 한 페이지 안의 개별 질문(내용 적은 질문들을 한 스텝에 묶을 때 — 입맛+식사). */
+type SubQ = {
+  key: string
+  title: string
+  sub?: string
+  multi: boolean
+  required: boolean
+  visual?: boolean
+  gridCols?: number
+  options: Opt[]
+}
 type StepDef = {
   key: string
   label: string
@@ -43,44 +54,67 @@ type StepDef = {
   sub?: string
   multi: boolean
   required: boolean
+  /** true 면 옵션마다 누끼 카드(보고 고르는 시각 선택). false 면 텍스트 카드. */
+  visual?: boolean
+  /** >1 이면 옵션을 압축 그리드(세로 미니카드, 여러 개씩 한 줄)로 — 스크롤 최소화. 없으면 가로 행. */
+  gridCols?: number
+  /** 있으면 이 스텝은 여러 질문을 한 페이지에 묶어서 보여줌(답안 key 는 각 질문 key 로 독립). */
+  questions?: SubQ[]
+  /** 통합 페이지 맨 위에 박스 없이 넣는 누끼 일러스트 경로. */
+  heroSrc?: string
   options: Opt[]
 }
 
+// 옵션별 누끼 일러스트 라벨(사장님 제공 대기) — PhotoSlot placeholder, 실제 누끼는 src 주입.
 const STEPS: StepDef[] = [
   {
     key: 'body', label: '체형', title: (n) => `${n}의 체형은 어떤가요?`,
-    sub: '지금 몸 상태에 가장 가까운 걸 골라주세요.', multi: false, required: true,
+    sub: '지금 몸 상태에 가장 가까운 걸 골라주세요.', multi: false, required: true, visual: true,
     options: [
-      { v: 'slim', label: '말랐어요' },
-      { v: 'ideal', label: '적당해요' },
-      { v: 'chubby', label: '통통해요' },
+      { v: 'skinny', label: '많이 말랐어요', desc: '갈비뼈·골반이 그대로 드러나요', illust: '저체중 강아지 누끼 (갈비뼈·골반 뚜렷)', src: '/survey/body/skinny.png' },
+      { v: 'slim', label: '약간 말랐어요', desc: '갈비뼈 윤곽이 보이고 허리가 잘록해요', illust: '마른 체형 강아지 누끼 (갈비뼈 윤곽)', src: '/survey/body/slim.png' },
+      { v: 'ideal', label: '적당해요', desc: '갈비뼈가 만져지고 옆구리가 적당해요', illust: '이상 체형 강아지 누끼 (옆구리 곡선)', src: '/survey/body/ideal.png' },
+      { v: 'chubby', label: '약간 통통해요', desc: '갈비뼈가 잘 안 만져지고 통통해요', illust: '통통한 체형 강아지 누끼 (둥근 몸통)', src: '/survey/body/chubby.png' },
+      { v: 'obese', label: '많이 통통해요', desc: '갈비뼈가 안 만져지고 배가 처져요', illust: '비만 체형 강아지 누끼 (갈비뼈 안 보임)', src: '/survey/body/obese.png' },
     ],
   },
   {
     key: 'allergy', label: '알레르기', title: () => '피하고 싶은 단백질이 있나요?',
-    sub: '없으면 그냥 넘어가도 돼요. (복수 선택)', multi: true, required: false,
+    sub: '없으면 없어요를 선택해 주세요. (복수 선택)', multi: true, required: true, visual: true, gridCols: 3,
     options: [
-      { v: 'chicken', label: '닭' }, { v: 'beef', label: '소' }, { v: 'duck', label: '오리' },
-      { v: 'salmon', label: '연어' }, { v: 'lamb', label: '양' }, { v: 'pork', label: '돼지' },
+      { v: 'chicken', label: '닭', illust: '닭고기 원물 누끼', src: '/survey/protein/chicken.png', imgW: 74 },
+      { v: 'beef', label: '소', illust: '소고기 원물 누끼', src: '/survey/protein/beef.png', imgW: 100 },
+      { v: 'duck', label: '오리', illust: '오리고기 원물 누끼', src: '/survey/protein/duck.png', imgW: 78 },
+      { v: 'salmon', label: '연어', illust: '연어 원물 누끼', src: '/survey/protein/salmon.png', imgW: 102 },
+      { v: 'lamb', label: '양', illust: '양고기 원물 누끼', src: '/survey/protein/lamb.png', imgW: 94 },
+      { v: 'pork', label: '돼지', illust: '돼지고기 원물 누끼', src: '/survey/protein/pork.png', imgW: 98 },
       { v: 'none', label: '없어요' },
     ],
   },
   {
-    key: 'taste', label: '입맛', title: () => '입맛은 어떤 편인가요?', multi: false, required: false,
-    options: [
-      { v: 'good', label: '뭐든 잘 먹어요' }, { v: 'normal', label: '보통이에요' }, { v: 'picky', label: '까다로워요' },
-    ],
-  },
-  {
-    key: 'food', label: '현재 식사', title: () => '지금은 주로 뭘 먹나요?', multi: false, required: false,
-    options: [
-      { v: 'kibble', label: '사료 (건식)' }, { v: 'fresh', label: '화식·자연식' },
-      { v: 'mix', label: '사료 + 토핑' }, { v: 'unknown', label: '잘 모르겠어요' },
+    // 입맛 + 현재 식사 — 각각 내용이 적어 한 페이지로 통합. 답안 key 는 taste·food 그대로 보존.
+    key: 'meal', label: '식사 습관', title: () => '식사 습관이 궁금해요', multi: false, required: true, heroSrc: '/survey/meal-hero.png', options: [],
+    questions: [
+      {
+        key: 'taste', title: '입맛은 어떤 편인가요?', multi: false, required: true,
+        options: [
+          { v: 'good', label: '뭐든 잘 먹어요' }, { v: 'normal', label: '보통이에요' }, { v: 'picky', label: '까다로워요' },
+        ],
+      },
+      {
+        key: 'food', title: '지금은 주로 뭘 먹나요?', multi: false, required: true,
+        options: [
+          { v: 'kibble', label: '사료 (건식)' },
+          { v: 'fresh', label: '화식·자연식' },
+          { v: 'mix', label: '사료 + 토핑' },
+          { v: 'unknown', label: '잘 모르겠어요' },
+        ],
+      },
     ],
   },
   {
     key: 'health', label: '관심사', title: () => '특별히 신경 쓰는 부분이 있나요?',
-    sub: '해당되는 걸 모두 골라주세요. (복수 선택)', multi: true, required: false,
+    sub: '해당되는 걸 모두 골라주세요. (복수 선택)', multi: true, required: true,
     options: [
       { v: 'joint', label: '관절' }, { v: 'skin', label: '피부·털' }, { v: 'digest', label: '소화' },
       { v: 'dental', label: '치아' }, { v: 'weight', label: '체중' }, { v: 'none', label: '해당 없어요' },
@@ -88,13 +122,9 @@ const STEPS: StepDef[] = [
   },
 ]
 
-// 문항별 누끼 일러스트 라벨(사장님 2026-06-16) — PhotoSlot placeholder(실제 누끼는 src 주입).
-const QUESTION_ILLUST: Record<string, string> = {
-  body: '체형 일러스트 (강아지 옆모습)',
-  allergy: '단백질 누끼 (고기·생선·오리)',
-  taste: '밥그릇·간식 일러스트',
-  food: '사료·화식 누끼',
-  health: '건강 케어 일러스트',
+// 비주얼 아닌 스텝의 상단 사진(실제 이미지 경로).
+const QUESTION_PHOTO: Record<string, string> = {
+  health: '/survey/health.jpg',
 }
 
 const emailValid = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim())
@@ -151,10 +181,10 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
     birthYearNum >= currentYear - 100 &&
     birthYearNum <= currentYear - 14
 
-  function pickChip(v: string) {
-    const key = cur.key
+  // 옵션 토글 — key·multi 를 인자로(한 페이지에 질문 여러 개여도 각 질문 key 로 독립 저장).
+  function toggle(key: string, multi: boolean, v: string) {
     setAnswers((prev) => {
-      if (cur.multi) {
+      if (multi) {
         const arr = Array.isArray(prev[key]) ? (prev[key] as string[]) : []
         if (v === 'none') return { ...prev, [key]: arr.includes('none') ? [] : ['none'] }
         const base = arr.filter((x) => x !== 'none')
@@ -163,15 +193,165 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
       return { ...prev, [key]: prev[key] === v ? '' : v }
     })
   }
-  function chipActive(v: string) {
-    const c = answers[cur.key]
-    return cur.multi ? Array.isArray(c) && c.includes(v) : c === v
+  function isActive(key: string, v: string, multi: boolean) {
+    const c = answers[key]
+    return multi ? Array.isArray(c) && c.includes(v) : c === v
+  }
+  const answered = (key: string, multi: boolean, required: boolean) => {
+    if (!required) return true
+    const c = answers[key]
+    return multi ? Array.isArray(c) && c.length > 0 : !!c
   }
 
-  const canNext = (() => {
-    const c = answers[cur.key]
-    return !cur.required || (cur.multi ? Array.isArray(c) && c.length > 0 : !!c)
-  })()
+  const canNext = cur.questions
+    ? cur.questions.every((q) => answered(q.key, q.multi, q.required))
+    : answered(cur.key, cur.multi, cur.required)
+
+  // 한 질문의 옵션 영역 렌더. fill=true 면 남는 세로공간을 채움(단일 질문 페이지),
+  // false 면 자연 높이(한 페이지에 질문 여러 개 — 입맛+식사 통합).
+  function renderQuestion(
+    q: { key: string; multi: boolean; visual?: boolean; gridCols?: number; options: Opt[] },
+    fill: boolean,
+  ) {
+    const grow = fill ? { flex: 1, minHeight: 0 } : {}
+    const autoRows = fill ? 'minmax(min-content, 1fr)' : 'min-content'
+    return q.visual ? (
+      // 시각 선택 — 옵션마다 누끼 카드(보고 탭). 없음/모름은 하단 풀폭 텍스트.
+      <div style={{ display: 'flex', flexDirection: 'column', ...grow }}>
+        {q.gridCols ? (
+          // 압축 그리드 — 간단 옵션(단백질·식사)을 여러 개씩 한 줄. 스크롤 최소화.
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${q.gridCols}, 1fr)`, gridAutoRows: autoRows, gap: 10, ...grow }}>
+            {q.options.filter((o) => o.illust).map((o) => {
+              const active = isActive(q.key, o.v, q.multi)
+              return (
+                <button
+                  key={o.v}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => toggle(q.key, q.multi, o.v)}
+                  style={{
+                    appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', position: 'relative',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14,
+                    padding: '16px 8px', borderRadius: 12, border: '1.5px solid',
+                    borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line)',
+                    background: active ? 'color-mix(in srgb, var(--fd-coral) 6%, #FFFFFF)' : '#FFFFFF',
+                    transition: 'border-color .12s, background .12s',
+                  }}
+                >
+                  <div style={{ width: o.imgW ?? 88, maxWidth: '64%' }}>
+                    {o.src ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={o.src} alt={o.label} loading="lazy" decoding="async" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'contain', display: 'block', transform: o.flip ? 'scaleX(-1)' : undefined }} />
+                    ) : (
+                      <div aria-hidden style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 8, background: 'var(--fd-cream)' }} />
+                    )}
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 800, textAlign: 'center', lineHeight: 1.2, color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)' }}>{o.label}</span>
+                  {active && (
+                    <span style={{ position: 'absolute', top: 6, right: 6, width: 18, height: 18, borderRadius: 999, background: 'var(--fd-coral)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Check className="w-3 h-3" strokeWidth={3} color="#fff" />
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridAutoRows: autoRows, gap: 9, ...grow }}>
+            {q.options.filter((o) => o.illust).map((o) => {
+              const active = isActive(q.key, o.v, q.multi)
+              return (
+                <button
+                  key={o.v}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => toggle(q.key, q.multi, o.v)}
+                  style={{
+                    appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%',
+                    // 옵션당 단일 카드 1개(구분감 유지) — 내부 사진타일 없앰(이중 박스 방지).
+                    padding: '11px 14px', borderRadius: 14, border: '1.5px solid',
+                    borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line)',
+                    background: active ? 'color-mix(in srgb, var(--fd-coral) 6%, #FFFFFF)' : '#FFFFFF',
+                    transition: 'border-color .12s, background .12s',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                  }}
+                >
+                  <div style={{ width: 78, flexShrink: 0, alignSelf: 'center' }}>
+                    {o.src ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={o.src} alt={o.label} loading="lazy" decoding="async" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'contain', display: 'block', transform: o.flip ? 'scaleX(-1)' : undefined }} />
+                    ) : (
+                      <PhotoSlot label={o.illust!} ratio="1 / 1" tone="cream" rounded={9} className="w-full" />
+                    )}
+                  </div>
+                  {/* 사진 ↔ 텍스트 세로 구분선 */}
+                  <div aria-hidden style={{ width: 1, alignSelf: 'stretch', flexShrink: 0, background: active ? 'var(--fd-coral)' : 'var(--fd-line)', opacity: active ? 0.4 : 1 }} />
+                  <div style={{ flex: 1, textAlign: 'left', paddingLeft: 2 }}>
+                    <div style={{ fontSize: 15.5, fontWeight: 800, color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)' }}>{o.label}</div>
+                    {o.desc && <div style={{ marginTop: 3, fontSize: 11.5, fontWeight: 500, color: 'var(--fd-muted)', lineHeight: 1.35 }}>{o.desc}</div>}
+                  </div>
+                  {/* 우측 선택 라디오 — 항상 노출 */}
+                  <span aria-hidden style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 999, border: '1.5px solid', borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line)', background: active ? 'var(--fd-coral)' : 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all .12s' }}>
+                    {active && <Check className="w-3.5 h-3.5" strokeWidth={3} color="#fff" />}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+        {q.options.filter((o) => !o.illust).map((o) => {
+          const active = isActive(q.key, o.v, q.multi)
+          return (
+            <button
+              key={o.v}
+              type="button"
+              aria-pressed={active}
+              onClick={() => toggle(q.key, q.multi, o.v)}
+              style={{
+                appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%',
+                marginTop: 10, padding: '13px 16px', borderRadius: 12, border: '1.5px solid',
+                borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line)',
+                background: active ? 'var(--fd-cream)' : 'var(--fd-offwhite)',
+                color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)',
+                fontSize: 13.5, fontWeight: 700, transition: 'all .12s',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
+            >
+              {active && <Check className="w-4 h-4 shrink-0" strokeWidth={3} />}
+              {o.label}
+            </button>
+          )
+        })}
+      </div>
+    ) : (
+      // 텍스트 선택 — 입맛·관심사 (큰 카드)
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gridAutoRows: autoRows, gap: 9, ...grow }}>
+        {q.options.map((o) => {
+          const active = isActive(q.key, o.v, q.multi)
+          return (
+            <button
+              key={o.v}
+              type="button"
+              aria-pressed={active}
+              onClick={() => toggle(q.key, q.multi, o.v)}
+              style={{
+                appearance: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                padding: '14px 14px', borderRadius: 12, border: '1.5px solid',
+                borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line)',
+                background: active ? 'var(--fd-cream)' : '#FFFFFF',
+                color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)',
+                fontSize: 14, fontWeight: 700, transition: 'all .12s',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
+            >
+              {active && <Check className="w-4 h-4 shrink-0" strokeWidth={3} />}
+              {o.label}
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
 
   const emailFormValid =
     guardianName.trim().length >= 2 &&
@@ -209,7 +389,6 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
             birth_year: Number.isFinite(birthYearNum) ? birthYearNum : null, // ★ 만14세 트리거 발동
             birth_month: null, birth_day: null,
             agree_email: agreeMarketing, agree_sms: agreeMarketing,
-            referral_code: '',
           },
         },
       },
@@ -308,7 +487,6 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
         </div>
         <p style={{ marginTop: 10, fontSize: 11.5, color: 'var(--fd-muted)', lineHeight: 1.55 }}>
           입력하신 정보로 계산한 참고용 추정치예요. 실제 급여량은 아이 상태에 따라 달라질 수 있어요.
-          38개 영양소 정밀 분석과 맞춤 레시피는 가입 후 앱에서 받아보실 수 있어요.
         </p>
 
         {emailSent ? (
@@ -399,6 +577,31 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
               onClose={() => setOpenRecipe(null)}
               ctaHref={null}
             />
+
+            {/* 다음 단계 — 앱 정밀 설문/분석표 유도 (웹=맛보기 → 앱=정밀 퍼널) */}
+            <div className="rounded-[14px]" style={{ marginTop: 14, padding: '18px 18px', background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
+              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)', textTransform: 'uppercase' }}>Next · 가입하면</span>
+              <h3 style={{ marginTop: 7, fontSize: 16.5, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em', lineHeight: 1.35 }}>
+                지금은 <b style={{ color: 'var(--fd-coral-text)' }}>2분 맛보기</b> 결과예요.
+                <br />앱에서 더 자세히 이어가요.
+              </h3>
+              <ul style={{ marginTop: 12, display: 'grid', gap: 10, listStyle: 'none', padding: 0, margin: '12px 0 0' }}>
+                {[
+                  ['더 자세한 건강 설문', '만성질환·소화 민감도·생활습관까지 — 웹에서 못 채운 부분을 이어서.'],
+                  ['38개 영양소 정밀 분석표', '단백질·지방을 넘어 미네랄·비타민까지 전체 균형을 한눈에.'],
+                  ['우리 아이 맞춤 레시피', '정밀 분석을 바탕으로 한 2종 화식 박스 구성.'],
+                ].map(([t, d]) => (
+                  <li key={t} style={{ display: 'grid', gridTemplateColumns: '18px 1fr', gap: 9, alignItems: 'start' }}>
+                    <Check className="w-4 h-4 shrink-0" strokeWidth={2.6} style={{ color: 'var(--fd-coral)', marginTop: 1 }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--fd-pine)' }}>{t}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--fd-muted)', lineHeight: 1.5, marginTop: 1 }}>{d}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
             <div className="rounded-[12px] px-5 py-5" style={{ marginTop: 12, background: 'var(--fd-pine)' }}>
               <p style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--fd-offwhite)', lineHeight: 1.45, textAlign: 'center' }}>
                 이 맞춤 구독으로<br />시작해보세요
@@ -499,7 +702,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
 
   // ───────────────────────── 진행 중(라이트 설문) ─────────────────────────
   return (
-    <div>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       {/* 진행바 */}
       <div style={{ marginBottom: 18 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
@@ -513,31 +716,49 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
         </div>
       </div>
 
-      {/* 📸 문항별 일러스트 (누끼) */}
-      <PhotoSlot
-        label={QUESTION_ILLUST[cur.key] ?? '일러스트'}
-        ratio="16 / 6"
-        tone="cream"
-        rounded={12}
-        className="w-full mb-4"
-      />
-      {/* 칩 질문 */}
-      <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em', lineHeight: 1.25 }}>{cur.title(dogName)}</h2>
-      {cur.sub && <p style={{ marginTop: 8, fontSize: 13.5, color: 'var(--fd-muted)', lineHeight: 1.6 }}>{cur.sub}</p>}
-      <div style={{ marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {cur.options.map((o) => {
-          const active = chipActive(o.v)
-          return (
-            <button key={o.v} type="button" aria-pressed={active} onClick={() => pickChip(o.v)}
-              style={{ appearance: 'none', padding: '12px 18px', borderRadius: 99, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1px solid', transition: 'all .12s', background: active ? 'var(--fd-coral)' : 'var(--fd-offwhite)', color: active ? '#fff' : 'var(--fd-pine)', borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line)' }}>
-              {o.label}
-            </button>
-          )
-        })}
-      </div>
+      {/* 비주얼 아닌 스텝(관심사 등) 상단 사진 */}
+      {!cur.visual && QUESTION_PHOTO[cur.key] && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={QUESTION_PHOTO[cur.key]!}
+          alt=""
+          aria-hidden
+          className="w-full mb-4"
+          style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 12 }}
+        />
+      )}
 
-      {/* nav */}
-      <div style={{ display: 'flex', gap: 10, marginTop: 28 }}>
+      {cur.questions ? (
+        // 입맛 + 현재 식사 — 한 페이지에 두 질문(답안 key 는 각각 taste·food 로 독립 저장).
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 24, marginTop: 4 }}>
+          {cur.heroSrc && (
+            // 페이지 상단 누끼 일러스트 — 박스 없이 그대로.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={cur.heroSrc} alt="" aria-hidden style={{ alignSelf: 'center', display: 'block', width: 210, maxWidth: '64%', height: 'auto' }} />
+          )}
+          {cur.questions.map((q) => (
+            <div key={q.key}>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.01em', lineHeight: 1.3 }}>{q.title}</h2>
+              {q.sub && <p style={{ marginTop: 6, fontSize: 12.5, color: 'var(--fd-muted)', lineHeight: 1.55 }}>{q.sub}</p>}
+              <div style={{ marginTop: 12 }}>{renderQuestion(q, false)}</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <>
+          {/* 질문 */}
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em', lineHeight: 1.25 }}>{cur.title(dogName)}</h2>
+          {cur.sub && <p style={{ marginTop: 8, fontSize: 13.5, color: 'var(--fd-muted)', lineHeight: 1.6 }}>{cur.sub}</p>}
+
+          {/* 옵션 영역 — 시각 스텝은 공간 채움, 텍스트 스텝(관심사)은 자연 높이로 compact. */}
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', marginTop: 16 }}>
+            {renderQuestion(cur, !!cur.visual)}
+          </div>
+        </>
+      )}
+
+      {/* nav — 항상 화면 하단 고정(스텝마다 같은 위치). 위 옵션 영역(flex:1)이 공간을 채워 밀어냄. */}
+      <div style={{ display: 'flex', gap: 10, paddingTop: 18 }}>
         {idx > 0 && (
           <button type="button" onClick={back}
             style={{ appearance: 'none', border: '1px solid var(--fd-line)', background: 'transparent', color: 'var(--fd-pine)', padding: '13px 20px', borderRadius: 99, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>

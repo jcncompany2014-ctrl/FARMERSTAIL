@@ -179,7 +179,7 @@ export default async function AnalysesTimelinePage({
                 style={{ color: 'var(--muted)' }}
               >
                 BCS / 임신·수유 / 급여량 계산 정확도 향상 (NRC 2006 정식 수식
-                반영). 정확한 처방을 위해 다시 분석을 받아주세요.
+                반영). 더 정확한 결과를 위해 다시 분석을 받아주세요.
               </p>
               <Link
                 href={`/dogs/${dogId}/survey`}
@@ -419,7 +419,7 @@ function LatestAnalysisHero({
               letterSpacing: '-0.02em',
             }}
           >
-            {dogName}의 맞춤 영양 처방
+            {dogName}의 맞춤 영양 설계
           </h2>
           <p className="text-[10.5px] text-white/80 mt-1">
             {analysis.stage} · BCS {analysis.bcs_score}/9 ({analysis.bcs_label})
@@ -478,7 +478,7 @@ function LatestAnalysisHero({
                 color: '#F5E0C2',
               }}
             >
-              <span className="font-bold">AI 영양사 한마디:</span>{' '}
+              <span className="font-bold">AI 영양 도우미 한마디:</span>{' '}
               {commentSnippet}
               {commentSnippet.length >= 90 ? '…' : ''}
             </div>

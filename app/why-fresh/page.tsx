@@ -102,7 +102,7 @@ export default async function WhyFreshPage() {
   ])
 
   return (
-    <WebChrome cartCount={0}>
+    <WebChrome>
       <main>
         <JsonLd id="ld-whyfresh-crumbs" data={crumbLd} />
         <JsonLd

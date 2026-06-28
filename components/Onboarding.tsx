@@ -252,7 +252,7 @@ function Slide04() {
         <p className={styles.sub}>
           체중·급식·배변·산책을 가볍게 남기면,
           <br />
-          AI 수의영양사가 분석 리포트를 보내드려요.
+          AI가 맞춤 분석 리포트를 보내드려요.
         </p>
       </div>
     </SlideFrame>

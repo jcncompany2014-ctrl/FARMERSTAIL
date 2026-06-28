@@ -27,7 +27,8 @@
  * 으로 둠 (sales call: 단순함 > 타입 정밀도).
  */
 
-import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
+import { type KeyboardEvent } from 'react'
+import { V3, V3FontWeight, V3FontSize, V3Radius } from '@/lib/design/tokens'
 
 export interface TabOption {
   key: string
@@ -53,6 +54,24 @@ export default function Tabs({
   options,
   className,
 }: TabsProps) {
+  // WAI-ARIA tabs 키보드 패턴(고레버리지 — 이 프리미티브 쓰는 모든 화면에 적용):
+  // ←/→ 로 인접 탭 이동+활성화, Home/End 처음·끝. roving tabindex(아래)와 한 쌍.
+  function handleKey(e: KeyboardEvent<HTMLButtonElement>, idx: number) {
+    let next: number | null = null
+    if (e.key === 'ArrowRight') next = (idx + 1) % options.length
+    else if (e.key === 'ArrowLeft') next = (idx - 1 + options.length) % options.length
+    else if (e.key === 'Home') next = 0
+    else if (e.key === 'End') next = options.length - 1
+    if (next === null) return
+    e.preventDefault()
+    const opt = options[next]
+    if (!opt) return
+    onChange(opt.key)
+    const tabs = e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+      '[role="tab"]',
+    )
+    tabs?.[next]?.focus()
+  }
   return (
     <div
       role="tablist"
@@ -65,7 +84,7 @@ export default function Tabs({
         border: `1px solid ${V3.rule}`,
       }}
     >
-      {options.map((opt) => {
+      {options.map((opt, idx) => {
         const active = value === opt.key
         return (
           <button
@@ -73,11 +92,13 @@ export default function Tabs({
             type="button"
             role="tab"
             aria-selected={active}
+            tabIndex={active ? 0 : -1}
             onClick={() => onChange(opt.key)}
+            onKeyDown={(e) => handleKey(e, idx)}
             className="transition"
             style={{
               padding: '10px 0',
-              fontSize: 12,
+              fontSize: V3FontSize.sm,
               fontWeight: V3FontWeight.bold,
               background: active ? V3.ink : V3.paperHi,
               color: active ? V3.paperHi : V3.ink,
@@ -93,7 +114,7 @@ export default function Tabs({
                   display: 'inline-block',
                   padding: '0 6px',
                   borderRadius: V3Radius.pill,
-                  fontSize: 10.5,
+                  fontSize: V3FontSize.xs,
                   fontWeight: V3FontWeight.bold,
                   background: active ? 'rgba(244,237,224,0.2)' : V3.paper,
                   color: active ? V3.paperHi : V3.inkMute,

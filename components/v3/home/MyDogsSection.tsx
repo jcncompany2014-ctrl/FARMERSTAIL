@@ -11,7 +11,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Plus } from 'lucide-react'
-import { V3, V3FontWeight } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3FontSize } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 import DogPawMark from '@/components/DogPawMark'
 
@@ -89,7 +89,7 @@ export default function MyDogsSection({
             className="ft-nowrap"
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 13.5,
+              fontSize: V3FontSize.base,
               color: V3.ink,
               fontWeight: 600,
             }}
@@ -112,7 +112,7 @@ export default function MyDogsSection({
             <Link
               key={d.id}
               href={href}
-              className="shrink-0 relative"
+              className="shrink-0 relative transition-transform active:scale-[0.98]"
               style={{
                 width: 168,
                 background: V3.paperHi,
@@ -134,7 +134,7 @@ export default function MyDogsSection({
                     background: V3.accent,
                     color: V3.paperHi,
                     fontFamily: "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
-                    fontSize: 9,
+                    fontSize: V3FontSize.xxs,
                     fontWeight: 700,
                     padding: '3px 7px',
                     letterSpacing: 1,
@@ -179,7 +179,7 @@ export default function MyDogsSection({
                   style={{
                     fontFamily: 'var(--font-sans)',
                     fontWeight: V3FontWeight.black,
-                    fontSize: 22,
+                    fontSize: V3FontSize.lg,
                     color: V3.ink,
                     letterSpacing: '-0.025em',
                     wordBreak: 'keep-all',
@@ -195,7 +195,7 @@ export default function MyDogsSection({
                 className="ft-clamp-1"
                 style={{
                   fontFamily: 'var(--font-sans)',
-                  fontSize: 12,
+                  fontSize: V3FontSize.sm,
                   color: V3.inkSoft,
                   marginTop: 2,
                 }}
@@ -235,7 +235,7 @@ export default function MyDogsSection({
         {/* dashed "아이 추가" 슬롯 */}
         <Link
           href={addDogHref}
-          className="shrink-0 flex flex-col items-center justify-center"
+          className="shrink-0 flex flex-col items-center justify-center transition-transform active:scale-[0.97]"
           style={{
             width: 100,
             borderRadius: 4,
@@ -263,7 +263,7 @@ export default function MyDogsSection({
             className="ft-balance"
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 10.5,
+              fontSize: V3FontSize.xs,
               color: V3.inkMute,
               textAlign: 'center',
               lineHeight: 1.3,

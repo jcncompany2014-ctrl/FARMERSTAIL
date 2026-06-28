@@ -6,6 +6,7 @@
  * 받게).
  */
 import { block, escape, renderLayout, SITE_URL } from '../layout'
+import { petName } from '@/lib/korean'
 
 export type PersonalizationCycleEmailInput = {
   recipientName: string
@@ -25,7 +26,7 @@ export type PersonalizationCycleEmailInput = {
 export function renderPersonalizationCycle(
   input: PersonalizationCycleEmailInput,
 ): { subject: string; html: string } {
-  const subject = `[파머스테일] ${input.dogName}이의 다음 박스 준비됐어요`
+  const subject = `[파머스테일] ${petName(input.dogName)}의 다음 박스 준비됐어요`
 
   const reasoningChips = input.reasoningLabels
     .slice(0, 4)
@@ -62,7 +63,7 @@ export function renderPersonalizationCycle(
       ${escape(input.recipientName)}님, 안녕하세요.
     </p>
     <p style="margin:0 0 18px 0;">
-      <strong style="color:#173B33;">${escape(input.dogName)}이의
+      <strong style="color:#173B33;">${escape(petName(input.dogName))}의
       ${input.cycleNumber}번째 박스</strong>가 준비됐어요. 그동안의 체크인
       응답을 반영해 비율을 조정했어요.
     </p>
@@ -99,7 +100,7 @@ export function renderPersonalizationCycle(
     html: renderLayout({
       preview: subject,
       kicker: `Cycle ${input.cycleNumber} · 다음 박스`,
-      heading: `${input.dogName}이의 다음 박스`,
+      heading: `${petName(input.dogName)}의 다음 박스`,
       body,
       cta: {
         label: '이번 달 박스 자세히 보기',

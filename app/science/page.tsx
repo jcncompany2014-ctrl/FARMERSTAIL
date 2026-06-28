@@ -88,7 +88,7 @@ export default async function SciencePage() {
   ])
 
   return (
-    <WebChrome cartCount={0}>
+    <WebChrome>
       <main>
         <JsonLd id="ld-science-crumbs" data={crumbLd} />
         {/* Hero */}

@@ -74,6 +74,10 @@ export default function DiaryClient({
   const [draftNote, setDraftNote] = useState('')
   const [draftMood, setDraftMood] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // 동기 가드 — disabled={submitting} 은 리렌더 후 적용이라 서브프레임 더블탭이
+  // 빠져나가 일기가 중복 저장(사진 중복 업로드 + 중복 entry)될 수 있다. ref 는
+  // 동기라 차단 (dogs/new·AddressForm·HealthLog·Reminders 패턴).
+  const submittingRef = useRef(false)
   const newEntryRef = useRef<HTMLDivElement>(null)
 
   // 모달 a11y — focus trap / Esc / scroll lock. submitting 중엔 Esc 무시.
@@ -129,6 +133,8 @@ export default function DiaryClient({
       toast.error('사진이나 메모 중 하나는 입력해 주세요')
       return
     }
+    if (submittingRef.current) return // 더블탭 중복 저장(사진+entry) 방지
+    submittingRef.current = true
     setSubmitting(true)
     try {
       const {
@@ -176,6 +182,7 @@ export default function DiaryClient({
       toast.error(err instanceof Error ? err.message : '저장하지 못했어요')
     } finally {
       setSubmitting(false)
+      submittingRef.current = false
     }
   }
 
@@ -341,7 +348,7 @@ export default function DiaryClient({
             ref={newEntryRef}
             role="dialog"
             aria-modal="true"
-            aria-label="새 건강 일지"
+            aria-label="새 일기"
             tabIndex={-1}
             className="w-full md:max-w-md bg-bg-3 rounded-t-md md:rounded-md p-5 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -416,6 +423,7 @@ export default function DiaryClient({
                 value={draftNote}
                 onChange={(e) => setDraftNote(e.target.value.slice(0, 200))}
                 rows={3}
+                aria-label="메모"
                 placeholder="오늘 특별한 일이 있었나요?"
                 className="mt-1 w-full px-3 py-2.5 rounded-lg border border-rule bg-bg text-[13.5px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta resize-none"
               />
@@ -533,8 +541,6 @@ function PhotoGrid({ urls }: { urls: string[] }) {
     </div>
   )
 }
-// next/image 직접 사용은 외부 origin 추가 필요해서 일단 <img>; sw.js 가 캐시.
-void Image
 
 function formatKoDate(iso: string): string {
   const d = new Date(iso)

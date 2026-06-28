@@ -563,8 +563,10 @@ export async function POST(req: Request) {
         })
       }
     }
+    // audit #69: 원본 DB message 클라이언트 노출 제거 — 서버 로그만(2026-06-20).
+    console.error('[personalization/compute] insert error:', insErr.message)
     return NextResponse.json(
-      { code: 'DB_ERROR', message: insErr.message },
+      { code: 'DB_ERROR', message: '분석을 저장하지 못했어요' },
       { status: 500 },
     )
   }

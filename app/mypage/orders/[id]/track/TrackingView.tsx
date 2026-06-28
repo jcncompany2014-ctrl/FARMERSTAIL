@@ -360,6 +360,7 @@ function ProgressBar({ state }: { state: TrackingResult['state'] }) {
           <div
             key={s.key}
             className="relative flex flex-col items-center z-10 flex-1"
+            aria-current={idx === currentIdx ? 'step' : undefined}
           >
             <div
               className={`w-6 h-6 rounded-full flex items-center justify-center ${

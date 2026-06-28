@@ -149,7 +149,7 @@ export default function DeleteAccountForm() {
       </div>
 
       {error && (
-        <div className="bg-sale/5 border border-sale/30 rounded px-4 py-3">
+        <div className="bg-sale/5 border border-sale/30 rounded px-4 py-3" role="alert">
           <div className="flex items-start gap-2">
             <AlertTriangle
               className="w-4 h-4 text-sale shrink-0 mt-0.5"

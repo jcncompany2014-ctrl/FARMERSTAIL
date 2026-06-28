@@ -191,15 +191,11 @@ export default function RefundPage() {
           </UL>
         </Section>
 
-        <Section title="8. 포인트·쿠폰 환불">
+        <Section title="8. 포인트 환불">
           <UL>
             <li>
               결제 시 사용한 포인트는 환불 금액에 비례하여 계정에
               복원됩니다.
-            </li>
-            <li>
-              쿠폰을 사용한 주문이 환불되는 경우, 쿠폰 유효기간이
-              남아있으면 복원되며, 만료된 쿠폰은 복원되지 않습니다.
             </li>
             <li>
               리뷰 작성 등으로 적립된 포인트는 환불 대상 상품의 리뷰가

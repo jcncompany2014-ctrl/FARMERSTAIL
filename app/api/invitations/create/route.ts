@@ -13,6 +13,7 @@
 import { NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 
@@ -91,10 +92,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   })
 
   if (insertErr) {
-    return NextResponse.json(
-      { error: 'insert_failed', detail: insertErr.message },
-      { status: 500 },
-    )
+    // audit #69: 원본 DB message 클라이언트 노출 제거 — dbError 로 마스킹(타 route 와 일관, 2026-06-20).
+    return dbError(insertErr, 'invitations_create', '초대를 보내지 못했어요')
   }
 
   const acceptUrl = `${getOrigin(req)}/invitations/${token}`

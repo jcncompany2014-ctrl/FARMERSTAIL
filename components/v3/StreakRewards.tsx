@@ -10,7 +10,7 @@
  */
 
 import { Award } from 'lucide-react'
-import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3FontSize, V3Radius } from '@/lib/design/tokens'
 
 interface StreakRewardsProps {
   currentStreak: number
@@ -73,7 +73,7 @@ export default function StreakRewards({
           <span
             style={{
               fontFamily: 'var(--font-mono)',
-              fontSize: 10.5,
+              fontSize: V3FontSize.xs,
               fontWeight: V3FontWeight.bold,
               color: stage.tone,
               letterSpacing: '0.16em',
@@ -87,7 +87,7 @@ export default function StreakRewards({
             style={{
               marginTop: 4,
               fontFamily: 'var(--font-sans)',
-              fontSize: 13.5,
+              fontSize: V3FontSize.base,
               fontWeight: V3FontWeight.bold,
               color: V3.ink,
               letterSpacing: '-0.01em',
@@ -104,6 +104,7 @@ export default function StreakRewards({
         <>
           <div
             role="progressbar"
+            aria-label="다음 단계까지 진행률"
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={pct}
@@ -128,7 +129,7 @@ export default function StreakRewards({
           <p
             style={{
               marginTop: 8,
-              fontSize: 10.5,
+              fontSize: V3FontSize.xs,
               color: V3.inkMute,
               lineHeight: 1.4,
             }}

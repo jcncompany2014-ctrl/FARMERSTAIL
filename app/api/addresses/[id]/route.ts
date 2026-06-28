@@ -134,11 +134,16 @@ export async function DELETE(_req: Request, { params }: Params) {
       .maybeSingle()
 
     if (next) {
-      await supabase
+      const { error: promoteErr } = await supabase
         .from('addresses')
         .update({ is_default: true })
         .eq('id', next.id)
         .eq('user_id', user.id)
+      // 삭제는 이미 완료 — 승격 실패로 기본배송지 0개가 잠시 잔류해도 다음
+      // 주문/설정서 self-heal. 요청은 성공 유지하되 운영 가시성 위해 로깅만.
+      if (promoteErr) {
+        console.error('[addresses_delete] default auto-promote failed', promoteErr)
+      }
     }
   }
 

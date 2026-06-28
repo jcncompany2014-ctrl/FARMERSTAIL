@@ -16,7 +16,7 @@
  * 새로고침 시 안 바뀜 (혼란 방지). 다음날 자동 변경.
  */
 
-import { V3, V3FontWeight, V3LetterSpacing } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3LetterSpacing, V3FontSize } from '@/lib/design/tokens'
 import { Mono, Signature, Mark } from '@/components/v3'
 
 interface GreetingSectionProps {
@@ -182,7 +182,7 @@ export default function GreetingSection({
       >
         <Signature
           name={withHonorific(userName)}
-          metaKicker={`FAMILY · ${familyCount}`}
+          metaKicker={familyCount > 0 ? `FAMILY · ${familyCount}` : 'WELCOME'}
           align="right"
           size={15}
           barHeight={28}
@@ -195,7 +195,7 @@ export default function GreetingSection({
         <span
           style={{
             fontFamily: 'var(--font-sans)',
-            fontSize: 13.5,
+            fontSize: V3FontSize.base,
             color: V3.inkSoft,
             lineHeight: 1.5,
           }}

@@ -110,12 +110,13 @@ export default async function CompareDogsPage() {
           <table className="w-full text-[12px]">
             <thead>
               <tr>
-                <th className="text-left p-2 text-muted text-[10.5px] uppercase tracking-widest">
+                <th scope="col" className="text-left p-2 text-muted text-[10.5px] uppercase tracking-widest">
                   항목
                 </th>
                 {dogs.map((d) => (
                   <th
                     key={d.id}
+                    scope="col"
                     className="text-left p-2 font-bold text-text"
                     style={{ fontSize: 13.5 }}
                   >

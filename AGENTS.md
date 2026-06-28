@@ -39,7 +39,7 @@ editorial (serif heading / white card / rounded-xl) 톤은 유지해야 한다.
 | `app/checkout/**` | top-level, AuthAwareShell 분기 |
 | `app/products/page.tsx`, `app/products/[slug]/**` | top-level, AuthAwareShell 분기 |
 | `app/mypage/orders/**` | top-level web/app 공유 |
-| `components/ui/**` (Toast, Button, Form, BottomSheet, VariantSelector, EmptyState, Skeleton, Spinner, ErrorScreen, CopyButton, StockBadge, Motion, ProgressiveDisclosure) | UI primitives — web 페이지도 import |
+| `components/ui/**` (Toast, Button, Form, BottomSheet, EmptyState, Skeleton, Spinner, ErrorScreen, CopyButton, Motion, ProgressiveDisclosure) | UI primitives — web 페이지도 import |
 | `components/auth/AuthHero.tsx` | login/signup 에서 사용 — web/app 공통 |
 
 ## ✅ R14 — variant prop 으로 공유 컴포넌트 분기

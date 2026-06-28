@@ -161,7 +161,7 @@ function findRule(pathname: string, method: string): Rule | undefined {
 //                /mypage/orders/*, /api/*, /admin/*, /auth/*
 //   • App only:  /dashboard, /dogs/*, /welcome,
 //                /mypage/{addresses,subscriptions,reviews,points,coupons,
-//                         wishlist,notifications,consent,delete,referral}/*
+//                         wishlist,notifications,consent,delete}/*
 
 const APP_ONLY_PREFIXES: readonly string[] = [
   '/dashboard',
@@ -177,12 +177,9 @@ const APP_ONLY_PREFIXES: readonly string[] = [
   '/mypage/subscriptions',
   '/mypage/reviews',
   '/mypage/points',
-  '/mypage/coupons',
-  '/mypage/wishlist',
   '/mypage/notifications',
   '/mypage/consent',
   '/mypage/delete',
-  '/mypage/referral',
 ]
 
 /** Web 가 진입 가능한 mypage exception — 정확 매치 (prefix 아님). */

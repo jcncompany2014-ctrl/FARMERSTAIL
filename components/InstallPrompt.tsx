@@ -44,6 +44,16 @@ function detectInAppBrowser(): boolean {
   return /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\//i.test(ua)
 }
 
+// 모바일(모바일 UA 또는 터치+좁은 화면)에서만 설치 배너 노출 — 데스크톱 제외.
+function isMobileDevice(): boolean {
+  if (typeof window === 'undefined') return false
+  const ua = window.navigator.userAgent
+  if (/Android|iPhone|iPad|iPod/i.test(ua)) return true
+  const coarse = window.matchMedia?.('(pointer: coarse)').matches
+  const narrow = window.matchMedia?.('(max-width: 768px)').matches
+  return Boolean(coarse && narrow)
+}
+
 function wasDismissedRecently(): boolean {
   if (typeof window === 'undefined') return false
   try {
@@ -135,6 +145,7 @@ export default function InstallPrompt() {
   useEffect(() => {
     // useEffect never runs on the server, so `window` is guaranteed present here.
     if (isStandalone()) return
+    if (!isMobileDevice()) return // 데스크톱 제외 — 모바일 웹에서만 노출
     if (wasDismissedRecently()) return
 
     const detectedIos = detectIOS()
@@ -223,8 +234,8 @@ export default function InstallPrompt() {
         aria-label="앱 설치 안내"
         className="fixed left-0 right-0 z-[60] px-4 md:left-1/2 md:right-auto md:w-full md:max-w-md md:-translate-x-1/2"
         style={{
-          // Bottom tab nav height (~72px) + safe area. Sits just above the tab bar.
-          bottom: 'calc(88px + env(safe-area-inset-bottom))',
+          // 모바일 웹 전용 — 화면 하단 가까이 (웹엔 앱 탭바 없음).
+          bottom: 'calc(16px + env(safe-area-inset-bottom))',
         }}
       >
         <div

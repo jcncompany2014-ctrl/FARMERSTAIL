@@ -135,6 +135,7 @@ export default function WeightInputSheet({
           오늘의 체중 (KG)
         </Mono>
         <div
+          aria-hidden
           className="flex items-baseline justify-center"
           style={{
             background: V3.paperHi,
@@ -188,6 +189,11 @@ export default function WeightInputSheet({
             KG
           </span>
         </div>
+        {/* 값은 스텝퍼로만 바뀌므로, 위 큰 숫자(aria-hidden 장식) 대신 이 live
+            영역이 변경 시 현재 체중을 스크린리더에 낭독한다. */}
+        <span className="sr-only" role="status">
+          현재 체중 {val.toFixed(1)} 킬로그램 · {inRange ? '안정 구간' : '주의 구간'}
+        </span>
 
         {/* delta hint */}
         <div

@@ -390,8 +390,8 @@ function CompleteMealPlan({ isAuthed }: { isAuthed: boolean }) {
         </Reveal>
         <div className="pt-10 md:pt-14 grid md:grid-cols-2 gap-4 md:gap-6">
           {[
-            { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/meal-main.jpg', alt: '신선 화식 한 그릇' },
-            { label: '영양제 소스 사진', sub: '한 끼에 더하는 영양 소스', k: '플러스', t: '영양제 소스', d: '하루 한 캡슐, 목적별 영양을 한 끼에 더하는 데일리 소스.', img: '/meal-supplement.jpg', alt: '영양제 소스 캡슐' },
+            { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/meal-recipe.webp', alt: '파머스테일 블랙포크 레시피 화식 파우치' },
+            { label: '영양제 소스 사진', sub: '한 끼에 더하는 영양 소스', k: '플러스', t: '영양제 소스', d: '하루 한 캡슐, 목적별 영양을 한 끼에 더하는 데일리 소스.', img: '/supplement-box.webp', alt: '파머스테일 영양제 패키지' },
           ].map((p, i) => (
             <Reveal key={p.t} delay={i * 80}>
               <div style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>
@@ -420,11 +420,11 @@ function CompleteMealPlan({ isAuthed }: { isAuthed: boolean }) {
 
 // 7.5 ======================================================================
 // Plan benefits — 서비스/배송 혜택 4아이콘 (FD #9, FIDELITY_SPEC §8 보강).
-// 커머스 거래 아님: 무료배송·콜드체인·유연성·문의지원 = 사실 기반 신뢰/서비스
+// 커머스 거래 아님: 배송포함·콜드체인·유연성·문의지원 = 사실 기반 신뢰/서비스
 // 메시지(프로모바와 일치). 가짜 숫자·미검증 친환경 주장 없음.
 // ===========================================================================
 const BENEFITS = [
-  { Icon: Truck, t: '무료배송', d: '3만 원 이상 무료. 부담 없이 시작해요.' },
+  { Icon: Truck, t: '배송 포함', d: '배송비는 구독료에 포함, 추가 비용 없어요.' },
   { Icon: Leaf, t: '콜드체인 신선', d: '급속 냉동해 신선함 그대로 문 앞까지.' },
   { Icon: RefreshCw, t: '구독 강요 없음', d: '체험팩부터. 주기 변경·해지는 언제든 자유.' },
   { Icon: MessageCircle, t: '1:1 문의 지원', d: '궁금한 점은 언제든 답해 드려요.' },
@@ -550,7 +550,7 @@ function ScienceExpertise() {
             </div>
           </Reveal>
           <Reveal delay={100}>
-            <PhotoSlot label="레시피 설계 / 영양 분석 사진" sub="원물 계량 · 영양 차트" ratio="5 / 4" tone="green" rounded={10} className="w-full" />
+            <PhotoSlot src="/recipe-analysis.webp" alt="식품 정보 분석 보고서 — 레시피 설계·영양 분석" label="레시피 설계 / 영양 분석" ratio="1600 / 764" tone="green" rounded={10} className="w-full" />
           </Reveal>
         </div>
       </Container>
@@ -721,7 +721,7 @@ function FinalCta({ isAuthed }: { isAuthed: boolean }) {
               </Button>
             </div>
             <p className="pt-5 text-[12.5px]" style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
-              수의영양학 기반 · 무항생제 원물 · 3만원 이상 무료배송
+              수의영양학 기반 · 무항생제 원물 · 구독 강요 없음
             </p>
           </div>
         </Reveal>
@@ -741,7 +741,7 @@ export default async function LandingPage() {
   const isAuthed = !!user
 
   return (
-    <WebChrome cartCount={0}>
+    <WebChrome>
       <main>
         <HomeHero isAuthed={isAuthed} />
         <TrustStrip />

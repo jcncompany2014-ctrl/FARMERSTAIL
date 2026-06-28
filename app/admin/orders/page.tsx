@@ -35,6 +35,7 @@ function statusBadge(paymentStatus: string, orderStatus: string) {
       pending: '결제 대기',
       failed: '결제 실패',
       cancelled: '결제 취소',
+      partially_refunded: '부분 환불',
       refunded: '환불',
     }
     return {

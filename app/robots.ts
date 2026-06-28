@@ -18,6 +18,17 @@ export default function robots(): MetadataRoute.Robots {
           '/checkout',
           '/checkout/*',
           '/cart',
+          // 구독 전용 전환(2026-06-27): 낱개커머스 라우트 — 전부 /start 로
+          // redirect. sitemap 제외 + robots 차단으로 크롤러가 redirect URL 을
+          // 인덱싱(GSC "Page with redirect" 경고)하지 않게 한다.
+          '/products',
+          '/products/*',
+          '/collections',
+          '/collections/*',
+          '/events',
+          '/events/*',
+          '/best',
+          '/new',
           '/mypage',
           '/mypage/*',
           '/dogs',

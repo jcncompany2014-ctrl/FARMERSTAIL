@@ -4,37 +4,37 @@ import { redirect } from 'next/navigation'
 import {
   ChevronRight,
   Package,
-  Mail,
-  HelpCircle,
-  FileText,
-  RotateCcw,
+  Repeat,
+  Dog,
   Gift,
-  ShoppingBag,
+  Activity,
   Smartphone,
   UserCog,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import LogoutButton from '@/components/account/LogoutButton'
-import WelcomeCouponBanner from '@/components/account/WelcomeCouponBanner'
 import TierBadge from '@/components/account/TierBadge'
 import { isAppContextServer } from '@/lib/app-context'
-import { Eyebrow } from '@/components/web/fd/ui'
+import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
 
 /**
  * /account — 웹 사용자용 마이페이지 hub.
  *
  * (main)/mypage 는 AppChrome 로 감싸진 모바일 전용 hub. 웹 사용자도 자기 정보
- * 일부는 봐야 하니 별도 hub 가 필요. 웹에서 의미 있는 것만 선별:
- *   - 주문 내역 (/mypage/orders)
- *   - 뉴스레터 구독 (/newsletter)
- *   - 고객센터 (/business)
- *   - 자주 묻는 질문 (/faq)
- *   - 환불 정책 (/legal/refund)
- *   - 앱 다운로드 (/app-required)
+ * 일부는 봐야 하니 별도 hub.
  *
- * 그 외 (정기배송 / 포인트 / 쿠폰 / 위시리스트 / 정기배송 / 우리 아이) 는
- * 모바일 앱 전용으로 분리되어 있음 — 이 hub 에선 "앱에서 보기" CTA 만 노출.
+ * # 정보 위계 (2026-06-27 개편, 사장님)
+ *   - 메인 카드: 주문 내역 · 정기배송 관리(/account/subscriptions) ·
+ *     우리 아이(/account/dogs) · 내 프로필 — 웹 구독결제가 되므로 구독/강아지도
+ *     웹에서 직접.
+ *   - 얕은 링크(박스 X, 비중↓): 고객센터 · 자주 묻는 질문 · 환불 정책 —
+ *     중요도 낮은 정보라 카드로 안 키우고 텍스트 링크로.
+ *   - 뉴스레터 구독은 hub 에서 제외(사장님).
+ *   - 앱 전용 CTA: 적립금 · 일일 케어/분석 (정기배송은 이제 웹에서 가능 →
+ *     앱 카드에서 빠짐).
+ *
+ * 디자인: FD 랜딩과 동일 프리미티브(Container/Display/Eyebrow)·리듬·타이포.
  */
 
 export const dynamic = 'force-dynamic'
@@ -66,8 +66,13 @@ export default async function AccountPage() {
     redirect('/login?next=/account')
   }
 
-  // 주문 카운트 (간단한 카드 표시용 — 미수령 + 전체)
-  const [{ count: totalOrders }, { count: pendingOrders }] = await Promise.all([
+  // 카드 표시용 카운트 — 주문(전체/미수령) · 활성 구독 · 강아지
+  const [
+    { count: totalOrders },
+    { count: pendingOrders },
+    { count: activeSubs },
+    { count: dogCount },
+  ] = await Promise.all([
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
@@ -79,6 +84,15 @@ export default async function AccountPage() {
       // FSM 의 실제 enum: pending → preparing → shipping → delivered.
       // 'confirmed', 'shipped' 는 존재하지 않는 값이라 매번 0건 반환했음.
       .in('order_status', ['pending', 'preparing', 'shipping']),
+    supabase
+      .from('subscriptions')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'active'),
+    supabase
+      .from('dogs')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id),
   ])
 
   const { data: profile } = await supabase
@@ -87,7 +101,8 @@ export default async function AccountPage() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const webItems: SectionItem[] = [
+  // 메인 카드 — 웹에서 직접 하는 핵심 동선
+  const primaryItems: SectionItem[] = [
     {
       href: '/mypage/orders',
       icon: Package,
@@ -98,47 +113,48 @@ export default async function AccountPage() {
       badge: totalOrders ? String(totalOrders) : undefined,
     },
     {
+      href: '/account/subscriptions',
+      icon: Repeat,
+      label: '정기배송 관리',
+      description: activeSubs
+        ? `구독 중 ${activeSubs}건 · 주기·해지`
+        : '주기 변경 · 일시정지 · 해지',
+      badge: activeSubs ? String(activeSubs) : undefined,
+    },
+    {
+      href: '/account/dogs',
+      icon: Dog,
+      label: '우리 아이',
+      description: dogCount ? `${dogCount}마리` : '등록한 반려견',
+      badge: dogCount ? String(dogCount) : undefined,
+    },
+    {
       href: '/account/profile',
       icon: UserCog,
       label: '내 프로필',
-      description: '이름·연락처·생일',
+      description: '이름·연락처',
     },
-    {
-      href: '/newsletter',
-      icon: Mail,
-      label: '뉴스레터 구독',
-      description: '월 1회 농장 + 신상 + 케어 인사이트',
-    },
-    {
-      href: '/business',
-      icon: HelpCircle,
-      label: '고객센터',
-      description: '문의 / 제휴 / 단체 주문',
-    },
-    {
-      href: '/faq',
-      icon: FileText,
-      label: '자주 묻는 질문',
-    },
-    {
-      href: '/legal/refund',
-      icon: RotateCcw,
-      label: '환불 정책',
-    },
+  ]
+
+  // 비중↓ — 박스 대신 얕은 텍스트 링크 (중요도 낮은 정보)
+  const helpLinks: { href: string; label: string }[] = [
+    { href: '/business', label: '고객센터' },
+    { href: '/faq', label: '자주 묻는 질문' },
+    { href: '/legal/refund', label: '환불 정책' },
   ]
 
   const appOnlyItems: SectionItem[] = [
     {
       href: '/app-required',
-      icon: ShoppingBag,
-      label: '정기배송 관리',
-      description: '앱에서 주기 변경 · 일시정지 · 해지',
+      icon: Gift,
+      label: '적립금',
+      description: '적립금 사용 · 적립 내역',
     },
     {
       href: '/app-required',
-      icon: Gift,
-      label: '포인트 / 쿠폰',
-      description: '적립금 사용 · 쿠폰 받기',
+      icon: Activity,
+      label: '일일 케어 · 분석',
+      description: '기록 · 산책 · 영양 분석',
     },
   ]
 
@@ -146,146 +162,149 @@ export default async function AccountPage() {
 
   return (
     <AuthAwareShell>
-    <main
-      className="pb-12 md:pb-20 mx-auto"
-      style={{ background: 'var(--fd-offwhite)', maxWidth: 1280 }}
-    >
-      <div className="px-5 md:px-8 pt-4 md:pt-6">
-        <nav
-          aria-label="현재 위치"
-          className="flex items-center gap-1 text-[11px] md:text-[12px]"
-          style={{ color: 'var(--fd-muted)' }}
-        >
-          <Link href="/" className="hover:opacity-70 transition">
-            홈
-          </Link>
-          <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
-          <span style={{ color: 'var(--fd-pine)', fontWeight: 700 }}>내 계정</span>
-        </nav>
-      </div>
+      <main
+        className="pb-16 md:pb-24"
+        style={{ background: 'var(--fd-offwhite)', minHeight: '72vh' }}
+      >
+        <Container size="lg" className="pt-4 md:pt-6">
+          {/* breadcrumb */}
+          <nav
+            aria-label="현재 위치"
+            className="flex items-center gap-1 text-[11px] md:text-[12px]"
+            style={{ color: 'var(--fd-muted)' }}
+          >
+            <Link href="/" className="hover:opacity-70 transition">
+              홈
+            </Link>
+            <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
+            <span style={{ color: 'var(--fd-pine)', fontWeight: 700 }}>내 계정</span>
+          </nav>
 
-      <section className="px-5 md:px-8 pt-6 md:pt-12 pb-6 md:pb-10">
-        <Eyebrow>My Account · 내 계정</Eyebrow>
-        <h1
-          className="mt-3 md:mt-4 text-[26px] md:text-[40px]"
-          style={{
-            fontWeight: 800,
-            color: 'var(--fd-pine)',
-            letterSpacing: '-0.025em',
-            lineHeight: 1.15,
-          }}
-        >
-          {displayName} 님,
-          <br />
-          <span style={{ color: 'var(--fd-coral-text)' }}>오늘도 좋은 한 끼.</span>
-        </h1>
-        <p
-          className="mt-2 md:mt-3 text-[12px] md:text-[14px]"
-          style={{ color: 'var(--fd-muted)' }}
-        >
-          {profile?.email ?? user.email}
-        </p>
-      </section>
+          {/* Hero — FD Display 헤드라인 */}
+          <header className="pt-8 md:pt-14 pb-8 md:pb-12">
+            <Eyebrow>My Account</Eyebrow>
+            <Display as="h1" size="md" className="mt-3 md:mt-4" style={{ color: 'var(--fd-pine)' }}>
+              {displayName} 님,
+              <br />
+              <span style={{ color: 'var(--fd-coral-text)' }}>오늘도 좋은 한 끼.</span>
+            </Display>
+            <p
+              className="mt-4 text-[12.5px] md:text-[14px]"
+              style={{ color: 'var(--fd-muted)' }}
+            >
+              {profile?.email ?? user.email}
+            </p>
+          </header>
 
-      {/* 회원 등급 */}
-      <section className="px-5 md:px-8">
-        <TierBadge
-          tier={(profile as { tier?: string | null } | null)?.tier ?? 'seed'}
-          cumulativeSpend={
-            (profile as { cumulative_spend?: number | null } | null)?.cumulative_spend ?? 0
-          }
-        />
-      </section>
-
-      {/* 환영 쿠폰 (첫 구매 전) */}
-      <section className="px-5 md:px-8">
-        <WelcomeCouponBanner userId={user.id} />
-      </section>
-
-      {/* 주요 카드 */}
-      <section className="px-5 md:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-          {webItems.map((it) => (
-            <ItemCard key={it.label} item={it} />
-          ))}
-        </div>
-      </section>
-
-      {/* 앱 전용 안내 — 앱에서는 이미 다 가능하니 웹에서만 노출 */}
-      {!isApp && (
-      <section className="px-5 md:px-8 mt-8 md:mt-12">
-        <div
-          className="rounded-lg px-5 py-5 md:px-8 md:py-7"
-          style={{ background: 'var(--fd-pine)', color: '#FFFFFF' }}
-        >
-          <div className="flex items-center gap-2 mb-2 md:mb-3">
-            <Smartphone
-              className="w-4 h-4 md:w-5 md:h-5"
-              strokeWidth={2}
-              color="var(--fd-green-soft)"
+          {/* 회원 등급 */}
+          <div className="mb-7 md:mb-9">
+            <TierBadge
+              tier={(profile as { tier?: string | null } | null)?.tier ?? 'seed'}
+              cumulativeSpend={
+                (profile as { cumulative_spend?: number | null } | null)?.cumulative_spend ?? 0
+              }
             />
-            <Eyebrow color="var(--fd-green-soft)">App Only</Eyebrow>
           </div>
-          <h2
-            className="text-[18px] md:text-[24px]"
-            style={{ fontWeight: 800, letterSpacing: '-0.02em' }}
-          >
-            정기배송 · 포인트 · 우리 아이 케어는 앱에서
-          </h2>
-          <p
-            className="mt-2 md:mt-3 text-[12px] md:text-[14px] leading-relaxed"
-            style={{ color: 'rgba(245,240,230,0.78)' }}
-          >
-            반려동물 등록, 일일 케어 분석, 정기배송 일정 관리는 모바일 앱에서
-            더 빠르게 도와드려요.
-          </p>
-          <div className="mt-4 md:mt-5 grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-            {appOnlyItems.map((it) => {
-              const Icon = it.icon
-              return (
-                <Link
-                  key={it.label}
-                  href={it.href}
-                  className="flex items-center gap-3 rounded-lg px-4 py-3 transition active:scale-[0.99]"
-                  style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    color: '#FFFFFF',
-                  }}
-                >
-                  <Icon
-                    className="w-4 h-4 shrink-0"
+
+          {/* 바로가기 카드 */}
+          <Eyebrow className="block mb-3 md:mb-4">바로가기</Eyebrow>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-3.5">
+            {primaryItems.map((it) => (
+              <ItemCard key={it.label} item={it} />
+            ))}
+          </div>
+
+          {/* 앱 전용 안내 — 앱에서는 이미 다 가능하니 웹에서만 노출 */}
+          {!isApp && (
+            <div
+              className="mt-10 md:mt-16 rounded-[14px] overflow-hidden"
+              style={{ background: 'var(--fd-pine)', color: '#FFFFFF' }}
+            >
+              <div className="px-6 py-7 md:px-10 md:py-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Smartphone
+                    className="w-4 h-4 md:w-[18px] md:h-[18px]"
                     strokeWidth={2}
+                    color="var(--fd-green-soft)"
                   />
-                  <div className="min-w-0">
-                    <div className="text-[13px] md:text-[14px] font-bold">
-                      {it.label}
-                    </div>
-                    {it.description && (
-                      <div
-                        className="text-[10.5px] md:text-[11.5px] mt-0.5"
-                        style={{ color: 'rgba(245,240,230,0.6)' }}
+                  <Eyebrow color="var(--fd-green-soft)">App Only</Eyebrow>
+                </div>
+                <Display as="h2" size="sm" style={{ color: '#FFFFFF' }}>
+                  적립금 · 일일 케어는 앱에서
+                </Display>
+                <p
+                  className="mt-3.5 text-[13px] md:text-[15px] leading-relaxed"
+                  style={{ color: 'rgba(245,240,230,0.8)', maxWidth: 580 }}
+                >
+                  적립금 사용, 일일 케어 기록, 산책·영양 분석은 모바일 앱에서
+                  더 빠르게 도와드려요.
+                </p>
+                <div className="mt-5 md:mt-6 grid grid-cols-1 md:grid-cols-2 gap-2.5 md:gap-3">
+                  {appOnlyItems.map((it) => {
+                    const Icon = it.icon
+                    return (
+                      <Link
+                        key={it.label}
+                        href={it.href}
+                        className="flex items-center gap-3 rounded-[10px] px-4 py-3.5 transition hover:brightness-110 active:scale-[0.99]"
+                        style={{
+                          background: 'rgba(255,255,255,0.08)',
+                          color: '#FFFFFF',
+                        }}
                       >
-                        {it.description}
-                      </div>
-                    )}
-                  </div>
+                        <Icon className="w-4 h-4 shrink-0" strokeWidth={2} />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[13px] md:text-[14px] font-bold">
+                            {it.label}
+                          </div>
+                          {it.description && (
+                            <div
+                              className="text-[10.5px] md:text-[11.5px] mt-0.5"
+                              style={{ color: 'rgba(245,240,230,0.6)' }}
+                            >
+                              {it.description}
+                            </div>
+                          )}
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 도움말 — 비중↓ 얕은 텍스트 링크 (박스 X) */}
+          <div className="mt-10 md:mt-14">
+            <Eyebrow className="block mb-1.5">도움말</Eyebrow>
+            <div>
+              {helpLinks.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="flex items-center justify-between py-3 transition hover:opacity-70"
+                  style={{ borderBottom: '1px solid var(--fd-line)' }}
+                >
+                  <span className="text-[13px]" style={{ color: 'var(--fd-muted)' }}>
+                    {l.label}
+                  </span>
                   <ChevronRight
-                    className="w-3.5 h-3.5 ml-auto shrink-0"
+                    className="w-3.5 h-3.5"
                     strokeWidth={2}
+                    style={{ color: 'var(--fd-muted)' }}
                   />
                 </Link>
-              )
-            })}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
-      )}
 
-      {/* 로그아웃 */}
-      <section className="px-5 md:px-8 mt-6 md:mt-10">
-        <LogoutButton />
-      </section>
-    </main>
+          {/* 로그아웃 */}
+          <div className="mt-8 md:mt-12">
+            <LogoutButton />
+          </div>
+        </Container>
+      </main>
     </AuthAwareShell>
   )
 }
@@ -295,25 +314,25 @@ function ItemCard({ item }: { item: SectionItem }) {
   return (
     <Link
       href={item.href}
-      className="group flex items-center gap-4 rounded-lg px-5 py-4 md:px-6 md:py-5 transition active:scale-[0.99]"
+      className="group flex items-center gap-4 rounded-[12px] px-5 py-4 md:px-6 md:py-5 transition hover:-translate-y-[1px] active:scale-[0.99]"
       style={{
         background: '#FFFFFF',
         boxShadow: 'inset 0 0 0 1px var(--fd-line)',
       }}
     >
       <span
-        className="inline-flex w-10 h-10 md:w-12 md:h-12 rounded-full items-center justify-center shrink-0"
-        style={{ background: 'var(--fd-offwhite)' }}
+        className="inline-flex w-11 h-11 md:w-12 md:h-12 rounded-full items-center justify-center shrink-0"
+        style={{ background: 'var(--fd-cream)' }}
       >
         <Icon
-          className="w-4 h-4 md:w-[18px] md:h-[18px]"
+          className="w-[18px] h-[18px]"
           strokeWidth={2}
         />
       </span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <div
-            className="text-[14px] md:text-[16px]"
+            className="text-[14.5px] md:text-[16px]"
             style={{
               fontWeight: 800,
               color: 'var(--fd-pine)',
@@ -324,10 +343,11 @@ function ItemCard({ item }: { item: SectionItem }) {
           </div>
           {item.badge && (
             <span
-              className="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
+              className="text-[10px] px-1.5 py-0.5 rounded-full"
               style={{
                 background: 'var(--fd-coral)',
                 color: '#FFFFFF',
+                fontWeight: 700,
               }}
             >
               {item.badge}

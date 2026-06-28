@@ -62,7 +62,7 @@ export default async function DogsPage() {
           {/* UI audit F-1: 44px touch target — py-2 → py-2.5 + min-h. iOS HIG. */}
           <Link
             href="/dogs/new"
-            className="inline-flex items-center gap-1 px-4 py-2.5 min-h-[40px] text-[12px] font-bold rounded-full active:scale-[0.98] transition"
+            className="inline-flex items-center gap-1 px-4 py-2.5 min-h-[44px] text-[12px] font-bold rounded-full active:scale-[0.98] transition"
             style={{ background: 'var(--ink)', color: 'var(--paper)' }}
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
@@ -123,7 +123,7 @@ export default async function DogsPage() {
               <li key={dog.id}>
                 <Link
                   href={`/dogs/${dog.id}`}
-                  className="flex items-center gap-4 bg-bg-3 rounded border border-rule px-5 py-4 hover:border-text transition-all"
+                  className="flex items-center gap-4 bg-bg-3 rounded border border-rule px-5 py-4 hover:border-text active:scale-[0.99] transition-all"
                 >
                   <div className="relative w-12 h-12 bg-bg rounded-full overflow-hidden flex items-center justify-center flex-shrink-0">
                     {dog.photo_url ? (

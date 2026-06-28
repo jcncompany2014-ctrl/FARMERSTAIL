@@ -23,7 +23,7 @@ export async function POST() {
   }
 
   const now = new Date().toISOString()
-  const [profileRes] = await Promise.all([
+  const [profileRes, pushRes] = await Promise.all([
     supabase
       .from('profiles')
       .update({ notifications_last_seen_at: now })
@@ -36,8 +36,14 @@ export async function POST() {
   ])
 
   if (profileRes.error) {
-    console.error('[notifications/seen] update failed', profileRes.error)
+    console.error('[notifications/seen] profile update failed', profileRes.error)
     return NextResponse.json({ ok: false }, { status: 200 })
+  }
+
+  // push_log 는 부차 — 실패해도 다음 /count·조회·markAllRead 로 읽음 self-heal.
+  // 요청 자체는 성공(204) 처리하되, 운영 가시성 위해 error 는 로깅한다.
+  if (pushRes.error) {
+    console.error('[notifications/seen] push_log update failed', pushRes.error)
   }
 
   return new NextResponse(null, { status: 204 })

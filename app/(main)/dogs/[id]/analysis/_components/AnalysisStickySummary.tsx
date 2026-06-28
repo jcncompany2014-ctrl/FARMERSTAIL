@@ -43,8 +43,14 @@ export default function AnalysisStickySummary({
         /* 사용자 취소 */
       }
     } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(`${text}\n${shareData.url}`)
-      toast.success('분석 요약을 복사했어요')
+      // share 경로와 동일하게 보호 — 비-HTTPS·권한 거부 시 writeText 가 reject
+      // 하면 unhandled promise rejection 이 되므로 catch 해 사용자에 안내.
+      try {
+        await navigator.clipboard.writeText(`${text}\n${shareData.url}`)
+        toast.success('분석 요약을 복사했어요')
+      } catch {
+        toast.error('공유에 실패했어요')
+      }
     }
   }
 

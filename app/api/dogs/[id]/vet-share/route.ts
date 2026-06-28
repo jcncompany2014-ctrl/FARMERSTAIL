@@ -102,6 +102,21 @@ export async function DELETE(req: Request, { params }: Params) {
     )
   }
 
+  // 소유 검증 (POST와 동일 — RLS만 의존하지 않게 defense-in-depth, 2026-06-20).
+  // 없으면 타인 dogId 로 그 사람의 공유 토큰을 revoke 할 IDOR 여지(영향: 공유링크 무효화).
+  const { data: ownDog } = await supabase
+    .from('dogs')
+    .select('id')
+    .eq('id', dogId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!ownDog) {
+    return NextResponse.json(
+      { code: 'NOT_FOUND', message: '강아지를 찾을 수 없어요' },
+      { status: 404 },
+    )
+  }
+
   const url = new URL(req.url)
   const token = url.searchParams.get('token')
 

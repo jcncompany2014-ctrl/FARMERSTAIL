@@ -143,7 +143,7 @@ export default function ContactForm() {
           name="name"
           required
           maxLength={40}
-          placeholder="안성민"
+          placeholder="홍길동"
           autoComplete="name"
         />
         <Field

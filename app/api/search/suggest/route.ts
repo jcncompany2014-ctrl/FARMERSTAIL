@@ -99,8 +99,11 @@ export async function GET(req: Request) {
     .limit(MAX_RESULTS)
 
   if (error) {
+    // audit #69: 원본 DB message 클라이언트 노출 제거 — 서버 로그만(2026-06-20).
+    // dbError 대신 인라인 마스킹: 응답 shape(items:[])를 클라가 기대하므로 유지.
+    console.error('[search/suggest] db error:', error.message)
     return NextResponse.json(
-      { code: 'DB_ERROR', items: [], message: error.message },
+      { code: 'DB_ERROR', items: [] },
       { status: 500 },
     )
   }

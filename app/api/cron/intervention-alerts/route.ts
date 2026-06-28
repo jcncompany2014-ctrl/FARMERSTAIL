@@ -155,7 +155,10 @@ async function runAlerts(): Promise<Response> {
           {
             title: `${dog.name} 체중 추세 경보`,
             body: window.userMessage,
-            url: `/dogs/${dog.id}/simulate`,
+            // 사용자용 /simulate 페이지는 미구현(시뮬레이터는 admin 전용)이라
+            // 탭 시 404 였음. 자매 cron weight-change-detect 과 동일하게 실존
+            // /analysis(체중 기반 식단·박스 재추천)로 라우팅 — 딥링크 정합.
+            url: `/dogs/${dog.id}/analysis`,
             tag: `intervention-${dog.id}`,
           },
           { category: 'order' },

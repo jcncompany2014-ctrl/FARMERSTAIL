@@ -33,12 +33,19 @@ export default function WeightSparkline({ logs }: { logs: WeightLog[] }) {
   const area = `${points[0]!.x},${H} ${polyline} ${points[points.length - 1]!.x},${H}`
   const last = points[points.length - 1]!
 
+  // SVG 는 시각 전용 — 스크린리더용으로 추세를 한 줄 요약(role=img + aria-label).
+  const first = series[0]!.weight
+  const trend = last.v > first ? '증가' : last.v < first ? '감소' : '유지'
+  const ariaLabel = `체중 추이 그래프: 최근 ${series.length}개 기록, ${first}kg에서 ${last.v}kg으로 ${trend} (최저 ${min}kg · 최고 ${max}kg)`
+
   return (
     <div className="relative">
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="w-full h-16"
         preserveAspectRatio="none"
+        role="img"
+        aria-label={ariaLabel}
       >
         <defs>
           <linearGradient id="wlog-grad" x1="0" y1="0" x2="0" y2="1">

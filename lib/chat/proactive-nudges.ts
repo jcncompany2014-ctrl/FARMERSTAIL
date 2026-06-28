@@ -2,7 +2,7 @@
  * 챗봇 능동 개입 (proactive nudges).
  *
  * 사용자가 챗봇에 진입했을 때 history 가 비어있거나 마지막 대화가
- * 오래된 경우, 영양사 도우미가 먼저 "함께 점검해볼까요?" 라고
+ * 오래된 경우, 영양 도우미가 먼저 "함께 점검해볼까요?" 라고
  * 부드럽게 제안하는 1건 메시지.
  *
  * # 정책 (voice-guidelines)
@@ -16,6 +16,11 @@
  * BCS 극단(7+/3-) > 14일+ 체중 미기록 > 알레르기 자가진단 > 첫 진입.
  * 가장 시급한 1건만 반환 — 모달이 4건 쌓이지 않게.
  */
+
+// 상대경로 + 명시 .ts — proactive-nudges.test.ts 가 node --test(별칭 미해석·
+// ESM 확장자 필수)로 직접 로드하므로 `@/` 별칭이면 테스트가 로드 실패한다
+// (milestones.ts 와 동일 이슈·engine.ts 패턴).
+import { petName } from '../korean.ts'
 
 export type ChatNudgeReason =
   | 'bcs_high'
@@ -65,7 +70,7 @@ export function computeChatNudge(ctx: NudgeContext): ChatNudge | null {
     return {
       reason: 'bcs_high',
       message: `${name}의 BCS 가 ${ctx.latestBcs}/9 로 약간 높게 나왔어요. 살을 부드럽게 빼는 식단을 같이 정리해볼까요?`,
-      promptSuggestion: `${name}이(가) BCS ${ctx.latestBcs}인데 어떤 식단이 좋을까요?`,
+      promptSuggestion: `${petName(name)}가 BCS ${ctx.latestBcs}인데 어떤 식단이 좋을까요?`,
     }
   }
   // BCS 3 이하 (저체중)
@@ -102,7 +107,7 @@ export function computeChatNudge(ctx: NudgeContext): ChatNudge | null {
   return {
     reason: 'first_chat',
     message: inGrace
-      ? `안녕하세요. 영양사 도우미예요. 처음 함께하는 시기라 천천히 익숙해지면 돼요. 궁금한 거 편하게 물어봐주세요.`
-      : `안녕하세요. 영양사 도우미예요. ${name}에 대해 어떤 게 가장 궁금하세요?`,
+      ? `안녕하세요. 영양 도우미예요. 처음 함께하는 시기라 천천히 익숙해지면 돼요. 궁금한 거 편하게 물어봐주세요.`
+      : `안녕하세요. 영양 도우미예요. ${name}에 대해 어떤 게 가장 궁금하세요?`,
   }
 }

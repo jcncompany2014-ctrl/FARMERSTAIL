@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
+import { petName } from '@/lib/korean'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -100,11 +101,15 @@ export async function GET(req: Request) {
   let skipped = 0
   for (const [userId, dogs] of byUser.entries()) {
     // 14일 이내 같은 reminder 보낸 적 있으면 skip — spam 방지.
+    // ⚠️ dedup은 title 패턴으로 — push_log.category 는 pushToUser 의 PushCategory
+    // ('order' 재사용)로 기록되므로 'reminder-weight' 로 조회하면 영구 미스매치라
+    // dedup이 무력화됐었다(매 cron 발송=2배 빈도). 자매 cron intervention-alerts 와
+    // 동일하게 title 고정 부분("체중 측정해보세요")으로 dedup.
     const recent = await supabase
       .from('push_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('category', 'reminder-weight')
+      .ilike('title', '%체중 측정해보세요%')
       .gt(
         'sent_at',
         new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
@@ -121,7 +126,7 @@ export async function GET(req: Request) {
     const more = dogs.length > 3 ? ` 외 ${dogs.length - 3}` : ''
     const title =
       dogs.length === 1
-        ? `${dogNames}이 체중 측정해보세요`
+        ? `${petName(dogNames)}가 체중 측정해보세요`
         : `${dogNames}${more} 체중 측정해보세요`
     const body =
       '4주마다 측정하면 알고리즘이 더 정확한 처방을 만들어요.'

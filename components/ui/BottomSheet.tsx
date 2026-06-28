@@ -28,7 +28,7 @@
  * title 없는 경우 `aria-label` 을 직접 넘겨야 screen reader 가 헤매지 않음.
  */
 
-import { useCallback, useEffect, useRef, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useRef, type ReactNode } from 'react'
 
 type BottomSheetProps = {
   open: boolean
@@ -138,9 +138,11 @@ function BottomSheetRoot({
     [dismissOnBackdrop, onClose],
   )
 
-  // aria-labelledby 용 안정된 id. useId 를 써도 되지만 한 번 마운트 후 stable
-  // 이면 충분 + SSR 과의 hydration 이슈 없음.
-  const titleId = title ? 'bottom-sheet-title' : undefined
+  // aria-labelledby 용 고유 id. useId 는 SSR/CSR 동일 id 를 보장(hydration 안전)
+  // 하면서, 한 페이지에 BottomSheet 가 둘 이상 떠도 id 충돌이 없게 한다.
+  // (이전엔 하드코딩 'bottom-sheet-title' → 동시 2개 시 aria-labelledby 모호.)
+  const generatedId = useId()
+  const titleId = title ? generatedId : undefined
 
   return (
     <dialog

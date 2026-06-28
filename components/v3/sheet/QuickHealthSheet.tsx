@@ -10,7 +10,7 @@
  * **앱(PWA) 전용.** 호출자(PawFab)가 dogId 전달 + open/onClose 제어.
  */
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
@@ -44,9 +44,13 @@ function ChipRow({
   value: string | null
   onPick: (v: string | null) => void
 }) {
+  // 칩 그룹을 제목과 aria-labelledby 로 묶어, 스크린리더가 "식욕 그룹의 좋음"
+  // 처럼 맥락과 함께 읽도록. ChipRow 가 3회 재사용되므로 useId 로 유일 id.
+  const titleId = useId()
   return (
     <div style={{ marginTop: 16 }}>
       <div
+        id={titleId}
         style={{
           fontSize: 12,
           fontWeight: V3FontWeight.bold,
@@ -56,7 +60,7 @@ function ChipRow({
       >
         {title}
       </div>
-      <div className="flex" style={{ gap: 8 }}>
+      <div className="flex" role="group" aria-labelledby={titleId} style={{ gap: 8 }}>
         {opts.map(([v, label]) => {
           const active = value === v
           return (

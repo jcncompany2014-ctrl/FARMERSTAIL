@@ -148,8 +148,8 @@ export const ANALYSIS_COPY = {
   // Over-budget (사용자 예산이 권장량 비현실적일 때)
   over_budget: (name: string, recommendedKrw: number) =>
     `💡 ${petName(name)}의 일일 권장량으로는 하루 ${recommendedKrw.toLocaleString()}원 정도면 충분해요!\n\n` +
-    `남는 예산으로 다양한 단백질 5종을 더 자주 즐기실 수도 있어요. ` +
-    `닭·오리·연어·돼지·한우 골고루 rotation 추천드려요 🐾`,
+    `남는 예산으로 다양한 단백질을 더 자주 즐기실 수도 있어요. ` +
+    `닭·오리·돼지·한우 골고루 rotation 추천드려요 🐾`,
 
   // Social proof (친구 평균 비교)
   social_proof: (avgKrw: number, userKrw: number, name: string) =>
@@ -180,7 +180,7 @@ export const RECOMMENDATION_COPY = {
 
     beef_avoid: (name: string) =>
       `${petName(name)}가 소고기에 민감해 보여요. ` +
-      `닭(FT-C01)·오리(FT-D02)·연어(FT-S03)·돼지(FT-P04) ` +
+      `닭(FT-C01)·오리(FT-D02)·돼지(FT-P04) ` +
       `중에서 골라보세요 🐾`,
 
     fish_avoid: (name: string) =>
@@ -191,8 +191,8 @@ export const RECOMMENDATION_COPY = {
   chronic: {
     arthritis: (name: string) =>
       `${petName(name)}의 관절 건강을 더 챙기고 싶으시죠. ` +
-      `EPA/DHA가 풍부한 연어 화식(FT-S03)이 도움 될 수 있어요. ` +
-      `매일 0.7g 정도의 오메가-3가 자연스럽게 들어가요 🐾`,
+      `EPA/DHA 같은 오메가-3가 관절 건강에 도움 될 수 있어요. ` +
+      `식단에 어떻게 반영할지 수의사 선생님과 상의해 보세요 🐾`,
 
     obesity: (name: string) =>
       `${petName(name)}가 다이어트 중이시라면 ` +
@@ -207,8 +207,8 @@ export const RECOMMENDATION_COPY = {
     senior: (name: string) =>
       `${petName(name)}가 일곱 살이 넘었네요. ` +
       `관절·심혈관 건강에 더 신경 쓰고 싶으시죠.\n\n` +
-      `EPA/DHA가 풍부한 연어 화식(FT-S03)이 ${petName(name)}에게 잘 맞아요. ` +
-      `매일 0.7g 정도의 오메가-3가 자연스럽게 들어가요 💚`,
+      `EPA/DHA 같은 오메가-3가 이 시기 건강에 도움 될 수 있어요. ` +
+      `식단 반영은 수의사 선생님과 상의해 보세요 💚`,
   },
 
   rotation_4week: (name: string, currentProtein: string, nextProtein: string) =>
@@ -224,7 +224,7 @@ export const RECOMMENDATION_COPY = {
 export const ALERT_COPY = {
   bexley_chicken_fish_crossreact: (name: string) =>
     `${petName(name)}가 예전에 닭에 반응했다고 하셨네요.\n\n` +
-    `연어도 처음엔 1~2일 조금씩 시도해 보시는 게 좋아요. ` +
+    `새로운 단백질은 처음엔 1~2일 조금씩 시도해 보시는 게 좋아요. ` +
     `일부 견은 닭과 어류가 비슷한 반응을 보이기도 해요.\n\n` +
     `이상 반응이 보이면 바로 중단하시고 수의사 선생님과 상의해 주세요 💚\n\n` +
     `(참고: Bexley et al. 2019, Vet Dermatol)`,
@@ -245,7 +245,8 @@ export const ALERT_COPY = {
 
   dcm_risk_breed: (name: string) =>
     `${petName(name)}의 견종은 심장 건강을 더 잘 챙겨주면 좋아요.\n\n` +
-    `타우린·EPA/DHA가 풍부한 연어 화식(FT-S03)이 ${petName(name)}에게 잘 맞아요.\n\n` +
+    `타우린·EPA/DHA 같은 영양소가 심장 건강에 도움 될 수 있어요. ` +
+    `식단 반영은 수의사 선생님과 상의해 보세요.\n\n` +
     `연 1회 정기 검진과 함께 신경 써 주시면 안심돼요 💚`,
 
   puppy_ca_p_strict: (name: string) =>
@@ -254,8 +255,8 @@ export const ALERT_COPY = {
 
   drug_interaction_anticoagulant: (name: string) =>
     `${petName(name)}가 항응고제를 드시고 있다면, ` +
-    `EPA/DHA가 풍부한 연어 화식(FT-S03)은 수의사 선생님과 한 번 상의해 주세요.\n\n` +
-    `다른 단백질(닭·오리·돼지·한우)은 안전해요 💚`,
+    `오메가-3(EPA/DHA) 보충은 수의사 선생님과 한 번 상의해 주세요.\n\n` +
+    `닭·오리·돼지·한우 단백질은 일반적으로 안전해요 💚`,
 
   weight_increase: (name: string, gainG: number) =>
     `${petName(name)}가 한 달 동안 ${gainG}g 정도 늘었어요.\n\n` +

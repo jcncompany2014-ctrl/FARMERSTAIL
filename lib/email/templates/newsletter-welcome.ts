@@ -22,12 +22,8 @@ export function renderNewsletterWelcome(input: {
   email: string
   /** 영구 unsubscribe 토큰 — newsletter_subscribers.unsubscribe_token. */
   unsubscribeToken: string
-  /** 첫 주문 할인 쿠폰 코드 — admin/coupons 에 활성 상태여야 동작.
-   *  기본 'WELCOME5000' (5,000원 즉시 할인). env (WELCOME_COUPON_CODE) 로 override. */
-  couponCode?: string
 }): { subject: string; html: string } {
-  const code = (input.couponCode ?? 'WELCOME5000').toUpperCase()
-  // (광고) 표기 — 본문에 할인 코드 (광고성) 포함되어 있어 안전하게 마킹.
+  // (광고) 표기 — 본문에 할인 안내 (광고성) 포함되어 있어 안전하게 마킹.
   const subject = '(광고) [파머스테일] 환영해요. 첫 메일이에요.'
 
   const unsubscribeUrl = `${SITE_URL}/api/newsletter/unsubscribe?token=${encodeURIComponent(input.unsubscribeToken)}`
@@ -53,16 +49,13 @@ export function renderNewsletterWelcome(input: {
     )}
     <p style="margin:14px 0 0 0;">
       그리고 첫 메일이니, 작은 인사 하나 드릴게요.
-      아래 쿠폰은 첫 주문에 자동으로 적용돼요. 따로 코드를 입력하실 필요 없어요.
+      가입 후 첫 정기배송은 50% 할인이 자동으로 적용돼요. 코드 입력은 필요 없어요.
     </p>
     <div style="margin:18px 0 6px 0;background:#EFEADF;border:1px solid #DCD6C4;border-radius:8px;padding:18px 20px;text-align:center;">
       <div style="font-size:10px;color:#5A6C61;letter-spacing:0.16em;text-transform:uppercase;font-weight:700;">First Order · 첫 주문</div>
-      <div style="margin-top:6px;font-size:20px;font-weight:800;color:#173B33;letter-spacing:-0.02em;">5,000원 할인</div>
-      <div style="margin-top:8px;font-size:11px;color:#5A6C61;font-family:monospace;letter-spacing:0.04em;">ref: ${escape(code)}</div>
+      <div style="margin-top:6px;font-size:20px;font-weight:800;color:#173B33;letter-spacing:-0.02em;">50% 할인</div>
+      <div style="margin-top:8px;font-size:11px;color:#5A6C61;">계정당 1회 · 첫 결제에 자동 적용</div>
     </div>
-    <p style="margin:14px 0 0 0;font-size:11.5px;color:#5A6C61;line-height:1.6;">
-      쿠폰은 결제 단계에서 자동으로 안내돼요. 다른 쿠폰과 중복 사용은 안 돼요.
-    </p>
     <p style="margin:18px 0 0 0;">
       다음 메일에서 만나요.<br />
       — 파머스테일 드림
@@ -75,14 +68,14 @@ export function renderNewsletterWelcome(input: {
   `
 
   const html = renderLayout({
-    preview: '파머스테일 뉴스레터에 오신 걸 환영해요. 첫 주문 5,000원 할인이 함께해요.',
+    preview: '파머스테일 뉴스레터에 오신 걸 환영해요. 첫 주문 50% 할인이 함께해요.',
     kicker: 'Welcome · 첫 메일',
     heading: '환영해요. 첫 메일이에요.',
     icon: '🐾',
     body,
     cta: {
-      label: '메뉴 둘러보기',
-      href: `${SITE_URL}/products`,
+      label: '맞춤 플랜 시작하기',
+      href: `${SITE_URL}/start`,
     },
   })
 

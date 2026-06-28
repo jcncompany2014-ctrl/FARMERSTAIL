@@ -7,14 +7,15 @@
  * 제약상 lucide 아이콘 컴포넌트를 prop 으로 못 받으므로, kind(meal/walk/weight)
  * 만 받아 아이콘은 여기서 매핑한다.
  *
- * **체중 칩 = 페이지 이동 대신 QuickWeightSheet 를 그 자리에서 띄움.**
- * (식사·산책은 후속 Phase 에서 칩 시트로 전환 예정 — 현재는 href Link 유지.)
+ * **식사·산책·체중 칩 모두 = 페이지 이동 대신 그 자리에서 바텀시트를 띄운다**
+ * (meal→QuickChipSheet, walk→QuickWalkSheet, weight→QuickWeightSheet). dogId
+ * 가 없을 때만 href Link(없으면 div)로 폴백.
  */
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Soup, Footprints, Scale, Check, type LucideIcon } from 'lucide-react'
-import { V3, V3FontWeight } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3FontSize } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 import { createClient } from '@/lib/supabase/client'
 import QuickWeightSheet from '@/components/v3/sheet/QuickWeightSheet'
@@ -134,7 +135,7 @@ export default function QuickActionChips({
             style={{
               fontFamily: 'var(--font-sans)',
               fontWeight: V3FontWeight.bold,
-              fontSize: 13.5,
+              fontSize: V3FontSize.base,
               color: isDone ? V3.sage : V3.ink,
               marginTop: 2,
               gap: 3,

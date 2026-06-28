@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import AddressSearch from '@/components/AddressSearch'
 import type { Address, AddressInput } from '@/lib/commerce/addresses'
@@ -33,6 +33,10 @@ export default function AddressForm({ mode, initial }: Props) {
   const [isDefault, setIsDefault] = useState(initial?.isDefault ?? false)
 
   const [submitting, setSubmitting] = useState(false)
+  // 동기 가드 — disabled={submitting} 은 리렌더 후 적용되므로 서브프레임
+  // 더블탭이 빠져나갈 수 있다. ref 는 동기라 중복 제출(중복 배송지 생성)을 막음
+  // (dogs/new NewDogClient 의 submittingRef 패턴과 동일).
+  const submittingRef = useRef(false)
   const [error, setError] = useState('')
 
   function fillFromSearch(d: { zip: string; address: string; buildingName: string }) {
@@ -47,6 +51,8 @@ export default function AddressForm({ mode, initial }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (submittingRef.current) return // 더블탭 중복 제출(중복 배송지) 방지
+    submittingRef.current = true
     setError('')
     setSubmitting(true)
 
@@ -87,6 +93,7 @@ export default function AddressForm({ mode, initial }: Props) {
         }
         setError(message)
         setSubmitting(false)
+        submittingRef.current = false // 실패 시 재시도 허용
         return
       }
 
@@ -95,6 +102,7 @@ export default function AddressForm({ mode, initial }: Props) {
     } catch {
       setError('잠시 네트워크가 불안정한 것 같아요. 다시 시도해 주세요.')
       setSubmitting(false)
+      submittingRef.current = false // 실패 시 재시도 허용
     }
   }
 
@@ -212,6 +220,7 @@ export default function AddressForm({ mode, initial }: Props) {
 
         {error && (
           <div
+            role="alert"
             className="text-[12px] font-bold rounded-lg px-3.5 py-2.5"
             style={{
               color: 'var(--sale)',

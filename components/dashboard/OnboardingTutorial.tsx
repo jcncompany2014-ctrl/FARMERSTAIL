@@ -40,7 +40,7 @@ const STEPS = [
     accent: 'var(--gold)',
     kicker: 'Step 2 · 분석',
     title: '5분이면 충분해요',
-    body: 'NRC2006 기준 정밀 영양 처방 + AI 영양사 코멘터리.\n수의영양학 가이드라인 기반.',
+    body: 'NRC2006 기준 정밀 영양 분석 + AI 코멘터리.\n수의영양학 가이드라인 기반.',
   },
   {
     Icon: Repeat,

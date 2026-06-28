@@ -141,7 +141,7 @@ function LoginInner() {
       // R-fix(이메일확인 데이터유실 복원): Confirm email 이 ON 이면 signUp 직후
       // 세션이 없어 프로필이 비어 있다. signUp 때 auth 메타데이터(signup_profile)
       // 에 보관해 둔 가입 입력값을 "첫 로그인"에 복원한다(이름·전화·주소·생일·
-      // 마케팅동의·추천인보상·환영쿠폰). profiles.name 이 비어 있을 때만 실행(멱등)
+      // 마케팅동의). profiles.name 이 비어 있을 때만 실행(멱등)
       // 하고, 성공 후 메타데이터 PII 를 즉시 비운다(PIPA). 복원 실패는 로그인을
       // 막지 않는다 — 프로필은 마이페이지에서 수정 가능.
       try {

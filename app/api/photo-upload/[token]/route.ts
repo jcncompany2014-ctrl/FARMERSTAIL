@@ -145,8 +145,10 @@ export async function POST(req: Request, { params }: Params) {
     )
   }
   if (upErr) {
+    // audit #69: 원본 storage message 클라이언트 노출 제거 — 서버 로그만(2026-06-20).
+    console.error('[photo-upload] storage error:', upErr.message)
     return NextResponse.json(
-      { code: 'UPLOAD_FAILED', message: upErr.message },
+      { code: 'UPLOAD_FAILED', message: '사진 업로드에 실패했어요' },
       { status: 500 },
     )
   }

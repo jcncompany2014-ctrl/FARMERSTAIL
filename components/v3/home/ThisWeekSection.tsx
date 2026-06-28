@@ -11,7 +11,7 @@
 
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
-import { V3, V3FontWeight } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3FontSize } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 import QuickActionChips, { type QuickAction } from './QuickActionChips'
 
@@ -72,6 +72,15 @@ function fgForStatus(status: DayStatus): string {
   }
 }
 
+/** 스크린리더용 상태 한국어 라벨 — aria-label 에 내부 enum 대신 사용. */
+const STATUS_LABEL_KO: Record<DayStatus, string> = {
+  full: '완료',
+  partial: '일부 기록',
+  miss: '기록 없음',
+  today: '오늘',
+  future: '예정',
+}
+
 export default function ThisWeekSection({
   dogId,
   dogName,
@@ -92,7 +101,7 @@ export default function ThisWeekSection({
             margin: 0,
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.black,
-            fontSize: 22,
+            fontSize: V3FontSize.lg,
             color: V3.ink,
             letterSpacing: '-0.025em',
             wordBreak: 'keep-all',
@@ -130,10 +139,10 @@ export default function ThisWeekSection({
                     border: isToday ? `1.5px dashed ${V3.accent}` : 'none',
                     fontFamily: 'var(--font-sans)',
                     fontWeight: V3FontWeight.bold,
-                    fontSize: 12,
+                    fontSize: V3FontSize.sm,
                     color: fgForStatus(d.status),
                   }}
-                  aria-label={`${d.date}일 — ${d.status}`}
+                  aria-label={`${d.date}일 — ${STATUS_LABEL_KO[d.status]}`}
                 >
                   {d.date}
                 </div>
@@ -174,7 +183,7 @@ export default function ThisWeekSection({
                 background: 'transparent',
                 fontFamily: 'var(--font-sans)',
                 fontWeight: V3FontWeight.bold,
-                fontSize: 12,
+                fontSize: V3FontSize.sm,
                 color: V3.accent,
               }}
             >

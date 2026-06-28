@@ -63,12 +63,17 @@ export default function PawFab({ activeDogId, hidden }: PawFabProps) {
   const [photoOpen, setPhotoOpen] = useState(false)
   const router = useRouter()
   const firstRef = useRef<HTMLButtonElement>(null)
+  const fabRef = useRef<HTMLButtonElement>(null)
 
   // Escape 로 닫기 + 열릴 때 첫 액션에 포커스.
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') {
+        setOpen(false)
+        // 키보드 사용자가 트리거(닫힘 FAB)로 복귀하도록 포커스 되돌림.
+        fabRef.current?.focus()
+      }
     }
     window.addEventListener('keydown', onKey)
     firstRef.current?.focus()
@@ -175,10 +180,12 @@ export default function PawFab({ activeDogId, hidden }: PawFabProps) {
 
         {/* 닫힘 FAB — ink 원 + 발자국 아이콘. 탭하면 펼침. */}
         <button
+          ref={fabRef}
           type="button"
           onClick={() => setOpen(true)}
           aria-label="빠른 기입 열기"
           aria-expanded={open}
+          tabIndex={open ? -1 : 0}
           className="absolute flex items-center justify-center ft-no-press"
           style={{
             right: EDGE,

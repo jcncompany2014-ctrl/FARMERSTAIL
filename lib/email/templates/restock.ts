@@ -11,6 +11,7 @@
  *     이미지 없이도 본문 가독성이 유지되게 제목을 크게.
  */
 import { block, escape, renderLayout, SITE_URL } from '../layout'
+import { iGa } from '@/lib/korean'
 
 export function renderRestockAlert(input: {
   recipientName: string
@@ -20,7 +21,7 @@ export function renderRestockAlert(input: {
   price: number
   imageUrl?: string | null
 }): { subject: string; html: string } {
-  const subject = `[파머스테일] 기다리시던 ${input.productName}가 돌아왔어요 🐾`
+  const subject = `[파머스테일] 기다리시던 ${iGa(input.productName)} 돌아왔어요 🐾`
   const heroImage = input.imageUrl
     ? `<img src="${escape(input.imageUrl)}" alt="${escape(input.productName)}" width="200" style="display:block;margin:0 auto 16px;border-radius:12px;max-width:200px;height:auto;" />`
     : ''

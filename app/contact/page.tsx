@@ -53,7 +53,7 @@ export default function ContactPage() {
     { name: '문의하기', path: '/contact' },
   ])
   return (
-    <WebChrome cartCount={0}>
+    <WebChrome>
       <main>
         <JsonLd id="ld-contact-crumbs" data={crumbLd} />
         {/* Hero */}

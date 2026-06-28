@@ -13,6 +13,7 @@ import "./globals.css";
 // 적용된다 (같은 모듈 그래프).
 import "@/lib/forms/zod-ko";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import DevContextToggle from "@/components/DevContextToggle";
 import SentryUserSync from "@/components/SentryUserSync";
 import UtmCapture from "@/components/UtmCapture";
 import AnalyticsScripts from "@/components/AnalyticsScripts";
@@ -343,6 +344,8 @@ export default function RootLayout({
             라우트에서 추가로 주입. Google 이 @id 로 엔티티를 병합해준다. */}
         <JsonLd id="ld-organization" data={buildOrganizationJsonLd()} />
         <JsonLd id="ld-website" data={buildWebSiteJsonLd()} />
+        {/* 🛠️ 개발 전용 웹↔앱 토글 (우하단). production 엔 렌더 안 됨. 삭제: 이 줄 + components/DevContextToggle.tsx */}
+        {process.env.NODE_ENV !== 'production' && <DevContextToggle />}
       </body>
     </html>
   );

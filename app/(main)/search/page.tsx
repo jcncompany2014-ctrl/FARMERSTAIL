@@ -110,6 +110,7 @@ export default async function SearchPage({
             <input
               type="search"
               name="q"
+              aria-label="강아지·다이어리·상품 검색"
               defaultValue={query}
               placeholder="강아지 이름, 다이어리 내용..."
               autoComplete="off"

@@ -83,7 +83,7 @@ export default function ActiveDogCard({
           style={{
             gap: 6,
             fontFamily: "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
-            fontSize: 10.5,
+            fontSize: V3FontSize.xs,
             color: V3.inkSoft,
           }}
         >
@@ -136,8 +136,8 @@ export default function ActiveDogCard({
             style={{
               fontFamily: 'var(--font-sans)',
               fontWeight: V3FontWeight.black,
-              // R23: 34 → 22 (사용자 보고: hero 텍스트 전반 다운)
-              fontSize: 22,
+              // R23: 34 → 22 (사용자 보고: hero 텍스트 전반 다운) = V3FontSize.lg
+              fontSize: V3FontSize.lg,
               color: V3.ink,
               letterSpacing: '-0.025em',
               lineHeight: 1.25,
@@ -150,7 +150,7 @@ export default function ActiveDogCard({
             className="ft-clamp-1"
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 12,
+              fontSize: V3FontSize.sm,
               color: V3.inkSoft,
               marginTop: 6,
             }}
@@ -209,7 +209,11 @@ export default function ActiveDogCard({
   if (href) {
     return (
       <section style={{ padding: '0 20px 30px' }}>
-        <Link href={href} aria-label={`${dogName} 상세 보기`} className="block">
+        <Link
+          href={href}
+          aria-label={`${dogName} 상세 보기`}
+          className="block transition-transform active:scale-[0.99]"
+        >
           {card}
         </Link>
       </section>

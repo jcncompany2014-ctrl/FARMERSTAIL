@@ -113,8 +113,10 @@ export async function POST(req: Request) {
     })
     .eq('id', (pending as { id: string }).id)
   if (declineErr) {
+    // audit #69: 원본 DB message 클라이언트 노출 제거 — 서버 로그만(2026-06-20).
+    console.error('[personalization/approve] decline db error:', declineErr.message)
     return NextResponse.json(
-      { code: 'DB_ERROR', message: declineErr.message },
+      { code: 'DB_ERROR', message: '처리하지 못했어요' },
       { status: 500 },
     )
   }

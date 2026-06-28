@@ -21,7 +21,7 @@ function DoneInner() {
   const name = (params.get('name') || '').trim() || '우리 아이'
 
   return (
-    <WebChrome cartCount={0}>
+    <WebChrome>
       <main>
         <Section bg="offwhite" pad="lg">
           <Container size="sm">

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Mono } from '@/components/v3'
-import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3FontSize, V3Radius } from '@/lib/design/tokens'
 import AccuracyBreakdown, {
   type AccuracyVar,
 } from '@/components/dashboard/AccuracyBreakdown'
@@ -139,7 +139,7 @@ export default async function AccuracyPage() {
         </Mono>
         <p
           style={{
-            fontSize: 13.5,
+            fontSize: V3FontSize.base,
             lineHeight: 1.55,
             color: V3.inkMute,
             marginTop: 8,
@@ -188,7 +188,7 @@ export default async function AccuracyPage() {
                 margin: 0,
                 fontFamily: 'var(--font-sans)',
                 fontWeight: V3FontWeight.black,
-                fontSize: 16,
+                fontSize: V3FontSize.md,
                 color: V3.ink,
                 letterSpacing: '-0.02em',
               }}
@@ -197,14 +197,13 @@ export default async function AccuracyPage() {
             </h3>
             <p
               style={{
-                fontSize: 12,
+                fontSize: V3FontSize.sm,
                 color: V3.inkMute,
                 marginTop: 8,
                 lineHeight: 1.55,
               }}
             >
               우리 아이를 등록하고 맞춤 분석을 한 번 받으면
-              <br />
               변수별 정밀도를 여기서 확인할 수 있어요
             </p>
             <Link
@@ -214,7 +213,7 @@ export default async function AccuracyPage() {
                 marginTop: 20,
                 gap: 6,
                 padding: '12px 22px',
-                fontSize: 12,
+                fontSize: V3FontSize.sm,
                 fontWeight: V3FontWeight.bold,
                 borderRadius: V3Radius.pill,
                 background: V3.ink,

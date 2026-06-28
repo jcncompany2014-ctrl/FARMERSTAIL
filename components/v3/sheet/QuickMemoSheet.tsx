@@ -102,6 +102,7 @@ export default function QuickMemoSheet({
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
+          aria-label="오늘 일기 한 줄"
           placeholder="오늘 어떤 하루였나요?"
           rows={4}
           autoFocus
@@ -113,7 +114,7 @@ export default function QuickMemoSheet({
             borderRadius: 4,
             padding: 12,
             fontFamily: 'var(--font-sans)',
-            fontSize: 14,
+            fontSize: 13.5,
             color: V3.ink,
             resize: 'none',
             outline: 'none',

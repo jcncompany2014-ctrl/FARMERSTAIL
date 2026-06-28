@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import {
   Activity,
   Heart,
@@ -86,6 +86,10 @@ export default function HealthLogClient({
   const confirm = useConfirm()
   const [logs, setLogs] = useState<HealthLog[]>(initialLogs)
   const [saving, setSaving] = useState(false)
+  // 동기 가드 — disabled={saving} 은 리렌더 후 적용되므로 서브프레임 더블탭이
+  // 빠져나가 건강기록이 중복 insert 될 수 있다(체중/추세 오염→알고리즘 영향).
+  // ref 는 동기라 중복을 막음 (dogs/new·AddressForm 패턴).
+  const savingRef = useRef(false)
   const [showForm, setShowForm] = useState(initialLogs.length === 0)
   const [error, setError] = useState<string | null>(null)
 
@@ -121,6 +125,8 @@ export default function HealthLogClient({
       setError('최소 한 항목 이상 기록해 주세요')
       return
     }
+    if (savingRef.current) return // 더블탭 중복 insert 방지
+    savingRef.current = true
     setSaving(true)
     try {
       const {
@@ -162,6 +168,7 @@ export default function HealthLogClient({
       setShowForm(false)
     } finally {
       setSaving(false)
+      savingRef.current = false
     }
   }
 
@@ -324,7 +331,7 @@ export default function HealthLogClient({
             </div>
 
             {error && (
-              <p className="text-[10.5px] font-bold text-sale">{error}</p>
+              <p role="alert" className="text-[10.5px] font-bold text-sale">{error}</p>
             )}
 
             <button

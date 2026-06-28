@@ -110,8 +110,10 @@ export async function POST(req: Request) {
   })
 
   if (error) {
+    // audit #69: 원본 DB message 클라이언트 노출 제거 — 서버 로그만(2026-06-20).
+    console.error('[rewards/survey-completion] ledger error:', error.message)
     return NextResponse.json(
-      { code: 'LEDGER_FAILED', message: error.message },
+      { code: 'LEDGER_FAILED', message: '포인트 적립에 실패했어요' },
       { status: 500 },
     )
   }

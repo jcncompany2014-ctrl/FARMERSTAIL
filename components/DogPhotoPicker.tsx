@@ -234,7 +234,7 @@ export default function DogPhotoPicker({
           )}
         </div>
         {error && (
-          <div className="text-[11px] font-semibold text-sale mt-1.5">
+          <div role="alert" className="text-[11px] font-semibold text-sale mt-1.5">
             {error}
           </div>
         )}

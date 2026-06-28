@@ -264,8 +264,10 @@ export async function DELETE(req: Request) {
   if (dogId) q = q.eq('dog_id', dogId)
   const { error } = await q
   if (error) {
+    // audit #69: 원본 DB message 클라이언트 노출 제거 — 서버 로그만(2026-06-20).
+    console.error('[chatbot] delete failed:', error.message)
     return NextResponse.json(
-      { code: 'DELETE_FAILED', message: error.message },
+      { code: 'DELETE_FAILED', message: '대화 기록을 삭제하지 못했어요' },
       { status: 500 },
     )
   }

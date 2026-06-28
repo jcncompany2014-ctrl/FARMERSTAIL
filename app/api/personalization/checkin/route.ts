@@ -95,8 +95,10 @@ export async function POST(req: Request) {
   )
 
   if (upErr) {
+    // audit #69: 원본 DB message 클라이언트 노출 제거 — 서버 로그만(2026-06-20).
+    console.error('[personalization/checkin] db error:', upErr.message)
     return NextResponse.json(
-      { code: 'DB_ERROR', message: upErr.message },
+      { code: 'DB_ERROR', message: '체크인을 저장하지 못했어요' },
       { status: 500 },
     )
   }

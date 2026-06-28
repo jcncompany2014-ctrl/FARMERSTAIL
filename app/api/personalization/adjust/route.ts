@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         code: 'CYCLE_NOT_FOUND',
-        message: '해당 cycle 의 처방을 찾을 수 없어요',
+        message: '해당 cycle 의 맞춤 식단을 찾을 수 없어요',
       },
       { status: 404 },
     )
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
       {
         code: 'NOT_ADJUSTABLE',
         message:
-          '이미 확정되었거나 마감된 처방은 수정할 수 없어요. 새로 분석해 주세요.',
+          '이미 확정되었거나 마감된 맞춤 식단은 수정할 수 없어요. 새로 분석해 주세요.',
       },
       { status: 409 },
     )
@@ -190,8 +190,10 @@ export async function POST(req: Request) {
     .eq('id', existing.id)
 
   if (upErr) {
+    // audit #69: 원본 DB message 클라이언트 노출 제거 — 서버 로그만(2026-06-20).
+    console.error('[personalization/adjust] db error:', upErr.message)
     return NextResponse.json(
-      { code: 'DB_ERROR', message: upErr.message },
+      { code: 'DB_ERROR', message: '조정 내용을 저장하지 못했어요' },
       { status: 500 },
     )
   }

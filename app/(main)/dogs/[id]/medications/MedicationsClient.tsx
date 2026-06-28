@@ -108,6 +108,7 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
       setRecords((rs) => rs.filter((r) => r.id !== id))
     } catch (e) {
       console.error('deleteMedication', e)
+      toast.error('삭제하지 못했어요')
     }
   }
 
@@ -207,6 +208,7 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                aria-label="약물 이름"
                 placeholder="예: 심장사상충 예방약"
                 className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
               />
@@ -219,6 +221,7 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
                 type="text"
                 value={dose}
                 onChange={(e) => setDose(e.target.value)}
+                aria-label="용량"
                 placeholder="예: 1/2 tab"
                 className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
               />
@@ -247,6 +250,7 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
+                aria-label="복약 시간"
                 className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] text-text focus:outline-none focus:border-terracotta transition"
               />
             </div>
@@ -258,6 +262,7 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
+                aria-label="메모"
                 placeholder="예: 밥 직후 복용"
                 className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
               />

@@ -183,7 +183,7 @@ export default async function BlogPostPage({ params }: { params: Params }) {
   )
 
   return (
-    <WebChrome cartCount={0}>
+    <WebChrome>
       <main>
         <JsonLd id={`ld-article-${post.slug}`} data={articleLd} />
         <JsonLd id={`ld-breadcrumb-blog-${post.slug}`} data={breadcrumbLd} />

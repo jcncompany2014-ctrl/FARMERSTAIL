@@ -156,10 +156,10 @@ export default function RawCalculatorClient() {
             <table className="w-full text-[11.5px]">
               <thead>
                 <tr className="text-left text-muted border-b border-rule">
-                  <th className="py-2 pr-3 font-bold">식재료</th>
-                  <th className="py-2 px-2 font-bold text-right">g/일</th>
-                  <th className="py-2 px-2 font-bold text-right">Ca mg</th>
-                  <th className="py-2 pl-2 font-bold text-right">P mg</th>
+                  <th scope="col" className="py-2 pr-3 font-bold">식재료</th>
+                  <th scope="col" className="py-2 px-2 font-bold text-right">g/일</th>
+                  <th scope="col" className="py-2 px-2 font-bold text-right">Ca mg</th>
+                  <th scope="col" className="py-2 pl-2 font-bold text-right">P mg</th>
                 </tr>
               </thead>
               <tbody>

@@ -72,7 +72,9 @@ export default function ConsentSettingsClient({
     })
     if (rpcErr) {
       setState(prev)
-      setError(rpcErr.message ?? '저장에 실패했어요')
+      // audit #69 일관성 — 원본 RPC error message 노출 제거(서버 로그만).
+      console.error('[consent] set_marketing_consent failed', rpcErr.message)
+      setError('저장에 실패했어요')
       setSaving(null)
       return
     }
@@ -155,6 +157,7 @@ export default function ConsentSettingsClient({
       {error && (
         <section className="px-5 mt-3">
           <div
+            role="alert"
             className="text-[12px] font-bold rounded-lg px-3.5 py-2.5 flex items-start gap-2"
             style={{
               color: 'var(--sale)',

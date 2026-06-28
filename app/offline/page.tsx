@@ -4,7 +4,7 @@ export default function OfflinePage() {
   return (
     <main className="min-h-screen bg-bg flex items-center justify-center px-6 py-12">
       <div className="text-center max-w-sm md:max-w-xl">
-        <div className="text-6xl md:text-8xl mb-6 md:mb-8">📡</div>
+        <div className="text-6xl md:text-8xl mb-6 md:mb-8" aria-hidden="true">📡</div>
         <h1
           // R28: font-serif → font-sans (v3 app 톤. Service Worker 가 PWA 에서만 보여줌)
           className="font-sans text-[24px] md:text-[40px] lg:text-[48px] font-black text-text mb-3 md:mb-5"

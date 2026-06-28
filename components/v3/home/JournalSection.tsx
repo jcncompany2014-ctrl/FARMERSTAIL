@@ -154,7 +154,7 @@ function JournalCard({ entry }: { entry: JournalEntry }) {
           style={{
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.black,
-            fontSize: 18,
+            fontSize: 16,
             lineHeight: 1,
             marginTop: 2,
             letterSpacing: '-0.025em',

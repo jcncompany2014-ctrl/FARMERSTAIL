@@ -57,6 +57,7 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   paid: '결제 완료',
   failed: '결제 실패',
   cancelled: '결제 취소',
+  partially_refunded: '부분 환불',
   refunded: '환불',
 }
 
@@ -179,7 +180,7 @@ export default function OrdersAppView({
             우리 아이 첫 한 끼를 골라보세요
           </p>
           <Link
-            href="/products"
+            href="/start"
             className="inline-flex items-center active:scale-[0.98] transition"
             style={{
               marginTop: 20,
@@ -192,7 +193,7 @@ export default function OrdersAppView({
               textDecoration: 'none',
             }}
           >
-            제품 둘러보기
+            정기배송 시작하기
           </Link>
         </div>
       </section>

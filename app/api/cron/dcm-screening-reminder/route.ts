@@ -4,6 +4,7 @@ import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { DCM_RISK_BREEDS } from '@/lib/chronic-sku-mapper'
+import { petName } from '@/lib/korean'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -81,7 +82,7 @@ async function runReminder(): Promise<Response> {
       await pushToUser(
         dog.user_id,
         {
-          title: `${dog.name}이 심장 검진 시기예요`,
+          title: `${petName(dog.name)}가 심장 검진 시기예요`,
           body: '도베르만·복서 등 DCM 호발 견종은 6개월마다 심초음파 + 타우린 검사가 권장돼요. 수의사와 상담해 보세요.',
           url: `/dogs/${dog.id}`,
           tag,

@@ -255,6 +255,7 @@ export default function ChatClient({
             <button
               type="button"
               onClick={() => setSelectedDogId('')}
+              aria-pressed={selectedDogId === ''}
               className="px-3 py-1.5 rounded-full text-[10.5px] font-bold transition"
               style={{
                 background: selectedDogId === '' ? 'var(--ink)' : 'white',
@@ -271,6 +272,7 @@ export default function ChatClient({
                   key={d.id}
                   type="button"
                   onClick={() => setSelectedDogId(d.id)}
+                  aria-pressed={active}
                   className="px-3 py-1.5 rounded-full text-[10.5px] font-bold transition"
                   style={{
                     background: active ? 'var(--ink)' : 'white',
@@ -306,7 +308,7 @@ export default function ChatClient({
                   borderColor:
                     'color-mix(in srgb, var(--terracotta) 28%, transparent)',
                 }}
-                aria-label="영양사 도우미 안내"
+                aria-label="영양 도우미 안내"
               >
                 <div className="flex items-start gap-2.5">
                   <span
@@ -373,6 +375,7 @@ export default function ChatClient({
             ))}
             {loading && (
               <div
+                role="status"
                 className="rounded border-2 px-4 py-3"
                 style={{
                   background: 'color-mix(in srgb, var(--moss) 4%, white)',
@@ -387,7 +390,7 @@ export default function ChatClient({
               </div>
             )}
             {error && (
-              <div className="flex items-start gap-2 text-[12px] text-sale rounded bg-sale/8 px-3 py-2">
+              <div role="alert" className="flex items-start gap-2 text-[12px] text-sale rounded bg-sale/8 px-3 py-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
@@ -420,6 +423,7 @@ export default function ChatClient({
               }
             }}
             rows={2}
+            aria-label="AI 영양 도우미에게 질문 입력"
             placeholder={
               messages.length === 0
                 ? '우리 아이 식이에 대해 궁금한 점을 적어주세요...'
@@ -501,6 +505,9 @@ function MessageBubble({ message }: { message: Message }) {
         }}
       >
         <p className="text-[13.5px] text-text leading-relaxed whitespace-pre-line">
+          <span className="sr-only">
+            {isUser ? '나: ' : 'AI 영양 도우미: '}
+          </span>
           {message.content}
         </p>
       </div>

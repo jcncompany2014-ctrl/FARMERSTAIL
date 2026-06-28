@@ -80,11 +80,13 @@ export default function QuickWalkSheet({
       }
 
       // 2) 활동량(선택) → health_logs.activity_level.
+      // 산책 시간(activity_logs)은 이미 저장됨 — 활동량은 부가라 실패해도 산책
+      // 기록 자체는 유효. 성공 처리하되 운영 가시성 위해 로깅만.
       if (activity) {
         const todayIso = new Date(Date.now() + 9 * 3600 * 1000)
           .toISOString()
           .slice(0, 10)
-        await supabase.from('health_logs').insert({
+        const { error: actErr } = await supabase.from('health_logs').insert({
           dog_id: dogId,
           user_id: user.id,
           logged_at: todayIso,
@@ -95,6 +97,9 @@ export default function QuickWalkSheet({
           mood: null,
           note: null,
         })
+        if (actErr) {
+          console.error('[QuickWalkSheet] activity_level insert failed', actErr)
+        }
       }
 
       setActivity(null)
@@ -175,6 +180,8 @@ export default function QuickWalkSheet({
               <Minus size={18} color={V3.ink} strokeWidth={2.2} />
             </button>
             <div
+              aria-live="polite"
+              aria-label={`산책 시간 ${fmtDuration(duration)}`}
               className="tabular-nums flex-1 text-center"
               style={{
                 fontFamily: 'var(--font-sans)',
@@ -219,7 +226,7 @@ export default function QuickWalkSheet({
           >
             활동량
           </div>
-          <div className="flex" style={{ gap: 8 }}>
+          <div className="flex" role="group" aria-label="활동량" style={{ gap: 8 }}>
             {ACTIVITY.map(([v, label]) => {
               const active = activity === v
               return (

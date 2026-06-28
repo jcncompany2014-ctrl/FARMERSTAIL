@@ -304,7 +304,7 @@ function Row({
         </div>
         <div
           className="mt-1 h-1.5 rounded-full overflow-hidden"
-          style={{ background: 'color-mix(in srgb var(--rule) 60%, white)' }}
+          style={{ background: 'color-mix(in srgb, var(--rule) 60%, white)' }}
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}

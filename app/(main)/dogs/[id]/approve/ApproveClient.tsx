@@ -171,7 +171,7 @@ export default function ApproveClient({
       </section>
 
       {err && (
-        <div className="ap-err">
+        <div className="ap-err" role="alert">
           <AlertCircle size={14} strokeWidth={2} />
           {err}
         </div>

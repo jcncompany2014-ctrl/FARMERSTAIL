@@ -202,7 +202,7 @@ export default function DogDetailClient({
     }
 
     if (!data || data.length === 0) {
-      toast.error('삭제 권한이 없어요. 이 강아지는 다른 계정에 속해있어요.')
+      toast.error('삭제 권한이 없어요. 이 강아지는 다른 계정에 속해있어요')
       setDeleting(false)
       setShowDeleteConfirm(false)
       return
@@ -781,7 +781,7 @@ export default function DogDetailClient({
                   strokeWidth={2.2}
                 />
                 <p className="text-[10.5px] text-text leading-relaxed">
-                  알레르기·만성질환·기호도까지 반영한 1:1 처방
+                  알레르기·만성질환·기호도까지 반영한 1:1 맞춤 설계
                 </p>
               </div>
               <div className="flex items-start gap-2.5">

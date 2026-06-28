@@ -81,7 +81,15 @@ export default function QuickWeightSheet({
     })
     if (error) throw new Error('저장하지 못했어요')
     // 마스터 체중도 최신값으로 (분석·대시보드·다음행동 엔진 반영).
-    await supabase.from('dogs').update({ weight: value }).eq('id', dogId)
+    // weight_logs 엔 이미 기록됨(원본 안전) — dogs.weight 는 파생 캐시라 실패해도
+    // 다음 체중 기록서 self-heal. 성공 토스트는 유지하되 운영 가시성 위해 로깅.
+    const { error: masterErr } = await supabase
+      .from('dogs')
+      .update({ weight: value })
+      .eq('id', dogId)
+    if (masterErr) {
+      console.error('[QuickWeightSheet] master weight update failed', masterErr)
+    }
     toast.success('체중을 기록했어요')
     onSaved?.()
     onClose()

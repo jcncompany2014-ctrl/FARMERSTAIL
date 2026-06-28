@@ -1,4 +1,3 @@
-import { Crown, Sparkles } from 'lucide-react'
 import {
   tierMeta,
   nextTier,
@@ -29,7 +28,14 @@ export default function TierBadge({
   const spend = cumulativeSpend ?? 0
   const next = nextTier(meta.key)
   const remain = spendToNextTier(spend, meta.key)
-  const isTop = meta.key === 'mate' // 최상위 (단짝) — Crown 아이콘 + 진한 배경
+  const isTop = meta.key === 'mate' // 최상위 (단짝) — 진한 배경 + progress 색 반전
+
+  // 오른쪽 "다음 등급까지" 텍스트는 카드 오른쪽(밝은 일러스트 위)에 떨어진다.
+  // 흰색 ink 등급(씨앗·열매)은 밝은 일러스트 위에서 흰 글자가 안 보이므로 어두운
+  // 색 + 옅은 흰 후광으로 대비 확보. 어두운 ink 등급(새싹·꽃)은 그대로 가독.
+  const rightInk = meta.ink === '#FFFFFF' ? '#241E12' : meta.ink
+  const rightShadow =
+    meta.ink === '#FFFFFF' ? '0 1px 2px rgba(255,255,255,0.55)' : undefined
 
   // progress: (현재 등급 임계 + 다음까지) 사이 위치
   const lower = meta.threshold
@@ -42,23 +48,21 @@ export default function TierBadge({
   return (
     <div
       className="rounded-2xl px-5 py-5 md:px-7 md:py-6 mb-4 md:mb-6"
-      style={{ background: meta.bg, color: meta.ink }}
+      style={{
+        // 등급별 수채화 일러스트(/tiers/{key}.webp)를 오른쪽에. 왼쪽은 등급색을
+        // 그대로 유지(22%까지 불투명 → 78%서 투명, 사장님 22:78)해 식물이 더
+        // 드러나게(사장님 2026-06-27). meta.bg 는 6자리 hex 라
+        // `${meta.bg}00` 이 같은 색의 완전 투명 — transparent 로 페이드 시
+        // 생기는 회색 아티팩트 방지.
+        backgroundColor: meta.bg,
+        backgroundImage: `linear-gradient(100deg, ${meta.bg} 0%, ${meta.bg} 22%, ${meta.bg}00 78%), url(/tiers/${meta.key}.webp)`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'right center',
+        backgroundRepeat: 'no-repeat',
+        color: meta.ink,
+      }}
     >
-      <div className="flex items-start gap-4">
-        <div
-          className="shrink-0 inline-flex w-10 h-10 md:w-12 md:h-12 rounded-full items-center justify-center"
-          style={{
-            background: isTop ? meta.ink : 'rgba(255,255,255,0.15)',
-            color: isTop ? meta.bg : meta.ink,
-          }}
-        >
-          {isTop ? (
-            <Crown className="w-4 h-4 md:w-5 md:h-5" strokeWidth={2} />
-          ) : (
-            <Sparkles className="w-4 h-4 md:w-5 md:h-5" strokeWidth={2} />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
+      <div className="min-w-0">
           <div
             className="font-mono text-[10px] md:text-[11px] tracking-[0.22em] uppercase"
             style={{ opacity: 0.75 }}
@@ -83,11 +87,13 @@ export default function TierBadge({
               누적 {spend.toLocaleString('ko-KR')}원
             </span>
             {next ? (
-              <span style={{ opacity: 0.85 }}>
+              <span style={{ opacity: 0.9, color: rightInk, textShadow: rightShadow }}>
                 {next.label}까지 {remain.toLocaleString('ko-KR')}원
               </span>
             ) : (
-              <span style={{ opacity: 0.85 }}>최고 등급 도달!</span>
+              <span style={{ opacity: 0.9, color: rightInk, textShadow: rightShadow }}>
+                최고 등급 도달!
+              </span>
             )}
           </div>
 
@@ -104,7 +110,6 @@ export default function TierBadge({
               }}
             />
           </div>
-        </div>
       </div>
     </div>
   )

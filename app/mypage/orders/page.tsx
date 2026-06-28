@@ -33,6 +33,7 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   paid: '결제 완료',
   failed: '결제 실패',
   cancelled: '결제 취소',
+  partially_refunded: '부분 환불',
   refunded: '환불',
 }
 
@@ -269,11 +270,11 @@ export default async function OrdersPage() {
               첫 주문을 시작해 보세요
             </p>
             <Link
-              href="/products"
+              href="/start"
               className="mt-5 inline-block px-6 py-2.5 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
               style={{ background: 'var(--ink)', color: 'var(--bg)' }}
             >
-              제품 둘러보기
+              정기배송 시작하기
             </Link>
           </div>
         </section>

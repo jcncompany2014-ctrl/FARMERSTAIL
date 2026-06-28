@@ -7,7 +7,7 @@
 
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
-import { V3, V3FontWeight } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3FontSize } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 import DogPawMark from '@/components/DogPawMark'
 
@@ -70,15 +70,16 @@ export default function EmptyHomeNoDogs({
             <Plus size={14} color={V3.paperHi} strokeWidth={2.4} />
           </span>
         </span>
+        {/* GreetingSection 0마리 메타가 'WELCOME'이라 키커 중복 → 액션 지향으로. */}
         <Mono color="accent" size="xs" weight={600} style={{ marginTop: 18 }}>
-          Welcome
+          Get Started
         </Mono>
         <h2
           style={{
             margin: '8px 0 0',
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.black,
-            fontSize: 22,
+            fontSize: V3FontSize.lg,
             color: V3.ink,
             letterSpacing: '-0.025em',
             lineHeight: 1.15,
@@ -92,7 +93,7 @@ export default function EmptyHomeNoDogs({
           style={{
             margin: '8px 0 18px',
             fontFamily: 'var(--font-sans)',
-            fontSize: 13.5,
+            fontSize: V3FontSize.base,
             color: V3.inkSoft,
             lineHeight: 1.5,
             maxWidth: 280,
@@ -112,7 +113,7 @@ export default function EmptyHomeNoDogs({
             borderRadius: 4,
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 13.5,
+            fontSize: V3FontSize.base,
             letterSpacing: '-0.005em',
           }}
         >

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import {
   Syringe,
   Pill,
@@ -137,6 +137,10 @@ export default function RemindersClient({
   const [reminders, setReminders] = useState<Reminder[]>(initial)
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
+  // 동기 가드 — disabled={saving} 은 리렌더 후 적용이라 서브프레임 더블탭이
+  // 빠져나가 중복 리마인더가 insert 될 수 있다(알림 스팸). ref 는 동기라 차단
+  // (dogs/new·AddressForm·HealthLog 패턴).
+  const savingRef = useRef(false)
   const [err, setErr] = useState<string | null>(null)
 
   const [type, setType] = useState<ReminderType>('vaccine')
@@ -176,6 +180,8 @@ export default function RemindersClient({
       setErr('날짜를 선택해 주세요')
       return
     }
+    if (savingRef.current) return // 더블탭 중복 insert 방지
+    savingRef.current = true
     setSaving(true)
     try {
       const {
@@ -215,6 +221,7 @@ export default function RemindersClient({
       setAdding(false)
     } finally {
       setSaving(false)
+      savingRef.current = false
     }
   }
 
@@ -360,6 +367,8 @@ export default function RemindersClient({
                       key={k}
                       type="button"
                       onClick={() => setType(k)}
+                      aria-pressed={active}
+                      aria-label={m.label}
                       className={`flex flex-col items-center gap-1 py-2.5 rounded-lg border transition ${
                         active
                           ? 'border-terracotta bg-terracotta/5'
@@ -388,6 +397,7 @@ export default function RemindersClient({
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                aria-label="리마인더 제목"
                 placeholder={
                   type === 'vaccine'
                     ? '예: 종합백신 DHPPL'
@@ -412,6 +422,7 @@ export default function RemindersClient({
                 type="date"
                 value={nextDate}
                 onChange={(e) => setNextDate(e.target.value)}
+                aria-label="다음 일정 날짜"
                 className="w-full px-3 py-2.5 rounded-lg border border-rule bg-white text-[13.5px] focus:outline-none focus:border-terracotta transition"
               />
             </div>
@@ -428,6 +439,7 @@ export default function RemindersClient({
                       key={p.label}
                       type="button"
                       onClick={() => setRecurDays(p.days)}
+                      aria-pressed={active}
                       className={`px-3 py-1.5 rounded-full text-[10.5px] font-bold border transition ${
                         active
                           ? 'bg-text text-white border-transparent'
@@ -451,6 +463,7 @@ export default function RemindersClient({
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                aria-label="메모"
                 placeholder="예: 병원 이름, 약 용량"
                 rows={2}
                 maxLength={200}
@@ -459,7 +472,7 @@ export default function RemindersClient({
             </div>
 
             {err && (
-              <p className="text-[10.5px] font-bold text-sale">{err}</p>
+              <p role="alert" className="text-[10.5px] font-bold text-sale">{err}</p>
             )}
             <button
               onClick={add}
@@ -567,7 +580,7 @@ function SummaryCard({
           {label}
         </span>
       </div>
-      <div className="text-[18px] font-black mt-0.5" style={{ color }}>
+      <div className="text-[16px] font-black mt-0.5" style={{ color }}>
         {value}
       </div>
     </div>

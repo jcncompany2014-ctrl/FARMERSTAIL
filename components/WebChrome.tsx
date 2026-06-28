@@ -5,15 +5,13 @@ import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import {
-  ShoppingCart,
   User,
   ArrowRight,
   Truck,
 } from 'lucide-react'
 import SiteFooter from '@/components/SiteFooter'
+import InstallPrompt from '@/components/InstallPrompt'
 import FdFooter from '@/components/web/fd/FdFooter'
-import MiniCartToast from '@/components/products/MiniCartToast'
-import { WishlistProvider } from '@/components/products/WishlistContext'
 
 /**
  * WebChrome — Web (브라우저) 사용자용 chrome. Phase Q (2026-06-12) 피벗:
@@ -22,7 +20,7 @@ import { WishlistProvider } from '@/components/products/WishlistContext'
  * # 구조
  *
  *  ┌─ 데스크톱 (≥md) ─────────────────────────────────────────────────────┐
- *  │ Tier 1 (얇은 promo bar) — 무료배송 / 체험팩부터                        │
+ *  │ Tier 1 (얇은 promo bar) — 맞춤설계 / 체험팩부터                        │
  *  │ ─────────────────────────────────────────────────────────────────── │
  *  │ Tier 2  [LOGO]  우리 밥 · 이야기 · 매거진 · FAQ   [내정보][카트][플랜 CTA] │
  *  └─────────────────────────────────────────────────────────────────────┘
@@ -76,19 +74,15 @@ const CATEGORIES: readonly Category[] = [
 // FD 프로모바 — 정적 단일 → 사실 메시지 회전(회차40). 가짜 숫자·할인% 없음.
 const PROMO_MESSAGES = [
   '첫 주문 50% 할인 · 신선 화식 체험팩으로 시작',
-  '3만원 이상 무료배송 · 구독 강요 없음, 체험팩부터',
+  '설문으로 우리 아이 맞춤 설계 · 구독 강요 없음, 체험팩부터',
   '수의영양 기준으로 설계한 화식 · 사람이 먹는 등급 원물',
   '언제든 해지 · 첫 회차 미개봉 시 7일 내 환불',
 ] as const
 
 export default function WebChrome({
   children,
-  cartCount: cartCountProp,
 }: {
   children: React.ReactNode
-  /** 서버에서 prefetch 한 초기 카트 수량 (선택). 마운트 후 client refetch 가
-      이 값을 덮어쓴다. */
-  cartCount?: number
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
@@ -109,7 +103,6 @@ export default function WebChrome({
       trigger?.focus()
     }
   }, [mobileMenuOpen])
-  const [cartCount, setCartCount] = useState(cartCountProp ?? 0)
   // 회차11 C섹션: FD 헤더 스크롤 elevation — 상단에선 연한 배경/그림자 없음,
   // 스크롤 내리면 불투명 배경 + 그림자(AppChrome 와 동일 grammar). reduced-motion
   // 시 globals.css 전역 net 이 transition 억제, 상태 전환은 즉시 적용.
@@ -118,18 +111,25 @@ export default function WebChrome({
   const [condensed, setCondensed] = useState(false)
   // FD 프로모바 — 메시지 회전 인덱스(회차40).
   const [promoIdx, setPromoIdx] = useState(0)
-  // 헤더의 마이페이지/로그인 아이콘 분기용. null = 미확인 (서버 렌더 직후), false = 비로그인, true = 로그인
+  // 헤더의 마이페이지/로그인 아이콘 분기용. null = 미확인 (서버/정적 렌더 직후),
+  // false = 비로그인, true = 로그인.
+  // ⚠️ 깜빡임 방지: 정적 마케팅 페이지는 빌드 1회 렌더라 첫 페인트에 auth 를 알 수
+  // 없다(클라 getSession 으로 ~0.1s 뒤 확정). 그동안 '로그인' 텍스트를 보여주면
+  // 로그인 유저가 새로고침할 때마다 '로그인'이 깜빡 떴다 계정아이콘으로 바뀐다.
+  // → null(미확인)은 비로그인이 아니라 **중립 계정 아이콘**으로 렌더(데스크톱과 동일
+  //   grammar). 'isAuthed === false'(확정 비로그인)일 때만 '로그인' 텍스트 노출.
   const [isAuthed, setIsAuthed] = useState<boolean | null>(null)
+  // 첫 주문 50% 펄 노출 여부 — 이미 결제 완료한 고객에겐 안 띄운다(계정당 1회라
+  // 거짓 약속이 됨). default true = 익명/신규(잠재고객) 기준, 로그인 시 주문 조회로 확정.
+  const [firstOrderEligible, setFirstOrderEligible] = useState(true)
   const pathname = usePathname()
   const supabase = createClient()
 
-  // Cart count — pathname change 또는 ft:cart:add 이벤트 시 refetch.
-  // getSession() 사용 — getUser() 는 매번 JWT 검증 위해 Supabase 로 RTT 발생.
-  // 여기선 "로그인 됐나" UI 신호만 필요해 cookie 로컬 read 로 충분 (50~200ms 절약).
-  // 카트 데이터 자체는 RLS 가 user_id 검증하므로 spoof 우려 없음.
+  // 헤더 로그인 아이콘 분기용 isAuthed 신호. getSession() = cookie 로컬 read
+  // (getUser RTT 회피). 구독 전용 전환(2026-06-26)으로 카트 카운트 로직 제거.
   useEffect(() => {
     let mounted = true
-    async function fetchCount() {
+    async function fetchAuth() {
       const {
         data: { session },
       } = await supabase.auth.getSession()
@@ -137,26 +137,23 @@ export default function WebChrome({
       const user = session?.user ?? null
       setIsAuthed(!!user)
       if (!user) {
-        setCartCount(0)
+        // 익명 방문자 = 잠재 고객 → 첫 주문 50% 대상.
+        setFirstOrderEligible(true)
         return
       }
-      const { data } = await supabase
-        .from('cart_items')
-        .select('quantity')
+      // 로그인 — 이미 결제 완료한 주문이 있으면 '첫 주문 50%'(계정당 1회) 대상 아님.
+      // refunded/partially_refunded 도 '한 번 결제했음'으로 본다(첫주문 권리 소진).
+      const { count } = await supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
+        .in('payment_status', ['paid', 'refunded', 'partially_refunded'])
       if (!mounted) return
-      const total = ((data ?? []) as { quantity: number }[]).reduce(
-        (s: number, it) => s + it.quantity,
-        0,
-      )
-      setCartCount(total)
+      setFirstOrderEligible((count ?? 0) === 0)
     }
-    void fetchCount()
-    const onCartAdd = () => void fetchCount()
-    window.addEventListener('ft:cart:add', onCartAdd)
+    void fetchAuth()
     return () => {
       mounted = false
-      window.removeEventListener('ft:cart:add', onCartAdd)
     }
   }, [supabase, pathname])
 
@@ -183,10 +180,11 @@ export default function WebChrome({
   }, [])
 
   // 모바일 가운데: 상단(또는 메뉴 열림)=로고, 스크롤 내리면=설문 pill. 크로스페이드.
-  const showLogo = mobileMenuOpen || !condensed
+  // 단 '첫 주문 50%' 펄은 첫주문 대상에게만 — 이미 결제한 고객은 펄 대신 로고 유지
+  // (거짓 약속 방지, 사장님 2026-06-27).
+  const showLogo = mobileMenuOpen || !condensed || !firstOrderEligible
 
   return (
-    <WishlistProvider>
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--fd-offwhite)' }}>
       {/* ── Tier 1 (데스크톱만) — 얇은 promo bar ───────────────────────── */}
       <div
@@ -285,44 +283,14 @@ export default function WebChrome({
               <Link
                 href="/account"
                 aria-label="내 계정"
-                className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-white transition"
+                title="내 계정"
+                className="flex items-center justify-center w-11 h-11 rounded-full hover:bg-white transition"
               >
                 <User
-                  className="w-5 h-5"
+                  className="w-[22px] h-[22px]"
                   style={{ color: 'var(--fd-pine)' }}
                   strokeWidth={1.75}
                 />
-                <span
-                  className="mt-0.5"
-                  style={{ fontSize: 10, color: 'var(--fd-pine)', fontWeight: 600 }}
-                >
-                  내 계정
-                </span>
-              </Link>
-              <Link
-                href="/cart"
-                aria-label="장바구니"
-                className="relative flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-white transition"
-              >
-                <ShoppingCart
-                  className="w-5 h-5"
-                  style={{ color: 'var(--fd-pine)' }}
-                  strokeWidth={1.75}
-                />
-                <span
-                  className="mt-0.5"
-                  style={{ fontSize: 10, color: 'var(--fd-pine)', fontWeight: 600 }}
-                >
-                  장바구니
-                </span>
-                {cartCount > 0 && (
-                  <span
-                    className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
-                    style={{ background: 'var(--fd-coral)' }}
-                  >
-                    {cartCount > 99 ? '99+' : cartCount}
-                  </span>
-                )}
               </Link>
               <Link
                 href={isAuthed ? '/dogs/new' : '/start'}
@@ -432,11 +400,17 @@ export default function WebChrome({
                 로 헤더 카트 게이트 해제, FD 구독모델식 무카트 헤더로 정리. */}
             {!mobileMenuOpen && (
               <Link
-                href={isAuthed ? '/account' : '/login'}
-                className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center px-1 h-10 text-[15px] font-bold no-underline"
+                href={isAuthed === false ? '/login' : '/account'}
+                aria-label={isAuthed === false ? '로그인' : '내 계정'}
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center h-10 px-1 no-underline"
                 style={{ color: 'var(--fd-pine)' }}
               >
-                {isAuthed ? '내 계정' : '로그인'}
+                {isAuthed === false ? (
+                  <span className="text-[15px] font-bold">로그인</span>
+                ) : (
+                  // null(미확인)·true(로그인) = 중립 계정 아이콘. 깜빡임 방지(상단 주석).
+                  <User className="w-[22px] h-[22px]" strokeWidth={1.9} />
+                )}
               </Link>
             )}
           </div>
@@ -485,9 +459,9 @@ export default function WebChrome({
                 </Link>
               )
             })}
-            {/* 인증상태 1행 (FD: Log In) */}
+            {/* 인증상태 1행 (FD: Log In). null(미확인)은 '내 계정'으로 — 헤더와 동일 grammar. */}
             <Link
-              href={isAuthed ? '/account' : '/login'}
+              href={isAuthed === false ? '/login' : '/account'}
               onClick={() => setMobileMenuOpen(false)}
               className="flex items-center px-6 py-4 transition active:opacity-60"
               style={{ borderBottom: '1px solid var(--fd-line)' }}
@@ -496,7 +470,7 @@ export default function WebChrome({
                 className="text-[17px] font-bold"
                 style={{ color: 'var(--fd-pine)', letterSpacing: '-0.01em' }}
               >
-                {isAuthed ? '내 계정' : '로그인'}
+                {isAuthed === false ? '로그인' : '내 계정'}
               </span>
             </Link>
           </nav>
@@ -532,10 +506,10 @@ export default function WebChrome({
       {/* 푸터 — 사업자 정보 + 고객 문의 */}
       <SiteFooter />
 
-      {/* 전역 미니 카트 토스트 — `ft:cart:add` 이벤트 listen */}
-      <MiniCartToast />
+      {/* PWA 설치 프롬프트 — 모바일 웹 전용(컴포넌트 내부서 모바일·미설치·14일 해제 가드) */}
+      <InstallPrompt />
+
     </div>
-    </WishlistProvider>
   )
 }
 

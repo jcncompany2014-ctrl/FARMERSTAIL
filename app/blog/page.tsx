@@ -126,7 +126,7 @@ export default async function BlogIndexPage({
   ])
 
   return (
-    <WebChrome cartCount={0}>
+    <WebChrome>
       <main>
         <JsonLd id="ld-blog-crumbs" data={crumbLd} />
         {/* Hero */}

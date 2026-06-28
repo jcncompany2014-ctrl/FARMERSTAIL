@@ -136,7 +136,7 @@ export default async function BrandPage() {
   ])
 
   return (
-    <WebChrome cartCount={0}>
+    <WebChrome>
       <main>
         <JsonLd id="ld-brand-about" data={aboutLd} />
         <JsonLd id="ld-brand-crumbs" data={crumbLd} />

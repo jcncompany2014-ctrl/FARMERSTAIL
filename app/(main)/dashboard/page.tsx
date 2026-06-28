@@ -16,8 +16,6 @@ import {
 } from '@/components/v3/home'
 import { StreakRewards } from '@/components/v3'
 import { createClient } from '@/lib/supabase/server'
-import ReferralAutoRedeemer from '@/components/ReferralAutoRedeemer'
-import { getActiveEvents } from '@/lib/events/data'
 import OnboardingTutorial from '@/components/dashboard/OnboardingTutorial'
 import { currentMilestone } from '@/lib/dashboard/milestones'
 import { computeStreak, type CheckinRow } from '@/lib/dashboard/streaks'
@@ -95,7 +93,6 @@ export default async function DashboardPage() {
   //   - 가시성: Sentry 로 보내서 운영자는 인지. 사용자 경로는 유지.
   const [
     { data: snapshotData, error: snapshotErr },
-    events,
     { data: dogAnalysesData },
     { data: onboardData },
     { data: checkinsData },
@@ -105,9 +102,6 @@ export default async function DashboardPage() {
     { data: pastSnapshotData },
   ] = await Promise.all([
     supabase.rpc('dashboard_user_snapshot', { p_user_id: user.id }),
-    // getActiveEvents 는 내부에서 catch + empty 반환 — 실패해도 대시보드 전체
-    // 가 깨지지 않는다.
-    getActiveEvents(supabase, 3),
     // 각 강아지의 분석 존재 여부. 분석 0 인 강아지 picking 용.
     supabase
       .from('analyses')
@@ -407,9 +401,6 @@ export default async function DashboardPage() {
       {/* 가입 후 첫 진입 튜토리얼 — onboarded_at IS NULL 인 경우만 1회. */}
       {showOnboarding && <OnboardingTutorial />}
 
-      {/* 가입 리퍼럴 자동 적용 — 클라이언트 섬. 세션당 1회. */}
-      <ReferralAutoRedeemer />
-
       {/* 1. Greeting hero — 54px display + signature */}
       <GreetingSection
         userName={userName ?? '보호자'}
@@ -521,10 +512,9 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* events / persona / milestone — 후속 라운드에서 v3 surface 로
+      {/* persona / milestone — 후속 라운드에서 v3 surface 로
           재도입 예정. lint 침묵 위해 noop reference. */}
       <span style={{ display: 'none' }} aria-hidden>
-        {String(events.length)}
         {milestone ? '·' : ''}
         {personaSpec ? '·' : ''}
         {pastSnapshotData ? '·' : ''}

@@ -25,7 +25,7 @@ type Prefs = {
 const CATEGORIES: { key: keyof Prefs; label: string; hint: string }[] = [
   { key: 'notify_order', label: '주문 · 배송', hint: '결제/배송 단계 변화를 받을게요' },
   { key: 'notify_restock', label: '재입고 알림', hint: '기다리던 상품이 돌아오면 알려드려요' },
-  { key: 'notify_marketing', label: '프로모션 · 쿠폰', hint: '할인·신상품·장바구니 리마인더 (선택)' },
+  { key: 'notify_marketing', label: '프로모션 · 쿠폰', hint: '할인·신상품 소식 (선택)' },
 ]
 
 export default function PreferencesPanel() {
@@ -201,7 +201,7 @@ export default function PreferencesPanel() {
       </div>
 
       {error && (
-        <p className="text-[10.5px] font-bold text-sale">{error}</p>
+        <p role="alert" className="text-[10.5px] font-bold text-sale">{error}</p>
       )}
     </div>
   )

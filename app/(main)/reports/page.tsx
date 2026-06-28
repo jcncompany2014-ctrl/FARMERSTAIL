@@ -160,6 +160,32 @@ export default async function ReportsPage() {
           </div>
         </section>
       )}
+
+      {dogs.length === 0 && (
+        <section className="px-5 mt-6">
+          <div
+            className="rounded px-5 py-8 text-center"
+            style={{ background: 'var(--bg-2)', border: '1px dashed var(--rule-2)' }}
+          >
+            <p className="text-[13.5px] font-bold" style={{ color: 'var(--ink)' }}>
+              아직 등록된 강아지가 없어요
+            </p>
+            <p
+              className="mt-1.5 text-[12px] leading-relaxed"
+              style={{ color: 'var(--muted)' }}
+            >
+              강아지를 등록하면 이번 달 기록이 리포트로 모여요
+            </p>
+            <Link
+              href="/dogs/new"
+              className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
+              style={{ background: 'var(--terracotta)', color: '#fff' }}
+            >
+              강아지 등록하기 →
+            </Link>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

@@ -1,23 +1,19 @@
 'use client'
 
 /**
- * App-mode chrome: sticky top header w/ cart, bottom tab bar, InstallPrompt,
- * SiteFooter. This is the "installed PWA" shell — dense, mobile-first,
+ * App-mode chrome: sticky top header (logo + 강아지 칩) + SiteFooter.
+ * This is the "installed PWA" shell — dense, mobile-first,
  * task-oriented.
  *
  * Extracted from app/(main)/layout.tsx so the same chrome can wrap pages
  * that live OUTSIDE the (main) auth group but still serve authenticated
- * users — notably /products, which must also be accessible to unauth
- * browsers (editorial mode handled by PublicPageShell). Route-level auth
- * gating remains the caller's responsibility; AppChrome itself assumes the
- * user is signed in and renders accordingly.
+ * users. Route-level auth gating remains the caller's responsibility;
+ * AppChrome itself assumes the user is signed in and renders accordingly.
  */
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ShoppingCart,
-  Search,
   User,
   ChevronDown,
   ArrowLeft,
@@ -25,14 +21,10 @@ import {
   Plus,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import InstallPrompt from '@/components/InstallPrompt'
-import MiniCartToast from '@/components/products/MiniCartToast'
-import { WishlistProvider } from '@/components/products/WishlistContext'
 import { PawFab } from '@/components/v3'
 
-// Phase P (2026-06-12, 사장님 지시): 장바구니 탭 제거 — 컬리 그래머.
-// 장바구니 진입은 제품탭/제품상세 헤더 우측 카트 아이콘이 담당.
-// 홈 허브형(사장님 2026-06-17) — 하단 탭바 제거. TABS 배열 폐기.
+// 홈 허브형(2026-06-17) + 구독전환(2026-06-27): 장바구니 탭·카트 아이콘·
+// 하단 탭바 전부 폐기. TABS 배열 폐기.
 // 내비 = 로고(→/dashboard) + 헤더 좌측 계정(→/mypage) + 홈 카드/강아지 칩 + ← 뒤로.
 
 /**
@@ -43,18 +35,16 @@ const FOCUS_PATHS = ['/survey', '/checkin', '/approve']
 
 /**
  * R-feel: 화면별 헤더.
- * 탭 루트(홈/강아지/제품/장바구니/내정보)는 로고+강아지 칩 기본 헤더.
+ * 탭 루트(홈/강아지/내정보)는 로고+강아지 칩 기본 헤더.
  * 그 외 "깊은 화면"은 ← 뒤로 + 화면 제목 으로 — '앱 같다'의 핵심.
  *
  * screenTitleForPath: null → 탭 루트(기본 헤더). 문자열 → 깊은 화면 제목
  * (빈 문자열이면 ← 만, 제목 없음).
  */
-// Phase P r3: '/cart' 는 더이상 탭 루트가 아님 — 제품탭/PDP 헤더 카트
-// 아이콘으로 진입하는 깊은 화면 (← 장바구니).
+// 구독전환: /cart·/products 폐지(redirect). 탭 루트 = 홈·강아지·내정보만.
 const TAB_ROOTS = new Set(['/dashboard', '/dogs', '/mypage'])
 
 const DEEP_TITLES: Record<string, string> = {
-  '/cart': '장바구니',
   '/dogs/new': '강아지 등록',
   '/dogs/:id': '우리 아이',
   '/dogs/:id/edit': '정보 수정',
@@ -66,26 +56,22 @@ const DEEP_TITLES: Record<string, string> = {
   '/dogs/:id/order': '주문하기',
   '/dogs/:id/walks': '산책 기록',
   '/dogs/:id/year-in-review': '연말 결산',
-  '/dogs/:id/share': '수의사 공유',
   '/mypage/orders': '주문 내역',
   '/mypage/subscriptions': '정기배송',
   '/mypage/points': '적립금',
-  '/mypage/coupons': '내 쿠폰',
-  '/mypage/wishlist': '찜한 상품',
   '/mypage/reviews': '내 리뷰',
   '/mypage/addresses': '배송지 관리',
   '/mypage/membership': '멤버십',
   '/mypage/accuracy': '분석 맞춤도',
   '/mypage/integrations': '연동',
   '/mypage/cs': '1:1 문의',
-  '/mypage/referral': '친구 초대',
   '/mypage/notifications': '알림 설정',
   '/mypage/consent': '광고 수신 설정',
   '/mypage/privacy': '내 데이터',
   '/mypage/delete': '회원 탈퇴',
   '/notifications': '받은 알림',
   '/search': '검색',
-  '/chat': 'AI 영양사 상담',
+  '/chat': 'AI 영양 상담',
 }
 
 function screenTitleForPath(pathname: string): string | null {
@@ -97,7 +83,6 @@ function screenTitleForPath(pathname: string): string | null {
   )
   if (DEEP_TITLES[p]) return DEEP_TITLES[p]
   // prefix fallback (동적 하위 화면)
-  if (p.startsWith('/products/')) return '상품'
   if (p.startsWith('/mypage/orders/')) return '주문 상세'
   if (p.startsWith('/mypage/certificate')) return '인증서'
   if (p.startsWith('/dogs/:id/')) return '강아지'
@@ -115,7 +100,6 @@ function screenTitleForPath(pathname: string): string | null {
  *   /dogs/:id/<sub>         → /dogs/:id        (강아지 하위 화면 → 강아지 상세=개요)
  *   /dogs/:id/<a>/<b>       → /dogs/:id/<a>     (중첩은 한 단계만 위로)
  *   /dogs/:id               → /dashboard        (강아지 상세 → 홈 허브)
- *   /cart · /products/:slug → /products
  *   /mypage/orders/:id      → /mypage/orders
  *   /mypage/<sub>           → /mypage
  *   그 외(강아지 등록·검색·알림·상담 등) → /dashboard
@@ -133,8 +117,6 @@ function parentForPath(pathname: string): string {
     if (segs.length >= 2) return `${dogBase}/${segs.slice(0, -1).join('/')}`
     return dogBase
   }
-  if (pathname === '/cart') return '/products'
-  if (pathname.startsWith('/products/')) return '/products'
   if (pathname.startsWith('/mypage/orders/')) return '/mypage/orders'
   if (pathname.startsWith('/mypage/')) return '/mypage'
   return '/dashboard'
@@ -172,7 +154,6 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     FOCUS_PATHS.some((p) => pathname.includes(p)) ||
     (pathname.includes('/analysis') && fromSurvey)
 
-  const [cartCount, setCartCount] = useState(0)
   const [scrolled, setScrolled] = useState(false)
   // R-feel: 상단 우측에 '활성 강아지 칩' — 알림/장바구니 대신.
   const [dogs, setDogs] = useState<
@@ -184,46 +165,6 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   // fetch 완료 전 '강아지 등록' 칩이 잘못 깜빡이지 않게 — 로드 후에만 렌더.
   const [dogsLoaded, setDogsLoaded] = useState(false)
   const dogMenuRef = useRef<HTMLDivElement | null>(null)
-
-  // audit #99: 이전엔 pathname 변경마다 cart count fetch → 모든 라우트 이동 시
-  // Supabase RTT 추가. cart 는 사용자 액션 (add-to-cart) 에서만 변함 — visibility
-  // 복귀 + 'ft:cart:add' event 만 refetch.
-  useEffect(() => {
-    let mounted = true
-
-    async function fetchCount() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      const user = session?.user ?? null
-      if (!mounted || !user) return
-      const { data: items } = await supabase
-        .from('cart_items')
-        .select('quantity')
-        .eq('user_id', user.id)
-      const total = ((items ?? []) as { quantity: number }[]).reduce(
-        (sum: number, it) => sum + it.quantity,
-        0,
-      )
-      if (mounted) setCartCount(total)
-    }
-
-    void fetchCount()
-
-    const onCartAdd = () => void fetchCount()
-    // 다른 탭/디바이스에서 변경 가능 → visibility 복귀 시 invalidate.
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') void fetchCount()
-    }
-    window.addEventListener('ft:cart:add', onCartAdd)
-    document.addEventListener('visibilitychange', onVisible)
-    return () => {
-      mounted = false
-      window.removeEventListener('ft:cart:add', onCartAdd)
-      document.removeEventListener('visibilitychange', onVisible)
-    }
-    // pathname 의도적 제외 — cart count 는 라우트 변경과 무관.
-  }, [supabase])
 
   // R-feel: 활성 강아지 칩 데이터 — 사용자의 강아지(id/이름/사진) fetch.
   // cart 와 동일 패턴: 마운트 1회 + visibility 복귀 시 invalidate (라우트 전환 무관).
@@ -284,32 +225,13 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const screenTitle = screenTitleForPath(pathname)
   const isDeep = screenTitle !== null
 
-  // Phase P (컬리 그래머): 제품탭/제품상세는 헤더 구성이 다르다.
-  //  - /products (탭루트): 좌 검색 · 중앙 로고 · 우 카트 (강아지 칩 대신)
-  //  - /products/[slug]:   좌 ← · 중앙 상품명(동적) · 우 카트
-  const isProductsRoot = pathname === '/products'
-  const isProductDetail = pathname.startsWith('/products/') && !isProductsRoot
-
-  // 제품상세 동적 제목 — PDP 클라이언트가 'ft:screen-title' 이벤트로 상품명
-  // 전달 (AppChrome 은 서버 데이터를 모름). 라우트 바뀌면 초기화.
-  const [dynamicTitle, setDynamicTitle] = useState<string | null>(null)
-  useEffect(() => {
-    function onTitle(e: Event) {
-      const detail = (e as CustomEvent<string>).detail
-      if (typeof detail === 'string' && detail) setDynamicTitle(detail)
-    }
-    window.addEventListener('ft:screen-title', onTitle)
-    return () => window.removeEventListener('ft:screen-title', onTitle)
-  }, [])
 
   // 강아지 드롭다운 — 라우트 이동 시 자동 닫힘 (뒤로가기 등 외부 내비 포함).
   // effect 대신 render 중 보정 — react.dev 'Adjusting state when a prop changes' 패턴.
-  // 동적 제목도 같은 타이밍에 초기화 (이전 상품명 잔상 방지).
   const [menuPathname, setMenuPathname] = useState(pathname)
   if (menuPathname !== pathname) {
     setMenuPathname(pathname)
     setDogMenuOpen(false)
-    setDynamicTitle(null)
   }
 
   // 강아지 드롭다운 — 바깥 탭/Escape 로 닫기 (열려 있을 때만 listen).
@@ -354,12 +276,9 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     // 센터 정렬 + 그림자 부양 시킨다. 모바일(<md)에서는 규칙 전부 무시되어
     // 기존 full-bleed 경험 그대로. 상세 근거는 globals.css의 @media 블록
     // 주석 참고. 바깥 body도 --bg-2로 어두워져 "프레임 밖" 느낌이 산다.
-    <WishlistProvider>
     <div className="phone-frame min-h-screen bg-bg" data-ft-chrome="app">
-      {/* 상단 헤더 v3 — Mono ticker + 기존 logo.png + ChromeStamp + bell/cart icons.
-          focus mode (설문/체크인 등) 에서는 hide.
-          [2026-05-22] 사용자 요청: BrandWordmark 워드마크 → 원래 logo.png 복구.
-          ChromeStamp 도 같이 살아남 (좌측 1px terracotta hairline + 날짜). */}
+      {/* 상단 헤더 v3 — 3-zone grid (좌 내정보/← · 중앙 logo.png · 우 강아지 칩).
+          focus mode (설문/체크인 등) 에서는 hide. */}
       {!focusMode && (
       <header
         className="sticky top-0 z-40 transition-all duration-200"
@@ -379,12 +298,11 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
         }}
       >
         <div className="max-w-md mx-auto" style={{ paddingLeft: 20, paddingRight: 20 }}>
-          {/* ── Main row — wordmark + bell/cart
-              (R-clean: 상단 'THU 21 MAY · SEOUL·KST' ticker 제거 — 폰 상태바와 중복.) */}
+          {/* ── Main row — 좌 내정보/← · 중앙 logo · 우 강아지 칩 (3-zone grid) ── */}
           <div
             className="grid items-center"
             // A5: minHeight 64 고정 — 값은 globals.css 의 --ft-header-h(64px) 와 동기.
-            // Phase P (컬리 그래머): 3-zone grid (좌 1fr · 중앙 auto · 우 1fr) —
+            // Phase P (FD 헤더): 3-zone grid (좌 1fr · 중앙 auto · 우 1fr) —
             // 로고를 센터에. 로고 40→48px(h-12) 키우면서 padding 12→8 로 64 유지.
             style={{
               gridTemplateColumns: '1fr auto 1fr',
@@ -394,7 +312,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               boxSizing: 'border-box',
             }}
           >
-            {/* ── 좌측 zone — 깊은화면 ←(+제목) / 제품탭 검색 / 그 외 빈칸 ── */}
+            {/* ── 좌측 zone — 깊은화면 ←(+제목) / 그 외 = 내 정보 진입 ── */}
             <div className="flex items-center justify-start min-w-0">
               {isDeep ? (
                 <button
@@ -415,8 +333,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                     style={{ width: 23, height: 23, color: 'var(--ink)' }}
                     strokeWidth={2}
                   />
-                  {/* 제품상세는 제목이 중앙(상품명)으로 — 좌측엔 ← 만 */}
-                  {!isProductDetail && screenTitle && (
+                  {screenTitle && (
                     <span
                       style={{
                         fontFamily: 'var(--font-sans)',
@@ -430,18 +347,6 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                     </span>
                   )}
                 </button>
-              ) : isProductsRoot ? (
-                <Link
-                  href="/search"
-                  aria-label="제품 검색"
-                  className="flex items-center justify-center transition active:scale-95"
-                  style={{ marginLeft: -8, padding: 8 }}
-                >
-                  <Search
-                    style={{ width: 21, height: 21, color: 'var(--ink)' }}
-                    strokeWidth={2}
-                  />
-                </Link>
               ) : (
                 /* 홈 허브형: 탭루트(홈·우리아이·내정보)에서 좌측 = 내 정보 진입. */
                 <Link
@@ -458,25 +363,9 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* ── 중앙 zone — 탭루트 로고(센터) / 제품상세 상품명(동적) ── */}
+            {/* ── 중앙 zone — 탭루트 로고(센터) / 깊은화면 빈칸 ── */}
             {isDeep ? (
-              isProductDetail ? (
-                <span
-                  className="truncate text-center"
-                  style={{
-                    maxWidth: '52vw',
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 16,
-                    fontWeight: 700,
-                    color: 'var(--ink)',
-                    letterSpacing: '-0.02em',
-                  }}
-                >
-                  {dynamicTitle ?? '상품'}
-                </span>
-              ) : (
-                <span aria-hidden />
-              )
+              <span aria-hidden />
             ) : (
               <Link
                 href="/dashboard"
@@ -493,46 +382,9 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               </Link>
             )}
 
-            {/* ── 우측 zone — 제품탭/제품상세 = 카트 아이콘(뱃지) /
-                그 외 탭루트 = 활성 강아지 칩 (기존). 깊은 화면 숨김. ── */}
+            {/* ── 우측 zone — 탭루트 = 활성 강아지 칩(없으면 등록). 깊은 화면 숨김. ── */}
             <div className="flex items-center justify-end min-w-0">
-            {isProductsRoot || isProductDetail ? (
-              <Link
-                href="/cart"
-                aria-label={
-                  cartCount > 0 ? `장바구니 — ${cartCount}개 담김` : '장바구니'
-                }
-                className="relative flex items-center justify-center transition active:scale-95"
-                style={{ marginRight: -8, padding: 8 }}
-              >
-                <ShoppingCart
-                  style={{ width: 22, height: 22, color: 'var(--ink)' }}
-                  strokeWidth={1.8}
-                />
-                {cartCount > 0 && (
-                  <span
-                    className="absolute flex items-center justify-center"
-                    style={{
-                      top: 2,
-                      right: 0,
-                      minWidth: 14,
-                      height: 14,
-                      padding: '0 3px',
-                      borderRadius: 7,
-                      background: 'var(--accent)',
-                      color: 'var(--paper-hi)',
-                      fontFamily:
-                        "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
-                      fontSize: 8,
-                      fontWeight: 700,
-                      lineHeight: 1,
-                    }}
-                  >
-                    {cartCount > 99 ? '99+' : cartCount}
-                  </span>
-                )}
-              </Link>
-            ) : !isDeep && dogsLoaded && (
+            {!isDeep && dogsLoaded && (
               dogs.length === 0 ? (
                 <Link
                   href="/dogs/new"
@@ -734,25 +586,13 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
             /legal/* 페이지 + 마이페이지 메뉴로 충분히 reachable. */}
       </main>
 
-      {/* PWA 설치 프롬프트 — 스마트하게 한 번만 노출 */}
-      <InstallPrompt />
-
       {/* 빠른 기입 — 하단 중앙 발바닥 FAB(홈 허브형에서 자주 기입 진입 대체).
           활성 강아지 기준 라우팅, 몰입 화면(설문/체크인)에선 숨김. */}
       <PawFab activeDogId={activeDog?.id ?? null} hidden={focusMode} />
 
-      {/* 하단 탭 네비게이션 v3 — paperHi bg + 1px ink top hairline + 직각 모서리.
-          활성 탭: 아이콘 ink (비활성 inkMute) + 라벨 bold + 16x2 accent 막대.
-          focus mode (설문/체크인 등) 에서는 hide.
-
-          data-cart-bottom-nav: globals.css 의 body.cart-cta-active 규칙이 이
-          nav 만 translateY(100%) 로 밀어내 CartStickyCTA 와 swap. */}
-      {/* 홈 허브형(사장님 2026-06-17): 하단 탭바 제거. 내비 = 로고(→홈) +
+      {/* 홈 허브형(2026-06-17): 하단 탭바 제거 — 내비 = 로고(→홈) +
           헤더 좌측 계정 아이콘(→내정보) + 홈 카드/강아지 칩. 깊은 화면은 ← 뒤로. */}
 
-      {/* 전역 미니 카트 토스트 — 'ft:cart:add' 이벤트 listen */}
-      <MiniCartToast />
     </div>
-    </WishlistProvider>
   )
 }

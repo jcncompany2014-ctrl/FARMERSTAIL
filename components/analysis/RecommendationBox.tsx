@@ -13,23 +13,15 @@ import {
   Plus,
   Sparkles,
   GitBranch,
-  ArrowLeft,
   ArrowRight,
-  Drumstick,
-  Bird,
-  Fish,
-  Beef,
-  Sprout,
   Info,
   ChevronDown,
 } from 'lucide-react'
-import { FOOD_LINE_META, ALL_LINES, dailyGramsFromMix } from '@/lib/personalization/lines'
+import { dailyGramsFromMix } from '@/lib/personalization/lines'
 import { transitionLabel } from '@/lib/personalization/format'
-import { computeNutrientPanel } from '@/lib/personalization/nutrientPanel'
 import { trackBoxRecommended, trackAnalysisViewed } from '@/lib/analytics'
 import type {
   Formula,
-  FoodLine,
   Reasoning,
 } from '@/lib/personalization/types'
 import AdjustSheet from './AdjustSheet'
@@ -37,59 +29,33 @@ import {
   fetchComputedFormula,
   invalidateComputedFormula,
 } from '@/lib/personalization/formulaCache'
-import type { RecommendationResult } from '@/lib/personalization/v3/types'
 import './recommendation.css'
 import './adjust-sheet.css'
 
 /**
- * RecommendationBox — analysis 페이지의 "첫 박스 추천" 섹션.
- *
- * Claude Design 핸드오프 (2026-05-03 result page) 적용 + 사용자 피드백 반영
- * (SKU carousel edge-bleed 제거 → 자연스러운 padding 22px).
+ * RecommendationBox — analysis 페이지 Magazine 레이아웃 안의
+ * "정기배송 신청 + 비율조정 + 왜 이 비율" 블록.
  *
  * # 데이터 소스
  * 마운트 시 POST /api/personalization/compute → dog_formulas (cycle=1) 처방
- * fetch 또는 새로 생성. user_adjusted 인 경우 reasoning 의 마지막 priority=9
- * "사용자 조정됨" chip 으로 표시.
+ * fetch 또는 새로 생성 (formulaCache 로 AnalysisView 와 공유).
  *
- * # 표시 영역
- *  1. Hero — kicker (메인 라인 케어 컨셉) + 강아지 이름 + 1주/4주 toggle
- *  2. Bar viz — 5 라인 + 토퍼 stacked bar (legend 포함)
- *  3. SKU horizontal carousel — 메인 라인 카드들 (0% 라인 제외)
- *  4. Toppers — 야채 / 육류 토퍼 (있을 때만)
- *  5. Reasoning chain — 알고리즘 결정 근거 (input → decision)
- *  6. Totals — kcal / 그램 / 박스 무게 + CTA (주문 / 비율 조정)
+ * # 표시 영역 (현재 렌더)
+ *  - Totals — kcal/일 · 분량 g · 알고리즘 버전 + 전환 급여 가이드
+ *  - CTA — 비율 조정(AdjustSheet) / 정기배송 신청
+ *  - Reasoning — "왜 이 비율일까요" 접이식 (알고리즘 결정 근거)
  *
- * 비율 조정 sheet 는 placeholder (CTA 'fb-cta-ghost' 클릭 시 toast).
- * 추후 별도 디자인 핸드오프로 확장.
+ * Hero·Bar·SKU·Toppers·영양카드 등 옛 fb-* 시각은 2026-05-21 Magazine
+ * 컴포넌트로 대체되어 제거됨 (정리: 2026-06-27).
  */
 
 type State =
   | { status: 'loading' }
-  | { status: 'ready'; formula: Formula; v3: RecommendationResult | null }
+  | { status: 'ready'; formula: Formula }
   | { status: 'no_survey' }
   | { status: 'error'; message: string }
 
 type Scale = '1w' | '2w' | '4w'
-
-/** 메인 라인별 한 줄 효능 — UI 카드의 blurb. */
-const LINE_BLURBS: Record<FoodLine, string> = {
-  basic: '단일 단백원 · 소화 부담 낮음',
-  weight: '고단백 · 저지방 · 체중관리',
-  // R86-D2: 사료에 "항염증" 표현 금지 (의약품 효능 오인). 식이 보조 표현으로.
-  skin: '오메가-3 · 피부 장벽 보조',
-  premium: '철·아연·B12 풍부',
-  joint: 'B1·콜린 풍부 · 영양 보조',
-}
-
-/** 메인 라인별 단백질 한국어 라벨 (UI 메타). */
-const LINE_PROTEIN_KR: Record<FoodLine, string> = {
-  basic: '닭',
-  weight: '오리',
-  skin: '연어',
-  premium: '소',
-  joint: '돼지',
-}
 
 /** 전환 전략별 실행 가이드 한 줄 (H6 — formula.transitionStrategy 시각화). */
 const TRANSITION_HINT: Record<Formula['transitionStrategy'], string> = {
@@ -98,17 +64,6 @@ const TRANSITION_HINT: Record<Formula['transitionStrategy'], string> = {
   gradual: '기존 사료와 섞어 2주에 걸쳐 화식 비율을 천천히 늘려 주세요.',
   conservative:
     '소화가 예민하거나 만성질환이 있어요. 4주에 걸쳐 아주 천천히 전환하세요.',
-}
-
-/** 라인 아이콘 — 정적 분기. React 19 의 static-components 룰 충족. */
-function LineIcon({ line, size = 16, strokeWidth = 1.8 }: { line: FoodLine; size?: number; strokeWidth?: number }) {
-  switch (line) {
-    case 'basic': return <Drumstick size={size} strokeWidth={strokeWidth} />
-    case 'weight': return <Bird size={size} strokeWidth={strokeWidth} />
-    case 'skin': return <Fish size={size} strokeWidth={strokeWidth} />
-    case 'premium': return <Beef size={size} strokeWidth={strokeWidth} />
-    case 'joint': return <Sparkles size={size} strokeWidth={strokeWidth} />
-  }
 }
 
 /** Reasoning ruleId 별 아이콘 — 정적 분기 (static-components 룰). */
@@ -142,7 +97,7 @@ export default function RecommendationBox({
   isSenior?: boolean
 }) {
   const [state, setState] = useState<State>({ status: 'loading' })
-  const [scale, setScale] = useState<Scale>('1w')
+  const [scale] = useState<Scale>('1w')
   const [sheetOpen, setSheetOpen] = useState(false)
   const fetchedRef = useRef<string | null>(null)
 
@@ -171,7 +126,6 @@ export default function RecommendationBox({
         setState({
           status: 'ready',
           formula: json.formula,
-          v3: json.v3 ?? null,
         })
         // GA4 funnel — care goal 분포 + algorithm version 별 측정.
         trackAnalysisViewed(dogId)
@@ -318,10 +272,8 @@ export default function RecommendationBox({
     <>
       <RecommendationView
         formula={state.formula}
-        dogName={dogName}
         dogId={dogId}
         scale={scale}
-        setScale={setScale}
         onOpenAdjust={() => setSheetOpen(true)}
       />
       <AdjustSheet
@@ -332,8 +284,7 @@ export default function RecommendationBox({
         dogName={dogName}
         isSenior={isSenior}
         onSaved={(next) => {
-          // v3 는 엔진의 독립 추천 — 사용자의 v2 비율 조정과 무관하게 유지.
-          setState({ status: 'ready', formula: next, v3: state.v3 })
+          setState({ status: 'ready', formula: next })
           // 처방이 바뀌었으니 공유 캐시 무효화 — 다음 마운트가 새 결과를 받도록.
           invalidateComputedFormula(dogId)
         }}
@@ -344,17 +295,13 @@ export default function RecommendationBox({
 
 function RecommendationView({
   formula,
-  dogName,
   dogId,
   scale,
-  setScale,
   onOpenAdjust,
 }: {
   formula: Formula
-  dogName: string
   dogId: string
   scale: Scale
-  setScale: (s: Scale) => void
   onOpenAdjust: () => void
 }) {
   // 1주 / 2주 / 4주 분량 — quantize 잔차 흡수.
@@ -378,219 +325,8 @@ function RecommendationView({
     [dailyGramsByMix, days],
   )
 
-  const selectedLines = useMemo(
-    () =>
-      ALL_LINES.filter((line) => formula.lineRatios[line] > 0).sort(
-        (a, b) => formula.lineRatios[b] - formula.lineRatios[a],
-      ),
-    [formula.lineRatios],
-  )
-
-  // 메인 라인 — kicker 표시용.
-  const mainLine = selectedLines[0]
-  const mainMeta = mainLine ? FOOD_LINE_META[mainLine] : null
-
-  // Spec A — 메인 화식 5종 합 = 100% (정량 영양 책임), 토퍼 = 별도 0~30% 보너스.
-  // 메인과 토퍼를 같은 100% 안에 끼워 분배하지 않음 (이전 Spec B 잔재 제거).
-  const topperTotalPct = Math.round(
-    (formula.toppers.protein + formula.toppers.vegetable) * 100,
-  )
-
-  // 알고리즘이 0% 처리한 라인 = blocked. reasoning ruleId allergy-* 가 있으면
-  // 알레르기 차단 라인으로 추정.
-  const blockedLines = useMemo(() => {
-    const set = new Set<FoodLine>()
-    for (const r of formula.reasoning) {
-      const m = r.ruleId.match(/^(?:next-)?allergy-(basic|weight|skin|premium|joint)$/)
-      if (m) set.add(m[1] as FoodLine)
-    }
-    return set
-  }, [formula.reasoning])
-
   return (
     <>
-      {/* 2026-06-19 사장님 "없애": '맞춤 베이스 레시피'(V3RecommendationCard) 제거 —
-          바로 위 Magazine BoxMix 와 닭·비율·g/kcal 중복 + dailyKcal(v3 435) vs
-          아래 다크카드(v2 392) 숫자 충돌의 원인. v3 fetch/state 는 유지(무해). */}
-
-      {/* fb-hero 폐기 (2026-05-21) — Magazine HeroSection + DiagnosisCard 가 대체. */}
-      <div className="fb-hero" style={{ marginTop: 24, display: 'none' }}>
-        <div className="fb-kicker">
-          <span className="fb-kicker-dot" />
-          {mainMeta
-            ? `${mainMeta.name} · ${mainMeta.subtitle.replace(/^[^·]+·\s*/, '')}`
-            : '추천 박스'}
-        </div>
-        <h2 className="fb-h1">
-          <span className="fb-name">{dogName}</span>이의
-          <br />
-          {formula.cycleNumber === 1 ? '첫' : `${formula.cycleNumber}번째`} 박스
-        </h2>
-        <div className="fb-toggle" role="tablist" aria-label="박스 분량">
-          <button
-            role="tab"
-            aria-selected={scale === '1w'}
-            onClick={() => setScale('1w')}
-          >
-            1주분
-          </button>
-          <button
-            role="tab"
-            aria-selected={scale === '2w'}
-            onClick={() => setScale('2w')}
-          >
-            2주분
-          </button>
-          <button
-            role="tab"
-            aria-selected={scale === '4w'}
-            onClick={() => setScale('4w')}
-          >
-            4주분
-          </button>
-          <i className="fb-toggle-thumb" data-pos={scale} />
-        </div>
-      </div>
-
-      {/* fb-bar-wrap 폐기 (2026-05-21) — Magazine BoxMixCard 가 대체. */}
-      <div className="fb-bar-wrap" style={{ display: 'none' }}>
-        <div className="fb-bar-axis">
-          <span>메인 화식 5종 100%</span>
-          {topperTotalPct > 0 && (
-            <span>+ 토퍼 보너스 {topperTotalPct}%</span>
-          )}
-        </div>
-        <div className="fb-bar">
-          {selectedLines.map((line) => {
-            const pct = Math.round(formula.lineRatios[line] * 100)
-            if (pct === 0) return null
-            return (
-              <span
-                key={line}
-                className="fb-bar-seg"
-                style={{
-                  width: `${pct}%`,
-                  background: FOOD_LINE_META[line].color,
-                }}
-                title={`${FOOD_LINE_META[line].name} ${pct}%`}
-              />
-            )
-          })}
-        </div>
-        <div className="fb-bar-legend">
-          {ALL_LINES.map((line) => {
-            const pct = Math.round(formula.lineRatios[line] * 100)
-            const blocked = blockedLines.has(line)
-            const off = pct === 0
-            return (
-              <div
-                key={line}
-                className={`fb-leg${off ? ' off' : ''}${blocked ? ' blk' : ''}`}
-              >
-                <span
-                  className="fb-leg-dot"
-                  style={{
-                    background: off
-                      ? 'var(--rule-2)'
-                      : FOOD_LINE_META[line].color,
-                  }}
-                />
-                <span className="fb-leg-l">{FOOD_LINE_META[line].name}</span>
-                <span className="fb-leg-pct">
-                  {blocked ? '차단' : `${pct}%`}
-                </span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* fb-sku-scroll 폐기 (2026-05-21) — Magazine BoxMixCard 5종 row 가 대체. */}
-      {false && selectedLines.length > 0 && (
-        <div className="fb-sku-scroll" role="region" aria-label="선택된 화식 라인">
-          {selectedLines.map((line, i) => {
-            const meta = FOOD_LINE_META[line]
-            const pct = Math.round(formula.lineRatios[line] * 100)
-            const grams = Math.round(formula.lineRatios[line] * totalGrams)
-            const kcal = Math.round(formula.lineRatios[line] * totalKcal)
-            return (
-              <article
-                key={line}
-                className="fb-sku"
-                style={{ ['--sku' as string]: meta.color }}
-              >
-                <div className="fb-sku-head">
-                  <div className="fb-sku-icon">
-                    <LineIcon line={line} />
-                  </div>
-                  <div className="fb-sku-idx">
-                    {String(i + 1).padStart(2, '0')} /{' '}
-                    {String(selectedLines.length).padStart(2, '0')}
-                  </div>
-                </div>
-                <div className="fb-sku-line">{meta.name}</div>
-                <div className="fb-sku-sub">{meta.subtitle}</div>
-                <div className="fb-sku-pct">
-                  <span className="num">{pct}</span>
-                  <small>%</small>
-                </div>
-                <div className="fb-sku-blurb">{LINE_BLURBS[line]}</div>
-                <div className="fb-sku-meta">
-                  <div>
-                    <span className="l">단백원</span>
-                    <span className="v">{LINE_PROTEIN_KR[line]}</span>
-                  </div>
-                  <div>
-                    <span className="l">그램</span>
-                    <span className="v">{grams}g</span>
-                  </div>
-                  <div>
-                    <span className="l">kcal</span>
-                    <span className="v">{kcal}</span>
-                  </div>
-                </div>
-                <div className="fb-sku-bar">
-                  <span style={{ width: `${pct}%` }} />
-                </div>
-              </article>
-            )
-          })}
-          <div className="fb-sku-end">
-            <ArrowLeft size={14} strokeWidth={2} color="var(--muted)" />
-            <span>옆으로 스와이프</span>
-          </div>
-        </div>
-      )}
-
-      {/* Toppers 폐기 (2026-05-21) — Magazine 표시 일원화. AdjustSheet 안에서는 여전히 조정 가능. */}
-      {false && (formula.toppers.vegetable > 0 || formula.toppers.protein > 0) && (
-        <div className="fb-toppers">
-          <div className="fb-sub-lbl">
-            <Plus size={11} strokeWidth={2.4} color="var(--muted)" />
-            동결건조 토퍼
-          </div>
-          <div className="fb-topper-row">
-            {formula.toppers.vegetable > 0 && (
-              <VeggieTopper
-                pct={Math.round(formula.toppers.vegetable * 100)}
-                grams={Math.round(formula.toppers.vegetable * totalGrams)}
-              />
-            )}
-            {formula.toppers.protein > 0 && (
-              <MeatTopper
-                pct={Math.round(formula.toppers.protein * 100)}
-                grams={Math.round(formula.toppers.protein * totalGrams)}
-              />
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 영양 단면 카드 폐기 (2026-05-21) — Magazine NutrientsCard 가 대체. */}
-
-      {/* 왜 이 비율(접기) — 정기배송 신청 박스 아래로 이동(사장님 2026-06-19).
-          렌더는 아래 fb-totals 다음. */}
-
       {/* Totals + CTA */}
       <div className="fb-totals">
         <div className="fb-totals-stat">
@@ -734,50 +470,6 @@ function RecommendationView({
   )
 }
 
-function VeggieTopper({
-  pct,
-  grams,
-}: {
-  pct: number
-  grams: number
-}) {
-  return (
-    <div className="fb-topper" style={{ ['--sku' as string]: 'var(--moss)' }}>
-      <div className="fb-topper-icon">
-        <Sprout size={15} strokeWidth={1.8} />
-      </div>
-      <div className="fb-topper-body">
-        <div className="fb-topper-lbl">야채 토퍼</div>
-        <div className="fb-topper-sub">동결건조 · 당근·호박</div>
-      </div>
-      <div className="fb-topper-pct">
-        <span className="num">{pct}</span>
-        <small>%</small>
-        <span className="g">{grams}g</span>
-      </div>
-    </div>
-  )
-}
-
-function MeatTopper({ pct, grams }: { pct: number; grams: number }) {
-  return (
-    <div className="fb-topper" style={{ ['--sku' as string]: '#A86B4A' }}>
-      <div className="fb-topper-icon">
-        <Drumstick size={15} strokeWidth={1.8} />
-      </div>
-      <div className="fb-topper-body">
-        <div className="fb-topper-lbl">육류 토퍼</div>
-        <div className="fb-topper-sub">동결건조 · 닭가슴·연어</div>
-      </div>
-      <div className="fb-topper-pct">
-        <span className="num">{pct}</span>
-        <small>%</small>
-        <span className="g">{grams}g</span>
-      </div>
-    </div>
-  )
-}
-
 function ReasonRow({ reasoning }: { reasoning: Reasoning }) {
   return (
     <li className="fb-reason-row" title={reasoning.action}>
@@ -802,157 +494,5 @@ function ReasonRow({ reasoning }: { reasoning: Reasoning }) {
         <Info size={11} strokeWidth={2} color="var(--muted)" />
       </div>
     </li>
-  )
-}
-
-/**
- * 영양 단면 카드 — 라인 mix 의 weighted DM% (단백질/지방/100g 당 kcal,
- * 그리고 admin override 가 있는 경우 Ca/P/Na). 사용자에게 "내 강아지 박스의
- * 영양 균형" 을 직관적으로 보여줌.
- */
-// 2026-05-21: render 자리에서 폐기됐지만 (Magazine NutrientsCard 가 대체) 함수
-// 정의는 보존 — 추후 다른 페이지/admin override panel 에서 재사용 가능.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function NutrientPanelCard({ formula }: { formula: Formula }) {
-  // override 는 v1.4+ admin GUI 가 DB 에 저장. RecommendationBox 는 이미
-  // compute API 가 주입한 final formula 의 ratio 만 받아 hardcoded 라인
-  // 메타로 panel 산출. (override 적용 결과는 알고리즘 내부에서 이미 처방에
-  // 반영됨 — UI 는 lineRatios 만으로도 충분.)
-  const panel = computeNutrientPanel(formula.lineRatios)
-  const tier = (
-    pct: number,
-    low: number,
-    high: number,
-  ): 'low' | 'ok' | 'high' => {
-    if (pct < low) return 'low'
-    if (pct > high) return 'high'
-    return 'ok'
-  }
-  const proteinTier = tier(panel.proteinPctDM, 18, 35)
-  const fatTier = tier(panel.fatPctDM, 5.5, 18)
-
-  return (
-    <div className="fb-nutri">
-      <div className="fb-sub-lbl">
-        <Sparkles size={11} strokeWidth={2.4} color="var(--muted)" />
-        영양 단면 · 라인 평균
-      </div>
-      <div className="fb-nutri-grid">
-        <NutriCell
-          label="단백질"
-          value={`${panel.proteinPctDM}%`}
-          subValue="DM"
-          tier={proteinTier}
-          hint={
-            proteinTier === 'low'
-              ? 'AAFCO 18% 미만'
-              : proteinTier === 'high'
-                ? '고단백 (활동량 ↑ 권장)'
-                : 'AAFCO 충족'
-          }
-        />
-        <NutriCell
-          label="지방"
-          value={`${panel.fatPctDM}%`}
-          subValue="DM"
-          tier={fatTier}
-          hint={
-            fatTier === 'low'
-              ? 'AAFCO 5.5% 미만'
-              : fatTier === 'high'
-                ? '고지방 — 췌장염견 주의'
-                : '안전 범위'
-          }
-        />
-        <NutriCell
-          label="kcal/100g"
-          value={panel.kcalPer100g.toString()}
-          subValue="평균"
-          tier="ok"
-          hint="박스 분량 기준"
-        />
-      </div>
-      {panel.calciumPctDM !== null &&
-        panel.phosphorusPctDM !== null &&
-        panel.calciumPhosphorusRatio !== null && (
-          <div className="fb-nutri-grid" style={{ marginTop: 6 }}>
-            <NutriCell
-              label="Ca"
-              value={`${panel.calciumPctDM}%`}
-              subValue="DM"
-              tier="ok"
-            />
-            <NutriCell
-              label="P"
-              value={`${panel.phosphorusPctDM}%`}
-              subValue="DM"
-              tier="ok"
-            />
-            <NutriCell
-              label="Ca:P"
-              value={panel.calciumPhosphorusRatio.toFixed(2)}
-              subValue="ratio"
-              tier={
-                panel.calciumPhosphorusRatio > 1.8
-                  ? 'high'
-                  : panel.calciumPhosphorusRatio < 1.0
-                    ? 'low'
-                    : 'ok'
-              }
-              hint={
-                panel.calciumPhosphorusRatio > 1.8
-                  ? '대형견 puppy 1.8 상한'
-                  : '안전 범위'
-              }
-            />
-          </div>
-        )}
-      {panel.sodiumPctDM !== null && (
-        <p className="fb-nutri-foot">
-          나트륨 <b>{panel.sodiumPctDM}% DM</b>
-          {panel.sodiumPctDM > 0.3 && (
-            <span className="fb-nutri-warn">
-              {' '}
-              · 심장병견 0.3% 권고 초과
-            </span>
-          )}
-        </p>
-      )}
-    </div>
-  )
-}
-
-function NutriCell({
-  label,
-  value,
-  subValue,
-  tier,
-  hint,
-}: {
-  label: string
-  value: string
-  subValue?: string
-  tier: 'low' | 'ok' | 'high'
-  hint?: string
-}) {
-  const color =
-    tier === 'low'
-      ? 'var(--muted)'
-      : tier === 'high'
-        ? 'var(--terracotta)'
-        : 'var(--moss)'
-  return (
-    <div className="fb-nutri-cell">
-      <div className="fb-nutri-cell-l">{label}</div>
-      <div className="fb-nutri-cell-v">
-        <span style={{ color }}>{value}</span>
-        {subValue && <small>{subValue}</small>}
-      </div>
-      {hint && (
-        <div className="fb-nutri-cell-hint" style={{ color }}>
-          {hint}
-        </div>
-      )}
-    </div>
   )
 }

@@ -365,6 +365,7 @@ export default function SubscriptionCard({
                   key={w}
                   onClick={() => onChangeInterval(sub.id, w)}
                   disabled={isLoading}
+                  aria-pressed={sub.interval_weeks === w}
                   style={{
                     padding: '8px 0',
                     borderRadius: V3Radius.xs,
@@ -445,6 +446,8 @@ export default function SubscriptionCard({
                   transition: 'background 160ms',
                 }}
                 aria-label="배송 알림 토글"
+                role="switch"
+                aria-checked={sub.reminder_enabled}
               >
                 <span
                   style={{
@@ -474,6 +477,7 @@ export default function SubscriptionCard({
                     key={d}
                     onClick={() => onChangeReminderDays(sub.id, d)}
                     disabled={isLoading}
+                    aria-pressed={sub.reminder_days_before === d}
                     style={{
                       width: 28,
                       height: 24,

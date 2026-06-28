@@ -61,7 +61,6 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: '/admin/products', icon: '🛍️', label: '제품 관리' },
       { href: '/admin/collections', icon: '🧺', label: '컬렉션 관리' },
-      { href: '/admin/coupons', icon: '🎟️', label: '쿠폰 관리' },
       { href: '/admin/events', icon: '🎁', label: '이벤트 관리' },
       { href: '/admin/blog', icon: '✍️', label: '블로그' },
       { href: '/admin/partners', icon: '🌾', label: '산지·공급자' },

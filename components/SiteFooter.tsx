@@ -23,7 +23,7 @@ export default function SiteFooter() {
   return (
     <footer className="mt-14 md:mt-20 border-t border-[var(--fd-line)] bg-[var(--fd-offwhite)] text-[var(--fd-muted)]">
       <div className="px-5 py-5 max-w-md mx-auto md:max-w-[1280px] md:px-6 md:py-12">
-        {/* 데스크톱 4열 그리드 — 마켓컬리 톤. 모바일은 단일 열 stack. */}
+        {/* 데스크톱 4열 그리드 — 파머스독(FD) 톤. 모바일은 단일 열 stack. */}
         <div className="md:grid md:grid-cols-4 md:gap-10">
           {/* 고객 문의 — 박스/배지 형태 대신 인라인 텍스트 + 아이콘 라인업으로 정리.
               이전: rounded-full bg-white border 박스가 모바일 폭 좁아서 눌림 / 정렬 깨짐.

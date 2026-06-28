@@ -26,7 +26,7 @@ import {
   trackSubscriptionResumed,
   trackSubscriptionCancelled,
 } from '@/lib/analytics'
-import { V3, V3FontSize } from '@/lib/design/tokens'
+import { V3 } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 import {
   generateFallbackCustomerKey,
@@ -420,6 +420,3 @@ export default function SubscriptionsClient({
     </div>
   )
 }
-
-// V3FontSize 도 import 했지만 위에서 numeric 으로만 쓰니 명시적으로 사용 없음 — 향후 확장 대비.
-void V3FontSize

@@ -20,7 +20,7 @@ import {
   UserPlus,
   Cake,
 } from 'lucide-react'
-import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3FontSize, V3Radius } from '@/lib/design/tokens'
 import { Mono, Tabs } from '@/components/v3'
 
 type Entry = {
@@ -69,8 +69,10 @@ export default function PointsBrowser({ entries }: { entries: Entry[] }) {
   const groups = useMemo(() => {
     const m = new Map<string, Entry[]>()
     for (const e of filtered) {
-      const d = new Date(e.created_at)
-      const key = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`
+      // 그룹 key도 KST 기준 — 항목 표시(formatDateTime)가 Asia/Seoul 이므로
+      // 동일 기준이어야 비-KST 브라우저·월말 자정 경계서 표시 달과 그룹 달이
+      // 어긋나지 않는다 (이전 getFullYear/getMonth=로컬TZ → 불일치 여지).
+      const key = kstYearMonth(e.created_at)
       const arr = m.get(key) ?? []
       arr.push(e)
       m.set(key, arr)
@@ -122,7 +124,7 @@ export default function PointsBrowser({ entries }: { entries: Entry[] }) {
                 margin: '8px 0 0',
                 fontFamily: 'var(--font-sans)',
                 fontWeight: V3FontWeight.black,
-                fontSize: 16,
+                fontSize: V3FontSize.md,
                 color: V3.ink,
                 letterSpacing: '-0.02em',
               }}
@@ -135,12 +137,12 @@ export default function PointsBrowser({ entries }: { entries: Entry[] }) {
             </h3>
             <p
               style={{
-                fontSize: 10.5,
+                fontSize: V3FontSize.xs,
                 color: V3.inkMute,
                 marginTop: 6,
               }}
             >
-              리뷰·주문·친구 초대로 포인트를 적립해보세요
+              리뷰·주문으로 포인트를 적립해보세요
             </p>
           </div>
         ) : (
@@ -231,7 +233,7 @@ export default function PointsBrowser({ entries }: { entries: Entry[] }) {
                               style={{
                                 margin: 0,
                                 fontFamily: 'var(--font-sans)',
-                                fontSize: 12,
+                                fontSize: V3FontSize.sm,
                                 fontWeight: V3FontWeight.bold,
                                 color: V3.ink,
                                 letterSpacing: '-0.01em',
@@ -255,7 +257,7 @@ export default function PointsBrowser({ entries }: { entries: Entry[] }) {
                               style={{
                                 gap: 2,
                                 fontFamily: 'var(--font-sans)',
-                                fontSize: 13.5,
+                                fontSize: V3FontSize.base,
                                 fontWeight: V3FontWeight.black,
                                 color: accent,
                                 letterSpacing: '-0.02em',
@@ -292,6 +294,21 @@ export default function PointsBrowser({ entries }: { entries: Entry[] }) {
       </section>
     </>
   )
+}
+
+/**
+ * 월별 그룹 key — "YYYY.MM" (KST/Asia/Seoul 기준).
+ * formatDateTime 과 같은 타임존이어야 그룹과 표시가 정합한다.
+ */
+function kstYearMonth(iso: string): string {
+  const fmt = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+  })
+  const parts = fmt.formatToParts(new Date(iso))
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
+  return `${get('year')}.${get('month')}`
 }
 
 function formatDateTime(iso: string): string {

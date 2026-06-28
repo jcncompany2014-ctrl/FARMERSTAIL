@@ -150,12 +150,6 @@ export const V3Space = {
 export const V3Font = {
   sans: "var(--font-sans), 'Pretendard Variable', 'Noto Sans KR', system-ui, sans-serif",
   mono: "var(--font-mono), 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace",
-  /**
-   * 폐기된 serif family — 레거시 코드 호환을 위해 유지. 새로 작성하는 코드는
-   * `V3Font.sans` 만 사용. globals.css 에서 `--font-serif` / `--font-display`
-   * 변수도 모두 sans 로 alias 되어 있음.
-   */
-  legacySerif: 'var(--font-sans)',
 } as const
 
 // ──────────────────────────────────────────────────────────────────

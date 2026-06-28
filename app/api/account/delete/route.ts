@@ -34,7 +34,7 @@ export const dynamic = 'force-dynamic'
  *   4. Clear ancillary personal data: dogs (hard delete — they own
  *      their pet profiles), cart_items, push_subscriptions,
  *      push_preferences, restock_alerts, cart_recovery_log,
- *      referral_codes, wishlists, health/weight logs, dog reminders,
+ *      wishlists, health/weight logs, dog reminders,
  *      analyses, surveys. Orders / reviews / point_ledger stay —
  *      those are transaction records.
  *   5. Insert an `account_deletions` audit row with sha256(email) so
@@ -161,7 +161,6 @@ export async function POST(req: Request) {
     admin.from('push_preferences').delete().eq('user_id', user.id),
     admin.from('restock_alerts').delete().eq('user_id', user.id),
     admin.from('cart_recovery_log').delete().eq('user_id', user.id),
-    admin.from('referral_codes').delete().eq('user_id', user.id),
     admin.from('health_logs').delete().eq('user_id', user.id),
     admin.from('weight_logs').delete().eq('user_id', user.id),
     admin.from('dog_reminders').delete().eq('user_id', user.id),

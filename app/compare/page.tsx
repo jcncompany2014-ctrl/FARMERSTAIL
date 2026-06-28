@@ -37,11 +37,11 @@ export default async function ComparePage() {
   return (
     <main className="pb-20 max-w-5xl mx-auto px-5 pt-6">
       <Link
-        href="/products"
+        href="/start"
         className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-text font-semibold mb-3"
       >
         <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-        제품 둘러보기
+        맞춤 식단 시작하기
       </Link>
 
       <div className="flex items-center gap-2">

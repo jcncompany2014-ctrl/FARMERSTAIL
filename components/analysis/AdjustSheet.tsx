@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import { petName } from '@/lib/korean'
 import {
   computeNutrientPanel,
   clinicalCheckForPanel,
@@ -347,7 +348,9 @@ export default function AdjustSheet({
             <div className="adj-kicker">ADJUST RATIO</div>
             <h2>비율 직접 조정</h2>
             <div className="adj-sub">
-              <strong>{dogName}</strong>이의 cycle {formula.cycleNumber} 맞춤 박스
+              {/* 친근형(petName)으로 감싸 받침 유무와 무관히 조사 정확 —
+                  모음명 "나우"→"나우의"(기존 "나우이의"✗), 받침명 "푸린"→"푸린이의". */}
+              <strong>{petName(dogName)}</strong>의 cycle {formula.cycleNumber} 맞춤 박스
             </div>
           </div>
           <button
@@ -503,7 +506,7 @@ export default function AdjustSheet({
           </div>
 
           {err && (
-            <div className="adj-err">
+            <div className="adj-err" role="alert">
               <AlertCircle size={13} strokeWidth={2} />
               {err}
             </div>

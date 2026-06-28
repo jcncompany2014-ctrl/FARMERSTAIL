@@ -261,6 +261,7 @@ export default function EditDogClient({
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={20}
+            aria-label="강아지 이름"
             className={inputCls}
           />
         </div>
@@ -270,6 +271,7 @@ export default function EditDogClient({
           <Select
             value={breed}
             onChange={(e) => setBreed(e.target.value)}
+            aria-label="견종"
           >
             <option value="">선택하세요</option>
             {BREEDS.map((b) => (
@@ -341,6 +343,7 @@ export default function EditDogClient({
               min="0"
               value={ageValue}
               onChange={(e) => setAgeValue(e.target.value)}
+              aria-label="나이"
               className={`${inputCls} flex-1`}
             />
             <button
@@ -378,6 +381,7 @@ export default function EditDogClient({
             step="0.1"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
+            aria-label="체중 (kg)"
             className={inputCls}
           />
         </div>
@@ -451,6 +455,7 @@ export default function EditDogClient({
             <Select
               value={weightMethod}
               onChange={(e) => setWeightMethod(e.target.value)}
+              aria-label="체중 측정 도구"
               sizeVariant="sm"
             >
               <option value="unknown">측정 도구 — 모름</option>
@@ -466,6 +471,7 @@ export default function EditDogClient({
             <Select
               value={activityMethod}
               onChange={(e) => setActivityMethod(e.target.value)}
+              aria-label="활동량 측정 도구"
               sizeVariant="sm"
             >
               <option value="unknown">측정 도구 — 모름</option>
@@ -479,6 +485,7 @@ export default function EditDogClient({
             <Select
               value={feedMethod}
               onChange={(e) => setFeedMethod(e.target.value)}
+              aria-label="급여량 측정 도구"
               sizeVariant="sm"
             >
               <option value="unknown">측정 도구 — 모름</option>
@@ -505,6 +512,7 @@ export default function EditDogClient({
             <Select
               value={weightMeasuredBy}
               onChange={(e) => setWeightMeasuredBy(e.target.value)}
+              aria-label="체중 측정자"
               sizeVariant="sm"
             >
               <option value="unknown">모름</option>
@@ -518,6 +526,7 @@ export default function EditDogClient({
             <Select
               value={activityPeriod}
               onChange={(e) => setActivityPeriod(e.target.value)}
+              aria-label="활동량 측정 기간"
               sizeVariant="sm"
             >
               <option value="unknown">모름</option>
@@ -531,6 +540,7 @@ export default function EditDogClient({
             <Select
               value={walkIntensity}
               onChange={(e) => setWalkIntensity(e.target.value)}
+              aria-label="산책 강도"
               sizeVariant="sm"
             >
               <option value="unknown">모름</option>
@@ -545,6 +555,7 @@ export default function EditDogClient({
             <Select
               value={treatFrequency}
               onChange={(e) => setTreatFrequency(e.target.value)}
+              aria-label="간식 빈도"
               sizeVariant="sm"
             >
               <option value="unknown">모름</option>

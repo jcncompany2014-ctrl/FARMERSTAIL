@@ -59,13 +59,13 @@ export const TIERS: TierMeta[] = [
     threshold: 0,
     bg: '#9CB35F', // moss — 막 시작
     ink: '#FFFFFF',
-    benefit: '가입 환영 쿠폰 · 구매 적립 1%',
+    benefit: '첫 주문 50% · 구매 적립 1%',
     earnRate: 1,
     benefits: [
       {
         Icon: 'gift',
-        label: '가입 환영 쿠폰',
-        detail: '첫 결제에 자동 적용되는 환영 할인',
+        label: '첫 주문 50% 할인',
+        detail: '계정당 1회, 첫 정기배송에 자동 적용 (코드·발급 없이)',
       },
       {
         Icon: 'coins',
@@ -74,8 +74,8 @@ export const TIERS: TierMeta[] = [
       },
       {
         Icon: 'cake',
-        label: '생일 쿠폰',
-        detail: '생일 당일 5% 할인 쿠폰 자동 발급',
+        label: '생일 할인',
+        detail: '강아지 생일 월에 20% 자동 할인',
       },
     ],
   },
@@ -86,7 +86,7 @@ export const TIERS: TierMeta[] = [
     threshold: 50_000,
     bg: '#B8CD78', // 연한 새싹 그린
     ink: '#2A2118',
-    benefit: '구매 적립 1.5% · 무료배송 임계 인하',
+    benefit: '구매 적립 1.5% · 분기 맞춤 분석 리포트',
     earnRate: 1.5,
     benefits: [
       {
@@ -95,14 +95,14 @@ export const TIERS: TierMeta[] = [
         detail: '씨앗 대비 +0.5% 추가 적립',
       },
       {
-        Icon: 'truck',
-        label: '무료배송 임계 인하',
-        detail: '3만원 이상 무료 (씨앗 5만원)',
+        Icon: 'heart',
+        label: '분기 맞춤 분석 리포트',
+        detail: '분기 1회 메일로 받는 체중·체형·급여량·영양 요약 리포트',
       },
       {
         Icon: 'cake',
-        label: '생일 쿠폰 강화',
-        detail: '생일 당일 7% 할인 쿠폰',
+        label: '생일 할인',
+        detail: '강아지 생일 월에 20% 자동 할인',
       },
     ],
   },
@@ -113,7 +113,7 @@ export const TIERS: TierMeta[] = [
     threshold: 300_000,
     bg: '#E8A4A4', // 꽃 핑크
     ink: '#1E1A14',
-    benefit: '구매 적립 2% · 항상 무료배송 · 분기 5% 쿠폰',
+    benefit: '구매 적립 2% · 전담 영양 상담 · 연 2회 25% 할인',
     earnRate: 2,
     benefits: [
       {
@@ -122,19 +122,19 @@ export const TIERS: TierMeta[] = [
         detail: '새싹 대비 +0.5% 추가 적립',
       },
       {
-        Icon: 'truck',
-        label: '항상 무료배송',
-        detail: '주문 금액 무관 무료',
+        Icon: 'heart',
+        label: '전담 영양 상담 우선',
+        detail: '처방·영양 관련 1:1 상담을 우선으로 응대해 드려요',
       },
       {
         Icon: 'ticket',
-        label: '분기 5% 쿠폰',
-        detail: '3개월마다 5% 할인 쿠폰 자동 발급',
+        label: '연 2회 25% 자동 할인',
+        detail: '연 2회 정기배송에 25% 자동 적용 (코드·발급 없이)',
       },
       {
         Icon: 'cake',
-        label: '생일 쿠폰',
-        detail: '생일 당일 10% 할인 쿠폰',
+        label: '생일 할인',
+        detail: '강아지 생일 월에 20% 자동 할인',
       },
     ],
   },
@@ -145,7 +145,7 @@ export const TIERS: TierMeta[] = [
     threshold: 1_000_000,
     bg: '#D27A56', // terracotta — 잘 익은 열매
     ink: '#FFFFFF',
-    benefit: '적립 2.5% · 신제품 24h 우선 · 월 10% 쿠폰',
+    benefit: '적립 2.5% · 신제품 우선 · 연 4회 20% 할인',
     earnRate: 2.5,
     benefits: [
       {
@@ -160,13 +160,13 @@ export const TIERS: TierMeta[] = [
       },
       {
         Icon: 'ticket',
-        label: '월 10% 쿠폰',
-        detail: '매월 1일 10% 할인 쿠폰 자동 발급',
+        label: '연 4회 20% 자동 할인',
+        detail: '연 4회 정기배송에 20% 자동 적용',
       },
       {
         Icon: 'cake',
-        label: '생일 쿠폰',
-        detail: '생일 당일 12% 할인 쿠폰',
+        label: '생일 할인',
+        detail: '강아지 생일 월에 20% 자동 할인',
       },
       {
         Icon: 'gift',
@@ -182,7 +182,7 @@ export const TIERS: TierMeta[] = [
     threshold: 3_000_000,
     bg: '#1E1A14', // 가장 어두운 ink — gold accent
     ink: '#D4A94A',
-    benefit: '강아지 등록증 · 적립 3% · 매월 15% 쿠폰 · 한정 큐레이션',
+    benefit: '강아지 등록증 · 적립 3% · 매 주문 10% 할인 · 한정 큐레이션',
     earnRate: 3,
     benefits: [
       {
@@ -207,8 +207,13 @@ export const TIERS: TierMeta[] = [
       },
       {
         Icon: 'ticket',
-        label: '매월 15% 쿠폰',
-        detail: '매월 1일 15% 할인 쿠폰 자동 발급',
+        label: '매 주문 10% 자동 할인',
+        detail: '모든 정기배송에 10% 자동 적용',
+      },
+      {
+        Icon: 'cake',
+        label: '생일 할인',
+        detail: '강아지 생일 월에 20% 자동 할인',
       },
       {
         Icon: 'heart',

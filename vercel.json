@@ -7,9 +7,7 @@
     "app/api/cron/cart-recovery/route.ts": { "maxDuration": 300 },
     "app/api/cron/subscription-reminders/route.ts": { "maxDuration": 120 },
     "app/api/cron/restock-alerts/route.ts": { "maxDuration": 120 },
-    "app/api/cron/birthday-coupons/route.ts": { "maxDuration": 120 },
     "app/api/cron/review-prompts/route.ts": { "maxDuration": 120 },
-    "app/api/cron/coupon-expiry/route.ts": { "maxDuration": 60 },
     "app/api/cron/dog-age-update/route.ts": { "maxDuration": 120 },
     "app/api/cron/personalization-approval-timeout/route.ts": { "maxDuration": 60 },
     "app/api/cron/weight-reminder/route.ts": { "maxDuration": 120 },
@@ -22,9 +20,6 @@
     "app/api/cron/account-purge/route.ts": { "maxDuration": 300 },
     "app/api/cron/tracking-poll/route.ts": { "maxDuration": 300 },
     "app/api/cron/onboarding-funnel/route.ts": { "maxDuration": 120 },
-    "app/api/cron/referral-milestones/route.ts": { "maxDuration": 120 },
-    "app/api/cron/vip-coupons/route.ts": { "maxDuration": 120 },
-    "app/api/cron/inactive-coupons/route.ts": { "maxDuration": 60 },
     "app/api/cron/sensitivity-snapshots/route.ts": { "maxDuration": 120 },
     "app/api/cron/meta-weights/route.ts": { "maxDuration": 120 },
     "app/api/cron/reanalyze-trigger/route.ts": { "maxDuration": 120 },
@@ -35,7 +30,8 @@
     "app/api/cron/intervention-alerts/route.ts": { "maxDuration": 180 },
     "app/api/cron/payment-ledger-reconcile/route.ts": { "maxDuration": 120 },
     "app/api/cron/reanalysis-reminder-6m/route.ts": { "maxDuration": 120 },
-    "app/api/cron/ops-digest/route.ts": { "maxDuration": 120 }
+    "app/api/cron/ops-digest/route.ts": { "maxDuration": 120 },
+    "app/api/cron/quarterly-report/route.ts": { "maxDuration": 300 }
   },
   "crons": [
     {
@@ -55,16 +51,8 @@
       "schedule": "0 1 * * *"
     },
     {
-      "path": "/api/cron/birthday-coupons",
-      "schedule": "0 0 * * *"
-    },
-    {
       "path": "/api/cron/review-prompts",
       "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/cron/coupon-expiry",
-      "schedule": "0 2 * * *"
     },
     {
       "path": "/api/cron/dog-age-update",
@@ -119,18 +107,6 @@
       "schedule": "0 1 * * *"
     },
     {
-      "path": "/api/cron/referral-milestones",
-      "schedule": "0 18 * * *"
-    },
-    {
-      "path": "/api/cron/vip-coupons",
-      "schedule": "0 0 1 * *"
-    },
-    {
-      "path": "/api/cron/inactive-coupons",
-      "schedule": "0 1 15 * *"
-    },
-    {
       "path": "/api/cron/sensitivity-snapshots",
       "schedule": "0 4 * * 1"
     },
@@ -173,6 +149,10 @@
     {
       "path": "/api/cron/ops-digest",
       "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/quarterly-report",
+      "schedule": "0 0 1 1,4,7,10 *"
     }
   ]
 }

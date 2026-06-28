@@ -17,7 +17,7 @@ type SearchParams = Promise<{ from?: string }>
  * 원래 가려던 경로가 들어옴 — Universal Links / App Links 가 설정된 후엔 앱
  * 설치 + 첫 실행 시 이 경로로 deep-link 가능.
  *
- * 디자인: 마케팅 + 마켓컬리 톤. 강한 다운로드 CTA + 앱이 무엇을 주는지 짧게.
+ * 디자인: 마케팅 + 파머스독(FD) 톤. 강한 다운로드 CTA + 앱이 무엇을 주는지 짧게.
  */
 export default async function AppRequiredPage({
   searchParams,
@@ -221,11 +221,8 @@ function friendlyLabel(path: string): string | null {
   if (clean.startsWith('/mypage/addresses')) return '배송지 관리'
   if (clean.startsWith('/mypage/reviews')) return '리뷰 관리'
   if (clean.startsWith('/mypage/points')) return '적립금 관리'
-  if (clean.startsWith('/mypage/coupons')) return '쿠폰 관리'
-  if (clean.startsWith('/mypage/wishlist')) return '찜 목록'
   if (clean.startsWith('/mypage/notifications')) return '알림 설정'
   if (clean.startsWith('/mypage/consent')) return '동의 설정'
   if (clean.startsWith('/mypage/delete')) return '회원 탈퇴'
-  if (clean.startsWith('/mypage/referral')) return '친구 초대'
   return null
 }

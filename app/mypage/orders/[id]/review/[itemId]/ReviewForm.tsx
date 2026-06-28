@@ -265,6 +265,7 @@ export default function ReviewForm({
                   onClick={() => setRating(n)}
                   className="p-1 transition active:scale-90"
                   aria-label={`${n}점`}
+                  aria-pressed={rating >= n}
                 >
                   <Star
                     className={`w-9 h-9 md:w-12 md:h-12 transition ${
@@ -295,6 +296,7 @@ export default function ReviewForm({
               <button
                 type="button"
                 onClick={() => setDogId('')}
+                aria-pressed={dogId === ''}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition ${
                   dogId === ''
                     ? 'bg-text text-white border-text'
@@ -308,6 +310,7 @@ export default function ReviewForm({
                   key={d.id}
                   type="button"
                   onClick={() => setDogId(d.id)}
+                  aria-pressed={dogId === d.id}
                   className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition ${
                     dogId === d.id
                       ? 'bg-moss text-white border-moss'

@@ -10,6 +10,11 @@
  *   if (m) return <MilestoneCard milestone={m} />
  */
 
+// 상대경로 + 명시 .ts 확장자 — 이 파일은 milestones.test.ts 가 node --test
+// (별칭 미해석·ESM 확장자 필수)로 직접 로드하므로 `@/` 별칭 대신 `../korean.ts`
+// 사용(engine.ts → './catalog.ts' 와 동일한 테스트대상 소스 패턴).
+import { petName } from '../korean.ts'
+
 export type Milestone = {
   /** 기준일로부터 N일 — 30, 100, 365, 730 등 */
   daysSince: number
@@ -102,9 +107,14 @@ export function currentMilestone(
 
 /**
  * {name} placeholder 치환. 견 이름 없으면 "우리 아이" fallback.
+ *
+ * 견명은 친근형(petName)으로 치환 — 받침 있으면 '이' 붙어(토르→토르이) **항상
+ * 모음 끝**이 되므로 메시지의 `{name}와`(과/와)·`{name}의` 조사가 받침 이름에서도
+ * 깨지지 않는다(사장님 2026-06-19 "웹·앱 전체 이름 문법 정확히" 지시·lib/korean
+ * 도크 "초롱이의" 예시와 정합). 모음 이름은 그대로(나우→나우).
  */
 export function renderMilestoneMessage(m: Milestone, dogName: string | null): string {
-  return m.message.replace(/\{name\}/g, dogName ?? '우리 아이')
+  return m.message.replace(/\{name\}/g, petName(dogName) || '우리 아이')
 }
 
 /**

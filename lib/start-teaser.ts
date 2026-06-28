@@ -23,9 +23,11 @@ export type StartTeaser = {
 }
 
 const BODY_COMMENT: Record<string, string> = {
+  skinny: '지금은 많이 마른 편이라, 칼로리를 넉넉히 잡았어요.',
   slim: '지금은 마른 편이라, 칼로리를 살짝 넉넉히 잡았어요.',
   ideal: '이상적인 체형이에요. 지금 컨디션을 유지하는 기준으로 계산했어요.',
   chubby: '약간 통통한 편이라, 체중 관리를 고려해 계산했어요.',
+  obese: '체중 관리가 필요한 편이라, 적정 체중을 목표로 계산했어요.',
 }
 
 const PROTEIN_KR: Record<string, string> = {
@@ -40,7 +42,7 @@ export type DraftNutritionInput = {
   dogInfo: DogInfo
   answers: SurveyAnswers
   dogName: string
-  /** 'slim'|'ideal'|'chubby' — bodyComment 키 */
+  /** 'skinny'|'slim'|'ideal'|'chubby'|'obese' — bodyComment 키 (BCS 5단계) */
   body: string
   /** 알레르기 단백질 키(none 제외) */
   allergies: string[]
@@ -67,7 +69,9 @@ export function draftToNutritionInput(
 
   const a = (draft?.answers ?? {}) as Record<string, string | string[]>
   const body =
-    typeof a.body === 'string' && ['slim', 'ideal', 'chubby'].includes(a.body) ? a.body : 'ideal'
+    typeof a.body === 'string' && ['skinny', 'slim', 'ideal', 'chubby', 'obese'].includes(a.body)
+      ? a.body
+      : 'ideal'
   // '없어요'(none) 센티넬 제외.
   const allergies = (Array.isArray(a.allergy) ? a.allergy : []).filter((x) => x !== 'none')
   const health = (Array.isArray(a.health) ? a.health : []).filter((x) => x !== 'none')

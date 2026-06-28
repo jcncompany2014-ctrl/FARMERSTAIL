@@ -4,6 +4,7 @@ import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { recordOutcome } from '@/lib/feeding-outcomes'
+import { petName } from '@/lib/korean'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -125,12 +126,17 @@ async function runDetect(): Promise<Response> {
       /* 기록 실패 silent */
     }
 
-    // 14일 이내 같은 push 보낸 적 있으면 skip
+    // 14일 이내 같은 push 보낸 적 있으면 skip.
+    // ⚠️ dedup은 body 고정문구로 — push_log.category 는 pushToUser 의 PushCategory
+    // ('order' 재사용)로 기록되므로 'reminder-weight-change' 로 조회하면 영구
+    // 미스매치라 dedup이 무력화됐었다(#77 weight-reminder 와 동일 버그). title은
+    // 방향(증가/감소)으로 가변 + "체중"이 weight-reminder 와 충돌하므로, 이 cron
+    // 고유·불변인 body 문구로 dedup.
     const { count: recentPush } = await admin
       .from('push_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', dog.user_id)
-      .eq('category', 'reminder-weight-change')
+      .ilike('body', '%4주 만에 변화가 있었네요%')
       .gt('sent_at', fourteenDaysAgo)
     if ((recentPush ?? 0) > 0) {
       skippedSpam += 1
@@ -144,7 +150,7 @@ async function runDetect(): Promise<Response> {
       await pushToUser(
         dog.user_id,
         {
-          title: `${dog.name}이 체중 ${sign}${pct.toFixed(1)}% ${direction}`,
+          title: `${petName(dog.name)}가 체중 ${sign}${pct.toFixed(1)}% ${direction}`,
           body: `4주 만에 변화가 있었네요. 다음 박스 사이즈를 다시 추천드릴까요?`,
           url: `/dogs/${dog.id}/analysis`,
           tag: `weight-change-${dog.id}`,

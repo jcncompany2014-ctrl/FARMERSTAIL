@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
-import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
+import { V3, V3FontWeight, V3FontSize, V3Radius } from '@/lib/design/tokens'
 import { Tabs } from '@/components/v3'
 import './notifications.css'
 
@@ -116,11 +116,13 @@ export default function NotificationsClient({
       } = await supabase.auth.getUser()
       if (!user) return
       const now = new Date().toISOString()
-      await supabase
+      const { error } = await supabase
         .from('push_log')
         .update({ read_at: now })
         .eq('user_id', user.id)
         .is('read_at', null)
+      // 실패 시 낙관적 갱신 안 함 — 안 읽음 유지가 정직(finally 가 marking 해제).
+      if (error) return
       setRows((prev) =>
         prev.map((r) => ({ ...r, read_at: r.read_at ?? now })),
       )
@@ -135,11 +137,13 @@ export default function NotificationsClient({
     } = await supabase.auth.getUser()
     if (!user) return
     const now = new Date().toISOString()
-    await supabase
+    const { error } = await supabase
       .from('push_log')
       .update({ read_at: now })
       .eq('id', id)
       .eq('user_id', user.id)
+    // 실패 시 낙관적 읽음 표시 안 함 — 안 읽음 유지가 정직(다음 조회서 재시도).
+    if (error) return
     setRows((prev) =>
       prev.map((r) =>
         r.id === id ? { ...r, read_at: r.read_at ?? now } : r,
@@ -222,7 +226,7 @@ export default function NotificationsClient({
               gap: 4,
               padding: '8px 18px',
               borderRadius: V3Radius.pill,
-              fontSize: 12,
+              fontSize: V3FontSize.sm,
               fontWeight: V3FontWeight.bold,
               background: V3.ink,
               color: V3.paperHi,
@@ -250,7 +254,7 @@ export default function NotificationsClient({
                 <span
                   style={{
                     fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
-                    fontSize: 10.5,
+                    fontSize: V3FontSize.xs,
                     fontWeight: 700,
                     letterSpacing: '0.16em',
                     wordSpacing: '-0.12em',
@@ -263,7 +267,7 @@ export default function NotificationsClient({
                 <span
                   className="tabular-nums"
                   style={{
-                    fontSize: 10.5,
+                    fontSize: V3FontSize.xs,
                     color: V3.inkMute,
                     fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
                     fontWeight: 500,

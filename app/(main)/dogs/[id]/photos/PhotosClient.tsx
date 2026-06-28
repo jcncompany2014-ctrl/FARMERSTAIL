@@ -249,6 +249,7 @@ export default function PhotosClient({
 
           {error && (
             <p
+              role="alert"
               className="mt-2 text-[12px]"
               style={{ color: 'var(--sale, #c4623e)' }}
             >

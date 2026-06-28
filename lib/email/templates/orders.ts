@@ -247,42 +247,30 @@ export function renderOrderCancelled(
 // ── 회원 가입 환영 ───────────────────────────────────────────────────────────
 export function renderWelcome(input: {
   recipientName: string
-  /** 가입 환영 쿠폰 코드 — admin/coupons 에 'WELCOME5000' (또는 env 로 지정한
-   *  코드) 가 활성화돼 있어야 동작. 코드는 메일에 직접 노출. */
-  couponCode?: string
-  couponLabel?: string
 }): { subject: string; html: string } {
   const subject = '[파머스테일] 반가워요, 가족이 되어주셔서 감사해요 🐾'
-  const code = (input.couponCode ?? 'WELCOME5000').toUpperCase()
-  const couponLabel = input.couponLabel ?? '5,000원 할인 쿠폰'
   const body = `
     <p style="margin:0 0 14px 0;">
       ${escape(input.recipientName)}님, 반가워요! 파머스테일은 반려견이
       "이건 진짜 맛있다" 고 눈을 반짝이는 음식만 골라 담아요.
     </p>
     <p style="margin:0 0 8px 0;">
-      가입 첫 구매 시 사용할 수 있는 <strong style="color:#B5533A;">${escape(couponLabel)}</strong>
-      을 마이페이지에 담아 두었어요.
+      가입 기념으로 <strong style="color:#B5533A;">첫 정기배송 50% 할인</strong>이
+      준비돼 있어요. 코드 입력 없이 첫 주문에 자동으로 적용돼요.
     </p>
     <p style="margin:0 0 14px 0;font-size:11.5px;color:#7A7A7A;line-height:1.6;">
-      체크아웃에서 자동으로 사용 가능한 쿠폰을 안내해드려요.
-      코드를 직접 입력하실 필요는 없어요.
-    </p>
-    <!-- 코드 자체는 운영 백업용으로 메일 하단에 작게. 사용자가 평소 인지할
-         필요 X — 체크아웃 sheet 가 자동 추천. -->
-    <p style="margin:0;font-size:11px;color:#B5B5B5;font-family:monospace;letter-spacing:0.04em;">
-      ref: ${escape(code)}
+      계정당 1회, 첫 결제 때 자동으로 깎여요.
     </p>
   `
   const html = renderLayout({
     kicker: 'Welcome · 반가워요',
     heading: '가족이 되어주셔서 감사해요',
     icon: '🐶',
-    preview: '파머스테일에 가입해주셔서 감사해요. 가입 쿠폰이 기다리고 있어요.',
+    preview: '파머스테일에 가입해주셔서 감사해요. 첫 주문 50% 할인이 기다려요.',
     body,
     cta: {
-      label: '쿠폰 확인하기',
-      href: `${SITE_URL}/mypage/coupons`,
+      label: '맞춤 플랜 시작하기',
+      href: `${SITE_URL}/start`,
     },
   })
   return { subject, html }

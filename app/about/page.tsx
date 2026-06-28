@@ -61,15 +61,17 @@ function planHref(isAuthed: boolean) {
   return isAuthed ? '/dogs/new' : '/start'
 }
 
+// 실제 계약 농가·인증 확보 전까지는 구체 출처 대신 "원료를 고르는 기준"을 표기.
+// (실 계약 시 '재료 → 농가·등급' 형태로 복원 — partners 페이지와 동일 정책, 2026-06)
 const SOURCING = [
-  { k: '한우', v: '강원 평창 · 1++ 안심' },
-  { k: '연어', v: '전남 완도 · 자연산' },
-  { k: '채소', v: '제주 구좌 · 무농약' },
-  { k: '곡물', v: '충북 괴산 · 국내산 귀리' },
+  { k: '육류', v: '사람이 먹는 등급을 기준으로' },
+  { k: '생선', v: '출처를 밝힐 수 있는 것만' },
+  { k: '채소', v: '제철 · 신선 우선' },
+  { k: '곡물', v: '정제보다 통곡물 지향' },
 ]
 
 const STEPS = [
-  ['01', '원료 입고 · 농장 단위 로트 번호 기록'],
+  ['01', '원료 입고 · 출처 기록'],
   ['02', '저온 세척 및 수의영양 기준 계량'],
   ['03', '수비드 조리 또는 저온 동결건조'],
   ['04', '급속 냉동 후 다중 포장 · 품질 검사'],
@@ -96,7 +98,7 @@ export default async function AboutPage() {
   ])
 
   return (
-    <WebChrome cartCount={0}>
+    <WebChrome>
       <main>
         <JsonLd id="ld-about-crumbs" data={crumbLd} />
         {/* Hero — 미션 */}
@@ -177,9 +179,9 @@ export default async function AboutPage() {
                 재료는 이름이 있어야 한다
               </Display>
               <p className="pt-4 text-[14.5px] md:text-[16px]" style={{ lineHeight: 1.7, color: 'var(--fd-muted)' }}>
-                강원 평창의 한우, 전남 완도의 자연산 연어, 제주 구좌의 당근. 재료의
-                원산지를 농장 단위로 표기합니다. 익명의 ‘수입산 육류’나 ‘복합 곡물’이
-                들어가는 일은 없습니다.
+                재료의 원산지를 농장 단위까지 밝히는 것을 원칙으로 삼습니다. 익명의
+                ‘수입산 육류’나 ‘복합 곡물’에 기대지 않고, 출처가 분명한 원료를 한
+                곳씩 찾아가고 있어요.
               </p>
             </Reveal>
             <Reveal delay={100}>
@@ -214,8 +216,8 @@ export default async function AboutPage() {
                   <p className="pt-4 text-[14.5px] md:text-[16px]" style={{ lineHeight: 1.7, color: 'var(--fd-muted)' }}>
                     모든 레시피는 <strong style={{ color: 'var(--fd-pine)' }}>AAFCO</strong> 의 성견·자견
                     영양 기준과 <strong style={{ color: 'var(--fd-pine)' }}>WSAVA</strong> 의 품질 가이드를
-                    따르며, 현업 수의영양 전문가의 검수를 거쳐 완성됩니다. ‘맛있어 보이는
-                    음식’이 아니라 ‘영양 프로파일이 맞는 식단’을 만드는 곳입니다.
+                    기준으로 설계합니다. ‘맛있어 보이는 음식’이 아니라 ‘영양
+                    프로파일이 맞는 식단’을 만드는 곳입니다.
                   </p>
                 </div>
               </Reveal>
@@ -239,12 +241,12 @@ export default async function AboutPage() {
             <Reveal>
               <Eyebrow>NO.04 — KITCHEN</Eyebrow>
               <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-                소규모 배치, HACCP 주방에서
+                소규모 배치로, 정성껏
               </Display>
               <p className="pt-4 text-[14.5px] md:text-[16px]" style={{ lineHeight: 1.7, color: 'var(--fd-muted)' }}>
-                전용 HACCP 주방에서 주 단위 소규모 배치로 조리합니다. 완성된 식단은
-                급속 냉동 또는 저온 동결건조로 영양소를 포집한 뒤, 산소·빛을 차단하는
-                다중 포장으로 보내드립니다.
+                위생을 철저히 관리하는 주방에서 주 단위 소규모 배치로 조리합니다.
+                완성된 식단은 급속 냉동 또는 저온 동결건조로 영양소를 포집한 뒤,
+                산소·빛을 차단하는 다중 포장으로 보내드립니다.
               </p>
             </Reveal>
             <Reveal delay={100}>
@@ -280,7 +282,7 @@ export default async function AboutPage() {
               <Reveal>
                 <PhotoSlot
                   label="맞춤 분석 카드 화면"
-                  sub="AI 영양사 결과 미리보기"
+                  sub="맞춤 분석 결과 미리보기"
                   ratio="4 / 3"
                   tone="cream"
                   rounded={10}
@@ -289,7 +291,7 @@ export default async function AboutPage() {
               </Reveal>
               <Reveal delay={100}>
                 <div>
-                  <Eyebrow>NO.05 — AI NUTRITIONIST</Eyebrow>
+                  <Eyebrow>NO.05 — AI ANALYSIS</Eyebrow>
                   <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
                     내 강아지만을 위한 분석
                   </Display>

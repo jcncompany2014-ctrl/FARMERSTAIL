@@ -10,7 +10,7 @@ import AppChrome from '@/components/AppChrome'
  * 같은 라우트 (/products, /cart, /checkout, /blog 등) 라도 진입 컨텍스트가
  * 다르면 다른 chrome 으로 감싼다:
  *
- *   • 웹 (브라우저)        → WebChrome — 풀와이드 마켓컬리 톤
+ *   • 웹 (브라우저)        → WebChrome — 풀와이드 파머스독(FD) 톤
  *   • 앱 (PWA/Capacitor)   → AppChrome — 폰 프레임 + 하단 탭바
  *
  * 컨텍스트 감지: `ft_app` 쿠키.

@@ -405,7 +405,7 @@ export default async function ReviewsPage() {
   ])
 
   return (
-    <WebChrome cartCount={0}>
+    <WebChrome>
       <main>
         <JsonLd id="ld-reviews-crumbs" data={crumbLd} />
         <ReviewsHero isAuthed={isAuthed} />

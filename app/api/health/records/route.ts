@@ -128,7 +128,7 @@ export async function GET(req: Request) {
 
   if (error) {
     // audit #69: 원본 message 노출 X — Sentry 만 보존.
-    return dbError(error, 'health_records', '의료 기록을 저장하지 못했어요')
+    return dbError(error, 'health_records', '의료 기록을 불러오지 못했어요')
   }
   return NextResponse.json({ ok: true, records: data ?? [] })
 }

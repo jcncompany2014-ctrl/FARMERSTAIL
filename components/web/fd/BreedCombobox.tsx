@@ -18,6 +18,8 @@ type Props = {
   inputStyle?: React.CSSProperties
   /** 입력 후 다음 필드로 이동 힌트 */
   enterKeyHint?: React.InputHTMLAttributes<HTMLInputElement>['enterKeyHint']
+  /** 스크린리더용 접근명 — 콤보박스는 이름 필수(placeholder 만으론 부족). */
+  ariaLabel?: string
 }
 
 const MAX_SUGGESTIONS = 8
@@ -29,6 +31,7 @@ export default function BreedCombobox({
   inputClassName,
   inputStyle,
   enterKeyHint,
+  ariaLabel = '견종',
 }: Props) {
   const [open, setOpen] = useState(false)
   const [hi, setHi] = useState(0)
@@ -78,6 +81,7 @@ export default function BreedCombobox({
         spellCheck={false}
         enterKeyHint={enterKeyHint}
         role="combobox"
+        aria-label={ariaLabel}
         aria-expanded={open}
         aria-autocomplete="list"
         aria-controls="breed-listbox"

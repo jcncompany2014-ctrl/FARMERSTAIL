@@ -10,7 +10,7 @@
  * **앱(PWA) 전용.** 호출자가 dogId + open/onClose 제어.
  */
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Check } from 'lucide-react'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
 import BottomSheet from '@/components/ui/BottomSheet'
@@ -47,6 +47,8 @@ export default function QuickChipSheet({
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const toast = useToast()
+  // 칩 그룹을 질문(h2)과 묶어 스크린리더가 맥락과 함께 읽도록.
+  const titleId = useId()
 
   async function save() {
     if (busy || !value) return
@@ -104,6 +106,7 @@ export default function QuickChipSheet({
     >
       <BottomSheet.Body>
         <h2
+          id={titleId}
           style={{
             margin: 0,
             fontFamily: 'var(--font-sans)',
@@ -122,7 +125,12 @@ export default function QuickChipSheet({
           </p>
         )}
 
-        <div className="flex" style={{ gap: 8, marginTop: 18 }}>
+        <div
+          className="flex"
+          role="group"
+          aria-labelledby={titleId}
+          style={{ gap: 8, marginTop: 18 }}
+        >
           {options.map(([v, label]) => {
             const active = value === v
             return (
