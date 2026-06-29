@@ -226,7 +226,7 @@ export function renderOrderCancelled(
   const body = `
     <p style="margin:0 0 14px 0;">
       ${escape(input.recipientName)}님의 주문이 취소됐어요. 결제 금액은 3~5 영업일 안에
-      원 결제 수단으로 환불되고, 사용한 포인트와 쿠폰은 모두 돌려드려요.
+      원 결제 수단으로 환불되고, 사용한 포인트는 모두 돌려드려요.
     </p>
     ${block.dl(rows)}
   `
