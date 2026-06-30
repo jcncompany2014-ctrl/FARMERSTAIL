@@ -34,22 +34,12 @@ export default async function AdminEventsPage() {
     .order('sort_priority', { ascending: false })
     .order('starts_at', { ascending: false })
 
-  // 쿠폰 드롭다운용 — 'coupon-claim' 이벤트에서 코드를 매핑할 때 오타 방지.
-  const { data: coupons } = await supabase
-    .from('coupons')
-    .select('code, name, discount_type, discount_value, is_active')
-    .order('created_at', { ascending: false })
-
+  // 쿠폰 시스템 폐지(2026-06) — coupons 테이블 미조회. coupon-claim 변형은
+  // 더 이상 쓰지 않으므로 빈 목록 전달(드롭다운 비활성). 테이블 DROP 안전.
   return (
     <AdminEventsClient
       initialEvents={(events ?? []) as AdminEventRow[]}
-      coupons={(coupons ?? []) as Array<{
-        code: string
-        name: string
-        discount_type: 'percent' | 'fixed'
-        discount_value: number
-        is_active: boolean
-      }>}
+      coupons={[]}
     />
   )
 }
