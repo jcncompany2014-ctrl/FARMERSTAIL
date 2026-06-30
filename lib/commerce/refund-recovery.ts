@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { appendLedger, getCurrentBalance } from './points'
-import { revokeCouponRedemption } from '@/lib/coupons'
 
 /**
  * lib/commerce/refund-recovery
@@ -110,9 +109,4 @@ export async function recoverOrderPointsAndCoupon(
     pointsEarned: data.points_earned ?? 0,
     paymentStatus: data.payment_status,
   })
-
-  // 쿠폰 회수.
-  if (data.coupon_code) {
-    await revokeCouponRedemption(admin, { couponCode: data.coupon_code })
-  }
 }

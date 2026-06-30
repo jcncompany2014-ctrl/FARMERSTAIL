@@ -7,7 +7,6 @@ import {
   isPaymentStatus,
 } from '@/lib/commerce/order-fsm'
 import { appendLedger, getCurrentBalance } from '@/lib/commerce/points'
-import { revokeCouponRedemption } from '@/lib/coupons'
 import { cancelPayment } from '@/lib/payments/toss'
 import { notifyOrderCancelled } from '@/lib/email'
 import { zOrderCancel } from '@/lib/api/schemas'
@@ -326,11 +325,6 @@ export async function POST(
         )
       }
     }
-  }
-
-  // 5) Decrement coupon usage — redemption 행은 감사 목적으로 보존.
-  if (order.coupon_code) {
-    await revokeCouponRedemption(supabase, { couponCode: order.coupon_code })
   }
 
   // 6) 이메일 안내 — fire-and-forget. 취소 플로우가 메일 때문에 늦어지지 않도록.

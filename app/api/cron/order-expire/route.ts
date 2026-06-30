@@ -3,7 +3,6 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { appendLedger } from '@/lib/commerce/points'
-import { revokeCouponRedemption } from '@/lib/coupons'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -149,19 +148,6 @@ async function runOrderExpire(): Promise<Response> {
         source: 'cron_order_expire',
         metadata: { reason: '30분 결제 미완료 자동 만료' },
       })
-    }
-
-    // 3) 쿠폰 redemption revoke — R84-B4: 이전엔 누락 → FIRSTBOX50 같은 1회용
-    //    쿠폰이 결제 미완료 만료 후에도 used_count 그대로 → 재결제 불가.
-    if (ord.coupon_code) {
-      const r = await revokeCouponRedemption(supabase, {
-        couponCode: ord.coupon_code,
-      })
-      if (!r.ok) {
-        console.warn(
-          `[order-expire] coupon revoke failed for order ${ord.id}: ${r.reason}`,
-        )
-      }
     }
 
     // 4) 포인트 환급 — pending 단계에서 사용한 포인트가 있으면 회수.

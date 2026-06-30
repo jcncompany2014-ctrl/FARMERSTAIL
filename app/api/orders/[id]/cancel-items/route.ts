@@ -8,7 +8,6 @@ import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
 import { computePointsRefund } from '@/lib/commerce/points'
-import { revokeCouponRedemption } from '@/lib/coupons'
 import { clawbackEarnedPoints } from '@/lib/commerce/refund-recovery'
 import { randomUUID } from 'node:crypto'
 
@@ -336,9 +335,6 @@ export async function POST(
       pointsEarned: order.points_earned ?? 0,
       paymentStatus: order.payment_status,
     })
-    if (order.coupon_code) {
-      await revokeCouponRedemption(admin, { couponCode: order.coupon_code })
-    }
   }
 
   // (d) 주문 상태 갱신 — refunded_amount + (전량이면)취소상태. points_refunded 는
