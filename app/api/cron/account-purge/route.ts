@@ -105,8 +105,6 @@ export async function GET(req: Request) {
 
       // 2) user_id 직접 보유한 보조 테이블.
       await deleteStep('subscription_charges')
-      await deleteStep('coupon_redemptions')
-      await deleteStep('birthday_coupon_log')
       await deleteStep('point_ledger')
 
       // 3) orders / subscriptions — 이제 FK 위반 위험 없음.
