@@ -37,8 +37,8 @@ export default async function AdminBlogCategoriesPage() {
         >
           ← 매거진
         </Link>
-        <h1 className="font-['Archivo_Black'] text-3xl text-ink mt-2">
-          CATEGORIES
+        <h1 className="font-bold tracking-tight text-3xl text-ink mt-2">
+          카테고리 관리
         </h1>
         <p className="text-xs text-muted mt-1">
           카테고리는 블로그 필터링과 URL에 쓰여요.

@@ -148,8 +148,8 @@ export default async function AdminCronHealthPage() {
         </Link>
         <div className="flex items-center gap-2">
           <Activity className="w-5 h-5 text-terracotta" strokeWidth={2} />
-          <h1 className="font-['Archivo_Black'] text-2xl text-ink">
-            CRON HEALTH
+          <h1 className="font-bold tracking-tight text-2xl text-ink">
+            자동작업 상태
           </h1>
         </div>
         <p className="text-[12px] text-muted mt-1">

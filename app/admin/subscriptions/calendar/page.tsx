@@ -149,8 +149,8 @@ export default async function SubscriptionsCalendarPage({
             <ArrowLeft className="w-3 h-3" strokeWidth={2.5} />
             구독 리스트로
           </Link>
-          <h1 className="font-['Archivo_Black'] text-3xl text-ink">
-            DELIVERY CALENDAR
+          <h1 className="font-bold tracking-tight text-3xl text-ink">
+            배송 캘린더
           </h1>
           <p className="text-sm text-muted mt-1">
             예정 배송 {monthTotalCount}건 · 합계{' '}
@@ -167,7 +167,7 @@ export default async function SubscriptionsCalendarPage({
             <ChevronLeft className="w-4 h-4 text-ink" strokeWidth={2} />
           </Link>
           <h2
-            className="font-['Archivo_Black'] text-xl text-ink min-w-[140px] text-center"
+            className="font-bold tracking-tight text-xl text-ink min-w-[140px] text-center"
             style={{ letterSpacing: '0.02em' }}
           >
             {year}.{pad(month)}

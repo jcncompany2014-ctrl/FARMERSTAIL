@@ -144,8 +144,8 @@ export default async function SubscriptionChargesPage({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-['Archivo_Black'] text-2xl text-ink">
-          SUBSCRIPTION CHARGES
+        <h1 className="font-bold tracking-tight text-2xl text-ink">
+          자동결제 이력
         </h1>
         <p className="text-sm text-muted mt-1">정기배송 자동결제 이력</p>
       </div>

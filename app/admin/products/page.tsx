@@ -58,8 +58,8 @@ export default async function AdminProductsPage({
     <div>
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="font-['Archivo_Black'] text-3xl text-ink">
-            PRODUCTS
+          <h1 className="font-bold tracking-tight text-3xl text-ink">
+            제품 관리
           </h1>
           <p className="text-sm text-muted mt-1">
             총 {total.toLocaleString()}개 상품

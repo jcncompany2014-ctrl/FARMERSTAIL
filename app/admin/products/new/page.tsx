@@ -11,8 +11,8 @@ export default function AdminProductNewPage() {
         >
           ← 제품 목록
         </Link>
-        <h1 className="font-['Archivo_Black'] text-3xl text-ink mt-2">
-          NEW PRODUCT
+        <h1 className="font-bold tracking-tight text-3xl text-ink mt-2">
+          새 상품 등록
         </h1>
         <p className="text-xs text-muted mt-1">새 상품을 등록하세요</p>
       </div>

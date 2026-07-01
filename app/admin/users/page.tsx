@@ -86,8 +86,8 @@ export default async function AdminUsersPage({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-['Archivo_Black'] text-3xl text-ink">
-          USERS
+        <h1 className="font-bold tracking-tight text-3xl text-ink">
+          회원 관리
         </h1>
         <p className="text-sm text-muted mt-1">
           총 {total.toLocaleString()}명의 회원

@@ -147,7 +147,7 @@ export default function AdminQnaClient({
     <div>
       <div className="flex items-end justify-between mb-6">
         <div>
-          <h1 className="font-['Archivo_Black'] text-3xl text-ink">PRODUCT Q&A</h1>
+          <h1 className="font-bold tracking-tight text-3xl text-ink">상품 문의</h1>
           <p className="text-sm text-muted mt-1">
             상품 페이지에 고객이 남긴 문의. 미답변{' '}
             <strong className="text-terracotta">{counts.pending}</strong>건 ·

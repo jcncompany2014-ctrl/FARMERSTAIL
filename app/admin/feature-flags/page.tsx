@@ -37,8 +37,8 @@ export default async function FeatureFlagsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-['Archivo_Black'] text-2xl text-ink">
-          FEATURE FLAGS
+        <h1 className="font-bold tracking-tight text-2xl text-ink">
+          기능 켜기·끄기
         </h1>
         <p className="text-sm text-muted mt-1">
           기능을 켜고 끄거나 A/B 테스트를 해요. 코드 배포 없이 바로 반영돼요

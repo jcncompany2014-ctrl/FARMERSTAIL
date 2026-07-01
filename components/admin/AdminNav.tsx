@@ -35,7 +35,7 @@ const GROUPS: NavGroup[] = [
     label: '운영',
     items: [
       { href: '/admin', icon: '📊', label: '대시보드' },
-      { href: '/admin/search-all', icon: '🔎', label: '통합 검색' },
+      { href: '/admin/search-all', icon: '🔎', label: '전체 검색' },
       { href: '/admin/orders', icon: '📦', label: '주문 관리' },
       { href: '/admin/subscriptions', icon: '🔁', label: '정기배송' },
       { href: '/admin/subscriptions/calendar', icon: '📅', label: '배송 캘린더' },
@@ -50,11 +50,11 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: '/admin/finance', icon: '💰', label: '결제 원장' },
       { href: '/admin/reports', icon: '📈', label: '매출 리포트' },
-      { href: '/admin/funnel', icon: '🪜', label: '전환 퍼널' },
-      { href: '/admin/cohort', icon: '🧪', label: 'Cohort 분석' },
-      { href: '/admin/beta-cohort', icon: '🧬', label: '베타 Cohort' },
-      { href: '/admin/search', icon: '🔍', label: '검색 인사이트' },
-      { href: '/admin/push-stats', icon: '📡', label: '푸시 통계' },
+      { href: '/admin/funnel', icon: '🪜', label: '가입 여정 분석' },
+      { href: '/admin/cohort', icon: '🧪', label: '가입 시기별 분석' },
+      { href: '/admin/beta-cohort', icon: '🧬', label: '베타 테스트' },
+      { href: '/admin/search', icon: '🔍', label: '검색어 분석' },
+      { href: '/admin/push-stats', icon: '📡', label: '알림 통계' },
     ],
   },
   {
@@ -68,14 +68,14 @@ const GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: '개인화 · 시스템',
+    label: '맞춤 · 시스템',
     items: [
-      { href: '/admin/personalization', icon: '✅', label: '포뮬러 승인' },
-      { href: '/admin/personalization-insights', icon: '🧠', label: '개인화 인사이트' },
+      { href: '/admin/personalization', icon: '✅', label: '레시피 승인' },
+      { href: '/admin/personalization-insights', icon: '🧠', label: '맞춤 분석' },
       { href: '/admin/users', icon: '👥', label: '회원 관리' },
-      { href: '/admin/push-campaigns', icon: '📣', label: '푸시 캠페인' },
-      { href: '/admin/feature-flags', icon: '🚩', label: 'Feature Flags' },
-      { href: '/admin/cron-health', icon: '⏱️', label: 'Cron 상태' },
+      { href: '/admin/push-campaigns', icon: '📣', label: '알림 보내기' },
+      { href: '/admin/feature-flags', icon: '🚩', label: '기능 켜기·끄기' },
+      { href: '/admin/cron-health', icon: '⏱️', label: '자동작업 상태' },
     ],
   },
 ]

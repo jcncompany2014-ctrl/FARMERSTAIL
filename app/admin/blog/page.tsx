@@ -81,8 +81,8 @@ export default async function AdminBlogPostsPage({
     <div>
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="font-['Archivo_Black'] text-3xl text-ink">
-            MAGAZINE
+          <h1 className="font-bold tracking-tight text-3xl text-ink">
+            블로그
           </h1>
           <p className="text-sm text-muted mt-1">
             {hasFilter ? `검색 결과 ${rows.length}개` : `총 ${rows.length}개`}

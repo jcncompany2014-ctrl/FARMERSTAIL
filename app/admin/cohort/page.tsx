@@ -203,8 +203,8 @@ export default async function AdminCohortPage() {
 
       <div className="flex items-center gap-2">
         <Users className="w-5 h-5 text-moss" strokeWidth={2} />
-        <h1 className="font-['Archivo_Black'] text-2xl text-ink">
-          COHORT INSIGHTS
+        <h1 className="font-bold tracking-tight text-2xl text-ink">
+          가입 시기별 분석
         </h1>
       </div>
       <p className="text-[12px] text-muted mt-1">
@@ -448,7 +448,7 @@ function Kpi({
           {label}
         </span>
       </div>
-      <p className="text-2xl font-['Archivo_Black'] text-ink tabular-nums">
+      <p className="text-2xl font-bold tracking-tight text-ink tabular-nums">
         {value}
       </p>
       <p className="text-[10.5px] font-mono text-muted mt-0.5">{sub}</p>

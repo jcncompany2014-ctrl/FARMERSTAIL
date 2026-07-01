@@ -133,8 +133,8 @@ export default async function AdminOrdersPage({
     <div>
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
-          <h1 className="font-['Archivo_Black'] text-3xl text-ink">
-            ORDERS
+          <h1 className="font-bold tracking-tight text-3xl text-ink">
+            주문 관리
           </h1>
           <p className="text-sm text-muted mt-1">주문 관리</p>
         </div>

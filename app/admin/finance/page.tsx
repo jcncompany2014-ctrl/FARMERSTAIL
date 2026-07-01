@@ -120,7 +120,7 @@ export default async function AdminFinancePage({
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           관리자
         </Link>
-        <h1 className="font-['Archivo_Black'] text-3xl text-ink mt-2">FINANCE</h1>
+        <h1 className="font-bold tracking-tight text-3xl text-ink mt-2">결제 원장</h1>
         <p className="text-xs text-mute mt-1">
           결제 기록을 기준으로 한 하루별 매출이에요 (최근 {days}일).
         </p>

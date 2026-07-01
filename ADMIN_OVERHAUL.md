@@ -23,7 +23,9 @@
 - [x] B2. chrome 중립화 — layout.tsx 사이드바(#2A2118→#16181d)·bg(웜크림→#f6f7f9)·헤더바 + AdminNav zinc톤
 - [x] B3-sample. 대시보드 색/디자인 = 사장님 OK. **피드백: 편의성 부족·비개발자 배려 필요("코드 모르는 사람")** → 편의성 마스터피스로 재작업.
 - [x] B3-편의성. 프리미티브에 **HelpTip("?" 툴팁)·StatCard(도움말 지원)·SectionTitle(쉬운 설명)** 추가. 대시보드 전면 개편: 전문용어(MRR·LTV·코호트·churn·AOV) → 쉬운 말, 지표마다 "?" 도움말, 의미별 그룹(한눈에보기·구독현황·운영체크), 코호트/LTV 표에 "이게 뭐예요" 안내, 섹션마다 "이렇게 보세요" 설명. **이게 전 페이지 편의성 템플릿.**
-- [ ] B3-rollout. 방향 OK 후: ①나머지 ~27 페이지 헤더(AdminHeader)+카드+배지+쉬운말+도움말 ②나브 라벨 쉬운말(Feature Flags→기능 켜기, Cron 상태→자동작업 상태 등) ③대시보드 잔여 컴포넌트(ActionsPanel·RevenueChart·도넛·코호트/LTV 표) 중립톤화.
+- [x] B3-rollout-1. **전 페이지 영어헤더 → 쉬운 한글 + Archivo Black 제거**(27파일 일괄): BETA COHORT→베타 테스트 현황, COHORT INSIGHTS→가입 시기별 분석, PRODUCTS→제품 관리, ORDERS→주문 관리, FINANCE→결제 원장 등. admin Archivo_Black 0·영어h1 0.
+- [x] B3-rollout-2. **사이드바 메뉴 쉬운말**: Feature Flags→기능 켜기·끄기, Cron 상태→자동작업 상태, Cohort 분석→가입 시기별 분석, 푸시 캠페인→알림 보내기, 포뮬러 승인→레시피 승인 등.
+- [ ] B3-rollout-3. 페이지별 카드 중립톤(rounded-2xl 웜→rounded-lg zinc)·지표 StatCard+도움말·표 쉬운설명 (대시보드 패턴을 cohort·beta-cohort·finance·reports·orders 등에). 순차 진행.
 
 ## 규칙
 - 잘게 꾸준히, 페이지별 tsc+eslint+build 검증 후 커밋. 워크플로우 금지(직접).

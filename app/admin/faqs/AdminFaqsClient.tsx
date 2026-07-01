@@ -152,7 +152,7 @@ export default function AdminFaqsClient({
     <div>
       <div className="flex items-end justify-between mb-6">
         <div>
-          <h1 className="font-['Archivo_Black'] text-3xl text-ink">FAQ</h1>
+          <h1 className="font-bold tracking-tight text-3xl text-ink">자주 묻는 질문</h1>
           <p className="text-sm text-muted mt-1">
             /faq 페이지에 노출되는 자주 묻는 질문. 총 {initialFaqs.length}개 등록.
           </p>
@@ -283,7 +283,7 @@ export default function AdminFaqsClient({
             onClick={(ev) => ev.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-rule sticky top-0 bg-bg rounded-t-2xl z-10">
-              <h2 id="faq-modal-title" className="font-['Archivo_Black'] text-lg text-ink">
+              <h2 id="faq-modal-title" className="font-bold tracking-tight text-lg text-ink">
                 {editing ? 'EDIT FAQ' : 'NEW FAQ'}
               </h2>
               <button

@@ -20,8 +20,8 @@ export default async function AdminBlogNewPage() {
         >
           ← 매거진
         </Link>
-        <h1 className="font-['Archivo_Black'] text-3xl text-ink mt-2">
-          NEW POST
+        <h1 className="font-bold tracking-tight text-3xl text-ink mt-2">
+          새 글 작성
         </h1>
       </div>
 

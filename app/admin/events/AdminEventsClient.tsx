@@ -399,7 +399,7 @@ export default function AdminEventsClient({
       {/* ── 헤더 ── */}
       <div className="flex items-end justify-between mb-8">
         <div>
-          <h1 className="font-['Archivo_Black'] text-3xl text-ink">EVENTS</h1>
+          <h1 className="font-bold tracking-tight text-3xl text-ink">이벤트 관리</h1>
           <p className="text-sm text-muted mt-1">
             랜딩 · 대시보드 · /events 페이지에 공개되는 프로모션. 총{' '}
             {initialEvents.length}개 등록.
@@ -585,7 +585,7 @@ export default function AdminEventsClient({
           >
             {/* 모달 헤더 */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-rule sticky top-0 bg-bg rounded-t-2xl z-10">
-              <h2 id="event-modal-title" className="font-['Archivo_Black'] text-lg text-ink">
+              <h2 id="event-modal-title" className="font-bold tracking-tight text-lg text-ink">
                 {editing ? 'EDIT EVENT' : 'NEW EVENT'}
               </h2>
               <button

@@ -73,8 +73,8 @@ export default async function AdminOrderDetailPage({
         >
           ← 주문 목록
         </Link>
-        <h1 className="font-['Archivo_Black'] text-3xl text-ink mt-2">
-          ORDER DETAIL
+        <h1 className="font-bold tracking-tight text-3xl text-ink mt-2">
+          주문 상세
         </h1>
         <p className="text-xs text-muted mt-1 font-mono">
           {order.order_number}
@@ -172,7 +172,7 @@ export default async function AdminOrderDetailPage({
               />
               <div className="flex justify-between items-center pt-2 border-t border-rule">
                 <dt className="text-ink font-semibold">총 결제 금액</dt>
-                <dd className="font-['Archivo_Black'] text-xl text-terracotta">
+                <dd className="font-bold tracking-tight text-xl text-terracotta">
                   {order.total_amount.toLocaleString()}원
                 </dd>
               </div>

@@ -177,8 +177,8 @@ export default async function ProductInsightsPage({
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           제품 편집
         </Link>
-        <h1 className="font-['Archivo_Black'] text-3xl text-ink mt-2">
-          SKU INSIGHTS
+        <h1 className="font-bold tracking-tight text-3xl text-ink mt-2">
+          상품 분석
         </h1>
         <p className="text-xs text-mute mt-1">
           {product.name} · LTV · 재구매율 · buyer 분포

@@ -184,7 +184,7 @@ export default function AdminPartnersClient({
     <div>
       <div className="flex items-end justify-between mb-8">
         <div>
-          <h1 className="font-['Archivo_Black'] text-3xl text-ink">PARTNERS</h1>
+          <h1 className="font-bold tracking-tight text-3xl text-ink">산지·공급자</h1>
           <p className="text-sm text-muted mt-1">
             산지·공급자 정보 — /partners 페이지에 노출. 총 {initialPartners.length}개 등록.
           </p>
@@ -288,7 +288,7 @@ export default function AdminPartnersClient({
             onClick={(ev) => ev.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-rule sticky top-0 bg-bg rounded-t-2xl z-10">
-              <h2 id="partner-modal-title" className="font-['Archivo_Black'] text-lg text-ink">
+              <h2 id="partner-modal-title" className="font-bold tracking-tight text-lg text-ink">
                 {editing ? 'EDIT PARTNER' : 'NEW PARTNER'}
               </h2>
               <button

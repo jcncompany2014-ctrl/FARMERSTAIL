@@ -61,8 +61,8 @@ export default async function AdminSearchPage({
     <div>
       <div className="flex items-end justify-between mb-6">
         <div>
-          <h1 className="font-['Archivo_Black'] text-2xl text-ink">
-            SEARCH INSIGHTS
+          <h1 className="font-bold tracking-tight text-2xl text-ink">
+            검색 분석
           </h1>
           <p className="text-sm text-muted mt-1">
             최근 {days}일 인기 검색어 + 0건 검색어

@@ -182,8 +182,8 @@ export default async function AdminReportsPage({
           </Link>
           <div className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-moss" strokeWidth={2} />
-            <h1 className="font-['Archivo_Black'] text-2xl text-ink">
-              REVENUE REPORT
+            <h1 className="font-bold tracking-tight text-2xl text-ink">
+              매출 리포트
             </h1>
           </div>
           <p className="text-[12px] text-muted mt-1">
