@@ -15,7 +15,7 @@ import CohortLtvTable, {
   type LtvRow,
 } from '@/components/admin/CohortLtvTable'
 import ActionsPanel from '@/components/admin/ActionsPanel'
-import { AdminHeader } from '@/components/admin/ui'
+import { AdminHeader, StatCard, SectionTitle } from '@/components/admin/ui'
 import {
   formatKstShortDateTime as formatDate,
   todayKstIsoDate,
@@ -483,100 +483,105 @@ export default async function AdminHome() {
         />
       </div>
 
-      {/* 지표 카드 4개 — 1행 */}
-      <div className="grid grid-cols-4 gap-4 mb-4">
-        <MetricCard
+      {/* 오늘·전체 한눈에 — 쉬운 라벨 + 도움말(?) */}
+      <p className="text-[12px] font-bold text-zinc-400 uppercase tracking-wider mb-2 mt-2">
+        한눈에 보기
+      </p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+        <StatCard
           label="오늘 매출"
           value={`${todayRevenue.toLocaleString()}원`}
-          sub={`주문 ${todayOrderCount}건`}
-          tone="red"
+          sub={`오늘 결제된 주문 ${todayOrderCount}건`}
         />
-        <MetricCard
+        <StatCard
           label="누적 매출"
           value={`${totalRevenue.toLocaleString()}원`}
-          sub={`완료 ${totalPaidCount}건`}
-          tone="dark"
+          sub={`지금까지 결제 완료 ${totalPaidCount}건`}
+          help="가게를 연 뒤 지금까지 결제가 끝난 모든 주문 금액을 더한 값이에요."
         />
-        <MetricCard
-          label="배송 대기"
+        <StatCard
+          label="발송할 주문"
           value={`${pendingShipCount}건`}
-          sub="준비 중 상태"
-          tone="green"
+          sub="결제됐고 아직 안 보낸 주문"
+          tone={pendingShipCount > 0 ? 'amber' : 'neutral'}
+          help="여기 숫자가 있으면 오늘 택배 발송 준비를 하세요. 0이면 밀린 게 없어요."
         />
-        <MetricCard
-          label="총 회원"
+        <StatCard
+          label="가입 회원"
           value={`${userCount}명`}
-          sub="가입한 회원 전체"
-          tone="dark"
+          sub="가입한 전체 고객 수"
         />
       </div>
 
-      {/* 지표 카드 4개 — 2행: Ops 시그널 */}
-      <div className="grid grid-cols-4 gap-4 mb-4">
-        <MetricCard
-          label="평균 주문 금액"
-          value={`${aov.toLocaleString()}원`}
-          sub={`누적 ${totalPaidCount}건 기준`}
-          tone="dark"
-        />
-        <MetricCard
-          label="활성 구독"
-          value={`${activeSubCount}건`}
-          sub={`월 예상 ${Math.round(estimatedMrr).toLocaleString()}원`}
+      {/* 구독 현황 — 정기배송이 이 사업의 핵심 매출원 */}
+      <p className="text-[12px] font-bold text-zinc-400 uppercase tracking-wider mb-2 mt-5">
+        구독 현황
+      </p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+        <StatCard
+          label="구독 중인 고객"
+          value={`${activeSubCount}명`}
+          sub={`매달 자동결제 · 월 예상 ${Math.round(estimatedMrr).toLocaleString()}원`}
           tone="green"
+          help="지금 정기배송을 구독 중인 고객 수예요. 이 숫자가 늘수록 매달 들어오는 매출이 안정적이에요."
         />
-        <MetricCard
-          label="재고 경고"
-          value={`${lowStockCount}개`}
-          sub={`재고 ${STOCK_LOW_THRESHOLD}개 이하`}
-          tone={lowStockCount > 0 ? 'red' : 'dark'}
-        />
-        <MetricCard
-          label="결제 실패 (30일)"
-          value={`${failedOrderCount}건`}
-          sub={
-            wowDelta === 0
-              ? '지난주와 같음'
-              : `지난주 대비 매출 ${wowDelta > 0 ? '+' : ''}${wowDelta.toFixed(1)}%`
-          }
-          tone={failedOrderCount > 0 ? 'red' : 'dark'}
-        />
-      </div>
-
-      {/* 지표 카드 3개 — 3행: 구독 retention. D2C 펫푸드는 정기배송이 LTV 의
-          핵심 동력이라 별개 행으로 강조. */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <MetricCard
-          label="구독 신규 (30일)"
-          value={`${newSubsCount}건`}
+        <StatCard
+          label="새 구독 (30일)"
+          value={`${newSubsCount}명`}
           sub={
             netSubsDelta > 0
-              ? `순증가 +${netSubsDelta}건`
+              ? `실제 +${netSubsDelta}명 늘었어요`
               : netSubsDelta < 0
-                ? `순감소 ${netSubsDelta}건`
-                : '순변화 없음'
+                ? `실제 ${netSubsDelta}명 줄었어요`
+                : '늘지도 줄지도 않음'
           }
           tone={netSubsDelta >= 0 ? 'green' : 'red'}
+          help="최근 30일간 새로 구독을 시작한 고객 수예요. 아래 문구는 '새 구독에서 해지를 뺀' 실제 변화예요."
         />
-        <MetricCard
+        <StatCard
           label="구독 해지 (30일)"
-          value={`${churnedSubsCount}건`}
-          sub={
-            churnRatePct === 0
-              ? '해지 0%'
-              : `해지율 ${churnRatePct.toFixed(1)}%`
-          }
-          tone={churnRatePct > 5 ? 'red' : 'dark'}
+          value={`${churnedSubsCount}명`}
+          sub={churnRatePct === 0 ? '해지율 0%' : `해지율 ${churnRatePct.toFixed(1)}%`}
+          tone={churnRatePct > 5 ? 'red' : 'neutral'}
+          help="최근 30일간 구독을 끊은 고객 수예요. 해지율이 5%를 넘으면 왜 떠나는지 살펴보는 게 좋아요."
         />
-        <MetricCard
+        <StatCard
           label="이번 주 매출"
           value={`${lastWeekRevenue.toLocaleString()}원`}
           sub={
             wowDelta === 0
               ? '지난주와 같음'
-              : `지난주 대비 ${wowDelta > 0 ? '+' : ''}${wowDelta.toFixed(1)}%`
+              : `지난주보다 ${wowDelta > 0 ? '+' : ''}${wowDelta.toFixed(1)}%`
           }
           tone={wowDelta >= 0 ? 'green' : 'red'}
+          help="최근 7일간 결제 합계를 그 전 7일과 비교한 거예요."
+        />
+      </div>
+
+      {/* 운영 체크 — 매일 확인하면 좋은 숫자 */}
+      <p className="text-[12px] font-bold text-zinc-400 uppercase tracking-wider mb-2 mt-5">
+        운영 체크
+      </p>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+        <StatCard
+          label="평균 주문 금액"
+          value={`${aov.toLocaleString()}원`}
+          sub="주문 1건당 평균"
+          help="결제 완료된 주문들의 평균 금액이에요. (누적 매출 ÷ 주문 수)"
+        />
+        <StatCard
+          label="재고 부족 상품"
+          value={`${lowStockCount}개`}
+          sub={`재고 ${STOCK_LOW_THRESHOLD}개 이하`}
+          tone={lowStockCount > 0 ? 'red' : 'neutral'}
+          help="재고가 얼마 안 남은 상품이에요. 품절되기 전에 미리 채워두세요."
+        />
+        <StatCard
+          label="결제 실패 (30일)"
+          value={`${failedOrderCount}건`}
+          sub="카드 문제 등으로 실패"
+          tone={failedOrderCount > 0 ? 'red' : 'neutral'}
+          help="카드 한도·유효기간 만료 등으로 결제가 안 된 건이에요. 많으면 고객에게 안내가 필요해요."
         />
       </div>
 
@@ -594,32 +599,38 @@ export default async function AdminHome() {
 
       {/* 코호트 리텐션 — 가입 주별 재구매율. W4 가 정기배송 conversion 신호. */}
       <div className="mb-6">
+        <p className="text-[12px] text-zinc-500 mb-2 leading-snug">
+          아래 표는{' '}
+          <b className="text-zinc-700">가입한 시기별로 고객이 계속 사는지</b>를
+          보여줘요. 오른쪽 칸 숫자가 높을수록 오래 남는 단골이에요. (어려우면 넘어가도 괜찮아요.)
+        </p>
         <CohortRetentionTable rows={cohortRows} />
       </div>
 
       <div className="mb-6">
+        <p className="text-[12px] text-zinc-500 mb-2 leading-snug">
+          아래 표는{' '}
+          <b className="text-zinc-700">한 고객이 가입 후 평균 얼마를 쓰는지</b>
+          (생애가치)를 보여줘요.
+        </p>
         <CohortLtvTable rows={ltvRows} />
       </div>
 
       {/* Top 상품 + 재고 경고 — 2-column */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="p-6 rounded-2xl bg-white border border-rule">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-sm font-bold text-ink">
-                많이 팔린 상품 (최근 30일)
-              </h2>
-              <p className="text-[11px] text-muted mt-0.5">
-                결제 완료된 주문의 매출 합계
-              </p>
-            </div>
-            <Link
-              href="/admin/products"
-              className="text-xs text-terracotta hover:underline"
-            >
-              상품 관리 →
-            </Link>
-          </div>
+        <div className="p-5 rounded-lg bg-white border border-zinc-200">
+          <SectionTitle
+            title="많이 나간 상품 (최근 30일)"
+            desc="최근 30일간 매출이 큰 상품 순서예요."
+            action={
+              <Link
+                href="/admin/products"
+                className="text-xs text-terracotta hover:underline font-semibold whitespace-nowrap"
+              >
+                상품 관리 →
+              </Link>
+            }
+          />
           {topProducts.length === 0 ? (
             <p className="text-center text-sm text-muted py-10">
               30일 내 판매가 없어요
@@ -631,7 +642,7 @@ export default async function AdminHome() {
                   key={p.id}
                   className="flex items-center gap-3 py-2 border-b border-bg last:border-b-0"
                 >
-                  <span className="font-['Archivo_Black'] text-sm text-muted w-5">
+                  <span className="font-bold text-sm text-zinc-400 w-5">
                     {idx + 1}
                   </span>
                   <div className="flex-1 min-w-0">
@@ -649,23 +660,21 @@ export default async function AdminHome() {
           )}
         </div>
 
-        <div className="p-6 rounded-2xl bg-white border border-rule">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-sm font-bold text-ink">재고 경고</h2>
-              <p className="text-[11px] text-muted mt-0.5">
-                stock ≤ {STOCK_LOW_THRESHOLD} · 낮은 순
-              </p>
-            </div>
-            {lowStockCount > 5 && (
-              <Link
-                href="/admin/products"
-                className="text-xs text-terracotta hover:underline"
-              >
-                {lowStockCount}건 전체 →
-              </Link>
-            )}
-          </div>
+        <div className="p-5 rounded-lg bg-white border border-zinc-200">
+          <SectionTitle
+            title="재고 부족 상품"
+            desc={`재고가 ${STOCK_LOW_THRESHOLD}개 이하로 남은 상품이에요. 품절 전에 채워주세요.`}
+            action={
+              lowStockCount > 5 ? (
+                <Link
+                  href="/admin/products"
+                  className="text-xs text-terracotta hover:underline font-semibold whitespace-nowrap"
+                >
+                  {lowStockCount}건 전체 →
+                </Link>
+              ) : undefined
+            }
+          />
           {lowStockItems.length === 0 ? (
             <p className="text-center text-sm text-muted py-10">
               모든 상품 재고가 안전 범위예요
@@ -705,16 +714,19 @@ export default async function AdminHome() {
       </div>
 
       {/* 최근 주문 */}
-      <div className="p-6 rounded-2xl bg-white border border-rule">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-ink">최근 주문</h2>
-          <Link
-            href="/admin/orders"
-            className="text-xs text-terracotta hover:underline"
-          >
-            전체 보기 →
-          </Link>
-        </div>
+      <div className="p-5 rounded-lg bg-white border border-zinc-200">
+        <SectionTitle
+          title="최근 들어온 주문"
+          desc="가장 최근 주문 10건이에요. 주문번호를 누르면 자세히 볼 수 있어요."
+          action={
+            <Link
+              href="/admin/orders"
+              className="text-xs text-terracotta hover:underline font-semibold whitespace-nowrap"
+            >
+              전체 보기 →
+            </Link>
+          }
+        />
 
         {recentOrders.length === 0 ? (
           <p className="text-center text-sm text-muted py-10">
@@ -774,33 +786,4 @@ export default async function AdminHome() {
   )
 }
 
-function MetricCard({
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  label: string
-  value: string
-  sub: string
-  tone: 'red' | 'dark' | 'green'
-}) {
-  const toneClass =
-    tone === 'red'
-      ? 'text-terracotta'
-      : tone === 'green'
-      ? 'text-moss'
-      : 'text-ink'
-
-  return (
-    <div className="p-5 rounded-lg bg-white border border-zinc-200">
-      <p className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider">
-        {label}
-      </p>
-      <p className={`mt-2 font-bold tracking-tight text-2xl ${toneClass}`}>
-        {value}
-      </p>
-      <p className="mt-1 text-[10px] text-zinc-400">{sub}</p>
-    </div>
-  )
-}
+/* MetricCard 는 components/admin/ui.tsx 의 StatCard(도움말 포함)로 대체됨. */
