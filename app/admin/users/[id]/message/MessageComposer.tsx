@@ -109,7 +109,7 @@ export default function MessageComposer({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-rule p-5 space-y-4">
+    <div className="bg-white rounded-lg border border-zinc-200 p-5 space-y-4">
       {/* 템플릿 */}
       <div>
         <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
@@ -121,7 +121,7 @@ export default function MessageComposer({ userId }: { userId: string }) {
               key={t.label}
               type="button"
               onClick={() => applyTemplate(t)}
-              className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-rule bg-white text-text hover:border-text transition"
+              className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-zinc-200 bg-white text-text hover:border-text transition"
             >
               {t.label}
             </button>
@@ -139,7 +139,7 @@ export default function MessageComposer({ userId }: { userId: string }) {
           onChange={(e) => setTitle(e.target.value.slice(0, 80))}
           maxLength={80}
           placeholder="알림 제목"
-          className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition"
+          className="w-full px-3 py-2.5 rounded-lg border border-zinc-200 bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition"
         />
       </div>
 
@@ -153,7 +153,7 @@ export default function MessageComposer({ userId }: { userId: string }) {
           maxLength={240}
           rows={4}
           placeholder="알림 본문"
-          className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition resize-none"
+          className="w-full px-3 py-2.5 rounded-lg border border-zinc-200 bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition resize-none"
         />
       </div>
 
@@ -166,13 +166,13 @@ export default function MessageComposer({ userId }: { userId: string }) {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="예: /mypage/orders/123 (생략 시 알림 센터)"
-          className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition"
+          className="w-full px-3 py-2.5 rounded-lg border border-zinc-200 bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition"
         />
       </div>
 
       {/* preview */}
       {(title || body) && (
-        <div className="rounded-xl border border-dashed border-rule-2 p-3.5 bg-bg-2">
+        <div className="rounded-xl border border-dashed border-zinc-200-2 p-3.5 bg-bg-2">
           <div className="flex items-start gap-2">
             <div className="shrink-0 w-8 h-8 rounded-full bg-terracotta flex items-center justify-center">
               <Bell className="w-3.5 h-3.5 text-white" strokeWidth={2} />

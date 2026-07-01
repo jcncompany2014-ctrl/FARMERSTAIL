@@ -77,7 +77,7 @@ export default async function AdminSearchPage({
                 'px-3 py-1.5 rounded-full text-[12px] font-bold transition ' +
                 (d === days
                   ? 'bg-ink text-white'
-                  : 'bg-white text-text border border-rule hover:border-text')
+                  : 'bg-white text-text border border-zinc-200 hover:border-text')
               }
             >
               {d}일
@@ -115,8 +115,8 @@ export default async function AdminSearchPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* 인기 검색어 Top 30 */}
-        <section className="bg-white rounded-xl border border-rule overflow-hidden">
-          <header className="px-5 py-4 border-b border-rule">
+        <section className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+          <header className="px-5 py-4 border-b border-zinc-200">
             <h2 className="text-[13px] font-bold text-ink">
               인기 검색어 Top {Math.min(30, popular.length)}
             </h2>
@@ -142,7 +142,7 @@ export default async function AdminSearchPage({
                 {popular.map((row, idx) => (
                   <tr
                     key={row.q}
-                    className="border-t border-rule hover:bg-bg/40"
+                    className="border-t border-zinc-200 hover:bg-bg/40"
                   >
                     <td className="px-4 py-2.5 text-muted tabular-nums">
                       {idx + 1}
@@ -162,8 +162,8 @@ export default async function AdminSearchPage({
         </section>
 
         {/* 결과 0건 — inventory gap */}
-        <section className="bg-white rounded-xl border border-rule overflow-hidden">
-          <header className="px-5 py-4 border-b border-rule">
+        <section className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+          <header className="px-5 py-4 border-b border-zinc-200">
             <h2 className="text-[13px] font-bold text-ink">
               결과 0건 검색어
             </h2>
@@ -224,7 +224,7 @@ function SummaryCard({
           ? 'var(--sale)'
           : 'var(--ink)'
   return (
-    <div className="bg-white rounded-xl border border-rule p-4">
+    <div className="bg-white rounded-xl border border-zinc-200 p-4">
       <p className="text-[10.5px] font-bold text-muted uppercase tracking-widest">
         {label}
       </p>

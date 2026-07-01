@@ -91,7 +91,7 @@ export default async function AdminBlogPostsPage({
         <div className="flex items-center gap-2">
           <Link
             href="/admin/blog/categories"
-            className="px-4 py-2 rounded-full bg-white border border-rule text-text text-xs font-semibold hover:border-terracotta hover:text-terracotta transition"
+            className="px-4 py-2 rounded-full bg-white border border-zinc-200 text-text text-xs font-semibold hover:border-terracotta hover:text-terracotta transition"
           >
             카테고리 관리
           </Link>
@@ -105,7 +105,7 @@ export default async function AdminBlogPostsPage({
       </div>
 
       {/* 필터 바 — 서버 사이드 GET 링크 기반 */}
-      <div className="p-4 rounded-2xl bg-white border border-rule mb-4">
+      <div className="p-4 rounded-lg bg-white border border-zinc-200 mb-4">
         <form
           method="GET"
           className="flex flex-wrap items-center gap-2"
@@ -156,7 +156,7 @@ export default async function AdminBlogPostsPage({
         </form>
       </div>
 
-      <div className="p-6 rounded-2xl bg-white border border-rule">
+      <div className="p-6 rounded-lg bg-white border border-zinc-200">
         {error ? (
           <p className="text-sale text-sm">에러: {error.message}</p>
         ) : rows.length === 0 ? (
@@ -169,7 +169,7 @@ export default async function AdminBlogPostsPage({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-muted border-b border-rule">
+                <tr className="text-[11px] text-muted border-b border-zinc-200">
                   <th className="text-left py-2 font-medium w-20">커버</th>
                   <th className="text-left py-2 font-medium">제목</th>
                   <th className="text-left py-2 font-medium">카테고리</th>
@@ -187,7 +187,7 @@ export default async function AdminBlogPostsPage({
                   return (
                     <tr
                       key={p.id}
-                      className="border-b border-bg hover:bg-bg transition"
+                      className="border-b border-zinc-100 hover:bg-bg transition"
                     >
                       <td className="py-3">
                         <div className="w-14 h-10 rounded-md bg-bg overflow-hidden">

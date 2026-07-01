@@ -186,7 +186,7 @@ export default async function AdminCronHealthPage() {
           <span className="kicker">실패 기록 · 최근 {WINDOW_DAYS}일</span>
         </div>
         {errorRows.length === 0 ? (
-          <div className="rounded-xl border border-rule px-5 py-12 text-center bg-white">
+          <div className="rounded-xl border border-zinc-200 px-5 py-12 text-center bg-white">
             <CheckCircle2
               className="w-10 h-10 text-moss mx-auto mb-3"
               strokeWidth={1.3}
@@ -199,7 +199,7 @@ export default async function AdminCronHealthPage() {
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-rule overflow-hidden">
+          <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
             <table className="w-full text-[13px]">
               <thead className="bg-bg-2 text-muted text-[11px] uppercase tracking-widest">
                 <tr>
@@ -213,7 +213,7 @@ export default async function AdminCronHealthPage() {
                 {errorRows.map((row) => (
                   <tr
                     key={row.id}
-                    className="border-t border-rule hover:bg-bg/40 align-top"
+                    className="border-t border-zinc-200 hover:bg-bg/40 align-top"
                   >
                     <td className="px-4 py-3 text-text whitespace-nowrap tabular-nums">
                       {formatKst(row.executed_at)}
@@ -245,7 +245,7 @@ export default async function AdminCronHealthPage() {
           <span className="kicker">Cron 별 요약 · 최근 {WINDOW_DAYS}일</span>
         </div>
         {summaries.length === 0 ? (
-          <div className="rounded-xl border border-rule px-5 py-12 text-center bg-white">
+          <div className="rounded-xl border border-zinc-200 px-5 py-12 text-center bg-white">
             <Clock
               className="w-10 h-10 text-muted mx-auto mb-3"
               strokeWidth={1.3}
@@ -258,7 +258,7 @@ export default async function AdminCronHealthPage() {
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-rule overflow-hidden">
+          <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
             <table className="w-full text-[13px]">
               <thead className="bg-bg-2 text-muted text-[11px] uppercase tracking-widest">
                 <tr>
@@ -276,7 +276,7 @@ export default async function AdminCronHealthPage() {
                   return (
                     <tr
                       key={s.path}
-                      className="border-t border-rule hover:bg-bg/40"
+                      className="border-t border-zinc-200 hover:bg-bg/40"
                     >
                       <td className="px-4 py-3">
                         <span className="font-mono text-[11.5px] text-text break-all">
@@ -356,7 +356,7 @@ function SummaryCard({
           ? 'var(--sale)'
           : 'var(--ink)'
   return (
-    <div className="bg-white rounded-xl border border-rule p-4">
+    <div className="bg-white rounded-xl border border-zinc-200 p-4">
       <p className="text-[10.5px] font-bold text-muted uppercase tracking-widest">
         {label}
       </p>

@@ -106,7 +106,7 @@ export default function AlgorithmConfigClient({
   return (
     <div>
       {/* Tab 전환 */}
-      <div className="flex gap-2 mb-5 border-b border-rule">
+      <div className="flex gap-2 mb-5 border-b border-zinc-200">
         <TabBtn active={tab === 'lines'} onClick={() => setTab('lines')}>
           라인 영양 ({foodLines.length})
         </TabBtn>
@@ -207,7 +207,7 @@ function BreedEditor({
 }) {
   return (
     <div
-      className="rounded-2xl"
+      className="rounded-lg"
       style={{
         background: row.enabled ? '#fff' : 'var(--bg-2)',
         border: `1px solid ${row.enabled ? 'var(--rule)' : 'var(--rule-2)'}`,
@@ -403,7 +403,7 @@ function LineEditor({
 
   return (
     <div
-      className="bg-white border border-rule rounded-2xl"
+      className="bg-white border border-zinc-200 rounded-lg"
       style={{ padding: 16 }}
     >
       <div className="flex items-baseline justify-between mb-3">
@@ -597,7 +597,7 @@ function ChronicEditor({
   onSave: () => void
 }) {
   return (
-    <div className="bg-white border border-rule rounded-2xl" style={{ padding: 14 }}>
+    <div className="bg-white border border-zinc-200 rounded-lg" style={{ padding: 14 }}>
       <div className="flex items-baseline justify-between mb-2.5">
         <h3 className="font-bold text-[13px]" style={{ color: 'var(--ink)' }}>
           {row.korean_label}

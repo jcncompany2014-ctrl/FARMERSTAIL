@@ -536,7 +536,7 @@ export default function BlogPostForm({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-full bg-white text-text border border-rule text-xs font-semibold hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
+              className="w-full py-2.5 rounded-full bg-white text-text border border-zinc-200 text-xs font-semibold hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
             >
               임시저장
             </button>
@@ -555,7 +555,7 @@ export default function BlogPostForm({
 
         <Section title="커버 이미지">
           {form.cover_url ? (
-            <div className="relative group aspect-[16/9] rounded-lg bg-bg overflow-hidden border border-rule">
+            <div className="relative group aspect-[16/9] rounded-lg bg-bg overflow-hidden border border-zinc-200">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={form.cover_url}
@@ -576,7 +576,7 @@ export default function BlogPostForm({
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={upload.status === 'uploading'}
-              className="w-full aspect-[16/9] rounded-lg bg-bg border border-dashed border-rule-2 flex flex-col items-center justify-center text-muted hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
+              className="w-full aspect-[16/9] rounded-lg bg-bg border border-dashed border-zinc-200-2 flex flex-col items-center justify-center text-muted hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
             >
               {upload.status === 'uploading' ? (
                 <Loader2 className="w-6 h-6 animate-spin" strokeWidth={1.5} />
@@ -655,7 +655,7 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="p-5 rounded-2xl bg-white border border-rule">
+    <section className="p-5 rounded-lg bg-white border border-zinc-200">
       <h2 className="text-sm font-bold text-ink mb-3">{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>
@@ -764,7 +764,7 @@ function AiDraftHelper({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-rule bg-bg-2 text-text hover:border-terracotta transition"
+        className="mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-zinc-200 bg-bg-2 text-text hover:border-terracotta transition"
       >
         ✨ AI 초안 생성
       </button>
@@ -796,7 +796,7 @@ function AiDraftHelper({
           onChange={(e) => setTopic(e.target.value.slice(0, 100))}
           maxLength={100}
           placeholder="예: 노령견 관절 영양제 선택법, 사료에서 화식 전환"
-          className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-[12px] focus:outline-none focus:border-terracotta"
+          className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-[12px] focus:outline-none focus:border-terracotta"
         />
       </div>
 
@@ -810,7 +810,7 @@ function AiDraftHelper({
           onChange={(e) => setAudience(e.target.value.slice(0, 100))}
           maxLength={100}
           placeholder="예: 첫 반려견을 키우는 30대 보호자"
-          className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-[12px] focus:outline-none focus:border-terracotta"
+          className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-[12px] focus:outline-none focus:border-terracotta"
         />
       </div>
 
@@ -833,7 +833,7 @@ function AiDraftHelper({
               className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition ${
                 length === opt.key
                   ? 'bg-text text-white border-transparent'
-                  : 'bg-white border-rule text-text hover:border-text'
+                  : 'bg-white border-zinc-200 text-text hover:border-text'
               }`}
             >
               {opt.label}

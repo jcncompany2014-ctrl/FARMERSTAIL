@@ -175,7 +175,7 @@ export default function AdminQnaClient({
       </div>
 
       {visible.length === 0 ? (
-        <div className="p-12 rounded-2xl bg-white border border-rule text-center">
+        <div className="p-12 rounded-lg bg-white border border-zinc-200 text-center">
           <p className="text-sm text-muted">
             {filter === 'pending'
               ? '미답변 문의가 없어요. 모든 문의에 답변 완료!'
@@ -194,14 +194,14 @@ export default function AdminQnaClient({
             return (
               <div
                 key={q.id}
-                className="rounded-2xl bg-white border border-rule overflow-hidden"
+                className="rounded-lg bg-white border border-zinc-200 overflow-hidden"
               >
                 <div className="p-4 flex gap-4">
                   {/* 제품 썸네일 */}
                   <Link
                     href={p ? `/products/${p.slug}` : '#'}
                     target="_blank"
-                    className="w-16 h-16 rounded border border-rule shrink-0 overflow-hidden"
+                    className="w-16 h-16 rounded border border-zinc-200 shrink-0 overflow-hidden"
                   >
                     {p?.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -288,7 +288,7 @@ export default function AdminQnaClient({
                     <button
                       onClick={() => removeQna(q)}
                       disabled={deleting === q.id}
-                      className="px-3 py-1.5 rounded-lg border border-rule text-[10px] text-sale hover:bg-sale/10 transition disabled:opacity-40 inline-flex items-center justify-center gap-1"
+                      className="px-3 py-1.5 rounded-lg border border-zinc-200 text-[10px] text-sale hover:bg-sale/10 transition disabled:opacity-40 inline-flex items-center justify-center gap-1"
                     >
                       <Trash2 className="w-3 h-3" strokeWidth={2} />
                       삭제
@@ -297,7 +297,7 @@ export default function AdminQnaClient({
                 </div>
 
                 {expanded && (
-                  <div className="border-t border-rule bg-bg/40 p-4">
+                  <div className="border-t border-zinc-200 bg-bg/40 p-4">
                     <label className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1.5">
                       답변 작성
                     </label>
@@ -307,7 +307,7 @@ export default function AdminQnaClient({
                         setDrafts((d) => ({ ...d, [q.id]: e.target.value }))
                       }
                       rows={4}
-                      className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm leading-relaxed resize-none"
+                      className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm leading-relaxed resize-none"
                       placeholder="답변을 입력해주세요. 줄바꿈 가능."
                     />
                     <div className="mt-2 flex items-center gap-2 justify-end">
@@ -360,7 +360,7 @@ function FilterChip({
       className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition ${
         active
           ? 'bg-ink text-white'
-          : 'bg-white border border-rule text-ink hover:bg-bg'
+          : 'bg-white border border-zinc-200 text-ink hover:bg-bg'
       }`}
     >
       {label}

@@ -250,7 +250,7 @@ export default async function AdminCohortPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-[11.5px]">
               <thead>
-                <tr className="text-left text-muted border-b border-rule">
+                <tr className="text-left text-muted border-b border-zinc-200">
                   <th className="py-1.5 pr-3 font-bold uppercase tracking-wider">그룹</th>
                   {sourceTypes.map((s) => (
                     <th key={s} className="py-1.5 px-2 font-bold text-right">
@@ -265,7 +265,7 @@ export default async function AdminCohortPage() {
                   const m = cohortMatrix.get(cid)!
                   const total = sourceTypes.reduce((s, src) => s + (m.get(src) ?? 0), 0)
                   return (
-                    <tr key={cid} className="border-b border-rule/40">
+                    <tr key={cid} className="border-b border-zinc-200/40">
                       <td className="py-1.5 pr-3 font-mono text-ink">{cid}</td>
                       {sourceTypes.map((s) => (
                         <td
@@ -441,7 +441,7 @@ function Kpi({
   sub: string
 }) {
   return (
-    <div className="rounded-xl border border-rule bg-white p-3.5">
+    <div className="rounded-xl border border-zinc-200 bg-white p-3.5">
       <div className="flex items-center gap-1.5 text-terracotta mb-1">
         {icon}
         <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
@@ -466,7 +466,7 @@ function Card({
   children: React.ReactNode
 }) {
   return (
-    <section className="mt-5 rounded-2xl border border-rule bg-white p-5">
+    <section className="mt-5 rounded-lg border border-zinc-200 bg-white p-5">
       <div className="flex items-center gap-2 mb-3 text-terracotta">
         {icon}
         <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted">

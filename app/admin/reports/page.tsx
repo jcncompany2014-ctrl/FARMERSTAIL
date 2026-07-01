@@ -212,13 +212,13 @@ export default async function AdminReportsPage({
         <div className="flex items-center gap-2 no-print">
           <Link
             href={prevHref}
-            className="px-3 py-1.5 rounded-lg bg-white border border-rule text-[11px] font-bold hover:border-text transition"
+            className="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold hover:border-text transition"
           >
             ← 이전 달
           </Link>
           <Link
             href={nextHref}
-            className="px-3 py-1.5 rounded-lg bg-white border border-rule text-[11px] font-bold hover:border-text transition"
+            className="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold hover:border-text transition"
           >
             다음 달 →
           </Link>
@@ -227,7 +227,7 @@ export default async function AdminReportsPage({
 
       {/* Hero 매출 카드 */}
       <section
-        className="rounded-2xl px-6 py-5 text-white mb-5 print:break-inside-avoid"
+        className="rounded-lg px-6 py-5 text-white mb-5 print:break-inside-avoid"
         style={{
           background:
             'linear-gradient(135deg, var(--ink) 0%, #3a2f1d 60%, #5b4720 100%)',
@@ -297,7 +297,7 @@ export default async function AdminReportsPage({
       </section>
 
       {/* 차감 합계 */}
-      <section className="bg-white rounded-xl border border-rule px-5 py-4 mb-6 print:break-inside-avoid">
+      <section className="bg-white rounded-xl border border-zinc-200 px-5 py-4 mb-6 print:break-inside-avoid">
         <span className="kicker kicker-muted">차감 항목</span>
         <div className="mt-2 grid grid-cols-3 gap-2 text-[12px]">
           <div>
@@ -325,12 +325,12 @@ export default async function AdminReportsPage({
       {topProducts.length > 0 && (
         <section className="mb-6 print:break-inside-avoid">
           <span className="kicker mb-2 block">많이 팔린 상품</span>
-          <ol className="bg-white rounded-xl border border-rule overflow-hidden">
+          <ol className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
             {topProducts.map((p, i) => (
               <li
                 key={p.id}
                 className={`flex items-center justify-between px-4 py-3 ${
-                  i < topProducts.length - 1 ? 'border-b border-rule' : ''
+                  i < topProducts.length - 1 ? 'border-b border-zinc-200' : ''
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -369,7 +369,7 @@ export default async function AdminReportsPage({
       {methodCount.size > 0 && (
         <section className="mb-6 print:break-inside-avoid">
           <span className="kicker mb-2 block">결제수단</span>
-          <div className="bg-white rounded-xl border border-rule px-4 py-3">
+          <div className="bg-white rounded-xl border border-zinc-200 px-4 py-3">
             {Array.from(methodCount.entries()).map(([method, count]) => {
               const pct =
                 orderCount > 0 ? Math.round((count / orderCount) * 100) : 0
@@ -433,7 +433,7 @@ function ReportStat({
   }
   const accent = colorMap[tone]
   return (
-    <div className="bg-white rounded-xl border border-rule px-4 py-3.5">
+    <div className="bg-white rounded-xl border border-zinc-200 px-4 py-3.5">
       <div className="flex items-center gap-1">
         <Icon
           className="w-3 h-3"

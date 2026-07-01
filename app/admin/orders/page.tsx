@@ -144,7 +144,7 @@ export default async function AdminOrdersPage({
           // 으로 파일명을 지정하지만, 구형 Safari/Edge 에서 href 그대로 네비게이션
           // 되는 이슈를 방지.
           download
-          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-white border border-rule text-ink hover:border-terracotta hover:text-terracotta transition"
+          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-white border border-zinc-200 text-ink hover:border-terracotta hover:text-terracotta transition"
         >
           <span>⬇</span>
           <span>CSV 내보내기</span>
@@ -167,7 +167,7 @@ export default async function AdminOrdersPage({
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
                   active
                     ? 'bg-[#2A2118] text-white'
-                    : 'bg-white text-text border border-rule hover:border-terracotta'
+                    : 'bg-white text-text border border-zinc-200 hover:border-terracotta'
                 }`}
               >
                 {f.label}
@@ -191,7 +191,7 @@ export default async function AdminOrdersPage({
             placeholder="주문번호 · 이름 · 전화"
             inputMode="search"
             autoComplete="off"
-            className="px-3 py-1.5 rounded-full text-xs bg-white border border-rule focus:outline-none focus:border-terracotta w-56"
+            className="px-3 py-1.5 rounded-full text-xs bg-white border border-zinc-200 focus:outline-none focus:border-terracotta w-56"
           />
           <button
             type="submit"
@@ -203,7 +203,7 @@ export default async function AdminOrdersPage({
       </div>
 
       {/* 주문 테이블 */}
-      <div className="p-6 rounded-2xl bg-white border border-rule">
+      <div className="p-6 rounded-lg bg-white border border-zinc-200">
         {error ? (
           <p className="text-sale text-sm">에러: {error.message}</p>
         ) : !orders || orders.length === 0 ? (
@@ -214,7 +214,7 @@ export default async function AdminOrdersPage({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-muted border-b border-rule">
+                <tr className="text-[11px] text-muted border-b border-zinc-200">
                   <th className="text-left py-2 font-medium">주문번호</th>
                   <th className="text-left py-2 font-medium">주문자</th>
                   <th className="text-left py-2 font-medium">연락처</th>
@@ -230,7 +230,7 @@ export default async function AdminOrdersPage({
                   return (
                     <tr
                       key={o.id}
-                      className="border-b border-rule/50 hover:bg-bg transition"
+                      className="border-b border-zinc-200/50 hover:bg-bg transition"
                     >
                       <td className="py-3 font-mono text-[11px] text-ink">
                         {o.order_number}

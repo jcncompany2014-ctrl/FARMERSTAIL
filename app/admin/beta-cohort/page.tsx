@@ -210,14 +210,14 @@ export default async function BetaCohortPage() {
       </div>
 
       {/* dog 별 표 */}
-      <section className="mt-6 rounded-2xl border border-rule bg-white p-5 print:break-inside-avoid">
+      <section className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 print:break-inside-avoid">
         <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted mb-3">
           강아지별 진행 상황
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full text-[11.5px]">
             <thead>
-              <tr className="text-left text-muted border-b border-rule">
+              <tr className="text-left text-muted border-b border-zinc-200">
                 <th className="py-2 pr-3 font-bold">강아지</th>
                 <th className="py-2 px-2 font-bold">보호자</th>
                 <th className="py-2 px-2 font-bold">견종</th>
@@ -238,7 +238,7 @@ export default async function BetaCohortPage() {
                 </tr>
               ) : (
                 dogSummaries.map((d) => (
-                  <tr key={d.dogId} className="border-b border-rule/40">
+                  <tr key={d.dogId} className="border-b border-zinc-200/40">
                     <td className="py-2 pr-3 text-ink font-bold">
                       {d.meta?.name ?? '—'}
                     </td>
@@ -301,7 +301,7 @@ function Kpi({
   sub: string
 }) {
   return (
-    <div className="rounded-xl border border-rule bg-white p-3.5 print:break-inside-avoid">
+    <div className="rounded-xl border border-zinc-200 bg-white p-3.5 print:break-inside-avoid">
       <p className="text-[10px] font-bold uppercase tracking-widest text-muted">
         {label}
       </p>

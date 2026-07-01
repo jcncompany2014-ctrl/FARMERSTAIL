@@ -166,11 +166,11 @@ export default async function PushStatsPage() {
           카테고리별 성과
         </h2>
         {categoryRows.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-rule p-8 text-center">
+          <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
             <p className="text-[12px] text-muted">최근 30일 발송 기록이 없어요.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-rule overflow-hidden">
+          <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
             <table className="w-full text-[12px]">
               <thead className="bg-bg-2">
                 <tr className="text-left text-[10px] uppercase tracking-widest text-muted font-bold">
@@ -186,7 +186,7 @@ export default async function PushStatsPage() {
                 {categoryRows.map((c) => (
                   <tr
                     key={c.category}
-                    className="border-t border-rule hover:bg-bg-2/40"
+                    className="border-t border-zinc-200 hover:bg-bg-2/40"
                   >
                     <td className="px-4 py-3 font-bold text-text">
                       {c.category}
@@ -222,11 +222,11 @@ export default async function PushStatsPage() {
           일자별 추이 (최근 14일)
         </h2>
         {dayRows.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-rule p-8 text-center">
+          <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
             <p className="text-[12px] text-muted">발송 기록이 없어요.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-rule overflow-hidden">
+          <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
             <table className="w-full text-[12px]">
               <thead className="bg-bg-2">
                 <tr className="text-left text-[10px] uppercase tracking-widest text-muted font-bold">
@@ -242,7 +242,7 @@ export default async function PushStatsPage() {
                   return (
                     <tr
                       key={day}
-                      className="border-t border-rule hover:bg-bg-2/40"
+                      className="border-t border-zinc-200 hover:bg-bg-2/40"
                     >
                       <td className="px-4 py-3 font-mono text-text">{day}</td>
                       <td className="px-4 py-3 text-right tabular-nums">
@@ -286,7 +286,7 @@ function KpiCard({
           ? 'var(--terracotta)'
           : 'var(--muted)'
   return (
-    <div className="bg-white rounded-2xl border border-rule p-5">
+    <div className="bg-white rounded-lg border border-zinc-200 p-5">
       <div
         className="text-[9px] uppercase tracking-[0.18em] font-bold"
         style={{ color: toneColor }}

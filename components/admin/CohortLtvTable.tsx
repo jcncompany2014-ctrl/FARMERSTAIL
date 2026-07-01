@@ -52,7 +52,7 @@ function cellTone(value: number | null, peakValue: number): string {
 export default function CohortLtvTable({ rows }: { rows: LtvRow[] }) {
   if (rows.length === 0) {
     return (
-      <section className="bg-white rounded-xl border border-rule p-5">
+      <section className="bg-white rounded-xl border border-zinc-200 p-5">
         <h3 className="text-[12px] font-bold text-muted uppercase tracking-widest mb-2">
           코호트 LTV
         </h3>
@@ -71,8 +71,8 @@ export default function CohortLtvTable({ rows }: { rows: LtvRow[] }) {
   )
 
   return (
-    <section className="bg-white rounded-xl border border-rule overflow-hidden">
-      <div className="px-5 py-3 border-b border-rule flex items-center justify-between">
+    <section className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+      <div className="px-5 py-3 border-b border-zinc-200 flex items-center justify-between">
         <h3 className="text-[12px] font-bold text-muted uppercase tracking-widest">
           코호트 LTV (가입 주별 평균)
         </h3>
@@ -93,7 +93,7 @@ export default function CohortLtvTable({ rows }: { rows: LtvRow[] }) {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.cohort_week} className="border-t border-rule">
+              <tr key={r.cohort_week} className="border-t border-zinc-200">
                 <td className="px-4 py-2.5 font-bold text-text font-mono sticky left-0 bg-white">
                   {formatWeekLabel(r.cohort_week)}
                 </td>

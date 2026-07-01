@@ -65,7 +65,7 @@ export default async function AdminPushCampaignsPage() {
         <section>
           <h2 className="text-[13px] font-black text-text mb-3">새 캠페인</h2>
           <CampaignBuilder />
-          <div className="mt-3 p-3 rounded-xl bg-bg-2 border border-rule">
+          <div className="mt-3 p-3 rounded-xl bg-bg-2 border border-zinc-200">
             <p className="text-[11px] text-text leading-relaxed">
               ⚠️ 광고성 알림 — 법(정보통신망법 §50④)에 따라 제목 앞에
               <strong> [광고]</strong> 가 자동으로 붙어요. 알림 설정에서
@@ -80,13 +80,13 @@ export default async function AdminPushCampaignsPage() {
             발송 이력 (최근 50건)
           </h2>
           {campaigns.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-rule p-8 text-center">
+            <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
               <p className="text-[12px] text-muted">
                 아직 발송한 캠페인이 없어요.
               </p>
             </div>
           ) : (
-            <ul className="bg-white rounded-2xl border border-rule overflow-hidden max-h-[600px] overflow-y-auto">
+            <ul className="bg-white rounded-lg border border-zinc-200 overflow-hidden max-h-[600px] overflow-y-auto">
               {campaigns.map((c) => {
                 const successRate =
                   c.recipient_count > 0
@@ -95,7 +95,7 @@ export default async function AdminPushCampaignsPage() {
                 return (
                   <li
                     key={c.id}
-                    className="border-b border-rule last:border-b-0 px-4 py-3"
+                    className="border-b border-zinc-200 last:border-b-0 px-4 py-3"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-[12.5px] font-bold text-text">

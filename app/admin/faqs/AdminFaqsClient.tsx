@@ -172,7 +172,7 @@ export default function AdminFaqsClient({
           className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition ${
             filterCategory === 'all'
               ? 'bg-ink text-white'
-              : 'bg-white border border-rule text-ink hover:bg-bg'
+              : 'bg-white border border-zinc-200 text-ink hover:bg-bg'
           }`}
         >
           전체 ({initialFaqs.length})
@@ -184,7 +184,7 @@ export default function AdminFaqsClient({
             className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition ${
               filterCategory === cat
                 ? 'bg-ink text-white'
-                : 'bg-white border border-rule text-ink hover:bg-bg'
+                : 'bg-white border border-zinc-200 text-ink hover:bg-bg'
             }`}
           >
             {cat} ({counts.get(cat) ?? 0})
@@ -193,7 +193,7 @@ export default function AdminFaqsClient({
       </div>
 
       {visible.length === 0 ? (
-        <div className="p-12 rounded-2xl bg-white border border-rule text-center">
+        <div className="p-12 rounded-lg bg-white border border-zinc-200 text-center">
           <p className="text-sm text-muted">
             {filterCategory === 'all'
               ? '등록된 FAQ 가 없어요.'
@@ -201,10 +201,10 @@ export default function AdminFaqsClient({
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl bg-white border border-rule">
+        <div className="overflow-hidden rounded-lg bg-white border border-zinc-200">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[11px] text-muted border-b border-rule bg-bg">
+              <tr className="text-[11px] text-muted border-b border-zinc-200 bg-bg">
                 <th className="text-left py-3 px-4 font-medium">카테고리</th>
                 <th className="text-left py-3 px-4 font-medium">질문 / 답변</th>
                 <th className="text-right py-3 px-4 font-medium">정렬</th>
@@ -216,7 +216,7 @@ export default function AdminFaqsClient({
               {visible.map((f) => (
                 <tr
                   key={f.id}
-                  className="border-b border-bg last:border-b-0 hover:bg-bg/60 transition"
+                  className="border-b border-zinc-100 last:border-b-0 hover:bg-bg/60 transition"
                 >
                   <td className="py-3 px-4 align-top">
                     <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-terracotta/10 text-terracotta">
@@ -279,10 +279,10 @@ export default function AdminFaqsClient({
             aria-modal="true"
             aria-labelledby="faq-modal-title"
             tabIndex={-1}
-            className="w-full max-w-xl bg-bg rounded-2xl shadow-2xl"
+            className="w-full max-w-xl bg-bg rounded-lg shadow-2xl"
             onClick={(ev) => ev.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-rule sticky top-0 bg-bg rounded-t-2xl z-10">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 sticky top-0 bg-bg rounded-t-2xl z-10">
               <h2 id="faq-modal-title" className="font-bold tracking-tight text-lg text-ink">
                 {editing ? 'EDIT FAQ' : 'NEW FAQ'}
               </h2>
@@ -299,7 +299,7 @@ export default function AdminFaqsClient({
                 <select
                   value={category}
                   onChange={(ev) => setCategory(ev.target.value as FaqCategory)}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
                 >
                   {CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>
@@ -314,7 +314,7 @@ export default function AdminFaqsClient({
                   type="text"
                   value={question}
                   onChange={(ev) => setQuestion(ev.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
                   placeholder="하루에 얼마나 먹여야 하나요?"
                 />
               </Field>
@@ -324,7 +324,7 @@ export default function AdminFaqsClient({
                   value={answer}
                   onChange={(ev) => setAnswer(ev.target.value)}
                   rows={5}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm resize-none leading-relaxed"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm resize-none leading-relaxed"
                   placeholder="체중과 활동량에 따라 다르며..."
                 />
               </Field>
@@ -335,7 +335,7 @@ export default function AdminFaqsClient({
                     type="number"
                     value={sortOrder}
                     onChange={(ev) => setSortOrder(parseInt(ev.target.value || '0', 10))}
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm font-mono"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono"
                   />
                 </Field>
                 <Field label="공개 여부">
@@ -352,7 +352,7 @@ export default function AdminFaqsClient({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-rule sticky bottom-0 bg-bg rounded-b-2xl">
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 sticky bottom-0 bg-bg rounded-b-2xl">
               <button
                 onClick={() => setModalOpen(false)}
                 className="px-4 py-2 rounded-lg text-sm text-ink hover:bg-rule transition"

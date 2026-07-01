@@ -208,7 +208,7 @@ export default async function PickingListPage({
           id="date"
           name="date"
           defaultValue={date}
-          className="px-2 py-1 rounded-lg border border-rule bg-white"
+          className="px-2 py-1 rounded-lg border border-zinc-200 bg-white"
         />
         <button
           type="submit"
@@ -219,11 +219,11 @@ export default async function PickingListPage({
       </form>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl bg-white border border-rule p-8 text-center text-[13px] text-muted">
+        <div className="rounded-lg bg-white border border-zinc-200 p-8 text-center text-[13px] text-muted">
           {date} 에 active 박스 없어요.
         </div>
       ) : (
-        <div className="overflow-x-auto bg-white border border-rule rounded-2xl">
+        <div className="overflow-x-auto bg-white border border-zinc-200 rounded-lg">
           <table className="min-w-full text-[12px] text-text">
             <thead className="bg-bg-2">
               <tr>
@@ -239,7 +239,7 @@ export default async function PickingListPage({
               {rows.map((r) => (
                 <tr
                   key={r.formula.id}
-                  className="border-t border-rule align-top"
+                  className="border-t border-zinc-200 align-top"
                 >
                   <td className="px-3 py-2.5">
                     <div className="font-bold">{r.dogName}</div>

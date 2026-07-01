@@ -198,7 +198,7 @@ export default function AdminPartnersClient({
       </div>
 
       {initialPartners.length === 0 ? (
-        <div className="p-12 rounded-2xl bg-white border border-rule text-center">
+        <div className="p-12 rounded-lg bg-white border border-zinc-200 text-center">
           <p className="text-sm text-muted">등록된 산지가 없어요.</p>
         </div>
       ) : (
@@ -206,17 +206,17 @@ export default function AdminPartnersClient({
           {initialPartners.map((p) => (
             <div
               key={p.id}
-              className="rounded-2xl bg-white border border-rule p-4 flex gap-4"
+              className="rounded-lg bg-white border border-zinc-200 p-4 flex gap-4"
             >
               {p.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={p.image_url}
                   alt=""
-                  className="w-20 h-24 rounded object-cover border border-rule shrink-0"
+                  className="w-20 h-24 rounded object-cover border border-zinc-200 shrink-0"
                 />
               ) : (
-                <div className="w-20 h-24 rounded border border-rule shrink-0 flex items-center justify-center bg-bg">
+                <div className="w-20 h-24 rounded border border-zinc-200 shrink-0 flex items-center justify-center bg-bg">
                   <ImageIcon className="w-5 h-5 text-muted" strokeWidth={1.5} />
                 </div>
               )}
@@ -249,7 +249,7 @@ export default function AdminPartnersClient({
                 <div className="flex items-center gap-1 mt-2">
                   <button
                     onClick={() => togglePublished(p)}
-                    className="px-2 py-1 rounded border border-rule text-[10px] hover:bg-bg transition"
+                    className="px-2 py-1 rounded border border-zinc-200 text-[10px] hover:bg-bg transition"
                   >
                     {p.is_published ? '숨기기' : '공개'}
                   </button>
@@ -284,10 +284,10 @@ export default function AdminPartnersClient({
             aria-modal="true"
             aria-labelledby="partner-modal-title"
             tabIndex={-1}
-            className="w-full max-w-xl bg-bg rounded-2xl shadow-2xl"
+            className="w-full max-w-xl bg-bg rounded-lg shadow-2xl"
             onClick={(ev) => ev.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-rule sticky top-0 bg-bg rounded-t-2xl z-10">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 sticky top-0 bg-bg rounded-t-2xl z-10">
               <h2 id="partner-modal-title" className="font-bold tracking-tight text-lg text-ink">
                 {editing ? 'EDIT PARTNER' : 'NEW PARTNER'}
               </h2>
@@ -306,7 +306,7 @@ export default function AdminPartnersClient({
                     type="text"
                     value={region}
                     onChange={(ev) => setRegion(ev.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
                     placeholder="강원 평창"
                   />
                 </Field>
@@ -315,7 +315,7 @@ export default function AdminPartnersClient({
                     type="text"
                     value={name}
                     onChange={(ev) => setName(ev.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
                     placeholder="평창 청옥 한우농가"
                   />
                 </Field>
@@ -326,7 +326,7 @@ export default function AdminPartnersClient({
                   type="text"
                   value={ingredient}
                   onChange={(ev) => setIngredient(ev.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
                   placeholder="한우 안심 / 양지"
                 />
               </Field>
@@ -336,7 +336,7 @@ export default function AdminPartnersClient({
                   value={body}
                   onChange={(ev) => setBody(ev.target.value)}
                   rows={4}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm resize-none"
                   placeholder="해발 700m 이상 청정 목초지에서 방목·곡물 병행 사육..."
                 />
               </Field>
@@ -346,14 +346,14 @@ export default function AdminPartnersClient({
                   type="text"
                   value={cert}
                   onChange={(ev) => setCert(ev.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
                   placeholder="1++ / HACCP"
                 />
               </Field>
 
               <Field label="이미지" hint="4:5 권장, 8MB 이하">
                 <div className="flex gap-3 items-start">
-                  <div className="w-24 h-30 rounded border border-rule bg-bg shrink-0 overflow-hidden flex items-center justify-center" style={{ aspectRatio: '4 / 5' }}>
+                  <div className="w-24 h-30 rounded border border-zinc-200 bg-bg shrink-0 overflow-hidden flex items-center justify-center" style={{ aspectRatio: '4 / 5' }}>
                     {imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={imageUrl} alt="" className="w-full h-full object-cover" />
@@ -382,7 +382,7 @@ export default function AdminPartnersClient({
                       type="text"
                       value={imageUrl}
                       onChange={(ev) => setImageUrl(ev.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-xs font-mono"
+                      className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-xs font-mono"
                       placeholder="또는 URL"
                     />
                   </div>
@@ -395,7 +395,7 @@ export default function AdminPartnersClient({
                     type="number"
                     value={sortOrder}
                     onChange={(ev) => setSortOrder(parseInt(ev.target.value || '0', 10))}
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm font-mono"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono"
                   />
                 </Field>
                 <Field label="공개 여부">
@@ -412,7 +412,7 @@ export default function AdminPartnersClient({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-rule sticky bottom-0 bg-bg rounded-b-2xl">
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 sticky bottom-0 bg-bg rounded-b-2xl">
               <button
                 onClick={() => setModalOpen(false)}
                 className="px-4 py-2 rounded-lg text-sm text-ink hover:bg-rule transition"

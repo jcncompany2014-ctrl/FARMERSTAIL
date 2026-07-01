@@ -95,13 +95,13 @@ export default function ActionsPanel(props: ActionsPanelProps) {
 
   return (
     <section
-      className="rounded-2xl border overflow-hidden"
+      className="rounded-lg border overflow-hidden"
       style={{
         background: totalActions > 0 ? 'color-mix(in srgb, var(--sale) 4%, var(--bg))' : 'var(--bg-2)',
         borderColor: totalActions > 0 ? 'var(--sale)' : 'var(--rule)',
       }}
     >
-      <div className="px-5 py-3 flex items-center justify-between border-b border-rule">
+      <div className="px-5 py-3 flex items-center justify-between border-b border-zinc-200">
         <div className="flex items-center gap-2">
           <AlertTriangle
             className={totalActions > 0 ? 'text-sale' : 'text-muted'}

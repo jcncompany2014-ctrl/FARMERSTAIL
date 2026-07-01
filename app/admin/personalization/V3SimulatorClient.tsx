@@ -80,7 +80,7 @@ export default function V3SimulatorClient() {
     arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]
 
   return (
-    <section className="mt-8 bg-white border border-rule rounded-2xl p-5">
+    <section className="mt-8 bg-white border border-zinc-200 rounded-lg p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-text">
           추천 엔진 v3 시뮬레이터
@@ -133,7 +133,7 @@ export default function V3SimulatorClient() {
               min={50}
               max={4000}
               onChange={(e) => setDailyKcal(Number(e.target.value) || 0)}
-              className="w-24 border border-rule rounded-lg px-2 py-1 text-[12px] font-mono"
+              className="w-24 border border-zinc-200 rounded-lg px-2 py-1 text-[12px] font-mono"
             />
             <label className="flex items-center gap-1 text-[11px] text-muted cursor-pointer">
               <input
@@ -189,7 +189,7 @@ export default function V3SimulatorClient() {
       </Field>
 
       {/* 결과 */}
-      <div className="mt-5 border-t border-rule pt-4">
+      <div className="mt-5 border-t border-zinc-200 pt-4">
         {layerA.needsConsultation ? (
           <div className="bg-terracotta/8 border border-terracotta/30 rounded-xl p-4 text-[12.5px] text-text">
             ⚠ 상담 라우팅 — {layerA.consultationReason}
@@ -201,7 +201,7 @@ export default function V3SimulatorClient() {
               {layerA.picks.map((p) => (
                 <div
                   key={p.id}
-                  className="bg-paper/40 border border-rule rounded-xl p-3"
+                  className="bg-paper/40 border border-zinc-200 rounded-xl p-3"
                   style={{ background: 'var(--paper, #f4ede0)' }}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -271,7 +271,7 @@ export default function V3SimulatorClient() {
               {layerA.scores.map((s) => (
                 <span
                   key={s.protein}
-                  className="font-mono text-[11px] px-2 py-0.5 rounded bg-paper border border-rule"
+                  className="font-mono text-[11px] px-2 py-0.5 rounded bg-paper border border-zinc-200"
                   style={{ background: 'var(--paper, #f4ede0)' }}
                 >
                   {s.protein} <b>{s.score}</b>
@@ -349,7 +349,7 @@ function Seg({
   onChange: (v: string) => void
 }) {
   return (
-    <div className="inline-flex rounded-lg border border-rule overflow-hidden">
+    <div className="inline-flex rounded-lg border border-zinc-200 overflow-hidden">
       {opts.map(([v, label]) => (
         <button
           key={v}
@@ -386,7 +386,7 @@ function Chip({
         'px-2.5 py-1 rounded-full text-[11px] font-bold border ' +
         (on
           ? 'bg-terracotta text-white border-terracotta'
-          : 'bg-white text-muted border-rule hover:text-text')
+          : 'bg-white text-muted border-zinc-200 hover:text-text')
       }
     >
       {children}

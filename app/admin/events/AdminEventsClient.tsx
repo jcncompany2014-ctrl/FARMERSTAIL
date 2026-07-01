@@ -415,16 +415,16 @@ export default function AdminEventsClient({
 
       {/* ── 리스트 ── */}
       {initialEvents.length === 0 ? (
-        <div className="p-12 rounded-2xl bg-white border border-rule text-center">
+        <div className="p-12 rounded-lg bg-white border border-zinc-200 text-center">
           <p className="text-sm text-muted">
             아직 등록된 이벤트가 없어요. 우측 상단 &ldquo;새 이벤트&rdquo; 로 시작하세요.
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl bg-white border border-rule">
+        <div className="overflow-hidden rounded-lg bg-white border border-zinc-200">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[11px] text-muted border-b border-rule bg-bg">
+              <tr className="text-[11px] text-muted border-b border-zinc-200 bg-bg">
                 <th className="text-left py-3 px-4 font-medium">상태</th>
                 <th className="text-left py-3 px-4 font-medium">타이틀</th>
                 <th className="text-left py-3 px-4 font-medium">기간</th>
@@ -439,7 +439,7 @@ export default function AdminEventsClient({
                 return (
                   <tr
                     key={e.id}
-                    className="border-b border-bg last:border-b-0 hover:bg-bg/60 transition"
+                    className="border-b border-zinc-100 last:border-b-0 hover:bg-bg/60 transition"
                   >
                     <td className="py-3 px-4">
                       <div className="flex flex-col gap-1.5">
@@ -465,11 +465,11 @@ export default function AdminEventsClient({
                           <img
                             src={e.image_url}
                             alt=""
-                            className="w-10 h-12 rounded object-cover border border-rule shrink-0"
+                            className="w-10 h-12 rounded object-cover border border-zinc-200 shrink-0"
                           />
                         ) : (
                           <div
-                            className="w-10 h-12 rounded border border-rule shrink-0 flex items-center justify-center"
+                            className="w-10 h-12 rounded border border-zinc-200 shrink-0 flex items-center justify-center"
                             style={{
                               background:
                                 PALETTE_OPTIONS.find(
@@ -556,7 +556,7 @@ export default function AdminEventsClient({
       )}
 
       {/* ── 안내 ── */}
-      <div className="mt-6 p-4 rounded-xl bg-bg border border-rule text-[11px] text-muted leading-relaxed">
+      <div className="mt-6 p-4 rounded-xl bg-bg border border-zinc-200 text-[11px] text-muted leading-relaxed">
         <p>
           <strong className="text-ink">상태 배지</strong>는 시스템이 자동
           계산해요 — 활성 토글이 켜져있고 오늘이 기간 안이면 &ldquo;진행중&rdquo;. 공개
@@ -580,11 +580,11 @@ export default function AdminEventsClient({
             aria-modal="true"
             aria-labelledby="event-modal-title"
             tabIndex={-1}
-            className="w-full max-w-2xl bg-bg rounded-2xl shadow-2xl"
+            className="w-full max-w-2xl bg-bg rounded-lg shadow-2xl"
             onClick={(ev) => ev.stopPropagation()}
           >
             {/* 모달 헤더 */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-rule sticky top-0 bg-bg rounded-t-2xl z-10">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 sticky top-0 bg-bg rounded-t-2xl z-10">
               <h2 id="event-modal-title" className="font-bold tracking-tight text-lg text-ink">
                 {editing ? 'EDIT EVENT' : 'NEW EVENT'}
               </h2>
@@ -603,7 +603,7 @@ export default function AdminEventsClient({
                   type="text"
                   value={slug}
                   onChange={(ev) => setSlug(ev.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm font-mono"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono"
                   placeholder="black-friday"
                 />
               </Field>
@@ -614,7 +614,7 @@ export default function AdminEventsClient({
                     type="text"
                     value={kicker}
                     onChange={(ev) => setKicker(ev.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
                     placeholder="Limited · 블랙 프라이데이"
                   />
                 </Field>
@@ -623,7 +623,7 @@ export default function AdminEventsClient({
                     type="text"
                     value={highlight}
                     onChange={(ev) => setHighlight(ev.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
                     placeholder="최대 50% OFF"
                   />
                 </Field>
@@ -635,7 +635,7 @@ export default function AdminEventsClient({
                     type="text"
                     value={enTitle}
                     onChange={(ev) => setEnTitle(ev.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm font-serif font-bold"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-serif font-bold"
                     placeholder="BLACK FRIDAY"
                   />
                 </Field>
@@ -644,7 +644,7 @@ export default function AdminEventsClient({
                     type="text"
                     value={koSubtitle}
                     onChange={(ev) => setKoSubtitle(ev.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
                     placeholder="연중 최대 혜택"
                   />
                 </Field>
@@ -658,7 +658,7 @@ export default function AdminEventsClient({
                 <div className="flex gap-4 items-start">
                   {/* 프리뷰 */}
                   <div
-                    className="w-32 h-40 rounded-lg border border-rule bg-bg shrink-0 flex items-center justify-center overflow-hidden"
+                    className="w-32 h-40 rounded-lg border border-zinc-200 bg-bg shrink-0 flex items-center justify-center overflow-hidden"
                     style={{ aspectRatio: '4 / 5' }}
                   >
                     {imageUrl ? (
@@ -702,7 +702,7 @@ export default function AdminEventsClient({
                       <button
                         type="button"
                         onClick={handleRemoveImage}
-                        className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-rule text-[11px] text-sale hover:bg-sale/10 transition"
+                        className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-200 text-[11px] text-sale hover:bg-sale/10 transition"
                       >
                         <Trash2 className="w-3 h-3" strokeWidth={2} />
                         이미지 제거
@@ -712,7 +712,7 @@ export default function AdminEventsClient({
                       type="text"
                       value={imageAlt}
                       onChange={(ev) => setImageAlt(ev.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-xs"
+                      className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-xs"
                       placeholder="alt 텍스트 (선택)"
                     />
                     {imageUrl && (
@@ -729,7 +729,7 @@ export default function AdminEventsClient({
                   value={tagline}
                   onChange={(ev) => setTagline(ev.target.value)}
                   rows={2}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm resize-none"
                   placeholder="단 4일. 재고 소진 시 조기 마감."
                 />
               </Field>
@@ -741,7 +741,7 @@ export default function AdminEventsClient({
                     type="datetime-local"
                     value={startsAt}
                     onChange={(ev) => setStartsAt(ev.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm font-mono"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono"
                   />
                 </Field>
                 <Field label="종료 일시">
@@ -749,7 +749,7 @@ export default function AdminEventsClient({
                     type="datetime-local"
                     value={endsAt}
                     onChange={(ev) => setEndsAt(ev.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm font-mono"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono"
                   />
                 </Field>
               </div>
@@ -760,7 +760,7 @@ export default function AdminEventsClient({
                     type="text"
                     value={statusLabel}
                     onChange={(ev) => setStatusLabel(ev.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg border border-rule bg-white text-sm font-mono"
+                    className="flex-1 px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono"
                     placeholder="ONGOING"
                   />
                   <select
@@ -768,7 +768,7 @@ export default function AdminEventsClient({
                       if (ev.target.value) setStatusLabel(ev.target.value)
                       ev.target.value = ''
                     }}
-                    className="px-2 py-2 rounded-lg border border-rule bg-white text-xs"
+                    className="px-2 py-2 rounded-lg border border-zinc-200 bg-white text-xs"
                   >
                     <option value="">프리셋</option>
                     {STATUS_PRESETS.map((p) => (
@@ -788,7 +788,7 @@ export default function AdminEventsClient({
                     onChange={(ev) =>
                       setPalette(ev.target.value as AdminEventRow['palette'])
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
                   >
                     {PALETTE_OPTIONS.map((p) => (
                       <option key={p.value} value={p.value}>
@@ -811,7 +811,7 @@ export default function AdminEventsClient({
                     onChange={(ev) =>
                       setKind(ev.target.value as AdminEventRow['kind'])
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
                   >
                     <option value="default">일반</option>
                     <option value="welcome">첫 가입 환영</option>
@@ -825,7 +825,7 @@ export default function AdminEventsClient({
                   value={detailLede}
                   onChange={(ev) => setDetailLede(ev.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm resize-none"
                   placeholder="연간 가장 큰 폭으로 가격이 움직이는 단 4일. ..."
                 />
               </Field>
@@ -838,7 +838,7 @@ export default function AdminEventsClient({
                   value={perksText}
                   onChange={(ev) => setPerksText(ev.target.value)}
                   rows={4}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm resize-none"
                   placeholder="전 라인 최대 50% 할인&#10;70,000원 이상 무료배송&#10;정기배송 가입 추가 10%"
                 />
               </Field>
@@ -851,7 +851,7 @@ export default function AdminEventsClient({
                   value={termsText}
                   onChange={(ev) => setTermsText(ev.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm resize-none"
                   placeholder="기간 한정&#10;재고 소진 시 마감&#10;1인 1회 사용"
                 />
               </Field>
@@ -866,14 +866,14 @@ export default function AdminEventsClient({
                     type="text"
                     value={ctaSecondaryLabel}
                     onChange={(ev) => setCtaSecondaryLabel(ev.target.value)}
-                    className="px-3 py-2 rounded-lg border border-rule bg-white text-sm"
+                    className="px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
                     placeholder="세일 상품 보러 가기"
                   />
                   <input
                     type="text"
                     value={ctaSecondaryHref}
                     onChange={(ev) => setCtaSecondaryHref(ev.target.value)}
-                    className="px-3 py-2 rounded-lg border border-rule bg-white text-sm font-mono"
+                    className="px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono"
                     placeholder="/products?event=black-friday"
                   />
                 </div>
@@ -891,7 +891,7 @@ export default function AdminEventsClient({
                     onChange={(ev) =>
                       setSortPriority(parseInt(ev.target.value || '0', 10))
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm font-mono"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono"
                   />
                 </Field>
                 <Field label="공개 여부">
@@ -911,7 +911,7 @@ export default function AdminEventsClient({
             </div>
 
             {/* 모달 푸터 */}
-            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-rule sticky bottom-0 bg-bg rounded-b-2xl">
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 sticky bottom-0 bg-bg rounded-b-2xl">
               <button
                 onClick={() => setModalOpen(false)}
                 className="px-4 py-2 rounded-lg text-sm text-ink hover:bg-rule transition"

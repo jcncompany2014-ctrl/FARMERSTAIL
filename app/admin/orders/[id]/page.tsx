@@ -85,7 +85,7 @@ export default async function AdminOrderDetailPage({
         {/* 왼쪽: 주문 정보 */}
         <div className="col-span-2 space-y-4">
           {/* 주문 상품 */}
-          <section className="p-6 rounded-2xl bg-white border border-rule">
+          <section className="p-6 rounded-lg bg-white border border-zinc-200">
             <h2 className="text-sm font-bold text-ink mb-4">
               주문 상품 ({items.length})
             </h2>
@@ -119,7 +119,7 @@ export default async function AdminOrderDetailPage({
           </section>
 
           {/* 배송지 */}
-          <section className="p-6 rounded-2xl bg-white border border-rule">
+          <section className="p-6 rounded-lg bg-white border border-zinc-200">
             <h2 className="text-sm font-bold text-ink mb-4">배송지</h2>
             <dl className="space-y-2 text-sm">
               <InfoRow label="받는 분" value={order.recipient_name} />
@@ -137,7 +137,7 @@ export default async function AdminOrderDetailPage({
           </section>
 
           {/* 결제 정보 */}
-          <section className="p-6 rounded-2xl bg-white border border-rule">
+          <section className="p-6 rounded-lg bg-white border border-zinc-200">
             <h2 className="text-sm font-bold text-ink mb-4">결제 정보</h2>
             <dl className="space-y-2 text-sm">
               <InfoRow label="결제 상태" value={order.payment_status} />
@@ -157,7 +157,7 @@ export default async function AdminOrderDetailPage({
                   }
                 />
               )}
-              <div className="border-t border-rule my-3" />
+              <div className="border-t border-zinc-200 my-3" />
               <InfoRow
                 label="상품 금액"
                 value={`${order.subtotal.toLocaleString()}원`}
@@ -170,7 +170,7 @@ export default async function AdminOrderDetailPage({
                     : `${order.shipping_fee.toLocaleString()}원`
                 }
               />
-              <div className="flex justify-between items-center pt-2 border-t border-rule">
+              <div className="flex justify-between items-center pt-2 border-t border-zinc-200">
                 <dt className="text-ink font-semibold">총 결제 금액</dt>
                 <dd className="font-bold tracking-tight text-xl text-terracotta">
                   {order.total_amount.toLocaleString()}원
@@ -183,7 +183,7 @@ export default async function AdminOrderDetailPage({
         {/* 오른쪽: 관리 액션 */}
         <div className="col-span-1 space-y-4">
           {/* 주문자 정보 */}
-          <section className="p-6 rounded-2xl bg-white border border-rule">
+          <section className="p-6 rounded-lg bg-white border border-zinc-200">
             <h2 className="text-sm font-bold text-ink mb-4">주문자</h2>
             <dl className="space-y-2 text-sm">
               <InfoRow label="이름" value={profile?.name ?? '-'} />
@@ -235,7 +235,7 @@ export default async function AdminOrderDetailPage({
 
           {/* 현재 송장 (shipping 이후에만) */}
           {(order.carrier || order.tracking_number) && (
-            <section className="p-6 rounded-2xl bg-white border border-rule">
+            <section className="p-6 rounded-lg bg-white border border-zinc-200">
               <h2 className="text-sm font-bold text-ink mb-4">운송장</h2>
               <dl className="space-y-2 text-sm">
                 {order.carrier && (
@@ -282,7 +282,7 @@ export default async function AdminOrderDetailPage({
           <PaymentEventTimeline orderId={id} />
 
           {/* 메타 정보 */}
-          <section className="p-6 rounded-2xl bg-white border border-rule">
+          <section className="p-6 rounded-lg bg-white border border-zinc-200">
             <h2 className="text-sm font-bold text-ink mb-4">메타</h2>
             <dl className="space-y-2 text-sm">
               <InfoRow

@@ -568,7 +568,7 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="p-5 rounded-2xl bg-white border border-rule">
+    <section className="p-5 rounded-lg bg-white border border-zinc-200">
       <h2 className="text-sm font-bold text-ink mb-3">{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>

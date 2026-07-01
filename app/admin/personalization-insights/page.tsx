@@ -165,7 +165,7 @@ function Card({
 }) {
   return (
     <section
-      className="mt-4 rounded-2xl border bg-white p-5"
+      className="mt-4 rounded-lg border bg-white p-5"
       style={{ borderColor: 'var(--rule)' }}
     >
       <div className="flex items-center gap-2 mb-3" style={{ color: 'var(--terracotta)' }}>

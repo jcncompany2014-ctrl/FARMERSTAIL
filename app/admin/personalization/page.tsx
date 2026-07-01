@@ -186,7 +186,7 @@ export default async function AdminPersonalizationPage() {
 
       {/* pending_approval 임박 큐 */}
       {(pendingNearTimeout ?? []).length > 0 && (
-        <section className="mb-6 bg-terracotta/5 border-2 border-terracotta/30 rounded-2xl p-5">
+        <section className="mb-6 bg-terracotta/5 border-2 border-terracotta/30 rounded-lg p-5">
           <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-terracotta mb-3">
             ⚠️ 동의 마감 임박 ({(pendingNearTimeout ?? []).length})
           </h3>
@@ -238,7 +238,7 @@ export default async function AdminPersonalizationPage() {
       {/* 만족도 분포 + cycle 응답률 (2열) */}
       <section className="grid grid-cols-2 gap-3 mb-6">
         {totalSatisfaction > 0 && (
-          <div className="bg-white border border-rule rounded-2xl p-5">
+          <div className="bg-white border border-zinc-200 rounded-lg p-5">
             <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-text mb-3">
               만족도 분포 ({totalSatisfaction})
             </h3>
@@ -275,7 +275,7 @@ export default async function AdminPersonalizationPage() {
         )}
 
         {Object.keys(responseByCycle).length > 0 && (
-          <div className="bg-white border border-rule rounded-2xl p-5">
+          <div className="bg-white border border-zinc-200 rounded-lg p-5">
             <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-text mb-3">
               cycle 응답
             </h3>
@@ -304,7 +304,7 @@ export default async function AdminPersonalizationPage() {
 
       {/* 케어 목표 분포 */}
       {Object.keys(goalCounts).length > 0 && (
-        <section className="mb-6 bg-white border border-rule rounded-2xl p-5">
+        <section className="mb-6 bg-white border border-zinc-200 rounded-lg p-5">
           <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-text mb-3">
             케어 목표 분포
           </h3>
@@ -349,10 +349,10 @@ function KpiCard({
   return (
     <div
       className={
-        'rounded-2xl px-4 py-3.5 ' +
+        'rounded-lg px-4 py-3.5 ' +
         (warn
           ? 'bg-terracotta/8 border-2 border-terracotta/40'
-          : 'bg-white border border-rule')
+          : 'bg-white border border-zinc-200')
       }
     >
       <div

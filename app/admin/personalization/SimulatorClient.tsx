@@ -139,7 +139,7 @@ export default function SimulatorClient() {
   }
 
   return (
-    <section className="bg-white border border-rule rounded-2xl p-5">
+    <section className="bg-white border border-zinc-200 rounded-lg p-5">
       <div className="flex items-center gap-2 mb-4">
         <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-text">
           시뮬레이션
@@ -292,7 +292,7 @@ export default function SimulatorClient() {
                   className={`px-2 py-1 rounded-full text-[10.5px] font-bold ${
                     input.allergies.includes(a)
                       ? 'bg-text text-white'
-                      : 'bg-bg-2 text-text border border-rule'
+                      : 'bg-bg-2 text-text border border-zinc-200'
                   }`}
                 >
                   {a}
@@ -310,7 +310,7 @@ export default function SimulatorClient() {
                   className={`px-2 py-1 rounded-full text-[10.5px] font-mono ${
                     input.chronicConditions.includes(c)
                       ? 'bg-terracotta text-white'
-                      : 'bg-bg-2 text-text border border-rule'
+                      : 'bg-bg-2 text-text border border-zinc-200'
                   }`}
                 >
                   {c}
@@ -328,7 +328,7 @@ export default function SimulatorClient() {
                   className={`px-2 py-1 rounded-full text-[10.5px] font-mono ${
                     input.preferredProteins.includes(p)
                       ? 'bg-text text-white'
-                      : 'bg-bg-2 text-text border border-rule'
+                      : 'bg-bg-2 text-text border border-zinc-200'
                   }`}
                 >
                   {p}
@@ -347,7 +347,7 @@ export default function SimulatorClient() {
           </Field>
 
           {mode === 'next' && (
-            <div className="pt-3 border-t border-rule">
+            <div className="pt-3 border-t border-zinc-200">
               <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted mb-2">
                 Next box · 체크인 응답
               </div>
@@ -476,7 +476,7 @@ export default function SimulatorClient() {
                 )
               })}
             </ul>
-            <div className="mt-3 pt-3 border-t border-rule text-[11px] text-muted">
+            <div className="mt-3 pt-3 border-t border-zinc-200 text-[11px] text-muted">
               토퍼: 야채 {Math.round(result.toppers.vegetable * 100)}% · 단백질{' '}
               {Math.round(result.toppers.protein * 100)}%
             </div>

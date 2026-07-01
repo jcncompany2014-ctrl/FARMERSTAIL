@@ -102,7 +102,7 @@ export default async function AdminUsersPage({
             name="q"
             defaultValue={q}
             placeholder="이메일, 이름, 연락처로 검색"
-            className="flex-1 max-w-md px-4 py-2 rounded-full text-sm bg-white border border-rule focus:outline-none focus:border-terracotta"
+            className="flex-1 max-w-md px-4 py-2 rounded-full text-sm bg-white border border-zinc-200 focus:outline-none focus:border-terracotta"
           />
           <button
             type="submit"
@@ -113,7 +113,7 @@ export default async function AdminUsersPage({
           {q && (
             <Link
               href="/admin/users"
-              className="px-4 py-2 rounded-full text-xs font-semibold bg-white border border-rule text-text hover:border-terracotta transition"
+              className="px-4 py-2 rounded-full text-xs font-semibold bg-white border border-zinc-200 text-text hover:border-terracotta transition"
             >
               초기화
             </Link>
@@ -122,7 +122,7 @@ export default async function AdminUsersPage({
       </div>
 
       {/* 테이블 */}
-      <div className="p-6 rounded-2xl bg-white border border-rule">
+      <div className="p-6 rounded-lg bg-white border border-zinc-200">
         {error ? (
           <div>
             <p className="text-sale text-sm">
@@ -141,7 +141,7 @@ export default async function AdminUsersPage({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-muted border-b border-rule">
+                <tr className="text-[11px] text-muted border-b border-zinc-200">
                   <th className="text-left py-2 font-medium">이메일</th>
                   <th className="text-left py-2 font-medium">이름</th>
                   <th className="text-left py-2 font-medium">연락처</th>
@@ -170,7 +170,7 @@ export default async function AdminUsersPage({
                   return (
                     <tr
                       key={u.id}
-                      className="border-b border-rule/50 hover:bg-bg transition"
+                      className="border-b border-zinc-200/50 hover:bg-bg transition"
                     >
                       <td className="py-3 text-[11px] text-ink">
                         {u.email ?? '-'}
@@ -230,7 +230,7 @@ export default async function AdminUsersPage({
       )}
 
       {/* 안내 */}
-      <div className="mt-4 p-4 rounded-xl bg-bg border border-rule">
+      <div className="mt-4 p-4 rounded-xl bg-bg border border-zinc-200">
         <p className="text-[11px] text-text">
           ℹ️ 개인정보 보호를 위해 회원 정보는 조회만 가능해요. 수정이 필요하면
           회원 본인이 직접 마이페이지에서 변경해야 해요. 관리자 권한 부여는

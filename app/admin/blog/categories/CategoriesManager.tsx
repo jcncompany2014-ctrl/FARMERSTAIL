@@ -95,7 +95,7 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
   return (
     <div className="space-y-6">
       {/* 목록 */}
-      <div className="p-6 rounded-2xl bg-white border border-rule">
+      <div className="p-6 rounded-lg bg-white border border-zinc-200">
         {items.length === 0 ? (
           <p className="text-center text-sm text-muted py-6">
             카테고리가 없어요
@@ -163,7 +163,7 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
       {/* 새 카테고리 */}
       <form
         onSubmit={addCategory}
-        className="p-6 rounded-2xl bg-white border border-rule"
+        className="p-6 rounded-lg bg-white border border-zinc-200"
       >
         <h3 className="text-sm font-bold text-ink mb-3">
           새 카테고리 추가

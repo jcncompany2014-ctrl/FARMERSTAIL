@@ -321,7 +321,7 @@ function Section({
 }) {
   return (
     <section className="mt-4 print:break-inside-avoid">
-      <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted border-b border-rule pb-1 mb-2">
+      <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted border-b border-zinc-200 pb-1 mb-2">
         {title}
       </h3>
       {children}
@@ -331,7 +331,7 @@ function Section({
 
 function NutritionLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between border-b border-rule/40 py-1">
+    <div className="flex justify-between border-b border-zinc-200/40 py-1">
       <span className="text-text">{label}</span>
       <span className="font-mono tabular-nums text-text">{value}</span>
     </div>

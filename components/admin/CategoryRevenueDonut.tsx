@@ -68,7 +68,7 @@ export default function CategoryRevenueDonut({
 
   if (total === 0) {
     return (
-      <section className="bg-white rounded-xl border border-rule p-5">
+      <section className="bg-white rounded-xl border border-zinc-200 p-5">
         <h3 className="text-[12px] font-bold text-muted uppercase tracking-widest mb-4">
           {title}
         </h3>
@@ -102,7 +102,7 @@ export default function CategoryRevenueDonut({
   })
 
   return (
-    <section className="bg-white rounded-xl border border-rule p-5">
+    <section className="bg-white rounded-xl border border-zinc-200 p-5">
       <h3 className="text-[12px] font-bold text-muted uppercase tracking-widest mb-4">
         {title}
       </h3>

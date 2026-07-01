@@ -50,8 +50,8 @@ export default function AdminPagination({
 
   const btn =
     'inline-flex items-center justify-center min-w-[72px] px-3 py-1.5 rounded-full text-xs font-semibold border transition'
-  const enabled = 'bg-white border-rule text-ink hover:border-terracotta hover:text-terracotta'
-  const disabled = 'bg-bg border-rule text-muted/50 cursor-not-allowed pointer-events-none'
+  const enabled = 'bg-white border-zinc-200 text-ink hover:border-terracotta hover:text-terracotta'
+  const disabled = 'bg-bg border-zinc-200 text-muted/50 cursor-not-allowed pointer-events-none'
 
   return (
     <div className="mt-5 flex items-center justify-center gap-3">

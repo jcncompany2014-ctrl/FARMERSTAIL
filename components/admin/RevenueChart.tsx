@@ -43,7 +43,7 @@ export default function RevenueChart({
 }) {
   if (data.length === 0) {
     return (
-      <div className="rounded-2xl bg-white border border-rule p-6">
+      <div className="rounded-lg bg-white border border-zinc-200 p-6">
         <h2 className="text-sm font-bold text-ink mb-1">{title}</h2>
         <p className="text-[12px] text-muted">데이터가 아직 없어요.</p>
       </div>
@@ -81,7 +81,7 @@ export default function RevenueChart({
   const lastPoint = data[data.length - 1]!
 
   return (
-    <div className="rounded-2xl bg-white border border-rule p-5 md:p-6">
+    <div className="rounded-lg bg-white border border-zinc-200 p-5 md:p-6">
       <div className="flex items-end justify-between mb-3 md:mb-4 gap-3">
         <div>
           <h2 className="text-sm font-bold text-ink">{title}</h2>

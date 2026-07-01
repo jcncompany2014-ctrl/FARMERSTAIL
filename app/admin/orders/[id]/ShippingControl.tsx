@@ -99,7 +99,7 @@ export default function ShippingControl({
   }
 
   return (
-    <section className="p-6 rounded-2xl bg-white border border-rule">
+    <section className="p-6 rounded-lg bg-white border border-zinc-200">
       <h2 className="text-sm font-bold text-ink mb-1">발송 처리</h2>
       <p className="text-[11px] text-muted mb-4">
         {isShipping
@@ -114,7 +114,7 @@ export default function ShippingControl({
             value={carrier}
             onChange={(e) => setCarrier(e.target.value as CarrierCode)}
             disabled={isShipping || loading}
-            className="w-full px-3 py-2 rounded-lg bg-bg border border-rule text-sm disabled:opacity-50"
+            className="w-full px-3 py-2 rounded-lg bg-bg border border-zinc-200 text-sm disabled:opacity-50"
           >
             {CARRIER_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -133,7 +133,7 @@ export default function ShippingControl({
             onChange={(e) => setTrackingNumber(e.target.value)}
             disabled={isShipping || loading}
             placeholder="송장번호를 입력하세요"
-            className="w-full px-3 py-2 rounded-lg bg-bg border border-rule text-sm font-mono disabled:opacity-50"
+            className="w-full px-3 py-2 rounded-lg bg-bg border border-zinc-200 text-sm font-mono disabled:opacity-50"
           />
         </label>
 

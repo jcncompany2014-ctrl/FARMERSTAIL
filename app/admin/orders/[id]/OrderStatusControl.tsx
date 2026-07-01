@@ -44,7 +44,7 @@ export default function OrderStatusControl({
   // DB에서 읽어온 문자열이 FSM enum에서 벗어난 경우 방어.
   if (!isOrderStatus(currentOrderStatus) || !isPaymentStatus(paymentStatus)) {
     return (
-      <section className="p-6 rounded-2xl bg-white border border-rule">
+      <section className="p-6 rounded-lg bg-white border border-zinc-200">
         <h2 className="text-sm font-bold text-sale mb-1">
           주문 상태에 문제가 있어요
         </h2>
@@ -95,7 +95,7 @@ export default function OrderStatusControl({
   void supabase
 
   return (
-    <section className="p-6 rounded-2xl bg-white border border-rule">
+    <section className="p-6 rounded-lg bg-white border border-zinc-200">
       <h2 className="text-sm font-bold text-ink mb-1">주문 상태 관리</h2>
       <p className="text-[11px] text-muted mb-4">
         {allowed.length === 0

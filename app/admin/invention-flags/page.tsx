@@ -97,7 +97,7 @@ export default async function InventionFlagsPage() {
         상태만 볼 수 있고, 변경은 별도 설정(환경변수)에서만 가능해요.
       </p>
 
-      <section className="mt-5 rounded-2xl border bg-white p-5" style={{ borderColor: 'var(--rule)' }}>
+      <section className="mt-5 rounded-lg border bg-white p-5" style={{ borderColor: 'var(--rule)' }}>
         <div className="space-y-3">
           {featureRows.map((row) => {
             const on = flags[row.key]
@@ -158,7 +158,7 @@ export default async function InventionFlagsPage() {
       </section>
 
       <section
-        className="mt-4 rounded-2xl px-5 py-4 flex items-start gap-2"
+        className="mt-4 rounded-lg px-5 py-4 flex items-start gap-2"
         style={{
           background: 'color-mix(in srgb, var(--gold) 10%, white)',
           border: '1px solid color-mix(in srgb, var(--gold) 28%, transparent)',

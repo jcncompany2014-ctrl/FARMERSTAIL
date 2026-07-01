@@ -356,7 +356,7 @@ export default function AdminSubscriptionsPage() {
         <div className="flex items-center gap-2">
           <a
             href="/admin/subscriptions/calendar"
-            className="px-3 py-2 rounded-lg border border-rule text-[12px] font-bold text-ink hover:bg-bg transition inline-flex items-center gap-1.5"
+            className="px-3 py-2 rounded-lg border border-zinc-200 text-[12px] font-bold text-ink hover:bg-bg transition inline-flex items-center gap-1.5"
           >
             📅 캘린더 뷰
           </a>
@@ -389,7 +389,7 @@ export default function AdminSubscriptionsPage() {
             className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
               tab === t.value
                 ? 'bg-text text-white'
-                : 'bg-white text-muted border border-rule hover:border-muted'
+                : 'bg-white text-muted border border-zinc-200 hover:border-muted'
             }`}
           >
             {t.label}
@@ -409,7 +409,7 @@ export default function AdminSubscriptionsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="고객명, 이메일, 상품명 검색..."
-          className="w-full px-4 py-2.5 rounded-xl border-2 border-rule bg-white text-sm text-text focus:border-moss focus:outline-none transition"
+          className="w-full px-4 py-2.5 rounded-xl border-2 border-zinc-200 bg-white text-sm text-text focus:border-moss focus:outline-none transition"
         />
       </div>
 
@@ -422,7 +422,7 @@ export default function AdminSubscriptionsPage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-10 text-muted">해당하는 구독이 없어요</div>
       ) : (
-        <div className="bg-white rounded-2xl border-2 border-rule overflow-hidden">
+        <div className="bg-white rounded-lg border-2 border-zinc-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

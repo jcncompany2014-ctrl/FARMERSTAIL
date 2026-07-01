@@ -205,7 +205,7 @@ export default async function AdminRefundsPage() {
           <span className="kicker">최근 100건</span>
         </div>
         {list.length === 0 ? (
-          <div className="rounded-xl border border-rule px-5 py-12 text-center bg-white">
+          <div className="rounded-xl border border-zinc-200 px-5 py-12 text-center bg-white">
             <RefreshCcw
               className="w-10 h-10 text-muted mx-auto mb-3"
               strokeWidth={1.3}
@@ -318,7 +318,7 @@ function RefundRow({
     <li>
       <Link
         href={`/admin/orders/${refund.order_id}`}
-        className="block bg-white rounded-xl border border-rule px-4 py-3 hover:border-text transition"
+        className="block bg-white rounded-xl border border-zinc-200 px-4 py-3 hover:border-text transition"
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">

@@ -56,7 +56,7 @@ function cellColor(rate: number | null): { bg: string; fg: string } {
 export default function CohortRetentionTable({ rows }: { rows: CohortRow[] }) {
   if (rows.length === 0) {
     return (
-      <section className="bg-white rounded-xl border border-rule p-5">
+      <section className="bg-white rounded-xl border border-zinc-200 p-5">
         <h3 className="text-[12px] font-bold text-muted uppercase tracking-widest mb-2">
           Cohort Retention · 코호트 재구매율
         </h3>
@@ -68,7 +68,7 @@ export default function CohortRetentionTable({ rows }: { rows: CohortRow[] }) {
   }
 
   return (
-    <section className="bg-white rounded-xl border border-rule p-5">
+    <section className="bg-white rounded-xl border border-zinc-200 p-5">
       <div className="flex items-baseline justify-between mb-3">
         <h3 className="text-[12px] font-bold text-muted uppercase tracking-widest">
           Cohort Retention · 가입 주별 재구매율
@@ -94,7 +94,7 @@ export default function CohortRetentionTable({ rows }: { rows: CohortRow[] }) {
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.cohort_week} className="border-t border-rule">
+              <tr key={row.cohort_week} className="border-t border-zinc-200">
                 <td className="px-2 py-2 font-mono text-[11px] text-text">
                   {formatWeekLabel(row.cohort_week)}
                 </td>

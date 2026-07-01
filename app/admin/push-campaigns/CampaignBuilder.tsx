@@ -105,7 +105,7 @@ export default function CampaignBuilder() {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-rule p-5 space-y-4">
+    <div className="bg-white rounded-lg border border-zinc-200 p-5 space-y-4">
       {/* Segment 선택 */}
       <div>
         <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
@@ -120,7 +120,7 @@ export default function CampaignBuilder() {
               className={`w-full text-left px-3.5 py-2.5 rounded-xl border transition ${
                 segment === s.key
                   ? 'border-terracotta bg-terracotta/5'
-                  : 'border-rule hover:border-text'
+                  : 'border-zinc-200 hover:border-text'
               }`}
             >
               <p className="text-[12px] font-bold text-text">{s.label}</p>
@@ -140,7 +140,7 @@ export default function CampaignBuilder() {
           onChange={(e) => setTitle(e.target.value.slice(0, 80))}
           maxLength={80}
           placeholder="알림 제목"
-          className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition"
+          className="w-full px-3 py-2.5 rounded-lg border border-zinc-200 bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition"
         />
       </div>
 
@@ -154,7 +154,7 @@ export default function CampaignBuilder() {
           maxLength={240}
           rows={4}
           placeholder="알림 본문 — 자동으로 [광고] 접두어가 붙어요"
-          className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition resize-none"
+          className="w-full px-3 py-2.5 rounded-lg border border-zinc-200 bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition resize-none"
         />
       </div>
 
@@ -167,12 +167,12 @@ export default function CampaignBuilder() {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="예: /events/welcome (생략 시 알림 센터)"
-          className="w-full px-3 py-2.5 rounded-lg border border-rule bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition"
+          className="w-full px-3 py-2.5 rounded-lg border border-zinc-200 bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition"
         />
       </div>
 
       {(title || body) && (
-        <div className="rounded-xl border border-dashed border-rule-2 p-3.5 bg-bg-2">
+        <div className="rounded-xl border border-dashed border-zinc-200-2 p-3.5 bg-bg-2">
           <div className="flex items-start gap-2">
             <div className="shrink-0 w-8 h-8 rounded-full bg-terracotta flex items-center justify-center">
               <Bell className="w-3.5 h-3.5 text-white" strokeWidth={2} />

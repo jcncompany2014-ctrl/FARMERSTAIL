@@ -640,7 +640,7 @@ export default async function AdminHome() {
               {topProducts.map((p, idx) => (
                 <li
                   key={p.id}
-                  className="flex items-center gap-3 py-2 border-b border-bg last:border-b-0"
+                  className="flex items-center gap-3 py-2 border-b border-zinc-100 last:border-b-0"
                 >
                   <span className="font-bold text-sm text-zinc-400 w-5">
                     {idx + 1}
@@ -684,7 +684,7 @@ export default async function AdminHome() {
               {lowStockItems.map((item) => (
                 <li
                   key={item.id}
-                  className="flex items-center justify-between py-2 border-b border-bg last:border-b-0"
+                  className="flex items-center justify-between py-2 border-b border-zinc-100 last:border-b-0"
                 >
                   <div className="flex-1 min-w-0">
                     <Link
@@ -736,7 +736,7 @@ export default async function AdminHome() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-muted border-b border-rule">
+                <tr className="text-[11px] text-muted border-b border-zinc-200">
                   <th className="text-left py-2 font-medium">주문번호</th>
                   <th className="text-left py-2 font-medium">주문자</th>
                   <th className="text-right py-2 font-medium">금액</th>
@@ -750,7 +750,7 @@ export default async function AdminHome() {
                   return (
                     <tr
                       key={o.id}
-                      className="border-b border-bg hover:bg-bg transition"
+                      className="border-b border-zinc-100 hover:bg-bg transition"
                     >
                       <td className="py-3 font-mono text-[11px] text-ink">
                         <Link

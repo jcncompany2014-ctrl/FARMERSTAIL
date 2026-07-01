@@ -204,7 +204,7 @@ export default async function SubscriptionChargesPage({
       </div>
 
       {/* 리스트 */}
-      <div className="bg-white rounded-xl border border-rule overflow-hidden">
+      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <table className="w-full text-[13px]">
           <thead className="bg-bg-2 text-muted text-[11px] uppercase tracking-widest">
             <tr>
@@ -230,7 +230,7 @@ export default async function SubscriptionChargesPage({
                 return (
                   <tr
                     key={row.id}
-                    className="border-t border-rule hover:bg-bg/40"
+                    className="border-t border-zinc-200 hover:bg-bg/40"
                   >
                     <td className="px-4 py-3 text-text">
                       {formatDateTime(row.attempted_at)}
@@ -287,7 +287,7 @@ export default async function SubscriptionChargesPage({
               href={`${filterLink(status)}${
                 filterLink(status).includes('?') ? '&' : '?'
               }page=${pageNum - 1}`}
-              className="px-3 py-1.5 rounded-lg border border-rule text-[12px] font-bold hover:border-terracotta hover:text-terracotta transition"
+              className="px-3 py-1.5 rounded-lg border border-zinc-200 text-[12px] font-bold hover:border-terracotta hover:text-terracotta transition"
             >
               ← 이전
             </Link>
@@ -297,7 +297,7 @@ export default async function SubscriptionChargesPage({
               href={`${filterLink(status)}${
                 filterLink(status).includes('?') ? '&' : '?'
               }page=${pageNum + 1}`}
-              className="px-3 py-1.5 rounded-lg border border-rule text-[12px] font-bold hover:border-terracotta hover:text-terracotta transition"
+              className="px-3 py-1.5 rounded-lg border border-zinc-200 text-[12px] font-bold hover:border-terracotta hover:text-terracotta transition"
             >
               다음 →
             </Link>
@@ -328,7 +328,7 @@ function SummaryCard({
           ? 'var(--sale)'
           : 'var(--ink)'
   return (
-    <div className="bg-white rounded-xl border border-rule p-4">
+    <div className="bg-white rounded-xl border border-zinc-200 p-4">
       <p className="text-[10.5px] font-bold text-muted uppercase tracking-widest">
         {label}
       </p>
@@ -359,7 +359,7 @@ function FilterChip({
         'shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-bold transition ' +
         (active
           ? 'bg-ink text-white'
-          : 'bg-white text-text border border-rule hover:border-text')
+          : 'bg-white text-text border border-zinc-200 hover:border-text')
       }
     >
       {label}

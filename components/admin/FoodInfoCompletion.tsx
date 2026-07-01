@@ -67,7 +67,7 @@ export default function FoodInfoCompletion({
 }) {
   if (products.length === 0) {
     return (
-      <section className="bg-white rounded-xl border border-rule p-5">
+      <section className="bg-white rounded-xl border border-zinc-200 p-5">
         <h3 className="text-[12px] font-bold text-muted uppercase tracking-widest mb-2">
           Food Info · 식품정보고시 채움률
         </h3>
@@ -114,7 +114,7 @@ export default function FoodInfoCompletion({
         : 'var(--moss)'
 
   return (
-    <section className="bg-white rounded-xl border border-rule p-5">
+    <section className="bg-white rounded-xl border border-zinc-200 p-5">
       <div className="flex items-baseline justify-between mb-3">
         <h3 className="text-[12px] font-bold text-muted uppercase tracking-widest">
           Food Info · 식품정보고시 채움률

@@ -101,7 +101,7 @@ export default async function AdminUserMessagePage({
           <h2 className="text-[13px] font-black text-text mb-3">
             대화 내역 ({thread.length}건)
           </h2>
-          <ul className="bg-white rounded-2xl border border-rule p-4 space-y-2.5 max-h-[400px] overflow-y-auto">
+          <ul className="bg-white rounded-lg border border-zinc-200 p-4 space-y-2.5 max-h-[400px] overflow-y-auto">
             {thread.map((m) => {
               const mine = m.sender === 'admin'
               return (
@@ -110,10 +110,10 @@ export default async function AdminUserMessagePage({
                   className={`flex ${mine ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
+                    className={`max-w-[75%] rounded-lg px-3.5 py-2.5 ${
                       mine
                         ? 'bg-terracotta text-white rounded-br-md'
-                        : 'bg-bg-2 text-text rounded-bl-md border border-rule'
+                        : 'bg-bg-2 text-text rounded-bl-md border border-zinc-200'
                     }`}
                   >
                     <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5 opacity-70">
@@ -142,7 +142,7 @@ export default async function AdminUserMessagePage({
         <section>
           <h2 className="text-[13px] font-black text-text mb-3">메시지 작성</h2>
           <MessageComposer userId={id} />
-          <div className="mt-3 p-3 rounded-xl bg-bg-2 border border-rule">
+          <div className="mt-3 p-3 rounded-xl bg-bg-2 border border-zinc-200">
             <p className="text-[11px] text-text leading-relaxed">
               ⚠️ 1:1 CS 메시지는 사용자의 알림 선호도/방해금지 시간대를 우회해
               발송됩니다. 환불/배송지연 같은 critical 안내에만 사용하세요.
@@ -157,17 +157,17 @@ export default async function AdminUserMessagePage({
             최근 발송 이력 (최대 50건)
           </h2>
           {recent.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-rule p-8 text-center">
+            <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
               <p className="text-[12px] text-muted">
                 아직 이 사용자에게 발송된 알림이 없어요.
               </p>
             </div>
           ) : (
-            <ul className="bg-white rounded-2xl border border-rule overflow-hidden">
+            <ul className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
               {recent.map((r) => (
                 <li
                   key={r.id}
-                  className="border-b border-rule last:border-b-0 px-4 py-3"
+                  className="border-b border-zinc-200 last:border-b-0 px-4 py-3"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[12px] font-bold text-text truncate">

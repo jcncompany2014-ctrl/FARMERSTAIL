@@ -89,7 +89,7 @@ export default async function AdminProductsPage({
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
                   isActive
                     ? 'bg-[#2A2118] text-white'
-                    : 'bg-white text-text border border-rule hover:border-terracotta'
+                    : 'bg-white text-text border border-zinc-200 hover:border-terracotta'
                 }`}
               >
                 {f.label}
@@ -111,7 +111,7 @@ export default async function AdminProductsPage({
             defaultValue={q}
             placeholder="상품명 · slug · 카테고리"
             autoComplete="off"
-            className="px-3 py-1.5 rounded-full text-xs bg-white border border-rule focus:outline-none focus:border-terracotta w-56"
+            className="px-3 py-1.5 rounded-full text-xs bg-white border border-zinc-200 focus:outline-none focus:border-terracotta w-56"
           />
           <button
             type="submit"
@@ -122,7 +122,7 @@ export default async function AdminProductsPage({
         </form>
       </div>
 
-      <div className="p-6 rounded-2xl bg-white border border-rule">
+      <div className="p-6 rounded-lg bg-white border border-zinc-200">
         {error ? (
           <p className="text-sale text-sm">에러: {error.message}</p>
         ) : !products || products.length === 0 ? (
@@ -135,7 +135,7 @@ export default async function AdminProductsPage({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-muted border-b border-rule">
+                <tr className="text-[11px] text-muted border-b border-zinc-200">
                   <th className="text-left py-2 font-medium w-16">이미지</th>
                   <th className="text-left py-2 font-medium">상품명</th>
                   <th className="text-left py-2 font-medium">카테고리</th>
@@ -149,7 +149,7 @@ export default async function AdminProductsPage({
                 {(products as ProductRow[]).map((p) => (
                   <tr
                     key={p.id}
-                    className="border-b border-rule/50 hover:bg-bg transition"
+                    className="border-b border-zinc-200/50 hover:bg-bg transition"
                   >
                     <td className="py-3">
                       <div className="w-12 h-12 rounded-lg bg-bg overflow-hidden flex items-center justify-center">

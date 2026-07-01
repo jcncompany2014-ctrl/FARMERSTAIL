@@ -134,7 +134,7 @@ export default function PartialCancelPanel({
   }
 
   return (
-    <section className="p-6 rounded-2xl bg-white border border-rule">
+    <section className="p-6 rounded-lg bg-white border border-zinc-200">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-bold text-ink">부분 환불</h2>
         <span className="text-[10px] text-muted font-mono">
@@ -178,12 +178,12 @@ export default function PartialCancelPanel({
                   setAmount(v)
                 }}
                 placeholder="0"
-                className="flex-1 px-3 py-2 rounded-lg border border-rule bg-white text-sm focus:outline-none focus:border-terracotta"
+                className="flex-1 px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:border-terracotta"
               />
               <button
                 type="button"
                 onClick={() => setAmount(remaining)}
-                className="px-3 py-2 rounded-lg border border-rule text-xs font-semibold text-text hover:border-terracotta hover:text-terracotta"
+                className="px-3 py-2 rounded-lg border border-zinc-200 text-xs font-semibold text-text hover:border-terracotta hover:text-terracotta"
               >
                 전액
               </button>
@@ -199,12 +199,12 @@ export default function PartialCancelPanel({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="예: 품절 1개, 하자 상품 교환 불가"
-              className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm focus:outline-none focus:border-terracotta"
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:border-terracotta"
             />
           </div>
 
           {isVirtualAccount && (
-            <div className="pt-3 border-t border-rule space-y-2">
+            <div className="pt-3 border-t border-zinc-200 space-y-2">
               <div className="flex items-start gap-1.5 text-[11px] text-muted leading-relaxed">
                 <AlertTriangle
                   className="w-3 h-3 text-terracotta mt-0.5 shrink-0"
@@ -221,7 +221,7 @@ export default function PartialCancelPanel({
                 <select
                   value={bank}
                   onChange={(e) => setBank(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm focus:outline-none focus:border-terracotta"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:border-terracotta"
                 >
                   <option value="">선택</option>
                   {BANK_OPTIONS.map((b) => (
@@ -241,7 +241,7 @@ export default function PartialCancelPanel({
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
                   placeholder="숫자만"
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm font-mono focus:outline-none focus:border-terracotta"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono focus:outline-none focus:border-terracotta"
                 />
               </div>
               <div>
@@ -252,7 +252,7 @@ export default function PartialCancelPanel({
                   type="text"
                   value={holderName}
                   onChange={(e) => setHolderName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm focus:outline-none focus:border-terracotta"
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:border-terracotta"
                 />
               </div>
             </div>

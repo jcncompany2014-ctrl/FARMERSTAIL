@@ -128,7 +128,7 @@ export default function FeatureFlagsClient({
   return (
     <div className="space-y-4">
       {/* 신규 flag */}
-      <section className="bg-white rounded-xl border border-rule p-5">
+      <section className="bg-white rounded-xl border border-zinc-200 p-5">
         <h2 className="text-[12px] font-bold text-muted uppercase tracking-widest mb-3">
           새 Flag 추가
         </h2>
@@ -142,7 +142,7 @@ export default function FeatureFlagsClient({
               value={newKey}
               onChange={(e) => setNewKey(e.target.value.toLowerCase())}
               placeholder="new_checkout_flow"
-              className="w-full px-3 py-2 rounded-lg bg-bg border border-rule text-sm font-mono"
+              className="w-full px-3 py-2 rounded-lg bg-bg border border-zinc-200 text-sm font-mono"
             />
           </div>
           <div>
@@ -154,7 +154,7 @@ export default function FeatureFlagsClient({
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
               placeholder="신규 결제 흐름 A/B"
-              className="w-full px-3 py-2 rounded-lg bg-bg border border-rule text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-bg border border-zinc-200 text-sm"
             />
           </div>
         </div>
@@ -171,7 +171,7 @@ export default function FeatureFlagsClient({
 
       {/* 기존 flags */}
       {rows.length === 0 ? (
-        <section className="bg-white rounded-xl border border-rule p-8 text-center text-muted">
+        <section className="bg-white rounded-xl border border-zinc-200 p-8 text-center text-muted">
           아직 flag 가 없어요. 위에서 추가해 주세요.
         </section>
       ) : (
@@ -229,8 +229,8 @@ function FlagCard({
   const totalWeight = row.variants.reduce((s, v) => s + (v.weight ?? 0), 0)
 
   return (
-    <section className="bg-white rounded-xl border border-rule overflow-hidden">
-      <header className="px-5 py-4 border-b border-rule flex items-center gap-3">
+    <section className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+      <header className="px-5 py-4 border-b border-zinc-200 flex items-center gap-3">
         <code className="text-[14px] font-bold text-ink font-mono">
           {row.key}
         </code>
@@ -261,7 +261,7 @@ function FlagCard({
             type="text"
             value={row.description ?? ''}
             onChange={(e) => onPatch({ description: e.target.value })}
-            className="w-full px-3 py-2 rounded-lg bg-bg border border-rule text-sm"
+            className="w-full px-3 py-2 rounded-lg bg-bg border border-zinc-200 text-sm"
           />
         </div>
 
@@ -274,7 +274,7 @@ function FlagCard({
             value={row.default_variant}
             onChange={(e) => onPatch({ default_variant: e.target.value })}
             placeholder="control"
-            className="w-full px-3 py-2 rounded-lg bg-bg border border-rule text-sm font-mono"
+            className="w-full px-3 py-2 rounded-lg bg-bg border border-zinc-200 text-sm font-mono"
           />
         </div>
 
@@ -287,7 +287,7 @@ function FlagCard({
             onChange={(e) => setVariantsText(e.target.value)}
             onBlur={applyVariants}
             rows={6}
-            className="w-full px-3 py-2 rounded-lg bg-bg border border-rule text-[12px] font-mono"
+            className="w-full px-3 py-2 rounded-lg bg-bg border border-zinc-200 text-[12px] font-mono"
             spellCheck={false}
           />
           {variantsErr && (
@@ -305,7 +305,7 @@ function FlagCard({
         </div>
       </div>
 
-      <footer className="px-5 py-3 border-t border-rule bg-bg-2/40 flex items-center gap-2">
+      <footer className="px-5 py-3 border-t border-zinc-200 bg-bg-2/40 flex items-center gap-2">
         <button
           type="button"
           onClick={onSave}

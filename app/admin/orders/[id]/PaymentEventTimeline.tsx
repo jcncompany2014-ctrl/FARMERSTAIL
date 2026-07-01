@@ -76,7 +76,7 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
   const balance = events.reduce((sum, e) => sum + (e.amount ?? 0), 0)
 
   return (
-    <section className="p-6 rounded-2xl bg-white border border-rule">
+    <section className="p-6 rounded-lg bg-white border border-zinc-200">
       <div className="flex justify-between items-baseline mb-4">
         <h2 className="text-sm font-bold text-ink">결제 원장 (Payment Events)</h2>
         <div className="text-xs text-mute">

@@ -116,7 +116,7 @@ export default async function AdminUnifiedSearch({
             name="q"
             defaultValue={query}
             placeholder="hello@example.com / 홍길동 / 010-1234-5678 / FT-2026-0001"
-            className="w-full pl-9 pr-4 py-2.5 rounded-full text-sm bg-white border border-rule focus:outline-none focus:border-terracotta"
+            className="w-full pl-9 pr-4 py-2.5 rounded-full text-sm bg-white border border-zinc-200 focus:outline-none focus:border-terracotta"
           />
         </div>
         <button
@@ -128,11 +128,11 @@ export default async function AdminUnifiedSearch({
       </form>
 
       {!query ? (
-        <div className="bg-white rounded-2xl border border-rule p-8 text-center">
+        <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
           <p className="text-[12px] text-muted">검색어를 입력해 주세요.</p>
         </div>
       ) : totalHits === 0 ? (
-        <div className="bg-white rounded-2xl border border-rule p-8 text-center">
+        <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
           <p className="text-[12px] text-muted">
             &ldquo;{query}&rdquo; 결과가 없어요.
           </p>
@@ -146,11 +146,11 @@ export default async function AdminUnifiedSearch({
               icon={<User className="w-3.5 h-3.5" strokeWidth={2} />}
               count={profiles.length}
             >
-              <ul className="bg-white rounded-2xl border border-rule overflow-hidden">
+              <ul className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
                 {profiles.map((p) => (
                   <li
                     key={p.id}
-                    className="border-b border-rule last:border-b-0"
+                    className="border-b border-zinc-200 last:border-b-0"
                   >
                     <Link
                       href={`/admin/users/${p.id}/message`}
@@ -183,11 +183,11 @@ export default async function AdminUnifiedSearch({
               icon={<Package className="w-3.5 h-3.5" strokeWidth={2} />}
               count={orders.length}
             >
-              <ul className="bg-white rounded-2xl border border-rule overflow-hidden">
+              <ul className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
                 {orders.map((o) => (
                   <li
                     key={o.id}
-                    className="border-b border-rule last:border-b-0"
+                    className="border-b border-zinc-200 last:border-b-0"
                   >
                     <Link
                       href={`/admin/orders/${o.id}`}
@@ -224,11 +224,11 @@ export default async function AdminUnifiedSearch({
               icon={<Repeat className="w-3.5 h-3.5" strokeWidth={2} />}
               count={subs.length}
             >
-              <ul className="bg-white rounded-2xl border border-rule overflow-hidden">
+              <ul className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
                 {subs.map((s) => (
                   <li
                     key={s.id}
-                    className="border-b border-rule last:border-b-0"
+                    className="border-b border-zinc-200 last:border-b-0"
                   >
                     <Link
                       href="/admin/subscriptions"

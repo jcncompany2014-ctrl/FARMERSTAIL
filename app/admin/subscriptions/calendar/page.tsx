@@ -161,7 +161,7 @@ export default async function SubscriptionsCalendarPage({
         <div className="flex items-center gap-2">
           <Link
             href={`/admin/subscriptions/calendar?ym=${prevYm}`}
-            className="p-2 rounded-lg border border-rule hover:bg-bg transition"
+            className="p-2 rounded-lg border border-zinc-200 hover:bg-bg transition"
             aria-label="이전 달"
           >
             <ChevronLeft className="w-4 h-4 text-ink" strokeWidth={2} />
@@ -174,14 +174,14 @@ export default async function SubscriptionsCalendarPage({
           </h2>
           <Link
             href={`/admin/subscriptions/calendar?ym=${nextYm}`}
-            className="p-2 rounded-lg border border-rule hover:bg-bg transition"
+            className="p-2 rounded-lg border border-zinc-200 hover:bg-bg transition"
             aria-label="다음 달"
           >
             <ChevronRight className="w-4 h-4 text-ink" strokeWidth={2} />
           </Link>
           <Link
             href="/admin/subscriptions/calendar"
-            className="ml-2 px-3 py-2 rounded-lg border border-rule text-[11px] hover:bg-bg transition"
+            className="ml-2 px-3 py-2 rounded-lg border border-zinc-200 text-[11px] hover:bg-bg transition"
           >
             오늘
           </Link>
@@ -189,9 +189,9 @@ export default async function SubscriptionsCalendarPage({
       </div>
 
       {/* 캘린더 그리드 */}
-      <div className="rounded-2xl bg-white border border-rule overflow-hidden">
+      <div className="rounded-lg bg-white border border-zinc-200 overflow-hidden">
         {/* 요일 헤더 */}
-        <div className="grid grid-cols-7 border-b border-rule">
+        <div className="grid grid-cols-7 border-b border-zinc-200">
           {WEEK_LABELS.map((label, i) => (
             <div
               key={label}
@@ -217,7 +217,7 @@ export default async function SubscriptionsCalendarPage({
             return (
               <div
                 key={idx}
-                className={`relative min-h-[110px] border-r border-b border-rule p-2 ${
+                className={`relative min-h-[110px] border-r border-b border-zinc-200 p-2 ${
                   c.isToday ? 'bg-terracotta/5' : ''
                 } ${c.date === null ? 'bg-bg/60' : ''}`}
                 style={{

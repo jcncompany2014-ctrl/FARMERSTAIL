@@ -91,7 +91,7 @@ export default async function AdminCsInboxPage() {
       </header>
 
       {grouped.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-rule p-12 text-center">
+        <div className="bg-white rounded-lg border border-zinc-200 p-12 text-center">
           <Inbox
             className="w-10 h-10 text-muted mx-auto mb-3"
             strokeWidth={1.3}
@@ -104,13 +104,13 @@ export default async function AdminCsInboxPage() {
           </p>
         </div>
       ) : (
-        <ul className="bg-white rounded-2xl border border-rule overflow-hidden">
+        <ul className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
           {grouped.map((g) => {
             const p = profilesById.get(g.user_id)
             return (
               <li
                 key={g.id}
-                className="border-b border-rule last:border-b-0"
+                className="border-b border-zinc-200 last:border-b-0"
               >
                 <Link
                   href={`/admin/users/${g.user_id}/message`}
