@@ -13,6 +13,7 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
+import { HelpTip } from '@/components/admin/ui'
 import {
   CohortReasonPie,
   CohortSkuRatingBar,
@@ -218,24 +219,28 @@ export default async function AdminCohortPage() {
           label="재주문율"
           value={`${reorderRate.toFixed(1)}%`}
           sub={`${reorderCount} / ${firstOrderCount}`}
+          help="처음 주문한 고객 중 다시 주문한 비율이에요. 높을수록 만족도가 높다는 신호예요. 아래 숫자는 (재주문 고객 / 첫 주문 고객)."
         />
         <Kpi
           icon={<RotateCcw className="w-4 h-4" />}
           label="환불율"
           value={`${refundRate.toFixed(1)}%`}
           sub={`${refundOutcomeCount} / ${paidOrderCount ?? 0}`}
+          help="결제된 주문 중 환불된 비율이에요. 낮을수록 좋아요."
         />
         <Kpi
           icon={<Star className="w-4 h-4" />}
           label="별점 평균"
           value={ratings.length > 0 ? ratingAvg.toFixed(2) : '—'}
           sub={`${ratings.length}건`}
+          help="고객이 남긴 별점(5점 만점)의 평균이에요."
         />
         <Kpi
           icon={<ClipboardCheck className="w-4 h-4" />}
           label="체크인 응답률"
           value={`${checkinRate.toFixed(1)}%`}
           sub={`${checkinResponseCount} / ${checkinEligible}`}
+          help="사료 급여 후 '잘 먹었나요?' 물어보는 체크인에 응답한 비율이에요."
         />
       </div>
 
@@ -434,19 +439,22 @@ function Kpi({
   label,
   value,
   sub,
+  help,
 }: {
   icon: React.ReactNode
   label: string
   value: string
   sub: string
+  help?: string
 }) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-3.5">
-      <div className="flex items-center gap-1.5 text-terracotta mb-1">
-        {icon}
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="text-terracotta flex items-center">{icon}</span>
         <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
           {label}
         </span>
+        {help && <HelpTip text={help} />}
       </div>
       <p className="text-2xl font-bold tracking-tight text-ink tabular-nums">
         {value}
