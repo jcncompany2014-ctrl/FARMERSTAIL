@@ -9,8 +9,8 @@
 - 깨끗: 레퍼럴·위시리스트·장바구니 참조 0.
 
 ## Phase A — 낡은 내용 정리 (기능적 부채)
-- [ ] A1. /admin/collections 제거 (죽은 기능) — 페이지+클라+AdminNav 링크
-- [ ] A2. /admin/events 쿠폰 잔재 정리 → benefit-auto 전용 (coupon-claim variant·coupon_code·쿠폰컬럼 제거)
+- [x] A1. /admin/collections 제거 (죽은 기능) — 페이지+클라+AdminNav 링크 (커밋 166235c)
+- [x] A2. /admin/events 쿠폰 잔재 정리 → benefit-auto 전용 (coupon-claim variant·coupon_code·쿠폰컬럼·죽은 /admin/coupons 링크 제거)
 - [ ] A3. /admin/products — "상품/커머스" 카피 → 구독 레시피 관점 재정비
 - [ ] A4. 대시보드(홈) — 주문 위주 → 구독 중심 재편(활성구독·MRR·이탈 등)
 - [ ] A5. (검토) 자동할인 가시화 페이지 신설 여부

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -10,7 +10,6 @@ import {
   X,
   ExternalLink,
   Calendar,
-  Ticket,
   ImageIcon,
   Upload,
 } from 'lucide-react'
@@ -44,7 +43,7 @@ export type AdminEventRow = {
   status_label: string
   palette: 'ink' | 'terracotta' | 'moss' | 'gold'
   kind: 'default' | 'welcome'
-  cta_variant: 'coupon-claim' | 'benefit-auto'
+  cta_variant: 'benefit-auto'
   coupon_code: string | null
   detail_lede: string
   perks: unknown
@@ -56,14 +55,6 @@ export type AdminEventRow = {
   image_alt: string | null
   created_at: string
   updated_at: string
-}
-
-type CouponOption = {
-  code: string
-  name: string
-  discount_type: 'percent' | 'fixed'
-  discount_value: number
-  is_active: boolean
 }
 
 const PALETTE_OPTIONS: Array<{
@@ -113,10 +104,8 @@ function fromLocalInput(local: string) {
 
 export default function AdminEventsClient({
   initialEvents,
-  coupons,
 }: {
   initialEvents: AdminEventRow[]
-  coupons: CouponOption[]
 }) {
   const router = useRouter()
   const supabase = createClient()
@@ -148,9 +137,6 @@ export default function AdminEventsClient({
   const [statusLabel, setStatusLabel] = useState('ONGOING')
   const [palette, setPalette] = useState<AdminEventRow['palette']>('ink')
   const [kind, setKind] = useState<AdminEventRow['kind']>('default')
-  const [ctaVariant, setCtaVariant] =
-    useState<AdminEventRow['cta_variant']>('coupon-claim')
-  const [couponCode, setCouponCode] = useState('')
   const [detailLede, setDetailLede] = useState('')
   const [perksText, setPerksText] = useState('')
   const [termsText, setTermsText] = useState('')
@@ -162,11 +148,6 @@ export default function AdminEventsClient({
   const [imageAlt, setImageAlt] = useState('')
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const activeCoupons = useMemo(
-    () => coupons.filter((c) => c.is_active),
-    [coupons]
-  )
 
   function resetForm() {
     setSlug('')
@@ -180,8 +161,6 @@ export default function AdminEventsClient({
     setStatusLabel('ONGOING')
     setPalette('ink')
     setKind('default')
-    setCtaVariant('coupon-claim')
-    setCouponCode('')
     setDetailLede('')
     setPerksText('')
     setTermsText('')
@@ -212,8 +191,6 @@ export default function AdminEventsClient({
     setStatusLabel(e.status_label)
     setPalette(e.palette)
     setKind(e.kind)
-    setCtaVariant(e.cta_variant)
-    setCouponCode(e.coupon_code ?? '')
     setDetailLede(e.detail_lede)
     setPerksText(toStringArray(e.perks).join('\n'))
     setTermsText(toStringArray(e.terms).join('\n'))
@@ -328,8 +305,7 @@ export default function AdminEventsClient({
         ? { label: ctaSecondaryLabel.trim(), href: ctaSecondaryHref.trim() }
         : null
 
-    // coupon-claim 이 아닌 경우 coupon_code 는 무조건 NULL — 데이터 일관성
-    // 유지. benefit-auto 이벤트에 쿠폰 코드가 남아있으면 혼란스럽다.
+    // 쿠폰 시스템 폐지(자동할인 전환) — 이벤트는 benefit-auto 전용.
     const payload = {
       slug: slug.trim(),
       kicker: kicker.trim(),
@@ -342,11 +318,8 @@ export default function AdminEventsClient({
       status_label: statusLabel.trim() || 'ONGOING',
       palette,
       kind,
-      cta_variant: ctaVariant,
-      coupon_code:
-        ctaVariant === 'coupon-claim' && couponCode.trim()
-          ? couponCode.trim().toUpperCase()
-          : null,
+      cta_variant: 'benefit-auto' as const,
+      coupon_code: null,
       detail_lede: detailLede.trim(),
       perks,
       terms,
@@ -456,7 +429,6 @@ export default function AdminEventsClient({
                 <th className="text-left py-3 px-4 font-medium">타이틀</th>
                 <th className="text-left py-3 px-4 font-medium">기간</th>
                 <th className="text-left py-3 px-4 font-medium">혜택</th>
-                <th className="text-left py-3 px-4 font-medium">쿠폰</th>
                 <th className="text-right py-3 px-4 font-medium">우선순위</th>
                 <th className="text-right py-3 px-4 font-medium">액션</th>
               </tr>
@@ -546,18 +518,6 @@ export default function AdminEventsClient({
                     </td>
                     <td className="py-3 px-4 text-[11px] text-ink font-semibold">
                       {e.highlight}
-                    </td>
-                    <td className="py-3 px-4 text-[11px]">
-                      {e.cta_variant === 'coupon-claim' && e.coupon_code ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-terracotta/10 text-terracotta font-mono">
-                          <Ticket className="w-3 h-3" strokeWidth={2} />
-                          {e.coupon_code}
-                        </span>
-                      ) : e.cta_variant === 'benefit-auto' ? (
-                        <span className="text-muted">자동 혜택</span>
-                      ) : (
-                        <span className="text-muted">—</span>
-                      )}
                     </td>
                     <td className="py-3 px-4 text-right text-[11px] font-mono tabular-nums text-ink">
                       {e.sort_priority}
@@ -821,7 +781,7 @@ export default function AdminEventsClient({
               </Field>
 
               {/* 시각 / 분기 */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <Field label="색상 테마">
                   <select
                     value={palette}
@@ -857,68 +817,7 @@ export default function AdminEventsClient({
                     <option value="welcome">첫 가입 환영</option>
                   </select>
                 </Field>
-                <Field label="버튼 성격">
-                  <select
-                    value={ctaVariant}
-                    onChange={(ev) =>
-                      setCtaVariant(
-                        ev.target.value as AdminEventRow['cta_variant']
-                      )
-                    }
-                    className="w-full px-3 py-2 rounded-lg border border-rule bg-white text-sm"
-                  >
-                    <option value="coupon-claim">쿠폰 받기</option>
-                    <option value="benefit-auto">자동 혜택</option>
-                  </select>
-                </Field>
               </div>
-
-              {/* 쿠폰 코드 — coupon-claim 때만 활성 */}
-              {ctaVariant === 'coupon-claim' && (
-                <Field
-                  label="쿠폰 코드"
-                  hint="체크아웃에서 입력될 코드. 기존 쿠폰 선택 또는 직접 입력."
-                >
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(ev) =>
-                        setCouponCode(ev.target.value.toUpperCase())
-                      }
-                      className="flex-1 px-3 py-2 rounded-lg border border-rule bg-white text-sm font-mono"
-                      placeholder="BF2026"
-                    />
-                    <select
-                      value=""
-                      onChange={(ev) => {
-                        if (ev.target.value) setCouponCode(ev.target.value)
-                      }}
-                      className="px-2 py-2 rounded-lg border border-rule bg-white text-xs min-w-[140px]"
-                    >
-                      <option value="">기존 쿠폰에서…</option>
-                      {activeCoupons.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.code} · {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {couponCode &&
-                    !activeCoupons.find((c) => c.code === couponCode) && (
-                      <p className="mt-1 text-[10px] text-gold">
-                        ※ 이 코드의 쿠폰이 아직 없거나 비활성. 체크아웃 전에{' '}
-                        <Link
-                          href="/admin/coupons"
-                          className="underline text-terracotta"
-                        >
-                          쿠폰 관리
-                        </Link>{' '}
-                        에서 생성해주세요.
-                      </p>
-                    )}
-                </Field>
-              )}
 
               {/* 상세 본문 */}
               <Field label="상세 소개글 (제목 아래)">

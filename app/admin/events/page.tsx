@@ -7,9 +7,8 @@ import AdminEventsClient, { type AdminEventRow } from './AdminEventsClient'
  *
  * 패턴
  * ────
- * `/admin/coupons` 와 동일. 서버 컴포넌트가 최초 리스트를 SSR 로 로드해
- * 클라이언트 컴포넌트 (인터랙티브 CRUD) 로 넘긴다. 이후 변경은 router.refresh
- * 로 RSC 재실행을 트리거.
+ * 서버 컴포넌트가 최초 리스트를 SSR 로 로드해 클라이언트 컴포넌트
+ * (인터랙티브 CRUD) 로 넘긴다. 이후 변경은 router.refresh 로 RSC 재실행을 트리거.
  *
  * 관리자 범위 RLS — `is_admin()` policy 가 전체 조회/쓰기를 허용하므로
  * is_active=false 이벤트도 여기서 보인다.
@@ -34,12 +33,7 @@ export default async function AdminEventsPage() {
     .order('sort_priority', { ascending: false })
     .order('starts_at', { ascending: false })
 
-  // 쿠폰 시스템 폐지(2026-06) — coupons 테이블 미조회. coupon-claim 변형은
-  // 더 이상 쓰지 않으므로 빈 목록 전달(드롭다운 비활성). 테이블 DROP 안전.
   return (
-    <AdminEventsClient
-      initialEvents={(events ?? []) as AdminEventRow[]}
-      coupons={[]}
-    />
+    <AdminEventsClient initialEvents={(events ?? []) as AdminEventRow[]} />
   )
 }
