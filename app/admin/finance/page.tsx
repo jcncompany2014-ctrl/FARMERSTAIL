@@ -9,6 +9,7 @@
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { HelpTip } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -143,21 +144,28 @@ export default async function AdminFinancePage({
 
       {/* KPI 그리드 */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <Kpi label="총 매출" value={`${totalPaid.toLocaleString()}원`} />
+        <Kpi
+          label="총 매출"
+          value={`${totalPaid.toLocaleString()}원`}
+          help="기간 내 결제 완료된 주문 금액의 합이에요(환불 빼기 전)."
+        />
         <Kpi
           label="총 환불"
           value={`${totalRefunded.toLocaleString()}원`}
           tone={totalRefunded > 0 ? 'sale' : undefined}
+          help="기간 내 고객에게 환불해준 금액의 합이에요."
         />
         <Kpi
           label="순 매출"
           value={`${netTotal.toLocaleString()}원`}
           tone="moss"
+          help="총 매출에서 환불을 뺀, 실제로 남은 매출이에요."
         />
         <Kpi
           label="객단가 평균"
           value={`${avgOrderValue.toLocaleString()}원`}
           hint={`주문 ${orderCount}건 / 환불률 ${refundRate.toFixed(1)}%`}
+          help="주문 1건당 평균 결제 금액이에요(총 매출 ÷ 주문 수)."
         />
       </section>
 
@@ -212,18 +220,21 @@ function Kpi({
   value,
   hint,
   tone,
+  help,
 }: {
   label: string
   value: string
   hint?: string
   tone?: 'sale' | 'moss'
+  help?: string
 }) {
   const color =
     tone === 'sale' ? 'text-sale' : tone === 'moss' ? 'text-moss' : 'text-ink'
   return (
-    <div className="rounded border border-line p-4">
-      <div className="text-[10px] uppercase tracking-wider text-mute font-semibold">
+    <div className="rounded border border-zinc-200 p-4">
+      <div className="flex items-center text-[10px] uppercase tracking-wider text-mute font-semibold">
         {label}
+        {help && <HelpTip text={help} />}
       </div>
       <div className={`text-xl mt-1.5 ${color}`}>{value}</div>
       {hint && <div className="text-[10px] text-mute mt-1.5">{hint}</div>}

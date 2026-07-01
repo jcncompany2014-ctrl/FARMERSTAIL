@@ -6,11 +6,12 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import BetaCohortPrintButton from './BetaCohortPrintButton'
+import { HelpTip } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '베타 Cohort 관리 — Admin',
+  title: '베타 테스트 현황 — Admin',
   robots: { index: false, follow: false },
 }
 
@@ -199,13 +200,29 @@ export default async function BetaCohortPage() {
 
       {/* KPI */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 print:break-inside-avoid">
-        <Kpi label="등록 마리" value={`${dogSummaries.length}`} sub={`/ 30 목표`} />
-        <Kpi label="현재 활성" value={`${activeCount}`} sub="해지·환불 제외" />
-        <Kpi label="누적 박스" value={`${totalBoxes}`} sub="첫 박스 + 재주문" />
+        <Kpi
+          label="등록 마리"
+          value={`${dogSummaries.length}`}
+          sub={`/ 30 목표`}
+          help="베타 테스트에 등록된 강아지 수예요. 목표는 30마리."
+        />
+        <Kpi
+          label="현재 활성"
+          value={`${activeCount}`}
+          sub="해지·환불 제외"
+          help="지금도 구독을 유지 중인 베타 강아지 수예요(해지·환불 뺀 수)."
+        />
+        <Kpi
+          label="누적 박스"
+          value={`${totalBoxes}`}
+          sub="첫 박스 + 재주문"
+          help="베타 기간 동안 배송된 전체 박스 수예요(첫 박스 + 재주문 합계)."
+        />
         <Kpi
           label="별점 평균"
           value={avgRating > 0 ? avgRating.toFixed(2) : '—'}
           sub={`${allRatings.length}건`}
+          help="베타 고객이 남긴 별점(5점 만점)의 평균이에요."
         />
       </div>
 
@@ -295,15 +312,18 @@ function Kpi({
   label,
   value,
   sub,
+  help,
 }: {
   label: string
   value: string
   sub: string
+  help?: string
 }) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-3.5 print:break-inside-avoid">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-muted">
+      <p className="flex items-center text-[10px] font-bold uppercase tracking-widest text-muted">
         {label}
+        {help && <HelpTip text={help} />}
       </p>
       <p className="text-2xl font-bold tracking-tight text-ink tabular-nums mt-1">
         {value}
