@@ -17,10 +17,12 @@
 
 **→ Phase A 결론: 실질 스테일 콘텐츠는 A1(collections)·A2(events쿠폰)뿐이었고 정리 완료. A3/A4는 이미 구독전용에 맞게 되어있어 미변경(파괴 방지). 남은 진짜 '갈아엎기' = Phase B 디자인 통일.**
 
-## Phase B — 기능형 클린 어드민 디자인 통일
-- [ ] B1. admin 공통 디자인 프리미티브(테이블·배지·카드·필터·버튼) 정의
-- [ ] B2. AdminNav/layout 정비
-- [ ] B3. 페이지별 순차 적용(잘게 꾸준히·페이지당 검증·커밋)
+## Phase B — 기능형 클린 어드민 디자인 통일 (사장님 "전체 일괄" 선택, 스크린샷 불가→배포후 확인)
+방향: 중립 회색조(zinc) + terracotta 절제 포인트. Archivo Black·rounded-2xl·웜톤 → 클린 sans·rounded-lg·zinc.
+- [x] B1. 공통 프리미티브 `components/admin/ui.tsx` — AdminHeader·AdminCard·Badge·AdminButton
+- [x] B2. chrome 중립화 — layout.tsx 사이드바(#2A2118→#16181d)·bg(웜크림→#f6f7f9)·헤더바 + AdminNav zinc톤
+- [x] B3-sample. 대시보드(app/admin/page.tsx) — AdminHeader + MetricCard 중립화(rounded-lg·zinc·클린 sans). **flagship 샘플로 먼저 배포 → 방향 확인**
+- [ ] B3-rollout. 나머지 ~27 페이지 헤더(AdminHeader)·카드·배지 적용 (사장님 방향 OK 후 배치별 진행). Archivo Black 28파일 목록 = 롤아웃 대상.
 
 ## 규칙
 - 잘게 꾸준히, 페이지별 tsc+eslint+build 검증 후 커밋. 워크플로우 금지(직접).

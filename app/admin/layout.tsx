@@ -39,20 +39,22 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-bg flex">
+    <div className="min-h-screen bg-[#f6f7f9] flex">
       {/* 사이드바 — flex 컬럼: 로고(고정) / nav(스크롤) / 푸터(고정).
-          nav 가 길어 뷰포트를 넘쳐도 푸터를 가리지 않고 스크롤된다. */}
-      <aside className="w-60 shrink-0 bg-[#2A2118] text-bg h-screen sticky top-0 flex flex-col">
-        <div className="px-6 py-6 border-b border-text shrink-0">
+          nav 가 길어 뷰포트를 넘쳐도 푸터를 가리지 않고 스크롤된다.
+          기능형 클린 어드민(2026-07 Phase B): 중립 다크(#16181d) + 회색조,
+          terracotta 는 active/포인트에만 절제 사용. */}
+      <aside className="w-60 shrink-0 bg-[#16181d] text-zinc-300 h-screen sticky top-0 flex flex-col">
+        <div className="px-5 py-5 border-b border-white/10 shrink-0">
           <Link href="/admin" className="block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-paper.png"
               alt="Farmer's Tail"
-              className="h-8 w-auto"
+              className="h-7 w-auto"
             />
           </Link>
-          <p className="text-[10px] text-muted mt-2 tracking-widest">
+          <p className="text-[10px] text-zinc-500 mt-2 tracking-[0.2em] font-medium">
             ADMIN CONSOLE
           </p>
         </div>
@@ -61,12 +63,12 @@ export default async function AdminLayout({
           <AdminNav />
         </div>
 
-        <div className="shrink-0 px-6 py-4 border-t border-text">
-          <p className="text-[10px] text-muted">LOGGED IN AS</p>
-          <p className="text-xs text-white mt-0.5 truncate">{user.email}</p>
+        <div className="shrink-0 px-5 py-4 border-t border-white/10">
+          <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Logged in as</p>
+          <p className="text-xs text-zinc-200 mt-0.5 truncate">{user.email}</p>
           <Link
             href="/dashboard"
-            className="mt-3 block text-[10px] text-terracotta hover:text-[#8BA05A] transition"
+            className="mt-3 block text-[11px] text-zinc-400 hover:text-white transition"
           >
             ← 일반 화면으로
           </Link>
@@ -76,7 +78,7 @@ export default async function AdminLayout({
       {/* 본문 */}
       <main className="flex-1 min-w-0 flex flex-col">
         {/* 상단바 — 실시간 주문 알림 벨 */}
-        <header className="sticky top-0 z-20 bg-bg/95 backdrop-blur border-b border-rule">
+        <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-zinc-200">
           <div className="max-w-6xl mx-auto px-8 h-12 flex items-center justify-end gap-3">
             <OrderRealtimeBell />
           </div>

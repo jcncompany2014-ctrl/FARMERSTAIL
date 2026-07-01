@@ -15,6 +15,7 @@ import CohortLtvTable, {
   type LtvRow,
 } from '@/components/admin/CohortLtvTable'
 import ActionsPanel from '@/components/admin/ActionsPanel'
+import { AdminHeader } from '@/components/admin/ui'
 import {
   formatKstShortDateTime as formatDate,
   todayKstIsoDate,
@@ -464,17 +465,10 @@ export default async function AdminHome() {
 
   return (
     <div>
-      <div className="flex items-end justify-between mb-8">
-        <div>
-          <h1 className="font-['Archivo_Black'] text-3xl text-ink">
-            DASHBOARD
-          </h1>
-          <p className="text-sm text-muted mt-1">
-            {todayKst.slice(0, 4)}년 {Number(todayKst.slice(5, 7))}월{' '}
-            {Number(todayKst.slice(8, 10))}일 기준
-          </p>
-        </div>
-      </div>
+      <AdminHeader
+        title="대시보드"
+        sub={`${todayKst.slice(0, 4)}년 ${Number(todayKst.slice(5, 7))}월 ${Number(todayKst.slice(8, 10))}일 기준`}
+      />
 
       {/* 처리 대기 큐 — admin hot path. 0건이면 회색, 있으면 sale 강조. */}
       <div className="mb-6">
@@ -799,14 +793,14 @@ function MetricCard({
       : 'text-ink'
 
   return (
-    <div className="p-5 rounded-2xl bg-white border border-rule">
-      <p className="text-[11px] text-muted font-bold uppercase tracking-wider">
+    <div className="p-5 rounded-lg bg-white border border-zinc-200">
+      <p className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider">
         {label}
       </p>
-      <p className={`mt-2 font-['Archivo_Black'] text-2xl ${toneClass}`}>
+      <p className={`mt-2 font-bold tracking-tight text-2xl ${toneClass}`}>
         {value}
       </p>
-      <p className="mt-1 text-[10px] text-muted">{sub}</p>
+      <p className="mt-1 text-[10px] text-zinc-400">{sub}</p>
     </div>
   )
 }
