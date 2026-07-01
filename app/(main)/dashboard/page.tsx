@@ -15,7 +15,7 @@ import {
   type JournalEntry,
 } from '@/components/v3/home'
 import { StreakRewards } from '@/components/v3'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSafeUser } from '@/lib/supabase/server'
 import OnboardingTutorial from '@/components/dashboard/OnboardingTutorial'
 import { currentMilestone } from '@/lib/dashboard/milestones'
 import { computeStreak, type CheckinRow } from '@/lib/dashboard/streaks'
@@ -78,9 +78,7 @@ type SubscriptionRow = {
 export default async function DashboardPage() {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSafeUser(supabase)
 
   if (!user) redirect('/login')
 

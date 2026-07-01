@@ -13,7 +13,7 @@ import {
   MessageCircle,
 } from 'lucide-react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSafeUser } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
 import Reveal from '@/components/landing/Reveal'
 import StickyCta from '@/components/web/fd/StickyCta'
@@ -735,9 +735,7 @@ function FinalCta({ isAuthed }: { isAuthed: boolean }) {
 // ===========================================================================
 export default async function LandingPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSafeUser(supabase)
   const isAuthed = !!user
 
   return (
