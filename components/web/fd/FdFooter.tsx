@@ -10,6 +10,7 @@ import { SOCIAL_PROFILES } from '@/lib/seo/jsonld'
 const BROWSE: { href: string; label: string }[] = [
   { href: '/our-food', label: '우리 음식' },
   { href: '/why-fresh', label: '왜 신선식' },
+  { href: '/why-app', label: '앱 소개' },
   { href: '/reviews', label: '후기' },
   { href: '/about', label: '브랜드 이야기' },
   { href: '/science', label: '수의사 전문가' },

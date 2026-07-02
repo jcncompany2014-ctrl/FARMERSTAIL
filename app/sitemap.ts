@@ -54,6 +54,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
+    // 앱 소개 스크롤 쇼케이스 (왜 파머스테일 앱인가) — 2026-07-02.
+    {
+      url: `${siteUrl}/why-app`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
     {
       url: `${siteUrl}/reviews`,
       lastModified: now,
