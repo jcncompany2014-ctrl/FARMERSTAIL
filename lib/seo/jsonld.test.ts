@@ -12,7 +12,6 @@ import {
   buildBreadcrumbJsonLd,
   buildFaqJsonLd,
   buildOrganizationJsonLd,
-  buildProductJsonLd,
   buildWebSiteJsonLd,
   ogImageUrl,
 } from './jsonld.ts'
@@ -28,71 +27,13 @@ describe('buildOrganizationJsonLd', () => {
 })
 
 describe('buildWebSiteJsonLd', () => {
-  it('declares a SearchAction pointing at /products?q=', () => {
+  // SearchAction 은 2026-07-03 감사에서 제거 — 대상(/products 검색)이 구독전용
+  // 전환으로 폐지됐고 Google 도 sitelinks search box 지원을 종료함.
+  it('emits WebSite without a potentialAction', () => {
     const ld = buildWebSiteJsonLd()
     assert.equal(ld['@type'], 'WebSite')
-    assert.ok(
-      ld.potentialAction.target.urlTemplate.startsWith(`${SITE_URL}/products?q=`),
-    )
-    assert.equal(
-      ld.potentialAction['query-input'],
-      'required name=search_term_string',
-    )
-  })
-})
-
-describe('buildProductJsonLd', () => {
-  const baseInput = {
-    name: '화식 비프',
-    slug: 'beef-fresh',
-    description: '프리미엄 비프 화식',
-    image: ['https://example.com/a.jpg'],
-    price: 29000,
-    inStock: true,
-  }
-
-  it('marks availability by inStock flag', () => {
-    const inStock = buildProductJsonLd({ ...baseInput, inStock: true }) as {
-      offers: { availability: string }
-    }
-    assert.equal(
-      inStock.offers.availability,
-      'https://schema.org/InStock',
-    )
-    const out = buildProductJsonLd({ ...baseInput, inStock: false }) as {
-      offers: { availability: string }
-    }
-    assert.equal(out.offers.availability, 'https://schema.org/OutOfStock')
-  })
-
-  it('uses salePrice when provided', () => {
-    const ld = buildProductJsonLd({
-      ...baseInput,
-      price: 30000,
-      salePrice: 24000,
-    }) as { offers: { price: number } }
-    assert.equal(ld.offers.price, 24000)
-  })
-
-  it('omits aggregateRating when review count is zero', () => {
-    const ld = buildProductJsonLd({
-      ...baseInput,
-      aggregateRating: { ratingValue: 4.5, reviewCount: 0 },
-    })
-    assert.equal('aggregateRating' in ld, false)
-  })
-
-  it('includes aggregateRating when reviews exist', () => {
-    const ld = buildProductJsonLd({
-      ...baseInput,
-      aggregateRating: { ratingValue: 4.7, reviewCount: 3 },
-    }) as { aggregateRating: { ratingValue: string } }
-    assert.equal(ld.aggregateRating.ratingValue, '4.7')
-  })
-
-  it('falls back SKU to slug when not given', () => {
-    const ld = buildProductJsonLd(baseInput) as { sku: string }
-    assert.equal(ld.sku, 'beef-fresh')
+    assert.equal('potentialAction' in ld, false)
+    assert.equal(ld.publisher['@id'], `${SITE_URL}/#organization`)
   })
 })
 

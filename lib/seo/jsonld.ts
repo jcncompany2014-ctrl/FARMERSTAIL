@@ -105,8 +105,11 @@ export function buildOrganizationJsonLd() {
 }
 
 /**
- * WebSite 스키마 — Google 의 sitelinks search box 지원. 사용자가 브랜드명으로
- * 검색할 때 결과 카드 안에 검색창을 띄워 주는 기능.
+ * WebSite 스키마.
+ *
+ * SearchAction(sitelinks search box) 은 제거(2026-07-03 감사) — 대상이던
+ * /products 검색이 구독전용 전환으로 폐지(→/start redirect, 쿼리 증발)됐고,
+ * Google 도 2024-10 부로 사이트링크 검색박스 지원을 종료함.
  */
 export function buildWebSiteJsonLd() {
   return {
@@ -118,84 +121,12 @@ export function buildWebSiteJsonLd() {
     url: SITE_URL,
     inLanguage: 'ko-KR',
     publisher: { '@id': `${SITE_URL}/#organization` },
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: `${SITE_URL}/products?q={search_term_string}`,
-      },
-      'query-input': 'required name=search_term_string',
-    },
   } as const
 }
 
-export type ProductJsonLdInput = {
-  name: string
-  slug: string
-  description: string
-  image: string[]
-  price: number
-  salePrice?: number | null
-  /** 실제 재고가 있으면 InStock, 아니면 OutOfStock. */
-  inStock: boolean
-  /** product_variants.sku 대표값 등. 없으면 slug 로 대체. */
-  sku?: string
-  /** 카테고리 경로 (예: "반려견 식품 > 화식") */
-  category?: string
-  /** ≥1 이상의 리뷰가 존재할 때만. 없으면 undefined. */
-  aggregateRating?: {
-    ratingValue: number
-    reviewCount: number
-  }
-  /** 할인 종료 시간이 확정되어 있으면 ISO 8601. */
-  priceValidUntil?: string
-}
-
-/**
- * Product 스키마 — Google Shopping 리치리절트 eligibility.
- * 가격 · 재고 · 이미지 · SKU 가 모두 들어가면 별점과 가격이 검색결과에 노출된다.
- */
-export function buildProductJsonLd(input: ProductJsonLdInput) {
-  const finalPrice = input.salePrice ?? input.price
-  const offer: Record<string, unknown> = {
-    '@type': 'Offer',
-    priceCurrency: 'KRW',
-    price: finalPrice,
-    availability: input.inStock
-      ? 'https://schema.org/InStock'
-      : 'https://schema.org/OutOfStock',
-    url: `${SITE_URL}/products/${input.slug}`,
-    // 판매자 (자체 D2C) — Google 이 "파는 주체" 를 명시하길 권장.
-    seller: { '@type': 'Organization', name: SITE_NAME },
-  }
-  if (input.priceValidUntil) {
-    offer.priceValidUntil = input.priceValidUntil
-  }
-
-  const data: Record<string, unknown> = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: input.name,
-    description: input.description,
-    image: input.image,
-    sku: input.sku ?? input.slug,
-    brand: { '@type': 'Brand', name: SITE_NAME },
-    offers: offer,
-  }
-  if (input.category) {
-    data.category = input.category
-  }
-  if (input.aggregateRating && input.aggregateRating.reviewCount > 0) {
-    data.aggregateRating = {
-      '@type': 'AggregateRating',
-      ratingValue: input.aggregateRating.ratingValue.toFixed(1),
-      reviewCount: input.aggregateRating.reviewCount,
-      bestRating: '5',
-      worstRating: '1',
-    }
-  }
-  return data
-}
+// buildProductJsonLd(Product 리치리절트 빌더)는 2026-07-03 감사에서 제거 —
+// 호출처 0(죽은 export)인 데다 offer.url 이 폐지된 /products/[slug] 를 가리켰음.
+// 구독 상품 LD 가 필요해지면 /subscribe 경로 기준으로 새로 설계할 것.
 
 export type BreadcrumbItem = {
   name: string

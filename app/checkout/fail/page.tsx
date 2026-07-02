@@ -78,8 +78,10 @@ export default async function CheckoutFailPage({
       )}
 
       <section className="px-5 md:px-6 mt-6 md:mt-8 space-y-2 md:flex md:gap-3 md:space-y-0">
+        {/* /checkout 은 구독전용 전환으로 redirect('/start') — 재시도 진입점이
+            아님(2026-07-03 감사 정정). 실패한 주문 확인은 주문 내역이 정답. */}
         <Link
-          href="/checkout"
+          href="/mypage/orders"
           className="block w-full md:flex-1 text-center py-4 md:py-4.5 rounded-full text-[14px] md:text-[15px] font-bold active:scale-[0.98] transition"
           style={{
             background: 'var(--ink)',
@@ -88,7 +90,7 @@ export default async function CheckoutFailPage({
             boxShadow: '0 4px 14px rgba(30,26,20,0.25)',
           }}
         >
-          결제 다시 시도하기
+          주문 내역 확인하기
         </Link>
         <Link
           href="/"
