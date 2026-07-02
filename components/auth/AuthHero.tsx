@@ -7,7 +7,8 @@ import Link from 'next/link'
  * Why this exists:
  *   비밀번호 찾기/재설정 같은 트랜잭션성 인증 화면을 중앙 정렬 단일 컬럼 hero
  *   로 통일해, 두 페이지가 서로 일관된 FD 언어를 갖게 한다. (주 진입점인
- *   /login·/signup 은 별도로 2단 split 브랜드 패널을 인라인으로 갖는다 — 회차129.
+ *   /login 은 별도로 2단 split 브랜드 패널을 인라인으로 갖는다 — 회차129.
+ *   /signup 은 설문 자동가입(/start) 전환으로 리타이어.
  *   AuthHero 를 브랜드 패널로 승격하는 대신, 두 tier 를 의도적으로 구분: 주
  *   진입=브랜드 패널, 보조 트랜잭션=집중형 중앙 hero.)
  *

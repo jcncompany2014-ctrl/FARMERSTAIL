@@ -4,7 +4,7 @@ import Onboarding from '@/components/Onboarding'
  * First-launch onboarding. The standalone-mode PWA gate
  * (`components/OnboardingGate.tsx`) redirects installed-app visitors here
  * once; after the final slide's CTA fires, we mark
- * `localStorage['ft_onboarded']` and navigate to /signup or /login.
+ * `localStorage['ft_onboarded']` and navigate to /start or /login.
  *
  * The actual slideshow is a client component — this page is intentionally
  * thin so the route stays a server component and Next can prerender the

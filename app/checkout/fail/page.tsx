@@ -79,7 +79,7 @@ export default async function CheckoutFailPage({
 
       <section className="px-5 md:px-6 mt-6 md:mt-8 space-y-2 md:flex md:gap-3 md:space-y-0">
         <Link
-          href="/cart"
+          href="/checkout"
           className="block w-full md:flex-1 text-center py-4 md:py-4.5 rounded-full text-[14px] md:text-[15px] font-bold active:scale-[0.98] transition"
           style={{
             background: 'var(--ink)',
@@ -88,13 +88,13 @@ export default async function CheckoutFailPage({
             boxShadow: '0 4px 14px rgba(30,26,20,0.25)',
           }}
         >
-          장바구니로 돌아가기
+          결제 다시 시도하기
         </Link>
         <Link
-          href="/products"
+          href="/"
           className="block w-full md:flex-1 text-center py-4 md:py-4.5 rounded-full bg-white border border-rule text-[13px] md:text-[14px] font-bold text-muted active:scale-[0.98] transition"
         >
-          쇼핑 계속하기
+          홈으로 돌아가기
         </Link>
       </section>
     </main>

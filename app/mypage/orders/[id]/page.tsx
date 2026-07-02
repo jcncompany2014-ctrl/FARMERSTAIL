@@ -13,7 +13,6 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import CopyButton from '@/components/ui/CopyButton'
-import ReorderButton from './ReorderButton'
 import CancelOrderButton from './CancelOrderButton'
 import {
   bankCodeLabel,
@@ -193,7 +192,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
                 )}
                 {isPaid && (
                   <p className="text-[10px] text-muted mt-2 leading-relaxed">
-                    결제 금액은 3-5 영업일 내 환불, 사용한 포인트와 쿠폰은
+                    결제 금액은 3-5 영업일 내 환불, 사용한 포인트는
                     환원되었어요.
                   </p>
                 )}
@@ -600,21 +599,6 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
           </dl>
         </div>
       </section>
-
-      {/* 재주문 CTA: 결제 완료 주문에만 노출 */}
-      {isPaid && items.length > 0 && (
-        <section className="px-5 mt-4">
-          <ReorderButton
-            items={items.map((it: { product_id: string; quantity: number }) => ({
-              product_id: it.product_id,
-              quantity: it.quantity,
-            }))}
-          />
-          <p className="mt-2 text-[10px] text-muted text-center">
-            장바구니에 동일 상품이 있으면 수량이 합쳐져요.
-          </p>
-        </section>
-      )}
 
       {/* 주문 취소: 배송 시작 전에만 노출 */}
       {isCancellable && (

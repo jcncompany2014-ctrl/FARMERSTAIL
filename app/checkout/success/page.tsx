@@ -388,10 +388,10 @@ function SuccessView({
           주문 상세 보기
         </Link>
         <Link
-          href="/products"
+          href="/"
           className="block w-full md:flex-1 text-center py-4 md:py-4.5 rounded-full bg-white border border-rule text-[13px] md:text-[14px] font-bold text-muted active:scale-[0.98] transition"
         >
-          쇼핑 계속하기
+          홈으로 가기
         </Link>
       </section>
     </main>

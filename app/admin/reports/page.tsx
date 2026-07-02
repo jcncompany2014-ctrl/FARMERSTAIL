@@ -301,7 +301,7 @@ export default async function AdminReportsPage({
         <span className="kicker kicker-muted">차감 항목</span>
         <div className="mt-2 grid grid-cols-3 gap-2 text-[12px]">
           <div>
-            <span className="text-muted">쿠폰 할인</span>
+            <span className="text-muted">할인</span>
             <div className="font-bold tabular-nums text-text">
               -{totalDiscount.toLocaleString()}원
             </div>

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
  *
  * 공유 ErrorScreen(components/ui/** — 직접 수정 금지) 의존을 떼고, FD 프리미티브로
  * 자체 구성한 chrome 비의존 중앙정렬 화면. app/web 양쪽에서 동일하게 동작하도록
- * WebChrome/AppChrome 을 강제하지 않음. CTA 는 설문 퍼널(/signup), 커머스(/products)
+ * WebChrome/AppChrome 을 강제하지 않음. CTA 는 설문 퍼널(/start)·홈(/), 커머스
  * 링크 제거. 큰 "404" 숫자 + 그린 eyebrow + 파인 헤드라인 + 코랄 pill.
  */
 export default function NotFound() {

@@ -556,7 +556,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                     ))}
                   </div>
                 )}
-                {/* 가격 바 — 첫 박스 50% (실제 쿠폰). 잠정 단가, 첫 주문 시 확정. */}
+                {/* 가격 바 — 첫 박스 50% (실제 첫 주문 자동할인). 잠정 단가, 첫 주문 시 확정. */}
                 <div className="rounded-[12px]" style={{ marginTop: 10, padding: '13px 16px', background: 'var(--fd-cream)', boxShadow: 'inset 0 0 0 1px var(--fd-line)', display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--fd-pine)' }}>첫 박스</span>
                   <span style={{ fontSize: 12.5, color: 'var(--fd-muted)', textDecoration: 'line-through' }}>하루 {plan.dailyKrw.toLocaleString()}원</span>

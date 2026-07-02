@@ -375,8 +375,8 @@ export default function WebChrome({
               />
             </Link>
             {/* CTA pill — 스크롤 내리면 로고 자리에 등장(FD 'Redeem 50% off' pill 대응).
-                '첫 주문 50% 할인'=실구현 첫 박스 50% 쿠폰(Round B) 실제 프로모라 정직성 OK.
-                링크=signup→설문→첫 주문에 쿠폰 적용(사장님 2026-06-15). */}
+                '첫 주문 50% 할인'=실구현 첫 주문 50% 자동할인(쿠폰 폐지 전환) 실제
+                프로모라 정직성 OK. 링크=/start 설문 퍼널→가입→첫 주문 자동 적용. */}
             <Link
               href={isAuthed ? '/dogs/new' : '/start'}
               aria-hidden={showLogo}

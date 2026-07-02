@@ -4,9 +4,7 @@
   "functions": {
     "app/api/cron/subscription-charge/route.ts": { "maxDuration": 300 },
     "app/api/cron/personalization-progression/route.ts": { "maxDuration": 300 },
-    "app/api/cron/cart-recovery/route.ts": { "maxDuration": 300 },
     "app/api/cron/subscription-reminders/route.ts": { "maxDuration": 120 },
-    "app/api/cron/restock-alerts/route.ts": { "maxDuration": 120 },
     "app/api/cron/review-prompts/route.ts": { "maxDuration": 120 },
     "app/api/cron/dog-age-update/route.ts": { "maxDuration": 120 },
     "app/api/cron/personalization-approval-timeout/route.ts": { "maxDuration": 60 },
@@ -35,20 +33,12 @@
   },
   "crons": [
     {
-      "path": "/api/cron/cart-recovery",
-      "schedule": "0 9 * * *"
-    },
-    {
       "path": "/api/cron/subscription-reminders",
       "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/subscription-charge",
       "schedule": "0 19 * * *"
-    },
-    {
-      "path": "/api/cron/restock-alerts",
-      "schedule": "0 1 * * *"
     },
     {
       "path": "/api/cron/review-prompts",

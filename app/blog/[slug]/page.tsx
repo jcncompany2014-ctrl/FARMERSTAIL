@@ -319,8 +319,8 @@ export default async function BlogPostPage({ params }: { params: Params }) {
         FD 패턴: 기사 스크롤 끝에서 모바일 하단 sticky CTA(설문 퍼널). /blog
         인덱스(회차98)와 동일 노출. 단 이 페이지는 ISR(revalidate 300) 최적화를
         보존해야 하므로 isAuthed 분기를 위한 getUser 를 호출하지 않고 정적
-        /signup 으로 보낸다(authed 는 /signup 이 리다이렉트 처리 — not-found.tsx
-        회차125 선례와 동일). 캐시 보존 > authed/anon href 미세 구분.
+        /start 로 보낸다(설문 자동가입 퍼널 — not-found.tsx 회차125 선례와
+        동일). 캐시 보존 > authed/anon href 미세 구분.
       */}
       <StickyCta href="/start" />
     </WebChrome>
