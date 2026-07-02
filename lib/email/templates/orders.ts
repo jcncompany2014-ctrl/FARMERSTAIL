@@ -266,7 +266,7 @@ export function renderWelcome(input: {
     kicker: 'Welcome · 반가워요',
     heading: '가족이 되어주셔서 감사해요',
     icon: '🐶',
-    preview: '파머스테일에 가입해주셔서 감사해요. 첫 주문 50% 할인이 기다려요.',
+    preview: '파머스테일에 가입해주셔서 감사해요. 첫 주문 50% 할인이 기다리고 있어요.',
     body,
     cta: {
       label: '맞춤 플랜 시작하기',
