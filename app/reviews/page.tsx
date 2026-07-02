@@ -119,13 +119,53 @@ function ReviewsHero({ isAuthed }: { isAuthed: boolean }) {
   )
 }
 
-// 2. Dog roster slider (FD: 아이 이름·지역 로스터) — placeholder ============
-function DogCard() {
+// 2. Dog roster slider (FD: 아이 이름·지역 로스터)
+// ⚠️ 테스트 예시 데이터 — 실제 후기/고객 아님. 실 데이터 연동 전 화면 확인용.
+const EXAMPLE_DOGS = [
+  { img: '/dog-portrait.jpg', name: '보리', region: '서울 · 골든리트리버' },
+  { img: '/dog-corgi.jpg', name: '초코', region: '경기 · 웰시코기' },
+  { img: '/dog-poodle.jpg', name: '몽이', region: '부산 · 푸들' },
+  { img: '/dog-maltese.jpg', name: '뭉치', region: '인천 · 말티즈' },
+  { img: '/dog-mixed.jpg', name: '해피', region: '대구 · 믹스견' },
+  { img: '/dog-corgi.jpg', name: '두부', region: '광주 · 웰시코기' },
+  { img: '/dog-poodle.jpg', name: '라떼', region: '대전 · 푸들' },
+  { img: '/dog-portrait.jpg', name: '골디', region: '울산 · 리트리버' },
+]
+
+/** 테스트/예시 데이터임을 알리는 작은 배지. 실 데이터 연동 시 제거. */
+function TestBadge() {
+  return (
+    <span
+      style={{
+        fontSize: 10,
+        fontWeight: 800,
+        color: 'var(--fd-muted)',
+        background: 'var(--fd-cream)',
+        border: '1px solid var(--fd-line)',
+        borderRadius: 999,
+        padding: '2px 8px',
+        letterSpacing: '0.02em',
+      }}
+    >
+      테스트 예시
+    </span>
+  )
+}
+
+function DogCard({
+  img,
+  name,
+  region,
+}: {
+  img: string
+  name: string
+  region: string
+}) {
   return (
     <div className="snap-start shrink-0 w-[160px] md:w-[180px] text-center" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '16px 14px' }}>
-      <PhotoSlot src="/dog-portrait.jpg" alt="건강하고 행복한 강아지" label="아이 사진" ratio="1 / 1" tone="cream" rounded={999} className="w-full" />
-      <p className="pt-3 text-[13px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>아이 이름 자리</p>
-      <p className="pt-0.5 text-[11.5px]" style={{ color: 'var(--fd-muted)', fontWeight: 600 }}>지역 · 견종</p>
+      <PhotoSlot src={img} alt={name} label="아이 사진" ratio="1 / 1" tone="cream" rounded={999} className="w-full" />
+      <p className="pt-3 text-[13px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>{name}</p>
+      <p className="pt-0.5 text-[11.5px]" style={{ color: 'var(--fd-muted)', fontWeight: 600 }}>{region}</p>
     </div>
   )
 }
@@ -135,15 +175,16 @@ function DogRoster() {
     <Section bg="cream" pad="sm">
       <Container size="xl">
         <Reveal>
-          <p className="text-center text-[13px]" style={{ fontWeight: 700, color: 'var(--fd-muted)', letterSpacing: '0.04em' }}>
+          <p className="text-center text-[13px] flex items-center justify-center gap-2 flex-wrap" style={{ fontWeight: 700, color: 'var(--fd-muted)', letterSpacing: '0.04em' }}>
             먹어본 아이들이 이 자리에 모여요
+            <TestBadge />
           </p>
         </Reveal>
         <div className="pt-5">
           <Reveal>
             <FdSlider ariaLabel="아이 로스터">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <DogCard key={i} />
+              {EXAMPLE_DOGS.map((d, i) => (
+                <DogCard key={i} {...d} />
               ))}
             </FdSlider>
           </Reveal>

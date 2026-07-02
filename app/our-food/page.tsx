@@ -119,12 +119,12 @@ function FoodHero({ isAuthed }: { isAuthed: boolean }) {
 
 // 2. Ingredients grid ========================================================
 const INGREDIENTS = [
-  { label: '닭고기 사진', sub: '담백한 단백질', tone: 'offwhite' as const },
-  { label: '오리고기 사진', sub: '부드러운 단백질', tone: 'cream' as const },
-  { label: '단호박 사진', sub: '천천히 타는 에너지', tone: 'green' as const },
-  { label: '당근 사진', sub: '색이 살아있는 채소', tone: 'coral' as const },
-  { label: '브로콜리 사진', sub: '한 끼에 더하는 초록', tone: 'pine' as const },
-  { label: '현미 사진', sub: '든든한 곡물', tone: 'offwhite' as const },
+  { label: '닭고기', sub: '담백한 단백질', tone: 'offwhite' as const, img: '/ing-chicken.jpg' },
+  { label: '오리고기', sub: '부드러운 단백질', tone: 'cream' as const, img: '/ing-duck.jpg' },
+  { label: '단호박', sub: '천천히 타는 에너지', tone: 'green' as const, img: '/ing-pumpkin.jpg' },
+  { label: '당근', sub: '색이 살아있는 채소', tone: 'coral' as const, img: '/ing-carrot.jpg' },
+  { label: '브로콜리', sub: '한 끼에 더하는 초록', tone: 'pine' as const, img: '/ing-broccoli.jpg' },
+  { label: '현미', sub: '든든한 곡물', tone: 'offwhite' as const, img: '/ing-brownrice.jpg' },
 ]
 
 function Ingredients() {
@@ -149,7 +149,7 @@ function Ingredients() {
           {INGREDIENTS.map((ing, i) => (
             <Reveal key={ing.label} delay={i * 70}>
               <div>
-                <PhotoSlot label={ing.label} ratio="1 / 1" tone={ing.tone} rounded={8} className="w-full" />
+                <PhotoSlot src={ing.img} alt={ing.label} label={ing.label} ratio="1 / 1" tone={ing.tone} rounded={8} className="w-full" />
                 <p className="pt-3 text-[13.5px] md:text-[14px]" style={{ fontWeight: 700, color: 'var(--fd-pine)', letterSpacing: '-0.01em' }}>{ing.sub}</p>
               </div>
             </Reveal>
@@ -364,12 +364,12 @@ function DualProduct({ isAuthed }: { isAuthed: boolean }) {
         </Reveal>
         <div className="pt-10 md:pt-14 grid md:grid-cols-2 gap-4 md:gap-6">
           {[
-            { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.' },
-            { label: '토퍼 · 간식 사진', sub: '한 끼에 더하는 토퍼', k: '플러스', t: '토퍼 · 간식', d: '입맛을 살리는 신선 토퍼와 간식을 자유롭게.' },
+            { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/product-main.jpg' },
+            { label: '토퍼 · 간식 사진', sub: '한 끼에 더하는 토퍼', k: '플러스', t: '토퍼 · 간식', d: '입맛을 살리는 신선 토퍼와 간식을 자유롭게.', img: '/product-topper.jpg' },
           ].map((p, i) => (
             <Reveal key={p.t} delay={i * 90}>
               <div style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>
-                <PhotoSlot label={p.label} sub={p.sub} ratio="16 / 10" tone="cream" rounded={0} className="w-full" />
+                <PhotoSlot src={p.img} alt={p.t} label={p.label} sub={p.sub} ratio="16 / 10" tone="cream" rounded={0} className="w-full" />
                 <div style={{ padding: '20px 22px' }}>
                   <div className="text-[10px]" style={{ fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)' }}>{p.k}</div>
                   <h3 className="pt-1.5 text-[18px] md:text-[20px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>{p.t}</h3>
