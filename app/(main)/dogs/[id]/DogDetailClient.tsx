@@ -202,7 +202,7 @@ export default function DogDetailClient({
     }
 
     if (!data || data.length === 0) {
-      toast.error('삭제 권한이 없어요. 이 강아지는 다른 계정에 속해있어요')
+      toast.error('삭제 권한이 없어요. 이 강아지는 다른 계정에 속해 있어요')
       setDeleting(false)
       setShowDeleteConfirm(false)
       return

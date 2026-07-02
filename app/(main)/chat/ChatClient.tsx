@@ -164,7 +164,7 @@ export default function ChatClient({
         const data = (await res
           .json()
           .catch(() => ({}))) as { message?: string }
-        throw new Error(data.message ?? '응답에 실패했어요')
+        throw new Error(data.message ?? '응답을 받지 못했어요')
       }
 
       // SSE 파싱 — data: <JSON>\n\n  형식. {delta} 또는 [DONE].

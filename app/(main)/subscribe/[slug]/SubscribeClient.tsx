@@ -143,7 +143,7 @@ export default function SubscribeClient({
 
   async function handleSubmit() {
     if (!recipientName || !recipientPhone || !recipientAddress) {
-      toast.error('수령인 정보를 모두 입력해 주세요.')
+      toast.error('수령인 정보를 모두 입력해 주세요')
       return
     }
     setSubmitting(true)
@@ -204,7 +204,7 @@ export default function SubscribeClient({
       .single()
 
     if (subErr || !sub) {
-      toast.error('정기배송 신청에 실패했어요')
+      toast.error('정기배송을 신청하지 못했어요')
       setSubmitting(false)
       return
     }

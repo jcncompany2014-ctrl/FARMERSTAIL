@@ -43,7 +43,7 @@ function DoneInner() {
                 style={{ maxWidth: 440, lineHeight: 1.7, color: 'var(--fd-muted)' }}
               >
                 <b style={{ color: 'var(--fd-pine)' }}>{name}</b> 맞춤 분석이 준비됐어요.
-                38개 영양소 정밀 분석과 맞춤 레시피는 앱에서 이어집니다.
+                38개 영양소 정밀 분석과 맞춤 레시피는 앱에서 이어져요.
               </p>
 
               {/* 앱 다운로드 — 실제 스토어 배지는 출시 시 주입(PhotoSlot src). */}
@@ -61,7 +61,7 @@ function DoneInner() {
                 >
                   앱에서 로그인
                 </Link>
-                하세요.
+                해 주세요.
               </p>
             </div>
           </Container>

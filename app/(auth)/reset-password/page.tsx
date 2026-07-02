@@ -127,7 +127,7 @@ export default function ResetPasswordPage() {
         <AuthHero
           kicker="Reset · 비밀번호 재설정"
           title={<>새 비밀번호</>}
-          subtitle="새로운 비밀번호를 입력하시면 즉시 적용됩니다."
+          subtitle="새 비밀번호를 입력하면 바로 적용돼요."
         />
 
         {exchanging ? (

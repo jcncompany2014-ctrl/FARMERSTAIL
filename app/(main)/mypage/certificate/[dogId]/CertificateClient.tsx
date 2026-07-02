@@ -80,7 +80,7 @@ export default function CertificateClient({
       toast.success('이미지를 저장했어요')
     } catch (err) {
       console.error('certificate download failed', err)
-      toast.error('이미지 저장에 실패했어요. 인쇄 메뉴를 사용해 주세요')
+      toast.error('이미지를 저장하지 못했어요. 인쇄 메뉴를 사용해 주세요')
     }
   }
 
@@ -99,7 +99,7 @@ export default function CertificateClient({
       await navigator.clipboard.writeText(shareUrl)
       toast.success('링크를 복사했어요')
     } catch {
-      toast.error('공유에 실패했어요')
+      toast.error('공유하지 못했어요')
     }
   }
 

@@ -74,7 +74,7 @@ export default function ConsentSettingsClient({
       setState(prev)
       // audit #69 일관성 — 원본 RPC error message 노출 제거(서버 로그만).
       console.error('[consent] set_marketing_consent failed', rpcErr.message)
-      setError('저장에 실패했어요')
+      setError('저장하지 못했어요')
       setSaving(null)
       return
     }

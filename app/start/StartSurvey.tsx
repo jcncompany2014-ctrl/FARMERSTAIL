@@ -482,7 +482,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
             {teaser.dogName}에게는 <b style={{ color: 'var(--fd-pine)' }}>{teaser.proteins.join('·')} 기반 신선 화식</b>을 권장해요. 하루 권장량 {teaser.feedG.toLocaleString()}g을 1~2회로 나눠 급여하면 좋아요.
           </p>
           {nu?.vetConsult && (
-            <p style={{ marginTop: 6, fontSize: 11.5, color: 'var(--fd-coral-text)', fontWeight: 600 }}>※ 입력하신 정보상 수의사 상담을 함께 권장드려요.</p>
+            <p style={{ marginTop: 6, fontSize: 11.5, color: 'var(--fd-coral-text)', fontWeight: 600 }}>※ 입력하신 정보를 보면 수의사 상담도 함께 권해 드려요.</p>
           )}
         </div>
         <p style={{ marginTop: 10, fontSize: 11.5, color: 'var(--fd-muted)', lineHeight: 1.55 }}>
@@ -495,7 +495,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
             <div className="rounded-[12px] px-5 py-5 text-center" style={{ marginTop: 18, background: 'var(--fd-pine)', color: 'var(--fd-offwhite)' }}>
               <p style={{ fontSize: 13, lineHeight: 1.6, color: 'rgba(245,240,230,0.9)' }}>
                 <b>{email}</b>로 인증 메일을 보냈어요.
-                <br />메일의 링크를 누른 뒤 로그인하면 앱에서 정밀 분석을 저장·열람할 수 있어요.
+                <br />메일 속 링크를 누른 뒤 로그인하면 정밀 분석을 앱에서 저장하고 볼 수 있어요.
               </p>
             </div>
             <div style={{ textAlign: 'center', marginTop: 16 }}>
@@ -516,7 +516,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                 <h3 style={{ marginTop: 8, fontSize: 18, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>{teaser.dogName} 맞춤 신선식 플랜</h3>
                 <p style={{ marginTop: 4, fontSize: 12.5, color: 'var(--fd-muted)' }}>
                   {plan.noSafeRecipe
-                    ? `하루 약 ${plan.dailyKrw.toLocaleString()}원부터 · 맞춤 레시피는 상담으로 안내해드려요`
+                    ? `하루 약 ${plan.dailyKrw.toLocaleString()}원부터 · 맞춤 레시피는 상담으로 안내해 드려요`
                     : `추천 레시피 ${plan.recipes.length}종 · 하루 약 ${plan.dailyKrw.toLocaleString()}원부터`}
                 </p>
                 {/* 📸 신선식 상품 사진 (누끼 밀팩) */}
@@ -604,10 +604,10 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
 
             <div className="rounded-[12px] px-5 py-5" style={{ marginTop: 12, background: 'var(--fd-pine)' }}>
               <p style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--fd-offwhite)', lineHeight: 1.45, textAlign: 'center' }}>
-                이 맞춤 구독으로<br />시작해보세요
+                이 맞춤 플랜으로<br />시작해 보세요
               </p>
               <p style={{ marginTop: 6, fontSize: 11.5, color: 'rgba(245,240,230,0.72)', lineHeight: 1.5, textAlign: 'center' }}>
-                3초면 끝나요. 첫 박스는 50% 할인된 가격으로 받아보실 수 있어요.
+                가입은 3초면 끝나요. 첫 박스는 50% 할인 가격으로 받아볼 수 있어요.
               </p>
               <div style={{ marginTop: 14 }}>
                 {/* 카카오 = 메인 저장 경로. 복귀 시 /start/claim 이 초안을 계정으로 이관. */}

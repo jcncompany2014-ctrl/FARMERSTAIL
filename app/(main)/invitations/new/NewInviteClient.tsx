@@ -43,7 +43,7 @@ export default function NewInviteClient({ dogs }: { dogs: DogOption[] }) {
             ? '이메일 형식이 맞지 않아요'
             : payload.error === 'dog_not_found'
               ? '선택한 강아지를 찾지 못했어요'
-              : '초대 발급에 실패했어요. 잠시 후 다시 시도해 주세요',
+              : '초대장을 만들지 못했어요. 잠시 후 다시 시도해 주세요',
         )
         return
       }

@@ -214,7 +214,7 @@ export default function CheckinClient({
       if (upErr) {
         // audit #69 일관성 — 원본 storage error message(내부 경로·정책 details) 노출 제거.
         console.error('[checkin] photo upload failed:', upErr.message)
-        setErr('사진 업로드에 실패했어요')
+        setErr('사진을 올리지 못했어요')
         return
       }
       // signed URL 발급 (1시간) — bucket private 라 public URL 안 됨.
@@ -278,7 +278,7 @@ export default function CheckinClient({
         | { ok?: false; code?: string; message?: string }
       if (!res.ok || !('ok' in json) || json.ok !== true) {
         const msg =
-          ('message' in json && json.message) || '응답 저장에 실패했어요'
+          ('message' in json && json.message) || '응답을 저장하지 못했어요'
         setErr(msg)
         return
       }

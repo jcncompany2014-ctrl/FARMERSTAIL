@@ -60,14 +60,14 @@ export default function ApproveClient({
         | { ok?: false; code?: string; message?: string }
       if (!res.ok || !('ok' in json) || json.ok !== true) {
         const msg =
-          ('message' in json && json.message) || '저장에 실패했어요'
+          ('message' in json && json.message) || '저장하지 못했어요'
         setErr(msg)
         return
       }
       haptic('confirm')
       trackBoxDecision({ dogId, cycleNumber, decision })
       if (decision === 'approve') {
-        toast.success('새 비율 적용됐어요')
+        toast.success('새 비율이 적용됐어요')
       } else {
         toast.success('이전 비율 그대로 유지할게요')
       }

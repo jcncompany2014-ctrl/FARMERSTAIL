@@ -56,9 +56,9 @@ export default function StartPage() {
                   className="pt-5 text-[15px] md:text-[18px]"
                   style={{ maxWidth: 560, lineHeight: 1.7, color: 'var(--fd-muted)' }}
                 >
-                  가입은 나중에 해도 괜찮아요. 먼저 2분 설문으로, 우리 아이에게
+                  가입은 나중에 해도 괜찮아요. 먼저 2분 설문으로 우리 아이에게
                   맞는 수의영양 기준 식단을 받아보세요. 결과가 마음에 들면 그때
-                  저장하면 됩니다.
+                  저장하면 돼요.
                 </p>
               </Reveal>
               {/* 📸 메인 비주얼 — 강아지 + 신선식 누끼 (히어로 대표 이미지) */}

@@ -54,7 +54,7 @@ export default function DeleteAccountForm() {
 
     if (!res.ok) {
       setLoading(false)
-      setError(data?.message ?? '탈퇴 처리에 실패했어요')
+      setError(data?.message ?? '탈퇴를 처리하지 못했어요')
       return
     }
 

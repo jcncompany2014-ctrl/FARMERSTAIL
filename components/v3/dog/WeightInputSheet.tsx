@@ -288,7 +288,7 @@ export default function WeightInputSheet({
             letterSpacing: '-0.005em',
           }}
         >
-          {saving ? '저장 중...' : `${val.toFixed(1)} kg 으로 저장`}
+          {saving ? '저장 중...' : `${val.toFixed(1)}kg으로 저장`}
         </button>
       </BottomSheet.Footer>
     </BottomSheet>

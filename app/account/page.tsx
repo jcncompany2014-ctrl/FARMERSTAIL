@@ -138,7 +138,8 @@ export default async function AccountPage() {
 
   // 비중↓ — 박스 대신 얕은 텍스트 링크 (중요도 낮은 정보)
   const helpLinks: { href: string; label: string }[] = [
-    { href: '/business', label: '고객센터' },
+    // '고객센터'가 /business(사업자 정보)로 가던 미스매치 정정 — 1:1 문의는 /contact.
+    { href: '/contact', label: '1:1 문의' },
     { href: '/faq', label: '자주 묻는 질문' },
     { href: '/legal/refund', label: '환불 정책' },
   ]

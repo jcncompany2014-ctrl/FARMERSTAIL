@@ -525,7 +525,7 @@ export default function OrderClient({
         .select('id')
         .single()
       if (subErr || !sub) {
-        setErr('정기배송 신청에 실패했어요. 다시 시도해 주세요.')
+        setErr('정기배송을 신청하지 못했어요. 다시 시도해 주세요.')
         return
       }
       const itemRows = subscribable.map((it) => {

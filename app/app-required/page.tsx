@@ -84,10 +84,26 @@ export default async function AppRequiredPage({
             color: 'var(--text)',
           }}
         >
-          정기배송 관리 · 강아지 케어 기록 · 컨디션 분석 같은 도구는
+          매일의 케어 기록 · 정밀 영양 분석 · 건강 수첩 같은 도구는
           <br className="hidden md:block" />
           {' '}파머스테일 앱에서만 제공돼요.
         </p>
+
+        {/* 정기배송 관리는 웹 계정에서도 가능 (2026-06-27 /account/subscriptions 신설) —
+            앱 설치 없이 해결하러 온 사용자를 막다른 길에 두지 않는다. */}
+        {from?.startsWith('/mypage/subscriptions') && (
+          <p className="mt-3 text-[12.5px] md:text-[14px]" style={{ color: 'var(--muted)' }}>
+            정기배송 관리는{' '}
+            <Link
+              href="/account/subscriptions"
+              className="font-bold underline underline-offset-2"
+              style={{ color: 'var(--terracotta)' }}
+            >
+              웹 계정에서도
+            </Link>
+            {' '}할 수 있어요.
+          </p>
+        )}
 
         {/* 기능 미리보기 */}
         <ul
@@ -124,7 +140,7 @@ export default async function AppRequiredPage({
               letterSpacing: '-0.01em',
             }}
           >
-            App Store 에서 받기
+            App Store에서 받기
           </a>
           <a
             href="https://play.google.com/store/apps/details?id=com.farmerstail.app"
@@ -138,19 +154,29 @@ export default async function AppRequiredPage({
               letterSpacing: '-0.01em',
             }}
           >
-            Google Play 에서 받기
+            Google Play에서 받기
           </a>
         </div>
 
-        {/* 웹으로 계속 — 마케팅 / 정보 페이지로 회귀 */}
-        <Link
-          href="/"
-          className="mt-8 inline-flex items-center gap-1.5 text-[12px] font-bold transition hover:underline"
-          style={{ color: 'var(--muted)' }}
-        >
-          웹에서 제품 둘러보기
-          <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
-        </Link>
+        {/* 웹으로 계속 — 앱 소개(/why-app) + 마케팅 페이지 회귀 */}
+        <div className="mt-8 flex items-center justify-center gap-5">
+          <Link
+            href="/why-app"
+            className="inline-flex items-center gap-1.5 text-[12px] font-bold transition hover:underline"
+            style={{ color: 'var(--terracotta)' }}
+          >
+            앱이 뭘 하는지 미리 보기
+            <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-[12px] font-bold transition hover:underline"
+            style={{ color: 'var(--muted)' }}
+          >
+            웹에서 제품 둘러보기
+            <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
+          </Link>
+        </div>
       </div>
     </main>
   )

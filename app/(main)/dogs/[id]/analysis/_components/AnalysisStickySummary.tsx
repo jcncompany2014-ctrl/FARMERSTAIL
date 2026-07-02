@@ -49,7 +49,7 @@ export default function AnalysisStickySummary({
         await navigator.clipboard.writeText(`${text}\n${shareData.url}`)
         toast.success('분석 요약을 복사했어요')
       } catch {
-        toast.error('공유에 실패했어요')
+        toast.error('공유하지 못했어요')
       }
     }
   }

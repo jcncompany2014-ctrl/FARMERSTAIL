@@ -80,7 +80,7 @@ export default function AddressForm({ mode, initial }: Props) {
       })
 
       if (!res.ok) {
-        let message = '저장에 실패했어요.'
+        let message = '저장하지 못했어요.'
         try {
           const j = await res.json()
           if (j?.issues?.length) {

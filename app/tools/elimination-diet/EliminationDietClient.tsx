@@ -89,8 +89,8 @@ const WEEKS: WeekConfig[] = [
     stage: '단일',
     title: 'Week 6 — 안정 단계',
     items: [
-      '증상 호전 시 — 단일 protein 안전 protein 으로 확정',
-      '미변화 시 — 다른 protein 으로 elimination 재시작 검토',
+      '증상이 나아지면 — 단일 단백질을 안전 단백질로 확정',
+      '변화가 없으면 — 다른 단백질로 제거식 재시작 검토',
     ],
   },
   {
@@ -98,8 +98,8 @@ const WEEKS: WeekConfig[] = [
     stage: '단일',
     title: 'Week 7 — 도전 직전',
     items: [
-      'baseline 증상 점수 기록 (가려움 NRS 0-10 / 변 1-7)',
-      '도전할 의심 protein 1종 선정',
+      '기준 증상 점수 기록 (가려움 0-10 / 변 상태 1-7)',
+      '도전할 의심 단백질 1종 선정',
     ],
   },
   {
@@ -107,10 +107,10 @@ const WEEKS: WeekConfig[] = [
     stage: '도전',
     title: 'Week 8 — 도전 (Re-challenge)',
     items: [
-      '의심 protein 소량 재도입 (예: 닭 10g)',
-      '7-14일간 증상 재발 관찰',
-      '재발 시 — 알레르겐 확정. 평생 회피.',
-      '재발 없으면 — 다른 의심 protein 으로 재도전',
+      '의심 단백질 소량 재도입 (예: 닭 10g)',
+      '7~14일간 증상 재발 관찰',
+      '재발하면 — 알레르겐 확정, 평생 회피',
+      '재발이 없으면 — 다른 의심 단백질로 재도전',
     ],
   },
 ]
