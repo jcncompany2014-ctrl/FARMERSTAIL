@@ -149,7 +149,7 @@ export default function PhotosClient({
           진행 사진
         </h1>
         <p className="mt-1 text-[12px] text-muted leading-relaxed">
-          {dogName ?? '강아지'}의 시계열 사진을 자율로 기록해요. 같은
+          {dogName ?? '강아지'}의 변화를 사진으로 차곡차곡 기록해요. 같은
           각도로 찍으면 변화가 더 잘 보여요.
         </p>
 

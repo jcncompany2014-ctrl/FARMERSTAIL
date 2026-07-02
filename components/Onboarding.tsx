@@ -141,7 +141,7 @@ function Slide01() {
           <br />
           새로운 한 끼
         </h1>
-        <p className={styles.sub}>파머스테일에 오신 걸 환영합니다</p>
+        <p className={styles.sub}>파머스테일에 오신 걸 환영해요</p>
       </div>
     </SlideFrame>
   )
@@ -162,7 +162,7 @@ function Slide02() {
         <p className={styles.sub}>
           수의사와 함께 설계한 맞춤 식단.
           <br />
-          품종·연령·컨디션에 맞춰 고르세요.
+          품종·연령·컨디션에 맞춰 만들어요.
         </p>
       </div>
     </SlideFrame>
@@ -176,24 +176,26 @@ type LineupItem = {
   label: string
 }
 
+// 구독전용 전환(2026-06-26) 반영 — 옛 3종 라인업(화식·동결건조·토퍼) 소개는
+// 폐지된 낱개 커머스 잔재라, 실제 모델(분석→맞춤 2종 믹스→정기배송)로 교체.
 const LINEUP: LineupItem[] = [
   {
-    ko: '화식',
-    en: 'FRESH',
-    copy: '매일의 한 끼',
-    label: 'FRESH',
+    ko: '정밀 분석',
+    en: 'ANALYSIS',
+    copy: '수의 임상 기준으로 우리 아이부터',
+    label: 'ANALYSIS',
   },
   {
-    ko: '동결건조',
-    en: 'FREEZE-DRIED',
-    copy: '가벼운 간식 · 트래블',
-    label: 'FREEZE-DRIED',
+    ko: '맞춤 화식 박스',
+    en: 'CUSTOM FRESH',
+    copy: '잘 맞는 레시피 2종을 골라 담아요',
+    label: 'CUSTOM FRESH',
   },
   {
-    ko: '냉동 토퍼',
-    en: 'FROZEN TOPPER',
-    copy: '사료 위에 올려 영양 추가',
-    label: 'FROZEN TOPPER',
+    ko: '정기배송',
+    en: 'SUBSCRIPTION',
+    copy: '주기에 맞춰 신선하게, 관리는 자유롭게',
+    label: 'SUBSCRIPTION',
   },
 ]
 
@@ -202,14 +204,14 @@ function Slide03() {
     <SlideFrame align="top">
       <div className={`${styles.copy} ${styles.copyTop}`}>
         <h1 className={styles.headline}>
-          세 가지 방식으로,
+          분석부터 배송까지,
           <br />
-          기호에 맞게
+          우리 아이에게 맞게
         </h1>
         <p className={styles.sub}>
-          화식 · 동결건조 · 냉동 토퍼
+          정밀 분석 · 맞춤 화식 박스 · 정기배송
           <br />
-          오늘 컨디션과 취향에 맞춰 급여하세요.
+          아이에게 맞춰 만들어 보내드려요.
         </p>
       </div>
       <div className={styles.lineup}>

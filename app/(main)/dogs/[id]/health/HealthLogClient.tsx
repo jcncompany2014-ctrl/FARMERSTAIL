@@ -133,7 +133,7 @@ export default function HealthLogClient({
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) {
-        setError('로그인이 필요합니다')
+        setError('로그인이 필요해요')
         return
       }
       const payload = {

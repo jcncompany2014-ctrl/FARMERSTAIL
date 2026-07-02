@@ -188,7 +188,7 @@ export default function RemindersClient({
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) {
-        setErr('로그인이 필요합니다')
+        setErr('로그인이 필요해요')
         return
       }
       const payload = {

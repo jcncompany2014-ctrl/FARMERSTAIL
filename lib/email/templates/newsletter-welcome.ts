@@ -68,7 +68,7 @@ export function renderNewsletterWelcome(input: {
   `
 
   const html = renderLayout({
-    preview: '파머스테일 뉴스레터에 오신 걸 환영해요. 첫 주문 50% 할인이 함께해요.',
+    preview: '파머스테일 뉴스레터에 오신 걸 환영해요. 첫 주문 50% 할인도 함께 드려요.',
     kicker: 'Welcome · 첫 메일',
     heading: '환영해요. 첫 메일이에요.',
     icon: '🐾',

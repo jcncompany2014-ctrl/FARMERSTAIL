@@ -367,7 +367,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
                   ))}
                 </ul>
               ) : (
-                <p className="text-mute">없음 (또는 미신고)</p>
+                <p className="text-mute">없음 (또는 미입력)</p>
               )}
             </div>
             <div>
@@ -379,7 +379,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
                   ))}
                 </ul>
               ) : (
-                <p className="text-mute">없음 (또는 미신고)</p>
+                <p className="text-mute">없음 (또는 미입력)</p>
               )}
             </div>
           </div>
