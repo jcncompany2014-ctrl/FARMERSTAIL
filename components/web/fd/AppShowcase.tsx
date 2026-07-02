@@ -10,51 +10,65 @@
  *   - 데스크톱(md+): 좌측 = 기능 설명 블록 4개(각 ~85vh), 우측 = sticky 폰
  *     프레임. IntersectionObserver(중앙 밴드)로 활성 블록을 추적해 폰 속
  *     화면을 crossfade(opacity+translateY) 전환.
- *   - 모바일: sticky 분할이 좁은 화면에서 겹침이 심해, 각 블록 안에 해당
- *     화면을 인라인으로 렌더(md:hidden ↔ hidden md:block).
+ *   - 모바일: 각 블록 안에 해당 화면 인라인(md:hidden ↔ hidden md:block).
  *
- * # 폰 속 화면 = 실제 앱 v3 UI 미러링 (사장님 피드백 2026-07-02)
- *   처음 버전은 웹 FD 토큰으로 임의 구성 → "처음 보는 화면" 지적. 실제 앱
- *   컴포넌트의 시각 구조를 그대로 재구성:
- *     홈    = GreetingSection(accent dot 키커·Signature ink bar·yellow Mark)
- *             + DeliveryStripCard(ink 사각+yellow 트럭·D-N mono)
- *             + QuickActionChips(paper 아이콘 사각 + mono 라벨)
- *     기록  = ThisWeekSection(7일 그리드 full=ink/partial=yellow/today=dashed
- *             accent · legend · "오늘 기록하기 →")
- *     분석  = v3 리포트 톤(mono 키커·paperHi 카드·BCS 세그먼트·meta rows)
- *     구독  = SubscriptionCard(헤더 스트립·yellow 틴트 배송행·meta rows·
- *             radius-4 버튼)
- *   색/서체는 lib/design/tokens 의 V3 상수를 직접 사용 — v3 CSS 변수는
- *   [data-ft-chrome="app"] 스코프라 웹 페이지에선 안 나오기 때문(TS 토큰이
- *   같은 값의 single source). 실스크린샷 아님("예시 화면" 명시, 앱은 로그인
- *   게이트 뒤라 캡처 불가). 가짜 후기·효능 단정 0.
+ * # 폰 속 화면 = 실제 앱 실화면 미러 (사장님 스크린샷 4장 기준, 2026-07-02 2차)
+ *   1차(v3 토큰 재구성)도 "실제 화면과 다름" 피드백 → 사장님이 실스크린샷
+ *   4장(홈/우리 아이/영양 분석/주문하기)을 제공, 그 화면을 그대로 축소 재현:
+ *     홈     = AppChrome 헤더(User·logo-ink·강아지칩) + Greeting + ActiveDogCard
+ *              (NOW FEATURING·80² 사진·4-col 스탯 체중/연속/분석/배송) + 이번 주
+ *     우리아이 = 딥헤더(←) + 탭바(개요·기록·분석·구독) + DOG PROFILE 원형사진
+ *              + 정보 rows(성별~활동량) + 현재 박스 컬러바(Basic/Premium/Skin)
+ *     분석   = 딥헤더 + 탭바 + kcal/급여량/BCS 스트립 + 오늘의 영양 진단
+ *              (dashed 링 사진·배지 칩·강조 카피·AAFCO/NRC) + MER 331
+ *     구독   = 딥헤더 + 탭바 + CUSTOM BOX 키커 + 월결제 카드 + 분량 선택
+ *              (2주치/4주치) + 추천 박스 구성(Duck 50%)
+ *   사진 = public AI 예시견(dog-poodle.jpg, 리뷰 로스터와 동일 에셋). 이름은
+ *   예시 "콩이"(실고객 아님), "예시 화면" 명시 유지. 수치는 실앱 형식 그대로.
+ *   색/서체 = lib/design/tokens V3 상수(v3 CSS 변수는 app 스코프 전용이라).
  *
  * 로직/DB 0 — presentation only. 실제 앱 코드는 불침범(토큰 import 만).
  */
 
 import { useEffect, useRef, useState } from 'react'
 import {
+  ArrowLeft,
   ArrowRight,
+  BarChart3,
+  Camera,
   Check,
-  Footprints,
-  Scale,
-  Soup,
-  Truck,
+  ChevronDown,
+  Heart,
+  PawPrint,
+  RefreshCw,
+  User,
 } from 'lucide-react'
 import { V3, V3Font } from '@/lib/design/tokens'
 import { Eyebrow, Display } from '@/components/web/fd/ui'
 
+// 라인 컬러 — lib/personalization skuModel 실값(소=와인·돼지=블러시) + V3.
+const LINE = {
+  yellow: V3.yellow, // Skin
+  terracotta: V3.accent, // Basic
+  blush: '#C97F8E',
+  sage: V3.sage,
+  wine: '#9B5B5B', // Premium
+}
+
+const sans = 'var(--font-sans)'
+
 // ---------------------------------------------------------------------------
-// v3 미니 프리미티브 — 실제 Mono / ft-card-v3 / Signature 의 축소 재현
+// v3 미니 프리미티브
 // ---------------------------------------------------------------------------
 
-/** components/v3/Mono 대응 — IBM Plex Mono ALL-CAPS 키커. */
+/** components/v3/Mono 대응 — mono ALL-CAPS 키커. */
 function MonoText({
   children,
   color = V3.inkMute,
-  size = 8.5,
+  size = 8,
   weight = 500,
   upper = true,
+  ls = '0.12em',
   style,
 }: {
   children: React.ReactNode
@@ -62,6 +76,7 @@ function MonoText({
   size?: number
   weight?: number
   upper?: boolean
+  ls?: string
   style?: React.CSSProperties
 }) {
   return (
@@ -70,9 +85,10 @@ function MonoText({
         fontFamily: V3Font.mono,
         fontSize: size,
         fontWeight: weight,
-        letterSpacing: '0.14em',
+        letterSpacing: ls,
         textTransform: upper ? 'uppercase' : 'none',
         color,
+        whiteSpace: 'nowrap',
         ...style,
       }}
     >
@@ -81,12 +97,14 @@ function MonoText({
   )
 }
 
-/** .ft-card-v3 대응 — paperHi + 1px rule + radius 4, 그림자 없음. */
+/** .ft-card-v3 대응 — paperHi + 1px rule, 그림자 없음. */
 function V3Card({
   children,
+  radius = 4,
   style,
 }: {
   children: React.ReactNode
+  radius?: number
   style?: React.CSSProperties
 }) {
   return (
@@ -94,7 +112,7 @@ function V3Card({
       style={{
         background: V3.paperHi,
         border: `1px solid ${V3.rule}`,
-        borderRadius: 4,
+        borderRadius: radius,
         ...style,
       }}
     >
@@ -103,81 +121,173 @@ function V3Card({
   )
 }
 
-/** 앱 상단 로고 바 — AppChrome 헤더의 logo-brush 워드마크 축소. */
-function AppTopBar() {
+/** AppChrome 탭루트 헤더 — 좌 User · 중앙 logo-ink · 우 강아지 칩. */
+function AppHeaderHome({ dogName }: { dogName: string }) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr auto 1fr',
+        alignItems: 'center',
+        padding: '8px 12px',
+        borderBottom: `1px solid ${V3.ruleSoft}`,
+      }}
+    >
+      <User size={14} color={V3.ink} strokeWidth={1.8} />
+      {/* eslint-disable-next-line @next/next/no-img-element -- 목업 내 소형 로고 */}
+      <img src="/logo-ink.png" alt="" aria-hidden style={{ height: 18, width: 'auto' }} />
+      <span
+        style={{
+          justifySelf: 'end',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 2,
+          fontFamily: sans,
+          fontSize: 9.5,
+          fontWeight: 600,
+          color: V3.ink,
+        }}
+      >
+        {dogName}
+        <ChevronDown size={9} color={V3.ink} strokeWidth={2} />
+      </span>
+    </div>
+  )
+}
+
+/** AppChrome 딥화면 헤더 — ← + 화면 제목. */
+function AppHeaderDeep({ title }: { title: string }) {
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '7px 0 6px',
+        gap: 5,
+        padding: '9px 12px',
         borderBottom: `1px solid ${V3.ruleSoft}`,
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- 목업 내 소형 로고, next/image 불필요 */}
-      <img src="/logo-brush.png" alt="" aria-hidden style={{ height: 13, width: 'auto' }} />
+      <ArrowLeft size={13} color={V3.ink} strokeWidth={2} />
+      <span style={{ fontFamily: sans, fontSize: 11, fontWeight: 700, color: V3.ink, letterSpacing: '-0.02em' }}>
+        {title}
+      </span>
     </div>
   )
 }
 
-const sans = 'var(--font-sans)'
+/** 우리 아이 4-탭바 — 개요·기록·분석·구독 (활성 = accent 밑줄). */
+function DogTabBar({ active }: { active: '개요' | '기록' | '분석' | '구독' }) {
+  const TABS = [
+    { label: '개요', Icon: PawPrint },
+    { label: '기록', Icon: Camera },
+    { label: '분석', Icon: BarChart3 },
+    { label: '구독', Icon: RefreshCw },
+  ] as const
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        borderBottom: `1px solid ${V3.rule}`,
+      }}
+    >
+      {TABS.map(({ label, Icon }) => {
+        const isActive = label === active
+        return (
+          <div
+            key={label}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 3,
+              padding: '7px 0 6px',
+              borderBottom: isActive ? `2px solid ${V3.accent}` : '2px solid transparent',
+            }}
+          >
+            <Icon size={12} color={isActive ? V3.ink : V3.inkMute} strokeWidth={isActive ? 2 : 1.7} />
+            <span
+              style={{
+                fontFamily: sans,
+                fontSize: 8,
+                fontWeight: isActive ? 700 : 500,
+                color: isActive ? V3.ink : V3.inkMute,
+              }}
+            >
+              {label}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/** 예시견 사진 — public AI 예시 에셋(리뷰 로스터와 동일). */
+function DogPhoto({ size, round = false, style }: { size: number; round?: boolean; style?: React.CSSProperties }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- 목업 내 소형 예시 사진
+    <img
+      src="/dog-poodle.jpg"
+      alt=""
+      aria-hidden
+      style={{
+        width: size,
+        height: size,
+        objectFit: 'cover',
+        borderRadius: round ? 999 : 2,
+        boxShadow: round ? 'none' : 'inset 0 0 0 1px rgba(0,0,0,0.16)',
+        flexShrink: 0,
+        ...style,
+      }}
+    />
+  )
+}
 
 // ---------------------------------------------------------------------------
-// ① 홈 — GreetingSection + DeliveryStripCard + QuickActionChips 미러
+// ① 홈 — 실화면: 헤더 + Greeting + ActiveDogCard(NOW FEATURING·4스탯) + 이번 주
 // ---------------------------------------------------------------------------
 function ScreenHome() {
   return (
-    <div style={{ background: V3.paper, height: '100%' }}>
-      <AppTopBar />
-      <div style={{ padding: '14px 14px 0', position: 'relative' }}>
-        {/* kicker: accent dot + mono greeting */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span aria-hidden style={{ width: 6, height: 6, borderRadius: 3, background: V3.accent }} />
-          <MonoText color={V3.ink}>Hello · good morning</MonoText>
+    <div style={{ background: V3.paper, height: '100%', overflow: 'hidden' }}>
+      <AppHeaderHome dogName="콩이" />
+
+      {/* Greeting */}
+      <div style={{ padding: '11px 12px 0', position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span aria-hidden style={{ width: 5, height: 5, borderRadius: 3, background: V3.accent }} />
+          <MonoText color={V3.ink}>Hello · good afternoon</MonoText>
         </div>
         <h4
           style={{
-            margin: '10px 0 0',
+            margin: '8px 0 0',
             fontFamily: sans,
             fontWeight: 800,
-            fontSize: 17,
-            lineHeight: 1.25,
+            fontSize: 15.5,
             letterSpacing: '-0.02em',
             color: V3.ink,
-            paddingRight: 78,
+            paddingRight: 66,
           }}
         >
-          좋은 아침이에요,
+          오후도 활기차게,
         </h4>
-        {/* 우상단 Signature — italic 이름 + FAMILY 키커 + ink bar */}
         <div
           style={{
             position: 'absolute',
-            right: 14,
-            top: 14,
+            right: 12,
+            top: 11,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'flex-end',
           }}
         >
-          <span
-            style={{
-              fontFamily: sans,
-              fontStyle: 'italic',
-              fontWeight: 600,
-              fontSize: 11,
-              color: V3.ink,
-              letterSpacing: '-0.015em',
-            }}
-          >
+          <span style={{ fontFamily: sans, fontStyle: 'italic', fontWeight: 600, fontSize: 10, color: V3.ink }}>
             보호자님
           </span>
-          <MonoText size={7.5} style={{ marginTop: 4 }}>{`FAMILY · 1`}</MonoText>
-          <div aria-hidden style={{ marginTop: 8, height: 20, width: 3, background: V3.ink }} />
+          <MonoText size={7} style={{ marginTop: 3 }}>{`FAMILY · 1`}</MonoText>
+          <div aria-hidden style={{ marginTop: 6, height: 16, width: 3, background: V3.ink }} />
         </div>
-        {/* sub copy + yellow Mark */}
-        <div style={{ marginTop: 10, fontFamily: sans, fontSize: 10.5, color: V3.inkSoft, lineHeight: 1.5 }}>
+        <div style={{ marginTop: 7, fontFamily: sans, fontSize: 9.5, color: V3.inkSoft }}>
           오늘도 건강한 한 끼를{' '}
           <mark style={{ background: V3.yellow, color: V3.ink, padding: '0 3px', fontWeight: 700 }}>
             정성스럽게.
@@ -185,162 +295,86 @@ function ScreenHome() {
         </div>
       </div>
 
-      {/* DeliveryStripCard 미러 */}
-      <div style={{ padding: '14px 14px 0' }}>
-        <V3Card style={{ padding: '9px 10px', display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div
-            aria-hidden
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 4,
-              background: V3.ink,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Truck size={14} color={V3.yellow} strokeWidth={1.75} />
+      {/* ActiveDogCard — NOW FEATURING + 사진 + 4-col 스탯 */}
+      <div style={{ padding: '10px 12px 0' }}>
+        <V3Card style={{ overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px 3px' }}>
+            <MonoText color={V3.accent} weight={600}>Now featuring</MonoText>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span aria-hidden style={{ width: 5, height: 5, borderRadius: 3, background: V3.sage }} />
+              <MonoText size={7.5} color={V3.inkSoft} upper={false}>활성</MonoText>
+            </span>
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <MonoText color={V3.accent} size={7.5} weight={700}>D-3</MonoText>
-              <MonoText size={7.5}>· 정기배송</MonoText>
-            </div>
-            <div
-              style={{
-                fontFamily: sans,
-                fontWeight: 700,
-                fontSize: 10.5,
-                color: V3.ink,
-                marginTop: 2,
-                letterSpacing: '-0.015em',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              금요일 새벽 도착 · 맞춤 화식 박스
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 9, padding: '4px 10px 9px' }}>
+            <DogPhoto size={46} />
+            <div style={{ paddingBottom: 2, minWidth: 0 }}>
+              <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 14, color: V3.ink, letterSpacing: '-0.025em' }}>
+                콩이
+              </div>
+              <div style={{ fontFamily: sans, fontSize: 8.5, color: V3.inkSoft, marginTop: 3, whiteSpace: 'nowrap' }}>
+                토이푸들 · 5kg · 79일 함께
+              </div>
             </div>
           </div>
-          <ArrowRight size={11} color={V3.inkMute} strokeWidth={2} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderTop: `1px solid ${V3.rule}` }}>
+            {[
+              { key: '체중', value: '5', sub: 'KG', tone: V3.ink },
+              { key: '연속', value: '7', sub: '일', tone: V3.yellow },
+              { key: '분석', value: '3', sub: '/ 3', tone: V3.sage },
+              { key: '배송', value: 'D-3', sub: '예정', tone: V3.accent },
+            ].map((m, i) => (
+              <div key={m.key} style={{ padding: '7px 7px', borderLeft: i > 0 ? `1px solid ${V3.rule}` : 'none' }}>
+                <MonoText size={6.5}>{m.key}</MonoText>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginTop: 3 }}>
+                  <span style={{ fontFamily: sans, fontWeight: 800, fontSize: 12.5, color: m.tone, letterSpacing: '-0.025em', lineHeight: 1 }}>
+                    {m.value}
+                  </span>
+                  <MonoText size={6.5} ls="0.06em">{m.sub}</MonoText>
+                </div>
+              </div>
+            ))}
+          </div>
         </V3Card>
       </div>
 
-      {/* QuickActionChips 미러 — 식사(기록함)·산책·체중 */}
-      <div style={{ padding: '10px 14px 0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
-        {[
-          { Icon: Soup, tone: V3.sage, label: '식사', sub: '기록함', done: true },
-          { Icon: Footprints, tone: V3.accent, label: '산책', sub: '오늘 기록', done: false },
-          { Icon: Scale, tone: V3.ink, label: '체중', sub: '6.4kg', done: false },
-        ].map(({ Icon, tone, label, sub, done }) => (
-          <V3Card key={label} style={{ padding: 8, display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span
-              style={{
-                width: 24,
-                height: 24,
-                background: V3.paper,
-                borderRadius: 4,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Icon size={13} color={tone} strokeWidth={1.75} />
-            </span>
-            <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <MonoText size={7}>{label}</MonoText>
-              <span
-                style={{
-                  fontFamily: sans,
-                  fontWeight: 700,
-                  fontSize: 9.5,
-                  color: done ? V3.sage : V3.ink,
-                  marginTop: 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 2,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {done && <Check size={9} color={V3.sage} strokeWidth={2.6} />}
-                {sub}
-              </span>
-            </span>
-          </V3Card>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// ② 이번 주 기록 — ThisWeekSection 미러 (7일 그리드 + legend + CTA)
-// ---------------------------------------------------------------------------
-type DayStatus = 'full' | 'partial' | 'miss' | 'today' | 'future'
-
-const WEEK: { date: number; wd: string; status: DayStatus }[] = [
-  { date: 22, wd: 'M', status: 'full' },
-  { date: 23, wd: 'T', status: 'full' },
-  { date: 24, wd: 'W', status: 'partial' },
-  { date: 25, wd: 'T', status: 'full' },
-  { date: 26, wd: 'F', status: 'today' },
-  { date: 27, wd: 'S', status: 'future' },
-  { date: 28, wd: 'S', status: 'future' },
-]
-
-function dayBg(s: DayStatus) {
-  return s === 'full' ? V3.ink : s === 'partial' ? V3.yellow : s === 'today' ? 'transparent' : V3.ruleSoft
-}
-function dayFg(s: DayStatus) {
-  return s === 'full' ? V3.paper : s === 'partial' ? V3.ink : s === 'today' ? V3.accent : V3.inkMute
-}
-
-function ScreenWeek() {
-  return (
-    <div style={{ background: V3.paper, height: '100%' }}>
-      <AppTopBar />
-      <div style={{ padding: '14px 14px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 9 }}>
-          <h4
-            style={{
-              margin: 0,
-              fontFamily: sans,
-              fontWeight: 800,
-              fontSize: 15,
-              letterSpacing: '-0.025em',
-              color: V3.ink,
-            }}
-          >
+      {/* 이번 주 */}
+      <div style={{ padding: '11px 12px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span style={{ fontFamily: sans, fontWeight: 800, fontSize: 12, color: V3.ink, letterSpacing: '-0.025em' }}>
             이번 주 콩이
-          </h4>
-          <MonoText color={V3.sage} upper={false}>· 연속 12일</MonoText>
+          </span>
+          <MonoText color={V3.sage} size={7} upper={false}>· 연속 7일</MonoText>
         </div>
-
-        <V3Card style={{ padding: '11px 10px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
-            {WEEK.map((d) => (
-              <div key={d.date} style={{ textAlign: 'center' }}>
+        <V3Card style={{ padding: '8px 8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+            {[
+              { d: 26, w: 'F', s: 'full' },
+              { d: 27, w: 'S', s: 'full' },
+              { d: 28, w: 'S', s: 'partial' },
+              { d: 29, w: 'M', s: 'full' },
+              { d: 30, w: 'T', s: 'full' },
+              { d: 1, w: 'W', s: 'full' },
+              { d: 2, w: 'T', s: 'today' },
+            ].map((day) => (
+              <div key={`${day.d}`} style={{ textAlign: 'center' }}>
                 <div
                   style={{
                     aspectRatio: '1',
-                    borderRadius: 4,
-                    background: dayBg(d.status),
-                    border: d.status === 'today' ? `1.5px dashed ${V3.accent}` : 'none',
+                    borderRadius: 3,
+                    background: day.s === 'full' ? V3.ink : day.s === 'partial' ? V3.yellow : day.s === 'today' ? 'transparent' : V3.ruleSoft,
+                    border: day.s === 'today' ? `1.5px dashed ${V3.accent}` : 'none',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontFamily: sans,
                     fontWeight: 700,
-                    fontSize: 9,
-                    color: dayFg(d.status),
+                    fontSize: 8,
+                    color: day.s === 'full' ? V3.paper : day.s === 'today' ? V3.accent : V3.ink,
                   }}
                 >
-                  {d.date}
+                  {day.d}
                 </div>
-                <MonoText size={6.5} style={{ display: 'block', marginTop: 4 }}>{d.wd}</MonoText>
+                <MonoText size={6} style={{ display: 'block', marginTop: 3 }}>{day.w}</MonoText>
               </div>
             ))}
           </div>
@@ -349,112 +383,62 @@ function ScreenWeek() {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginTop: 10,
-              paddingTop: 8,
+              marginTop: 7,
+              paddingTop: 6,
               borderTop: `1px solid ${V3.rule}`,
             }}
           >
-            <div style={{ display: 'flex', gap: 9 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <span aria-hidden style={{ width: 6, height: 6, background: V3.ink }} />
-                <MonoText size={6.5}>완료</MonoText>
+            <div style={{ display: 'flex', gap: 7 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                <span aria-hidden style={{ width: 5, height: 5, background: V3.ink }} />
+                <MonoText size={6}>완료</MonoText>
               </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <span aria-hidden style={{ width: 6, height: 6, background: V3.yellow }} />
-                <MonoText size={6.5}>일부</MonoText>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                <span aria-hidden style={{ width: 5, height: 5, background: V3.yellow }} />
+                <MonoText size={6}>일부</MonoText>
               </span>
             </div>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 3,
-                fontFamily: sans,
-                fontWeight: 700,
-                fontSize: 9,
-                color: V3.accent,
-              }}
-            >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontFamily: sans, fontWeight: 700, fontSize: 8, color: V3.accent }}>
               오늘 기록하기
-              <ArrowRight size={9} color={V3.accent} strokeWidth={2.2} />
+              <ArrowRight size={8} color={V3.accent} strokeWidth={2.2} />
             </span>
           </div>
         </V3Card>
-
-        {/* ink hero strip — 연속 기록 (ft-card-ink 톤) */}
-        <div
-          style={{
-            marginTop: 10,
-            background: V3.ink,
-            borderRadius: 4,
-            padding: '10px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div>
-            <MonoText color={V3.yellow} size={7}>Streak</MonoText>
-            <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 11.5, color: V3.paper, marginTop: 2 }}>
-              12일 연속 기록 중
-            </div>
-          </div>
-          <div style={{ fontFamily: sans, fontSize: 9, color: 'rgba(244,237,224,0.65)' }}>
-            변화 감지 → 재분석
-          </div>
-        </div>
       </div>
     </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// ③ 분석 리포트 — v3 리포트 톤 (mono 키커 + BCS 세그먼트 + meta rows)
+// ② 우리 아이(개요) — 탭바 + DOG PROFILE + 정보 rows + 현재 박스 컬러바
 // ---------------------------------------------------------------------------
-function ScreenAnalysis() {
+function ScreenDog() {
   return (
-    <div style={{ background: V3.paper, height: '100%' }}>
-      <AppTopBar />
-      <div style={{ padding: '14px 14px 0' }}>
-        <MonoText color={V3.accent} weight={600}>Report</MonoText>
-        <h4
-          style={{
-            margin: '6px 0 0',
-            fontFamily: sans,
-            fontWeight: 800,
-            fontSize: 15,
-            letterSpacing: '-0.025em',
-            color: V3.ink,
-          }}
-        >
-          콩이 영양 분석
-        </h4>
+    <div style={{ background: V3.paper, height: '100%', overflow: 'hidden' }}>
+      <AppHeaderDeep title="우리 아이" />
+      <DogTabBar active="개요" />
 
-        <V3Card style={{ marginTop: 10, padding: '10px 11px' }}>
-          <MonoText size={7}>체형 점수 · BCS</MonoText>
-          <div style={{ display: 'flex', gap: 3, marginTop: 8, alignItems: 'flex-end' }}>
-            {Array.from({ length: 9 }, (_, i) => (
-              <div
-                key={i}
-                style={{
-                  flex: 1,
-                  height: i === 4 ? 15 : 10,
-                  borderRadius: 2,
-                  background: i === 4 ? V3.sage : V3.ruleSoft,
-                }}
-              />
-            ))}
+      <div style={{ padding: '10px 12px 0' }}>
+        {/* 프로필 카드 */}
+        <V3Card style={{ padding: '13px 10px 12px', textAlign: 'center' }}>
+          <DogPhoto size={52} round style={{ margin: '0 auto' }} />
+          <MonoText color={V3.accent} size={7} ls="0.28em" style={{ display: 'block', marginTop: 8 }}>
+            Dog Profile
+          </MonoText>
+          <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 15, color: V3.ink, letterSpacing: '-0.025em', marginTop: 4 }}>
+            콩이
           </div>
-          <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 10, color: V3.sage, marginTop: 6 }}>
-            5 / 9 · 적정 체형
-          </div>
+          <div style={{ fontFamily: sans, fontSize: 8.5, color: V3.inkMute, marginTop: 3 }}>토이푸들</div>
         </V3Card>
 
-        <V3Card style={{ marginTop: 8, padding: '4px 11px' }}>
+        {/* 정보 rows */}
+        <V3Card style={{ padding: '2px 11px', marginTop: 8 }}>
           {[
-            { label: '하루 권장 칼로리', value: '612 kcal' },
-            { label: '하루 급여량', value: '340g · 2끼' },
-            { label: '잘 맞는 단백질', value: '닭 · 오리' },
+            { label: '성별', value: '여아', sage: false },
+            { label: '중성화', value: '✓ 했어요', sage: true },
+            { label: '나이', value: '5살', sage: false },
+            { label: '체중', value: '5kg', sage: false },
+            { label: '활동량', value: '보통', sage: false },
           ].map((row, i) => (
             <div
               key={row.label}
@@ -462,24 +446,60 @@ function ScreenAnalysis() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '7px 0',
-                borderTop: i === 0 ? 'none' : `1px solid ${V3.rule}`,
+                padding: '6.5px 0',
+                borderTop: i === 0 ? 'none' : `1px solid ${V3.ruleSoft}`,
                 fontFamily: sans,
-                fontSize: 9.5,
+                fontSize: 9,
               }}
             >
               <span style={{ color: V3.inkMute }}>{row.label}</span>
-              <span style={{ fontWeight: 700, color: V3.ink }}>{row.value}</span>
+              <span style={{ fontWeight: 700, color: row.sage ? V3.sage : V3.ink }}>{row.value}</span>
             </div>
           ))}
         </V3Card>
 
-        <div style={{ marginTop: 10, fontFamily: sans, fontSize: 9.5, color: V3.inkSoft, lineHeight: 1.5 }}>
-          알레르기 응답을 반영해{' '}
-          <mark style={{ background: V3.yellow, color: V3.ink, padding: '0 3px', fontWeight: 700 }}>
-            소고기 레시피는 제외
-          </mark>
-          했어요.
+        {/* 현재 박스 — 컬러 스택바 + 레전드 */}
+        <V3Card style={{ padding: '9px 11px', marginTop: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Heart size={9} color={V3.accent} strokeWidth={2} />
+              <MonoText color={V3.accent} size={7} weight={600} ls="0.18em">현재 박스 · Cycle 1</MonoText>
+            </span>
+            <span style={{ fontFamily: sans, fontSize: 7.5, color: V3.inkMute }}>
+              히스토리 <span style={{ color: V3.accent, fontWeight: 700 }}>상세 →</span>
+            </span>
+          </div>
+          <div style={{ display: 'flex', height: 7, borderRadius: 999, overflow: 'hidden', marginTop: 8 }}>
+            {[
+              { c: LINE.yellow, w: 20 },
+              { c: LINE.terracotta, w: 30 },
+              { c: LINE.blush, w: 10 },
+              { c: LINE.sage, w: 10 },
+              { c: LINE.wine, w: 30 },
+            ].map((seg, i) => (
+              <div key={i} style={{ width: `${seg.w}%`, background: seg.c }} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 7, flexWrap: 'wrap' }}>
+            {[
+              { c: LINE.terracotta, label: 'Basic', pct: '30%' },
+              { c: LINE.wine, label: 'Premium', pct: '30%' },
+              { c: LINE.yellow, label: 'Skin', pct: '20%' },
+            ].map((l) => (
+              <span key={l.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                <span aria-hidden style={{ width: 5, height: 5, borderRadius: 3, background: l.c }} />
+                <span style={{ fontFamily: sans, fontSize: 7.5, color: V3.inkSoft }}>
+                  {l.label} <b>{l.pct}</b>
+                </span>
+              </span>
+            ))}
+          </div>
+        </V3Card>
+
+        {/* SUBSCRIPTION 섹션 헤더 (하단 클립) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 10 }}>
+          <RefreshCw size={9} color={V3.accent} strokeWidth={2} />
+          <MonoText color={V3.accent} size={7.5} weight={600} ls="0.2em">Subscription</MonoText>
         </div>
       </div>
     </div>
@@ -487,142 +507,235 @@ function ScreenAnalysis() {
 }
 
 // ---------------------------------------------------------------------------
-// ④ 정기배송 — SubscriptionCard 미러 (헤더 스트립·yellow 틴트 배송행·meta rows)
+// ③ 영양 분석 — kcal 스트립 + 오늘의 영양 진단 + 배지/강조 카피 + MER
 // ---------------------------------------------------------------------------
-function ScreenSubscription() {
+function ScreenAnalysis() {
   return (
-    <div style={{ background: V3.paper, height: '100%' }}>
-      <AppTopBar />
-      <div style={{ padding: '14px 14px 0' }}>
-        <MonoText color={V3.accent} weight={600}>Subscriptions</MonoText>
+    <div style={{ background: V3.paper, height: '100%', overflow: 'hidden' }}>
+      <AppHeaderDeep title="영양 분석" />
+      <DogTabBar active="분석" />
 
-        <V3Card style={{ marginTop: 10, overflow: 'hidden', padding: 0 }}>
-          {/* 헤더 스트립 — paper bg + 상태 mono 키커 */}
+      {/* 상단 요약 스트립 */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '6px 12px',
+          background: V3.paperHi,
+          borderBottom: `1px solid ${V3.ruleSoft}`,
+          fontFamily: sans,
+          fontSize: 7.5,
+          color: V3.inkSoft,
+        }}
+      >
+        <span>
+          <b style={{ color: V3.accent }}>331 kcal</b>
+          {'  ·  '}⚖ 217g{'  ·  '}BCS 5/9
+        </span>
+        <span style={{ color: V3.inkMute }}>2026년 6월 19일</span>
+      </div>
+
+      <div style={{ padding: '12px 12px 0', textAlign: 'center' }}>
+        <MonoText color={V3.accent} size={7.5} ls="0.32em">오늘의 영양 진단</MonoText>
+        <div
+          style={{
+            width: 62,
+            height: 62,
+            borderRadius: 999,
+            border: `1.5px dashed ${V3.accent}`,
+            padding: 3,
+            margin: '9px auto 0',
+          }}
+        >
+          <DogPhoto size={52} round />
+        </div>
+        <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 15.5, color: V3.ink, letterSpacing: '-0.025em', marginTop: 8 }}>
+          콩이의 식단
+        </div>
+        <div style={{ fontFamily: sans, fontSize: 8.5, color: V3.inkMute, marginTop: 3 }}>5세 · 토이푸들 · 5kg</div>
+
+        {/* 진단 카드 */}
+        <V3Card radius={10} style={{ padding: '10px 11px', marginTop: 10, textAlign: 'left', background: '#FFFFFF' }}>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: '#FFF', background: V3.accent, borderRadius: 999, padding: '3px 7px' }}>
+              성견 (유지기)
+            </span>
+            <span style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.ink, background: V3.paperDeep, borderRadius: 999, padding: '3px 7px' }}>
+              BCS 5/9
+            </span>
+            <span style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.ink, background: V3.paperDeep, borderRadius: 999, padding: '3px 7px' }}>
+              단백 32%
+            </span>
+          </div>
+          <div style={{ fontFamily: sans, fontSize: 9.5, fontWeight: 700, color: V3.ink, lineHeight: 1.55, marginTop: 8, wordBreak: 'keep-all' }}>
+            단백질은 <span style={{ color: V3.accent }}>넉넉히</span>, 지방은{' '}
+            <span style={{ color: '#B8860B' }}>균형 있게</span>
+            <br />
+            콩이의 BCS 5/9 체형에{' '}
+            <mark style={{ background: V3.yellow, color: V3.ink, padding: '0 2px' }}>맞춤 식단을 준비했어요.</mark>
+          </div>
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '7px 11px',
-              background: V3.paper,
-              borderBottom: `1px solid ${V3.rule}`,
+              marginTop: 9,
+              paddingTop: 7,
+              borderTop: `1px solid ${V3.ruleSoft}`,
             }}
           >
-            <MonoText color={V3.sage} size={7.5} weight={700}>● Active · 배송중</MonoText>
-            <MonoText size={7}>2주 주기</MonoText>
-          </div>
-
-          {/* 다음 배송 하이라이트 — yellow 틴트 */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '8px 11px',
-              background: 'color-mix(in srgb, #e6b942 12%, transparent)',
-              borderBottom: `1px solid ${V3.yellow}`,
-            }}
-          >
-            <Truck size={13} color={V3.yellow} strokeWidth={1.75} />
-            <span style={{ fontFamily: sans, fontWeight: 700, fontSize: 10, color: V3.ink }}>
-              D-3 · 금요일 새벽 도착
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.sage }}>
+              <Check size={8} strokeWidth={2.6} /> AAFCO 2024 · NRC 2006 기준 충족
             </span>
-          </div>
-
-          {/* 상품 행 — paper 썸네일 박스 + 이름 + 구성 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 11px' }}>
-            <div
-              aria-hidden
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 4,
-                background: V3.paper,
-                border: `1px solid ${V3.rule}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Soup size={16} color={V3.inkMute} strokeWidth={1.5} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 10.5, color: V3.ink }}>
-                콩이 맞춤 화식 박스
-              </div>
-              <MonoText size={7} style={{ display: 'block', marginTop: 2 }}>
-                소고기 50 · 닭고기 50
-              </MonoText>
-            </div>
-          </div>
-
-          {/* meta rows */}
-          <div style={{ padding: '0 11px 4px', borderTop: `1px solid ${V3.rule}` }}>
-            {[
-              { label: '배송 주기', value: '2주마다' },
-              { label: '다음 결제', value: '금요일 자동' },
-              { label: '누적 배송', value: '3회' },
-            ].map((row, i) => (
-              <div
-                key={row.label}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '6px 0',
-                  borderTop: i === 0 ? 'none' : `1px solid ${V3.ruleSoft}`,
-                  fontFamily: sans,
-                  fontSize: 9,
-                }}
-              >
-                <span style={{ color: V3.inkMute }}>{row.label}</span>
-                <span style={{ fontWeight: 700, color: V3.ink }}>{row.value}</span>
-              </div>
-            ))}
+            <span style={{ fontFamily: sans, fontSize: 7, color: V3.inkMute }}>분석 · 6월 19일</span>
           </div>
         </V3Card>
 
-        {/* 액션 버튼 — v3 radius 4 (pill 아님) */}
-        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-          <div
-            style={{
-              flex: 1,
-              textAlign: 'center',
-              padding: '8px 0',
-              borderRadius: 4,
-              background: V3.ink,
-              fontFamily: sans,
-              fontWeight: 700,
-              fontSize: 9.5,
-              color: V3.paper,
-            }}
-          >
-            주기 변경
+        {/* DAILY ENERGY · MER (하단 클립) */}
+        <V3Card radius={10} style={{ padding: '10px 11px 4px', marginTop: 8, textAlign: 'left' }}>
+          <MonoText size={7} ls="0.24em">Daily Energy · MER</MonoText>
+          <div style={{ fontFamily: sans, fontSize: 8, color: V3.inkSoft, marginTop: 4 }}>
+            콩이가 하루 체중 유지에 필요한 에너지
           </div>
-          <div
-            style={{
-              flex: 1,
-              textAlign: 'center',
-              padding: '8px 0',
-              borderRadius: 4,
-              background: V3.paperHi,
-              border: `1px solid ${V3.rule}`,
-              fontFamily: sans,
-              fontWeight: 700,
-              fontSize: 9.5,
-              color: V3.ink,
-            }}
-          >
-            일시정지
+          <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 26, color: V3.accent, letterSpacing: '-0.03em', marginTop: 2 }}>
+            331 <span style={{ fontSize: 10, color: V3.inkMute, fontWeight: 700 }}>kcal</span>
           </div>
-        </div>
+        </V3Card>
       </div>
     </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// 기능 정의 — 화면과 설명 페어 (전부 실재 기능, 홈→기록→분석→구독 여정 순)
+// ④ 구독(주문하기) — CUSTOM BOX 키커 + 월결제 카드 + 분량 선택 + 박스 구성
+// ---------------------------------------------------------------------------
+function ScreenSubscription() {
+  return (
+    <div style={{ background: V3.paper, height: '100%', overflow: 'hidden' }}>
+      <AppHeaderDeep title="주문하기" />
+      <DogTabBar active="구독" />
+
+      <div style={{ padding: '10px 12px 0' }}>
+        <MonoText color={V3.accent} size={7.5} weight={600} ls="0.16em">Custom Box · Cycle 1</MonoText>
+        <div
+          style={{
+            fontFamily: sans,
+            fontWeight: 800,
+            fontSize: 13.5,
+            lineHeight: 1.3,
+            color: V3.ink,
+            letterSpacing: '-0.025em',
+            marginTop: 5,
+            wordBreak: 'keep-all',
+          }}
+        >
+          콩이 맞춤 박스
+          <br />
+          정기배송으로 시작할까요?
+        </div>
+        <div style={{ fontFamily: sans, fontSize: 8, color: V3.inkSoft, lineHeight: 1.5, marginTop: 5 }}>
+          분석 결과 그대로 만든 박스를 한 달에 한 번 보내드려요. 언제든 일시정지·해지할 수 있어요.
+        </div>
+
+        {/* 월 결제 카드 — accent 보더 */}
+        <div style={{ border: `1.5px solid ${V3.accent}`, borderRadius: 10, background: V3.paperHi, padding: '3px 11px', marginTop: 8 }}>
+          {[
+            { label: '받는 것', value: '콩이 맞춤 박스 · 4주치 (한달)', accent: false },
+            { label: '첫 배송', value: '7월 7일 (화) · 이후 매월 자동', accent: false },
+            { label: '월 결제', value: '354,000원 /월', accent: true },
+          ].map((row, i) => (
+            <div
+              key={row.label}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '6.5px 0',
+                borderTop: i === 0 ? 'none' : `1px solid ${V3.ruleSoft}`,
+                fontFamily: sans,
+                fontSize: 8.5,
+              }}
+            >
+              <span style={{ color: V3.inkMute }}>{row.label}</span>
+              <span style={{ fontWeight: 800, color: row.accent ? V3.accent : V3.ink, fontSize: row.accent ? 11 : 8.5 }}>
+                {row.value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* 기준 배지 */}
+        <div style={{ display: 'flex', gap: 4, marginTop: 7, flexWrap: 'wrap' }}>
+          {['✓ AAFCO 2024 충족', 'NRC · FEDIAF 기준', '±5% 정량'].map((b) => (
+            <span
+              key={b}
+              style={{
+                fontFamily: sans,
+                fontSize: 7,
+                fontWeight: 700,
+                color: V3.inkSoft,
+                background: V3.paperHi,
+                border: `1px solid ${V3.rule}`,
+                borderRadius: 999,
+                padding: '3px 7px',
+              }}
+            >
+              {b}
+            </span>
+          ))}
+        </div>
+
+        {/* 분량 선택 */}
+        <MonoText size={7} ls="0.18em" style={{ display: 'block', marginTop: 9 }}>
+          한달 정기배송 · 분량 선택
+        </MonoText>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 6 }}>
+          <V3Card radius={8} style={{ padding: '9px 8px', textAlign: 'center' }}>
+            <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 10.5, color: V3.ink }}>2주치</div>
+            <div style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.accent, marginTop: 2 }}>하이브리드</div>
+            <div style={{ fontFamily: sans, fontSize: 7, color: V3.inkMute, marginTop: 2 }}>15일 1팩씩 · 건식 반반</div>
+          </V3Card>
+          <div
+            style={{
+              border: `1.5px solid ${V3.accent}`,
+              borderRadius: 8,
+              background: 'color-mix(in srgb, #C86B45 6%, #FFFFFF)',
+              padding: '9px 8px',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 10.5, color: V3.ink }}>4주치</div>
+            <div style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.accent, marginTop: 2 }}>풀 화식</div>
+            <div style={{ fontFamily: sans, fontSize: 7, color: V3.inkMute, marginTop: 2 }}>30일 1팩씩 · 한달 풀 (인기)</div>
+          </div>
+        </div>
+
+        {/* 추천 박스 구성 (하단 클립) */}
+        <MonoText size={7} ls="0.18em" style={{ display: 'block', marginTop: 9 }}>
+          추천 박스 구성
+        </MonoText>
+        <V3Card radius={8} style={{ marginTop: 6, padding: '8px 9px', borderLeft: `3px solid ${LINE.sage}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: V3Font.mono, fontSize: 8, fontWeight: 700, color: V3.ink }}>
+              Duck · 오리 · 알레르기·장건강
+            </span>
+            <span style={{ fontFamily: V3Font.mono, fontSize: 8.5, fontWeight: 700, color: V3.sage }}>50%</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+            <span style={{ fontFamily: sans, fontSize: 6.5, fontWeight: 700, color: '#FFF', background: V3.accent, borderRadius: 3, padding: '1.5px 4px' }}>
+              메인
+            </span>
+            <span style={{ fontFamily: sans, fontSize: 7.5, color: V3.inkSoft }}>일일 105g · 한 끼 110g</span>
+          </div>
+        </V3Card>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// 기능 정의 — 화면과 설명 페어 (실화면 여정 순: 홈 → 우리 아이 → 분석 → 구독)
 // ---------------------------------------------------------------------------
 
 type Feature = {
@@ -644,21 +757,20 @@ const FEATURES: Feature[] = [
         앱이 먼저 알고 있어요
       </>
     ),
-    body: '아이 몸무게와 활동량에 맞춘 하루 급여량과 다음 배송을 홈에서 바로 확인해요. 식사·산책·체중 기록은 탭 한 번이면 끝나요.',
+    body: '홈에서 체중·연속 기록·분석·다음 배송을 한눈에 확인해요. 이번 주 기록 현황과 함께, 식사·산책·체중 기록은 탭 한 번이면 끝나요.',
     screen: <ScreenHome />,
   },
   {
-    key: 'records',
-    eyebrow: 'Records',
+    key: 'dog',
+    eyebrow: 'My Dogs',
     title: (
       <>
-        기록이 쌓일수록
-        <br />
-        식단이 똑똑해져요
+        아이의 모든 것이
+        <br />한 곳에 모여요
       </>
     ),
-    body: '한 주의 기록이 한눈에 보이고, 매일의 식사·산책·체중이 아이의 변화 데이터가 돼요. 체중 변화를 감지하면 식단 재분석까지 이어져요.',
-    screen: <ScreenWeek />,
+    body: '프로필부터 지금 먹고 있는 박스 구성까지 — 개요·기록·분석·구독을 탭 하나로 오가며 우리 아이를 관리해요.',
+    screen: <ScreenDog />,
   },
   {
     key: 'analysis',
@@ -670,7 +782,7 @@ const FEATURES: Feature[] = [
         정밀 영양 분석
       </>
     ),
-    body: '체형(BCS)부터 알레르기·건강 상태까지 8단계 정밀 설문으로, 우리 아이에게 잘 맞는 영양 구성과 레시피를 찾아드려요.',
+    body: '오늘의 영양 진단으로 체형(BCS)·하루 에너지·단백질 구성을 확인해요. AAFCO·NRC 기준을 충족하는 맞춤 식단이 준비돼요.',
     screen: <ScreenAnalysis />,
   },
   {
@@ -678,12 +790,12 @@ const FEATURES: Feature[] = [
     eyebrow: 'Subscription',
     title: (
       <>
-        배송 일정도
+        분석 그대로,
         <br />
-        앱에서 자유롭게
+        맞춤 박스 정기배송
       </>
     ),
-    body: '다음 박스가 언제 오는지, 박스에 어떤 레시피가 담기는지 한눈에. 주기 변경·일시정지·재개도 몇 번의 탭이면 돼요.',
+    body: '분석 결과 그대로 만든 맞춤 박스를 매달 받아요. 분량 선택부터 박스 구성, 일시정지·해지까지 전부 앱 안에서 돼요.',
     screen: <ScreenSubscription />,
   },
 ]
