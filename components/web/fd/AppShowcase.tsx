@@ -35,13 +35,19 @@ import {
   ArrowLeft,
   ArrowRight,
   BarChart3,
+  BellRing,
   Camera,
   Check,
   ChevronDown,
   Heart,
   PawPrint,
+  Pill,
+  Plus,
   RefreshCw,
+  Stethoscope,
+  Syringe,
   User,
+  UserPlus,
 } from 'lucide-react'
 import { V3, V3Font } from '@/lib/design/tokens'
 import { Eyebrow, Display } from '@/components/web/fd/ui'
@@ -735,6 +741,203 @@ function ScreenSubscription() {
 }
 
 // ---------------------------------------------------------------------------
+// ⑤ 리마인더(건강 수첩) — 투약·예방접종·병원 일정 (실화면: /dogs/[id]/reminders·
+//    medications·vaccinations — 전부 실재 라우트)
+// ---------------------------------------------------------------------------
+function ScreenHealth() {
+  return (
+    <div style={{ background: V3.paper, height: '100%', overflow: 'hidden' }}>
+      <AppHeaderDeep title="리마인더" />
+
+      <div style={{ padding: '10px 12px 0' }}>
+        <MonoText color={V3.accent} size={7.5} weight={600} ls="0.18em">Health Care</MonoText>
+        <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 13.5, color: V3.ink, letterSpacing: '-0.025em', marginTop: 5 }}>
+          콩이 건강 수첩
+        </div>
+        <div style={{ fontFamily: sans, fontSize: 8, color: V3.inkSoft, marginTop: 3 }}>
+          투약·접종·병원 일정을 앱이 대신 기억해요
+        </div>
+
+        {/* 오늘 — 투약 카드 */}
+        <MonoText size={7} ls="0.18em" style={{ display: 'block', marginTop: 10 }}>오늘</MonoText>
+        <V3Card style={{ marginTop: 5, padding: '9px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div
+            aria-hidden
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 4,
+              background: V3.ink,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Pill size={13} color={V3.yellow} strokeWidth={1.75} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 9.5, color: V3.ink }}>관절 영양제 · 저녁</div>
+            <div style={{ fontFamily: sans, fontSize: 7.5, color: V3.inkMute, marginTop: 1.5 }}>하루 2회 · 밥 직후 복용</div>
+          </div>
+          <span style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 800, color: V3.accent, background: 'color-mix(in srgb, #C86B45 10%, transparent)', borderRadius: 999, padding: '3px 7px' }}>
+            오후 8시
+          </span>
+        </V3Card>
+
+        {/* 다가오는 일정 */}
+        <MonoText size={7} ls="0.18em" style={{ display: 'block', marginTop: 10 }}>다가오는 일정</MonoText>
+        <V3Card style={{ marginTop: 5, padding: '2px 10px' }}>
+          {[
+            { Icon: Syringe, label: '종합백신 추가 접종', sub: '예방접종 수첩', d: 'D-14' },
+            { Icon: Stethoscope, label: '정기 건강검진', sub: '단골 동물병원', d: '7월 12일' },
+            { Icon: BellRing, label: '심장사상충 예방', sub: '매월 반복', d: '매월 1일' },
+          ].map((row, i) => (
+            <div
+              key={row.label}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '7px 0',
+                borderTop: i === 0 ? 'none' : `1px solid ${V3.ruleSoft}`,
+              }}
+            >
+              <row.Icon size={12} color={V3.inkMute} strokeWidth={1.75} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 9, color: V3.ink }}>{row.label}</div>
+                <div style={{ fontFamily: sans, fontSize: 7, color: V3.inkMute, marginTop: 1 }}>{row.sub}</div>
+              </div>
+              <MonoText color={V3.accent} size={7.5} weight={700}>{row.d}</MonoText>
+            </div>
+          ))}
+        </V3Card>
+
+        {/* 푸시 알림 안내 */}
+        <div
+          style={{
+            marginTop: 8,
+            background: V3.ink,
+            borderRadius: 4,
+            padding: '8px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+          }}
+        >
+          <BellRing size={11} color={V3.yellow} strokeWidth={2} />
+          <span style={{ fontFamily: sans, fontSize: 8, fontWeight: 600, color: V3.paper }}>
+            시간이 되면 푸시로 알려드려요 — 잊을 걱정 없이
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// ⑥ 가족 공유 — 실화면: /family (가족 멤버·초대) + /invitations
+// ---------------------------------------------------------------------------
+function ScreenFamily() {
+  return (
+    <div style={{ background: V3.paper, height: '100%', overflow: 'hidden' }}>
+      <AppHeaderDeep title="가족 멤버" />
+
+      <div style={{ padding: '10px 12px 0' }}>
+        <MonoText color={V3.accent} size={7.5} weight={600} ls="0.18em">Family</MonoText>
+        <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 13.5, color: V3.ink, letterSpacing: '-0.025em', marginTop: 5 }}>
+          가족 멤버
+        </div>
+        <div style={{ fontFamily: sans, fontSize: 8, color: V3.inkSoft, marginTop: 3 }}>
+          함께 챙기는 가족과 강아지 정보를 공유해 봐요
+        </div>
+
+        {/* 멤버 rows */}
+        <V3Card style={{ marginTop: 10, padding: '2px 10px' }}>
+          {[
+            { name: '나', role: '관리자', note: '오늘 산책 기록', me: true },
+            { name: '엄마', role: '가족', note: '아침 식사 기록', me: false },
+            { name: '동생', role: '가족', note: '어제 체중 기록', me: false },
+          ].map((m, i) => (
+            <div
+              key={m.name}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '7.5px 0',
+                borderTop: i === 0 ? 'none' : `1px solid ${V3.ruleSoft}`,
+              }}
+            >
+              <div
+                aria-hidden
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 999,
+                  background: m.me ? V3.ink : V3.paperDeep,
+                  color: m.me ? V3.paper : V3.inkSoft,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: sans,
+                  fontSize: 8.5,
+                  fontWeight: 800,
+                  flexShrink: 0,
+                }}
+              >
+                {m.name.slice(0, 1)}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 9.5, color: V3.ink }}>
+                  {m.name}{' '}
+                  <span style={{ fontSize: 7, fontWeight: 700, color: m.me ? V3.accent : V3.inkMute }}>· {m.role}</span>
+                </div>
+                <div style={{ fontFamily: sans, fontSize: 7.5, color: V3.inkMute, marginTop: 1 }}>{m.note}</div>
+              </div>
+              <span aria-hidden style={{ width: 5, height: 5, borderRadius: 3, background: V3.sage }} />
+            </div>
+          ))}
+        </V3Card>
+
+        {/* 초대 버튼 — 실화면 '가족 초대하기' */}
+        <div
+          style={{
+            marginTop: 8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 5,
+            padding: '9px 0',
+            borderRadius: 4,
+            background: V3.ink,
+            fontFamily: sans,
+            fontWeight: 700,
+            fontSize: 9.5,
+            color: V3.paper,
+          }}
+        >
+          <UserPlus size={11} strokeWidth={2} /> 가족 초대하기
+        </div>
+        <div style={{ fontFamily: sans, fontSize: 7.5, color: V3.inkMute, textAlign: 'center', marginTop: 5 }}>
+          초대 링크를 보내면 강아지 정보를 함께 볼 수 있어요
+        </div>
+
+        {/* 보낸 초대 */}
+        <MonoText size={7} ls="0.18em" style={{ display: 'block', marginTop: 10 }}>보낸 초대 · 1건</MonoText>
+        <V3Card style={{ marginTop: 5, padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Plus size={11} color={V3.inkMute} strokeWidth={2} />
+          <span style={{ flex: 1, fontFamily: sans, fontSize: 8.5, fontWeight: 600, color: V3.inkSoft }}>
+            아빠 · 초대 링크 전송됨
+          </span>
+          <MonoText color={V3.yellow} size={7} weight={700} style={{ color: '#B8860B' }}>대기중</MonoText>
+        </V3Card>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // 기능 정의 — 화면과 설명 페어 (실화면 여정 순: 홈 → 우리 아이 → 분석 → 구독)
 // ---------------------------------------------------------------------------
 
@@ -757,7 +960,7 @@ const FEATURES: Feature[] = [
         앱이 먼저 알고 있어요
       </>
     ),
-    body: '홈에서 체중·연속 기록·분석·다음 배송을 한눈에 확인해요. 이번 주 기록 현황과 함께, 식사·산책·체중 기록은 탭 한 번이면 끝나요.',
+    body: '앱을 열면 체중·연속 기록·분석 진행·다음 배송까지 오늘 필요한 것들이 한 화면에 모여 있어요. 이번 주에 며칠 기록했는지 그리드로 보이고, 식사·산책·체중 기록은 화면을 옮길 필요 없이 탭 한 번이면 끝나요. 매일 쓰는 앱은 이 "가벼움"이 전부라고 생각했어요.',
     screen: <ScreenHome />,
   },
   {
@@ -769,7 +972,7 @@ const FEATURES: Feature[] = [
         <br />한 곳에 모여요
       </>
     ),
-    body: '프로필부터 지금 먹고 있는 박스 구성까지 — 개요·기록·분석·구독을 탭 하나로 오가며 우리 아이를 관리해요.',
+    body: '성별·중성화·활동량 같은 프로필부터 지금 먹고 있는 박스가 어떤 레시피로 구성됐는지까지 — 개요·기록·분석·구독 네 개의 탭으로 아이의 전부를 오가요. 여러 마리 키우는 집이라면 아이마다 프로필을 만들어 따로따로 관리할 수 있어요.',
     screen: <ScreenDog />,
   },
   {
@@ -782,8 +985,34 @@ const FEATURES: Feature[] = [
         정밀 영양 분석
       </>
     ),
-    body: '오늘의 영양 진단으로 체형(BCS)·하루 에너지·단백질 구성을 확인해요. AAFCO·NRC 기준을 충족하는 맞춤 식단이 준비돼요.',
+    body: '체형 점수(BCS)와 하루 필요 에너지(MER), 급여량, 잘 맞는 단백질 구성까지 — 오늘의 영양 진단 리포트로 확인해요. 알레르기 응답은 레시피에서 자동으로 빠지고, AAFCO·NRC 기준 충족 여부도 리포트에 그대로 적혀 있어요. 기록이 쌓여 체중 변화가 감지되면 재분석으로 이어져요.',
     screen: <ScreenAnalysis />,
+  },
+  {
+    key: 'health',
+    eyebrow: 'Health Care',
+    title: (
+      <>
+        투약부터 접종까지,
+        <br />
+        건강 수첩이 대신 기억해요
+      </>
+    ),
+    body: '영양제 시간, 예방접종 D-day, 병원 정기검진 — 보호자가 머릿속으로 챙기던 것들을 앱에 맡겨요. 투약·예방접종 수첩에 기록해두면 시간에 맞춰 푸시로 알려드리고, 병원 갈 때는 기록을 수의사 리포트로 정리해 보여줄 수도 있어요.',
+    screen: <ScreenHealth />,
+  },
+  {
+    key: 'family',
+    eyebrow: 'Family',
+    title: (
+      <>
+        온 가족이 함께
+        <br />
+        같은 아이를 챙겨요
+      </>
+    ),
+    body: '아침은 엄마가, 산책은 동생이 — 초대 링크 하나면 가족 모두가 같은 기록을 보고 함께 쓸 수 있어요. 누가 언제 뭘 챙겼는지 보이니까 "밥 줬어?"를 두 번 묻지 않아도 돼요.',
+    screen: <ScreenFamily />,
   },
   {
     key: 'subscription',
@@ -795,7 +1024,7 @@ const FEATURES: Feature[] = [
         맞춤 박스 정기배송
       </>
     ),
-    body: '분석 결과 그대로 만든 맞춤 박스를 매달 받아요. 분량 선택부터 박스 구성, 일시정지·해지까지 전부 앱 안에서 돼요.',
+    body: '분석 결과 그대로 만든 맞춤 박스를 한 달에 한 번 받아요. 2주치 하이브리드와 4주치 풀 화식 중 분량을 고르고, 박스에 담기는 레시피 구성과 가격을 투명하게 확인해요. 주기 변경·일시정지·해지도 전부 앱 안에서 몇 번의 탭이면 돼요.',
     screen: <ScreenSubscription />,
   },
 ]

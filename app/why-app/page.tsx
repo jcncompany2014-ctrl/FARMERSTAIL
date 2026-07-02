@@ -1,5 +1,16 @@
 import type { Metadata } from 'next'
-import { ArrowRight, ClipboardList, Smartphone, Sparkles } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  ArrowRight,
+  Camera,
+  Check,
+  ClipboardList,
+  Coins,
+  FileText,
+  LineChart,
+  Smartphone,
+  Sparkles,
+} from 'lucide-react'
 import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
@@ -61,6 +72,49 @@ export const metadata: Metadata = {
   },
   robots: { index: true, follow: true },
 }
+
+// 전부 실재 앱 화면 — /dogs/[id]/photos·diary, 체중 로그·변화감지, vet-report,
+// dogs/compare, mypage/points·membership, year-in-review.
+const MORE_FEATURES: { icon: React.ReactNode; title: string; body: string }[] = [
+  {
+    icon: <Camera size={20} strokeWidth={2} />,
+    title: '사진 일지',
+    body: '산책과 식사, 오늘의 순간을 사진으로 남기는 아이 전용 일지예요.',
+  },
+  {
+    icon: <LineChart size={20} strokeWidth={2} />,
+    title: '체중 추이 그래프',
+    body: '기록한 체중이 그래프로 쌓여요. 갑작스러운 변화는 감지해서 재분석으로 이어져요.',
+  },
+  {
+    icon: <FileText size={20} strokeWidth={2} />,
+    title: '수의사 리포트',
+    body: '병원 갈 때 그동안의 기록을 리포트로 정리해 수의사 선생님께 보여줄 수 있어요.',
+  },
+  {
+    icon: <ArrowLeftRight size={20} strokeWidth={2} />,
+    title: '다견 비교',
+    body: '여러 아이를 키운다면, 아이들의 상태를 나란히 놓고 비교해볼 수 있어요.',
+  },
+  {
+    icon: <Coins size={20} strokeWidth={2} />,
+    title: '적립금 · 등급 혜택',
+    body: '함께할수록 적립금이 쌓이고, 등급이 오르면 주문 할인이 자동으로 적용돼요.',
+  },
+  {
+    icon: <Sparkles size={20} strokeWidth={2} />,
+    title: '연말 리뷰',
+    body: '일 년의 기록을 모아 우리 아이의 한 해를 돌아보는 특별한 리뷰를 만들어드려요.',
+  },
+]
+
+// 정직한 역할 분리 — 웹으로 되는 것과 앱에서만 되는 것.
+const WEB_ROLES = ['3분 설문과 맞춤 플랜 확인', '정기배송 주문과 결제', '주문 내역 · 계정 관리']
+const APP_ROLES = [
+  '매일의 식사 · 산책 · 체중 기록',
+  '정밀 영양 분석과 건강 수첩',
+  '가족 공유 · 리마인더 푸시 알림',
+]
 
 const START_STEPS: { icon: React.ReactNode; title: string; body: string }[] = [
   {
@@ -129,6 +183,123 @@ export default async function WhyAppPage() {
         {/* 스크롤 쇼케이스 — 폰 목업 고정 + 화면 전환 */}
         <Section bg="offwhite" pad="sm" className="overflow-clip">
           <AppShowcase />
+        </Section>
+
+        {/* 이 모든 게 앱에 있어요 — 추가 실기능 그리드 */}
+        <Section bg="cream" pad="lg">
+          <Container>
+            <div className="text-center">
+              <Reveal>
+                <Eyebrow>And More</Eyebrow>
+                <Display as="h2" size="lg" className="mt-3">
+                  이 모든 게 앱에 있어요
+                </Display>
+                <p
+                  className="mx-auto mt-4 max-w-[44ch] text-[15px] leading-relaxed"
+                  style={{ color: 'var(--fd-muted)' }}
+                >
+                  전부 지금 앱에서 실제로 쓸 수 있는 기능들이에요.
+                </p>
+              </Reveal>
+            </div>
+            <div className="mx-auto mt-12 grid max-w-[980px] gap-4 sm:grid-cols-2 lg:grid-cols-3 md:gap-5">
+              {MORE_FEATURES.map((f, i) => (
+                <Reveal key={f.title} delay={(i % 3) * 80}>
+                  <div
+                    className="h-full"
+                    style={{ background: '#FFFFFF', borderRadius: 8, padding: '24px 22px' }}
+                  >
+                    <div
+                      className="flex items-center justify-center"
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 999,
+                        background: 'var(--fd-offwhite)',
+                        color: 'var(--fd-green)',
+                      }}
+                    >
+                      {f.icon}
+                    </div>
+                    <div className="mt-4" style={{ fontSize: 17, fontWeight: 800, color: 'var(--fd-pine)' }}>
+                      {f.title}
+                    </div>
+                    <p className="mt-2" style={{ fontSize: 13.5, lineHeight: 1.6, color: 'var(--fd-muted)' }}>
+                      {f.body}
+                    </p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </Container>
+        </Section>
+
+        {/* 웹과 앱, 역할이 달라요 — 정직한 분리 */}
+        <Section bg="offwhite" pad="lg">
+          <Container size="md">
+            <div className="text-center">
+              <Reveal>
+                <Eyebrow>Web &amp; App</Eyebrow>
+                <Display as="h2" size="lg" className="mt-3">
+                  주문까지는 웹으로,
+                  <br />
+                  아이와의 매일은 앱에서
+                </Display>
+                <p
+                  className="mx-auto mt-4 max-w-[46ch] text-[15px] leading-relaxed"
+                  style={{ color: 'var(--fd-muted)' }}
+                >
+                  설문과 주문은 웹으로도 충분해요. 하지만 매일 기록하고, 잊지 않게
+                  챙겨주고, 가족과 나누는 일 — 아이와의 하루하루는 앱에 있어요.
+                </p>
+              </Reveal>
+            </div>
+            <div className="mx-auto mt-10 grid max-w-[760px] gap-4 md:grid-cols-2 md:gap-6">
+              <Reveal>
+                <div
+                  className="h-full"
+                  style={{
+                    background: '#FFFFFF',
+                    borderRadius: 8,
+                    padding: '26px 24px',
+                    border: '1px solid var(--fd-line)',
+                  }}
+                >
+                  <Eyebrow color="var(--fd-muted)">Web</Eyebrow>
+                  <div className="mt-2" style={{ fontSize: 19, fontWeight: 900, color: 'var(--fd-pine)' }}>
+                    웹에서는
+                  </div>
+                  <ul className="mt-4 space-y-2.5">
+                    {WEB_ROLES.map((r) => (
+                      <li key={r} className="flex items-start gap-2.5" style={{ fontSize: 14, color: 'var(--fd-muted)', fontWeight: 500 }}>
+                        <Check size={15} strokeWidth={2.6} style={{ color: 'var(--fd-muted)', marginTop: 2, flexShrink: 0 }} />
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Reveal>
+              <Reveal delay={90}>
+                <div
+                  className="h-full"
+                  style={{ background: 'var(--fd-pine)', borderRadius: 8, padding: '26px 24px' }}
+                >
+                  <Eyebrow color="rgba(255,255,255,0.7)">App</Eyebrow>
+                  <div className="mt-2" style={{ fontSize: 19, fontWeight: 900, color: '#FFFFFF' }}>
+                    앱에서는 여기에 더해
+                  </div>
+                  <ul className="mt-4 space-y-2.5">
+                    {APP_ROLES.map((r) => (
+                      <li key={r} className="flex items-start gap-2.5" style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', fontWeight: 600 }}>
+                        <Check size={15} strokeWidth={2.6} style={{ color: 'var(--fd-gold, #E5A93B)', marginTop: 2, flexShrink: 0 }} />
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Reveal>
+            </div>
+          </Container>
         </Section>
 
         {/* 이렇게 시작해요 */}
