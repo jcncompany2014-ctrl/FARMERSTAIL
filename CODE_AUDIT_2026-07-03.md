@@ -29,7 +29,24 @@
 - 🟢 고아 컴포넌트: components/cart·products 는 이미 A단계에서 삭제 완료(빈 디렉토리), variant 컴포넌트 참조 0 확인.
 - 🟢 클린 빌드 동등성: 오늘 3회 push 의 pre-push build:ci(next build 전체 재현) 전부 통과.
 
-## 종합 결론 (2026-07-03)
+## 배치 3 — 파일 전수 정독 (FILE_AUDIT_CHECKLIST.md 기준, 총 651파일)
+
+### 사장님 질문 답변 — checkout 은 잔재인가?
+**맞음 — 인터랙티브 체크아웃(성공/실패 페이지 + /api/payments/confirm)은 진입점 0 확정.** successUrl 을 /checkout/success 로 설정하는 코드 0, /checkout 링크 0(자체가 redirect('/start')). 유일한 도달 = confirm 에러 redirect(자기참조). **단 즉시 격리 보류 — 토스 PG 심사에 "일반 결제경로" 증빙이 필요할 수 있음.** 심사 방침(빌링만으로 가능한지) 확인 후 격리 결정. 코드 품질 자체는 모범(레이스 가드·자동환불 큐·위변조 alert 완비)이라 휴면 상태로 무해.
+
+### 웨이브 1-2 정독 결과 (직접 16 + 에이전트 69 = 85파일)
+- 🟢 **CORE-결제 5/5 직접 정독** (toss.ts·billing-error-classify·billing-issue·confirm·webhook): 실버그 0. 방어 설계 모범(Idempotency-Key·타임아웃·레이스 0-row 가드·webhook 재조회 검증·원자 dedup). 수정: stale docstring 2(부분취소 미지원 표기·존재않는 billing-confirm 라우트 언급).
+- 🟡 결제 기록: ①`recoverOrderPointsAndCoupon` 함수명에 쿠폰 잔재(기능은 포인트 복구, 이름만 — 결제경로 광범위 rename 이라 보류) ②confirm:418 `payment_refund_queue as any` 캐스트 = types.ts 재생성 대기 항목과 동일 뿌리.
+- 🟢 **components/v3 34/34** (에이전트): 실버그 0. 수정: Tabs.tsx stale docstring(CouponBrowser). 기록: StreakRewards bronze/silver 하드코딩 hex 2(티어 메탈색 — 토큰 없음, 시각변화 위험으로 보류). 오탐 기각: occurred_at 컬럼(실재 확인).
+- 🟢 **lib/email 13 + lib/personalization 22** (에이전트): 실버그 0. 기록: firstBox·skuModel·v3/types stale docstring 소소 3(역사 기록 성격) · 기능성 소스(Layer B) 전부 coming_soon 인데 feedback 카피가 "대기열 등록" 약속(제품 로드맵 — 사장님 영역) · reliability 가중치 검증이 런타임 throw(빌드타임 이동 제안 — 잘 도는 코드라 보류). 오탐 기각: 첫주문 50% 자동할인 카피(실제 구현됨), 뉴스레터 인프라(현역).
+
+### 웨이브 2 정독 결과 (에이전트 85파일: 인증코어+소형API 25 · 공용컴포넌트 60)
+- 🟠 **API 상태코드 부적절 2 (수정)**: notifications/seen profile 업데이트 실패가 200 반환→**500**(진실원 실패 은폐) · invitations/accept GET 비로그인 200→**401**(콜러 0 폴백 확인 후).
+- 🟠 **쿠폰 dead column 읽기 2 (수정)**: orders cancel·cancel-items 가 select 에 `coupon_code`(항상 null·미사용) 포함 → 제거 + cancel 라우트 stale docstring("Decrement coupons.used_count") 삭제.
+- 🟠 **stale 카트 주석 일괄 정정 (수정)**: AppChrome:170("cart 와 동일 패턴") · WebChrome 헤더 다이어그램([카트]·👤🛒·"카트 아이콘 유지" 문구) — 전부 현행(무카트) 반영.
+- 🟢 인증코어(auth callback·lib/auth·lib/supabase) 실버그 0, 인증우회/IDOR 0. 공용 컴포넌트 60 실버그 0·고아 0·a11y 갭 0.
+- 🟡 기록: push/preferences 의 notify_restock/notify_cart 필드(DB 컬럼 보존 결정과 커플링 — API 관통 유지가 정합) · invitations/create "Phase 2 이메일 발송" docstring(URL 공유 모델로 변경됨) · applyAutosignupDraft typegen 미반영 컬럼 주석.
+- 오탐 기각: push/unsubscribe 401 누락(실제로는 명시돼 있음) · progress-photos path traversal(startsWith 가드 + RLS 이중).
 
 - **실버그 1건 발견·수정**: checkout/fail 재시도 오링크(내 어제 수정분의 2차 오류 — /checkout 이 redirect 라우트임을 놓침).
 - **SEO 폐지경로 2건 정리**: WebSite SearchAction 제거 + 죽은 buildProductJsonLd 삭제.

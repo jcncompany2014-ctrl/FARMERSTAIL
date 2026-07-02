@@ -90,7 +90,7 @@ export async function POST(
   const { data: order } = await supabase
     .from('orders')
     .select(
-      'id, user_id, order_number, payment_status, order_status, payment_key, total_amount, refunded_amount, recipient_name, points_used, points_earned, coupon_code',
+      'id, user_id, order_number, payment_status, order_status, payment_key, total_amount, refunded_amount, recipient_name, points_used, points_earned',
     )
     .eq('id', id)
     .eq('user_id', user.id)

@@ -167,7 +167,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const dogMenuRef = useRef<HTMLDivElement | null>(null)
 
   // R-feel: 활성 강아지 칩 데이터 — 사용자의 강아지(id/이름/사진) fetch.
-  // cart 와 동일 패턴: 마운트 1회 + visibility 복귀 시 invalidate (라우트 전환 무관).
+  // 마운트 1회 + visibility 복귀 시 invalidate (라우트 전환 무관).
   // 비로그인 / 실패는 조용히 빈 목록 — 헤더가 깨지면 안 됨.
   useEffect(() => {
     let mounted = true

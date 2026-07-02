@@ -37,7 +37,7 @@ export async function POST() {
 
   if (profileRes.error) {
     console.error('[notifications/seen] profile update failed', profileRes.error)
-    return NextResponse.json({ ok: false }, { status: 200 })
+    return NextResponse.json({ ok: false }, { status: 500 })
   }
 
   // push_log 는 부차 — 실패해도 다음 /count·조회·markAllRead 로 읽음 self-heal.

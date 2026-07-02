@@ -3,8 +3,9 @@
 /**
  * Tabs — v3 segment 탭 (2026-05-22 R10-2).
  *
- * **앱 컨텍스트 전용.** CouponBrowser / PointsBrowser / NotificationsClient 가
- * 모두 같은 grid-cols-N + active swap 패턴을 manual 재구현하던 것을 추출.
+ * **앱 컨텍스트 전용.** PointsBrowser / NotificationsClient 등이 같은
+ * grid-cols-N + active swap 패턴을 manual 재구현하던 것을 추출.
+ * (CouponBrowser 는 쿠폰 폐지로 제거됨 — 2026-06 자동할인 전환.)
  *
  * 디자인 핸드오프:
  *   - 컨테이너: 1px rule border + V3.rule gap (1px hairline 분리)

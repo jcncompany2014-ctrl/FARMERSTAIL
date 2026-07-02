@@ -38,7 +38,6 @@ type CancelBody = {
  *   2. Flip orders row: payment_status='cancelled', order_status='cancelled', cancelled_at/reason set
  *   3. Refund points_used back to the ledger
  *   4. Revoke points_earned from the ledger
- *   5. Decrement coupons.used_count (redemption row is kept for audit)
  */
 export async function POST(
   req: Request,
@@ -88,7 +87,7 @@ export async function POST(
   const { data: order } = await supabase
     .from('orders')
     .select(
-      'id, user_id, order_number, payment_status, order_status, payment_key, payment_method, total_amount, points_used, points_earned, coupon_code, recipient_name'
+      'id, user_id, order_number, payment_status, order_status, payment_key, payment_method, total_amount, points_used, points_earned, recipient_name'
     )
     .eq('id', id)
     .eq('user_id', user.id)

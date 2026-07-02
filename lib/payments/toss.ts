@@ -11,8 +11,8 @@
  *     키로 들어온 반복 요청에는 동일한 200 결과를 돌려준다.
  *   - 승인 키는 `${orderId}:${paymentKey}` 로 잡는다 — 두 값 모두 동일 트랜잭션
  *     에서만 조합되므로 재시도 시 자동으로 같은 키가 나온다.
- *   - 취소 키는 `cancel:${paymentKey}:${cancelReason}` — 이유가 바뀌면 다른
- *     요청으로 간주. 부분 취소는 이 모듈에서 다루지 않음 (관리자 대시보드 작업).
+ *   - 취소 키는 `cancel:${paymentKey}[:{amount}|:full]:${cancelReason}` — 부분
+ *     취소는 금액까지 키에 포함해 같은 (키·금액·이유) 조합만 dedupe 된다.
  *
  * 호출처:
  *   - app/api/payments/confirm/route.ts   → confirmPayment
@@ -287,9 +287,9 @@ export function formatDueDate(iso: string | null | undefined): string {
 // Billing — 정기결제 (재청구).
 //
 // Toss billingKey 흐름:
-//   1) 사용자가 정기배송 신청 시 카드 등록 페이지(/api/payments/billing-confirm
-//      에서 callback) 에서 Toss SDK requestBillingAuth('카드') 호출
-//      → Toss 가 user.id 기반 customerKey 와 함께 billingKey 발급.
+//   1) 사용자가 정기배송 신청 시 카드 등록 페이지(/subscribe/billing-auth)에서
+//      Toss SDK requestBillingAuth('카드') 호출 → successUrl(/subscribe/
+//      billing-success)이 authKey 를 받아 /api/payments/billing-issue 로 교환.
 //   2) billingKey 를 subscriptions.billing_key 컬럼에 저장.
 //   3) cron 이 매일 새벽 next_delivery_date == today 인 active 구독 스캔 →
 //      이 함수 chargeBillingKey() 호출로 자동 청구.

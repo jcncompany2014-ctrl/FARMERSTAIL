@@ -83,7 +83,7 @@ export async function GET(req: Request) {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.json({ ok: false, message: '로그인이 필요해요' })
+    return NextResponse.json({ ok: false, message: '로그인이 필요해요' }, { status: 401 })
   }
 
   // audit #67: token RPC 경유 (RLS 우회 SECURITY DEFINER).
