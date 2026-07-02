@@ -17,3 +17,21 @@
 - 🟠 **SEO 구조화 데이터에 폐지 경로 (수정)**: ① 루트 layout 전 페이지에 나가던 WebSite JSON-LD 의 SearchAction 이 폐지된 `/products?q=` 를 target — 제거(구글도 2024-10 사이트링크 검색박스 종료). ② `buildProductJsonLd` 는 호출처 0 죽은 export + offer.url 이 `/products/[slug]` — 삭제(테스트 동반 정리). 구독 상품 LD 필요 시 /subscribe 기준 재설계.
 - 🟢 휴리스틱: console.log **0** · TODO/FIXME/HACK **0** · @ts-ignore/expect-error **1**(테스트 의도) · `_dead_q4`/`_dead_referral` 소스 참조 **0**.
 - 🟢 폐지 경로 라이브 링크: href 로 /products·/cart 등을 가리키는 실코드 0 (docstring 예시 2건뿐 — Button.tsx·Avatar.tsx, 비렌더 무해).
+
+## 배치 2 — 인프라 · 프로덕션 레이어
+
+- 🟢 **프로덕션 스팟 10라우트 전부 200** (/·/start·/why-app·/our-food·/plans·/faq·/login·/account·sitemap·robots).
+- 🟢 **Vercel 런타임 에러 7일 = 기존 refresh_token 1그룹뿐, 마지막 발생 6/29 = getSafeUser 수정(7/1) 이전** → 수정 효과 실증, 신규 에러 0.
+- 🟢 **DB 보안 어드바이저: ERROR 0.** WARN = security-definer 함수 익명/인증 실행권한 32(레퍼럴 DROP 으로 35→32 감소·기존 기록 항목, DDL 하드닝은 사장님 결정) + `auth_leaked_password_protection` 1(**Supabase 대시보드 토글로 켜기 권장** — 유출 비밀번호 차단, DDL 아님). INFO = RLS enabled·무정책 3(anthropic_usage·email_suppressions·rate_limit_counters — 전부 service-role 전용 내부 테이블, deny-all 이 의도된 안전 자세).
+- 🟡 DB 성능 어드바이저: Supabase 린터 자체가 SQL 문법 에러로 응답 실패(서버측 버그, 우리 문제 아님). 7/1 기록(auth_rls_initplan 164 등) 유효.
+- 🟡 npm audit 15 (critical 0 · high 2 = 전부 dev 전용 vite/ws · moderate 11) — 7/1 과 동일, 프로덕션 런타임 긴급 0. next 는 수정 포크라 무단 업데이트 금지.
+- 🟡 **types.ts 드리프트**: DROP 된 coupons·referral 테이블/RPC 타입 잔존(참조 9곳, 전부 자동생성 파일 내부 — 라이브 코드 참조 **0**). 타입 재생성(generate_typescript_types)으로 정리 가능하나 대량 diff 라 별도 회차 권장.
+- 🟢 고아 컴포넌트: components/cart·products 는 이미 A단계에서 삭제 완료(빈 디렉토리), variant 컴포넌트 참조 0 확인.
+- 🟢 클린 빌드 동등성: 오늘 3회 push 의 pre-push build:ci(next build 전체 재현) 전부 통과.
+
+## 종합 결론 (2026-07-03)
+
+- **실버그 1건 발견·수정**: checkout/fail 재시도 오링크(내 어제 수정분의 2차 오류 — /checkout 이 redirect 라우트임을 놓침).
+- **SEO 폐지경로 2건 정리**: WebSite SearchAction 제거 + 죽은 buildProductJsonLd 삭제.
+- 나머지 전 영역(링크·이미지·크론·휴리스틱·런타임·보안) **클린**. 코드베이스 상태 매우 견고.
+- **사장님 결정 대기 항목**: ① Supabase 대시보드에서 leaked password protection 켜기(토글 1개, 권장) ② security-definer 32건 DDL 하드닝 ③ auth_rls_initplan 164건 성능 DDL ④ types.ts 재생성 ⑤ npm audit dev 의존성 정리.
