@@ -123,7 +123,7 @@ function ReviewsHero({ isAuthed }: { isAuthed: boolean }) {
 function DogCard() {
   return (
     <div className="snap-start shrink-0 w-[160px] md:w-[180px] text-center" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '16px 14px' }}>
-      <PhotoSlot label="아이 사진" ratio="1 / 1" tone="cream" rounded={999} className="w-full" />
+      <PhotoSlot src="/dog-portrait.jpg" alt="건강하고 행복한 강아지" label="아이 사진" ratio="1 / 1" tone="cream" rounded={999} className="w-full" />
       <p className="pt-3 text-[13px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>아이 이름 자리</p>
       <p className="pt-0.5 text-[11.5px]" style={{ color: 'var(--fd-muted)', fontWeight: 600 }}>지역 · 견종</p>
     </div>
@@ -252,7 +252,7 @@ function FeaturedReview() {
         </Reveal>
         <div className="pt-10 md:pt-14 grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
           <Reveal>
-            <PhotoSlot label="후기 보호자와 아이 사진" sub="잘 먹는 우리 아이 / 보호자 인터뷰 컷" ratio="4 / 3" tone="cream" rounded={10} className="w-full" />
+            <PhotoSlot src="/review-owner-dog.jpg" alt="화식을 잘 먹는 강아지와 보호자" label="후기 보호자와 아이 사진" sub="잘 먹는 우리 아이 / 보호자 인터뷰 컷" ratio="4 / 3" tone="cream" rounded={10} className="w-full" />
           </Reveal>
           <Reveal delay={100}>
             <div>

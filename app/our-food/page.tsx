@@ -109,7 +109,7 @@ function FoodHero({ isAuthed }: { isAuthed: boolean }) {
             </Reveal>
           </div>
           <Reveal delay={120}>
-            <PhotoSlot label="완성된 화식 한 끼 사진" sub="그릇에 담긴 신선식 한 끼 (세로 컷 권장)" ratio="4 / 5" tone="cream" rounded={10} className="w-full" />
+            <PhotoSlot src="/food-bowl.jpg" alt="그릇에 담긴 신선한 화식 한 끼" label="완성된 화식 한 끼 사진" sub="그릇에 담긴 신선식 한 끼 (세로 컷 권장)" ratio="4 / 5" tone="cream" rounded={10} className="w-full" />
           </Reveal>
         </div>
       </Container>
@@ -209,7 +209,7 @@ function HowItsMade() {
       <Container size="xl">
         <div className="grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
           <Reveal>
-            <PhotoSlot label="수비드 조리 / 주방 사진" sub="진공 저온으로 천천히 익히는 과정" ratio="5 / 4" tone="offwhite" rounded={10} className="w-full" />
+            <PhotoSlot src="/kitchen-cooking.jpg" alt="수비드 저온으로 조리하는 주방" label="수비드 조리 / 주방 사진" sub="진공 저온으로 천천히 익히는 과정" ratio="5 / 4" tone="offwhite" rounded={10} className="w-full" />
           </Reveal>
           <Reveal delay={100}>
             <div>

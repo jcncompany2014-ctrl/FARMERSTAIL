@@ -198,7 +198,7 @@ export default async function PlansPage() {
                 </div>
               </Reveal>
               <Reveal delay={120} className="w-full">
-                <PhotoSlot label="정기배송 박스 오프닝 사진" sub="냉동 패키지 언박싱" ratio="4 / 5" tone="cream" rounded={10} className="w-full" />
+                <PhotoSlot src="/sub-box.jpg" alt="정기배송 박스 언박싱" label="정기배송 박스 오프닝 사진" sub="냉동 패키지 언박싱" ratio="4 / 5" tone="cream" rounded={10} className="w-full" />
               </Reveal>
             </div>
           </Container>

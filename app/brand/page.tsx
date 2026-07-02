@@ -175,6 +175,8 @@ export default async function BrandPage() {
             <Reveal>
               <div className="mt-10 md:mt-12">
                 <PhotoSlot
+                  src="/farm-to-kitchen.jpg"
+                  alt="농장에서 부엌까지"
                   label="농장에서 부엌까지"
                   sub="브랜드 이미지 자리 — 실제 사진으로 교체"
                   ratio="16 / 7"

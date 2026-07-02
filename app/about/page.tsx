@@ -135,7 +135,7 @@ export default async function AboutPage() {
             <div className="grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
               <Reveal>
                 <PhotoSlot
-                  label="설립자와 반려견 / 농장 사진"
+                  src="/founder-dog.jpg" alt="설립자와 반려견" label="설립자와 반려견 / 농장 사진"
                   sub="브랜드의 시작을 보여주는 컷"
                   ratio="4 / 5"
                   tone="offwhite"

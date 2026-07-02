@@ -207,6 +207,8 @@ export default async function NewsletterPage({
           </p>
         </div>
         <PhotoSlot
+          src="/farm-landscape.jpg"
+          alt="신선한 재료를 기르는 농장 풍경"
           label="뉴스레터 / 농장 풍경 사진"
           sub="브랜드 이미지 자리"
           ratio="4 / 3"
