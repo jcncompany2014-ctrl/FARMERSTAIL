@@ -13,32 +13,76 @@
  *   - 모바일: sticky 분할이 좁은 화면에서 겹침이 심해, 각 블록 안에 해당
  *     화면을 인라인으로 렌더(md:hidden ↔ hidden md:block).
  *
- * 폰 속 화면 4종은 실제 앱 기능(대시보드/분석 리포트/기록/정기배송 관리)을
- * DOM 으로 재구성한 **예시 화면** — 실스크린샷 아님(앱은 로그인 게이트 뒤라
- * 캡처 불가). 가짜 후기·효능 단정 0, 하단에 "예시 화면" 명시(정직성 가드).
+ * # 폰 속 화면 = 실제 앱 v3 UI 미러링 (사장님 피드백 2026-07-02)
+ *   처음 버전은 웹 FD 토큰으로 임의 구성 → "처음 보는 화면" 지적. 실제 앱
+ *   컴포넌트의 시각 구조를 그대로 재구성:
+ *     홈    = GreetingSection(accent dot 키커·Signature ink bar·yellow Mark)
+ *             + DeliveryStripCard(ink 사각+yellow 트럭·D-N mono)
+ *             + QuickActionChips(paper 아이콘 사각 + mono 라벨)
+ *     기록  = ThisWeekSection(7일 그리드 full=ink/partial=yellow/today=dashed
+ *             accent · legend · "오늘 기록하기 →")
+ *     분석  = v3 리포트 톤(mono 키커·paperHi 카드·BCS 세그먼트·meta rows)
+ *     구독  = SubscriptionCard(헤더 스트립·yellow 틴트 배송행·meta rows·
+ *             radius-4 버튼)
+ *   색/서체는 lib/design/tokens 의 V3 상수를 직접 사용 — v3 CSS 변수는
+ *   [data-ft-chrome="app"] 스코프라 웹 페이지에선 안 나오기 때문(TS 토큰이
+ *   같은 값의 single source). 실스크린샷 아님("예시 화면" 명시, 앱은 로그인
+ *   게이트 뒤라 캡처 불가). 가짜 후기·효능 단정 0.
  *
- * 로직/DB 0 — presentation only. FD 토큰(--fd-*)만 사용(앱 v3 토큰 불침범).
+ * 로직/DB 0 — presentation only. 실제 앱 코드는 불침범(토큰 import 만).
  */
 
 import { useEffect, useRef, useState } from 'react'
 import {
-  Bone,
-  Dog,
-  Flame,
+  ArrowRight,
+  Check,
   Footprints,
-  PauseCircle,
-  RefreshCw,
   Scale,
+  Soup,
   Truck,
 } from 'lucide-react'
+import { V3, V3Font } from '@/lib/design/tokens'
 import { Eyebrow, Display } from '@/components/web/fd/ui'
 
 // ---------------------------------------------------------------------------
-// 폰 속 예시 화면 4종 — 실제 앱 기능만 재구성 (없는 기능 그리지 않기)
+// v3 미니 프리미티브 — 실제 Mono / ft-card-v3 / Signature 의 축소 재현
 // ---------------------------------------------------------------------------
 
-/** 공통 미니 카드 셸 */
-function ScreenCard({
+/** components/v3/Mono 대응 — IBM Plex Mono ALL-CAPS 키커. */
+function MonoText({
+  children,
+  color = V3.inkMute,
+  size = 8.5,
+  weight = 500,
+  upper = true,
+  style,
+}: {
+  children: React.ReactNode
+  color?: string
+  size?: number
+  weight?: number
+  upper?: boolean
+  style?: React.CSSProperties
+}) {
+  return (
+    <span
+      style={{
+        fontFamily: V3Font.mono,
+        fontSize: size,
+        fontWeight: weight,
+        letterSpacing: '0.14em',
+        textTransform: upper ? 'uppercase' : 'none',
+        color,
+        ...style,
+      }}
+    >
+      {children}
+    </span>
+  )
+}
+
+/** .ft-card-v3 대응 — paperHi + 1px rule + radius 4, 그림자 없음. */
+function V3Card({
   children,
   style,
 }: {
@@ -48,10 +92,9 @@ function ScreenCard({
   return (
     <div
       style={{
-        background: '#FFFFFF',
-        borderRadius: 14,
-        padding: '12px 14px',
-        boxShadow: '0 1px 4px rgba(30,26,20,0.06)',
+        background: V3.paperHi,
+        border: `1px solid ${V3.rule}`,
+        borderRadius: 4,
         ...style,
       }}
     >
@@ -60,358 +103,305 @@ function ScreenCard({
   )
 }
 
-function ScreenHeader({ title, sub }: { title: string; sub?: string }) {
+/** 앱 상단 로고 바 — AppChrome 헤더의 logo-brush 워드마크 축소. */
+function AppTopBar() {
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--fd-pine)' }}>
-        {title}
-      </div>
-      {sub && (
-        <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--fd-muted)', marginTop: 2 }}>
-          {sub}
-        </div>
-      )}
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '7px 0 6px',
+        borderBottom: `1px solid ${V3.ruleSoft}`,
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element -- 목업 내 소형 로고, next/image 불필요 */}
+      <img src="/logo-brush.png" alt="" aria-hidden style={{ height: 13, width: 'auto' }} />
     </div>
   )
 }
 
-/** ① 홈 대시보드 — 오늘 급여량 + 이번 주 기록 + 퀵 기록 칩 */
+const sans = 'var(--font-sans)'
+
+// ---------------------------------------------------------------------------
+// ① 홈 — GreetingSection + DeliveryStripCard + QuickActionChips 미러
+// ---------------------------------------------------------------------------
 function ScreenHome() {
   return (
-    <div style={{ padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--fd-muted)' }}>좋은 아침이에요</div>
-          <div style={{ fontSize: 17, fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--fd-pine)' }}>
-            콩이네 🐾
-          </div>
+    <div style={{ background: V3.paper, height: '100%' }}>
+      <AppTopBar />
+      <div style={{ padding: '14px 14px 0', position: 'relative' }}>
+        {/* kicker: accent dot + mono greeting */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span aria-hidden style={{ width: 6, height: 6, borderRadius: 3, background: V3.accent }} />
+          <MonoText color={V3.ink}>Hello · good morning</MonoText>
         </div>
-        <div
+        <h4
           style={{
-            width: 34,
-            height: 34,
-            borderRadius: 999,
-            background: 'var(--fd-cream)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            margin: '10px 0 0',
+            fontFamily: sans,
+            fontWeight: 800,
+            fontSize: 17,
+            lineHeight: 1.25,
+            letterSpacing: '-0.02em',
+            color: V3.ink,
+            paddingRight: 78,
           }}
         >
-          <Dog size={18} color="var(--fd-coral)" strokeWidth={2.4} />
+          좋은 아침이에요,
+        </h4>
+        {/* 우상단 Signature — italic 이름 + FAMILY 키커 + ink bar */}
+        <div
+          style={{
+            position: 'absolute',
+            right: 14,
+            top: 14,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+          }}
+        >
+          <span
+            style={{
+              fontFamily: sans,
+              fontStyle: 'italic',
+              fontWeight: 600,
+              fontSize: 11,
+              color: V3.ink,
+              letterSpacing: '-0.015em',
+            }}
+          >
+            보호자님
+          </span>
+          <MonoText size={7.5} style={{ marginTop: 4 }}>{`FAMILY · 1`}</MonoText>
+          <div aria-hidden style={{ marginTop: 8, height: 20, width: 3, background: V3.ink }} />
+        </div>
+        {/* sub copy + yellow Mark */}
+        <div style={{ marginTop: 10, fontFamily: sans, fontSize: 10.5, color: V3.inkSoft, lineHeight: 1.5 }}>
+          오늘도 건강한 한 끼를{' '}
+          <mark style={{ background: V3.yellow, color: V3.ink, padding: '0 3px', fontWeight: 700 }}>
+            정성스럽게.
+          </mark>
         </div>
       </div>
 
-      <ScreenCard>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--fd-muted)' }}>오늘 급여</span>
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--fd-green)' }}>1끼 남음</span>
-        </div>
-        <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--fd-pine)', marginTop: 3 }}>
-          340g <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--fd-muted)' }}>/ 하루 2끼</span>
-        </div>
-        <div style={{ height: 6, borderRadius: 999, background: 'var(--fd-cream)', marginTop: 8, overflow: 'hidden' }}>
-          <div style={{ width: '50%', height: '100%', borderRadius: 999, background: 'var(--fd-coral)' }} />
-        </div>
-      </ScreenCard>
-
-      <ScreenCard>
-        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--fd-muted)', marginBottom: 8 }}>이번 주 기록</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          {['월', '화', '수', '목', '금', '토', '일'].map((d, i) => (
-            <div key={d} style={{ textAlign: 'center' }}>
-              <div
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 999,
-                  background: i < 5 ? 'var(--fd-green)' : 'var(--fd-cream)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 10,
-                  fontWeight: 800,
-                  color: i < 5 ? '#FFF' : 'var(--fd-muted)',
-                }}
-              >
-                {i < 5 ? '✓' : ''}
-              </div>
-              <div style={{ fontSize: 8.5, fontWeight: 700, color: 'var(--fd-muted)', marginTop: 3 }}>{d}</div>
-            </div>
-          ))}
-        </div>
-      </ScreenCard>
-
-      <div style={{ display: 'flex', gap: 6 }}>
-        {[
-          { icon: <Bone size={12} strokeWidth={2.4} />, label: '식사' },
-          { icon: <Footprints size={12} strokeWidth={2.4} />, label: '산책' },
-          { icon: <Scale size={12} strokeWidth={2.4} />, label: '체중' },
-        ].map((c) => (
+      {/* DeliveryStripCard 미러 */}
+      <div style={{ padding: '14px 14px 0' }}>
+        <V3Card style={{ padding: '9px 10px', display: 'flex', alignItems: 'center', gap: 9 }}>
           <div
-            key={c.label}
+            aria-hidden
             style={{
-              flex: 1,
+              width: 28,
+              height: 28,
+              borderRadius: 4,
+              background: V3.ink,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 4,
-              padding: '9px 0',
-              borderRadius: 999,
-              background: '#FFFFFF',
-              boxShadow: 'inset 0 0 0 1px var(--fd-line)',
-              fontSize: 10.5,
-              fontWeight: 800,
-              color: 'var(--fd-pine)',
+              flexShrink: 0,
             }}
           >
-            {c.icon}
-            {c.label}
+            <Truck size={14} color={V3.yellow} strokeWidth={1.75} />
           </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/** ② 정밀 분석 리포트 — BCS + 권장 칼로리 + 단백질 적합 */
-function ScreenAnalysis() {
-  return (
-    <div style={{ padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <ScreenHeader title="영양 분석 리포트" sub="콩이 · 말티즈 · 3살" />
-
-      <ScreenCard>
-        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--fd-muted)' }}>체형 점수 (BCS)</div>
-        <div style={{ display: 'flex', gap: 3, marginTop: 8 }}>
-          {Array.from({ length: 9 }, (_, i) => (
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <MonoText color={V3.accent} size={7.5} weight={700}>D-3</MonoText>
+              <MonoText size={7.5}>· 정기배송</MonoText>
+            </div>
             <div
-              key={i}
               style={{
-                flex: 1,
-                height: i === 4 ? 18 : 12,
-                borderRadius: 3,
-                background: i === 4 ? 'var(--fd-green)' : 'var(--fd-cream)',
-                alignSelf: 'flex-end',
-              }}
-            />
-          ))}
-        </div>
-        <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--fd-green)', marginTop: 6 }}>
-          5 / 9 · 적정 체형
-        </div>
-      </ScreenCard>
-
-      <ScreenCard>
-        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--fd-muted)' }}>하루 권장</div>
-        <div style={{ display: 'flex', gap: 14, marginTop: 4 }}>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--fd-pine)' }}>612</div>
-            <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--fd-muted)' }}>kcal</div>
-          </div>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--fd-pine)' }}>340g</div>
-            <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--fd-muted)' }}>급여량</div>
-          </div>
-        </div>
-      </ScreenCard>
-
-      <ScreenCard>
-        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--fd-muted)', marginBottom: 7 }}>
-          잘 맞는 단백질
-        </div>
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-          {[
-            { name: '닭고기', ok: true },
-            { name: '오리', ok: true },
-            { name: '소고기', ok: false },
-          ].map((p) => (
-            <span
-              key={p.name}
-              style={{
+                fontFamily: sans,
+                fontWeight: 700,
                 fontSize: 10.5,
-                fontWeight: 800,
-                padding: '5px 10px',
-                borderRadius: 999,
-                background: p.ok ? 'var(--fd-cream)' : 'transparent',
-                color: p.ok ? 'var(--fd-pine)' : 'var(--fd-muted)',
-                boxShadow: p.ok ? 'none' : 'inset 0 0 0 1px var(--fd-line)',
-                textDecoration: p.ok ? 'none' : 'line-through',
+                color: V3.ink,
+                marginTop: 2,
+                letterSpacing: '-0.015em',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
-              {p.ok ? '✓ ' : ''}
-              {p.name}
-            </span>
-          ))}
-        </div>
-        <div style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--fd-muted)', marginTop: 7 }}>
-          알레르기 응답을 반영했어요
-        </div>
-      </ScreenCard>
-    </div>
-  )
-}
+              금요일 새벽 도착 · 맞춤 화식 박스
+            </div>
+          </div>
+          <ArrowRight size={11} color={V3.inkMute} strokeWidth={2} />
+        </V3Card>
+      </div>
 
-/** ③ 매일 기록 — 타임라인 + 연속 기록 */
-function ScreenRecords() {
-  return (
-    <div style={{ padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <ScreenHeader title="오늘 기록" sub="탭 한 번이면 끝나요" />
-
-      <ScreenCard>
+      {/* QuickActionChips 미러 — 식사(기록함)·산책·체중 */}
+      <div style={{ padding: '10px 14px 0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
         {[
-          { time: '08:12', label: '아침 식사 170g', done: true },
-          { time: '17:40', label: '산책 32분', done: true },
-          { time: '20:00', label: '체중 6.4kg', done: true },
-        ].map((r, i) => (
-          <div
-            key={r.time}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '8px 0',
-              borderTop: i === 0 ? 'none' : '1px solid var(--fd-line)',
-            }}
-          >
+          { Icon: Soup, tone: V3.sage, label: '식사', sub: '기록함', done: true },
+          { Icon: Footprints, tone: V3.accent, label: '산책', sub: '오늘 기록', done: false },
+          { Icon: Scale, tone: V3.ink, label: '체중', sub: '6.4kg', done: false },
+        ].map(({ Icon, tone, label, sub, done }) => (
+          <V3Card key={label} style={{ padding: 8, display: 'flex', alignItems: 'center', gap: 7 }}>
             <span
               style={{
-                width: 18,
-                height: 18,
-                borderRadius: 999,
-                background: 'var(--fd-green)',
-                color: '#FFF',
-                fontSize: 10,
-                fontWeight: 900,
+                width: 24,
+                height: 24,
+                background: V3.paper,
+                borderRadius: 4,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
               }}
             >
-              ✓
+              <Icon size={13} color={tone} strokeWidth={1.75} />
             </span>
-            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--fd-pine)', flex: 1 }}>{r.label}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--fd-muted)' }}>{r.time}</span>
-          </div>
+            <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <MonoText size={7}>{label}</MonoText>
+              <span
+                style={{
+                  fontFamily: sans,
+                  fontWeight: 700,
+                  fontSize: 9.5,
+                  color: done ? V3.sage : V3.ink,
+                  marginTop: 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {done && <Check size={9} color={V3.sage} strokeWidth={2.6} />}
+                {sub}
+              </span>
+            </span>
+          </V3Card>
         ))}
-      </ScreenCard>
-
-      <ScreenCard
-        style={{
-          background: 'var(--fd-pine)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-        }}
-      >
-        <Flame size={20} color="#E5A93B" strokeWidth={2.4} />
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 900, color: '#FFFFFF' }}>12일 연속 기록 중</div>
-          <div style={{ fontSize: 9.5, fontWeight: 600, color: 'rgba(255,255,255,0.72)', marginTop: 1 }}>
-            기록이 쌓이면 식단 재분석으로 이어져요
-          </div>
-        </div>
-      </ScreenCard>
+      </div>
     </div>
   )
 }
 
-/** ④ 정기배송 관리 — 다음 배송 + 박스 구성 + 주기/일시정지 */
-function ScreenSubscription() {
+// ---------------------------------------------------------------------------
+// ② 이번 주 기록 — ThisWeekSection 미러 (7일 그리드 + legend + CTA)
+// ---------------------------------------------------------------------------
+type DayStatus = 'full' | 'partial' | 'miss' | 'today' | 'future'
+
+const WEEK: { date: number; wd: string; status: DayStatus }[] = [
+  { date: 22, wd: 'M', status: 'full' },
+  { date: 23, wd: 'T', status: 'full' },
+  { date: 24, wd: 'W', status: 'partial' },
+  { date: 25, wd: 'T', status: 'full' },
+  { date: 26, wd: 'F', status: 'today' },
+  { date: 27, wd: 'S', status: 'future' },
+  { date: 28, wd: 'S', status: 'future' },
+]
+
+function dayBg(s: DayStatus) {
+  return s === 'full' ? V3.ink : s === 'partial' ? V3.yellow : s === 'today' ? 'transparent' : V3.ruleSoft
+}
+function dayFg(s: DayStatus) {
+  return s === 'full' ? V3.paper : s === 'partial' ? V3.ink : s === 'today' ? V3.accent : V3.inkMute
+}
+
+function ScreenWeek() {
   return (
-    <div style={{ padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <ScreenHeader title="정기배송" sub="다음 박스" />
-
-      <ScreenCard style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: 'var(--fd-cream)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <Truck size={18} color="var(--fd-coral)" strokeWidth={2.2} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--fd-pine)' }}>금요일 도착 예정</div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--fd-muted)', marginTop: 1 }}>2주 주기 · 4kg 박스</div>
-        </div>
-        <span
-          style={{
-            fontSize: 10.5,
-            fontWeight: 900,
-            color: 'var(--fd-coral)',
-            background: 'var(--fd-cream)',
-            borderRadius: 999,
-            padding: '4px 9px',
-          }}
-        >
-          D-3
-        </span>
-      </ScreenCard>
-
-      <ScreenCard>
-        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--fd-muted)', marginBottom: 8 }}>박스 구성</div>
-        {[
-          { name: '소고기 레시피', pct: '50%', dot: '#8A4A54' },
-          { name: '닭고기 레시피', pct: '50%', dot: 'var(--fd-coral)' },
-        ].map((line, i) => (
-          <div
-            key={line.name}
+    <div style={{ background: V3.paper, height: '100%' }}>
+      <AppTopBar />
+      <div style={{ padding: '14px 14px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 9 }}>
+          <h4
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '7px 0',
-              borderTop: i === 0 ? 'none' : '1px solid var(--fd-line)',
+              margin: 0,
+              fontFamily: sans,
+              fontWeight: 800,
+              fontSize: 15,
+              letterSpacing: '-0.025em',
+              color: V3.ink,
             }}
           >
-            <span style={{ width: 10, height: 10, borderRadius: 999, background: line.dot, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--fd-pine)', flex: 1 }}>{line.name}</span>
-            <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--fd-muted)' }}>{line.pct}</span>
-          </div>
-        ))}
-      </ScreenCard>
-
-      <div style={{ display: 'flex', gap: 6 }}>
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 5,
-            padding: '9px 0',
-            borderRadius: 999,
-            background: 'var(--fd-pine)',
-            fontSize: 10.5,
-            fontWeight: 800,
-            color: '#FFFFFF',
-          }}
-        >
-          <RefreshCw size={11} strokeWidth={2.6} /> 주기 변경
+            이번 주 콩이
+          </h4>
+          <MonoText color={V3.sage} upper={false}>· 연속 12일</MonoText>
         </div>
+
+        <V3Card style={{ padding: '11px 10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+            {WEEK.map((d) => (
+              <div key={d.date} style={{ textAlign: 'center' }}>
+                <div
+                  style={{
+                    aspectRatio: '1',
+                    borderRadius: 4,
+                    background: dayBg(d.status),
+                    border: d.status === 'today' ? `1.5px dashed ${V3.accent}` : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontFamily: sans,
+                    fontWeight: 700,
+                    fontSize: 9,
+                    color: dayFg(d.status),
+                  }}
+                >
+                  {d.date}
+                </div>
+                <MonoText size={6.5} style={{ display: 'block', marginTop: 4 }}>{d.wd}</MonoText>
+              </div>
+            ))}
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: 10,
+              paddingTop: 8,
+              borderTop: `1px solid ${V3.rule}`,
+            }}
+          >
+            <div style={{ display: 'flex', gap: 9 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span aria-hidden style={{ width: 6, height: 6, background: V3.ink }} />
+                <MonoText size={6.5}>완료</MonoText>
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span aria-hidden style={{ width: 6, height: 6, background: V3.yellow }} />
+                <MonoText size={6.5}>일부</MonoText>
+              </span>
+            </div>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                fontFamily: sans,
+                fontWeight: 700,
+                fontSize: 9,
+                color: V3.accent,
+              }}
+            >
+              오늘 기록하기
+              <ArrowRight size={9} color={V3.accent} strokeWidth={2.2} />
+            </span>
+          </div>
+        </V3Card>
+
+        {/* ink hero strip — 연속 기록 (ft-card-ink 톤) */}
         <div
           style={{
-            flex: 1,
+            marginTop: 10,
+            background: V3.ink,
+            borderRadius: 4,
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: 5,
-            padding: '9px 0',
-            borderRadius: 999,
-            background: '#FFFFFF',
-            boxShadow: 'inset 0 0 0 1px var(--fd-line)',
-            fontSize: 10.5,
-            fontWeight: 800,
-            color: 'var(--fd-pine)',
+            justifyContent: 'space-between',
           }}
         >
-          <PauseCircle size={11} strokeWidth={2.6} /> 일시정지
+          <div>
+            <MonoText color={V3.yellow} size={7}>Streak</MonoText>
+            <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 11.5, color: V3.paper, marginTop: 2 }}>
+              12일 연속 기록 중
+            </div>
+          </div>
+          <div style={{ fontFamily: sans, fontSize: 9, color: 'rgba(244,237,224,0.65)' }}>
+            변화 감지 → 재분석
+          </div>
         </div>
       </div>
     </div>
@@ -419,7 +409,220 @@ function ScreenSubscription() {
 }
 
 // ---------------------------------------------------------------------------
-// 기능 정의 — 화면과 설명 페어 (전부 실재 기능)
+// ③ 분석 리포트 — v3 리포트 톤 (mono 키커 + BCS 세그먼트 + meta rows)
+// ---------------------------------------------------------------------------
+function ScreenAnalysis() {
+  return (
+    <div style={{ background: V3.paper, height: '100%' }}>
+      <AppTopBar />
+      <div style={{ padding: '14px 14px 0' }}>
+        <MonoText color={V3.accent} weight={600}>Report</MonoText>
+        <h4
+          style={{
+            margin: '6px 0 0',
+            fontFamily: sans,
+            fontWeight: 800,
+            fontSize: 15,
+            letterSpacing: '-0.025em',
+            color: V3.ink,
+          }}
+        >
+          콩이 영양 분석
+        </h4>
+
+        <V3Card style={{ marginTop: 10, padding: '10px 11px' }}>
+          <MonoText size={7}>체형 점수 · BCS</MonoText>
+          <div style={{ display: 'flex', gap: 3, marginTop: 8, alignItems: 'flex-end' }}>
+            {Array.from({ length: 9 }, (_, i) => (
+              <div
+                key={i}
+                style={{
+                  flex: 1,
+                  height: i === 4 ? 15 : 10,
+                  borderRadius: 2,
+                  background: i === 4 ? V3.sage : V3.ruleSoft,
+                }}
+              />
+            ))}
+          </div>
+          <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 10, color: V3.sage, marginTop: 6 }}>
+            5 / 9 · 적정 체형
+          </div>
+        </V3Card>
+
+        <V3Card style={{ marginTop: 8, padding: '4px 11px' }}>
+          {[
+            { label: '하루 권장 칼로리', value: '612 kcal' },
+            { label: '하루 급여량', value: '340g · 2끼' },
+            { label: '잘 맞는 단백질', value: '닭 · 오리' },
+          ].map((row, i) => (
+            <div
+              key={row.label}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '7px 0',
+                borderTop: i === 0 ? 'none' : `1px solid ${V3.rule}`,
+                fontFamily: sans,
+                fontSize: 9.5,
+              }}
+            >
+              <span style={{ color: V3.inkMute }}>{row.label}</span>
+              <span style={{ fontWeight: 700, color: V3.ink }}>{row.value}</span>
+            </div>
+          ))}
+        </V3Card>
+
+        <div style={{ marginTop: 10, fontFamily: sans, fontSize: 9.5, color: V3.inkSoft, lineHeight: 1.5 }}>
+          알레르기 응답을 반영해{' '}
+          <mark style={{ background: V3.yellow, color: V3.ink, padding: '0 3px', fontWeight: 700 }}>
+            소고기 레시피는 제외
+          </mark>
+          했어요.
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// ④ 정기배송 — SubscriptionCard 미러 (헤더 스트립·yellow 틴트 배송행·meta rows)
+// ---------------------------------------------------------------------------
+function ScreenSubscription() {
+  return (
+    <div style={{ background: V3.paper, height: '100%' }}>
+      <AppTopBar />
+      <div style={{ padding: '14px 14px 0' }}>
+        <MonoText color={V3.accent} weight={600}>Subscriptions</MonoText>
+
+        <V3Card style={{ marginTop: 10, overflow: 'hidden', padding: 0 }}>
+          {/* 헤더 스트립 — paper bg + 상태 mono 키커 */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '7px 11px',
+              background: V3.paper,
+              borderBottom: `1px solid ${V3.rule}`,
+            }}
+          >
+            <MonoText color={V3.sage} size={7.5} weight={700}>● Active · 배송중</MonoText>
+            <MonoText size={7}>2주 주기</MonoText>
+          </div>
+
+          {/* 다음 배송 하이라이트 — yellow 틴트 */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 11px',
+              background: 'color-mix(in srgb, #e6b942 12%, transparent)',
+              borderBottom: `1px solid ${V3.yellow}`,
+            }}
+          >
+            <Truck size={13} color={V3.yellow} strokeWidth={1.75} />
+            <span style={{ fontFamily: sans, fontWeight: 700, fontSize: 10, color: V3.ink }}>
+              D-3 · 금요일 새벽 도착
+            </span>
+          </div>
+
+          {/* 상품 행 — paper 썸네일 박스 + 이름 + 구성 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 11px' }}>
+            <div
+              aria-hidden
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 4,
+                background: V3.paper,
+                border: `1px solid ${V3.rule}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Soup size={16} color={V3.inkMute} strokeWidth={1.5} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 10.5, color: V3.ink }}>
+                콩이 맞춤 화식 박스
+              </div>
+              <MonoText size={7} style={{ display: 'block', marginTop: 2 }}>
+                소고기 50 · 닭고기 50
+              </MonoText>
+            </div>
+          </div>
+
+          {/* meta rows */}
+          <div style={{ padding: '0 11px 4px', borderTop: `1px solid ${V3.rule}` }}>
+            {[
+              { label: '배송 주기', value: '2주마다' },
+              { label: '다음 결제', value: '금요일 자동' },
+              { label: '누적 배송', value: '3회' },
+            ].map((row, i) => (
+              <div
+                key={row.label}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '6px 0',
+                  borderTop: i === 0 ? 'none' : `1px solid ${V3.ruleSoft}`,
+                  fontFamily: sans,
+                  fontSize: 9,
+                }}
+              >
+                <span style={{ color: V3.inkMute }}>{row.label}</span>
+                <span style={{ fontWeight: 700, color: V3.ink }}>{row.value}</span>
+              </div>
+            ))}
+          </div>
+        </V3Card>
+
+        {/* 액션 버튼 — v3 radius 4 (pill 아님) */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          <div
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              padding: '8px 0',
+              borderRadius: 4,
+              background: V3.ink,
+              fontFamily: sans,
+              fontWeight: 700,
+              fontSize: 9.5,
+              color: V3.paper,
+            }}
+          >
+            주기 변경
+          </div>
+          <div
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              padding: '8px 0',
+              borderRadius: 4,
+              background: V3.paperHi,
+              border: `1px solid ${V3.rule}`,
+              fontFamily: sans,
+              fontWeight: 700,
+              fontSize: 9.5,
+              color: V3.ink,
+            }}
+          >
+            일시정지
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// 기능 정의 — 화면과 설명 페어 (전부 실재 기능, 홈→기록→분석→구독 여정 순)
 // ---------------------------------------------------------------------------
 
 type Feature = {
@@ -441,8 +644,21 @@ const FEATURES: Feature[] = [
         앱이 먼저 알고 있어요
       </>
     ),
-    body: '아이 몸무게와 활동량에 맞춘 하루 급여량과 남은 끼니를 홈에서 바로 확인해요. 식사·산책·체중 기록은 탭 한 번이면 끝나요.',
+    body: '아이 몸무게와 활동량에 맞춘 하루 급여량과 다음 배송을 홈에서 바로 확인해요. 식사·산책·체중 기록은 탭 한 번이면 끝나요.',
     screen: <ScreenHome />,
+  },
+  {
+    key: 'records',
+    eyebrow: 'Records',
+    title: (
+      <>
+        기록이 쌓일수록
+        <br />
+        식단이 똑똑해져요
+      </>
+    ),
+    body: '한 주의 기록이 한눈에 보이고, 매일의 식사·산책·체중이 아이의 변화 데이터가 돼요. 체중 변화를 감지하면 식단 재분석까지 이어져요.',
+    screen: <ScreenWeek />,
   },
   {
     key: 'analysis',
@@ -456,19 +672,6 @@ const FEATURES: Feature[] = [
     ),
     body: '체형(BCS)부터 알레르기·건강 상태까지 8단계 정밀 설문으로, 우리 아이에게 잘 맞는 영양 구성과 레시피를 찾아드려요.',
     screen: <ScreenAnalysis />,
-  },
-  {
-    key: 'records',
-    eyebrow: 'Records',
-    title: (
-      <>
-        기록이 쌓일수록
-        <br />
-        식단이 똑똑해져요
-      </>
-    ),
-    body: '매일의 식사·산책·체중이 아이의 변화 데이터가 돼요. 체중 변화를 감지하면 식단 재분석까지 자연스럽게 이어져요.',
-    screen: <ScreenRecords />,
   },
   {
     key: 'subscription',
@@ -486,7 +689,7 @@ const FEATURES: Feature[] = [
 ]
 
 // ---------------------------------------------------------------------------
-// 폰 프레임 — 베젤 + 다이나믹 아일랜드 + 스크린
+// 폰 프레임 — 베젤 + 다이나믹 아일랜드 + 스크린 (스크린 bg = v3 paper)
 // ---------------------------------------------------------------------------
 
 function PhoneFrame({
@@ -513,7 +716,7 @@ function PhoneFrame({
           width: '100%',
           height: '100%',
           borderRadius: 37,
-          background: 'var(--fd-offwhite)',
+          background: V3.paper,
           overflow: 'hidden',
         }}
       >
@@ -531,7 +734,7 @@ function PhoneFrame({
             zIndex: 5,
           }}
         />
-        <div style={{ position: 'absolute', inset: 0, paddingTop: 26 }}>{children}</div>
+        <div style={{ position: 'absolute', inset: 0, paddingTop: 30 }}>{children}</div>
       </div>
     </div>
   )
