@@ -48,6 +48,20 @@
 - 🟡 기록: push/preferences 의 notify_restock/notify_cart 필드(DB 컬럼 보존 결정과 커플링 — API 관통 유지가 정합) · invitations/create "Phase 2 이메일 발송" docstring(URL 공유 모델로 변경됨) · applyAutosignupDraft typegen 미반영 컬럼 주석.
 - 오탐 기각: push/unsubscribe 401 누락(실제로는 명시돼 있음) · progress-photos path traversal(startsWith 가드 + RLS 이중).
 
+### 웨이브 3 정독 결과 (앱 dogs 화면 + 크론 28 + 소형 API 일부)
+- 🔴 **KST off-by-one 실버그 2 (수정)**: ①SurveyClient nextReview — `analyses` 저장값이 UTC slice 라 KST 00~09시 제출 시 하루 이르게 기록 → `addDaysKst(todayKstIsoDate(), n)` 하우스 헬퍼로 교체 ②HealthLogClient todayIso — 브라우저 로컬 날짜라 해외 접속 시 KST 조회(QuickActionChips)와 불일치 → KST 고정 패턴 통일.
+- 🟡 **subscription-charge 기록(결제 크론 — 사장님 동석 리뷰 대상)**: ①성공 후 orders/subscriptions 업데이트 실패 시 charge=pending·order=failed 로 남는 부분 정합 경로(payment_events 엔 paid 기록 — reconcile 크론이 잡는 설계인지 확인 필요) ②R85-B3 재확인 SELECT 가 메모리 스냅샷과 섞임(RETURNING 재조회가 더 안전) ③discount_reason cast = types 재생성 대기.
+- 🟡 기록: tracking-poll 등 비결제 크론 fire-and-forget 푸시/메일(Vercel drain 의존 — subscription-charge 만 await 로 강화된 상태) · weight-reminder RPC 는 **프로덕션 미구현 확인(pg_proc 0)** → 폴백 인라인 N+1 이 본선(프리런칭 규모 무해 — RPC 생성 or 시도 제거는 선택) · OrderClient firstDeliveryAt 표시 추정치는 해외 브라우저에서 ±1일 표시 오차 가능(저장 안 함 — 무해).
+- 오탐 기각 4: OrderClient "심각 버그"(표시 전용·비저장) · CurrentFormulaCard null 가드(실존) · payment-ledger-reconcile 주석(현행 정확) · shippingFee=0 명시(의도된 정책 표현).
+- 🟢 크론 28: 인증가드 28/28 · trackCron 일관 · 실패 5xx 정상. 소형 API 6(health·chatbot·addresses·contact·newsletter·tracking) 클린.
+- ✅ 커버리지 갭 해소: dogs **64/64** · 소형 API 21(에이전트)+4(직접 og·consent) 완주.
+
+### 웨이브 3 갭 정독 추가 결과
+- 🟠 **수정 3**: ①dogs/health 서버 30일 윈도우가 UTC now 기준 → KST 헬퍼(00~09시 하루 밀림 해소) ②FirstCheckin 멱등 감지가 에러 메시지 문자열 의존 → `code==='23505'` 우선 추가 ③account/delete 부분실패가 console.error 만 → Sentry 비즈니스 이벤트 승격(PIPA 파기 후속조치 가시화).
+- 🟠 **죽은 라우트 격리 1**: /api/og/sku/[code] — 참조 0(낱개 SKU 공유카드 시대) + 팔레트도 옛 v4 웜브라운 그대로였음 → `_dead_q4/og-sku`.
+- 🟡 기록: auth/welcome-email·consent/unsubscribe-ack 발송실패 200(ok:false) 패턴(베스트에포트 설계 명시됨 — 유지) · photo-upload 중복감지 정규식 의존 · weightFromRER 로컬 중복(analyses) · todayIso 중복 구현 해소됨(수정 ②에 포함) · VetReport 주석 표현 불일치.
+- 오탐 기각 3: PhotosClient +9h(하우스 패턴 정합) · DiaryClient 미사용 import(146행 사용) · YearInReview raw ISO(가입 시각 기준이 정답) · Number()||폴백(의도된 graceful).
+
 - **실버그 1건 발견·수정**: checkout/fail 재시도 오링크(내 어제 수정분의 2차 오류 — /checkout 이 redirect 라우트임을 놓침).
 - **SEO 폐지경로 2건 정리**: WebSite SearchAction 제거 + 죽은 buildProductJsonLd 삭제.
 - 나머지 전 영역(링크·이미지·크론·휴리스틱·런타임·보안) **클린**. 코드베이스 상태 매우 견고.

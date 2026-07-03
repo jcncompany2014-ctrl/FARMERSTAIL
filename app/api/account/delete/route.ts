@@ -5,7 +5,7 @@ import { appendLedger } from '@/lib/commerce/points'
 import { zAccountDelete } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
-import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
+import { tagSentryUser, tagSentryRoute, captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -187,6 +187,13 @@ export async function POST(req: Request) {
     console.error(
       `[account/delete] ${deletionFailures.length}/${deletionOps.length} table deletions failed for user ${user.id}`,
     )
+    // PIPA 즉시파기 — 부분 실패는 콘솔로그만으론 유실되기 쉬워 Sentry 비즈니스
+    // 이벤트로 승격, 운영자가 수동 파기 후속 조치 (감사 2026-07-03).
+    captureBusinessEvent('error', 'account.delete.partial_failure', {
+      userId: user.id,
+      failedCount: deletionFailures.length,
+      totalOps: deletionOps.length,
+    })
   }
 
   // 정기배송 — billing_key 카드 토큰 즉시 해제 + cancel 처리. 전자상거래법

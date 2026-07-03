@@ -57,10 +57,9 @@ const APPETITE_LABEL: Record<string, { label: string; color: string }> = {
 }
 
 function todayIso() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-    d.getDate()
-  ).padStart(2, '0')}`
+  // KST 고정 오늘 날짜 — 브라우저 로컬 날짜를 쓰면 해외 접속 시 앱의 KST 기준
+  // 조회(QuickActionChips 등)와 어긋난다 (2026-07-03 감사, 하우스 패턴 통일).
+  return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10)
 }
 
 function formatLoggedAt(iso: string) {

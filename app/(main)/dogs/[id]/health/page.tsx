@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
 import HealthLogClient, { type HealthLog } from './HealthLogClient'
 
 export const dynamic = 'force-dynamic'
@@ -29,10 +30,9 @@ export default async function HealthLogPage({ params }: { params: Params }) {
     .maybeSingle()
   if (!dog) notFound()
 
-  // last 30 days
-  const since = new Date()
-  since.setDate(since.getDate() - 30)
-  const sinceIso = since.toISOString().slice(0, 10)
+  // last 30 days — KST 기준 (서버 UTC now 로 자르면 KST 00~09시에 윈도우가
+  // 하루 밀린다. 2026-07-03 감사, 하우스 헬퍼 통일.)
+  const sinceIso = addDaysKst(todayKstIsoDate(), -30)
   const { data: logs } = await supabase
     .from('health_logs')
     .select(

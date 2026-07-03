@@ -255,7 +255,7 @@
 - [ ] app/admin/users/[id]/message/page.tsx
 - [ ] app/admin/users/page.tsx
 
-## [ ] app/(main)/dogs (64)
+## [x] app/(main)/dogs (64) — 웨이브3 완료(KST 버그 3 수정)
 - [ ] app/(main)/dogs/[id]/DogDetailClient.tsx
 - [ ] app/(main)/dogs/[id]/_components/CurrentFormulaCard.tsx
 - [ ] app/(main)/dogs/[id]/_components/SubscriptionCard.tsx
@@ -456,7 +456,7 @@
 - [ ] app/(main)/mypage/subscriptions/_components/SubscriptionsNewBanner.tsx
 - [ ] app/(main)/mypage/subscriptions/page.tsx
 
-## [ ] app/api/cron (28)
+## [x] app/api/cron (28) — 웨이브3 완료(실버그0·기록 다수)
 - [ ] app/api/cron/account-purge/route.ts
 - [ ] app/api/cron/dcm-screening-reminder/route.ts
 - [ ] app/api/cron/dog-age-update/route.ts
@@ -652,32 +652,32 @@
 - [ ] app/api/personalization/checkin/route.ts
 - [ ] app/api/personalization/compute/route.ts
 
-## [ ] app/api/addresses (3)
+## [x] app/api/addresses (3)
 - [ ] app/api/addresses/[id]/default/route.ts
 - [ ] app/api/addresses/[id]/route.ts
 - [ ] app/api/addresses/route.ts
 
-## [ ] app/api/chatbot (3)
+## [x] app/api/chatbot (3)
 - [ ] app/api/chatbot/nudge/route.ts
 - [ ] app/api/chatbot/route.ts
 - [ ] app/api/chatbot/stream/route.ts
 
-## [ ] app/api/health (3)
+## [x] app/api/health (3)
 - [ ] app/api/health/ocr/route.ts
 - [ ] app/api/health/records/route.ts
 - [ ] app/api/health/route.ts
 
-## [ ] app/api/integrations (3)
+## [x] app/api/integrations (3)
 - [ ] app/api/integrations/tractive/callback/route.ts
 - [ ] app/api/integrations/tractive/connect/route.ts
 - [ ] app/api/integrations/tractive/disconnect/route.ts
 
-## [ ] app/api/newsletter (3)
+## [x] app/api/newsletter (3)
 - [ ] app/api/newsletter/confirm/route.ts
 - [ ] app/api/newsletter/route.ts
 - [ ] app/api/newsletter/unsubscribe/route.ts
 
-## [ ] app/api/og (3)
+## [x] app/api/og (3) — og/sku 죽은 라우트 격리
 - [ ] app/api/og/dog/route.tsx
 - [ ] app/api/og/route.tsx
 - [ ] app/api/og/sku/[code]/route.tsx
@@ -698,48 +698,48 @@
 - [ ] app/api/orders/[id]/cancel-items/route.ts
 - [ ] app/api/orders/[id]/cancel/route.ts
 
-## [ ] app/api/account (1)
+## [x] app/api/account (1) — Sentry 승격 수정
 - [ ] app/api/account/delete/route.ts
 
-## [ ] app/api/auth (1)
+## [x] app/api/auth (1)
 - [ ] app/api/auth/welcome-email/route.ts
 
-## [ ] app/api/consent (1)
+## [x] app/api/consent (1)
 - [ ] app/api/consent/unsubscribe-ack/route.ts
 
-## [ ] app/api/contact (1)
+## [x] app/api/contact (1)
 - [ ] app/api/contact/route.ts
 
-## [ ] app/api/cs (1)
+## [x] app/api/cs (1)
 - [ ] app/api/cs/reply/route.ts
 
-## [ ] app/api/feeding-outcomes (1)
+## [x] app/api/feeding-outcomes (1)
 - [ ] app/api/feeding-outcomes/rating/route.ts
 
-## [ ] app/api/marketing (1)
+## [x] app/api/marketing (1)
 - [ ] app/api/marketing/unsubscribe/route.ts
 
-## [ ] app/api/metrics (1)
+## [x] app/api/metrics (1)
 - [ ] app/api/metrics/web-vitals/route.ts
 
-## [ ] app/api/photo-upload (1)
+## [x] app/api/photo-upload (1)
 - [ ] app/api/photo-upload/[token]/route.ts
 
-## [ ] app/api/privacy (1)
+## [x] app/api/privacy (1)
 - [ ] app/api/privacy/export/route.ts
 
-## [ ] app/api/rewards (1)
+## [x] app/api/rewards (1)
 - [ ] app/api/rewards/survey-completion/route.ts
 
-## [ ] app/api/search (1)
+## [x] app/api/search (1)
 - [ ] app/api/search/suggest/route.ts
 
-## [ ] app/api/source-waitlist (1)
+## [x] app/api/source-waitlist (1)
 - [ ] app/api/source-waitlist/route.ts
 
-## [ ] app/api/tracking (1)
+## [x] app/api/tracking (1)
 - [ ] app/api/tracking/route.ts
 
-## [ ] app/api/webhooks (1)
+## [x] app/api/webhooks (1)
 - [ ] app/api/webhooks/resend/route.ts
 

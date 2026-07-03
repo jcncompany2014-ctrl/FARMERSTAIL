@@ -11,6 +11,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
 import { weightReliability } from '@/lib/personalization/reliability'
 import { useToast } from '@/components/ui/Toast'
 import {
@@ -697,9 +698,9 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     const uniqueSupps = Array.from(new Set(supps))
 
     const nextDays = chronicConditions.length > 0 ? 60 : 90
-    const nextReview = new Date(Date.now() + nextDays * 24 * 3600 * 1000)
-      .toISOString()
-      .slice(0, 10)
+    // KST 기준 다음 리뷰일 — raw Date.now() UTC slice 는 KST 00~09시 제출 시
+    // 하루 이르게 저장되는 off-by-one (2026-07-03 감사 수정, page.tsx 와 동일 헬퍼).
+    const nextReview = addDaysKst(todayKstIsoDate(), nextDays)
 
     const { error: analysisErr } = await supabase.from('analyses').insert({
       dog_id: dogId,

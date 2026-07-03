@@ -58,7 +58,8 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
 
       if (error) {
         // UNIQUE 충돌 = 이미 응답 → 멱등 처리
-        if (error.message.includes('uq_first_box_checkin') || error.message.includes('duplicate')) {
+        // 코드(23505=unique_violation) 우선 — 메시지 문자열은 포맷 변경에 취약(감사 2026-07-03).
+        if ((error as { code?: string }).code === '23505' || error.message.includes('uq_first_box_checkin') || error.message.includes('duplicate')) {
           toast.info('이미 의견을 남겨주셨어요. 감사해요 🐾')
           setDone(true)
           return
