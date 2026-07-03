@@ -68,7 +68,20 @@
 - 오탐 기각(2차 보고 중대 의심 2): ①auth/callback open redirect — `//`·`/\` 변형·/api 까지 이미 차단(모범 가드) ②bg-bg/text-text/rule 미정의 의심 — @theme 에 전부 정의 확인. 기록 🟡: humanizeSignupError 중복 구현(StartSurvey↔signup, 공용 util 후보) · offline 페이지 stale 주석 · age-gate 이중 액션 버튼 UX(검토 후보) · photo-upload/vet 토큰 페이지 a11y 세부 2.
 - 🟢 웹계정(account 5)·checkout 6·mypage/orders 9·components/web 7·analysis 10: 실버그 0. 기록 🟡: PurchaseTracker "익명 결제" stale docstring · 주문상세 dt 폭 주석 불일치 · StickyCta 는 의도적 no-op(문서화됨). 기각: CancelOrderButton 카테고리 명명(주관).
 
-### 웨이브 4 정독 결과 (admin 77 + mypage 33 + 메인기타 20 = 130파일)
+### 웨이브 6 정독 결과 (lib 루트 60 + lib 하위 47 = 107파일, 최종 웨이브)
+- 🟠 **죽은 커머스 export 2 제거**: `trackAddToCart`(analytics — 장바구니 폐지)·`formatCouponCode`(formatters — 쿠폰 폐지), 둘 다 참조 0 grep 확정, 테스트 동반 정리(1236→1233).
+- 🟢 lib 전 계층 크리티컬 0: datetime-kst 월말 보정까지 정확 · discount/rate-limit/reconcile 가드 완비 · meta-learning 통계 인프라 견고 · rewards/points 의 referral enum 은 과거 원장 호환 명시(유지 정답).
+- 🟡 기록: swr-lite/counterfactual/persona = invention-flags 킬스위치 뒤 의도 보류(PCT 출원 관련) · next-action 주석 번호 어긋남 · /cart 등 redirect 전용 라우트의 loading.tsx 잔존(무해 dead weight) · lib/cart 디렉토리는 실재하지 않음(빈 항목).
+- 직접 검독: loading.tsx 13개 전수(잔재 참조 0, 스켈레톤 전부 클린).
+
+## 🏁 전수 감사 최종 결산 (45/45 클러스터 · 651/651 파일, 2026-07-03)
+
+**발견·수정 총계 (전 웨이브):**
+- 🔴 실버그 수정 7: text-mute 미정의 클래스 45곳(뮤트색 미적용) · 카드등록 재시도 막다른 길(billing failUrl customerKey) · KST off-by-one 3(analyses 저장·건강로그·30일 윈도우) · checkout/fail 오링크 · API 상태코드 2(프로필 실패 은폐 500화·초대 GET 401)
+- 🟠 정리 수정: SEO 폐지경로 2(SearchAction·Product LD) · 죽은 라우트/export 격리 3(og/sku·trackAddToCart·formatCouponCode) · 죽은 컬럼 select 2(coupon_code) · 멱등 감지 강화(23505) · PIPA 부분실패 Sentry 승격 · stale 주석 일괄(카트/쿠폰 시대 잔재 ~15곳)
+- 🟡 사장님 결정 대기(원장 각 섹션 상세): ①인터랙티브 체크아웃 격리(PG 심사 방침 후) ②types.ts 재생성(cast 3곳 해소) ③subscription-charge 부분정합 경로 리뷰(동석) ④leaked password protection 토글 ⑤기능성 소스(Layer B) 로드맵 카피 ⑥notify_restock/cart DB 컬럼 정리 시점
+- 오탐 기각 ~18건(전부 원장 기록) — 에이전트 보고는 전건 본선 검증 후 반영.
+- 검증: 최종 eslint 0 · tsc 0 · 테스트 1233 GREEN · 매 웨이브 CI 빌드 통과 배포.
 - 🔴 **`text-mute` 미정의 Tailwind 클래스 45곳 (수정)**: @theme 엔 `--color-muted` 만 존재 — `text-mute` 는 CSS 미생성으로 뮤트 색이 조용히 미적용(상속색 렌더). 에이전트는 1곳 오타로 봤으나 전수 grep 결과 8개 파일 45곳(수의사 리포트 13·admin insights/finance/nutrients/결제타임라인 27·InterventionWindowCard 3 등) → 전부 `text-muted` 로 일괄 수정. bg-/border- 계열은 0.
 - 🟢 admin 77/77: 가드 이중화(레이아웃+페이지+API) 만점 · 쿠폰/커머스 잔재 0 · Phase B 개편 정합(웜톤 0). admin coupon-claim inert 셸도 미검출(이미 제거됨).
 - 🟢 mypage 33 + 메인기타 20: 실버그 0. 기각: 쿠폰 refType 필터(과거 원장 row 표시용 방어 — 유지가 정답) · PreferencesPanel docstring(현행 정확). 기록 🟡: points/page 월 경계가 서버 로컬(UTC) 기준(통계 표시용 — KST 경계와 수 시간 오차, Intl Asia/Seoul 통일 후보) · dashboard 수동 +9h(하우스 패턴 — 헬퍼 통일은 선택).

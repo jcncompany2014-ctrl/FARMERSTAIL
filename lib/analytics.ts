@@ -140,20 +140,7 @@ export function trackViewItem(item: AnalyticsItem) {
   })
 }
 
-export function trackAddToCart(item: AnalyticsItem) {
-  safeGtag('event', 'add_to_cart', {
-    currency: 'KRW',
-    value: item.price * item.quantity,
-    items: [item],
-  })
-  safeFbq('track', 'AddToCart', {
-    content_ids: [item.item_id],
-    content_name: item.item_name,
-    content_type: 'product',
-    value: item.price * item.quantity,
-    currency: 'KRW',
-  })
-}
+// trackAddToCart 는 구독전용 전환으로 제거(참조 0 — 장바구니 폐지, 2026-07-03 감사).
 
 export function trackBeginCheckout({
   value,

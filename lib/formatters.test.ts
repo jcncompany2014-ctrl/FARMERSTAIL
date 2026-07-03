@@ -16,7 +16,6 @@ import {
   formatCardNumber,
   formatThousands,
   formatDigitsOnly,
-  formatCouponCode,
   formatKoreanName,
 } from './formatters.ts'
 
@@ -197,23 +196,6 @@ describe('formatDigitsOnly', () => {
 
   it('handles empty', () => {
     assert.equal(formatDigitsOnly('', 5), '')
-  })
-})
-
-describe('formatCouponCode', () => {
-  it('uppercases and removes non-alphanumerics', () => {
-    assert.equal(formatCouponCode('welcome-2026!'), 'WELCOME2026')
-  })
-
-  it('respects 16-char default limit', () => {
-    assert.equal(
-      formatCouponCode('ABCDEFGHIJKLMNOPQRSTUV'),
-      'ABCDEFGHIJKLMNOP',
-    )
-  })
-
-  it('respects custom maxLen', () => {
-    assert.equal(formatCouponCode('ABCDEFG', 4), 'ABCD')
   })
 })
 

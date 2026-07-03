@@ -2,7 +2,7 @@
 
 총 651개 소스 파일(테스트 제외). 클러스터 완료 시 [x] + 발견은 CODE_AUDIT_2026-07-03.md 에 기록.
 
-## [ ] lib-기타 (109)
+## [x] lib-기타 (109) — 웨이브6 완료(죽은 export 2 제거)
 - [ ] lib/admin-audit.ts
 - [ ] lib/allergy-sku-matrix.ts
 - [ ] lib/analysis/narrative.ts
@@ -113,7 +113,7 @@
 - [ ] lib/vision/w-image.ts
 - [ ] lib/web-recipes.ts
 
-## [ ] app-웹마케팅·기타 (71)
+## [x] app-웹마케팅·기타 (71) — 웨이브5 완료(실버그0, loading 13 직접검독)
 - [ ] app/about/page.tsx
 - [ ] app/app-required/page.tsx
 - [ ] app/auth/callback/route.ts
@@ -646,7 +646,7 @@
 - [ ] app/api/push/test/route.ts
 - [ ] app/api/push/unsubscribe/route.ts
 
-## [ ] app/api/personalization (4)
+## [x] app/api/personalization (4) — 직접 검독 완료(가드·소유권 정합)
 - [ ] app/api/personalization/adjust/route.ts
 - [ ] app/api/personalization/approve/route.ts
 - [ ] app/api/personalization/checkin/route.ts

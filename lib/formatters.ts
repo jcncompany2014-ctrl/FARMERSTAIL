@@ -117,16 +117,7 @@ export function formatDigitsOnly(input: string, maxLen?: number): string {
   return maxLen ? d.slice(0, maxLen) : d
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// Coupon code — 영문 대문자 + 숫자, 8~16자
-// ──────────────────────────────────────────────────────────────────────────
-
-export function formatCouponCode(input: string, maxLen = 16): string {
-  return (input ?? '')
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, '')
-    .slice(0, maxLen)
-}
+// formatCouponCode 는 쿠폰 폐지(자동할인 전환)로 제거 — 참조 0 (2026-07-03 감사).
 
 // ──────────────────────────────────────────────────────────────────────────
 // Korean name — 한글/영문 이름. trim + 길이 제한 (UI 깨짐 방지).
