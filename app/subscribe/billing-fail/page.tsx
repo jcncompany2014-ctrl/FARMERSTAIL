@@ -16,6 +16,7 @@ function BillingFailInner() {
   const code = params.get('code')
   const message = params.get('message')
   const subscriptionId = params.get('subscriptionId')
+  const customerKey = params.get('customerKey')
 
   const friendly =
     code === 'USER_CANCEL'
@@ -48,9 +49,11 @@ function BillingFailInner() {
           마이페이지에서 나중에 등록할 수 있어요.
         </p>
         <div className="mt-6 flex flex-col gap-2">
-          {subscriptionId && (
+          {/* billing-auth 는 customerKey 필수('잘못된 접근' 가드) — 둘 다 있을 때만
+              원클릭 재시도. 없으면 구독 관리(키 재발급 경로)로 유도 (2026-07-03 감사). */}
+          {subscriptionId && customerKey && (
             <Link
-              href={`/subscribe/billing-auth?subscriptionId=${subscriptionId}`}
+              href={`/subscribe/billing-auth?subscriptionId=${encodeURIComponent(subscriptionId)}&customerKey=${encodeURIComponent(customerKey)}`}
               className="w-full py-3 rounded-full text-[13px] font-bold text-center"
               style={{ background: 'var(--ink)', color: 'var(--bg)' }}
             >

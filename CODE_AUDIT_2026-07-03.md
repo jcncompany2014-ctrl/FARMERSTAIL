@@ -62,6 +62,12 @@
 - 🟡 기록: auth/welcome-email·consent/unsubscribe-ack 발송실패 200(ok:false) 패턴(베스트에포트 설계 명시됨 — 유지) · photo-upload 중복감지 정규식 의존 · weightFromRER 로컬 중복(analyses) · todayIso 중복 구현 해소됨(수정 ②에 포함) · VetReport 주석 표현 불일치.
 - 오탐 기각 3: PhotosClient +9h(하우스 패턴 정합) · DiaryClient 미사용 import(146행 사용) · YearInReview raw ISO(가입 시각 기준이 정답) · Number()||폴백(의도된 graceful).
 
+### 웨이브 5 정독 결과 (웹계정·결제화면·web/analysis 컴포넌트 47 + 웹마케팅 55/71)
+- 🔴 **카드등록 재시도 막다른 길 (수정)**: billing-auth 가 failUrl 에 customerKey 를 안 실음 → billing-fail "다시 시도하기"가 subscriptionId 만 갖고 billing-auth 로 복귀 → `isInvalidEntry` 가드("잘못된 접근이에요")에 걸려 재시도 불가. 수정: failUrl 에 customerKey 동봉 + 실패 페이지는 둘 다 있을 때만 원클릭 재시도(없으면 구독 관리 경로 유도).
+- 🟢 웹마케팅 71/81(페이지+클라이언트 컴포넌트, 잔여 10=loading 스켈레톤): 실버그 0 — redirect 셸·robots/sitemap 제외·정직 가드·JSON-LD·a11y 정합.
+- 오탐 기각(2차 보고 중대 의심 2): ①auth/callback open redirect — `//`·`/\` 변형·/api 까지 이미 차단(모범 가드) ②bg-bg/text-text/rule 미정의 의심 — @theme 에 전부 정의 확인. 기록 🟡: humanizeSignupError 중복 구현(StartSurvey↔signup, 공용 util 후보) · offline 페이지 stale 주석 · age-gate 이중 액션 버튼 UX(검토 후보) · photo-upload/vet 토큰 페이지 a11y 세부 2.
+- 🟢 웹계정(account 5)·checkout 6·mypage/orders 9·components/web 7·analysis 10: 실버그 0. 기록 🟡: PurchaseTracker "익명 결제" stale docstring · 주문상세 dt 폭 주석 불일치 · StickyCta 는 의도적 no-op(문서화됨). 기각: CancelOrderButton 카테고리 명명(주관).
+
 ### 웨이브 4 정독 결과 (admin 77 + mypage 33 + 메인기타 20 = 130파일)
 - 🔴 **`text-mute` 미정의 Tailwind 클래스 45곳 (수정)**: @theme 엔 `--color-muted` 만 존재 — `text-mute` 는 CSS 미생성으로 뮤트 색이 조용히 미적용(상속색 렌더). 에이전트는 1곳 오타로 봤으나 전수 grep 결과 8개 파일 45곳(수의사 리포트 13·admin insights/finance/nutrients/결제타임라인 27·InterventionWindowCard 3 등) → 전부 `text-muted` 로 일괄 수정. bg-/border- 계열은 0.
 - 🟢 admin 77/77: 가드 이중화(레이아웃+페이지+API) 만점 · 쿠폰/커머스 잔재 0 · Phase B 개편 정합(웜톤 0). admin coupon-claim inert 셸도 미검출(이미 제거됨).

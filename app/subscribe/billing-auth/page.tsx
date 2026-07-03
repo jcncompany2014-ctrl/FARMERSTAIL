@@ -52,9 +52,12 @@ function BillingAuthInner() {
         const successUrl =
           `${origin}/subscribe/billing-success` +
           `?subscriptionId=${encodeURIComponent(subscriptionId!)}`
+        // customerKey 를 failUrl 에도 실어 보낸다 — 실패 페이지의 "다시 시도하기"가
+        // 이 키 없이 billing-auth 로 돌아오면 '잘못된 접근' 막다른 길 (2026-07-03 감사).
         const failUrl =
           `${origin}/subscribe/billing-fail` +
-          `?subscriptionId=${encodeURIComponent(subscriptionId!)}`
+          `?subscriptionId=${encodeURIComponent(subscriptionId!)}` +
+          `&customerKey=${encodeURIComponent(customerKey!)}`
 
         // 비로그인 (= ANONYMOUS) 플로우 사용 안 함 — 본인 카드 등록은 customer
         // 식별이 필수. customerKey 는 server 가 발급한 UUID.

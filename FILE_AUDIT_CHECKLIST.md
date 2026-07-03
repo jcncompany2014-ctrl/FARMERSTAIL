@@ -486,7 +486,7 @@
 - [ ] app/api/cron/weight-change-detect/route.ts
 - [ ] app/api/cron/weight-reminder/route.ts
 
-## [ ] app-웹계정·결제화면 (26)
+## [x] app-웹계정·결제화면 (26) — 웨이브5 완료(billing 재시도 버그 수정)
 - [ ] app/account/dogs/page.tsx
 - [ ] app/account/page.tsx
 - [ ] app/account/profile/page.tsx
@@ -560,7 +560,7 @@
 - [ ] app/(main)/subscribe/[slug]/page.tsx
 - [ ] app/(main)/template.tsx
 
-## [ ] components/analysis (14)
+## [x] components/analysis (14) — 웨이브5 완료
 - [ ] components/analysis/AdjustSheet.tsx
 - [ ] components/analysis/AnalysisTrendsCard.tsx
 - [ ] components/analysis/PriceFramingCard.tsx
@@ -616,7 +616,7 @@
 - [ ] app/api/admin/push-campaigns/route.ts
 - [ ] app/api/admin/users/[id]/message/route.ts
 
-## [ ] components/web (7)
+## [x] components/web (7) — 웨이브5 완료
 - [ ] components/web/fd/AppShowcase.tsx
 - [ ] components/web/fd/BreedCombobox.tsx
 - [ ] components/web/fd/FdFooter.tsx
