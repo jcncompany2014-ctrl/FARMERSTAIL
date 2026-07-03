@@ -163,10 +163,11 @@ export default async function MyReviewsPage() {
                 padding: '14px 16px',
               }}
             >
-              <Link
-                href={`/products/${r.products?.slug ?? ''}#reviews`}
+              {/* 제품 상세 링크 제거 — /products/[slug] 는 구독전용 전환으로
+                  redirect 라 죽은 링크였음 (2026-07-03 UX 감사 #85ⓑ). */}
+              <div
                 className="flex items-center"
-                style={{ gap: 12, textDecoration: 'none', color: V3.ink }}
+                style={{ gap: 12, color: V3.ink }}
               >
                 <div
                   className="relative overflow-hidden flex items-center justify-center shrink-0"
@@ -217,7 +218,7 @@ export default async function MyReviewsPage() {
                     </Mono>
                   </div>
                 </div>
-              </Link>
+              </div>
               {r.title && (
                 <h3
                   style={{

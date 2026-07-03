@@ -396,7 +396,7 @@ export default async function AboutPage() {
                 </Display>
                 <p className="pt-4 mx-auto text-[15px] md:text-[16px]" style={{ maxWidth: 440, lineHeight: 1.65, color: 'rgba(255,255,255,0.92)' }}>
                   견종과 활동량을 알려주면, 수의영양학 기반의 맞춤 식단을 제안합니다.
-                  체험팩부터, 언제든 해지.
+                  첫 박스부터 부담 없이, 언제든 해지.
                 </p>
                 <div className="pt-8 flex flex-col sm:flex-row justify-center gap-3">
                   <Button href={planHref(isAuthed)} tone="cream" size="lg">

@@ -61,11 +61,13 @@ export default function StartPage() {
                   저장하면 돼요.
                 </p>
               </Reveal>
-              {/* 📸 메인 비주얼 — 강아지 + 신선식 누끼 (히어로 대표 이미지) */}
+              {/* 📸 메인 비주얼 — AI 생성 테스트 이미지(2026-07-03, 힉스필드).
+                  실촬영 나오면 교체. 정면 강아지 + 신선식 그릇(브리프 그대로). */}
               <Reveal delay={120}>
                 <PhotoSlot
-                  label="메인 비주얼 · 강아지 + 신선식 누끼"
-                  sub="정면 강아지 또는 밥그릇·상품 컷"
+                  label="메인 비주얼"
+                  src="/start-hero.jpg"
+                  alt="신선한 화식 한 그릇 앞에 앉아 있는 강아지"
                   ratio="4 / 3"
                   tone="cream"
                   rounded={18}

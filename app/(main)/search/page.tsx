@@ -1,5 +1,7 @@
 // B6 — 앱 내 통합 검색.
-// 강아지 / 다이어리 / 분석 검색. q 파라미터로 server-side ILIKE.
+// 강아지 / 다이어리 검색. q 파라미터로 server-side ILIKE.
+// (상품 검색은 구독전용 전환으로 제거 — /products/[slug] 가 redirect 라
+// 결과가 전부 죽은 링크였음. 2026-07-03 UX 감사 #85ⓐ.)
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -7,7 +9,6 @@ import {
   Search,
   SearchX,
   BookOpen,
-  ShoppingBag,
 } from 'lucide-react'
 import DogPawMark from '@/components/DogPawMark'
 import { createClient } from '@/lib/supabase/server'
@@ -41,17 +42,9 @@ export default async function SearchPage({
     note: string | null
     created_at: string
   }> = []
-  let products: Array<{
-    id: string
-    name: string
-    slug: string
-    short_description: string | null
-    category: string | null
-  }> = []
-
   if (query) {
     const safe = escapeIlike(query)
-    const [dRes, jRes, pRes] = await Promise.all([
+    const [dRes, jRes] = await Promise.all([
       supabase
         .from('dogs')
         .select('id, name, breed')
@@ -65,19 +58,9 @@ export default async function SearchPage({
         .ilike('note', `%${safe}%`)
         .order('created_at', { ascending: false })
         .limit(10),
-      // R15-C21: 상품 검색 추가 — name + short_description ILIKE.
-      supabase
-        .from('products')
-        .select('id, name, slug, short_description, category')
-        .eq('is_active', true)
-        .or(
-          `name.ilike.%${safe}%,short_description.ilike.%${safe}%`,
-        )
-        .limit(10),
     ])
     dogs = (dRes.data ?? []) as typeof dogs
     diary = (jRes.data ?? []) as typeof diary
-    products = (pRes.data ?? []) as typeof products
   }
 
   return (
@@ -110,7 +93,7 @@ export default async function SearchPage({
             <input
               type="search"
               name="q"
-              aria-label="강아지·다이어리·상품 검색"
+              aria-label="강아지·다이어리 검색"
               defaultValue={query}
               placeholder="강아지 이름, 다이어리 내용..."
               autoComplete="off"
@@ -127,7 +110,7 @@ export default async function SearchPage({
             검색어를 입력해 보세요.
           </p>
         </section>
-      ) : dogs.length + products.length + diary.length === 0 ? (
+      ) : dogs.length + diary.length === 0 ? (
         // 마스터피스 P1-D3: 전체 검색 결과 0 → 섹션별 "결과가 없어요" 3개 나열 대신
         // 아이콘 + 검색어 + 안내가 있는 큰 빈상태. (섹션별 빈줄은 결과가 일부 있을 때만.)
         <section className="px-5 mt-10">
@@ -163,7 +146,7 @@ export default async function SearchPage({
             >
               다른 검색어로 찾아보거나 철자를 확인해 주세요.
               <br />
-              강아지 이름·다이어리 내용·상품명으로 찾을 수 있어요.
+              강아지 이름·다이어리 내용으로 찾을 수 있어요.
             </p>
           </div>
         </section>
@@ -195,45 +178,6 @@ export default async function SearchPage({
                       </p>
                       {d.breed && (
                         <p className="text-[10.5px] text-muted">{d.breed}</p>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="px-5 mt-4">
-            <h2 className="kicker mb-2">상품 · {products.length}건</h2>
-            {products.length === 0 ? (
-              <p className="text-[10.5px] text-muted">결과가 없어요</p>
-            ) : (
-              <div className="space-y-2">
-                {products.map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`/products/${p.slug}`}
-                    className="flex items-center gap-3 rounded border border-rule bg-bg-3 px-4 py-3 active:scale-[0.99] transition"
-                  >
-                    <ShoppingBag
-                      className="w-4 h-4 text-gold shrink-0"
-                      strokeWidth={2}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="font-sans"
-                        style={{
-                          fontSize: 13.5,
-                          fontWeight: 700,
-                          color: 'var(--ink)',
-                        }}
-                      >
-                        {p.name}
-                      </p>
-                      {p.short_description && (
-                        <p className="text-[10.5px] text-muted line-clamp-1">
-                          {p.short_description}
-                        </p>
                       )}
                     </div>
                   </Link>

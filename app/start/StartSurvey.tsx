@@ -519,9 +519,10 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                     ? `하루 약 ${plan.dailyKrw.toLocaleString()}원부터 · 맞춤 레시피는 상담으로 안내해 드려요`
                     : `추천 레시피 ${plan.recipes.length}종 · 하루 약 ${plan.dailyKrw.toLocaleString()}원부터`}
                 </p>
-                {/* 📸 신선식 상품 사진 (누끼 밀팩) */}
+                {/* 📸 신선식 상품 사진 — 랜딩과 동일 실사진 재사용(2026-07-03 UX 감사,
+                    placeholder 해소). 실촬영 누끼 밀팩 나오면 교체. */}
                 <div style={{ marginTop: 12 }}>
-                  <PhotoSlot label="신선식 상품 사진 (누끼 밀팩)" ratio="16 / 7" tone="cream" rounded={12} className="w-full" />
+                  <PhotoSlot label="신선식 상품 사진" src="/meal-recipe.webp" alt="파머스테일 신선 화식 레시피" ratio="16 / 7" tone="cream" rounded={12} className="w-full" />
                 </div>
                 {plan.noSafeRecipe ? (
                   // 선택한 알레르기로 추천 가능한 레시피가 0종 — 알레르겐을 가짜로

@@ -131,7 +131,7 @@ export const metadata: Metadata = {
     template: "%s | 파머스테일",
   },
   description:
-    "우리 아이를 위한 프리미엄 반려견 식품. 수의영양학 기반 레시피로 만든 화식, 간식, 체험팩 — Farm to Tail.",
+    "우리 아이를 위한 프리미엄 반려견 식품. 수의영양학 기반 맞춤 화식 정기배송 — Farm to Tail.",
   applicationName: "파머스테일",
   keywords: [
     "파머스테일",

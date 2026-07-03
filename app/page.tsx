@@ -49,7 +49,7 @@ const HOME_OG = ogImageUrl({
 export const metadata: Metadata = {
   title: '파머스테일 — 사료 대신, 진짜 음식 한 끼',
   description:
-    '사람이 먹을 수 있는 신선한 재료를 수의영양 기준에 맞춰. 2분 설문이면 우리 아이 몸에 딱 맞는 맞춤 화식을 시작할 수 있어요. 체험팩부터, 언제든 해지.',
+    '사람이 먹을 수 있는 신선한 재료를 수의영양 기준에 맞춰. 2분 설문이면 우리 아이 몸에 딱 맞는 맞춤 화식을 시작할 수 있어요. 첫 박스 50% 할인으로 시작, 언제든 해지.',
   alternates: { canonical: '/' },
   openGraph: {
     title: '파머스테일 — 사료 대신, 진짜 음식 한 끼',
@@ -426,7 +426,7 @@ function CompleteMealPlan({ isAuthed }: { isAuthed: boolean }) {
 const BENEFITS = [
   { Icon: Truck, t: '배송 포함', d: '배송비는 구독료에 포함, 추가 비용 없어요.' },
   { Icon: Leaf, t: '콜드체인 신선', d: '급속 냉동해 신선함 그대로 문 앞까지.' },
-  { Icon: RefreshCw, t: '구독 강요 없음', d: '체험팩부터. 주기 변경·해지는 언제든 자유.' },
+  { Icon: RefreshCw, t: '약정 없음', d: '첫 박스부터 부담 없이. 주기 변경·해지는 언제든 자유.' },
   { Icon: MessageCircle, t: '1:1 문의 지원', d: '궁금한 점은 언제든 답해 드려요.' },
 ]
 
@@ -712,7 +712,7 @@ function FinalCta({ isAuthed }: { isAuthed: boolean }) {
               오늘 시작해요
             </Display>
             <p className="pt-4 mx-auto text-[15px] md:text-[16px]" style={{ maxWidth: 420, lineHeight: 1.65, color: 'rgba(255,255,255,0.92)' }}>
-              체험팩부터 부담 없이. 언제든 해지.
+              첫 박스 50% 할인, 부담 없이. 언제든 해지.
             </p>
             <div className="pt-8 flex justify-center">
               <Button href={planHref(isAuthed)} tone="cream" size="lg">

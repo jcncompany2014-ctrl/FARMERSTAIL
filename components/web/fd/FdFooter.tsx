@@ -29,7 +29,8 @@ const SUPPORT: { href: string; label: string }[] = [
 // bg-current = 텍스트색(pine) 밑줄. reduced-motion 은 globals 전역 net 이 transition
 // 을 0 으로 만들어 즉시 표시(접근성). 버튼류엔 적용 안 함(텍스트 nav 링크 전용).
 const navLinkCls =
-  'relative inline-block no-underline after:absolute after:left-0 after:-bottom-px after:h-px after:w-0 after:bg-current after:transition-[width] after:duration-200 hover:after:w-full'
+  // before 의사요소 = 시각 변화 없는 터치 히트존 확장(모바일 21px→~40px, WCAG 2.5.8).
+  "relative inline-block no-underline after:absolute after:left-0 after:-bottom-px after:h-px after:w-0 after:bg-current after:transition-[width] after:duration-200 hover:after:w-full before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-['']"
 
 function Col({ title, links }: { title: string; links: { href: string; label: string }[] }) {
   return (

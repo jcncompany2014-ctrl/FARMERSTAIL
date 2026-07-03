@@ -84,7 +84,7 @@ const WHYFRESH_FAQ = [
   },
   {
     q: '신선식은 더 비싸지 않나요?',
-    a: '재료와 보관 방식이 다르다 보니 일반 건사료보다 부담이 될 수 있어요. 그래서 체험팩으로 먼저 시작하고, 양과 주기를 조절할 수 있게 했어요.',
+    a: '재료와 보관 방식이 다르다 보니 일반 건사료보다 부담이 될 수 있어요. 그래서 첫 박스를 50% 할인으로 시작하고, 양과 주기를 조절할 수 있게 했어요.',
   },
 ]
 
@@ -436,7 +436,7 @@ export default async function WhyFreshPage() {
                   style={{ color: 'var(--fd-muted)' }}
                 >
                   2분 설문이면 우리 아이 몸 상태에 맞춰 신선식 한 끼를 설계해
-                  드려요. 부담 없이 체험팩부터, 언제든 해지.
+                  드려요. 첫 박스 50% 할인으로 부담 없이, 언제든 해지.
                 </p>
                 <div className="mt-8 flex justify-center">
                   <Button href={planHref} size="lg">

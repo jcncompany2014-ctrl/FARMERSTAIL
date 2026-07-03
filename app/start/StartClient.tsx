@@ -109,6 +109,7 @@ export default function StartClient() {
         <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>아이 이름</label>
         <input
           type="text" value={name} maxLength={20} placeholder="예: 코코"
+          aria-label="아이 이름"
           autoComplete="off" enterKeyHint="next"
           onChange={(e) => setName(e.target.value)}
           className={inputCls} style={inputStyle}
@@ -160,6 +161,7 @@ export default function StartClient() {
         <div className="flex gap-2">
           <input
             type="number" min="0" max={ageUnit === 'months' ? 360 : 50} value={ageValue} placeholder="0"
+            aria-label={ageUnit === 'months' ? '나이(개월)' : '나이(살)'}
             inputMode="numeric" enterKeyHint="next"
             onChange={(e) => setAgeValue(e.target.value)}
             className={`${inputCls} flex-1`} style={inputStyle}
@@ -176,6 +178,7 @@ export default function StartClient() {
         <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>체중 (kg)</label>
         <input
           type="number" min="0.5" max="100" step="0.1" value={weight} placeholder="예: 4.5"
+          aria-label="체중(kg)"
           inputMode="decimal" enterKeyHint="done"
           onChange={(e) => setWeight(e.target.value)}
           className={inputCls} style={inputStyle}

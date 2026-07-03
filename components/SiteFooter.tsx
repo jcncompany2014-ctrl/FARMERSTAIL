@@ -37,7 +37,7 @@ export default function SiteFooter() {
                 <Mail className="w-3 h-3 text-[var(--fd-muted)] shrink-0" strokeWidth={2} />
                 <a
                   href={`mailto:${business.email}`}
-                  className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
+                  className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition relative before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-['']"
                 >
                   {business.email}
                 </a>
@@ -60,7 +60,7 @@ export default function SiteFooter() {
                     href={business.kakaoChannelUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
+                    className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition relative before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-['']"
                   >
                     카카오 채널
                   </a>
@@ -80,49 +80,49 @@ export default function SiteFooter() {
             >
               <Link
                 href="/about"
-                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
+                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition relative before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-['']"
               >
                 브랜드 스토리
               </Link>
               <span className="md:hidden text-[#D4C8B3]">·</span>
               <Link
                 href="/faq"
-                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
+                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition relative before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-['']"
               >
                 자주 묻는 질문
               </Link>
               <span className="md:hidden text-[#D4C8B3]">·</span>
               <Link
                 href="/contact"
-                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
+                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition relative before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-['']"
               >
                 문의하기
               </Link>
               <span className="md:hidden text-[#D4C8B3]">·</span>
               <Link
                 href="/legal/terms"
-                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
+                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition relative before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-['']"
               >
                 이용약관
               </Link>
               <span className="md:hidden text-[#D4C8B3]">·</span>
               <Link
                 href="/legal/privacy"
-                className="text-[var(--fd-coral-text)] hover:underline"
+                className="text-[var(--fd-coral-text)] hover:underline relative before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-['']"
               >
                 <b>개인정보처리방침</b>
               </Link>
               <span className="md:hidden text-[#D4C8B3]">·</span>
               <Link
                 href="/business"
-                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
+                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition relative before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-['']"
               >
                 사업자정보
               </Link>
               <span className="md:hidden text-[#D4C8B3]">·</span>
               <Link
                 href="/legal/refund"
-                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition"
+                className="text-[var(--fd-pine)] hover:text-[var(--fd-coral-text)] transition relative before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-['']"
               >
                 환불정책
               </Link>
@@ -219,7 +219,7 @@ function Row({
               href={link}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[var(--fd-coral-text)] hover:underline"
+              className="text-[var(--fd-coral-text)] hover:underline relative before:absolute before:-inset-y-2.5 before:-inset-x-1 before:content-['']"
             >
               [{linkLabel}]
             </a>
