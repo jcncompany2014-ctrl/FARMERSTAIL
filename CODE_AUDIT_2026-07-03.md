@@ -74,6 +74,14 @@
 - 🟡 기록: swr-lite/counterfactual/persona = invention-flags 킬스위치 뒤 의도 보류(PCT 출원 관련) · next-action 주석 번호 어긋남 · /cart 등 redirect 전용 라우트의 loading.tsx 잔존(무해 dead weight) · lib/cart 디렉토리는 실재하지 않음(빈 항목).
 - 직접 검독: loading.tsx 13개 전수(잔재 참조 0, 스켈레톤 전부 클린).
 
+## 추가 범위 A (소스 밖 전체) — SQL·CSS·scripts·테스트·루트 설정
+
+- 🟢 **루트 설정 15개 직접 정독** (proxy.ts·next.config·instrumentation×2·sentry×2·capacitor·package.json·eslint/postcss/playwright/tsconfig 등): 보안헤더·CSP 로드맵·PII 스크러버·캐시 전략 모범. `npm test` glob(lib/**)은 테스트 85개 전부 lib 소속이라 완전 커버 확인.
+- 🟠 **proxy.ts 수정 2**: ①admin 가드 getUser 무보호 → try/catch(stale refresh token 시 /admin 500 방지 — 7/1 수정과 동일 클래스) ②라우트 분류 주석의 폐지 경로(products/cart/signup/coupons/wishlist) 현행화. 기록 🟡: CSRF 목록의 `/api/subscriptions/`는 실재하지 않는 라우트(무해 dead 엔트리) · RULES 주석의 auth 튜닝 근거는 해당 룰 부재(supabase 클라 직접 인증이라 해당 없음 — 주석 성격).
+- 🟠 **죽은 CSS 제거 1**: globals `.cart-cta-active`/`[data-cart-bottom-nav]` 스왑 규칙 — 토글러(CartStickyCTA·BottomNav) 삭제로 참조 0 (에이전트 "현역" 오판을 재검증으로 뒤집음).
+- 🟢 CSS 10(전량)·scripts 6(전부 package.json 연결)·테스트 85+e2e: 잔재 셀렉터 0·skip 방치 0·폐지 라우트 방문 0·미정의 var() 0.
+- 🟢 **SQL 마이그레이션 129/129**: 민감정보 0 · RLS 동반 생성 패턴 정합 · orders.user_id 인덱스 3종 완비(재검증). 기록 🟡(전부 적용된 히스토리 — 소급 수정 불가): 대형 마이그 6개 트랜잭션 미보호(당시 리스크·현재 영향 0) · **로컬↔원격 이력 정렬 필요**: 쿠폰 DROP(6/30)·레퍼럴 DROP(7/2)은 MCP 직접 적용이라 원격 이력에만 존재(레퍼럴은 로컬 파일도 있으나 이름 불일치). `supabase db push` 사용 시 혼동 소지 — 사장님 DB 정리 회차에서 정렬 권장(레퍼럴 파일은 전부 IF EXISTS 라 재적용도 무해).
+
 ## 🏁 전수 감사 최종 결산 (45/45 클러스터 · 651/651 파일, 2026-07-03)
 
 **발견·수정 총계 (전 웨이브):**

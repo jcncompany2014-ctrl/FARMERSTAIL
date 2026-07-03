@@ -155,13 +155,14 @@ function findRule(pathname: string, method: string): Rule | undefined {
 // 첫 진입은 쿠키가 아직 없을 수 있어 client-side hook 가 한 번 더 검증.
 // 본 proxy 의 redirect 는 명시적으로 ft_app 쿠키가 없는 케이스만 잡음.
 //
-// 라우트 분류는 README / LAUNCH_CHECKLIST 와 SSOT 로 동기화:
-//   • Web/Both:  /, /products, /blog, /events, /about, /business,
-//                /legal/*, /login, /signup, /cart, /checkout,
-//                /mypage/orders/*, /api/*, /admin/*, /auth/*
+// 라우트 분류 (구독전용 전환 2026-06 반영 — products/cart/signup/쿠폰/위시는 폐지):
+//   • Web/Both:  /, /start, /blog, /about, /business, /legal/*, /login,
+//                /account/*, /checkout(휴면 셸), /mypage/orders/*,
+//                /api/*, /admin/*, /auth/*
 //   • App only:  /dashboard, /dogs/*, /welcome,
-//                /mypage/{addresses,subscriptions,reviews,points,coupons,
-//                         wishlist,notifications,consent,delete}/*
+//                /mypage/{addresses,subscriptions,reviews,points,
+//                         notifications,consent,delete}/*
+//   (웹 구독관리는 별도 /account/subscriptions — app-only 아님.)
 
 const APP_ONLY_PREFIXES: readonly string[] = [
   '/dashboard',
@@ -226,9 +227,16 @@ async function checkAdminAccess(request: NextRequest): Promise<NextResponse | nu
       },
     },
   )
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // stale refresh token 이면 getUser 가 throw (refresh_token_not_found) —
+  // 무보호 시 /admin 진입이 500. 미로그인과 동일 취급해 /login 으로 (2026-07-03
+  // 감사, app/page·dashboard 의 getSafeUser 수정과 동일 클래스).
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    user = null
+  }
 
   if (!user) {
     const url = request.nextUrl.clone()
