@@ -186,7 +186,7 @@
 - [ ] app/why-app/page.tsx
 - [ ] app/why-fresh/page.tsx
 
-## [ ] app/admin (67)
+## [x] app/admin (67) — 웨이브4 완료(text-mute 수정)
 - [ ] app/admin/algorithm/AlgorithmConfigClient.tsx
 - [ ] app/admin/algorithm/page.tsx
 - [ ] app/admin/beta-cohort/BetaCohortPrintButton.tsx
@@ -421,7 +421,7 @@
 - [ ] components/v3/sheet/QuickWeightSheet.tsx
 - [ ] components/v3/useConfirm.tsx
 
-## [ ] app/(main)/mypage (33)
+## [x] app/(main)/mypage (33) — 웨이브4 완료(실버그0)
 - [ ] app/(main)/mypage/MypageClient.tsx
 - [ ] app/(main)/mypage/accuracy/page.tsx
 - [ ] app/(main)/mypage/addresses/AddressForm.tsx
@@ -538,7 +538,7 @@
 - [ ] lib/personalization/v3/profile.ts
 - [ ] lib/personalization/v3/types.ts
 
-## [ ] app/(main)-기타 (20)
+## [x] app/(main)-기타 (20) — 웨이브4 완료(실버그0)
 - [ ] app/(main)/chat/ChatClient.tsx
 - [ ] app/(main)/chat/page.tsx
 - [ ] app/(main)/dashboard/loading.tsx
@@ -604,7 +604,7 @@
 - [ ] lib/supabase/server.ts
 - [ ] lib/supabase/types.ts
 
-## [ ] app/api/admin (10)
+## [x] app/api/admin (10) — 웨이브4 완료(가드 만점)
 - [ ] app/api/admin/blog/draft/route.ts
 - [ ] app/api/admin/blog/upload/route.ts
 - [ ] app/api/admin/events/upload/route.ts

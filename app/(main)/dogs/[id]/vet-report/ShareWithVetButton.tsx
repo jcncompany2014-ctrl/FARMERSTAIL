@@ -105,7 +105,7 @@ export default function ShareWithVetButton({ dogId }: { dogId: string }) {
   // → mb-2 (6→8), input→만료 안내 mb-2 → mb-2.5.
   return (
     <div className="no-print rounded border border-line bg-paperHi p-4 max-w-md">
-      <p className="text-[10.5px] uppercase tracking-widest font-semibold text-mute mb-2">
+      <p className="text-[10.5px] uppercase tracking-widest font-semibold text-muted mb-2">
         공유 링크 (14일 만료)
       </p>
       <div className="flex items-center gap-2 mb-2.5">
@@ -140,7 +140,7 @@ export default function ShareWithVetButton({ dogId }: { dogId: string }) {
             </button>
           )}
       </div>
-      <p className="text-[10.5px] text-mute leading-relaxed">
+      <p className="text-[10.5px] text-muted leading-relaxed">
         만료:{' '}
         {state.expiresAt
           ? new Date(state.expiresAt).toLocaleDateString('ko-KR')

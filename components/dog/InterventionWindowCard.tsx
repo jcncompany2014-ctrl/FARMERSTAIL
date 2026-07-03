@@ -58,16 +58,16 @@ export default function InterventionWindowCard({ window }: Props) {
           <Icon className="w-4 h-4" strokeWidth={2.4} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] uppercase tracking-widest font-semibold text-mute">
+          <div className="text-[10px] uppercase tracking-widest font-semibold text-muted">
             {isUrgent ? '개입 권장' : '관찰 권장'}
-            <span className="ml-2 font-normal text-mute/70">
+            <span className="ml-2 font-normal text-muted/70">
               (체중 추세 분석)
             </span>
           </div>
           <p className="text-[13.5px] font-semibold text-ink mt-1.5 leading-snug">
             {window.userMessage}
           </p>
-          <div className="text-[10.5px] text-mute mt-1.5">
+          <div className="text-[10.5px] text-muted mt-1.5">
             추세: {window.weightSlopeKgPerDay > 0 ? '+' : ''}
             {(window.weightSlopeKgPerDay * 30).toFixed(2)} kg/월 · 정밀도{' '}
             {(window.rSquared * 100).toFixed(0)}%

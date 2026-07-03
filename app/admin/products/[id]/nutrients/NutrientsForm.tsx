@@ -101,7 +101,7 @@ export default function NutrientsForm({
         <section key={cat}>
           <h2 className="text-base font-semibold text-ink mb-3">
             {CATEGORY_LABELS[cat]}
-            <span className="ml-2 text-xs text-mute font-normal">
+            <span className="ml-2 text-xs text-muted font-normal">
               ({grouped[cat].length}개)
             </span>
           </h2>
@@ -149,10 +149,10 @@ function Stat({
 }) {
   return (
     <div>
-      <div className="text-xs text-mute">{label}</div>
+      <div className="text-xs text-muted">{label}</div>
       <div
         className={`text-lg font-semibold ${
-          value === 0 ? 'text-moss' : color === 'sale' ? 'text-sale' : 'text-mute'
+          value === 0 ? 'text-moss' : color === 'sale' ? 'text-sale' : 'text-muted'
         }`}
       >
         {value}
@@ -183,7 +183,7 @@ function NutrientField({
     <label className="block">
       <div className="flex items-baseline justify-between mb-1.5">
         <span className="text-sm text-ink">{spec.label}</span>
-        <span className="text-xs text-mute">
+        <span className="text-xs text-muted">
           {spec.aafcoMin != null && `min ${spec.aafcoMin}`}
           {spec.aafcoMin != null && spec.aafcoMax != null && ' / '}
           {spec.aafcoMax != null && `max ${spec.aafcoMax}`}
@@ -201,10 +201,10 @@ function NutrientField({
           }`}
           placeholder="—"
         />
-        <span className="text-xs text-mute w-14 text-right">{spec.unit}</span>
+        <span className="text-xs text-muted w-14 text-right">{spec.unit}</span>
       </div>
       {spec.hint && (
-        <div className="mt-1.5 text-xs text-mute leading-snug">{spec.hint}</div>
+        <div className="mt-1.5 text-xs text-muted leading-snug">{spec.hint}</div>
       )}
     </label>
   )

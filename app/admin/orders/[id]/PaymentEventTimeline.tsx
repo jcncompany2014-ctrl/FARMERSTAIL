@@ -79,13 +79,13 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
     <section className="p-6 rounded-lg bg-white border border-zinc-200">
       <div className="flex justify-between items-baseline mb-4">
         <h2 className="text-sm font-bold text-ink">결제 원장 (Payment Events)</h2>
-        <div className="text-xs text-mute">
+        <div className="text-xs text-muted">
           잔액: <span className="font-mono font-semibold text-ink">{balance.toLocaleString()}원</span>
         </div>
       </div>
 
       {events.length === 0 ? (
-        <p className="text-xs text-mute py-4 text-center">
+        <p className="text-xs text-muted py-4 text-center">
           기록된 이벤트가 없어요. 결제·환불이 발생하면 자동으로 누적됩니다.
         </p>
       ) : (
@@ -115,7 +115,7 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
                       {e.amount > 0 ? '+' : ''}{e.amount.toLocaleString()}원
                     </span>
                   </div>
-                  <div className="text-[10.5px] text-mute mt-0.5">
+                  <div className="text-[10.5px] text-muted mt-0.5">
                     {formatDateTime(e.created_at)}
                     {' · '}
                     출처: {SOURCE_LABEL[e.source] ?? e.source}
@@ -127,7 +127,7 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
                     )}
                   </div>
                   {e.metadata && Object.keys(e.metadata).length > 0 && (
-                    <pre className="mt-1.5 text-[10px] bg-paperHi rounded p-2 font-mono text-mute overflow-x-auto leading-snug">
+                    <pre className="mt-1.5 text-[10px] bg-paperHi rounded p-2 font-mono text-muted overflow-x-auto leading-snug">
                       {JSON.stringify(e.metadata, null, 2)}
                     </pre>
                   )}

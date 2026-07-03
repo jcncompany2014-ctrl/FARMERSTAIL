@@ -172,7 +172,7 @@ export default async function ProductInsightsPage({
       <div className="mb-5">
         <Link
           href={`/admin/products/${id}`}
-          className="inline-flex items-center gap-1 text-xs text-mute hover:text-terracotta font-semibold"
+          className="inline-flex items-center gap-1 text-xs text-muted hover:text-terracotta font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           제품 편집
@@ -180,7 +180,7 @@ export default async function ProductInsightsPage({
         <h1 className="font-bold tracking-tight text-3xl text-ink mt-2">
           상품 분석
         </h1>
-        <p className="text-xs text-mute mt-1">
+        <p className="text-xs text-muted mt-1">
           {product.name} · LTV · 재구매율 · buyer 분포
         </p>
       </div>
@@ -225,7 +225,7 @@ export default async function ProductInsightsPage({
               <div key={i} className="text-xs">
                 <div className="flex justify-between mb-0.5">
                   <span className="text-ink">{label}</span>
-                  <span className="text-mute">
+                  <span className="text-muted">
                     {count}명 ({pct.toFixed(0)}%)
                   </span>
                 </div>
@@ -247,7 +247,7 @@ export default async function ProductInsightsPage({
           Top 10 buyers (LTV 기준)
         </h2>
         <table className="w-full text-xs">
-          <thead className="text-mute">
+          <thead className="text-muted">
             <tr className="border-b border-line">
               <th className="text-left py-2.5 px-3 font-semibold">User</th>
               <th className="text-right py-2.5 px-3 font-semibold">총 LTV</th>
@@ -269,7 +269,7 @@ export default async function ProductInsightsPage({
                   {b.productRevenue.toLocaleString()}원
                 </td>
                 <td className="py-2.5 px-3 text-right">{b.orderCount}</td>
-                <td className="py-2.5 px-3 text-right text-mute">
+                <td className="py-2.5 px-3 text-right text-muted">
                   {b.firstOrderAt
                     ? new Date(b.firstOrderAt).toLocaleDateString('ko-KR')
                     : '—'}
@@ -279,7 +279,7 @@ export default async function ProductInsightsPage({
           </tbody>
         </table>
         {buyerCount === 0 && (
-          <p className="text-xs text-mute py-5 text-center">
+          <p className="text-xs text-muted py-5 text-center">
             아직 구매 기록이 없어요.
           </p>
         )}
@@ -301,11 +301,11 @@ function Kpi({
   // value-hint mt-1 → mt-1.5. text-xl(32px) 큰 텍스트라 mt-1 (4px) 은 좁음.
   return (
     <div className="rounded border border-line p-4">
-      <div className="text-[10px] uppercase tracking-wider text-mute font-semibold">
+      <div className="text-[10px] uppercase tracking-wider text-muted font-semibold">
         {label}
       </div>
       <div className="text-xl text-ink mt-1.5">{value}</div>
-      {hint && <div className="text-[10px] text-mute mt-1.5">{hint}</div>}
+      {hint && <div className="text-[10px] text-muted mt-1.5">{hint}</div>}
     </div>
   )
 }

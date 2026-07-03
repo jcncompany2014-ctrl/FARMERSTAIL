@@ -195,7 +195,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
           <h1 className="text-2xl font-black text-ink tracking-tight leading-snug">
             수의사 진료 보고서
           </h1>
-          <p className="text-[12px] text-mute mt-1">
+          <p className="text-[12px] text-muted mt-1">
             동물병원에 가져가서 수의사에게 보여주세요. 최근 12개월 식이·체중·분석 요약.
           </p>
         </div>
@@ -220,14 +220,14 @@ export default async function VetReportPage({ params }: { params: Params }) {
         <header className="border-b-2 border-ink pb-3 mb-5">
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-[10.5px] font-bold uppercase tracking-widest text-mute">
+              <p className="text-[10.5px] font-bold uppercase tracking-widest text-muted">
                 Veterinary Pre-Consult Report
               </p>
               <h2 className="text-xl font-black text-ink mt-1 tracking-tight leading-snug">
                 수의사 진료 보고서
               </h2>
             </div>
-            <div className="text-right text-[10.5px] text-mute leading-relaxed">
+            <div className="text-right text-[10.5px] text-muted leading-relaxed">
               <div>발행: {todayStr}</div>
               <div>파머스테일 (Farmer&apos;s Tail)</div>
             </div>
@@ -323,7 +323,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
         {/* 4. 체중 추이 (12개월) */}
         <Section title="4. 체중 추이 (최근 12개월)">
           {weights.length === 0 ? (
-            <p className="text-[10.5px] text-mute">기록 없음.</p>
+            <p className="text-[10.5px] text-muted">기록 없음.</p>
           ) : (
             <div>
               <WeightChart logs={weights} />
@@ -367,7 +367,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
                   ))}
                 </ul>
               ) : (
-                <p className="text-mute">없음 (또는 미입력)</p>
+                <p className="text-muted">없음 (또는 미입력)</p>
               )}
             </div>
             <div>
@@ -379,7 +379,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
                   ))}
                 </ul>
               ) : (
-                <p className="text-mute">없음 (또는 미입력)</p>
+                <p className="text-muted">없음 (또는 미입력)</p>
               )}
             </div>
           </div>
@@ -388,7 +388,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
         {/* 6. 현재 식이 */}
         <Section title="6. 현재 식이 (파머스테일 분석 결과)">
           {!analysis ? (
-            <p className="text-[10.5px] text-mute">분석 기록 없음.</p>
+            <p className="text-[10.5px] text-muted">분석 기록 없음.</p>
           ) : (
             <>
               <Grid>
@@ -449,11 +449,11 @@ export default async function VetReportPage({ params }: { params: Params }) {
         {/* 7. 현재 복용 약물 */}
         <Section title="7. 현재 복용 약물">
           {meds.filter((m) => m.enabled !== false).length === 0 ? (
-            <p className="text-[10.5px] text-mute">기록 없음.</p>
+            <p className="text-[10.5px] text-muted">기록 없음.</p>
           ) : (
             <table className="w-full text-[10.5px] border-collapse">
               <thead>
-                <tr className="border-b border-ink/30 text-mute">
+                <tr className="border-b border-ink/30 text-muted">
                   <th className="text-left py-2 px-2.5 font-semibold">약물명</th>
                   <th className="text-left py-2 px-2.5 font-semibold">용량</th>
                   <th className="text-left py-2 px-2.5 font-semibold">스케줄</th>
@@ -505,7 +505,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
         </Section>
 
         {/* footer */}
-        <footer className="border-t border-ink/30 pt-3 mt-5 text-[10.5px] text-mute leading-relaxed">
+        <footer className="border-t border-ink/30 pt-3 mt-5 text-[10.5px] text-muted leading-relaxed">
           <p>
             본 보고서는 견주의 자가 측정 + 파머스테일 알고리즘 분석 결과를
             요약한 자료입니다. 의료 진단을 대체하지 않으며 수의사 진료의 보조
@@ -564,11 +564,11 @@ function Field({
   // 두 줄이 따닥따닥 붙어보이던 문제 해소.
   return (
     <div>
-      <div className="text-[9.5px] uppercase tracking-wider text-mute">
+      <div className="text-[9.5px] uppercase tracking-wider text-muted">
         {label}
       </div>
       <div className="text-[12px] text-ink font-medium mt-0.5">{value}</div>
-      {hint && <div className="text-[9.5px] text-mute mt-0.5">{hint}</div>}
+      {hint && <div className="text-[9.5px] text-muted mt-0.5">{hint}</div>}
     </div>
   )
 }
@@ -576,7 +576,7 @@ function Field({
 function WeightChart({ logs }: { logs: WeightLog[] }) {
   if (logs.length < 2) {
     return (
-      <p className="text-[10.5px] text-mute">
+      <p className="text-[10.5px] text-muted">
         측정 2회 이상 필요 (현재 {logs.length}회).
       </p>
     )

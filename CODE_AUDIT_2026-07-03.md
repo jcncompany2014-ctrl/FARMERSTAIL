@@ -62,6 +62,11 @@
 - 🟡 기록: auth/welcome-email·consent/unsubscribe-ack 발송실패 200(ok:false) 패턴(베스트에포트 설계 명시됨 — 유지) · photo-upload 중복감지 정규식 의존 · weightFromRER 로컬 중복(analyses) · todayIso 중복 구현 해소됨(수정 ②에 포함) · VetReport 주석 표현 불일치.
 - 오탐 기각 3: PhotosClient +9h(하우스 패턴 정합) · DiaryClient 미사용 import(146행 사용) · YearInReview raw ISO(가입 시각 기준이 정답) · Number()||폴백(의도된 graceful).
 
+### 웨이브 4 정독 결과 (admin 77 + mypage 33 + 메인기타 20 = 130파일)
+- 🔴 **`text-mute` 미정의 Tailwind 클래스 45곳 (수정)**: @theme 엔 `--color-muted` 만 존재 — `text-mute` 는 CSS 미생성으로 뮤트 색이 조용히 미적용(상속색 렌더). 에이전트는 1곳 오타로 봤으나 전수 grep 결과 8개 파일 45곳(수의사 리포트 13·admin insights/finance/nutrients/결제타임라인 27·InterventionWindowCard 3 등) → 전부 `text-muted` 로 일괄 수정. bg-/border- 계열은 0.
+- 🟢 admin 77/77: 가드 이중화(레이아웃+페이지+API) 만점 · 쿠폰/커머스 잔재 0 · Phase B 개편 정합(웜톤 0). admin coupon-claim inert 셸도 미검출(이미 제거됨).
+- 🟢 mypage 33 + 메인기타 20: 실버그 0. 기각: 쿠폰 refType 필터(과거 원장 row 표시용 방어 — 유지가 정답) · PreferencesPanel docstring(현행 정확). 기록 🟡: points/page 월 경계가 서버 로컬(UTC) 기준(통계 표시용 — KST 경계와 수 시간 오차, Intl Asia/Seoul 통일 후보) · dashboard 수동 +9h(하우스 패턴 — 헬퍼 통일은 선택).
+
 - **실버그 1건 발견·수정**: checkout/fail 재시도 오링크(내 어제 수정분의 2차 오류 — /checkout 이 redirect 라우트임을 놓침).
 - **SEO 폐지경로 2건 정리**: WebSite SearchAction 제거 + 죽은 buildProductJsonLd 삭제.
 - 나머지 전 영역(링크·이미지·크론·휴리스틱·런타임·보안) **클린**. 코드베이스 상태 매우 견고.

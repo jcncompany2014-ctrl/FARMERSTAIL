@@ -116,13 +116,13 @@ export default async function AdminFinancePage({
       <div className="mb-5">
         <Link
           href="/admin"
-          className="inline-flex items-center gap-1 text-xs text-mute hover:text-terracotta font-semibold"
+          className="inline-flex items-center gap-1 text-xs text-muted hover:text-terracotta font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           관리자
         </Link>
         <h1 className="font-bold tracking-tight text-3xl text-ink mt-2">결제 원장</h1>
-        <p className="text-xs text-mute mt-1">
+        <p className="text-xs text-muted mt-1">
           결제 기록을 기준으로 한 하루별 매출이에요 (최근 {days}일).
         </p>
         <div className="flex gap-2 mt-3 text-xs">
@@ -173,7 +173,7 @@ export default async function AdminFinancePage({
       <section className="rounded border border-line p-4">
         <h2 className="text-sm font-semibold text-ink mb-3">일별 순매출</h2>
         {dayList.length === 0 ? (
-          <p className="text-xs text-mute py-5 text-center">
+          <p className="text-xs text-muted py-5 text-center">
             기간 내 결제 이벤트가 없어요.
           </p>
         ) : (
@@ -184,7 +184,7 @@ export default async function AdminFinancePage({
                 <div key={d.date} className="text-xs">
                   <div className="flex justify-between mb-0.5">
                     <span className="text-ink font-mono">{d.date}</span>
-                    <span className="text-mute">
+                    <span className="text-muted">
                       결제 {d.paid.toLocaleString()}원
                       {d.refunded > 0 && (
                         <span className="text-sale ml-2">
@@ -194,7 +194,7 @@ export default async function AdminFinancePage({
                       <span className="ml-2 text-ink font-semibold">
                         순매출 {d.net.toLocaleString()}원
                       </span>
-                      <span className="ml-2 text-mute">
+                      <span className="ml-2 text-muted">
                         ({d.orderCount.size}건)
                       </span>
                     </span>
@@ -232,12 +232,12 @@ function Kpi({
     tone === 'sale' ? 'text-sale' : tone === 'moss' ? 'text-moss' : 'text-ink'
   return (
     <div className="rounded border border-zinc-200 p-4">
-      <div className="flex items-center text-[10px] uppercase tracking-wider text-mute font-semibold">
+      <div className="flex items-center text-[10px] uppercase tracking-wider text-muted font-semibold">
         {label}
         {help && <HelpTip text={help} />}
       </div>
       <div className={`text-xl mt-1.5 ${color}`}>{value}</div>
-      {hint && <div className="text-[10px] text-mute mt-1.5">{hint}</div>}
+      {hint && <div className="text-[10px] text-muted mt-1.5">{hint}</div>}
     </div>
   )
 }
