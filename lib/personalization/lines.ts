@@ -52,8 +52,10 @@ export const FOOD_LINE_META: Record<FoodLine, FoodLineMeta> = Object.fromEntries
 ) as Record<FoodLine, FoodLineMeta>
 
 /**
- * preferred_proteins(설문) → FoodLine. LEGACY 역매핑.
- * chicken→basic, duck→weight, salmon→skin, beef→premium, pork→joint.
+ * preferred_proteins(설문) → FoodLine. skuModel.legacyLine 파생(SSOT).
+ * chicken→weight, duck→basic, salmon→skin, beef→premium, pork→joint.
+ * (2026-07-03 정정: 이전 주석이 chicken/duck 라인을 뒤바꿔 적었음 —
+ * 실제 매핑은 LEGACY_LINE_TO_PROTEIN 과 역방향으로 정확히 일치.)
  */
 export const PROTEIN_TO_LINE: Record<string, FoodLine> = Object.fromEntries(
   ALL_PROTEINS.map((p) => [p, SKU_MODEL[p].legacyLine]),
