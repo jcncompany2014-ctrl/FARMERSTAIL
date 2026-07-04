@@ -284,9 +284,12 @@ export default async function AboutPage() {
           <Container size="xl">
             <div className="grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
               <Reveal>
+                {/* 2026-07-03: 회색 placeholder → 강아지 실사진(기존 에셋).
+                    "내 강아지만을 위한 분석" 헤드라인과 감성 정합. */}
                 <PhotoSlot
-                  label="맞춤 분석 카드 화면"
-                  sub="맞춤 분석 결과 미리보기"
+                  label="우리 아이"
+                  src="/dog-portrait.jpg"
+                  alt="분석을 기다리는 강아지"
                   ratio="4 / 3"
                   tone="cream"
                   rounded={10}

@@ -26,10 +26,12 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-const FLOW: [string, string, string, string][] = [
-  ['01', '강아지 기본', '이름·체중·나이·활동량 등 기본 정보를 알려주세요.', '강아지 일러스트 (누끼)'],
-  ['02', '생활·건강 설문', '체형·소화·식습관·건강 상태를 차근차근 여쭤봐요.', '설문 체크리스트 일러스트'],
-  ['03', '맞춤 결과', '수의영양 기준으로 분석한 결과를 확인하고, 저장하려면 가입해요.', '결과·신선식 상품 누끼'],
+// [n, 제목, 설명, 라벨(alt), 이미지 src] — 이미지는 2026-07-03 AI 생성(힉스필드,
+// 실촬영 교체 대상). 브리프 그대로: 강아지·신선재료·완성 그릇.
+const FLOW: [string, string, string, string, string][] = [
+  ['01', '강아지 기본', '이름·체중·나이·활동량 등 기본 정보를 알려주세요.', '강아지 사진', '/start-step-dog.jpg'],
+  ['02', '생활·건강 설문', '체형·소화·식습관·건강 상태를 차근차근 여쭤봐요.', '신선한 재료들', '/start-step-ingredients.jpg'],
+  ['03', '맞춤 결과', '수의영양 기준으로 분석한 결과를 확인하고, 저장하려면 가입해요.', '완성된 신선식 한 그릇', '/start-step-bowl.jpg'],
 ]
 
 export default function StartPage() {
@@ -113,10 +115,13 @@ export default function StartPage() {
                 저장돼, 가입하실 때 그대로 옮겨드려요.
               </p>
             </Reveal>
-            {/* 📸 스텝0 환영 배너 — 강아지 일러스트 (슬림) */}
+            {/* 📸 스텝0 환영 배너 — AI 생성(힉스필드 2026-07-03, 실촬영 교체 대상).
+                좌측 여백 있는 와이드 컷이라 16/5 슬림 크롭에 어울림. */}
             <Reveal delay={80}>
               <PhotoSlot
-                label="환영 일러스트 · 강아지 (슬림 배너)"
+                label="환영 배너"
+                src="/start-welcome-banner.jpg"
+                alt="창가에 나란히 앉은 강아지들"
                 ratio="16 / 5"
                 tone="green"
                 rounded={14}
@@ -137,7 +142,7 @@ export default function StartPage() {
               </Display>
             </Reveal>
             <ul className="pt-6 grid gap-4 md:grid-cols-3">
-              {FLOW.map(([n, t, d, ill], i) => (
+              {FLOW.map(([n, t, d, ill, img], i) => (
                 <Reveal key={n} delay={i * 80}>
                   <li
                     className="rounded-[12px] h-full px-5 py-6"
@@ -146,9 +151,11 @@ export default function StartPage() {
                       boxShadow: 'inset 0 0 0 1px var(--fd-line)',
                     }}
                   >
-                    {/* 📸 단계별 일러스트 (누끼, 작게) */}
+                    {/* 📸 단계별 사진 — AI 생성(힉스필드 2026-07-03) */}
                     <PhotoSlot
                       label={ill}
+                      src={img}
+                      alt={ill}
                       ratio="3 / 2"
                       tone={i === 2 ? 'coral' : i === 1 ? 'green' : 'cream'}
                       rounded={10}
