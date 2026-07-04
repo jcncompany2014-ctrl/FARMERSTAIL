@@ -222,8 +222,12 @@ export default async function AboutPage() {
                 </div>
               </Reveal>
               <Reveal className="order-1 md:order-2">
+                {/* 2026-07-03 디자인 검토: 회색 placeholder → 실제 영양분석
+                    리포트 이미지(랜딩과 동일 에셋). 주제(38영양소 설계) 정합. */}
                 <PhotoSlot
-                  label="영양 프로파일 차트 사진"
+                  label="영양 프로파일 차트"
+                  src="/recipe-analysis.webp"
+                  alt="파머스테일 레시피 설계 · 38가지 필수 영양소 분석 리포트"
                   sub="38가지 필수 영양소 매트릭스"
                   ratio="16 / 11"
                   tone="green"
