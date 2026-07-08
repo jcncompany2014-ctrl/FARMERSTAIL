@@ -56,6 +56,10 @@ export default function robots(): MetadataRoute.Robots {
           // /r/[code] — 친구 초대 짧은 링크 redirect. 검색 색인 의미 없음.
           '/r/',
           '/r/*',
+          // /recipe/[protein] — 제품 뒷면 QR 전용 레시피 상세(2026-07-06).
+          // 검색·사이트 링크로는 못 들어오게 색인 차단(QR 진입만).
+          '/recipe',
+          '/recipe/*',
         ],
       },
     ],
