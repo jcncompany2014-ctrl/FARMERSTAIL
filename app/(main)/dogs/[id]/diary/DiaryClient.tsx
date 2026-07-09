@@ -20,6 +20,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 import { useConfirm } from '@/components/v3'
+import StampMoment from '@/components/v3/StampMoment'
 
 /**
  * 사진 일기 client view — list + 새 entry 모달.
@@ -74,6 +75,15 @@ export default function DiaryClient({
   const [draftNote, setDraftNote] = useState('')
   const [draftMood, setDraftMood] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // de-AI 시그니처: 저장 성공 시 '도장 쾅' 모먼트 재생(토스트 대체). token++ 로 트리거.
+  const [stampToken, setStampToken] = useState(0)
+  // 시각 도장은 aria-hidden 이라, 스크린리더엔 별도 라이브 리전으로 성공을 알린다.
+  const [srMsg, setSrMsg] = useState('')
+  // 도장 하단 날짜("7.9") — 오늘(KST) 월.일.
+  const todayMd = (() => {
+    const [, m, d] = todayKstIsoDate().split('-')
+    return `${Number(m)}.${Number(d)}`
+  })()
   // 동기 가드 — disabled={submitting} 은 리렌더 후 적용이라 서브프레임 더블탭이
   // 빠져나가 일기가 중복 저장(사진 중복 업로드 + 중복 entry)될 수 있다. ref 는
   // 동기라 차단 (dogs/new·AddressForm·HealthLog·Reminders 패턴).
@@ -173,7 +183,9 @@ export default function DiaryClient({
       if (error) throw error
       if (data) setEntries((prev) => [data as Entry, ...prev])
 
-      toast.success('일기를 저장했어요')
+      // de-AI: 성공 토스트 대신 '도장 쾅' 모먼트 + 스크린리더 라이브 안내(이중 알림 X).
+      setSrMsg('일기를 저장했어요')
+      setStampToken((t) => t + 1)
       setShowNew(false)
       setDraftFiles([])
       setDraftNote('')
@@ -208,6 +220,11 @@ export default function DiaryClient({
 
   return (
     <div className="pb-20 px-5 max-w-md mx-auto">
+      {/* de-AI 시그니처: 저장 성공 '도장 쾅'(시각) + 스크린리더 라이브 안내(청각). */}
+      <StampMoment token={stampToken} sub={todayMd} />
+      <span className="sr-only" role="status" aria-live="polite">
+        {srMsg}
+      </span>
       <section className="pt-6 pb-2">
         <div className="mt-3 flex items-end justify-between">
           <div>

@@ -112,7 +112,7 @@ function AgeGateInner() {
       style={{ background: 'var(--bg)' }}
     >
       <div className="max-w-sm w-full">
-        <span className="kicker">Age Verification14세 확인</span>
+        <span className="kicker">14세 확인</span>
         <h1
           // R28: font-serif → font-sans (v3 app 톤 — onboarding 흐름은 app 컨텍스트)
           className="font-sans mt-2 text-[24px]"

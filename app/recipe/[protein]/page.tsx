@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import WebChrome from '@/components/WebChrome'
+import InkStamp from '@/components/brand/InkStamp'
 import {
   Button,
   Container,
@@ -109,15 +110,29 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
                   ))}
                 </div>
               </div>
-              <PhotoSlot
-                label={d.displayName}
-                src={d.heroImg}
-                alt={`파머스테일 ${d.displayName} — 완성된 신선 화식과 원재료`}
-                ratio="3 / 2"
-                tone="cream"
-                rounded={14}
-                className="w-full"
-              />
+              <div className="relative w-full">
+                <PhotoSlot
+                  label={d.displayName}
+                  src={d.heroImg}
+                  alt={`파머스테일 ${d.displayName} — 완성된 신선 화식과 원재료`}
+                  ratio="3 / 2"
+                  tone="cream"
+                  rounded={14}
+                  className="w-full"
+                />
+                {/* 검수 도장 — 실물 조리·검수의 '봉인'. QR 진입 첫 화면의 시그니처.
+                    PhotoSlot(overflow:hidden) 의 형제로 두어 클리핑 회피, right/bottom
+                    inset 으로 모바일 가로 스크롤 방지. 4종 공통 동일 도장. */}
+                <InkStamp
+                  lines={['파머스테일 주방', '직접 조리 · 검수']}
+                  sub="SINCE 2026"
+                  size={104}
+                  rotate={-7}
+                  label="파머스테일 주방에서 직접 조리하고 검수한 레시피"
+                  className="absolute"
+                  style={{ right: 12, bottom: 12 }}
+                />
+              </div>
             </div>
           </Container>
         </Section>

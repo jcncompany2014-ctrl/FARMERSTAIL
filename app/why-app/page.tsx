@@ -23,6 +23,7 @@ import {
   Eyebrow,
   Section,
 } from '@/components/web/fd/ui'
+import { Polaroid } from '@/components/web/fd/Polaroid'
 import Reveal from '@/components/landing/Reveal'
 
 /**
@@ -202,7 +203,21 @@ export default async function WhyAppPage() {
                 </p>
               </Reveal>
             </div>
-            <div className="mx-auto mt-12 grid max-w-[980px] gap-4 sm:grid-cols-2 lg:grid-cols-3 md:gap-5">
+            {/* de-AI 그리드 브레이크 — 살짝 기울인 폴라로이드 + 손글씨 캡션이
+                아래 정렬 그리드의 완벽함을 깬다. ⚠️ 스왑 슬롯: 사장님 실사 도착 시
+                src/alt/caption 만 교체(지금은 기존 이미지 placeholder). */}
+            <div className="mt-10 flex justify-center">
+              <Reveal>
+                <Polaroid
+                  src="/dog-poodle.jpg"
+                  alt="파머스테일 앱으로 매일을 기록하는 반려견"
+                  caption="우리 아이의 하루"
+                  rotate={-3}
+                  width={230}
+                />
+              </Reveal>
+            </div>
+            <div className="mx-auto mt-8 grid max-w-[980px] gap-4 sm:grid-cols-2 lg:grid-cols-3 md:gap-5">
               {MORE_FEATURES.map((f, i) => (
                 <Reveal key={f.title} delay={(i % 3) * 80}>
                   <div
