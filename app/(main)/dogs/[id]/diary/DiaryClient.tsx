@@ -21,6 +21,7 @@ import { useToast } from '@/components/ui/Toast'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 import { useConfirm } from '@/components/v3'
 import StampMoment from '@/components/v3/StampMoment'
+import RecordSegments from '@/components/dogs/RecordSegments'
 
 /**
  * 사진 일기 client view — list + 새 entry 모달.
@@ -225,6 +226,8 @@ export default function DiaryClient({
       <span className="sr-only" role="status" aria-live="polite">
         {srMsg}
       </span>
+      {/* 기록 허브 토글 — 일상 ↔ 건강일지. 어디서 들어와도 한 허브처럼. */}
+      <RecordSegments dogId={dogId} active="diary" className="pt-4 pb-1" />
       <section className="pt-6 pb-2">
         <div className="mt-3 flex items-end justify-between">
           <div>

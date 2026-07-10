@@ -19,6 +19,7 @@ import { useToast } from '@/components/ui/Toast'
 import { useConfirm } from '@/components/v3'
 import MedicalRecordOcr from '@/components/MedicalRecordOcr'
 import MedicalRecordForm from '@/components/MedicalRecordForm'
+import RecordSegments from '@/components/dogs/RecordSegments'
 
 export type HealthLog = {
   id: string
@@ -192,6 +193,10 @@ export default function HealthLogClient({
 
   return (
     <div className="pb-10">
+      {/* 기록 허브 토글 — 일상 ↔ 건강일지. 어디서 들어와도 한 허브처럼. */}
+      <div className="max-w-md mx-auto px-5 pt-4 pb-1">
+        <RecordSegments dogId={dogId} active="health" />
+      </div>
       {/* 헤더 */}
       <section className="px-5 pt-6 pb-2">
         <span className="kicker mt-3 block">Health Journal</span>
