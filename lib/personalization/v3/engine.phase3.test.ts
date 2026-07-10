@@ -35,27 +35,27 @@ describe('config 외부화', () => {
 })
 
 describe('간식 칼로리 보정 (treatReductionPct)', () => {
-  const loseLowAct = profile({ weightGoal: 'loss', activityLevel: 'low' }) // 닭 단독 130
+  const loseLowAct = profile({ weightGoal: 'loss', activityLevel: 'low' }) // 닭 단독 115 (검정 확정)
 
   it('매일(0.1) → 밥 10% ↓, dailyKcal(요구량)은 유지', () => {
     const r = runLayerA(loseLowAct, 400, { treatReductionPct: 0.1 })
     assert.equal(r.dailyKcal, 400, 'MER 요구량은 그대로')
-    assert.equal(r.dailyGrams, Math.round((360 / 130) * 100)) // 277
+    assert.equal(r.dailyGrams, Math.round((360 / 115) * 100)) // 313
   })
 
   it('가끔(0.05) → 밥 5% ↓', () => {
     const r = runLayerA(loseLowAct, 400, { treatReductionPct: 0.05 })
-    assert.equal(r.dailyGrams, Math.round((380 / 130) * 100)) // 292
+    assert.equal(r.dailyGrams, Math.round((380 / 115) * 100)) // 330
   })
 
   it('상한 초과(0.5) → 10% 로 클램프', () => {
     const r = runLayerA(loseLowAct, 400, { treatReductionPct: 0.5 })
-    assert.equal(r.dailyGrams, Math.round((360 / 130) * 100)) // 277
+    assert.equal(r.dailyGrams, Math.round((360 / 115) * 100)) // 313
   })
 
-  it('미입력 → 무변경(308g)', () => {
+  it('미입력 → 무변경(348g)', () => {
     const r = runLayerA(loseLowAct, 400)
-    assert.equal(r.dailyGrams, Math.round((400 / 130) * 100)) // 308
+    assert.equal(r.dailyGrams, Math.round((400 / 115) * 100)) // 348
   })
 
   it('차감 발생 시 trace 에 간식 단계 기록', () => {

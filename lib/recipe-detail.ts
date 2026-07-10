@@ -47,7 +47,7 @@ export const RECIPE_DETAIL: Record<WebRecipe['protein'], RecipeHero> = {
     points: [
       { title: '가장 담백한 부위', body: '닭의 가장 기름기 적은 가슴살 위주로, 살찌지 않으면서 단백질은 충분하게 채웠어요.' },
       { title: '전 필수 아미노산 균형', body: '자연 원물만으로 성견 유지에 필요한 아미노산을 고르게 담았어요.' },
-      { title: '4종 중 가장 낮은 열량대', body: '활동량 적은 아이의 하루 칼로리에 맞춰 가볍게 설계했어요.' },
+      { title: '부담 없는 열량 설계', body: '활동량 적은 아이의 하루 칼로리에 맞춰 가볍게 설계했어요.' },
     ],
   },
   duck: {

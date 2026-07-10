@@ -65,7 +65,7 @@ export const SKU_NUTRITION: Record<SkuKey, SkuNutritionRow> = {
     ca_p_ratio: 1.11,
     epa_dha_pct: 0.17,
     selenium_mcg_per_kg: 688,
-    highlight_ko: '최저 130kcal·고단백 저지방. 체중관리·실내견 (모찌).',
+    highlight_ko: '115kcal·고단백 저지방(4종 최저 지방). 체중관리·실내견 (모찌).',
     persona: ['beginner'],
   },
   D02: {

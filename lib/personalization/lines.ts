@@ -112,8 +112,8 @@ export const FOOD_LINE_NUTRITION_FALLBACK: Record<
 /**
  * 결정된 라인 mix 의 가중평균 kcal/100g 으로 일일 g 재계산.
  *
- * 레시피 v2.1 sheet7: basic(닭)1.30 / weight(오리)1.50 / joint(돼지)1.40 /
- * premium(소)1.60 가중평균. compute API + nextBox + 분석 페이지 동일 룰.
+ * 라인별 kcal = skuModel SSOT(2026-07-11 검정 확정: 닭·돼지 1.15 / 오리·소 1.20)
+ * 가중평균. compute API + nextBox + 분석 페이지 동일 룰.
  */
 export function dailyGramsFromMix(
   lineRatios: Record<FoodLine, number>,
@@ -130,9 +130,10 @@ export function dailyGramsFromMix(
       override?.[line]?.kcalPer100g ?? FOOD_LINE_META[line].kcalPer100g
     total += ((ratio * dailyKcal) / kcal100) * 100
   }
-  // audit #30: 모든 라인 0 시 silent 0 반환 위험 → 평균 1.45 kcal/g fallback.
+  // audit #30: 모든 라인 0 시 silent 0 반환 위험 → 4종 평균 1.175 kcal/g fallback
+  // (2026-07-11 검정 확정: 닭·돼지 1.15, 오리·소 1.20).
   if (weightSum <= 0) {
-    return Math.round(dailyKcal / 1.45)
+    return Math.round(dailyKcal / 1.175)
   }
   return Math.round(total)
 }

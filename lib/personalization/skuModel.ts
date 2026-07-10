@@ -110,7 +110,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     persona: '모찌',
     concept: '체중관리·항염',
     subtitle: '닭 · 체중관리·항염',
-    benefit: '닭가슴살 저지방, 130kcal 최저 칼로리 + 강황',
+    benefit: '닭가슴살 저지방(4종 최저 지방) 115kcal + 강황',
     topping: '강황',
     slug: 'chicken-basic',
     // v2.0 ③-A: 닭 = weight 키 (임상 '다이어트 라인' 룰이 닭을 가리키게).
@@ -121,7 +121,8 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     crossReactWith: [],
     careGoalAffinity: ['weight_management', 'general_upgrade'],
     profile: {
-      kcalPer100g: 130,
+      // 2026-07-11 검정 확정 kcal(사장님): 닭·돼지 115, 오리·소 120. (구 설계 130)
+      kcalPer100g: 115,
       proteinPctDM: 49.5,
       fatPctDM: 19.1,
       calciumPctDM: 0.65,
@@ -151,7 +152,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     crossReactWith: ['닭·칠면조'],
     careGoalAffinity: ['allergy_avoid'],
     profile: {
-      kcalPer100g: 150,
+      kcalPer100g: 120, // 2026-07-11 검정 확정 (구 150)
       proteinPctDM: 40.6,
       fatPctDM: 27.5,
       calciumPctDM: 0.615,
@@ -180,7 +181,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     crossReactWith: [],
     careGoalAffinity: ['joint_senior'],
     profile: {
-      kcalPer100g: 140,
+      kcalPer100g: 115, // 2026-07-11 검정 확정 (구 140)
       proteinPctDM: 45.1,
       fatPctDM: 21.8,
       calciumPctDM: 0.61,
@@ -209,7 +210,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     crossReactWith: ['양고기'],
     careGoalAffinity: ['general_upgrade'],
     profile: {
-      kcalPer100g: 160,
+      kcalPer100g: 120, // 2026-07-11 검정 확정 (구 160)
       proteinPctDM: 38.7,
       fatPctDM: 28.7,
       calciumPctDM: 0.587,
@@ -268,7 +269,7 @@ export const ALL_PROTEINS: ProteinKey[] = [
 
 /** 케어 목표 → 1차 추천 단백질 (레시피 페르소나 기준). */
 export const CARE_GOAL_PRIMARY: Record<CareGoal, ProteinKey> = {
-  weight_management: 'chicken', // 닭 130kcal 최저 (모찌)
+  weight_management: 'chicken', // 닭 115kcal·최저 지방 19%DM (모찌)
   allergy_avoid: 'duck', // 노블 (코코)
   skin_coat: 'salmon', // 연어 (보류 시 게이트가 duck 대체)
   joint_senior: 'pork', // B1·노견 (토토)
@@ -279,8 +280,8 @@ export const CARE_GOAL_PRIMARY: Record<CareGoal, ProteinKey> = {
  * 구 라인 키 → 단백질.
  *
  * v2.0 ③-A 리바인드: weight=닭, basic=오리. 임상 룰(BCS·당뇨·췌장염 등)이
- * "weight 라인 = 저칼로리·저지방 다이어트" 전제로 작성돼 있어, 닭(최저
- * 130kcal·최저지방 19%DM)을 weight 키에 바인딩하면 **룰 무변경**으로
+ * "weight 라인 = 저칼로리·저지방 다이어트" 전제로 작성돼 있어, 닭(115kcal·
+ * 최저지방 19%DM)을 weight 키에 바인딩하면 **룰 무변경**으로
  * 레시피 정합(체중관리→닭, 췌장염 저지방→닭). basic 키 = 오리(노블/알레르기).
  */
 export const LEGACY_LINE_TO_PROTEIN: Record<LegacyLine, ProteinKey> = {

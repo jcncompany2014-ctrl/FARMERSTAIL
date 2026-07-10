@@ -30,7 +30,7 @@ export const WEB_RECIPES: Record<WebRecipe['protein'], WebRecipe> = {
     concept: '체중관리·항염',
     recommendedFor: '다이어트·실내견',
     mainIngredients: '닭가슴살 · 간 · 심장 · 강황 · 당근 · 현미',
-    kcalPer100g: 168,
+    kcalPer100g: 115, // 2026-07-11 검정 확정 (구 설계 168)
   },
   duck: {
     protein: 'duck',
@@ -38,7 +38,7 @@ export const WEB_RECIPES: Record<WebRecipe['protein'], WebRecipe> = {
     concept: '알러지·장건강',
     recommendedFor: '일반·민감견',
     mainIngredients: '오리안심 · 간 · 심장 · 사과 · 단호박 · 현미',
-    kcalPer100g: 190,
+    kcalPer100g: 120, // 2026-07-11 검정 확정 (구 설계 190)
   },
   pork: {
     protein: 'pork',
@@ -46,7 +46,7 @@ export const WEB_RECIPES: Record<WebRecipe['protein'], WebRecipe> = {
     concept: '기호성·신경 케어',
     recommendedFor: '노견 · 입 짧은 아이',
     mainIngredients: '돼지안심 · 간 · 심장 · 무 · 당근 · 현미',
-    kcalPer100g: 177,
+    kcalPer100g: 115, // 2026-07-11 검정 확정 (구 설계 177)
   },
   beef: {
     protein: 'beef',
@@ -54,7 +54,7 @@ export const WEB_RECIPES: Record<WebRecipe['protein'], WebRecipe> = {
     concept: '활력·프리미엄',
     recommendedFor: '활동량 많은 아이',
     mainIngredients: '한우목심 · 간 · 심장 · 블루베리 · 시금치 · 현미',
-    kcalPer100g: 206,
+    kcalPer100g: 120, // 2026-07-11 검정 확정 (구 설계 206)
   },
 }
 
