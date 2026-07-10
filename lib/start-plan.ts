@@ -1,7 +1,7 @@
 // 트랙B — /start 결과 'Your Plan'(FD식) 계산.
 //
 // 추천 레시피(알레르기 제외) + **실 하루 단가**(앱 분석과 동일한 buildFeedingPlan
-// 모델, 화식 100g당 ₩6500 = feeding-plan.ts 창업자 수정 지점·잠정값). 전량 화식
+// 모델, 화식 100g당 단가 = lib/pricing.ts 확정 구독가 평균). 전량 화식
 // (맞춤 신선식 구독) 기준(customRatio:1).
 //
 // ★레시피는 web-recipes(공개 수준)만 — 영업비밀 배합%·프리믹스·원가 미노출.

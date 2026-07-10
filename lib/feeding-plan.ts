@@ -29,6 +29,7 @@ import {
   type MixCalculation,
 } from './mix-feeding'
 import { matchSku, type SkuMatch } from './sku-size-matcher'
+import { AVG_SUB_KRW_PER_100G } from './pricing'
 import {
   ANALYSIS_COPY,
   PRICE_ANCHOR,
@@ -37,16 +38,14 @@ import {
 } from './copy-strings'
 
 // ─────────────────────────────────────────────────────────────────────
-// 💰 [창업자 수정 지점] 화식 100g 당 소비자가 (원).
-//
-// 분석 페이지 가격 framing(한 끼 / 하루 / 월 / 첫 박스 50%)의 모든 숫자가
-// 오직 이 값 하나에서 파생된다. 급여량(g)은 강아지 MER 에서 정확히 계산되므로,
-// 실제 판매가가 확정되면 **여기 숫자만** 바꾸면 가격 표시 전체가 맞춰진다.
+// 💰 화식 100g 당 소비자가 (원) — lib/pricing.ts SSOT(확정 가격표)의
+// 4종 구독가 평균. 분석 페이지 가격 framing(한 끼 / 하루 / 월 / 첫 박스 50%)의
+// 모든 숫자가 이 값에서 파생된다. 급여량(g)은 강아지 MER 에서 정확히 계산.
 //   한 끼 ≈ (하루 화식 g ÷ 100) × 이 값 ÷ 2끼
 // 비교 문구("스타벅스 1잔" 등)는 lib/copy-strings.ts 의 PRICE_ANCHOR.
-// (현재 6500 = 5종 SKU 평균치 FT-C01 기준 — 잠정값)
+// 가격 변경은 lib/pricing.ts 에서 — 여기는 자동 추종.
 // ─────────────────────────────────────────────────────────────────────
-const HWASIK_KRW_PER_100G = 6500
+const HWASIK_KRW_PER_100G = AVG_SUB_KRW_PER_100G
 
 export interface FeedingPlan {
   /** SKU 매핑 결과 */

@@ -477,10 +477,33 @@ export default function SubscribeClient({
           <div className={labelCls}>결제 요약 (회당)</div>
           {/* UI audit A-6: 결제 요약 4 row 우측 가격 tabular-nums — 자릿수 정렬. */}
           <div className="space-y-2 text-[13.5px]">
+            {/* 정가 앵커 → 구독 할인 시각화 (2026-07-11 확정 가격표) — 표시 전용. */}
+            {product.sale_price != null && product.price > unitPrice && (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-muted">정가</span>
+                  <span className="text-muted line-through tabular-nums">
+                    {(product.price * quantity).toLocaleString()}원
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted">구독 할인</span>
+                  <span className="font-bold tabular-nums" style={{ color: 'var(--moss)' }}>
+                    −{((product.price - unitPrice) * quantity).toLocaleString()}원
+                  </span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between">
               <span className="text-muted">상품 금액</span>
               <span className="text-text font-bold tabular-nums">
                 {subtotal.toLocaleString()}원
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted">배송비</span>
+              <span className="font-bold" style={{ color: 'var(--moss)' }}>
+                무료 · 파머스테일 부담
               </span>
             </div>
             <div className="pt-2 border-t border-rule flex justify-between">

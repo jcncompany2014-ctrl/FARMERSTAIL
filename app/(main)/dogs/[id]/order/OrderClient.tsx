@@ -27,6 +27,7 @@ import { haptic } from '@/lib/haptic'
 import { formatPhone } from '@/lib/formatters'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
 import {
   LINE_TO_SLUG,
   TOPPER_TO_SLUG,
@@ -219,8 +220,10 @@ type LineItem = {
   cycleG: number
   /** 사이클 실제 발송 g. */
   deliveredG: number
-  /** 1팩 단가. */
+  /** 1팩 단가 (구독가 = sale_price ?? price 기준 — 실청구). */
   pricePerPack: number
+  /** 1팩 정가 (products.price 기준) — "정가→구독 할인" 시각화용. 표시 전용. */
+  listPricePerPack: number
 }
 
 export type OrderClientProps = {
@@ -343,6 +346,7 @@ export default function OrderClient({
         cycleG,
         deliveredG,
         pricePerPack: perPack,
+        listPricePerPack: pricePerPack(product.price, mealG),
       })
     }
     for (const k of ['vegetable', 'protein'] as const) {
@@ -373,6 +377,7 @@ export default function OrderClient({
         cycleG,
         deliveredG,
         pricePerPack: unitPrice,
+        listPricePerPack: product.price,
       })
     }
   }
@@ -381,6 +386,12 @@ export default function OrderClient({
     (sum, it) => sum + it.pricePerPack * it.quantity,
     0,
   )
+  // 정가 합계 — "500g 팩 정가 앵커에서 구독 15% 할인" 시각화용(표시 전용, 청구 무관).
+  const listSubtotal = items.reduce(
+    (sum, it) => sum + it.listPricePerPack * it.quantity,
+    0,
+  )
+  const subDiscount = Math.max(0, listSubtotal - subtotal)
   const shippingFee = 0
   const totalAmount = subtotal + shippingFee
   const totalCycleG = items.reduce((s, it) => s + it.deliveredG, 0)
@@ -864,7 +875,14 @@ export default function OrderClient({
                         {isMain && (
                           <em className="ord-item-rate">
                             {' '}
-                            ({unitPrice.toLocaleString()}원/100g)
+                            ({unitPrice.toLocaleString()}원/100g
+                            {it.product.sale_price != null &&
+                              it.product.price > unitPrice && (
+                                <s style={{ opacity: 0.55, marginLeft: 3 }}>
+                                  {it.product.price.toLocaleString()}원
+                                </s>
+                              )}
+                            )
                           </em>
                         )}
                       </span>
@@ -998,9 +1016,33 @@ export default function OrderClient({
                 {items.reduce((s, it) => s + it.quantity, 0)}팩
               </strong>
             </div>
+            {/* 정가 앵커 → 구독 15% 할인 시각화 (2026-07-11 확정 가격표). 표시 전용 —
+                청구는 sale_price 기반 subtotal 그대로. */}
+            {subDiscount > 0 && (
+              <>
+                <div className="ord-summary-row">
+                  <span>정가</span>
+                  <span style={{ textDecoration: 'line-through', opacity: 0.55 }}>
+                    {listSubtotal.toLocaleString()}원
+                  </span>
+                </div>
+                <div className="ord-summary-row">
+                  <span>구독 할인 ({SUBSCRIPTION_DISCOUNT_PCT}%)</span>
+                  <span style={{ color: 'var(--sage)', fontWeight: 700 }}>
+                    −{subDiscount.toLocaleString()}원
+                  </span>
+                </div>
+              </>
+            )}
             <div className="ord-summary-row">
               <span>상품 합계</span>
               <span>{subtotal.toLocaleString()}원</span>
+            </div>
+            <div className="ord-summary-row">
+              <span>배송비</span>
+              <span style={{ color: 'var(--sage)', fontWeight: 700 }}>
+                무료 · 파머스테일 부담
+              </span>
             </div>
             <div className="ord-summary-divide" />
             <div className="ord-summary-row">
