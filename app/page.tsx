@@ -15,7 +15,6 @@ import {
 import Link from 'next/link'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
-import InkStamp from '@/components/brand/InkStamp'
 import Reveal from '@/components/landing/Reveal'
 import StickyCta from '@/components/web/fd/StickyCta'
 import { ogImageUrl } from '@/lib/seo/jsonld'
@@ -670,19 +669,8 @@ function Evidence() {
 
 function SocialProof() {
   return (
-    <Section bg="cream" pad="md" className="relative overflow-hidden">
-      {/* de-AI 워터마크 — 검수 도장을 크게·아주 옅게 뒤에 깔아 '봉인' 느낌.
-          right 음수 오프셋은 Section overflow-hidden 이 클리핑(가로 스크롤 방지),
-          모바일 hidden. 장식이라 InkStamp label 미지정 → aria-hidden. */}
-      <InkStamp
-        lines={['파머스테일 주방', '직접 조리 · 검수']}
-        sub="SINCE 2026"
-        size={220}
-        color="var(--stamp)"
-        className="pointer-events-none absolute right-[-36px] top-1/2 hidden sm:block"
-        style={{ transform: 'translateY(-50%) rotate(-8deg)', opacity: 0.06, zIndex: 0 }}
-      />
-      <Container size="xl" className="relative z-[1]">
+    <Section bg="cream" pad="md">
+      <Container size="xl">
         <Reveal>
           <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
             <Eyebrow>REVIEWS</Eyebrow>

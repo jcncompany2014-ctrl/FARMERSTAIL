@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { withHonorific } from '@/lib/korean'
 import {
   UserPlus,
   Users,
@@ -210,7 +211,7 @@ export default function DogFamilyMembers({
       <div className="flex items-center gap-2 mb-1.5">
         <Crown className="w-3.5 h-3.5" strokeWidth={2} style={{ color: 'var(--gold)' }} />
         <span className="text-[12px] font-bold" style={{ color: 'var(--ink)' }}>
-          {ownerName ?? '주 보호자'}
+          {withHonorific(ownerName) || '주 보호자'}
         </span>
         <span className="text-[10.5px] text-muted">owner</span>
       </div>

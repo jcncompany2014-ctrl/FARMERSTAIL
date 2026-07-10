@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { Award, Printer, Download, Share2 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
-import { petName } from '@/lib/korean'
+import { petName, withHonorific } from '@/lib/korean'
 
 type Dog = {
   id: string
@@ -321,7 +321,7 @@ export default function CertificateClient({
               color: '#3A3128',
             }}
           >
-            <Row label="보호자" value={ownerName} />
+            <Row label="보호자" value={withHonorific(ownerName)} />
             <Row label="등급" value="나무 · TREE" />
             <Row label="가입일" value={memberSinceLabel} />
             <Row label="발급일" value={issueDate} />

@@ -11,6 +11,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { withHonorific } from '@/lib/korean'
 
 export const dynamic = 'force-dynamic'
 
@@ -114,7 +115,7 @@ export default async function FamilyPage() {
                   color: 'var(--ink)',
                 }}
               >
-                {(profile?.name as string | null) ?? '나'}
+                {withHonorific(profile?.name as string | null) || '나'}
                 <span className="ml-2 text-[10.5px] text-terracotta font-semibold uppercase tracking-widest">
                   보호자
                 </span>

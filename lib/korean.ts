@@ -47,3 +47,19 @@ export const eunNeun = (w: string) => josa(w, '은', '는')
 export const iGa = (w: string) => josa(w, '이', '가')
 export const eulReul = (w: string) => josa(w, '을', '를')
 export const waGwa = (w: string) => josa(w, '과', '와')
+
+/**
+ * 보호자(사용자) 이름 경칭 — 이름 뒤에 '님' 부착. 사장님 2026-07-09 지시:
+ * "사용자 이름이 나오면 무조건 님" (안성민 → 안성민님).
+ *   · 이미 '님'으로 끝나면 그대로 (안성민님 → 안성민님)
+ *   · 영문 이름은 그대로 (John → John, '님' 안 붙임)
+ *   · 빈 값은 '' — 폴백(나·보호자 등)은 호출부에서 처리.
+ * ★강아지 이름은 petName, 사람(보호자) 이름은 withHonorific 을 쓴다.
+ */
+export function withHonorific(name: string | null | undefined): string {
+  const trimmed = (name ?? '').trim()
+  if (!trimmed) return ''
+  if (trimmed.endsWith('님')) return trimmed
+  if (/^[A-Za-z][A-Za-z\s'-]*$/.test(trimmed)) return trimmed
+  return `${trimmed}님`
+}
