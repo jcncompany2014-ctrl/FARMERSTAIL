@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { useConfirm } from '@/components/v3'
+import { petName } from '@/lib/korean'
 
 const ROLE_LABEL: Record<'member' | 'viewer', string> = {
   member: '함께 케어하는 가족',
@@ -154,7 +155,7 @@ export default function InviteAccept({
                 letterSpacing: '-0.015em',
               }}
             >
-              {dogName ? `${dogName}의 가족이 되어주세요` : '가족 초대를 받았어요'}
+              {dogName ? `${petName(dogName)}의 가족이 되어주세요` : '가족 초대를 받았어요'}
             </h1>
             {inviterName && (
               <p className="text-center mt-2 text-[12px] text-text/80 leading-relaxed">

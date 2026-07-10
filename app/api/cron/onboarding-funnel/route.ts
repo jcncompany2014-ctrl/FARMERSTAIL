@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { pushToUser } from '@/lib/push'
+import { petName } from '@/lib/korean'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -98,7 +99,7 @@ export async function GET(req: Request) {
     pushToUser(
       dog.user_id,
       {
-        title: `${dog.name} 의 맞춤 분석 받아보세요 🌿`,
+        title: `${petName(dog.name)}의 맞춤 분석 받아보세요 🌿`,
         body: '5분 설문으로 NRC2006 기반 정밀 처방 — 무료',
         url: `/dogs/${dog.id}/survey`,
         tag: `onboarding-stage2-${dog.id}`,

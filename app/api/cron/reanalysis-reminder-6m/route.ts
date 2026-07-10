@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
+import { petName } from '@/lib/korean'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -116,7 +117,7 @@ async function runReminder(): Promise<Response> {
       await pushToUser(
         r.user_id,
         {
-          title: `${dogName}의 다음 영양 진단 시기예요`,
+          title: `${petName(dogName)}의 다음 영양 진단 시기예요`,
           body: '지난 분석 후 6개월이 지났어요. 체중·활동량 변화가 있을 수 있어 재진단을 추천드려요.',
           url: `/dogs/${r.dog_id}/survey`,
           tag: `reanalysis-6m-${r.dog_id}`,

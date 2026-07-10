@@ -18,6 +18,7 @@ import { V3, V3FontWeight } from '@/lib/design/tokens'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { petName } from '@/lib/korean'
 
 interface QuickPhotoSheetProps {
   open: boolean
@@ -167,7 +168,7 @@ export default function QuickPhotoSheet({
             wordBreak: 'keep-all',
           }}
         >
-          {dogName ? `${dogName}의 ` : ''}오늘 한 컷
+          {dogName ? `${petName(dogName)}의 ` : ''}오늘 한 컷
         </h2>
         <p style={{ margin: '4px 0 0', fontSize: 12.5, color: V3.inkMute }}>
           최대 {MAX}장 · 고르면 바로 저장돼요

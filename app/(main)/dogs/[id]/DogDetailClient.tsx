@@ -10,6 +10,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 import DogPawMark from '@/components/DogPawMark'
+import { petName } from '@/lib/korean'
 import {
   Moon,
   Footprints,
@@ -429,7 +430,7 @@ export default function DogDetailClient({
               id="weight-modal-title"
               className="font-sans text-[16px] font-black text-text"
             >
-              {dog.name}의 체중
+              {petName(dog.name)}의 체중
             </h3>
             <p className="text-[10.5px] text-muted mt-1">
               기록하면 추이 차트와 대시보드에 반영돼요.
@@ -501,7 +502,7 @@ export default function DogDetailClient({
           <div className="flex-1 text-left">
             <div className="text-[13.5px] font-black">설문 결과 · 맞춤 영양 분석</div>
             <div className="text-[10.5px] text-white/60 mt-0.5">
-              설문을 바탕으로 {dog.name}의 식단을 분석해요
+              설문을 바탕으로 {petName(dog.name)}의 식단을 분석해요
             </div>
           </div>
         </Link>
@@ -693,7 +694,7 @@ export default function DogDetailClient({
               id="delete-modal-desc"
               className="text-[12px] text-muted text-center mb-6 leading-relaxed"
             >
-              {dog.name}의 모든 정보가 삭제돼요.
+              {petName(dog.name)}의 모든 정보가 삭제돼요.
               <br />
               이 작업은 되돌릴 수 없어요.
               {subscriptions.length > 0 && (
@@ -760,7 +761,7 @@ export default function DogDetailClient({
               {dog.name} 등록 완료!
             </h3>
             <p className="text-[12px] text-muted text-center mt-2 leading-relaxed">
-              이제 {dog.name}의 식습관·건강·취향을 5분 동안
+              이제 {petName(dog.name)}의 식습관·건강·취향을 5분 동안
               <br />
               알려주시면 맞춤 식단을 추천해 드려요.
             </p>

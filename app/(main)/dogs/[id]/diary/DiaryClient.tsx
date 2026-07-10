@@ -22,6 +22,7 @@ import { useModalA11y } from '@/lib/ui/useModalA11y'
 import { useConfirm } from '@/components/v3'
 import StampMoment from '@/components/v3/StampMoment'
 import RecordSegments from '@/components/dogs/RecordSegments'
+import { petName } from '@/lib/korean'
 
 /**
  * 사진 일기 client view — list + 새 entry 모달.
@@ -242,7 +243,7 @@ export default function DiaryClient({
                 lineHeight: 1.2,
               }}
             >
-              {dogName} 의 일상
+              {petName(dogName)}의 일상
             </h1>
           </div>
           <button

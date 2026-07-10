@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { BRISTOL_INTERPRETATION } from '@/lib/nutrition/guidelines'
+import { petName } from '@/lib/korean'
 
 type BristolKey = 1 | 2 | 3 | 4 | 5 | 6 | 7
 type GiSensitivity = 'rare' | 'sometimes' | 'frequent' | 'always' | ''
@@ -59,7 +60,7 @@ export default function Stool({
         <span className="s-opt-badge">선택</span>
       </div>
       <h1 className="s-title">
-        {dogName}의 평소 변은<br />어떻게 보이나요?
+        {petName(dogName)}의 평소 변은<br />어떻게 보이나요?
       </h1>
       <p className="s-sub">
         <strong>Bristol Scale</strong> = 변 형태를 7단계로 분류한 의학

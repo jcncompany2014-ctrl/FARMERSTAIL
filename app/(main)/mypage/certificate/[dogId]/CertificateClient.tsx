@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { Award, Printer, Download, Share2 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { petName } from '@/lib/korean'
 
 type Dog = {
   id: string
@@ -118,7 +119,7 @@ export default function CertificateClient({
               letterSpacing: '-0.02em',
             }}
           >
-            {dog.name}의 등록증
+            {petName(dog.name)}의 등록증
           </h1>
           <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
             나무 등급 도달의 증표. 저장하거나 공유해 보세요.

@@ -25,6 +25,8 @@
  * pure 함수라 unit test 가능 (server I/O 없음).
  */
 
+import { petName } from '../korean.ts'
+
 export type NextActionInput = {
   hasDogs: boolean
   /** 강아지 1+, but 분석 0 인 가장 오래된 강아지. */
@@ -127,7 +129,7 @@ export function computeNextAction(input: NextActionInput): NextAction | null {
   if (input.unanalyzedDog) {
     return {
       type: 'analyze',
-      title: `${input.unanalyzedDog.name}의 맞춤 분석`,
+      title: `${petName(input.unanalyzedDog.name)}의 맞춤 분석`,
       subtitle: '5분 설문으로 NRC2006 기반 정밀 영양 처방 — 무료',
       cta: '분석 시작',
       href: `/dogs/${input.unanalyzedDog.id}/survey`,
@@ -139,7 +141,7 @@ export function computeNextAction(input: NextActionInput): NextAction | null {
   if (input.pendingFormula) {
     return {
       type: 'approve',
-      title: `${input.pendingFormula.dogName}의 새 처방 도착`,
+      title: `${petName(input.pendingFormula.dogName)}의 새 처방 도착`,
       subtitle: '확인하시고 적용하시면 다음 배송분부터 반영돼요',
       cta: '처방 확인하기',
       href: `/dogs/${input.pendingFormula.dogId}/approve?formulaId=${input.pendingFormula.formulaId}`,

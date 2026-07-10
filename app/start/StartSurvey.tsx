@@ -29,6 +29,7 @@ import {
 import { computeStartTeaser, draftToNutritionInput } from '@/lib/start-teaser'
 import { computeStartPlan } from '@/lib/start-plan'
 import type { WebRecipe } from '@/lib/web-recipes'
+import { petName } from '@/lib/korean'
 import { calculateNutrition } from '@/lib/nutrition'
 import { createClient } from '@/lib/supabase/client'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
@@ -435,7 +436,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
     return (
       <div>
         <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)', textTransform: 'uppercase' }}>Result · 맞춤 분석</span>
-        <h2 className="pt-3" style={{ fontSize: 24, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em', lineHeight: 1.25 }}>{teaser.dogName}의 맞춤 분석</h2>
+        <h2 className="pt-3" style={{ fontSize: 24, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em', lineHeight: 1.25 }}>{petName(teaser.dogName)}의 맞춤 분석</h2>
         <p className="pt-2" style={{ fontSize: 13.5, color: 'var(--fd-muted)', lineHeight: 1.6 }}>{teaser.bodyComment}</p>
         {/* 📸 결과 대표 이미지 (강아지 or 상품 누끼) */}
         <div style={{ marginTop: 14 }}>
@@ -479,7 +480,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
         <div className="rounded-[12px] px-4 py-4" style={{ marginTop: 10, background: 'var(--fd-cream)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
           <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--fd-pine)' }}>추천 식단</div>
           <p style={{ marginTop: 5, fontSize: 12.5, color: 'var(--fd-muted)', lineHeight: 1.6 }}>
-            {teaser.dogName}에게는 <b style={{ color: 'var(--fd-pine)' }}>{teaser.proteins.join('·')} 기반 신선 화식</b>을 권장해요. 하루 권장량 {teaser.feedG.toLocaleString()}g을 1~2회로 나눠 급여하면 좋아요.
+            {petName(teaser.dogName)}에게는 <b style={{ color: 'var(--fd-pine)' }}>{teaser.proteins.join('·')} 기반 신선 화식</b>을 권장해요. 하루 권장량 {teaser.feedG.toLocaleString()}g을 1~2회로 나눠 급여하면 좋아요.
           </p>
           {nu?.vetConsult && (
             <p style={{ marginTop: 6, fontSize: 11.5, color: 'var(--fd-coral-text)', fontWeight: 600 }}>※ 입력하신 정보를 보면 수의사 상담도 함께 권해 드려요.</p>

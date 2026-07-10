@@ -9,6 +9,7 @@
  */
 
 import Link from 'next/link'
+import { petName } from '@/lib/korean'
 import {
   LineChart,
   ArrowRight,
@@ -76,7 +77,7 @@ export default function AnalysisTrendsCard({
           <div className="flex items-center gap-2 text-[11px] text-muted bg-bg rounded-xl px-4 py-3">
             <Minus className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
             <span>
-              설문을 2회 이상 완료하면 {dogName}의 체형·체중 변화가 여기 표시돼요.
+              설문을 2회 이상 완료하면 {petName(dogName)}의 체형·체중 변화가 여기 표시돼요.
             </span>
           </div>
         ) : (

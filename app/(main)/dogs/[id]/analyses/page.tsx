@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
+import { petName } from '@/lib/korean'
 import {
   ClipboardList,
   TrendingUp,
@@ -419,7 +420,7 @@ function LatestAnalysisHero({
               letterSpacing: '-0.02em',
             }}
           >
-            {dogName}의 맞춤 영양 설계
+            {petName(dogName)}의 맞춤 영양 설계
           </h2>
           <p className="text-[10.5px] text-white/80 mt-1">
             {analysis.stage} · BCS {analysis.bcs_score}/9 ({analysis.bcs_label})

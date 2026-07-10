@@ -21,6 +21,7 @@
 
 import { AlertTriangle, Check } from 'lucide-react'
 import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
+import { petName } from '@/lib/korean'
 
 interface AllergyBannerProps {
   dogName: string
@@ -105,8 +106,8 @@ export default function AllergyBanner({
           }}
         >
           {danger
-            ? `${dogName}의 알레르겐이 포함됐어요`
-            : `${dogName}에게 안심`}
+            ? `${petName(dogName)}의 알레르겐이 포함됐어요`
+            : `${petName(dogName)}에게 안심`}
         </p>
         <p
           style={{
@@ -118,7 +119,7 @@ export default function AllergyBanner({
         >
           {danger
             ? `포함된 알레르겐: ${overlap.join(', ')}. 다른 식단을 검토하시거나 수의사 상담을 권해요.`
-            : `${dogName}의 등록된 알레르겐 ${dogAllergies.length}개와 겹치는 성분이 없어요.`}
+            : `${petName(dogName)}의 등록된 알레르겐 ${dogAllergies.length}개와 겹치는 성분이 없어요.`}
         </p>
       </div>
     </div>

@@ -17,6 +17,7 @@ import { V3, V3FontWeight } from '@/lib/design/tokens'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { petName } from '@/lib/korean'
 
 interface QuickMemoSheetProps {
   open: boolean
@@ -93,7 +94,7 @@ export default function QuickMemoSheet({
             wordBreak: 'keep-all',
           }}
         >
-          {dogName ? `${dogName}의 ` : ''}오늘 한 줄
+          {dogName ? `${petName(dogName)}의 ` : ''}오늘 한 줄
         </h2>
         <p style={{ margin: '4px 0 0', fontSize: 12.5, color: V3.inkMute }}>
           짧아도 좋아요 · 나중에 추억이 돼요

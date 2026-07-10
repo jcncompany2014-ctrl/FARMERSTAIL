@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { TrendingUp, BookOpen, FlaskConical } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import ReportExportButton from './ReportExportButton'
+import { petName } from '@/lib/korean'
 
 export const dynamic = 'force-dynamic'
 
@@ -150,7 +151,7 @@ export default async function ReportsPage() {
                     color: 'var(--ink)',
                   }}
                 >
-                  {d.name}의 연간 리뷰 →
+                  {petName(d.name)}의 연간 리뷰 →
                 </p>
                 <p className="text-[10.5px] text-muted mt-0.5">
                   지난 1년간의 성장, 변화, 감동 순간들

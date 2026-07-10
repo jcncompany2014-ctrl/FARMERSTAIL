@@ -8,6 +8,8 @@
  * 좋아요" 같은 부드러운 표현.
  */
 
+import { petName } from '../korean.ts'
+
 export type HistoryPoint = {
   /** YYYY-MM-DD */
   date: string
@@ -38,7 +40,7 @@ export function summarizeHistory(
   const oldest = sorted[0]!
   const latest = sorted[sorted.length - 1]!
 
-  const name = dogName?.trim() || '강아지'
+  const name = petName(dogName?.trim() || '') || '강아지'
 
   const weightDelta =
     oldest.weight != null && latest.weight != null

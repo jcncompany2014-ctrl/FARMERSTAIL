@@ -11,6 +11,7 @@
 
 import { Scale, Share2 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { petName } from '@/lib/korean'
 
 type Props = {
   dogName: string
@@ -30,7 +31,7 @@ export default function AnalysisStickySummary({
   const toast = useToast()
 
   async function handleShare() {
-    const text = `${dogName}의 맞춤 영양 분석\n\n• 하루 에너지 ${merKcal.toLocaleString()} kcal\n• 급여량 ${feedG}g/일\n• 체형 ${bcsLabel}\n\n파머스테일 · Farm to Tail`
+    const text = `${petName(dogName)}의 맞춤 영양 분석\n\n• 하루 에너지 ${merKcal.toLocaleString()} kcal\n• 급여량 ${feedG}g/일\n• 체형 ${bcsLabel}\n\n파머스테일 · Farm to Tail`
     const shareData = {
       title: `${dogName} 영양 분석 · 파머스테일`,
       text,

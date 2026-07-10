@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/server'
 import VetSharePrintButton from './VetSharePrintButton'
 import { sensitivityAnalysis, type DogState } from '@/lib/counterfactual'
 import { TrendingUp } from 'lucide-react'
+import { petName } from '@/lib/korean'
 
 export const dynamic = 'force-dynamic'
 
@@ -116,7 +117,7 @@ export default async function VetSharePage({
             letterSpacing: '-0.02em',
           }}
         >
-          {dog.name}의 정보
+          {petName(dog.name)}의 정보
         </h1>
         {result.owner.name && (
           <p className="mt-1 text-[12px] text-muted">

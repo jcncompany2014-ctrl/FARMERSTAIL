@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Syringe, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
+import { petName } from '@/lib/korean'
 import { Modal, DatePicker, Select, useConfirm } from '@/components/v3'
 import {
   listVaccinations,
@@ -168,7 +169,7 @@ export default function VaccinationsClient({
           <p className="text-[12px] text-muted text-center py-8">불러오는 중…</p>
         ) : records.length === 0 ? (
           <p className="text-[12px] text-muted text-center py-8">
-            아직 기록이 없어요. {dogName}의 첫 접종 기록을 추가해 보세요.
+            아직 기록이 없어요. {petName(dogName)}의 첫 접종 기록을 추가해 보세요.
           </p>
         ) : (
           <div className="space-y-2">

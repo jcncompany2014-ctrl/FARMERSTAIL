@@ -9,6 +9,7 @@
 import Link from 'next/link'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
+import { petName } from '@/lib/korean'
 
 export interface JournalEntry {
   id: string
@@ -98,7 +99,7 @@ export default function JournalSection({
             wordBreak: 'keep-all',
           }}
         >
-          저널 · {dogName}의 기록
+          저널 · {petName(dogName)}의 기록
         </h2>
         {viewAllHref ? (
           <Link

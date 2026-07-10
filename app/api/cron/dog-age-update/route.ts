@@ -4,6 +4,7 @@ import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { pushToUser } from '@/lib/push'
 import { dbError } from '@/lib/api/errors'
+import { petName } from '@/lib/korean'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -124,7 +125,7 @@ export async function GET(req: Request) {
     ) {
       pushToUser(dog.user_id, {
         title: `🎂 ${dog.name} 생일 축하해요!`,
-        body: `${dog.name} 가 ${nextValue}${nextUnit === 'years' ? '살' : '개월'} 이 됐어요. 새 영양 분석을 받아 보세요.`,
+        body: `${petName(dog.name)}가 ${nextValue}${nextUnit === 'years' ? '살' : '개월'}이 됐어요. 새 영양 분석을 받아 보세요.`,
         url: `/dogs/${dog.id}`,
         tag: `dog-birthday-${dog.id}-${todayMonth}-${todayDay}`,
       }).catch(() => {})

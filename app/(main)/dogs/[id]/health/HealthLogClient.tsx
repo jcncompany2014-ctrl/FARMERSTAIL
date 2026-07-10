@@ -20,6 +20,7 @@ import { useConfirm } from '@/components/v3'
 import MedicalRecordOcr from '@/components/MedicalRecordOcr'
 import MedicalRecordForm from '@/components/MedicalRecordForm'
 import RecordSegments from '@/components/dogs/RecordSegments'
+import { petName } from '@/lib/korean'
 
 export type HealthLog = {
   id: string
@@ -204,7 +205,7 @@ export default function HealthLogClient({
           건강 일지
         </h1>
         <p className="text-[10.5px] text-muted mt-1">
-          하루 한 번 기록하면 {dogName}의 컨디션 변화를 눈으로 볼 수 있어요
+          하루 한 번 기록하면 {petName(dogName)}의 컨디션 변화를 눈으로 볼 수 있어요
         </p>
       </section>
 

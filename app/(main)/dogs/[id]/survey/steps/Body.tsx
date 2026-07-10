@@ -14,6 +14,7 @@ import {
   Minus,
 } from 'lucide-react'
 import { BCS_DESCRIPTIONS, type BcsKey } from '@/lib/nutrition/guidelines'
+import { petName } from '@/lib/korean'
 
 // BCS 9-point — 디자인의 시각 위계 그대로 (group + icon + tag)
 const BCS_VIEW: Record<
@@ -72,7 +73,7 @@ export default function Body({
         </span>
       </div>
       <h1 className="s-title">
-        {dogName}의 체형을<br />선택해 주세요
+        {petName(dogName)}의 체형을<br />선택해 주세요
       </h1>
       <p className="s-sub">
         <strong>BCS (Body Condition Score)</strong> = 체형 점수. 위에서

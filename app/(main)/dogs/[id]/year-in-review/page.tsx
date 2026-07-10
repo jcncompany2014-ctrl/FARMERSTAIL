@@ -12,7 +12,7 @@ import {
   Minus,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { josa } from '@/lib/korean'
+import { josa, petName } from '@/lib/korean'
 
 export const dynamic = 'force-dynamic'
 
@@ -309,7 +309,7 @@ export default async function YearInReviewPage({
             한 해 동안 정성껏 챙겨주셔서 고마워요
           </p>
           <p className="mt-1.5 text-[12px] leading-relaxed text-text/75">
-            {dogRow.name}의 작은 변화 하나하나가 모여 이번 회고가 됐어요.
+            {petName(dogRow.name)}의 작은 변화 하나하나가 모여 이번 회고가 됐어요.
             다음 한 해도 천천히, 함께 가요.
           </p>
         </div>

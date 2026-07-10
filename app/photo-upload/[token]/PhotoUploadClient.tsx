@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import DogPawMark from '@/components/DogPawMark'
 import { downscaleImage } from '@/lib/imageDownscale'
+import { petName } from '@/lib/korean'
 
 type Initial =
   | {
@@ -152,10 +153,10 @@ export default function PhotoUploadClient({
                 letterSpacing: '-0.015em',
               }}
             >
-              {dogName}의 사진 한 장 부탁드려요
+              {petName(dogName)}의 사진 한 장 부탁드려요
             </h1>
             <p className="text-center mt-2 text-[12.5px] leading-relaxed text-text/80">
-              <strong>{ownerName}</strong>님이 {dogName}의 측면 사진을 부탁
+              <strong>{ownerName}</strong>님이 {petName(dogName)}의 측면 사진을 부탁
               하셨어요. 강아지 전체가 잘 보이게 한 장 찍어주세요.
             </p>
 

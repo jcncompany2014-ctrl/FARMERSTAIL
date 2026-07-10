@@ -61,7 +61,7 @@ export type NudgeContext = {
 const GRACE_PERIOD_DAYS = 28
 
 export function computeChatNudge(ctx: NudgeContext): ChatNudge | null {
-  const name = ctx.dogName?.trim() || '강아지'
+  const name = petName(ctx.dogName?.trim() || '') || '강아지'
   const inGrace =
     ctx.daysSinceSignup != null && ctx.daysSinceSignup < GRACE_PERIOD_DAYS
 
