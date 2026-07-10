@@ -126,7 +126,7 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
                 <InkStamp
                   lines={['파머스테일 주방', '직접 조리 · 검수']}
                   sub="SINCE 2026"
-                  size={104}
+                  size={76}
                   rotate={-7}
                   label="파머스테일 주방에서 직접 조리하고 검수한 레시피"
                   className="absolute"

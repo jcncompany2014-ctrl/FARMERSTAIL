@@ -93,8 +93,8 @@ export default function StampMoment({
         className={animate ? 'ft-stamp-slam' : undefined}
         style={{
           position: 'relative',
-          width: 150,
-          height: 150,
+          width: 120,
+          height: 120,
           display: 'grid',
           placeItems: 'center',
         }}
@@ -113,7 +113,7 @@ export default function StampMoment({
         <InkStamp
           lines={lines}
           sub={sub}
-          size={116}
+          size={92}
           rotate={0}
           label="기록 완료 도장"
           style={{ position: 'relative' }}

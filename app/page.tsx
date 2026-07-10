@@ -677,9 +677,9 @@ function SocialProof() {
       <InkStamp
         lines={['파머스테일 주방', '직접 조리 · 검수']}
         sub="SINCE 2026"
-        size={300}
+        size={220}
         color="var(--stamp)"
-        className="pointer-events-none absolute right-[-48px] top-1/2 hidden sm:block"
+        className="pointer-events-none absolute right-[-36px] top-1/2 hidden sm:block"
         style={{ transform: 'translateY(-50%) rotate(-8deg)', opacity: 0.06, zIndex: 0 }}
       />
       <Container size="xl" className="relative z-[1]">
