@@ -5,6 +5,7 @@ import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { recordOutcome } from '@/lib/feeding-outcomes'
 import { petName } from '@/lib/korean'
+import { decideReweigh } from '@/lib/calorie-v2/reweigh'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,8 +21,12 @@ export const dynamic = 'force-dynamic'
  *   3. 감지 시:
  *      a) feeding_outcomes 자동 row insert
  *         source='self_log', weight_kg=latest, comment='4주 ±5% 변화 감지'.
- *      b) 14일 이내 같은 push 보낸 적 없으면 사용자 push 알람.
- *      c) push CTA — /dogs/{dogId}/analysis (재분석 권유).
+ *      b) [칼로리 v2 M10] 현재 formula.daily_kcal + 최신 BCS 로 decideReweigh
+ *         → ±10% 조정 판정 시 reweighs 이력 기록 (14일 1회 페이싱).
+ *         청구에 닿는 자동 변경은 없음 — 제안·기록까지 (반영은 보호자 확인 흐름).
+ *      c) 14일 이내 같은 push 보낸 적 없으면 사용자 push 알람 — 조정 판정이
+ *         있으면 구체 수치(551→496kcal) 제안 문구로 업그레이드.
+ *      d) push CTA — /dogs/{dogId}/analysis.
  *   4. ±5% 미만이면 skip.
  *
  * # 일정
@@ -66,6 +71,7 @@ async function runDetect(): Promise<Response> {
 
   let detected = 0
   let pushed = 0
+  let adjusted = 0
   let skippedNoData = 0
   let skippedSmall = 0
   let skippedSpam = 0
@@ -126,6 +132,70 @@ async function runDetect(): Promise<Response> {
       /* 기록 실패 silent */
     }
 
+    // ── 칼로리 v2 M10 — 재측정 피드백 판정·기록 ──
+    // 현재 DER = 최신 cycle formula.daily_kcal. 목표 = 최신 분석 BCS.
+    let reweighProposal: { prevDer: number; newDer: number } | null = null
+    try {
+      const [{ data: formulaRow }, { data: analysisRow }, { count: recentReweigh }] =
+        await Promise.all([
+          admin
+            .from('dog_formulas')
+            .select('daily_kcal')
+            .eq('dog_id', dog.id)
+            .order('cycle_number', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          admin
+            .from('analyses')
+            .select('bcs_score')
+            .eq('dog_id', dog.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          admin
+            .from('reweighs')
+            .select('id', { count: 'exact', head: true })
+            .eq('dog_id', dog.id)
+            .gt('created_at', fourteenDaysAgo),
+        ])
+      const prevDer = (formulaRow as { daily_kcal: number } | null)?.daily_kcal
+      const bcsScore = (analysisRow as { bcs_score: number | null } | null)?.bcs_score
+      const days = Math.round(
+        (Date.parse(latest.measured_at) - Date.parse(baseline.measured_at)) /
+          86_400_000,
+      )
+      if (prevDer && (recentReweigh ?? 0) === 0) {
+        const decision = decideReweigh({
+          prevDer,
+          baselineWeightKg: baseline.weight,
+          latestWeightKg: latest.weight,
+          days,
+          bcsScore,
+        })
+        if (decision.action === 'adjust') {
+          const { error: rwErr } = await admin.from('reweighs').insert({
+            dog_id: dog.id,
+            user_id: dog.user_id,
+            weight_kg: latest.weight,
+            baseline_weight_kg: baseline.weight,
+            bcs: bcsScore ?? null,
+            goal: decision.goal,
+            weight_delta_pct: decision.weightDeltaPct,
+            prev_der: prevDer,
+            new_der: decision.newDer,
+            adjust_note: decision.note,
+            measured_at: latest.measured_at,
+          })
+          if (!rwErr) {
+            adjusted += 1
+            reweighProposal = { prevDer, newDer: decision.newDer }
+          }
+        }
+      }
+    } catch {
+      /* M10 판정 실패 — 기존 감지·푸시 흐름은 계속 (silent) */
+    }
+
     // 14일 이내 같은 push 보낸 적 있으면 skip.
     // ⚠️ dedup은 body 고정문구로 — push_log.category 는 pushToUser 의 PushCategory
     // ('order' 재사용)로 기록되므로 'reminder-weight-change' 로 조회하면 영구
@@ -151,7 +221,11 @@ async function runDetect(): Promise<Response> {
         dog.user_id,
         {
           title: `${petName(dog.name)}가 체중 ${sign}${pct.toFixed(1)}% ${direction}`,
-          body: `4주 만에 변화가 있었네요. 다음 박스 사이즈를 다시 추천드릴까요?`,
+          // dedup 앵커 문구('4주 만에 변화가 있었네요') 유지 — M10 조정 판정이
+          // 있으면 구체 수치 제안으로 업그레이드.
+          body: reweighProposal
+            ? `4주 만에 변화가 있었네요. 하루 급여 열량을 ${reweighProposal.prevDer}→${reweighProposal.newDer}kcal로 조정을 제안드려요 — 분석에서 확인해 주세요.`
+            : `4주 만에 변화가 있었네요. 다음 박스 사이즈를 다시 추천드릴까요?`,
           url: `/dogs/${dog.id}/analysis`,
           tag: `weight-change-${dog.id}`,
         },
@@ -167,6 +241,7 @@ async function runDetect(): Promise<Response> {
     ok: true,
     total: dogList.length,
     detected,
+    adjusted,
     pushed,
     skipped: {
       no_data: skippedNoData,

@@ -357,13 +357,17 @@ export function feedbackAdjustment(
     }
   }
   if (goal === 'lose') {
-    if (rate < CAL.LOSS_RATE_MIN_PCT_WK) {
+    // ⚠️ 스펙 원문 버그 교정(0단계 하네스에서 발견): 원문은 rate(부호 있는
+    // 변화율)를 그대로 MIN/MAX(양수 감량속도)와 비교해, 잘 빠지는 개(음수
+    // rate)도 항상 "정체"로 판정 → −10% 폭주. 감량 속도 = −rate 로 정정.
+    const lossRatePctWk = -rate
+    if (lossRatePctWk < CAL.LOSS_RATE_MIN_PCT_WK) {
       return {
         newDer: Math.round(prevDer * (1 - CAL.FEEDBACK_STEP_PCT)),
         note: '감량 정체 → −10%',
       }
     }
-    if (rate > CAL.LOSS_RATE_MAX_PCT_WK) {
+    if (lossRatePctWk > CAL.LOSS_RATE_MAX_PCT_WK) {
       return {
         newDer: Math.round(prevDer * (1 + CAL.FEEDBACK_STEP_PCT)),
         note: '감량 과속 → +10%',

@@ -253,10 +253,12 @@ describe('M10 재측정 피드백 (수렴 엔진)', () => {
     assert.equal(feedbackAdjustment(300, 1.5, 14, 'maintain').newDer, 300)
     assert.equal(feedbackAdjustment(300, 3, 14, 'maintain').newDer, 270)
   })
-  it('감량 목표: 정체(0.2%/주) → −10%, 과속(3%/주) → +10%, 적정(1%/주) → 유지', () => {
-    assert.equal(feedbackAdjustment(300, 0.4, 14, 'lose').newDer, 270)
-    assert.equal(feedbackAdjustment(300, 6, 14, 'lose').newDer, 330)
-    assert.equal(feedbackAdjustment(300, 2, 14, 'lose').newDer, 300)
+  it('감량 목표: 정체(−0.2%/주) → −10%, 과속(−3%/주) → +10%, 적정(−1%/주) → 유지', () => {
+    // 감량 중 체중 변화율은 음수 — 스펙 원문의 부호 버그를 교정한 의미론.
+    assert.equal(feedbackAdjustment(300, -0.4, 14, 'lose').newDer, 270) // 거의 안 빠짐
+    assert.equal(feedbackAdjustment(300, -6, 14, 'lose').newDer, 330) // 주 3% 과속
+    assert.equal(feedbackAdjustment(300, -2, 14, 'lose').newDer, 300) // 주 1% 적정
+    assert.equal(feedbackAdjustment(300, 2, 14, 'lose').newDer, 270) // 오히려 증가 → 인하
   })
   it('증량 목표: 정체 → +10%', () => {
     assert.equal(feedbackAdjustment(300, -0.5, 14, 'gain').newDer, 330)
