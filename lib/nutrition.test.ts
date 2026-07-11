@@ -16,6 +16,7 @@ import {
   calculateNutrition,
   treatCalorieFraction,
   safetyWeightShift,
+  needsCalorieVetRoute,
   AVG_ENERGY_DENSITY_KCAL_PER_G,
   type DogInfo,
   type SurveyAnswers,
@@ -276,6 +277,16 @@ describe('calculateNutrition — v2 2b 설문 신호 (easy-keeper·증거 게이
   it('미응답 → 전부 무보정 (하위호환): 중성화 5세 = 1.4', () => {
     const r = calculateNutrition(baseDog({ neutered: true }), baseAnswers())
     assert.equal(r.factor, 1.4)
+  })
+})
+
+describe('needsCalorieVetRoute — v2 2e 수의 상담 배너 판정', () => {
+  it('임신/수유·대사질환 플래그 → true, 일반 플래그 → false', () => {
+    assert.equal(needsCalorieVetRoute(['PREGNANT']), true)
+    assert.equal(needsCalorieVetRoute(['CKD_DIET_REQUIRED']), true)
+    assert.equal(needsCalorieVetRoute(['OVERWEIGHT', 'JOINT_SUPPORT']), false)
+    assert.equal(needsCalorieVetRoute([]), false)
+    assert.equal(needsCalorieVetRoute(null), false)
   })
 })
 

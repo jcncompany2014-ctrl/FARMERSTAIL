@@ -456,6 +456,7 @@ export default function AnalysisView({
           supplementItems={magSupplementItems}
           history={history}
           totalCount={totalCount}
+          riskFlags={analysis.risk_flags ?? []}
         />
       )}
 

@@ -178,6 +178,34 @@ export type NutritionResult = {
   idealWeightKg: number
 }
 
+/**
+ * 칼로리 v2 2e (경고 강화 절충 — 사장님 확정 2026-07-12) — 칼로리 수치가
+ * "시작 참고치"임을 강하게 안내해야 하는 위험 플래그. 스펙의 "계산 중단"은
+ * 구독 플로우 차단 + "긍정 먼저" 페이지 원칙과 충돌 → 계산은 제공하되
+ * 에너지 카드 직하에 수의 상담 배너를 강제 노출.
+ */
+export const CALORIE_VET_ROUTE_FLAGS = new Set([
+  'PREGNANT',
+  'LACTATING',
+  'DIABETIC_DIET_REQUIRED',
+  'CKD_DIET_REQUIRED',
+  'CARDIAC_LOW_SODIUM',
+  'HYPOTHYROID_WEIGHT',
+  'CUSHINGS_DIET',
+  'HEPATIC_SUPPORT',
+  'KETOGENIC_DIET',
+  'EPI_ENZYME_REQUIRED',
+  'LOW_FAT_REQUIRED',
+  'REFEEDING_RISK',
+])
+
+/** 칼로리 카드 직하 수의 상담 배너 노출 여부. */
+export function needsCalorieVetRoute(
+  riskFlags: string[] | null | undefined,
+): boolean {
+  return (riskFlags ?? []).some((f) => CALORIE_VET_ROUTE_FLAGS.has(f))
+}
+
 function ageMonths(dog: DogInfo): number {
   return dog.ageUnit === 'years' ? dog.ageValue * 12 : dog.ageValue
 }

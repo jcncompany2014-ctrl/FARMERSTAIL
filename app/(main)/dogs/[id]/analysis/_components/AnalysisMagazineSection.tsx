@@ -25,7 +25,7 @@ import {
 import { CTAStack as MagCTA } from '@/components/analysis/magazine/CTAStack'
 import RecommendationBox from '@/components/analysis/RecommendationBox'
 import AnalysisTrendsCard from '@/components/analysis/AnalysisTrendsCard'
-import { stageFromKR } from '@/lib/nutrition'
+import { stageFromKR, needsCalorieVetRoute } from '@/lib/nutrition'
 
 type HistoryPoint = {
   date: string
@@ -59,6 +59,8 @@ type Props = {
   supplementItems: MagSupplementItem[]
   history: HistoryPoint[]
   totalCount: number
+  /** 칼로리 v2 2e — 위험 플래그 (에너지 카드 직하 수의 상담 배너 판정). */
+  riskFlags?: string[]
 }
 
 export default function AnalysisMagazineSection({
@@ -83,6 +85,7 @@ export default function AnalysisMagazineSection({
   supplementItems,
   history,
   totalCount,
+  riskFlags,
 }: Props) {
   const magP = WARM_CREAM
   // 노령기 여부 — AdjustSheet 의 senior 단백/지방 상한 경고에 신뢰성 있게 전달
@@ -133,6 +136,26 @@ export default function AnalysisMagazineSection({
           guideline: 'NRC 2006',
         }}
       />
+      {/* 칼로리 v2 2e (경고 강화 절충 — 사장님 확정 2026-07-12) — 임신·수유/
+          대사질환 등 칼로리 민감 케이스는 에너지 수치 직하에 수의 상담 배너
+          강제 노출. "긍정 먼저" 페이지 순서는 유지하되 책임 안내를 수치 옆에. */}
+      {needsCalorieVetRoute(riskFlags) && (
+        <section style={{ background: magP.bg, padding: '0 20px 4px' }}>
+          <div
+            className="rounded px-4 py-3 text-[12px] leading-relaxed font-bold"
+            style={{
+              background: 'color-mix(in srgb, var(--terracotta) 10%, white)',
+              border:
+                '1px solid color-mix(in srgb, var(--terracotta) 35%, transparent)',
+              color: 'var(--ink)',
+            }}
+          >
+            위 수치는 시작 참고치예요. 임신·수유 중이거나 대사에 영향을 주는
+            질환이 있는 아이는{' '}
+            <strong>급여량을 꼭 수의사와 함께 정해 주세요.</strong>
+          </div>
+        </section>
+      )}
       {/* 카드 순서 (사용자 지시 2026-05-21):
           BoxMix → RecommendationBox (정기배송+비율조정+왜이비율) →
           Nutrients (영양 균형) → 추이 → Supplements → MagCTA(보조) */}
