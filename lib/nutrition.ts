@@ -9,18 +9,19 @@ import {
   type ChronicConditionKey,
   type McsKey,
 } from './nutrition/guidelines.ts'
+import { legacyAdultLadder } from './calorie-v2/adapter.ts'
+import { estimateIdealBodyWeight } from './calorie-v2/engine.ts'
+import type { FactorLine } from './calorie-v2/types.ts'
 
 /**
  * 화식 라인 평균 에너지 밀도 (kcal/g).
  *
- * 최종 마스터 레시피 v2.1 (2026-06) sheet7 as-fed: 닭1.30 / 오리1.50 /
- * 돼지1.40 / 소1.60 → 평균 1.45. (이전 2.02 는 옛 v2 보고서 이론값으로
- * 실제 화식(73% 수분) 대비 과대 → 급여량 25-40% 과소 버그였음.)
+ * 검정 확정(2026-07-11) 4종 실측: 닭·돼지 1.15 / 오리·소 1.20 → 평균 1.175.
  * 연어(skin)는 제품 보류라 평균에서 제외 — 출시 시 재계산.
  * 라인 mix 정확 계산은 lines.ts dailyGramsFromMix. 이 상수는 라인 미정 시
  * 분석 페이지 단일 추정용.
  */
-export const AVG_ENERGY_DENSITY_KCAL_PER_G = 1.45
+export const AVG_ENERGY_DENSITY_KCAL_PER_G = 1.175 // 검정 확정(2026-07-11): 닭·돼지 1.15 / 오리·소 1.20 평균
 
 export type SurveyAnswers = {
   bodyCondition: 'skinny' | 'slim' | 'ideal' | 'chubby' | 'obese'
@@ -145,6 +146,10 @@ export type NutritionResult = {
   vetConsult: boolean
   /** 가이드라인 버전 — reproducibility */
   guidelineVersion: string
+  /** 계수 근거 사다리 (칼로리 v2 — UI 노출용 투명성). */
+  factorBreakdown: FactorLine[]
+  /** 이상체중 kg — BCS ≥6 감량 분기에서 RER 기준 체중 (그 외 = 입력 체중). */
+  idealWeightKg: number
 }
 
 function ageMonths(dog: DogInfo): number {
@@ -328,9 +333,11 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     careGoal: answers.careGoal,
     stage,
   })
-  const RER = computeRer(w)
+  let RER = computeRer(w) // BCS≥6 감량 분기에서 이상체중(IBW)으로 재계산됨
+  let ibwKg = w
 
-  let factor = 1.6
+  let factor = 1.0
+  let factorBreakdown: FactorLine[] = []
   const riskFlags: string[] = []
   const citations = new Set<string>(['nrc2006', 'aafco2024', 'fediaf2021'])
   let vetConsult = false
@@ -347,69 +354,53 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   // "측정 정밀도가 낮아 보수적으로 계산했어요" 안내 + 측정 유도에 사용.
   if (Math.abs(w - w0) > 0.05) riskFlags.push('RELIABILITY_SAFETY_ADJUST')
 
-  // 생애주기 / 활동량 기반 base factor.
+  // ── 에너지 계수 — 칼로리 알고리즘 v2 (감산 지배형 사다리) ──
   //
-  // # 변경 이력 (Tier S F2-1, 2026-05-20)
-  // FEDIAF Nutritional Guidelines 2024 Annex 7.2 명시 매핑 (참고):
-  //   - 저활동(<1h/day low-impact)     : 95 × BW^0.75 = RER × 1.36
-  //   - 평균활동(1-3h/day low-impact)   : 110 × BW^0.75 = RER × 1.57
-  //   - 활발(1-3h/day high-impact)      : 125 × BW^0.75 = RER × 1.79
+  // docs/CALORIE_ALGORITHM_SPEC_V2.md §6. 이전 곱셈 체인(활동 base 1.2/1.57/1.8
+  // × bcsMerFactor × 중성화 0.9)은 폐기 — 저활동 보수치에 중성화 0.9 가 중첩되는
+  // 이중차감 + 곱셈 스택 문제. v2 는 BASE 1.4(중성화·실내·저활동 = 한국 모달에
+  // 이미 포함)에 가산/감산 델타만, 클램프 [1.0, 2.0].
   //
-  // 본 코드는 NRC 2006 권장 factor 와 FEDIAF 2024 의 중간점 채택:
-  //   - low 1.2 (NRC 보수치, 중성화·노령 견 비만 예방 우선)
-  //   - medium 1.57 (FEDIAF 110 정확 정렬)
-  //   - high 1.8 (NRC 1.8 ≈ FEDIAF 125 거의 동일, NRC 유지)
-  //   - senior 1.2 (NRC 보수치)
-  //
-  // medium 만 FEDIAF 명시 정렬한 이유: v4.0 보고서가 4kg 평균 활동견 311 kcal
-  // 인용 (= 110 × BW^0.75 정확). low/high/senior 는 NRC 보수치가 비만 예방
-  // 측면에서 더 안전 + 기존 테스트 일관.
+  // 1단계 연결 범위(사장님 확정 2026-07-12):
+  //  - 성견/노령: v2 사다리 (BCS 는 현행 직접선택 값 주입 — 3분해는 2단계)
+  //  - BCS≥6: v2 감량 분기 — RER 을 이상체중(IBW)으로 재계산, 계수 1.0 시작
+  //  - 자견: 간이 근사 유지(성견 예상체중 질문 추가 후 NRC 정확식 — 2단계)
+  //  - 임신/수유: NRC REPLACE 계산 유지 + vetConsult (수의 라우팅 UI = 2단계)
+  const ladderBcs = (answers.bcsExact ?? bcs.score) as number
   if (stage === 'puppy') {
     const m = ageMonths(dog)
     if (m < 4) factor = 3.0
     else if (m < 8) factor = 2.5
     else factor = 2.0
-  } else if (stage === 'senior') {
-    factor = 1.2 // NRC 보수치 — senior 비만·관절 부담 예방
+    factorBreakdown = [
+      { label: `성장기(${m}개월) — 간이 근사 ×${factor}`, delta: factor },
+    ]
+  } else if (ladderBcs >= 6) {
+    // v2 감량 분기 (M2b·M5) — 과체중은 이상체중 기준 RER × 1.0 에서 시작.
+    // (이전: 현재 체중 RER × bcsMerFactor 0.75~0.9 곱셈)
+    ibwKg = estimateIdealBodyWeight(w, ladderBcs)
+    RER = computeRer(ibwKg)
+    factor = 1.0
+    factorBreakdown = [
+      { label: `감량 시작 — 이상체중 ${ibwKg}kg 기준 ×1.0`, delta: 1.0 },
+    ]
+    citations.add('wsava')
   } else {
-    // 활동량 → factor. dog.activity_level(프로필의 홀리스틱 판단)을 70% 앵커로
-    // 쓰되, 설문의 산책분(walkMinutes)으로 30% 정밀화 + 실내활동 소폭 nudge.
-    // FEDIAF: 활동계수 ∝ 운동 시간. 한 신호가 과도하게 좌우하지 않게 블렌드
-    // (산책분 미입력 = 프로필 값 그대로, 하위호환).
-    //   - low 1.2 (NRC 보수치) / medium 1.57 (FEDIAF 110) / high 1.8 (FEDIAF 125)
-    const levelFactor =
-      dog.activityLevel === 'low'
-        ? 1.2
-        : dog.activityLevel === 'high'
-          ? 1.8
-          : 1.57
-    let base = levelFactor
-    const wm = answers.dailyWalkMinutes
-    if (wm != null && wm >= 0) {
-      const walkFactor =
-        wm < 30 ? 1.2 : wm < 60 ? 1.4 : wm < 120 ? 1.57 : wm < 180 ? 1.7 : 1.8
-      base = 0.7 * levelFactor + 0.3 * walkFactor
-    }
-    // 실내활동은 산책 외 추가 운동 — 소폭 보정 (프로필에 일부 반영돼 작게).
-    if (answers.indoorActivity === 'active') base += 0.05
-    else if (answers.indoorActivity === 'calm') base -= 0.03
-    factor = base
+    // v2 성견 사다리 (M4). BCS 1(refeeding 위험)은 저체중 +0.2 가산을 걸지
+    // 않고 baseline 유지 — 단계적 증량은 수의 지도(audit #11 특례 유지).
+    const ladder = legacyAdultLadder({
+      ageYears: ageMonths(dog) / 12,
+      isNeutered: dog.neutered,
+      activityLevel: dog.activityLevel,
+      dailyWalkMinutes: answers.dailyWalkMinutes,
+      bcs: ladderBcs === 1 ? 5 : ladderBcs,
+    })
+    factor = ladder.factor
+    factorBreakdown = ladder.lines
   }
 
-  // BCS 보정 — v2 의 정확 9점 factor 우선.
-  //
-  // # audit #11 v2 — BCS 1 응급 케이스 factor 보수화
-  // bcsMerFactor 가 1-2 모두 1.20 리턴하지만 BCS 1 은 refeeding syndrome
-  // 위험이라 +20% 칼로리 즉시 적용 X. factor *= 1.0 으로 baseline 유지 +
-  // 사용자 chip 으로 단계적 증량 안내 (Day 1-3 25%, Day 4-7 50%, Day 8+ 100%).
-  // 시스템은 초기 baseline 제공, 보호자가 수의사 지도 하에 분할 적용.
+  // BCS 위험 플래그 — factor 는 위 사다리/감량 분기에서 이미 반영됨.
   if (answers.bcsExact) {
-    if (answers.bcsExact === 1) {
-      // 응급 — bcsMerFactor 1.20 곱하지 않음. baseline 유지.
-      // factor *= 1.0 (no-op, 의도 명시)
-    } else {
-      factor *= bcsMerFactor(answers.bcsExact)
-    }
     citations.add('wsava')
     if (answers.bcsExact >= 8) {
       riskFlags.push('SEVERE_OBESITY')
@@ -417,7 +408,6 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     } else if (answers.bcsExact >= 7) {
       riskFlags.push('OVERWEIGHT')
     } else if (answers.bcsExact === 1) {
-      // factor 는 위에서 baseline 유지 (×1.20 skip).
       riskFlags.push('SEVERE_UNDERWEIGHT')
       riskFlags.push('REFEEDING_RISK')
       vetConsult = true
@@ -427,18 +417,7 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     } else if (answers.bcsExact <= 3) {
       riskFlags.push('UNDERWEIGHT')
     }
-  } else {
-    // 레거시 5단계 — bcsScore() 가 1/3/5/7/9 점만 반환. 9-tier bcsMerFactor
-    // 와 정합 (audit fix v1.6.1):
-    //   skinny (1): × 1.20  →  obese (9): × 0.75
-    factor *= bcsMerFactor(bcs.score as BcsKey)
   }
-
-  // audit 2-14: 중성화 ×0.9 보정은 성견/노령견 한정 (NRC 2006 §11).
-  // 자견(puppy)은 성장 호르몬 활성 + 골격 발달 단계라 중성화에 따른 BMR
-  // 감소가 미미함. 자견에 0.9 곱하면 underfeed → 발달 저해 위험.
-  // 임신/수유견은 아래에서 factor 가 REPLACE 되므로 여기 분기 무관.
-  if (dog.neutered && stage !== 'puppy') factor *= 0.9
 
   // 임신/수유 보정 (NRC 2006 §15). female + non-neutered 만 적용 — 수컷/
   // 중성화견에 임신/수유 잘못 켜져도 factor 폭주 차단.
@@ -461,6 +440,9 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
         ? bcsMerFactor(answers.bcsExact)
         : 1.0
     factor = pregFactor * bcsModifier
+    factorBreakdown = [
+      { label: `임신(NRC ×${pregFactor}) — 수의 상담 권장`, delta: factor },
+    ]
     riskFlags.push('PREGNANT')
     vetConsult = true
   } else if (
@@ -474,6 +456,9 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
         ? bcsMerFactor(answers.bcsExact)
         : 1.0
     factor = lactFactor * bcsModifier
+    factorBreakdown = [
+      { label: `수유(NRC ×${lactFactor}) — 수의 상담 권장`, delta: factor },
+    ]
     riskFlags.push('LACTATING')
     vetConsult = true
   }
@@ -727,10 +712,9 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     mer: MER,
     factor: +factor.toFixed(2),
     perMeal: Math.round(MER / 2),
-    // feedG — 화식 라인 평균 에너지 밀도 (레시피 v2.1 sheet7 as-fed, 1.45 kcal/g
-    // = 닭1.30/오리1.50/돼지1.40/소1.60 평균). 간식 차감된 foodKcal 기준 (간식
-    // 위에 풀 밥 방지). 라인 mix 가 정해지면 lines.ts dailyGramsFromMix 가
-    // 가중평균으로 정밀 재계산.
+    // feedG — 화식 평균 에너지 밀도(검정 확정 1.175 kcal/g) 기준. 간식 차감된
+    // foodKcal 기준 (간식 위에 풀 밥 방지). 라인 mix 가 정해지면 lines.ts
+    // dailyGramsFromMix 가 가중평균으로 정밀 재계산.
     feedG: Math.round(foodKcal / AVG_ENERGY_DENSITY_KCAL_PER_G),
     stage,
     stageKR: lifeStageKR(stage),
@@ -746,6 +730,8 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
     citations: Array.from(citations),
     vetConsult,
     guidelineVersion: GUIDELINE_VERSION,
+    factorBreakdown,
+    idealWeightKg: +ibwKg.toFixed(2),
   }
 }
 

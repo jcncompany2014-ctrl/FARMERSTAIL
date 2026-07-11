@@ -64,11 +64,13 @@ export function feedGramsModel(state: DogState): number {
   if (state.weightKg <= 0) return 0
 
   // activityFactor (숫자) → activityLevel ('low'/'medium'/'high') 매핑.
-  // 1.4 미만 = low / 1.5 이상 = high / 그 사이 = medium.
+  // 칼로리 v2 정합: 사다리에서 low·medium 은 동일 계수(BASE — 감산 지배형)라
+  // kcal 민감도 축은 사실상 high(+0.1 가산) 경계 통과 여부. 1.3 미만 = low /
+  // 1.5 이상 = high / 그 사이 = medium.
   const activityLevel: 'low' | 'medium' | 'high' =
-    state.activityFactor < 1.4
+    state.activityFactor < 1.3
       ? 'low'
-      : state.activityFactor > 1.5
+      : state.activityFactor >= 1.5
         ? 'high'
         : 'medium'
 
@@ -200,7 +202,8 @@ export function counterfactual(
  * 기본 perturbation set:
  *  - 체중 ±1kg
  *  - BCS ±1
- *  - 활동 +0.2 / -0.2
+ *  - 활동 +0.3 / -0.3 (칼로리 v2: low·mid 동일 계수라 ±0.2 로는 high 경계를
+ *    못 넘어 delta 0 — 레벨 경계 통과가 보장되는 폭으로 조정)
  *
  * 결과를 수의사 / 보호자가 "가장 영향 큰 변수" 로 인식.
  */
@@ -221,8 +224,8 @@ export function sensitivityAnalysis(baseline: DogState): CounterfactualOutcome[]
     { variable: 'weightKg', delta: -1 },
     { variable: 'bcs', delta: 1 },
     { variable: 'bcs', delta: -1 },
-    { variable: 'activityFactor', delta: 0.2 },
-    { variable: 'activityFactor', delta: -0.2 },
+    { variable: 'activityFactor', delta: 0.3 },
+    { variable: 'activityFactor', delta: -0.3 },
   ]
   const results = perts.map((p) => counterfactual(baseline, p))
   return results.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))

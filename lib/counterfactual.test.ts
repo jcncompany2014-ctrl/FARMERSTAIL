@@ -27,9 +27,11 @@ const base: DogState = {
 }
 
 describe('feedGramsModel', () => {
-  it('5kg 성견, 활동 1.2, BCS 5 → 합리적 그램 (60~200g)', () => {
+  it('5kg 성견, 활동 1.2, BCS 5 → 합리적 그램 (200~350g)', () => {
+    // 검정 확정 밀도 1.175 kcal/g — 5kg 전량 화식 ≈ 319g (v3.1 실측 급여표
+    // 5kg 오리 320g 과 정합 ✓). 구 60~200g 상한은 옛 밀도 1.45 기준.
     const g = feedGramsModel(base)
-    assert.ok(g >= 60 && g <= 200, `g=${g}`)
+    assert.ok(g >= 200 && g <= 350, `g=${g}`)
   })
 
   it('체중 0 → 0g', () => {
@@ -87,10 +89,10 @@ describe('counterfactual', () => {
     assert.ok(r.delta < 0)
   })
 
-  it('활동 +0.2 → grams 증가', () => {
+  it('활동 +0.3 → high 경계 통과로 grams 증가 (v2: low·mid 동일 계수)', () => {
     const r = counterfactual(base, {
       variable: 'activityFactor',
-      delta: 0.2,
+      delta: 0.3,
     })
     assert.ok(r.delta > 0)
   })

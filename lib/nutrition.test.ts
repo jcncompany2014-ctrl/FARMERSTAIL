@@ -70,7 +70,7 @@ describe('safetyWeightShift — 신뢰도 기반 비대칭 안전 체중 보정 
   })
 })
 
-describe('calculateNutrition — 산책분 → MER 블렌드 (②)', () => {
+describe('calculateNutrition — v2 사다리: 활동 신호 처리', () => {
   const baseDog: DogInfo = {
     weight: 5,
     ageValue: 3,
@@ -85,27 +85,32 @@ describe('calculateNutrition — 산책분 → MER 블렌드 (②)', () => {
     healthConcerns: [],
   }
 
-  it('산책분 미입력 → 프로필 activityLevel 그대로 (하위호환)', () => {
-    const noWalk = calculateNutrition(baseDog, baseAns).mer
+  it('산책 시간은 가산하지 않는다 (v2 원칙: duration 은 나쁜 예측변수)', () => {
+    const noWalk = calculateNutrition(baseDog, baseAns)
     const withWalk = calculateNutrition(baseDog, {
       ...baseAns,
       dailyWalkMinutes: 150,
-    }).mer
-    assert.ok(withWalk > noWalk, '산책 많으면 MER ↑ (granular 반영)')
+    })
+    // low + 미중성화 = 1.4 + 0.2 = 1.6 — 산책 150분이어도 동일.
+    assert.equal(noWalk.factor, 1.6)
+    assert.equal(withWalk.factor, 1.6)
   })
 
-  it('high 프로필 + 산책 10분 → MER 하향하되 과도하지 않게', () => {
-    const highDog: DogInfo = { ...baseDog, activityLevel: 'high' }
-    const high = calculateNutrition(highDog, baseAns).mer
-    const highLowWalk = calculateNutrition(highDog, {
+  it('low 프로필 + 산책 <30분 → 초비활동 −0.1 (v2 감산 프록시)', () => {
+    const inactive = calculateNutrition(baseDog, {
       ...baseAns,
       dailyWalkMinutes: 10,
-    }).mer
-    assert.ok(highLowWalk < high, '산책 적으면 ↓')
-    assert.ok(highLowWalk > high * 0.8, '드라마틱하게 깎이지 않음 (앵커 70%)')
+    })
+    assert.equal(inactive.factor, 1.5) // 1.4 + 0.2(미중성화) − 0.1(초비활동)
   })
 
-  it('실내활동 active → 소폭 가산', () => {
+  it('high 자가보고 → +0.1 만 (증거 게이트 — 객관 증거는 2단계)', () => {
+    const highDog: DogInfo = { ...baseDog, activityLevel: 'high' }
+    const high = calculateNutrition(highDog, baseAns)
+    assert.equal(high.factor, 1.7) // 1.4 + 0.2(미중성화) + 0.1(활발 자가보고)
+  })
+
+  it('실내활동 필드는 계수에 영향 없음 (v2 — nudge 폐기)', () => {
     const calm = calculateNutrition(baseDog, {
       ...baseAns,
       dailyWalkMinutes: 60,
@@ -116,7 +121,7 @@ describe('calculateNutrition — 산책분 → MER 블렌드 (②)', () => {
       dailyWalkMinutes: 60,
       indoorActivity: 'active',
     }).mer
-    assert.ok(active > calm)
+    assert.equal(active, calm)
   })
 })
 
@@ -159,44 +164,66 @@ function baseAnswers(overrides: Partial<SurveyAnswers> = {}): SurveyAnswers {
   }
 }
 
-describe('calculateNutrition — MER 기본 케이스', () => {
-  it('10kg 성견 BCS 5 medium 활동 = RER 393 × 1.57 (FEDIAF 110) ≈ 618 kcal', () => {
+describe('calculateNutrition — v2 사다리 기본 케이스', () => {
+  it('10kg 성견(5세) 미중성화 BCS5 = 1.4 + 0.2(미중성화) = 1.6 → 630 kcal', () => {
     const r = calculateNutrition(baseDog(), baseAnswers())
     assert.equal(r.rer, 394)
-    // Tier S F2-1: medium factor 1.6 → 1.57 (FEDIAF 2024 Annex 7.2 110×BW^0.75)
-    // RER 393.64 × 1.57 = 618.01 → Math.round = 618
-    assert.equal(r.mer, Math.round(70 * Math.pow(10, 0.75) * 1.57))
-    assert.equal(r.factor, 1.57)
+    assert.equal(r.factor, 1.6)
+    assert.equal(r.mer, Math.round(70 * Math.pow(10, 0.75) * 1.6))
+    // 사다리 근거 노출(투명성) — 기본 + 미중성화 2줄.
+    assert.equal(r.factorBreakdown.length, 2)
   })
 
-  it('10kg 시니어 (8세) BCS 5 = RER × 1.2', () => {
+  it('10kg 8세 BCS5 = 1.4 + 0.2(미중성화) − 0.1(중년 7~9세) = 1.5', () => {
     const r = calculateNutrition(
       baseDog({ ageValue: 8 }),
       baseAnswers(),
     )
     assert.equal(r.rer, 394)
-    // 시니어 base 1.2 × bcs 5 (1.0) = 1.2
-    assert.equal(r.factor, 1.2)
-    assert.equal(r.mer, Math.round(70 * Math.pow(10, 0.75) * 1.2))
+    assert.equal(r.factor, 1.5)
+    assert.equal(r.mer, Math.round(70 * Math.pow(10, 0.75) * 1.5))
+  })
+
+  it('10kg 12세 = 노령 −0.2 → 1.4 (중성화면 1.4 − 0.2 + 0 = 1.2)', () => {
+    const intact = calculateNutrition(baseDog({ ageValue: 12 }), baseAnswers())
+    assert.equal(intact.factor, 1.4) // 1.4 + 0.2 − 0.2
+    const neutered = calculateNutrition(
+      baseDog({ ageValue: 12, neutered: true }),
+      baseAnswers(),
+    )
+    assert.equal(neutered.factor, 1.2) // 1.4 − 0.2
   })
 })
 
-describe('calculateNutrition — bcsMerFactor (audit fix)', () => {
-  it('BCS 2 (저체중) — 시니어 base × 1.20 = 1.44 (audit: 1.4 → 1.20)', () => {
+describe('calculateNutrition — v2 BCS 처리 (가산·IBW 감량 분기)', () => {
+  it('BCS 2 (저체중) — +0.2 가산: 1.4+0.2(미중성화)−0.1(중년)+0.2 = 1.7', () => {
     const r = calculateNutrition(
       baseDog({ ageValue: 8 }),
       baseAnswers({ bcsExact: 2 }),
     )
-    assert.equal(r.factor, 1.44)
-    assert.equal(r.mer, Math.round(70 * Math.pow(10, 0.75) * 1.44))
+    assert.equal(r.factor, 1.7)
+    assert.ok(r.riskFlags.includes('SEVERE_UNDERWEIGHT'))
   })
 
-  it('BCS 9 (비만) — 감량 protocol RER × 0.9 (시니어 1.2 × 0.75)', () => {
+  it('BCS 9 (비만) — 이상체중(10/1.4=7.14kg)으로 RER 재계산 × 1.0', () => {
     const r = calculateNutrition(
       baseDog({ ageValue: 8 }),
       baseAnswers({ bcsExact: 9 }),
     )
-    assert.equal(r.factor, 0.9)
+    assert.equal(r.factor, 1.0)
+    assert.equal(r.idealWeightKg, 7.14)
+    assert.equal(r.rer, Math.round(70 * Math.pow(7.14, 0.75)))
+    assert.equal(r.mer, Math.round(70 * Math.pow(7.14, 0.75)))
+    assert.ok(r.riskFlags.includes('SEVERE_OBESITY'))
+  })
+
+  it('BCS 1 (refeeding 위험) — 저체중 +0.2 가산 없이 baseline 유지', () => {
+    const r = calculateNutrition(
+      baseDog(),
+      baseAnswers({ bcsExact: 1 }),
+    )
+    assert.equal(r.factor, 1.6) // 1.4 + 0.2(미중성화) — 저체중 가산 skip
+    assert.ok(r.riskFlags.includes('REFEEDING_RISK'))
   })
 })
 
@@ -206,8 +233,8 @@ describe('calculateNutrition — pregnancy/lactation gender 게이트', () => {
       baseDog({ gender: 'male' }),
       baseAnswers({ pregnancyStatus: 'lactating' }),
     )
-    // 수컷은 lactating 무시 → 기본 1.57 (FEDIAF medium) 만 적용
-    assert.equal(r.factor, 1.57)
+    // 수컷은 lactating 무시 → v2 사다리 1.4 + 0.2(미중성화) = 1.6 만 적용
+    assert.equal(r.factor, 1.6)
     assert.ok(!r.riskFlags.includes('LACTATING'))
   })
 
@@ -216,8 +243,8 @@ describe('calculateNutrition — pregnancy/lactation gender 게이트', () => {
       baseDog({ gender: 'female', neutered: true }),
       baseAnswers({ pregnancyStatus: 'pregnant' }),
     )
-    // 중성화 0.9 만 적용. 1.57 × 0.9 = 1.413 (Tier S F2-1: medium 1.6 → 1.57)
-    assert.equal(r.factor, 1.41)
+    // 중성화 암컷 — v2 BASE 1.4 그대로 (중성화는 BASE 에 포함, 곱셈 0.9 폐기).
+    assert.equal(r.factor, 1.4)
     assert.ok(!r.riskFlags.includes('PREGNANT'))
   })
 

@@ -131,6 +131,9 @@ export function calculateRER(ibwKg: number): number {
 export function calculateAdultFactor(
   s: SurveyInputV2,
   flags: BreedFlags,
+  // BCS 주입 가능 — 레거시 어댑터(현행 설문 = 9점 직접선택)가 3분해 없이 사용.
+  // 미주입 시 스펙대로 3분해 역산.
+  bcs: number = deriveBCS(s.bodyAssessment),
 ): { factor: number; lines: FactorLine[] } {
   const lines: FactorLine[] = []
   let fac: number = CAL.BASE_ADULT
@@ -160,7 +163,7 @@ export function calculateAdultFactor(
     fac += CAL.A_INTACT
     lines.push({ label: '미중성화', delta: CAL.A_INTACT })
   }
-  if (deriveBCS(s.bodyAssessment) <= 3) {
+  if (bcs <= 3) {
     fac += CAL.A_UNDERWEIGHT
     lines.push({ label: '저체중', delta: CAL.A_UNDERWEIGHT })
   }
