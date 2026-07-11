@@ -27,7 +27,8 @@ import {
 } from '@/lib/nutrition/guidelines'
 import { haptic } from '@/lib/haptic'
 import { trackSurveyStarted, trackSurveyCompleted } from '@/lib/analytics'
-import Body from './steps/Body'
+import Body, { type BodyAssessmentState } from './steps/Body'
+import { deriveBCS } from '@/lib/calorie-v2/engine'
 import Muscle from './steps/Muscle'
 import Stool from './steps/Stool'
 import Diet from './steps/Diet'
@@ -114,8 +115,28 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   const [err, setErr] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // 1. body
+  // 1. body — 칼로리 v2 M2a: 체형 3분해(갈비뼈·허리·배) → deriveBCS 역산.
+  // bcs 는 파생값으로 유지(저장·검증·결과 파이프라인 하위호환 — 옛 초안의
+  // 직접선택 bcs 복원도 그대로 유효).
+  const [bodyAssess, setBodyAssess] = useState<BodyAssessmentState>({
+    ribs: '',
+    waist: '',
+    abdomen: '',
+  })
   const [bcs, setBcs] = useState<BcsKey | null>(null)
+  const onBodyAssess = (patch: Partial<BodyAssessmentState>) => {
+    const next = { ...bodyAssess, ...patch }
+    setBodyAssess(next)
+    if (next.ribs && next.waist && next.abdomen) {
+      setBcs(
+        deriveBCS({
+          ribs: next.ribs,
+          waist: next.waist,
+          abdomen: next.abdomen,
+        }) as BcsKey,
+      )
+    }
+  }
   // [발명 모듈 D] 체중 측정 방법 — 신뢰도(W_method) 입력. 미입력 시 dog 프로필
   // 값 사용. 새로 고르면 dogs 갱신 + 측정일=오늘.
   const [weightMethod, setWeightMethod] = useState<
@@ -246,6 +267,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       }
       // 핵심 state 만 복원 — undefined 아닌 값만 적용해 partial restore 안전.
       if (data.bcs !== undefined) setBcs(data.bcs as BcsKey | null)
+      if (data.bodyAssess && typeof data.bodyAssess === 'object')
+        setBodyAssess(data.bodyAssess as BodyAssessmentState)
       if (typeof data.weightMethod === 'string')
         setWeightMethod(data.weightMethod as typeof weightMethod)
       if (data.mcs !== undefined) setMcs(data.mcs as McsKey | null)
@@ -342,6 +365,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
           STORAGE_KEY,
           JSON.stringify({
             bcs,
+            bodyAssess,
             weightMethod,
             mcs,
             bristol,
@@ -385,6 +409,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     dog,
     STORAGE_KEY,
     bcs,
+    bodyAssess,
     weightMethod,
     mcs,
     bristol,
@@ -543,6 +568,15 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       snackFreq,
       taste,
       bcsExact: bcs ?? undefined,
+      // 3분해 원응답 — 기록·재분석용 (bcsExact 가 이 응답의 역산값).
+      bodyAssessment:
+        bodyAssess.ribs && bodyAssess.waist && bodyAssess.abdomen
+          ? {
+              ribs: bodyAssess.ribs,
+              waist: bodyAssess.waist,
+              abdomen: bodyAssess.abdomen,
+            }
+          : undefined,
       mcsScore: mcs ?? undefined,
       bristolScore: bristol ?? undefined,
       chronicConditions,
@@ -895,8 +929,9 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
         {currentStep === 'body' && (
           <Body
             dogName={dog.name}
+            body={bodyAssess}
+            onBody={onBodyAssess}
             bcs={bcs}
-            setBcs={setBcs}
             weightTrend={weightTrend}
             setWeightTrend={setWeightTrend}
             weightMethod={weightMethod}

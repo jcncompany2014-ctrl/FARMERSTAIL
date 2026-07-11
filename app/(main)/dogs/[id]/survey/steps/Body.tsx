@@ -1,5 +1,7 @@
-// audit #96: SurveyClient.tsx 분할 — body step. BCS 9-point + 6개월 체중 추세.
-// SurveyClient 의 useState 를 props 로 받음 (상태는 부모에 집중).
+// audit #96: SurveyClient.tsx 분할 — body step.
+// 칼로리 v2 M2a (2026-07-12): BCS 9점 직접선택 폐기 → 체형 3분해(갈비뼈·허리·배)
+// 질문으로 교체. 보호자가 "몇 점?"을 고르는 것보다 관찰 3문항 → deriveBCS 역산이
+// 정확 (docs/CALORIE_ALGORITHM_SPEC_V2.md §6). 역산 결과는 판정 카드로 피드백.
 import {
   HelpCircle,
   MoonStar,
@@ -16,7 +18,7 @@ import {
 import { BCS_DESCRIPTIONS, type BcsKey } from '@/lib/nutrition/guidelines'
 import { petName } from '@/lib/korean'
 
-// BCS 9-point — 디자인의 시각 위계 그대로 (group + icon + tag)
+// 역산 BCS 판정 카드용 시각 위계 (기존 9점 그리드에서 유지).
 const BCS_VIEW: Record<
   BcsKey,
   {
@@ -37,6 +39,13 @@ const BCS_VIEW: Record<
   9: { group: 'over', Icon: Cloud, tag: '위험', tagTone: 'bad' },
 }
 
+/** 체형 3분해 응답 상태 ('' = 미응답). */
+export type BodyAssessmentState = {
+  ribs: 'visible' | 'easy' | 'slight_pressure' | 'hard' | ''
+  waist: 'clear' | 'slight' | 'none' | ''
+  abdomen: 'tucked' | 'level' | 'sagging' | ''
+}
+
 type WeightTrend = 'stable' | 'gained' | 'lost' | 'unknown' | ''
 type WeightMethod =
   | 'vet_scale'
@@ -48,18 +57,61 @@ type WeightMethod =
 
 export type BodyProps = {
   dogName: string
+  body: BodyAssessmentState
+  /** 부분 갱신 — SurveyClient 가 3문항 완성 시 deriveBCS 로 bcs 역산. */
+  onBody: (patch: Partial<BodyAssessmentState>) => void
+  /** 3문항 완성 시 역산된 BCS (판정 카드 표시용). 미완성 = null. */
   bcs: BcsKey | null
-  setBcs: (v: BcsKey | null) => void
   weightTrend: WeightTrend
   setWeightTrend: (v: WeightTrend) => void
   weightMethod: WeightMethod
   setWeightMethod: (v: WeightMethod) => void
 }
 
+const BODY_QUESTIONS: Array<{
+  key: keyof BodyAssessmentState
+  label: string
+  hint: string
+  options: Array<{ v: string; label: string }>
+}> = [
+  {
+    key: 'ribs',
+    label: '갈비뼈 — 옆구리를 만져보면?',
+    hint: '양손으로 옆구리를 부드럽게 쓸어보세요.',
+    options: [
+      { v: 'visible', label: '안 만져도 보여요' },
+      { v: 'easy', label: '살짝 만지면 느껴져요' },
+      { v: 'slight_pressure', label: '꾹 눌러야 느껴져요' },
+      { v: 'hard', label: '눌러도 잘 안 느껴져요' },
+    ],
+  },
+  {
+    key: 'waist',
+    label: '허리 — 위에서 내려다보면?',
+    hint: '갈비뼈 뒤에서 골반까지의 라인이에요.',
+    options: [
+      { v: 'clear', label: '잘록하게 들어가요' },
+      { v: 'slight', label: '살짝 들어가요' },
+      { v: 'none', label: '일자거나 볼록해요' },
+    ],
+  },
+  {
+    key: 'abdomen',
+    label: '배 — 옆에서 보면 뒷배가?',
+    hint: '가슴 끝에서 뒷다리 쪽 배 라인이에요.',
+    options: [
+      { v: 'tucked', label: '위로 올라가요' },
+      { v: 'level', label: '거의 일자예요' },
+      { v: 'sagging', label: '아래로 처져요' },
+    ],
+  },
+]
+
 export default function Body({
   dogName,
+  body,
+  onBody,
   bcs,
-  setBcs,
   weightTrend,
   setWeightTrend,
   weightMethod,
@@ -73,54 +125,43 @@ export default function Body({
         </span>
       </div>
       <h1 className="s-title">
-        {petName(dogName)}의 체형을<br />선택해 주세요
+        {petName(dogName)}의 체형을<br />같이 살펴봐요
       </h1>
       <p className="s-sub">
-        <strong>BCS (Body Condition Score)</strong> = 체형 점수. 위에서
-        봤을 때 허리, 옆에서 봤을 때 배 라인 기준{' '}
-        <strong>9점 척도</strong>예요. 5번이 이상적.
+        세 가지만 관찰해 주시면 <strong>체형 점수(BCS)</strong>는 저희가
+        계산해요. 점수를 직접 고르는 것보다 훨씬 정확해요.
       </p>
 
-      <div className="s-grid-3">
-        {([1, 2, 3, 4, 5, 6, 7, 8, 9] as BcsKey[]).map((s) => {
-          const active = bcs === s
-          const view = BCS_VIEW[s]
-          const Icon = view.Icon
-          const stroke = s === 5 ? 2.2 : 1.6
-          const color = active
-            ? 'var(--bg)'
-            : view.group === 'ideal'
-              ? 'var(--sage)'
-              : view.group === 'under'
-                ? '#A6BEDA'
-                : view.tagTone === 'bad'
-                  ? 'var(--accent)'
-                  : 'var(--gold)'
-          return (
-            <button
-              key={s}
-              type="button"
-              // R37 — 위험 카드 (BCS 1/8/9 = tagTone 'bad') 만 selected 시
-              // sale 색. default 는 모두 동일 (정답 유도 X). 사용자 의도:
-              // "심각한걸 골랐을 때만 위험한 상태라는게 느껴지게".
-              className={
-                's-pickcard' +
-                (view.tagTone === 'bad' ? ' s-pickcard-danger' : '')
-              }
-              aria-pressed={active}
-              onClick={() => setBcs(s)}
-            >
-              {s === 5 && <span className="s-ideal">IDEAL</span>}
-              <div className="s-num">{s}/9</div>
-              <div className="s-swatch">
-                <Icon size={28} strokeWidth={stroke} color={color} />
-              </div>
-              <div className="s-lbl">{BCS_DESCRIPTIONS[s].label.replace('BCS ', '')}</div>
-            </button>
-          )
-        })}
-      </div>
+      {BODY_QUESTIONS.map((q) => (
+        <div className="s-sect" key={q.key}>
+          <div className="s-sect-lbl">
+            <span className="s-label-text">{q.label}</span>
+          </div>
+          <p className="s-sub" style={{ fontSize: 10.5, marginBottom: 8 }}>
+            {q.hint}
+          </p>
+          <div className="s-chiprow">
+            {q.options.map(({ v, label }) => {
+              const active = body[q.key] === v
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  className={'s-chip' + (active ? ' s-on' : '')}
+                  aria-pressed={active}
+                  onClick={() =>
+                    onBody({ [q.key]: v } as Partial<BodyAssessmentState>)
+                  }
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ))}
 
+      {/* 3문항 완성 → 역산 BCS 판정 카드 */}
       {bcs !== null && (
         <div className="s-hint">
           <div className="s-iconwrap">

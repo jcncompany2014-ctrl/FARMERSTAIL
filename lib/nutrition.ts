@@ -33,6 +33,15 @@ export type SurveyAnswers = {
   // ── v2 확장 필드 (모두 옵션 — 기존 설문이 비어 있을 수 있음) ──
   /** WSAVA 9-point exact BCS. 입력되면 bodyCondition 보다 우선. */
   bcsExact?: BcsKey
+  /**
+   * 체형 3분해 응답 (칼로리 v2 M2a — 갈비뼈·허리·배). "몇 점?" 직접질문 대신
+   * 이 3문항에서 deriveBCS 로 역산한 값이 bcsExact 로 들어온다. 기록·재분석용.
+   */
+  bodyAssessment?: {
+    ribs: 'visible' | 'easy' | 'slight_pressure' | 'hard'
+    waist: 'clear' | 'slight' | 'none'
+    abdomen: 'tucked' | 'level' | 'sagging'
+  }
   /** Muscle Condition Score 1~4 (1=정상, 4=중증 손실) */
   mcsScore?: McsKey
   /** Bristol Stool 1~7 (4=정상) */
