@@ -236,7 +236,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       }
       const { data, error } = await supabase
         .from('dogs')
-        .select('id, name, weight, age_value, age_unit, neutered, activity_level, gender, weight_method, weight_measured_at')
+        .select('id, name, weight, age_value, age_unit, neutered, activity_level, gender, breed, weight_method, weight_measured_at')
         .eq('id', dogId)
         .eq('user_id', user.id)
         .maybeSingle()
@@ -763,6 +763,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
         // 칼로리 v2 2c — 자견 NRC 정확식(130) 입력. 설문이 수집만 하고
         // 계산에 안 넘기던 것 연결 (large-breed puppy 임계 판정에도 사용).
         expectedAdultWeight: expectedAdultWeightKg ?? null,
+        // 칼로리 v2 4단계 — 견종 플래그(비만경향·토이·단두종) 파생용.
+        breed: (dog as { breed?: string | null }).breed ?? null,
       },
       answers,
     )

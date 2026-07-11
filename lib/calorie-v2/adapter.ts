@@ -13,7 +13,7 @@
  *  - 견종 플래그: 4단계에서 dogs.breed 연결 — 지금은 unknown(플래그 없음).
  */
 import { breedToFlags, calculateAdultFactor } from './engine.ts'
-import type { FactorLine, SurveyInputV2 } from './types.ts'
+import type { BreedFlags, FactorLine, SurveyInputV2 } from './types.ts'
 
 export interface LegacyLadderInput {
   ageYears: number
@@ -27,6 +27,8 @@ export interface LegacyLadderInput {
   vigorousExercise?: 'none' | 'self_report' | 'objective' | null
   housing?: 'indoor' | 'indoor_outdoor' | 'outdoor' | null
   coldExposure?: boolean
+  /** 4단계 — 견종 플래그 (breeds.breedFlagsFromLabel). 미전달 = 플래그 없음. */
+  breedFlags?: BreedFlags
 }
 
 export function legacyAdultLadder(a: LegacyLadderInput): {
@@ -70,5 +72,5 @@ export function legacyAdultLadder(a: LegacyLadderInput): {
     hwasikSku: 'chicken', // 사다리 미사용
     hwasikKcalPer100g: 115,
   }
-  return calculateAdultFactor(s, breedToFlags('unknown'), a.bcs)
+  return calculateAdultFactor(s, a.breedFlags ?? breedToFlags('unknown'), a.bcs)
 }

@@ -280,6 +280,54 @@ describe('calculateNutrition — v2 2b 설문 신호 (easy-keeper·증거 게이
   })
 })
 
+describe('calculateNutrition — v2 4단계 견종 플래그', () => {
+  it('래브라도(OB) → easy-keeper 감산: 1.4 − 0.1 = 1.3', () => {
+    const r = calculateNutrition(
+      baseDog({ neutered: true, breed: '래브라도 리트리버', weight: 30 }),
+      baseAnswers(),
+    )
+    assert.equal(r.factor, 1.3)
+  })
+
+  it('견종 OB + 설문 easy-keeper 동시 → 감산 1회만 (이중차감 금지)', () => {
+    const r = calculateNutrition(
+      baseDog({ neutered: true, breed: '래브라도 리트리버', weight: 30 }),
+      baseAnswers({ isEasyKeeper: true }),
+    )
+    assert.equal(r.factor, 1.3) // −0.1 한 번만
+  })
+
+  it('시츄(BRA) — 격한 운동 자가보고여도 활동 가산 억제 → 1.4', () => {
+    const r = calculateNutrition(
+      baseDog({ neutered: true, breed: '시츄', weight: 5 }),
+      baseAnswers({ vigorousExercise: 'self_report' }),
+    )
+    assert.equal(r.factor, 1.4)
+  })
+
+  it('토이 자견(토이푸들) — 정확식 589 × 0.85 = 501 (스펙 T4 완전판)', () => {
+    const r = calculateNutrition(
+      baseDog({
+        weight: 3,
+        ageValue: 5,
+        ageUnit: 'months',
+        expectedAdultWeight: 8,
+        breed: '토이푸들',
+      }),
+      baseAnswers(),
+    )
+    assert.equal(r.mer, 501)
+  })
+
+  it('진돗개(HD) — 감산·가산 없음: 중성화 1.4 그대로', () => {
+    const r = calculateNutrition(
+      baseDog({ neutered: true, breed: '진돗개', weight: 18 }),
+      baseAnswers(),
+    )
+    assert.equal(r.factor, 1.4)
+  })
+})
+
 describe('needsCalorieVetRoute — v2 2e 수의 상담 배너 판정', () => {
   it('임신/수유·대사질환 플래그 → true, 일반 플래그 → false', () => {
     assert.equal(needsCalorieVetRoute(['PREGNANT']), true)

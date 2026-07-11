@@ -11,6 +11,7 @@ import {
 } from './nutrition/guidelines.ts'
 import { legacyAdultLadder } from './calorie-v2/adapter.ts'
 import { estimateIdealBodyWeight } from './calorie-v2/engine.ts'
+import { breedFlagsFromLabel } from './calorie-v2/breeds.ts'
 import type { FactorLine } from './calorie-v2/types.ts'
 
 /**
@@ -128,6 +129,11 @@ export type DogInfo = {
   activityLevel: 'low' | 'medium' | 'high'
   /** 임신/수유 적용 게이트 — 'female' 만 pregnancyStatus 반영. */
   gender?: 'male' | 'female' | null
+  /**
+   * 칼로리 v2 4단계 — 견종 라벨(dogs.breed, 한글). 플래그(비만경향·토이·단두종)
+   * 파생용 — kcal 을 직접 바꾸지 않는다. 미입력 = 플래그 없음.
+   */
+  breed?: string | null
   /**
    * [A4] 예상 성견 체중 kg.
    *
@@ -421,6 +427,8 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   //  - 자견: 간이 근사 유지(성견 예상체중 질문 추가 후 NRC 정확식 — 2단계)
   //  - 임신/수유: NRC REPLACE 계산 유지 + vetConsult (수의 라우팅 UI = 2단계)
   const ladderBcs = (answers.bcsExact ?? bcs.score) as number
+  // 칼로리 v2 4단계 — 견종 플래그 (OB→easy-keeper OR·BRA→활동 억제·TOY→자견 −15%).
+  const breedFlags = breedFlagsFromLabel(dog.breed)
   if (stage === 'puppy') {
     const m = ageMonths(dog)
     const adultKg =
@@ -433,12 +441,13 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
       // 대비 비율로 역산해 기존 MER=RER×factor 파이프라인 유지(MER=round(der)).
       // 토이 견종 −15% 하향은 4단계(견종 플래그)에서.
       const p = Math.min(1, w / adultKg)
-      const der =
-        130 * Math.pow(w, 0.75) * 3.2 * (Math.exp(-0.87 * p) - 0.1)
+      let der = 130 * Math.pow(w, 0.75) * 3.2 * (Math.exp(-0.87 * p) - 0.1)
+      // 토이 견종 — NRC 표준식 과대추정 보정 (~15% 하향, 스펙 §6 M6).
+      if (breedFlags.toyOverestimate) der *= 0.85
       factor = der / RER
       factorBreakdown = [
         {
-          label: `성장기 정확식 — 성장률 ${Math.round(p * 100)}% (NRC 130)`,
+          label: `성장기 정확식 — 성장률 ${Math.round(p * 100)}% (NRC 130${breedFlags.toyOverestimate ? ' · 토이 −15%' : ''})`,
           delta: +factor.toFixed(2),
         },
       ]
@@ -475,6 +484,8 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
       vigorousExercise: answers.vigorousExercise,
       housing: answers.housing,
       coldExposure: answers.coldExposure,
+      // 4단계 — 견종 플래그 (엔진이 OB↔easy-keeper OR 감산 1회·BRA 억제 처리).
+      breedFlags,
     })
     factor = ladder.factor
     factorBreakdown = ladder.lines
