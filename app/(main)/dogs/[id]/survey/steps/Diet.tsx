@@ -34,6 +34,9 @@ export type DietProps = {
   /** 칼로리 v2 2d — 하루 간식 kcal (선택, 아는 경우만). '' = 모름 → 빈도 추정. */
   treatKcal: string
   setTreatKcal: (v: string) => void
+  /** 칼로리 v2 5단계 — 건사료 라벨 열량 kcal/kg (선택). '' = 모름 → 평균 350/100g. */
+  kibbleKcal: string
+  setKibbleKcal: (v: string) => void
   taste: Taste
   setTaste: (v: Taste) => void
   walkMinutes: string
@@ -62,6 +65,8 @@ export default function Diet({
   setSnackFreq,
   treatKcal,
   setTreatKcal,
+  kibbleKcal,
+  setKibbleKcal,
   taste,
   setTaste,
   walkMinutes,
@@ -132,6 +137,31 @@ export default function Diet({
           onChange={(e) => setCurrentBrand(e.target.value)}
           placeholder="예: 로얄캐닌 미니어처닥스훈트"
         />
+        {/* 칼로리 v2 5단계(M9b) — 건사료 라벨 kcal. 건식/반반 주식일 때만.
+            입력 시 mix 급여의 건사료 g 이 정확해지고(미입력=평균 350kcal/100g),
+            브랜드만 있고 kcal 모르면 kibble_requests 자가성장 로그 대상. */}
+        {(foodType === '건식 사료' || foodType === '반반') && (
+          <>
+            <p className="s-sub" style={{ fontSize: 10.5, margin: '10px 0 8px' }}>
+              사료 봉투 뒷면의 열량(대사에너지 ME) 표기를 아신다면 적어 주세요.
+              모르면 비워두셔도 돼요 — 평균값으로 계산해요.
+            </p>
+            <div className="s-input-suffix">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={2000}
+                max={6000}
+                className="s-inp"
+                aria-label="건사료 열량 (kcal/kg)"
+                value={kibbleKcal}
+                onChange={(e) => setKibbleKcal(e.target.value)}
+                placeholder="예: 3500"
+              />
+              <span className="s-unit">kcal / kg</span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="s-sect">

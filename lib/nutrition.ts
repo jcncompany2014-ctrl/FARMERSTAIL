@@ -68,6 +68,12 @@ export type SurveyAnswers = {
    * 10% 캡으로 차감. 캡 초과 = 헤비유저 식별(TREAT_EXCESS 플래그).
    */
   treatKcalPerDay?: number
+  /**
+   * 칼로리 v2 5단계(M9b) — 현재 건사료 kcal/100g (라벨 신고, kcal/kg÷10).
+   * mix 급여의 건사료 g 계산 정밀화(미입력 = 평균 350). 미인지 브랜드는
+   * kibble_requests 자가성장 로그로.
+   */
+  kibbleKcalPer100g?: number
   // ── 칼로리 v2 2b — 사다리 감산·가산 신호 (2026-07-12) ──
   /** 쉽게 찌는 체질(easy-keeper) — 감산 −0.1 신호. 미입력 = 모름(무보정). */
   isEasyKeeper?: boolean

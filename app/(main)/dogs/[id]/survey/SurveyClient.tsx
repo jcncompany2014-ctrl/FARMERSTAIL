@@ -158,6 +158,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   const [snackFreq, setSnackFreq] = useState('')
   // 칼로리 v2 2d — 하루 간식 kcal (선택 숫자 입력. '' = 모름 → 빈도 추정).
   const [treatKcal, setTreatKcal] = useState('')
+  // 칼로리 v2 5단계 — 건사료 라벨 열량 kcal/kg ('' = 모름 → 평균 350/100g).
+  const [kibbleKcal, setKibbleKcal] = useState('')
   const [taste, setTaste] = useState<'strong' | 'normal' | 'picky' | 'reduced' | ''>('')
   const [walkMinutes, setWalkMinutes] = useState('')
   const [currentBrand, setCurrentBrand] = useState('')
@@ -294,6 +296,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       if (typeof data.foodType === 'string') setFoodType(data.foodType)
       if (typeof data.snackFreq === 'string') setSnackFreq(data.snackFreq)
       if (typeof data.treatKcal === 'string') setTreatKcal(data.treatKcal)
+      if (typeof data.kibbleKcal === 'string') setKibbleKcal(data.kibbleKcal)
       if (typeof data.taste === 'string') setTaste(data.taste as typeof taste)
       if (typeof data.walkMinutes === 'string') setWalkMinutes(data.walkMinutes)
       if (typeof data.currentBrand === 'string') setCurrentBrand(data.currentBrand)
@@ -394,6 +397,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             foodType,
             snackFreq,
             treatKcal,
+            kibbleKcal,
             taste,
             walkMinutes,
             currentBrand,
@@ -443,6 +447,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     foodType,
     snackFreq,
     treatKcal,
+    kibbleKcal,
     taste,
     walkMinutes,
     currentBrand,
@@ -622,6 +627,10 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       treatKcalPerDay: treatKcal
         ? Math.max(0, Math.min(2000, Number(treatKcal) || 0))
         : undefined,
+      // 칼로리 v2 5단계 — 건사료 라벨 kcal/kg → /100g 환산 (200~600 clamp).
+      kibbleKcalPer100g: kibbleKcal
+        ? Math.max(200, Math.min(600, (Number(kibbleKcal) || 0) / 10))
+        : undefined,
       // 칼로리 v2 2b — 사다리 신호 (미응답 = undefined → 무보정).
       isEasyKeeper: easyKeeper === '' ? undefined : easyKeeper === 'yes',
       vigorousExercise:
@@ -714,6 +723,26 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
         .update({ prescription_diet: prescriptionDiet.trim() })
         .eq('id', dogId)
         .eq('user_id', user.id)
+    }
+
+    // 칼로리 v2 5단계(M9b) — 사료 DB 자가성장 로그: 건식/반반인데 브랜드만
+    // 알고 kcal 을 모르는 케이스 → kibble_requests (다음 매장 투어 쇼핑리스트).
+    // silent fail — 설문 완료 흐름을 막지 않는다.
+    if (
+      (foodType === '건식 사료' || foodType === '반반') &&
+      currentBrand.trim() &&
+      !kibbleKcal
+    ) {
+      try {
+        // 신규 테이블 — generated types 미반영 → cast (reweighs 선례).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('kibble_requests').insert({
+          user_id: user.id,
+          raw_input: currentBrand.trim(),
+        })
+      } catch {
+        /* 로그 실패 무시 */
+      }
     }
 
     // [발명 모듈 D] 체중 측정 방법/일자 — 설문에서 새로 고른 값 우선 (측정일=
@@ -1008,6 +1037,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             setSnackFreq={setSnackFreq}
             treatKcal={treatKcal}
             setTreatKcal={setTreatKcal}
+            kibbleKcal={kibbleKcal}
+            setKibbleKcal={setKibbleKcal}
             taste={taste}
             setTaste={setTaste}
             walkMinutes={walkMinutes}

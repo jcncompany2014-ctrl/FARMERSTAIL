@@ -27,15 +27,15 @@ import {
   SCENARIO_HWASIK_RATIO,
   type FeedingScenario,
   type MixCalculation,
-} from './mix-feeding'
-import { matchSku, type SkuMatch } from './sku-size-matcher'
-import { AVG_SUB_KRW_PER_100G } from './pricing'
+} from './mix-feeding.ts'
+import { matchSku, type SkuMatch } from './sku-size-matcher.ts'
+import { AVG_SUB_KRW_PER_100G } from './pricing.ts'
 import {
   ANALYSIS_COPY,
   PRICE_ANCHOR,
   withDogName,
   type BudgetTier,
-} from './copy-strings'
+} from './copy-strings.ts'
 
 // ─────────────────────────────────────────────────────────────────────
 // 💰 화식 100g 당 소비자가 (원) — lib/pricing.ts SSOT(확정 가격표)의
@@ -85,6 +85,11 @@ export interface BuildFeedingPlanInput {
   budgetTier?: BudgetTier | null
   /** 사용자 직접 입력 비율 (슬라이더). 미입력 시 budget default 사용. */
   customRatio?: number | null
+  /**
+   * 칼로리 v2 5단계(M9b) — 보호자 사료 라벨 kcal/100g (설문 신고값).
+   * mix 시나리오의 건사료 g 을 실제 사료 열량으로 계산. 미입력 = 평균 350.
+   */
+  kibbleKcalPer100g?: number | null
 }
 
 /**
@@ -106,8 +111,15 @@ export function buildFeedingPlan(input: BuildFeedingPlanInput): FeedingPlan {
   const scenario = defaultScenarioForBudget(budgetTier)
   const ratio = customRatio ?? SCENARIO_HWASIK_RATIO[scenario]
 
-  // 2) 화식·사료 분배
-  const mixCalc = calculateMix(dailyMerKcal, ratio)
+  // 2) 화식·사료 분배 — 건사료 kcal 신고값 있으면 실제 열량으로 (M9b).
+  const mixCalc = calculateMix(
+    dailyMerKcal,
+    ratio,
+    undefined,
+    input.kibbleKcalPer100g && input.kibbleKcalPer100g > 0
+      ? input.kibbleKcalPer100g / 100
+      : undefined,
+  )
 
   // 3) SKU 사이즈 매핑
   const skuMatch = matchSku(mixCalc.hwasik_g_per_day)

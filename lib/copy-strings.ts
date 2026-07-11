@@ -25,7 +25,8 @@
  *    "Buy Now", "Order", 이모지 3개 이상 연속
  */
 
-import { petName } from './korean'
+// node:test 직접 로드 호환(확장자 필수 — feeding-plan.test 체인).
+import { petName } from './korean.ts'
 
 // ──────────────────────────────────────────────────────────────────────
 // 비교 anchor (예산별 일상 비교)

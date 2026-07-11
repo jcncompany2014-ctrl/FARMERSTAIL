@@ -38,6 +38,8 @@ export default function PriceFramingCard({
 }: Props) {
   const supabase = createClient()
   const [budgetTier, setBudgetTier] = useState<BudgetTier | null>(null)
+  // 칼로리 v2 5단계 — 설문 신고 건사료 kcal/100g (mix 사료 g 정밀화).
+  const [kibbleKcal, setKibbleKcal] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   // 최신 survey 의 budget_tier 조회 (비교 anchor + 기본 mix 비율 결정).
@@ -53,7 +55,10 @@ export default function PriceFramingCard({
                 order: (c: string, o: { ascending: boolean }) => {
                   limit: (n: number) => {
                     maybeSingle: () => Promise<{
-                      data: { budget_tier: BudgetTier | null } | null
+                      data: {
+                        budget_tier: BudgetTier | null
+                        answers: { kibbleKcalPer100g?: number } | null
+                      } | null
                     }>
                   }
                 }
@@ -61,12 +66,16 @@ export default function PriceFramingCard({
             }
           }
         )
-          .select('budget_tier')
+          .select('budget_tier, answers')
           .eq('dog_id', dogId)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle()
-        if (!cancelled) setBudgetTier(data?.budget_tier ?? null)
+        if (!cancelled) {
+          setBudgetTier(data?.budget_tier ?? null)
+          const k = data?.answers?.kibbleKcalPer100g
+          setKibbleKcal(typeof k === 'number' && k > 0 ? k : null)
+        }
       } catch {
         /* null → 기본(5000_10000) 시나리오로 fallback */
       } finally {
@@ -85,6 +94,7 @@ export default function PriceFramingCard({
     dailyMerKcal,
     budgetTier,
     customRatio: null,
+    kibbleKcalPer100g: kibbleKcal,
   })
 
   return (
