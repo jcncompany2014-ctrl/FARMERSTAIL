@@ -22,6 +22,17 @@ export interface DailyEnergyData {
   merMax: number
   /** 가이드라인 라벨. ex: 'NRC 2006' */
   guideline: string
+  /**
+   * 칼로리 v2 6단계 — 계수 사다리 (analyses.factor_breakdown).
+   * [0] = 기본값(또는 성장기·감량 등 단일 요약), 이후 = 부호 있는 가산/감산.
+   * 과거 분석(v2 이전)은 없음 → 사다리 생략, ±30% 문구만.
+   */
+  breakdown?: { label: string; delta: number }[] | null
+}
+
+/** 0.15 → "0.15", 1.40 → "1.4" — 사다리 숫자 표기. */
+function fmtDelta(n: number): string {
+  return (Math.round(Math.abs(n) * 100) / 100).toString()
 }
 
 export function DailyEnergyCard({
@@ -136,6 +147,79 @@ export function DailyEnergyCard({
             {data.guideline}
           </div>
         </div>
+
+        {/* 계수 사다리 — 스펙 v2 §5 "계수 근거 노출 = 투명성이 곧 마케팅 자산".
+            감산(−)=올리브(비만 예방 방향), 가산(+)=브랜드, 시작값=잉크. */}
+        {data.breakdown && data.breakdown.length > 0 && (
+          <div
+            style={{
+              marginTop: 10,
+              padding: '12px 14px',
+              background: p.cardSoft,
+              borderRadius: 12,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10.5,
+                color: p.muted,
+                fontWeight: 600,
+                letterSpacing: '0.08em',
+              }}
+            >
+              계수 {data.factor.toFixed(2)}는 이렇게 나왔어요
+            </div>
+            <div style={{ marginTop: 8, display: 'grid', gap: 6 }}>
+              {data.breakdown.map((line, i) => (
+                <div
+                  key={`${line.label}-${i}`}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'baseline',
+                    gap: 12,
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  <span style={{ color: p.ink2, lineHeight: 1.45 }}>
+                    {line.label}
+                  </span>
+                  <span
+                    style={{
+                      color:
+                        i === 0
+                          ? p.ink
+                          : line.delta < 0
+                            ? p.accentOlive
+                            : p.brand,
+                      fontWeight: 700,
+                      fontVariantNumeric: 'tabular-nums',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {i === 0
+                      ? fmtDelta(line.delta)
+                      : `${line.delta < 0 ? '−' : '+'}${fmtDelta(line.delta)}`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 개체차 안내 — 스펙 v2 §7: 시작 추정치임을 수치 옆에서 정직하게. */}
+        <p
+          style={{
+            marginTop: 10,
+            fontSize: 11,
+            lineHeight: 1.55,
+            color: p.muted,
+          }}
+        >
+          같은 조건이라도 아이마다 필요 열량은 ±30%까지 달라요. 이 수치는
+          시작 추정치예요 — 2~4주 체중 변화를 보고 조금씩 맞춰가요.
+        </p>
       </ReportCard>
     </Reveal>
   )

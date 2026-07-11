@@ -192,6 +192,17 @@ export function calculateAdultFactor(
     Math.max(fac, CAL.FACTOR_FLOOR_MAINTENANCE),
     CAL.FACTOR_CEIL_ADULT,
   )
+  // 클램프 발동 시 사다리에도 기록 — 6단계 UI 가 라인 합계 = 최종 계수를
+  // 보여주므로, 보정 없이 잘라내면 합이 안 맞는 표가 노출된다.
+  if (Math.abs(clamped - fac) > 0.001) {
+    lines.push({
+      label:
+        clamped > fac
+          ? `안전 하한 ×${CAL.FACTOR_FLOOR_MAINTENANCE} 적용`
+          : `안전 상한 ×${CAL.FACTOR_CEIL_ADULT} 적용`,
+      delta: +(clamped - fac).toFixed(2),
+    })
+  }
   return { factor: +clamped.toFixed(2), lines }
 }
 

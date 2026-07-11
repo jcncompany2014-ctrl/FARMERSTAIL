@@ -61,6 +61,8 @@ type Props = {
   totalCount: number
   /** 칼로리 v2 2e — 위험 플래그 (에너지 카드 직하 수의 상담 배너 판정). */
   riskFlags?: string[]
+  /** 칼로리 v2 6단계 — 계수 사다리 (에너지 카드 내 근거 노출). */
+  factorBreakdown?: { label: string; delta: number }[] | null
 }
 
 export default function AnalysisMagazineSection({
@@ -86,6 +88,7 @@ export default function AnalysisMagazineSection({
   history,
   totalCount,
   riskFlags,
+  factorBreakdown,
 }: Props) {
   const magP = WARM_CREAM
   // 노령기 여부 — AdjustSheet 의 senior 단백/지방 상한 경고에 신뢰성 있게 전달
@@ -134,6 +137,7 @@ export default function AnalysisMagazineSection({
           merMin,
           merMax,
           guideline: 'NRC 2006',
+          breakdown: factorBreakdown,
         }}
       />
       {/* 칼로리 v2 2e (경고 강화 절충 — 사장님 확정 2026-07-12) — 임신·수유/

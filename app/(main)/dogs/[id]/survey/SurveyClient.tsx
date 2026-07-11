@@ -808,7 +808,15 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     // 하루 이르게 저장되는 off-by-one (2026-07-03 감사 수정, page.tsx 와 동일 헬퍼).
     const nextReview = addDaysKst(todayKstIsoDate(), nextDays)
 
-    const { error: analysisErr } = await supabase.from('analyses').insert({
+    // factor_breakdown 은 신규 컬럼(generated types 미반영) → 빌더 cast
+    // (surveys insert 선례 패턴).
+    const { error: analysisErr } = await (
+      supabase.from('analyses') as unknown as {
+        insert: (
+          v: Record<string, unknown>,
+        ) => Promise<{ error: { message?: string } | null }>
+      }
+    ).insert({
       dog_id: dogId,
       survey_id: surveyData.id,
       user_id: user.id,
@@ -834,6 +842,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       vet_consult_recommended: nu.vetConsult,
       next_review_date: nextReview,
       guideline_version: nu.guidelineVersion,
+      // 칼로리 v2 6단계 — 계수 사다리 (분석 페이지 "어떻게 계산했나요" 투명성).
+      factor_breakdown: nu.factorBreakdown,
     })
 
     if (analysisErr) {

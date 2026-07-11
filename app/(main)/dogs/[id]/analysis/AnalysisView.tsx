@@ -64,6 +64,8 @@ type Analysis = {
   vet_consult_recommended?: boolean | null
   next_review_date?: string | null
   guideline_version?: string | null
+  // 칼로리 v2 6단계 — 계수 사다리 (과거 분석은 null)
+  factor_breakdown?: { label: string; delta: number }[] | null
 }
 
 type HistoryPoint = {
@@ -457,6 +459,7 @@ export default function AnalysisView({
           history={history}
           totalCount={totalCount}
           riskFlags={analysis.risk_flags ?? []}
+          factorBreakdown={analysis.factor_breakdown ?? null}
         />
       )}
 
