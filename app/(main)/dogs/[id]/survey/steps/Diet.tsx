@@ -31,6 +31,9 @@ export type DietProps = {
   setCurrentBrand: (v: string) => void
   snackFreq: string
   setSnackFreq: (v: string) => void
+  /** 칼로리 v2 2d — 하루 간식 kcal (선택, 아는 경우만). '' = 모름 → 빈도 추정. */
+  treatKcal: string
+  setTreatKcal: (v: string) => void
   taste: Taste
   setTaste: (v: Taste) => void
   walkMinutes: string
@@ -57,6 +60,8 @@ export default function Diet({
   setCurrentBrand,
   snackFreq,
   setSnackFreq,
+  treatKcal,
+  setTreatKcal,
   taste,
   setTaste,
   walkMinutes,
@@ -152,6 +157,30 @@ export default function Diet({
             )
           })}
         </div>
+        {/* 칼로리 v2 2d — 간식 kcal 숫자(선택). 아는 만큼 정확히 차감(10% 캡),
+            초과분은 경고로 식별(헤비유저). 모름 = 빈도 기반 추정(가끔5%/매일10%). */}
+        {(snackFreq === '가끔' || snackFreq === '매일') && (
+          <>
+            <p className="s-sub" style={{ fontSize: 10.5, margin: '10px 0 8px' }}>
+              하루 간식 칼로리를 아신다면 적어 주세요. 포장 뒷면에 있어요 —
+              모르면 비워두셔도 돼요.
+            </p>
+            <div className="s-input-suffix">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={2000}
+                className="s-inp"
+                aria-label="하루 간식 칼로리 (kcal)"
+                value={treatKcal}
+                onChange={(e) => setTreatKcal(e.target.value)}
+                placeholder="예: 50"
+              />
+              <span className="s-unit">kcal / 일</span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="s-sect">

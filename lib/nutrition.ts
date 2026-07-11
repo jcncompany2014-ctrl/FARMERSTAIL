@@ -62,6 +62,11 @@ export type SurveyAnswers = {
   appetite?: 'strong' | 'normal' | 'picky' | 'reduced'
   /** 일일 산책 분 */
   dailyWalkMinutes?: number
+  /**
+   * 칼로리 v2 2d — 하루 간식 kcal (보호자 신고). 있으면 빈도 추정 대신 이 값을
+   * 10% 캡으로 차감. 캡 초과 = 헤비유저 식별(TREAT_EXCESS 플래그).
+   */
+  treatKcalPerDay?: number
   // ── 칼로리 v2 2b — 사다리 감산·가산 신호 (2026-07-12) ──
   /** 쉽게 찌는 체질(easy-keeper) — 감산 −0.1 신호. 미입력 = 모름(무보정). */
   isEasyKeeper?: boolean
@@ -531,9 +536,21 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   // 간식 칼로리 차감 — 간식만큼 완전식(밥)을 줄여 총섭취를 MER 로 유지 (10%
   // 룰). 간식 위에 밥을 풀로 주면 과급 → 비만. MER(요구량)은 그대로 두고
   // feedG(권장 급여 그램)에만 반영. snackFreq 미입력/거의 안 줌이면 0 (무변경).
-  const treatFraction = treatCalorieFraction(answers.snackFreq)
-  const foodKcal = Math.round(MER * (1 - treatFraction))
-  if (treatFraction >= 0.1) riskFlags.push('TREAT_LOAD_DAILY')
+  // 칼로리 v2 2d — 간식 kcal 신고값 우선 (10% 캡 차감 — 완전식 90%+ 보장).
+  // 캡 초과 신고 = 헤비유저 식별(TREAT_EXCESS: "간식 줄이기" 코칭 + M10 수렴
+  // 대상). 미신고 = 빈도 추정(가끔 5% / 매일 10%) — 기존 동작 유지.
+  const treatCap = MER * 0.1
+  const reportedTreat = answers.treatKcalPerDay
+  const treatKcalDeducted =
+    reportedTreat != null && reportedTreat >= 0
+      ? Math.min(reportedTreat, treatCap)
+      : MER * treatCalorieFraction(answers.snackFreq)
+  // 캡 초과 = 코칭 대상 플래그만 (수의 상담 강제 아님).
+  if (reportedTreat != null && reportedTreat > treatCap) {
+    riskFlags.push('TREAT_EXCESS')
+  }
+  if (treatKcalDeducted >= treatCap) riskFlags.push('TREAT_LOAD_DAILY')
+  const foodKcal = Math.round(MER - treatKcalDeducted)
 
   // ── 매크로 분기 (NRC + AAFCO 권장 범위 내) ──
   let proteinPct, fatPct, carbPct, fiberPct

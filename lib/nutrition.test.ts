@@ -279,6 +279,39 @@ describe('calculateNutrition — v2 2b 설문 신호 (easy-keeper·증거 게이
   })
 })
 
+describe('calculateNutrition — v2 2d 간식 kcal 신고 (10% 캡)', () => {
+  it('신고 30kcal (캡 이내) → 그만큼만 밥에서 차감', () => {
+    const r = calculateNutrition(
+      baseDog({ neutered: true }),
+      baseAnswers({ snackFreq: '매일', treatKcalPerDay: 30 }),
+    )
+    // MER 1.4 × 393.64 = 551. 캡 55.1 > 30 → 차감 30 → foodKcal 521.
+    assert.equal(r.mer, 551)
+    assert.equal(r.feedG, Math.round((551 - 30) / AVG_ENERGY_DENSITY_KCAL_PER_G))
+    assert.ok(!r.riskFlags.includes('TREAT_EXCESS'))
+  })
+
+  it('신고 200kcal (캡 초과) → 캡(10%)까지만 차감 + TREAT_EXCESS 식별', () => {
+    const r = calculateNutrition(
+      baseDog({ neutered: true }),
+      baseAnswers({ snackFreq: '매일', treatKcalPerDay: 200 }),
+    )
+    const cap = r.mer * 0.1
+    assert.equal(r.feedG, Math.round((r.mer - cap) / AVG_ENERGY_DENSITY_KCAL_PER_G))
+    assert.ok(r.riskFlags.includes('TREAT_EXCESS'))
+    assert.ok(r.riskFlags.includes('TREAT_LOAD_DAILY'))
+  })
+
+  it('미신고 → 빈도 추정 유지 (매일 = 10%)', () => {
+    const r = calculateNutrition(
+      baseDog({ neutered: true }),
+      baseAnswers({ snackFreq: '매일' }),
+    )
+    assert.equal(r.feedG, Math.round(r.mer * 0.9 / AVG_ENERGY_DENSITY_KCAL_PER_G))
+    assert.ok(r.riskFlags.includes('TREAT_LOAD_DAILY'))
+  })
+})
+
 describe('calculateNutrition — v2 2c 자견 NRC 정확식 (앞 상수 130)', () => {
   it('3kg 자견 / 성견예상 8kg → 정확식 589 kcal (스펙 T4, 토이 하향 전)', () => {
     const r = calculateNutrition(

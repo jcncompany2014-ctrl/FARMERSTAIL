@@ -156,6 +156,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   // 4. diet
   const [foodType, setFoodType] = useState('')
   const [snackFreq, setSnackFreq] = useState('')
+  // 칼로리 v2 2d — 하루 간식 kcal (선택 숫자 입력. '' = 모름 → 빈도 추정).
+  const [treatKcal, setTreatKcal] = useState('')
   const [taste, setTaste] = useState<'strong' | 'normal' | 'picky' | 'reduced' | ''>('')
   const [walkMinutes, setWalkMinutes] = useState('')
   const [currentBrand, setCurrentBrand] = useState('')
@@ -291,6 +293,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
         setBristol(data.bristol as typeof bristol)
       if (typeof data.foodType === 'string') setFoodType(data.foodType)
       if (typeof data.snackFreq === 'string') setSnackFreq(data.snackFreq)
+      if (typeof data.treatKcal === 'string') setTreatKcal(data.treatKcal)
       if (typeof data.taste === 'string') setTaste(data.taste as typeof taste)
       if (typeof data.walkMinutes === 'string') setWalkMinutes(data.walkMinutes)
       if (typeof data.currentBrand === 'string') setCurrentBrand(data.currentBrand)
@@ -390,6 +393,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             bristol,
             foodType,
             snackFreq,
+            treatKcal,
             taste,
             walkMinutes,
             currentBrand,
@@ -438,6 +442,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     bristol,
     foodType,
     snackFreq,
+    treatKcal,
     taste,
     walkMinutes,
     currentBrand,
@@ -612,6 +617,10 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       // walkMinutes 0-300 clamp (현실적 범위 — 산책 5시간 초과는 입력 오류).
       dailyWalkMinutes: walkMinutes
         ? Math.max(0, Math.min(300, Number(walkMinutes) || 0))
+        : undefined,
+      // 칼로리 v2 2d — 간식 kcal (10% 캡 차감 + 초과 식별은 nutrition 에서).
+      treatKcalPerDay: treatKcal
+        ? Math.max(0, Math.min(2000, Number(treatKcal) || 0))
         : undefined,
       // 칼로리 v2 2b — 사다리 신호 (미응답 = undefined → 무보정).
       isEasyKeeper: easyKeeper === '' ? undefined : easyKeeper === 'yes',
@@ -995,6 +1004,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             setCurrentBrand={setCurrentBrand}
             snackFreq={snackFreq}
             setSnackFreq={setSnackFreq}
+            treatKcal={treatKcal}
+            setTreatKcal={setTreatKcal}
             taste={taste}
             setTaste={setTaste}
             walkMinutes={walkMinutes}
