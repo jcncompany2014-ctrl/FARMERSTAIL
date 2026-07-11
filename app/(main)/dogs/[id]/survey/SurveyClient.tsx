@@ -751,6 +751,9 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
           effWeightMethod,
           effWeightMeasuredAt,
         ),
+        // 칼로리 v2 2c — 자견 NRC 정확식(130) 입력. 설문이 수집만 하고
+        // 계산에 안 넘기던 것 연결 (large-breed puppy 임계 판정에도 사용).
+        expectedAdultWeight: expectedAdultWeightKg ?? null,
       },
       answers,
     )

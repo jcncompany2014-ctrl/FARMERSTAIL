@@ -279,6 +279,47 @@ describe('calculateNutrition — v2 2b 설문 신호 (easy-keeper·증거 게이
   })
 })
 
+describe('calculateNutrition — v2 2c 자견 NRC 정확식 (앞 상수 130)', () => {
+  it('3kg 자견 / 성견예상 8kg → 정확식 589 kcal (스펙 T4, 토이 하향 전)', () => {
+    const r = calculateNutrition(
+      baseDog({
+        weight: 3,
+        ageValue: 5,
+        ageUnit: 'months',
+        expectedAdultWeight: 8,
+      }),
+      baseAnswers(),
+    )
+    assert.equal(r.stage, 'puppy')
+    // 130×3^0.75×3.2×(e^(−0.87×0.375)−0.1) = 589.47 → round 589.
+    // (70 이면 317 — 46% 과소. 상수 130 회귀 가드.)
+    assert.equal(r.mer, 589)
+  })
+
+  it('성견 예상체중 미입력 → 간이 근사 폴백 (5개월 ×2.5)', () => {
+    const r = calculateNutrition(
+      baseDog({ weight: 3, ageValue: 5, ageUnit: 'months' }),
+      baseAnswers(),
+    )
+    assert.equal(r.factor, 2.5)
+  })
+
+  it('현재체중 ≥ 성견예상 (p=1 클램프) — 성장 말기 완만 수렴', () => {
+    const r = calculateNutrition(
+      baseDog({
+        weight: 9,
+        ageValue: 11,
+        ageUnit: 'months',
+        expectedAdultWeight: 8,
+      }),
+      baseAnswers(),
+    )
+    assert.equal(r.stage, 'puppy')
+    // p 클램프 1 → 130×9^0.75×3.2×(e^−0.87 − 0.1) ≈ 690 (RER×1.9 급 — 성장 tail)
+    assert.ok(r.mer > 600 && r.mer < 780, `mer=${r.mer}`)
+  })
+})
+
 describe('calculateNutrition — pregnancy/lactation gender 게이트', () => {
   it('수컷에 lactating 입력 — 무시 (factor 폭주 차단)', () => {
     const r = calculateNutrition(

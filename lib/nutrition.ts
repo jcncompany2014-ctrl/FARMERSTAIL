@@ -390,12 +390,34 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   const ladderBcs = (answers.bcsExact ?? bcs.score) as number
   if (stage === 'puppy') {
     const m = ageMonths(dog)
-    if (m < 4) factor = 3.0
-    else if (m < 8) factor = 2.5
-    else factor = 2.0
-    factorBreakdown = [
-      { label: `성장기(${m}개월) — 간이 근사 ×${factor}`, delta: factor },
-    ]
+    const adultKg =
+      dog.expectedAdultWeight && dog.expectedAdultWeight > 0
+        ? dog.expectedAdultWeight
+        : null
+    if (adultKg) {
+      // 칼로리 v2 2c — NRC 2006 성장 정확식: 130×BW^0.75×3.2×(e^−0.87p−0.1).
+      // ⚠️ 앞 상수 130 (70 이면 ~46% 과소 — 스펙 가드레일 8). factor 는 RER
+      // 대비 비율로 역산해 기존 MER=RER×factor 파이프라인 유지(MER=round(der)).
+      // 토이 견종 −15% 하향은 4단계(견종 플래그)에서.
+      const p = Math.min(1, w / adultKg)
+      const der =
+        130 * Math.pow(w, 0.75) * 3.2 * (Math.exp(-0.87 * p) - 0.1)
+      factor = der / RER
+      factorBreakdown = [
+        {
+          label: `성장기 정확식 — 성장률 ${Math.round(p * 100)}% (NRC 130)`,
+          delta: +factor.toFixed(2),
+        },
+      ]
+    } else {
+      // 성견 예상체중 미입력 — 간이 근사 폴백 (나이 단계).
+      if (m < 4) factor = 3.0
+      else if (m < 8) factor = 2.5
+      else factor = 2.0
+      factorBreakdown = [
+        { label: `성장기(${m}개월) — 간이 근사 ×${factor}`, delta: factor },
+      ]
+    }
   } else if (ladderBcs >= 6) {
     // v2 감량 분기 (M2b·M5) — 과체중은 이상체중 기준 RER × 1.0 에서 시작.
     // (이전: 현재 체중 RER × bcsMerFactor 0.75~0.9 곱셈)
