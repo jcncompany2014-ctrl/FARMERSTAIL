@@ -62,6 +62,18 @@ export type SurveyAnswers = {
   appetite?: 'strong' | 'normal' | 'picky' | 'reduced'
   /** 일일 산책 분 */
   dailyWalkMinutes?: number
+  // ── 칼로리 v2 2b — 사다리 감산·가산 신호 (2026-07-12) ──
+  /** 쉽게 찌는 체질(easy-keeper) — 감산 −0.1 신호. 미입력 = 모름(무보정). */
+  isEasyKeeper?: boolean
+  /**
+   * 격한 운동(달리기·등산·어질리티 등) 여부 + 증거 수준.
+   * 'objective'(앱·웨어러블·기록)만 +0.2 가산 게이트 통과, 'self_report' 는 +0.1.
+   */
+  vigorousExercise?: 'none' | 'self_report' | 'objective'
+  /** 주거 환경. */
+  housing?: 'indoor' | 'indoor_outdoor' | 'outdoor'
+  /** 한랭 노출 — 실외 거주와 동시일 때만 +0.15. */
+  coldExposure?: boolean
   /** 현재 주식 브랜드명 */
   currentFoodBrand?: string
   // ── personalization v3 — 화식 비율 알고리즘 input ──
@@ -403,6 +415,11 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
       activityLevel: dog.activityLevel,
       dailyWalkMinutes: answers.dailyWalkMinutes,
       bcs: ladderBcs === 1 ? 5 : ladderBcs,
+      // 2b 설문 신호 — 미입력 시 보수 기본값 (감산·가산 미발동).
+      isEasyKeeper: answers.isEasyKeeper,
+      vigorousExercise: answers.vigorousExercise,
+      housing: answers.housing,
+      coldExposure: answers.coldExposure,
     })
     factor = ladder.factor
     factorBreakdown = ladder.lines

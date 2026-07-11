@@ -22,6 +22,11 @@ export interface LegacyLadderInput {
   dailyWalkMinutes?: number | null
   /** 현행 설문의 BCS (bcsExact 우선, 없으면 5단계 매핑 점수). */
   bcs: number
+  // ── 2b 설문 신호 (미입력 = 보수 기본값) ──
+  isEasyKeeper?: boolean
+  vigorousExercise?: 'none' | 'self_report' | 'objective' | null
+  housing?: 'indoor' | 'indoor_outdoor' | 'outdoor' | null
+  coldExposure?: boolean
 }
 
 export function legacyAdultLadder(a: LegacyLadderInput): {
@@ -37,17 +42,29 @@ export function legacyAdultLadder(a: LegacyLadderInput): {
     lifeStage: 'adult',
     // bcs 직접 주입으로 미사용 — 형식상 이상 체형.
     bodyAssessment: { ribs: 'easy', waist: 'slight', abdomen: 'level' },
+    // 격한 운동 응답이 있으면 그것이 프로필보다 우선(설문이 더 최신·구체 신호).
     activityIntensity:
-      a.activityLevel === 'high' ? 'high' : a.activityLevel === 'medium' ? 'mid' : 'low',
-    activityEvidence: 'self_report',
+      a.vigorousExercise === 'self_report' || a.vigorousExercise === 'objective'
+        ? 'high'
+        : a.vigorousExercise === 'none'
+          ? a.activityLevel === 'medium'
+            ? 'mid'
+            : 'low'
+          : a.activityLevel === 'high'
+            ? 'high'
+            : a.activityLevel === 'medium'
+              ? 'mid'
+              : 'low',
+    activityEvidence:
+      a.vigorousExercise === 'objective' ? 'objective' : 'self_report',
     isVeryInactive:
       a.activityLevel === 'low' &&
       a.dailyWalkMinutes != null &&
       a.dailyWalkMinutes >= 0 &&
       a.dailyWalkMinutes < 30,
-    housing: 'indoor',
-    coldExposure: false,
-    isEasyKeeper: false,
+    housing: a.housing ?? 'indoor',
+    coldExposure: !!a.coldExposure,
+    isEasyKeeper: !!a.isEasyKeeper,
     healthFlags: ['none'],
     givesTreats: false,
     hwasikSku: 'chicken', // 사다리 미사용

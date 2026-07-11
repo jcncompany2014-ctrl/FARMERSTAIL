@@ -227,6 +227,58 @@ describe('calculateNutrition — v2 BCS 처리 (가산·IBW 감량 분기)', () 
   })
 })
 
+describe('calculateNutrition — v2 2b 설문 신호 (easy-keeper·증거 게이트·한랭)', () => {
+  it('쉽게 찌는 체질 → −0.1: 중성화 5세 = 1.4 − 0.1 = 1.3', () => {
+    const r = calculateNutrition(
+      baseDog({ neutered: true }),
+      baseAnswers({ isEasyKeeper: true }),
+    )
+    assert.equal(r.factor, 1.3)
+  })
+
+  it('격한 운동 기록·측정 → +0.2 (객관 증거 게이트 통과)', () => {
+    const r = calculateNutrition(
+      baseDog({ neutered: true }),
+      baseAnswers({ vigorousExercise: 'objective' }),
+    )
+    assert.equal(r.factor, 1.6) // 1.4 + 0.2
+  })
+
+  it('격한 운동 느낌상 → +0.1 상한 (자가보고)', () => {
+    const r = calculateNutrition(
+      baseDog({ neutered: true }),
+      baseAnswers({ vigorousExercise: 'self_report' }),
+    )
+    assert.equal(r.factor, 1.5)
+  })
+
+  it('실외+한랭 → +0.15, 실내+한랭 → 무보정 (게이트: 실외 거주 동시)', () => {
+    const out = calculateNutrition(
+      baseDog({ neutered: true }),
+      baseAnswers({ housing: 'outdoor', coldExposure: true }),
+    )
+    assert.equal(out.factor, 1.55)
+    const indoor = calculateNutrition(
+      baseDog({ neutered: true }),
+      baseAnswers({ housing: 'indoor', coldExposure: true }),
+    )
+    assert.equal(indoor.factor, 1.4)
+  })
+
+  it("격한 운동 '안 해요' → 프로필 high 여도 가산 억제 (설문이 최신 신호)", () => {
+    const r = calculateNutrition(
+      baseDog({ neutered: true, activityLevel: 'high' }),
+      baseAnswers({ vigorousExercise: 'none' }),
+    )
+    assert.equal(r.factor, 1.4)
+  })
+
+  it('미응답 → 전부 무보정 (하위호환): 중성화 5세 = 1.4', () => {
+    const r = calculateNutrition(baseDog({ neutered: true }), baseAnswers())
+    assert.equal(r.factor, 1.4)
+  })
+})
+
 describe('calculateNutrition — pregnancy/lactation gender 게이트', () => {
   it('수컷에 lactating 입력 — 무시 (factor 폭주 차단)', () => {
     const r = calculateNutrition(

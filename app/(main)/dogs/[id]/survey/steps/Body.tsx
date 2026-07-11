@@ -66,6 +66,9 @@ export type BodyProps = {
   setWeightTrend: (v: WeightTrend) => void
   weightMethod: WeightMethod
   setWeightMethod: (v: WeightMethod) => void
+  /** 칼로리 v2 2b — 쉽게 찌는 체질(easy-keeper, 감산 −0.1 신호). '' = 미응답. */
+  easyKeeper: '' | 'yes' | 'no'
+  setEasyKeeper: (v: '' | 'yes' | 'no') => void
 }
 
 const BODY_QUESTIONS: Array<{
@@ -116,6 +119,8 @@ export default function Body({
   setWeightTrend,
   weightMethod,
   setWeightMethod,
+  easyKeeper,
+  setEasyKeeper,
 }: BodyProps) {
   return (
     <div className="s-page">
@@ -204,6 +209,36 @@ export default function Body({
                 onClick={() => setWeightTrend(v as WeightTrend)}
               >
                 <Icon size={13} strokeWidth={2} />
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 칼로리 v2 2b — easy-keeper. '네'만 감산 −0.1, 미응답/아니요 = 무보정. */}
+      <div className="s-sect">
+        <div className="s-sect-lbl">
+          <span className="s-label-text">살이 잘 찌는 편인가요?</span>
+          <span className="s-opt">선택</span>
+        </div>
+        <p className="s-sub" style={{ fontSize: 10.5, marginBottom: 8 }}>
+          조금만 더 먹여도 금방 찌는 체질이면 급여량을 살짝 보수적으로 잡아요.
+        </p>
+        <div className="s-chiprow">
+          {[
+            { v: 'yes', label: '네, 쉽게 쪄요' },
+            { v: 'no', label: '아니요' },
+          ].map(({ v, label }) => {
+            const active = easyKeeper === v
+            return (
+              <button
+                key={v}
+                type="button"
+                className={'s-chip' + (active ? ' s-on' : '')}
+                aria-pressed={active}
+                onClick={() => setEasyKeeper(active ? '' : (v as 'yes' | 'no'))}
+              >
                 {label}
               </button>
             )

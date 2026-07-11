@@ -37,6 +37,13 @@ export type DietProps = {
   setWalkMinutes: (v: string) => void
   indoorActivity: IndoorActivity
   setIndoorActivity: (v: IndoorActivity) => void
+  // ── 칼로리 v2 2b — 활동 증거 게이트 · 주거 환경 ──
+  vigorous: '' | 'none' | 'self' | 'objective'
+  setVigorous: (v: '' | 'none' | 'self' | 'objective') => void
+  housing: '' | 'indoor' | 'indoor_outdoor' | 'outdoor'
+  setHousing: (v: '' | 'indoor' | 'indoor_outdoor' | 'outdoor') => void
+  coldOutdoor: '' | 'yes' | 'no'
+  setColdOutdoor: (v: '' | 'yes' | 'no') => void
   homeCookingExp: HomeCookingExp
   setHomeCookingExp: (v: HomeCookingExp) => void
   dietSatisfaction: DietSatisfaction
@@ -56,6 +63,12 @@ export default function Diet({
   setWalkMinutes,
   indoorActivity,
   setIndoorActivity,
+  vigorous,
+  setVigorous,
+  housing,
+  setHousing,
+  coldOutdoor,
+  setColdOutdoor,
   homeCookingExp,
   setHomeCookingExp,
   dietSatisfaction,
@@ -217,6 +230,103 @@ export default function Diet({
             )
           })}
         </div>
+      </div>
+
+      {/* 칼로리 v2 2b — 격한 운동 + 증거 수준. '기록·측정'만 +0.2 가산 게이트
+          통과(자가 신고는 +0.1 상한) — 자가보고 활동은 과대추정 경향. */}
+      <div className="s-sect">
+        <div className="s-sect-lbl">
+          <span className="s-label-text">격한 운동을 규칙적으로 하나요?</span>
+          <span className="s-opt">선택</span>
+        </div>
+        <p className="s-sub" style={{ fontSize: 10.5, marginBottom: 8 }}>
+          달리기·등산·어질리티 등. 앱이나 웨어러블로 기록하면 &lsquo;기록·측정&rsquo;을
+          골라 주세요.
+        </p>
+        <div className="s-chiprow">
+          {[
+            { v: 'none', label: '안 해요' },
+            { v: 'self', label: '해요 (느낌상)' },
+            { v: 'objective', label: '해요 (기록·측정)' },
+          ].map(({ v, label }) => {
+            const active = vigorous === v
+            return (
+              <button
+                key={v}
+                type="button"
+                className={'s-chip' + (active ? ' s-on' : '')}
+                aria-pressed={active}
+                onClick={() =>
+                  setVigorous(active ? '' : (v as 'none' | 'self' | 'objective'))
+                }
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 칼로리 v2 2b — 주거 환경. 실외 + 한랭일 때만 +0.15 가산. */}
+      <div className="s-sect">
+        <div className="s-sect-lbl">
+          <span className="s-label-text">주로 어디서 지내요?</span>
+          <span className="s-opt">선택</span>
+        </div>
+        <div className="s-chiprow">
+          {[
+            { v: 'indoor', label: '실내' },
+            { v: 'indoor_outdoor', label: '실내+마당' },
+            { v: 'outdoor', label: '실외' },
+          ].map(({ v, label }) => {
+            const active = housing === v
+            return (
+              <button
+                key={v}
+                type="button"
+                className={'s-chip' + (active ? ' s-on' : '')}
+                aria-pressed={active}
+                onClick={() =>
+                  setHousing(
+                    active
+                      ? ''
+                      : (v as 'indoor' | 'indoor_outdoor' | 'outdoor'),
+                  )
+                }
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+        {housing === 'outdoor' && (
+          <>
+            <p className="s-sub" style={{ fontSize: 10.5, margin: '10px 0 8px' }}>
+              겨울에도 주로 밖에서 지내요? (추위에 노출되면 필요 열량이 늘어요)
+            </p>
+            <div className="s-chiprow">
+              {[
+                { v: 'yes', label: '네' },
+                { v: 'no', label: '아니요' },
+              ].map(({ v, label }) => {
+                const active = coldOutdoor === v
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    className={'s-chip' + (active ? ' s-on' : '')}
+                    aria-pressed={active}
+                    onClick={() =>
+                      setColdOutdoor(active ? '' : (v as 'yes' | 'no'))
+                    }
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       {/* R34c — 활동 그룹 (5~6) 와 경험·평가 그룹 (7~8) 사이 시각 분리. */}

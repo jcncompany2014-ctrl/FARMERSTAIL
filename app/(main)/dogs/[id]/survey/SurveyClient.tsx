@@ -142,6 +142,13 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   const [weightMethod, setWeightMethod] = useState<
     'vet_scale' | 'home_digital' | 'hold' | 'eyeball' | 'unknown' | ''
   >('')
+  // 칼로리 v2 2b — 사다리 감산·가산 신호 4종 ('' = 미응답 → 무보정).
+  const [easyKeeper, setEasyKeeper] = useState<'' | 'yes' | 'no'>('')
+  const [vigorous, setVigorous] = useState<'' | 'none' | 'self' | 'objective'>('')
+  const [housing, setHousing] = useState<
+    '' | 'indoor' | 'indoor_outdoor' | 'outdoor'
+  >('')
+  const [coldOutdoor, setColdOutdoor] = useState<'' | 'yes' | 'no'>('')
   // 2. muscle
   const [mcs, setMcs] = useState<McsKey | null>(null)
   // 3. stool
@@ -269,6 +276,14 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       if (data.bcs !== undefined) setBcs(data.bcs as BcsKey | null)
       if (data.bodyAssess && typeof data.bodyAssess === 'object')
         setBodyAssess(data.bodyAssess as BodyAssessmentState)
+      if (typeof data.easyKeeper === 'string')
+        setEasyKeeper(data.easyKeeper as typeof easyKeeper)
+      if (typeof data.vigorous === 'string')
+        setVigorous(data.vigorous as typeof vigorous)
+      if (typeof data.housing === 'string')
+        setHousing(data.housing as typeof housing)
+      if (typeof data.coldOutdoor === 'string')
+        setColdOutdoor(data.coldOutdoor as typeof coldOutdoor)
       if (typeof data.weightMethod === 'string')
         setWeightMethod(data.weightMethod as typeof weightMethod)
       if (data.mcs !== undefined) setMcs(data.mcs as McsKey | null)
@@ -366,6 +381,10 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
           JSON.stringify({
             bcs,
             bodyAssess,
+            easyKeeper,
+            vigorous,
+            housing,
+            coldOutdoor,
             weightMethod,
             mcs,
             bristol,
@@ -410,6 +429,10 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     STORAGE_KEY,
     bcs,
     bodyAssess,
+    easyKeeper,
+    vigorous,
+    housing,
+    coldOutdoor,
     weightMethod,
     mcs,
     bristol,
@@ -590,6 +613,12 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       dailyWalkMinutes: walkMinutes
         ? Math.max(0, Math.min(300, Number(walkMinutes) || 0))
         : undefined,
+      // 칼로리 v2 2b — 사다리 신호 (미응답 = undefined → 무보정).
+      isEasyKeeper: easyKeeper === '' ? undefined : easyKeeper === 'yes',
+      vigorousExercise:
+        vigorous === '' ? undefined : vigorous === 'self' ? 'self_report' : vigorous,
+      housing: housing || undefined,
+      coldExposure: coldOutdoor === '' ? undefined : coldOutdoor === 'yes',
       currentFoodBrand: currentBrand.trim() || undefined,
       careGoal: careGoal || undefined,
       homeCookingExperience: homeCookingExp || undefined,
@@ -936,6 +965,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             setWeightTrend={setWeightTrend}
             weightMethod={weightMethod}
             setWeightMethod={setWeightMethod}
+            easyKeeper={easyKeeper}
+            setEasyKeeper={setEasyKeeper}
           />
         )}
 
@@ -967,6 +998,12 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             setWalkMinutes={setWalkMinutes}
             indoorActivity={indoorActivity}
             setIndoorActivity={setIndoorActivity}
+            vigorous={vigorous}
+            setVigorous={setVigorous}
+            housing={housing}
+            setHousing={setHousing}
+            coldOutdoor={coldOutdoor}
+            setColdOutdoor={setColdOutdoor}
             homeCookingExp={homeCookingExp}
             setHomeCookingExp={setHomeCookingExp}
             dietSatisfaction={dietSatisfaction}
