@@ -36,6 +36,10 @@ export const dynamic = 'force-dynamic'
  * 2) 각 강아지에 대해:
  *    - 가장 최신 survey + analysis (영양 input)
  *    - 현재 cycle 의 checkins (week_2 / week_4)
+ *    - [칼로리 v2 M10 3b] 이번 cycle 중 재측정 조정(reweighs)이 있으면
+ *      다음 cycle 기준 kcal 을 조정값(new_der)으로 — ±10% 변화는
+ *      diffFormulas KCAL_DELTA(10%)에 걸려 pending_approval → 보호자 승인
+ *      후에만 청구 반영 (자동 청구 변경 없음 보장)
  *    - decideNextBox 호출
  *    - 새 dog_formulas row insert (cycle_number + 1)
  * 3) 푸시 알림 / 이메일 발송은 별개 cron 이 dog_formulas 새 row 감지해 처리.
@@ -230,6 +234,7 @@ export async function GET(req: Request) {
         { data: survey },
         { data: analysis },
         { data: checkinsRaw },
+        { data: reweighRow },
       ] = await Promise.all([
         supabase
           .from('dogs')
@@ -265,6 +270,18 @@ export async function GET(req: Request) {
           )
           .eq('dog_id', cur.dog_id)
           .eq('cycle_number', cur.cycle_number),
+        // 칼로리 v2 M10 3b — 이번 cycle 기간의 최신 재측정 조정.
+        // reweighs 는 신규 테이블이라 generated types 미반영 → cast
+        // (refund_order_points 신규 RPC 선례와 동일 패턴).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any)
+          .from('reweighs')
+          .select('new_der, weight_delta_pct, created_at')
+          .eq('dog_id', cur.dog_id)
+          .gt('created_at', cur.created_at)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle() as Promise<{ data: { new_der: number } | null }>,
       ])
 
       if (!dog || !survey || !analysis) {
@@ -309,6 +326,18 @@ export async function GET(req: Request) {
         mer: number
         feed_g: number
       }
+
+      // 칼로리 v2 M10 3b — 재측정 조정이 있으면 다음 cycle 기준 kcal 을
+      // 조정값으로 (grams 는 비례 스케일). ±10% 변화는 diffFormulas
+      // KCAL_DELTA(10%)에 걸려 pending_approval → 승인 후에만 청구 반영.
+      const reweighDer =
+        (reweighRow as { new_der: number } | null)?.new_der ?? 0
+      const baseKcal = analysisTyped.mer
+      const useReweigh = reweighDer > 0 && baseKcal > 0
+      const effectiveKcal = useReweigh ? reweighDer : baseKcal
+      const effectiveGrams = useReweigh
+        ? Math.round(analysisTyped.feed_g * (reweighDer / baseKcal))
+        : analysisTyped.feed_g
 
       const ageMonths =
         dogTyped.age_unit === 'years'
@@ -369,8 +398,8 @@ export async function GET(req: Request) {
         foodLineMetaOverride: Object.keys(foodLineMetaOverride).length
           ? foodLineMetaOverride
           : undefined,
-        dailyKcal: analysisTyped.mer,
-        dailyGrams: analysisTyped.feed_g,
+        dailyKcal: effectiveKcal,
+        dailyGrams: effectiveGrams,
         availableLines,
         availableToppers,
         treatReductionPct: treatCalorieFraction(surveyTyped.answers?.snackFreq),
