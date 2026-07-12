@@ -1,5 +1,10 @@
 // audit #96: SurveyClient.tsx 분할 — chronic step (만성질환 / 처방식 / 약물).
 // 파일명은 명세 따라 Status.tsx — 실제 STEPS 키는 'chronic'.
+//
+// 설문 정돈(2026-07-12, 사장님) — progressive disclosure. "진단받은 질환
+// 있나요? 없어요/있어요" 리드 게이트로, 건강한 개는 질환칩·IRIS·췌장염·
+// 처방식·약을 전부 안 보고 넘어간다. '있어요'일 때만 상세 펼침.
+import { useState } from 'react'
 import { Check, ShieldAlert } from 'lucide-react'
 import {
   CHRONIC_CONDITION_LABELS,
@@ -40,6 +45,16 @@ export default function Status({
   medications,
   setMedications,
 }: StatusProps) {
+  // progressive disclosure 리드 게이트. 복귀(autosave) 시 이미 입력된 상세가
+  // 있으면 '있어요'로 시작 — 순수 UI 상태라 별도 저장 불필요.
+  const [hasChronic, setHasChronic] = useState<'yes' | 'no' | ''>(
+    chronicConditions.length > 0 ||
+      prescriptionDiet.trim() !== '' ||
+      medications.trim() !== ''
+      ? 'yes'
+      : '',
+  )
+
   return (
     <div className="s-page">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
@@ -49,12 +64,41 @@ export default function Status({
         <span className="s-opt-badge">선택</span>
       </div>
       <h1 className="s-title">현재 진단받은<br />질환이 있나요?</h1>
-      <p className="s-sub">
-        식이 관리가 중요한 질환은 분기에 꼭 필요해요.
-        <span className="s-pill">없으면 건너뛰세요</span>
-      </p>
+      <p className="s-sub">식이 관리가 중요한 질환은 분석에 꼭 반영돼요.</p>
 
-      <div className="s-chiprow">
+      {/* 리드 게이트 — '없어요'면 상세 전부 숨김(건강한 개는 여기서 끝),
+          '있어요'면 질환칩·단계·처방식·약 펼침. '없어요' 선택 시 이전에
+          입력한 상세를 모두 비워 stale 방지. */}
+      <div className="s-seg" style={{ marginTop: 4 }}>
+        <button
+          type="button"
+          aria-pressed={hasChronic === 'no'}
+          onClick={() => {
+            setHasChronic('no')
+            setChronicConditions([])
+            setIrisStage(null)
+            setPancreatitisSeverity(null)
+            setPrescriptionDiet('')
+            setMedications('')
+          }}
+        >
+          <Check size={16} strokeWidth={2} />
+          없어요
+        </button>
+        <button
+          type="button"
+          className="s-danger"
+          aria-pressed={hasChronic === 'yes'}
+          onClick={() => setHasChronic('yes')}
+        >
+          <ShieldAlert size={16} strokeWidth={2} />
+          있어요
+        </button>
+      </div>
+
+      {hasChronic === 'yes' && (
+      <>
+      <div className="s-chiprow" style={{ marginTop: 12 }}>
         {(Object.keys(CHRONIC_CONDITION_LABELS) as ChronicConditionKey[]).map((k) => {
           const active = chronicConditions.includes(k)
           return (
@@ -251,6 +295,8 @@ export default function Status({
           )
         })()}
       </div>
+      </>
+      )}
 
       {chronicConditions.length > 0 && (
         <div className="s-note">
