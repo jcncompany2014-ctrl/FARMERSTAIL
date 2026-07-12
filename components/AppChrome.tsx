@@ -305,7 +305,14 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     // 센터 정렬 + 그림자 부양 시킨다. 모바일(<md)에서는 규칙 전부 무시되어
     // 기존 full-bleed 경험 그대로. 상세 근거는 globals.css의 @media 블록
     // 주석 참고. 바깥 body도 --bg-2로 어두워져 "프레임 밖" 느낌이 산다.
-    <div className="phone-frame min-h-screen bg-bg" data-ft-chrome="app">
+    <div
+      className="phone-frame min-h-screen bg-bg"
+      data-ft-chrome="app"
+      // focus 흐름(설문/체크인/승인 + 설문 직후 분석 결과)에서 헤더뿐 아니라
+      // 강아지 탭 nav 도 CSS 로 확실히 숨기기 위한 신호(globals.css). 하이드레이션
+      // 타이밍 무관 — nav 가 속한 하위 레이아웃이 늦게 뜨거나 실패해도 숨겨짐.
+      data-focus={focusMode ? 'true' : undefined}
+    >
       {/* 상단 헤더 v3 — 3-zone grid (좌 내정보/← · 중앙 logo.png · 우 강아지 칩).
           focus mode (설문/체크인 등) 에서는 hide. */}
       {!focusMode && (

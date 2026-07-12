@@ -22,7 +22,7 @@
  * 활성 탭은 terracotta underline + bold. 모바일 친화 — 한 손 엄지.
  */
 
-import type { ComponentType, CSSProperties } from 'react'
+import { useSyncExternalStore, type ComponentType, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Camera, BarChart3, Repeat } from 'lucide-react'
@@ -85,9 +85,30 @@ const TABS: readonly Tab[] = [
  */
 const HIDE_ON_PATHS = ['/survey', '/checkin', '/approve']
 
+/**
+ * 설문 직후(fromSurvey=1) 결과 진입 감지 — AppChrome 의 focusMode 와 동일 신호.
+ * useSearchParams(Suspense 필요) 대신 useSyncExternalStore 로 SSR-safe.
+ */
+function useFromSurvey(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      window.addEventListener('popstate', cb)
+      return () => window.removeEventListener('popstate', cb)
+    },
+    () => new URLSearchParams(window.location.search).get('fromSurvey') === '1',
+    () => false,
+  )
+}
+
 export default function DogTabsNav({ dogId }: { dogId: string }) {
   const pathname = usePathname()
+  const fromSurvey = useFromSurvey()
   if (HIDE_ON_PATHS.some((p) => pathname.includes(p))) return null
+  // 설문 직후 분석 결과(focus 흐름) — AppChrome 헤더가 이미 숨겨져 있어(focusMode),
+  // 탭 nav 도 같이 숨겨야 한다. 안 그러면 이 nav 의 sticky top(=헤더 높이) 이
+  // 없는 헤더 자리를 비워둔 채, 분석 sticky 요약바(top:0)와 상단에서 겹쳐
+  // '빈 공간 + 탭 스트립 겹침'으로 깨진다(사장님 리포트 2026-07-12).
+  if (pathname.includes('/analysis') && fromSurvey) return null
 
   return (
     <nav

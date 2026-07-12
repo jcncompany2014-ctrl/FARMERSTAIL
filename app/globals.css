@@ -1058,6 +1058,16 @@ button,
 html:not(:has([data-ft-chrome='app'])) {
   scroll-padding-top: 96px;
 }
+
+/* focus 모드(AppChrome data-focus): 설문 직후 분석 결과 등에서 헤더와 함께
+   강아지 탭 nav(개요/기록/분석/구독) 도 숨긴다. 이 nav 의 sticky top 은 헤더
+   높이만큼 내려가 있어서, 헤더가 숨은 focus 화면에선 없는 헤더 자리를 비운 채
+   분석 sticky 요약바(top:0)와 상단에서 겹쳐 '빈 공간 + 탭 겹침'으로 깨졌다
+   (사장님 리포트 2026-07-12). AppChrome 의 focusMode → data-focus 로 노출해
+   CSS 로 확실히 숨김(DogTabsNav 하이드레이션 타이밍과 무관). */
+[data-ft-chrome='app'][data-focus] nav[aria-label='강아지 메뉴'] {
+  display: none;
+}
 @media (prefers-reduced-motion: no-preference) {
   html:not(:has([data-ft-chrome='app'])) {
     scroll-behavior: smooth;
