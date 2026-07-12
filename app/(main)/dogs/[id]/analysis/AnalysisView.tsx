@@ -93,7 +93,7 @@ type Dog = {
 export default function AnalysisView({
   dogId,
   analysisId,
-  surveyBlockedDays,
+  surveyBlocked,
 }: {
   dogId: string
   /** When set, load this specific historical analysis instead of the latest. */
@@ -102,7 +102,7 @@ export default function AnalysisView({
    * R80-P1: survey 30일 가드로 redirect 된 경우 남은 일수 (1-30).
    * useEffect 에서 1회 toast 표시 후 URL 정리.
    */
-  surveyBlockedDays?: number | null
+  surveyBlocked?: boolean
 }) {
   const router = useRouter()
   const supabase = createClient()
@@ -113,11 +113,11 @@ export default function AnalysisView({
   // 사장님 2026-06-19: 토스트가 2번 떴음 → ref 가드로 이중 발화(StrictMode·재마운트) 차단.
   const blockedToastShownRef = useRef(false)
   useEffect(() => {
-    if (!surveyBlockedDays || surveyBlockedDays <= 0) return
+    if (!surveyBlocked) return
     if (blockedToastShownRef.current) return
     blockedToastShownRef.current = true
     toast.info(
-      `지난 분석 후 30일이 안 됐어요 (${surveyBlockedDays}일 남음). 체중이나 건강 정보가 바뀌었다면, 정보를 고친 뒤 다시 분석할 수 있어요.`,
+      '이번 달 재분석 3회를 모두 사용했어요. 다음 달에 다시 할 수 있어요. 체중이나 건강 정보가 바뀌었다면, 정보를 고친 뒤 바로 다시 분석할 수 있어요.',
     )
     // URL 정리
     if (typeof window !== 'undefined') {

@@ -37,14 +37,13 @@ export default async function SurveyPage({
     redirect('/dogs')
   }
 
-  // R80-P1 + B1: 재분석 30일 제한 — Anthropic 비용 폭주 차단.
-  // 마지막 분석 후 30일 이내면 기본적으로 새 설문을 막고 분석 페이지로 redirect.
-  // 6개월(180일) 후 cron 이 자동으로 재진단 푸시 알림 발송.
+  // 재분석 월 3회 한도 (2026-07-12 사장님 — 옛 30일 락 대체). 이번 (KST) 달에
+  // 생성된 분석이 3건이면 새 설문을 막고 분석 페이지로 redirect. Anthropic 비용
+  // 상한은 유지하되 한 달 안에서 최대 3회까지 재분석 허용 — 훨씬 유연.
   //
-  // 단(B1, 2026-06-06): 체중/질병 같은 "중요 정보"가 마지막 분석 이후 실제로
-  // 바뀐 경우엔 30일 안이라도 재분석을 허용한다. 잘못 입력한 체중(예: 4kg →
-  // 14kg)에 추천이 30일간 고정되는 문제 방지. 단순 새로고침 남발은 변경 신호가
-  // 없으면 계속 차단된다.
+  // 단(B1 유지): 체중/질병 같은 "중요 정보"가 마지막 분석 이후 실제로 바뀐
+  // 경우엔 3회를 넘었어도 재분석을 허용한다(잘못 입력한 체중이 달 끝까지
+  // 고정되는 문제 방지). 단순 새로고침 남발은 변경 신호 없으면 계속 차단된다.
   const { data: lastAnalysis } = await supabase
     .from('analyses')
     .select('id, created_at, rer')
@@ -57,9 +56,23 @@ export default async function SurveyPage({
   if (lastAnalysis?.created_at) {
     // 서버 컴포넌트 — Date.now() 는 impure 로 막혀 new Date() 사용.
     const lastMs = new Date(lastAnalysis.created_at).getTime()
-    const ageDays = (new Date().getTime() - lastMs) / (1000 * 60 * 60 * 24)
 
-    if (ageDays < 30) {
+    // 이번 달(KST +9) 1일 00:00 → UTC ISO 로 이번 달 경계 계산.
+    const kstNow = new Date(new Date().getTime() + 9 * 60 * 60 * 1000)
+    const monthStartUtcIso = new Date(
+      `${kstNow.getUTCFullYear()}-${String(
+        kstNow.getUTCMonth() + 1,
+      ).padStart(2, '0')}-01T00:00:00+09:00`,
+    ).toISOString()
+    const { count: monthCount } = await supabase
+      .from('analyses')
+      .select('id', { count: 'exact', head: true })
+      .eq('dog_id', id)
+      .eq('user_id', user.id)
+      .gte('created_at', monthStartUtcIso)
+
+    // 이번 달 3회 이상 분석했으면 게이트 (체중/질병 변경은 아래에서 우회 허용).
+    if ((monthCount ?? 0) >= 3) {
       let materialChange = false
 
       // 1) 체중 변경 — (a) 분석 이후 재측정됐거나, (b) 현재 체중이 분석 당시
@@ -112,11 +125,10 @@ export default async function SurveyPage({
       }
 
       if (!materialChange) {
-        // 변경 없음 → 30일 락 유지. 최신 분석 페이지로 안내(토스트는 그 페이지).
-        const daysLeft = Math.ceil(30 - ageDays)
-        redirect(`/dogs/${id}/analysis?from=survey_blocked&days=${daysLeft}`)
+        // 이번 달 3회 소진 → 최신 분석 페이지로 안내(토스트는 그 페이지).
+        redirect(`/dogs/${id}/analysis?from=survey_blocked`)
       }
-      // 변경 감지 → 통과(재분석 진행).
+      // 중요 정보 변경 감지 → 통과(재분석 진행).
     }
   }
 
