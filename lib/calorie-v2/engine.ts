@@ -78,19 +78,26 @@ export function breedToFlags(breed: BreedKey): BreedFlags {
 /**
  * 갈비뼈를 1차 축으로, 허리·배로 ±조정. 견주가 "7점"을 고르는 것보다 정확.
  *
- * ⚠️ 스펙 코드-본문 불일치 발견(0단계): 본문 T1 은 easy+clear+tucked → "BCS5"
- * 라고 적었지만 코드대로면 lean 2신호 → 5−1=4. 코드 기준으로 구현(4도 이상
- * 범위라 factor 영향 0). 임상적으론 easy+잘록+올라감 = 교과서 4~5 — 무해.
+ * 갈비뼈 base 매핑(3·5·6·8)에는 4·7 이 의도적으로 비어 있고, 허리·배가 한
+ * 방향으로 '둘 다' 일치할 때 그 칸을 채운다:
+ *   살짝 만져지는 갈비뼈(5) + 볼록 허리 + 처진 배 → 6 (초기 과체중),
+ *   꾹 눌러야 하는 갈비뼈(6) + 잘록 허리 + 올라간 배 → 5.
+ * 갈비뼈(촉진)가 가장 강한 단일 지표라 base 를 앵커로 삼고, 허리·배는 '둘 다'
+ * 일치할 때만 ±1 보정한다(단일 신호는 애매해 흔들지 않음 — 임상 BCS 판정과 동일).
+ *
+ * 🔧 2026-07-12 버그 수정(사장님 리포트): 예전엔 heavy 보정이 base≥6, lean
+ * 보정이 base≤5 일 때만 걸려 있어, '갈비뼈는 이상인데 허리·배는 과체중'인
+ * 케이스(easy+none+sagging)가 5 로 고정됐다(허리·배가 갈비뼈와 이미 같은 방향일
+ * 때만 반영되는 구조). base 방향 게이트를 제거해 허리·배가 갈비뼈 판정을 실제로
+ * 보정하도록 함. 기존 통과 케이스(hard+heavy→9, visible+lean→2 등)는 그대로.
  */
 export function deriveBCS(b: SurveyInputV2['bodyAssessment']): number {
   const base = { visible: 3, easy: 5, slight_pressure: 6, hard: 8 }[b.ribs]
-  let bcs = base
-  // 허리+배가 과체중 방향으로 일치하면 +1, 마른 방향으로 일치하면 −1.
+  // 허리+배가 과체중 방향으로 둘 다 일치하면 +1, 마른 방향으로 둘 다면 −1.
   const heavy = (b.waist === 'none' ? 1 : 0) + (b.abdomen === 'sagging' ? 1 : 0)
   const lean = (b.waist === 'clear' ? 1 : 0) + (b.abdomen === 'tucked' ? 1 : 0)
-  if (heavy >= 2 && base >= 6) bcs = Math.min(9, base + 1)
-  if (lean >= 2 && base <= 5) bcs = Math.max(2, base - 1)
-  return bcs
+  const adj = (heavy >= 2 ? 1 : 0) - (lean >= 2 ? 1 : 0)
+  return Math.max(2, Math.min(9, base + adj))
 }
 
 // ─────────────────────────────────────────────────────────────────────

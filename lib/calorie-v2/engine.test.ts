@@ -63,6 +63,28 @@ describe('deriveBCS — 3분해 역산 (M2a)', () => {
   it('갈비뼈 easy 단독 → 5 (이상)', () => {
     assert.equal(deriveBCS({ ribs: 'easy', waist: 'slight', abdomen: 'level' }), 5)
   })
+
+  // 🔧 2026-07-12 버그 수정 회귀 (사장님 리포트): 예전 base 방향 게이트 때문에
+  // '갈비뼈 이상 + 허리·배 과체중' 이 5 로 고정됐던 케이스들. 허리·배가 실제로
+  // 갈비뼈 판정을 보정해야 한다.
+  it('갈비뼈 easy + 허리 none + 배 sagging → 6 (초기 과체중, 게이트 버그 케이스)', () => {
+    assert.equal(deriveBCS({ ribs: 'easy', waist: 'none', abdomen: 'sagging' }), 6)
+  })
+  it('갈비뼈 visible + 허리 none + 배 sagging → 4 (마른 갈비뼈지만 과체중 신호)', () => {
+    assert.equal(deriveBCS({ ribs: 'visible', waist: 'none', abdomen: 'sagging' }), 4)
+  })
+  it('갈비뼈 slight_pressure(6) + 마른 신호 2 → 5 (7빈칸 반대방향)', () => {
+    assert.equal(
+      deriveBCS({ ribs: 'slight_pressure', waist: 'clear', abdomen: 'tucked' }),
+      5,
+    )
+  })
+  it('갈비뼈 hard(8) + 마른 신호 2 → 7 (모순 신호, 7로 절충)', () => {
+    assert.equal(deriveBCS({ ribs: 'hard', waist: 'clear', abdomen: 'tucked' }), 7)
+  })
+  it('단일 신호(허리만 none)는 갈비뼈 이상 판정을 흔들지 않음 → 5', () => {
+    assert.equal(deriveBCS({ ribs: 'easy', waist: 'none', abdomen: 'level' }), 5)
+  })
 })
 
 describe('RER (M3) — 지수식 + 토이 보정 유지(사장님 확정)', () => {
