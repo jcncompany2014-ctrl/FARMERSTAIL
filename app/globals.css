@@ -1042,15 +1042,24 @@ button,
   -webkit-tap-highlight-color: transparent;
 }
 
-/* In-page anchor nav on the editorial landing: scroll smoothly, and offset
-   the scroll target below the sticky EditorialHeader (≈ 86px: safe-area
-   padding + top bar + sub-nav). Gated on prefers-reduced-motion so users who
-   opt out don't get smooth scroll forced on them. */
-html {
+/* In-page anchor nav on the editorial landing (WEB only): scroll smoothly, and
+   offset the scroll target below the sticky EditorialHeader (≈ 96px).
+
+   ⚠️ 앱(data-ft-chrome="app")에는 절대 적용 금지 (2026-07-12 사장님 리포트로 수정).
+   전역 <html> 에 scroll-behavior:smooth 가 걸리면 Next App Router 의 라우트 전환
+   scroll-to-top(0) 이 방해받아, 새 페이지가 맨 위가 아니라 scroll-padding-top
+   (~96px) 만큼 내려간 지점에서 시작한다. 그 결과 반투명 sticky 요약바(분석 결과의
+   kcal/g/BCS 바)가 히어로 본문과 겹쳐 '상단이 깨져' 보였다. 앱은 네이티브처럼
+   매 화면 맨 위에서 시작해야 하므로 기본(auto) 스크롤로 되돌린다.
+
+   웹 컨텍스트는 data-ft-chrome 속성이 없으므로(app 만 "app"),
+   :not(:has([data-ft-chrome="app"])) 로 앱만 배제 → 웹 랜딩 동작은 그대로 보존.
+   reduced-motion 사용자는 smooth 강제 안 함. */
+html:not(:has([data-ft-chrome='app'])) {
   scroll-padding-top: 96px;
 }
 @media (prefers-reduced-motion: no-preference) {
-  html {
+  html:not(:has([data-ft-chrome='app'])) {
     scroll-behavior: smooth;
   }
 }
