@@ -1,11 +1,14 @@
 'use client'
 
 /**
- * Magazine BoxMixCard — segmented 기간 switcher + stacked bar + 5종 row.
- * 1주분 / 2주분 / 4주분 토글은 표시 단위 (kcal·g) 만 바뀜.
+ * Magazine BoxMixCard — 첫 박스 "레시피 구성" 카드 (스택 바 + 라인 행).
+ *
+ * 2026-07-13 갈아엎기(사장님 지시): 기간(1/2/4주분) 토글 제거 — 배송은 무조건
+ * 2주마다 고정이라 기간은 선택 개념이 아님. 화식 비율 선택(곁들임/반반/완전)은
+ * 아래 RecommendationBox 로 이동. 행도 시끄러운 스텐실 라벨·카운터·큰 % 를 빼고
+ * 하루 g·kcal 만 차분하게 — % 수치는 노출 안 함(스택 바가 비율을 시각화).
  */
 
-import { useState } from 'react'
 import Image from 'next/image'
 import { Bone, Droplet, Sparkles, Leaf } from 'lucide-react'
 import { petName } from '@/lib/korean'
@@ -16,27 +19,20 @@ import { ReportCard, SectionHeader } from './ReportCard'
 
 export interface BoxMixItem {
   key: BoxLineKey
-  /** 영문 라벨 (스텐실). ex: 'Basic' */
+  /** 영문 라벨 (레거시 — 현재 행에는 미표시, boxItems 빌더 호환 위해 유지). */
   name: string
   /** 한국어 이름 + 단백. ex: '닭 · 균형식' */
   ko: string
   /** 부제. ex: '단일 단백원 · 소화 부담 낮음' */
   sub: string
-  /** 비율 % */
+  /** 비율 % — 스택 바 폭 산정용(수치 자체는 미표시). */
   pct: number
-  /** 1주분 일일 평균 kcal */
+  /** 하루 평균 kcal */
   kcal: number
-  /** 1주분 일일 평균 g */
+  /** 하루 평균 g */
   g: number
   /** 누끼 제품 사진 URL — 있으면 원형 슬롯에 표시, 없으면 아이콘 placeholder. */
   photoUrl?: string | null
-}
-
-type PeriodKey = '1주분' | '2주분' | '4주분'
-const PERIOD_MULT: Record<PeriodKey, number> = {
-  '1주분': 7,
-  '2주분': 14,
-  '4주분': 28,
 }
 
 export function BoxMixCard({
@@ -48,9 +44,7 @@ export function BoxMixCard({
   dogName: string
   items: BoxMixItem[]
 }) {
-  const [period, setPeriod] = useState<PeriodKey>('1주분')
   const colors = lineColors(p)
-  const days = PERIOD_MULT[period]
 
   return (
     <Reveal delay={80}>
@@ -62,58 +56,16 @@ export function BoxMixCard({
           tail={`화식 ${items.length}종 레시피`}
         />
 
-        <div
-          style={{
-            display: 'flex',
-            marginTop: 12,
-            padding: 4,
-            background: p.cardSoft,
-            borderRadius: 999,
-            gap: 4,
-          }}
-        >
-          {(['1주분', '2주분', '4주분'] as PeriodKey[]).map((t) => {
-            const active = t === period
-            return (
-              <button
-                key={t}
-                onClick={() => setPeriod(t)}
-                type="button"
-                style={{
-                  flex: 1,
-                  background: active ? '#fff' : 'transparent',
-                  color: active ? p.ink : p.muted,
-                  border: 'none',
-                  borderRadius: 999,
-                  padding: '8px 0',
-                  fontSize: 13,
-                  fontWeight: active ? 700 : 600,
-                  cursor: 'pointer',
-                  boxShadow: active ? `0 2px 8px ${p.ink}1a` : 'none',
-                  transition: 'all 200ms',
-                }}
-              >
-                {t}
-              </button>
-            )
-          })}
-        </div>
-
-        <div style={{ marginTop: 16 }}>
-          <StackedBar items={items} colors={colors} />
-        </div>
+        {/* 2종 이상일 때만 비율 바 — 1종이면 100% 단색이라 불필요. */}
+        {items.length >= 2 && (
+          <div style={{ marginTop: 16 }}>
+            <StackedBar items={items} colors={colors} />
+          </div>
+        )}
 
         <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {items.map((it, i) => (
-            <BoxRow
-              key={it.key}
-              p={p}
-              idx={i + 1}
-              total={items.length}
-              item={it}
-              color={colors[it.key]}
-              periodDays={days}
-            />
+          {items.map((it) => (
+            <BoxRow key={it.key} p={p} item={it} color={colors[it.key]} />
           ))}
         </div>
       </ReportCard>
@@ -157,21 +109,13 @@ function StackedBar({
 
 function BoxRow({
   p,
-  idx,
-  total,
   item,
   color,
-  periodDays,
 }: {
   p: MagazinePalette
-  idx: number
-  total: number
   item: BoxMixItem
   color: string
-  periodDays: number
 }) {
-  const totalG = Math.round((item.g * periodDays) / 7)
-  const totalKcal = Math.round((item.kcal * periodDays) / 7)
   const IconComp =
     item.key === 'skin'
       ? Droplet
@@ -191,13 +135,12 @@ function BoxRow({
         borderRadius: 8,
       }}
     >
-      {/* 원형 제품사진 슬롯 — 누끼 제품 사진 자리(사장님 지시 2026-06-19).
-          photoUrl 있으면 원형 안에 표시, 없으면 라인색 틴트 원 + 아이콘
-          placeholder. 레시피 2종 박스라 행이 적어 큼직한 원형이 자연스러움. */}
+      {/* 원형 제품사진 슬롯 — 누끼 제품 사진 자리. photoUrl 있으면 원형 안에 표시,
+          없으면 라인색 틴트 원 + 아이콘 placeholder. */}
       <div
         style={{
-          width: 52,
-          height: 52,
+          width: 48,
+          height: 48,
           borderRadius: '50%',
           background: `color-mix(in srgb, ${color} 12%, transparent)`,
           border: `1px solid color-mix(in srgb, ${color} 28%, transparent)`,
@@ -214,7 +157,7 @@ function BoxRow({
             src={item.photoUrl}
             alt={item.ko}
             fill
-            sizes="52px"
+            sizes="48px"
             style={{ objectFit: 'contain' }}
           />
         ) : (
@@ -222,44 +165,22 @@ function BoxRow({
         )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <span
-            style={{
-              fontFamily: 'var(--font-stencil, "Stardos Stencil", serif)',
-              fontSize: 11,
-              color,
-              letterSpacing: '0.16em',
-              fontWeight: 700,
-            }}
-          >
-            {item.name.toUpperCase()}
-          </span>
-          <span style={{ fontSize: 10, color: p.muted, fontWeight: 600 }}>
-            0{idx}/0{total}
-          </span>
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: p.ink, marginTop: 1 }}>
-          {item.ko}
-        </div>
-        <div style={{ fontSize: 11, color: p.muted, marginTop: 1 }}>{item.sub}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: p.ink }}>{item.ko}</div>
+        <div style={{ fontSize: 11, color: p.muted, marginTop: 2 }}>{item.sub}</div>
       </div>
-      <div style={{ textAlign: 'right' }}>
+      <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <div
           style={{
-            fontSize: 22,
-            fontWeight: 900,
-            color,
-            lineHeight: 1,
-            letterSpacing: '-0.02em',
+            fontSize: 9,
+            color: p.muted,
+            fontWeight: 600,
+            letterSpacing: '0.1em',
           }}
         >
-          {item.pct}
-          <span style={{ fontSize: 12, fontWeight: 700, color: p.muted, marginLeft: 1 }}>
-            %
-          </span>
+          하루
         </div>
-        <div style={{ fontSize: 10, color: p.muted, fontWeight: 600, marginTop: 3 }}>
-          {totalG}g · {totalKcal}kcal
+        <div style={{ fontSize: 12, color: p.ink, fontWeight: 700, marginTop: 1 }}>
+          {Math.round(item.g)}g · {Math.round(item.kcal)}kcal
         </div>
       </div>
     </div>

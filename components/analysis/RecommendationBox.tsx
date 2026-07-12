@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Loader2,
   Calendar,
@@ -17,13 +17,9 @@ import {
   Info,
   ChevronDown,
 } from 'lucide-react'
-import { dailyGramsFromMix } from '@/lib/personalization/lines'
-import { transitionLabel } from '@/lib/personalization/format'
 import { trackBoxRecommended, trackAnalysisViewed } from '@/lib/analytics'
-import type {
-  Formula,
-  Reasoning,
-} from '@/lib/personalization/types'
+import { createClient } from '@/lib/supabase/client'
+import type { Formula, Reasoning } from '@/lib/personalization/types'
 import AdjustSheet from './AdjustSheet'
 import {
   fetchComputedFormula,
@@ -34,19 +30,22 @@ import './adjust-sheet.css'
 
 /**
  * RecommendationBox — analysis 페이지 Magazine 레이아웃 안의
- * "정기배송 신청 + 비율조정 + 왜 이 비율" 블록.
+ * "화식 비율 선택 + 비율조정 + 시작하기 + 왜 이 비율" 블록.
  *
  * # 데이터 소스
  * 마운트 시 POST /api/personalization/compute → dog_formulas (cycle=1) 처방
- * fetch 또는 새로 생성 (formulaCache 로 AnalysisView 와 공유).
+ * fetch (formulaCache 로 AnalysisView 와 공유). 별도로 이 강아지의 구독 이력
+ * (현재/과거)을 조회해 CTA 문구를 분기한다.
  *
- * # 표시 영역 (현재 렌더)
- *  - Totals — kcal/일 · 분량 g · 알고리즘 버전 + 전환 급여 가이드
- *  - CTA — 비율 조정(AdjustSheet) / 정기배송 신청
- *  - Reasoning — "왜 이 비율일까요" 접이식 (알고리즘 결정 근거)
+ * # 표시 (2026-07-13 갈아엎기 — 사장님)
+ *  - 화식 비율 3택 (곁들임 30 / 반반 60 / 완전 화식 100) — % 수치 대신 가치
+ *    소구 카피. 곁들임=추천, 화식 입문 안내. 배송은 무조건 2주마다 고정.
+ *  - CTA — 비율 조정(AdjustSheet) / 시작하기. 이 강아지가 첫 박스면 "첫 박스
+ *    시작하기", 이미/과거 구독이면 "이 박스로 시작하기" (강아지별 판단).
+ *  - Reasoning — "왜 이 비율일까요" 접이식.
  *
- * Hero·Bar·SKU·Toppers·영양카드 등 옛 fb-* 시각은 2026-05-21 Magazine
- * 컴포넌트로 대체되어 제거됨 (정리: 2026-06-27).
+ * 옛 표시(kcal/분량/알고리즘 totals·전환 급여 가이드)는 제거 — 하루 g·kcal 는
+ * 위 BoxMixCard 가 담당, 알고리즘 버전·전환 문구는 사장님 지시로 노출 중단.
  */
 
 type State =
@@ -55,19 +54,39 @@ type State =
   | { status: 'no_survey' }
   | { status: 'error'; message: string }
 
-type Scale = '1w' | '2w' | '4w'
+/** 화식 비율 3택 — % 수치 대신 이름 + 가치 소구 카피(사장님 확정 2026-07-13). */
+const FRESH_TIERS = [
+  {
+    key: 'light',
+    name: '곁들임',
+    ratio: 30,
+    badge: '추천',
+    copy: '작은 비용으로 떼는 첫걸음, 기호성과 영양을 더해요',
+    note: '화식이 처음이라면, 익숙해질 때까지 건사료와 섞어 급여하는 걸 권장해요',
+  },
+  {
+    key: 'half',
+    name: '반반',
+    ratio: 60,
+    copy: '화식 반 사료 반, 부담은 낮추고 균형은 챙겨요',
+  },
+  {
+    key: 'full',
+    name: '완전 화식',
+    ratio: 100,
+    copy: '매일 그릇 가득, 완벽한 영양과 행복을 담아요',
+  },
+] as const
 
-/** 전환 전략별 실행 가이드 한 줄 (H6 — formula.transitionStrategy 시각화). */
-const TRANSITION_HINT: Record<Formula['transitionStrategy'], string> = {
-  aggressive:
-    '바로 100% 급여해도 좋아요 — 이미 화식·생식 중이거나 첫 급여라 적응 부담이 낮아요.',
-  gradual: '기존 사료와 섞어 2주에 걸쳐 화식 비율을 천천히 늘려 주세요.',
-  conservative:
-    '소화가 예민하거나 만성질환이 있어요. 4주에 걸쳐 아주 천천히 전환하세요.',
-}
+type TierKey = (typeof FRESH_TIERS)[number]['key']
 
 /** Reasoning ruleId 별 아이콘 — 정적 분기 (static-components 룰). */
-function ReasoningIcon({ ruleId, size = 12, strokeWidth = 2, color = 'var(--muted)' }: {
+function ReasoningIcon({
+  ruleId,
+  size = 12,
+  strokeWidth = 2,
+  color = 'var(--muted)',
+}: {
   ruleId: string
   size?: number
   strokeWidth?: number
@@ -97,8 +116,9 @@ export default function RecommendationBox({
   isSenior?: boolean
 }) {
   const [state, setState] = useState<State>({ status: 'loading' })
-  const [scale] = useState<Scale>('1w')
   const [sheetOpen, setSheetOpen] = useState(false)
+  // 이 강아지 구독 이력(현재/과거) — CTA 문구 분기. null = 조회 전(기본 '첫 박스').
+  const [hasSubscription, setHasSubscription] = useState<boolean | null>(null)
   const fetchedRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -118,23 +138,17 @@ export default function RecommendationBox({
           setState({
             status: 'error',
             message:
-              ('message' in json && json.message) ||
-              '추천을 불러오지 못했어요',
+              ('message' in json && json.message) || '추천을 불러오지 못했어요',
           })
           return
         }
-        setState({
-          status: 'ready',
-          formula: json.formula,
-        })
-        // GA4 funnel — care goal 분포 + algorithm version 별 측정.
+        setState({ status: 'ready', formula: json.formula })
+        // GA4 funnel — care goal 분포 + algorithm version 별 측정(내부 계측 유지).
         trackAnalysisViewed(dogId)
         const goalReason = json.formula.reasoning.find((r) =>
           r.ruleId.startsWith('goal-'),
         )
-        const careGoal = goalReason
-          ? goalReason.ruleId.replace('goal-', '')
-          : null
+        const careGoal = goalReason ? goalReason.ruleId.replace('goal-', '') : null
         trackBoxRecommended({
           dogId,
           cycleNumber: json.formula.cycleNumber,
@@ -145,18 +159,40 @@ export default function RecommendationBox({
         if (!cancelled) {
           setState({
             status: 'error',
-            message: e instanceof Error ? e.message : '네트워크가 불안정해요. 다시 시도해 주세요',
+            message:
+              e instanceof Error
+                ? e.message
+                : '네트워크가 불안정해요. 다시 시도해 주세요',
           })
         }
       }
     })()
     return () => {
       cancelled = true
-      // React 19 dev StrictMode 의 mount→unmount→mount 더블 fire 대응:
-      // ref 를 그대로 두면 두 번째 mount 가 early return 으로 빠지고
-      // 첫 fetch 가 완료돼도 cancelled=true 라 setState 무시 → 영원히 loading.
-      // ref 를 리셋해 두 번째 mount 가 새 fetch 를 시작하도록.
+      // React 19 dev StrictMode 더블 fire 대응 (기존 주석 참조).
       if (fetchedRef.current === dogId) fetchedRef.current = null
+    }
+  }, [dogId])
+
+  // 구독 이력 조회 — 상태 필터 없이(과거 취소분 포함) 이 강아지에 구독이 하나라도
+  // 있었으면 '이 박스로 시작하기'. RLS 로 본인 소유 행만 보이므로 dog_id 만으로 충분.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('subscriptions')
+          .select('id')
+          .eq('dog_id', dogId)
+          .limit(1)
+        if (!cancelled) setHasSubscription((data?.length ?? 0) > 0)
+      } catch {
+        if (!cancelled) setHasSubscription(false)
+      }
+    })()
+    return () => {
+      cancelled = true
     }
   }, [dogId])
 
@@ -170,21 +206,8 @@ export default function RecommendationBox({
           color="var(--terracotta)"
           className="animate-spin"
         />
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 13 }}>
-            {dogName} 맞춤 박스 계산 중
-          </div>
-          <div
-            style={{
-              fontSize: 10.5,
-              color: 'var(--muted)',
-              marginTop: 1,
-              fontFamily: 'var(--font-mono), monospace',
-              letterSpacing: 0.04,
-            }}
-          >
-            ALGORITHM v1
-          </div>
+        <div style={{ fontWeight: 700, fontSize: 13 }}>
+          {dogName} 맞춤 박스 준비 중
         </div>
       </section>
     )
@@ -245,8 +268,6 @@ export default function RecommendationBox({
         <button
           type="button"
           onClick={() => {
-            // ref 리셋 + state 강제 loading → useEffect 재진입 위해 page reload
-            // (가장 단순). production 에선 retry counter 두고 limit 가능.
             if (typeof window !== 'undefined') window.location.reload()
           }}
           style={{
@@ -273,7 +294,7 @@ export default function RecommendationBox({
       <RecommendationView
         formula={state.formula}
         dogId={dogId}
-        scale={scale}
+        hasSubscription={hasSubscription === true}
         onOpenAdjust={() => setSheetOpen(true)}
       />
       <AdjustSheet
@@ -285,7 +306,6 @@ export default function RecommendationBox({
         isSenior={isSenior}
         onSaved={(next) => {
           setState({ status: 'ready', formula: next })
-          // 처방이 바뀌었으니 공유 캐시 무효화 — 다음 마운트가 새 결과를 받도록.
           invalidateComputedFormula(dogId)
         }}
       />
@@ -296,123 +316,94 @@ export default function RecommendationBox({
 function RecommendationView({
   formula,
   dogId,
-  scale,
+  hasSubscription,
   onOpenAdjust,
 }: {
   formula: Formula
   dogId: string
-  scale: Scale
+  hasSubscription: boolean
   onOpenAdjust: () => void
 }) {
-  // 1주 / 2주 / 4주 분량 — quantize 잔차 흡수.
-  // 2w/4w 가 정기배송 portion (하이브리드/풀 화식) 과 직결.
-  // 1w = 7일, 2w = 15일 (반달 portion), 4w = 30일 (한달 풀 portion)
-  // — order 페이지 cycleDays 와 일치 (calendar month).
-  const days = scale === '1w' ? 7 : scale === '2w' ? 15 : 30
   // 사장님 2026-06-19 "왜 이 비율 공간차지 심해" — 기본 접힘, 탭해서 펼침.
   const [whyOpen, setWhyOpen] = useState(false)
-  const totalKcal = useMemo(() => formula.dailyKcal, [formula.dailyKcal])
-  /**
-   * 라인 mix 기준 실제 일일 화식 g — order 페이지 / compute API 와 동일
-   * dailyGramsFromMix 헬퍼 사용 (단일 진실 소스).
-   */
-  const dailyGramsByMix = useMemo(
-    () => dailyGramsFromMix(formula.lineRatios, formula.dailyKcal),
-    [formula.lineRatios, formula.dailyKcal],
-  )
-  const totalGrams = useMemo(
-    () => Math.round(dailyGramsByMix * days),
-    [dailyGramsByMix, days],
-  )
+  const [tier, setTier] = useState<TierKey>('light')
+  const selected = FRESH_TIERS.find((t) => t.key === tier) ?? FRESH_TIERS[0]
+  const ctaLabel = hasSubscription ? '이 박스로 시작하기' : '첫 박스 시작하기'
 
   return (
-    <>
-      {/* Totals + CTA */}
-      <div className="fb-totals">
-        <div className="fb-totals-stat">
-          <div>
-            <div className="l">kcal/일</div>
-            <div className="v">
-              {totalKcal}
-              <small> kcal</small>
-            </div>
-          </div>
-          <div>
-            <div className="l">
-              {scale === '1w' ? '1주' : scale === '2w' ? '2주' : '4주'} 분량
-            </div>
-            <div className="v">
-              {totalGrams.toLocaleString()}
-              <small> g</small>
-            </div>
-          </div>
-          <div>
-            <div className="l">알고리즘</div>
-            <div
-              className="v"
-              style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 14 }}
-            >
-              {formula.algorithmVersion}
-            </div>
-          </div>
-        </div>
-        {/* 전환 급여 가이드 (H6) — formula.transitionStrategy 시각화. */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 8,
-            padding: '10px 12px',
-            marginBottom: 12,
-            background: 'rgba(79,106,72,0.08)',
-            borderRadius: 8,
-            border: '1px solid rgba(79,106,72,0.16)',
-          }}
-        >
-          <Calendar
-            size={14}
-            strokeWidth={2}
-            color="var(--moss, #4f6a48)"
-            style={{ marginTop: 1, flexShrink: 0 }}
-          />
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>
-              전환 급여 · {transitionLabel(formula)}
-            </div>
-            <div
-              style={{
-                fontSize: 10.5,
-                color: 'var(--muted)',
-                marginTop: 2,
-                lineHeight: 1.5,
-              }}
-            >
-              {TRANSITION_HINT[formula.transitionStrategy]}
-            </div>
-          </div>
-        </div>
-        <div className="fb-cta-row">
-          <button
-            type="button"
-            className="fb-cta-ghost"
-            onClick={onOpenAdjust}
-          >
-            비율 조정
-          </button>
-          <a
-            href={`/dogs/${dogId}/order`}
-            className="fb-cta-prim"
-            style={{ textDecoration: 'none' }}
-          >
-            정기배송 신청
-            <ArrowRight size={14} strokeWidth={2.4} color="#fff" />
-          </a>
-        </div>
+    <div className="fb-totals">
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+        얼마나 화식으로 드릴까요?
+      </div>
+      <div
+        style={{
+          fontSize: 11,
+          color: 'var(--muted)',
+          marginTop: 2,
+          marginBottom: 12,
+        }}
+      >
+        2주마다 정기배송으로 문 앞까지
       </div>
 
-      {/* 왜 이 비율(접기) — 정기배송 신청 박스 바로 아래(사장님 2026-06-19). */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {FRESH_TIERS.map((t) => {
+          const sel = t.key === tier
+          return (
+            <button
+              key={t.key}
+              type="button"
+              className="fb-tier"
+              data-sel={sel ? 'true' : undefined}
+              aria-pressed={sel}
+              onClick={() => setTier(t.key)}
+            >
+              <div className="fb-tier-head">
+                <span className="fb-tier-name">{t.name}</span>
+                {'badge' in t && t.badge && (
+                  <span className="fb-tier-badge">{t.badge}</span>
+                )}
+              </div>
+              <div className="fb-tier-copy">{t.copy}</div>
+              {'note' in t && t.note && (
+                <div className="fb-tier-note">
+                  <Info
+                    size={13}
+                    strokeWidth={2}
+                    color="var(--terracotta)"
+                    style={{ flexShrink: 0, marginTop: 1 }}
+                  />
+                  {t.note}
+                </div>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="fb-cta-row" style={{ marginTop: 16 }}>
+        <button type="button" className="fb-cta-ghost" onClick={onOpenAdjust}>
+          비율 조정
+        </button>
+        <a
+          href={`/dogs/${dogId}/order?fresh=${selected.ratio}`}
+          className="fb-cta-prim"
+          style={{ textDecoration: 'none' }}
+        >
+          {ctaLabel}
+          <ArrowRight size={14} strokeWidth={2.4} color="#fff" />
+        </a>
+      </div>
+
+      {/* 왜 이 비율(접기) */}
       {formula.reasoning.length > 0 && (
-        <div className="fb-reasoning" style={{ marginTop: 14 }}>
+        <div
+          style={{
+            marginTop: 14,
+            paddingTop: 13,
+            borderTop: '1px solid var(--rule)',
+          }}
+        >
           <button
             type="button"
             className="fb-sub-lbl"
@@ -429,9 +420,7 @@ function RecommendationView({
             }}
           >
             <GitBranch size={11} strokeWidth={2} color="var(--muted)" />왜 이 비율일까요
-            {formula.userAdjusted && (
-              <span className="fb-adj">사용자 조정됨</span>
-            )}
+            {formula.userAdjusted && <span className="fb-adj">사용자 조정됨</span>}
             <ChevronDown
               size={14}
               strokeWidth={2.2}
@@ -466,7 +455,7 @@ function RecommendationView({
           )}
         </div>
       )}
-    </>
+    </div>
   )
 }
 
