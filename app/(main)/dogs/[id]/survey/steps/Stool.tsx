@@ -1,4 +1,5 @@
 // audit #96: SurveyClient.tsx 분할 — stool step. Bristol 1~7 + GI 민감도.
+import { useState } from 'react'
 import {
   Circle,
   CircleDashed,
@@ -12,6 +13,7 @@ import {
   Meh,
   AlertTriangle,
   AlertCircle,
+  Plus,
 } from 'lucide-react'
 import { BRISTOL_INTERPRETATION } from '@/lib/nutrition/guidelines'
 import { petName } from '@/lib/korean'
@@ -51,6 +53,8 @@ export default function Stool({
   giSensitivity,
   setGiSensitivity,
 }: StoolProps) {
+  // 뒤로 접기 — GI 민감도는 기본 숨김, 탭하면 열림(이미 답했으면 펼쳐진 채).
+  const [giOpen, setGiOpen] = useState(giSensitivity !== '')
   return (
     <div className="s-page">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
@@ -145,32 +149,45 @@ export default function Stool({
       </div>
 
       <div className="s-sect">
-        <div className="s-sect-lbl">
-          <span className="s-label-text">사료를 바꿀 때 변이 자주 무르나요?</span>
-          <span className="s-opt">선택</span>
-        </div>
-        <div className="s-chiprow">
-          {[
-            { v: 'rare', label: '거의 없음', Icon: Check },
-            { v: 'sometimes', label: '가끔', Icon: Meh },
-            { v: 'frequent', label: '자주', Icon: AlertTriangle },
-            { v: 'always', label: '매번', Icon: AlertCircle },
-          ].map(({ v, label, Icon }) => {
-            const active = giSensitivity === v
-            return (
-              <button
-                key={v}
-                type="button"
-                className={'s-chip' + (active ? ' s-on' : '')}
-                aria-pressed={active}
-                onClick={() => setGiSensitivity(v as GiSensitivity)}
-              >
-                <Icon size={13} strokeWidth={2} />
-                {label}
-              </button>
-            )
-          })}
-        </div>
+        {!giOpen ? (
+          <button
+            type="button"
+            className="s-skipbtn"
+            onClick={() => setGiOpen(true)}
+          >
+            <Plus className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />
+            사료를 바꾸면 배앓이를 하는 편인가요?
+          </button>
+        ) : (
+          <>
+            <div className="s-sect-lbl">
+              <span className="s-label-text">사료를 바꿀 때 변이 자주 무르나요?</span>
+              <span className="s-opt">선택</span>
+            </div>
+            <div className="s-chiprow">
+              {[
+                { v: 'rare', label: '거의 없음', Icon: Check },
+                { v: 'sometimes', label: '가끔', Icon: Meh },
+                { v: 'frequent', label: '자주', Icon: AlertTriangle },
+                { v: 'always', label: '매번', Icon: AlertCircle },
+              ].map(({ v, label, Icon }) => {
+                const active = giSensitivity === v
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    className={'s-chip' + (active ? ' s-on' : '')}
+                    aria-pressed={active}
+                    onClick={() => setGiSensitivity(v as GiSensitivity)}
+                  >
+                    <Icon size={13} strokeWidth={2} />
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

@@ -2,6 +2,7 @@
 // 칼로리 v2 M2a (2026-07-12): BCS 9점 직접선택 폐기 → 체형 3분해(갈비뼈·허리·배)
 // 질문으로 교체. 보호자가 "몇 점?"을 고르는 것보다 관찰 3문항 → deriveBCS 역산이
 // 정확 (docs/CALORIE_ALGORITHM_SPEC_V2.md §6). 역산 결과는 판정 카드로 피드백.
+import { useState } from 'react'
 import {
   HelpCircle,
   MoonStar,
@@ -14,6 +15,7 @@ import {
   TrendingDown,
   TrendingUp,
   Minus,
+  Plus,
 } from 'lucide-react'
 import { BCS_DESCRIPTIONS, type BcsKey } from '@/lib/nutrition/guidelines'
 import { petName } from '@/lib/korean'
@@ -122,6 +124,8 @@ export default function Body({
   easyKeeper,
   setEasyKeeper,
 }: BodyProps) {
+  // 뒤로 접기 — 체중 측정법은 기본 숨김, 탭하면 열림(정확도 refinement).
+  const [weightMethodOpen, setWeightMethodOpen] = useState(weightMethod !== '')
   return (
     <div className="s-page">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
@@ -250,37 +254,50 @@ export default function Body({
           정확할수록 급여량 계산이 정밀해지고, 부정확하면 비대칭 케어목표에서
           안전하게 보수적으로 계산. */}
       <div className="s-sect">
-        <div className="s-sect-lbl">
-          <span className="s-label-text">체중을 어떻게 쟀어요?</span>
-          <span className="s-opt">선택</span>
-        </div>
-        <p className="s-sub" style={{ fontSize: 10.5, marginBottom: 8 }}>
-          측정 도구가 정확할수록 급여량을 더 정밀하게 계산해요.
-        </p>
-        <div className="s-chiprow">
-          {[
-            { v: 'vet_scale', label: '동물병원 체중계' },
-            { v: 'home_digital', label: '가정용 저울' },
-            { v: 'hold', label: '안고 재기' },
-            { v: 'eyeball', label: '눈대중' },
-            { v: 'unknown', label: '모름' },
-          ].map(({ v, label }) => {
-            const active = weightMethod === v
-            return (
-              <button
-                key={v}
-                type="button"
-                className={'s-chip' + (active ? ' s-on' : '')}
-                aria-pressed={active}
-                onClick={() =>
-                  setWeightMethod(active ? '' : (v as WeightMethod))
-                }
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
+        {!weightMethodOpen ? (
+          <button
+            type="button"
+            className="s-skipbtn"
+            onClick={() => setWeightMethodOpen(true)}
+          >
+            <Plus className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />
+            체중을 어떻게 쟀는지 알려주기 (선택 · 정확도 ↑)
+          </button>
+        ) : (
+          <>
+            <div className="s-sect-lbl">
+              <span className="s-label-text">체중을 어떻게 쟀어요?</span>
+              <span className="s-opt">선택</span>
+            </div>
+            <p className="s-sub" style={{ fontSize: 10.5, marginBottom: 8 }}>
+              측정 도구가 정확할수록 급여량을 더 정밀하게 계산해요.
+            </p>
+            <div className="s-chiprow">
+              {[
+                { v: 'vet_scale', label: '동물병원 체중계' },
+                { v: 'home_digital', label: '가정용 저울' },
+                { v: 'hold', label: '안고 재기' },
+                { v: 'eyeball', label: '눈대중' },
+                { v: 'unknown', label: '모름' },
+              ].map(({ v, label }) => {
+                const active = weightMethod === v
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    className={'s-chip' + (active ? ' s-on' : '')}
+                    aria-pressed={active}
+                    onClick={() =>
+                      setWeightMethod(active ? '' : (v as WeightMethod))
+                    }
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
