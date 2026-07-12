@@ -346,23 +346,33 @@
 .s-skip-divider {
   position: relative;
   text-align: center;
-  margin: 14px 0 -2px;
+  /* 답답함 해소(사장님 2026-07-12) — 음수 하단 margin(-2px) 제거하고 위아래
+     넉넉히. 아래 skip 버튼(margin-top 10px)과 합쳐 자연스러운 숨 공간 확보. */
+  margin: 24px 0 12px;
   height: 14px;
 }
 .s-skip-divider::before {
   content: '';
   position: absolute;
   top: 50%; left: 0; right: 0;
-  border-top: 1px solid var(--fd-line);
+  height: 1px;
+  /* 하드 풀라인 → 양끝 페이드 그라데이션(s-sect-divider 톤과 통일)으로 부드럽게. */
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--fd-line) 24%,
+    var(--fd-line) 76%,
+    transparent 100%
+  );
 }
 .s-skip-divider span {
   position: relative;
   background: var(--fd-offwhite);
-  padding: 0 10px;
+  padding: 0 14px;
   font-size: 10px;
   color: var(--fd-muted);
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   font-weight: 800;
 }
 
