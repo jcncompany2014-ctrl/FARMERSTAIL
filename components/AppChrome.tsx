@@ -217,6 +217,19 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  // 라우트 전환 시 항상 화면 최상단에서 시작 — 네이티브 앱 관용구.
+  // 배경(2026-07-12 사장님 리포트): 전역 smooth-scroll 제거(globals.css)로 96px
+  // 상시 밀림은 잡혔지만, Next App Router 의 scroll-to-top 이 늦게 도착하는
+  // 레이아웃 시프트(데이터·이미지 로드, iOS safe-area 적용)와 레이스가 나
+  // '가끔' 살짝 내려간 채 로드되는 잔여 케이스가 남았다. pathname 이 바뀔 때
+  // 최상단을 확정적으로 재확정한다. 즉시 + 다음 프레임 2회로 늦은 시프트도 흡수.
+  // window 스크롤만 만지므로 채팅/시트 등 내부 컨테이너 스크롤엔 영향 없음.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    const raf = requestAnimationFrame(() => window.scrollTo(0, 0))
+    return () => cancelAnimationFrame(raf)
+  }, [pathname])
+
   // R-feel: 헤더 우측 강아지 칩 — 활성 강아지 이름 + 전환 드롭다운(없으면 등록).
   const activeDog = dogs.find((d) => d.id === activeDogId) ?? dogs[0] ?? null
 
