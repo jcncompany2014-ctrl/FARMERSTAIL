@@ -45,17 +45,17 @@ import './order.css'
  * # 흐름
  *  1. (server) 강아지 ownership + 최신 dog_formulas + profile + products fetch
  *  2. (client) 5 라인 + 2 토퍼 → SKU 매핑 (slug 기준), net_weight_g 로 팩 수 산정
- *  3. portion (2주치 / 4주치) 선택 — 청구는 항상 한달 1회.
- *     2주치 = 화식반 + 건식사료반 권장 (가성비), 4주치 = 풀 화식.
+ *  3. 화식 비율 (곁들임 30 / 반반 60 / 완전 100) 선택 — 배송·결제는 무조건
+ *     2주마다. 매 끼 화식 비율만큼 섞어 급여, 나머지는 보호자 사료.
  *     사료관리법 ±5% 허용 오차 내 팩 수 산정 (95% 이상 deliver 시 floor).
  *  4. 주소·수령인 (profile pre-fill, 없으면 daum postcode)
- *  5. CTA "정기배송 신청" → subscriptions + subscription_items insert →
+ *  5. CTA "카드 등록하고 시작하기" → subscriptions + subscription_items insert →
  *     /subscribe/billing-auth (Toss 카드 등록) 으로 redirect
  *
  * # 법적 근거
  *  - 사료관리법 시행규칙 별표 4 (사료 표시기준) — 표시 정량 ±5% 허용 오차
  *  - 식품등의 표시·광고에 관한 법률 (사료가 식품 분류는 아니지만 동일 정량 관행)
- *  - cycle 분량은 ratio × 일일 kcal / kcalPer100g × coverageWeeks × 7
+ *  - cycle(14일) 분량 = ratio × 일일 kcal / kcalPer100g × freshRatio × 14
  *
  * # SKU 매핑 (현재 등록된 4 라인 + 2 토퍼; joint 미등록 시 graceful skip)
  */
@@ -69,26 +69,34 @@ const TOPPER_KCAL_PER_100G = 380
 const TOLERANCE = 0.95
 
 /**
- * 박스 정기배송 portion 옵션.
- * 배송 주기는 항상 한달마다 (interval_weeks=4). portion 만 선택.
- *  - 4주치: 한 달 풀커버 (화식 100%) — 인기
- *  - 2주치: 가성비 — 화식 50% + 건식사료 50% 권장 (보호자 판단)
+ * 화식 비율 3티어 (사장님 2026-07-13 갈아엎기).
+ * 배송은 무조건 2주마다 고정. 사용자는 "얼마나 화식으로" 만 선택하고, 나머지
+ * 칼로리는 보호자 기존 사료로 매 끼 섞어 급여(매끼섞기 모델). value = 화식 비율%.
+ *  - 곁들임(30%) 추천 — 화식 입문
+ *  - 반반(60%)
+ *  - 완전 화식(100%)
+ * 카피는 분석 결과 카드(RecommendationBox)와 동일 문구.
  */
-const PORTION_OPTIONS = [
+const FRESH_TIERS = [
   {
-    value: 2 as const,
-    label: '2주치',
-    sub: '하이브리드',
-    desc: '15일 1팩씩 · 나머지는 건식 반반',
+    value: 30 as const,
+    label: '곁들임',
+    badge: '추천',
+    copy: '작은 비용으로 떼는 첫걸음, 기호성과 영양을 더해요',
+    note: '화식이 처음이라면, 익숙해질 때까지 건사료와 섞어 급여하는 걸 권장해요',
   },
   {
-    value: 4 as const,
-    label: '4주치',
-    sub: '풀 화식',
-    desc: '30일 1팩씩 · 한달 풀 (인기)',
+    value: 60 as const,
+    label: '반반',
+    copy: '화식 반 사료 반, 부담은 낮추고 균형은 챙겨요',
+  },
+  {
+    value: 100 as const,
+    label: '완전 화식',
+    copy: '매일 그릇 가득, 완벽한 영양과 행복을 담아요',
   },
 ]
-type PortionWeeks = (typeof PORTION_OPTIONS)[number]['value']
+type FreshRatio = (typeof FRESH_TIERS)[number]['value']
 
 // 구독료에 배송비 포함 — 무료배송/배송비 임계 시스템 폐지(2026-06-27 사장님 지시).
 
@@ -236,6 +244,8 @@ export type OrderClientProps = {
   products: Record<string, OrderProduct>
   /** server 에서 profile row 를 가공한 초기 값. row 없으면 prefilled=false. */
   profile: OrderProfileInitial
+  /** 분석 카드 CTA 의 ?fresh=30|60|100 (화식 비율 초기 선택). 없으면 30(곁들임). */
+  initialFresh?: number
 }
 
 export default function OrderClient({
@@ -245,6 +255,7 @@ export default function OrderClient({
   formula,
   products,
   profile,
+  initialFresh,
 }: OrderClientProps) {
   const router = useRouter()
   const supabase = createClient()
@@ -253,8 +264,13 @@ export default function OrderClient({
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState('')
 
-  // 정기배송 입력 — 한달 1회 청구 고정, portion (2주치 / 4주치) 만 선택
-  const [coverageWeeks, setCoverageWeeks] = useState<PortionWeeks>(4)
+  // 정기배송 입력 — 배송·결제 무조건 2주마다, 화식 비율(30/60/100)만 선택.
+  // 분석 카드 CTA 의 ?fresh=30|60|100 를 server 가 initialFresh 로 내려줌.
+  const [freshRatio, setFreshRatio] = useState<FreshRatio>(
+    initialFresh === 60 ? 60 : initialFresh === 100 ? 100 : 30,
+  )
+  const selectedTier = (FRESH_TIERS.find((t) => t.value === freshRatio) ??
+    FRESH_TIERS[0]) as (typeof FRESH_TIERS)[number]
   /** 회원가입 정보가 자동 기입됐는지 — 사용자에게 hint 노출. */
   const [profilePrefilled] = useState(profile.prefilled)
   /** 사용자가 주소를 수정했는지 — true 면 신청 시 profile 도 업데이트 옵션. */
@@ -290,24 +306,26 @@ export default function OrderClient({
     void loadDaumPostcode()
   }, [])
 
-  // 첫 배송 예상일 — 신청일 + 4-7일 (택배 대기) 가정. 이후 한달 단위 청구.
+  // 첫 배송 예상일 — 신청일 + 4-7일 (택배 대기) 가정. 이후 2주 단위 청구.
   // (마이페이지/cron 가 next_delivery_date 관리)
   const [firstDeliveryAt, setFirstDeliveryAt] = useState<number | null>(null)
   useEffect(() => {
     setFirstDeliveryAt(Date.now() + 5 * 86400000)
   }, [])
 
-  // ── 라인 + 토퍼 → 항목 빌드 (coverageWeeks 변경 시 자동 재계산) ────────
+  // ── 라인 + 토퍼 → 항목 빌드 (freshRatio 변경 시 자동 재계산) ────────
   //
-  // 박스 정기배송 모델
-  //   · 메인 5종 — 1팩 = 1일 한끼 분량 (10g 단위 ceil 반올림)
-  //               4주치 = 30팩, 2주치 = 15팩 (1일 1팩)
-  //   · 토퍼 — 100g 동결건조 고정 팩, 사이클 총 필요량 ±5% tolerance
+  // 박스 정기배송 모델 (2026-07-13 갈아엎기 — 무조건 2주마다 배송·결제)
+  //   · 사이클 = 14일치 (biweekly). 매 끼 화식 비율(freshRatio)만큼 섞어 급여 →
+  //     하루 화식 분량 = 100% 분량 × freshRatio/100. 나머지는 보호자 사료.
+  //   · 메인 5종 — 1팩 = 1일 화식 분량(10g 단위 ceil 반올림), 14일 = 14팩.
+  //   · 토퍼 — 100g 동결건조 고정 팩, 사이클 총 필요량 ±5% tolerance.
   //
   // 가격 — product.price 는 100g 단위 단가 (예: 소 7,000원/100g)
-  //   · 메인 1팩 = mealG / 100 × unitPrice (100원 단위 반올림)
-  //   · 토퍼 1팩 = product.price (100g 표준)
-  const cycleDays = coverageWeeks === 4 ? 30 : 15
+  //   · 메인 1팩 = mealG / 100 × unitPrice (100원 단위 반올림) → 총액이 화식
+  //     비율에 비례(곁들임 30% ≈ 풀 화식의 30% 가격).
+  const cycleDays = 14
+  const freshFactor = freshRatio / 100
   const items: LineItem[] = []
 
   if (formula) {
@@ -328,7 +346,8 @@ export default function OrderClient({
 
       const meta = FOOD_LINE_META[line]
       const kcalPer100g = meta.kcalPer100g
-      const dailyG = ((ratio * dailyKcal) / kcalPer100g) * 100
+      // 매끼섞기 — 하루 화식 분량 = 100% 분량 × 화식 비율.
+      const dailyG = ((ratio * dailyKcal) / kcalPer100g) * 100 * freshFactor
       const mealG = mealPortionG(dailyG)
       const cycleG = dailyG * cycleDays
       const deliveredG = mealG * cycleDays
@@ -360,7 +379,7 @@ export default function OrderClient({
       const topperKcal100g =
         (product.nutrition_facts?.calories_kcal_per_100g as number | undefined) ??
         TOPPER_KCAL_PER_100G
-      const dailyG = ((ratio * dailyKcal) / topperKcal100g) * 100
+      const dailyG = ((ratio * dailyKcal) / topperKcal100g) * 100 * freshFactor
       const cycleG = dailyG * cycleDays
       const { packs, deliveredG } = topperPacksForCycle(cycleG)
       const unitPrice = product.sale_price ?? product.price
@@ -479,19 +498,11 @@ export default function OrderClient({
       )
       const subShipping = 0
       const subTotal = subSubtotal + subShipping
-      // 박스 정기배송 다음 배송일:
-      //   · 4주치 (풀 화식) — 캘린더 월 기준 (같은 날 다음 달)
-      //   · 2주치 (하이브리드) — 15일 후
-      // cron `nextDeliveryDate` 와 정합 (cron 도 box 구독은 같은 룰 사용).
-      // R85-D4: KST helper — UTC 기준 .toISOString() off-by-one 차단.
-      const { todayKstIsoDate, addDaysKst, addMonthsKst } = await import(
-        '@/lib/datetime-kst'
-      )
+      // 박스 정기배송 다음 배송일 — 무조건 2주(14일) 후. cron nextDeliveryDate
+      // (coverage_weeks===2 → +14) 와 정합. R85-D4: KST helper 로 off-by-one 차단.
+      const { todayKstIsoDate, addDaysKst } = await import('@/lib/datetime-kst')
       const todayIso = todayKstIsoDate()
-      const nextDeliveryIso =
-        coverageWeeks === 2
-          ? addDaysKst(todayIso, 15)
-          : addMonthsKst(todayIso, 1)
+      const nextDeliveryIso = addDaysKst(todayIso, 14)
 
       const customerKey =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -517,8 +528,9 @@ export default function OrderClient({
         .insert({
           user_id: userId,
           dog_id: dogId,
-          interval_weeks: 4,
-          coverage_weeks: coverageWeeks,
+          // 무조건 2주마다 배송·결제. coverage_weeks=2 = 크론 biweekly 판정 키.
+          interval_weeks: 2,
+          coverage_weeks: 2,
           status: 'active',
           next_delivery_date: nextDeliveryIso,
           total_deliveries: 0,
@@ -590,8 +602,8 @@ export default function OrderClient({
         gtag('event', 'subscription_started', {
           dog_id: dogId,
           cycle_number: formula?.cycleNumber ?? null,
-          interval_weeks: 4,
-          coverage_weeks: coverageWeeks,
+          interval_weeks: 2,
+          fresh_ratio: freshRatio,
           item_count: subscribable.length,
           subtotal: subSubtotal,
           memo_provided: memo.trim().length > 0,
@@ -618,7 +630,7 @@ export default function OrderClient({
           정기배송으로 시작할까요?
         </h1>
         <p>
-          분석 결과 그대로 만든 박스를 한 달에 한 번 보내드려요. 분량은 우리
+          분석 결과 그대로 만든 박스를 2주에 한 번 보내드려요. 분량은 우리
           아이에 맞게 자동으로 계산되고, 언제든 일시정지·해지할 수 있어요.
         </p>
       </header>
@@ -691,8 +703,7 @@ export default function OrderClient({
             <div className="ord-glance-row">
               <span className="ord-glance-label">받는 것</span>
               <span className="ord-glance-val">
-                {dogName} 맞춤 박스 ·{' '}
-                {coverageWeeks === 4 ? '4주치 (한달)' : '2주치 (반달)'}
+                {dogName} 맞춤 박스 · 화식 {selectedTier.label}
               </span>
             </div>
             <div className="ord-glance-row">
@@ -703,16 +714,16 @@ export default function OrderClient({
                       month: 'long',
                       day: 'numeric',
                       weekday: 'short',
-                    })} · 이후 매월 자동`
-                  : '신청 후 안내 · 매월 자동'}
+                    })} · 이후 2주마다`
+                  : '신청 후 안내 · 2주마다'}
               </span>
             </div>
             <div className="ord-glance-divide" />
             <div className="ord-glance-row">
-              <span className="ord-glance-label">월 결제</span>
+              <span className="ord-glance-label">2주 결제</span>
               <span className="ord-glance-price">
                 {totalAmount.toLocaleString()}원
-                <span className="ord-glance-per">/월</span>
+                <span className="ord-glance-per">/2주</span>
               </span>
             </div>
           </section>
@@ -733,51 +744,107 @@ export default function OrderClient({
             </span>
           </section>
 
-          {/* 한달 정기배송 portion 선택 — 2주치 / 4주치 */}
+          {/* 화식 비율 선택 (2026-07-13 갈아엎기) — 곁들임/반반/완전.
+              배송·결제는 무조건 2주마다. 분석 카드 RecommendationBox 와 동일 룩. */}
           <section className="ord-section">
             <h2 className="ord-section-h">
               <Repeat size={13} strokeWidth={2.2} color="var(--moss)" />
-              한달 정기배송 · 분량 선택
+              얼마나 화식으로 · 2주마다 배송
             </h2>
             <div
-              className="ord-interval-grid ord-portion-grid"
               role="radiogroup"
-              aria-label="박스 분량 선택"
+              aria-label="화식 비율 선택"
+              style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
             >
-              {PORTION_OPTIONS.map((opt) => (
-                <button
-                  type="button"
-                  key={opt.value}
-                  role="radio"
-                  aria-checked={coverageWeeks === opt.value}
-                  className={
-                    'ord-interval-card' +
-                    (coverageWeeks === opt.value ? ' ord-interval-on' : '')
-                  }
-                  onClick={() => {
-                    haptic('tick')
-                    setCoverageWeeks(opt.value)
-                  }}
-                >
-                  <span className="ord-interval-label">{opt.label}</span>
-                  <span className="ord-portion-sub">{opt.sub}</span>
-                  <span className="ord-interval-desc">{opt.desc}</span>
-                </button>
-              ))}
+              {FRESH_TIERS.map((t) => {
+                const on = freshRatio === t.value
+                return (
+                  <button
+                    type="button"
+                    key={t.value}
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => {
+                      haptic('tick')
+                      setFreshRatio(t.value)
+                    }}
+                    style={{
+                      appearance: 'none',
+                      width: '100%',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      background: on
+                        ? 'color-mix(in srgb, var(--terracotta) 4%, transparent)'
+                        : 'transparent',
+                      border: on
+                        ? '2px solid var(--terracotta)'
+                        : '1px solid var(--rule)',
+                      borderRadius: 11,
+                      padding: on ? '11px 12px' : '12px 13px',
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <span
+                        style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}
+                      >
+                        {t.label}
+                      </span>
+                      {'badge' in t && t.badge && (
+                        <span
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 700,
+                            color: '#fff',
+                            background: 'var(--terracotta)',
+                            padding: '2px 7px',
+                            borderRadius: 99,
+                          }}
+                        >
+                          {t.badge}
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      style={{
+                        display: 'block',
+                        fontSize: 11.5,
+                        color: on
+                          ? 'color-mix(in srgb, var(--terracotta) 68%, var(--ink))'
+                          : 'var(--muted)',
+                        marginTop: 3,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {t.copy}
+                    </span>
+                    {'note' in t && t.note && (
+                      <span
+                        style={{
+                          display: 'flex',
+                          gap: 6,
+                          marginTop: 9,
+                          paddingTop: 9,
+                          borderTop:
+                            '1px solid color-mix(in srgb, var(--terracotta) 15%, transparent)',
+                          color: 'var(--muted)',
+                          fontSize: 10.5,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        <Sparkles
+                          size={13}
+                          strokeWidth={2}
+                          color="var(--terracotta)"
+                          style={{ flexShrink: 0, marginTop: 1 }}
+                        />
+                        {t.note}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
-            {coverageWeeks === 2 && (
-              <div className="ord-hybrid-note" role="note">
-                <Sparkles size={12} strokeWidth={2.4} color="var(--moss)" />
-                <div>
-                  <strong>화식 50% + 건식사료 50% 권장</strong>
-                  <span>
-                    2주치는 한 달의 절반만 화식 — 나머지는 평소 드시던 건식
-                    사료와 섞어 주세요. 입문/가성비에 적합하고, 영양 균형은
-                    화식 쪽이 책임집니다.
-                  </span>
-                </div>
-              </div>
-            )}
             {firstDeliveryAt !== null && (
               <p className="ord-interval-foot">
                 <CalendarDays size={11} strokeWidth={2.2} color="var(--muted)" />
@@ -788,7 +855,7 @@ export default function OrderClient({
                     day: 'numeric',
                     weekday: 'short',
                   })}
-                  {' · 이후 매월 같은 날 자동 청구'}
+                  {' · 이후 2주마다 자동 청구'}
                 </span>
               </p>
             )}
@@ -853,7 +920,7 @@ export default function OrderClient({
                       <PackageOpen size={11} strokeWidth={2.2} color={color} />
                       {isMain ? (
                         <span>
-                          {coverageWeeks === 4 ? '한달 (30일)' : '반달 (15일)'} ·{' '}
+                          2주 (14일) ·{' '}
                           <strong>
                             {it.quantity}팩 ({it.mealG}g/끼)
                           </strong>
@@ -862,7 +929,7 @@ export default function OrderClient({
                         </span>
                       ) : (
                         <span>
-                          {coverageWeeks === 4 ? '한달치' : '반달치'} 토퍼{' '}
+                          2주치 토퍼{' '}
                           <strong>{formatGrams(it.deliveredG)}</strong>
                           {' · '}
                           {it.quantity}팩 (100g/팩)
@@ -1007,9 +1074,7 @@ export default function OrderClient({
           </h2>
           <section className="ord-summary">
             <div className="ord-summary-row">
-              <span>
-                월 배송 ({coverageWeeks === 4 ? '한달 30일' : '반달 15일'})
-              </span>
+              <span>2주 배송 (14일)</span>
               <strong className="ord-summary-strong-sm">
                 {formatGrams(totalCycleG)}
                 {' · '}
@@ -1046,14 +1111,14 @@ export default function OrderClient({
             </div>
             <div className="ord-summary-divide" />
             <div className="ord-summary-row">
-              <span>월 결제</span>
+              <span>2주 결제</span>
               <strong>{totalAmount.toLocaleString()}원</strong>
             </div>
             <div className="ord-summary-row ord-summary-info">
               <Sparkles size={11} strokeWidth={2.2} color="var(--moss)" />
               <span>
-                알고리즘 v{formula.algorithmVersion} · {formula.dailyKcal} kcal/일
-                · 매월 자동 청구 ({coverageWeeks}주치 portion)
+                {formula.dailyKcal} kcal/일 · 2주마다 자동 청구 · 화식{' '}
+                {selectedTier.label}
               </span>
             </div>
             {(oosCount > 0 || nonSubscribableCount > 0) && (
@@ -1091,7 +1156,7 @@ export default function OrderClient({
               ) : (
                 <CreditCard size={14} strokeWidth={2.4} color="#fff" />
               )}
-              정기배송 신청 · 카드 등록
+              카드 등록하고 시작하기
               <ArrowRight size={12} strokeWidth={2.4} color="#fff" />
             </button>
           </div>
@@ -1101,7 +1166,7 @@ export default function OrderClient({
             className="ord-foot"
             style={{ fontSize: 10.5, opacity: 0.85, marginTop: 6 }}
           >
-            신청 · 카드 등록을 누르면 매월 자동결제에 동의하는 것으로
+            신청 · 카드 등록을 누르면 2주마다 자동결제에 동의하는 것으로
             간주됩니다.
           </p>
           <p className="ord-foot">
