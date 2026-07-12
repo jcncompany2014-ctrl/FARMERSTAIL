@@ -18,10 +18,6 @@ import {
   BoxMixCard as MagBoxMix,
   type BoxMixItem as MagBoxMixItem,
 } from '@/components/analysis/magazine/BoxMixCard'
-import {
-  SupplementsCard as MagSupplements,
-  type SupplementItem as MagSupplementItem,
-} from '@/components/analysis/magazine/SupplementsCard'
 import { CTAStack as MagCTA } from '@/components/analysis/magazine/CTAStack'
 import RecommendationBox from '@/components/analysis/RecommendationBox'
 import AnalysisTrendsCard from '@/components/analysis/AnalysisTrendsCard'
@@ -56,7 +52,6 @@ type Props = {
   feedG: number
   nutrientRows: MagNutrientRow[]
   boxItems: MagBoxMixItem[]
-  supplementItems: MagSupplementItem[]
   history: HistoryPoint[]
   totalCount: number
   /** 칼로리 v2 2e — 위험 플래그 (에너지 카드 직하 수의 상담 배너 판정). */
@@ -84,7 +79,6 @@ export default function AnalysisMagazineSection({
   rer,
   factor,
   boxItems,
-  supplementItems,
   history,
   totalCount,
   riskFlags,
@@ -180,7 +174,9 @@ export default function AnalysisMagazineSection({
           totalCount={totalCount}
         />
       )}
-      <MagSupplements p={magP} dogName={dogName} items={supplementItems} />
+      {/* 맞춤 영양제 박스 제거(2026-07-13 사장님) — 판매할 영양제 제품이 아직
+          없어 추천이 이르다. getSupplements/analysis.supplements 배선은 향후
+          영양제 라인 출시 대비해 그대로 유지(데이터·매핑은 살아 있음). */}
       <MagCTA p={magP} consultHref="/contact" />
       <div style={{ height: 12, background: magP.bg }} />
     </div>

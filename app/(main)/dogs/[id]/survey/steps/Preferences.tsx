@@ -4,8 +4,6 @@ import {
   Sparkles,
   Wind,
   Scissors,
-  AlertTriangle,
-  Stethoscope,
   Scale,
   Bone,
   ShieldAlert,
@@ -85,8 +83,6 @@ export default function Preferences({
             { v: 'healthy', label: '건강', Icon: Sparkles },
             { v: 'dull', label: '푸석', Icon: Wind },
             { v: 'shedding', label: '심한 탈모', Icon: Scissors },
-            { v: 'itchy', label: '가려움', Icon: AlertTriangle },
-            { v: 'lesions', label: '병변', Icon: Stethoscope },
           ].map(({ v, label, Icon }) => {
             const active = coat === v
             return (

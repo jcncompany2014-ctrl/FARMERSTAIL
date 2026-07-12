@@ -16,7 +16,6 @@ import { weightReliability } from '@/lib/personalization/reliability'
 import PriceFramingCard from '@/components/analysis/PriceFramingCard'
 import type { NutrientRow as MagNutrientRow } from '@/components/analysis/magazine/NutrientsCard'
 import type { BoxMixItem as MagBoxMixItem } from '@/components/analysis/magazine/BoxMixCard'
-import type { SupplementItem as MagSupplementItem } from '@/components/analysis/magazine/SupplementsCard'
 import {
   merConfidenceInterval,
 } from '@/lib/nutrition/confidence-interval'
@@ -30,7 +29,6 @@ import type { Formula } from '@/lib/personalization/types'
 import {
   weightFromRER,
   formatAgeLabel,
-  mapSupplements,
 } from '@/lib/v3-helpers/analysis-view'
 import AnalysisEmptyState from './_components/AnalysisEmptyState'
 import AnalysisStickySummary from './_components/AnalysisStickySummary'
@@ -404,7 +402,6 @@ export default function AnalysisView({
       sub: MAG_LINE_SUB[line] ?? meta.benefit,
     }
   })
-  const magSupplementItems: MagSupplementItem[] = mapSupplements(analysis.supplements ?? [])
 
   return (
     <div className="pb-10 pt-1">
@@ -455,7 +452,6 @@ export default function AnalysisView({
           feedG={analysis.feed_g}
           nutrientRows={magNutrientRows}
           boxItems={magBoxItems}
-          supplementItems={magSupplementItems}
           history={history}
           totalCount={totalCount}
           riskFlags={analysis.risk_flags ?? []}
