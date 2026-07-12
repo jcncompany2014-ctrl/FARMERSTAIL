@@ -481,8 +481,19 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     return () => clearInterval(t)
   }, [currentStep])
 
-  const stepIdx = STEPS.indexOf(currentStep)
-  const totalSteps = STEPS.length - 1
+  // 근육(MCS) 스텝은 노령견(7세+)에만 노출 — 젊은 개는 근감소 위험이 낮아
+  // 설문 부담만 늘림(사장님 확정 2026-07-12). dog 로드 후 재렌더에서 확정되며,
+  // 그전(dog=null)엔 아래 !dog 가드가 로더를 반환하므로 값이 렌더에 안 쓰인다.
+  const ageInMonths = dog
+    ? dog.age_unit === 'years'
+      ? dog.age_value * 12
+      : dog.age_value
+    : 0
+  const isSenior = ageInMonths >= 84
+  const steps = STEPS.filter((s) => s !== 'muscle' || isSenior)
+
+  const stepIdx = steps.indexOf(currentStep)
+  const totalSteps = steps.length - 1
   const progress = Math.min(100, Math.round((stepIdx / totalSteps) * 100))
 
   function validateStep(): boolean {
@@ -530,7 +541,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
 
   async function goNext() {
     if (!validateStep()) return
-    const idx = STEPS.indexOf(currentStep)
+    const idx = steps.indexOf(currentStep)
     // Tier S F1-1: budget (선택) 이 마지막 step. budget → loading.
     if (currentStep === 'budget') {
       setCurrentStep('loading')
@@ -543,14 +554,14 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       void saveAndGoResult()
       return
     }
-    if (idx < STEPS.length - 1) setCurrentStep(STEPS[idx + 1]!)
+    if (idx < steps.length - 1) setCurrentStep(steps[idx + 1]!)
   }
 
   function goPrev() {
-    const idx = STEPS.indexOf(currentStep)
+    const idx = steps.indexOf(currentStep)
     if (idx > 0) {
       setErr('')
-      setCurrentStep(STEPS[idx - 1]!)
+      setCurrentStep(steps[idx - 1]!)
     }
   }
 
