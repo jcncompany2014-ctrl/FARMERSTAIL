@@ -27,62 +27,31 @@ export default function Budget({
       </h1>
       <p className="s-sub">{SURVEY_COPY.budget.subtitle}</p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 24 }}>
+      {/* 정돈 P1(2026-07-12) — 예산 전용 s-card 폐기, 다른 스텝(케어목표·MCS)과
+          같은 s-listbtn 문법으로 통일. UI 그래머 1종 제거. */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 24 }}>
         {SURVEY_COPY.budget.options.map((opt) => {
           const selected = budgetTier === opt.value
           return (
             <button
               key={opt.value}
               type="button"
+              className="s-listbtn"
+              aria-pressed={selected}
               onClick={() => setBudgetTier(selected ? null : opt.value)}
-              className="s-card"
-              style={{
-                // selected fill → FD coral (평면, 글로우 제거) + radius 12
-                // (다른 모든 step 큰 카드 selected 와 grammar 통일). [회차314 FD 정렬]
-                background: selected ? 'var(--fd-coral)' : 'var(--bg-2)',
-                color: selected ? '#fff' : 'var(--fd-pine)',
-                border: '1px solid',
-                borderColor: selected ? 'var(--fd-coral)' : 'var(--rule)',
-                borderRadius: 12,
-                padding: '14px 16px',
-                textAlign: 'left',
-                cursor: 'pointer',
-                boxShadow: 'none',
-                transition: 'all 0.15s',
-              }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: '50%',
-                    border: '1.5px solid',
-                    borderColor: selected ? '#fff' : 'var(--rule)',
-                    background: selected ? '#fff' : 'transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  {selected && (
-                    <Check
-                      className="w-3 h-3"
-                      style={{ color: 'var(--fd-coral)' }}
-                      strokeWidth={3}
-                    />
-                  )}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.01em' }}>
-                    {opt.label}
-                  </div>
-                  <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>
-                    {opt.sub}
-                  </div>
-                </div>
-              </div>
+              <span className="s-lb-body">
+                <span className="s-lb-title">{opt.label}</span>
+                <span className="s-lb-sub">{opt.sub}</span>
+              </span>
+              {selected && (
+                <Check
+                  size={16}
+                  strokeWidth={2.5}
+                  color="var(--bg)"
+                  style={{ flex: '0 0 auto' }}
+                />
+              )}
             </button>
           )
         })}
