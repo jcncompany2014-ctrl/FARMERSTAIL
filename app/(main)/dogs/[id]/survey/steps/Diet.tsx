@@ -20,6 +20,8 @@ type IndoorActivity = 'calm' | 'moderate' | 'active' | ''
 type HomeCookingExp = 'first' | 'occasional' | 'frequent' | ''
 
 export type DietProps = {
+  /** 식사(meal) / 생활(life) 2스텝 분리 — 정돈 P2(2026-07-12). */
+  part: 'meal' | 'life'
   foodType: string
   setFoodType: (v: string) => void
   currentBrand: string
@@ -48,6 +50,7 @@ export type DietProps = {
 }
 
 export default function Diet({
+  part,
   foodType,
   setFoodType,
   currentBrand,
@@ -77,11 +80,24 @@ export default function Diet({
   return (
     <div className="s-page">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-        <span className="s-kicker">EATING HABITS</span>
+        <span className="s-kicker">
+          {part === 'meal' ? 'EATING HABITS' : 'DAILY LIFE'}
+        </span>
       </div>
-      <h1 className="s-title">식생활을<br />알려주세요</h1>
-      <p className="s-sub">현재 식이 패턴이 영양 권장량 계산의 기준이 돼요.</p>
+      {part === 'meal' ? (
+        <>
+          <h1 className="s-title">식사를<br />알려주세요</h1>
+          <p className="s-sub">현재 식이 패턴이 영양 권장량 계산의 기준이 돼요.</p>
+        </>
+      ) : (
+        <>
+          <h1 className="s-title">생활 패턴을<br />알려주세요</h1>
+          <p className="s-sub">활동량과 환경이 하루 필요 열량을 좌우해요.</p>
+        </>
+      )}
 
+      {part === 'meal' && (
+      <>
       <div className="s-sect">
         <div className="s-sect-lbl"><span className="s-label-text">주식 형태</span></div>
         <div className="s-tilerow">
@@ -202,10 +218,11 @@ export default function Diet({
           </>
         )}
       </div>
+      </>
+      )}
 
-      {/* R34c — 식사·간식 그룹과 활동 그룹 사이 시각 분리. */}
-      <div className="s-sect-divider" aria-hidden />
-
+      {part === 'life' && (
+      <>
       <div className="s-sect">
         <div className="s-sect-lbl">
           <span className="s-label-text">하루 산책, 얼마나 나가요?</span>
@@ -369,10 +386,10 @@ export default function Diet({
           </>
         )}
       </div>
+      </>
+      )}
 
-      {/* R34c — 활동 그룹 (5~6) 와 경험·평가 그룹 (7~8) 사이 시각 분리. */}
-      <div className="s-sect-divider" aria-hidden />
-
+      {part === 'meal' && (
       <div className="s-sect">
         <div className="s-sect-lbl"><span className="s-label-text">화식 경험</span></div>
         <div className="s-tilerow">
@@ -404,6 +421,7 @@ export default function Diet({
           })}
         </div>
       </div>
+      )}
     </div>
   )
 }

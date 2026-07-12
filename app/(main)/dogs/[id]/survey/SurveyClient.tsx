@@ -47,8 +47,9 @@ import './survey.css'
  *   1. body       : BCS 9-point + 6개월 체중 추세
  *   2. muscle     : MCS 4-grade
  *   3. stool      : Bristol Stool 1~7 + 위장 민감도
- *   4. diet       : 주식 / 브랜드 / 간식 / 식욕 / 산책분 / 실내활동 /
- *                   화식경험 / 만족도 1~5
+ *   4. meal       : 주식 / 브랜드(+사료kcal) / 간식(+간식kcal) / 화식경험
+ *   5. life       : 산책(리드) / 활동·격운동(조건부) / 주거(+한랭)
+ *     (정돈 P2: 옛 diet 스텝을 식사/생활 2스텝으로 분리. 식욕·만족도 삭제됨.)
  *   5. allergy    : 알레르기 모드 + 항목 / 선호 단백질
  *   6. chronic    : 만성질환 + 처방식 / 약
  *   7. status     : 임신·수유 / 모질·피부 / 케어 목표 (★알고리즘 1순위)
@@ -80,7 +81,8 @@ const STEPS = [
   'body',
   'muscle',
   'stool',
-  'diet',
+  'meal',
+  'life',
   'allergy',
   'chronic',
   'status',
@@ -344,7 +346,10 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       if (typeof data.currentStep === 'string') {
         if (data.currentStep === 'loading') {
           setCurrentStep('budget')
-        } else {
+        } else if (data.currentStep === 'diet') {
+          // 정돈 P2 전 초안 호환 — 'diet' 스텝은 'meal'/'life' 로 분리됨.
+          setCurrentStep('meal')
+        } else if ((STEPS as readonly string[]).includes(data.currentStep)) {
           setCurrentStep(data.currentStep as Step)
         }
       }
@@ -502,7 +507,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       setErr('체형(BCS)을 선택해 주세요')
       return false
     }
-    if (currentStep === 'diet') {
+    if (currentStep === 'meal') {
       if (!foodType) {
         setErr('주식 형태를 선택해 주세요')
         return false
@@ -1039,8 +1044,10 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
           />
         )}
 
-        {currentStep === 'diet' && (
+        {(currentStep === 'meal' || currentStep === 'life') && (
           <Diet
+            key={currentStep}
+            part={currentStep === 'meal' ? 'meal' : 'life'}
             foodType={foodType}
             setFoodType={setFoodType}
             currentBrand={currentBrand}
