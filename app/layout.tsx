@@ -309,6 +309,29 @@ export default function RootLayout({
             __html: `(function(){try{var c=localStorage.getItem('ft_theme');if(c==='dark'||c==='light'){document.documentElement.setAttribute('data-theme',c);}}catch(e){}})();`,
           }}
         />
+        {/*
+          검은 화면 방지 — 앱 아이콘 탭 후 globals.css 가 로드되기 전 첫 페인트가
+          기본 검정으로 잠깐 뜨는 FOUC 를 막는다(사장님 리포트 2026-07-13). html
+          배경을 인라인으로 미리 크림/다크로 박아 스플래시(var(--bg)) 와 이음새 없이
+          이어짐. iOS 네이티브 런치 스크린(웹 로드 前)은 manifest background_color
+          (#F5F0E6) 담당 — 그건 별개.
+        */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html:
+              'html{background:#FAF9F5}html[data-theme="dark"]{background:#15110D}',
+          }}
+        />
+        {/*
+          iOS 레거시 standalone 감지 — display-mode media query 를 아직 반영 못 하는
+          iOS PWA 도 navigator.standalone 으로 잡아 html.ft-standalone 부여 →
+          AppSplash 가 첫 페인트부터 노출된다(globals.css .ft-splash 게이트).
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{if(window.navigator&&window.navigator.standalone===true){document.documentElement.classList.add('ft-standalone');}}catch(e){}})();`,
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col font-sans">
         {/*

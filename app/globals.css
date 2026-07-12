@@ -1501,17 +1501,78 @@ html[data-theme="dark"] .fiber::after {
 }
 
 /* ── 앱 첫 실행 스플래시 (components/AppSplash.tsx) — 로고가 살짝 커지며
-   정착 등장 + 은은한 여운, 하단 점 3개가 통통 튄다. 설치형 PWA 실행에서만.
+   정착 등장 → 은은히 숨쉬고, 하단 점 3개가 통통 튄다. 설치형 PWA 실행에서만.
+
+   CSS 전용(무 JS): SSR HTML 부터 화면을 덮어 웹 본문 ~0.1s 플래시를 없애고,
+   노출 게이트/자동 종료를 모두 CSS 로 처리한다. 브라우저는 display:none →
+   첫 페인트부터 안 보임. 설치형 PWA 만 media(display-mode: standalone) 또는
+   html.ft-standalone(iOS 레거시 navigator.standalone) 로 노출.
    prefers-reduced-motion 은 globals 전역 가드가 즉시화(접근성). */
+.ft-splash {
+  display: none; /* 기본: 웹 브라우저 — 첫 페인트부터 숨김 */
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+@media all and (display-mode: standalone) {
+  .ft-splash {
+    display: flex;
+    animation: ft-splash-dismiss 2.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+}
+html.ft-standalone .ft-splash {
+  display: flex;
+  animation: ft-splash-dismiss 2.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.ft-splash__logo {
+  width: 210px;
+  height: auto;
+  /* 등장(0.9s) 후 → 은은한 숨쉬기(delay 0.9s, 무한). 로고 자체가 계속 살아있음. */
+  animation:
+    ft-splash-logo 900ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    ft-splash-breathe 2.4s ease-in-out 900ms infinite;
+}
+.ft-splash__dots {
+  position: absolute;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 7px;
+}
+.ft-splash__dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--terracotta);
+  animation: ft-splash-dot 1s ease-in-out infinite;
+}
+.ft-splash__dots span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.ft-splash__dots span:nth-child(3) {
+  animation-delay: 0.32s;
+}
 @keyframes ft-splash-logo {
   0%   { opacity: 0; transform: scale(0.84) translateY(8px); }
   50%  { opacity: 1; transform: scale(1.04) translateY(0); }
   70%  { transform: scale(0.99); }
   100% { opacity: 1; transform: scale(1); }
 }
+@keyframes ft-splash-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.035); }
+}
 @keyframes ft-splash-dot {
   0%, 100% { opacity: 0.3; transform: translateY(0); }
   50%      { opacity: 1; transform: translateY(-4px); }
+}
+/* 유지(~1.4s)했다가 부드럽게 페이드 → 완전히 비활성(visibility:hidden). */
+@keyframes ft-splash-dismiss {
+  0%, 66% { opacity: 1; visibility: visible; }
+  100%    { opacity: 0; visibility: hidden; }
 }
 
 /* ── 공유(web+app) 라우트의 editorial 본문 뒤로가기 링크 — 앱에선 상단 헤더
