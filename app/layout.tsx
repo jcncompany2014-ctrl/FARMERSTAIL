@@ -14,6 +14,7 @@ import "./globals.css";
 import "@/lib/forms/zod-ko";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import AppSplash from "@/components/AppSplash";
+import { APPLE_SPLASH } from "@/lib/pwaSplash.generated";
 import DevContextToggle from "@/components/DevContextToggle";
 import SentryUserSync from "@/components/SentryUserSync";
 import UtmCapture from "@/components/UtmCapture";
@@ -332,6 +333,21 @@ export default function RootLayout({
             __html: `(function(){try{if(window.navigator&&window.navigator.standalone===true){document.documentElement.classList.add('ft-standalone');}}catch(e){}})();`,
           }}
         />
+        {/*
+          iOS PWA 네이티브 런치 스플래시 — 아이콘 탭 후 웹 로드 前 iOS 가 그리는
+          화면. 이게 없으면 검은 화면이 뜬다(사장님 리포트 2026-07-13). 기기 해상도별
+          "크림 배경 + 중앙 로고" 이미지(웹 스플래시와 동일 구도)로 채워 이음새 제거.
+          목록·이미지는 scripts/gen-splash.mjs 가 생성(단일 소스). 라이트 전용 —
+          다크모드 유저는 크림 런치 후 다크 앱(검정 아님). orientation:portrait 만.
+        */}
+        {APPLE_SPLASH.map((s) => (
+          <link
+            key={s.href}
+            rel="apple-touch-startup-image"
+            media={s.media}
+            href={s.href}
+          />
+        ))}
       </head>
       <body className="min-h-full flex flex-col font-sans">
         {/*
