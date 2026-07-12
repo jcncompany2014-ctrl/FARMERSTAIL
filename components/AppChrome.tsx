@@ -217,14 +217,30 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // 라우트 전환 시 항상 화면 최상단에서 시작 — 네이티브 앱 관용구.
-  // 배경(2026-07-12 사장님 리포트): 전역 smooth-scroll 제거(globals.css)로 96px
-  // 상시 밀림은 잡혔지만, Next App Router 의 scroll-to-top 이 늦게 도착하는
-  // 레이아웃 시프트(데이터·이미지 로드, iOS safe-area 적용)와 레이스가 나
-  // '가끔' 살짝 내려간 채 로드되는 잔여 케이스가 남았다. pathname 이 바뀔 때
-  // 최상단을 확정적으로 재확정한다. 즉시 + 다음 프레임 2회로 늦은 시프트도 흡수.
-  // window 스크롤만 만지므로 채팅/시트 등 내부 컨테이너 스크롤엔 영향 없음.
+  // 뒤로/앞으로(POP) 내비 감지. POP 은 브라우저가 이전 스크롤 위치를 복원하므로
+  // 아래 강제 top 을 스킵한다 — 안 그러면 복원 위치→0 으로 튀어 '깜빡'인다
+  // (사장님 리포트 2026-07-12). PUSH(링크·상위 이동)만 top 확정.
+  const isPopNavRef = useRef(false)
   useEffect(() => {
+    const onPop = () => {
+      isPopNavRef.current = true
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  // 라우트 전환(PUSH) 시 화면 최상단에서 시작 — 네이티브 앱 관용구.
+  // 배경: 전역 smooth-scroll 제거(globals.css)로 96px 상시 밀림은 잡혔지만,
+  // Next App Router 의 scroll-to-top 이 늦게 도착하는 레이아웃 시프트(데이터·
+  // 이미지 로드, iOS safe-area)와 레이스가 나 '가끔' 내려간 채 로드되던 잔여
+  // 케이스가 있었다. pathname 바뀔 때 즉시 + 다음 프레임 2회로 top 재확정(늦은
+  // 시프트 흡수). window 스크롤만 만져 채팅/시트 등 내부 컨테이너엔 무영향.
+  useEffect(() => {
+    if (isPopNavRef.current) {
+      // POP(뒤로/앞으로): 브라우저 스크롤 복원 유지 — 강제 top 금지(깜빡임 원인).
+      isPopNavRef.current = false
+      return
+    }
     window.scrollTo(0, 0)
     const raf = requestAnimationFrame(() => window.scrollTo(0, 0))
     return () => cancelAnimationFrame(raf)
