@@ -1500,6 +1500,20 @@ html[data-theme="dark"] .fiber::after {
   50%      { opacity: 1; transform: scale(1.02); }
 }
 
+/* ── 앱 첫 실행 스플래시 (components/AppSplash.tsx) — 로고가 살짝 커지며
+   정착 등장 + 은은한 여운, 하단 점 3개가 통통 튄다. 설치형 PWA 실행에서만.
+   prefers-reduced-motion 은 globals 전역 가드가 즉시화(접근성). */
+@keyframes ft-splash-logo {
+  0%   { opacity: 0; transform: scale(0.84) translateY(8px); }
+  50%  { opacity: 1; transform: scale(1.04) translateY(0); }
+  70%  { transform: scale(0.99); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes ft-splash-dot {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50%      { opacity: 1; transform: translateY(-4px); }
+}
+
 /* ── 공유(web+app) 라우트의 editorial 본문 뒤로가기 링크 — 앱에선 상단 헤더
    ← 와 중복이라 숨긴다. 웹은 per-screen 헤더가 없어 그대로 유지. */
 [data-ft-chrome="app"] .ft-app-back-hide {

@@ -68,8 +68,8 @@ export default function BrandLoader({
               height: 6,
               borderRadius: 999,
               background: V3.accent,
-              animation: 'pulse-soft 1.2s ease-in-out infinite',
-              animationDelay: `${i * 0.18}s`,
+              animation: 'ft-splash-dot 1s ease-in-out infinite',
+              animationDelay: `${i * 0.16}s`,
             }}
           />
         ))}

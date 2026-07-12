@@ -13,6 +13,7 @@ import "./globals.css";
 // 적용된다 (같은 모듈 그래프).
 import "@/lib/forms/zod-ko";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import AppSplash from "@/components/AppSplash";
 import DevContextToggle from "@/components/DevContextToggle";
 import SentryUserSync from "@/components/SentryUserSync";
 import UtmCapture from "@/components/UtmCapture";
@@ -328,6 +329,8 @@ export default function RootLayout({
           {children}
         </ToastProvider>
         <ServiceWorkerRegister />
+        {/* 설치형 PWA 첫 실행 로고 모션 스플래시(웹 브라우저는 스킵). */}
+        <AppSplash />
         {/* audit #107: Supabase auth → Sentry.setUser({ id }) 동기화 */}
         <SentryUserSync />
         {/* R39c (#29): URL 의 utm_* 파라미터 → sessionStorage. conversion 시 함께 보냄. */}
