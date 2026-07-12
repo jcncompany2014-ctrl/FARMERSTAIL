@@ -2,10 +2,7 @@
 import { useState } from 'react'
 import {
   Circle,
-  CircleDashed,
-  CircleDot,
   CircleCheck,
-  CircleEllipsis,
   Droplet,
   Droplets,
   Check,
@@ -15,28 +12,30 @@ import {
   AlertCircle,
   Plus,
 } from 'lucide-react'
-import { BRISTOL_INTERPRETATION } from '@/lib/nutrition/guidelines'
 import { petName } from '@/lib/korean'
 
 type BristolKey = 1 | 2 | 3 | 4 | 5 | 6 | 7
 type GiSensitivity = 'rare' | 'sometimes' | 'frequent' | 'always' | ''
 
-const STOOL_VIEW: Record<
-  BristolKey,
-  {
-    Icon: React.ComponentType<{ className?: string; strokeWidth?: number; color?: string; size?: number }>
-    tag: string
-    tagTone: 'good' | 'warn' | 'bad'
-  }
-> = {
-  1: { Icon: Circle, tag: '변비', tagTone: 'bad' },
-  2: { Icon: CircleDashed, tag: '변비', tagTone: 'bad' },
-  3: { Icon: CircleDot, tag: '경계', tagTone: 'warn' },
-  4: { Icon: CircleCheck, tag: '이상적', tagTone: 'good' },
-  5: { Icon: CircleEllipsis, tag: '경계', tagTone: 'warn' },
-  6: { Icon: Droplet, tag: '설사', tagTone: 'bad' },
-  7: { Icon: Droplets, tag: '설사', tagTone: 'bad' },
-}
+/**
+ * 변 상태 4단계 — 알고리즘상 의미 있는 상태만 (2026-07-12 사장님: 7단계 과함).
+ * value 는 nutrition.ts 의 bristolScore 임계(≤2 변비 섬유+3 / 4 이상 / ≥6 무름
+ * 섬유+2 / 7 설사 +수의상담)에 그대로 매핑 → 7→4 축소로 알고리즘 신호 손실 없음.
+ * (3·5 '경계'는 별도 조치가 없어 제거.)
+ */
+const BRISTOL_OPTIONS: {
+  v: BristolKey
+  label: string
+  signal: string
+  tag: string
+  tone: 'good' | 'warn' | 'bad'
+  Icon: React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>
+}[] = [
+  { v: 2, label: '딱딱한 편', signal: '수분·섬유가 부족한 신호', tag: '변비', tone: 'bad', Icon: Circle },
+  { v: 4, label: '적당해요', signal: '건강한 변이에요', tag: '이상적', tone: 'good', Icon: CircleCheck },
+  { v: 6, label: '조금 무른 편', signal: '식이섬유를 보강하면 좋아요', tag: '무름', tone: 'warn', Icon: Droplet },
+  { v: 7, label: '물설사 같아요', signal: '잦으면 수의사 상담 권장', tag: '설사', tone: 'bad', Icon: Droplets },
+]
 
 export type StoolProps = {
   dogName: string
@@ -59,7 +58,7 @@ export default function Stool({
     <div className="s-page">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
         <span className="s-kicker">
-          STOOL <span className="s-dot">·</span> BRISTOL SCALE
+          STOOL <span className="s-dot">·</span> 변 상태
         </span>
         <span className="s-opt-badge">선택</span>
       </div>
@@ -67,40 +66,29 @@ export default function Stool({
         {petName(dogName)}의 평소 변은<br />어떻게 보이나요?
       </h1>
       <p className="s-sub">
-        <strong>Bristol Scale</strong> = 변 형태를 7단계로 분류한 의학
-        표준. 장 건강과 식이섬유·수분 흡수 신호예요.
-        <span className="s-pill">이상: #4</span>
+        변 상태는 장 건강과 식이섬유·수분 배합에 반영돼요.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-        {([1, 2, 3, 4, 5, 6, 7] as const).map((s) => {
-          const active = bristol === s
-          const view = STOOL_VIEW[s]
-          const Icon = view.Icon
-          const meta = BRISTOL_INTERPRETATION[s]!
+        {BRISTOL_OPTIONS.map(({ v, label, signal, tag, tone, Icon }) => {
+          const active = bristol === v
           return (
             <button
-              key={s}
+              key={v}
               type="button"
-              // R37 — Bristol 1 (강한 변비) / 7 (완전 설사) 극단만 selected 시
-              // sale 색. 2 (가벼운 변비) / 6 (가벼운 설사) 는 warn 으로 유지.
-              // 사용자 의도 "심각한 걸 골랐을 때만" 의 "심각" 기준.
-              className={
-                's-listbtn' +
-                (s === 1 || s === 7 ? ' s-listbtn-danger' : '')
-              }
+              // 설사(7) 극단만 selected 시 danger 색.
+              className={'s-listbtn' + (v === 7 ? ' s-listbtn-danger' : '')}
               aria-pressed={active}
-              onClick={() => setBristol(active ? null : s)}
+              onClick={() => setBristol(active ? null : v)}
             >
-              <span className="s-lb-num">#{s}</span>
               <span
                 className="s-lb-icon"
                 style={{
                   background: active
                     ? 'rgba(255,255,255,.12)'
-                    : view.tagTone === 'good'
+                    : tone === 'good'
                       ? '#E6EBD2'
-                      : view.tagTone === 'warn'
+                      : tone === 'warn'
                         ? '#F5E5C7'
                         : '#F0D8CF',
                 }}
@@ -111,19 +99,19 @@ export default function Stool({
                   color={
                     active
                       ? 'var(--bg)'
-                      : view.tagTone === 'good'
+                      : tone === 'good'
                         ? 'var(--sage)'
-                        : view.tagTone === 'warn'
+                        : tone === 'warn'
                           ? '#7A5B1B'
                           : 'var(--fd-coral)'
                   }
                 />
               </span>
               <span className="s-lb-body">
-                <span className="s-lb-title">{meta.label}</span>
-                <span className="s-lb-sub">{meta.signal}</span>
+                <span className="s-lb-title">{label}</span>
+                <span className="s-lb-sub">{signal}</span>
               </span>
-              <span className={'s-tag s-' + view.tagTone}>{view.tag}</span>
+              <span className={'s-tag s-' + tone}>{tag}</span>
             </button>
           )
         })}
