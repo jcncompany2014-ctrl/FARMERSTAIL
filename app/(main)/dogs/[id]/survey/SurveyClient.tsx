@@ -511,16 +511,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
         setErr('간식 빈도를 선택해 주세요')
         return false
       }
-      if (!taste) {
-        setErr('식욕 상태를 선택해 주세요')
-        return false
-      }
       if (!homeCookingExp) {
         setErr('화식 경험 정도를 선택해 주세요')
-        return false
-      }
-      if (dietSatisfaction === null) {
-        setErr('현재 식이 만족도를 선택해 주세요')
         return false
       }
     }
@@ -944,7 +936,6 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   if (stepIdx > 2 && bristol) echoItems.push(`변 #${bristol}`)
   if (stepIdx > 3) {
     if (foodType) echoItems.push(foodType)
-    if (dietSatisfaction !== null) echoItems.push(`만족도 ${dietSatisfaction}/5`)
   }
   if (stepIdx > 4) {
     if (dlMode === 'none') echoItems.push('알레르기 없음')
@@ -1060,8 +1051,6 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             setTreatKcal={setTreatKcal}
             kibbleKcal={kibbleKcal}
             setKibbleKcal={setKibbleKcal}
-            taste={taste}
-            setTaste={setTaste}
             walkMinutes={walkMinutes}
             setWalkMinutes={setWalkMinutes}
             indoorActivity={indoorActivity}
@@ -1074,8 +1063,6 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             setColdOutdoor={setColdOutdoor}
             homeCookingExp={homeCookingExp}
             setHomeCookingExp={setHomeCookingExp}
-            dietSatisfaction={dietSatisfaction}
-            setDietSatisfaction={setDietSatisfaction}
           />
         )}
 

@@ -1,5 +1,6 @@
-// audit #96: SurveyClient.tsx 분할 — diet step. 가장 큰 step (8개 sub-section).
-// 주식 / 브랜드 / 간식 / 식욕 / 산책분 / 실내활동 / 화식경험 / 만족도.
+// audit #96: SurveyClient.tsx 분할 — diet step.
+// 주식 / 브랜드 / 간식 / 산책(리드) / 활동(조건부) / 화식경험.
+// 정돈(2026-07-12): 식욕·식이만족도 질문 삭제(칼로리·라인 경성 소비처 없음).
 import {
   Wheat,
   CookingPot,
@@ -7,10 +8,6 @@ import {
   Minus,
   Plus,
   PlusCircle,
-  Flame,
-  Smile,
-  Meh,
-  Frown,
   Pause,
   Activity,
   Heart,
@@ -19,10 +16,8 @@ import {
   Check,
 } from 'lucide-react'
 
-type Taste = 'strong' | 'normal' | 'picky' | 'reduced' | ''
 type IndoorActivity = 'calm' | 'moderate' | 'active' | ''
 type HomeCookingExp = 'first' | 'occasional' | 'frequent' | ''
-type DietSatisfaction = 1 | 2 | 3 | 4 | 5 | null
 
 export type DietProps = {
   foodType: string
@@ -37,8 +32,6 @@ export type DietProps = {
   /** 칼로리 v2 5단계 — 건사료 라벨 열량 kcal/kg (선택). '' = 모름 → 평균 350/100g. */
   kibbleKcal: string
   setKibbleKcal: (v: string) => void
-  taste: Taste
-  setTaste: (v: Taste) => void
   walkMinutes: string
   setWalkMinutes: (v: string) => void
   indoorActivity: IndoorActivity
@@ -52,8 +45,6 @@ export type DietProps = {
   setColdOutdoor: (v: '' | 'yes' | 'no') => void
   homeCookingExp: HomeCookingExp
   setHomeCookingExp: (v: HomeCookingExp) => void
-  dietSatisfaction: DietSatisfaction
-  setDietSatisfaction: (v: DietSatisfaction) => void
 }
 
 export default function Diet({
@@ -67,8 +58,6 @@ export default function Diet({
   setTreatKcal,
   kibbleKcal,
   setKibbleKcal,
-  taste,
-  setTaste,
   walkMinutes,
   setWalkMinutes,
   indoorActivity,
@@ -81,8 +70,6 @@ export default function Diet({
   setColdOutdoor,
   homeCookingExp,
   setHomeCookingExp,
-  dietSatisfaction,
-  setDietSatisfaction,
 }: DietProps) {
   // progressive disclosure — 산책을 나가는 경우에만 활동 상세(실내 활동·격한
   // 운동)를 펼친다. '거의 안 가요'(walkMinutes '0')면 후속 질문 없이 끝.
@@ -216,33 +203,7 @@ export default function Diet({
         )}
       </div>
 
-      <div className="s-sect">
-        <div className="s-sect-lbl"><span className="s-label-text">식욕</span></div>
-        <div className="s-chiprow">
-          {[
-            { v: 'strong', label: '왕성', Icon: Flame },
-            { v: 'normal', label: '정상', Icon: Smile },
-            { v: 'picky', label: '까다로움', Icon: Meh },
-            { v: 'reduced', label: '식욕 감퇴', Icon: Frown },
-          ].map(({ v, label, Icon }) => {
-            const active = taste === v
-            return (
-              <button
-                key={v}
-                type="button"
-                className={'s-chip' + (active ? ' s-on' : '')}
-                aria-pressed={active}
-                onClick={() => setTaste(v as Taste)}
-              >
-                <Icon size={13} strokeWidth={2} />
-                {label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* R34c — 첫 그룹 (식사·기호 1~4) 와 활동 그룹 (5~6) 사이 시각 분리. */}
+      {/* R34c — 식사·간식 그룹과 활동 그룹 사이 시각 분리. */}
       <div className="s-sect-divider" aria-hidden />
 
       <div className="s-sect">
@@ -438,28 +399,6 @@ export default function Diet({
                 </span>
                 <span className="s-tile-lb">{label}</span>
                 <span className="s-meta">{meta}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <div className="s-sect">
-        <div className="s-sect-lbl"><span className="s-label-text">지금 식이 만족도</span></div>
-        <div className="s-rate-row">
-          {([1, 2, 3, 4, 5] as const).map((s) => {
-            const active = dietSatisfaction === s
-            const labels = ['매우 불만', '불만', '보통', '만족', '매우 만족']
-            return (
-              <button
-                key={s}
-                type="button"
-                className="s-rate"
-                aria-pressed={active}
-                onClick={() => setDietSatisfaction(s)}
-              >
-                <span className="s-rate-num">{s}</span>
-                <span className="s-rate-lb">{labels[s - 1]}</span>
               </button>
             )
           })}
