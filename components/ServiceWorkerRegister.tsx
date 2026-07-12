@@ -1,45 +1,26 @@
 'use client'
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect } from 'react'
 
 /**
- * PWA 서비스 워커 등록 + 새 버전 detect 시 사용자 toast.
+ * PWA 서비스 워커 등록 — 푸시 알림 + 오프라인 fallback 용.
  *
- * Dev 환경에서는 등록하지 않고, 이미 붙어 있던 SW 는 적극적으로 해제한다.
+ * Dev 환경에서는 등록하지 않고, 이미 붙어 있던 SW 는 적극 해제(캐시 꼬임 방지).
  *
- * # 새 버전 알림
- * sw.js 의 CACHE_NAME 이 bump 됐을 때 SW 가 install → waiting 상태로 들어
- * 가는데, 이때 사용자에게 toast 로 "새 버전이 준비됐어요. [새로고침]" 안내.
- * 누르면 skipWaiting + page reload → 즉시 새 빌드 적용.
- *
- * # SSR
- * useSyncExternalStore has-mounted — 서버 단계에선 toast 렌더 안 함, mount
- * 후에만 SW state 구독. setState-in-effect 룰 회피.
+ * # 업데이트 UX (2026-07-12 사장님 — "새 버전이 준비됐어요 · 새로고침" 토스트 제거)
+ * 예전엔 새 SW install 시 하단에 토스트를 띄워 [새로고침] 을 유도했는데, 거슬려서
+ * 제거. 이제 새 버전은 조용히 install → waiting 후, 사용자가 앱을 완전히 껐다
+ * 켜는 다음 실행에서 자연 활성화된다 (강제 리로드 없음 → 결제·설문 입력이 안 끊김).
+ * 앱 페이지 HTML 은 network-first + JS 청크는 해시별 브라우저 캐시라, SW 활성화
+ * 전에도 콘텐츠는 최신으로 유지된다. (sw.js 의 SKIP_WAITING 핸들러는 잔존하지만
+ * 이제 아무도 호출하지 않음 — 무해.)
  */
-const EMPTY_SUBSCRIBE = () => () => {}
-function useHasMounted(): boolean {
-  return useSyncExternalStore<boolean>(
-    EMPTY_SUBSCRIBE,
-    () => true,
-    () => false,
-  )
-}
-
 export default function ServiceWorkerRegister() {
-  const hasMounted = useHasMounted()
-  const [waitingReg, setWaitingReg] =
-    useState<ServiceWorkerRegistration | null>(null)
-  // audit #104: controllerchange 가 자연 활성화(다른 탭에서 SKIP_WAITING) /
-  // 첫 SW 설치 등으로 발생할 수도 있는데 그때마다 reload 하면 진행 중인 결제·
-  // 설문 입력이 손실됨. 사용자가 명시적으로 "새로고침" 버튼 누른 경우만 reload.
-  const userInitiatedReload = useRef(false)
-
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
 
     if (process.env.NODE_ENV !== 'production') {
-      // Dev: 기존 등록 모두 해제해서 캐시 꼬임 방지. fire-and-forget — 실패해도
-      // dev 환경이라 영향 없음.
+      // Dev: 기존 등록 + 캐시 모두 해제. fire-and-forget.
       void navigator.serviceWorker.getRegistrations().then((regs) => {
         regs.forEach((r) => void r.unregister())
       })
@@ -51,86 +32,12 @@ export default function ServiceWorkerRegister() {
       return
     }
 
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((reg) => {
-        // 이미 waiting 중인 SW 가 있으면 (새 버전 install 완료 후 활성화 대기)
-        // 즉시 toast.
-        if (reg.waiting && navigator.serviceWorker.controller) {
-          setWaitingReg(reg)
-        }
-        // updatefound — 새 SW install 시작 → installed → activated 사이클 추적.
-        reg.addEventListener('updatefound', () => {
-          const next = reg.installing
-          if (!next) return
-          next.addEventListener('statechange', () => {
-            if (
-              next.state === 'installed' &&
-              navigator.serviceWorker.controller
-            ) {
-              // controller 가 있으면 = 이미 옛 SW 가 페이지 통제 중 = "업데이트".
-              // 첫 설치 (controller 없음) 인 경우는 toast 없이 자연 활성화.
-              setWaitingReg(reg)
-            }
-          })
-        })
-      })
-      .catch((err) => {
-        // SW 등록 실패는 user-impact 없음 (PWA push/offline 만 disabled).
-        // Sentry 로 흐르게 console.error 로 승격.
-        console.error('[SW] Registration failed:', err)
-      })
-
-    // controllerchange 이벤트 — skipWaiting 후 새 SW 가 활성화되면 페이지 reload.
-    // audit #104: 자연 활성화 / 다른 탭의 SKIP_WAITING / 첫 SW 설치 등에서도
-    // 발생할 수 있으므로 userInitiatedReload flag 가 true 일 때만 reload.
-    const onControllerChange = () => {
-      if (!userInitiatedReload.current) return
-      if (typeof window !== 'undefined') window.location.reload()
-    }
-    navigator.serviceWorker.addEventListener(
-      'controllerchange',
-      onControllerChange,
-    )
-    return () => {
-      navigator.serviceWorker.removeEventListener(
-        'controllerchange',
-        onControllerChange,
-      )
-    }
+    // Prod: 등록만. 새 버전은 다음 앱 실행에서 조용히 활성화(위 주석 참조).
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      // 등록 실패는 user-impact 없음(푸시/오프라인만 disabled). Sentry 로 승격.
+      console.error('[SW] Registration failed:', err)
+    })
   }, [])
 
-  if (!hasMounted || !waitingReg?.waiting) return null
-
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="fixed left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-4 py-3 rounded-full shadow-xl"
-      style={{
-        bottom: 'max(20px, env(safe-area-inset-bottom))',
-        background: 'var(--ink)',
-        color: 'var(--bg)',
-      }}
-    >
-      <span className="text-[12px] font-bold">새 버전이 준비됐어요</span>
-      <button
-        type="button"
-        onClick={() => {
-          // audit #104: 사용자 명시 액션 → 이후 controllerchange 시 reload 허용.
-          userInitiatedReload.current = true
-          waitingReg.waiting?.postMessage({ type: 'SKIP_WAITING' })
-          // controllerchange 가 reload 트리거. fallback: 5초 후 강제.
-          setTimeout(() => window.location.reload(), 5000)
-        }}
-        className="text-[11px] font-bold px-3 py-1.5 rounded-full"
-        style={{
-          background: 'var(--terracotta)',
-          color: 'var(--bg)',
-        }}
-      >
-        새로고침
-      </button>
-    </div>
-  )
+  return null
 }
