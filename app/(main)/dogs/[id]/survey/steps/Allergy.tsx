@@ -115,6 +115,19 @@ export default function Allergy({
             })}
           </div>
         )}
+        {/* 정돈 P3 — 응답 반영 피드백. 알레르겐을 고르면 '100% 제외' 안심 문구로
+            "앱이 내 답을 이해하고 반영한다"는 감각 + 안전 신뢰. */}
+        {dlMode === 'has' && allergies.length > 0 && (
+          <div className="s-hint" style={{ marginTop: 12 }}>
+            <div className="s-iconwrap">
+              <Check size={14} strokeWidth={2.4} />
+            </div>
+            <div>
+              선택한 재료는 추천 레시피에서 <strong>100% 빼드려요.</strong>{' '}
+              안심하고 골라 주세요.
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="s-sect">
