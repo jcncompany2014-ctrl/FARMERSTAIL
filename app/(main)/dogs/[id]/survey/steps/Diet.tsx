@@ -84,6 +84,9 @@ export default function Diet({
   dietSatisfaction,
   setDietSatisfaction,
 }: DietProps) {
+  // progressive disclosure — 산책을 나가는 경우에만 활동 상세(실내 활동·격한
+  // 운동)를 펼친다. '거의 안 가요'(walkMinutes '0')면 후속 질문 없이 끝.
+  const walksOut = walkMinutes.trim() !== '' && walkMinutes.trim() !== '0'
   return (
     <div className="s-page">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
@@ -244,25 +247,40 @@ export default function Diet({
 
       <div className="s-sect">
         <div className="s-sect-lbl">
-          <span className="s-label-text">하루 산책 시간</span>
-          <span className="s-opt">선택</span>
+          <span className="s-label-text">하루 산책, 얼마나 나가요?</span>
         </div>
-        <div className="s-input-suffix">
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={300}
-            className="s-inp"
-            aria-label="하루 산책 시간 (분)"
-            value={walkMinutes}
-            onChange={(e) => setWalkMinutes(e.target.value)}
-            placeholder="30"
-          />
-          <span className="s-unit">분 / 일</span>
+        <div className="s-chiprow">
+          {[
+            { v: '0', label: '거의 안 가요' },
+            { v: '30', label: '하루 1번' },
+            { v: '60', label: '하루 2번 이상' },
+          ].map(({ v, label }) => {
+            const active = walkMinutes === v
+            return (
+              <button
+                key={v}
+                type="button"
+                className={'s-chip' + (active ? ' s-on' : '')}
+                aria-pressed={active}
+                onClick={() => {
+                  const nv = active ? '' : v
+                  setWalkMinutes(nv)
+                  // '거의 안 가요'/해제 시 숨겨질 활동 상세를 비워 stale 방지.
+                  if (nv === '' || nv === '0') {
+                    setIndoorActivity('')
+                    setVigorous('')
+                  }
+                }}
+              >
+                {label}
+              </button>
+            )
+          })}
         </div>
       </div>
 
+      {walksOut && (
+      <>
       <div className="s-sect">
         <div className="s-sect-lbl">
           <span className="s-label-text">산책 외 실내 활동</span>
@@ -325,6 +343,9 @@ export default function Diet({
           })}
         </div>
       </div>
+
+      </>
+      )}
 
       {/* 칼로리 v2 2b — 주거 환경. 실외 + 한랭일 때만 +0.15 가산. */}
       <div className="s-sect">
