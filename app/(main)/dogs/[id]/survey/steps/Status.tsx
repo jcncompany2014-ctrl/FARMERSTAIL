@@ -69,7 +69,11 @@ export default function Status({
       {/* 리드 게이트 — '없어요'면 상세 전부 숨김(건강한 개는 여기서 끝),
           '있어요'면 질환칩·단계·처방식·약 펼침. '없어요' 선택 시 이전에
           입력한 상세를 모두 비워 stale 방지. */}
-      <div className="s-seg" style={{ marginTop: 4 }}>
+      {/* 버튼 2개 — s-seg 기본 3칸을 2칸으로 덮어써 빈칸 없이 꽉 채움. */}
+      <div
+        className="s-seg"
+        style={{ marginTop: 4, gridTemplateColumns: '1fr 1fr' }}
+      >
         <button
           type="button"
           aria-pressed={hasChronic === 'no'}

@@ -436,7 +436,10 @@
   box-shadow: inset 0 0 0 1px var(--fd-line);
   border: 0; border-radius: 10px;
   padding: 13px 14px;
-  font-size: 13px; font-family: inherit;
+  /* 16px — 그 미만이면 iOS 가 인풋 포커스 시 화면을 자동 확대(사장님 리포트
+     2026-07-12). audit #41 의도(input 16px)를 이 .s-inp 13px 가 특이성으로
+     덮어써서 확대가 났던 것. 16px 로 올려 자동 줌 차단. */
+  font-size: 16px; font-family: inherit;
   color: var(--fd-pine);
   outline: 0;
   transition: box-shadow 160ms;

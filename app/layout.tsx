@@ -233,9 +233,16 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
-  // audit #41: maximumScale=1 + userScalable=false 는 WCAG 1.4.4 (Resize Text)
-  // 명백 위반. 시니어 / 저시력 사용자가 핀치 줌으로 가독성 확보 가능해야 함.
-  // 인풋 자동 줌 (iOS) 은 input { font-size: 16px } 로 별도 처리.
+  // 확대/축소 차단 (2026-07-12 사장님 지시 — "앱 전체 확대 축소 절대 안되게").
+  //   · maximumScale=1 + userScalable=false → 핀치 줌 + iOS 인풋 포커스 자동 줌
+  //     (숫자 입력 시 화면 확대) 모두 차단.
+  //   · ⚠️ 옛 audit #41 은 이를 WCAG 1.4.4(Resize Text) 위반이라 일부러 뺐었음
+  //     (저시력 사용자 핀치 줌). 사장님이 네이티브 앱 느낌 위해 명시 오버라이드.
+  //   · 플랫폼 실제 동작: 설치형 PWA(iOS standalone)·Android/데스크톱 = 잠김.
+  //     iOS Safari 브라우저는 Apple 이 접근성 위해 이 값을 무시 → 웹 방문자는
+  //     iOS 에서 여전히 확대 가능(웹 접근성은 iOS 에서 보존됨).
+  maximumScale: 1,
+  userScalable: false,
   // R-feel: 노치/홈인디케이터 아래 안전영역까지 화면을 펼친다. AppChrome 헤더가
   // 이미 env(safe-area-inset-*) 패딩으로 노치를 피하므로, 이 값이 있어야 그
   // 패딩이 실제 값으로 작동하고 standalone 에서 위아래 띠가 사라진다.
