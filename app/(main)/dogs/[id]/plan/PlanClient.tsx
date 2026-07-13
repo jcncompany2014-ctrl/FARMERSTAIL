@@ -390,7 +390,7 @@ export default function PlanClient({
         open={detailLine !== null}
         onClose={() => setDetailLine(null)}
         title={detailLine ? (RECIPE_TITLES[detailLine] ?? '') : ''}
-        maxHeight="72vh"
+        maxHeight="88vh"
       >
         <BottomSheet.Body>
           {detailLine && <RecipeDetail line={detailLine} />}
@@ -411,6 +411,23 @@ function RecipeDetail({ line }: { line: FoodLine }) {
   ]
   return (
     <div>
+      {/* 제품 사진 자리 — 실사 누끼로 교체 예정(현재 placeholder). */}
+      <div
+        style={{
+          width: '100%',
+          aspectRatio: '4 / 3',
+          borderRadius: 14,
+          background: `color-mix(in srgb, ${meta.color} 12%, transparent)`,
+          boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${meta.color} 20%, transparent)`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 20,
+        }}
+      >
+        <span style={{ fontSize: 56 }} aria-hidden>🍲</span>
+      </div>
+
       <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 9 }}>전체 재료</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 22 }}>
         {ings.map((ing) => (
