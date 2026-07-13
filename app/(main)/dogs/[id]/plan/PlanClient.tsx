@@ -394,20 +394,23 @@ function HeroCard({
           <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 3 }}>{meta.benefit}</div>
         </div>
       </div>
-      {/* 왜 이 레시피를 추천했는지 — formula.reasoning 기반 개인화 근거. */}
+      {/* 왜 이 레시피를 추천했는지 — formula.reasoning 기반 개인화 근거.
+          아이콘을 텍스트 인라인으로 두어 첫 줄과 정렬(비대칭 방지). */}
       <div
         style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 6,
           marginTop: 11,
           padding: '8px 10px',
           borderRadius: 9,
           background: 'color-mix(in srgb, var(--moss, #4f6a48) 8%, transparent)',
         }}
       >
-        <PawPrint size={13} strokeWidth={2} color="var(--moss, #4f6a48)" style={{ flexShrink: 0, marginTop: 1 }} />
-        <span style={{ fontSize: 11, color: 'var(--ink)', fontWeight: 600, lineHeight: 1.45 }}>
+        <span style={{ fontSize: 11, color: 'var(--ink)', fontWeight: 600, lineHeight: 1.5 }}>
+          <PawPrint
+            size={12}
+            strokeWidth={2.2}
+            color="var(--moss, #4f6a48)"
+            style={{ verticalAlign: '-2px', marginRight: 5 }}
+          />
           <b style={{ color: 'var(--moss, #4f6a48)' }}>추천 이유 · </b>
           {why}
         </span>
