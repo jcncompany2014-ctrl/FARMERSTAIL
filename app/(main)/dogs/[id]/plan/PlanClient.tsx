@@ -58,6 +58,18 @@ function fullIngredients(line: string): string[] {
     : []
 }
 
+// 등록성분(as-fed 보장분석, 사장님 표 2026-07-13). line→단백질: weight=닭·basic=오리·
+// joint=돼지(흑돼지)·premium=소(한우). 제조국가 전부 한국.
+const RECIPE_NUTRITION: Record<
+  string,
+  { protein: number; fat: number; fiber: number; ash: number; moisture: number; calcium: number; phosphorus: number }
+> = {
+  weight: { protein: 15.1, fat: 4.7, fiber: 0.3, ash: 2.2, moisture: 75.2, calcium: 0.3, phosphorus: 0.3 },
+  basic: { protein: 13.1, fat: 5.2, fiber: 0.3, ash: 2.1, moisture: 76.3, calcium: 0.3, phosphorus: 0.3 },
+  joint: { protein: 14.9, fat: 5.4, fiber: 0.2, ash: 2.1, moisture: 76.1, calcium: 0.3, phosphorus: 0.3 },
+  premium: { protein: 13.9, fat: 5.5, fiber: 0.3, ash: 2.1, moisture: 75.1, calcium: 0.3, phosphorus: 0.3 },
+}
+
 // 레시피 제목 (사장님 지정 2026-07-13). line→단백질: weight=닭·premium=소·basic=오리·joint=돼지.
 const RECIPE_TITLES: Record<string, string> = {
   weight: 'CHICKEN · 무항생제 닭',
@@ -404,11 +416,18 @@ export default function PlanClient({
 function RecipeDetail({ line }: { line: FoodLine }) {
   const meta = FOOD_LINE_META[line]
   const ings = fullIngredients(line)
-  const nut: [string, string][] = [
-    ['열량', `${Math.round(meta.kcalPer100g)} kcal`],
-    ['조단백질', `${meta.proteinPctDM}%`],
-    ['조지방', `${meta.fatPctDM}%`],
-  ]
+  const n = RECIPE_NUTRITION[line]
+  const nut: [string, string][] = n
+    ? [
+        ['조단백질', `${n.protein}% 이상`],
+        ['조지방', `${n.fat}% 이하`],
+        ['조섬유', `${n.fiber}% 이하`],
+        ['조회분', `${n.ash}% 이하`],
+        ['수분', `${n.moisture}% 이하`],
+        ['칼슘', `${n.calcium}% 이상`],
+        ['인', `${n.phosphorus}% 이상`],
+      ]
+    : []
   return (
     <div>
       {/* 제품 사진 자리 — 실사 누끼로 교체 예정(현재 placeholder). */}
@@ -428,23 +447,19 @@ function RecipeDetail({ line }: { line: FoodLine }) {
         <span style={{ fontSize: 56 }} aria-hidden>🍲</span>
       </div>
 
-      <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 9 }}>전체 재료</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 22 }}>
-        {ings.map((ing) => (
-          <span key={ing} style={{ fontSize: 11.5, color: 'var(--ink)', background: 'var(--bg-2)', padding: '5px 10px', borderRadius: 99 }}>
-            {ing}
-          </span>
-        ))}
-      </div>
+      <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>전체 재료</div>
+      <p style={{ fontSize: 12, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 22 }}>
+        {ings.join(', ')}
+      </p>
 
       <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 9 }}>
-        영양성분 <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500 }}>· 100g 기준 (건물)</span>
+        등록성분 <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500 }}>· 보장분석</span>
       </div>
       <div style={{ border: '1px solid var(--rule)', borderRadius: 10, overflow: 'hidden' }}>
         {nut.map(([label, value], i) => (
           <div
             key={label}
-            style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 13px', borderTop: i > 0 ? '1px solid var(--rule)' : 'none', fontSize: 12.5 }}
+            style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 13px', borderTop: i > 0 ? '1px solid var(--rule)' : 'none', fontSize: 12.5 }}
           >
             <span style={{ color: 'var(--muted)' }}>{label}</span>
             <span style={{ color: 'var(--ink)', fontWeight: 700 }}>{value}</span>
@@ -452,8 +467,7 @@ function RecipeDetail({ line }: { line: FoodLine }) {
         ))}
       </div>
       <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 11, lineHeight: 1.5 }}>
-        AAFCO 2024 · NRC 2006 기준 완전·균형식. 상세 보장성분(수분·조섬유·회분·Ca·P)은
-        제품 라벨에 표기돼요.
+        제조국가 한국 · AAFCO 2024 · NRC 2006 기준 완전·균형식.
       </p>
     </div>
   )
