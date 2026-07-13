@@ -16,7 +16,7 @@
  */
 
 import { useState, type CSSProperties } from 'react'
-import { ArrowRight, Check, Plus, Lock, AlertTriangle, Sparkles } from 'lucide-react'
+import { ArrowRight, Check, Plus, Lock, AlertTriangle, PawPrint } from 'lucide-react'
 import { petName } from '@/lib/korean'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
 import { LINE_TO_SLUG } from '@/lib/personalization/skuMap'
@@ -406,7 +406,7 @@ function HeroCard({
           background: 'color-mix(in srgb, var(--moss, #4f6a48) 8%, transparent)',
         }}
       >
-        <Sparkles size={13} strokeWidth={2} color="var(--moss, #4f6a48)" style={{ flexShrink: 0, marginTop: 1 }} />
+        <PawPrint size={13} strokeWidth={2} color="var(--moss, #4f6a48)" style={{ flexShrink: 0, marginTop: 1 }} />
         <span style={{ fontSize: 11, color: 'var(--ink)', fontWeight: 600, lineHeight: 1.45 }}>
           <b style={{ color: 'var(--moss, #4f6a48)' }}>추천 이유 · </b>
           {why}
