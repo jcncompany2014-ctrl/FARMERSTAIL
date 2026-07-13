@@ -355,8 +355,8 @@ export default function PlanClient({
         </div>
       </div>
 
-      {/* 결제 바 (다크) */}
-      <div style={{ position: 'fixed', left: 12, right: 12, bottom: 12, maxWidth: 412, margin: '0 auto', background: 'var(--ink)', borderRadius: 16, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, zIndex: 40 }}>
+      {/* 결제 바 (다크) — 하단 꽉 차는 통 바(여백·라운드 X, 안전영역까지). */}
+      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, background: 'var(--ink)', padding: '13px 16px calc(13px + env(safe-area-inset-bottom))', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, zIndex: 40 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>첫 박스 · 2주마다 배송 · 언제든 해지</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
