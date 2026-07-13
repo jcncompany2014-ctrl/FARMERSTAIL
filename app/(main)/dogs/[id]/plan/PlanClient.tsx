@@ -424,7 +424,7 @@ function HeroCard({
               viewBox="0 0 100 8"
               preserveAspectRatio="none"
               aria-hidden
-              style={{ position: 'absolute', left: 0, bottom: -3, width: '100%', height: 8, overflow: 'visible' }}
+              style={{ position: 'absolute', left: 0, bottom: -2, width: '100%', height: 8, overflow: 'visible' }}
             >
               <path
                 d="M0,4.5 C18,2 32,6.5 52,4 C72,1.8 88,6 100,3.5"
