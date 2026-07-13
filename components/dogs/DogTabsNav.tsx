@@ -8,7 +8,7 @@
  *   개요  — /dogs/{id}                              (강아지 정보 / 다음 일정)
  *   기록  — /dogs/{id}/diary                        (사진·컨디션·체중 로그)
  *   분석  — /dogs/{id}/analysis                     (영양 분석 결과 + 추천 박스 일체)
- *   구독  — /dogs/{id}/order                        (정기배송 신청·관리)
+ *   구독  — /dogs/{id}/subscription                 (이미 하는 구독 관리)
  *
  * 2026-06-19 (사장님 "분석→박스 점프 비효율" 지시) — '박스'(/formulas) 탭 폐지.
  * 추천 박스는 분석 결과(/analysis)에 BoxMixCard 로 이미 인라인 표시되므로 별도
@@ -72,8 +72,14 @@ const TABS: readonly Tab[] = [
     Icon: BarChart3,
   },
   {
-    href: (id) => `/dogs/${id}/order`,
-    isActive: (path, id) => path.startsWith(`/dogs/${id}/order`),
+    // 구독 = '이미 하는 구독' 관리 (2026-07-13 사장님). 신청 플로우(plan/order/
+    // billing)는 여기 진입이 아니라 분석·플랜 CTA 로 — 단 그 흐름에서도 탭은
+    // '구독' 하이라이트 유지(order·plan startsWith 포함).
+    href: (id) => `/dogs/${id}/subscription`,
+    isActive: (path, id) =>
+      path.startsWith(`/dogs/${id}/subscription`) ||
+      path.startsWith(`/dogs/${id}/order`) ||
+      path.startsWith(`/dogs/${id}/plan`),
     label: '구독',
     Icon: Repeat,
   },

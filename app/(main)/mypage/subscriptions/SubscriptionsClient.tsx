@@ -35,6 +35,7 @@ import SubscriptionsEmptyState from './_components/SubscriptionsEmptyState'
 import SubscriptionsNewBanner from './_components/SubscriptionsNewBanner'
 import SubscriptionCard from './_components/SubscriptionCard'
 import SubscriptionCancelModal from './_components/SubscriptionCancelModal'
+import DogSubscriptionEmpty from './_components/DogSubscriptionEmpty'
 
 type SubscriptionItem = {
   product_name: string
@@ -78,12 +79,26 @@ type Props = {
   initialSubs: Subscription[]
   isNew: boolean
   focusSubId: string | null
+  /**
+   * 강아지 상세 '구독' 탭 임베드용 — 설정 시 이 강아지 구독만 관리한다.
+   *  · reload() 가 dog_id 로 필터 (유저 전체가 아니라 이 강아지만 재조회)
+   *  · 빈 상태는 이 강아지 맞춤 시작 CTA(DogSubscriptionEmpty)
+   *  · 상단 'Subscriptions' 키커 숨김 (탭 컨텍스트가 이미 명확)
+   * 미설정(마이페이지)이면 기존 동작 그대로.
+   */
+  dogId?: string
+  dogName?: string
+  /** dogId 임베드 시 빈 상태 '시작하기' 경로 (처방 있으면 /plan, 없으면 /analysis). */
+  startHref?: string
 }
 
 export default function SubscriptionsClient({
   initialSubs,
   isNew,
   focusSubId,
+  dogId,
+  dogName,
+  startHref,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -131,11 +146,13 @@ export default function SubscriptionsClient({
       router.push('/login')
       return
     }
-    const { data } = await supabase
+    let query = supabase
       .from('subscriptions')
       .select('*, subscription_items(*), dogs(id, name)')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+    // 강아지 탭 임베드 — 이 강아지 구독만. (기본 마이페이지는 유저 전체)
+    if (dogId) query = query.eq('dog_id', dogId)
+    const { data } = await query.order('created_at', { ascending: false })
     if (data) setSubs(data as Subscription[])
   }
 
@@ -371,17 +388,26 @@ export default function SubscriptionsClient({
   return (
     <div style={{ padding: '14px 20px 128px' }}>
       <div className="max-w-md mx-auto">
-        {/* Heading */}
-        <div>
-          <Mono color="accent" size="xs" weight={600}>
-            Subscriptions
-          </Mono>
-        </div>
+        {/* Heading — 강아지 탭 임베드(dogId)면 탭이 이미 '구독'이라 숨김. */}
+        {!dogId && (
+          <div>
+            <Mono color="accent" size="xs" weight={600}>
+              Subscriptions
+            </Mono>
+          </div>
+        )}
 
         {showNewBanner && <SubscriptionsNewBanner />}
 
         {subs.length === 0 ? (
-          <SubscriptionsEmptyState />
+          dogId ? (
+            <DogSubscriptionEmpty
+              dogName={dogName ?? ''}
+              startHref={startHref ?? `/dogs/${dogId}/analysis`}
+            />
+          ) : (
+            <SubscriptionsEmptyState />
+          )
         ) : (
           <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {subs.map((sub) => (
