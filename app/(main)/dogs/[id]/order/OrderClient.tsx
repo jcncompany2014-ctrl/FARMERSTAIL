@@ -629,15 +629,35 @@ export default function OrderClient({
 
   return (
     <div className="ord-page">
+      {/* 스텝 — 레시피(플랜)→배송(현재)→결제(카드등록). 플랜 페이지와 동일 흐름. */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          fontSize: 10,
+          fontWeight: 700,
+          color: 'var(--muted)',
+          marginBottom: 14,
+        }}
+      >
+        <span>① 레시피</span>
+        <span style={{ width: 14, height: 1, background: 'var(--rule)' }} />
+        <span style={{ color: 'var(--terracotta)' }}>② 배송</span>
+        <span style={{ width: 14, height: 1, background: 'var(--rule)' }} />
+        <span>③ 결제</span>
+      </div>
+
       <header className="ord-hero">
         <span className="ord-kicker">CUSTOM BOX · CYCLE {formula?.cycleNumber ?? '–'}</span>
         <h1>
           {dogName} 맞춤 박스<br />
-          정기배송으로 시작할까요?
+          배송 정보를 입력해주세요
         </h1>
         <p>
-          분석 결과 그대로 만든 박스를 2주에 한 번 보내드려요. 분량은 우리
-          아이에 맞게 자동으로 계산되고, 언제든 일시정지·해지할 수 있어요.
+          레시피는 이미 골랐어요. 받을 주소만 확인하면 마지막 결제 단계예요.
+          분량은 우리 아이에 맞게 자동 계산, 언제든 일시정지·해지할 수 있어요.
         </p>
       </header>
 
@@ -1146,7 +1166,7 @@ export default function OrderClient({
 
           <div className="ord-cta">
             <Link
-              href={`/dogs/${dogId}/analysis`}
+              href={`/dogs/${dogId}/plan?fresh=${freshRatio}`}
               className="ord-btn ord-btn-ghost"
             >
               뒤로
