@@ -35,12 +35,19 @@ export type PlanProduct = {
 // (line→단백질: weight=닭, premium=소, basic=오리, joint=돼지)
 const RECIPE_LINES: FoodLine[] = ['weight', 'premium', 'basic', 'joint']
 
-// 실제 재료 (사장님 배합표 2026-07-13). 미량(프리믹스·정제수·강황) 제외한 가시 재료.
-const RECIPE_INGREDIENTS: Record<string, string[]> = {
-  weight: ['닭가슴살', '닭간', '닭심장', '당근', '단호박', '시금치', '현미', '고구마', '브로콜리', '블루베리', '올리브유', '연어유'],
-  premium: ['한우 목심', '소간', '소심장', '당근', '단호박', '시금치', '현미', '고구마', '비트', '브로콜리', '올리브유', '연어유'],
-  basic: ['오리 안심', '오리간', '오리심장', '당근', '단호박', '시금치', '현미', '고구마', '애호박', '양배추', '올리브유', '연어유'],
-  joint: ['돼지 안심', '돼지간', '돼지심장', '당근', '단호박', '시금치', '현미', '고구마', '무', '양배추', '올리브유', '연어유'],
+// 실제 재료 (사장님 배합표 2026-07-13). main=메인 단백질, organs=내장,
+// toppings=컨셉 토핑, veg=채소·탄수. 카드에는 main+organs+toppings 만,
+// 전체(+veg·오일)는 "재료 전체" 상세에서. (소는 내장도 한우 표기 — 사장님)
+const RECIPES: Record<string, { main: string; organs: string[]; toppings: string[]; veg: string[] }> = {
+  weight: { main: '닭가슴살', organs: ['닭간', '닭심장'], toppings: ['브로콜리', '블루베리'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
+  premium: { main: '한우 목심', organs: ['한우 간', '한우 심장'], toppings: ['비트', '브로콜리'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
+  basic: { main: '오리 안심', organs: ['오리 간', '오리 심장'], toppings: ['애호박', '양배추'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
+  joint: { main: '돼지 안심', organs: ['돼지 간', '돼지 심장'], toppings: ['무', '양배추'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
+}
+/** 카드 노출용 — 메인 단백질 + 내장 + 컨셉 토핑. */
+function cardIngredients(line: string): string[] {
+  const r = RECIPES[line]
+  return r ? [r.main, ...r.organs, ...r.toppings] : []
 }
 
 // 레시피 제목 (사장님 지정 2026-07-13). line→단백질: weight=닭·premium=소·basic=오리·joint=돼지.
@@ -275,7 +282,7 @@ export default function PlanClient({
                       </span>
                     ) : (
                       <div style={{ fontSize: 9.5, color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {(RECIPE_INGREDIENTS[line] ?? []).slice(0, 4).join(', ')}…
+                        {cardIngredients(line).slice(0, 4).join(', ')}…
                       </div>
                     )}
                   </div>
@@ -385,7 +392,7 @@ function HeroCard({
   onRemove: () => void
 }) {
   const meta = FOOD_LINE_META[line]
-  const ings = RECIPE_INGREDIENTS[line] ?? []
+  const ings = cardIngredients(line)
   return (
     <div style={{ background: 'var(--surface-card-elevated, #fff)', border: '2px solid var(--terracotta)', borderRadius: 16, padding: 14, position: 'relative', overflow: 'hidden' }}>
       {isRec && (
@@ -414,7 +421,7 @@ function HeroCard({
           background: 'color-mix(in srgb, var(--moss, #4f6a48) 8%, transparent)',
         }}
       >
-        <PawPrint size={13} strokeWidth={2.2} color="var(--moss, #4f6a48)" style={{ flexShrink: 0 }} />
+        <PawPrint size={13} strokeWidth={2.2} color="var(--moss, #4f6a48)" style={{ flexShrink: 0, marginTop: -1 }} />
         <span style={{ fontSize: 11, color: 'var(--ink)', fontWeight: 600, lineHeight: 1.4 }}>
           <b style={{ color: 'var(--moss, #4f6a48)' }}>추천 이유 · </b>
           {why}
