@@ -26,7 +26,8 @@ interface BrandLoaderProps {
 
 export default function BrandLoader({
   label = '불러오는 중',
-  minHeight = '70vh',
+  // 로고가 너무 아래 느낌 → 컨테이너 높이 낮춰 살짝 위로(사장님 2026-07-13).
+  minHeight = '55vh',
 }: BrandLoaderProps) {
   return (
     <div
