@@ -415,7 +415,7 @@ function HeroCard({
             style={{
               display: 'inline-block',
               position: 'relative',
-              fontWeight: 700,
+              fontWeight: 600,
               color: 'var(--moss, #4f6a48)',
             }}
           >
