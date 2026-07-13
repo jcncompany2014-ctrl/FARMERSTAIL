@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import {
   Loader2,
   Calendar,
@@ -228,7 +229,7 @@ export default function RecommendationBox({
         >
           5분이면 끝나요. {dogName} 맞춤 박스를 바로 추천해 드릴게요.
         </div>
-        <a
+        <Link
           href={`/dogs/${dogId}/survey`}
           style={{
             display: 'inline-flex',
@@ -245,7 +246,7 @@ export default function RecommendationBox({
         >
           설문 시작하기
           <ArrowRight size={11} strokeWidth={2.4} />
-        </a>
+        </Link>
       </section>
     )
   }
@@ -385,14 +386,14 @@ function RecommendationView({
         <button type="button" className="fb-cta-ghost" onClick={onOpenAdjust}>
           비율 조정
         </button>
-        <a
+        <Link
           href={`/dogs/${dogId}/plan?fresh=${selected.ratio}`}
           className="fb-cta-prim"
           style={{ textDecoration: 'none' }}
         >
           {ctaLabel}
           <ArrowRight size={14} strokeWidth={2.4} color="#fff" />
-        </a>
+        </Link>
       </div>
 
       {/* 왜 이 비율(접기) */}

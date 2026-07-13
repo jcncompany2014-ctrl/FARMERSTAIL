@@ -16,6 +16,7 @@
  */
 
 import { useState, type CSSProperties } from 'react'
+import Link from 'next/link'
 import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight } from 'lucide-react'
 import { petName } from '@/lib/korean'
 import { BottomSheet } from '@/components/ui/BottomSheet'
@@ -214,9 +215,9 @@ export default function PlanClient({
         <p style={{ fontSize: 12, color: 'var(--muted)', margin: '8px 0 16px' }}>
           분석을 먼저 받으면 {petName(dogName)}에게 맞는 레시피를 추천해 드려요.
         </p>
-        <a href={`/dogs/${dogId}/analysis`} style={ctaLink()}>
+        <Link href={`/dogs/${dogId}/analysis`} style={ctaLink()}>
           분석 보러가기 <ArrowRight size={13} strokeWidth={2.4} />
-        </a>
+        </Link>
       </div>
     )
   }
@@ -405,9 +406,9 @@ export default function PlanClient({
             <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink)', background: '#E8B84B', padding: '2px 6px', borderRadius: 99 }}>50% OFF</span>
           </div>
         </div>
-        <a href={`/dogs/${dogId}/order?fresh=${freshRatio}&recipes=${[...selected].join(',')}`} style={{ border: 'none', background: 'var(--terracotta)', color: '#fff', borderRadius: 99, padding: '12px 18px', fontSize: 13.5, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <Link href={`/dogs/${dogId}/order?fresh=${freshRatio}&recipes=${[...selected].join(',')}`} style={{ border: 'none', background: 'var(--terracotta)', color: '#fff', borderRadius: 99, padding: '12px 18px', fontSize: 13.5, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flexShrink: 0 }}>
           플랜 담기 <ArrowRight size={15} strokeWidth={2.4} color="#fff" />
-        </a>
+        </Link>
       </div>
 
       {/* 재료 전체·영양성분 — 밑에서 올라오는 바텀시트(70vh). */}
