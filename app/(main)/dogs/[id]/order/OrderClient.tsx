@@ -35,6 +35,7 @@ import {
   deriveAvailableToppers,
   gateAvailability,
 } from '@/lib/personalization/skuMap'
+import { snapBoxRatios } from '@/lib/personalization/boxComposition'
 import './order.css'
 
 /**
@@ -336,8 +337,11 @@ export default function OrderClient({
       availableLines: deriveAvailableLines(Object.keys(products)),
       availableToppers: deriveAvailableToppers(Object.keys(products)),
     })
+    // 박스는 SKU 최대 2종 (1종 100% / 2종 50:50) — 배송 라인은 스냅 후 사용
+    // (사장님 2026-07-13). 토퍼는 별개 add-on 이라 대상 아님.
+    const boxRatios = snapBoxRatios(gated.lineRatios)
     for (const line of ALL_LINES) {
-      const ratio = gated.lineRatios[line] ?? 0
+      const ratio = boxRatios[line] ?? 0
       if (ratio <= 0) continue
       const slug = LINE_TO_SLUG[line]
       if (!slug) continue

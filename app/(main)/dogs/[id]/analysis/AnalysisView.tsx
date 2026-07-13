@@ -24,7 +24,8 @@ import {
   riskFlagDesc,
   riskFlagSeverity,
 } from '@/lib/nutrition/risk-flags'
-import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import { FOOD_LINE_META } from '@/lib/personalization/lines'
+import { snapBoxLines } from '@/lib/personalization/boxComposition'
 import type { Formula } from '@/lib/personalization/types'
 import {
   weightFromRER,
@@ -378,19 +379,17 @@ export default function AnalysisView({
     premium: '헴 철분 · 아연 · 활동량 多',
     joint: 'B1·콜린 · 관절·시니어',
   }
-  const magBoxItems: MagBoxMixItem[] = (
-    formula
-      ? ALL_LINES.filter((line) => (formula.lineRatios[line] ?? 0) > 0)
-      : ALL_LINES
-  ).map((line) => {
+  // 박스는 SKU 최대 2종 (1종 100% / 2종 50:50) — snapBoxLines 로 스냅(사장님
+  // 2026-07-13). 임상 lineRatios 는 reasoning 근거로 유지, 여기선 배송·표시용만.
+  // formula 없으면(로딩/실패) 닭50·소50 placeholder.
+  const boxLines = formula
+    ? snapBoxLines(formula.lineRatios)
+    : [
+        { line: 'basic' as const, ratio: 0.5 },
+        { line: 'premium' as const, ratio: 0.5 },
+      ]
+  const magBoxItems: MagBoxMixItem[] = boxLines.map(({ line, ratio }) => {
     const meta = FOOD_LINE_META[line]
-    const ratio = formula
-      ? (formula.lineRatios[line] ?? 0)
-      : line === 'basic' || line === 'premium'
-        ? 0.3
-        : line === 'skin'
-          ? 0.2
-          : 0.1
     const pct = Math.round(ratio * 100)
     return {
       key: line,
