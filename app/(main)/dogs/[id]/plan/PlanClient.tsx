@@ -16,8 +16,9 @@
  */
 
 import { useState, type CSSProperties } from 'react'
-import { ArrowRight, Check, Plus, Lock, AlertTriangle } from 'lucide-react'
+import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight } from 'lucide-react'
 import { petName } from '@/lib/korean'
+import { BottomSheet } from '@/components/ui/BottomSheet'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
 import { LINE_TO_SLUG } from '@/lib/personalization/skuMap'
 import { snapBoxLines } from '@/lib/personalization/boxComposition'
@@ -48,6 +49,13 @@ const RECIPES: Record<string, { main: string; organs: string[]; toppings: string
 function cardIngredients(line: string): string[] {
   const r = RECIPES[line]
   return r ? [r.main, ...r.organs, ...r.toppings] : []
+}
+/** 상세 시트용 — 전체 재료 (+채소·탄수·오일·프리믹스). */
+function fullIngredients(line: string): string[] {
+  const r = RECIPES[line]
+  return r
+    ? [r.main, ...r.organs, ...r.veg, ...r.toppings, '올리브유', '연어유', '강황', '프리믹스 분말', '정제수']
+    : []
 }
 
 // 레시피 제목 (사장님 지정 2026-07-13). line→단백질: weight=닭·premium=소·basic=오리·joint=돼지.
@@ -114,6 +122,8 @@ export default function PlanClient({
   const [freshRatio, setFreshRatio] = useState<FreshRatio>(
     initialFresh === 60 ? 60 : initialFresh === 100 ? 100 : 30,
   )
+  // 재료 전체·영양성분 바텀시트 — 어떤 레시피를 펼쳤는지.
+  const [detailLine, setDetailLine] = useState<FoodLine | null>(null)
 
   // 추천 = snapBoxLines(임상 비율, 연어 제외) 상위 ≤2종. 잠금 = 알레르기 차단.
   const recommended = new Set<FoodLine>(
@@ -237,6 +247,7 @@ export default function PlanClient({
             why={whyForLine(line, formula.reasoning) ?? FOOD_LINE_META[line].benefit}
             removable={selected.size > 1}
             onRemove={() => remove(line)}
+            onDetail={() => setDetailLine(line)}
           />
         ))}
       </div>
@@ -373,6 +384,60 @@ export default function PlanClient({
           플랜 담기 <ArrowRight size={15} strokeWidth={2.4} color="#fff" />
         </a>
       </div>
+
+      {/* 재료 전체·영양성분 — 밑에서 올라오는 바텀시트(70vh). */}
+      <BottomSheet
+        open={detailLine !== null}
+        onClose={() => setDetailLine(null)}
+        title={detailLine ? (RECIPE_TITLES[detailLine] ?? '') : ''}
+        maxHeight="72vh"
+      >
+        <BottomSheet.Body>
+          {detailLine && <RecipeDetail line={detailLine} />}
+        </BottomSheet.Body>
+      </BottomSheet>
+    </div>
+  )
+}
+
+/** 레시피 상세 — 전체 재료 + 영양성분(100g 기준). */
+function RecipeDetail({ line }: { line: FoodLine }) {
+  const meta = FOOD_LINE_META[line]
+  const ings = fullIngredients(line)
+  const nut: [string, string][] = [
+    ['열량', `${Math.round(meta.kcalPer100g)} kcal`],
+    ['조단백질', `${meta.proteinPctDM}%`],
+    ['조지방', `${meta.fatPctDM}%`],
+  ]
+  return (
+    <div>
+      <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 9 }}>전체 재료</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 22 }}>
+        {ings.map((ing) => (
+          <span key={ing} style={{ fontSize: 11.5, color: 'var(--ink)', background: 'var(--bg-2)', padding: '5px 10px', borderRadius: 99 }}>
+            {ing}
+          </span>
+        ))}
+      </div>
+
+      <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 9 }}>
+        영양성분 <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500 }}>· 100g 기준 (건물)</span>
+      </div>
+      <div style={{ border: '1px solid var(--rule)', borderRadius: 10, overflow: 'hidden' }}>
+        {nut.map(([label, value], i) => (
+          <div
+            key={label}
+            style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 13px', borderTop: i > 0 ? '1px solid var(--rule)' : 'none', fontSize: 12.5 }}
+          >
+            <span style={{ color: 'var(--muted)' }}>{label}</span>
+            <span style={{ color: 'var(--ink)', fontWeight: 700 }}>{value}</span>
+          </div>
+        ))}
+      </div>
+      <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 11, lineHeight: 1.5 }}>
+        AAFCO 2024 · NRC 2006 기준 완전·균형식. 상세 보장성분(수분·조섬유·회분·Ca·P)은
+        제품 라벨에 표기돼요.
+      </p>
     </div>
   )
 }
@@ -384,12 +449,14 @@ function HeroCard({
   why,
   removable,
   onRemove,
+  onDetail,
 }: {
   line: FoodLine
   isRec: boolean
   why: string
   removable: boolean
   onRemove: () => void
+  onDetail: () => void
 }) {
   const meta = FOOD_LINE_META[line]
   const ings = cardIngredients(line)
@@ -442,7 +509,14 @@ function HeroCard({
         {ings.join(', ')}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--rule)' }}>
-        <span style={{ fontSize: 11, color: 'var(--terracotta)', fontWeight: 600 }}>재료 전체 · 영양성분</span>
+        <button
+          type="button"
+          onClick={onDetail}
+          style={{ appearance: 'none', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, color: 'var(--terracotta)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 1 }}
+        >
+          재료 전체 · 영양성분
+          <ChevronRight size={13} strokeWidth={2.4} />
+        </button>
         {removable ? (
           <button type="button" onClick={onRemove} style={{ appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--muted)', background: 'transparent', border: '1px solid var(--rule)', padding: '6px 13px', borderRadius: 99 }}>
             빼기
