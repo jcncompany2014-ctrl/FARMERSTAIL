@@ -531,6 +531,8 @@ export default function OrderClient({
           // 무조건 2주마다 배송·결제. coverage_weeks=2 = 크론 biweekly 판정 키.
           interval_weeks: 2,
           coverage_weeks: 2,
+          // 화식 비율 티어 (30/60/100) — 표시·관리용.
+          fresh_ratio: freshRatio,
           status: 'active',
           next_delivery_date: nextDeliveryIso,
           total_deliveries: 0,

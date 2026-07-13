@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
+import { freshTierLabel } from '@/lib/subscription/freshTier'
 
 type SubscriptionRow = {
   id: string
@@ -10,6 +11,7 @@ type SubscriptionRow = {
   status: 'active' | 'paused' | 'cancelled'
   interval_weeks: number
   coverage_weeks: number | null
+  fresh_ratio: number | null
   next_delivery_date: string | null
   last_delivery_date: string | null
   total_deliveries: number
@@ -119,11 +121,11 @@ export default function AdminSubscriptionsPage() {
       const sub = subs.find(s => s.id === subId)
       if (sub) {
         const next = new Date()
-        // 박스 구독은 캘린더 월 기준 (4주치) 또는 15일 (2주치)
+        // 박스 구독은 2주(14일) — 레거시 4주치만 캘린더 월.
         const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null
         if (isBoxSub) {
           if (sub.coverage_weeks === 2) {
-            next.setDate(next.getDate() + 15)
+            next.setDate(next.getDate() + 14)
           } else {
             next.setMonth(next.getMonth() + 1)
           }
@@ -307,12 +309,12 @@ export default function AdminSubscriptionsPage() {
         .insert(items)
 
       // 3) 구독 업데이트: 다음 배송일 갱신, 누적 횟수 +1
-      // 박스 구독은 캘린더 월 (4주치) 또는 15일 (2주치) — cron 룰과 정합.
+      // 박스 구독은 2주(14일) — 레거시 4주치만 캘린더 월. cron 룰과 정합.
       const nextDate = new Date(sub.next_delivery_date!)
       const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null
       if (isBoxSub) {
         if (sub.coverage_weeks === 2) {
-          nextDate.setDate(nextDate.getDate() + 15)
+          nextDate.setDate(nextDate.getDate() + 14)
         } else {
           nextDate.setMonth(nextDate.getMonth() + 1)
         }
@@ -468,7 +470,7 @@ export default function AdminSubscriptionsPage() {
                         </div>
                         {sub.coverage_weeks && (
                           <div className="text-[9px] text-muted font-normal mt-0.5">
-                            {sub.coverage_weeks === 2 ? '2주치 (절반 구성)' : '4주치 (전체 구성)'}
+                            {freshTierLabel(sub.fresh_ratio, sub.coverage_weeks)}
                           </div>
                         )}
                         {sub.dogs && (

@@ -8,6 +8,7 @@ import {
   PauseCircle,
 } from 'lucide-react'
 import type { ActiveSubscription } from './types'
+import { freshTierLabel } from '@/lib/subscription/freshTier'
 
 /**
  * 진행중 정기배송 카드 — 강아지 단위.
@@ -104,11 +105,11 @@ export default function SubscriptionCard({
                             : '진행중'}
                       </span>
                       <span className="text-[12px] font-bold text-text truncate">
-                        {s.coverage_weeks === 2 ? '2주치 · 하이브리드' : '4주치 · 풀 화식'}
+                        {freshTierLabel(s.fresh_ratio, s.coverage_weeks)}
                       </span>
                     </div>
                     <span className="shrink-0 text-[12px] font-bold text-text font-mono whitespace-nowrap tabular-nums">
-                      {s.total_amount.toLocaleString()}원/월
+                      {s.total_amount.toLocaleString()}원/2주
                     </span>
                   </div>
                   {/* UI audit M4: meta row flex-wrap — 좁은 카드 + 긴 d-day 라벨 시

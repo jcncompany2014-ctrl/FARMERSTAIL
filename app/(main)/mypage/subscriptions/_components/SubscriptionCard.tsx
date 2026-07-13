@@ -27,6 +27,7 @@ import {
 } from '@/lib/design/tokens'
 import { Mono, Badge } from '@/components/v3'
 import type { Subscription } from '../SubscriptionsClient'
+import { freshTierLabel } from '@/lib/subscription/freshTier'
 import {
   INTERVAL_LABELS,
   STATUS_MAP,
@@ -128,9 +129,7 @@ export default function SubscriptionCard({
           )}
           {sub.coverage_weeks && (
             <Badge tone="ink" shape="pill" size="sm" upper={false}>
-              {sub.coverage_weeks === 2
-                ? '2주치 · 하이브리드'
-                : '4주치 · 풀 화식'}
+              {freshTierLabel(sub.fresh_ratio, sub.coverage_weeks)}
             </Badge>
           )}
         </div>

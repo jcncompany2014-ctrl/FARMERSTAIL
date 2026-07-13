@@ -38,6 +38,7 @@ import {
   generateFallbackCustomerKey,
 } from '@/lib/v3-helpers/subscriptions'
 import type { Subscription } from '@/app/(main)/mypage/subscriptions/SubscriptionsClient'
+import { freshTierLabel } from '@/lib/subscription/freshTier'
 
 type Props = {
   initialSubs: Subscription[]
@@ -186,7 +187,7 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
     const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null
     const nextIso = isBoxSub
       ? sub.coverage_weeks === 2
-        ? addDaysKst(todayIso, 15)
+        ? addDaysKst(todayIso, 14)
         : addMonthsKst(todayIso, 1)
       : addDaysKst(todayIso, sub.interval_weeks * 7)
     const { error } = await supabase
@@ -374,7 +375,7 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
                     className="text-[11px] px-2 py-0.5 rounded-full shrink-0 truncate"
                     style={{ background: 'var(--fd-cream)', color: 'var(--fd-pine)', fontWeight: 700 }}
                   >
-                    {sub.coverage_weeks === 2 ? '2주치 · 하이브리드' : '4주치 · 풀 화식'}
+                    {freshTierLabel(sub.fresh_ratio, sub.coverage_weeks)}
                   </span>
                 )}
               </div>

@@ -3501,6 +3501,7 @@ export type Database = {
           cancelled_at: string | null
           coverage_weeks: number
           created_at: string
+          fresh_ratio: number | null
           delivery_memo: string | null
           dog_id: string | null
           failed_charge_count: number
@@ -3538,6 +3539,7 @@ export type Database = {
           billing_key?: string | null
           cancelled_at?: string | null
           coverage_weeks?: number
+          fresh_ratio?: number | null
           created_at?: string
           delivery_memo?: string | null
           dog_id?: string | null
@@ -3576,6 +3578,7 @@ export type Database = {
           billing_key?: string | null
           cancelled_at?: string | null
           coverage_weeks?: number
+          fresh_ratio?: number | null
           created_at?: string
           delivery_memo?: string | null
           dog_id?: string | null

@@ -48,6 +48,8 @@ export type Subscription = {
   status: 'active' | 'paused' | 'cancelled'
   interval_weeks: number
   coverage_weeks: number | null
+  /** 화식 비율 티어 (30/60/100). 레거시 구독은 null. */
+  fresh_ratio: number | null
   next_delivery_date: string | null
   last_delivery_date: string | null
   total_deliveries: number
@@ -241,7 +243,7 @@ export default function SubscriptionsClient({
     const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null
     const nextIso = isBoxSub
       ? sub.coverage_weeks === 2
-        ? addDaysKst(todayIso, 15)
+        ? addDaysKst(todayIso, 14)
         : addMonthsKst(todayIso, 1)
       : addDaysKst(todayIso, sub.interval_weeks * 7)
 

@@ -82,7 +82,7 @@ export default async function DogDetailPage({
       supabase
         .from('subscriptions')
         .select(
-          'id, status, interval_weeks, coverage_weeks, next_delivery_date, ' +
+          'id, status, interval_weeks, coverage_weeks, fresh_ratio, next_delivery_date, ' +
             'total_deliveries, total_amount, billing_key, created_at',
         )
         .eq('dog_id', dogId)
