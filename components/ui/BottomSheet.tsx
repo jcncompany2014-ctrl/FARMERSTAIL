@@ -160,7 +160,11 @@ function BottomSheetRoot({
         // 등장 애니메이션 — globals.css 의 --animate-slide-in-up 토큰.
         'animate-slide-in-up',
       ].join(' ')}
-      style={{ maxHeight }}
+      // showModal() 이 포커스 대상이 없으면 dialog 자체에 포커스를 준다 →
+      // 전역 :focus-visible(2px terracotta) 아웃라인이 시트 상단에 '일자 오렌지 선'
+      // 으로 드러남(안쪽 div 만 라운드라 사각 dialog 테두리가 보임). 컨테이너
+      // 아웃라인만 제거 — 내부 버튼/입력의 포커스 링은 그대로 유지된다.
+      style={{ maxHeight, outline: 'none' }}
     >
       {/* 내부 컨테이너 — dialog 에 직접 bg 를 먹이면 backdrop 과 겹쳐 엉킴 */}
       <div

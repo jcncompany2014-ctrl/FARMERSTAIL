@@ -16,7 +16,7 @@
  */
 
 import { useState, type CSSProperties } from 'react'
-import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight } from 'lucide-react'
+import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight, X } from 'lucide-react'
 import { petName } from '@/lib/korean'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
@@ -390,8 +390,9 @@ export default function PlanClient({
         </div>
       </div>
 
-      {/* 결제 바 (다크) — 하단 꽉 차는 통 바(여백·라운드 X, 안전영역까지). */}
-      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, background: 'var(--ink)', padding: '13px 16px calc(13px + env(safe-area-inset-bottom))', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, zIndex: 40 }}>
+      {/* 결제 바 (다크) — 하단 꽉 차는 통 바. 상세 시트 열리면 숨김(시트 밑으로
+          비쳐 보이는 문제 방지). */}
+      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, background: 'var(--ink)', padding: '13px 16px calc(13px + env(safe-area-inset-bottom))', display: detailLine ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, zIndex: 40 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>첫 박스 · 2주마다 배송 · 언제든 해지</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
@@ -426,6 +427,7 @@ export default function PlanClient({
                   ? (whyForLine(detailLine, formula.reasoning) ?? '')
                   : ''
               }
+              onClose={() => setDetailLine(null)}
             />
           )}
         </BottomSheet.Body>
@@ -435,7 +437,17 @@ export default function PlanClient({
 }
 
 /** 레시피 상세 — 전체 재료 + 영양성분(100g 기준). */
-function RecipeDetail({ line, dogName, why }: { line: FoodLine; dogName: string; why: string }) {
+function RecipeDetail({
+  line,
+  dogName,
+  why,
+  onClose,
+}: {
+  line: FoodLine
+  dogName: string
+  why: string
+  onClose: () => void
+}) {
   const meta = FOOD_LINE_META[line]
   const ings = fullIngredients(line)
   // 근거 trigger 앞 기술 접두사 정리(고객 가독성).
@@ -453,7 +465,33 @@ function RecipeDetail({ line, dogName, why }: { line: FoodLine; dogName: string;
       ]
     : []
   return (
-    <div>
+    <div style={{ position: 'relative' }}>
+      {/* 닫기 — 그래버 드래그·배경 탭 외 명시적 X(사장님: 편하게 닫기). */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="닫기"
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          zIndex: 2,
+          width: 34,
+          height: 34,
+          borderRadius: '50%',
+          background: 'var(--surface-card-elevated, #fff)',
+          border: '1px solid var(--rule)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          appearance: 'none',
+          boxShadow: '0 1px 4px rgba(46,31,20,.12)',
+        }}
+      >
+        <X size={17} strokeWidth={2.4} color="var(--ink)" />
+      </button>
+
       {/* 제품 사진 자리 — 실사 누끼로 교체 예정(현재 placeholder). */}
       <div
         style={{
