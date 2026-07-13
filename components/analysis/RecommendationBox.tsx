@@ -386,7 +386,7 @@ function RecommendationView({
           비율 조정
         </button>
         <a
-          href={`/dogs/${dogId}/order?fresh=${selected.ratio}`}
+          href={`/dogs/${dogId}/plan?fresh=${selected.ratio}`}
           className="fb-cta-prim"
           style={{ textDecoration: 'none' }}
         >
