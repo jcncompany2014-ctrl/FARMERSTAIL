@@ -153,6 +153,9 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const focusMode =
     FOCUS_PATHS.some((p) => pathname.includes(p)) ||
     (pathname.includes('/analysis') && fromSurvey)
+  // 강아지 상세(우리 아이) 화면 — /dogs/{uuid}... 진입 시 발바닥 FAB 숨김
+  // (사장님 2026-07-13). 목록 /dogs 는 해당 없음.
+  const onDogDetail = new RegExp(`^/dogs/${UUID_RE}(/|$)`).test(pathname)
 
   const [scrolled, setScrolled] = useState(false)
   // R-feel: 상단 우측에 '활성 강아지 칩' — 알림/장바구니 대신.
@@ -624,7 +627,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
 
       {/* 빠른 기입 — 하단 중앙 발바닥 FAB(홈 허브형에서 자주 기입 진입 대체).
           활성 강아지 기준 라우팅, 몰입 화면(설문/체크인)에선 숨김. */}
-      <PawFab activeDogId={activeDog?.id ?? null} hidden={focusMode} />
+      <PawFab activeDogId={activeDog?.id ?? null} hidden={focusMode || onDogDetail} />
 
       {/* 홈 허브형(2026-06-17): 하단 탭바 제거 — 내비 = 로고(→홈) +
           헤더 좌측 계정 아이콘(→내정보) + 홈 카드/강아지 칩. 깊은 화면은 ← 뒤로. */}
