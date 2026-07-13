@@ -289,7 +289,7 @@ export default async function BrandPage() {
           <p className="text-[14px] md:text-[16px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.85, maxWidth: 720 }}>
             영양 데이터, 케어 기록, 매달 식단 노트 — 식단이 지나간 자리에 무엇이
             남는지를 우리는 기록으로 보존하려 해요. 다음 시즌에는 알레르기 케어
-            라인, 소형견 토퍼, 노령견을 위한 라인이 차례로 추가될 예정입니다.
+            라인, 노령견을 위한 라인이 차례로 추가될 예정입니다.
           </p>
           <div className="mt-7 flex flex-col sm:flex-row gap-3">
             <Button href={planHref} tone="coral" size="lg">

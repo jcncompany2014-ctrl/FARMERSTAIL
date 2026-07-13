@@ -32,7 +32,7 @@ export async function generateMetadata({
     }
     return {
       title: `${petName(name)} 맞춤 영양 분석 · 파머스테일`,
-      description: `${petName(name)}를 위한 NRC/AAFCO 기반 맞춤 화식 박스. 5종 메인 + 동결건조 토퍼. 매 cycle 알고리즘 자동 조정.`,
+      description: `${petName(name)}를 위한 NRC/AAFCO 기반 맞춤 화식 박스. 단백질별 맞춤 레시피. 매 cycle 알고리즘 자동 조정.`,
       openGraph: {
         title: `${petName(name)} 맞춤 영양 분석`,
         description:
@@ -54,7 +54,7 @@ export async function generateMetadata({
 const DEFAULT_META: Metadata = {
   title: '맞춤 영양 분석 · 파머스테일',
   description:
-    'AAFCO / NRC / FEDIAF 기반 강아지 맞춤 화식 박스. 5종 메인 + 토퍼.',
+    'AAFCO / NRC / FEDIAF 기반 강아지 맞춤 화식 박스. 단백질별 맞춤 레시피.',
   openGraph: {
     title: '파머스테일 · Farm to Tail',
     description: 'AAFCO / NRC / FEDIAF 기반 강아지 맞춤 화식 박스.',
