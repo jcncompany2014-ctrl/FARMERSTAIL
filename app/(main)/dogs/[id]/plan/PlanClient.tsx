@@ -70,6 +70,18 @@ const RECIPE_NUTRITION: Record<
   premium: { protein: 13.9, fat: 5.5, fiber: 0.3, ash: 2.1, moisture: 75.1, calcium: 0.3, phosphorus: 0.3 },
 }
 
+// 레시피별 고객용 설명 — "이건 이래서 좋아요"(사장님 2026-07-13).
+const RECIPE_DESCRIPTIONS: Record<string, string> = {
+  weight:
+    '네 가지 중 가장 순하고 소화가 편한 단백질이에요. 지방이 낮아 체중 관리가 필요한 아이에게 특히 잘 맞고, 담백해서 화식을 처음 시작하는 아이도 부담 없이 먹어요. 무항생제 닭가슴살을 메인으로 씁니다.',
+  premium:
+    '고단백에 헴철분이 풍부해 활동량 많은 아이, 근육과 활력이 필요한 아이에게 좋아요. 진한 풍미라 입이 짧은 아이도 잘 먹어요. 프리미엄 한우 목심을 저지방으로 손질해 담습니다.',
+  basic:
+    '닭·소가 잘 안 맞는 아이도 편하게 먹는 노블 단백질이에요. 흔한 알레르겐이 아니라 부담이 낮으면서도, 담백한 감칠맛이 있어 기호성이 좋아요. 무항생제 오리 안심을 씁니다.',
+  joint:
+    '예민한 아이에게 부드러운 저알러지 단백질이에요. 소화가 편하고, 제주산 흑돼지 특유의 고소한 풍미로 잘 먹어요. 지방이 적은 안심 부위를 메인으로 담습니다.',
+}
+
 // 레시피 제목 (사장님 지정 2026-07-13). line→단백질: weight=닭·premium=소·basic=오리·joint=돼지.
 const RECIPE_TITLES: Record<string, string> = {
   weight: 'CHICKEN · 무항생제 닭',
@@ -446,6 +458,13 @@ function RecipeDetail({ line }: { line: FoodLine }) {
       >
         <span style={{ fontSize: 56 }} aria-hidden>🍲</span>
       </div>
+
+      {/* 이 레시피는요 — 고객용 설명(사장님 2026-07-13). */}
+      {RECIPE_DESCRIPTIONS[line] && (
+        <p style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 22 }}>
+          {RECIPE_DESCRIPTIONS[line]}
+        </p>
+      )}
 
       <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>전체 재료</div>
       <p style={{ fontSize: 12, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 22 }}>
