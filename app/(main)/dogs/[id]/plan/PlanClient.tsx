@@ -43,6 +43,14 @@ const RECIPE_INGREDIENTS: Record<string, string[]> = {
   joint: ['돼지 안심', '돼지간', '돼지심장', '당근', '단호박', '시금치', '현미', '고구마', '무', '양배추', '올리브유', '연어유'],
 }
 
+// 레시피 제목 (사장님 지정 2026-07-13). line→단백질: weight=닭·premium=소·basic=오리·joint=돼지.
+const RECIPE_TITLES: Record<string, string> = {
+  weight: 'CHICKEN · 무항생제 닭',
+  premium: 'BEEF · 프리미엄 한우',
+  basic: 'DUCK · 무항생제 오리',
+  joint: 'PORK · 제주산 흑돼지',
+}
+
 const FRESH_TIERS = [
   { value: 30 as const, label: '곁들임', sub: '화식 30% · 건사료 70%' },
   { value: 60 as const, label: '반반', sub: '화식 60% · 건사료 40%' },
@@ -256,7 +264,7 @@ export default function PlanClient({
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, color: isBlocked ? 'var(--muted)' : 'var(--ink)' }}>{meta.name}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: isBlocked ? 'var(--muted)' : 'var(--ink)' }}>{RECIPE_TITLES[line] ?? meta.name}</span>
                       {isRec && !isBlocked && (
                         <span style={{ fontSize: 8.5, fontWeight: 700, color: 'var(--moss, #4f6a48)' }}>★ 추천</span>
                       )}
@@ -267,7 +275,7 @@ export default function PlanClient({
                       </span>
                     ) : (
                       <div style={{ fontSize: 9.5, color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {meta.subtitle} · {(RECIPE_INGREDIENTS[line] ?? []).slice(0, 3).join(', ')}…
+                        {(RECIPE_INGREDIENTS[line] ?? []).slice(0, 4).join(', ')}…
                       </div>
                     )}
                   </div>
@@ -388,28 +396,26 @@ function HeroCard({
           <span style={{ fontSize: 32 }} aria-hidden>🍲</span>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
-            {meta.name} · {meta.subtitle}
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+            {RECIPE_TITLES[line] ?? meta.name}
           </div>
         </div>
       </div>
       {/* 왜 이 레시피를 추천했는지 — formula.reasoning 기반 개인화 근거.
-          아이콘을 텍스트 인라인으로 두어 첫 줄과 정렬(비대칭 방지). */}
+          flex center 로 발자국·텍스트 세로 중앙 정렬. */}
       <div
         style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
           marginTop: 11,
           padding: '8px 10px',
           borderRadius: 9,
           background: 'color-mix(in srgb, var(--moss, #4f6a48) 8%, transparent)',
         }}
       >
-        <span style={{ fontSize: 11, color: 'var(--ink)', fontWeight: 600, lineHeight: 1.5 }}>
-          <PawPrint
-            size={12}
-            strokeWidth={2.2}
-            color="var(--moss, #4f6a48)"
-            style={{ verticalAlign: '-2px', marginRight: 5 }}
-          />
+        <PawPrint size={13} strokeWidth={2.2} color="var(--moss, #4f6a48)" style={{ flexShrink: 0 }} />
+        <span style={{ fontSize: 11, color: 'var(--ink)', fontWeight: 600, lineHeight: 1.4 }}>
           <b style={{ color: 'var(--moss, #4f6a48)' }}>추천 이유 · </b>
           {why}
         </span>
