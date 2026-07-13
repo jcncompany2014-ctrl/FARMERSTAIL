@@ -77,6 +77,9 @@ function BottomSheetRoot({
       if (sheet) {
         sheet.style.transition = ''
         sheet.style.transform = ''
+        // showModal 자동 포커스를 컨테이너로 회수 — 닫기 X 등 첫 버튼에
+        // terracotta :focus-visible 링이 뜨는 것 방지(위 tabIndex 참고).
+        sheet.focus({ preventScroll: true })
       }
     } else if (!open && el.open) {
       el.close()
@@ -173,7 +176,11 @@ function BottomSheetRoot({
       {/* 내부 컨테이너 — dialog 에 직접 bg 를 먹이면 backdrop 과 겹쳐 엉킴 */}
       <div
         ref={sheetRef}
-        className="bg-bg rounded-t-3xl shadow-[0_-8px_24px_-12px_rgba(30,26,20,0.25)] flex flex-col overflow-hidden"
+        // 열릴 때 showModal 포커스를 여기로 받아 X 버튼에 :focus-visible 링이
+        // 씌워지는 것 방지. tabIndex=-1 프로그램 포커스라 링이 안 뜨고,
+        // 키보드 Tab 시엔 각 컨트롤이 정상적으로 링을 받는다(접근성 유지).
+        tabIndex={-1}
+        className="bg-bg rounded-t-3xl shadow-[0_-8px_24px_-12px_rgba(30,26,20,0.25)] flex flex-col overflow-hidden outline-none"
       >
         {/* 드래그 존 — 그래버 + 제목. touchAction none 으로 스크롤 대신
             pointermove 수신. 본문(Body) 스크롤은 영향 없음.
@@ -213,9 +220,9 @@ function BottomSheetRoot({
                     width: 32,
                     height: 32,
                     marginRight: -4,
-                    borderRadius: 999,
-                    background: 'var(--bg-2)',
+                    background: 'none',
                     border: 'none',
+                    outline: 'none',
                     cursor: 'pointer',
                     appearance: 'none',
                     color: 'var(--ink-mute)',
