@@ -417,7 +417,17 @@ export default function PlanClient({
         maxHeight="88vh"
       >
         <BottomSheet.Body>
-          {detailLine && <RecipeDetail line={detailLine} />}
+          {detailLine && (
+            <RecipeDetail
+              line={detailLine}
+              dogName={dogName}
+              why={
+                recommended.has(detailLine)
+                  ? (whyForLine(detailLine, formula.reasoning) ?? '')
+                  : ''
+              }
+            />
+          )}
         </BottomSheet.Body>
       </BottomSheet>
     </div>
@@ -425,9 +435,11 @@ export default function PlanClient({
 }
 
 /** 레시피 상세 — 전체 재료 + 영양성분(100g 기준). */
-function RecipeDetail({ line }: { line: FoodLine }) {
+function RecipeDetail({ line, dogName, why }: { line: FoodLine; dogName: string; why: string }) {
   const meta = FOOD_LINE_META[line]
   const ings = fullIngredients(line)
+  // 근거 trigger 앞 기술 접두사 정리(고객 가독성).
+  const whyClean = why.replace(/^케어 목표\s*=\s*/, '')
   const n = RECIPE_NUTRITION[line]
   const nut: [string, string][] = n
     ? [
@@ -461,9 +473,28 @@ function RecipeDetail({ line }: { line: FoodLine }) {
 
       {/* 이 레시피는요 — 고객용 설명(사장님 2026-07-13). */}
       {RECIPE_DESCRIPTIONS[line] && (
-        <p style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 22 }}>
+        <p style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 16 }}>
           {RECIPE_DESCRIPTIONS[line]}
         </p>
+      )}
+
+      {/* 개인화 추천 이유 — 이 강아지 프로필 기반(추천 레시피만). */}
+      {whyClean && (
+        <div
+          style={{
+            marginBottom: 22,
+            padding: '12px 14px',
+            borderRadius: 12,
+            background: 'color-mix(in srgb, var(--moss, #4f6a48) 8%, transparent)',
+          }}
+        >
+          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--moss, #4f6a48)', marginBottom: 4 }}>
+            {petName(dogName)}에게 추천한 이유
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink)', lineHeight: 1.6 }}>
+            {whyClean}에 맞춰 {petName(dogName)}에게 추천했어요.
+          </div>
+        </div>
       )}
 
       <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>전체 재료</div>
