@@ -16,7 +16,7 @@
  */
 
 import { useState, type CSSProperties } from 'react'
-import { ArrowRight, Check, Plus, Lock, AlertTriangle } from 'lucide-react'
+import { ArrowRight, Check, Plus, Lock, AlertTriangle, Sparkles } from 'lucide-react'
 import { petName } from '@/lib/korean'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
 import { LINE_TO_SLUG } from '@/lib/personalization/skuMap'
@@ -51,6 +51,37 @@ const FRESH_TIERS = [
 type FreshRatio = (typeof FRESH_TIERS)[number]['value']
 
 const MAX_RECIPES = 2
+
+/** reasoning ruleId → 그 룰이 강조한 단백질 라인. "왜 이 레시피" 매핑용. */
+function lineFromRuleId(ruleId: string): FoodLine | null {
+  if (ruleId === 'goal-weight_management') return 'weight'
+  if (ruleId === 'goal-skin_coat') return 'skin'
+  if (ruleId === 'goal-joint_senior') return 'joint'
+  if (ruleId === 'goal-general_upgrade' || ruleId === 'goal-allergy_avoid') return 'basic'
+  if (ruleId === 'bcs-overweight' || ruleId === 'bcs-obese') return 'weight'
+  if (ruleId === 'bcs-refeeding-risk' || ruleId === 'bcs-underweight') return 'premium'
+  if (ruleId === 'chronic-arthritis' || ruleId === 'chronic-long-term-steroid') return 'joint'
+  if (ruleId === 'chronic-allergy-skin' || ruleId === 'chronic-cognitive-decline') return 'skin'
+  if (
+    ruleId === 'chronic-diabetes' ||
+    ruleId === 'chronic-hypothyroid' ||
+    ruleId === 'chronic-cushings' ||
+    ruleId === 'chronic-musculoskeletal'
+  )
+    return 'weight'
+  if (ruleId === 'chronic-epi') return 'premium'
+  if (ruleId === 'age-senior-joint') return 'joint'
+  if (ruleId === 'age-puppy' || ruleId === 'age-puppy-large-breed') return 'basic'
+  return null
+}
+
+/** 이 라인을 추천한 가장 중요한 근거(trigger). 없으면 null → 호출부가 benefit 폴백. */
+function whyForLine(line: FoodLine, reasoning: Formula['reasoning']): string | null {
+  const matched = reasoning
+    .filter((r) => lineFromRuleId(r.ruleId) === line)
+    .sort((a, b) => a.priority - b.priority)
+  return matched[0]?.trigger ?? null
+}
 
 export default function PlanClient({
   dogId,
@@ -188,6 +219,7 @@ export default function PlanClient({
             key={line}
             line={line}
             isRec={recommended.has(line)}
+            why={whyForLine(line, formula.reasoning) ?? FOOD_LINE_META[line].benefit}
             removable={selected.size > 1}
             onRemove={() => remove(line)}
           />
@@ -334,11 +366,13 @@ export default function PlanClient({
 function HeroCard({
   line,
   isRec,
+  why,
   removable,
   onRemove,
 }: {
   line: FoodLine
   isRec: boolean
+  why: string
   removable: boolean
   onRemove: () => void
 }) {
@@ -357,10 +391,28 @@ function HeroCard({
           <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
             {meta.name} · {meta.subtitle}
           </div>
-          <div style={{ fontSize: 10.5, color: 'var(--moss, #4f6a48)', fontWeight: 600, marginTop: 3 }}>{meta.benefit}</div>
+          <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 3 }}>{meta.benefit}</div>
         </div>
       </div>
-      <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 11, lineHeight: 1.55 }}>
+      {/* 왜 이 레시피를 추천했는지 — formula.reasoning 기반 개인화 근거. */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 6,
+          marginTop: 11,
+          padding: '8px 10px',
+          borderRadius: 9,
+          background: 'color-mix(in srgb, var(--moss, #4f6a48) 8%, transparent)',
+        }}
+      >
+        <Sparkles size={13} strokeWidth={2} color="var(--moss, #4f6a48)" style={{ flexShrink: 0, marginTop: 1 }} />
+        <span style={{ fontSize: 11, color: 'var(--ink)', fontWeight: 600, lineHeight: 1.45 }}>
+          <b style={{ color: 'var(--moss, #4f6a48)' }}>추천 이유 · </b>
+          {why}
+        </span>
+      </div>
+      <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 9, lineHeight: 1.55 }}>
         {ings.join(', ')}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--rule)' }}>
