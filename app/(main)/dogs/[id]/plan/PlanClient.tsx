@@ -16,7 +16,7 @@
  */
 
 import { useState, type CSSProperties } from 'react'
-import { ArrowRight, Check, Plus, Lock, AlertTriangle, PawPrint } from 'lucide-react'
+import { ArrowRight, Check, Plus, Lock, AlertTriangle } from 'lucide-react'
 import { petName } from '@/lib/korean'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
 import { LINE_TO_SLUG } from '@/lib/personalization/skuMap'
@@ -408,25 +408,34 @@ function HeroCard({
           </div>
         </div>
       </div>
-      {/* 왜 이 레시피를 추천했는지 — formula.reasoning 기반 개인화 근거.
-          발자국을 텍스트 인라인으로 두어 줄 수와 무관하게 항상 첫 줄 옆 중앙. */}
-      <div
-        style={{
-          marginTop: 11,
-          padding: '8px 10px',
-          borderRadius: 9,
-          background: 'color-mix(in srgb, var(--moss, #4f6a48) 8%, transparent)',
-        }}
-      >
-        <span style={{ fontSize: 11, color: 'var(--ink)', fontWeight: 600, lineHeight: 1.5 }}>
-          <PawPrint
-            size={12}
-            strokeWidth={2.2}
-            color="var(--moss, #4f6a48)"
-            style={{ verticalAlign: 'middle', marginRight: 5, position: 'relative', top: -1 }}
-          />
-          <b style={{ color: 'var(--moss, #4f6a48)' }}>추천 이유 · </b>
-          {why}
+      {/* 왜 이 레시피를 추천했는지 — "추천 이유" 라벨에 색연필 밑줄(모스) 포인트. */}
+      <div style={{ marginTop: 12, marginBottom: 2 }}>
+        <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 600, lineHeight: 2 }}>
+          <span
+            style={{
+              display: 'inline-block',
+              position: 'relative',
+              fontWeight: 700,
+              color: 'var(--moss, #4f6a48)',
+            }}
+          >
+            추천 이유
+            <svg
+              viewBox="0 0 100 8"
+              preserveAspectRatio="none"
+              aria-hidden
+              style={{ position: 'absolute', left: 0, bottom: -5, width: '100%', height: 8, overflow: 'visible' }}
+            >
+              <path
+                d="M0,4.5 C18,2 32,6.5 52,4 C72,1.8 88,6 100,3.5"
+                stroke="var(--moss, #4f6a48)"
+                strokeWidth={2.4}
+                fill="none"
+                strokeLinecap="round"
+              />
+            </svg>
+          </span>
+          <span> · {why}</span>
         </span>
       </div>
       <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 9, lineHeight: 1.55 }}>
