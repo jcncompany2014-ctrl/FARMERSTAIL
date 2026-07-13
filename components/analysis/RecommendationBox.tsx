@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
-  Loader2,
   Calendar,
   Scale,
   Shield,
@@ -19,6 +18,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { trackBoxRecommended, trackAnalysisViewed } from '@/lib/analytics'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { createClient } from '@/lib/supabase/client'
 import type { Formula, Reasoning } from '@/lib/personalization/types'
 import AdjustSheet from './AdjustSheet'
@@ -199,18 +199,20 @@ export default function RecommendationBox({
 
   // ── 로딩 / 에러 / no_survey ──
   if (state.status === 'loading') {
+    // 스피너 대신 최종(RecommendationView) 형태의 스켈레톤 — 로딩 잔재가 옛
+    // 디자인처럼 스쳐 보이지 않고 skeleton→콘텐츠로 매끄럽게 전환(사장님).
     return (
-      <section className="fb-state" style={{ marginTop: 24 }}>
-        <Loader2
-          size={18}
-          strokeWidth={2}
-          color="var(--terracotta)"
-          className="animate-spin"
-        />
-        <div style={{ fontWeight: 700, fontSize: 13 }}>
-          {dogName} 맞춤 박스 준비 중
+      <div className="fb-totals" aria-busy="true" aria-label={`${dogName} 맞춤 박스 준비 중`}>
+        <Skeleton className="h-4 w-40" />
+        <div style={{ marginTop: 6 }}>
+          <Skeleton className="h-3 w-28" />
         </div>
-      </section>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="w-full h-16" rounded="lg" />
+          ))}
+        </div>
+      </div>
     )
   }
   if (state.status === 'no_survey') {

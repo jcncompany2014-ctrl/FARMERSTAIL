@@ -137,6 +137,9 @@ export default function AnalysisView({
   // RecommendationBox 도 자체 fetch 중이라 중복 호출이지만 첫 박스 시점
   // formula 는 deterministic — 가벼운 작업이라 두 번 호출 허용.
   const [formula, setFormula] = useState<Formula | null>(null)
+  // formula fetch 진행중 플래그 — 박스가 '가짜 placeholder → 진짜'로 튀는 대신
+  // 로딩 스켈레톤을 보이게. 실패(settled+null)면 하드코드 fallback 유지.
+  const [formulaLoading, setFormulaLoading] = useState(true)
   // Legacy commentary fetch 는 StructuredAnalysis v2 가 대체. 상태 변수는 제거.
 
   // 설문 완료 응원 포인트 toast — survey/page.tsx 가 sessionStorage 에
@@ -280,6 +283,9 @@ export default function AnalysisView({
         setFormula(json.formula)
       } catch {
         /* silent — Magazine BoxMix 는 fallback hardcode 로 표시 */
+      } finally {
+        // 성공/실패 무관 로딩 종료 — 실패면 formula null 유지되어 fallback 표시.
+        if (!cancelled) setFormulaLoading(false)
       }
     })()
     return () => {
@@ -451,6 +457,7 @@ export default function AnalysisView({
           feedG={analysis.feed_g}
           nutrientRows={magNutrientRows}
           boxItems={magBoxItems}
+          boxLoading={formulaLoading && !formula}
           history={history}
           totalCount={totalCount}
           riskFlags={analysis.risk_flags ?? []}

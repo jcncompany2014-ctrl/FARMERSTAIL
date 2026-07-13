@@ -52,6 +52,8 @@ type Props = {
   feedG: number
   nutrientRows: MagNutrientRow[]
   boxItems: MagBoxMixItem[]
+  /** dog별 formula 아직 로딩 중 — 박스는 가짜 placeholder 대신 스켈레톤. */
+  boxLoading?: boolean
   history: HistoryPoint[]
   totalCount: number
   /** 칼로리 v2 2e — 위험 플래그 (에너지 카드 직하 수의 상담 배너 판정). */
@@ -79,6 +81,7 @@ export default function AnalysisMagazineSection({
   rer,
   factor,
   boxItems,
+  boxLoading,
   history,
   totalCount,
   riskFlags,
@@ -157,7 +160,7 @@ export default function AnalysisMagazineSection({
       {/* 카드 순서 (사용자 지시 2026-05-21):
           BoxMix → RecommendationBox (정기배송+비율조정+왜이비율) →
           Nutrients (영양 균형) → 추이 → Supplements → MagCTA(보조) */}
-      <MagBoxMix p={magP} dogName={dogName} items={boxItems} />
+      <MagBoxMix p={magP} dogName={dogName} items={boxItems} loading={boxLoading} />
       {!isArchive && (
         <div style={{ marginTop: 14 }}>
           <RecommendationBox dogId={dogId} dogName={dogName} isSenior={isSenior} />

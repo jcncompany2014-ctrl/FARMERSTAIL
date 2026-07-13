@@ -12,6 +12,7 @@
 import Image from 'next/image'
 import { Bone, Droplet, Sparkles, Leaf } from 'lucide-react'
 import { petName } from '@/lib/korean'
+import { Skeleton } from '@/components/ui/Skeleton'
 import type { MagazinePalette, BoxLineKey } from './palette'
 import { lineColors } from './palette'
 import { Reveal, useReveal } from './primitives'
@@ -39,10 +40,14 @@ export function BoxMixCard({
   p,
   dogName,
   items,
+  loading = false,
 }: {
   p: MagazinePalette
   dogName: string
   items: BoxMixItem[]
+  /** dog 별 lineRatios(formula) 아직 로딩 중 — 가짜 placeholder 대신 스켈레톤.
+   *  (formula null 시 상위가 임시 박스를 넘기던 것이 '옛 박스 플래시'의 원인) */
+  loading?: boolean
 }) {
   const colors = lineColors(p)
 
@@ -53,23 +58,62 @@ export function BoxMixCard({
           p={p}
           eyebrow="RECOMMENDED"
           title={`${petName(dogName)}의 첫 박스`}
-          tail={`화식 ${items.length}종 레시피`}
+          tail={loading ? '레시피 구성 중' : `화식 ${items.length}종 레시피`}
         />
 
-        {/* 2종 이상일 때만 비율 바 — 1종이면 100% 단색이라 불필요. */}
-        {items.length >= 2 && (
-          <div style={{ marginTop: 16 }}>
-            <StackedBar items={items} colors={colors} />
-          </div>
-        )}
+        {loading ? (
+          <BoxSkeleton p={p} />
+        ) : (
+          <>
+            {/* 2종 이상일 때만 비율 바 — 1종이면 100% 단색이라 불필요. */}
+            {items.length >= 2 && (
+              <div style={{ marginTop: 16 }}>
+                <StackedBar items={items} colors={colors} />
+              </div>
+            )}
 
-        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {items.map((it) => (
-            <BoxRow key={it.key} p={p} item={it} color={colors[it.key]} />
-          ))}
-        </div>
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {items.map((it) => (
+                <BoxRow key={it.key} p={p} item={it} color={colors[it.key]} />
+              ))}
+            </div>
+          </>
+        )}
       </ReportCard>
     </Reveal>
+  )
+}
+
+/** 로딩 스켈레톤 — 실제 바+행 레이아웃과 동일 치수로 CLS 없이 shimmer. */
+function BoxSkeleton({ p }: { p: MagazinePalette }) {
+  return (
+    <>
+      <div style={{ marginTop: 16 }}>
+        <Skeleton className="h-4 w-full" rounded="full" />
+      </div>
+      <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {[0, 1].map((i) => (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '12px 14px',
+              background: p.cardSoft,
+              borderRadius: 8,
+            }}
+          >
+            <Skeleton className="w-12 h-12 shrink-0" rounded="full" />
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <Skeleton className="h-3.5 w-1/2" />
+              <Skeleton className="h-2.5 w-3/4" />
+            </div>
+            <Skeleton className="h-3 w-10 shrink-0" />
+          </div>
+        ))}
+      </div>
+    </>
   )
 }
 
