@@ -391,7 +391,6 @@ function HeroCard({
           <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
             {meta.name} · {meta.subtitle}
           </div>
-          <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 3 }}>{meta.benefit}</div>
         </div>
       </div>
       {/* 왜 이 레시피를 추천했는지 — formula.reasoning 기반 개인화 근거.
