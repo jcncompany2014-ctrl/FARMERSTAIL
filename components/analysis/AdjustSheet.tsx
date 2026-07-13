@@ -38,31 +38,11 @@ import { trackBoxAdjusted } from '@/lib/analytics'
  *    구현. 'next' 는 미래 작업. props 로 받아 호출처가 결정).
  */
 
-const TOPPER_CAP = 30
-const TOPPER_STEP = 5
 const MAIN_STEP = 5
 const MAIN_MAX = 70
 
-type Ratios = Record<string, number> // lineId or topperId → percent (0-100)
-
-const TOPPER_KEYS = ['vegetable', 'protein'] as const
-type TopperKey = (typeof TOPPER_KEYS)[number]
-
-const TOPPER_META: Record<
-  TopperKey,
-  { label: string; sub: string; color: string }
-> = {
-  vegetable: {
-    label: '야채 토퍼',
-    sub: '동결건조 · 당근·호박',
-    color: 'var(--moss)',
-  },
-  protein: {
-    label: '육류 토퍼',
-    sub: '동결건조 · 닭가슴·연어',
-    color: '#C86B45',
-  },
-}
+// 토퍼 폐지(2026-07-13 사장님) — 야채/육류 토퍼 삭제. 박스는 화식 레시피만.
+type Ratios = Record<string, number> // lineId → percent (0-100)
 
 /** Smart redistribute — group 내 한 항목 변경 시 다른 항목들에 비례 분배. */
 function rebalance(
@@ -178,14 +158,12 @@ export default function AdjustSheet({
    *  (35%/18% DM) 경고를 live preview 에서 켠다. */
   isSenior?: boolean
 }) {
-  // formula → ratios (퍼센트 정수). 메인 라인 + 토퍼 통합.
+  // formula → ratios (퍼센트 정수). 메인 화식 라인만(토퍼 폐지).
   const initialRatios: Ratios = useMemo(() => {
     const r: Ratios = {}
     for (const line of ALL_LINES) {
       r[line] = Math.round(formula.lineRatios[line] * 100)
     }
-    r.vegetable = Math.round(formula.toppers.vegetable * 100)
-    r.protein = Math.round(formula.toppers.protein * 100)
     return r
   }, [formula])
 
@@ -216,23 +194,13 @@ export default function AdjustSheet({
   }, [open, initialRatios])
 
   const mainKeys: string[] = [...ALL_LINES]
-  const topperKeys: string[] = ['vegetable', 'protein']
   const mainSum = sumGroup(ratios, mainKeys)
-  const topperSum = sumGroup(ratios, topperKeys)
-  // Spec A — 메인 5종 합 = 100% (정량 영양 책임), 토퍼 = 0~30% 별도 보너스.
-  // 둘은 더하지 않음. 메인 합이 정확히 100% 이고 토퍼가 cap 이내면 저장 가능.
-  const canSave =
-    Math.round(mainSum) === 100 && topperSum <= TOPPER_CAP && !saving
+  // 메인 화식 5종 합 = 100% (정량 영양 책임). 토퍼 폐지.
+  const canSave = Math.round(mainSum) === 100 && !saving
 
   function onLineChange(id: string, newVal: number) {
     setRatios((prev) =>
       rebalance(mainKeys, prev, id, newVal, blocked as Set<string>),
-    )
-  }
-  function onTopperChange(id: string, newVal: number) {
-    const capped = Math.min(TOPPER_CAP, newVal)
-    setRatios((prev) =>
-      rebalance(topperKeys, prev, id, capped, new Set<string>()),
     )
   }
   function onBlockedTouch(id: string) {
@@ -256,10 +224,8 @@ export default function AdjustSheet({
         premium: (ratios.premium ?? 0) / 100,
         joint: (ratios.joint ?? 0) / 100,
       }
-      const toppers = {
-        vegetable: (ratios.vegetable ?? 0) / 100,
-        protein: (ratios.protein ?? 0) / 100,
-      }
+      // 토퍼 폐지 — 항상 빈 값 저장.
+      const toppers = { vegetable: 0, protein: 0 }
       const res = await fetch('/api/personalization/adjust', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -369,7 +335,6 @@ export default function AdjustSheet({
           <LiveBar
             ratios={ratios}
             mainSum={mainSum}
-            topperSum={topperSum}
             formula={formula}
             isSenior={isSenior}
           />
@@ -415,50 +380,6 @@ export default function AdjustSheet({
                 />
               )
             })}
-          </div>
-
-          {/* 토퍼 — 메인 정량 위에 끼얹는 보너스. 0~30%, 메인 합과 별개. */}
-          <div className="adj-sect-lbl">
-            <div className="l">
-              <Plus size={11} strokeWidth={2} color="var(--ink)" />
-              <Sprout size={11} strokeWidth={2} color="var(--ink)" />
-              토퍼 보너스
-            </div>
-            <div className="r">
-              <b>{Math.round(topperSum)}</b>% / 30% cap
-            </div>
-          </div>
-          <div className="adj-toppers">
-            {topperKeys.map((id) => {
-              const meta = TOPPER_META[id as TopperKey]
-              const v = ratios[id] ?? 0
-              const grams = (formula.dailyGrams * v) / 100
-              const kcal = (formula.dailyKcal * v) / 100
-              return (
-                <LineRow
-                  key={id}
-                  id={id}
-                  label={meta.label}
-                  sub={meta.sub}
-                  color={meta.color}
-                  value={v}
-                  max={TOPPER_CAP}
-                  step={TOPPER_STEP}
-                  blocked={false}
-                  shake={false}
-                  grams={grams}
-                  kcal={kcal}
-                  onChange={(nv) => onTopperChange(id, nv)}
-                  onBlockedTouch={() => {}}
-                />
-              )
-            })}
-            <div className="adj-topper-cap">
-              <span>토퍼 합계</span>
-              <span>
-                <b>{Math.round(topperSum)}%</b> / {TOPPER_CAP}% cap
-              </span>
-            </div>
           </div>
 
           {/* 전환 전략 */}
@@ -541,22 +462,16 @@ export default function AdjustSheet({
 function LiveBar({
   ratios,
   mainSum,
-  topperSum,
   formula,
   isSenior = false,
 }: {
   ratios: Ratios
   mainSum: number
-  topperSum: number
   formula: Formula
   isSenior?: boolean
 }) {
-  // Spec A — 메인 5종 (합 100% 정량 영양) 과 토퍼 (0~30% 보너스) 를 두 줄로
-  // 분리 표시. 두 그룹은 합치지 않음 (서로 다른 dimension).
-  //   - 메인 bar: 100% 너비 = "한 끼니 정량". 5종이 width=v% 로 stack.
-  //   - 토퍼 bar: 30% cap 을 100% 너비로 표시 (스케일링). 2종이 (v/30)*100% 로 stack.
+  // 메인 화식 5종 (합 100% 정량 영양) stacked bar. 토퍼 폐지(2026-07-13).
   const mainOk = Math.round(mainSum) === 100
-  const topperOk = topperSum <= TOPPER_CAP
   return (
     <div className="adj-live">
       {/* ── 메인 화식 (정량) ───────────────────────────────────────────── */}
@@ -589,40 +504,6 @@ function LiveBar({
             <i
               key={k}
               style={{ width: `${v}%`, background: color }}
-              title={`${k} ${v}%`}
-            />
-          )
-        })}
-      </div>
-
-      {/* ── 토퍼 보너스 (메인 위에 끼얹기, 30% cap) ────────────────────── */}
-      <div className="adj-live-axis adj-live-axis-topper">
-        <div className="l">
-          <Plus size={10} strokeWidth={2.4} color="var(--muted)" />
-          토퍼 보너스 <b>{Math.round(topperSum)}%</b>
-        </div>
-        <div className={'r' + (topperOk ? '' : ' warn')}>
-          {topperOk ? (
-            <>{TOPPER_CAP}% cap 이내</>
-          ) : (
-            <>
-              <AlertCircle size={10} strokeWidth={2.2} color="#b83a2e" />
-              {`${Math.round(topperSum - TOPPER_CAP)}% 초과`}
-            </>
-          )}
-        </div>
-      </div>
-      <div className="adj-live-bar adj-live-bar-topper">
-        {TOPPER_KEYS.map((k) => {
-          const v = ratios[k] ?? 0
-          if (v === 0) return null
-          const color = TOPPER_META[k].color
-          // cap 30% 을 100% 너비로 스케일 — 토퍼 5% 는 막대의 16.67% 너비.
-          const pct = Math.min(100, (v / TOPPER_CAP) * 100)
-          return (
-            <i
-              key={k}
-              style={{ width: `${pct}%`, background: color }}
               title={`${k} ${v}%`}
             />
           )

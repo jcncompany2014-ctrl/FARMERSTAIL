@@ -60,8 +60,6 @@ import {
 // v2.0.0 — 레시피 v2.1 재설계: skuModel SSOT + 라인 리바인드(weight=닭,
 // basic=오리) + 케어목표/임상타겟 레시피 정합 + 영양 프로파일 + 가용성 게이트.
 const ALGORITHM_VERSION = 'v2.0.0'
-/** 토퍼 합계 cap — 화식이 주식 지위를 잃지 않도록 30% 한도. */
-const MAX_TOPPER_TOTAL = 0.3
 
 // ──────────────────────────────────────────────────────────────────────────
 // 메인 진입점
@@ -121,8 +119,10 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
   // Step 9 — quantize + 정규화.
   lineRatios = quantizeAndNormalize(lineRatios, blocked)
 
-  // Step 10 — 토퍼 결정.
-  const toppers = decideToppers(input, reasoning)
+  // Step 10 — 토퍼 폐지 (사장님 2026-07-13): 야채/육류 토퍼 삭제. 박스는 화식
+  // 레시피(최대 2종)만. 토퍼는 메인 라인과 별개 애드온이라 없애도 급여 칼로리
+  // 구멍 없음(과급 제거). toppers 필드는 스키마 호환 위해 빈 값 유지.
+  const toppers = { vegetable: 0, protein: 0 }
 
   // Step 10.5 — 가용성 게이트 (skuMap). 활성 제품 없는 라인/토퍼 비율을
   // 가용 라인으로 재분배 — 연어 보류·토퍼 미오픈 등으로 박스에서 조용히
@@ -1661,90 +1661,6 @@ function applyPreferredProteinBonus(
     })
   }
   return out
-}
-
-// ──────────────────────────────────────────────────────────────────────────
-// Step 10 — 토퍼 결정
-// ──────────────────────────────────────────────────────────────────────────
-
-function decideToppers(
-  input: AlgorithmInput,
-  reasoning: Reasoning[],
-): Formula['toppers'] {
-  // Default — 야채 10%, 단백질 토퍼 0% (화식 자체에 단백질 충분).
-  let vegetable = 0.1
-  let protein = 0
-
-  // 화식 처음 — 토퍼 0% (적응 우선).
-  if (input.homeCookingExperience === 'first') {
-    reasoning.push({
-      trigger: '화식 처음',
-      action: '토퍼 0% — 4주 전환기 후 추가',
-      chipLabel: '첫 화식 → 토퍼 0',
-      priority: 7,
-      ruleId: 'topper-first-zero',
-    })
-    return { protein: 0, vegetable: 0 }
-  }
-
-  // 자주/매일 — 토퍼 풍성하게.
-  if (input.homeCookingExperience === 'frequent') {
-    vegetable = 0.15
-    protein = 0.1
-  }
-
-  // 식욕 까다로움/감퇴 — 단백질 토퍼 ↑ (기호성).
-  // appetite 정보는 input 에 없음 — survey.taste 가 따로. v1.1 에서 추가.
-
-  // BCS 6+ — 야채 토퍼 ↑ (포만감, 저칼로리).
-  if (input.bcs !== null && input.bcs >= 6) {
-    vegetable = Math.min(0.2, vegetable + 0.05)
-    reasoning.push({
-      trigger: `BCS ${input.bcs}/9`,
-      action: `야채 토퍼 ${(vegetable * 100).toFixed(0)}% (포만감 + 저칼로리)`,
-      chipLabel: '과체중 → 야채 ↑',
-      priority: 7,
-      ruleId: 'topper-bcs-veg',
-    })
-  }
-
-  // 만성질환 + GI 민감 — 토퍼 최소.
-  if (
-    input.giSensitivity === 'always' ||
-    input.chronicConditions.includes('ibd') ||
-    input.chronicConditions.includes('pancreatitis')
-  ) {
-    vegetable = Math.min(vegetable, 0.05)
-    protein = 0
-    reasoning.push({
-      trigger: '위장 민감 / 만성질환',
-      action: '토퍼 최소화 (변화 신호 줄이기)',
-      chipLabel: '민감 → 토퍼 최소',
-      priority: 7,
-      ruleId: 'topper-sensitive-min',
-    })
-  }
-
-  // Cap.
-  const total = vegetable + protein
-  if (total > MAX_TOPPER_TOTAL) {
-    const factor = MAX_TOPPER_TOTAL / total
-    vegetable *= factor
-    protein *= factor
-  }
-
-  // audit #6: 이전엔 vegetable/protein 각각 round → (0.165, 0.135) → (0.17, 0.14) = 0.31
-  // 으로 cap (0.3) 초과. vegetable 만 먼저 round 한 후 protein = max(0, cap - vegetable)
-  // 으로 합이 항상 cap 이하 보장. 화식 주식 지위 보호 의도 일관성.
-  const vegetableR = Math.round(vegetable * 100) / 100
-  const proteinR = Math.round(protein * 100) / 100
-  const capped = vegetableR + proteinR > MAX_TOPPER_TOTAL
-  return {
-    vegetable: vegetableR,
-    protein: capped
-      ? Math.max(0, Math.round((MAX_TOPPER_TOTAL - vegetableR) * 100) / 100)
-      : proteinR,
-  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────

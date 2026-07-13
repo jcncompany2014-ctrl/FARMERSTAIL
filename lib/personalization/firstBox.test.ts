@@ -395,49 +395,25 @@ describe('decideFirstBox — GI 민감도', () => {
   })
 })
 
-describe('decideFirstBox — 토퍼', () => {
-  it('homeCookingExperience = first → 토퍼 0%', () => {
+describe('decideFirstBox — 토퍼 폐지(2026-07-13)', () => {
+  // 야채/육류 토퍼 삭제 — 어떤 입력이든 toppers 항상 {0,0}.
+  it('frequent + BCS 6+ 여도 토퍼 0', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      homeCookingExperience: 'frequent',
+      bcs: 7,
+    })
+    assert.equal(f.toppers.protein, 0)
+    assert.equal(f.toppers.vegetable, 0)
+  })
+
+  it('first 도 토퍼 0', () => {
     const f = decideFirstBox({
       ...baseInput(),
       homeCookingExperience: 'first',
     })
     assert.equal(f.toppers.protein, 0)
     assert.equal(f.toppers.vegetable, 0)
-  })
-
-  it('homeCookingExperience = frequent → 토퍼 풍부', () => {
-    const f = decideFirstBox({
-      ...baseInput(),
-      homeCookingExperience: 'frequent',
-    })
-    assert.ok(f.toppers.vegetable + f.toppers.protein > 0.15)
-  })
-
-  it('BCS 6+ → 야채 토퍼 ↑', () => {
-    const f = decideFirstBox({
-      ...baseInput(),
-      bcs: 7,
-      homeCookingExperience: 'occasional',
-    })
-    assert.ok(f.toppers.vegetable >= 0.1)
-  })
-
-  it('토퍼 합계는 30% cap', () => {
-    const f = decideFirstBox({
-      ...baseInput(),
-      homeCookingExperience: 'frequent',
-      bcs: 8,
-    })
-    assert.ok(f.toppers.vegetable + f.toppers.protein <= 0.3 + 1e-9)
-  })
-
-  it('IBD → 토퍼 최소', () => {
-    const f = decideFirstBox({
-      ...baseInput(),
-      chronicConditions: ['ibd'],
-      homeCookingExperience: 'frequent',
-    })
-    assert.ok(f.toppers.vegetable + f.toppers.protein <= 0.05 + 1e-9)
   })
 })
 

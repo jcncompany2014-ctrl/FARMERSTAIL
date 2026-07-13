@@ -422,13 +422,8 @@ function finalize(
 ): Formula {
   const finalized = quantizeAndNormalize(lineRatios, blocked)
 
-  // 토퍼 — 이전과 동일 유지 (cycle 별로 토퍼 큰 변화 회피). 단 GI 신호가
-  // 강하면 nextStool 룰이 이미 비율을 collapse 했으니 토퍼도 최소.
-  let toppers = { ...previous.toppers }
-  const allCollapsed = ALL_LINES.filter((l) => finalized[l] > 0).length === 1
-  if (allCollapsed) {
-    toppers = { protein: 0, vegetable: Math.min(0.05, toppers.vegetable) }
-  }
+  // 토퍼 폐지 (사장님 2026-07-13) — 야채/육류 토퍼 삭제. 항상 빈 값.
+  const toppers = { vegetable: 0, protein: 0 }
 
   // 가용성 게이트 (skuMap) — 제품 없는 라인/토퍼 재분배 (연어 보류 등).
   // applyCoatSignal 이 skin 을 올렸어도 연어 미출시면 weight(오리)로 자동 이동.
