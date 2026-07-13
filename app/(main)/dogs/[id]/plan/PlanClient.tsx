@@ -1,23 +1,24 @@
 'use client'
 
 /**
- * PlanClient — 상품(플랜) 페이지 본체 (2026-07-13 사장님, 목업 2회 확정).
+ * PlanClient — 상품(플랜) 페이지 본체 (2026-07-13 사장님, 목업 확정 + 구조 개편).
  *
- * TFD "Build a Plan" 구조 + 우리 차별점(알고리즘 임상 안전성):
- *  - 알고리즘 추천 레시피 "★ 추천" + 미리 담김, 사용자는 최대 2종까지 자유 선택.
- *  - 알레르기 차단 라인은 잠금(선택 불가) — "안전한 것만 추천" 가시화.
- *  - 화식 비율(곁들임 30 / 반반 60 / 완전 100) + 첫박스 할인 결제 바.
+ * TFD "Build a Plan" + 우리 차별점(알고리즘 임상 안전성). 사장님 개편 지시:
+ *  - 연어(salmon/skin) 레시피 아예 제거 — 레시피 4종(닭/오리/돼지/소)만.
+ *  - 추천을 **위쪽에 강조(강화)** 해서 먼저 보여주고, **아래에 "다른 레시피"
+ *    바꾸기 목록**을 둔다. 단일 단백질 추천이면 그 하나가 크게.
+ *  - 알레르기 차단 라인은 잠금.
+ *  - 화식 비율(곁들임/반반/완전) + 첫박스 할인.
  *
- * # Phase 1 (현재)
- *  - 실제 데이터 렌더 + 선택(최대 2·잠금) + 화식 비율 + 대표 가격 계산.
- *  - CTA → /order (주소·결제). 선택 레시피 handoff(formula 저장)는 후속 Phase.
- *  - 카드 재료줄은 benefit 로 대체 — 전체 재료 목록 데이터는 후속.
+ * # Phase 1.5 (현재)
+ *  실제 재료 반영(사장님 배합표). CTA → /order. 선택 handoff·실제 가격 정합·
+ *  결과지 슬림화·실사 사진은 후속.
  */
 
 import { useState, type CSSProperties } from 'react'
 import { ArrowRight, Check, Plus, Lock, AlertTriangle } from 'lucide-react'
 import { petName } from '@/lib/korean'
-import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import { FOOD_LINE_META } from '@/lib/personalization/lines'
 import { LINE_TO_SLUG } from '@/lib/personalization/skuMap'
 import { snapBoxLines } from '@/lib/personalization/boxComposition'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
@@ -28,6 +29,18 @@ export type PlanProduct = {
   sale_price: number | null
   stock: number
   is_subscribable: boolean | null
+}
+
+// 연어(skin) 제외 — 사장님 2026-07-13. 표시 순서: 닭·소·오리·돼지.
+// (line→단백질: weight=닭, premium=소, basic=오리, joint=돼지)
+const RECIPE_LINES: FoodLine[] = ['weight', 'premium', 'basic', 'joint']
+
+// 실제 재료 (사장님 배합표 2026-07-13). 미량(프리믹스·정제수·강황) 제외한 가시 재료.
+const RECIPE_INGREDIENTS: Record<string, string[]> = {
+  weight: ['닭가슴살', '닭간', '닭심장', '당근', '단호박', '시금치', '현미', '고구마', '브로콜리', '블루베리', '올리브유', '연어유'],
+  premium: ['한우 목심', '소간', '소심장', '당근', '단호박', '시금치', '현미', '고구마', '비트', '브로콜리', '올리브유', '연어유'],
+  basic: ['오리 안심', '오리간', '오리심장', '당근', '단호박', '시금치', '현미', '고구마', '애호박', '양배추', '올리브유', '연어유'],
+  joint: ['돼지 안심', '돼지간', '돼지심장', '당근', '단호박', '시금치', '현미', '고구마', '무', '양배추', '올리브유', '연어유'],
 }
 
 const FRESH_TIERS = [
@@ -56,33 +69,42 @@ export default function PlanClient({
     initialFresh === 60 ? 60 : initialFresh === 100 ? 100 : 30,
   )
 
-  // 추천 = snapBoxLines(임상 비율) 상위 ≤2종. 잠금 = 알레르기 차단 라인.
+  // 추천 = snapBoxLines(임상 비율, 연어 제외) 상위 ≤2종. 잠금 = 알레르기 차단.
   const recommended = new Set<FoodLine>(
-    formula ? snapBoxLines(formula.lineRatios).map((x) => x.line) : [],
+    formula
+      ? snapBoxLines({ ...formula.lineRatios, skin: 0 }).map((x) => x.line)
+      : [],
   )
   const blocked = new Set<FoodLine>()
   if (formula) {
     for (const r of formula.reasoning) {
-      const m = r.ruleId.match(
-        /^(?:next-)?allergy-(basic|weight|skin|premium|joint)$/,
-      )
+      const m = r.ruleId.match(/^(?:next-)?allergy-(basic|weight|skin|premium|joint)$/)
       if (m) blocked.add(m[1] as FoodLine)
     }
   }
 
-  const [selected, setSelected] = useState<Set<FoodLine>>(
-    () => new Set(recommended),
-  )
+  const [selected, setSelected] = useState<Set<FoodLine>>(() => {
+    const init = new Set<FoodLine>([...recommended].filter((l) => l !== 'skin'))
+    // 추천이 비면(전부 차단 등) 첫 가용 레시피로 안전 폴백.
+    if (init.size === 0) {
+      const fallback = RECIPE_LINES.find((l) => !blocked.has(l))
+      if (fallback) init.add(fallback)
+    }
+    return init
+  })
 
-  function toggle(line: FoodLine) {
+  function add(line: FoodLine) {
     if (blocked.has(line)) return
     setSelected((prev) => {
+      if (prev.has(line) || prev.size >= MAX_RECIPES) return prev
+      return new Set(prev).add(line)
+    })
+  }
+  function remove(line: FoodLine) {
+    setSelected((prev) => {
+      if (!prev.has(line) || prev.size <= 1) return prev
       const next = new Set(prev)
-      if (next.has(line)) {
-        if (next.size > 1) next.delete(line) // 최소 1종 유지
-      } else if (next.size < MAX_RECIPES) {
-        next.add(line)
-      }
+      next.delete(line)
       return next
     })
   }
@@ -97,9 +119,8 @@ export default function PlanClient({
       const product = slug ? products[slug] : undefined
       if (!product) continue
       const kcalPer100g = FOOD_LINE_META[line].kcalPer100g
-      const dailyG =
-        ((perLineRatio * formula.dailyKcal) / kcalPer100g) * 100 * freshFactor
-      const unitPrice = product.sale_price ?? product.price // 100g 단가
+      const dailyG = ((perLineRatio * formula.dailyKcal) / kcalPer100g) * 100 * freshFactor
+      const unitPrice = product.sale_price ?? product.price
       dailyRegular += (dailyG / 100) * unitPrice
     }
   }
@@ -109,47 +130,24 @@ export default function PlanClient({
   if (!formula) {
     return (
       <div className="px-5 py-16 text-center">
-        <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
-          아직 맞춤 결과가 없어요
-        </p>
+        <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>아직 맞춤 결과가 없어요</p>
         <p style={{ fontSize: 12, color: 'var(--muted)', margin: '8px 0 16px' }}>
           분석을 먼저 받으면 {petName(dogName)}에게 맞는 레시피를 추천해 드려요.
         </p>
-        <a
-          href={`/dogs/${dogId}/analysis`}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            padding: '10px 18px',
-            background: 'var(--terracotta)',
-            color: '#fff',
-            borderRadius: 99,
-            fontSize: 13,
-            fontWeight: 700,
-            textDecoration: 'none',
-          }}
-        >
+        <a href={`/dogs/${dogId}/analysis`} style={ctaLink()}>
           분석 보러가기 <ArrowRight size={13} strokeWidth={2.4} />
         </a>
       </div>
     )
   }
 
+  const others = RECIPE_LINES.filter((l) => !selected.has(l))
+  const canAddMore = selected.size < MAX_RECIPES
+
   return (
     <div style={{ padding: '14px 14px 96px', position: 'relative' }}>
       {/* 스텝 */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-          fontSize: 10,
-          fontWeight: 700,
-          color: 'var(--muted)',
-        }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 10, fontWeight: 700, color: 'var(--muted)' }}>
         <span style={{ color: 'var(--terracotta)' }}>① 레시피</span>
         <span style={{ width: 14, height: 1, background: 'var(--rule)' }} />
         <span>② 배송</span>
@@ -158,244 +156,131 @@ export default function PlanClient({
       </div>
 
       <div style={{ textAlign: 'center', marginTop: 12 }}>
-        <div
-          style={{
-            fontSize: 9.5,
-            fontWeight: 700,
-            letterSpacing: '.2em',
-            color: 'var(--terracotta)',
-          }}
-        >
+        <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.2em', color: 'var(--terracotta)' }}>
           MADE FOR {dogName.toUpperCase()}
         </div>
-        <h1
-          style={{
-            fontSize: 23,
-            fontWeight: 800,
-            letterSpacing: '-0.02em',
-            marginTop: 3,
-            color: 'var(--ink)',
-          }}
-        >
-          이 레시피로 시작해요
+        <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: '-0.02em', marginTop: 3, color: 'var(--ink)' }}>
+          이 레시피를 추천해요
         </h1>
       </div>
 
-      {/* 신뢰 칩 */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 5,
-          marginTop: 11,
-          flexWrap: 'wrap',
-        }}
-      >
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 11, flexWrap: 'wrap' }}>
         {['수의영양학', 'AAFCO 충족', '사람도 먹는 등급'].map((t) => (
-          <span
-            key={t}
-            style={{
-              fontSize: 9.5,
-              color: 'var(--moss, #4f6a48)',
-              background: 'color-mix(in srgb, var(--moss, #4f6a48) 9%, transparent)',
-              padding: '3px 8px',
-              borderRadius: 99,
-              fontWeight: 600,
-            }}
-          >
+          <span key={t} style={{ fontSize: 9.5, color: 'var(--moss, #4f6a48)', background: 'color-mix(in srgb, var(--moss, #4f6a48) 9%, transparent)', padding: '3px 8px', borderRadius: 99, fontWeight: 600 }}>
             {t}
           </span>
         ))}
       </div>
 
-      {/* 레시피 헤더 */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: 18,
-        }}
-      >
+      {/* ── 위: 내 플랜 (추천 강조) ─────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 18, marginBottom: 9 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-          레시피 고르기
+          {petName(dogName)}의 플랜
         </span>
-        <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>
-          담김{' '}
-          <b style={{ color: 'var(--terracotta)' }}>{selected.size}</b> / 최대{' '}
-          {MAX_RECIPES}
+        <span style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600 }}>
+          {selected.size}가지 · 최대 {MAX_RECIPES}
         </span>
       </div>
-      <div
-        style={{
-          fontSize: 10.5,
-          color: 'var(--muted)',
-          marginTop: 3,
-          lineHeight: 1.45,
-        }}
-      >
-        추천은 미리 담아뒀어요. 아래는 모두 안전하게 급여할 수 있어요.
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {[...selected].map((line) => (
+          <HeroCard
+            key={line}
+            line={line}
+            isRec={recommended.has(line)}
+            removable={selected.size > 1}
+            onRemove={() => remove(line)}
+          />
+        ))}
       </div>
 
-      {/* 레시피 카드 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 11 }}>
-        {ALL_LINES.map((line) => {
-          const meta = FOOD_LINE_META[line]
-          const isBlocked = blocked.has(line)
-          const isRec = recommended.has(line)
-          const isSel = selected.has(line)
-          const color = meta.color
-
-          if (isBlocked) {
-            return (
-              <div
-                key={line}
-                style={{
-                  background: 'var(--bg-2)',
-                  border: '1px dashed var(--rule)',
-                  borderRadius: 14,
-                  padding: 12,
-                  opacity: 0.85,
-                }}
-              >
-                <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
-                  <div style={circle('rgba(120,120,120,.1)', undefined)}>
-                    <Lock size={22} strokeWidth={2} color="var(--muted)" />
+      {/* ── 아래: 다른 레시피로 바꾸기 ───────────────────────────── */}
+      {others.length > 0 && (
+        <>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginTop: 20, marginBottom: 8 }}>
+            다른 레시피로 바꾸기
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {others.map((line) => {
+              const meta = FOOD_LINE_META[line]
+              const isBlocked = blocked.has(line)
+              const isRec = recommended.has(line)
+              return (
+                <div
+                  key={line}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    background: isBlocked ? 'var(--bg-2)' : 'var(--surface-card-elevated, #fff)',
+                    border: isBlocked ? '1px dashed var(--rule)' : '1px solid var(--rule)',
+                    borderRadius: 12,
+                    padding: '10px 12px',
+                    opacity: isBlocked ? 0.8 : 1,
+                  }}
+                >
+                  <div style={miniCircle(isBlocked ? 'rgba(120,120,120,.1)' : `color-mix(in srgb, ${meta.color} 13%, transparent)`)}>
+                    {isBlocked ? <Lock size={17} strokeWidth={2} color="var(--muted)" /> : <span style={{ fontSize: 19 }} aria-hidden>🍲</span>}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--muted)' }}>
-                      {meta.name}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: isBlocked ? 'var(--muted)' : 'var(--ink)' }}>{meta.name}</span>
+                      {isRec && !isBlocked && (
+                        <span style={{ fontSize: 8.5, fontWeight: 700, color: 'var(--moss, #4f6a48)' }}>★ 추천</span>
+                      )}
                     </div>
-                    <span
+                    {isBlocked ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, color: 'var(--terracotta)', fontWeight: 700, marginTop: 2 }}>
+                        <AlertTriangle size={11} strokeWidth={2.2} />알레르기로 제외
+                      </span>
+                    ) : (
+                      <div style={{ fontSize: 9.5, color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {meta.subtitle} · {(RECIPE_INGREDIENTS[line] ?? []).slice(0, 3).join(', ')}…
+                      </div>
+                    )}
+                  </div>
+                  {!isBlocked && (
+                    <button
+                      type="button"
+                      onClick={() => add(line)}
+                      disabled={!canAddMore}
                       style={{
+                        appearance: 'none',
+                        cursor: canAddMore ? 'pointer' : 'default',
+                        fontFamily: 'inherit',
+                        flexShrink: 0,
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 5,
-                        fontSize: 10,
-                        color: 'var(--terracotta)',
+                        gap: 4,
+                        fontSize: 12,
                         fontWeight: 700,
-                        marginTop: 5,
-                        background:
-                          'color-mix(in srgb, var(--terracotta) 8%, transparent)',
-                        padding: '3px 8px',
+                        color: canAddMore ? 'var(--ink)' : 'var(--muted)',
+                        background: 'transparent',
+                        border: '1px solid var(--rule)',
+                        opacity: canAddMore ? 1 : 0.5,
+                        padding: '6px 13px',
                         borderRadius: 99,
                       }}
                     >
-                      <AlertTriangle size={12} strokeWidth={2.2} />
-                      알레르기로 제외했어요
-                    </span>
-                  </div>
+                      <Plus size={13} strokeWidth={2.4} />
+                      {canAddMore ? '담기' : '가득'}
+                    </button>
+                  )}
                 </div>
-              </div>
-            )
-          }
-
-          return (
-            <button
-              key={line}
-              type="button"
-              onClick={() => toggle(line)}
-              style={{
-                appearance: 'none',
-                textAlign: 'left',
-                width: '100%',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                background: 'var(--surface-card-elevated, #fff)',
-                border: isRec
-                  ? '2px solid var(--terracotta)'
-                  : '1px solid var(--rule)',
-                borderRadius: 14,
-                padding: isRec ? 11 : 12,
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-            >
-              {isRec && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    fontSize: 9,
-                    fontWeight: 700,
-                    color: '#fff',
-                    background: 'var(--moss, #4f6a48)',
-                    padding: '3px 10px',
-                    borderBottomLeftRadius: 10,
-                  }}
-                >
-                  ★ 추천
-                </span>
-              )}
-              <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
-                <div style={circle(`color-mix(in srgb, ${color} 13%, transparent)`, color)}>
-                  <span style={{ fontSize: 24 }} aria-hidden>
-                    🍲
-                  </span>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
-                    {meta.name} · {meta.subtitle}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      color: 'var(--muted)',
-                      marginTop: 3,
-                      lineHeight: 1.4,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {meta.benefit}
-                  </div>
-                </div>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginTop: 10,
-                  paddingTop: 10,
-                  borderTop: '1px solid var(--rule)',
-                }}
-              >
-                <span style={{ fontSize: 11, color: 'var(--terracotta)', fontWeight: 600 }}>
-                  재료 전체 · 영양성분
-                </span>
-                {isSel ? (
-                  <span style={pill(true)}>
-                    <Check size={15} strokeWidth={2.4} />
-                    담김
-                  </span>
-                ) : (
-                  <span style={pill(false)}>
-                    <Plus size={14} strokeWidth={2.4} />
-                    담기
-                  </span>
-                )}
-              </div>
-            </button>
-          )
-        })}
-      </div>
+              )
+            })}
+          </div>
+          {!canAddMore && (
+            <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 8, textAlign: 'center' }}>
+              최대 {MAX_RECIPES}가지예요 · 바꾸려면 위에서 하나 빼주세요
+            </div>
+          )}
+        </>
+      )}
 
       {/* 화식 비율 */}
-      <div
-        style={{
-          marginTop: 16,
-          background: 'var(--surface-card-elevated, #fff)',
-          border: '1px solid var(--rule)',
-          borderRadius: 14,
-          padding: 13,
-        }}
-      >
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-          얼마나 화식으로 드릴까요?
-        </div>
+      <div style={{ marginTop: 18, background: 'var(--surface-card-elevated, #fff)', border: '1px solid var(--rule)', borderRadius: 14, padding: 13 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>얼마나 화식으로 드릴까요?</div>
         <div style={{ display: 'flex', gap: 7, marginTop: 10 }}>
           {FRESH_TIERS.map((t) => {
             const on = freshRatio === t.value
@@ -409,30 +294,14 @@ export default function PlanClient({
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                   textAlign: 'center',
-                  border: on
-                    ? '2px solid var(--terracotta)'
-                    : '1px solid var(--rule)',
-                  background: on
-                    ? 'color-mix(in srgb, var(--terracotta) 5%, transparent)'
-                    : 'transparent',
+                  border: on ? '2px solid var(--terracotta)' : '1px solid var(--rule)',
+                  background: on ? 'color-mix(in srgb, var(--terracotta) 5%, transparent)' : 'transparent',
                   borderRadius: 11,
                   padding: on ? '8px 4px' : '9px 4px',
                 }}
               >
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>
-                  {t.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: 8.5,
-                    color: on ? 'var(--terracotta)' : 'var(--muted)',
-                    fontWeight: 600,
-                    marginTop: 3,
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {t.sub}
-                </div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{t.label}</div>
+                <div style={{ fontSize: 8.5, color: on ? 'var(--terracotta)' : 'var(--muted)', fontWeight: 600, marginTop: 3, lineHeight: 1.3 }}>{t.sub}</div>
               </button>
             )
           })}
@@ -440,78 +309,20 @@ export default function PlanClient({
       </div>
 
       {/* 결제 바 (다크) */}
-      <div
-        style={{
-          position: 'fixed',
-          left: 12,
-          right: 12,
-          bottom: 12,
-          maxWidth: 412,
-          margin: '0 auto',
-          background: 'var(--ink)',
-          borderRadius: 16,
-          padding: '12px 15px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 10,
-          zIndex: 40,
-        }}
-      >
+      <div style={{ position: 'fixed', left: 12, right: 12, bottom: 12, maxWidth: 412, margin: '0 auto', background: 'var(--ink)', borderRadius: 16, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, zIndex: 40 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
-            첫 박스 · 2주마다 배송 · 언제든 해지
-          </div>
+          <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>첫 박스 · 2주마다 배송 · 언제든 해지</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
             {dailyRegularR > 0 && (
-              <span
-                style={{
-                  fontSize: 11,
-                  color: 'rgba(255,255,255,0.5)',
-                  textDecoration: 'line-through',
-                }}
-              >
-                {dailyRegularR.toLocaleString()}원
-              </span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through' }}>{dailyRegularR.toLocaleString()}원</span>
             )}
             <span style={{ fontSize: 19, fontWeight: 800, color: '#fff' }}>
-              {dailyFirst.toLocaleString()}원
-              <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>
-                /일
-              </span>
+              {dailyFirst.toLocaleString()}원<span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>/일</span>
             </span>
-            <span
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                color: 'var(--ink)',
-                background: '#E8B84B',
-                padding: '2px 6px',
-                borderRadius: 99,
-              }}
-            >
-              50% OFF
-            </span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink)', background: '#E8B84B', padding: '2px 6px', borderRadius: 99 }}>50% OFF</span>
           </div>
         </div>
-        <a
-          href={`/dogs/${dogId}/order?fresh=${freshRatio}&recipes=${[...selected].join(',')}`}
-          style={{
-            border: 'none',
-            background: 'var(--terracotta)',
-            color: '#fff',
-            borderRadius: 99,
-            padding: '12px 18px',
-            fontSize: 13.5,
-            fontWeight: 700,
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5,
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-          }}
-        >
+        <a href={`/dogs/${dogId}/order?fresh=${freshRatio}&recipes=${[...selected].join(',')}`} style={{ border: 'none', background: 'var(--terracotta)', color: '#fff', borderRadius: 99, padding: '12px 18px', fontSize: 13.5, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flexShrink: 0 }}>
           플랜 담기 <ArrowRight size={15} strokeWidth={2.4} color="#fff" />
         </a>
       </div>
@@ -519,36 +330,61 @@ export default function PlanClient({
   )
 }
 
-function circle(bg: string, ring?: string): React.CSSProperties {
-  return {
-    width: 56,
-    height: 56,
-    borderRadius: '50%',
-    background: bg,
-    boxShadow: ring
-      ? `0 0 0 1px color-mix(in srgb, ${ring} 22%, transparent)`
-      : 'none',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    overflow: 'hidden',
-  }
+/** 추천/선택 레시피 강조 카드 (위쪽). 사진 크게 + 재료 + ★추천. */
+function HeroCard({
+  line,
+  isRec,
+  removable,
+  onRemove,
+}: {
+  line: FoodLine
+  isRec: boolean
+  removable: boolean
+  onRemove: () => void
+}) {
+  const meta = FOOD_LINE_META[line]
+  const ings = RECIPE_INGREDIENTS[line] ?? []
+  return (
+    <div style={{ background: 'var(--surface-card-elevated, #fff)', border: '2px solid var(--terracotta)', borderRadius: 16, padding: 14, position: 'relative', overflow: 'hidden' }}>
+      {isRec && (
+        <span style={{ position: 'absolute', top: 0, right: 0, fontSize: 9.5, fontWeight: 700, color: '#fff', background: 'var(--moss, #4f6a48)', padding: '4px 12px', borderBottomLeftRadius: 12 }}>★ 추천</span>
+      )}
+      <div style={{ display: 'flex', gap: 13, alignItems: 'center' }}>
+        <div style={heroCircle(`color-mix(in srgb, ${meta.color} 14%, transparent)`, meta.color)}>
+          <span style={{ fontSize: 32 }} aria-hidden>🍲</span>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+            {meta.name} · {meta.subtitle}
+          </div>
+          <div style={{ fontSize: 10.5, color: 'var(--moss, #4f6a48)', fontWeight: 600, marginTop: 3 }}>{meta.benefit}</div>
+        </div>
+      </div>
+      <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 11, lineHeight: 1.55 }}>
+        {ings.join(', ')}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--rule)' }}>
+        <span style={{ fontSize: 11, color: 'var(--terracotta)', fontWeight: 600 }}>재료 전체 · 영양성분</span>
+        {removable ? (
+          <button type="button" onClick={onRemove} style={{ appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--muted)', background: 'transparent', border: '1px solid var(--rule)', padding: '6px 13px', borderRadius: 99 }}>
+            빼기
+          </button>
+        ) : (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 700, color: 'var(--terracotta)', background: 'color-mix(in srgb, var(--terracotta) 9%, transparent)', padding: '6px 14px', borderRadius: 99 }}>
+            <Check size={15} strokeWidth={2.4} />담김
+          </span>
+        )}
+      </div>
+    </div>
+  )
 }
 
-function pill(selected: boolean): React.CSSProperties {
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 5,
-    fontSize: 12.5,
-    fontWeight: 700,
-    color: selected ? 'var(--terracotta)' : 'var(--ink)',
-    background: selected
-      ? 'color-mix(in srgb, var(--terracotta) 9%, transparent)'
-      : 'transparent',
-    border: selected ? 'none' : '1px solid var(--rule)',
-    padding: '6px 14px',
-    borderRadius: 99,
-  }
+function heroCircle(bg: string, ring: string): CSSProperties {
+  return { width: 68, height: 68, borderRadius: '50%', background: bg, boxShadow: `0 0 0 1px color-mix(in srgb, ${ring} 22%, transparent), 0 0 0 5px color-mix(in srgb, ${ring} 5%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }
+}
+function miniCircle(bg: string): CSSProperties {
+  return { width: 40, height: 40, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }
+}
+function ctaLink(): CSSProperties {
+  return { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '10px 18px', background: 'var(--terracotta)', color: '#fff', borderRadius: 99, fontSize: 13, fontWeight: 700, textDecoration: 'none' }
 }

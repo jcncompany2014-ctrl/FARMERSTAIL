@@ -7,9 +7,7 @@ import {
   RotateCcw,
   AlertCircle,
   UtensilsCrossed,
-  Plus,
   Drumstick,
-  Sprout,
   CalendarClock,
   Sparkles,
 } from 'lucide-react'
