@@ -29,6 +29,7 @@
  */
 
 import { useCallback, useEffect, useId, useRef, type ReactNode } from 'react'
+import { X } from 'lucide-react'
 
 type BottomSheetProps = {
   open: boolean
@@ -38,6 +39,8 @@ type BottomSheetProps = {
   ariaLabel?: string
   /** 스크림 클릭으로 닫기. 폼 입력 중엔 false 로 두는 게 안전. 기본 true. */
   dismissOnBackdrop?: boolean
+  /** 고정 헤더 우측에 닫기 X 버튼 노출. title 과 함께 쓸 때만 의미. 기본 false. */
+  showClose?: boolean
   /** Sheet 최대 높이. 기본 85vh 라 긴 리스트도 내부 스크롤 가능. */
   maxHeight?: string
   children: ReactNode
@@ -49,6 +52,7 @@ function BottomSheetRoot({
   title,
   ariaLabel,
   dismissOnBackdrop = true,
+  showClose = false,
   maxHeight = '85vh',
   children,
 }: BottomSheetProps) {
@@ -172,12 +176,14 @@ function BottomSheetRoot({
         className="bg-bg rounded-t-3xl shadow-[0_-8px_24px_-12px_rgba(30,26,20,0.25)] flex flex-col overflow-hidden"
       >
         {/* 드래그 존 — 그래버 + 제목. touchAction none 으로 스크롤 대신
-            pointermove 수신. 본문(Body) 스크롤은 영향 없음. */}
+            pointermove 수신. 본문(Body) 스크롤은 영향 없음.
+            shrink-0 — 본문이 길어도 헤더(둥근 상단바 + 제목)는 항상 고정. */}
         <div
           onPointerDown={onDragStart}
           onPointerMove={onDragMove}
           onPointerUp={onDragEnd}
           onPointerCancel={onDragEnd}
+          className="shrink-0"
           style={{ touchAction: 'none' }}
         >
           {/* Grabber — 드래그로 닫기 가능. */}
@@ -188,13 +194,36 @@ function BottomSheetRoot({
             <span className="block h-1 w-10 rounded-full bg-rule-2" />
           </div>
           {title && (
-            <header className="px-5 pt-2 pb-3 shrink-0 border-b border-rule">
+            <header className="px-5 pt-2 pb-3 shrink-0 border-b border-rule flex items-center gap-3">
               <h2
                 id={titleId}
-                className="text-base font-bold text-ink leading-snug"
+                className="text-base font-bold text-ink leading-snug flex-1 min-w-0"
               >
                 {title}
               </h2>
+              {showClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  // 드래그존 안이라 pointerdown 이 드래그 캡처로 새는 것 차단.
+                  onPointerDown={(e) => e.stopPropagation()}
+                  aria-label="닫기"
+                  className="shrink-0 flex items-center justify-center active:scale-95 transition"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    marginRight: -4,
+                    borderRadius: 999,
+                    background: 'var(--bg-2)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    appearance: 'none',
+                    color: 'var(--ink-mute)',
+                  }}
+                >
+                  <X size={18} strokeWidth={2.2} />
+                </button>
+              )}
             </header>
           )}
         </div>
