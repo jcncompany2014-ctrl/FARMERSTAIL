@@ -526,7 +526,7 @@ export default function ProductForm({
               type="text"
               value={form.certifications ?? ''}
               onChange={(e) => update('certifications', e.target.value)}
-              placeholder="예: HACCP 인증, USDA Grade A, 자가품질검사 통과"
+              placeholder="예: 무농약 인증, USDA Grade A, 자가품질검사 통과"
               className={inputClass}
             />
           </Field>
