@@ -502,11 +502,6 @@ export default function OrderClient({
       )
       const subShipping = 0
       const subTotal = subSubtotal + subShipping
-      // 박스 정기배송 다음 배송일 — 무조건 2주(14일) 후. cron nextDeliveryDate
-      // (coverage_weeks===2 → +14) 와 정합. R85-D4: KST helper 로 off-by-one 차단.
-      const { todayKstIsoDate, addDaysKst } = await import('@/lib/datetime-kst')
-      const todayIso = todayKstIsoDate()
-      const nextDeliveryIso = addDaysKst(todayIso, 14)
 
       const customerKey =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -538,7 +533,10 @@ export default function OrderClient({
           // 화식 비율 티어 (30/60/100) — 표시·관리용.
           fresh_ratio: freshRatio,
           status: 'active',
-          next_delivery_date: nextDeliveryIso,
+          // 카드 등록 전 = 배송 일정 없음(null). 카드 등록(billing-issue) 성공 시
+          // +14일로 스케줄. 홈 hasActiveSub 가 next_delivery_date 로 판정하므로,
+          // 카드 없는 구독이 '결제됨/활성'으로 잘못 뜨던 문제 차단(사장님 2026-07-14).
+          next_delivery_date: null,
           total_deliveries: 0,
           recipient_name: recipientName,
           recipient_phone: recipientPhone,

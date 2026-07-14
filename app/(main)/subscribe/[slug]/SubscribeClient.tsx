@@ -153,11 +153,6 @@ export default function SubscribeClient({
     const shippingFee = 0
     const totalAmount = subtotal + shippingFee
 
-    // R85-D4: KST helper — 자정 직후 (KST 00-08:59) UTC 기준 yyyy-mm-dd 가 1일 빠른
-    // off-by-one 차단.
-    const { todayKstIsoDate, addDaysKst } = await import('@/lib/datetime-kst')
-    const nextDeliveryIso = addDaysKst(todayKstIsoDate(), interval * 7)
-
     // billingKey 발급 흐름에 쓰이는 customerKey — Toss 측 사용자 식별자.
     // user.id 그대로 노출하지 않도록 별도 random UUID. 같은 구독은 같은
     // customerKey 유지 (재발급 시도/카드 변경 시 일관성).
@@ -186,7 +181,9 @@ export default function SubscribeClient({
         user_id: userId,
         interval_weeks: interval,
         status: 'active',
-        next_delivery_date: nextDeliveryIso,
+        // 카드 등록 전 = 배송 일정 없음(null). billing-issue 성공 시 interval 로
+        // 스케줄. 카드 없는 구독이 홈에서 '활성'으로 뜨는 문제 차단(사장님 2026-07-14).
+        next_delivery_date: null,
         total_deliveries: 0,
         recipient_name: recipientName,
         recipient_phone: recipientPhone,

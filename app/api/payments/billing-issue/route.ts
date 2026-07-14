@@ -5,6 +5,7 @@ import { issueBillingKey } from '@/lib/payments/toss'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
+import { todayKstIsoDate, addDaysKst, addMonthsKst } from '@/lib/datetime-kst'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -109,13 +110,37 @@ export async function POST(req: Request) {
   // 다음 cron 사이클에서 정상 결제 시도 → 성공 시 next_delivery_date 갱신.
   const wasInRenewal = await supabase
     .from('subscriptions')
-    .select('status, requires_billing_key_renewal')
+    .select(
+      'status, requires_billing_key_renewal, next_delivery_date, interval_weeks, coverage_weeks, dog_id',
+    )
     .eq('id', subscriptionId)
     .eq('user_id', user.id)
     .maybeSingle()
+  const cur = wasInRenewal.data as {
+    status?: string
+    requires_billing_key_renewal?: boolean
+    next_delivery_date?: string | null
+    interval_weeks?: number | null
+    coverage_weeks?: number | null
+    dog_id?: string | null
+  } | null
   const shouldResume =
-    wasInRenewal.data?.status === 'paused' &&
-    wasInRenewal.data?.requires_billing_key_renewal === true
+    cur?.status === 'paused' && cur?.requires_billing_key_renewal === true
+  // 최초 카드 등록 = 배송 일정 없음(null)이던 신규 구독 → 카드 확정 시점에 첫
+  // 배송 스케줄. 이미 일정 있는 재등록(카드 갱신)은 그대로 유지. (OrderClient·
+  // SubscribeClient 는 카드 등록 전엔 next_delivery_date=null 로 생성 — 홈에서
+  // 결제 안 된 구독이 '활성'으로 뜨는 문제 차단, 사장님 2026-07-14.)
+  // 계산은 cron/재개(handleResume) 와 동일: 박스=2주/월, 일반=interval*7.
+  let firstDeliveryIso: string | null = null
+  if (!cur?.next_delivery_date) {
+    const todayIso = todayKstIsoDate()
+    const isBoxSub = !!cur?.dog_id && cur?.coverage_weeks != null
+    firstDeliveryIso = isBoxSub
+      ? cur!.coverage_weeks === 2
+        ? addDaysKst(todayIso, 14)
+        : addMonthsKst(todayIso, 1)
+      : addDaysKst(todayIso, (cur?.interval_weeks ?? 2) * 7)
+  }
 
   await supabase
     .from('subscriptions')
@@ -131,6 +156,7 @@ export async function POST(req: Request) {
       last_failed_charge_reason: null,
       last_failed_charge_code: null,
       ...(shouldResume ? { status: 'active' } : {}),
+      ...(firstDeliveryIso ? { next_delivery_date: firstDeliveryIso } : {}),
     })
     .eq('id', subscriptionId)
     .eq('user_id', user.id)
