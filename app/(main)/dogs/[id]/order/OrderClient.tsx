@@ -12,10 +12,7 @@ import {
   AlertCircle,
   ArrowRight,
   Sparkles,
-  ShieldCheck,
-  Bell,
   PackageOpen,
-  Repeat,
   Truck,
   Search,
   CalendarDays,
@@ -98,6 +95,19 @@ const FRESH_TIERS = [
   },
 ]
 type FreshRatio = (typeof FRESH_TIERS)[number]['value']
+
+// 배송 요청사항 프리셋(한국 표준 배송 폼). '__custom__' = 직접 입력.
+const DELIVERY_PRESETS = [
+  '문 앞에 놓아주세요',
+  '경비실에 맡겨주세요',
+  '택배함에 넣어주세요',
+  '직접 받을게요',
+  '__custom__',
+] as const
+const CUSTOM_REQUEST = '__custom__'
+function requestLabel(v: string): string {
+  return v === CUSTOM_REQUEST ? '직접 입력' : v
+}
 
 // 구독료에 배송비 포함 — 무료배송/배송비 임계 시스템 폐지(2026-06-27 사장님 지시).
 
@@ -285,7 +295,13 @@ export default function OrderClient({
   const [recipientAddressDetail, setRecipientAddressDetail] = useState(
     profile.address_detail,
   )
-  const [memo, setMemo] = useState('')
+  // 배송 요청사항 — 프리셋 + 직접입력. 공동현관 출입은 별도. 신청 시 delivery_memo
+  // 로 합쳐 저장(이전엔 memo state 가 insert 에서 누락돼 저장 안 되던 것 수정).
+  const [deliveryRequest, setDeliveryRequest] = useState<string>(
+    DELIVERY_PRESETS[0],
+  )
+  const [deliveryRequestCustom, setDeliveryRequestCustom] = useState('')
+  const [entranceInfo, setEntranceInfo] = useState('')
 
   // formula 가 server 에서 null 이면 안내 메시지 자동 노출
   useEffect(() => {
@@ -424,12 +440,6 @@ export default function OrderClient({
     (it) => it.product.is_subscribable === false,
   ).length
 
-  function strengthLabel(pct: number): { tier: string; tone: string } {
-    if (pct >= 50) return { tier: '메인', tone: 'main' }
-    if (pct >= 15) return { tier: '보조', tone: 'sub' }
-    return { tier: '소량', tone: 'mini' }
-  }
-
   const openAddressSearch = useCallback(async () => {
     await loadDaumPostcode()
     new (window as unknown as { daum: { Postcode: new (cfg: unknown) => { open: () => void } } }).daum.Postcode({
@@ -508,6 +518,16 @@ export default function OrderClient({
           ? crypto.randomUUID()
           : `c-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
+      // 배송 요청사항 + 공동현관 → delivery_memo 하나로 합쳐 저장.
+      const requestResolved =
+        deliveryRequest === CUSTOM_REQUEST
+          ? deliveryRequestCustom.trim()
+          : deliveryRequest
+      const memoParts: string[] = []
+      if (requestResolved) memoParts.push(requestResolved)
+      if (entranceInfo.trim()) memoParts.push(`공동현관 ${entranceInfo.trim()}`)
+      const deliveryMemo = memoParts.length ? memoParts.join(' · ') : null
+
       // audit #79: subscriptions schema-drift cast.
       const { data: sub, error: subErr } = await (
         supabase as unknown as {
@@ -544,6 +564,7 @@ export default function OrderClient({
           zip: recipientZip,
           address: recipientAddress,
           address_detail: recipientAddressDetail,
+          delivery_memo: deliveryMemo,
           subtotal: subSubtotal,
           shipping_fee: subShipping,
           total_amount: subTotal,
@@ -610,7 +631,7 @@ export default function OrderClient({
           fresh_ratio: freshRatio,
           item_count: subscribable.length,
           subtotal: subSubtotal,
-          memo_provided: memo.trim().length > 0,
+          memo_provided: deliveryMemo != null,
         })
       }
       toast.success('카드 등록 페이지로 이동할게요')
@@ -720,282 +741,123 @@ export default function OrderClient({
             )
           })()}
 
-          {/* 한눈에 — 뭘·언제·얼마. 사장님 "난잡·이해 안됨" 개편: 스크롤 없이
-              상단에서 핵심 3줄 즉시 파악. 값은 portion 선택에 반응(하단 상세
-              요약과 동일 소스). 결제/계산 로직 불변 — 표시만. */}
-          <section className="ord-glance" aria-label="주문 한눈에 보기">
-            <div className="ord-glance-row">
-              <span className="ord-glance-label">받는 것</span>
-              <span className="ord-glance-val">
-                {dogName} 맞춤 박스 · 화식 {selectedTier.label}
+          {/* 받는 박스 — 시그니처 카드. 레시피 원형 슬롯 + 하루 분량, 하단에
+              화식 비율 컴팩트 선택기(즉석 가격 비교). 레시피 변경 = 헤더 링크→플랜. */}
+          <section className="ord-boxcard">
+            <div className="ord-boxcard-head">
+              <span className="ord-boxcard-title">
+                <PackageOpen size={14} strokeWidth={2.2} color="var(--moss)" />
+                받는 박스
               </span>
+              <Link
+                href={`/dogs/${dogId}/plan?fresh=${freshRatio}`}
+                className="ord-boxcard-edit"
+              >
+                레시피 변경
+                <ArrowRight size={11} strokeWidth={2.4} />
+              </Link>
             </div>
-            <div className="ord-glance-row">
-              <span className="ord-glance-label">첫 배송</span>
-              <span className="ord-glance-val">
-                {firstDeliveryAt !== null
-                  ? `${new Date(firstDeliveryAt).toLocaleDateString('ko-KR', {
-                      month: 'long',
-                      day: 'numeric',
-                      weekday: 'short',
-                    })} · 이후 2주마다`
-                  : '신청 후 안내 · 2주마다'}
-              </span>
-            </div>
-            <div className="ord-glance-divide" />
-            <div className="ord-glance-row">
-              <span className="ord-glance-label">2주 결제</span>
-              <span className="ord-glance-price">
-                {totalAmount.toLocaleString()}원
-                <span className="ord-glance-per">/2주</span>
-              </span>
-            </div>
-          </section>
 
-          {/* 신뢰 배지 row — AAFCO + 수의사 */}
-          <section className="ord-trust">
-            <span className="ord-trust-chip">
-              <ShieldCheck size={11} strokeWidth={2.4} />
-              AAFCO 2024 충족
-            </span>
-            <span className="ord-trust-chip">
-              <Sparkles size={11} strokeWidth={2.4} />
-              NRC · FEDIAF 기준
-            </span>
-            <span className="ord-trust-chip">
-              <PackageOpen size={11} strokeWidth={2.4} />
-              사료관리법 ±5% 정량
-            </span>
-          </section>
-
-          {/* 화식 비율 선택 (2026-07-13 갈아엎기) — 곁들임/반반/완전.
-              배송·결제는 무조건 2주마다. 분석 카드 RecommendationBox 와 동일 룩. */}
-          <section className="ord-section">
-            <h2 className="ord-section-h">
-              <Repeat size={13} strokeWidth={2.2} color="var(--moss)" />
-              얼마나 화식으로 · 2주마다 배송
-            </h2>
-            <div
-              role="radiogroup"
-              aria-label="화식 비율 선택"
-              style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
-            >
-              {FRESH_TIERS.map((t) => {
-                const on = freshRatio === t.value
+            <div className="ord-boxcard-recipes">
+              {items.map((it) => {
+                const meta = it.line ? FOOD_LINE_META[it.line] : null
+                const label = meta ? meta.name : '토퍼'
+                const sub = meta ? meta.subtitle : '동결건조'
+                const color = meta ? meta.color : 'var(--moss)'
+                const isOOS = (it.product.stock ?? 0) <= 0
+                const notSub = it.product.is_subscribable === false
+                const kcalPer100g = it.line
+                  ? FOOD_LINE_META[it.line].kcalPer100g
+                  : TOPPER_KCAL_PER_100G
+                const dailyKcal = Math.round((it.dailyG / 100) * kcalPer100g)
                 return (
-                  <button
-                    type="button"
-                    key={t.value}
-                    role="radio"
-                    aria-checked={on}
-                    onClick={() => {
-                      haptic('tick')
-                      setFreshRatio(t.value)
-                    }}
-                    style={{
-                      appearance: 'none',
-                      width: '100%',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      background: on
-                        ? 'color-mix(in srgb, var(--terracotta) 4%, transparent)'
-                        : 'transparent',
-                      border: on
-                        ? '2px solid var(--terracotta)'
-                        : '1px solid var(--rule)',
-                      borderRadius: 11,
-                      padding: on ? '11px 12px' : '12px 13px',
-                    }}
+                  <div
+                    key={it.slug}
+                    className={
+                      'ord-recipe' + (isOOS || notSub ? ' ord-recipe-off' : '')
+                    }
                   >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                      <span
-                        style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}
-                      >
-                        {t.label}
-                      </span>
-                      {'badge' in t && t.badge && (
-                        <span
-                          style={{
-                            fontSize: 9,
-                            fontWeight: 700,
-                            color: '#fff',
-                            background: 'var(--terracotta)',
-                            padding: '2px 7px',
-                            borderRadius: 99,
-                          }}
-                        >
-                          {t.badge}
-                        </span>
-                      )}
-                    </span>
                     <span
+                      className="ord-recipe-slot"
                       style={{
-                        display: 'block',
-                        fontSize: 11.5,
-                        color: on
-                          ? 'color-mix(in srgb, var(--terracotta) 68%, var(--ink))'
-                          : 'var(--muted)',
-                        marginTop: 3,
-                        lineHeight: 1.5,
+                        background: `color-mix(in srgb, ${color} 14%, transparent)`,
+                        boxShadow: `0 0 0 1px color-mix(in srgb, ${color} 26%, transparent)`,
                       }}
+                      aria-hidden
                     >
-                      {t.copy}
+                      🍲
                     </span>
-                    {'note' in t && t.note && (
-                      <span
-                        style={{
-                          display: 'flex',
-                          gap: 6,
-                          marginTop: 9,
-                          paddingTop: 9,
-                          borderTop:
-                            '1px solid color-mix(in srgb, var(--terracotta) 15%, transparent)',
-                          color: 'var(--muted)',
-                          fontSize: 10.5,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        <Sparkles
-                          size={13}
-                          strokeWidth={2}
-                          color="var(--terracotta)"
-                          style={{ flexShrink: 0, marginTop: 1 }}
-                        />
-                        {t.note}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-            {firstDeliveryAt !== null && (
-              <p className="ord-interval-foot">
-                <CalendarDays size={11} strokeWidth={2.2} color="var(--muted)" />
-                <span>
-                  첫 배송 예정 ·{' '}
-                  {new Date(firstDeliveryAt).toLocaleDateString('ko-KR', {
-                    month: 'long',
-                    day: 'numeric',
-                    weekday: 'short',
-                  })}
-                  {' · 이후 2주마다 자동 청구'}
-                </span>
-              </p>
-            )}
-          </section>
-
-          {/* 라인 + 토퍼 분량 카드 */}
-          <h2 className="ord-section-h">
-            <PackageOpen size={13} strokeWidth={2.2} color="var(--moss)" />
-            추천 박스 구성
-          </h2>
-          <ul className="ord-list">
-            {items.map((it) => {
-              const meta = it.line ? FOOD_LINE_META[it.line] : null
-              const label = meta
-                ? `${meta.name} · ${meta.subtitle}`
-                : it.topper === 'vegetable'
-                  ? '야채 토퍼 · 동결건조'
-                  : '육류 토퍼 · 동결건조'
-              const color = meta ? meta.color : 'var(--moss)'
-              const unitPrice = it.product.sale_price ?? it.product.price
-              const strength = strengthLabel(it.pct)
-              const isOOS = (it.product.stock ?? 0) <= 0
-              const notSub = it.product.is_subscribable === false
-              const lineTotal = it.pricePerPack * it.quantity
-              const isMain = !!it.line
-              return (
-                <li
-                  key={it.slug}
-                  className={
-                    'ord-item' +
-                    (isOOS || notSub ? ' ord-item-oos' : '')
-                  }
-                >
-                  <span className="ord-item-bar" style={{ background: color }} />
-                  <div className="ord-item-body">
-                    <div className="ord-item-head">
-                      <span className="ord-item-name">{label}</span>
-                      <span className="ord-item-pct" style={{ color }}>
-                        {it.pct}%
-                      </span>
-                    </div>
-                    <div className="ord-item-meta">
-                      <span
-                        className={'ord-strength ord-strength-' + strength.tone}
-                      >
-                        {strength.tier}
-                      </span>
-                      <span className="ord-divider" />
-                      <span>
-                        일일 {formatGrams(it.dailyG)}
-                      </span>
-                      {isMain && (
-                        <>
-                          <span className="ord-divider" />
-                          <span>
-                            한 끼 <strong>{it.mealG}g</strong>
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    <div className="ord-item-portion">
-                      <PackageOpen size={11} strokeWidth={2.2} color={color} />
-                      {isMain ? (
-                        <span>
-                          2주 (14일) ·{' '}
-                          <strong>
-                            {it.quantity}팩 ({it.mealG}g/끼)
-                          </strong>
-                          {' · 총 '}
-                          {formatGrams(it.deliveredG)}
+                    <div className="ord-recipe-body">
+                      <div className="ord-recipe-name">
+                        {label}
+                        <span className="ord-recipe-pct" style={{ color }}>
+                          {it.pct}%
                         </span>
-                      ) : (
-                        <span>
-                          2주치 토퍼{' '}
-                          <strong>{formatGrams(it.deliveredG)}</strong>
-                          {' · '}
-                          {it.quantity}팩 (100g/팩)
-                        </span>
-                      )}
+                      </div>
+                      <div className="ord-recipe-sub">{sub}</div>
                     </div>
-                    <div className="ord-item-foot">
-                      <span className="ord-item-sub">
-                        {it.pricePerPack.toLocaleString()}원 × {it.quantity}팩
-                        {isMain && (
-                          <em className="ord-item-rate">
-                            {' '}
-                            ({unitPrice.toLocaleString()}원/100g
-                            {it.product.sale_price != null &&
-                              it.product.price > unitPrice && (
-                                <s style={{ opacity: 0.55, marginLeft: 3 }}>
-                                  {it.product.price.toLocaleString()}원
-                                </s>
-                              )}
-                            )
-                          </em>
-                        )}
-                      </span>
-                      <span className="ord-item-total">
-                        {lineTotal.toLocaleString()}원
+                    <div className="ord-recipe-portion">
+                      <span className="ord-recipe-plbl">하루</span>
+                      <span className="ord-recipe-pval">
+                        {Math.round(it.dailyG)}g · {dailyKcal}kcal
                       </span>
                     </div>
                     {(isOOS || notSub) && (
-                      <div className="ord-item-warn">
-                        <Bell size={10} strokeWidth={2.4} />
-                        <span>
-                          {isOOS
-                            ? '품절 — 신청 시 제외 (재입고 알림)'
-                            : '정기배송 미지원 — 신청 시 제외'}
-                        </span>
-                      </div>
+                      <span className="ord-recipe-offtag">
+                        {isOOS ? '품절' : '제외'}
+                      </span>
                     )}
                   </div>
-                </li>
-              )
-            })}
-          </ul>
+                )
+              })}
+            </div>
+
+            {/* 화식 비율 — 컴팩트 세그먼트. 탭하면 분량·가격 즉시 갱신. */}
+            <div className="ord-fresh">
+              <div className="ord-fresh-lbl">
+                얼마나 화식으로 <span>· 2주마다 배송</span>
+              </div>
+              <div
+                className="ord-fresh-seg"
+                role="radiogroup"
+                aria-label="화식 비율 선택"
+              >
+                {FRESH_TIERS.map((t) => {
+                  const on = freshRatio === t.value
+                  return (
+                    <button
+                      type="button"
+                      key={t.value}
+                      role="radio"
+                      aria-checked={on}
+                      className={'ord-fresh-btn' + (on ? ' is-on' : '')}
+                      onClick={() => {
+                        haptic('tick')
+                        setFreshRatio(t.value)
+                      }}
+                    >
+                      <span className="ord-fresh-btn-name">{t.label}</span>
+                      <span className="ord-fresh-btn-sub">화식 {t.value}%</span>
+                    </button>
+                  )
+                })}
+              </div>
+              {firstDeliveryAt !== null && (
+                <p className="ord-fresh-foot">
+                  <CalendarDays size={11} strokeWidth={2.2} color="var(--muted)" />
+                  <span>
+                    첫 배송 ·{' '}
+                    {new Date(firstDeliveryAt).toLocaleDateString('ko-KR', {
+                      month: 'long',
+                      day: 'numeric',
+                      weekday: 'short',
+                    })}
+                    {' · 이후 2주마다'}
+                  </span>
+                </p>
+              )}
+            </div>
+          </section>
 
           {/* 배송지 */}
           <section className="ord-section">
@@ -1078,17 +940,54 @@ export default function OrderClient({
                 />
               </div>
 
-              {/* 배송 메모 (선택) */}
+              {/* 배송 요청사항 — 프리셋 칩 + 직접입력 */}
               <div className="ord-field">
-                <label className="ord-label">
-                  배송 메모 <span className="ord-label-opt">선택</span>
+                <label className="ord-label">배송 요청사항</label>
+                <div
+                  className="ord-req-grid"
+                  role="radiogroup"
+                  aria-label="배송 요청사항"
+                >
+                  {DELIVERY_PRESETS.map((p) => {
+                    const on = deliveryRequest === p
+                    return (
+                      <button
+                        type="button"
+                        key={p}
+                        role="radio"
+                        aria-checked={on}
+                        className={'ord-req-chip' + (on ? ' is-on' : '')}
+                        onClick={() => setDeliveryRequest(p)}
+                      >
+                        {requestLabel(p)}
+                      </button>
+                    )
+                  })}
+                </div>
+                {deliveryRequest === CUSTOM_REQUEST && (
+                  <textarea
+                    className="ord-textarea"
+                    style={{ marginTop: 8 }}
+                    placeholder="배송 시 요청사항을 적어주세요"
+                    rows={2}
+                    value={deliveryRequestCustom}
+                    onChange={(e) => setDeliveryRequestCustom(e.target.value)}
+                  />
+                )}
+              </div>
+
+              {/* 공동현관 출입 (선택) — 아파트/오피스텔 대비 */}
+              <div className="ord-field">
+                <label className="ord-label" htmlFor="ord-entrance">
+                  공동현관 출입 <span className="ord-label-opt">선택</span>
                 </label>
-                <textarea
-                  className="ord-textarea"
-                  placeholder="예: 부재 시 경비실에 맡겨주세요"
-                  rows={2}
-                  value={memo}
-                  onChange={(e) => setMemo(e.target.value)}
+                <input
+                  id="ord-entrance"
+                  type="text"
+                  className="ord-input"
+                  placeholder="공동현관 비밀번호나 출입 방법"
+                  value={entranceInfo}
+                  onChange={(e) => setEntranceInfo(e.target.value)}
                 />
               </div>
 
@@ -1106,11 +1005,11 @@ export default function OrderClient({
           </section>
 
           {/* 결제 요약 */}
-          <h2 className="ord-section-h">
-            <CreditCard size={13} strokeWidth={2.2} color="var(--moss)" />
-            결제 요약
-          </h2>
           <section className="ord-summary">
+            <h2 className="ord-section-h" style={{ marginBottom: 12 }}>
+              <CreditCard size={13} strokeWidth={2.2} color="var(--moss)" />
+              결제 요약
+            </h2>
             <div className="ord-summary-row">
               <span>2주 배송 (14일)</span>
               <strong className="ord-summary-strong-sm">
@@ -1176,41 +1075,44 @@ export default function OrderClient({
             </div>
           )}
 
-          <div className="ord-cta">
-            <Link
-              href={`/dogs/${dogId}/plan?fresh=${freshRatio}`}
-              className="ord-btn ord-btn-ghost"
-            >
-              뒤로
-            </Link>
+          {/* R92-S (D7): 정기과금 명시 동의 — 전자상거래법 §13 / 콘텐츠산업
+              진흥법 고지 의무. 결제하기 = 자동결제 동의 간주 근거. */}
+          <p className="ord-foot ord-foot-consent">
+            결제하기를 누르면 2주마다 자동결제에 동의하는 것으로 간주돼요.
+          </p>
+          <p className="ord-foot">
+            <Check size={11} strokeWidth={2.6} color="var(--moss)" />
+            언제든 주기 변경 · 일시정지 · 해지 가능 (위약금 없음)
+          </p>
+
+          {/* 하단 고정 결제 바 (다크) — 레시피→배송→결제 흐름 통일. 실제 결제(카드
+              등록)는 billing-auth 로. 상세 시트 없음 — 늘 노출. */}
+          <div className="ord-paybar">
+            <div className="ord-paybar-info">
+              <span className="ord-paybar-cap">
+                첫 박스 · 2주마다 · 언제든 해지
+              </span>
+              <span className="ord-paybar-price">
+                {totalAmount.toLocaleString()}원
+                <span className="ord-paybar-badge">구독가</span>
+              </span>
+            </div>
             <button
               type="button"
               onClick={handleSubscribe}
               disabled={submitting || items.length === 0}
-              className="ord-btn ord-btn-prim"
+              className="ord-paybar-btn"
             >
               {submitting ? (
-                <Loader2 size={14} strokeWidth={2.4} className="animate-spin" />
+                <Loader2 size={15} strokeWidth={2.4} className="animate-spin" />
               ) : (
-                <CreditCard size={14} strokeWidth={2.4} color="#fff" />
+                <>
+                  결제하기
+                  <ArrowRight size={15} strokeWidth={2.4} />
+                </>
               )}
-              카드 등록하고 시작하기
-              <ArrowRight size={12} strokeWidth={2.4} color="#fff" />
             </button>
           </div>
-          {/* R92-S (D7): 정기과금 명시 동의 — 전자상거래법 §13 / 콘텐츠산업
-              진흥법 고지 의무. 신청 = 자동결제 동의 간주 근거. */}
-          <p
-            className="ord-foot"
-            style={{ fontSize: 10.5, opacity: 0.85, marginTop: 6 }}
-          >
-            신청 · 카드 등록을 누르면 2주마다 자동결제에 동의하는 것으로
-            간주됩니다.
-          </p>
-          <p className="ord-foot">
-            <Check size={11} strokeWidth={2.6} color="var(--moss)" />
-            언제든 마이페이지에서 주기 변경 · 일시정지 · 해지 가능 (위약금 없음)
-          </p>
         </>
       )}
     </div>

@@ -3,7 +3,8 @@
 .ord-page {
   max-width: 480px;
   margin: 0 auto;
-  padding: 16px 22px calc(80px + env(safe-area-inset-bottom, 0px));
+  /* 하단 고정 결제 바(.ord-paybar) 높이만큼 여백 확보. */
+  padding: 16px 18px calc(104px + env(safe-area-inset-bottom, 0px));
   background: var(--bg);
   min-height: 100vh;
 }
@@ -132,7 +133,12 @@
 
 /* Section header */
 .ord-section {
-  margin-bottom: 22px;
+  /* 배송지 등 섹션 = 흰 카드 (박스카드·결제요약과 톤 통일, 2026-07-14). */
+  margin-bottom: 14px;
+  background: var(--surface-card-elevated, #fff);
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  padding: 15px;
 }
 .ord-section-h {
   display: flex; align-items: center; gap: 6px;
@@ -616,3 +622,151 @@
   display: flex; align-items: center; justify-content: center;
   gap: 4px;
 }
+.ord-foot-consent {
+  margin-top: 14px;
+  opacity: 0.85;
+  line-height: 1.5;
+}
+
+/* ══ 배송(/order) 리뉴얼 (2026-07-14 사장님) ══════════════════════════ */
+
+/* 받는 박스 — 시그니처 카드 */
+.ord-boxcard {
+  background: var(--surface-card-elevated, #fff);
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.ord-boxcard-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 15px;
+  border-bottom: 1px solid color-mix(in srgb, var(--rule) 70%, transparent);
+  background: color-mix(in srgb, var(--terracotta) 3%, var(--surface-card-elevated, #fff));
+}
+.ord-boxcard-title {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 700; color: var(--ink);
+}
+.ord-boxcard-edit {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 11.5px; font-weight: 700; color: var(--terracotta);
+  text-decoration: none;
+}
+.ord-boxcard-recipes { padding: 4px 15px; }
+.ord-recipe {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--rule) 55%, transparent);
+}
+.ord-recipe:last-child { border-bottom: none; }
+.ord-recipe-off { opacity: 0.55; }
+.ord-recipe-slot {
+  width: 46px; height: 46px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 21px; flex-shrink: 0;
+}
+.ord-recipe-body { flex: 1; min-width: 0; }
+.ord-recipe-name {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13.5px; font-weight: 700; color: var(--ink);
+}
+.ord-recipe-pct { font-size: 11px; font-weight: 700; }
+.ord-recipe-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.ord-recipe-portion { text-align: right; flex-shrink: 0; }
+.ord-recipe-plbl {
+  display: block; font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.ord-recipe-pval {
+  display: block; font-size: 12px; font-weight: 700; color: var(--ink);
+  margin-top: 1px; font-variant-numeric: tabular-nums;
+}
+.ord-recipe-offtag {
+  flex-shrink: 0; font-size: 10px; font-weight: 700; color: var(--muted);
+  background: var(--bg-2); border-radius: 99px; padding: 2px 8px;
+}
+
+/* 화식 비율 — 컴팩트 세그먼트(즉석 가격 비교) */
+.ord-fresh {
+  padding: 13px 15px;
+  border-top: 1px solid color-mix(in srgb, var(--rule) 70%, transparent);
+  background: color-mix(in srgb, var(--terracotta) 3%, var(--surface-card-elevated, #fff));
+}
+.ord-fresh-lbl {
+  font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 8px;
+}
+.ord-fresh-lbl span { color: var(--muted); font-weight: 600; }
+.ord-fresh-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ord-fresh-btn {
+  appearance: none; cursor: pointer; font-family: inherit;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 9px 4px;
+  border: 1px solid var(--rule);
+  background: var(--surface-card-elevated, #fff);
+  border-radius: 10px;
+  transition: border-color 120ms, background 120ms;
+}
+.ord-fresh-btn.is-on {
+  border: 2px solid var(--terracotta);
+  background: color-mix(in srgb, var(--terracotta) 6%, transparent);
+  padding: 8px 4px;
+}
+.ord-fresh-btn-name { font-size: 12.5px; font-weight: 700; color: var(--ink); }
+.ord-fresh-btn-sub { font-size: 9.5px; font-weight: 600; color: var(--muted); }
+.ord-fresh-btn.is-on .ord-fresh-btn-sub { color: var(--terracotta); }
+.ord-fresh-foot {
+  display: flex; align-items: center; gap: 5px;
+  margin: 10px 0 0; font-size: 10.5px; color: var(--muted);
+}
+
+/* 배송 요청사항 — 프리셋 칩 */
+.ord-req-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.ord-req-chip {
+  appearance: none; cursor: pointer; font-family: inherit;
+  font-size: 12px; font-weight: 600; color: var(--text);
+  padding: 8px 13px;
+  border: 1px solid var(--rule);
+  background: var(--surface-card-elevated, #fff);
+  border-radius: 99px;
+  transition: border-color 120ms, background 120ms, color 120ms;
+}
+.ord-req-chip.is-on {
+  border-color: var(--terracotta);
+  background: color-mix(in srgb, var(--terracotta) 8%, transparent);
+  color: var(--terracotta);
+  font-weight: 700;
+}
+
+/* 하단 고정 결제 바 (다크) — 레시피→배송→결제 흐름 통일 */
+.ord-paybar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  max-width: 480px; margin: 0 auto;
+  background: var(--ink);
+  padding: 13px 16px calc(13px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.ord-paybar-info { min-width: 0; }
+.ord-paybar-cap {
+  display: block; font-size: 9.5px; font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+}
+.ord-paybar-price {
+  display: inline-flex; align-items: baseline; gap: 6px; margin-top: 3px;
+  font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -0.01em;
+}
+.ord-paybar-badge {
+  font-size: 9px; font-weight: 700; color: var(--ink);
+  background: var(--gold, #e8b84b); padding: 2px 6px; border-radius: 99px;
+  letter-spacing: 0; align-self: center;
+}
+.ord-paybar-btn {
+  appearance: none; cursor: pointer; font-family: inherit; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--terracotta); color: #fff; border: none;
+  border-radius: 99px; padding: 12px 22px;
+  font-size: 13.5px; font-weight: 700; white-space: nowrap;
+  transition: opacity 120ms, transform 120ms;
+}
+.ord-paybar-btn:active { transform: scale(0.97); }
+.ord-paybar-btn:disabled { opacity: 0.5; cursor: default; }
