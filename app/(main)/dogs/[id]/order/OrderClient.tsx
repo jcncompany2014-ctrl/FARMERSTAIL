@@ -999,87 +999,101 @@ export default function OrderClient({
             })}
           </ul>
 
-          {/* 수령인 정보 */}
+          {/* 배송지 */}
           <section className="ord-section">
             <h2 className="ord-section-h">
               <Truck size={13} strokeWidth={2.2} color="var(--moss)" />
-              수령인 정보
+              배송지
             </h2>
             {profilePrefilled && !addressEdited && (
               <div className="ord-prefill-hint">
                 <Check size={11} strokeWidth={2.4} color="var(--moss)" />
-                <span>회원가입 정보로 자동 기입됐어요. 다르면 아래에서 수정.</span>
+                <span>회원가입 정보로 자동 기입됐어요. 다르면 아래에서 수정하세요.</span>
               </div>
             )}
             <div className="ord-form">
+              {/* 받는 분 · 연락처 */}
               <div className="ord-form-row">
-                <input
-                  type="text"
-                  className="ord-input"
-                  placeholder="이름"
-                  value={recipientName}
-                  onChange={(e) => {
-                    setRecipientName(e.target.value)
-                    setAddressEdited(true)
-                  }}
-                  autoComplete="name"
-                />
-                <input
-                  type="tel"
-                  className="ord-input"
-                  placeholder="연락처"
-                  value={recipientPhone}
-                  onChange={(e) => {
-                    setRecipientPhone(formatPhone(e.target.value))
-                    setAddressEdited(true)
-                  }}
-                  inputMode="numeric"
-                  autoComplete="tel"
-                />
+                <div className="ord-field">
+                  <label className="ord-label" htmlFor="ord-name">받는 분</label>
+                  <input
+                    id="ord-name"
+                    type="text"
+                    className="ord-input"
+                    placeholder="이름"
+                    value={recipientName}
+                    onChange={(e) => {
+                      setRecipientName(e.target.value)
+                      setAddressEdited(true)
+                    }}
+                    autoComplete="name"
+                  />
+                </div>
+                <div className="ord-field">
+                  <label className="ord-label" htmlFor="ord-phone">연락처</label>
+                  <input
+                    id="ord-phone"
+                    type="tel"
+                    className="ord-input"
+                    placeholder="010-0000-0000"
+                    value={recipientPhone}
+                    onChange={(e) => {
+                      setRecipientPhone(formatPhone(e.target.value))
+                      setAddressEdited(true)
+                    }}
+                    inputMode="numeric"
+                    autoComplete="tel"
+                  />
+                </div>
               </div>
-              <div className="ord-form-addr">
-                <input
-                  type="text"
-                  className="ord-input ord-input-zip"
-                  placeholder="우편번호"
-                  value={recipientZip}
-                  readOnly
-                  onClick={openAddressSearch}
-                />
+
+              {/* 주소 — 탭 한 번으로 우편번호 검색, 선택 주소를 카드로 표시 */}
+              <div className="ord-field">
+                <label className="ord-label">주소</label>
                 <button
                   type="button"
-                  className="ord-addr-btn"
+                  className="ord-addr-search"
                   onClick={openAddressSearch}
+                  aria-label="주소 검색"
                 >
-                  <Search size={12} strokeWidth={2.4} />
-                  주소 찾기
+                  {recipientAddress ? (
+                    <span className="ord-addr-search-val">
+                      <span className="ord-addr-zip">{recipientZip}</span>
+                      {recipientAddress}
+                    </span>
+                  ) : (
+                    <span className="ord-addr-search-ph">주소를 검색해주세요</span>
+                  )}
+                  <span className="ord-addr-search-icon" aria-hidden>
+                    <Search size={14} strokeWidth={2.4} />
+                  </span>
                 </button>
+                <input
+                  type="text"
+                  className="ord-input ord-input-detail"
+                  placeholder="상세 주소 (동·호수)"
+                  value={recipientAddressDetail}
+                  onChange={(e) => {
+                    setRecipientAddressDetail(e.target.value)
+                    setAddressEdited(true)
+                  }}
+                />
               </div>
-              <input
-                type="text"
-                className="ord-input"
-                placeholder="기본 주소"
-                value={recipientAddress}
-                readOnly
-                onClick={openAddressSearch}
-              />
-              <input
-                type="text"
-                className="ord-input"
-                placeholder="상세 주소 (동·호수)"
-                value={recipientAddressDetail}
-                onChange={(e) => {
-                  setRecipientAddressDetail(e.target.value)
-                  setAddressEdited(true)
-                }}
-              />
-              <textarea
-                className="ord-textarea"
-                placeholder="배송 메모 (예: 부재 시 경비실, 강아지 알레르기 주의)"
-                rows={2}
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-              />
+
+              {/* 배송 메모 (선택) */}
+              <div className="ord-field">
+                <label className="ord-label">
+                  배송 메모 <span className="ord-label-opt">선택</span>
+                </label>
+                <textarea
+                  className="ord-textarea"
+                  placeholder="예: 부재 시 경비실에 맡겨주세요"
+                  rows={2}
+                  value={memo}
+                  onChange={(e) => setMemo(e.target.value)}
+                />
+              </div>
+
               {addressEdited && (
                 <label className="ord-save-toggle">
                   <input

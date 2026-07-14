@@ -352,69 +352,121 @@
 /* Form (수령인 정보) */
 .ord-form {
   display: flex; flex-direction: column;
-  gap: 8px;
+  gap: 15px;
 }
 .ord-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 10px;
 }
-.ord-form-addr {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
+/* 라벨 있는 필드 래퍼 — '박스만 쌓인' 제네릭 폼 → 라벨+그룹 (2026-07-14 사장님). */
+.ord-field {
+  display: flex; flex-direction: column;
+  min-width: 0;
+}
+.ord-label {
+  font-size: 11px; font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+  margin-bottom: 6px;
+}
+.ord-label-opt {
+  font-size: 10px; font-weight: 600;
+  color: var(--muted); opacity: 0.7;
+  margin-left: 3px;
 }
 .ord-input {
   width: 100%;
-  padding: 12px 14px;
+  padding: 13px 14px;
+  border: 1px solid var(--rule);
+  background: var(--surface-card-elevated, #fff);
+  border-radius: 12px;
+  font-size: 13.5px;
+  color: var(--ink);
+  font-family: inherit;
+  transition: border-color 140ms, box-shadow 140ms;
+}
+.ord-input::placeholder {
+  color: color-mix(in srgb, var(--muted) 65%, transparent);
+}
+.ord-input:focus {
+  outline: none;
+  border-color: var(--terracotta);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--terracotta) 12%, transparent);
+}
+.ord-input-detail { margin-top: 8px; }
+.ord-textarea {
+  width: 100%;
+  padding: 13px 14px;
   border: 1px solid var(--rule);
   background: var(--surface-card-elevated, #fff);
   border-radius: 12px;
   font-size: 13px;
   color: var(--ink);
   font-family: inherit;
-  transition: border-color 140ms;
-}
-.ord-input:focus {
-  outline: none;
-  border-color: var(--moss);
-}
-.ord-input-zip {
-  cursor: pointer;
-}
-.ord-textarea {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--rule);
-  background: var(--surface-card-elevated, #fff);
-  border-radius: 12px;
-  font-size: 12.5px;
-  color: var(--ink);
-  font-family: inherit;
   resize: vertical;
-  min-height: 56px;
-  transition: border-color 140ms;
+  min-height: 58px;
+  line-height: 1.5;
+  transition: border-color 140ms, box-shadow 140ms;
+}
+.ord-textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 65%, transparent);
 }
 .ord-textarea:focus {
   outline: none;
-  border-color: var(--moss);
+  border-color: var(--terracotta);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--terracotta) 12%, transparent);
 }
-.ord-addr-btn {
-  appearance: none; cursor: pointer; border: 0;
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 0 14px;
-  /* R26: ink → terracotta — 작은 primary 액션 버튼 accent */
-  background: var(--terracotta);
-  color: #fff;
-  /* R26: 10 → 8 (V3Radius 보강 — 작은 버튼) */
-  border-radius: 8px;
-  font-size: 11.5px;
-  font-weight: 700;
+/* 주소 검색 — 탭하면 우편번호 검색, 선택 주소를 라벨 뱃지+주소로 표시. */
+.ord-addr-search {
+  appearance: none; cursor: pointer;
+  width: 100%;
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 11px 11px 14px;
+  border: 1px solid var(--rule);
+  background: var(--surface-card-elevated, #fff);
+  border-radius: 12px;
   font-family: inherit;
-  letter-spacing: 0.02em;
-  transition: opacity 140ms;
+  text-align: left;
+  transition: border-color 140ms, box-shadow 140ms;
 }
-.ord-addr-btn:hover { opacity: 0.85; }
+.ord-addr-search:hover {
+  border-color: color-mix(in srgb, var(--terracotta) 45%, var(--rule));
+}
+.ord-addr-search:focus-visible {
+  outline: none;
+  border-color: var(--terracotta);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--terracotta) 12%, transparent);
+}
+.ord-addr-search-val {
+  flex: 1; min-width: 0;
+  font-size: 13px; color: var(--ink); font-weight: 600;
+  line-height: 1.45;
+}
+.ord-addr-zip {
+  display: inline-block;
+  font-size: 11px; font-weight: 700;
+  color: var(--moss);
+  background: color-mix(in srgb, var(--moss) 10%, transparent);
+  border-radius: 5px;
+  padding: 1px 6px;
+  margin-right: 7px;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+.ord-addr-search-ph {
+  flex: 1; min-width: 0;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+.ord-addr-search-icon {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--terracotta) 10%, transparent);
+  color: var(--terracotta);
+}
 
 /* 회원가입 정보 자동 기입 hint */
 .ord-prefill-hint {
