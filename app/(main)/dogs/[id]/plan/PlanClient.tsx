@@ -91,6 +91,15 @@ const RECIPE_TITLES: Record<string, string> = {
   joint: 'PORK · 제주산 흑돼지',
 }
 
+// 레시피(단백질) 특성 → 편익 한 줄. 추천 카드의 "추천 이유"에 그 아이의 근거
+// (트리거)와 결합해 노출 — "체중 관리 · 저지방 닭가슴살이라…" 식(사장님 2026-07-14).
+const RECIPE_WHY: Record<string, string> = {
+  weight: '저지방 닭가슴살이라 담백하고 소화가 편해요',
+  premium: '고단백·헴철분이 풍부해 활력과 근육에 좋아요',
+  basic: '흔한 알레르겐이 아니라 예민한 속에도 부담이 적어요',
+  joint: '저지방 흑돼지 안심이라 부드럽고 소화가 편해요',
+}
+
 const FRESH_TIERS = [
   { value: 30 as const, label: '곁들임', sub: '화식 30% · 건사료 70%' },
   { value: 60 as const, label: '반반', sub: '화식 60% · 건사료 40%' },
@@ -269,7 +278,7 @@ export default function PlanClient({
             key={line}
             line={line}
             isRec={recommended.has(line)}
-            why={whyForLine(line, formula.reasoning) ?? FOOD_LINE_META[line].benefit}
+            why={whyForLine(line, formula.reasoning) ?? ''}
             removable={selected.size > 1}
             onRemove={() => remove(line)}
             onDetail={() => setDetailLine(line)}
@@ -552,6 +561,13 @@ function HeroCard({
 }) {
   const meta = FOOD_LINE_META[line]
   const ings = cardIngredients(line)
+  // 추천 이유 = 그 아이의 근거(트리거) + 레시피 특성. 추천 카드에만 노출.
+  const cleanTrigger = why.replace(/^케어 목표\s*=\s*/, '').trim()
+  const recipeWhy = RECIPE_WHY[line] ?? ''
+  const recReason =
+    cleanTrigger && recipeWhy
+      ? `${cleanTrigger} · ${recipeWhy}`
+      : recipeWhy || cleanTrigger
   return (
     <div style={{ background: 'var(--surface-card-elevated, #fff)', border: '2px solid var(--terracotta)', borderRadius: 16, padding: 14, position: 'relative', overflow: 'hidden' }}>
       {isRec && (
@@ -567,36 +583,59 @@ function HeroCard({
           </div>
         </div>
       </div>
-      {/* 왜 이 레시피를 추천했는지 — "추천 이유" 라벨에 색연필 밑줄(모스) 포인트. */}
-      <div style={{ marginTop: 12, marginBottom: 2 }}>
-        <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 600, lineHeight: 2 }}>
+      {/* 추천 이유 — 알고리즘이 추천한(★) 레시피에만. 직접 담은(추가) 레시피엔
+          안 띄우고 중립 태그로 구분(사장님 2026-07-14: 추가 담은 오리·소엔 추천
+          이유가 뜨면 안 됨 → 맞춤 느낌 유지). */}
+      {isRec ? (
+        <div style={{ marginTop: 12, marginBottom: 2 }}>
+          <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 600, lineHeight: 2 }}>
+            <span
+              style={{
+                display: 'inline-block',
+                position: 'relative',
+                fontWeight: 900,
+                color: 'var(--moss, #4f6a48)',
+              }}
+            >
+              추천 이유
+              <svg
+                viewBox="0 0 100 8"
+                preserveAspectRatio="none"
+                aria-hidden
+                style={{ position: 'absolute', left: 0, bottom: -2, width: '100%', height: 8, overflow: 'visible' }}
+              >
+                <path
+                  d="M0,4.5 C18,2 32,6.5 52,4 C72,1.8 88,6 100,3.5"
+                  stroke="var(--moss, #4f6a48)"
+                  strokeWidth={2.4}
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
+            <span> · {recReason}</span>
+          </span>
+        </div>
+      ) : (
+        <div style={{ marginTop: 11, marginBottom: 2 }}>
           <span
             style={{
-              display: 'inline-block',
-              position: 'relative',
-              fontWeight: 900,
-              color: 'var(--moss, #4f6a48)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: 'var(--muted)',
+              background: 'var(--bg-2)',
+              padding: '3px 9px',
+              borderRadius: 99,
             }}
           >
-            추천 이유
-            <svg
-              viewBox="0 0 100 8"
-              preserveAspectRatio="none"
-              aria-hidden
-              style={{ position: 'absolute', left: 0, bottom: -2, width: '100%', height: 8, overflow: 'visible' }}
-            >
-              <path
-                d="M0,4.5 C18,2 32,6.5 52,4 C72,1.8 88,6 100,3.5"
-                stroke="var(--moss, #4f6a48)"
-                strokeWidth={2.4}
-                fill="none"
-                strokeLinecap="round"
-              />
-            </svg>
+            <Check size={11} strokeWidth={2.6} />
+            직접 담은 레시피
           </span>
-          <span> · {why}</span>
-        </span>
-      </div>
+        </div>
+      )}
       <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 9, lineHeight: 1.55 }}>
         {ings.join(', ')}
       </div>
