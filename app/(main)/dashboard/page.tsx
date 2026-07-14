@@ -436,11 +436,19 @@ export default async function DashboardPage() {
               tone: 'sage',
             },
             {
+              // 값+단위로 분리 — "D-14 예정"(4+2글자)이 metric 칸을 넘쳐 규격이
+              // 깨지던 문제(사장님 2026-07-14). "14 일 후" / "곧 도착" / "-- 예정".
               key: '배송',
               value: upcomingDelivery
-                ? `D-${Math.max(0, upcomingDelivery.daysUntil)}`
+                ? upcomingDelivery.daysUntil <= 0
+                  ? '곧'
+                  : String(upcomingDelivery.daysUntil)
                 : '--',
-              sub: '예정',
+              sub: upcomingDelivery
+                ? upcomingDelivery.daysUntil <= 0
+                  ? '도착'
+                  : '일 후'
+                : '예정',
               tone: 'accent',
             },
           ]}

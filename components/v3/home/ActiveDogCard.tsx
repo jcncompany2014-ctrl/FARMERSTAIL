@@ -164,7 +164,9 @@ export default function ActiveDogCard({
       <div
         className="grid"
         style={{
-          gridTemplateColumns: `repeat(${Math.max(metrics.length, 4)}, 1fr)`,
+          // minmax(0,1fr) — 값이 길어도(예: 배송 D-14) 칸이 늘어나 다른 칸을
+          // 밀지 않게 4등분 고정(사장님 2026-07-14 규격 깨짐 리포트).
+          gridTemplateColumns: `repeat(${Math.max(metrics.length, 4)}, minmax(0, 1fr))`,
           borderTop: `1px solid ${V3.rule}`,
         }}
       >
@@ -174,6 +176,8 @@ export default function ActiveDogCard({
             style={{
               padding: '12px 10px',
               borderLeft: i > 0 ? `1px solid ${V3.rule}` : 'none',
+              minWidth: 0,
+              overflow: 'hidden',
             }}
           >
             <Mono color="inkMute" size="xxs" weight={500}>
@@ -181,7 +185,7 @@ export default function ActiveDogCard({
             </Mono>
             <div
               className="flex items-baseline"
-              style={{ marginTop: 6, gap: 4 }}
+              style={{ marginTop: 6, gap: 4, minWidth: 0 }}
             >
               <span
                 className="tabular-nums"
@@ -192,6 +196,7 @@ export default function ActiveDogCard({
                   color: m.tone ? TONE_COLOR[m.tone] : V3.ink,
                   letterSpacing: '-0.025em',
                   lineHeight: 1,
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {m.value}
