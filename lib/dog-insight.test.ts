@@ -105,6 +105,37 @@ describe('buildDogInsight — 체중 변화 방향', () => {
   })
 })
 
+describe('buildDogInsight — 이름 조사', () => {
+  // iGa('푸린이') 는 이미 '푸린이가' 를 돌려준다 — 이름을 앞에 또 붙이면
+  // "푸린이푸린이가" 가 된다. 실제로 한 번 났던 버그.
+  it('이름이 겹쳐 나오지 않는다 (받침 O)', () => {
+    for (const logs of [
+      [log(40, 5.0), log(70, 5.0)], // stale
+      [log(1, 5.0), log(29, 5.0)], // stable
+      [log(1, 5.5), log(29, 5.0)], // gain_notable
+      [log(1, 4.5), log(29, 5.0)], // loss_notable
+    ]) {
+      for (let extra = 0; extra < 3; extra++) {
+        // seed 를 흔들어 문구 후보 전부를 훑는다.
+        const padded = [...logs, ...Array.from({ length: extra }, (_, i) => log(60 + i * 30, 5.0))]
+        const r = buildDogInsight({ dogName: '푸린', weightLogs: padded, now: NOW })
+        const text = `${r.headline} ${r.body}`
+        assert.ok(!text.includes('푸린이푸린'), `이름 중복: ${text}`)
+      }
+    }
+  })
+
+  it('받침 없는 이름은 "가" 조사 (나우가)', () => {
+    const r = buildDogInsight({
+      dogName: '나우',
+      weightLogs: [log(1, 5.0), log(29, 5.0)],
+      now: NOW,
+    })
+    const text = `${r.headline} ${r.body}`
+    assert.ok(!text.includes('나우나우'), `이름 중복: ${text}`)
+  })
+})
+
 describe('buildDogInsight — 결정성 / 문구 회전', () => {
   it('같은 입력이면 항상 같은 문구 (하이드레이션 안전)', () => {
     const logs = [log(1, 5.0), log(29, 5.0)]

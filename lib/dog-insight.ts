@@ -142,7 +142,7 @@ export function buildDogInsight(input: DogInsightInput): DogInsight {
       headline: `마지막 기록이 ${weeks}주 전이에요.`,
       body: pick(
         [
-          `${name}${iGa(name)} 그동안 어떻게 지냈는지, 체중 한 번 재서 남겨 주세요.`,
+          `${iGa(name)} 그동안 어떻게 지냈는지, 체중 한 번 재서 남겨 주세요.`,
           '오랜만에 한 번 재두면 다음 급여량을 더 정확하게 맞출 수 있어요.',
           '몸무게가 바뀌면 하루 급여량도 함께 바뀌어요. 지금 한 번 어떠세요?',
         ],
@@ -215,7 +215,7 @@ export function buildDogInsight(input: DogInsightInput): DogInsight {
       headline: `${gapWeeks}주째 잘 유지되고 있어요.`,
       body: pick(
         [
-          `${name}${iGa(name)} 지금 식단에 잘 맞고 있다는 뜻이에요. 이대로 가요.`,
+          `${iGa(name)} 지금 식단에 잘 맞고 있다는 뜻이에요. 이대로 가요.`,
           '급여량을 바꿀 이유가 없어요. 기록만 계속 남겨 주세요.',
           '변화가 없다는 건 좋은 소식이에요. 다음 달에도 이 흐름으로.',
         ],
@@ -237,7 +237,7 @@ export function buildDogInsight(input: DogInsightInput): DogInsight {
         ? pick(
             [
               '간식 양과 활동량을 같이 살펴봐 주세요. 계속 이어지면 급여량을 조정해 드릴게요.',
-              `${name}${iGa(name)} 요즘 산책이 줄었는지 떠올려 보면 좋아요. 필요하면 화식 비율부터 손봐요.`,
+              `${iGa(name)} 요즘 산책이 줄었는지 떠올려 보면 좋아요. 필요하면 화식 비율부터 손봐요.`,
               '체중이 꾸준히 오르면 관절에 부담이 돼요. 다음 기록까지 활동량을 조금 늘려 볼까요?',
             ],
             seed,
@@ -265,7 +265,7 @@ export function buildDogInsight(input: DogInsightInput): DogInsight {
       ? pick(
           [
             '의도한 다이어트가 아니라면, 식욕과 변 상태를 함께 살펴봐 주세요.',
-            `짧은 기간에 줄어든 편이에요. ${name}${iGa(name)} 밥을 남기지는 않는지 확인해 주세요.`,
+            `짧은 기간에 줄어든 편이에요. ${iGa(name)} 밥을 남기지는 않는지 확인해 주세요.`,
             '체중이 빠르게 빠질 땐 수의사와 한 번 상의해 보시는 걸 권해요.',
           ],
           seed,
