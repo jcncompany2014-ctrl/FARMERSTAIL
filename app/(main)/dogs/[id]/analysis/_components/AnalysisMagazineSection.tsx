@@ -21,7 +21,11 @@ import {
 import type { Reasoning as MagBoxReasoning } from '@/lib/personalization/types'
 import { CTAStack as MagCTA } from '@/components/analysis/magazine/CTAStack'
 import RecommendationBox from '@/components/analysis/RecommendationBox'
-import { stageFromKR, needsCalorieVetRoute } from '@/lib/nutrition'
+import {
+  stageFromKR,
+  needsCalorieVetRoute,
+  hasBcsWeightConflict,
+} from '@/lib/nutrition'
 
 type Props = {
   dogId: string
@@ -147,6 +151,30 @@ export default function AnalysisMagazineSection({
             위 수치는 시작 참고치예요. 임신·수유 중이거나 대사에 영향을 주는
             질환이 있는 아이는{' '}
             <strong>급여량을 꼭 수의사와 함께 정해 주세요.</strong>
+          </div>
+        </section>
+      )}
+      {/* 체중↔체형 모순 — 설문에서 경고했는데도 그대로 제출된 경우(사장님
+          2026-07-14). 계산은 그대로 하되 "이 숫자는 두 입력이 어긋난 상태에서
+          나왔다"는 사실을 결과지에도 남긴다. 급여량 카드 직후에 둬야 그 숫자를
+          어떻게 받아들일지 판단이 선다. */}
+      {hasBcsWeightConflict(riskFlags) && (
+        <section style={{ background: magP.bg, padding: '0 20px 4px' }}>
+          <div
+            className="rounded px-4 py-3 text-[12px] leading-relaxed"
+            style={{
+              background: 'color-mix(in srgb, var(--gold) 12%, white)',
+              border: '1px solid color-mix(in srgb, var(--gold) 45%, transparent)',
+              color: 'var(--ink)',
+            }}
+          >
+            <strong className="font-black">
+              체중과 체형 답변이 서로 맞지 않았어요.
+            </strong>
+            <br />
+            체중은 줄었는데 체형은 더 통통해졌다고(또는 그 반대로) 입력돼서, 위
+            급여량은 둘 중 하나가 어긋난 상태로 계산됐어요.{' '}
+            <strong>체중을 다시 재보시거나 수의사와 한 번 상의해 주세요.</strong>
           </div>
         </section>
       )}

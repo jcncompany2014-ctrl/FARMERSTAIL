@@ -228,6 +228,34 @@
 }
 
 /* Hint card under grid — FD 오트밀 크림 surface + hairline */
+/* 체중↔체형 모순 경고 (사장님 2026-07-14 "살이 빠졌는데 체형이 더 뚱뚱해질
+   수는 없잖아"). s-hint 와 같은 골격이되 coral 로 시선을 끈다. 경고지 차단이
+   아니므로 붉은 에러색(s-err)까지 가지 않는다 — 진행 버튼은 그대로 살아 있다. */
+.s-warn {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--fd-coral) 7%, var(--fd-offwhite));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fd-coral) 32%, transparent);
+}
+.s-warn-hd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--fd-coral);
+  margin-bottom: 6px;
+}
+.s-warn-body {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--fd-pine);
+}
+.s-warn-body + .s-warn-body {
+  margin-top: 6px;
+}
+
 .s-hint {
   margin-top: 14px;
   padding: 12px 14px;

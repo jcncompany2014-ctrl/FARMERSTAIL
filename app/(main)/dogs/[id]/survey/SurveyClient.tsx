@@ -29,6 +29,7 @@ import { haptic } from '@/lib/haptic'
 import { trackSurveyStarted, trackSurveyCompleted } from '@/lib/analytics'
 import Body, { type BodyAssessmentState } from './steps/Body'
 import { deriveBCS } from '@/lib/calorie-v2/engine'
+import { detectBcsWeightConflict } from '@/lib/bcs-consistency'
 import Muscle from './steps/Muscle'
 import Stool from './steps/Stool'
 import Diet from './steps/Diet'
@@ -89,7 +90,14 @@ const STEPS = [
 ] as const
 type Step = (typeof STEPS)[number]
 
-export default function SurveyClient({ dogId }: { dogId: string }) {
+export default function SurveyClient({
+  dogId,
+  previous,
+}: {
+  dogId: string
+  /** 직전 분석 스냅샷 — 체중↔체형 모순 검증의 비교 기준. 첫 설문이면 null. */
+  previous?: { bcs: number; weightKg: number } | null
+}) {
   const router = useRouter()
   const supabase = createClient()
   const toast = useToast()
@@ -490,6 +498,18 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   const isSenior = ageInMonths >= 84
   const steps = STEPS.filter((s) => s !== 'muscle' || isSenior)
 
+  // 체중↔체형 모순 — "살이 빠졌는데 체형이 더 뚱뚱해질 수는 없잖아"(사장님
+  // 2026-07-14). 체형 3문항이 끝나 BCS 가 역산되는 순간 이전 분석과 비교해
+  // 그 자리에서 짚어준다. 막지는 않는다 — 경고만 하고 진행은 시킨다.
+  const bcsConflict = detectBcsWeightConflict({
+    dogName: dog?.name ?? '',
+    prevBcs: previous?.bcs,
+    prevWeightKg: previous?.weightKg,
+    currentBcs: bcs,
+    currentWeightKg: dog?.weight,
+    lifeStage: ageInMonths < 12 ? 'puppy' : isSenior ? 'senior' : 'adult',
+  })
+
   const stepIdx = steps.indexOf(currentStep)
   const totalSteps = steps.length - 1
   const progress = Math.min(100, Math.round((stepIdx / totalSteps) * 100))
@@ -602,6 +622,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
       snackFreq,
       taste,
       bcsExact: bcs ?? undefined,
+      // 경고를 봤는데도 그대로 제출한 경우 — 분석에 플래그로 남긴다(막지 않음).
+      bcsWeightConflict: bcsConflict?.kind,
       // 3분해 원응답 — 기록·재분석용 (bcsExact 가 이 응답의 역산값).
       bodyAssessment:
         bodyAssess.ribs && bodyAssess.waist && bodyAssess.abdomen
@@ -1020,6 +1042,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             setWeightMethod={setWeightMethod}
             easyKeeper={easyKeeper}
             setEasyKeeper={setEasyKeeper}
+            bcsConflict={bcsConflict}
           />
         )}
 

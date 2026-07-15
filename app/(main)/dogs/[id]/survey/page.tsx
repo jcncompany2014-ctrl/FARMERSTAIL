@@ -44,9 +44,11 @@ export default async function SurveyPage({
   // 단(B1 유지): 체중/질병 같은 "중요 정보"가 마지막 분석 이후 실제로 바뀐
   // 경우엔 3회를 넘었어도 재분석을 허용한다(잘못 입력한 체중이 달 끝까지
   // 고정되는 문제 방지). 단순 새로고침 남발은 변경 신호 없으면 계속 차단된다.
+  // bcs_score — 체중↔체형 모순 검증의 비교 기준(사장님 2026-07-14 "살이 빠졌는데
+  // 체형이 더 뚱뚱해질 수는 없잖아"). rer 는 역산해서 그때의 체중을 얻는다.
   const { data: lastAnalysis } = await supabase
     .from('analyses')
-    .select('id, created_at, rer')
+    .select('id, created_at, rer, bcs_score')
     .eq('dog_id', id)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
@@ -132,5 +134,16 @@ export default async function SurveyPage({
     }
   }
 
-  return <SurveyClient dogId={id} />
+  // 이전 분석 스냅샷 — 설문 체형 단계에서 "체중은 줄었는데 체형은 통통해졌다"
+  // 같은 모순을 그 자리에서 짚어주기 위한 비교 기준. 없으면(첫 설문) undefined.
+  const prevWeightKg =
+    lastAnalysis?.rer && lastAnalysis.rer > 0
+      ? weightFromRER(lastAnalysis.rer)
+      : null
+  const previous =
+    lastAnalysis?.bcs_score != null && prevWeightKg != null
+      ? { bcs: lastAnalysis.bcs_score, weightKg: prevWeightKg }
+      : null
+
+  return <SurveyClient dogId={id} previous={previous} />
 }

@@ -4,6 +4,7 @@
 // 정확 (docs/CALORIE_ALGORITHM_SPEC_V2.md §6). 역산 결과는 판정 카드로 피드백.
 import { useState } from 'react'
 import {
+  AlertTriangle,
   HelpCircle,
   MoonStar,
   Moon,
@@ -18,6 +19,7 @@ import {
   Plus,
 } from 'lucide-react'
 import { BCS_DESCRIPTIONS, type BcsKey } from '@/lib/nutrition/guidelines'
+import type { BcsConflict } from '@/lib/bcs-consistency'
 import { petName } from '@/lib/korean'
 
 // 역산 BCS 판정 카드용 시각 위계 (기존 9점 그리드에서 유지).
@@ -71,6 +73,11 @@ export type BodyProps = {
   /** 칼로리 v2 2b — 쉽게 찌는 체질(easy-keeper, 감산 −0.1 신호). '' = 미응답. */
   easyKeeper: '' | 'yes' | 'no'
   setEasyKeeper: (v: '' | 'yes' | 'no') => void
+  /**
+   * 체중↔체형 모순 (사장님 2026-07-14). 이전 분석과 비교해 앞뒤가 안 맞으면
+   * 판정 카드 바로 아래에 경고. 막지는 않는다 — 진행 버튼은 그대로 살아 있다.
+   */
+  bcsConflict?: BcsConflict | null
 }
 
 const BODY_QUESTIONS: Array<{
@@ -123,6 +130,7 @@ export default function Body({
   setWeightMethod,
   easyKeeper,
   setEasyKeeper,
+  bcsConflict,
 }: BodyProps) {
   // 뒤로 접기 — 체중 측정법은 기본 숨김, 탭하면 열림(정확도 refinement).
   const [weightMethodOpen, setWeightMethodOpen] = useState(weightMethod !== '')
@@ -188,6 +196,20 @@ export default function Body({
             </div>
             {BCS_DESCRIPTIONS[bcs].desc}
           </div>
+        </div>
+      )}
+
+      {/* 체중↔체형 모순 경고 — 판정 카드 바로 아래. 계산의 재료 두 개가 서로
+          어긋난 상태라 그 위에서 나온 급여량 전체가 틀어진다. 그래서 결과가
+          아니라 '입력하는 이 자리'에서 짚는다. 단 막지는 않는다(사장님 확정). */}
+      {bcsConflict && (
+        <div className="s-warn" role="status">
+          <div className="s-warn-hd">
+            <AlertTriangle size={13} strokeWidth={2.5} aria-hidden />
+            {bcsConflict.title}
+          </div>
+          <p className="s-warn-body">{bcsConflict.detail}</p>
+          <p className="s-warn-body">{bcsConflict.action}</p>
         </div>
       )}
 

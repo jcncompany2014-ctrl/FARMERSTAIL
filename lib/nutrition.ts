@@ -35,6 +35,13 @@ export type SurveyAnswers = {
   /** WSAVA 9-point exact BCS. 입력되면 bodyCondition 보다 우선. */
   bcsExact?: BcsKey
   /**
+   * 체중↔체형 모순 (사장님 2026-07-14 "살이 빠졌는데 체형이 더 뚱뚱해질 수는
+   * 없잖아"). 설문 중 이전 분석과 비교해 감지되면(lib/bcs-consistency) 경고를
+   * 띄우되 막지는 않고, 그대로 제출되면 이 필드로 넘어와 분석에 플래그로 남는다.
+   * 계산 자체는 바꾸지 않는다 — 둘 중 뭐가 틀렸는지 알 수 없으므로.
+   */
+  bcsWeightConflict?: 'weight_down_bcs_up' | 'weight_up_bcs_down'
+  /**
    * 체형 3분해 응답 (칼로리 v2 M2a — 갈비뼈·허리·배). "몇 점?" 직접질문 대신
    * 이 3문항에서 deriveBCS 로 역산한 값이 bcsExact 로 들어온다. 기록·재분석용.
    */
@@ -210,6 +217,17 @@ export const CALORIE_VET_ROUTE_FLAGS = new Set([
   'LOW_FAT_REQUIRED',
   'REFEEDING_RISK',
 ])
+
+/**
+ * 체중↔체형 모순으로 제출된 분석인지 (사장님 2026-07-14). 별도 배너로 안내 —
+ * CALORIE_VET_ROUTE_FLAGS 에 넣지 않는 이유는 그쪽 배너 문구가 임신·대사질환
+ * 맥락이라 여기엔 맞지 않기 때문. 안내할 내용이 다르면 배너도 달라야 한다.
+ */
+export function hasBcsWeightConflict(
+  riskFlags: string[] | null | undefined,
+): boolean {
+  return (riskFlags ?? []).includes('BCS_WEIGHT_CONFLICT')
+}
 
 /** 칼로리 카드 직하 수의 상담 배너 노출 여부. */
 export function needsCalorieVetRoute(
@@ -419,6 +437,13 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   // [발명 모듈 D] 신뢰도 안전보정이 실제 적용됐으면 플래그 — 분석 페이지가
   // "측정 정밀도가 낮아 보수적으로 계산했어요" 안내 + 측정 유도에 사용.
   if (Math.abs(w - w0) > 0.05) riskFlags.push('RELIABILITY_SAFETY_ADJUST')
+
+  // 체중↔체형 모순 — 설문에서 경고했는데도 그대로 제출된 경우. 계산은 그대로
+  // 하되(둘 중 뭐가 틀렸는지 알 수 없다) 분석에 남겨 수의 상담을 권한다.
+  if (answers.bcsWeightConflict) {
+    riskFlags.push('BCS_WEIGHT_CONFLICT')
+    vetConsult = true
+  }
 
   // ── 에너지 계수 — 칼로리 알고리즘 v2 (감산 지배형 사다리) ──
   //
