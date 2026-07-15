@@ -13,7 +13,6 @@ import { useToast } from '@/components/ui/Toast'
 import { getAAFCORanges, stageFromKR } from '@/lib/nutrition'
 import { fetchComputedFormula } from '@/lib/personalization/formulaCache'
 import { weightReliability } from '@/lib/personalization/reliability'
-import PriceFramingCard from '@/components/analysis/PriceFramingCard'
 import type { NutrientRow as MagNutrientRow } from '@/components/analysis/magazine/NutrientsCard'
 import type { BoxMixItem as MagBoxMixItem } from '@/components/analysis/magazine/BoxMixCard'
 import {
@@ -491,16 +490,8 @@ export default function AnalysisView({
         </section>
       )}
 
-      {/* 주문 CTA 바로 위 "가격 안심" — 개인화 분석 직후 = 구매 의향 peak.
-          한 끼 단가 + 첫 박스 50%. 가격 숫자 편집점은 단 한 곳:
-          lib/feeding-plan.ts 의 HWASIK_KRW_PER_100G (거기 주석 참고). */}
-      {!isArchive && (analysis.mer ?? 0) > 0 && (
-        <PriceFramingCard
-          dogId={dogId}
-          dogName={dog.name}
-          dailyMerKcal={analysis.mer ?? 0}
-        />
-      )}
+      {/* 가격 안심(PriceFramingCard, 한 끼 단가·카페 라떼 비교)은 2026-07-14
+          사장님 지시로 삭제 — 가격은 플랜/배송 스텝에서만 다룬다. */}
 
       <AnalysisCTASection
         dogId={dogId}

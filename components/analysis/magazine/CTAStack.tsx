@@ -1,21 +1,24 @@
 'use client'
 
 /**
- * Magazine CTAStack — 보조 2버튼 (처방 상담 + 공유).
+ * Magazine CTAStack — 보조 2버튼 (제품 문의 + 공유).
  *
  * 메인 적색 SUBSCRIBE 버튼은 2026-05-21 폐기 — 정기배송 신청 CTA 는
  * RecommendationBox 의 fb-totals 안 "정기배송 신청" 버튼이 단독 담당
  * (옛 디자인 기능 보존).
+ *
+ * 2026-07-14 사장님: '처방 상담 · 수의사 연결' → 수의사 연결 서비스가 없으므로
+ * 제품 문의(/contact)로 교체. 없는 서비스를 광고하지 않는다.
  */
 
 import Link from 'next/link'
-import { ClipboardList, Share2 } from 'lucide-react'
+import { MessageCircle, Share2 } from 'lucide-react'
 import type { MagazinePalette } from './palette'
 import { Reveal } from './primitives'
 
 interface CTAStackProps {
   p: MagazinePalette
-  /** 처방 상담 CTA 경로 */
+  /** 제품 문의 CTA 경로 (/contact) */
   consultHref: string
   /** 공유 CTA 클릭 */
   onShare?: () => void
@@ -34,9 +37,9 @@ export function CTAStack({ p, consultHref, onShare }: CTAStackProps) {
         <SecondaryBtn
           p={p}
           href={consultHref}
-          icon={<ClipboardList size={18} color={p.ink2} strokeWidth={1.8} />}
-          label="처방 상담"
-          sub="수의사 연결"
+          icon={<MessageCircle size={18} color={p.ink2} strokeWidth={1.8} />}
+          label="제품 문의"
+          sub="궁금한 점 물어보기"
         />
         <SecondaryBtnButton
           p={p}

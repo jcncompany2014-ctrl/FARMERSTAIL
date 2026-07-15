@@ -36,9 +36,7 @@ import Allergy from './steps/Allergy'
 import Status from './steps/Status'
 import Pregnancy from './steps/Pregnancy'
 import Preferences, { type CareGoal } from './steps/Preferences'
-import Budget from './steps/Budget'
 import LoadingStep from './steps/Loading'
-import type { BudgetTier } from '@/lib/copy-strings'
 import './survey.css'
 
 /**
@@ -75,8 +73,9 @@ type Dog = {
   gender: 'male' | 'female' | null
 }
 
-// Tier S F1-1: 'budget' step 추가 — status 다음, loading 직전.
-// 분석 결과 직전 "jab" 효과 (가격 anchor 형성).
+// 2026-07-14 사장님: 'budget'(권장가격/예산) step 폐기 — 설문에서 가격을 묻지
+// 않는다. status 가 마지막 입력 step → loading. (surveys.budget_tier 은 null 로
+// 저장, feeding-plan 은 null fallback 이라 무영향.)
 const STEPS = [
   'body',
   'muscle',
@@ -86,7 +85,6 @@ const STEPS = [
   'allergy',
   'chronic',
   'status',
-  'budget',
   'loading',
 ] as const
 type Step = (typeof STEPS)[number]
@@ -203,7 +201,6 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   const [careGoal, setCareGoal] = useState<CareGoal | ''>('')
 
   // Tier S F1-1: 예산 4-옵션 (선택, 미응답 시 mix50 default)
-  const [budgetTier, setBudgetTier] = useState<BudgetTier | null>(null)
 
   // loading 단계 stage 인디케이터
   const [loadingStage, setLoadingStage] = useState(0)
@@ -338,14 +335,12 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
         setPreferredProteins(data.preferredProteins as string[])
       if (typeof data.careGoal === 'string')
         setCareGoal(data.careGoal as CareGoal | '')
-      // Tier S F1-1: 예산 응답 autosave 복원
-      if (typeof data.budgetTier === 'string')
-        setBudgetTier(data.budgetTier as BudgetTier)
-      // currentStep 복원 — 'loading' (제출 중간 종료) 은 'budget' 로 fallback
-      // 해 사용자가 처음부터 다시 안 하도록.
+      // currentStep 복원 — 'loading' (제출 중간 종료) 은 'status' 로 fallback
+      // 해 사용자가 처음부터 다시 안 하도록. ('budget' 초안은 아래 STEPS
+      // 화이트리스트에서 자동 탈락 → 첫 step 으로.)
       if (typeof data.currentStep === 'string') {
         if (data.currentStep === 'loading') {
-          setCurrentStep('budget')
+          setCurrentStep('status')
         } else if (data.currentStep === 'diet') {
           // 정돈 P2 전 초안 호환 — 'diet' 스텝은 'meal'/'life' 로 분리됨.
           setCurrentStep('meal')
@@ -425,7 +420,6 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             dietSatisfaction,
             preferredProteins,
             careGoal,
-            budgetTier,
             currentStep,
             _ts: Date.now(),
           }),
@@ -475,7 +469,6 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
     dietSatisfaction,
     preferredProteins,
     careGoal,
-    budgetTier,
     currentStep,
   ])
 
@@ -539,8 +532,8 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
   async function goNext() {
     if (!validateStep()) return
     const idx = steps.indexOf(currentStep)
-    // Tier S F1-1: budget (선택) 이 마지막 step. budget → loading.
-    if (currentStep === 'budget') {
+    // status 가 마지막 입력 step → loading (2026-07-14 budget step 폐기).
+    if (currentStep === 'status') {
       setCurrentStep('loading')
       setLoadingStage(0)
       // P0(설문 유실 방지): 저장을 즉시 시작한다. 예전엔 2.8초 타이머 뒤에
@@ -695,9 +688,9 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
           : dog.age_value < 18)
           ? expectedAdultWeightKg
           : null,
-      // Tier S F1-1: 예산 응답 저장. 미응답이면 null → 분석 페이지에서
-      // defaultScenarioForBudget(null) → 'mix50' fallback.
-      budget_tier: budgetTier ?? null,
+      // 2026-07-14: 설문에서 예산을 묻지 않음(budget step 폐기) → 항상 null.
+      // 컬럼은 유지(레거시 row 보존). feeding-plan 은 null fallback 이라 무영향.
+      budget_tier: null,
     }
 
     const { data: surveyData, error: surveyErr } = await (
@@ -1132,15 +1125,6 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
           </div>
         )}
 
-        {/* Tier S F1-1: budget step — status 다음, loading 직전 */}
-        {currentStep === 'budget' && (
-          <Budget
-            dogName={dog.name}
-            budgetTier={budgetTier}
-            setBudgetTier={setBudgetTier}
-          />
-        )}
-
         {/* Loading */}
         {isLoading && (
           <LoadingStep
@@ -1156,7 +1140,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
             onBack={() => {
               // 저장 실패로 loading 에 갇히지 않도록 — 마지막 입력 단계로 복귀.
               setErr('')
-              setCurrentStep('budget')
+              setCurrentStep('status')
             }}
           />
         )}
@@ -1185,7 +1169,7 @@ export default function SurveyClient({ dogId }: { dogId: string }) {
               onClick={goNext}
               disabled={saving}
             >
-              {currentStep === 'budget' ? '결과 보기' : '다음'}
+              {currentStep === 'status' ? '결과 보기' : '다음'}
               <ArrowRight size={14} strokeWidth={2.6} color="var(--bg)" />
             </button>
           </div>
