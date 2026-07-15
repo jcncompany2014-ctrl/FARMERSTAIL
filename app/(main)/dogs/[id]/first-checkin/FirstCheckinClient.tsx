@@ -3,7 +3,7 @@
 /**
  * Phase 2 (2026-05-20): 첫 박스 7일 후 1문항 체크인.
  *
- * 30초 작업, 100P 적립, 강제 X.
+ * 30초 작업, 강제 X.
  * - 👍 잘 먹어요 (palatability great)
  * - 😐 조금 가렸어요 (palatability ok)
  * - 👎 안 먹어요 (palatability poor) → 자동 CS 문의 옵션
@@ -68,20 +68,9 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
         return
       }
 
-      // 100P 적립 (RPC apply_point_delta, 멱등 by reference_id)
-      try {
-        await supabase.rpc('apply_point_delta', {
-          p_user_id: userId,
-          p_delta: 100,
-          p_reason: '첫 박스 체크인 응원 포인트',
-          p_reference_type: 'survey_completion',
-          p_reference_id: `first_checkin:${dogId}`,
-        })
-      } catch {
-        /* 적립 실패는 silent — outcome 기록 자체가 성공 */
-      }
+      // 포인트 적립 제거 (2026-07-16 포인트 전면 폐기).
 
-      toast.success('+100P 적립됐어요. 좋은 의견 감사해요 🐾')
+      toast.success('좋은 의견 고마워요 🐾 다음 박스에 반영할게요.')
       setDone(true)
     } finally {
       setSubmitting(false)
@@ -146,7 +135,6 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
         style={{ wordBreak: 'keep-all' }}
       >
         30초만 시간 내주시면 {petName(dogName)}에게 더 잘 맞는 추천을 드릴 수 있어요.
-        응답해 주시면 100P 적립해 드려요.
       </p>
 
       <div className="flex flex-col gap-3">

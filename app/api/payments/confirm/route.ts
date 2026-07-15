@@ -2,13 +2,11 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
-import { creditPoints } from '@/lib/commerce/points'
 import { confirmPayment, cancelPayment } from '@/lib/payments/toss'
 import { notifyOrderPlaced, notifyVirtualAccountWaiting } from '@/lib/email'
 import { zPaymentConfirm } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimitDB, ipFromRequest } from '@/lib/rate-limit'
-import { tierMeta } from '@/lib/tiers'
 // R91-D #1 (D7): 결제 위변조 / 금액 불일치 발생 시 즉시 fatal Sentry alert.
 // captureBusinessEvent 만 호출하던 흐름을 alert helper 로 통일해서
 // business.alert.kind 태그가 박혀 Sentry rule 가 라우팅 가능.
@@ -80,7 +78,7 @@ export async function POST(req: Request) {
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .select(
-      'id, order_number, total_amount, payment_status, user_id, points_earned, points_used, discount_amount, shipping_fee, subtotal, recipient_name'
+      'id, order_number, total_amount, payment_status, user_id, discount_amount, shipping_fee, subtotal, recipient_name'
     )
     .eq('order_number', orderId)
     .eq('user_id', user.id)
@@ -160,94 +158,9 @@ export async function POST(req: Request) {
       )
     }
 
-    // 2) points_used 위변조 검증 — checkout 흐름에서 ledger debit 가 실제로
-    //    storedPoints 만큼 발생했는지 확인.
-    //
-    // 이전 가드 (R82-G2 이전): `storedPoints > currentBalance + storedPoints` =
-    //    `0 > currentBalance` 인데 잔액은 음수가 될 수 없어 dead code. 무한 포인트
-    //    위변조 (DevTools 로 points_used 부풀려 결제 금액 줄이기) 차단 불가.
-    //
-    // 새 가드: ledger 에 (user_id=user, reference_type='order', reference_id=orderId,
-    //    delta<0) row 가 존재하고 |delta| === storedPoints 인지 검사. checkout
-    //    이 debit 안 했거나 금액 다르면 위변조.
-    const storedPoints = order.points_used ?? 0
-    if (storedPoints > 0) {
-      const { data: debitRow } = await supabase
-        .from('point_ledger')
-        .select('delta')
-        .eq('user_id', user.id)
-        .eq('reference_type', 'order')
-        .eq('reference_id', orderId)
-        .lt('delta', 0)
-        .maybeSingle()
-      const actualDebited = debitRow ? Math.abs(debitRow.delta) : 0
-      if (!debitRow || actualDebited !== storedPoints) {
-        captureBusinessEvent('warning', 'order.payment.points_debit_mismatch', {
-          orderId,
-          storedPoints,
-          actualDebited,
-        })
-        return NextResponse.json(
-          {
-            code: 'PRICE_TAMPERED',
-            message: '포인트 처리에 문제가 있어요. 주문을 새로 만들어 주세요.',
-          },
-          { status: 400 },
-        )
-      }
-    }
-
-    const recomputedTotal =
-      recomputedSubtotal +
-      (order.shipping_fee ?? 0) -
-      storedDiscount -
-      storedPoints
-
-    if (recomputedTotal !== order.total_amount) {
-      captureBusinessEvent('warning', 'order.payment.total_mismatch', {
-        orderId,
-        storedTotal: order.total_amount,
-        recomputedTotal,
-      })
-      // R91-D #1: 최종 결제 금액 위변조 — fatal fraud alert.
-      alertFraud({
-        orderId: order.id,
-        reason: 'total_mismatch',
-      })
-      return NextResponse.json(
-        { code: 'PRICE_TAMPERED', message: '결제 금액이 일치하지 않아요. 주문을 새로 만들어 주세요.' },
-        { status: 400 },
-      )
-    }
-
-    // 포인트 적립 — 사용자 등급의 실제 earnRate 로 재계산.
-    // 클라이언트가 적은 points_earned 가 등급 한도를 넘으면 거부 (저장 안 함).
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('tier')
-      .eq('id', user.id)
-      .maybeSingle()
-    const tier = tierMeta(profile?.tier)
-    const expectedPointsEarned = Math.floor(
-      (Math.max(0, recomputedTotal) * tier.earnRate) / 100,
-    )
-    const storedPointsEarned = order.points_earned ?? 0
-    if (storedPointsEarned > expectedPointsEarned) {
-      captureBusinessEvent('warning', 'order.payment.points_inflated', {
-        orderId,
-        userId: user.id,
-        storedPointsEarned,
-        expectedPointsEarned,
-        tier: tier.key,
-      })
-      // 즉시 거부하지 않고 안전한 값으로 보정 — 운영 차원에서 결제 자체는
-      // 통과시키되 ledger 에 들어갈 금액만 등급 기준으로 강제.
-      await supabase
-        .from('orders')
-        .update({ points_earned: expectedPointsEarned })
-        .eq('id', order.id)
-      order.points_earned = expectedPointsEarned
-    }
+    // 2) 포인트 위변조 검증 / 적립 재계산 제거 (2026-07-16 포인트 전면 폐기).
+    //    points_used 로 결제 금액을 깎고 등급 earnRate 로 적립하던 흐름 전체가
+    //    사라졌다. 금액 검증(recomputedTotal)은 위에서 그대로 수행된다.
   }
 
   // 3) 토스페이먼츠 승인 API 호출 — lib/payments/toss 가 Idempotency-Key 포함.
@@ -372,18 +285,8 @@ export async function POST(req: Request) {
         /* queue insert 도 실패 — Sentry 로 이미 잡힘 */
       }
     }
-    // 결제 시 쓴 포인트 환급 + 쿠폰 회수(멱등). Toss 환불 성공/실패와 무관하게
-    // 사용자 자산을 복구한다(점검 medium: 이 race 분기는 포인트/쿠폰 복구 누락).
-    // 이미 복구됐으면 no-op(points_refunded 상한 + order.id reference).
-    try {
-      const recoverAdmin = createAdminClient()
-      const { recoverOrderPointsAndCoupon } = await import(
-        '@/lib/commerce/refund-recovery'
-      )
-      await recoverOrderPointsAndCoupon(recoverAdmin, order.id)
-    } catch {
-      /* 복구 실패는 409 응답을 막지 않는다 — reconcile cron/운영자가 후속 처리 */
-    }
+    // 포인트/쿠폰 복구 제거 (2026-07-16 포인트 전면 폐기 · 쿠폰은 자동할인으로 대체).
+    // 복구할 사용자 자산이 없다 — 환불 자체는 아래 응답/운영 흐름 그대로.
     return NextResponse.json(
       {
         code: 'ORDER_ALREADY_TERMINAL',
@@ -454,16 +357,7 @@ export async function POST(req: Request) {
     })
   }
 
-  // 5) 포인트 적립 — 실제 결제 완료(DONE)일 때만. 가상계좌는 입금 웹훅에서 처리.
-  if (isActuallyPaid && order.points_earned && order.points_earned > 0) {
-    await creditPoints(supabase, {
-      userId: user.id,
-      amount: order.points_earned,
-      reason: '주문 결제 적립',
-      referenceType: 'order',
-      referenceId: order.id,
-    })
-  }
+  // 5) 포인트 적립 제거 (2026-07-16 포인트 전면 폐기).
 
   // 6) 장바구니 비우기 (가상계좌 포함 — 입금 대기 중에도 재주문 방지)
   await supabase.from('cart_items').delete().eq('user_id', user.id)

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { appendLedger } from '@/lib/commerce/points'
 import { zAccountDelete } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
@@ -281,22 +280,9 @@ export async function POST(req: Request) {
     open_order_count: 0,
   })
 
-  // 4) Log the reason for churn analysis (optional; best-effort).
-  //    delta=0 인 "메모성" ledger 엔트리. appendLedger 는 balance_after 를
-  //    현재 잔액 그대로 다시 적어 주므로, 탈퇴 이전 잔액이 보존된다.
-  if (body.reason && body.reason.trim()) {
-    try {
-      await appendLedger(admin, {
-        userId: user.id,
-        delta: 0,
-        reason: `탈퇴: ${body.reason.trim().slice(0, 200)}`,
-        referenceType: 'account_deletion',
-        referenceId: null,
-      })
-    } catch {
-      /* swallow — churn 로그는 critical 아님 */
-    }
-  }
+  // 4) 탈퇴 사유 로그 제거 (2026-07-16 포인트 전면 폐기).
+  //    delta=0 '메모성' 엔트리를 **포인트 원장**에 적어 churn 분석에 쓰던 자리인데,
+  //    원장 자체가 사라졌다. 사유는 아래 captureBusinessEvent 로 이미 남는다.
 
   // 5) Soft-delete the auth user. This keeps auth.users.id valid so
   //    orders.user_id FK doesn't break, but blocks login.

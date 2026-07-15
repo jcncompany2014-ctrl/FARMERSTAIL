@@ -6,7 +6,6 @@ import {
   isOrderStatus,
   isPaymentStatus,
 } from '@/lib/commerce/order-fsm'
-import { appendLedger, getCurrentBalance } from '@/lib/commerce/points'
 import { cancelPayment } from '@/lib/payments/toss'
 import { notifyOrderCancelled } from '@/lib/email'
 import { zOrderCancel } from '@/lib/api/schemas'
@@ -36,8 +35,6 @@ type CancelBody = {
  * On cancel:
  *   1. If payment_status='paid' and payment_key exists → call Toss payments/{paymentKey}/cancel
  *   2. Flip orders row: payment_status='cancelled', order_status='cancelled', cancelled_at/reason set
- *   3. Refund points_used back to the ledger
- *   4. Revoke points_earned from the ledger
  */
 export async function POST(
   req: Request,
@@ -45,7 +42,7 @@ export async function POST(
 ) {
   const { id } = await params
 
-  // Rate limit — 자기 주문이라도 폭주 시 Toss/이메일/포인트 RPC 까지 호출되니
+  // Rate limit — 자기 주문이라도 폭주 시 Toss/이메일까지 호출되니
   // 보호. 정상 사용자는 분당 1-2회 정도면 충분.
   const rl = rateLimit({
     bucket: 'order-cancel',
@@ -87,7 +84,7 @@ export async function POST(
   const { data: order } = await supabase
     .from('orders')
     .select(
-      'id, user_id, order_number, payment_status, order_status, payment_key, payment_method, total_amount, points_used, points_earned, recipient_name'
+      'id, user_id, order_number, payment_status, order_status, payment_key, payment_method, total_amount, recipient_name'
     )
     .eq('id', id)
     .eq('user_id', user.id)
@@ -258,73 +255,10 @@ export async function POST(
     })
   }
 
-  // 3) Refund used points — appendLedger 헬퍼로 일원화.
-  // audit #64: 환급/회수가 같은 reference_id 로 두 row 시도 → uq_point_ledger_reference
-  // 가 두 번째를 차단 → RPC 가 silent ok=true (already_applied) 로 반환 → 둘 중 하나만
-  // 적용되는 무한 적립 버그. referenceType 을 분리해 unique 충돌 회피.
-  if (order.points_used > 0) {
-    // 점검 fix: refund_order_points RPC 가 orders 행을 FOR UPDATE 잠그고
-    // points_refunded 상한으로 잔여분만 원자 환급 — 부분취소(cancel-items) 후
-    // 전량취소의 과다환급 + 동시성 과다환급을 차단(read-modify-write 제거).
-    // reference=order.id(전량취소는 주문당 1회, 잔여 0이면 RPC 가 no-op).
-    // service_role 전용 RPC 라 admin 클라이언트로 호출.
-    // refund_order_points 는 신규 RPC 라 generated types 에 없음 → cast.
-    const { error: refundPointsErr } = await (
-      admin as unknown as {
-        rpc: (
-          fn: string,
-          args: Record<string, unknown>,
-        ) => Promise<{ error: { message?: string } | null }>
-      }
-    ).rpc('refund_order_points', {
-      p_order_id: order.id,
-      p_user_id: user.id,
-      p_request: order.points_used,
-      p_reason: '주문 취소 포인트 환급',
-      p_reference_id: order.id,
-    })
-    if (refundPointsErr) {
-      console.error(
-        `[cancel] refund_order_points failed: order=${order.id} ${refundPointsErr.message}`,
-      )
-    }
-  }
-  // 4) Revoke earned points (only if they were actually credited — paid orders).
-  //    음수 delta를 직접 넣어야 하므로 creditPoints/debitPoints 대신 appendLedger.
-  if (order.points_earned > 0 && order.payment_status !== 'pending') {
-    const revoke = await appendLedger(supabase, {
-      userId: user.id,
-      delta: -order.points_earned,
-      reason: '주문 취소 적립 회수',
-      referenceType: 'order_refund_revoke',
-      referenceId: order.id,
-    })
-    // R100-B: 회수 결과 검사 + 부분 회수 fallback. 이전엔 결과를 무시해서,
-    // 사용자가 적립 포인트를 이미 다른 주문에 써서 잔액 < points_earned 면
-    // apply_point_delta 가 v_next<0 으로 거부(ok=false)한 걸 흘려보내 적립금이
-    // 순증했다 ("적립 → 그 포인트로 결제 → 원주문 취소"). RPC 는 거부 시 row
-    // INSERT 를 하지 않으므로(같은 reference 재시도 가능) 현재 잔액만큼 부분
-    // 회수하고, 그래도 남는 부족분은 error 로깅해 운영자가 인지/수동 정산한다.
-    if (!revoke.ok) {
-      const balance = await getCurrentBalance(supabase, user.id)
-      const partial = Math.min(order.points_earned, Math.max(0, balance))
-      if (partial > 0) {
-        await appendLedger(supabase, {
-          userId: user.id,
-          delta: -partial,
-          reason: '주문 취소 적립 부분 회수(잔액 한도)',
-          referenceType: 'order_refund_revoke',
-          referenceId: order.id,
-        })
-      }
-      const shortfall = order.points_earned - partial
-      if (shortfall > 0) {
-        console.error(
-          `[cancel] earned-point clawback shortfall: order=${order.id} user=${user.id} earned=${order.points_earned} revoked=${partial} shortfall=${shortfall}`,
-        )
-      }
-    }
-  }
+  // 3~5) 포인트 환급/회수 제거 (2026-07-16 포인트 전면 폐기).
+  //    주문에 쓴 포인트 환급 + 적립 포인트 회수를 하던 자리인데, 포인트 개념 자체가
+  //    사라졌다(구독 결제로는 애초에 적립되지도 않았다). 결제 취소·재고 복원·환불은
+  //    위에서 이미 처리된다.
 
   // 6) 이메일 안내 — fire-and-forget. 취소 플로우가 메일 때문에 늦어지지 않도록.
   notifyOrderCancelled(supabase, {

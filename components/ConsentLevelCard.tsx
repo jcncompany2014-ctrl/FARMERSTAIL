@@ -32,35 +32,30 @@ const LEVELS: Array<{
   level: Level
   label: string
   description: string
-  reward: number | null
   Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
 }> = [
   {
     level: 1,
     label: '기본',
     description: '서비스 운영에 필수한 데이터만 처리해요',
-    reward: null,
     Icon: Shield,
   },
   {
     level: 2,
     label: '익명 통계 허용',
     description: '익명 통계·내부 연구에 활용해도 좋아요',
-    reward: 500,
     Icon: Eye,
   },
   {
     level: 3,
     label: '학술 연구 허용',
     description: '학술 논문·연구 자료 제공에 동의해요',
-    reward: 1000,
     Icon: GraduationCap,
   },
   {
     level: 4,
     label: '파트너 제공 허용',
     description: '차등 프라이버시 적용된 데이터의 사업 파트너 제공',
-    reward: 2000,
     Icon: Briefcase,
   },
 ]
@@ -97,13 +92,9 @@ export default function ConsentLevelCard({
         return
       }
       setLevel(next)
-      if (result.reward && result.reward > 0) {
-        toast.success(
-          `데이터 동의 단계 ${next} 응원 포인트 ${result.reward.toLocaleString()}P 적립`,
-        )
-      } else {
-        toast.success('동의 단계를 저장했어요')
-      }
+      // 포인트 보상 토스트 제거 (2026-07-16 포인트 전면 폐기). RPC 가 아직
+      // reward 를 돌려줄 수 있으나 적립될 곳이 없으므로 무시한다.
+      toast.success('동의 단계를 저장했어요')
       router.refresh()
     } catch {
       toast.error('잠시 네트워크가 불안정한 것 같아요. 다시 시도해 주세요')
@@ -136,7 +127,6 @@ export default function ConsentLevelCard({
       <div className="space-y-2">
         {LEVELS.map((l) => {
           const active = l.level === level
-          const canUpgrade = l.level > level
           return (
             <button
               key={l.level}
@@ -185,11 +175,6 @@ export default function ConsentLevelCard({
                 <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
                   {l.description}
                 </p>
-                {canUpgrade && l.reward && (
-                  <p className="mt-1 text-[10.5px] font-bold" style={{ color: 'var(--moss)' }}>
-                    상승 시 +{l.reward.toLocaleString()}P
-                  </p>
-                )}
               </div>
               {busy && active && (
                 <Loader2

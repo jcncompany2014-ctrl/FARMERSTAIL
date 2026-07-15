@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
-import { appendLedger } from '@/lib/commerce/points'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -57,7 +56,7 @@ async function runOrderExpire(): Promise<Response> {
   // 가상계좌는 24h 입금 대기라 expire 대상 아님 — 별도 webhook 만 처리.
   const { data: orders, error: fetchErr } = await supabase
     .from('orders')
-    .select('id, user_id, points_used, order_number, coupon_code')
+    .select('id, user_id, order_number, coupon_code')
     .eq('payment_status', 'pending')
     .eq('order_status', 'pending')
     .lt('created_at', cutoff)
@@ -74,7 +73,6 @@ async function runOrderExpire(): Promise<Response> {
   const targets = (orders ?? []) as Array<{
     id: string
     user_id: string
-    points_used: number
     order_number: string
     coupon_code: string | null
   }>
@@ -150,25 +148,8 @@ async function runOrderExpire(): Promise<Response> {
       })
     }
 
-    // 4) 포인트 환급 — pending 단계에서 사용한 포인트가 있으면 회수.
-    // R82-G2: 이전 코드 (R81 audit 발견) 가 잘못된 테이블 'points_ledger' (복수형)
-    // 에 직접 insert 했음. 실제 테이블은 'point_ledger'. 게다가 raw insert 는
-    // apply_point_delta RPC 의 advisory lock / balance_after / 멱등성 unique
-    // index 우회. 이제 appendLedger() helper 사용 — RPC + lock + 멱등 보장.
-    if (ord.points_used > 0) {
-      const result = await appendLedger(supabase, {
-        userId: ord.user_id,
-        delta: ord.points_used,
-        reason: '주문 만료 포인트 환급',
-        referenceType: 'order_refund_credit',
-        referenceId: ord.id,
-      })
-      if (!result.ok) {
-        console.warn(
-          `[order-expire] point refund failed for order ${ord.id}: ${result.reason}`,
-        )
-      }
-    }
+    // 4) 포인트 환급 제거 (2026-07-16 포인트 전면 폐기) — 주문에 사용된 포인트라는
+    //    개념이 사라졌다. 재고 복원(위)은 그대로.
 
     expired += 1
   }

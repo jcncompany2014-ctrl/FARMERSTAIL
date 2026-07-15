@@ -6,7 +6,7 @@
  * 변경:
  *   - 헤더: serif → sans 800 + Mono kicker.
  *   - 프로필 카드: paperHi + 1px rule + radius 4.
- *   - 포인트 hero: V3Dark ink 카드 + yellow accent (gradient → flat ink).
+ *   - 등급 hero: 등급별 수채화 배경 + 혜택 한 줄 (포인트 폐기 2026-07-16).
  *   - StatCard: 4-col mini metric strip 패턴 (ActiveDogCard 와 동일 톤).
  *   - MenuGroup: kicker (Mono) + paperHi 카드 + ink rule.
  *   - MenuItem: chevron / badge 톤은 V3.accent.
@@ -24,7 +24,7 @@ import {
   MapPin,
   ChevronRight,
   LogOut,
-  Coins,
+  Sprout,
   Mail,
   HelpCircle,
   FileText,
@@ -51,7 +51,6 @@ type Props = {
   profile: Profile | null
   orderCount: number
   subCount: number
-  pointBalance: number
 }
 
 export default function MypageClient({
@@ -59,7 +58,6 @@ export default function MypageClient({
   profile,
   orderCount,
   subCount,
-  pointBalance,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -76,7 +74,7 @@ export default function MypageClient({
 
   const displayName =
     profile?.name || (email ? email.split('@')[0] : null) || '보호자'
-  // 포인트 카드 등급별 수채화 배경 키 (seed/sprout/bloom/fruit/mate).
+  // 등급 카드 수채화 배경 키 (seed/sprout/bloom/fruit/mate).
   const tierKey = profile?.tier ?? 'seed'
 
   return (
@@ -152,12 +150,14 @@ export default function MypageClient({
       </section>
 
       {/* ──────────────────────────────────────────────────────────────
-          포인트 hero — 등급별 수채화 배경(씨앗→나무). 왼쪽 paper gradient 로
-          어두운 글자 가독성 확보, 오른쪽엔 등급 식물 그림이 보인다.
+          등급 hero — 등급별 수채화 배경(씨앗→나무).
+          2026-07-16: '포인트 잔액' hero 였는데 포인트를 전면 폐기하면서 등급 카드로
+          전환. 수채화 배경과 등급 여정은 그대로 살리고 P 숫자만 뺐다. 우리 혜택은
+          이제 자동할인이라, 모아둔 숫자보다 "지금 등급이 뭐고 뭘 받는지"가 맞다.
           ────────────────────────────────────────────────────────────── */}
       <section style={{ padding: '12px 20px 0' }}>
         <Link
-          href="/mypage/points"
+          href="/mypage/membership"
           className="relative block overflow-hidden"
           style={{
             borderRadius: V3Radius.sm,
@@ -174,56 +174,52 @@ export default function MypageClient({
         >
           <div className="relative">
             <div className="flex items-center" style={{ gap: 6, marginBottom: 6 }}>
-              <Coins size={14} color={V3.accentDeep} strokeWidth={2} />
+              <Sprout size={14} color={V3.accentDeep} strokeWidth={2} />
               <Mono color={V3.accentDeep} size="xxs" weight={600}>
-                Points
+                Membership
               </Mono>
             </div>
-            <div className="flex items-baseline" style={{ gap: 5 }}>
+            <div className="flex items-baseline" style={{ gap: 7 }}>
               <span
-                className="tabular-nums"
                 style={{
                   fontFamily: 'var(--font-sans)',
                   fontWeight: V3FontWeight.black,
-                  fontSize: 38,
+                  fontSize: 30,
                   color: V3.ink,
                   letterSpacing: '-0.03em',
                   lineHeight: 1,
                 }}
               >
-                {pointBalance.toLocaleString()}
+                {tierMeta(profile?.tier).label}
               </span>
               <Mono color="inkMute" size="sm" weight={600} letterSpacing="0.08em">
-                P
+                {tierMeta(profile?.tier).en}
               </Mono>
             </div>
-
-            {profile?.tier && (
-              <div
-                className="flex items-center"
-                style={{
-                  marginTop: 14,
-                  gap: 10,
-                  padding: '8px 12px',
-                  borderRadius: V3Radius.xs,
-                  background: 'rgba(255,255,255,0.68)',
-                  border: `1px solid ${V3.rule}`,
-                }}
-              >
-                <div className="flex-1 min-w-0">
-                  <div
-                    style={{
-                      fontSize: 10.5,
-                      fontWeight: V3FontWeight.bold,
-                      color: V3.ink,
-                    }}
-                  >
-                    {tierMeta(profile.tier).label} 등급 · {tierMeta(profile.tier).earnRate}% 적립
-                  </div>
+            <div
+              className="flex items-center"
+              style={{
+                marginTop: 14,
+                gap: 10,
+                padding: '8px 12px',
+                borderRadius: V3Radius.xs,
+                background: 'rgba(255,255,255,0.68)',
+                border: `1px solid ${V3.rule}`,
+              }}
+            >
+              <div className="flex-1 min-w-0">
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: V3FontWeight.bold,
+                    color: V3.ink,
+                  }}
+                >
+                  {tierMeta(profile?.tier).benefit}
                 </div>
-                <ChevronRight size={14} color={V3.inkMute} strokeWidth={2} />
               </div>
-            )}
+              <ChevronRight size={14} color={V3.inkMute} strokeWidth={2} />
+            </div>
           </div>
         </Link>
       </section>

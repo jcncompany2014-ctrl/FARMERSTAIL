@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
-import { creditPoints } from '@/lib/commerce/points'
 import { fetchPayment, type TossPaymentStatus } from '@/lib/payments/toss'
 import { notifyOrderCancelled, notifyOrderPlaced } from '@/lib/email'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
@@ -98,7 +97,7 @@ export async function POST(req: Request) {
   const { data: order, error: orderErr } = await supabase
     .from('orders')
     .select(
-      'id, user_id, order_number, total_amount, payment_status, order_status, points_earned, paid_at, shipping_fee, recipient_name'
+      'id, user_id, order_number, total_amount, payment_status, order_status, paid_at, shipping_fee, recipient_name'
     )
     .eq('order_number', orderId)
     .maybeSingle()
@@ -207,33 +206,7 @@ export async function POST(req: Request) {
         })
       }
 
-      // Award points if the order has earn amount and we haven't credited yet.
-      // 멱등성 체크 (audit 2-4 강화):
-      //   1) DB: partial unique index (user_id, reference_type, reference_id)
-      //      가 같은 (user_id, 'order', order.id) 의 두 번째 row 를 차단.
-      //   2) App: 그 전에 delta 의 *부호* 만 검사 — 양수 row 가 이미 있으면
-      //      double credit 시도 자체를 안 함. 이전 코드는 delta 값까지 정확
-      //      비교했는데 audit 1-2 validation 으로 points_earned 가 보정되면
-      //      DB 값과 다를 수 있어 스킵을 못 함 → unique index 거의 항상 막아
-      //      주지만 명시 확인.
-      if (order.points_earned && order.points_earned > 0) {
-        const { data: already } = await supabase
-          .from('point_ledger')
-          .select('id')
-          .eq('reference_type', 'order')
-          .eq('reference_id', order.id)
-          .gt('delta', 0)
-          .maybeSingle()
-        if (!already) {
-          await creditPoints(supabase, {
-            userId: order.user_id,
-            amount: order.points_earned,
-            reason: '주문 결제 적립 (웹훅)',
-            referenceType: 'order',
-            referenceId: order.id,
-          })
-        }
-      }
+      // 포인트 적립 제거 (2026-07-16 포인트 전면 폐기).
 
       // Notify the customer — virtual-account deposits are the key case.
       pushToUser(
@@ -342,15 +315,8 @@ export async function POST(req: Request) {
         })
       }
 
-      // 전액 취소면 사용자가 쓴 포인트 환급 + 쿠폰 회수(멱등). 웹훅/토스 대시보드
-      // 환불은 cancel 라우트를 안 거치므로 여기서 복구 안 하면 고객 포인트/쿠폰이
-      // 묶인다(점검 medium). 위 payment_status='cancelled' 가드로 전이당 1회만 실행.
-      if (!isPartial) {
-        const { recoverOrderPointsAndCoupon } = await import(
-          '@/lib/commerce/refund-recovery'
-        )
-        await recoverOrderPointsAndCoupon(supabase, order.id)
-      }
+      // 포인트/쿠폰 복구 제거 (2026-07-16 포인트 전면 폐기 · 쿠폰은 자동할인 대체).
+      // 복구할 사용자 자산이 없다 — 환불 자체(재고·상태·메일)는 그대로.
 
       // 전액 취소일 때만 고객 메일을 보냄 — 부분 환불은 ops 가 별도 커뮤니케이션.
       if (!isPartial) {

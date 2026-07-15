@@ -7,9 +7,6 @@ import { notifyOrderCancelled } from '@/lib/email'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
-import { computePointsRefund } from '@/lib/commerce/points'
-import { clawbackEarnedPoints } from '@/lib/commerce/refund-recovery'
-import { randomUUID } from 'node:crypto'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -90,7 +87,7 @@ export async function POST(
   const { data: order } = await supabase
     .from('orders')
     .select(
-      'id, user_id, order_number, payment_status, order_status, payment_key, total_amount, refunded_amount, recipient_name, points_used, points_earned',
+      'id, user_id, order_number, payment_status, order_status, payment_key, total_amount, refunded_amount, recipient_name',
     )
     .eq('id', id)
     .eq('user_id', user.id)
@@ -266,10 +263,7 @@ export async function POST(
   // orders.refunded_amount 누적. (선점 성공분 claimedCancelAmount 기준)
   const newRefundedAmount = (order.refunded_amount ?? 0) + claimedCancelAmount
 
-  // (a) refunds 감사 row. 포인트 환급 ledger reference 는 refunds.id 에 결합하지
-  //     않고 별도 유일 uuid(refundEventId)를 쓴다 — refunds insert 가 실패해도
-  //     포인트 환급이 독립적으로 진행되게(점검 high: 결합 시 silent 손실).
-  const refundEventId = randomUUID()
+  // (a) refunds 감사 row.
   const { error: refundErr } = await admin.from('refunds').insert({
     order_id: order.id,
     user_id: user.id,
@@ -287,58 +281,11 @@ export async function POST(
     )
   }
 
-  // (b) 사용 포인트 환급 — refund_order_points RPC 가 orders 행을 FOR UPDATE 잠그고
-  //     points_used 상한으로 잔여분만 원자 환급한다(점검: 동시 부분취소 과다환급 +
-  //     refunds 결합 손실 동시 차단). request 는 비례(부분)/전액(전량) 추정치이고
-  //     실제 상한·적립·points_refunded 갱신은 RPC 가 한 트랜잭션에서 수행.
-  if (order.points_used && order.points_used > 0) {
-    const request = computePointsRefund({
-      pointsUsed: order.points_used,
-      alreadyRefunded: 0, // 상한은 RPC 가 잔여로 재적용 — 여기선 비례 추정만.
-      totalAmount: order.total_amount ?? 0,
-      cancelAmount: claimedCancelAmount,
-      fully: fullyCancelled,
-    })
-    if (request > 0) {
-      // refund_order_points 는 신규 RPC 라 generated types 에 없음 → cast.
-      const { error: refundPointsErr } = await (
-        admin as unknown as {
-          rpc: (
-            fn: string,
-            args: Record<string, unknown>,
-          ) => Promise<{ error: { message?: string } | null }>
-        }
-      ).rpc('refund_order_points', {
-        p_order_id: order.id,
-        p_user_id: user.id,
-        p_request: request,
-        p_reason: fullyCancelled
-          ? '주문 취소 포인트 환급'
-          : '부분 취소 포인트 환급',
-        p_reference_id: refundEventId,
-      })
-      if (refundPointsErr) {
-        console.error(
-          `[cancel-items] refund_order_points failed: order=${order.id} ${refundPointsErr.message}`,
-        )
-      }
-    }
-  }
+  // (b) 포인트 환급/적립 회수 제거 (2026-07-16 포인트 전면 폐기).
+  //     주문에 쓴 포인트를 되돌려주고 적립분을 회수하던 자리인데, 포인트 개념 자체가
+  //     사라졌다. 금액 환불(Toss)·재고 복원·refunds 감사 row 는 그대로.
 
-  // (c) 전량 취소 도달 시 적립 포인트 회수 + 쿠폰 회수(cancel/route 와 대칭).
-  //     부분 취소는 잔여 주문에 적립/쿠폰이 유효하므로 유지(점검 medium: 이전엔
-  //     전량 도달 시 적립 회수가 누락됐다).
-  if (fullyCancelled) {
-    await clawbackEarnedPoints(admin, {
-      orderId: order.id,
-      userId: user.id,
-      pointsEarned: order.points_earned ?? 0,
-      paymentStatus: order.payment_status,
-    })
-  }
-
-  // (d) 주문 상태 갱신 — refunded_amount + (전량이면)취소상태. points_refunded 는
-  //     refund_order_points RPC 가 이미 원자적으로 갱신했다.
+  // (c) 주문 상태 갱신 — refunded_amount + (전량이면)취소상태.
   const orderUpdate: Record<string, unknown> = {
     refunded_amount: newRefundedAmount,
   }

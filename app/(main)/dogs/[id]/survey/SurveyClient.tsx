@@ -886,43 +886,11 @@ export default function SurveyClient({
       }
     }
 
-    // 설문 완료 응원 포인트 — voice-guidelines §10. 강제 보상이 아닌
-    // "정성 들였으니 감사" 톤. audit 1-3: 서버 측 cap (연 5,000P) 검사를
-    // 위해 직접 RPC 호출 → /api/rewards/survey-completion 으로 이관.
-    try {
-      // 사장님 보고 2026-06-19 "로딩 15초": 분석은 이미 저장(위)됐는데 이 보상
-      // fetch 를 await 하는 동안 결과 이동(아래 timer)이 막혀 있었음. 보상은
-      // 비핵심(실패해도 흐름 영향 X)이라 4s 타임아웃을 걸어 navigation 을
-      // 절대 붙들지 않게 한다. 느리면 보상 토스트만 생략하고 결과로 이동.
-      const rewardCtrl = new AbortController()
-      const rewardTimeout = setTimeout(() => rewardCtrl.abort(), 4000)
-      const res = await fetch('/api/rewards/survey-completion', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ surveyId: surveyData.id }),
-        signal: rewardCtrl.signal,
-      })
-      clearTimeout(rewardTimeout)
-      const payload = await res.json().catch(() => null)
-      if (
-        res.ok &&
-        payload?.ok &&
-        payload?.amount > 0 &&
-        typeof window !== 'undefined'
-      ) {
-        sessionStorage.setItem(
-          'ft:survey-reward',
-          JSON.stringify({
-            amount: payload.amount,
-            balanceAfter: payload.balanceAfter ?? null,
-            capped: payload.capped ?? false,
-            ts: Date.now(),
-          }),
-        )
-      }
-    } catch {
-      // 보상 적립 실패는 분석 흐름에 영향 X — 조용히 넘어감.
-    }
+    // 설문 완료 포인트 보상 제거 (2026-07-16 포인트 전면 폐기).
+    // 설문을 끝내면 포인트를 주던 자리인데 포인트 개념 자체가 없어졌다. 우리 혜택은
+    // 자동할인(첫 주문 50% · 등급별 · 생일)으로 통일 — 사은품 모으기 없이 알아서
+    // 깎아준다. 결과 화면의 'ft:survey-reward' 토스트도 함께 사라진다.
+
 
     trackSurveyCompleted(dogId)
     // 분석 애니메이션 최소 노출(약 2.4초) 확보 후 결과로 이동. 저장은 이미

@@ -403,7 +403,7 @@ export default async function MembershipPage() {
               · 누적 결제 금액 기준 자동 산정 (취소·환불 제외 순결제액)
             </li>
             <li>· 등급 변경은 결제 완료 시 즉시 반영</li>
-            <li>· 등급 산정에서 적립금·할인 차감 후 금액 적용</li>
+            <li>· 등급 산정은 할인 차감 후 실제 결제 금액 기준</li>
             <li>
               · 정기배송 결제도 동일 기준으로 합산 (월별 정산)
             </li>
@@ -485,12 +485,16 @@ function TierRow({
               : `${t.threshold.toLocaleString('ko-KR')}원 이상`}
           </div>
         </div>
-        <span
-          className="text-[10.5px] font-bold tabular-nums"
-          style={{ color: reached ? t.bg : 'var(--muted)' }}
-        >
-          {t.earnRate}% 적립
-        </span>
+        {/* '적립률' → '달성 여부' (2026-07-16 포인트 폐기). 우리 혜택은 자동할인
+            이라 등급마다 보여줄 숫자가 적립률이 아니다. */}
+        {reached && (
+          <span
+            className="text-[10.5px] font-bold"
+            style={{ color: t.bg }}
+          >
+            달성
+          </span>
+        )}
       </div>
       <p className="text-[10.5px] text-muted mt-2 leading-relaxed pl-11">
         {t.benefit}

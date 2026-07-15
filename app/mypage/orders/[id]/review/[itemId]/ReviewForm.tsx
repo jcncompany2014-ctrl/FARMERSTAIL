@@ -6,7 +6,6 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Star, ShoppingBag, Loader2, Check, Camera, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { creditPoints } from '@/lib/commerce/points'
 import { downscaleImage } from '@/lib/imageDownscale'
 
 type Dog = { id: string; name: string }
@@ -20,8 +19,6 @@ type Props = {
   dogs: Dog[]
 }
 
-const REVIEW_POINT_REWARD = 500
-const REVIEW_PHOTO_BONUS = 300 // 사진 리뷰 추가 적립
 const MAX_PHOTOS = 4
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024 // 5MB/장
 
@@ -167,16 +164,8 @@ export default function ReviewForm({
       return
     }
 
-    // 리뷰 작성 적립. 사진이 있으면 보너스까지 묶어서 한 번에 크레딧.
-    const rewardAmount =
-      REVIEW_POINT_REWARD + (photos.length > 0 ? REVIEW_PHOTO_BONUS : 0)
-    await creditPoints(supabase, {
-      userId: user.id,
-      amount: rewardAmount,
-      reason: photos.length > 0 ? '포토 리뷰 작성 적립' : '리뷰 작성 적립',
-      referenceType: 'review',
-      referenceId: review.id,
-    })
+    // 리뷰 작성 포인트 적립 제거 (2026-07-16 포인트 전면 폐기).
+    // 리뷰를 쓰면 포인트를 주던 자리인데 포인트 개념 자체가 없어졌다.
 
     setSuccess(true)
     setTimeout(() => {
@@ -207,15 +196,7 @@ export default function ReviewForm({
           리뷰 작성
         </h1>
         <p className="text-[11px] md:text-[13px] text-muted mt-1 md:mt-2">
-          작성 완료 시{' '}
-          <span className="font-bold text-terracotta">
-            {REVIEW_POINT_REWARD.toLocaleString()}P
-          </span>
-          , 사진 포함 시{' '}
-          <span className="font-bold text-terracotta">
-            +{REVIEW_PHOTO_BONUS.toLocaleString()}P
-          </span>{' '}
-          적립
+          솔직한 후기는 다음 보호자에게 큰 도움이 돼요.
         </p>
       </section>
 
@@ -440,7 +421,7 @@ export default function ReviewForm({
           {success ? (
             <>
               <Check className="w-4 h-4 md:w-5 md:h-5" strokeWidth={3} />
-              등록됐어요! +{(REVIEW_POINT_REWARD + (photos.length > 0 ? REVIEW_PHOTO_BONUS : 0)).toLocaleString()}P
+              등록됐어요! 고마워요
             </>
           ) : submitting ? (
             <>

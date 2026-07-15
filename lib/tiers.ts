@@ -45,8 +45,6 @@ export type TierMeta = {
   ink: string
   /** 혜택 1줄 요약 (카드 표시용) */
   benefit: string
-  /** 적립률 (%) */
-  earnRate: number
   /** 등급별 상세 혜택 — 멤버십 hub 페이지 표시 */
   benefits: TierBenefit[]
 }
@@ -59,18 +57,12 @@ export const TIERS: TierMeta[] = [
     threshold: 0,
     bg: '#9CB35F', // moss — 막 시작
     ink: '#FFFFFF',
-    benefit: '첫 주문 50% · 구매 적립 1%',
-    earnRate: 1,
+    benefit: '첫 주문 50% 자동 할인',
     benefits: [
       {
         Icon: 'gift',
         label: '첫 주문 50% 할인',
         detail: '계정당 1회, 첫 정기배송에 자동 적용 (코드·발급 없이)',
-      },
-      {
-        Icon: 'coins',
-        label: '구매 적립 1%',
-        detail: '결제 금액의 1% 포인트 자동 적립',
       },
       {
         Icon: 'cake',
@@ -86,14 +78,8 @@ export const TIERS: TierMeta[] = [
     threshold: 50_000,
     bg: '#B8CD78', // 연한 새싹 그린
     ink: '#2A2118',
-    benefit: '구매 적립 1.5% · 분기 맞춤 분석 리포트',
-    earnRate: 1.5,
+    benefit: '분기 맞춤 분석 리포트',
     benefits: [
-      {
-        Icon: 'leaf',
-        label: '구매 적립 1.5%',
-        detail: '씨앗 대비 +0.5% 추가 적립',
-      },
       {
         Icon: 'heart',
         label: '분기 맞춤 분석 리포트',
@@ -113,14 +99,8 @@ export const TIERS: TierMeta[] = [
     threshold: 300_000,
     bg: '#E8A4A4', // 꽃 핑크
     ink: '#1E1A14',
-    benefit: '구매 적립 2% · 전담 영양 상담 · 연 2회 25% 할인',
-    earnRate: 2,
+    benefit: '연 2회 25% 자동 할인 · 전담 영양 상담',
     benefits: [
-      {
-        Icon: 'flower',
-        label: '구매 적립 2%',
-        detail: '새싹 대비 +0.5% 추가 적립',
-      },
       {
         Icon: 'heart',
         label: '전담 영양 상담 우선',
@@ -145,14 +125,8 @@ export const TIERS: TierMeta[] = [
     threshold: 1_000_000,
     bg: '#D27A56', // terracotta — 잘 익은 열매
     ink: '#FFFFFF',
-    benefit: '적립 2.5% · 신제품 우선 · 연 4회 20% 할인',
-    earnRate: 2.5,
+    benefit: '연 4회 20% 자동 할인 · 신제품 우선',
     benefits: [
-      {
-        Icon: 'sparkles',
-        label: '구매 적립 2.5%',
-        detail: '꽃 대비 +0.5% 추가 적립',
-      },
       {
         Icon: 'sparkles',
         label: '신제품 24h 우선',
@@ -182,18 +156,12 @@ export const TIERS: TierMeta[] = [
     threshold: 3_000_000,
     bg: '#1E1A14', // 가장 어두운 ink — gold accent
     ink: '#D4A94A',
-    benefit: '강아지 등록증 · 적립 3% · 매 주문 10% 할인 · 한정 큐레이션',
-    earnRate: 3,
+    benefit: '강아지 등록증 · 매 주문 10% 할인 · 한정 큐레이션',
     benefits: [
       {
         Icon: 'certificate',
         label: '파머스테일 강아지 등록증',
         detail: '우리 아이 이름이 박힌 디지털 등록증 PDF 발급',
-      },
-      {
-        Icon: 'paw',
-        label: '구매 적립 3%',
-        detail: '최고 적립률',
       },
       {
         Icon: 'crown',

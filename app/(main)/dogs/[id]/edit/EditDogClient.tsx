@@ -14,10 +14,8 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useToast } from '@/components/ui/Toast'
 import DogPhotoPicker from '@/components/DogPhotoPicker'
 import { resolvePhotoState, type PhotoState } from '@/lib/dogPhotos'
-import { isUpgrade, type MethodKind } from '@/lib/rewards/measurement-upgrade'
 import { isAdvancedUiEnabled } from '@/lib/ui-flags'
 import { Select } from '@/components/v3'
 
@@ -61,7 +59,6 @@ export default function EditDogClient({
   const supabase = createClient()
   const dogId = initial.id
   const userId = initial.user_id
-  const toast = useToast()
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -80,9 +77,6 @@ export default function EditDogClient({
   const [activityMethod, setActivityMethod] = useState<string>(initial.activity_method)
   const [feedMethod, setFeedMethod] = useState<string>(initial.feed_method)
   // 초기값 — 업그레이드 비교용 (server 가 전달)
-  const initialWeightMethod = initial.weight_method
-  const initialActivityMethod = initial.activity_method
-  const initialFeedMethod = initial.feed_method
   const [weightMeasuredBy, setWeightMeasuredBy] = useState<string>(initial.weight_measured_by)
   const [activityPeriod, setActivityPeriod] = useState<string>(initial.activity_period)
   const [walkIntensity, setWalkIntensity] = useState<string>(initial.walk_intensity)
@@ -176,36 +170,10 @@ export default function EditDogClient({
       .select('id')
 
     // P10 — 측정 도구 업그레이드 보상 (best-effort, 흐름 차단 X)
-    const upgrades: Array<{ kind: MethodKind; prev: string; next: string }> = []
-    if (isUpgrade('weight', initialWeightMethod, weightMethod)) {
-      upgrades.push({ kind: 'weight', prev: initialWeightMethod, next: weightMethod })
-    }
-    if (isUpgrade('activity', initialActivityMethod, activityMethod)) {
-      upgrades.push({ kind: 'activity', prev: initialActivityMethod, next: activityMethod })
-    }
-    if (isUpgrade('feed', initialFeedMethod, feedMethod)) {
-      upgrades.push({ kind: 'feed', prev: initialFeedMethod, next: feedMethod })
-    }
-    for (const up of upgrades) {
-      try {
-        const res = await fetch(`/api/dogs/${dogId}/measurement-upgrade`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(up),
-        })
-        if (res.ok) {
-          const data = (await res.json()) as {
-            ok?: boolean
-            amount?: number
-          }
-          if (data.ok && data.amount) {
-            toast.success(`측정 도구 업그레이드 응원 ${data.amount.toLocaleString()}P 적립`)
-          }
-        }
-      } catch {
-        /* silent */
-      }
-    }
+    // 측정 도구 업그레이드 포인트 보상 제거 (2026-07-16 포인트 전면 폐기).
+    // 눈대중 → 저울 로 바꾸면 1,000P 를 주던 로직인데, 포인트 자체가 없어졌다.
+    // 측정 도구 값(weight_method 등)은 그대로 저장된다 — 급여량 계산의 신뢰도
+    // 보정(weightReliability)에 쓰이므로 그건 유지.
 
     setLoading(false)
 
@@ -496,7 +464,7 @@ export default function EditDogClient({
             </Select>
           </div>
           <p className="text-[10.5px] text-muted leading-relaxed">
-            정확한 도구로 바꾸면 응원 포인트 1,000P 적립돼요 (kind 별 1회).
+            정확한 도구로 잴수록 급여량을 더 정밀하게 계산해 드려요.
           </p>
         </div>
         )}

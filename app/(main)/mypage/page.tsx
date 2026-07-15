@@ -25,7 +25,6 @@ export default async function MyPage() {
     profileRes,
     orderCountRes,
     subCountRes,
-    ledgerRes,
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -44,27 +43,15 @@ export default async function MyPage() {
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('status', 'active'),
-    supabase
-      .from('point_ledger')
-      .select('balance_after')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
   ])
 
   const profile = (profileRes.data as Profile | null) ?? null
-  const pointBalance =
-    (ledgerRes.data as { balance_after?: number | null } | null)
-      ?.balance_after ?? 0
-
   return (
     <MypageClient
       email={user.email ?? null}
       profile={profile}
       orderCount={orderCountRes.count ?? 0}
       subCount={subCountRes.count ?? 0}
-      pointBalance={pointBalance}
     />
   )
 }

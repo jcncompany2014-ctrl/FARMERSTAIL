@@ -146,33 +146,9 @@ export default function AnalysisView({
     }
   }, [])
 
-  // 저장해두면 마운트 시 한 번 표시 후 제거. 멱등성은 ledger RPC 가 보장.
-  // 5분 만료 — 새 탭/리프레시 후 한참 뒤 들어오면 노출 X.
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    let raw: string | null = null
-    try {
-      raw = sessionStorage.getItem('ft:survey-reward')
-      if (!raw) return
-      sessionStorage.removeItem('ft:survey-reward')
-    } catch {
-      return
-    }
-    try {
-      const reward = JSON.parse(raw) as {
-        amount?: number
-        balanceAfter?: number | null
-        ts?: number
-      }
-      if (!reward.amount || !reward.ts) return
-      if (Date.now() - reward.ts > 5 * 60 * 1000) return
-      toast.success(
-        `정성껏 답변해주셔서 고마워요 — 응원 포인트 ${reward.amount.toLocaleString()}P 적립`,
-      )
-    } catch {
-      /* noop — 파싱 실패는 조용히 무시 */
-    }
-  }, [toast])
+  // 설문 완료 포인트 토스트 제거 (2026-07-16 포인트 전면 폐기) — 적립 자체가
+  // 없어졌으니 표시할 것도 없다. 혜택은 자동할인으로 통일.
+
 
   useEffect(() => {
     async function load() {
