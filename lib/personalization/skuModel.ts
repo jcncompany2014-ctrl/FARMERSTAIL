@@ -75,7 +75,7 @@ export type SkuDef = {
   concept: string
   /** UI 한 줄 표기 '프레시 치킨 레시피' (사장님 2026-07-15). 컨셉은 concept 에. */
   subtitle: string
-  /** 한 줄 효능 (박스 카드). */
+  /** 한 줄 효능 — 고객이 읽는 문구(레시피 고르기 카드·박스 카드). 내부 용어 금지. */
   benefit: string
   /** 컨셉 토핑. */
   topping: string
@@ -114,7 +114,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     persona: '모찌',
     concept: '체중관리·항염',
     subtitle: '프레시 치킨 레시피',
-    benefit: '닭가슴살 저지방(4종 최저 지방) 115kcal + 강황',
+    benefit: '4종 중 지방이 가장 적어요. 체중 관리에.',
     topping: '강황',
     slug: 'chicken-basic',
     // v2.0 ③-A: 닭 = weight 키 (임상 '다이어트 라인' 룰이 닭을 가리키게).
@@ -145,7 +145,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     persona: '코코',
     concept: '알레르기·장건강',
     subtitle: '프레시 오리 레시피',
-    benefit: '노블 단백질, 닭/소 배제 + 사과 펙틴 장케어',
+    benefit: '닭·소를 뺐어요. 알레르기가 걱정될 때.',
     topping: '사과',
     slug: 'duck-weight',
     // v2.0 ③-A: 오리 = basic 키 (노블/알레르기 라인).
@@ -175,7 +175,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     persona: '토토',
     concept: '기호·신경 B1',
     subtitle: '프레시 흑돼지 레시피',
-    benefit: '돼지안심 + B1 압도적, 무 소화효소 (노견 친화)',
+    benefit: '부드럽고 소화가 편해요. 속 예민한 아이에게.',
     topping: '무',
     slug: 'pork-joint',
     legacyLine: 'joint',
@@ -204,7 +204,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     persona: '바람이',
     concept: '활력·프리미엄',
     subtitle: '프레시 한우 레시피',
-    benefit: '한우 목심 헴철·B12, 활동량 많은 견',
+    benefit: '철분이 풍부해요. 활동량 많은 아이에게.',
     topping: '블루베리',
     slug: 'beef-premium',
     legacyLine: 'premium',
@@ -233,7 +233,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     persona: '시니어(예정)',
     concept: '피부·털 EPA/DHA',
     subtitle: '프레시 연어 레시피 (준비중)',
-    benefit: '오메가-3 자체 공급, 피모 윤기 (시니어 라인 예정)',
+    benefit: '오메가3가 풍부해요. 피부·털에. (준비 중)',
     topping: '—',
     slug: 'salmon-skin',
     legacyLine: 'skin',

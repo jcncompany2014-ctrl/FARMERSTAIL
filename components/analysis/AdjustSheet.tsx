@@ -6,12 +6,18 @@ import {
   Check,
   RotateCcw,
   AlertCircle,
-  UtensilsCrossed,
-  Drumstick,
   CalendarClock,
   Sparkles,
+  Plus,
 } from 'lucide-react'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import { snapBoxLines } from '@/lib/personalization/boxComposition'
+import {
+  togglePick as reducePick,
+  ratiosFromPicks,
+  picksChanged,
+  MAX_PICKS,
+} from '@/lib/personalization/boxPicks'
 import { petName } from '@/lib/korean'
 import {
   computeNutrientPanel,
@@ -22,119 +28,30 @@ import { haptic } from '@/lib/haptic'
 import { trackBoxAdjusted } from '@/lib/analytics'
 
 /**
- * AdjustSheet — Claude Design 핸드오프 #3 (sheet) 적용.
+ * AdjustSheet — 박스에 담을 레시피 고르기.
  *
- * 사용자가 추천 비율을 슬라이더로 직접 조정. 합 100% 강제 + 알레르기 차단
- * 라인 비활성. 저장 시 POST /api/personalization/adjust → user_adjusted=true.
+ * # 2026-07-15 전면 재설계 (사장님 "이 비율 조정 페이지 완전히 잘못됐거든?")
+ * 이전엔 5종에 0~70% 슬라이더를 줬는데, **실제 박스는 1종 100% 아니면 2종
+ * 50:50 뿐**이다(boxComposition.snapBoxLines). 그래서 보호자가 오리20/연어20/
+ * 한우35/흑돼지25 로 맞춰 저장해도 박스는 한우50/흑돼지50 으로 스냅됐다 —
+ * UI 가 지키지도 못할 약속을 하고, 화면의 g·kcal·영양 단면이 전부 실제 박스와
+ * 다른 숫자였다. 게다가 판매하지도 않는 연어(준비중)가 목록에 있었다.
  *
- * # 핵심 로직
- *  - rebalance: 한 라인 슬라이더 변경 시 같은 그룹 (메인 / 토퍼) 의 다른 라인
- *    을 비례 분배. blocked 라인은 donor 에서 제외.
- *  - 토퍼 cap 30%, 메인 단일 라인 max 70%
- *  - 5% step (0.05 단위 — algorithm.0.1 보다 fine 한 사용자 조정 허용)
- *  - "다음 cycle 부터 / 이번 즉시" 토글은 UI 만 (백엔드는 strategy='now' 만
- *    구현. 'next' 는 미래 작업. props 로 받아 호출처가 결정).
+ * 지금은 박스 그대로를 조작한다: **레시피 2칸을 채운다.**
+ *  · 1칸 = 그 레시피 100%
+ *  · 2칸 = 각각 50%
+ *  · 판매 4종만(연어 제외 — RECIPE_LINES). 알레르기 차단 레시피는 못 고름.
+ * 슬라이더·합계 100% 검증·리밸런스가 전부 사라졌다 — 애초에 표현 불가능한
+ * 상태를 만들 수 없으니 검증할 것도 없다.
+ *
+ * # 저장
+ * POST /api/personalization/adjust → user_adjusted=true. 보내는 lineRatios 는
+ * 이미 스냅된 값(0.5/0.5 또는 1.0)이라 서버 스냅과 화면이 100% 일치한다.
  */
 
-const MAIN_STEP = 5
-const MAIN_MAX = 70
-
-// 토퍼 폐지(2026-07-13 사장님) — 야채/육류 토퍼 삭제. 박스는 화식 레시피만.
-type Ratios = Record<string, number> // lineId → percent (0-100)
-
-/** Smart redistribute — group 내 한 항목 변경 시 다른 항목들에 비례 분배. */
-function rebalance(
-  group: string[],
-  ratios: Ratios,
-  id: string,
-  newVal: number,
-  blocked: Set<string>,
-): Ratios {
-  const next: Ratios = { ...ratios }
-  const oldVal = ratios[id] ?? 0
-  const delta = newVal - oldVal
-  if (delta === 0) return next
-  next[id] = newVal
-
-  const donorKeys = group.filter((k) => k !== id && !blocked.has(k))
-  const donorTotal = donorKeys.reduce((s, k) => s + (ratios[k] ?? 0), 0)
-
-  if (delta > 0) {
-    // 증가 → donor 에서 비례 차감
-    let need = delta
-    if (donorTotal <= 0) {
-      next[id] = oldVal
-      return next
-    }
-    let safety = 10
-    while (need > 0.0001 && safety-- > 0) {
-      const eligible = donorKeys.filter((k) => (next[k] ?? 0) > 0)
-      if (eligible.length === 0) {
-        next[id] = oldVal + (delta - need)
-        break
-      }
-      const eligibleTotal = eligible.reduce((s, k) => s + (next[k] ?? 0), 0)
-      let removed = 0
-      for (const k of eligible) {
-        const share = (next[k] ?? 0) / eligibleTotal
-        const take = Math.min(next[k] ?? 0, need * share)
-        next[k] = (next[k] ?? 0) - take
-        removed += take
-      }
-      if (removed < 0.0001) break
-      need -= removed
-    }
-  } else {
-    // 감소 → donor 에 비례 분배
-    const give = -delta
-    if (donorKeys.length === 0) {
-      next[id] = oldVal
-      return next
-    }
-    if (donorTotal > 0) {
-      for (const k of donorKeys) {
-        const share = (ratios[k] ?? 0) / donorTotal
-        next[k] = (next[k] ?? 0) + give * share
-      }
-    } else {
-      const each = give / donorKeys.length
-      for (const k of donorKeys) next[k] = (next[k] ?? 0) + each
-    }
-  }
-
-  // 5% step snap
-  const step = group === group ? 5 : 5
-  for (const k of group) {
-    next[k] = Math.round((next[k] ?? 0) / step) * step
-  }
-  next[id] = newVal
-
-  // 합 유지 — 잔차를 가장 큰 donor 에 흡수
-  const oldSum = group.reduce((s, k) => s + (ratios[k] ?? 0), 0)
-  const newSum = group.reduce((s, k) => s + (next[k] ?? 0), 0)
-  const error = oldSum - newSum
-  if (Math.abs(error) >= 1) {
-    const candidates = donorKeys
-      .filter((k) => !blocked.has(k))
-      .sort((a, b) => (next[b] ?? 0) - (next[a] ?? 0))
-    for (const k of candidates) {
-      const after = (next[k] ?? 0) + error
-      if (after >= 0 && after <= 100) {
-        next[k] = after
-        break
-      }
-    }
-  }
-
-  return next
-}
-
-const sumGroup = (ratios: Ratios, keys: string[]) =>
-  keys.reduce((s, k) => s + (ratios[k] ?? 0), 0)
-
-// ──────────────────────────────────────────────────────────────────────────
-// 메인 컴포넌트
-// ──────────────────────────────────────────────────────────────────────────
+/** 판매 중인 레시피만. 연어(skin)는 준비중 — 사장님 2026-07-13.
+ *  표시 순서는 plan 페이지(RECIPE_LINES)와 동일: 치킨·한우·오리·흑돼지. */
+const RECIPE_LINES: FoodLine[] = ['weight', 'premium', 'basic', 'joint']
 
 export default function AdjustSheet({
   open,
@@ -156,16 +73,14 @@ export default function AdjustSheet({
    *  (35%/18% DM) 경고를 live preview 에서 켠다. */
   isSenior?: boolean
 }) {
-  // formula → ratios (퍼센트 정수). 메인 화식 라인만(토퍼 폐지).
-  const initialRatios: Ratios = useMemo(() => {
-    const r: Ratios = {}
-    for (const line of ALL_LINES) {
-      r[line] = Math.round(formula.lineRatios[line] * 100)
-    }
-    return r
-  }, [formula])
+  // 추천 = 실제 박스(스냅된 1~2종). 알고리즘 원본 비율이 아니라 이걸 기준으로
+  // 해야 시트가 '받는 박스' 카드와 같은 것을 보여준다.
+  const recommended: FoodLine[] = useMemo(
+    () => snapBoxLines(formula.lineRatios).map((x) => x.line),
+    [formula],
+  )
 
-  const [ratios, setRatios] = useState<Ratios>(initialRatios)
+  const [picks, setPicks] = useState<FoodLine[]>(recommended)
   const [strategy, setStrategy] = useState<'now' | 'next'>('next')
   const [shakeId, setShakeId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -186,28 +101,31 @@ export default function AdjustSheet({
     return s
   }, [formula])
 
-  // open 변경 / formula 변경 → ratios 재초기화.
+  // open 변경 / formula 변경 → 추천으로 재초기화.
   useEffect(() => {
-    if (open) setRatios(initialRatios)
-  }, [open, initialRatios])
+    if (open) setPicks(recommended)
+  }, [open, recommended])
 
-  const mainKeys: string[] = [...ALL_LINES]
-  const mainSum = sumGroup(ratios, mainKeys)
-  // 메인 화식 5종 합 = 100% (정량 영양 책임). 토퍼 폐지.
-  const canSave = Math.round(mainSum) === 100 && !saving
+  const ratios = useMemo(() => ratiosFromPicks(picks), [picks])
+  const changed = picksChanged(picks, recommended)
+  const canSave = picks.length > 0 && !saving
 
-  function onLineChange(id: string, newVal: number) {
-    setRatios((prev) =>
-      rebalance(mainKeys, prev, id, newVal, blocked as Set<string>),
-    )
+  /** 규칙 판정은 boxPicks(테스트 있음)에 맡기고 여기선 피드백만. */
+  function onPick(line: FoodLine) {
+    const { picks: next, rejected } = reducePick(picks, line, blocked)
+    if (rejected) {
+      setShakeId(line)
+      haptic('warn')
+      setTimeout(() => setShakeId(null), 380)
+      return
+    }
+    haptic('tick')
+    setPicks(next)
   }
-  function onBlockedTouch(id: string) {
-    setShakeId(id)
-    haptic('warn')
-    setTimeout(() => setShakeId(null), 380)
-  }
+
   function onReset() {
-    setRatios(initialRatios)
+    haptic('tick')
+    setPicks(recommended)
   }
 
   async function onSave() {
@@ -215,13 +133,7 @@ export default function AdjustSheet({
     setSaving(true)
     setErr(null)
     try {
-      const lineRatios = {
-        basic: (ratios.basic ?? 0) / 100,
-        weight: (ratios.weight ?? 0) / 100,
-        skin: (ratios.skin ?? 0) / 100,
-        premium: (ratios.premium ?? 0) / 100,
-        joint: (ratios.joint ?? 0) / 100,
-      }
+      const lineRatios = ratios
       // 토퍼 폐지 — 항상 빈 값 저장.
       const toppers = { vegetable: 0, protein: 0 }
       const res = await fetch('/api/personalization/adjust', {
@@ -239,8 +151,7 @@ export default function AdjustSheet({
         | { ok: true; lineRatios: typeof lineRatios; dailyGrams?: number }
         | { ok?: false; code?: string; message?: string }
       if (!res.ok || !('ok' in json) || json.ok !== true) {
-        const msg =
-          ('message' in json && json.message) || '저장에 실패했어요'
+        const msg = ('message' in json && json.message) || '저장에 실패했어요'
         setErr(msg)
         return
       }
@@ -256,7 +167,11 @@ export default function AdjustSheet({
       })
       onClose()
     } catch (e) {
-      setErr(e instanceof Error ? e.message : '네트워크가 불안정해요. 다시 시도해 주세요')
+      setErr(
+        e instanceof Error
+          ? e.message
+          : '네트워크가 불안정해요. 다시 시도해 주세요',
+      )
     } finally {
       setSaving(false)
     }
@@ -287,6 +202,8 @@ export default function AdjustSheet({
 
   if (!open) return null
 
+  const pct = picks.length === 1 ? 100 : 50
+
   return (
     <>
       <div className="adj-scrim adj-open" onClick={onClose} />
@@ -309,12 +226,12 @@ export default function AdjustSheet({
         {/* head */}
         <div className="adj-head">
           <div className="adj-titles">
-            <div className="adj-kicker">ADJUST RATIO</div>
-            <h2>비율 직접 조정</h2>
+            <div className="adj-kicker">RECIPE</div>
+            <h2>레시피 고르기</h2>
             <div className="adj-sub">
               {/* 친근형(petName)으로 감싸 받침 유무와 무관히 조사 정확 —
                   모음명 "나우"→"나우의"(기존 "나우이의"✗), 받침명 "푸린"→"푸린이의". */}
-              <strong>{petName(dogName)}</strong>의 cycle {formula.cycleNumber} 맞춤 박스
+              <strong>{petName(dogName)}</strong>의 박스에 담을 화식
             </div>
           </div>
           <button
@@ -329,62 +246,105 @@ export default function AdjustSheet({
 
         {/* body */}
         <div className="adj-body">
-          {/* live bar */}
-          <LiveBar
+          {/* 박스 2칸 — 실제 박스가 이렇게 생겼다. 담긴 것만 보인다. */}
+          <div className="adj-slots" aria-label="박스에 담긴 레시피">
+            {[0, 1].map((i) => {
+              const line = picks[i]
+              if (!line) {
+                return (
+                  <div className="adj-slot empty" key={i}>
+                    <Plus size={13} strokeWidth={2.4} />
+                    <span>한 가지 더</span>
+                    <small>골라도 되고, 안 골라도 돼요</small>
+                  </div>
+                )
+              }
+              const meta = FOOD_LINE_META[line]
+              return (
+                <button
+                  type="button"
+                  className="adj-slot filled"
+                  key={i}
+                  style={{ ['--c' as string]: meta.color }}
+                  onClick={() => onPick(line)}
+                  aria-label={`${meta.nameKo} 빼기`}
+                >
+                  <span className="adj-slot-pct">{pct}%</span>
+                  <span className="adj-slot-name">{meta.nameKo}</span>
+                  <small className="adj-slot-amt">
+                    하루 {Math.round((formula.dailyGrams * pct) / 100)}g ·{' '}
+                    {Math.round((formula.dailyKcal * pct) / 100)}kcal
+                  </small>
+                </button>
+              )
+            })}
+          </div>
+
+          <NutrientLivePreview
             ratios={ratios}
-            mainSum={mainSum}
             formula={formula}
             isSenior={isSenior}
           />
 
-          {/* 메인 화식 — 5종 합 무조건 100% (정량 영양). 단일 라인 max 70%. */}
+          {/* 레시피 4종 */}
           <div className="adj-sect-lbl">
-            <div className="l">
-              <Drumstick size={11} strokeWidth={2} color="var(--ink)" />
-              메인 화식 5종
-            </div>
+            <div className="l">레시피 고르기</div>
             <div className="r">
-              <b>{Math.round(mainSum)}</b>% · 합 100% 필수
+              최대 {MAX_PICKS}가지 · 2가지면 <b>반반</b>
             </div>
           </div>
-          <div className="adj-lines">
-            {ALL_LINES.map((line) => {
+          <div className="adj-pick-grid">
+            {RECIPE_LINES.map((line) => {
               const meta = FOOD_LINE_META[line]
-              const v = ratios[line] ?? 0
+              const isPicked = picks.includes(line)
               const isBlocked = blocked.has(line)
-              const grams = (formula.dailyGrams * v) / 100
-              const kcal = (formula.dailyKcal * v) / 100
+              const isRec = recommended.includes(line)
               return (
-                <LineRow
+                <button
+                  type="button"
                   key={line}
-                  id={line}
-                  label={meta.name}
-                  sub={meta.subtitle}
-                  color={meta.color}
-                  value={v}
-                  max={MAIN_MAX}
-                  step={MAIN_STEP}
-                  blocked={isBlocked}
-                  blockedReason={
-                    isBlocked
-                      ? meta.blockingAllergies[0] ?? '알레르기'
-                      : undefined
+                  className={
+                    'adj-pick' +
+                    (isPicked ? ' on' : '') +
+                    (isBlocked ? ' blocked' : '') +
+                    (shakeId === line ? ' shake' : '')
                   }
-                  shake={shakeId === line}
-                  grams={grams}
-                  kcal={kcal}
-                  onChange={(nv) => onLineChange(line, nv)}
-                  onBlockedTouch={() => onBlockedTouch(line)}
-                />
+                  style={{ ['--c' as string]: meta.color }}
+                  aria-pressed={isPicked}
+                  onClick={() => onPick(line)}
+                >
+                  <span className="adj-pick-top">
+                    <span className="adj-pick-dot" />
+                    <span className="adj-pick-name">{meta.nameKo}</span>
+                    {isPicked && (
+                      <span className="adj-pick-check">
+                        <Check size={11} strokeWidth={3} />
+                      </span>
+                    )}
+                  </span>
+                  <span className="adj-pick-sub">
+                    {isBlocked
+                      ? `${meta.blockingAllergies[0] ?? '알레르기'} 때문에 못 담아요`
+                      : meta.benefit}
+                  </span>
+                  {isRec && !isBlocked && (
+                    <span className="adj-pick-rec">추천</span>
+                  )}
+                </button>
               )
             })}
           </div>
+          <p className="adj-pick-hint">
+            {picks.length >= MAX_PICKS
+              ? '2칸이 다 찼어요. 새로 고르면 먼저 담은 게 빠져요.'
+              : '한 가지만 담아도 괜찮아요. 두 가지면 반반으로 나눠 담아요.'}
+          </p>
 
           {/* 전환 전략 */}
           <div className="adj-sect-lbl">
             <div className="l">
               <CalendarClock size={11} strokeWidth={2} color="var(--ink)" />
-              전환 전략
+              언제부터
             </div>
           </div>
           <div className="adj-strategy">
@@ -392,23 +352,21 @@ export default function AdjustSheet({
             <div className="adj-seg">
               <div
                 className="adj-seg-thumb"
-                style={{
-                  left: strategy === 'next' ? '3px' : 'calc(50% + 0px)',
-                }}
+                style={{ left: strategy === 'next' ? '3px' : 'calc(50% + 0px)' }}
               />
               <button
                 type="button"
                 className={strategy === 'next' ? 'on' : ''}
                 onClick={() => setStrategy('next')}
               >
-                다음 cycle부터
+                다음 박스부터
               </button>
               <button
                 type="button"
                 className={strategy === 'now' ? 'on' : ''}
                 onClick={() => setStrategy('now')}
               >
-                이번 cycle 즉시
+                이번 박스 즉시
               </button>
             </div>
           </div>
@@ -419,8 +377,8 @@ export default function AdjustSheet({
               <Sparkles size={13} strokeWidth={2} color="#3C725E" />
             </div>
             <div>
-              저장하면 <b>&apos;사용자 조정됨&apos;</b>으로 마킹돼요. 다음
-              cycle 알고리즘이 이 조정값을 참고해 더 나은 추천을 만들어요.
+              직접 고르면 <b>&apos;직접 고른 레시피&apos;</b>로 저장돼요. 다음
+              추천을 만들 때 이 선택을 참고해요.
             </div>
           </div>
 
@@ -434,7 +392,12 @@ export default function AdjustSheet({
 
         {/* sticky CTA */}
         <div className="adj-cta-bar">
-          <button type="button" className="adj-ghost" onClick={onReset}>
+          <button
+            type="button"
+            className="adj-ghost"
+            onClick={onReset}
+            disabled={!changed}
+          >
             <RotateCcw size={13} strokeWidth={2} />
             추천으로
           </button>
@@ -453,71 +416,10 @@ export default function AdjustSheet({
   )
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// LiveBar — stacked bar + 합계 표시
-// ──────────────────────────────────────────────────────────────────────────
-
-function LiveBar({
-  ratios,
-  mainSum,
-  formula,
-  isSenior = false,
-}: {
-  ratios: Ratios
-  mainSum: number
-  formula: Formula
-  isSenior?: boolean
-}) {
-  // 메인 화식 5종 (합 100% 정량 영양) stacked bar. 토퍼 폐지(2026-07-13).
-  const mainOk = Math.round(mainSum) === 100
-  return (
-    <div className="adj-live">
-      {/* ── 메인 화식 (정량) ───────────────────────────────────────────── */}
-      <div className="adj-live-axis">
-        <div className="l">
-          <UtensilsCrossed size={10} strokeWidth={2} color="var(--muted)" />
-          메인 화식 <b>{Math.round(mainSum)}%</b>
-        </div>
-        <div className={'r' + (mainOk ? '' : ' warn')}>
-          {mainOk ? (
-            <>
-              <Check size={10} strokeWidth={2.6} color="#3C725E" />합 100%
-            </>
-          ) : (
-            <>
-              <AlertCircle size={10} strokeWidth={2.2} color="#b83a2e" />
-              {mainSum > 100
-                ? `${Math.round(mainSum - 100)}% 초과`
-                : `${Math.round(100 - mainSum)}% 부족`}
-            </>
-          )}
-        </div>
-      </div>
-      <div className="adj-live-bar">
-        {ALL_LINES.map((k) => {
-          const v = ratios[k] ?? 0
-          if (v === 0) return null
-          const color = FOOD_LINE_META[k].color
-          return (
-            <i
-              key={k}
-              style={{ width: `${v}%`, background: color }}
-              title={`${k} ${v}%`}
-            />
-          )
-        })}
-      </div>
-
-      {/* ── 영양 단면 live preview + 임상 권고 위반 chip (v1.5+) ──────── */}
-      <NutrientLivePreview ratios={ratios} formula={formula} isSenior={isSenior} />
-    </div>
-  )
-}
-
 /**
- * 슬라이더 조정 시 영양 단면 (DM%) 실시간 update + 임상 권고 위반 chip.
- * 사용자가 "이 변경이 영양적으로 어떤 의미" 를 즉시 볼 수 있고, 만약
- * 췌장염 fat 16% 초과 같은 위반이 발생하면 즉시 경고.
+ * 고른 레시피의 영양 단면 (DM%) + 임상 권고 위반 chip.
+ * "이 선택이 영양적으로 어떤 의미" 를 즉시 보여주고, 췌장염 fat 16% 초과 같은
+ * 위반이 생기면 경고.
  *
  * context 는 formula.reasoning 의 ruleId 에서 추론:
  *  - age-puppy / age-puppy-large-breed → isPuppy / isLargeBreedPuppy
@@ -532,33 +434,11 @@ function NutrientLivePreview({
   formula,
   isSenior = false,
 }: {
-  ratios: Ratios
+  ratios: Record<FoodLine, number>
   formula: Formula
   isSenior?: boolean
 }) {
-  // ratios 는 0-100 percent. computeNutrientPanel 은 0-1.0 ratio 받음.
-  const mainRatios = useMemo(() => {
-    const total = ALL_LINES.reduce((s, l) => s + (ratios[l] ?? 0), 0)
-    if (total <= 0) {
-      return { basic: 0, weight: 0, skin: 0, premium: 0, joint: 0 }
-    }
-    const out: Record<FoodLine, number> = {
-      basic: 0,
-      weight: 0,
-      skin: 0,
-      premium: 0,
-      joint: 0,
-    }
-    for (const l of ALL_LINES) {
-      out[l] = (ratios[l] ?? 0) / total
-    }
-    return out
-  }, [ratios])
-
-  const panel = useMemo(
-    () => computeNutrientPanel(mainRatios),
-    [mainRatios],
-  )
+  const panel = useMemo(() => computeNutrientPanel(ratios), [ratios])
 
   // formula.reasoning 의 ruleId 에서 임상 context 추론.
   const clinicalContext = useMemo(() => {
@@ -592,181 +472,50 @@ function NutrientLivePreview({
   )
 
   return (
-    <div className="adj-live-nutri">
-      <div className="adj-live-nutri-label">영양 단면 (DM)</div>
-      <div className="adj-live-nutri-grid">
-        <span>
-          <small>단백질</small>
-          <b>{panel.proteinPctDM}%</b>
-        </span>
-        <span>
-          <small>지방</small>
-          <b>{panel.fatPctDM}%</b>
-        </span>
-        <span>
-          <small>kcal/100g</small>
-          <b>{panel.kcalPer100g}</b>
-        </span>
+    <div className="adj-live">
+      {/* 담긴 레시피 stacked bar — 1칸이면 통짜, 2칸이면 반반. */}
+      <div className="adj-live-bar">
+        {ALL_LINES.map((k) => {
+          const v = ratios[k] ?? 0
+          if (v === 0) return null
+          return (
+            <i
+              key={k}
+              style={{ width: `${v * 100}%`, background: FOOD_LINE_META[k].color }}
+              title={`${FOOD_LINE_META[k].nameKo} ${Math.round(v * 100)}%`}
+            />
+          )
+        })}
       </div>
-      {check.warnings.length > 0 && (
-        <div className="adj-live-warn">
-          {check.warnings.map((w) => (
-            <div key={w.code} className="adj-live-warn-row">
-              <AlertCircle size={11} strokeWidth={2.4} color="#b83a2e" />
-              <span className="adj-live-warn-label">{w.label}</span>
-              <span className="adj-live-warn-actual">{w.actual}</span>
-              <span className="adj-live-warn-target">{w.target}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ──────────────────────────────────────────────────────────────────────────
-// LineRow — 한 줄 (메인 또는 토퍼)
-// ──────────────────────────────────────────────────────────────────────────
-
-function LineRow({
-  id,
-  label,
-  sub,
-  color,
-  value,
-  max,
-  step,
-  blocked,
-  blockedReason,
-  shake,
-  grams,
-  kcal,
-  onChange,
-  onBlockedTouch,
-}: {
-  id: string
-  label: string
-  sub: string
-  color: string
-  value: number
-  max: number
-  step: number
-  blocked: boolean
-  blockedReason?: string
-  shake: boolean
-  grams: number
-  kcal: number
-  onChange: (v: number) => void
-  onBlockedTouch: () => void
-}) {
-  return (
-    <div className={'adj-line' + (blocked ? ' blocked' : '')}>
-      <div className="adj-line-row1">
-        <span
-          className="adj-line-dot"
-          style={{ background: blocked ? 'var(--rule-2)' : color }}
-        />
-        <span className="adj-line-name">{label}</span>
-        {blocked ? (
-          <span className={'adj-blocked-chip' + (shake ? ' shake' : '')}>
-            <X size={9} strokeWidth={2.6} color="var(--terracotta)" />
-            {blockedReason} 차단됨
+      <div className="adj-live-nutri">
+        <div className="adj-live-nutri-label">영양 단면 (DM)</div>
+        <div className="adj-live-nutri-grid">
+          <span>
+            <small>단백질</small>
+            <b>{panel.proteinPctDM}%</b>
           </span>
-        ) : (
-          <span className="adj-line-sub">{sub}</span>
+          <span>
+            <small>지방</small>
+            <b>{panel.fatPctDM}%</b>
+          </span>
+          <span>
+            <small>kcal/100g</small>
+            <b>{panel.kcalPer100g}</b>
+          </span>
+        </div>
+        {check.warnings.length > 0 && (
+          <div className="adj-live-warn">
+            {check.warnings.map((w) => (
+              <div key={w.code} className="adj-live-warn-row">
+                <AlertCircle size={11} strokeWidth={2.4} color="#b83a2e" />
+                <span className="adj-live-warn-label">{w.label}</span>
+                <span className="adj-live-warn-actual">{w.actual}</span>
+                <span className="adj-live-warn-target">{w.target}</span>
+              </div>
+            ))}
+          </div>
         )}
-        <span className="adj-line-pct">
-          {value}
-          <small>%</small>
-        </span>
       </div>
-      <SegSlider
-        value={value}
-        max={max}
-        step={step}
-        color={color}
-        disabled={blocked}
-        label={label}
-        onChange={onChange}
-        onBlockedTouch={onBlockedTouch}
-      />
-      {!blocked && (
-        <div className="adj-line-row3">
-          <span>
-            <b>{Math.round(grams)}</b>g/일
-          </span>
-          <span>
-            <b>{Math.round(kcal)}</b> kcal
-          </span>
-        </div>
-      )}
-      {/* unused id var to avoid eslint */}
-      <span style={{ display: 'none' }}>{id}</span>
-    </div>
-  )
-}
-
-function SegSlider({
-  value,
-  max,
-  step,
-  color,
-  disabled,
-  label,
-  onChange,
-  onBlockedTouch,
-}: {
-  value: number
-  max: number
-  step: number
-  color: string
-  disabled: boolean
-  label: string
-  onChange: (v: number) => void
-  onBlockedTouch: () => void
-}) {
-  // value > max 인 케이스 (예: 알고리즘이 단일 100% collapse 한 라인을 sheet 에서
-  // max=70 으로 제한) 에서 pct 가 100% 를 넘어 thumb 이 viewport 밖으로 빠지는
-  // 문제를 막기 위해 0~100 으로 clamp.
-  const pct = Math.max(0, Math.min(100, (value / max) * 100))
-  return (
-    <div className="adj-range-wrap">
-      <div className="adj-range-track">
-        <div
-          className="adj-range-fill"
-          style={{ width: `${pct}%`, background: color }}
-        />
-      </div>
-      <input
-        type="range"
-        min={0}
-        max={max}
-        step={step}
-        value={value}
-        aria-label={`${label} 비율`}
-        className="adj-range-input"
-        onChange={(e) => {
-          if (disabled) {
-            onBlockedTouch()
-            return
-          }
-          onChange(Number(e.target.value))
-        }}
-        onMouseDown={(e) => {
-          if (disabled) {
-            e.preventDefault()
-            onBlockedTouch()
-          }
-        }}
-      />
-      {!disabled && (
-        <div
-          className="adj-range-thumb"
-          // CSS variable 로 pct 전달 — adjust-sheet.css 가 thumb 반지름만큼
-          // 안쪽으로 조정해 0%/100% 에서도 thumb 이 track 안에 완전히 보임.
-          style={{ ['--pct' as string]: pct } as React.CSSProperties}
-        />
-      )}
     </div>
   )
 }
