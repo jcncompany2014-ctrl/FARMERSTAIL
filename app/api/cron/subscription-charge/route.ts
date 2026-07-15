@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { nextCycleDate } from '@/lib/shipping-schedule'
 import { chargeBillingKey } from '@/lib/payments/toss'
 import {
   classifyBillingError,
@@ -268,32 +269,20 @@ function todayKstIsoDate(): string {
   return kst.toISOString().slice(0, 10)
 }
 
-function addWeeksIso(isoDate: string, weeks: number): string {
-  const d = new Date(isoDate + 'T00:00:00Z')
-  d.setUTCDate(d.getUTCDate() + weeks * 7)
-  return d.toISOString().slice(0, 10)
-}
-
 /**
- * 박스 정기배송 (dog_id + coverage_weeks 있음) — 2026-07-13 갈아엎기 이후 무조건
- * 2주(14일)마다. order 페이지(coverage_weeks=2, +14일)와 정합. 레거시 4주치(월)
- * 구독은 하위호환으로 월 branch 유지. 단일 SKU /subscribe/[slug] 흐름
- * (interval_weeks 1/2/4) 은 기존 weekly 로직.
+ * 다음 배송일 — **2주(14일) 뒤, 언제나**.
+ *
+ * 2026-07-16: 예전엔 3갈래였다 — 박스 2주 / 레거시 4주치는 캘린더 월 / 단일 SKU
+ * /subscribe 흐름은 interval_weeks(1·2·4)주. 그런데 배송 주기는 2주 하나로
+ * 고정됐고(사장님 2026-07-13, 박스가 14일치라 다른 주기는 물리적으로 성립 안 함),
+ * /subscribe 흐름은 도달 불가라 삭제했다. 분기가 남아 있으면 옛 데이터나 손으로
+ * 넣은 값이 다른 주기를 되살린다.
+ *
+ * 오늘(=청구일)은 항상 화요일이다(billing-issue 가 첫 배송을 화요일로 잡고, 14일 =
+ * 정확히 2주라 요일이 보존된다). 그래서 +14 만으로 화요일 정렬이 유지된다.
  */
-function nextDeliveryDate(sub: SubscriptionRow, todayIso: string): string {
-  const isBoxSubscription = !!sub.dog_id && sub.coverage_weeks != null
-  if (isBoxSubscription) {
-    const d = new Date(todayIso + 'T00:00:00Z')
-    if (sub.coverage_weeks === 2) {
-      // 2주마다 배송·결제 — 14일 후
-      d.setUTCDate(d.getUTCDate() + 14)
-    } else {
-      // 레거시 4주치 풀 — 캘린더 월 (같은 날 다음 달)
-      d.setUTCMonth(d.getUTCMonth() + 1)
-    }
-    return d.toISOString().slice(0, 10)
-  }
-  return addWeeksIso(todayIso, sub.interval_weeks)
+function nextDeliveryDate(todayIso: string): string {
+  return nextCycleDate(todayIso)
 }
 
 export async function GET(req: Request) {
@@ -598,7 +587,7 @@ async function runSubscriptionCharge(): Promise<Response> {
       // 성공하면 모든 retry/renewal 플래그를 0/false 로 reset (이전에 실패해서
       // 카드 재등록 받은 후 정상화 케이스 포함).
       const successIso = new Date().toISOString()
-      const nextDate = nextDeliveryDate(sub, today)
+      const nextDate = nextDeliveryDate(today)
 
       // R61 — 결제 원장 event (정기구독 자동 결제).
       {

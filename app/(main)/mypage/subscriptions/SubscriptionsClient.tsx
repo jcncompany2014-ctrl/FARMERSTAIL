@@ -20,7 +20,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
-import { todayKstIsoDate, addDaysKst, addMonthsKst } from '@/lib/datetime-kst'
+import { nextShipDate, nextCycleDate } from '@/lib/shipping-schedule'
 import {
   trackSubscriptionPaused,
   trackSubscriptionResumed,
@@ -173,15 +173,15 @@ export default function SubscriptionsClient({
       setActionLoading(null)
       return
     }
+    // 건너뛰기 = 다음 배송을 **한 사이클(2주)** 미루기. 화요일은 보존된다.
+    // 2026-07-16: weeks(1/2/4) 가변이었는데 주기가 2주 하나로 고정돼 인자 무의미.
+    // 기준이 없으면(카드 등록 전) 오늘이 아니라 '다음 화요일'에서 출발한다 —
+    // 예전엔 오늘로 폴백해 목요일 배송일 같은 게 생겼다.
     const update: Record<string, unknown> = weeks
       ? (() => {
-          // R85-D4: KST 자정 직후 (00-08:59) base.toISOString() 이 UTC 전날 반환 →
-          // date string 이 KST 의도일보다 1일 빠름. todayKstIsoDate/addDaysKst 사용.
           const sub = subs.find((s) => s.id === subId)
-          const baseIso = sub?.next_delivery_date ?? todayKstIsoDate()
-          return {
-            next_delivery_date: addDaysKst(baseIso, weeks * 7),
-          }
+          const baseIso = sub?.next_delivery_date ?? nextShipDate()
+          return { next_delivery_date: nextCycleDate(baseIso) }
         })()
       : { status: 'paused' }
     const { error } = await (supabase as unknown as {
@@ -254,14 +254,10 @@ export default function SubscriptionsClient({
       return
     }
 
-    // R85-D4: KST helper 사용 — 자정 직후 off-by-one 차단.
-    const todayIso = todayKstIsoDate()
-    const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null
-    const nextIso = isBoxSub
-      ? sub.coverage_weeks === 2
-        ? addDaysKst(todayIso, 14)
-        : addMonthsKst(todayIso, 1)
-      : addDaysKst(todayIso, sub.interval_weeks * 7)
+    // 재개하면 **다음 화요일**부터. 2026-07-16: 예전엔 박스 2주 / 레거시 월 /
+    // interval_weeks 주 3갈래였는데 주기가 2주 하나로 고정됐고(박스가 14일치),
+    // '오늘 + N일' 이라 오늘 요일로 배송일이 어긋나기까지 했다.
+    const nextIso = nextShipDate()
 
     const { error } = await supabase
       .from('subscriptions')

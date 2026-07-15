@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
+import { nextShipDate, nextCycleDate } from '@/lib/shipping-schedule'
 
 type SubscriptionRow = {
   id: string
@@ -49,7 +50,6 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   cancelled: { label: '해지', cls: 'bg-muted/10 text-muted' },
 }
 
-const INTERVAL_LABELS: Record<number, string> = { 1: '매주', 2: '2주', 4: '4주' }
 
 export default function AdminSubscriptionsPage() {
   const supabase = createClient()
@@ -120,19 +120,8 @@ export default function AdminSubscriptionsPage() {
     if (newStatus === 'active') {
       const sub = subs.find(s => s.id === subId)
       if (sub) {
-        const next = new Date()
-        // 박스 구독은 2주(14일) — 레거시 4주치만 캘린더 월.
-        const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null
-        if (isBoxSub) {
-          if (sub.coverage_weeks === 2) {
-            next.setDate(next.getDate() + 14)
-          } else {
-            next.setMonth(next.getMonth() + 1)
-          }
-        } else {
-          next.setDate(next.getDate() + sub.interval_weeks * 7)
-        }
-        updates.next_delivery_date = next.toISOString().split('T')[0]
+        // 배송 주기는 2주 하나로 고정 — 재개는 다음 화요일부터(2026-07-16).
+        updates.next_delivery_date = nextShipDate()
       }
     }
     // audit #79: subscriptions update Record cast.
@@ -308,24 +297,14 @@ export default function AdminSubscriptionsPage() {
         .from('order_items')
         .insert(items)
 
-      // 3) 구독 업데이트: 다음 배송일 갱신, 누적 횟수 +1
-      // 박스 구독은 2주(14일) — 레거시 4주치만 캘린더 월. cron 룰과 정합.
-      const nextDate = new Date(sub.next_delivery_date!)
-      const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null
-      if (isBoxSub) {
-        if (sub.coverage_weeks === 2) {
-          nextDate.setDate(nextDate.getDate() + 14)
-        } else {
-          nextDate.setMonth(nextDate.getMonth() + 1)
-        }
-      } else {
-        nextDate.setDate(nextDate.getDate() + sub.interval_weeks * 7)
-      }
+      // 3) 구독 업데이트: 다음 배송일 갱신, 누적 횟수 +1.
+      // 주기는 2주 하나 — cron(nextDeliveryDate) 과 같은 규칙(2026-07-16).
+      const nextIso = nextCycleDate(sub.next_delivery_date!)
 
       await supabase
         .from('subscriptions')
         .update({
-          next_delivery_date: nextDate.toISOString().split('T')[0],
+          next_delivery_date: nextIso,
           last_delivery_date: today,
           total_deliveries: sub.total_deliveries + 1,
         })
@@ -463,16 +442,12 @@ export default function AdminSubscriptionsPage() {
                           </div>
                         ))}
                       </td>
-                      {/* 주기 + 분량 */}
+                      {/* 분량 — '주기' 열은 뺐다(2026-07-16). 전부 2주 고정이라
+                          모든 행에 같은 값이 찍힐 뿐이었다. */}
                       <td className="px-4 py-3 text-center text-xs font-bold text-text">
-                        <div>
-                          {INTERVAL_LABELS[sub.interval_weeks] || `${sub.interval_weeks}주`}
+                        <div className="text-[9px] text-muted font-normal">
+                          {freshTierLabel(sub.fresh_ratio)}
                         </div>
-                        {sub.coverage_weeks && (
-                          <div className="text-[9px] text-muted font-normal mt-0.5">
-                            {freshTierLabel(sub.fresh_ratio, sub.coverage_weeks)}
-                          </div>
-                        )}
                         {sub.dogs && (
                           <div className="text-[9px] text-terracotta font-normal mt-0.5">
                             🐶 {sub.dogs.name}

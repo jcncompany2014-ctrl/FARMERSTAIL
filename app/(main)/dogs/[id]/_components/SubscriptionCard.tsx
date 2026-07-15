@@ -56,8 +56,9 @@ export default function SubscriptionCard({
         {subscriptions.length === 0 ? (
           <div className="flex flex-col items-start gap-2.5 py-1">
             <p className="text-[12px] text-text leading-relaxed">
-              {dogName} 맞춤 박스를 매월 자동으로 받아보세요. 분석된 라인 비율
-              그대로 g 단위까지 정확히 계산해 드려요.
+              {/* '매월' 은 옛 4주 모델 문구 — 지금은 2주마다다(2026-07-16). */}
+              {dogName} 맞춤 박스를 2주마다 받아보세요. 분석 결과 그대로 g 단위까지
+              계산해 보내드려요.
             </p>
             {/* 레시피 고르는 단계(/plan)부터 — /order 직행은 레시피 선택을
                 건너뛰어 주문 화면이 알고리즘 원본을 보여준다(2026-07-15). */}
@@ -107,7 +108,7 @@ export default function SubscriptionCard({
                             : '진행중'}
                       </span>
                       <span className="text-[12px] font-bold text-text truncate">
-                        {freshTierLabel(s.fresh_ratio, s.coverage_weeks)}
+                        {freshTierLabel(s.fresh_ratio)}
                       </span>
                     </div>
                     <span className="shrink-0 text-[12px] font-bold text-text font-mono whitespace-nowrap tabular-nums">

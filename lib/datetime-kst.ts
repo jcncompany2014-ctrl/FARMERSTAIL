@@ -40,19 +40,9 @@ export function addWeeksKst(isoDate: string, weeks: number): string {
   return addDaysKst(isoDate, weeks * 7)
 }
 
-/** ISO yyyy-mm-dd 에 months 개월 추가. 월말 보정: 31일 → 다음 달 말일. */
-export function addMonthsKst(isoDate: string, months: number): string {
-  const d = new Date(isoDate + 'T00:00:00Z')
-  const day = d.getUTCDate()
-  d.setUTCDate(1)
-  d.setUTCMonth(d.getUTCMonth() + months)
-  // 원래 day 가 새 월에 존재하는지 확인 (예: 1/31 + 1month = 2/31 X → 2/28).
-  const lastDay = new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0),
-  ).getUTCDate()
-  d.setUTCDate(Math.min(day, lastDay))
-  return d.toISOString().slice(0, 10)
-}
+// addMonthsKst 제거 (2026-07-16) — 옛 '4주치=캘린더 월' 배송 분기 전용이었다.
+// 배송 주기가 2주 하나로 고정되면서(박스가 14일치) 소비처가 0이 됐다. 월 단위 날짜
+// 계산이 다시 필요해지면 그때 되살릴 것 — 지금 남겨두면 월 배송을 되살리는 씨앗이 된다.
 
 /** 현재 KST hour (0-23). cron 내부 시간 비교에 사용. */
 export function currentKstHour(): number {

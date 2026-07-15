@@ -122,7 +122,7 @@ export default function SubscriptionCard({
           )}
           {sub.coverage_weeks && (
             <Badge tone="ink" shape="pill" size="sm" upper={false}>
-              {freshTierLabel(sub.fresh_ratio, sub.coverage_weeks)}
+              {freshTierLabel(sub.fresh_ratio)}
             </Badge>
           )}
         </div>

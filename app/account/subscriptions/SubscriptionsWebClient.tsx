@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
-import { todayKstIsoDate, addDaysKst, addMonthsKst } from '@/lib/datetime-kst'
+import { nextShipDate, nextCycleDate } from '@/lib/shipping-schedule'
 import {
   trackSubscriptionPaused,
   trackSubscriptionResumed,
@@ -118,8 +118,9 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
     const update: Record<string, unknown> = weeks
       ? (() => {
           const sub = subs.find((s) => s.id === subId)
-          const baseIso = sub?.next_delivery_date ?? todayKstIsoDate()
-          return { next_delivery_date: addDaysKst(baseIso, weeks * 7) }
+          // 한 사이클(2주) 미루기 — 화요일 보존. 기준이 없으면 다음 화요일부터.
+          const baseIso = sub?.next_delivery_date ?? nextShipDate()
+          return { next_delivery_date: nextCycleDate(baseIso) }
         })()
       : { status: 'paused' }
     const { error } = await (supabase as unknown as {
@@ -179,13 +180,9 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
       setActionLoading(null)
       return
     }
-    const todayIso = todayKstIsoDate()
-    const isBoxSub = !!sub.dog_id && sub.coverage_weeks != null
-    const nextIso = isBoxSub
-      ? sub.coverage_weeks === 2
-        ? addDaysKst(todayIso, 14)
-        : addMonthsKst(todayIso, 1)
-      : addDaysKst(todayIso, sub.interval_weeks * 7)
+    // 재개하면 **다음 화요일**부터 (2026-07-16). 주기는 2주 하나로 고정 —
+    // 박스가 14일치라 다른 주기는 성립하지 않는다.
+    const nextIso = nextShipDate()
     const { error } = await supabase
       .from('subscriptions')
       .update({ status: 'active', next_delivery_date: nextIso })
@@ -347,7 +344,7 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
                     className="text-[11px] px-2 py-0.5 rounded-full shrink-0 truncate"
                     style={{ background: 'var(--fd-cream)', color: 'var(--fd-pine)', fontWeight: 700 }}
                   >
-                    {freshTierLabel(sub.fresh_ratio, sub.coverage_weeks)}
+                    {freshTierLabel(sub.fresh_ratio)}
                   </span>
                 )}
               </div>

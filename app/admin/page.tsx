@@ -145,7 +145,7 @@ export default async function AdminHome() {
     // 활성 구독 — MRR 추정(total_amount × 4주/interval 환산)
     supabase
       .from('subscriptions')
-      .select('id, total_amount, interval_weeks', { count: 'exact' })
+      .select('id, total_amount', { count: 'exact' })
       .eq('status', 'active'),
 
     // 재고 경고 — 개별 상품 stock <= LOW_THRESHOLD 인 수. is_active 는
@@ -314,21 +314,19 @@ export default async function AdminHome() {
   // 평균 주문가 (AOV) — 결제 완료 기준. 분모 0 방어.
   const aov = totalPaidCount > 0 ? Math.round(totalRevenue / totalPaidCount) : 0
 
-  // 월 예상 매출 (MRR) — 각 활성 구독의 주기를 4주 기준으로 환산해 월 매출
-  // 근사치. interval_weeks 가 2 면 월 2회 = total_amount × 2, 4 면 월 1회,
-  // 1 이면 월 4회.
+  // 월 예상 매출 (MRR) — 배송 주기는 **2주 하나로 고정**이라(2026-07-13) 월 2회.
+  // 2026-07-16: 예전엔 interval_weeks 로 나눠 환산하고 값이 없으면 4주로 폴백했는데,
+  // 주기가 가변이라는 전제 자체가 옛 낱개 커머스 잔재다(박스가 14일치라 다른 주기는
+  // 성립하지 않는다). 폴백 4주는 매출을 절반으로 과소계상하기까지 했다.
   const activeSubs =
     (activeSubscriptionsRes.data ?? []) as Array<{
       total_amount: number | null
-      interval_weeks: number | null
     }>
   const activeSubCount = activeSubscriptionsRes.count ?? activeSubs.length
-  const estimatedMrr = activeSubs.reduce((sum, s) => {
-    const amount = s.total_amount ?? 0
-    const weeks = s.interval_weeks && s.interval_weeks > 0 ? s.interval_weeks : 4
-    // 4주 / 주기 = 월간 배송 횟수
-    return sum + amount * (4 / weeks)
-  }, 0)
+  const estimatedMrr = activeSubs.reduce(
+    (sum, s) => sum + (s.total_amount ?? 0) * 2,
+    0,
+  )
 
   const lowStockCount = lowStockRes.count ?? 0
   const lowStockItems =

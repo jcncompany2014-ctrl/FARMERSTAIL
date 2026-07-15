@@ -112,7 +112,7 @@ export async function POST(req: Request) {
   const wasInRenewal = await supabase
     .from('subscriptions')
     .select(
-      'status, requires_billing_key_renewal, next_delivery_date, interval_weeks, coverage_weeks, dog_id',
+      'status, requires_billing_key_renewal, next_delivery_date, dog_id',
     )
     .eq('id', subscriptionId)
     .eq('user_id', user.id)
@@ -121,8 +121,6 @@ export async function POST(req: Request) {
     status?: string
     requires_billing_key_renewal?: boolean
     next_delivery_date?: string | null
-    interval_weeks?: number | null
-    coverage_weeks?: number | null
     dog_id?: string | null
   } | null
   const shouldResume =
@@ -139,14 +137,11 @@ export async function POST(req: Request) {
   // 이후 배송은 cron(subscription-charge)이 +14일 하는데, 14일 = 정확히 2주라
   // 첫 배송만 화요일로 맞추면 이후는 저절로 화요일로 정렬된다.
   //
-  // 레거시 비박스 구독은 발송 요일 규칙 밖이라 기존 계산 유지.
+  // 구독은 박스 하나뿐이고 주기도 2주 하나다(2026-07-13 확정) — '비박스/다른 주기'
+  // 분기는 옛 낱개 커머스 잔재라 제거(2026-07-16). 첫 배송은 언제나 다음 화요일.
   let firstDeliveryIso: string | null = null
   if (!cur?.next_delivery_date) {
-    const todayIso = todayKstIsoDate()
-    const isBoxSub = !!cur?.dog_id && cur?.coverage_weeks != null
-    firstDeliveryIso = isBoxSub
-      ? nextShipDate(todayIso)
-      : addDaysKst(todayIso, (cur?.interval_weeks ?? 2) * 7)
+    firstDeliveryIso = nextShipDate()
   }
 
   await supabase
