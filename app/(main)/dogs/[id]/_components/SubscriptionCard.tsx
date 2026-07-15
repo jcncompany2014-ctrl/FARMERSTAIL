@@ -59,8 +59,10 @@ export default function SubscriptionCard({
               {dogName} 맞춤 박스를 매월 자동으로 받아보세요. 분석된 라인 비율
               그대로 g 단위까지 정확히 계산해 드려요.
             </p>
+            {/* 레시피 고르는 단계(/plan)부터 — /order 직행은 레시피 선택을
+                건너뛰어 주문 화면이 알고리즘 원본을 보여준다(2026-07-15). */}
             <Link
-              href={`/dogs/${dogId}/order`}
+              href={`/dogs/${dogId}/plan`}
               className="inline-flex items-center gap-1 mt-1 px-3.5 py-2 rounded-full bg-terracotta text-white text-[12px] font-bold hover:bg-terracotta/90 transition"
             >
               <Truck className="w-3 h-3" strokeWidth={2.4} />

@@ -220,13 +220,17 @@ export async function POST(req: Request) {
     const isStale = analysisAt > formulaAt
 
     if (isStale) {
-      // 옛 cycle-1 삭제 → 아래 재계산 경로가 새 analysis 기준으로 다시 만든다.
+      // 아래 재계산 경로가 새 analysis 기준으로 다시 만들어 **덮어쓴다**(upsert).
       // (user_adjusted 도 새 분석이 기준이므로 재계산 — 임상 안전 우선.)
-      await supabase
-        .from('dog_formulas')
-        .delete()
-        .eq('dog_id', dogId)
-        .eq('cycle_number', 1)
+      //
+      // ⚠️ 여기서 delete 하면 안 된다 — dog_formulas 에는 DELETE RLS 정책이 없어
+      //    사용자 클라이언트의 delete 는 **에러 없이 0행**이 된다(2026-07-15 발견).
+      //    그래서 옛 행이 남고 → 아래 insert 가 unique(dog_id,cycle_number) 위반 →
+      //    23505 를 '경쟁 삽입'으로 오해해 ok 를 반환 → **API 는 새 처방을 주는데
+      //    테이블엔 낡은 처방이 영구히 남았다.** 화면(분석·플랜)은 compute 응답을,
+      //    /order·개요·admin 피킹 리스트는 테이블을 읽으니 같은 강아지인데 레시피가
+      //    서로 달랐다(사장님 "닭으로 추천받았는데 배송 정보엔 오리랑 소").
+      //    피킹 리스트가 낡은 값을 보면 **실제로 다른 음식을 포장**하게 된다.
     } else {
       const formula: Formula = {
       // 타입 단언 — DB 의 jsonb 는 unknown 으로 들어옴. 우리가 넣은 거라 형식 보장.
@@ -525,46 +529,38 @@ export async function POST(req: Request) {
 
   // 6) Persist — UNIQUE (dog_id, cycle_number) 충돌 시 race condition (다른 탭).
   //    select 한 번 더 해서 그쪽 결과 반환. 사용자 입장 idempotent.
-  const { error: insErr } = await supabase.from('dog_formulas').insert({
-    dog_id: dogId,
-    user_id: user.id,
-    cycle_number: 1,
-    formula: {
-      lineRatios: formula.lineRatios,
-      toppers: formula.toppers,
-      v3,
+  // upsert — insert 가 아니다. 이유 두 가지:
+  //  1. 재계산(stale) 경로: 옛 행을 지울 수 없으므로(DELETE RLS 정책 없음) 덮어써야
+  //     한다. insert 였을 때 23505 가 나서 저장이 조용히 실패했다.
+  //  2. 경쟁 삽입: 두 화면이 동시에 compute 를 호출해도 마지막 값으로 수렴한다.
+  //     (출력이 deterministic 이라 어느 쪽이 이기든 같은 값)
+  // created_at 을 반드시 갱신해야 위쪽 staleness 판정(analysis > formula)이 풀린다.
+  // 이게 없으면 매 호출마다 stale 로 판정돼 영원히 재계산한다.
+  const { error: insErr } = await supabase.from('dog_formulas').upsert(
+    {
+      dog_id: dogId,
+      user_id: user.id,
+      cycle_number: 1,
+      formula: {
+        lineRatios: formula.lineRatios,
+        toppers: formula.toppers,
+        v3,
+      },
+      reasoning: formula.reasoning,
+      transition_strategy: formula.transitionStrategy,
+      algorithm_version: formula.algorithmVersion,
+      user_adjusted: false,
+      daily_kcal: formula.dailyKcal,
+      daily_grams: dailyGramsByMix,
+      created_at: new Date().toISOString(),
     },
-    reasoning: formula.reasoning,
-    transition_strategy: formula.transitionStrategy,
-    algorithm_version: formula.algorithmVersion,
-    user_adjusted: false,
-    daily_kcal: formula.dailyKcal,
-    daily_grams: dailyGramsByMix,
-  })
+    { onConflict: 'dog_id,cycle_number' },
+  )
 
   if (insErr) {
-    // 23505 = unique violation. 이미 누가 만들었으니 select.
-    if ((insErr as unknown as { code?: string }).code === '23505') {
-      const { data: raced } = await supabase
-        .from('dog_formulas')
-        .select(
-          'formula, reasoning, transition_strategy, algorithm_version, daily_kcal, daily_grams, user_adjusted, cycle_number',
-        )
-        .eq('dog_id', dogId)
-        .eq('cycle_number', 1)
-        .maybeSingle()
-      if (raced) {
-        return NextResponse.json({
-          ok: true,
-          formula,
-          v3,
-          cached: true,
-          raced: true,
-        })
-      }
-    }
     // audit #69: 원본 DB message 클라이언트 노출 제거 — 서버 로그만(2026-06-20).
-    console.error('[personalization/compute] insert error:', insErr.message)
+    // 조용히 ok 를 반환하면 안 된다 — 화면과 테이블이 갈라지는 바로 그 버그다.
+    console.error('[personalization/compute] upsert error:', insErr.message)
     return NextResponse.json(
       { code: 'DB_ERROR', message: '분석을 저장하지 못했어요' },
       { status: 500 },

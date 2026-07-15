@@ -39,15 +39,13 @@ export default function AnalysisCTASection({
         </>
       ) : (
         <>
-          {/* 개인화 박스 주문으로 직행 — /dogs/[id]/order 가 최신 dog_formulas
-              를 읽어 추천 SKU·비율·급여량·가격을 그대로 렌더한다. 이전엔
-              generic /products 로 보내 방금 만든 개인화를 전부 흘렸음
-              (RecommendationBox 의 "정기배송 신청" 과 목적지 통일).
-              점검 fix: 목적지(/order)는 월 1회 자동결제 정기배송 신청 플로우인데
-              CTA 가 "체험팩 주문"이라 단건 체험으로 오인될 소지(전상법 표시) →
-              "정기배송 신청하기"로 정정해 목적지와 일치시킴. */}
+          {/* 목적지 = 플랜(레시피 고르는 단계). /order 로 직행시키면 상단
+              스텝바가 '레시피 → 배송 → 결제' 인데 레시피를 건너뛴 채 배송에
+              떨어지고, 무엇보다 고른 레시피(?recipes=)가 없어서 주문 화면이
+              제멋대로 보였다 (사장님 2026-07-15). RecommendationBox 도 /plan
+              으로 가므로 목적지 통일. */}
           <Link
-            href={`/dogs/${dogId}/order`}
+            href={`/dogs/${dogId}/plan`}
             className="flex items-center justify-center gap-1.5 w-full py-4 rounded bg-ink text-bg text-[13.5px] font-bold active:scale-[0.98] transition"
           >
             {dogName} 맞춤 정기배송 신청하기
