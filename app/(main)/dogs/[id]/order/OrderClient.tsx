@@ -103,18 +103,6 @@ const FRESH_TIERS = [
 ]
 type FreshRatio = (typeof FRESH_TIERS)[number]['value']
 
-// 배송 요청사항 프리셋(한국 표준 배송 폼). '__custom__' = 직접 입력.
-const DELIVERY_PRESETS = [
-  '문 앞에 놓아주세요',
-  '경비실에 맡겨주세요',
-  '택배함에 넣어주세요',
-  '직접 받을게요',
-  '__custom__',
-] as const
-const CUSTOM_REQUEST = '__custom__'
-function requestLabel(v: string): string {
-  return v === CUSTOM_REQUEST ? '직접 입력' : v
-}
 
 // 구독료에 배송비 포함 — 무료배송/배송비 임계 시스템 폐지(2026-06-27 사장님 지시).
 
@@ -302,13 +290,15 @@ export default function OrderClient({
   const [recipientAddressDetail, setRecipientAddressDetail] = useState(
     profile.address_detail,
   )
-  // 배송 요청사항 — 프리셋 + 직접입력. 공동현관 출입은 별도. 신청 시 delivery_memo
-  // 로 합쳐 저장(이전엔 memo state 가 insert 에서 누락돼 저장 안 되던 것 수정).
-  const [deliveryRequest, setDeliveryRequest] = useState<string>(
-    DELIVERY_PRESETS[0],
-  )
-  const [deliveryRequestCustom, setDeliveryRequestCustom] = useState('')
-  const [entranceInfo, setEntranceInfo] = useState('')
+  // 요청사항 2칸 — 둘 다 자유 입력 (사장님 2026-07-15).
+  //  · 프리셋 칩 폐기: 고른 뒤 '직접 입력'을 또 눌러야 쓸 수 있어서, 결국 하고
+  //    싶은 말이 있는 사람은 두 번 일했다. 그냥 쓰게 둔다.
+  //  · 공동현관 출입 칸 폐기: 비밀번호를 폼에 적게 하는 건 받고 싶지 않은
+  //    정보고(우리가 보관하게 된다), 필요하면 배송 요청사항에 쓰면 된다.
+  //  · 주문 요청사항 신설: 배송(택배기사에게)과 주문(우리에게)은 받는 사람이
+  //    다르다 — 포장·급여 관련 요청이 배송 메모에 섞이면 기사에게 갈 뿐이다.
+  const [orderRequest, setOrderRequest] = useState('')
+  const [deliveryRequest, setDeliveryRequest] = useState('')
 
   // formula 가 server 에서 null 이면 안내 메시지 자동 노출
   useEffect(() => {
@@ -528,14 +518,11 @@ export default function OrderClient({
           ? crypto.randomUUID()
           : `c-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
-      // 배송 요청사항 + 공동현관 → delivery_memo 하나로 합쳐 저장.
-      const requestResolved =
-        deliveryRequest === CUSTOM_REQUEST
-          ? deliveryRequestCustom.trim()
-          : deliveryRequest
+      // 요청사항 2칸 → delivery_memo 하나로 합쳐 저장. 라벨을 붙여 둬야 나중에
+      // 어느 쪽에 쓴 말인지 구분된다(주문=우리, 배송=기사).
       const memoParts: string[] = []
-      if (requestResolved) memoParts.push(requestResolved)
-      if (entranceInfo.trim()) memoParts.push(`공동현관 ${entranceInfo.trim()}`)
+      if (orderRequest.trim()) memoParts.push(`[주문] ${orderRequest.trim()}`)
+      if (deliveryRequest.trim()) memoParts.push(`[배송] ${deliveryRequest.trim()}`)
       const deliveryMemo = memoParts.length ? memoParts.join(' · ') : null
 
       // audit #79: subscriptions schema-drift cast.
@@ -969,54 +956,35 @@ export default function OrderClient({
                 />
               </div>
 
-              {/* 배송 요청사항 — 프리셋 칩 + 직접입력 */}
+              {/* 요청사항 2칸 — 받는 사람이 다르다 (사장님 2026-07-15).
+                  주문 = 우리(포장·급여 관련), 배송 = 택배기사. 프리셋 칩을 없애고
+                  둘 다 그냥 쓰게 뒀다 — 칩을 고른 뒤 '직접 입력'을 또 눌러야 쓸 수
+                  있던 구조라 할 말 있는 사람은 두 번 일했다. */}
               <div className="ord-field">
-                <label className="ord-label">배송 요청사항</label>
-                <div
-                  className="ord-req-grid"
-                  role="radiogroup"
-                  aria-label="배송 요청사항"
-                >
-                  {DELIVERY_PRESETS.map((p) => {
-                    const on = deliveryRequest === p
-                    return (
-                      <button
-                        type="button"
-                        key={p}
-                        role="radio"
-                        aria-checked={on}
-                        className={'ord-req-chip' + (on ? ' is-on' : '')}
-                        onClick={() => setDeliveryRequest(p)}
-                      >
-                        {requestLabel(p)}
-                      </button>
-                    )
-                  })}
-                </div>
-                {deliveryRequest === CUSTOM_REQUEST && (
-                  <textarea
-                    className="ord-textarea"
-                    style={{ marginTop: 8 }}
-                    placeholder="배송 시 요청사항을 적어주세요"
-                    rows={2}
-                    value={deliveryRequestCustom}
-                    onChange={(e) => setDeliveryRequestCustom(e.target.value)}
-                  />
-                )}
+                <label className="ord-label" htmlFor="ord-order-req">
+                  주문 요청사항 <span className="ord-label-opt">선택</span>
+                </label>
+                <textarea
+                  id="ord-order-req"
+                  className="ord-textarea"
+                  placeholder="포장이나 급여에 관해 저희에게 남기실 말씀이 있다면 적어주세요"
+                  rows={2}
+                  value={orderRequest}
+                  onChange={(e) => setOrderRequest(e.target.value)}
+                />
               </div>
 
-              {/* 공동현관 출입 (선택) — 아파트/오피스텔 대비 */}
               <div className="ord-field">
-                <label className="ord-label" htmlFor="ord-entrance">
-                  공동현관 출입 <span className="ord-label-opt">선택</span>
+                <label className="ord-label" htmlFor="ord-delivery-req">
+                  배송 요청사항 <span className="ord-label-opt">선택</span>
                 </label>
-                <input
-                  id="ord-entrance"
-                  type="text"
-                  className="ord-input"
-                  placeholder="공동현관 비밀번호나 출입 방법"
-                  value={entranceInfo}
-                  onChange={(e) => setEntranceInfo(e.target.value)}
+                <textarea
+                  id="ord-delivery-req"
+                  className="ord-textarea"
+                  placeholder="예) 문 앞에 놓아주세요"
+                  rows={2}
+                  value={deliveryRequest}
+                  onChange={(e) => setDeliveryRequest(e.target.value)}
                 />
               </div>
 
