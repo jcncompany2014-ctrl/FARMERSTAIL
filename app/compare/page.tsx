@@ -51,7 +51,13 @@ export default async function ComparePage() {
   }))
 
   return (
-    <main className="pb-20 max-w-5xl mx-auto px-5 pt-6">
+    // w-full + min-w-0 — body 가 flex(column) 컨테이너라 main 은 flex item 이다.
+    //  · min-w-0: flex item 의 기본 min-width:auto 는 내용의 min-content 아래로
+    //    줄어들지 않아, 아래 표의 min-w-[460px] 가 위로 전파된다.
+    //  · w-full: mx-auto(auto 마진)가 교차축 stretch 를 꺼버려서 main 이 내용
+    //    크기(max-content)로 부푼다. 가로를 명시해야 375px 에 묶인다.
+    // 둘 중 하나만 빠져도 모바일에서 페이지 본문이 통째로 가로 스크롤된다.
+    <main className="pb-20 w-full max-w-5xl mx-auto px-5 pt-6 min-w-0">
       <div className="flex items-center gap-2">
         <Sparkles className="w-5 h-5 text-moss" strokeWidth={2} />
         <h1 className="font-['Archivo_Black'] text-2xl md:text-3xl text-ink">
@@ -60,7 +66,7 @@ export default async function ComparePage() {
       </div>
       <p className="text-[12.5px] md:text-[13.5px] text-muted mt-1.5 leading-relaxed">
         치킨·오리·흑돼지·한우 4종 화식의 단백질·지방·칼슘/인·오메가3·셀레늄을 한
-        화면에. 국제 영양 권장 범위(FEDIAF)와 함께 비교해 보세요.
+        화면에. 4종 모두 AAFCO 2024 · FEDIAF 국제 기준을 충족해요.
       </p>
 
       {/* 영양 매트릭스 표 */}
@@ -68,8 +74,10 @@ export default async function ComparePage() {
         <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted mb-3">
           영양 매트릭스 (DM 기준)
         </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[11.5px] md:text-[12.5px]">
+        {/* 모바일에서 6열이 안 들어간다 — w-full 로 욱여넣으면 '49.5' 가 두 줄로
+            쪼개져 숫자가 뭉갠다. min-w 를 줘서 뭉개는 대신 옆으로 스크롤시킨다. */}
+        <div className="overflow-x-auto -mx-1 px-1">
+          <table className="w-full min-w-[460px] text-[11.5px] md:text-[12.5px] whitespace-nowrap">
             <thead>
               <tr className="text-left text-muted border-b border-rule">
                 <th className="py-2 pr-3 font-bold">레시피</th>
@@ -107,25 +115,27 @@ export default async function ComparePage() {
                   </td>
                 </tr>
               ))}
-              {/* FEDIAF 기준 행 */}
+              {/* 국제 기준 행 — 단백·지방은 '최소'다. 예전엔 '18-35' 처럼 범위로
+                  적어서, 우리 수치(49.5)가 상한을 넘긴 것처럼 읽혔다. 실제로는
+                  AAFCO/FEDIAF 가 단백·지방에 상한을 두지 않는다(사장님 2026-07-15
+                  "오히려 우리가 충족을 안 해 다 오바하지?" → 아니고, 최소치를
+                  넉넉히 넘긴 것). 진짜 범위가 있는 Ca:P·셀레늄만 범위로 적는다. */}
               <tr className="bg-bg/50">
                 <td className="py-2 pr-3 text-[10.5px] font-bold uppercase tracking-wider text-muted">
-                  FEDIAF 권장
+                  국제 기준
                 </td>
                 <td className="py-2 px-2 text-right text-[10.5px] text-muted tabular-nums">
-                  {FEDIAF_REFERENCE.protein_pct.min}-
-                  {FEDIAF_REFERENCE.protein_pct.max}
+                  {FEDIAF_REFERENCE.protein_pct.min} 이상
                 </td>
                 <td className="py-2 px-2 text-right text-[10.5px] text-muted tabular-nums">
-                  {FEDIAF_REFERENCE.fat_pct.min}-
-                  {FEDIAF_REFERENCE.fat_pct.max}
+                  {FEDIAF_REFERENCE.fat_pct.min} 이상
                 </td>
                 <td className="py-2 px-2 text-right text-[10.5px] text-muted tabular-nums">
                   {FEDIAF_REFERENCE.ca_p_ratio.min}-
                   {FEDIAF_REFERENCE.ca_p_ratio.max}
                 </td>
                 <td className="py-2 px-2 text-right text-[10.5px] text-muted tabular-nums">
-                  ≥ {FEDIAF_REFERENCE.epa_dha_pct.min}
+                  {FEDIAF_REFERENCE.epa_dha_pct.min} 이상
                 </td>
                 <td className="py-2 px-2 text-right text-[10.5px] text-muted tabular-nums">
                   {FEDIAF_REFERENCE.selenium_mcg_per_kg.min}-
@@ -135,9 +145,20 @@ export default async function ComparePage() {
             </tbody>
           </table>
         </div>
-        <p className="text-[10.5px] text-muted mt-3 leading-relaxed">
+        <div className="mt-3 rounded-xl bg-moss/[0.07] border border-moss/25 px-3.5 py-3">
+          <p className="text-[11.5px] font-bold text-ink leading-relaxed">
+            4종 모두 AAFCO 2024 · FEDIAF 기준을 충족해요.
+          </p>
+          <p className="text-[10.5px] text-muted mt-1.5 leading-relaxed">
+            단백질과 지방은 <strong>최소 기준</strong>만 정해져 있어요(상한 없음).
+            파머스테일 화식이 기준보다 높은 건 고기가 그만큼 많이 들어가서예요.
+            과하면 해로운 영양소(비타민 D·셀레늄·칼슘:인)는 정해진 범위 안에서
+            관리하고 있어요.
+          </p>
+        </div>
+        <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
           ※ DM = Dry Matter (수분 제외 건조 중량). 자사 R&D 시제품 분석 결과 +
-          FEDIAF 2024 권장 범위 교차검증.
+          AAFCO 2024 · FEDIAF 기준 교차검증.
         </p>
       </section>
 

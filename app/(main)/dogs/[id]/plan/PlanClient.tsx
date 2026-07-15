@@ -374,7 +374,7 @@ function PlanView({
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 11, flexWrap: 'wrap' }}>
-        {['수의영양학', 'AAFCO 충족', '사람도 먹는 등급'].map((t) => (
+        {['수의영양학', 'AAFCO·FEDIAF 충족', '사람도 먹는 등급'].map((t) => (
           <span key={t} style={{ fontSize: 9.5, color: 'var(--moss, #4f6a48)', background: 'color-mix(in srgb, var(--moss, #4f6a48) 9%, transparent)', padding: '3px 8px', borderRadius: 99, fontWeight: 600 }}>
             {t}
           </span>
@@ -765,7 +765,7 @@ function RecipeDetail({
         ))}
       </div>
       <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 11, lineHeight: 1.5 }}>
-        제조국가 한국 · AAFCO 2024 · NRC 2006 기준 완전·균형식.
+        제조국가 한국 · AAFCO 2024 · FEDIAF · NRC 2006 기준 완전·균형식.
       </p>
     </div>
   )

@@ -111,13 +111,33 @@ export const SKU_NUTRITION: Record<SkuKey, SkuNutritionRow> = {
   },
 }
 
-/** FEDIAF 권장 범위 (성견 유지) — 스파이더 차트 기준선 */
+/**
+ * 국제 영양 기준 (성견 유지) — AAFCO 2024 / FEDIAF.
+ *
+ * ⚠️ **'최소'와 '범위'는 다르다** (사장님 2026-07-15 "이 부분 보면 오히려 우리가
+ *    충족을 안 해 다 오바하지, 이거는 괜찮은 거야?").
+ *
+ * 단백질·지방은 **최소 기준만** 있다 — AAFCO 성견 유지 프로파일은 조단백 18%DM
+ * 이상, 조지방 5.5%DM 이상을 요구하고 **상한을 두지 않는다**. 우리 화식이 단백
+ * 38~49%DM 인 건 기준 미달이 아니라 최소치를 넉넉히 넘긴 것이고, 고기가 많은
+ * 화식이라 당연한 결과다(그게 파는 이유다). 그런데 표가 이걸 '18-35 범위'처럼
+ * 보여줘서 우리가 상한을 넘긴 것처럼 읽혔다 → `kind` 로 최소/범위를 구분한다.
+ *
+ * 진짜 상한이 있는 건 과잉이 해로운 것들 — 비타민D·셀레늄·구리·비타민A. 판매
+ * 4종은 전부 그 안에 있다(비타민D 680~1,270 IU/kg DM, 상한 3,000).
+ * 연어가 12,000 IU/kg 로 4배 초과라 제품 보류 중인 것도 이 때문(skuModel 참고).
+ *
+ * TODO(사장님 확인): 셀레늄 상한 1,300 mcg/kg 의 출처. AAFCO 상한은 2 mg/kg
+ * (=2,000 mcg/kg) 이고 EU 법정 상한은 그보다 낮다 — 어느 기준으로 표기할지
+ * 확정 필요. 현재 4종(515~986)은 어느 쪽으로 봐도 범위 안이라 급하진 않다.
+ */
 export const FEDIAF_REFERENCE = {
-  protein_pct: { min: 18, ideal: 25, max: 35 },
-  fat_pct: { min: 5.5, ideal: 13, max: 20 },
-  ca_p_ratio: { min: 1.0, ideal: 1.4, max: 2.0 },
-  epa_dha_pct: { min: 0.1, ideal: 0.4, max: 1.5 },
-  selenium_mcg_per_kg: { min: 350, ideal: 500, max: 1300 },
+  /** kind: 'min' = 이 값 **이상**이면 충족(상한 없음) / 'range' = 범위 안이어야 함. */
+  protein_pct: { kind: 'min', min: 18, ideal: 25, max: 35 },
+  fat_pct: { kind: 'min', min: 5.5, ideal: 13, max: 20 },
+  ca_p_ratio: { kind: 'range', min: 1.0, ideal: 1.4, max: 2.0 },
+  epa_dha_pct: { kind: 'min', min: 0.1, ideal: 0.4, max: 1.5 },
+  selenium_mcg_per_kg: { kind: 'range', min: 350, ideal: 500, max: 1300 },
 } as const
 
 /**
@@ -126,7 +146,8 @@ export const FEDIAF_REFERENCE = {
  * 우리 화식은 고단백(38~49%DM)·고지방(19~29%DM)이라 FEDIAF 권장 상한(단백 35·
  * 지방 20)을 넘어선다. 정규화에 FEDIAF max 를 쓰면 4종 육류가 전부 100%로
  * 캡핑돼 스파이더가 뭉개지므로, 우리 제품군 실제 분포를 담는 별도 상한을 둔다.
- * (표의 "FEDIAF 권장" 행은 FEDIAF_REFERENCE 의 실제 권장값 그대로 사용.)
+ * (표의 "국제 기준" 행은 FEDIAF_REFERENCE 의 실제 기준값 그대로 사용.
+ *  차트 하단 문구도 'FEDIAF 상한' 이라 쓰면 안 된다 — 이 축은 우리 분포다.)
  */
 const RADAR_AXIS_MAX = {
   protein_pct: 55,

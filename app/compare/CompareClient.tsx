@@ -220,8 +220,13 @@ export default function CompareClient({
             </RadarChart>
           </ResponsiveContainer>
         </div>
+        {/* 옛 문구: "100 = FEDIAF 권장 상한" — 거짓이다. 축 상한(RADAR_AXIS_MAX)은
+            FEDIAF 가 아니라 우리 제품군 분포(단백 55·지방 32)다. 단백·지방엔
+            애초에 FEDIAF 상한이 없다. 이 문구가 "우리가 기준을 초과했다"는
+            오해를 부추겼다(사장님 2026-07-15). */}
         <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
-          ※ 0-100 으로 정규화한 값. 100 = FEDIAF 권장 상한.
+          ※ 4종끼리 비교하기 쉽게 축마다 0-100 으로 바꾼 상대값이에요. 국제 기준
+          대비 실제 수치는 위 표에서 확인해 주세요.
         </p>
       </section>
 
