@@ -10,7 +10,11 @@ import {
   Sparkles,
   Plus,
 } from 'lucide-react'
-import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import {
+  FOOD_LINE_META,
+  ALL_LINES,
+  lineDailyGrams,
+} from '@/lib/personalization/lines'
 import { snapBoxLines } from '@/lib/personalization/boxComposition'
 import {
   togglePick as reducePick,
@@ -272,7 +276,10 @@ export default function AdjustSheet({
                   <span className="adj-slot-pct">{pct}%</span>
                   <span className="adj-slot-name">{meta.nameKo}</span>
                   <small className="adj-slot-amt">
-                    하루 {Math.round((formula.dailyGrams * pct) / 100)}g ·{' '}
+                    {/* 비율은 칼로리에 적용 — 무게를 반반으로 쪼개면 안 된다.
+                        레시피마다 kcal/100g 가 달라(115 vs 120) 같은 50%라도
+                        무게가 다르다(lineDailyGrams 참고). */}
+                    하루 {Math.round(lineDailyGrams(line, pct / 100, formula.dailyKcal))}g ·{' '}
                     {Math.round((formula.dailyKcal * pct) / 100)}kcal
                   </small>
                 </button>

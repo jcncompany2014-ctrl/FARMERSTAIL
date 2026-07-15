@@ -116,6 +116,36 @@ export const FOOD_LINE_NUTRITION_FALLBACK: Record<
  * 라인별 kcal = skuModel SSOT(2026-07-11 검정 확정: 닭·돼지 1.15 / 오리·소 1.20)
  * 가중평균. compute API + nextBox + 분석 페이지 동일 룰.
  */
+/**
+ * 한 라인의 하루 급여 g — **비율은 칼로리에 적용**한다.
+ *
+ * 박스의 50:50 은 '무게 반반'이 아니라 **'칼로리 반반'** 이다(사장님 2026-07-15
+ * 확인). 레시피마다 kcal/100g 가 달라서(닭·돼지 115, 오리·소 120), 같은 칼로리를
+ * 채우려면 밀도가 낮은 쪽이 더 무거워야 한다.
+ *
+ *   치킨50 + 한우50, 하루 184kcal →
+ *     치킨 (0.5×184)/115×100 = 80.0g / 92kcal
+ *     한우 (0.5×184)/120×100 = 76.7g / 92kcal
+ *
+ * 즉 칼로리는 같고 무게가 다르다. 가격은 팩 무게 기준(pricePerPack)이라 이 차이를
+ * 자동으로 따라간다.
+ *
+ * ⚠️ `dailyGrams × 비율` 로 나누면 안 된다 — 그건 무게를 반반으로 쪼개는 것이라
+ *    밀도가 다른 조합에서 실제 팩 무게와 어긋난다.
+ */
+export function lineDailyGrams(
+  line: FoodLine,
+  ratio: number,
+  dailyKcal: number,
+  override?: Record<string, { kcalPer100g?: number } | undefined>,
+): number {
+  if (ratio <= 0) return 0
+  const kcal100 =
+    override?.[line]?.kcalPer100g ?? FOOD_LINE_META[line].kcalPer100g
+  if (!(kcal100 > 0)) return 0
+  return ((ratio * dailyKcal) / kcal100) * 100
+}
+
 export function dailyGramsFromMix(
   lineRatios: Record<FoodLine, number>,
   dailyKcal: number,
