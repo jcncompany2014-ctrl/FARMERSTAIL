@@ -13,7 +13,6 @@
  *   - survey_completion:      연 5,000P  (5번의 설문)
  *   - measurement_upgrade:    연 3,000P  (3종 × 1회씩 정도)
  *   - photo_evidence_upload:  연 3,000P
- *   - referral:               연 30,000P (10명 추천)
  *   - 그 외:                   cap 없음 (구매/리뷰 등 실 구매 동반)
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -22,13 +21,11 @@ export type CappedReferenceType =
   | 'survey_completion'
   | 'measurement_upgrade'
   | 'photo_evidence_upload'
-  | 'referral'
 
 const ANNUAL_CAPS: Record<CappedReferenceType, number> = {
   survey_completion: 5_000,
   measurement_upgrade: 3_000,
   photo_evidence_upload: 3_000,
-  referral: 30_000,
 }
 
 /**

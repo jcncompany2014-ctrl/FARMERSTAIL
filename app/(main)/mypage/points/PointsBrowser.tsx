@@ -51,6 +51,8 @@ function iconFor(refType: string | null, isEarn: boolean) {
   if (refType === 'order_refund_revoke') return RotateCcw
   if (refType === 'order_expire') return RotateCcw
   if (refType === 'review') return Star
+  // 'referral' 은 폐지된 추천인 프로그램(2026-07-02 DROP)의 **옛 원장 데이터**용.
+  // 새로 쌓이지 않지만 지난 내역이 아이콘 없이 뜨면 안 되므로 표시만 유지.
   if (refType === 'referral') return UserPlus
   if (refType === 'birthday') return Cake
   if (refType.startsWith('coupon')) return Gift

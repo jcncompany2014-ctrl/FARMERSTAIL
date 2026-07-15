@@ -27,7 +27,6 @@ export type PointReferenceType =
   | 'order_refund_revoke'
   | 'review'
   | 'signup_bonus'
-  | 'referral'
   | 'admin_adjustment'
   | 'account_deletion'
 
