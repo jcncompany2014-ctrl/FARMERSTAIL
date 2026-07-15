@@ -8,7 +8,6 @@ import AuthAwareShell from '@/components/AuthAwareShell'
 import { isAppContextServer } from '@/lib/app-context'
 import OrdersAppView, {
   type OrderRow as AppOrderRow,
-  type ReorderProduct,
 } from './OrdersAppView'
 
 // (cache-bust: Turbopack 가 편집 중간 파스 실패 청크를 캐시해 강제 재컴파일)
@@ -120,32 +119,9 @@ export default async function OrdersPage() {
     )
   }
 
-  // 앱 전용 '다시 주문' 스트립 — 가장 최근 주문의 첫 상품이 지금도 판매 중이면
-  // 한 번에 다시 담을 수 있게. 웹은 해당 없음(추가 쿼리 안 함).
-  let reorderProduct: ReorderProduct | null = null
-  const recentOrder = orders?.[0]
-  if (isApp && recentOrder) {
-    const recentItems = Array.isArray(recentOrder.order_items)
-      ? (recentOrder.order_items as { product_id?: string }[])
-      : []
-    const pid = recentItems[0]?.product_id ?? null
-    if (pid) {
-      const { data: prod } = await supabase
-        .from('products')
-        .select('id, name, image_url, price, sale_price, is_active')
-        .eq('id', pid)
-        .eq('is_active', true)
-        .maybeSingle()
-      if (prod) {
-        reorderProduct = {
-          id: prod.id,
-          name: prod.name,
-          imageUrl: prod.image_url,
-          price: prod.sale_price ?? prod.price,
-        }
-      }
-    }
-  }
+  // '다시 주문' 스트립 제거 (2026-07-16) — 담을 장바구니가 없다(/cart 는 구독 전용
+  // 전환으로 /start 리다이렉트). 이 블록은 그 스트립 하나 때문에 products 를 한 번 더
+  // 조회하던 추가 쿼리였다.
 
   return (
     <AuthAwareShell>
@@ -185,7 +161,6 @@ export default async function OrdersPage() {
       {isApp ? (
         <OrdersAppView
           orders={(orders ?? []) as unknown as AppOrderRow[]}
-          reorderProduct={reorderProduct}
         />
       ) : (
       <>

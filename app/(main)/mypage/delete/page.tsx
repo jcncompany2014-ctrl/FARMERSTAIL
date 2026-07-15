@@ -30,7 +30,6 @@ export default async function DeleteAccountPage() {
   const [
     { count: orderCount },
     { count: dogCount },
-    { count: wishCount },
     { count: reviewCount },
   ] = await Promise.all([
     supabase
@@ -40,10 +39,6 @@ export default async function DeleteAccountPage() {
     supabase
       .from('dogs')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
-    supabase
-      .from('wishlists')
-      .select('product_id', { count: 'exact', head: true })
       .eq('user_id', user.id),
     supabase
       .from('reviews')
@@ -139,9 +134,10 @@ export default async function DeleteAccountPage() {
             <div className="flex items-start gap-2">
               <span className="text-moss font-bold w-14 shrink-0">삭제</span>
               <span className="text-text leading-relaxed">
-                이름·연락처·주소, 반려견 프로필 {dogCount ?? 0}건, 찜{' '}
-                {wishCount ?? 0}개, 장바구니, 알림 구독, 초대 코드, 건강
-                일지·분석 기록
+                {/* '찜'(위시리스트)·'초대 코드'(레퍼럴)는 폐지된 기능이라 뺐다
+                    — 없는 걸 지운다고 약속하면 안 된다 (2026-07-16). */}
+                이름·연락처·주소, 반려견 프로필 {dogCount ?? 0}건, 알림 구독,
+                건강 일지·분석 기록
               </span>
             </div>
             <div className="flex items-start gap-2">
@@ -149,9 +145,10 @@ export default async function DeleteAccountPage() {
                 보관
               </span>
               <span className="text-text leading-relaxed">
+                {/* '적립금 내역' 제거 — 포인트 전면 폐기(2026-07-16). */}
                 주문 내역 {orderCount ?? 0}건, 작성하신 리뷰{' '}
-                {reviewCount ?? 0}건, 적립금 내역은 전자상거래법에 따라
-                5년간 익명 상태로 보관돼요
+                {reviewCount ?? 0}건은 전자상거래법에 따라 5년간 익명 상태로
+                보관돼요
               </span>
             </div>
             <div className="flex items-start gap-2">

@@ -18,7 +18,6 @@ export const dynamic = 'force-dynamic'
  * - orders + order_items
  * - subscriptions + subscription_items + subscription_charges
  * - reviews
- * - wishlists
  * - point_ledger
  * - consent_log
  * - native_push_tokens (mask: token 마지막 8자만)
@@ -77,7 +76,6 @@ export async function GET(req: Request) {
     subscriptionItemsRes,
     subscriptionChargesRes,
     reviewsRes,
-    wishlistsRes,
     pointLedgerRes,
     consentLogRes,
     nativeTokensRes,
@@ -114,7 +112,6 @@ export async function GET(req: Request) {
     ).from('subscription_items').select('*').eq('user_id', user.id),
     supabase.from('subscription_charges').select('*').eq('user_id', user.id),
     supabase.from('reviews').select('*').eq('user_id', user.id),
-    supabase.from('wishlists').select('*').eq('user_id', user.id),
     supabase.from('point_ledger').select('*').eq('user_id', user.id),
     supabase.from('consent_log').select('*').eq('user_id', user.id),
     supabase
@@ -154,7 +151,6 @@ export async function GET(req: Request) {
     subscription_items: subscriptionItemsRes.data ?? [],
     subscription_charges: subscriptionChargesRes.data ?? [],
     reviews: reviewsRes.data ?? [],
-    wishlists: wishlistsRes.data ?? [],
     point_ledger: pointLedgerRes.data ?? [],
     consent_log: consentLogRes.data ?? [],
     native_push_tokens: nativeTokensRes.data ?? [],

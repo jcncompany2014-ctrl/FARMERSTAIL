@@ -51,7 +51,6 @@ export default async function PrivacyDashboardPage() {
       ['orders', 'orders'],
       ['subscriptions', 'subscriptions'],
       ['reviews', 'reviews'],
-      ['wishlists', 'wishlists'],
       ['point_ledger', 'point_ledger'],
       ['consent_log', 'consent_log'],
     ].map(async ([table, label]) => {
@@ -252,7 +251,6 @@ const TABLE_LABEL: Record<string, string> = {
   orders: '주문 내역',
   subscriptions: '정기배송',
   reviews: '작성한 리뷰',
-  wishlists: '위시리스트',
   point_ledger: '포인트 이력',
   consent_log: '마케팅 동의 이력',
 }

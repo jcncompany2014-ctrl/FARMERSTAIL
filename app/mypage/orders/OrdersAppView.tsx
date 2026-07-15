@@ -9,17 +9,12 @@
  * 기능화 + (2) 최근 주문 '다시 담기' 스트립으로 재구매 유도 + 공간 채움.
  *
  * 데이터는 서버(page.tsx)에서 받아 props 로만 받는다(추가 쿼리 없음).
- * '다시 담기'는 CartAddMoreButton 과 동일 패턴(cart_items upsert + 토스트 +
- * ft:cart:add 이벤트로 하단 탭 뱃지 갱신).
  */
 
 import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ShoppingBag, RotateCcw, Plus, Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { useToast } from '@/components/ui/Toast'
+import { ShoppingBag } from 'lucide-react'
 import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
 
 export type OrderItemRow = {
@@ -37,12 +32,6 @@ export type OrderRow = {
   order_status: string
   created_at: string
   order_items: OrderItemRow[]
-}
-export type ReorderProduct = {
-  id: string
-  name: string
-  imageUrl: string | null
-  price: number
 }
 
 const ORDER_STATUS_LABEL: Record<string, string> = {
@@ -108,10 +97,8 @@ function isCancelled(o: OrderRow): boolean {
 
 export default function OrdersAppView({
   orders,
-  reorderProduct,
 }: {
   orders: OrderRow[]
-  reorderProduct: ReorderProduct | null
 }) {
   const [filter, setFilter] = useState<FilterKey>('all')
 
@@ -208,12 +195,10 @@ export default function OrdersAppView({
 
   return (
     <div>
-      {/* 1) 다시 주문 스트립 — 가장 최근 주문 상품 한 번에 다시 담기. */}
-      {reorderProduct && (
-        <section style={{ padding: '12px 20px 0' }}>
-          <ReorderStrip product={reorderProduct} />
-        </section>
-      )}
+      {/* '다시 담기' 스트립 제거 (2026-07-16) — cart_items 에 담고 "장바구니에
+          담았어요" 토스트까지 띄웠는데, /cart 는 구독 전용 전환(2026-06-26)으로
+          /start 리다이렉트라 **담아도 볼 수가 없었다**. 낱개 재구매 자체가 없는
+          모델이다(재구매 = 구독이 알아서 보냄). */}
 
       {/* 2) 필터 탭 — 죽은 통계 칩 대신 누르면 걸러지는 세그먼트. */}
       <section style={{ padding: '14px 20px 0' }}>
@@ -446,152 +431,3 @@ export default function OrdersAppView({
   )
 }
 
-/**
- * ReorderStrip — 최근 주문 상품 '다시 담기'. cart_items upsert(+1) 후
- * ft:cart:add 이벤트로 하단 탭 카트 뱃지 갱신.
- */
-function ReorderStrip({ product }: { product: ReorderProduct }) {
-  const [busy, setBusy] = useState(false)
-  const router = useRouter()
-  const supabase = createClient()
-  const toast = useToast()
-
-  async function addToCart() {
-    if (busy) return
-    setBusy(true)
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) {
-      toast.warning('로그인이 필요해요')
-      router.push('/login?next=/mypage/orders')
-      setBusy(false)
-      return
-    }
-    const { data: existing } = await supabase
-      .from('cart_items')
-      .select('id, quantity')
-      .eq('user_id', user.id)
-      .eq('product_id', product.id)
-      .maybeSingle()
-
-    if (existing) {
-      const { error } = await supabase
-        .from('cart_items')
-        .update({ quantity: existing.quantity + 1 })
-        .eq('id', existing.id)
-      if (error) {
-        toast.error('담지 못했어요')
-        setBusy(false)
-        return
-      }
-    } else {
-      const { error } = await supabase.from('cart_items').insert({
-        user_id: user.id,
-        product_id: product.id,
-        quantity: 1,
-      })
-      if (error) {
-        toast.error('담지 못했어요')
-        setBusy(false)
-        return
-      }
-    }
-    toast.success('장바구니에 담았어요')
-    setBusy(false)
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('ft:cart:add'))
-    }
-  }
-
-  return (
-    <div
-      className="flex items-center"
-      style={{
-        gap: 12,
-        background: V3.paperHi,
-        border: `1px solid ${V3.rule}`,
-        borderRadius: V3Radius.sm,
-        padding: 12,
-      }}
-    >
-      <div
-        className="relative shrink-0 overflow-hidden flex items-center justify-center"
-        style={{
-          width: 48,
-          height: 48,
-          borderRadius: V3Radius.xs,
-          background: V3.paper,
-          border: `1px solid ${V3.rule}`,
-        }}
-      >
-        {product.imageUrl ? (
-          <Image
-            src={product.imageUrl}
-            alt={product.name}
-            fill
-            sizes="48px"
-            className="object-cover"
-          />
-        ) : (
-          <ShoppingBag size={20} color={V3.inkMute} strokeWidth={1.5} />
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div
-          className="flex items-center"
-          style={{ gap: 4, marginBottom: 2 }}
-        >
-          <RotateCcw size={11} color={V3.accent} strokeWidth={2.4} />
-          <span
-            className="font-mono uppercase"
-            style={{
-              fontSize: 9.5,
-              fontWeight: 600,
-              letterSpacing: '0.08em',
-              color: V3.accent,
-            }}
-          >
-            다시 주문
-          </span>
-        </div>
-        <p
-          className="line-clamp-1"
-          style={{
-            fontSize: 13.5,
-            fontWeight: V3FontWeight.bold,
-            color: V3.ink,
-            letterSpacing: '-0.01em',
-          }}
-        >
-          {product.name}
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={addToCart}
-        disabled={busy}
-        className="shrink-0 inline-flex items-center transition active:scale-95 disabled:opacity-50"
-        style={{
-          gap: 5,
-          padding: '9px 14px',
-          borderRadius: V3Radius.pill,
-          background: V3.ink,
-          color: V3.paperHi,
-          fontFamily: 'var(--font-sans)',
-          fontSize: 12,
-          fontWeight: V3FontWeight.bold,
-          border: 'none',
-          cursor: busy ? 'not-allowed' : 'pointer',
-        }}
-      >
-        {busy ? (
-          <Loader2 size={13} className="animate-spin" />
-        ) : (
-          <Plus size={13} strokeWidth={2.6} />
-        )}
-        담기
-      </button>
-    </div>
-  )
-}
