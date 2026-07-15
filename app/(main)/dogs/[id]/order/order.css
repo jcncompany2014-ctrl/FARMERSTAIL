@@ -715,10 +715,77 @@
 .ord-fresh-btn-name { font-size: 12.5px; font-weight: 700; color: var(--ink); }
 .ord-fresh-btn-sub { font-size: 9.5px; font-weight: 600; color: var(--muted); }
 .ord-fresh-btn.is-on .ord-fresh-btn-sub { color: var(--terracotta); }
-.ord-fresh-foot {
-  display: flex; align-items: center; gap: 5px;
-  margin: 10px 0 0; font-size: 10.5px; color: var(--muted);
+/* ── 배송 리듬 카드 (2026-07-15) ─────────────────────────────────────────
+   '첫 배송 7/20(월) · 이후 2주마다' 한 줄(.ord-fresh-foot)을 대체. 요일을
+   화요일 하루로 조이는 이유를 한 주 리듬으로 보여준다. */
+.ord-rhythm {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--bg-3, #fff);
+  border: 1px solid var(--rule);
 }
+.ord-rhythm-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 12px;
+}
+.ord-rhythm-title {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 800; color: var(--ink);
+}
+.ord-rhythm-first {
+  font-size: 10.5px; color: var(--muted); white-space: nowrap;
+}
+.ord-rhythm-first b { color: var(--ink); font-weight: 700; }
+
+/* 한 주 — 월~일 7행. 세로로 쌓아야 각 요일이 하는 일을 읽을 수 있다
+   (7열 가로 배치는 모바일에서 글자가 뭉갠다). */
+.ord-week { list-style: none; margin: 0; padding: 0; }
+.ord-day {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+}
+.ord-day + .ord-day { margin-top: 3px; }
+.ord-day-ko {
+  flex-shrink: 0;
+  width: 20px; height: 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--bg-2, #f2ede4);
+  font-size: 10.5px; font-weight: 800; color: var(--muted);
+}
+.ord-day-what { color: var(--text); font-weight: 600; }
+
+/* 발송일 — 이 카드의 주인공. */
+.ord-day.is-ship {
+  background: color-mix(in srgb, var(--terracotta) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--terracotta) 30%, transparent);
+}
+.ord-day.is-ship .ord-day-ko { background: var(--terracotta); color: #fff; }
+.ord-day.is-ship .ord-day-what { color: var(--ink); font-weight: 800; }
+
+.ord-day.is-arrive {
+  background: color-mix(in srgb, var(--moss) 8%, transparent);
+}
+.ord-day.is-arrive .ord-day-ko { background: var(--moss); color: #fff; }
+.ord-day.is-arrive .ord-day-what { color: var(--ink); font-weight: 700; }
+
+.ord-day.is-off { opacity: .5; }
+.ord-day.is-off .ord-day-what { font-weight: 500; }
+
+.ord-rhythm-why {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+  font-size: 11px; line-height: 1.65; color: var(--muted);
+}
+.ord-rhythm-cycle {
+  margin: 8px 0 0;
+  font-size: 11px; color: var(--muted);
+}
+.ord-rhythm-cycle b { color: var(--ink); font-weight: 700; }
 
 /* 배송 요청사항 — 프리셋 칩 */
 .ord-req-grid { display: flex; flex-wrap: wrap; gap: 6px; }

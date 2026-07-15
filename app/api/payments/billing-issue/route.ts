@@ -5,7 +5,8 @@ import { issueBillingKey } from '@/lib/payments/toss'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
-import { todayKstIsoDate, addDaysKst, addMonthsKst } from '@/lib/datetime-kst'
+import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
+import { nextShipDate } from '@/lib/shipping-schedule'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -130,15 +131,21 @@ export async function POST(req: Request) {
   // 배송 스케줄. 이미 일정 있는 재등록(카드 갱신)은 그대로 유지. (OrderClient·
   // SubscribeClient 는 카드 등록 전엔 next_delivery_date=null 로 생성 — 홈에서
   // 결제 안 된 구독이 '활성'으로 뜨는 문제 차단, 사장님 2026-07-14.)
-  // 계산은 cron/재개(handleResume) 와 동일: 박스=2주/월, 일반=interval*7.
+  //
+  // 박스 구독의 **첫** 배송은 '다음 화요일'이다(발송은 화요일 하루 — 사장님
+  // 2026-07-15, lib/shipping-schedule). 이전엔 오늘+14일로 잡았는데 그러면
+  // ① 카드 등록하고 2주를 빈손으로 기다리고(첫 박스인데 주기를 먼저 태움)
+  // ② 화면의 '첫 발송 O월 O일(화)' 과 실제 날짜가 어긋났다.
+  // 이후 배송은 cron(subscription-charge)이 +14일 하는데, 14일 = 정확히 2주라
+  // 첫 배송만 화요일로 맞추면 이후는 저절로 화요일로 정렬된다.
+  //
+  // 레거시 비박스 구독은 발송 요일 규칙 밖이라 기존 계산 유지.
   let firstDeliveryIso: string | null = null
   if (!cur?.next_delivery_date) {
     const todayIso = todayKstIsoDate()
     const isBoxSub = !!cur?.dog_id && cur?.coverage_weeks != null
     firstDeliveryIso = isBoxSub
-      ? cur!.coverage_weeks === 2
-        ? addDaysKst(todayIso, 14)
-        : addMonthsKst(todayIso, 1)
+      ? nextShipDate(todayIso)
       : addDaysKst(todayIso, (cur?.interval_weeks ?? 2) * 7)
   }
 

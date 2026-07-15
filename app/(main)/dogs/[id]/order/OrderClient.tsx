@@ -24,6 +24,12 @@ import { haptic } from '@/lib/haptic'
 import { formatPhone } from '@/lib/formatters'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import {
+  nextShipDate,
+  weekdayKo,
+  SHIP_WEEK,
+  SHIP_WHY,
+} from '@/lib/shipping-schedule'
 import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
 import {
   LINE_TO_SLUG,
@@ -323,11 +329,14 @@ export default function OrderClient({
     void loadDaumPostcode()
   }, [])
 
-  // 첫 배송 예상일 — 신청일 + 4-7일 (택배 대기) 가정. 이후 2주 단위 청구.
-  // (마이페이지/cron 가 next_delivery_date 관리)
-  const [firstDeliveryAt, setFirstDeliveryAt] = useState<number | null>(null)
+  // 첫 발송일 — '오늘 + 5일' 어림짐작이었는데 실제 발송은 화요일 하루뿐이라
+  // 화면과 실제가 어긋났다(7/20 월요일 같은 날짜가 떴음). 이제 스케줄 단일
+  // 진실(lib/shipping-schedule)에서 뽑는다. billing-issue 가 카드 등록 시점에
+  // 같은 함수로 next_delivery_date 를 잡으므로 여기 표시와 정확히 일치한다.
+  // 렌더 중 Date.now() 를 피하려고 mount 후 1회 계산(SSR/CSR 하이드레이션 안전).
+  const [firstShipIso, setFirstShipIso] = useState<string | null>(null)
   useEffect(() => {
-    setFirstDeliveryAt(Date.now() + 5 * 86400000)
+    setFirstShipIso(nextShipDate())
   }, [])
 
   // ── 라인 + 토퍼 → 항목 빌드 (freshRatio 변경 시 자동 재계산) ────────
@@ -761,7 +770,9 @@ export default function OrderClient({
             <div className="ord-boxcard-recipes">
               {items.map((it) => {
                 const meta = it.line ? FOOD_LINE_META[it.line] : null
-                const label = meta ? meta.name : '토퍼'
+                // 이름은 한글 표시명(치킨/흑돼지…), 한 줄은 '프레시 OO 레시피'
+                // (사장님 2026-07-15). 영문명(Chicken)은 여기선 안 쓴다.
+                const label = meta ? meta.nameKo : '토퍼'
                 const sub = meta ? meta.subtitle : '동결건조'
                 const color = meta ? meta.color : 'var(--moss)'
                 const isOOS = (it.product.stock ?? 0) <= 0
@@ -814,9 +825,7 @@ export default function OrderClient({
 
             {/* 화식 비율 — 컴팩트 세그먼트. 탭하면 분량·가격 즉시 갱신. */}
             <div className="ord-fresh">
-              <div className="ord-fresh-lbl">
-                얼마나 화식으로 <span>· 2주마다 배송</span>
-              </div>
+              <div className="ord-fresh-lbl">얼마나 화식으로</div>
               <div
                 className="ord-fresh-seg"
                 role="radiogroup"
@@ -842,22 +851,14 @@ export default function OrderClient({
                   )
                 })}
               </div>
-              {firstDeliveryAt !== null && (
-                <p className="ord-fresh-foot">
-                  <CalendarDays size={11} strokeWidth={2.2} color="var(--muted)" />
-                  <span>
-                    첫 배송 ·{' '}
-                    {new Date(firstDeliveryAt).toLocaleDateString('ko-KR', {
-                      month: 'long',
-                      day: 'numeric',
-                      weekday: 'short',
-                    })}
-                    {' · 이후 2주마다'}
-                  </span>
-                </p>
-              )}
             </div>
           </section>
+
+          {/* 배송 리듬 — "첫 배송 7/20(월) 이후 2주마다" 한 줄을 걷어내고 한 주가
+              어떻게 돌아가는지 그대로 보여준다(사장님 2026-07-15). 요일을 하루로
+              조이는 게 제약이 아니라 신선함의 이유라는 걸 납득시키는 자리.
+              날짜·요일은 lib/shipping-schedule 단일 진실에서 나온다. */}
+          <ShipRhythmCard firstShipIso={firstShipIso} />
 
           {/* 배송지 */}
           <section className="ord-section">
@@ -1116,5 +1117,60 @@ export default function OrderClient({
         </>
       )}
     </div>
+  )
+}
+
+/**
+ * ShipRhythmCard — 한 주가 어떻게 돌아가는지.
+ *
+ * 사장님 2026-07-15: "첫 배송 7월 20일 이후 2주마다' 이런 식으로 쓰지 말고
+ * 일주일짜리 달력에 각 요일마다 어떤 일을 하는지(원료 입고, 제품 제작 등)
+ * 자세하게 써놔줘. 그렇게 하는 이유는 늘 신선한 원료로 신선하게 배송드리기
+ * 위해 배송일을 정하고 있다, 양해 부탁한다 이런 식으로."
+ *
+ * 요일을 하루로 조이는 건 고객 입장에선 제약이다. 그 제약을 숨기지 않고 이유와
+ * 함께 먼저 보여준다 — 결제 전에 납득시키는 게 결제 후 문의를 받는 것보다 낫다.
+ */
+function ShipRhythmCard({ firstShipIso }: { firstShipIso: string | null }) {
+  return (
+    <section className="ord-rhythm">
+      <div className="ord-rhythm-head">
+        <span className="ord-rhythm-title">
+          <CalendarDays size={13} strokeWidth={2.2} color="var(--moss)" />
+          배송은 매주 화요일 하루
+        </span>
+        {firstShipIso && (
+          <span className="ord-rhythm-first">
+            첫 발송{' '}
+            <b>
+              {Number(firstShipIso.slice(5, 7))}월 {Number(firstShipIso.slice(8, 10))}일
+              ({weekdayKo(firstShipIso)})
+            </b>
+          </span>
+        )}
+      </div>
+
+      <ol className="ord-week" aria-label="한 주 배송 리듬">
+        {SHIP_WEEK.map((d) => (
+          <li
+            key={d.dow}
+            className={
+              'ord-day' +
+              (d.isShip ? ' is-ship' : '') +
+              (d.isArrive ? ' is-arrive' : '') +
+              (d.isOff ? ' is-off' : '')
+            }
+          >
+            <span className="ord-day-ko">{d.ko}</span>
+            <span className="ord-day-what">{d.what}</span>
+          </li>
+        ))}
+      </ol>
+
+      <p className="ord-rhythm-why">{SHIP_WHY}</p>
+      <p className="ord-rhythm-cycle">
+        받아보신 뒤로는 <b>2주마다 같은 화요일</b>에 보내드려요.
+      </p>
+    </section>
   )
 }
