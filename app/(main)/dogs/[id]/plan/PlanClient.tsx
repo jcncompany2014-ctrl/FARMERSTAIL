@@ -15,14 +15,17 @@
  *  결과지 슬림화·실사 사진은 후속.
  */
 
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight, Info } from 'lucide-react'
 import { petName } from '@/lib/korean'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
 import { LINE_TO_SLUG } from '@/lib/personalization/skuMap'
+import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
 import { snapBoxLines } from '@/lib/personalization/boxComposition'
+import { fetchComputedFormula } from '@/lib/personalization/formulaCache'
+import { Skeleton } from '@/components/ui/Skeleton'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 
 export type PlanProduct = {
@@ -165,7 +168,95 @@ function whyForLine(line: FoodLine, reasoning: Formula['reasoning']): string | n
   return matched[0]?.trigger ?? null
 }
 
+/**
+ * 데이터 래퍼 — 분석 결과지와 **동일한 소스**(계산 API의 cycle 1)를 탄다.
+ * 이전엔 서버가 dog_formulas 의 최신 cycle 을 직접 읽어서 분석(cycle 1·재계산)
+ * 과 추천이 어긋났다(사장님 2026-07-14 "분석은 닭 100% 인데 플랜은 다른 걸").
+ * fetchComputedFormula 는 AnalysisView·RecommendationBox 와 캐시를 공유하므로
+ * 중복 POST 도 없다.
+ */
 export default function PlanClient({
+  dogId,
+  dogName,
+  products,
+  initialFresh,
+  isFirstBox,
+}: {
+  dogId: string
+  dogName: string
+  products: Record<string, PlanProduct>
+  initialFresh: number
+  /** 이 강아지의 '진짜' 구독 이력 없음 = 첫 박스. 50% 할인·문구 노출 조건. */
+  isFirstBox: boolean
+}) {
+  const [state, setState] = useState<
+    { s: 'loading' } | { s: 'ready'; formula: Formula } | { s: 'empty' }
+  >({ s: 'loading' })
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const { httpOk, body } = await fetchComputedFormula(dogId, 1)
+        if (cancelled) return
+        if (!httpOk || !('ok' in body) || body.ok !== true) {
+          setState({ s: 'empty' })
+          return
+        }
+        setState({ s: 'ready', formula: body.formula })
+      } catch {
+        if (!cancelled) setState({ s: 'empty' })
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [dogId])
+
+  if (state.s === 'loading') {
+    return (
+      <div style={{ padding: '14px 14px 96px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <Skeleton className="h-4 w-32 mx-auto" />
+          <Skeleton className="h-6 w-52 mx-auto" />
+          <Skeleton className="h-28 w-full mt-2" rounded="lg" />
+          <Skeleton className="h-28 w-full" rounded="lg" />
+          <Skeleton className="h-24 w-full" rounded="lg" />
+        </div>
+      </div>
+    )
+  }
+
+  if (state.s === 'empty') {
+    return (
+      <div className="px-5 py-16 text-center">
+        <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
+          아직 맞춤 결과가 없어요
+        </p>
+        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '8px 0 16px' }}>
+          분석을 먼저 받으면 {petName(dogName)}에게 맞는 레시피를 추천해 드려요.
+        </p>
+        <Link href={`/dogs/${dogId}/analysis`} style={ctaLink()}>
+          분석 보러가기 <ArrowRight size={13} strokeWidth={2.4} />
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <PlanView
+      dogId={dogId}
+      dogName={dogName}
+      formula={state.formula}
+      products={products}
+      initialFresh={initialFresh}
+      isFirstBox={isFirstBox}
+    />
+  )
+}
+
+/** 플랜 본체 — formula 확정 후 렌더. 선택 상태는 이 시점 추천으로 초기화된다. */
+function PlanView({
   dogId,
   dogName,
   formula,
@@ -175,10 +266,9 @@ export default function PlanClient({
 }: {
   dogId: string
   dogName: string
-  formula: Formula | null
+  formula: Formula
   products: Record<string, PlanProduct>
   initialFresh: number
-  /** 이 강아지 구독 이력 없음 = 첫 박스. 50% 할인·'첫 박스' 문구 노출 조건. */
   isFirstBox: boolean
 }) {
   const [freshRatio, setFreshRatio] = useState<FreshRatio>(
@@ -230,6 +320,9 @@ export default function PlanClient({
   // 대표 일일 가격 — 선택 라인 50:50(2종)/100%(1종) × 화식 비율. 첫 박스 50% 할인.
   const freshFactor = freshRatio / 100
   const perLineRatio = selected.size === 2 ? 0.5 : 1
+  // dailyList = 정가 기준, dailyRegular = 구독가(정가 −15%, products.sale_price)
+  // 기준. 구독 할인은 모든 구독자에게 기본 적용 — 첫 박스는 그 위에 50% 추가.
+  let dailyList = 0
   let dailyRegular = 0
   if (formula) {
     for (const line of selected) {
@@ -239,6 +332,7 @@ export default function PlanClient({
       const kcalPer100g = FOOD_LINE_META[line].kcalPer100g
       const dailyG = ((perLineRatio * formula.dailyKcal) / kcalPer100g) * 100 * freshFactor
       const unitPrice = product.sale_price ?? product.price
+      dailyList += (dailyG / 100) * product.price
       dailyRegular += (dailyG / 100) * unitPrice
     }
   }
@@ -250,20 +344,10 @@ export default function PlanClient({
   // 하루 단가(dailyPay)는 화식 비율 카드 아래에 별도 안내.
   const cycleRegular = Math.round((dailyRegular * CYCLE_DAYS) / 10) * 10
   const cyclePay = Math.round((dailyRegular * CYCLE_DAYS * payFactor) / 10) * 10
-
-  if (!formula) {
-    return (
-      <div className="px-5 py-16 text-center">
-        <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>아직 맞춤 결과가 없어요</p>
-        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '8px 0 16px' }}>
-          분석을 먼저 받으면 {petName(dogName)}에게 맞는 레시피를 추천해 드려요.
-        </p>
-        <Link href={`/dogs/${dogId}/analysis`} style={ctaLink()}>
-          분석 보러가기 <ArrowRight size={13} strokeWidth={2.4} />
-        </Link>
-      </div>
-    )
-  }
+  const cycleList = Math.round((dailyList * CYCLE_DAYS) / 10) * 10
+  // 취소선 앵커 — 첫 박스는 구독가(50% 기준), 재구독은 정가(구독 15% 기준).
+  const cycleAnchor = isFirstBox ? cycleRegular : cycleList
+  const offLabel = isFirstBox ? '50% OFF' : `구독 ${SUBSCRIPTION_DISCOUNT_PCT}%`
 
   const others = RECIPE_LINES.filter((l) => !selected.has(l))
   const canAddMore = selected.size < MAX_RECIPES
@@ -547,14 +631,14 @@ export default function PlanClient({
             {isFirstBox ? '첫 박스 · 2주마다 배송 · 언제든 해지' : '2주마다 배송 · 언제든 해지'}
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
-            {isFirstBox && cycleRegular > 0 && (
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through' }}>{cycleRegular.toLocaleString()}원</span>
+            {cycleAnchor > cyclePay && (
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through' }}>{cycleAnchor.toLocaleString()}원</span>
             )}
             <span style={{ fontSize: 19, fontWeight: 800, color: '#fff' }}>
               {cyclePay.toLocaleString()}원<span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>/2주</span>
             </span>
-            {isFirstBox && (
-              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink)', background: '#E8B84B', padding: '2px 6px', borderRadius: 99 }}>50% OFF</span>
+            {cycleAnchor > cyclePay && (
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink)', background: '#E8B84B', padding: '2px 6px', borderRadius: 99 }}>{offLabel}</span>
             )}
           </div>
         </div>

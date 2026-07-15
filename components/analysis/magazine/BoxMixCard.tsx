@@ -57,7 +57,7 @@ export function BoxMixCard({
         <SectionHeader
           p={p}
           eyebrow="RECOMMENDED"
-          title={`${petName(dogName)}의 첫 박스`}
+          title={`${petName(dogName)}의 추천 레시피`}
           tail={loading ? '레시피 구성 중' : `화식 ${items.length}종 레시피`}
         />
 

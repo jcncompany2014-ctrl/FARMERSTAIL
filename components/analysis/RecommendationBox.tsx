@@ -182,10 +182,16 @@ export default function RecommendationBox({
     ;(async () => {
       try {
         const supabase = createClient()
+        // 카드 미등록·미결제 row 는 제외 — 배송지까지 갔다가 카드 등록에서
+        // 취소하면 구독 row 만 남는데 그건 '이미 구독한' 게 아니다. plan
+        // page 의 isFirstBox 판정과 동일 기준(2026-07-14).
         const { data } = await supabase
           .from('subscriptions')
           .select('id')
           .eq('dog_id', dogId)
+          .or(
+            'billing_key.not.is.null,last_charged_at.not.is.null,total_deliveries.gt.0',
+          )
           .limit(1)
         if (!cancelled) setHasSubscription((data?.length ?? 0) > 0)
       } catch {
