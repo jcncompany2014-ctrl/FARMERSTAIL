@@ -122,7 +122,7 @@ export default async function ComparePage() {
                   넉넉히 넘긴 것). 진짜 범위가 있는 Ca:P·셀레늄만 범위로 적는다. */}
               <tr className="bg-bg/50">
                 <td className="py-2 pr-3 text-[10.5px] font-bold uppercase tracking-wider text-muted">
-                  국제 기준
+                  국제 영양 기준
                 </td>
                 <td className="py-2 px-2 text-right text-[10.5px] text-muted tabular-nums">
                   {FEDIAF_REFERENCE.protein_pct.min} 이상
@@ -156,9 +156,19 @@ export default async function ComparePage() {
             관리하고 있어요.
           </p>
         </div>
+        {/* 수치의 출처를 정확히 밝힌다 (사장님 2026-07-15).
+            · 옛 문구 "자사 R&D 시제품 분석 결과" 는 **과장**이었다 — 실제로는
+              레시피 설계값에서 유도한 값(sheet3 목표 × sheet7 충족률)이고 오메가는
+              USDA 추정치다. 실험실 분석은 출시 후 자가품질검사로 예정돼 있다.
+              (skuModel.ts 근거 주석 참고) 하지도 않은 시험을 했다고 적으면
+              표시광고 문제가 된다.
+            · 사장님이 가져온 타사 문구의 "칼로리 기반 환산치" 는 뺐다 — 우리 표는
+              DM(건조중량) 기준이라 그대로 쓰면 거짓이 된다. */}
         <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
-          ※ DM = Dry Matter (수분 제외 건조 중량). 자사 R&D 시제품 분석 결과 +
-          AAFCO 2024 · FEDIAF 기준 교차검증.
+          ※ DM = Dry Matter(수분을 제외한 건조 중량) 기준이에요. 영양 기준치는
+          투입되는 각 재료의 영양성분을 분석한 추정치예요. 자사 레시피 명세를
+          AAFCO 2024 · FEDIAF 기준과 교차검증했고, 정식 출시 후 자가품질검사
+          결과로 갱신해요.
         </p>
       </section>
 

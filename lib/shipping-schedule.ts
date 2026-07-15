@@ -92,10 +92,13 @@ export const SHIP_WEEK: ShipDay[] = [
   { dow: 1, ko: '월', what: '원료 입고 · 손질' },
   { dow: 2, ko: '화', what: '조리 · 포장 · 발송', isShip: true },
   { dow: 3, ko: '수', what: '문 앞 도착', isArrive: true },
-  { dow: 4, ko: '목', what: '아이별 용량 계산' },
-  { dow: 5, ko: '금', what: '농가에 원료 주문' },
-  { dow: 6, ko: '토', what: '쉼', isOff: true },
-  { dow: 0, ko: '일', what: '쉼', isOff: true },
+  { dow: 4, ko: '목', what: '주방 세척 · 위생 점검' },
+  { dow: 5, ko: '금', what: '농가에 다음 주 원료 주문' },
+  // 토·일 — '쉼' 두 줄은 아무 정보도 주지 않았다(사장님 2026-07-15 "다른 걸로
+  // 채우든가 없애든가"). 지우는 대신, 이 이틀이 **비어 있다는 사실 자체가
+  // 신선함의 근거**라는 걸 말한다. 주말에 만들어 재워두지 않으니까.
+  { dow: 6, ko: '토', what: '만들어 둔 재고 없음', isOff: true },
+  { dow: 0, ko: '일', what: '이날까지 주문하면 화요일 발송', isOff: true },
 ]
 
 /** 발송일을 하루로 모으는 이유 — 고객에게 그대로 보여주는 문구. */

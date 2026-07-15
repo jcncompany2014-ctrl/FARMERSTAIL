@@ -30,22 +30,26 @@ import Link from 'next/link'
 import { ExternalLink } from 'lucide-react'
 import type { WebRecipe } from '@/lib/web-recipes'
 
+// '노령' 제거 — 연어(EPA/DHA)만 가리키던 칩이라 연어를 뺀 뒤로는 눌러도 고를 게
+// 없어 차트가 비었다. 4종으로 답할 수 있는 칩만 둔다(사장님 2026-07-15).
 const PERSONA_LABEL: Record<SkuPersona, string> = {
   beginner: '입문',
-  senior: '노령',
+  diet: '다이어트',
   allergy: '알레르기',
   active: '활동多',
   sensitive: '소화민감',
+  palatability: '기호성',
 }
 
 // 2026-07-14 사장님: 내부 용어(IgE 진단·Novel protein·매트릭스 등) 제거 —
 // 고객이 못 알아듣는 말은 쓰지 않는다.
 const PERSONA_HINT: Record<SkuPersona, string> = {
   beginner: '화식이 처음이라면 무난하게 시작하기 좋아요.',
-  senior: '7세 이상(대형견은 5세 이상). 오메가3가 자연스럽게 풍부한 쪽으로.',
+  diet: '체중 관리가 필요한 아이 — 4종 중 지방이 가장 적은 쪽으로.',
   allergy: '알레르기가 있거나 의심되는 아이 — 흔치 않은 단백질로 피해요.',
   active: '산책 1시간 이상, 활동량이 많은 아이.',
   sensitive: '변이 무르거나 토하고, 음식 바꾸면 적응이 어려운 아이.',
+  palatability: '밥을 남기거나 입이 짧은 아이 — 풍미가 진한 쪽으로.',
 }
 
 // 5종 색상 — Cohort 대시보드와 동일 톤
@@ -225,8 +229,8 @@ export default function CompareClient({
             애초에 FEDIAF 상한이 없다. 이 문구가 "우리가 기준을 초과했다"는
             오해를 부추겼다(사장님 2026-07-15). */}
         <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
-          ※ 4종끼리 비교하기 쉽게 축마다 0-100 으로 바꾼 상대값이에요. 국제 기준
-          대비 실제 수치는 위 표에서 확인해 주세요.
+          ※ 4종끼리 비교하기 쉽게 축마다 0-100 으로 바꾼 상대값이에요. 국제 영양
+          기준 대비 실제 수치는 위 표에서 확인해 주세요.
         </p>
       </section>
 

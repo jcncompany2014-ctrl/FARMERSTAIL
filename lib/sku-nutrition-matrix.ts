@@ -23,7 +23,7 @@
  * - app/(main)/dogs/[id]/analysis/* (38영양소 게이지 — Round C2)
  */
 
-import { type SkuKey, SKU_META } from './allergy-sku-matrix'
+import { type SkuKey, SKU_META } from './allergy-sku-matrix.ts'
 
 /** 영양 매트릭스 1행 — DM 기준 */
 export interface SkuNutritionRow {
@@ -44,18 +44,30 @@ export interface SkuNutritionRow {
   persona: SkuPersona[]
 }
 
+/**
+ * /compare 의 '우리 아이에 맞게 골라보기' 칩. **판매 4종 안에서만** 성립해야 한다.
+ *
+ * 'senior' 를 뺀 이유(사장님 2026-07-15 "이거 지금 이제 노령 안 뜨니까 없애고"):
+ * 노령은 연어(EPA/DHA)만 가리켰는데 연어를 목록에서 빼면서 고를 SKU 가 0개가 됐고,
+ * 누르면 차트가 통째로 비었다. 4종으로 답할 수 없는 칩은 두면 안 된다.
+ */
 export type SkuPersona =
-  | 'beginner'   // 입문 — 기본 균형형
-  | 'senior'    // 노령견 — EPA/DHA + 단백 보강
-  | 'allergy'   // 알레르기 의심 — novel protein
-  | 'active'    // 활동多 — 고단백·고지방
-  | 'sensitive' // 소화 민감 — 가벼운 단백
+  | 'beginner'      // 입문 — 기본 균형형
+  | 'diet'          // 다이어트 — 4종 중 지방 최저(치킨)
+  | 'allergy'       // 알레르기 의심 — 흔치 않은 단백질
+  | 'active'        // 활동多 — 고단백·고지방
+  | 'sensitive'     // 소화 민감 — 가벼운 단백
+  | 'palatability'  // 기호성 — 풍미가 진해 입 짧은 아이도 잘 먹는 쪽
 
 /**
  * 5종 SKU 영양 매트릭스 — 자사 레시피 명세 기반.
  *
- * 값들은 R&D 시제품 분석 결과 + FEDIAF / NRC 기준값과 교차검증.
- * 정식 출시 후 자가품질검사 (KAPA 분석) 결과로 갱신 가능.
+ * ⚠️ 이 값들은 **실험실 분석 결과가 아니라 레시피 설계값에서 유도한 추정치**다
+ * (skuModel.ts 근거 주석: sheet3 목표 × sheet7 충족률, 오메가는 USDA 추정).
+ * AAFCO 2024 / FEDIAF / NRC 기준값과 교차검증만 한 상태. 실제 시험 성적은 정식
+ * 출시 후 자가품질검사(KAPA 분석)로 받아 갱신한다.
+ * 고객 노출 문구에 '시제품 분석 결과' 처럼 적으면 안 된다 — 하지 않은 시험을
+ * 했다고 표시하는 게 된다(2026-07-15 정정).
  */
 export const SKU_NUTRITION: Record<SkuKey, SkuNutritionRow> = {
   C01: {
@@ -66,7 +78,7 @@ export const SKU_NUTRITION: Record<SkuKey, SkuNutritionRow> = {
     epa_dha_pct: 0.17,
     selenium_mcg_per_kg: 688,
     highlight_ko: '고단백 저지방이라 담백해요. 체중 관리가 필요하거나 실내 생활이 많은 아이에게.',
-    persona: ['beginner'],
+    persona: ['beginner', 'diet'],
   },
   D02: {
     sku: 'D02',
@@ -86,7 +98,7 @@ export const SKU_NUTRITION: Record<SkuKey, SkuNutritionRow> = {
     epa_dha_pct: 6.7,
     selenium_mcg_per_kg: 600,
     highlight_ko: '천연 EPA/DHA 최다. 피부·노령 supportive (준비 중).',
-    persona: ['senior'],
+    persona: [],
   },
   P04: {
     sku: 'P04',
@@ -96,7 +108,7 @@ export const SKU_NUTRITION: Record<SkuKey, SkuNutritionRow> = {
     epa_dha_pct: 0.17,
     selenium_mcg_per_kg: 986,
     highlight_ko: '제주산 흑돼지 안심으로 부드럽고 잘 먹어요. 속이 예민한 아이·노령견에게.',
-    persona: ['allergy', 'sensitive'],
+    persona: ['allergy', 'sensitive', 'palatability'],
   },
   B05: {
     sku: 'B05',
@@ -107,7 +119,7 @@ export const SKU_NUTRITION: Record<SkuKey, SkuNutritionRow> = {
     epa_dha_pct: 0.10,
     selenium_mcg_per_kg: 515,
     highlight_ko: '한우의 철분이 풍부해요. 활동량이 많은 아이의 활력에.',
-    persona: ['active'],
+    persona: ['active', 'palatability'],
   },
 }
 

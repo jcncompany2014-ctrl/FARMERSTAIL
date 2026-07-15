@@ -16,6 +16,7 @@ import {
   Truck,
   Search,
   CalendarDays,
+  ChevronDown,
   CreditCard,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -655,6 +656,19 @@ export default function OrderClient({
     }
   }
 
+  // 접힌 상태에서 보여줄 한 줄 요약 — "치킨 100% · 하루 160g · 완전 화식".
+  // 펼치지 않아도 뭘 받는지는 알 수 있어야 접어둘 수 있다.
+  const boxSummary = (() => {
+    if (items.length === 0) return '레시피를 고르면 여기에 표시돼요'
+    const names = items
+      .filter((it) => it.line)
+      .map((it) => `${FOOD_LINE_META[it.line!].nameKo} ${it.pct}%`)
+      .join(' · ')
+    const totalG = Math.round(items.reduce((sum, it) => sum + it.dailyG, 0))
+    const tier = FRESH_TIERS.find((t) => t.value === freshRatio)
+    return `${names} · 하루 ${totalG}g · ${tier?.label ?? ''}`
+  })()
+
   return (
     <div className="ord-page">
       {/* 스텝 — 레시피(플랜)→배송(현재)→결제(카드등록). 플랜 페이지와 동일 흐름. */}
@@ -683,10 +697,10 @@ export default function OrderClient({
           {dogName} 맞춤 박스<br />
           배송 정보를 입력해주세요
         </h1>
-        <p>
-          레시피는 이미 골랐어요. 받을 주소만 확인하면 마지막 결제 단계예요.
-          분량은 우리 아이에 맞게 자동 계산, 언제든 일시정지·해지할 수 있어요.
-        </p>
+        {/* 3줄 → 1줄. 이 화면에서 해야 할 일 하나만 말한다(사장님 2026-07-15
+            "상단에 메인 폰트들만"). 분량 자동계산·일시정지 안내는 아래 요약과
+            결제 바가 이미 말하고 있어 여기서 반복할 필요가 없다. */}
+        <p>받을 주소만 확인하면 마지막 결제 단계예요.</p>
       </header>
 
       {!formula && (
@@ -750,14 +764,27 @@ export default function OrderClient({
             )
           })()}
 
-          {/* 받는 박스 — 시그니처 카드. 레시피 원형 슬롯 + 하루 분량, 하단에
-              화식 비율 컴팩트 선택기(즉석 가격 비교). 레시피 변경 = 헤더 링크→플랜. */}
-          <section className="ord-boxcard">
-            <div className="ord-boxcard-head">
-              <span className="ord-boxcard-title">
-                <PackageOpen size={14} strokeWidth={2.2} color="var(--moss)" />
-                받는 박스
+          {/* 받는 박스 — 기본 접힘. 이 페이지의 목적은 **배송지 입력**인데 박스
+              내역·배송 리듬이 먼저 꽉 차 있어서 주소창까지 스크롤이 너무 길었다
+              (사장님 2026-07-15 "배송지 입력까지 너무 오래걸려"). 레시피는 이미
+              플랜에서 골랐으니 여기선 한 줄 확인이면 충분하고, 바꾸고 싶은 사람만
+              펼친다. <details> 라 키보드·스크린리더 동작이 공짜로 따라온다. */}
+          <details className="ord-boxcard ord-fold">
+            <summary className="ord-fold-sum">
+              <PackageOpen size={14} strokeWidth={2.2} color="var(--moss)" />
+              <span className="ord-fold-txt">
+                <b>받는 박스</b>
+                <span className="ord-fold-desc">{boxSummary}</span>
               </span>
+              <span className="ord-fold-more">
+                자세히
+                <ChevronDown size={12} strokeWidth={2.4} />
+              </span>
+            </summary>
+
+            <div className="ord-fold-body">
+            <div className="ord-boxcard-head">
+              <span className="ord-boxcard-title">담긴 레시피</span>
               <Link
                 href={`/dogs/${dogId}/plan?fresh=${freshRatio}`}
                 className="ord-boxcard-edit"
@@ -852,7 +879,8 @@ export default function OrderClient({
                 })}
               </div>
             </div>
-          </section>
+            </div>
+          </details>
 
           {/* 배송 리듬 — "첫 배송 7/20(월) 이후 2주마다" 한 줄을 걷어내고 한 주가
               어떻게 돌아가는지 그대로 보여준다(사장님 2026-07-15). 요일을 하루로
@@ -1132,24 +1160,29 @@ export default function OrderClient({
  * 함께 먼저 보여준다 — 결제 전에 납득시키는 게 결제 후 문의를 받는 것보다 낫다.
  */
 function ShipRhythmCard({ firstShipIso }: { firstShipIso: string | null }) {
+  const firstLabel = firstShipIso
+    ? `첫 발송 ${Number(firstShipIso.slice(5, 7))}월 ${Number(
+        firstShipIso.slice(8, 10),
+      )}일(${weekdayKo(firstShipIso)})`
+    : '첫 발송일 계산 중'
   return (
-    <section className="ord-rhythm">
-      <div className="ord-rhythm-head">
-        <span className="ord-rhythm-title">
-          <CalendarDays size={13} strokeWidth={2.2} color="var(--moss)" />
-          배송은 매주 화요일 하루
+    // 기본 접힘 — 한 주 리듬은 '읽고 납득하는' 내용이라 결제 전에 한 번 보면
+    // 충분하다. 매번 펼쳐두면 배송지까지 스크롤만 길어진다(사장님 2026-07-15).
+    // 접힌 줄에 발송 요일과 첫 발송일이 이미 다 있어서 안 펼쳐도 손해가 없다.
+    <details className="ord-rhythm ord-fold">
+      <summary className="ord-fold-sum">
+        <CalendarDays size={13} strokeWidth={2.2} color="var(--moss)" />
+        <span className="ord-fold-txt">
+          <b>배송은 매주 화요일 하루</b>
+          <span className="ord-fold-desc">{firstLabel} · 이후 2주마다</span>
         </span>
-        {firstShipIso && (
-          <span className="ord-rhythm-first">
-            첫 발송{' '}
-            <b>
-              {Number(firstShipIso.slice(5, 7))}월 {Number(firstShipIso.slice(8, 10))}일
-              ({weekdayKo(firstShipIso)})
-            </b>
-          </span>
-        )}
-      </div>
+        <span className="ord-fold-more">
+          왜요?
+          <ChevronDown size={12} strokeWidth={2.4} />
+        </span>
+      </summary>
 
+      <div className="ord-fold-body">
       <ol className="ord-week" aria-label="한 주 배송 리듬">
         {SHIP_WEEK.map((d) => (
           <li
@@ -1171,6 +1204,7 @@ function ShipRhythmCard({ firstShipIso }: { firstShipIso: string | null }) {
       <p className="ord-rhythm-cycle">
         받아보신 뒤로는 <b>2주마다 같은 화요일</b>에 보내드려요.
       </p>
-    </section>
+      </div>
+    </details>
   )
 }
