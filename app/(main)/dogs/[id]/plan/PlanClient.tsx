@@ -134,8 +134,8 @@ const MAX_RECIPES = 2
 /** 배송·결제 사이클 = 2주(14일) 고정. 결제 바의 '총가격' 산정 기준. */
 const CYCLE_DAYS = 14
 
-/** 첫 박스 자동할인 50%. 이 강아지 첫 구독일 때만 적용. */
-const FIRST_BOX_OFF = 0.5
+/** 첫 주문 자동할인 50%. **계정당 1회** — 강아지별 아님(무한 재사용 방지). */
+const FIRST_ORDER_OFF = 0.5
 
 /** reasoning ruleId → 그 룰이 강조한 단백질 라인. "왜 이 레시피" 매핑용. */
 function lineFromRuleId(ruleId: string): FoodLine | null {
@@ -180,14 +180,14 @@ export default function PlanClient({
   dogName,
   products,
   initialFresh,
-  isFirstBox,
+  isFirstOrder,
 }: {
   dogId: string
   dogName: string
   products: Record<string, PlanProduct>
   initialFresh: number
-  /** 이 강아지의 '진짜' 구독 이력 없음 = 첫 박스. 50% 할인·문구 노출 조건. */
-  isFirstBox: boolean
+  /** 이 **계정**에 진짜 구독 이력 없음 = 첫 주문. 50% 할인·문구 노출 조건. */
+  isFirstOrder: boolean
 }) {
   const [state, setState] = useState<
     { s: 'loading' } | { s: 'ready'; formula: Formula } | { s: 'empty' }
@@ -250,7 +250,7 @@ export default function PlanClient({
       formula={state.formula}
       products={products}
       initialFresh={initialFresh}
-      isFirstBox={isFirstBox}
+      isFirstOrder={isFirstOrder}
     />
   )
 }
@@ -262,14 +262,14 @@ function PlanView({
   formula,
   products,
   initialFresh,
-  isFirstBox,
+  isFirstOrder,
 }: {
   dogId: string
   dogName: string
   formula: Formula
   products: Record<string, PlanProduct>
   initialFresh: number
-  isFirstBox: boolean
+  isFirstOrder: boolean
 }) {
   const [freshRatio, setFreshRatio] = useState<FreshRatio>(
     initialFresh === 60 ? 60 : initialFresh === 100 ? 100 : 30,
@@ -336,9 +336,10 @@ function PlanView({
       dailyRegular += (dailyG / 100) * unitPrice
     }
   }
-  // 50% 는 '첫 박스' 혜택 — 재구독 강아지(isFirstBox=false)는 정가로, 할인·
-  // 취소선·OFF 뱃지·'첫 박스' 문구 모두 없음(사장님 2026-07-14).
-  const payFactor = isFirstBox ? FIRST_BOX_OFF : 1
+  // 50% 는 '첫 주문' 혜택 — 계정당 1회. 이미 구독 이력이 있는 계정(강아지를
+  // 새로 추가했어도)은 구독가(정가 −15%)로, 50%·OFF 뱃지·'첫 주문' 문구 없음.
+  // (강아지별로 판정하면 강아지만 계속 추가해 무한 반복 가능 — 사장님 2026-07-14.)
+  const payFactor = isFirstOrder ? FIRST_ORDER_OFF : 1
   const dailyPay = Math.round((dailyRegular * payFactor) / 10) * 10
   // 2주(14일) 사이클 총액 — 하단 결제 바는 '총가격'을 보여준다.
   // 하루 단가(dailyPay)는 화식 비율 카드 아래에 별도 안내.
@@ -346,8 +347,8 @@ function PlanView({
   const cyclePay = Math.round((dailyRegular * CYCLE_DAYS * payFactor) / 10) * 10
   const cycleList = Math.round((dailyList * CYCLE_DAYS) / 10) * 10
   // 취소선 앵커 — 첫 박스는 구독가(50% 기준), 재구독은 정가(구독 15% 기준).
-  const cycleAnchor = isFirstBox ? cycleRegular : cycleList
-  const offLabel = isFirstBox ? '50% OFF' : `구독 ${SUBSCRIPTION_DISCOUNT_PCT}%`
+  const cycleAnchor = isFirstOrder ? cycleRegular : cycleList
+  const offLabel = isFirstOrder ? '50% OFF' : `구독 ${SUBSCRIPTION_DISCOUNT_PCT}%`
 
   const others = RECIPE_LINES.filter((l) => !selected.has(l))
   const canAddMore = selected.size < MAX_RECIPES
@@ -618,7 +619,7 @@ function PlanView({
             >
               {dailyPay.toLocaleString()}원
             </strong>
-            {isFirstBox && <span>· 첫 박스 기준</span>}
+            {isFirstOrder && <span>· 첫 주문 기준</span>}
           </div>
         )}
       </div>
@@ -628,7 +629,7 @@ function PlanView({
       <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, background: 'var(--ink)', padding: '13px 16px calc(13px + env(safe-area-inset-bottom))', display: detailLine ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, zIndex: 40 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
-            {isFirstBox ? '첫 박스 · 2주마다 배송 · 언제든 해지' : '2주마다 배송 · 언제든 해지'}
+            {isFirstOrder ? '첫 주문 · 2주마다 배송 · 언제든 해지' : '2주마다 배송 · 언제든 해지'}
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
             {cycleAnchor > cyclePay && (
