@@ -5,7 +5,12 @@ import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { decideFirstBox } from '@/lib/personalization/firstBox'
 import { treatCalorieFraction } from '@/lib/nutrition'
-import { dailyGramsFromMix } from '@/lib/personalization/lines'
+import {
+  dailyGramsFromMix,
+  FOOD_LINE_META,
+  ALL_LINES,
+} from '@/lib/personalization/lines'
+import { collapseToSingle } from '@/lib/personalization/boxComposition'
 import {
   deriveAvailableLines,
   deriveAvailableToppers,
@@ -516,6 +521,32 @@ export async function POST(req: Request) {
 
   // 5.5) 알고리즘 실행 — v3 시드 + v2 임상 안전 룰. pure function, throw 안 함.
   const formula = decideFirstBox(input)
+
+  // 5.5b) 첫 박스는 무조건 단일 단백질 (사장님 확정 2026-07-15).
+  // 새 음식에 반응이 났을 때 단백질이 둘이면 원인을 좁힐 수 없다 — 그래서 첫
+  // 박스만큼은 한 가지로 시작한다(제거식이와 같은 원리). 임상 룰(알레르기 차단
+  // 등)이 다 돈 **뒤**에 합치므로 안전 판정은 그대로 살아 있고, 남은 것 중
+  // 1순위만 남는다. 보호자가 레시피 시트에서 직접 2종을 고르는 건 그대로 가능 —
+  // 여긴 '추천'을 단일로 만드는 것이다. cycle 2+ 는 손대지 않는다.
+  //
+  // ⚠️ 여기서(처방 자체를) 합쳐야 분석·플랜·주문·레시피 시트가 전부 같은 걸
+  //    본다. 화면마다 따로 합치면 또 갈린다 — 방금 그 버그를 겪었다.
+  const singleRatios = collapseToSingle(formula.lineRatios)
+  const collapsedFrom = ALL_LINES.filter((l) => (formula.lineRatios[l] ?? 0) > 0)
+  formula.lineRatios = singleRatios
+  if (collapsedFrom.length > 1) {
+    const kept = ALL_LINES.find((l) => singleRatios[l] === 1)
+    formula.reasoning = [
+      ...formula.reasoning,
+      {
+        trigger: '첫 박스',
+        action: `${kept ? FOOD_LINE_META[kept].nameKo : '한 가지'} 단독 100%`,
+        chipLabel: '첫 박스는 한 가지로',
+        priority: 2,
+        ruleId: 'first-box-single-protein',
+      },
+    ]
+  }
 
   // 5.6) daily_grams 재계산 — 결정된 라인 mix 의 kcalPer100g 가중평균 기준.
   // nutrition.ts 의 feed_g 는 평균 1.45 kcal/g 추정 (레시피 v2.1). 라인 mix
