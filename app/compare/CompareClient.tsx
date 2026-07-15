@@ -26,8 +26,8 @@ import {
   type SkuPersona,
 } from '@/lib/sku-nutrition-matrix'
 import { SKU_META, type SkuKey } from '@/lib/allergy-sku-matrix'
-import { WEB_RECIPES, type WebRecipe } from '@/lib/web-recipes'
-import FdRecipeSheet from '@/components/web/fd/FdRecipeSheet'
+import Link from 'next/link'
+import type { WebRecipe } from '@/lib/web-recipes'
 
 const PERSONA_LABEL: Record<SkuPersona, string> = {
   beginner: '입문',
@@ -37,12 +37,14 @@ const PERSONA_LABEL: Record<SkuPersona, string> = {
   sensitive: '소화민감',
 }
 
+// 2026-07-14 사장님: 내부 용어(IgE 진단·Novel protein·매트릭스 등) 제거 —
+// 고객이 못 알아듣는 말은 쓰지 않는다.
 const PERSONA_HINT: Record<SkuPersona, string> = {
-  beginner: '첫 화식. 안정 운영 기본형.',
-  senior: '7세 ↑ (대형 5세 ↑). EPA/DHA 자연 보강.',
-  allergy: 'IgE 진단·증상 의심. Novel protein 회피 매트릭스.',
-  active: '산책 1h+ / 강아지 청년기 / 운동량 多.',
-  sensitive: '연변·구토·식이 변화 적응 어려움.',
+  beginner: '화식이 처음이라면 무난하게 시작하기 좋아요.',
+  senior: '7세 이상(대형견은 5세 이상). 오메가3가 자연스럽게 풍부한 쪽으로.',
+  allergy: '알레르기가 있거나 의심되는 아이 — 흔치 않은 단백질로 피해요.',
+  active: '산책 1시간 이상, 활동량이 많은 아이.',
+  sensitive: '변이 무르거나 토하고, 음식 바꾸면 적응이 어려운 아이.',
 }
 
 // 5종 색상 — Cohort 대시보드와 동일 톤
@@ -70,8 +72,6 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
     Object.fromEntries(skus.map((s) => [s, true])) as Record<SkuKey, boolean>,
   )
   const [persona, setPersona] = useState<SkuPersona | null>(null)
-  // "화식 보러가기" → FD 제품정보 퀵뷰 시트 (null = 닫힘)
-  const [openRecipe, setOpenRecipe] = useState<WebRecipe | null>(null)
 
   // 페르소나 토글: 클릭 시 추천 SKU 만 켜기. 같은 페르소나 재클릭 시 전체 ON.
   function pickPersona(p: SkuPersona) {
@@ -114,10 +114,10 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
 
   return (
     <>
-      {/* 페르소나 selector */}
+      {/* 우리 아이 상황으로 좁히기 (내부 용어 '페르소나' 미노출) */}
       <section className="mt-6 rounded-2xl border border-rule bg-white p-5">
         <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted mb-3">
-          페르소나로 좁히기
+          우리 아이에 맞게 골라보기
         </h2>
         <div className="flex flex-wrap gap-2">
           {(Object.keys(PERSONA_LABEL) as SkuPersona[]).map((p) => (
@@ -145,7 +145,7 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
       <section className="mt-5 rounded-2xl border border-rule bg-white p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted">
-            영양 5축 스파이더
+            영양 한눈에 비교
           </h2>
           <div className="flex flex-wrap gap-1.5">
             {skus.map((sku) => (
@@ -154,7 +154,7 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
                 onClick={() =>
                   setSelected((prev) => ({ ...prev, [sku]: !prev[sku] }))
                 }
-                className={`px-2 py-1 rounded-full text-[10px] font-bold font-mono tracking-tight transition ${
+                className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-tight transition ${
                   selected[sku]
                     ? 'text-white'
                     : 'bg-bg text-muted hover:text-text'
@@ -163,7 +163,7 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
                   selected[sku] ? { background: SKU_COLORS[sku] } : undefined
                 }
               >
-                {SKU_META[sku].code}
+                {SKU_META[sku].name_ko}
               </button>
             ))}
           </div>
@@ -187,7 +187,7 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
                 .map((sku) => (
                   <Radar
                     key={sku}
-                    name={`${SKU_META[sku].code} · ${SKU_META[sku].name_ko}`}
+                    name={SKU_META[sku].name_ko}
                     dataKey={sku}
                     stroke={SKU_COLORS[sku]}
                     fill={SKU_COLORS[sku]}
@@ -221,7 +221,6 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
             const meta = SKU_META[sku]
             const nutrition = SKU_NUTRITION[sku]
             const recipeProtein = SKU_RECIPE_PROTEIN[sku]
-            const recipe = recipeProtein ? WEB_RECIPES[recipeProtein] : null
             return (
               <article
                 key={sku}
@@ -229,17 +228,17 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
               >
                 <div className="flex items-start gap-3">
                   <div
-                    className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-['Archivo_Black'] text-[14px] text-white"
+                    className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold text-white"
                     style={{ background: SKU_COLORS[sku] }}
                   >
-                    {meta.code.slice(-3)}
+                    {meta.name_ko}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[13px] font-bold text-ink">
-                      {meta.code} · {meta.name_ko}
+                      {meta.name_ko} 화식
                       {meta.novel && (
                         <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tight text-moss bg-moss/10">
-                          novel
+                          흔치 않은 단백질
                         </span>
                       )}
                     </h3>
@@ -258,17 +257,16 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
                     </div>
                   </div>
                 </div>
-                {/* 제품정보 퀵뷰 — 페이지 점프 대신 그 자리에서 시트로(데드엔드 0).
-                    연어는 미출시 → 출시 예정. */}
-                {recipe ? (
-                  <button
-                    type="button"
-                    onClick={() => setOpenRecipe(recipe)}
+                {/* 2026-07-14 사장님: 퀵뷰 시트 → 제품 QR 상세페이지(/recipe/
+                    {protein})로 연결. 인쇄물 QR 과 같은 페이지 = 단일 진실. */}
+                {recipeProtein ? (
+                  <Link
+                    href={`/recipe/${recipeProtein}`}
                     className="flex items-center justify-center gap-1 rounded-full bg-ink py-2.5 text-[12px] font-bold text-white transition active:scale-[0.98] hover:opacity-90"
                   >
                     {meta.name_ko} 화식 보러가기
                     <span aria-hidden>→</span>
-                  </button>
+                  </Link>
                 ) : (
                   <div className="flex items-center justify-center rounded-full bg-bg py-2.5 text-[12px] font-bold text-muted">
                     출시 예정
@@ -278,9 +276,6 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
             )
           })}
       </section>
-
-      {/* 제품정보 퀵뷰 — FD PDP 느낌(누끼·원재료·성분분석·AAFCO·칼로리) */}
-      <FdRecipeSheet recipe={openRecipe} onClose={() => setOpenRecipe(null)} />
     </>
   )
 }

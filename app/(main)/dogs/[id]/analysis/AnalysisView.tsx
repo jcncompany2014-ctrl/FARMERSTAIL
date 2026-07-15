@@ -478,10 +478,10 @@ export default function AnalysisView({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10.5px] font-bold uppercase tracking-widest text-muted">
-                  5종 라인 비교
+                  4종 라인 비교
                 </p>
                 <p className="text-[13.5px] font-bold text-ink mt-1">
-                  닭·오리·연어·돼지·한우 영양 한눈에 보기
+                  닭·오리·돼지·한우 영양 한눈에 보기
                 </p>
               </div>
               <ArrowRight className="w-4 h-4 text-muted" strokeWidth={2.5} />

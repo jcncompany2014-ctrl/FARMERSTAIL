@@ -10,9 +10,9 @@ import { SKU_META, type SkuKey } from '@/lib/allergy-sku-matrix'
 import CompareClient from './CompareClient'
 
 export const metadata: Metadata = {
-  title: '5종 비교 — 파머스테일',
+  title: '4종 비교 — 파머스테일',
   description:
-    '닭·오리·연어·돼지·한우 5종 화식의 단백·지방·Ca:P·EPA/DHA·셀레늄 비교. 페르소나별 추천.',
+    '닭·오리·돼지·한우 4종 화식의 영양을 한 화면에서 비교해 보세요.',
 }
 
 /**
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
  *   lib/sku-nutrition-matrix.ts (자사 R&D 명세 + FEDIAF 교차검증).
  */
 export default async function ComparePage() {
-  const skus: SkuKey[] = ['C01', 'D02', 'S03', 'P04', 'B05']
+  const skus: SkuKey[] = ['C01', 'D02', 'P04', 'B05']
   const matrixRows = skus.map((sku) => ({
     sku,
     meta: SKU_META[sku],
@@ -47,12 +47,12 @@ export default async function ComparePage() {
       <div className="flex items-center gap-2">
         <Sparkles className="w-5 h-5 text-moss" strokeWidth={2} />
         <h1 className="font-['Archivo_Black'] text-2xl md:text-3xl text-ink">
-          5종 라인 비교
+          4종 라인 비교
         </h1>
       </div>
       <p className="text-[12.5px] md:text-[13.5px] text-muted mt-1.5 leading-relaxed">
-        닭·오리·연어·돼지·한우 5종 화식의 단백·지방·Ca:P·EPA/DHA·셀레늄을 한
-        화면에. FEDIAF 권장 범위와 함께 비교해 보세요.
+        닭·오리·돼지·한우 4종 화식의 단백질·지방·칼슘/인·오메가3·셀레늄을 한
+        화면에. 국제 영양 권장 범위(FEDIAF)와 함께 비교해 보세요.
       </p>
 
       {/* 영양 매트릭스 표 */}

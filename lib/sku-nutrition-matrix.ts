@@ -65,7 +65,7 @@ export const SKU_NUTRITION: Record<SkuKey, SkuNutritionRow> = {
     ca_p_ratio: 1.11,
     epa_dha_pct: 0.17,
     selenium_mcg_per_kg: 688,
-    highlight_ko: '115kcal·고단백 저지방(4종 최저 지방). 체중관리·실내견 (모찌).',
+    highlight_ko: '고단백 저지방이라 담백해요. 체중 관리가 필요하거나 실내 생활이 많은 아이에게.',
     persona: ['beginner'],
   },
   D02: {
@@ -75,7 +75,7 @@ export const SKU_NUTRITION: Record<SkuKey, SkuNutritionRow> = {
     ca_p_ratio: 1.22,
     epa_dha_pct: 0.33,
     selenium_mcg_per_kg: 547,
-    highlight_ko: 'Novel 단백질, 닭·소 배제. 알레르기·장건강 (코코).',
+    highlight_ko: '닭·소를 뺀 흔치 않은 단백질. 알레르기가 걱정되거나 속이 예민한 아이에게.',
     persona: ['allergy', 'sensitive'],
   },
   S03: {
@@ -95,17 +95,18 @@ export const SKU_NUTRITION: Record<SkuKey, SkuNutritionRow> = {
     ca_p_ratio: 1.10,
     epa_dha_pct: 0.17,
     selenium_mcg_per_kg: 986,
-    highlight_ko: '돼지 안심 + B1 압도적. 기호성·노견 케어 (토토).',
+    highlight_ko: '돼지 안심으로 부드럽고 잘 먹어요. 속이 예민한 아이·노령견에게.',
     persona: ['allergy', 'sensitive'],
   },
   B05: {
     sku: 'B05',
-    protein_pct: 38.7,
+    // 2026-07-14 사장님: DM 기준 단백질 38.7 → 40.2 로 상향.
+    protein_pct: 40.2,
     fat_pct: 28.7,
     ca_p_ratio: 1.23,
     epa_dha_pct: 0.10,
     selenium_mcg_per_kg: 515,
-    highlight_ko: '한우 헴철·B12. 활력·활동 많은 견 (바람이).',
+    highlight_ko: '한우의 철분이 풍부해요. 활동량이 많은 아이의 활력에.',
     persona: ['active'],
   },
 }
