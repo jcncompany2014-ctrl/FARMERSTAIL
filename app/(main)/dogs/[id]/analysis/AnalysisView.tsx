@@ -451,7 +451,7 @@ export default function AnalysisView({
                   4종 라인 비교
                 </p>
                 <p className="text-[13.5px] font-bold text-ink mt-1">
-                  닭·오리·돼지·한우 영양 한눈에 보기
+                  치킨·오리·흑돼지·한우 영양 한눈에 보기
                 </p>
               </div>
               <ArrowRight className="w-4 h-4 text-muted" strokeWidth={2.5} />

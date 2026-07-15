@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { ChevronLeft, Sparkles } from 'lucide-react'
+import { redirect } from 'next/navigation'
+import { Sparkles } from 'lucide-react'
 import {
   SKU_NUTRITION,
   FEDIAF_REFERENCE,
@@ -17,44 +17,41 @@ const SITE_URL =
 export const metadata: Metadata = {
   title: '4종 비교 — 파머스테일',
   description:
-    '닭·오리·돼지·한우 4종 화식의 영양을 한 화면에서 비교해 보세요.',
+    '치킨·오리·흑돼지·한우 4종 화식의 영양을 한 화면에서 비교해 보세요.',
+  // 앱 전용 화면 — 검색에 노출되면 웹 방문자가 들어왔다가 튕긴다.
+  robots: { index: false, follow: false },
 }
 
 /**
- * /compare — Round C1 (2026-05-20): 5종 SKU 영양 비교 페이지.
+ * /compare — 레시피 4종 영양 비교 (앱 분석 페이지 전용 — 2026-07-15).
  *
  * # 카드
- *   1. 5종 SKU 영양 매트릭스 표 (단백·지방·Ca:P·EPA/DHA·Se)
- *   2. 5종 스파이더 차트 (Recharts Radar)
+ *   1. 4종 영양 매트릭스 표 (단백·지방·Ca:P·EPA/DHA·Se)
+ *   2. 4종 스파이더 차트 (Recharts Radar)
  *   3. 페르소나별 추천 — 입문·노령·알레르기·활동多·소화민감
  *
  * # 데이터
  *   lib/sku-nutrition-matrix.ts (자사 R&D 명세 + FEDIAF 교차검증).
+ *
+ * # ⛔ 앱 전용 (사장님 2026-07-15 "compare 페이지는 다른 어느 곳에서도 안 뜨고
+ *   무조건 앱 내 분석 페이지에서만 뜬다")
+ *   유일한 입구 = 앱 분석 페이지의 '4종 라인 비교' 카드. 웹 컨텍스트로 들어오면
+ *   홈으로 돌려보낸다(직접 URL·옛 링크·검색 유입 방어). sitemap 미포함 +
+ *   robots noindex 도 같은 이유. 새 진입점을 만들 땐 이 규칙부터 확인할 것.
  */
 export default async function ComparePage() {
+  const isApp = await isAppContextServer()
+  if (!isApp) redirect('/')
+
   const skus: SkuKey[] = ['C01', 'D02', 'P04', 'B05']
   const matrixRows = skus.map((sku) => ({
     sku,
     meta: SKU_META[sku],
     nutrition: SKU_NUTRITION[sku],
   }))
-  // 앱(PWA/Capacitor)에서 이 페이지를 볼 때는 웹 퍼널로 새면 안 된다
-  // (사장님 2026-07-14 "앱은 앱에서만 놀아야해"). /start 는 웹 가입 퍼널이라
-  // 앱에선 숨기고, 제품 상세는 외부 브라우저로 연다.
-  const isApp = await isAppContextServer()
 
   return (
     <main className="pb-20 max-w-5xl mx-auto px-5 pt-6">
-      {!isApp && (
-        <Link
-          href="/start"
-          className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-text font-semibold mb-3"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          맞춤 식단 시작하기
-        </Link>
-      )}
-
       <div className="flex items-center gap-2">
         <Sparkles className="w-5 h-5 text-moss" strokeWidth={2} />
         <h1 className="font-['Archivo_Black'] text-2xl md:text-3xl text-ink">
@@ -62,7 +59,7 @@ export default async function ComparePage() {
         </h1>
       </div>
       <p className="text-[12.5px] md:text-[13.5px] text-muted mt-1.5 leading-relaxed">
-        닭·오리·돼지·한우 4종 화식의 단백질·지방·칼슘/인·오메가3·셀레늄을 한
+        치킨·오리·흑돼지·한우 4종 화식의 단백질·지방·칼슘/인·오메가3·셀레늄을 한
         화면에. 국제 영양 권장 범위(FEDIAF)와 함께 비교해 보세요.
       </p>
 
@@ -75,7 +72,7 @@ export default async function ComparePage() {
           <table className="w-full text-[11.5px] md:text-[12.5px]">
             <thead>
               <tr className="text-left text-muted border-b border-rule">
-                <th className="py-2 pr-3 font-bold">SKU</th>
+                <th className="py-2 pr-3 font-bold">레시피</th>
                 <th className="py-2 px-2 font-bold text-right">단백 %</th>
                 <th className="py-2 px-2 font-bold text-right">지방 %</th>
                 <th className="py-2 px-2 font-bold text-right">Ca:P</th>
@@ -86,17 +83,11 @@ export default async function ComparePage() {
             <tbody>
               {matrixRows.map(({ sku, meta, nutrition }) => (
                 <tr key={sku} className="border-b border-rule/40">
+                  {/* 내부 코드(FT-C01)·'novel' 배지 제거 — 고객이 못 알아듣는
+                      말은 쓰지 않는다(사장님 2026-07-14). 표시명만 남긴다. */}
                   <td className="py-2 pr-3">
-                    <div className="font-mono text-ink font-bold">
-                      {meta.code}
-                    </div>
-                    <div className="text-[10.5px] text-muted">
+                    <div className="text-[12px] font-bold text-ink">
                       {meta.name_ko}
-                      {meta.novel && (
-                        <span className="ml-1.5 px-1 py-0.5 rounded text-[9px] font-bold tracking-tight text-moss bg-moss/10">
-                          novel
-                        </span>
-                      )}
                     </div>
                   </td>
                   <td className="py-2 px-2 text-right font-mono tabular-nums text-ink">
@@ -151,10 +142,10 @@ export default async function ComparePage() {
       </section>
 
       {/* 5종 스파이더 + 페르소나 인터랙션 */}
-      <CompareClient skus={skus} isApp={isApp} siteUrl={SITE_URL} />
+      <CompareClient skus={skus} isApp siteUrl={SITE_URL} />
 
       <p className="text-[10.5px] text-muted mt-8 text-center leading-relaxed">
-        설문 결과에 맞춰 자동 추천된 SKU 가 결제 단계에서 적용돼요.
+        설문 결과에 맞춰 자동으로 추천된 레시피가 주문 단계에 그대로 담겨요.
         직접 비교해 보고 싶다면 위 차트를 참고하세요.
       </p>
     </main>

@@ -95,7 +95,7 @@ export const SKU_NUTRITION: Record<SkuKey, SkuNutritionRow> = {
     ca_p_ratio: 1.10,
     epa_dha_pct: 0.17,
     selenium_mcg_per_kg: 986,
-    highlight_ko: '돼지 안심으로 부드럽고 잘 먹어요. 속이 예민한 아이·노령견에게.',
+    highlight_ko: '제주산 흑돼지 안심으로 부드럽고 잘 먹어요. 속이 예민한 아이·노령견에게.',
     persona: ['allergy', 'sensitive'],
   },
   B05: {

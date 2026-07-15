@@ -63,13 +63,17 @@ export type SkuDef = {
   protein: ProteinKey
   /** 영문 표시명. */
   name: string
-  /** 한국어 단백질명. */
+  /**
+   * 고객 표시명 — '치킨'·'오리'·'흑돼지'·'한우' (사장님 2026-07-15).
+   * ⚠️ 알레르기 성분명이 아니다. 성분은 여전히 '닭'·'돼지'(allergy-sku-matrix
+   * 의 protein_ko / blockingAllergies) — 제품명과 성분명은 별개다.
+   */
   nameKo: string
   /** 대표 페르소나. */
   persona: string
   /** 컨셉(메타). */
   concept: string
-  /** UI 부제 '닭 · 체중관리·항염'. */
+  /** UI 한 줄 표기 '프레시 치킨 레시피' (사장님 2026-07-15). 컨셉은 concept 에. */
   subtitle: string
   /** 한 줄 효능 (박스 카드). */
   benefit: string
@@ -106,10 +110,10 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
   chicken: {
     protein: 'chicken',
     name: 'Chicken',
-    nameKo: '닭',
+    nameKo: '치킨',
     persona: '모찌',
     concept: '체중관리·항염',
-    subtitle: '닭 · 체중관리·항염',
+    subtitle: '프레시 치킨 레시피',
     benefit: '닭가슴살 저지방(4종 최저 지방) 115kcal + 강황',
     topping: '강황',
     slug: 'chicken-basic',
@@ -140,7 +144,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     nameKo: '오리',
     persona: '코코',
     concept: '알레르기·장건강',
-    subtitle: '오리 · 알레르기·장건강',
+    subtitle: '프레시 오리 레시피',
     benefit: '노블 단백질, 닭/소 배제 + 사과 펙틴 장케어',
     topping: '사과',
     slug: 'duck-weight',
@@ -167,10 +171,10 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
   pork: {
     protein: 'pork',
     name: 'Pork',
-    nameKo: '돼지',
+    nameKo: '흑돼지',
     persona: '토토',
     concept: '기호·신경 B1',
-    subtitle: '돼지 · 기호·신경 케어',
+    subtitle: '프레시 흑돼지 레시피',
     benefit: '돼지안심 + B1 압도적, 무 소화효소 (노견 친화)',
     topping: '무',
     slug: 'pork-joint',
@@ -196,10 +200,10 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
   beef: {
     protein: 'beef',
     name: 'Beef',
-    nameKo: '소',
+    nameKo: '한우',
     persona: '바람이',
     concept: '활력·프리미엄',
-    subtitle: '소 · 활력·프리미엄 한우',
+    subtitle: '프레시 한우 레시피',
     benefit: '한우 목심 헴철·B12, 활동량 많은 견',
     topping: '블루베리',
     slug: 'beef-premium',
@@ -228,7 +232,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     nameKo: '연어',
     persona: '시니어(예정)',
     concept: '피부·털 EPA/DHA',
-    subtitle: '연어 · 피부·털 (준비중)',
+    subtitle: '프레시 연어 레시피 (준비중)',
     benefit: '오메가-3 자체 공급, 피모 윤기 (시니어 라인 예정)',
     topping: '—',
     slug: 'salmon-skin',

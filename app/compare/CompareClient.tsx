@@ -239,14 +239,15 @@ export default function CompareClient({
                 className="rounded-2xl border border-rule bg-white p-4 flex flex-col gap-3"
               >
                 <div className="flex items-start gap-3">
+                  {/* 이름을 원 안에 넣으면 '흑돼지' 3글자가 끼어 뭉갠다 →
+                      색만 남기고 이름은 제목 한 곳에서만 읽히게. */}
                   <div
-                    className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold text-white"
+                    className="shrink-0 w-3 h-3 mt-1 rounded-full"
                     style={{ background: SKU_COLORS[sku] }}
-                  >
-                    {meta.name_ko}
-                  </div>
+                    aria-hidden
+                  />
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-[13px] font-bold text-ink">
+                    <h3 className="text-[14px] font-bold text-ink">
                       {meta.name_ko} 화식
                       {meta.novel && (
                         <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tight text-moss bg-moss/10">

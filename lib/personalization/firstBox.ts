@@ -227,7 +227,7 @@ function filterByAllergies(
     if (matched) {
       reasoning.push({
         trigger: `${matched} 알레르기 + ${meta.name} 라인`,
-        action: `${matched} 알레르기견은 ${meta.subtitle.split(' · ')[0]} 도 IgE cross-react 가능 (Bexley 2017/2019, Martín 2004). 차단 안 함, 도입 시 관찰 권장.`,
+        action: `${matched} 알레르기견은 ${meta.nameKo} 도 IgE cross-react 가능 (Bexley 2017/2019, Martín 2004). 차단 안 함, 도입 시 관찰 권장.`,
         chipLabel: `${meta.name} cross-react 주의`,
         priority: 0,
         ruleId: `cross-react-${line}`,

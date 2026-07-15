@@ -37,6 +37,7 @@ export const FOOD_LINE_META: Record<FoodLine, FoodLineMeta> = Object.fromEntries
     const meta: FoodLineMeta = {
       line,
       name: sku.name,
+      nameKo: sku.nameKo,
       subtitle: sku.subtitle,
       mainProtein: sku.protein,
       blockingAllergies: sku.blockingAllergies,

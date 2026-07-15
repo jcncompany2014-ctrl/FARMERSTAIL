@@ -41,17 +41,20 @@ export type SkuKey = 'C01' | 'D02' | 'S03' | 'P04' | 'B05'
 
 /** SKU 메타데이터 */
 export const SKU_META: Record<SkuKey, {
+  /** 내부 코드 — 고객 노출 금지(사장님 2026-07-14 "사람들이 못 알아들어"). */
   code: string
+  /** 고객 표시명 — '치킨'·'오리'·'흑돼지'·'한우' (사장님 2026-07-15). */
   name_ko: string
+  /** 알레르기 성분명 — 표시명과 별개('치킨' 제품의 성분은 '닭'). */
   protein_ko: string
   protein_en: string
   novel: boolean
   mueller_2016_allergy_rate: number // % (소수점 1자리)
 }> = {
-  C01: { code: 'FT-C01', name_ko: '닭', protein_ko: '닭', protein_en: 'chicken', novel: false, mueller_2016_allergy_rate: 15.0 },
+  C01: { code: 'FT-C01', name_ko: '치킨', protein_ko: '닭', protein_en: 'chicken', novel: false, mueller_2016_allergy_rate: 15.0 },
   D02: { code: 'FT-D02', name_ko: '오리', protein_ko: '오리', protein_en: 'duck', novel: true, mueller_2016_allergy_rate: 0.5 },
   S03: { code: 'FT-S03', name_ko: '연어', protein_ko: '연어', protein_en: 'fish', novel: true, mueller_2016_allergy_rate: 2.0 },
-  P04: { code: 'FT-P04', name_ko: '돼지', protein_ko: '돼지', protein_en: 'pork', novel: true, mueller_2016_allergy_rate: 2.0 },
+  P04: { code: 'FT-P04', name_ko: '흑돼지', protein_ko: '돼지', protein_en: 'pork', novel: true, mueller_2016_allergy_rate: 2.0 },
   B05: { code: 'FT-B05', name_ko: '한우', protein_ko: '소', protein_en: 'beef', novel: false, mueller_2016_allergy_rate: 34.0 },
 }
 

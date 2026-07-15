@@ -309,7 +309,13 @@ export type FoodLineMeta = {
   line: FoodLine
   /** 영문 라인명 — 'Basic', 'Weight', 'Skin', 'Premium', 'Joint' */
   name: string
-  /** 한국어 부제 — '닭 · 균형식' */
+  /**
+   * 고객 표시명 — '치킨'·'오리'·'흑돼지'·'한우' (사장님 2026-07-15).
+   * subtitle 이 '프레시 OO 레시피' 로 바뀌면서 거기서 단백질명을 쪼개 쓸 수
+   * 없게 됐다 → 표시명은 이 필드로 직접 읽는다.
+   */
+  nameKo: string
+  /** 한 줄 표기 — '프레시 치킨 레시피' */
   subtitle: string
   /** 메인 단백질 키 — preferred_proteins / allergies 매핑용. */
   mainProtein: 'chicken' | 'duck' | 'salmon' | 'beef' | 'pork'

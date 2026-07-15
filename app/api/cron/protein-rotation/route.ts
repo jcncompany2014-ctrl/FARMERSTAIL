@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
-import { petName } from '@/lib/korean'
+import { petName, iGa } from '@/lib/korean'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic'
  * # 효과
  *   1. 같은 단백질 장기간 → IgE 감작 risk ↑ — variety 가 알레르기 발현 ↓
  *   2. 단백질 라인 간 cross-trial → 자가품질 신호 (어느 단백질이 더 잘 맞나)
- *   3. /compare 페이지 traffic ↑ → 첫 박스 비교 + 정기구독 conversion ↑
+ *   3. 분석 페이지 재방문 ↑ → 레시피 비교 + 구독 유지율 ↑
  *
  * # 조건
  *   - status='active' 정기구독
@@ -105,11 +105,12 @@ async function runRotation(): Promise<Response> {
     }
 
     const cycle = Math.floor(sub.total_deliveries / 4)
-    const title = `${petName(dog.name)}가 ${sub.total_deliveries}번째 박스 — 단백질 rotation`
+    // 카피 — 내부 영어(rotation·variety·risk·라인) 제거. 보호자가 읽는 말로.
+    const title = `${iGa(petName(dog.name))} 벌써 ${sub.total_deliveries}번째 박스예요`
     const body =
       cycle === 1
-        ? '4번째 박스 완료! 다음엔 다른 단백질도 시도해 보세요. variety 가 알레르기 risk 를 낮춰요.'
-        : `${cycle}번째 rotation cycle. 다른 라인을 시도해 보시는 건 어떨까요?`
+        ? '한 가지 단백질만 오래 먹으면 그 단백질에 예민해질 수 있어요. 다음 박스엔 다른 레시피도 한번 섞어볼까요?'
+        : '슬슬 다른 단백질도 맛보여 줄 때예요. 어떤 레시피가 맞을지 같이 골라봐요.'
 
     try {
       await pushToUser(
@@ -117,7 +118,10 @@ async function runRotation(): Promise<Response> {
         {
           title,
           body,
-          url: '/compare',
+          // 레시피 비교(/compare)는 앱 분석 페이지 안에서만 연다(사장님
+          // 2026-07-15) → 알림은 그 분석 페이지로 보낸다. 예전엔 /compare 로
+          // 직행시켜 웹에서 열면 갈 곳 없는 화면이 떴다.
+          url: `/dogs/${sub.dog_id}/analysis`,
           tag: `protein-rotation-${sub.dog_id}-${sub.total_deliveries}`,
         },
         { category: 'marketing' },
