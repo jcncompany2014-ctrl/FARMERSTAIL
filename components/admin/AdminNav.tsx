@@ -42,7 +42,6 @@ const GROUPS: NavGroup[] = [
       { href: '/admin/subscriptions/charges', icon: '💳', label: '자동결제 이력' },
       { href: '/admin/refunds', icon: '↩️', label: '환불 관리' },
       { href: '/admin/cs-inbox', icon: '📨', label: '고객 답장' },
-      { href: '/admin/qna', icon: '💬', label: '상품 문의' },
     ],
   },
   {
@@ -53,7 +52,6 @@ const GROUPS: NavGroup[] = [
       { href: '/admin/funnel', icon: '🪜', label: '가입 여정 분석' },
       { href: '/admin/cohort', icon: '🧪', label: '가입 시기별 분석' },
       { href: '/admin/beta-cohort', icon: '🧬', label: '베타 테스트' },
-      { href: '/admin/search', icon: '🔍', label: '검색어 분석' },
       { href: '/admin/push-stats', icon: '📡', label: '알림 통계' },
     ],
   },
