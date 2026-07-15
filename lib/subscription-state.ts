@@ -50,10 +50,6 @@ export function subscriptionState(sub: SubLike): SubState {
   return 'active'
 }
 
-/**
- * 홈/대시보드가 "이 강아지 구독 중"이라고 말해도 되는가.
- * 카드가 없으면 아직 아니다 — 결제도 배송도 안 일어난다.
- */
-export function isLiveSubscription(sub: SubLike): boolean {
-  return subscriptionState(sub) === 'active'
-}
+// isLiveSubscription 제거 (2026-07-16) — "나중에 홈에서 쓸까" 하고 미리 export 했는데
+// 소비처가 0이다. 필요해지면 subscriptionState(sub) === 'active' 한 줄이면 된다.
+// 안 쓰는 걸 미리 만들어 두는 게 곧 잔재가 된다.

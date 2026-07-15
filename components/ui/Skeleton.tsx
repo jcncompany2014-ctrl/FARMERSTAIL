@@ -64,12 +64,17 @@ export function Skeleton({
 // 사용처가 이걸 쓰면 본 UI로 swap할 때 레이아웃 점프가 거의 없어야 한다.
 // ──────────────────────────────────────────────────────────────────────────
 
+
 /**
- * PLP(Product List Page) 그리드 카드 한 칸. 2열 그리드에 N개 배치해서 사용.
+ * PLP 페이지 전체 — 2열 그리드 × N.
  *
- * 실제 ProductCard: image (aspect-square) + title (~2줄) + 가격.
+ * audit #54: 이전 grid-cols-2 sm:3 lg:4 → AppChrome phone-frame (max-w 440px)
+ * 안에서 desktop viewport 일 때 4열 잠시 깜빡 후 globals.css override 로 2열
+ * → CLS. data-skeleton="product-grid" 마크 + globals.css 의 phone-frame
+ * selector 가 강제 2열.
  */
-export function ProductCardSkeleton() {
+/** ProductGridSkeleton 내부 부품 — 밖에선 안 쓰여서 export 는 뗐다(2026-07-16). */
+function ProductCardSkeleton() {
   return (
     <div className="flex flex-col gap-2">
       <Skeleton className="aspect-square w-full" rounded="lg" />
@@ -80,14 +85,6 @@ export function ProductCardSkeleton() {
   )
 }
 
-/**
- * PLP 페이지 전체 — 2열 그리드 × N.
- *
- * audit #54: 이전 grid-cols-2 sm:3 lg:4 → AppChrome phone-frame (max-w 440px)
- * 안에서 desktop viewport 일 때 4열 잠시 깜빡 후 globals.css override 로 2열
- * → CLS. data-skeleton="product-grid" 마크 + globals.css 의 phone-frame
- * selector 가 강제 2열.
- */
 export function ProductGridSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div
@@ -103,99 +100,7 @@ export function ProductGridSkeleton({ count = 6 }: { count?: number }) {
   )
 }
 
-/**
- * PDP 상단 — hero image + title + price + CTA line.
- */
-export function PdpHeroSkeleton() {
-  return (
-    <div
-      className="flex flex-col gap-3 md:flex-row md:gap-10 md:items-start"
-      role="status"
-      aria-label="제품 정보 로딩 중"
-    >
-      <Skeleton className="aspect-square w-full md:w-1/2" rounded="lg" />
-      <div className="flex flex-col gap-3 md:flex-1">
-        <Skeleton className="h-5 md:h-9 w-[70%] mt-2" />
-        <Skeleton className="h-4 md:h-5 w-[50%]" />
-        <Skeleton className="h-7 md:h-10 w-[30%] mt-1" />
-        <Skeleton className="h-11 md:h-14 w-full mt-3" rounded="lg" />
-      </div>
-    </div>
-  )
-}
-
-/**
- * 주문 내역 / 리뷰 목록 / 알림 등 **리스트 row** 한 줄.
- * thumb(sq 48) + 두 줄 텍스트 + 우측 meta.
- */
-export function ListRowSkeleton() {
-  return (
-    <div className="flex items-center gap-3 py-3">
-      <Skeleton className="w-12 h-12 shrink-0" rounded="md" />
-      <div className="flex-1 flex flex-col gap-1.5">
-        <Skeleton className="h-3.5 w-[65%]" />
-        <Skeleton className="h-3 w-[40%]" />
-      </div>
-      <Skeleton className="h-3 w-10" />
-    </div>
-  )
-}
-
-/**
- * 리스트 페이지 — row × N + 상단 title.
- */
-export function ListPageSkeleton({ rows = 5 }: { rows?: number }) {
-  return (
-    <div className="px-4" role="status" aria-label="목록 로딩 중">
-      <Skeleton className="h-5 w-[40%] my-4" />
-      <div className="divide-y divide-rule-2">
-        {Array.from({ length: rows }).map((_, i) => (
-          <ListRowSkeleton key={i} />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/**
- * 블로그 아티클 스켈레톤 — cover + title + 4 paragraph lines.
- */
-export function ArticleSkeleton() {
-  return (
-    <div className="flex flex-col gap-3" role="status" aria-label="아티클 로딩 중">
-      <Skeleton className="aspect-[16/9] w-full" rounded="lg" />
-      <Skeleton className="h-5 w-[75%] mt-2" />
-      <Skeleton className="h-3 w-[30%]" />
-      <div className="flex flex-col gap-2 mt-4">
-        <Skeleton className="h-3.5 w-full" />
-        <Skeleton className="h-3.5 w-[95%]" />
-        <Skeleton className="h-3.5 w-[98%]" />
-        <Skeleton className="h-3.5 w-[60%]" />
-      </div>
-    </div>
-  )
-}
-
-/**
- * 한 줄짜리 간단한 loading placeholder — fallback 안에서 N개 쌓는 용도.
- * ex) <Suspense fallback={<TextLineSkeleton lines={3} />}>
- */
-export function TextLineSkeleton({
-  lines = 3,
-  className,
-}: {
-  lines?: number
-  className?: string
-}) {
-  return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton
-          key={i}
-          // 마지막 줄은 짧게 — 자연스러운 "문단 끝".
-          className={cn('h-3.5', i === lines - 1 ? 'w-[55%]' : 'w-full')}
-        />
-      ))}
-    </div>
-  )
-}
+// 2026-07-16: 죽은 파생 스켈레톤 5개 제거 — PdpHeroSkeleton / ListRowSkeleton /
+// ListPageSkeleton / ArticleSkeleton / TextLineSkeleton. 상품 PDP·목록·아티클
+// 페이지가 구독 전용 전환으로 사라지면서 소비처가 0이 됐다.
+// 남은 건 Skeleton(14곳) + ProductGridSkeleton(홈 로딩) + 그 내부 부품.

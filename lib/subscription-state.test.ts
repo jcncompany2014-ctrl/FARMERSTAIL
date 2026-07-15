@@ -9,11 +9,7 @@
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import {
-  subscriptionState,
-  isLiveSubscription,
-  type SubLike,
-} from './subscription-state.ts'
+import { subscriptionState, type SubLike } from './subscription-state.ts'
 
 function sub(over: Partial<SubLike> = {}): SubLike {
   return {
@@ -38,10 +34,6 @@ describe('subscriptionState — 카드가 없으면 시작 전이다', () => {
     )
   })
 
-  it('카드 없는 구독은 live 가 아니다 (홈이 구독 중이라 말하면 안 됨)', () => {
-    assert.equal(isLiveSubscription(sub({ billing_key: null })), false)
-  })
-
   it('2026-07-15 실측 케이스: paused + 카드없음 + 배송일 있음 → needs_card', () => {
     const real = sub({
       status: 'paused',
@@ -55,12 +47,10 @@ describe('subscriptionState — 카드가 없으면 시작 전이다', () => {
 describe('subscriptionState — 정상 흐름', () => {
   it('카드 있고 active → active', () => {
     assert.equal(subscriptionState(sub()), 'active')
-    assert.equal(isLiveSubscription(sub()), true)
   })
 
   it('카드 있고 paused → paused', () => {
     assert.equal(subscriptionState(sub({ status: 'paused' })), 'paused')
-    assert.equal(isLiveSubscription(sub({ status: 'paused' })), false)
   })
 
   it('해지는 무엇보다 우선 (카드 없어도 cancelled)', () => {

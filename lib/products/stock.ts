@@ -35,37 +35,5 @@ export function stockState(
   return 'in_stock'
 }
 
-export function isSoldOut(
-  stock: number | null | undefined
-): boolean {
-  return stockState(stock) === 'out'
-}
 
-/**
- * 장바구니/PDP 수량 스텝퍼의 "최대값" 계산. 재고 이하 + 주문당 상한(기본 99)
- * 둘 중 작은 값. 품절이면 0.
- *
- * @param hardMax - 주문당 상한 (UX 안전장치). 기본 99.
- */
-export function maxOrderable(
-  stock: number | null | undefined,
-  hardMax: number = 99
-): number {
-  if (stock === null || stock === undefined || stock <= 0) return 0
-  return Math.min(stock, hardMax)
-}
 
-/**
- * 사용자에게 보여줄 재고 문구. "재고 3개 남음" 등. low 상태일 때만 의미 있음.
- * out/in_stock은 빈 문자열을 돌려주므로 호출처가 !!라벨 체크만 하면 됨.
- */
-export function stockMessage(
-  stock: number | null | undefined
-): string {
-  const state = stockState(stock)
-  if (state === 'out') return '품절'
-  if (state === 'low' && typeof stock === 'number') {
-    return `재고 ${stock}개 남음`
-  }
-  return ''
-}

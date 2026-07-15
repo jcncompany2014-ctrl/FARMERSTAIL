@@ -10,9 +10,6 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   STOCK_LOW_THRESHOLD,
-  isSoldOut,
-  maxOrderable,
-  stockMessage,
   stockState,
 } from './stock.ts'
 
@@ -43,61 +40,5 @@ describe('stockState', () => {
   })
 })
 
-describe('isSoldOut', () => {
-  const cases: Array<[number | null | undefined, boolean]> = [
-    [null, true],
-    [undefined, true],
-    [0, true],
-    [-1, true],
-    [1, false],
-    [100, false],
-  ]
-  for (const [stock, expected] of cases) {
-    it(`isSoldOut(${String(stock)}) → ${expected}`, () => {
-      assert.equal(isSoldOut(stock), expected)
-    })
-  }
-})
 
-describe('maxOrderable', () => {
-  it('returns 0 when stock is falsy / zero / negative', () => {
-    assert.equal(maxOrderable(null), 0)
-    assert.equal(maxOrderable(undefined), 0)
-    assert.equal(maxOrderable(0), 0)
-    assert.equal(maxOrderable(-10), 0)
-  })
 
-  it('caps at hardMax (default 99)', () => {
-    assert.equal(maxOrderable(5000), 99)
-    assert.equal(maxOrderable(99), 99)
-    assert.equal(maxOrderable(100), 99)
-  })
-
-  it('returns stock when below hardMax', () => {
-    assert.equal(maxOrderable(3), 3)
-  })
-
-  it('honors a custom hardMax', () => {
-    assert.equal(maxOrderable(50, 10), 10)
-    assert.equal(maxOrderable(5, 10), 5)
-  })
-})
-
-describe('stockMessage', () => {
-  it('returns "품절" when out of stock', () => {
-    assert.equal(stockMessage(0), '품절')
-    assert.equal(stockMessage(null), '품절')
-  })
-
-  it('returns a numeric countdown when low', () => {
-    assert.equal(stockMessage(3), '재고 3개 남음')
-    assert.equal(
-      stockMessage(STOCK_LOW_THRESHOLD),
-      `재고 ${STOCK_LOW_THRESHOLD}개 남음`,
-    )
-  })
-
-  it('returns empty string when in stock (no noise)', () => {
-    assert.equal(stockMessage(50), '')
-  })
-})
