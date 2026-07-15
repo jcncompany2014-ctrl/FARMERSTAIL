@@ -45,8 +45,6 @@ export const STATUS_MAP: Record<
   cancelled: { label: '해지됨', tone: 'inkMute' },
 }
 
-export const INTERVAL_LABELS: Record<number, string> = {
-  1: '매주',
-  2: '2주마다',
-  4: '4주마다',
-}
+// INTERVAL_LABELS 제거 (2026-07-16) — 배송 주기 변경 UI 를 없애면서 소비처가
+// 사라졌다. 박스는 14일치 고정이라 주기는 2주 하나뿐이고, '매주/4주' 는 옛 낱개
+// 커머스 잔재였다(매주=음식 두 배, 4주=2주 뒤 굶음).

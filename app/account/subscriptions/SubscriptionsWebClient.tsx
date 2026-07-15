@@ -15,7 +15,6 @@ import Image from 'next/image'
 import {
   Pause,
   Play,
-  RefreshCw,
   Bell,
   BellOff,
   AlertTriangle,
@@ -33,7 +32,6 @@ import {
   trackSubscriptionCancelled,
 } from '@/lib/analytics'
 import {
-  INTERVAL_LABELS,
   formatRetryAt,
   generateFallbackCustomerKey,
 } from '@/lib/v3-helpers/subscriptions'
@@ -54,7 +52,6 @@ const STATUS_FD: Record<
   cancelled: { label: '해지됨', color: 'var(--fd-muted)' },
 }
 
-const INTERVAL_OPTIONS = [1, 2, 4] as const
 
 function formatKRW(n: number): string {
   return `${n.toLocaleString('ko-KR')}원`
@@ -66,7 +63,6 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
   const toast = useToast()
 
   const [subs, setSubs] = useState<Subscription[]>(initialSubs)
-  const [editingInterval, setEditingInterval] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [cancelSubId, setCancelSubId] = useState<string | null>(null)
 
@@ -261,29 +257,6 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
     )
   }
 
-  async function handleChangeInterval(subId: string, newInterval: number) {
-    setActionLoading(subId)
-    const uid = await requireUid()
-    if (!uid) {
-      setActionLoading(null)
-      return
-    }
-    const nextDate = addDaysKst(todayKstIsoDate(), newInterval * 7)
-    const { error } = await supabase
-      .from('subscriptions')
-      .update({ interval_weeks: newInterval, next_delivery_date: nextDate })
-      .eq('id', subId)
-      .eq('user_id', uid)
-    if (error) {
-      toast.error('주기를 변경하지 못했어요. 잠시 후 다시 시도해 주세요')
-      setActionLoading(null)
-      return
-    }
-    setEditingInterval(null)
-    await reload()
-    setActionLoading(null)
-  }
-
   if (subs.length === 0) {
     return (
       <div
@@ -332,7 +305,6 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
           !isCancelled &&
           (needsRenewal || (sub.failed_charge_count ?? 0) > 0 || !!sub.next_retry_at)
         const isLoading = actionLoading === sub.id
-        const isEditing = editingInterval === sub.id
 
         return (
           <div
@@ -482,7 +454,7 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
               <span className="text-[12px]" style={{ color: 'var(--fd-muted)' }}>
                 배송 주기{' '}
                 <b style={{ color: 'var(--fd-pine)' }}>
-                  {INTERVAL_LABELS[sub.interval_weeks] ?? `${sub.interval_weeks}주마다`}
+                  2주마다
                 </b>
               </span>
               <span className="text-[13px] font-extrabold" style={{ color: 'var(--fd-pine)' }}>
@@ -490,44 +462,9 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
               </span>
             </div>
 
-            {/* 주기 변경 패널 */}
-            {isEditing && !isCancelled && (
-              <div className="px-5 py-3.5" style={{ borderTop: '1px solid var(--fd-line)' }}>
-                <div className="text-[11.5px] font-bold mb-2" style={{ color: 'var(--fd-muted)' }}>
-                  배송 주기 변경
-                </div>
-                <div className="flex gap-2">
-                  {INTERVAL_OPTIONS.map((w) => {
-                    const selected = sub.interval_weeks === w
-                    return (
-                      <button
-                        key={w}
-                        type="button"
-                        disabled={isLoading}
-                        onClick={() => handleChangeInterval(sub.id, w)}
-                        className="flex-1 py-2.5 rounded-full text-[12.5px] font-bold transition active:scale-[0.98] disabled:opacity-50"
-                        style={
-                          selected
-                            ? { background: 'var(--fd-pine)', color: '#FFFFFF' }
-                            : { background: 'transparent', color: 'var(--fd-pine)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }
-                        }
-                      >
-                        {INTERVAL_LABELS[w]}
-                      </button>
-                    )
-                  })}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setEditingInterval(null)}
-                  className="mt-2 text-[11.5px] font-bold"
-                  style={{ color: 'var(--fd-muted)' }}
-                >
-                  닫기
-                </button>
-              </div>
-            )}
-
+            {/* 배송 주기 변경 패널 제거 (2026-07-16) — 박스는 14일치 고정이라
+                매주로 바꾸면 음식이 두 배로 오고, 4주로 바꾸면 2주 뒤에 굶는다.
+                옛 낱개 커머스 모델의 잔재. */}
             {/* 배송 알림 토글 */}
             {!isCancelled && (
               <div
@@ -563,18 +500,6 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
             {/* 액션 버튼들 */}
             {!isCancelled && (
               <div className="px-5 py-3.5 flex flex-wrap gap-2" style={{ borderTop: '1px solid var(--fd-line)' }}>
-                {!isEditing && (
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    onClick={() => setEditingInterval(sub.id)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
-                    style={{ color: 'var(--fd-pine)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" strokeWidth={2} />
-                    주기 변경
-                  </button>
-                )}
                 {isActive && (
                   <button
                     type="button"

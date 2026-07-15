@@ -106,7 +106,6 @@ export default function SubscriptionsClient({
 
   const [subs, setSubs] = useState<Subscription[]>(initialSubs)
   const [showNewBanner, setShowNewBanner] = useState(isNew)
-  const [editingInterval, setEditingInterval] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   // R10-3b: browser confirm() 대체 — 해지 확인 modal 상태.
   const [cancelSubId, setCancelSubId] = useState<string | null>(null)
@@ -354,37 +353,6 @@ export default function SubscriptionsClient({
     router.push(url)
   }
 
-  async function handleChangeInterval(subId: string, newInterval: number) {
-    setActionLoading(subId)
-    const uid = await requireUid()
-    if (!uid) {
-      setActionLoading(null)
-      return
-    }
-    // R96-E (D7): KST 헬퍼로 통일 — raw Date 는 KST 00:00~08:59 구간에 UTC 가
-    // 전날이라 next_delivery_date 가 하루 빠르게 저장됨. 주기를 짧게 바꾸며
-    // 그 날짜가 오늘/과거가 되면 다음 cron 이 즉시 청구하는 위험. R85-D 에서
-    // pause/resume 은 전환됐는데 이 핸들러만 raw Date 잔존했음.
-    const nextDate = addDaysKst(todayKstIsoDate(), newInterval * 7)
-
-    const { error } = await supabase
-      .from('subscriptions')
-      .update({
-        interval_weeks: newInterval,
-        next_delivery_date: nextDate,
-      })
-      .eq('id', subId)
-      .eq('user_id', uid)
-    if (error) {
-      toast.error('주기를 변경하지 못했어요. 잠시 후 다시 시도해 주세요')
-      setActionLoading(null)
-      return
-    }
-    setEditingInterval(null)
-    await reload()
-    setActionLoading(null)
-  }
-
   return (
     <div style={{ padding: '14px 20px 128px' }}>
       <div className="max-w-md mx-auto">
@@ -414,14 +382,10 @@ export default function SubscriptionsClient({
               <SubscriptionCard
                 key={sub.id}
                 sub={sub}
-                isEditing={editingInterval === sub.id}
                 isLoading={actionLoading === sub.id}
                 onPause={handlePause}
                 onResume={handleResume}
                 onStartCancel={(subId) => setCancelSubId(subId)}
-                onStartEditInterval={(subId) => setEditingInterval(subId)}
-                onCancelEditInterval={() => setEditingInterval(null)}
-                onChangeInterval={handleChangeInterval}
                 onToggleReminder={handleToggleReminder}
                 onChangeReminderDays={handleChangeReminderDays}
                 onReRegisterCard={handleReRegisterCard}

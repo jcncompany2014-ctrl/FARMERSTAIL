@@ -1,6 +1,9 @@
 /**
  * SubscriptionCard — 개별 정기배송 카드 (상태 헤더 + 결제 실패 배너 + 상품 라인 +
- * meta strip + 주기 변경 패널 + 배송 알림 토글 + 액션 버튼들).
+ * meta strip + 배송 알림 토글 + 액션 버튼들).
+ *
+ * 2026-07-16: '배송 주기 변경(매주/2주/4주)' 패널 제거 — 박스가 14일치 고정이라
+ * 매주=음식 두 배, 4주=2주 뒤 굶음. 옛 낱개 커머스 잔재였다. 건너뛰기도 2주 하나로.
  *
  * 분할 (2026-05-27): SubscriptionsClient.tsx 의 sub.map() 내부 전체를 추출.
  * 시각 / 동작 동일. 모든 mutation handler 는 부모에서 prop 으로 받음.
@@ -13,7 +16,6 @@ import {
   Soup,
   Pause,
   Play,
-  RefreshCw,
   Bell,
   BellOff,
   AlertTriangle,
@@ -29,21 +31,16 @@ import { Mono, Badge } from '@/components/v3'
 import type { Subscription } from '../SubscriptionsClient'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import {
-  INTERVAL_LABELS,
   STATUS_MAP,
   formatRetryAt,
 } from '@/lib/v3-helpers/subscriptions'
 
 type Props = {
   sub: Subscription
-  isEditing: boolean
   isLoading: boolean
   onPause: (subId: string, weeks?: 1 | 2 | 4) => void
   onResume: (subId: string) => void
   onStartCancel: (subId: string) => void
-  onStartEditInterval: (subId: string) => void
-  onCancelEditInterval: () => void
-  onChangeInterval: (subId: string, newInterval: number) => void
   onToggleReminder: (subId: string, enabled: boolean) => void
   onChangeReminderDays: (subId: string, days: number) => void
   onReRegisterCard: (sub: Subscription) => void
@@ -51,14 +48,10 @@ type Props = {
 
 export default function SubscriptionCard({
   sub,
-  isEditing,
   isLoading,
   onPause,
   onResume,
   onStartCancel,
-  onStartEditInterval,
-  onCancelEditInterval,
-  onChangeInterval,
   onToggleReminder,
   onChangeReminderDays,
   onReRegisterCard,
@@ -321,8 +314,7 @@ export default function SubscriptionCard({
           <div className="flex justify-between">
             <span style={{ color: V3.inkMute }}>배송 주기</span>
             <span style={{ fontWeight: V3FontWeight.bold, color: V3.ink }}>
-              {INTERVAL_LABELS[sub.interval_weeks] ||
-                `${sub.interval_weeks}주마다`}
+              2주마다
             </span>
           </div>
           <div className="flex justify-between">
@@ -344,63 +336,9 @@ export default function SubscriptionCard({
           </div>
         </div>
 
-        {/* Interval edit panel */}
-        {isEditing && (
-          <div
-            style={{
-              marginTop: 12,
-              padding: 12,
-              background: V3.paper,
-              borderRadius: V3Radius.sm,
-              border: `1px solid ${V3.rule}`,
-            }}
-          >
-            <Mono color="inkMute" size="xxs" weight={600}>
-              배송 주기 변경
-            </Mono>
-            <div className="grid grid-cols-3" style={{ gap: 8, marginTop: 8 }}>
-              {[1, 2, 4].map((w) => (
-                <button
-                  key={w}
-                  onClick={() => onChangeInterval(sub.id, w)}
-                  disabled={isLoading}
-                  aria-pressed={sub.interval_weeks === w}
-                  style={{
-                    padding: '8px 0',
-                    borderRadius: V3Radius.xs,
-                    fontSize: 10.5,
-                    fontWeight: V3FontWeight.bold,
-                    border:
-                      sub.interval_weeks === w
-                        ? `1.5px solid ${V3.sage}`
-                        : `1px solid ${V3.rule}`,
-                    background:
-                      sub.interval_weeks === w
-                        ? 'color-mix(in srgb, ' + V3.sage + ' 10%, transparent)'
-                        : V3.paperHi,
-                    color: sub.interval_weeks === w ? V3.sage : V3.ink,
-                    transition: 'all 160ms',
-                  }}
-                >
-                  {INTERVAL_LABELS[w]}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={onCancelEditInterval}
-              style={{
-                marginTop: 8,
-                width: '100%',
-                fontSize: 10.5,
-                color: V3.inkMute,
-                background: 'transparent',
-                border: 'none',
-              }}
-            >
-              취소
-            </button>
-          </div>
-        )}
+        {/* 배송 주기 변경 패널 제거 (2026-07-16) — 박스는 14일치 고정이라
+            매주로 바꾸면 음식이 두 배로 오고 4주로 바꾸면 2주 뒤에 굶는다.
+            옛 낱개 커머스 모델의 잔재. interval_weeks 는 2 하드코딩. */}
 
         {/* Reminder toggle */}
         {!isCancelled && (
@@ -514,30 +452,24 @@ export default function SubscriptionCard({
           <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {isActive && (
               <>
-                <div className="flex items-center" style={{ gap: 6 }}>
-                  <Mono color="inkMute" size="xxs" weight={500} style={{ flexShrink: 0 }}>
-                    건너뛰기
-                  </Mono>
-                  {[1, 2, 4].map((w) => (
-                    <button
-                      key={w}
-                      onClick={() => onPause(sub.id, w as 1 | 2 | 4)}
-                      disabled={isLoading}
-                      className="flex-1 transition disabled:opacity-50"
-                      style={{
-                        padding: '6px 0',
-                        borderRadius: V3Radius.xs,
-                        border: `1px solid ${V3.rule}`,
-                        background: V3.paper,
-                        fontSize: 10.5,
-                        fontWeight: V3FontWeight.bold,
-                        color: V3.ink,
-                      }}
-                    >
-                      {w}주
-                    </button>
-                  ))}
-                </div>
+                {/* 건너뛰기는 2주(=한 사이클)만. 1주/4주는 14일치 박스와
+                    안 맞고 화요일 발송 정렬도 깨진다(2026-07-16). */}
+                <button
+                  onClick={() => onPause(sub.id, 2)}
+                  disabled={isLoading}
+                  className="w-full transition disabled:opacity-50"
+                  style={{
+                    padding: '8px 0',
+                    borderRadius: V3Radius.xs,
+                    border: `1px solid ${V3.rule}`,
+                    background: V3.paper,
+                    fontSize: 10.5,
+                    fontWeight: V3FontWeight.bold,
+                    color: V3.ink,
+                  }}
+                >
+                  다음 배송 2주 미루기
+                </button>
                 <div className="flex" style={{ gap: 8 }}>
                   <button
                     onClick={() => onPause(sub.id)}
@@ -562,24 +494,6 @@ export default function SubscriptionCard({
                         일시정지
                       </>
                     )}
-                  </button>
-                  <button
-                    onClick={() => onStartEditInterval(sub.id)}
-                    disabled={isLoading}
-                    className="flex-1 inline-flex items-center justify-center transition disabled:opacity-50"
-                    style={{
-                      gap: 4,
-                      padding: '10px 0',
-                      borderRadius: V3Radius.sm,
-                      fontSize: 10.5,
-                      fontWeight: V3FontWeight.bold,
-                      border: `1px solid ${V3.rule}`,
-                      color: V3.sage,
-                      background: V3.paperHi,
-                    }}
-                  >
-                    <RefreshCw size={12} strokeWidth={2.5} />
-                    주기 변경
                   </button>
                   <button
                     onClick={() => onStartCancel(sub.id)}
