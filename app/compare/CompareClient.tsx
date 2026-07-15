@@ -27,6 +27,7 @@ import {
 } from '@/lib/sku-nutrition-matrix'
 import { SKU_META, type SkuKey } from '@/lib/allergy-sku-matrix'
 import Link from 'next/link'
+import { ExternalLink } from 'lucide-react'
 import type { WebRecipe } from '@/lib/web-recipes'
 
 const PERSONA_LABEL: Record<SkuPersona, string> = {
@@ -67,7 +68,18 @@ const SKU_RECIPE_PROTEIN: Record<SkuKey, WebRecipe['protein'] | null> = {
   B05: 'beef',
 }
 
-export default function CompareClient({ skus }: { skus: SkuKey[] }) {
+export default function CompareClient({
+  skus,
+  isApp = false,
+  siteUrl = '',
+}: {
+  skus: SkuKey[]
+  /** 앱(PWA/Capacitor) 컨텍스트 — 제품 상세는 앱 안이 아니라 외부 브라우저로
+   *  열어야 한다(사장님 2026-07-14 "앱은 앱에서만 놀아야해"). */
+  isApp?: boolean
+  /** 외부로 열 때 쓸 절대 URL 베이스. */
+  siteUrl?: string
+}) {
   const [selected, setSelected] = useState<Record<SkuKey, boolean>>(() =>
     Object.fromEntries(skus.map((s) => [s, true])) as Record<SkuKey, boolean>,
   )
@@ -258,15 +270,29 @@ export default function CompareClient({ skus }: { skus: SkuKey[] }) {
                   </div>
                 </div>
                 {/* 2026-07-14 사장님: 퀵뷰 시트 → 제품 QR 상세페이지(/recipe/
-                    {protein})로 연결. 인쇄물 QR 과 같은 페이지 = 단일 진실. */}
+                    {protein})로 연결. 인쇄물 QR 과 같은 페이지 = 단일 진실.
+                    ⚠️ 앱에선 그 웹 페이지가 앱 안에서 열리면 안 된다 → 절대
+                    URL + target=_blank 로 외부 브라우저에서 열기. */}
                 {recipeProtein ? (
-                  <Link
-                    href={`/recipe/${recipeProtein}`}
-                    className="flex items-center justify-center gap-1 rounded-full bg-ink py-2.5 text-[12px] font-bold text-white transition active:scale-[0.98] hover:opacity-90"
-                  >
-                    {meta.name_ko} 화식 보러가기
-                    <span aria-hidden>→</span>
-                  </Link>
+                  isApp ? (
+                    <a
+                      href={`${siteUrl}/recipe/${recipeProtein}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1 rounded-full bg-ink py-2.5 text-[12px] font-bold text-white transition active:scale-[0.98] hover:opacity-90"
+                    >
+                      {meta.name_ko} 화식 보러가기
+                      <ExternalLink className="w-3 h-3" strokeWidth={2.4} />
+                    </a>
+                  ) : (
+                    <Link
+                      href={`/recipe/${recipeProtein}`}
+                      className="flex items-center justify-center gap-1 rounded-full bg-ink py-2.5 text-[12px] font-bold text-white transition active:scale-[0.98] hover:opacity-90"
+                    >
+                      {meta.name_ko} 화식 보러가기
+                      <span aria-hidden>→</span>
+                    </Link>
+                  )
                 ) : (
                   <div className="flex items-center justify-center rounded-full bg-bg py-2.5 text-[12px] font-bold text-muted">
                     출시 예정

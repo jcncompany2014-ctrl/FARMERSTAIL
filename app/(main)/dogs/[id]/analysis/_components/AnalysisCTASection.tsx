@@ -12,14 +12,12 @@ type Props = {
   dogId: string
   dogName: string
   isArchive: boolean
-  totalCount: number
 }
 
 export default function AnalysisCTASection({
   dogId,
   dogName,
   isArchive,
-  totalCount,
 }: Props) {
   return (
     <section className="px-5 mt-5 space-y-2">
@@ -61,14 +59,8 @@ export default function AnalysisCTASection({
           >
             다시 분석하기
           </Link>
-          {totalCount > 1 && (
-            <Link
-              href={`/dogs/${dogId}/analyses`}
-              className="block w-full py-3 text-center rounded bg-bg-3 text-muted text-[12px] font-bold border border-rule hover:border-text hover:text-text transition"
-            >
-              이전 분석 히스토리 {totalCount}회 →
-            </Link>
-          )}
+          {/* '이전 분석 히스토리' 버튼은 여기서 제거 — 페이지 최하단에 눈에 덜
+              띄는 텍스트 링크로 내림(2026-07-14 사장님). AnalysisView 참고. */}
         </>
       )}
     </section>

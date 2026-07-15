@@ -7,7 +7,12 @@ import {
   type SkuPersona,
 } from '@/lib/sku-nutrition-matrix'
 import { SKU_META, type SkuKey } from '@/lib/allergy-sku-matrix'
+import { isAppContextServer } from '@/lib/app-context'
 import CompareClient from './CompareClient'
+
+/** 앱에서 웹 상세페이지를 외부 브라우저로 열 때 쓸 절대 URL 베이스. */
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.farmerstail.kr'
 
 export const metadata: Metadata = {
   title: '4종 비교 — 파머스테일',
@@ -33,16 +38,22 @@ export default async function ComparePage() {
     meta: SKU_META[sku],
     nutrition: SKU_NUTRITION[sku],
   }))
+  // 앱(PWA/Capacitor)에서 이 페이지를 볼 때는 웹 퍼널로 새면 안 된다
+  // (사장님 2026-07-14 "앱은 앱에서만 놀아야해"). /start 는 웹 가입 퍼널이라
+  // 앱에선 숨기고, 제품 상세는 외부 브라우저로 연다.
+  const isApp = await isAppContextServer()
 
   return (
     <main className="pb-20 max-w-5xl mx-auto px-5 pt-6">
-      <Link
-        href="/start"
-        className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-text font-semibold mb-3"
-      >
-        <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-        맞춤 식단 시작하기
-      </Link>
+      {!isApp && (
+        <Link
+          href="/start"
+          className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-text font-semibold mb-3"
+        >
+          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
+          맞춤 식단 시작하기
+        </Link>
+      )}
 
       <div className="flex items-center gap-2">
         <Sparkles className="w-5 h-5 text-moss" strokeWidth={2} />
@@ -140,7 +151,7 @@ export default async function ComparePage() {
       </section>
 
       {/* 5종 스파이더 + 페르소나 인터랙션 */}
-      <CompareClient skus={skus} />
+      <CompareClient skus={skus} isApp={isApp} siteUrl={SITE_URL} />
 
       <p className="text-[10.5px] text-muted mt-8 text-center leading-relaxed">
         설문 결과에 맞춰 자동 추천된 SKU 가 결제 단계에서 적용돼요.

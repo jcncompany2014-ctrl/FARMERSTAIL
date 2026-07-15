@@ -66,12 +66,6 @@ type Analysis = {
   factor_breakdown?: { label: string; delta: number }[] | null
 }
 
-type HistoryPoint = {
-  date: string
-  bcs: number
-  weight: number
-}
-
 type Dog = {
   id: string
   name: string
@@ -129,7 +123,6 @@ export default function AnalysisView({
 
   const [dog, setDog] = useState<Dog | null>(null)
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
-  const [history, setHistory] = useState<HistoryPoint[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
   // 2026-05-21: Magazine BoxMixCard 를 실제 추천 알고리즘과 연동.
@@ -239,28 +232,7 @@ export default function AnalysisView({
       // — UI 가 null fallback 이미 처리. cast 우회.
       setAnalysis(target as unknown as Analysis)
 
-      // For the trend chart: everything up to and including the target
-      // (so older detail views show the timeline state as of that reading).
-      const targetTime = new Date(target.created_at!).getTime()
-      type AnalysisRow = {
-        id: string
-        created_at: string
-        bcs_score: number | null
-        rer: number
-      }
-      const upToTarget = (rows as AnalysisRow[]).filter(
-        (r) => new Date(r.created_at).getTime() <= targetTime
-      )
-      // Take latest 6 and flip oldest→newest for left-to-right charts.
-      const points = upToTarget
-        .slice(0, 6)
-        .reverse()
-        .map((r) => ({
-          date: r.created_at,
-          bcs: r.bcs_score ?? 5,
-          weight: +weightFromRER(Number(r.rer)).toFixed(1),
-        }))
-      setHistory(points)
+      // 추이 카드 제거(2026-07-14 사장님) → history/타임라인 산출 불필요.
       setLoading(false)
     }
     // R97-B (D7): load() 내부 auth/dogs/analyses fetch 중 throw (네트워크
@@ -458,8 +430,6 @@ export default function AnalysisView({
           boxItems={magBoxItems}
           boxLoading={formulaLoading && !formula}
           boxReasoning={formula?.reasoning ?? []}
-          history={history}
-          totalCount={totalCount}
           riskFlags={analysis.risk_flags ?? []}
           factorBreakdown={analysis.factor_breakdown ?? null}
         />
@@ -497,7 +467,6 @@ export default function AnalysisView({
         dogId={dogId}
         dogName={dog.name}
         isArchive={isArchive}
-        totalCount={totalCount}
       />
 
       {/* 참고할 점(안전·주의 신호) — 페이지 최하단(사장님 지시 2026-06-19,
@@ -624,6 +593,19 @@ export default function AnalysisView({
           </section>
         )
       })()}
+
+      {/* 이전 분석 기록 — 페이지 최하단에 눈에 덜 띄는 텍스트 링크로(사장님
+          2026-07-14 "최하단에 잘 안 보이게"). 찾는 사람만 찾으면 되는 보조 동선. */}
+      {!isArchive && totalCount > 1 && (
+        <div className="px-5 mt-6 text-center">
+          <Link
+            href={`/dogs/${dogId}/analyses`}
+            className="text-[11px] text-muted/70 hover:text-muted underline underline-offset-4 transition"
+          >
+            이전 분석 기록 {totalCount}회 보기
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

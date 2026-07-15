@@ -21,14 +21,7 @@ import {
 import type { Reasoning as MagBoxReasoning } from '@/lib/personalization/types'
 import { CTAStack as MagCTA } from '@/components/analysis/magazine/CTAStack'
 import RecommendationBox from '@/components/analysis/RecommendationBox'
-import AnalysisTrendsCard from '@/components/analysis/AnalysisTrendsCard'
 import { stageFromKR, needsCalorieVetRoute } from '@/lib/nutrition'
-
-type HistoryPoint = {
-  date: string
-  bcs: number
-  weight: number
-}
 
 type Props = {
   dogId: string
@@ -57,8 +50,6 @@ type Props = {
   boxLoading?: boolean
   /** 추천 근거 — 추천 레시피 카드 안에 바로 노출(사장님 2026-07-14). */
   boxReasoning?: MagBoxReasoning[]
-  history: HistoryPoint[]
-  totalCount: number
   /** 칼로리 v2 2e — 위험 플래그 (에너지 카드 직하 수의 상담 배너 판정). */
   riskFlags?: string[]
   /** 칼로리 v2 6단계 — 계수 사다리 (에너지 카드 내 근거 노출). */
@@ -86,8 +77,6 @@ export default function AnalysisMagazineSection({
   boxItems,
   boxLoading,
   boxReasoning,
-  history,
-  totalCount,
   riskFlags,
   factorBreakdown,
 }: Props) {
@@ -177,16 +166,9 @@ export default function AnalysisMagazineSection({
         </div>
       )}
       {/* 2026-06-19 사장님 "영양 균형 카드 아예 없애" — NutrientsCard 제거. */}
-      {/* 추이 카드는 비교할 기록(2회+)이 있을 때만 — 첫 분석에선 "2회 이상
-          하면 표시돼요" 빈 placeholder 가 전환 화면을 어수선하게 했음(2026-06-19). */}
-      {history.length >= 2 && (
-        <AnalysisTrendsCard
-          dogId={dogId}
-          dogName={dogName}
-          history={history}
-          totalCount={totalCount}
-        />
-      )}
+      {/* 추이 카드 제거 (2026-07-14 사장님) — 이 카드는 '설문 기록' 기반이라
+          구독 시작 후엔 갱신이 거의 없다(보호자는 재설문 대신 체중만 기록).
+          추이는 자주 갱신되는 체중 기록 기반으로 개요 페이지가 담당. */}
       {/* 맞춤 영양제 박스 제거(2026-07-13 사장님) — 판매할 영양제 제품이 아직
           없어 추천이 이르다. getSupplements/analysis.supplements 배선은 향후
           영양제 라인 출시 대비해 그대로 유지(데이터·매핑은 살아 있음). */}
