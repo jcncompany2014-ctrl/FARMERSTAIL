@@ -25,22 +25,32 @@ export default async function PlanPage({
   } = await supabase.auth.getUser()
   if (!user) redirect(`/login?next=/dogs/${dogId}/plan`)
 
-  const [{ data: dog }, { data: formulaRow }] = await Promise.all([
-    supabase
-      .from('dogs')
-      .select('name')
-      .eq('id', dogId)
-      .eq('user_id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('dog_formulas')
-      .select('cycle_number, formula, reasoning, daily_kcal, daily_grams')
-      .eq('dog_id', dogId)
-      .eq('user_id', user.id)
-      .order('cycle_number', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ])
+  const [{ data: dog }, { data: formulaRow }, { data: subRows }] =
+    await Promise.all([
+      supabase
+        .from('dogs')
+        .select('name')
+        .eq('id', dogId)
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('dog_formulas')
+        .select('cycle_number, formula, reasoning, daily_kcal, daily_grams')
+        .eq('dog_id', dogId)
+        .eq('user_id', user.id)
+        .order('cycle_number', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      // 이 강아지 구독 이력(현재/과거) — 첫 박스 판정. 상태 무관, 강아지별
+      // (다른 강아지가 구독 중이어도 새 강아지는 첫 박스). RecommendationBox
+      // CTA 분기와 동일 기준.
+      supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('dog_id', dogId)
+        .eq('user_id', user.id)
+        .limit(1),
+    ])
 
   if (!dog) redirect('/dogs')
   const dogName = (dog as { name: string }).name
@@ -86,6 +96,10 @@ export default async function PlanPage({
     products = map
   }
 
+  // 첫 박스 = 이 강아지 구독 이력 없음. 50% 첫 박스 할인·'첫 박스 기준' 문구는
+  // 첫 박스일 때만 (사장님 2026-07-14) — 재구독 강아지는 정가.
+  const isFirstBox = (subRows?.length ?? 0) === 0
+
   return (
     <PlanClient
       dogId={dogId}
@@ -93,6 +107,7 @@ export default async function PlanPage({
       formula={formula}
       products={products}
       initialFresh={initialFresh}
+      isFirstBox={isFirstBox}
     />
   )
 }

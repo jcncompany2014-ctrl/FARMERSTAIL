@@ -17,7 +17,7 @@
 
 import { useState, type CSSProperties } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight } from 'lucide-react'
+import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight, Info } from 'lucide-react'
 import { petName } from '@/lib/korean'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
@@ -100,10 +100,29 @@ const RECIPE_WHY: Record<string, string> = {
   joint: '저지방 흑돼지 안심이라 부드럽고 소화가 편해요',
 }
 
+// 플랜 = 실제로 고르는 상품 페이지라 '자세하게'(배지·설명·안내). 분석 결과지는
+// 반대로 컴팩트 — 역할 분담(사장님 2026-07-14). 카피는 결과지와 동일 문구.
 const FRESH_TIERS = [
-  { value: 30 as const, label: '곁들임', sub: '화식 30% · 건사료 70%' },
-  { value: 60 as const, label: '반반', sub: '화식 60% · 건사료 40%' },
-  { value: 100 as const, label: '완전 화식', sub: '화식 100%' },
+  {
+    value: 30 as const,
+    label: '곁들임',
+    sub: '화식 30% · 건사료 70%',
+    badge: '추천',
+    copy: '작은 비용으로 떼는 첫걸음, 기호성과 영양을 더해요',
+    note: '화식이 처음이라면, 익숙해질 때까지 건사료와 섞어 급여하는 걸 권장해요',
+  },
+  {
+    value: 60 as const,
+    label: '반반',
+    sub: '화식 60% · 건사료 40%',
+    copy: '화식 반 사료 반, 부담은 낮추고 균형은 챙겨요',
+  },
+  {
+    value: 100 as const,
+    label: '완전 화식',
+    sub: '화식 100%',
+    copy: '매일 그릇 가득, 완벽한 영양과 행복을 담아요',
+  },
 ]
 type FreshRatio = (typeof FRESH_TIERS)[number]['value']
 
@@ -111,6 +130,9 @@ const MAX_RECIPES = 2
 
 /** 배송·결제 사이클 = 2주(14일) 고정. 결제 바의 '총가격' 산정 기준. */
 const CYCLE_DAYS = 14
+
+/** 첫 박스 자동할인 50%. 이 강아지 첫 구독일 때만 적용. */
+const FIRST_BOX_OFF = 0.5
 
 /** reasoning ruleId → 그 룰이 강조한 단백질 라인. "왜 이 레시피" 매핑용. */
 function lineFromRuleId(ruleId: string): FoodLine | null {
@@ -149,12 +171,15 @@ export default function PlanClient({
   formula,
   products,
   initialFresh,
+  isFirstBox,
 }: {
   dogId: string
   dogName: string
   formula: Formula | null
   products: Record<string, PlanProduct>
   initialFresh: number
+  /** 이 강아지 구독 이력 없음 = 첫 박스. 50% 할인·'첫 박스' 문구 노출 조건. */
+  isFirstBox: boolean
 }) {
   const [freshRatio, setFreshRatio] = useState<FreshRatio>(
     initialFresh === 60 ? 60 : initialFresh === 100 ? 100 : 30,
@@ -217,11 +242,14 @@ export default function PlanClient({
       dailyRegular += (dailyG / 100) * unitPrice
     }
   }
-  const dailyFirst = Math.round((dailyRegular * 0.5) / 10) * 10
-  // 2주(14일) 사이클 총액 — 하단 결제 바는 '총가격'을 보여준다(사장님 2026-07-14).
-  // 하루 단가(dailyFirst)는 화식 비율 카드 아래에 별도 안내.
+  // 50% 는 '첫 박스' 혜택 — 재구독 강아지(isFirstBox=false)는 정가로, 할인·
+  // 취소선·OFF 뱃지·'첫 박스' 문구 모두 없음(사장님 2026-07-14).
+  const payFactor = isFirstBox ? FIRST_BOX_OFF : 1
+  const dailyPay = Math.round((dailyRegular * payFactor) / 10) * 10
+  // 2주(14일) 사이클 총액 — 하단 결제 바는 '총가격'을 보여준다.
+  // 하루 단가(dailyPay)는 화식 비율 카드 아래에 별도 안내.
   const cycleRegular = Math.round((dailyRegular * CYCLE_DAYS) / 10) * 10
-  const cycleFirst = Math.round((dailyRegular * CYCLE_DAYS * 0.5) / 10) * 10
+  const cyclePay = Math.round((dailyRegular * CYCLE_DAYS * payFactor) / 10) * 10
 
   if (!formula) {
     return (
@@ -379,27 +407,100 @@ export default function PlanClient({
       {/* 화식 비율 */}
       <div style={{ marginTop: 18, background: 'var(--surface-card-elevated, #fff)', border: '1px solid var(--rule)', borderRadius: 14, padding: 13 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>얼마나 화식으로 드릴까요?</div>
-        <div style={{ display: 'flex', gap: 7, marginTop: 10 }}>
+        <div
+          role="radiogroup"
+          aria-label="화식 비율 선택"
+          style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}
+        >
           {FRESH_TIERS.map((t) => {
             const on = freshRatio === t.value
             return (
               <button
                 key={t.value}
                 type="button"
+                role="radio"
+                aria-checked={on}
                 onClick={() => setFreshRatio(t.value)}
                 style={{
-                  flex: 1,
+                  appearance: 'none',
+                  width: '100%',
+                  textAlign: 'left',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
-                  textAlign: 'center',
+                  background: on
+                    ? 'color-mix(in srgb, var(--terracotta) 4%, transparent)'
+                    : 'transparent',
                   border: on ? '2px solid var(--terracotta)' : '1px solid var(--rule)',
-                  background: on ? 'color-mix(in srgb, var(--terracotta) 5%, transparent)' : 'transparent',
                   borderRadius: 11,
-                  padding: on ? '8px 4px' : '9px 4px',
+                  padding: on ? '11px 12px' : '12px 13px',
                 }}
               >
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{t.label}</div>
-                <div style={{ fontSize: 8.5, color: on ? 'var(--terracotta)' : 'var(--muted)', fontWeight: 600, marginTop: 3, lineHeight: 1.3 }}>{t.sub}</div>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
+                    {t.label}
+                  </span>
+                  {'badge' in t && t.badge && (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        color: '#fff',
+                        background: 'var(--terracotta)',
+                        padding: '2px 7px',
+                        borderRadius: 99,
+                      }}
+                    >
+                      {t.badge}
+                    </span>
+                  )}
+                  <span
+                    style={{
+                      marginLeft: 'auto',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: on ? 'var(--terracotta)' : 'var(--muted)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {t.sub}
+                  </span>
+                </span>
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: 11.5,
+                    color: on
+                      ? 'color-mix(in srgb, var(--terracotta) 68%, var(--ink))'
+                      : 'var(--muted)',
+                    marginTop: 4,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {t.copy}
+                </span>
+                {'note' in t && t.note && (
+                  <span
+                    style={{
+                      display: 'flex',
+                      gap: 6,
+                      marginTop: 9,
+                      paddingTop: 9,
+                      borderTop:
+                        '1px solid color-mix(in srgb, var(--terracotta) 15%, transparent)',
+                      color: 'var(--muted)',
+                      fontSize: 10.5,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <Info
+                      size={12}
+                      strokeWidth={2}
+                      color="var(--terracotta)"
+                      style={{ flexShrink: 0, marginTop: 1 }}
+                    />
+                    {t.note}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -407,7 +508,7 @@ export default function PlanClient({
 
         {/* 하루 단가 — 하단 결제 바는 '총가격'이라, 하루 얼마인지는 여기에서
             보여준다(사장님 2026-07-14). 비율 바꾸면 같이 갱신. */}
-        {dailyFirst > 0 && (
+        {dailyPay > 0 && (
           <div
             style={{
               display: 'flex',
@@ -431,9 +532,9 @@ export default function PlanClient({
                 letterSpacing: '-0.01em',
               }}
             >
-              {dailyFirst.toLocaleString()}원
+              {dailyPay.toLocaleString()}원
             </strong>
-            꼴 · 첫 박스 기준
+            {isFirstBox && <span>· 첫 박스 기준</span>}
           </div>
         )}
       </div>
@@ -442,15 +543,19 @@ export default function PlanClient({
           비쳐 보이는 문제 방지). */}
       <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, background: 'var(--ink)', padding: '13px 16px calc(13px + env(safe-area-inset-bottom))', display: detailLine ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, zIndex: 40 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>첫 박스 · 2주마다 배송 · 언제든 해지</div>
+          <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+            {isFirstBox ? '첫 박스 · 2주마다 배송 · 언제든 해지' : '2주마다 배송 · 언제든 해지'}
+          </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
-            {cycleRegular > 0 && (
+            {isFirstBox && cycleRegular > 0 && (
               <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through' }}>{cycleRegular.toLocaleString()}원</span>
             )}
             <span style={{ fontSize: 19, fontWeight: 800, color: '#fff' }}>
-              {cycleFirst.toLocaleString()}원<span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>/2주</span>
+              {cyclePay.toLocaleString()}원<span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>/2주</span>
             </span>
-            <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink)', background: '#E8B84B', padding: '2px 6px', borderRadius: 99 }}>50% OFF</span>
+            {isFirstBox && (
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink)', background: '#E8B84B', padding: '2px 6px', borderRadius: 99 }}>50% OFF</span>
+            )}
           </div>
         </div>
         <Link href={`/dogs/${dogId}/order?fresh=${freshRatio}&recipes=${[...selected].join(',')}`} style={{ border: 'none', background: 'var(--terracotta)', color: '#fff', borderRadius: 99, padding: '12px 18px', fontSize: 13.5, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flexShrink: 0 }}>

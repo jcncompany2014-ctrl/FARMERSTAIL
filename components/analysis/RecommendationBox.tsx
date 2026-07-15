@@ -349,40 +349,43 @@ function RecommendationView({
         2주마다 정기배송으로 문 앞까지
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* 컴팩트 3분할 — 결과지는 '빠르게 훑는' 화면이라 압축. 자세한 설명은
+          플랜(상품) 페이지가 담당(사장님 2026-07-14). */}
+      <div className="fb-tier-grid" role="radiogroup" aria-label="화식 비율 선택">
         {FRESH_TIERS.map((t) => {
           const sel = t.key === tier
           return (
             <button
               key={t.key}
               type="button"
-              className="fb-tier"
+              className="fb-tierc"
               data-sel={sel ? 'true' : undefined}
-              aria-pressed={sel}
+              role="radio"
+              aria-checked={sel}
               onClick={() => setTier(t.key)}
             >
-              <div className="fb-tier-head">
-                <span className="fb-tier-name">{t.name}</span>
-                {'badge' in t && t.badge && (
-                  <span className="fb-tier-badge">{t.badge}</span>
-                )}
-              </div>
-              <div className="fb-tier-copy">{t.copy}</div>
-              {'note' in t && t.note && (
-                <div className="fb-tier-note">
-                  <Info
-                    size={13}
-                    strokeWidth={2}
-                    color="var(--terracotta)"
-                    style={{ flexShrink: 0, marginTop: 1 }}
-                  />
-                  {t.note}
-                </div>
+              {'badge' in t && t.badge && (
+                <span className="fb-tierc-badge">{t.badge}</span>
               )}
+              <span className="fb-tierc-name">{t.name}</span>
+              <span className="fb-tierc-sub">화식 {t.ratio}%</span>
             </button>
           )
         })}
       </div>
+      {/* 선택한 티어의 카피·안내만 한 줄씩 — 컴팩트 유지. */}
+      <div className="fb-tierc-desc">{selected.copy}</div>
+      {'note' in selected && selected.note && (
+        <div className="fb-tier-note" style={{ marginTop: 7 }}>
+          <Info
+            size={13}
+            strokeWidth={2}
+            color="var(--terracotta)"
+            style={{ flexShrink: 0, marginTop: 1 }}
+          />
+          {selected.note}
+        </div>
+      )}
 
       <div className="fb-cta-row" style={{ marginTop: 16 }}>
         <button type="button" className="fb-cta-ghost" onClick={onOpenAdjust}>

@@ -108,6 +108,43 @@
   border-top: 1px solid color-mix(in srgb, var(--terracotta) 15%, transparent);
   color: var(--muted); font-size: 10.5px; line-height: 1.5;
 }
+
+/* 컴팩트 화식 티어 — 결과지 전용(빠르게 훑는 화면). 자세한 카드형은 플랜
+   페이지가 담당(사장님 2026-07-14). */
+.fb-tier-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px;
+  margin-top: 4px;
+}
+.fb-tierc {
+  position: relative;
+  appearance: none; cursor: pointer; font-family: inherit;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 10px 4px;
+  border: 1px solid var(--rule);
+  background: #fff;
+  border-radius: 10px;
+  transition: border-color 120ms, background 120ms;
+}
+.fb-tierc[data-sel='true'] {
+  border: 2px solid var(--terracotta);
+  background: color-mix(in srgb, var(--terracotta) 5%, transparent);
+  padding: 9px 4px;
+}
+.fb-tierc-name { font-size: 12.5px; font-weight: 700; color: var(--ink); }
+.fb-tierc-sub { font-size: 9.5px; font-weight: 600; color: var(--muted); }
+.fb-tierc[data-sel='true'] .fb-tierc-sub { color: var(--terracotta); }
+.fb-tierc-badge {
+  position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+  font-size: 8.5px; font-weight: 700; color: #fff;
+  background: var(--terracotta);
+  padding: 2px 7px; border-radius: 99px; white-space: nowrap;
+}
+.fb-tierc-desc {
+  margin-top: 10px;
+  font-size: 11.5px; color: var(--muted); line-height: 1.5;
+  text-align: center;
+}
+
 .fb-cta-row { display: grid; grid-template-columns: auto 1fr; gap: 8px; }
 .fb-cta-ghost {
   appearance: none; border: 0; cursor: pointer;
