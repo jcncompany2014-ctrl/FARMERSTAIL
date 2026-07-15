@@ -2,25 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import {
-  Calendar,
-  Scale,
-  Shield,
-  Heart,
-  Stethoscope,
-  Baby,
-  AlertCircle,
-  Plus,
-  Sparkles,
-  GitBranch,
-  ArrowRight,
-  Info,
-  ChevronDown,
-} from 'lucide-react'
+import { ArrowRight, Info } from 'lucide-react'
 import { trackBoxRecommended, trackAnalysisViewed } from '@/lib/analytics'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { createClient } from '@/lib/supabase/client'
-import type { Formula, Reasoning } from '@/lib/personalization/types'
+import type { Formula } from '@/lib/personalization/types'
 import AdjustSheet from './AdjustSheet'
 import {
   fetchComputedFormula,
@@ -80,31 +66,6 @@ const FRESH_TIERS = [
 ] as const
 
 type TierKey = (typeof FRESH_TIERS)[number]['key']
-
-/** Reasoning ruleId 별 아이콘 — 정적 분기 (static-components 룰). */
-function ReasoningIcon({
-  ruleId,
-  size = 12,
-  strokeWidth = 2,
-  color = 'var(--muted)',
-}: {
-  ruleId: string
-  size?: number
-  strokeWidth?: number
-  color?: string
-}) {
-  const props = { size, strokeWidth, color }
-  if (ruleId.startsWith('allergy-') || ruleId.startsWith('next-allergy-')) return <Shield {...props} />
-  if (ruleId.startsWith('age-')) return <Calendar {...props} />
-  if (ruleId.startsWith('chronic-')) return <Stethoscope {...props} />
-  if (ruleId.startsWith('bcs-')) return <Scale {...props} />
-  if (ruleId.startsWith('pregnancy-')) return <Baby {...props} />
-  if (ruleId.startsWith('gi-') || ruleId.startsWith('next-stool-')) return <AlertCircle {...props} />
-  if (ruleId.startsWith('topper-')) return <Plus {...props} />
-  if (ruleId === 'user-adjusted') return <Info {...props} />
-  if (ruleId.startsWith('next-coat-') || ruleId.startsWith('next-appetite-')) return <Heart {...props} />
-  return <Sparkles {...props} />
-}
 
 export default function RecommendationBox({
   dogId,
@@ -301,7 +262,6 @@ export default function RecommendationBox({
   return (
     <>
       <RecommendationView
-        formula={state.formula}
         dogId={dogId}
         hasSubscription={hasSubscription === true}
         onOpenAdjust={() => setSheetOpen(true)}
@@ -323,18 +283,14 @@ export default function RecommendationBox({
 }
 
 function RecommendationView({
-  formula,
   dogId,
   hasSubscription,
   onOpenAdjust,
 }: {
-  formula: Formula
   dogId: string
   hasSubscription: boolean
   onOpenAdjust: () => void
 }) {
-  // 사장님 2026-06-19 "왜 이 비율 공간차지 심해" — 기본 접힘, 탭해서 펼침.
-  const [whyOpen, setWhyOpen] = useState(false)
   const [tier, setTier] = useState<TierKey>('light')
   const selected = FRESH_TIERS.find((t) => t.key === tier) ?? FRESH_TIERS[0]
   const ctaLabel = hasSubscription ? '이 박스로 시작하기' : '첫 박스 시작하기'
@@ -407,93 +363,9 @@ function RecommendationView({
         </Link>
       </div>
 
-      {/* 왜 이 비율(접기) */}
-      {formula.reasoning.length > 0 && (
-        <div
-          style={{
-            marginTop: 14,
-            paddingTop: 13,
-            borderTop: '1px solid var(--rule)',
-          }}
-        >
-          <button
-            type="button"
-            className="fb-sub-lbl"
-            onClick={() => setWhyOpen((v) => !v)}
-            aria-expanded={whyOpen}
-            style={{
-              width: '100%',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              font: 'inherit',
-              padding: 0,
-              margin: 0,
-            }}
-          >
-            <GitBranch size={11} strokeWidth={2} color="var(--muted)" />왜 이 비율일까요
-            {formula.userAdjusted && <span className="fb-adj">사용자 조정됨</span>}
-            <ChevronDown
-              size={14}
-              strokeWidth={2.2}
-              color="var(--muted)"
-              style={{
-                marginLeft: 'auto',
-                transition: 'transform 200ms',
-                transform: whyOpen ? 'rotate(180deg)' : 'none',
-              }}
-            />
-          </button>
-          {whyOpen && (
-            <>
-              <ul className="fb-reason-list" style={{ marginTop: 10 }}>
-                {formula.reasoning.slice(0, 6).map((r, i) => (
-                  <ReasonRow key={i} reasoning={r} />
-                ))}
-              </ul>
-              {formula.reasoning.length > 6 && (
-                <p
-                  style={{
-                    fontSize: 10,
-                    color: 'var(--muted)',
-                    marginTop: 8,
-                    textAlign: 'center',
-                  }}
-                >
-                  +{formula.reasoning.length - 6}개 룰 더 적용됨
-                </p>
-              )}
-            </>
-          )}
-        </div>
-      )}
+      {/* 추천 근거는 위 '추천 레시피' 카드(BoxMixCard) 안으로 이동 — 접이식이
+          아니라 레시피 바로 밑에서 바로 보이게(사장님 2026-07-14). */}
     </div>
   )
 }
 
-function ReasonRow({ reasoning }: { reasoning: Reasoning }) {
-  return (
-    <li className="fb-reason-row" title={reasoning.action}>
-      <div className="fb-reason-from">
-        <ReasoningIcon ruleId={reasoning.ruleId} />
-        <span>{reasoning.trigger}</span>
-      </div>
-      <div className="fb-reason-arrow">
-        <svg viewBox="0 0 24 8" width="24" height="8" aria-hidden="true">
-          <path
-            d="M0 4 H20 M16 1 L20 4 L16 7"
-            stroke="var(--rule-2)"
-            strokeWidth="1.2"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-      <div className="fb-reason-to">
-        <span>{reasoning.chipLabel}</span>
-        <Info size={11} strokeWidth={2} color="var(--muted)" />
-      </div>
-    </li>
-  )
-}

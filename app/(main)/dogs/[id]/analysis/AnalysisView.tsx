@@ -458,6 +458,7 @@ export default function AnalysisView({
           nutrientRows={magNutrientRows}
           boxItems={magBoxItems}
           boxLoading={formulaLoading && !formula}
+          boxReasoning={formula?.reasoning ?? []}
           history={history}
           totalCount={totalCount}
           riskFlags={analysis.risk_flags ?? []}

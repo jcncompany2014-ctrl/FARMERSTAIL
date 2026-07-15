@@ -18,6 +18,7 @@ import {
   BoxMixCard as MagBoxMix,
   type BoxMixItem as MagBoxMixItem,
 } from '@/components/analysis/magazine/BoxMixCard'
+import type { Reasoning as MagBoxReasoning } from '@/lib/personalization/types'
 import { CTAStack as MagCTA } from '@/components/analysis/magazine/CTAStack'
 import RecommendationBox from '@/components/analysis/RecommendationBox'
 import AnalysisTrendsCard from '@/components/analysis/AnalysisTrendsCard'
@@ -54,6 +55,8 @@ type Props = {
   boxItems: MagBoxMixItem[]
   /** dog별 formula 아직 로딩 중 — 박스는 가짜 placeholder 대신 스켈레톤. */
   boxLoading?: boolean
+  /** 추천 근거 — 추천 레시피 카드 안에 바로 노출(사장님 2026-07-14). */
+  boxReasoning?: MagBoxReasoning[]
   history: HistoryPoint[]
   totalCount: number
   /** 칼로리 v2 2e — 위험 플래그 (에너지 카드 직하 수의 상담 배너 판정). */
@@ -82,6 +85,7 @@ export default function AnalysisMagazineSection({
   factor,
   boxItems,
   boxLoading,
+  boxReasoning,
   history,
   totalCount,
   riskFlags,
@@ -160,7 +164,13 @@ export default function AnalysisMagazineSection({
       {/* 카드 순서 (사용자 지시 2026-05-21):
           BoxMix → RecommendationBox (정기배송+비율조정+왜이비율) →
           Nutrients (영양 균형) → 추이 → Supplements → MagCTA(보조) */}
-      <MagBoxMix p={magP} dogName={dogName} items={boxItems} loading={boxLoading} />
+      <MagBoxMix
+        p={magP}
+        dogName={dogName}
+        items={boxItems}
+        loading={boxLoading}
+        reasoning={boxReasoning}
+      />
       {!isArchive && (
         <div style={{ marginTop: 14 }}>
           <RecommendationBox dogId={dogId} dogName={dogName} isSenior={isSenior} />

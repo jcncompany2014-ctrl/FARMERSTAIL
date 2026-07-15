@@ -10,9 +10,10 @@
  */
 
 import Image from 'next/image'
-import { Bone, Droplet, Sparkles, Leaf } from 'lucide-react'
+import { Bone, Droplet, Sparkles, Leaf, ArrowRight } from 'lucide-react'
 import { petName } from '@/lib/korean'
 import { Skeleton } from '@/components/ui/Skeleton'
+import type { Reasoning } from '@/lib/personalization/types'
 import type { MagazinePalette, BoxLineKey } from './palette'
 import { lineColors } from './palette'
 import { Reveal, useReveal } from './primitives'
@@ -41,6 +42,7 @@ export function BoxMixCard({
   dogName,
   items,
   loading = false,
+  reasoning,
 }: {
   p: MagazinePalette
   dogName: string
@@ -48,8 +50,15 @@ export function BoxMixCard({
   /** dog 별 lineRatios(formula) 아직 로딩 중 — 가짜 placeholder 대신 스켈레톤.
    *  (formula null 시 상위가 임시 박스를 넘기던 것이 '옛 박스 플래시'의 원인) */
   loading?: boolean
+  /** 추천 근거 — 이 카드 안에 바로 노출(사장님 2026-07-14: 왜 추천했는지
+   *  추천 레시피 밑에서 딱 보여야 함). 접이식 X. */
+  reasoning?: Reasoning[]
 }) {
   const colors = lineColors(p)
+  // 'v3 맞춤 베이스' 같은 내부 용어 행은 제외 — 고객에게 의미 없음(사장님 지시).
+  const reasons = (reasoning ?? [])
+    .filter((r) => !/v3/i.test(r.chipLabel) && !/v3/i.test(r.trigger))
+    .slice(0, 4)
 
   return (
     <Reveal delay={80}>
@@ -77,6 +86,65 @@ export function BoxMixCard({
                 <BoxRow key={it.key} p={p} item={it} color={colors[it.key]} />
               ))}
             </div>
+
+            {/* 왜 이렇게 추천했는지 — 레시피 바로 밑에서 접지 않고 노출. */}
+            {reasons.length > 0 && (
+              <div
+                style={{
+                  marginTop: 14,
+                  paddingTop: 13,
+                  borderTop: `1px solid ${p.line}`,
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
+                    fontSize: 9.5,
+                    letterSpacing: '0.16em',
+                    textTransform: 'uppercase',
+                    color: p.muted,
+                    fontWeight: 600,
+                    marginBottom: 9,
+                  }}
+                >
+                  Why · 이렇게 추천했어요
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {reasons.map((r, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontSize: 11.5,
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      <span style={{ flex: 1, minWidth: 0, color: p.muted }}>
+                        {r.trigger}
+                      </span>
+                      <ArrowRight
+                        size={11}
+                        strokeWidth={2.2}
+                        color={p.muted}
+                        style={{ flexShrink: 0, opacity: 0.7 }}
+                        aria-hidden
+                      />
+                      <span
+                        style={{
+                          flexShrink: 0,
+                          color: p.ink,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {r.chipLabel}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
       </ReportCard>
