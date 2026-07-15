@@ -3513,7 +3513,7 @@ export type Database = {
           last_failed_charge_code: string | null
           last_failed_charge_reason: string | null
           mix_ratio: number | null
-          next_delivery_date: string
+          next_delivery_date: string | null
           next_retry_at: string | null
           recipient_name: string
           recipient_phone: string
@@ -3552,7 +3552,7 @@ export type Database = {
           last_failed_charge_code?: string | null
           last_failed_charge_reason?: string | null
           mix_ratio?: number | null
-          next_delivery_date: string
+          next_delivery_date: string | null
           next_retry_at?: string | null
           recipient_name: string
           recipient_phone: string
@@ -3591,7 +3591,7 @@ export type Database = {
           last_failed_charge_code?: string | null
           last_failed_charge_reason?: string | null
           mix_ratio?: number | null
-          next_delivery_date?: string
+          next_delivery_date?: string | null
           next_retry_at?: string | null
           recipient_name?: string
           recipient_phone?: string
