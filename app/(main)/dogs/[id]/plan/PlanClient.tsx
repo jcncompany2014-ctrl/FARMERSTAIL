@@ -109,6 +109,9 @@ type FreshRatio = (typeof FRESH_TIERS)[number]['value']
 
 const MAX_RECIPES = 2
 
+/** 배송·결제 사이클 = 2주(14일) 고정. 결제 바의 '총가격' 산정 기준. */
+const CYCLE_DAYS = 14
+
 /** reasoning ruleId → 그 룰이 강조한 단백질 라인. "왜 이 레시피" 매핑용. */
 function lineFromRuleId(ruleId: string): FoodLine | null {
   if (ruleId === 'goal-weight_management') return 'weight'
@@ -214,8 +217,11 @@ export default function PlanClient({
       dailyRegular += (dailyG / 100) * unitPrice
     }
   }
-  const dailyRegularR = Math.round(dailyRegular / 10) * 10
   const dailyFirst = Math.round((dailyRegular * 0.5) / 10) * 10
+  // 2주(14일) 사이클 총액 — 하단 결제 바는 '총가격'을 보여준다(사장님 2026-07-14).
+  // 하루 단가(dailyFirst)는 화식 비율 카드 아래에 별도 안내.
+  const cycleRegular = Math.round((dailyRegular * CYCLE_DAYS) / 10) * 10
+  const cycleFirst = Math.round((dailyRegular * CYCLE_DAYS * 0.5) / 10) * 10
 
   if (!formula) {
     return (
@@ -398,19 +404,51 @@ export default function PlanClient({
             )
           })}
         </div>
+
+        {/* 하루 단가 — 하단 결제 바는 '총가격'이라, 하루 얼마인지는 여기에서
+            보여준다(사장님 2026-07-14). 비율 바꾸면 같이 갱신. */}
+        {dailyFirst > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'center',
+              gap: 5,
+              marginTop: 12,
+              paddingTop: 11,
+              borderTop: '1px solid var(--rule)',
+              fontSize: 11.5,
+              color: 'var(--muted)',
+              fontWeight: 600,
+            }}
+          >
+            하루
+            <strong
+              style={{
+                fontSize: 15,
+                fontWeight: 800,
+                color: 'var(--ink)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {dailyFirst.toLocaleString()}원
+            </strong>
+            꼴 · 첫 박스 기준
+          </div>
+        )}
       </div>
 
-      {/* 결제 바 (다크) — 하단 꽉 차는 통 바. 상세 시트 열리면 숨김(시트 밑으로
+      {/* 결제 바 (다크) — 총가격(2주). 상세 시트 열리면 숨김(시트 밑으로
           비쳐 보이는 문제 방지). */}
       <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, background: 'var(--ink)', padding: '13px 16px calc(13px + env(safe-area-inset-bottom))', display: detailLine ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, zIndex: 40 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>첫 박스 · 2주마다 배송 · 언제든 해지</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
-            {dailyRegularR > 0 && (
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through' }}>{dailyRegularR.toLocaleString()}원</span>
+            {cycleRegular > 0 && (
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through' }}>{cycleRegular.toLocaleString()}원</span>
             )}
             <span style={{ fontSize: 19, fontWeight: 800, color: '#fff' }}>
-              {dailyFirst.toLocaleString()}원<span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>/일</span>
+              {cycleFirst.toLocaleString()}원<span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>/2주</span>
             </span>
             <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink)', background: '#E8B84B', padding: '2px 6px', borderRadius: 99 }}>50% OFF</span>
           </div>
