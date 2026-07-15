@@ -44,6 +44,8 @@ import {
   type ActiveSubscription,
 } from './_components/types'
 import WeightSparkline from './_components/WeightSparkline'
+import InsightNote from './_components/InsightNote'
+import type { DogInsight } from '@/lib/dog-insight'
 import CurrentFormulaCard from './_components/CurrentFormulaCard'
 import SubscriptionCard from './_components/SubscriptionCard'
 import DogFamilyMembers from '@/components/DogFamilyMembers'
@@ -57,6 +59,8 @@ type Props = {
   currentFormula: CurrentFormula | null
   checkinStatus: CheckinStatus
   subscriptions: ActiveSubscription[]
+  /** 개요 인사이트 멘트 — server 에서 체중 기록으로 산출(lib/dog-insight). */
+  insight: DogInsight
 }
 
 export default function DogDetailClient({
@@ -66,6 +70,7 @@ export default function DogDetailClient({
   currentFormula,
   checkinStatus,
   subscriptions,
+  insight,
 }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -176,6 +181,9 @@ export default function DogDetailClient({
     setNewWeightNote('')
     setShowWeightModal(false)
     setSavingWeight(false)
+    // 새 기록 기준으로 인사이트 멘트·개입 윈도우를 다시 계산시킨다(server).
+    // 목록/스파크라인은 위 setState 로 이미 즉시 반영 — refresh 는 뒤따라온다.
+    router.refresh()
   }
 
   async function handleDelete() {
@@ -342,16 +350,7 @@ export default function DogDetailClient({
             </button>
           </div>
 
-          {weightLogs.length === 0 ? (
-            <div className="text-center py-5">
-              <p className="text-[12px] text-muted">
-                아직 체중 기록이 없어요.
-              </p>
-              <p className="text-[10.5px] text-muted/70 mt-1">
-                &ldquo;기록 추가&rdquo;로 주기적으로 남겨 보세요.
-              </p>
-            </div>
-          ) : (
+          {weightLogs.length > 0 && (
             <>
               {/* 스파크라인 */}
               <WeightSparkline logs={weightLogs} />
@@ -404,6 +403,13 @@ export default function DogDetailClient({
               </ul>
             </>
           )}
+
+          {/* 인사이트 멘트 — 위 숫자에서 읽어낸 결론 한 줄. 기록이 없을 때는
+              이 멘트가 곧 빈 상태 안내(기록을 권하는 문구)라 따로 두지 않는다. */}
+          <InsightNote
+            insight={insight}
+            className={weightLogs.length > 0 ? 'mt-3' : 'mt-1'}
+          />
         </div>
       </section>
 

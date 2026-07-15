@@ -12,6 +12,7 @@ import {
   evaluateInterventionWindow,
   type InterventionWindow,
 } from '@/lib/intervention-window'
+import { buildDogInsight } from '@/lib/dog-insight'
 import type {
   Dog,
   WeightLog,
@@ -89,19 +90,24 @@ export default async function DogDetailPage({
         .eq('user_id', user.id)
         .in('status', ['active', 'paused'])
         .order('created_at', { ascending: false }),
-      // 추세 분석용 — 6개월치 체중 (위의 logs 는 최근 10건만이라 별도 fetch)
+      // 추세 분석용 — 6개월치 체중 (위의 logs 는 최근 10건만이라 별도 fetch).
+      // ⚠️ ascending 이면 limit 40 이 '가장 오래된 40건'을 집어 자주 기록하는
+      //    보호자(6개월 40건 초과)의 최신 기록이 통째로 빠진다 → descending.
+      //    소비처(evaluateInterventionWindow · buildDogInsight) 둘 다 내부에서
+      //    정렬하므로 순서에 무관.
       supabase
         .from('weight_logs')
         .select('measured_at, weight')
         .eq('dog_id', dogId)
         .eq('user_id', user.id)
         .gte('measured_at', trendSinceIso)
-        .order('measured_at', { ascending: true })
+        .order('measured_at', { ascending: false })
         .limit(40),
-      // BCS — 최신 survey
+      // BCS — 최신 survey. created_at 은 개요 인사이트의 '재설문 노트' 판정용
+      // (사장님 2026-07-14 "설문 다시 하면 그때 개요에 정보 추가").
       supabase
         .from('surveys')
-        .select('answers')
+        .select('answers, created_at')
         .eq('dog_id', dogId)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -135,16 +141,19 @@ export default async function DogDetailPage({
     }
   }
 
+  const surveyAnswers = ((surveyRes.data?.answers as unknown) ?? {}) as {
+    bcsExact?: number
+  }
+  const lastSurveyAt =
+    (surveyRes.data as { created_at?: string } | null)?.created_at ?? null
+  const trendLogs = (weightTrendRes.data ?? []) as Array<{
+    measured_at: string
+    weight: number
+  }>
+
   // R55 perf — 개입 윈도우 사전 계산. lib 함수 (pure) → 추가 fetch 없음.
   let interventionWindow: InterventionWindow | null = null
   if (dog.weight) {
-    const surveyAnswers = ((surveyRes.data?.answers as unknown) ?? {}) as {
-      bcsExact?: number
-    }
-    const trendLogs = (weightTrendRes.data ?? []) as Array<{
-      measured_at: string
-      weight: number
-    }>
     interventionWindow = evaluateInterventionWindow({
       weightLogs: trendLogs.map((l) => ({
         date: l.measured_at,
@@ -154,6 +163,16 @@ export default async function DogDetailPage({
       currentWeightKg: dog.weight,
     })
   }
+
+  // 개요 인사이트 멘트 — 체중 기록 기반, 상황마다 다른 문구(사장님 2026-07-14).
+  // 순수 함수 + 결정적 문구 선택이라 하이드레이션 안전. 체중을 새로 기록하면
+  // DogDetailClient 가 router.refresh() 로 여기부터 다시 계산시킨다.
+  const insight = buildDogInsight({
+    dogName: dog.name,
+    weightLogs: trendLogs,
+    lastSurveyAt,
+    bcs: surveyAnswers.bcsExact ?? null,
+  })
 
   return (
     <>
@@ -168,6 +187,7 @@ export default async function DogDetailPage({
         currentFormula={currentFormula}
         checkinStatus={checkinStatus}
         subscriptions={subscriptions}
+        insight={insight}
       />
     </>
   )
