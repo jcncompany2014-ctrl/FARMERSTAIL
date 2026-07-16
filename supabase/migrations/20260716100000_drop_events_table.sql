@@ -1,0 +1,13 @@
+-- events 테이블 DROP (2026-07-16) — 프로덕션 적용 완료
+--
+-- 쿠폰 시절 프로모션 이벤트 테이블(coupon_code 컬럼 있음). 지금은 후계인 promotions
+-- 테이블이 그 역할을 한다(2026-07-16 신설).
+--
+-- 실측: 3행 전부 **시드 더미**(black-friday·welcome·subscription-launch, 전부
+-- 2026-04-24 생성, coupon_code null). admin/events 화면은 이미 제거됨(좀비 스윕).
+-- 코드 참조 0, FK 0.
+--
+-- ⚠️ `event-images` 버킷과 `/api/admin/events/upload` 라우트는 **남긴다** —
+-- admin/partners 가 그 업로드 라우트를 재활용 중이다(파트너 로고 업로드). 라우트는
+-- 순수 이미지 업로더라 events 테이블을 건드리지 않는다. 이름만 옛날 것.
+drop table if exists public.events cascade;
