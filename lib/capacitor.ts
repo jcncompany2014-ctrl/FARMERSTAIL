@@ -186,28 +186,6 @@ export async function registerAndSyncNativePush(): Promise<boolean> {
 }
 
 /**
- * 외부 URL 을 in-app browser 로 열기. iOS Safari 의 SFSafariViewController,
- * Android 의 Custom Tabs 사용 — system 브라우저로 빠져나가지 않으면서도
- * 보안/세션 분리 (예: Toss 결제 redirect) 가 자연스럽게 처리됨.
- *
- * 웹에선 그냥 window.open(_blank) 폴백.
- */
-export async function openExternal(url: string): Promise<void> {
-  if (isNativeApp()) {
-    try {
-      const { Browser } = await import('@capacitor/browser')
-      await Browser.open({ url, presentationStyle: 'popover' })
-      return
-    } catch {
-      /* fallback to web */
-    }
-  }
-  if (typeof window !== 'undefined') {
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }
-}
-
-/**
  * 네이티브 share sheet — iOS / Android 시스템 공유. 웹에선 navigator.share,
  * 그것도 없으면 클립보드 복사로 폴백.
  */
@@ -254,35 +232,5 @@ export async function nativeShare(payload: {
     }
   }
   return { ok: false }
-}
-
-/**
- * 앱이 background 에서 foreground 로 진입할 때 콜백.
- * 토큰 refresh, cart 재동기화 등에 유용.
- *
- * 웹에서는 Page Visibility API 로 폴백.
- */
-export async function onAppResume(cb: () => void): Promise<() => void> {
-  if (isNativeApp()) {
-    try {
-      const { App } = await import('@capacitor/app')
-      const handle = await App.addListener('appStateChange', (state) => {
-        if (state.isActive) cb()
-      })
-      return () => {
-        void handle.remove()
-      }
-    } catch {
-      /* fall through to web */
-    }
-  }
-  if (typeof document !== 'undefined') {
-    const handler = () => {
-      if (document.visibilityState === 'visible') cb()
-    }
-    document.addEventListener('visibilitychange', handler)
-    return () => document.removeEventListener('visibilitychange', handler)
-  }
-  return () => {}
 }
 

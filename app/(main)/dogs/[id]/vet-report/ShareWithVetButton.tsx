@@ -4,10 +4,18 @@
  * XL-7 (#49) — 수의사 공유 링크 생성 UI.
  *
  * POST /api/dogs/[id]/vet-share → 토큰 URL 반환.
- * 클립보드 복사 + share API (모바일).
+ * 클립보드 복사 + 시스템 공유 시트.
+ *
+ * # 공유는 lib/capacitor 의 nativeShare 를 쓴다 (2026-07-16 정정)
+ * 예전엔 여기서 `navigator.share` 를 직접 부르고, 없으면 버튼을 숨겼다. 그런데
+ * Capacitor 웹뷰에선 Web Share API 를 못 믿는다 — **정작 앱에서 시스템 공유 시트가
+ * 안 뜨는** 상태였다. lib/capacitor 의 nativeShare 가 바로 그것 때문에 만들어졌는데
+ * (앱 → @capacitor/share · 웹 → navigator.share · 그 외 → 클립보드 3단 폴백)
+ * 아무도 안 쓰고 있었다.
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Share2, Copy, Check } from 'lucide-react'
+import { isNativeApp, nativeShare } from '@/lib/capacitor'
 
 export default function ShareWithVetButton({ dogId }: { dogId: string }) {
   const [state, setState] = useState<{
@@ -23,6 +31,13 @@ export default function ShareWithVetButton({ dogId }: { dogId: string }) {
     loading: false,
     copied: false,
   })
+
+  // 앱이면 @capacitor/share 가 항상 뜨므로 navigator.share 유무와 무관하게 노출.
+  // 클라이언트에서만 판정 — 서버 렌더 결과와 어긋나지 않게 mount 후 세운다.
+  const [canShare, setCanShare] = useState(false)
+  useEffect(() => {
+    setCanShare(isNativeApp() || typeof navigator.share === 'function')
+  }, [])
 
   async function generate() {
     setState((s) => ({ ...s, loading: true, error: null }))
@@ -69,17 +84,15 @@ export default function ShareWithVetButton({ dogId }: { dogId: string }) {
     }
   }
 
-  async function nativeShare() {
-    if (!state.url || typeof navigator.share !== 'function') return
-    try {
-      await navigator.share({
-        title: '강아지 진료 보고서',
-        text: '동물병원 진료 전 참고용 보고서',
-        url: state.url,
-      })
-    } catch {
-      // user cancelled
-    }
+  async function share() {
+    if (!state.url) return
+    // nativeShare 는 앱/웹/클립보드 중 뭘 탔는지 알려주지 않는다. 시트가 떴는데
+    // '복사됨' 체크를 띄우면 거짓말이 되므로 결과 표시는 하지 않는다.
+    await nativeShare({
+      title: '강아지 진료 보고서',
+      text: '동물병원 진료 전 참고용 보고서',
+      url: state.url,
+    })
   }
 
   if (!state.url) {
@@ -128,17 +141,16 @@ export default function ShareWithVetButton({ dogId }: { dogId: string }) {
             <Copy className="w-3.5 h-3.5 inline" strokeWidth={2.5} />
           )}
         </button>
-        {typeof navigator !== 'undefined' &&
-          typeof navigator.share === 'function' && (
-            <button
-              type="button"
-              onClick={nativeShare}
-              aria-label="시스템 공유"
-              className="rounded border border-line px-3 py-2 text-[10.5px] font-semibold hover:border-ink active:scale-95"
-            >
-              <Share2 className="w-3.5 h-3.5 inline" strokeWidth={2.5} />
-            </button>
-          )}
+        {canShare && (
+          <button
+            type="button"
+            onClick={share}
+            aria-label="시스템 공유"
+            className="rounded border border-line px-3 py-2 text-[10.5px] font-semibold hover:border-ink active:scale-95"
+          >
+            <Share2 className="w-3.5 h-3.5 inline" strokeWidth={2.5} />
+          </button>
+        )}
       </div>
       <p className="text-[10.5px] text-muted leading-relaxed">
         만료:{' '}

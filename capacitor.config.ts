@@ -17,8 +17,6 @@ import type { CapacitorConfig } from '@capacitor/cli'
  *   │   • Splash Screen                        │
  *   │   • Status Bar                           │
  *   │   • Push Notifications (APNs / FCM)      │
- *   │   • App lifecycle / back button          │
- *   │   • Browser (in-app browser)             │
  *   │   • Share / Preferences                  │
  *   └──────────────────────────────────────────┘
  *
@@ -31,11 +29,21 @@ import type { CapacitorConfig } from '@capacitor/cli'
  * # App Store 심사 대응
  *
  * Apple "Guideline 4.2 — Minimum Functionality" 는 "그냥 웹사이트 wrapper"
- * 를 거부한다. 우리는 다음 네이티브 기능을 추가해 통과 명분 확보:
- *   • Native push (APNs) — Web Push 와 별개의 진짜 시스템 알림
- *   • Native splash + status bar
- *   • Universal Links / App Links — 이메일 링크에서 앱으로 deep-link
- *   • App lifecycle 처리 (backgrounded / foreground 진입 시 토큰 refresh 등)
+ * 를 거부한다. 통과 명분으로 쓸 네이티브 기능 — **실제 구현 상태 기준**
+ * (2026-07-16 전수 확인. 계획이 아니라 코드가 있는 것만 적는다):
+ *   • Native push (APNs) — ✅ `registerAndSyncNativePush`,
+ *     /mypage/notifications 토글에서 호출. Web Push 와 별개의 진짜 시스템 알림.
+ *   • Native splash + status bar — ✅ 아래 plugins 설정.
+ *   • Native share sheet — ✅ `nativeShare` (@capacitor/share),
+ *     수의사 보고서 공유에서 사용.
+ *   • Universal Links / App Links — 🟨 라우트는 준비됨
+ *     (/.well-known/apple-app-site-association · assetlinks.json). 다만
+ *     `APPLE_APP_SITE_TEAM_ID` 가 비면 빈 응답이라 **사실상 비활성**.
+ *     심사 전에 Team ID 를 넣어야 명분이 산다.
+ *   • ~~App lifecycle 처리 (foreground 진입 시 토큰 refresh)~~ — ❌ **미구현.**
+ *     `onAppResume` 헬퍼가 있었지만 **호출처가 0** 이었고(목적도 죽은
+ *     '장바구니 재동기화'), 2026-07-16 제거했다. 이 항목을 심사 명분으로 쓰려면
+ *     먼저 구현해야 한다.
  *
  * # 업데이트 흐름
  *
