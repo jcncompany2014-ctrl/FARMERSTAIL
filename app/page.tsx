@@ -426,7 +426,7 @@ function CompleteMealPlan({ isAuthed }: { isAuthed: boolean }) {
 const BENEFITS = [
   { Icon: Truck, t: '배송 포함', d: '배송비는 구독료에 포함, 추가 비용 없어요.' },
   { Icon: Leaf, t: '콜드체인 신선', d: '급속 냉동해 신선함 그대로 문 앞까지.' },
-  { Icon: RefreshCw, t: '약정 없음', d: '첫 박스부터 부담 없이. 주기 변경·해지는 언제든 자유.' },
+  { Icon: RefreshCw, t: '약정 없음', d: '첫 박스부터 부담 없이. 비율 변경·일시정지·해지는 언제든 자유.' },
   { Icon: MessageCircle, t: '1:1 문의 지원', d: '궁금한 점은 언제든 답해 드려요.' },
 ]
 
