@@ -123,6 +123,18 @@ function parentForPath(pathname: string): string {
   }
   if (pathname.startsWith('/mypage/orders/')) return '/mypage/orders'
   if (pathname.startsWith('/mypage/')) return '/mypage'
+  // 고객센터 허브에서 펼쳐지는 화면들 → 허브로(홈으로 튀지 않게, 2026-07-16).
+  if (pathname === '/faq' || pathname === '/business' || pathname === '/contact')
+    return '/help'
+  // 마이페이지에서 진입하는 계정·알림·도움 화면들 → 마이페이지로.
+  //  (path 기반이라 개요 '전체 관리' 처럼 다른 진입점에선 완벽하진 않지만,
+  //   전부 홈으로 튀던 것보다 예측 가능하다.)
+  if (
+    pathname === '/help' ||
+    pathname === '/notifications' ||
+    pathname.startsWith('/account')
+  )
+    return '/mypage'
   return '/dashboard'
 }
 
