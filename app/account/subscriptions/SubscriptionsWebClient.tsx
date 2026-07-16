@@ -120,9 +120,12 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
     const update: Record<string, unknown> = weeks
       ? (() => {
           const sub = subs.find((s) => s.id === subId)
-          // 한 사이클(2주) 미루기 — 화요일 보존. 기준이 없으면 다음 화요일부터.
+          // 선택한 주(週)만큼 미루기 — 화요일 보존(주 단위라 요일 불변). 기준이
+          // 없으면 다음 화요일부터. ★ nextCycleDate 에 weeks 를 안 넘기면 항상
+          // 2주만 미뤄져 '4주 건너뛰기'가 실제 2주만 되고 토스트는 4주라 거짓말을
+          // 했다(2026-07-17 수정).
           const baseIso = sub?.next_delivery_date ?? nextShipDate()
-          return { next_delivery_date: nextCycleDate(baseIso) }
+          return { next_delivery_date: nextCycleDate(baseIso, weeks) }
         })()
       : { status: 'paused' }
     const { error } = await (supabase as unknown as {
@@ -502,13 +505,14 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
             {!isCancelled && (
               <div className="px-5 py-3.5 flex flex-wrap gap-2" style={{ borderTop: '1px solid var(--fd-line)' }}>
                 {needsCard && (
-                  <a
-                    href={`/subscribe/billing-auth?subscriptionId=${sub.id}`}
+                  <button
+                    type="button"
+                    onClick={() => handleReRegisterCard(sub)}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold transition active:scale-[0.98]"
                     style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
                   >
                     카드 등록하고 시작하기
-                  </a>
+                  </button>
                 )}
                 {isActive && (
                   <button

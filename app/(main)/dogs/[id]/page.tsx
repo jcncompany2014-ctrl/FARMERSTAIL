@@ -82,6 +82,8 @@ export default async function DogDetailPage({
             'total_deliveries, total_amount, billing_key, created_at, ' +
             // subscriptionState() 정확 판정용 — 없으면 '시작 전'을 '일시정지'로 오표시.
             'failed_charge_count, requires_billing_key_renewal, ' +
+            // needs_card 카드등록 링크에 실을 customerKey (없으면 막다른 길이 됐음, 2026-07-17).
+            'billing_customer_key, ' +
             // 실제 배송 레시피(정본). dog_formulas(추천)가 아니라 이걸 카드에 보여준다.
             'subscription_items(product_name, quantity)',
         )

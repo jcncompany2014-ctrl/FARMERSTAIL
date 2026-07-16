@@ -56,6 +56,8 @@ export type ActiveSubscription = {
   total_deliveries: number
   total_amount: number
   billing_key: string | null
+  /** needs_card 카드등록 링크(billing-auth)에 실을 Toss customerKey. 없으면 진입 막힘. */
+  billing_customer_key: string | null
   created_at: string
   /** subscriptionState() 판정용 (2026-07-16). '시작 전'을 '일시정지'로 오표시하던 버그 방지. */
   failed_charge_count: number

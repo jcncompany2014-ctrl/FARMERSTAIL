@@ -114,6 +114,13 @@ export default function SubscriptionCard({
               const state = subscriptionState(s)
               const meta = STATE_META[state]
               const needsCard = state === 'needs_card' || state === 'card_failed'
+              // 카드 등록 링크 — billing-auth 는 customerKey 가 필수라, 안 실으면
+              // '잘못된 접근이에요' 막다른 길이 된다(2026-07-17 수정). 구독 생성 시
+              // billing_customer_key 가 저장되므로 그대로 싣고, 없는 레거시면 구독탭
+              // (client goCard 가 fallback 키 생성)으로 우회.
+              const cardHref = s.billing_customer_key
+                ? `/subscribe/billing-auth?subscriptionId=${encodeURIComponent(s.id)}&customerKey=${encodeURIComponent(s.billing_customer_key)}`
+                : `/dogs/${dogId}/subscription`
               // 실제 배송 레시피(정본). 없으면(레거시) 화식 티어 라벨로 폴백.
               const recipe = (s.subscription_items ?? [])
                 .map((i) => i.product_name)
@@ -169,7 +176,7 @@ export default function SubscriptionCard({
                   </div>
                   {needsCard && (
                     <Link
-                      href={`/subscribe/billing-auth?subscriptionId=${s.id}`}
+                      href={cardHref}
                       className="inline-flex items-center gap-1 mt-1 text-[10.5px] font-bold text-terracotta"
                     >
                       <Bell className="w-3 h-3" strokeWidth={2.4} />
