@@ -189,6 +189,7 @@ export async function POST(req: Request) {
   }
 
   const prompt = buildAnalysisPrompt(ctx)
+  let stopReason: string | null = null
 
   let text: string
   let usage: AnthropicResponse['usage']
@@ -202,7 +203,9 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: (await import('@/lib/anthropic-models')).MODEL_HAIKU,
-        max_tokens: 1500,
+        // 2500 (기존 1500) — summary+highlights+transition(7일)+nextActions 를 한국어로
+        // 채우면 1500 을 넘겨 JSON 이 중간에 잘리고 parse 가 실패했다(비용만 쓰고 캐시 0).
+        max_tokens: 2500,
         system: prompt.system,
         messages: [{ role: 'user', content: prompt.user }],
       }),
@@ -210,8 +213,9 @@ export async function POST(req: Request) {
       // Anthropic capacity hang 방어. 20초 안에 응답 없으면 abort.
       signal: AbortSignal.timeout(20_000),
     })
-    const data = (await res.json()) as AnthropicResponse
+    const data = (await res.json()) as AnthropicResponse & { stop_reason?: string }
     usage = data.usage
+    stopReason = data.stop_reason ?? null
     if (!res.ok) {
       return NextResponse.json(
         {
@@ -249,6 +253,13 @@ export async function POST(req: Request) {
 
   const structured = parseAiAnalysis(text)
   if (!structured) {
+    // 잘림(max_tokens)인지, 형식 오류인지 서버 로그로 남긴다 — 비용만 쓰고 캐시 0 이던
+    // 원인을 눈으로 잡기 위해(2026-07-16). stop_reason='max_tokens' 면 상한을 더 올린다.
+    console.error('[analysis-structured] PARSE_FAILED', {
+      stopReason,
+      textLen: text.length,
+      tail: text.slice(-200),
+    })
     return NextResponse.json(
       {
         code: 'PARSE_FAILED',
