@@ -1,12 +1,32 @@
 /**
  * 칼로리 알고리즘 v2 — 엔진 (docs/CALORIE_ALGORITHM_SPEC_V2.md §6·§9).
  *
- * SurveyInputV2 → FeedingPlanV2 순수 파이프라인. 기존 lib/nutrition.ts 와 독립 —
- * 실 파이프라인 연결(어댑터·설문 매핑)은 1~2단계에서.
+ * SurveyInputV2 → FeedingPlanV2 순수 파이프라인.
+ *
+ * # ⚠️ 먼저 읽을 것 — 이 파일의 상위 파이프라인은 **프로덕션에 연결돼 있지 않다**
+ * (2026-07-16 전수 조사). 실제로 고객 급여량을 내는 경로는 이쪽이 아니다:
+ *
+ *     lib/nutrition.ts  →  lib/calorie-v2/adapter.ts (legacyAdultLadder)
+ *                       →  이 파일의 calculateAdultFactor · breedToFlags
+ *
+ * 즉 **가산 계수 사다리만 뽑아 쓰고** 나머지는 nutrition.ts 가 자체 구현한다.
+ * export 10개 중 프로덕션이 부르는 건 `calculateAdultFactor`·`breedToFlags` 둘뿐이고,
+ * `computeFeedingPlanV2`·`classifyPath`·`growthBranch`·`weightManagementBranch`·
+ * `calculateRER`·`resolveKibbleKcal`·`allocatePortions`·`applyTreatDeduction` 은
+ * **engine.test.ts 만 부른다.** 원래 계획("실 파이프라인 연결은 1~2단계에서")이
+ * 사다리 이식으로 갈음되면서 상위 파이프라인은 남겨진 상태.
+ *
+ * 지우지 않고 두는 이유: 전체 컷오버를 할지 사장님 판단이 필요하다. 다만 아래
+ * 결정 #1 처럼 **이미 뒤집힌 설계**를 담고 있으니, 여기 코드를 프로덕션 동작의
+ * 근거로 읽으면 안 된다.
  *
  * # 사장님 확정 설계 결정 (2026-07-12)
- *  1. 임신/수유·질병 = **수의 라우팅(계산 중단)** — 스펙 그대로. (기존 nutrition.ts
- *     는 NRC 배수로 계산했으나 v2 는 안전 우선.)
+ *  1. ~~임신/수유·질병 = **수의 라우팅(계산 중단)**~~ → **같은 날 뒤집힘.**
+ *     "계산 중단은 구독 플로우 차단 + '긍정 먼저' 원칙과 충돌" → **계산은 제공하되**
+ *     에너지 카드 직하에 수의 상담 배너 강제 노출(2e 경고 강화 절충).
+ *     살아 있는 규칙은 `lib/nutrition.ts` 의 `CALORIE_VET_ROUTE_FLAGS` /
+ *     `needsCalorieVetRoute()` 다. 이 파일의 `classifyPath` → 'vet_referral' 분기는
+ *     **폐기된 설계**이며 아무도 안 부른다.
  *  2. RER 토이 보정(≤2kg Kleiber) **유지** — 스펙 "지수식만"의 취지는 선형식
  *     (30×BW+70) 폐지이고, 현행 토이 보정은 지수식 계열이라 충돌 없음.
  *  3. 감산 지배형의 성립 조건 = M10 재측정 루프 (3단계에서 실연결).
