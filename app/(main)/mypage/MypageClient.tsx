@@ -138,13 +138,13 @@ export default function MypageClient({
               프로필 / 비밀번호 →
             </Mono>
           </Link>
-          {profile?.tier && (
+          {tierMetaOrNull && (
             <Link
               href="/mypage/membership"
               aria-label="멤버십 등급 보기"
               className="shrink-0 active:scale-95 transition"
             >
-              <TierChip tier={profile.tier} />
+              <TierChip stampCount={stamps} />
             </Link>
           )}
         </div>
@@ -419,9 +419,12 @@ export default function MypageClient({
 // ──────────────────────────────────────────────────────────────
 // TierChip — 5단계 등급 시스템 (씨앗/새싹/꽃/열매/단짝)
 // ──────────────────────────────────────────────────────────────
-function TierChip({ tier }: { tier: string }) {
-  const meta = tierMeta(tier)
-  // 등급이 없으면 칩을 아예 안 그린다 — 빈 칩보다 없는 게 낫다.
+// stamp_count 에서 파생(정본) — profiles.tier(stale 캐시)를 쓰면 같은 페이지의
+// 등급 hero(tierFromStamps 정본)와 갈라져 헤더 칩만 다른 등급을 보이던 버그가 있었다
+// (2026-07-17 정합). TierBadge 와 동일 패턴.
+function TierChip({ stampCount }: { stampCount: number }) {
+  const meta = tierMeta(tierFromStamps(stampCount))
+  // 등급이 없으면(스탬프 10개 미만) 칩을 아예 안 그린다 — 빈 칩보다 없는 게 낫다.
   if (!meta) return null
   return (
     <span

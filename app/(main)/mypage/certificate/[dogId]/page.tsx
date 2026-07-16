@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { tierFromStamps } from '@/lib/tiers'
 import CertificateClient from './CertificateClient'
 
 export const dynamic = 'force-dynamic'
@@ -15,7 +16,9 @@ export const metadata: Metadata = {
  *
  * 발급 조건
  * ────────
- *  - 사용자 profile.tier === 'mate'
+ *  - 나무(mate) 등급 — **스탬프 개수 파생 정본**(tierFromStamps). profiles.tier(stale
+ *    캐시)를 쓰면 멤버십 페이지(정본)와 갈라져, 스탬프상 나무인데 등록증만 막히는
+ *    (혹은 반대) 불일치가 났다(2026-07-17 정합).
  *  - dog 의 user_id === 본인
  *  → 두 조건 모두 충족해야 등록증 페이지 진입. 어긋나면 /mypage/membership.
  *
@@ -51,15 +54,17 @@ export default async function CertificatePage({
       .maybeSingle(),
     supabase
       .from('profiles')
-      .select('tier, name, created_at')
+      .select('stamp_count, name, created_at')
       .eq('id', user.id)
       .maybeSingle(),
   ])
 
   if (!dog) redirect('/dogs')
 
-  // 단짝 등급 아니면 멤버십 페이지로 (안내 자연스럽게).
-  if (profile?.tier !== 'mate') redirect('/mypage/membership')
+  // 나무 등급 아니면 멤버십 페이지로 (안내 자연스럽게). 스탬프 개수 파생 정본.
+  if (tierFromStamps(profile?.stamp_count ?? 0) !== 'mate') {
+    redirect('/mypage/membership')
+  }
 
   return (
     <CertificateClient

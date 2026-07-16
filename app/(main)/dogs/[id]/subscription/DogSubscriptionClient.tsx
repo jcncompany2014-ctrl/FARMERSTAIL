@@ -46,6 +46,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { petName, iGa } from '@/lib/korean'
 import { nextShipDate, nextCycleDate, weekdayKo } from '@/lib/shipping-schedule'
+import { freshTierLabel } from '@/lib/subscription/freshTier'
 import {
   subscriptionState,
   type SubState,
@@ -74,12 +75,6 @@ export type DogSub = SubLike & {
   last_failed_charge_reason: string | null
   created_at: string
   subscription_items: { product_name: string; quantity: number }[]
-}
-
-const FRESH_LABEL: Record<number, string> = {
-  30: '곁들임 (화식 30%)',
-  60: '반반 (화식 60%)',
-  100: '완전 화식',
 }
 
 /** yyyy-mm-dd → "8월 4일 (화)". */
@@ -334,7 +329,7 @@ function SubCard({
         {sub.fresh_ratio != null && (
           <div>
             <dt>화식 비율</dt>
-            <dd>{FRESH_LABEL[sub.fresh_ratio] ?? `화식 ${sub.fresh_ratio}%`}</dd>
+            <dd>{freshTierLabel(sub.fresh_ratio)}</dd>
           </div>
         )}
         <div>

@@ -10,15 +10,20 @@ import Reveal from '@/components/landing/Reveal'
 
 /**
  * /plans — 정기배송 안내 (farm v6 = FD 톤, 2026-06-13).
- * FD 패턴 + 사장님 방향: **웹에 명시적 가격/할인% 노출 안 함** — 주기(리듬)와 혜택만
+ * FD 패턴 + 사장님 방향: **웹에 명시적 가격/할인% 노출 안 함** — 화식 비율과 혜택만
  * 안내하고 견적은 2분 설문 후 확정. PublicPageShell→WebChrome(web) 래핑.
  * 모든 CTA → 설문 퍼널(planHref). 가짜 숫자 금지.
+ *
+ * 2026-07-17: 옛 '주1회/2주1회/월1회' 3주기 카드를 폐기. 실제 상품은 배송 무조건
+ * 2주마다(화요일) 고정이고 고객이 고르는 건 화식 비율(30/60/100)뿐이라, 웹이
+ * 없는 주기를 광고해 앱 주문 화면과 어긋나던 문제를 제거. 앱 PlanClient FRESH_TIERS
+ * 와 같은 라벨·비율로 맞춤.
  */
 export const revalidate = 3600
 
 const PLANS_OG = ogImageUrl({
   title: '정기배송',
-  subtitle: '주 1회 · 2주 1회 · 월 1회 냉동 배송',
+  subtitle: '2주마다 냉동 배송 · 화식 비율 3단계',
   tag: 'Plans',
   variant: 'product',
 })
@@ -27,11 +32,11 @@ export const metadata: Metadata = {
   // layout template "%s | 파머스테일" 가 브랜드명 1회 부착 → 페이지명만(중복 방지, 회차150).
   title: '정기배송',
   description:
-    '주 1회 · 2주 1회 · 월 1회 냉동 배송. 수의영양학 기반 맞춤 식단을 정기적으로. 견적은 2분 설문 후 확정, 언제든 해지.',
+    '2주마다 신선한 화식을 냉동 배송. 곁들임·반반·완전 화식 중 우리 아이에 맞는 비율로. 견적은 2분 설문 후 확정, 언제든 해지.',
   alternates: { canonical: '/plans' },
   openGraph: {
     title: '정기배송 | 파머스테일',
-    description: '주 1회 · 2주 1회 · 월 1회 냉동 배송. 수의영양학 기반 맞춤 식단을 정기적으로.',
+    description: '2주마다 신선한 화식을 냉동 배송. 곁들임·반반·완전 화식 중 우리 아이에 맞는 비율로.',
     type: 'website',
     locale: 'ko_KR',
     siteName: '파머스테일',
@@ -41,7 +46,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: '정기배송 | 파머스테일',
-    description: '주 1회 · 2주 1회 · 월 1회 냉동 배송. 수의영양학 기반 맞춤 식단을 정기적으로.',
+    description: '2주마다 신선한 화식을 냉동 배송. 곁들임·반반·완전 화식 중 우리 아이에 맞는 비율로.',
     images: [PLANS_OG],
   },
   robots: { index: true, follow: true },
@@ -58,34 +63,37 @@ type Plan = {
   bullets: string[]
 }
 
+// 배송·결제는 무조건 2주마다 고정(화요일 발송). 고객이 고르는 건 '주기'가 아니라
+// 화식 비율(30 곁들임 / 60 반반 / 100 완전) — 앱 PlanClient FRESH_TIERS 와 동일한
+// 라벨·비율로 맞춰 웹/앱이 같은 정보를 준다(2026-07-17 정합).
 const PLANS: Plan[] = [
   {
-    id: 'weekly',
-    kicker: 'PLAN A',
-    ko: '주 1회',
-    en: 'WEEKLY',
-    cadence: '7일 주기 · 급속냉동 출고',
-    lede: '매주 출고. 일주일 치 식단만 보관하면 되어 냉동실 공간을 최소화합니다.',
-    bullets: ['견종·체중 기반 1회분 그램수 자동 계산', '출고 48시간 전까지 건너뛰기·변경', '조리 후 12시간 내 냉동 — 영양 손실 최소화'],
-  },
-  {
-    id: 'biweekly',
+    id: 'light',
     badge: '추천',
-    kicker: 'PLAN B',
-    ko: '2주 1회',
-    en: 'BI-WEEKLY',
-    cadence: '14일 주기 · 급속냉동 출고',
-    lede: '보관과 신선도의 균형. 냉동실 한 칸이면 2주 치 식단이 들어갑니다.',
-    bullets: ['평소 간식은 그대로 자유롭게', '2주 단위로 급여량 리뷰·조정', '첫 회차 미개봉 시 7일 내 환불'],
+    kicker: 'PLAN A',
+    ko: '곁들임',
+    en: 'LIGHT 30%',
+    cadence: '화식 30% · 건사료 70%',
+    lede: '화식이 처음이라면 여기서. 늘 먹던 사료에 화식을 더해 기호성과 영양을 함께 올려요.',
+    bullets: ['익숙한 사료는 그대로, 화식만 더해요', '가장 부담 없는 첫걸음 비율', '2주마다 급여량 리뷰·조정'],
   },
   {
-    id: 'monthly',
+    id: 'half',
+    kicker: 'PLAN B',
+    ko: '반반',
+    en: 'HALF 60%',
+    cadence: '화식 60% · 건사료 40%',
+    lede: '화식 반, 사료 반. 부담은 낮추고 영양 균형은 제대로 챙기는 구성이에요.',
+    bullets: ['화식과 사료의 균형', '2주 단위로 급여량 리뷰·조정', '첫 회차 미개봉 시 7일 내 환불'],
+  },
+  {
+    id: 'full',
     kicker: 'PLAN C',
-    ko: '월 1회',
-    en: 'MONTHLY',
-    cadence: '30일 주기 · 급속냉동 + 동결건조',
-    lede: '동결건조 비중을 올려 보관이 간편. 여행·장기 외출이 잦은 가구에 추천.',
-    bullets: ['보관 걱정 적은 동결건조 중심 구성', '월별 시즌 한정 레시피 우선 제공', '여행용 소포장 키트 무상 증정'],
+    ko: '완전 화식',
+    en: 'FULL 100%',
+    cadence: '화식 100%',
+    lede: '매일 그릇 가득 신선한 화식만. 완벽한 영양을 원하는 아이를 위한 구성이에요.',
+    bullets: ['모든 끼니를 신선한 화식으로', '수의영양 기준 100% 충족', '2주마다 급여량 리뷰·조정'],
   },
 ]
 
@@ -99,15 +107,15 @@ const WHY = [
 const STEPS = [
   ['01', '견종·체중·활동량·민감한 음식 입력 (2분 설문)'],
   ['02', '수의영양 기준으로 맞춤 식단·급여량 계산'],
-  ['03', '주기 선택 후 배송일 지정'],
-  ['04', '매 주기 자동 출고 — 건너뛰기·변경 자유'],
+  ['03', '화식 비율 선택 (배송은 매주 화요일 발송)'],
+  ['04', '2주마다 자동 출고 — 건너뛰기·변경 자유'],
 ]
 
 const FAQS = [
-  { q: '언제든 해지할 수 있나요?', a: '네. 다음 출고 48시간 전까지 마이페이지에서 즉시 해지·건너뛰기·변경이 가능합니다. 위약금이나 최소 약정은 없습니다.' },
-  { q: '배송은 어떻게 오나요?', a: '드라이아이스 + 진공 단열재 박스로 냉동 상태를 유지해 택배 배송됩니다. 수도권은 익일, 그 외 지역은 48시간 이내 도착합니다.' },
+  { q: '언제든 해지할 수 있나요?', a: '네. 발송 1주일 전까지 마이페이지에서 해지·건너뛰기·비율 변경이 가능합니다. 위약금이나 최소 약정은 없습니다.' },
+  { q: '배송은 어떻게 오나요?', a: '드라이아이스 + 진공 단열재 박스로 냉동 상태를 유지해, 2주마다 화요일에 발송합니다. 수도권은 익일, 그 외 지역은 48시간 이내 도착합니다.' },
   { q: '알레르기가 있는 아이도 먹을 수 있나요?', a: '설문에서 알레르기 이력을 입력하시면, 해당 원료가 포함된 레시피는 자동으로 제외됩니다.' },
-  { q: '가격은 어떻게 결정되나요?', a: '견종·체중·활동량 기반으로 1일 권장 칼로리를 계산한 뒤 주기에 맞춰 견적이 산출됩니다. 2분 설문 후 정확한 금액을 확인하실 수 있어요.' },
+  { q: '가격은 어떻게 결정되나요?', a: '견종·체중·활동량 기반으로 1일 권장 칼로리를 계산한 뒤, 고른 화식 비율에 맞춰 견적이 산출됩니다. 2분 설문 후 정확한 금액을 확인하실 수 있어요.' },
 ]
 
 function PlanCard({ plan, planHref }: { plan: Plan; planHref: string }) {
@@ -142,7 +150,7 @@ function PlanCard({ plan, planHref }: { plan: Plan; planHref: string }) {
         </ul>
         <div className="mt-5">
           <Button href={planHref} tone="coral" full size="md">
-            이 주기로 시작
+            이 비율로 시작
             <ArrowRight size={17} strokeWidth={2.4} />
           </Button>
         </div>
@@ -228,10 +236,10 @@ export default async function PlansPage() {
         {/* Cadence options */}
         <Section bg="white" pad="md">
           <Container size="xl">
-            <Eyebrow>CHOOSE YOUR CADENCE</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>세 가지 리듬</Display>
+            <Eyebrow>CHOOSE YOUR RATIO</Eyebrow>
+            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>세 가지 화식 비율</Display>
             <p className="pt-3 text-[13.5px] md:text-[15px]" style={{ color: 'var(--fd-muted)', maxWidth: 560, lineHeight: 1.6 }}>
-              견종·활동량에 맞춰 2분 설문을 마치면, 화면에서 우리 아이 맞춤 견적이 확정됩니다.
+              배송은 2주마다 한 번, 화식 비율만 우리 아이에 맞게 고르면 돼요. 2분 설문을 마치면 화면에서 맞춤 견적이 확정됩니다.
             </p>
             <div className="pt-7 grid grid-cols-1 md:grid-cols-3 gap-4">
               {PLANS.map((p, i) => (
@@ -241,7 +249,7 @@ export default async function PlansPage() {
               ))}
             </div>
             <p className="pt-5 text-[12px]" style={{ color: 'var(--fd-muted)', letterSpacing: '0.02em', lineHeight: 1.6 }}>
-              모든 주기 공통 — 배송비 구독료 포함, 언제든 해지, 첫 회차 미개봉 시 7일 내 환불.
+              모든 비율 공통 — 2주마다 냉동 배송, 배송비 구독료 포함, 언제든 해지, 첫 회차 미개봉 시 7일 내 환불.
             </p>
           </Container>
         </Section>

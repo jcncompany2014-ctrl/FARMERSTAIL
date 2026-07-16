@@ -73,7 +73,7 @@ const PILLARS = [
   { icon: Leaf, label: 'SOURCING', title: '국내 농가에서, 직접', body: '강원·전남·제주 등 30여 곳의 계약 농가에서 주 2회 입고. 도축·수확 24시간 안에 작업장에 도착하고, 원산지·농가는 패키지에 표기.' },
   { icon: ShieldCheck, label: 'RECIPE', title: '수의영양학 자문 레시피', body: '수의영양학 자문으로 단백질·지방·미네랄 비율을 맞춰 설계. 표준 영양 기준에 맞춘 배합으로 영양 격차 없이.' },
   { icon: Sparkles, label: 'COOKING', title: '수비드 저온 조리', body: '72°C 수비드 저온 조리로 단백질 변성·영양 손실을 최소화. 조리 후 즉시 급속 냉동해 효소·풍미를 그대로 유지.' },
-  { icon: Repeat, label: 'CARE', title: '식단 그 이후의 케어', body: '앱에서 매일 식사·체중·산책을 기록하고, 매달 식단 노트를 받아요. 식단을 사고 끝나는 게 아니라 같이 사는 동안 옆에 있는 브랜드.' },
+  { icon: Repeat, label: 'CARE', title: '식단 그 이후의 케어', body: '앱에서 매일 식사·체중·산책을 기록하고, 정기적으로 식단 노트를 받아요. 식단을 사고 끝나는 게 아니라 같이 사는 동안 옆에 있는 브랜드.' },
 ]
 
 function Chapter({
@@ -287,7 +287,7 @@ export default async function BrandPage() {
         {/* Ch05 Next + CTA */}
         <Chapter id="next" no="05" label="What's Next" bg="white" title="식단 그 다음의 그릇">
           <p className="text-[14px] md:text-[16px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.85, maxWidth: 720 }}>
-            영양 데이터, 케어 기록, 매달 식단 노트 — 식단이 지나간 자리에 무엇이
+            영양 데이터, 케어 기록, 정기 식단 노트 — 식단이 지나간 자리에 무엇이
             남는지를 우리는 기록으로 보존하려 해요. 다음 시즌에는 알레르기 케어
             라인, 노령견을 위한 라인이 차례로 추가될 예정입니다.
           </p>

@@ -147,7 +147,7 @@ export default function Preferences({
           })}
         </div>
         <p style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 10, lineHeight: 1.5 }}>
-          이 답이 첫 박스의 화식 라인 메인을 결정해요. 이후 매월 체크인으로 비율이 조정됩니다.
+          이 답이 첫 박스의 화식 라인 메인을 결정해요. 이후 정기 체크인으로 비율이 조정됩니다.
         </p>
       </div>
 

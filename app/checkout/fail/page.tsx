@@ -45,7 +45,7 @@ export default async function CheckoutFailPage({
           결제가 완료되지 않았어요
         </h1>
         <p className="mt-2 md:mt-4 text-[12px] md:text-[15px] text-muted text-center">
-          다시 시도하거나 장바구니로 돌아가 확인해 주세요
+          다시 시도하거나 주문 내역에서 확인해 주세요
         </p>
       </section>
 

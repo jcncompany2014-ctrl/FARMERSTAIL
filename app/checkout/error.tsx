@@ -4,9 +4,9 @@
  * Checkout segment error boundary.
  *
  * 결제 흐름에서 발생하는 render/effect 예외 전용 fallback. 루트 error.tsx 로만
- * 흘러가면 사용자가 "어디서 돈이 떨어졌는지" 맥락을 잃는다 — 이 경계는 장바구니
- * 로 돌아갈 루트를 primary 로 제공해서 "결제 재시도 or 장바구니 재확인" 중
- * 선택할 수 있게 한다.
+ * 흘러가면 사용자가 "어디서 돈이 떨어졌는지" 맥락을 잃는다 — 이 경계는 결제 재시도
+ * 를 primary 로, 주문 내역 재확인을 secondary 로 제공한다. (장바구니는 구독 전용
+ * 전환으로 폐지돼 /start 로 튀므로 secondary 를 주문 내역으로 교체 — 2026-07-17.)
  */
 import { useEffect } from 'react'
 import { CreditCard } from 'lucide-react'
@@ -32,11 +32,11 @@ export default function CheckoutError({
       code="500"
       kicker="Checkout · 결제가 잠깐 멈췄어요"
       title="결제 페이지에 문제가 생겼어요"
-      description="결제는 아직 진행되지 않았어요. 다시 시도하거나 장바구니에서 주문을 확인해 주세요."
+      description="결제는 아직 진행되지 않았어요. 다시 시도하거나 주문 내역에서 확인해 주세요."
       icon={<CreditCard className="w-6 h-6" strokeWidth={2} aria-hidden />}
       tone="sale"
       primary={{ label: '다시 시도', onClick: reset }}
-      secondary={{ label: '장바구니로', href: '/cart' }}
+      secondary={{ label: '주문 내역', href: '/mypage/orders' }}
       traceId={error.digest}
       footer={
         <>

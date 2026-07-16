@@ -50,8 +50,13 @@ export default function SubscriptionCard({
 }) {
   if (subscriptions.length === 0 && !hasFormula) return null
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  // D-day 는 KST 자정 기준. 서버(UTC) 자정으로 세면 홈 ActiveDogCard(KST 기준)와
+  // 같은 배송인데 하루 어긋난다(2026-07-17 정합). next_delivery_date 는 KST 달력 날짜.
+  // eslint-disable-next-line react-hooks/purity
+  const nowKstMs = Date.now() + 9 * 3600 * 1000
+  const todayKstStart = new Date(
+    new Date(nowKstMs).toISOString().slice(0, 10) + 'T00:00:00+09:00',
+  ).getTime()
 
   return (
     <section className="px-5 mt-3">
@@ -92,13 +97,20 @@ export default function SubscriptionCard({
         ) : (
           <ul className="flex flex-col gap-2">
             {subscriptions.map((s) => {
-              const next = s.next_delivery_date ? new Date(s.next_delivery_date) : null
-              const dDay =
-                next !== null
-                  ? Math.ceil(
-                      (next.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-                    )
-                  : null
+              const dDay = s.next_delivery_date
+                ? Math.round(
+                    (new Date(
+                      `${s.next_delivery_date}T00:00:00+09:00`,
+                    ).getTime() -
+                      todayKstStart) /
+                      86_400_000,
+                  )
+                : null
+              // 날짜 라벨 — KST date 문자열에서 직접 뽑는다(Date 로 파싱해 서버 tz 로
+              // 포맷하면 KST 자정이 전날로 밀려 '하루 전'을 표시한다).
+              const nextLabel = s.next_delivery_date
+                ? `${Number(s.next_delivery_date.slice(5, 7))}월 ${Number(s.next_delivery_date.slice(8, 10))}일`
+                : ''
               const state = subscriptionState(s)
               const meta = STATE_META[state]
               const needsCard = state === 'needs_card' || state === 'card_failed'
@@ -144,10 +156,10 @@ export default function SubscriptionCard({
                         ? '카드 등록 후 첫 배송일이 잡혀요'
                         : state === 'paused'
                           ? '재개 시 재계산'
-                          : next && dDay !== null
+                          : s.next_delivery_date && dDay !== null
                             ? dDay <= 0
                               ? '오늘 발송 예정'
-                              : `${dDay}일 후 (${next.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })})`
+                              : `${dDay}일 후 (${nextLabel})`
                             : '-'}
                     </span>
                     <span className="inline-flex items-center gap-1">
