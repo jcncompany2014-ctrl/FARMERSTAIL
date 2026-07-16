@@ -500,7 +500,9 @@ export default function OrderClient({
           '이 강아지에 진행중인 정기배송이 이미 있어요. 마이페이지에서 관리해 주세요.',
         )
         setTimeout(
-          () => router.push('/mypage/subscriptions?highlight=' + existingId),
+          // /account/subscriptions 는 focus 파라미터로 해당 구독을 강조한다.
+          // 옛 경로+highlight= 는 리다이렉트에서 파라미터가 버려져 강조가 안 됐다(정정).
+          () => router.push('/account/subscriptions?focus=' + existingId),
           1500,
         )
         return

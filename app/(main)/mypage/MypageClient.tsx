@@ -266,7 +266,7 @@ export default function MypageClient({
               isFirst
             />
             <StatCell
-              href="/mypage/subscriptions"
+              href="/account/subscriptions"
               kicker="Subs"
               value={subCount}
               unit="건"
@@ -282,7 +282,7 @@ export default function MypageClient({
       <MenuGroup kicker="Orders · 주문 & 배송" topPad={28}>
         <MenuItem href="/mypage/orders" Icon={Package} label="주문 내역" />
         <MenuItem
-          href="/mypage/subscriptions"
+          href="/account/subscriptions"
           Icon={Repeat}
           label="정기배송 관리"
           last

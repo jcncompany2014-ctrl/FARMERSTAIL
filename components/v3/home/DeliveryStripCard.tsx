@@ -31,9 +31,9 @@ export default function DeliveryStripCard({
   channelLabel = '정기배송',
   arrivalLabel,
   itemLabel,
-  // 실제 라우트는 /mypage/subscriptions — `/subscriptions`(최상위) 라우트는 없어
-  // 기본값이 404 데드링크였음(2026-06-19 수정). 호출부 미지정 시에도 안전하게.
-  href = '/mypage/subscriptions',
+  // 정기배송 관리 정본 라우트 = /account/subscriptions (옛 /mypage/subscriptions 는
+  // 이 경로로 리다이렉트되는 호환용). 호출부 미지정 시에도 안전한 정본 기본값.
+  href = '/account/subscriptions',
 }: DeliveryStripCardProps) {
   const inner = (
     <div

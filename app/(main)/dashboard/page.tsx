@@ -594,7 +594,7 @@ export default async function DashboardPage() {
                 : `${upcomingDelivery.daysUntil}일 후 도착`
           }
           itemLabel={upcomingDelivery.productLabel}
-          href="/mypage/subscriptions"
+          href="/account/subscriptions"
         />
       )}
 
