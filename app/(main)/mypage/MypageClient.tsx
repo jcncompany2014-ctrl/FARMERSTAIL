@@ -21,7 +21,6 @@ import {
   Package,
   Repeat,
   Bell,
-  MapPin,
   ChevronRight,
   LogOut,
   Sprout,
@@ -286,8 +285,9 @@ export default function MypageClient({
           href="/mypage/subscriptions"
           Icon={Repeat}
           label="정기배송 관리"
+          last
         />
-        <MenuItem href="/mypage/addresses" Icon={MapPin} label="배송지 관리" last />
+        {/* 배송지 관리는 프로필(/account/profile)로 편입(2026-07-16). */}
       </MenuGroup>
 
       <MenuGroup kicker="Benefits · 혜택" topPad={20}>

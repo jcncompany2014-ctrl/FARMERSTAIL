@@ -1,12 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronRight, ArrowLeft } from 'lucide-react'
+import { ChevronRight, ArrowLeft, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import ProfileForm from '@/components/account/ProfileForm'
 import PasswordChangeButton from '@/components/account/PasswordChangeButton'
 import TierBadge from '@/components/account/TierBadge'
+import AddressesClient from '@/app/(main)/mypage/addresses/AddressesClient'
+import { rowToAddress, type AddressRow } from '@/lib/commerce/addresses'
 import { isAppContextServer } from '@/lib/app-context'
 import { Eyebrow } from '@/components/web/fd/ui'
 
@@ -43,6 +45,18 @@ export default async function ProfileEditPage() {
     .select('name, phone, tier, stamp_count')
     .eq('id', user.id)
     .maybeSingle()
+
+  // 배송지 — 별도 페이지(/mypage/addresses) 없애고 프로필로 편입(사장님 2026-07-16).
+  // 저장/삭제/기본설정 로직·API·체크아웃은 그대로. 여기선 목록만 보여준다.
+  const { data: addrRows } = await supabase
+    .from('addresses')
+    .select(
+      'id, user_id, label, recipient_name, phone, zip, address, address_detail, is_default, created_at, updated_at',
+    )
+    .eq('user_id', user.id)
+    .order('is_default', { ascending: false })
+    .order('created_at', { ascending: false })
+  const addresses = ((addrRows ?? []) as AddressRow[]).map(rowToAddress)
 
   return (
     <AuthAwareShell>
@@ -155,6 +169,30 @@ export default async function ProfileEditPage() {
             <PasswordChangeButton email={user.email ?? ''} />
           </div>
 
+        </section>
+
+        {/* 배송지 — 별도 페이지 대신 프로필에서 관리(2026-07-16). 추가/수정은 폼 라우트. */}
+        <section className="px-5 md:px-8 mt-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[14px] font-bold" style={{ color: 'var(--fd-pine)' }}>
+              배송지
+            </h2>
+            <Link
+              href="/mypage/addresses/new"
+              className="inline-flex items-center gap-1 text-[11.5px] font-bold"
+              style={{ color: 'var(--fd-coral-text)' }}
+            >
+              <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+              추가
+            </Link>
+          </div>
+          {addresses.length === 0 ? (
+            <p className="text-[11.5px] leading-relaxed" style={{ color: 'var(--fd-muted)' }}>
+              저장된 배송지가 없어요. 추가하면 체크아웃에서 자동 선택돼요.
+            </p>
+          ) : (
+            <AddressesClient initial={addresses} />
+          )}
         </section>
 
         <section className="px-5 md:px-8 mt-8 md:mt-12">

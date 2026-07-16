@@ -97,7 +97,8 @@ export default function AddressForm({ mode, initial }: Props) {
         return
       }
 
-      router.push('/mypage/addresses')
+      // 배송지 목록은 프로필로 편입됨(2026-07-16) — 저장 후 프로필로.
+      router.push('/account/profile')
       router.refresh()
     } catch {
       setError('잠시 네트워크가 불안정한 것 같아요. 다시 시도해 주세요.')
