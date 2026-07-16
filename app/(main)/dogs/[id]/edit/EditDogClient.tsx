@@ -7,9 +7,6 @@ import { useRouter } from 'next/navigation'
 import {
   Check,
   X,
-  Moon,
-  Footprints,
-  Zap,
   AlertCircle,
   ArrowRight,
 } from 'lucide-react'
@@ -18,6 +15,8 @@ import DogPhotoPicker from '@/components/DogPhotoPicker'
 import { resolvePhotoState, type PhotoState } from '@/lib/dogPhotos'
 import { isAdvancedUiEnabled } from '@/lib/ui-flags'
 import { Select } from '@/components/v3'
+import { deriveAgeFromBirth } from '@/lib/dog-age'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 
 const BREEDS = [
   '포메라니안', '말티즈', '푸들', '토이푸들', '시츄', '비숑 프리제',
@@ -34,8 +33,7 @@ export type EditDogInitial = {
   breed: string
   gender: '' | 'male' | 'female'
   neutered: boolean | null
-  age_value: string
-  age_unit: 'years' | 'months'
+  birth_date: string
   weight: string
   activity_level: '' | 'low' | 'medium' | 'high'
   weight_method: string
@@ -67,12 +65,9 @@ export default function EditDogClient({
   const [breed, setBreed] = useState(initial.breed)
   const [gender, setGender] = useState<'male' | 'female' | ''>(initial.gender)
   const [neutered, setNeutered] = useState<boolean | null>(initial.neutered)
-  const [ageValue, setAgeValue] = useState(initial.age_value)
-  const [ageUnit, setAgeUnit] = useState<'years' | 'months'>(initial.age_unit)
+  // 나이 대신 생일 — age_value/age_unit 은 저장 시 자동 계산(사장님 2026-07-16).
+  const [birthDate, setBirthDate] = useState(initial.birth_date)
   const [weight, setWeight] = useState(initial.weight)
-  const [activityLevel, setActivityLevel] = useState<
-    'low' | 'medium' | 'high' | ''
-  >(initial.activity_level)
   const [weightMethod, setWeightMethod] = useState<string>(initial.weight_method)
   const [activityMethod, setActivityMethod] = useState<string>(initial.activity_method)
   const [feedMethod, setFeedMethod] = useState<string>(initial.feed_method)
@@ -108,16 +103,17 @@ export default function EditDogClient({
       setError('중성화 여부를 선택해 주세요')
       return
     }
-    if (!ageValue || parseInt(ageValue) <= 0) {
-      setError('나이를 입력해 주세요')
+    const derivedAge = deriveAgeFromBirth(birthDate, Date.now())
+    if (!birthDate || !derivedAge) {
+      setError('생일을 입력해 주세요')
+      return
+    }
+    if (birthDate > todayKstIsoDate()) {
+      setError('생일이 오늘보다 미래일 수 없어요')
       return
     }
     if (!weight || parseFloat(weight) <= 0) {
       setError('체중을 입력해 주세요')
-      return
-    }
-    if (!activityLevel) {
-      setError('활동량을 선택해 주세요')
       return
     }
 
@@ -147,10 +143,12 @@ export default function EditDogClient({
         breed,
         gender,
         neutered,
-        age_value: parseInt(ageValue),
-        age_unit: ageUnit,
+        birth_date: birthDate,
+        // 생일로부터 자동 계산 — 칼로리 알고리즘이 읽는 age_value/age_unit 유지.
+        age_value: derivedAge.value,
+        age_unit: derivedAge.unit,
         weight: parseFloat(weight),
-        activity_level: activityLevel,
+        // 활동량은 폼에서 제거(설문에서 받음) → 기존 값 보존 위해 update 에서 제외.
         weight_method: weightMethod,
         activity_method: activityMethod,
         feed_method: feedMethod,
@@ -304,41 +302,18 @@ export default function EditDogClient({
         </div>
 
         <div>
-          <label className={labelCls}>나이 *</label>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              min="0"
-              value={ageValue}
-              onChange={(e) => setAgeValue(e.target.value)}
-              aria-label="나이"
-              className={`${inputCls} flex-1`}
-            />
-            <button
-              type="button"
-              aria-pressed={ageUnit === 'years'}
-              onClick={() => setAgeUnit('years')}
-              className={`px-4 rounded border text-[12px] font-bold transition ${
-                ageUnit === 'years'
-                  ? 'border-text bg-bg text-text'
-                  : 'border-rule bg-bg-3 text-muted'
-              }`}
-            >
-              살
-            </button>
-            <button
-              type="button"
-              aria-pressed={ageUnit === 'months'}
-              onClick={() => setAgeUnit('months')}
-              className={`px-4 rounded border text-[12px] font-bold transition ${
-                ageUnit === 'months'
-                  ? 'border-text bg-bg text-text'
-                  : 'border-rule bg-bg-3 text-muted'
-              }`}
-            >
-              개월
-            </button>
-          </div>
+          <label className={labelCls}>생일 *</label>
+          <input
+            type="date"
+            max={todayKstIsoDate()}
+            value={birthDate}
+            onChange={(e) => setBirthDate(e.target.value)}
+            className={inputCls}
+            aria-label="생일"
+          />
+          <p className="mt-1 text-[10.5px] text-muted">
+            나이는 생일로 자동 계산돼요 (정확히 모르면 대략으로 넣어도 돼요)
+          </p>
         </div>
 
         <div>
@@ -354,63 +329,8 @@ export default function EditDogClient({
           />
         </div>
 
-        <div>
-          <label className={labelCls}>활동량 *</label>
-          <div className="space-y-2">
-            {[
-              {
-                v: 'low' as const,
-                Icon: Moon,
-                t: '낮음',
-                d: '거의 움직이지 않아요',
-              },
-              {
-                v: 'medium' as const,
-                Icon: Footprints,
-                t: '보통',
-                d: '하루 1~2회 산책',
-              },
-              {
-                v: 'high' as const,
-                Icon: Zap,
-                t: '활동적',
-                d: '뛰어다니기를 좋아해요',
-              },
-            ].map((a) => {
-              const active = activityLevel === a.v
-              return (
-                <button
-                  key={a.v}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setActivityLevel(a.v)}
-                  className={`w-full py-3 px-4 rounded border text-left transition flex items-center gap-3 ${
-                    active
-                      ? 'border-text bg-text text-white'
-                      : 'border-rule bg-bg-3 text-text hover:border-muted'
-                  }`}
-                >
-                  <a.Icon
-                    className={`w-5 h-5 ${
-                      active ? 'text-white' : 'text-muted'
-                    }`}
-                    strokeWidth={1.8}
-                  />
-                  <div>
-                    <div className="font-bold text-[13.5px]">{a.t}</div>
-                    <div
-                      className={`text-[10.5px] ${
-                        active ? 'text-white/70' : 'text-muted'
-                      }`}
-                    >
-                      {a.d}
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        {/* 활동량 — 설문에서 물어보므로 등록/수정 폼에서 제거(사장님 2026-07-16).
+            기존 값은 update 에서 건드리지 않아 보존된다. */}
 
         {/* Phase P10 — 측정 도구 메타. */}
         {isAdvancedUiEnabled('advanced_inputs') && (

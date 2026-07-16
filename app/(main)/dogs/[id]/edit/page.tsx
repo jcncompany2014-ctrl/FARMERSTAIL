@@ -37,8 +37,7 @@ export default async function EditDogPage({
     breed: string | null
     gender: string | null
     neutered: boolean | null
-    age_value: number | null
-    age_unit: string | null
+    birth_date: string | null
     weight: number | null
     activity_level: string | null
     weight_method: string | null
@@ -60,8 +59,7 @@ export default async function EditDogPage({
     breed: row.breed ?? '',
     gender: (row.gender ?? '') as '' | 'male' | 'female',
     neutered: row.neutered,
-    age_value: row.age_value?.toString() ?? '',
-    age_unit: (row.age_unit ?? 'years') as 'years' | 'months',
+    birth_date: (row.birth_date as string | null) ?? '',
     weight: row.weight?.toString() ?? '',
     activity_level: (row.activity_level ?? '') as
       | ''

@@ -7,9 +7,6 @@ import { useRouter } from 'next/navigation'
 import {
   Check,
   X,
-  Moon,
-  Footprints,
-  Zap,
   AlertCircle,
   ArrowRight,
 } from 'lucide-react'
@@ -18,6 +15,8 @@ import DogPhotoPicker from '@/components/DogPhotoPicker'
 import { resolvePhotoState, type PhotoState } from '@/lib/dogPhotos'
 import { isAdvancedUiEnabled } from '@/lib/ui-flags'
 import { Select } from '@/components/v3'
+import { deriveAgeFromBirth } from '@/lib/dog-age'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 
 /**
  * datepicker (YYYY-MM-DD) → 자정 KST 의 timestamptz ISO 변환.
@@ -44,12 +43,10 @@ type NewDogDraft = {
   breed?: string
   gender?: 'male' | 'female' | ''
   neutered?: boolean | null
-  ageValue?: string
-  ageUnit?: 'years' | 'months'
+  birthDate?: string
   weight?: string
   weightMethod?: string
   weightMeasuredAt?: string
-  activityLevel?: 'low' | 'medium' | 'high' | ''
   activityMethod?: string
   feedMethod?: string
 }
@@ -94,10 +91,8 @@ export default function NewDogClient({ userId }: { userId: string }) {
   const [neutered, setNeutered] = useState<boolean | null>(
     draft?.neutered ?? null,
   )
-  const [ageValue, setAgeValue] = useState(draft?.ageValue ?? '')
-  const [ageUnit, setAgeUnit] = useState<'years' | 'months'>(
-    draft?.ageUnit ?? 'years',
-  )
+  // 나이 대신 생일(YYYY-MM-DD) — age_value/age_unit 는 저장 시 자동 계산(사장님 2026-07-16).
+  const [birthDate, setBirthDate] = useState(draft?.birthDate ?? '')
   const [weight, setWeight] = useState(draft?.weight ?? '')
   const [weightMethod, setWeightMethod] = useState<
     'vet_scale' | 'home_digital' | 'home_analog' | 'hold' | 'eyeball' | 'unknown'
@@ -115,10 +110,8 @@ export default function NewDogClient({ userId }: { userId: string }) {
         return `${yy}-${mm}-${dd}`
       })(),
   )
-  const [activityLevel, setActivityLevel] = useState<
-    'low' | 'medium' | 'high' | ''
-  >(draft?.activityLevel ?? '')
-  const [activityMethod, setActivityMethod] = useState<
+  // 활동량 측정도구 — UI 는 제거했지만 activity_method 컬럼이 NOT NULL 이라 값 유지.
+  const [activityMethod] = useState<
     'pedometer' | 'gps' | 'subjective' | 'unknown'
   >(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -152,12 +145,10 @@ export default function NewDogClient({ userId }: { userId: string }) {
             breed,
             gender,
             neutered,
-            ageValue,
-            ageUnit,
+            birthDate,
             weight,
             weightMethod,
             weightMeasuredAt,
-            activityLevel,
             activityMethod,
             feedMethod,
           }),
@@ -173,12 +164,10 @@ export default function NewDogClient({ userId }: { userId: string }) {
     breed,
     gender,
     neutered,
-    ageValue,
-    ageUnit,
+    birthDate,
     weight,
     weightMethod,
     weightMeasuredAt,
-    activityLevel,
     activityMethod,
     feedMethod,
   ])
@@ -204,16 +193,17 @@ export default function NewDogClient({ userId }: { userId: string }) {
       setError('중성화 여부를 선택해 주세요')
       return
     }
-    if (!ageValue || parseInt(ageValue) <= 0) {
-      setError('나이를 입력해 주세요')
+    const derivedAge = deriveAgeFromBirth(birthDate, Date.now())
+    if (!birthDate || !derivedAge) {
+      setError('생일을 입력해 주세요')
+      return
+    }
+    if (birthDate > todayKstIsoDate()) {
+      setError('생일이 오늘보다 미래일 수 없어요')
       return
     }
     if (!weight || parseFloat(weight) <= 0) {
       setError('체중을 입력해 주세요')
-      return
-    }
-    if (!activityLevel) {
-      setError('활동량을 선택해 주세요')
       return
     }
 
@@ -228,10 +218,13 @@ export default function NewDogClient({ userId }: { userId: string }) {
         breed,
         gender,
         neutered,
-        age_value: parseInt(ageValue),
-        age_unit: ageUnit,
+        birth_date: birthDate,
+        // 생일로부터 자동 계산 — 칼로리 알고리즘이 읽는 age_value/age_unit 유지.
+        age_value: derivedAge.value,
+        age_unit: derivedAge.unit,
         weight: parseFloat(weight),
-        activity_level: activityLevel,
+        // 활동량은 설문에서 받음(사장님 2026-07-16 폼에서 제거) → null. 설문이 채운다.
+        activity_level: null,
         weight_method: weightMethod,
         weight_measured_at: weightMeasuredAtIso(weightMeasuredAt),
         activity_method: activityMethod,
@@ -403,44 +396,18 @@ export default function NewDogClient({ userId }: { userId: string }) {
         </div>
 
         <div>
-          <label className={labelCls}>나이 *</label>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              min="0"
-              max="50"
-              value={ageValue}
-              onChange={(e) => setAgeValue(e.target.value)}
-              className={`${inputCls} flex-1`}
-              placeholder="0"
-              inputMode="numeric"
-              enterKeyHint="next"
-            />
-            <button
-              type="button"
-              aria-pressed={ageUnit === 'years'}
-              onClick={() => setAgeUnit('years')}
-              className={`px-4 rounded border text-[12px] font-bold transition ${
-                ageUnit === 'years'
-                  ? 'border-text bg-bg text-text'
-                  : 'border-rule bg-bg-3 text-muted'
-              }`}
-            >
-              살
-            </button>
-            <button
-              type="button"
-              aria-pressed={ageUnit === 'months'}
-              onClick={() => setAgeUnit('months')}
-              className={`px-4 rounded border text-[12px] font-bold transition ${
-                ageUnit === 'months'
-                  ? 'border-text bg-bg text-text'
-                  : 'border-rule bg-bg-3 text-muted'
-              }`}
-            >
-              개월
-            </button>
-          </div>
+          <label className={labelCls}>생일 *</label>
+          <input
+            type="date"
+            max={todayKstIsoDate()}
+            value={birthDate}
+            onChange={(e) => setBirthDate(e.target.value)}
+            className={inputCls}
+            aria-label="생일"
+          />
+          <p className="mt-1 text-[10.5px] text-muted">
+            나이는 생일로 자동 계산돼요 (정확히 모르면 대략으로 넣어도 돼요)
+          </p>
         </div>
 
         <div>
@@ -492,79 +459,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
           )}
         </div>
 
-        <div>
-          <label className={labelCls}>활동량 *</label>
-          <div className="space-y-2">
-            {[
-              {
-                v: 'low' as const,
-                Icon: Moon,
-                t: '낮음',
-                d: '거의 움직이지 않아요',
-              },
-              {
-                v: 'medium' as const,
-                Icon: Footprints,
-                t: '보통',
-                d: '하루 1~2회 산책',
-              },
-              {
-                v: 'high' as const,
-                Icon: Zap,
-                t: '활동적',
-                d: '뛰어다니기를 좋아해요',
-              },
-            ].map((a) => {
-              const active = activityLevel === a.v
-              return (
-                <button
-                  key={a.v}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setActivityLevel(a.v)}
-                  className={`w-full py-3 px-4 rounded border text-left transition flex items-center gap-3 ${
-                    active
-                      ? 'border-text bg-text text-white'
-                      : 'border-rule bg-bg-3 text-text hover:border-muted'
-                  }`}
-                >
-                  <a.Icon
-                    className={`w-5 h-5 ${
-                      active ? 'text-white' : 'text-muted'
-                    }`}
-                    strokeWidth={1.8}
-                  />
-                  <div>
-                    <div className="font-bold text-[13.5px]">{a.t}</div>
-                    <div
-                      className={`text-[10.5px] ${
-                        active ? 'text-white/70' : 'text-muted'
-                      }`}
-                    >
-                      {a.d}
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-          {isAdvancedUiEnabled('advanced_inputs') && (
-            <Select
-              value={activityMethod}
-              onChange={(e) =>
-                setActivityMethod(e.target.value as typeof activityMethod)
-              }
-              sizeVariant="sm"
-              wrapperClassName="mt-2"
-              aria-label="활동량 측정 도구"
-            >
-              <option value="unknown">측정 도구 — 모름</option>
-              <option value="pedometer">만보계 / 스마트태그</option>
-              <option value="gps">GPS 트래커</option>
-              <option value="subjective">주관 추정</option>
-            </Select>
-          )}
-        </div>
+        {/* 활동량 — 설문에서 물어보므로 등록 폼에서 제거(사장님 2026-07-16). */}
 
         {isAdvancedUiEnabled('advanced_inputs') && (
           <div>
