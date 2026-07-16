@@ -9,6 +9,7 @@ type Profile = {
   name: string | null
   phone: string | null
   tier?: string | null
+  stamp_count?: number | null
 }
 
 export default async function MyPage() {
@@ -27,7 +28,7 @@ export default async function MyPage() {
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('name, phone, tier')
+      .select('name, phone, tier, stamp_count')
       .eq('id', user.id)
       .maybeSingle(),
     // 결제 취소·환불된 주문은 카운트에서 제외 (사장님 2026-06-19).

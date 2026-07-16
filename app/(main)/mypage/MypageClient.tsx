@@ -34,6 +34,7 @@ import {
   Gauge,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import StampCard from '@/components/account/StampCard'
 import { tierMeta } from '@/lib/tiers'
 import { V3, V3FontSize, V3FontWeight, V3Radius } from '@/lib/design/tokens'
 import { Mono, Modal, Badge } from '@/components/v3'
@@ -43,6 +44,7 @@ type Profile = {
   name: string | null
   phone: string | null
   tier?: string | null
+  stamp_count?: number | null
 }
 
 type Props = {
@@ -221,6 +223,14 @@ export default function MypageClient({
             </div>
           </div>
         </Link>
+      </section>
+
+      {/* ──────────────────────────────────────────────────────────────
+          도장판 — 멤버십 화면을 눌러야만 보이던 걸 밖으로 꺼냈다(사장님 2026-07-16).
+          등급의 기준이 도장 개수라, 등급 카드 바로 밑이 제자리다.
+          ────────────────────────────────────────────────────────────── */}
+      <section style={{ padding: '12px 20px 0' }}>
+        <StampCard stampCount={profile?.stamp_count} variant="app" />
       </section>
 
       {/* ──────────────────────────────────────────────────────────────
