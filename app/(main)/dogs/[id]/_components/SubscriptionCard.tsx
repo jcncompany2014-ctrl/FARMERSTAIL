@@ -63,7 +63,7 @@ export default function SubscriptionCard({
           </div>
           {subscriptions.length > 0 && (
             <Link
-              href="/mypage/subscriptions"
+              href="/account/subscriptions"
               className="text-[10.5px] text-muted hover:text-text"
             >
               전체 관리

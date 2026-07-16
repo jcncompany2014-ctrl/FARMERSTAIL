@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
 import SubscriptionsWebClient from './SubscriptionsWebClient'
-import type { Subscription } from '@/app/(main)/mypage/subscriptions/SubscriptionsClient'
+import type { Subscription } from './types'
 
 /**
  * /account/subscriptions — 웹 사용자용 정기배송 관리.

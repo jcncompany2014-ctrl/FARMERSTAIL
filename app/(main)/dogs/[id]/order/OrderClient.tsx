@@ -10,7 +10,6 @@ import {
   Loader2,
   Check,
   AlertCircle,
-  Soup,
   ArrowRight,
   Sparkles,
   PackageOpen,
@@ -32,11 +31,6 @@ import {
   SHIP_WEEK,
   SHIP_WHY,
 } from '@/lib/shipping-schedule'
-import {
-  buildTransitionPlan,
-  groupTransitionPhases,
-} from '@/lib/transition-plan'
-import { petName } from '@/lib/korean'
 import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
 import {
   LINE_TO_SLUG,
@@ -881,17 +875,7 @@ export default function OrderClient({
               날짜·요일은 lib/shipping-schedule 단일 진실에서 나온다. */}
           <ShipRhythmCard firstShipIso={firstShipIso} />
 
-          {/* 첫 2주 급여 안내 — 화식 전환 실패의 1번 원인이 '급하게 바꿔서 배탈'이고,
-              그러면 보호자는 음식이 안 맞는다고 오해하고 그만둔다. 알고리즘이 이미
-              전환 전략(화식 경험·장 예민도)을 계산해 두고도 고객에게 한 번도 안
-              보여줬다 → 여기서 날짜별 급여표로 푼다(2026-07-16). */}
-          {formula && (
-            <TransitionCard
-              strategy={formula.transitionStrategy}
-              targetPct={freshRatio}
-              dogName={dogName}
-            />
-          )}
+          {/* (급여표/전환 카드는 사장님 요청으로 제거 — 2026-07-16.) */}
 
           {/* 배송지 */}
           <section className="ord-section">
@@ -1097,7 +1081,7 @@ export default function OrderClient({
           </p>
           <p className="ord-foot">
             <Check size={11} strokeWidth={2.6} color="var(--moss)" />
-            언제든 주기 변경 · 일시정지 · 해지 가능 (위약금 없음)
+            위약금 없이 일시정지·해지 가능 (발송 1주일 전까지 알려주세요)
           </p>
 
           {/* 하단 고정 결제 바 (다크) — 레시피→배송→결제 흐름 통일. 실제 결제(카드
@@ -1195,71 +1179,3 @@ function ShipRhythmCard({ firstShipIso }: { firstShipIso: string | null }) {
   )
 }
 
-/**
- * TransitionCard — "처음 2주, 이렇게 바꿔주세요".
- *
- * 숫자는 lib/transition-plan 의 순수 함수에서 나온다 — 살아 있는 동물이 먹을 양이라
- * AI 에 맡기지 않는다(그 원칙은 transition-plan.ts 주석 참고).
- * 기본 접힘 — 배송지 입력을 막지 않되, 결제 전에 "천천히 바꿔야 한다"는 사실은
- * 접힌 줄에서 이미 읽힌다.
- */
-function TransitionCard({
-  strategy,
-  targetPct,
-  dogName,
-}: {
-  strategy: Formula['transitionStrategy']
-  targetPct: number
-  dogName: string
-}) {
-  const plan = buildTransitionPlan(strategy, targetPct)
-  const phases = groupTransitionPhases(plan)
-  return (
-    <details className="ord-rhythm ord-fold">
-      <summary className="ord-fold-sum">
-        <Soup size={13} strokeWidth={2.2} color="var(--moss)" />
-        <span className="ord-fold-txt">
-          <b>처음 {plan.totalDays}일은 섞어서 천천히</b>
-          <span className="ord-fold-desc">{plan.headline} · 배탈 없이 적응해요</span>
-        </span>
-        <span className="ord-fold-more">
-          급여표
-          <ChevronDown size={12} strokeWidth={2.4} />
-        </span>
-      </summary>
-
-      <div className="ord-fold-body">
-        <p className="ord-trans-why">{plan.why}</p>
-
-        <ol className="ord-trans-steps" aria-label="날짜별 급여 비율">
-          {phases.map((p) => (
-            <li key={p.fromDay} className="ord-trans-step">
-              <span className="ord-trans-day">
-                {p.fromDay === p.toDay
-                  ? `${p.fromDay}일차`
-                  : `${p.fromDay}~${p.toDay}일차`}
-              </span>
-              <span className="ord-trans-bar" aria-hidden>
-                <i style={{ width: `${p.newPct}%` }} />
-              </span>
-              <span className="ord-trans-mix">
-                화식 <b>{p.newPct}%</b>
-                {p.oldPct > 0 && (
-                  <span className="ord-trans-old"> · 기존 {p.oldPct}%</span>
-                )}
-              </span>
-            </li>
-          ))}
-        </ol>
-
-        <p className="ord-trans-watch">
-          <AlertCircle size={11} strokeWidth={2.4} />
-          {plan.watchFor}
-        </p>
-        <p className="ord-trans-foot">
-          {petName(dogName)}의 화식 경험과 장 예민도를 보고 정한 속도예요.
-        </p>
-      </div>
-    </details>
-  )
-}

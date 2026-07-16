@@ -23,8 +23,8 @@
  * 빈 카드나 에러 문구보다 없는 게 낫다(핵심은 위의 숫자다).
  */
 import { useEffect, useState } from 'react'
-import { Heart, ArrowRight } from 'lucide-react'
-import { withHonorific } from '@/lib/korean'
+import { Heart } from 'lucide-react'
+import { petName } from '@/lib/korean'
 
 type AiAnalysisJson = {
   summary?: string
@@ -96,50 +96,77 @@ export default function AiCommentCard({
   return (
     <section className="px-5 mt-2.5">
       <div
-        className="rounded-[12px] px-5 py-4"
+        className="rounded-[14px] overflow-hidden"
         style={{
           background: 'var(--paper-hi, #FFFFFF)',
-          border: '1.5px solid var(--terracotta)',
+          border: '1px solid var(--rule)',
+          boxShadow: '0 1px 3px rgba(120, 46, 34, 0.05)',
         }}
       >
-        <div className="flex items-center gap-1.5 mb-2">
-          <Heart className="w-3.5 h-3.5 text-terracotta" strokeWidth={2.2} />
-          <span className="text-[11px] font-bold tracking-[0.06em] text-terracotta">
-            보호자님께
+        {/* 헤더 밴드 — 하트 뱃지 + 라벨. 얇은 테라코타 워시로 편지 느낌. */}
+        <div
+          className="flex items-center gap-2.5 px-5 pt-4 pb-3.5"
+          style={{ background: 'rgba(200, 107, 69, 0.05)' }}
+        >
+          <span
+            className="inline-flex items-center justify-center rounded-full shrink-0"
+            style={{ width: 28, height: 28, background: 'var(--terracotta)' }}
+          >
+            <Heart className="w-3.5 h-3.5" strokeWidth={2.4} color="#fff" fill="#fff" />
           </span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-[12.5px] font-bold text-terracotta tracking-[0.01em]">
+              보호자님께
+            </span>
+            <span className="text-[10px] text-muted mt-0.5">
+              {petName(dogName)} 이야기를 담았어요
+            </span>
+          </div>
         </div>
 
-        {state.kind === 'loading' ? (
-          <div className="space-y-2 py-1" aria-hidden>
-            <div className="h-3 rounded bg-black/5 w-full animate-pulse" />
-            <div className="h-3 rounded bg-black/5 w-[85%] animate-pulse" />
-            <div className="h-3 rounded bg-black/5 w-[60%] animate-pulse" />
-          </div>
-        ) : (
-          <>
-            <p className="text-[13px] leading-relaxed text-text whitespace-pre-line">
-              {state.data.summary}
-            </p>
+        <div className="px-5 pt-4 pb-5">
+          {state.kind === 'loading' ? (
+            <div className="space-y-2 py-1" aria-hidden>
+              <div className="h-3 rounded bg-black/5 w-full animate-pulse" />
+              <div className="h-3 rounded bg-black/5 w-[85%] animate-pulse" />
+              <div className="h-3 rounded bg-black/5 w-[60%] animate-pulse" />
+            </div>
+          ) : (
+            <>
+              <p className="text-[13.5px] leading-[1.72] text-text whitespace-pre-line">
+                {state.data.summary}
+              </p>
 
-            {state.data.nextActions && state.data.nextActions.length > 0 && (
-              <ul className="mt-3 space-y-1.5">
-                {state.data.nextActions.slice(0, 3).map((a, i) => (
-                  <li key={i} className="flex items-start gap-1.5">
-                    <ArrowRight
-                      className="w-3 h-3 mt-0.5 shrink-0 text-terracotta"
-                      strokeWidth={2.5}
-                    />
-                    <span className="text-[12px] leading-snug text-text/85">{a}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <p className="mt-3 text-[10px] leading-relaxed text-muted">
-              {withHonorific(dogName)} 사정을 읽고 보호자님께 드리는 말이에요.
-            </p>
-          </>
-        )}
+              {state.data.nextActions && state.data.nextActions.length > 0 && (
+                <div
+                  className="mt-4 rounded-[10px] px-4 py-3.5"
+                  style={{ background: 'rgba(200, 107, 69, 0.05)' }}
+                >
+                  <div className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-terracotta mb-2.5">
+                    이렇게 해보세요
+                  </div>
+                  <ul className="space-y-2.5">
+                    {state.data.nextActions.slice(0, 3).map((a, i) => (
+                      <li key={i} className="flex items-start gap-2.5">
+                        <span
+                          className="mt-[6px] shrink-0 rounded-full"
+                          style={{
+                            width: 5,
+                            height: 5,
+                            background: 'var(--terracotta)',
+                          }}
+                        />
+                        <span className="text-[12.5px] leading-snug text-text/90">
+                          {a}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </section>
   )

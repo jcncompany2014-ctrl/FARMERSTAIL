@@ -170,7 +170,11 @@ export default function MypageClient({
             color: V3.ink,
             border: `1px solid ${V3.rule}`,
             backgroundColor: V3.paperHi,
-            backgroundImage: `linear-gradient(95deg, rgba(252,251,247,0.95) 0%, rgba(252,251,247,0.66) 40%, rgba(252,251,247,0.10) 70%), url(/tiers/${tierKey}.webp)`,
+            // 등급 달성 전(시작 전)엔 수채화 배경 없이 담백하게 — 사장님 2026-07-16.
+            // 아직 아무 등급도 아닌데 새싹 배경이 깔리면 과하다.
+            backgroundImage: tierMetaOrNull
+              ? `linear-gradient(95deg, rgba(252,251,247,0.95) 0%, rgba(252,251,247,0.66) 40%, rgba(252,251,247,0.10) 70%), url(/tiers/${tierKey}.webp)`
+              : 'none',
             backgroundSize: 'cover',
             backgroundPosition: 'right center',
             backgroundRepeat: 'no-repeat',
@@ -188,7 +192,9 @@ export default function MypageClient({
                 style={{
                   fontFamily: 'var(--font-sans)',
                   fontWeight: V3FontWeight.black,
-                  fontSize: 30,
+                  // 시작 전 문구('멤버십 시작 전')는 길어서 30이면 부담 → 20으로 낮춘다.
+                  // 등급 라벨(씨앗/새싹…)은 짧아서 그대로 크게.
+                  fontSize: tierMetaOrNull ? 30 : 20,
                   color: V3.ink,
                   letterSpacing: '-0.03em',
                   lineHeight: 1,

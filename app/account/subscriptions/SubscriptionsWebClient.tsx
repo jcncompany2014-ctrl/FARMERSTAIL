@@ -35,7 +35,7 @@ import {
   formatRetryAt,
   generateFallbackCustomerKey,
 } from '@/lib/v3-helpers/subscriptions'
-import type { Subscription } from '@/app/(main)/mypage/subscriptions/SubscriptionsClient'
+import type { Subscription } from './types'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 
 type Props = {
