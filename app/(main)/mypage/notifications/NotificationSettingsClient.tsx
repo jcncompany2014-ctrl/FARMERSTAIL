@@ -346,12 +346,26 @@ export default function NotificationSettingsClient({
             )}
           </div>
 
-          {msg && (
-            <p className="mt-3 text-[10.5px] font-bold text-moss inline-flex items-center gap-1">
-              <Check className="w-3 h-3" strokeWidth={2.5} />
-              {msg}
-            </p>
-          )}
+          {msg &&
+            (() => {
+              // 실패 메시지를 초록 체크(성공 스타일)로 보여주던 버그 방지(2026-07-17).
+              // 실패면 빨강 + 체크 숨김 + role=alert(SR 즉시 안내).
+              const isError = /(실패|않았|않아|않은|완료되지|다시 시도|오류)/.test(
+                msg,
+              )
+              return (
+                <p
+                  role={isError ? 'alert' : 'status'}
+                  aria-live={isError ? 'assertive' : 'polite'}
+                  className={`mt-3 text-[10.5px] font-bold inline-flex items-center gap-1 ${
+                    isError ? 'text-sale' : 'text-moss'
+                  }`}
+                >
+                  {!isError && <Check className="w-3 h-3" strokeWidth={2.5} />}
+                  {msg}
+                </p>
+              )
+            })()}
         </div>
       </section>
 

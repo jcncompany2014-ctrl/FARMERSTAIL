@@ -281,15 +281,17 @@ function Field({
   label: string
   children: React.ReactNode
 }) {
+  // input 을 label 안에 넣어 암묵적 연결 — htmlFor/id 없이도 스크린리더가 필드명을
+  // 읽고, 라벨 탭으로 포커스 이동된다(2026-07-17 a11y).
   return (
-    <div>
-      <label
+    <label className="block">
+      <span
         className="block text-[10.5px] font-bold mb-1.5"
         style={{ color: 'var(--text)' }}
       >
         {label}
-      </label>
+      </span>
       {children}
-    </div>
+    </label>
   )
 }

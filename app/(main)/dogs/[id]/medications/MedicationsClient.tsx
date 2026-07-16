@@ -29,16 +29,22 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
   const [time, setTime] = useState('')
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
+  // fetch 실패를 빈 상태('없어요')로 위장하던 버그 방지(2026-07-17) — 실패 시 에러 UI.
+  const [loadError, setLoadError] = useState(false)
   const confirm = useConfirm()
   const toast = useToast()
 
   useEffect(() => {
     let mounted = true
+    setLoadError(false)
     listMedications(supabase, dogId)
       .then((rows) => {
         if (mounted) setRecords(rows)
       })
-      .catch((e) => console.error('listMedications', e))
+      .catch((e) => {
+        console.error('listMedications', e)
+        if (mounted) setLoadError(true)
+      })
       .finally(() => {
         if (mounted) setLoading(false)
       })
@@ -138,6 +144,19 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
           <p className="text-[12px] text-muted text-center py-8">
             불러오는 중…
           </p>
+        ) : loadError ? (
+          <div className="text-center py-8">
+            <p className="text-[12px] text-muted">
+              약물 기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
+            </p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-2 text-[12px] font-bold text-terracotta underline underline-offset-2"
+            >
+              다시 시도
+            </button>
+          </div>
         ) : records.length === 0 ? (
           <p className="text-[12px] text-muted text-center py-8">
             등록된 약물이 없어요. 정기 복약이 필요한 약을 추가해 보세요.

@@ -79,6 +79,7 @@ export default function NotificationsClient({
       return rows.filter(
         (r) => r.category === 'order' || r.category === 'restock',
       )
+    if (filter === 'health') return rows.filter((r) => r.category === 'health')
     if (filter === 'marketing')
       return rows.filter(
         (r) => r.category === 'marketing' || r.category === 'cart',
@@ -202,11 +203,13 @@ export default function NotificationsClient({
                             r.category === 'order' ||
                             r.category === 'restock',
                         ).length
-                      : rows.filter(
-                          (r) =>
-                            r.category === 'marketing' ||
-                            r.category === 'cart',
-                        ).length,
+                      : f.key === 'health'
+                        ? rows.filter((r) => r.category === 'health').length
+                        : rows.filter(
+                            (r) =>
+                              r.category === 'marketing' ||
+                              r.category === 'cart',
+                          ).length,
             }))}
           />
         </div>

@@ -302,6 +302,7 @@ export default function HealthLogClient({
               {/* UI audit J-3: iOS 키보드 숫자패드 표시 위해 inputMode="numeric". */}
               <input
                 type="number"
+                aria-label="변 횟수 (오늘)"
                 inputMode="numeric"
                 min="0"
                 max="10"
@@ -340,6 +341,7 @@ export default function HealthLogClient({
                 메모
               </label>
               <textarea
+                aria-label="메모"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="특이사항, 산책 시간, 간식 등"

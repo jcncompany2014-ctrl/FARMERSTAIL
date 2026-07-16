@@ -316,6 +316,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
           <label className={labelCls}>이름 *</label>
           <input
             type="text"
+            aria-label="강아지 이름"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={inputCls}
@@ -414,6 +415,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
           <label className={labelCls}>체중 (kg) *</label>
           <input
             type="number"
+            aria-label="체중 (kg)"
             min="0"
             max="100"
             step="0.1"
