@@ -1,6 +1,16 @@
 /**
  * 회원 등급 메타데이터 — DB CHECK 제약과 1:1 매칭.
  *
+ * # 기준이 **누적금액 → 스탬프 개수** 로 바뀜 (사장님 확정 2026-07-16)
+ * 예전엔 `profiles.cumulative_spend`(원) 기준이었다. 그런데 우리 박스는 **강아지 덩치에
+ * 비례해 값이 다르다** — 같은 기간 함께해도 대형견 보호자가 자동으로 높은 등급을 먹었다.
+ * 등급 이름이 씨앗→새싹→꽃→열매→나무 라는 **함께한 시간 서사**인데 기준만 돈이었던 셈.
+ * 이제 스탬프(구독 결제 1회 = 1개, lib/stamps.ts)를 센다 — 덩치와 무관하다.
+ *
+ * ⚠️ 스탬프는 2년 만료라 **등급이 내려갈 수 있다**(누적금액은 절대 안 줄었다).
+ * 배송이 2주 고정이라 활성 구독자는 겪을 수 없고, 오래 쉬다 온 분만 해당된다 —
+ * 등급이 "예전에 많이 썼던 사람"이 아니라 "지금 함께하는 사람"을 가리키게 하는 의도.
+ *
  * 5단계 lifecycle: 씨앗에서 시작해 나무로 자라는 여정.
  *   seed   · 씨앗     첫 한 끼 전
  *   sprout · 새싹     첫 박스 이상
@@ -37,7 +47,10 @@ export type TierMeta = {
   label: string
   /** 영문 short (kicker 톤) */
   en: string
-  /** 도달 임계값 (KRW 누적 결제) */
+  /**
+   * 도달 임계값 — **살아 있는 스탬프 개수**(구독 결제 횟수). 2026-07-16 이전엔 KRW 누적.
+   * 배송이 2주 고정이므로 10개 ≈ 4.6개월.
+   */
   threshold: number
   /** 색 토큰 — chip background */
   bg: string
@@ -75,7 +88,8 @@ export const TIERS: TierMeta[] = [
     key: 'sprout',
     label: '새싹',
     en: 'SPROUT',
-    threshold: 50_000,
+    // '첫 박스 이상' — 첫 구독 결제 1회.
+    threshold: 1,
     bg: '#B8CD78', // 연한 새싹 그린
     ink: '#2A2118',
     benefit: '분기 맞춤 분석 리포트',
@@ -96,7 +110,8 @@ export const TIERS: TierMeta[] = [
     key: 'bloom',
     label: '꽃',
     en: 'BLOOM',
-    threshold: 300_000,
+    // '의미 있는 단골' — 도장판 1장 완성 (~4.6개월).
+    threshold: 10,
     bg: '#E8A4A4', // 꽃 핑크
     ink: '#1E1A14',
     benefit: '연 2회 25% 자동 할인 · 전담 영양 상담',
@@ -122,7 +137,8 @@ export const TIERS: TierMeta[] = [
     key: 'fruit',
     label: '열매',
     en: 'FRUIT',
-    threshold: 1_000_000,
+    // '장기 가족' — 2장 (~9개월).
+    threshold: 20,
     bg: '#D27A56', // terracotta — 잘 익은 열매
     ink: '#FFFFFF',
     benefit: '연 4회 20% 자동 할인 · 신제품 우선',
@@ -153,7 +169,8 @@ export const TIERS: TierMeta[] = [
     key: 'mate',
     label: '나무',
     en: 'TREE',
-    threshold: 3_000_000,
+    // '최상' — 3장 (~14개월).
+    threshold: 30,
     bg: '#1E1A14', // 가장 어두운 ink — gold accent
     ink: '#D4A94A',
     benefit: '강아지 등록증 · 매 주문 10% 할인 · 한정 큐레이션',
@@ -208,12 +225,28 @@ export function nextTier(key: string | null | undefined): TierMeta | null {
   return TIERS[idx + 1] ?? null
 }
 
-/** 다음 등급까지 남은 금액 (이미 최고면 0). */
-export function spendToNextTier(
-  cumulativeSpend: number,
+/** 다음 등급까지 남은 **스탬프 개수** (이미 최고면 0). */
+export function stampsToNextTier(
+  activeStampCount: number,
   currentTierKey: string | null | undefined,
 ): number {
   const next = nextTier(currentTierKey)
   if (!next) return 0
-  return Math.max(0, next.threshold - cumulativeSpend)
+  return Math.max(0, next.threshold - activeStampCount)
+}
+
+/**
+ * 살아 있는 스탬프 개수 → 등급.
+ *
+ * DB 의 `fn_compute_tier(stamp_count)` 와 **같은 사다리여야 한다** — 한쪽만 고치면
+ * 화면과 DB 가 다른 등급을 말한다. tiers.test.ts 가 이 사다리를 박제한다.
+ */
+export function tierFromStamps(activeStampCount: number): TierKey {
+  const n = Math.max(0, Math.trunc(activeStampCount))
+  // 높은 등급부터 — 첫 매치가 답.
+  for (let i = TIERS.length - 1; i >= 0; i--) {
+    const t = TIERS[i]!
+    if (n >= t.threshold) return t.key
+  }
+  return 'seed'
 }

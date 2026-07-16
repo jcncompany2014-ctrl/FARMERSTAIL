@@ -17,12 +17,13 @@ import {
   PawPrint,
   Award,
 } from 'lucide-react'
+import { cardProgress } from '@/lib/stamps'
 import { createClient } from '@/lib/supabase/server'
 import {
   TIERS,
   tierMeta,
   nextTier,
-  spendToNextTier,
+  stampsToNextTier,
   type TierBenefit,
   type TierMeta,
 } from '@/lib/tiers'
@@ -52,7 +53,7 @@ const ICON_MAP: Record<TierBenefit['Icon'], typeof Coins> = {
 /**
  * /mypage/membership — 멤버십 hub.
  *
- * 4단계 등급 시각화 + 현재 등급 hero + 누적 통계 + 다음 등급 진행률 + 등급별
+ * 4단계 등급 시각화 + 현재 등급 hero + 도장 통계 + 다음 등급 진행률 + 등급별
  * detailed 혜택. /account/profile 의 작은 TierBadge 와 분리 — 매일 들어와도
  * 시인성 좋게.
  */
@@ -67,7 +68,7 @@ export default async function MembershipPage() {
     await Promise.all([
       supabase
         .from('profiles')
-        .select('tier, cumulative_spend, tier_updated_at')
+        .select('tier, stamp_count, tier_updated_at')
         .eq('id', user.id)
         .maybeSingle(),
       supabase
@@ -84,13 +85,14 @@ export default async function MembershipPage() {
     ])
 
   const tier = (profile?.tier as string | null) ?? 'seed'
-  const cumulativeSpend =
-    typeof profile?.cumulative_spend === 'number'
-      ? profile.cumulative_spend
-      : 0
+  // 등급 기준 = 살아 있는 도장 개수 (2026-07-16 사장님 확정. 이전엔 누적 결제액 —
+  // 금액 기준이면 강아지 덩치 큰 집이 자동으로 높은 등급을 먹었다).
+  const stampCount =
+    typeof profile?.stamp_count === 'number' ? profile.stamp_count : 0
+  const card = cardProgress(stampCount)
   const meta = tierMeta(tier)
   const next = nextTier(tier)
-  const remain = spendToNextTier(cumulativeSpend, tier)
+  const remain = stampsToNextTier(stampCount, tier)
 
   const lower = meta.threshold
   const upper = next?.threshold ?? meta.threshold
@@ -98,13 +100,13 @@ export default async function MembershipPage() {
     upper > lower
       ? Math.min(
           100,
-          Math.max(0, ((cumulativeSpend - lower) / (upper - lower)) * 100),
+          Math.max(0, ((stampCount - lower) / (upper - lower)) * 100),
         )
       : 100
 
   return (
     <div className="pb-12">
-      {/* HERO 카드 — 등급 색 기반, 누적 + 진행률 + 다음 등급 */}
+      {/* HERO 카드 — 등급 색 기반, 도장 + 진행률 + 다음 등급 */}
       <section className="px-5 pt-6">
         <div
           className="relative overflow-hidden rounded-[12px] px-6 pt-6 pb-7"
@@ -159,7 +161,7 @@ export default async function MembershipPage() {
               </div>
             </div>
 
-            {/* 누적 + 다음 등급 */}
+            {/* 도장 + 다음 등급 */}
             <div className="mt-5 grid grid-cols-2 gap-3">
               <div
                 className="rounded px-4 py-3"
@@ -169,17 +171,17 @@ export default async function MembershipPage() {
                   className="text-[10.5px] font-bold uppercase tracking-widest"
                   style={{ opacity: 0.7 }}
                 >
-                  누적 결제
+                  모은 도장
                 </div>
                 <div className="mt-1 flex items-baseline gap-0.5">
                   <span
                     className="font-sans font-black leading-none tabular-nums"
                     style={{ fontSize: 22, letterSpacing: '-0.02em' }}
                   >
-                    {cumulativeSpend.toLocaleString('ko-KR')}
+                    {stampCount}
                   </span>
                   <span className="text-[10.5px]" style={{ opacity: 0.85 }}>
-                    원
+                    개 · {card.cardNumber}번째 판
                   </span>
                 </div>
               </div>
@@ -388,7 +390,7 @@ export default async function MembershipPage() {
               key={t.key}
               t={t}
               currentTier={meta.key}
-              cumulativeSpend={cumulativeSpend}
+              stampCount={stampCount}
             />
           ))}
         </div>
@@ -399,14 +401,11 @@ export default async function MembershipPage() {
         <div className="rounded bg-bg-2 px-4 py-3.5 text-[10.5px] text-text leading-relaxed">
           <p className="font-bold text-text mb-1.5">등급 산정 안내</p>
           <ul className="space-y-1 text-text/80">
-            <li>
-              · 누적 결제 금액 기준 자동 산정 (취소·환불 제외 순결제액)
-            </li>
-            <li>· 등급 변경은 결제 완료 시 즉시 반영</li>
-            <li>· 등급 산정은 할인 차감 후 실제 결제 금액 기준</li>
-            <li>
-              · 정기배송 결제도 동일 기준으로 합산 (월별 정산)
-            </li>
+            <li>· 정기배송 결제 1회마다 도장 1개 — 결제 즉시 반영</li>
+            <li>· 결제 금액과 무관해요. 아이 덩치가 아니라 함께한 횟수예요</li>
+            <li>· 도장 10개마다 도장판 한 장 완성 → 특별보상</li>
+            <li>· 도장은 찍힌 날부터 2년간 유효해요</li>
+            <li>· 결제가 취소·환불되면 그 도장은 회수돼요</li>
           </ul>
           {profile?.tier_updated_at && (
             <p className="text-[10.5px] text-muted mt-2">
@@ -422,13 +421,13 @@ export default async function MembershipPage() {
 function TierRow({
   t,
   currentTier,
-  cumulativeSpend,
+  stampCount,
 }: {
   t: TierMeta
   currentTier: string
-  cumulativeSpend: number
+  stampCount: number
 }) {
-  const reached = cumulativeSpend >= t.threshold
+  const reached = stampCount >= t.threshold
   const isCurrent = currentTier === t.key
   return (
     <div
@@ -480,9 +479,7 @@ function TierRow({
             )}
           </div>
           <div className="text-[10.5px] text-muted mt-0.5">
-            {t.threshold === 0
-              ? '가입 즉시'
-              : `${t.threshold.toLocaleString('ko-KR')}원 이상`}
+            {t.threshold === 0 ? '가입 즉시' : `도장 ${t.threshold}개`}
           </div>
         </div>
         {/* '적립률' → '달성 여부' (2026-07-16 포인트 폐기). 우리 혜택은 자동할인

@@ -40,7 +40,7 @@ export default async function ProfileEditPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('name, phone, tier, cumulative_spend')
+    .select('name, phone, tier, stamp_count')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -108,9 +108,8 @@ export default async function ProfileEditPage() {
             tier={
               (profile as { tier?: string | null } | null)?.tier ?? 'seed'
             }
-            cumulativeSpend={
-              (profile as { cumulative_spend?: number | null } | null)
-                ?.cumulative_spend ?? 0
+            stampCount={
+              (profile as { stamp_count?: number | null } | null)?.stamp_count ?? 0
             }
           />
         </section>

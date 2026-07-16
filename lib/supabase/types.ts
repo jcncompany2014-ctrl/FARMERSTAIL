@@ -2843,6 +2843,7 @@ export type Database = {
           onboarded_at: string | null
           phone: string | null
           role: string | null
+          stamp_count: number
           tier: string
           tier_updated_at: string | null
           updated_at: string | null
@@ -2871,6 +2872,7 @@ export type Database = {
           onboarded_at?: string | null
           phone?: string | null
           role?: string | null
+          stamp_count?: number
           tier?: string
           tier_updated_at?: string | null
           updated_at?: string | null
@@ -2899,6 +2901,7 @@ export type Database = {
           onboarded_at?: string | null
           phone?: string | null
           role?: string | null
+          stamp_count?: number
           tier?: string
           tier_updated_at?: string | null
           updated_at?: string | null
@@ -3489,6 +3492,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stamps: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          order_id: string | null
+          stamped_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          order_id?: string | null
+          stamped_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          order_id?: string | null
+          stamped_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {

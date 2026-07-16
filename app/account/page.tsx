@@ -96,7 +96,7 @@ export default async function AccountPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('name, email, tier, cumulative_spend')
+    .select('name, email, tier, stamp_count')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -195,8 +195,8 @@ export default async function AccountPage() {
           <div className="mb-7 md:mb-9">
             <TierBadge
               tier={(profile as { tier?: string | null } | null)?.tier ?? 'seed'}
-              cumulativeSpend={
-                (profile as { cumulative_spend?: number | null } | null)?.cumulative_spend ?? 0
+              stampCount={
+                (profile as { stamp_count?: number | null } | null)?.stamp_count ?? 0
               }
             />
           </div>

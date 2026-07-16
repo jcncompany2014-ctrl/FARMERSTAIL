@@ -1,33 +1,38 @@
 import {
   tierMeta,
   nextTier,
-  spendToNextTier,
+  stampsToNextTier,
   type TierKey,
 } from '@/lib/tiers'
+import { cardProgress } from '@/lib/stamps'
 
 /**
  * TierBadge — /account 헤더에 노출되는 회원 등급 카드.
  *
  * 보여주는 것:
  *   - 현재 등급 칩 (색 + 이름)
- *   - 누적 결제 (KRW)
- *   - 다음 등급까지 남은 금액 + progress bar
+ *   - 모은 도장 개수
+ *   - 다음 등급까지 남은 도장 + progress bar
  *   - 혜택 한 줄
  *
- * 데이터: profiles.tier + cumulative_spend (마이그레이션 20260425000011 으로
- * 자동 갱신). 두 컬럼이 NULL/없으면 graceful degrade.
+ * 데이터: profiles.tier + stamp_count. 구독 결제 1회 = 도장 1개(stamps 트리거)이고
+ * **등급의 기준이 곧 도장 개수**다 (2026-07-16 사장님 확정 — 이전엔 누적 결제액).
+ * 금액 기준이면 강아지 덩치 큰 집이 자동으로 높은 등급을 먹었다.
+ * NULL/없으면 graceful degrade.
  */
 export default function TierBadge({
   tier,
-  cumulativeSpend,
+  stampCount,
 }: {
   tier: TierKey | string | null | undefined
-  cumulativeSpend: number | null | undefined
+  /** 살아 있는 도장 개수 (profiles.stamp_count). */
+  stampCount: number | null | undefined
 }) {
   const meta = tierMeta(tier)
-  const spend = cumulativeSpend ?? 0
+  const stamps = stampCount ?? 0
   const next = nextTier(meta.key)
-  const remain = spendToNextTier(spend, meta.key)
+  const remain = stampsToNextTier(stamps, meta.key)
+  const card = cardProgress(stamps)
   const isTop = meta.key === 'mate' // 최상위 (단짝) — 진한 배경 + progress 색 반전
 
   // 오른쪽 "다음 등급까지" 텍스트는 카드 오른쪽(밝은 일러스트 위)에 떨어진다.
@@ -42,7 +47,7 @@ export default function TierBadge({
   const upper = next?.threshold ?? meta.threshold
   const progress =
     upper > lower
-      ? Math.min(100, Math.max(0, ((spend - lower) / (upper - lower)) * 100))
+      ? Math.min(100, Math.max(0, ((stamps - lower) / (upper - lower)) * 100))
       : 100
 
   return (
@@ -84,11 +89,11 @@ export default function TierBadge({
 
           <div className="mt-4 flex items-center justify-between text-[11px] md:text-[12px] font-mono tabular-nums">
             <span style={{ opacity: 0.85 }}>
-              누적 {spend.toLocaleString('ko-KR')}원
+              도장 {stamps}개 · {card.cardNumber}번째 판
             </span>
             {next ? (
               <span style={{ opacity: 0.9, color: rightInk, textShadow: rightShadow }}>
-                {next.label}까지 {remain.toLocaleString('ko-KR')}원
+                {next.label}까지 {remain}개
               </span>
             ) : (
               <span style={{ opacity: 0.9, color: rightInk, textShadow: rightShadow }}>
