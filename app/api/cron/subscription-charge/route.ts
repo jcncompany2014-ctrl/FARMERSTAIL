@@ -17,6 +17,7 @@ import {
   applyDiscount,
   type DiscountReason,
 } from '@/lib/discount'
+import { pickBetterDiscount } from '@/lib/promotions'
 import { tierMeta } from '@/lib/tiers'
 
 export const runtime = 'nodejs'
@@ -139,23 +140,34 @@ async function resolveShippingTarget(
 /**
  * 정기결제 1건의 자동 할인 계산.
  *
- * # 2026-07-16 — **입력이 등급 하나로 줄었다**
- * 예전엔 첫주문 50% · 꽃 반기 25% · 열매 분기 20% · 생일 20% 가 있어서 DB 를 4번
- * 두들겼다(주문수 · 프로필 · 슬롯내 등급할인 이력 · 생일月+올해 생일할인 이력).
- * 사장님 확정으로 **할인은 나무 등급 매 주문 10% 하나**만 남아 조회도 하나가 됐다.
+ * # 축이 둘이다 — 등급 · 프로모션
+ *  · **등급**: 나무(스탬프 50개) 매 주문 10%. 그게 전부다(lib/discount.ts).
+ *  · **프로모션**: 오프라인·인스타 이벤트로 가입한 계정의 첫 주문 할인
+ *    (lib/promotions.ts + promotion_claims). 등급과 무관한 별도 축.
  *
- * 안전 폴백은 유지 — 프로필 조회가 실패하면 **무할인(정가) 청구**한다. 조회 실패를
- * "등급 없음" 으로 오해해 할인을 잘못 주는 것보다 정가가 안전하다(반대는 환불이 필요).
+ * **절대 더하지 않는다** — `pickBetterDiscount` 로 더 큰 쪽 하나만.
+ * 두 축을 한 파일에 섞지 않은 이유: 섞는 순간 "무엇이 우선인가·겹치면·슬롯은" 같은
+ * 규칙이 자란다(2026-07-16 에 150→80줄로 걷어낸 게 정확히 그것).
+ *
+ * # 안전 폴백
+ * 조회가 실패하면 **정가 청구**. 실패를 "할인 대상"으로 오해하는 것보다 안전하다
+ * (과할인은 환불이 필요하고, 미할인은 사과 후 보정하면 된다).
  */
 async function resolveAutoDiscount(
   supabase: ReturnType<typeof createAdminClient>,
   sub: SubscriptionRow,
-): Promise<{ reason: DiscountReason; discountAmount: number; chargeAmount: number }> {
+): Promise<{
+  reason: DiscountReason | 'promotion'
+  discountAmount: number
+  chargeAmount: number
+  promoClaimed: boolean
+}> {
   const subtotal = sub.total_amount
-  const fullCharge: { reason: DiscountReason; discountAmount: number; chargeAmount: number } = {
-    reason: 'none',
+  const fullCharge = {
+    reason: 'none' as const,
     discountAmount: 0,
     chargeAmount: subtotal,
+    promoClaimed: false,
   }
 
   const { data: prof, error } = await supabase
@@ -167,13 +179,35 @@ async function resolveAutoDiscount(
 
   // tierMeta 는 모르는 값/없음이면 null — 등급 없음(스탬프 10개 미만)이 그대로 전달된다.
   const tier = tierMeta((prof as { tier?: string | null } | null)?.tier)?.key ?? null
+  const tierDiscount = computeAutoDiscount({ tier })
 
-  const discount = computeAutoDiscount({ tier })
-  const discountAmount = applyDiscount(subtotal, discount.rate)
+  // 아직 안 쓴 프로모션이 있나. 조회 실패는 '없음'으로 — 프로모션이 없어서 정가를
+  // 내는 건 회복 가능하지만, 있지도 않은 할인을 주면 마진이 샌다.
+  let promoRate = 0
+  try {
+    const { data: r } = await (
+      supabase as unknown as {
+        rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }>
+      }
+    ).rpc('pending_promotion_rate', { p_user_id: sub.user_id })
+    const n = Number(r)
+    if (Number.isFinite(n) && n > 0) promoRate = Math.min(1, n)
+  } catch {
+    /* 없음으로 간주 */
+  }
+
+  const picked = pickBetterDiscount(
+    { rate: tierDiscount.rate, label: tierDiscount.label },
+    promoRate > 0 ? { rate: promoRate, label: '이벤트 할인' } : null,
+  )
+  const discountAmount = applyDiscount(subtotal, picked.rate)
   return {
-    reason: discount.reason,
+    reason: picked.reason === 'promotion' ? 'promotion' : tierDiscount.reason,
     discountAmount,
     chargeAmount: subtotal - discountAmount,
+    // 프로모션을 실제로 **쓴** 경우에만 소진 표시 대상. 등급이 더 커서 안 쓴
+    // 프로모션은 남겨 둔다 — 다음 기회에 쓸 수 있어야 한다.
+    promoClaimed: picked.reason === 'promotion',
   }
 }
 
@@ -293,7 +327,7 @@ async function runSubscriptionCharge(): Promise<Response> {
     // 2-0b) 자동 할인 계산 — subtotal(구독 단가)에서 할인 차감한 실제 청구액 결정.
     //       쿠폰 없음(lib/discount). 첫주문/등급(슬롯)/생일 자동 판정. charge·order·
     //       billing 전부 이 chargeAmount 로 일관 기록(subtotal 은 정가 유지).
-    const { reason: discountReason, discountAmount, chargeAmount } =
+    const { reason: discountReason, discountAmount, chargeAmount, promoClaimed } =
       await resolveAutoDiscount(supabase, sub)
 
     // 2-a) charge row insert. UNIQUE (subscription_id, scheduled_for) 충돌 시
@@ -423,6 +457,39 @@ async function runSubscriptionCharge(): Promise<Response> {
         .eq('id', chargeRow!.id)
       failed += 1
       continue
+    }
+
+    // 2-b-1) 프로모션 소진 표시 — **주문이 만들어진 직후.**
+    //
+    // 안 하면 이 계정은 **매 결제마다 50% 할인**을 받는다(첫 주문 할인인데).
+    // 주문 id 가 있어야 "어느 주문에 썼는지" 를 남길 수 있어서 여기서 한다.
+    // `redeemed_order_id IS NULL` 조건이 **재실행에도 안전**하게 만든다 — 이미
+    // 표시된 건 건드리지 않는다.
+    // 실패해도 결제는 계속한다(할인은 이미 금액에 반영됐고, 소진 표시 누락은
+    // admin 에서 보정할 수 있다 — 결제를 멈추는 게 더 나쁘다).
+    if (promoClaimed) {
+      try {
+        await (
+          supabase as unknown as {
+            from: (t: string) => {
+              update: (r: Record<string, unknown>) => {
+                eq: (c: string, v: string) => {
+                  is: (c: string, v: null) => Promise<unknown>
+                }
+              }
+            }
+          }
+        )
+          .from('promotion_claims')
+          .update({
+            redeemed_order_id: orderRow.id,
+            redeemed_at: new Date().toISOString(),
+          })
+          .eq('user_id', sub.user_id)
+          .is('redeemed_order_id', null)
+      } catch {
+        /* 소진 표시 실패 — 결제는 진행. admin 보정 대상. */
+      }
     }
 
     // 2-b-2) subscription_items → order_items 복사 (audit fix).

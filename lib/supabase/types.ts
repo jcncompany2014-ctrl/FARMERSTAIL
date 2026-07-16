@@ -2879,6 +2879,69 @@ export type Database = {
         }
         Relationships: []
       }
+      promotion_claims: {
+        Row: {
+          claimed_at: string
+          id: string
+          promotion_id: string
+          redeemed_at: string | null
+          redeemed_order_id: string | null
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          id?: string
+          promotion_id: string
+          redeemed_at?: string | null
+          redeemed_order_id?: string | null
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          id?: string
+          promotion_id?: string
+          redeemed_at?: string | null
+          redeemed_order_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      promotions: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          discount_rate: number
+          ends_at: string
+          id: string
+          max_signups: number | null
+          name: string
+          starts_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          discount_rate: number
+          ends_at: string
+          id?: string
+          max_signups?: number | null
+          name: string
+          starts_at: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          discount_rate?: number
+          ends_at?: string
+          id?: string
+          max_signups?: number | null
+          name?: string
+          starts_at?: string
+        }
+        Relationships: []
+      }
       push_log: {
         Row: {
           body: string

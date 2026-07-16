@@ -13,6 +13,7 @@ import {
   normalizeSignupMeta,
 } from '@/lib/auth/applySignupProfile'
 import { applyAutosignupDraft } from '@/lib/auth/applyAutosignupDraft'
+import { claimPromotionOnSignup } from '@/lib/auth/claimPromotionOnSignup'
 import {
   loadAutosignupDraft,
   isDogDraftComplete,
@@ -178,6 +179,11 @@ function LoginInner() {
       // 첫 로그인 1회). signup_profile 복원 직후·일반 redirect 앞. 초안이 완성돼
       // 있으면 dogs+surveys+analyses 생성 후 분석 화면으로. 이관 실패는 로그인을
       // 막지 않는다(일반 흐름 진행). 초안 없는 일반 로그인은 영향 0.
+      // 프로모션 박기 — 초안 이관 **앞**, 그리고 초안 완성 여부와 **무관**하게.
+      // 부스에서 QR 찍고 설문을 반만 하다 가입한 사람도 할인은 약속받았다.
+      // 이관 안에 넣으면 그 사람이 프로모션까지 잃는다. 실패는 무시(로그인 우선).
+      await claimPromotionOnSignup()
+
       try {
         const draft = loadAutosignupDraft()
         if (draft && isDogDraftComplete(draft.dog)) {

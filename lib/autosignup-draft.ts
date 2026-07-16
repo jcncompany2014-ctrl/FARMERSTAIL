@@ -40,6 +40,15 @@ export type AutosignupDraft = {
   ts: number
   dog: AutosignupDogDraft
   answers: AutosignupAnswersDraft
+  /**
+   * 프로모션 코드 — `/start?p=busan1102` 로 들어온 경우 (2026-07-16).
+   *
+   * 왜 여기 싣나: 링크로 들어와 **설문을 마치고 가입**할 때까지 살아 있어야 한다.
+   * 초안이 이미 그 여정(링크→설문→가입)을 통째로 나르고 있어서, 별도 쿠키를 두는
+   * 것보다 여기 붙이는 게 수명이 정확히 맞는다(초안이 죽으면 프로모션도 같이 죽는 게 맞다).
+   * 가입 직후 `claim_promotion` 으로 계정에 박히고 나면 이 값은 쓸모가 없어진다.
+   */
+  promo?: string
 }
 
 /** 단일 익명 키 — userId 없음(비회원). 브라우저당 1개 초안. */
@@ -82,6 +91,7 @@ export function loadAutosignupDraft(): AutosignupDraft | null {
 export function saveAutosignupDraft(patch: {
   dog?: Partial<AutosignupDogDraft>
   answers?: Partial<AutosignupAnswersDraft>
+  promo?: string
 }): void {
   if (typeof window === 'undefined') return
   try {
@@ -91,6 +101,9 @@ export function saveAutosignupDraft(patch: {
       ts: Date.now(),
       dog: { ...(prev?.dog ?? {}), ...(patch.dog ?? {}) },
       answers: { ...(prev?.answers ?? {}), ...(patch.answers ?? {}) },
+      // 먼저 박힌 프로모션이 이긴다 — 링크를 여러 개 타고 와도 처음 것.
+      // (계정당 1회라 DB 도 같은 규칙. 여기서 미리 맞춰 두면 화면 표시가 안 흔들린다.)
+      ...(prev?.promo || patch.promo ? { promo: prev?.promo ?? patch.promo } : {}),
     }
     localStorage.setItem(AUTOSIGNUP_DRAFT_KEY, JSON.stringify(next))
   } catch {

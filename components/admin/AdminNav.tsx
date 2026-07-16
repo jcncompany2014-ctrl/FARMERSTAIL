@@ -70,6 +70,7 @@ const GROUPS: NavGroup[] = [
       { href: '/admin/personalization', icon: '✅', label: '레시피 승인' },
       { href: '/admin/personalization-insights', icon: '🧠', label: '맞춤 분석' },
       { href: '/admin/users', icon: '👥', label: '회원 관리' },
+      { href: '/admin/promotions', icon: '🎟️', label: '이벤트 · 프로모션' },
       { href: '/admin/push-campaigns', icon: '📣', label: '알림 보내기' },
       { href: '/admin/cron-health', icon: '⏱️', label: '자동작업 상태' },
     ],

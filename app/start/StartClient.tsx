@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from 'react'
 import { Check, X, Moon, Footprints, Zap, ArrowRight, AlertCircle } from 'lucide-react'
+import { normalizePromoCode } from '@/lib/promotions'
 import {
   loadAutosignupDraft,
   saveAutosignupDraft,
@@ -43,6 +44,21 @@ export default function StartClient() {
   const [weight, setWeight] = useState('')
   const [activityLevel, setActivityLevel] = useState<'low' | 'medium' | 'high' | ''>('')
   const [error, setError] = useState('')
+
+  // ── 프로모션 링크 (2026-07-16) ──
+  // `/start?p=busan1102` 로 들어오면 코드를 초안에 싣는다. 고객은 이 코드를 **보지도
+  // 입력하지도 않는다** — 오프라인 QR·인스타 링크가 곧 코드다.
+  // 초안에 싣는 이유: 링크→설문→가입까지 살아 있어야 하고, 초안이 이미 그 여정을
+  // 통째로 나른다(수명이 정확히 맞는다). 가입 직후 claim_promotion 이 계정에 박는다.
+  //
+  // ⚠️ URL 에서 지우지 않는다 — 새로고침·뒤로가기로 다시 들어와도 같은 값이면 무해하고
+  //   (먼저 박힌 게 이긴다), 주소를 몰래 바꾸면 사용자가 공유한 링크가 달라진다.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const raw = new URLSearchParams(window.location.search).get('p')
+    const code = normalizePromoCode(raw)
+    if (code) saveAutosignupDraft({ promo: code })
+  }, [])
 
   // 초안 prefill — 마운트 후 1회(클라이언트). SSR 은 빈 폼이라 mismatch 없음.
   // localStorage(외부 스토어) 동기화라 set-state-in-effect 의도적 허용.

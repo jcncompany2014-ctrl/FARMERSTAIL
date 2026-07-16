@@ -22,6 +22,7 @@ import {
   clearAutosignupDraft,
 } from '@/lib/autosignup-draft'
 import { applyAutosignupDraft } from '@/lib/auth/applyAutosignupDraft'
+import { claimPromotionOnSignup } from '@/lib/auth/claimPromotionOnSignup'
 
 // PWA/Capacitor(앱) 여부 — 행선지(app=/dashboard vs web=/mypage/orders) 분기용.
 // useIsAppContext 훅은 SSR/하이드레이션 시 null 이라 이 전환 페이지(effect 1회)
@@ -59,6 +60,10 @@ export default function StartClaimPage() {
 
       const isApp = readIsApp()
       const home = isApp ? '/dashboard' : '/mypage/orders'
+
+      // 프로모션 박기 — **이관 분기보다 먼저.** ①(강아지 이미 보유 → 이관 스킵)로
+      // 빠지는 사람도 링크를 타고 왔다면 할인은 받아야 한다. 계정당 1회는 DB 가 강제.
+      await claimPromotionOnSignup()
 
       // ① 이미 강아지 보유(기존 회원·이관 완료) → 이관 스킵, 홈으로.
       //    잔여 초안이 있으면 정리(다른 익명 설문 흔적).
