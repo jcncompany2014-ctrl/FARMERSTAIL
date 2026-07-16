@@ -5,6 +5,7 @@ import {
   parseAiAnalysis,
   type AiAnalysisContext,
 } from '@/lib/nutrition/ai-prompt'
+import { birthdayInfo } from '@/lib/nutrition/wow-angles'
 import type { ChronicConditionKey } from '@/lib/nutrition/guidelines'
 import { zAnalysisRequest } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
@@ -148,7 +149,7 @@ export async function POST(req: Request) {
   // 3) 강아지 + 설문 로드
   const { data: dog } = await supabase
     .from('dogs')
-    .select('name, breed, weight, age_value, age_unit, neutered, activity_level, prescription_diet')
+    .select('name, breed, breed_size, birth_date, weight, age_value, age_unit, neutered, activity_level, prescription_diet')
     .eq('id', analysis.dog_id)
     .eq('user_id', user.id)
     .maybeSingle()
@@ -167,16 +168,27 @@ export async function POST(req: Request) {
     .eq('id', analysis.survey_id)
     .maybeSingle()
 
-  // 직전 분석
+  // 직전 분석 — 시계열 앵글용으로 BCS 외 급여량·생애주기·시각까지 가져온다.
   const { data: prevRows } = await supabase
     .from('analyses')
-    .select('bcs_score')
+    .select('bcs_score, feed_g, stage, created_at')
     .eq('dog_id', analysis.dog_id)
     .eq('user_id', user.id)
     .lt('created_at', analysis.created_at)
     .order('created_at', { ascending: false })
     .limit(1)
   const prev = prevRows && prevRows.length > 0 ? prevRows[0] : null
+
+  // 직전 분석 이후 경과일 + 생일 D-day (이야깃거리 재료).
+  const daysSinceLast =
+    prev?.created_at && analysis.created_at
+      ? Math.round(
+          (new Date(analysis.created_at).getTime() -
+            new Date(prev.created_at).getTime()) /
+            86_400_000,
+        )
+      : null
+  const bday = birthdayInfo(dog.birth_date ?? null, Date.now())
 
   // 4) Anthropic 호출
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -220,6 +232,12 @@ export async function POST(req: Request) {
     dailyWalkMinutes: survey?.daily_walk_minutes ?? null,
     riskFlags: analysis.risk_flags ?? [],
     prevBcsScore: prev?.bcs_score ?? null,
+    breedSize: dog.breed_size ?? null,
+    prevFeedG: prev?.feed_g != null ? Number(prev.feed_g) : null,
+    prevStage: prev?.stage ?? null,
+    daysSinceLast,
+    daysUntilBirthday: bday?.daysUntil ?? null,
+    turningAge: bday?.turningAge ?? null,
   }
 
   const prompt = buildAnalysisPrompt(ctx)

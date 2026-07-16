@@ -15,6 +15,7 @@ import {
   GUIDELINE_CITATIONS,
   type ChronicConditionKey,
 } from './guidelines'
+import { buildWowAngles } from './wow-angles'
 
 export type AiAnalysisContext = {
   dogName: string
@@ -48,6 +49,18 @@ export type AiAnalysisContext = {
   dailyWalkMinutes: number | null
   riskFlags: string[]
   prevBcsScore: number | null
+  /** 견종 크기 (초소형/소형/중형/대형) — 견종 맞춤 앵글용. null = 모름 */
+  breedSize: string | null
+  /** 직전 분석 급여량(g) — 시계열 앵글용 */
+  prevFeedG: number | null
+  /** 직전 분석 생애주기 라벨 — 생애주기 전환 앵글용 */
+  prevStage: string | null
+  /** 직전 분석 이후 경과일 — 시계열 앵글용 */
+  daysSinceLast: number | null
+  /** 다음 생일까지 남은 일수(0=오늘) — 생일 앵글용. null = 생년월일 모름/멂 */
+  daysUntilBirthday: number | null
+  /** 다음 생일에 되는 나이(살) — 생일 앵글용 */
+  turningAge: number | null
 }
 
 /**
@@ -152,6 +165,11 @@ export function buildAnalysisPrompt(ctx: AiAnalysisContext): {
     `  ② 이 아이에게 지금 필요한 실행 팁을 **딱 하나**("이번 주는 산책 10분만 늘려보세요" 같은).`,
     `  문제가 있으면 겁주지 말고 "걱정 마세요, 이것만 하면 돼요" 로. 영양소·kcal 나열 금지. 영양제 금지.`,
     `  재측정을 안내할 땐 "저희와 2주 뒤에 같이 확인해요" 처럼 **함께한다**는 느낌으로.`,
+    `- ★ **이 아이만의 이야깃거리**: user 메시지에 '오늘의 이야깃거리' 가 오면, 그 중`,
+    `  **가장 반가운/인상적인 것 딱 하나만** 골라 summary 에 자연스럽게 녹이세요. 여러 개를`,
+    `  나열하면 길고 뻔해집니다 — 하나를 골라 "지난번보다 좋아졌어요" / "이대로 가면…" /`,
+    `  "이 견종은…" / "곧 생일이네요" 중 하나로 특별하게 만드세요. 이야깃거리가 없으면(첫 분석 등)`,
+    `  견종({견종} 정보) 특성을 살린 한마디로 대신해도 좋습니다. 억지로 만들지는 마세요.`,
     `- highlights: 3~5개 권장. 위험 신호가 있으면 'warning' 으로 먼저, 그 다음 'info', 마지막 'positive' 순서.`,
     `- transition: 만성질환자 / 임신·수유견은 null. 일반 건강견에게만 7일 단계 전환 (25/50/75/100%).`,
     `- nextActions: 2~4개. "산책 시간 늘리기", "주 1회 체중 측정", "3개월 후 재분석" 등 실행 가능한 행동.`,
@@ -189,6 +207,20 @@ export function buildAnalysisPrompt(ctx: AiAnalysisContext): {
     .map((k) => CHRONIC_CONDITION_LABELS[k])
     .filter(Boolean)
     .join(', ')
+
+  // 이 아이만의 이야깃거리(시계열·생애주기 전환·생일). 숫자 계산은 wow-angles 가,
+  // 그중 하나를 골라 문장으로 녹이는 건 AI 가 한다.
+  const wowAngles = buildWowAngles({
+    bcsScore: ctx.bcsScore,
+    prevBcsScore: ctx.prevBcsScore,
+    feedG: ctx.feedG,
+    prevFeedG: ctx.prevFeedG,
+    stage: ctx.stage,
+    prevStage: ctx.prevStage,
+    daysSinceLast: ctx.daysSinceLast,
+    daysUntilBirthday: ctx.daysUntilBirthday,
+    turningAge: ctx.turningAge,
+  })
 
   const userLines = [
     `# ${ctx.dogName} 의 분석을 부탁드립니다.`,
@@ -231,6 +263,13 @@ export function buildAnalysisPrompt(ctx: AiAnalysisContext): {
     ``,
     ctx.riskFlags.length > 0
       ? `## 시스템이 탐지한 위험 신호 (참고)\n- ${ctx.riskFlags.join(', ')}`
+      : '',
+    ``,
+    ctx.breedSize ? `## 견종 참고\n- ${ctx.breed} · ${ctx.breedSize}` : '',
+    wowAngles.length > 0
+      ? `## 오늘의 이야깃거리 (이 중 **가장 인상적인 하나만** 골라 summary 에 녹이세요)\n${wowAngles
+          .map((a) => `- ${a.fact}`)
+          .join('\n')}`
       : '',
     ``,
     `위 데이터를 바탕으로 위 형식의 JSON 으로만 응답해 주세요.`,
