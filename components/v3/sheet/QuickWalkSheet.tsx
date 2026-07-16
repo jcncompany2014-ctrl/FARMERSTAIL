@@ -11,7 +11,7 @@
  * 시간은 항상 기록(기본 30분), 활동량은 선택. **앱(PWA) 전용.**
  */
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Check, Minus, Plus } from 'lucide-react'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
 import BottomSheet from '@/components/ui/BottomSheet'
@@ -52,10 +52,14 @@ export default function QuickWalkSheet({
   const [duration, setDuration] = useState(30)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  // 동기 중복가드 — disabled={busy}(state)는 리렌더 후 적용돼 서브프레임 더블탭이
+  // 빠져나가 중복 insert 된다(HealthLogClient savingRef 와 동일 패턴, 2026-07-17).
+  const submittingRef = useRef(false)
   const toast = useToast()
 
   async function save() {
-    if (busy) return
+    if (submittingRef.current) return
+    submittingRef.current = true
     setBusy(true)
     setErr(null)
     try {
@@ -112,6 +116,7 @@ export default function QuickWalkSheet({
       setErr('저장하지 못했어요')
     } finally {
       setBusy(false)
+      submittingRef.current = false
     }
   }
 

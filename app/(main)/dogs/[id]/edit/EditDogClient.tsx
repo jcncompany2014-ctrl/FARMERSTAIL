@@ -158,8 +158,14 @@ export default function EditDogClient({
         treat_frequency: treatFrequency === 'unknown' ? null : treatFrequency,
         treat_types: treatTypes.length > 0 ? treatTypes : null,
         human_food_given: humanFoodGiven,
+        // 체중이 '실제로 바뀐' 경우에만 측정시각 갱신. 폼이 체중을 프리필하므로
+        // 이름만 바꿔 저장해도 now 로 리셋되던 버그가 있었다 — 측정 최신성이
+        // 부풀고, 설문 재분석 게이트가 '체중 재측정됨'으로 오인해 한도를 우회했다
+        // (2026-07-17). undefined 면 supabase 가 컬럼을 건드리지 않아 기존값 보존.
         weight_measured_at:
-          weight !== '' ? new Date().toISOString() : undefined,
+          weight !== '' && weight !== initial.weight
+            ? new Date().toISOString()
+            : undefined,
         photo_url: finalPhotoUrl,
         updated_at: new Date().toISOString(),
       })

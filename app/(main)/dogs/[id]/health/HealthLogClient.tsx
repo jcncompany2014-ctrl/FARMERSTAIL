@@ -109,15 +109,29 @@ export default function HealthLogClient({
     const recent = logs.filter(
       (l) => new Date(l.logged_at + 'T00:00:00').getTime() >= sinceTs
     )
-    const total = recent.length
-    const goodPoop = recent.filter((l) => l.poop_quality === 'good').length
-    const activeDays = recent.filter(
-      (l) => l.activity_level === 'high' || l.activity_level === 'normal'
-    ).length
-    const sickMood = recent.filter(
-      (l) => l.mood === 'sick' || l.mood === 'tired'
-    ).length
-    return { total, goodPoop, activeDays, sickMood }
+    // 같은 날 여러 partial 행(식사·산책 빠른시트가 각각 별도 insert)을 하루로 합친다.
+    // 행 수로 세면 하루가 2~3회로 과다계상됐다(2026-07-17). logged_at(날짜)로 그룹핑
+    // 후 각 항목을 OR 병합해 '일 단위'로 센다.
+    const byDay = new Map<
+      string,
+      { poopGood: boolean; active: boolean; sick: boolean }
+    >()
+    for (const l of recent) {
+      const d = l.logged_at.slice(0, 10)
+      const cur = byDay.get(d) ?? { poopGood: false, active: false, sick: false }
+      if (l.poop_quality === 'good') cur.poopGood = true
+      if (l.activity_level === 'high' || l.activity_level === 'normal')
+        cur.active = true
+      if (l.mood === 'sick' || l.mood === 'tired') cur.sick = true
+      byDay.set(d, cur)
+    }
+    const days = [...byDay.values()]
+    return {
+      total: byDay.size,
+      goodPoop: days.filter((d) => d.poopGood).length,
+      activeDays: days.filter((d) => d.active).length,
+      sickMood: days.filter((d) => d.sick).length,
+    }
   }, [logs])
 
   async function saveLog() {
@@ -223,7 +237,7 @@ export default function HealthLogClient({
             <WeekStat
               label="기록"
               value={`${weekSummary.total}`}
-              unit="회"
+              unit="일"
               tone="light"
             />
             <WeekStat
@@ -235,7 +249,7 @@ export default function HealthLogClient({
             <WeekStat
               label="정상 변"
               value={`${weekSummary.goodPoop}`}
-              unit="회"
+              unit="일"
               tone="light"
             />
           </div>

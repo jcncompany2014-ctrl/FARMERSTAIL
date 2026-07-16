@@ -10,7 +10,7 @@
  * **앱(PWA) 전용.** 호출자가 dogId + open/onClose 제어.
  */
 
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { Check } from 'lucide-react'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
 import BottomSheet from '@/components/ui/BottomSheet'
@@ -46,12 +46,15 @@ export default function QuickChipSheet({
   const [value, setValue] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  // 동기 중복가드 — 더블탭 중복 insert 방지(HealthLogClient savingRef 패턴, 2026-07-17).
+  const submittingRef = useRef(false)
   const toast = useToast()
   // 칩 그룹을 질문(h2)과 묶어 스크린리더가 맥락과 함께 읽도록.
   const titleId = useId()
 
   async function save() {
-    if (busy || !value) return
+    if (submittingRef.current || !value) return
+    submittingRef.current = true
     setBusy(true)
     setErr(null)
     try {
@@ -94,6 +97,7 @@ export default function QuickChipSheet({
       setErr('저장하지 못했어요')
     } finally {
       setBusy(false)
+      submittingRef.current = false
     }
   }
 

@@ -13,7 +13,7 @@
  * **앱(PWA) 전용.**
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import WeightInputSheet from '@/components/v3/dog/WeightInputSheet'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -67,32 +67,41 @@ export default function QuickWeightSheet({
   const name = dogName ?? fetched?.name ?? ''
   const kg = initialKg ?? fetched?.weight ?? null
   const toast = useToast()
+  // 동기 중복가드 — 더블탭 중복 insert 방지. 에러는 그대로 throw 해 WeightInputSheet
+  // 가 표시하게 두고, finally 로 ref 를 풀어 재시도 허용(2026-07-17).
+  const submittingRef = useRef(false)
 
   async function save(value: number) {
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) throw new Error('로그인이 필요해요')
-    const { error } = await supabase.from('weight_logs').insert({
-      dog_id: dogId,
-      user_id: user.id,
-      weight: value,
-    })
-    if (error) throw new Error('저장하지 못했어요')
-    // 마스터 체중도 최신값으로 (분석·대시보드·다음행동 엔진 반영).
-    // weight_logs 엔 이미 기록됨(원본 안전) — dogs.weight 는 파생 캐시라 실패해도
-    // 다음 체중 기록서 self-heal. 성공 토스트는 유지하되 운영 가시성 위해 로깅.
-    const { error: masterErr } = await supabase
-      .from('dogs')
-      .update({ weight: value })
-      .eq('id', dogId)
-    if (masterErr) {
-      console.error('[QuickWeightSheet] master weight update failed', masterErr)
+    if (submittingRef.current) return
+    submittingRef.current = true
+    try {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error('로그인이 필요해요')
+      const { error } = await supabase.from('weight_logs').insert({
+        dog_id: dogId,
+        user_id: user.id,
+        weight: value,
+      })
+      if (error) throw new Error('저장하지 못했어요')
+      // 마스터 체중도 최신값으로 (분석·대시보드·다음행동 엔진 반영).
+      // weight_logs 엔 이미 기록됨(원본 안전) — dogs.weight 는 파생 캐시라 실패해도
+      // 다음 체중 기록서 self-heal. 성공 토스트는 유지하되 운영 가시성 위해 로깅.
+      const { error: masterErr } = await supabase
+        .from('dogs')
+        .update({ weight: value })
+        .eq('id', dogId)
+      if (masterErr) {
+        console.error('[QuickWeightSheet] master weight update failed', masterErr)
+      }
+      toast.success('체중을 기록했어요')
+      onSaved?.()
+      onClose()
+    } finally {
+      submittingRef.current = false
     }
-    toast.success('체중을 기록했어요')
-    onSaved?.()
-    onClose()
   }
 
   return (

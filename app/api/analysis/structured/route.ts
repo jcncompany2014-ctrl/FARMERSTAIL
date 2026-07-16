@@ -44,37 +44,12 @@ type AnthropicResponse = {
 }
 
 export async function POST(req: Request) {
-  // 1) Rate limit — Anthropic 비용 폭주 방어. 사용자별 + IP 두 키 모두 적용.
-  const ip = ipFromRequest(req)
-  const rl = rateLimit({
-    bucket: 'analysis-structured',
-    key: ip,
-    limit: 5,
-    windowMs: 60_000,
-  })
-  if (!rl.ok) {
-    return NextResponse.json(
-      {
-        code: 'RATE_LIMITED',
-        message: '잠시 후 다시 시도해 주세요',
-      },
-      { status: 429, headers: rl.headers },
-    )
-  }
+  // ★ 비용 가드(rate-limit·일일캡)는 아래 '실제 AI 생성 직전'으로 내렸다(2026-07-17).
+  // 예전엔 여기 맨 앞이라, AI 를 전혀 안 부르는 **캐시 반환·쿨다운 재사용** 응답까지
+  // 429/503 으로 막혀 — 일일캡이 걸리면 이미 생성돼 무료로 보여주던 코멘트조차
+  // 전원에게 차단됐다. 캐시/재사용은 비용이 0 이므로 가드 뒤로 보낸다.
 
-  // 1.5) 일일 전역 비용 cap 가드 (마스터피스 P1-O4). fail-open.
-  const cap = await checkAnthropicDailyCap(ROUTE)
-  if (cap.exceeded) {
-    return NextResponse.json(
-      {
-        code: 'DAILY_CAP_EXCEEDED',
-        message: '오늘 AI 사용량이 많아 잠시 후 다시 시도해 주세요',
-      },
-      { status: 503 },
-    )
-  }
-
-  // 2) Zod 검증
+  // Zod 검증
   const parsed = await parseRequest(req, zAnalysisRequest)
   if (!parsed.ok) return parsed.response
   const { analysisId } = parsed.data
@@ -166,6 +141,33 @@ export async function POST(req: Request) {
       })
     }
     // else: 구독자 + 2주 경과 → 아래로 떨어져 재생성.
+  }
+
+  // ── 여기부터는 실제 AI 생성 경로(캐시·재사용에 안 걸린 요청만 도달) ──────────
+  // 비용 가드를 여기서 적용 — Anthropic 을 실제로 부르는 요청만 rate-limit·일일캡에
+  // 계상한다. (위 캐시/재사용 응답은 비용 0 이라 통과.)
+  const ip = ipFromRequest(req)
+  const rl = rateLimit({
+    bucket: 'analysis-structured',
+    key: ip,
+    limit: 5,
+    windowMs: 60_000,
+  })
+  if (!rl.ok) {
+    return NextResponse.json(
+      { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
+      { status: 429, headers: rl.headers },
+    )
+  }
+  const cap = await checkAnthropicDailyCap(ROUTE)
+  if (cap.exceeded) {
+    return NextResponse.json(
+      {
+        code: 'DAILY_CAP_EXCEEDED',
+        message: '오늘 AI 사용량이 많아 잠시 후 다시 시도해 주세요',
+      },
+      { status: 503 },
+    )
   }
 
   // 3) 강아지 + 설문 로드

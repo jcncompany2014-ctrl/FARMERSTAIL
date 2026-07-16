@@ -10,7 +10,7 @@
  * **앱(PWA) 전용.** 호출자(PawFab)가 dogId 전달 + open/onClose 제어.
  */
 
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
@@ -105,12 +105,16 @@ export default function QuickHealthSheet({
   const [activity, setActivity] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  // 동기 중복가드 — disabled(state)는 리렌더 후라 서브프레임 더블탭이 새 나가 중복
+  // insert 된다(HealthLogClient savingRef 패턴, 2026-07-17).
+  const submittingRef = useRef(false)
   const toast = useToast()
 
   const empty = !appetite && !poop && !activity
 
   async function save() {
-    if (busy || empty) return
+    if (submittingRef.current || empty) return
+    submittingRef.current = true
     setBusy(true)
     setErr(null)
     try {
@@ -151,6 +155,7 @@ export default function QuickHealthSheet({
       setErr('저장하지 못했어요')
     } finally {
       setBusy(false)
+      submittingRef.current = false
     }
   }
 
