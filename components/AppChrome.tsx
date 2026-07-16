@@ -62,6 +62,7 @@ const DEEP_TITLES: Record<string, string> = {
   '/help': '고객센터',
   '/mypage/orders': '주문 내역',
   '/mypage/subscriptions': '정기배송',
+  '/account/subscriptions': '정기배송',
   '/mypage/points': '적립금',
   '/mypage/reviews': '내 리뷰',
   '/mypage/addresses': '배송지 관리',

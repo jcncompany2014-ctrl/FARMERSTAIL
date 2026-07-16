@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
+import { isAppContextServer } from '@/lib/app-context'
 import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
 import SubscriptionsWebClient from './SubscriptionsWebClient'
 import { subscriptionState } from '@/lib/subscription-state'
@@ -61,45 +62,76 @@ export default async function AccountSubscriptionsPage({
     (s) => subscriptionState(s) === 'active',
   ).length
 
+  // 앱(PWA)에선 웹 breadcrumb·FD hero 를 숨기고 앱 톤 헤더로 — 앱 chrome 안에서 웹
+  // 마스트헤드가 겹쳐 어색하던 것 정리(사장님 2026-07-16 "앱 디자인 개박살").
+  const isApp = await isAppContextServer()
+
   return (
     <AuthAwareShell>
       <main
         className="pb-16 md:pb-24"
-        style={{ background: 'var(--fd-offwhite)', minHeight: '72vh' }}
+        style={{
+          background: isApp ? 'var(--paper)' : 'var(--fd-offwhite)',
+          minHeight: '72vh',
+        }}
       >
-        <Container size="lg" className="pt-4 md:pt-6">
-          {/* breadcrumb */}
-          <nav
-            aria-label="현재 위치"
-            className="flex items-center gap-1 text-[11px] md:text-[12px]"
-            style={{ color: 'var(--fd-muted)' }}
-          >
-            <Link href="/" className="hover:opacity-70 transition">
-              홈
-            </Link>
-            <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
-            <Link href="/account" className="hover:opacity-70 transition">
-              내 계정
-            </Link>
-            <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
-            <span style={{ color: 'var(--fd-pine)', fontWeight: 700 }}>정기배송</span>
-          </nav>
+        <Container size="lg" className={isApp ? 'pt-0' : 'pt-4 md:pt-6'}>
+          {isApp ? (
+            <header className="px-1 pt-6 pb-3">
+              <span className="kicker">Subscriptions</span>
+              <h1
+                className="font-sans mt-1.5"
+                style={{
+                  fontSize: 26,
+                  fontWeight: 800,
+                  color: 'var(--ink)',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                정기배송 관리
+              </h1>
+              <p className="text-[12px] text-muted mt-1.5">
+                {activeCount > 0
+                  ? `구독 중 ${activeCount}건 · 주기·일정·해지를 직접 관리하세요`
+                  : '주기 변경, 일시정지, 해지를 한 곳에서'}
+              </p>
+            </header>
+          ) : (
+            <>
+              {/* breadcrumb (웹 전용) */}
+              <nav
+                aria-label="현재 위치"
+                className="flex items-center gap-1 text-[11px] md:text-[12px]"
+                style={{ color: 'var(--fd-muted)' }}
+              >
+                <Link href="/" className="hover:opacity-70 transition">
+                  홈
+                </Link>
+                <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
+                <Link href="/account" className="hover:opacity-70 transition">
+                  내 계정
+                </Link>
+                <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
+                <span style={{ color: 'var(--fd-pine)', fontWeight: 700 }}>정기배송</span>
+              </nav>
 
-          {/* Hero */}
-          <header className="pt-8 md:pt-14 pb-7 md:pb-10">
-            <Eyebrow>Subscriptions · 정기배송</Eyebrow>
-            <Display as="h1" size="md" className="mt-3 md:mt-4" style={{ color: 'var(--fd-pine)' }}>
-              정기배송 관리
-            </Display>
-            <p
-              className="mt-4 text-[12.5px] md:text-[14px]"
-              style={{ color: 'var(--fd-muted)' }}
-            >
-              {activeCount > 0
-                ? `구독 중 ${activeCount}건 · 주기·일정·해지를 직접 관리하세요`
-                : '주기 변경, 일시정지, 해지를 한 곳에서'}
-            </p>
-          </header>
+              {/* Hero (웹 전용) */}
+              <header className="pt-8 md:pt-14 pb-7 md:pb-10">
+                <Eyebrow>Subscriptions · 정기배송</Eyebrow>
+                <Display as="h1" size="md" className="mt-3 md:mt-4" style={{ color: 'var(--fd-pine)' }}>
+                  정기배송 관리
+                </Display>
+                <p
+                  className="mt-4 text-[12.5px] md:text-[14px]"
+                  style={{ color: 'var(--fd-muted)' }}
+                >
+                  {activeCount > 0
+                    ? `구독 중 ${activeCount}건 · 주기·일정·해지를 직접 관리하세요`
+                    : '주기 변경, 일시정지, 해지를 한 곳에서'}
+                </p>
+              </header>
+            </>
+          )}
 
           <SubscriptionsWebClient
             initialSubs={initialSubs}
