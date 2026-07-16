@@ -329,14 +329,15 @@ export default function DogDetailClient({
       </section>
 
       {/* 보호자님께 한마디 — 성별/중성화 박스 바로 아래(사장님 2026-07-16).
-          server 가 게이트: 첫 설문 전이거나 미구독이면 aiComment=null → 안 뜬다.
-          revalidate 로 개요 방문 때 2주 쿨다운 지났으면 새 코멘트로 갱신(캐시면 즉시). */}
+          server 가 게이트: 첫 설문 전이면 aiComment=null → 안 뜬다.
+          ★revalidate 제거(2026-07-16): 개요 방문마다 재요청하면 신뢰가 깨진다는 사장님
+          피드백. 코멘트는 한 번 생성되면 **고정** — 캐시가 있으면 그대로 보여주고 다시
+          부르지 않는다(cached 없을 때만 최초 1회 생성). 재설문해야 새 코멘트가 나온다. */}
       {aiComment && (
         <AiCommentCard
           analysisId={aiComment.analysisId}
           dogName={dog.name}
           cached={aiComment.cached}
-          revalidate
         />
       )}
 
