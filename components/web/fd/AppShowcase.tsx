@@ -21,8 +21,8 @@
  *              + 정보 rows(성별~활동량) + 현재 박스 컬러바(Basic/Premium/Skin)
  *     분석   = 딥헤더 + 탭바 + kcal/급여량/BCS 스트립 + 오늘의 영양 진단
  *              (dashed 링 사진·배지 칩·강조 카피·AAFCO/NRC) + MER 331
- *     구독   = 딥헤더 + 탭바 + CUSTOM BOX 키커 + 월결제 카드 + 분량 선택
- *              (2주치/4주치) + 추천 박스 구성(Duck 50%)
+ *     구독   = 딥헤더 + 탭바 + CUSTOM BOX 키커 + 2주 결제 카드 + 화식 비율 선택
+ *              (곁들임/반반/완전) + 추천 박스 구성(Duck 50%)
  *   사진 = public AI 예시견(dog-poodle.jpg, 리뷰 로스터와 동일 에셋). 이름은
  *   예시 "콩이"(실고객 아님), "예시 화면" 명시 유지. 수치는 실앱 형식 그대로.
  *   색/서체 = lib/design/tokens V3 상수(v3 CSS 변수는 app 스코프 전용이라).
@@ -614,7 +614,7 @@ function ScreenAnalysis() {
 }
 
 // ---------------------------------------------------------------------------
-// ④ 구독(주문하기) — CUSTOM BOX 키커 + 월결제 카드 + 분량 선택 + 박스 구성
+// ④ 구독(주문하기) — CUSTOM BOX 키커 + 2주 결제 카드 + 화식 비율 선택 + 박스 구성
 // ---------------------------------------------------------------------------
 function ScreenSubscription() {
   return (
@@ -641,15 +641,16 @@ function ScreenSubscription() {
           정기배송으로 시작할까요?
         </div>
         <div style={{ fontFamily: sans, fontSize: 8, color: V3.inkSoft, lineHeight: 1.5, marginTop: 5 }}>
-          분석 결과 그대로 만든 박스를 한 달에 한 번 보내드려요. 언제든 일시정지·해지할 수 있어요.
+          분석 결과 그대로 만든 박스를 2주마다 보내드려요. 언제든 일시정지·해지할 수 있어요.
         </div>
 
-        {/* 월 결제 카드 — accent 보더 */}
+        {/* 2주 결제 카드 — accent 보더 (배송·결제는 무조건 2주마다 화요일) */}
         <div style={{ border: `1.5px solid ${V3.accent}`, borderRadius: 10, background: V3.paperHi, padding: '3px 11px', marginTop: 8 }}>
           {[
-            { label: '받는 것', value: '콩이 맞춤 박스 · 4주치 (한달)', accent: false },
-            { label: '첫 배송', value: '7월 7일 (화) · 이후 매월 자동', accent: false },
-            { label: '월 결제', value: '354,000원 /월', accent: true },
+            { label: '받는 것', value: '콩이 맞춤 박스 · 2주치', accent: false },
+            { label: '화식 비율', value: '완전 화식 (100%)', accent: false },
+            { label: '첫 배송', value: '첫 화요일 발송 · 이후 2주마다', accent: false },
+            { label: '2주 결제', value: '177,000원 /2주', accent: true },
           ].map((row, i) => (
             <div
               key={row.label}
@@ -692,28 +693,30 @@ function ScreenSubscription() {
           ))}
         </div>
 
-        {/* 분량 선택 */}
+        {/* 화식 비율 선택 — 배송은 2주 고정, 고객이 고르는 건 화식 비율(30/60/100). */}
         <MonoText size={7} ls="0.18em" style={{ display: 'block', marginTop: 9 }}>
-          한달 정기배송 · 분량 선택
+          화식 비율 선택
         </MonoText>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 6 }}>
-          <V3Card radius={8} style={{ padding: '9px 8px', textAlign: 'center' }}>
-            <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 10.5, color: V3.ink }}>2주치</div>
-            <div style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.accent, marginTop: 2 }}>하이브리드</div>
-            <div style={{ fontFamily: sans, fontSize: 7, color: V3.inkMute, marginTop: 2 }}>15일 1팩씩 · 건식 반반</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 5, marginTop: 6 }}>
+          <V3Card radius={8} style={{ padding: '9px 5px', textAlign: 'center' }}>
+            <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 10, color: V3.ink }}>곁들임</div>
+            <div style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.inkMute, marginTop: 2 }}>화식 30%</div>
+          </V3Card>
+          <V3Card radius={8} style={{ padding: '9px 5px', textAlign: 'center' }}>
+            <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 10, color: V3.ink }}>반반</div>
+            <div style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.inkMute, marginTop: 2 }}>화식 60%</div>
           </V3Card>
           <div
             style={{
               border: `1.5px solid ${V3.accent}`,
               borderRadius: 8,
               background: 'color-mix(in srgb, #C86B45 6%, #FFFFFF)',
-              padding: '9px 8px',
+              padding: '9px 5px',
               textAlign: 'center',
             }}
           >
-            <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 10.5, color: V3.ink }}>4주치</div>
-            <div style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.accent, marginTop: 2 }}>풀 화식</div>
-            <div style={{ fontFamily: sans, fontSize: 7, color: V3.inkMute, marginTop: 2 }}>30일 1팩씩 · 한달 풀 (인기)</div>
+            <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 10, color: V3.ink }}>완전</div>
+            <div style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.accent, marginTop: 2 }}>화식 100%</div>
           </div>
         </div>
 
@@ -1024,7 +1027,7 @@ const FEATURES: Feature[] = [
         맞춤 박스 정기배송
       </>
     ),
-    body: '분석 결과 그대로 만든 맞춤 박스를 한 달에 한 번 받아요. 2주치 하이브리드와 4주치 풀 화식 중 분량을 고르고, 박스에 담기는 레시피 구성과 가격을 투명하게 확인해요. 주기 변경·일시정지·해지도 전부 앱 안에서 몇 번의 탭이면 돼요.',
+    body: '분석 결과 그대로 만든 맞춤 박스를 2주마다 받아요. 곁들임·반반·완전 화식 중 우리 아이에 맞는 비율을 고르고, 박스에 담기는 레시피 구성과 가격을 투명하게 확인해요. 비율 변경·일시정지·해지도 전부 앱 안에서 몇 번의 탭이면 돼요.',
     screen: <ScreenSubscription />,
   },
 ]
