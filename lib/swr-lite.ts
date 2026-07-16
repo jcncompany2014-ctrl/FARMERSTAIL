@@ -19,11 +19,11 @@
  *   const cache = createSwrCache()
  *
  *   // 서버 컴포넌트 / route handler 에서
- *   const cart = await cache.fetch('cart:' + userId, () =>
- *     supabase.from('cart_items').select('quantity').eq('user_id', userId)
+ *   const dogs = await cache.fetch('dogs:' + userId, () =>
+ *     supabase.from('dogs').select('id').eq('user_id', userId)
  *   )
  *
- *   // 카트 변경 시
+ *   // 데이터 변경 시
  *   cache.invalidate('cart:' + userId)
  */
 

@@ -567,82 +567,6 @@ export type Database = {
           },
         ]
       }
-      cart_items: {
-        Row: {
-          created_at: string | null
-          id: string
-          product_id: string
-          quantity: number
-          user_id: string
-          variant_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          product_id: string
-          quantity?: number
-          user_id: string
-          variant_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          product_id?: string
-          quantity?: number
-          user_id?: string
-          variant_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cart_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cart_items_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cart_items_variant_id_fkey"
-            columns: ["variant_id"]
-            isOneToOne: false
-            referencedRelation: "product_variants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cart_recovery_log: {
-        Row: {
-          channel: string
-          id: string
-          item_count: number
-          sent_at: string
-          subtotal: number
-          user_id: string
-        }
-        Insert: {
-          channel?: string
-          id?: string
-          item_count?: number
-          sent_at?: string
-          subtotal?: number
-          user_id: string
-        }
-        Update: {
-          channel?: string
-          id?: string
-          item_count?: number
-          sent_at?: string
-          subtotal?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
       chatbot_messages: {
         Row: {
           content: string
@@ -667,87 +591,6 @@ export type Database = {
           id?: string
           role?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      collection_items: {
-        Row: {
-          collection_id: string
-          created_at: string
-          position: number
-          product_id: string
-        }
-        Insert: {
-          collection_id: string
-          created_at?: string
-          position?: number
-          product_id: string
-        }
-        Update: {
-          collection_id?: string
-          created_at?: string
-          position?: number
-          product_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "collection_items_collection_id_fkey"
-            columns: ["collection_id"]
-            isOneToOne: false
-            referencedRelation: "collections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "collection_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      collections: {
-        Row: {
-          card_image_url: string | null
-          created_at: string
-          curator_note: string | null
-          hero_image_url: string | null
-          id: string
-          is_published: boolean
-          palette: string | null
-          slug: string
-          sort_order: number
-          subtitle: string | null
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          card_image_url?: string | null
-          created_at?: string
-          curator_note?: string | null
-          hero_image_url?: string | null
-          id?: string
-          is_published?: boolean
-          palette?: string | null
-          slug: string
-          sort_order?: number
-          subtitle?: string | null
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          card_image_url?: string | null
-          created_at?: string
-          curator_note?: string | null
-          hero_image_url?: string | null
-          id?: string
-          is_published?: boolean
-          palette?: string | null
-          slug?: string
-          sort_order?: number
-          subtitle?: string | null
-          title?: string
-          updated_at?: string
         }
         Relationships: []
       }
@@ -2586,59 +2429,6 @@ export type Database = {
           },
         ]
       }
-      product_variants: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean
-          name: string
-          option_values: Json
-          position: number
-          price: number | null
-          product_id: string
-          sale_price: number | null
-          sku: string | null
-          stock: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          option_values?: Json
-          position?: number
-          price?: number | null
-          product_id: string
-          sale_price?: number | null
-          sku?: string | null
-          stock?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          option_values?: Json
-          position?: number
-          price?: number | null
-          product_id?: string
-          sale_price?: number | null
-          sku?: string | null
-          stock?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "product_variants_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       products: {
         Row: {
           allergens: string[] | null
@@ -3180,48 +2970,6 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      restock_alerts: {
-        Row: {
-          created_at: string
-          id: string
-          notified_at: string | null
-          product_id: string
-          user_id: string
-          variant_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          notified_at?: string | null
-          product_id: string
-          user_id: string
-          variant_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          notified_at?: string | null
-          product_id?: string
-          user_id?: string
-          variant_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "restock_alerts_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "restock_alerts_variant_id_fkey"
-            columns: ["variant_id"]
-            isOneToOne: false
-            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -3804,32 +3552,6 @@ export type Database = {
             columns: ["dog_id"]
             isOneToOne: false
             referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wishlists: {
-        Row: {
-          created_at: string
-          product_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          product_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          product_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wishlists_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]

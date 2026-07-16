@@ -31,8 +31,8 @@ export const dynamic = 'force-dynamic'
  *      Email is replaced with a reversible-by-id sentinel so admin
  *      CSV reports still make sense.
  *   4. Clear ancillary personal data: dogs (hard delete — they own
- *      their pet profiles), cart_items, push_subscriptions,
- *      push_preferences, restock_alerts, cart_recovery_log,
+ *      their pet profiles), push_subscriptions,
+ *      push_preferences,
  *      health/weight logs, dog reminders,
  *      analyses, surveys. Orders / reviews / point_ledger stay —
  *      those are transaction records.
@@ -145,8 +145,6 @@ export async function POST(req: Request) {
 
   // Hard-delete data that is 100% personal and has no transaction
   // record-keeping requirement. Includes Step 20/24/26 tables:
-  //   • restock_alerts  — product subscription; no legal retention
-  //   • cart_recovery_log — PIPA reminder audit; only needed while user exists
   //   • push_preferences — category opt-in flags
   //   • dog_formulas / dog_checkins — pet personalization data (펫 정보)
   //   • native_push_tokens / newsletter_subscribers — 통신 채널, 즉시 해제
@@ -154,11 +152,8 @@ export async function POST(req: Request) {
   //   • push_log — 발송 이력 audit 가 user 떠나면 의미 없음
   const deletionOps = await Promise.allSettled([
     admin.from('dogs').delete().eq('user_id', user.id),
-    admin.from('cart_items').delete().eq('user_id', user.id),
     admin.from('push_subscriptions').delete().eq('user_id', user.id),
     admin.from('push_preferences').delete().eq('user_id', user.id),
-    admin.from('restock_alerts').delete().eq('user_id', user.id),
-    admin.from('cart_recovery_log').delete().eq('user_id', user.id),
     admin.from('health_logs').delete().eq('user_id', user.id),
     admin.from('weight_logs').delete().eq('user_id', user.id),
     admin.from('dog_reminders').delete().eq('user_id', user.id),

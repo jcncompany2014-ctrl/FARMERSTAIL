@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
  * body: { concerns: ('skin'|'joint'|'digestion'|'immune')[], dogId?: string }
  *
  * v3 추천 카드에서 "출시 알림 받기" 클릭 시 호출. concern 단위로 대기열에 등록
- * (restock_alerts 와 동일 패턴). 소스 상품 출시 시 cron 이 통지.
+ * 소스 상품(레이어 B) 출시 시 cron 이 통지.
  *
  * 멱등성: (user, concern) 유니크 — 여러 번 눌러도 알림 한 번. upsert
  * ignoreDuplicates 로 중복 무시.

@@ -359,8 +359,8 @@ export async function POST(req: Request) {
 
   // 5) 포인트 적립 제거 (2026-07-16 포인트 전면 폐기).
 
-  // 6) 장바구니 비우기 (가상계좌 포함 — 입금 대기 중에도 재주문 방지)
-  await supabase.from('cart_items').delete().eq('user_id', user.id)
+  // 6) 장바구니 비우기 제거 (2026-07-16) — 구독 전용 전환으로 cart_items 테이블 자체가
+  //    폐지됐다. 담을 방법이 없으니 비울 것도 없다.
 
   // Phase 1 (2026-05-20): outcome 자동 기록 — 첫 주문 baseline / 재주문 추적.
   // 사용자 부담 0, 시스템이 자동 누적. 첫 박스 7일 후 체크인 cron 의 candidate
