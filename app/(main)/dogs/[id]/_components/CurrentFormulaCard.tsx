@@ -8,9 +8,13 @@ import {
 } from './types'
 
 /**
- * 현재 처방 카드 — 최신 cycle 의 lineRatios mini stack bar +
- * approval_status 강조 (pending_approval = "응답 필요" 빨간 배지) +
- * 체크인 D-Day (week_2 / week_4) + 다음 박스 도착일.
+ * 맞춤 영양 처방 카드 — 분석 기반 **추천** 비율 + cycle 체크인.
+ *
+ * ⚠️ 이건 '현재 박스'(실제 배송되는 박스)가 **아니다**. 실제 배송 레시피는
+ * SubscriptionCard 가 subscription_items 로 보여준다(2026-07-16 분리). 여기 비율은
+ * dog_formulas 의 알고리즘 추천이라, 재고·SKU 스냅으로 실제 박스와 다를 수 있다.
+ * 그래서 예전 "현재 박스" 표기를 "맞춤 영양 처방(추천)"으로 고쳤다. 이 카드의 진짜
+ * 역할은 ① 새 비율 승인(pending) ② cycle 체크인 D-Day 안내다.
  */
 export default function CurrentFormulaCard({
   formula,
@@ -80,7 +84,7 @@ export default function CurrentFormulaCard({
             <span className="kicker">
               {isPending
                 ? '동의 필요 · 새 박스'
-                : `현재 박스 · cycle ${formula.cycle_number}`}
+                : `맞춤 영양 처방 · cycle ${formula.cycle_number}`}
             </span>
             {formula.user_adjusted && (
               <span className="text-[9px] font-bold text-terracotta px-1.5 py-0.5 rounded-full bg-terracotta/10">
@@ -103,6 +107,13 @@ export default function CurrentFormulaCard({
             </Link>
           </div>
         </div>
+
+        {/* 추천 비율임을 명시 — 실제 받는 박스와 헷갈리지 않게. */}
+        <p className="text-[10px] text-muted mb-2 leading-snug">
+          {isPending
+            ? '새로 추천된 영양 비율이에요'
+            : '분석 기반 추천 비율 · 실제 받는 박스는 아래 정기배송 카드에서 확인하세요'}
+        </p>
 
         {/* mini stacked bar */}
         <MiniRatioBar lineRatios={formula.formula.lineRatios} />

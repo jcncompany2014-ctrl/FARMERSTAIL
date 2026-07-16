@@ -7,11 +7,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DogDetailClient from './DogDetailClient'
-import InterventionWindowCard from '@/components/dog/InterventionWindowCard'
-import {
-  evaluateInterventionWindow,
-  type InterventionWindow,
-} from '@/lib/intervention-window'
 import { buildDogInsight } from '@/lib/dog-insight'
 import type {
   Dog,
@@ -59,9 +54,8 @@ export default async function DogDetailPage({
   // R55 perf — 모든 server fetch 통합. 기존 6건 + Intervention 카드 데이터
   // (이전엔 컴포넌트 안에서 sequential fetch — 중복 + waterfall) 1 Promise.all.
   const trendSinceIso = sixMonthsAgoIso()
-  const [profileRes, logsRes, formulaRes, subsRes, weightTrendRes, surveyRes] =
+  const [logsRes, formulaRes, subsRes, weightTrendRes, surveyRes] =
     await Promise.all([
-      supabase.from('profiles').select('name').eq('id', user.id).maybeSingle(),
       supabase
         .from('weight_logs')
         .select('id, weight, measured_at, note')
@@ -84,7 +78,11 @@ export default async function DogDetailPage({
         .from('subscriptions')
         .select(
           'id, status, interval_weeks, coverage_weeks, fresh_ratio, next_delivery_date, ' +
-            'total_deliveries, total_amount, billing_key, created_at',
+            'total_deliveries, total_amount, billing_key, created_at, ' +
+            // subscriptionState() 정확 판정용 — 없으면 '시작 전'을 '일시정지'로 오표시.
+            'failed_charge_count, requires_billing_key_renewal, ' +
+            // 실제 배송 레시피(정본). dog_formulas(추천)가 아니라 이걸 카드에 보여준다.
+            'subscription_items(product_name, quantity)',
         )
         .eq('dog_id', dogId)
         .eq('user_id', user.id)
@@ -114,10 +112,6 @@ export default async function DogDetailPage({
         .limit(1)
         .maybeSingle(),
     ])
-
-  const ownerFallback = user.email ? user.email.split('@')[0] ?? null : null
-  const ownerName =
-    (profileRes.data as { name?: string | null } | null)?.name ?? ownerFallback
 
   const initialWeightLogs = (logsRes.data ?? []) as WeightLog[]
   const currentFormula = formulaRes.data
@@ -151,19 +145,6 @@ export default async function DogDetailPage({
     weight: number
   }>
 
-  // R55 perf — 개입 윈도우 사전 계산. lib 함수 (pure) → 추가 fetch 없음.
-  let interventionWindow: InterventionWindow | null = null
-  if (dog.weight) {
-    interventionWindow = evaluateInterventionWindow({
-      weightLogs: trendLogs.map((l) => ({
-        date: l.measured_at,
-        weightKg: l.weight,
-      })),
-      currentBcs: surveyAnswers.bcsExact ?? 5,
-      currentWeightKg: dog.weight,
-    })
-  }
-
   // 개요 인사이트 멘트 — 체중 기록 기반, 상황마다 다른 문구(사장님 2026-07-14).
   // 순수 함수 + 결정적 문구 선택이라 하이드레이션 안전. 체중을 새로 기록하면
   // DogDetailClient 가 router.refresh() 로 여기부터 다시 계산시킨다.
@@ -175,20 +156,13 @@ export default async function DogDetailPage({
   })
 
   return (
-    <>
-      {/* XL-4 (#13) — 모듈 G 개입 윈도우 카드. urgent/watch 일 때만 렌더. */}
-      {interventionWindow && (
-        <InterventionWindowCard dogId={dogId} window={interventionWindow} />
-      )}
-      <DogDetailClient
-        dog={dog}
-        ownerName={ownerName}
-        initialWeightLogs={initialWeightLogs}
-        currentFormula={currentFormula}
-        checkinStatus={checkinStatus}
-        subscriptions={subscriptions}
-        insight={insight}
-      />
-    </>
+    <DogDetailClient
+      dog={dog}
+      initialWeightLogs={initialWeightLogs}
+      currentFormula={currentFormula}
+      checkinStatus={checkinStatus}
+      subscriptions={subscriptions}
+      insight={insight}
+    />
   )
 }

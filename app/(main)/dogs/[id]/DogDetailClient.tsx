@@ -48,13 +48,10 @@ import InsightNote from './_components/InsightNote'
 import type { DogInsight } from '@/lib/dog-insight'
 import CurrentFormulaCard from './_components/CurrentFormulaCard'
 import SubscriptionCard from './_components/SubscriptionCard'
-import DogFamilyMembers from '@/components/DogFamilyMembers'
-import VetShareButton from '@/components/VetShareButton'
 import PhotoRequestButton from '@/components/PhotoRequestButton'
 
 type Props = {
   dog: Dog
-  ownerName: string | null
   initialWeightLogs: WeightLog[]
   currentFormula: CurrentFormula | null
   checkinStatus: CheckinStatus
@@ -65,7 +62,6 @@ type Props = {
 
 export default function DogDetailClient({
   dog: initialDog,
-  ownerName,
   initialWeightLogs,
   currentFormula,
   checkinStatus,
@@ -238,7 +234,16 @@ export default function DogDetailClient({
     <div className="pb-10">
       {/* Hero */}
       <section className="px-5 pt-6">
-        <div className="bg-bg-3 rounded border border-rule px-6 py-8 text-center">
+        <div className="relative bg-bg-3 rounded border border-rule px-6 py-8 text-center">
+          {/* 정보 수정 — 프로필 카드 모서리 연필 아이콘(사장님 2026-07-16). 스크롤
+              맨 밑 버튼 대신 여기서 바로 눈에 띄고 손이 닿게. */}
+          <Link
+            href={`/dogs/${dog.id}/edit`}
+            aria-label={`${petName(dog.name)} 정보 수정`}
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-bg flex items-center justify-center text-muted hover:text-text hover:bg-bg border border-transparent hover:border-rule transition"
+          >
+            <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
+          </Link>
           <div className="relative w-24 h-24 bg-bg rounded-full overflow-hidden flex items-center justify-center mx-auto mb-4">
             {dog.photo_url ? (
               <Image
@@ -547,22 +552,6 @@ export default function DogDetailClient({
           </div>
         </Link>
         <Link
-          href={`/dogs/${dog.id}/health`}
-          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
-        >
-          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
-            <Heart className="w-4 h-4 text-sale" strokeWidth={2} />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-[12px] font-black text-text">
-              건강 일지
-            </div>
-            <div className="text-[10.5px] text-muted mt-0.5">
-              변·활동량·기분·식욕을 매일 기록해요
-            </div>
-          </div>
-        </Link>
-        <Link
           href={`/dogs/${dog.id}/reminders`}
           className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
         >
@@ -610,7 +599,8 @@ export default function DogDetailClient({
             </div>
           </div>
         </Link>
-        {/* XL-2 (#14) — 수의사 진료 보조 보고서 (모듈 H). */}
+        {/* XL-2 (#14) — 수의사 진료 보조 (모듈 H). 인쇄 리포트 + 링크 공유를
+            이 한 페이지 안에서 모두 처리 → 개요의 중복 '수의사 공유' 버튼은 제거. */}
         <Link
           href={`/dogs/${dog.id}/vet-report`}
           className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
@@ -620,46 +610,29 @@ export default function DogDetailClient({
           </div>
           <div className="flex-1 text-left">
             <div className="text-[12px] font-black text-text">
-              수의사 보고서
+              수의사에게 보여주기
             </div>
             <div className="text-[10.5px] text-muted mt-0.5">
-              병원 갈 때 인쇄해서 가져가는 진료 요약
+              인쇄해서 가져가거나, 링크로 미리 공유하세요
             </div>
           </div>
         </Link>
       </section>
 
-      {/* Phase D7.3 — 가족 멤버 + 초대. */}
-      <section className="px-5 mt-3">
-        <DogFamilyMembers
-          dogId={dog.id}
-          isOwner={true}
-          ownerName={ownerName}
-        />
-      </section>
-
-      {/* Phase D8.2 — 수의사 read-only 공유 토큰. */}
-      <section className="px-5 mt-3">
-        <VetShareButton dogId={dog.id} dogName={dog.name} />
-      </section>
+      {/* 가족 초대(DogFamilyMembers)·수의사 공유(VetShareButton)는 2026-07-16 개요에서
+          제거. 초대는 수락 후 열람 경로가 아직 없어 사장님이 UI 숨김 결정. 공유는
+          위 '수의사에게 보여주기'(vet-report)가 링크 공유까지 포함해 중복이었음. */}
 
       {/* Phase P5 — 친구 사진 부탁 링크. */}
       <section className="px-5 mt-3">
         <PhotoRequestButton dogId={dog.id} dogName={dog.name} />
       </section>
 
-      {/* Secondary actions */}
-      <section className="px-5 mt-3 grid grid-cols-2 gap-2.5">
-        <Link
-          href={`/dogs/${dog.id}/edit`}
-          className="flex items-center justify-center gap-1.5 py-3 bg-bg-3 text-text rounded border border-rule hover:border-text text-[12px] font-bold transition"
-        >
-          <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
-          정보 수정
-        </Link>
+      {/* Secondary actions — 정보 수정은 프로필 카드 모서리로 이동(위). 삭제만 남김. */}
+      <section className="px-5 mt-3">
         <button
           onClick={() => setShowDeleteConfirm(true)}
-          className="flex items-center justify-center gap-1.5 py-3 bg-bg-3 text-sale rounded border border-rule hover:border-sale text-[12px] font-bold transition"
+          className="flex items-center justify-center gap-1.5 w-full py-3 bg-bg-3 text-sale rounded border border-rule hover:border-sale text-[12px] font-bold transition"
         >
           <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
           삭제

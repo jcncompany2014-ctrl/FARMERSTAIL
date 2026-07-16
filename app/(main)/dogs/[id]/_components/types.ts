@@ -57,6 +57,11 @@ export type ActiveSubscription = {
   total_amount: number
   billing_key: string | null
   created_at: string
+  /** subscriptionState() 판정용 (2026-07-16). '시작 전'을 '일시정지'로 오표시하던 버그 방지. */
+  failed_charge_count: number
+  requires_billing_key_renewal: boolean
+  /** 실제 배송 레시피(정본). dog_formulas(추천)와 달리 gateAvailability·snapBoxRatios 반영된 최종 박스. */
+  subscription_items: { product_name: string; quantity: number }[]
 }
 
 export const FOOD_LINE_COLORS: Record<string, string> = {
