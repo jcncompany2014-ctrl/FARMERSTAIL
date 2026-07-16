@@ -190,7 +190,7 @@ export default function CookieConsent() {
             <ul className="mt-3 space-y-2.5 border-t border-rule pt-3">
               <CategoryRow
                 title="필수 쿠키"
-                hint="로그인·장바구니 등 기본 기능을 위한 쿠키예요. 끌 수 없어요."
+                hint="로그인·정기배송 등 기본 기능을 위한 쿠키예요. 끌 수 없어요."
                 locked
                 on
               />
