@@ -67,7 +67,7 @@ const serverSchema = z.object({
   VAPID_PRIVATE_KEY: optStr(),
   VAPID_SUBJECT: optStr(),
 
-  // === Anthropic (선택 — /api/analysis/commentary용) =======================
+  // === Anthropic (선택 — /api/analysis/structured · health/ocr 용) =========
   ANTHROPIC_API_KEY: optStr(),
   // 일일 전역 호출 cap (비용 가드, 마스터피스 P1-O4). 미설정/0/음수 = 무제한
   // (opt-in, 기존 동작 보존). 양수면 오늘 전역 AI 호출수가 그 값 도달 시 503.

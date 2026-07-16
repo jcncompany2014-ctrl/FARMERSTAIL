@@ -28,7 +28,7 @@ const ROUTE = 'analysis-structured'
  * 분석 결과 (analyses) + 설문 (surveys) + 강아지 (dogs) 를 join 해 AI 에 보내고
  * 구조화된 JSON 분석을 받아 analyses.structured_analysis 에 캐시.
  *
- * 기존 /api/analysis/commentary 는 plain text — 호환 유지. 이 라우트가 새 v2.
+ * (구 /api/analysis/commentary 는 2026-07-16 폐기 — 이 라우트가 유일한 AI 분석.)
  *
  * # 보호
  * - Zod 검증 (analysisId UUID)

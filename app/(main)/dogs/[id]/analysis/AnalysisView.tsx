@@ -34,6 +34,7 @@ import AnalysisEmptyState from './_components/AnalysisEmptyState'
 import AnalysisStickySummary from './_components/AnalysisStickySummary'
 import AnalysisArchiveBanner from './_components/AnalysisArchiveBanner'
 import AnalysisMagazineSection from './_components/AnalysisMagazineSection'
+import AiCommentCard from '@/components/v3/AiCommentCard'
 import AnalysisCTASection from './_components/AnalysisCTASection'
 
 type Analysis = {
@@ -64,6 +65,8 @@ type Analysis = {
   guideline_version?: string | null
   // 칼로리 v2 6단계 — 계수 사다리 (과거 분석은 null)
   factor_breakdown?: { label: string; delta: number }[] | null
+  // AI 코멘트 캐시 (2026-07-16) — structured 라우트가 채운 JSON. 없으면 카드가 fetch.
+  structured_analysis?: { summary?: string; nextActions?: string[] } | null
 }
 
 type Dog = {
@@ -411,8 +414,16 @@ export default function AnalysisView({
         />
       )}
 
-
-
+      {/* AI 코멘트 — 급여량 카드 바로 아래. 숫자는 규칙, 이 카드만 AI 가 그 아이
+          사정을 읽고 쓴다(2026-07-16 연결). archive(과거 분석)에선 안 부른다 —
+          지난 데이터에 AI 비용 낭비. 서버 캐시(structured_analysis) 있으면 그걸 쓴다. */}
+      {!isArchive && (
+        <AiCommentCard
+          analysisId={analysis.id}
+          dogName={dog.name}
+          cached={analysis.structured_analysis ?? null}
+        />
+      )}
 
       {/* Round C1 (2026-05-20): 5종 SKU 비교 페이지로 CTA. */}
       {!isArchive && (

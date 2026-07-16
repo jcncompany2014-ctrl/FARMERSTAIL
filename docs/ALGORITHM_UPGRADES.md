@@ -117,6 +117,25 @@
 
 ---
 
+## 6. AI 코멘트를 목록·수의사 보고서에도
+
+**지금:** `/api/analysis/structured` 의 AI 코멘트가 **분석 상세 화면**에만 뜬다
+(2026-07-16 연결, AiCommentCard). 급여량 카드 바로 아래 "○○를 위한 한마디".
+
+**아직 안 된 곳:** 분석 **목록**(`/dogs/[id]/analyses`)과 **수의사 보고서**
+(`/dogs/[id]/vet-report`)는 옛 `analyses.commentary` 컬럼을 읽는데, 그 컬럼은
+**이제 안 채워진다**(commentary 라우트를 폐기함) → 그 자리가 항상 비어 있다.
+두 화면 모두 `analysis.commentary && (...)` 라 값 없으면 안 뜨니 **깨지진 않는다.**
+
+**붙이려면:** 이 두 화면이 `structured_analysis.summary`(또는 그 요약)를 읽게 바꾼다.
+서버 컴포넌트라 클라이언트 fetch 대신 **structured 를 미리 채워두는 백필**이 필요할 수
+있다(목록은 여러 건이라 각각 AI 호출하면 느리고 비싸다 — 상세를 한 번 열면 캐시되니,
+"열어본 분석만 목록에도 뜬다" 로 두는 게 현실적).
+
+**코드:** `analyses.commentary` 참조 → `structured_analysis` 로. AiCommentCard 재사용 가능.
+
+---
+
 ## ⛔ 가져오면 안 되는 것
 
 | 무엇 | 왜 |

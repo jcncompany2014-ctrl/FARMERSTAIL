@@ -2,7 +2,7 @@
  * Anthropic AI 비용 가드 — 일일 cap 체크 + 사용량 기록 (마스터피스 P1-O4).
  *
  * # 문제
- * AI 라우트 (/api/analysis/commentary, /structured, /api/health/ocr) 는 IP 당
+ * AI 라우트 (/api/analysis/structured, /api/health/ocr) 는 IP 당
  * rate-limit (5req/min) 만 있고 **일·월 누적 비용 추적·예산 cap·초과 알림이
  * 전무**. 분산 IP / 봇 / 버그 폭주 시 Anthropic 청구가 조용히 누적됨.
  *
@@ -69,7 +69,7 @@ const PASS: DailyCapResult = { exceeded: false, cap: null, used: null }
  * fail-open: cap 미설정이거나 DB 확인 실패면 항상 exceeded=false (통과).
  * cap 도달 시에만 exceeded=true 와 함께 captureBusinessEvent('error', ...) 발사.
  *
- * @param route 호출 라우트 라벨 (예: 'analysis-commentary') — 로그용.
+ * @param route 호출 라우트 라벨 (예: 'analysis-structured') — 로그용.
  */
 export async function checkAnthropicDailyCap(
   route: string,
@@ -118,7 +118,7 @@ export async function checkAnthropicDailyCap(
  * 절대 throw 하지 않음 — 기록 실패가 본 응답을 막지 않는다. 테이블/RPC 부재,
  * service_role 미설정 모두 조용히 흡수.
  *
- * @param route 호출 라우트 라벨 (예: 'analysis-commentary').
+ * @param route 호출 라우트 라벨 (예: 'analysis-structured').
  * @param usage Anthropic 응답의 usage (input_tokens / output_tokens). 없으면 생략.
  */
 export async function recordAnthropicUsage(
