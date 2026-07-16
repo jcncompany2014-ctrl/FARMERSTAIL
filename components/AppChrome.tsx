@@ -59,6 +59,7 @@ const DEEP_TITLES: Record<string, string> = {
   '/dogs/:id/walks': '산책 기록',
   '/dogs/:id/year-in-review': '연말 결산',
   '/faq': '자주 묻는 질문',
+  '/help': '고객센터',
   '/mypage/orders': '주문 내역',
   '/mypage/subscriptions': '정기배송',
   '/mypage/points': '적립금',

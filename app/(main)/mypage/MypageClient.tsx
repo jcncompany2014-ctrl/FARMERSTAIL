@@ -312,7 +312,7 @@ export default function MypageClient({
         {/* AI 영양 상담 — 사장님 2026-07-16 "나중에 쓸 수도 있어서 일단 숨김".
             페이지(/chat)는 남겨두고 메뉴 진입만 숨긴다. 되살릴 땐 아래 주석 해제.
         <MenuItem href="/chat" Icon={Sparkles} label="AI 영양 상담" /> */}
-        <MenuItem href="/business" Icon={HelpCircle} label="고객센터" />
+        <MenuItem href="/help" Icon={HelpCircle} label="고객센터" />
         <MenuItem href="/faq" Icon={FileText} label="자주 묻는 질문" last />
       </MenuGroup>
 
