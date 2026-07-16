@@ -8,17 +8,21 @@ import { createClient } from '@/lib/supabase/client'
 /**
  * ProfileForm — 마이페이지 / 계정 의 기본 프로필 편집 폼.
  *
- * 편집 가능한 필드 (auth.email 제외 — Supabase Auth flow 가 따로):
+ * 편집 가능한 필드:
  *   - name
  *   - phone (포매팅)
- *
- * 만 14세 가드용 출생연도는 **가입 시점에 수집·검증**되므로 여기선 편집하지
- * 않는다. 견주 생일 입력은 폐기(2026-06-27) — 생일 할인은 강아지 생일 기준.
+ *   - email — 변경 시 Supabase Auth 가 새 주소로 인증 메일 발송, 링크 확인 후 적용
+ *     (2026-07-16 사장님: 이름·전화만 있어 빈약 → 이메일 변경 추가).
  */
 
 export type ProfileFormInitial = {
   name: string | null
   phone: string | null
+  email: string | null
+}
+
+function isValidEmail(v: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 }
 
 function formatPhone(raw: string): string {
@@ -43,15 +47,18 @@ export default function ProfileForm({
 
   const [name, setName] = useState(initial.name ?? '')
   const [phone, setPhone] = useState(initial.phone ?? '')
+  const [email, setEmail] = useState(initial.email ?? '')
 
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setDone(false)
+    setEmailSent(false)
 
     if (name.trim().length < 1) {
       setError('이름을 입력해 주세요')
@@ -59,6 +66,12 @@ export default function ProfileForm({
     }
     if (!isValidKoreanMobile(phone)) {
       setError('휴대폰 번호 형식이 올바르지 않아요')
+      return
+    }
+    const emailChanged =
+      email.trim().toLowerCase() !== (initial.email ?? '').trim().toLowerCase()
+    if (emailChanged && !isValidEmail(email)) {
+      setError('이메일 형식이 올바르지 않아요')
       return
     }
 
@@ -78,13 +91,32 @@ export default function ProfileForm({
         phone: phone.trim() || null,
       })
       .eq('id', user.id)
+
+    // 이메일 변경 — Supabase Auth. 새 주소로 인증 메일이 가고, 링크를 눌러야 실제 변경.
+    let emailErr: string | null = null
+    if (emailChanged) {
+      const { error: authErr } = await supabase.auth.updateUser({
+        email: email.trim(),
+      })
+      if (authErr) {
+        emailErr =
+          authErr.message.includes('already') || authErr.message.includes('registered')
+            ? '이미 사용 중인 이메일이에요'
+            : '이메일 변경 메일을 보내지 못했어요'
+      }
+    }
     setSaving(false)
 
     if (updErr) {
       setError('저장하지 못했어요')
       return
     }
+    if (emailErr) {
+      setError(emailErr)
+      return
+    }
     setDone(true)
+    if (emailChanged) setEmailSent(true)
     router.refresh()
     setTimeout(() => setDone(false), 3000)
   }
@@ -123,6 +155,36 @@ export default function ProfileForm({
           placeholder="010-1234-5678"
         />
       </Field>
+
+      <Field
+        label="이메일"
+        hint="변경하면 새 주소로 인증 메일이 가요. 링크를 눌러야 바뀝니다."
+      >
+        <input
+          type="email"
+          inputMode="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          aria-label="이메일"
+          className="w-full px-4 py-3 rounded-lg text-[14px] focus:outline-none transition"
+          style={{
+            background: 'var(--bg-2)',
+            border: '1px solid var(--rule)',
+            color: 'var(--ink)',
+          }}
+          placeholder="you@example.com"
+        />
+      </Field>
+
+      {emailSent && (
+        <p
+          className="inline-flex items-start gap-1.5 text-[12px] font-bold"
+          style={{ color: 'var(--moss)' }}
+        >
+          <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" strokeWidth={2.25} />
+          <span>새 이메일로 인증 메일을 보냈어요. 링크를 누르면 변경돼요.</span>
+        </p>
+      )}
 
       {error && (
         <p

@@ -123,6 +123,7 @@ export default async function ProfileEditPage() {
               initial={{
                 name: profile?.name ?? null,
                 phone: profile?.phone ?? null,
+                email: user.email ?? null,
               }}
             />
           </div>
