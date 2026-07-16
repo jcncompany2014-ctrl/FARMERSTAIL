@@ -49,7 +49,7 @@ const HOME_OG = ogImageUrl({
 export const metadata: Metadata = {
   title: '파머스테일 — 사료 대신, 진짜 음식 한 끼',
   description:
-    '사람이 먹을 수 있는 신선한 재료를 수의영양 기준에 맞춰. 2분 설문이면 우리 아이 몸에 딱 맞는 맞춤 화식을 시작할 수 있어요. 첫 박스 50% 할인으로 시작, 언제든 해지.',
+    '사람이 먹을 수 있는 신선한 재료를 수의영양 기준에 맞춰. 2분 설문이면 우리 아이 몸에 딱 맞는 맞춤 화식을 시작할 수 있어요. 부담 없이 시작, 언제든 해지.',
   alternates: { canonical: '/' },
   openGraph: {
     title: '파머스테일 — 사료 대신, 진짜 음식 한 끼',
@@ -712,7 +712,7 @@ function FinalCta({ isAuthed }: { isAuthed: boolean }) {
               오늘 시작해요
             </Display>
             <p className="pt-4 mx-auto text-[15px] md:text-[16px]" style={{ maxWidth: 420, lineHeight: 1.65, color: 'rgba(255,255,255,0.92)' }}>
-              첫 박스 50% 할인, 부담 없이. 언제든 해지.
+              무료 분석 먼저, 부담 없이 시작. 언제든 해지.
             </p>
             <div className="pt-8 flex justify-center">
               <Button href={planHref(isAuthed)} tone="cream" size="lg">

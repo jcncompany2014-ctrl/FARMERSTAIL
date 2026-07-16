@@ -75,7 +75,7 @@ const CATEGORIES: readonly Category[] = [
 // 2026-07-03 UX 감사(#86ⓑ): "체험팩"(폐지 예정 용어) 제거 — 현행 사실만.
 // "3만원 무료배송" 류 폐지 모델 클레임도 금지, 배송비는 구독료 포함이 사실.
 const PROMO_MESSAGES = [
-  '첫 주문 50% 할인 · 부담 없이 시작하세요',
+  '무료 분석 먼저, 결제는 그다음 · 언제든 해지',
   '설문으로 우리 아이 맞춤 설계 · 구독 강요 없음',
   '수의영양 기준으로 설계한 화식 · 사람이 먹는 등급 원물',
   '배송비는 구독료에 포함 · 언제든 해지, 미개봉 7일 내 환불',
@@ -376,9 +376,9 @@ export default function WebChrome({
                 fetchPriority="high"
               />
             </Link>
-            {/* CTA pill — 스크롤 내리면 로고 자리에 등장(FD 'Redeem 50% off' pill 대응).
-                '첫 주문 50% 할인'=실구현 첫 주문 50% 자동할인(쿠폰 폐지 전환) 실제
-                프로모라 정직성 OK. 링크=/start 설문 퍼널→가입→첫 주문 자동 적용. */}
+            {/* CTA pill — 스크롤 내리면 로고 자리에 등장. 링크=/start 설문 퍼널.
+                2026-07-17: '첫 주문 50% 할인' 문구 제거 — 블랭킷 50% 폐지(50%류는
+                이벤트 페이지 신규가입자만·admin 설정). 기본 CTA 는 무료 분석 훅. */}
             <Link
               href={isAuthed ? '/dogs/new' : '/start'}
               aria-hidden={showLogo}
@@ -395,7 +395,7 @@ export default function WebChrome({
                 letterSpacing: '-0.01em',
               }}
             >
-              첫 주문 50% 할인
+              2분 무료 분석
             </Link>
 
             {/* 우: 닫힘=로그인만 (FD: Log In). 장바구니 제거 — 사장님 지시(2026-06-15)

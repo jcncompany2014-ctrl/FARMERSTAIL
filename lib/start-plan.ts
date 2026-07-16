@@ -25,10 +25,8 @@ export type StartPlan = {
    * 레시피 카드 대신 "맞춤 상담" 안내로 분기한다(알레르겐 추천 방지).
    */
   noSafeRecipe: boolean
-  /** 하루 단가(원, 전량 화식 기준·잠정 모델). */
+  /** 하루 단가(원, 전량 화식 기준·잠정 모델·구독가). */
   dailyKrw: number
-  /** 첫 박스 50% 할인 시 하루 단가(원). */
-  firstBoxDailyKrw: number
 }
 
 export function computeStartPlan(
@@ -55,6 +53,5 @@ export function computeStartPlan(
     recipes,
     noSafeRecipe: recipes.length === 0,
     dailyKrw,
-    firstBoxDailyKrw: Math.round(dailyKrw / 2),
   }
 }

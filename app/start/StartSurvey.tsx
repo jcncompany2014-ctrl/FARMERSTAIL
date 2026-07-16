@@ -558,12 +558,12 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                     ))}
                   </div>
                 )}
-                {/* 가격 바 — 첫 박스 50% (실제 첫 주문 자동할인). 잠정 단가, 첫 주문 시 확정. */}
+                {/* 가격 바 — 구독가 기준 잠정 단가(첫 주문 시 확정). 블랭킷 첫주문 50%
+                    폐지(2026-07-17): 이벤트 할인은 이벤트 페이지 신규가입자에게만 적용. */}
                 <div className="rounded-[12px]" style={{ marginTop: 10, padding: '13px 16px', background: 'var(--fd-cream)', boxShadow: 'inset 0 0 0 1px var(--fd-line)', display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--fd-pine)' }}>첫 박스</span>
-                  <span style={{ fontSize: 12.5, color: 'var(--fd-muted)', textDecoration: 'line-through' }}>하루 {plan.dailyKrw.toLocaleString()}원</span>
-                  <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--fd-coral-text)' }}>하루 {plan.firstBoxDailyKrw.toLocaleString()}원</span>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--fd-coral-text)' }}>50% OFF</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--fd-pine)' }}>하루</span>
+                  <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--fd-coral-text)' }}>약 {plan.dailyKrw.toLocaleString()}원부터</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--fd-muted)' }}>구독가</span>
                 </div>
                 <p style={{ marginTop: 7, fontSize: 11, color: 'var(--fd-muted)', textAlign: 'center', lineHeight: 1.5 }}>
                   배송 2주마다 · 가입 후 변경 가능. 예상가이며 첫 주문 시 확정돼요.
@@ -609,7 +609,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                 이 맞춤 플랜으로<br />시작해 보세요
               </p>
               <p style={{ marginTop: 6, fontSize: 11.5, color: 'rgba(245,240,230,0.72)', lineHeight: 1.5, textAlign: 'center' }}>
-                가입은 3초면 끝나요. 첫 박스는 50% 할인 가격으로 받아볼 수 있어요.
+                가입은 3초면 끝나요. 구독가로 바로 시작할 수 있어요.
               </p>
               <div style={{ marginTop: 14 }}>
                 {/* 카카오 = 메인 저장 경로. 복귀 시 /start/claim 이 초안을 계정으로 이관. */}

@@ -35,37 +35,20 @@ export default async function PlanPage({
     ...Object.values(TOPPER_TO_SLUG),
   ]
 
-  const [{ data: dog }, { data: subRows }, { data: prodList }] =
-    await Promise.all([
-      supabase
-        .from('dogs')
-        .select('name')
-        .eq('id', dogId)
-        .eq('user_id', user.id)
-        .maybeSingle(),
-      // 이 '계정' 에 진짜 구독 이력이 있는지 — 첫 주문(50%) 할인 판정.
-      // ⚠️ 강아지별이 아니라 계정별이어야 한다(사장님 2026-07-14). 강아지별로
-      //    하면 강아지를 계속 추가/재설문해서 첫 주문 할인을 무한 반복할 수
-      //    있다. 첫 주문 = 계정당 1회.
-      //    (CTA 문구 '첫 박스 시작하기'는 강아지별 유지 — 그건 표현일 뿐 돈이
-      //     아니다. 할인만 계정 기준.)
-      // ⚠️ 카드 미등록·미결제 row 는 제외 — 배송지까지 갔다가 카드 등록에서
-      //    취소하면 구독 row 만 남는데 그건 주문을 한 게 아니다.
-      supabase
-        .from('subscriptions')
-        .select('id')
-        .eq('user_id', user.id)
-        .or(
-          'billing_key.not.is.null,last_charged_at.not.is.null,total_deliveries.gt.0',
-        )
-        .limit(1),
-      // 제품 map (slug → row) — 재고/구독 가능/가격 판정용.
-      supabase
-        .from('products')
-        .select('slug, price, sale_price, stock, is_subscribable')
-        .in('slug', allSlugs)
-        .eq('is_active', true),
-    ])
+  const [{ data: dog }, { data: prodList }] = await Promise.all([
+    supabase
+      .from('dogs')
+      .select('name')
+      .eq('id', dogId)
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    // 제품 map (slug → row) — 재고/구독 가능/가격 판정용.
+    supabase
+      .from('products')
+      .select('slug, price, sale_price, stock, is_subscribable')
+      .in('slug', allSlugs)
+      .eq('is_active', true),
+  ])
 
   if (!dog) redirect('/dogs')
   const dogName = (dog as { name: string }).name
@@ -75,17 +58,12 @@ export default async function PlanPage({
     products[p.slug] = p
   }
 
-  // 첫 주문 = 이 '계정' 에 진짜 구독 이력이 없음 → 50% 첫 주문 할인.
-  // 이미 구독한 적 있는 계정은 강아지를 새로 추가해도 구독가(정가 −15%).
-  const isFirstOrder = (subRows?.length ?? 0) === 0
-
   return (
     <PlanClient
       dogId={dogId}
       dogName={dogName}
       products={products}
       initialFresh={initialFresh}
-      isFirstOrder={isFirstOrder}
     />
   )
 }

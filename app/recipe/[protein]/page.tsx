@@ -284,7 +284,7 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
               </Display>
               <p className="mx-auto mt-4 max-w-[40ch] text-[15px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)' }}>
                 2분 무료 설문으로 우리 아이 체형·건강에 맞는 레시피와 하루 급여량을
-                확인해 보세요. 첫 박스는 50% 할인이에요.
+                확인해 보세요. 부담 없이 시작할 수 있어요.
               </p>
               <div className="mt-7 flex justify-center">
                 <Button href="/start" tone="cream" size="lg">

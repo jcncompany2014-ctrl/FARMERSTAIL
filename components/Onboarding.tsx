@@ -303,7 +303,7 @@ function Slide06({
         <div className={styles.copy}>
           <h1 className={styles.headline}>지금 시작하기</h1>
           <p className={styles.sub}>
-            첫 주문 20% 할인 + 체험팩 프리셋 제공
+            2분 설문으로 우리 아이 맞춤 화식을 찾아요
           </p>
         </div>
       </div>
