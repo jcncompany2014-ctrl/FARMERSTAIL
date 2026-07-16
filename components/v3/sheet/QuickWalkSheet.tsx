@@ -137,10 +137,10 @@ export default function QuickWalkSheet({
           {dogName ? `${dogName} ` : ''}오늘 산책은 어땠나요?
         </h2>
         <p style={{ margin: '4px 0 0', fontSize: 12.5, color: V3.inkMute }}>
-          시간은 30분 단위 · 활동량은 선택
+          시간은 15분 단위 · 활동량은 선택
         </p>
 
-        {/* 산책 시간 — 30분 단위 스텝퍼 */}
+        {/* 산책 시간 — 15분 단위 스텝퍼 */}
         <div style={{ marginTop: 18 }}>
           <div
             style={{
@@ -166,7 +166,7 @@ export default function QuickWalkSheet({
               type="button"
               onClick={() => setDuration((d) => Math.max(MIN, d - STEP))}
               disabled={duration <= MIN}
-              aria-label="30분 줄이기"
+              aria-label="15분 줄이기"
               className="flex items-center justify-center transition active:scale-90"
               style={{
                 width: 40,
@@ -198,7 +198,7 @@ export default function QuickWalkSheet({
               type="button"
               onClick={() => setDuration((d) => Math.min(MAX, d + STEP))}
               disabled={duration >= MAX}
-              aria-label="30분 늘리기"
+              aria-label="15분 늘리기"
               className="flex items-center justify-center transition active:scale-90"
               style={{
                 width: 40,

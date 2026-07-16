@@ -18,7 +18,11 @@ import { StreakRewards } from '@/components/v3'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import OnboardingTutorial from '@/components/dashboard/OnboardingTutorial'
 import { currentMilestone } from '@/lib/dashboard/milestones'
-import { computeStreak, type CheckinRow } from '@/lib/dashboard/streaks'
+import {
+  computeDailyStreak,
+  kstDayKeyFromTs,
+  type CheckinRow,
+} from '@/lib/dashboard/streaks'
 import {
   computePersona,
   daysSinceIso,
@@ -98,6 +102,11 @@ export default async function DashboardPage() {
     { count: chatCount },
     { count: diaryCount },
     { data: pastSnapshotData },
+    { data: healthLogDates },
+    { data: activityLogDates },
+    { data: weightLogDates },
+    { data: dogFormulaGrams },
+    { data: dogSubRatios },
   ] = await Promise.all([
     supabase.rpc('dashboard_user_snapshot', { p_user_id: user.id }),
     // 각 강아지의 분석 존재 여부. 분석 0 인 강아지 picking 용.
@@ -148,6 +157,40 @@ export default async function DashboardPage() {
       .order('snapshot_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    // ── 일별 기록 스트릭/그리드 (2026-07-17) — 식사·산책·체중 중 하나라도 남긴
+    // 날을 '완료'로 센다. cycle 체크인(2주마다)이 아니라 실제 일상 기록 기준.
+    // firstDog 은 아직 미확정(쿠키 재정렬 후)이라 user-scope 로 받고 메모리 필터.
+    // 날짜 컬럼만 60일치 — 가벼움.
+    supabase
+      .from('health_logs')
+      .select('dog_id, logged_at')
+      .eq('user_id', user.id)
+      .gte('logged_at', isoDaysAgo(60)),
+    supabase
+      .from('activity_logs')
+      .select('dog_id, occurred_at')
+      .eq('user_id', user.id)
+      .gte('occurred_at', isoDaysAgo(60)),
+    supabase
+      .from('weight_logs')
+      .select('dog_id, measured_at')
+      .eq('user_id', user.id)
+      .gte('measured_at', isoDaysAgo(60)),
+    // '오늘 화식 급여량' 메트릭 — 최신 처방(cycle 최대) daily_grams × 화식비율.
+    // daily_grams 는 100% 화식 기준 하루 권장량(비율 무관). dog_id 별 최신 1건을
+    // 메모리에서 고른다(내림차순 정렬 → 첫 매칭).
+    supabase
+      .from('dog_formulas')
+      .select('dog_id, cycle_number, daily_grams')
+      .eq('user_id', user.id)
+      .order('cycle_number', { ascending: false }),
+    // 화식 비율(30/60/100) — 구독에서. 없으면 완전화식(100%) 기준으로 표기.
+    supabase
+      .from('subscriptions')
+      .select('dog_id, fresh_ratio, created_at')
+      .eq('user_id', user.id)
+      .in('status', ['active', 'paused'])
+      .order('created_at', { ascending: false }),
   ])
 
   const showOnboarding =
@@ -237,14 +280,66 @@ export default async function DashboardPage() {
   const firstDog = dogs[0]
   const milestone = currentMilestone(userCreatedAt)
 
-  // 체크인 스트릭 — 첫 강아지의 cycle 카운트. currentStreak >= 2 일 때만
-  // StreakCard 가 렌더. 다중 견 합산은 D7 phase 에서 분리.
+  // cycle 체크인 — 페르소나 추론(checkinCount)용으로만 유지. 홈 "연속/이번주"
+  // 지표는 아래 일별 기록(recordDayKeys) 기반으로 바뀌었다(2026-07-17).
   type CheckinRowFull = CheckinRow & { dog_id: string }
   const allCheckins = (checkinsData ?? []) as CheckinRowFull[]
   const firstDogCheckins = firstDog
     ? allCheckins.filter((c) => c.dog_id === firstDog.id)
     : []
-  const streak = computeStreak(firstDogCheckins)
+
+  // ── 일별 기록 연속/그리드 (2026-07-17) ────────────────────────────────
+  // 첫 강아지의 식사(health_logs)·산책(activity_logs)·체중(weight_logs) 기록이
+  // 있는 KST 날짜를 하나의 Set 으로 합친다. "하루 한 번이라도 남기면 완료".
+  const recordDayKeys = new Set<string>()
+  if (firstDog) {
+    for (const r of (healthLogDates ?? []) as Array<{
+      dog_id: string
+      logged_at: string | null
+    }>) {
+      // logged_at 은 이미 KST 달력 date('YYYY-MM-DD') — 변환 없이 slice.
+      if (r.dog_id === firstDog.id && r.logged_at)
+        recordDayKeys.add(r.logged_at.slice(0, 10))
+    }
+    for (const r of (activityLogDates ?? []) as Array<{
+      dog_id: string
+      occurred_at: string | null
+    }>) {
+      if (r.dog_id === firstDog.id && r.occurred_at)
+        recordDayKeys.add(kstDayKeyFromTs(r.occurred_at))
+    }
+    for (const r of (weightLogDates ?? []) as Array<{
+      dog_id: string
+      measured_at: string | null
+    }>) {
+      if (r.dog_id === firstDog.id && r.measured_at)
+        recordDayKeys.add(kstDayKeyFromTs(r.measured_at))
+    }
+  }
+  // force-dynamic 서버 컴포넌트 — Date.now() 는 매 요청 실행이라 정상(purity 예외).
+  // eslint-disable-next-line react-hooks/purity
+  const dailyStreak = computeDailyStreak(recordDayKeys, Date.now())
+
+  // ── '오늘 화식 급여량' (g) — 최신 처방 daily_grams × 화식비율/100 ──────────
+  // OrderClient 의 박스 "하루 Xg" 와 같은 식(daily_grams×freshRatio/100). 구독
+  // 전이면 완전화식(100%) 기준. 처방이 없으면(첫 설문 전) null → '--'.
+  const firstDogDailyGrams = firstDog
+    ? ((dogFormulaGrams ?? []) as Array<{
+        dog_id: string
+        daily_grams: number | null
+      }>).find((f) => f.dog_id === firstDog.id)?.daily_grams ?? null
+    : null
+  const firstDogFreshRatio = firstDog
+    ? ((dogSubRatios ?? []) as Array<{
+        dog_id: string
+        fresh_ratio: number | null
+      }>).find((s) => s.dog_id === firstDog.id && s.fresh_ratio != null)
+        ?.fresh_ratio ?? null
+    : null
+  const freshFeedGrams =
+    firstDogDailyGrams != null
+      ? Math.round((firstDogDailyGrams * (firstDogFreshRatio ?? 100)) / 100)
+      : null
 
   // ── Phase D7.4 — 페르소나 추론 + 카드 ──────────────────────────────────
   // 첫 강아지의 photo / allergies 신호 + 챗봇·일지·체크인·분석 카운트로
@@ -325,43 +420,35 @@ export default async function DashboardPage() {
         .join(' · ')
     : ''
 
-  // ── ThisWeek 7일 데이터 — checkinsData 의 cycle row 를 7일 grid 변환.
-  function makeWeekDays(): WeekDay[] {
+  // ── ThisWeek 7일 그리드 — 일별 기록(recordDayKeys) 기준 (2026-07-17).
+  // 하루 한 번이라도 기록하면 그날 '완료'(full). 옛날엔 cycle 체크인 카운트로
+  // full=2+/partial=1 을 따졌는데, 체크인이 2주마다라 그리드가 늘 비어 무의미했다.
+  // KST 기준으로 오늘~6일 전을 센다(서버 UTC 로 '오늘'이 어긋나던 것도 함께 교정).
+  function makeWeekDays(nowMs: number): WeekDay[] {
     const days: WeekDay[] = []
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const checkinByDate = new Map<string, number>()
-    for (const c of allCheckins) {
-      const d = new Date(c.created_at)
-      d.setHours(0, 0, 0, 0)
-      const key = d.toISOString().slice(0, 10)
-      checkinByDate.set(key, (checkinByDate.get(key) ?? 0) + 1)
-    }
+    const kstNow = nowMs + 9 * 3600 * 1000
     const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
     for (let offset = 6; offset >= 0; offset--) {
-      const d = new Date(today.getTime() - offset * 86_400_000)
+      // KST 로 시프트한 epoch 를 UTC 로 읽어 KST 달력 날짜를 얻는다(KST 는 DST 없음).
+      const d = new Date(kstNow - offset * 86_400_000)
       const key = d.toISOString().slice(0, 10)
       const isToday = offset === 0
-      const count = checkinByDate.get(key) ?? 0
-      let status: WeekDay['status']
-      if (isToday) {
-        status = count > 0 ? 'full' : 'today'
-      } else if (count >= 2) {
-        status = 'full'
-      } else if (count === 1) {
-        status = 'partial'
-      } else {
-        status = 'miss'
-      }
+      const recorded = recordDayKeys.has(key)
+      const status: WeekDay['status'] = recorded
+        ? 'full'
+        : isToday
+          ? 'today'
+          : 'miss'
       days.push({
-        date: d.getDate(),
-        weekday: WEEKDAY_LABELS[d.getDay()] ?? '·',
+        date: d.getUTCDate(),
+        weekday: WEEKDAY_LABELS[d.getUTCDay()] ?? '·',
         status,
       })
     }
     return days
   }
-  const weekDays = makeWeekDays()
+  // eslint-disable-next-line react-hooks/purity
+  const weekDays = makeWeekDays(Date.now())
 
   const quickActions: QuickAction[] = [
     {
@@ -424,15 +511,16 @@ export default async function DashboardPage() {
             },
             {
               key: '연속',
-              value:
-                streak.currentStreak > 0 ? String(streak.currentStreak) : '0',
+              value: dailyStreak > 0 ? String(dailyStreak) : '0',
               sub: '일',
               tone: 'yellow',
             },
             {
-              key: '분석',
-              value: String(dogIdsWithAnalyses.size),
-              sub: `/ ${dogs.length}`,
+              // 옛 '분석 N/전체'(의미 없던 지표) → '오늘 화식 급여량'(사장님 2026-07-17).
+              // 4칸 mono 라벨이 좁아 'g' 단위와 함께 '오늘 화식'으로 표기.
+              key: '오늘 화식',
+              value: freshFeedGrams != null ? String(freshFeedGrams) : '--',
+              sub: 'g',
               tone: 'sage',
             },
             {
@@ -459,9 +547,9 @@ export default async function DashboardPage() {
 
       {/* R15-C28: Streak rewards — 7일 이상 연속일 때만 노출.
           R19: section spacing 통일 — 다른 home sections 와 동일 padding. */}
-      {firstDog && streak.currentStreak >= 7 && (
+      {firstDog && dailyStreak >= 7 && (
         <section style={{ padding: '0 20px 30px' }}>
-          <StreakRewards currentStreak={streak.currentStreak} />
+          <StreakRewards currentStreak={dailyStreak} />
         </section>
       )}
 
@@ -470,7 +558,7 @@ export default async function DashboardPage() {
         <ThisWeekSection
           dogId={firstDog.id}
           dogName={firstDog.name}
-          streak={streak.currentStreak}
+          streak={dailyStreak}
           days={weekDays}
           quickActions={quickActions}
           recordTodayHref={`/dogs/${firstDog.id}/health`}

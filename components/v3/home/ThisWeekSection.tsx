@@ -4,8 +4,9 @@
  * 핸드오프 패턴:
  *   - heading: "이번 주 {dogName}" + Mono sage "· 연속 N일"
  *   - 7-day grid (Mon-Sun) — 각 칸 aspect 1:1 + 상태별 색:
- *       full=ink, partial=yellow, miss=ruleSoft, today=dashed accent border
- *   - 아래 legend (완료/일부 sample) + "오늘 기록하기 →" 우측 CTA
+ *       full=ink, miss=ruleSoft, today=dashed accent border
+ *       (2026-07-17: 하루 한 번이라도 기록하면 full. partial 등급 폐지 — 이진.)
+ *   - 아래 legend (완료/미기록) + 기준 캡션 + "오늘 기록하기 →" CTA
  *   - 그 아래 3-col Quick Action chips (식사/산책/체중)
  */
 
@@ -172,7 +173,7 @@ export default function ThisWeekSection({
         >
           <div className="flex" style={{ gap: 12 }}>
             <LegendItem color={V3.ink} label="완료" />
-            <LegendItem color={V3.yellow} label="일부" />
+            <LegendItem color={V3.ruleSoft} label="미기록" />
           </div>
           {recordTodayHref && (
             <Link
@@ -192,6 +193,21 @@ export default function ThisWeekSection({
             </Link>
           )}
         </div>
+
+        {/* 기준 설명 — "정확히 뭘 해야 의미 있는지 모르겠다"(사장님) 해소.
+            식사·산책·체중 중 하나만 남겨도 그날은 완료 + 연속 유지. */}
+        <p
+          style={{
+            margin: '10px 0 0',
+            fontSize: V3FontSize.xs,
+            lineHeight: 1.5,
+            color: V3.inkMute,
+            wordBreak: 'keep-all',
+          }}
+        >
+          식사·산책·체중 중 하나만 남겨도 그날은 완료예요. 매일 이어가면 연속 일수가
+          쌓여요.
+        </p>
       </div>
 
       {/* Quick Action chips — 식사·산책·체중 (체중은 그 자리에서 시트). */}

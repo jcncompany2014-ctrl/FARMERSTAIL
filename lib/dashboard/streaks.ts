@@ -140,3 +140,43 @@ export function computeStreak(rows: CheckinRow[] | null | undefined): StreakInfo
     progressToNext,
   }
 }
+
+// ── 일별 기록 스트릭 (2026-07-17) ─────────────────────────────────────────
+// 위 cycle 체크인 스트릭과 별개. 홈 "이번 주" 그리드/연속은 **실제 일상 기록**
+// (식사·산책·체중) 기준으로 센다. cycle 체크인은 2주마다라 일간 그리드가 거의
+// 비어 무의미했다(사장님 지적). "하루 한 번이라도 기록하면 그날 완료 + 연속 유지".
+
+/** timestamptz(UTC) → KST 달력 날짜 키 'YYYY-MM-DD'. (health_logs.logged_at 는 이미 KST date 라 이 변환이 불필요 — 그대로 slice.) */
+export function kstDayKeyFromTs(iso: string): string {
+  return new Date(new Date(iso).getTime() + 9 * 3600 * 1000)
+    .toISOString()
+    .slice(0, 10)
+}
+
+/**
+ * 일별 기록 연속 일수 — dayKeys 에 '기록이 있는 KST 날짜'(YYYY-MM-DD)를 넣어 호출.
+ *
+ * 규칙(사장님 2026-07-17): 식사·산책·체중 중 **하나만** 남겨도 그날은 기록된 날.
+ *  - 오늘 기록 있으면 오늘부터 거꾸로 연속 카운트.
+ *  - 오늘 없어도 어제 있으면 어제부터(오늘은 아직 진행중이라 끊긴 게 아님).
+ *  - 오늘·어제 둘 다 없으면 0.
+ * nowMs 는 raw epoch(Date.now()) — 내부에서 KST(+9h)로 환산한다.
+ */
+export function computeDailyStreak(
+  dayKeys: Set<string>,
+  nowMs: number,
+): number {
+  const DAY = 86_400_000
+  const kstNow = nowMs + 9 * 3600 * 1000
+  const keyOf = (ms: number) => new Date(ms).toISOString().slice(0, 10)
+  let cursor: number
+  if (dayKeys.has(keyOf(kstNow))) cursor = kstNow
+  else if (dayKeys.has(keyOf(kstNow - DAY))) cursor = kstNow - DAY
+  else return 0
+  let streak = 0
+  while (dayKeys.has(keyOf(cursor))) {
+    streak += 1
+    cursor -= DAY
+  }
+  return streak
+}
