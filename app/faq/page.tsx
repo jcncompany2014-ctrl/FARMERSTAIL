@@ -4,7 +4,8 @@ import { ArrowRight } from 'lucide-react'
 import JsonLd from '@/components/JsonLd'
 import { buildFaqJsonLd, buildBreadcrumbJsonLd, ogImageUrl } from '@/lib/seo/jsonld'
 import { createClient } from '@/lib/supabase/server'
-import WebChrome from '@/components/WebChrome'
+import AuthAwareShell from '@/components/AuthAwareShell'
+import { isAppContextServer } from '@/lib/app-context'
 import StickyCta from '@/components/web/fd/StickyCta'
 import { Button, Container, Display, Eyebrow, Section } from '@/components/web/fd/ui'
 
@@ -206,6 +207,9 @@ export default async function FaqPage() {
     data: { user },
   } = await supabase.auth.getUser()
   const isAuthed = !!user
+  // 앱(PWA) 컨텍스트면 앱 chrome 으로 렌더 → FAQ 눌러도 웹으로 안 넘어감(사장님 2026-07-16).
+  // 웹 마케팅 전환 요소(하단 CTA·StickyCta)는 앱에선 하단 탭과 겹치고 부적절 → 웹 전용.
+  const isApp = await isAppContextServer()
 
   let groups: Group[] = []
   try {
@@ -247,7 +251,7 @@ export default async function FaqPage() {
   ])
 
   return (
-    <WebChrome>
+    <AuthAwareShell>
       <main>
         <JsonLd id="ld-faq" data={faqLd} />
         <JsonLd id="ld-faq-crumbs" data={crumbLd} />
@@ -309,27 +313,29 @@ export default async function FaqPage() {
           </Container>
         </Section>
 
-        {/* CTA */}
-        <Section bg="pine" pad="md">
-          <Container size="md">
-            <div className="text-center">
-              <Display size="md" style={{ color: '#FFFFFF' }}>
-                아직 고민 중이신가요?
-              </Display>
-              <p className="pt-3 mx-auto text-[14px] md:text-[15px]" style={{ maxWidth: 420, color: 'var(--fd-green-soft)', lineHeight: 1.6 }}>
-                2분 설문이면 우리 아이에게 맞는 식단을 바로 확인할 수 있어요.
-              </p>
-              <div className="pt-7 flex justify-center">
-                <Button href={isAuthed ? '/dogs/new' : '/start'} tone="coral" size="lg">
-                  2분 설문 시작하기
-                  <ArrowRight size={19} strokeWidth={2.4} />
-                </Button>
+        {/* CTA — 웹 전용(앱엔 하단 탭이 있어 전환 CTA 중복·부적절). */}
+        {!isApp && (
+          <Section bg="pine" pad="md">
+            <Container size="md">
+              <div className="text-center">
+                <Display size="md" style={{ color: '#FFFFFF' }}>
+                  아직 고민 중이신가요?
+                </Display>
+                <p className="pt-3 mx-auto text-[14px] md:text-[15px]" style={{ maxWidth: 420, color: 'var(--fd-green-soft)', lineHeight: 1.6 }}>
+                  2분 설문이면 우리 아이에게 맞는 식단을 바로 확인할 수 있어요.
+                </p>
+                <div className="pt-7 flex justify-center">
+                  <Button href={isAuthed ? '/dogs/new' : '/start'} tone="coral" size="lg">
+                    2분 설문 시작하기
+                    <ArrowRight size={19} strokeWidth={2.4} />
+                  </Button>
+                </div>
               </div>
-            </div>
-          </Container>
-        </Section>
+            </Container>
+          </Section>
+        )}
       </main>
-      <StickyCta href={isAuthed ? '/dogs/new' : '/start'} />
-    </WebChrome>
+      {!isApp && <StickyCta href={isAuthed ? '/dogs/new' : '/start'} />}
+    </AuthAwareShell>
   )
 }

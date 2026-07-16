@@ -30,8 +30,6 @@ import {
   FileText,
   Shield,
   Crown,
-  Sparkles,
-  Gauge,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import StampCard from '@/components/account/StampCard'
@@ -297,8 +295,9 @@ export default function MypageClient({
       </MenuGroup>
 
       <MenuGroup kicker="Settings · 설정" topPad={20}>
-        {/* 변수별 분석 맞춤도 — 홈에서 분리해 이쪽으로 이동(2026-06-11). */}
-        <MenuItem href="/mypage/accuracy" Icon={Gauge} label="분석 맞춤도" />
+        {/* 분석 맞춤도 — 사장님 2026-07-16 "나중에 쓸 수도 있어서 일단 숨김".
+            페이지(/mypage/accuracy)는 남겨두고 메뉴 진입만 숨긴다. 되살릴 땐 아래 주석 해제.
+        <MenuItem href="/mypage/accuracy" Icon={Gauge} label="분석 맞춤도" /> */}
         {/* R-feel: 상단 헤더에서 알림 종을 강아지 칩으로 교체 → 알림함 진입을
             마이페이지로 이동(고립 방지). */}
         <MenuItem href="/notifications" Icon={Bell} label="받은 알림" />
@@ -317,7 +316,9 @@ export default function MypageClient({
       </MenuGroup>
 
       <MenuGroup kicker="Help · 도움말" topPad={20}>
-        <MenuItem href="/chat" Icon={Sparkles} label="AI 영양 상담" />
+        {/* AI 영양 상담 — 사장님 2026-07-16 "나중에 쓸 수도 있어서 일단 숨김".
+            페이지(/chat)는 남겨두고 메뉴 진입만 숨긴다. 되살릴 땐 아래 주석 해제.
+        <MenuItem href="/chat" Icon={Sparkles} label="AI 영양 상담" /> */}
         <MenuItem href="/business" Icon={HelpCircle} label="고객센터" />
         <MenuItem href="/faq" Icon={FileText} label="자주 묻는 질문" last />
       </MenuGroup>
