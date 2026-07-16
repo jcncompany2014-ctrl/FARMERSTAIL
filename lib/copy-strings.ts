@@ -92,11 +92,6 @@ export const ANALYSIS_COPY = {
     `${petName(name)}의 하루 권장 칼로리는 ${kcal} kcal 정도예요.\n` +
     `평균적인 활동량 기준이고, 산책 시간이나 활동량에 따라 조금 달라질 수 있어요.`,
 
-  sku_recommendation: (name: string, skuG: number) =>
-    `${petName(name)}에게 딱 맞는 1팩은 ${skuG}g이에요.\n` +
-    `매일 한 팩이면 ${petName(name)}의 하루 영양이 정확히 채워져요. ` +
-    `크지도 작지도 않게, ${petName(name)} 맞춤 사이즈 🐾`,
-
   price_framing: (perMealKrw: number, comparison: string) =>
     `한 끼 약 ${perMealKrw.toLocaleString()}원 (${comparison}보다 적어요)`,
 
@@ -133,11 +128,6 @@ export const ANALYSIS_COPY = {
     70: '화식 70% · 화식 위주',
     100: '화식 100% · 단독 급여',
   },
-
-  combo_for_large: (name: string, sku1: number, sku2: number) =>
-    `${petName(name)}가 큰 친구네요. 두 팩을 함께 보내드릴게요.\n\n` +
-    `📦 ${sku1}g + ${sku2}g = 1일 ${sku1 + sku2}g (${petName(name)} 맞춤)\n` +
-    `오전 ${sku1}g · 저녁 ${sku2}g 또는 절반씩 나눠서 🐾`,
 
   // First box discount
   first_box_offer: (originalPerMeal: number, discountedPerMeal: number) =>

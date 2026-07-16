@@ -1,8 +1,15 @@
 /**
  * Farmer's Tail — 통합 급여 계획 계산기 (Tier S 통합 entrypoint, 2026-05-20)
  *
- * 견체 정보 + 예산 응답 → 화식 비율 + SKU 사이즈 + 가격 framing 통합 계산.
- * 분석 페이지·정기구독 신청·라벨 모든 곳에서 단일 entrypoint.
+ * 견체 정보 + 예산 응답 → 화식 비율 + 가격 framing 계산.
+ *
+ * # 2026-07-16 — 7종 SKU 사이즈 매핑 제거
+ * 예전엔 여기서 `matchSku(hwasik_g)` 로 70/100/130/170/220/280/350 중 1팩을
+ * 고르고 350g 초과는 콤보 2팩을 제안했다. **그 제품 모델은 이제 없다** —
+ * 현행은 `lib/pricing.ts` 의 **500g 팩 · 100g 당 단가**이고 박스는 2종 레시피다.
+ * 게다가 결과(`skuMatch`·`copy.combo_note`·`copy.sku_recommendation`)를 **읽는
+ * 곳이 한 군데도 없었다**(유일 소비자 lib/start-plan.ts 는 pricing.daily_krw 만
+ * 꺼내 간다). 계산해서 버리던 값이라 제거해도 동작은 그대로다.
  *
  * # 흐름
  *   [입력]
@@ -13,11 +20,10 @@
  *   [계산]
  *     1. defaultScenarioForBudget(budgetTier) — 슬라이더 default
  *     2. calculateMix(mer, ratio) — 화식·사료 g 분배
- *     3. matchSku(hwasik_g) — 7종 SKU 매핑 (대형견 콤보)
- *     4. 가격 framing (한 끼 / 하루 / 월)
+ *     3. 가격 framing (한 끼 / 하루 / 월)
  *   ↓
  *   [출력]
- *     FeedingPlan { skuMatch, mixCalc, pricing, scenario, copy }
+ *     FeedingPlan { mixCalc, pricing, scenario, copy }
  */
 
 import {
@@ -28,7 +34,6 @@ import {
   type FeedingScenario,
   type MixCalculation,
 } from './mix-feeding.ts'
-import { matchSku, type SkuMatch } from './sku-size-matcher.ts'
 import { AVG_SUB_KRW_PER_100G } from './pricing.ts'
 import {
   ANALYSIS_COPY,
@@ -49,7 +54,6 @@ const HWASIK_KRW_PER_100G = AVG_SUB_KRW_PER_100G
 
 export interface FeedingPlan {
   /** SKU 매핑 결과 */
-  skuMatch: SkuMatch
   /** 화식·사료 비율 분배 */
   mixCalc: MixCalculation
   /** 가격 framing (원 단위) */
@@ -66,13 +70,11 @@ export interface FeedingPlan {
   scenario: FeedingScenario
   /** UI에서 즉시 사용 가능한 카피 모음 */
   copy: {
-    sku_recommendation: string
     price_framing: string
     daily_total: string
     mix_default: string
     first_box_offer: string
     over_budget_hint: string | null
-    combo_note: string | null
   }
 }
 
@@ -102,7 +104,6 @@ export interface BuildFeedingPlanInput {
  *     budgetTier: '5000_10000',
  *   })
  *   // plan.copy.price_framing → "💚 한 끼 약 3,250원 (스타벅스 음료 1잔보다 적어요)"
- *   // plan.skuMatch.recommended_sku_g → 170
  */
 export function buildFeedingPlan(input: BuildFeedingPlanInput): FeedingPlan {
   const { dogName, dailyMerKcal, budgetTier, customRatio } = input
@@ -122,7 +123,6 @@ export function buildFeedingPlan(input: BuildFeedingPlanInput): FeedingPlan {
   )
 
   // 3) SKU 사이즈 매핑
-  const skuMatch = matchSku(mixCalc.hwasik_g_per_day)
 
   // 4) 가격 framing
   const dailyKrw = Math.round((mixCalc.hwasik_g_per_day / 100) * HWASIK_KRW_PER_100G)
@@ -136,24 +136,12 @@ export function buildFeedingPlan(input: BuildFeedingPlanInput): FeedingPlan {
     ? withDogName(ANALYSIS_COPY.over_budget('○○', dailyKrw), dogName)
     : null
 
-  const comboNote = skuMatch.combo_sku_g
-    ? withDogName(
-        ANALYSIS_COPY.combo_for_large(
-          '○○',
-          skuMatch.recommended_sku_g,
-          skuMatch.combo_sku_g,
-        ),
-        dogName,
-      )
-    : null
-
   const mixDefaultCopy = withDogName(
     ANALYSIS_COPY.mix_default[scenario]('○○'),
     dogName,
   )
 
   return {
-    skuMatch,
     mixCalc,
     pricing: {
       per_meal_krw: perMealKrw,
@@ -164,10 +152,6 @@ export function buildFeedingPlan(input: BuildFeedingPlanInput): FeedingPlan {
     },
     scenario,
     copy: {
-      sku_recommendation: withDogName(
-        ANALYSIS_COPY.sku_recommendation('○○', skuMatch.recommended_sku_g),
-        dogName,
-      ),
       price_framing: ANALYSIS_COPY.price_framing(perMealKrw, comparisonAnchor),
       daily_total: ANALYSIS_COPY.daily_total(dailyKrw, monthlyKrw),
       mix_default: mixDefaultCopy,
@@ -176,7 +160,6 @@ export function buildFeedingPlan(input: BuildFeedingPlanInput): FeedingPlan {
         dogName,
       ),
       over_budget_hint: overBudgetHint,
-      combo_note: comboNote,
     },
   }
 }

@@ -206,8 +206,3 @@ export function recommendByPersona(persona: SkuPersona): SkuKey[] {
     .map(([sku]) => sku)
 }
 
-/** SKU 표시용 라벨 (코드 + 한국어 단백) */
-export function skuLabel(sku: SkuKey): string {
-  const meta = SKU_META[sku]
-  return `${meta.code} · ${meta.name_ko}`
-}
