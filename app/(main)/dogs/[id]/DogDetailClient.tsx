@@ -49,6 +49,8 @@ import type { DogInsight } from '@/lib/dog-insight'
 import CurrentFormulaCard from './_components/CurrentFormulaCard'
 import SubscriptionCard from './_components/SubscriptionCard'
 import PhotoRequestButton from '@/components/PhotoRequestButton'
+import AiCommentCard from '@/components/v3/AiCommentCard'
+import type { AiAnalysisJson } from '@/lib/nutrition/ai-prompt'
 
 type Props = {
   dog: Dog
@@ -58,6 +60,11 @@ type Props = {
   subscriptions: ActiveSubscription[]
   /** 개요 인사이트 멘트 — server 에서 체중 기록으로 산출(lib/dog-insight). */
   insight: DogInsight
+  /**
+   * 개요 AI 코멘트 게이트(server 판정). null 이면 안 뜬다 —
+   * 첫 설문 전이거나 현재 구독 중이 아닌 강아지. [[project-ai-comment-cost]]
+   */
+  aiComment: { analysisId: string; cached: AiAnalysisJson | null } | null
 }
 
 export default function DogDetailClient({
@@ -67,6 +74,7 @@ export default function DogDetailClient({
   checkinStatus,
   subscriptions,
   insight,
+  aiComment,
 }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -321,7 +329,19 @@ export default function DogDetailClient({
         </div>
       </section>
 
-      {/* 현재 처방 카드 — dog_formulas 최신 cycle */}
+      {/* 보호자님께 한마디 — 성별/중성화 박스 바로 아래(사장님 2026-07-16).
+          server 가 게이트: 첫 설문 전이거나 미구독이면 aiComment=null → 안 뜬다.
+          revalidate 로 개요 방문 때 2주 쿨다운 지났으면 새 코멘트로 갱신(캐시면 즉시). */}
+      {aiComment && (
+        <AiCommentCard
+          analysisId={aiComment.analysisId}
+          dogName={dog.name}
+          cached={aiComment.cached}
+          revalidate
+        />
+      )}
+
+      {/* 맞춤 영양 처방 카드 — dog_formulas 최신 cycle(추천). 실제 박스는 구독 카드에. */}
       {currentFormula && (
         <CurrentFormulaCard
           formula={currentFormula}

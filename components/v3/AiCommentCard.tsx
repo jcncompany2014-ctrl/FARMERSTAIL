@@ -41,17 +41,26 @@ export default function AiCommentCard({
   dogName,
   /** 서버에서 이미 채워져 온 캐시가 있으면 그걸 쓰고 fetch 안 함. */
   cached,
+  /**
+   * true 면 cached 를 즉시 보여주되 서버에 **다시 물어** 갱신 여부를 확인한다.
+   * 개요 페이지용 — 2주 쿨다운이 지났으면 새 코멘트로 바뀐다(안 지났으면 서버가
+   * 그대로 반환 → 비용 0). 분석 페이지(방금 생성)는 false 로 두면 재호출 안 함.
+   */
+  revalidate,
 }: {
   analysisId: string
   dogName: string
   cached?: AiAnalysisJson | null
+  revalidate?: boolean
 }) {
   const [state, setState] = useState<State>(
     cached?.summary ? { kind: 'ready', data: cached } : { kind: 'loading' },
   )
 
   useEffect(() => {
-    if (cached?.summary) return // 이미 있음 — 호출 안 함
+    // cached 있고 revalidate 아니면 호출 안 함(분석 페이지: 방금 생성됨).
+    if (cached?.summary && !revalidate) return
+    const hasCached = !!cached?.summary
     let alive = true
     ;(async () => {
       try {
@@ -62,24 +71,25 @@ export default function AiCommentCard({
         })
         if (!alive) return
         if (!res.ok) {
-          setState({ kind: 'hidden' })
+          // revalidate 중 실패면 기존 캐시 유지, 캐시 없으면 숨김.
+          if (!hasCached) setState({ kind: 'hidden' })
           return
         }
         const json = (await res.json()) as { structured?: AiAnalysisJson }
         if (!alive) return
         if (json.structured?.summary) {
           setState({ kind: 'ready', data: json.structured })
-        } else {
+        } else if (!hasCached) {
           setState({ kind: 'hidden' })
         }
       } catch {
-        if (alive) setState({ kind: 'hidden' })
+        if (alive && !hasCached) setState({ kind: 'hidden' })
       }
     })()
     return () => {
       alive = false
     }
-  }, [analysisId, cached])
+  }, [analysisId, cached, revalidate])
 
   if (state.kind === 'hidden') return null
 
