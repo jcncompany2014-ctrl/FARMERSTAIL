@@ -33,6 +33,8 @@ export type Subscription = {
   dog_id: string | null
   dogs: { id: string; name: string } | null
   subscription_items: SubscriptionItem[]
+  /** subscriptionState() 판정용 — '유령 활성'(카드 없이 status=active)을 '시작 전'으로. */
+  billing_key: string | null
   billing_card_brand: string | null
   billing_card_last4: string | null
   billing_customer_key: string | null

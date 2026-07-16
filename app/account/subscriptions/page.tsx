@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
 import SubscriptionsWebClient from './SubscriptionsWebClient'
+import { subscriptionState } from '@/lib/subscription-state'
 import type { Subscription } from './types'
 
 /**
@@ -55,7 +56,10 @@ export default async function AccountSubscriptionsPage({
     .order('created_at', { ascending: false })
 
   const initialSubs = (data ?? []) as Subscription[]
-  const activeCount = initialSubs.filter((s) => s.status === 'active').length
+  // ★ '유령 활성'(카드 없이 status=active) 제외 — subscriptionState 로 진짜 진행 중만.
+  const activeCount = initialSubs.filter(
+    (s) => subscriptionState(s) === 'active',
+  ).length
 
   return (
     <AuthAwareShell>

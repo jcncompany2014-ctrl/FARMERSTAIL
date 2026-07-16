@@ -22,6 +22,7 @@ import { createClient } from '@/lib/supabase/server'
 import {
   TIERS,
   tierMeta,
+  tierFromStamps,
   stampsToFirstTier,
   type TierBenefit,
   type TierMeta,
@@ -78,12 +79,12 @@ export default async function MembershipPage() {
         .order('created_at', { ascending: true }),
     ])
 
-  const tier = (profile?.tier as string | null) ?? 'seed'
   // 등급 기준 = 살아 있는 스탬프 개수 (2026-07-16 사장님 확정. 이전엔 누적 결제액 —
   // 금액 기준이면 강아지 덩치 큰 집이 자동으로 높은 등급을 먹었다).
+  // ★ profiles.tier 컬럼(stale·null→'seed' 강제 오표시)이 아니라 stamp_count 에서 파생.
   const stampCount =
     typeof profile?.stamp_count === 'number' ? profile.stamp_count : 0
-  const meta = tierMeta(tier)
+  const meta = tierMeta(tierFromStamps(stampCount))
 
   return (
     <div className="pb-12">

@@ -1,10 +1,10 @@
 import {
   tierMeta,
+  tierFromStamps,
   nextTier,
   stampsToNextTier,
   stampsToFirstTier,
   TIERS,
-  type TierKey,
 } from '@/lib/tiers'
 import { STAMP_CARD_SIZE } from '@/lib/stamps'
 
@@ -23,15 +23,17 @@ import { STAMP_CARD_SIZE } from '@/lib/stamps'
  * NULL/없으면 graceful degrade.
  */
 export default function TierBadge({
-  tier,
   stampCount,
 }: {
-  tier: TierKey | string | null | undefined
-  /** 살아 있는 스탬프 개수 (profiles.stamp_count). */
+  /** 살아 있는 스탬프 개수 (profiles.stamp_count) = 등급의 유일한 진실. */
   stampCount: number | null | undefined
 }) {
-  const meta = tierMeta(tier)
+  // ★ 등급은 **stamp_count 에서만** 파생한다(2026-07-16). profiles.tier 컬럼은
+  //   denormalized 캐시라 stale 될 수 있고(0스탬프인데 'seed' 등), 호출부가
+  //   `?? 'seed'` 로 null 을 강제하면 등급 없는 사람이 씨앗으로 오표시됐다.
+  //   tierFromStamps 로 파생하면 어떤 화면이든 항상 일치한다.
   const stamps = stampCount ?? 0
+  const meta = tierMeta(tierFromStamps(stamps))
 
   // ── 아직 등급이 없다 (스탬프 10개 미만) — 사장님 확정 2026-07-16.
   // 등급 카드를 억지로 채우지 않고 **"시작해보세요"** 로 비워 둔다. 아무것도 안 한

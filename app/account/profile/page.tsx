@@ -105,9 +105,6 @@ export default async function ProfileEditPage() {
         {/* 등급 카드 */}
         <section className="px-5 md:px-8 pb-2">
           <TierBadge
-            tier={
-              (profile as { tier?: string | null } | null)?.tier ?? 'seed'
-            }
             stampCount={
               (profile as { stamp_count?: number | null } | null)?.stamp_count ?? 0
             }

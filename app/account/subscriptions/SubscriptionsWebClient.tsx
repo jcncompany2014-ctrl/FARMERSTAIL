@@ -36,6 +36,7 @@ import {
   generateFallbackCustomerKey,
 } from '@/lib/v3-helpers/subscriptions'
 import type { Subscription } from './types'
+import { subscriptionState, type SubState } from '@/lib/subscription-state'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 
 type Props = {
@@ -43,12 +44,13 @@ type Props = {
   focusSubId: string | null
 }
 
-const STATUS_FD: Record<
-  Subscription['status'],
-  { label: string; color: string }
-> = {
+// ★ status 컬럼이 아니라 subscriptionState() 로 판정 — '유령 활성'(카드 없이
+//   status=active)을 '구독 중'으로 오표시하던 버그(사장님 2026-07-16) 차단.
+const STATE_FD: Record<SubState, { label: string; color: string }> = {
+  needs_card: { label: '시작 전', color: 'var(--fd-coral)' },
   active: { label: '구독 중', color: 'var(--fd-green)' },
   paused: { label: '일시정지', color: '#C28A2B' },
+  card_failed: { label: '카드 재등록 필요', color: 'var(--fd-coral)' },
   cancelled: { label: '해지됨', color: 'var(--fd-muted)' },
 }
 
@@ -293,10 +295,12 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
   return (
     <div className="flex flex-col gap-4 md:gap-5">
       {subs.map((sub) => {
-        const status = STATUS_FD[sub.status] || STATUS_FD.active
-        const isActive = sub.status === 'active'
-        const isPaused = sub.status === 'paused'
-        const isCancelled = sub.status === 'cancelled'
+        const state = subscriptionState(sub)
+        const status = STATE_FD[state]
+        const isActive = state === 'active'
+        const isPaused = state === 'paused'
+        const isCancelled = state === 'cancelled'
+        const needsCard = state === 'needs_card'
         const needsRenewal = sub.requires_billing_key_renewal === true
         const hasFailureSignal =
           !isCancelled &&
@@ -497,6 +501,15 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
             {/* 액션 버튼들 */}
             {!isCancelled && (
               <div className="px-5 py-3.5 flex flex-wrap gap-2" style={{ borderTop: '1px solid var(--fd-line)' }}>
+                {needsCard && (
+                  <a
+                    href={`/subscribe/billing-auth?subscriptionId=${sub.id}`}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold transition active:scale-[0.98]"
+                    style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
+                  >
+                    카드 등록하고 시작하기
+                  </a>
+                )}
                 {isActive && (
                   <button
                     type="button"

@@ -84,11 +84,16 @@ export default async function AccountPage() {
       // FSM 의 실제 enum: pending → preparing → shipping → delivered.
       // 'confirmed', 'shipped' 는 존재하지 않는 값이라 매번 0건 반환했음.
       .in('order_status', ['pending', 'preparing', 'shipping']),
+    // '진짜 구독 중'만 카운트 = subscriptionState()==='active' 와 동일한 SQL 조건.
+    // 카드 없이 status=active 인 '유령 활성'·결제 실패건 제외(사장님 2026-07-16).
     supabase
       .from('subscriptions')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('status', 'active'),
+      .eq('status', 'active')
+      .not('billing_key', 'is', null)
+      .eq('requires_billing_key_renewal', false)
+      .eq('failed_charge_count', 0),
     supabase
       .from('dogs')
       .select('id', { count: 'exact', head: true })
@@ -195,7 +200,6 @@ export default async function AccountPage() {
           {/* 회원 등급 + 스탬프 카드 — 등급 기준이 스탬프 개수라 붙여 둔다. */}
           <div className="mb-7 md:mb-9">
             <TierBadge
-              tier={(profile as { tier?: string | null } | null)?.tier ?? 'seed'}
               stampCount={
                 (profile as { stamp_count?: number | null } | null)?.stamp_count ?? 0
               }

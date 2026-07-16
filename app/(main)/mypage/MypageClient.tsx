@@ -33,7 +33,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import StampCard from '@/components/account/StampCard'
-import { tierMeta, stampsToFirstTier } from '@/lib/tiers'
+import { tierMeta, tierFromStamps, stampsToFirstTier } from '@/lib/tiers'
 import { V3, V3FontSize, V3FontWeight, V3Radius } from '@/lib/design/tokens'
 import { Mono, Modal, Badge } from '@/components/v3'
 import DogPawMark from '@/components/DogPawMark'
@@ -74,10 +74,11 @@ export default function MypageClient({
   const displayName =
     profile?.name || (email ? email.split('@')[0] : null) || '보호자'
   // 등급 메타. **null = 아직 등급 없음**(스탬프 10개 미만, 2026-07-16 사장님 확정).
-  const tierMetaOrNull = tierMeta(profile?.tier)
+  // ★ profiles.tier 컬럼(stale 가능)이 아니라 stamp_count 에서 파생 — 전 화면 일치.
+  const stamps = profile?.stamp_count ?? 0
+  const tierMetaOrNull = tierMeta(tierFromStamps(stamps))
   // 수채화 배경 키 — 등급 없으면 씨앗 그림을 옅게 쓴다(빈 액자 대신 '앞으로 될 모습').
   const tierKey = tierMetaOrNull?.key ?? 'seed'
-  const stamps = profile?.stamp_count ?? 0
 
   return (
     <div style={{ paddingBottom: 32 }}>
