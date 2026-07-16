@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import LogoutButton from '@/components/account/LogoutButton'
 import TierBadge from '@/components/account/TierBadge'
+import StampCard from '@/components/account/StampCard'
 import { isAppContextServer } from '@/lib/app-context'
 import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
 
@@ -191,7 +192,7 @@ export default async function AccountPage() {
             </p>
           </header>
 
-          {/* 회원 등급 */}
+          {/* 회원 등급 + 도장판 — 등급 기준이 도장 개수라 붙여 둔다. */}
           <div className="mb-7 md:mb-9">
             <TierBadge
               tier={(profile as { tier?: string | null } | null)?.tier ?? 'seed'}
@@ -199,6 +200,13 @@ export default async function AccountPage() {
                 (profile as { stamp_count?: number | null } | null)?.stamp_count ?? 0
               }
             />
+            <div className="mt-3">
+              <StampCard
+                stampCount={
+                  (profile as { stamp_count?: number | null } | null)?.stamp_count ?? 0
+                }
+              />
+            </div>
           </div>
 
           {/* 바로가기 카드 */}

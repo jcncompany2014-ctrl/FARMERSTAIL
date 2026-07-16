@@ -17,6 +17,7 @@ import {
   PawPrint,
   Award,
 } from 'lucide-react'
+import StampCard from '@/components/account/StampCard'
 import { cardProgress } from '@/lib/stamps'
 import { createClient } from '@/lib/supabase/server'
 import {
@@ -252,6 +253,11 @@ export default async function MembershipPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* 도장판 — 등급 기준이 도장 개수라 그 근거가 히어로 바로 밑에 와야 한다. */}
+      <section className="px-5 mt-5">
+        <StampCard stampCount={stampCount} variant="app" />
       </section>
 
       {/* 단짝 등록증 CTA — mate 등급 + 강아지 1마리 이상일 때만 */}
