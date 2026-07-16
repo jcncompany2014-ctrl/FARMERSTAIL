@@ -842,57 +842,6 @@ export type Database = {
           },
         ]
       }
-      dog_connections: {
-        Row: {
-          accepted_at: string | null
-          context: string | null
-          created_at: string
-          id: string
-          receiver_dog_id: string
-          receiver_user_id: string
-          requester_dog_id: string
-          requester_user_id: string
-          status: string
-        }
-        Insert: {
-          accepted_at?: string | null
-          context?: string | null
-          created_at?: string
-          id?: string
-          receiver_dog_id: string
-          receiver_user_id: string
-          requester_dog_id: string
-          requester_user_id: string
-          status?: string
-        }
-        Update: {
-          accepted_at?: string | null
-          context?: string | null
-          created_at?: string
-          id?: string
-          receiver_dog_id?: string
-          receiver_user_id?: string
-          requester_dog_id?: string
-          requester_user_id?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dog_connections_receiver_dog_id_fkey"
-            columns: ["receiver_dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dog_connections_requester_dog_id_fkey"
-            columns: ["requester_dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       dog_diary: {
         Row: {
           created_at: string
@@ -924,47 +873,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dog_diary_dog_id_fkey"
-            columns: ["dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dog_expenses: {
-        Row: {
-          amount: number
-          category: string
-          created_at: string
-          date: string
-          dog_id: string
-          id: string
-          memo: string | null
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          category: string
-          created_at?: string
-          date: string
-          dog_id: string
-          id?: string
-          memo?: string | null
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          category?: string
-          created_at?: string
-          date?: string
-          dog_id?: string
-          id?: string
-          memo?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dog_expenses_dog_id_fkey"
             columns: ["dog_id"]
             isOneToOne: false
             referencedRelation: "dogs"
