@@ -5,7 +5,6 @@
     "app/api/cron/subscription-charge/route.ts": { "maxDuration": 300 },
     "app/api/cron/personalization-progression/route.ts": { "maxDuration": 300 },
     "app/api/cron/subscription-reminders/route.ts": { "maxDuration": 120 },
-    "app/api/cron/review-prompts/route.ts": { "maxDuration": 120 },
     "app/api/cron/dog-age-update/route.ts": { "maxDuration": 120 },
     "app/api/cron/personalization-approval-timeout/route.ts": { "maxDuration": 60 },
     "app/api/cron/weight-reminder/route.ts": { "maxDuration": 120 },
@@ -39,10 +38,6 @@
     {
       "path": "/api/cron/subscription-charge",
       "schedule": "0 19 * * *"
-    },
-    {
-      "path": "/api/cron/review-prompts",
-      "schedule": "0 1 * * *"
     },
     {
       "path": "/api/cron/dog-age-update",

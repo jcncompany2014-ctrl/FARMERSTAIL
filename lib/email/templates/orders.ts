@@ -180,13 +180,6 @@ export function renderOrderDelivered(
     <p style="margin:0 0 14px 0;">
       주문하신 상품이 잘 도착했어요. 반려견이 맛있게 먹고 있길 바라요.
     </p>
-    ${block.callout(
-      'moss',
-      `
-      리뷰를 남겨주시면 <strong>500P</strong> 가 적립돼요. 반려견이 어떻게 반응했는지
-      짧게 남겨주셔도 좋아요.
-    `,
-    )}
   `
   const html = renderLayout({
     kicker: 'Delivered · 배송 완료',

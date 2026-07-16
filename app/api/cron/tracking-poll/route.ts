@@ -160,7 +160,7 @@ async function runTrackingPoll(): Promise<Response> {
       ord.user_id,
       {
         title: '배송이 완료됐어요 🐾',
-        body: '주문이 도착했어요. 리뷰 남기시면 포인트 적립!',
+        body: '주문이 도착했어요. 맛있게 드셨길 바라요!',
         url: `/mypage/orders/${ord.id}`,
         tag: `order-${ord.id}-delivered`,
       },

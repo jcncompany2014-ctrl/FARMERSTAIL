@@ -191,20 +191,7 @@ export default function RefundPage() {
           </UL>
         </Section>
 
-        <Section title="8. 포인트 환불">
-          <UL>
-            <li>
-              결제 시 사용한 포인트는 환불 금액에 비례하여 계정에
-              복원됩니다.
-            </li>
-            <li>
-              리뷰 작성 등으로 적립된 포인트는 환불 대상 상품의 리뷰가
-              삭제될 경우 회수될 수 있습니다.
-            </li>
-          </UL>
-        </Section>
-
-        <Section title="9. 반품 주소">
+        <Section title="8. 반품 주소">
           <UL>
             <li>{business.address}</li>
             <li>
@@ -215,7 +202,7 @@ export default function RefundPage() {
           </UL>
         </Section>
 
-        <Section title="10. 문의">
+        <Section title="9. 문의">
           <p>
             환불 관련 문의는{' '}
             <a

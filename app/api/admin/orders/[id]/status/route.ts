@@ -212,7 +212,7 @@ export async function POST(
           ? `${carrierName} · ${trimmedTracking}`
           : '운송장 정보는 주문 상세에서 확인할 수 있어요'
         : orderStatus === 'delivered'
-          ? '파머스테일과 함께한 주문이 잘 도착했어요. 리뷰 남겨주시면 포인트 적립!'
+          ? '파머스테일과 함께한 주문이 잘 도착했어요. 맛있게 드셨길 바라요!'
           : `주문 ${order.order_number}가 취소됐어요${
               reason ? ` · ${reason}` : ''
             }`

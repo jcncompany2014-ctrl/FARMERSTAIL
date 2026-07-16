@@ -250,7 +250,6 @@ const TABLE_LABEL: Record<string, string> = {
   addresses: '저장된 주소',
   orders: '주문 내역',
   subscriptions: '정기배송',
-  reviews: '작성한 리뷰',
   point_ledger: '포인트 이력',
   consent_log: '마케팅 동의 이력',
 }

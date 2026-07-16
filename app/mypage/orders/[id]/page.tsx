@@ -5,7 +5,6 @@ import { notFound, redirect } from 'next/navigation'
 import {
   Check,
   ShoppingBag,
-  Star,
   AlertCircle,
   Truck,
   ChevronRight,
@@ -101,20 +100,6 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
   const items: OrderItemRow[] = Array.isArray(order.order_items)
     ? (order.order_items as OrderItemRow[])
     : []
-
-  // Which items has this user already reviewed?
-  const itemIds = items.map((it) => it.id)
-  const { data: existingReviews } =
-    itemIds.length > 0
-      ? await supabase
-          .from('reviews')
-          .select('order_item_id')
-          .eq('user_id', user.id)
-          .in('order_item_id', itemIds)
-      : { data: [] as { order_item_id: string }[] }
-  const reviewedSet = new Set(
-    (existingReviews ?? []).map((r) => r.order_item_id)
-  )
 
   const steps = [
     { key: 'preparing', label: '상품 준비' },
@@ -345,9 +330,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
             <span className="text-muted font-bold">({items.length})</span>
           </h2>
           <ul className="space-y-3">
-            {items.map((it) => {
-              const reviewed = reviewedSet.has(it.id)
-              return (
+            {items.map((it) => (
                 <li key={it.id}>
                   <div className="flex gap-3">
                     <div className="relative shrink-0 w-14 h-14 rounded-lg bg-bg overflow-hidden flex items-center justify-center">
@@ -378,27 +361,8 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
                       {it.line_total.toLocaleString()}원
                     </p>
                   </div>
-                  {isPaid && (
-                    <div className="mt-2 pl-[68px]">
-                      {reviewed ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-moss">
-                          <Check className="w-3 h-3" strokeWidth={2.5} />
-                          리뷰 작성 완료
-                        </span>
-                      ) : (
-                        <Link
-                          href={`/mypage/orders/${order.id}/review/${it.id}`}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-rule text-[10px] font-bold text-terracotta hover:border-terracotta hover:bg-terracotta/5 transition"
-                        >
-                          <Star className="w-3 h-3" strokeWidth={2} />
-                          리뷰 작성 · +500P
-                        </Link>
-                      )}
-                    </div>
-                  )}
                 </li>
-              )
-            })}
+            ))}
           </ul>
         </div>
       </section>

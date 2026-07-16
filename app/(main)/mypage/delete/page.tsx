@@ -27,21 +27,13 @@ export default async function DeleteAccountPage() {
   // Give the user a summary of what will happen so there's no
   // surprise. These counts come from tables the user can read; we
   // rely on RLS.
-  const [
-    { count: orderCount },
-    { count: dogCount },
-    { count: reviewCount },
-  ] = await Promise.all([
+  const [{ count: orderCount }, { count: dogCount }] = await Promise.all([
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id),
     supabase
       .from('dogs')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
-    supabase
-      .from('reviews')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id),
   ])
@@ -145,10 +137,10 @@ export default async function DeleteAccountPage() {
                 보관
               </span>
               <span className="text-text leading-relaxed">
-                {/* '적립금 내역' 제거 — 포인트 전면 폐기(2026-07-16). */}
-                주문 내역 {orderCount ?? 0}건, 작성하신 리뷰{' '}
-                {reviewCount ?? 0}건은 전자상거래법에 따라 5년간 익명 상태로
-                보관돼요
+                {/* '적립금 내역'(포인트 폐기 2026-07-16) · '작성하신 리뷰'(리뷰 기능
+                    폐기 2026-07-16) 제거. */}
+                주문 내역 {orderCount ?? 0}건은 전자상거래법에 따라 5년간 익명
+                상태로 보관돼요
               </span>
             </div>
             <div className="flex items-start gap-2">
