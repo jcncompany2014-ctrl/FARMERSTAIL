@@ -12,18 +12,23 @@ import { Moon, Loader2 } from 'lucide-react'
 
 type Prefs = {
   notify_order: boolean
-  notify_restock: boolean
-  notify_cart: boolean
+  notify_health: boolean
   notify_marketing: boolean
   quiet_hours_start: number | null
   quiet_hours_end: number | null
 }
 
-// 카테고리 단순화 (2026-05): 4종 → 3종. → 구독전용 전환 (2026-07): 2종.
-// notify_cart · notify_restock 은 DB 컬럼은 유지하되 UI 에서 숨김 — 낱개
-// 커머스 폐지로 장바구니/재입고 플로우 자체가 제거됨 (쿠폰 → 자동할인).
+// 카테고리는 **보호자가 끄고 싶어 하는 단위**로 나눈다 (2026-07-16 정리).
+// 장바구니·재입고는 낱개 커머스와 함께 사라져 컬럼째 제거. 반대로 건강 알림은
+// 카테고리가 없어서 '주문·배송' 으로 위장해 나가고 있었다 — 배송 알림을 끄면
+// 체중 경보까지 꺼지는 상태였다. 그래서 건강을 독립시켰다.
 const CATEGORIES: { key: keyof Prefs; label: string; hint: string }[] = [
   { key: 'notify_order', label: '주문 · 배송', hint: '결제/배송 단계 변화를 받을게요' },
+  {
+    key: 'notify_health',
+    label: '건강 알림',
+    hint: '체중 재기 · 체중 변화 · 검진 권고',
+  },
   { key: 'notify_marketing', label: '프로모션 · 할인', hint: '할인·새 소식 (선택)' },
 ]
 

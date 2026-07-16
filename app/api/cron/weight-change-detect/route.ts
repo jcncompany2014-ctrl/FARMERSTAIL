@@ -229,7 +229,8 @@ async function runDetect(): Promise<Response> {
           url: `/dogs/${dog.id}/analysis`,
           tag: `weight-change-${dog.id}`,
         },
-        { category: 'order' }, // PushCategory 'order' 재사용 (weight-reminder 와 동일 패턴)
+        // 경보 — nudge 아님. 잔소리 상한에 밀려 잘리면 안 된다.
+        { category: 'health' },
       )
       pushed += 1
     } catch {

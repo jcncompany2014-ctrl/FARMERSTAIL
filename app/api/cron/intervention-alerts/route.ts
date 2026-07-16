@@ -161,7 +161,7 @@ async function runAlerts(): Promise<Response> {
             url: `/dogs/${dog.id}/analysis`,
             tag: `intervention-${dog.id}`,
           },
-          { category: 'order' },
+          { category: 'health' },
         )
         pushedCount++
         // 같은 user 가 다견을 가진 경우 한 cron 에서 1회만 push (sapm 방지).

@@ -12,7 +12,8 @@ export const dynamic = 'force-dynamic'
  * 데이터 소스: push_log 테이블.
  *   - read_at: 읽음 처리 시각 (사용자가 알림 클릭/뷰 시)
  *   - sent_at: 발송 시각
- *   - category: '식단', '주문', '리마인더', '재입고', '구독' 등
+ *   - category: PushCategory — 'order' | 'health' | 'marketing' (lib/push.ts)
+ *   - nudge: 안 보내도 되는 권유성이면 true (주 2건 상한 대상)
  *   - sent_count: 토큰 N개에 발송 (단일 사용자라도 디바이스 여러개)
  */
 export default async function PushStatsPage() {

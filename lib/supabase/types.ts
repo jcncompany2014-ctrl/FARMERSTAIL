@@ -2950,6 +2950,7 @@ export type Database = {
           body: string
           category: string | null
           id: string
+          nudge: boolean
           metadata: Json | null
           read_at: string | null
           sent_at: string
@@ -2962,6 +2963,7 @@ export type Database = {
           body: string
           category?: string | null
           id?: string
+          nudge?: boolean
           metadata?: Json | null
           read_at?: string | null
           sent_at?: string
@@ -2974,6 +2976,7 @@ export type Database = {
           body?: string
           category?: string | null
           id?: string
+          nudge?: boolean
           metadata?: Json | null
           read_at?: string | null
           sent_at?: string
@@ -2986,30 +2989,27 @@ export type Database = {
       }
       push_preferences: {
         Row: {
-          notify_cart: boolean
+          notify_health: boolean
           notify_marketing: boolean
           notify_order: boolean
-          notify_restock: boolean
           quiet_hours_end: number | null
           quiet_hours_start: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          notify_cart?: boolean
+          notify_health?: boolean
           notify_marketing?: boolean
           notify_order?: boolean
-          notify_restock?: boolean
           quiet_hours_end?: number | null
           quiet_hours_start?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          notify_cart?: boolean
+          notify_health?: boolean
           notify_marketing?: boolean
           notify_order?: boolean
-          notify_restock?: boolean
           quiet_hours_end?: number | null
           quiet_hours_start?: number | null
           updated_at?: string

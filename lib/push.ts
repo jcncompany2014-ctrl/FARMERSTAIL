@@ -17,10 +17,17 @@ import { createClient } from '@/lib/supabase/server'
  * `PushCategory` 는 push_preferences 의 카테고리 플래그와 1:1 매칭된다.
  * pushToUser 에 category 를 넘기면 (1) 그 플래그가 OFF 이거나 (2) 현재가
  * quiet_hours 안이면 발송을 skip 한다. 선호 행이 없으면 기본값으로 처리
- * (order/restock/cart=ON, marketing=OFF) — 마이그레이션 배포 전에도 동작.
+ * (order/health=ON, marketing=OFF).
+ *
+ * ⚠️ 카테고리를 늘리기 전에 — 왜 3종인가 (2026-07-16)
+ * 한때 restock·cart 가 있었지만 낱개 커머스와 함께 사라졌다. 그런데 정작
+ * **건강 알림엔 카테고리가 없어서** 체중 리마인더·검진 권고가 'order' 로
+ * 위장해 나갔다 → 보호자가 배송 알림을 끄면 건강 경보까지 꺼졌다.
+ * 카테고리는 "보내는 쪽 사정"이 아니라 **보호자가 끄고 싶어 하는 단위**로
+ * 나눈다. 그 단위가 늘지 않으면 카테고리도 늘리지 않는다.
  */
 
-export type PushCategory = 'order' | 'restock' | 'cart' | 'marketing'
+export type PushCategory = 'order' | 'health' | 'marketing'
 
 let configured = false
 
@@ -89,11 +96,14 @@ function isWithinQuietHours(
  *
  * @param opts.category - `PushCategory` (선택). 주면 push_preferences 를 조회해
  *   사용자가 이 종류 알림을 허용하고 quiet hours 밖인지 확인. 없으면 언제나 발송.
+ * @param opts.nudge - **안 보내도 되는 권유성**이면 true (체중 재기 리마인더·체크인·
+ *   설문 이어하기·광고). 주 2건 상한이 여기에만 걸린다. 경보·거래 통지엔 붙이지 말 것 —
+ *   붙이는 순간 잔소리에 밀려 안 나갈 수 있다.
  */
 export async function pushToUser(
   userId: string,
   payload: PushPayload,
-  opts?: { category?: PushCategory }
+  opts?: { category?: PushCategory; nudge?: boolean }
 ): Promise<{ ok: boolean; sent: number; dead: number; reason?: string }> {
   if (!ensureConfigured()) {
     return { ok: false, sent: 0, dead: 0, reason: 'VAPID_NOT_CONFIGURED' }
@@ -106,7 +116,7 @@ export async function pushToUser(
     const { data: pref } = await supabase
       .from('push_preferences')
       .select(
-        'notify_order, notify_restock, notify_cart, notify_marketing, quiet_hours_start, quiet_hours_end'
+        'notify_order, notify_health, notify_marketing, quiet_hours_start, quiet_hours_end'
       )
       .eq('user_id', userId)
       .maybeSingle()
@@ -114,8 +124,7 @@ export async function pushToUser(
     const flag = pref
       ? {
           order: pref.notify_order,
-          restock: pref.notify_restock,
-          cart: pref.notify_cart,
+          health: pref.notify_health,
           marketing: pref.notify_marketing,
         }[opts.category]
       : opts.category !== 'marketing' // 행 없으면 marketing 만 기본 OFF
@@ -131,16 +140,18 @@ export async function pushToUser(
   }
 
   // 능동 개입 빈도 상한 — voice-guidelines §5 정책 (주 2건).
-  // marketing / order 같이 정보 / 거래 사유는 제외. 'cart' / 'restock' 같이
-  // 사용자 행동 권유성 push 만 빈도 체크. category 없거나 정보성이면 통과.
-  // 7일 sliding window 으로 같은 user 의 권유성 push 가 2건 이상이면 skip.
-  if (opts?.category === 'cart' || opts?.category === 'restock') {
+  //
+  // ⚠️ 카테고리로 걸지 않는다. 'health' 안에 "체중 재주세요"(안 보내도 되는 잔소리)와
+  // "체중이 급격히 줄었어요"(절대 잘리면 안 되는 경보)가 같이 살기 때문이다.
+  // 보내는 쪽이 `nudge: true` 로 스스로 권유성이라 밝힌 것만 센다 — 경보는 밝히지
+  // 않으므로 상한과 무관하게 항상 나간다.
+  if (opts?.nudge) {
     const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
     const { count } = await supabase
       .from('push_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .in('category', ['cart', 'restock'])
+      .eq('nudge', true)
       .gte('sent_at', sevenDaysAgo)
     if ((count ?? 0) >= 2) {
       return { ok: true, sent: 0, dead: 0, reason: 'RATE_LIMITED_WEEKLY' }
@@ -241,6 +252,7 @@ export async function pushToUser(
       body: stampedPayload.body ?? '',
       url: stampedPayload.url ?? null,
       category: opts?.category ?? null,
+      nudge: opts?.nudge ?? false,
       sent_count: totalSent,
     })
   } catch {

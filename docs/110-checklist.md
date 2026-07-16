@@ -46,7 +46,7 @@
 
 | # | 디테일 | 상태 | 위치 / 비고 |
 |---|--------|------|-------------|
-| 15 | 알림 빈도 상한 (주 2건) | ✅ | D5 lib/push.ts cart/restock 7d sliding window |
+| 15 | 알림 빈도 상한 (주 2건) | ✅ | lib/push.ts `nudge` 7d sliding window. ⚠️ 2026-07-16 까지 `cart`/`restock` 카테고리에 걸려 있었는데 그 둘이 폐지돼 **실제로 아무것도 막지 못하고 있었다**. 표식 기반으로 재구축 — 경보는 상한 무관 |
 | 16 | 개입 메시지 톤 (견 주어) | ✅ | voice-guidelines §2 + 모든 카피 검증 |
 | 17 | 개입 거부 옵션 ("지금은 괜찮아요") | 🟨 | NextActionCard dismiss + 챗봇 nudge "괜찮아요". **글로벌 negative feedback 학습 X** |
 | 18 | 견주 자율성 우선 (강요 X) | ✅ | voice-guidelines §5. 모든 nudge 에 거부/대안 |

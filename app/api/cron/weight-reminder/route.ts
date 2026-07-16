@@ -142,7 +142,8 @@ export async function GET(req: Request) {
               ? `/dogs/${dogs[0]!.id}`
               : '/dogs',
         },
-        { category: 'order' }, // PushCategory 'order' 재사용 (기존 카테고리 유지)
+        // 안 보내도 되는 잔소리 → nudge. 주 2건 상한에 걸린다.
+        { category: 'health', nudge: true },
       )
       sent += 1
     } catch {

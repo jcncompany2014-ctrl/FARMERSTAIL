@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
  * PATCH /api/push/preferences — 부분 업데이트. upsert 로 처음 호출 시 행 생성.
  *
  * body (PATCH):
- *   { notify_order?, notify_restock?, notify_cart?, notify_marketing?,
+ *   { notify_order?, notify_health?, notify_marketing?,
  *     quiet_hours_start?, quiet_hours_end? }
  *
  * quiet_hours 는 둘 다 null 이어야 "끄기" — 하나만 null 이면 400.
@@ -18,8 +18,7 @@ export const dynamic = 'force-dynamic'
 
 type Prefs = {
   notify_order: boolean
-  notify_restock: boolean
-  notify_cart: boolean
+  notify_health: boolean
   notify_marketing: boolean
   quiet_hours_start: number | null
   quiet_hours_end: number | null
@@ -27,8 +26,8 @@ type Prefs = {
 
 const DEFAULTS: Prefs = {
   notify_order: true,
-  notify_restock: true,
-  notify_cart: true,
+  // 건강 알림은 기본 ON — 배송 알림을 꺼도 체중 경보는 남아야 한다.
+  notify_health: true,
   notify_marketing: false,
   quiet_hours_start: null,
   quiet_hours_end: null,
@@ -48,7 +47,7 @@ export async function GET() {
   const { data } = await supabase
     .from('push_preferences')
     .select(
-      'notify_order, notify_restock, notify_cart, notify_marketing, quiet_hours_start, quiet_hours_end',
+      'notify_order, notify_health, notify_marketing, quiet_hours_start, quiet_hours_end',
     )
     .eq('user_id', user.id)
     .maybeSingle()
@@ -107,7 +106,7 @@ export async function PATCH(req: Request) {
   const { data: existing } = await supabase
     .from('push_preferences')
     .select(
-      'notify_order, notify_restock, notify_cart, notify_marketing, quiet_hours_start, quiet_hours_end',
+      'notify_order, notify_health, notify_marketing, quiet_hours_start, quiet_hours_end',
     )
     .eq('user_id', user.id)
     .maybeSingle()

@@ -71,7 +71,7 @@ export async function GET(req: Request) {
         url: '/dogs/new',
         tag: `onboarding-stage1-${p.id}`,
       },
-      { category: 'marketing' },
+      { category: 'marketing', nudge: true },
     ).catch(() => {})
     stage1Sent += 1
     if (stage1Sent >= MAX_PER_STAGE) break
@@ -104,7 +104,7 @@ export async function GET(req: Request) {
         url: `/dogs/${dog.id}/survey`,
         tag: `onboarding-stage2-${dog.id}`,
       },
-      { category: 'marketing' },
+      { category: 'marketing', nudge: true },
     ).catch(() => {})
     stage2Sent += 1
     if (stage2Sent >= MAX_PER_STAGE) break

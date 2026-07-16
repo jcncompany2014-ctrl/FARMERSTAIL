@@ -116,7 +116,7 @@ export async function POST(req: Request) {
         pushToUser(
           uid,
           { title, body, url: safeUrl },
-          { category: 'marketing' },
+          { category: 'marketing', nudge: true },
         ).catch(() => ({ ok: false, sent: 0, dead: 0 })),
       ),
     )

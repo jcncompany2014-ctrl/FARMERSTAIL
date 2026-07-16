@@ -109,7 +109,9 @@ async function runCheckinReminder(): Promise<Response> {
           url: `/dogs/${dog.id}/first-checkin`,
           tag: `first-box-checkin-${dog.id}`,
         },
-        { category: 'marketing' }, // outcome 체크인 = lifecycle 마케팅 카테고리
+        // 광고가 아니라 급여 결과 확인 — marketing(기본 OFF)이라 아무에게도 안
+        // 나가고 있었다. 다만 안 보내도 되는 권유성이라 nudge.
+        { category: 'health', nudge: true },
       )
       sent += 1
     } catch {

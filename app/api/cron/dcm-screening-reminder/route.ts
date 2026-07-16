@@ -87,7 +87,7 @@ async function runReminder(): Promise<Response> {
           url: `/dogs/${dog.id}`,
           tag,
         },
-        { category: 'order' }, // PushCategory 'order' 재사용 (reminder 카테고리 부재)
+        { category: 'health' },
       )
       sent += 1
     } catch {

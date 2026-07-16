@@ -32,31 +32,26 @@ export type Row = {
   sent_at: string
 }
 
+// PushCategory(lib/push.ts) 와 1:1. 한때 restock/cart/reminder/approval/checkin
+// 라벨이 있었지만 발송하는 쪽 타입엔 없는 값이라 **영원히 안 뜨는 라벨**이었다.
 const CATEGORY_LABEL: Record<string, string> = {
   order: '주문',
-  restock: '재입고',
-  cart: '장바구니',
+  health: '건강',
   marketing: '광고',
-  reminder: '리마인더',
-  approval: '동의 요청',
-  checkin: '체크인',
 }
 
 const CATEGORY_COLOR: Record<string, string> = {
   order: V3.sage,
-  restock: V3.accent,
+  health: V3.accent,
   marketing: V3.yellow,
-  cart: V3.yellow,
-  reminder: V3.accent,
-  approval: V3.accent,
-  checkin: V3.sage,
 }
 
 const FILTERS = [
   { key: 'all', label: '전체' },
   { key: 'unread', label: '안 읽음' },
   { key: 'order', label: '주문' },
-  { key: 'marketing', label: '마케팅' },
+  { key: 'health', label: '건강' },
+  { key: 'marketing', label: '광고' },
 ] as const
 
 type FilterKey = (typeof FILTERS)[number]['key']
