@@ -219,7 +219,7 @@ export function renderOrderCancelled(
   const body = `
     <p style="margin:0 0 14px 0;">
       ${escape(input.recipientName)}님의 주문이 취소됐어요. 결제 금액은 3~5 영업일 안에
-      원 결제 수단으로 환불되고, 사용한 포인트는 모두 돌려드려요.
+      원 결제 수단으로 환불돼요.
     </p>
     ${block.dl(rows)}
   `
@@ -248,18 +248,18 @@ export function renderWelcome(input: {
       "이건 진짜 맛있다" 고 눈을 반짝이는 음식만 골라 담아요.
     </p>
     <p style="margin:0 0 8px 0;">
-      가입 기념으로 <strong style="color:#B5533A;">첫 정기배송 50% 할인</strong>이
-      준비돼 있어요. 코드 입력 없이 첫 주문에 자동으로 적용돼요.
+      아직 안 해보셨다면, <strong style="color:#B5533A;">2분 설문</strong>으로 우리 아이에게
+      맞는 화식부터 확인해 보세요. 체형·건강에 맞춰 하루 급여량까지 계산해 드려요.
     </p>
     <p style="margin:0 0 14px 0;font-size:11.5px;color:#7A7A7A;line-height:1.6;">
-      계정당 1회, 첫 결제 때 자동으로 깎여요.
+      구독하면 정기배송 할인이 기본으로 들어가요. 언제든 해지할 수 있어요.
     </p>
   `
   const html = renderLayout({
     kicker: 'Welcome · 반가워요',
     heading: '가족이 되어주셔서 감사해요',
     icon: '🐶',
-    preview: '파머스테일에 가입해주셔서 감사해요. 첫 주문 50% 할인이 기다리고 있어요.',
+    preview: '파머스테일에 가입해주셔서 감사해요. 2분 설문으로 우리 아이 맞춤 화식을 만나보세요.',
     body,
     cta: {
       label: '맞춤 플랜 시작하기',

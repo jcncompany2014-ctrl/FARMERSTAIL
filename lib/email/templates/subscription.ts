@@ -64,7 +64,7 @@ export function renderSubscriptionReminder(input: {
       ${itemRows}
     </table>
     <p style="margin:14px 0 0 0;font-size:11px;color:#7A7A7A;line-height:1.6;">
-      잠시 멈춤·주기 변경·해지는 마이페이지에서 가능해요. 도움이 필요하면
+      잠시 멈춤·화식 비율 변경·해지는 마이페이지에서 가능해요. 도움이 필요하면
       답장 주세요.
     </p>
   `
