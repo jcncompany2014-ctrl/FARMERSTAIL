@@ -298,10 +298,10 @@ export default function RootLayout({
         />
         {/*
           다크모드 깜빡임 방지 — SSR 직후 hydration 전에 inline 동기 스크립트로
-          html[data-theme] 을 박아둔다. 사용자가 다크 선택 후 reload 해도 첫
-          페인트부터 다크 변수로 그려져 라이트→다크 flash 가 발생하지 않음.
-          ThemeToggle 의 useEffect 도 동일 동기화를 하지만 mount 후 1프레임
-          뒤라 짧게 깜빡일 수 있어서 이 인라인이 실질적인 게이트.
+          html[data-theme] 을 박아둔다. 과거 저장된 ft_theme(다크/라이트) 이 있으면
+          첫 페인트부터 그 변수로 그려져 flash 가 없음. (수동 테마 토글은 2026-07 폐지
+          — 이제 OS 설정을 CSS prefers-color-scheme 로 자동 추종. 이 스크립트는 옛
+          저장값이 남은 사용자를 위한 호환 게이트로만 유지.)
           localStorage 차단(Safari private)은 try/catch 로 흡수.
         */}
         <script
