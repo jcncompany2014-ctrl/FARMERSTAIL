@@ -16,8 +16,8 @@ export const dynamic = 'force-dynamic'
  * # 동작
  *   - 분기 1회 실행 (1·4·7·10월 1일 KST 09:00 / UTC 00:00 — "0 0 1 1,4,7,10 *")
  *   - 강아지별 *최신 분석*(analyses) 을 뽑아, 그 주인이 **새싹 이상 등급**
- *     (도장 1개 이상 = 첫 박스 결제)이면 영양 요약 리포트 메일 발송.
- *     ⚠️ 2026-07-16 등급 기준이 누적금액 → 도장 개수로 바뀌었다. 예전 코드는
+ *     (스탬프 1개 이상 = 첫 박스 결제)이면 영양 요약 리포트 메일 발송.
+ *     ⚠️ 2026-07-16 등급 기준이 누적금액 → 스탬프 개수로 바뀌었다. 예전 코드는
  *     `cumulative_spend >= SPROUT_THRESHOLD` 였는데, 임계가 50,000(원)에서
  *     1(개)이 되면서 **'1원 이상 쓴 사람 전부'** 를 뽑는 조용한 오작동이 됐다.
  *     단위가 다른 값을 비교하고 있었던 것 — 이제 stamp_count 를 본다.
@@ -34,7 +34,7 @@ export const dynamic = 'force-dynamic'
  *   profiles 일괄 등급 게이트.
  */
 
-/** 새싹 도달에 필요한 **도장 개수** (lib/tiers.ts 와 한 곳에서). */
+/** 새싹 도달에 필요한 **스탬프 개수** (lib/tiers.ts 와 한 곳에서). */
 const SPROUT_STAMPS = TIERS.find((t) => t.key === 'sprout')?.threshold ?? 1
 const MAX_PER_RUN = 1000
 const PROFILE_CHUNK = 500

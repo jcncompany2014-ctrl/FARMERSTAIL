@@ -15,8 +15,6 @@ import { trackCron } from '@/lib/cron-tracking'
 import {
   computeAutoDiscount,
   applyDiscount,
-  TIER_DISCOUNT,
-  tierSlotRange,
   type DiscountReason,
 } from '@/lib/discount'
 import { tierMeta } from '@/lib/tiers'
@@ -138,119 +136,39 @@ async function resolveShippingTarget(
   return null
 }
 
-// discount_reason 컬럼은 3a 마이그(20260627000001) 적용 후 generated types 에
-// 반영된다. 그 전까지 이 컬럼으로 필터하는 count 쿼리는 codebase 관용 cast 로 우회
-// (다른 cron 들의 schema-drift cast 와 동일 패턴).
-type CountFilter = {
-  eq: (c: string, v: string) => CountFilter
-  gte: (c: string, v: string) => CountFilter
-  lt: (c: string, v: string) => CountFilter
-} & PromiseLike<{ count: number | null; error: unknown }>
-type CountQueryRoot = {
-  from: (t: string) => {
-    select: (c: string, o: { count: 'exact'; head: true }) => CountFilter
-  }
-}
-
 /**
- * 정기결제 1건의 자동 할인(쿠폰 대체) 계산.
+ * 정기결제 1건의 자동 할인 계산.
  *
- * computeAutoDiscount(lib/discount) 입력 4종을 DB 에서 모아 호출하고, subtotal=
- * 구독 단가에서 할인을 뺀 **실제 청구액**과 사유를 반환.
- *   1) 첫 주문   — 이 계정에 paid/refunded 주문 0건.
- *   2) 등급      — profiles.tier. slotted(꽃·열매)는 tierSlotRange 로 이번 슬롯 사용여부.
- *   3) 생일      — 구독의 강아지(dog_id) birth_date 月 == 이번 달 + 올해 'birthday' 주문 0건.
- * 스택 금지·우선순위(첫주문>등급/생일)는 computeAutoDiscount 가 처리.
+ * # 2026-07-16 — **입력이 등급 하나로 줄었다**
+ * 예전엔 첫주문 50% · 꽃 반기 25% · 열매 분기 20% · 생일 20% 가 있어서 DB 를 4번
+ * 두들겼다(주문수 · 프로필 · 슬롯내 등급할인 이력 · 생일月+올해 생일할인 이력).
+ * 사장님 확정으로 **할인은 나무 등급 매 주문 10% 하나**만 남아 조회도 하나가 됐다.
  *
- * 주의(엣지): 한 사용자가 같은 날/슬롯에 2개 구독을 동시 결제하면 둘 다 '미사용'으로
- * 보여 중복 적용될 수 있음(집계는 paid 주문만 세고, 이번 주문은 아직 pending).
- * 단일 구독이 일반적이라 허용 — 다구독 정산은 추후 RPC 원자화로 보강 여지.
+ * 안전 폴백은 유지 — 프로필 조회가 실패하면 **무할인(정가) 청구**한다. 조회 실패를
+ * "등급 없음" 으로 오해해 할인을 잘못 주는 것보다 정가가 안전하다(반대는 환불이 필요).
  */
 async function resolveAutoDiscount(
   supabase: ReturnType<typeof createAdminClient>,
   sub: SubscriptionRow,
-  todayIso: string,
 ): Promise<{ reason: DiscountReason; discountAmount: number; chargeAmount: number }> {
   const subtotal = sub.total_amount
-  // 안전 폴백 — 입력 조회가 하나라도 실패하면 무할인(정가=약정가) 청구. count 쿼리가
-  // 에러일 때 null 을 0 으로 오해해 '첫주문/미사용' 으로 편향, 할인을 잘못 적용하는 것 방지.
   const fullCharge: { reason: DiscountReason; discountAmount: number; chargeAmount: number } = {
     reason: 'none',
     discountAmount: 0,
     chargeAmount: subtotal,
   }
-  const u = supabase as unknown as CountQueryRoot
 
-  // 1) 첫 주문 — paid/refunded/partially_refunded 0건이면 첫 결제.
-  const { count: paidCount, error: e1 } = await supabase
-    .from('orders')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', sub.user_id)
-    .in('payment_status', ['paid', 'refunded', 'partially_refunded'])
-  if (e1) return fullCharge
-  const isFirstPaidOrder = (paidCount ?? 0) === 0
-
-  // 2) 등급 (null/미지정은 tierMeta 가 seed 로 정규화).
-  const { data: prof, error: e2 } = await supabase
+  const { data: prof, error } = await supabase
     .from('profiles')
     .select('tier')
     .eq('id', sub.user_id)
     .maybeSingle()
-  if (e2) return fullCharge
-  const tier = tierMeta((prof as { tier?: string | null } | null)?.tier).key
+  if (error) return fullCharge
 
-  // 3) slotted 등급(꽃·열매)이면 이번 슬롯에 이미 등급 할인 받았는지.
-  let tierDiscountUsedThisSlot = false
-  const tierPolicy = TIER_DISCOUNT[tier]
-  if (tierPolicy && tierPolicy.cadence === 'slotted') {
-    const { start, end } = tierSlotRange(tierPolicy.slotsPerYear, todayIso)
-    const { count, error: e3 } = await u
-      .from('orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', sub.user_id)
-      .eq('discount_reason', 'tier')
-      .gte('paid_at', start)
-      .lt('paid_at', end)
-    if (e3) return fullCharge
-    tierDiscountUsedThisSlot = (count ?? 0) > 0
-  }
+  // tierMeta 는 모르는 값/없음이면 null — 등급 없음(스탬프 10개 미만)이 그대로 전달된다.
+  const tier = tierMeta((prof as { tier?: string | null } | null)?.tier)?.key ?? null
 
-  // 4) 생일月 — 구독의 강아지 birth_date 의 月(MM) == 오늘 月(MM). 문자열 비교로
-  //    타임존 무관. + 올해 이미 생일 할인 받았으면 제외.
-  let isDogBirthdayMonth = false
-  if (sub.dog_id) {
-    const { data: dog, error: eDog } = await supabase
-      .from('dogs')
-      .select('birth_date')
-      .eq('id', sub.dog_id)
-      .maybeSingle()
-    if (eDog) return fullCharge
-    const bd = (dog as { birth_date?: string | null } | null)?.birth_date
-    if (bd && bd.length >= 7) {
-      isDogBirthdayMonth = bd.slice(5, 7) === todayIso.slice(5, 7)
-    }
-  }
-  let birthdayDiscountUsedThisYear = false
-  if (isDogBirthdayMonth) {
-    const year = todayIso.slice(0, 4)
-    const { count, error: e5 } = await u
-      .from('orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', sub.user_id)
-      .eq('discount_reason', 'birthday')
-      .gte('paid_at', `${year}-01-01`)
-      .lt('paid_at', `${Number(year) + 1}-01-01`)
-    if (e5) return fullCharge
-    birthdayDiscountUsedThisYear = (count ?? 0) > 0
-  }
-
-  const discount = computeAutoDiscount({
-    isFirstPaidOrder,
-    tier,
-    tierDiscountUsedThisSlot,
-    isDogBirthdayMonth,
-    birthdayDiscountUsedThisYear,
-  })
+  const discount = computeAutoDiscount({ tier })
   const discountAmount = applyDiscount(subtotal, discount.rate)
   return {
     reason: discount.reason,
@@ -376,7 +294,7 @@ async function runSubscriptionCharge(): Promise<Response> {
     //       쿠폰 없음(lib/discount). 첫주문/등급(슬롯)/생일 자동 판정. charge·order·
     //       billing 전부 이 chargeAmount 로 일관 기록(subtotal 은 정가 유지).
     const { reason: discountReason, discountAmount, chargeAmount } =
-      await resolveAutoDiscount(supabase, sub, today)
+      await resolveAutoDiscount(supabase, sub)
 
     // 2-a) charge row insert. UNIQUE (subscription_id, scheduled_for) 충돌 시
     //      이미 처리됨 — skip.

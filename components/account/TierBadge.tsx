@@ -2,21 +2,23 @@ import {
   tierMeta,
   nextTier,
   stampsToNextTier,
+  stampsToFirstTier,
+  TIERS,
   type TierKey,
 } from '@/lib/tiers'
-import { cardProgress } from '@/lib/stamps'
+import { STAMP_CARD_SIZE } from '@/lib/stamps'
 
 /**
  * TierBadge — /account 헤더에 노출되는 회원 등급 카드.
  *
  * 보여주는 것:
  *   - 현재 등급 칩 (색 + 이름)
- *   - 모은 도장 개수
- *   - 다음 등급까지 남은 도장 + progress bar
+ *   - 모은 스탬프 개수
+ *   - 다음 등급까지 남은 스탬프 + progress bar
  *   - 혜택 한 줄
  *
- * 데이터: profiles.tier + stamp_count. 구독 결제 1회 = 도장 1개(stamps 트리거)이고
- * **등급의 기준이 곧 도장 개수**다 (2026-07-16 사장님 확정 — 이전엔 누적 결제액).
+ * 데이터: profiles.tier + stamp_count. 구독 결제 1회 = 스탬프 1개(stamps 트리거)이고
+ * **등급의 기준이 곧 스탬프 개수**다 (2026-07-16 사장님 확정 — 이전엔 누적 결제액).
  * 금액 기준이면 강아지 덩치 큰 집이 자동으로 높은 등급을 먹었다.
  * NULL/없으면 graceful degrade.
  */
@@ -25,15 +27,64 @@ export default function TierBadge({
   stampCount,
 }: {
   tier: TierKey | string | null | undefined
-  /** 살아 있는 도장 개수 (profiles.stamp_count). */
+  /** 살아 있는 스탬프 개수 (profiles.stamp_count). */
   stampCount: number | null | undefined
 }) {
   const meta = tierMeta(tier)
   const stamps = stampCount ?? 0
+
+  // ── 아직 등급이 없다 (스탬프 10개 미만) — 사장님 확정 2026-07-16.
+  // 등급 카드를 억지로 채우지 않고 **"시작해보세요"** 로 비워 둔다. 아무것도 안 한
+  // 사람에게 등급을 주면 등급이 싸구려가 된다.
+  if (!meta) {
+    const toFirst = stampsToFirstTier(stamps)
+    const first = TIERS[0]!
+    return (
+      <div
+        className="rounded-2xl px-5 py-5 md:px-7 md:py-6 mb-4 md:mb-6"
+        style={{
+          background: 'var(--paper-hi, #FFFFFF)',
+          border: '1px dashed var(--rule, rgba(0,0,0,0.18))',
+        }}
+      >
+        <div
+          className="font-mono text-[10px] md:text-[11px] tracking-[0.22em] uppercase"
+          style={{ color: 'var(--muted, #706854)' }}
+        >
+          Member · —
+        </div>
+        <h2
+          className="font-serif mt-1 text-[20px] md:text-[26px]"
+          style={{ fontWeight: 800, letterSpacing: '-0.02em' }}
+        >
+          아직 등급이 없어요
+        </h2>
+        <p
+          className="mt-1.5 text-[12px] md:text-[13.5px] leading-relaxed"
+          style={{ color: 'var(--muted, #706854)' }}
+        >
+          스탬프 {STAMP_CARD_SIZE}개를 모으면 <b>{first.label}</b>으로 멤버십이
+          시작돼요. {toFirst}개 남았어요.
+        </p>
+        <div
+          className="mt-4 h-1.5 rounded-full overflow-hidden"
+          style={{ background: 'var(--paper, #FAF9F5)' }}
+        >
+          <div
+            className="h-full rounded-full transition-[width] duration-500"
+            style={{
+              width: `${Math.min(100, (stamps / first.threshold) * 100)}%`,
+              background: first.bg,
+            }}
+          />
+        </div>
+      </div>
+    )
+  }
+
   const next = nextTier(meta.key)
   const remain = stampsToNextTier(stamps, meta.key)
-  const card = cardProgress(stamps)
-  const isTop = meta.key === 'mate' // 최상위 (단짝) — 진한 배경 + progress 색 반전
+  const isTop = meta.key === 'mate' // 최상위 (나무) — 진한 배경 + progress 색 반전
 
   // 오른쪽 "다음 등급까지" 텍스트는 카드 오른쪽(밝은 일러스트 위)에 떨어진다.
   // 흰색 ink 등급(씨앗·열매)은 밝은 일러스트 위에서 흰 글자가 안 보이므로 어두운
@@ -88,9 +139,7 @@ export default function TierBadge({
           </p>
 
           <div className="mt-4 flex items-center justify-between text-[11px] md:text-[12px] font-mono tabular-nums">
-            <span style={{ opacity: 0.85 }}>
-              도장 {stamps}개 · {card.cardNumber}번째 판
-            </span>
+            <span style={{ opacity: 0.85 }}>스탬프 {stamps}개</span>
             {next ? (
               <span style={{ opacity: 0.9, color: rightInk, textShadow: rightShadow }}>
                 {next.label}까지 {remain}개

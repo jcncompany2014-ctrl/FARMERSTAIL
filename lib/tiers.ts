@@ -67,20 +67,16 @@ export const TIERS: TierMeta[] = [
     key: 'seed',
     label: '씨앗',
     en: 'SEED',
-    threshold: 0,
+    // 첫 스탬프 카드를 채우면 씨앗. 그 전(0~9)은 **등급 없음**(tier=null).
+    threshold: 10,
     bg: '#9CB35F', // moss — 막 시작
     ink: '#FFFFFF',
-    benefit: '첫 주문 50% 자동 할인',
+    benefit: '멤버십 시작 — 스탬프를 모아 등급을 올려요',
     benefits: [
       {
-        Icon: 'gift',
-        label: '첫 주문 50% 할인',
-        detail: '계정당 1회, 첫 정기배송에 자동 적용 (코드·발급 없이)',
-      },
-      {
-        Icon: 'cake',
-        label: '생일 할인',
-        detail: '강아지 생일 월에 20% 자동 할인',
+        Icon: 'leaf',
+        label: '멤버십 시작',
+        detail: '스탬프 10개로 첫 카드를 채웠어요. 여기서부터 함께 자랍니다',
       },
     ],
   },
@@ -88,8 +84,7 @@ export const TIERS: TierMeta[] = [
     key: 'sprout',
     label: '새싹',
     en: 'SPROUT',
-    // '첫 박스 이상' — 첫 구독 결제 1회.
-    threshold: 1,
+    threshold: 20,
     bg: '#B8CD78', // 연한 새싹 그린
     ink: '#2A2118',
     benefit: '분기 맞춤 분석 리포트',
@@ -99,37 +94,21 @@ export const TIERS: TierMeta[] = [
         label: '분기 맞춤 분석 리포트',
         detail: '분기 1회 메일로 받는 체중·체형·급여량·영양 요약 리포트',
       },
-      {
-        Icon: 'cake',
-        label: '생일 할인',
-        detail: '강아지 생일 월에 20% 자동 할인',
-      },
     ],
   },
   {
     key: 'bloom',
     label: '꽃',
     en: 'BLOOM',
-    // '의미 있는 단골' — 도장판 1장 완성 (~4.6개월).
-    threshold: 10,
+    threshold: 30,
     bg: '#E8A4A4', // 꽃 핑크
     ink: '#1E1A14',
-    benefit: '연 2회 25% 자동 할인 · 전담 영양 상담',
+    benefit: '전담 영양 상담 우선',
     benefits: [
       {
         Icon: 'heart',
         label: '전담 영양 상담 우선',
         detail: '처방·영양 관련 1:1 상담을 우선으로 응대해 드려요',
-      },
-      {
-        Icon: 'ticket',
-        label: '연 2회 25% 자동 할인',
-        detail: '연 2회 정기배송에 25% 자동 적용 (코드·발급 없이)',
-      },
-      {
-        Icon: 'cake',
-        label: '생일 할인',
-        detail: '강아지 생일 월에 20% 자동 할인',
       },
     ],
   },
@@ -137,26 +116,15 @@ export const TIERS: TierMeta[] = [
     key: 'fruit',
     label: '열매',
     en: 'FRUIT',
-    // '장기 가족' — 2장 (~9개월).
-    threshold: 20,
+    threshold: 40,
     bg: '#D27A56', // terracotta — 잘 익은 열매
     ink: '#FFFFFF',
-    benefit: '연 4회 20% 자동 할인 · 신제품 우선',
+    benefit: '신제품 우선 · 계간 산지 신문',
     benefits: [
       {
         Icon: 'sparkles',
         label: '신제품 24h 우선',
         detail: '일반 출시 24시간 전 우선 구매',
-      },
-      {
-        Icon: 'ticket',
-        label: '연 4회 20% 자동 할인',
-        detail: '연 4회 정기배송에 20% 자동 적용',
-      },
-      {
-        Icon: 'cake',
-        label: '생일 할인',
-        detail: '강아지 생일 월에 20% 자동 할인',
       },
       {
         Icon: 'gift',
@@ -169,8 +137,7 @@ export const TIERS: TierMeta[] = [
     key: 'mate',
     label: '나무',
     en: 'TREE',
-    // '최상' — 3장 (~14개월).
-    threshold: 30,
+    threshold: 50,
     bg: '#1E1A14', // 가장 어두운 ink — gold accent
     ink: '#D4A94A',
     benefit: '강아지 등록증 · 매 주문 10% 할인 · 한정 큐레이션',
@@ -196,11 +163,6 @@ export const TIERS: TierMeta[] = [
         detail: '모든 정기배송에 10% 자동 적용',
       },
       {
-        Icon: 'cake',
-        label: '생일 할인',
-        detail: '강아지 생일 월에 20% 자동 할인',
-      },
-      {
         Icon: 'heart',
         label: '강아지 생일 손편지',
         detail: '강아지 생일에 손편지 + 사진 카드 배송',
@@ -214,12 +176,23 @@ export const TIERS: TierMeta[] = [
   },
 ]
 
-export function tierMeta(key: string | null | undefined): TierMeta {
-  return TIERS.find((t) => t.key === key) ?? TIERS[0]!
+/**
+ * 등급 키 → 메타. **모르는 값이면 null** (2026-07-16).
+ *
+ * 예전엔 씨앗(TIERS[0])으로 폴백했는데, 이제 **스탬프 0~9 는 '등급 없음'**(tier=null)
+ * 이라 폴백하면 **등급 없는 사람이 전부 씨앗으로 보인다.** null 을 돌려줘서 호출부가
+ * "등급 없음" 을 명시적으로 그리게 한다(타입 검사기가 빠뜨린 곳을 잡아 준다).
+ */
+export function tierMeta(key: string | null | undefined): TierMeta | null {
+  return TIERS.find((t) => t.key === key) ?? null
 }
 
-/** 다음 등급 정보 (이미 최고면 null). progress bar 용. */
+/**
+ * 다음 등급 정보 (이미 최고면 null).
+ * **등급이 없으면(key=null) 첫 등급 = 씨앗**을 다음 목표로 돌려준다.
+ */
 export function nextTier(key: string | null | undefined): TierMeta | null {
+  if (key == null || tierMeta(key) === null) return TIERS[0] ?? null
   const idx = TIERS.findIndex((t) => t.key === key)
   if (idx < 0 || idx === TIERS.length - 1) return null
   return TIERS[idx + 1] ?? null
@@ -236,17 +209,31 @@ export function stampsToNextTier(
 }
 
 /**
- * 살아 있는 스탬프 개수 → 등급.
+ * 살아 있는 스탬프 개수 → 등급. **10개 미만이면 null (등급 없음).**
+ *
+ * 사장님 확정 2026-07-16: 씨앗부터 10개. 0~9 는 등급을 주지 않고 멤버십 칸을 비워
+ * "스탬프를 채워 멤버십을 시작해보세요" 로 유도한다 — 아무것도 안 한 사람에게
+ * 등급을 주면 등급이 싸구려가 된다.
  *
  * DB 의 `fn_compute_tier(stamp_count)` 와 **같은 사다리여야 한다** — 한쪽만 고치면
- * 화면과 DB 가 다른 등급을 말한다. tiers.test.ts 가 이 사다리를 박제한다.
+ * 화면과 DB 가 다른 등급을 말한다. lib/stamps.test.ts 가 이 사다리를 박제한다.
  */
-export function tierFromStamps(activeStampCount: number): TierKey {
+export function tierFromStamps(activeStampCount: number): TierKey | null {
   const n = Math.max(0, Math.trunc(activeStampCount))
   // 높은 등급부터 — 첫 매치가 답.
   for (let i = TIERS.length - 1; i >= 0; i--) {
     const t = TIERS[i]!
     if (n >= t.threshold) return t.key
   }
-  return 'seed'
+  return null
+}
+
+/** 아직 등급이 없는가 (스탬프 10개 미만). */
+export function hasNoTier(key: string | null | undefined): boolean {
+  return tierMeta(key) === null
+}
+
+/** 첫 등급(씨앗)까지 남은 스탬프 수. 이미 등급이 있으면 0. */
+export function stampsToFirstTier(activeStampCount: number): number {
+  return Math.max(0, TIERS[0]!.threshold - Math.max(0, Math.trunc(activeStampCount)))
 }

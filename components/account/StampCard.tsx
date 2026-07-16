@@ -1,8 +1,8 @@
 /**
- * 도장판 — 구독 결제 1회 = 도장 1개. 10칸 채우면 특별보상.
+ * 스탬프 카드 — 구독 결제 1회 = 스탬프 1개. 10칸 채우면 특별보상.
  *
  * # 왜 이 모양인가
- * 커피 도장판은 설명이 필요 없는 관용구다. **몇 칸 남았는지 한눈에** 보이는 게 전부고,
+ * 커피 스탬프 카드는 설명이 필요 없는 관용구다. **몇 칸 남았는지 한눈에** 보이는 게 전부고,
  * 그 이상 설명하면 오히려 관용구가 깨진다. 그래서 칸이 주인공.
  *
  * # 껍데기는 페이지가 준다 (2026-07-16 사장님)
@@ -11,7 +11,7 @@
  * 스스로 갖지 않고 **박스 내용만** 그린다. 킥커는 쓰는 쪽에서 붙인다.
  * (예전엔 자체 헤더를 갖고 있었는데, 그러면 섹션마다 껍데기가 달라 보인다.)
  *
- * # 도장 이미지
+ * # 스탬프 이미지
  * `/logo-stamp.png` (브랜드 원형 뱃지). 만들어만 두고 어디에도 안 쓰이던 에셋이
  * 여기서 제 자리를 찾았다.
  *
@@ -40,8 +40,8 @@ export default function StampCard({
   const justCompleted = card.filled === 0 && card.completedCards > 0
 
   const a11y = justCompleted
-    ? `도장판 ${card.completedCards}장 완성. ${STAMP_REWARD_LABEL}이 도착했어요.`
-    : `도장 ${card.filled}개 / ${STAMP_CARD_SIZE}개. ${card.remaining}개 더 모으면 ${STAMP_REWARD_LABEL}.`
+    ? `스탬프 카드 ${card.completedCards}장 완성. ${STAMP_REWARD_LABEL}이 도착했어요.`
+    : `스탬프 ${card.filled}개 / ${STAMP_CARD_SIZE}개. ${card.remaining}개 더 모으면 ${STAMP_REWARD_LABEL}.`
 
   return (
     <div
@@ -106,8 +106,8 @@ export default function StampCard({
       </div>
 
       <p className="border-t border-rule px-4 py-3 text-[10.5px] text-muted leading-relaxed">
-        정기배송 결제 1회마다 도장 하나가 찍혀요. 10개를 모으면 {STAMP_REWARD_LABEL}을
-        드려요 · 도장은 찍힌 날부터 2년간 유효해요.
+        정기배송 결제 1회마다 스탬프 하나가 찍혀요. 10개를 모으면 {STAMP_REWARD_LABEL}을
+        드려요 · 스탬프는 찍힌 날부터 2년간 유효해요.
       </p>
     </div>
   )

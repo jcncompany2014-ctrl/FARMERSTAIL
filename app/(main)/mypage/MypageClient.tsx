@@ -35,7 +35,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import StampCard from '@/components/account/StampCard'
-import { tierMeta } from '@/lib/tiers'
+import { tierMeta, stampsToFirstTier } from '@/lib/tiers'
 import { V3, V3FontSize, V3FontWeight, V3Radius } from '@/lib/design/tokens'
 import { Mono, Modal, Badge } from '@/components/v3'
 import DogPawMark from '@/components/DogPawMark'
@@ -75,8 +75,11 @@ export default function MypageClient({
 
   const displayName =
     profile?.name || (email ? email.split('@')[0] : null) || '보호자'
-  // 등급 카드 수채화 배경 키 (seed/sprout/bloom/fruit/mate).
-  const tierKey = profile?.tier ?? 'seed'
+  // 등급 메타. **null = 아직 등급 없음**(스탬프 10개 미만, 2026-07-16 사장님 확정).
+  const tierMetaOrNull = tierMeta(profile?.tier)
+  // 수채화 배경 키 — 등급 없으면 씨앗 그림을 옅게 쓴다(빈 액자 대신 '앞으로 될 모습').
+  const tierKey = tierMetaOrNull?.key ?? 'seed'
+  const stamps = profile?.stamp_count ?? 0
 
   return (
     <div style={{ paddingBottom: 32 }}>
@@ -191,10 +194,10 @@ export default function MypageClient({
                   lineHeight: 1,
                 }}
               >
-                {tierMeta(profile?.tier).label}
+                {tierMetaOrNull?.label ?? '멤버십 시작 전'}
               </span>
               <Mono color="inkMute" size="sm" weight={600} letterSpacing="0.08em">
-                {tierMeta(profile?.tier).en}
+                {tierMetaOrNull?.en ?? `${stampsToFirstTier(stamps)} TO GO`}
               </Mono>
             </div>
             <div
@@ -216,7 +219,8 @@ export default function MypageClient({
                     color: V3.ink,
                   }}
                 >
-                  {tierMeta(profile?.tier).benefit}
+                  {tierMetaOrNull?.benefit ??
+                    `스탬프 ${stampsToFirstTier(stamps)}개만 더 모으면 씨앗으로 시작해요`}
                 </div>
               </div>
               <ChevronRight size={14} color={V3.inkMute} strokeWidth={2} />
@@ -226,8 +230,8 @@ export default function MypageClient({
       </section>
 
       {/* ──────────────────────────────────────────────────────────────
-          도장판 — 멤버십 화면을 눌러야만 보이던 걸 밖으로 꺼냈다(사장님 2026-07-16).
-          등급의 기준이 도장 개수라, 등급 카드 바로 밑이 제자리다.
+          스탬프 카드 — 멤버십 화면을 눌러야만 보이던 걸 밖으로 꺼냈다(사장님 2026-07-16).
+          등급의 기준이 스탬프 개수라, 등급 카드 바로 밑이 제자리다.
           ────────────────────────────────────────────────────────────── */}
       <section style={{ padding: '12px 20px 0' }}>
         <StampCard stampCount={profile?.stamp_count} variant="app" />
@@ -417,6 +421,8 @@ export default function MypageClient({
 // ──────────────────────────────────────────────────────────────
 function TierChip({ tier }: { tier: string }) {
   const meta = tierMeta(tier)
+  // 등급이 없으면 칩을 아예 안 그린다 — 빈 칩보다 없는 게 낫다.
+  if (!meta) return null
   return (
     <span
       className="inline-flex items-center"

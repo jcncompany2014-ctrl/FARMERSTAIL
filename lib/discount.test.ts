@@ -1,162 +1,81 @@
+/**
+ * 자동 할인 — 규칙은 **하나뿐**이다 (사장님 확정 2026-07-16).
+ *
+ *   나무 등급(스탬프 50개) · 매 주문 10%. 끝.
+ *
+ * 예전엔 첫주문 50% · 꽃 반기 25% · 열매 분기 20% · 생일 20% 가 있었고 "스택 금지·
+ * 최댓값 1개·슬롯 한도" 규칙이 딸려 있었다. 전부 걷어냈다.
+ *
+ * # 이 테스트가 지키는 것
+ * 할인은 **돈**이다. 실수하면 마진이 새거나(과할인) 고객이 화낸다(미적용).
+ *  1. 나무 아닌 등급엔 **절대** 할인이 없다 — 폐지한 규칙이 슬며시 돌아오면 깨진다.
+ *  2. 등급 없음(null)도 할인 없음 — 신규가 공짜로 받으면 안 된다.
+ *  3. 할인 금액은 내림(소비자 유리)이고 subtotal 을 넘지 않는다.
+ */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   computeAutoDiscount,
   applyDiscount,
-  tierSlotRange,
-  FIRST_ORDER_RATE,
-  type AutoDiscountInput,
+  TIER_DISCOUNT,
+  MATE_RATE,
 } from './discount.ts'
+import { TIERS } from './tiers.ts'
 
-/**
- * lib/discount.ts — 자동 할인 정책 (쿠폰 대체) pure 정책 단위 테스트.
- *
- * 첫주문 / 등급(꽃 반기·열매 분기·나무 매번) / 생일 / 스택 금지 / 금액 / 슬롯 경계.
- * 결제·DB 연결은 통합/e2e 위임. 여기선 순수 결정만.
- */
-
-function makeInput(over: Partial<AutoDiscountInput> = {}): AutoDiscountInput {
-  return {
-    isFirstPaidOrder: false,
-    tier: 'seed',
-    tierDiscountUsedThisSlot: false,
-    isDogBirthdayMonth: false,
-    birthdayDiscountUsedThisYear: false,
-    ...over,
-  }
-}
-
-describe('computeAutoDiscount — 첫 주문', () => {
-  it('첫 주문이면 등급 무관 50%', () => {
-    const d = computeAutoDiscount(makeInput({ isFirstPaidOrder: true, tier: 'mate' }))
-    assert.equal(d.reason, 'first_order')
-    assert.equal(d.rate, FIRST_ORDER_RATE)
-  })
-  it('첫 주문은 생일·등급보다 우선', () => {
-    const d = computeAutoDiscount(
-      makeInput({ isFirstPaidOrder: true, tier: 'bloom', isDogBirthdayMonth: true }),
-    )
-    assert.equal(d.reason, 'first_order')
-    assert.equal(d.rate, 0.5)
-  })
-})
-
-describe('computeAutoDiscount — 등급 할인 (슬롯)', () => {
-  it('씨앗·새싹은 등급 할인 없음', () => {
-    assert.equal(computeAutoDiscount(makeInput({ tier: 'seed' })).rate, 0)
-    assert.equal(computeAutoDiscount(makeInput({ tier: 'sprout' })).rate, 0)
-  })
-  it('꽃(반기 1회) — 이번 슬롯 미사용이면 25%', () => {
-    const d = computeAutoDiscount(makeInput({ tier: 'bloom', tierDiscountUsedThisSlot: false }))
-    assert.equal(d.reason, 'tier')
-    assert.equal(d.rate, 0.25)
-  })
-  it('꽃 — 이번 슬롯 이미 사용했으면 없음', () => {
-    assert.equal(
-      computeAutoDiscount(makeInput({ tier: 'bloom', tierDiscountUsedThisSlot: true })).rate,
-      0,
-    )
-  })
-  it('열매(분기 1회) — 이번 슬롯 미사용이면 20%, 사용했으면 0', () => {
-    assert.equal(
-      computeAutoDiscount(makeInput({ tier: 'fruit', tierDiscountUsedThisSlot: false })).rate,
-      0.2,
-    )
-    assert.equal(
-      computeAutoDiscount(makeInput({ tier: 'fruit', tierDiscountUsedThisSlot: true })).rate,
-      0,
-    )
-  })
-  it('나무(매 청구) — 슬롯 사용 여부 무관하게 항상 10%', () => {
-    const d = computeAutoDiscount(makeInput({ tier: 'mate', tierDiscountUsedThisSlot: true }))
-    assert.equal(d.reason, 'tier')
+describe('할인 규칙 — 나무 10% 하나뿐', () => {
+  it('나무면 매 주문 10%', () => {
+    const d = computeAutoDiscount({ tier: 'mate' })
     assert.equal(d.rate, 0.1)
-  })
-})
-
-describe('computeAutoDiscount — 생일(강아지 생일 月)', () => {
-  it('생일 月 + 올해 미사용 → 20%', () => {
-    const d = computeAutoDiscount(makeInput({ tier: 'seed', isDogBirthdayMonth: true }))
-    assert.equal(d.reason, 'birthday')
-    assert.equal(d.rate, 0.2)
-  })
-  it('생일 月이라도 올해 이미 받았으면 없음', () => {
-    assert.equal(
-      computeAutoDiscount(
-        makeInput({ tier: 'seed', isDogBirthdayMonth: true, birthdayDiscountUsedThisYear: true }),
-      ).rate,
-      0,
-    )
-  })
-})
-
-describe('computeAutoDiscount — 스택 금지(가장 큰 1개)', () => {
-  it('꽃(25%) + 생일(20%) → 25% 등급', () => {
-    const d = computeAutoDiscount(
-      makeInput({ tier: 'bloom', tierDiscountUsedThisSlot: false, isDogBirthdayMonth: true }),
-    )
     assert.equal(d.reason, 'tier')
-    assert.equal(d.rate, 0.25)
+    assert.equal(d.label, '나무 등급 할인')
   })
-  it('나무(10%) + 생일(20%) → 20% 생일', () => {
-    const d = computeAutoDiscount(makeInput({ tier: 'mate', isDogBirthdayMonth: true }))
-    assert.equal(d.reason, 'birthday')
-    assert.equal(d.rate, 0.2)
+
+  it('★나무를 뺀 모든 등급은 할인 0 (폐지한 규칙이 돌아오면 깨진다)', () => {
+    for (const t of TIERS) {
+      if (t.key === 'mate') continue
+      const d = computeAutoDiscount({ tier: t.key })
+      assert.equal(d.rate, 0, `${t.label}(${t.key}) 에 할인이 생겼다`)
+      assert.equal(d.reason, 'none')
+    }
   })
-  it('꽃 슬롯 소진 + 생일 月 → 생일 20% 로 폴백', () => {
-    const d = computeAutoDiscount(
-      makeInput({ tier: 'bloom', tierDiscountUsedThisSlot: true, isDogBirthdayMonth: true }),
+
+  it('등급 없음(스탬프 10개 미만)도 할인 0', () => {
+    const d = computeAutoDiscount({ tier: null })
+    assert.equal(d.rate, 0)
+    assert.equal(d.reason, 'none')
+  })
+
+  it('할인이 있는 등급은 나무 **하나뿐**이다', () => {
+    const withDiscount = Object.entries(TIER_DISCOUNT).filter(([, v]) => v != null)
+    assert.deepEqual(withDiscount, [['mate', MATE_RATE]])
+  })
+
+  it('사유는 tier / none 두 가지뿐 (first_order·birthday 는 폐지)', () => {
+    const reasons = new Set(
+      [null, ...TIERS.map((t) => t.key)].map((t) => computeAutoDiscount({ tier: t }).reason),
     )
-    assert.equal(d.reason, 'birthday')
-    assert.equal(d.rate, 0.2)
-  })
-  it('해당 없음 → none', () => {
-    assert.equal(computeAutoDiscount(makeInput({ tier: 'seed' })).reason, 'none')
+    assert.deepEqual([...reasons].sort(), ['none', 'tier'])
   })
 })
 
-describe('applyDiscount — 금액 적용', () => {
-  it('30000 * 50% = 15000', () => {
-    assert.equal(applyDiscount(30000, 0.5), 15000)
+describe('할인 금액 — 소비자에게 유리하게, 안전하게', () => {
+  it('원 단위 내림 (소비자 유리)', () => {
+    // 10% of 50,005 = 5000.5 → 5000
+    assert.equal(applyDiscount(50_005, 0.1), 5000)
   })
-  it('원 단위 내림 — 33333 * 10% = 3333', () => {
-    assert.equal(applyDiscount(33333, 0.1), 3333)
-  })
-  it('rate 0 / subtotal 0 → 0', () => {
-    assert.equal(applyDiscount(30000, 0), 0)
-    assert.equal(applyDiscount(0, 0.5), 0)
-  })
-})
 
-describe('tierSlotRange — 슬롯 경계', () => {
-  it('분기(4슬롯): 5월 → Q2 [04-01, 07-01)', () => {
-    assert.deepEqual(tierSlotRange(4, '2026-05-10'), {
-      start: '2026-04-01',
-      end: '2026-07-01',
-    })
+  it('subtotal 을 절대 넘지 않는다 (음수 청구 방지)', () => {
+    assert.equal(applyDiscount(10_000, 1.5), 10_000)
   })
-  it('분기(4슬롯): 1월 → Q1 [01-01, 04-01)', () => {
-    assert.deepEqual(tierSlotRange(4, '2026-01-01'), {
-      start: '2026-01-01',
-      end: '2026-04-01',
-    })
+
+  it('할인율 0·음수·subtotal 0 이면 0', () => {
+    assert.equal(applyDiscount(10_000, 0), 0)
+    assert.equal(applyDiscount(10_000, -0.5), 0)
+    assert.equal(applyDiscount(0, 0.1), 0)
   })
-  it('분기(4슬롯): 12월 → Q4 [10-01, 다음해 01-01)', () => {
-    assert.deepEqual(tierSlotRange(4, '2026-12-31'), {
-      start: '2026-10-01',
-      end: '2027-01-01',
-    })
-  })
-  it('반기(2슬롯): 5월 → H1 [01-01, 07-01)', () => {
-    assert.deepEqual(tierSlotRange(2, '2026-05-10'), {
-      start: '2026-01-01',
-      end: '2026-07-01',
-    })
-  })
-  it('반기(2슬롯): 9월 → H2 [07-01, 다음해 01-01)', () => {
-    assert.deepEqual(tierSlotRange(2, '2026-09-15'), {
-      start: '2026-07-01',
-      end: '2027-01-01',
-    })
+
+  it('나무 등급 실제 청구 예 — 5만원 박스는 4만5천원', () => {
+    const d = computeAutoDiscount({ tier: 'mate' })
+    assert.equal(50_000 - applyDiscount(50_000, d.rate), 45_000)
   })
 })

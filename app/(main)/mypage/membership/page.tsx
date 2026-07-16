@@ -22,6 +22,7 @@ import { createClient } from '@/lib/supabase/server'
 import {
   TIERS,
   tierMeta,
+  stampsToFirstTier,
   type TierBenefit,
   type TierMeta,
 } from '@/lib/tiers'
@@ -51,7 +52,7 @@ const ICON_MAP: Record<TierBenefit['Icon'], typeof Coins> = {
 /**
  * /mypage/membership — 멤버십 hub.
  *
- * 4단계 등급 시각화 + 현재 등급 hero + 도장 통계 + 다음 등급 진행률 + 등급별
+ * 4단계 등급 시각화 + 현재 등급 hero + 스탬프 통계 + 다음 등급 진행률 + 등급별
  * detailed 혜택. /account/profile 의 작은 TierBadge 와 분리 — 매일 들어와도
  * 시인성 좋게.
  */
@@ -78,7 +79,7 @@ export default async function MembershipPage() {
     ])
 
   const tier = (profile?.tier as string | null) ?? 'seed'
-  // 등급 기준 = 살아 있는 도장 개수 (2026-07-16 사장님 확정. 이전엔 누적 결제액 —
+  // 등급 기준 = 살아 있는 스탬프 개수 (2026-07-16 사장님 확정. 이전엔 누적 결제액 —
   // 금액 기준이면 강아지 덩치 큰 집이 자동으로 높은 등급을 먹었다).
   const stampCount =
     typeof profile?.stamp_count === 'number' ? profile.stamp_count : 0
@@ -86,7 +87,7 @@ export default async function MembershipPage() {
 
   return (
     <div className="pb-12">
-      {/* Stamp — 등급의 기준이 도장 개수라 이 페이지의 첫 화면. 사장님 확정
+      {/* Stamp — 등급의 기준이 스탬프 개수라 이 페이지의 첫 화면. 사장님 확정
           2026-07-16: 큰 등급 히어로 카드를 걷어내고 Stamp → My Benefits →
           All Tiers 순서로. 껍데기는 아래 두 섹션과 같은 박스로 통일. */}
       <section className="px-5 pt-6">
@@ -109,6 +110,19 @@ export default async function MembershipPage() {
           />
           <span className="kicker">My Benefits</span>
         </div>
+        {/* 등급이 없으면(스탬프 10개 미만) 혜택 목록 대신 유도 — 사장님 확정
+            2026-07-16. 빈 목록을 보여주느니 "채우면 시작된다"고 말하는 게 낫다. */}
+        {!meta ? (
+          <div className="bg-bg-3 rounded border border-dashed border-rule px-4 py-5 text-center">
+            <p className="text-[12px] font-bold text-text">아직 혜택이 없어요</p>
+            <p className="text-[10.5px] text-muted mt-1.5 leading-relaxed">
+              스탬프 {TIERS[0]!.threshold}개를 모으면 <b>{TIERS[0]!.label}</b>으로
+              멤버십이 시작돼요.
+              <br />
+              {stampsToFirstTier(stampCount)}개 남았어요.
+            </p>
+          </div>
+        ) : (
         <ul className="bg-bg-3 rounded border border-rule overflow-hidden">
           {meta.benefits.map((b, i) => {
             const Icon = ICON_MAP[b.Icon]
@@ -142,6 +156,7 @@ export default async function MembershipPage() {
             )
           })}
         </ul>
+        )}
       </section>
 
       {/* 모든 등급 비교 */}
@@ -158,7 +173,7 @@ export default async function MembershipPage() {
             <TierRow
               key={t.key}
               t={t}
-              currentTier={meta.key}
+              currentTier={meta?.key ?? null}
               stampCount={stampCount}
             />
           ))}
@@ -166,7 +181,7 @@ export default async function MembershipPage() {
       </section>
 
       {/* 단짝 등록증 CTA — mate 등급 + 강아지 1마리 이상일 때만 */}
-      {meta.key === 'mate' && (dogs?.length ?? 0) > 0 && (
+      {meta?.key === 'mate' && (dogs?.length ?? 0) > 0 && (
         <section className="px-5 mt-5">
           <div className="flex items-center gap-2 mb-2.5">
             <span
@@ -247,11 +262,11 @@ export default async function MembershipPage() {
         <div className="rounded bg-bg-2 px-4 py-3.5 text-[10.5px] text-text leading-relaxed">
           <p className="font-bold text-text mb-1.5">등급 산정 안내</p>
           <ul className="space-y-1 text-text/80">
-            <li>· 정기배송 결제 1회마다 도장 1개 — 결제 즉시 반영</li>
+            <li>· 정기배송 결제 1회마다 스탬프 1개 — 결제 즉시 반영</li>
             <li>· 결제 금액과 무관해요. 아이 덩치가 아니라 함께한 횟수예요</li>
-            <li>· 도장 10개마다 도장판 한 장 완성 → 특별보상</li>
-            <li>· 도장은 찍힌 날부터 2년간 유효해요</li>
-            <li>· 결제가 취소·환불되면 그 도장은 회수돼요</li>
+            <li>· 스탬프 10개마다 스탬프 카드 한 장 완성 → 특별보상</li>
+            <li>· 스탬프는 찍힌 날부터 2년간 유효해요</li>
+            <li>· 결제가 취소·환불되면 그 스탬프는 회수돼요</li>
           </ul>
           {profile?.tier_updated_at && (
             <p className="text-[10.5px] text-muted mt-2">
@@ -270,7 +285,8 @@ function TierRow({
   stampCount,
 }: {
   t: TierMeta
-  currentTier: string
+  /** 지금 등급. **null = 아직 등급 없음**(스탬프 10개 미만). */
+  currentTier: string | null
   stampCount: number
 }) {
   const reached = stampCount >= t.threshold
@@ -325,7 +341,7 @@ function TierRow({
             )}
           </div>
           <div className="text-[10.5px] text-muted mt-0.5">
-            {t.threshold === 0 ? '가입 즉시' : `도장 ${t.threshold}개`}
+            {t.threshold === 0 ? '가입 즉시' : `스탬프 ${t.threshold}개`}
           </div>
         </div>
         {/* '적립률' → '달성 여부' (2026-07-16 포인트 폐기). 우리 혜택은 자동할인

@@ -192,7 +192,7 @@ export default async function AccountPage() {
             </p>
           </header>
 
-          {/* 회원 등급 + 도장판 — 등급 기준이 도장 개수라 붙여 둔다. */}
+          {/* 회원 등급 + 스탬프 카드 — 등급 기준이 스탬프 개수라 붙여 둔다. */}
           <div className="mb-7 md:mb-9">
             <TierBadge
               tier={(profile as { tier?: string | null } | null)?.tier ?? 'seed'}
