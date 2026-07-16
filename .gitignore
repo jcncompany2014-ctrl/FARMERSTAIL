@@ -21,7 +21,10 @@
 /build
 
 # misc
+# OS 부산물 — public/desktop.ini 가 실제로 배포에 섞여 나간 적 있다(탐색기가 생성).
 .DS_Store
+desktop.ini
+Thumbs.db
 *.pem
 
 # debug
