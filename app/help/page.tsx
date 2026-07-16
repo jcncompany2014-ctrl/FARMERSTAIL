@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import { business } from '@/lib/business'
+import { isAppContextServer } from '@/lib/app-context'
 
 /**
  * /help — 고객센터 허브 (토스식, 2026-07-16 사장님).
@@ -64,7 +65,15 @@ function Row({
   )
 }
 
-export default function HelpPage() {
+export default async function HelpPage() {
+  // 문의 창구 — 앱: 카카오 채널 1:1 채팅으로 외부 연결(사장님 2026-07-17 "앱 문의는
+  // 전부 카카오톡으로"). 웹: 기존 문의 폼(/contact, 그 안에 카카오 버튼도 있음).
+  // 카카오 URL 미설정(env 비어있음)이면 앱에서도 /contact 폼으로 안전 폴백.
+  const isApp = await isAppContextServer()
+  const kakaoUrl = business.kakaoChannelUrl
+  const inquiryToKakao = isApp && !!kakaoUrl
+  const inquiryHref = inquiryToKakao ? kakaoUrl! : '/contact'
+
   return (
     <AuthAwareShell>
       <main className="pb-16" style={{ minHeight: '72vh' }}>
@@ -107,7 +116,13 @@ export default function HelpPage() {
             직접 문의하기
           </div>
           <div className="rounded-[12px] bg-bg-3 border border-rule overflow-hidden divide-y divide-rule">
-            <Row href="/contact" Icon={MessageCircle} label="1:1 문의 남기기" />
+            <Row
+              href={inquiryHref}
+              Icon={MessageCircle}
+              label={inquiryToKakao ? '카카오톡으로 문의' : '1:1 문의 남기기'}
+              sub={inquiryToKakao ? '카카오톡 채널로 바로 연결돼요' : undefined}
+              external={inquiryToKakao}
+            />
             <Row
               href={`tel:${business.phone.replace(/[^0-9]/g, '')}`}
               Icon={Phone}

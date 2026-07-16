@@ -16,6 +16,7 @@ import LogoutButton from '@/components/account/LogoutButton'
 import TierBadge from '@/components/account/TierBadge'
 import StampCard from '@/components/account/StampCard'
 import { isAppContextServer } from '@/lib/app-context'
+import { business } from '@/lib/business'
 import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
 
 /**
@@ -142,9 +143,13 @@ export default async function AccountPage() {
   ]
 
   // 비중↓ — 박스 대신 얕은 텍스트 링크 (중요도 낮은 정보)
+  // 앱 문의는 카카오 채널로(사장님 2026-07-17). 카카오 URL 미설정 시 /contact 폼 폴백.
+  const kakaoInquiry = isApp && business.kakaoChannelUrl
   const helpLinks: { href: string; label: string }[] = [
-    // '고객센터'가 /business(사업자 정보)로 가던 미스매치 정정 — 1:1 문의는 /contact.
-    { href: '/contact', label: '1:1 문의' },
+    {
+      href: kakaoInquiry ? business.kakaoChannelUrl! : '/contact',
+      label: kakaoInquiry ? '카카오톡으로 문의' : '1:1 문의',
+    },
     { href: '/faq', label: '자주 묻는 질문' },
     { href: '/legal/refund', label: '환불 정책' },
   ]
