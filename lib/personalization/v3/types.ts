@@ -8,8 +8,17 @@
  * 질병 치료·예방 표방 금지, "풍부"(T1)는 충족률 ≥250% 검증분만.
  */
 
-/** 확정 베이스 단백질 4종 (연어는 추후 출시 — 베이스 제외). */
-export type ProteinKey = 'chicken' | 'duck' | 'pork' | 'beef'
+import type { ProteinKey as SkuModelProteinKey } from '../skuModel.ts'
+
+/**
+ * 확정 베이스 단백질 4종 (연어는 추후 출시 — 베이스 제외).
+ *
+ * skuModel(SSOT)에서 **파생**한다 — 2026-07-16 까지 여기 문자열을 따로 적어 둬서
+ * 단백질이 늘거나 이름이 바뀌면 두 곳을 다 고쳐야 했다. 이제 skuModel 에 SKU 가
+ * 추가되면 여기도 자동으로 따라오고, 연어가 출시되면 Exclude 만 지우면 된다.
+ * (skuModel 은 import 가 없는 말단 모듈이라 순환 걱정 없음.)
+ */
+export type ProteinKey = Exclude<SkuModelProteinKey, 'salmon'>
 
 /** 설문이 매핑되는 적합도 축 (레이어 A 스코어링 입력). */
 export type NeedKey =

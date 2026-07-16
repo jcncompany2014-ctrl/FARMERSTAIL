@@ -25,7 +25,7 @@ export const BASE_SKUS: readonly BaseSku[] = [
   {
     id: 'chicken-basic',
     protein: 'chicken',
-    nameKr: '닭',
+    nameKr: '치킨',
     nameEn: 'Daily Chicken Recipe',
     kcalPer100g: 115, // 2026-07-11 검정 확정
     fitTags: { weight_loss: 0.9, maintain: 0.7, activity_low: 0.6, palatability: 0.5 },
@@ -79,7 +79,7 @@ export const BASE_SKUS: readonly BaseSku[] = [
   {
     id: 'pork-joint',
     protein: 'pork',
-    nameKr: '돼지',
+    nameKr: '흑돼지',
     nameEn: 'Mild Pork Recipe',
     kcalPer100g: 115, // 2026-07-11 검정 확정
     fitTags: {
@@ -107,7 +107,7 @@ export const BASE_SKUS: readonly BaseSku[] = [
   {
     id: 'beef-premium',
     protein: 'beef',
-    nameKr: '소',
+    nameKr: '한우',
     nameEn: 'Energy Beef Recipe',
     kcalPer100g: 120, // 2026-07-11 검정 확정
     fitTags: { weight_gain: 0.9, activity_high: 0.9, palatability: 0.6, maintain: 0.5 },
