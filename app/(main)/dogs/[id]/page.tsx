@@ -8,7 +8,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DogDetailClient from './DogDetailClient'
 import { buildDogInsight } from '@/lib/dog-insight'
-import { subscriptionState } from '@/lib/subscription-state'
 import type { AiAnalysisJson } from '@/lib/nutrition/ai-prompt'
 import type {
   Dog,
@@ -168,24 +167,20 @@ export default async function DogDetailPage({
   })
 
   // 개요 AI 코멘트 게이트(사장님 2026-07-16):
-  //  ① 첫 설문/분석 전이면 안 뜸(analysisRow 없음)
-  //  ② **현재 구독 중인 강아지에게만**(active/paused = 진짜 구독자. needs_card '시작 전'·
-  //     cancelled 는 제외 → subscriptionState 로 판정). 비용은 서버 2주 쿨다운이 통제.
+  //  · 첫 설문/분석 전이면 안 뜸(analysisRow 없음).
+  //  · **첫 코멘트는 전원 무료**라 구독 여부와 무관하게 표시한다. 2주마다 갱신되는
+  //    refresh 리밋 해제만 구독자 전용인데, 그 판정은 /api/analysis/structured 가
+  //    한다(비구독자는 첫 코멘트 동결 → AI 0). 여기선 노출만 결정.
   // 같은 analyses.structured_analysis 캐시를 쓰므로 분석 페이지와 **같은 글**이 뜬다.
   const analysisRow = analysisRes.data as
     | { id: string; structured_analysis: AiAnalysisJson | null }
     | null
-  const isSubscribed = subscriptions.some((s) => {
-    const st = subscriptionState(s)
-    return st === 'active' || st === 'paused'
-  })
-  const aiComment =
-    analysisRow && isSubscribed
-      ? {
-          analysisId: analysisRow.id,
-          cached: analysisRow.structured_analysis ?? null,
-        }
-      : null
+  const aiComment = analysisRow
+    ? {
+        analysisId: analysisRow.id,
+        cached: analysisRow.structured_analysis ?? null,
+      }
+    : null
 
   return (
     <DogDetailClient

@@ -112,10 +112,15 @@ export async function POST(req: Request) {
     })
   }
 
-  // 2.5) ★ 강아지 단위 2주 쿨다운 (2026-07-16, 사장님 "지갑 털려") ─────────────
-  // 재분석하면 새 analysisId 가 생겨 위 캐시를 비껴간다. 그래서 **같은 강아지**의
-  // 최근 코멘트가 14일 내면 그걸 재사용하고 **AI 를 안 부른다**. 이 분석 행에도
-  // 복사해 둬서, 다음엔 위 2) 에서 바로 잡히게 한다(다음 방문은 즉시·비용 0).
+  // 2.5) ★ 강아지 단위 쿨다운 + 구독자만 refresh (2026-07-16, 사장님) ───────────
+  // 규칙: **첫 코멘트는 강아지당 1회, 전원 무료**(전환 훅). 그 후 2주마다 갱신되는
+  // 리밋 해제는 **구독자에게만**. 비구독자는 첫 코멘트를 영구 동결해 계속 보여준다.
+  //  · recent 없음(첫 코멘트)      → 아래로 떨어져 생성(전원 무료)
+  //  · recent 있고 14일 내         → 재사용(전원, AI 0)
+  //  · recent 있고 14일 지남 + 구독 → 재생성(구독자 refresh)
+  //  · recent 있고 14일 지남 + 비구독 → 첫 코멘트 동결 재사용(AI 0)
+  // 재분석하면 새 analysisId 가 생겨 위 2) 캐시를 비껴가므로 **같은 강아지**의
+  // 최근 코멘트를 기준으로 판정하고, 재사용 시 이 분석 행에 복사한다.
   const COOLDOWN_MS = 14 * 86_400_000
   const { data: recent } = await supabase
     .from('analyses')
@@ -127,23 +132,40 @@ export async function POST(req: Request) {
     .limit(1)
     .maybeSingle()
 
-  if (
-    recent?.structured_analysis &&
-    recent.structured_analysis_at &&
-    Date.now() - new Date(recent.structured_analysis_at).getTime() < COOLDOWN_MS
-  ) {
-    // 이 분석 행에 복사 — 다음 방문부터 2) 에서 즉시 히트.
-    await supabase
-      .from('analyses')
-      .update({
-        structured_analysis: recent.structured_analysis,
-        structured_analysis_at: recent.structured_analysis_at,
+  if (recent?.structured_analysis && recent.structured_analysis_at) {
+    const ageMs = Date.now() - new Date(recent.structured_analysis_at).getTime()
+    const withinCooldown = ageMs < COOLDOWN_MS
+
+    // 쿨다운이 지났을 때만 구독 여부를 본다(구독자여야 refresh 허용).
+    // 구독 = active/paused 이면서 카드 등록됨(billing_key). needs_card '시작 전' 제외.
+    let subscribed = false
+    if (!withinCooldown) {
+      const { data: subs } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('dog_id', analysis.dog_id)
+        .eq('user_id', user.id)
+        .in('status', ['active', 'paused'])
+        .not('billing_key', 'is', null)
+        .limit(1)
+      subscribed = (subs?.length ?? 0) > 0
+    }
+
+    // 재사용 조건: 쿨다운 내 OR 비구독. (구독자 + 쿨다운 지남만 아래로 떨어져 재생성.)
+    if (withinCooldown || !subscribed) {
+      await supabase
+        .from('analyses')
+        .update({
+          structured_analysis: recent.structured_analysis,
+          structured_analysis_at: recent.structured_analysis_at,
+        })
+        .eq('id', analysisId)
+      return NextResponse.json({
+        structured: recent.structured_analysis,
+        cached: true,
       })
-      .eq('id', analysisId)
-    return NextResponse.json({
-      structured: recent.structured_analysis,
-      cached: true,
-    })
+    }
+    // else: 구독자 + 2주 경과 → 아래로 떨어져 재생성.
   }
 
   // 3) 강아지 + 설문 로드
