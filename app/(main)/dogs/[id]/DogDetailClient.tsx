@@ -617,11 +617,19 @@ export default function DogDetailClient({
         <PhotoRequestButton dogId={dog.id} dogName={dog.name} />
       </section>
 
-      {/* Secondary actions — 정보 수정은 프로필 카드 모서리로 이동(위). 삭제만 남김. */}
-      <section className="px-5 mt-3">
+      {/* Secondary actions — 정보 수정 + 삭제. 수정하기는 프로필 카드 모서리 연필과
+          함께 여기 하단에도 둔다(사장님 2026-07-16: 혹시 모르니 삭제 옆에 하나 더). */}
+      <section className="px-5 mt-3 grid grid-cols-2 gap-2.5">
+        <Link
+          href={`/dogs/${dog.id}/edit`}
+          className="flex items-center justify-center gap-1.5 py-3 bg-bg-3 text-text rounded border border-rule hover:border-text text-[12px] font-bold transition"
+        >
+          <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
+          정보 수정
+        </Link>
         <button
           onClick={() => setShowDeleteConfirm(true)}
-          className="flex items-center justify-center gap-1.5 w-full py-3 bg-bg-3 text-sale rounded border border-rule hover:border-sale text-[12px] font-bold transition"
+          className="flex items-center justify-center gap-1.5 py-3 bg-bg-3 text-sale rounded border border-rule hover:border-sale text-[12px] font-bold transition"
         >
           <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
           삭제

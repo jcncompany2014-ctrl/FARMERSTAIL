@@ -18,6 +18,7 @@
 
 import { V3, V3FontWeight, V3LetterSpacing, V3FontSize } from '@/lib/design/tokens'
 import { Mono, Signature, Mark } from '@/components/v3'
+import { currentKstHour, nowKstMs } from '@/lib/datetime-kst'
 
 interface GreetingSectionProps {
   /** 보호자 이름. */
@@ -77,7 +78,9 @@ const HEADINGS_BY_TIME: Record<TimeOfDay, string[]> = {
 }
 
 function computeTimeOfDay(): TimeOfDay {
-  const h = new Date().getHours()
+  // ★ KST 시각으로 판정(2026-07-16 사장님: 늦은 밤인데 '오후'로 떴다). new Date().getHours()
+  //   는 서버(Vercel=UTC)에서 UTC hour 라 한국시간과 9시간 어긋났다. currentKstHour 로 고정.
+  const h = currentKstHour()
   if (h >= 5 && h < 12) return 'morning'
   if (h >= 12 && h < 17) return 'afternoon'
   if (h >= 17 && h < 21) return 'evening'
@@ -85,14 +88,14 @@ function computeTimeOfDay(): TimeOfDay {
 }
 
 /**
- * day-of-year (1-366) — KST 기준 매일 다른 값.
+ * day-of-year (1-366) — KST 기준 매일 다른 값(자정 KST 에 멘트 rotation).
  * 같은 날엔 새로고침해도 같은 멘트, 다음 날엔 새 멘트.
  */
 function dayOfYear(): number {
-  const now = new Date()
-  const start = new Date(now.getFullYear(), 0, 0)
-  const diff = now.getTime() - start.getTime()
-  return Math.floor(diff / 86400000)
+  // KST 보정 timestamp 를 UTC 벽시계로 읽어 KST 달력일을 얻는다(서버 UTC 무관 결정적).
+  const kst = new Date(nowKstMs())
+  const start = Date.UTC(kst.getUTCFullYear(), 0, 0)
+  return Math.floor((kst.getTime() - start) / 86400000)
 }
 
 /**
