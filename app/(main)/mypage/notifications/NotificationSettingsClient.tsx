@@ -11,7 +11,6 @@ import {
   Send,
 } from 'lucide-react'
 import PreferencesPanel from './PreferencesPanel'
-import ThemeToggle from '@/components/ThemeToggle'
 import { isNativeApp, registerAndSyncNativePush } from '@/lib/capacitor'
 
 type SubRow = {
@@ -44,9 +43,12 @@ type Status =
 export default function NotificationSettingsClient({
   initialSubs,
   vapidPublicKey,
+  embedded,
 }: {
   initialSubs: SubRow[]
   vapidPublicKey: string | null
+  /** 통합 알림 페이지 탭 안에서 렌더될 때 true — 자체 헤더 숨김. */
+  embedded?: boolean
 }) {
   const [status, setStatus] = useState<Status>('unknown')
   const [subs, setSubs] = useState<SubRow[]>(initialSubs)
@@ -209,13 +211,15 @@ export default function NotificationSettingsClient({
   const isOn: boolean = status === 'on'
 
   return (
-    <div className="pb-10">
-      <section className="px-5 pt-4 pb-2">
-        <span className="kicker mt-3 block">Notifications</span>
-        <p className="text-[13.5px] text-muted mt-1.5 leading-relaxed">
-          배송 변경, 결제 완료, 리마인더를 알림으로 받을 수 있어요
-        </p>
-      </section>
+    <div className={embedded ? undefined : 'pb-10'}>
+      {!embedded && (
+        <section className="px-5 pt-4 pb-2">
+          <span className="kicker mt-3 block">Notifications</span>
+          <p className="text-[13.5px] text-muted mt-1.5 leading-relaxed">
+            배송 변경, 결제 완료, 리마인더를 알림으로 받을 수 있어요
+          </p>
+        </section>
+      )}
 
       {/* 메인 토글 */}
       <section className="px-5 mt-4">
@@ -356,10 +360,7 @@ export default function NotificationSettingsClient({
         <PreferencesPanel />
       </section>
 
-      {/* 화면 테마 — 다크모드 토글 */}
-      <section className="px-5 mt-3">
-        <ThemeToggle />
-      </section>
+      {/* 화면 테마(다크모드) 토글은 사장님 2026-07-16 지시로 삭제. */}
 
       {/* 등록된 기기 */}
       <section className="px-5 mt-3">

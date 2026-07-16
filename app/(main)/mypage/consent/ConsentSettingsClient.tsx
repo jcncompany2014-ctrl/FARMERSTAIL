@@ -39,9 +39,12 @@ type HistoryRow = {
 export default function ConsentSettingsClient({
   initial,
   history,
+  embedded,
 }: {
   initial: Initial
   history: HistoryRow[]
+  /** 통합 알림 페이지 탭 안에서 렌더될 때 true — 자체 헤더 숨김. */
+  embedded?: boolean
 }) {
   const supabase = createClient()
 
@@ -122,9 +125,9 @@ export default function ConsentSettingsClient({
   }
 
   return (
-    <div className="pb-10">
-      <section className="px-5 pt-4 pb-2">
-        <span className="kicker mt-3 block">Consent</span>
+    <div className={embedded ? undefined : 'pb-10'}>
+      <section className={embedded ? 'px-5 pt-4 pb-2' : 'px-5 pt-4 pb-2'}>
+        {!embedded && <span className="kicker mt-3 block">Consent</span>}
         <p
           className="mt-1.5 leading-relaxed"
           style={{ fontSize: 13.5, color: 'var(--muted-strong)' }}

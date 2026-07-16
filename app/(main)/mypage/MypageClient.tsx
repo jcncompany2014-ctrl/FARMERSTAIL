@@ -25,7 +25,6 @@ import {
   ChevronRight,
   LogOut,
   Sprout,
-  Mail,
   HelpCircle,
   FileText,
   Shield,
@@ -299,15 +298,8 @@ export default function MypageClient({
         {/* 분석 맞춤도 — 사장님 2026-07-16 "나중에 쓸 수도 있어서 일단 숨김".
             페이지(/mypage/accuracy)는 남겨두고 메뉴 진입만 숨긴다. 되살릴 땐 아래 주석 해제.
         <MenuItem href="/mypage/accuracy" Icon={Gauge} label="분석 맞춤도" /> */}
-        {/* R-feel: 상단 헤더에서 알림 종을 강아지 칩으로 교체 → 알림함 진입을
-            마이페이지로 이동(고립 방지). */}
-        <MenuItem href="/notifications" Icon={Bell} label="받은 알림" />
-        <MenuItem
-          href="/mypage/notifications"
-          Icon={Bell}
-          label="알림 받기 · 화면 테마"
-        />
-        <MenuItem href="/mypage/consent" Icon={Mail} label="광고 수신 설정" />
+        {/* 받은 알림·알림 설정·광고 수신 3개를 '알림' 한 페이지(탭)로 통합(2026-07-16). */}
+        <MenuItem href="/notifications" Icon={Bell} label="알림" />
         <MenuItem
           href="/mypage/privacy"
           Icon={Shield}

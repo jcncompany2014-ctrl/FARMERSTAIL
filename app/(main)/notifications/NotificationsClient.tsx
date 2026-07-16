@@ -58,8 +58,11 @@ type FilterKey = (typeof FILTERS)[number]['key']
 
 export default function NotificationsClient({
   initialRows,
+  embedded,
 }: {
   initialRows: Row[]
+  /** 통합 알림 페이지 탭 안에서 렌더될 때 true — 자체 큰 헤더('알림 센터') 숨김. */
+  embedded?: boolean
 }) {
   const supabase = createClient()
   const router = useRouter()
@@ -149,15 +152,19 @@ export default function NotificationsClient({
   return (
     <div className="nt-page">
       <header className="nt-hero">
-        <div className="nt-kicker">
-          <Bell size={11} strokeWidth={2.4} />
-          NOTIFICATIONS
-          {unreadCount > 0 && (
-            <span className="nt-unread-badge">{unreadCount}</span>
-          )}
-        </div>
-        <h1>알림 센터</h1>
-        <p>최근 100개 알림. 클릭하면 자동으로 읽음 처리돼요.</p>
+        {!embedded && (
+          <>
+            <div className="nt-kicker">
+              <Bell size={11} strokeWidth={2.4} />
+              NOTIFICATIONS
+              {unreadCount > 0 && (
+                <span className="nt-unread-badge">{unreadCount}</span>
+              )}
+            </div>
+            <h1>알림 센터</h1>
+            <p>최근 100개 알림. 클릭하면 자동으로 읽음 처리돼요.</p>
+          </>
+        )}
 
         {unreadCount > 0 && (
           <button
