@@ -28,7 +28,6 @@ import {
   TrendingDown,
   Minus,
   History,
-  Heart,
   Bell,
   Sparkles,
   PartyPopper,
@@ -571,8 +570,9 @@ export default function DogDetailClient({
             </div>
           </div>
         </Link>
+        {/* 복약·예방접종·리마인더 3개 링크를 '건강 관리' 하나로 통합(2026-07-16). */}
         <Link
-          href={`/dogs/${dog.id}/reminders`}
+          href={`/dogs/${dog.id}/health-care`}
           className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
         >
           <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
@@ -580,42 +580,10 @@ export default function DogDetailClient({
           </div>
           <div className="flex-1 text-left">
             <div className="text-[12px] font-black text-text">
-              리마인더
+              건강 관리
             </div>
             <div className="text-[10.5px] text-muted mt-0.5">
-              예방접종·투약·검진 일정을 관리해요
-            </div>
-          </div>
-        </Link>
-        <Link
-          href={`/dogs/${dog.id}/vaccinations`}
-          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
-        >
-          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
-            <Heart className="w-4 h-4 text-terracotta" strokeWidth={2} />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-[12px] font-black text-text">
-              예방접종 기록
-            </div>
-            <div className="text-[10.5px] text-muted mt-0.5">
-              접종 일정과 다음 일정을 관리해요
-            </div>
-          </div>
-        </Link>
-        <Link
-          href={`/dogs/${dog.id}/medications`}
-          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
-        >
-          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
-            <Bell className="w-4 h-4 text-sale" strokeWidth={2} />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-[12px] font-black text-text">
-              복약 관리
-            </div>
-            <div className="text-[10.5px] text-muted mt-0.5">
-              약물·영양제 복용 시간과 알림
+              복약·예방접종·리마인더를 한곳에서
             </div>
           </div>
         </Link>

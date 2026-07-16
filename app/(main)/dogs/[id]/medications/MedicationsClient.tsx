@@ -3,9 +3,11 @@
 // B12 — medications DB 마이그 (R15-B). localStorage → Supabase.
 
 import { useEffect, useState } from 'react'
-import { Plus, Pill, Trash2 } from 'lucide-react'
+import { Plus, Pill, Trash2, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { Modal, Select, useConfirm, Toggle } from '@/components/v3'
+import { Select, useConfirm, Toggle } from '@/components/v3'
+import BottomSheet from '@/components/ui/BottomSheet'
+import { SheetField, SheetInput } from '@/components/v3/sheet/SheetField'
 import {
   listMedications,
   insertMedication,
@@ -197,96 +199,90 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
         )}
       </section>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="약물 추가">
-        <Modal.Body>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
-                약물 이름 *
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                aria-label="약물 이름"
-                placeholder="예: 심장사상충 예방약"
-                className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
-              />
-            </div>
-            <div>
-              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
-                용량
-              </label>
-              <input
-                type="text"
-                value={dose}
-                onChange={(e) => setDose(e.target.value)}
-                aria-label="용량"
-                placeholder="예: 1/2 tab"
-                className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
-              />
-            </div>
-            <div>
-              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
-                주기 *
-              </label>
-              <Select
-                value={schedule}
-                onChange={(e) =>
-                  setSchedule(e.target.value as MedicationRow['schedule'])
-                }
-                options={[
-                  { value: 'daily', label: '매일' },
-                  { value: 'weekly', label: '매주' },
-                  { value: 'asneeded', label: '필요할 때' },
-                ]}
-              />
-            </div>
-            <div>
-              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
-                시간
-              </label>
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                aria-label="복약 시간"
-                className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] text-text focus:outline-none focus:border-terracotta transition"
-              />
-            </div>
-            <div>
-              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
-                메모
-              </label>
-              <input
-                type="text"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                aria-label="메모"
-                placeholder="예: 밥 직후 복용"
-                className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
-              />
-            </div>
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="px-4 py-2 rounded border border-rule bg-bg-3 text-[12px] font-semibold text-text"
+      <BottomSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        ariaLabel="약물 추가"
+        dismissOnBackdrop={!saving}
+      >
+        <BottomSheet.Body>
+          <h2
+            className="font-sans"
+            style={{
+              margin: 0,
+              fontWeight: 800,
+              fontSize: 22,
+              color: 'var(--ink)',
+              letterSpacing: '-0.02em',
+            }}
           >
-            취소
-          </button>
+            약물 추가
+          </h2>
+          <p className="mt-1 text-[12px] text-muted">
+            정기 복약·영양제 시간과 용량을 기록해요
+          </p>
+
+          <SheetField label="약물 이름" required>
+            <SheetInput
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              aria-label="약물 이름"
+              placeholder="예: 심장사상충 예방약"
+            />
+          </SheetField>
+          <SheetField label="용량">
+            <SheetInput
+              type="text"
+              value={dose}
+              onChange={(e) => setDose(e.target.value)}
+              aria-label="용량"
+              placeholder="예: 1/2 tab"
+            />
+          </SheetField>
+          <SheetField label="주기" required>
+            <Select
+              value={schedule}
+              onChange={(e) =>
+                setSchedule(e.target.value as MedicationRow['schedule'])
+              }
+              options={[
+                { value: 'daily', label: '매일' },
+                { value: 'weekly', label: '매주' },
+                { value: 'asneeded', label: '필요할 때' },
+              ]}
+            />
+          </SheetField>
+          <SheetField label="시간">
+            <SheetInput
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              aria-label="복약 시간"
+            />
+          </SheetField>
+          <SheetField label="메모">
+            <SheetInput
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              aria-label="메모"
+              placeholder="예: 밥 직후 복용"
+            />
+          </SheetField>
+        </BottomSheet.Body>
+        <BottomSheet.Footer>
           <button
             type="button"
             onClick={handleAdd}
             disabled={!name || saving}
-            className="px-4 py-2 rounded bg-text text-bg text-[12px] font-bold disabled:opacity-50"
+            className="flex items-center justify-center gap-2 w-full h-[52px] rounded bg-text text-bg text-[15px] font-bold disabled:opacity-50 active:scale-[0.98] transition"
           >
+            <Check className="w-4 h-4" strokeWidth={2.2} />
             {saving ? '저장 중…' : '저장'}
           </button>
-        </Modal.Footer>
-      </Modal>
+        </BottomSheet.Footer>
+      </BottomSheet>
     </>
   )
 }

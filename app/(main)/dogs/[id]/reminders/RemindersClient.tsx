@@ -126,10 +126,13 @@ function formatNextDate(iso: string) {
 export default function RemindersClient({
   dogId,
   initial,
+  embedded,
 }: {
   dogId: string
-  dogName: string
+  dogName?: string
   initial: Reminder[]
+  /** 통합 건강관리 페이지의 탭 안에서 렌더될 때 true — 자체 헤더를 숨긴다. */
+  embedded?: boolean
 }) {
   const supabase = createClient()
   const toast = useToast()
@@ -287,19 +290,21 @@ export default function RemindersClient({
   }
 
   return (
-    <div className="pb-10">
-      <section className="px-5 pt-6 pb-2">
-        <span className="kicker mt-3 block">Care Reminders</span>
-        <h1 className="font-sans mt-1.5" style={{ fontSize: 32, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-          리마인더
-        </h1>
-        <p className="text-[10.5px] text-muted mt-1">
-          예방접종, 투약, 검진 일정을 놓치지 않게 챙겨드려요
-        </p>
-      </section>
+    <div className={embedded ? undefined : 'pb-10'}>
+      {!embedded && (
+        <section className="px-5 pt-6 pb-2">
+          <span className="kicker mt-3 block">Care Reminders</span>
+          <h1 className="font-sans mt-1.5" style={{ fontSize: 32, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            리마인더
+          </h1>
+          <p className="text-[10.5px] text-muted mt-1">
+            예방접종, 투약, 검진 일정을 놓치지 않게 챙겨드려요
+          </p>
+        </section>
+      )}
 
       {/* 요약 */}
-      <section className="px-5 mt-4">
+      <section className={embedded ? 'px-5 mt-3' : 'px-5 mt-4'}>
         <div className="grid grid-cols-3 gap-2">
           <SummaryCard
             label="지연"

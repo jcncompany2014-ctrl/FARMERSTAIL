@@ -4,11 +4,13 @@
 // 기존 localStorage 데이터는 마이그레이션 X (베타 단계, 사용자 거의 없음).
 
 import { useEffect, useState } from 'react'
-import { Plus, Syringe, Trash2 } from 'lucide-react'
+import { Plus, Syringe, Trash2, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { petName } from '@/lib/korean'
-import { Modal, DatePicker, Select, useConfirm } from '@/components/v3'
+import { DatePicker, Select, useConfirm } from '@/components/v3'
+import BottomSheet from '@/components/ui/BottomSheet'
+import { SheetField, SheetInput } from '@/components/v3/sheet/SheetField'
 import {
   listVaccinations,
   insertVaccination,
@@ -214,78 +216,71 @@ export default function VaccinationsClient({
         )}
       </section>
 
-      <Modal
+      <BottomSheet
         open={open}
         onClose={() => setOpen(false)}
-        title="새 예방접종 기록"
+        ariaLabel="새 예방접종 기록"
+        dismissOnBackdrop={!saving}
       >
-        <Modal.Body>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
-                백신 *
-              </label>
-              <Select
-                value={vaccine}
-                onChange={(e) => setVaccine(e.target.value)}
-                options={[
-                  { value: '', label: '선택하세요' },
-                  ...VACCINE_OPTIONS,
-                ]}
-              />
-            </div>
-            <div>
-              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
-                접종일 *
-              </label>
-              <DatePicker
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                max={today}
-              />
-            </div>
-            <div>
-              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
-                다음 일정
-              </label>
-              <DatePicker
-                value={next}
-                onChange={(e) => setNext(e.target.value)}
-                min={date || today}
-              />
-            </div>
-            <div>
-              <label className="block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]">
-                메모
-              </label>
-              <input
-                type="text"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="예: 동물병원, 이상반응 없음"
-                className="w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[13.5px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition"
-              />
-            </div>
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="px-4 py-2 rounded border border-rule bg-bg-3 text-[12px] font-semibold text-text"
+        <BottomSheet.Body>
+          <h2
+            className="font-sans"
+            style={{
+              margin: 0,
+              fontWeight: 800,
+              fontSize: 22,
+              color: 'var(--ink)',
+              letterSpacing: '-0.02em',
+            }}
           >
-            취소
-          </button>
+            새 예방접종 기록
+          </h2>
+          <p className="mt-1 text-[12px] text-muted">
+            접종일과 다음 일정을 기록해 두면 놓치지 않아요
+          </p>
+
+          <SheetField label="백신" required>
+            <Select
+              value={vaccine}
+              onChange={(e) => setVaccine(e.target.value)}
+              options={[{ value: '', label: '선택하세요' }, ...VACCINE_OPTIONS]}
+            />
+          </SheetField>
+          <SheetField label="접종일" required>
+            <DatePicker
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              max={today}
+            />
+          </SheetField>
+          <SheetField label="다음 일정">
+            <DatePicker
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+              min={date || today}
+            />
+          </SheetField>
+          <SheetField label="메모">
+            <SheetInput
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="예: 동물병원, 이상반응 없음"
+            />
+          </SheetField>
+        </BottomSheet.Body>
+        <BottomSheet.Footer>
           <button
             type="button"
             onClick={handleAdd}
             disabled={!vaccine || !date || saving}
-            className="px-4 py-2 rounded bg-text text-bg text-[12px] font-bold disabled:opacity-50"
+            className="flex items-center justify-center gap-2 w-full h-[52px] rounded bg-text text-bg text-[15px] font-bold disabled:opacity-50 active:scale-[0.98] transition"
           >
+            <Check className="w-4 h-4" strokeWidth={2.2} />
             {saving ? '저장 중…' : '저장'}
           </button>
-        </Modal.Footer>
-      </Modal>
+        </BottomSheet.Footer>
+      </BottomSheet>
     </>
   )
 }
