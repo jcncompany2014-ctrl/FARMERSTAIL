@@ -56,7 +56,7 @@ async function runOrderExpire(): Promise<Response> {
   // 가상계좌는 24h 입금 대기라 expire 대상 아님 — 별도 webhook 만 처리.
   const { data: orders, error: fetchErr } = await supabase
     .from('orders')
-    .select('id, user_id, order_number, coupon_code')
+    .select('id, user_id, order_number')
     .eq('payment_status', 'pending')
     .eq('order_status', 'pending')
     .lt('created_at', cutoff)
@@ -74,7 +74,6 @@ async function runOrderExpire(): Promise<Response> {
     id: string
     user_id: string
     order_number: string
-    coupon_code: string | null
   }>
 
   let expired = 0

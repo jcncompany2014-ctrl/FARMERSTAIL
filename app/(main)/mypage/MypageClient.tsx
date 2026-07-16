@@ -225,7 +225,8 @@ export default function MypageClient({
       </section>
 
       {/* ──────────────────────────────────────────────────────────────
-          Stat grid — orders / subs / coupons / wish (4-col)
+          Stat grid — orders / subs / dogs (3-col).
+          (쿠폰·찜 열은 그 기능들이 폐지되며 사라졌다 — 2026-07-16 주석 정정)
           ────────────────────────────────────────────────────────────── */}
       {(orderCount > 0 || subCount > 0) && (
         <section style={{ padding: '10px 20px 0' }}>

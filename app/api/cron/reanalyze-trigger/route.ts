@@ -88,17 +88,12 @@ export async function GET(req: Request) {
     if (latest.length >= MAX_PER_RUN) break
   }
 
-  // 측정 도구 업그레이드 — point_ledger reference_type='measurement_upgrade'
-  // 마지막 분석 이후 발생한 row 있나
-  const userIds = [...new Set(latest.map((r) => r.user_id))]
-  const { data: upgradeRows } = await supabase
-    .from('point_ledger')
-    .select('user_id, reference_id, created_at')
-    .eq('reference_type', 'measurement_upgrade')
-    .in('user_id', userIds)
-    .limit(2000)
-  type UpgradeRow = { user_id: string; reference_id: string; created_at: string }
-  const upgrades = (upgradeRows ?? []) as UpgradeRow[]
+  // 측정 도구 업그레이드 신호 제거 (2026-07-16 포인트 전면 폐기).
+  // 이 신호를 **포인트 원장**(reference_type='measurement_upgrade')에서 읽고 있었다.
+  // 포인트 적립을 없앴으니 그 row 는 더 이상 안 쌓인다 → 영원히 0건인 조건.
+  // 나머지 4조건(체중 drift·생애주기 변경·12주 경과·사용자 요청)은 그대로 작동한다.
+  // 측정 도구 변경 자체는 dogs.weight_method 에 남으므로, 그걸로 다시 신호를 만들려면
+  // '마지막 분석 이후 weight_method 가 바뀌었나' 를 보면 된다(추후).
 
   let triggered = 0
   let skipped = 0
@@ -122,20 +117,11 @@ export async function GET(req: Request) {
     const predicted = Math.pow(r.rer / 70, 4 / 3)
     const actual = dog.weight
 
-    // measurement upgrade — 같은 user 의 reference_id 가 dog_id 로 시작하는 것
-    const hadUpgrade = upgrades.some(
-      (u) =>
-        u.user_id === r.user_id &&
-        u.reference_id &&
-        u.reference_id.startsWith(r.dog_id) &&
-        new Date(u.created_at).getTime() >= new Date(r.created_at).getTime(),
-    )
-
     const decision = shouldReanalyze({
       lastAnalysisAt: r.created_at,
       predictedWeight: predicted,
       actualWeight: actual,
-      hadMeasurementUpgrade: hadUpgrade,
+      hadMeasurementUpgrade: false,
       lastStage,
       currentStage,
       userRequested: false,
