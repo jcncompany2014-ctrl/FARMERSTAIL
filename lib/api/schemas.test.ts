@@ -18,7 +18,6 @@ import {
   zOrderCancel,
   zPushSubscribe,
   zPushUnsubscribe,
-  zRestockRequest,
   zNewsletterSubscribe,
   zAccountDelete,
   zNativePushRegister,
@@ -213,25 +212,6 @@ describe('zPushUnsubscribe', () => {
   })
 })
 
-describe('zRestockRequest', () => {
-  it('accepts product UUID', () => {
-    assert.equal(
-      zRestockRequest.safeParse({
-        productId: '550e8400-e29b-41d4-a716-446655440000',
-      }).success,
-      true,
-    )
-  })
-  it('accepts variantId optional + nullable', () => {
-    assert.equal(
-      zRestockRequest.safeParse({
-        productId: '550e8400-e29b-41d4-a716-446655440000',
-        variantId: null,
-      }).success,
-      true,
-    )
-  })
-})
 
 describe('zNewsletterSubscribe', () => {
   it('requires email', () => {

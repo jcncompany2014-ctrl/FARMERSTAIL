@@ -40,8 +40,6 @@ export const zIsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '날짜 형식�
 
 /** 짧은 자유 텍스트 (배송 메모 등) — XSS 방어는 React 가 알아서. 길이만 제한. */
 export const zShortText = z.string().max(200)
-export const zMediumText = z.string().max(500)
-export const zLongText = z.string().max(2000)
 
 // ──────────────────────────────────────────────────────────────────────────
 // Per-endpoint schemas
@@ -102,22 +100,6 @@ export const zNativePushRegister = z.object({
   deviceId: z.string().min(4).max(200),
   appVersion: z.string().max(40).optional(),
   osVersion: z.string().max(40).optional(),
-})
-
-export const zPushPreferences = z.object({
-  enabled: z.boolean().optional(),
-  marketing_enabled: z.boolean().optional(),
-  order_enabled: z.boolean().optional(),
-  delivery_enabled: z.boolean().optional(),
-  reminder_enabled: z.boolean().optional(),
-  quiet_hours_enabled: z.boolean().optional(),
-  quiet_start_hour: z.number().int().min(0).max(23).optional(),
-  quiet_end_hour: z.number().int().min(0).max(23).optional(),
-})
-
-export const zRestockRequest = z.object({
-  productId: zUuid,
-  variantId: zUuid.optional().nullable(),
 })
 
 /** /api/source-waitlist 입력 — 기능성 소스(레이어 B) 출시 알림 구독.
