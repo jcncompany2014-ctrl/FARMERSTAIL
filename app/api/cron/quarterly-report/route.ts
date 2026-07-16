@@ -15,8 +15,12 @@ export const dynamic = 'force-dynamic'
  *
  * # 동작
  *   - 분기 1회 실행 (1·4·7·10월 1일 KST 09:00 / UTC 00:00 — "0 0 1 1,4,7,10 *")
- *   - 강아지별 *최신 분석*(analyses) 을 뽑아, 그 주인이 cumulative_spend ≥
- *     새싹 임계(50,000원) 인 회원이면 영양 요약 리포트 메일 발송.
+ *   - 강아지별 *최신 분석*(analyses) 을 뽑아, 그 주인이 **새싹 이상 등급**
+ *     (도장 1개 이상 = 첫 박스 결제)이면 영양 요약 리포트 메일 발송.
+ *     ⚠️ 2026-07-16 등급 기준이 누적금액 → 도장 개수로 바뀌었다. 예전 코드는
+ *     `cumulative_spend >= SPROUT_THRESHOLD` 였는데, 임계가 50,000(원)에서
+ *     1(개)이 되면서 **'1원 이상 쓴 사람 전부'** 를 뽑는 조용한 오작동이 됐다.
+ *     단위가 다른 값을 비교하고 있었던 것 — 이제 stamp_count 를 본다.
  *   - 본인 강아지 데이터 요약(광고 없음) = 거래/정보성 메일이라 마케팅
  *     수신동의(agree_email) 게이트 없이 발송. 분석 페이지로 연결.
  *
@@ -30,7 +34,8 @@ export const dynamic = 'force-dynamic'
  *   profiles 일괄 등급 게이트.
  */
 
-const SPROUT_THRESHOLD = TIERS.find((t) => t.key === 'sprout')?.threshold ?? 50_000
+/** 새싹 도달에 필요한 **도장 개수** (lib/tiers.ts 와 한 곳에서). */
+const SPROUT_STAMPS = TIERS.find((t) => t.key === 'sprout')?.threshold ?? 1
 const MAX_PER_RUN = 1000
 const PROFILE_CHUNK = 500
 
@@ -90,14 +95,14 @@ async function runReport(): Promise<Response> {
     const chunk = userIds.slice(i, i + PROFILE_CHUNK)
     const { data: profiles } = await admin
       .from('profiles')
-      .select('id, email, name, cumulative_spend')
+      .select('id, email, name, stamp_count')
       .in('id', chunk)
-      .gte('cumulative_spend', SPROUT_THRESHOLD)
+      .gte('stamp_count', SPROUT_STAMPS)
     for (const p of (profiles ?? []) as Array<{
       id: string
       email: string | null
       name: string | null
-      cumulative_spend: number | null
+      stamp_count: number | null
     }>) {
       if (p.email) eligible.set(p.id, { email: p.email, name: p.name ?? '보호자' })
     }

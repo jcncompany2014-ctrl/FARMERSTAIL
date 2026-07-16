@@ -43,7 +43,6 @@ type Profile = {
   name: string | null
   phone: string | null
   tier?: string | null
-  cumulative_spend?: number | null
 }
 
 type Props = {
