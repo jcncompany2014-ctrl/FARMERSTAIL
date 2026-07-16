@@ -22,7 +22,6 @@
  */
 
 import type { SkuKey } from './allergy-sku-matrix'
-import { ALERT_COPY, RECOMMENDATION_COPY, withDogName } from './copy-strings'
 
 /**
  * 만성질환 키 (surveys.chronic_conditions 값과 일치).

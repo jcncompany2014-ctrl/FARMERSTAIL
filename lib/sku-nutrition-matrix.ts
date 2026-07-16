@@ -23,7 +23,7 @@
  * - app/(main)/dogs/[id]/analysis/* (38영양소 게이지 — Round C2)
  */
 
-import { type SkuKey, SKU_META } from './allergy-sku-matrix.ts'
+import type { SkuKey } from './allergy-sku-matrix.ts'
 
 /** 영양 매트릭스 1행 — DM 기준 */
 export interface SkuNutritionRow {

@@ -34,8 +34,6 @@
  *   돼지 알레르기 → Mueller 2016 2% (드묾)
  */
 
-import { ALERT_COPY, withDogName } from './copy-strings.ts'
-
 /** 5종 SKU 키 */
 export type SkuKey = 'C01' | 'D02' | 'S03' | 'P04' | 'B05'
 
