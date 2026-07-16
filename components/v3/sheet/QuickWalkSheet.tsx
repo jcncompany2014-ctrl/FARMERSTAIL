@@ -1,11 +1,11 @@
 'use client'
 
 /**
- * QuickWalkSheet — 산책 빠른 기록 (활동량 칩 + 산책 시간 30분 단위).
+ * QuickWalkSheet — 산책 빠른 기록 (활동량 칩 + 산책 시간 15분 단위).
  *
  * 두 곳에 나눠 저장(각각 제 위치):
  *   - 활동량(활발/보통/적음) → health_logs.activity_level (대시보드·건강 추이 호환)
- *   - 산책 시간(분, 30분 단위) → activity_logs (activity_type:'walk', duration_min)
+ *   - 산책 시간(분, 15분 단위) → activity_logs (activity_type:'walk', duration_min)
  *     ↑ 산책 시간 전용 컬럼은 activity_logs 에만 있음(health_logs 엔 없음).
  *
  * 시간은 항상 기록(기본 30분), 활동량은 선택. **앱(PWA) 전용.**
@@ -21,8 +21,9 @@ import { useToast } from '@/components/ui/Toast'
 type Opt = readonly [value: string, label: string]
 const ACTIVITY: Opt[] = [['high', '활발'], ['normal', '보통'], ['low', '적음']]
 
-const STEP = 30
-const MIN = 30
+// 산책 시간은 15분 단위(사장님 2026-07-16). 30분 단위는 너무 성겨서 실제 산책과 안 맞음.
+const STEP = 15
+const MIN = 15
 const MAX = 300
 
 interface QuickWalkSheetProps {
