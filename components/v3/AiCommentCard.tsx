@@ -1,12 +1,13 @@
 'use client'
 
 /**
- * AI 코멘트 카드 — "○○를 위한 한마디" (2026-07-16 연결).
+ * AI 코멘트 카드 — "보호자님께" 건네는 한마디 (2026-07-16 연결, 톤 개편).
  *
- * # 숫자는 규칙, 말은 AI
- * 급여량 kcal·g·계수는 순수 함수가 낸다(lib/nutrition). 이 카드는 **규칙으로 못 푸는
- * 것** — 그 아이의 현재 사료·만성질환·복용 약·변 상태·품종 이력을 읽고 사람 말로 붙인
- * 설명만 담는다. AI 가 실패하거나 비용 한도에 걸려도 **급여량은 멀쩡하다.**
+ * # 숫자는 규칙, 말은 AI — 그리고 이 말은 **보호자에게** 건넨다
+ * 급여량 kcal·g·계수는 순수 함수가 낸다(lib/nutrition). 이 카드는 그 숫자를 반복하지
+ * 않고, 그 아이 사정을 읽어 **보호자에게 건네는 한마디**를 담는다 — 안심으로 열고
+ * 실행 팁 하나로 닫는 톤(사장님 확정 2026-07-16). AI 가 실패해도 급여량은 멀쩡하다.
+ * ⚠️ 영양제·보충제는 절대 권하지 않는다(폐지한 제품) — 프롬프트에서 데이터·지시 모두 차단.
  *
  * # 데이터
  * `/api/analysis/structured` 가 analyses.structured_analysis 에 캐시한 JSON.
@@ -22,7 +23,7 @@
  * 빈 카드나 에러 문구보다 없는 게 낫다(핵심은 위의 숫자다).
  */
 import { useEffect, useState } from 'react'
-import { Sparkles, ArrowRight } from 'lucide-react'
+import { Heart, ArrowRight } from 'lucide-react'
 import { withHonorific } from '@/lib/korean'
 
 type AiAnalysisJson = {
@@ -92,9 +93,9 @@ export default function AiCommentCard({
         }}
       >
         <div className="flex items-center gap-1.5 mb-2">
-          <Sparkles className="w-3.5 h-3.5 text-terracotta" strokeWidth={2.2} />
+          <Heart className="w-3.5 h-3.5 text-terracotta" strokeWidth={2.2} />
           <span className="text-[11px] font-bold tracking-[0.06em] text-terracotta">
-            {withHonorific(dogName)}를 위한 한마디
+            보호자님께
           </span>
         </div>
 
@@ -125,7 +126,7 @@ export default function AiCommentCard({
             )}
 
             <p className="mt-3 text-[10px] leading-relaxed text-muted">
-              급여량 숫자는 규칙으로 계산해요. 이 설명만 그 아이 사정을 읽고 씁니다.
+              {withHonorific(dogName)} 사정을 읽고 보호자님께 드리는 말이에요.
             </p>
           </>
         )}

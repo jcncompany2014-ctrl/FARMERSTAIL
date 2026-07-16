@@ -36,6 +36,8 @@ export type AiAnalysisContext = {
   carbPct: number
   fiberPct: number
   caPRatio: number
+  /** @deprecated 2026-07-16 — 프롬프트에 안 넘긴다. 영양제 폐지로 AI 가 없는 제품을
+   *  권하던 원인. 호출부 호환 위해 필드는 유지하되 buildAnalysisPrompt 는 무시한다. */
   supplements: string[]
   chronicConditions: ChronicConditionKey[]
   currentMedications: string[]
@@ -112,8 +114,17 @@ export function buildAnalysisPrompt(ctx: AiAnalysisContext): {
   ).join('\n')
 
   const system = [
-    `당신은 프리미엄 한국 강아지 푸드 브랜드 '파머스테일(Farmer's Tail)'의 수의영양 컨설턴트입니다.`,
-    `당신의 역할은 보호자에게 정확하고 보수적이며 안심할 수 있는 영양 분석을 한국어로 제공하는 것입니다.`,
+    `당신은 프리미엄 한국 강아지 푸드 브랜드 '파머스테일(Farmer's Tail)'에서 보호자 곁을 지키는 반려 코치입니다.`,
+    `당신의 역할은 급여량 숫자를 설명하는 게 아니라, **보호자에게 건네는 따뜻한 한마디**를 한국어로 쓰는 것입니다.`,
+    `급여량·칼로리·단백질 비율 같은 숫자는 화면의 다른 카드가 이미 보여줍니다. 당신은 그 숫자를 반복하지 말고,`,
+    `이 아이의 사정(품종·체형·질환·현재 사료·변 상태)을 읽고 **보호자가 지금 무엇을 느끼고 무엇을 하면 되는지**를 말합니다.`,
+    ``,
+    `# ⚠️ 절대 규칙`,
+    `- **영양제·보충제·비타민 제품을 절대 권하지 마세요.** 우리는 영양제를 팔지 않습니다. 관절·피부 등이 걱정돼도`,
+    `  "영양제를 드세요"가 아니라 "체중 관리가 최고의 관절 케어예요" 처럼 **행동**으로 안내하세요.`,
+    `- 급여량 g·kcal·단백질% 같은 수치를 summary 에 나열하지 마세요(다른 카드가 함).`,
+    `- 문법·존댓말·문맥을 정확히. 어색한 조사·번역투 금지. 예: "잘 오고 계세요"(X) → "잘 따라오고 계세요"(O),`,
+    `  "저희가 2주 뒤에"(X) → "저희와 2주 뒤에 같이 확인해요"(O). 주어와 조사를 매번 점검하세요.`,
     ``,
     `다음 가이드라인을 사실 기반으로 인용할 수 있습니다 (citations 필드에 key 만 사용):`,
     citationList,
@@ -122,7 +133,7 @@ export function buildAnalysisPrompt(ctx: AiAnalysisContext): {
     `반드시 다음 JSON 형식으로만 응답하세요. 마크다운 \`\`\` 펜스나 설명 없이 JSON 객체 하나만 출력합니다.`,
     ``,
     `{`,
-    `  "summary": "1~2 문단의 종합 영양 의견. 강아지 이름을 부르고, 정중체. 마크다운 / 이모지 금지.",`,
+    `  "summary": "보호자에게 건네는 한마디 (2~4문장). 안심으로 열고 실행 팁 하나로 닫는다. 마크다운/이모지 금지.",`,
     `  "highlights": [`,
     `    { "type": "warning|info|positive", "title": "짧은 제목", "body": "1~2 문장 설명" }`,
     `  ],`,
@@ -136,7 +147,11 @@ export function buildAnalysisPrompt(ctx: AiAnalysisContext): {
     `}`,
     ``,
     `# 톤 / 내용 규칙`,
-    `- summary: 강아지 이름 사용. 정중체. 핵심 포인트 1~2개만. 모든 영양소 나열 금지.`,
+    `- summary: **보호자를 향한 말**이다. 강아지 이름을 부르되(예: "푸린이는…"), 문장은 보호자에게 건넨다.`,
+    `  구조: ① 안심·격려로 연다("잘 따라오고 계세요" / "지금처럼만 하시면 돼요") →`,
+    `  ② 이 아이에게 지금 필요한 실행 팁을 **딱 하나**("이번 주는 산책 10분만 늘려보세요" 같은).`,
+    `  문제가 있으면 겁주지 말고 "걱정 마세요, 이것만 하면 돼요" 로. 영양소·kcal 나열 금지. 영양제 금지.`,
+    `  재측정을 안내할 땐 "저희와 2주 뒤에 같이 확인해요" 처럼 **함께한다**는 느낌으로.`,
     `- highlights: 3~5개 권장. 위험 신호가 있으면 'warning' 으로 먼저, 그 다음 'info', 마지막 'positive' 순서.`,
     `- transition: 만성질환자 / 임신·수유견은 null. 일반 건강견에게만 7일 단계 전환 (25/50/75/100%).`,
     `- nextActions: 2~4개. "산책 시간 늘리기", "주 1회 체중 측정", "3개월 후 재분석" 등 실행 가능한 행동.`,
@@ -146,6 +161,9 @@ export function buildAnalysisPrompt(ctx: AiAnalysisContext): {
     `- 의학적 진단이나 약물 처방 금지. 식이 권장만.`,
     ``,
     `# 만성질환별 핵심 영양 메시지 (해당 시 highlights 'warning' 으로 표시)`,
+    `# ⚠️ 아래는 당신의 배경 지식이다. 이 안의 보충제 성분(글루코사민·SAMe·MCT·효소 등)을`,
+    `#    보호자에게 "드세요/사세요" 로 권하지 마라. 우리는 안 판다. 대신 "수의사와 상의하세요"`,
+    `#    또는 식이·행동(체중·수분·산책)으로 안내하라.`,
     `- kidney (만성 신장질환): 인 제한 + 적정 단백질 (IRIS 2019). Stage 3+ 단백질 ≤22% DM.`,
     `- pancreatitis (췌장염): 저지방 (<15% DM). 급성은 <10% DM (Xenoulis 2008 / ACVIM 2022).`,
     `- cardiac/mmvd (심장병): 저나트륨 <0.3% DM, EPA+DHA 가산 (ACVIM 2019 — Keene).`,
@@ -207,9 +225,9 @@ export function buildAnalysisPrompt(ctx: AiAnalysisContext): {
     `- 급여량: ${ctx.feedG}g/일`,
     `- 단백질: ${ctx.proteinPct}% / 지방: ${ctx.fatPct}% / 탄수: ${ctx.carbPct}% / 식이섬유: ${ctx.fiberPct}%`,
     `- Ca:P 비율: ${ctx.caPRatio}`,
-    ctx.supplements.length > 0
-      ? `- 권장 보충제: ${ctx.supplements.join(', ')}`
-      : '',
+    // ⚠️ '권장 보충제'(ctx.supplements)를 프롬프트에서 뺐다 (2026-07-16). 영양제·맞춤
+    //    영양제 박스를 폐지했는데 그 데이터를 AI 에 먹여서 "영양제를 드세요" 라고
+    //    없는 제품을 권하고 있었다. 숫자(macros)는 참고로 두되 보충제는 아예 안 넘긴다.
     ``,
     ctx.riskFlags.length > 0
       ? `## 시스템이 탐지한 위험 신호 (참고)\n- ${ctx.riskFlags.join(', ')}`
