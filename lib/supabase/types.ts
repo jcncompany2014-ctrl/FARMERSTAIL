@@ -351,6 +351,7 @@ export type Database = {
           risk_flags: string[] | null
           stage: string | null
           structured_analysis: Json | null
+          structured_analysis_at: string | null
           supplements: string[] | null
           survey_id: string
           user_id: string
@@ -382,6 +383,7 @@ export type Database = {
           risk_flags?: string[] | null
           stage?: string | null
           structured_analysis?: Json | null
+          structured_analysis_at?: string | null
           supplements?: string[] | null
           survey_id: string
           user_id: string
@@ -413,6 +415,7 @@ export type Database = {
           risk_flags?: string[] | null
           stage?: string | null
           structured_analysis?: Json | null
+          structured_analysis_at?: string | null
           supplements?: string[] | null
           survey_id?: string
           user_id?: string

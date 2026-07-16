@@ -103,10 +103,44 @@ export async function POST(req: Request) {
     )
   }
 
-  // 2) 캐시
+  // 2) 캐시 — 이 분석에 이미 코멘트가 있으면 즉시 반환 (로딩 없이 바로).
   if (analysis.structured_analysis) {
     return NextResponse.json({
       structured: analysis.structured_analysis,
+      cached: true,
+    })
+  }
+
+  // 2.5) ★ 강아지 단위 2주 쿨다운 (2026-07-16, 사장님 "지갑 털려") ─────────────
+  // 재분석하면 새 analysisId 가 생겨 위 캐시를 비껴간다. 그래서 **같은 강아지**의
+  // 최근 코멘트가 14일 내면 그걸 재사용하고 **AI 를 안 부른다**. 이 분석 행에도
+  // 복사해 둬서, 다음엔 위 2) 에서 바로 잡히게 한다(다음 방문은 즉시·비용 0).
+  const COOLDOWN_MS = 14 * 86_400_000
+  const { data: recent } = await supabase
+    .from('analyses')
+    .select('structured_analysis, structured_analysis_at')
+    .eq('dog_id', analysis.dog_id)
+    .eq('user_id', user.id)
+    .not('structured_analysis', 'is', null)
+    .order('structured_analysis_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (
+    recent?.structured_analysis &&
+    recent.structured_analysis_at &&
+    Date.now() - new Date(recent.structured_analysis_at).getTime() < COOLDOWN_MS
+  ) {
+    // 이 분석 행에 복사 — 다음 방문부터 2) 에서 즉시 히트.
+    await supabase
+      .from('analyses')
+      .update({
+        structured_analysis: recent.structured_analysis,
+        structured_analysis_at: recent.structured_analysis_at,
+      })
+      .eq('id', analysisId)
+    return NextResponse.json({
+      structured: recent.structured_analysis,
       cached: true,
     })
   }
@@ -206,7 +240,18 @@ export async function POST(req: Request) {
         // 2500 (기존 1500) — summary+highlights+transition(7일)+nextActions 를 한국어로
         // 채우면 1500 을 넘겨 JSON 이 중간에 잘리고 parse 가 실패했다(비용만 쓰고 캐시 0).
         max_tokens: 2500,
-        system: prompt.system,
+        // ── 프롬프트 캐싱 (2026-07-16) ──
+        // system 은 가이드라인·규칙·질환 지식이라 **모든 강아지에게 똑같다**(길고 고정).
+        // cache_control 로 표시하면 Anthropic 이 그 부분을 5분간 캐시해 **입력 토큰을
+        // ~90% 깎아준다**. 강아지마다 다른 건 user(체중·품종)뿐이라 효과가 크다.
+        // (블록 배열 형식이어야 cache_control 을 붙일 수 있어 문자열 → [{type:'text'}] 로.)
+        system: [
+          {
+            type: 'text',
+            text: prompt.system,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
         messages: [{ role: 'user', content: prompt.user }],
       }),
       cache: 'no-store',
@@ -280,10 +325,14 @@ export async function POST(req: Request) {
     }
   }
 
-  // 5) 캐시 저장 (best effort)
+  // 5) 캐시 저장 (best effort). structured_analysis_at 을 **지금**으로 — 이 시각이
+  //    강아지 2주 쿨다운의 기준이 된다(위 2.5 가 이 값을 본다).
   await supabase
     .from('analyses')
-    .update({ structured_analysis: structured })
+    .update({
+      structured_analysis: structured,
+      structured_analysis_at: new Date().toISOString(),
+    })
     .eq('id', analysisId)
 
   return NextResponse.json({ structured, cached: false })
