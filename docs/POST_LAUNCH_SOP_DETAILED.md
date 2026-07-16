@@ -37,12 +37,14 @@
 # SENTRY_DSN + SENTRY_AUTH_TOKEN
 # NEXT_PUBLIC_MAIL_ORDER_NUMBER
 
-# 권장 (4개):
+# 권장 (3개):
 # NEXT_PUBLIC_VAPID_PUBLIC_KEY + VAPID_PRIVATE_KEY
 # NEXT_PUBLIC_GA_ID
 # ANTHROPIC_API_KEY
-# UNSUBSCRIBE_TOKEN_SECRET
 ```
+> UNSUBSCRIBE_TOKEN_SECRET 은 2026-07-16 제거. profiles 대상 광고 메일이
+> 사라져(마케팅 메일은 전부 newsletter_subscribers 채널의 자체 토큰을 씀)
+> 이 시크릿을 쓰던 1-click unsubscribe 경로 자체가 없어졌다.
 
 ✅ live_ 키 (테스트 키 아님), Sentry DSN, CRON_SECRET 64자 hex 확인
 

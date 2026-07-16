@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { sendEmail } from '@/lib/email/client'
-import { renderLayout, escape, SITE_URL, block } from '@/lib/email/layout'
+import { renderLayout, escape, SITE_URL } from '@/lib/email/layout'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -13,6 +13,11 @@ export const dynamic = 'force-dynamic'
  *
  * 매일 1회. 배송 완료 후 N=3일 지난 주문에 대해 리뷰 작성 안내 메일 1회.
  * 사용자가 이미 리뷰를 작성한 주문은 자동 skip.
+ *
+ * ⚠️ 대가를 약속하지 않는다 (2026-07-16). 이 메일은 "리뷰 쓰면 적립금 드려요" 로
+ * 나가고 있었는데 포인트는 전면 폐기됐다 — **없는 대가를 약속**하던 셈이고,
+ * 그래서 붙여 둔 공정위 추천·보증 심사지침 고지 문구도 같이 뺐다(대가가 없으면
+ * 고지할 대가도 없다). 대가를 다시 붙일 거면 고지 문구도 같이 살려야 한다.
  *
  * # 트리거 조건
  *   - orders.order_status = 'delivered'
@@ -152,14 +157,9 @@ function renderReviewPrompt(input: {
       ${escape(input.recipientName)}님, 안녕하세요.
     </p>
     <p style="margin:0 0 14px 0;">
-      며칠 전 받으신 주문, 우리 아이가 잘 먹었나요? 짧은 후기 한 줄이면 다른
-      반려인이 선택할 때 큰 도움이 돼요. 작성해 주신 분에게는 다음 구매에 쓸
-      수 있는 적립금을 드려요.
+      며칠 전 받으신 박스, 우리 아이가 잘 먹었나요? 짧은 후기 한 줄이면 다음에
+      고민하는 반려인에게 큰 도움이 돼요.
     </p>
-    ${block.callout(
-      'moss',
-      '리뷰 작성 시 적립금 자동 지급 (공정거래위원회 추천·보증 심사지침 고지)',
-    )}
   `
 
   const html = renderLayout({

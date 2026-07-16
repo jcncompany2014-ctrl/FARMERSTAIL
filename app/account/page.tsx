@@ -6,7 +6,6 @@ import {
   Package,
   Repeat,
   Dog,
-  Gift,
   Activity,
   Smartphone,
   UserCog,
@@ -31,8 +30,8 @@ import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
  *   - 얕은 링크(박스 X, 비중↓): 고객센터 · 자주 묻는 질문 · 환불 정책 —
  *     중요도 낮은 정보라 카드로 안 키우고 텍스트 링크로.
  *   - 뉴스레터 구독은 hub 에서 제외(사장님).
- *   - 앱 전용 CTA: 적립금 · 일일 케어/분석 (정기배송은 이제 웹에서 가능 →
- *     앱 카드에서 빠짐).
+ *   - 앱 전용 CTA: 일일 케어/분석 (정기배송은 이제 웹에서 가능 → 앱 카드에서
+ *     빠짐. '적립금' 은 포인트 폐기로 2026-07-16 제거).
  *
  * 디자인: FD 랜딩과 동일 프리미티브(Container/Display/Eyebrow)·리듬·타이포.
  */
@@ -144,13 +143,8 @@ export default async function AccountPage() {
     { href: '/legal/refund', label: '환불 정책' },
   ]
 
+  // '적립금' 항목 제거 (2026-07-16) — 포인트 전면 폐기로 갈 곳이 없어졌다.
   const appOnlyItems: SectionItem[] = [
-    {
-      href: '/app-required',
-      icon: Gift,
-      label: '적립금',
-      description: '적립금 사용 · 적립 내역',
-    },
     {
       href: '/app-required',
       icon: Activity,
@@ -231,14 +225,14 @@ export default async function AccountPage() {
                   <Eyebrow color="var(--fd-green-soft)">App Only</Eyebrow>
                 </div>
                 <Display as="h2" size="sm" style={{ color: '#FFFFFF' }}>
-                  적립금 · 일일 케어는 앱에서
+                  일일 케어는 앱에서
                 </Display>
                 <p
                   className="mt-3.5 text-[13px] md:text-[15px] leading-relaxed"
                   style={{ color: 'rgba(245,240,230,0.8)', maxWidth: 580 }}
                 >
-                  적립금 사용, 일일 케어 기록, 산책·영양 분석은 모바일 앱에서
-                  더 빠르게 도와드려요.
+                  일일 케어 기록, 산책·영양 분석은 모바일 앱에서 더 빠르게
+                  도와드려요.
                 </p>
                 <div className="mt-5 md:mt-6 grid grid-cols-1 md:grid-cols-2 gap-2.5 md:gap-3">
                   {appOnlyItems.map((it) => {
