@@ -11,7 +11,6 @@ import {
   Scale,
   Flame,
   Sparkles,
-  Activity,
   AlertCircle,
   Calendar,
 } from 'lucide-react'
@@ -383,155 +382,155 @@ function LatestAnalysisHero({
 
   return (
     <section className="px-5 mt-3">
-      <div
-        className="relative overflow-hidden rounded-[12px] px-6 pt-6 pb-7 text-white"
-        style={{
-          background:
-            'linear-gradient(135deg, var(--terracotta) 0%, var(--accent-deep) 100%)',
-        }}
-      >
-        <div
-          aria-hidden
-          className="absolute -top-12 -right-10 w-44 h-44 rounded-full pointer-events-none"
-          style={{ background: 'rgba(255,255,255,0.10)' }}
-        />
-        <div
-          aria-hidden
-          className="absolute -bottom-12 -left-12 w-36 h-36 rounded-full pointer-events-none"
-          style={{ background: 'rgba(255,255,255,0.05)' }}
-        />
-
-        <div className="relative">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-gold" strokeWidth={2} />
-              <span className="kicker kicker-gold">Latest</span>
-            </div>
-            <span className="text-[10.5px] text-white/70 font-mono tabular-nums">
-              {formatDate(analysis.created_at)}
+      {/* v3 잉크 카드(그림자·그라디언트 대신 flat ink + paper 텍스트). 옛 제네릭
+          테라코타 그라디언트 + 하드코딩 hex(#F5E0C2) 를 토큰으로 전면 교체(2026-07-16). */}
+      <div className="ft-card-ink relative overflow-hidden rounded-[12px] px-5 py-7">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
+            <Sparkles
+              className="w-3.5 h-3.5"
+              strokeWidth={2}
+              style={{ color: 'var(--gold)' }}
+            />
+            <span
+              className="text-[10.5px] font-bold uppercase"
+              style={{ color: 'var(--gold)', letterSpacing: '0.16em' }}
+            >
+              Latest
             </span>
           </div>
-
-          <h2
-            className="font-sans leading-tight"
-            style={{
-              fontSize: 22,
-              fontWeight: 800,
-              letterSpacing: '-0.02em',
-            }}
+          <span
+            className="text-[10.5px] font-mono tabular-nums"
+            style={{ color: 'var(--ink-fg-faint)' }}
           >
-            {petName(dogName)}의 맞춤 영양 설계
-          </h2>
-          <p className="text-[10.5px] text-white/80 mt-1">
-            {analysis.stage} · BCS {analysis.bcs_score}/9 ({analysis.bcs_label})
-          </p>
-
-          {/* 핵심 stat 4-grid */}
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <HeroStat
-              kicker="체중"
-              value={`${weight.toFixed(1)}kg`}
-              Icon={Scale}
-            />
-            <HeroStat
-              kicker="일일 칼로리"
-              value={`${Math.round(analysis.mer)}kcal`}
-              Icon={Flame}
-            />
-            <HeroStat
-              kicker="권장 급여량"
-              value={`${analysis.feed_g}g/일`}
-              Icon={Activity}
-            />
-            <HeroStat
-              kicker="BCS"
-              value={`${analysis.bcs_score}/9`}
-              Icon={Sparkles}
-            />
-          </div>
-
-          {/* 영양소 분포 (protein / fat / carb) — 100% stacked bar */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10.5px] font-bold uppercase tracking-widest text-white/70">
-                영양소 분포
-              </span>
-              <span className="text-[10.5px] text-white/85 font-mono tabular-nums">
-                P {protein.toFixed(0)}% · F {fat.toFixed(0)}% · C {carb.toFixed(0)}%
-              </span>
-            </div>
-            <div
-              className="h-2 rounded-full overflow-hidden flex"
-              style={{ background: 'rgba(255,255,255,0.18)' }}
-            >
-              <div style={{ width: `${protein}%`, background: 'var(--gold)' }} />
-              <div style={{ width: `${fat}%`, background: '#F5E0C2' }} />
-              <div style={{ width: `${carb}%`, background: 'rgba(255,255,255,0.45)' }} />
-            </div>
-          </div>
-
-          {/* AI 코멘터리 snippet (있으면) */}
-          {commentSnippet && (
-            <div
-              className="mt-4 px-3.5 py-2.5 rounded text-[12px] leading-relaxed"
-              style={{
-                background: 'rgba(255,255,255,0.10)',
-                color: '#F5E0C2',
-              }}
-            >
-              <span className="font-bold">AI 영양 도우미 한마디:</span>{' '}
-              {commentSnippet}
-              {commentSnippet.length >= 90 ? '…' : ''}
-            </div>
-          )}
-
-          {/* CTA — 전체 분석 결과(영양 분석 + 추천 박스 + 정기배송)로 직행.
-              2026-06-19 (사장님 "분석→박스 점프 비효율"): 옛 '자세히 보기'
-              (→/analyses/[id] archive 뷰 = 박스믹스·CTA 빠진 축약본) + '박스 보기'
-              (→/formulas 점프) 2버튼 폐기. 최신 결과는 /analysis 한 곳에 분석+박스+
-              정기배송이 다 있어 점프가 불필요 → 단일 CTA. */}
-          <div className="mt-5">
-            <Link
-              href={`/dogs/${dogId}/analysis`}
-              className="w-full inline-flex items-center justify-center gap-1 py-3 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
-              style={{ background: 'white', color: 'var(--terracotta)' }}
-            >
-              전체 분석 결과 보기
-              <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
-            </Link>
-          </div>
-
-          {/* 메타 — 다음 분석 권장일 / 수의사 상담 추천 */}
-          {(analysis.next_review_date || analysis.vet_consult_recommended) && (
-            <div className="mt-4 pt-4 border-t border-white/15 space-y-1.5">
-              {analysis.next_review_date && (
-                <div className="flex items-center gap-1.5 text-[10.5px] text-white/85">
-                  <Calendar className="w-3 h-3" strokeWidth={2} />
-                  다음 분석 권장: {formatDate(analysis.next_review_date)}
-                </div>
-              )}
-              {analysis.vet_consult_recommended && (
-                <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-gold">
-                  <AlertCircle className="w-3 h-3" strokeWidth={2} />
-                  수의사 상담을 권장해요
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* stale 안내 inline (헤더 banner 와 별개) */}
-          {isStale && (
-            <div
-              className="mt-3 px-3 py-2 rounded-lg text-[10.5px]"
-              style={{
-                background: 'rgba(255,255,255,0.10)',
-                color: '#F5E0C2',
-              }}
-            >
-              ⚠️ 알고리즘 업데이트 후 분석 — 정확도를 위해 재분석 권장
-            </div>
-          )}
+            {formatDate(analysis.created_at)}
+          </span>
         </div>
+
+        {/* 이 아이 이름을 앵커로 — 감정 훅. */}
+        <h2
+          className="font-sans"
+          style={{
+            fontSize: 26,
+            fontWeight: 800,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.15,
+            wordBreak: 'keep-all',
+          }}
+        >
+          {petName(dogName)}의 맞춤 영양 설계
+        </h2>
+        <p
+          className="mt-1.5 text-[10.5px] font-bold uppercase"
+          style={{ color: 'var(--ink-fg-mute)', letterSpacing: '0.08em' }}
+        >
+          {analysis.stage} · BCS {analysis.bcs_score}/9 · {analysis.bcs_label}
+        </p>
+
+        {/* 핵심 지표 — 룰로 나눈 3칸 스트립(ActiveDogCard 패턴). 아이콘 타일 대신
+            숫자를 크게. */}
+        <div
+          className="mt-5 grid grid-cols-3 rounded overflow-hidden"
+          style={{ border: '1px solid var(--ink-rule)' }}
+        >
+          <HeroStat kicker="일일 칼로리" value={`${Math.round(analysis.mer)}`} unit="kcal" />
+          <HeroStat kicker="권장 급여량" value={`${analysis.feed_g}`} unit="g/일" divider />
+          <HeroStat kicker="체중" value={weight.toFixed(1)} unit="kg" divider />
+        </div>
+
+        {/* 영양소 분포 — 토큰 색(단백=accent·지방=gold·탄수=sage). */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <span
+              className="text-[10.5px] font-bold uppercase"
+              style={{ color: 'var(--ink-fg-mute)', letterSpacing: '0.16em' }}
+            >
+              영양소 분포
+            </span>
+            <span
+              className="text-[10.5px] font-mono tabular-nums"
+              style={{ color: 'var(--ink-fg-mute)' }}
+            >
+              P {protein.toFixed(0)} · F {fat.toFixed(0)} · C {carb.toFixed(0)}
+            </span>
+          </div>
+          <div
+            className="h-2 rounded-full overflow-hidden flex"
+            style={{ background: 'var(--ink-rule)' }}
+          >
+            <div style={{ width: `${protein}%`, background: 'var(--accent)' }} />
+            <div style={{ width: `${fat}%`, background: 'var(--gold)' }} />
+            <div style={{ width: `${carb}%`, background: 'var(--sage)' }} />
+          </div>
+          <div className="flex gap-3 mt-1.5">
+            <LegendDot color="var(--accent)" label="단백질" />
+            <LegendDot color="var(--gold)" label="지방" />
+            <LegendDot color="var(--sage)" label="탄수" />
+          </div>
+        </div>
+
+        {/* 영양 도우미 한마디 snippet (있으면). */}
+        {commentSnippet && (
+          <p
+            className="mt-4 text-[12px] leading-relaxed"
+            style={{ color: 'var(--ink-fg-mute)' }}
+          >
+            <span className="font-bold" style={{ color: 'var(--ink-fg)' }}>
+              영양 도우미
+            </span>{' '}
+            {commentSnippet}
+            {commentSnippet.length >= 90 ? '…' : ''}
+          </p>
+        )}
+
+        {/* CTA — 전체 분석 결과(영양 분석 + 추천 박스 + 정기배송)로 직행(단일 CTA). */}
+        <div className="mt-5">
+          <Link
+            href={`/dogs/${dogId}/analysis`}
+            className="w-full inline-flex items-center justify-center gap-1 py-3 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
+            style={{ background: 'var(--accent)', color: 'var(--ink-fg)' }}
+          >
+            전체 분석 결과 보기
+            <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
+          </Link>
+        </div>
+
+        {/* 메타 — 다음 분석 권장일 / 수의사 상담 추천 */}
+        {(analysis.next_review_date || analysis.vet_consult_recommended) && (
+          <div
+            className="mt-4 pt-4 space-y-1.5"
+            style={{ borderTop: '1px solid var(--ink-rule)' }}
+          >
+            {analysis.next_review_date && (
+              <div
+                className="flex items-center gap-1.5 text-[10.5px]"
+                style={{ color: 'var(--ink-fg-mute)' }}
+              >
+                <Calendar className="w-3 h-3" strokeWidth={2} />
+                다음 분석 권장: {formatDate(analysis.next_review_date)}
+              </div>
+            )}
+            {analysis.vet_consult_recommended && (
+              <div
+                className="flex items-center gap-1.5 text-[10.5px] font-bold"
+                style={{ color: 'var(--gold)' }}
+              >
+                <AlertCircle className="w-3 h-3" strokeWidth={2} />
+                수의사 상담을 권장해요
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* stale 안내 inline (헤더 banner 와 별개) */}
+        {isStale && (
+          <div
+            className="mt-3 px-3 py-2 rounded text-[10.5px]"
+            style={{ background: 'var(--ink-rule-soft)', color: 'var(--ink-fg-mute)' }}
+          >
+            ⚠️ 알고리즘 업데이트 후 분석 — 정확도를 위해 재분석 권장
+          </div>
+        )}
       </div>
     </section>
   )
@@ -540,36 +539,49 @@ function LatestAnalysisHero({
 function HeroStat({
   kicker,
   value,
-  Icon,
+  unit,
+  divider,
 }: {
   kicker: string
   value: string
-  Icon: typeof Scale
+  unit: string
+  /** 좌측 룰 구분선 (스트립 2·3번째 칸). */
+  divider?: boolean
 }) {
   return (
     <div
-      className="rounded px-3 py-2.5"
-      style={{ background: 'rgba(255,255,255,0.12)' }}
+      className="px-3 py-3"
+      style={divider ? { borderLeft: '1px solid var(--ink-rule)' } : undefined}
     >
-      <div className="flex items-center gap-1">
-        <Icon className="w-3 h-3" strokeWidth={2} />
-        <span
-          className="text-[9.5px] font-bold uppercase tracking-widest"
-          style={{ color: 'rgba(255,255,255,0.75)' }}
-        >
-          {kicker}
+      <div
+        className="text-[9px] font-bold uppercase"
+        style={{ color: 'var(--ink-fg-faint)', letterSpacing: '0.14em' }}
+      >
+        {kicker}
+      </div>
+      <div className="font-sans tabular-nums leading-none mt-1.5">
+        <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.015em' }}>
+          {value}
+        </span>
+        <span className="text-[10px] ml-0.5" style={{ color: 'var(--ink-fg-mute)' }}>
+          {unit}
         </span>
       </div>
-      <div
-        className="font-sans tabular-nums leading-none mt-1"
-        style={{
-          fontSize: 16,
-          fontWeight: 800,
-          letterSpacing: '-0.015em',
-        }}
-      >
-        {value}
-      </div>
     </div>
+  )
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[9px]"
+      style={{ color: 'var(--ink-fg-mute)' }}
+    >
+      <span
+        className="w-1.5 h-1.5 rounded-full"
+        style={{ background: color }}
+      />
+      {label}
+    </span>
   )
 }
