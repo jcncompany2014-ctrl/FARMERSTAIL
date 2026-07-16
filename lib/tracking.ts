@@ -149,9 +149,11 @@ export type TrackingResult = {
     | 'unknown'
   stateLabel: string
   events: TrackingEvent[]
-  recipient: string | null
-  sender: string | null
   updatedAt: string // ISO
+  // ⚠️ sender·recipient(이름)를 담지 않는다 — 2026-07-16 제거.
+  // 택배사 API 는 수취인 이름을 주지만 **우리 화면은 그걸 쓴 적이 없다**.
+  // /api/tracking 은 인증이 없어서, 담아 두면 송장번호만 아는 사람이 우리 API 로
+  // 수취인 이름을 캐낼 수 있다. 안 쓰는 개인정보는 애초에 받아오지 않는다.
 }
 
 // Human-readable labels for each state bucket (Delivery Tracker standard).

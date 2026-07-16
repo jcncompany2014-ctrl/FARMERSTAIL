@@ -1,10 +1,27 @@
 import { NextResponse } from 'next/server'
+import { ipFromRequest, rateLimit } from '@/lib/rate-limit'
 import {
   carrierMeta,
   mapTrackerStatusCode,
   type TrackingResult,
   type TrackingEvent,
 } from '@/lib/tracking'
+
+/**
+ * GET /api/tracking?carrier=&trackingNumber= — 배송 조회 프록시.
+ *
+ * # 인증이 없다 (의도)
+ * 송장 조회는 로그인 전에도 필요할 수 있고, 상류(tracker.delivery)도 공개 API 다.
+ * 대신 **두 가지를 지킨다**:
+ *
+ *  1. **개인정보를 받아오지 않는다.** 상류는 sender·recipient 이름을 주지만 우리는
+ *     쿼리에서 아예 뺐다. 우리 화면이 그걸 쓴 적이 없는데 인증 없는 엔드포인트가
+ *     담아서 내보내면, 송장번호만 아는 사람이 **수취인 이름을 캐낼 수 있다**.
+ *     안 쓰는 개인정보는 받지도 않는 게 맞다. (2026-07-16)
+ *  2. **레이트리밋.** 인증이 없으면 열린 프록시가 된다 — 송장번호를 긁거나 우리
+ *     서버로 상류를 두들기는 데 쓰일 수 있다. 다른 공개 라우트(contact·web-vitals)엔
+ *     있었는데 여기만 없었다.
+ */
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -27,8 +44,6 @@ const QUERY = `
         description
         location { name }
       }
-      sender { name }
-      recipient { name }
     }
   }
 `
@@ -45,8 +60,6 @@ type DeliveryTrackerResponse = {
     track?: {
       lastEvent: DeliveryTrackerEvent | null
       events: DeliveryTrackerEvent[]
-      sender?: { name: string | null } | null
-      recipient?: { name: string | null } | null
     } | null
   }
   errors?: Array<{ message: string }>
@@ -62,6 +75,20 @@ function normalizeEvent(e: DeliveryTrackerEvent): TrackingEvent {
 }
 
 export async function GET(req: Request) {
+  // 인증이 없는 프록시 — 열어두면 송장번호 긁기에 쓰인다. 조회는 자주 하니 분당 30건.
+  const rl = rateLimit({
+    bucket: 'tracking',
+    key: ipFromRequest(req),
+    limit: 30,
+    windowMs: 60 * 1000,
+  })
+  if (!rl.ok) {
+    return NextResponse.json(
+      { code: 'RATE_LIMITED', message: '조회가 너무 잦아요. 잠시 후 다시 시도해 주세요.' },
+      { status: 429, headers: rl.headers },
+    )
+  }
+
   const { searchParams } = new URL(req.url)
   const carrierCode = searchParams.get('carrier') ?? ''
   const trackingNumber = searchParams.get('trackingNumber') ?? ''
@@ -153,8 +180,6 @@ export async function GET(req: Request) {
       state,
       stateLabel: last?.status?.name ?? '상태 확인 중',
       events,
-      sender: track.sender?.name ?? null,
-      recipient: track.recipient?.name ?? null,
       updatedAt: last?.time ?? new Date().toISOString(),
     }
 
