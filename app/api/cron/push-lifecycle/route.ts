@@ -5,8 +5,29 @@
 // D+30: 정기배송 권유 (구독 없는 사용자)
 // medication.time 도달 시: 복약 알림
 //
-// vercel.json 에 hourly cron 등록 필요:
-//   { "path": "/api/cron/push-lifecycle", "schedule": "0 * * * *" }
+// ⏰ **hourly cron 필수** — vercel.json: { "schedule": "0 * * * *" }
+//    복약 알림이 "사용자가 정한 시각(KST)"에 발화해야 하므로 매시간 돌아야 한다.
+//
+// # 2026-07-17 수정 — 스케줄↔코드 drift 로 2개 캠페인이 죽어 있었다
+//
+// 위 헤더는 hourly 를 요구했는데 vercel.json 에는 **daily(`0 23 * * *` = KST 08시)**
+// 로 등록돼 있었다(등록 시 헤더 주석 미반영). 그 결과:
+//   · **복약 알림**: `kstHour` 가 항상 8 → **08시 복약만 발송, 그 외 전 시각 영원히
+//     미발송**. (바로 위 R85-D1 주석이 같은 종류 버그[UTC/KST 시차]를 고친 기록인데,
+//     스케줄이 daily 로 바뀌며 **같은 버그가 다른 얼굴로 부활**했다.) — 복약은
+//     건강 인접이라 피해가 가장 컸다.
+//   · **D+1 환영**: 윈도우가 1시간(25h~24h)인데 하루 1회만 돌아 **신규가입 ~96% 미발송**.
+//   · D+7·D+30 은 윈도우가 24시간이라 daily 와 우연히 맞아 정상이었다.
+//
+// 그래서 **크론을 hourly 로 되돌리되**, D+7·D+30 이 24× 과발송되지 않도록
+// 마케팅 3종은 **KST 10시 1회만** 실행하도록 게이트했다(아래 MARKETING_KST_HOUR).
+//
+// # 발송 1회 보장 방식 (dedup 테이블 없음 — 윈도우 타일링에 의존)
+// 마케팅 3종은 push_log dedup 이 없다. 대신 **"실행 시각 게이트 × 윈도우 폭"** 이
+// 정확히 맞물려 각 사용자가 정확히 1개 실행에만 걸리게 한다:
+//   · 하루 1회 실행(10시) × 24시간 윈도우 = 1회 발송.
+// ⚠️ 윈도우 폭이나 실행 빈도를 바꿀 땐 **반드시 둘을 같이** 봐야 한다 —
+//    한쪽만 바꾸면 침묵 미발송(이번 D+1) 또는 24× 스팸(정통망법 §50)이 된다.
 //
 // cron-auth 헤더 검증으로 외부 호출 차단.
 
@@ -16,6 +37,16 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
+import { addDaysKst, currentKstHour, todayKstIsoDate } from '@/lib/datetime-kst'
+
+/**
+ * 마케팅 3종(D+1·D+7·D+30)을 실행할 KST 시각. hourly cron 중 이 시각 1회만.
+ *
+ * 10시인 이유: pushToUser 의 quiet_hours 기본(22→08) 밖이면서 이른 아침도 아님.
+ * 신호 하나로 발송 시각·빈도가 동시에 정해지므로 여기만 바꾸면 된다.
+ * (복약 알림은 사용자가 정한 시각이라 이 게이트를 받지 않는다.)
+ */
+const MARKETING_KST_HOUR = 10
 
 // dog_subscriptions / dog_medications 는 lib/supabase/types.ts 가 자동 재생성되지
 // 않아 Database 제네릭에 미포함 (lib/dog-records.ts 의 정책과 같음). 그래서 admin
@@ -43,25 +74,40 @@ export async function GET(req: Request): Promise<Response> {
     const now = new Date()
     const results: CampaignResult[] = []
 
-    // D+1 환영 — profiles.created_at 24시간 ~ 25시간 사이
-    results.push(await runWelcome(supabase, now))
-    // D+7 분석 리마인드
-    results.push(await runAnalysisReminder(supabase, now))
-    // D+30 정기배송 권유
-    results.push(await runSubscribeNudge(supabase, now))
-    // 복약 시간 alert
+    // 복약 alert — 매시간 (사용자가 정한 시각에 발화해야 하므로 게이트 없음).
     results.push(await runMedicationReminder(supabase, now))
+
+    // 마케팅 3종 — KST 10시 실행분에서만. 나머지 23개 실행은 skip.
+    // (게이트 없이 hourly 로 돌리면 24시간 윈도우인 D+7·D+30 이 24× 과발송된다.)
+    if (currentKstHour() === MARKETING_KST_HOUR) {
+      results.push(await runWelcome(supabase, now)) // D+1 환영 (어제 가입자)
+      results.push(await runAnalysisReminder(supabase, now)) // D+7 분석 리마인드
+      results.push(await runSubscribeNudge(supabase, now)) // D+30 정기배송 권유
+    }
 
     return NextResponse.json({ ok: true, results })
   })
 }
 
+/**
+ * D+1 환영 — **KST 달력 기준 '어제' 가입자 전원**.
+ *
+ * 카피가 "어제 가입해주셨네요"라 롤링 24h(가입 24~48시간 전)로 잡으면 그저께
+ * 가입자에게 "어제"라 말하게 된다. KST 달력일로 끊어야 문구가 참이 된다.
+ * 10시 실행 × 어제 00:00~오늘 00:00 윈도우 = 각 가입자가 정확히 1회.
+ *
+ * (이전: 25h~24h 롤링 1시간 윈도우. hourly cron 전제였는데 daily 로 등록돼
+ *  그 1시간 슬롯 가입자만 받고 ~96% 가 침묵 미발송이었다.)
+ */
 async function runWelcome(
   supabase: AdminSupabase,
-  now: Date,
+  _now: Date,
 ): Promise<CampaignResult> {
-  const since = new Date(now.getTime() - 25 * 3600 * 1000).toISOString()
-  const until = new Date(now.getTime() - 24 * 3600 * 1000).toISOString()
+  const todayKst = todayKstIsoDate()
+  const yesterdayKst = addDaysKst(todayKst, -1)
+  // KST 자정 경계를 +09:00 오프셋으로 명시 → UTC 로 변환해 timestamptz 와 비교.
+  const since = new Date(`${yesterdayKst}T00:00:00+09:00`).toISOString()
+  const until = new Date(`${todayKst}T00:00:00+09:00`).toISOString()
   const { data: rows } = await supabase
     .from('profiles')
     .select('id, name')
@@ -214,7 +260,12 @@ async function runMedicationReminder(
         body: '오늘 복용량을 챙겨주세요.',
         url: `/dogs/${m.dog_id}/medications`,
       },
-      { category: 'order' },
+      // 2026-07-17: 'order'(배송) → 'health'. 건강 알림 category 분리 스윕에서
+      // 이것만 누락돼 **배송 알림을 끄면 복약 알림도 같이 꺼졌다**(다른 건강 cron
+      // 5종 — 체중리마인더·급변경보·DCM·개입·첫박스체크인 — 은 전부 'health').
+      // nudge 는 붙이지 않는다: 복약은 권유가 아니라 사용자가 스스로 시각을 정한
+      // 약속이라 주 2건 상한에 밀려선 안 된다.
+      { category: 'health' },
     ).catch(() => null)
     if (ok?.ok) sent++
     else errors++
