@@ -123,8 +123,8 @@ export default async function AccountPage() {
       icon: Repeat,
       label: '정기배송 관리',
       description: activeSubs
-        ? `구독 중 ${activeSubs}건 · 주기·해지`
-        : '주기 변경 · 일시정지 · 해지',
+        ? `구독 중 ${activeSubs}건 · 화식 비율·해지`
+        : '화식 비율 변경 · 일시정지 · 해지',
       badge: activeSubs ? String(activeSubs) : undefined,
     },
     {

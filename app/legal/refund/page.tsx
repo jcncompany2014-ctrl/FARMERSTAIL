@@ -163,9 +163,6 @@ export default function RefundPage() {
             <li>
               <b>간편결제:</b> 간편결제사를 통해 결제 취소
             </li>
-            <li>
-              <b>적립금:</b> 마이페이지 적립금으로 환급
-            </li>
           </UL>
           <p>
             회사는 반품 상품 수령 및 환불 사유 확인일로부터 3영업일

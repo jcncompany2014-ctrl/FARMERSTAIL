@@ -27,10 +27,10 @@ const ITEMS = [
     desc: '식단 · 배송 · 결제 · 정기배송',
   },
   {
-    href: '/contact',
+    href: '/help',
     Icon: Mail,
     label: '문의하기',
-    desc: '1:1 메시지 · 평일 24시간 이내 답변',
+    desc: '고객센터 · 앱은 카카오톡, 웹은 문의 폼',
   },
   {
     href: '/legal/terms',

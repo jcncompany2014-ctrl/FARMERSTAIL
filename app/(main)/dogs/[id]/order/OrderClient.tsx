@@ -478,7 +478,7 @@ export default function OrderClient({
         (it.product.stock ?? 0) > 0 && it.product.is_subscribable !== false,
     )
     if (subscribable.length === 0) {
-      setErr('정기배송 가능한 상품이 없어요. 재입고 후 다시 시도해 주세요.')
+      setErr('지금은 정기배송 가능한 레시피가 없어요. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.')
       return
     }
     setSubmitting(true)
@@ -1145,7 +1145,7 @@ function ShipRhythmCard({ firstShipIso }: { firstShipIso: string | null }) {
       <summary className="ord-fold-sum">
         <CalendarDays size={13} strokeWidth={2.2} color="var(--moss)" />
         <span className="ord-fold-txt">
-          <b>배송은 매주 화요일 하루</b>
+          <b>배송은 2주마다 화요일 하루</b>
           <span className="ord-fold-desc">{firstLabel} · 이후 2주마다</span>
         </span>
         <span className="ord-fold-more">

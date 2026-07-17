@@ -177,8 +177,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
                 )}
                 {isPaid && (
                   <p className="text-[10px] text-muted mt-2 leading-relaxed">
-                    결제 금액은 3-5 영업일 내 환불, 사용한 포인트는
-                    환원되었어요.
+                    결제 금액은 3-5 영업일 내에 원 결제 수단으로 환불돼요.
                   </p>
                 )}
               </div>

@@ -99,8 +99,8 @@ const MORE_FEATURES: { icon: React.ReactNode; title: string; body: string }[] = 
   },
   {
     icon: <Coins size={20} strokeWidth={2} />,
-    title: '적립금 · 등급 혜택',
-    body: '함께할수록 적립금이 쌓이고, 등급이 오르면 주문 할인이 자동으로 적용돼요.',
+    title: '멤버십 등급 혜택',
+    body: '구독 결제로 스탬프를 모아 등급이 오르면, 최종 등급에서 주문 할인이 자동으로 적용돼요.',
   },
   {
     icon: <Sparkles size={20} strokeWidth={2} />,

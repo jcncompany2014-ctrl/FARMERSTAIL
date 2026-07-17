@@ -158,8 +158,7 @@ export default function CancelOrderButton({ orderId }: { orderId: string }) {
               ) : (
                 <>
               <p className="text-[12px] text-text leading-relaxed">
-                취소 시 사용한 포인트는 환원되고, 결제 금액은 3-5
-                영업일 내에 환불돼요.
+                취소 시 결제 금액은 3-5 영업일 내에 원 결제 수단으로 환불돼요.
               </p>
               <div className="mt-4 space-y-2">
                 {REASONS.map((r, i) => (

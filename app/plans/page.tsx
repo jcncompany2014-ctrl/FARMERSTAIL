@@ -107,7 +107,7 @@ const WHY = [
 const STEPS = [
   ['01', '견종·체중·활동량·민감한 음식 입력 (2분 설문)'],
   ['02', '수의영양 기준으로 맞춤 식단·급여량 계산'],
-  ['03', '화식 비율 선택 (배송은 매주 화요일 발송)'],
+  ['03', '화식 비율 선택 (배송은 2주마다 화요일)'],
   ['04', '2주마다 자동 출고 — 건너뛰기·변경 자유'],
 ]
 
@@ -303,7 +303,7 @@ export default async function PlansPage() {
                 결제는 그 다음에
               </Display>
               <p className="pt-3 mx-auto text-[14px] md:text-[15px]" style={{ maxWidth: 440, color: 'rgba(255,255,255,0.92)', lineHeight: 1.6 }}>
-                2분 만에 끝나는 맞춤 분석이 우선이에요. 결과를 보고 주기를 골라도 늦지 않아요.
+                2분 만에 끝나는 맞춤 분석이 우선이에요. 결과를 보고 화식 비율을 골라도 늦지 않아요.
               </p>
               <div className="pt-7 flex flex-col sm:flex-row justify-center gap-3">
                 <Button href={planHref} tone="cream" size="lg">

@@ -30,7 +30,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: '정기배송 관리',
-  description: '구독 현황 확인, 주기 변경, 일시정지, 해지를 한 곳에서.',
+  description: '구독 현황 확인, 화식 비율 변경, 일시정지, 해지를 한 곳에서.',
   alternates: { canonical: '/account/subscriptions' },
   robots: { index: false, follow: false },
 }
@@ -92,8 +92,8 @@ export default async function AccountSubscriptionsPage({
               </h1>
               <p className="text-[12px] text-muted mt-1.5">
                 {activeCount > 0
-                  ? `구독 중 ${activeCount}건 · 주기·일정·해지를 직접 관리하세요`
-                  : '주기 변경, 일시정지, 해지를 한 곳에서'}
+                  ? `구독 중 ${activeCount}건 · 화식 비율·일정·해지를 직접 관리하세요`
+                  : '화식 비율 변경, 일시정지, 해지를 한 곳에서'}
               </p>
             </header>
           ) : (
@@ -126,8 +126,8 @@ export default async function AccountSubscriptionsPage({
                   style={{ color: 'var(--fd-muted)' }}
                 >
                   {activeCount > 0
-                    ? `구독 중 ${activeCount}건 · 주기·일정·해지를 직접 관리하세요`
-                    : '주기 변경, 일시정지, 해지를 한 곳에서'}
+                    ? `구독 중 ${activeCount}건 · 화식 비율·일정·해지를 직접 관리하세요`
+                    : '화식 비율 변경, 일시정지, 해지를 한 곳에서'}
                 </p>
               </header>
             </>
