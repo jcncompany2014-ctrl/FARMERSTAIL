@@ -121,7 +121,7 @@ export default async function FamilyPage() {
                 </span>
               </p>
               {profile?.email && (
-                <p className="text-[10.5px] text-muted mt-0.5">
+                <p className="text-[10.5px] text-muted mt-0.5 truncate">
                   {profile.email as string}
                 </p>
               )}

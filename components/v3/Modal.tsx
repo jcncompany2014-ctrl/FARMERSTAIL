@@ -135,7 +135,10 @@ function ModalRoot({
           background: V3.paperHi,
           border: `1px solid ${V3.rule}`,
           borderRadius: V3Radius.sm,
-          overflow: 'hidden',
+          // 긴 본문/세로 짧은 화면(가로모드·소형기기)서 헤더·닫기가 뷰포트 위로
+          // 잘려 스크롤 불가하던 것 방지 — 뷰포트 높이로 캡 + 내부 스크롤(2026-07-17).
+          maxHeight: 'calc(100dvh - 32px)',
+          overflowY: 'auto',
           // 살짝의 elevation — paperHi 배경 위에 떠 있는 느낌.
           boxShadow: '0 12px 36px -8px rgba(22,20,15,0.28)',
           display: 'flex',

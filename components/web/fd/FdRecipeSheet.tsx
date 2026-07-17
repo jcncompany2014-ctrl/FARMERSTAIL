@@ -147,9 +147,11 @@ export default function FdRecipeSheet({
           borderTopRightRadius: 14,
           maxWidth: 480,
           width: '100%',
-          maxHeight: '90vh',
+          // dvh — iOS 주소창 표시 상태에서 90vh 가 실가시영역을 넘겨 하단 CTA 접근이
+          // 애매하던 것 방지. 하단 padding 에 safe-area 더해 홈 인디케이터 가림 방지(2026-07-17).
+          maxHeight: '90dvh',
           overflowY: 'auto',
-          padding: '18px 20px 26px',
+          padding: '18px 20px calc(26px + env(safe-area-inset-bottom))',
         }}
       >
         {/* 헤더 — 컨셉 eyebrow + 닫기 */}

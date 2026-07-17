@@ -129,7 +129,9 @@ export default function CookieConsent() {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-[60] px-4 pb-4 pt-2"
+      className="fixed inset-x-0 bottom-0 z-[60] px-4 pt-2"
+      // 하단 safe-area — iOS 홈 인디케이터가 수락/거부 버튼을 가리지 않게(2026-07-17).
+      style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
       // 비차단 배너 — dialog 가 아니라 region 이 맞는 시맨틱. dialog + modal=false
       // 조합은 스크린리더에 모호한 신호를 준다 (WAI-ARIA 저자 가이드).
       role="region"
