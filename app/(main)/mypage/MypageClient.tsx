@@ -28,6 +28,7 @@ import {
   FileText,
   Shield,
   Crown,
+  TrendingUp,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import StampCard from '@/components/account/StampCard'
@@ -291,6 +292,7 @@ export default function MypageClient({
       </MenuGroup>
 
       <MenuGroup kicker="Benefits · 혜택" topPad={20}>
+        <MenuItem href="/reports" Icon={TrendingUp} label="건강 리포트" />
         <MenuItem href="/mypage/membership" Icon={Crown} label="멤버십 등급" last />
       </MenuGroup>
 

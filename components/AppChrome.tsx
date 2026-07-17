@@ -74,6 +74,7 @@ const DEEP_TITLES: Record<string, string> = {
   '/mypage/consent': '알림',
   '/mypage/privacy': '내 데이터',
   '/mypage/delete': '회원 탈퇴',
+  '/reports': '건강 리포트',
   '/notifications': '알림',
   '/search': '검색',
   '/chat': 'AI 영양 상담',
@@ -133,6 +134,7 @@ function parentForPath(pathname: string): string {
   if (
     pathname === '/help' ||
     pathname === '/notifications' ||
+    pathname === '/reports' ||
     pathname.startsWith('/account')
   )
     return '/mypage'

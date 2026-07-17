@@ -180,10 +180,12 @@ function ModalRoot({
                 onClick={onClose}
                 className="shrink-0 flex items-center justify-center"
                 style={{
-                  width: 28,
-                  height: 28,
-                  marginTop: -4,
-                  marginRight: -6,
+                  // 탭 영역 40px(HIG 근접) — 아이콘 시각 위치는 마진 보정으로 유지
+                  // (28px 는 오탭 위험, 2026-07-17).
+                  width: 40,
+                  height: 40,
+                  marginTop: -10,
+                  marginRight: -12,
                   borderRadius: V3Radius.xs,
                   background: 'transparent',
                   border: 'none',
