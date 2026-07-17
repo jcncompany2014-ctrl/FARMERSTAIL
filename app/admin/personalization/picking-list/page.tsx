@@ -54,13 +54,14 @@ export default async function PickingListPage({
     user_adjusted: boolean
     applied_from: string | null
     applied_until: string | null
+    approval_status: string | null
   }
 
   const { data: formulasRaw } = await supabase
     .from('dog_formulas')
     .select(
       'id, dog_id, user_id, cycle_number, formula, daily_grams, daily_kcal, ' +
-        'transition_strategy, user_adjusted, applied_from, applied_until',
+        'transition_strategy, user_adjusted, applied_from, applied_until, approval_status',
     )
     .or(
       `and(applied_from.lte.${date},applied_until.gte.${date}),and(applied_from.is.null,applied_until.is.null)`,
@@ -69,9 +70,20 @@ export default async function PickingListPage({
 
   const formulas = (formulasRaw ?? []) as unknown as FormulaRow[]
 
-  // dog 별 cycle 최댓값만 — 옛 cycle 까지 잡지 않음.
+  // ⚠️ **배송 가능한 처방만** — 고객이 승인했거나(approved) 자동 적용된(auto_applied)
+  // 것만 포장한다. 2026-07-17 발견 버그: 위 쿼리의 `applied_*=NULL` 분기가
+  // **승인 대기(pending_approval)·거절(declined)** 처방까지 잡는데(둘 다 applied_*=null),
+  // dedup 이 cycle 최댓값을 고르므로 **아직 승인 안 한(또는 거절한) 새 처방이
+  // 승인된 옛 처방을 이겨 배송되던** 상태였다 — 고객이 동의하지 않은 구성을 보내는
+  // §13의2 위반. status 는 값 없는 레거시 row 도 있어(null) 배송 가능으로 본다
+  // (그건 applied_* 채워진 실제 활성 처방이라 안전).
+  const SHIPPABLE = new Set(['approved', 'auto_applied'])
+  const isShippable = (s: string | null) => s == null || SHIPPABLE.has(s)
+
+  // dog 별 cycle 최댓값만 — 옛 cycle 까지 잡지 않음. 배송 불가 status 는 건너뛴다.
   const latest = new Map<string, FormulaRow>()
   for (const f of formulas) {
+    if (!isShippable(f.approval_status)) continue
     const ex = latest.get(f.dog_id)
     if (!ex || f.cycle_number > ex.cycle_number) latest.set(f.dog_id, f)
   }
