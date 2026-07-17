@@ -279,9 +279,13 @@ function formatDateRange(
   until: string | null,
   fallback: string,
 ): string {
+  // KST 기준 M.D. 서버는 UTC 라 raw getMonth/getDate 는 시간 성분 있는 값
+  // (created_at 폴백)에서 하루 틀렸다 — 특히 progression 크론이 KST 05시(UTC 전날
+  // 20시)에 만든 pending 처방의 created_at 이 전날로 표시됐다. +9h 시프트 후 UTC
+  // 파트 읽기(datetime-kst 의 currentKstHour 와 같은 패턴). date-only 는 불변.
   const fmt = (iso: string) => {
-    const d = new Date(iso)
-    return `${d.getMonth() + 1}.${d.getDate()}`
+    const kst = new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000)
+    return `${kst.getUTCMonth() + 1}.${kst.getUTCDate()}`
   }
   if (from && until) return `${fmt(from)} – ${fmt(until)}`
   if (from) return `${fmt(from)} ~`
