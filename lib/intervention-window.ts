@@ -135,13 +135,15 @@ export function evaluateInterventionWindow(
   let underweightEtaDays: number | null = null
 
   if (slope > 0.001) {
-    // 증가 추세 — 비만 위험
+    // 증가 추세 — 비만 위험. days<=0 = 이미 과체중 구간을 넘었는데도 계속 증가 중
+    // → ETA 0(즉시 경보). 예전엔 null 로 떨어져 '가장 경보가 필요한 개'가 safe 로
+    // 분류돼 카드가 안 떴다(2026-07-17 수정).
     const days = (obesityWeight - input.currentWeightKg) / slope
-    obesityEtaDays = days > 0 ? Math.round(days) : null
+    obesityEtaDays = days > 0 ? Math.round(days) : 0
   } else if (slope < -0.001) {
-    // 감소 추세 — 저체중 위험
+    // 감소 추세 — 저체중 위험. days<=0 = 이미 저체중 구간 아래인데 계속 감소 → ETA 0.
     const days = (input.currentWeightKg - underweightWeight) / -slope
-    underweightEtaDays = days > 0 ? Math.round(days) : null
+    underweightEtaDays = days > 0 ? Math.round(days) : 0
   }
 
   // Verdict
@@ -159,9 +161,15 @@ export function evaluateInterventionWindow(
   let userMessage = ''
   if (verdict === 'urgent') {
     if (obesityEtaDays != null && obesityEtaDays <= 30) {
-      userMessage = `현재 추세대로면 약 ${obesityEtaDays}일 후 BCS 7 (과체중) 도달 예상. 식단·운동 점검을 권합니다.`
+      userMessage =
+        obesityEtaDays === 0
+          ? '이미 과체중 구간에 있고 체중이 계속 늘고 있어요. 식단·운동 점검을 권합니다.'
+          : `현재 추세대로면 약 ${obesityEtaDays}일 후 BCS 7 (과체중) 도달 예상. 식단·운동 점검을 권합니다.`
     } else {
-      userMessage = `현재 추세대로면 약 ${underweightEtaDays}일 후 BCS 3 (저체중) 도달 예상. 영양 보강을 권합니다.`
+      userMessage =
+        underweightEtaDays === 0
+          ? '이미 저체중 구간에 있고 체중이 계속 줄고 있어요. 영양 보강을 권합니다.'
+          : `현재 추세대로면 약 ${underweightEtaDays}일 후 BCS 3 (저체중) 도달 예상. 영양 보강을 권합니다.`
     }
   } else if (verdict === 'watch') {
     userMessage =

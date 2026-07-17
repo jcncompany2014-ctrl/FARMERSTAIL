@@ -92,6 +92,29 @@ describe('evaluateInterventionWindow — 추세 분석', () => {
     assert.match(result.userMessage, /과체중/)
   })
 
+  it('이미 과체중 구간(ideal×1.15 초과)인데 계속 증가 → ETA 0·urgent (경보 누락 회귀 방지)', () => {
+    // ideal 10kg → obesity 11.5kg. 현재 13kg(이미 초과) + 증가 추세. 예전엔 days<0
+    // → null → safe 로 분류돼 가장 위험한 개에게 경보가 안 떴다.
+    const logs: WeightPoint[] = [
+      { date: dateOffset(180), weightKg: 12 },
+      { date: dateOffset(150), weightKg: 12.2 },
+      { date: dateOffset(120), weightKg: 12.4 },
+      { date: dateOffset(90), weightKg: 12.6 },
+      { date: dateOffset(60), weightKg: 12.7 },
+      { date: dateOffset(30), weightKg: 12.9 },
+      { date: dateOffset(0), weightKg: 13 },
+    ]
+    const result = evaluateInterventionWindow({
+      weightLogs: logs,
+      currentBcs: 8,
+      currentWeightKg: 13,
+      idealWeightKg: 10,
+    })
+    assert.equal(result.obesityEtaDays, 0)
+    assert.equal(result.verdict, 'urgent')
+    assert.match(result.userMessage, /이미 과체중/)
+  })
+
   it('일정한 감소 추세 + 저체중 도달 ETA ≤ 30일 → urgent', () => {
     // 6개월 동안 12kg → 9kg (3kg 감소, -0.017 kg/day)
     // 현재 9kg, ideal 10kg, underweight 8.5kg → ETA = (9-8.5)/0.017 ≈ 30일.
