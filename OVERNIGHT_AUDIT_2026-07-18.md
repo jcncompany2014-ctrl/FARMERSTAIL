@@ -180,4 +180,14 @@ mypage 메뉴로 정상. **고아 2건**:
   (경미: /mypage/cs thread 를 **상시 메뉴로 능동 열기**는 없음 — 답장 알림 통해서만
    진입. 단 신규 문의는 카카오/contact 로 유도가 설계라 정상. 🔵 매우 낮음.)
 
+**[회차13 · 앱 내부 링크 무결성]** #7 축. 깨진 href/잘못된 라우트로 고객이 404 를
+맞는 곳이 있는지. (main)+components/v3 정적 href ~22개를 실제 page.tsx 와 대조.
+**✅ 클린 — 깨진 링크 0**:
+- 검증한 정적 href 전부 실 페이지로 해결(/mypage/orders=top-level 웹앱공유, /compare·
+  /legal·/account/* 등 포함). API-as-href 2개(privacy/export 다운로드·tractive/connect
+  OAuth)도 정상 라우트.
+→ 이전 감사 "실 死링크 1건(intervention-alerts→/simulate) 수정완료" 이후 링크 무결성
+  견고 재확인. (스코프: 정적 href. 템플릿리터럴 동적 href 는 대상별로 이미 회차1~12 에서
+  개별 확인됨 — dogs/[id]/*·checkin·approve 등.)
+
 ---
