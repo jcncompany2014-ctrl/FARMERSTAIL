@@ -274,4 +274,16 @@ raw Date 날짜 포맷을 전수 대조(off-by-one 은 형제가 있다). 서버
 → 서버측 날짜 off-by-one 전수 완료: 실버그 2건(#A10 formulas·#A11 reports) 잡음,
   나머지 4곳은 이미 정확. **서버 날짜 timeZone 축 클린 종결.**
 
+**[회차21 · 체중 입력 검증]** #7 축. 체중에 음수/0/비정상 입력이 급여량 계산으로
+흘러가는지. **✅ 클린 — 하한 전 경로 보호**:
+- NewDog/EditDog: `parseFloat(weight) <= 0` 명시 가드 + input `min="0" max="100"
+  step="0.1"`.
+- QuickWeightSheet(고빈도 스테퍼 진입): `WeightInputSheet:236` `Math.max(0.1, ...)`
+  하한 클램프 → **0/음수 불가**. 더블탭 가드(submittingRef)도 있음.
+- 최종 방어: nutrition.ts `Math.max(0.5, Math.min(100, weight))` 클램프(NaN/극단 차단).
+→ 모든 체중 경로가 0/음수 차단. 검증 방식은 다르나(명시 vs 스테퍼) 둘 다 유효.
+  (🔵 매우 낮음: QuickWeightSheet 스테퍼는 **상한 클램프 없음**[NewDog는 max=100].
+   스테퍼로 100+ 도달은 비현실적 + 하류 클램프라 실질 무해. 일관성 위해 스테퍼에
+   Math.min(100,...) 추가 검토 가능 — 선택.)
+
 ---
