@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import {
   ArrowRight,
   Check,
@@ -83,14 +84,16 @@ function HomeHero({ isAuthed }: { isAuthed: boolean }) {
   // 코랄 CTA + 'Or give us a call' 식 작은 흰 밑줄 링크('우리 음식 보기').
   return (
     <section className="relative overflow-hidden" aria-label="히어로">
-      {/* 풀배경 사진(사장님 제공). LCP 후보라 우선 로드. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      {/* 풀배경 사진(사장님 제공). LCP 후보 — next/image fill+priority 로 포맷(AVIF/
+          WebP)·모바일 리사이즈 자동 최적화(2026-07-17 perf). 시각은 동일(object-cover). */}
+      <Image
         src="/hero-dog.jpg"
         alt="신선한 화식 한 그릇을 받는 강아지"
-        className="absolute inset-0 h-full w-full object-cover"
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover"
         style={{ objectPosition: '50% 30%' }}
-        fetchPriority="high"
       />
       {/* 텍스트 가독성 — 하단을 어둡게 하는 그라데이션 오버레이 */}
       <div

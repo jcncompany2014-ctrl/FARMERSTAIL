@@ -163,55 +163,59 @@ export default function AnalysisView({
         return
       }
 
-      const { data: dogData } = await supabase
-        .from('dogs')
-        .select(
-          'id, name, breed, birth_date, age_value, age_unit, photo_url, weight, weight_method, weight_measured_at',
-        )
-        .eq('id', dogId)
-        .eq('user_id', user.id)
-        .maybeSingle()
+      // 추이 카드 제거(2026-07-14) 후엔 **타깃 1행 + 총건수**만 있으면 된다. 예전엔
+      // select('*') limit 50 으로 대형 JSON 컬럼(structured_analysis 등)을 최대 50행
+      // 끌어오고, dog→analyses 를 순차 await 했다. dog·타깃·카운트를 병렬로 묶고
+      // 타깃 1행만 전체 select 한다(2026-07-17 perf).
+      const targetQuery = analysisId
+        ? supabase
+            .from('analyses')
+            .select('*')
+            .eq('id', analysisId)
+            .eq('dog_id', dogId)
+            .eq('user_id', user.id)
+            .maybeSingle()
+        : supabase
+            .from('analyses')
+            .select('*')
+            .eq('dog_id', dogId)
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+      const [{ data: dogData }, { data: target }, { count }] = await Promise.all([
+        supabase
+          .from('dogs')
+          .select(
+            'id, name, breed, birth_date, age_value, age_unit, photo_url, weight, weight_method, weight_measured_at',
+          )
+          .eq('id', dogId)
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        targetQuery,
+        supabase
+          .from('analyses')
+          .select('id', { count: 'exact', head: true })
+          .eq('dog_id', dogId)
+          .eq('user_id', user.id),
+      ])
+
       if (!dogData) {
         router.push('/dogs')
         return
       }
       setDog(dogData)
 
-      // Load every analysis so we can (a) pick the target, (b) build a rolling
-      // history of up to 6 around the target. Volume is tiny — one row per
-      // survey completion — so a full select is cheap and simpler than
-      // two separate queries.
-      const { data: rows } = await supabase
-        .from('analyses')
-        .select('*')
-        .eq('dog_id', dogId)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        // 무제한 select 가드 — 100건+ 누적 시 memory/network ↑.
-        // history 6 개만 보여주는 UI 라 50 으로 충분.
-        .limit(50)
-
-      if (!rows || rows.length === 0) {
-        setLoading(false)
-        return
-      }
-
-      setTotalCount(rows.length)
-
-      const target = analysisId
-        ? (rows.find((r: { id: string }) => r.id === analysisId) ?? null)
-        : rows[0]
-
       if (!target) {
         setLoading(false)
         return
       }
 
+      setTotalCount(count ?? 0)
       // audit #79: generated analyses row 와 도메인 Analysis 타입 nullable 차이
       // — UI 가 null fallback 이미 처리. cast 우회.
       setAnalysis(target as unknown as Analysis)
-
-      // 추이 카드 제거(2026-07-14 사장님) → history/타임라인 산출 불필요.
       setLoading(false)
     }
     // R97-B (D7): load() 내부 auth/dogs/analyses fetch 중 throw (네트워크
@@ -222,8 +226,10 @@ export default function AnalysisView({
   }, [dogId, analysisId, router, supabase])
 
   // formula fetch — Magazine BoxMixCard 가 dog 별 동적 lineRatios 표시 위해.
+  // dogId 만 있으면 되므로 dog state 로딩을 기다리지 않고 병렬 발화(2026-07-17 perf).
+  // archive 모드(analysisId 지정)는 현 시점 formula 의미 없어 skip.
   useEffect(() => {
-    if (!dog || analysisId) return // archive 모드는 skip — 현 시점 formula 의미 X
+    if (analysisId) return
     let cancelled = false
     ;(async () => {
       try {
@@ -241,7 +247,7 @@ export default function AnalysisView({
     return () => {
       cancelled = true
     }
-  }, [dogId, analysisId, dog])
+  }, [dogId, analysisId])
 
   // Legacy commentary fetch effect 는 StructuredAnalysis v2 가 대체. 제거.
 

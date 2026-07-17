@@ -101,6 +101,10 @@ export default async function OrdersPage() {
     )
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+    // 최근 50건만 — 장기 구독 고객의 전체 주문+아이템 무제한 로드로 목록 진입이
+    // 점점 느려지던 것 방지(2026-07-17 perf). 2주 배송 기준 ~2년치. 더 필요하면
+    // range 페이지네이션은 후속.
+    .limit(50)
 
   if (error) {
     return (
