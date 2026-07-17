@@ -65,7 +65,7 @@ const STATUS_MESSAGES: Record<
 // R99-A (D7): openGraph images 누락 → 공유 카드 썸네일 0 (shallow merge).
 const NEWSLETTER_OG = ogImageUrl({
   title: '파머스테일 뉴스레터',
-  subtitle: '월 1회, 농장 + 신상 + 케어 가이드',
+  subtitle: '월 1회, 농장 + 제철 + 케어 가이드',
   tag: 'Newsletter',
 })
 
@@ -73,11 +73,11 @@ export const metadata: Metadata = {
   // layout template "%s | 파머스테일" 가 브랜드명 1회 부착 → 페이지명만(중복 방지, 회차149).
   title: '뉴스레터 구독',
   description:
-    '월 1회, 농장 소식 + 신상 메뉴 + 케어 가이드를 정리해서 보내드려요. 광고는 줄이고 인사이트만.',
+    '월 1회, 농장 소식 + 제철 재료 이야기 + 케어 가이드를 정리해서 보내드려요. 광고는 줄이고 인사이트만.',
   alternates: { canonical: '/newsletter' },
   openGraph: {
     title: '파머스테일 뉴스레터 — 월 1회',
-    description: '월 1회, 농장 + 신상 + 케어 가이드.',
+    description: '월 1회, 농장 + 제철 + 케어 가이드.',
     type: 'website',
     locale: 'ko_KR',
     siteName: '파머스테일',
@@ -89,7 +89,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: '파머스테일 뉴스레터 — 월 1회',
-    description: '월 1회, 농장 + 신상 + 케어 가이드.',
+    description: '월 1회, 농장 + 제철 + 케어 가이드.',
     images: [NEWSLETTER_OG],
   },
   robots: { index: true, follow: true },
@@ -103,8 +103,8 @@ const PERKS = [
   },
   {
     icon: Sparkles,
-    title: '신상 먼저',
-    body: '시즌 한정 / 새 메뉴 출시는 항상 구독자에게 24시간 먼저.',
+    title: '제철 이야기',
+    body: '지금 제철인 국내산 재료와 화식 레시피 활용법, 농장에서 일어나는 소식을 편지처럼 전해드려요.',
   },
   {
     icon: BookOpen,
@@ -202,7 +202,7 @@ export default async function NewsletterPage({
             className="mt-4 md:mt-5 text-[14px] md:text-[16px] leading-relaxed"
             style={{ color: 'var(--fd-muted)', maxWidth: 460 }}
           >
-            광고는 줄이고 인사이트만. 농장 다큐, 신상 메뉴, 케어 가이드를 한 편으로
+            광고는 줄이고 인사이트만. 농장 다큐, 제철 재료 이야기, 케어 가이드를 한 편으로
             묶어 매월 첫째 주에 보내드려요.
           </p>
         </div>
