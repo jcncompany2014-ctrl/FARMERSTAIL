@@ -36,6 +36,7 @@ import AnalysisArchiveBanner from './_components/AnalysisArchiveBanner'
 import AnalysisMagazineSection from './_components/AnalysisMagazineSection'
 import AiCommentCard from '@/components/v3/AiCommentCard'
 import AnalysisCTASection from './_components/AnalysisCTASection'
+import VetShareButton from '@/components/VetShareButton'
 
 type Analysis = {
   id: string
@@ -581,6 +582,20 @@ export default function AnalysisView({
                     )
                   })}
                 </ul>
+              )}
+
+              {/* 수의사 공유 CTA — 수의 상담 권장 + 실제 위험 플래그가 있을 때만.
+                  이 순간이 수의사가 데이터를 볼 가장 필요한 지점인데, 여태 "상담을
+                  권장해요" 안내만 있고 실제 공유 경로가 없었다(기능·진입점은 완성돼
+                  DogDetail 에 있었으나 이 문맥엔 없었다). risk_flags 없이 vet 권장만
+                  있는 경우(임신 등)는 굳이 공유 유도 안 함 — 공유할 위험 데이터가 없다. */}
+              {vet && flags.length > 0 && (
+                <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--rule)' }}>
+                  <p className="text-[11.5px] mb-2" style={{ color: 'var(--muted)' }}>
+                    이 분석을 수의사에게 그대로 보여드릴 수 있어요.
+                  </p>
+                  <VetShareButton dogId={dogId} dogName={null} />
+                </div>
               )}
             </div>
           </section>
