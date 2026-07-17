@@ -106,4 +106,16 @@ mypage 메뉴로 정상. **고아 2건**:
   에 "가족초대 숨김"** 기록 있음 → **의도적 hide 로 추정**. 확인만: 정말 숨긴 거면
   정상(나중에 켤 자산), 실수로 빠진 거면 진입점 필요. 사장님 확인.
 
+**[회차7 · v3 디자인 스케일 위반]** #1 축. `npm run check:design` 5건 → **오타 2건
+즉시 수정**(app-only·1px 무해·AGENTS.md "그 자리에서 정리" 규칙, tsc+eslint GREEN):
+- ✅ 수정 `PlanClient.tsx:509` borderRadius 11→**12**(md, off-by-one 오타).
+- ✅ 수정 `PlanClient.tsx:361` h1 fontSize 23→**22**(lg, off-by-one).
+- **🔵 #A7 남은 3건(의도적/애매 — 기록만)**:
+  · `PlanClient.tsx:709` fontSize 56 = **장식 이모지(🍲 aria-hidden)** → 텍스트 스케일
+    대상 아님, 검사기 오탐. 그대로 두거나 검사기 예외처리 권장.
+  · `mypage/accuracy/page.tsx:178` borderRadius 26 = **52×52 완벽한 원**(반지름=변/2).
+    렌더 정상, 토큰만 안 씀 → '50%' 또는 pill(999)로 바꾸면 검사기 클린(선택).
+  · `mypage/MypageClient.tsx:113` fontSize 27 = lg(22)·xl(32) **사이 애매값**(off-by-one
+    아님). 사용자 이름 hero 추정. 22/32 중 결정 필요 → 디자인 판단(무단 스냅 X).
+
 ---

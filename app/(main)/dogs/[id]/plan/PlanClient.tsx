@@ -358,7 +358,7 @@ function PlanView({
         <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.2em', color: 'var(--terracotta)' }}>
           MADE FOR {dogName.toUpperCase()}
         </div>
-        <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: '-0.02em', marginTop: 3, color: 'var(--ink)' }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', marginTop: 3, color: 'var(--ink)' }}>
           이 레시피를 추천해요
         </h1>
       </div>
@@ -506,7 +506,7 @@ function PlanView({
                     ? 'color-mix(in srgb, var(--terracotta) 4%, transparent)'
                     : 'transparent',
                   border: on ? '2px solid var(--terracotta)' : '1px solid var(--rule)',
-                  borderRadius: 11,
+                  borderRadius: 12,
                   padding: on ? '11px 12px' : '12px 13px',
                 }}
               >
