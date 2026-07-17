@@ -206,7 +206,7 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
                       type="button"
                       onClick={() => handleDelete(r.id)}
                       aria-label="삭제"
-                      className="text-muted hover:text-sale transition"
+                      className="p-2 -m-1 text-muted hover:text-sale transition"
                     >
                       <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
                     </button>

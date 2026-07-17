@@ -325,7 +325,7 @@ export default function DiaryClient({
                   <button
                     type="button"
                     onClick={() => handleDelete(entry.id)}
-                    className="text-muted hover:text-sale transition"
+                    className="p-2 -m-1 text-muted hover:text-sale transition"
                     aria-label="삭제"
                   >
                     <Trash2 className="w-3.5 h-3.5" strokeWidth={1.8} />
