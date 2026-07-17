@@ -145,4 +145,15 @@ mypage 메뉴로 정상. **고아 2건**:
   (경미: Button·ErrorScreen JSDoc 예시가 아직 '/products' 지시 — 미래 개발자 오도
    가능, 문서 staleness 🔵 매우 낮음. 코드동작 무관이라 기록만.)
 
+**[회차10 · 빈 상태(empty state) 나갈 길]** #7 축. 신규 사용자가 처음 마주치는 빈
+화면에서 다음 행동 CTA 가 살아있는지(死엔드 아닌지). **✅ 클린 — 전부 살아있음**:
+- 강아지 목록 빈: "아직 등록된 아이가 없어요" + `/dogs/new`(실페이지) ✓
+- 대시보드 강아지 0: `EmptyHomeNoDogs` + `addDogHref="/dogs/new"`, 퀵액션도 firstDog
+  없으면 /dogs/new 폴백 ✓
+- 구독 0: `SubscriptionsWebClient:263` "아직 정기배송이 없어요" + `/start` "맞춤 플랜
+  시작하기" CTA ✓ (퍼널로 연결)
+- `mypage/subscriptions`(앱) = `/account/subscriptions` 로 redirect(위 빈 상태로 흡수) ✓
+→ 신규 온보딩 경로 막다른 길 0. (온보딩 동선 견고 재확인 — 이전 감사 "앱 동선
+  빈틈없음" 결론과 일치.)
+
 ---
