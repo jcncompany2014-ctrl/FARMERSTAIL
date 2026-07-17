@@ -40,4 +40,17 @@ _(각 스텝: `[회차N · 무엇] 발견/수정 요약`)_
   건너뛰기"로+handlePause(id,2). 앱판 DogSubscriptionClient 에도 동일 패턴 있는지
   후속 확인. 결제 인접(next_delivery_date)이라 무단 수정 X → 사장님 결정.
 
+**[회차2 · skip 기능 크로스 화면 대조]** #A1 후속. 앱판/웹판 구독 "건너뛰기"를 대조.
+
+- **🔴 #A2 정보/동작 불일치 — 같은 "건너뛰기"가 앱=2주, 웹=4주** (결제 인접, 기록만):
+  · 앱 `app/(main)/dogs/[id]/subscription/DogSubscriptionClient.tsx:387` — 라벨
+    "2주 미루기", 동작 `skip()`→`nextCycleDate(base)` **weeks 없이=2주**(라벨↔동작 일치 ✓).
+  · 웹 `app/account/subscriptions/SubscriptionsWebClient.tsx:636` — 라벨 "4주 건너뛰기",
+    동작 `handlePause(id,4)`→`nextCycleDate(base,4)` **4주**.
+  → **같은 구독의 같은 "건너뛰기" 버튼이 앱에선 2주, 웹에선 4주 미룬다.** 두 화면을
+    오가는 고객은 같은 액션에서 다른 결과를 봄(사장님 원칙 "정보 정본 통일" 위반).
+    #A1(웹 부제 "다음 배송만"=2주)과 종합하면 **웹의 "4주"가 drift 로 의심**(부제·앱판
+    모두 2주). 정본 결정 필요: skip=2주로 통일이 자연스러워 보이나(박스 14일치라 4주
+    미루면 2주 공백) 사장님 판단. 결제 인접이라 무단 수정 X.
+
 ---
