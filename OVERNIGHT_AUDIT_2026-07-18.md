@@ -190,4 +190,16 @@ mypage 메뉴로 정상. **고아 2건**:
   견고 재확인. (스코프: 정적 href. 템플릿리터럴 동적 href 는 대상별로 이미 회차1~12 에서
   개별 확인됨 — dogs/[id]/*·checkin·approve 등.)
 
+**[회차14 · 빈약한 페이지 (얇은 page.tsx)]** #3 축. 라인수 최소 페이지가 placeholder/
+스텁인지 실기능인지. **✅ 클린 — 빈약/스텁 없음**:
+- 7줄 페이지 3개(mypage/addresses·consent·notifications) = 전부 **의도적 redirect**
+  (2026-07-16 통합: 배송지→/account/profile, 알림 동의/설정→/notifications?tab=).
+  placeholder 아님.
+- 통합 정합 확인: `/notifications` 가 `?tab=` 읽음(page:15 searchParams) → AlertsClient
+  전달 → 탭별 렌더(inbox/push/consent, :67-75). **redirect→tab파라미터→탭렌더 완전 배선**
+  → 통합 후 탭 딥링크 정확 작동(엉뚱한 탭 착지 없음).
+- 나머지 12~13줄(vaccinations·medications·reminders·analyses/[id]) = client 위임
+  server wrapper(표준 패턴, 실기능은 Client 컴포넌트에).
+→ 빈약한 페이지 축 클린. "얇다=빈약"은 오해, 전부 위임/redirect.
+
 ---
