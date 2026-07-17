@@ -297,4 +297,19 @@ raw Date 날짜 포맷을 전수 대조(off-by-one 은 형제가 있다). 서버
   "정기배송" 일반 표현, 옛 4주/매주 없음 → 구독 모델 정합.
 → 이메일 축 클린. 구독전용·포인트폐기·연어제거·2주배송이 이메일까지 정합 롤아웃됨.
 
+**[회차23 · 고객용 API 라우트 死엔드포인트]** #2 축. 만들어놓고 프론트가 안 부르는
+API 가 있는지. 동적 라우트(`[id]`,`[token]`)는 `${id}` 템플릿 리터럴로 부르므로 고유
+세그먼트로 재검증. **✅ 클린 — 새 死엔드포인트 0**:
+- "호출처 0" 1차 플래그 10건 중 **9건은 동적 라우트 오탐**(실제 호출 확인):
+  vet-share(ShareWithVetButton+이번세션 VetShareButton)·progress-photos(PhotosClient)·
+  photo-request(PhotoRequestButton)·orders/cancel(CancelOrderButton)·dogs/invite
+  (DogFamilyMembers)·addresses/[id]·default(AddressesClient·AddressForm)·tractive/disconnect
+  (동적 provider fetch).
+- **유일 진짜 고아 = `/api/orders/[id]/cancel-items`**(호출 0 재확인) — 이미 기록된
+  낱개 커머스 부분취소 잔재([[project_legacy_sweep]]). 구독전환으로 도달 불가, Toss
+  환불 로직 품어 결제 인접 → 무단 삭제 X, 사장님 확인 대기(신규 아님).
+- 부수: 가족초대 invite API 는 DogFamilyMembers 가 호출 → **invite API 는 고아 아님**
+  (#A6 는 /family '페이지' 진입점 문제이지 API 문제 아님 — 구분).
+→ API 표면 잘 배선됨. 死엔드포인트는 기존 known 1건뿐.
+
 ---
