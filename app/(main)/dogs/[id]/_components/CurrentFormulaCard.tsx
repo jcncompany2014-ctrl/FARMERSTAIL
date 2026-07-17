@@ -6,6 +6,10 @@ import {
   FOOD_LINE_COLORS,
   FOOD_LINE_NAMES,
 } from './types'
+import {
+  checkinDueDayOffset,
+  isCheckinLinkVisible,
+} from '@/lib/personalization/cycle'
 
 /**
  * 맞춤 영양 처방 카드 — 분석 기반 **추천** 비율 + cycle 체크인.
@@ -46,23 +50,18 @@ export default function CurrentFormulaCard({
       )
     : null
 
-  // week_2 D-Day = applied_from + 14, week_4 = + 28
-  const week2DueIn =
-    appliedFrom && !checkinStatus.week_2
-      ? Math.ceil(
-          (new Date(appliedFrom.getTime() + 14 * 24 * 60 * 60 * 1000).getTime() -
-            today.getTime()) /
-            (1000 * 60 * 60 * 24),
-        )
-      : null
-  const week4DueIn =
-    appliedFrom && !checkinStatus.week_4
-      ? Math.ceil(
-          (new Date(appliedFrom.getTime() + 28 * 24 * 60 * 60 * 1000).getTime() -
-            today.getTime()) /
-            (1000 * 60 * 60 * 24),
-        )
-      : null
+  // 체크인 D-Day = 처방 적용일 + (배송 회차−1)×배송간격. 회차/간격은 정본
+  // (lib/personalization/cycle)에서 파생 — 재제안 주기를 바꾸면 여기도 자동으로
+  // 따라 움직인다(예전엔 +14/+28 을 손으로 박아둬 크론과 갈라질 위험이 있었다).
+  const dueInFor = (checkpoint: 'week_2' | 'week_4'): number | null => {
+    if (!appliedFrom || checkinStatus[checkpoint]) return null
+    const dueMs =
+      appliedFrom.getTime() +
+      checkinDueDayOffset(checkpoint) * 24 * 60 * 60 * 1000
+    return Math.ceil((dueMs - today.getTime()) / (1000 * 60 * 60 * 24))
+  }
+  const week2DueIn = dueInFor('week_2')
+  const week4DueIn = dueInFor('week_4')
 
   const isPending = formula.approval_status === 'pending_approval'
 
@@ -161,7 +160,7 @@ export default function CurrentFormulaCard({
                 </span>
               </div>
             )}
-            {week2DueIn !== null && week2DueIn >= -3 && week2DueIn <= 7 && (
+            {week2DueIn !== null && isCheckinLinkVisible(week2DueIn) && (
               <Link
                 href={`/dogs/${dogId}/checkin?cycle=${formula.cycle_number}&checkpoint=week_2`}
                 className="flex items-center justify-between text-[12px] py-2 px-3 rounded-lg bg-moss/8 hover:bg-moss/14 transition-colors"
@@ -180,7 +179,7 @@ export default function CurrentFormulaCard({
                 </span>
               </Link>
             )}
-            {week4DueIn !== null && week4DueIn >= -3 && week4DueIn <= 7 && (
+            {week4DueIn !== null && isCheckinLinkVisible(week4DueIn) && (
               <Link
                 href={`/dogs/${dogId}/checkin?cycle=${formula.cycle_number}&checkpoint=week_4`}
                 className="flex items-center justify-between text-[12px] py-2 px-3 rounded-lg bg-terracotta/8 hover:bg-terracotta/14 transition-colors"

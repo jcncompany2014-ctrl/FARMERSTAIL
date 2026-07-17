@@ -18,6 +18,12 @@ import { pushToUser } from '@/lib/push'
 import { notifyPersonalizationCycle } from '@/lib/email'
 import { subscriptionState, type SubLike } from '@/lib/subscription-state'
 import { priceForFormula, type BoxProduct } from '@/lib/personalization/boxPricing'
+import {
+  BOXES_PER_CYCLE,
+  DELIVERY_INTERVAL_DAYS,
+  CYCLE_COVER_DAYS,
+  isCycleDue,
+} from '@/lib/personalization/cycle'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -27,11 +33,13 @@ export const dynamic = 'force-dynamic'
  *
  * 매일 새벽 (KST 04:00 권장) 실행. cycle 만료된 강아지의 다음 처방 생성.
  *
- * # 실행 조건
- * 강아지의 가장 최신 dog_formulas row 가:
- *   - applied_until IS NULL AND created_at < now() - CYCLE_DAYS, 또는
- *   - applied_until <= today
- * → **그리고 그 강아지의 구독이 active 일 때만** 다음 cycle 처방 생성.
+ * # 실행 조건 (2026-07-17 — 날짜 → **배송 회차** 기준으로 전환)
+ * 강아지의 가장 최신 dog_formulas 가 적용된 뒤 **박스가 BOXES_PER_CYCLE(3)개 나갔고**,
+ * **그 강아지의 구독이 active** 일 때만 다음 cycle 처방 생성.
+ * (박스 = orders row. 결제 성공해야 생기므로 "실제로 나간 박스"와 일치.)
+ *
+ * ⚠️ **subscription-charge 다음에 돌아야 한다** (charge=KST4시 / 이 크론=KST5시).
+ * 같은 시각이면 3번째 박스의 order 를 못 보고 한 주기를 통째로 미룬다.
  *
  * # 사장님 규칙 (2026-07-17)
  *  1. **구독 중인 사람에게만 제안** — 이전엔 구독 확인이 아예 없어서 구독도
@@ -43,9 +51,12 @@ export const dynamic = 'force-dynamic'
  *     푸시·이메일을 보내지 않는다(이전엔 변화 0에도 매 cycle "준비됐어요" 발송).
  *     처방 row 자체는 계속 insert — cycle 카운터·체크인·이력이 거기 묶여 있다.
  *     침묵시키는 건 **바깥으로 나가는 알림**뿐.
- *  3. (보류) "3주째부터 3의 배수 주기" — 현재 CYCLE_DAYS=30. 21 로 바꾸면
- *     지시대로 3·6·9주가 되지만, 30일은 `/order` 4주치 portion 과 맞춘 값이라
- *     동반 확인 필요(결제 금액 직결). 사장님 확인 후 별건으로.
+ *  3. **주기 = 박스 3개마다** (= 4주). 사장님이 처음 말한 "3주(21일)" 는 admin
+ *     조정이 없다는 전제의 어림값이었고, 확인 결과 21일이면 **4주차 종합 체크인이
+ *     영영 발생하지 않아**(체크인은 적용 후 14일·28일에 물려 있고 종합 만족도는
+ *     4주차에서만 수집) 알고리즘이 반쪽이 된다 → 3개(4주)로 확정.
+ *     보호자 체감: 1·2·3번째 박스는 같은 화식 → 3번째 박스 즈음 "바꾸실래요?" →
+ *     승인하면 4번째 박스부터 새 화식.
  *
  * # 흐름
  * 1) 만료된 cycle 식별 → **구독 active 만 남김** (배치 100건 / run)
@@ -70,10 +81,20 @@ export const dynamic = 'force-dynamic'
  */
 
 const MAX_PER_RUN = 100
-// 한 cycle = 30일 (캘린더 월). order 페이지 4주치 portion (30일) 와 정합.
-// (이전 28일은 정확히 4주 = subscription_charge cron 의 interval_weeks=4 와 같았음.
-// portion 모델 도입 후 30일 표준으로 통일.)
-const CYCLE_DAYS = 30
+
+/**
+ * 사이클 상수는 전부 정본 `lib/personalization/cycle` 에서 온다 — 재제안 주기·
+ * 체크인 시점·커버 기간이 서로 물려 있어 한 곳에 있어야 조용히 갈라지지 않는다
+ * (근거·모델 설명은 그 파일 docstring 참조).
+ */
+
+/**
+ * 배송 회차 카운트의 하한 날짜 게이트 (쿼리 바운딩 전용 — 판정은 실 카운트로).
+ * 박스가 2주마다 나가므로 BOXES_PER_CYCLE 개는 최소 (N-1)×14 일 걸린다. 여유를
+ * 둬 그보다 이르게 자른다: 진짜 만기를 **절대 제외하지 않으면서**(보수적) 후보를 묶는다.
+ */
+const MIN_DAYS_BEFORE_DUE =
+  (BOXES_PER_CYCLE - 1) * DELIVERY_INTERVAL_DAYS - DELIVERY_INTERVAL_DAYS / 2
 
 function todayKstIsoDate(): string {
   const now = new Date()
@@ -98,12 +119,13 @@ export async function GET(req: Request) {
   return trackCron('personalization-progression', async () => {
     const supabase = createAdminClient()
     const today = todayKstIsoDate()
-    const cycleAgo = addDaysIso(today, -CYCLE_DAYS)
+    const prefilterBefore = addDaysIso(today, -MIN_DAYS_BEFORE_DUE)
 
-  // 1) 만료된 cycle 의 가장 최신 처방 식별. dog 별 max(cycle_number) 만 봐야
-  //    같은 강아지의 옛 cycle 까지 진행시키지 않음. window function 으로
-  //    rank=1 만 추리는 게 정석이지만, supabase JS client 에선 raw SQL 보다
-  //    application 측 dedup 이 명확. 일단 모든 후보 가져와서 dog 별 최신 1개.
+  // 1) 후보 = "박스를 3개쯤 받았을 만큼 오래된" 최신 처방. 여기선 **날짜로 대충
+  //    자르기만** 하고(쿼리 바운딩), 만기 판정은 아래에서 **실제 배송 회차**로 한다.
+  //    박스가 2주마다 나가므로 3개는 최소 28일 — 21일로 자르면 진짜 만기를 놓칠 일이
+  //    없으면서(보수적) 후보 수가 묶인다.
+  //    dog 별 max(cycle_number) 만 봐야 옛 cycle 까지 진행시키지 않는다.
   type FormulaRow = {
     id: string
     dog_id: string
@@ -116,6 +138,7 @@ export async function GET(req: Request) {
     algorithm_version: string
     user_adjusted: boolean
     reasoning: Formula['reasoning']
+    applied_from: string | null
     applied_until: string | null
     created_at: string
   }
@@ -125,10 +148,14 @@ export async function GET(req: Request) {
     .select(
       'id, dog_id, user_id, cycle_number, formula, transition_strategy, ' +
         'daily_kcal, daily_grams, algorithm_version, user_adjusted, reasoning, ' +
-        'applied_until, created_at',
+        'applied_from, applied_until, created_at',
     )
-    // applied_until 이 today 이전이거나 NULL + created_at 28일 이전
-    .or(`applied_until.lte.${today},and(applied_until.is.null,created_at.lt.${cycleAgo}T00:00:00Z)`)
+    // 적용 시작(applied_from)이 21일 이전 — cycle 1 은 applied_from 이 null 이라
+    // created_at 으로 본다. (승인 대기 중인 row 도 applied_from=null 이지만,
+    // 아래 nextExists 가드가 같은 dog 의 중복 진행을 막는다.)
+    .or(
+      `applied_from.lte.${prefilterBefore},and(applied_from.is.null,created_at.lt.${prefilterBefore}T00:00:00Z)`,
+    )
     .order('cycle_number', { ascending: false })
     .limit(MAX_PER_RUN * 3) // dedup 위해 여유롭게
 
@@ -160,22 +187,23 @@ export async function GET(req: Request) {
   // 금지(카드 미등록 '유령 활성' 을 못 걸러낸다. lib/subscription-state 참조).
   const allDogIds = Array.from(latestByDog.keys())
   const activeDogIds = new Set<string>()
-  /** dog_id → 청구 기준 (금액 재산정·비교용). active 구독만 담긴다. */
+  /** dog_id → 구독 정보 (배송 회차 카운트 + 금액 재산정용). active 구독만. */
   const billingByDog = new Map<
     string,
-    { freshRatio: number | null; currentTotal: number }
+    { subId: string; freshRatio: number | null; currentTotal: number }
   >()
   if (allDogIds.length > 0) {
     const { data: subs } = await supabase
       .from('subscriptions')
       .select(
-        'dog_id, status, billing_key, next_delivery_date, ' +
+        'id, dog_id, status, billing_key, next_delivery_date, ' +
           'failed_charge_count, requires_billing_key_renewal, ' +
           'fresh_ratio, total_amount',
       )
       .in('dog_id', allDogIds)
     for (const s of (subs ?? []) as unknown as Array<
       SubLike & {
+        id: string
         dog_id: string | null
         fresh_ratio: number | null
         total_amount: number
@@ -184,6 +212,7 @@ export async function GET(req: Request) {
       if (s.dog_id && subscriptionState(s) === 'active') {
         activeDogIds.add(s.dog_id)
         billingByDog.set(s.dog_id, {
+          subId: s.id,
           freshRatio: s.fresh_ratio,
           currentTotal: s.total_amount,
         })
@@ -193,11 +222,39 @@ export async function GET(req: Request) {
   const subscribedDogIds = allDogIds.filter((id) => activeDogIds.has(id))
   const skippedNoSubscription = allDogIds.length - subscribedDogIds.length
 
-  // 다음 cycle 이 이미 존재하는 강아지 제외 — race / 수동 진행 방지.
+  // ── 만기 판정 = **배송 회차** (사장님 2026-07-17: "박스 3개마다") ──
+  //
+  // 이 처방이 적용된 뒤 실제로 나간 박스를 센다. orders.subscription_id +
+  // created_at 으로 세므로 **DB 마이그레이션이 필요 없다**. 결제가 성공해야
+  // orders row 가 생기므로 "실제로 나간 박스"와 일치한다.
+  //
+  // ⚠️ 그래서 이 크론은 **subscription-charge 다음에** 돌아야 한다. 같은 시각이면
+  //    3번째 박스의 order 를 못 보고 지나쳐 한 주기를 통째로 미룬다(조용한 지연).
+  //    → vercel.json 에서 charge=KST4시 / 이 크론=KST5시 로 분리했다.
   const dogIds = subscribedDogIds.slice(0, MAX_PER_RUN)
   const targets: FormulaRow[] = []
+  let notEnoughBoxes = 0
   for (const dogId of dogIds) {
     const cur = latestByDog.get(dogId)!
+    const billing = billingByDog.get(dogId)
+    if (!billing) continue
+
+    // 이 처방이 적용된 시점 — cycle 1 은 applied_from 이 null 이라 created_at.
+    const since = cur.applied_from
+      ? `${cur.applied_from}T00:00:00+09:00`
+      : cur.created_at
+    const { count: boxesShipped } = await supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('subscription_id', billing.subId)
+      .gte('created_at', since)
+
+    if (!isCycleDue(boxesShipped ?? 0)) {
+      notEnoughBoxes += 1
+      continue
+    }
+
+    // 다음 cycle 이 이미 존재하는 강아지 제외 — race / 수동 진행 방지.
     const { data: nextExists } = await supabase
       .from('dog_formulas')
       .select('id')
@@ -554,8 +611,16 @@ export async function GET(req: Request) {
       // 침묵시키는 건 **바깥으로 나가는 알림**뿐.
       const changed = diff.meaningful || diff.forced
 
+      // applied_until = 이 처방이 **먹이는 기간의 끝**. 재제안 트리거와는 이제
+      // 별개다(트리거는 배송 회차). 박스 3개 × 14일치 = 42일 — 3번째 박스를 다
+      // 먹을 때까지 커버해야 picking(applied_from≤날짜≤applied_until)이 그 사이
+      // 배송에서 처방을 못 찾는 **공백**이 안 생긴다.
+      // (이전 CYCLE_DAYS=30 은 3번째 박스가 나가는 날[28일]에서 이틀 뒤 끝나
+      //  승인이 늦으면 그 구간에 활성 처방이 없는 공백이 났다.)
       const appliedFrom = requiresApproval ? null : today
-      const appliedUntil = requiresApproval ? null : addDaysIso(today, CYCLE_DAYS)
+      const appliedUntil = requiresApproval
+        ? null
+        : addDaysIso(today, CYCLE_COVER_DAYS)
       const approvalStatus = requiresApproval ? 'pending_approval' : 'auto_applied'
       const proposedAt = requiresApproval ? new Date().toISOString() : null
       const approvedAt = requiresApproval ? null : new Date().toISOString()
@@ -731,6 +796,8 @@ export async function GET(req: Request) {
       skipped,
       /** 구독 중이 아니라 제외된 강아지 수 (사장님 규칙 — 구독자만 제안). */
       skippedNoSubscription,
+      /** 아직 박스가 3개 안 나가 만기가 아닌 수 (정상 — 대기 중). */
+      notEnoughBoxes,
       /** 변화가 없어 알림을 보내지 않은 수 (row 는 생성됨). */
       silentNoChange,
     })

@@ -38,10 +38,14 @@ import {
   gateAvailability,
 } from './skuMap.ts'
 import { snapBoxRatios } from './boxComposition.ts'
+import { DELIVERY_INTERVAL_DAYS } from './cycle.ts'
 import type { Formula, FoodLine } from './types.ts'
 
-/** 한 사이클 = 14일 (biweekly 배송·결제 고정). */
-export const CYCLE_DAYS = 14
+/**
+ * 한 박스가 담는 급여 일수 = 배송 간격(14일). 정본은 cycle.ts —
+ * "박스 = 한 배송 주기치" 라 값이 같아야 한다(따로 박아두면 갈라진다).
+ */
+export const CYCLE_DAYS = DELIVERY_INTERVAL_DAYS
 
 /** 토퍼 kcal/100g fallback — product.nutrition_facts 없을 때 (USDA 동결건조 평균). */
 export const TOPPER_KCAL_PER_100G = 380
