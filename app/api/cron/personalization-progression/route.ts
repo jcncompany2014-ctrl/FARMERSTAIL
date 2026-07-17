@@ -19,11 +19,11 @@ import { notifyPersonalizationCycle } from '@/lib/email'
 import { subscriptionState, type SubLike } from '@/lib/subscription-state'
 import { priceForFormula, type BoxProduct } from '@/lib/personalization/boxPricing'
 import {
-  BOXES_PER_CYCLE,
-  DELIVERY_INTERVAL_DAYS,
   CYCLE_COVER_DAYS,
+  MIN_DAYS_BEFORE_DUE,
   isCycleDue,
 } from '@/lib/personalization/cycle'
+import { getAutomationSettings } from '@/lib/automation-settings'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -84,17 +84,9 @@ const MAX_PER_RUN = 100
 
 /**
  * 사이클 상수는 전부 정본 `lib/personalization/cycle` 에서 온다 — 재제안 주기·
- * 체크인 시점·커버 기간이 서로 물려 있어 한 곳에 있어야 조용히 갈라지지 않는다
- * (근거·모델 설명은 그 파일 docstring 참조).
+ * 체크인 시점·커버 기간·후보 게이트가 서로 물려 있어 한 곳에 있어야 조용히
+ * 갈라지지 않는다 (근거·모델 설명은 그 파일 docstring 참조).
  */
-
-/**
- * 배송 회차 카운트의 하한 날짜 게이트 (쿼리 바운딩 전용 — 판정은 실 카운트로).
- * 박스가 2주마다 나가므로 BOXES_PER_CYCLE 개는 최소 (N-1)×14 일 걸린다. 여유를
- * 둬 그보다 이르게 자른다: 진짜 만기를 **절대 제외하지 않으면서**(보수적) 후보를 묶는다.
- */
-const MIN_DAYS_BEFORE_DUE =
-  (BOXES_PER_CYCLE - 1) * DELIVERY_INTERVAL_DAYS - DELIVERY_INTERVAL_DAYS / 2
 
 function todayKstIsoDate(): string {
   const now = new Date()
@@ -118,6 +110,14 @@ export async function GET(req: Request) {
   // R83-E3 (D3): trackCron wrap.
   return trackCron('personalization-progression', async () => {
     const supabase = createAdminClient()
+
+    // kill switch — 문제 생기면 admin 에서 OFF (automation_settings). 행 없으면 ON.
+    // 재제안 전체를 멈춘다: 새 처방 생성·승인 요청·알림 전부. 이미 적용된 처방은 그대로.
+    const settings = await getAutomationSettings(supabase)
+    if (!settings.represcriptionEnabled) {
+      return NextResponse.json({ ok: true, skipped: true, reason: 'REPRESCRIPTION_DISABLED' })
+    }
+
     const today = todayKstIsoDate()
     const prefilterBefore = addDaysIso(today, -MIN_DAYS_BEFORE_DUE)
 

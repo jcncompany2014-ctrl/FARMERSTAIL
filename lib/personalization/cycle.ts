@@ -71,6 +71,15 @@ export function isCycleDue(boxesShipped: number): boolean {
 }
 
 /**
+ * 재제안 후보 쿼리의 하한 날짜 게이트 (쿼리 바운딩 전용 — 만기 판정은 실 배송 회차로).
+ * 박스가 DELIVERY_INTERVAL_DAYS 마다 나가므로 BOXES_PER_CYCLE 개는 최소 (N-1)×간격
+ * 걸린다. 여유를 둬 반 간격만큼 이르게 자른다: 진짜 만기를 **절대 제외하지 않으면서**
+ * (보수적) 후보 수를 묶는다. (progression 크론 + admin 미리보기가 공유.)
+ */
+export const MIN_DAYS_BEFORE_DUE =
+  (BOXES_PER_CYCLE - 1) * DELIVERY_INTERVAL_DAYS - DELIVERY_INTERVAL_DAYS / 2
+
+/**
  * 이 체크인이 요청될 날짜 (처방 적용 시작일 기준).
  *
  * 박스 N 은 applied_from + (N-1)×14 일에 나간다 → 2번째=+14, 3번째=+28.

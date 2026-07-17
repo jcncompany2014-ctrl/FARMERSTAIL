@@ -38,15 +38,12 @@ import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { addDaysKst, currentKstHour, todayKstIsoDate } from '@/lib/datetime-kst'
+import { getAutomationSettings } from '@/lib/automation-settings'
 
-/**
- * 마케팅 3종(D+1·D+7·D+30)을 실행할 KST 시각. hourly cron 중 이 시각 1회만.
- *
- * 10시인 이유: pushToUser 의 quiet_hours 기본(22→08) 밖이면서 이른 아침도 아님.
- * 신호 하나로 발송 시각·빈도가 동시에 정해지므로 여기만 바꾸면 된다.
- * (복약 알림은 사용자가 정한 시각이라 이 게이트를 받지 않는다.)
- */
-const MARKETING_KST_HOUR = 10
+// 마케팅 3종(D+1·D+7·D+30)이 나가는 KST 시각은 admin 조절값
+// (automation_settings.marketing_push_hour, 기본 10). hourly cron 중 그 시각 1회만
+// 실행돼 D+7·D+30 의 24시간 윈도우가 24× 과발송되지 않는다.
+// (복약 알림은 사용자가 정한 시각이라 이 게이트를 받지 않는다.)
 
 // dog_subscriptions / dog_medications 는 lib/supabase/types.ts 가 자동 재생성되지
 // 않아 Database 제네릭에 미포함 (lib/dog-records.ts 의 정책과 같음). 그래서 admin
@@ -77,9 +74,11 @@ export async function GET(req: Request): Promise<Response> {
     // 복약 alert — 매시간 (사용자가 정한 시각에 발화해야 하므로 게이트 없음).
     results.push(await runMedicationReminder(supabase, now))
 
-    // 마케팅 3종 — KST 10시 실행분에서만. 나머지 23개 실행은 skip.
+    // 마케팅 3종 — 설정된 KST 시각 실행분에서만. 나머지 23개 실행은 skip.
     // (게이트 없이 hourly 로 돌리면 24시간 윈도우인 D+7·D+30 이 24× 과발송된다.)
-    if (currentKstHour() === MARKETING_KST_HOUR) {
+    // 발송 시각은 admin 조절값(automation_settings.marketing_push_hour) — 행 없으면 기본 10시.
+    const settings = await getAutomationSettings(supabase)
+    if (currentKstHour() === settings.marketingPushHour) {
       results.push(await runWelcome(supabase, now)) // D+1 환영 (어제 가입자)
       results.push(await runAnalysisReminder(supabase, now)) // D+7 분석 리마인드
       results.push(await runSubscribeNudge(supabase, now)) // D+30 정기배송 권유
