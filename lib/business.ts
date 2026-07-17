@@ -51,10 +51,6 @@ function pickEnv(value: string | undefined, fallback: string): string {
   const v = value?.trim()
   return v && v.length > 0 ? v : fallback
 }
-function pickEnvNullable(value: string | undefined): string | null {
-  const v = value?.trim()
-  return v && v.length > 0 ? v : null
-}
 
 export const business: BusinessInfo = {
   // 사업자등록증 상의 정식 상호 (개인사업자 — 법인 X).
@@ -94,8 +90,12 @@ export const business: BusinessInfo = {
     process.env.NEXT_PUBLIC_BUSINESS_EMAIL,
     'story@farmerstail.kr',
   ),
-  // 카카오 채널 발급 후 NEXT_PUBLIC_KAKAO_CHANNEL_URL 에 등록.
-  kakaoChannelUrl: pickEnvNullable(process.env.NEXT_PUBLIC_KAKAO_CHANNEL_URL),
+  // 카카오 채널 1:1 채팅 (사장님 2026-07-17). env 로 덮어쓸 수 있고, 없으면 이 기본값.
+  // http→https 로 승격(PWA mixed-content 방지). 채널 변경 시 NEXT_PUBLIC_KAKAO_CHANNEL_URL.
+  kakaoChannelUrl: pickEnv(
+    process.env.NEXT_PUBLIC_KAKAO_CHANNEL_URL,
+    'https://pf.kakao.com/_qbJqX/chat',
+  ),
   privacyOfficer: pickEnv(
     process.env.NEXT_PUBLIC_BUSINESS_PRIVACY_OFFICER,
     '안성민, 이준호',
