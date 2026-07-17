@@ -14,6 +14,17 @@
  *  - 토퍼 ±5%
  *  - 일일 칼로리 ±10%
  *  - 알고리즘 버전 major bump (v1.x → v2.x) — 룰 셋 자체가 바뀜
+ *  - **청구 금액 변동 — 임계값 없음(1원이라도 다르면 동의 대상)** ⬅ 2026-07-17 추가
+ *
+ * # 왜 금액을 따로 보나 (2026-07-17 · 사장님 "처방 → 가격 연동")
+ * 위 임계값은 전부 **처방의 모양**만 본다. 그런데 금액은 모양이 조금만 달라도
+ * 바뀔 수 있다 — 예: kcal +9%(임계 10% 미만 → '미세 조정'으로 자동 적용)인데
+ * 1팩 분량이 170g→190g 으로 올라 2주 청구액이 68,000→74,600원이 된다.
+ * 즉 **동의 없이 더 청구되는 경로**가 열려 있었다(§13의2 위반 소지).
+ * 그래서 금액이 바뀌면 크기와 무관하게 항상 meaningful 로 올린다.
+ *
+ * 이 함수는 순수하게 유지한다(제품·재고·화식비율을 모름). 금액은 **호출부가
+ * `lib/personalization/boxPricing` 정본으로 계산해서 넘긴다.**
  */
 import type { Formula } from './types.ts'
 
@@ -26,6 +37,24 @@ export type FormulaDiff = {
   forced: boolean
   /** 강제 적용 사유. forced=true 일 때만. */
   forceReasons: string[]
+  /**
+   * 청구 금액이 바뀌는가 (price 옵션을 준 경우만 판정).
+   *
+   * ⚠️ `forced` 와 **독립**이다. 알레르기 차단은 안전 문제라 동의 없이 적용해야
+   * 하지만, 그렇다고 **더 청구해도 된다는 뜻은 아니다.** 청구액 변경은 언제나
+   * 명시적 동의가 필요하다 → 호출부는 `forced` 여도 금액은 동의 전까지 유지할 것.
+   */
+  priceChanged: boolean
+  /** 새 금액 − 이전 금액 (원). priceChanged=false 면 0. */
+  priceDelta: number
+}
+
+export type DiffOptions = {
+  /**
+   * 이전/새 처방의 **2주 청구액**. `boxPricing.priceForFormula` 로 계산해 넘긴다.
+   * 안 주면 금액 판정은 건너뛴다(모양만 비교 — 기존 동작 그대로).
+   */
+  price?: { prevTotal: number; nextTotal: number }
 }
 
 // JS float 정밀도 fudge — 0.5 - 0.4 = 0.09999...8 같은 케이스 잡으려고 epsilon
@@ -46,11 +75,14 @@ const LINE_NAMES: Record<string, string> = {
 export function diffFormulas(
   prev: Formula,
   next: Formula,
+  opts?: DiffOptions,
 ): FormulaDiff {
   const changes: string[] = []
   const forceReasons: string[] = []
   let meaningful = false
   let forced = false
+  let priceChanged = false
+  let priceDelta = 0
 
   // 1. 라인 비율 비교
   for (const line of ['basic', 'weight', 'skin', 'premium', 'joint'] as const) {
@@ -103,6 +135,24 @@ export function diffFormulas(
     if (Math.abs(kcalDelta) >= KCAL_DELTA) {
       meaningful = true
       changes.push(`일일 칼로리 ${prev.dailyKcal} → ${next.dailyKcal} kcal`)
+    }
+  }
+
+  // 3-b. 청구 금액 — **임계값 없음.** 1원이라도 다르면 동의 대상.
+  //
+  // 위 1~3 은 처방의 '모양'만 본다. 금액은 모양이 임계값 미만으로 움직여도
+  // 바뀔 수 있다(kcal +9% → 1팩 170g→190g → 68,000→74,600원). 그 경로로
+  // 동의 없이 더 청구되면 §13의2 위반이다. 그래서 금액엔 관용 구간을 두지 않는다.
+  // (금액은 이미 100원 단위로 반올림돼 있어 '푼돈 진동' 은 생기지 않는다.)
+  if (opts?.price && opts.price.prevTotal > 0) {
+    priceDelta = opts.price.nextTotal - opts.price.prevTotal
+    if (priceDelta !== 0) {
+      priceChanged = true
+      meaningful = true
+      const won = (n: number) => n.toLocaleString('ko-KR')
+      changes.push(
+        `2주 결제 금액 ${won(opts.price.prevTotal)}원 → ${won(opts.price.nextTotal)}원`,
+      )
     }
   }
 
@@ -163,5 +213,7 @@ export function diffFormulas(
     changes,
     forced,
     forceReasons,
+    priceChanged,
+    priceDelta,
   }
 }

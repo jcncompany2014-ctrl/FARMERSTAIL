@@ -106,6 +106,70 @@
   font-size: 10px;
 }
 
+/* =========================================================================
+   금액 변화 — 이 화면에서 가장 중요한 정보 (2026-07-17, 사장님 "처방→가격 연동").
+   히어로 바로 아래. 승인 버튼에 닿기 전 반드시 지나는 자리.
+   토큰·라디우스는 .ap-compare 카드와 동일 (surface-card / rule / 12px = V3Radius.md).
+   ========================================================================= */
+.ap-price {
+  background: var(--surface-card);
+  box-shadow: inset 0 0 0 1px var(--rule);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+/* 금액이 오를 땐 좌측에 얇은 강조선 — 놓치면 안 되는 정보라 시각 무게를 준다.
+   (배경색을 칠하면 '경고'처럼 읽혀 오히려 불안을 준다 — 선 하나로 절제.) */
+.ap-price-up { box-shadow: inset 0 0 0 1px var(--rule), inset 3px 0 0 var(--terracotta); }
+.ap-price-down { box-shadow: inset 0 0 0 1px var(--rule), inset 3px 0 0 var(--moss); }
+
+.ap-price-row {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+}
+.ap-price-old {
+  font-size: 15px; font-weight: 600;
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+.ap-price-arrow { color: var(--muted); flex-shrink: 0; }
+.ap-price-new {
+  font-size: 22px; font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.ap-price-delta {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px; font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--rule);
+  white-space: nowrap;
+}
+.ap-price-up .ap-price-delta { color: var(--terracotta); }
+.ap-price-down .ap-price-delta { color: var(--moss); }
+
+.ap-price-same {
+  font-size: 14px; color: var(--text); margin: 0;
+}
+.ap-price-same b { font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
+
+.ap-price-why {
+  font-size: 12px; color: var(--text);
+  line-height: 1.55;
+  margin: 10px 0 0;
+}
+.ap-price-note {
+  font-size: 11px; color: var(--muted);
+  line-height: 1.55;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+}
+.ap-price-note b { color: var(--text); font-weight: 700; }
+
 /* Compare bars */
 .ap-compare {
   /* R26: #fff → var(--surface-card), 16 → 12 (V3Radius.md) */

@@ -19,6 +19,7 @@ import { useToast } from '@/components/ui/Toast'
 import { petName } from '@/lib/korean'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
+import type { ApprovePricing } from './page'
 import { haptic } from '@/lib/haptic'
 import { trackBoxDecision } from '@/lib/analytics'
 import './approve.css'
@@ -29,6 +30,8 @@ type Props = {
   cycleNumber: number
   pending: Formula | null
   previous: Formula | null
+  /** 2주 청구액 — 서버가 정본 계산으로 재산정. 불확실하면 null(표시 안 함). */
+  pricing: ApprovePricing | null
 }
 
 export default function ApproveClient({
@@ -37,6 +40,7 @@ export default function ApproveClient({
   cycleNumber,
   pending,
   previous,
+  pricing,
 }: Props) {
   const router = useRouter()
   const toast = useToast()
@@ -115,6 +119,8 @@ export default function ApproveClient({
           <strong>적용</strong>, 그대로 두려면 <strong>유지</strong>.
         </p>
       </header>
+
+      {pricing && <PriceChange pricing={pricing} />}
 
       {lineChanges.length > 0 && (
         <section className="ap-changes">
@@ -211,6 +217,65 @@ export default function ApproveClient({
         5일 안에 응답 안 하시면 자동으로 이전 비율 유지됩니다.
       </p>
     </div>
+  )
+}
+
+/**
+ * 2주 청구액 변화 — **이 화면에서 가장 중요한 정보.**
+ *
+ * 처방이 바뀌면 박스 분량이 바뀌고 결제 금액도 바뀐다. 이걸 안 보여주고 동의를
+ * 받으면 보호자는 **얼마를 내게 되는지 모른 채 승인**하게 된다(2026-07-17 이전
+ * 상태). 그래서 히어로 바로 아래 — 승인 버튼에 닿기 전 반드시 지나는 자리에 둔다.
+ *
+ * 금액이 그대로면 "그대로예요" 로 안심시킨다(침묵하면 오히려 의심스럽다).
+ */
+function PriceChange({ pricing }: { pricing: ApprovePricing }) {
+  const { currentTotal, newTotal } = pricing
+  const delta = newTotal - currentTotal
+  const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'same'
+  const won = (n: number) => n.toLocaleString('ko-KR')
+
+  return (
+    <section className={'ap-price ap-price-' + dir} aria-live="polite">
+      <div className="ap-sect-lbl">2주마다 내시는 금액</div>
+
+      {dir === 'same' ? (
+        // 금액이 그대로면 결제 얘기를 더 꺼내지 않는다 — 바뀌는 게 없는데
+        // "다음 배송분부터 결제" 를 덧붙이면 없는 불안을 만든다.
+        <p className="ap-price-same">
+          <b>{won(currentTotal)}원</b> — 비율만 바뀌고 금액은 그대로예요.
+        </p>
+      ) : (
+        <>
+          <div className="ap-price-row">
+            <span className="ap-price-old">{won(currentTotal)}원</span>
+            <ArrowRight size={14} strokeWidth={2.2} className="ap-price-arrow" />
+            <span className="ap-price-new">{won(newTotal)}원</span>
+            <span className="ap-price-delta">
+              {delta > 0 ? (
+                <TrendingUp size={11} strokeWidth={2.4} />
+              ) : (
+                <TrendingDown size={11} strokeWidth={2.4} />
+              )}
+              {delta > 0 ? '+' : '−'}
+              {won(Math.abs(delta))}원
+            </span>
+          </div>
+          <p className="ap-price-why">
+            {delta > 0
+              ? '필요한 양이 늘어서 박스가 커졌어요. 유지를 고르시면 금액도 그대로예요.'
+              : '필요한 양이 줄어서 박스가 작아졌어요.'}
+          </p>
+          {/* ⚠️ 문구는 실제 동작만 약속한다. 청구는 배송일에 일어나므로
+              "이미 확정된 회차는 옛 금액" 을 보장할 수 없다 → 그렇게 쓰지 않는다.
+              지킬 수 없는 약속은 금액에선 특히 위험하다. */}
+          <p className="ap-price-note">
+            적용하면 <b>다음 결제부터</b> 이 금액이에요. 언제든 정기배송을
+            일시정지하거나 해지할 수 있어요.
+          </p>
+        </>
+      )}
+    </section>
   )
 }
 

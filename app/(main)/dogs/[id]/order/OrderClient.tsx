@@ -24,7 +24,7 @@ import { useToast } from '@/components/ui/Toast'
 import { haptic } from '@/lib/haptic'
 import { formatPhone } from '@/lib/formatters'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
-import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import { FOOD_LINE_META } from '@/lib/personalization/lines'
 import {
   nextShipDate,
   weekdayKo,
@@ -33,13 +33,11 @@ import {
 } from '@/lib/shipping-schedule'
 import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
 import {
-  LINE_TO_SLUG,
-  TOPPER_TO_SLUG,
-  deriveAvailableLines,
-  deriveAvailableToppers,
-  gateAvailability,
-} from '@/lib/personalization/skuMap'
-import { snapBoxRatios } from '@/lib/personalization/boxComposition'
+  computeBoxItems,
+  priceBox,
+  subscribableItems,
+  TOPPER_KCAL_PER_100G,
+} from '@/lib/personalization/boxPricing'
 import './order.css'
 
 /**
@@ -64,14 +62,9 @@ import './order.css'
  *
  * # SKU 매핑 (현재 등록된 4 라인 + 2 토퍼; joint 미등록 시 graceful skip)
  */
-// LINE_TO_SLUG / TOPPER_TO_SLUG 는 skuMap (단일 SSOT) 에서 import.
-// gateAvailability 가 활성 제품 없는 라인/토퍼를 가용 라인으로 재분배.
-
-/** 동결건조 토퍼 평균 kcal/100g (USDA freeze-dried meat/veggie ~370-400). */
-const TOPPER_KCAL_PER_100G = 380
-
-/** 사료관리법 표시기준 ±5% 허용 — floor 가 95% 이상 deliver 하면 floor 채택. */
-const TOLERANCE = 0.95
+// 분량·가격 상수/계산은 전부 lib/personalization/boxPricing (정본) 에서 import.
+// (여기 있던 TOPPER_KCAL_PER_100G · TOLERANCE 사본은 2026-07-17 제거 — 같은 숫자를
+//  두 곳에 두면 한쪽만 고쳐져 조용히 갈라진다.)
 
 /**
  * 화식 비율 3티어 (사장님 2026-07-13 갈아엎기).
@@ -171,44 +164,12 @@ function loadDaumPostcode(): Promise<void> {
 }
 
 /**
- * 메인 라인 — 1팩 = 1일 한끼 분량.
- * 일일 g 을 10g 단위로 ceil 반올림 (사료관리법 표시기준 ±5% 허용 내).
- * 예: 일일 164g → 한끼 170g (ceil), 158g → 160g.
+ * ⚠️ 분량·가격 계산은 `lib/personalization/boxPricing.ts` **정본**으로 이동했다
+ * (2026-07-17). 이전엔 이 파일 안에만 있어서 서버가 재사용할 수 없었고, 그래서
+ * 처방이 바뀌어도 구독 금액을 다시 계산할 방법이 없었다(= 개인화된 양을 보내며
+ * 가입 시 고정 금액을 받는 상태). 승인 화면이 같은 계산을 써야 하므로 추출했다.
+ * 여기서 다시 구현하지 말 것 — 계산이 둘이면 "주문서 금액 ≠ 승인 금액"이 된다.
  */
-function mealPortionG(dailyG: number): number {
-  if (dailyG <= 0) return 0
-  return Math.ceil(dailyG / 10) * 10
-}
-
-/**
- * 토퍼 — 100g 동결건조 고정 팩. 사이클 총 필요량을 100g 팩 단위로
- * 사료관리법 ±5% 허용 내 floor/ceil 결정.
- */
-function topperPacksForCycle(
-  cycleG: number,
-): { packs: number; deliveredG: number } {
-  if (cycleG <= 0) return { packs: 1, deliveredG: 100 }
-  const packG = 100
-  const exact = cycleG / packG
-  const floor = Math.max(1, Math.floor(exact))
-  const ceil = Math.max(1, Math.ceil(exact))
-  if (floor === ceil) {
-    return { packs: floor, deliveredG: floor * packG }
-  }
-  if (floor * packG >= cycleG * TOLERANCE) {
-    return { packs: floor, deliveredG: floor * packG }
-  }
-  return { packs: ceil, deliveredG: ceil * packG }
-}
-
-/**
- * 100g 단위 단가 기반 1팩 가격 산정.
- *  - product.price 는 100g 기준 단가 (예: 소 7,000원/100g)
- *  - 100원 단위 반올림.
- */
-function pricePerPack(unitPricePer100g: number, packG: number): number {
-  return Math.round((packG / 100) * unitPricePer100g / 100) * 100
-}
 
 /** g → 보기 좋은 한국어 (예: "1.4 kg" / "850 g"). */
 function formatGrams(g: number): string {
@@ -331,95 +292,11 @@ export default function OrderClient({
   }, [])
 
   // ── 라인 + 토퍼 → 항목 빌드 (freshRatio 변경 시 자동 재계산) ────────
-  //
-  // 박스 정기배송 모델 (2026-07-13 갈아엎기 — 무조건 2주마다 배송·결제)
-  //   · 사이클 = 14일치 (biweekly). 매 끼 화식 비율(freshRatio)만큼 섞어 급여 →
-  //     하루 화식 분량 = 100% 분량 × freshRatio/100. 나머지는 보호자 사료.
-  //   · 메인 5종 — 1팩 = 1일 화식 분량(10g 단위 ceil 반올림), 14일 = 14팩.
-  //   · 토퍼 — 100g 동결건조 고정 팩, 사이클 총 필요량 ±5% tolerance.
-  //
-  // 가격 — product.price 는 100g 단위 단가 (예: 소 7,000원/100g)
-  //   · 메인 1팩 = mealG / 100 × unitPrice (100원 단위 반올림) → 총액이 화식
-  //     비율에 비례(곁들임 30% ≈ 풀 화식의 30% 가격).
-  const cycleDays = 14
-  const freshFactor = freshRatio / 100
-  const items: LineItem[] = []
-
-  if (formula) {
-    const dailyKcal = formula.dailyKcal
-    // 가용성 게이트 — 활성 제품 없는 라인/토퍼(연어 보류 등)를 가용 라인으로
-    // 재분배. 저장된 formula 가 게이트 전 버전이어도 박스는 항상 100% 충족.
-    const gated = gateAvailability(formula.lineRatios, formula.toppers, {
-      availableLines: deriveAvailableLines(Object.keys(products)),
-      availableToppers: deriveAvailableToppers(Object.keys(products)),
-    })
-    // 박스는 SKU 최대 2종 (1종 100% / 2종 50:50) — 배송 라인은 스냅 후 사용
-    // (사장님 2026-07-13). 토퍼는 별개 add-on 이라 대상 아님.
-    const boxRatios = snapBoxRatios(gated.lineRatios)
-    for (const line of ALL_LINES) {
-      const ratio = boxRatios[line] ?? 0
-      if (ratio <= 0) continue
-      const slug = LINE_TO_SLUG[line]
-      if (!slug) continue
-      const product = products[slug]
-      if (!product) continue
-
-      const meta = FOOD_LINE_META[line]
-      const kcalPer100g = meta.kcalPer100g
-      // 매끼섞기 — 하루 화식 분량 = 100% 분량 × 화식 비율.
-      const dailyG = ((ratio * dailyKcal) / kcalPer100g) * 100 * freshFactor
-      const mealG = mealPortionG(dailyG)
-      const cycleG = dailyG * cycleDays
-      const deliveredG = mealG * cycleDays
-      const unitPrice = product.sale_price ?? product.price
-      const perPack = pricePerPack(unitPrice, mealG)
-      items.push({
-        slug,
-        line,
-        pct: Math.round(ratio * 100),
-        product,
-        quantity: cycleDays, // 1일 1팩 → cycleDays 팩
-        packG: mealG,
-        mealG,
-        dailyG,
-        cycleG,
-        deliveredG,
-        pricePerPack: perPack,
-        listPricePerPack: pricePerPack(product.price, mealG),
-      })
-    }
-    for (const k of ['vegetable', 'protein'] as const) {
-      const ratio = gated.toppers[k] ?? 0
-      if (ratio <= 0) continue
-      const slug = TOPPER_TO_SLUG[k]
-      const product = products[slug]
-      if (!product) continue
-      // product.nutrition_facts.calories_kcal_per_100g 우선 (admin 입력),
-      // 없으면 fallback 380 kcal/100g (USDA freeze-dried 평균).
-      const topperKcal100g =
-        (product.nutrition_facts?.calories_kcal_per_100g as number | undefined) ??
-        TOPPER_KCAL_PER_100G
-      const dailyG = ((ratio * dailyKcal) / topperKcal100g) * 100 * freshFactor
-      const cycleG = dailyG * cycleDays
-      const { packs, deliveredG } = topperPacksForCycle(cycleG)
-      const unitPrice = product.sale_price ?? product.price
-      // 토퍼는 100g 표준 팩 → 단가 그대로
-      items.push({
-        slug,
-        topper: k,
-        pct: Math.round(ratio * 100),
-        product,
-        quantity: packs,
-        packG: 100,
-        mealG: dailyG, // 토퍼는 일일 sprinkle 분량
-        dailyG,
-        cycleG,
-        deliveredG,
-        pricePerPack: unitPrice,
-        listPricePerPack: product.price,
-      })
-    }
-  }
+  // 계산 본체는 lib/personalization/boxPricing (정본). 모델 설명·가격 규칙은
+  // 그 파일 docstring 참조. 승인 화면이 같은 함수를 쓰므로 금액이 갈라지지 않는다.
+  const items: LineItem[] = formula
+    ? computeBoxItems({ formula, freshRatio, products })
+    : []
 
   const subtotal = items.reduce(
     (sum, it) => sum + it.pricePerPack * it.quantity,
@@ -473,10 +350,7 @@ export default function OrderClient({
       setErr('수령인 이름은 2자 이상이어야 해요.')
       return
     }
-    const subscribable = items.filter(
-      (it) =>
-        (it.product.stock ?? 0) > 0 && it.product.is_subscribable !== false,
-    )
+    const subscribable = subscribableItems(items)
     if (subscribable.length === 0) {
       setErr('지금은 정기배송 가능한 레시피가 없어요. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.')
       return
@@ -508,12 +382,10 @@ export default function OrderClient({
         return
       }
 
-      const subSubtotal = subscribable.reduce(
-        (s, it) => s + it.pricePerPack * it.quantity,
-        0,
-      )
-      const subShipping = 0
-      const subTotal = subSubtotal + subShipping
+      // 청구액 = 정본 계산(priceBox). 승인 화면의 재산정과 **같은 함수**여야
+      // "주문서 금액 ≠ 승인 금액" 이 안 생긴다.
+      const { subtotal: subSubtotal, shipping: subShipping, total: subTotal } =
+        priceBox(items)
 
       const customerKey =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto

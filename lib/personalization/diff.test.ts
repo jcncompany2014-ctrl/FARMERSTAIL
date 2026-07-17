@@ -174,6 +174,79 @@ describe('diffFormulas — 강제 적용', () => {
   })
 })
 
+describe('diffFormulas — 청구 금액 변동 (2026-07-17 · 처방→가격 연동)', () => {
+  it('price 미전달 = 기존 동작 그대로 (금액 판정 안 함)', () => {
+    const d = diffFormulas(f(), f())
+    assert.equal(d.priceChanged, false)
+    assert.equal(d.priceDelta, 0)
+    assert.equal(d.meaningful, false)
+  })
+
+  it('★모양은 임계값 미만인데 금액이 오르면 → meaningful (동의 필요)', () => {
+    // kcal 280 → 305 = +8.9% (KCAL_DELTA 10% 미만 → 모양만 보면 "미세 조정")
+    // 그런데 1팩 분량이 올라 2주 청구액이 바뀐다 → 동의 없이 더 청구되면 §13의2 위반.
+    const prev = f()
+    const next = f({ dailyKcal: 305 })
+    const shapeOnly = diffFormulas(prev, next)
+    assert.equal(shapeOnly.meaningful, false) // 이게 예전에 열려 있던 구멍
+
+    const withPrice = diffFormulas(prev, next, {
+      price: { prevTotal: 68000, nextTotal: 74600 },
+    })
+    assert.equal(withPrice.meaningful, true)
+    assert.equal(withPrice.priceChanged, true)
+    assert.equal(withPrice.priceDelta, 6600)
+    assert.ok(withPrice.changes.some((c) => c.includes('68,000원 → 74,600원')))
+  })
+
+  it('금액이 내려가도 meaningful (덜 보내면서 같은 돈 받는 것도 알려야)', () => {
+    const d = diffFormulas(f(), f(), {
+      price: { prevTotal: 74600, nextTotal: 68000 },
+    })
+    assert.equal(d.meaningful, true)
+    assert.equal(d.priceChanged, true)
+    assert.equal(d.priceDelta, -6600)
+  })
+
+  it('금액 동일 → 금액 때문에 meaningful 되지 않음', () => {
+    const d = diffFormulas(f(), f(), {
+      price: { prevTotal: 68000, nextTotal: 68000 },
+    })
+    assert.equal(d.priceChanged, false)
+    assert.equal(d.priceDelta, 0)
+    assert.equal(d.meaningful, false)
+  })
+
+  it('금액엔 관용 구간이 없다 — 100원 차이도 동의 대상', () => {
+    const d = diffFormulas(f(), f(), {
+      price: { prevTotal: 68000, nextTotal: 68100 },
+    })
+    assert.equal(d.priceChanged, true)
+    assert.equal(d.meaningful, true)
+  })
+
+  it('prevTotal 이 0/미상이면 판정 skip (금액을 추측하지 않는다)', () => {
+    const d = diffFormulas(f(), f(), { price: { prevTotal: 0, nextTotal: 68000 } })
+    assert.equal(d.priceChanged, false)
+    assert.equal(d.meaningful, false)
+  })
+
+  it('forced 와 독립 — 알레르기 강제 변경이어도 금액 변동은 별도로 표시', () => {
+    const prev = f()
+    const next = f({
+      reasoning: [
+        { ruleId: 'allergy-chicken', chipLabel: '닭 차단', trigger: '알레르기', action: 'Basic 제외' },
+      ] as Formula['reasoning'],
+    })
+    const d = diffFormulas(prev, next, {
+      price: { prevTotal: 68000, nextTotal: 71000 },
+    })
+    assert.equal(d.forced, true) // 처방은 즉시 적용돼야(안전)
+    assert.equal(d.priceChanged, true) // 그렇다고 더 청구해도 되는 건 아니다
+    assert.equal(d.priceDelta, 3000)
+  })
+})
+
 describe('diffFormulas — 메시지 형식', () => {
   it('changes 가 사람-읽기-쉬운 한국어', () => {
     const d = diffFormulas(

@@ -16,6 +16,8 @@ import { diffFormulas } from '@/lib/personalization/diff'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { pushToUser } from '@/lib/push'
 import { notifyPersonalizationCycle } from '@/lib/email'
+import { subscriptionState, type SubLike } from '@/lib/subscription-state'
+import { priceForFormula, type BoxProduct } from '@/lib/personalization/boxPricing'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -27,12 +29,26 @@ export const dynamic = 'force-dynamic'
  *
  * # 실행 조건
  * 강아지의 가장 최신 dog_formulas row 가:
- *   - applied_until IS NULL AND created_at < now() - 28일, 또는
+ *   - applied_until IS NULL AND created_at < now() - CYCLE_DAYS, 또는
  *   - applied_until <= today
- * → 다음 cycle (cycle_number + 1) 처방 자동 생성.
+ * → **그리고 그 강아지의 구독이 active 일 때만** 다음 cycle 처방 생성.
+ *
+ * # 사장님 규칙 (2026-07-17)
+ *  1. **구독 중인 사람에게만 제안** — 이전엔 구독 확인이 아예 없어서 구독도
+ *     카드도 없는 사람에게 "다음 박스 확인이 필요해요" 를 보냈다. 판정은 정본
+ *     헬퍼 `subscriptionState()` 로만(status 컬럼 직접 비교는 '유령 활성'을 못 거름).
+ *     ⚠️ 게이트는 MAX_PER_RUN 슬라이스 **전에** — 뒤에 두면 비구독 강아지가
+ *     슬롯을 차지해 진짜 구독자가 조용히 밀린다.
+ *  2. **변경될 이유가 없으면 냅둔다** — diff 가 meaningful/forced 둘 다 아니면
+ *     푸시·이메일을 보내지 않는다(이전엔 변화 0에도 매 cycle "준비됐어요" 발송).
+ *     처방 row 자체는 계속 insert — cycle 카운터·체크인·이력이 거기 묶여 있다.
+ *     침묵시키는 건 **바깥으로 나가는 알림**뿐.
+ *  3. (보류) "3주째부터 3의 배수 주기" — 현재 CYCLE_DAYS=30. 21 로 바꾸면
+ *     지시대로 3·6·9주가 되지만, 30일은 `/order` 4주치 portion 과 맞춘 값이라
+ *     동반 확인 필요(결제 금액 직결). 사장님 확인 후 별건으로.
  *
  * # 흐름
- * 1) 만료된 cycle 식별 (배치 100건 / run)
+ * 1) 만료된 cycle 식별 → **구독 active 만 남김** (배치 100건 / run)
  * 2) 각 강아지에 대해:
  *    - 가장 최신 survey + analysis (영양 input)
  *    - 현재 cycle 의 checkins (week_2 / week_4)
@@ -132,8 +148,53 @@ export async function GET(req: Request) {
     }
   }
 
+  // ── 구독 게이트 (사장님 2026-07-17: "구독을 진행 중인 사람한테만 제안해") ──
+  //
+  // 이전엔 구독 확인이 **아예 없어서**, 구독도 안 하고 카드도 없는 사람에게까지
+  // 다음 박스 처방을 만들고 "확인이 필요해요" 푸시를 보냈다(살 수도 없는 사람에게).
+  //
+  // ⚠️ MAX_PER_RUN **슬라이스 전에** 거른다. 뒤에서 거르면 비구독 강아지가
+  //    100개 슬롯을 차지해 진짜 구독자가 밀려난다(조용한 미처리).
+  //
+  // 상태 판정은 정본 헬퍼 `subscriptionState` 만 사용 — status 컬럼 직접 비교
+  // 금지(카드 미등록 '유령 활성' 을 못 걸러낸다. lib/subscription-state 참조).
+  const allDogIds = Array.from(latestByDog.keys())
+  const activeDogIds = new Set<string>()
+  /** dog_id → 청구 기준 (금액 재산정·비교용). active 구독만 담긴다. */
+  const billingByDog = new Map<
+    string,
+    { freshRatio: number | null; currentTotal: number }
+  >()
+  if (allDogIds.length > 0) {
+    const { data: subs } = await supabase
+      .from('subscriptions')
+      .select(
+        'dog_id, status, billing_key, next_delivery_date, ' +
+          'failed_charge_count, requires_billing_key_renewal, ' +
+          'fresh_ratio, total_amount',
+      )
+      .in('dog_id', allDogIds)
+    for (const s of (subs ?? []) as unknown as Array<
+      SubLike & {
+        dog_id: string | null
+        fresh_ratio: number | null
+        total_amount: number
+      }
+    >) {
+      if (s.dog_id && subscriptionState(s) === 'active') {
+        activeDogIds.add(s.dog_id)
+        billingByDog.set(s.dog_id, {
+          freshRatio: s.fresh_ratio,
+          currentTotal: s.total_amount,
+        })
+      }
+    }
+  }
+  const subscribedDogIds = allDogIds.filter((id) => activeDogIds.has(id))
+  const skippedNoSubscription = allDogIds.length - subscribedDogIds.length
+
   // 다음 cycle 이 이미 존재하는 강아지 제외 — race / 수동 진행 방지.
-  const dogIds = Array.from(latestByDog.keys()).slice(0, MAX_PER_RUN)
+  const dogIds = subscribedDogIds.slice(0, MAX_PER_RUN)
   const targets: FormulaRow[] = []
   for (const dogId of dogIds) {
     const cur = latestByDog.get(dogId)!
@@ -211,20 +272,26 @@ export async function GET(req: Request) {
     ...Object.values(LINE_TO_SLUG).filter((s): s is string => s !== null),
     ...Object.values(TOPPER_TO_SLUG),
   ]
+  // 가용성 게이트용 slug + 금액 재산정용 가격 필드를 한 번에 가져온다.
+  // (금액은 `boxPricing` 정본이 계산 — 주문 화면·승인 화면과 같은 함수.)
   const { data: activeProd } = await supabase
     .from('products')
-    .select('slug')
+    .select('slug, price, sale_price, stock, is_subscribable, nutrition_facts')
     .eq('is_active', true)
     .in('slug', boxSlugs)
-  const activeSlugs = ((activeProd ?? []) as Array<{ slug: string }>).map(
-    (p) => p.slug,
-  )
+  const activeProducts: Record<string, BoxProduct> = {}
+  for (const p of ((activeProd ?? []) as unknown) as BoxProduct[]) {
+    activeProducts[p.slug] = p
+  }
+  const activeSlugs = Object.keys(activeProducts)
   const availableLines = deriveAvailableLines(activeSlugs)
   const availableToppers = deriveAvailableToppers(activeSlugs)
 
   let succeeded = 0
   let failed = 0
   let skipped = 0
+  /** 변화가 없어 알림을 보내지 않은 cycle 수 (처방 row 는 생성됨). */
+  let silentNoChange = 0
 
   for (const cur of targets) {
     try {
@@ -448,8 +515,44 @@ export async function GET(req: Request) {
       // 미세 조정 → auto_applied 즉시 적용 (기존 동작).
       // 의미 있는 변화 → pending_approval, push 별도 카피, 결제 안 됨.
       // 강제 변화 (알레르기 / 만성질환 추가) → auto_applied 강제, "변경됨" push.
-      const diff = diffFormulas(previousFormula, next)
+      // 금액 변동 판정 — 처방의 '모양' 임계값(비율 10%·토퍼 5%·kcal 10%)을
+      // 밑돌아도 청구액은 바뀔 수 있다(예: kcal +9% → 1팩 170g→190g).
+      // 그 경로로 동의 없이 더 청구되면 §13의2 위반이라 금액은 별도로 본다.
+      //
+      // 비교 기준 = **지금 실제로 내는 금액(subscriptions.total_amount)** vs
+      // 새 처방의 금액. 승인 화면이 보여주는 쌍과 정확히 같아야 "화면엔 금액이
+      // 바뀐다는데 승인 요청은 안 온다" 같은 어긋남이 안 생긴다.
+      const billing = billingByDog.get(cur.dog_id)
+      const price =
+        billing &&
+        billing.freshRatio != null &&
+        billing.freshRatio > 0 &&
+        billing.currentTotal > 0 &&
+        activeSlugs.length > 0
+          ? (() => {
+              const nextTotal = priceForFormula({
+                formula: next,
+                freshRatio: billing.freshRatio,
+                products: activeProducts,
+              }).total
+              return nextTotal > 0
+                ? { prevTotal: billing.currentTotal, nextTotal }
+                : undefined
+            })()
+          : undefined
+
+      const diff = diffFormulas(previousFormula, next, { price })
       const requiresApproval = diff.meaningful && !diff.forced
+
+      // 실제로 바뀐 게 있나 (사장님 2026-07-17: "굳이 레시피나 칼로리가
+      // 변경될 이유가 없다면 냅둬"). 이전엔 변화가 0이어도 매 cycle
+      // "다음 박스 준비됐어요 🐾" 푸시가 나갔다 — 알림 피로 + nudge 예산 낭비.
+      //   · meaningful → 보호자 승인 필요한 변화
+      //   · forced     → 알레르기·만성질환 등 강제 변경(승인 없이 적용하되 반드시 통지)
+      //   · 둘 다 아님 → 임계값 미만 미세 조정 = 사실상 그대로 → **조용히**
+      // row 는 그대로 insert 한다(cycle 카운터·체크인·이력이 여기 묶여 있음).
+      // 침묵시키는 건 **바깥으로 나가는 알림**뿐.
+      const changed = diff.meaningful || diff.forced
 
       const appliedFrom = requiresApproval ? null : today
       const appliedUntil = requiresApproval ? null : addDaysIso(today, CYCLE_DAYS)
@@ -496,19 +599,75 @@ export async function GET(req: Request) {
         cycleNumber: next.cycleNumber,
       })
 
-      // 보호자에게 푸시 알림 — 흐름 분기:
-      //   pending_approval → "확인이 필요해요" + approval URL
-      //   auto_applied (강제 포함)  → "준비됐어요" + analysis URL
+      // ── 강제 변경(알레르기·만성질환)은 승인 없이 적용 → 금액도 함께 갱신 ──
+      //
+      // 사장님 확정(2026-07-17): "원래대로 진행해. 대신 알림에다 좀 더 강조멘트를
+      // 주는 식으로. 뭐가 됐든 걔가 취소 안 하면 책임소지도 고객이야."
+      // → 통지 + 언제든 해지 가능 = 구독의 표준 모델(TFD 동일). 우리가 원가를
+      //   흡수하지 않는다. 대신 **금액이 바뀐 사실을 알림에서 강하게** 알린다.
+      //
+      // 승인 경로(pending_approval)의 금액 갱신은 approve API 가 한다 —
+      // 여기서 미리 바꾸면 승인 전에 청구액이 바뀌어 버린다.
+      let forcedPriceApplied: { from: number; to: number } | null = null
+      if (!requiresApproval && diff.priceChanged && price) {
+        const { error: priceErr } = await supabase
+          .from('subscriptions')
+          .update({ total_amount: price.nextTotal })
+          .eq('dog_id', cur.dog_id)
+        if (priceErr) {
+          // 금액만 실패 = 새 처방·옛 금액(우리가 흡수). 조용히 넘기지 않는다.
+          captureBusinessEvent('warning', 'personalization.forced_price.failed', {
+            dogId: cur.dog_id,
+            cycleNumber: next.cycleNumber,
+            error: priceErr.message,
+          })
+        } else {
+          forcedPriceApplied = { from: price.prevTotal, to: price.nextTotal }
+        }
+      }
+
+      // 변화가 없으면 여기서 끝 — 처방 row 는 남기되 보호자는 안 건드린다.
+      // ("굳이 변경될 이유가 없다면 냅둬" — 사장님 2026-07-17)
+      if (!changed) {
+        silentNoChange += 1
+        await new Promise((r) => setTimeout(r, 50))
+        continue
+      }
+
+      // 보호자에게 푸시 알림 — 흐름 3분기:
+      //   pending_approval        → "확인이 필요해요" + approval URL
+      //   auto_applied(강제)+금액변동 → ★"금액이 바뀌어요" 강조 + 해지/정지 경로
+      //   auto_applied(그 외)      → "준비됐어요" + analysis URL
+      //
+      // 강제 변경은 승인 없이 금액까지 바뀐다. 그 경우 "준비됐어요 🐾" 로 흘리면
+      // 보호자가 청구 변경을 **모르고 지나친다** → 통지-후-해지 모델이 성립 안 함
+      // ("취소 안 하면 고객 책임" 은 **알렸을 때만** 성립한다). 그래서 금액을
+      // 제목에 박고 본문 첫 문장으로 올린다 (사장님 2026-07-17 "강조멘트").
       const main = mainLineOf(next)
-      const pushTitle = requiresApproval
-        ? `${dogTyped.name} 다음 박스 확인이 필요해요`
-        : `${dogTyped.name} 다음 박스 준비됐어요 🐾`
-      const pushBody = requiresApproval
-        ? `이번 달 비율이 바뀔 수 있어요 — ${main.name} ${main.pct}% 제안. 5일 안에 확인해 주세요.`
-        : `이번 달은 ${main.name} ${main.pct}% 메인. 자세한 비율 보기 →`
-      const pushUrl = requiresApproval
-        ? `/dogs/${cur.dog_id}/approve?cycle=${next.cycleNumber}`
-        : `/dogs/${cur.dog_id}/analysis`
+      const won = (n: number) => n.toLocaleString('ko-KR')
+
+      let pushTitle: string
+      let pushBody: string
+      let pushUrl: string
+      if (requiresApproval) {
+        pushTitle = `${dogTyped.name} 다음 박스 확인이 필요해요`
+        pushBody = diff.priceChanged && price
+          ? `비율이 바뀌면서 결제 금액도 ${won(price.prevTotal)} → ${won(price.nextTotal)}원이 돼요. 5일 안에 확인해 주세요.`
+          : `이번 박스 비율이 바뀔 수 있어요 — ${main.name} ${main.pct}% 제안. 5일 안에 확인해 주세요.`
+        pushUrl = `/dogs/${cur.dog_id}/approve?cycle=${next.cycleNumber}`
+      } else if (forcedPriceApplied) {
+        const up = forcedPriceApplied.to > forcedPriceApplied.from
+        pushTitle = `[중요] ${dogTyped.name} 결제 금액이 ${won(forcedPriceApplied.to)}원으로 ${up ? '올라가요' : '내려가요'}`
+        pushBody =
+          `안전을 위해 레시피를 바꿨어요(${diff.forceReasons[0] ?? '알레르기·건강 상태 반영'}). ` +
+          `그래서 2주 결제가 ${won(forcedPriceApplied.from)} → ${won(forcedPriceApplied.to)}원이 돼요. ` +
+          `원하지 않으시면 다음 결제 전에 일시정지·해지하실 수 있어요.`
+        pushUrl = `/account/subscriptions`
+      } else {
+        pushTitle = `${dogTyped.name} 다음 박스 준비됐어요 🐾`
+        pushBody = `이번 박스는 ${main.name} ${main.pct}% 메인. 자세한 비율 보기 →`
+        pushUrl = `/dogs/${cur.dog_id}/analysis`
+      }
 
       pushToUser(
         cur.user_id,
@@ -570,6 +729,10 @@ export async function GET(req: Request) {
       succeeded,
       failed,
       skipped,
+      /** 구독 중이 아니라 제외된 강아지 수 (사장님 규칙 — 구독자만 제안). */
+      skippedNoSubscription,
+      /** 변화가 없어 알림을 보내지 않은 수 (row 는 생성됨). */
+      silentNoChange,
     })
   })
 }
