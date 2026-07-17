@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { zPersonalizationCompute } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
@@ -345,21 +346,34 @@ export async function POST(req: Request) {
   }
 
   // 3.5) admin override fetch — algorithm_food_lines + breed_predispose.
-  const [{ data: foodLineRows }, { data: breedRows }] = await Promise.all([
-    supabase
-      .from('algorithm_food_lines')
-      .select(
-        'line, kcal_per_100g, protein_pct_dm, fat_pct_dm, calcium_pct_dm, ' +
-          'phosphorus_pct_dm, sodium_pct_dm, omega3_pct_dm, omega6_pct_dm, ' +
-          'vitamin_d_iu_per_100g_dm, subtitle_override, benefit_override',
-      ),
-    supabase
-      .from('algorithm_breed_predispose')
-      .select(
-        'breed_key, korean_label, breed_keywords, predispose_conditions, cautions',
-      )
-      .eq('enabled', true),
-  ])
+  // ★ service-role(admin) 로 읽는다(2026-07-17 보안): 이 계수 테이블은 준영업비밀이라
+  // RLS 를 admin 전용으로 조였다(유저 세션으론 못 읽음). 전역 알고리즘 설정이라 유저
+  // 데이터가 아니므로 service-role 사용 안전. service-role 키 부재/읽기 실패 시엔
+  // override 없이(기본값) 진행 — 보안 잠금 때문에 추천이 통째로 멈추면 안 되므로 방어.
+  let foodLineRows: Record<string, unknown>[] | null = null
+  let breedRows: Record<string, unknown>[] | null = null
+  try {
+    const algoAdmin = createAdminClient()
+    const [flRes, brRes] = await Promise.all([
+      algoAdmin
+        .from('algorithm_food_lines')
+        .select(
+          'line, kcal_per_100g, protein_pct_dm, fat_pct_dm, calcium_pct_dm, ' +
+            'phosphorus_pct_dm, sodium_pct_dm, omega3_pct_dm, omega6_pct_dm, ' +
+            'vitamin_d_iu_per_100g_dm, subtitle_override, benefit_override',
+        ),
+      algoAdmin
+        .from('algorithm_breed_predispose')
+        .select(
+          'breed_key, korean_label, breed_keywords, predispose_conditions, cautions',
+        )
+        .eq('enabled', true),
+    ])
+    foodLineRows = flRes.data as Record<string, unknown>[] | null
+    breedRows = brRes.data as Record<string, unknown>[] | null
+  } catch (e) {
+    console.error('[compute] algorithm override fetch 실패 — 기본값으로 진행', e)
+  }
 
   const foodLineMetaOverride: AlgorithmInput['foodLineMetaOverride'] = {}
   // typegen 이 새 테이블 모름 — unknown 으로 캐스팅. 추후 supabase gen types 적용 시 제거.
