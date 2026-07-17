@@ -6,6 +6,38 @@
 
 ---
 
+## 🚨 먼저 읽을 것 — 이 문서는 **설계도이지 현재 코드가 아닙니다**
+
+이 스펙은 **원안 그대로** 보존돼 있습니다. 실제 프로덕션은 이 스펙을 **전부** 구현하지 않았고,
+일부는 **의도적으로 다르게** 갑니다. 여기 적힌 코드를 "지금 이렇게 돈다"로 읽지 마세요.
+
+| | 어디 |
+|---|---|
+| **실제로 도는 급여량 계산 (정본)** | `lib/nutrition.ts` 의 `calculateNutrition` — **여기가 유일한 정본** |
+| 스펙에서 실제 이식된 부품 | `lib/calorie-v2/engine.ts` 의 5개: `calculateAdultFactor`·`breedToFlags`(계수 사다리 M4·M4b) · `deriveBCS`(M2a) · `estimateIdealBodyWeight`(M2b) · `feedbackAdjustment`(M10) |
+| 미구현·삭제된 부분 | 아래 ⛔ 참조 |
+
+### ⛔ 스펙에 있으나 구현하면 안 되는 것 / 이미 뒤집힌 것
+
+1. **`classifyPath` 의 `vet_referral`·`reproduction` = "계산 중단"** → **폐기된 설계.**
+   사장님이 2026-07-12 뒤집었습니다("계산 중단은 구독 흐름을 끊고 '긍정 먼저' 원칙과 충돌").
+   **지금은 계산은 하되 수의 상담 배너를 강제 노출**합니다. 살아 있는 규칙 =
+   `nutrition.ts` 의 `CALORIE_VET_ROUTE_FLAGS` / `needsCalorieVetRoute()`.
+   임신/수유는 오히려 정본이 **더 정교**합니다(NRC 2006 §15 주차별·새끼수별 배수 + BCS 보정).
+2. **`calculateRER`** → 정본에 이미 `computeRer` 로 있습니다(토이 보정 포함). **RER 을 두 곳에 두지 마세요.**
+3. **`computeFeedingPlanV2` 통째로 이관** → 2026-07-17 검토 결과 **다운그레이드**로 판명(정본이 가진
+   riskFlags·매크로·미량영양소·거대견 가드·신뢰도 안전보정이 스펙엔 없음 + 배분 모델이 구독 전용
+   피벗 이전의 "화식30%+건사료70%" 전제라 현행 3티어와 어긋남). 자세한 근거 = [ALGORITHM_UPGRADES.md](./ALGORITHM_UPGRADES.md) ⛔ 절.
+
+### 📦 미구현 부품(M5 감량노트·M8 간식실측·M9 배분·M9b 건사료폴백·M_aux 앳워터)
+
+스펙대로 짠 구현체가 engine.ts 에 있었으나 **연결되지 않은 死코드**여서 **2026-07-17 삭제**했습니다
+(오독 유발). 붙일 가치·선결 조건은 [ALGORITHM_UPGRADES.md](./ALGORITHM_UPGRADES.md) 에 정리돼 있고,
+옛 구현 코드는 git 이력(`git log -- lib/calorie-v2/engine.ts`)에서 꺼낼 수 있습니다.
+**붙일 땐 engine.ts 에 되살리지 말고 정본(`nutrition.ts`)에 구현하세요.**
+
+---
+
 ## ⭐ v1 → v2 변경 요약 (Changelog)
 
 | # | 항목 | 변경 내용 | 근거 |

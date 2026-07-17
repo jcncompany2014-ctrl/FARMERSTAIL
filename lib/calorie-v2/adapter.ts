@@ -36,12 +36,8 @@ export function legacyAdultLadder(a: LegacyLadderInput): {
   lines: FactorLine[]
 } {
   const s: SurveyInputV2 = {
-    currentWeightKg: 0, // 사다리 계산 미사용 (RER 은 호출부에서)
     ageYears: a.ageYears,
-    sex: 'male', // 사다리 미사용
     isNeutered: a.isNeutered,
-    breed: 'unknown',
-    lifeStage: 'adult',
     // bcs 직접 주입으로 미사용 — 형식상 이상 체형.
     bodyAssessment: { ribs: 'easy', waist: 'slight', abdomen: 'level' },
     // 격한 운동 응답이 있으면 그것이 프로필보다 우선(설문이 더 최신·구체 신호).
@@ -67,10 +63,6 @@ export function legacyAdultLadder(a: LegacyLadderInput): {
     housing: a.housing ?? 'indoor',
     coldExposure: !!a.coldExposure,
     isEasyKeeper: !!a.isEasyKeeper,
-    healthFlags: ['none'],
-    givesTreats: false,
-    hwasikSku: 'chicken', // 사다리 미사용
-    hwasikKcalPer100g: 115,
   }
   return calculateAdultFactor(s, a.breedFlags ?? breedToFlags('unknown'), a.bcs)
 }

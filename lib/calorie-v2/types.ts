@@ -1,25 +1,26 @@
 /**
  * 칼로리 알고리즘 v2 — 타입 (docs/CALORIE_ALGORITHM_SPEC_V2.md §4·§5).
  *
- * 스펙 원문 스키마 충실 구현. 기존 파이프라인(lib/nutrition.ts 등)과 독립 —
- * 연결(어댑터)은 1단계에서.
+ * ⚠️ 스펙 원문의 전체 스키마가 아니라, **살아 있는 v2 부품이 실제로 받는 입력만**
+ * 담는다. 상위 파이프라인(computeFeedingPlanV2 등)이 2026-07-17 삭제되면서
+ * 그 전용 타입(`FeedingPlanV2`·`PlanPath`·`KibbleDb`·`GuaranteedAnalysis`)과
+ * SurveyInputV2 의 미사용 필드(급여 구성·건사료·간식·건강 플래그 등)도 함께
+ * 정리됐다. 스펙 원문 스키마는 docs/CALORIE_ALGORITHM_SPEC_V2.md 참조.
+ *
+ * 고객 급여량 정본은 `lib/nutrition.ts` 이고, 그쪽 입력 타입은 `DogInfo` ·
+ * `SurveyAnswers` 다. 여기 타입과 혼동하지 말 것.
  */
 
+/**
+ * 성견 계수 사다리(`calculateAdultFactor`) + BCS 역산(`deriveBCS`) 의 입력.
+ *
+ * 실 설문 전체가 아니라 **사다리가 읽는 필드만**. 현행 프로덕션에선
+ * `adapter.ts` 의 `legacyAdultLadder` 가 nutrition.ts 의 DogInfo/SurveyAnswers 를
+ * 이 형태로 매핑해 넘긴다.
+ */
 export interface SurveyInputV2 {
-  currentWeightKg: number
   ageYears: number
-  sex: 'male' | 'female'
   isNeutered: boolean
-
-  /** 견종 (플래그 소스). 목록 밖이면 'mixed' 또는 'unknown'. */
-  breed: BreedKey
-
-  // 생애단계
-  lifeStage: 'puppy' | 'adult' | 'senior'
-  isPregnant?: boolean
-  isLactating?: boolean
-  /** 자견 필수 — 성견 예상체중. */
-  expectedAdultWeightKg?: number
 
   /** 체형 3분해 (⚠️ "몇 점?" 직접질문 폐기 — deriveBCS 로 역산). */
   bodyAssessment: {
@@ -39,43 +40,6 @@ export interface SurveyInputV2 {
   coldExposure: boolean
   /** 쉽게 찌는 체질 (설문 응답 — 견종 OB 플래그와 OR, 감산 1회). */
   isEasyKeeper: boolean
-
-  /** 건강 플래그 — 'none' 외 항목 있으면 수의 라우팅(계산 중단). */
-  healthFlags: Array<
-    | 'hypothyroid'
-    | 'cushings'
-    | 'diabetes'
-    | 'cardiac'
-    | 'renal'
-    | 'other_illness'
-    | 'none'
-  >
-
-  // 간식
-  givesTreats: boolean
-  treatKcalPerDay?: number
-
-  // 급여 구성
-  hwasikShare?: number
-  hwasikSku: 'chicken' | 'duck' | 'pork' | 'beef'
-  /** ⚠️ SKU별 실측값(설계값 금지). 화식은 고소화율이라 앳워터 부적합. */
-  hwasikKcalPer100g: number
-
-  // 건사료 (DB 우선 3단 폴백)
-  kibbleProductId?: string
-  kibbleKcalPer100g?: number
-  kibbleGA?: GuaranteedAnalysis
-  /** "목록에 없음"일 때 견주가 적은 사료명 — kibble_requests 로그(자가성장). */
-  kibbleRawInput?: string
-}
-
-/** 건사료 성분표 (as-fed %) — 앳워터 폴백용. */
-export interface GuaranteedAnalysis {
-  crudeProtein: number
-  crudeFat: number
-  crudeFiber: number
-  moisture: number
-  ash: number
 }
 
 export type BreedKey =
@@ -110,41 +74,4 @@ export interface BreedFlags {
 export interface FactorLine {
   label: string
   delta: number
-}
-
-export type PlanPath =
-  | 'adult'
-  | 'weight_loss'
-  | 'growth'
-  | 'reproduction'
-  | 'vet_referral'
-
-export interface FeedingPlanV2 {
-  path: PlanPath
-  /** 3분해에서 역산된 BCS. */
-  derivedBcs: number
-  /** 반영된 견종 플래그(투명성). */
-  breedFlags: BreedFlags
-  idealWeightKg: number
-  rer: number
-  factor: number
-  /** 계수 근거 사다리. */
-  factorBreakdown: FactorLine[]
-  der: number
-  treatKcal: number
-  mainPoolKcal: number
-  hwasik: { kcal: number; grams: number; sku: string }
-  kibble: {
-    kcal: number
-    grams: number | null
-    source: 'db' | 'label' | 'atwater' | 'none'
-  }
-  notes: string[]
-  isEstimate: true
-}
-
-/** 건사료 DB 인터페이스 (5단계에서 Supabase 구현체 연결 — 지금은 주입식). */
-export interface KibbleDb {
-  getProduct(id: string): Promise<{ kcalPer100g: number | null } | null>
-  logMissing(rawInput: string): Promise<void>
 }
