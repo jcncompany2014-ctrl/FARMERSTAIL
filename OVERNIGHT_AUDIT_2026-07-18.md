@@ -262,4 +262,16 @@ Date 로 날짜를 포맷하는 곳(UTC→하루 틀림). **🟡 #A10 실버그 
 → 서버측 raw-Date off-by-one 1건 잡음. (교훈: 서버 컴포넌트 날짜 포맷은 반드시
   timeZone:'Asia/Seoul' 또는 +9h 시프트 — 클라와 달리 UTC 라 자정 경계서 틀림.)
 
+**[회차20 · 서버 날짜 포맷터 형제 전수]** #7 축. #A10 후속 — 다른 서버 컴포넌트의
+raw Date 날짜 포맷을 전수 대조(off-by-one 은 형제가 있다). 서버 page.tsx 5곳 검사:
+- ✅ 이미 정확(timeZone:'Asia/Seoul' 있음): `analyses:51`·`vet-report:177/314/334`·
+  `membership:367`. → 대부분 모범적으로 timeZone 지정돼 있음.
+- ✅ **수정 `reports/page.tsx:48` (#A11) timeZone 누락**: 월간 리포트 헤더
+  `monthLabel = new Date().toLocaleDateString('ko-KR',{year,month})` 에 timeZone 없어
+  **매월 1일 KST 00~09시(UTC 전월)에 지난 달로 표시**(TZ=UTC 재현: KST 8/1 03시→"2026년
+  7월"). 형제들이 다 갖고 있는 `timeZone:'Asia/Seoul'` 한 줄 추가로 수정(월 중반 불변,
+  TZ=UTC 검증). app-only·additive·GREEN.
+→ 서버측 날짜 off-by-one 전수 완료: 실버그 2건(#A10 formulas·#A11 reports) 잡음,
+  나머지 4곳은 이미 정확. **서버 날짜 timeZone 축 클린 종결.**
+
 ---

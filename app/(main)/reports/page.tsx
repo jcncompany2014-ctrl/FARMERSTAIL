@@ -48,6 +48,8 @@ export default async function ReportsPage() {
   const monthLabel = new Date().toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
+    // 서버=UTC. timeZone 없으면 매월 1일 KST 00~09시(UTC 전월)에 지난 달로 표시됨.
+    timeZone: 'Asia/Seoul',
   })
 
   const stats = [
