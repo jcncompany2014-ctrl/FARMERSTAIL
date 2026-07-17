@@ -9,7 +9,8 @@
  * app client(폰프레임 v3) 는 손대지 않고, 웹 전용 FD UI 만 여기 별도로 둔다.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
@@ -588,6 +589,9 @@ function CancelModal({
   onPauseInstead: () => void
   onSkipInstead: () => void
 }) {
+  // 파괴적 다이얼로그 a11y — Esc·포커스 트랩·스크롤 락·포커스 복귀(2026-07-17).
+  const panelRef = useRef<HTMLDivElement>(null)
+  useModalA11y({ open: true, onClose, containerRef: panelRef })
   return (
     <div
       className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4"
@@ -598,6 +602,7 @@ function CancelModal({
       onClick={onClose}
     >
       <div
+        ref={panelRef}
         className="w-full md:max-w-md rounded-t-[18px] md:rounded-[18px] p-6"
         style={{ background: '#FFFFFF' }}
         onClick={(e) => e.stopPropagation()}

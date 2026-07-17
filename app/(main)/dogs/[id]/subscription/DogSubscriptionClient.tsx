@@ -27,8 +27,9 @@
  * 오늘이 목요일이면 배송일이 목요일이 됐다.
  */
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 import Link from 'next/link'
 import {
   CreditCard,
@@ -451,10 +452,14 @@ function CancelSheet({
   onClose: () => void
   onConfirm: () => void
 }) {
+  // 파괴적 다이얼로그 — Esc 닫기 + 포커스 트랩 + 스크롤 락 + 닫을 때 포커스 복귀
+  // (2026-07-17 a11y). 마운트=열림이므로 open:true.
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalA11y({ open: true, onClose, containerRef: dialogRef })
   return (
     <>
       <div className="sub-scrim" onClick={onClose} />
-      <div className="sub-sheet" role="dialog" aria-modal="true">
+      <div ref={dialogRef} className="sub-sheet" role="dialog" aria-modal="true">
         <button
           type="button"
           className="sub-sheet-x"
