@@ -131,4 +131,18 @@ mypage 메뉴로 정상. **고아 2건**:
 - 블랭킷 "첫 주문 50%" = 메인 퍼널에서 제거됨(StickyCta·WebChrome 에 제거 기록 주석만).
 → 할인/등급 정보축 정합 확증. 재검사 불필요.
 
+**[회차9 · 폐지 커머스 경로 死엔드]** #7 축. 구독전용 전환으로 폐지된 낱개커머스
+(/products·/cart·/collections) 로 가는 死링크가 고객을 막다른 길로 보내는지.
+**✅ 클린 — 死엔드 없음(메모리 우려 해소)**:
+- `/products` 페이지가 **`/start`(설문 퍼널)로 redirect** → 어디서 링크가 와도 고객이
+  안 막힘(막다른 길 아님, 퍼널로 흡수).
+- 앱/컴포넌트에 **실제** `/products`·`/cart` 고객 링크 **0건**. 남은 참조는 (a) `/products`
+  route 자신의 SEO 메타(canonical/og, 무해·리다이렉트됨) (b) Button.tsx·ErrorScreen.tsx
+  의 **JSDoc 주석 예시**뿐(실사용 아님). ErrorScreen 실사용처 중 /products 넘기는 곳 0.
+- `/compare`(분석→"4종 라인 비교" CTA)=살아있는 정보 페이지, 카피 "치킨·오리·흑돼지·
+  한우"로 연어 제거와 정합 → 死엔드 아님.
+→ 메모리 "#6/#7/#35 ~15페이지 /products 死엔드" 우려는 **redirect 로 실질 해소**.
+  (경미: Button·ErrorScreen JSDoc 예시가 아직 '/products' 지시 — 미래 개발자 오도
+   가능, 문서 staleness 🔵 매우 낮음. 코드동작 무관이라 기록만.)
+
 ---
