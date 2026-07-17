@@ -39,12 +39,10 @@ export const metadata: Metadata = {
  *   window.print() — 브라우저 print → "PDF 저장". @media print.
  */
 
-// SKU 코드 → product slug. 연어(S03)는 제품 보류라 매핑은 두되 active 행이
-// 없으면 notFound (라벨 생성 불가).
+// SKU 코드 → product slug. (연어 S03 전면 제거 2026-07-17.)
 const SKU_TO_SLUG: Record<SkuKey, string> = {
   C01: 'chicken-basic',
   D02: 'duck-weight',
-  S03: 'salmon-skin',
   P04: 'pork-joint',
   B05: 'beef-premium',
 }

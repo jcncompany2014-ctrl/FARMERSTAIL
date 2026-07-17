@@ -56,18 +56,15 @@ const PERSONA_HINT: Record<SkuPersona, string> = {
 const SKU_COLORS: Record<SkuKey, string> = {
   C01: '#C76A4E', // terracotta
   D02: '#8BA05A', // moss
-  S03: '#7A99B3', // dust blue
   P04: '#A87BA0', // mauve
   B05: '#E0B341', // mustard
 }
 
-// SKU → 웹 레시피 단백질 키. 연어(S03)는 아직 미출시 → null (카드에 "출시 예정"
-// 표기). 나머지 4종은 "화식 보러가기" → FD식 제품정보 퀵뷰 시트로 연결
+// SKU → 웹 레시피 단백질 키. "화식 보러가기" → FD식 제품정보 퀵뷰 시트로 연결
 // (2026-06-19 사장님 "보러가기 = 페이지 점프 말고 제품정보 퀵바로" — PDP 점프 폐기).
 const SKU_RECIPE_PROTEIN: Record<SkuKey, WebRecipe['protein'] | null> = {
   C01: 'chicken',
   D02: 'duck',
-  S03: null,
   P04: 'pork',
   B05: 'beef',
 }

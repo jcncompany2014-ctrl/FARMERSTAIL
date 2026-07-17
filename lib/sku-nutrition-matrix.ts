@@ -90,16 +90,6 @@ export const SKU_NUTRITION: Record<SkuKey, SkuNutritionRow> = {
     highlight_ko: '닭·소를 뺀 흔치 않은 단백질. 알레르기가 걱정되거나 속이 예민한 아이에게.',
     persona: ['allergy', 'sensitive'],
   },
-  S03: {
-    sku: 'S03',
-    protein_pct: 26.0,
-    fat_pct: 16.0,
-    ca_p_ratio: 1.25,
-    epa_dha_pct: 6.7,
-    selenium_mcg_per_kg: 600,
-    highlight_ko: '천연 EPA/DHA 최다. 피부·노령 supportive (준비 중).',
-    persona: [],
-  },
   P04: {
     sku: 'P04',
     protein_pct: 45.1,

@@ -43,10 +43,6 @@ describe('페르소나 칩 — 빈 결과가 없다', () => {
     )
     assert.ok(!personas.has('senior'), 'senior 페르소나가 되살아남')
   })
-
-  it('준비중인 연어(S03)에는 칩이 붙어 있지 않다', () => {
-    assert.deepEqual(SKU_NUTRITION.S03.persona, [])
-  })
 })
 
 describe('페르소나 칩 — 매핑이 실제 수치와 맞는다', () => {

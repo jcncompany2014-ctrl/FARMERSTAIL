@@ -35,7 +35,9 @@
  */
 
 /** 5종 SKU 키 */
-export type SkuKey = 'C01' | 'D02' | 'S03' | 'P04' | 'B05'
+// 연어(S03) 전면 제거(2026-07-17 사장님 "연어 아예 빼버려") — 제품 미출시라 추천·표시·
+// 매트릭스에서 완전히 뺀다. (연어유=오메가3 원료는 별개라 유지.)
+export type SkuKey = 'C01' | 'D02' | 'P04' | 'B05'
 
 /** SKU 메타데이터 */
 export const SKU_META: Record<SkuKey, {
@@ -51,7 +53,6 @@ export const SKU_META: Record<SkuKey, {
 }> = {
   C01: { code: 'FT-C01', name_ko: '치킨', protein_ko: '닭', protein_en: 'chicken', novel: false, mueller_2016_allergy_rate: 15.0 },
   D02: { code: 'FT-D02', name_ko: '오리', protein_ko: '오리', protein_en: 'duck', novel: true, mueller_2016_allergy_rate: 0.5 },
-  S03: { code: 'FT-S03', name_ko: '연어', protein_ko: '연어', protein_en: 'fish', novel: true, mueller_2016_allergy_rate: 2.0 },
   P04: { code: 'FT-P04', name_ko: '흑돼지', protein_ko: '돼지', protein_en: 'pork', novel: true, mueller_2016_allergy_rate: 2.0 },
   B05: { code: 'FT-B05', name_ko: '한우', protein_ko: '소', protein_en: 'beef', novel: false, mueller_2016_allergy_rate: 34.0 },
 }
