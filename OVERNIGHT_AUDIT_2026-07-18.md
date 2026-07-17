@@ -202,4 +202,20 @@ mypage 메뉴로 정상. **고아 2건**:
   server wrapper(표준 패턴, 실기능은 Client 컴포넌트에).
 → 빈약한 페이지 축 클린. "얇다=빈약"은 오해, 전부 위임/redirect.
 
+**[회차15 · 화식 비율 3티어 정합]** #4·#6 축. 메모리 "3티어 /order 정합 후속(현재
+불일치)" 실검증. **🟡 #A9 티어 정의 4중 산개 + 미세 라벨 불일치** (결제 인접+리팩터라
+기록만):
+- **FRESH_TIERS 배열이 3곳에 각각 로컬 정의**(SSOT 아님): OrderClient:78·PlanClient:108·
+  RecommendationBox:45. 스키마도 제각각(value/label · value/label/**sub** · key/name/ratio).
+  **내용(곁들임30/반반60/완전화식100·copy·note·badge)은 현재 일치하나 3중 복제라 drift
+  위험**(하나 고치면 나머지 갈라짐 — 이번 세션 skip #A2 와 같은 패턴).
+- **라벨 불일치**: 정본 `freshTierLabel`(freshTier.ts)=`화식 곁들임`/`화식 반반`/`완전 화식`,
+  구독 표시 4화면(DogSubscription·SubscriptionCard·SubscriptionsWebClient·admin)이 사용.
+  vs 선택 화면 FRESH_TIERS=`곁들임`/`반반`/`완전 화식`. → 고객이 **선택 시 "곁들임" →
+  구독 후 "화식 곁들임"** 을 봄(완전 화식만 일치). 미세하나 정본 통일 원칙 위반.
+- 참고: BoxMixCard=단백질 mix(2종 박스) 시각화라 티어와 무관(오탐 아님, 별개 개념).
+→ **권장**: FRESH_TIERS 를 freshTier.ts 로 일원화(value/label/copy/note/sub 단일 정의)
+  + freshTierLabel 을 거기서 파생(또는 라벨 정본 통일). 결제 흐름(order/plan) 닿으니
+  사장님 결정 후 리팩터. **이번 감사 최대 구조 발견**(메모리 우려 실체 확정).
+
 ---
