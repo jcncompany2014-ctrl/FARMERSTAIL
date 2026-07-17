@@ -119,17 +119,12 @@ export const TIERS: TierMeta[] = [
     threshold: 40,
     bg: '#D27A56', // terracotta — 잘 익은 열매
     ink: '#FFFFFF',
-    benefit: '신제품 우선 · 계간 산지 신문',
+    benefit: '열매 등급 특별 보상',
     benefits: [
       {
-        Icon: 'sparkles',
-        label: '신제품 24h 우선',
-        detail: '일반 출시 24시간 전 우선 구매',
-      },
-      {
         Icon: 'gift',
-        label: '계간 산지 신문',
-        detail: '분기 1회 종이 신문 배송 (산지 이야기)',
+        label: '열매 등급 특별 보상',
+        detail: '오래 함께한 열매 등급을 위해 계절마다 준비하는 특별한 보상을 챙겨드려요.',
       },
     ],
   },
@@ -140,7 +135,7 @@ export const TIERS: TierMeta[] = [
     threshold: 50,
     bg: '#1E1A14', // 가장 어두운 ink — gold accent
     ink: '#D4A94A',
-    benefit: '강아지 등록증 · 매 주문 10% 할인 · 한정 큐레이션',
+    benefit: '강아지 등록증 · 매 주문 10% 할인 · 특별 보상',
     benefits: [
       {
         Icon: 'certificate',
@@ -148,29 +143,14 @@ export const TIERS: TierMeta[] = [
         detail: '우리 아이 이름이 박힌 디지털 등록증 PDF 발급',
       },
       {
-        Icon: 'crown',
-        label: '나무 한정 큐레이션',
-        detail: '시즌별 나무 등급 한정 메뉴 · 한정 굿즈',
-      },
-      {
-        Icon: 'sparkles',
-        label: '신제품 48h 우선',
-        detail: '일반 출시 48시간 전 우선 구매',
-      },
-      {
         Icon: 'ticket',
         label: '매 주문 10% 자동 할인',
         detail: '모든 정기배송에 10% 자동 적용',
       },
       {
-        Icon: 'heart',
-        label: '강아지 생일 손편지',
-        detail: '강아지 생일에 손편지 + 사진 카드 배송',
-      },
-      {
-        Icon: 'gift',
-        label: '계간 산지 신문 + 산지 방문 추첨',
-        detail: '분기 1회 종이 신문 · 연 1회 농장 방문 추첨',
+        Icon: 'crown',
+        label: '나무 등급 특별 보상',
+        detail: '가장 오래 함께한 나무 등급에게만 준비하는 특별한 보상과 선물을 챙겨드려요.',
       },
     ],
   },
