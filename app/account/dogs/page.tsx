@@ -67,41 +67,79 @@ export default async function AccountDogsPage() {
     <AuthAwareShell>
       <main
         className="pb-16 md:pb-24"
-        style={{ background: 'var(--fd-offwhite)', minHeight: '72vh' }}
+        style={{
+          background: isApp ? 'var(--paper)' : 'var(--fd-offwhite)',
+          minHeight: '72vh',
+          // 앱 컨텍스트: 본문 카드가 쓰는 웹 FD 텍스트/보더 토큰을 앱 톤으로
+          // 스코프 스왑 — presentation만(2026-07-18). 실제로 다른 값은 이 3개뿐.
+          // 배경·크림·코랄(offwhite/cream/coral)은 앱/웹 동일 hex라 스왑 불필요.
+          ...(isApp
+            ? {
+                '--fd-pine': 'var(--ink)',
+                '--fd-muted': 'var(--muted)',
+                '--fd-line': 'var(--rule)',
+              }
+            : {}),
+        }}
       >
-        <Container size="lg" className="pt-4 md:pt-6">
-          {/* breadcrumb */}
-          <nav
-            aria-label="현재 위치"
-            className="flex items-center gap-1 text-[11px] md:text-[12px]"
-            style={{ color: 'var(--fd-muted)' }}
-          >
-            <Link href="/" className="hover:opacity-70 transition">
-              홈
-            </Link>
-            <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
-            <Link href="/account" className="hover:opacity-70 transition">
-              내 계정
-            </Link>
-            <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
-            <span style={{ color: 'var(--fd-pine)', fontWeight: 700 }}>우리 아이</span>
-          </nav>
+        <Container size="lg" className={isApp ? 'pt-0' : 'pt-4 md:pt-6'}>
+          {isApp ? (
+            /* 앱 톤 헤더 — 웹 breadcrumb·FD hero 대신(웹앱 분리, 2026-07-18). */
+            <header className="px-1 pt-6 pb-3">
+              <span className="kicker">Our Dogs</span>
+              <h1
+                className="font-sans mt-1.5"
+                style={{
+                  fontSize: 26,
+                  fontWeight: 800,
+                  color: 'var(--ink)',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                우리 아이
+              </h1>
+              <p className="text-[12px] text-muted mt-1.5">
+                {dogs.length > 0
+                  ? `${dogs.length}마리 · 상세 케어·기록은 앱에서 도와드려요`
+                  : '아직 등록된 아이가 없어요'}
+              </p>
+            </header>
+          ) : (
+            <>
+              {/* breadcrumb (웹 전용) */}
+              <nav
+                aria-label="현재 위치"
+                className="flex items-center gap-1 text-[11px] md:text-[12px]"
+                style={{ color: 'var(--fd-muted)' }}
+              >
+                <Link href="/" className="hover:opacity-70 transition">
+                  홈
+                </Link>
+                <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
+                <Link href="/account" className="hover:opacity-70 transition">
+                  내 계정
+                </Link>
+                <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
+                <span style={{ color: 'var(--fd-pine)', fontWeight: 700 }}>우리 아이</span>
+              </nav>
 
-          {/* Hero */}
-          <header className="pt-8 md:pt-14 pb-7 md:pb-10">
-            <Eyebrow>Our Dogs · 우리 아이</Eyebrow>
-            <Display as="h1" size="md" className="mt-3 md:mt-4" style={{ color: 'var(--fd-pine)' }}>
-              함께하는 아이들
-            </Display>
-            <p
-              className="mt-4 text-[12.5px] md:text-[14px]"
-              style={{ color: 'var(--fd-muted)' }}
-            >
-              {dogs.length > 0
-                ? `${dogs.length}마리 · 상세 케어·기록은 앱에서 도와드려요`
-                : '아직 등록된 아이가 없어요'}
-            </p>
-          </header>
+              {/* Hero (웹 전용) */}
+              <header className="pt-8 md:pt-14 pb-7 md:pb-10">
+                <Eyebrow>Our Dogs · 우리 아이</Eyebrow>
+                <Display as="h1" size="md" className="mt-3 md:mt-4" style={{ color: 'var(--fd-pine)' }}>
+                  함께하는 아이들
+                </Display>
+                <p
+                  className="mt-4 text-[12.5px] md:text-[14px]"
+                  style={{ color: 'var(--fd-muted)' }}
+                >
+                  {dogs.length > 0
+                    ? `${dogs.length}마리 · 상세 케어·기록은 앱에서 도와드려요`
+                    : '아직 등록된 아이가 없어요'}
+                </p>
+              </header>
+            </>
+          )}
 
           {dogs.length === 0 ? (
             /* 빈 상태 — 설문으로 유도 */

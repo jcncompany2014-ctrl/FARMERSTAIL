@@ -73,6 +73,17 @@ export default async function AccountSubscriptionsPage({
         style={{
           background: isApp ? 'var(--paper)' : 'var(--fd-offwhite)',
           minHeight: '72vh',
+          // 앱 컨텍스트: 본문(SubscriptionsWebClient)이 쓰는 웹 FD 텍스트/보더
+          // 토큰을 앱 톤으로 스코프 스왑 — 로직 무손상, presentation만(2026-07-18).
+          // 실제로 다른 값은 이 3개뿐(pine 초록↔ink 고동, muted 회녹↔회갈, line).
+          // 배경·크림·코랄(offwhite/cream/coral)은 앱/웹 동일 hex라 스왑 불필요.
+          ...(isApp
+            ? {
+                '--fd-pine': 'var(--ink)',
+                '--fd-muted': 'var(--muted)',
+                '--fd-line': 'var(--rule)',
+              }
+            : {}),
         }}
       >
         <Container size="lg" className={isApp ? 'pt-0' : 'pt-4 md:pt-6'}>
