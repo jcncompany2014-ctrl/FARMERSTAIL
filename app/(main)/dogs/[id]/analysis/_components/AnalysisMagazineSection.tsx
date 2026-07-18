@@ -104,7 +104,9 @@ export default function AnalysisMagazineSection({
         chips={[
           { label: stage || '성견 유지', variant: 'primary' },
           { label: `BCS ${bcsScore}/9`, variant: 'soft' },
-          { label: `단백 ${Math.round(proteinPct)}%`, variant: 'soft' },
+          // 보증성분 규칙: 정확 % 대신 방향 보증. 단백질=우리 강점이라 숨기지
+          // 않고 floor+이상으로 노출. [[feedback_no_exact_nutrient_percent]]
+          { label: `단백 ${Math.floor(proteinPct)}% 이상`, variant: 'soft' },
         ]}
         headline={{
           intro: '단백질은',
