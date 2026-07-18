@@ -517,13 +517,15 @@ function NutrientLivePreview({
       <div className="adj-live-nutri">
         <div className="adj-live-nutri-label">영양 단면 (DM)</div>
         <div className="adj-live-nutri-grid">
+          {/* 보증성분 규칙(2026-07-18 사장님): 정확한 % 노출 금지 → 방향 보증만.
+              단백질=이상(floor), 지방=이하(ceil). [[feedback_no_exact_nutrient_percent]] */}
           <span>
             <small>단백질</small>
-            <b>{panel.proteinPctDM}%</b>
+            <b>{Math.floor(panel.proteinPctDM)}% 이상</b>
           </span>
           <span>
             <small>지방</small>
-            <b>{panel.fatPctDM}%</b>
+            <b>{Math.ceil(panel.fatPctDM)}% 이하</b>
           </span>
           <span>
             <small>kcal/100g</small>
