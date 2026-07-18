@@ -130,8 +130,10 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     crossReactWith: [],
     careGoalAffinity: ['weight_management', 'general_upgrade'],
     profile: {
-      // 2026-07-11 검정 확정 kcal: 닭·돼지 115, 오리·소 120.
-      kcalPer100g: 115,
+      // v4.0 확정 kcal(2026-07-18): 닭130·오리125·돼지125·소145. 4/9/4 계산치
+      // 반올림(수비드 조리수율≈100%, 구 115/120은 폐기된 조리수율 가정). 칼로리↑
+      // →급여량↓(과급여 방지). ★profile %DM은 아직 구 v3.1값. [[project_recipe_v31]]
+      kcalPer100g: 130,
       proteinPctDM: 49.5,
       fatPctDM: 19.1,
       calciumPctDM: 0.65,
@@ -161,7 +163,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     crossReactWith: ['닭·칠면조'],
     careGoalAffinity: ['allergy_avoid'],
     profile: {
-      kcalPer100g: 120, // 2026-07-11 검정 확정
+      kcalPer100g: 125, // v4.0 확정(2026-07-18)
       proteinPctDM: 40.6,
       fatPctDM: 27.5,
       calciumPctDM: 0.615,
@@ -190,7 +192,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     crossReactWith: [],
     careGoalAffinity: ['joint_senior'],
     profile: {
-      kcalPer100g: 115, // 2026-07-11 검정 확정
+      kcalPer100g: 125, // v4.0 확정(2026-07-18)
       proteinPctDM: 45.1,
       fatPctDM: 21.8,
       calciumPctDM: 0.61,
@@ -219,7 +221,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     crossReactWith: ['양고기'],
     careGoalAffinity: ['general_upgrade'],
     profile: {
-      kcalPer100g: 120, // 2026-07-11 검정 확정
+      kcalPer100g: 145, // v4.0 확정(2026-07-18)
       proteinPctDM: 38.7,
       fatPctDM: 28.7,
       calciumPctDM: 0.587,

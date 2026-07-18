@@ -34,7 +34,7 @@ const ratioSum = (r: { picks: { ratio: number }[] }) =>
   r.picks.reduce((s, p) => s + p.ratio, 0)
 
 describe('runLayerA — 단백질 강점 매칭', () => {
-  it('감량 + 저활동 → 닭 단독(최저 지방·최저 kcal 동률)', () => {
+  it('감량 + 저활동 → 닭 단독(체중관리 라인·최고 단백질)', () => {
     const r = runLayerA(profile({ weightGoal: 'loss', activityLevel: 'low' }), 400)
     assert.equal(r.picks.length, 1)
     assert.equal(r.picks[0]!.protein, 'chicken')
@@ -130,18 +130,17 @@ describe('runLayerA — 알레르기 안전', () => {
 })
 
 describe('runLayerA — 칼로리·그램 정합', () => {
-  it('단일 닭(115kcal/100g): 400kcal/일 → 348g', () => {
+  it('단일 닭(130kcal/100g): 400kcal/일 → 308g', () => {
     const r = runLayerA(profile({ weightGoal: 'loss', activityLevel: 'low' }), 400)
-    assert.equal(r.blendedKcalPer100g, 115)
-    assert.equal(r.dailyGrams, Math.round((400 / 115) * 100)) // 348
+    assert.equal(r.blendedKcalPer100g, 130)
+    assert.equal(r.dailyGrams, Math.round((400 / 130) * 100)) // 308
   })
 
-  it('믹스 닭0.7/돼지0.3: blended=115(동률), 399kcal → 347g', () => {
+  it('믹스 닭0.7/돼지0.3: blended=128.5, 399kcal → 311g', () => {
     const r = runLayerA(profile({ weightGoal: 'loss', appetite: 'picky' }), 399)
-    // 검정 확정으로 닭·돼지 kcal 동률(115) — 가중평균이 degenerate 하게 115.
-    // (블렌딩 산식 자체는 blendedKcalPer100g 공식으로 검증 유지.)
-    assert.equal(r.blendedKcalPer100g, 0.7 * 115 + 0.3 * 115) // 115
-    assert.equal(r.dailyGrams, Math.round((399 / 115) * 100)) // 347
+    // v4.0로 닭130·돼지125 — 가중평균 128.5 (더 이상 동률 아님, 블렌딩 산식 실검증).
+    assert.equal(r.blendedKcalPer100g, 0.7 * 130 + 0.3 * 125) // 128.5
+    assert.equal(r.dailyGrams, Math.round((399 / 128.5) * 100)) // 311
   })
 
   it('picks 의 kcal·claims 가 catalog SSOT 와 일치', () => {

@@ -19,42 +19,43 @@ import {
 } from './lines.ts'
 import type { FoodLine } from './types.ts'
 
-// 2026-07-11 검정 확정: 닭·돼지 115, 오리·소 120 kcal/100g.
+// v4.0 확정(2026-07-18): 닭130·오리125·돼지125·소145 kcal/100g.
 const CHICKEN: FoodLine = 'weight'
+const DUCK: FoodLine = 'basic'
 const BEEF: FoodLine = 'premium'
 const PORK: FoodLine = 'joint'
 
 describe('전제 — 레시피 밀도가 실제로 다르다', () => {
-  it('닭 115 / 소 120 / 돼지 115', () => {
-    assert.equal(FOOD_LINE_META[CHICKEN].kcalPer100g, 115)
-    assert.equal(FOOD_LINE_META[BEEF].kcalPer100g, 120)
-    assert.equal(FOOD_LINE_META[PORK].kcalPer100g, 115)
+  it('닭 130 / 소 145 / 돼지 125 (v4.0)', () => {
+    assert.equal(FOOD_LINE_META[CHICKEN].kcalPer100g, 130)
+    assert.equal(FOOD_LINE_META[BEEF].kcalPer100g, 145)
+    assert.equal(FOOD_LINE_META[PORK].kcalPer100g, 125)
   })
 })
 
 describe('lineDailyGrams — 칼로리 기준 분배', () => {
   it('단일 100% → 하루 칼로리 전부를 그 레시피 밀도로 환산', () => {
-    // 184kcal / 1.15 = 160.0g
-    assert.equal(+lineDailyGrams(CHICKEN, 1, 184).toFixed(1), 160.0)
-    // 184kcal / 1.20 = 153.3g — 같은 칼로리인데 무게가 다르다
-    assert.equal(+lineDailyGrams(BEEF, 1, 184).toFixed(1), 153.3)
+    // 184kcal / 1.30 = 141.5g
+    assert.equal(+lineDailyGrams(CHICKEN, 1, 184).toFixed(1), 141.5)
+    // 184kcal / 1.45 = 126.9g — 같은 칼로리인데 무게가 다르다
+    assert.equal(+lineDailyGrams(BEEF, 1, 184).toFixed(1), 126.9)
   })
 
   it('밀도가 다른 50:50 → 칼로리는 같고 무게는 다르다 (사장님 케이스)', () => {
     const chickenG = lineDailyGrams(CHICKEN, 0.5, 184)
     const beefG = lineDailyGrams(BEEF, 0.5, 184)
-    assert.equal(+chickenG.toFixed(1), 80.0)
-    assert.equal(+beefG.toFixed(1), 76.7)
+    assert.equal(+chickenG.toFixed(1), 70.8)
+    assert.equal(+beefG.toFixed(1), 63.4)
     assert.ok(chickenG > beefG, '밀도가 낮은 닭이 더 무거워야 한다')
 
     // 칼로리는 정확히 반반
-    assert.equal(+((chickenG / 100) * 115).toFixed(1), 92.0)
-    assert.equal(+((beefG / 100) * 120).toFixed(1), 92.0)
+    assert.equal(+((chickenG / 100) * 130).toFixed(1), 92.0)
+    assert.equal(+((beefG / 100) * 145).toFixed(1), 92.0)
   })
 
-  it('밀도가 같은 50:50 → 무게도 같다 (닭·돼지 둘 다 115)', () => {
+  it('밀도가 같은 50:50 → 무게도 같다 (오리·돼지 둘 다 125)', () => {
     assert.equal(
-      +lineDailyGrams(CHICKEN, 0.5, 184).toFixed(1),
+      +lineDailyGrams(DUCK, 0.5, 184).toFixed(1),
       +lineDailyGrams(PORK, 0.5, 184).toFixed(1),
     )
   })
@@ -94,6 +95,7 @@ describe('dailyGramsFromMix — 라인별 합과 일치', () => {
 
   it('칼로리가 크면 무게도 비례해 커진다', () => {
     const ratios = { basic: 0, weight: 1, skin: 0, premium: 0, joint: 0 }
-    assert.equal(dailyGramsFromMix(ratios, 368), dailyGramsFromMix(ratios, 184) * 2)
+    // 닭 130kcal/100g — 130kcal→100g, 260kcal→200g (반올림 오차 없이 정확히 2배)
+    assert.equal(dailyGramsFromMix(ratios, 260), dailyGramsFromMix(ratios, 130) * 2)
   })
 })

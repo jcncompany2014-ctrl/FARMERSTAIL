@@ -27,13 +27,13 @@ export const BASE_SKUS: readonly BaseSku[] = [
     protein: 'chicken',
     nameKr: '치킨',
     nameEn: 'Daily Chicken Recipe',
-    kcalPer100g: 115, // 2026-07-11 검정 확정
+    kcalPer100g: 130, // v4.0 확정(2026-07-18)
     fitTags: { weight_loss: 0.9, maintain: 0.7, activity_low: 0.6, palatability: 0.5 },
     claims: [
       {
-        text: '낮은 열량 밀도(115kcal)로 체중 관리에 적합',
+        text: '4 SKU 중 단백질이 가장 진해, 근육 지키며 체중 관리에 적합',
         grade: 'T2',
-        basis: '4 SKU 중 최저 kcal/100g — 돼지와 동률 (검정 확정 115)',
+        basis: 'v4.0 조단백 4 SKU 최고 · 최소 급여량(5kg 252g/일). 구 "저칼로리" 포지션은 조리수율 가정 붕괴로 폐기',
       },
       {
         text: '비타민 B3·B6가 풍부한',
@@ -54,7 +54,7 @@ export const BASE_SKUS: readonly BaseSku[] = [
     protein: 'duck',
     nameKr: '오리',
     nameEn: 'Care Duck Recipe',
-    kcalPer100g: 120, // 2026-07-11 검정 확정
+    kcalPer100g: 125, // v4.0 확정(2026-07-18)
     fitTags: { sensitive: 0.9, maintain: 0.6, palatability: 0.5, weight_loss: 0.4 },
     claims: [
       {
@@ -81,7 +81,7 @@ export const BASE_SKUS: readonly BaseSku[] = [
     protein: 'pork',
     nameKr: '흑돼지',
     nameEn: 'Mild Pork Recipe',
-    kcalPer100g: 115, // 2026-07-11 검정 확정
+    kcalPer100g: 125, // v4.0 확정(2026-07-18)
     fitTags: {
       palatability: 0.9,
       recovery: 0.9,
@@ -109,13 +109,13 @@ export const BASE_SKUS: readonly BaseSku[] = [
     protein: 'beef',
     nameKr: '한우',
     nameEn: 'Energy Beef Recipe',
-    kcalPer100g: 120, // 2026-07-11 검정 확정
+    kcalPer100g: 145, // v4.0 확정(2026-07-18)
     fitTags: { weight_gain: 0.9, activity_high: 0.9, palatability: 0.6, maintain: 0.5 },
     claims: [
       {
-        text: '지방 에너지 비중이 높아(지방 28.7%DM 최다) 고활동·증량에 적합',
+        text: '열량이 가장 높아 고활동·증량에 적합',
         grade: 'T2',
-        basis: '지방 %DM 4 SKU 최고 · kcal 120 (오리와 동률 최고, 검정 확정)',
+        basis: 'kcal 145 = 4 SKU 최고(v4.0 확정) · 지방 %DM도 최다',
       },
       {
         text: '비타민 B12·구리가 풍부한',

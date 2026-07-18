@@ -17,11 +17,11 @@ import {
 } from './skuModel.ts'
 
 describe('skuModel — 레시피 정합', () => {
-  it('에너지밀도 = 검정 확정 (닭115·오리120·돼지115·소120, 2026-07-11)', () => {
-    assert.equal(SKU_MODEL.chicken.profile.kcalPer100g, 115)
-    assert.equal(SKU_MODEL.duck.profile.kcalPer100g, 120)
-    assert.equal(SKU_MODEL.pork.profile.kcalPer100g, 115)
-    assert.equal(SKU_MODEL.beef.profile.kcalPer100g, 120)
+  it('에너지밀도 = v4.0 확정 (닭130·오리125·돼지125·소145, 2026-07-18)', () => {
+    assert.equal(SKU_MODEL.chicken.profile.kcalPer100g, 130)
+    assert.equal(SKU_MODEL.duck.profile.kcalPer100g, 125)
+    assert.equal(SKU_MODEL.pork.profile.kcalPer100g, 125)
+    assert.equal(SKU_MODEL.beef.profile.kcalPer100g, 145)
   })
 
   // Ca:P 비율이 레시피 명시값(닭1.11·오리1.22·돼지1.10·소1.23)과 일치하면
@@ -59,7 +59,7 @@ describe('skuModel — 레시피 정합', () => {
 })
 
 describe('skuModel — 케어목표 매핑 (페르소나 정합)', () => {
-  it('체중관리 → 닭 (모찌, 115kcal·최저 지방)', () => {
+  it('체중관리 → 닭 (모찌, 최고 단백질)', () => {
     assert.equal(CARE_GOAL_PRIMARY.weight_management, 'chicken')
   })
   it('알레르기 회피 → 오리 (코코, 노블)', () => {

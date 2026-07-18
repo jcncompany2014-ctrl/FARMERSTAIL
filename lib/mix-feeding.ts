@@ -64,14 +64,14 @@ export interface MixCalculation {
  *
  * @param dailyMerKcal 견체 일일 권장 kcal
  * @param hwasikRatio 화식 비율 (0.30~1.00). 미만은 0.30으로 clamp.
- * @param hwasikKcalPerG 화식 kcal/g (default 1.175 = 117.5 kcal/100g — 2026-07-11
- *   검정 확정 4종 평균: 닭·돼지 115, 오리·소 120.)
+ * @param hwasikKcalPerG 화식 kcal/g (default 1.3125 = 131.25 kcal/100g — v4.0
+ *   확정 4종 평균: 닭130·오리125·돼지125·소145. [[project_recipe_v31]])
  * @param dryFoodKcalPerG 사료 kcal/g (default 3.5 = 350 kcal/100g, 일반 건사료)
  */
 export function calculateMix(
   dailyMerKcal: number,
   hwasikRatio: number,
-  hwasikKcalPerG = 1.175,
+  hwasikKcalPerG = 1.3125,
   dryFoodKcalPerG = 3.5,
 ): MixCalculation {
   // 최소 30% clamp — 그 이하는 영양 균형 보장 어려움
