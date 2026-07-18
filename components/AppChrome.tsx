@@ -75,7 +75,6 @@ const DEEP_TITLES: Record<string, string> = {
   '/mypage/delete': '회원 탈퇴',
   '/reports': '건강 리포트',
   '/notifications': '알림',
-  '/search': '검색',
   '/chat': 'AI 영양 상담',
 }
 

@@ -122,9 +122,9 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
       ? (() => {
           const sub = subs.find((s) => s.id === subId)
           // 선택한 주(週)만큼 미루기 — 화요일 보존(주 단위라 요일 불변). 기준이
-          // 없으면 다음 화요일부터. ★ nextCycleDate 에 weeks 를 안 넘기면 항상
-          // 2주만 미뤄져 '4주 건너뛰기'가 실제 2주만 되고 토스트는 4주라 거짓말을
-          // 했다(2026-07-17 수정).
+          // 없으면 다음 화요일부터. weeks 를 nextCycleDate 에 반드시 넘긴다(안 넘기면
+          // 항상 2주 폴백). 2026-07-18: 건너뛰기=**2주**로 앱과 통일(사장님) — 이전엔
+          // 웹만 4주라 앱(2주)과 달랐고, 박스가 14일치라 4주 미루면 2주 굶었다.
           const baseIso = sub?.next_delivery_date ?? nextShipDate()
           return { next_delivery_date: nextCycleDate(baseIso, weeks) }
         })()
@@ -568,7 +568,7 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
           onSkipInstead={() => {
             const id = cancelSubId
             setCancelSubId(null)
-            void handlePause(id, 4)
+            void handlePause(id, 2)
           }}
         />
       )}
@@ -633,7 +633,7 @@ function CancelModal({
           >
             <span>
               <span className="block text-[13.5px] font-bold" style={{ color: 'var(--fd-pine)' }}>
-                4주 건너뛰기
+                2주 건너뛰기
               </span>
               <span className="block text-[11.5px]" style={{ color: 'var(--fd-muted)' }}>
                 다음 배송만 미루고 구독은 유지
