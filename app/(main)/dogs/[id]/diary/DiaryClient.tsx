@@ -239,8 +239,6 @@ export default function DiaryClient({
             기록 남기기
           </button>
         </div>
-        {/* B-66 진행 사진 진입점 — 보호자 선호 분리 위해 비활성. 코드는
-            /dogs/[id]/photos 에 보존, 재활성 시 아래 Link 만 복원. */}
       </section>
 
       {entries.length === 0 ? (

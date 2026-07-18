@@ -44,7 +44,7 @@ const TOES: Toe[] = [
   { key: 'health', label: '건강', Icon: Activity, href: (id) => `/dogs/${id}/health`, r: 41, b: 185, delay: 0 },
   { key: 'weight', label: '체중', Icon: Scale, href: (id) => `/dogs/${id}?weight=open`, r: 110, b: 161, delay: 45 },
   { key: 'diary', label: '일기', Icon: Pencil, href: (id) => `/dogs/${id}/diary`, r: 161, b: 110, delay: 90 },
-  { key: 'photo', label: '사진', Icon: Camera, href: (id) => `/dogs/${id}/photos`, r: 185, b: 41, delay: 135 },
+  { key: 'photo', label: '사진', Icon: Camera, href: (id) => `/dogs/${id}/diary`, r: 185, b: 41, delay: 135 },
 ]
 
 const FAB = 56 // 닫힘 지름

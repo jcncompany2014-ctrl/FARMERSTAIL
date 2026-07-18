@@ -74,7 +74,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-// 전부 실재 앱 화면 — /dogs/[id]/photos·diary, 체중 로그·변화감지, vet-report,
+// 전부 실재 앱 화면 — /dogs/[id]/diary, 체중 로그·변화감지, vet-report,
 // dogs/compare, mypage/points·membership, year-in-review.
 const MORE_FEATURES: { icon: React.ReactNode; title: string; body: string }[] = [
   {
