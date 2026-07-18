@@ -42,12 +42,10 @@ import {
   Heart,
   PawPrint,
   Pill,
-  Plus,
   RefreshCw,
   Stethoscope,
   Syringe,
   User,
-  UserPlus,
 } from 'lucide-react'
 import { V3, V3Font } from '@/lib/design/tokens'
 import { Eyebrow, Display } from '@/components/web/fd/ui'
@@ -571,7 +569,7 @@ function ScreenAnalysis() {
               BCS 5/9
             </span>
             <span style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.ink, background: V3.paperDeep, borderRadius: 999, padding: '3px 7px' }}>
-              단백 32%
+              단백 32% 이상
             </span>
           </div>
           <div style={{ fontFamily: sans, fontSize: 9.5, fontWeight: 700, color: V3.ink, lineHeight: 1.55, marginTop: 8, wordBreak: 'keep-all' }}>
@@ -839,71 +837,48 @@ function ScreenHealth() {
 }
 
 // ---------------------------------------------------------------------------
-// ⑥ 가족 공유 — 실화면: /family (가족 멤버·초대) + /invitations
+// ⑥ 수의사 공유 — 실화면: /dogs/[id]/vet-report (수의사용 요약 리포트 공유)
 // ---------------------------------------------------------------------------
-function ScreenFamily() {
+function ScreenVet() {
   return (
     <div style={{ background: V3.paper, height: '100%', overflow: 'hidden' }}>
-      <AppHeaderDeep title="가족 멤버" />
+      <AppHeaderDeep title="수의사 공유" />
 
       <div style={{ padding: '10px 12px 0' }}>
-        <MonoText color={V3.accent} size={7.5} weight={600} ls="0.18em">Family</MonoText>
+        <MonoText color={V3.accent} size={7.5} weight={600} ls="0.18em">Vet Report</MonoText>
         <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 13.5, color: V3.ink, letterSpacing: '-0.025em', marginTop: 5 }}>
-          가족 멤버
+          수의사에게 보여주기
         </div>
         <div style={{ fontFamily: sans, fontSize: 8, color: V3.inkSoft, marginTop: 3 }}>
-          함께 챙기는 가족과 강아지 정보를 공유해 봐요
+          동물병원 갈 때 분석을 한 장으로 정리해 드려요
         </div>
 
-        {/* 멤버 rows */}
+        {/* 요약 리포트 rows */}
         <V3Card style={{ marginTop: 10, padding: '2px 10px' }}>
           {[
-            { name: '나', role: '관리자', note: '오늘 산책 기록', me: true },
-            { name: '엄마', role: '가족', note: '아침 식사 기록', me: false },
-            { name: '동생', role: '가족', note: '어제 체중 기록', me: false },
-          ].map((m, i) => (
+            { k: '체중', v: '5.2kg' },
+            { k: '체형 (BCS)', v: '5/9 · 정상' },
+            { k: '하루 급여량', v: '252g' },
+            { k: '화식 구성', v: '완전 화식' },
+          ].map((r, i) => (
             <div
-              key={m.name}
+              key={r.k}
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
                 gap: 8,
                 padding: '7.5px 0',
                 borderTop: i === 0 ? 'none' : `1px solid ${V3.ruleSoft}`,
               }}
             >
-              <div
-                aria-hidden
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 999,
-                  background: m.me ? V3.ink : V3.paperDeep,
-                  color: m.me ? V3.paper : V3.inkSoft,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontFamily: sans,
-                  fontSize: 8.5,
-                  fontWeight: 800,
-                  flexShrink: 0,
-                }}
-              >
-                {m.name.slice(0, 1)}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 9.5, color: V3.ink }}>
-                  {m.name}{' '}
-                  <span style={{ fontSize: 7, fontWeight: 700, color: m.me ? V3.accent : V3.inkMute }}>· {m.role}</span>
-                </div>
-                <div style={{ fontFamily: sans, fontSize: 7.5, color: V3.inkMute, marginTop: 1 }}>{m.note}</div>
-              </div>
-              <span aria-hidden style={{ width: 5, height: 5, borderRadius: 3, background: V3.sage }} />
+              <span style={{ fontFamily: sans, fontSize: 8.5, color: V3.inkMute }}>{r.k}</span>
+              <span style={{ fontFamily: sans, fontSize: 9, fontWeight: 700, color: V3.ink }}>{r.v}</span>
             </div>
           ))}
         </V3Card>
 
-        {/* 초대 버튼 — 실화면 '가족 초대하기' */}
+        {/* 공유 버튼 — 실화면 '수의사에게 보여주기' */}
         <div
           style={{
             marginTop: 8,
@@ -920,20 +895,20 @@ function ScreenFamily() {
             color: V3.paper,
           }}
         >
-          <UserPlus size={11} strokeWidth={2} /> 가족 초대하기
+          <Stethoscope size={11} strokeWidth={2} /> 수의사에게 보여주기
         </div>
         <div style={{ fontFamily: sans, fontSize: 7.5, color: V3.inkMute, textAlign: 'center', marginTop: 5 }}>
-          초대 링크를 보내면 강아지 정보를 함께 볼 수 있어요
+          링크를 열면 AAFCO·NRC 기준 충족까지 한눈에 보여요
         </div>
 
-        {/* 보낸 초대 */}
-        <MonoText size={7} ls="0.18em" style={{ display: 'block', marginTop: 10 }}>보낸 초대 · 1건</MonoText>
+        {/* 공유 링크 상태 */}
+        <MonoText size={7} ls="0.18em" style={{ display: 'block', marginTop: 10 }}>공유 링크 · 유효</MonoText>
         <V3Card style={{ marginTop: 5, padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Plus size={11} color={V3.inkMute} strokeWidth={2} />
+          <span aria-hidden style={{ width: 5, height: 5, borderRadius: 3, background: V3.sage, flexShrink: 0 }} />
           <span style={{ flex: 1, fontFamily: sans, fontSize: 8.5, fontWeight: 600, color: V3.inkSoft }}>
-            아빠 · 초대 링크 전송됨
+            farmerstail.kr/vet/···· · 7일간 열람 가능
           </span>
-          <MonoText color={V3.yellow} size={7} weight={700} style={{ color: '#B8860B' }}>대기중</MonoText>
+          <MonoText size={7} weight={700} style={{ color: V3.sage }}>활성</MonoText>
         </V3Card>
       </div>
     </div>
@@ -1005,17 +980,17 @@ const FEATURES: Feature[] = [
     screen: <ScreenHealth />,
   },
   {
-    key: 'family',
-    eyebrow: 'Family',
+    key: 'vet',
+    eyebrow: 'Vet Report',
     title: (
       <>
-        온 가족이 함께
+        동물병원 갈 때,
         <br />
-        같은 아이를 챙겨요
+        분석 결과를 그대로 공유
       </>
     ),
-    body: '아침은 엄마가, 산책은 동생이 — 초대 링크 하나면 가족 모두가 같은 기록을 보고 함께 쓸 수 있어요. 누가 언제 뭘 챙겼는지 보이니까 "밥 줬어?"를 두 번 묻지 않아도 돼요.',
-    screen: <ScreenFamily />,
+    body: '체중·체형·하루 급여량·화식 구성을 수의사용 리포트 한 장으로 정리해, 링크 하나로 보여줘요. 진료실에서 "뭘 먹이나요"에 화면을 바로 보여줄 수 있고, AAFCO·NRC 기준 충족 여부도 그대로 담겨 있어요. 우리 아이 케어가 병원과 자연스럽게 이어져요.',
+    screen: <ScreenVet />,
   },
   {
     key: 'subscription',
