@@ -46,8 +46,8 @@ const RECIPE_LINES: FoodLine[] = ['weight', 'premium', 'basic', 'joint']
 // 전체(+veg·오일)는 "재료 전체" 상세에서. (소는 내장도 한우 표기 — 사장님)
 const RECIPES: Record<string, { main: string; organs: string[]; toppings: string[]; veg: string[] }> = {
   weight: { main: '닭가슴살', organs: ['닭간', '닭심장'], toppings: ['브로콜리', '블루베리'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
-  premium: { main: '한우 목심', organs: ['한우 간', '한우 심장'], toppings: ['비트', '브로콜리'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
-  basic: { main: '오리 안심', organs: ['오리 간', '오리 심장'], toppings: ['애호박', '양배추'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
+  premium: { main: '한우 목심', organs: ['한우 간', '한우 심장'], toppings: ['비트', '블루베리'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
+  basic: { main: '오리 안심', organs: ['오리 간', '오리 심장'], toppings: ['애호박', '사과'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
   joint: { main: '돼지 안심', organs: ['돼지 간', '돼지 심장'], toppings: ['무', '양배추'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
 }
 /** 카드 노출용 — 메인 단백질 + 내장 + 컨셉 토핑. */
@@ -98,7 +98,7 @@ const RECIPE_TITLES: Record<string, string> = {
 // 레시피(단백질) 특성 → 편익 한 줄. 추천 카드의 "추천 이유"에 그 아이의 근거
 // (트리거)와 결합해 노출 — "체중 관리 · 저지방 닭가슴살이라…" 식(사장님 2026-07-14).
 const RECIPE_WHY: Record<string, string> = {
-  weight: '저지방 닭가슴살이라 담백하고 소화가 편해요',
+  weight: '단백질이 진한 닭가슴살이라 근육 지키며 체중 관리에 좋아요',
   premium: '고단백·헴철분이 풍부해 활력과 근육에 좋아요',
   basic: '흔한 알레르겐이 아니라 예민한 속에도 부담이 적어요',
   joint: '저지방 흑돼지 안심이라 부드럽고 소화가 편해요',

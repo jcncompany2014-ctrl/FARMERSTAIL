@@ -447,12 +447,8 @@ function LatestAnalysisHero({
             >
               영양소 분포
             </span>
-            <span
-              className="text-[10.5px] font-mono tabular-nums"
-              style={{ color: 'var(--ink-fg-mute)' }}
-            >
-              P {protein.toFixed(0)} · F {fat.toFixed(0)} · C {carb.toFixed(0)}
-            </span>
+            {/* 정확한 성분% 노출 금지(2026-07-18) — 막대·범례로 비율만 시각화,
+                숫자 readout 제거. [[feedback_no_exact_nutrient_percent]] */}
           </div>
           <div
             className="h-2 rounded-full overflow-hidden flex"

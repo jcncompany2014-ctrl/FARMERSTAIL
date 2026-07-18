@@ -119,8 +119,8 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     persona: '모찌',
     concept: '체중관리·항염',
     subtitle: '프레시 치킨 레시피',
-    benefit: '4종 중 지방이 가장 적어요. 체중 관리에.',
-    topping: '강황',
+    benefit: '4종 중 단백질이 가장 진해요. 근육 지키며 체중 관리에.',
+    topping: '브로콜리',
     slug: 'chicken-basic',
     // v2.0 ③-A: 닭 = weight 키 (임상 '다이어트 라인' 룰이 닭을 가리키게).
     legacyLine: 'weight',
@@ -153,7 +153,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     concept: '알레르기·장건강',
     subtitle: '프레시 오리 레시피',
     benefit: '닭·소를 뺐어요. 알레르기가 걱정될 때.',
-    topping: '사과',
+    topping: '애호박',
     slug: 'duck-weight',
     // v2.0 ③-A: 오리 = basic 키 (노블/알레르기 라인).
     legacyLine: 'basic',
@@ -212,7 +212,7 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     concept: '활력·프리미엄',
     subtitle: '프레시 한우 레시피',
     benefit: '철분이 풍부해요. 활동량 많은 아이에게.',
-    topping: '블루베리',
+    topping: '비트',
     slug: 'beef-premium',
     legacyLine: 'premium',
     novel: false,
@@ -291,8 +291,8 @@ export const CARE_GOAL_PRIMARY: Record<CareGoal, ProteinKey> = {
  * 구 라인 키 → 단백질.
  *
  * v2.0 ③-A 리바인드: weight=닭, basic=오리. 임상 룰(BCS·당뇨·췌장염 등)이
- * "weight 라인 = 저칼로리·저지방 다이어트" 전제로 작성돼 있어, 닭(115kcal·
- * 최저지방 19%DM)을 weight 키에 바인딩하면 **룰 무변경**으로
+ * "weight 라인 = 저칼로리·저지방 다이어트" 전제로 작성돼 있어, 닭(v4.0 130kcal·
+ * 조단백 최고·조지방 낮은 편)을 weight 키에 바인딩하면 **룰 무변경**으로
  * 레시피 정합(체중관리→닭, 췌장염 저지방→닭). basic 키 = 오리(노블/알레르기).
  */
 export const LEGACY_LINE_TO_PROTEIN: Record<LegacyLine, ProteinKey> = {
