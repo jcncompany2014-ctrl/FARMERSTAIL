@@ -22,11 +22,16 @@
  * # 모델 (2026-07-13 확정 — 무조건 2주마다 배송·결제)
  *  · 사이클 = 14일치. 매 끼 화식 비율(freshRatio)만큼 섞어 급여 →
  *    하루 화식 분량 = 100% 분량 × freshRatio/100. 나머지는 보호자 사료.
- *  · 메인 5종 — 1팩 = 1일 화식 분량(10g 단위 ceil), 14일 = 14팩.
- *  · 토퍼 — 100g 동결건조 고정 팩, 사이클 총 필요량 ±5% tolerance.
- *  · 가격 — product.price 는 **100g 단위 단가**(예: 소 7,000원/100g).
- *    메인 1팩 = mealG/100 × 단가 (100원 단위 반올림) → 총액이 화식 비율에 비례
- *    (곁들임 30% ≈ 풀 화식의 30% 가격).
+ *  · 메인 5종 — 1팩 = 1일 화식 분량(5g 단위 **무조건 올림**), 14일 = 14팩.
+ *  · 토퍼 — 100g 동결건조 고정 팩, 팩 수 **무조건 올림**(폐지 상태 — 호환 경로).
+ *  · 가격 — product.price 는 **100g 단위 단가**(예: 소 8,300원/100g).
+ *    ①청구(최종가): 라인 총액 = mealG/100 × 단가 × 14 를 **100원 단위 올림,
+ *      총액 레벨에서 한 번만**(팩당 올림 ×14 증폭 금지). 총액이 화식 비율에
+ *      비례(곁들임 30% ≈ 풀 화식의 30% 가격).
+ *    ②팩당 표시가: 최종가 ÷ 팩수, 1원 단위면 **10원 올림** — 팩당×팩수 ≥
+ *      최종가라 고객 검산에서 올림이 드러나지 않는다.
+ *  · ★반올림·내림 금지 — 그램·가격 모두 올림만(사장님 2026-07-19). 고객이
+ *    처방량보다 덜 받거나, 원가보다 낮게 청구되는 방향의 오차를 없앤다.
  *  · 배송비 0 (구독가에 번들 — 낱개 커머스 폐지 후).
  */
 import { FOOD_LINE_META, ALL_LINES } from './lines.ts'
@@ -49,9 +54,6 @@ export const CYCLE_DAYS = DELIVERY_INTERVAL_DAYS
 
 /** 토퍼 kcal/100g fallback — product.nutrition_facts 없을 때 (USDA 동결건조 평균). */
 export const TOPPER_KCAL_PER_100G = 380
-
-/** 사료관리법 표시기준 허용 오차 (95% 이상 발송이면 floor 허용). */
-const TOLERANCE = 0.95
 
 /** 가격 산정에 필요한 최소 product 모양. 화면 타입(OrderProduct 등)은 이걸 만족하면 됨. */
 export type BoxProduct = {
@@ -83,25 +85,33 @@ export type BoxItem<P extends BoxProduct = BoxProduct> = {
   cycleG: number
   /** 사이클 실제 발송 g. */
   deliveredG: number
-  /** 1팩 단가 (구독가 기준 — 실청구). */
+  /** 라인 사이클 총액(구독가) — **실청구 정본**. 100원 올림은 여기서 한 번만. */
+  cycleTotal: number
+  /** 라인 사이클 총액(정가) — "정가→구독 할인" 앵커. 표시 전용. */
+  listCycleTotal: number
+  /** 1팩 **표시** 단가 = cycleTotal ÷ 팩수 (10원 올림). 청구 계산에 쓰지 말 것. */
   pricePerPack: number
-  /** 1팩 정가 — "정가→구독 할인" 시각화용. 표시 전용. */
+  /** 1팩 표시 정가 = listCycleTotal ÷ 팩수 (10원 올림). 표시 전용. */
   listPricePerPack: number
 }
 
 /**
  * 메인 라인 — 1팩 = 1일 한끼 분량.
- * 일일 g 을 10g 단위로 ceil (사료관리법 표시기준 ±5% 허용 내).
- * 예: 164g → 170g, 158g → 160g.
+ * 일일 g 을 5g 단위로 **무조건 올림** (사장님 2026-07-19: 절대 내림 없음 —
+ * 고객이 처방량보다 덜 받는 일이 없어야 한다. 표시량 이상 발송이라 사료관리법
+ * 표시기준도 자동 충족).
+ * 예: 164g → 165g, 161g → 165g, 165g → 165g.
  */
 export function mealPortionG(dailyG: number): number {
   if (dailyG <= 0) return 0
-  return Math.ceil(dailyG / 10) * 10
+  return Math.ceil(dailyG / 5) * 5
 }
 
 /**
- * 토퍼 — 100g 동결건조 고정 팩. 사이클 총 필요량을 100g 팩 단위로
- * 사료관리법 ±5% 허용 내 floor/ceil 결정.
+ * 토퍼 — 100g 동결건조 고정 팩. 사이클 총 필요량을 100g 팩 단위로 **무조건
+ * 올림** (사장님 2026-07-19: 절대 내림 없음. 이전엔 사료관리법 ±5% 내 floor
+ * 허용이었으나 폐지 — 처방량 미만 발송 자체를 없앤다).
+ * 단, 토퍼 자체가 2026-07-13 폐지라 새 처방은 전부 0 — 옛 저장분 호환 경로.
  */
 export function topperPacksForCycle(cycleG: number): {
   packs: number
@@ -109,21 +119,37 @@ export function topperPacksForCycle(cycleG: number): {
 } {
   if (cycleG <= 0) return { packs: 1, deliveredG: 100 }
   const packG = 100
-  const exact = cycleG / packG
-  const floor = Math.max(1, Math.floor(exact))
-  const ceil = Math.max(1, Math.ceil(exact))
-  if (floor === ceil) return { packs: floor, deliveredG: floor * packG }
-  if (floor * packG >= cycleG * TOLERANCE) {
-    return { packs: floor, deliveredG: floor * packG }
-  }
-  return { packs: ceil, deliveredG: ceil * packG }
+  const packs = Math.max(1, Math.ceil(cycleG / packG))
+  return { packs, deliveredG: packs * packG }
 }
 
 /**
- * 100g 단위 단가 기반 1팩 가격 — 100원 단위 반올림.
+ * 라인 사이클 총액(= 청구에 들어가는 최종가) — 원값 × 팩수를 **100원 단위
+ * 무조건 올림, 총액 레벨에서 한 번만**.
+ *
+ * ★사장님 2026-07-19: 팩당 가격을 먼저 올림하고 ×14 하면 올림이 14배 증폭
+ * (최대 +1,400원/라인)된다. 올림은 최종가에서 딱 한 번 — 고객에게 정직하고
+ * 원 단위 지저분함도 없다.
  */
-export function pricePerPack(unitPricePer100g: number, packG: number): number {
-  return Math.round(((packG / 100) * unitPricePer100g) / 100) * 100
+export function lineCycleTotal(
+  unitPricePer100g: number,
+  packG: number,
+  packs: number,
+): number {
+  return Math.ceil(((packG / 100) * unitPricePer100g * packs) / 100) * 100
+}
+
+/**
+ * 팩당 **표시** 가격 = 최종가 ÷ 팩수, 1원 단위가 나오면 10원 단위 **올림**.
+ *
+ * ★사장님 2026-07-19: "1팩당 가격은 무조건 최종가격에서 나누기. 1원 단위로
+ * 나오면 10원 단위로 올림." 올림 방향이라 팩당가 × 팩수 ≥ 최종가 — 고객이
+ * 팩당가로 검산하면 총액이 항상 같거나 **더 싸게** 나오므로 올림이 드러나지
+ * 않는다(내림이면 총액이 더 비싸져 들킨다).
+ */
+export function displayPricePerPack(cycleTotal: number, packs: number): number {
+  if (packs <= 0) return 0
+  return Math.ceil(cycleTotal / packs / 10) * 10
 }
 
 /**
@@ -167,6 +193,8 @@ export function computeBoxItems<P extends BoxProduct>(input: {
     const dailyG = ((ratio * dailyKcal) / kcalPer100g) * 100 * freshFactor
     const mealG = mealPortionG(dailyG)
     const unitPrice = product.sale_price ?? product.price
+    const cycleTotal = lineCycleTotal(unitPrice, mealG, cycleDays)
+    const listCycleTotal = lineCycleTotal(product.price, mealG, cycleDays)
     items.push({
       slug,
       line,
@@ -178,8 +206,10 @@ export function computeBoxItems<P extends BoxProduct>(input: {
       dailyG,
       cycleG: dailyG * cycleDays,
       deliveredG: mealG * cycleDays,
-      pricePerPack: pricePerPack(unitPrice, mealG),
-      listPricePerPack: pricePerPack(product.price, mealG),
+      cycleTotal,
+      listCycleTotal,
+      pricePerPack: displayPricePerPack(cycleTotal, cycleDays),
+      listPricePerPack: displayPricePerPack(listCycleTotal, cycleDays),
     })
   }
 
@@ -208,7 +238,9 @@ export function computeBoxItems<P extends BoxProduct>(input: {
       dailyG,
       cycleG,
       deliveredG,
-      // 토퍼는 100g 표준 팩 → 단가 그대로
+      // 토퍼는 100g 표준 팩 → 총액 = 단가 × 팩수 (이미 100원 단위, 올림 불요)
+      cycleTotal: unitPrice * packs,
+      listCycleTotal: product.price * packs,
       pricePerPack: unitPrice,
       listPricePerPack: product.price,
     })
@@ -240,12 +272,14 @@ export type BoxPrice = {
 
 /**
  * 항목 → 금액. `subscriptions.total_amount` 의 정본 계산.
+ * ★합산은 cycleTotal(라인 최종가) — pricePerPack(표시가)로 합치면 10원 올림이
+ * 팩수만큼 증폭되므로 절대 금지.
  */
 export function priceBox<P extends BoxProduct>(
   items: Array<BoxItem<P>>,
 ): BoxPrice {
   const subtotal = subscribableItems(items).reduce(
-    (s, it) => s + it.pricePerPack * it.quantity,
+    (s, it) => s + it.cycleTotal,
     0,
   )
   const shipping = 0

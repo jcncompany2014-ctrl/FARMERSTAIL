@@ -176,9 +176,13 @@ type LineItem = {
   cycleG: number
   /** 사이클 실제 발송 g. */
   deliveredG: number
-  /** 1팩 단가 (구독가 = sale_price ?? price 기준 — 실청구). */
+  /** 라인 사이클 총액(구독가) — 실청구 정본(100원 올림은 총액에서 한 번만). */
+  cycleTotal: number
+  /** 라인 사이클 총액(정가) — "정가→구독 할인" 앵커. 표시 전용. */
+  listCycleTotal: number
+  /** 1팩 표시 단가 = cycleTotal ÷ 팩수 (10원 올림). 합산 금지 — 표시 전용. */
   pricePerPack: number
-  /** 1팩 정가 (products.price 기준) — "정가→구독 할인" 시각화용. 표시 전용. */
+  /** 1팩 표시 정가 = listCycleTotal ÷ 팩수 (10원 올림). 표시 전용. */
   listPricePerPack: number
 }
 
@@ -279,15 +283,11 @@ export default function OrderClient({
     ? computeBoxItems({ formula, freshRatio, products })
     : []
 
-  const subtotal = items.reduce(
-    (sum, it) => sum + it.pricePerPack * it.quantity,
-    0,
-  )
+  // 합산은 cycleTotal(라인 최종가) — 팩당 표시가(10원 올림)로 합치면 올림이
+  // 팩수만큼 증폭돼 청구 정본(priceBox)과 갈라진다(사장님 2026-07-19 규칙).
+  const subtotal = items.reduce((sum, it) => sum + it.cycleTotal, 0)
   // 정가 합계 — "500g 팩 정가 앵커에서 구독 15% 할인" 시각화용(표시 전용, 청구 무관).
-  const listSubtotal = items.reduce(
-    (sum, it) => sum + it.listPricePerPack * it.quantity,
-    0,
-  )
+  const listSubtotal = items.reduce((sum, it) => sum + it.listCycleTotal, 0)
   const subDiscount = Math.max(0, listSubtotal - subtotal)
   const shippingFee = 0
   const totalAmount = subtotal + shippingFee

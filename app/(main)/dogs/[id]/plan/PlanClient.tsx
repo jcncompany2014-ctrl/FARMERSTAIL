@@ -10,9 +10,10 @@
  *  - 알레르기 차단 라인은 잠금.
  *  - 화식 비율(곁들임/반반/완전) + 첫박스 할인.
  *
- * # Phase 1.5 (현재)
- *  실제 재료 반영(사장님 배합표). CTA → /order. 선택 handoff·실제 가격 정합·
- *  결과지 슬림화·실사 사진은 후속.
+ * # Phase 진행 (2026-07-19 가격 정합까지 완료)
+ *  실제 재료(사장님 배합표)·선택 handoff(?recipes=)·가격 정합(boxPricing 정본
+ *  공유 — 결제 바 금액 = /order 실청구액)·결과지 슬림화까지 반영.
+ *  남은 것: 실사 누끼 사진(사장님 자산 대기).
  */
 
 import { useEffect, useState, type CSSProperties } from 'react'
@@ -21,7 +22,13 @@ import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight, Info } from
 import { petName } from '@/lib/korean'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
-import { LINE_TO_SLUG } from '@/lib/personalization/skuMap'
+import {
+  computeBoxItems,
+  priceBox,
+  subscribableItems,
+  CYCLE_DAYS,
+} from '@/lib/personalization/boxPricing'
+import { ratiosFromPicks } from '@/lib/personalization/boxPicks'
 import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
 import { snapBoxLines } from '@/lib/personalization/boxComposition'
 import { fetchComputedFormula } from '@/lib/personalization/formulaCache'
@@ -109,9 +116,6 @@ const RECIPE_WHY: Record<string, string> = {
 // 티어 정의는 정본 lib/subscription/freshTier (FRESH_TIERS). 3화면 공유.
 
 const MAX_RECIPES = 2
-
-/** 배송·결제 사이클 = 2주(14일) 고정. 결제 바의 '총가격' 산정 기준. */
-const CYCLE_DAYS = 14
 
 // 블랭킷 첫주문 50% 폐지(2026-07-17 사장님). 할인 규칙: 기본 구독 15%(전원) +
 // 나무 등급만 추가 10% + 그 외(50% 등)는 이벤트 페이지 신규가입자만·admin 설정.
@@ -292,31 +296,32 @@ function PlanView({
     })
   }
 
-  // 대표 일일 가격 — 선택 라인 50:50(2종)/100%(1종) × 화식 비율.
-  const freshFactor = freshRatio / 100
-  const perLineRatio = selected.size === 2 ? 0.5 : 1
-  // dailyList = 정가 기준, dailyRegular = 구독가(정가 −15%, products.sale_price).
-  // 표시는 기본 구독가만 — 나무 등급 +10%·이벤트(신규가입) 할인은 계정 조건이라
-  // 결제 시 자동 적용된다(2026-07-17: 블랭킷 첫주문 50% 폐지).
-  let dailyList = 0
-  let dailyRegular = 0
-  if (formula) {
-    for (const line of selected) {
-      const slug = LINE_TO_SLUG[line]
-      const product = slug ? products[slug] : undefined
-      if (!product) continue
-      const kcalPer100g = FOOD_LINE_META[line].kcalPer100g
-      const dailyG = ((perLineRatio * formula.dailyKcal) / kcalPer100g) * 100 * freshFactor
-      const unitPrice = product.sale_price ?? product.price
-      dailyList += (dailyG / 100) * product.price
-      dailyRegular += (dailyG / 100) * unitPrice
-    }
-  }
-  const dailyPay = Math.round(dailyRegular / 10) * 10
-  // 2주(14일) 사이클 총액 — 하단 결제 바 '총가격'. 취소선 앵커 = 정가(구독가와 비교).
-  const cyclePay = Math.round((dailyRegular * CYCLE_DAYS) / 10) * 10
-  const cycleList = Math.round((dailyList * CYCLE_DAYS) / 10) * 10
-  const cycleAnchor = cycleList
+  // 대표 가격 — /order 실청구와 **같은 정본**(boxPricing.computeBoxItems)으로 계산.
+  // 이전엔 여기서 간이 곱셈(10g 올림 없음·100원 반올림 없음·토퍼 누락)으로 자체
+  // 계산해, 토퍼 있는 처방이면 결제 바 금액이 주문서보다 몇천 원 낮게 보였다
+  // (가격 정합 Phase③). 선택 레시피(1종 100%/2종 50:50)는 /order 가 ?recipes=
+  // 를 소비할 때 쓰는 ratiosFromPicks 와 같은 함수로 비율화 — 화면과 청구가 못
+  // 갈라진다. 표시는 기본 구독가만 — 나무 등급 +10%·이벤트(신규가입) 할인은
+  // 계정 조건이라 결제 시 자동 적용(2026-07-17 블랭킷 첫주문 50% 폐지).
+  const boxItems = formula
+    ? computeBoxItems({
+        formula: {
+          lineRatios: ratiosFromPicks([...selected]),
+          toppers: formula.toppers,
+          dailyKcal: formula.dailyKcal,
+        },
+        freshRatio,
+        products,
+      })
+    : []
+  // 앵커(정가 취소선)도 청구 대상 필터(priceBox 와 동일)를 태워야 할인 폭이
+  // 실제와 일치한다. 합산은 listCycleTotal — 팩당 표시가 합산 금지(올림 증폭).
+  const billable = subscribableItems(boxItems)
+  const cyclePay = priceBox(boxItems).total
+  const cycleAnchor = billable.reduce((s, it) => s + it.listCycleTotal, 0)
+  // 하루 단가 = 사이클 총액 ÷ 14 (10원 올림 — 가격은 절대 내림 없음, 실제보다
+  // 낮아 보이는 방향의 오차 금지. 사장님 2026-07-19).
+  const dailyPay = Math.ceil(cyclePay / CYCLE_DAYS / 10) * 10
   const offLabel = `구독 ${SUBSCRIPTION_DISCOUNT_PCT}%`
 
   const others = RECIPE_LINES.filter((l) => !selected.has(l))
