@@ -499,7 +499,10 @@ function applyBreedPredispose(
             ? 'joint'
             : pred === 'allergy_skin'
               ? 'skin'
-              : pred === 'kidney' || pred === 'cardiac' || pred === 'mmvd'
+              : // cardiac/mmvd 만 소(Premium=한우) 유도 — 타우린 근거(DCM 예방).
+                // kidney·urinary_stone 은 소가 고인/옥살산이라 유도 제거(진단 시엔
+                // applyChronicAdjustments 가 premium 제외). [[project_recipe_v31]]
+                pred === 'cardiac' || pred === 'mmvd'
                 ? 'premium'
                 : pred === 'obesity'
                   ? 'weight'
