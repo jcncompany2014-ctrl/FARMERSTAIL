@@ -10,10 +10,8 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
-import { getAAFCORanges, stageFromKR } from '@/lib/nutrition'
 import { fetchComputedFormula } from '@/lib/personalization/formulaCache'
 import { weightReliability } from '@/lib/personalization/reliability'
-import type { NutrientRow as MagNutrientRow } from '@/components/analysis/magazine/NutrientsCard'
 import type { BoxMixItem as MagBoxMixItem } from '@/components/analysis/magazine/BoxMixCard'
 import {
   merConfidenceInterval,
@@ -263,7 +261,6 @@ export default function AnalysisView({
     return <AnalysisEmptyState dogId={dogId} />
   }
 
-  const ranges = getAAFCORanges(stageFromKR(analysis.stage))
   const isArchive = !!analysisId
   const analysisDate = new Date(analysis.created_at).toLocaleDateString(
     'ko-KR',
@@ -294,44 +291,6 @@ export default function AnalysisView({
   const magMerCi = merConfidenceInterval(analysis.mer, merAccuracy)
   const magMerMin = magMerCi.low
   const magMerMax = magMerCi.high
-  const magNutrientRows: MagNutrientRow[] = [
-    {
-      key: 'protein',
-      name: '단백질',
-      emoji: '🍗',
-      value: Math.round(analysis.protein_pct),
-      gpd: Math.round(analysis.protein_g),
-      min: ranges.protein.min,
-      max: ranges.protein.max,
-    },
-    {
-      key: 'fat',
-      name: '지방',
-      emoji: '🥑',
-      value: Math.round(analysis.fat_pct),
-      gpd: Math.round(analysis.fat_g),
-      min: ranges.fat.min,
-      max: ranges.fat.max,
-    },
-    {
-      key: 'carb',
-      name: '탄수화물',
-      emoji: '🌽',
-      value: Math.round(analysis.carb_pct),
-      gpd: Math.round(analysis.carb_g),
-      min: ranges.carb?.min ?? 0,
-      max: ranges.carb?.max ?? 60,
-    },
-    {
-      key: 'fiber',
-      name: '식이섬유',
-      emoji: '🥕',
-      value: Math.round(analysis.fiber_pct),
-      gpd: Math.round(analysis.fiber_g),
-      min: ranges.fiber?.min ?? 1,
-      max: ranges.fiber?.max ?? 8,
-    },
-  ]
   // 5종 박스 — 실제 추천 알고리즘 (formula.lineRatios) 결과로 동적 생성.
   // formula fetch 실패 시 FOOD_LINE_META 기반 균등 분포 default.
   // FOOD_LINE_META 매핑: basic=닭 / weight=오리 / skin=연어 / premium=소 / joint=돼지.
@@ -412,7 +371,6 @@ export default function AnalysisView({
           rer={analysis.rer}
           factor={analysis.factor}
           feedG={analysis.feed_g}
-          nutrientRows={magNutrientRows}
           boxItems={magBoxItems}
           boxLoading={formulaLoading && !formula}
           boxReasoning={formula?.reasoning ?? []}

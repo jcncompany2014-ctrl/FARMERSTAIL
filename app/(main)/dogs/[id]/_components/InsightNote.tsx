@@ -6,7 +6,7 @@
  *
  * 문구 생성은 lib/dog-insight (순수 함수 + 테스트). 여기선 렌더만 한다.
  * tone → 색만 바뀌고 레이아웃은 동일. 'watch' 도 경보가 아니라 '눈여겨볼 변화'
- * 수준의 톤 — 진짜 경보는 InterventionWindowCard 담당.
+ * 수준의 톤 — 진짜 경보는 건강 알림(급변·개입 푸시)이 담당.
  */
 import { Sparkles } from 'lucide-react'
 import type { DogInsight } from '@/lib/dog-insight'

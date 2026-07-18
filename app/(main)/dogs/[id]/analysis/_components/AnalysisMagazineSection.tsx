@@ -13,7 +13,6 @@ import { WARM_CREAM } from '@/components/analysis/magazine/palette'
 import { HeroSection as MagHero } from '@/components/analysis/magazine/HeroSection'
 import { DiagnosisCard as MagDiagnosis } from '@/components/analysis/magazine/DiagnosisCard'
 import { DailyEnergyCard as MagDailyEnergy } from '@/components/analysis/magazine/DailyEnergyCard'
-import { type NutrientRow as MagNutrientRow } from '@/components/analysis/magazine/NutrientsCard'
 import {
   BoxMixCard as MagBoxMix,
   type BoxMixItem as MagBoxMixItem,
@@ -48,7 +47,6 @@ type Props = {
   rer: number
   factor: number
   feedG: number
-  nutrientRows: MagNutrientRow[]
   boxItems: MagBoxMixItem[]
   /** dog별 formula 아직 로딩 중 — 박스는 가짜 placeholder 대신 스켈레톤. */
   boxLoading?: boolean
