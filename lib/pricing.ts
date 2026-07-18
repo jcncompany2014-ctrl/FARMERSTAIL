@@ -6,10 +6,13 @@
  *
  *   | SKU  | 정가/100g | 구독가/100g | 500g 정가 |
  *   |------|----------|------------|----------|
- *   | 닭   | 4,100    | 3,485      | 20,500   |
- *   | 오리 | 4,800    | 4,080      | 24,000   |
- *   | 돼지 | 5,400    | 4,590      | 27,000   |
- *   | 소   | 7,700    | 6,545      | 38,500   |
+ *   | 닭   | 4,800    | 4,080      | 24,000   |
+ *   | 오리 | 5,400    | 4,590      | 27,000   |
+ *   | 돼지 | 6,100    | 5,185      | 30,500   |
+ *   | 소   | 8,300    | 7,055      | 41,500   |
+ *
+ * (2026-07-18 v4.0 마스터 레시피 원가계산 시트 앵커가격으로 갱신. 구 2026-07-11
+ *  가격[20,500/24,000/27,000/38,500]은 페르소나 시트값이라 폐기.)
  *
  * # DB 와의 관계
  * `products.price` = 정가/100g, `products.sale_price` = 구독가/100g.
@@ -35,14 +38,14 @@ export interface SkuPricing {
 export const SUBSCRIPTION_DISCOUNT_PCT = 15
 
 export const SKU_PRICING: Record<Exclude<ProteinKey, 'salmon'>, SkuPricing> = {
-  chicken: { listPer100g: 4100, subPer100g: 3485, listPack500g: 20500 },
-  duck: { listPer100g: 4800, subPer100g: 4080, listPack500g: 24000 },
-  pork: { listPer100g: 5400, subPer100g: 4590, listPack500g: 27000 },
-  beef: { listPer100g: 7700, subPer100g: 6545, listPack500g: 38500 },
+  chicken: { listPer100g: 4800, subPer100g: 4080, listPack500g: 24000 },
+  duck: { listPer100g: 5400, subPer100g: 4590, listPack500g: 27000 },
+  pork: { listPer100g: 6100, subPer100g: 5185, listPack500g: 30500 },
+  beef: { listPer100g: 8300, subPer100g: 7055, listPack500g: 41500 },
 } as const
 
 /**
  * 4종 구독가 평균 (원/100g) — 설문 퍼널 등 박스 구성 확정 전의 일일 비용 추정용.
- * (3485+4080+4590+6545)/4 = 4675.
+ * (4080+4590+5185+7055)/4 = 5227.5 → 5228.
  */
-export const AVG_SUB_KRW_PER_100G = 4675
+export const AVG_SUB_KRW_PER_100G = 5228
