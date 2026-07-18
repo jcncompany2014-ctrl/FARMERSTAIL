@@ -296,6 +296,14 @@ export default function ProductForm({
       {/* 오른쪽: 가격 / 재고 / 상태 */}
       <div className="col-span-1 space-y-4">
         <Section title="가격 & 재고">
+          {form.category === '화식' && (
+            <p className="text-[11px] leading-relaxed rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 mb-1">
+              ⚠ 화식 가격은 <b>100g 단가</b>이고 실제 청구 계산의 정본이에요.
+              여기서만 바꾸면 웹 비교표 등 코드에 적힌 표시가격과 어긋나요 —
+              가격을 바꿀 땐 개발(Claude)에게 &ldquo;가격 바꿔줘&rdquo;라고
+              말해서 코드와 함께 바꿔 주세요.
+            </p>
+          )}
           <Field label="정가 (원) *">
             <input
               type="number"

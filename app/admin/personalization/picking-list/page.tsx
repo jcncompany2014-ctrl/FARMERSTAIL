@@ -149,11 +149,14 @@ export default async function PickingListPage({
     dogNames[d.id] = d.name
   }
 
-  // 강아지별 최신 **승인** 처방 — pending(승인 대기)은 발송하면 안 된다
-  // (불변식: 승인 전엔 옛 처방·옛 금액 그대로). cycle desc 정렬이라 첫 매치가 최신.
+  // 강아지별 최신 **발송 가능** 처방 — DB check 제약의 실제 값 기준:
+  //   auto_applied·approved = 발송 가능 / pending_approval(승인 대기)·
+  //   declined(보호자 거절) = 발송 금지 → 그 이전 승인분으로 폴백.
+  // (불변식: 승인 전엔 옛 처방·옛 금액 그대로.) cycle desc 정렬이라 첫 매치가 최신.
   const formulaByDog: Record<string, FormulaRow> = {}
   for (const f of ((formulasRaw ?? []) as unknown) as FormulaRow[]) {
-    if (f.approval_status === 'pending') continue
+    if (f.approval_status === 'pending_approval' || f.approval_status === 'declined')
+      continue
     if (!formulaByDog[f.dog_id]) formulaByDog[f.dog_id] = f
   }
 

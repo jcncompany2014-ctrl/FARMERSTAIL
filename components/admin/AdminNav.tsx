@@ -39,6 +39,9 @@ const GROUPS: NavGroup[] = [
       { href: '/admin/orders', icon: '📦', label: '주문 관리' },
       { href: '/admin/subscriptions', icon: '🔁', label: '정기배송' },
       { href: '/admin/subscriptions/calendar', icon: '📅', label: '배송 캘린더' },
+      // 발송 화요일마다 쓰는 핵심 화면 — 사이드바에 없어 URL 직접 입력으로만
+      // 접근 가능했다(2026-07-19 검수에서 복구).
+      { href: '/admin/personalization/picking-list', icon: '🧑‍🍳', label: '박스 패킹' },
       { href: '/admin/subscriptions/charges', icon: '💳', label: '자동결제 이력' },
       { href: '/admin/refunds', icon: '↩️', label: '환불 관리' },
       { href: '/admin/cs-inbox', icon: '📨', label: '고객 답장' },
@@ -69,6 +72,9 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: '/admin/personalization', icon: '✅', label: '레시피 승인' },
       { href: '/admin/personalization-insights', icon: '🧠', label: '맞춤 분석' },
+      // 아래 2개도 페이지만 있고 사이드바에 없던 것 복구(2026-07-19 검수).
+      { href: '/admin/algorithm', icon: '⚙️', label: '알고리즘 계수' },
+      { href: '/admin/invention-flags', icon: '🛡️', label: '발명 보호 플래그' },
       { href: '/admin/users', icon: '👥', label: '회원 관리' },
       { href: '/admin/promotions', icon: '🎟️', label: '이벤트 · 프로모션' },
       { href: '/admin/push-campaigns', icon: '📣', label: '알림 보내기' },
