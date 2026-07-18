@@ -1,11 +1,3 @@
-/**
- * Supabase generated types (audit #79).
- *
- * 생성: mcp__supabase__generate_typescript_types (재생성 2026-06).
- * 점검 fix: source_waitlist·webhook_events·payment_refund_queue·points_refunded·
- * refund_order_points 등 신규 스키마 반영 — 라우트의 as-unknown 캐스팅 의존 축소.
- */
-
 export type Json =
   | string
   | number
@@ -335,6 +327,7 @@ export type Database = {
           created_at: string | null
           dog_id: string
           factor: number | null
+          factor_breakdown: Json | null
           fat_g: number | null
           fat_pct: number | null
           feed_g: number | null
@@ -367,6 +360,7 @@ export type Database = {
           created_at?: string | null
           dog_id: string
           factor?: number | null
+          factor_breakdown?: Json | null
           fat_g?: number | null
           fat_pct?: number | null
           feed_g?: number | null
@@ -399,6 +393,7 @@ export type Database = {
           created_at?: string | null
           dog_id?: string
           factor?: number | null
+          factor_breakdown?: Json | null
           fat_g?: number | null
           fat_pct?: number | null
           feed_g?: number | null
@@ -472,24 +467,27 @@ export type Database = {
         }
         Relationships: []
       }
-      birthday_coupon_log: {
+      automation_settings: {
         Row: {
-          coupon_code: string
-          issued_at: string
-          user_id: string
-          year: number
+          id: number
+          marketing_push_hour: number
+          represcription_enabled: boolean
+          updated_at: string
+          updated_by: string | null
         }
         Insert: {
-          coupon_code: string
-          issued_at?: string
-          user_id: string
-          year: number
+          id?: number
+          marketing_push_hour?: number
+          represcription_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
         }
         Update: {
-          coupon_code?: string
-          issued_at?: string
-          user_id?: string
-          year?: number
+          id?: number
+          marketing_push_hour?: number
+          represcription_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -630,102 +628,6 @@ export type Database = {
           source?: string | null
           user_agent?: string | null
           user_id?: string
-        }
-        Relationships: []
-      }
-      coupon_redemptions: {
-        Row: {
-          coupon_id: string
-          id: string
-          order_id: string | null
-          redeemed_at: string
-          user_id: string
-        }
-        Insert: {
-          coupon_id: string
-          id?: string
-          order_id?: string | null
-          redeemed_at?: string
-          user_id: string
-        }
-        Update: {
-          coupon_id?: string
-          id?: string
-          order_id?: string | null
-          redeemed_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
-            columns: ["coupon_id"]
-            isOneToOne: false
-            referencedRelation: "coupons"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "coupon_redemptions_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      coupons: {
-        Row: {
-          audience_type: string
-          code: string
-          created_at: string
-          description: string | null
-          discount_type: string
-          discount_value: number
-          expires_at: string | null
-          id: string
-          is_active: boolean
-          max_discount: number | null
-          min_order_amount: number
-          name: string
-          per_user_limit: number | null
-          starts_at: string | null
-          usage_limit: number | null
-          used_count: number
-        }
-        Insert: {
-          audience_type?: string
-          code: string
-          created_at?: string
-          description?: string | null
-          discount_type: string
-          discount_value: number
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean
-          max_discount?: number | null
-          min_order_amount?: number
-          name: string
-          per_user_limit?: number | null
-          starts_at?: string | null
-          usage_limit?: number | null
-          used_count?: number
-        }
-        Update: {
-          audience_type?: string
-          code?: string
-          created_at?: string
-          description?: string | null
-          discount_type?: string
-          discount_value?: number
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean
-          max_discount?: number | null
-          min_order_amount?: number
-          name?: string
-          per_user_limit?: number | null
-          starts_at?: string | null
-          usage_limit?: number | null
-          used_count?: number
         }
         Relationships: []
       }
@@ -954,53 +856,6 @@ export type Database = {
           },
         ]
       }
-      dog_invitations: {
-        Row: {
-          accepted_at: string | null
-          created_at: string
-          declined_at: string | null
-          dog_id: string
-          email: string
-          expires_at: string
-          id: string
-          invited_by: string
-          role: string
-          token: string
-        }
-        Insert: {
-          accepted_at?: string | null
-          created_at?: string
-          declined_at?: string | null
-          dog_id: string
-          email: string
-          expires_at?: string
-          id?: string
-          invited_by: string
-          role?: string
-          token: string
-        }
-        Update: {
-          accepted_at?: string | null
-          created_at?: string
-          declined_at?: string | null
-          dog_id?: string
-          email?: string
-          expires_at?: string
-          id?: string
-          invited_by?: string
-          role?: string
-          token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dog_invitations_dog_id_fkey"
-            columns: ["dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       dog_medications: {
         Row: {
           created_at: string
@@ -1082,47 +937,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dog_members_dog_id_fkey"
-            columns: ["dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dog_progress_photos: {
-        Row: {
-          created_at: string
-          dog_id: string
-          id: string
-          note: string | null
-          photo_url: string
-          taken_at: string
-          user_id: string
-          view: string | null
-        }
-        Insert: {
-          created_at?: string
-          dog_id: string
-          id?: string
-          note?: string | null
-          photo_url: string
-          taken_at?: string
-          user_id: string
-          view?: string | null
-        }
-        Update: {
-          created_at?: string
-          dog_id?: string
-          id?: string
-          note?: string | null
-          photo_url?: string
-          taken_at?: string
-          user_id?: string
-          view?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dog_progress_photos_dog_id_fkey"
             columns: ["dog_id"]
             isOneToOne: false
             referencedRelation: "dogs"
@@ -1582,55 +1396,80 @@ export type Database = {
           },
         ]
       }
-      inactive_coupon_log: {
+      kibble_products: {
         Row: {
-          coupon_code: string
-          sent_at: string
-          user_id: string
-          year_month: string
+          ash: number | null
+          brand: string
+          created_at: string
+          crude_fat: number | null
+          crude_fiber: number | null
+          crude_protein: number | null
+          id: string
+          kcal_per_100g: number | null
+          kcal_source: string | null
+          moisture: number | null
+          package_size: string | null
+          product_name: string
+          search_keywords: string | null
         }
         Insert: {
-          coupon_code: string
-          sent_at?: string
-          user_id: string
-          year_month: string
+          ash?: number | null
+          brand: string
+          created_at?: string
+          crude_fat?: number | null
+          crude_fiber?: number | null
+          crude_protein?: number | null
+          id?: string
+          kcal_per_100g?: number | null
+          kcal_source?: string | null
+          moisture?: number | null
+          package_size?: string | null
+          product_name: string
+          search_keywords?: string | null
         }
         Update: {
-          coupon_code?: string
-          sent_at?: string
-          user_id?: string
-          year_month?: string
+          ash?: number | null
+          brand?: string
+          created_at?: string
+          crude_fat?: number | null
+          crude_fiber?: number | null
+          crude_protein?: number | null
+          id?: string
+          kcal_per_100g?: number | null
+          kcal_source?: string | null
+          moisture?: number | null
+          package_size?: string | null
+          product_name?: string
+          search_keywords?: string | null
         }
         Relationships: []
       }
-      manual_coupon_grants: {
+      kibble_requests: {
         Row: {
-          coupon_id: string
-          granted_at: string
-          granted_by: string | null
+          created_at: string
+          id: string
+          raw_input: string
+          request_count: number
+          status: string
           user_id: string
         }
         Insert: {
-          coupon_id: string
-          granted_at?: string
-          granted_by?: string | null
+          created_at?: string
+          id?: string
+          raw_input: string
+          request_count?: number
+          status?: string
           user_id: string
         }
         Update: {
-          coupon_id?: string
-          granted_at?: string
-          granted_by?: string | null
+          created_at?: string
+          id?: string
+          raw_input?: string
+          request_count?: number
+          status?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "manual_coupon_grants_coupon_id_fkey"
-            columns: ["coupon_id"]
-            isOneToOne: false
-            referencedRelation: "coupons"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       medical_records: {
         Row: {
@@ -1870,6 +1709,7 @@ export type Database = {
           delivered_at: string | null
           delivery_memo: string | null
           discount_amount: number
+          discount_reason: string | null
           id: string
           order_number: string
           order_status: string
@@ -1911,6 +1751,7 @@ export type Database = {
           delivered_at?: string | null
           delivery_memo?: string | null
           discount_amount?: number
+          discount_reason?: string | null
           id?: string
           order_number: string
           order_status?: string
@@ -1952,6 +1793,7 @@ export type Database = {
           delivered_at?: string | null
           delivery_memo?: string | null
           discount_amount?: number
+          discount_reason?: string | null
           id?: string
           order_number?: string
           order_status?: string
@@ -2395,7 +2237,7 @@ export type Database = {
           phone: string | null
           role: string | null
           stamp_count: number
-          tier: string
+          tier: string | null
           tier_updated_at: string | null
           updated_at: string | null
           zip: string | null
@@ -2424,7 +2266,7 @@ export type Database = {
           phone?: string | null
           role?: string | null
           stamp_count?: number
-          tier?: string
+          tier?: string | null
           tier_updated_at?: string | null
           updated_at?: string | null
           zip?: string | null
@@ -2453,10 +2295,88 @@ export type Database = {
           phone?: string | null
           role?: string | null
           stamp_count?: number
-          tier?: string
+          tier?: string | null
           tier_updated_at?: string | null
           updated_at?: string | null
           zip?: string | null
+        }
+        Relationships: []
+      }
+      promotion_claims: {
+        Row: {
+          claimed_at: string
+          id: string
+          promotion_id: string
+          redeemed_at: string | null
+          redeemed_order_id: string | null
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          id?: string
+          promotion_id: string
+          redeemed_at?: string | null
+          redeemed_order_id?: string | null
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          id?: string
+          promotion_id?: string
+          redeemed_at?: string | null
+          redeemed_order_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_claims_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_claims_redeemed_order_id_fkey"
+            columns: ["redeemed_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotions: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          discount_rate: number
+          ends_at: string
+          id: string
+          max_signups: number | null
+          name: string
+          starts_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          discount_rate: number
+          ends_at: string
+          id?: string
+          max_signups?: number | null
+          name: string
+          starts_at: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          discount_rate?: number
+          ends_at?: string
+          id?: string
+          max_signups?: number | null
+          name?: string
+          starts_at?: string
         }
         Relationships: []
       }
@@ -2499,76 +2419,13 @@ export type Database = {
         }
         Relationships: []
       }
-      promotion_claims: {
-        Row: {
-          claimed_at: string
-          id: string
-          promotion_id: string
-          redeemed_at: string | null
-          redeemed_order_id: string | null
-          user_id: string
-        }
-        Insert: {
-          claimed_at?: string
-          id?: string
-          promotion_id: string
-          redeemed_at?: string | null
-          redeemed_order_id?: string | null
-          user_id: string
-        }
-        Update: {
-          claimed_at?: string
-          id?: string
-          promotion_id?: string
-          redeemed_at?: string | null
-          redeemed_order_id?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      promotions: {
-        Row: {
-          active: boolean
-          code: string
-          created_at: string
-          discount_rate: number
-          ends_at: string
-          id: string
-          max_signups: number | null
-          name: string
-          starts_at: string
-        }
-        Insert: {
-          active?: boolean
-          code: string
-          created_at?: string
-          discount_rate: number
-          ends_at: string
-          id?: string
-          max_signups?: number | null
-          name: string
-          starts_at: string
-        }
-        Update: {
-          active?: boolean
-          code?: string
-          created_at?: string
-          discount_rate?: number
-          ends_at?: string
-          id?: string
-          max_signups?: number | null
-          name?: string
-          starts_at?: string
-        }
-        Relationships: []
-      }
       push_log: {
         Row: {
           body: string
           category: string | null
           id: string
-          nudge: boolean
           metadata: Json | null
+          nudge: boolean
           read_at: string | null
           sent_at: string
           sent_count: number
@@ -2580,8 +2437,8 @@ export type Database = {
           body: string
           category?: string | null
           id?: string
-          nudge?: boolean
           metadata?: Json | null
+          nudge?: boolean
           read_at?: string | null
           sent_at?: string
           sent_count?: number
@@ -2593,8 +2450,8 @@ export type Database = {
           body?: string
           category?: string | null
           id?: string
-          nudge?: boolean
           metadata?: Json | null
+          nudge?: boolean
           read_at?: string | null
           sent_at?: string
           sent_count?: number
@@ -2688,72 +2545,6 @@ export type Database = {
         }
         Relationships: []
       }
-      referral_codes: {
-        Row: {
-          code: string
-          created_at: string
-          user_id: string
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          user_id: string
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      referral_milestone_rewards: {
-        Row: {
-          granted_at: string
-          id: string
-          milestone: number
-          reward_type: string
-          reward_value: string
-          user_id: string
-        }
-        Insert: {
-          granted_at?: string
-          id?: string
-          milestone: number
-          reward_type: string
-          reward_value: string
-          user_id: string
-        }
-        Update: {
-          granted_at?: string
-          id?: string
-          milestone?: number
-          reward_type?: string
-          reward_value?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      referral_redemptions: {
-        Row: {
-          id: string
-          redeemed_at: string
-          referee_id: string
-          referrer_id: string
-        }
-        Insert: {
-          id?: string
-          redeemed_at?: string
-          referee_id: string
-          referrer_id: string
-        }
-        Update: {
-          id?: string
-          redeemed_at?: string
-          referee_id?: string
-          referrer_id?: string
-        }
-        Relationships: []
-      }
       refunds: {
         Row: {
           amount: number
@@ -2804,6 +2595,62 @@ export type Database = {
           },
         ]
       }
+      reweighs: {
+        Row: {
+          adjust_note: string | null
+          baseline_weight_kg: number
+          bcs: number | null
+          created_at: string
+          dog_id: string
+          goal: string
+          id: string
+          measured_at: string
+          new_der: number
+          prev_der: number
+          user_id: string
+          weight_delta_pct: number
+          weight_kg: number
+        }
+        Insert: {
+          adjust_note?: string | null
+          baseline_weight_kg: number
+          bcs?: number | null
+          created_at?: string
+          dog_id: string
+          goal: string
+          id?: string
+          measured_at: string
+          new_der: number
+          prev_der: number
+          user_id: string
+          weight_delta_pct: number
+          weight_kg: number
+        }
+        Update: {
+          adjust_note?: string | null
+          baseline_weight_kg?: number
+          bcs?: number | null
+          created_at?: string
+          dog_id?: string
+          goal?: string
+          id?: string
+          measured_at?: string
+          new_der?: number
+          prev_der?: number
+          user_id?: string
+          weight_delta_pct?: number
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reweighs_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       source_waitlist: {
         Row: {
           concern: string
@@ -2835,6 +2682,41 @@ export type Database = {
             columns: ["dog_id"]
             isOneToOne: false
             referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stamps: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          order_id: string | null
+          stamped_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          order_id?: string | null
+          stamped_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          order_id?: string | null
+          stamped_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stamps_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -2940,33 +2822,6 @@ export type Database = {
           },
         ]
       }
-      stamps: {
-        Row: {
-          created_at: string
-          expires_at: string
-          id: string
-          order_id: string | null
-          stamped_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at: string
-          id?: string
-          order_id?: string | null
-          stamped_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          order_id?: string | null
-          stamped_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       subscriptions: {
         Row: {
           address: string
@@ -2978,10 +2833,10 @@ export type Database = {
           cancelled_at: string | null
           coverage_weeks: number
           created_at: string
-          fresh_ratio: number | null
           delivery_memo: string | null
           dog_id: string | null
           failed_charge_count: number
+          fresh_ratio: number | null
           id: string
           interval_weeks: number
           last_charged_at: string | null
@@ -3016,20 +2871,20 @@ export type Database = {
           billing_key?: string | null
           cancelled_at?: string | null
           coverage_weeks?: number
-          fresh_ratio?: number | null
           created_at?: string
           delivery_memo?: string | null
           dog_id?: string | null
           failed_charge_count?: number
+          fresh_ratio?: number | null
           id?: string
-          interval_weeks: number
+          interval_weeks?: number
           last_charged_at?: string | null
           last_delivery_date?: string | null
           last_failed_charge_at?: string | null
           last_failed_charge_code?: string | null
           last_failed_charge_reason?: string | null
           mix_ratio?: number | null
-          next_delivery_date: string | null
+          next_delivery_date?: string | null
           next_retry_at?: string | null
           recipient_name: string
           recipient_phone: string
@@ -3055,11 +2910,11 @@ export type Database = {
           billing_key?: string | null
           cancelled_at?: string | null
           coverage_weeks?: number
-          fresh_ratio?: number | null
           created_at?: string
           delivery_memo?: string | null
           dog_id?: string | null
           failed_charge_count?: number
+          fresh_ratio?: number | null
           id?: string
           interval_weeks?: number
           last_charged_at?: string | null
@@ -3286,30 +3141,6 @@ export type Database = {
           },
         ]
       }
-      vip_coupon_log: {
-        Row: {
-          coupon_code: string
-          sent_at: string
-          tier: string
-          user_id: string
-          year_month: string
-        }
-        Insert: {
-          coupon_code: string
-          sent_at?: string
-          tier: string
-          user_id: string
-          year_month: string
-        }
-        Update: {
-          coupon_code?: string
-          sent_at?: string
-          tier?: string
-          user_id?: string
-          year_month?: string
-        }
-        Relationships: []
-      }
       webhook_events: {
         Row: {
           created_at: string
@@ -3399,50 +3230,6 @@ export type Database = {
         }
         Relationships: []
       }
-      dog_invitations_public: {
-        Row: {
-          accepted_at: string | null
-          created_at: string | null
-          declined_at: string | null
-          dog_id: string | null
-          email: string | null
-          expires_at: string | null
-          id: string | null
-          invited_by: string | null
-          role: string | null
-        }
-        Insert: {
-          accepted_at?: string | null
-          created_at?: string | null
-          declined_at?: string | null
-          dog_id?: string | null
-          email?: string | null
-          expires_at?: string | null
-          id?: string | null
-          invited_by?: string | null
-          role?: string | null
-        }
-        Update: {
-          accepted_at?: string | null
-          created_at?: string | null
-          declined_at?: string | null
-          dog_id?: string | null
-          email?: string | null
-          expires_at?: string | null
-          id?: string | null
-          invited_by?: string | null
-          role?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dog_invitations_dog_id_fkey"
-            columns: ["dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Functions: {
       accept_dog_invitation: {
@@ -3471,6 +3258,15 @@ export type Database = {
         Args: { p_user_id: string; p_window_days?: number }
         Returns: number
       }
+      claim_promotion: {
+        Args: { p_code: string }
+        Returns: {
+          ok: boolean
+          promo_name: string
+          rate: number
+          reason: string
+        }[]
+      }
       cohort_ltv_weekly: {
         Args: { weeks_back?: number }
         Returns: {
@@ -3480,6 +3276,18 @@ export type Database = {
           ltv_d7: number
           ltv_d90: number
           ltv_total: number
+        }[]
+      }
+      cohort_retention_weekly: {
+        Args: { p_max_cohorts?: number }
+        Returns: {
+          cohort_size: number
+          cohort_week: string
+          retention_w0: number
+          retention_w1: number
+          retention_w2: number
+          retention_w4: number
+          retention_w8: number
         }[]
       }
       dashboard_user_snapshot: { Args: { p_user_id: string }; Returns: Json }
@@ -3493,8 +3301,8 @@ export type Database = {
       }
       fetch_photo_request: { Args: { p_token: string }; Returns: Json }
       fetch_vet_share: { Args: { p_token: string }; Returns: Json }
-      fn_compute_tier: { Args: { spend: number }; Returns: string }
-      get_or_create_my_referral_code: { Args: never; Returns: string }
+      fn_compute_tier: { Args: { stamp_count: number }; Returns: string }
+      fn_refresh_stamp_count: { Args: { uid: string }; Returns: undefined }
       has_dog_access: { Args: { p_dog_id: string }; Returns: boolean }
       has_dog_role: {
         Args: { p_dog_id: string; p_min_role: string }
@@ -3515,7 +3323,6 @@ export type Database = {
       }
       increment_blog_view: { Args: { post_slug: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
-      issue_referral_milestones: { Args: never; Returns: Json }
       lookup_invitation_by_token: {
         Args: { p_token: string }
         Returns: {
@@ -3530,6 +3337,7 @@ export type Database = {
           role: string
         }[]
       }
+      pending_promotion_rate: { Args: { p_user_id: string }; Returns: number }
       record_reward_event: {
         Args: {
           p_arm_id: string
@@ -3540,14 +3348,6 @@ export type Database = {
         }
         Returns: string
       }
-      redeem_coupon: {
-        Args: { p_coupon_id: string; p_order_id: string; p_user_id: string }
-        Returns: {
-          message: string
-          ok: boolean
-        }[]
-      }
-      redeem_referral_code: { Args: { input_code: string }; Returns: Json }
       refund_order_points: {
         Args: {
           p_order_id: string
@@ -3562,13 +3362,6 @@ export type Database = {
       restore_stock: {
         Args: { p_product_id: string; p_qty: number }
         Returns: number
-      }
-      revoke_coupon_redemption: {
-        Args: { p_coupon_code: string }
-        Returns: {
-          message: string
-          ok: boolean
-        }[]
       }
       set_consent_level: { Args: { p_level: number }; Returns: Json }
       set_marketing_consent: {

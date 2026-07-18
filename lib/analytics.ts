@@ -14,6 +14,8 @@
  *     TypeError를 던지지 않음.
  */
 
+import { getStoredUtm } from './utm.ts'
+
 type GtagCommand = 'config' | 'event' | 'js' | 'set' | 'consent'
 type GtagFn = (command: GtagCommand, ...args: unknown[]) => void
 type FbqFn = (
@@ -176,6 +178,11 @@ export function trackPurchase({
   shipping?: number
   coupon?: string | null
 }) {
+  // UTM attribution — UtmCapture 가 세션에 저장해둔 진입 채널을 전환 이벤트에
+  // 싣는다. 2026-07-19 이전엔 수집만 하고 아무도 안 읽어서(호출처 0) "이 매출이
+  // 인스타에서 왔는지 QR에서 왔는지"를 알 수 없었다. OAuth 왕복으로 GA 세션
+  // 원천이 유실돼도 이 파라미터는 살아남는다.
+  const utm = getStoredUtm()
   safeGtag('event', 'purchase', {
     transaction_id: transactionId,
     currency: 'KRW',
@@ -183,6 +190,9 @@ export function trackPurchase({
     shipping: shipping ?? 0,
     coupon: coupon ?? undefined,
     items,
+    ...(utm?.source ? { utm_source_stored: utm.source } : {}),
+    ...(utm?.medium ? { utm_medium_stored: utm.medium } : {}),
+    ...(utm?.campaign ? { utm_campaign_stored: utm.campaign } : {}),
   })
   safeFbq('track', 'Purchase', {
     content_ids: items.map((i) => i.item_id),
