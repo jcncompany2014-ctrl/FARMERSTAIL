@@ -32,6 +32,7 @@ import {
   SHIP_WHY,
 } from '@/lib/shipping-schedule'
 import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
+import { FRESH_TIERS, type FreshRatio } from '@/lib/subscription/freshTier'
 import {
   computeBoxItems,
   priceBox,
@@ -73,28 +74,8 @@ import './order.css'
  *  - 곁들임(30%) 추천 — 화식 입문
  *  - 반반(60%)
  *  - 완전 화식(100%)
- * 카피는 분석 결과 카드(RecommendationBox)와 동일 문구.
+ * 티어 정의는 정본 lib/subscription/freshTier (FRESH_TIERS). 3화면 공유.
  */
-const FRESH_TIERS = [
-  {
-    value: 30 as const,
-    label: '곁들임',
-    badge: '추천',
-    copy: '작은 비용으로 떼는 첫걸음, 기호성과 영양을 더해요',
-    note: '화식이 처음이라면, 익숙해질 때까지 건사료와 섞어 급여하는 걸 권장해요',
-  },
-  {
-    value: 60 as const,
-    label: '반반',
-    copy: '화식 반 사료 반, 부담은 낮추고 균형은 챙겨요',
-  },
-  {
-    value: 100 as const,
-    label: '완전 화식',
-    copy: '매일 그릇 가득, 완벽한 영양과 행복을 담아요',
-  },
-]
-type FreshRatio = (typeof FRESH_TIERS)[number]['value']
 
 
 // 구독료에 배송비 포함 — 무료배송/배송비 임계 시스템 폐지(2026-06-27 사장님 지시).
@@ -236,7 +217,7 @@ export default function OrderClient({
   const [freshRatio, setFreshRatio] = useState<FreshRatio>(
     initialFresh === 60 ? 60 : initialFresh === 100 ? 100 : 30,
   )
-  const selectedTier = (FRESH_TIERS.find((t) => t.value === freshRatio) ??
+  const selectedTier = (FRESH_TIERS.find((t) => t.ratio === freshRatio) ??
     FRESH_TIERS[0]) as (typeof FRESH_TIERS)[number]
   /** 회원가입 정보가 자동 기입됐는지 — 사용자에게 hint 노출. */
   const [profilePrefilled] = useState(profile.prefilled)
@@ -526,7 +507,7 @@ export default function OrderClient({
       .map((it) => `${FOOD_LINE_META[it.line!].nameKo} ${it.pct}%`)
       .join(' · ')
     const totalG = Math.round(items.reduce((sum, it) => sum + it.dailyG, 0))
-    const tier = FRESH_TIERS.find((t) => t.value === freshRatio)
+    const tier = FRESH_TIERS.find((t) => t.ratio === freshRatio)
     return `${names} · 하루 ${totalG}g · ${tier?.label ?? ''}`
   })()
 
@@ -720,21 +701,21 @@ export default function OrderClient({
                 aria-label="화식 비율 선택"
               >
                 {FRESH_TIERS.map((t) => {
-                  const on = freshRatio === t.value
+                  const on = freshRatio === t.ratio
                   return (
                     <button
                       type="button"
-                      key={t.value}
+                      key={t.ratio}
                       role="radio"
                       aria-checked={on}
                       className={'ord-fresh-btn' + (on ? ' is-on' : '')}
                       onClick={() => {
                         haptic('tick')
-                        setFreshRatio(t.value)
+                        setFreshRatio(t.ratio)
                       }}
                     >
                       <span className="ord-fresh-btn-name">{t.label}</span>
-                      <span className="ord-fresh-btn-sub">화식 {t.value}%</span>
+                      <span className="ord-fresh-btn-sub">화식 {t.ratio}%</span>
                     </button>
                   )
                 })}

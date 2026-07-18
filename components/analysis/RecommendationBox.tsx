@@ -12,6 +12,10 @@ import {
   fetchComputedFormula,
   invalidateComputedFormula,
 } from '@/lib/personalization/formulaCache'
+import {
+  FRESH_TIERS,
+  type FreshTierKey,
+} from '@/lib/subscription/freshTier'
 import './recommendation.css'
 import './adjust-sheet.css'
 
@@ -42,30 +46,8 @@ type State =
   | { status: 'error'; message: string }
 
 /** 화식 비율 3택 — % 수치 대신 이름 + 가치 소구 카피(사장님 확정 2026-07-13). */
-const FRESH_TIERS = [
-  {
-    key: 'light',
-    name: '곁들임',
-    ratio: 30,
-    badge: '추천',
-    copy: '작은 비용으로 떼는 첫걸음, 기호성과 영양을 더해요',
-    note: '화식이 처음이라면, 익숙해질 때까지 건사료와 섞어 급여하는 걸 권장해요',
-  },
-  {
-    key: 'half',
-    name: '반반',
-    ratio: 60,
-    copy: '화식 반 사료 반, 부담은 낮추고 균형은 챙겨요',
-  },
-  {
-    key: 'full',
-    name: '완전 화식',
-    ratio: 100,
-    copy: '매일 그릇 가득, 완벽한 영양과 행복을 담아요',
-  },
-] as const
-
-type TierKey = (typeof FRESH_TIERS)[number]['key']
+// 티어 정의는 정본 lib/subscription/freshTier (FRESH_TIERS). 3화면 공유.
+type TierKey = FreshTierKey
 
 export default function RecommendationBox({
   dogId,
@@ -329,7 +311,7 @@ function RecommendationView({
               {'badge' in t && t.badge && (
                 <span className="fb-tierc-badge">{t.badge}</span>
               )}
-              <span className="fb-tierc-name">{t.name}</span>
+              <span className="fb-tierc-name">{t.label}</span>
               <span className="fb-tierc-sub">화식 {t.ratio}%</span>
             </button>
           )

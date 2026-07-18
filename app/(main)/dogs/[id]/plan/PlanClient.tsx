@@ -27,6 +27,7 @@ import { snapBoxLines } from '@/lib/personalization/boxComposition'
 import { fetchComputedFormula } from '@/lib/personalization/formulaCache'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
+import { FRESH_TIERS, type FreshRatio } from '@/lib/subscription/freshTier'
 
 export type PlanProduct = {
   slug: string
@@ -105,29 +106,7 @@ const RECIPE_WHY: Record<string, string> = {
 
 // 플랜 = 실제로 고르는 상품 페이지라 '자세하게'(배지·설명·안내). 분석 결과지는
 // 반대로 컴팩트 — 역할 분담(사장님 2026-07-14). 카피는 결과지와 동일 문구.
-const FRESH_TIERS = [
-  {
-    value: 30 as const,
-    label: '곁들임',
-    sub: '화식 30% · 건사료 70%',
-    badge: '추천',
-    copy: '작은 비용으로 떼는 첫걸음, 기호성과 영양을 더해요',
-    note: '화식이 처음이라면, 익숙해질 때까지 건사료와 섞어 급여하는 걸 권장해요',
-  },
-  {
-    value: 60 as const,
-    label: '반반',
-    sub: '화식 60% · 건사료 40%',
-    copy: '화식 반 사료 반, 부담은 낮추고 균형은 챙겨요',
-  },
-  {
-    value: 100 as const,
-    label: '완전 화식',
-    sub: '화식 100%',
-    copy: '매일 그릇 가득, 완벽한 영양과 행복을 담아요',
-  },
-]
-type FreshRatio = (typeof FRESH_TIERS)[number]['value']
+// 티어 정의는 정본 lib/subscription/freshTier (FRESH_TIERS). 3화면 공유.
 
 const MAX_RECIPES = 2
 
@@ -488,14 +467,14 @@ function PlanView({
           style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}
         >
           {FRESH_TIERS.map((t) => {
-            const on = freshRatio === t.value
+            const on = freshRatio === t.ratio
             return (
               <button
-                key={t.value}
+                key={t.ratio}
                 type="button"
                 role="radio"
                 aria-checked={on}
-                onClick={() => setFreshRatio(t.value)}
+                onClick={() => setFreshRatio(t.ratio)}
                 style={{
                   appearance: 'none',
                   width: '100%',
