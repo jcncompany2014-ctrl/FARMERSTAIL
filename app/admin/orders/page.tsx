@@ -133,10 +133,12 @@ export default async function AdminOrdersPage({
     <div>
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
-          <h1 className="font-bold tracking-tight text-3xl text-ink">
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
             주문 관리
           </h1>
-          <p className="text-sm text-muted mt-1">주문 관리</p>
+          <p className="text-[13px] text-zinc-500 mt-1">
+            결제·배송 상태별로 주문을 찾고 관리해요. 구독 자동결제도 여기에 주문으로 쌓여요.
+          </p>
         </div>
         <a
           href={exportHref}

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
-import { nextShipDate, nextCycleDate } from '@/lib/shipping-schedule'
+import { nextShipDate } from '@/lib/shipping-schedule'
 
 type SubscriptionRow = {
   id: string
@@ -59,8 +59,6 @@ export default function AdminSubscriptionsPage() {
   const [tab, setTab] = useState('all')
   const [search, setSearch] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [bulkLoading, setBulkLoading] = useState(false)
-  const [bulkResult, setBulkResult] = useState<string | null>(null)
 
   useEffect(() => {
     void loadAll()
@@ -112,6 +110,13 @@ export default function AdminSubscriptionsPage() {
   }).length
 
   async function handleStatusChange(subId: string, newStatus: string) {
+    // 해지는 되돌리기 어려운 조치 — 모바일 오터치 가드(2026-07-19 검수).
+    if (
+      newStatus === 'cancelled' &&
+      !confirm('이 구독을 해지할까요? 다음 자동결제가 중단됩니다.')
+    ) {
+      return
+    }
     setActionLoading(subId)
     const updates: Record<string, unknown> = { status: newStatus }
     if (newStatus === 'cancelled') {
@@ -139,191 +144,6 @@ export default function AdminSubscriptionsPage() {
     setActionLoading(null)
   }
 
-  async function handleBulkCreateOrders() {
-    if (!confirm('배송 예정인 구독 건들에 대해 주문을 일괄 생성하시겠습니까?')) return
-
-    setBulkLoading(true)
-    setBulkResult(null)
-
-    // 배송 예정 구독 (7일 이내)
-    const upcoming = subs.filter((s) => {
-      if (s.status !== 'active' || !s.next_delivery_date) return false
-      const diff = (new Date(s.next_delivery_date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24)
-      return diff >= 0 && diff <= 7
-    })
-
-    // R87-C1 (D13): subscriptions 에 recipient_zip/_address/_address_detail 컬럼이
-    // 없음 (R84-D1). 주문 생성 전 addresses 테이블에서 사용자 기본 주소 + profiles
-    // fallback 으로 주소 조회 — cron/subscription-charge 의 resolveShippingTarget
-    // 패턴과 일치. 이전엔 NULL 주소로 주문 만들어 배송 불가능했음.
-    const userIds = Array.from(new Set(upcoming.map((s) => s.user_id)))
-    const addressMap = new Map<
-      string,
-      { name: string; phone: string; zip: string; address: string; detail: string | null }
-    >()
-
-    if (userIds.length > 0) {
-      // addresses.is_default=true 1순위. column 명: recipient_name + phone (no recipient prefix)
-      const { data: addrRows } = await supabase
-        .from('addresses')
-        .select('user_id, recipient_name, phone, zip, address, address_detail')
-        .in('user_id', userIds)
-        .eq('is_default', true)
-      for (const r of (addrRows ?? []) as unknown as Array<{
-        user_id: string
-        recipient_name: string
-        phone: string
-        zip: string
-        address: string
-        address_detail: string | null
-      }>) {
-        addressMap.set(r.user_id, {
-          name: r.recipient_name,
-          phone: r.phone,
-          zip: r.zip,
-          address: r.address,
-          detail: r.address_detail,
-        })
-      }
-      // 2순위: addresses 없는 user 만 profiles 에서.
-      const missing = userIds.filter((id) => !addressMap.has(id))
-      if (missing.length > 0) {
-        const { data: profRows } = await supabase
-          .from('profiles')
-          .select('id, name, phone, zip, address, address_detail')
-          .in('id', missing)
-        for (const r of (profRows ?? []) as Array<{
-          id: string
-          name: string | null
-          phone: string | null
-          zip: string | null
-          address: string | null
-          address_detail: string | null
-        }>) {
-          if (r.zip && r.address && r.name && r.phone) {
-            addressMap.set(r.id, {
-              name: r.name,
-              phone: r.phone,
-              zip: r.zip,
-              address: r.address,
-              detail: r.address_detail,
-            })
-          }
-        }
-      }
-    }
-
-    let created = 0
-    let failed = 0
-    let skippedNoAddress = 0
-
-    for (const sub of upcoming) {
-      const addr = addressMap.get(sub.user_id)
-      if (!addr) {
-        console.warn(
-          `[admin/subscriptions] bulk create skipped — no address for user ${sub.user_id}`,
-        )
-        skippedNoAddress++
-        failed++
-        continue
-      }
-
-      const orderNumber = `SUB-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
-
-      // 1) 주문 생성 — audit #79: schema-drift cast.
-      const { data: order, error: orderErr } = await (
-        supabase as unknown as {
-          from: (t: string) => {
-            insert: (r: Record<string, unknown>) => {
-              select: (cols: string) => {
-                single: () => Promise<{
-                  data: { id: string } | null
-                  error: { message?: string } | null
-                }>
-              }
-            }
-          }
-        }
-      )
-        .from('orders')
-        .insert({
-          user_id: sub.user_id,
-          order_number: orderNumber,
-          subtotal: sub.subtotal,
-          shipping_fee: sub.shipping_fee,
-          total_amount: sub.total_amount,
-          // R87-C1 (D13): addresses/profiles fallback (위에서 lookup).
-          recipient_name: addr.name,
-          recipient_phone: addr.phone,
-          zip: addr.zip,
-          address: addr.address,
-          address_detail: addr.detail,
-          payment_status: 'pending',
-          payment_method: 'subscription',
-          order_status: 'preparing',
-          subscription_id: sub.id,
-        })
-        .select('id')
-        .single()
-
-      if (orderErr || !order) {
-        // R87-C1: 이전엔 silent fail → 운영자가 어느 sub 가 실패했는지 모름.
-        // RLS denial / NULL recipient_address 등 fail 케이스 visibility 보강.
-        console.error(
-          `[admin/subscriptions] bulk create order failed for sub ${sub.id}:`,
-          orderErr?.message ?? 'unknown',
-        )
-        failed++
-        continue
-      }
-
-      // 2) 주문 상품 생성
-      const items = sub.subscription_items.map((item) => ({
-        order_id: order.id,
-        product_id: null as string | null,
-        product_name: item.product_name,
-        product_image_url: item.product_image_url,
-        unit_price: item.unit_price,
-        quantity: item.quantity,
-        line_total: item.unit_price * item.quantity,
-      }))
-
-      // audit #79: order_items insert cast.
-      await (supabase as unknown as {
-        from: (t: string) => {
-          insert: (r: Record<string, unknown>[]) => Promise<unknown>
-        }
-      })
-        .from('order_items')
-        .insert(items)
-
-      // 3) 구독 업데이트: 다음 배송일 갱신, 누적 횟수 +1.
-      // 주기는 2주 하나 — cron(nextDeliveryDate) 과 같은 규칙(2026-07-16).
-      const nextIso = nextCycleDate(sub.next_delivery_date!)
-
-      await supabase
-        .from('subscriptions')
-        .update({
-          next_delivery_date: nextIso,
-          last_delivery_date: today,
-          total_deliveries: sub.total_deliveries + 1,
-        })
-        .eq('id', sub.id)
-
-      created++
-    }
-
-    // R95: skippedNoAddress 를 결과에 노출 — 운영자가 "주소 미등록으로
-    // 스킵된 구독" 을 인지하고 해당 사용자 주소 보완 후 재시도 가능.
-    setBulkResult(
-      `✅ ${created}건 주문 생성 완료${failed > 0 ? `, ${failed}건 실패` : ''}${
-        skippedNoAddress > 0 ? ` (주소 미등록 ${skippedNoAddress}건 포함)` : ''
-      }`,
-    )
-    await loadAll()
-    setBulkLoading(false)
-  }
-
   return (
     <div>
       {/* 헤더 */}
@@ -341,25 +161,12 @@ export default function AdminSubscriptionsPage() {
           >
             📅 캘린더 뷰
           </a>
-          {upcomingCount > 0 && (
-            <button
-              onClick={handleBulkCreateOrders}
-              disabled={bulkLoading}
-              className="px-4 py-2.5 rounded-xl font-bold text-sm bg-moss text-white border-2 border-ink shadow-[2px_2px_0_#2A2118] hover:-translate-y-0.5 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all disabled:opacity-50"
-            >
-              {bulkLoading ? '생성 중...' : `📦 일괄 주문 생성 (${upcomingCount}건)`}
-            </button>
-          )}
         </div>
+        {/* ("일괄 주문 생성" 버튼은 2026-07-19 제거 — 자동청구 크론 이전 유물.
+            결제 없이 주문을 만들고 배송일을 +14 밀어, 누르면 그 회차 청구가
+            통째로 증발하는 사고 버튼이었다. 지금은 subscription-charge 크론이
+            청구→주문 생성→배송일 갱신을 전부 자동으로 한다.) */}
       </div>
-
-      {/* 일괄 결과 배너 */}
-      {bulkResult && (
-        <div className="mb-4 p-3 bg-moss/10 border border-moss rounded-xl text-sm text-moss font-bold flex items-center justify-between">
-          <span>{bulkResult}</span>
-          <button onClick={() => setBulkResult(null)} className="text-muted hover:text-text">✕</button>
-        </div>
-      )}
 
       {/* 탭 필터 */}
       <div className="flex gap-1 mb-4 overflow-x-auto pb-1">

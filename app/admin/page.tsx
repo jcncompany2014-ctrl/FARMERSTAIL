@@ -2,9 +2,6 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { STOCK_LOW_THRESHOLD } from '@/lib/products/stock'
 import RevenueChart, { type RevenuePoint } from '@/components/admin/RevenueChart'
-import CategoryRevenueDonut, {
-  type CategoryRevenuePoint,
-} from '@/components/admin/CategoryRevenueDonut'
 import FoodInfoCompletion, {
   type ProductInfoLite,
 } from '@/components/admin/FoodInfoCompletion'
@@ -142,11 +139,14 @@ export default async function AdminHome() {
       .eq('payment_status', 'paid')
       .gte('created_at', thirtyDaysAgo),
 
-    // 활성 구독 — MRR 추정(total_amount × 4주/interval 환산)
+    // 활성 구독 — MRR 추정. ★카드 등록(billing_key) 된 구독만: 카드 미등록
+    // 구독은 청구가 한 번도 안 일어나는 '신청만' 상태라 매출 추정에 넣으면
+    // MRR 이 과대계상된다(2026-07-19 검수).
     supabase
       .from('subscriptions')
       .select('id, total_amount', { count: 'exact' })
-      .eq('status', 'active'),
+      .eq('status', 'active')
+      .not('billing_key', 'is', null),
 
     // 재고 경고 — 개별 상품 stock <= LOW_THRESHOLD 인 수. is_active 는
     // 상품 테이블에 존재한다 전제, 없으면 그냥 전체 집계.
@@ -214,6 +214,7 @@ export default async function AdminHome() {
     refundsPendingRes,
     stockOutRes,
     cronFailRes,
+    noCardSubsRes,
   ] = await Promise.all([
     // preparing + paid + 24h+ → 발송 stale
     supabase
@@ -256,6 +257,13 @@ export default async function AdminHome() {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'error')
       .gte('executed_at', oneDayAgo),
+    // 카드 미등록 활성 구독 — 신청만 하고 결제 수단을 안 붙인 상태.
+    // 첫 청구가 영영 안 일어나므로 며칠 지나면 리마인드 대상.
+    supabase
+      .from('subscriptions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active')
+      .is('billing_key', null),
   ])
 
   // 식품정보고시 14항목 채움률 — 별도 쿼리. 100개 이하 가정.
@@ -383,11 +391,15 @@ export default async function AdminHome() {
     (thirtyDayOrdersRes.data ?? []) as unknown as ThirtyDayOrder[]
 
   // 30일 일별 매출 — RevenueChart 가 (YYYY-MM-DD, revenue) 형태를 요구.
+  // ★날짜 키는 KST 기준(+9h shift 후 UTC getter) — 서버 로컬(UTC) getter 를
+  // 쓰면 KST 00:00~08:59 주문이 전날 막대로 빠진다(todayStart 와 같은 함정).
   const dailyMap = new Map<string, number>()
-  const fmtDateKey = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-      d.getDate(),
+  const fmtDateKey = (d: Date) => {
+    const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000)
+    return `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, '0')}-${String(
+      kst.getUTCDate(),
     ).padStart(2, '0')}`
+  }
   for (let i = 29; i >= 0; i--) {
     const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
     dailyMap.set(fmtDateKey(d), 0)
@@ -430,36 +442,8 @@ export default async function AdminHome() {
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 5)
 
-  // 카테고리별 매출 — productInfo 의 id → category 매핑 활용 + 30일 line_total
-  // 합산. productInfo 는 이미 active 상품만이라 cancelled 카테고리도 자연 배제.
-  const productCategoryMap = new Map<string, string | null>()
-  for (const p of productInfo) {
-    productCategoryMap.set(p.id, null) // category 컬럼은 productInfo 에서 안 가져옴
-  }
-  // 별도 쿼리 — productInfo 가 category 빠뜨려서 추가 round-trip. 비용 작음
-  // (단순 select).
-  const { data: categoryRows } = await supabase
-    .from('products')
-    .select('id, category')
-    .eq('is_active', true)
-  const catMap = new Map<string, string | null>(
-    (categoryRows ?? []).map((p) => [p.id as string, (p.category as string | null) ?? null]),
-  )
-  const categoryRevenueAgg = new Map<string, number>()
-  for (const order of thirtyDayOrders) {
-    for (const item of order.order_items ?? []) {
-      if (!item.product_id) continue
-      const cat = catMap.get(item.product_id) ?? '미분류'
-      const key = cat || '미분류'
-      categoryRevenueAgg.set(
-        key,
-        (categoryRevenueAgg.get(key) ?? 0) + item.line_total,
-      )
-    }
-  }
-  const categoryRevenue: CategoryRevenuePoint[] = Array.from(
-    categoryRevenueAgg.entries(),
-  ).map(([category, revenue]) => ({ category, revenue }))
+  // (카테고리별 매출 도넛은 2026-07-19 검수에서 제거 — 구독 전용 전환 후 활성
+  //  상품이 화식 4종뿐이라 도넛이 항상 '화식 ~100%' 원 하나였다. 정보가치 0.)
 
   return (
     <div>
@@ -519,9 +503,9 @@ export default async function AdminHome() {
         <StatCard
           label="구독 중인 고객"
           value={`${activeSubCount}명`}
-          sub={`매달 자동결제 · 월 예상 ${Math.round(estimatedMrr).toLocaleString()}원`}
+          sub={`2주마다 자동결제 · 월 예상 ${Math.round(estimatedMrr).toLocaleString()}원${(noCardSubsRes.count ?? 0) > 0 ? ` · 카드 미등록 ${noCardSubsRes.count}명` : ''}`}
           tone="green"
-          help="지금 정기배송을 구독 중인 고객 수예요. 이 숫자가 늘수록 매달 들어오는 매출이 안정적이에요."
+          help="카드까지 등록해 실제로 결제되는 구독 수예요. '카드 미등록'은 신청만 하고 결제 수단을 안 붙인 고객 — 며칠 지나면 리마인드해 주세요."
         />
         <StatCard
           label="새 구독 (30일)"
@@ -588,10 +572,8 @@ export default async function AdminHome() {
         <RevenueChart data={dailyChartData} title="최근 30일 매출" />
       </div>
 
-      {/* 카테고리별 매출 도넛 + 식품정보고시 채움률 — 출시 직전 운영자 핵심
-          모니터링 항목. 채움률 < 100% 면 시정명령 위험. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <CategoryRevenueDonut data={categoryRevenue} />
+      {/* 식품정보고시 채움률 — 채움률 < 100% 면 시정명령 위험. */}
+      <div className="mb-6">
         <FoodInfoCompletion products={productInfo} />
       </div>
 

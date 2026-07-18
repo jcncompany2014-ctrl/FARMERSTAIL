@@ -31,21 +31,19 @@ export default async function AdminCsInboxPage() {
     created_at: string
   }
   const all = (rawMessages ?? []) as Row[]
-  const seen = new Set<string>()
+  // 사용자별 최신 1행 + 안읽음 개수. (2026-07-19 검수: 이전엔 두 루프가 겹쳐
+  // 더해 안읽음 3개가 5개로 표시되는 이중 카운트 버그가 있었다.)
   const grouped: (Row & { unreadCount: number })[] = []
+  const byUser = new Map<string, Row & { unreadCount: number }>()
   for (const m of all) {
-    if (seen.has(m.user_id)) {
-      const existing = grouped.find((g) => g.user_id === m.user_id)
-      if (existing) existing.unreadCount += 1
-      continue
+    const g = byUser.get(m.user_id)
+    if (g) {
+      g.unreadCount += 1
+    } else {
+      const row = { ...m, unreadCount: 1 }
+      byUser.set(m.user_id, row)
+      grouped.push(row)
     }
-    seen.add(m.user_id)
-    grouped.push({ ...m, unreadCount: 1 })
-  }
-  // 같은 user_id 의 다른 unread 도 카운트.
-  for (const m of all) {
-    const g = grouped.find((x) => x.user_id === m.user_id)
-    if (g && m.id !== g.id) g.unreadCount += 1
   }
 
   // 사용자 프로필 일괄 fetch.
