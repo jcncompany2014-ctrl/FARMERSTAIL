@@ -121,6 +121,21 @@ describe('decideFirstBox — 중증 췌장염 하드 게이트', () => {
   })
 })
 
+describe('decideFirstBox — 요로결석 소 제외 (v4.0 옥살산)', () => {
+  it('urinary_stone → premium(소) 0% + 제외 chip 발화', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      chronicConditions: ['urinary_stone'],
+    })
+    // 소 = 시금치 + 비트(v4.0 신규) 옥살산 이중부하 → 결석견 부적합.
+    assert.equal(f.lineRatios.premium, 0, '소(premium) 제외')
+    assert.ok(
+      f.reasoning.find((r) => r.ruleId === 'chronic-urinary-stone'),
+      '요로결석 소 제외 chip 발화',
+    )
+  })
+})
+
 describe('decideFirstBox — 기본 sanity', () => {
   it('합 1.0 보장 (quantized)', () => {
     const f = decideFirstBox(baseInput())

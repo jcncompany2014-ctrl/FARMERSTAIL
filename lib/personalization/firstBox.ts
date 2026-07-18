@@ -499,7 +499,7 @@ function applyBreedPredispose(
             ? 'joint'
             : pred === 'allergy_skin'
               ? 'skin'
-              : pred === 'kidney' || pred === 'urinary_stone' || pred === 'cardiac' || pred === 'mmvd'
+              : pred === 'kidney' || pred === 'cardiac' || pred === 'mmvd'
                 ? 'premium'
                 : pred === 'obesity'
                   ? 'weight'
@@ -625,6 +625,25 @@ function applyChronicAdjustments(
         ruleId: 'chronic-kidney',
       })
     }
+  }
+
+  // 요로결석 (urolithiasis) — 소(Premium) 제외. 근거: v4.0에서 소 SKU 토핑이
+  // 시금치 + 비트(v4.0 신규 hero) = 옥살산 이중부하 → 칼슘옥살산 결석에 불리.
+  // 스트루바이트도 소는 고단백 + 한우 내장 고인이라 부적합 → 결석 종류 무관하게
+  // 소 회피가 안전한 방향. (저옥살산 식이 원칙; 종류별 정밀 처방은 수의사.)
+  if (c.includes('urinary_stone')) {
+    const oldPremium = ratios.premium
+    if (oldPremium > 0) {
+      ratios = { ...ratios, premium: 0, basic: ratios.basic + oldPremium }
+    }
+    reasoning.push({
+      trigger: '요로결석 이력',
+      action:
+        '소(한우) 제외 — 시금치·비트 옥살산 이중부하로 칼슘옥살산 결석에 불리, 스트루바이트에도 고단백·고인이라 부적합. 수분 섭취 ↑, 결석 종류별 처방은 수의사 상담.',
+      chipLabel: '요로결석 → 소 제외',
+      priority: 3,
+      ruleId: 'chronic-urinary-stone',
+    })
   }
 
   // IBD — 단일 단백질 + 저자극. 가장 안전한 Skin (연어) 또는 Joint (돼지) 위주.
