@@ -2,7 +2,7 @@
  * BrandLoader — 파머스테일 로고(워드마크) 기반 로딩 화면.
  *
  * 라우트 전환·서버 fetch 중 Suspense fallback (loading.tsx) 으로 노출된다.
- * 상단 헤더와 동일한 `/logo-brush.png` 가 은은하게 숨쉬고(opacity+scale), 아래
+ * 상단 헤더와 동일한 `/logo-ink.png` 가 은은하게 숨쉬고(opacity+scale), 아래
  * 점 3개가 순차로 깜빡여 '살아있는' 로딩 느낌을 준다. 헤더/탭바는 layout 에
  * 남고 본문 영역만 이걸로 교체되므로 '앱 스플래시'처럼 자연스럽다.
  *

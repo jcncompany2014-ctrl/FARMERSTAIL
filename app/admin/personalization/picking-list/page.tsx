@@ -2,26 +2,87 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
-import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
-import type { Formula, FoodLine } from '@/lib/personalization/types'
-import PickingListExport from './PickingListExport'
+import { LINE_TO_SLUG, TOPPER_TO_SLUG } from '@/lib/personalization/skuMap'
+import {
+  computeBoxItems,
+  subscribableItems,
+  type BoxItem,
+} from '@/lib/personalization/boxPricing'
+import type { Formula } from '@/lib/personalization/types'
+import { freshTierLabel } from '@/lib/subscription/freshTier'
+import { addDaysKst, todayKstIsoDate } from '@/lib/datetime-kst'
+import { weekdayOf, weekdayKo, SHIP_WEEKDAY } from '@/lib/shipping-schedule'
+import {
+  AdminHeader,
+  AdminCard,
+  Badge,
+  StatCard,
+  SectionTitle,
+} from '@/components/admin/ui'
+import PickingListExport, { type PickingRow } from './PickingListExport'
 
 export const dynamic = 'force-dynamic'
 
 /**
- * /admin/personalization/picking-list — 박스 패킹 워크 리스트.
+ * /admin/personalization/picking-list — 발송일(화요일) 박스 패킹 리스트.
  *
- * 운영자가 매일 출고할 박스를 한 번에 조회. 각 박스마다:
- *   - 강아지 이름 + 보호자 이름 + 배송지
- *   - 5종 라인 별 주간 그램 (daily_grams × 7 × ratio)
- *   - 토퍼 주간 그램
- *   - 케어 목표 / 전환 전략 (포장 우선순위에 영향)
+ * # 2026-07-19 전면 재작성 (옛 버전의 4중 낡음 수정)
+ *  ①  옛: 주간(daily_grams×7) — 박스는 **14일치**다. 절반 분량이 표시됐다.
+ *  ②  옛: 화식 비율(fresh_ratio) 미반영 — 곁들임(30%) 고객도 100% 분량으로 표시.
+ *  ③  옛: "총 그램 반올림" — 실제 포장은 **5g 올림 팩 × 14개**(boxPricing 정본).
+ *  ④  옛: 활성 처방 전체가 매일 다 뜸 — 이제 **그날 발송할 구독**만.
  *
- * 기본: 오늘 active 인 모든 처방 (applied_from <= today AND applied_until >= today).
- * URL ?date=YYYY-MM-DD 로 다른 날짜 조회.
- *
- * CSV 다운로드 버튼 — 종이 워크리스트 또는 Google Sheet 동기화용.
+ * # 데이터 흐름 (청구·화면과 같은 정본)
+ *  발송 대상 = active 구독 중 next_delivery_date ≤ 발송일. 단, 발송일 아침
+ *  청구 크론(subscription-charge)이 이미 돌았으면 날짜가 +14 밀려 있으므로
+ *  `next_delivery_date = 발송일+14` (= 오늘 아침 청구 완료분)도 포함한다.
+ *  팩 구성 = 강아지의 최신 승인 처방 × fresh_ratio → computeBoxItems (정본).
+ *  고객이 /order·승인 화면에서 본 것과 **같은 함수**라 포장·청구·화면이 일치.
  */
+
+type FormulaRow = {
+  id: string
+  dog_id: string
+  cycle_number: number
+  formula: { lineRatios: Formula['lineRatios']; toppers: Formula['toppers'] }
+  daily_kcal: number
+  transition_strategy: string | null
+  user_adjusted: boolean
+  approval_status: string | null
+}
+
+type SubRow = {
+  id: string
+  dog_id: string | null
+  user_id: string
+  fresh_ratio: number | null
+  next_delivery_date: string | null
+  total_amount: number
+  recipient_name: string | null
+  recipient_phone: string | null
+  zip: string | null
+  address: string | null
+  address_detail: string | null
+  delivery_memo: string | null
+  total_deliveries: number | null
+}
+
+type PickProduct = {
+  slug: string
+  name: string
+  price: number
+  sale_price: number | null
+  stock: number
+  is_subscribable: boolean | null
+}
+
+/** 오늘 포함 다가오는 화요일(발송일). ?date= 없을 때 기본값. */
+function upcomingShipDate(): string {
+  const today = todayKstIsoDate()
+  const gap = (SHIP_WEEKDAY - weekdayOf(today) + 7) % 7
+  return addDaysKst(today, gap)
+}
+
 export default async function PickingListPage({
   searchParams,
 }: {
@@ -35,313 +96,306 @@ export default async function PickingListPage({
   if (!(await isAdmin(supabase, user))) redirect('/')
 
   const sp = await searchParams
-  const today = new Date()
-  const kst = new Date(today.getTime() + 9 * 60 * 60 * 1000)
-  const todayKstIso = kst.toISOString().slice(0, 10)
-  const date = sp.date && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) ? sp.date : todayKstIso
+  const shipDate =
+    sp.date && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) ? sp.date : upcomingShipDate()
+  const chargedBumpDate = addDaysKst(shipDate, 14)
 
-  // active formulas — applied_from <= date <= applied_until.
-  // 처방이 created_at 만 있고 applied_* 가 NULL 이면 28일 자동 적용.
-  type FormulaRow = {
-    id: string
-    dog_id: string
-    user_id: string
-    cycle_number: number
-    formula: { lineRatios: Formula['lineRatios']; toppers: Formula['toppers'] }
-    daily_grams: number
-    daily_kcal: number
-    transition_strategy: string
-    user_adjusted: boolean
-    applied_from: string | null
-    applied_until: string | null
-    approval_status: string | null
-  }
-
-  const { data: formulasRaw } = await supabase
-    .from('dog_formulas')
+  // 1) 발송 대상 구독 — 카드 미등록 구독은 next_delivery_date=null 이라 자동 제외.
+  const { data: subsRaw } = await supabase
+    .from('subscriptions')
     .select(
-      'id, dog_id, user_id, cycle_number, formula, daily_grams, daily_kcal, ' +
-        'transition_strategy, user_adjusted, applied_from, applied_until, approval_status',
+      'id, dog_id, user_id, fresh_ratio, next_delivery_date, total_amount, ' +
+        'recipient_name, recipient_phone, zip, address, address_detail, ' +
+        'delivery_memo, total_deliveries',
     )
+    .eq('status', 'active')
     .or(
-      `and(applied_from.lte.${date},applied_until.gte.${date}),and(applied_from.is.null,applied_until.is.null)`,
+      `next_delivery_date.lte.${shipDate},next_delivery_date.eq.${chargedBumpDate}`,
     )
-    .order('cycle_number', { ascending: false })
+    .order('created_at', { ascending: true })
+  const subs = ((subsRaw ?? []) as unknown) as SubRow[]
 
-  const formulas = (formulasRaw ?? []) as unknown as FormulaRow[]
+  const dogIds = [...new Set(subs.map((s) => s.dog_id).filter(Boolean))] as string[]
 
-  // ⚠️ **배송 가능한 처방만** — 고객이 승인했거나(approved) 자동 적용된(auto_applied)
-  // 것만 포장한다. 2026-07-17 발견 버그: 위 쿼리의 `applied_*=NULL` 분기가
-  // **승인 대기(pending_approval)·거절(declined)** 처방까지 잡는데(둘 다 applied_*=null),
-  // dedup 이 cycle 최댓값을 고르므로 **아직 승인 안 한(또는 거절한) 새 처방이
-  // 승인된 옛 처방을 이겨 배송되던** 상태였다 — 고객이 동의하지 않은 구성을 보내는
-  // §13의2 위반. status 는 값 없는 레거시 row 도 있어(null) 배송 가능으로 본다
-  // (그건 applied_* 채워진 실제 활성 처방이라 안전).
-  const SHIPPABLE = new Set(['approved', 'auto_applied'])
-  const isShippable = (s: string | null) => s == null || SHIPPABLE.has(s)
+  // 2) 강아지 이름 + 최신 승인 처방 + 제품(정본 계산용) 병렬 로드.
+  const allSlugs = [
+    ...Object.values(LINE_TO_SLUG).filter((s): s is string => s !== null),
+    ...Object.values(TOPPER_TO_SLUG),
+  ]
+  const [{ data: dogsRaw }, { data: formulasRaw }, { data: prodRaw }] =
+    await Promise.all([
+      dogIds.length
+        ? supabase.from('dogs').select('id, name').in('id', dogIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+      dogIds.length
+        ? supabase
+            .from('dog_formulas')
+            .select(
+              'id, dog_id, cycle_number, formula, daily_kcal, ' +
+                'transition_strategy, user_adjusted, approval_status',
+            )
+            .in('dog_id', dogIds)
+            .order('cycle_number', { ascending: false })
+        : Promise.resolve({ data: [] as unknown[] }),
+      supabase
+        .from('products')
+        .select('slug, name, price, sale_price, stock, is_subscribable')
+        .in('slug', allSlugs)
+        .eq('is_active', true),
+    ])
 
-  // dog 별 cycle 최댓값만 — 옛 cycle 까지 잡지 않음. 배송 불가 status 는 건너뛴다.
-  const latest = new Map<string, FormulaRow>()
-  for (const f of formulas) {
-    if (!isShippable(f.approval_status)) continue
-    const ex = latest.get(f.dog_id)
-    if (!ex || f.cycle_number > ex.cycle_number) latest.set(f.dog_id, f)
+  const dogNames: Record<string, string> = {}
+  for (const d of (dogsRaw ?? []) as Array<{ id: string; name: string }>) {
+    dogNames[d.id] = d.name
   }
 
-  // 강아지 + 보호자 + 주소 join.
-  const dogIds = Array.from(latest.keys())
-  type DogRow = {
-    id: string
-    name: string
-    user_id: string
-  }
-  type ProfileRow = {
-    id: string
-    name: string | null
-    phone: string | null
-    address: string | null
-    address_detail: string | null
-    zip: string | null
-  }
-  const [{ data: dogsRaw }, { data: profilesRaw }] = await Promise.all([
-    dogIds.length > 0
-      ? supabase.from('dogs').select('id, name, user_id').in('id', dogIds)
-      : Promise.resolve({ data: [] }),
-    dogIds.length > 0
-      ? supabase
-          .from('profiles')
-          .select('id, name, phone, address, address_detail, zip')
-          .in(
-            'id',
-            Array.from(new Set(formulas.map((f) => f.user_id))),
-          )
-      : Promise.resolve({ data: [] }),
-  ])
-
-  const dogs = ((dogsRaw ?? []) as unknown as DogRow[]).reduce<
-    Record<string, DogRow>
-  >((acc, d) => {
-    acc[d.id] = d
-    return acc
-  }, {})
-  const profiles = ((profilesRaw ?? []) as unknown as ProfileRow[]).reduce<
-    Record<string, ProfileRow>
-  >((acc, p) => {
-    acc[p.id] = p
-    return acc
-  }, {})
-
-  // 운영 행 계산.
-  type Row = {
-    formula: FormulaRow
-    dogName: string
-    ownerName: string
-    phone: string
-    addressLine: string
-    zip: string
-    weeklyGrams: number
-    lines: Array<{ line: FoodLine; pct: number; grams: number }>
-    veggieGrams: number
-    proteinGrams: number
+  // 강아지별 최신 **승인** 처방 — pending(승인 대기)은 발송하면 안 된다
+  // (불변식: 승인 전엔 옛 처방·옛 금액 그대로). cycle desc 정렬이라 첫 매치가 최신.
+  const formulaByDog: Record<string, FormulaRow> = {}
+  for (const f of ((formulasRaw ?? []) as unknown) as FormulaRow[]) {
+    if (f.approval_status === 'pending') continue
+    if (!formulaByDog[f.dog_id]) formulaByDog[f.dog_id] = f
   }
 
-  const rows: Row[] = Array.from(latest.values()).map((f) => {
-    const dog = dogs[f.dog_id]
-    const profile = profiles[f.user_id]
-    const weeklyGrams = f.daily_grams * 7
-    const lines = ALL_LINES.map((line) => ({
-      line,
-      pct: Math.round(f.formula.lineRatios[line] * 100),
-      grams: Math.round(f.formula.lineRatios[line] * weeklyGrams),
-    })).filter((l) => l.pct > 0)
+  const products: Record<string, PickProduct> = {}
+  for (const p of ((prodRaw ?? []) as unknown) as PickProduct[]) {
+    products[p.slug] = p
+  }
+
+  // 3) 구독 → 팩 구성 (boxPricing 정본).
+  const rows: PickingRow[] = subs.map((sub) => {
+    const dogName = (sub.dog_id && dogNames[sub.dog_id]) || '(강아지 미상)'
+    const f = sub.dog_id ? formulaByDog[sub.dog_id] : undefined
+    const freshRatio = sub.fresh_ratio ?? 100
+
+    let packs: PickingRow['packs'] = []
+    if (f) {
+      const items = subscribableItems(
+        computeBoxItems({
+          formula: {
+            lineRatios: f.formula.lineRatios,
+            toppers: f.formula.toppers ?? { vegetable: 0, protein: 0 },
+            dailyKcal: f.daily_kcal,
+          },
+          freshRatio,
+          products,
+        }),
+      )
+      packs = items.map((it: BoxItem<PickProduct>) => ({
+        name: it.product.name,
+        packG: it.packG,
+        count: it.quantity,
+        totalG: it.deliveredG,
+      }))
+    }
 
     return {
-      formula: f,
-      dogName: dog?.name ?? '(이름 없음)',
-      ownerName: profile?.name ?? '(보호자 미등록)',
-      phone: profile?.phone ?? '',
+      subId: sub.id,
+      dogName,
+      recipientName: sub.recipient_name ?? '(수령인 미등록)',
+      phone: sub.recipient_phone ?? '',
+      zip: sub.zip ?? '',
       addressLine:
-        [profile?.address, profile?.address_detail].filter(Boolean).join(' ') ||
+        [sub.address, sub.address_detail].filter(Boolean).join(' ') ||
         '(주소 미등록)',
-      zip: profile?.zip ?? '',
-      weeklyGrams,
-      lines,
-      veggieGrams: Math.round(f.formula.toppers.vegetable * weeklyGrams),
-      proteinGrams: Math.round(f.formula.toppers.protein * weeklyGrams),
+      memo: sub.delivery_memo ?? '',
+      freshRatio,
+      freshLabel: freshTierLabel(sub.fresh_ratio),
+      freshUnknown: sub.fresh_ratio == null,
+      cycleNumber: f?.cycle_number ?? null,
+      userAdjusted: f?.user_adjusted ?? false,
+      transition: f?.transition_strategy ?? '',
+      noFormula: !f,
+      charged: sub.next_delivery_date === chargedBumpDate,
+      overdue:
+        sub.next_delivery_date != null && sub.next_delivery_date < shipDate,
+      totalAmount: sub.total_amount,
+      packs,
+      boxTotalG: packs.reduce((s, p) => s + p.totalG, 0),
     }
   })
 
+  // 4) 조리 합계 — 제품별 총 팩수·총 그램 (그날 주방이 만들 전체 물량).
+  const cookTotals = new Map<string, { packs: number; grams: number }>()
+  for (const r of rows) {
+    for (const p of r.packs) {
+      const cur = cookTotals.get(p.name) ?? { packs: 0, grams: 0 }
+      cookTotals.set(p.name, {
+        packs: cur.packs + p.count,
+        grams: cur.grams + p.totalG,
+      })
+    }
+  }
+  const totalPacks = rows.reduce(
+    (s, r) => s + r.packs.reduce((x, p) => x + p.count, 0),
+    0,
+  )
+  const totalGrams = rows.reduce((s, r) => s + r.boxTotalG, 0)
+  const totalAmountSum = rows.reduce((s, r) => s + r.totalAmount, 0)
+  const problemCount = rows.filter((r) => r.noFormula || r.overdue).length
+
+  const prevShip = addDaysKst(shipDate, -7)
+  const nextShip = addDaysKst(shipDate, 7)
+
   return (
     <main className="px-5 py-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <span
-            className="text-[10px] font-bold tracking-[0.2em] uppercase"
-            style={{ color: 'var(--terracotta)' }}
-          >
-박스 패킹
-          </span>
-          <h1
-            className="font-serif mt-1"
-            style={{
-              fontSize: 22,
-              fontWeight: 800,
-              color: 'var(--ink)',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {date} 박스 패킹 리스트
-          </h1>
-          <p className="text-[11.5px] text-muted mt-1">
-            오늘 진행 중인 박스 {rows.length}건 · 1주 분량 기준
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/admin/personalization"
-            className="text-[12px] text-muted hover:text-text"
-          >
-            ← Personalization
-          </Link>
-          <PickingListExport rows={rows} date={date} />
-        </div>
+      <AdminHeader
+        title={`박스 패킹 — ${shipDate} (${weekdayKo(shipDate)})`}
+        sub={
+          <>
+            이 발송일에 나갈 박스와 팩 구성. 고객 화면·청구와 같은 정본
+            (boxPricing)으로 계산해요.{' '}
+            <Link href={`?date=${prevShip}`} className="underline">
+              ← 지난주
+            </Link>{' '}
+            ·{' '}
+            <Link href={`?date=${nextShip}`} className="underline">
+              다음주 →
+            </Link>
+          </>
+        }
+        actions={<PickingListExport rows={rows} date={shipDate} />}
+      />
+
+      {/* 요약 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <StatCard label="발송 박스" value={rows.length} sub="이 발송일에 나갈 구독" />
+        <StatCard label="총 팩 수" value={totalPacks} sub="조리·포장할 팩 개수" />
+        <StatCard
+          label="총 조리량"
+          value={`${(totalGrams / 1000).toFixed(1)}kg`}
+          sub="팩 그램 합계 (5g 올림 반영)"
+        />
+        <StatCard
+          label="확인 필요"
+          value={problemCount}
+          tone={problemCount > 0 ? 'red' : 'green'}
+          sub={problemCount > 0 ? '처방 없음·지연 청구' : '문제 없음'}
+          help="처방이 없거나(포장 불가) 청구가 밀린(카드 문제) 박스 수예요."
+        />
       </div>
 
-      {/* 날짜 선택 */}
-      <form
-        method="get"
-        className="mb-4 flex items-center gap-2 text-[12px] text-text"
-      >
-        <label htmlFor="date" className="font-bold">
-          날짜:
-        </label>
-        <input
-          type="date"
-          id="date"
-          name="date"
-          defaultValue={date}
-          className="px-2 py-1 rounded-lg border border-zinc-200 bg-white"
-        />
-        <button
-          type="submit"
-          className="px-3 py-1 rounded-lg bg-text text-white font-bold"
-        >
-          조회
-        </button>
-      </form>
+      {/* 조리 합계 — 주방용. 제품별로 이날 만들 총량. */}
+      {cookTotals.size > 0 && (
+        <AdminCard className="mb-6">
+          <SectionTitle
+            title="조리 합계"
+            desc="이 발송일에 주방이 만들 제품별 총량이에요. (팩 그램 × 팩 수)"
+          />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {[...cookTotals.entries()].map(([name, t]) => (
+              <div
+                key={name}
+                className="rounded-lg border border-zinc-200 px-3 py-2.5"
+              >
+                <p className="text-[12px] font-bold text-zinc-800 truncate">
+                  {name}
+                </p>
+                <p className="text-[15px] font-bold text-zinc-900 mt-0.5">
+                  {(t.grams / 1000).toFixed(2)}kg
+                  <span className="text-[11px] text-zinc-500 font-semibold ml-1.5">
+                    {t.packs}팩
+                  </span>
+                </p>
+              </div>
+            ))}
+          </div>
+        </AdminCard>
+      )}
 
+      {/* 박스 목록 */}
       {rows.length === 0 ? (
-        <div className="rounded-lg bg-white border border-zinc-200 p-8 text-center text-[13px] text-muted">
-          {date} 에 active 박스 없어요.
-        </div>
+        <AdminCard>
+          <p className="text-[13px] text-zinc-500">
+            이 발송일에 나갈 박스가 없어요. 카드가 등록된 활성 구독만 발송
+            대상이에요.
+          </p>
+        </AdminCard>
       ) : (
-        <div className="overflow-x-auto bg-white border border-zinc-200 rounded-lg">
-          <table className="min-w-full text-[12px] text-text">
-            <thead className="bg-bg-2">
-              <tr>
-                <Th>강아지 / 보호자</Th>
-                <Th>주소</Th>
-                <Th>케어</Th>
-                <Th>주간 분량</Th>
-                <Th>라인 분배 (g)</Th>
-                <Th>토퍼 (g)</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr
-                  key={r.formula.id}
-                  className="border-t border-zinc-200 align-top"
-                >
-                  <td className="px-3 py-2.5">
-                    <div className="font-bold">{r.dogName}</div>
-                    <div className="text-muted text-[10.5px]">
-                      {r.ownerName}
-                      {r.phone && ` · ${r.phone}`}
+        <div className="space-y-3">
+          {rows.map((r) => (
+            <AdminCard key={r.subId} className="overflow-hidden">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[15px] font-bold text-zinc-900">
+                  {r.dogName}
+                </span>
+                <span className="text-[12px] text-zinc-500">
+                  {r.recipientName}
+                </span>
+                <Badge tone={r.freshUnknown ? 'amber' : 'blue'}>
+                  {r.freshLabel} {r.freshRatio}%
+                  {r.freshUnknown ? ' (비율 미상 — 100% 기준)' : ''}
+                </Badge>
+                {r.cycleNumber != null && (
+                  <Badge tone="neutral">cycle {r.cycleNumber}</Badge>
+                )}
+                {r.userAdjusted && <Badge tone="neutral">보호자 조정</Badge>}
+                {r.charged ? (
+                  <Badge tone="green">오늘 아침 청구 완료</Badge>
+                ) : r.overdue ? (
+                  <Badge tone="red">청구 지연 — 재시도 중</Badge>
+                ) : (
+                  <Badge tone="amber">발송일 아침 청구 예정</Badge>
+                )}
+              </div>
+
+              {r.noFormula ? (
+                <p className="mt-3 text-[12.5px] font-semibold text-red-600">
+                  ⚠ 승인된 처방이 없어 팩 구성을 계산할 수 없어요 — 이 강아지의
+                  처방을 먼저 확인해 주세요.
+                </p>
+              ) : (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {r.packs.map((p) => (
+                    <div
+                      key={p.name}
+                      className="rounded-lg bg-zinc-50 border border-zinc-200 px-3 py-2"
+                    >
+                      <p className="text-[12px] font-bold text-zinc-800">
+                        {p.name}
+                      </p>
+                      <p className="text-[12.5px] text-zinc-600 mt-0.5">
+                        <strong className="text-zinc-900">{p.packG}g</strong> ×{' '}
+                        {p.count}팩 ={' '}
+                        {p.totalG >= 1000
+                          ? `${(p.totalG / 1000).toFixed(2)}kg`
+                          : `${p.totalG}g`}
+                      </p>
                     </div>
-                    <div className="text-[10px] text-muted mt-0.5 font-mono">
-                      cycle {r.formula.cycle_number}
-                      {r.formula.user_adjusted && ' · 사용자 조정'}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 max-w-[200px]">
-                    <div className="text-[10.5px]">
-                      {r.zip && (
-                        <span className="font-mono text-muted">{r.zip} </span>
-                      )}
-                      {r.addressLine}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <span className="text-[10.5px] font-mono text-muted">
-                      {r.formula.transition_strategy}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2.5 font-mono">
-                    <div className="font-bold">{r.weeklyGrams}g</div>
-                    <div className="text-[10px] text-muted">
-                      {r.formula.daily_kcal}kcal/일
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <ul className="space-y-0.5">
-                      {r.lines.map((l) => (
-                        <li
-                          key={l.line}
-                          className="flex items-center gap-2 text-[11.5px]"
-                        >
-                          <span
-                            className="w-2 h-2 rounded-full shrink-0"
-                            style={{ background: FOOD_LINE_META[l.line].color }}
-                          />
-                          <span className="font-bold">
-                            {FOOD_LINE_META[l.line].name}
-                          </span>
-                          <span className="ml-auto font-mono text-terracotta font-black">
-                            {l.grams}g
-                          </span>
-                          <span className="text-muted text-[10px] font-mono">
-                            ({l.pct}%)
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </td>
-                  <td className="px-3 py-2.5 font-mono text-[11px]">
-                    {r.veggieGrams > 0 && (
-                      <div>
-                        야채{' '}
-                        <span className="font-black text-moss">
-                          {r.veggieGrams}g
-                        </span>
-                      </div>
-                    )}
-                    {r.proteinGrams > 0 && (
-                      <div>
-                        육류{' '}
-                        <span className="font-black text-terracotta">
-                          {r.proteinGrams}g
-                        </span>
-                      </div>
-                    )}
-                    {r.veggieGrams === 0 && r.proteinGrams === 0 && (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-3 pt-3 border-t border-zinc-100 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-zinc-500">
+                <span>
+                  [{r.zip}] {r.addressLine}
+                </span>
+                {r.phone && <span>{r.phone}</span>}
+                {r.memo && (
+                  <span className="text-amber-700 font-semibold">
+                    메모: {r.memo}
+                  </span>
+                )}
+                <span className="ml-auto font-bold text-zinc-700">
+                  {r.totalAmount.toLocaleString()}원
+                </span>
+              </div>
+            </AdminCard>
+          ))}
         </div>
       )}
-    </main>
-  )
-}
 
-function Th({ children }: { children: React.ReactNode }) {
-  return (
-    <th className="px-3 py-2.5 text-left text-[10px] font-bold tracking-[0.18em] uppercase text-muted">
-      {children}
-    </th>
+      {/* 합계 푸터 */}
+      {rows.length > 0 && (
+        <p className="mt-4 text-right text-[12px] text-zinc-500">
+          청구 합계{' '}
+          <strong className="text-zinc-800">
+            {totalAmountSum.toLocaleString()}원
+          </strong>{' '}
+          · {rows.length}박스 · {totalPacks}팩 ·{' '}
+          {(totalGrams / 1000).toFixed(1)}kg
+        </p>
+      )}
+    </main>
   )
 }

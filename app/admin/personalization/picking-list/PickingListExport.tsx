@@ -1,84 +1,85 @@
 'use client'
 
 import { Download } from 'lucide-react'
-import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
-import type { FoodLine } from '@/lib/personalization/types'
-
-type Row = {
-  formula: {
-    id: string
-    cycle_number: number
-    transition_strategy: string
-    user_adjusted: boolean
-  }
-  dogName: string
-  ownerName: string
-  phone: string
-  addressLine: string
-  zip: string
-  weeklyGrams: number
-  lines: Array<{ line: FoodLine; pct: number; grams: number }>
-  veggieGrams: number
-  proteinGrams: number
-}
 
 /**
- * CSV 다운로드 — 한 줄 = 한 박스. 라인 별 그램은 "Basic_g, Weight_g, ..."
- * 컬럼으로 펼쳐서 Google Sheet / 엑셀 가져오기 호환.
+ * 피킹 리스트 CSV — 한 줄 = 한 박스. 팩 구성은 "제품 165g×14" 형태로 한 컬럼에
+ * (제품 종류가 박스마다 달라 고정 컬럼 펼치기보다 안전). 한국어 BOM 포함.
  *
- * 한국어 BOM 포함 — 엑셀 한글 깨짐 방지.
+ * 2026-07-19 재작성 — 서버 page 가 boxPricing 정본으로 만든 PickingRow 를 그대로
+ * 받는다. 계산은 여기서 하지 않는다(정본 밖 재계산 금지).
  */
+
+export type PickingRow = {
+  subId: string
+  dogName: string
+  recipientName: string
+  phone: string
+  zip: string
+  addressLine: string
+  memo: string
+  freshRatio: number
+  freshLabel: string
+  freshUnknown: boolean
+  cycleNumber: number | null
+  userAdjusted: boolean
+  transition: string
+  noFormula: boolean
+  charged: boolean
+  overdue: boolean
+  totalAmount: number
+  packs: Array<{ name: string; packG: number; count: number; totalG: number }>
+  boxTotalG: number
+}
+
 export default function PickingListExport({
   rows,
   date,
 }: {
-  rows: Row[]
+  rows: PickingRow[]
   date: string
 }) {
   function downloadCsv() {
     const headers = [
       '강아지',
-      '보호자',
+      '수령인',
       '전화',
       '우편',
       '주소',
+      '배송메모',
+      '화식비율',
       'cycle',
-      '전환',
-      '사용자조정',
-      '주간(g)',
-      ...ALL_LINES.map((l) => `${FOOD_LINE_META[l].name}(g)`),
-      '야채토퍼(g)',
-      '육류토퍼(g)',
+      '보호자조정',
+      '상태',
+      '팩 구성',
+      '박스 총량(g)',
+      '청구액(원)',
     ]
-    const csvRows = rows.map((r) => {
-      const lineGrams: Record<FoodLine, number> = {
-        basic: 0,
-        weight: 0,
-        skin: 0,
-        premium: 0,
-        joint: 0,
-      }
-      for (const l of r.lines) lineGrams[l.line] = l.grams
-      return [
-        r.dogName,
-        r.ownerName,
-        r.phone,
-        r.zip,
-        r.addressLine,
-        String(r.formula.cycle_number),
-        r.formula.transition_strategy,
-        r.formula.user_adjusted ? '✓' : '',
-        String(r.weeklyGrams),
-        ...ALL_LINES.map((l) => String(lineGrams[l])),
-        String(r.veggieGrams),
-        String(r.proteinGrams),
-      ]
-    })
+    const csvRows = rows.map((r) => [
+      r.dogName,
+      r.recipientName,
+      r.phone,
+      r.zip,
+      r.addressLine,
+      r.memo,
+      `${r.freshLabel} ${r.freshRatio}%`,
+      r.cycleNumber == null ? '' : String(r.cycleNumber),
+      r.userAdjusted ? '✓' : '',
+      r.noFormula
+        ? '처방없음'
+        : r.charged
+          ? '청구완료'
+          : r.overdue
+            ? '청구지연'
+            : '청구예정',
+      r.packs.map((p) => `${p.name} ${p.packG}g×${p.count}`).join(' / '),
+      String(r.boxTotalG),
+      String(r.totalAmount),
+    ])
     const csv = [headers, ...csvRows]
       .map((row) =>
         row
           .map((cell) => {
-            // 콤마 / 따옴표 / 줄바꿈 포함 시 quote escape.
             const s = String(cell ?? '')
             if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
             return s
@@ -104,8 +105,7 @@ export default function PickingListExport({
       type="button"
       onClick={downloadCsv}
       disabled={rows.length === 0}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold disabled:opacity-40"
-      style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold disabled:opacity-40 bg-zinc-900 text-white"
     >
       <Download size={12} strokeWidth={2.5} />
       CSV 다운로드

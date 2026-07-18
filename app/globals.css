@@ -1494,7 +1494,7 @@ html[data-theme="dark"] .fiber::after {
   animation: fade-in-up 280ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
-/* ── 브랜드 로더 — /logo-brush.png 워드마크가 은은하게 숨쉰다 (BrandLoader). */
+/* ── 브랜드 로더 — /logo-ink.png 워드마크가 은은하게 숨쉰다 (BrandLoader). */
 @keyframes ft-brand-breathe {
   0%, 100% { opacity: 0.5; transform: scale(0.97); }
   50%      { opacity: 1; transform: scale(1.02); }

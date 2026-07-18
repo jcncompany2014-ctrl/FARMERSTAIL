@@ -259,7 +259,7 @@ export async function POST(
     )
   }
 
-  // 점검 medium: refunds 원장 기록. 고객용 cancel/cancel-items 는 refunds 에 적지만
+  // 점검 medium: refunds 원장 기록. 고객용 cancel 은 refunds 에 적지만
   // admin 환불(유일한 admin 환불 경로)은 빠져 /admin/refunds 환불 목록·환불액
   // 통계에서 조용히 누락됐다. refunded_by=admin 으로 구분. fail 은 환불 자체를
   // 막지 않음(원장은 payment_events 가 1차 진실).
