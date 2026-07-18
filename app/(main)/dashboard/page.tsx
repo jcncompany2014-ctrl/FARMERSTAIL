@@ -30,6 +30,9 @@ import {
   personaCardSpec,
 } from '@/lib/persona'
 import type { Json } from '@/lib/supabase/types'
+import { onboardingPhase } from '@/lib/onboarding/grace-period'
+import { petName } from '@/lib/korean'
+import GracePeriodBanner from '@/components/dashboard/GracePeriodBanner'
 
 /**
  * Dashboard — 로그인 후 홈 화면.
@@ -365,6 +368,9 @@ export default async function DashboardPage() {
     : null
 
   const daysSinceSignup = daysSinceIso(userCreatedAt)
+  // 첫 4주 온보딩 여정 배너 phase — grace-period 연결(신규 이탈방어). [[project-legacy-sweep]]
+  const gracePhase = onboardingPhase(userCreatedAt)
+  const graceDogName = firstDog ? petName(firstDog.name) : null
 
   const personaResult = computePersona({
     chatCount: chatCount ?? 0,
@@ -490,6 +496,13 @@ export default async function DashboardPage() {
       <GreetingSection
         userName={userName ?? '보호자'}
         familyCount={dogs.length}
+      />
+
+      {/* 첫 4주 온보딩 여정 — grace-period 연결(신규 이탈방어, 29일+ 자동 졸업) */}
+      <GracePeriodBanner
+        phase={gracePhase}
+        dogName={graceDogName}
+        dogId={firstDog?.id ?? null}
       />
 
       {/* 2. ActiveDog 카드 — 첫 강아지 spotlight */}

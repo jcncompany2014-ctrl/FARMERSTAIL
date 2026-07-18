@@ -2,8 +2,10 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Sprout } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { onboardingPhase } from '@/lib/onboarding/grace-period'
+import { petName } from '@/lib/korean'
 import { Mono } from '@/components/v3'
 import { V3, V3FontWeight, V3FontSize, V3Radius } from '@/lib/design/tokens'
 import AccuracyBreakdown, {
@@ -83,6 +85,12 @@ export default async function AccuracyPage() {
   const activeId = cookieStore.get('ft_active_dog')?.value ?? null
   const activeDog = dogs.find((d) => d.id === activeId) ?? dogs[0] ?? null
 
+  // 첫 4주 보호(grace period, lib/onboarding/grace-period) — 1주차(silent)엔 정밀도
+  // 노출 보류. 신규 이탈방어(첫 4주 이탈 60%): 시스템 정확도보다 안심감 우선.
+  // 앵커=가입 경과일(user.created_at). [[project-legacy-sweep]] [[project_recipe_v31]]
+  const inSilentGrace = onboardingPhase(user.created_at) === 'silent'
+  const graceDogName = activeDog ? petName(activeDog.name) : null
+
   const dogMetaList = (dogMetaData ?? []) as DogMetaRow[]
   const dogMeta = activeDog
     ? dogMetaList.find((m) => m.id === activeDog.id) ?? null
@@ -145,13 +153,62 @@ export default async function AccuracyPage() {
             marginTop: 8,
           }}
         >
-          체중·활동·급여를 어떻게 측정했는지에 따라 맞춤 분석의 정밀도가
-          달라져요. 약한 항목의 측정 도구를 바꾸면 더 정확한 추천을 받을 수
-          있어요.
+          {inSilentGrace
+            ? '지금은 맞춤 데이터가 쌓이는 중이에요. 급하게 뭔가 안 하셔도 괜찮아요 — 정밀도는 다음 주부터 차근차근 보여드릴게요.'
+            : '체중·활동·급여를 어떻게 측정했는지에 따라 맞춤 분석의 정밀도가 달라져요. 약한 항목의 측정 도구를 바꾸면 더 정확한 추천을 받을 수 있어요.'}
         </p>
       </section>
 
-      {accuracyVars.length > 0 && dogMeta ? (
+      {inSilentGrace ? (
+        <section style={{ padding: '20px 20px 0' }}>
+          <div
+            className="text-center"
+            style={{
+              borderRadius: V3Radius.sm,
+              border: `1.5px solid ${V3.rule}`,
+              padding: '40px 24px',
+              background: V3.paperHi,
+            }}
+          >
+            <div
+              className="mx-auto flex items-center justify-center"
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 26,
+                background: V3.paper,
+                border: `1px solid ${V3.rule}`,
+                marginBottom: 14,
+              }}
+            >
+              <Sprout size={22} color={V3.sage} strokeWidth={1.6} />
+            </div>
+            <h3
+              style={{
+                margin: 0,
+                fontFamily: 'var(--font-sans)',
+                fontWeight: V3FontWeight.black,
+                fontSize: V3FontSize.md,
+                color: V3.ink,
+                letterSpacing: '-0.02em',
+              }}
+            >
+              첫 주는 천천히, 편하게
+            </h3>
+            <p
+              style={{
+                fontSize: V3FontSize.sm,
+                color: V3.inkMute,
+                marginTop: 8,
+                lineHeight: 1.55,
+              }}
+            >
+              {graceDogName ? `${graceDogName}의 ` : ''}맞춤 데이터가 조금 쌓이면
+              변수별 정밀도를 여기서 보여드릴게요. 첫 주는 부담 없이 둘러보세요.
+            </p>
+          </div>
+        </section>
+      ) : accuracyVars.length > 0 && dogMeta ? (
         <AccuracyBreakdown
           variables={accuracyVars}
           dogId={activeDog?.id ?? null}
