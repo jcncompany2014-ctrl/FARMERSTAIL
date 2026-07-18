@@ -81,11 +81,11 @@ export default async function ComparePage() {
             <thead>
               <tr className="text-left text-muted border-b border-rule">
                 <th className="py-2 pr-3 font-bold">레시피</th>
-                <th className="py-2 px-2 font-bold text-right">단백 %</th>
-                <th className="py-2 px-2 font-bold text-right">지방 %</th>
+                <th className="py-2 px-2 font-bold text-right">단백질</th>
+                <th className="py-2 px-2 font-bold text-right">지방</th>
                 <th className="py-2 px-2 font-bold text-right">Ca:P</th>
-                <th className="py-2 px-2 font-bold text-right">EPA+DHA %</th>
-                <th className="py-2 px-2 font-bold text-right">Se mcg/kg</th>
+                <th className="py-2 px-2 font-bold text-right">EPA+DHA</th>
+                <th className="py-2 px-2 font-bold text-right">셀레늄</th>
               </tr>
             </thead>
             <tbody>
@@ -98,20 +98,24 @@ export default async function ComparePage() {
                       {meta.name_ko}
                     </div>
                   </td>
+                  {/* 보증성분 규칙(2026-07-18): 정확 % 금지 → 방향 보증만.
+                      단백=floor+이상, 지방=ceil+이하(라벨 컨벤션), Ca:P/EPA/Se는
+                      정성. floor/ceil은 v3.1·v4.0 양쪽서 유효한 보증.
+                      [[feedback_no_exact_nutrient_percent]] */}
                   <td className="py-2 px-2 text-right font-mono tabular-nums text-ink">
-                    {nutrition.protein_pct.toFixed(1)}
+                    {Math.floor(nutrition.protein_pct)}% 이상
                   </td>
                   <td className="py-2 px-2 text-right font-mono tabular-nums text-ink">
-                    {nutrition.fat_pct.toFixed(1)}
+                    {Math.ceil(nutrition.fat_pct)}% 이하
                   </td>
                   <td className="py-2 px-2 text-right font-mono tabular-nums text-ink">
-                    {nutrition.ca_p_ratio.toFixed(1)}
+                    안전구간
                   </td>
                   <td className="py-2 px-2 text-right font-mono tabular-nums text-ink">
-                    {nutrition.epa_dha_pct.toFixed(2)}
+                    충족
                   </td>
                   <td className="py-2 px-2 text-right font-mono tabular-nums text-ink">
-                    {nutrition.selenium_mcg_per_kg}
+                    충족
                   </td>
                 </tr>
               ))}
