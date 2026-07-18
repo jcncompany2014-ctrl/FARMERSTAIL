@@ -3,7 +3,12 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { trackSubscriptionBillingCompleted } from '@/lib/analytics'
+import {
+  trackSubscriptionBillingCompleted,
+  trackPurchase,
+  type AnalyticsItem,
+} from '@/lib/analytics'
+import { createClient } from '@/lib/supabase/client'
 
 /**
  * /subscribe/billing-success
@@ -70,6 +75,46 @@ function BillingSuccessInner() {
           subscriptionId: subscriptionId!,
           cardBrand: data.cardBrand ?? null,
         })
+        // GA4/Meta 표준 purchase(전환) 이벤트 — 구독 첫 결제 완료. 광고 성과
+        // 측정용(구 커스텀 이벤트만으론 전환 0). 결제 로직 무손상: 성공 확인
+        // 후 구독 금액/구성만 조회해 발화하고, 트래킹 실패는 격리해 삼킨다.
+        try {
+          const supabase = createClient()
+          const { data: sub } = await supabase
+            .from('subscriptions')
+            .select(
+              'total_amount, subscription_items(product_id, product_name, quantity, unit_price)',
+            )
+            .eq('id', subscriptionId!)
+            .single()
+          if (sub && sub.total_amount && !cancelled) {
+            const dedupKey = `ft-purchase-tracked-${subscriptionId}`
+            let already = false
+            try {
+              already = !!sessionStorage.getItem(dedupKey)
+              if (!already) sessionStorage.setItem(dedupKey, '1')
+            } catch {
+              /* storage 차단 — 그냥 1회 발화 */
+            }
+            if (!already) {
+              const items: AnalyticsItem[] = (sub.subscription_items ?? []).map(
+                (it) => ({
+                  item_id: it.product_id,
+                  item_name: it.product_name,
+                  price: it.unit_price,
+                  quantity: it.quantity,
+                }),
+              )
+              trackPurchase({
+                transactionId: subscriptionId!,
+                value: sub.total_amount,
+                items,
+              })
+            }
+          }
+        } catch {
+          /* 트래킹 실패는 결제 성공에 영향 없음 */
+        }
       } catch (e) {
         if (cancelled) return
         setStatus('failed')
