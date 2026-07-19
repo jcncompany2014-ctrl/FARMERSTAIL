@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
+import { HelpTip } from '@/components/admin/ui'
 import PrintButtonClient from './PrintButtonClient'
 
 export const dynamic = 'force-dynamic'
@@ -233,7 +234,10 @@ export default async function AdminReportsPage({
             'linear-gradient(135deg, var(--ink) 0%, #3a2f1d 60%, #5b4720 100%)',
         }}
       >
-        <span className="kicker kicker-gold">순매출</span>
+        <span className="kicker kicker-gold">
+          순매출
+          <HelpTip text="이번 달 결제 완료 합계(매출)에서 환불을 뺀, 실제로 남는 매출이에요. 세무 신고·운영 리뷰의 기준 숫자." />
+        </span>
         <div className="mt-2 flex items-baseline gap-1.5">
           <span
             className="font-serif leading-none tabular-nums text-gold"
@@ -298,7 +302,10 @@ export default async function AdminReportsPage({
 
       {/* 차감 합계 */}
       <section className="bg-white rounded-xl border border-zinc-200 px-5 py-4 mb-6 print:break-inside-avoid">
-        <span className="kicker kicker-muted">차감 항목</span>
+        <span className="kicker kicker-muted">
+          차감 항목
+          <HelpTip text="할인·포인트는 결제 전에 이미 빠진 금액(참고용), 환불만 순매출에서 실제로 차감돼요. 포인트는 폐지된 제도라 과거 달에만 값이 있어요." />
+        </span>
         <div className="mt-2 grid grid-cols-3 gap-2 text-[12px]">
           <div>
             <span className="text-muted">할인</span>
