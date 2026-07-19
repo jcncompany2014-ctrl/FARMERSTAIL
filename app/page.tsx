@@ -38,7 +38,7 @@ import {
  * 모든 CTA → 설문 퍼널. 가짜 기관/언론 보증·가짜 후기·질병 단정 금지(정직 가드).
  */
 
-export const revalidate = 300
+export const revalidate = 3600
 
 // R99-A 패턴: Next openGraph shallow-merge 라 페이지가 images 미지정 시 layout
 // 기본 OG 상속 못 함 → 공유 카드 썸네일 0. 홈 명시 OG 추가(회차161).

@@ -17,7 +17,7 @@ import { Button, Container, Display, Eyebrow, Section } from '@/components/web/f
  * 앱/웹 완벽분리(사장님 지시 2026-06-13): 웹 마케팅 페이지는 PWA 에서도 앱
  * chrome 으로 넘어가지 않고 항상 웹. 데이터/JSON-LD/아코디언 로직 보존.
  */
-export const revalidate = 300
+export const revalidate = 3600
 
 const FAQ_OG = ogImageUrl({
   title: '자주 묻는 질문',

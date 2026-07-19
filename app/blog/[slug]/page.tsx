@@ -28,7 +28,7 @@ import StickyCta from '@/components/web/fd/StickyCta'
  * 해지면 client-side view beacon 으로 이전.
  * (이전: force-dynamic — 모든 방문마다 blog_posts + blog_categories 조회.)
  */
-export const revalidate = 300
+export const revalidate = 3600
 
 type Params = Promise<{ slug: string }>
 

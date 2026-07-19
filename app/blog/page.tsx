@@ -15,7 +15,7 @@ import StickyCta from '@/components/web/fd/StickyCta'
  * 데이터/로직(blog_categories·blog_posts·카테고리 필터·ISR) 보존, presentation만 FD.
  * 블로그 cover_url 은 실제 콘텐츠 이미지 → next/image 유지(placeholder 아님).
  */
-export const revalidate = 300
+export const revalidate = 3600
 
 const BLOG_OG = ogImageUrl({
   title: '매거진',

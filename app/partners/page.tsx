@@ -14,7 +14,7 @@ import StickyCta from '@/components/web/fd/StickyCta'
  * 가져오고, 비어 있거나 fetch 가 실패하면 hardcoded fallback (FALLBACK_PARTNERS)
  * 을 그대로 보여줘서 페이지가 절대 빈 채로 노출되지 않도록 한다.
  */
-export const revalidate = 300
+export const revalidate = 3600
 
 // R99-A (D7): openGraph images 누락 → 공유 카드 썸네일 0 (shallow merge).
 const PARTNERS_OG = ogImageUrl({

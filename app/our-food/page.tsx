@@ -34,7 +34,7 @@ import {
  * 제품/가격/SKU·레시피 노출 없음. 모든 CTA → 설문 퍼널. 사진 PhotoSlot, 가짜 후기 X.
  */
 
-export const revalidate = 300
+export const revalidate = 3600
 
 // R99-A 패턴: Next openGraph 는 shallow-merge 라 페이지가 images 미지정 시 layout
 // 기본 OG(/api/og)를 상속 못 함 → 공유 카드 썸네일 0. 명시 OG 추가(회차160).
