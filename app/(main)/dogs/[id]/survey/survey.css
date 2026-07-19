@@ -74,7 +74,7 @@
   letter-spacing: -0.035em;
   color: var(--fd-pine);
   line-height: 1.04;
-  font-size: 25px;
+  font-size: 26px;
   margin: 4px 0 6px;
   /* programmatic focus (step 전환 시 a11y) — 시각 outline 제거,
      keyboard tab focus 시는 outline 유지 */
@@ -86,13 +86,13 @@
   border-radius: 4px;
 }
 .s-page p.s-sub {
-  font-size: 12px; color: var(--fd-muted); line-height: 1.55;
+  font-size: 14px; color: var(--fd-muted); line-height: 1.55;
   margin: 0 0 12px;
   text-wrap: pretty;
 }
 .s-page p.s-sub .s-pill {
   display: inline-block; padding: 1px 7px; border-radius: 99px;
-  background: var(--fd-cream); color: var(--fd-pine); font-size: 10.5px;
+  background: var(--fd-cream); color: var(--fd-pine); font-size: 12px;
   font-weight: 700; letter-spacing: 0.01em;
   margin-left: 4px; vertical-align: middle;
 }
@@ -193,12 +193,12 @@
 .s-pickcard .s-num {
   /* 숫자 라벨 — tabular sans, FD muted */
   font-family: var(--font-sans), "Pretendard", sans-serif;
-  font-size: 10px; color: var(--fd-muted); font-weight: 700;
+  font-size: 11.5px; color: var(--fd-muted); font-weight: 700;
   margin-bottom: 6px; letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
 .s-pickcard .s-lbl {
-  font-size: 12px; font-weight: 800; color: var(--fd-pine);
+  font-size: 14.5px; font-weight: 800; color: var(--fd-pine);
   margin-top: 6px; letter-spacing: -0.01em;
 }
 .s-pickcard .s-ideal {
@@ -315,7 +315,7 @@
   flex: 0 0 auto; width: 22px;
   /* tabular sans (mono 키커 톤 제거) */
   font-family: var(--font-sans), "Pretendard", sans-serif;
-  font-size: 11px; font-weight: 700; color: var(--fd-muted);
+  font-size: 12.5px; font-weight: 700; color: var(--fd-muted);
   text-align: left;
   font-variant-numeric: tabular-nums;
 }
@@ -326,8 +326,8 @@
   color: var(--fd-pine);
 }
 .s-lb-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-.s-lb-title { font-size: 13.5px; font-weight: 800; color: var(--fd-pine); display: block; letter-spacing: -0.01em; }
-.s-lb-sub { font-size: 11.5px; color: var(--fd-muted); margin-top: 2px; line-height: 1.45; display: block; }
+.s-lb-title { font-size: 15px; font-weight: 800; color: var(--fd-pine); display: block; letter-spacing: -0.01em; }
+.s-lb-sub { font-size: 13px; color: var(--fd-muted); margin-top: 2px; line-height: 1.45; display: block; }
 
 /* Skip pill — 직관성 강화 (dashed border + active fill).
    이전: bg/border 없어 일반 텍스트로 보였고, active 도 색만 바뀜.
@@ -343,7 +343,7 @@
   min-height: 48px;
   background: transparent;
   color: var(--fd-muted);
-  font-weight: 700; font-size: 12.5px;
+  font-weight: 700; font-size: 14px;
   border: 1px dashed var(--fd-line);
   border-radius: 10px;
   font-family: inherit;
@@ -412,7 +412,7 @@
   color: var(--fd-pine);
   padding: 10px 14px;
   border-radius: 99px;
-  font-size: 12.5px; font-weight: 800;
+  font-size: 14px; font-weight: 800;
   display: inline-flex; align-items: center; gap: 6px;
   transition: all 160ms cubic-bezier(.2, .7, .2, 1);
   font-family: inherit;
@@ -460,8 +460,8 @@
   display: flex; align-items: center; justify-content: center;
 }
 .s-tile.s-on .s-ic { background: rgba(255, 255, 255, .18); color: #fff; }
-.s-tile .s-tile-lb { font-size: 12.5px; font-weight: 800; letter-spacing: -0.01em; }
-.s-tile .s-meta { font-size: 10px; color: var(--fd-muted); margin-top: -2px; }
+.s-tile .s-tile-lb { font-size: 14.5px; font-weight: 800; letter-spacing: -0.01em; }
+.s-tile .s-meta { font-size: 12px; color: var(--fd-muted); margin-top: -2px; }
 .s-tile.s-on .s-meta { color: #fff; opacity: .75; }
 
 /* Inputs */
@@ -492,7 +492,7 @@ input.s-inp[type="number"] {
 }
 .s-input-suffix { display: flex; align-items: center; gap: 8px; }
 .s-input-suffix .s-unit {
-  font-size: 11px; font-weight: 700; color: var(--fd-muted);
+  font-size: 12.5px; font-weight: 700; color: var(--fd-muted);
   letter-spacing: 0.02em;
 }
 
@@ -507,7 +507,7 @@ input.s-inp[type="number"] {
   appearance: none; border: 0; cursor: pointer;
   background: transparent;
   padding: 11px 8px; border-radius: 8px;
-  font-size: 12.5px; font-weight: 800; color: var(--fd-pine);
+  font-size: 14px; font-weight: 800; color: var(--fd-pine);
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   transition: all 180ms;
   font-family: inherit;
@@ -533,7 +533,7 @@ input.s-inp[type="number"] {
   margin-top: 14px;
   border-radius: 10px;
   padding: 11px 13px;
-  font-size: 11.5px; line-height: 1.5;
+  font-size: 13px; line-height: 1.5;
   background: color-mix(in srgb, var(--fd-coral) 9%, transparent);
   color: var(--fd-pine);
   display: flex; align-items: flex-start; gap: 10px;

@@ -148,7 +148,7 @@ export default function Diet({
             브랜드만 있고 kcal 모르면 kibble_requests 자가성장 로그 대상. */}
         {(foodType === '건식 사료' || foodType === '반반') && (
           <>
-            <p className="s-sub" style={{ fontSize: 10.5, margin: '10px 0 8px' }}>
+            <p className="s-sub" style={{ fontSize: 13, margin: '10px 0 8px' }}>
               사료 봉투 뒷면의 열량(대사에너지 ME) 표기를 아신다면 적어 주세요.
               모르면 비워두셔도 돼요 — 평균값으로 계산해요.
             </p>
@@ -197,7 +197,7 @@ export default function Diet({
             초과분은 경고로 식별(헤비유저). 모름 = 빈도 기반 추정(가끔5%/매일10%). */}
         {(snackFreq === '가끔' || snackFreq === '매일') && (
           <>
-            <p className="s-sub" style={{ fontSize: 10.5, margin: '10px 0 8px' }}>
+            <p className="s-sub" style={{ fontSize: 13, margin: '10px 0 8px' }}>
               하루 간식 칼로리를 아신다면 적어 주세요. 포장 뒷면에 있어요 —
               모르면 비워두셔도 돼요.
             </p>
@@ -294,7 +294,7 @@ export default function Diet({
           <span className="s-label-text">격한 운동을 규칙적으로 하나요?</span>
           <span className="s-opt">선택</span>
         </div>
-        <p className="s-sub" style={{ fontSize: 10.5, marginBottom: 8 }}>
+        <p className="s-sub" style={{ fontSize: 13, marginBottom: 8 }}>
           달리기·등산·어질리티 등. 앱이나 웨어러블로 기록하면 &lsquo;기록·측정&rsquo;을
           골라 주세요.
         </p>
@@ -359,7 +359,7 @@ export default function Diet({
         </div>
         {housing === 'outdoor' && (
           <>
-            <p className="s-sub" style={{ fontSize: 10.5, margin: '10px 0 8px' }}>
+            <p className="s-sub" style={{ fontSize: 13, margin: '10px 0 8px' }}>
               겨울에도 주로 밖에서 지내요? (추위에 노출되면 필요 열량이 늘어요)
             </p>
             <div className="s-chiprow">
