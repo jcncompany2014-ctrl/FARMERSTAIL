@@ -243,22 +243,35 @@ function LoginInner() {
       className="min-h-screen flex flex-col"
       style={{ background: 'var(--fd-offwhite)' }}
     >
-      {/* 상단 — 중앙 로고 (FD 헤더 대응, 미니멀). */}
-      <header className="flex items-center justify-center px-6 py-5">
-        <Link href="/" aria-label="파머스테일 홈" className="inline-flex">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo-ink.png"
-            alt="Farmer's Tail"
-            className="h-8 w-auto"
-            fetchPriority="high"
-          />
-        </Link>
-      </header>
+      {/* 상단 로고 — 웹만. ★앱은 로고 헤더를 빼서 한 화면에 담는다(2026-07-19
+          사장님 폰: 로고 때문에 로그인 화면이 스크롤돼 "앱 느낌"이 퇴색). 네이티브
+          로그인은 큰 로고를 안 쓰고, "환영해요!" 헤드라인이 브랜드 모먼트를 대신. */}
+      {!isApp && (
+        <header className="flex items-center justify-center px-6 py-5">
+          <Link href="/" aria-label="파머스테일 홈" className="inline-flex">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-ink.png"
+              alt="Farmer's Tail"
+              className="h-8 w-auto"
+              fetchPriority="high"
+            />
+          </Link>
+        </header>
+      )}
 
-      {/* 본문 — FD식 단일 중앙 컬럼(좌우 브랜드 패널 없음). */}
-      <div className="flex-1 flex flex-col items-center px-6 pb-20">
-        <div className="w-full max-w-[420px] mx-auto pt-4 lg:pt-10">
+      {/* 본문 — FD식 단일 중앙 컬럼(좌우 브랜드 패널 없음). 앱은 세로 여백을
+          줄여 스크롤 없이 한 화면(웹은 기존 넉넉한 여백 유지). */}
+      <div
+        className={`flex-1 flex flex-col items-center px-6 ${
+          isApp
+            ? 'pt-[max(20px,env(safe-area-inset-top))] pb-[max(16px,env(safe-area-inset-bottom))]'
+            : 'pb-20'
+        }`}
+      >
+        <div
+          className={`w-full max-w-[420px] mx-auto ${isApp ? '' : 'pt-4 lg:pt-10'}`}
+        >
           {/* 헤드라인 — 큰 "환영해요!" 중앙 (FD "Welcome!" 대응, 균형 잡힌 크기). */}
           <h1
             className="text-center text-[clamp(36px,11vw,50px)]"
