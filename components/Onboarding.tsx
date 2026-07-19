@@ -211,12 +211,14 @@ export default function Onboarding() {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: '74%',
+                height: '82%',
                 pointerEvents: 'none',
-                // 진한 고동색(#2A1810 = rgb 42,24,16). 스톱을 촘촘히·길게 깔아
-                // 밝은 이미지 위에서 가로 밴딩(직선 끊김)이 안 생기게(사장님 폰).
+                // ★순수 2색 선형(스톱 2개) — 기울기가 일정해 마하밴드(가로줄)가
+                // 수학적으로 안 생긴다. 멀티스톱은 스톱마다 기울기가 꺾여 밝은
+                // 이미지 위에서 직선이 보였다(사장님 폰). 진한 고동색 #2A1810.
+                // 글자 가독성은 그라데이션이 아니라 아래 textShadow 로 보장.
                 background:
-                  'linear-gradient(to top, rgba(42,24,16,0.96) 0%, rgba(42,24,16,0.93) 12%, rgba(42,24,16,0.82) 26%, rgba(42,24,16,0.6) 42%, rgba(42,24,16,0.38) 58%, rgba(42,24,16,0.2) 74%, rgba(42,24,16,0.08) 88%, rgba(42,24,16,0) 100%)',
+                  'linear-gradient(to top, rgba(42,24,16,0.92), rgba(42,24,16,0))',
               }}
             />
 
@@ -238,8 +240,9 @@ export default function Onboarding() {
                     fontSize: 11.5,
                     fontWeight: 800,
                     letterSpacing: '0.18em',
-                    color: '#E8B84B',
+                    color: '#F0C766',
                     textTransform: 'uppercase',
+                    textShadow: '0 1px 10px rgba(20,12,8,0.55)',
                   }}
                 >
                   {s.kicker}
@@ -254,6 +257,7 @@ export default function Onboarding() {
                     letterSpacing: '-0.03em',
                     color: '#fff',
                     whiteSpace: 'pre-line',
+                    textShadow: '0 2px 18px rgba(20,12,8,0.5)',
                   }}
                 >
                   {s.title}
@@ -263,9 +267,10 @@ export default function Onboarding() {
                     margin: '12px 0 0',
                     fontSize: 14.5,
                     lineHeight: 1.6,
-                    color: 'rgba(255,255,255,0.85)',
+                    color: 'rgba(255,255,255,0.88)',
                     whiteSpace: 'pre-line',
                     fontWeight: 500,
+                    textShadow: '0 1px 14px rgba(20,12,8,0.5)',
                   }}
                 >
                   {s.sub}
