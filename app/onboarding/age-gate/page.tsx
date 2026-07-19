@@ -35,32 +35,17 @@ function AgeGateInner() {
   const MAX_YEAR = currentYear - 14
 
   const [year, setYear] = useState('')
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  // 페이지 진입 시 user 가 없으면 /login 으로. 있으면 프로필 기존값 prefill
-  // (카카오/애플은 대개 비어있지만, 재진입/부분입력 대비 채워둔다).
+  // 페이지 진입 시 user 가 없으면 /login 으로.
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (cancelled) return
-      if (!user) {
-        router.replace('/login')
-        return
-      }
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('name, phone')
-        .eq('id', user.id)
-        .maybeSingle()
-      if (cancelled || !prof) return
-      if (prof.name) setName(prof.name)
-      if (prof.phone) setPhone(prof.phone)
+      if (!cancelled && !user) router.replace('/login')
     })()
     return () => {
       cancelled = true
@@ -72,21 +57,9 @@ function AgeGateInner() {
     Number.isInteger(yearNum) && yearNum > MAX_YEAR && yearNum <= currentYear
   const isValid =
     Number.isInteger(yearNum) && yearNum >= MIN_YEAR && yearNum <= MAX_YEAR
-  // 연락처 — 숫자만 9자리 이상이면 통과(하이픈·공백 허용). 배송 안내·CS 연락용.
-  const phoneDigits = phone.replace(/\D/g, '')
-  const phoneValid = phoneDigits.length >= 9 && phoneDigits.length <= 11
-  const nameValid = name.trim().length >= 1
 
   async function handleSubmit() {
     setError('')
-    if (!nameValid) {
-      setError('보호자님 이름을 입력해 주세요.')
-      return
-    }
-    if (!phoneValid) {
-      setError('연락처를 정확히 입력해 주세요. (숫자 9~11자리)')
-      return
-    }
     if (isUnder14) {
       setError('만 14세 미만은 가입할 수 없어요. 보호자와 상의해 주세요.')
       return
@@ -105,7 +78,7 @@ function AgeGateInner() {
     }
     const { error: updErr } = await supabase
       .from('profiles')
-      .update({ birth_year: yearNum, name: name.trim(), phone: phone.trim() })
+      .update({ birth_year: yearNum })
       .eq('id', user.id)
 
     if (updErr) {
@@ -147,7 +120,7 @@ function AgeGateInner() {
       style={{ background: 'var(--bg)' }}
     >
       <div className="max-w-sm w-full">
-        <span className="kicker">보호자 정보</span>
+        <span className="kicker">14세 확인</span>
         <h1
           // R28: font-serif → font-sans (v3 app 톤 — onboarding 흐름은 app 컨텍스트)
           className="font-sans mt-2 text-[24px]"
@@ -158,54 +131,19 @@ function AgeGateInner() {
             lineHeight: 1.25,
           }}
         >
-          보호자님을 알려주세요
+          출생 연도를 알려주세요
         </h1>
         <p
           className="text-[12.5px] mt-3 leading-relaxed"
           style={{ color: 'var(--muted)' }}
         >
-          주문·배송 안내와 우리 아이 맞춤 관리를 위해 한 번만 여쭤봐요.
-          개인정보보호법에 따라 만 14세 이상만 이용할 수 있어, 출생 연도도 함께
-          확인해요. (배송지는 첫 주문 때 받아요.)
+          파머스테일은 만 14세 이상만 이용할 수 있어요. 개인정보보호법에 따라
+          한 번만 확인할게요. 입력하신 연도는 이후 가입 흐름에서 다시 묻지
+          않아요.
         </p>
 
         <label
           className="block text-[11px] font-bold mt-6 mb-1.5"
-          style={{ color: 'var(--text)' }}
-        >
-          이름
-        </label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          disabled={saving}
-          placeholder="보호자님 이름"
-          autoComplete="name"
-          className="w-full px-4 py-3 rounded-lg border text-sm"
-          style={{ borderColor: 'var(--rule-2)', background: '#FDFDFD', color: 'var(--text)' }}
-        />
-
-        <label
-          className="block text-[11px] font-bold mt-4 mb-1.5"
-          style={{ color: 'var(--text)' }}
-        >
-          연락처
-        </label>
-        <input
-          type="tel"
-          inputMode="numeric"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          disabled={saving}
-          placeholder="010-1234-5678"
-          autoComplete="tel"
-          className="w-full px-4 py-3 rounded-lg border text-sm"
-          style={{ borderColor: 'var(--rule-2)', background: '#FDFDFD', color: 'var(--text)' }}
-        />
-
-        <label
-          className="block text-[11px] font-bold mt-4 mb-1.5"
           style={{ color: 'var(--text)' }}
         >
           출생 연도
@@ -253,11 +191,7 @@ function AgeGateInner() {
         <button
           type="button"
           onClick={isUnder14 ? handleUnder14Acknowledge : handleSubmit}
-          disabled={
-            saving ||
-            !year ||
-            (!isUnder14 && (!isValid || !nameValid || !phoneValid))
-          }
+          disabled={saving || !year || (!isUnder14 && !isValid)}
           className="mt-5 w-full py-3.5 rounded-full text-[13px] font-bold disabled:opacity-50 transition active:scale-[0.98]"
           style={{
             // R28: ink → terracotta primary CTA + 카트 grammar 그림자.
