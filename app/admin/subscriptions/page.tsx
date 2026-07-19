@@ -146,185 +146,287 @@ export default function AdminSubscriptionsPage() {
 
   return (
     <div>
-      {/* 헤더 */}
-      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-black text-text">정기배송 관리</h1>
-          <p className="text-sm text-muted mt-1">
-            전체 {subs.length}건 · 활성 {subs.filter(s => s.status === 'active').length}건
+      {/* 헤더 — 기능형 클린 어드민(zinc) 통일 (2026-07-19 마스터피스 2차) */}
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+            정기배송 관리
+          </h1>
+          <p className="text-[13px] text-zinc-500 mt-1">
+            전체 {subs.length}건 · 활성{' '}
+            {subs.filter((s) => s.status === 'active').length}건 · 청구·배송은
+            크론이 자동 처리해요
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <a
-            href="/admin/subscriptions/calendar"
-            className="px-3 py-2 rounded-lg border border-zinc-200 text-[12px] font-bold text-ink hover:bg-bg transition inline-flex items-center gap-1.5"
-          >
-            📅 캘린더 뷰
-          </a>
+        <a
+          href="/admin/subscriptions/calendar"
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-zinc-200 bg-white text-[12px] font-bold text-zinc-700 hover:border-zinc-400 transition"
+        >
+          📅 캘린더 뷰
+        </a>
+      </div>
+
+      {/* 탭 + 검색 */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1.5 flex-wrap">
+          {TABS.map((t) => (
+            <button
+              key={t.value}
+              onClick={() => setTab(t.value)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+                tab === t.value
+                  ? 'bg-zinc-900 text-white'
+                  : 'bg-white text-zinc-600 border border-zinc-200 hover:border-zinc-400'
+              }`}
+            >
+              {t.label}
+              {t.value === 'upcoming' && upcomingCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-terracotta text-white text-[10px]">
+                  {upcomingCount}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
-        {/* ("일괄 주문 생성" 버튼은 2026-07-19 제거 — 자동청구 크론 이전 유물.
-            결제 없이 주문을 만들고 배송일을 +14 밀어, 누르면 그 회차 청구가
-            통째로 증발하는 사고 버튼이었다. 지금은 subscription-charge 크론이
-            청구→주문 생성→배송일 갱신을 전부 자동으로 한다.) */}
-      </div>
-
-      {/* 탭 필터 */}
-      <div className="flex gap-1 mb-4 overflow-x-auto pb-1">
-        {TABS.map((t) => (
-          <button
-            key={t.value}
-            onClick={() => setTab(t.value)}
-            className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
-              tab === t.value
-                ? 'bg-text text-white'
-                : 'bg-white text-muted border border-zinc-200 hover:border-muted'
-            }`}
-          >
-            {t.label}
-            {t.value === 'upcoming' && upcomingCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-terracotta text-white text-[10px]">
-                {upcomingCount}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* 검색 */}
-      <div className="mb-4">
         <input
-          type="text"
+          type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="고객명, 이메일, 상품명 검색..."
-          className="w-full px-4 py-2.5 rounded-xl border-2 border-zinc-200 bg-white text-sm text-text focus:border-moss focus:outline-none transition"
+          placeholder="고객명 · 이메일 · 상품명"
+          className="px-3 py-1.5 rounded-full text-xs bg-white border border-zinc-200 focus:outline-none focus:border-terracotta w-full sm:w-56"
         />
       </div>
 
-      {/* 테이블 */}
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-10 text-muted">
+        <div className="flex items-center justify-center gap-2 py-10 text-zinc-400">
           <Spinner size={16} />
           <span className="text-[12px]">불러오는 중...</span>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-10 text-muted">해당하는 구독이 없어요</div>
-      ) : (
-        <div className="bg-white rounded-lg border-2 border-zinc-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-bg text-muted text-xs font-bold uppercase tracking-wider">
-                  <th className="text-left px-4 py-3">고객</th>
-                  <th className="text-left px-4 py-3">상품</th>
-                  <th className="text-center px-4 py-3">주기</th>
-                  <th className="text-center px-4 py-3">상태</th>
-                  <th className="text-center px-4 py-3">다음 배송</th>
-                  <th className="text-right px-4 py-3">회당 금액</th>
-                  <th className="text-center px-4 py-3">누적</th>
-                  <th className="text-center px-4 py-3">관리</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-rule">
-                {filtered.map((sub) => {
-                  const badge = STATUS_BADGE[sub.status] || STATUS_BADGE.active!
-                  const isLoading = actionLoading === sub.id
-
-                  return (
-                    <tr key={sub.id} className={`hover:bg-bg/50 transition ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}>
-                      {/* 고객 */}
-                      <td className="px-4 py-3">
-                        <div className="font-bold text-text text-xs">
-                          {sub.profiles?.name || sub.recipient_name || '-'}
-                        </div>
-                        <div className="text-[10px] text-muted">
-                          {sub.profiles?.email || ''}
-                        </div>
-                      </td>
-                      {/* 상품 */}
-                      <td className="px-4 py-3">
-                        {sub.subscription_items.map((item, i) => (
-                          <div key={i} className="text-xs text-text">
-                            {item.product_name} ×{item.quantity}
-                          </div>
-                        ))}
-                      </td>
-                      {/* 분량 — '주기' 열은 뺐다(2026-07-16). 전부 2주 고정이라
-                          모든 행에 같은 값이 찍힐 뿐이었다. */}
-                      <td className="px-4 py-3 text-center text-xs font-bold text-text">
-                        <div className="text-[9px] text-muted font-normal">
-                          {freshTierLabel(sub.fresh_ratio)}
-                        </div>
-                        {sub.dogs && (
-                          <div className="text-[9px] text-terracotta font-normal mt-0.5">
-                            🐶 {sub.dogs.name}
-                          </div>
-                        )}
-                      </td>
-                      {/* 상태 */}
-                      <td className="px-4 py-3 text-center">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-bold ${badge.cls}`}>
-                          <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" aria-hidden />
-                          {badge.label}
-                        </span>
-                      </td>
-                      {/* 다음 배송 */}
-                      <td className="px-4 py-3 text-center text-xs text-text">
-                        {sub.next_delivery_date
-                          ? new Date(sub.next_delivery_date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
-                          : '-'}
-                      </td>
-                      {/* 금액 */}
-                      <td className="px-4 py-3 text-right text-xs font-bold text-terracotta">
-                        {sub.total_amount.toLocaleString()}원
-                      </td>
-                      {/* 누적 */}
-                      <td className="px-4 py-3 text-center text-xs text-text">
-                        {sub.total_deliveries}회
-                      </td>
-                      {/* 관리 */}
-                      <td className="px-4 py-3 text-center">
-                        {sub.status !== 'cancelled' && (
-                          <div className="flex gap-1 justify-center">
-                            {sub.status === 'active' && (
-                              <button
-                                onClick={() => handleStatusChange(sub.id, 'paused')}
-                                disabled={isLoading}
-                                className="px-2 py-1 rounded text-[10px] font-bold bg-gold/10 text-gold hover:bg-gold/20 transition disabled:opacity-50"
-                                title="일시정지"
-                              >
-                                ⏸
-                              </button>
-                            )}
-                            {sub.status === 'paused' && (
-                              <button
-                                onClick={() => handleStatusChange(sub.id, 'active')}
-                                disabled={isLoading}
-                                className="px-2 py-1 rounded text-[10px] font-bold bg-moss/10 text-moss hover:bg-moss/20 transition disabled:opacity-50"
-                                title="재개"
-                              >
-                                ▶
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleStatusChange(sub.id, 'cancelled')}
-                              disabled={isLoading}
-                              className="px-2 py-1 rounded text-[10px] font-bold bg-sale/10 text-sale hover:bg-sale/20 transition disabled:opacity-50"
-                              title="해지"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+        <div className="rounded-lg border border-zinc-200 bg-white p-10 text-center text-sm text-zinc-400">
+          해당하는 구독이 없어요
         </div>
+      ) : (
+        <>
+          {/* ── 데스크톱: 테이블 ─────────────────────────────── */}
+          <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[11px] text-zinc-400 border-b border-zinc-200">
+                    <th className="text-left px-4 py-2.5 font-medium">고객</th>
+                    <th className="text-left px-4 py-2.5 font-medium">구성</th>
+                    <th className="text-center px-4 py-2.5 font-medium">상태</th>
+                    <th className="text-center px-4 py-2.5 font-medium">다음 배송</th>
+                    <th className="text-right px-4 py-2.5 font-medium">회당 금액</th>
+                    <th className="text-center px-4 py-2.5 font-medium">누적</th>
+                    <th className="text-center px-4 py-2.5 font-medium">관리</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {filtered.map((sub) => (
+                    <SubRow
+                      key={sub.id}
+                      sub={sub}
+                      isLoading={actionLoading === sub.id}
+                      onAction={handleStatusChange}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* ── 모바일: 카드 리스트 (사장님 폰 운영 — 가로 스크롤 제거) ── */}
+          <div className="md:hidden space-y-2.5">
+            {filtered.map((sub) => (
+              <SubCard
+                key={sub.id}
+                sub={sub}
+                isLoading={actionLoading === sub.id}
+                onAction={handleStatusChange}
+              />
+            ))}
+          </div>
+        </>
       )}
+    </div>
+  )
+}
+
+/* ── 행 공통 조각 ──────────────────────────────────────────── */
+
+function StatusBadge({ status }: { status: SubscriptionRow['status'] }) {
+  const badge = STATUS_BADGE[status] ?? STATUS_BADGE.active!
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${badge.cls}`}
+    >
+      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" aria-hidden />
+      {badge.label}
+    </span>
+  )
+}
+
+/** 관리 버튼 — 이모지 단독(⏸▶✕) 대신 라벨 버튼(폰 오터치·의미 명확). */
+function RowActions({
+  sub,
+  isLoading,
+  onAction,
+}: {
+  sub: SubscriptionRow
+  isLoading: boolean
+  onAction: (id: string, status: string) => void
+}) {
+  if (sub.status === 'cancelled') return null
+  return (
+    <div className="flex gap-1.5 justify-center flex-wrap">
+      {sub.status === 'active' && (
+        <button
+          onClick={() => onAction(sub.id, 'paused')}
+          disabled={isLoading}
+          className="px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition disabled:opacity-50"
+        >
+          일시정지
+        </button>
+      )}
+      {sub.status === 'paused' && (
+        <button
+          onClick={() => onAction(sub.id, 'active')}
+          disabled={isLoading}
+          className="px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition disabled:opacity-50"
+        >
+          재개
+        </button>
+      )}
+      <button
+        onClick={() => onAction(sub.id, 'cancelled')}
+        disabled={isLoading}
+        className="px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition disabled:opacity-50"
+      >
+        해지
+      </button>
+      {/* 동선 단축 — 카드 문제·배송 문의 시 바로 1:1 메시지로. */}
+      <a
+        href={`/admin/users/${sub.user_id}/message`}
+        className="px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-white text-zinc-600 border border-zinc-200 hover:border-zinc-400 transition"
+      >
+        메시지
+      </a>
+    </div>
+  )
+}
+
+function SubRow({
+  sub,
+  isLoading,
+  onAction,
+}: {
+  sub: SubscriptionRow
+  isLoading: boolean
+  onAction: (id: string, status: string) => void
+}) {
+  return (
+    <tr
+      className={`hover:bg-zinc-50 transition ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}
+    >
+      <td className="px-4 py-3">
+        <div className="font-bold text-zinc-900 text-xs">
+          {sub.profiles?.name || sub.recipient_name || '-'}
+        </div>
+        <div className="text-[10px] text-zinc-400">{sub.profiles?.email || ''}</div>
+      </td>
+      <td className="px-4 py-3">
+        {sub.subscription_items.map((item, i) => (
+          <div key={i} className="text-xs text-zinc-700">
+            {item.product_name} ×{item.quantity}
+          </div>
+        ))}
+        <div className="text-[10px] text-zinc-400 mt-0.5">
+          {freshTierLabel(sub.fresh_ratio)}
+          {sub.dogs ? ` · 🐶 ${sub.dogs.name}` : ''}
+        </div>
+      </td>
+      <td className="px-4 py-3 text-center">
+        <StatusBadge status={sub.status} />
+      </td>
+      <td className="px-4 py-3 text-center text-xs text-zinc-700">
+        {sub.next_delivery_date
+          ? new Date(sub.next_delivery_date).toLocaleDateString('ko-KR', {
+              month: 'short',
+              day: 'numeric',
+            })
+          : '-'}
+      </td>
+      <td className="px-4 py-3 text-right text-xs font-bold text-zinc-900">
+        {sub.total_amount.toLocaleString()}원
+      </td>
+      <td className="px-4 py-3 text-center text-xs text-zinc-700">
+        {sub.total_deliveries}회
+      </td>
+      <td className="px-4 py-3 text-center">
+        <RowActions sub={sub} isLoading={isLoading} onAction={onAction} />
+      </td>
+    </tr>
+  )
+}
+
+/** 모바일 카드 — 테이블과 같은 정보를 세로로. 가로 스크롤 없음. */
+function SubCard({
+  sub,
+  isLoading,
+  onAction,
+}: {
+  sub: SubscriptionRow
+  isLoading: boolean
+  onAction: (id: string, status: string) => void
+}) {
+  return (
+    <div
+      className={`rounded-lg border border-zinc-200 bg-white p-4 ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-bold text-zinc-900 text-[13px] truncate">
+            {sub.profiles?.name || sub.recipient_name || '-'}
+          </p>
+          <p className="text-[10px] text-zinc-400 truncate">
+            {sub.profiles?.email || ''}
+          </p>
+        </div>
+        <StatusBadge status={sub.status} />
+      </div>
+      <div className="mt-2.5 text-[12px] text-zinc-700">
+        {sub.subscription_items.map((item, i) => (
+          <div key={i}>
+            {item.product_name} ×{item.quantity}
+          </div>
+        ))}
+        <p className="text-[10px] text-zinc-400 mt-0.5">
+          {freshTierLabel(sub.fresh_ratio)}
+          {sub.dogs ? ` · 🐶 ${sub.dogs.name}` : ''}
+        </p>
+      </div>
+      <div className="mt-2.5 pt-2.5 border-t border-zinc-100 flex items-center justify-between text-[12px]">
+        <span className="text-zinc-500">
+          다음 배송{' '}
+          <strong className="text-zinc-800">
+            {sub.next_delivery_date
+              ? new Date(sub.next_delivery_date).toLocaleDateString('ko-KR', {
+                  month: 'short',
+                  day: 'numeric',
+                })
+              : '-'}
+          </strong>{' '}
+          · 누적 {sub.total_deliveries}회
+        </span>
+        <strong className="text-zinc-900">
+          {sub.total_amount.toLocaleString()}원
+        </strong>
+      </div>
+      <div className="mt-3">
+        <RowActions sub={sub} isLoading={isLoading} onAction={onAction} />
+      </div>
     </div>
   )
 }

@@ -58,11 +58,11 @@ export default async function AdminProductsPage({
     <div>
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="font-bold tracking-tight text-3xl text-ink">
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
             제품 관리
           </h1>
-          <p className="text-sm text-muted mt-1">
-            총 {total.toLocaleString()}개 상품
+          <p className="text-[13px] text-zinc-500 mt-1">
+            총 {total.toLocaleString()}개 상품 · 화식 가격은 100g 단가(청구 정본)
           </p>
         </div>
         <Link
