@@ -100,10 +100,7 @@ export default function StartClaimPage() {
       }
 
       // ③ 강아지 無 + 초안 無/이관 실패 → 설문으로(설문 없이 진입 불가).
-      //    ★앱은 웹 퍼널(/start=WebChrome) 대신 **앱 온보딩(/dogs/new → 앱
-      //    강아지 분석 설문)** — 카카오로 앱에서 가입했는데 웹으로 튕기던 것
-      //    차단(사장님 2026-07-19). 웹/앱 절대 분리.
-      if (!cancelled) router.replace(isApp ? '/dogs/new' : '/start')
+      if (!cancelled) router.replace('/start')
     })()
     return () => {
       cancelled = true

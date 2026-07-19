@@ -227,15 +227,12 @@ function LoginInner() {
     let destination = safeNext ?? (isApp ? '/dashboard' : '/mypage/orders')
     // 설문(=강아지) 없이 로그인한 신규/미완성 유저는 설문으로 (사장님 2026-06-16:
     // 설문 없이 진입 불가). 명시적 ?next=(예: /checkout) 가 있으면 그쪽 우선.
-    // ★앱은 웹 퍼널(/start=WebChrome)이 아니라 **앱 온보딩(/dogs/new → 앱
-    //   강아지 분석 설문)** 으로 — 앱에서 가입했는데 웹으로 튕기던 것 차단
-    //   (사장님 2026-07-19 "앱에서는 앱 설문을 쓰라"). 웹/앱 절대 분리.
     if (!safeNext && signedIn) {
       const { count } = await supabase
         .from('dogs')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', signedIn.id)
-      if (!count) destination = isApp ? '/dogs/new' : '/start'
+      if (!count) destination = '/start'
     }
     router.push(destination)
     router.refresh()
