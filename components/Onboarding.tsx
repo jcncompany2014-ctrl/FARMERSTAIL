@@ -103,21 +103,21 @@ export default function Onboarding() {
           left: 0,
           right: 0,
           height: 140,
-          zIndex: 2,
+          zIndex: 6,
           pointerEvents: 'none',
           background:
             'linear-gradient(to bottom, rgba(23,19,16,0.42), rgba(23,19,16,0))',
         }}
       />
 
-      {/* 진행 점 + 건너뛰기 */}
+      {/* 진행 점 + 건너뛰기 (고정) */}
       <div
         style={{
           position: 'absolute',
           top: 'max(14px, env(safe-area-inset-top))',
           left: 0,
           right: 0,
-          zIndex: 5,
+          zIndex: 7,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -162,7 +162,7 @@ export default function Onboarding() {
         </button>
       </div>
 
-      {/* 이미지 캐러셀 — 이미지만 스와이프(카피/버튼은 하단 고정) */}
+      {/* 캐러셀 — 각 슬라이드에 이미지+카피+버튼을 함께 담아 같이 스와이프. */}
       <div
         ref={scrollerRef}
         onScroll={onScroll}
@@ -176,7 +176,7 @@ export default function Onboarding() {
           scrollbarWidth: 'none',
         }}
       >
-        {SLIDES.map((s) => (
+        {SLIDES.map((s, i) => (
           <section
             key={s.img}
             style={{
@@ -203,149 +203,146 @@ export default function Onboarding() {
                 e.currentTarget.style.display = 'none'
               }}
             />
+            {/* 하단 그라데이션 — 카피/버튼 가독. */}
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: '62%',
+                pointerEvents: 'none',
+                background:
+                  'linear-gradient(to top, rgba(23,19,16,0.94) 0%, rgba(23,19,16,0.84) 32%, rgba(23,19,16,0.36) 66%, rgba(23,19,16,0) 100%)',
+              }}
+            />
+
+            {/* 카피 + 버튼 — 한 컬럼(겹침 없음), 이미지와 함께 스와이프. */}
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: 0,
+                padding: '0 24px calc(26px + env(safe-area-inset-bottom)) 24px',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <div style={{ marginBottom: 18 }}>
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 800,
+                    letterSpacing: '0.18em',
+                    color: '#E8B84B',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {s.kicker}
+                </span>
+                <h1
+                  style={{
+                    margin: '12px 0 0',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 32,
+                    lineHeight: 1.14,
+                    fontWeight: 800,
+                    letterSpacing: '-0.03em',
+                    color: '#fff',
+                    whiteSpace: 'pre-line',
+                  }}
+                >
+                  {s.title}
+                </h1>
+                <p
+                  style={{
+                    margin: '12px 0 0',
+                    fontSize: 14.5,
+                    lineHeight: 1.6,
+                    color: 'rgba(255,255,255,0.85)',
+                    whiteSpace: 'pre-line',
+                    fontWeight: 500,
+                  }}
+                >
+                  {s.sub}
+                </p>
+              </div>
+
+              {i < LAST ? (
+                <button
+                  type="button"
+                  onClick={() => goTo(i + 1)}
+                  style={{
+                    width: '100%',
+                    height: 56,
+                    borderRadius: 999,
+                    border: 'none',
+                    background: 'var(--terracotta, #C86B45)',
+                    color: '#fff',
+                    fontSize: 15,
+                    fontWeight: 800,
+                    letterSpacing: '-0.01em',
+                    cursor: 'pointer',
+                    boxShadow: '0 10px 28px -10px rgba(200,107,69,0.7)',
+                  }}
+                >
+                  다음
+                </button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => complete('/start')}
+                    style={{
+                      width: '100%',
+                      height: 56,
+                      borderRadius: 999,
+                      border: 'none',
+                      background: 'var(--terracotta, #C86B45)',
+                      color: '#fff',
+                      fontSize: 15,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 10px 28px -10px rgba(200,107,69,0.7)',
+                    }}
+                  >
+                    무료로 시작하기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => complete('/login')}
+                    style={{
+                      width: '100%',
+                      height: 52,
+                      borderRadius: 999,
+                      border: '1.5px solid rgba(255,255,255,0.5)',
+                      background: 'transparent',
+                      color: '#fff',
+                      fontSize: 14,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    이미 계정이 있어요
+                  </button>
+                  <p
+                    style={{
+                      margin: '4px 0 0',
+                      textAlign: 'center',
+                      fontSize: 11,
+                      lineHeight: 1.5,
+                      color: 'rgba(255,255,255,0.6)',
+                    }}
+                  >
+                    계속 진행하면 이용약관·개인정보처리방침에 동의하게 됩니다.
+                  </p>
+                </div>
+              )}
+            </div>
           </section>
         ))}
-      </div>
-
-      {/* 하단 그라데이션 — 카피/버튼 가독(이미지 위 고정) */}
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: '64%',
-          zIndex: 3,
-          pointerEvents: 'none',
-          background:
-            'linear-gradient(to top, rgba(23,19,16,0.95) 0%, rgba(23,19,16,0.86) 34%, rgba(23,19,16,0.4) 66%, rgba(23,19,16,0) 100%)',
-        }}
-      />
-
-      {/* 하단 콘텐츠 — 카피 + 버튼을 한 컬럼으로(겹침 원천 차단). */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 4,
-          padding: '0 24px calc(26px + env(safe-area-inset-bottom)) 24px',
-        }}
-      >
-        {/* 카피 — idx 바뀌면 크로스페이드(key 재마운트). */}
-        <div key={idx} className="animate-fade-in" style={{ marginBottom: 18 }}>
-          <span
-            style={{
-              fontSize: 11.5,
-              fontWeight: 800,
-              letterSpacing: '0.18em',
-              color: '#E8B84B',
-              textTransform: 'uppercase',
-            }}
-          >
-            {SLIDES[idx]!.kicker}
-          </span>
-          <h1
-            style={{
-              margin: '12px 0 0',
-              fontFamily: 'var(--font-sans)',
-              fontSize: 32,
-              lineHeight: 1.14,
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
-              color: '#fff',
-              whiteSpace: 'pre-line',
-            }}
-          >
-            {SLIDES[idx]!.title}
-          </h1>
-          <p
-            style={{
-              margin: '12px 0 0',
-              fontSize: 14.5,
-              lineHeight: 1.6,
-              color: 'rgba(255,255,255,0.85)',
-              whiteSpace: 'pre-line',
-              fontWeight: 500,
-            }}
-          >
-            {SLIDES[idx]!.sub}
-          </p>
-        </div>
-
-        {/* 버튼 — 1~3: 다음 / 마지막: CTA 2개. 카피와 같은 컬럼이라 안 겹침. */}
-        {idx < LAST ? (
-          <button
-            type="button"
-            onClick={() => goTo(idx + 1)}
-            style={{
-              width: '100%',
-              height: 56,
-              borderRadius: 999,
-              border: 'none',
-              background: 'var(--terracotta, #C86B45)',
-              color: '#fff',
-              fontSize: 15,
-              fontWeight: 800,
-              letterSpacing: '-0.01em',
-              cursor: 'pointer',
-              boxShadow: '0 10px 28px -10px rgba(200,107,69,0.7)',
-            }}
-          >
-            다음
-          </button>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button
-              type="button"
-              onClick={() => complete('/start')}
-              style={{
-                width: '100%',
-                height: 56,
-                borderRadius: 999,
-                border: 'none',
-                background: 'var(--terracotta, #C86B45)',
-                color: '#fff',
-                fontSize: 15,
-                fontWeight: 800,
-                cursor: 'pointer',
-                boxShadow: '0 10px 28px -10px rgba(200,107,69,0.7)',
-              }}
-            >
-              무료로 시작하기
-            </button>
-            <button
-              type="button"
-              onClick={() => complete('/login')}
-              style={{
-                width: '100%',
-                height: 52,
-                borderRadius: 999,
-                border: '1.5px solid rgba(255,255,255,0.5)',
-                background: 'transparent',
-                color: '#fff',
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              이미 계정이 있어요
-            </button>
-            <p
-              style={{
-                margin: '4px 0 0',
-                textAlign: 'center',
-                fontSize: 11,
-                lineHeight: 1.5,
-                color: 'rgba(255,255,255,0.6)',
-              }}
-            >
-              계속 진행하면 이용약관·개인정보처리방침에 동의하게 됩니다.
-            </p>
-          </div>
-        )}
       </div>
     </div>
   )
