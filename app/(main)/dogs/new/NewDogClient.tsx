@@ -276,222 +276,225 @@ export default function NewDogClient({ userId }: { userId: string }) {
     router.refresh()
   }
 
-  const labelCls =
-    'block text-[10.5px] font-semibold text-muted mb-2 uppercase tracking-[0.2em]'
-  // 2026-05-22 R10-A: v3 form 톤 — rounded-xl(12)→rounded(4), bg-white→bg-bg-3 (paperHi).
-  // R89-B (D7): iOS Safari 는 input font-size < 16px 시 focus 자동 zoom-in.
-  // 16px 로 강제 (DatePicker / Select 와 일관성).
+  // 2026-07-19 온보딩 리디자인(사장님 "옛날거 다 지우고 새로") — 로직 불변,
+  // 프레젠테이션만. 모든 입력 높이 54px 고정 → 생일(date) 박스만 크기 달라
+  // 보이던 것 통일. 라벨 = 큰 대문자 kicker 폐기, 읽기 쉬운 13px 볼드.
+  const labelCls = 'block text-[13px] font-bold text-ink mb-2'
   const inputCls =
-    'w-full px-4 py-3 rounded border border-rule bg-bg-3 text-[16px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition'
+    'w-full h-[54px] px-4 rounded-[14px] border border-rule bg-bg-3 text-[16px] text-text placeholder:text-muted focus:outline-none focus:border-terracotta transition'
   const chipBase =
-    'py-3 rounded border text-[12px] font-bold transition flex items-center justify-center gap-1.5'
-  const chipActive = 'border-text bg-text text-white'
-  const chipIdle =
-    'border-rule bg-bg-3 text-text hover:border-muted'
+    'h-[54px] rounded-[14px] border-[1.5px] text-[14px] font-bold transition flex items-center justify-center gap-1.5 active:scale-[0.98]'
+  const chipActive =
+    'border-terracotta bg-terracotta text-white shadow-[0_6px_18px_-8px_rgba(220,83,42,0.5)]'
+  const chipIdle = 'border-rule bg-bg-3 text-text'
 
   return (
-    <div className="pb-10 px-5">
-      <div className="pt-6 pb-2">
-        <div className="mt-3">
-          <span className="kicker inline-block">New Dog</span>
-          <h1 className="font-sans mt-1.5" style={{ fontSize: 32, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-            아이 등록
-          </h1>
-          <p className="text-[12px] text-muted mt-1.5">
-            맞춤 영양 분석을 위한 기본 정보를 알려주세요
-          </p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-5 mt-4">
-        <div className="bg-bg-3 rounded border border-rule p-4">
-          <DogPhotoPicker
-            currentUrl={null}
-            onChange={setPhotoState}
-            enableCrop
-          />
-        </div>
-
-        <div>
-          <label className={labelCls}>이름 *</label>
-          <input
-            type="text"
-            aria-label="강아지 이름"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={inputCls}
-            placeholder="예: 코코"
-            maxLength={20}
-            autoComplete="off"
-            autoCapitalize="off"
-            enterKeyHint="next"
-          />
-        </div>
-
-        <div>
-          <label className={labelCls}>견종 *</label>
-          <Select
-            value={breed}
-            onChange={(e) => setBreed(e.target.value)}
+    <div className="min-h-[100dvh]">
+      <form
+        onSubmit={handleSubmit}
+        className="px-5 pt-[max(18px,env(safe-area-inset-top))] pb-12"
+      >
+        {/* 헤더 — 친근한 앱 톤(옛 대문자 kicker 폐기) */}
+        <div className="text-center pt-1 pb-1">
+          <h1
+            className="font-sans text-[27px] leading-tight"
+            style={{ fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.03em' }}
           >
-            <option value="">선택하세요</option>
-            {BREEDS.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <div>
-          <label className={labelCls}>성별 *</label>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              aria-pressed={gender === 'male'}
-              onClick={() => setGender('male')}
-              className={`${chipBase} ${
-                gender === 'male' ? chipActive : chipIdle
-              }`}
-            >
-              남아
-            </button>
-            <button
-              type="button"
-              aria-pressed={gender === 'female'}
-              onClick={() => setGender('female')}
-              className={`${chipBase} ${
-                gender === 'female' ? chipActive : chipIdle
-              }`}
-            >
-              여아
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>중성화 *</label>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              aria-pressed={neutered === true}
-              onClick={() => setNeutered(true)}
-              className={`${chipBase} ${
-                neutered === true ? chipActive : chipIdle
-              }`}
-            >
-              <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
-              했어요
-            </button>
-            <button
-              type="button"
-              aria-pressed={neutered === false}
-              onClick={() => setNeutered(false)}
-              className={`${chipBase} ${
-                neutered === false ? chipActive : chipIdle
-              }`}
-            >
-              <X className="w-3.5 h-3.5" strokeWidth={2.5} />안 했어요
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>생일 *</label>
-          <input
-            type="date"
-            max={todayKstIsoDate()}
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-            className={inputCls}
-            aria-label="생일"
-          />
-          <p className="mt-1 text-[10.5px] text-muted">
-            나이는 생일로 자동 계산돼요 (정확히 모르면 대략으로 넣어도 돼요)
+            우리 아이를 등록해요
+          </h1>
+          <p className="text-[13px] text-muted mt-2 leading-relaxed">
+            맞춤 영양 분석을 위해<br />기본 정보만 알려주시면 돼요
           </p>
         </div>
 
-        <div>
-          <label className={labelCls}>체중 (kg) *</label>
-          <input
-            type="number"
-            aria-label="체중 (kg)"
-            min="0"
-            max="100"
-            step="0.1"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            className={inputCls}
-            placeholder="예: 4.5"
-            inputMode="decimal"
-            enterKeyHint="done"
-          />
+        {/* 사진 — 중앙 원형 */}
+        <div className="flex justify-center mt-6 mb-1">
+          <DogPhotoPicker currentUrl={null} onChange={setPhotoState} enableCrop />
+        </div>
+
+        <div className="space-y-5 mt-6">
+          {/* 이름 */}
+          <div>
+            <label className={labelCls}>이름</label>
+            <input
+              type="text"
+              aria-label="강아지 이름"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={inputCls}
+              placeholder="예: 코코"
+              maxLength={20}
+              autoComplete="off"
+              autoCapitalize="off"
+              enterKeyHint="next"
+            />
+          </div>
+
+          {/* 견종 */}
+          <div>
+            <label className={labelCls}>견종</label>
+            <Select value={breed} onChange={(e) => setBreed(e.target.value)}>
+              <option value="">선택하세요</option>
+              {BREEDS.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          {/* 성별 */}
+          <div>
+            <label className={labelCls}>성별</label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                aria-pressed={gender === 'male'}
+                onClick={() => setGender('male')}
+                className={`${chipBase} ${gender === 'male' ? chipActive : chipIdle}`}
+              >
+                남아
+              </button>
+              <button
+                type="button"
+                aria-pressed={gender === 'female'}
+                onClick={() => setGender('female')}
+                className={`${chipBase} ${gender === 'female' ? chipActive : chipIdle}`}
+              >
+                여아
+              </button>
+            </div>
+          </div>
+
+          {/* 중성화 */}
+          <div>
+            <label className={labelCls}>중성화</label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                aria-pressed={neutered === true}
+                onClick={() => setNeutered(true)}
+                className={`${chipBase} ${neutered === true ? chipActive : chipIdle}`}
+              >
+                <Check className="w-4 h-4" strokeWidth={2.5} />
+                했어요
+              </button>
+              <button
+                type="button"
+                aria-pressed={neutered === false}
+                onClick={() => setNeutered(false)}
+                className={`${chipBase} ${neutered === false ? chipActive : chipIdle}`}
+              >
+                <X className="w-4 h-4" strokeWidth={2.5} />안 했어요
+              </button>
+            </div>
+          </div>
+
+          {/* 생일 — 모든 입력과 동일 높이(54px)로 통일(사장님: 혼자만 크기 안 맞음) */}
+          <div>
+            <label className={labelCls}>생일</label>
+            <input
+              type="date"
+              max={todayKstIsoDate()}
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              className={`${inputCls} appearance-none`}
+              aria-label="생일"
+            />
+            <p className="mt-2 text-[12px] text-muted leading-relaxed">
+              나이는 생일로 자동 계산돼요 · 정확히 모르면 대략도 괜찮아요
+            </p>
+          </div>
+
+          {/* 체중 — kg suffix inline */}
+          <div>
+            <label className={labelCls}>체중</label>
+            <div className="relative">
+              <input
+                type="number"
+                aria-label="체중 (kg)"
+                min="0"
+                max="100"
+                step="0.1"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                className={`${inputCls} pr-12`}
+                placeholder="예: 4.5"
+                inputMode="decimal"
+                enterKeyHint="done"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[14px] font-bold text-muted pointer-events-none">
+                kg
+              </span>
+            </div>
+
+            {isAdvancedUiEnabled('advanced_inputs') && (
+              <>
+                <Select
+                  value={weightMethod}
+                  onChange={(e) =>
+                    setWeightMethod(e.target.value as typeof weightMethod)
+                  }
+                  sizeVariant="sm"
+                  wrapperClassName="mt-2.5"
+                  aria-label="체중 측정 도구"
+                >
+                  <option value="unknown">측정 방법 — 모름</option>
+                  <option value="vet_scale">동물병원 체중계</option>
+                  <option value="home_digital">가정용 디지털</option>
+                  <option value="home_analog">가정용 아날로그</option>
+                  <option value="hold">안고 재기</option>
+                  <option value="eyeball">눈으로 추정</option>
+                </Select>
+                <p className="mt-1.5 text-[11.5px] text-muted">
+                  정확한 도구일수록 맞춤도가 올라가요. 모르면 그대로 두셔도 돼요.
+                </p>
+                <input
+                  type="date"
+                  value={weightMeasuredAt}
+                  onChange={(e) => setWeightMeasuredAt(e.target.value)}
+                  className={`${inputCls} appearance-none mt-2.5 text-[14px]`}
+                  aria-label="체중 측정 일자"
+                />
+                <p className="mt-1.5 text-[11.5px] text-muted">
+                  측정 일자가 오늘에 가까울수록 맞춤도가 올라가요
+                </p>
+              </>
+            )}
+          </div>
+
           {isAdvancedUiEnabled('advanced_inputs') && (
-            <>
+            <div>
+              <label className={labelCls}>급여량 측정 도구</label>
               <Select
-                value={weightMethod}
+                value={feedMethod}
                 onChange={(e) =>
-                  setWeightMethod(e.target.value as typeof weightMethod)
+                  setFeedMethod(e.target.value as typeof feedMethod)
                 }
                 sizeVariant="sm"
-                wrapperClassName="mt-2"
-                aria-label="체중 측정 도구"
+                aria-label="급여량 측정 도구"
               >
-                <option value="unknown">측정 방법 — 모름</option>
-                <option value="vet_scale">동물병원 체중계</option>
-                <option value="home_digital">가정용 디지털</option>
-                <option value="home_analog">가정용 아날로그</option>
-                <option value="hold">안고 재기</option>
-                <option value="eyeball">눈으로 추정</option>
+                <option value="unknown">측정 도구 — 모름</option>
+                <option value="auto_delivery">자체 사료 자동 추적</option>
+                <option value="scale">저울</option>
+                <option value="cup">계량컵</option>
+                <option value="eyeball">눈대중</option>
               </Select>
-              <p className="mt-1.5 text-[10.5px] text-muted">
-                정확한 도구일수록 맞춤도가 올라가요. 모르면 그대로 두셔도 돼요.
+              <p className="mt-1.5 text-[11.5px] text-muted">
+                정기배송을 이용하시면 자동 추적이 가능해요
               </p>
-              <input
-                type="date"
-                value={weightMeasuredAt}
-                onChange={(e) => setWeightMeasuredAt(e.target.value)}
-                className={`${inputCls} mt-2 text-[12px]`}
-                aria-label="체중 측정 일자"
-              />
-              <p className="mt-1 text-[10.5px] text-muted">
-                측정 일자가 오늘에 가까울수록 맞춤도가 올라가요
-              </p>
-            </>
+            </div>
           )}
         </div>
 
-        {/* 활동량 — 설문에서 물어보므로 등록 폼에서 제거(사장님 2026-07-16). */}
-
-        {isAdvancedUiEnabled('advanced_inputs') && (
-          <div>
-            <label className={labelCls}>급여량 측정 도구</label>
-            <Select
-              value={feedMethod}
-              onChange={(e) =>
-                setFeedMethod(e.target.value as typeof feedMethod)
-              }
-              sizeVariant="sm"
-              aria-label="급여량 측정 도구"
-            >
-              <option value="unknown">측정 도구 — 모름</option>
-              <option value="auto_delivery">자체 사료 자동 추적</option>
-              <option value="scale">저울</option>
-              <option value="cup">계량컵</option>
-              <option value="eyeball">눈대중</option>
-            </Select>
-            <p className="mt-1 text-[10.5px] text-muted">
-              정기배송을 이용하시면 자동 추적이 가능해요
-            </p>
-          </div>
-        )}
-
         {error && (
-          <div role="alert" aria-live="assertive" className="flex items-start gap-2 text-[12px] text-sale font-semibold border rounded px-4 py-3" style={{ background: 'color-mix(in srgb, var(--sale) 6%, transparent)', borderColor: 'color-mix(in srgb, var(--sale) 25%, transparent)' }}>
-            <AlertCircle
-              className="w-4 h-4 shrink-0 mt-0.5"
-              strokeWidth={2}
-            />
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="flex items-start gap-2 text-[12.5px] text-sale font-semibold rounded-[12px] px-4 py-3 mt-6"
+            style={{ background: 'color-mix(in srgb, var(--sale) 8%, transparent)' }}
+          >
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2} />
             <span>{error}</span>
           </div>
         )}
@@ -499,12 +502,11 @@ export default function NewDogClient({ userId }: { userId: string }) {
         <button
           type="submit"
           disabled={loading}
-          className="flex items-center justify-center gap-1.5 w-full py-4 rounded-full bg-ink text-bg text-[13.5px] font-bold active:scale-[0.98] transition disabled:opacity-50"
+          className="flex items-center justify-center gap-1.5 w-full h-[56px] rounded-full bg-terracotta text-white text-[15px] font-bold active:scale-[0.98] transition disabled:opacity-50 mt-7"
+          style={{ boxShadow: '0 8px 24px -8px rgba(220,83,42,0.5)' }}
         >
-          {loading ? '저장 중...' : '등록하기'}
-          {!loading && (
-            <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />
-          )}
+          {loading ? '등록 중...' : '등록 완료'}
+          {!loading && <ArrowRight className="w-4 h-4" strokeWidth={2.5} />}
         </button>
       </form>
     </div>
