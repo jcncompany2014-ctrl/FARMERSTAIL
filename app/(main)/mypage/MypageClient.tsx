@@ -355,7 +355,9 @@ export default function MypageClient({
         onClose={() => !loggingOut && setLogoutOpen(false)}
         title="로그아웃 하시겠어요?"
         dismissOnBackdrop={!loggingOut}
-        showClose={!loggingOut}
+        // 확인 다이얼로그 — 우상단 X 는 아래 "취소" 버튼과 중복이라 제거
+        // (사장님 2026-07-19). 닫기 = 취소 버튼 또는 배경 탭.
+        showClose={false}
       >
         <Modal.Body>
           저장된 정보는 그대로 유지돼요. 다시 로그인하면 똑같이 사용할 수 있어요.

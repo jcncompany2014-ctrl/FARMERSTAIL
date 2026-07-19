@@ -629,7 +629,12 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           focus mode (설문 등) 에선 nav 가 없으니 padding 줄임. */}
       <main
         id="main"
-        className={`max-w-md mx-auto ${
+        // overflow-x-clip = 가로 오버플로우 전역 가드(2026-07-19 사장님 폰: 강아지
+        // 등록 화면이 가로로 밀려 "확대/축소 잠금이 풀린" 것처럼 보였다). 어떤
+        // 페이지의 자식이 뷰포트보다 넓어도 여기서 잘라 페이지 가로 팬/줌아웃을
+        // 막는다. clip 은 scroll 컨테이너를 안 만들어 내부 sticky(설문 CTA 등)를
+        // 안 깨뜨림. min-w-0 = flex/grid 자식이 컨텐츠로 뷰포트를 밀어내는 것 차단.
+        className={`max-w-md mx-auto min-w-0 overflow-x-clip ${
           focusMode
             ? 'pb-[env(safe-area-inset-bottom)]'
             : 'pb-[calc(40px+env(safe-area-inset-bottom))]'
