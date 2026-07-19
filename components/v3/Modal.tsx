@@ -127,12 +127,14 @@ function ModalRoot({
       onClick={handleClick}
       aria-labelledby={titleId}
       aria-label={title ? undefined : ariaLabel}
-      className="bg-transparent backdrop:bg-[rgba(22,20,15,0.42)] backdrop:backdrop-blur-[1px] animate-fade-in"
+      // ★flex 는 `open:` variant 로만 — 인라인 display:flex 를 박으면 UA 의
+      //   `dialog:not([open]){display:none}` 을 덮어써 닫힌 모달이 "항상 떠
+      //   있는" 회귀가 난다(2026-07-19 사장님 폰). hidden(기본 none) + open:flex.
+      className="hidden open:flex open:items-center open:justify-center bg-transparent backdrop:bg-[rgba(22,20,15,0.42)] backdrop:backdrop-blur-[1px] animate-fade-in"
       style={{
         // ★네이티브 <dialog> 세로 중앙정렬이 iOS 에서 상단에 붙던 문제 →
         //   dialog 를 뷰포트 전체 flex 컨테이너로 만들어 패널을 확실히 중앙정렬
-        //   (2026-07-19 사장님 폰: 모달이 상단에 부자연스럽게 치우침). padding 이
-        //   viewport edge 안전 마진.
+        //   (2026-07-19 사장님 폰). padding 이 viewport edge 안전 마진.
         width: '100vw',
         height: '100dvh',
         maxWidth: 'none',
@@ -141,9 +143,6 @@ function ModalRoot({
         padding: 16,
         border: 'none',
         background: 'transparent',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
       }}
     >
       <div
