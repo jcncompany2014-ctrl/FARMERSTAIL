@@ -39,6 +39,7 @@ import {
   subscribableItems,
   TOPPER_KCAL_PER_100G,
 } from '@/lib/personalization/boxPricing'
+import { trackBeginCheckout, type AnalyticsItem } from '@/lib/analytics'
 import './order.css'
 
 /**
@@ -292,6 +293,23 @@ export default function OrderClient({
   const shippingFee = 0
   const totalAmount = subtotal + shippingFee
   const totalCycleG = items.reduce((s, it) => s + it.deliveredG, 0)
+
+  // GA4 begin_checkout — 주문 화면 진입 1회(마운트 시 초기 구성 기준). 가입
+  // (sign_up)→주문 진입(begin_checkout)→결제(purchase) 퍼널의 가운데 단계.
+  // 2026-07-19 이전엔 호출처 0 = 어디서 이탈하는지 측정 불가였다.
+  const checkoutTracked = useRef(false)
+  useEffect(() => {
+    if (checkoutTracked.current || items.length === 0) return
+    checkoutTracked.current = true
+    const gaItems: AnalyticsItem[] = items.map((it) => ({
+      item_id: it.slug,
+      item_name: it.product.name,
+      price: it.pricePerPack,
+      quantity: it.quantity,
+    }))
+    trackBeginCheckout({ value: totalAmount, items: gaItems })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.length])
 
   const oosCount = items.filter((it) => (it.product.stock ?? 0) <= 0).length
   const nonSubscribableCount = items.filter(

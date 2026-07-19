@@ -227,63 +227,6 @@ export function buildFaqJsonLd(items: FaqItem[]) {
 }
 
 /**
- * ItemList — 컬렉션 / 카탈로그 모음 grid 의 검색 결과 향상.
- * Google rich result 의 carousel 자격 (정확한 가격 / 이미지 동반 시).
- */
-export function buildItemListJsonLd(input: {
-  name: string
-  url: string
-  items: { name: string; url: string; image?: string | null }[]
-}) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'ItemList',
-    name: input.name,
-    url: input.url,
-    numberOfItems: input.items.length,
-    itemListElement: input.items.map((it, idx) => {
-      const node: Record<string, unknown> = {
-        '@type': 'ListItem',
-        position: idx + 1,
-        url: it.url,
-        name: it.name,
-      }
-      if (it.image) node.image = it.image
-      return node
-    }),
-  } as const
-}
-
-/**
- * CollectionPage — 큐레이션 컬렉션 detail 페이지.
- * mainEntity 로 ItemList 를 묶어 함께 제출.
- */
-export function buildCollectionPageJsonLd(input: {
-  name: string
-  description?: string
-  url: string
-  items: { name: string; url: string; image?: string | null }[]
-}) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
-    name: input.name,
-    description: input.description,
-    url: input.url,
-    isPartOf: {
-      '@type': 'WebSite',
-      name: SITE_NAME,
-      url: SITE_URL,
-    },
-    mainEntity: buildItemListJsonLd({
-      name: input.name,
-      url: input.url,
-      items: input.items,
-    }),
-  } as const
-}
-
-/**
  * AboutPage — 브랜드 / 회사 소개 페이지. /brand 가 사용.
  */
 export function buildAboutPageJsonLd(input: {
@@ -307,52 +250,5 @@ export function buildAboutPageJsonLd(input: {
       name: SITE_NAME,
       url: SITE_URL,
     },
-  } as const
-}
-
-/**
- * Event — 마케팅 이벤트 / 프로모션 (블랙프라이데이, 신규 출시 등).
- *
- * Google "Event" rich result 대상. 단, schema.org Event 의 본 의도는 물리적/
- * 가상 이벤트(콘서트, 컨퍼런스). 쇼핑 프로모션을 Event 로 표시하면 Google 이
- * 거부할 수 있어 organizer/location 까지 충실히 채운다.
- *
- * eventStatus / eventAttendanceMode 는 onlineSale 이라 OnlineEventAttendanceMode
- * + EventScheduled 고정. 이벤트 종료 후엔 EventScheduled 가 EventCompleted 로
- * 자동 변환되도록 endDate 가 과거면 호출처에서 status 변경 권장.
- */
-export function buildEventJsonLd(input: {
-  name: string
-  description: string
-  startDate: string // ISO 8601
-  endDate: string
-  url: string
-  imageUrl?: string | null
-}) {
-  const now = Date.now()
-  const ended = new Date(input.endDate).getTime() < now
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'Event',
-    name: input.name,
-    description: input.description,
-    startDate: input.startDate,
-    endDate: input.endDate,
-    eventStatus: ended
-      ? 'https://schema.org/EventCompleted'
-      : 'https://schema.org/EventScheduled',
-    eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
-    location: {
-      '@type': 'VirtualLocation',
-      url: input.url,
-    },
-    organizer: {
-      '@type': 'Organization',
-      name: SITE_NAME,
-      url: SITE_URL,
-    },
-    url: input.url,
-    ...(input.imageUrl ? { image: input.imageUrl } : {}),
-    isAccessibleForFree: true,
   } as const
 }

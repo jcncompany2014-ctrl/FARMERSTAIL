@@ -19,6 +19,7 @@ import {
   isDogDraftComplete,
   clearAutosignupDraft,
 } from '@/lib/autosignup-draft'
+import { trackSignUp } from '@/lib/analytics'
 
 /**
  * /login — 기존 계정 로그인 (FD 2단 split 재설계, 회차129).
@@ -165,6 +166,10 @@ function LoginInner() {
               setFormError('만 14세 미만은 가입할 수 없어요.')
               return
             }
+            // GA4/Meta sign_up 전환 — 이메일 가입은 "가입 입력값 복원에 성공한
+            // 첫 로그인"이 가입 확정 시점(메타데이터는 1회 소비라 정확히 1회
+            // 발화). 2026-07-19 이전엔 trackSignUp 호출처가 0 = 가입 전환 미측정.
+            trackSignUp('email')
           }
           // 복원 여부와 무관하게 메타데이터 PII 는 비운다(PIPA, fire-and-forget).
           supabase.auth

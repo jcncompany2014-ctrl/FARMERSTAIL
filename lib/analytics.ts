@@ -127,22 +127,9 @@ export type AnalyticsItem = {
   item_category?: string
 }
 
-export function trackViewItem(item: AnalyticsItem) {
-  safeGtag('event', 'view_item', {
-    currency: 'KRW',
-    value: item.price,
-    items: [item],
-  })
-  safeFbq('track', 'ViewContent', {
-    content_ids: [item.item_id],
-    content_name: item.item_name,
-    content_type: 'product',
-    value: item.price,
-    currency: 'KRW',
-  })
-}
-
 // trackAddToCart 는 구독전용 전환으로 제거(참조 0 — 장바구니 폐지, 2026-07-03 감사).
+// trackViewItem 도 제거(2026-07-19 잔재 스윕) — 유일한 정착지였던 낱개 PDP
+// (/products/[slug])가 구독 전용 전환으로 redirect 스텁이 됐다(참조 0).
 
 export function trackBeginCheckout({
   value,
@@ -320,7 +307,7 @@ export function trackSubscriptionBillingCompleted(opts: {
   })
 }
 
-export function trackSignUp(method: 'email' | 'kakao') {
+export function trackSignUp(method: 'email' | 'kakao' | 'apple') {
   // First-touch attribution — 가입 시점에 가장 처음 도달했던 UTM 출처를
   // 함께 보낸다. GA4 는 세션 단위로 UTM 을 자동 캡처하지만, "사용자가 어제
   // 광고 보고 → 오늘 직접 방문 → 가입" 같은 cross-session 코호트는 우리가

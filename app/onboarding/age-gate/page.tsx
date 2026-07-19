@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { trackSignUp } from '@/lib/analytics'
 
 /**
  * /onboarding/age-gate
@@ -94,6 +95,13 @@ function AgeGateInner() {
       setError('저장에 실패했어요: ' + updErr.message)
       return
     }
+    // GA4/Meta sign_up 전환 — OAuth(카카오/Apple) 신규 가입자만 이 화면에
+    // 온다(birth_year 없음 = 첫 진입). 저장 성공 = 가입 확정 시점, 정확히
+    // 1회(다음부터는 birth_year 있어 callback 이 이리로 안 보냄).
+    const provider =
+      (user.app_metadata?.provider as string | undefined) ?? 'kakao'
+    trackSignUp(provider === 'apple' ? 'apple' : provider === 'email' ? 'email' : 'kakao')
+
     // 성공 → next 로
     const safe =
       next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard'
