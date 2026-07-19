@@ -90,7 +90,7 @@ export default function Onboarding() {
         position: 'fixed',
         inset: 0,
         zIndex: 100,
-        background: '#171310',
+        background: '#2A1810',
         overflow: 'hidden',
       }}
     >
@@ -106,7 +106,7 @@ export default function Onboarding() {
           zIndex: 6,
           pointerEvents: 'none',
           background:
-            'linear-gradient(to bottom, rgba(23,19,16,0.42), rgba(23,19,16,0))',
+            'linear-gradient(to bottom, rgba(42,24,16,0.42), rgba(42,24,16,0))',
         }}
       />
 
@@ -211,10 +211,12 @@ export default function Onboarding() {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: '62%',
+                height: '74%',
                 pointerEvents: 'none',
+                // 진한 고동색(#2A1810 = rgb 42,24,16). 스톱을 촘촘히·길게 깔아
+                // 밝은 이미지 위에서 가로 밴딩(직선 끊김)이 안 생기게(사장님 폰).
                 background:
-                  'linear-gradient(to top, rgba(23,19,16,0.94) 0%, rgba(23,19,16,0.84) 32%, rgba(23,19,16,0.36) 66%, rgba(23,19,16,0) 100%)',
+                  'linear-gradient(to top, rgba(42,24,16,0.96) 0%, rgba(42,24,16,0.93) 12%, rgba(42,24,16,0.82) 26%, rgba(42,24,16,0.6) 42%, rgba(42,24,16,0.38) 58%, rgba(42,24,16,0.2) 74%, rgba(42,24,16,0.08) 88%, rgba(42,24,16,0) 100%)',
               }}
             />
 
