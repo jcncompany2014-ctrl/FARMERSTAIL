@@ -177,7 +177,7 @@ export default function Onboarding() {
           scrollbarWidth: 'none',
         }}
       >
-        {SLIDES.map((s, i) => (
+        {SLIDES.map((s) => (
           <section
             key={s.img}
             style={{
