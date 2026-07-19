@@ -15,8 +15,8 @@ import { usePathname } from 'next/navigation'
  *     개인화 인사이트 / Cron 상태는 페이지가 존재하지만 사이드바에 없어
  *     URL 직접 입력으로만 접근 가능했다 → nav 에 추가. (기능 부족 해소)
  *
- * 기능형 클린 어드민(2026-07 Phase B): 중립 다크 사이드바(#16181d / zinc) 톤.
- * active 항목만 terracotta 좌측 보더 + 밝은 텍스트로 포인트.
+ * 2026-07-19 대개편: 다크 사이드바 폐기 → 밝은 브랜드 크림 톤(#FBFAF6).
+ * active = terracotta 좌측 보더 + terracotta 배경 틴트.
  */
 
 interface NavLink {
@@ -108,7 +108,7 @@ export default function AdminNav() {
     <nav className="px-3 py-4 space-y-4" aria-label="관리자 메뉴">
       {GROUPS.map((group) => (
         <div key={group.label} className="space-y-0.5">
-          <p className="px-3 pb-1 text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-500">
+          <p className="px-3 pb-1 text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-400">
             {group.label}
           </p>
           {group.items.map((item) => {
@@ -120,8 +120,8 @@ export default function AdminNav() {
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center gap-3 pl-[10px] pr-3 py-2 rounded-md text-[13px] border-l-2 transition ${
                   isActive
-                    ? 'border-terracotta bg-white/[0.07] text-white font-semibold'
-                    : 'border-transparent text-zinc-400 hover:bg-white/[0.04] hover:text-white'
+                    ? 'border-terracotta bg-terracotta/10 text-zinc-900 font-semibold'
+                    : 'border-transparent text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
                 }`}
               >
                 <span className="text-[15px] leading-none">{item.icon}</span>
