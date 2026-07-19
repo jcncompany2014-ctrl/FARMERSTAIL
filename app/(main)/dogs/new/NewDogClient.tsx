@@ -272,7 +272,10 @@ export default function NewDogClient({ userId }: { userId: string }) {
     }
 
     setLoading(false)
-    router.push(`/dogs/${inserted.id}?welcome=1`)
+    // 강아지 등록 직후 = 앱 강아지 분석 설문으로(사장님 2026-07-19 "앱 설문을
+    // 먼저"). 방금 만든 강아지는 분석이 없으므로 설문이 다음 단계 — 온보딩이든
+    // 기존 회원의 새 강아지든 동일하게 바로 분석 흐름으로 잇는다.
+    router.push(`/dogs/${inserted.id}/survey`)
     router.refresh()
   }
 
