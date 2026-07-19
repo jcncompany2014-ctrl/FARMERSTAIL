@@ -94,7 +94,7 @@ export default function Onboarding() {
         overflow: 'hidden',
       }}
     >
-      {/* 상단 스크림 — 밝은 이미지(재료·박스) 위에서도 흰 점·건너뛰기 가독. */}
+      {/* 상단 스크림 — 밝은 이미지 위에서도 흰 점·건너뛰기 가독. */}
       <div
         aria-hidden
         style={{
@@ -110,14 +110,14 @@ export default function Onboarding() {
         }}
       />
 
-      {/* 진행 점 + 건너뛰기 (상단, safe-area) */}
+      {/* 진행 점 + 건너뛰기 */}
       <div
         style={{
           position: 'absolute',
           top: 'max(14px, env(safe-area-inset-top))',
           left: 0,
           right: 0,
-          zIndex: 3,
+          zIndex: 5,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -138,8 +138,7 @@ export default function Onboarding() {
                 border: 'none',
                 padding: 0,
                 cursor: 'pointer',
-                background:
-                  i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
+                background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
                 transition: 'width 240ms ease, background 240ms ease',
               }}
             />
@@ -163,7 +162,7 @@ export default function Onboarding() {
         </button>
       </div>
 
-      {/* 캐러셀 */}
+      {/* 이미지 캐러셀 — 이미지만 스와이프(카피/버튼은 하단 고정) */}
       <div
         ref={scrollerRef}
         onScroll={onScroll}
@@ -189,7 +188,6 @@ export default function Onboarding() {
               overflow: 'hidden',
             }}
           >
-            {/* 이미지 */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={s.img}
@@ -205,70 +203,27 @@ export default function Onboarding() {
                 e.currentTarget.style.display = 'none'
               }}
             />
-            {/* 하단 그라데이션 — 카피 가독 */}
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background:
-                  'linear-gradient(to top, rgba(23,19,16,0.92) 0%, rgba(23,19,16,0.72) 26%, rgba(23,19,16,0.12) 55%, rgba(23,19,16,0.28) 100%)',
-              }}
-            />
-            {/* 카피 */}
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                bottom: 0,
-                padding:
-                  '0 28px calc(150px + env(safe-area-inset-bottom)) 28px',
-                zIndex: 2,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 11.5,
-                  fontWeight: 800,
-                  letterSpacing: '0.18em',
-                  color: '#E8B84B',
-                  textTransform: 'uppercase',
-                }}
-              >
-                {s.kicker}
-              </span>
-              <h1
-                style={{
-                  margin: '12px 0 0',
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: 34,
-                  lineHeight: 1.12,
-                  fontWeight: 800,
-                  letterSpacing: '-0.03em',
-                  color: '#fff',
-                  whiteSpace: 'pre-line',
-                }}
-              >
-                {s.title}
-              </h1>
-              <p
-                style={{
-                  margin: '14px 0 0',
-                  fontSize: 14.5,
-                  lineHeight: 1.6,
-                  color: 'rgba(255,255,255,0.85)',
-                  whiteSpace: 'pre-line',
-                  fontWeight: 500,
-                }}
-              >
-                {s.sub}
-              </p>
-            </div>
           </section>
         ))}
       </div>
 
-      {/* 하단 액션 — 1~3: "다음", 4: CTA 2개 (safe-area) */}
+      {/* 하단 그라데이션 — 카피/버튼 가독(이미지 위 고정) */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: '64%',
+          zIndex: 3,
+          pointerEvents: 'none',
+          background:
+            'linear-gradient(to top, rgba(23,19,16,0.95) 0%, rgba(23,19,16,0.86) 34%, rgba(23,19,16,0.4) 66%, rgba(23,19,16,0) 100%)',
+        }}
+      />
+
+      {/* 하단 콘텐츠 — 카피 + 버튼을 한 컬럼으로(겹침 원천 차단). */}
       <div
         style={{
           position: 'absolute',
@@ -276,9 +231,51 @@ export default function Onboarding() {
           right: 0,
           bottom: 0,
           zIndex: 4,
-          padding: '0 24px calc(28px + env(safe-area-inset-bottom)) 24px',
+          padding: '0 24px calc(26px + env(safe-area-inset-bottom)) 24px',
         }}
       >
+        {/* 카피 — idx 바뀌면 크로스페이드(key 재마운트). */}
+        <div key={idx} className="animate-fade-in" style={{ marginBottom: 18 }}>
+          <span
+            style={{
+              fontSize: 11.5,
+              fontWeight: 800,
+              letterSpacing: '0.18em',
+              color: '#E8B84B',
+              textTransform: 'uppercase',
+            }}
+          >
+            {SLIDES[idx]!.kicker}
+          </span>
+          <h1
+            style={{
+              margin: '12px 0 0',
+              fontFamily: 'var(--font-sans)',
+              fontSize: 32,
+              lineHeight: 1.14,
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
+              color: '#fff',
+              whiteSpace: 'pre-line',
+            }}
+          >
+            {SLIDES[idx]!.title}
+          </h1>
+          <p
+            style={{
+              margin: '12px 0 0',
+              fontSize: 14.5,
+              lineHeight: 1.6,
+              color: 'rgba(255,255,255,0.85)',
+              whiteSpace: 'pre-line',
+              fontWeight: 500,
+            }}
+          >
+            {SLIDES[idx]!.sub}
+          </p>
+        </div>
+
+        {/* 버튼 — 1~3: 다음 / 마지막: CTA 2개. 카피와 같은 컬럼이라 안 겹침. */}
         {idx < LAST ? (
           <button
             type="button"
