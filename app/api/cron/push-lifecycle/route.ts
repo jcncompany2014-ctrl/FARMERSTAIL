@@ -44,6 +44,21 @@ import { getAutomationSettings } from '@/lib/automation-settings'
 // (automation_settings.marketing_push_hour, 기본 10). hourly cron 중 그 시각 1회만
 // 실행돼 D+7·D+30 의 24시간 윈도우가 24× 과발송되지 않는다.
 // (복약 알림은 사용자가 정한 시각이라 이 게이트를 받지 않는다.)
+//
+// # ★2026-07-19 — Hobby 플랜 제약으로 daily 강등 (배포 전면 중단의 범인)
+// Vercel Hobby 는 "하루 1회" 크론만 허용한다. 2026-07-17 hourly 복원 커밋 이후
+// **모든 배포가 이 검증에서 거부**되며 38시간 동안 프로덕션이 얼어 있었다.
+// 그래서 스케줄을 daily(`0 1 * * *` = KST 10:00)로 강등하고 아래 CRON_IS_HOURLY
+// 상수로 게이트를 결합했다. 결과:
+//   · 마케팅 3종 — 게이트 없이 매 실행 발송(daily×24h·달력일 윈도우 = 정확히 1회).
+//     admin 의 발송 시각 조절(marketing_push_hour)은 **임시 무력**(발송 = 크론
+//     시각 KST 10시 고정).
+//   · 복약 알림 — KST 10시 복약만 발송됨(사용자 지정 시각 미지원). 출시 전이라
+//     실사용 0. **Pro 업그레이드(월 $20) 시**: vercel.json 을 hourly 로 되돌리고
+//     CRON_IS_HOURLY=true 로 바꾸면 전부 원복 — 사장님 결정 대기.
+// ⚠️ 크론을 hourly 로 되돌릴 땐 반드시 CRON_IS_HOURLY 도 true 로 — 안 그러면
+//    마케팅 3종이 24× 과발송(정통망법 §50)된다.
+const CRON_IS_HOURLY = false
 
 // dog_subscriptions / dog_medications 는 lib/supabase/types.ts 가 자동 재생성되지
 // 않아 Database 제네릭에 미포함 (lib/dog-records.ts 의 정책과 같음). 그래서 admin
@@ -74,11 +89,12 @@ export async function GET(req: Request): Promise<Response> {
     // 복약 alert — 매시간 (사용자가 정한 시각에 발화해야 하므로 게이트 없음).
     results.push(await runMedicationReminder(supabase, now))
 
-    // 마케팅 3종 — 설정된 KST 시각 실행분에서만. 나머지 23개 실행은 skip.
-    // (게이트 없이 hourly 로 돌리면 24시간 윈도우인 D+7·D+30 이 24× 과발송된다.)
-    // 발송 시각은 admin 조절값(automation_settings.marketing_push_hour) — 행 없으면 기본 10시.
+    // 마케팅 3종 — hourly 모드에선 설정된 KST 시각 실행분에서만(나머지 23개
+    // 실행 skip — 게이트 없이 hourly 로 돌리면 24시간 윈도우인 D+7·D+30 이
+    // 24× 과발송된다). daily 강등 모드(현재)에선 매 실행 = 하루 1회라 게이트
+    // 불필요 — 게이트를 걸면 크론 시각≠설정 시각일 때 침묵 미발송된다.
     const settings = await getAutomationSettings(supabase)
-    if (currentKstHour() === settings.marketingPushHour) {
+    if (!CRON_IS_HOURLY || currentKstHour() === settings.marketingPushHour) {
       results.push(await runWelcome(supabase, now)) // D+1 환영 (어제 가입자)
       results.push(await runAnalysisReminder(supabase, now)) // D+7 분석 리마인드
       results.push(await runSubscribeNudge(supabase, now)) // D+30 정기배송 권유

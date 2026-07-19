@@ -113,7 +113,7 @@
     },
     {
       "path": "/api/cron/push-lifecycle",
-      "schedule": "0 * * * *"
+      "schedule": "0 1 * * *"
     },
     {
       "path": "/api/cron/inventory-forecast",
