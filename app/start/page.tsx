@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import WebChrome from '@/components/WebChrome'
+import StartAppShell from '@/components/start/StartAppShell'
+import { isAppContextServer } from '@/lib/app-context'
 import Reveal from '@/components/landing/Reveal'
 import { Section, Container, Display, Eyebrow, PhotoSlot } from '@/components/web/fd/ui'
 import StartClient from './StartClient'
@@ -34,9 +36,12 @@ const FLOW: [string, string, string, string, string][] = [
   ['03', '맞춤 결과', '수의영양 기준으로 분석한 결과를 확인하고, 저장하려면 가입해요.', '완성된 신선식 한 그릇', '/start-step-bowl.jpg'],
 ]
 
-export default function StartPage() {
-  return (
-    <WebChrome>
+export default async function StartPage() {
+  // ★앱 컨텍스트면 WebChrome(웹 마케팅 헤더/푸터) 대신 미니멀 앱 셸 —
+  //   앱에서 "무료 맞춤분석" 눌렀을 때 웹 화면이 뜨던 것 차단(사장님 B안,
+  //   2026-07-19). 웹은 기존 WebChrome 그대로.
+  const isApp = await isAppContextServer()
+  const body = (
       <main>
         {/* Hero */}
         <Section bg="offwhite" pad="md">
@@ -196,6 +201,7 @@ export default function StartPage() {
           </Container>
         </Section>
       </main>
-    </WebChrome>
   )
+  if (isApp) return <StartAppShell>{body}</StartAppShell>
+  return <WebChrome>{body}</WebChrome>
 }
