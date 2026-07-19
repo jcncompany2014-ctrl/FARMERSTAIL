@@ -86,10 +86,10 @@ export default async function AdminUsersPage({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-bold tracking-tight text-3xl text-ink">
+        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
           회원 관리
         </h1>
-        <p className="text-sm text-muted mt-1">
+        <p className="text-[13px] text-zinc-500 mt-1">
           총 {total.toLocaleString()}명의 회원
         </p>
       </div>
@@ -121,8 +121,9 @@ export default async function AdminUsersPage({
         </form>
       </div>
 
-      {/* 테이블 */}
-      <div className="p-6 rounded-lg bg-white border border-zinc-200">
+      {/* 테이블(데스크톱) / 카드(모바일) — 모바일에선 흰 컨테이너를 벗겨
+          카드-인-카드 이중 보더를 피한다. */}
+      <div className="md:p-6 md:rounded-lg md:bg-white md:border md:border-zinc-200">
         {error ? (
           <div>
             <p className="text-sale text-sm">
@@ -138,7 +139,72 @@ export default async function AdminUsersPage({
             {q ? '조건에 맞는 회원이 없어요' : '가입한 회원이 없어요'}
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* 모바일: 카드 리스트 — 테이블은 폰에서 셀이 부러진다(2026-07-19). */}
+          <div className="md:hidden space-y-2.5">
+            {users.map((u: {
+              id: string
+              email: string | null
+              name: string | null
+              phone: string | null
+              zip: string | null
+              address: string | null
+              address_detail: string | null
+              role: string | null
+              created_at: string | null
+            }) => {
+              const stats = orderStats[u.id] ?? { count: 0, total: 0 }
+              return (
+                <div
+                  key={u.id}
+                  className="rounded-lg border border-zinc-200 bg-white p-4"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-bold text-zinc-900 text-[13px] truncate">
+                        {u.name ?? '(이름 미등록)'}
+                        {u.role === 'admin' && (
+                          <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-zinc-900 text-white align-middle">
+                            ADMIN
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-[11px] text-zinc-400 truncate">
+                        {u.email ?? '-'}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/admin/users/${u.id}/message`}
+                      className="shrink-0 px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-terracotta/10 text-terracotta"
+                    >
+                      메시지
+                    </Link>
+                  </div>
+                  <div className="mt-2 text-[12px] text-zinc-600 space-y-0.5">
+                    {u.phone && <p>{u.phone}</p>}
+                    {u.address && (
+                      <p className="truncate">
+                        {u.address}
+                        {u.address_detail ? ` ${u.address_detail}` : ''}
+                      </p>
+                    )}
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px] text-zinc-500">
+                    <span>
+                      주문 {stats.count}건 · 누적{' '}
+                      <strong className="text-zinc-800">
+                        {stats.total.toLocaleString()}원
+                      </strong>
+                    </span>
+                    <span>{formatDate(u.created_at)} 가입</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* 데스크톱: 테이블 */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-[11px] text-muted border-b border-zinc-200">
@@ -216,6 +282,7 @@ export default async function AdminUsersPage({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

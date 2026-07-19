@@ -204,8 +204,8 @@ export default async function AdminOrdersPage({
         </form>
       </div>
 
-      {/* 주문 테이블 */}
-      <div className="p-6 rounded-lg bg-white border border-zinc-200">
+      {/* 주문 테이블(데스크톱) / 카드(모바일) */}
+      <div className="md:p-6 md:rounded-lg md:bg-white md:border md:border-zinc-200">
         {error ? (
           <p className="text-sale text-sm">에러: {error.message}</p>
         ) : !orders || orders.length === 0 ? (
@@ -213,7 +213,45 @@ export default async function AdminOrdersPage({
             조건에 맞는 주문이 없어요
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* 모바일 카드 — 테이블은 폰에서 셀이 부러진다(2026-07-19 사장님 폰). */}
+          <div className="md:hidden space-y-2.5">
+            {orders.map((o) => {
+              const badge = statusBadge(o.payment_status, o.order_status)
+              return (
+                <Link
+                  key={o.id}
+                  href={`/admin/orders/${o.id}`}
+                  className="block rounded-lg border border-zinc-200 bg-white p-4 active:bg-zinc-50"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[11px] text-zinc-500 truncate">
+                      {o.order_number}
+                    </span>
+                    <span
+                      className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.color}`}
+                    >
+                      {badge.label}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between gap-2">
+                    <span className="text-[13px] font-bold text-zinc-900 truncate">
+                      {o.recipient_name}
+                    </span>
+                    <strong className="shrink-0 text-[14px] text-zinc-900">
+                      {o.total_amount.toLocaleString()}원
+                    </strong>
+                  </div>
+                  <p className="mt-1 text-[11px] text-zinc-400">
+                    {o.recipient_phone} · {formatDate(o.created_at)}
+                  </p>
+                </Link>
+              )
+            })}
+          </div>
+
+          {/* 데스크톱 테이블 */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-[11px] text-muted border-b border-zinc-200">
@@ -272,6 +310,7 @@ export default async function AdminOrdersPage({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

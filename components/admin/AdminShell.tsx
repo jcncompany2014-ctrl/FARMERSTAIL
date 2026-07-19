@@ -147,8 +147,10 @@ export default function AdminShell({
             <div className="ml-auto flex items-center gap-3">{bell}</div>
           </div>
         </header>
-        {/* 모바일: 바텀 탭 높이만큼 하단 여백(pb-24) — 내용이 탭에 안 가리게. */}
-        <div className="max-w-6xl mx-auto w-full min-w-0 px-4 md:px-8 py-5 md:py-8 pb-24 md:pb-8 flex-1">
+        {/* 모바일: 바텀 탭 높이만큼 하단 여백(pb-24) — 내용이 탭에 안 가리게.
+            admin-body = 테이블 모바일 가드 스코프(globals.css) — 테이블 최소폭
+            보장으로 셀이 글자 단위로 세로 꺾이는 것 차단(2026-07-19 사장님 폰). */}
+        <div className="admin-body max-w-6xl mx-auto w-full min-w-0 px-4 md:px-8 py-5 md:py-8 pb-24 md:pb-8 flex-1">
           {children}
         </div>
       </main>

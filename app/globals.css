@@ -1828,3 +1828,16 @@ select {
   }
 }
 
+
+/* ── admin 테이블 모바일 가드 (2026-07-19, 사장님 폰 스크린샷) ──────────
+   테이블에 최소폭이 없으면 폰 폭(390px)에 강제 압축돼 셀이 글자 단위로
+   세로 꺾인다(회원 관리에서 실제 발생 — "이메일"이 한 글자씩 세로로).
+   최소폭을 보장하고 가로 스크롤은 각 페이지의 overflow-x-auto 래퍼가 받는다.
+   admin-body = AdminShell 본문 스코프. */
+.admin-body table {
+  min-width: 720px;
+}
+.admin-body th,
+.admin-body td {
+  word-break: keep-all;
+}
