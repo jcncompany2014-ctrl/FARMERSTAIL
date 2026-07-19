@@ -75,6 +75,7 @@ function ModalRoot({
   children,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null)
+  const panelRef = useRef<HTMLDivElement | null>(null)
 
   // open prop → native dialog 제어
   useEffect(() => {
@@ -87,6 +88,11 @@ function ModalRoot({
         // Safari < 15.4 fallback
         el.show()
       }
+      // ★자동 포커스를 첫 버튼(X/취소)이 아니라 패널로 옮긴다 — showModal 은
+      //   기본으로 첫 focusable 을 포커스해 :focus-visible 주황 링이 "열자마자
+      //   자동으로" 뜬다(2026-07-19 사장님 폰). 패널(tabindex=-1·outline:none)
+      //   포커스는 링이 안 뜨고, 포커스 트랩·스크린리더 제목은 그대로 유지.
+      requestAnimationFrame(() => panelRef.current?.focus())
     } else if (!open && el.open) {
       el.close()
     }
@@ -121,17 +127,32 @@ function ModalRoot({
       onClick={handleClick}
       aria-labelledby={titleId}
       aria-label={title ? undefined : ariaLabel}
-      className="p-0 bg-transparent backdrop:bg-[rgba(22,20,15,0.42)] backdrop:backdrop-blur-[1px] animate-fade-in"
+      className="bg-transparent backdrop:bg-[rgba(22,20,15,0.42)] backdrop:backdrop-blur-[1px] animate-fade-in"
       style={{
-        // dialog 의 기본 중앙 정렬을 활용 — margin auto.
-        width: '100%',
-        maxWidth,
-        // padding 은 viewport edge 안전 마진. mobile 에서 작게.
-        marginInline: 16,
+        // ★네이티브 <dialog> 세로 중앙정렬이 iOS 에서 상단에 붙던 문제 →
+        //   dialog 를 뷰포트 전체 flex 컨테이너로 만들어 패널을 확실히 중앙정렬
+        //   (2026-07-19 사장님 폰: 모달이 상단에 부자연스럽게 치우침). padding 이
+        //   viewport edge 안전 마진.
+        width: '100vw',
+        height: '100dvh',
+        maxWidth: 'none',
+        maxHeight: 'none',
+        margin: 0,
+        padding: 16,
+        border: 'none',
+        background: 'transparent',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         style={{
+          outline: 'none', // 패널 프로그램 포커스 — 링 없이(위 requestAnimationFrame)
+          width: '100%',
+          maxWidth,
           background: V3.paperHi,
           border: `1px solid ${V3.rule}`,
           borderRadius: V3Radius.sm,

@@ -17,6 +17,7 @@ import AppSplash from "@/components/AppSplash";
 import DevContextToggle from "@/components/DevContextToggle";
 import SentryUserSync from "@/components/SentryUserSync";
 import UtmCapture from "@/components/UtmCapture";
+import FocusNavFlag from "@/components/FocusNavFlag";
 import AnalyticsScripts from "@/components/AnalyticsScripts";
 import { KakaoInitScript } from "@/components/ShareButton";
 import OnboardingGate from "@/components/OnboardingGate";
@@ -358,6 +359,9 @@ export default function RootLayout({
         <SentryUserSync />
         {/* R39c (#29): URL 의 utm_* 파라미터 → sessionStorage. conversion 시 함께 보냄. */}
         <UtmCapture />
+        {/* 키보드 네비게이션 중에만 포커스 링(터치/프로그램 포커스의 뜬금 주황
+            링 제거, 사장님 2026-07-19). globals.css html:not([data-kbnav]) 과 짝. */}
+        <FocusNavFlag />
         <AnalyticsScripts />
         {/* 카카오톡 공유 SDK — NEXT_PUBLIC_KAKAO_JS_KEY 가 있을 때만 활성화 */}
         <KakaoInitScript />

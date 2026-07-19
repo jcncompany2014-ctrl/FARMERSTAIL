@@ -1744,6 +1744,14 @@ html:has([data-ft-chrome="app"])::-webkit-scrollbar,
   outline-offset: 2px;
   border-radius: 4px;
 }
+/* ★키보드 네비게이션(Tab) 중에만 포커스 링 노출 — 터치/프로그램 포커스(모달·
+   FAB·드로어 열림)로 주황 링이 뜬금없이 뜨던 것 차단(사장님 2026-07-19 폰).
+   data-kbnav 는 FocusNavFlag 가 Tab 키에서만 켠다. 실제 키보드/스위치 사용자
+   (WCAG 2.4.7)는 보존, 터치 유저의 뜬금 링만 제거. */
+html:not([data-kbnav]) :focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
 /* 입력 폼은 outline 보다 border 색상 변화가 더 자연스러움 — 컴포넌트 측에서
    onFocus 핸들러가 처리. 여기선 키보드 focus 시 추가 ring 으로 보강. */
 input:focus-visible,
