@@ -1,504 +1,354 @@
 'use client'
 
 /**
- * Farmer's Tail — first-launch onboarding carousel.
+ * Farmer's Tail — 첫 설치 온보딩 (2026-07-19 전면 리디자인, 사장님 "아예 새로 이쁘게").
  *
- * 6 slides, horizontal scroll-snap. Styles live in Onboarding.module.css;
- * design tokens come from globals.css. Ported from the Claude Design
- * handoff at .claude-design/farmerstailapp-handoff/project/onboarding.jsx —
- * where the CTAs in the prototype alerted strings, here they navigate via
- * next/router and mark onboarding complete via lib/onboarding.ts.
+ * 옛 6슬라이드(종이톤 플레이스홀더 타일)를 폐기하고 **풀블리드 이미지 캐러셀**
+ * 4장으로. 이미지는 Higgsfield 생성(브랜드 톤: 강아지+신선 화식). 각 슬라이드
+ * = 전면 사진 + 하단 그라데이션 + 카피, 마지막 슬라이드에 CTA. 가로 스크롤-스냅
+ * 스와이프 + 상단 진행 점 + 건너뛰기.
  *
- * The OnboardingGate only redirects standalone-mode visitors here on their
- * first install, so this flow is effectively the installed PWA's splash.
- * The skip button (top-right) jumps to the final CTA slide; there is no
- * bypass-to-landing option by design — installed users must sign up or log
- * in to progress.
+ * OnboardingGate 가 첫 설치(standalone) 1회만 /welcome 으로 보내고, 이 컴포넌트가
+ * 완료/스킵 시 markOnboarded() 후 /start(앱 설문) 또는 /login 으로 이동한다.
+ * position:fixed 전체화면 takeover — 어떤 chrome 위에도 덮인다.
  */
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-} from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { markOnboarded } from '@/lib/onboarding'
-import styles from './Onboarding.module.css'
 
-const TOTAL = 6
-const LS_INDEX_KEY = 'ft_onb_idx'
-
-/* -------------------------------------------------------------------------
- * Photo tile — matches the handoff's PhotoTile.
- *
- * The original handoff pulled Unsplash URLs as visual-parity placeholders.
- * Those were dropped in favor of the paper-tone `illoFallback` stripe +
- * tint overlay + vignette + kicker-style label, which reads on-brand
- * without any network fetch — important for the PWA's offline first-launch
- * case. When curated brand photography lands, pass it via `src` (optional);
- * next/image + preload hints can be reintroduced at that point.
- * ---------------------------------------------------------------------- */
-type Tint = 'cream' | 'terra' | 'moss' | 'gold'
-type Size = 'lg' | 'sm' | 'tile'
-
-const TINT: Record<Tint, string> = {
-  cream: 'rgba(245,240,230,0.04)',
-  terra: 'rgba(160,69,46,0.06)',
-  moss: 'rgba(107,127,58,0.06)',
-  gold: 'rgba(212,184,114,0.08)',
+type Slide = {
+  img: string
+  kicker: string
+  title: string
+  sub: string
 }
 
-function sizeClass(size: Size): string {
-  if (size === 'lg') return styles.illoLg ?? ''
-  if (size === 'sm') return styles.illoSm ?? ''
-  return styles.illoTile ?? ''
-}
-
-function PhotoTile({
-  src,
-  label,
-  tint = 'cream',
-  size = 'lg',
-}: {
-  /** Optional brand photo. When omitted, the paper-tone stripe is used. */
-  src?: string
-  label: string
-  tint?: Tint
-  size?: Size
-}) {
-  const tileSize = size === 'tile'
-  return (
-    <div className={`${styles.illo} ${sizeClass(size)}`}>
-      <div className={styles.illoFallback} aria-hidden />
-      {src && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          className={styles.illoPhoto}
-          src={src}
-          alt=""
-          loading="lazy"
-          onError={(e) => {
-            // Hide broken image — fallback stripe stays visible behind it.
-            e.currentTarget.style.display = 'none'
-          }}
-        />
-      )}
-      <div
-        className={styles.illoTint}
-        style={{ background: TINT[tint] }}
-        aria-hidden
-      />
-      <div className={styles.illoVignette} aria-hidden />
-      <span
-        className={`${styles.illoLabel} ${
-          tileSize ? styles.illoLabelTile : ''
-        }`}
-      >
-        {label}
-      </span>
-    </div>
-  )
-}
-
-/* -------------------------------------------------------------------------
- * Slide shells
- * ---------------------------------------------------------------------- */
-type Align = 'center' | 'top' | 'bottom'
-
-function alignClass(align: Align): string {
-  if (align === 'top') return styles.alignTop ?? ''
-  if (align === 'bottom') return styles.alignBottom ?? ''
-  return styles.alignCenter ?? ''
-}
-
-function SlideFrame({
-  children,
-  align = 'center',
-}: {
-  children: React.ReactNode
-  align?: Align
-}) {
-  return (
-    <section className={styles.slide}>
-      <div className={`${styles.slideInner} ${alignClass(align)}`}>
-        {children}
-      </div>
-    </section>
-  )
-}
-
-function Slide01() {
-  return (
-    <SlideFrame>
-      <div className={styles.illoWrap}>
-        <PhotoTile label="WELCOME" tint="terra" />
-      </div>
-      <div className={styles.copy}>
-        <h1 className={styles.headline}>
-          안녕, 우리 아이의
-          <br />
-          새로운 한 끼
-        </h1>
-        <p className={styles.sub}>파머스테일에 오신 걸 환영해요</p>
-      </div>
-    </SlideFrame>
-  )
-}
-
-function Slide02() {
-  return (
-    <SlideFrame>
-      <div className={styles.illoWrap}>
-        <PhotoTile label="RECIPE" tint="moss" />
-      </div>
-      <div className={styles.copy}>
-        <h1 className={styles.headline}>
-          수의영양학 기반
-          <br />
-          레시피
-        </h1>
-        <p className={styles.sub}>
-          수의사와 함께 설계한 맞춤 식단.
-          <br />
-          품종·연령·컨디션에 맞춰 만들어요.
-        </p>
-      </div>
-    </SlideFrame>
-  )
-}
-
-type LineupItem = {
-  ko: string
-  en: string
-  copy: string
-  label: string
-}
-
-// 구독전용 전환(2026-06-26) 반영 — 옛 3종 라인업(화식·동결건조·토퍼) 소개는
-// 폐지된 낱개 커머스 잔재라, 실제 모델(분석→맞춤 2종 믹스→정기배송)로 교체.
-const LINEUP: LineupItem[] = [
+const SLIDES: Slide[] = [
   {
-    ko: '정밀 분석',
-    en: 'ANALYSIS',
-    copy: '수의 임상 기준으로 우리 아이부터',
-    label: 'ANALYSIS',
+    img: '/onboarding/01-welcome.jpg',
+    kicker: "FARMER'S TAIL",
+    title: '우리 아이에게,\n진짜 밥을',
+    sub: '수의영양 기준으로 만든\n신선 화식을 집으로.',
   },
   {
-    ko: '맞춤 화식 박스',
-    en: 'CUSTOM FRESH',
-    copy: '잘 맞는 레시피 2종을 골라 담아요',
-    label: 'CUSTOM FRESH',
+    img: '/onboarding/02-analysis.jpg',
+    kicker: 'STEP 1 · 맞춤 분석',
+    title: '2분이면,\n딱 맞는 식단',
+    sub: '체형·건강·기호를 분석해\n우리 아이만을 위한 레시피를 찾아요.',
   },
   {
-    ko: '정기배송',
-    en: 'SUBSCRIPTION',
-    copy: '주기에 맞춰 신선하게, 관리는 자유롭게',
-    label: 'SUBSCRIPTION',
+    img: '/onboarding/03-delivery.jpg',
+    kicker: 'STEP 2 · 정기배송',
+    title: '떨어질 때쯤,\n알아서 도착',
+    sub: '2주마다 신선하게 만들어\n화요일에 문 앞으로 보내드려요.',
+  },
+  {
+    img: '/onboarding/04-start.jpg',
+    kicker: 'START',
+    title: '이제,\n시작해요',
+    sub: '우리 아이 맞춤 화식을\n지금 만나보세요.',
   },
 ]
+const LAST = SLIDES.length - 1
 
-function Slide03() {
-  return (
-    <SlideFrame align="top">
-      <div className={`${styles.copy} ${styles.copyTop}`}>
-        <h1 className={styles.headline}>
-          분석부터 배송까지,
-          <br />
-          우리 아이에게 맞게
-        </h1>
-        <p className={styles.sub}>
-          정밀 분석 · 맞춤 화식 박스 · 정기배송
-          <br />
-          아이에게 맞춰 만들어 보내드려요.
-        </p>
-      </div>
-      <div className={styles.lineup}>
-        {LINEUP.map((it, i) => (
-          <div
-            key={it.en}
-            className={`${styles.lineupRow} ${
-              i === 0 ? '' : styles.lineupRowDivider
-            }`}
-          >
-            <div className={styles.lineupPh}>
-              <PhotoTile label={it.label} size="tile" />
-            </div>
-            <div className={styles.lineupText}>
-              <div className={styles.lineupLabel}>
-                <span className={styles.lineupKo}>{it.ko}</span>
-                <span className={styles.lineupEn}>/ {it.en}</span>
-              </div>
-              <div className={styles.lineupCopy}>{it.copy}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </SlideFrame>
-  )
-}
-
-function Slide04() {
-  return (
-    <SlideFrame>
-      <div className={styles.illoWrap}>
-        <PhotoTile label="JOURNAL" tint="gold" />
-      </div>
-      <div className={styles.copy}>
-        <h1 className={styles.headline}>
-          우리 아이의 건강을
-          <br />
-          기록하세요
-        </h1>
-        <p className={styles.sub}>
-          체중·급식·배변·산책을 가볍게 남기면,
-          <br />
-          AI가 맞춤 분석 리포트를 보내드려요.
-        </p>
-      </div>
-    </SlideFrame>
-  )
-}
-
-function Slide05() {
-  return (
-    <SlideFrame>
-      <div className={styles.illoWrap}>
-        <PhotoTile label="SUBSCRIBE" tint="terra" />
-      </div>
-      <div className={styles.copy}>
-        <h1 className={styles.headline}>
-          딱 맞는 주기로,
-          <br />
-          자동으로
-        </h1>
-        <p className={styles.sub}>
-          떨어질 때쯤 다음 패키지가 도착해요.
-          <br />
-          예방접종·건강검진 알림도 놓치지 마세요.
-        </p>
-      </div>
-    </SlideFrame>
-  )
-}
-
-function Slide06({
-  variant = 'with-illo',
-  onStart,
-  onLogin,
-}: {
-  variant?: 'with-illo' | 'cta-only'
-  onStart: () => void
-  onLogin: () => void
-}) {
-  return (
-    <SlideFrame align="bottom">
-      <div className={styles.s6Head}>
-        {variant === 'with-illo' && (
-          <div className={`${styles.illoWrap} ${styles.illoWrapSm}`}>
-            <PhotoTile label="BEGIN" tint="terra" size="sm" />
-          </div>
-        )}
-        <div className={styles.copy}>
-          <h1 className={styles.headline}>지금 시작하기</h1>
-          <p className={styles.sub}>
-            2분 설문으로 우리 아이 맞춤 화식을 찾아요
-          </p>
-        </div>
-      </div>
-      <div className={styles.ctaStack}>
-        <button
-          type="button"
-          className={`${styles.cta} ${styles.ctaPrimary}`}
-          onClick={onStart}
-        >
-          시작하기
-        </button>
-        <button
-          type="button"
-          className={`${styles.cta} ${styles.ctaGhost}`}
-          onClick={onLogin}
-        >
-          이미 계정이 있어요
-        </button>
-        <p className={styles.micro}>
-          계속 진행하시면 이용약관·개인정보처리방침에
-          <br />
-          동의하게 됩니다.
-        </p>
-      </div>
-    </SlideFrame>
-  )
-}
-
-/* -------------------------------------------------------------------------
- * Carousel
- * ---------------------------------------------------------------------- */
-export default function Onboarding({
-  slide6Variant = 'with-illo',
-}: {
-  slide6Variant?: 'with-illo' | 'cta-only'
-}) {
+export default function Onboarding() {
   const router = useRouter()
   const scrollerRef = useRef<HTMLDivElement | null>(null)
-
-  // Restore last-seen slide index so reloads resume mid-flow. Initializer
-  // reads localStorage exactly once; we keep `ft_onboarded` (separate key)
-  // as the completion flag so resume + gate-dismiss stay independent.
-  const [idx, setIdx] = useState<number>(() => {
-    if (typeof window === 'undefined') return 0
-    try {
-      const saved = Number(window.localStorage.getItem(LS_INDEX_KEY))
-      return Number.isFinite(saved) && saved >= 0 && saved < TOTAL ? saved : 0
-    } catch {
-      return 0
-    }
-  })
-
-  // Persist current slide for resume. Written eagerly so even an abrupt
-  // quit (user kills the PWA mid-onboarding) survives.
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(LS_INDEX_KEY, String(idx))
-    } catch {
-      /* private mode / quota — harmless */
-    }
-  }, [idx])
-
-  // Jump to saved slide on mount without triggering a visible scroll
-  // animation. Smooth scrolling is added AFTER the initial jump so the
-  // programmatic `goTo` during steady-state gets the nice animation but
-  // the first paint lands already-positioned.
-  const [smooth, setSmooth] = useState(false)
-  useEffect(() => {
-    const el = scrollerRef.current
-    if (!el) return
-    if (idx !== 0) {
-      el.scrollLeft = idx * el.clientWidth
-    }
-    // Next frame — after the instant jump — enable smooth behavior.
-    const raf = requestAnimationFrame(() => setSmooth(true))
-    return () => cancelAnimationFrame(raf)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Observe scroll → sync idx. Uses scroll-math (Math.round) rather than
-  // IntersectionObserver because scroll-snap guarantees integer positions
-  // at rest; this avoids the observer's "mostly visible" fuzziness and
-  // the extra subscription.
-  const onScroll = useCallback(() => {
-    const el = scrollerRef.current
-    if (!el) return
-    const w = el.clientWidth
-    if (w === 0) return
-    const i = Math.round(el.scrollLeft / w)
-    setIdx((prev) => (i !== prev ? i : prev))
-  }, [])
+  const [idx, setIdx] = useState(0)
 
   const goTo = useCallback((i: number) => {
     const el = scrollerRef.current
     if (!el) return
-    const clamped = Math.max(0, Math.min(TOTAL - 1, i))
-    el.scrollTo({ left: clamped * el.clientWidth, behavior: 'smooth' })
+    el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' })
   }, [])
 
-  const skipToEnd = useCallback(() => goTo(TOTAL - 1), [goTo])
-  const next = useCallback(() => goTo(idx + 1), [goTo, idx])
+  const onScroll = useCallback(() => {
+    const el = scrollerRef.current
+    if (!el) return
+    const i = Math.round(el.scrollLeft / el.clientWidth)
+    setIdx((prev) => (prev === i ? prev : i))
+  }, [])
 
-  // Completion exits — clear the resume index so a future reinstall
-  // doesn't dump the user back into slide N; onboarding is one-and-done
-  // via the `ft_onboarded` flag in lib/onboarding.ts.
-  const complete = useCallback(
-    (to: '/start' | '/login') => {
-      try {
-        window.localStorage.removeItem(LS_INDEX_KEY)
-      } catch {
-        /* noop */
-      }
-      markOnboarded()
-      router.replace(to)
-    },
-    [router]
-  )
+  // 뒤로가기(안드로이드 하드웨어/제스처)로 온보딩을 벗어나지 않게 — 첫 설치 흐름.
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [])
+
+  function complete(path: string) {
+    markOnboarded()
+    router.replace(path)
+  }
 
   return (
-    <div className={styles.root}>
-      {/* Top chrome — progress segments + No. + skip */}
-      <div className={styles.top}>
-        <div
-          className={styles.progress}
-          role="progressbar"
-          aria-valuemin={1}
-          aria-valuemax={TOTAL}
-          aria-valuenow={idx + 1}
-          aria-label="온보딩 진행도"
-        >
-          {Array.from({ length: TOTAL }).map((_, i) => (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100,
+        background: '#171310',
+        overflow: 'hidden',
+      }}
+    >
+      {/* 상단 스크림 — 밝은 이미지(재료·박스) 위에서도 흰 점·건너뛰기 가독. */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 140,
+          zIndex: 2,
+          pointerEvents: 'none',
+          background:
+            'linear-gradient(to bottom, rgba(23,19,16,0.42), rgba(23,19,16,0))',
+        }}
+      />
+
+      {/* 진행 점 + 건너뛰기 (상단, safe-area) */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 'max(14px, env(safe-area-inset-top))',
+          left: 0,
+          right: 0,
+          zIndex: 3,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 20px',
+        }}
+      >
+        <div style={{ display: 'flex', gap: 6 }}>
+          {SLIDES.map((_, i) => (
             <button
               key={i}
               type="button"
-              className={`${styles.seg} ${i <= idx ? styles.segOn : ''}`}
               onClick={() => goTo(i)}
-              aria-label={`${i + 1}번 슬라이드로 이동`}
+              aria-label={`${i + 1}번 슬라이드`}
+              style={{
+                width: i === idx ? 22 : 7,
+                height: 7,
+                borderRadius: 99,
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                background:
+                  i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
+                transition: 'width 240ms ease, background 240ms ease',
+              }}
             />
           ))}
         </div>
-        <div className={styles.topbar}>
-          <div className={styles.slideNo} aria-live="polite">
-            <span className={styles.noSer}>No.</span>
-            <span className={styles.noNum}>
-              {String(idx + 1).padStart(2, '0')}
-            </span>
-          </div>
-          <button
-            type="button"
-            className={styles.skip}
-            style={
-              { visibility: idx < TOTAL - 1 ? 'visible' : 'hidden' } as CSSProperties
-            }
-            onClick={skipToEnd}
-          >
-            건너뛰기
-          </button>
-        </div>
-      </div>
-
-      {/* Carousel */}
-      <div
-        ref={scrollerRef}
-        className={`${styles.scroller} ${smooth ? styles.scrollerSmooth : ''}`}
-        onScroll={onScroll}
-      >
-        <Slide01 />
-        <Slide02 />
-        <Slide03 />
-        <Slide04 />
-        <Slide05 />
-        <Slide06
-          variant={slide6Variant}
-          onStart={() => complete('/start')}
-          onLogin={() => complete('/login')}
-        />
-      </div>
-
-      {/* Bottom next-hint — hidden on final slide where CTAs take over */}
-      <div className={styles.bottom}>
         <button
           type="button"
-          className={styles.nextHint}
-          style={
-            {
-              opacity: idx < TOTAL - 1 ? 1 : 0,
-              pointerEvents: idx < TOTAL - 1 ? 'auto' : 'none',
-            } as CSSProperties
-          }
-          onClick={next}
-          aria-hidden={idx >= TOTAL - 1}
-          tabIndex={idx < TOTAL - 1 ? 0 : -1}
+          onClick={() => goTo(LAST)}
+          style={{
+            visibility: idx < LAST ? 'visible' : 'hidden',
+            background: 'transparent',
+            border: 'none',
+            color: 'rgba(255,255,255,0.85)',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+            padding: '6px 4px',
+          }}
         >
-          다음 →
+          건너뛰기
         </button>
+      </div>
+
+      {/* 캐러셀 */}
+      <div
+        ref={scrollerRef}
+        onScroll={onScroll}
+        style={{
+          height: '100%',
+          display: 'flex',
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          scrollSnapType: 'x mandatory',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+        }}
+      >
+        {SLIDES.map((s, i) => (
+          <section
+            key={s.img}
+            style={{
+              position: 'relative',
+              flex: '0 0 100%',
+              width: '100%',
+              height: '100%',
+              scrollSnapAlign: 'start',
+              overflow: 'hidden',
+            }}
+          >
+            {/* 이미지 */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={s.img}
+              alt=""
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+              }}
+            />
+            {/* 하단 그라데이션 — 카피 가독 */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background:
+                  'linear-gradient(to top, rgba(23,19,16,0.92) 0%, rgba(23,19,16,0.72) 26%, rgba(23,19,16,0.12) 55%, rgba(23,19,16,0.28) 100%)',
+              }}
+            />
+            {/* 카피 */}
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: 0,
+                padding:
+                  '0 28px calc(150px + env(safe-area-inset-bottom)) 28px',
+                zIndex: 2,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 11.5,
+                  fontWeight: 800,
+                  letterSpacing: '0.18em',
+                  color: '#E8B84B',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {s.kicker}
+              </span>
+              <h1
+                style={{
+                  margin: '12px 0 0',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 34,
+                  lineHeight: 1.12,
+                  fontWeight: 800,
+                  letterSpacing: '-0.03em',
+                  color: '#fff',
+                  whiteSpace: 'pre-line',
+                }}
+              >
+                {s.title}
+              </h1>
+              <p
+                style={{
+                  margin: '14px 0 0',
+                  fontSize: 14.5,
+                  lineHeight: 1.6,
+                  color: 'rgba(255,255,255,0.85)',
+                  whiteSpace: 'pre-line',
+                  fontWeight: 500,
+                }}
+              >
+                {s.sub}
+              </p>
+            </div>
+          </section>
+        ))}
+      </div>
+
+      {/* 하단 액션 — 1~3: "다음", 4: CTA 2개 (safe-area) */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 4,
+          padding: '0 24px calc(28px + env(safe-area-inset-bottom)) 24px',
+        }}
+      >
+        {idx < LAST ? (
+          <button
+            type="button"
+            onClick={() => goTo(idx + 1)}
+            style={{
+              width: '100%',
+              height: 56,
+              borderRadius: 999,
+              border: 'none',
+              background: 'var(--terracotta, #C86B45)',
+              color: '#fff',
+              fontSize: 15,
+              fontWeight: 800,
+              letterSpacing: '-0.01em',
+              cursor: 'pointer',
+              boxShadow: '0 10px 28px -10px rgba(200,107,69,0.7)',
+            }}
+          >
+            다음
+          </button>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => complete('/start')}
+              style={{
+                width: '100%',
+                height: 56,
+                borderRadius: 999,
+                border: 'none',
+                background: 'var(--terracotta, #C86B45)',
+                color: '#fff',
+                fontSize: 15,
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: '0 10px 28px -10px rgba(200,107,69,0.7)',
+              }}
+            >
+              무료로 시작하기
+            </button>
+            <button
+              type="button"
+              onClick={() => complete('/login')}
+              style={{
+                width: '100%',
+                height: 52,
+                borderRadius: 999,
+                border: '1.5px solid rgba(255,255,255,0.5)',
+                background: 'transparent',
+                color: '#fff',
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              이미 계정이 있어요
+            </button>
+            <p
+              style={{
+                margin: '4px 0 0',
+                textAlign: 'center',
+                fontSize: 11,
+                lineHeight: 1.5,
+                color: 'rgba(255,255,255,0.6)',
+              }}
+            >
+              계속 진행하면 이용약관·개인정보처리방침에 동의하게 됩니다.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
