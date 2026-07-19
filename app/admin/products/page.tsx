@@ -8,9 +8,18 @@ export const dynamic = 'force-dynamic'
 
 const PER_PAGE = 50
 
-type ProductRow = Database['public']['Tables']['products']['Row']
+// sales_channel 은 마이그레이션 20260719120000 신설 — generated types 재생성
+// 전까지 로컬 확장. own=자사몰 구독(화식), external=외부 채널(스마트스토어·쿠팡).
+type ProductRow = Database['public']['Tables']['products']['Row'] & {
+  sales_channel: 'own' | 'external'
+}
 
-type SearchParams = Promise<{ q?: string; active?: string; page?: string }>
+type SearchParams = Promise<{
+  q?: string
+  active?: string
+  channel?: string
+  page?: string
+}>
 
 const ACTIVE_FILTERS = [
   { key: 'all', label: '전체' },
@@ -18,12 +27,29 @@ const ACTIVE_FILTERS = [
   { key: 'hidden', label: '숨김' },
 ]
 
+// 판매 채널 탭 — 자사몰(구독 화식)과 외부 채널(스마트스토어·쿠팡 등) 상품을
+// 분리 관리(2026-07-19 사장님). 자사몰/앱 노출은 slug 화이트리스트 기반이라
+// external 이 고객에게 새어나갈 일은 없고, 이 탭은 admin 관리 편의.
+const CHANNEL_FILTERS = [
+  { key: 'own', label: '자사몰 구독' },
+  { key: 'external', label: '외부 채널' },
+  { key: 'all', label: '전체' },
+]
+
 export default async function AdminProductsPage({
   searchParams,
 }: {
   searchParams: SearchParams
 }) {
-  const { q = '', active = 'all', page: pageRaw } = await searchParams
+  const {
+    q = '',
+    active = 'all',
+    channel: channelRaw = 'own',
+    page: pageRaw,
+  } = await searchParams
+  const channel = ['own', 'external', 'all'].includes(channelRaw)
+    ? channelRaw
+    : 'own'
   const page = Math.max(1, parseInt(pageRaw ?? '1', 10) || 1)
 
   const supabase = await createClient()
@@ -35,6 +61,7 @@ export default async function AdminProductsPage({
     .order('created_at', { ascending: false })
     .range((page - 1) * PER_PAGE, page * PER_PAGE - 1)
 
+  if (channel !== 'all') query = query.eq('sales_channel', channel)
   if (active === 'active') query = query.eq('is_active', true)
   else if (active === 'hidden') query = query.eq('is_active', false)
 
@@ -73,19 +100,47 @@ export default async function AdminProductsPage({
         </Link>
       </div>
 
+      {/* 채널 탭 — 자사몰 구독(화식) vs 외부 채널(스마트스토어·쿠팡). */}
+      <div className="mb-3 flex gap-1.5 flex-wrap">
+        {CHANNEL_FILTERS.map((f) => {
+          const isActive = channel === f.key
+          const sp = new URLSearchParams()
+          sp.set('channel', f.key)
+          if (active !== 'all') sp.set('active', active)
+          if (q) sp.set('q', q)
+          return (
+            <Link
+              key={f.key}
+              href={`/admin/products?${sp.toString()}`}
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition border ${
+                isActive
+                  ? 'bg-terracotta text-white border-terracotta'
+                  : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400'
+              }`}
+            >
+              {f.key === 'own' ? '🏠 ' : f.key === 'external' ? '🛒 ' : ''}
+              {f.label}
+            </Link>
+          )
+        })}
+        <span className="self-center text-[11px] text-zinc-400 ml-1">
+          외부 채널 상품은 자사몰·앱에 노출되지 않아요
+        </span>
+      </div>
+
       {/* 필터 + 검색 */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1.5 flex-wrap">
           {ACTIVE_FILTERS.map((f) => {
             const isActive = active === f.key
             const sp = new URLSearchParams()
+            sp.set('channel', channel)
             if (f.key !== 'all') sp.set('active', f.key)
             if (q) sp.set('q', q)
-            const qs = sp.toString()
             return (
               <Link
                 key={f.key}
-                href={`/admin/products${qs ? `?${qs}` : ''}`}
+                href={`/admin/products?${sp.toString()}`}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
                   isActive
                     ? 'bg-[#2A2118] text-white'
@@ -102,6 +157,7 @@ export default async function AdminProductsPage({
           method="get"
           className="flex gap-2 items-center"
         >
+          <input type="hidden" name="channel" value={channel} />
           {active !== 'all' && (
             <input type="hidden" name="active" value={active} />
           )}
@@ -227,6 +283,7 @@ export default async function AdminProductsPage({
           basePath="/admin/products"
           params={{
             q: q || undefined,
+            channel,
             active: active !== 'all' ? active : undefined,
           }}
           total={total}

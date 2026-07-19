@@ -19,6 +19,8 @@ type ProductData = {
   is_subscribable: boolean
   is_active: boolean
   sort_order: number
+  /** own=자사몰 구독(화식) / external=외부 채널(스마트스토어·쿠팡). 2026-07-19. */
+  sales_channel: 'own' | 'external'
   // 식품정보고시 / 사료관리법 표시 14개 항목 — 모두 nullable, 점진 입력.
   origin: string | null
   manufacturer: string | null
@@ -49,6 +51,7 @@ const EMPTY: ProductData = {
   is_subscribable: false,
   is_active: true,
   sort_order: 0,
+  sales_channel: 'external',
   origin: null,
   manufacturer: null,
   manufacturer_address: null,
@@ -140,6 +143,7 @@ export default function ProductForm({
       is_subscribable: form.is_subscribable,
       is_active: form.is_active,
       sort_order: form.sort_order,
+      sales_channel: form.sales_channel,
       // 식품정보고시 14개 항목
       origin: form.origin?.trim() || null,
       manufacturer: form.manufacturer?.trim() || null,
@@ -340,6 +344,22 @@ export default function ProductForm({
         </Section>
 
         <Section title="분류 & 상태">
+          <Field label="판매 채널">
+            <select
+              value={form.sales_channel}
+              onChange={(e) =>
+                update('sales_channel', e.target.value as 'own' | 'external')
+              }
+              className={inputClass}
+            >
+              <option value="own">🏠 자사몰 구독 (화식)</option>
+              <option value="external">🛒 외부 채널 (스마트스토어·쿠팡)</option>
+            </select>
+            <p className="text-[11px] text-zinc-400 mt-1">
+              외부 채널 상품은 자사몰·앱에 노출되지 않고, admin 목록에서 탭으로
+              분리돼요.
+            </p>
+          </Field>
           <Field label="카테고리">
             <select
               value={form.category ?? ''}

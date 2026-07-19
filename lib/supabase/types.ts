@@ -2127,6 +2127,7 @@ export type Database = {
           pet_food_class: string | null
           price: number
           sale_price: number | null
+          sales_channel: string
           sales_count: number
           shelf_life_days: number | null
           short_description: string | null
@@ -2163,6 +2164,7 @@ export type Database = {
           pet_food_class?: string | null
           price: number
           sale_price?: number | null
+          sales_channel?: string
           sales_count?: number
           shelf_life_days?: number | null
           short_description?: string | null
@@ -2199,6 +2201,7 @@ export type Database = {
           pet_food_class?: string | null
           price?: number
           sale_price?: number | null
+          sales_channel?: string
           sales_count?: number
           shelf_life_days?: number | null
           short_description?: string | null
