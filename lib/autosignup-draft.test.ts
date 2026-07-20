@@ -44,10 +44,10 @@ const FULL: AutosignupDogDraft = {
   breed: '말티즈',
   gender: 'male',
   neutered: true,
+  birthDate: '2021-05-10',
   ageValue: '3',
   ageUnit: 'years',
   weight: '4.5',
-  activityLevel: 'medium',
 }
 
 describe('autosignup-draft', () => {
@@ -88,11 +88,12 @@ describe('autosignup-draft', () => {
     assert.equal(store.has(AUTOSIGNUP_DRAFT_KEY), false)
   })
 
-  it('isDogDraftComplete — 8필드 완비/누락', () => {
+  it('isDogDraftComplete — 필수필드 완비/누락(활동량 폐지·생일 필수)', () => {
     assert.equal(isDogDraftComplete(FULL), true)
     assert.equal(isDogDraftComplete({ ...FULL, weight: '' }), false)
     assert.equal(isDogDraftComplete({ ...FULL, neutered: null }), false)
     assert.equal(isDogDraftComplete({ ...FULL, weight: '0' }), false)
+    assert.equal(isDogDraftComplete({ ...FULL, birthDate: '' }), false)
     assert.equal(isDogDraftComplete(undefined), false)
   })
 })

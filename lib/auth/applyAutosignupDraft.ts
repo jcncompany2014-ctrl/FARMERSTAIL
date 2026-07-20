@@ -57,10 +57,13 @@ export async function applyAutosignupDraft(
       breed: dog.breed!,
       gender: dog.gender as 'male' | 'female',
       neutered: dog.neutered === true,
+      birth_date: dog.birthDate!,
+      // 생일에서 파생(칼로리 알고리즘이 읽는 age_value/age_unit 유지) — NewDogClient 동일.
       age_value: parseInt(dog.ageValue!, 10),
       age_unit: dog.ageUnit as 'years' | 'months',
       weight: parseFloat(dog.weight!),
-      activity_level: dog.activityLevel as 'low' | 'medium' | 'high',
+      // 활동량 폐지(2026-07-20) — 폼에서 제거. 설문이 산책시간으로 신호 제공 → null.
+      activity_level: null,
       weight_method: 'unknown',
       weight_measured_at: nowIso,
       activity_method: 'unknown',

@@ -59,13 +59,6 @@ export function draftToNutritionInput(
   const ageValue = parseInt(dog.ageValue ?? '', 10)
   if (!(weight > 0) || !(ageValue > 0)) return null
   if (dog.ageUnit !== 'years' && dog.ageUnit !== 'months') return null
-  if (
-    dog.activityLevel !== 'low' &&
-    dog.activityLevel !== 'medium' &&
-    dog.activityLevel !== 'high'
-  ) {
-    return null
-  }
 
   const a = (draft?.answers ?? {}) as Record<string, string | string[]>
   const body =
@@ -83,7 +76,9 @@ export function draftToNutritionInput(
     ageValue,
     ageUnit: dog.ageUnit,
     neutered: dog.neutered === true,
-    activityLevel: dog.activityLevel,
+    // 활동량 폐지(2026-07-20) — 3단계 자기보고는 의미없어 제거. 실제 활동 신호는
+    // 설문의 산책시간(dailyWalkMinutes). 여기선 중립값 'medium' 로 MER 계산.
+    activityLevel: 'medium',
     gender: dog.gender === 'male' || dog.gender === 'female' ? dog.gender : null,
   }
   const answers: SurveyAnswers = {

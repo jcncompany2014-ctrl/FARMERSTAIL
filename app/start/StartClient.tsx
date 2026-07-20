@@ -11,7 +11,7 @@
 // 연결 전). B2 에서 done 분기를 익명 설문(SurveyClient 재사용)으로 교체 예정.
 
 import { useEffect, useState } from 'react'
-import { Check, X, Moon, Footprints, Zap, ArrowRight, AlertCircle } from 'lucide-react'
+import { Check, X, ArrowRight, AlertCircle } from 'lucide-react'
 import { normalizePromoCode } from '@/lib/promotions'
 import {
   loadAutosignupDraft,
@@ -21,14 +21,11 @@ import {
 } from '@/lib/autosignup-draft'
 import { useRouter } from 'next/navigation'
 import BreedCombobox from '@/components/web/fd/BreedCombobox'
+import { deriveAgeFromBirth } from '@/lib/dog-age'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 
 // 견종 목록은 lib/breeds/breed-names(종합 목록) + BreedCombobox(자동완성)로 이동.
-
-const ACTIVITY: { v: 'low' | 'medium' | 'high'; Icon: typeof Moon; t: string; d: string }[] = [
-  { v: 'low', Icon: Moon, t: '낮음', d: '거의 움직이지 않아요' },
-  { v: 'medium', Icon: Footprints, t: '보통', d: '하루 1~2회 산책' },
-  { v: 'high', Icon: Zap, t: '활동적', d: '뛰어다니기를 좋아해요' },
-]
+// 활동량(ACTIVITY) 필드 폐지(2026-07-20) — 의미없어 제거. 영양계산은 medium 기본.
 
 export default function StartClient() {
   const router = useRouter()
@@ -39,10 +36,8 @@ export default function StartClient() {
   const [breed, setBreed] = useState('')
   const [gender, setGender] = useState<'male' | 'female' | ''>('')
   const [neutered, setNeutered] = useState<boolean | null>(null)
-  const [ageValue, setAgeValue] = useState('')
-  const [ageUnit, setAgeUnit] = useState<'years' | 'months'>('years')
+  const [birthDate, setBirthDate] = useState('')
   const [weight, setWeight] = useState('')
-  const [activityLevel, setActivityLevel] = useState<'low' | 'medium' | 'high' | ''>('')
   const [error, setError] = useState('')
 
   // ── 프로모션 링크 (2026-07-16) ──
@@ -71,26 +66,51 @@ export default function StartClient() {
     if (d.breed) setBreed(d.breed)
     if (d.gender) setGender(d.gender)
     if (typeof d.neutered === 'boolean') setNeutered(d.neutered)
-    if (d.ageValue) setAgeValue(d.ageValue)
-    if (d.ageUnit) setAgeUnit(d.ageUnit)
+    if (d.birthDate) setBirthDate(d.birthDate)
     if (d.weight) setWeight(d.weight)
-    if (d.activityLevel) setActivityLevel(d.activityLevel)
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [])
 
   // 디바운스 초안 저장 — 입력 도중 새로고침/이탈에도 답 보존(7일).
+  // 생일 → 나이 자동 파생을 함께 적재(칼로리 알고리즘이 age_value/age_unit 읽음).
   useEffect(() => {
     const t = setTimeout(() => {
+      const age = deriveAgeFromBirth(birthDate, Date.now())
       saveAutosignupDraft({
-        dog: { name, breed, gender, neutered, ageValue, ageUnit, weight, activityLevel },
+        dog: {
+          name,
+          breed,
+          gender,
+          neutered,
+          weight,
+          birthDate,
+          ageValue: age ? String(age.value) : '',
+          ageUnit: age ? age.unit : 'years',
+        },
       })
     }, 400)
     return () => clearTimeout(t)
-  }, [name, breed, gender, neutered, ageValue, ageUnit, weight, activityLevel])
+  }, [name, breed, gender, neutered, birthDate, weight])
 
   function handleNext() {
+    const age = deriveAgeFromBirth(birthDate, Date.now())
+    if (!birthDate || !age) {
+      setError('생일을 입력해 주세요')
+      return
+    }
+    if (birthDate > todayKstIsoDate()) {
+      setError('생일이 오늘보다 미래일 수 없어요')
+      return
+    }
     const dog: AutosignupDogDraft = {
-      name, breed, gender, neutered, ageValue, ageUnit, weight, activityLevel,
+      name,
+      breed,
+      gender,
+      neutered,
+      weight,
+      birthDate,
+      ageValue: String(age.value),
+      ageUnit: age.unit,
     }
     if (!isDogDraftComplete(dog)) {
       setError('모든 항목을 입력해 주세요')
@@ -171,22 +191,18 @@ export default function StartClient() {
         </div>
       </div>
 
-      {/* 나이 */}
+      {/* 생일 — 나이는 자동 계산(NewDogClient 와 동일, 사장님 2026-07-20). */}
       <div>
-        <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>나이</label>
-        <div className="flex gap-2">
-          <input
-            type="number" min="0" max={ageUnit === 'months' ? 360 : 50} value={ageValue} placeholder="0"
-            aria-label={ageUnit === 'months' ? '나이(개월)' : '나이(살)'}
-            inputMode="numeric" enterKeyHint="next"
-            onChange={(e) => setAgeValue(e.target.value)}
-            className={`${inputCls} flex-1`} style={inputStyle}
-          />
-          <button type="button" aria-pressed={ageUnit === 'years'} onClick={() => setAgeUnit('years')}
-            className="px-4 rounded-lg border text-[13px] font-bold transition" style={chipStyle(ageUnit === 'years')}>살</button>
-          <button type="button" aria-pressed={ageUnit === 'months'} onClick={() => setAgeUnit('months')}
-            className="px-4 rounded-lg border text-[13px] font-bold transition" style={chipStyle(ageUnit === 'months')}>개월</button>
-        </div>
+        <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>생일</label>
+        <input
+          type="date" max={todayKstIsoDate()} value={birthDate}
+          aria-label="생일" enterKeyHint="next"
+          onChange={(e) => setBirthDate(e.target.value)}
+          className={`${inputCls} appearance-none`} style={inputStyle}
+        />
+        <p className="mt-1.5 text-[11px]" style={{ color: 'var(--fd-muted)' }}>
+          나이는 생일로 자동 계산돼요 · 정확히 모르면 대략도 괜찮아요
+        </p>
       </div>
 
       {/* 체중 */}
@@ -199,28 +215,6 @@ export default function StartClient() {
           onChange={(e) => setWeight(e.target.value)}
           className={inputCls} style={inputStyle}
         />
-      </div>
-
-      {/* 활동량 */}
-      <div>
-        <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>활동량</label>
-        <div className="space-y-2">
-          {ACTIVITY.map((a) => {
-            const active = activityLevel === a.v
-            return (
-              <button key={a.v} type="button" aria-pressed={active}
-                onClick={() => setActivityLevel(a.v)}
-                className="w-full py-3 px-4 rounded-lg border text-left transition flex items-center gap-3"
-                style={chipStyle(active)}>
-                <a.Icon className="w-5 h-5" strokeWidth={1.8} color={active ? '#fff' : 'var(--fd-muted)'} />
-                <span>
-                  <span className="block font-bold text-[13.5px]">{a.t}</span>
-                  <span className="block text-[11px]" style={{ color: active ? 'rgba(255,255,255,0.8)' : 'var(--fd-muted)' }}>{a.d}</span>
-                </span>
-              </button>
-            )
-          })}
-        </div>
       </div>
 
       {error && (

@@ -12,18 +12,21 @@
 // NewDogClient.tsx 의 검증된 NewDogDraft 패턴(v 버전·ts 7일 만료·purity 회피용
 // 모듈수준 함수)을 그대로 따른다. 이 모듈은 **순수 util** — 라우트/DB/인증 무관.
 
-/** 강아지 기본 정보 — /dogs/new(NewDogClient) 필수 8필드와 1:1. 영양계산 입력원. */
+/** 강아지 기본 정보 — /dogs/new(NewDogClient) 필수 필드와 1:1. 영양계산 입력원.
+ *  나이=생일 자동파생·활동량 폐지(2026-07-20 사장님). */
 export type AutosignupDogDraft = {
   name?: string
   breed?: string
   gender?: 'male' | 'female' | ''
   neutered?: boolean | null
-  /** 폼 입력 그대로 문자열 보관 — 이관 시 parseInt. */
+  /** 생일(YYYY-MM-DD) — 입력 소스. 나이는 여기서 자동 파생. NewDogClient 동일. */
+  birthDate?: string
+  /** 생일에서 파생한 나이 — 칼로리 알고리즘이 age_value/age_unit 을 읽어 downstream
+   *  유지. 폼이 생일 입력 시 함께 갱신(순수 teaser 가 Date.now 없이 읽게 초안에 파생값 적재). */
   ageValue?: string
   ageUnit?: 'years' | 'months'
   /** 폼 입력 그대로 문자열 보관 — 이관 시 parseFloat. */
   weight?: string
-  activityLevel?: 'low' | 'medium' | 'high' | ''
 }
 
 /**
@@ -122,8 +125,9 @@ export function clearAutosignupDraft(): void {
 }
 
 /**
- * 강아지 기본 8필드가 영양계산/dogs insert 에 충분히 채워졌는지.
- * 스텝0 → 설문 진행 가드(미완성이면 스텝0 으로 되돌림)에 사용.
+ * 강아지 기본 필드(이름·견종·성별·중성화·생일·체중)가 영양계산/dogs insert 에
+ * 충분히 채워졌는지. 활동량은 폐지(2026-07-20). 나이는 생일 파생값(ageValue)이
+ * 함께 채워진 것을 확인. 스텝0 → 설문 진행 가드(미완성이면 스텝0 으로)에 사용.
  */
 export function isDogDraftComplete(dog: AutosignupDogDraft | undefined): boolean {
   if (!dog) return false
@@ -132,13 +136,11 @@ export function isDogDraftComplete(dog: AutosignupDogDraft | undefined): boolean
     !!dog.breed &&
     (dog.gender === 'male' || dog.gender === 'female') &&
     (dog.neutered === true || dog.neutered === false) &&
+    !!dog.birthDate &&
     !!dog.ageValue &&
     Number(dog.ageValue) > 0 &&
     (dog.ageUnit === 'years' || dog.ageUnit === 'months') &&
     !!dog.weight &&
-    Number(dog.weight) > 0 &&
-    (dog.activityLevel === 'low' ||
-      dog.activityLevel === 'medium' ||
-      dog.activityLevel === 'high')
+    Number(dog.weight) > 0
   )
 }
