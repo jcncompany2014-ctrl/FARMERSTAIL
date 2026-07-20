@@ -27,7 +27,7 @@ import { todayKstIsoDate } from '@/lib/datetime-kst'
 // 견종 목록은 lib/breeds/breed-names(종합 목록) + BreedCombobox(자동완성)로 이동.
 // 활동량(ACTIVITY) 필드 폐지(2026-07-20) — 의미없어 제거. 영양계산은 medium 기본.
 
-export default function StartClient() {
+export default function StartClient({ isApp = false }: { isApp?: boolean }) {
   const router = useRouter()
 
   // SSR 과 동일하게 빈 폼으로 init → 서버/클라 HTML 일치(hydration mismatch 0).
@@ -118,8 +118,9 @@ export default function StartClient() {
     }
     setError('')
     saveAutosignupDraft({ dog })
-    // 스텝0 완료 → chrome 없는 클린 설문 페이지로 이동(사장님 회차322).
-    router.push('/start/survey')
+    // 스텝0 완료 → 앱=가입 먼저(/start/join → onboard → 앱내 설문, Phase B
+    // 2026-07-20), 웹=기존 설문 먼저(/start/survey → 결과직전 가입).
+    router.push(isApp ? '/start/join' : '/start/survey')
   }
 
   // FD input 스타일 (signup baseInput 패턴 — 16px 로 iOS focus zoom 방지).

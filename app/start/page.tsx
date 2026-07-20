@@ -269,7 +269,7 @@ export default async function StartPage() {
       </div>
 
       <div className="mt-6">
-        <StartClient />
+        <StartClient isApp />
       </div>
     </main>
   )
