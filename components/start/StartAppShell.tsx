@@ -23,6 +23,9 @@ export default function StartAppShell({
     <div
       style={{
         minHeight: '100dvh',
+        // --fd-offwhite(#F7F5F0)는 전역 토큰이고 앱 --paper 와 값이 동일(globals.css:
+        // "paper=웹 offwhite"). StartAppShell 은 data-ft-chrome="app" 스코프 밖이라
+        // --paper 를 쓰면 미정의(투명)로 깨진다 — 반드시 전역 --fd-offwhite 사용.
         background: 'var(--fd-offwhite)',
         display: 'flex',
         flexDirection: 'column',
