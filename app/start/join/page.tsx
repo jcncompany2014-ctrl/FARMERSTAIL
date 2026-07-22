@@ -27,6 +27,13 @@ import { saveAutosignupDraft } from '@/lib/autosignup-draft'
 const emailValid = (e: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim())
 
+// 비밀번호 강도 — 8자 이상 + 영문·숫자·특수문자 각 1개 이상(사장님 2026-07-22).
+const passwordStrong = (pw: string) =>
+  pw.length >= 8 &&
+  /[a-zA-Z]/.test(pw) &&
+  /[0-9]/.test(pw) &&
+  /[^a-zA-Z0-9]/.test(pw)
+
 // signUp 에러 원문 → 사용자용 한국어(StartSurvey humanizeSignupError 와 동일 정책).
 function humanizeSignupError(raw: string): string {
   const s = raw.toLowerCase()
@@ -46,6 +53,7 @@ export default function StartJoinPage() {
   const [guardianName, setGuardianName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [birthYear, setBirthYear] = useState('')
   const [agreeRequired, setAgreeRequired] = useState(false)
   const [agreeMarketing, setAgreeMarketing] = useState(false)
@@ -60,10 +68,13 @@ export default function StartJoinPage() {
     birthYearNum >= currentYear - 100 &&
     birthYearNum <= currentYear - 14
 
+  const passwordMismatch =
+    confirmPassword.length > 0 && password !== confirmPassword
   const emailFormValid =
     guardianName.trim().length >= 2 &&
     emailValid(email) &&
-    password.length >= 6 &&
+    passwordStrong(password) &&
+    password === confirmPassword &&
     birthYearValid &&
     agreeRequired
 
@@ -100,7 +111,15 @@ export default function StartJoinPage() {
       setSignupError(humanizeSignupError(error.message ?? ''))
       return
     }
+    // 이메일 중복 — Supabase 는 열거(enumeration) 방지로 에러 대신 identities 를
+    // 빈 배열로 응답한다. 이 경우 '이미 가입됨' 안내(가짜 '메일 보냈어요' 방지).
+    if (data.user && (data.user.identities?.length ?? 0) === 0) {
+      setSaving(false)
+      setSignupError('이미 가입된 이메일이에요. 로그인해 주세요.')
+      return
+    }
     setPassword('') // 비밀번호 즉시 폐기
+    setConfirmPassword('')
     if (data.session) {
       // 이메일확인 OFF(즉시 세션) → onboard 허브 재사용(dog 생성 → 설문).
       router.push('/start/onboard')
@@ -245,13 +264,63 @@ export default function StartJoinPage() {
             <input
               type="password"
               value={password}
-              placeholder="영문·숫자 포함 6자 이상"
+              placeholder="영문·숫자·특수문자 포함 8자 이상"
               autoComplete="new-password"
               enterKeyHint="next"
               onChange={(e) => setPassword(e.target.value)}
               className={inputCls}
-              style={inputStyle}
+              style={{
+                ...inputStyle,
+                borderColor:
+                  password && !passwordStrong(password)
+                    ? 'var(--sale)'
+                    : 'var(--rule)',
+              }}
             />
+            {password && !passwordStrong(password) && (
+              <p
+                className="mt-1 flex items-center gap-1"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: 'var(--fd-coral-text)',
+                }}
+              >
+                <AlertCircle className="w-3 h-3" strokeWidth={2.5} />
+                영문·숫자·특수문자를 포함해 8자 이상이어야 해요
+              </p>
+            )}
+          </div>
+          <div>
+            <label className={labelCls} style={{ color: 'var(--ink)' }}>
+              비밀번호 확인
+            </label>
+            <input
+              type="password"
+              value={confirmPassword}
+              placeholder="비밀번호를 한 번 더 입력"
+              autoComplete="new-password"
+              enterKeyHint="next"
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={inputCls}
+              style={{
+                ...inputStyle,
+                borderColor: passwordMismatch ? 'var(--sale)' : 'var(--rule)',
+              }}
+            />
+            {passwordMismatch && (
+              <p
+                className="mt-1 flex items-center gap-1"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: 'var(--fd-coral-text)',
+                }}
+              >
+                <AlertCircle className="w-3 h-3" strokeWidth={2.5} />
+                비밀번호가 일치하지 않아요
+              </p>
+            )}
           </div>
           <div>
             <label className={labelCls} style={{ color: 'var(--ink)' }}>
