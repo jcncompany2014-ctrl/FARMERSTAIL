@@ -560,20 +560,21 @@ function MenuItem({
   href,
   Icon,
   label,
-  comingSoon,
   last,
   badge,
 }: {
   href?: string
   Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>
   label: string
-  comingSoon?: boolean
   last?: boolean
   badge?: number
 }) {
   const borderBottom = last ? 'none' : `1px solid ${V3.rule}`
 
-  if (comingSoon || !href) {
+  // href 없는 항목 = 아직 목적지 없음 → 클릭 불가 '준비 중' 행으로 렌더.
+  // (옛 comingSoon prop 제거 2026-07-23 — 전 호출부가 href 를 넘겨 한 번도
+  //  전달되지 않던 死prop. '준비 중' 은 href 생략만으로 낸다.)
+  if (!href) {
     return (
       <div
         className="flex items-center justify-between"
