@@ -19,6 +19,12 @@ import { MARKETING_POLICY_VERSION, CONSENT_LABEL } from '@/lib/consent'
 
 type Channel = 'email' | 'sms'
 
+/** 동의 이력 source 코드 → 한글 라벨. 미지 값은 원문 그대로(향후 소스 확장 대비). */
+const CONSENT_SOURCE_LABEL: Record<string, string> = {
+  signup: '가입 시',
+  mypage: '설정 변경',
+}
+
 type Initial = {
   agree_email: boolean
   agree_sms: boolean
@@ -212,7 +218,7 @@ export default function ConsentSettingsClient({
                   <p className="text-[10.5px] text-muted mt-0.5">
                     {new Date(h.granted_at).toLocaleString('ko-KR')}
                     {h.policy_version ? ` · ${h.policy_version}` : ''}
-                    {h.source ? ` · ${h.source}` : ''}
+                    {h.source ? ` · ${CONSENT_SOURCE_LABEL[h.source] ?? h.source}` : ''}
                   </p>
                 </div>
               </li>
