@@ -130,6 +130,13 @@ const QUESTION_PHOTO: Record<string, string> = {
 
 const emailValid = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim())
 
+// 비밀번호 강도 — 8자 이상 + 영문·숫자·특수문자 각 1개(사장님 2026-07-22).
+const passwordStrong = (pw: string) =>
+  pw.length >= 8 &&
+  /[a-zA-Z]/.test(pw) &&
+  /[0-9]/.test(pw) &&
+  /[^a-zA-Z0-9]/.test(pw)
+
 // (auth)/signup 의 humanizeSignupError 는 export 안 됨 → 동일 매핑 복제(카피 일관성).
 // enumeration-safe: "이미 가입됨" 류를 일반화.
 function humanizeSignupError(raw: string): string {
@@ -153,6 +160,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
   const [guardianName, setGuardianName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [birthYear, setBirthYear] = useState('')
   const [agreeRequired, setAgreeRequired] = useState(false)
   const [agreeMarketing, setAgreeMarketing] = useState(false)
@@ -354,10 +362,13 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
     )
   }
 
+  const passwordMismatch =
+    confirmPassword.length > 0 && password !== confirmPassword
   const emailFormValid =
     guardianName.trim().length >= 2 &&
     emailValid(email) &&
-    password.length >= 6 &&
+    passwordStrong(password) &&
+    password === confirmPassword &&
     birthYearValid &&
     agreeRequired
 
@@ -399,8 +410,16 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
       setSignupError(humanizeSignupError(error.message ?? ''))
       return
     }
+    // 이메일 중복 — Supabase 는 열거방지로 에러 대신 identities 빈배열로 응답.
+    // '이미 가입됨' 안내(가짜 '메일 보냈어요' 방지).
+    if (data.user && (data.user.identities?.length ?? 0) === 0) {
+      setSaving(false)
+      setSignupError('이미 가입된 이메일이에요. 로그인해 주세요.')
+      return
+    }
     // 비밀번호 즉시 폐기(메모리 잔류 최소화).
     setPassword('')
+    setConfirmPassword('')
     // 이메일확인 ON → data.session === null. draft(dog+answers)는 localStorage
     // 유지 → 메일 인증 후 첫 로그인 시 login 훅이 이관(B5). 여기선 DB write 안 함.
     if (data.user && !data.session) setEmailSent(true)
@@ -644,8 +663,25 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                   </div>
                   <div>
                     <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>비밀번호</label>
-                    <input type="password" value={password} placeholder="영문·숫자 포함 6자 이상" autoComplete="new-password"
-                      onChange={(e) => setPassword(e.target.value)} className={inputCls} style={inputStyle} />
+                    <input type="password" value={password} placeholder="영문·숫자·특수문자 포함 8자 이상" autoComplete="new-password"
+                      onChange={(e) => setPassword(e.target.value)} className={inputCls}
+                      style={{ ...inputStyle, borderColor: password && !passwordStrong(password) ? 'var(--sale)' : 'var(--fd-line)' }} />
+                    {password && !passwordStrong(password) && (
+                      <p className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                        <AlertCircle className="w-3 h-3" strokeWidth={2.5} />영문·숫자·특수문자를 포함해 8자 이상이어야 해요
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>비밀번호 확인</label>
+                    <input type="password" value={confirmPassword} placeholder="비밀번호를 한 번 더 입력" autoComplete="new-password"
+                      onChange={(e) => setConfirmPassword(e.target.value)} className={inputCls}
+                      style={{ ...inputStyle, borderColor: passwordMismatch ? 'var(--sale)' : 'var(--fd-line)' }} />
+                    {passwordMismatch && (
+                      <p className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                        <AlertCircle className="w-3 h-3" strokeWidth={2.5} />비밀번호가 일치하지 않아요
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>보호자 출생연도 <span style={{ color: 'var(--fd-muted)' }}>(만 14세 이상)</span></label>
