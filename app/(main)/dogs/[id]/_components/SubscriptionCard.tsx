@@ -132,7 +132,7 @@ export default function SubscriptionCard({
                   className="rounded border border-rule px-4 py-3 flex flex-col gap-1.5 bg-bg-2/30"
                 >
                   {/* UI audit H2: 좌측 (badge + recipe) flex-1 min-w-0 + truncate.
-                      긴 가격 (1,234,567원/월) 시 라벨이 잘리되 layout 안 깨짐. */}
+                      긴 가격 (1,234,567원/2주) 시 라벨이 잘리되 layout 안 깨짐. */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0 flex items-center gap-1.5">
                       <span
