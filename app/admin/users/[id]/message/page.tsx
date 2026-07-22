@@ -127,7 +127,7 @@ export default async function AdminUserMessagePage({
                         mine ? 'text-white/70' : 'text-muted'
                       }`}
                     >
-                      {new Date(m.created_at).toLocaleString('ko-KR')}
+                      {new Date(m.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
                     </p>
                   </div>
                 </li>
@@ -193,7 +193,7 @@ export default async function AdminUserMessagePage({
                       </span>
                     )}
                     <span className="text-[10px] text-muted font-mono">
-                      {new Date(r.sent_at).toLocaleString('ko-KR')}
+                      {new Date(r.sent_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
                     </span>
                   </div>
                 </li>
