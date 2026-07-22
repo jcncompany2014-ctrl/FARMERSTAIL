@@ -11,7 +11,6 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Activity, Scale, Pencil, Camera } from 'lucide-react'
 import { V3 } from '@/lib/design/tokens'
 import DogPawMark from '@/components/DogPawMark'
@@ -31,7 +30,6 @@ interface Toe {
   key: string
   label: string
   Icon: typeof Scale
-  href: (id: string) => string
   /** 우하단 코너 기준 발가락 중심의 오른쪽/아래 거리(px). */
   r: number
   b: number
@@ -40,11 +38,13 @@ interface Toe {
 
 // 발바닥 중심(우24·하24)에서 같은 반지름 R=162 + 등각(26°)으로 90° 사분원 꽉
 // 채움: y축(세로/오른변, φ96) → x축(가로/아래변, φ174). 간격·반지름 모두 일정.
+// 각 발가락 = 그 자리에서 여는 Quick*Sheet (아래 onClick). 옛 href 페이지이동
+// 방식은 시트 도입으로 폐기 — 좌표(r/b)와 애니 delay 만 남는다(2026-07-23 死코드 정리).
 const TOES: Toe[] = [
-  { key: 'health', label: '건강', Icon: Activity, href: (id) => `/dogs/${id}/health`, r: 41, b: 185, delay: 0 },
-  { key: 'weight', label: '체중', Icon: Scale, href: (id) => `/dogs/${id}?weight=open`, r: 110, b: 161, delay: 45 },
-  { key: 'diary', label: '일기', Icon: Pencil, href: (id) => `/dogs/${id}/diary`, r: 161, b: 110, delay: 90 },
-  { key: 'photo', label: '사진', Icon: Camera, href: (id) => `/dogs/${id}/diary`, r: 185, b: 41, delay: 135 },
+  { key: 'health', label: '건강', Icon: Activity, r: 41, b: 185, delay: 0 },
+  { key: 'weight', label: '체중', Icon: Scale, r: 110, b: 161, delay: 45 },
+  { key: 'diary', label: '일기', Icon: Pencil, r: 161, b: 110, delay: 90 },
+  { key: 'photo', label: '사진', Icon: Camera, r: 185, b: 41, delay: 135 },
 ]
 
 const FAB = 56 // 닫힘 지름
@@ -61,7 +61,6 @@ export default function PawFab({ activeDogId, hidden }: PawFabProps) {
   const [weightOpen, setWeightOpen] = useState(false)
   const [diaryOpen, setDiaryOpen] = useState(false)
   const [photoOpen, setPhotoOpen] = useState(false)
-  const router = useRouter()
   const firstRef = useRef<HTMLButtonElement>(null)
   const fabRef = useRef<HTMLButtonElement>(null)
 
@@ -150,7 +149,6 @@ export default function PawFab({ activeDogId, hidden }: PawFabProps) {
                 else if (t.key === 'weight') setWeightOpen(true)
                 else if (t.key === 'diary') setDiaryOpen(true)
                 else if (t.key === 'photo') setPhotoOpen(true)
-                else router.push(t.href(activeDogId))
               }}
               aria-label={`${t.label} 기록`}
               tabIndex={open ? 0 : -1}
