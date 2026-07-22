@@ -217,10 +217,10 @@ export default function OrderClient({
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState('')
 
-  // 정기배송 입력 — 배송·결제 무조건 2주마다, 화식 비율(30/60/100)만 선택.
-  // 분석 카드 CTA 의 ?fresh=30|60|100 를 server 가 initialFresh 로 내려줌.
+  // 정기배송 입력 — 배송·결제 무조건 2주마다, 화식 비율(30/50/100)만 선택.
+  // 분석 카드 CTA 의 ?fresh=30|50|100 를 server 가 initialFresh 로 내려줌.
   const [freshRatio, setFreshRatio] = useState<FreshRatio>(
-    initialFresh === 60 ? 60 : initialFresh === 100 ? 100 : 30,
+    initialFresh === 50 ? 50 : initialFresh === 100 ? 100 : 30,
   )
   const selectedTier = (FRESH_TIERS.find((t) => t.ratio === freshRatio) ??
     FRESH_TIERS[0]) as (typeof FRESH_TIERS)[number]

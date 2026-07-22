@@ -1,8 +1,8 @@
 /**
  * 화식 비율 티어 — **정본 (single source of truth).**
  *
- * 박스 구독은 배송·결제 무조건 2주마다. 사용자는 화식 비율(30/60/100)만 고르고
- * 그 값이 subscriptions.fresh_ratio 에 저장된다.
+ * 박스 구독은 배송·결제 무조건 2주마다. 사용자는 화식 비율(30/50/100)만 고르고
+ * 그 값이 subscriptions.fresh_ratio 에 저장된다. (반반=50%, 사장님 2026-07-23.)
  *
  * # 왜 한 곳에 모았나 (2026-07-18, 사장님 "일치시켜")
  * 이전엔 이 티어 배열이 3곳에 **각각 로컬 정의**돼 있었다(OrderClient·PlanClient·
@@ -16,7 +16,7 @@
 
 export type FreshTier = {
   /** 화식 비율 % — subscriptions.fresh_ratio 에 저장되는 값. */
-  ratio: 30 | 60 | 100
+  ratio: 30 | 50 | 100
   /** 내부 키. */
   key: 'light' | 'half' | 'full'
   /** 표시 라벨(선택·구독 표시 공통). 사장님 확정: 곁들임/반반/완전 화식. */
@@ -42,10 +42,10 @@ export const FRESH_TIERS = [
     note: '화식이 처음이라면, 익숙해질 때까지 건사료와 섞어 급여하는 걸 권장해요',
   },
   {
-    ratio: 60,
+    ratio: 50,
     key: 'half',
     label: '반반',
-    sub: '화식 60% · 건사료 40%',
+    sub: '화식 50% · 건사료 50%',
     copy: '화식 반 사료 반, 부담은 낮추고 균형은 챙겨요',
   },
   {

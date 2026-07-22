@@ -24,11 +24,11 @@ export default async function OrderPage({
   searchParams: Promise<{ fresh?: string; recipes?: string }>
 }) {
   const { id: dogId } = await params
-  // 분석 카드 CTA 가 넘겨준 화식 비율(?fresh=30|60|100) → 초기 선택.
+  // 분석 카드 CTA 가 넘겨준 화식 비율(?fresh=30|50|100) → 초기 선택.
   const sp = await searchParams
   const freshParam = Number(sp.fresh)
   const initialFresh =
-    freshParam === 60 ? 60 : freshParam === 100 ? 100 : 30
+    freshParam === 50 ? 50 : freshParam === 100 ? 100 : 30
 
   const supabase = await createClient()
   const {

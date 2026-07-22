@@ -22,7 +22,7 @@ export default async function PlanPage({
 }) {
   const { id: dogId } = await params
   const freshParam = Number((await searchParams).fresh)
-  const initialFresh = freshParam === 60 ? 60 : freshParam === 100 ? 100 : 30
+  const initialFresh = freshParam === 50 ? 50 : freshParam === 100 ? 100 : 30
 
   const supabase = await createClient()
   const {

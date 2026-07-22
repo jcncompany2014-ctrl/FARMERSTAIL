@@ -160,7 +160,7 @@ export function displayPricePerPack(cycleTotal: number, packs: number): number {
  */
 export function computeBoxItems<P extends BoxProduct>(input: {
   formula: Pick<Formula, 'lineRatios' | 'toppers' | 'dailyKcal'>
-  /** 화식 비율 티어 — 30(곁들임) / 60(반반) / 100(완전). */
+  /** 화식 비율 티어 — 30(곁들임) / 50(반반) / 100(완전). */
   freshRatio: number
   /** slug → product. */
   products: Record<string, P>

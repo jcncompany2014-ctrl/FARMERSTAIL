@@ -702,7 +702,7 @@ function ScreenSubscription() {
           </V3Card>
           <V3Card radius={8} style={{ padding: '9px 5px', textAlign: 'center' }}>
             <div style={{ fontFamily: sans, fontWeight: 800, fontSize: 10, color: V3.ink }}>반반</div>
-            <div style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.inkMute, marginTop: 2 }}>화식 60%</div>
+            <div style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.inkMute, marginTop: 2 }}>화식 50%</div>
           </V3Card>
           <div
             style={{

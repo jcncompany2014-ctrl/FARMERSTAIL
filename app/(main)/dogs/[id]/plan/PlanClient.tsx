@@ -251,7 +251,7 @@ function PlanView({
   initialFresh: number
 }) {
   const [freshRatio, setFreshRatio] = useState<FreshRatio>(
-    initialFresh === 60 ? 60 : initialFresh === 100 ? 100 : 30,
+    initialFresh === 50 ? 50 : initialFresh === 100 ? 100 : 30,
   )
   // 재료 전체·영양성분 바텀시트 — 어떤 레시피를 펼쳤는지.
   const [detailLine, setDetailLine] = useState<FoodLine | null>(null)
