@@ -162,12 +162,14 @@ export default async function AccountDogsPage() {
               >
                 2분 설문이면 우리 아이에게 맞는 식단을 설계해 드려요.
               </p>
+              {/* ★로그인 상태라 /start(비로그인 설문→가입) 금지 — 우리 아이 등록
+                  /dogs/new 로(사장님 2026-07-23). */}
               <Link
-                href="/start"
+                href="/dogs/new"
                 className="mt-6 inline-flex items-center gap-1.5 px-6 py-3 rounded-full text-[13px] font-bold transition hover:brightness-[0.94] active:scale-[0.98]"
                 style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
               >
-                맞춤 플랜 시작하기
+                우리 아이 등록하기
                 <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />
               </Link>
             </div>

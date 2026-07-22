@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import {
   Pause,
   Play,
@@ -290,16 +291,19 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
           className="mt-3 text-[12.5px] md:text-[14px] leading-relaxed"
           style={{ color: 'var(--fd-muted)', maxWidth: 420, marginInline: 'auto' }}
         >
-          2분 설문으로 우리 아이 맞춤 식단을 설계하고 정기배송을 시작해 보세요.
+          우리 아이 맞춤 식단을 설계하고 정기배송을 시작해 보세요.
         </p>
-        <a
-          href="/start"
+        {/* ★로그인 상태(이 페이지는 auth 필수)라 비로그인 설문 퍼널 /start(→가입)로
+            보내면 안 됨(사장님 2026-07-23). 우리 아이 허브 /dogs 로 — 강아지가 있으면
+            골라서 플랜, 없으면 등록으로 자연 분기. */}
+        <Link
+          href="/dogs"
           className="mt-6 inline-flex items-center gap-1.5 px-6 py-3 rounded-full text-[13px] font-bold transition hover:brightness-[0.94] active:scale-[0.98]"
           style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
         >
-          맞춤 플랜 시작하기
+          우리 아이 식단 시작하기
           <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
-        </a>
+        </Link>
       </div>
     )
   }

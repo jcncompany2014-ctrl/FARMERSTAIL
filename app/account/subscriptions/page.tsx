@@ -88,20 +88,10 @@ export default async function AccountSubscriptionsPage({
       >
         <Container size="lg" className={isApp ? 'pt-0' : 'pt-4 md:pt-6'}>
           {isApp ? (
-            <header className="px-1 pt-6 pb-3">
-              <span className="kicker">Subscriptions</span>
-              <h1
-                className="font-sans mt-1.5"
-                style={{
-                  fontSize: 26,
-                  fontWeight: 800,
-                  color: 'var(--ink)',
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                정기배송 관리
-              </h1>
-              <p className="text-[12px] text-muted mt-1.5">
+            // AppChrome 상단 헤더(← 정기배송)가 이미 제목을 보여줘 본문 큰 제목은
+            // 중복(사장님 2026-07-23) — 킥커·h1 제거하고 짧은 안내만. (FAQ 와 동일 정리.)
+            <header className="px-1 pt-5 pb-1">
+              <p className="text-[13px] text-muted">
                 {activeCount > 0
                   ? `구독 중 ${activeCount}건 · 화식 비율·일정·해지를 직접 관리하세요`
                   : '화식 비율 변경, 일시정지, 해지를 한 곳에서'}

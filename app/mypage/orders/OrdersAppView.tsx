@@ -166,8 +166,9 @@ export default function OrdersAppView({
           >
             우리 아이 첫 한 끼를 골라보세요
           </p>
+          {/* ★로그인 상태라 /start(비로그인 설문→가입) 금지 — 우리 아이 허브 /dogs 로. */}
           <Link
-            href="/start"
+            href="/dogs"
             className="inline-flex items-center active:scale-[0.98] transition"
             style={{
               marginTop: 20,

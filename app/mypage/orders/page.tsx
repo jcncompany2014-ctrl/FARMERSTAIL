@@ -255,8 +255,9 @@ export default async function OrdersPage() {
             <p className="text-[11px] text-muted mt-1.5 leading-relaxed">
               첫 주문을 시작해 보세요
             </p>
+            {/* ★로그인 상태라 /start(비로그인 설문→가입) 금지 — 우리 아이 허브 /dogs 로. */}
             <Link
-              href="/start"
+              href="/dogs"
               className="mt-5 inline-block px-6 py-2.5 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
               style={{ background: 'var(--ink)', color: 'var(--bg)' }}
             >
