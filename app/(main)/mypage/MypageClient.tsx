@@ -200,9 +200,13 @@ export default function MypageClient({
               >
                 {tierMetaOrNull?.label ?? '멤버십 시작 전'}
               </span>
-              <Mono color="inkMute" size="sm" weight={600} letterSpacing="0.08em">
-                {tierMetaOrNull?.en ?? `${stampsToFirstTier(stamps)} TO GO`}
-              </Mono>
+              {/* 등급 있을 때만 영문 라벨(SEED 등). 등급 전 'N TO GO'는 제거 —
+                  스탬프 칸이 시각적으로 남은 수를 보여줘 중복(사장님 2026-07-22). */}
+              {tierMetaOrNull && (
+                <Mono color="inkMute" size="sm" weight={600} letterSpacing="0.08em">
+                  {tierMetaOrNull.en}
+                </Mono>
+              )}
             </div>
             <div
               className="flex items-center"
