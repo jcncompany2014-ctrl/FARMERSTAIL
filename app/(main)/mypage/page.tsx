@@ -1,6 +1,7 @@
-// audit #101 — /mypage server wrapper. profile + 5 stat counts (orders, subs,
-// points, wishlist, coupons) 를 server 에서 한 번에 prefetch. 미인증 시 즉시
-// redirect (이전: client useEffect 미인증 무시 → 빈 stat 노출 가능).
+// audit #101 — /mypage server wrapper. profile + 결제완료 주문 수 + active 구독 수를
+// server 에서 한 번에 prefetch. (points·wishlist·coupons stat 은 그 기능들이 폐지되며
+// 사라짐 — 2026-07 주석 정정.) 미인증 시 즉시 redirect
+// (이전: client useEffect 미인증 무시 → 빈 stat 노출 가능).
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import MypageClient from './MypageClient'
