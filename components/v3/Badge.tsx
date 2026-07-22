@@ -1,8 +1,9 @@
 /**
  * Badge — v3 status chip / pill / count badge (2026-05-22 R10-5).
  *
- * **앱 컨텍스트 전용.** mypage / orders / subscriptions / wishlist 등에서
+ * **앱 컨텍스트 전용.** mypage / orders / subscriptions 등에서
  * 인라인 재구현되던 패턴 (status chip, count pill, discount % 등) 추출.
+ * (wishlist 는 위시리스트 폐지 — 2026-06 구독 전용 전환 — 로 목록에서 제거.)
  *
  * # API
  *
