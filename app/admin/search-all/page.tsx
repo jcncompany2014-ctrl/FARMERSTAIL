@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Search, User, Package, Repeat } from 'lucide-react'
+import { ORDER_STATUS_LABEL, type OrderStatus } from '@/lib/commerce/order-fsm'
+import { STATUS_MAP as SUB_STATUS_MAP } from '@/lib/v3-helpers/subscriptions'
 
 export const dynamic = 'force-dynamic'
 
@@ -202,7 +204,8 @@ export default async function AdminUnifiedSearch({
                             {o.recipient_name ?? '—'} ·{' '}
                             {o.total_amount.toLocaleString()}원 ·{' '}
                             <span className="font-bold text-terracotta">
-                              {o.order_status}
+                              {ORDER_STATUS_LABEL[o.order_status as OrderStatus] ??
+                                o.order_status}
                             </span>
                           </p>
                         </div>
@@ -246,7 +249,9 @@ export default async function AdminUnifiedSearch({
                             {s.profiles?.email ?? '—'} ·{' '}
                             {s.total_amount.toLocaleString()}원/월 ·{' '}
                             <span className="font-bold text-terracotta">
-                              {s.status}
+                              {SUB_STATUS_MAP[
+                                s.status as 'active' | 'paused' | 'cancelled'
+                              ]?.label ?? s.status}
                             </span>
                             {s.next_delivery_date
                               ? ` · 다음: ${s.next_delivery_date}`
