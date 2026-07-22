@@ -332,7 +332,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       // 타이밍 무관 — nav 가 속한 하위 레이아웃이 늦게 뜨거나 실패해도 숨겨짐.
       data-focus={focusMode ? 'true' : undefined}
     >
-      {/* 상단 헤더 v3 — 3-zone grid (좌 내정보/← · 중앙 logo.png · 우 강아지 칩).
+      {/* 상단 헤더 v3 — 3-zone grid (좌 내정보/← · 중앙 로고(logo-ink.png) · 우 강아지 칩).
           focus mode (설문/체크인 등) 에서는 hide. */}
       {!focusMode && (
       <header
