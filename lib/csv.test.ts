@@ -3,7 +3,7 @@
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { toCsv, toCsvBuffer } from './csv.ts'
+import { toCsv, toCsvWithBom } from './csv.ts'
 
 describe('toCsv', () => {
   it('emits header-only when rows are empty', () => {
@@ -39,13 +39,11 @@ describe('toCsv', () => {
   })
 })
 
-describe('toCsvBuffer', () => {
-  it('prepends UTF-8 BOM for Excel compatibility', () => {
-    const buf = toCsvBuffer([{ name: '김철수' }], ['name'])
-    assert.equal(buf[0], 0xef)
-    assert.equal(buf[1], 0xbb)
-    assert.equal(buf[2], 0xbf)
-    const body = new TextDecoder().decode(buf.slice(3))
-    assert.equal(body, 'name\r\n김철수')
+describe('toCsvWithBom', () => {
+  it('prepends UTF-8 BOM (U+FEFF) for Excel compatibility', () => {
+    const csv = toCsvWithBom([{ name: '김철수' }], ['name'])
+    // ﻿ 는 UTF-8 인코딩 시 EF BB BF 3바이트로 나가 Excel 한글 깨짐 방지.
+    assert.equal(csv.charCodeAt(0), 0xfeff)
+    assert.equal(csv.slice(1), 'name\r\n김철수')
   })
 })

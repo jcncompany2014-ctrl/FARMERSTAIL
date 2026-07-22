@@ -43,13 +43,3 @@ export function toCsvWithBom(rows: CsvRow[], columns: string[]): string {
   // string as UTF-8, it emits the 3-byte EF BB BF sequence Excel needs.
   return `\uFEFF${toCsv(rows, columns)}`
 }
-
-/**
- * @deprecated Use {@link toCsvWithBom} + wrap in a Blob. Uint8Array return
- * tripped up `new Blob([...])` typings in strict TS (ArrayBufferLike vs
- * ArrayBuffer). Kept as re-export alias for existing callers.
- */
-export function toCsvBuffer(rows: CsvRow[], columns: string[]): Uint8Array {
-  const encoder = new TextEncoder()
-  return encoder.encode(toCsvWithBom(rows, columns))
-}
