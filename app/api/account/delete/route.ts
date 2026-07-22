@@ -5,6 +5,7 @@ import { zAccountDelete } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { tagSentryUser, tagSentryRoute, captureBusinessEvent } from '@/lib/sentry/trace'
+import { purgeUserStorage } from '@/lib/storage/purgeUserStorage'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -186,6 +187,24 @@ export async function POST(req: Request) {
       userId: user.id,
       failedCount: deletionFailures.length,
       totalOps: deletionOps.length,
+    })
+  }
+
+  // Storage 사진 파기 (PIPA 즉시파기 · 감사 #38) — 위 DB 삭제로는 지워지지 않는
+  // 업로드 사진(아바타·일기·체크인·의무기록)을 버킷에서 파기한다. 개인정보처리방침
+  // §7("복구·재생 불가 기술로 삭제")·§3("탈퇴 시 즉시 파기")과 정합. 오직 {user.id}/
+  // prefix 아래만 훑어 남의 파일은 건드리지 않는다(lib/storage/purgeUserStorage).
+  const storagePurge = await purgeUserStorage(admin, user.id)
+  const storageFailures = storagePurge.filter((r) => r.error)
+  if (storageFailures.length > 0) {
+    console.error(
+      `[account/delete] storage purge failed for user ${user.id}: ` +
+        storageFailures.map((f) => `${f.bucket}(${f.error})`).join(', '),
+    )
+    // DB 삭제와 동일하게 부분 실패를 승격해 운영자가 수동 파기 후속 조치.
+    captureBusinessEvent('error', 'account.delete.storage_partial_failure', {
+      userId: user.id,
+      failedBuckets: storageFailures.map((f) => f.bucket).join(','),
     })
   }
 
