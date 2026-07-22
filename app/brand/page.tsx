@@ -12,6 +12,7 @@ import {
 } from '@/lib/seo/jsonld'
 import { Button, Container, Display, Eyebrow, PhotoSlot, Section } from '@/components/web/fd/ui'
 import Reveal from '@/components/landing/Reveal'
+import { cred } from '@/lib/copy/credibility'
 
 /**
  * /brand — 와이드 브랜드 스토리 (farm v6 = FD 톤, 2026-06-13).
@@ -70,8 +71,11 @@ const STATS: { n: string; label: string }[] = [
 ]
 
 const PILLARS = [
-  { icon: Leaf, label: 'SOURCING', title: '국내 농가에서, 직접', body: '강원·전남·제주 등 30여 곳의 계약 농가에서 주 2회 입고. 도축·수확 24시간 안에 작업장에 도착하고, 원산지·농가는 패키지에 표기.' },
-  { icon: ShieldCheck, label: 'RECIPE', title: '수의영양학 자문 레시피', body: '수의영양학 자문으로 단백질·지방·미네랄 비율을 맞춰 설계. 표준 영양 기준에 맞춘 배합으로 영양 격차 없이.' },
+  // SOURCING: 아직 검증된 계약 농가가 없어 구체 수치('30여 곳')는 뺀다(감사 #55 · 사장님
+  // 2026-07-22). 실제 계약 확보 시 원산지·농가 표기 카피로 복원. 원칙(출처 추적)은 사실.
+  { icon: Leaf, label: 'SOURCING', title: '국내 농가에서, 직접', body: '출처가 분명한 원료를 원칙으로, 국내 농가와 직접 계약을 넓혀가고 있어요. 도축·수확에서 조리까지 짧게, 원산지가 분명한 원물만 씁니다.' },
+  // RECIPE: 실 자문 없을 땐 '수의영양학 기준' 으로 톤다운(lib/copy/credibility 토글).
+  { icon: ShieldCheck, label: 'RECIPE', title: cred.brandRecipeTitle, body: cred.brandRecipeBody },
   { icon: Sparkles, label: 'COOKING', title: '수비드 저온 조리', body: '72°C 수비드 저온 조리로 단백질 변성·영양 손실을 최소화. 조리 후 즉시 급속 냉동해 효소·풍미를 그대로 유지.' },
   { icon: Repeat, label: 'CARE', title: '식단 그 이후의 케어', body: '앱에서 매일 식사·체중·산책을 기록하고, 정기적으로 식단 노트를 받아요. 식단을 사고 끝나는 게 아니라 같이 사는 동안 옆에 있는 브랜드.' },
 ]

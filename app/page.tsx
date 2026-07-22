@@ -27,6 +27,7 @@ import {
   PhotoSlot,
   Section,
 } from '@/components/web/fd/ui'
+import { cred } from '@/lib/copy/credibility'
 
 /**
  * 웹 홈 — farm v6 (The Farmer's Dog 충실 복제, 2026-06-13 / 재구축).
@@ -223,7 +224,8 @@ const FEATURES = [
   { Icon: Leaf, k: 'REAL FOOD', t: '진짜 음식', d: '눈에 보이는 신선한 원물. 정체 모를 첨가물 없이, 사람이 먹는 재료 그대로.' },
   { Icon: ShieldCheck, k: 'SAFE', t: '사람 등급 안전', d: '사람이 먹어도 되는 등급의 재료를 식품 안전 기준에 맞춰 다룹니다.' },
   { Icon: Soup, k: 'SOUS-VIDE', t: '수비드 저온 조리', d: '고온 압출 대신 수비드(진공 저온)로 천천히 익혀 영양·수분·풍미를 지키고, 바로 급속 냉동해요.' },
-  { Icon: Stethoscope, k: 'VET-DEVELOPED', t: '수의영양 설계', d: '수의영양 자문으로 단백질·지방·미네랄 비율을 표준 기준에 맞춰 설계.' },
+  // 실 자문 없을 땐 'GUIDELINE-BASED · 수의영양학 기준 설계'로 톤다운(lib/copy/credibility).
+  { Icon: Stethoscope, k: cred.recipeKicker, t: cred.recipeCardTitle, d: cred.recipeCardBody },
 ]
 
 function FeatureCards() {

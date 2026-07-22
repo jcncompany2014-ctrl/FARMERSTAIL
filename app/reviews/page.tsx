@@ -16,6 +16,7 @@ import {
   Section,
   Stat,
 } from '@/components/web/fd/ui'
+import { cred } from '@/lib/copy/credibility'
 
 /**
  * 웹 후기 — /reviews (The Farmer's Dog /reviews 실구조 복제, 2026-06-13 재구축).
@@ -454,7 +455,9 @@ export default async function ReviewsPage() {
         <FilterTabs />
         <ReviewGrid />
         <FeaturedReview />
-        <ProEndorsement />
+        {/* 전문가 보증 섹션 — 실 자문 없을 땐 숨김(빈 '수의 자문 자리' 미노출).
+            lib/copy/credibility 토글, 실 자문 확보 시 자동 복원. */}
+        {cred.showVetQuoteSlot && <ProEndorsement />}
         <StatBand />
         <FinalCta isAuthed={isAuthed} />
       </main>

@@ -19,6 +19,7 @@ import WebChrome from '@/components/WebChrome'
 import StickyCta from '@/components/web/fd/StickyCta'
 import { Button, Container, Display, Eyebrow, Section } from '@/components/web/fd/ui'
 import Reveal from '@/components/landing/Reveal'
+import { cred } from '@/lib/copy/credibility'
 
 /**
  * /science — 수의영양학 방법론 권위 페이지 (farm v6 = FD 톤, 2026-06-13).
@@ -84,7 +85,8 @@ export default async function SciencePage() {
 
   const crumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },
-    { name: '수의사 전문가', path: '/science' },
+    // 라벨은 nav/footer 와 동일 토글(실 자문 없을 땐 '영양 근거').
+    { name: cred.navVetLabel, path: '/science' },
   ])
 
   return (

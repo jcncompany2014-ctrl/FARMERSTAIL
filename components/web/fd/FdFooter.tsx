@@ -6,6 +6,7 @@
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { SOCIAL_PROFILES } from '@/lib/seo/jsonld'
+import { cred } from '@/lib/copy/credibility'
 
 const BROWSE: { href: string; label: string }[] = [
   { href: '/our-food', label: '우리 음식' },
@@ -13,7 +14,8 @@ const BROWSE: { href: string; label: string }[] = [
   { href: '/why-app', label: '앱 소개' },
   { href: '/reviews', label: '후기' },
   { href: '/about', label: '브랜드 이야기' },
-  { href: '/science', label: '수의사 전문가' },
+  // 실 자문 없을 땐 '영양 근거'로 톤다운(lib/copy/credibility 토글).
+  { href: '/science', label: cred.navVetLabel },
   { href: '/partners', label: '농장 파트너' },
   { href: '/faq', label: '자주 묻는 질문' },
   { href: '/blog', label: '매거진' },

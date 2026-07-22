@@ -12,6 +12,7 @@ import {
 import SiteFooter from '@/components/SiteFooter'
 import InstallPrompt from '@/components/InstallPrompt'
 import FdFooter from '@/components/web/fd/FdFooter'
+import { cred } from '@/lib/copy/credibility'
 
 /**
  * WebChrome — Web (브라우저) 사용자용 chrome. Phase Q (2026-06-12) 피벗:
@@ -62,13 +63,14 @@ type Category = {
 }
 
 // FD 실제 헤더 내비 순서 복제(2026-06-13): Our Food · Reviews · About Us · FAQ ·
-// Vet Professionals. "수의사 전문가"는 우리 수의영양 근거 페이지(/science)로 연결.
+// /science 링크. 라벨은 lib/copy/credibility 로 토글 — 실 자문 없을 땐 '영양 근거'로
+// 톤다운(수의사 '사람 개입' 함의 회피), 자문 확보 시 '수의사 전문가'로 복원.
 const CATEGORIES: readonly Category[] = [
   { href: '/our-food', label: '우리 음식', en: 'Our Food', kind: 'shop' },
   { href: '/reviews', label: '후기', en: 'Reviews', kind: 'shop' },
   { href: '/about', label: '브랜드 이야기', en: 'About', kind: 'shop' },
   { href: '/faq', label: '자주 묻는 질문', en: 'FAQ', kind: 'shop' },
-  { href: '/science', label: '수의사 전문가', en: 'Vet Pros', kind: 'shop' },
+  { href: '/science', label: cred.navVetLabel, en: cred.navVetEn, kind: 'shop' },
 ] as const
 
 // FD 프로모바 — 사실 메시지 회전(회차40). 가짜 숫자·할인% 없음.
