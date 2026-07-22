@@ -280,3 +280,10 @@
   lines.ts 주석을 130/145 worked-example으로, 관련 테스트 동반 갱신) — 재드리프트 방지 위해 하드코딩
   대신 **FOOD_LINE_META 4종 평균 파생**을 권장. 통일 전까진 feedG(mix급여)와 박스 line-grams가 서로
   다른 밀도를 쓰는 상태.
+  **★회차17 영향범위 정밀화(과대평가 교정)**: `app/api/personalization/compute/route.ts:568-573`이
+  `formula.dailyGrams`를 `dailyGramsFromMix`(**per-line v4.0 kcalPer100g** 가중평균)로 **재계산·덮어씀**
+  → **박스/처방 급여g는 이미 v4.0로 정확**(1.175 미영향). 따라서 1.175 lag의 실제 영향은 "전면 ~10%"가
+  아니라 **① nutrition.ts feedG가 재계산 없이 직접 노출되는 지점(분석 feed_g 등 display)만 + ② lines.ts
+  degenerate(전라인0) fallback + ③ stale 주석들**로 좁다. 추가 stale 주석 발견: 같은 compute:566 주석이
+  "nutrition.ts feed_g ≈ 평균 **1.45** kcal/g (레시피 v2.1)"이라 적었으나 실제 nutrition.ts=1.175 →
+  주석 자체가 3세대 값(v2.1 1.45 / v3 1.175 / v4.0 1.3125) 혼재. **정합 시 세 값 계보 정리 필요**.
