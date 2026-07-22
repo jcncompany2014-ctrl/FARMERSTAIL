@@ -40,7 +40,9 @@ const ASSET_CACHE_MAX_ENTRIES = 80
 
 const PRECACHE_URLS = [
   '/offline',
-  '/logo.png',
+  // /logo.png 은 2026-07-19 삭제됨 → 삭제 자산 precache 시 cache.addAll 이
+  // 원자적으로 reject 돼 /offline·아이콘까지 캐시 실패. 현행 로고로 교체.
+  '/logo-ink.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ]
@@ -184,7 +186,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 정적 자원 (JS, CSS, 이미지, 폰트) — 단 _next/static 은 위에서 제외됨.
-  // 남은 건 /logo.png, /icons/*, /fonts/* 같은 long-term 정적.
+  // 남은 건 /logo-ink.png, /icons/*, /fonts/* 같은 long-term 정적.
   if (
     request.destination === 'script' ||
     request.destination === 'style' ||
