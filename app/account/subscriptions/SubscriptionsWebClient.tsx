@@ -37,7 +37,11 @@ import {
   generateFallbackCustomerKey,
 } from '@/lib/v3-helpers/subscriptions'
 import type { Subscription } from './types'
-import { subscriptionState, type SubState } from '@/lib/subscription-state'
+import {
+  subscriptionState,
+  isSubscriptionVisibleToUser,
+  type SubState,
+} from '@/lib/subscription-state'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 
 type Props = {
@@ -260,7 +264,11 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
     )
   }
 
-  if (subs.length === 0) {
+  // '결제 완료·진행중인 것만' 노출 — 카드도 안 걸고 해지된 유령 구독("0회 배송
+  // 후 해지")은 숨긴다(사장님 2026-07-22). 판정은 subscription-state 정본.
+  const visibleSubs = subs.filter(isSubscriptionVisibleToUser)
+
+  if (visibleSubs.length === 0) {
     return (
       <div
         className="rounded-[14px] px-6 py-10 md:px-10 md:py-12 text-center"
@@ -298,7 +306,7 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
 
   return (
     <div className="flex flex-col gap-4 md:gap-5">
-      {subs.map((sub) => {
+      {visibleSubs.map((sub) => {
         const state = subscriptionState(sub)
         const status = STATE_FD[state]
         const isActive = state === 'active'

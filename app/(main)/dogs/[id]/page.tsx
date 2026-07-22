@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DogDetailClient from './DogDetailClient'
 import { buildDogInsight } from '@/lib/dog-insight'
+import { isSubscriptionVisibleToUser } from '@/lib/subscription-state'
 import type { AiAnalysisJson } from '@/lib/nutrition/ai-prompt'
 import type {
   Dog,
@@ -130,7 +131,12 @@ export default async function DogDetailPage({
   const currentFormula = formulaRes.data
     ? (formulaRes.data as unknown as CurrentFormula)
     : null
-  const subscriptions = (subsRes.data ?? []) as unknown as ActiveSubscription[]
+  // '결제 완료·진행중인 것만' — 카드도 안 걸고 해지된 유령 구독은 카드에서 숨김
+  // (사장님 2026-07-22, subscription-state 정본). 필터 후 비면 SubscriptionCard 가
+  // 자동으로 '정기배송 시작' CTA(처방 있을 때) 로 폴백.
+  const subscriptions = (
+    (subsRes.data ?? []) as unknown as ActiveSubscription[]
+  ).filter(isSubscriptionVisibleToUser)
 
   // 체크인 상태 — 현재 cycle 의 week_2 / week_4 응답 여부. formula 가 있을 때만.
   const checkinStatus: CheckinStatus = { week_2: false, week_4: false }

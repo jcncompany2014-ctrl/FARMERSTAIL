@@ -53,3 +53,24 @@ export function subscriptionState(sub: SubLike): SubState {
 // isLiveSubscription 제거 (2026-07-16) — "나중에 홈에서 쓸까" 하고 미리 export 했는데
 // 소비처가 0이다. 필요해지면 subscriptionState(sub) === 'active' 한 줄이면 된다.
 // 안 쓰는 걸 미리 만들어 두는 게 곧 잔재가 된다.
+
+/**
+ * 사용자에게 보여줄 구독인가 — "결제 완료·진행중인 것만"(사장님 2026-07-22).
+ *
+ * # 왜
+ * 카드도 안 걸고 만들었다 해지한 '유령' 구독이 "0회 배송 후 해지"로 이력에
+ * 떠서 혼란을 줬다(사장님 반복 불만). 진짜 구독(진행중이거나 배송 이력이 있는
+ * 것)만 노출한다.
+ *
+ * 표시:  · 배송 이력 있음(total_deliveries > 0) — 실제 결제된 과거/현재 구독
+ *        · active / paused / card_failed — 현재 진행 중(또는 결제문제로 조치 필요)
+ * 숨김:  · needs_card(카드 미등록·0회) — 시작조차 안 함
+ *        · cancelled·0회 — 결제 한 번도 없이 해지된 유령
+ */
+export function isSubscriptionVisibleToUser(
+  sub: SubLike & { total_deliveries?: number | null },
+): boolean {
+  if ((sub.total_deliveries ?? 0) > 0) return true
+  const st = subscriptionState(sub)
+  return st === 'active' || st === 'paused' || st === 'card_failed'
+}

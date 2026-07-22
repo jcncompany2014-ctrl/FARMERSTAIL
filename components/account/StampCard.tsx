@@ -59,11 +59,15 @@ export default function StampCard({
       {/* 10칸 — 5×2. 어떤 폭에서도 가로 스크롤 없이 두 줄로 떨어진다. */}
       <div className="px-4 pt-4 pb-3.5">
         <div className="flex items-baseline justify-between gap-3 mb-3">
-          <span className="text-[12px] font-bold text-text">
-            {justCompleted
-              ? `${STAMP_REWARD_LABEL} 도착!`
-              : `${card.remaining}개 남았어요`}
-          </span>
+          {/* 'N개 남았어요' 문구 제거(사장님 2026-07-22) — 칸이 시각적으로 이미
+              남은 개수를 보여줘서 중복. 보상 도착 알림만 남긴다. */}
+          {justCompleted ? (
+            <span className="text-[12px] font-bold text-text">
+              {STAMP_REWARD_LABEL} 도착!
+            </span>
+          ) : (
+            <span />
+          )}
           <span className="text-[10.5px] text-muted tabular-nums shrink-0">
             {card.cardNumber}번째 판 · {card.filled}/{STAMP_CARD_SIZE}
           </span>
