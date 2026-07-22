@@ -133,7 +133,7 @@ export default async function AdminCsInboxPage() {
                         {g.body}
                       </p>
                       <p className="text-[10px] text-muted font-mono mt-1">
-                        {new Date(g.created_at).toLocaleString('ko-KR')}
+                        {new Date(g.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
                       </p>
                     </div>
                     <ArrowRight

@@ -194,7 +194,7 @@ export default async function BetaCohortPage() {
         <h1 className="text-2xl font-bold text-ink">파머스테일 베타 그룹 리포트</h1>
         <p className="text-sm text-muted mt-1">
           대상: 2026 비공개 베타 · 생성일{' '}
-          {new Date().toLocaleDateString('ko-KR')}
+          {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}
         </p>
       </div>
 

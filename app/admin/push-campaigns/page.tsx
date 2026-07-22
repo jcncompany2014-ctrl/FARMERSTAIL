@@ -125,7 +125,7 @@ export default async function AdminPushCampaignsPage() {
                       </span>
                     </div>
                     <p className="text-[10px] text-muted font-mono mt-1">
-                      {new Date(c.created_at).toLocaleString('ko-KR')}
+                      {new Date(c.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
                     </p>
                   </li>
                 )
