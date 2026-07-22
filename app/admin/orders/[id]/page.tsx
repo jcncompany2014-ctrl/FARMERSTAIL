@@ -7,6 +7,10 @@ import PartialCancelPanel from './PartialCancelPanel'
 import PaymentEventTimeline from './PaymentEventTimeline'
 import { carrierLabel } from '@/lib/tracking'
 import { formatKstDateTime as formatDateTime } from '@/lib/datetime-kst'
+import {
+  PAYMENT_STATUS_LABEL,
+  type PaymentStatus,
+} from '@/lib/commerce/order-fsm'
 
 export const dynamic = 'force-dynamic'
 
@@ -140,7 +144,13 @@ export default async function AdminOrderDetailPage({
           <section className="p-6 rounded-lg bg-white border border-zinc-200">
             <h2 className="text-sm font-bold text-ink mb-4">결제 정보</h2>
             <dl className="space-y-2 text-sm">
-              <InfoRow label="결제 상태" value={order.payment_status} />
+              <InfoRow
+                label="결제 상태"
+                value={
+                  PAYMENT_STATUS_LABEL[order.payment_status as PaymentStatus] ??
+                  order.payment_status
+                }
+              />
               {order.payment_method && (
                 <InfoRow label="결제 수단" value={order.payment_method} />
               )}
