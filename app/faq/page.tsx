@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ChevronRight, MessageCircle } from 'lucide-react'
 import JsonLd from '@/components/JsonLd'
 import { buildFaqJsonLd, buildBreadcrumbJsonLd, ogImageUrl } from '@/lib/seo/jsonld'
 import { createClient } from '@/lib/supabase/server'
@@ -12,10 +12,16 @@ import { Button, Container, Display, Eyebrow, Section } from '@/components/web/f
 /**
  * /faq — 자주 묻는 질문 (farm v6 = FD 톤 리스타일, 2026-06-13).
  *
- * 데이터/기능 보존: faqs 테이블 published → fallback, JSON-LD, native
- * details/summary 아코디언(JS 없이 동작·SEO). **웹 전용**(WebChrome 고정) —
- * 앱/웹 완벽분리(사장님 지시 2026-06-13): 웹 마케팅 페이지는 PWA 에서도 앱
- * chrome 으로 넘어가지 않고 항상 웹. 데이터/JSON-LD/아코디언 로직 보존.
+ * 데이터/기능 보존: faqs 테이블 published → fallback, native details/summary
+ * 아코디언(JS 없이 동작).
+ *
+ * # 앱/웹 분기 (사장님 2026-07-22)
+ *  - **웹**: FD 톤 마케팅 페이지(히어로·JSON-LD·하단 전환 CTA·StickyCta).
+ *  - **앱**(PWA): `FaqAppView` — 앱 네이티브 톤. AppChrome 헤더가 '자주 묻는 질문'
+ *    제목을 이미 보여주므로 본문엔 **중복 제목 없이**, 문의하기는 웹 /contact 가 아니라
+ *    앱 고객센터 허브(/help)로. (이전엔 앱에서도 웹 FD 히어로를 그려 제목 중복 +
+ *    문의하기가 웹으로 튀는 '반쪽 분기' 였다.)
+ * faqs 데이터 로딩은 공유, 렌더만 isApp 으로 분기.
  */
 export const revalidate = 3600
 
@@ -201,6 +207,92 @@ function FaqItem({ q, a, last }: { q: string; a: string; last: boolean }) {
   )
 }
 
+/**
+ * 앱(PWA) 전용 FAQ 본문 — 앱 chrome(AppChrome) 안에서 앱 네이티브 톤으로.
+ *
+ * 왜 별도 렌더인가(사장님 2026-07-22):
+ *  1. AppChrome 헤더 바가 이미 '자주 묻는 질문' 제목을 보여준다 → 웹 FD 히어로의
+ *     `<Display>자주 묻는 질문</Display>` 을 그대로 쓰면 **제목이 두 번** 뜬다. 본문엔
+ *     중복 h1 없이 짧은 안내만.
+ *  2. 웹 FD 컴포넌트(Section/Container/Eyebrow)는 앱에서 '웹 화면'처럼 보인다 →
+ *     앱 토큰(bg-bg-3·rounded-[12px]·text-text/muted)로 /help 와 같은 톤.
+ *  3. 문의하기가 웹 /contact 로 튀던 걸 앱 고객센터 허브(/help)로 — 앱 안에서 해결.
+ */
+function FaqItemApp({ q, a, last }: { q: string; a: string; last: boolean }) {
+  return (
+    <details className={`group ${last ? '' : 'border-b border-rule'}`}>
+      <summary className="flex items-start justify-between gap-3 cursor-pointer list-none px-4 py-3.5">
+        <span className="flex-1 text-[13.5px] font-bold text-text leading-snug">
+          {q}
+        </span>
+        <span
+          aria-hidden
+          className="shrink-0 mt-0.5 transition-transform group-open:rotate-45 text-[18px] leading-none text-terracotta"
+        >
+          +
+        </span>
+      </summary>
+      <p className="px-4 pb-4 -mt-0.5 text-[12.5px] text-muted leading-relaxed">
+        {a}
+      </p>
+    </details>
+  )
+}
+
+function FaqAppView({ groups }: { groups: Group[] }) {
+  return (
+    <AuthAwareShell>
+      <main className="pb-16" style={{ minHeight: '72vh' }}>
+        {/* AppChrome 헤더가 '자주 묻는 질문'을 이미 보여줘 본문엔 중복 제목 없이 안내만. */}
+        <section className="px-5 pt-5">
+          <p className="text-[12px] text-muted leading-relaxed">
+            식단 · 배송 · 결제 · 정기배송 — 자주 나오는 질문을 모았어요.
+          </p>
+        </section>
+
+        {groups.map((g) => (
+          <section key={g.title} className="px-5 mt-5">
+            <div className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted mb-2 px-1">
+              {g.title}
+            </div>
+            <div className="rounded-[12px] bg-bg-3 border border-rule overflow-hidden">
+              {g.items.map((it, i) => (
+                <FaqItemApp
+                  key={it.q}
+                  q={it.q}
+                  a={it.a}
+                  last={i === g.items.length - 1}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+
+        {/* 문의하기 — 웹 /contact 로 안 튀고 앱 고객센터 허브(/help)로. */}
+        <section className="px-5 mt-5">
+          <Link
+            href="/help"
+            className="flex items-center gap-3 w-full rounded-[12px] bg-bg-3 border border-rule px-4 py-3.5 transition hover:bg-bg/40"
+          >
+            <span className="w-8 h-8 rounded-full bg-bg flex items-center justify-center shrink-0">
+              <MessageCircle className="w-4 h-4 text-terracotta" strokeWidth={2} />
+            </span>
+            <span className="flex-1 min-w-0 text-left">
+              <span className="block text-[13.5px] font-bold text-text">
+                원하는 답이 없나요?
+              </span>
+              <span className="block text-[10.5px] text-muted mt-0.5">
+                고객센터로 문의하기
+              </span>
+            </span>
+            <ChevronRight className="w-4 h-4 text-muted shrink-0" strokeWidth={2} />
+          </Link>
+        </section>
+      </main>
+    </AuthAwareShell>
+  )
+}
+
 export default async function FaqPage() {
   const supabase = await createClient()
   const {
@@ -241,6 +333,10 @@ export default async function FaqPage() {
     // table missing — fallback below
   }
   if (groups.length === 0) groups = FALLBACK_GROUPS
+
+  // 앱(PWA) 컨텍스트 → 앱 네이티브 본문(중복 제목 제거·앱 톤·문의는 /help 허브).
+  // 웹 마케팅 히어로·JSON-LD·CTA 는 웹 전용(아래).
+  if (isApp) return <FaqAppView groups={groups} />
 
   const faqLd = buildFaqJsonLd(
     groups.flatMap((g) => g.items).map((it) => ({ question: it.q, answer: it.a })),
