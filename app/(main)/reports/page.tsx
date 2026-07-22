@@ -7,6 +7,7 @@ import { TrendingUp, BookOpen, FlaskConical } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import ReportExportButton from './ReportExportButton'
 import { petName } from '@/lib/korean'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,10 +19,11 @@ export default async function ReportsPage() {
   if (!user) redirect('/login?next=/reports')
 
   // 한 달 기준 집계 — 체중 측정 횟수, 다이어리 entry, 분석 개수.
-  const monthStart = new Date()
-  monthStart.setDate(1)
-  monthStart.setHours(0, 0, 0, 0)
-  const monthIso = monthStart.toISOString()
+  // 월 경계는 **KST 기준**(아래 monthLabel 도 KST). 서버 UTC 로 new Date().setDate(1)
+  // 하면 경계가 UTC 월 1일 00시(=KST 09시)라, KST 1일 00~08:59 기록이 이달 집계에서
+  // 빠져 라벨(KST 월)과 카운트가 어긋난다. KST 월초를 명시 계산해 정합.
+  const kstToday = todayKstIsoDate() // 'YYYY-MM-DD' (KST)
+  const monthIso = new Date(`${kstToday.slice(0, 7)}-01T00:00:00+09:00`).toISOString()
 
   const [weightRes, diaryRes, analysesRes, dogsRes] = await Promise.all([
     supabase
