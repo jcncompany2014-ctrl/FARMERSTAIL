@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { tierFromStamps } from '@/lib/tiers'
+import { resolveTierKey } from '@/lib/tiers'
 import CertificateClient from './CertificateClient'
 
 export const dynamic = 'force-dynamic'
@@ -16,9 +16,9 @@ export const metadata: Metadata = {
  *
  * 발급 조건
  * ────────
- *  - 나무(mate) 등급 — **스탬프 개수 파생 정본**(tierFromStamps). profiles.tier(stale
- *    캐시)를 쓰면 멤버십 페이지(정본)와 갈라져, 스탬프상 나무인데 등록증만 막히는
- *    (혹은 반대) 불일치가 났다(2026-07-17 정합).
+ *  - 나무(mate) 등급 — **resolveTierKey 정본**(profiles.tier ratcheted floor + 살아있는
+ *    stamp_count 중 높은 쪽). 멤버십 페이지와 같은 헬퍼라 항상 일치하고, 한 번 나무에
+ *    도달했으면 1년 만료로 개수가 줄어도(강등 없음 2026-07-22) 등록증은 유지된다.
  *  - dog 의 user_id === 본인
  *  → 두 조건 모두 충족해야 등록증 페이지 진입. 어긋나면 /mypage/membership.
  *
@@ -54,15 +54,16 @@ export default async function CertificatePage({
       .maybeSingle(),
     supabase
       .from('profiles')
-      .select('stamp_count, name, created_at')
+      .select('tier, stamp_count, name, created_at')
       .eq('id', user.id)
       .maybeSingle(),
   ])
 
   if (!dog) redirect('/dogs')
 
-  // 나무 등급 아니면 멤버십 페이지로 (안내 자연스럽게). 스탬프 개수 파생 정본.
-  if (tierFromStamps(profile?.stamp_count ?? 0) !== 'mate') {
+  // 나무 등급 아니면 멤버십 페이지로. 배지 정본 = profiles.tier(ratcheted, 강등 없음
+  // 2026-07-22) — 한 번 나무에 도달했으면 만료로 stamp_count 가 줄어도 등록증은 유지.
+  if (resolveTierKey(profile?.tier, profile?.stamp_count ?? 0) !== 'mate') {
     redirect('/mypage/membership')
   }
 

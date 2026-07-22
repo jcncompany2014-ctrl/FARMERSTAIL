@@ -208,12 +208,14 @@ export default async function AccountPage() {
               stampCount={
                 (profile as { stamp_count?: number | null } | null)?.stamp_count ?? 0
               }
+              tier={(profile as { tier?: string | null } | null)?.tier ?? null}
             />
             <div className="mt-3">
               <StampCard
                 stampCount={
                   (profile as { stamp_count?: number | null } | null)?.stamp_count ?? 0
                 }
+                tier={(profile as { tier?: string | null } | null)?.tier ?? null}
               />
             </div>
           </div>

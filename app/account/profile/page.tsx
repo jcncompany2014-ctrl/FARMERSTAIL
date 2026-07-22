@@ -122,6 +122,7 @@ export default async function ProfileEditPage() {
             stampCount={
               (profile as { stamp_count?: number | null } | null)?.stamp_count ?? 0
             }
+            tier={(profile as { tier?: string | null } | null)?.tier ?? null}
           />
         </section>
 

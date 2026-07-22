@@ -18,11 +18,16 @@
  * 누적되고, **10칸 카드가 이어진다**(1장·2장·3장…). 한 장을 채울 때마다(10·20·30…)
  * 특별보상이 나가고, 화면엔 현재 카드의 10칸만 보인다.
  *
- * # 2년 만료 → 등급 강등이 가능해진다 (의도된 것)
- * 스탬프는 적립 시점부터 2년 유효. 배송이 2주 고정이라 **활성 구독자는 만료를 겪을 수
- * 없다**(10개 모으는 데 ~4.6개월, 2년이면 52개가 쌓인다). 만료가 실제로 걸리는 건
- * 오래 쉬다 돌아온 분뿐이다. 즉 등급이 "예전에 많이 썼던 사람"이 아니라 **"지금 함께하는
- * 사람"** 을 가리키게 된다. 누적금액은 절대 안 줄었으므로 이건 동작 변경이다.
+ * # 1년 만료 — 단, 등급을 만든 스탬프는 잠겨서 안 사라진다 (사장님 모델 2026-07-22)
+ * 스탬프는 적립 시점부터 **1년** 유효(기존 2년). 그런데 **판(10개)을 채워 등급이 오르면
+ * 그 10개는 영구 잠금**(DB: expires_at='infinity')돼 만료되지 않는다 — "10개 모아 씨앗이
+ * 됐으면 그 1~10번은 안 사라진다"(사장님). 만료(1년)는 아직 판을 못 채운 **현재 판의
+ * '느슨한' 스탬프(11번째~)에만** 걸린다.
+ *   · 꾸준한 구독자: 판(2주×10=~4.6개월)을 만료(1년) 전에 채워 계속 잠그며 나무(50)까지.
+ *   · 오래 쉬면: 현재 판의 느슨한 스탬프만 만료 → **카드가 0칸까지 비고 등급은 유지**.
+ * stamp_count = 잠긴 것 + 살아있는 느슨한 것. 등급 배지 정본은 `profiles.tier`(잠금 덕에
+ * 강등 안 됨), 현재 판은 stamp_count 를 등급 floor 위로 얹어 계산(cardProgressFloored).
+ * 느슨한 스탬프 만료 반영은 매일 도는 크론(fn_expire_stamps).
  *
  * # 특별보상은 아직 미정 (사장님)
  * 무엇을 줄지는 마진이 걸린 결정이라 정해지지 않았다. 여기선 **마일스톤 도달만** 계산하고
@@ -32,8 +37,8 @@
 /** 카드 한 장 = 10칸. 채우면 특별보상 1회. */
 export const STAMP_CARD_SIZE = 10
 
-/** 적립 시점부터 유효 기간 (년). */
-export const STAMP_VALIDITY_YEARS = 2
+/** 적립 시점부터 유효 기간 (년). 2026-07-22 사장님: 2년 → 1년. */
+export const STAMP_VALIDITY_YEARS = 1
 
 /** 보상 이름 — 내용 미정(사장님 결정 전). 정해지면 여기만 바꾼다. */
 export const STAMP_REWARD_LABEL = '특별보상'
@@ -42,12 +47,12 @@ export const STAMP_REWARD_LABEL = '특별보상'
 export type StampLike = {
   /** 적립 시각 (ISO). */
   stamped_at: string
-  /** 만료 시각 (ISO). 적립 + 2년. */
+  /** 만료 시각 (ISO). 적립 + 1년. */
   expires_at: string
 }
 
 /**
- * 만료 시각 — 적립 시점부터 2년.
+ * 만료 시각 — 적립 시점부터 1년.
  *
  * 윤년/월말을 Date 가 알아서 처리하게 둔다(예: 2/29 적립 → 2년 뒤 3/1 로 정규화).
  * 하루 차이로 다투는 성질의 값이 아니다.
@@ -89,6 +94,38 @@ export function cardProgress(totalActive: number): CardProgress {
   const filled = total % STAMP_CARD_SIZE
   return {
     total,
+    cardNumber: completedCards + 1,
+    filled,
+    remaining: STAMP_CARD_SIZE - filled,
+    completedCards,
+  }
+}
+
+/**
+ * 등급 floor 를 반영한 카드 진행도 — **강등 없음 모델**(사장님 2026-07-22).
+ *
+ * 등급(profiles.tier)은 한번 도달하면 안 내려간다. 그런데 살아있는 스탬프는 1년 만료로
+ * 줄 수 있다. 그래서 현재 판은 **등급이 잠근 완성 카드(floor) 위에 얹힌 부분만** 보여주고,
+ * 만료로 살아있는 개수가 floor 밑으로 내려가도 **현재 판이 0칸까지만** 빈다(그 아래 등급
+ * 판으로는 안 내려간다). 예: 새싹(floor 20) + 살아있음 24 → 판3 4칸. 만료로 18 →
+ * 판3 0칸(씨앗 판으로 회귀 안 함). 등급 배지는 여전히 새싹.
+ *
+ * @param activeCount 살아있는(미만료) 스탬프 개수 = profiles.stamp_count
+ * @param floorStamps 도달 등급의 임계값(씨앗10·새싹20…나무50, 등급 없으면 0)
+ */
+export function cardProgressFloored(
+  activeCount: number,
+  floorStamps: number,
+): CardProgress {
+  const active = Math.max(0, Math.trunc(activeCount))
+  const floor = Math.max(0, Math.trunc(floorStamps))
+  const floorCards = Math.floor(floor / STAMP_CARD_SIZE) // 등급이 잠근 완성 카드 수
+  const above = Math.max(0, active - floor) // 등급 위 살아있는 스탬프(0까지 빈다)
+  const extra = Math.floor(above / STAMP_CARD_SIZE) // 최상위(나무) 순환분, 보통 0
+  const filled = above % STAMP_CARD_SIZE
+  const completedCards = floorCards + extra
+  return {
+    total: active,
     cardNumber: completedCards + 1,
     filled,
     remaining: STAMP_CARD_SIZE - filled,

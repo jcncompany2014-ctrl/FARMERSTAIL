@@ -17,6 +17,7 @@ import {
   STAMP_VALIDITY_YEARS,
   activeStamps,
   cardProgress,
+  cardProgressFloored,
   milestonesCrossed,
   stampExpiryFrom,
   type StampLike,
@@ -24,6 +25,8 @@ import {
 import {
   tierFromStamps,
   tierMeta,
+  tierRank,
+  resolveTierKey,
   nextTier,
   stampsToFirstTier,
   TIERS,
@@ -34,11 +37,11 @@ const stamp = (stampedAt: string, expiresAt: string): StampLike => ({
   expires_at: expiresAt,
 })
 
-describe('만료 — 적립 시점부터 2년', () => {
-  it('2년 뒤로 잡힌다', () => {
+describe('만료 — 적립 시점부터 1년(느슨한 스탬프)', () => {
+  it('1년 뒤로 잡힌다', () => {
     const at = new Date('2026-07-16T00:00:00Z')
-    assert.equal(stampExpiryFrom(at).getUTCFullYear(), 2028)
-    assert.equal(STAMP_VALIDITY_YEARS, 2)
+    assert.equal(stampExpiryFrom(at).getUTCFullYear(), 2027)
+    assert.equal(STAMP_VALIDITY_YEARS, 1)
   })
 
   it('원본 Date 를 건드리지 않는다', () => {
@@ -63,10 +66,14 @@ describe('만료 — 적립 시점부터 2년', () => {
     assert.equal(activeStamps([stamp('x', '2026-07-16T00:00:01Z')], now).length, 1)
   })
 
-  it('2주마다 적립하면 활성 구독자는 만료를 겪을 수 없다', () => {
-    // 2년(104주) 동안 2주마다 = 52개. 첫 개가 만료될 때 이미 51개가 살아 있다.
-    const perYear = 26
-    assert.ok(perYear * STAMP_VALIDITY_YEARS >= 50, '나무(50개)를 만료 전에 도달')
+  it('꾸준한 구독자는 판을 만료 전에 채워 잠근다 — 등급이 막히지 않는다', () => {
+    // 판 한 장(10개)을 2주마다 채우면 20주 ≈ 4.6개월. 1년(52주) 만료보다 훨씬 빠르다.
+    // → 느슨한 스탬프가 만료되기 전에 10개를 채워 잠그므로(fn_lock_completed_cards)
+    //   나무(50)까지 오른다. '1년 만료라 나무 도달 불가'는 등급 스탬프도 만료된다는
+    //   틀린 가정이었다 — 등급을 만든 스탬프는 잠겨서 안 사라진다.
+    const weeksToFillOneCard = STAMP_CARD_SIZE * 2
+    const validityWeeks = STAMP_VALIDITY_YEARS * 52
+    assert.ok(weeksToFillOneCard < validityWeeks, '판을 만료 전에 채운다')
   })
 })
 
@@ -213,5 +220,68 @@ describe('등급 사다리 — 스탬프 개수 기준 (사장님 확정 2026-07
     assert.equal(tierFromStamps(-3), null)
     assert.equal(tierFromStamps(9.9), null)
     assert.equal(tierFromStamps(10.4), 'seed')
+  })
+})
+
+describe('cardProgressFloored — 등급 floor 위 현재 판(강등 없음 모델)', () => {
+  it('등급 없음(floor 0)이면 cardProgress 와 동일', () => {
+    for (const n of [0, 3, 9, 10, 23]) {
+      assert.deepEqual(cardProgressFloored(n, 0), cardProgress(n))
+    }
+  })
+
+  it('새싹(floor 20) + 살아있음 24 → 판3 4칸', () => {
+    const p = cardProgressFloored(24, 20)
+    assert.equal(p.cardNumber, 3)
+    assert.equal(p.filled, 4)
+    assert.equal(p.completedCards, 2)
+  })
+
+  it('★새싹(floor 20)에서 느슨한 게 만료돼 20까지 줄어도 판3 0칸 — 씨앗 판으로 회귀 안 함', () => {
+    const p = cardProgressFloored(20, 20)
+    assert.equal(p.cardNumber, 3)
+    assert.equal(p.filled, 0)
+    assert.equal(p.completedCards, 2)
+  })
+
+  it('살아있는 게 floor 밑으로 내려가도 현재 판은 0칸에서 멈춘다(음수 방지)', () => {
+    const p = cardProgressFloored(15, 20)
+    assert.equal(p.cardNumber, 3)
+    assert.equal(p.filled, 0)
+  })
+
+  it('나무(floor 50) 순환 — 63이면 판7 3칸', () => {
+    const p = cardProgressFloored(63, 50)
+    assert.equal(p.cardNumber, 7)
+    assert.equal(p.filled, 3)
+    assert.equal(p.completedCards, 6)
+  })
+})
+
+describe('resolveTierKey — 강등 없음(ratchet) 표시용 등급', () => {
+  it('profiles.tier(floor)와 stamp_count 파생 중 높은 쪽', () => {
+    // 만료로 stamp_count 가 줄어도(20→5) profiles.tier 가 지켜준다.
+    assert.equal(resolveTierKey('sprout', 5), 'sprout')
+    assert.equal(resolveTierKey('sprout', 0), 'sprout')
+  })
+
+  it('stamp_count 가 profiles.tier 보다 앞서면 그쪽(초기 캐시 미반영 방어)', () => {
+    assert.equal(resolveTierKey(null, 20), 'sprout')
+    assert.equal(resolveTierKey('seed', 30), 'bloom')
+  })
+
+  it('둘 다 없으면 null(등급 없음)', () => {
+    assert.equal(resolveTierKey(null, 0), null)
+    assert.equal(resolveTierKey(null, 9), null)
+  })
+
+  it('tierRank: 없음<씨앗<새싹<꽃<열매<나무', () => {
+    assert.equal(tierRank(null), 0)
+    assert.ok(
+      tierRank('seed') < tierRank('sprout') &&
+        tierRank('sprout') < tierRank('bloom') &&
+        tierRank('bloom') < tierRank('fruit') &&
+        tierRank('fruit') < tierRank('mate'),
+    )
   })
 })

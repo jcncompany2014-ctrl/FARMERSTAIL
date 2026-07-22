@@ -32,7 +32,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import StampCard from '@/components/account/StampCard'
-import { tierMeta, tierFromStamps, stampsToFirstTier } from '@/lib/tiers'
+import { tierMeta, resolveTierKey, stampsToFirstTier } from '@/lib/tiers'
 import { V3, V3FontSize, V3FontWeight, V3Radius } from '@/lib/design/tokens'
 import { Mono, Modal, Badge } from '@/components/v3'
 import DogPawMark from '@/components/DogPawMark'
@@ -73,9 +73,10 @@ export default function MypageClient({
   const displayName =
     profile?.name || (email ? email.split('@')[0] : null) || '보호자'
   // 등급 메타. **null = 아직 등급 없음**(스탬프 10개 미만, 2026-07-16 사장님 확정).
-  // ★ profiles.tier 컬럼(stale 가능)이 아니라 stamp_count 에서 파생 — 전 화면 일치.
+  // ★ 배지 정본 = profiles.tier(ratcheted floor, 강등 없음 2026-07-22). resolveTierKey 가
+  //   profiles.tier 와 stamp_count 파생 중 높은 쪽을 취해 만료로 인한 오강등을 막는다.
   const stamps = profile?.stamp_count ?? 0
-  const tierMetaOrNull = tierMeta(tierFromStamps(stamps))
+  const tierMetaOrNull = tierMeta(resolveTierKey(profile?.tier, stamps))
   // 수채화 배경 키 — 등급 없으면 씨앗 그림을 옅게 쓴다(빈 액자 대신 '앞으로 될 모습').
   const tierKey = tierMetaOrNull?.key ?? 'seed'
 
@@ -145,7 +146,7 @@ export default function MypageClient({
               aria-label="멤버십 등급 보기"
               className="shrink-0 active:scale-95 transition"
             >
-              <TierChip stampCount={stamps} />
+              <TierChip stampCount={stamps} tier={profile?.tier} />
             </Link>
           )}
         </div>
@@ -242,7 +243,7 @@ export default function MypageClient({
           등급의 기준이 스탬프 개수라, 등급 카드 바로 밑이 제자리다.
           ────────────────────────────────────────────────────────────── */}
       <section style={{ padding: '12px 20px 0' }}>
-        <StampCard stampCount={profile?.stamp_count} variant="app" />
+        <StampCard stampCount={profile?.stamp_count} tier={profile?.tier} variant="app" />
       </section>
 
       {/* ──────────────────────────────────────────────────────────────
@@ -427,11 +428,16 @@ export default function MypageClient({
 // ──────────────────────────────────────────────────────────────
 // TierChip — 5단계 등급 시스템 (씨앗/새싹/꽃/열매/단짝)
 // ──────────────────────────────────────────────────────────────
-// stamp_count 에서 파생(정본) — profiles.tier(stale 캐시)를 쓰면 같은 페이지의
-// 등급 hero(tierFromStamps 정본)와 갈라져 헤더 칩만 다른 등급을 보이던 버그가 있었다
-// (2026-07-17 정합). TierBadge 와 동일 패턴.
-function TierChip({ stampCount }: { stampCount: number }) {
-  const meta = tierMeta(tierFromStamps(stampCount))
+// 배지 정본 = profiles.tier(ratcheted floor, 강등 없음 2026-07-22). resolveTierKey 로
+// hero·TierBadge 와 같은 헬퍼를 써 같은 등급을 보장한다.
+function TierChip({
+  stampCount,
+  tier,
+}: {
+  stampCount: number
+  tier?: string | null
+}) {
+  const meta = tierMeta(resolveTierKey(tier, stampCount))
   // 등급이 없으면(스탬프 10개 미만) 칩을 아예 안 그린다 — 빈 칩보다 없는 게 낫다.
   if (!meta) return null
   return (

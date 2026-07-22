@@ -7,9 +7,10 @@
  * 등급 이름이 씨앗→새싹→꽃→열매→나무 라는 **함께한 시간 서사**인데 기준만 돈이었던 셈.
  * 이제 스탬프(구독 결제 1회 = 1개, lib/stamps.ts)를 센다 — 덩치와 무관하다.
  *
- * ⚠️ 스탬프는 2년 만료라 **등급이 내려갈 수 있다**(누적금액은 절대 안 줄었다).
- * 배송이 2주 고정이라 활성 구독자는 겪을 수 없고, 오래 쉬다 온 분만 해당된다 —
- * 등급이 "예전에 많이 썼던 사람"이 아니라 "지금 함께하는 사람"을 가리키게 하는 의도.
+ * ⚠️ 스탬프는 1년 만료지만 **등급은 강등되지 않는다**(사장님 2026-07-22). 만료되면
+ * 화면의 현재 판만 비고, 도달한 등급은 유지된다(DB tg_profiles_sync_tier = ratchet).
+ * 그래서 **표시용 등급의 정본은 `profiles.tier`(ratcheted floor)** 이고, 만료로 줄어든
+ * stamp_count 에서 다시 파생하면(tierFromStamps) 강등돼 보인다 — 배지엔 resolveTierKey 를 써라.
  *
  * 5단계 lifecycle: 씨앗에서 시작해 나무로 자라는 여정.
  *   seed   · 씨앗     첫 한 끼 전
@@ -216,4 +217,31 @@ export function hasNoTier(key: string | null | undefined): boolean {
 /** 첫 등급(씨앗)까지 남은 스탬프 수. 이미 등급이 있으면 0. */
 export function stampsToFirstTier(activeStampCount: number): number {
   return Math.max(0, TIERS[0]!.threshold - Math.max(0, Math.trunc(activeStampCount)))
+}
+
+/** 등급 순위 (없음=0, 씨앗=1 … 나무=5). ratchet 비교용. DB fn_tier_rank 와 동일. */
+export function tierRank(key: string | null | undefined): number {
+  const idx = TIERS.findIndex((t) => t.key === key)
+  return idx < 0 ? 0 : idx + 1
+}
+
+/**
+ * 표시용 등급 — **강등 없음(ratchet) 반영** (사장님 2026-07-22).
+ *
+ * `profiles.tier`(도달한 최고 등급 = floor)와 살아있는 stamp_count 파생 등급 중
+ * **높은 쪽**을 돌려준다. DB ratchet 이 정상이면 profiles.tier 가 곧 답이지만,
+ * 캐시가 아직 안 따라온 경우(예: tier=null 인데 stamp_count 로는 등급이 서는)에도
+ * 안전하게 max 를 취한다. 반대로 만료로 stamp_count 가 줄어도 profiles.tier 가
+ * 지켜주므로 배지가 강등되지 않는다.
+ *
+ * @param profileTier profiles.tier (ratcheted floor). null = 아직 등급 없음.
+ * @param activeStampCount profiles.stamp_count (살아있는 개수).
+ */
+export function resolveTierKey(
+  profileTier: string | null | undefined,
+  activeStampCount: number,
+): TierKey | null {
+  const fromProfile = tierMeta(profileTier)?.key ?? null
+  const fromStamps = tierFromStamps(activeStampCount)
+  return tierRank(fromProfile) >= tierRank(fromStamps) ? fromProfile : fromStamps
 }

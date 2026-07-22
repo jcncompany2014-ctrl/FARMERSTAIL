@@ -1,6 +1,6 @@
 import {
   tierMeta,
-  tierFromStamps,
+  resolveTierKey,
   nextTier,
   stampsToNextTier,
   stampsToFirstTier,
@@ -24,16 +24,19 @@ import { STAMP_CARD_SIZE } from '@/lib/stamps'
  */
 export default function TierBadge({
   stampCount,
+  tier,
 }: {
-  /** 살아 있는 스탬프 개수 (profiles.stamp_count) = 등급의 유일한 진실. */
+  /** 살아 있는 스탬프 개수 (profiles.stamp_count) — 진행률·다음 등급 계산용. */
   stampCount: number | null | undefined
+  /** profiles.tier (ratcheted floor) — 배지 등급의 정본. */
+  tier?: string | null
 }) {
-  // ★ 등급은 **stamp_count 에서만** 파생한다(2026-07-16). profiles.tier 컬럼은
-  //   denormalized 캐시라 stale 될 수 있고(0스탬프인데 'seed' 등), 호출부가
-  //   `?? 'seed'` 로 null 을 강제하면 등급 없는 사람이 씨앗으로 오표시됐다.
-  //   tierFromStamps 로 파생하면 어떤 화면이든 항상 일치한다.
+  // ★ 등급 배지는 **profiles.tier(ratcheted floor)** 가 정본이다(2026-07-22). 예전엔
+  //   stamp_count 에서 파생했는데(강등 없음이 없던 시절), 1년 만료 + 강등 폐지 이후엔
+  //   만료로 stamp_count 가 줄면 파생값이 강등돼 보인다. resolveTierKey 가 profiles.tier
+  //   와 stamp_count 파생 중 높은 쪽을 취해 강등을 막고, tier=null 인 초기 상태도 안전.
   const stamps = stampCount ?? 0
-  const meta = tierMeta(tierFromStamps(stamps))
+  const meta = tierMeta(resolveTierKey(tier, stamps))
 
   // ── 아직 등급이 없다 (스탬프 10개 미만) — 사장님 확정 2026-07-16.
   // 등급 카드를 억지로 채우지 않고 **"시작해보세요"** 로 비워 둔다. 아무것도 안 한

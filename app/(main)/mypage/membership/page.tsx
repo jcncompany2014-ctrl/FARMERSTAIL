@@ -22,7 +22,8 @@ import { createClient } from '@/lib/supabase/server'
 import {
   TIERS,
   tierMeta,
-  tierFromStamps,
+  resolveTierKey,
+  tierRank,
   stampsToFirstTier,
   type TierBenefit,
   type TierMeta,
@@ -79,12 +80,12 @@ export default async function MembershipPage() {
         .order('created_at', { ascending: true }),
     ])
 
-  // 등급 기준 = 살아 있는 스탬프 개수 (2026-07-16 사장님 확정. 이전엔 누적 결제액 —
-  // 금액 기준이면 강아지 덩치 큰 집이 자동으로 높은 등급을 먹었다).
-  // ★ profiles.tier 컬럼(stale·null→'seed' 강제 오표시)이 아니라 stamp_count 에서 파생.
+  // 등급 배지 정본 = profiles.tier(ratcheted floor, 강등 없음 2026-07-22). resolveTierKey
+  // 가 profiles.tier 와 살아있는 stamp_count 파생 중 높은 쪽을 취해 만료로 인한 오강등을
+  // 막는다. stampCount 는 스탬프 카드·진행률 계산용(살아있는 개수).
   const stampCount =
     typeof profile?.stamp_count === 'number' ? profile.stamp_count : 0
-  const meta = tierMeta(tierFromStamps(stampCount))
+  const meta = tierMeta(resolveTierKey(profile?.tier, stampCount))
 
   return (
     <div className="pb-12">
@@ -99,7 +100,7 @@ export default async function MembershipPage() {
           />
           <span className="kicker">Stamp</span>
         </div>
-        <StampCard stampCount={stampCount} variant="app" />
+        <StampCard stampCount={stampCount} tier={profile?.tier} variant="app" />
       </section>
 
       {/* 현재 등급 혜택 list */}
@@ -171,12 +172,7 @@ export default async function MembershipPage() {
         </div>
         <div className="space-y-2">
           {TIERS.map((t) => (
-            <TierRow
-              key={t.key}
-              t={t}
-              currentTier={meta?.key ?? null}
-              stampCount={stampCount}
-            />
+            <TierRow key={t.key} t={t} currentTier={meta?.key ?? null} />
           ))}
         </div>
       </section>
@@ -266,7 +262,7 @@ export default async function MembershipPage() {
             <li>· 정기배송 결제 1회마다 스탬프 1개 — 결제 즉시 반영</li>
             <li>· 결제 금액과 무관해요. 아이 덩치가 아니라 함께한 횟수예요</li>
             <li>· 스탬프 10개마다 스탬프 카드 한 장 완성 → 특별보상</li>
-            <li>· 스탬프는 찍힌 날부터 2년간 유효해요</li>
+            <li>· 스탬프는 찍힌 날부터 1년간 유효해요 — 만료되면 현재 판의 칸만 비고, <b>등급은 내려가지 않아요</b></li>
             <li>· 결제가 취소·환불되면 그 스탬프는 회수돼요</li>
           </ul>
           {profile?.tier_updated_at && (
@@ -283,14 +279,14 @@ export default async function MembershipPage() {
 function TierRow({
   t,
   currentTier,
-  stampCount,
 }: {
   t: TierMeta
-  /** 지금 등급. **null = 아직 등급 없음**(스탬프 10개 미만). */
+  /** 지금 등급(ratcheted floor). **null = 아직 등급 없음**(스탬프 10개 미만). */
   currentTier: string | null
-  stampCount: number
 }) {
-  const reached = stampCount >= t.threshold
+  // 달성 = 도달한 등급 이하 전부(강등 없음 2026-07-22). 만료로 stamp_count 가 줄어도
+  // 이미 지난 등급은 '달성'으로 남는다 — 살아있는 개수 임계 비교가 아니라 등급 랭크 비교.
+  const reached = tierRank(currentTier) >= tierRank(t.key)
   const isCurrent = currentTier === t.key
   return (
     <div

@@ -25,17 +25,32 @@
  * 개별 칸은 aria-hidden.
  */
 import Image from 'next/image'
-import { cardProgress, STAMP_CARD_SIZE, STAMP_REWARD_LABEL } from '@/lib/stamps'
+import {
+  cardProgressFloored,
+  STAMP_CARD_SIZE,
+  STAMP_REWARD_LABEL,
+} from '@/lib/stamps'
+import { resolveTierKey, tierMeta } from '@/lib/tiers'
 
 export default function StampCard({
   stampCount,
+  /**
+   * profiles.tier (ratcheted floor). 등급이 잠근 완성 카드 위로 현재 판을 계산하고,
+   * 만료로 살아있는 개수가 줄어도 현재 판이 0칸까지만 비게 한다(강등 없음, 2026-07-22).
+   * 안 넘기면 floor 0 = 예전 동작(살아있는 개수 그대로).
+   */
+  tier,
   /** app(v3, 멤버십 허브) 톤과 web(FD, /account) 톤 — 공유 컴포넌트라 시각만 분기. */
   variant = 'web',
 }: {
   stampCount: number | null | undefined
+  tier?: string | null
   variant?: 'web' | 'app'
 }) {
-  const card = cardProgress(stampCount ?? 0)
+  const active = stampCount ?? 0
+  // 등급 floor = 도달 등급(ratcheted)의 임계값. 현재 판은 이 위로만 얹힌다.
+  const floor = tierMeta(resolveTierKey(tier, active))?.threshold ?? 0
+  const card = cardProgressFloored(active, floor)
   const isApp = variant === 'app'
   const justCompleted = card.filled === 0 && card.completedCards > 0
 
@@ -111,7 +126,7 @@ export default function StampCard({
 
       <p className="border-t border-rule px-4 py-3 text-[10.5px] text-muted leading-relaxed">
         정기배송 결제 1회마다 스탬프 하나가 찍혀요. 10개를 모으면 {STAMP_REWARD_LABEL}을
-        드려요 · 스탬프는 찍힌 날부터 2년간 유효해요.
+        드려요 · 스탬프는 찍힌 날부터 1년간 유효해요(등급은 내려가지 않아요).
       </p>
     </div>
   )
