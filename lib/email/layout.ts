@@ -6,15 +6,15 @@
  * 웹메일이 모두 깨지지 않고 렌더된다. 그래서 tailwind 토큰도 여기서는 hex로
  * 평탄화해 복사했다.
  *
- * FD 브랜드 토큰 inline mirror (app/globals.css 의 --fd-* 와 수동 싱크, 회차174
- * FD 동기화 — 메일은 var() 못 쓰니 hex 평탄화):
- *   --fd-pine:       #173B33  (제목/본문 주 색·CTA)
- *   --fd-muted:      #5A6C61  (메타 라벨)
- *   --fd-coral-text: #B63619  (강조/가격, 흰 배경 AA)
- *   --fd-green:      #3C725E  (성공 상태)
- *   --fd-offwhite:   #F7F5F0  (페이지 배경)
- *   --fd-line:       #DCD6C4  (구분선)
- *   (gold/sale 경고·오류 톤은 semantic 으로 유지)
+ * 브랜드 토큰 inline mirror (2026-07-22 앱 v3 톤으로 리브랜드 — 파인그린→ink·
+ * 테라코타. 메일은 var() 못 쓰니 hex 평탄화):
+ *   ink(주 텍스트/제목):   #2E1F14
+ *   muted(메타 라벨):      #715C4A
+ *   terracotta(CTA·강조):  #C86B45
+ *   coral-text(링크/가격, 흰 배경 AA): #B63619
+ *   paper(페이지 배경):    #F7F5F0
+ *   rule(구분선):          #ECEAE2
+ *   (moss/gold/sale 상태 callout 색은 semantic 으로 유지)
  */
 
 import { business } from '@/lib/business'
@@ -63,7 +63,7 @@ export function renderLayout({
     <meta name="color-scheme" content="light only" />
     <title>${escape(heading)}</title>
   </head>
-  <body style="margin:0;padding:0;background:#F7F5F0;font-family:Pretendard,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#173B33;">
+  <body style="margin:0;padding:0;background:#F7F5F0;font-family:Pretendard,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#2E1F14;">
     <!-- Preview text (inbox preview 에만 노출) -->
     <div style="display:none;max-height:0;overflow:hidden;color:#F7F5F0;opacity:0;">
       ${escape(previewText)}
@@ -72,14 +72,14 @@ export function renderLayout({
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F7F5F0;">
       <tr>
         <td align="center" style="padding:32px 16px;">
-          <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #DCD6C4;border-radius:16px;overflow:hidden;">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #ECEAE2;border-radius:16px;overflow:hidden;">
             <!-- 헤더 (로고) -->
             <tr>
-              <td style="padding:28px 32px 0 32px;text-align:center;">
-                <a href="${escape(SITE_URL)}" style="text-decoration:none;color:#173B33;font-family:'Archivo Black',sans-serif;letter-spacing:-0.01em;font-size:18px;font-weight:900;">
-                  FARMER'S TAIL
+              <td style="padding:30px 32px 2px 32px;text-align:center;">
+                <a href="${escape(SITE_URL)}" style="text-decoration:none;">
+                  <img src="${escape(SITE_URL)}/logo-ink.png" alt="Farmer's Tail" width="150" style="width:150px;max-width:52%;height:auto;display:block;margin:0 auto;" />
                 </a>
-                <div style="margin-top:2px;font-size:10px;color:#5A6C61;letter-spacing:0.1em;text-transform:uppercase;">
+                <div style="margin-top:10px;font-size:10px;color:#715C4A;letter-spacing:0.1em;text-transform:uppercase;">
                   파머스테일 · 반려견 프리미엄 푸드
                 </div>
               </td>
@@ -90,9 +90,9 @@ export function renderLayout({
               <td style="padding:24px 32px 8px 32px;text-align:center;">
                 ${icon ? `<div style="font-size:40px;line-height:1;margin-bottom:10px;">${icon}</div>` : ''}
                 ${kicker
-                  ? `<div style="font-size:10px;color:#B63619;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;margin-bottom:6px;">${escape(kicker)}</div>`
+                  ? `<div style="font-size:10px;color:#C86B45;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;margin-bottom:6px;">${escape(kicker)}</div>`
                   : ''}
-                <h1 style="margin:0;font-size:22px;font-weight:800;color:#173B33;letter-spacing:-0.02em;font-family:Pretendard,serif;">
+                <h1 style="margin:0;font-size:22px;font-weight:800;color:#2E1F14;letter-spacing:-0.02em;font-family:Pretendard,serif;">
                   ${escape(heading)}
                 </h1>
               </td>
@@ -100,7 +100,7 @@ export function renderLayout({
 
             <!-- 본문 -->
             <tr>
-              <td style="padding:20px 32px 8px 32px;font-size:13px;line-height:1.65;color:#173B33;">
+              <td style="padding:20px 32px 8px 32px;font-size:13px;line-height:1.65;color:#2E1F14;">
                 ${body}
               </td>
             </tr>
@@ -110,7 +110,7 @@ export function renderLayout({
             <!-- CTA -->
             <tr>
               <td align="center" style="padding:16px 32px 28px 32px;">
-                <a href="${escape(cta.href)}" style="display:inline-block;background:#173B33;color:#F7F5F0;text-decoration:none;font-size:13px;font-weight:700;padding:14px 28px;border-radius:999px;letter-spacing:-0.01em;">
+                <a href="${escape(cta.href)}" style="display:inline-block;background:#C86B45;color:#FFFFFF;text-decoration:none;font-size:13px;font-weight:800;padding:14px 30px;border-radius:999px;letter-spacing:-0.01em;">
                   ${escape(cta.label)}
                 </a>
               </td>
@@ -121,9 +121,9 @@ export function renderLayout({
                  이전엔 가짜 placeholder 가 박혀 있어서 모든 메일에 잘못된 정보가
                  발송되고 있었음. 절대 다시 하드코딩하지 말 것. -->
             <tr>
-              <td style="padding:20px 32px 28px 32px;border-top:1px solid #DCD6C4;background:#F7F5F0;">
-                <div style="font-size:10px;color:#5A6C61;line-height:1.6;">
-                  <strong style="color:#173B33;">${escape(business.companyName)}</strong><br />
+              <td style="padding:20px 32px 28px 32px;border-top:1px solid #ECEAE2;background:#F7F5F0;">
+                <div style="font-size:10px;color:#715C4A;line-height:1.6;">
+                  <strong style="color:#2E1F14;">${escape(business.companyName)}</strong><br />
                   대표 ${escape(business.ceo)} · 사업자등록번호 ${escape(business.businessNumber)}<br />
                   통신판매업신고 ${escape(business.mailOrderNumber)}<br />
                   ${escape(business.address)}<br />
@@ -135,7 +135,7 @@ export function renderLayout({
                 </div>
                 <div style="margin-top:10px;font-size:10px;color:#9A9A9A;">
                   본 메일은 거래 안내용으로, 주문 및 회원 활동에 따라 자동 발송됩니다.
-                  수신을 원치 않으시면 <a href="${escape(SITE_URL)}/mypage/notifications" style="color:#5A6C61;text-decoration:underline;">알림 설정</a> 에서 변경하실 수 있어요.
+                  수신을 원치 않으시면 <a href="${escape(SITE_URL)}/mypage/notifications" style="color:#715C4A;text-decoration:underline;">알림 설정</a> 에서 변경하실 수 있어요.
                 </div>
               </td>
             </tr>
@@ -171,14 +171,14 @@ export const block = {
           : color === 'gold'
             ? '#D4B872'
             : '#C44B3A'
-    return `<div style="background:${bg};border-left:3px solid ${border};border-radius:8px;padding:14px 16px;font-size:12px;line-height:1.6;color:#173B33;">${html}</div>`
+    return `<div style="background:${bg};border-left:3px solid ${border};border-radius:8px;padding:14px 16px;font-size:12px;line-height:1.6;color:#2E1F14;">${html}</div>`
   },
 
   /** 라벨-값 테이블 행 하나. <tr> HTML을 리턴. */
   row(label: string, value: string): string {
     return `<tr>
-      <td style="padding:6px 0;font-size:12px;color:#5A6C61;width:40%;">${escape(label)}</td>
-      <td style="padding:6px 0;font-size:12px;color:#173B33;font-weight:700;text-align:right;">${value}</td>
+      <td style="padding:6px 0;font-size:12px;color:#715C4A;width:40%;">${escape(label)}</td>
+      <td style="padding:6px 0;font-size:12px;color:#2E1F14;font-weight:700;text-align:right;">${value}</td>
     </tr>`
   },
 
@@ -189,17 +189,17 @@ export const block = {
 
   /** 가로 구분선. */
   hr(): string {
-    return `<div style="height:1px;background:#DCD6C4;margin:16px 0;"></div>`
+    return `<div style="height:1px;background:#ECEAE2;margin:16px 0;"></div>`
   },
 
   /** 주문 아이템 1줄. */
   orderItem(name: string, qty: number, lineTotal: number): string {
     return `<tr>
-      <td style="padding:8px 0;font-size:12px;color:#173B33;">
+      <td style="padding:8px 0;font-size:12px;color:#2E1F14;">
         <div style="font-weight:700;">${escape(name)}</div>
-        <div style="font-size:11px;color:#5A6C61;margin-top:2px;">수량 ${qty}개</div>
+        <div style="font-size:11px;color:#715C4A;margin-top:2px;">수량 ${qty}개</div>
       </td>
-      <td style="padding:8px 0;font-size:12px;color:#173B33;font-weight:700;text-align:right;white-space:nowrap;">
+      <td style="padding:8px 0;font-size:12px;color:#2E1F14;font-weight:700;text-align:right;white-space:nowrap;">
         ${lineTotal.toLocaleString()}원
       </td>
     </tr>`
@@ -217,19 +217,19 @@ export const block = {
  * 마케팅 메일이므로 수신거부 안내도 포함 (정보통신망법 §50).
  */
 export function marketingFooterRow(): string {
-  return `<tr><td style="padding:20px 32px 28px;border-top:1px solid #DCD6C4;background:#F7F5F0;">
-    <div style="font-size:10px;color:#5A6C61;line-height:1.6;">
-      <strong style="color:#173B33;">${escape(business.companyName)}</strong><br/>
+  return `<tr><td style="padding:20px 32px 28px;border-top:1px solid #ECEAE2;background:#F7F5F0;">
+    <div style="font-size:10px;color:#715C4A;line-height:1.6;">
+      <strong style="color:#2E1F14;">${escape(business.companyName)}</strong><br/>
       대표 ${escape(business.ceo)} · 사업자등록번호 ${escape(business.businessNumber)}<br/>
       통신판매업신고 ${escape(business.mailOrderNumber)}<br/>
       ${escape(business.address)}<br/>
-      고객센터 <a href="mailto:${escape(business.email)}" style="color:#5A6C61;text-decoration:none;">${escape(business.email)}</a>${
+      고객센터 <a href="mailto:${escape(business.email)}" style="color:#715C4A;text-decoration:none;">${escape(business.email)}</a>${
         business.phone ? ` · ${escape(business.phone)}` : ''
       }
     </div>
-    <div style="margin-top:10px;font-size:10px;color:#5A6C61;line-height:1.5;">
+    <div style="margin-top:10px;font-size:10px;color:#715C4A;line-height:1.5;">
       본 메일은 마케팅 정보 수신에 동의하신 분께 발송했어요. 수신 거부는
-      <a href="${escape(SITE_URL)}/mypage/notifications" style="color:#5A6C61;text-decoration:underline;">알림 설정</a>
+      <a href="${escape(SITE_URL)}/mypage/notifications" style="color:#715C4A;text-decoration:underline;">알림 설정</a>
       에서 변경하실 수 있어요.
     </div>
   </td></tr>`
