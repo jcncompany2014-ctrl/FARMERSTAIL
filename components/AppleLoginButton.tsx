@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 type Props = {
@@ -53,6 +53,16 @@ export default function AppleLoginButton({
   const [shouldRender] = useState(
     () => process.env.NEXT_PUBLIC_DISABLE_SIWA !== '1',
   )
+  // 애플 생태계(Mac·iPhone·iPad)에서만 노출(사장님 2026-07-22). Android·Windows·
+  // Linux 는 숨김 — 한국 안드로이드 유저는 애플ID 가 거의 없어 버튼이 노이즈다.
+  // (native iOS 는 Guideline 4.8 상 필수라 그대로 노출: UA 에 iPhone/iPad 포함.)
+  // ★클라 전용 감지 — SSR·최초 클라 렌더는 false(미노출)로 일치시켜 hydration
+  //   mismatch 없이, mount 후 애플이면 true 로 드러낸다.
+  const [isAppleDevice, setIsAppleDevice] = useState(false)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsAppleDevice(/Mac|iPhone|iPad|iPod/i.test(navigator.userAgent))
+  }, [])
 
   async function handleClick() {
     setError('')
@@ -77,7 +87,7 @@ export default function AppleLoginButton({
     }
   }
 
-  if (!shouldRender) return null
+  if (!shouldRender || !isAppleDevice) return null
 
   const label = variant === 'signup' ? 'Apple 로 가입하기' : 'Apple 로 시작하기'
 
