@@ -52,6 +52,12 @@ export type AutosignupDraft = {
    * 가입 직후 `claim_promotion` 으로 계정에 박히고 나면 이 값은 쓸모가 없어진다.
    */
   promo?: string
+  /** 앱 가입-먼저 흐름(Phase B, 2026-07-20) 표식 — 강아지정보 입력 후 가입, 설문은
+   *  가입 뒤 앱내에서. true 면 로그인 훅이 applyAutosignupDraft(설문완료 가정 →
+   *  dog+survey+analysis 일괄) 대신 createDogFromDraft(dog 만) → 앱 설문으로 보낸다.
+   *  OAuth 경로는 /start/onboard 허브가 직접 처리하므로 이 표식과 무관(이메일 경로만
+   *  공유 /login 훅을 타서 필요). */
+  surveyDeferred?: boolean
 }
 
 /** 단일 익명 키 — userId 없음(비회원). 브라우저당 1개 초안. */
@@ -81,6 +87,7 @@ export function loadAutosignupDraft(): AutosignupDraft | null {
       ts: typeof parsed.ts === 'number' ? parsed.ts : Date.now(),
       dog: parsed.dog ?? {},
       answers: parsed.answers ?? {},
+      ...(parsed.surveyDeferred ? { surveyDeferred: true } : {}),
     }
   } catch {
     return null
@@ -95,6 +102,7 @@ export function saveAutosignupDraft(patch: {
   dog?: Partial<AutosignupDogDraft>
   answers?: Partial<AutosignupAnswersDraft>
   promo?: string
+  surveyDeferred?: boolean
 }): void {
   if (typeof window === 'undefined') return
   try {
@@ -107,6 +115,9 @@ export function saveAutosignupDraft(patch: {
       // 먼저 박힌 프로모션이 이긴다 — 링크를 여러 개 타고 와도 처음 것.
       // (계정당 1회라 DB 도 같은 규칙. 여기서 미리 맞춰 두면 화면 표시가 안 흔들린다.)
       ...(prev?.promo || patch.promo ? { promo: prev?.promo ?? patch.promo } : {}),
+      ...(prev?.surveyDeferred || patch.surveyDeferred
+        ? { surveyDeferred: true }
+        : {}),
     }
     localStorage.setItem(AUTOSIGNUP_DRAFT_KEY, JSON.stringify(next))
   } catch {

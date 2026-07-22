@@ -13,6 +13,7 @@ import {
   normalizeSignupMeta,
 } from '@/lib/auth/applySignupProfile'
 import { applyAutosignupDraft } from '@/lib/auth/applyAutosignupDraft'
+import { createDogFromDraft } from '@/lib/auth/createDogFromDraft'
 import { claimPromotionOnSignup } from '@/lib/auth/claimPromotionOnSignup'
 import {
   loadAutosignupDraft,
@@ -192,6 +193,18 @@ function LoginInner() {
       try {
         const draft = loadAutosignupDraft()
         if (draft && isDogDraftComplete(draft.dog)) {
+          // 앱 가입-먼저 흐름(surveyDeferred, Phase B 2026-07-20): 설문이 아직
+          // 안 끝났으므로 강아지만 만들고 앱내 설문으로 보낸다. 기존/웹 흐름은
+          // 설문이 이미 끝나 있어(아래) applyAutosignupDraft 로 일괄 이관한다.
+          if (draft.surveyDeferred) {
+            const deferredDogId = await createDogFromDraft(signedIn.id, draft)
+            if (deferredDogId) {
+              clearAutosignupDraft()
+              setLoading(false)
+              router.replace(`/dogs/${deferredDogId}/survey`)
+              return
+            }
+          }
           const dogName = (draft.dog.name || '').trim()
           const dogId = await applyAutosignupDraft(signedIn.id, draft)
           if (dogId) {
