@@ -251,3 +251,16 @@
 ### components (153)
 - [부분완료] `components/v3/**` 프리미티브·home — 회차2~28 점검.
 - [ ] 나머지: components/{analysis,dog,dashboard,coupons,products,...}.
+
+---
+- **#87 🟡 DECISION 표시광고 FEDIAF 인용 연도 불일치(밤샘 회차12·substantiation·무인 미수정)**: 영양
+  가이드라인 인용에서 **FEDIAF만 페이지마다 연도가 갈림** — `app/(main)/dogs/[id]/analyses/page.tsx:47`
+  algorithm-version 문자열은 "FEDIAF**2024**"(NRC2006+AAFCO2024+FEDIAF2024+WSAVA2021+IRIS2019+KFA),
+  `survey/steps/Loading.tsx:47`·`app/science/page.tsx:42·47`은 "FEDIAF **2021**", 나머지 다수
+  (analysis/layout·AppShowcase·PlanClient·AnalysisMagazineSection·compare)는 **연도 없이 "FEDIAF"**.
+  AAFCO(2024)·NRC(2006)·WSAVA(2021)는 전 페이지 일관, FEDIAF만 2021/2024/무연도 3형태. 정본
+  `lib/web-recipes.ts:8`은 "AAFCO+FEDIAF+NIAS"로 **FEDIAF 연도 미지정** → 코드로 정답 확정 불가.
+  **무인 미수정 이유**: ① 특정 연도 확정은 미검증 기관인용(표시광고 substantiation, #54/#55와 동류·
+  PG前 사장님 결정) ② science/page.tsx 등은 웹(⛔ 디자인 동결). **결정 필요**: 실제 검증한 FEDIAF
+  에디션 확정(2021 vs 2024) → 전 페이지 일괄 정합(또는 안전하게 연도 빼고 "FEDIAF"로 통일). 표시-only·
+  코어 영향 0이나 표시광고 정확성.
