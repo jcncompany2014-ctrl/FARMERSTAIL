@@ -9,7 +9,7 @@
  *
  * # API
  *
- *   <Avatar src="/dog.jpg" name="초롱" size={48} />
+ *   <Avatar src="/dog-portrait.jpg" name="초롱" size={48} />
  *   <Avatar name="가족" tone="sage" size={32} status="online" />
  */
 
