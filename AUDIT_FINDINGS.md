@@ -264,3 +264,19 @@
   PG前 사장님 결정) ② science/page.tsx 등은 웹(⛔ 디자인 동결). **결정 필요**: 실제 검증한 FEDIAF
   에디션 확정(2021 vs 2024) → 전 페이지 일괄 정합(또는 안전하게 연도 빼고 "FEDIAF"로 통일). 표시-only·
   코어 영향 0이나 표시광고 정확성.
+
+- **#88 🟠 DECISION 화식 에너지 밀도 v3/v4.0 분열 — feedG 급여량 ~10% 영향(밤샘 회차16·칼로리엔진 값
+  불일치·무인 미수정)**: v4.0 kcal(닭130/오리125/돼지125/소145)이 **부분 rollout**되며 "화식 kcal/g
+  평균 밀도"가 파일마다 갈렸다. **v4.0 반영됨**: `FOOD_LINE_META.kcalPer100g`(130/125/125/145,
+  lineGrams.test.ts assert·GREEN)·`lib/mix-feeding.ts:74` `hwasikKcalPerG=1.3125`(=v4.0 4종평균,
+  주석도 v4.0). **v3에 뒤처짐(옛 1.175=닭·돼지1.15·오리·소1.20 평균)**: ⓐ `lib/nutrition.ts:25`
+  `AVG_ENERGY_DENSITY_KCAL_PER_G=1.175` — **정본 칼로리엔진**이 이 값으로 feedG(급여g) 산출(:850)
+  ⓑ `lib/personalization/lines.ts:167` 전라인0 fallback `dailyKcal/1.175` + 주석 worked-example
+  (115/120·:123-128) ⓒ counterfactual.test.ts:31 주석 "밀도 1.175". → **급여량 계산이 진입점마다
+  v4.0(1.3125) vs v3(1.175)로 갈려 feedG 추천이 최대 ~10% 어긋날 수 있음**(1.175→1.3125이면 급여g
+  감소 방향). **무인 미수정 이유**: nutrition.ts=정본 칼로리엔진 + 값 변경은 **실제 급여 추천량 직접
+  변경**(계산 로직·신중) + 메모리상 v4.0 rollout이 "가격 세트 결정 먼저"로 gated(부분 rollout이 의도적
+  중간상태일 수 있음). **결정 필요**: v4.0 급여밀도로 통일할지(nutrition.ts+lines.ts fallback을 1.3125로,
+  lines.ts 주석을 130/145 worked-example으로, 관련 테스트 동반 갱신) — 재드리프트 방지 위해 하드코딩
+  대신 **FOOD_LINE_META 4종 평균 파생**을 권장. 통일 전까진 feedG(mix급여)와 박스 line-grams가 서로
+  다른 밀도를 쓰는 상태.
