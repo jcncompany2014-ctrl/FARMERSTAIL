@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { Loader2, Check, AlertCircle } from 'lucide-react'
 
 /**
- * NewsletterForm — 이메일 입력 + 마케팅 수신 동의 후 submit.
+ * NewsletterForm — 이메일 입력 + 마케팅 수신 동의 후 서버로 submit.
  *
- * 1차는 mailto-fallback 스타일: 서버 API 가 준비되면 fetch('/api/newsletter')
- * 로 교체. 지금은 사용자 메일 클라이언트로 “구독 신청” 메일을 열어 보낸다 —
- * 운영자가 받아서 수동으로 list 추가.
+ * POST `/api/newsletter` ({ email, source: 'web' }) 로 구독 신청 — 서버가
+ * 이메일 검증·중복 처리·구독 저장을 담당한다.
+ * (옛 mailto-fallback 방식[운영자 수동 list 추가]은 API 구축 후 폐기됨.)
  */
 export default function NewsletterForm() {
   const [email, setEmail] = useState('')
