@@ -31,12 +31,15 @@ export default async function MyPage() {
       .select('name, phone, tier, stamp_count')
       .eq('id', user.id)
       .maybeSingle(),
-    // 결제 취소·환불된 주문은 카운트에서 제외 (사장님 2026-06-19).
+    // 결제 완료한 것만 카운트 (사장님 2026-07-22 "뜨는 건 결제 완료한 것만"):
+    //  · paid_at 있는 것만 = 결제된 적 없는 유령(pending·failed·미결제 cancelled) 제외.
+    //  · 추가로 환불(refunded)은 카운트에서 제외 유지(사장님 2026-06-19, '유효 주문' 수).
+    //  (주문 내역 목록은 환불도 이력으로 보여주지만, 헤드라인 카운트는 유효 주문만.)
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .neq('payment_status', 'cancelled')
+      .not('paid_at', 'is', null)
       .neq('payment_status', 'refunded'),
     supabase
       .from('subscriptions')

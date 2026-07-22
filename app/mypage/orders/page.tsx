@@ -100,6 +100,13 @@ export default async function OrdersPage() {
     `
     )
     .eq('user_id', user.id)
+    // ★ '결제 완료한 것만' 노출 (사장님 2026-07-22). 결제된 적 없는 유령 주문
+    //   (체크아웃하다 만 것·실패·미결제 취소 = paid_at NULL)은 숨긴다 — 사용자가
+    //   "결제한 적 없는 주문이 뜬다"고 반복해서 답답해한 부분. paid_at 은 결제가
+    //   실제로 완료돼야 세팅되고 환불돼도 유지되므로, paid/부분환불/환불(=결제 후
+    //   이력)은 남고 pending·failed·미결제 cancelled 만 빠진다. payment_status enum
+    //   ('cancelled'가 미결제인지 결제후취소인지)보다 견고한 정본 신호.
+    .not('paid_at', 'is', null)
     .order('created_at', { ascending: false })
     // 최근 50건만 — 장기 구독 고객의 전체 주문+아이템 무제한 로드로 목록 진입이
     // 점점 느려지던 것 방지(2026-07-17 perf). 2주 배송 기준 ~2년치. 더 필요하면
