@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { AdminHeader, StatCard, HelpTip, Badge } from '@/components/admin/ui'
+import { AdminHeader, StatCard, HelpTip } from '@/components/admin/ui'
 import { TIERS, tierMeta, resolveTierKey } from '@/lib/tiers'
 import { cardProgressFloored, STAMP_CARD_SIZE } from '@/lib/stamps'
 
