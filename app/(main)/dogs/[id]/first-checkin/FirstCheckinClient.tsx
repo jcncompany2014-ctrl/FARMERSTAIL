@@ -207,7 +207,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
             '0 8px 22px -6px rgba(220, 83, 42, 0.48), 0 2px 8px rgba(220, 83, 42, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
         }}
       >
-        {submitting ? '저장 중…' : '의견 보내기 (+100P)'}
+        {submitting ? '저장 중…' : '의견 보내기'}
       </button>
 
       <p className="text-[10.5px] text-muted text-center mt-4">
