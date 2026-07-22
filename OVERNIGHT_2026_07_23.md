@@ -36,6 +36,11 @@
   폐기 기능(쿠폰·포인트·위시리스트·referral·리뷰) 잔재·import 0 컴포넌트/lib·死플래그·死라우트
 
 ## 📝 진행 로그 (최신이 위)
+- 회차2: 폐기 라우트 死참조 정리 — `/mypage/reviews`·`/mypage/points` 라우트 자체가 없는데
+  (glob 확인) 라이브 참조 잔존. AppChrome DEEP_TITLES `/mypage/reviews` 엔트리 + app-required
+  `/mypage/reviews` 라벨 제거(표시용, 매칭 라우트 없어 안전). tsc+eslint GREEN.
+  ★남은 死참조: `proxy.ts:179-180`(/mypage/reviews·/mypage/points) — app/web dispatch 인접이라
+  다음에 신중히(또는 findings). `_dead_q4/`·`_dead_referral/`는 이미 앱 밖 아카이브라 무해.
 - 회차1(세팅+첫스텝): 2계층 크론(L1 576eeb04 10분·L2 ff07a639 5시간) 무장. mypage/page.tsx
   헤더 주석 정보불일치 정정("5 stat counts: orders/subs/points/wishlist/coupons" → 실제는
   orders·subs 2개, 나머지 폐지). 위시리스트 잔재는 전부 주석뿐(死코드 아님) 확인.

@@ -245,7 +245,6 @@ function friendlyLabel(path: string): string | null {
   if (clean === '/welcome') return '앱 시작 화면'
   if (clean.startsWith('/mypage/subscriptions')) return '정기배송 관리'
   if (clean.startsWith('/mypage/addresses')) return '배송지 관리'
-  if (clean.startsWith('/mypage/reviews')) return '리뷰 관리'
   if (clean.startsWith('/mypage/notifications')) return '알림 설정'
   if (clean.startsWith('/mypage/consent')) return '동의 설정'
   if (clean.startsWith('/mypage/delete')) return '회원 탈퇴'
