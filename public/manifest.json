@@ -77,13 +77,6 @@
       "description": "우리 아이 프로필 관리",
       "url": "/dogs",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "장바구니",
-      "short_name": "장바구니",
-      "description": "담은 상품 결제",
-      "url": "/cart",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
