@@ -54,6 +54,7 @@ const GROUPS: NavGroup[] = [
       { href: '/admin/reports', icon: '📈', label: '매출 리포트' },
       { href: '/admin/funnel', icon: '🪜', label: '가입 여정 분석' },
       { href: '/admin/cohort', icon: '🧪', label: '가입 시기별 분석' },
+      { href: '/admin/loyalty', icon: '🏅', label: '멤버십·스탬프' },
       { href: '/admin/beta-cohort', icon: '🧬', label: '베타 테스트' },
       { href: '/admin/push-stats', icon: '📡', label: '알림 통계' },
     ],
