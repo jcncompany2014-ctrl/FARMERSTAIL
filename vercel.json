@@ -28,7 +28,8 @@
     "app/api/cron/payment-ledger-reconcile/route.ts": { "maxDuration": 120 },
     "app/api/cron/reanalysis-reminder-6m/route.ts": { "maxDuration": 120 },
     "app/api/cron/ops-digest/route.ts": { "maxDuration": 120 },
-    "app/api/cron/quarterly-report/route.ts": { "maxDuration": 300 }
+    "app/api/cron/quarterly-report/route.ts": { "maxDuration": 300 },
+    "app/api/cron/stamps-expire/route.ts": { "maxDuration": 120 }
   },
   "crons": [
     {
@@ -138,6 +139,10 @@
     {
       "path": "/api/cron/quarterly-report",
       "schedule": "0 0 1 1,4,7,10 *"
+    },
+    {
+      "path": "/api/cron/stamps-expire",
+      "schedule": "0 15 * * *"
     }
   ]
 }
