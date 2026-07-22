@@ -247,7 +247,7 @@ export default async function AdminUnifiedSearch({
                           </p>
                           <p className="text-[11px] text-muted">
                             {s.profiles?.email ?? '—'} ·{' '}
-                            {s.total_amount.toLocaleString()}원/월 ·{' '}
+                            {s.total_amount.toLocaleString()}원/2주 ·{' '}
                             <span className="font-bold text-terracotta">
                               {SUB_STATUS_MAP[
                                 s.status as 'active' | 'paused' | 'cancelled'
