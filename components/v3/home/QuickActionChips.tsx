@@ -31,7 +31,8 @@ export interface QuickAction {
   /** 보조 텍스트 — "오늘 기록", "11kg" 등. */
   sub: string
   tone: 'sage' | 'accent' | 'ink' | 'yellow'
-  /** 아직 시트가 없는 액션(식사·산책)의 이동 경로. weight 는 시트라 불필요. */
+  /** 강아지가 없을 때(dogId 없음)의 이동 경로 — 보통 /dogs/new. dogId 가 있으면
+   *  세 액션(식사·산책·체중) 모두 그 자리에서 시트를 열어 href 는 미사용(render 참조). */
   href?: string
 }
 
