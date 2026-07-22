@@ -691,7 +691,7 @@ function ScreenSubscription() {
           ))}
         </div>
 
-        {/* 화식 비율 선택 — 배송은 2주 고정, 고객이 고르는 건 화식 비율(30/60/100). */}
+        {/* 화식 비율 선택 — 배송은 2주 고정, 고객이 고르는 건 화식 비율(30/50/100). */}
         <MonoText size={7} ls="0.18em" style={{ display: 'block', marginTop: 9 }}>
           화식 비율 선택
         </MonoText>

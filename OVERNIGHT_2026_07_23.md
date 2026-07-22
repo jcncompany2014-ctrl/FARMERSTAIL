@@ -36,6 +36,9 @@
   폐기 기능(쿠폰·포인트·위시리스트·referral·리뷰) 잔재·import 0 컴포넌트/lib·死플래그·死라우트
 
 ## 📝 진행 로그 (최신이 위)
+- 회차3: 반반 화식비율 60→50 변경 때 남은 "30/60/100"·"반반 60" 주석 잔재 8곳 정정
+  (AppShowcase·_components/types·plans·dashboard·OrderClient×2·approve·subscriptions/types).
+  정보 불일치(주석이 옛 60 표기). tsc+eslint GREEN.
 - 회차2: 폐기 라우트 死참조 정리 — `/mypage/reviews`·`/mypage/points` 라우트 자체가 없는데
   (glob 확인) 라이브 참조 잔존. AppChrome DEEP_TITLES `/mypage/reviews` 엔트리 + app-required
   `/mypage/reviews` 라벨 제거(표시용, 매칭 라우트 없어 안전). tsc+eslint GREEN.

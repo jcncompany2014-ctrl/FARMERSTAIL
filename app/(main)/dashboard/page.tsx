@@ -187,7 +187,7 @@ export default async function DashboardPage() {
       .select('dog_id, cycle_number, daily_grams')
       .eq('user_id', user.id)
       .order('cycle_number', { ascending: false }),
-    // 화식 비율(30/60/100) — 구독에서. 없으면 완전화식(100%) 기준으로 표기.
+    // 화식 비율(30/50/100) — 구독에서. 없으면 완전화식(100%) 기준으로 표기.
     supabase
       .from('subscriptions')
       .select('dog_id, fresh_ratio, created_at')

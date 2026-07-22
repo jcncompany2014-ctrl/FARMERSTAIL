@@ -129,7 +129,7 @@ export type ApprovePricing = {
   currentTotal: number
   /** 새 처방으로 다시 구성했을 때의 2주 청구액. */
   newTotal: number
-  /** 화식 비율 티어 (30/60/100) — 금액 근거 표시용. */
+  /** 화식 비율 티어 (30/50/100) — 금액 근거 표시용. */
   freshRatio: number
 }
 

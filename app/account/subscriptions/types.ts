@@ -18,7 +18,7 @@ export type Subscription = {
   status: 'active' | 'paused' | 'cancelled'
   interval_weeks: number
   coverage_weeks: number | null
-  /** 화식 비율 티어 (30/60/100). 레거시 구독은 null. */
+  /** 화식 비율 티어 (30/50/100). 레거시 구독은 null. */
   fresh_ratio: number | null
   next_delivery_date: string | null
   last_delivery_date: string | null

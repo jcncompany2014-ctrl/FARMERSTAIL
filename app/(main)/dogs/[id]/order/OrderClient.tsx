@@ -50,7 +50,7 @@ import './order.css'
  * # 흐름
  *  1. (server) 강아지 ownership + 최신 dog_formulas + profile + products fetch
  *  2. (client) 5 라인 + 2 토퍼 → SKU 매핑 (slug 기준), net_weight_g 로 팩 수 산정
- *  3. 화식 비율 (곁들임 30 / 반반 60 / 완전 100) 선택 — 배송·결제는 무조건
+ *  3. 화식 비율 (곁들임 30 / 반반 50 / 완전 100) 선택 — 배송·결제는 무조건
  *     2주마다. 매 끼 화식 비율만큼 섞어 급여, 나머지는 보호자 사료.
  *     사료관리법 ±5% 허용 오차 내 팩 수 산정 (95% 이상 deliver 시 floor).
  *  4. 주소·수령인 (profile pre-fill, 없으면 daum postcode)
@@ -420,7 +420,7 @@ export default function OrderClient({
           // 무조건 2주마다 배송·결제. coverage_weeks=2 = 크론 biweekly 판정 키.
           interval_weeks: 2,
           coverage_weeks: 2,
-          // 화식 비율 티어 (30/60/100) — 표시·관리용.
+          // 화식 비율 티어 (30/50/100) — 표시·관리용.
           fresh_ratio: freshRatio,
           status: 'active',
           // 카드 등록 전 = 배송 일정 없음(null). 카드 등록(billing-issue) 성공 시
