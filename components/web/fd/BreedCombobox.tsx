@@ -20,6 +20,8 @@ type Props = {
   enterKeyHint?: React.InputHTMLAttributes<HTMLInputElement>['enterKeyHint']
   /** 스크린리더용 접근명 — 콤보박스는 이름 필수(placeholder 만으론 부족). */
   ariaLabel?: string
+  /** 드롭다운 색 톤 — web(FD)/app(ink·rule). 입력창 스타일은 caller 담당. */
+  tone?: 'web' | 'app'
 }
 
 const MAX_SUGGESTIONS = 8
@@ -32,7 +34,25 @@ export default function BreedCombobox({
   inputStyle,
   enterKeyHint,
   ariaLabel = '견종',
+  tone = 'web',
 }: Props) {
+  // 드롭다운 색 — 앱/웹 분리(feedback_web_app_never_cross). 입력창은 caller.
+  const C =
+    tone === 'app'
+      ? {
+          line: 'var(--rule)',
+          text: 'var(--ink)',
+          hover: 'var(--bg-3)',
+          accent: 'var(--terracotta)',
+          shadow: '0 14px 36px -14px rgba(22,20,15,0.22)',
+        }
+      : {
+          line: 'var(--fd-line)',
+          text: 'var(--fd-pine)',
+          hover: 'var(--fd-offwhite)',
+          accent: 'var(--fd-coral)',
+          shadow: '0 14px 36px -14px rgba(23,59,51,0.28)',
+        }
   const [open, setOpen] = useState(false)
   const [hi, setHi] = useState(0)
   const boxRef = useRef<HTMLDivElement>(null)
@@ -126,9 +146,9 @@ export default function BreedCombobox({
             left: 0,
             right: 0,
             background: '#FFFFFF',
-            border: '1px solid var(--fd-line)',
+            border: `1px solid ${C.line}`,
             borderRadius: 12,
-            boxShadow: '0 14px 36px -14px rgba(23,59,51,0.28)',
+            boxShadow: C.shadow,
             maxHeight: 280,
             overflowY: 'auto',
             listStyle: 'none',
@@ -152,11 +172,11 @@ export default function BreedCombobox({
                 borderRadius: 8,
                 fontSize: 14,
                 cursor: 'pointer',
-                color: 'var(--fd-pine)',
-                background: i === hi ? 'var(--fd-offwhite)' : 'transparent',
+                color: C.text,
+                background: i === hi ? C.hover : 'transparent',
                 fontWeight: i === hi ? 700 : 500,
                 // 키보드 탐색 시 하이라이트 항목 포커스 표시(배경색만으론 색약 사용자 부족).
-                outline: i === hi ? '2px solid var(--fd-coral)' : 'none',
+                outline: i === hi ? `2px solid ${C.accent}` : 'none',
                 outlineOffset: -2,
               }}
             >

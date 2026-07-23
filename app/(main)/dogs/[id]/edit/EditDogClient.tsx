@@ -15,16 +15,9 @@ import DogPhotoPicker from '@/components/DogPhotoPicker'
 import { resolvePhotoState, type PhotoState } from '@/lib/dogPhotos'
 import { isAdvancedUiEnabled } from '@/lib/ui-flags'
 import { Select } from '@/components/v3'
+import BreedCombobox from '@/components/web/fd/BreedCombobox'
 import { deriveAgeFromBirth } from '@/lib/dog-age'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
-
-const BREEDS = [
-  '포메라니안', '말티즈', '푸들', '토이푸들', '시츄', '비숑 프리제',
-  '골든 리트리버', '래브라도 리트리버', '진돗개', '웰시코기',
-  '닥스훈트', '치와와', '시바이누', '보더콜리', '요크셔 테리어',
-  '미니어처 슈나우저', '사모예드', '허스키', '비글', '프렌치 불독',
-  '코커 스패니얼', '파피용', '퍼그', '잭 러셀 테리어', '믹스',
-]
 
 export type EditDogInitial = {
   id: string
@@ -240,18 +233,15 @@ export default function EditDogClient({
 
         <div>
           <label className={labelCls}>견종 *</label>
-          <Select
+          <BreedCombobox
+            tone="app"
             value={breed}
-            onChange={(e) => setBreed(e.target.value)}
-            aria-label="견종"
-          >
-            <option value="">선택하세요</option>
-            {BREEDS.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </Select>
+            onChange={setBreed}
+            placeholder="입력해서 검색 (예: 포메라니안)"
+            inputClassName={inputCls}
+            ariaLabel="견종"
+            enterKeyHint="next"
+          />
         </div>
 
         <div>
