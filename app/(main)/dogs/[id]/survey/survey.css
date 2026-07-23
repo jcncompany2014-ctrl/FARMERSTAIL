@@ -345,15 +345,19 @@
 .s-tag {
   font-size: 9.5px; font-weight: 800; letter-spacing: .04em;
   text-transform: uppercase;
-  padding: 2px 8px; border-radius: 6px;
+  padding: 3px 8px; border-radius: 6px;
   /* 한국어 두 글자 ("양호") 가 좁은 cell 안에서 세로 줄바꿈되는 문제 방지 */
   white-space: nowrap;
   flex-shrink: 0;
+  /* 텍스트를 pill 안에서 수직 중앙 고정 — 태그마다 배열이 '일자'로 맞게
+     (사장님 2026-07-23: 주의 태그가 살짝 안 맞아 보임). */
+  display: inline-flex; align-items: center; line-height: 1;
 }
-/* FD 자연 어스톤 — 양호=그린, 주의=골드, 위험=적갈 (글로우 없는 평면 틴트) */
-.s-tag.s-good { background: color-mix(in srgb, var(--fd-green) 16%, transparent); color: var(--fd-green); }
-.s-tag.s-warn { background: color-mix(in srgb, var(--fd-gold) 20%, transparent); color: #7A5B1B; }
-.s-tag.s-bad { background: color-mix(in srgb, var(--fd-coral) 16%, transparent); color: var(--fd-coral-ink); }
+/* 이상적/주의/위험 = 신호등처럼 아예 다른 색(사장님 2026-07-23). 옅은 틴트 대신
+   솔리드 — 초록(이상적)·앰버(주의)·딥레드(위험). FD 팔레트 토큰 유지. */
+.s-tag.s-good { background: var(--fd-green); color: #fff; }
+.s-tag.s-warn { background: var(--fd-gold); color: #5E3B12; }
+.s-tag.s-bad { background: var(--fd-coral-ink); color: #fff; }
 
 /* List buttons (MCS, Bristol, care_goal) */
 .s-listbtn {
