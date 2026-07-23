@@ -271,7 +271,9 @@ export default async function ProductInsightsPage({
                 <td className="py-2.5 px-3 text-right">{b.orderCount}</td>
                 <td className="py-2.5 px-3 text-right text-muted">
                   {b.firstOrderAt
-                    ? new Date(b.firstOrderAt).toLocaleDateString('ko-KR')
+                    ? new Date(b.firstOrderAt).toLocaleDateString('ko-KR', {
+                        timeZone: 'Asia/Seoul',
+                      })
                     : '—'}
                 </td>
               </tr>
