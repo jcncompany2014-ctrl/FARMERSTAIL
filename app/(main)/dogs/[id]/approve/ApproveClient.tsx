@@ -88,7 +88,7 @@ export default function ApproveClient({
       <div className="ap-page">
         <div className="ap-empty">
           <p>
-            cycle {cycleNumber} 의 동의 대기 박스를 찾을 수 없어요.
+            {cycleNumber}번째 박스의 동의 대기 건을 찾을 수 없어요.
             <br />
             이미 응답했거나 5일이 지나 자동 취소됐을 수 있어요.
           </p>
@@ -106,7 +106,7 @@ export default function ApproveClient({
     <div className="ap-page">
       <header className="ap-hero">
         <div className="ap-kicker">
-          <span className="ap-pill">CYCLE {cycleNumber}</span>
+          <span className="ap-pill">{cycleNumber}번째 박스</span>
           NEEDS APPROVAL
         </div>
         <h1 className="ap-h1">
