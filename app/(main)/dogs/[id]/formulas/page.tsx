@@ -168,7 +168,7 @@ function FormulaCard({
                   style={{ background: FOOD_LINE_META[line as FoodLine].color }}
                 />
                 <span className="fh-legend-name">
-                  {FOOD_LINE_META[line as FoodLine].name}
+                  {FOOD_LINE_META[line as FoodLine].nameKo}
                 </span>
                 <span className="fh-legend-pct">
                   {Math.round((row.formula.lineRatios[line] ?? 0) * 100)}%
