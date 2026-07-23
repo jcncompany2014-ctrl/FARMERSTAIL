@@ -156,39 +156,48 @@ export default function Body({
       <h1 className="s-title">
         {petName(dogName)}의 체형을<br />같이 살펴봐요
       </h1>
+      {/* 뒷문장("점수를 직접 고르는 것보다…") 삭제 — 글 과밀 다이어트
+          (사장님 2026-07-23: "너무 글이 많아서 어지러운 느낌"). */}
       <p className="s-sub">
         세 가지만 관찰해 주시면 <strong>체형 점수(BCS)</strong>는 저희가
-        계산해요. 점수를 직접 고르는 것보다 훨씬 정확해요.
+        계산해요.
       </p>
 
-      {BODY_QUESTIONS.map((q) => (
-        <div className="s-sect" key={q.key}>
-          <div className="s-sect-lbl">
-            <span className="s-label-text">{q.label}</span>
+      {BODY_QUESTIONS.map((q) => {
+        // 보조설명은 답하기 전에만 — 답하면 접혀서 화면이 점점 가벼워진다
+        // (추가 탭 없이 자동 정리, 사장님 2026-07-23 글 다이어트).
+        const answered = body[q.key] !== ''
+        return (
+          <div className="s-sect s-qcard" key={q.key}>
+            <div className="s-sect-lbl">
+              <span className="s-label-text">{q.label}</span>
+            </div>
+            {!answered && (
+              <p className="s-sub" style={{ fontSize: 13, marginBottom: 8 }}>
+                {q.hint}
+              </p>
+            )}
+            <div className="s-chiprow">
+              {q.options.map(({ v, label }) => {
+                const active = body[q.key] === v
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    className={'s-chip' + (active ? ' s-on' : '')}
+                    aria-pressed={active}
+                    onClick={() =>
+                      onBody({ [q.key]: v } as Partial<BodyAssessmentState>)
+                    }
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-          <p className="s-sub" style={{ fontSize: 13, marginBottom: 8 }}>
-            {q.hint}
-          </p>
-          <div className="s-chiprow">
-            {q.options.map(({ v, label }) => {
-              const active = body[q.key] === v
-              return (
-                <button
-                  key={v}
-                  type="button"
-                  className={'s-chip' + (active ? ' s-on' : '')}
-                  aria-pressed={active}
-                  onClick={() =>
-                    onBody({ [q.key]: v } as Partial<BodyAssessmentState>)
-                  }
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      ))}
+        )
+      })}
 
       {/* 3문항 완성 → 역산 BCS 판정 카드 */}
       {bcs !== null && (

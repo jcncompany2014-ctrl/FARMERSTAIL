@@ -81,7 +81,7 @@ export default function Stool({
               onClick={() => setBristol(active ? null : v)}
             >
               <span
-                className="s-lb-icon"
+                className="s-lb-icon s-lb-icon-lg"
                 style={{
                   background: active
                     ? 'rgba(255,255,255,.12)'
