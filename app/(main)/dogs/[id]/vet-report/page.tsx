@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import VetReportPrintButton from './VetReportPrintButton'
-import ShareWithVetButton from './ShareWithVetButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -200,11 +199,6 @@ export default async function VetReportPage({ params }: { params: Params }) {
           </p>
         </div>
         <VetReportPrintButton />
-      </div>
-
-      {/* XL-7 (#49) 수의사 공유 링크 — 인쇄 대신 URL 전달 */}
-      <div className="max-w-4xl mx-auto mb-5 no-print">
-        <ShareWithVetButton dogId={dogId} />
       </div>
 
       {/* 보고서 본문 */}

@@ -1,15 +1,12 @@
 import Link from 'next/link'
 import { Heart, Bell, Check } from 'lucide-react'
-import {
-  type CurrentFormula,
-  type CheckinStatus,
-  FOOD_LINE_COLORS,
-  FOOD_LINE_NAMES,
-} from './types'
+import { type CurrentFormula, type CheckinStatus } from './types'
 import {
   checkinDueDayOffset,
   isCheckinLinkVisible,
 } from '@/lib/personalization/cycle'
+import { recipeName } from '@/lib/personalization/format'
+import type { Formula } from '@/lib/personalization/types'
 
 /**
  * 맞춤 영양 처방 카드 — 분석 기반 **추천** 비율 + cycle 체크인.
@@ -83,7 +80,7 @@ export default function CurrentFormulaCard({
             <span className="kicker">
               {isPending
                 ? '동의 필요 · 새 박스'
-                : `맞춤 영양 처방 · cycle ${formula.cycle_number}`}
+                : `맞춤 식단 · ${formula.cycle_number}번째 박스`}
             </span>
             {formula.user_adjusted && (
               <span className="text-[9px] font-bold text-terracotta px-1.5 py-0.5 rounded-full bg-terracotta/10">
@@ -107,38 +104,18 @@ export default function CurrentFormulaCard({
           </div>
         </div>
 
-        {/* 추천 비율임을 명시 — 실제 받는 박스와 헷갈리지 않게. */}
+        {/* 추천 식단임을 명시 — 실제 받는 박스와 헷갈리지 않게. */}
         <p className="text-[10px] text-muted mb-2 leading-snug">
           {isPending
-            ? '새로 추천된 영양 비율이에요'
-            : '분석 기반 추천 비율 · 실제 받는 박스는 아래 정기배송 카드에서 확인하세요'}
+            ? '새로 추천된 맞춤 식단이에요'
+            : '분석 기반 추천 식단 · 실제 받는 박스는 아래 정기배송 카드에서 확인하세요'}
         </p>
 
-        {/* mini stacked bar */}
-        <MiniRatioBar lineRatios={formula.formula.lineRatios} />
-
-        {/* 라인 legend (top 3) */}
-        <div className="flex flex-wrap gap-2 mt-3 mb-3">
-          {Object.entries(formula.formula.lineRatios)
-            .filter(([, v]) => v > 0)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 3)
-            .map(([line, v]) => (
-              <span
-                key={line}
-                className="inline-flex items-center gap-1.5 text-[10.5px]"
-              >
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: FOOD_LINE_COLORS[line] }}
-                />
-                <span className="text-muted">{FOOD_LINE_NAMES[line]}</span>
-                <span className="font-bold text-text">
-                  {Math.round(v * 100)}%
-                </span>
-              </span>
-            ))}
-        </div>
+        {/* 원물 레시피명(박스=2종 반반, %·라인명 없이 — 알림/이메일과 톤 통일).
+            사장님 2026-07-23 Option A. */}
+        <p className="text-[14px] font-bold text-ink mt-1 mb-3 leading-snug">
+          {recipeName(formula.formula as unknown as Formula)}
+        </p>
 
         {/* 다음 액션 — pending 우선, 그 다음 checkin D-Day */}
         {isPending ? (
@@ -153,7 +130,7 @@ export default function CurrentFormulaCard({
             {daysIntoCycle !== null && daysToEnd !== null && (
               <div className="flex items-center justify-between text-[10.5px] py-1.5 px-3 rounded-lg bg-bg">
                 <span className="text-muted">
-                  cycle {formula.cycle_number} 진행
+                  {formula.cycle_number}번째 박스 진행
                 </span>
                 <span className="font-bold text-text">
                   {daysIntoCycle}일째 · 다음 박스 D-{daysToEnd}
@@ -201,7 +178,7 @@ export default function CurrentFormulaCard({
             {checkinStatus.week_2 && checkinStatus.week_4 && (
               <div className="flex items-center justify-center text-[10.5px] py-1.5 text-muted">
                 <Check className="w-3 h-3 text-moss mr-1" strokeWidth={2.5} />
-                이번 cycle 체크인 모두 완료
+                이번 박스 체크인 모두 완료
               </div>
             )}
           </div>
@@ -211,25 +188,3 @@ export default function CurrentFormulaCard({
   )
 }
 
-function MiniRatioBar({
-  lineRatios,
-}: {
-  lineRatios: Record<string, number>
-}) {
-  return (
-    <div className="flex h-2.5 rounded-full overflow-hidden bg-rule">
-      {Object.entries(lineRatios)
-        .filter(([, v]) => v > 0)
-        .map(([line, v]) => (
-          <span
-            key={line}
-            style={{
-              width: `${Math.round(v * 100)}%`,
-              background: FOOD_LINE_COLORS[line] ?? 'var(--muted)',
-            }}
-            title={`${FOOD_LINE_NAMES[line]} ${Math.round(v * 100)}%`}
-          />
-        ))}
-    </div>
-  )
-}

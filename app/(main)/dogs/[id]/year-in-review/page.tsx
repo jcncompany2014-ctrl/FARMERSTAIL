@@ -221,7 +221,7 @@ export default async function YearInReviewPage({
         />
         <StatCard
           icon={<Camera className="w-5 h-5" strokeWidth={2} />}
-          label="일지"
+          label="일기"
           value={`${diaryCount ?? 0}편`}
           accent="var(--gold)"
         />
