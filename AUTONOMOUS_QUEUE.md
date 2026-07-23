@@ -175,6 +175,8 @@ P1 로 올리고 **2회전**: 더 깊은 디자인 완성도 + 새로 생긴 미
 ## 9. 진행 로그 (최신이 위)
 > 형식: `회차N: [P?] 무엇을·왜·검증결과`. 동시발동 락은 `🔄` 줄.
 
+- 회차317(2026-07-24, **★★최중요 발견·추론 chipLabel 전문용어 대량노출**·코드수정 0): 근거칩(chipLabel)이 고객화면 3곳(분석 BoxMixCard:141·승인 ApproveClient:163·처방히스토리 formulas:211, +progression cron:774)에 raw 렌더인데 firstBox.ts 문자열이 CKD/MMVD/EPI/CDS/IBD/Cushing's/BCS/저Na 임상약어+영문라인명(.name) 범벅 = 사장님이 지적한 "BCS·DCM 같은 모를 말"의 본진. 엔진 30+문자열+의료 평이화 번역 필요라 무인 미수정 → AUDIT에 렌더맵 3안+묶음 태스크 제안 기록(회차317). BCS(298)·%(301) 결정건도 이 화면군 부분집합=일괄 정리 권장. 이 커밋 doc-only.
+
 - 회차316(2026-07-24, **★분석 안전경고 전문용어 발견·의료라 신중**·코드수정 0): 중증 췌장염 게이트(firstBox.ts:746→AnalysisView:475 고객 렌더)에 "DM"·"therapeutic diet" 전문용어. **안전경고 의료문구+엔진인접+테스트 검증**이라 무인 미수정, AUDIT에 최소 리워드안(DM→"미만", therapeutic diet→"처방식")과 함께 기록(회차316). 긍정 확인: DCM 검진 푸시는 이미 완벽 순화(사장님 원지적 반영됨)·cardiac reasoning은 고객 미노출. 이 커밋 doc-only.
 
 - 회차315(2026-07-24, 이메일 템플릿 고객문구 감사·코드수정 0): lib/email/templates 전수 — 처방/프레시/무항생제/프리미엄/% **0건=깨끗**. BCS만 3개 템플릿(newsletter-vol-01 교육본문·quarterly-report gloss·newsletter-welcome 예고)에 등장 → 기존 BCS 결정건(회차298)에 이메일 스코프 추가(정의형 뉴스레터는 예외 후보). 무인 미수정(BCS=사장님 결정). 이 커밋에 314 이상없음 로그 번들.
