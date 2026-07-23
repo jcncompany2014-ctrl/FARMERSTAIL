@@ -1,10 +1,6 @@
 // audit #96: SurveyClient.tsx 분할 — stool step. Bristol 1~7 + GI 민감도.
 import { useState } from 'react'
 import {
-  Circle,
-  CircleCheck,
-  Droplet,
-  Droplets,
   Check,
   HelpCircle,
   Meh,
@@ -29,12 +25,15 @@ const BRISTOL_OPTIONS: {
   signal: string
   tag: string
   tone: 'good' | 'warn' | 'bad'
-  Icon: React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>
+  /** 상태별 아웃라인 아이콘(/survey/stool/*.png, pine 단색 실루엣).
+   *  CSS mask 로 칠해서 톤 색·선택 시 흰색 로직을 그대로 쓴다(2026-07-23 사장님
+   *  방향: 굵은 아웃라인 벡터 — 추상 lucide 원/물방울보다 상태가 즉시 읽힘). */
+  img: string
 }[] = [
-  { v: 2, label: '딱딱한 편', signal: '수분·섬유가 부족한 신호', tag: '변비', tone: 'bad', Icon: Circle },
-  { v: 4, label: '적당해요', signal: '건강한 변이에요', tag: '이상적', tone: 'good', Icon: CircleCheck },
-  { v: 6, label: '조금 무른 편', signal: '식이섬유를 보강하면 좋아요', tag: '무름', tone: 'warn', Icon: Droplet },
-  { v: 7, label: '물설사 같아요', signal: '잦으면 수의사 상담 권장', tag: '설사', tone: 'bad', Icon: Droplets },
+  { v: 2, label: '딱딱한 편', signal: '수분·섬유가 부족한 신호', tag: '변비', tone: 'bad', img: '/survey/stool/hard.png' },
+  { v: 4, label: '적당해요', signal: '건강한 변이에요', tag: '이상적', tone: 'good', img: '/survey/stool/ideal.png' },
+  { v: 6, label: '조금 무른 편', signal: '식이섬유를 보강하면 좋아요', tag: '무름', tone: 'warn', img: '/survey/stool/soft.png' },
+  { v: 7, label: '물설사 같아요', signal: '잦으면 수의사 상담 권장', tag: '설사', tone: 'bad', img: '/survey/stool/watery.png' },
 ]
 
 export type StoolProps = {
@@ -70,7 +69,7 @@ export default function Stool({
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-        {BRISTOL_OPTIONS.map(({ v, label, signal, tag, tone, Icon }) => {
+        {BRISTOL_OPTIONS.map(({ v, label, signal, tag, tone, img }) => {
           const active = bristol === v
           return (
             <button
@@ -93,18 +92,20 @@ export default function Stool({
                         : '#F0D8CF',
                 }}
               >
-                <Icon
-                  size={20}
-                  strokeWidth={1.8}
-                  color={
-                    active
+                <span
+                  className="s-stool-ic"
+                  aria-hidden
+                  style={{
+                    WebkitMaskImage: `url(${img})`,
+                    maskImage: `url(${img})`,
+                    backgroundColor: active
                       ? 'var(--bg)'
                       : tone === 'good'
                         ? 'var(--sage)'
                         : tone === 'warn'
                           ? '#7A5B1B'
-                          : 'var(--fd-coral)'
-                  }
+                          : 'var(--fd-coral)',
+                  }}
                 />
               </span>
               <span className="s-lb-body">

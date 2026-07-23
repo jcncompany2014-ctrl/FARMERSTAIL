@@ -340,6 +340,19 @@
   display: flex; align-items: center; justify-content: center;
   color: var(--fd-pine);
 }
+/* 변 상태 아이콘 — pine 단색 실루엣 PNG 를 알파 마스크로 쓰고 background 로
+   칠한다(톤 색·선택 시 흰색을 코드 로직 그대로). 26px = 38px 슬롯 안 균형. */
+.s-lb-icon .s-stool-ic {
+  display: block;
+  width: 26px;
+  height: 26px;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
 .s-lb-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .s-lb-title { font-size: 15px; font-weight: 800; color: var(--fd-pine); display: block; letter-spacing: -0.01em; }
 .s-lb-sub { font-size: 13px; color: var(--fd-muted); margin-top: 2px; line-height: 1.45; display: block; }
