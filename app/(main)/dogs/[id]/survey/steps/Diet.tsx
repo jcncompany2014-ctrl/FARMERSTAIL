@@ -2,18 +2,12 @@
 // 주식 / 브랜드 / 간식 / 산책(리드) / 활동(조건부) / 화식경험.
 // 정돈(2026-07-12): 식욕·식이만족도 질문 삭제(칼로리·라인 경성 소비처 없음).
 import {
-  Wheat,
-  CookingPot,
-  Combine,
   Minus,
   Plus,
   PlusCircle,
   Pause,
   Activity,
   Heart,
-  Sparkles,
-  Soup,
-  Check,
 } from 'lucide-react'
 
 type IndoorActivity = 'calm' | 'moderate' | 'active' | ''
@@ -102,10 +96,10 @@ export default function Diet({
         <div className="s-sect-lbl"><span className="s-label-text">주식 형태</span></div>
         <div className="s-tilerow">
           {[
-            { v: '건식 사료', label: '건식', meta: '사료/킵블', Icon: Wheat },
-            { v: '습식/화식', label: '습식·화식', meta: '캔/홈쿡', Icon: CookingPot },
-            { v: '반반', label: '반반', meta: '혼합', Icon: Combine },
-          ].map(({ v, label, meta, Icon }) => {
+            { v: '건식 사료', label: '건식', meta: '사료/킵블', img: '/survey/icons/diet-dry.png' },
+            { v: '습식/화식', label: '습식·화식', meta: '캔/홈쿡', img: '/survey/icons/diet-wet.png' },
+            { v: '반반', label: '반반', meta: '혼합', img: '/survey/icons/diet-half.png' },
+          ].map(({ v, label, meta, img }) => {
             const active = foodType === v
             return (
               <button
@@ -116,10 +110,14 @@ export default function Diet({
                 onClick={() => setFoodType(v)}
               >
                 <span className="s-ic">
-                  <Icon
-                    size={20}
-                    strokeWidth={1.7}
-                    color={active ? 'var(--bg)' : 'var(--fd-pine)'}
+                  <span
+                    className="s-tile-ic"
+                    aria-hidden
+                    style={{
+                      WebkitMaskImage: `url(${img})`,
+                      maskImage: `url(${img})`,
+                      backgroundColor: active ? '#fff' : 'var(--fd-pine)',
+                    }}
                   />
                 </span>
                 <span className="s-tile-lb">{label}</span>
@@ -394,10 +392,10 @@ export default function Diet({
         <div className="s-sect-lbl"><span className="s-label-text">화식 경험</span></div>
         <div className="s-tilerow">
           {[
-            { v: 'first', label: '처음', meta: '한 번도 안 줘봄', Icon: Sparkles },
-            { v: 'occasional', label: '가끔', meta: '월 1-2회', Icon: Soup },
-            { v: 'frequent', label: '자주', meta: '주 1회 이상', Icon: Check },
-          ].map(({ v, label, meta, Icon }) => {
+            { v: 'first', label: '처음', meta: '한 번도 안 줘봄', img: '/survey/icons/fresh-first.png' },
+            { v: 'occasional', label: '가끔', meta: '월 1-2회', img: '/survey/icons/fresh-sometimes.png' },
+            { v: 'frequent', label: '자주', meta: '주 1회 이상', img: '/survey/icons/fresh-often.png' },
+          ].map(({ v, label, meta, img }) => {
             const active = homeCookingExp === v
             return (
               <button
@@ -408,10 +406,14 @@ export default function Diet({
                 onClick={() => setHomeCookingExp(v as HomeCookingExp)}
               >
                 <span className="s-ic">
-                  <Icon
-                    size={20}
-                    strokeWidth={1.7}
-                    color={active ? 'var(--bg)' : 'var(--fd-pine)'}
+                  <span
+                    className="s-tile-ic"
+                    aria-hidden
+                    style={{
+                      WebkitMaskImage: `url(${img})`,
+                      maskImage: `url(${img})`,
+                      backgroundColor: active ? '#fff' : 'var(--fd-pine)',
+                    }}
                   />
                 </span>
                 <span className="s-tile-lb">{label}</span>

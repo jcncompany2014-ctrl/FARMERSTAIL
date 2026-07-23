@@ -561,6 +561,28 @@
   background: var(--fd-cream);
   display: flex; align-items: center; justify-content: center;
 }
+/* 굵은 아웃라인 아이콘(주식형태·화식경험 타일) — pine 실루엣 PNG 를 mask 로
+   칠해 선택 시 흰색 로직 유지(2026-07-23). */
+.s-tile .s-ic .s-tile-ic {
+  display: block; width: 24px; height: 24px;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-size: contain; mask-size: contain;
+}
+/* 모질·피부 칩 인라인 아이콘 */
+.s-chip .s-chip-ic {
+  display: inline-block; width: 15px; height: 15px; flex: 0 0 auto;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-size: contain; mask-size: contain;
+}
+/* 케어 목표 리스트 아이콘(웰 안) */
+.s-lb-icon .s-careicon {
+  display: block; width: 24px; height: 24px;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-size: contain; mask-size: contain;
+}
 .s-tile.s-on .s-ic { background: rgba(255, 255, 255, .18); color: #fff; }
 .s-tile .s-tile-lb { font-size: 14.5px; font-weight: 800; letter-spacing: -0.01em; }
 .s-tile .s-meta { font-size: 12px; color: var(--fd-muted); margin-top: -2px; }
