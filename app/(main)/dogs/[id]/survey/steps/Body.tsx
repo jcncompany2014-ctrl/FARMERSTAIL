@@ -224,10 +224,11 @@ export default function Body({
             </div>
             {BCS_DESCRIPTIONS[bcs].desc}
           </div>
-          {/* 해당 BCS 체형 실루엣 — 카드 오른쪽 여백에 작게(장식,
-              라벨·설명이 이미 말로 전달하므로 스크린리더에선 숨김). */}
+          {/* 해당 BCS 체형 실루엣 — 강아지 옆모습만(-dog, 탑뷰 제거·크기 통일한
+              앱 전용 크롭. 웹 원본 2뷰는 그대로). 카드 오른쪽 여백 장식이라
+              스크린리더 숨김(라벨·설명이 이미 말로 전달). */}
           <Image
-            src={`/survey/body/${BCS_BODY_IMG[bcs]}.png`}
+            src={`/survey/body/${BCS_BODY_IMG[bcs]}-dog.png`}
             alt=""
             aria-hidden
             width={56}
