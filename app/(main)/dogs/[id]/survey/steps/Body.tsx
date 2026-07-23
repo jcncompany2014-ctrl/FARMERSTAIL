@@ -218,7 +218,24 @@ export default function Body({
           <div>
             <div className="s-row">
               <strong>{BCS_DESCRIPTIONS[bcs].label}</strong>
-              <span className={'s-tag s-' + BCS_VIEW[bcs].tagTone}>
+              {/* 신호등 색을 인라인으로(사장님 2026-07-23: CSS 캐시로 태그색이
+                  안 바뀌어 보이던 것 우회 — 인라인은 JS 번들이라 확실히 반영).
+                  이상적=초록·주의=앰버·위험=딥레드 솔리드 + 텍스트 수직 중앙. */}
+              <span
+                className={'s-tag s-' + BCS_VIEW[bcs].tagTone}
+                style={{
+                  background:
+                    BCS_VIEW[bcs].tagTone === 'good'
+                      ? 'var(--fd-green)'
+                      : BCS_VIEW[bcs].tagTone === 'warn'
+                        ? 'var(--fd-gold)'
+                        : 'var(--fd-coral-ink)',
+                  color: BCS_VIEW[bcs].tagTone === 'warn' ? '#5E3B12' : '#fff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  lineHeight: 1,
+                }}
+              >
                 {BCS_VIEW[bcs].tag}
               </span>
             </div>
