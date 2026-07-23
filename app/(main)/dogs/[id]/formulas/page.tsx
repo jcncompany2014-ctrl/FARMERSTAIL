@@ -139,7 +139,7 @@ function FormulaCard({
       <div className="fh-body">
         <div className="fh-head">
           <div className="fh-head-left">
-            <span className="fh-cycle-tag">CYCLE {row.cycle_number}</span>
+            <span className="fh-cycle-tag">{row.cycle_number}번째 박스</span>
             {isLatest && <span className="fh-tag fh-tag-latest">최신</span>}
             {row.user_adjusted && (
               <span className="fh-tag fh-tag-adjusted">직접 조정</span>
