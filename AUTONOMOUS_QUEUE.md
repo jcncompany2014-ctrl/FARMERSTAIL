@@ -175,6 +175,10 @@ P1 로 올리고 **2회전**: 더 깊은 디자인 완성도 + 새로 생긴 미
 ## 9. 진행 로그 (최신이 위)
 > 형식: `회차N: [P?] 무엇을·왜·검증결과`. 동시발동 락은 `🔄` 줄.
 
+- 회차304(2026-07-24, P2 폐지기능 잔재 sweep·**코드수정 0**): 구독전용 전환(2026-06)으로 폐지된 '무료배송/위시리스트/낱개' 잔여 문구 전수 — 고객 노출=0, 매칭 전부 **폐지를 문서화한 dev 주석**(cart/checkout/products/collections 폐지 안내 + WebChrome '무료배송 클레임 금지' 규칙주석). 기능 제거 깔끔 확정. 안전한 코드-수정 표면(규칙위반·영어명·죽은 export·폐지잔재) 전반 소진 확인. ▶다음: 합성(⭐요약 갱신) or 잔여 미세 점검.
+
+- 회차303(2026-07-24, P3 영어 라인명 후속·**코드수정 0·미커밋(다음 fix에 묶음)**): AdjustSheet=meta.nameKo·color만(정상). AnalysisView magBoxItems 는 name:meta.name(영어)를 담지만 BoxMixCard 는 item.ko(=subtitle '프레시 한우 레시피')를 표시 → **영어 name은 미표시(dead-ish, MagBoxMixItem 타입상 유지)**. 표시되는 '프레시' 형용사는 analysis 상세라 의도적일 수 있어 판단 보류(AUDIT_FINDINGS %/BCS 상세-결정 클러스터 포함). 고객 노출 영어 라인명 sweep=소진(301·302 수정, 나머지 nameKo/미표시). ▶다음: 다른 규칙 위반/잔재 or 클린이면 합성.
+
 - 회차302(2026-07-24, P3 영어 라인명(.name) 전수·**커밋**): FOOD_LINE_META.name(영어) 노출 전수 — ApproveClient(재제안 승인) 3곳(:294 label·:352 hover·:366 표시) + formulas:268 hover(301에서 놓친 것) → nameKo(한글). AdjustSheet:512·formulas:171은 이미 nameKo. tsc+eslint GREEN·1커밋. ▶다음: AdjustSheet:266·305, AnalysisView:314 의 `const meta=FOOD_LINE_META[line]` 가 meta.name(영어) 표시하는지 확인.
 
 - 회차301(2026-07-24, P3 % 라인믹스 표시 점검·**커밋**): /formulas(처방 히스토리) 범례가 라인명+% 표시인데 라인명이 **영어**(FOOD_LINE_META.name='Beef'/'Chicken', skuModel 확인)라 명백 위반 → nameKo(한글 '한우'/'치킨')로 수정. % 자체 유지/제거(Option A 히스토리 확장)는 상세라 판단 필요 → AUDIT_FINDINGS 사장님 결정건 기록. BoxMixCard %=바폭전용(미표시)·RecommendationBox/AppShowcase 화식비율=이름/가치라 정당. tsc+eslint GREEN·코드+문서 1커밋. ▶다음: 잔여 영어 라인명(.name) 노출 or 클린이면 합성.
