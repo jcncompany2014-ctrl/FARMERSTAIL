@@ -684,32 +684,12 @@ export async function GET(req: Request) {
         cycleNumber: next.cycleNumber,
       })
 
-      // ── 강제 변경(알레르기·만성질환)은 승인 없이 적용 → 금액도 함께 갱신 ──
-      //
-      // 사장님 확정(2026-07-17): "원래대로 진행해. 대신 알림에다 좀 더 강조멘트를
-      // 주는 식으로. 뭐가 됐든 걔가 취소 안 하면 책임소지도 고객이야."
-      // → 통지 + 언제든 해지 가능 = 구독의 표준 모델(TFD 동일). 우리가 원가를
-      //   흡수하지 않는다. 대신 **금액이 바뀐 사실을 알림에서 강하게** 알린다.
-      //
-      // 승인 경로(pending_approval)의 금액 갱신은 approve API 가 한다 —
-      // 여기서 미리 바꾸면 승인 전에 청구액이 바뀌어 버린다.
-      let forcedPriceApplied: { from: number; to: number } | null = null
-      if (!requiresApproval && diff.priceChanged && price) {
-        const { error: priceErr } = await supabase
-          .from('subscriptions')
-          .update({ total_amount: price.nextTotal })
-          .eq('dog_id', cur.dog_id)
-        if (priceErr) {
-          // 금액만 실패 = 새 처방·옛 금액(우리가 흡수). 조용히 넘기지 않는다.
-          captureBusinessEvent('warning', 'personalization.forced_price.failed', {
-            dogId: cur.dog_id,
-            cycleNumber: next.cycleNumber,
-            error: priceErr.message,
-          })
-        } else {
-          forcedPriceApplied = { from: price.prevTotal, to: price.nextTotal }
-        }
-      }
+      // 금액 변경은 이제 전부 동의 게이트로 간다 — diff.priceChanged 는 항상
+      // meaningful(=requiresApproval)을 세운다(diff.ts: 1원이라도 다르면 동의 대상).
+      // 예전 '강제=자동적용+통지' 경로(여기서 total_amount 를 미리 갱신하던
+      // forcedPriceApplied 블록)는 도달 불가라 제거했다(사장님 2026-07-23).
+      // 청구액 갱신은 동의 시 approve API 만 수행 → 동의 없이 청구액이 바뀌는
+      // 일이 구조적으로 없다.
 
       // 변화가 없으면 여기서 끝 — 처방 row 는 남기되 보호자는 안 건드린다.
       // ("굳이 변경될 이유가 없다면 냅둬" — 사장님 2026-07-17)
@@ -749,14 +729,6 @@ export async function GET(req: Request) {
         pushTitle = `${petName(dogTyped.name)} 다음 박스 확인이 필요해요`
         pushBody = `이번 박스 구성이 바뀔 수 있어요 — ${recipeName(next)} 제안. 5일 안에 확인해 주세요.`
         pushUrl = `/dogs/${cur.dog_id}/approve?cycle=${next.cycleNumber}`
-      } else if (forcedPriceApplied) {
-        const up = forcedPriceApplied.to > forcedPriceApplied.from
-        pushTitle = `[중요] ${petName(dogTyped.name)} 결제 금액이 ${won(forcedPriceApplied.to)}원으로 ${up ? '올라가요' : '내려가요'}`
-        pushBody =
-          `안전을 위해 레시피를 바꿨어요(${diff.forceReasons[0] ?? '알레르기·건강 상태 반영'}). ` +
-          `그래서 2주 결제가 ${won(forcedPriceApplied.from)} → ${won(forcedPriceApplied.to)}원이 돼요. ` +
-          `원하지 않으시면 다음 결제 전에 일시정지·해지하실 수 있어요.`
-        pushUrl = `/account/subscriptions`
       } else {
         pushTitle = `${petName(dogTyped.name)} 다음 박스 준비됐어요 🐾`
         pushBody = `이번 박스는 ${recipeName(next)}예요. 자세히 보기 →`
