@@ -600,7 +600,11 @@ export async function GET(req: Request) {
           : undefined
 
       const diff = diffFormulas(previousFormula, next, { price })
-      const requiresApproval = diff.meaningful && !diff.forced
+      // 강제 변경(알레르기·건강)도 **금액이 오르면** 동의 게이트로 — 자동적용 X.
+      // (사장님 2026-07-23: "동의받고 결제 / 거부하면 이전 유지". §13의2 정합.)
+      // 금액 변동 없는 강제(무료 안전 조정)만 종전대로 자동적용.
+      const requiresApproval =
+        diff.meaningful && (!diff.forced || diff.priceChanged)
 
       // 실제로 바뀐 게 있나 (사장님 2026-07-17: "굳이 레시피나 칼로리가
       // 변경될 이유가 없다면 냅둬"). 이전엔 변화가 0이어도 매 cycle
@@ -630,7 +634,22 @@ export async function GET(req: Request) {
         dog_id: cur.dog_id,
         user_id: cur.user_id,
         cycle_number: next.cycleNumber,
-        formula: { lineRatios: next.lineRatios, toppers: next.toppers },
+        formula: {
+          lineRatios: next.lineRatios,
+          toppers: next.toppers,
+          // 금액이 바뀌는 제안(몸무게·알레르기·건강 무엇이든) 동의 대기 표식 —
+          // 구독페이지 모달·3일 타임아웃이 이걸로 일반(무금액) 승인과 구분한다.
+          // forced=알레르기·건강(안전 프레이밍+거부 경고), false=몸무게 등(담백).
+          ...(requiresApproval && diff.priceChanged && price
+            ? {
+                priceChange: {
+                  from: price.prevTotal,
+                  to: price.nextTotal,
+                  forced: diff.forced,
+                },
+              }
+            : {}),
+        },
         reasoning: next.reasoning,
         transition_strategy: next.transitionStrategy,
         algorithm_version: next.algorithmVersion,
@@ -714,11 +733,21 @@ export async function GET(req: Request) {
       let pushTitle: string
       let pushBody: string
       let pushUrl: string
-      if (requiresApproval) {
+      if (requiresApproval && diff.priceChanged && price) {
+        // 금액이 바뀌는 제안(몸무게·알레르기·건강) → 구독페이지 동의 모달.
+        // 3일 안에 동의/거부, 무반응=거부. 모달은 pending 상태를 감지해 뜬다.
+        if (diff.forced) {
+          pushTitle = `[중요] ${petName(dogTyped.name)} 다음 박스 확인이 필요해요`
+          pushBody = `안전을 위해 레시피를 바꿔야 해서 2주 결제가 ${won(price.prevTotal)} → ${won(price.nextTotal)}원이 돼요. 3일 안에 동의 또는 이전 유지를 골라주세요.`
+        } else {
+          pushTitle = `${petName(dogTyped.name)} 다음 박스 확인이 필요해요`
+          pushBody = `몸무게 변화를 반영하면 2주 결제가 ${won(price.prevTotal)} → ${won(price.nextTotal)}원이 돼요. 3일 안에 동의 또는 이전 유지를 골라주세요.`
+        }
+        pushUrl = `/account/subscriptions`
+      } else if (requiresApproval) {
+        // 금액 변동 없는 제안 → 기존 승인 화면(/approve) 유지.
         pushTitle = `${petName(dogTyped.name)} 다음 박스 확인이 필요해요`
-        pushBody = diff.priceChanged && price
-          ? `레시피가 바뀌면서 결제 금액도 ${won(price.prevTotal)} → ${won(price.nextTotal)}원이 돼요. 5일 안에 확인해 주세요.`
-          : `이번 박스 구성이 바뀔 수 있어요 — ${recipeName(next)} 제안. 5일 안에 확인해 주세요.`
+        pushBody = `이번 박스 구성이 바뀔 수 있어요 — ${recipeName(next)} 제안. 5일 안에 확인해 주세요.`
         pushUrl = `/dogs/${cur.dog_id}/approve?cycle=${next.cycleNumber}`
       } else if (forcedPriceApplied) {
         const up = forcedPriceApplied.to > forcedPriceApplied.from
@@ -750,7 +779,10 @@ export async function GET(req: Request) {
 
       // 이메일 발송 — push OFF 사용자도 받게. profile 의 email + name 조회.
       // best-effort. agree_email=false 인 사용자는 sendEmail 이 알아서 차단.
-      void (async () => {
+      // 단 금액변경 동의 대기(모달 처리)는 아직 확정이 아니라 "준비됐어요"
+      // 메일을 보내지 않는다 — 푸시가 "확인 필요"를 이미 전달.
+      if (!(requiresApproval && diff.priceChanged))
+        void (async () => {
         try {
           const { data: profile } = await supabase
             .from('profiles')

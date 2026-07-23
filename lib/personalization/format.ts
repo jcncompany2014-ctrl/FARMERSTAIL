@@ -54,6 +54,40 @@ export function recipeName(formula: Formula): string {
   return `${label} 레시피`
 }
 
+const ALLERGY_PROTEIN_KO: Record<string, string> = {
+  chicken: '닭',
+  duck: '오리',
+  pork: '돼지',
+  beef: '소',
+  salmon: '연어',
+}
+
+/**
+ * 다음 박스 변경 사유를 고객 언어 한 문장으로 — 구독페이지 동의 모달·알림용.
+ * forced(알레르기·건강)는 안전 프레이밍, 그 외(몸무게 등)는 담백하게.
+ * 개발 문구(diff.forceReasons)를 그대로 노출하지 않기 위함(사장님 2026-07-23).
+ */
+export function friendlyChangeReason(
+  reasoning: Array<{ ruleId: string }>,
+  forced: boolean,
+): string {
+  if (forced) {
+    const allergy = reasoning.find(
+      (r) =>
+        r.ruleId.startsWith('allergy-') || r.ruleId.startsWith('next-allergy-'),
+    )
+    if (allergy) {
+      const key = allergy.ruleId.replace(/^next-/, '').replace(/^allergy-/, '')
+      const ko = ALLERGY_PROTEIN_KO[key]
+      return ko
+        ? `새로 등록한 ${ko} 알레르기를 반영하려고요.`
+        : '새로 등록한 알레르기를 반영하려고요.'
+    }
+    return '건강 상태(만성질환)를 반영하려고요.'
+  }
+  return '그동안의 체크인과 몸무게 변화를 반영했어요.'
+}
+
 /**
  * 라인 비율을 한 줄 문자열로. 0% 라인 제외, 비중 내림차순.
  *

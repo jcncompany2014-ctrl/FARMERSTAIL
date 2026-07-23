@@ -9,6 +9,9 @@ import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
 import SubscriptionsWebClient from './SubscriptionsWebClient'
 import { subscriptionState } from '@/lib/subscription-state'
 import type { Subscription } from './types'
+import { recipeName, friendlyChangeReason } from '@/lib/personalization/format'
+import type { Formula } from '@/lib/personalization/types'
+import type { PriceChangeProposal } from './PriceChangeConsentModal'
 
 /**
  * /account/subscriptions — 웹 사용자용 정기배송 관리.
@@ -65,6 +68,53 @@ export default async function AccountSubscriptionsPage({
   // 앱(PWA)에선 웹 breadcrumb·FD hero 를 숨기고 앱 톤 헤더로 — 앱 chrome 안에서 웹
   // 마스트헤드가 겹쳐 어색하던 것 정리(사장님 2026-07-16 "앱 디자인 개박살").
   const isApp = await isAppContextServer()
+
+  // 금액이 바뀌는 다음-박스 제안(pending)이 있으면 구독페이지 동의 모달을 띄운다.
+  // cron 이 formula.priceChange 표식을 남긴 pending_approval row 를 감지 — 알림
+  // 링크가 아니라 상태로 뜨므로 페이지 방문마다 뜬다(사장님 2026-07-23).
+  let priceProposal: PriceChangeProposal | null = null
+  {
+    const { data: pendingRows } = await supabase
+      .from('dog_formulas')
+      .select('dog_id, cycle_number, formula, reasoning')
+      .eq('user_id', user.id)
+      .eq('approval_status', 'pending_approval')
+      .order('created_at', { ascending: false })
+    type PendingRow = {
+      dog_id: string
+      cycle_number: number
+      formula: {
+        lineRatios: Formula['lineRatios']
+        toppers: Formula['toppers']
+        priceChange?: { from: number; to: number; forced: boolean }
+      }
+      reasoning: Array<{ ruleId: string }> | null
+    }
+    const hit = ((pendingRows ?? []) as unknown as PendingRow[]).find(
+      (r) => r.formula?.priceChange,
+    )
+    if (hit?.formula.priceChange) {
+      const { data: dogRow } = await supabase
+        .from('dogs')
+        .select('name')
+        .eq('id', hit.dog_id)
+        .maybeSingle()
+      const dogName = (dogRow as { name?: string } | null)?.name ?? '우리 아이'
+      priceProposal = {
+        dogId: hit.dog_id,
+        dogName,
+        cycleNumber: hit.cycle_number,
+        recipeLabel: recipeName(hit.formula as unknown as Formula),
+        reason: friendlyChangeReason(
+          hit.reasoning ?? [],
+          hit.formula.priceChange.forced,
+        ),
+        forced: hit.formula.priceChange.forced,
+        priceFrom: hit.formula.priceChange.from,
+        priceTo: hit.formula.priceChange.to,
+      }
+    }
+  }
 
   return (
     <AuthAwareShell>
@@ -137,6 +187,7 @@ export default async function AccountSubscriptionsPage({
           <SubscriptionsWebClient
             initialSubs={initialSubs}
             focusSubId={sp.focus ?? null}
+            priceProposal={priceProposal}
           />
         </Container>
       </main>

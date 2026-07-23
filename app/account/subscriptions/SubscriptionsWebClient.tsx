@@ -44,10 +44,14 @@ import {
   type SubState,
 } from '@/lib/subscription-state'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
+import PriceChangeConsentModal, {
+  type PriceChangeProposal,
+} from './PriceChangeConsentModal'
 
 type Props = {
   initialSubs: Subscription[]
   focusSubId: string | null
+  priceProposal: PriceChangeProposal | null
 }
 
 // ★ status 컬럼이 아니라 subscriptionState() 로 판정 — '유령 활성'(카드 없이
@@ -65,7 +69,11 @@ function formatKRW(n: number): string {
   return `${n.toLocaleString('ko-KR')}원`
 }
 
-export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Props) {
+export default function SubscriptionsWebClient({
+  initialSubs,
+  focusSubId,
+  priceProposal,
+}: Props) {
   const router = useRouter()
   const supabase = createClient()
   const toast = useToast()
@@ -310,6 +318,7 @@ export default function SubscriptionsWebClient({ initialSubs, focusSubId }: Prop
 
   return (
     <div className="flex flex-col gap-4 md:gap-5">
+      {priceProposal && <PriceChangeConsentModal proposal={priceProposal} />}
       {visibleSubs.map((sub) => {
         const state = subscriptionState(sub)
         const status = STATE_FD[state]

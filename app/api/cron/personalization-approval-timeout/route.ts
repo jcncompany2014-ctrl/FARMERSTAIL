@@ -40,6 +40,12 @@ export async function GET(req: Request) {
     const fiveDaysAgo = new Date(
     Date.now() - 5 * 24 * 60 * 60 * 1000,
   ).toISOString()
+  // 금액이 바뀌는 제안(몸무게·알레르기·건강, 구독페이지 모달)은 3일 안에 응답
+  // 없으면 미동의(=이전 유지)로. 금액 변동 없는 일반 승인은 종전대로 5일.
+  // (사장님 2026-07-23)
+  const threeDaysAgo = new Date(
+    Date.now() - 3 * 24 * 60 * 60 * 1000,
+  ).toISOString()
   const now = new Date().toISOString()
 
   type PendingRow = {
@@ -48,13 +54,17 @@ export async function GET(req: Request) {
     user_id: string
     cycle_number: number
     proposed_at: string
+    formula: {
+      priceChange?: { from: number; to: number; forced: boolean }
+    } | null
   }
 
+  // 3일 경과분을 넓게 잡고, row 별 마감(강제 3일 / 일반 5일)으로 판정.
   const { data: pending, error: pendErr } = await supabase
     .from('dog_formulas')
-    .select('id, dog_id, user_id, cycle_number, proposed_at')
+    .select('id, dog_id, user_id, cycle_number, proposed_at, formula')
     .eq('approval_status', 'pending_approval')
-    .lt('proposed_at', fiveDaysAgo)
+    .lt('proposed_at', threeDaysAgo)
     .limit(200)
 
   if (pendErr) {
@@ -72,6 +82,10 @@ export async function GET(req: Request) {
 
   for (const row of rows) {
     try {
+      // row 별 마감: 금액변경 제안(priceChange 표식·모달)=3일, 일반=5일. 3일
+      // 경과분을 다 가져왔으니 모달건은 전부 대상, 일반은 5일 지난 것만 처리.
+      const isModal = !!row.formula?.priceChange
+      if (!isModal && row.proposed_at >= fiveDaysAgo) continue
       // 1) 본 row 를 declined 로 전환.
       const { error: updErr } = await supabase
         .from('dog_formulas')
