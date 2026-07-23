@@ -11,7 +11,7 @@ import {
   TOPPER_TO_SLUG,
 } from '@/lib/personalization/skuMap'
 import type { AlgorithmInput, Checkin, Formula } from '@/lib/personalization/types'
-import { mainLineOf, recipeName } from '@/lib/personalization/format'
+import { recipeName } from '@/lib/personalization/format'
 import { petName } from '@/lib/korean'
 import { diffFormulas } from '@/lib/personalization/diff'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
@@ -709,7 +709,6 @@ export async function GET(req: Request) {
       // 보호자가 청구 변경을 **모르고 지나친다** → 통지-후-해지 모델이 성립 안 함
       // ("취소 안 하면 고객 책임" 은 **알렸을 때만** 성립한다). 그래서 금액을
       // 제목에 박고 본문 첫 문장으로 올린다 (사장님 2026-07-17 "강조멘트").
-      const main = mainLineOf(next)
       const won = (n: number) => n.toLocaleString('ko-KR')
 
       let pushTitle: string
@@ -765,9 +764,7 @@ export async function GET(req: Request) {
             dogName: dogTyped.name,
             dogId: cur.dog_id,
             cycleNumber: next.cycleNumber,
-            mainLineName: main.name,
-            mainLineSubtitle: main.subtitle,
-            mainLinePct: main.pct,
+            recipeLabel: recipeName(next),
             reasoningLabels: next.reasoning
               .slice(0, 4)
               .map((r) => r.chipLabel),

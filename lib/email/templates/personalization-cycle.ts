@@ -13,12 +13,8 @@ export type PersonalizationCycleEmailInput = {
   dogName: string
   dogId: string
   cycleNumber: number
-  /** 메인 라인 한국어명 — "Joint" / "Skin" 등. */
-  mainLineName: string
-  /** 메인 라인 한국어 부제 — "관절·시니어" 등. */
-  mainLineSubtitle: string
-  /** 메인 라인 % (정수, 0~100). */
-  mainLinePct: number
+  /** 이번 박스 원물(레시피) 이름 — "한우·치킨 레시피". %·형용사 없음. */
+  recipeLabel: string
   /** Reasoning chipLabel 배열. 최대 4개 노출. */
   reasoningLabels: string[]
 }
@@ -48,13 +44,10 @@ export function renderPersonalizationCycle(
 
   const calloutHtml = `
     <div style="font-size:11px;font-weight:800;color:#B63619;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;">
-      이번 달 메인
+      이번 박스 레시피
     </div>
     <div style="font-family:Pretendard,sans-serif;font-size:22px;font-weight:800;color:#173B33;letter-spacing:-0.02em;line-height:1.2;">
-      ${escape(input.mainLineName)} ${input.mainLinePct}%
-    </div>
-    <div style="font-size:13px;color:#5A6C61;margin-top:4px;">
-      ${escape(input.mainLineSubtitle)}
+      ${escape(input.recipeLabel)}
     </div>
   `
 
@@ -65,7 +58,7 @@ export function renderPersonalizationCycle(
     <p style="margin:0 0 18px 0;">
       <strong style="color:#173B33;">${escape(petName(input.dogName))}의
       ${input.cycleNumber}번째 박스</strong>가 준비됐어요. 그동안의 체크인
-      응답을 반영해 비율을 조정했어요.
+      응답을 반영해 구성을 조정했어요.
     </p>
 
     ${block.callout('terracotta', calloutHtml)}
@@ -83,14 +76,14 @@ export function renderPersonalizationCycle(
     }
 
     <p style="margin:24px 0 0 0;font-size:13px;color:#173B33;line-height:1.7;">
-      라인별 분배, 토퍼 비중, 이번 cycle 의 결정 이유 — 모두 박스 페이지에서
-      확인할 수 있어요. 마음에 안 드는 부분이 있으면 직접 비율을 조정할 수도
+      레시피 구성과 이번 박스를 이렇게 정한 이유 — 모두 박스 페이지에서
+      확인할 수 있어요. 마음에 안 드는 부분이 있으면 직접 조정할 수도
       있어요.
     </p>
 
     <p style="margin:18px 0 0 0;font-size:11px;color:#5A6C61;line-height:1.65;">
       박스가 도착하기 약 일주일 전에 정기 결제가 진행돼요. 바꾸고 싶은 게 있다면
-      <a href="${SITE_URL}/mypage/subscriptions" style="color:#B63619;">구독 관리</a>
+      <a href="${SITE_URL}/account/subscriptions" style="color:#B63619;">구독 관리</a>
       에서 언제든 조정할 수 있어요.
     </p>
   `
@@ -99,7 +92,7 @@ export function renderPersonalizationCycle(
     subject,
     html: renderLayout({
       preview: subject,
-      kicker: `Cycle ${input.cycleNumber} · 다음 박스`,
+      kicker: `${input.cycleNumber}번째 맞춤 박스`,
       heading: `${petName(input.dogName)}의 다음 박스`,
       body,
       cta: {

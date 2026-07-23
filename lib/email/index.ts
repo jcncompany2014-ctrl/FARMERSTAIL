@@ -506,9 +506,7 @@ export async function notifyPersonalizationCycle(input: {
   dogName: string
   dogId: string
   cycleNumber: number
-  mainLineName: string
-  mainLineSubtitle: string
-  mainLinePct: number
+  recipeLabel: string
   reasoningLabels: string[]
 }) {
   const { subject, html } = renderPersonalizationCycle({
@@ -516,9 +514,7 @@ export async function notifyPersonalizationCycle(input: {
     dogName: input.dogName,
     dogId: input.dogId,
     cycleNumber: input.cycleNumber,
-    mainLineName: input.mainLineName,
-    mainLineSubtitle: input.mainLineSubtitle,
-    mainLinePct: input.mainLinePct,
+    recipeLabel: input.recipeLabel,
     reasoningLabels: input.reasoningLabels,
   })
   return sendEmail({
