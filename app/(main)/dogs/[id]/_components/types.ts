@@ -65,19 +65,3 @@ export type ActiveSubscription = {
   /** 실제 배송 레시피(정본). dog_formulas(추천)와 달리 gateAvailability·snapBoxRatios 반영된 최종 박스. */
   subscription_items: { product_name: string; quantity: number }[]
 }
-
-export const FOOD_LINE_COLORS: Record<string, string> = {
-  basic: 'var(--terracotta)',
-  weight: 'var(--moss)',
-  skin: 'var(--gold)',
-  premium: '#9B5B5B',
-  joint: '#C97F8E',
-}
-
-export const FOOD_LINE_NAMES: Record<string, string> = {
-  basic: 'Basic',
-  weight: 'Weight',
-  skin: 'Skin',
-  premium: 'Premium',
-  joint: 'Joint',
-}
