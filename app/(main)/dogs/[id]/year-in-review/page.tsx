@@ -78,6 +78,9 @@ export default async function YearInReviewPage({
   const daysIn = Math.floor(
     (periodEnd.getTime() - registeredAt.getTime()) / 86_400_000,
   )
+  // 1년 미만 계정(예: 66일)엔 "한 해" 문구가 거짓 → 실제 기간에 맞춰 톤 전환.
+  // (제목은 항상 실제 일수 "함께한 N일" 로 정직하게.) 사장님 2026-07-23 점검.
+  const isFullYear = daysIn >= 365
 
   const [
     { data: weightLogs },
@@ -158,7 +161,7 @@ export default async function YearInReviewPage({
             아직 한 해가 안 됐어요
           </h1>
           <p className="mt-2 text-[12px] leading-relaxed text-text/70">
-            {josa(dogRow.name, '과', '와')} 함께한 시간이 {daysIn}일이에요.
+            {josa(petName(dogRow.name), '과', '와')} 함께한 시간이 {daysIn}일이에요.
             <br />
             조금만 더 모이면 한 해 회고를 볼 수 있어요.
           </p>
@@ -178,7 +181,7 @@ export default async function YearInReviewPage({
       {/* 히어로 */}
       <section className="px-5 pt-6">
         <span className="kicker" style={{ color: 'var(--terracotta)' }}>
-          Year in Review · 한 해 회고
+          {isFullYear ? 'Year in Review · 한 해 회고' : '함께한 기록 · 돌아보기'}
         </span>
         <h1
           className="font-sans mt-2 leading-tight"
@@ -189,10 +192,10 @@ export default async function YearInReviewPage({
             letterSpacing: '-0.02em',
           }}
         >
-          {josa(dogRow.name, '과', '와')} 함께한 {daysIn}일
+          {josa(petName(dogRow.name), '과', '와')} 함께한 {daysIn}일
         </h1>
         <p className="mt-2 text-[13.5px] leading-relaxed text-text/80">
-          정성껏 챙겨주셔서 고마워요. 한 해를 짧게 돌아볼게요.
+          정성껏 챙겨주셔서 고마워요. {isFullYear ? '한 해를' : '그동안을'} 짧게 돌아볼게요.
         </p>
       </section>
 
@@ -306,11 +309,11 @@ export default async function YearInReviewPage({
               letterSpacing: '-0.01em',
             }}
           >
-            한 해 동안 정성껏 챙겨주셔서 고마워요
+            {isFullYear ? '한 해 동안' : '그동안'} 정성껏 챙겨주셔서 고마워요
           </p>
           <p className="mt-1.5 text-[12px] leading-relaxed text-text/75">
             {petName(dogRow.name)}의 작은 변화 하나하나가 모여 이번 회고가 됐어요.
-            다음 한 해도 천천히, 함께 가요.
+            {isFullYear ? ' 다음 한 해도' : ' 앞으로도'} 천천히, 함께 가요.
           </p>
         </div>
       </section>
