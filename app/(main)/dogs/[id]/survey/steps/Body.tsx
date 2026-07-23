@@ -243,9 +243,12 @@ export default function Body({
                   display: 'inline-flex',
                   alignItems: 'center',
                   lineHeight: 1,
-                  // 폰트 메트릭상 글자가 줄박스 위쪽에 떠, 중앙정렬만으론 태그가
-                  // 살짝 낮아 보임 → 3px 위로 올려 시각적으로 딱 맞춤(사장님 2026-07-23).
-                  transform: 'translateY(-3px)',
+                  // '주의'만 살짝 낮아 보여 위로 올림. 이상적·위험은 원래 중앙정렬
+                  // 그대로(사장님 2026-07-23: 멀쩡하던 것 건드리지 말 것).
+                  transform:
+                    BCS_VIEW[bcs].tagTone === 'warn'
+                      ? 'translateY(-5px)'
+                      : undefined,
                 }}
               >
                 {BCS_VIEW[bcs].tag}
