@@ -6,6 +6,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import {
   AlertTriangle,
+  Check,
   HelpCircle,
   MoonStar,
   Moon,
@@ -174,10 +175,9 @@ export default function Body({
             key={q.key}
           >
             <div className="s-qhead">
-              {/* 답해도 숫자 유지(사장님 2026-07-23: 체크 대신 1·2·3) —
-                  완료 신호는 칩·보더의 초록 전환으로만. */}
+              {/* 답하면 번호→체크 (사장님 2026-07-23 재확정: 체크로 복구). */}
               <span className="s-qnum" aria-hidden>
-                {qi + 1}
+                {answered ? <Check size={12} strokeWidth={3} /> : qi + 1}
               </span>
               <div className="s-sect-lbl">
                 <span className="s-label-text">{q.label}</span>

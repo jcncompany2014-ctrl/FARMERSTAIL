@@ -69,11 +69,13 @@
 }
 .s-page h1.s-title {
   font-family: var(--font-sans), "Pretendard", sans-serif;
-  /* FD Display — 파인 헤비 900 타이트 (-0.035em), pine 잉크 */
-  font-weight: 900;
-  letter-spacing: -0.035em;
+  /* 한글 호흡 튜닝(사장님 2026-07-23: "너무 볼드해서 자간이 좁은 느낌, 살짝
+     띄워봐") — 900/-0.035em/1.04 는 라틴 디스플레이 수치라 한글 음절이 눌렸다.
+     800 + 자간·행간 소폭 완화로 또렷함은 유지하고 답답함만 뺀다. */
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--fd-pine);
-  line-height: 1.04;
+  line-height: 1.16;
   font-size: 26px;
   margin: 4px 0 6px;
   /* programmatic focus (step 전환 시 a11y) — 시각 outline 제거,
@@ -87,7 +89,7 @@
 }
 .s-page p.s-sub {
   font-size: 14px; color: var(--fd-muted); line-height: 1.55;
-  margin: 0 0 12px;
+  margin: 0 0 16px; /* 헤더-첫 카드 사이 호흡 +4 (2026-07-23 2차) */
   text-wrap: pretty;
 }
 .s-page p.s-sub .s-pill {
@@ -181,7 +183,10 @@
 .s-qcard-done .s-qnum { background: var(--fd-green); color: #fff; }
 .s-qhint {
   font-size: 12.5px; color: var(--fd-muted); line-height: 1.5;
-  margin: 0 0 10px; padding-left: 30px; /* 번호칩 22 + gap 8 = 라벨과 정렬 */
+  /* 들여쓰기 제거(2026-07-23 2차) — 라벨·힌트만 들여쓰고 칩은 왼쪽 끝이라
+     세로 정렬축이 지그재그였다. 번호칩은 라벨 행의 불릿으로만 두고
+     힌트·칩은 카드 왼끝 한 축으로 통일. */
+  margin: 0 0 10px;
   text-wrap: pretty;
 }
 /* 흰 카드 안 칩은 크림 웰로(FD 웰 문법) — 보더 대신 면으로 구분, 선택=pine 유지 */
