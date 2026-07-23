@@ -243,6 +243,9 @@ export default function Body({
                   display: 'inline-flex',
                   alignItems: 'center',
                   lineHeight: 1,
+                  // 폰트 메트릭상 글자가 줄박스 위쪽에 떠, 중앙정렬만으론 태그가
+                  // 살짝 낮아 보임 → 3px 위로 올려 시각적으로 딱 맞춤(사장님 2026-07-23).
+                  transform: 'translateY(-3px)',
                 }}
               >
                 {BCS_VIEW[bcs].tag}
