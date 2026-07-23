@@ -57,7 +57,9 @@
    focus mode (AppChrome 의 header/nav hide) 적용으로 한 화면 fit
    가능하게 padding 축소. 사용자 피드백 반영. */
 .s-page {
-  padding: 10px 22px 16px;
+  /* 하단 28px — 스크롤 중 마지막 카드(변 아이콘 등)가 sticky CTA 에 물려
+     가려 보이던 것 완화(2026-07-23). */
+  padding: 10px 22px 28px;
   animation: s-page-enter 220ms cubic-bezier(.32, .72, .0, 1);
 }
 @keyframes s-page-enter {
@@ -189,12 +191,15 @@
   margin: 0 0 10px;
   text-wrap: pretty;
 }
-/* 흰 카드 안 칩은 크림 웰로(FD 웰 문법) — 보더 대신 면으로 구분, 선택=pine 유지 */
+/* 흰 카드 안 칩은 크림 웰로(FD 웰 문법) — 보더 대신 면으로 구분.
+   선택 = 코랄 채움(2026-07-23: "초록 하나뿐이라 미완성" — 설문의 나머지
+   선택 문법(pickcard·listbtn·tile)과 동일한 코랄로 정렬. 새 색 추가 없이
+   초록 체크 + 코랄 선택의 자연스러운 밸런스). */
 .s-qcard .s-chip { background: var(--bg-2); box-shadow: none; }
 .s-qcard .s-chip:hover { box-shadow: inset 0 0 0 1px var(--fd-green); }
 .s-qcard .s-chip.s-on {
-  background: var(--fd-pine); color: #fff;
-  box-shadow: inset 0 0 0 1px var(--fd-pine);
+  background: var(--fd-coral); color: #fff;
+  box-shadow: inset 0 0 0 1px var(--fd-coral);
 }
 
 /* R34c — section group divider. Diet step 처럼 sub-sections 가 많은 곳에서
@@ -397,15 +402,15 @@
   mask-size: contain;
 }
 /* 변 카드 전용 확대 박스 — 38px 기본 슬롯에선 실루엣이 꽉 차 잘려 보임
-   (사장님 2026-07-23 폰 확인). 박스를 키우고 아이콘 비율은 낮춰 숨을 준다. */
+   (사장님 2026-07-23 폰 확인, 2차: "아직도 가려진다" → 52px 로 추가 확대). */
 .s-lb-icon.s-lb-icon-lg {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 52px;
+  height: 52px;
+  border-radius: 13px;
 }
 .s-lb-icon.s-lb-icon-lg .s-stool-ic {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
 }
 .s-lb-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .s-lb-title { font-size: 15px; font-weight: 800; color: var(--fd-pine); display: block; letter-spacing: -0.01em; }

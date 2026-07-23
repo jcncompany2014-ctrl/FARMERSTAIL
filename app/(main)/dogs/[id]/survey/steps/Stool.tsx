@@ -98,8 +98,10 @@ export default function Stool({
                   style={{
                     WebkitMaskImage: `url(${img})`,
                     maskImage: `url(${img})`,
+                    // active 는 코랄 채움 위 — var(--bg) 대신 #fff 리터럴
+                    // (다크모드 도입 시 --bg 가 어두워져도 항상 흰색 보장).
                     backgroundColor: active
-                      ? 'var(--bg)'
+                      ? '#fff'
                       : tone === 'good'
                         ? 'var(--sage)'
                         : tone === 'warn'

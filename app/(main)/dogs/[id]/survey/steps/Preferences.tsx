@@ -127,7 +127,8 @@ export default function Preferences({
                   <Icon
                     size={20}
                     strokeWidth={1.8}
-                    color={active ? 'var(--bg)' : 'var(--fd-coral)'}
+                    // active 는 코랄 채움 위 — #fff 리터럴(--bg 다크 내성).
+                    color={active ? '#fff' : 'var(--fd-coral)'}
                   />
                 </span>
                 <span className="s-lb-body">
@@ -138,7 +139,7 @@ export default function Preferences({
                   <Check
                     size={16}
                     strokeWidth={2.5}
-                    color="var(--bg)"
+                    color="#fff"
                     style={{ flex: '0 0 auto' }}
                   />
                 )}

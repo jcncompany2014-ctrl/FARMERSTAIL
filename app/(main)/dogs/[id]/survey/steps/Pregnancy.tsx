@@ -92,8 +92,10 @@ export default function Pregnancy({
               color: 'var(--fd-pine)',
             }}
           >
+            {/* 골드 위 흰 아이콘 1.9:1 로 거의 안 보이던 것 → 다크 골드브라운
+                (s-tag.s-warn 텍스트 톤과 동일)으로 대비 확보(2026-07-23 점검). */}
             <span className="s-ic-warn" style={{ background: 'var(--fd-gold)' }}>
-              <AlertCircle size={13} strokeWidth={2.2} color="#fff" />
+              <AlertCircle size={13} strokeWidth={2.2} color="#7A5B1B" />
             </span>
             <span>
               12개월 미만 강아지의 임신·수유는 매우 드물어요. 한 번 더
