@@ -130,11 +130,15 @@
 }
 .s-echo .s-e svg { width: 11px; height: 11px; color: var(--fd-green); }
 
-/* Section labels — FD eyebrow grammar (green sans, 0.14em / 800). */
+/* Section labels = 스텝 안의 '소질문'. 옛 FD eyebrow(11px 대문자 green)로는
+   질문이 바로 아래 선택지(14~15px pine)보다 작고 흐려 위계가 뒤집혔다
+   (사장님 2026-07-23 피드백: "주요 질문 폰트가 너무 작다·구분이 안 간다").
+   한글 질문답게 16px / pine / 정상 자간으로 승격 — uppercase는 한글에 무의미해
+   제거, 초록→pine으로 크림 배경 대비도 확보. presentation-only. */
 .s-sect-lbl {
   font-family: var(--font-sans), "Pretendard", sans-serif;
-  font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--fd-green);
+  font-size: 16px; font-weight: 800; letter-spacing: -0.01em;
+  text-transform: none; color: var(--fd-pine);
   margin: 0 0 10px; display: flex; align-items: center; gap: 7px;
   flex-wrap: nowrap;
 }
