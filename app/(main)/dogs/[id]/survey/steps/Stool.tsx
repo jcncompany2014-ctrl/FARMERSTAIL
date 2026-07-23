@@ -75,8 +75,13 @@ export default function Stool({
             <button
               key={v}
               type="button"
-              // 설사(7) 극단만 selected 시 danger 색.
-              className={'s-listbtn' + (v === 7 ? ' s-listbtn-danger' : '')}
+              // 적당(이상적)=선택 시 초록(사장님 2026-07-23), 설사(7)=적갈,
+              // 나머지=코랄(기본).
+              className={
+                's-listbtn' +
+                (tone === 'good' ? ' s-listbtn-good' : '') +
+                (v === 7 ? ' s-listbtn-danger' : '')
+              }
               aria-pressed={active}
               onClick={() => setBristol(active ? null : v)}
             >

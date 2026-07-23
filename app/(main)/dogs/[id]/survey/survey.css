@@ -274,6 +274,12 @@
   background: var(--fd-coral-ink);
   box-shadow: inset 0 0 0 1px var(--fd-coral-ink);
 }
+/* 적당(이상적)=선택 시 초록 채움(사장님 2026-07-23: 건강한 변이니 코랄 대신
+   초록). 흰 글자·흰 실루엣·흰 태그는 기존 [aria-pressed] 규칙이 그대로 적용. */
+.s-listbtn.s-listbtn-good[aria-pressed="true"] {
+  background: var(--fd-green);
+  box-shadow: inset 0 0 0 1px var(--fd-green);
+}
 .s-pickcard .s-swatch {
   display: flex; align-items: center; justify-content: center;
   height: 34px;
