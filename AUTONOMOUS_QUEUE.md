@@ -175,6 +175,8 @@ P1 로 올리고 **2회전**: 더 깊은 디자인 완성도 + 새로 생긴 미
 ## 9. 진행 로그 (최신이 위)
 > 형식: `회차N: [P?] 무엇을·왜·검증결과`. 동시발동 락은 `🔄` 줄.
 
+- 회차305(2026-07-24, P2 죽은 포매터 발견·**코드수정 0**): format.ts 옛 포매터 7종(mainLineOf·formatLineRatios·formatToppers·transitionLabel·totalGrams·formatFormulaSummary·formatReasoningSummary) 전수 — 이번 세션 recipeName 전환으로 **prod 사용처 0**(format.test.ts 테스트만). 재사용 순수 유틸이라 무인 삭제 보류 → AUDIT_FINDINGS 정리 결정건 기록. recipeName·friendlyChangeReason 만 prod 사용중. ▶다음: 합성(⭐요약 갱신) or 잔여 미세.
+
 - 회차304(2026-07-24, P2 폐지기능 잔재 sweep·**코드수정 0**): 구독전용 전환(2026-06)으로 폐지된 '무료배송/위시리스트/낱개' 잔여 문구 전수 — 고객 노출=0, 매칭 전부 **폐지를 문서화한 dev 주석**(cart/checkout/products/collections 폐지 안내 + WebChrome '무료배송 클레임 금지' 규칙주석). 기능 제거 깔끔 확정. 안전한 코드-수정 표면(규칙위반·영어명·죽은 export·폐지잔재) 전반 소진 확인. ▶다음: 합성(⭐요약 갱신) or 잔여 미세 점검.
 
 - 회차303(2026-07-24, P3 영어 라인명 후속·**코드수정 0·미커밋(다음 fix에 묶음)**): AdjustSheet=meta.nameKo·color만(정상). AnalysisView magBoxItems 는 name:meta.name(영어)를 담지만 BoxMixCard 는 item.ko(=subtitle '프레시 한우 레시피')를 표시 → **영어 name은 미표시(dead-ish, MagBoxMixItem 타입상 유지)**. 표시되는 '프레시' 형용사는 analysis 상세라 의도적일 수 있어 판단 보류(AUDIT_FINDINGS %/BCS 상세-결정 클러스터 포함). 고객 노출 영어 라인명 sweep=소진(301·302 수정, 나머지 nameKo/미표시). ▶다음: 다른 규칙 위반/잔재 or 클린이면 합성.

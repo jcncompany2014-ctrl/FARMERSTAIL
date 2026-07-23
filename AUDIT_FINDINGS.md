@@ -11,6 +11,8 @@
 
 > **★2026-07-24 야간런 추가 — 사장님 결정 필요(처방 히스토리 % 표시)**: /formulas(처방 히스토리)가 라인 믹스 '한우 30% / 치킨 50%' 식 % 범례를 표시. 오늘 Option A(개요 처방박스)는 원물레시피명·% 제거였는데, 히스토리는 상세라 % 유지가 정보상 유용할 수 있어 판단 필요. 영어 라인명(Beef/Chicken)은 회차301에서 한글 nameKo 로 이미 수정 — % 자체 유지/제거만 결정. 원하면 CurrentFormulaCard처럼 recipeName 으로 통일 가능. — 야간루프 회차301
 
+> **★2026-07-24 야간런 추가 — format.ts 옛 포매터 7종 prod 미사용(정리 결정)**: 이번 세션 recipeName/friendlyChangeReason 전환으로 lib/personalization/format.ts 의 `mainLineOf`·`formatLineRatios`·`formatToppers`·`transitionLabel`·`totalGrams`·`formatFormulaSummary`·`formatReasoningSummary` 가 **prod 사용처 0**(format.test.ts 테스트만 참조). 재사용 가능한 순수 포매터라 무인 삭제 보류 — 라이브러리로 남길지/제거할지 결정 필요(제거 시 format.test.ts 해당 describe 도 함께). recipeName·friendlyChangeReason 은 prod 사용중이라 유지. — 야간루프 회차305
+
 ---
 ## ⭐ 복귀 후 우선순위 요약 _(회차99 합성 — 5분 트리아지용. 상세는 아래 표 #번호)_
 
