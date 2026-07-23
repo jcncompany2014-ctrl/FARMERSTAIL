@@ -306,13 +306,7 @@ export default function MypageClient({
             페이지(/mypage/accuracy)는 남겨두고 메뉴 진입만 숨긴다. 되살릴 땐 아래 주석 해제.
         <MenuItem href="/mypage/accuracy" Icon={Gauge} label="분석 맞춤도" /> */}
         {/* 받은 알림·알림 설정·광고 수신 3개를 '알림' 한 페이지(탭)로 통합(2026-07-16). */}
-        <MenuItem href="/notifications" Icon={Bell} label="알림" />
-        <MenuItem
-          href="/mypage/privacy"
-          Icon={Shield}
-          label="내 데이터 (열람·다운로드)"
-          last
-        />
+        <MenuItem href="/notifications" Icon={Bell} label="알림" last />
       </MenuGroup>
 
       <MenuGroup kicker="Help · 도움말" topPad={20}>
@@ -320,7 +314,16 @@ export default function MypageClient({
             페이지(/chat)는 남겨두고 메뉴 진입만 숨긴다. 되살릴 땐 아래 주석 해제.
         <MenuItem href="/chat" Icon={Sparkles} label="AI 영양 상담" /> */}
         <MenuItem href="/help" Icon={HelpCircle} label="고객센터" />
-        <MenuItem href="/faq" Icon={FileText} label="자주 묻는 질문" last />
+        <MenuItem href="/faq" Icon={FileText} label="자주 묻는 질문" />
+        {/* 내 데이터(열람·다운로드) — PIPA §35 열람권은 고객센터 경로로도 충족돼
+            메인 '설정'에서 '도움말' 하단으로 내림(사장님 2026-07-24, 눈에 덜 띄게).
+            단 삭제/차단이 아니라 접근성은 유지 = 다크패턴 회피. */}
+        <MenuItem
+          href="/mypage/privacy"
+          Icon={Shield}
+          label="내 데이터 (열람·다운로드)"
+          last
+        />
       </MenuGroup>
 
       {/* 약관·정책 */}
