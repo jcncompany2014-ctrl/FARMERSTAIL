@@ -154,14 +154,42 @@
 .s-sect { margin-top: 14px; }
 .s-sect:first-of-type { margin-top: 6px; }
 
-/* 소질문 카드 — 질문(라벨)+보조설명+선택지를 한 박스로 묶어 "정리된 느낌"
-   (사장님 2026-07-23). recessed 크림(--bg-2, 다크모드 자동 swap) 위에 흰 칩이
-   떠서 선택지가 또렷해진다. */
+/* 소질문 카드 v2 — 질문+보조설명+선택지를 한 박스로(사장님 2026-07-23 2차).
+   흰 카드 + 번호칩(답하면 초록 체크로 변신=진행감) + 항상 보이는 절제된
+   보조설명(라벨 들여쓰기 정렬) + 크림 웰 칩(흰 카드 위에서 선택지가 또렷). */
 .s-qcard {
-  background: var(--bg-2);
+  background: var(--surface-card);
   box-shadow: inset 0 0 0 1px var(--fd-line);
-  border-radius: 12px;
-  padding: 14px 14px 16px;
+  border-radius: 14px;
+  padding: 15px 16px 16px;
+  transition: box-shadow 220ms;
+}
+.s-qcard.s-qcard-done {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fd-green) 45%, var(--fd-line));
+}
+.s-qhead { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.s-qhead .s-sect-lbl { margin: 0; }
+.s-qnum {
+  flex: 0 0 auto;
+  width: 22px; height: 22px; border-radius: 99px;
+  background: var(--bg-2); color: var(--fd-pine);
+  font-size: 11px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 220ms, color 220ms;
+}
+.s-qcard-done .s-qnum { background: var(--fd-green); color: #fff; }
+.s-qhint {
+  font-size: 12.5px; color: var(--fd-muted); line-height: 1.5;
+  margin: 0 0 10px; padding-left: 30px; /* 번호칩 22 + gap 8 = 라벨과 정렬 */
+  text-wrap: pretty;
+}
+/* 흰 카드 안 칩은 크림 웰로(FD 웰 문법) — 보더 대신 면으로 구분, 선택=pine 유지 */
+.s-qcard .s-chip { background: var(--bg-2); box-shadow: none; }
+.s-qcard .s-chip:hover { box-shadow: inset 0 0 0 1px var(--fd-green); }
+.s-qcard .s-chip.s-on {
+  background: var(--fd-pine); color: #fff;
+  box-shadow: inset 0 0 0 1px var(--fd-pine);
 }
 
 /* R34c — section group divider. Diet step 처럼 sub-sections 가 많은 곳에서

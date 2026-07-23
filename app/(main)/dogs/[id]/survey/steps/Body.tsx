@@ -6,6 +6,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import {
   AlertTriangle,
+  Check,
   HelpCircle,
   MoonStar,
   Moon,
@@ -163,20 +164,25 @@ export default function Body({
         계산해요.
       </p>
 
-      {BODY_QUESTIONS.map((q) => {
-        // 보조설명은 답하기 전에만 — 답하면 접혀서 화면이 점점 가벼워진다
-        // (추가 탭 없이 자동 정리, 사장님 2026-07-23 글 다이어트).
+      {/* 소질문 카드 v2 (2026-07-23 2차) — 번호칩이 답하면 초록 체크로 변신해
+          진행감을 주고, 보조설명은 항상 보이되(사장님: 없애는 게 아니라 정돈)
+          들여쓰기 정렬된 절제 톤(s-qhint)으로. */}
+      {BODY_QUESTIONS.map((q, qi) => {
         const answered = body[q.key] !== ''
         return (
-          <div className="s-sect s-qcard" key={q.key}>
-            <div className="s-sect-lbl">
-              <span className="s-label-text">{q.label}</span>
+          <div
+            className={'s-sect s-qcard' + (answered ? ' s-qcard-done' : '')}
+            key={q.key}
+          >
+            <div className="s-qhead">
+              <span className="s-qnum" aria-hidden>
+                {answered ? <Check size={12} strokeWidth={3} /> : qi + 1}
+              </span>
+              <div className="s-sect-lbl">
+                <span className="s-label-text">{q.label}</span>
+              </div>
             </div>
-            {!answered && (
-              <p className="s-sub" style={{ fontSize: 13, marginBottom: 8 }}>
-                {q.hint}
-              </p>
-            )}
+            <p className="s-qhint">{q.hint}</p>
             <div className="s-chiprow">
               {q.options.map(({ v, label }) => {
                 const active = body[q.key] === v

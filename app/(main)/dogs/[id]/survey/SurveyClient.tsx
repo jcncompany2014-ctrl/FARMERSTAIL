@@ -30,7 +30,6 @@ import { trackSurveyStarted, trackSurveyCompleted } from '@/lib/analytics'
 import Body, { type BodyAssessmentState } from './steps/Body'
 import { deriveBCS } from '@/lib/calorie-v2/engine'
 import { detectBcsWeightConflict } from '@/lib/bcs-consistency'
-import Muscle from './steps/Muscle'
 import Stool from './steps/Stool'
 import Diet from './steps/Diet'
 import Allergy from './steps/Allergy'
@@ -44,7 +43,8 @@ import './survey.css'
  * 설문 v3 — Claude Design 핸드오프 (2026-05-03) 적용 + personalization 7 필드.
  *
  *   1. body       : BCS 9-point + 6개월 체중 추세
- *   2. muscle     : MCS 4-grade
+ *     (muscle(MCS) 스텝은 2026-07-23 사장님 지시로 완전 제거 — 노령견 조건부
+ *      노출도 폐지. mcs 상태/저장 배선은 하위호환으로 유지, 신규는 항상 null.)
  *   3. stool      : Bristol Stool 1~7 + 위장 민감도
  *   4. meal       : 주식 / 브랜드(+사료kcal) / 간식(+간식kcal) / 화식경험
  *   5. life       : 산책(리드) / 활동·격운동(조건부) / 주거(+한랭)
@@ -79,7 +79,6 @@ type Dog = {
 // 저장, feeding-plan 은 null fallback 이라 무영향.)
 const STEPS = [
   'body',
-  'muscle',
   'stool',
   'meal',
   'life',
@@ -487,16 +486,15 @@ export default function SurveyClient({
     return () => clearInterval(t)
   }, [currentStep])
 
-  // 근육(MCS) 스텝은 노령견(7세+)에만 노출 — 젊은 개는 근감소 위험이 낮아
-  // 설문 부담만 늘림(사장님 확정 2026-07-12). dog 로드 후 재렌더에서 확정되며,
-  // 그전(dog=null)엔 아래 !dog 가드가 로더를 반환하므로 값이 렌더에 안 쓰인다.
+  // (MCS 스텝 완전 제거 — 2026-07-23 사장님. 옛 노령견 7세+ 조건부 노출도 폐지.
+  //  ageInMonths/isSenior 는 bcsConflict lifeStage 판정에 계속 쓰인다.)
   const ageInMonths = dog
     ? dog.age_unit === 'years'
       ? dog.age_value * 12
       : dog.age_value
     : 0
   const isSenior = ageInMonths >= 84
-  const steps = STEPS.filter((s) => s !== 'muscle' || isSenior)
+  const steps = STEPS
 
   // 체중↔체형 모순 — "살이 빠졌는데 체형이 더 뚱뚱해질 수는 없잖아"(사장님
   // 2026-07-14). 체형 3문항이 끝나 BCS 가 역산되는 순간 이전 분석과 비교해
@@ -921,7 +919,7 @@ export default function SurveyClient({
   // ── 이전 답변 요약 echo chips ──
   const echoItems: string[] = []
   if (stepIdx > 0 && bcs) echoItems.push(`BCS ${bcs}/9`)
-  if (stepIdx > 1 && mcs) echoItems.push(`MCS ${mcs}`)
+  // MCS echo 제거 — muscle 스텝 폐지(2026-07-23). 옛 draft 의 mcs 잔값 노출 방지.
   if (stepIdx > 2 && bristol) echoItems.push(`변 #${bristol}`)
   if (stepIdx > 3) {
     if (foodType) echoItems.push(foodType)
@@ -1015,9 +1013,6 @@ export default function SurveyClient({
           />
         )}
 
-        {currentStep === 'muscle' && (
-          <Muscle mcs={mcs} setMcs={setMcs} />
-        )}
 
         {currentStep === 'stool' && (
           <Stool
