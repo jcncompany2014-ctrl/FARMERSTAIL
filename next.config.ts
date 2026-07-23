@@ -88,7 +88,11 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: supabaseHostname(),
-        pathname: '/storage/v1/object/public/**',
+        // public + sign 둘 다 허용. 일기 사진은 private 버킷(dog-diary-photos)
+        // 이라 signed URL(/storage/v1/object/sign/...)을 쓰는데 public/** 만
+        // 두면 next/image 가 src 를 거부 → 렌더 throw → "문제가 생겼어요" 에러
+        // 화면이 떴다(사장님 2026-07-23 일기 사진). object/** 로 넓혀 해소.
+        pathname: '/storage/v1/object/**',
       },
       {
         // 블로그(매거진) 포스트 cover_url 이 Unsplash 플레이스홀더를 쓴다.
