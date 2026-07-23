@@ -277,6 +277,17 @@
 }
 .s-hint strong { color: var(--fd-pine); font-weight: 800; }
 .s-hint .s-row { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+/* BCS 판정 카드 오른쪽 여백의 체형 실루엣 — 작고 은근하게(pine 누끼라
+   크림 카드 위에 자연스럽다). 텍스트가 좁아지지 않게 shrink 금지 + 세로 중앙. */
+.s-hint .s-bcs-shape {
+  flex: 0 0 auto;
+  margin-left: auto;
+  align-self: center;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  opacity: 0.92;
+}
 .s-tag {
   font-size: 9.5px; font-weight: 800; letter-spacing: .04em;
   text-transform: uppercase;

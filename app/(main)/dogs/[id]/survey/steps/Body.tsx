@@ -3,6 +3,7 @@
 // 질문으로 교체. 보호자가 "몇 점?"을 고르는 것보다 관찰 3문항 → deriveBCS 역산이
 // 정확 (docs/CALORIE_ALGORITHM_SPEC_V2.md §6). 역산 결과는 판정 카드로 피드백.
 import { useState } from 'react'
+import Image from 'next/image'
 import {
   AlertTriangle,
   HelpCircle,
@@ -41,6 +42,17 @@ const BCS_VIEW: Record<
   7: { group: 'over', Icon: Sun, tag: '주의', tagTone: 'warn' },
   8: { group: 'over', Icon: CloudSun, tag: '위험', tagTone: 'bad' },
   9: { group: 'over', Icon: Cloud, tag: '위험', tagTone: 'bad' },
+}
+
+// 판정 카드 여백에 살짝 띄우는 체형 실루엣 (사장님 2026-07-23 — 웹 설문용
+// 5단계 자산 /survey/body/*.png 재사용, 처음부터 5개 나열하지 않고 역산 BCS가
+// 뜨는 순간 해당 체형 하나만 작게). 매핑은 SurveyClient bodyMap과 동일 유지.
+const BCS_BODY_IMG: Record<BcsKey, string> = {
+  1: 'skinny', 2: 'skinny',
+  3: 'slim', 4: 'slim',
+  5: 'ideal',
+  6: 'chubby', 7: 'chubby',
+  8: 'obese', 9: 'obese',
 }
 
 /** 체형 3분해 응답 상태 ('' = 미응답). */
@@ -196,6 +208,16 @@ export default function Body({
             </div>
             {BCS_DESCRIPTIONS[bcs].desc}
           </div>
+          {/* 해당 BCS 체형 실루엣 — 카드 오른쪽 여백에 작게(장식,
+              라벨·설명이 이미 말로 전달하므로 스크린리더에선 숨김). */}
+          <Image
+            src={`/survey/body/${BCS_BODY_IMG[bcs]}.png`}
+            alt=""
+            aria-hidden
+            width={56}
+            height={56}
+            className="s-bcs-shape"
+          />
         </div>
       )}
 
