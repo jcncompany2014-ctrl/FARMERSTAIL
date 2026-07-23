@@ -223,7 +223,11 @@ export default function Body({
               className="s-row"
               style={{ display: 'flex', alignItems: 'center', gap: 8 }}
             >
-              <strong>{BCS_DESCRIPTIONS[bcs].label}</strong>
+              {/* line-height:1 — 라벨 글자의 줄박스를 글자에 딱 맞춰, 태그(중앙
+                  정렬)가 글자보다 아래로 처져 보이던 것 해소(사장님 2026-07-23). */}
+              <strong style={{ lineHeight: 1 }}>
+                {BCS_DESCRIPTIONS[bcs].label}
+              </strong>
               {/* 신호등 색을 인라인으로(CSS 캐시 우회 — JS 번들이라 확실히 반영).
                   이상적=초록·주의=앰버·위험=딥레드 솔리드 + 텍스트 수직 중앙. */}
               <span
@@ -246,15 +250,14 @@ export default function Body({
             </div>
             {BCS_DESCRIPTIONS[bcs].desc}
           </div>
-          {/* 해당 BCS 체형 실루엣 — 강아지 옆모습만(-dog, 탑뷰 제거·크기 통일한
-              앱 전용 크롭. 웹 원본 2뷰는 그대로). 카드 오른쪽 여백 장식이라
-              스크린리더 숨김(라벨·설명이 이미 말로 전달). */}
+          {/* 해당 BCS 체형 실루엣(탑뷰+옆모습) — 사장님 요청으로 원본 2뷰 복구
+              (2026-07-23). 카드 오른쪽 여백 장식이라 스크린리더 숨김. */}
           <Image
-            src={`/survey/body/${BCS_BODY_IMG[bcs]}-dog.png`}
+            src={`/survey/body/${BCS_BODY_IMG[bcs]}.png`}
             alt=""
             aria-hidden
-            width={56}
-            height={56}
+            width={60}
+            height={60}
             className="s-bcs-shape"
           />
         </div>
