@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { petName } from '@/lib/korean'
 import {
   Loader2,
   Check,
@@ -554,7 +555,7 @@ export default function OrderClient({
       <header className="ord-hero">
         <span className="ord-kicker">CUSTOM BOX · {formula?.cycleNumber ?? '–'}번째 박스</span>
         <h1>
-          {dogName} 맞춤 박스<br />
+          {petName(dogName)} 맞춤 박스<br />
           배송 정보를 입력해주세요
         </h1>
         {/* 3줄 → 1줄. 이 화면에서 해야 할 일 하나만 말한다(사장님 2026-07-15
