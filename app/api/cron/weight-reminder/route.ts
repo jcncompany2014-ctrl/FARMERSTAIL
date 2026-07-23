@@ -126,10 +126,10 @@ export async function GET(req: Request) {
     const more = dogs.length > 3 ? ` 외 ${dogs.length - 3}` : ''
     const title =
       dogs.length === 1
-        ? `${petName(dogNames)}가 체중 측정해보세요`
-        : `${dogNames}${more} 체중 측정해보세요`
+        ? `${petName(dogNames)} 체중을 측정해보세요`
+        : `${dogNames}${more} 체중을 측정해보세요`
     const body =
-      '4주마다 측정하면 알고리즘이 더 정확한 처방을 만들어요.'
+      '4주마다 측정하면 더 정확한 맞춤 식단을 만들 수 있어요.'
 
     try {
       await pushToUser(

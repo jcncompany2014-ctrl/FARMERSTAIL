@@ -124,7 +124,7 @@ export async function GET(req: Request) {
       years >= 0.083 // 약 1개월 이상 — 너무 어린 강아지 첫 입력 직후 생일 알림 회피
     ) {
       pushToUser(dog.user_id, {
-        title: `🎂 ${dog.name} 생일 축하해요!`,
+        title: `🎂 ${petName(dog.name)} 생일 축하해요!`,
         body: `${petName(dog.name)}가 ${nextValue}${nextUnit === 'years' ? '살' : '개월'}이 됐어요. 새 영양 분석을 받아 보세요.`,
         url: `/dogs/${dog.id}`,
         tag: `dog-birthday-${dog.id}-${todayMonth}-${todayDay}`,

@@ -66,7 +66,7 @@ const STAGE1 = {
 } as const
 
 const STAGE2 = {
-  body: '5분 설문으로 NRC2006 기반 정밀 처방 — 무료',
+  body: '5분 설문으로 NRC2006 기반 정밀 맞춤 분석 — 무료',
 } as const
 
 function isoDaysAgo(days: number): string {

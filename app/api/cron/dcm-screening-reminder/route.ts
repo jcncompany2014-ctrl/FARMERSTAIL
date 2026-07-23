@@ -71,7 +71,7 @@ async function runReminder(): Promise<Response> {
       .from('push_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', dog.user_id)
-      .ilike('title', '%심장 검진%')
+      .ilike('title', '%미리 살펴두면%')
       .gt('sent_at', oneEightyDaysAgo)
     if ((recent ?? 0) > 0) {
       skippedSpam += 1
@@ -82,8 +82,8 @@ async function runReminder(): Promise<Response> {
       await pushToUser(
         dog.user_id,
         {
-          title: `${petName(dog.name)}가 심장 검진 시기예요`,
-          body: '도베르만·복서 등 DCM 호발 견종은 6개월마다 심초음파 + 타우린 검사가 권장돼요. 수의사와 상담해 보세요.',
+          title: `${petName(dog.name)} 심장, 미리 살펴두면 좋아요`,
+          body: '우리 아이 견종은 심장이 조금 예민할 수 있어요. 6개월에 한 번쯤 병원에서 심장을 체크해두면 안심이 돼요. 꼭 지금이 아니어도 괜찮지만, 미리 챙기면 좋은 관리예요.',
           url: `/dogs/${dog.id}`,
           tag,
         },

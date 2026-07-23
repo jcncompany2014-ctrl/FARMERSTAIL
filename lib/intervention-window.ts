@@ -163,13 +163,13 @@ export function evaluateInterventionWindow(
     if (obesityEtaDays != null && obesityEtaDays <= 30) {
       userMessage =
         obesityEtaDays === 0
-          ? '이미 과체중 구간에 있고 체중이 계속 늘고 있어요. 식단·운동 점검을 권합니다.'
-          : `현재 추세대로면 약 ${obesityEtaDays}일 후 BCS 7 (과체중) 도달 예상. 식단·운동 점검을 권합니다.`
+          ? '이미 과체중이고 체중이 계속 늘고 있어요. 식단을 한 번 점검해보면 좋아요.'
+          : `지금 추세라면 약 ${obesityEtaDays}일 뒤 과체중에 접어들 수 있어요. 식단을 한 번 점검해보면 좋아요.`
     } else {
       userMessage =
         underweightEtaDays === 0
-          ? '이미 저체중 구간에 있고 체중이 계속 줄고 있어요. 영양 보강을 권합니다.'
-          : `현재 추세대로면 약 ${underweightEtaDays}일 후 BCS 3 (저체중) 도달 예상. 영양 보강을 권합니다.`
+          ? '이미 저체중이고 체중이 계속 줄고 있어요. 영양을 조금 보강해주면 좋아요.'
+          : `지금 추세라면 약 ${underweightEtaDays}일 뒤 저체중에 접어들 수 있어요. 영양을 조금 보강해주면 좋아요.`
     }
   } else if (verdict === 'watch') {
     userMessage =

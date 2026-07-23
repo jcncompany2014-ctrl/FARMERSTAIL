@@ -220,7 +220,7 @@ async function runSubscribeNudge(
       p.id,
       {
         title: '정기배송으로 더 편하게',
-        body: '맞춤 식단을 자동으로 받아보세요. 10% 할인 적용.',
+        body: '맞춤 식단을 자동으로 받아보세요. 구독 시 15% 할인.',
         // 구독전환: 낱개 카탈로그(/products?subscribable=1) 폐지 → 설문 퍼널(/start)로.
         // 푸시 카피('맞춤 식단을 자동으로')와 정합하는 구독 시작 동선.
         url: '/start',

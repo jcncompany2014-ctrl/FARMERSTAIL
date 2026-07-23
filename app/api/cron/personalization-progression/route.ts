@@ -11,7 +11,8 @@ import {
   TOPPER_TO_SLUG,
 } from '@/lib/personalization/skuMap'
 import type { AlgorithmInput, Checkin, Formula } from '@/lib/personalization/types'
-import { mainLineOf } from '@/lib/personalization/format'
+import { mainLineOf, recipeName } from '@/lib/personalization/format'
+import { petName } from '@/lib/korean'
 import { diffFormulas } from '@/lib/personalization/diff'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { pushToUser } from '@/lib/push'
@@ -715,22 +716,22 @@ export async function GET(req: Request) {
       let pushBody: string
       let pushUrl: string
       if (requiresApproval) {
-        pushTitle = `${dogTyped.name} 다음 박스 확인이 필요해요`
+        pushTitle = `${petName(dogTyped.name)} 다음 박스 확인이 필요해요`
         pushBody = diff.priceChanged && price
-          ? `비율이 바뀌면서 결제 금액도 ${won(price.prevTotal)} → ${won(price.nextTotal)}원이 돼요. 5일 안에 확인해 주세요.`
-          : `이번 박스 비율이 바뀔 수 있어요 — ${main.name} ${main.pct}% 제안. 5일 안에 확인해 주세요.`
+          ? `레시피가 바뀌면서 결제 금액도 ${won(price.prevTotal)} → ${won(price.nextTotal)}원이 돼요. 5일 안에 확인해 주세요.`
+          : `이번 박스 구성이 바뀔 수 있어요 — ${recipeName(next)} 제안. 5일 안에 확인해 주세요.`
         pushUrl = `/dogs/${cur.dog_id}/approve?cycle=${next.cycleNumber}`
       } else if (forcedPriceApplied) {
         const up = forcedPriceApplied.to > forcedPriceApplied.from
-        pushTitle = `[중요] ${dogTyped.name} 결제 금액이 ${won(forcedPriceApplied.to)}원으로 ${up ? '올라가요' : '내려가요'}`
+        pushTitle = `[중요] ${petName(dogTyped.name)} 결제 금액이 ${won(forcedPriceApplied.to)}원으로 ${up ? '올라가요' : '내려가요'}`
         pushBody =
           `안전을 위해 레시피를 바꿨어요(${diff.forceReasons[0] ?? '알레르기·건강 상태 반영'}). ` +
           `그래서 2주 결제가 ${won(forcedPriceApplied.from)} → ${won(forcedPriceApplied.to)}원이 돼요. ` +
           `원하지 않으시면 다음 결제 전에 일시정지·해지하실 수 있어요.`
         pushUrl = `/account/subscriptions`
       } else {
-        pushTitle = `${dogTyped.name} 다음 박스 준비됐어요 🐾`
-        pushBody = `이번 박스는 ${main.name} ${main.pct}% 메인. 자세한 비율 보기 →`
+        pushTitle = `${petName(dogTyped.name)} 다음 박스 준비됐어요 🐾`
+        pushBody = `이번 박스는 ${recipeName(next)}예요. 자세히 보기 →`
         pushUrl = `/dogs/${cur.dog_id}/analysis`
       }
 

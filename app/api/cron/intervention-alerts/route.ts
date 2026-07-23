@@ -18,6 +18,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
+import { petName } from '@/lib/korean'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { evaluateInterventionWindow } from '@/lib/intervention-window'
@@ -153,7 +154,7 @@ async function runAlerts(): Promise<Response> {
         await pushToUser(
           dog.user_id,
           {
-            title: `${dog.name} 체중 추세 경보`,
+            title: `${petName(dog.name)} 체중 흐름을 살펴봤어요`,
             body: window.userMessage,
             // 사용자용 /simulate 페이지는 미구현(시뮬레이터는 admin 전용)이라
             // 탭 시 404 였음. 자매 cron weight-change-detect 과 동일하게 실존

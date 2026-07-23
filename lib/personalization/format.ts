@@ -35,6 +35,26 @@ export function mainLineOf(formula: Formula): {
 }
 
 /**
+ * 고객 알림용 원물(레시피) 이름 — 비율(%) 없이 원물명만.
+ *
+ * 박스는 최대 2종(섞으면 반반)이라, 비중 있는 라인 최대 2개의 고객표시명
+ * (nameKo: 치킨·오리·흑돼지·한우)을 뽑아 "한우·치킨 레시피"처럼 만든다.
+ * 형용사가 붙은 subtitle('프레시 한우 레시피')이 아니라 nameKo 를 쓰므로
+ * '프레시'·'무항생제' 같은 수식어는 자동 배제된다.
+ *
+ * (사장님 2026-07-23: 알림에 "소고기 60% 메인" 같은 비율 표기 금지 —
+ *  두 원물을 섞으면 무조건 반반이므로 %는 오해를 부른다. 원물+레시피로.)
+ */
+export function recipeName(formula: Formula): string {
+  const active = ALL_LINES.filter((l) => formula.lineRatios[l] > 0)
+    .sort((a, b) => formula.lineRatios[b] - formula.lineRatios[a])
+    .slice(0, 2)
+    .map((l) => FOOD_LINE_META[l].nameKo)
+  const label = active.length > 0 ? active.join('·') : '맞춤'
+  return `${label} 레시피`
+}
+
+/**
  * 라인 비율을 한 줄 문자열로. 0% 라인 제외, 비중 내림차순.
  *
  *   "Joint 60% / Premium 30% / Skin 10%"

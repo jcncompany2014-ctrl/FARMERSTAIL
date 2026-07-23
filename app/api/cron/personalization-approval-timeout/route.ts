@@ -112,9 +112,9 @@ export async function GET(req: Request) {
         await pushToUser(
           row.user_id,
           {
-            title: '이전 비율 그대로 유지할게요',
+            title: '이전 식단 그대로 유지할게요',
             body:
-              '5일 동안 응답이 없어 이전 cycle 처방을 그대로 다음 박스에 적용해요. 알림 센터에서 확인.',
+              '5일 동안 응답이 없어 지난번과 같은 맞춤 식단을 그대로 다음 박스에 적용해요. 알림 센터에서 확인할 수 있어요.',
             url: `/dogs/${row.dog_id}/formulas`,
           },
           { category: 'order' },
