@@ -291,7 +291,7 @@ function computeLineChanges(
     const prev = Math.round(previous.lineRatios[line] * 100)
     const cur = Math.round(next.lineRatios[line] * 100)
     if (prev === cur) continue
-    out.push({ label: FOOD_LINE_META[line as FoodLine].name, delta: cur - prev })
+    out.push({ label: FOOD_LINE_META[line as FoodLine].nameKo, delta: cur - prev })
   }
   const toppers: Array<{ key: 'vegetable' | 'protein'; label: string }> = [
     { key: 'vegetable', label: '야채 토퍼' },
@@ -349,7 +349,7 @@ function BarRow({
               width: `${Math.round(formula.lineRatios[line] * 100)}%`,
               background: FOOD_LINE_META[line as FoodLine].color,
             }}
-            title={`${FOOD_LINE_META[line as FoodLine].name} ${Math.round(formula.lineRatios[line] * 100)}%`}
+            title={`${FOOD_LINE_META[line as FoodLine].nameKo} ${Math.round(formula.lineRatios[line] * 100)}%`}
           />
         ))}
       </div>
@@ -363,7 +363,7 @@ function BarRow({
                 style={{ background: FOOD_LINE_META[line as FoodLine].color }}
               />
               <span className="ap-legend-name">
-                {FOOD_LINE_META[line as FoodLine].name}
+                {FOOD_LINE_META[line as FoodLine].nameKo}
               </span>
               <span className="ap-legend-pct">
                 {Math.round(formula.lineRatios[line] * 100)}%

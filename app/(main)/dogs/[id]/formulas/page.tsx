@@ -265,7 +265,7 @@ function MiniBar({ lineRatios }: { lineRatios: Record<string, number> }) {
             width: `${Math.round((lineRatios[line] ?? 0) * 100)}%`,
             background: FOOD_LINE_META[line as FoodLine].color,
           }}
-          title={`${FOOD_LINE_META[line as FoodLine].name} ${Math.round(
+          title={`${FOOD_LINE_META[line as FoodLine].nameKo} ${Math.round(
             (lineRatios[line] ?? 0) * 100,
           )}%`}
         />

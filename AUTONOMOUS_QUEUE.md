@@ -175,6 +175,8 @@ P1 로 올리고 **2회전**: 더 깊은 디자인 완성도 + 새로 생긴 미
 ## 9. 진행 로그 (최신이 위)
 > 형식: `회차N: [P?] 무엇을·왜·검증결과`. 동시발동 락은 `🔄` 줄.
 
+- 회차302(2026-07-24, P3 영어 라인명(.name) 전수·**커밋**): FOOD_LINE_META.name(영어) 노출 전수 — ApproveClient(재제안 승인) 3곳(:294 label·:352 hover·:366 표시) + formulas:268 hover(301에서 놓친 것) → nameKo(한글). AdjustSheet:512·formulas:171은 이미 nameKo. tsc+eslint GREEN·1커밋. ▶다음: AdjustSheet:266·305, AnalysisView:314 의 `const meta=FOOD_LINE_META[line]` 가 meta.name(영어) 표시하는지 확인.
+
 - 회차301(2026-07-24, P3 % 라인믹스 표시 점검·**커밋**): /formulas(처방 히스토리) 범례가 라인명+% 표시인데 라인명이 **영어**(FOOD_LINE_META.name='Beef'/'Chicken', skuModel 확인)라 명백 위반 → nameKo(한글 '한우'/'치킨')로 수정. % 자체 유지/제거(Option A 히스토리 확장)는 상세라 판단 필요 → AUDIT_FINDINGS 사장님 결정건 기록. BoxMixCard %=바폭전용(미표시)·RecommendationBox/AppShowcase 화식비율=이름/가치라 정당. tsc+eslint GREEN·코드+문서 1커밋. ▶다음: 잔여 영어 라인명(.name) 노출 or 클린이면 합성.
 
 - 회차300(2026-07-24, P3 "처방" 전수 재점검·**코드수정 0**): 정상 *.tsx glob로 "처방" 전수 — 고객 노출은 전부 **정당한 의료 맥락**(chat/science 면책 '의학적 진단·처방 안 함', MedicalRecordForm/Ocr '처방 약'=수의처방 기록, tools/elimination-diet '식이 처방'=수의). 우리 제품을 '처방'이라 부르던 건 이번 세션 이미 수정(CurrentFormulaCard 킥커·알림·이메일). 남은 처방=dev 주석뿐(고객 무관이라 유지). ▶다음: %비율 고객노출(analysis는 BCS와 함께 사장님 결정건) or 클린이면 합성/문서.
