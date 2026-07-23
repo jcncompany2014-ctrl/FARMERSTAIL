@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
 import { createClient } from '@/lib/supabase/server'
-import { pickKakaoBirthYear, pickKakaoPhone } from '@/lib/auth/kakaoProfile'
+import { pickKakaoBirthYear } from '@/lib/auth/kakaoProfile'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -108,7 +108,7 @@ export async function GET(request: Request) {
   if (user) {
     const { data: profile } = await supabaseAfter
       .from('profiles')
-      .select('birth_year, phone, deleted_at')
+      .select('birth_year, deleted_at')
       .eq('id', user.id)
       .maybeSingle()
     // 탈퇴 처리된 계정 — 즉시 signOut + 안내 화면.
@@ -119,22 +119,18 @@ export async function GET(request: Request) {
       )
     }
 
-    // 카카오 동의항목(전화번호·출생연도) → profiles 채우기(사장님 2026-07-20).
-    // 콘솔에서 두 항목을 받도록 승인되면 OIDC 메타데이터로 실려 온다 → 비어 있는
-    // profiles 필드에만 멱등 write. ★메타데이터 키는 스코프 승인 후 실기기로 확정
-    // 필요 — pickKakao* 가 후보 키를 방어적으로 훑고, 없으면 null → 기존 폴백
-    // (age-gate·주문폼 입력) 그대로. 출생연도가 오면 아래 age-gate 를 건너뛴다.
+    // 카카오 동의항목(출생연도) → profiles.birth_year 멱등 write. 승인되면 OIDC
+    // 메타데이터로 실려 온다 → 비어 있으면만 채우고, 없으면 null → age-gate 폴백.
+    // ★전화번호는 카카오 심사 반려(가입 단계 미수집)로 동의항목에서 제외(2026-07-23).
+    //   전화번호는 주문/배송 주소폼에서 수집. 나중에 가입-수집 전환 시 pickKakaoPhone
+    //   (lib/auth/kakaoProfile.ts 보존)을 여기 재연결하면 된다.
     const meta = (user.user_metadata ?? {}) as Record<string, unknown>
-    const patch: { birth_year?: number; phone?: string } = {}
+    const patch: { birth_year?: number } = {}
     if (!profile?.birth_year) {
       const by = pickKakaoBirthYear(meta, new Date().getFullYear())
       if (by) patch.birth_year = by
     }
-    if (!profile?.phone) {
-      const ph = pickKakaoPhone(meta)
-      if (ph) patch.phone = ph
-    }
-    if (patch.birth_year != null || patch.phone != null) {
+    if (patch.birth_year != null) {
       // 실패해도(under-14 트리거/네트워크) 로그인은 진행 — 폴백이 있다.
       await supabaseAfter.from('profiles').update(patch).eq('id', user.id)
     }
