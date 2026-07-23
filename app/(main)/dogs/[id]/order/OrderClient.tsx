@@ -552,7 +552,7 @@ export default function OrderClient({
       </div>
 
       <header className="ord-hero">
-        <span className="ord-kicker">CUSTOM BOX · CYCLE {formula?.cycleNumber ?? '–'}</span>
+        <span className="ord-kicker">CUSTOM BOX · {formula?.cycleNumber ?? '–'}번째 박스</span>
         <h1>
           {dogName} 맞춤 박스<br />
           배송 정보를 입력해주세요

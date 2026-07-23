@@ -175,6 +175,8 @@ P1 로 올리고 **2회전**: 더 깊은 디자인 완성도 + 새로 생긴 미
 ## 9. 진행 로그 (최신이 위)
 > 형식: `회차N: [P?] 무엇을·왜·검증결과`. 동시발동 락은 `🔄` 줄.
 
+- 회차295(2026-07-24, P3 cycle jargon sweep 마무리): OrderClient.tsx:555 주문 히어로 킥커 'CUSTOM BOX · CYCLE {N}' → 'CUSTOM BOX · {N}번째 박스'(전문용어 금지). 이로써 고객노출 CYCLE 표시(approve·formulas·checkin·order) 소진. admin(picking-list·personalization)는 내부용 유지. tsc+eslint GREEN·1커밋. ▶다음: OrderClient:557 등 '{dogName}'가 petName 적용됐는지 확인(feedback_naming_grammar), 그다음 BCS/% 고객노출 or 삭제안전 잔재.
+
 - 회차294(2026-07-24, P3 cycle jargon sweep): 체크인 화면(checkin/CheckinClient.tsx) 고객 노출 'CYCLE {N}' 3곳(:325 킥커·:410 태그·:453 '이번 cycle') → '{N}번째 박스'/'이번 박스'(feedback_customer_copy_voice 전문용어 금지). ★이전 틱 grep truncate 로 놓쳤던 것. tsc+eslint GREEN·코드+로그 1커밋. ▶다음: OrderClient.tsx:555 'CUSTOM BOX · CYCLE {N}' 킥커. admin(picking-list·personalization) cycle 은 내부용이라 유지.
 
 - 회차293(2026-07-24, P3 cycle jargon sweep 계속): 처방 히스토리(app/(main)/dogs/[id]/formulas/page.tsx:142)의 'CYCLE {N}' 태그 고객 노출 → '{N}번째 박스'(feedback_customer_copy_voice 전문용어 금지). CheckinClient 은 cycle 이 주석/URL param 뿐(노출 X). tsc+eslint GREEN. 코드+로그 1커밋(불필요 재빌드 축소). ▶다음: 잔여 CYCLE 태그/BCS/% 고객노출 or 삭제안전 잔재.
