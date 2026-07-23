@@ -80,18 +80,9 @@ export default function Stool({
               aria-pressed={active}
               onClick={() => setBristol(active ? null : v)}
             >
-              <span
-                className="s-lb-icon s-lb-icon-lg"
-                style={{
-                  background: active
-                    ? 'rgba(255,255,255,.12)'
-                    : tone === 'good'
-                      ? '#E6EBD2'
-                      : tone === 'warn'
-                        ? '#F5E5C7'
-                        : '#F0D8CF',
-                }}
-              >
+              {/* 겉 웰 박스 제거(사장님 2026-07-23: 박스 때문에 이미지가 계속
+                  잘려 보임) — 톤 색은 실루엣 자체에 입히고 크게. */}
+              <span className="s-lb-icon s-lb-icon-lg s-lb-icon-bare">
                 <span
                   className="s-stool-ic"
                   aria-hidden

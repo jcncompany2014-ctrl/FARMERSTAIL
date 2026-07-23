@@ -370,7 +370,15 @@
 .s-listbtn[aria-pressed="true"] .s-lb-title { color: #fff; }
 .s-listbtn[aria-pressed="true"] .s-lb-sub { color: #fff; opacity: .75; }
 .s-listbtn[aria-pressed="true"] .s-lb-icon { background: rgba(255, 255, 255, .18); color: #fff; }
+/* bare 아이콘(변 카드)은 선택돼도 박스 없이 — 위 규칙 무효화. */
+.s-listbtn[aria-pressed="true"] .s-lb-icon-bare { background: none; }
 .s-listbtn[aria-pressed="true"] .s-lb-num { color: #fff; opacity: .6; }
+/* 선택된 카드(코랄/적갈 채움) 위 상태 태그가 원래 옅은 틴트+어두운 글자라
+   안 보이던 것(사장님 2026-07-23) → 흰 반투명 배경+흰 글자로. */
+.s-listbtn[aria-pressed="true"] .s-tag {
+  background: rgba(255, 255, 255, .22);
+  color: #fff;
+}
 
 /* R35: R34b 의 .s-listbtn-ideal default 강조 제거.
    Muscle MCS 1 / Stool Bristol 4 모두 default 동일 톤. 시스템 정답 유도 X. */
@@ -401,16 +409,17 @@
   -webkit-mask-size: contain;
   mask-size: contain;
 }
-/* 변 카드 전용 확대 박스 — 38px 기본 슬롯에선 실루엣이 꽉 차 잘려 보임
-   (사장님 2026-07-23 폰 확인, 2차: "아직도 가려진다" → 52px 로 추가 확대). */
-.s-lb-icon.s-lb-icon-lg {
+/* 변 카드 아이콘 — 겉 웰 박스 제거(사장님 2026-07-23 3차: "박스 때문에 계속
+   잘림 → 박스 없이 이미지만"). 톤 틴트 배경·라운드 없애고 실루엣만 크게. */
+.s-lb-icon.s-lb-icon-bare {
   width: 52px;
   height: 52px;
-  border-radius: 13px;
+  background: none;
+  border-radius: 0;
 }
-.s-lb-icon.s-lb-icon-lg .s-stool-ic {
-  width: 34px;
-  height: 34px;
+.s-lb-icon.s-lb-icon-bare .s-stool-ic {
+  width: 48px;
+  height: 48px;
 }
 .s-lb-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .s-lb-title { font-size: 15px; font-weight: 800; color: var(--fd-pine); display: block; letter-spacing: -0.01em; }
