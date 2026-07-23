@@ -72,7 +72,7 @@ export const TIERS: TierMeta[] = [
     threshold: 10,
     bg: '#9CB35F', // moss — 막 시작
     ink: '#FFFFFF',
-    benefit: '멤버십 시작 — 스탬프를 모아 등급을 올려요',
+    benefit: '씨앗 등급 특별 보상',
     benefits: [
       {
         Icon: 'leaf',
@@ -88,7 +88,7 @@ export const TIERS: TierMeta[] = [
     threshold: 20,
     bg: '#B8CD78', // 연한 새싹 그린
     ink: '#2A2118',
-    benefit: '분기 맞춤 분석 리포트',
+    benefit: '새싹 등급 특별 보상',
     benefits: [
       {
         Icon: 'heart',
@@ -104,7 +104,7 @@ export const TIERS: TierMeta[] = [
     threshold: 30,
     bg: '#E8A4A4', // 꽃 핑크
     ink: '#1E1A14',
-    benefit: '전담 영양 상담 우선',
+    benefit: '꽃 등급 특별 보상',
     benefits: [
       {
         Icon: 'heart',
@@ -136,7 +136,7 @@ export const TIERS: TierMeta[] = [
     threshold: 50,
     bg: '#1E1A14', // 가장 어두운 ink — gold accent
     ink: '#D4A94A',
-    benefit: '강아지 등록증 · 매 주문 10% 할인 · 특별 보상',
+    benefit: '나무 등급 특별 보상',
     benefits: [
       {
         Icon: 'certificate',
