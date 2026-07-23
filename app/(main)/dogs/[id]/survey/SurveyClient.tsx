@@ -934,7 +934,18 @@ export default function SurveyClient({
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <div className="max-w-md mx-auto" style={{ background: 'var(--bg)' }}>
+      {/* flex 컬럼 + 100dvh — 콘텐츠가 짧은 스텝에서도 CTA 바(.s-ctabar,
+          margin-top:auto)가 항상 화면 하단에 고정되게(사장님: 이전/다음 위치
+          스텝마다 동일해야 함). 긴 스텝은 sticky bottom 으로 스크롤 중 고정. */}
+      <div
+        className="max-w-md mx-auto"
+        style={{
+          background: 'var(--bg)',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100dvh',
+        }}
+      >
         {!isLoading && (
           <>
             {/* Step header — STEP nn / TT  +  progress with ticks */}

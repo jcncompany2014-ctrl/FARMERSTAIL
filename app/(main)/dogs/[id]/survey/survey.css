@@ -672,6 +672,10 @@ input.s-inp[type="number"] {
 /* Sticky CTA — iPhone home indicator safe-area 보정 */
 .s-ctabar {
   position: sticky; bottom: 0; left: 0; right: 0;
+  /* margin-top:auto — flex 컬럼(SurveyClient .max-w-md, min-height:100dvh)
+     안에서 콘텐츠가 짧아도 항상 화면 하단으로 밀어 이전/다음 위치를 스텝마다
+     동일하게(2026-07-23). 긴 스텝은 sticky bottom 으로 스크롤 중 하단 고정. */
+  margin-top: auto;
   background: linear-gradient(to top, var(--bg) 70%, transparent);
   padding: 18px 22px calc(24px + env(safe-area-inset-bottom, 0px));
   display: flex; align-items: center; justify-content: space-between;
