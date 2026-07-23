@@ -322,7 +322,7 @@ export default function CheckinClient({
     return (
       <div className="ck-page">
         <header className="ck-hero">
-          <div className="ck-kicker">맞춤 피드백 · CYCLE {cycleNumber}</div>
+          <div className="ck-kicker">맞춤 피드백 · {cycleNumber}번째 박스</div>
           <h1>
             {petName(dogName)}의 답변을<br />
             확인했어요
@@ -407,7 +407,7 @@ export default function CheckinClient({
       <header className="ck-hero">
         <div className="ck-kicker">
           {checkpoint === 'week_2' ? 'WEEK 2 · 적응 체크' : 'WEEK 4 · 종합 평가'}
-          <span className="ck-cycle">CYCLE {cycleNumber}</span>
+          <span className="ck-cycle">{cycleNumber}번째 박스</span>
         </div>
         <h1>
           {petName(dogName)}의<br />
@@ -450,7 +450,7 @@ export default function CheckinClient({
         <div className="ck-existing">
           <Sparkles size={14} strokeWidth={2} color="var(--terracotta)" />
           <div>
-            <strong>이번 cycle {checkpoint === 'week_2' ? '2주차' : '4주차'} 응답을 이미 받았어요.</strong>
+            <strong>이번 박스 {checkpoint === 'week_2' ? '2주차' : '4주차'} 응답을 이미 받았어요.</strong>
             <br />
             아래 답변이 다음 박스 알고리즘에 반영돼요.
           </div>

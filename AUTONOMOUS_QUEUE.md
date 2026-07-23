@@ -175,6 +175,8 @@ P1 로 올리고 **2회전**: 더 깊은 디자인 완성도 + 새로 생긴 미
 ## 9. 진행 로그 (최신이 위)
 > 형식: `회차N: [P?] 무엇을·왜·검증결과`. 동시발동 락은 `🔄` 줄.
 
+- 회차294(2026-07-24, P3 cycle jargon sweep): 체크인 화면(checkin/CheckinClient.tsx) 고객 노출 'CYCLE {N}' 3곳(:325 킥커·:410 태그·:453 '이번 cycle') → '{N}번째 박스'/'이번 박스'(feedback_customer_copy_voice 전문용어 금지). ★이전 틱 grep truncate 로 놓쳤던 것. tsc+eslint GREEN·코드+로그 1커밋. ▶다음: OrderClient.tsx:555 'CUSTOM BOX · CYCLE {N}' 킥커. admin(picking-list·personalization) cycle 은 내부용이라 유지.
+
 - 회차293(2026-07-24, P3 cycle jargon sweep 계속): 처방 히스토리(app/(main)/dogs/[id]/formulas/page.tsx:142)의 'CYCLE {N}' 태그 고객 노출 → '{N}번째 박스'(feedback_customer_copy_voice 전문용어 금지). CheckinClient 은 cycle 이 주석/URL param 뿐(노출 X). tsc+eslint GREEN. 코드+로그 1커밋(불필요 재빌드 축소). ▶다음: 잔여 CYCLE 태그/BCS/% 고객노출 or 삭제안전 잔재.
 
 - 회차292(2026-07-24, P3 오늘 규칙 잔여 sweep·**커밋 31afeb5**): 2026-07-24 밤 야간 최종점검 재무장 후 첫 틱. /approve 승인화면(고객 노출)의 'cycle {N}'·'CYCLE {N}' 영어 jargon 2곳 → '{N}번째 박스'(feedback_customer_copy_voice 전문용어 금지 적용). tsc+eslint+build:ci GREEN·push. "처방" 전수 확인=전부 주석이거나 정당('처방식'=수의처방 사료, 설문 질문). ▶다음: 잔여 cycle/BCS/% 고객노출 또는 삭제안전 잔재.
