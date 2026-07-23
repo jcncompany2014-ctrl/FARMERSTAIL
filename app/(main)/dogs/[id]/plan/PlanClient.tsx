@@ -603,7 +603,7 @@ function PlanView({
       <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, background: 'var(--ink)', padding: '13px 16px calc(13px + env(safe-area-inset-bottom))', display: detailLine ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, zIndex: 40 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
-            2주마다 배송 · 언제든 해지
+            2주마다 배송 · 다음 결제 전 해지
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
             {cycleAnchor > cyclePay && (

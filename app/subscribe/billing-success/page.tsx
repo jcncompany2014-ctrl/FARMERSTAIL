@@ -187,7 +187,7 @@ function BillingSuccessInner() {
             >
               다음 배송일에 등록한 카드로 자동 결제돼요.
               <br />
-              마이페이지에서 언제든 해지할 수 있어요.
+              마이페이지에서 다음 결제 전까지 해지할 수 있어요.
             </p>
             <button
               type="button"

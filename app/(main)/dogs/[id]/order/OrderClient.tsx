@@ -962,7 +962,7 @@ export default function OrderClient({
           <div className="ord-paybar">
             <div className="ord-paybar-info">
               <span className="ord-paybar-cap">
-                첫 박스 · 2주마다 · 언제든 해지
+                첫 박스 · 2주마다 · 다음 결제 전 해지
               </span>
               <span className="ord-paybar-price">
                 {totalAmount.toLocaleString()}원

@@ -414,8 +414,8 @@ function SubCard({
 
       <p className="sub-foot">
         {state === 'active'
-          ? `${iGa(name)} 먹는 속도에 맞춰 언제든 미루거나 멈출 수 있어요.`
-          : '언제든 바꾸거나 그만둘 수 있어요. 위약금은 없어요.'}
+          ? `${iGa(name)} 먹는 속도에 맞춰 다음 결제 전까지 미루거나 멈출 수 있어요.`
+          : '다음 결제 전까지 바꾸거나 그만둘 수 있어요. 위약금은 없어요.'}
       </p>
     </section>
   )
@@ -429,8 +429,8 @@ function EmptyStart({ name, startHref }: { name: string; startHref: string }) {
       <PackageOpen size={22} strokeWidth={1.8} />
       <h2>{name}의 정기배송이 아직 없어요</h2>
       <p>
-        분석 결과에 맞춘 레시피로 2주마다 보내드려요. 언제든 미루거나 그만둘 수
-        있어요.
+        분석 결과에 맞춘 레시피로 2주마다 보내드려요. 다음 결제 전까지 미루거나
+        그만둘 수 있어요.
       </p>
       <Link href={startHref} className="sub-btn is-primary">
         정기배송 시작하기

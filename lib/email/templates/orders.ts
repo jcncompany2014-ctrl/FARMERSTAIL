@@ -252,7 +252,7 @@ export function renderWelcome(input: {
       맞는 화식부터 확인해 보세요. 체형·건강에 맞춰 하루 급여량까지 계산해 드려요.
     </p>
     <p style="margin:0 0 14px 0;font-size:11.5px;color:#7A7A7A;line-height:1.6;">
-      구독하면 정기배송 할인이 기본으로 들어가요. 언제든 해지할 수 있어요.
+      구독하면 정기배송 할인이 기본으로 들어가요. 다음 결제 전까지 해지할 수 있어요.
     </p>
   `
   const html = renderLayout({
