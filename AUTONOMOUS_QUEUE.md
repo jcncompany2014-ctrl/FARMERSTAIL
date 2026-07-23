@@ -175,6 +175,8 @@ P1 로 올리고 **2회전**: 더 깊은 디자인 완성도 + 새로 생긴 미
 ## 9. 진행 로그 (최신이 위)
 > 형식: `회차N: [P?] 무엇을·왜·검증결과`. 동시발동 락은 `🔄` 줄.
 
+- 회차306(2026-07-24, P3 고객문구 규칙위반 1건 수정): approve/ApproveClient.tsx:273 가격변경 동의화면 말미 "언제든 정기배송을 일시정지하거나 해지할 수 있어요" = 이번 세션 확정한 **"언제든 해지/일시정지" 과약속 금지**(일요일 마감 존재) 위반. 바로 위 주석(269-271)이 이미 "지킬 수 없는 약속은 금액에선 특히 위험" 경고인데 정작 다음 줄이 위반 → "일시정지·해지는 다음 결제 전까지 바꿀 수 있어요"로 교정. tsc+eslint GREEN. ▶다음: 나머지 앱 "언제든" 6곳은 재개/설문재응시/수신철회 등 마감無 맥락이라 정상.
+
 - 회차305(2026-07-24, P2 죽은 포매터 발견·**코드수정 0**): format.ts 옛 포매터 7종(mainLineOf·formatLineRatios·formatToppers·transitionLabel·totalGrams·formatFormulaSummary·formatReasoningSummary) 전수 — 이번 세션 recipeName 전환으로 **prod 사용처 0**(format.test.ts 테스트만). 재사용 순수 유틸이라 무인 삭제 보류 → AUDIT_FINDINGS 정리 결정건 기록. recipeName·friendlyChangeReason 만 prod 사용중. ▶다음: 합성(⭐요약 갱신) or 잔여 미세.
 
 - 회차304(2026-07-24, P2 폐지기능 잔재 sweep·**코드수정 0**): 구독전용 전환(2026-06)으로 폐지된 '무료배송/위시리스트/낱개' 잔여 문구 전수 — 고객 노출=0, 매칭 전부 **폐지를 문서화한 dev 주석**(cart/checkout/products/collections 폐지 안내 + WebChrome '무료배송 클레임 금지' 규칙주석). 기능 제거 깔끔 확정. 안전한 코드-수정 표면(규칙위반·영어명·죽은 export·폐지잔재) 전반 소진 확인. ▶다음: 합성(⭐요약 갱신) or 잔여 미세 점검.
