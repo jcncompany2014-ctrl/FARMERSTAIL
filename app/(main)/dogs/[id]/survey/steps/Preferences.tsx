@@ -120,14 +120,8 @@ export default function Preferences({
                 aria-pressed={active}
                 onClick={() => setCareGoal(v)}
               >
-                <span
-                  className="s-lb-icon"
-                  style={{
-                    background: active
-                      ? 'rgba(255,255,255,.12)'
-                      : 'var(--bg-2)',
-                  }}
-                >
+                {/* 변 아이콘과 동일한 bare(박스 없이 크게) 포맷(사장님 2026-07-23). */}
+                <span className="s-lb-icon s-lb-icon-bare">
                   <span
                     className="s-careicon"
                     aria-hidden
