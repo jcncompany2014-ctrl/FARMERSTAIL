@@ -216,10 +216,15 @@ export default function Body({
             })()}
           </div>
           <div>
-            <div className="s-row">
+            {/* 줄 정렬도 인라인으로(사장님 2026-07-23: dev Turbopack이 .s-row
+                CSS 를 안 물어와 태그가 아래로 처져 보이던 것 우회). BCS 라벨과
+                태그를 한 줄·수직중앙으로 확정. */}
+            <div
+              className="s-row"
+              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+            >
               <strong>{BCS_DESCRIPTIONS[bcs].label}</strong>
-              {/* 신호등 색을 인라인으로(사장님 2026-07-23: CSS 캐시로 태그색이
-                  안 바뀌어 보이던 것 우회 — 인라인은 JS 번들이라 확실히 반영).
+              {/* 신호등 색을 인라인으로(CSS 캐시 우회 — JS 번들이라 확실히 반영).
                   이상적=초록·주의=앰버·위험=딥레드 솔리드 + 텍스트 수직 중앙. */}
               <span
                 className={'s-tag s-' + BCS_VIEW[bcs].tagTone}
