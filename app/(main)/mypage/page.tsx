@@ -46,7 +46,12 @@ export default async function MyPage() {
       .from('subscriptions')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('status', 'active'),
+      .eq('status', 'active')
+      // 카드 미등록 '유령 활성'(next_delivery_date=null) 제외 — 홈(dashboard)의
+      // hasActiveSub 판정(next_delivery_date!==null)과 동일 기준. status='active' 만
+      // 세면 카드 등록 前 구독이 홈엔 안 뜨는데 여기 'Subs' 통계엔 잡혀 화면 간
+      // 불일치가 났다(2026-07-23 정합).
+      .not('next_delivery_date', 'is', null),
   ])
 
   const profile = (profileRes.data as Profile | null) ?? null
