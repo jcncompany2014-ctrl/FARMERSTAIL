@@ -175,6 +175,10 @@ P1 로 올리고 **2회전**: 더 깊은 디자인 완성도 + 새로 생긴 미
 ## 9. 진행 로그 (최신이 위)
 > 형식: `회차N: [P?] 무엇을·왜·검증결과`. 동시발동 락은 `🔄` 줄.
 
+- 회차300(2026-07-24, P3 "처방" 전수 재점검·**코드수정 0**): 정상 *.tsx glob로 "처방" 전수 — 고객 노출은 전부 **정당한 의료 맥락**(chat/science 면책 '의학적 진단·처방 안 함', MedicalRecordForm/Ocr '처방 약'=수의처방 기록, tools/elimination-diet '식이 처방'=수의). 우리 제품을 '처방'이라 부르던 건 이번 세션 이미 수정(CurrentFormulaCard 킥커·알림·이메일). 남은 처방=dev 주석뿐(고객 무관이라 유지). ▶다음: %비율 고객노출(analysis는 BCS와 함께 사장님 결정건) or 클린이면 합성/문서.
+
+- 회차299(2026-07-24, P3 전문용어+잔재 점검·**코드수정 0·미커밋(다음 fix에 묶음)**): DCM/심초음파 고객 .tsx 노출=0(알림만이었고 이미 수정), "타우린"=원물 영양 설명(심장→타우린 공급) 정당 맥락이라 유지. mainLineOf(format.ts)는 이번 세션 prod 사용처 제거됐으나 **테스트 있는 공용 포매터 유틸**이라 삭제 보류(애매·복귀 후 결정 가능). 클린 tick — doc-only 재빌드 회피로 로그 미커밋, 다음 fix-tick 이 함께 커밋. ▶다음: 정상 `*.tsx` glob로 남은 규칙 위반/잔재 재점검 or 클린이면 합성/문서.
+
 - 회차298(2026-07-24, P3 petName 재검증 + glob 함정·**코드수정 0**): ★★glob `app/(main)/**/*.tsx`(괄호)가 헛돌아 회차297 petName sweep이 false-negative였음 → 앞으로 **경로없는 `*.tsx` glob 또는 path 파라미터**를 쓸 것. 제대로 재sweep: 조사 붙은 raw 이름 후보(DogSubscriptionClient:430·473 '{name}의')는 이미 name=petName(dogName)(:110)이라 위반 아님, 나머지는 _dead_referral·주석뿐 → petName 실제 일관 확정. BCS(설문/분석) 순화 여부는 AUDIT_FINDINGS에 사장님 결정건 기록(교육/의료 맥락이라 무인 보류). ▶다음: 다른 전문용어(DCM·심초음파·급여량 등) 고객노출 or 삭제안전 잔재 — 정상 glob으로.
 
 - 회차297(2026-07-24, P2 죽은 export 제거): petName sweep(조사 붙은 raw 이름=0, 일관적) 후 잔재로 전환. FOOD_LINE_COLORS·FOOD_LINE_NAMES(_components/types.ts:69-83) 죽은 export 제거 — 이번 세션 CurrentFormulaCard % 막대 제거로 유일 사용처 사라짐(export라 eslint 미탐지). tsc GREEN(타 import 없음 확인)·1커밋. ▶다음: BCS/% 고객노출(analysis는 상세라 의도적일 수 있어 신중, 애매하면 AUDIT_FINDINGS) or 삭제안전 잔재.
