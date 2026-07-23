@@ -10,6 +10,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { isAdmin } from '@/lib/auth/admin'
 import { HelpTip } from '@/components/admin/ui'
 import PrintButtonClient from './PrintButtonClient'
@@ -48,12 +49,20 @@ export default async function AdminReportsPage({
   if (!(await isAdmin(supabase, user))) redirect('/admin')
 
   const sp = await searchParams
-  const now = new Date()
-  const year = sp.year ? parseInt(sp.year, 10) : now.getFullYear()
-  const month = sp.month ? parseInt(sp.month, 10) : now.getMonth() + 1
+  // 기본 연·월·월경계 모두 **KST** 기준. 서버 UTC 로 now.getMonth() / new Date(year,
+  // month-1, 1) 를 쓰면 KST 1일 00~08:59(=UTC 전월)에 ① 기본 조회월이 전월로 잡히고
+  // ② 그 시간대 매출이 전월 범위로 새어 월 매출이 어긋난다. +09:00 으로 KST 자정 명시.
+  const kstToday = todayKstIsoDate() // 'YYYY-MM-DD' (KST)
+  const year = sp.year ? parseInt(sp.year, 10) : parseInt(kstToday.slice(0, 4), 10)
+  const month = sp.month ? parseInt(sp.month, 10) : parseInt(kstToday.slice(5, 7), 10)
 
-  const monthStart = new Date(year, month - 1, 1).toISOString()
-  const monthEnd = new Date(year, month, 1).toISOString()
+  const mm = String(month).padStart(2, '0')
+  const monthStart = new Date(`${year}-${mm}-01T00:00:00+09:00`).toISOString()
+  const nextY = month === 12 ? year + 1 : year
+  const nextM = month === 12 ? 1 : month + 1
+  const monthEnd = new Date(
+    `${nextY}-${String(nextM).padStart(2, '0')}-01T00:00:00+09:00`,
+  ).toISOString()
 
   const [
     { data: paidOrders },
