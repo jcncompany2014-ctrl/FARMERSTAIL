@@ -3,6 +3,10 @@
 import { useMemo, useState } from 'react'
 import { decideFirstBox } from '@/lib/personalization/firstBox'
 import { decideNextBox } from '@/lib/personalization/nextBox'
+import {
+  snapBoxLines,
+  collapseToSingle,
+} from '@/lib/personalization/boxComposition'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import type {
   AlgorithmInput,
@@ -109,6 +113,21 @@ export default function SimulatorClient() {
       cycleNumber: 2,
     })
   }, [mode, input, checkin])
+
+  // 실제 고객에게 나가는 박스 — 프로덕션과 동일 규칙으로 스냅한다.
+  //  · 첫 박스: collapseToSingle → 무조건 1종 100% (compute route 와 동일).
+  //  · 다음 박스: snapBoxLines → 최대 2종, 2종이면 50:50 (분석 카드와 동일).
+  // 위 lineRatios(최대 5종)는 "왜 이 단백질인가"의 내부 근거일 뿐, 출고 박스가 아님.
+  const shippedLines = useMemo(() => {
+    if (mode === 'first') {
+      const single = collapseToSingle(result.lineRatios)
+      return ALL_LINES.filter((l) => single[l] > 0).map((l) => ({
+        line: l,
+        ratio: single[l],
+      }))
+    }
+    return snapBoxLines(result.lineRatios)
+  }, [mode, result])
 
   function update<K extends keyof AlgorithmInput>(
     key: K,
@@ -438,9 +457,54 @@ export default function SimulatorClient() {
 
         {/* OUTPUT */}
         <div>
+          {/* 실제 출고 박스 — 고객이 받는 것. 최대 2종, 2종이면 50:50,
+              첫 박스는 무조건 1종. (아래 Line ratios 는 내부 근거일 뿐.) */}
+          <div className="rounded-xl border-2 border-zinc-300 bg-white p-4 mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[11px] font-bold text-zinc-900">
+                📦 실제 출고 박스
+              </div>
+              <div className="text-[10px] text-zinc-400">
+                {mode === 'first' ? '첫 박스 = 1종' : '최대 2종 · 반반'}
+              </div>
+            </div>
+            <div className="flex h-4 rounded-full overflow-hidden bg-zinc-100 mb-3">
+              {shippedLines.map(({ line, ratio }) => (
+                <div
+                  key={line}
+                  style={{
+                    width: `${ratio * 100}%`,
+                    background: FOOD_LINE_META[line].color,
+                  }}
+                  title={`${FOOD_LINE_META[line].name} ${Math.round(ratio * 100)}%`}
+                />
+              ))}
+            </div>
+            <ul className="space-y-1.5">
+              {shippedLines.map(({ line, ratio }) => (
+                <li
+                  key={line}
+                  className="flex items-center gap-2 text-[13px] text-zinc-800"
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ background: FOOD_LINE_META[line].color }}
+                  />
+                  <span className="flex-1 font-bold">
+                    {FOOD_LINE_META[line].name}
+                  </span>
+                  <span className="font-black">{Math.round(ratio * 100)}%</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           <div className="bg-bg-2 rounded-xl p-4 mb-3">
             <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted mb-2">
-              결과 — Line ratios
+              내부 근거 — Line ratios{' '}
+              <span className="font-normal normal-case tracking-normal text-zinc-400">
+                (출고 박스 아님 · 왜 이 단백질인지의 계산값)
+              </span>
             </div>
             <div className="flex h-3 rounded-full overflow-hidden bg-rule mb-3">
               {ALL_LINES.filter((l) => result.lineRatios[l] > 0).map((line) => (
