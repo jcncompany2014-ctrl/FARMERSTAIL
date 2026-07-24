@@ -229,7 +229,7 @@ export default async function ProductInsightsPage({
                     {count}명 ({pct.toFixed(0)}%)
                   </span>
                 </div>
-                <div className="h-2 bg-paperHi rounded">
+                <div className="h-2 bg-zinc-100 rounded">
                   <div
                     className="h-2 bg-terracotta rounded"
                     style={{ width: `${pct}%` }}

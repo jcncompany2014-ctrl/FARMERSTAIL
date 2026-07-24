@@ -78,7 +78,7 @@ export default function NutrientsForm({
   return (
     <form onSubmit={onSubmit} className="space-y-7">
       {/* AAFCO 평가 카드 */}
-      <div className="rounded border border-line bg-paperHi p-4 text-sm">
+      <div className="rounded border border-line bg-zinc-100 p-4 text-sm">
         <div className="font-semibold text-ink mb-2">AAFCO Adult Maintenance 평가</div>
         <div className="grid grid-cols-3 gap-3">
           <Stat label="미달" value={evalResult.below.length} color="sale" />
@@ -118,7 +118,7 @@ export default function NutrientsForm({
         </section>
       ))}
 
-      <div className="sticky bottom-0 bg-paper py-4 border-t border-line flex items-center gap-3">
+      <div className="sticky bottom-0 bg-zinc-50 py-4 border-t border-line flex items-center gap-3">
         <button
           type="submit"
           disabled={pending}
@@ -196,7 +196,7 @@ function NutrientField({
           min="0"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`flex-1 rounded border px-3 py-2 text-sm bg-paper ${
+          className={`flex-1 rounded border px-3 py-2 text-sm bg-zinc-50 ${
             flag ? 'border-sale' : 'border-line'
           }`}
           placeholder="—"

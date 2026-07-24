@@ -201,7 +201,7 @@ export default function V3SimulatorClient() {
               {layerA.picks.map((p) => (
                 <div
                   key={p.id}
-                  className="bg-paper/40 border border-zinc-200 rounded-xl p-3"
+                  className="bg-zinc-50 border border-zinc-200 rounded-xl p-3"
                   style={{ background: 'var(--paper, #f4ede0)' }}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -271,7 +271,7 @@ export default function V3SimulatorClient() {
               {layerA.scores.map((s) => (
                 <span
                   key={s.protein}
-                  className="font-mono text-[11px] px-2 py-0.5 rounded bg-paper border border-zinc-200"
+                  className="font-mono text-[11px] px-2 py-0.5 rounded bg-zinc-50 border border-zinc-200"
                   style={{ background: 'var(--paper, #f4ede0)' }}
                 >
                   {s.protein} <b>{s.score}</b>
@@ -402,7 +402,7 @@ function TraceBlock({
   children: React.ReactNode
 }) {
   return (
-    <div className="mt-3 bg-paper/30 rounded-lg p-3" style={{ background: 'rgba(0,0,0,0.02)' }}>
+    <div className="mt-3 bg-zinc-50 rounded-lg p-3" style={{ background: 'rgba(0,0,0,0.02)' }}>
       <div className="text-[9.5px] font-bold tracking-[0.15em] uppercase text-muted mb-2">
         {title}
       </div>

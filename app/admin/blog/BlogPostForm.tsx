@@ -576,7 +576,7 @@ export default function BlogPostForm({
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={upload.status === 'uploading'}
-              className="w-full aspect-[16/9] rounded-lg bg-bg border border-dashed border-zinc-200-2 flex flex-col items-center justify-center text-muted hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
+              className="w-full aspect-[16/9] rounded-lg bg-bg border border-dashed border-zinc-200 flex flex-col items-center justify-center text-muted hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
             >
               {upload.status === 'uploading' ? (
                 <Loader2 className="w-6 h-6 animate-spin" strokeWidth={1.5} />
@@ -764,7 +764,7 @@ function AiDraftHelper({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-zinc-200 bg-bg-2 text-text hover:border-terracotta transition"
+        className="mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-zinc-200 bg-zinc-50 text-text hover:border-terracotta transition"
       >
         ✨ AI 초안 생성
       </button>

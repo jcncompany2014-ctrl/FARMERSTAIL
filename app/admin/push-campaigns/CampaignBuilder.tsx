@@ -172,7 +172,7 @@ export default function CampaignBuilder() {
       </div>
 
       {(title || body) && (
-        <div className="rounded-xl border border-dashed border-zinc-200-2 p-3.5 bg-bg-2">
+        <div className="rounded-xl border border-dashed border-zinc-200 p-3.5 bg-zinc-50">
           <div className="flex items-start gap-2">
             <div className="shrink-0 w-8 h-8 rounded-full bg-terracotta flex items-center justify-center">
               <Bell className="w-3.5 h-3.5 text-white" strokeWidth={2} />

@@ -190,7 +190,7 @@ export default async function AdminCronHealthPage() {
         ) : (
           <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
             <table className="w-full text-[13px]">
-              <thead className="bg-bg-2 text-muted text-[11px] uppercase tracking-widest">
+              <thead className="bg-zinc-50 text-muted text-[11px] uppercase tracking-widest">
                 <tr>
                   <th className="text-left px-4 py-2.5 font-bold">실행 시각</th>
                   <th className="text-left px-4 py-2.5 font-bold">자동작업</th>
@@ -249,7 +249,7 @@ export default async function AdminCronHealthPage() {
         ) : (
           <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
             <table className="w-full text-[13px]">
-              <thead className="bg-bg-2 text-muted text-[11px] uppercase tracking-widest">
+              <thead className="bg-zinc-50 text-muted text-[11px] uppercase tracking-widest">
                 <tr>
                   <th className="text-left px-4 py-2.5 font-bold">자동작업</th>
                   <th className="text-center px-4 py-2.5 font-bold">마지막</th>

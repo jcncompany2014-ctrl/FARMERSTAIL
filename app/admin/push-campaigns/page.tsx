@@ -66,7 +66,7 @@ export default async function AdminPushCampaignsPage() {
         <section>
           <h2 className="text-[13px] font-black text-text mb-3">새 캠페인</h2>
           <CampaignBuilder />
-          <div className="mt-3 p-3 rounded-xl bg-bg-2 border border-zinc-200">
+          <div className="mt-3 p-3 rounded-xl bg-zinc-50 border border-zinc-200">
             <p className="text-[11px] text-text leading-relaxed">
               ⚠️ 광고성 알림 — 법(정보통신망법 §50④)에 따라 제목 앞에
               <strong> [광고]</strong> 가 자동으로 붙어요. 알림 설정에서

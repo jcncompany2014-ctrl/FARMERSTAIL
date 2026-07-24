@@ -196,7 +196,7 @@ export default async function AdminFinancePage({
                       </span>
                     </span>
                   </div>
-                  <div className="h-2 bg-paperHi rounded">
+                  <div className="h-2 bg-zinc-100 rounded">
                     <div
                       className="h-2 bg-moss rounded"
                       style={{ width: `${Math.max(pct, 1)}%` }}

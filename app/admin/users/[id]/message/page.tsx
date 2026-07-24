@@ -113,7 +113,7 @@ export default async function AdminUserMessagePage({
                     className={`max-w-[75%] rounded-lg px-3.5 py-2.5 ${
                       mine
                         ? 'bg-terracotta text-white rounded-br-md'
-                        : 'bg-bg-2 text-text rounded-bl-md border border-zinc-200'
+                        : 'bg-zinc-50 text-text rounded-bl-md border border-zinc-200'
                     }`}
                   >
                     <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5 opacity-70">
@@ -142,7 +142,7 @@ export default async function AdminUserMessagePage({
         <section>
           <h2 className="text-[13px] font-black text-text mb-3">메시지 작성</h2>
           <MessageComposer userId={id} />
-          <div className="mt-3 p-3 rounded-xl bg-bg-2 border border-zinc-200">
+          <div className="mt-3 p-3 rounded-xl bg-zinc-50 border border-zinc-200">
             <p className="text-[11px] text-text leading-relaxed">
               ⚠️ 1:1 CS 메시지는 사용자의 알림 선호도/방해금지 시간대를 우회해
               발송됩니다. 환불/배송지연 같은 critical 안내에만 사용하세요.

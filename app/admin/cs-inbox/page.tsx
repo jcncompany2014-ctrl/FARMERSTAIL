@@ -114,7 +114,7 @@ export default async function AdminCsInboxPage() {
               >
                 <Link
                   href={`/admin/users/${g.user_id}/message`}
-                  className="block px-4 py-4 hover:bg-bg-2/40 transition"
+                  className="block px-4 py-4 hover:bg-zinc-50/40 transition"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">

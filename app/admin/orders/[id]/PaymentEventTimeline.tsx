@@ -127,7 +127,7 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
                     )}
                   </div>
                   {e.metadata && Object.keys(e.metadata).length > 0 && (
-                    <pre className="mt-1.5 text-[10px] bg-paperHi rounded p-2 font-mono text-muted overflow-x-auto leading-snug">
+                    <pre className="mt-1.5 text-[10px] bg-zinc-100 rounded p-2 font-mono text-muted overflow-x-auto leading-snug">
                       {JSON.stringify(e.metadata, null, 2)}
                     </pre>
                   )}

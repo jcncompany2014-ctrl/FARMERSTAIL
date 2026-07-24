@@ -161,7 +161,7 @@ export default async function AdminUnifiedSearch({
                   >
                     <Link
                       href={`/admin/users/${p.id}/message`}
-                      className="block px-4 py-3 hover:bg-bg-2/40 transition"
+                      className="block px-4 py-3 hover:bg-zinc-50/40 transition"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">
@@ -198,7 +198,7 @@ export default async function AdminUnifiedSearch({
                   >
                     <Link
                       href={`/admin/orders/${o.id}`}
-                      className="block px-4 py-3 hover:bg-bg-2/40 transition"
+                      className="block px-4 py-3 hover:bg-zinc-50/40 transition"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">
@@ -240,7 +240,7 @@ export default async function AdminUnifiedSearch({
                   >
                     <Link
                       href="/admin/subscriptions"
-                      className="block px-4 py-3 hover:bg-bg-2/40 transition"
+                      className="block px-4 py-3 hover:bg-zinc-50/40 transition"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">

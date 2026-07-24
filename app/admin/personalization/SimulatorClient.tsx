@@ -311,7 +311,7 @@ export default function SimulatorClient() {
                   className={`px-2 py-1 rounded-full text-[10.5px] font-bold ${
                     input.allergies.includes(a)
                       ? 'bg-text text-white'
-                      : 'bg-bg-2 text-text border border-zinc-200'
+                      : 'bg-zinc-50 text-text border border-zinc-200'
                   }`}
                 >
                   {a}
@@ -329,7 +329,7 @@ export default function SimulatorClient() {
                   className={`px-2 py-1 rounded-full text-[10.5px] font-mono ${
                     input.chronicConditions.includes(c)
                       ? 'bg-terracotta text-white'
-                      : 'bg-bg-2 text-text border border-zinc-200'
+                      : 'bg-zinc-50 text-text border border-zinc-200'
                   }`}
                 >
                   {c}
@@ -347,7 +347,7 @@ export default function SimulatorClient() {
                   className={`px-2 py-1 rounded-full text-[10.5px] font-mono ${
                     input.preferredProteins.includes(p)
                       ? 'bg-text text-white'
-                      : 'bg-bg-2 text-text border border-zinc-200'
+                      : 'bg-zinc-50 text-text border border-zinc-200'
                   }`}
                 >
                   {p}
@@ -499,7 +499,7 @@ export default function SimulatorClient() {
             </ul>
           </div>
 
-          <div className="bg-bg-2 rounded-xl p-4 mb-3">
+          <div className="bg-zinc-50 rounded-xl p-4 mb-3">
             <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted mb-2">
               내부 근거 — Line ratios{' '}
               <span className="font-normal normal-case tracking-normal text-zinc-400">
@@ -550,7 +550,7 @@ export default function SimulatorClient() {
           </div>
 
           {/* Reasoning */}
-          <div className="bg-bg-2 rounded-xl p-4">
+          <div className="bg-zinc-50 rounded-xl p-4">
             <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted mb-2">
               Reasoning ({result.reasoning.length})
             </div>
@@ -583,7 +583,7 @@ export default function SimulatorClient() {
               Raw JSON
             </summary>
             <pre
-              className="mt-2 text-[10px] bg-bg-2 p-3 rounded-xl overflow-auto"
+              className="mt-2 text-[10px] bg-zinc-50 p-3 rounded-xl overflow-auto"
               style={{ maxHeight: 320 }}
             >
               {JSON.stringify(result, null, 2)}

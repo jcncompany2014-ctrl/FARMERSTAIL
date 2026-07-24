@@ -175,7 +175,7 @@ export default async function PushStatsPage() {
         ) : (
           <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
             <table className="w-full text-[12px]">
-              <thead className="bg-bg-2">
+              <thead className="bg-zinc-50">
                 <tr className="text-left text-[10px] uppercase tracking-widest text-muted font-bold">
                   <th className="px-4 py-3">카테고리</th>
                   <th className="px-4 py-3 text-right">발송</th>
@@ -189,7 +189,7 @@ export default async function PushStatsPage() {
                 {categoryRows.map((c) => (
                   <tr
                     key={c.category}
-                    className="border-t border-zinc-200 hover:bg-bg-2/40"
+                    className="border-t border-zinc-200 hover:bg-zinc-50/40"
                   >
                     <td className="px-4 py-3 font-bold text-text">
                       {c.category}
@@ -231,7 +231,7 @@ export default async function PushStatsPage() {
         ) : (
           <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
             <table className="w-full text-[12px]">
-              <thead className="bg-bg-2">
+              <thead className="bg-zinc-50">
                 <tr className="text-left text-[10px] uppercase tracking-widest text-muted font-bold">
                   <th className="px-4 py-3">날짜</th>
                   <th className="px-4 py-3 text-right">발송</th>
@@ -245,7 +245,7 @@ export default async function PushStatsPage() {
                   return (
                     <tr
                       key={day}
-                      className="border-t border-zinc-200 hover:bg-bg-2/40"
+                      className="border-t border-zinc-200 hover:bg-zinc-50/40"
                     >
                       <td className="px-4 py-3 font-mono text-text">{day}</td>
                       <td className="px-4 py-3 text-right tabular-nums">
