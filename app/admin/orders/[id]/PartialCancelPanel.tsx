@@ -272,7 +272,7 @@ export default function PartialCancelPanel({
           >
             {submitting ? '처리 중…' : `${amount.toLocaleString()}원 환불 실행`}
           </button>
-          <p className="text-[10px] text-muted leading-relaxed">
+          <p className="text-[11.5px] text-muted leading-relaxed">
             실행 후 되돌릴 수 없으며, 토스페이먼츠 결제 상태가 즉시 업데이트됩니다.
             포인트/쿠폰은 부분 환불 시 자동 조정되지 않으므로 필요 시 별도 조치해
             주세요.

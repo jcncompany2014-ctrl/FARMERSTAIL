@@ -347,7 +347,7 @@ export default function BlogPostForm({
               className={`${inputClass} font-mono text-xs`}
               placeholder="weight-management-diet"
             />
-            <p className="mt-1 text-[10px] text-muted">
+            <p className="mt-1 text-[11.5px] text-muted">
               /blog/<span className="font-mono">{form.slug || '...'}</span>
             </p>
           </Field>
@@ -497,7 +497,7 @@ export default function BlogPostForm({
               {inlineUpload.message}
             </p>
           )}
-          <p className="mt-1 text-[10px] text-muted">
+          <p className="mt-1 text-[11.5px] text-muted">
             {form.content.length.toLocaleString()}자 · 마크다운: **굵게** *기울임* # 제목 - 목록 [링크](url) ![alt](img)
           </p>
         </Section>
@@ -519,7 +519,7 @@ export default function BlogPostForm({
             </div>
 
             {form.is_published && form.published_at && (
-              <p className="text-[10px] text-muted">
+              <p className="text-[11.5px] text-muted">
                 최초 발행 ·{' '}
                 {new Date(form.published_at).toLocaleString('ko-KR')}
               </p>
@@ -862,7 +862,7 @@ function AiDraftHelper({
         )}
       </button>
 
-      <p className="text-[10px] text-muted leading-relaxed">
+      <p className="text-[11.5px] text-muted leading-relaxed">
         AI 가 초안을 만들어 제목·요약·본문에 자동으로 채워줘요. 그대로
         발행하지 말고 사실·표현·톤을 점검한 뒤 게시하세요.
       </p>

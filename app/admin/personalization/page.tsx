@@ -400,7 +400,7 @@ function KpiCard({
         {unit && <span className="text-[11px] text-muted">{unit}</span>}
       </div>
       {hint && (
-        <p className="text-[10px] text-muted mt-1.5 leading-relaxed">{hint}</p>
+        <p className="text-[11px] text-muted mt-1.5 leading-relaxed">{hint}</p>
       )}
     </div>
   )

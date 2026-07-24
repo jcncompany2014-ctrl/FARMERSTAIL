@@ -380,7 +380,7 @@ function RefundRow({
               {formatDate(refund.refunded_at)}
             </div>
             {refund.refunded_by === null && (
-              <div className="text-[9px] text-muted mt-0.5">고객 직접 환불</div>
+              <div className="text-[10.5px] text-muted mt-0.5">고객 직접 환불</div>
             )}
           </div>
         </div>

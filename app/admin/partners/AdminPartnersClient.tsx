@@ -453,7 +453,7 @@ function Field({
         {label}
       </label>
       {children}
-      {hint && <p className="mt-1 text-[10px] text-muted">{hint}</p>}
+      {hint && <p className="mt-1 text-[11.5px] text-muted">{hint}</p>}
     </div>
   )
 }
