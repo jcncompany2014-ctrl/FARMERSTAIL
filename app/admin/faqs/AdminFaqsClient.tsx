@@ -205,7 +205,7 @@ export default function AdminFaqsClient({
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg bg-white border border-zinc-200">
+        <div className="overflow-x-auto rounded-lg bg-white border border-zinc-200">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-[11px] text-muted border-b border-zinc-200 bg-bg">

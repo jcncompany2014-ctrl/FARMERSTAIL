@@ -188,7 +188,7 @@ export default async function AdminCronHealthPage() {
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-zinc-200 overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead className="bg-zinc-50 text-muted text-[11px] uppercase tracking-widest">
                 <tr>
@@ -247,7 +247,7 @@ export default async function AdminCronHealthPage() {
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-zinc-200 overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead className="bg-zinc-50 text-muted text-[11px] uppercase tracking-widest">
                 <tr>

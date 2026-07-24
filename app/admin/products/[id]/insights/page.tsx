@@ -246,7 +246,7 @@ export default async function ProductInsightsPage({
         <h2 className="text-sm font-semibold text-ink mb-3">
           Top 10 buyers (LTV 기준)
         </h2>
-        <table className="w-full text-xs">
+        <table className="w-full text-xs min-w-[560px]">
           <thead className="text-muted">
             <tr className="border-b border-line">
               <th className="text-left py-2.5 px-3 font-semibold">User</th>

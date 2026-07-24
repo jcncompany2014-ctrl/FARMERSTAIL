@@ -173,7 +173,7 @@ export default async function PushStatsPage() {
             <p className="text-[12px] text-muted">최근 30일 발송 기록이 없어요.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
+          <div className="bg-white rounded-lg border border-zinc-200 overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead className="bg-zinc-50">
                 <tr className="text-left text-[10px] uppercase tracking-widest text-muted font-bold">
@@ -229,7 +229,7 @@ export default async function PushStatsPage() {
             <p className="text-[12px] text-muted">발송 기록이 없어요.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
+          <div className="bg-white rounded-lg border border-zinc-200 overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead className="bg-zinc-50">
                 <tr className="text-left text-[10px] uppercase tracking-widest text-muted font-bold">
