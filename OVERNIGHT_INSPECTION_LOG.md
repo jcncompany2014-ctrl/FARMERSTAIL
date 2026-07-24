@@ -358,3 +358,4 @@
 - [iter8] 주문상세 '환불 가능 잔액' 오표시(미결제 취소에 total 노출) → canRefund 조건부 '—'. 라이브 검증 ✓. 커밋 됨.
 - [iter9] 🐛수정: 제품상세→라벨 PDF 링크가 UUID 라 항상 404 → slug→SKU 역매핑(C01 라벨 정상 렌더·130kcal v4.0 정합 확인). 회귀감시: test 1373+tsc 그린.
 - [iter10·코드 마스터피스] KPI 카드 로컬 재정의 10곳 발견 → ui.tsx StatCard(unit 추가) 정본 통합 시작. 1차 3곳(cron-health·charges·push-stats) 교체+정의 삭제(-120줄). 남은 7곳 다음 사이클.
+- [iter11] KPI 통합 완료 — 표준형 5곳 StatCard 정본화(cron-health·charges·push-stats·finance·insights), 특수형 5곳 의도적 유지(refunds 아이콘카드·personalization warn·beta 인쇄·cohort 아이콘·nutrients 미니). 로컬 정의 -5개.
