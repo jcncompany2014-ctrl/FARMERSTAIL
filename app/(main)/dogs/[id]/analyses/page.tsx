@@ -178,7 +178,7 @@ export default async function AnalysesTimelinePage({
                 className="text-[10.5px] mt-1 leading-relaxed"
                 style={{ color: 'var(--muted)' }}
               >
-                BCS / 임신·수유 / 급여량 계산 정확도 향상 (NRC 2006 정식 수식
+                체형 / 임신·수유 / 급여량 계산 정확도 향상 (수의영양 최신 기준
                 반영). 더 정확한 결과를 위해 다시 분석을 받아주세요.
               </p>
               <Link
@@ -305,7 +305,7 @@ export default async function AnalysesTimelinePage({
                       </div>
                       <div className="rounded-lg bg-bg px-3 py-2">
                         <div className="text-[9px] font-bold text-muted uppercase tracking-wider">
-                          BCS
+                          체형
                         </div>
                         <div className="text-[13.5px] font-black text-text mt-0.5 leading-none">
                           {a.bcs_score}
@@ -424,7 +424,7 @@ function LatestAnalysisHero({
           className="mt-1.5 text-[10.5px] font-bold uppercase"
           style={{ color: 'var(--ink-fg-mute)', letterSpacing: '0.08em' }}
         >
-          {analysis.stage} · BCS {analysis.bcs_score}/9 · {analysis.bcs_label}
+          {analysis.stage} · 체형 {analysis.bcs_score}/9 · {analysis.bcs_label}
         </p>
 
         {/* 핵심 지표 — 룰로 나눈 3칸 스트립(ActiveDogCard 패턴). 아이콘 타일 대신

@@ -743,7 +743,7 @@ function applyChronicAdjustments(
     if (severity === 'severe' && fatPct > fatCeiling) {
       reasoning.push({
         trigger: '급성·중증 췌장염',
-        action: `이 강아지에게는 화식 급여를 권장하지 않습니다 — 급성·중증 췌장염은 지방 <${fatCeiling}% DM 처방식이 필요한데, 화식은 최저지방(약 ${fatPct.toFixed(0)}% DM)으로도 그 기준을 맞출 수 없어요. 반드시 수의사 처방식(저지방 therapeutic diet)으로 급여해 주세요.`,
+        action: `이 강아지에게는 화식 급여를 권장하지 않습니다 — 급성·중증 췌장염은 지방 ${fatCeiling}% 미만의 처방식이 필요한데, 화식은 최저지방(약 ${fatPct.toFixed(0)}%)으로도 그 기준을 맞출 수 없어요. 반드시 수의사 처방식(저지방 식이요법)으로 급여해 주세요.`,
         chipLabel: '⚠ 화식 부적합 — 수의 처방식 필요',
         priority: 0,
         ruleId: 'pancreatitis-severe-unsuitable',

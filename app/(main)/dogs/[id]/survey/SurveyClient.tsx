@@ -918,7 +918,7 @@ export default function SurveyClient({
 
   // ── 이전 답변 요약 echo chips ──
   const echoItems: string[] = []
-  if (stepIdx > 0 && bcs) echoItems.push(`BCS ${bcs}/9`)
+  if (stepIdx > 0 && bcs) echoItems.push(`체형 ${bcs}/9`)
   // MCS echo 제거 — muscle 스텝 폐지(2026-07-23). 옛 draft 의 mcs 잔값 노출 방지.
   if (stepIdx > 2 && bristol) echoItems.push(`변 #${bristol}`)
   if (stepIdx > 3) {

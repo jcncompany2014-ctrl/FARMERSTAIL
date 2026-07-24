@@ -142,7 +142,7 @@ export default async function CompareDogsPage() {
                 pick={(d) => (d.weight != null ? `${d.weight} kg` : '—')}
               />
               <Row
-                label="BCS"
+                label="체형"
                 dogs={dogs}
                 pick={(d) => d.body_condition ?? '—'}
               />
