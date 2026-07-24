@@ -136,7 +136,14 @@ export async function GET(request: Request) {
     }
 
     const hasBirthYear = !!profile?.birth_year || patch.birth_year != null
-    if (!hasBirthYear) {
+    // 카카오 간편가입(Kakao Sync)은 '만 14세 이상' 동의로 14세 미만 가입을
+    // 이미 차단하므로 앱 age-gate 는 중복 → 카카오 가입자는 건너뛴다. 애플 등
+    // 나이 미검증 provider 는 게이트로 birth_year(=14세 확인) 를 계속 강제.
+    // ⚠️ 이 스킵은 Kakao Sync 의 '만 14세 이상' **필수** 동의가 활성일 때만
+    //    법적으로 유효(개인정보보호법 제22조의2). 비활성화하면 재연결 필요.
+    const oauthProvider =
+      (user.app_metadata?.provider as string | undefined) ?? ''
+    if (!hasBirthYear && oauthProvider !== 'kakao') {
       const target =
         '/onboarding/age-gate?next=' + encodeURIComponent(safeNext)
       return NextResponse.redirect(`${origin}${target}`)
