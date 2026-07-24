@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import AlgorithmConfigClient from './AlgorithmConfigClient'
+import { AdminTabs } from '@/components/admin/ui'
+import { SETTINGS_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,24 +46,12 @@ export default async function AdminAlgorithmPage() {
 
   return (
     <main className="px-5 py-6 max-w-4xl mx-auto">
+      {/* 대개편 v2 T6 — 설정 그룹 탭 + 헤더 zinc 통일(serif·킥커 제거) */}
+      <AdminTabs tabs={SETTINGS_TABS} active="/admin/algorithm" />
       <div className="flex items-center justify-between mb-6">
         <div>
-          <span
-            className="text-[10px] font-bold tracking-[0.2em] uppercase"
-            style={{ color: 'var(--terracotta)' }}
-          >
-알고리즘 설정
-          </span>
-          <h1
-            className="font-serif mt-1"
-            style={{
-              fontSize: 24,
-              fontWeight: 800,
-              color: 'var(--ink)',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            알고리즘 데이터 편집
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+            알고리즘 계수
           </h1>
           <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
             라인별 영양 구성과 만성질환 진단 강도를 직접 편집해요. 저장하면

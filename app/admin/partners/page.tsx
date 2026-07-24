@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import AdminPartnersClient, { type AdminPartnerRow } from './AdminPartnersClient'
+import { AdminTabs } from '@/components/admin/ui'
+import { CONTENT_TABS } from '@/components/admin/tabGroups'
 
 /**
  * /admin/partners — 산지/공급자 CRUD.
@@ -26,9 +28,13 @@ export default async function AdminPartnersPage() {
     )
     .order('sort_order', { ascending: true })
 
+  // 대개편 v2 T4 — 콘텐츠 그룹 탭.
   return (
-    <AdminPartnersClient
-      initialPartners={(partners ?? []) as AdminPartnerRow[]}
-    />
+    <div>
+      <AdminTabs tabs={CONTENT_TABS} active="/admin/partners" />
+      <AdminPartnersClient
+        initialPartners={(partners ?? []) as AdminPartnerRow[]}
+      />
+    </div>
   )
 }

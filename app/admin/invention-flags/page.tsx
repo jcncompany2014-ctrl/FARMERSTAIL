@@ -1,15 +1,10 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import {
-  ChevronLeft,
-  ToggleRight,
-  ToggleLeft,
-  AlertCircle,
-  Shield,
-} from 'lucide-react'
+import { ToggleRight, ToggleLeft, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { getAllFlags, envVarFor } from '@/lib/invention-flags'
+import { AdminTabs } from '@/components/admin/ui'
+import { SETTINGS_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,27 +64,9 @@ export default async function InventionFlagsPage() {
 
   return (
     <main className="px-5 pb-24 pt-6 max-w-2xl mx-auto">
-      <Link
-        href="/admin"
-        className="inline-flex items-center gap-1 text-[12px] font-bold text-muted hover:text-text transition"
-      >
-        <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.2} />
-        admin
-      </Link>
-
-      <div className="flex items-center gap-2 mt-3 mb-1">
-        <Shield className="w-4 h-4" strokeWidth={2} style={{ color: 'var(--terracotta)' }} />
-        <span className="kicker">발명 기능 차단 스위치</span>
-      </div>
-      <h1
-        className="font-serif"
-        style={{
-          fontSize: 22,
-          fontWeight: 800,
-          color: 'var(--ink)',
-          letterSpacing: '-0.02em',
-        }}
-      >
+      {/* 대개편 v2 T6 — 설정 그룹 탭 (뒤로가기·킥커 대체, serif 헤더 zinc 통일) */}
+      <AdminTabs tabs={SETTINGS_TABS} active="/admin/invention-flags" />
+      <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
         발명 기능 켜고 끄기
       </h1>
       <p className="text-[12.5px] mt-2 leading-relaxed text-text/75">

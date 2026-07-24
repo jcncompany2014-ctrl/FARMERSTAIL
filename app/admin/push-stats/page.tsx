@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { AdminTabs } from '@/components/admin/ui'
+import { PUSH_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
 
@@ -115,14 +117,13 @@ export default async function PushStatsPage() {
 
   return (
     <div>
+      {/* 대개편 v2 T5 — 알림 그룹 탭 + 헤더 zinc 통일(킥커-제목 중복 제거) */}
+      <AdminTabs tabs={PUSH_TABS} active="/admin/push-stats" />
       <header className="mb-6 flex items-end justify-between">
         <div>
-          <p className="text-[11px] text-muted uppercase tracking-widest font-bold">
-            푸시 알림 통계
-          </p>
-          <h1 className="text-2xl font-black text-text mt-1">푸시 발송 통계</h1>
-          <p className="text-[12px] text-muted mt-1">
-            최근 30일 · 어떤 알림이 잘 읽히는지 분석
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">알림 통계</h1>
+          <p className="text-[13px] text-zinc-500 mt-1">
+            최근 30일 · 어떤 알림이 잘 읽히는지 봐요
           </p>
         </div>
         <Link

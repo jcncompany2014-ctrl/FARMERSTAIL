@@ -1,15 +1,10 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
-import {
-  Activity,
-  ArrowLeft,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-} from 'lucide-react'
+import { AdminTabs } from '@/components/admin/ui'
+import { SETTINGS_TABS } from '@/components/admin/tabGroups'
+import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -138,20 +133,12 @@ export default async function AdminCronHealthPage() {
 
   return (
     <div>
+      {/* 대개편 v2 T6 — 설정 그룹 탭 (뒤로가기 링크 대체·헤더 zinc 통일) */}
+      <AdminTabs tabs={SETTINGS_TABS} active="/admin/cron-health" />
       <div className="mb-6">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-text font-semibold mb-3"
-        >
-          <ArrowLeft className="w-3 h-3" strokeWidth={2.5} />
-          대시보드
-        </Link>
-        <div className="flex items-center gap-2">
-          <Activity className="w-5 h-5 text-terracotta" strokeWidth={2} />
-          <h1 className="font-bold tracking-tight text-2xl text-ink">
-            자동작업 상태
-          </h1>
-        </div>
+        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+          자동작업 상태
+        </h1>
         <p className="text-[12px] text-muted mt-1">
           최근 {WINDOW_DAYS}일 자동작업 실행 상태 — 실패한 작업과 원인을 추적해요
         </p>

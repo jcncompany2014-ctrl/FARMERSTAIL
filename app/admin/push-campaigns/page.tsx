@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import CampaignBuilder from './CampaignBuilder'
+import { AdminTabs } from '@/components/admin/ui'
+import { PUSH_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,12 +44,11 @@ export default async function AdminPushCampaignsPage() {
 
   return (
     <div>
+      {/* 대개편 v2 T5 — 알림 그룹 탭 (보내기|통계) + 헤더 zinc 통일·영문 킥커 제거 */}
+      <AdminTabs tabs={PUSH_TABS} active="/admin/push-campaigns" />
       <header className="mb-6 flex items-end justify-between">
         <div>
-          <p className="text-[11px] text-muted uppercase tracking-widest font-bold">
-            Push Campaigns
-          </p>
-          <h1 className="text-2xl font-black text-text mt-1">푸시 캠페인</h1>
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">알림 보내기</h1>
           <p className="text-[12px] text-muted mt-1">
             보낼 고객 그룹을 고르고 한 번에 알림을 보내요. 광고성 알림은 수신
             동의한 분에게만 나가고, 밤 시간대(22~08시)엔 자동으로 멈춰요.

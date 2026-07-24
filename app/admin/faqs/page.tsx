@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import AdminFaqsClient, { type AdminFaqRow } from './AdminFaqsClient'
+import { AdminTabs } from '@/components/admin/ui'
+import { CONTENT_TABS } from '@/components/admin/tabGroups'
 
 /**
  * /admin/faqs — FAQ CRUD.
@@ -28,5 +30,11 @@ export default async function AdminFaqsPage() {
     .order('category', { ascending: true })
     .order('sort_order', { ascending: true })
 
-  return <AdminFaqsClient initialFaqs={(faqs ?? []) as AdminFaqRow[]} />
+  // 대개편 v2 T4 — 콘텐츠 그룹 탭.
+  return (
+    <div>
+      <AdminTabs tabs={CONTENT_TABS} active="/admin/faqs" />
+      <AdminFaqsClient initialFaqs={(faqs ?? []) as AdminFaqRow[]} />
+    </div>
+  )
 }

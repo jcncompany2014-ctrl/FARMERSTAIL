@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { AdminTabs } from '@/components/admin/ui'
+import { CONTENT_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,12 +81,14 @@ export default async function AdminBlogPostsPage({
 
   return (
     <div>
+      {/* 대개편 v2 T4 — 콘텐츠 그룹 탭 (블로그|FAQ|산지) + 헤더 zinc 통일 */}
+      <AdminTabs tabs={CONTENT_TABS} active="/admin/blog" />
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="font-bold tracking-tight text-3xl text-ink">
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
             블로그
           </h1>
-          <p className="text-sm text-muted mt-1">
+          <p className="text-[13px] text-zinc-500 mt-1">
             {hasFilter ? `검색 결과 ${rows.length}개` : `총 ${rows.length}개`}
           </p>
         </div>

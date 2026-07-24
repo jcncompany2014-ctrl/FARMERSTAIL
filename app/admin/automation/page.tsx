@@ -6,6 +6,8 @@ import { getAutomationSettings } from '@/lib/automation-settings'
 import { todayKstIsoDate, addDaysKst, currentKstHour } from '@/lib/datetime-kst'
 import { MIN_DAYS_BEFORE_DUE } from '@/lib/personalization/cycle'
 import AutomationClient from './AutomationClient'
+import { AdminTabs } from '@/components/admin/ui'
+import { SETTINGS_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,12 +36,16 @@ export default async function AdminAutomationPage() {
   const admin = createAdminClient()
   const preview = await computePreview(admin)
 
+  // 대개편 v2 T6 — 설정 그룹 탭 (자동화|자동작업|알고리즘|발명보호).
   return (
-    <AutomationClient
-      initial={settings}
-      preview={preview}
-      currentHourKst={currentKstHour()}
-    />
+    <div>
+      <AdminTabs tabs={SETTINGS_TABS} active="/admin/automation" />
+      <AutomationClient
+        initial={settings}
+        preview={preview}
+        currentHourKst={currentKstHour()}
+      />
+    </div>
   )
 }
 
