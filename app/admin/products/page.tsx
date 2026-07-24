@@ -89,7 +89,9 @@ export default async function AdminProductsPage({
             제품 관리
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            총 {total.toLocaleString()}개 상품 · 화식 가격은 100g 단가(청구 정본)
+            판매하는 화식 레시피(제품)를 관리하는 곳이에요. 여기 등록된 100g
+            단가가 고객 청구 금액의 기준(정본)이라, 가격을 바꾸면 새 결제부터
+            바로 반영돼요. — 총 {total.toLocaleString()}개
           </p>
         </div>
         <Link

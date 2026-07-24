@@ -72,7 +72,7 @@ export default async function AdminLoyaltyPage() {
     <div>
       <AdminHeader
         title="멤버십 · 스탬프"
-        sub={`스탬프 ${MIN_STAMPS}개 이상 손님 ${rows.length.toLocaleString()}명 · 등급 보유 ${tieredTotal.toLocaleString()}명`}
+        sub={`구독 결제 1번 = 도장 1개, 도장 개수로 등급이 올라가요(씨앗 10 ~ 나무 50). 할인은 나무 등급의 매 주문 10%뿐이에요. 도장을 모아가는 손님과 등급별 인원을 여기서 봐요. — 스탬프 ${MIN_STAMPS}개 이상 ${rows.length.toLocaleString()}명 · 등급 보유 ${tieredTotal.toLocaleString()}명`}
       />
 
       {/* 등급별 인원 요약 */}

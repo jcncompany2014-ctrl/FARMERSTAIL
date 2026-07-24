@@ -97,32 +97,13 @@ export default async function FunnelPage({
       </Link>
 
       <header className="mt-3 mb-6">
-        <span
-          className="inline-block font-mono text-[10.5px] font-semibold uppercase"
-          style={{ letterSpacing: '0.16em', color: 'var(--terracotta)' }}
-        >
-          전환 흐름 · {days}일
-        </span>
-        <h1
-          className="mt-2"
-          style={{
-            fontFamily: 'var(--font-sans), Pretendard, sans-serif',
-            fontWeight: 800,
-            fontSize: 24,
-            color: 'var(--ink)',
-            letterSpacing: '-0.025em',
-            lineHeight: 1.25,
-          }}
-        >
-          가입 → 정기구독
+        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+          가입 여정 분석
         </h1>
-        <p
-          className="mt-2 text-[12.5px] leading-relaxed"
-          style={{ color: 'var(--muted)' }}
-        >
-          첫 박스 구매까지 단계별로 얼마나 빠지는지 봐요. 베타 30명 모집
-          단계에선 비율(%) 추이가 핵심이에요 — 절대 수치보다 어느 단계에서
-          이탈하는지 파악하세요.
+        <p className="mt-1 text-[13px] text-zinc-500 leading-relaxed">
+          고객이 가입 → 설문 → 분석 → 첫 정기배송 결제까지 오는 동안 어느
+          단계에서 얼마나 이탈하는지 보는 곳이에요 (최근 {days}일). 숫자 자체보다
+          &lsquo;어디서 많이 빠지나&rsquo;를 보면 뭘 고칠지 알 수 있어요.
         </p>
       </header>
 

@@ -1,8 +1,6 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import {
-  ChevronLeft,
   Users,
   Star,
   Repeat,
@@ -194,22 +192,13 @@ export default async function AdminCohortPage() {
 
   return (
     <div className="px-5 py-6">
-      <Link
-        href="/admin"
-        className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-text font-semibold mb-3"
-      >
-        <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-        대시보드
-      </Link>
-
-      <div className="flex items-center gap-2">
-        <Users className="w-5 h-5 text-moss" strokeWidth={2} />
-        <h1 className="font-bold tracking-tight text-2xl text-ink">
-          가입 시기별 분석
-        </h1>
-      </div>
-      <p className="text-[12px] text-muted mt-1">
-        재주문 · 환불 · 별점 · 체크인 응답률 · 제품별 비교
+      <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+        가입 시기별 분석
+      </h1>
+      <p className="text-[13px] text-zinc-500 mt-1">
+        같은 주에 가입한 고객끼리 묶어서, 시기별로 재주문·환불·별점·체크인
+        응답이 어떻게 다른지 비교하는 곳이에요. &lsquo;언제 들어온 손님이 오래
+        남는가&rsquo;를 볼 때 써요.
       </p>
 
       {/* 핵심 KPI 4종 */}

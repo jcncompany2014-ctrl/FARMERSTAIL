@@ -72,7 +72,7 @@ export default async function AdminPromotionsPage() {
     <div className="pb-12">
       <AdminHeader
         title="이벤트 · 프로모션"
-        sub="링크 하나로 첫 주문 할인 — 오프라인 QR · 인스타 링크"
+        sub="오프라인 QR·인스타로 뿌릴 첫 주문 할인 링크를 만드는 곳이에요. 링크로 들어온 신규 고객이 웹 설문 → 가입 순서로 진행해야 할인이 적용돼요 (앱을 먼저 깔면 할인이 사라져요 — 홍보 문구도 이 순서로!)."
       />
       <PromotionsClient initial={rows} siteUrl={siteUrl} />
     </div>

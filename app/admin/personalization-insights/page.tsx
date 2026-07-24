@@ -1,7 +1,5 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import {
-  ChevronLeft,
   BarChart3,
   TrendingUp,
   Sparkles,
@@ -101,27 +99,13 @@ export default async function PersonalizationInsightsPage() {
 
   return (
     <main className="px-5 pb-24 pt-6 max-w-3xl mx-auto">
-      <Link
-        href="/admin"
-        className="inline-flex items-center gap-1 text-[12px] font-bold text-muted hover:text-text transition"
-      >
-        <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.2} />
-        admin
-      </Link>
-
-      <h1
-        className="font-serif mt-2"
-        style={{
-          fontSize: 22,
-          fontWeight: 800,
-          color: 'var(--ink)',
-          letterSpacing: '-0.02em',
-        }}
-      >
-        개인화 인사이트
+      <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+        맞춤 분석
       </h1>
-      <p className="text-[12.5px] mt-2 text-muted leading-relaxed">
-        측정 방식 분포 · 신뢰도 보정 · 민감도 분석 · 개입 실험 모니터링
+      <p className="text-[13px] text-zinc-500 mt-1 leading-relaxed">
+        맞춤 추천이 잘 돌아가는지 뒤에서 점검하는 곳이에요. 고객들이 체중을
+        어떤 방식으로 재는지, 계산이 얼마나 믿을 만한지 같은 내부 품질
+        지표를 봐요.
       </p>
 
       <Card icon={<BarChart3 className="w-4 h-4" />} title="측정 도구 분포">

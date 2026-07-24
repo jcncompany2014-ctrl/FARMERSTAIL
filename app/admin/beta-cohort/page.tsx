@@ -1,7 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronLeft, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
@@ -168,22 +166,12 @@ export default async function BetaCohortPage() {
 
       <div className="flex items-end justify-between mb-6 no-print">
         <div>
-          <Link
-            href="/admin"
-            className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-text font-semibold mb-3"
-          >
-            <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-            대시보드
-          </Link>
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-moss" strokeWidth={2} />
-            <h1 className="font-bold tracking-tight text-2xl text-ink">
-              베타 테스트 현황
-            </h1>
-          </div>
-          <p className="text-[12px] text-muted mt-1">
-            2026 비공개 베타 — 강아지 30마리 진행 관리 + 정부 발표·수의영양사
-            검수 자료
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+            베타 테스트 현황
+          </h1>
+          <p className="text-[13px] text-zinc-500 mt-1">
+            2026 비공개 베타(강아지 30마리)의 진행 현황을 관리하는 곳이에요.
+            정부 발표·수의영양 검수용 자료도 여기서 인쇄해요.
           </p>
         </div>
         <BetaCohortPrintButton />
