@@ -297,21 +297,34 @@ export default async function AdminReportsPage({
       <section className="bg-white rounded-xl border border-zinc-200 px-5 py-4 mb-6 print:break-inside-avoid">
         <span className="kicker kicker-muted">
           차감 항목
-          <HelpTip text="할인·포인트는 결제 전에 이미 빠진 금액(참고용), 환불만 순매출에서 실제로 차감돼요. 포인트는 폐지된 제도라 과거 달에만 값이 있어요." />
+          <HelpTip
+            text={
+              totalPointsUsed > 0
+                ? '할인은 결제 전에 이미 빠진 금액(참고용), 환불만 순매출에서 실제로 차감돼요. 포인트는 폐지된 제도라 과거 달에만 값이 남아있어요.'
+                : '할인은 결제 전에 이미 빠진 금액(참고용), 환불만 순매출에서 실제로 차감돼요.'
+            }
+          />
         </span>
-        <div className="mt-2 grid grid-cols-3 gap-2 text-[12px]">
+        <div
+          className={`mt-2 grid gap-2 text-[12px] ${
+            totalPointsUsed > 0 ? 'grid-cols-3' : 'grid-cols-2'
+          }`}
+        >
           <div>
             <span className="text-muted">할인</span>
             <div className="font-bold tabular-nums text-text">
               -{totalDiscount.toLocaleString()}원
             </div>
           </div>
-          <div>
-            <span className="text-muted">포인트 사용</span>
-            <div className="font-bold tabular-nums text-text">
-              -{totalPointsUsed.toLocaleString()}원
+          {/* 포인트는 폐지된 제도(2026-07-16) — 과거 이력이 있을 때만 표시. */}
+          {totalPointsUsed > 0 && (
+            <div>
+              <span className="text-muted">포인트 사용 (폐지)</span>
+              <div className="font-bold tabular-nums text-text">
+                -{totalPointsUsed.toLocaleString()}원
+              </div>
             </div>
-          </div>
+          )}
           <div>
             <span className="text-muted">환불</span>
             <div className="font-bold tabular-nums text-sale">
