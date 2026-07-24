@@ -33,14 +33,14 @@ const STEPS = [
     accent: 'var(--terracotta)',
     kicker: 'Step 1 · 시작',
     title: '첫 아이를 등록해주세요',
-    body: '체중·BCS·식이 정보를 입력하면\n맞춤 영양 분석을 무료로 보내드려요.',
+    body: '체중·체형·식이 정보를 입력하면\n맞춤 영양 분석을 무료로 보내드려요.',
   },
   {
     Icon: BarChart3,
     accent: 'var(--gold)',
     kicker: 'Step 2 · 분석',
     title: '5분이면 충분해요',
-    body: 'NRC2006 기준 정밀 영양 분석 + AI 코멘터리.\n수의영양학 가이드라인 기반.',
+    body: 'NRC 기준 정밀 영양 분석 + AI 코멘터리.\n수의영양학 가이드라인 기반.',
   },
   {
     Icon: Repeat,

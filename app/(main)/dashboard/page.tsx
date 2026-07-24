@@ -489,8 +489,10 @@ export default async function DashboardPage() {
   return (
     // ft-stagger: 홈 섹션들이 위에서 순서대로 떠오르는 진입 연출 (B9).
     <div className="pb-8 ft-stagger">
-      {/* 가입 후 첫 진입 튜토리얼 — onboarded_at IS NULL 인 경우만 1회. */}
-      {showOnboarding && <OnboardingTutorial />}
+      {/* 가입 후 첫 진입 튜토리얼 — onboarded_at IS NULL + 강아지 아직 없을 때만.
+          설문 퍼널로 온 유저는 이미 강아지가 등록돼 있어(설문=강아지 등록) '첫
+          아이 등록' 튜토리얼이 중복·혼란 → 강아지 0마리일 때만 노출(2026-07-24). */}
+      {showOnboarding && dogs.length === 0 && <OnboardingTutorial />}
 
       {/* 1. Greeting hero — 54px display + signature */}
       <GreetingSection
