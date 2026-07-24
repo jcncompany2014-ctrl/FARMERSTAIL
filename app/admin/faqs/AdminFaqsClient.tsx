@@ -176,7 +176,7 @@ export default function AdminFaqsClient({
           className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition ${
             filterCategory === 'all'
               ? 'bg-ink text-white'
-              : 'bg-white border border-zinc-200 text-ink hover:bg-bg'
+              : 'bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50'
           }`}
         >
           전체 ({initialFaqs.length})
@@ -188,7 +188,7 @@ export default function AdminFaqsClient({
             className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition ${
               filterCategory === cat
                 ? 'bg-ink text-white'
-                : 'bg-white border border-zinc-200 text-ink hover:bg-bg'
+                : 'bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50'
             }`}
           >
             {cat} ({counts.get(cat) ?? 0})
@@ -198,7 +198,7 @@ export default function AdminFaqsClient({
 
       {visible.length === 0 ? (
         <div className="p-12 rounded-lg bg-white border border-zinc-200 text-center">
-          <p className="text-sm text-muted">
+          <p className="text-sm text-zinc-500">
             {filterCategory === 'all'
               ? '등록된 FAQ 가 없어요.'
               : '이 카테고리에 등록된 FAQ 가 없어요.'}
@@ -208,7 +208,7 @@ export default function AdminFaqsClient({
         <div className="overflow-x-auto rounded-lg bg-white border border-zinc-200">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[11px] text-muted border-b border-zinc-200 bg-bg">
+              <tr className="text-[11px] text-zinc-500 border-b border-zinc-200 bg-zinc-50">
                 <th className="text-left py-3 px-4 font-medium">카테고리</th>
                 <th className="text-left py-3 px-4 font-medium">질문 / 답변</th>
                 <th className="text-right py-3 px-4 font-medium">정렬</th>
@@ -220,7 +220,7 @@ export default function AdminFaqsClient({
               {visible.map((f) => (
                 <tr
                   key={f.id}
-                  className="border-b border-zinc-100 last:border-b-0 hover:bg-bg/60 transition"
+                  className="border-b border-zinc-100 last:border-b-0 hover:bg-zinc-50/60 transition"
                 >
                   <td className="py-3 px-4 align-top">
                     <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-terracotta/10 text-terracotta">
@@ -228,12 +228,12 @@ export default function AdminFaqsClient({
                     </span>
                   </td>
                   <td className="py-3 px-4 align-top">
-                    <div className="font-semibold text-ink">{f.question}</div>
-                    <p className="text-[11px] text-muted mt-1 line-clamp-2 leading-relaxed">
+                    <div className="font-semibold text-zinc-900">{f.question}</div>
+                    <p className="text-[11px] text-zinc-500 mt-1 line-clamp-2 leading-relaxed">
                       {f.answer}
                     </p>
                   </td>
-                  <td className="py-3 px-4 text-right text-[11px] font-mono tabular-nums text-ink align-top">
+                  <td className="py-3 px-4 text-right text-[11px] font-mono tabular-nums text-zinc-900 align-top">
                     {f.sort_order}
                   </td>
                   <td className="py-3 px-4 text-right align-top">
@@ -242,7 +242,7 @@ export default function AdminFaqsClient({
                       className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         f.is_published
                           ? 'bg-moss text-white'
-                          : 'bg-rule text-text'
+                          : 'bg-rule text-zinc-800'
                       }`}
                     >
                       {f.is_published ? '공개' : '숨김'}
@@ -254,7 +254,7 @@ export default function AdminFaqsClient({
                         onClick={() => openEdit(f)}
                         className="p-1.5 rounded hover:bg-rule transition"
                       >
-                        <Pencil className="w-3.5 h-3.5 text-ink" strokeWidth={2} />
+                        <Pencil className="w-3.5 h-3.5 text-zinc-900" strokeWidth={2} />
                       </button>
                       <button
                         onClick={() => remove(f)}
@@ -283,18 +283,18 @@ export default function AdminFaqsClient({
             aria-modal="true"
             aria-labelledby="faq-modal-title"
             tabIndex={-1}
-            className="w-full max-w-xl bg-bg rounded-lg shadow-2xl"
+            className="w-full max-w-xl bg-zinc-50 rounded-lg shadow-2xl"
             onClick={(ev) => ev.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 sticky top-0 bg-bg rounded-t-2xl z-10">
-              <h2 id="faq-modal-title" className="font-bold tracking-tight text-lg text-ink">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 sticky top-0 bg-zinc-50 rounded-t-2xl z-10">
+              <h2 id="faq-modal-title" className="font-bold tracking-tight text-lg text-zinc-900">
                 {editing ? 'EDIT FAQ' : 'NEW FAQ'}
               </h2>
               <button
                 onClick={() => setModalOpen(false)}
                 className="p-1 rounded hover:bg-rule transition"
               >
-                <X className="w-4 h-4 text-ink" strokeWidth={2} />
+                <X className="w-4 h-4 text-zinc-900" strokeWidth={2} />
               </button>
             </div>
 
@@ -350,16 +350,16 @@ export default function AdminFaqsClient({
                       onChange={(ev) => setIsPublished(ev.target.checked)}
                       className="w-5 h-5"
                     />
-                    <span className="text-sm text-ink">{isPublished ? '공개' : '숨김'}</span>
+                    <span className="text-sm text-zinc-900">{isPublished ? '공개' : '숨김'}</span>
                   </label>
                 </Field>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 sticky bottom-0 bg-bg rounded-b-2xl">
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 sticky bottom-0 bg-zinc-50 rounded-b-2xl">
               <button
                 onClick={() => setModalOpen(false)}
-                className="px-4 py-2 rounded-lg text-sm text-ink hover:bg-rule transition"
+                className="px-4 py-2 rounded-lg text-sm text-zinc-900 hover:bg-rule transition"
               >
                 취소
               </button>
@@ -389,11 +389,11 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1.5">
+      <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
         {label}
       </label>
       {children}
-      {hint && <p className="mt-1 text-[11.5px] text-muted">{hint}</p>}
+      {hint && <p className="mt-1 text-[11.5px] text-zinc-500">{hint}</p>}
     </div>
   )
 }

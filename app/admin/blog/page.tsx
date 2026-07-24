@@ -97,7 +97,7 @@ export default async function AdminBlogPostsPage({
         <div className="flex items-center gap-2">
           <Link
             href="/admin/blog/categories"
-            className="px-4 py-2 rounded-full bg-white border border-zinc-200 text-text text-xs font-semibold hover:border-terracotta hover:text-terracotta transition"
+            className="px-4 py-2 rounded-full bg-white border border-zinc-200 text-zinc-800 text-xs font-semibold hover:border-terracotta hover:text-terracotta transition"
           >
             카테고리 관리
           </Link>
@@ -122,12 +122,12 @@ export default async function AdminBlogPostsPage({
             name="q"
             defaultValue={trimmed}
             placeholder="제목 / slug 검색"
-            className="flex-1 min-w-[200px] px-3 py-2 rounded-lg bg-bg text-xs text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta"
+            className="flex-1 min-w-[200px] px-3 py-2 rounded-lg bg-zinc-50 text-xs text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-terracotta"
           />
           <select
             name="category"
             defaultValue={category}
-            className="px-3 py-2 rounded-lg bg-bg text-xs text-ink focus:outline-none focus:ring-2 focus:ring-terracotta"
+            className="px-3 py-2 rounded-lg bg-zinc-50 text-xs text-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta"
           >
             <option value="">전체 카테고리</option>
             {categoriesList.map((c) => (
@@ -139,7 +139,7 @@ export default async function AdminBlogPostsPage({
           <select
             name="status"
             defaultValue={status}
-            className="px-3 py-2 rounded-lg bg-bg text-xs text-ink focus:outline-none focus:ring-2 focus:ring-terracotta"
+            className="px-3 py-2 rounded-lg bg-zinc-50 text-xs text-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta"
           >
             <option value="">전체 상태</option>
             <option value="published">게시됨</option>
@@ -154,7 +154,7 @@ export default async function AdminBlogPostsPage({
           {hasFilter && (
             <Link
               href="/admin/blog"
-              className="px-3 py-2 text-[11px] font-semibold text-muted hover:text-sale"
+              className="px-3 py-2 text-[11px] font-semibold text-zinc-500 hover:text-sale"
             >
               초기화
             </Link>
@@ -166,7 +166,7 @@ export default async function AdminBlogPostsPage({
         {error ? (
           <p className="text-sale text-sm">에러: {error.message}</p>
         ) : rows.length === 0 ? (
-          <p className="text-center text-sm text-muted py-10">
+          <p className="text-center text-sm text-zinc-500 py-10">
             {hasFilter
               ? '조건에 맞는 글이 없어요'
               : '작성된 글이 없어요. 새 글을 써 보세요.'}
@@ -175,7 +175,7 @@ export default async function AdminBlogPostsPage({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-muted border-b border-zinc-200">
+                <tr className="text-[11px] text-zinc-500 border-b border-zinc-200">
                   <th className="text-left py-2 font-medium w-20">커버</th>
                   <th className="text-left py-2 font-medium">제목</th>
                   <th className="text-left py-2 font-medium">카테고리</th>
@@ -193,10 +193,10 @@ export default async function AdminBlogPostsPage({
                   return (
                     <tr
                       key={p.id}
-                      className="border-b border-zinc-100 hover:bg-bg transition"
+                      className="border-b border-zinc-100 hover:bg-zinc-50 transition"
                     >
                       <td className="py-3">
-                        <div className="w-14 h-10 rounded-md bg-bg overflow-hidden">
+                        <div className="w-14 h-10 rounded-md bg-zinc-50 overflow-hidden">
                           {p.cover_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -208,12 +208,12 @@ export default async function AdminBlogPostsPage({
                         </div>
                       </td>
                       <td className="py-3">
-                        <p className="text-ink font-medium">{p.title}</p>
-                        <p className="text-[10px] text-muted font-mono mt-0.5">
+                        <p className="text-zinc-900 font-medium">{p.title}</p>
+                        <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
                           {p.slug}
                         </p>
                       </td>
-                      <td className="py-3 text-text text-xs">
+                      <td className="py-3 text-zinc-800 text-xs">
                         {cat?.name ?? '-'}
                       </td>
                       <td className="py-3 text-center">
@@ -222,15 +222,15 @@ export default async function AdminBlogPostsPage({
                             게시됨
                           </span>
                         ) : (
-                          <span className="inline-block text-[10px] font-bold text-muted bg-rule px-2 py-0.5 rounded-full">
+                          <span className="inline-block text-[10px] font-bold text-zinc-500 bg-rule px-2 py-0.5 rounded-full">
                             임시저장
                           </span>
                         )}
                       </td>
-                      <td className="py-3 text-right text-xs text-text">
+                      <td className="py-3 text-right text-xs text-zinc-800">
                         {(p.views ?? 0).toLocaleString()}
                       </td>
-                      <td className="py-3 text-right text-[11px] text-muted">
+                      <td className="py-3 text-right text-[11px] text-zinc-500">
                         {formatDate(p.updated_at)}
                       </td>
                       <td className="py-3 text-center">
