@@ -118,7 +118,9 @@ export default async function AdminFinancePage({
       <div className="mb-5">
         <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">결제 원장</h1>
         <p className="text-[13px] text-zinc-500 mt-1">
-          결제 기록을 기준으로 한 하루별 매출이에요 (최근 {days}일).
+          실제 카드 결제 기록을 하루 단위로 쌓아 보여주는 곳이에요 — 토스에서
+          승인된 금액 기준이라 &lsquo;진짜 들어온 돈&rsquo;에 가장 가까워요
+          (최근 {days}일).
         </p>
         <div className="flex gap-2 mt-3 text-xs">
           {[7, 30, 60, 90, 365].map((d) => (

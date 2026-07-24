@@ -69,9 +69,10 @@ export default async function InventionFlagsPage() {
       <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
         발명 기능 켜고 끄기
       </h1>
-      <p className="text-[12.5px] mt-2 leading-relaxed text-text/75">
-        특허 출원 전 핵심 알고리즘을 가리기 위한 스위치예요. 이 페이지에서는
-        상태만 볼 수 있고, 변경은 별도 설정(환경변수)에서만 가능해요.
+      <p className="text-[13px] text-zinc-500 mt-2 leading-relaxed">
+        특허 출원 전이라, 핵심 알고리즘을 고객·외부에 안 보이게 가려두는
+        스위치들의 현재 상태를 보는 곳이에요. 여기선 켜짐/꺼짐만 확인하고,
+        실제 변경은 별도 설정(환경변수)에서만 돼요.
       </p>
 
       <section className="mt-5 rounded-lg border bg-white p-5" style={{ borderColor: 'var(--rule)' }}>

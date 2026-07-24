@@ -78,7 +78,8 @@ export default async function AdminCsInboxPage() {
             고객 답장
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            고객이 1:1 메시지에 답장했는데 아직 안 읽은 것 — {grouped.length}명
+            고객이 1:1 메시지에 답장을 보냈는데 아직 사장님이 안 읽은 것들이에요.
+            여기 쌓이면 답을 기다리는 중이니 빨리 봐주세요. — {grouped.length}명
           </p>
         </div>
         <Link

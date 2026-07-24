@@ -191,7 +191,8 @@ export default async function AdminReportsPage({
             매출 리포트
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            월별 매출·환불·정기배송·많이 나간 레시피를 한눈에
+            장사가 얼마나 됐는지 달별로 보는 곳이에요 — 매출·환불·정기배송 수·
+            많이 나간 레시피를 한눈에 봐요. 오른쪽 인쇄 버튼으로 저장할 수 있어요.
           </p>
         </div>
         <PrintButtonClient />

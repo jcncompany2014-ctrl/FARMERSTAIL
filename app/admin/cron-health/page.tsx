@@ -139,8 +139,10 @@ export default async function AdminCronHealthPage() {
         <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
           자동작업 상태
         </h1>
-        <p className="text-[12px] text-muted mt-1">
-          최근 {WINDOW_DAYS}일 자동작업 실행 상태 — 실패한 작업과 원인을 추적해요
+        <p className="text-[13px] text-zinc-500 mt-1">
+          결제·배송·알림처럼 뒤에서 자동으로 도는 작업들이 잘 돌아갔는지 보는
+          곳이에요. 빨간 게 있으면 뭔가 멈춘 거라 확인이 필요해요 (최근{' '}
+          {WINDOW_DAYS}일).
         </p>
       </div>
 

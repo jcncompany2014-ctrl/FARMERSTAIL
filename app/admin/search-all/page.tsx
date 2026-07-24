@@ -106,7 +106,9 @@ export default async function AdminUnifiedSearch({
           전체 검색
         </h1>
         <p className="text-[13px] text-zinc-500 mt-1">
-          이메일·이름·연락처·주문번호로 회원/주문/정기배송을 한 번에 찾아요
+          고객이 전화나 메시지로 문의할 때 빠르게 찾는 곳이에요 —
+          이메일·이름·연락처·주문번호 아무거나 넣으면 회원·주문·정기배송을 한 번에
+          찾아줘요.
         </p>
       </header>
 

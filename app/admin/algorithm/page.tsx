@@ -53,9 +53,10 @@ export default async function AdminAlgorithmPage() {
           <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
             알고리즘 계수
           </h1>
-          <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
-            라인별 영양 구성과 만성질환 진단 강도를 직접 편집해요. 저장하면
-            다음 계산부터 바로 반영돼요.
+          <p className="text-[13px] text-zinc-500 mt-1.5 leading-relaxed">
+            맞춤 추천이 쓰는 계산 계수를 직접 손보는 고급 설정이에요 — 라인별
+            영양 구성·질환 강도 등. 저장하면 다음 계산부터 바로 반영되니
+            신중하게 바꿔주세요.
           </p>
         </div>
         <div className="flex flex-col gap-1.5 items-end">
