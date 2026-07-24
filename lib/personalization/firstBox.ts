@@ -228,7 +228,7 @@ function filterByAllergies(
       reasoning.push({
         trigger: `${matched} 알레르기 + ${meta.name} 라인`,
         action: `${matched} 알레르기견은 ${meta.nameKo} 도 IgE cross-react 가능 (Bexley 2017/2019, Martín 2004). 차단 안 함, 도입 시 관찰 권장.`,
-        chipLabel: `${meta.name} cross-react 주의`,
+        chipLabel: `${meta.nameKo} 비슷한 단백질 주의`,
         priority: 0,
         ruleId: `cross-react-${line}`,
       })
@@ -249,17 +249,17 @@ const CARE_GOAL_RECIPES: Record<
 > = {
   weight_management: {
     ratios: { basic: 0.3, weight: 0.7, skin: 0, premium: 0, joint: 0 },
-    chipLabel: '체중관리 → Weight 메인',
+    chipLabel: '체중 관리 위주',
     trigger: '케어 목표 = 체중 관리',
   },
   skin_coat: {
     ratios: { basic: 0.3, weight: 0, skin: 0.7, premium: 0, joint: 0 },
-    chipLabel: '피부·털 → Skin 메인',
+    chipLabel: '피부·털 관리 위주',
     trigger: '케어 목표 = 피부·털 개선',
   },
   joint_senior: {
     ratios: { basic: 0, weight: 0, skin: 0.1, premium: 0.3, joint: 0.6 },
-    chipLabel: '시니어 → Joint 메인',
+    chipLabel: '시니어 · 관절 위주',
     trigger: '케어 목표 = 관절·시니어',
   },
   allergy_avoid: {
@@ -268,7 +268,7 @@ const CARE_GOAL_RECIPES: Record<
     // v2.0: 노블 단백질 = 오리(basic 키)·돼지(joint)·연어(skin). 닭(weight)·소
     // (premium)는 흔한 알레르겐이라 0%.
     ratios: { basic: 0.5, weight: 0, skin: 0.2, premium: 0, joint: 0.3 },
-    chipLabel: '알레르기 회피 → 노블 프로틴',
+    chipLabel: '알레르기 회피 · 새 단백질',
     trigger: '케어 목표 = 알레르기·민감 회피',
   },
   general_upgrade: {
@@ -276,7 +276,7 @@ const CARE_GOAL_RECIPES: Record<
     // 돼지(joint) 소량 baseline. 저활동/비만/시니어 룰이 weight/premium/joint 를
     // 더 가산하므로 baseline 은 그 임계(weight<0.2·premium<0.25·joint<0.2) 미만 유지.
     ratios: { basic: 0.5, weight: 0.1, skin: 0.2, premium: 0.1, joint: 0.1 },
-    chipLabel: '일반 업그레이드 → 노블 기본',
+    chipLabel: '기본 · 새 단백질',
     trigger: '케어 목표 = 일반 영양 업그레이드',
   },
 }
@@ -355,7 +355,7 @@ function applyAgeStage(
     reasoning.push({
       trigger: `${Math.floor(input.ageMonths / 12)}세 시니어`,
       action: `Joint ${(before * 100).toFixed(0)}% → 20% (B1·콜린 가산)`,
-      chipLabel: '시니어 → Joint 가산',
+      chipLabel: '시니어 · 관절 보강',
       priority: 2,
       ruleId: 'age-senior-joint',
     })
@@ -399,7 +399,7 @@ function applyAgeStage(
       trigger: `대형견 puppy (성견 ${input.expectedAdultWeightKg}kg 예상, ${input.ageMonths}개월)`,
       action:
         'Joint/Weight/Premium 차단 (고-Ca/단백질 부담 ↓), Basic 위주. Ca:P ≤1.8 + Ca ≤1.8% DM 권장 (AAFCO 2024 Large-size Growth, NRC 2006 ch.15). 수의사 정기 검진 권장.',
-      chipLabel: '대형견 puppy → 골격 보호',
+      chipLabel: '대형견 아기 · 골격 보호',
       priority: 2,
       ruleId: 'age-puppy-large-breed',
     })
@@ -417,7 +417,7 @@ function applyAgeStage(
     reasoning.push({
       trigger: '12개월 미만 puppy',
       action: 'Weight/Joint 0%, 성장기 단백질 위주 (Basic + Premium)',
-      chipLabel: '강아지 → 성장기 처방',
+      chipLabel: '아기 강아지 · 성장기 맞춤',
       priority: 2,
       ruleId: 'age-puppy',
     })
@@ -522,7 +522,7 @@ function applyBreedPredispose(
           reasoning.push({
             trigger: `${entry.koreanLabel} 호발 ${pred}`,
             action: `${FOOD_LINE_META[targetLine].name} +${Math.round(give * 100)}% 부드러운 대비 (사용자 진단 없음)`,
-            chipLabel: `호발 대비 ${FOOD_LINE_META[targetLine].name} +${Math.round(give * 100)}%`,
+            chipLabel: `품종 특성 대비 · ${FOOD_LINE_META[targetLine].nameKo} 보강`,
             priority: 2,
             ruleId: `breed-soft-${entry.breedKey}-${pred}`,
           })
@@ -565,7 +565,7 @@ function applyChronicAdjustments(
         trigger: `만성 신장질환 (IRIS Stage ${stage})`,
         action:
           '단백질 정상 (Premium 유지). 인 제한 + 인 binder 권장 — 수의사 처방식 (저인) 상담. 단백질 과제한은 근감소증 위험 (Polzin 2011).',
-        chipLabel: `CKD Stage ${stage} → 단백질 유지`,
+        chipLabel: `신장 케어 ${stage}단계 · 단백질 유지`,
         priority: 3,
         ruleId: 'chronic-kidney-early',
       })
@@ -585,7 +585,7 @@ function applyChronicAdjustments(
         trigger: '만성 신장질환 (IRIS Stage 4 — 심한 azotemia)',
         action:
           'Premium/Weight 0%, Basic 으로 이전. 단백질 강제한 (≤14% DM), 인 binder 필수. 응급 처방식 (Royal Canin Renal, Hill\'s k/d Early Support) 수의사 상담 필수. IRIS 2019.',
-        chipLabel: 'CKD Stage 4 → 응급 저단백',
+        chipLabel: '신장 케어(위급) · 저단백',
         priority: 3,
         ruleId: 'chronic-kidney-stage4',
       })
@@ -601,7 +601,7 @@ function applyChronicAdjustments(
         trigger: '만성 신장질환 (IRIS Stage 3)',
         action:
           'Premium 0%, Basic 으로 이전. 단백질 적당 제한 + 인 강제한. 수의사 처방식 상담 필수. IRIS 2019.',
-        chipLabel: 'CKD Stage 3 → 저단백 처방',
+        chipLabel: '신장 케어 · 저단백',
         priority: 3,
         ruleId: 'chronic-kidney-stage3',
       })
@@ -623,7 +623,7 @@ function applyChronicAdjustments(
           : '만성 신장질환 (stage 미진단 — 보수적)',
         action:
           'Premium 0% (보수적 단백질 제한). 정확한 처방을 위해 수의사 진단 (creatinine + SDMA + 인 측정) 권장 — Stage 1-2 면 단백질 복원 가능. IRIS 2019.',
-        chipLabel: 'CKD 보수적 → 저단백 처방',
+        chipLabel: '신장 케어(보수적) · 저단백',
         priority: 3,
         ruleId: 'chronic-kidney',
       })
@@ -654,7 +654,7 @@ function applyChronicAdjustments(
     reasoning.push({
       trigger: '염증성 장질환 (IBD)',
       action: '저자극 단일 단백질 권장. 위장 적응 후 점진 추가.',
-      chipLabel: 'IBD → 단일 단백질',
+      chipLabel: '예민한 장 · 한 가지 단백질',
       priority: 3,
       ruleId: 'chronic-ibd',
     })
@@ -766,7 +766,7 @@ function applyChronicAdjustments(
     reasoning.push({
       trigger: '관절염 진단',
       action: `Joint ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}% (콜라겐·B1)`,
-      chipLabel: '관절염 → Joint ↑',
+      chipLabel: '관절염 · 관절 보강',
       priority: 3,
       ruleId: 'chronic-arthritis',
     })
@@ -785,7 +785,7 @@ function applyChronicAdjustments(
     reasoning.push({
       trigger: '알레르기성 피부염',
       action: `Skin ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}% (오메가-3 항염)`,
-      chipLabel: '피부염 → Skin ↑',
+      chipLabel: '피부염 · 피부·털 보강',
       priority: 3,
       ruleId: 'chronic-allergy-skin',
     })
@@ -812,7 +812,7 @@ function applyChronicAdjustments(
       trigger: '심장병 / DCM 진단',
       action:
         'taurine 풍부 라인 (Premium 소·Skin 연어) 권장. 저나트륨 + grain-free 시판 사료 회피 (FDA 2018-2022). 수의 심장 정기 검진 필수.',
-      chipLabel: '심장병 → 타우린·저Na',
+      chipLabel: '심장 케어 · 나트륨 낮춤',
       priority: 3,
       ruleId: 'chronic-cardiac',
     })
@@ -863,7 +863,7 @@ function applyChronicAdjustments(
       trigger: '간질환 진단',
       action:
         'Premium (소·내장) 차단 → 구리 부담 ↓ (Center 2017). Basic / Weight 우선. BCAA 추가 + 수의사 처방식 상담 필수.',
-      chipLabel: '간질환 → 구리 제한',
+      chipLabel: '간 케어 · 구리 제한',
       priority: 3,
       ruleId: 'chronic-hepatic',
     })
@@ -889,7 +889,7 @@ function applyChronicAdjustments(
       trigger: '인지저하증 (CDS)',
       action:
         'Skin 라인 (연어 DHA) ≥30% — Pan 2010 Br J Nutr 103:1746. MCT (코코넛 오일 1tsp/10kg) + 항산화 보조제 추가 권장. 수의 신경 정기 검진.',
-      chipLabel: 'CDS → DHA·MCT',
+      chipLabel: '노령 인지 케어 · 오메가',
       priority: 3,
       ruleId: 'chronic-cognitive-decline',
     })
@@ -912,7 +912,7 @@ function applyChronicAdjustments(
       trigger: '장기 스테로이드 복용',
       action:
         'Joint 라인 (콜라겐 + Ca) ≥30% — Ca/P 손실 보충 (Plumb 9e). BCS / 혈당 정기 모니터링 (의인성 비만/당뇨 위험).',
-      chipLabel: '스테로이드 → Joint ↑',
+      chipLabel: '스테로이드 · 관절 보강',
       priority: 3,
       ruleId: 'chronic-long-term-steroid',
     })
@@ -940,7 +940,7 @@ function applyChronicAdjustments(
       trigger: 'EPI (외분비 췌장 부전)',
       action:
         'Premium (단백질 ↑) ≥30% — 흡수율 낮아 단백질 보충. 췌장염과 다름 — 정상 지방 OK. Pancreatin 효소 + B12 보충 필수 (Westermarck 2012).',
-      chipLabel: 'EPI → 단백질 ↑',
+      chipLabel: '소화 효소 부족 · 단백질 보강',
       priority: 3,
       ruleId: 'chronic-epi',
     })
@@ -962,7 +962,7 @@ function applyChronicAdjustments(
       trigger: '갑상선저하증',
       action:
         'Weight 라인 (저칼로리 + 식이섬유) ≥30% — 의인성 체중 ↑ 예방. 레보티록신 복용 + 정기 T4 검사 (Scott-Moncrieff 2007).',
-      chipLabel: '갑상선저하 → Weight ↑',
+      chipLabel: '갑상선 · 체중 관리',
       priority: 3,
       ruleId: 'chronic-hypothyroid',
     })
@@ -985,7 +985,7 @@ function applyChronicAdjustments(
       trigger: 'Cushing\'s (부신피질항진증)',
       action:
         'Weight ≥25% (의인성 비만 예방) + 단백질 정상 (근감소 회피). 트릴로스탄 복용 + 정기 ACTH 자극 검사 (Behrend 2013 ACVIM consensus).',
-      chipLabel: 'Cushing\'s → Weight ↑',
+      chipLabel: '쿠싱 · 체중 관리',
       priority: 3,
       ruleId: 'chronic-cushings',
     })
@@ -1024,7 +1024,7 @@ function applyChronicAdjustments(
       trigger: 'MMVD 진단',
       action:
         '저나트륨 + taurine + EPA 권장. ACVIM Stage C/D 면 Na <0.3% DM (Keene 2019). 정기 심초음파 + ProBNP 검사.',
-      chipLabel: 'MMVD → 저Na',
+      chipLabel: '심장 판막 케어 · 나트륨 낮춤',
       priority: 3,
       ruleId: 'chronic-mmvd',
     })
@@ -1057,7 +1057,7 @@ function applyBcsAdjustments(
     reasoning.push({
       trigger: `BCS ${input.bcs}/9 (과체중)`,
       action: `Weight ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}%`,
-      chipLabel: `BCS ${input.bcs}/9 → Weight ↑`,
+      chipLabel: `체형 ${input.bcs}/9 · 체중 관리`,
       priority: 4,
       ruleId: 'bcs-overweight',
     })
@@ -1074,7 +1074,7 @@ function applyBcsAdjustments(
     reasoning.push({
       trigger: `BCS ${input.bcs}/9 (비만)`,
       action: `Weight 메인 ${(finalValue * 100).toFixed(0)}%, 강한 칼로리 제한 + 식이섬유 ↑`,
-      chipLabel: `BCS ${input.bcs}/9 → Weight 메인`,
+      chipLabel: `체형 ${input.bcs}/9 · 체중 관리 위주`,
       priority: 4,
       ruleId: 'bcs-obese',
     })
@@ -1102,7 +1102,7 @@ function applyBcsAdjustments(
         `Premium ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}% (단백질 보충). ` +
         '⚠️ refeeding syndrome 위험 — 수의사 동행 + 단계적 증량 (1~3일 25%, ' +
         '4~7일 50%, 8일+ 100%) 필수. 전해질 (K/P/Mg) 모니터링 권장.',
-      chipLabel: 'BCS 1 → 응급 케어',
+      chipLabel: '심하게 마른 체형 · 응급 케어',
       priority: 1, // 응급 — 최상위 우선순위 (다른 priority 4보다 높음)
       ruleId: 'bcs-refeeding-risk',
     })
@@ -1119,7 +1119,7 @@ function applyBcsAdjustments(
     reasoning.push({
       trigger: `BCS ${input.bcs}/9 (저체중)`,
       action: `Premium ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}% (헴철분·단백질)`,
-      chipLabel: `BCS ${input.bcs}/9 → Premium ↑`,
+      chipLabel: `체형 ${input.bcs}/9 · 고단백`,
       priority: 4,
       ruleId: 'bcs-underweight',
     })
@@ -1188,7 +1188,7 @@ function applyWeightTrendAdjustments(
     reasoning.push({
       trigger: '6개월 체중 증가 + BCS 6+',
       action: `Weight ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}% (적극 관리)`,
-      chipLabel: '증량 추세 → Weight ↑',
+      chipLabel: '증량 추세 · 체중 관리',
       priority: 4,
       ruleId: 'weight-trend-active-gain',
     })
@@ -1263,7 +1263,7 @@ function applyActivityAdjustments(
               ? `활동량 high · 산책 ${walk}분`
               : '활동량 high',
           action: `Premium ${(before * 100).toFixed(0)}% → ${((before + taken) * 100).toFixed(0)}% (헴철분·아연·B12 보충)`,
-          chipLabel: '활발 → Premium ↑',
+          chipLabel: '활발 · 고단백',
           priority: 4,
           ruleId: 'activity-high-premium',
         })
@@ -1292,7 +1292,7 @@ function applyActivityAdjustments(
               ? `활동량 low · 산책 ${walk}분`
               : '활동량 low',
           action: `Weight ${(before * 100).toFixed(0)}% → ${((before + taken) * 100).toFixed(0)}% (비만 예방)`,
-          chipLabel: '차분 → Weight ↑',
+          chipLabel: '차분 · 체중 관리',
           priority: 4,
           ruleId: 'activity-low-weight',
         })
@@ -1402,7 +1402,7 @@ function applyChronicComboAdjustments(
           reasoning.push({
             trigger: 'CKD + 관절염 동시',
             action: `Joint ${(before * 100).toFixed(0)}% → ${((before + taken) * 100).toFixed(0)}% (콜라겐 ↑, 단백질 부담 ↓)`,
-            chipLabel: 'CKD+관절 → Joint ↑',
+            chipLabel: '신장+관절 · 관절 보강',
             priority: 3,
             ruleId: 'chronic-combo-ckd-arthritis',
           })
@@ -1445,7 +1445,7 @@ function applyChronicComboAdjustments(
           reasoning.push({
             trigger: '췌장염 + BCS 6+',
             action: `Weight 라인 ${((before + taken) * 100).toFixed(0)}% (저지방 강화)`,
-            chipLabel: '췌장+비만 → Weight ↑',
+            chipLabel: '췌장+비만 · 체중 관리',
             priority: 3,
             ruleId: 'chronic-combo-pancr-obese',
           })
@@ -1456,7 +1456,7 @@ function applyChronicComboAdjustments(
       reasoning.push({
         trigger: '췌장염 + BCS 6+',
         action: `Weight 라인 ${(ratios.weight * 100).toFixed(0)}% (BCS 룰이 이미 충족)`,
-        chipLabel: '췌장+비만 → Weight ≥50% (충족)',
+        chipLabel: '췌장+비만 · 체중 관리(충족)',
         priority: 3,
         ruleId: 'chronic-combo-pancr-obese',
       })
@@ -1534,7 +1534,7 @@ function applyPregnancyNote(
     reasoning.push({
       trigger: '임신 중',
       action: `임신 ${trimesterKo} (${weekLabel}) — RER × ${mul} (NRC 2006 ch.15).`,
-      chipLabel: `임신 → kcal × ${mul}`,
+      chipLabel: `임신 · 열량 ×${mul}`,
       priority: 5,
       ruleId: 'pregnancy-pregnant',
     })
@@ -1556,7 +1556,7 @@ function applyPregnancyNote(
     reasoning.push({
       trigger: '수유 중',
       action,
-      chipLabel: `수유 → kcal ${mul}`,
+      chipLabel: `수유 · 열량 ×${mul}`,
       priority: 5,
       ruleId: 'pregnancy-lactating',
     })
@@ -1640,7 +1640,7 @@ function applyGiSensitivity(
         ? 'IBD + 위장 적응'
         : `위장 민감 (${input.giSensitivity === 'always' ? '매번' : '자주'})`,
     action: `${FOOD_LINE_META[mainLine].name} ${Math.round(intensity * 100)}% 위주 — 위장 적응 후 다른 라인 비율 ↑`,
-    chipLabel: `위장민감 → ${FOOD_LINE_META[mainLine].name} ${Math.round(intensity * 100)}%`,
+    chipLabel: `위장 민감 · ${FOOD_LINE_META[mainLine].nameKo} 위주`,
     priority: 6,
     ruleId: 'gi-sensitive',
   })

@@ -898,7 +898,7 @@ describe('decideFirstBox v1.3 — CKD IRIS staging (IRIS 2019)', () => {
     })
     const early = f.reasoning.find((r) => r.ruleId === 'chronic-kidney-early')
     assert.ok(early)
-    assert.match(early!.chipLabel, /Stage 2/)
+    assert.match(early!.chipLabel, /2단계/)
   })
 
   it('Stage 3 → Premium 0% (저단백, audit #7: ruleId 분리)', () => {
