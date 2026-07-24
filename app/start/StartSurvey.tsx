@@ -30,6 +30,7 @@ import { computeStartTeaser, draftToNutritionInput } from '@/lib/start-teaser'
 import { computeStartPlan } from '@/lib/start-plan'
 import type { WebRecipe } from '@/lib/web-recipes'
 import { petName } from '@/lib/korean'
+import { business } from '@/lib/business'
 import { calculateNutrition } from '@/lib/nutrition'
 import { createClient } from '@/lib/supabase/client'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
@@ -492,6 +493,28 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
             </div>
           </div>
         )}
+        {/* 판매 단백질 전부 알레르기 → 자동 추천 대신 상담 안내(2026-07-25 야간점검).
+            앱 쪽 상담 게이트와 같은 원칙 — 알레르기 성분을 추천하는 일이 없어야 한다. */}
+        {teaser.proteins.length === 0 ? (
+          <div className="rounded-[12px] px-4 py-4" style={{ marginTop: 10, background: 'var(--fd-cream)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--fd-pine)' }}>맞춤 상담이 필요해요</div>
+            <p style={{ marginTop: 5, fontSize: 12.5, color: 'var(--fd-muted)', lineHeight: 1.6 }}>
+              입력하신 알레르기로 지금 판매 중인 레시피가 모두 제외됐어요.
+              알레르기를 피하면서 잘 맞는 식단을 함께 찾아드릴게요.
+            </p>
+            {business.kakaoChannelUrl && (
+              <a
+                href={business.kakaoChannelUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, padding: '9px 16px', background: '#FEE500', color: '#191600', borderRadius: 99, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}
+              >
+                카카오톡으로 문의하기
+              </a>
+            )}
+          </div>
+        ) : (
+        <>
         <div className="rounded-[12px] px-4 py-4" style={{ marginTop: 10, background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)', display: 'flex', alignItems: 'center', gap: 10 }}>
           <Check className="w-4 h-4 shrink-0" strokeWidth={2.5} color="var(--fd-green)" />
           <span style={{ fontSize: 13.5, color: 'var(--fd-pine)', fontWeight: 700 }}>추천 단백질 <span style={{ color: 'var(--fd-coral-text)' }}>{teaser.proteins.join(' · ')}</span></span>
@@ -505,6 +528,8 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
             <p style={{ marginTop: 6, fontSize: 11.5, color: 'var(--fd-coral-text)', fontWeight: 600 }}>※ 입력하신 정보를 보면 수의사 상담도 함께 권해 드려요.</p>
           )}
         </div>
+        </>
+        )}
         <p style={{ marginTop: 10, fontSize: 11.5, color: 'var(--fd-muted)', lineHeight: 1.55 }}>
           입력하신 정보로 계산한 참고용 추정치예요. 실제 급여량은 아이 상태에 따라 달라질 수 있어요.
         </p>

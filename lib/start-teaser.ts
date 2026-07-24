@@ -34,7 +34,10 @@ const PROTEIN_KR: Record<string, string> = {
   chicken: '닭', beef: '소', duck: '오리', salmon: '연어', lamb: '양', pork: '돼지',
 }
 // 기본 추천 우선순위(알레르기 흔한 닭·소를 뒤로).
-const PROTEIN_ORDER = ['duck', 'salmon', 'lamb', 'beef', 'chicken', 'pork']
+// ★판매 4종만 (2026-07-25 야간점검: 옛 목록에 연어·양이 있어 무료분석 결과에
+// "추천 단백질 오리·연어"가 노출됐다 — 연어는 미판매·완전 비노출 원칙, 양은
+// 제품 자체가 없음). 순서 = 노블 우선(오리>돼지) 후 닭>소.
+const PROTEIN_ORDER = ['duck', 'pork', 'chicken', 'beef']
 
 /** 초안 → calculateNutrition 입력(검증된 매핑). 티저·B5 이관이 **공유**해 둘이
  *  항상 같은 결과를 내게 한다(사용자가 본 티저 수치 = 저장된 분석). dog 부실 시 null. */
@@ -110,6 +113,8 @@ export function computeStartTeaser(draftArg?: AutosignupDraft | null): StartTeas
     bodyComment: BODY_COMMENT[m.body] ?? BODY_COMMENT.ideal!,
     merKcal: Math.round(nu.mer),
     feedG: Math.round(nu.feedG),
-    proteins: proteins.length ? proteins : ['닭'],
+    // 판매 4종 전부 알레르기면 빈 배열 — UI 가 '상담 필요' 안내로 분기.
+    // (옛 fallback ['닭'] 은 닭 알레르기인데 닭을 추천하는 모순이었다.)
+    proteins,
   }
 }
