@@ -127,12 +127,13 @@ export default async function AdminRefundsPage() {
           </Link>
           <div className="flex items-center gap-2">
             <RefreshCcw className="w-5 h-5 text-terracotta" strokeWidth={2} />
-            <h1 className="font-bold tracking-tight text-2xl text-ink">
+            <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
               환불 관리
             </h1>
           </div>
-          <p className="text-[12px] text-muted mt-1">
-            환불 기록 — 토스 거래번호와 연결돼요
+          <p className="text-[13px] text-zinc-500 mt-1">
+            지금까지 처리한 환불 내역을 보는 곳이에요. 각 건은 토스 거래번호와
+            연결돼 있어요. 환불 자체는 주문 상세에서 처리해요.
           </p>
         </div>
       </div>

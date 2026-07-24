@@ -449,7 +449,7 @@ export default async function AdminHome() {
     <div>
       <AdminHeader
         title="대시보드"
-        sub={`${todayKst.slice(0, 4)}년 ${Number(todayKst.slice(5, 7))}월 ${Number(todayKst.slice(8, 10))}일 기준`}
+        sub={`${todayKst.slice(0, 4)}년 ${Number(todayKst.slice(5, 7))}월 ${Number(todayKst.slice(8, 10))}일 기준 — 오늘 처리할 일과 매출·구독 현황을 한눈에 봐요. 바로 아래 '처리 대기'에 뜨는 건 그날 꼭 확인해 주세요.`}
       />
 
       {/* 처리 대기 큐 — admin hot path. 0건이면 회색, 있으면 sale 강조. */}

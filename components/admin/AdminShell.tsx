@@ -67,7 +67,7 @@ export default function AdminShell({
   const anyTabActive = TAB_ITEMS.some((t) => tabActive(t.href))
 
   return (
-    <div className="min-h-screen bg-[#F6F4EE] md:flex">
+    <div className="min-h-screen bg-[#F4F5F7] md:flex">
       {/* 모바일 드로어 배경 — 열렸을 때만. */}
       {open && (
         <div
@@ -83,7 +83,7 @@ export default function AdminShell({
         id="admin-sidebar"
         aria-label="관리자 메뉴"
         className={`
-          w-64 shrink-0 bg-[#FBFAF6] border-r border-zinc-200 text-zinc-700 flex flex-col
+          w-64 shrink-0 bg-white border-r border-zinc-200 text-zinc-700 flex flex-col
           fixed inset-y-0 left-0 z-50 transition-transform duration-200 ease-out
           md:sticky md:top-0 md:h-screen md:z-auto md:transition-none md:translate-x-0
           ${open ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
@@ -134,7 +134,7 @@ export default function AdminShell({
 
       {/* 본문 — min-w-0: flex 자식이 뷰포트를 밀어내는 것 차단. */}
       <main className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-20 bg-[#FBFAF6]/90 backdrop-blur border-b border-zinc-200">
+        <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-zinc-200">
           <div className="max-w-6xl mx-auto px-4 md:px-8 h-12 flex items-center gap-3">
             {/* 모바일 헤더 로고 — 햄버거는 바텀 '전체' 탭이 대체. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -94,7 +94,9 @@ export default async function AdminUsersPage({
           회원 관리
         </h1>
         <p className="text-[13px] text-zinc-500 mt-1">
-          총 {total.toLocaleString()}명의 회원
+          가입한 고객을 찾아보는 곳이에요. 고객을 누르면 주문·정기배송·강아지
+          정보를 한 번에 보고 1:1 메시지도 보낼 수 있어요. — 총{' '}
+          {total.toLocaleString()}명
         </p>
       </div>
 

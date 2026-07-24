@@ -152,7 +152,8 @@ export default async function SubscriptionChargesPage({
           자동결제 이력
         </h1>
         <p className="text-[13px] text-zinc-500 mt-1">
-          정기배송 카드 자동결제가 언제 성공·실패했는지 보는 곳이에요
+          정기배송 카드 자동결제가 언제 성공·실패했는지 보는 곳이에요. 실패한
+          결제는 자동으로 재시도되고, 계속 실패하면 대시보드 처리 대기에 떠요.
         </p>
       </div>
 

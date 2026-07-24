@@ -157,17 +157,12 @@ export default function AdminSubscriptionsPage() {
             정기배송 관리
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            전체 {subs.length}건 · 활성{' '}
-            {subs.filter((s) => s.status === 'active').length}건 · 청구·배송은
-            크론이 자동 처리해요
+            고객들의 정기배송(2주마다 · 화요일 발송)을 조회·관리하는 곳이에요.
+            결제와 배송 예약은 자동으로 돌아가서, 문제 있는 구독만 손보면 돼요.
+            — 전체 {subs.length}건 · 활성{' '}
+            {subs.filter((s) => s.status === 'active').length}건
           </p>
         </div>
-        <a
-          href="/admin/subscriptions/calendar"
-          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-zinc-200 bg-white text-[12px] font-bold text-zinc-700 hover:border-zinc-400 transition"
-        >
-          📅 캘린더 뷰
-        </a>
       </div>
 
       {/* 탭 + 검색 */}

@@ -317,6 +317,10 @@ export default async function AdminPersonalizationPage({
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[13px] font-bold text-zinc-700">
               🧪 알고리즘 시험 (개발용)
+              <span className="block mt-0.5 text-[11px] font-normal text-zinc-400">
+                ※ 아래 비율은 알고리즘 내부 계산값이에요. 실제 고객 박스는 최대
+                2가지 레시피, 섞으면 무조건 반반(5:5)으로 변환돼 나가요.
+              </span>
             </h2>
             <Link
               href="/admin/personalization"
