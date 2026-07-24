@@ -546,6 +546,15 @@ async function runSubscriptionCharge(): Promise<Response> {
       continue
     }
 
+    // 멱등키 — **주기(next_delivery_date) 기준**, 실행일(today) 아님(2026-07-24 점검).
+    //   왜: transient 실패(PAY_PROCESS_TIMEOUT 등 — Toss가 카드는 긁었는데 응답이
+    //   유실된 경우 포함)는 24h 뒤 재시도된다. 키가 `{today}` 면 재시도날 키가
+    //   바뀌어 Toss가 새 청구로 처리 → **이중청구**. next_delivery_date 는 성공
+    //   전까지 안 밀리므로 같은 주기의 모든 재시도가 같은 키를 공유 → Toss가
+    //   원결제 결과를 그대로 돌려줘 재청구가 없다(캡처된 결제는 자동 회복).
+    //   confirm/cancel 키가 트랜잭션 기반으로 안정적인 것과 같은 원리.
+    const idempotencyKey = `sub-charge:${sub.id}:${sub.next_delivery_date}`
+
     // 2-c) Toss 청구. 비즈니스 span 으로 wrap — Sentry 트랜잭션에서 실패율 +
     //      latency 추적.
     const result = await traceBusiness(
@@ -563,7 +572,7 @@ async function runSubscriptionCharge(): Promise<Response> {
           orderId: orderRow.id,
           orderName,
           amount: chargeAmount,
-          idempotencyKey: `sub-charge:${sub.id}:${today}`,
+          idempotencyKey,
         }),
     )
 
@@ -587,7 +596,7 @@ async function runSubscriptionCharge(): Promise<Response> {
           source: 'cron_subscription_charge',
           metadata: {
             subscriptionId: sub.id,
-            idempotencyKey: `sub-charge:${sub.id}:${today}`,
+            idempotencyKey,
           },
         })
       }

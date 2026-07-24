@@ -406,7 +406,9 @@ export async function issueBillingKey(input: {
  *   먼저 만들고 그 id 를 그대로 사용.
  * @param input.orderName — 결제 내역 표시용. "Farmer's Tail 정기배송 #N"
  * @param input.amount — 원 단위 정수
- * @param input.idempotencyKey — `sub-charge:{subscription_id}:{date}` 권장
+ * @param input.idempotencyKey — `sub-charge:{subscription_id}:{next_delivery_date}`
+ *   권장. **실행일(today)이 아니라 주기(배송 예정일)** 기준이어야 24h 뒤 재시도가
+ *   같은 키를 재사용해 이중청구를 막는다(캡처됐는데 응답 유실된 결제 자동 회복).
  */
 export async function chargeBillingKey(input: {
   billingKey: string
