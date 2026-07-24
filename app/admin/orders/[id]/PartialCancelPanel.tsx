@@ -147,7 +147,9 @@ export default function PartialCancelPanel({
           환불 가능 잔액
         </div>
         <div className="text-lg font-black text-terracotta mt-0.5">
-          {remaining.toLocaleString()}원
+          {/* 야간점검(2026-07-25): 미결제 취소 주문에도 total 이 '환불 가능'으로
+              떠 혼란 — 환불 가능 상태(paid/partially_refunded)일 때만 잔액 표시. */}
+          {canRefund ? `${remaining.toLocaleString()}원` : '—'}
         </div>
       </div>
 
