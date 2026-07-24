@@ -356,3 +356,4 @@
   - 📝기록(낮 확인 권장): progression 크론(cycle2+)은 저장 전 gateAvailability 미적용 — cycle1이 게이트되므로(이전 formula 상속) 연어 유입 가능성 낮지만, compute(5.5a)와 대칭 맞추면 완전해짐. 임상 인접이라 밤엔 미수정.
 - [iter7] admin 빈 상태 문구 전수 — 맥락형+헤더 CTA 존재로 건강(개선 불요). 구독관리 화면(dogs/[id]/subscription·account/subscriptions) subscriptionState 정본 사용 ✓·busy 더블클릭 가드 ✓.
 - [iter8] 주문상세 '환불 가능 잔액' 오표시(미결제 취소에 total 노출) → canRefund 조건부 '—'. 라이브 검증 ✓. 커밋 됨.
+- [iter9] 🐛수정: 제품상세→라벨 PDF 링크가 UUID 라 항상 404 → slug→SKU 역매핑(C01 라벨 정상 렌더·130kcal v4.0 정합 확인). 회귀감시: test 1373+tsc 그린.
