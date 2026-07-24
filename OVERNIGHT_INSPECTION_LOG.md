@@ -355,3 +355,4 @@
 - [iter6·고객 흐름 정적] approve(더블제출 가드·금액 diff ✓)·checkin(중복응답 안내·editMode ✓)·nextBox(자체 알레르기 blocked 필터+정규화 ✓) — 건강.
   - 📝기록(낮 확인 권장): progression 크론(cycle2+)은 저장 전 gateAvailability 미적용 — cycle1이 게이트되므로(이전 formula 상속) 연어 유입 가능성 낮지만, compute(5.5a)와 대칭 맞추면 완전해짐. 임상 인접이라 밤엔 미수정.
 - [iter7] admin 빈 상태 문구 전수 — 맥락형+헤더 CTA 존재로 건강(개선 불요). 구독관리 화면(dogs/[id]/subscription·account/subscriptions) subscriptionState 정본 사용 ✓·busy 더블클릭 가드 ✓.
+- [iter8] 주문상세 '환불 가능 잔액' 오표시(미결제 취소에 total 노출) → canRefund 조건부 '—'. 라이브 검증 ✓. 커밋 됨.
