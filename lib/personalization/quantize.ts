@@ -38,7 +38,10 @@ export function normalize(
   const total = ALL_LINES.reduce((s, l) => s + out[l], 0)
   if (total <= 0) {
     // 모든 라인이 0 — 알레르기 다수 + 룰 충돌. fallback: blocked 아닌 첫 라인 100%.
-    const fallback = ALL_LINES.find((l) => !blocked.has(l)) ?? 'skin'
+    // 전부 차단된 극단(고객 UI 상 오리=basic 은 차단 불가라 도달 불가)에서도
+    // 최후 fallback 은 **basic(오리)** — 항상 판매되는 노블 단백질. 이전엔
+    // 'skin'(연어)였는데 연어는 deferred·미판매라 빈 박스가 됐다(2026-07-24 퍼저).
+    const fallback = ALL_LINES.find((l) => !blocked.has(l)) ?? 'basic'
     out[fallback] = 1
     return out
   }

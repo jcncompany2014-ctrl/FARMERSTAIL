@@ -15,6 +15,7 @@ import { collapseToSingle } from '@/lib/personalization/boxComposition'
 import {
   deriveAvailableLines,
   deriveAvailableToppers,
+  gateAvailability,
   LINE_TO_SLUG,
   TOPPER_TO_SLUG,
 } from '@/lib/personalization/skuMap'
@@ -535,6 +536,24 @@ export async function POST(req: Request) {
 
   // 5.5) 알고리즘 실행 — v3 시드 + v2 임상 안전 룰. pure function, throw 안 함.
   const formula = decideFirstBox(input)
+
+  // 5.5a) 판매중 제품으로 게이트 — **저장 전에** 한 번(2026-07-24 퍼저 발견).
+  // 임상 룰이 만든 lineRatios 는 연어(deferred·미판매)를 낼 수 있는데(예: v3
+  // 실패한 skin_coat 폴백 → applyCareGoal 이 skin=연어 0.7), 지금까지는
+  // computeBoxItems(박스 계산)만 gateAvailability 를 돌려 실제 박스는 오리로
+  // 바뀌지만, **저장·표시되는 처방엔 연어가 그대로 남아** 분석카드가 "연어
+  // 100%" 를 보여주고 박스는 오리를 보내는 불일치가 났다(연어는 고객 완전
+  // 비노출 원칙 위반). 정본 하나(=저장 처방)를 여기서 게이트하면 분석·플랜·
+  // 주문·박스가 전부 같은 걸 본다 — line 546 의 교훈을 게이트에도 적용.
+  {
+    const gated = gateAvailability(formula.lineRatios, formula.toppers, {
+      availableLines: deriveAvailableLines(activeSlugs),
+      availableToppers: deriveAvailableToppers(activeSlugs),
+      reasoning: formula.reasoning,
+    })
+    formula.lineRatios = gated.lineRatios
+    formula.toppers = gated.toppers
+  }
 
   // 5.5b) 첫 박스는 무조건 단일 단백질 (사장님 확정 2026-07-15).
   // 새 음식에 반응이 났을 때 단백질이 둘이면 원인을 좁힐 수 없다 — 그래서 첫
