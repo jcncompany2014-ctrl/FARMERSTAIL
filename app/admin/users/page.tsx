@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import AdminPagination from '@/components/admin/AdminPagination'
+import { AdminTabs } from '@/components/admin/ui'
+import { CUSTOMER_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
 
@@ -85,6 +87,8 @@ export default async function AdminUsersPage({
 
   return (
     <div>
+      {/* 대개편 v2 T2 — 고객 그룹 탭 (회원|답장|검색) */}
+      <AdminTabs tabs={CUSTOMER_TABS} active="/admin/users" />
       <div className="mb-6">
         <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
           회원 관리

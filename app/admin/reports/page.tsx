@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import {
-  ArrowLeft,
   TrendingUp,
   ShoppingBag,
   Repeat,
@@ -12,7 +11,8 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { isAdmin } from '@/lib/auth/admin'
-import { HelpTip } from '@/components/admin/ui'
+import { HelpTip, AdminTabs } from '@/components/admin/ui'
+import { REVENUE_TABS } from '@/components/admin/tabGroups'
 import PrintButtonClient from './PrintButtonClient'
 
 export const dynamic = 'force-dynamic'
@@ -181,23 +181,17 @@ export default async function AdminReportsPage({
         }`}
       </style>
 
+      {/* 대개편 v2 T3 — 매출·결제 그룹 탭 (뒤로가기 링크 대체·헤더 zinc 통일) */}
+      <div className="no-print">
+        <AdminTabs tabs={REVENUE_TABS} active="/admin/reports" />
+      </div>
       <div className="flex items-end justify-between mb-6 no-print">
         <div>
-          <Link
-            href="/admin"
-            className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-text font-semibold mb-3"
-          >
-            <ArrowLeft className="w-3 h-3" strokeWidth={2.5} />
-            대시보드
-          </Link>
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-moss" strokeWidth={2} />
-            <h1 className="font-bold tracking-tight text-2xl text-ink">
-              매출 리포트
-            </h1>
-          </div>
-          <p className="text-[12px] text-muted mt-1">
-            월별 매출 / 환불 / 정기배송 / Top 상품
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+            매출 리포트
+          </h1>
+          <p className="text-[13px] text-zinc-500 mt-1">
+            월별 매출·환불·정기배송·많이 나간 레시피를 한눈에
           </p>
         </div>
         <PrintButtonClient />

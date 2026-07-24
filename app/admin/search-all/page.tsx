@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { Search, User, Package, Repeat } from 'lucide-react'
 import { ORDER_STATUS_LABEL, type OrderStatus } from '@/lib/commerce/order-fsm'
 import { STATUS_MAP as SUB_STATUS_MAP } from '@/lib/v3-helpers/subscriptions'
+import { AdminTabs } from '@/components/admin/ui'
+import { CUSTOMER_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,13 +99,14 @@ export default async function AdminUnifiedSearch({
 
   return (
     <div>
+      {/* 대개편 v2 T2 — 고객 그룹 탭 + 헤더 zinc 통일(킥커-제목 중복 제거) */}
+      <AdminTabs tabs={CUSTOMER_TABS} active="/admin/search-all" />
       <header className="mb-6">
-        <p className="text-[11px] text-muted uppercase tracking-widest font-bold">
-          통합 검색
-        </p>
-        <h1 className="text-2xl font-black text-text mt-1">통합 검색</h1>
-        <p className="text-[12px] text-muted mt-1">
-          이메일·이름·연락처·주문번호로 사용자/주문/정기배송 한 번에
+        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+          전체 검색
+        </h1>
+        <p className="text-[13px] text-zinc-500 mt-1">
+          이메일·이름·연락처·주문번호로 회원/주문/정기배송을 한 번에 찾아요
         </p>
       </header>
 

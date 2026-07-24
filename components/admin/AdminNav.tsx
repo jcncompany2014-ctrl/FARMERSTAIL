@@ -35,7 +35,6 @@ const GROUPS: NavGroup[] = [
     label: '운영',
     items: [
       { href: '/admin', icon: '📊', label: '대시보드' },
-      { href: '/admin/search-all', icon: '🔎', label: '전체 검색' },
       { href: '/admin/orders', icon: '📦', label: '주문 관리' },
       // 대개편 v2 T1: 캘린더·자동결제는 /admin/subscriptions 상단 탭으로 통합.
       { href: '/admin/subscriptions', icon: '🔁', label: '정기배송' },
@@ -43,14 +42,13 @@ const GROUPS: NavGroup[] = [
       // 접근 가능했다(2026-07-19 검수에서 복구).
       { href: '/admin/personalization/picking-list', icon: '🧑‍🍳', label: '박스 패킹' },
       { href: '/admin/refunds', icon: '↩️', label: '환불 관리' },
-      { href: '/admin/cs-inbox', icon: '📨', label: '고객 답장' },
     ],
   },
   {
     label: '분석',
     items: [
-      { href: '/admin/finance', icon: '💰', label: '결제 원장' },
-      { href: '/admin/reports', icon: '📈', label: '매출 리포트' },
+      // 대개편 v2 T3: 결제 원장은 /admin/reports 상단 탭으로 통합.
+      { href: '/admin/reports', icon: '📈', label: '매출·결제' },
       { href: '/admin/funnel', icon: '🪜', label: '가입 여정 분석' },
       { href: '/admin/cohort', icon: '🧪', label: '가입 시기별 분석' },
       { href: '/admin/loyalty', icon: '🏅', label: '멤버십·스탬프' },
@@ -75,7 +73,8 @@ const GROUPS: NavGroup[] = [
       // 아래 2개도 페이지만 있고 사이드바에 없던 것 복구(2026-07-19 검수).
       { href: '/admin/algorithm', icon: '⚙️', label: '알고리즘 계수' },
       { href: '/admin/invention-flags', icon: '🛡️', label: '발명 보호 플래그' },
-      { href: '/admin/users', icon: '👥', label: '회원 관리' },
+      // 대개편 v2 T2: 답장·검색은 /admin/users 상단 탭으로 통합.
+      { href: '/admin/users', icon: '👥', label: '고객' },
       { href: '/admin/promotions', icon: '🎟️', label: '이벤트 · 프로모션' },
       { href: '/admin/push-campaigns', icon: '📣', label: '알림 보내기' },
       { href: '/admin/automation', icon: '🎛️', label: '운영 자동화' },

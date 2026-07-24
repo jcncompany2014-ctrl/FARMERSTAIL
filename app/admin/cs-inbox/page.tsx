@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Inbox, ArrowRight } from 'lucide-react'
+import { AdminTabs } from '@/components/admin/ui'
+import { CUSTOMER_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,16 +70,15 @@ export default async function AdminCsInboxPage() {
 
   return (
     <div>
+      {/* 대개편 v2 T2 — 고객 그룹 탭 + 헤더 zinc 통일·쉬운말 */}
+      <AdminTabs tabs={CUSTOMER_TABS} active="/admin/cs-inbox" />
       <header className="mb-6 flex items-end justify-between">
         <div>
-          <p className="text-[11px] text-muted uppercase tracking-widest font-bold">
-            미확인 답장
-          </p>
-          <h1 className="text-2xl font-black text-text mt-1">
-            고객 답장 인박스
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+            고객 답장
           </h1>
-          <p className="text-[12px] text-muted mt-1">
-            사용자가 1:1 메시지에 답장한 미확인 큐 — {grouped.length}명
+          <p className="text-[13px] text-zinc-500 mt-1">
+            고객이 1:1 메시지에 답장했는데 아직 안 읽은 것 — {grouped.length}명
           </p>
         </div>
         <Link

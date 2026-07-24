@@ -7,9 +7,9 @@
  * 30일 / 60일 / 90일 토글.
  */
 import Link from 'next/link'
-import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { HelpTip } from '@/components/admin/ui'
+import { HelpTip, AdminTabs } from '@/components/admin/ui'
+import { REVENUE_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
 
@@ -113,16 +113,11 @@ export default async function AdminFinancePage({
 
   return (
     <div>
+      {/* 대개편 v2 T3 — 매출·결제 그룹 탭 (뒤로가기 링크 대체·헤더 zinc 통일) */}
+      <AdminTabs tabs={REVENUE_TABS} active="/admin/finance" />
       <div className="mb-5">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-1 text-xs text-muted hover:text-terracotta font-semibold"
-        >
-          <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
-          관리자
-        </Link>
-        <h1 className="font-bold tracking-tight text-3xl text-ink mt-2">결제 원장</h1>
-        <p className="text-xs text-muted mt-1">
+        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">결제 원장</h1>
+        <p className="text-[13px] text-zinc-500 mt-1">
           결제 기록을 기준으로 한 하루별 매출이에요 (최근 {days}일).
         </p>
         <div className="flex gap-2 mt-3 text-xs">
