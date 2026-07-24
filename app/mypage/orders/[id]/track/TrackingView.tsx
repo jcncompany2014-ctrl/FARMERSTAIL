@@ -14,6 +14,7 @@ import {
   Check,
 } from 'lucide-react'
 import type { TrackingResult } from '@/lib/tracking'
+import { formatKstShortDateTime } from '@/lib/datetime-kst'
 
 type Props = {
   carrier: string | null
@@ -33,14 +34,10 @@ type FetchState =
   | { status: 'ok'; data: TrackingResult }
   | { status: 'error'; message: string; code?: string }
 
+// toLocaleString 시각은 서버·브라우저 ICU 가 오전/AM 을 다르게 내 hydration
+// mismatch 위험(전수검사 2026-07-25) → 결정적 KST 포맷터로 위임.
 function formatTime(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleString('ko-KR', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return formatKstShortDateTime(iso)
 }
 
 const STEPS: Array<{

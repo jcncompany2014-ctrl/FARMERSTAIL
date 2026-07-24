@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, Loader2, MessageCircle } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { formatKstShortDateTime } from '@/lib/datetime-kst'
 
 type Msg = {
   id: string
@@ -168,12 +169,9 @@ function Bubble({ message }: { message: Msg }) {
             mine ? 'text-white/70' : 'text-muted'
           }`}
         >
-          {new Date(message.created_at).toLocaleString('ko-KR', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {/* toLocaleString 시각은 서버·브라우저 ICU 가 오전/AM 을 다르게 내
+              hydration mismatch 위험(전수검사 2026-07-25) → 결정적 KST 포맷터. */}
+          {formatKstShortDateTime(message.created_at)}
         </p>
       </div>
     </li>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Loader2, Check, AlertCircle, Save, ToggleLeft, ToggleRight } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { formatKstDateTime } from '@/lib/datetime-kst'
 import { createClient } from '@/lib/supabase/client'
 import type { FoodLineRow, ChronicRow, BreedRow } from './page'
 
@@ -552,14 +553,9 @@ function LineEditor({
           className="text-[10px]"
           style={{ color: 'var(--muted)' }}
         >
-          마지막 업데이트:{' '}
-          {new Date(row.updated_at).toLocaleString('ko-KR', {
-            year: 'numeric',
-            month: 'numeric',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {/* 전수검사(2026-07-25): toLocaleString 은 서버·브라우저 ICU 가 오전/AM 을
+              다르게 내 hydration mismatch → 결정적 KST 포맷터로 교체. */}
+          마지막 업데이트: {formatKstDateTime(row.updated_at)}
         </span>
         <button
           type="button"
