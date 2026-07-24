@@ -246,8 +246,9 @@ export default async function PickingListPage({
         title={`박스 패킹 — ${shipDate} (${weekdayKo(shipDate)})`}
         sub={
           <>
-            이 발송일에 나갈 박스와 팩 구성. 고객 화면·청구와 같은 정본
-            (boxPricing)으로 계산해요.{' '}
+            화요일 발송분 박스를 싸기 위한 리스트예요 — 강아지별로 어떤
+            레시피 팩을 몇 개 넣는지 나와요 (섞는 박스는 두 레시피 반반).
+            고객이 결제한 금액과 같은 기준으로 계산돼요.{' '}
             <Link href={`?date=${prevShip}`} className="underline">
               ← 지난주
             </Link>{' '}
