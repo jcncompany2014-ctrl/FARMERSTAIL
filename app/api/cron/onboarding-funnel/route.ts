@@ -61,12 +61,12 @@ const FUNNEL_WINDOW_DAYS = 7
  */
 const STAGE1 = {
   title: '강아지 등록하시고 무료 분석 받아보세요 🐶',
-  body: '체중·BCS·식이 정보만 있으면 맞춤 분석을 무료로 보내드려요',
+  body: '체중·체형·식이 정보만 있으면 맞춤 분석을 무료로 보내드려요',
   url: '/dogs/new',
 } as const
 
 const STAGE2 = {
-  body: '5분 설문으로 NRC2006 기반 정밀 맞춤 분석 — 무료',
+  body: '5분 설문으로 수의영양 가이드라인 기반 맞춤 분석 — 무료',
 } as const
 
 function isoDaysAgo(days: number): string {

@@ -523,7 +523,7 @@ export default function OrderClient({
     if (items.length === 0) return '레시피를 고르면 여기에 표시돼요'
     const names = items
       .filter((it) => it.line)
-      .map((it) => `${FOOD_LINE_META[it.line!].nameKo} ${it.pct}%`)
+      .map((it) => `${FOOD_LINE_META[it.line!].nameKo}`)
       .join(' · ')
     const totalG = Math.round(items.reduce((sum, it) => sum + it.dailyG, 0))
     const tier = FRESH_TIERS.find((t) => t.ratio === freshRatio)
@@ -689,9 +689,6 @@ export default function OrderClient({
                     <div className="ord-recipe-body">
                       <div className="ord-recipe-name">
                         {label}
-                        <span className="ord-recipe-pct" style={{ color }}>
-                          {it.pct}%
-                        </span>
                       </div>
                       <div className="ord-recipe-sub">{sub}</div>
                     </div>
