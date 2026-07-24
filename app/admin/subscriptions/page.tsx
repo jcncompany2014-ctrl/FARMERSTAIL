@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import { nextShipDate } from '@/lib/shipping-schedule'
+import { AdminTabs } from '@/components/admin/ui'
+import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 type SubscriptionRow = {
   id: string
@@ -146,6 +148,8 @@ export default function AdminSubscriptionsPage() {
 
   return (
     <div>
+      {/* 대개편 v2 T1 — 정기배송 그룹 탭 (구독|캘린더|자동결제) */}
+      <AdminTabs tabs={SUBS_TABS} active="/admin/subscriptions" />
       {/* 헤더 — 기능형 클린 어드민(zinc) 통일 (2026-07-19 마스터피스 2차) */}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">

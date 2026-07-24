@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import Link from 'next/link'
 
 /**
  * 기능형 클린 어드민 공통 프리미티브 (2026-07 Phase B).
@@ -48,6 +49,43 @@ export function AdminCard({
       className={`rounded-lg border border-zinc-200 bg-white ${padded ? 'p-5' : ''} ${className}`}
     >
       {children}
+    </div>
+  )
+}
+
+export type AdminTab = { href: string; label: string }
+
+/**
+ * 라우트 링크형 세그먼트 탭 (대개편 v2 T0) — 비슷한 페이지들을 한 화면군으로 묶는다.
+ * 페이지 병합 없이 각 페이지 상단에 이 탭바를 얹고, 사이드바 메뉴는 대표 1개만 노출.
+ * active 는 각 페이지가 자기 href 를 넘긴다(서버 컴포넌트 호환 — usePathname 불필요).
+ */
+export function AdminTabs({
+  tabs,
+  active,
+}: {
+  tabs: readonly AdminTab[]
+  active: string
+}) {
+  return (
+    <div className="mb-5 inline-flex flex-wrap gap-1 rounded-lg bg-zinc-100 p-1">
+      {tabs.map((t) => {
+        const isActive = t.href === active
+        return (
+          <Link
+            key={t.href}
+            href={t.href}
+            aria-current={isActive ? 'page' : undefined}
+            className={`px-3.5 py-1.5 rounded-md text-[12.5px] font-bold transition ${
+              isActive
+                ? 'bg-white text-zinc-900 shadow-sm border border-zinc-200'
+                : 'text-zinc-500 hover:text-zinc-800'
+            }`}
+          >
+            {t.label}
+          </Link>
+        )
+      })}
     </div>
   )
 }

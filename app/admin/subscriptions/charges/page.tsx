@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { AlertTriangle, CheckCircle2, Clock, X } from 'lucide-react'
 import { formatKstShortDateTime as formatDateTime } from '@/lib/datetime-kst'
+import { AdminTabs } from '@/components/admin/ui'
+import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
 
@@ -143,11 +145,15 @@ export default async function SubscriptionChargesPage({
 
   return (
     <div>
+      {/* 대개편 v2 T1 — 정기배송 그룹 탭 + 헤더 zinc 통일 */}
+      <AdminTabs tabs={SUBS_TABS} active="/admin/subscriptions/charges" />
       <div className="mb-6">
-        <h1 className="font-bold tracking-tight text-2xl text-ink">
+        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
           자동결제 이력
         </h1>
-        <p className="text-sm text-muted mt-1">정기배송 자동결제 이력</p>
+        <p className="text-[13px] text-zinc-500 mt-1">
+          정기배송 카드 자동결제가 언제 성공·실패했는지 보는 곳이에요
+        </p>
       </div>
 
       {/* 요약 카드 */}

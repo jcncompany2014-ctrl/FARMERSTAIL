@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { AdminTabs } from '@/components/admin/ui'
+import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 /**
  * /admin/subscriptions/calendar — 정기배송 일정 캘린더 뷰.
@@ -140,19 +142,14 @@ export default async function SubscriptionsCalendarPage({
 
   return (
     <div>
+      {/* 대개편 v2 T1 — 정기배송 그룹 탭 (뒤로가기 링크는 탭으로 대체·헤더 zinc 통일) */}
+      <AdminTabs tabs={SUBS_TABS} active="/admin/subscriptions/calendar" />
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
-          <Link
-            href="/admin/subscriptions"
-            className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-terracotta mb-2"
-          >
-            <ArrowLeft className="w-3 h-3" strokeWidth={2.5} />
-            구독 리스트로
-          </Link>
-          <h1 className="font-bold tracking-tight text-3xl text-ink">
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
             배송 캘린더
           </h1>
-          <p className="text-sm text-muted mt-1">
+          <p className="text-[13px] text-zinc-500 mt-1">
             예정 배송 {monthTotalCount}건 · 합계{' '}
             {monthTotalRevenue.toLocaleString('ko-KR')}원
           </p>

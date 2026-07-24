@@ -37,12 +37,11 @@ const GROUPS: NavGroup[] = [
       { href: '/admin', icon: '📊', label: '대시보드' },
       { href: '/admin/search-all', icon: '🔎', label: '전체 검색' },
       { href: '/admin/orders', icon: '📦', label: '주문 관리' },
+      // 대개편 v2 T1: 캘린더·자동결제는 /admin/subscriptions 상단 탭으로 통합.
       { href: '/admin/subscriptions', icon: '🔁', label: '정기배송' },
-      { href: '/admin/subscriptions/calendar', icon: '📅', label: '배송 캘린더' },
       // 발송 화요일마다 쓰는 핵심 화면 — 사이드바에 없어 URL 직접 입력으로만
       // 접근 가능했다(2026-07-19 검수에서 복구).
       { href: '/admin/personalization/picking-list', icon: '🧑‍🍳', label: '박스 패킹' },
-      { href: '/admin/subscriptions/charges', icon: '💳', label: '자동결제 이력' },
       { href: '/admin/refunds', icon: '↩️', label: '환불 관리' },
       { href: '/admin/cs-inbox', icon: '📨', label: '고객 답장' },
     ],
