@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server'
 import DogDetailClient from './DogDetailClient'
 import { buildDogInsight } from '@/lib/dog-insight'
 import { isSubscriptionVisibleToUser } from '@/lib/subscription-state'
+import { onboardingPhase } from '@/lib/onboarding/grace-period'
 import type { AiAnalysisJson } from '@/lib/nutrition/ai-prompt'
 import type {
   Dog,
@@ -190,6 +191,10 @@ export default async function DogDetailPage({
       }
     : null
 
+  // 첫 4주 온보딩 여정 배너 phase — 유저 가입일 기준(grace-period). 홈에서
+  // 이 개요페이지 최상단으로 이동(2026-07-24 사장님). 29일+ 는 null=자동 졸업.
+  const gracePhase = onboardingPhase(user.created_at)
+
   return (
     <DogDetailClient
       dog={dog}
@@ -199,6 +204,7 @@ export default async function DogDetailPage({
       subscriptions={subscriptions}
       insight={insight}
       aiComment={aiComment}
+      gracePhase={gracePhase}
     />
   )
 }

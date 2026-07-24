@@ -68,7 +68,7 @@ export default function GracePeriodBanner({
   const { Icon } = c
 
   return (
-    <section style={{ padding: '4px 20px 0' }}>
+    <section style={{ padding: '12px 20px 0' }}>
       <div
         style={{
           display: 'flex',

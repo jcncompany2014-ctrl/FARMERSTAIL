@@ -49,6 +49,8 @@ import CurrentFormulaCard from './_components/CurrentFormulaCard'
 import SubscriptionCard from './_components/SubscriptionCard'
 import PhotoRequestButton from '@/components/PhotoRequestButton'
 import AiCommentCard from '@/components/v3/AiCommentCard'
+import GracePeriodBanner from '@/components/dashboard/GracePeriodBanner'
+import type { OnboardingPhase } from '@/lib/onboarding/grace-period'
 import type { AiAnalysisJson } from '@/lib/nutrition/ai-prompt'
 
 type Props = {
@@ -64,6 +66,8 @@ type Props = {
    * 첫 설문 전이거나 현재 구독 중이 아닌 강아지. [[project-ai-comment-cost]]
    */
   aiComment: { analysisId: string; cached: AiAnalysisJson | null } | null
+  /** 첫 4주 온보딩 여정 phase(유저 가입일 기준). 개요 최상단 배너용. */
+  gracePhase: OnboardingPhase
 }
 
 export default function DogDetailClient({
@@ -74,6 +78,7 @@ export default function DogDetailClient({
   subscriptions,
   insight,
   aiComment,
+  gracePhase,
 }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -274,6 +279,14 @@ export default function DogDetailClient({
           )}
         </div>
       </section>
+
+      {/* 첫 4주 온보딩 여정 — 홈에서 개요 최상단으로 이동(2026-07-24 사장님).
+          주차별 안내(1주 천천히→2주 체크인→3주 체중→4주 🎉), 29일+ 자동 졸업. */}
+      <GracePeriodBanner
+        phase={gracePhase}
+        dogName={petName(dog.name)}
+        dogId={dog.id}
+      />
 
       {/* Info card */}
       <section className="px-5 mt-3">
