@@ -184,9 +184,13 @@ export default function AdminPartnersClient({
     <div>
       <div className="flex items-end justify-between mb-8">
         <div>
-          <h1 className="font-bold tracking-tight text-3xl text-ink">산지·공급자</h1>
-          <p className="text-sm text-muted mt-1">
-            산지·공급자 정보 — /partners 페이지에 노출. 총 {initialPartners.length}개 등록.
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+            산지·공급자
+          </h1>
+          <p className="text-[13px] text-zinc-500 mt-1">
+            원물을 어디서 받아오는지(산지·농장) 정보를 관리하는 곳이에요. 고객이
+            보는 /partners 페이지에 &lsquo;믿을 수 있는 재료&rsquo; 근거로
+            노출돼요. — 총 {initialPartners.length}개
           </p>
         </div>
         <button

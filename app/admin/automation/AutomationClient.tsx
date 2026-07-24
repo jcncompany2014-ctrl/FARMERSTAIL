@@ -58,13 +58,13 @@ export default function AutomationClient({
   return (
     <main className="px-1 py-2 max-w-2xl">
       <header className="mb-6">
-        <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-zinc-500">
-          Automation
-        </span>
-        <h1 className="text-xl font-bold text-zinc-900 mt-1">운영 자동화</h1>
+        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+          설정 · 자동화
+        </h1>
         <p className="text-[13px] text-zinc-500 mt-1">
-          코드 배포 없이 조절해요. 재검토 주기(박스 3개)·승인 대기(5일)는 안전을 위해
-          코드에 고정돼 있어요.
+          자동으로 나가는 알림·재제안을 켜고 끄거나 시각을 조절하는 곳이에요.
+          코드를 건드리지 않고 여기서 바꿀 수 있어요 (재검토 주기 박스 3개·승인
+          대기 5일은 안전을 위해 고정돼 있어요).
         </p>
       </header>
 

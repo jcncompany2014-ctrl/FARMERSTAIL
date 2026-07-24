@@ -152,9 +152,13 @@ export default function AdminFaqsClient({
     <div>
       <div className="flex items-end justify-between mb-6">
         <div>
-          <h1 className="font-bold tracking-tight text-3xl text-ink">자주 묻는 질문</h1>
-          <p className="text-sm text-muted mt-1">
-            /faq 페이지에 노출되는 자주 묻는 질문. 총 {initialFaqs.length}개 등록.
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+            자주 묻는 질문
+          </h1>
+          <p className="text-[13px] text-zinc-500 mt-1">
+            고객이 보는 /faq 페이지의 질문·답변을 관리하는 곳이에요. 문의가 자주
+            들어오는 내용을 여기 넣어두면 CS를 줄일 수 있어요. — 총{' '}
+            {initialFaqs.length}개
           </p>
         </div>
         <button
