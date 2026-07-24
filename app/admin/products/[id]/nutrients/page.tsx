@@ -42,7 +42,7 @@ export default async function AdminProductNutrientsPage({
         >
           ← 제품 편집
         </Link>
-        <h1 className="font-bold tracking-tight text-3xl text-ink mt-2">
+        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-2">
           영양 정보
         </h1>
         <p className="text-xs text-muted mt-1">

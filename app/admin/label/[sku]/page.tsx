@@ -156,7 +156,7 @@ export default async function LabelPdfPage({
             <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
             제품 관리
           </Link>
-          <h1 className="font-bold tracking-tight text-2xl text-ink">
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
             {meta.code} 라벨 PDF
           </h1>
           <p className="text-[12px] text-muted mt-1">
@@ -176,7 +176,7 @@ export default async function LabelPdfPage({
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted">
             제품명
           </p>
-          <h2 className="font-bold tracking-tight text-2xl text-ink mt-0.5">
+          <h2 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-0.5">
             파머스테일 {product.name}
             <span className="text-base font-mono text-muted ml-2">
               ({meta.code})

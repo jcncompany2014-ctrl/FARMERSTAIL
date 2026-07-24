@@ -37,7 +37,7 @@ export default async function AdminBlogCategoriesPage() {
         >
           ← 매거진
         </Link>
-        <h1 className="font-bold tracking-tight text-3xl text-ink mt-2">
+        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-2">
           카테고리 관리
         </h1>
         <p className="text-xs text-muted mt-1">

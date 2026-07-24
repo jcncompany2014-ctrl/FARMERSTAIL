@@ -35,7 +35,7 @@ export default async function AdminBlogEditPage({
           >
             ← 매거진
           </Link>
-          <h1 className="font-bold tracking-tight text-3xl text-ink mt-2">
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-2">
             글 수정
           </h1>
           <p className="text-xs text-muted mt-1 font-mono">{post.slug}</p>

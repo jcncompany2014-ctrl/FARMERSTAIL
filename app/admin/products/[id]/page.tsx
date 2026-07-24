@@ -32,7 +32,7 @@ export default async function AdminProductEditPage({
         >
           ← 제품 목록
         </Link>
-        <h1 className="font-bold tracking-tight text-3xl text-ink mt-2">
+        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-2">
           상품 수정
         </h1>
         <p className="text-xs text-muted mt-1">{product.name}</p>
