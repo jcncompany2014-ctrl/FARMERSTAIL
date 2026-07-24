@@ -116,7 +116,7 @@ export default function Pregnancy({
             multiplier (×1.5).
           </p>
           <input
-            type="number"
+            type="number" onWheel={(e) => e.currentTarget.blur()}
             inputMode="numeric"
             enterKeyHint="next"
             className="s-inp"
@@ -145,7 +145,7 @@ export default function Pregnancy({
             수유 영양 요구량은 산자 수에 비례 (×2.0~4.0). 미입력 시 ×2.0.
           </p>
           <input
-            type="number"
+            type="number" onWheel={(e) => e.currentTarget.blur()}
             inputMode="numeric"
             enterKeyHint="next"
             className="s-inp"
@@ -177,7 +177,7 @@ export default function Pregnancy({
             (AAFCO) 권고. 정확한 추천을 위해 입력해 주세요.
           </p>
           <input
-            type="number"
+            type="number" onWheel={(e) => e.currentTarget.blur()}
             inputMode="decimal"
             enterKeyHint="done"
             className="s-inp"

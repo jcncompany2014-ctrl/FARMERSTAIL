@@ -315,7 +315,7 @@ export default function EditDogClient({
         <div>
           <label className={labelCls}>체중 (kg) *</label>
           <input
-            type="number"
+            type="number" onWheel={(e) => e.currentTarget.blur()}
             min="0"
             step="0.1"
             value={weight}

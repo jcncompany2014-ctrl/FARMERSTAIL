@@ -405,7 +405,7 @@ export default function NewDogClient({ userId }: { userId: string }) {
             <label className={labelCls}>체중</label>
             <div className="relative">
               <input
-                type="number"
+                type="number" onWheel={(e) => e.currentTarget.blur()}
                 aria-label="체중 (kg)"
                 min="0"
                 max="100"

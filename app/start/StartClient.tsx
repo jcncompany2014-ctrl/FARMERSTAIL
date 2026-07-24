@@ -210,7 +210,7 @@ export default function StartClient({ isApp = false }: { isApp?: boolean }) {
       <div>
         <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>체중 (kg)</label>
         <input
-          type="number" min="0.5" max="100" step="0.1" value={weight} placeholder="예: 4.5"
+          type="number" onWheel={(e) => e.currentTarget.blur()} min="0.5" max="100" step="0.1" value={weight} placeholder="예: 4.5"
           aria-label="체중(kg)"
           inputMode="decimal" enterKeyHint="done"
           onChange={(e) => setWeight(e.target.value)}

@@ -215,7 +215,7 @@ function EntryRow({
       </select>
       <div className="flex items-center gap-1 shrink-0">
         <input
-          type="number"
+          type="number" onWheel={(e) => e.currentTarget.blur()}
           min={0}
           max={2000}
           aria-label="하루 급여량(g)"

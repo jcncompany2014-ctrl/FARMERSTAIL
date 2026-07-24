@@ -301,7 +301,7 @@ export default function HealthLogClient({
               </label>
               {/* UI audit J-3: iOS 키보드 숫자패드 표시 위해 inputMode="numeric". */}
               <input
-                type="number"
+                type="number" onWheel={(e) => e.currentTarget.blur()}
                 aria-label="변 횟수 (오늘)"
                 inputMode="numeric"
                 min="0"

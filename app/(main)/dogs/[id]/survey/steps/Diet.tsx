@@ -152,7 +152,7 @@ export default function Diet({
             </p>
             <div className="s-input-suffix">
               <input
-                type="number"
+                type="number" onWheel={(e) => e.currentTarget.blur()}
                 inputMode="numeric"
                 min={2000}
                 max={6000}
@@ -201,7 +201,7 @@ export default function Diet({
             </p>
             <div className="s-input-suffix">
               <input
-                type="number"
+                type="number" onWheel={(e) => e.currentTarget.blur()}
                 inputMode="numeric"
                 min={0}
                 max={2000}

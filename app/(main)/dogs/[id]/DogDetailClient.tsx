@@ -486,7 +486,7 @@ export default function DogDetailClient({
                   체중 (kg)
                 </label>
                 <input
-                  type="number"
+                  type="number" onWheel={(e) => e.currentTarget.blur()}
                   step="0.1"
                   min="0.1"
                   max="100"
