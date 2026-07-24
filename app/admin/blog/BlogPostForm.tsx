@@ -347,7 +347,7 @@ export default function BlogPostForm({
               className={`${inputClass} font-mono text-xs`}
               placeholder="weight-management-diet"
             />
-            <p className="mt-1 text-[11.5px] text-muted">
+            <p className="mt-1 text-[11.5px] text-zinc-500">
               /blog/<span className="font-mono">{form.slug || '...'}</span>
             </p>
           </Field>
@@ -449,7 +449,7 @@ export default function BlogPostForm({
                 className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded ${
                   !preview
                     ? 'bg-text text-white'
-                    : 'text-muted hover:bg-bg'
+                    : 'text-zinc-500 hover:bg-zinc-50'
                 } transition font-bold`}
               >
                 <Pencil className="w-3 h-3" strokeWidth={2.25} />
@@ -461,7 +461,7 @@ export default function BlogPostForm({
                 className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded ${
                   preview
                     ? 'bg-text text-white'
-                    : 'text-muted hover:bg-bg'
+                    : 'text-zinc-500 hover:bg-zinc-50'
                 } transition font-bold`}
               >
                 <Eye className="w-3 h-3" strokeWidth={2.25} />
@@ -470,14 +470,14 @@ export default function BlogPostForm({
             </div>
           </div>
           {preview ? (
-            <div className="min-h-[400px] bg-bg rounded-lg p-4">
+            <div className="min-h-[400px] bg-zinc-50 rounded-lg p-4">
               {form.content.trim() ? (
                 <article
-                  className="ft-md text-[14px] text-text leading-relaxed"
+                  className="ft-md text-[14px] text-zinc-800 leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: renderMarkdown(form.content) }}
                 />
               ) : (
-                <p className="text-[11px] text-muted italic">
+                <p className="text-[11px] text-zinc-500 italic">
                   본문이 비어 있어요
                 </p>
               )}
@@ -497,7 +497,7 @@ export default function BlogPostForm({
               {inlineUpload.message}
             </p>
           )}
-          <p className="mt-1 text-[11.5px] text-muted">
+          <p className="mt-1 text-[11.5px] text-zinc-500">
             {form.content.length.toLocaleString()}자 · 마크다운: **굵게** *기울임* # 제목 - 목록 [링크](url) ![alt](img)
           </p>
         </Section>
@@ -511,7 +511,7 @@ export default function BlogPostForm({
               className={`text-[11px] font-bold px-3 py-2 rounded-lg ${
                 form.is_published
                   ? 'bg-moss/10 text-moss'
-                  : 'bg-rule text-muted'
+                  : 'bg-rule text-zinc-500'
               }`}
             >
               현재 상태 ·{' '}
@@ -519,7 +519,7 @@ export default function BlogPostForm({
             </div>
 
             {form.is_published && form.published_at && (
-              <p className="text-[11.5px] text-muted">
+              <p className="text-[11.5px] text-zinc-500">
                 최초 발행 ·{' '}
                 {new Date(form.published_at).toLocaleString('ko-KR')}
               </p>
@@ -536,7 +536,7 @@ export default function BlogPostForm({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-full bg-white text-text border border-zinc-200 text-xs font-semibold hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
+              className="w-full py-2.5 rounded-full bg-white text-zinc-800 border border-zinc-200 text-xs font-semibold hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
             >
               임시저장
             </button>
@@ -545,7 +545,7 @@ export default function BlogPostForm({
                 type="button"
                 onClick={(e) => handleSubmit(e, false)}
                 disabled={loading}
-                className="w-full py-2 text-[11px] text-muted hover:text-sale transition"
+                className="w-full py-2 text-[11px] text-zinc-500 hover:text-sale transition"
               >
                 게시 내리기 (비공개로 전환)
               </button>
@@ -555,7 +555,7 @@ export default function BlogPostForm({
 
         <Section title="커버 이미지">
           {form.cover_url ? (
-            <div className="relative group aspect-[16/9] rounded-lg bg-bg overflow-hidden border border-zinc-200">
+            <div className="relative group aspect-[16/9] rounded-lg bg-zinc-50 overflow-hidden border border-zinc-200">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={form.cover_url}
@@ -576,7 +576,7 @@ export default function BlogPostForm({
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={upload.status === 'uploading'}
-              className="w-full aspect-[16/9] rounded-lg bg-bg border border-dashed border-zinc-200 flex flex-col items-center justify-center text-muted hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
+              className="w-full aspect-[16/9] rounded-lg bg-zinc-50 border border-dashed border-zinc-200 flex flex-col items-center justify-center text-zinc-500 hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
             >
               {upload.status === 'uploading' ? (
                 <Loader2 className="w-6 h-6 animate-spin" strokeWidth={1.5} />
@@ -645,7 +645,7 @@ export default function BlogPostForm({
 }
 
 const inputClass =
-  'w-full px-3 py-2 rounded-lg bg-bg text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta'
+  'w-full px-3 py-2 rounded-lg bg-zinc-50 text-sm text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-terracotta'
 
 function Section({
   title,
@@ -656,7 +656,7 @@ function Section({
 }) {
   return (
     <section className="p-5 rounded-lg bg-white border border-zinc-200">
-      <h2 className="text-sm font-bold text-ink mb-3">{title}</h2>
+      <h2 className="text-sm font-bold text-zinc-900 mb-3">{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>
   )
@@ -671,7 +671,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold text-text mb-1">
+      <label className="block text-[11px] font-semibold text-zinc-800 mb-1">
         {label}
       </label>
       {children}
@@ -696,7 +696,7 @@ function ToolBtn({
       onClick={onClick}
       title={title}
       disabled={disabled}
-      className="inline-flex items-center justify-center w-7 h-7 rounded text-text hover:bg-bg hover:text-terracotta transition disabled:opacity-40"
+      className="inline-flex items-center justify-center w-7 h-7 rounded text-zinc-800 hover:bg-zinc-50 hover:text-terracotta transition disabled:opacity-40"
     >
       {children}
     </button>
@@ -764,7 +764,7 @@ function AiDraftHelper({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-zinc-200 bg-zinc-50 text-text hover:border-terracotta transition"
+        className="mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-zinc-200 bg-zinc-50 text-zinc-800 hover:border-terracotta transition"
       >
         ✨ AI 초안 생성
       </button>
@@ -774,20 +774,20 @@ function AiDraftHelper({
   return (
     <div className="mb-3 p-4 rounded-xl border border-terracotta/40 bg-terracotta/5 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[12px] font-black text-text">
+        <h3 className="text-[12px] font-black text-zinc-800">
           ✨ AI 글 초안 생성기
         </h3>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-[10px] text-muted hover:text-text"
+          className="text-[10px] text-zinc-500 hover:text-zinc-800"
         >
           닫기
         </button>
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-muted uppercase tracking-widest mb-1">
+        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
           주제 / 키워드 *
         </label>
         <input
@@ -801,7 +801,7 @@ function AiDraftHelper({
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-muted uppercase tracking-widest mb-1">
+        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
           타겟 독자 (선택)
         </label>
         <input
@@ -815,7 +815,7 @@ function AiDraftHelper({
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-muted uppercase tracking-widest mb-1">
+        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
           본문 길이
         </label>
         <div className="flex gap-1.5">
@@ -833,7 +833,7 @@ function AiDraftHelper({
               className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition ${
                 length === opt.key
                   ? 'bg-text text-white border-transparent'
-                  : 'bg-white border-zinc-200 text-text hover:border-text'
+                  : 'bg-white border-zinc-200 text-zinc-800 hover:border-text'
               }`}
             >
               {opt.label}
@@ -862,7 +862,7 @@ function AiDraftHelper({
         )}
       </button>
 
-      <p className="text-[11.5px] text-muted leading-relaxed">
+      <p className="text-[11.5px] text-zinc-500 leading-relaxed">
         AI 가 초안을 만들어 제목·요약·본문에 자동으로 채워줘요. 그대로
         발행하지 말고 사실·표현·톤을 점검한 뒤 게시하세요.
       </p>
