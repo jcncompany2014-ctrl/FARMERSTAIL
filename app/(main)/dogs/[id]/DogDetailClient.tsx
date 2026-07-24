@@ -749,7 +749,7 @@ export default function DogDetailClient({
                   strokeWidth={2.2}
                 />
                 <p className="text-[10.5px] text-text leading-relaxed">
-                  AI가 NRC 2006 / FEDIAF 기준으로 일일 칼로리·영양소를 계산해요
+                  AI가 NRC / FEDIAF 기준으로 일일 칼로리·영양소를 계산해요
                 </p>
               </div>
               <div className="flex items-start gap-2.5">

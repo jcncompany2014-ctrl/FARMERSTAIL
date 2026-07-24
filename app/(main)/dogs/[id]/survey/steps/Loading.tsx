@@ -42,9 +42,9 @@ export default function Loading({
           letterSpacing: 0.04,
         }}
       >
-        NRC 2006 · AAFCO 2024
+        NRC · AAFCO
         <br />
-        FEDIAF 2021 · WSAVA
+        FEDIAF · WSAVA
       </p>
       <ul className="s-stages">
         {[

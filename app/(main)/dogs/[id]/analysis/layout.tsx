@@ -36,7 +36,7 @@ export async function generateMetadata({
       openGraph: {
         title: `${petName(name)} 맞춤 영양 분석`,
         description:
-          'AAFCO 2024 / NRC 2006 / FEDIAF 가이드라인 기반 맞춤 박스. 매 cycle 자동 조정.',
+          'AAFCO / NRC / FEDIAF 가이드라인 기반 맞춤 박스. 매 cycle 자동 조정.',
         type: 'website',
         siteName: '파머스테일 · Farm to Tail',
         locale: 'ko_KR',

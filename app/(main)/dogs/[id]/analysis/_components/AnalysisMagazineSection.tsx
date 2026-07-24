@@ -114,7 +114,7 @@ export default function AnalysisMagazineSection({
           body: `${petName(dogName)}의 ${bcsLabel} 체형에`,
           highlight: '맞춤 식단을 준비했어요.',
         }}
-        guidelineLabel="AAFCO 2024 · FEDIAF · NRC 2006 기준 충족"
+        guidelineLabel="AAFCO · FEDIAF · NRC 기준 충족"
         versionLabel={`분석 · ${analysisDate}`}
       />
       {/* 2026-06-19 사장님 "전체적으로 마음에 안듦 — 강력 업그레이드": 중복 제거.
@@ -130,7 +130,7 @@ export default function AnalysisMagazineSection({
           factor,
           merMin,
           merMax,
-          guideline: 'NRC 2006',
+          guideline: 'NRC',
           breakdown: factorBreakdown,
         }}
       />

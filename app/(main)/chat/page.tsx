@@ -64,7 +64,7 @@ export default async function ChatPage() {
             <p className="text-[12px] text-white/80 mt-2 leading-relaxed">
               식이 · 알레르기 · 영양에 대해 물어보세요.
               <br />
-              NRC 2006 / FEDIAF 기반 답변.
+              NRC / FEDIAF 기반 답변.
             </p>
           </div>
         </div>

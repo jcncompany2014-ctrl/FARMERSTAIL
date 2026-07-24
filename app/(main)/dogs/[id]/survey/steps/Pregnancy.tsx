@@ -174,7 +174,7 @@ export default function Pregnancy({
           </div>
           <p className="s-sub" style={{ fontSize: 13, marginBottom: 8 }}>
             18개월 미만 강아지 — 25kg+ 대형견은 Ca 1.8% DM 상한
-            (AAFCO 2024) 권고. 정확한 추천을 위해 입력해 주세요.
+            (AAFCO) 권고. 정확한 추천을 위해 입력해 주세요.
           </p>
           <input
             type="number"

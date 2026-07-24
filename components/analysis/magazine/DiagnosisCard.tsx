@@ -43,7 +43,7 @@ export function DiagnosisCard({
   p,
   chips,
   headline,
-  guidelineLabel = 'AAFCO 2024 영양 기준 충족',
+  guidelineLabel = 'AAFCO 영양 기준 충족',
   versionLabel,
 }: DiagnosisCardProps) {
   return (

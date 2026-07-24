@@ -739,7 +739,7 @@ function RecipeDetail({
         ))}
       </div>
       <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 11, lineHeight: 1.5 }}>
-        제조국가 한국 · AAFCO 2024 · FEDIAF · NRC 2006 기준 완전·균형식.
+        제조국가 한국 · AAFCO · FEDIAF · NRC 기준 완전·균형식.
       </p>
     </div>
   )
