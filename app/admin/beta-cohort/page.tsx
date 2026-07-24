@@ -179,8 +179,8 @@ export default async function BetaCohortPage() {
 
       {/* 인쇄용 헤더 */}
       <div className="hidden print:block mb-4">
-        <h1 className="text-2xl font-bold text-ink">파머스테일 베타 그룹 리포트</h1>
-        <p className="text-sm text-muted mt-1">
+        <h1 className="text-2xl font-bold text-zinc-900">파머스테일 베타 그룹 리포트</h1>
+        <p className="text-sm text-zinc-500 mt-1">
           대상: 2026 비공개 베타 · 생성일{' '}
           {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}
         </p>
@@ -216,13 +216,13 @@ export default async function BetaCohortPage() {
 
       {/* dog 별 표 */}
       <section className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 print:break-inside-avoid">
-        <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted mb-3">
+        <h2 className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-3">
           강아지별 진행 상황
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full text-[11.5px]">
             <thead>
-              <tr className="text-left text-muted border-b border-zinc-200">
+              <tr className="text-left text-zinc-500 border-b border-zinc-200">
                 <th className="py-2 pr-3 font-bold">강아지</th>
                 <th className="py-2 px-2 font-bold">보호자</th>
                 <th className="py-2 px-2 font-bold">견종</th>
@@ -237,31 +237,31 @@ export default async function BetaCohortPage() {
             <tbody>
               {dogSummaries.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-6 text-center text-muted">
+                  <td colSpan={9} className="py-6 text-center text-zinc-500">
                     아직 베타 cohort 데이터 없음
                   </td>
                 </tr>
               ) : (
                 dogSummaries.map((d) => (
                   <tr key={d.dogId} className="border-b border-zinc-200/40">
-                    <td className="py-2 pr-3 text-ink font-bold">
+                    <td className="py-2 pr-3 text-zinc-900 font-bold">
                       {d.meta?.name ?? '—'}
                     </td>
-                    <td className="py-2 px-2 text-text">
+                    <td className="py-2 px-2 text-zinc-800">
                       {d.meta?.user_name ?? '—'}
                     </td>
-                    <td className="py-2 px-2 text-muted text-[10.5px]">
+                    <td className="py-2 px-2 text-zinc-500 text-[10.5px]">
                       {d.meta?.breed ?? '—'}
                     </td>
-                    <td className="py-2 px-2 text-muted font-mono text-[10.5px]">
+                    <td className="py-2 px-2 text-zinc-500 font-mono text-[10.5px]">
                       {d.firstOrderAt
                         ? d.firstOrderAt.slice(0, 10)
                         : '—'}
                     </td>
-                    <td className="py-2 px-2 text-right font-mono tabular-nums text-ink">
+                    <td className="py-2 px-2 text-right font-mono tabular-nums text-zinc-900">
                       {d.boxCount}
                     </td>
-                    <td className="py-2 px-2 text-right font-mono tabular-nums text-ink">
+                    <td className="py-2 px-2 text-right font-mono tabular-nums text-zinc-900">
                       {d.ratingAvg != null
                         ? `${d.ratingAvg.toFixed(1)} (${d.ratingN})`
                         : '—'}
@@ -269,7 +269,7 @@ export default async function BetaCohortPage() {
                     <td className="py-2 px-2 text-center">
                       {d.checkinDone ? '✓' : '—'}
                     </td>
-                    <td className="py-2 px-2 text-center font-mono tabular-nums text-ink">
+                    <td className="py-2 px-2 text-center font-mono tabular-nums text-zinc-900">
                       {d.refundCount > 0 ? `${d.refundCount}건` : '—'}
                     </td>
                     <td className="py-2 pl-2 text-center">
@@ -287,7 +287,7 @@ export default async function BetaCohortPage() {
         </div>
       </section>
 
-      <p className="text-[10.5px] text-muted mt-6 leading-relaxed print:break-inside-avoid">
+      <p className="text-[10.5px] text-zinc-500 mt-6 leading-relaxed print:break-inside-avoid">
         ※ 2026 비공개 베타 그룹의 반응 데이터를 자동 집계했어요. 정부 R&D
         평가 / 수의영양사 검수 자료로 활용하세요. 인쇄해서 PDF 로 저장할 수
         있어요.
@@ -309,14 +309,14 @@ function Kpi({
 }) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-3.5 print:break-inside-avoid">
-      <p className="flex items-center text-[10px] font-bold uppercase tracking-widest text-muted">
+      <p className="flex items-center text-[10px] font-bold uppercase tracking-widest text-zinc-500">
         {label}
         {help && <HelpTip text={help} />}
       </p>
-      <p className="text-2xl font-bold tracking-tight text-ink tabular-nums mt-1">
+      <p className="text-2xl font-bold tracking-tight text-zinc-900 tabular-nums mt-1">
         {value}
       </p>
-      <p className="text-[10.5px] font-mono text-muted mt-0.5">{sub}</p>
+      <p className="text-[10.5px] font-mono text-zinc-500 mt-0.5">{sub}</p>
     </div>
   )
 }

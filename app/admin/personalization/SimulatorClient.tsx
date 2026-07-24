@@ -160,7 +160,7 @@ export default function SimulatorClient() {
   return (
     <section className="bg-white border border-zinc-200 rounded-lg p-5">
       <div className="flex items-center gap-2 mb-4">
-        <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-text">
+        <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-800">
           시뮬레이션
         </h3>
         <div className="ml-auto flex gap-1.5">
@@ -168,8 +168,8 @@ export default function SimulatorClient() {
             onClick={() => setMode('first')}
             className={`px-3 py-1.5 rounded-full text-[11px] font-bold ${
               mode === 'first'
-                ? 'bg-text text-white'
-                : 'bg-bg text-muted hover:text-text'
+                ? 'bg-zinc-900 text-white'
+                : 'bg-zinc-50 text-zinc-500 hover:text-zinc-800'
             }`}
           >
             First box
@@ -178,8 +178,8 @@ export default function SimulatorClient() {
             onClick={() => setMode('next')}
             className={`px-3 py-1.5 rounded-full text-[11px] font-bold ${
               mode === 'next'
-                ? 'bg-text text-white'
-                : 'bg-bg text-muted hover:text-text'
+                ? 'bg-zinc-900 text-white'
+                : 'bg-zinc-50 text-zinc-500 hover:text-zinc-800'
             }`}
           >
             Next box (cycle 2)
@@ -310,8 +310,8 @@ export default function SimulatorClient() {
                   onClick={() => toggleAllergy(a)}
                   className={`px-2 py-1 rounded-full text-[10.5px] font-bold ${
                     input.allergies.includes(a)
-                      ? 'bg-text text-white'
-                      : 'bg-zinc-50 text-text border border-zinc-200'
+                      ? 'bg-zinc-900 text-white'
+                      : 'bg-zinc-50 text-zinc-800 border border-zinc-200'
                   }`}
                 >
                   {a}
@@ -329,7 +329,7 @@ export default function SimulatorClient() {
                   className={`px-2 py-1 rounded-full text-[10.5px] font-mono ${
                     input.chronicConditions.includes(c)
                       ? 'bg-terracotta text-white'
-                      : 'bg-zinc-50 text-text border border-zinc-200'
+                      : 'bg-zinc-50 text-zinc-800 border border-zinc-200'
                   }`}
                 >
                   {c}
@@ -346,8 +346,8 @@ export default function SimulatorClient() {
                   onClick={() => toggleProtein(p)}
                   className={`px-2 py-1 rounded-full text-[10.5px] font-mono ${
                     input.preferredProteins.includes(p)
-                      ? 'bg-text text-white'
-                      : 'bg-zinc-50 text-text border border-zinc-200'
+                      ? 'bg-zinc-900 text-white'
+                      : 'bg-zinc-50 text-zinc-800 border border-zinc-200'
                   }`}
                 >
                   {p}
@@ -367,7 +367,7 @@ export default function SimulatorClient() {
 
           {mode === 'next' && (
             <div className="pt-3 border-t border-zinc-200">
-              <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted mb-2">
+              <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-2">
                 Next box · 체크인 응답
               </div>
               <Field label="체크포인트">
@@ -500,7 +500,7 @@ export default function SimulatorClient() {
           </div>
 
           <div className="bg-zinc-50 rounded-xl p-4 mb-3">
-            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted mb-2">
+            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-2">
               내부 근거 — Line ratios{' '}
               <span className="font-normal normal-case tracking-normal text-zinc-400">
                 (출고 박스 아님 · 왜 이 단백질인지의 계산값)
@@ -525,7 +525,7 @@ export default function SimulatorClient() {
                   <li
                     key={line}
                     className={`flex items-center gap-2 text-[11.5px] ${
-                      pct === 0 ? 'text-muted' : 'text-text'
+                      pct === 0 ? 'text-zinc-500' : 'text-zinc-800'
                     }`}
                   >
                     <span
@@ -540,25 +540,25 @@ export default function SimulatorClient() {
                 )
               })}
             </ul>
-            <div className="mt-3 pt-3 border-t border-zinc-200 text-[11px] text-muted">
+            <div className="mt-3 pt-3 border-t border-zinc-200 text-[11px] text-zinc-500">
               토퍼: 야채 {Math.round(result.toppers.vegetable * 100)}% · 단백질{' '}
               {Math.round(result.toppers.protein * 100)}%
             </div>
-            <div className="text-[10px] text-muted mt-1">
+            <div className="text-[10px] text-zinc-500 mt-1">
               전환: {result.transitionStrategy} · {result.algorithmVersion}
             </div>
           </div>
 
           {/* Reasoning */}
           <div className="bg-zinc-50 rounded-xl p-4">
-            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted mb-2">
+            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-2">
               Reasoning ({result.reasoning.length})
             </div>
             <ul className="space-y-2">
               {result.reasoning.map((r, i) => (
                 <li
                   key={i}
-                  className="text-[11.5px] text-text leading-relaxed"
+                  className="text-[11.5px] text-zinc-800 leading-relaxed"
                 >
                   <span
                     className="font-mono text-[9.5px] mr-1.5 px-1 rounded"
@@ -570,7 +570,7 @@ export default function SimulatorClient() {
                     P{r.priority}
                   </span>
                   <strong>{r.chipLabel}</strong>
-                  <span className="text-muted block mt-0.5 ml-7">
+                  <span className="text-zinc-500 block mt-0.5 ml-7">
                     {r.trigger} → {r.action}
                   </span>
                 </li>
@@ -579,7 +579,7 @@ export default function SimulatorClient() {
           </div>
 
           <details className="mt-3">
-            <summary className="text-[10px] text-muted cursor-pointer font-bold uppercase tracking-[0.2em]">
+            <summary className="text-[10px] text-zinc-500 cursor-pointer font-bold uppercase tracking-[0.2em]">
               Raw JSON
             </summary>
             <pre
@@ -622,7 +622,7 @@ function Field({
 }) {
   return (
     <div>
-      <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted mb-1">
+      <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-1">
         {label}
       </div>
       {children}

@@ -48,7 +48,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 function statusBadge(paymentStatus: string, orderStatus: string) {
   if (paymentStatus !== 'paid') {
-    return { label: '결제 전', color: 'bg-rule text-text' }
+    return { label: '결제 전', color: 'bg-rule text-zinc-800' }
   }
   switch (orderStatus) {
     case 'preparing':
@@ -60,7 +60,7 @@ function statusBadge(paymentStatus: string, orderStatus: string) {
     case 'cancelled':
       return { label: '취소', color: 'bg-sale text-white' }
     default:
-      return { label: STATUS_LABEL[orderStatus] ?? orderStatus, color: 'bg-rule text-text' }
+      return { label: STATUS_LABEL[orderStatus] ?? orderStatus, color: 'bg-rule text-zinc-800' }
   }
 }
 
@@ -612,7 +612,7 @@ export default async function AdminHome() {
             }
           />
           {topProducts.length === 0 ? (
-            <p className="text-center text-sm text-muted py-10">
+            <p className="text-center text-sm text-zinc-500 py-10">
               30일 내 판매가 없어요
             </p>
           ) : (
@@ -626,8 +626,8 @@ export default async function AdminHome() {
                     {idx + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-ink truncate">{p.name}</p>
-                    <p className="text-[10px] text-muted">
+                    <p className="text-sm text-zinc-900 truncate">{p.name}</p>
+                    <p className="text-[10px] text-zinc-500">
                       {p.qty.toLocaleString()}개 판매
                     </p>
                   </div>
@@ -656,7 +656,7 @@ export default async function AdminHome() {
             }
           />
           {lowStockItems.length === 0 ? (
-            <p className="text-center text-sm text-muted py-10">
+            <p className="text-center text-sm text-zinc-500 py-10">
               모든 상품 재고가 안전 범위예요
             </p>
           ) : (
@@ -669,11 +669,11 @@ export default async function AdminHome() {
                   <div className="flex-1 min-w-0">
                     <Link
                       href={`/admin/products/${item.id}`}
-                      className="text-sm text-ink hover:text-terracotta truncate block"
+                      className="text-sm text-zinc-900 hover:text-terracotta truncate block"
                     >
                       {item.name}
                     </Link>
-                    <p className="text-[10px] text-muted font-mono">
+                    <p className="text-[10px] text-zinc-500 font-mono">
                       /products/{item.slug}
                     </p>
                   </div>
@@ -709,14 +709,14 @@ export default async function AdminHome() {
         />
 
         {recentOrders.length === 0 ? (
-          <p className="text-center text-sm text-muted py-10">
+          <p className="text-center text-sm text-zinc-500 py-10">
             아직 주문이 없어요
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-muted border-b border-zinc-200">
+                <tr className="text-[11px] text-zinc-500 border-b border-zinc-200">
                   <th className="text-left py-2 font-medium">주문번호</th>
                   <th className="text-left py-2 font-medium">주문자</th>
                   <th className="text-right py-2 font-medium">금액</th>
@@ -730,9 +730,9 @@ export default async function AdminHome() {
                   return (
                     <tr
                       key={o.id}
-                      className="border-b border-zinc-100 hover:bg-bg transition"
+                      className="border-b border-zinc-100 hover:bg-zinc-50 transition"
                     >
-                      <td className="py-3 font-mono text-[11px] text-ink">
+                      <td className="py-3 font-mono text-[11px] text-zinc-900">
                         <Link
                           href={`/admin/orders/${o.id}`}
                           className="hover:text-terracotta"
@@ -740,8 +740,8 @@ export default async function AdminHome() {
                           {o.order_number}
                         </Link>
                       </td>
-                      <td className="py-3 text-ink">{o.recipient_name}</td>
-                      <td className="py-3 text-right font-semibold text-ink">
+                      <td className="py-3 text-zinc-900">{o.recipient_name}</td>
+                      <td className="py-3 text-right font-semibold text-zinc-900">
                         {o.total_amount.toLocaleString()}원
                       </td>
                       <td className="py-3 text-center">
@@ -751,7 +751,7 @@ export default async function AdminHome() {
                           {badge.label}
                         </span>
                       </td>
-                      <td className="py-3 text-right text-[11px] text-muted">
+                      <td className="py-3 text-right text-[11px] text-zinc-500">
                         {formatDate(o.created_at)}
                       </td>
                     </tr>

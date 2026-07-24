@@ -147,7 +147,7 @@ export default async function AdminBlogPostsPage({
           </select>
           <button
             type="submit"
-            className="px-4 py-2 rounded-lg bg-text text-white text-xs font-bold hover:bg-[#5C4130] transition"
+            className="px-4 py-2 rounded-lg bg-zinc-900 text-white text-xs font-bold hover:bg-zinc-700 transition"
           >
             필터
           </button>

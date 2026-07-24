@@ -82,10 +82,10 @@ export default function V3SimulatorClient() {
   return (
     <section className="mt-8 bg-white border border-zinc-200 rounded-lg p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-text">
+        <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-800">
           추천 엔진 v3 시뮬레이터
         </h3>
-        <span className="font-mono text-[10px] text-muted">{engineVersion}</span>
+        <span className="font-mono text-[10px] text-zinc-500">{engineVersion}</span>
       </div>
 
       {/* 입력 */}
@@ -135,7 +135,7 @@ export default function V3SimulatorClient() {
               onChange={(e) => setDailyKcal(Number(e.target.value) || 0)}
               className="w-24 border border-zinc-200 rounded-lg px-2 py-1 text-[12px] font-mono"
             />
-            <label className="flex items-center gap-1 text-[11px] text-muted cursor-pointer">
+            <label className="flex items-center gap-1 text-[11px] text-zinc-500 cursor-pointer">
               <input
                 type="checkbox"
                 checked={senior}
@@ -191,7 +191,7 @@ export default function V3SimulatorClient() {
       {/* 결과 */}
       <div className="mt-5 border-t border-zinc-200 pt-4">
         {layerA.needsConsultation ? (
-          <div className="bg-terracotta/8 border border-terracotta/30 rounded-xl p-4 text-[12.5px] text-text">
+          <div className="bg-terracotta/8 border border-terracotta/30 rounded-xl p-4 text-[12.5px] text-zinc-800">
             ⚠ 상담 라우팅 — {layerA.consultationReason}
           </div>
         ) : (
@@ -205,7 +205,7 @@ export default function V3SimulatorClient() {
                   style={{ background: 'var(--paper, #f4ede0)' }}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-[14px] text-ink">
+                    <span className="font-bold text-[14px] text-zinc-900">
                       {p.nameKr}
                       {p.isPrimary && layerA.picks.length > 1 && (
                         <span className="ml-2 text-[9.5px] font-bold text-moss">
@@ -213,9 +213,9 @@ export default function V3SimulatorClient() {
                         </span>
                       )}
                     </span>
-                    <span className="font-mono font-bold text-[15px] text-ink">
+                    <span className="font-mono font-bold text-[15px] text-zinc-900">
                       {Math.round(p.ratio * 100)}%
-                      <span className="ml-1.5 text-[10px] text-muted font-normal">
+                      <span className="ml-1.5 text-[10px] text-zinc-500 font-normal">
                         {p.kcalPer100g}kcal/100g
                       </span>
                     </span>
@@ -224,7 +224,7 @@ export default function V3SimulatorClient() {
                     {p.claims.map((c, i) => (
                       <li
                         key={i}
-                        className="flex items-start gap-1.5 text-[11.5px] text-text"
+                        className="flex items-start gap-1.5 text-[11.5px] text-zinc-800"
                       >
                         <span
                           className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
@@ -233,7 +233,7 @@ export default function V3SimulatorClient() {
                         />
                         <span>
                           {c.text}{' '}
-                          <span className="font-mono text-[9px] text-muted">
+                          <span className="font-mono text-[9px] text-zinc-500">
                             [{c.grade}]
                           </span>
                         </span>
@@ -246,10 +246,10 @@ export default function V3SimulatorClient() {
 
             {/* 그램 + 교차반응 */}
             <div className="flex items-center gap-4 text-[12px] mb-4 font-mono">
-              <span className="text-ink font-bold">
+              <span className="text-zinc-900 font-bold">
                 {layerA.dailyGrams}g/일
               </span>
-              <span className="text-muted">
+              <span className="text-zinc-500">
                 혼합 {layerA.blendedKcalPer100g}kcal/100g
               </span>
               {layerA.crossReactWarnings.length > 0 && (
@@ -289,7 +289,7 @@ export default function V3SimulatorClient() {
                 <span className="font-bold text-moss shrink-0 w-20">
                   {t.step}
                 </span>
-                <span className="text-muted">{t.detail}</span>
+                <span className="text-zinc-500">{t.detail}</span>
               </li>
             ))}
           </ol>
@@ -298,12 +298,12 @@ export default function V3SimulatorClient() {
         {/* 레이어 B */}
         <TraceBlock title="레이어 B 소스 라우팅">
           {layerB.routes.length === 0 ? (
-            <p className="text-[11px] text-muted">기능성 우려 없음</p>
+            <p className="text-[11px] text-zinc-500">기능성 우려 없음</p>
           ) : (
             <ul className="space-y-1">
               {layerB.routes.map((r) => (
-                <li key={r.concern} className="text-[11px] text-text">
-                  <span className="font-mono text-muted">{r.concern}</span> →{' '}
+                <li key={r.concern} className="text-[11px] text-zinc-800">
+                  <span className="font-mono text-zinc-500">{r.concern}</span> →{' '}
                   {r.sourceNameKr ?? '소스 없음'}{' '}
                   <span
                     className={
@@ -331,7 +331,7 @@ function Field({
 }) {
   return (
     <div>
-      <div className="text-[10px] font-bold tracking-wide uppercase text-muted mb-1.5">
+      <div className="text-[10px] font-bold tracking-wide uppercase text-zinc-500 mb-1.5">
         {label}
       </div>
       {children}
@@ -359,7 +359,7 @@ function Seg({
             'px-2.5 py-1 text-[11px] font-bold ' +
             (value === v
               ? 'bg-terracotta text-white'
-              : 'bg-white text-muted hover:text-text')
+              : 'bg-white text-zinc-500 hover:text-zinc-800')
           }
         >
           {label}
@@ -386,7 +386,7 @@ function Chip({
         'px-2.5 py-1 rounded-full text-[11px] font-bold border ' +
         (on
           ? 'bg-terracotta text-white border-terracotta'
-          : 'bg-white text-muted border-zinc-200 hover:text-text')
+          : 'bg-white text-zinc-500 border-zinc-200 hover:text-zinc-800')
       }
     >
       {children}
@@ -403,7 +403,7 @@ function TraceBlock({
 }) {
   return (
     <div className="mt-3 bg-zinc-50 rounded-lg p-3" style={{ background: 'rgba(0,0,0,0.02)' }}>
-      <div className="text-[9.5px] font-bold tracking-[0.15em] uppercase text-muted mb-2">
+      <div className="text-[9.5px] font-bold tracking-[0.15em] uppercase text-zinc-500 mb-2">
         {title}
       </div>
       {children}

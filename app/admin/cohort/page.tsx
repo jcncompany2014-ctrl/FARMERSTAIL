@@ -239,12 +239,12 @@ export default async function AdminCohortPage() {
         title={`그룹·유형별 집계 (총 ${outcomes.length}건 · 강아지 ${dogCount ?? 0}마리 기준)`}
       >
         {cohortIds.length === 0 ? (
-          <p className="text-[11.5px] text-muted">데이터 없음</p>
+          <p className="text-[11.5px] text-zinc-500">데이터 없음</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-[11.5px]">
               <thead>
-                <tr className="text-left text-muted border-b border-zinc-200">
+                <tr className="text-left text-zinc-500 border-b border-zinc-200">
                   <th className="py-1.5 pr-3 font-bold uppercase tracking-wider">그룹</th>
                   {sourceTypes.map((s) => (
                     <th key={s} className="py-1.5 px-2 font-bold text-right">
@@ -260,16 +260,16 @@ export default async function AdminCohortPage() {
                   const total = sourceTypes.reduce((s, src) => s + (m.get(src) ?? 0), 0)
                   return (
                     <tr key={cid} className="border-b border-zinc-200/40">
-                      <td className="py-1.5 pr-3 font-mono text-ink">{cid}</td>
+                      <td className="py-1.5 pr-3 font-mono text-zinc-900">{cid}</td>
                       {sourceTypes.map((s) => (
                         <td
                           key={s}
-                          className="py-1.5 px-2 text-right font-mono tabular-nums text-ink"
+                          className="py-1.5 px-2 text-right font-mono tabular-nums text-zinc-900"
                         >
                           {m.get(s) ?? 0}
                         </td>
                       ))}
-                      <td className="py-1.5 pl-2 text-right font-mono tabular-nums font-bold text-ink">
+                      <td className="py-1.5 pl-2 text-right font-mono tabular-nums font-bold text-zinc-900">
                         {total}
                       </td>
                     </tr>
@@ -284,7 +284,7 @@ export default async function AdminCohortPage() {
       {/* 별점 분포 */}
       <Card icon={<Star className="w-4 h-4" />} title="별점 분포">
         {ratings.length === 0 ? (
-          <p className="text-[11.5px] text-muted">아직 별점 없음</p>
+          <p className="text-[11.5px] text-zinc-500">아직 별점 없음</p>
         ) : (
           <div className="space-y-1.5">
             {ratingDist
@@ -297,16 +297,16 @@ export default async function AdminCohortPage() {
                     key={star}
                     className="flex items-center gap-2 text-[11.5px]"
                   >
-                    <span className="w-12 font-mono text-ink">
+                    <span className="w-12 font-mono text-zinc-900">
                       {'★'.repeat(star)}
                     </span>
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-bg">
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-zinc-50">
                       <div
                         className="h-full rounded-full bg-terracotta"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="font-mono text-muted tabular-nums w-20 text-right">
+                    <span className="font-mono text-zinc-500 tabular-nums w-20 text-right">
                       {count} ({pct.toFixed(0)}%)
                     </span>
                   </div>
@@ -322,7 +322,7 @@ export default async function AdminCohortPage() {
         title={`환불 / 해지 사유 분포 (${reasonRows.length}건)`}
       >
         {reasonPieData.length === 0 ? (
-          <p className="text-[11.5px] text-muted">환불·해지 사유 데이터 없음</p>
+          <p className="text-[11.5px] text-zinc-500">환불·해지 사유 데이터 없음</p>
         ) : (
           <CohortReasonPie data={reasonPieData} />
         )}
@@ -334,7 +334,7 @@ export default async function AdminCohortPage() {
         title={`SKU별 별점 평균 (Top ${skuBarData.length})`}
       >
         {skuBarData.length === 0 ? (
-          <p className="text-[11.5px] text-muted">SKU별 별점 데이터 없음</p>
+          <p className="text-[11.5px] text-zinc-500">SKU별 별점 데이터 없음</p>
         ) : (
           <CohortSkuRatingBar data={skuBarData} />
         )}
@@ -348,7 +348,7 @@ export default async function AdminCohortPage() {
         <CohortTrendLine data={weekBuckets} />
       </Card>
 
-      <p className="text-[10.5px] text-muted mt-6 leading-relaxed">
+      <p className="text-[10.5px] text-zinc-500 mt-6 leading-relaxed">
         ※ 데이터는 고객 부담 없이 자동·자발적으로 모여요. 매주 확인해서
         제품·레시피 개선에 활용하세요.
       </p>
@@ -440,15 +440,15 @@ function Kpi({
     <div className="rounded-xl border border-zinc-200 bg-white p-3.5">
       <div className="flex items-center gap-1.5 mb-1">
         <span className="text-terracotta flex items-center">{icon}</span>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
           {label}
         </span>
         {help && <HelpTip text={help} />}
       </div>
-      <p className="text-2xl font-bold tracking-tight text-ink tabular-nums">
+      <p className="text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
         {value}
       </p>
-      <p className="text-[10.5px] font-mono text-muted mt-0.5">{sub}</p>
+      <p className="text-[10.5px] font-mono text-zinc-500 mt-0.5">{sub}</p>
     </div>
   )
 }
@@ -466,7 +466,7 @@ function Card({
     <section className="mt-5 rounded-lg border border-zinc-200 bg-white p-5">
       <div className="flex items-center gap-2 mb-3 text-terracotta">
         {icon}
-        <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted">
+        <h2 className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">
           {title}
         </h2>
       </div>

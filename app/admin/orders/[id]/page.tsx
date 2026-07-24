@@ -73,14 +73,14 @@ export default async function AdminOrderDetailPage({
       <div className="mb-6">
         <Link
           href="/admin/orders"
-          className="text-xs text-muted hover:text-terracotta"
+          className="text-xs text-zinc-500 hover:text-terracotta"
         >
           ← 주문 목록
         </Link>
         <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-2">
           주문 상세
         </h1>
-        <p className="text-xs text-muted mt-1 font-mono">
+        <p className="text-xs text-zinc-500 mt-1 font-mono">
           {order.order_number}
         </p>
       </div>
@@ -90,13 +90,13 @@ export default async function AdminOrderDetailPage({
         <div className="col-span-2 space-y-4">
           {/* 주문 상품 */}
           <section className="p-6 rounded-lg bg-white border border-zinc-200">
-            <h2 className="text-sm font-bold text-ink mb-4">
+            <h2 className="text-sm font-bold text-zinc-900 mb-4">
               주문 상품 ({items.length})
             </h2>
             <ul className="space-y-3">
               {items.map((it) => (
                 <li key={it.id} className="flex gap-3 items-center">
-                  <div className="shrink-0 w-12 h-12 rounded-lg bg-bg overflow-hidden flex items-center justify-center">
+                  <div className="shrink-0 w-12 h-12 rounded-lg bg-zinc-50 overflow-hidden flex items-center justify-center">
                     {it.product_image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -109,12 +109,12 @@ export default async function AdminOrderDetailPage({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-ink">{it.product_name}</p>
-                    <p className="text-xs text-muted mt-0.5">
+                    <p className="text-sm text-zinc-900">{it.product_name}</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
                       {it.unit_price.toLocaleString()}원 × {it.quantity}
                     </p>
                   </div>
-                  <p className="text-sm font-semibold text-ink whitespace-nowrap">
+                  <p className="text-sm font-semibold text-zinc-900 whitespace-nowrap">
                     {it.line_total.toLocaleString()}원
                   </p>
                 </li>
@@ -124,7 +124,7 @@ export default async function AdminOrderDetailPage({
 
           {/* 배송지 */}
           <section className="p-6 rounded-lg bg-white border border-zinc-200">
-            <h2 className="text-sm font-bold text-ink mb-4">배송지</h2>
+            <h2 className="text-sm font-bold text-zinc-900 mb-4">배송지</h2>
             <dl className="space-y-2 text-sm">
               <InfoRow label="받는 분" value={order.recipient_name} />
               <InfoRow label="연락처" value={order.recipient_phone} />
@@ -142,7 +142,7 @@ export default async function AdminOrderDetailPage({
 
           {/* 결제 정보 */}
           <section className="p-6 rounded-lg bg-white border border-zinc-200">
-            <h2 className="text-sm font-bold text-ink mb-4">결제 정보</h2>
+            <h2 className="text-sm font-bold text-zinc-900 mb-4">결제 정보</h2>
             <dl className="space-y-2 text-sm">
               <InfoRow
                 label="결제 상태"
@@ -181,7 +181,7 @@ export default async function AdminOrderDetailPage({
                 }
               />
               <div className="flex justify-between items-center pt-2 border-t border-zinc-200">
-                <dt className="text-ink font-semibold">총 결제 금액</dt>
+                <dt className="text-zinc-900 font-semibold">총 결제 금액</dt>
                 <dd className="font-bold tracking-tight text-xl text-terracotta">
                   {order.total_amount.toLocaleString()}원
                 </dd>
@@ -194,7 +194,7 @@ export default async function AdminOrderDetailPage({
         <div className="col-span-1 space-y-4">
           {/* 주문자 정보 */}
           <section className="p-6 rounded-lg bg-white border border-zinc-200">
-            <h2 className="text-sm font-bold text-ink mb-4">주문자</h2>
+            <h2 className="text-sm font-bold text-zinc-900 mb-4">주문자</h2>
             <dl className="space-y-2 text-sm">
               <InfoRow label="이름" value={profile?.name ?? '-'} />
               <InfoRow
@@ -246,7 +246,7 @@ export default async function AdminOrderDetailPage({
           {/* 현재 송장 (shipping 이후에만) */}
           {(order.carrier || order.tracking_number) && (
             <section className="p-6 rounded-lg bg-white border border-zinc-200">
-              <h2 className="text-sm font-bold text-ink mb-4">운송장</h2>
+              <h2 className="text-sm font-bold text-zinc-900 mb-4">운송장</h2>
               <dl className="space-y-2 text-sm">
                 {order.carrier && (
                   <InfoRow
@@ -293,7 +293,7 @@ export default async function AdminOrderDetailPage({
 
           {/* 메타 정보 */}
           <section className="p-6 rounded-lg bg-white border border-zinc-200">
-            <h2 className="text-sm font-bold text-ink mb-4">메타</h2>
+            <h2 className="text-sm font-bold text-zinc-900 mb-4">메타</h2>
             <dl className="space-y-2 text-sm">
               <InfoRow
                 label="생성"
@@ -328,8 +328,8 @@ function InfoRow({
 }) {
   return (
     <div className="flex justify-between gap-3">
-      <dt className="text-muted shrink-0">{label}</dt>
-      <dd className="text-ink text-right min-w-0">{value}</dd>
+      <dt className="text-zinc-500 shrink-0">{label}</dt>
+      <dd className="text-zinc-900 text-right min-w-0">{value}</dd>
     </div>
   )
 }
