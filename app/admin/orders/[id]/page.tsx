@@ -8,7 +8,7 @@ import PaymentEventTimeline from './PaymentEventTimeline'
 import { carrierLabel } from '@/lib/tracking'
 import { formatKstDateTime as formatDateTime } from '@/lib/datetime-kst'
 import {
-  PAYMENT_STATUS_LABEL,
+  paymentStatusDisplay,
   type PaymentStatus,
 } from '@/lib/commerce/order-fsm'
 
@@ -146,10 +146,10 @@ export default async function AdminOrderDetailPage({
             <dl className="space-y-2 text-sm">
               <InfoRow
                 label="결제 상태"
-                value={
-                  PAYMENT_STATUS_LABEL[order.payment_status as PaymentStatus] ??
-                  order.payment_status
-                }
+                value={paymentStatusDisplay(
+                  order.payment_status as PaymentStatus,
+                  order.refunded_amount,
+                )}
               />
               {order.payment_method && (
                 <InfoRow label="결제 수단" value={order.payment_method} />

@@ -77,13 +77,12 @@ export default async function AdminUserMessagePage({
     <div>
       <header className="mb-6 flex items-end justify-between">
         <div>
-          <p className="text-[11px] text-muted uppercase tracking-widest font-bold">
-            User Messaging · 1:1 알림 발송
-          </p>
-          <h1 className="text-2xl font-black text-text mt-1">
-            {profile.name ?? '(이름 없음)'}
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+            1:1 메시지 — {profile.name ?? '(이름 없음)'}
           </h1>
-          <p className="text-[12px] text-muted mt-1">
+          <p className="text-[13px] text-zinc-500 mt-1">
+            이 고객에게 앱 알림으로 직접 메시지를 보내는 곳이에요. 고객이
+            답장하면 &lsquo;고객 답장&rsquo; 탭에 떠요. —{' '}
             {profile.email ?? '—'} · {profile.phone ?? '—'}
           </p>
         </div>

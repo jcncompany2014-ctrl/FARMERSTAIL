@@ -56,9 +56,26 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
   pending: '결제 대기',
   paid: '결제 완료',
   failed: '결제 실패',
-  cancelled: '환불 완료',
+  cancelled: '결제 취소',
   partially_refunded: '부분 환불',
   refunded: '전액 환불',
+}
+
+/**
+ * payment_status 표시 라벨 — refunded_amount 문맥 반영.
+ *
+ * 'cancelled' 는 두 경우가 섞여 있다 (2026-07-24 세부점검에서 발견):
+ *  ① 결제 후 취소 — Toss 취소로 돈이 돌아감 (refunded_amount = total)
+ *  ② 미결제 만료/취소 — 결제 자체가 없었음 (refunded_amount = 0)
+ * 고정 라벨 '환불 완료' 는 ②에서 거짓말이 된다 (돈을 받은 적도 없는데
+ * 환불이라니). refunded_amount 로 분기해 ①만 '환불 완료' 를 보여준다.
+ */
+export function paymentStatusDisplay(
+  status: PaymentStatus,
+  refundedAmount: number | null | undefined,
+): string {
+  if (status === 'cancelled' && (refundedAmount ?? 0) > 0) return '환불 완료'
+  return PAYMENT_STATUS_LABEL[status] ?? status
 }
 
 /** 모든 order_status 값 배열 (enum 검증용). */
