@@ -26,6 +26,20 @@ const PROTEIN_OPTIONS: Array<{ v: string; label: string }> = [
   { v: 'lamb', label: '양고기' },
 ]
 
+/**
+ * 선호 단백질 → 이 단백질을 차단하는 알레르기 라벨. 알레르기로 고른 단백질은
+ * '잘 먹는 단백질'에서 자동 제외됨을 안내하기 위한 매핑 (lib skuModel
+ * blockingAllergies 와 정합 — 설문 라벨 기준).
+ */
+const PROTEIN_ALLERGENS: Record<string, string[]> = {
+  chicken: ['닭·칠면조'],
+  duck: ['오리'],
+  beef: ['소고기', '양고기'],
+  salmon: ['연어·생선', '흰살생선'],
+  pork: ['돼지고기'],
+  lamb: ['양고기'],
+}
+
 type DlMode = 'none' | 'unknown' | 'has' | ''
 
 export type AllergyProps = {
@@ -138,19 +152,48 @@ export default function Allergy({
         <div className="s-chiprow">
           {PROTEIN_OPTIONS.map(({ v, label }) => {
             const active = preferredProteins.includes(v)
+            // 이 단백질을 차단하는 알레르기를 이미 골랐나 — 그럼 '선호'로 못 고른다
+            // (골라도 추천에서 알레르기가 우선이라 자동 제외되므로, 헷갈리지 않게
+            // 비활성화하고 아래에서 이유를 안내).
+            const blockedBy = (PROTEIN_ALLERGENS[v] ?? []).filter((a) =>
+              allergies.includes(a),
+            )
+            const conflicted = blockedBy.length > 0
             return (
               <button
                 key={v}
                 type="button"
-                className={'s-chip' + (active ? ' s-on' : '')}
-                aria-pressed={active}
-                onClick={() => toggleArr(preferredProteins, v, setPreferredProteins)}
+                className={'s-chip' + (active && !conflicted ? ' s-on' : '')}
+                aria-pressed={active && !conflicted}
+                disabled={conflicted}
+                onClick={() =>
+                  toggleArr(preferredProteins, v, setPreferredProteins)
+                }
+                style={
+                  conflicted
+                    ? { opacity: 0.45, textDecoration: 'line-through', cursor: 'not-allowed' }
+                    : undefined
+                }
               >
                 {label}
               </button>
             )
           })}
         </div>
+        {PROTEIN_OPTIONS.some(
+          ({ v }) =>
+            (PROTEIN_ALLERGENS[v] ?? []).some((a) => allergies.includes(a)),
+        ) && (
+          <div className="s-hint" style={{ marginTop: 12 }}>
+            <div className="s-iconwrap">
+              <Check size={14} strokeWidth={2.4} />
+            </div>
+            <div>
+              알레르기로 고른 단백질은 <strong>자동으로 빠져요</strong> — 안전이
+              먼저라, 좋아해도 추천엔 넣지 않아요.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
