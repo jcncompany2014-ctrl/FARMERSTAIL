@@ -20,6 +20,7 @@ import {
   SectionTitle,
 } from '@/components/admin/ui'
 import PickingListExport, { type PickingRow } from './PickingListExport'
+import ShippingLabels from './ShippingLabels'
 
 export const dynamic = 'force-dynamic'
 
@@ -258,7 +259,12 @@ export default async function PickingListPage({
             </Link>
           </>
         }
-        actions={<PickingListExport rows={rows} date={shipDate} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <ShippingLabels rows={rows} date={shipDate} />
+            <PickingListExport rows={rows} date={shipDate} />
+          </div>
+        }
       />
 
       {/* 요약 */}
