@@ -175,6 +175,12 @@ P1 로 올리고 **2회전**: 더 깊은 디자인 완성도 + 새로 생긴 미
 ## 9. 진행 로그 (최신이 위)
 > 형식: `회차N: [P?] 무엇을·왜·검증결과`. 동시발동 락은 `🔄` 줄.
 
+- 회차340(2026-07-24, **이상 없음** · 재분석 트리거 푸시 사유문구 클린): reanalyze-trigger reasonText 5종(체중변화·측정도구정확·라이프스테이지·12주경과·직접요청) 전부 친근한글=임상 jargon 0. 동적 푸시 사유도 클린. ("라이프 스테이지"는 흔한 마케팅한글, 임상용어 아님). **(338~340 이상없음 로그 이 커밋 flush).**
+
+- 회차339(2026-07-24, **이상 없음** · 우리아이 맞춤영양 카드 클린 확인): CurrentFormulaCard(강아지 상세 주요 표면)가 recipeName() 사용(:117)·chipLabel/원시jargon/영문.name/% 렌더 0(처방은 주석뿐)=이번 세션 recipeName 이관 정합 유지. 이 카드가 올바른 참조 구현이고 jargon 갭은 타 표면(risk-flags·타 chipLabel)에 국한 재확인. 로그 번들 대기.
+
+- 회차338(2026-07-24, **이상 없음** · 분석 매크로 영양바 라벨 클린): AnalysisMagazineSection 영양 매크로 라벨이 "단백 N% 이상"(한글·:107)=영문 protein/carb 누수 없음, %는 영양성분 스펙(금지 레시피비율 아님). 분석 렌더 표면 전수 완료 — jargon은 3소스(chipLabel·risk-flags·췌장염 action, 전부 기록완)에 국한·매크로바/BCS표시는 별개(BCS=298). 로그 번들 대기.
+
 - 회차337(2026-07-24, **★★최중요급 발견·risk_flags 임상약어**·코드수정 0): risk-flags.ts label/desc(~30개)가 riskFlagLabel/Desc로 분석 "꼭 확인하세요" 박스(AnalysisView:528·535)에 직접 렌더=최고가시성 표면인데 BCS/DM/EPA/IRIS/ACVIM/IBD/처방/케토제닉/옥살산/치료제명(타우린·SAMe·Pancreatin) 범벅. **317(chipLabel)·316(췌장염)과 같은 클러스터 3번째(최대) 소스** → 분석 근거카피 3소스 한 태스크로 평이화. nutrition lib·의료정확도·테스트라 무인 미수정. AUDIT 기록+인덱스 ★1 클러스터화·★1c 추가. 이 커밋 doc-only.
 
 - 회차336(2026-07-24, 회차335 확장·AI표면 전체 스코프·코드수정 0): 커스터머 AI 프롬프트 2개 확정 — ai-prompt.ts(한마디·고위험) + chatbot-system-prompt.ts(챗봇·저위험: 대화형+친근톤가드+처방=정직면책). 챗봇도 명시 평이화 지시는 없으나 맥락상 위험 낮음. 가드 결정 시 둘 다 고려. 나머지 AI프롬프트(structured/persona/blog/vision)는 고객 미노출 or 내부/admin. AUDIT 335에 ↳ 추가. 무인 미수정.
