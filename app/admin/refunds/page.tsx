@@ -277,7 +277,7 @@ function StatCard({
       </div>
       <div className="mt-1 flex items-baseline gap-0.5">
         <span
-          className="font-serif tabular-nums leading-none"
+          className="font-sans tabular-nums leading-none"
           style={{
             fontSize: 22,
             fontWeight: 800,
@@ -338,7 +338,7 @@ function RefundRow({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span
-                  className="font-serif tabular-nums"
+                  className="font-sans tabular-nums"
                   style={{
                     fontSize: 14,
                     fontWeight: 800,

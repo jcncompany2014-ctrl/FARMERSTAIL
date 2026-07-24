@@ -350,7 +350,7 @@ function SummaryCard({
         {label}
       </p>
       <p
-        className="font-serif text-[22px] font-black mt-1.5 tabular-nums"
+        className="font-sans text-[22px] font-black mt-1.5 tabular-nums"
         style={{ color, letterSpacing: '-0.02em', lineHeight: 1.1 }}
       >
         {value}

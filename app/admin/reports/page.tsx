@@ -203,11 +203,11 @@ export default async function AdminReportsPage({
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-text" strokeWidth={2} />
           <span
-            className="font-serif"
+            className="font-sans"
             style={{
               fontSize: 22,
               fontWeight: 800,
-              color: 'var(--ink)',
+              color: '#18181b',
               letterSpacing: '-0.02em',
             }}
           >
@@ -230,30 +230,19 @@ export default async function AdminReportsPage({
         </div>
       </div>
 
-      {/* Hero 매출 카드 */}
-      <section
-        className="rounded-lg px-6 py-5 text-white mb-5 print:break-inside-avoid"
-        style={{
-          background:
-            'linear-gradient(135deg, var(--ink) 0%, #3a2f1d 60%, #5b4720 100%)',
-        }}
-      >
-        <span className="kicker kicker-gold">
+      {/* Hero 매출 카드 — 클린 zinc 다크 (2026-07 잔재청소: 웜브라운+골드 serif 제거) */}
+      <section className="rounded-lg px-6 py-5 text-white mb-5 bg-zinc-900 print:break-inside-avoid print:bg-white print:text-zinc-900 print:border print:border-zinc-300">
+        <span className="inline-flex items-center gap-1 text-[10.5px] font-bold tracking-[0.16em] uppercase text-zinc-400 print:text-zinc-500">
           순매출
           <HelpTip text="이번 달 결제 완료 합계(매출)에서 환불을 뺀, 실제로 남는 매출이에요. 세무 신고·운영 리뷰의 기준 숫자." />
         </span>
         <div className="mt-2 flex items-baseline gap-1.5">
-          <span
-            className="font-serif leading-none tabular-nums text-gold"
-            style={{
-              fontSize: 40,
-              fontWeight: 800,
-              letterSpacing: '-0.025em',
-            }}
-          >
+          <span className="font-bold leading-none tabular-nums tracking-tight text-white text-[40px] print:text-zinc-900">
             {netRevenue.toLocaleString()}
           </span>
-          <span className="text-[16px] text-white/85 font-bold">원</span>
+          <span className="text-[16px] text-white/85 font-bold print:text-zinc-500">
+            원
+          </span>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3 text-[11px]">
           <div>
@@ -459,7 +448,7 @@ function ReportStat({
         </span>
       </div>
       <div
-        className="mt-1 font-serif tabular-nums"
+        className="mt-1 font-sans tabular-nums"
         style={{
           fontSize: 18,
           fontWeight: 800,
