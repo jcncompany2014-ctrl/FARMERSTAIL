@@ -18,14 +18,15 @@
 ```
 
 ## Phase 1+2 — 탭 통합 + 메뉴 재편 (그룹별 1커밋, 전 커밋에서 모든 페이지 도달 가능 유지)
-- [ ] T0. `AdminTabs` 프리미티브 (components/admin/ui.tsx) — 라우트 링크형 세그먼트 탭
-- [ ] T1. 정기배송: subscriptions·calendar·charges 3페이지에 탭 + 메뉴 1개로
-- [ ] T2. 고객: users·cs-inbox·search-all 3페이지에 탭 + 메뉴 1개로
-- [ ] T3. 매출·결제: reports·finance 2페이지에 탭 + 메뉴 1개로
-- [ ] T4. 콘텐츠: blog·faqs·partners 3페이지에 탭 + 메뉴 1개로
-- [ ] T5. 알림: push-campaigns·push-stats 2페이지에 탭 + 메뉴 1개로
-- [ ] T6. 설정: automation·cron-health·algorithm·invention-flags 4페이지에 탭 + 메뉴 1개로
-- [ ] T7. 그룹 재편 최종형: 매일/돈/가끔/추후 개발 4그룹 + 분석4 강등
+- [x] T0. `AdminTabs` 프리미티브 (components/admin/ui.tsx) — 라우트 링크형 세그먼트 탭 (33c7ac2)
+- [x] T1. 정기배송: subscriptions·calendar·charges 3페이지에 탭 + 메뉴 1개로 (33c7ac2)
+- [x] T2. 고객: users·cs-inbox·search-all 3페이지에 탭 + 메뉴 1개로 (07be905)
+- [x] T3. 매출·결제: reports·finance 2페이지에 탭 + 메뉴 1개로 (07be905)
+- [x] T4. 콘텐츠: blog·faqs·partners 3페이지에 탭 + 메뉴 1개로 (56354ef)
+- [x] T5. 알림: push-campaigns·push-stats 2페이지에 탭 + 메뉴 1개로 (56354ef)
+- [x] T6. 설정: automation·cron-health·algorithm·invention-flags 4페이지에 탭 + 메뉴 1개로 (56354ef)
+- [x] T7. 그룹 재편 최종형: 매일/돈/가끔/추후 개발 4그룹 + 분석4 강등 — 메뉴 28→18 (56354ef)
+- 덤: 탭 작업 중 헤더 zinc 22px 통일 9건(3xl/2xl/serif/font-black 제각각), 중복 뒤로가기 5건·영문/중복 킥커 3건 제거
 
 ## Phase 3 — 페이지 속 전면 리뉴얼 (매일 쓰는 순서대로, 페이지당 1커밋)
 각 페이지 공통 체크: ⓐ첫 화면에 "이 페이지는 ~하는 곳" 한 줄 ⓑ전문용어→쉬운말+["?"] 도움말
@@ -34,7 +35,10 @@
 - [ ] R1. 주문 관리 (+주문 상세)
 - [ ] R2. 정기배송 3탭
 - [ ] R3. 박스 패킹
-- [ ] R4. 레시피 승인
+- [x] R4. 레시피 승인 — 목적 명확화(승인 현황이 주인공·설명 1줄), KPI 쉬운말+동의대기 첫자리,
+      케어목표/사이클/만족도 전부 한글화, 시뮬레이터 2종은 `?dev=1` 게이트로 숨김
+      (⚠️<details> 접이식은 펼칠 때 렌더러 freeze 재현 → 서버 조건부 렌더로 해결).
+      잔여(선택): 시뮬레이터 내부 영어(Duck/LINE RATIOS 등)는 개발용이라 보류.
 - [ ] R5. 고객 3탭 (+회원 상세·메시지)
 - [ ] R6. 환불 관리
 - [ ] R7. 매출·결제 2탭

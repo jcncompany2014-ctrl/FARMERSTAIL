@@ -19,7 +19,13 @@ export const dynamic = 'force-dynamic'
  *  - user_adjusted 비율 (알고리즘 정확도 KPI)
  *  - cycle 별 응답률 (체크인 incentive 효과 측정)
  */
-export default async function AdminPersonalizationPage() {
+export default async function AdminPersonalizationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ dev?: string }>
+}) {
+  const { dev } = await searchParams
+  const showDevTools = dev === '1'
   const supabase = await createClient()
   const {
     data: { user },
@@ -121,56 +127,27 @@ export default async function AdminPersonalizationPage() {
 
   return (
     <main className="px-5 py-6 max-w-4xl mx-auto">
+      {/* 대개편 v2 R4 — 목적 명확화: 승인(동의) 현황이 주인공, 시뮬레이터는 접이식 개발도구로. */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <span
-            className="text-[10px] font-bold tracking-[0.2em] uppercase"
-            style={{ color: 'var(--terracotta)' }}
-          >
-개인화
-          </span>
-          <h1
-            className="font-serif mt-1"
-            style={{
-              fontSize: 24,
-              fontWeight: 800,
-              color: 'var(--ink)',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            알고리즘 시뮬레이터
+          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+            레시피 승인
           </h1>
+          <p className="text-[13px] text-zinc-500 mt-1">
+            고객에게 제안한 다음 박스 레시피에 고객이 동의했는지 보는 곳이에요.
+            5일 안에 응답이 없으면 이전 레시피가 유지돼요.
+          </p>
         </div>
-        <div className="flex flex-col gap-1.5 items-end">
-          <Link
-            href="/admin/algorithm"
-            className="text-[11px] font-bold text-terracotta hover:underline"
-          >
-            알고리즘 데이터 편집 →
-          </Link>
-          <Link
-            href="/admin"
-            className="text-[11px] text-muted hover:text-text"
-          >
-            ← Admin home
-          </Link>
-        </div>
+        <Link
+          href="/admin/algorithm"
+          className="text-[11px] font-bold text-terracotta hover:underline shrink-0"
+        >
+          알고리즘 계수 →
+        </Link>
       </div>
 
-      {/* KPI cards — 2 row: 4개 + 4개 */}
+      {/* KPI — 동의 대기(이 페이지의 목적)가 첫 카드 */}
       <section className="grid grid-cols-4 gap-3 mb-6">
-        <KpiCard label="총 박스" value={totalFormulas ?? 0} unit="건" />
-        <KpiCard
-          label="사용자 조정"
-          value={`${adjustedRate}%`}
-          unit={`(${adjustedFormulas ?? 0}/${totalFormulas ?? 0})`}
-          hint="↓ 낮을수록 알고리즘이 정확"
-        />
-        <KpiCard
-          label="체크인 응답"
-          value={totalCheckins ?? 0}
-          unit="건"
-        />
         <KpiCard
           label="동의 대기"
           value={pendingCount ?? 0}
@@ -178,9 +155,22 @@ export default async function AdminPersonalizationPage() {
           hint={
             (pendingNearTimeout ?? []).length > 0
               ? `${(pendingNearTimeout ?? []).length}건 마감 임박`
-              : '5일간 응답 없으면 자동 거절'
+              : '5일간 응답 없으면 이전 레시피 유지'
           }
           warn={(pendingNearTimeout ?? []).length > 0}
+        />
+        <KpiCard label="지금까지 만든 박스" value={totalFormulas ?? 0} unit="건" />
+        <KpiCard
+          label="고객이 직접 조정"
+          value={`${adjustedRate}%`}
+          unit={`(${adjustedFormulas ?? 0}/${totalFormulas ?? 0})`}
+          hint="낮을수록 추천이 정확하다는 뜻"
+        />
+        <KpiCard
+          label="체크인 응답"
+          value={totalCheckins ?? 0}
+          unit="건"
+          hint="배송 후 잘 먹는지 답해준 횟수"
         />
       </section>
 
@@ -211,12 +201,10 @@ export default async function AdminPersonalizationPage() {
                   key={r.id}
                   className="flex items-center justify-between text-[12px] py-1.5 px-3 bg-white rounded-lg"
                 >
-                  <Link
-                    href={`/admin/personalization?dog=${r.dog_id}`}
-                    className="font-mono text-text hover:text-terracotta"
-                  >
-                    dog={r.dog_id.slice(0, 8)}… cycle {r.cycle_number}
-                  </Link>
+                  <span className="text-text">
+                    강아지 <span className="font-mono">{r.dog_id.slice(0, 8)}</span> ·{' '}
+                    {r.cycle_number}번째 박스
+                  </span>
                   <span
                     className={`font-bold text-[10.5px] ${
                       daysLeft === 0
@@ -226,7 +214,7 @@ export default async function AdminPersonalizationPage() {
                           : 'text-muted'
                     }`}
                   >
-                    {daysLeft === 0 ? '오늘 timeout' : `D-${daysLeft}`}
+                    {daysLeft === 0 ? '오늘 마감' : `${daysLeft}일 남음`}
                   </span>
                 </li>
               )
@@ -240,7 +228,7 @@ export default async function AdminPersonalizationPage() {
         {totalSatisfaction > 0 && (
           <div className="bg-white border border-zinc-200 rounded-lg p-5">
             <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-text mb-3">
-              만족도 분포 ({totalSatisfaction})
+              체크인 만족도 (5점 만점 · {totalSatisfaction}건)
             </h3>
             <ul className="space-y-2">
               {([5, 4, 3, 2, 1] as const).map((score) => {
@@ -277,7 +265,7 @@ export default async function AdminPersonalizationPage() {
         {Object.keys(responseByCycle).length > 0 && (
           <div className="bg-white border border-zinc-200 rounded-lg p-5">
             <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-text mb-3">
-              cycle 응답
+              박스별 체크인 응답
             </h3>
             <ul className="space-y-1.5">
               {Object.entries(responseByCycle)
@@ -287,13 +275,11 @@ export default async function AdminPersonalizationPage() {
                     key={cycle}
                     className="flex items-center text-[11.5px]"
                   >
-                    <span className="font-mono w-12 text-muted">
-                      cycle {cycle}
-                    </span>
+                    <span className="w-20 text-muted">{cycle}번째 박스</span>
                     <span className="flex-1 inline-flex gap-1.5 items-center">
-                      <span className="text-moss font-bold">w2 {counts.week_2}</span>
+                      <span className="text-moss font-bold">2주차 {counts.week_2}</span>
                       <span className="text-muted">·</span>
-                      <span className="text-terracotta font-bold">w4 {counts.week_4}</span>
+                      <span className="text-terracotta font-bold">4주차 {counts.week_4}</span>
                     </span>
                   </li>
                 ))}
@@ -306,7 +292,7 @@ export default async function AdminPersonalizationPage() {
       {Object.keys(goalCounts).length > 0 && (
         <section className="mb-6 bg-white border border-zinc-200 rounded-lg p-5">
           <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-text mb-3">
-            케어 목표 분포
+            고객들이 고른 케어 목표
           </h3>
           <ul className="space-y-1.5">
             {Object.entries(goalCounts)
@@ -316,7 +302,7 @@ export default async function AdminPersonalizationPage() {
                   key={goal}
                   className="flex items-center text-[12.5px] text-text"
                 >
-                  <span className="flex-1 font-mono">{goal}</span>
+                  <span className="flex-1">{CARE_GOAL_LABEL[goal] ?? goal}</span>
                   <span className="font-black text-terracotta">{count}</span>
                 </li>
               ))}
@@ -324,13 +310,47 @@ export default async function AdminPersonalizationPage() {
         </section>
       )}
 
-      {/* 시뮬레이터 — client component */}
-      <SimulatorClient />
-
-      {/* 추천 엔진 v3 시뮬레이터 + 결정 trace 뷰어 */}
-      <V3SimulatorClient />
+      {/* 시뮬레이터 2종 — 개발용 도구라 기본 숨김(R4). ?dev=1 로만 렌더.
+          (<details> 접이식은 펼칠 때 렌더러 freeze 재현 → 서버 조건부로 교체.) */}
+      {showDevTools ? (
+        <section className="mt-2">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[13px] font-bold text-zinc-700">
+              🧪 알고리즘 시험 (개발용)
+            </h2>
+            <Link
+              href="/admin/personalization"
+              className="text-[11px] text-zinc-500 hover:text-zinc-800 font-semibold"
+            >
+              닫기 ✕
+            </Link>
+          </div>
+          <SimulatorClient />
+          <V3SimulatorClient />
+        </section>
+      ) : (
+        <Link
+          href="/admin/personalization?dev=1"
+          className="block mt-2 rounded-lg border border-zinc-200 bg-white px-5 py-4 text-[13px] font-bold text-zinc-700 hover:text-zinc-900 hover:border-zinc-300 transition"
+        >
+          🧪 알고리즘 시험해보기{' '}
+          <span className="font-normal text-zinc-400">
+            — 개발용 도구예요. 임의 강아지 조건을 넣어 추천 결과를 미리 볼 수
+            있어요 (평소엔 안 보셔도 돼요)
+          </span>
+        </Link>
+      )}
     </main>
   )
+}
+
+/** 설문 care_goal 코드값 → 사장님용 한글 (lib/nutrition.ts careGoal union과 정합). */
+const CARE_GOAL_LABEL: Record<string, string> = {
+  general_upgrade: '전반적인 건강 (일반 업그레이드)',
+  weight_management: '체중 관리',
+  joint_senior: '관절·시니어 케어',
+  skin_coat: '피부·털 관리',
+  allergy_avoid: '알레르기 피하기',
 }
 
 function KpiCard({
@@ -365,12 +385,10 @@ function KpiCard({
       </div>
       <div className="mt-1 flex items-baseline gap-1">
         <span
-          className="font-serif"
+          className="font-bold tracking-tight"
           style={{
             fontSize: 22,
-            fontWeight: 800,
-            color: warn ? 'var(--terracotta)' : 'var(--ink)',
-            letterSpacing: '-0.02em',
+            color: warn ? 'var(--terracotta)' : '#18181b',
           }}
         >
           {value}
