@@ -17,12 +17,20 @@ import type { FactorLine } from './calorie-v2/types.ts'
 /**
  * 화식 라인 평균 에너지 밀도 (kcal/g).
  *
- * 검정 확정(2026-07-11) 4종 실측: 닭·돼지 1.15 / 오리·소 1.20 → 평균 1.175.
+ * v4.0 확정 kcal(2026-07-18): 닭130·오리125·돼지125·소145 (/100g)
+ * → 1.30·1.25·1.25·1.45 kcal/g, 4종 평균 **1.3125**.
  * 연어(skin)는 제품 보류라 평균에서 제외 — 출시 시 재계산.
+ *
+ * ⚠️ 2026-07-24 정밀감사에서 수정 — v4.0 반영 때 이 상수만 구값(1.175,
+ * 폐기된 조리수율 가정 115/120 평균)으로 남아 있었다. 그대로 두면 분석
+ * 화면의 feed_g 추정이 실제 박스 팩 계산(v4.0, lines.ts)보다 ~11% 많게
+ * 표시돼 "분석에서 말한 양 ≠ 박스로 온 양"이 된다. 정본 kcal 은 언제나
+ * skuModel.ts profile — 여기 바꾸면 이 상수도 같이 갱신할 것.
+ *
  * 라인 mix 정확 계산은 lines.ts dailyGramsFromMix. 이 상수는 라인 미정 시
  * 분석 페이지 단일 추정용.
  */
-export const AVG_ENERGY_DENSITY_KCAL_PER_G = 1.175 // 검정 확정(2026-07-11): 닭·돼지 1.15 / 오리·소 1.20 평균
+export const AVG_ENERGY_DENSITY_KCAL_PER_G = 1.3125 // v4.0(2026-07-18): 닭1.30·오리1.25·돼지1.25·소1.45 평균
 
 export type SurveyAnswers = {
   bodyCondition: 'skinny' | 'slim' | 'ideal' | 'chubby' | 'obese'

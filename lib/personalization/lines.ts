@@ -161,10 +161,16 @@ export function dailyGramsFromMix(
       override?.[line]?.kcalPer100g ?? FOOD_LINE_META[line].kcalPer100g
     total += ((ratio * dailyKcal) / kcal100) * 100
   }
-  // audit #30: 모든 라인 0 시 silent 0 반환 위험 → 4종 평균 1.175 kcal/g fallback
-  // (2026-07-11 검정 확정: 닭·돼지 1.15, 오리·소 1.20).
+  // audit #30: 모든 라인 0 시 silent 0 반환 위험 → 판매 4종 평균 kcal/g fallback.
+  // 2026-07-24 정밀감사: 구 1.175 하드코딩(폐기된 115/120 평균)이 v4.0 반영을
+  // 놓치고 남아 있었다 → SKU_MODEL 에서 동적 유도로 교체(앞으로 자동 동기화).
   if (weightSum <= 0) {
-    return Math.round(dailyKcal / 1.175)
+    const active = ALL_PROTEINS.filter((p) => !SKU_MODEL[p].deferred)
+    const avgKcalPerG =
+      active.reduce((s, p) => s + SKU_MODEL[p].profile.kcalPer100g, 0) /
+      active.length /
+      100
+    return Math.round(dailyKcal / avgKcalPerG)
   }
   return Math.round(total)
 }
