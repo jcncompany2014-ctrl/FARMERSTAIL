@@ -244,7 +244,7 @@ export default async function AdminOrdersPage({
                       {o.total_amount.toLocaleString()}원
                     </strong>
                   </div>
-                  <p className="mt-1 text-[11px] text-zinc-400">
+                  <p className="mt-1 text-[11px] text-zinc-500">
                     {o.recipient_phone} · {formatDate(o.created_at)}
                   </p>
                 </Link>
