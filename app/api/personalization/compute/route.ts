@@ -19,6 +19,7 @@ import {
   LINE_TO_SLUG,
   TOPPER_TO_SLUG,
 } from '@/lib/personalization/skuMap'
+import { SKU_MODEL, LEGACY_LINE_TO_PROTEIN } from '@/lib/personalization/skuModel'
 import type { AlgorithmInput, Formula } from '@/lib/personalization/types'
 import {
   buildV3Recommendation,
@@ -274,7 +275,19 @@ export async function POST(req: Request) {
         v3 = null
       }
     }
-      return NextResponse.json({ ok: true, formula, v3, cached: true })
+    // 안전 게이트 — 저장 정본에 심어둔 상담 플래그를 캐시 응답에도 surface.
+    const stored = existing.formula as {
+      needsConsultation?: boolean
+      consultationReason?: string | null
+    }
+      return NextResponse.json({
+        ok: true,
+        formula,
+        v3,
+        needsConsultation: stored.needsConsultation ?? false,
+        consultationReason: stored.consultationReason ?? null,
+        cached: true,
+      })
     }
   }
 
@@ -581,6 +594,26 @@ export async function POST(req: Request) {
     ]
   }
 
+  // 5.5c) ★안전 게이트 — 판매 단백질이 전부 알레르기면 상담 라우팅(2026-07-24).
+  //   퍼저 발견: 4종(닭·오리·소·돼) 전부 알레르기로 고르면 안전한 박스가 없는데,
+  //   normalize 최후 fallback 이 차단된 라인을 100% 로 강제 → 알레르기 성분 배송.
+  //   원인 불문 "출고 라인의 차단성분이 선언 알레르기와 겹치면" 상담으로 돌린다
+  //   (v3.needsConsultation 과 별개 최종 방어선 — 그 강아지는 우리 제품을 하나도
+  //   못 먹으므로 결제 대신 상담이 유일하게 안전한 답이다).
+  const shippedAllergenLeak = ALL_LINES.some(
+    (l) =>
+      (formula.lineRatios[l] ?? 0) > 0 &&
+      SKU_MODEL[LEGACY_LINE_TO_PROTEIN[l]].blockingAllergies.some((b) =>
+        input.allergies.includes(b),
+      ),
+  )
+  const needsConsultation =
+    shippedAllergenLeak || (v3?.layerA?.needsConsultation ?? false)
+  const consultationReason = needsConsultation
+    ? (v3?.layerA?.consultationReason ??
+      '입력하신 알레르기로 지금 판매하는 레시피가 모두 제외됐어요. 맞춤 상담을 도와드릴게요.')
+    : null
+
   // 5.6) daily_grams 재계산 — 결정된 라인 mix 의 kcalPer100g 가중평균 기준.
   // nutrition.ts 의 feed_g 는 평균 1.45 kcal/g 추정 (레시피 v2.1). 라인 mix
   // 결정 후엔 실제 가중평균으로 재계산해 정확도 ↑.
@@ -609,6 +642,9 @@ export async function POST(req: Request) {
         lineRatios: formula.lineRatios,
         toppers: formula.toppers,
         v3,
+        // 안전 게이트 — 저장 정본에 심어 주문·플랜·추천이 전부 같은 판단을 본다.
+        needsConsultation,
+        consultationReason,
       },
       reasoning: formula.reasoning,
       transition_strategy: formula.transitionStrategy,
@@ -631,5 +667,12 @@ export async function POST(req: Request) {
     )
   }
 
-  return NextResponse.json({ ok: true, formula, v3, cached: false })
+  return NextResponse.json({
+    ok: true,
+    formula,
+    v3,
+    needsConsultation,
+    consultationReason,
+    cached: false,
+  })
 }

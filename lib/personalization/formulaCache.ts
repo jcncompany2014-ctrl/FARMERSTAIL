@@ -21,7 +21,14 @@ import type { RecommendationResult } from './v3/types'
  */
 
 export type ComputeResponse =
-  | { ok: true; formula: Formula; v3?: RecommendationResult | null }
+  | {
+      ok: true
+      formula: Formula
+      v3?: RecommendationResult | null
+      /** 안전 게이트 — 판매 레시피가 전부 알레르기면 true (상담 라우팅). */
+      needsConsultation?: boolean
+      consultationReason?: string | null
+    }
   | { ok?: false; code?: string; message?: string }
 
 export type ComputeResult = { httpOk: boolean; body: ComputeResponse }

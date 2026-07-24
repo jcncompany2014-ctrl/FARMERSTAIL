@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Info } from 'lucide-react'
+import { ArrowRight, Info, MessageCircle } from 'lucide-react'
+import { business } from '@/lib/business'
 import { trackBoxRecommended, trackAnalysisViewed } from '@/lib/analytics'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { createClient } from '@/lib/supabase/client'
@@ -43,6 +44,7 @@ type State =
   | { status: 'loading' }
   | { status: 'ready'; formula: Formula }
   | { status: 'no_survey' }
+  | { status: 'consultation'; reason: string }
   | { status: 'error'; message: string }
 
 /** 화식 비율 3택 — % 수치 대신 이름 + 가치 소구 카피(사장님 확정 2026-07-13). */
@@ -83,6 +85,16 @@ export default function RecommendationBox({
             status: 'error',
             message:
               ('message' in json && json.message) || '추천을 불러오지 못했어요',
+          })
+          return
+        }
+        // 안전 게이트 — 판매 레시피가 전부 알레르기면 박스 대신 상담 안내.
+        if (json.needsConsultation) {
+          setState({
+            status: 'consultation',
+            reason:
+              json.consultationReason ??
+              '입력하신 알레르기로 지금 판매하는 레시피가 모두 제외됐어요. 맞춤 상담을 도와드릴게요.',
           })
           return
         }
@@ -198,6 +210,57 @@ export default function RecommendationBox({
           설문 시작하기
           <ArrowRight size={11} strokeWidth={2.4} />
         </Link>
+      </section>
+    )
+  }
+  // 안전 게이트 — 판매 레시피가 전부 알레르기라 자동 추천 불가 → 상담 안내.
+  if (state.status === 'consultation') {
+    return (
+      <section
+        className="fb-state"
+        style={{
+          marginTop: 24,
+          border: '1px solid var(--rule)',
+          borderRadius: 12,
+          padding: 20,
+          background: '#fff',
+        }}
+      >
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>
+          {dogName} 맞춤 추천은 상담이 필요해요
+        </div>
+        <div
+          style={{
+            fontSize: 12.5,
+            color: 'var(--muted)',
+            marginBottom: 16,
+            lineHeight: 1.6,
+          }}
+        >
+          {state.reason} 알레르기를 피하면서도 잘 맞는 레시피를 함께 찾아드릴게요.
+        </div>
+        {business.kakaoChannelUrl && (
+          <a
+            href={business.kakaoChannelUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '11px 18px',
+              background: '#FEE500',
+              color: '#191600',
+              borderRadius: 99,
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            <MessageCircle size={14} strokeWidth={2.4} />
+            카카오톡으로 문의하기
+          </a>
+        )}
       </section>
     )
   }

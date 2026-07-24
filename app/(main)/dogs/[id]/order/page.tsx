@@ -84,13 +84,24 @@ export default async function OrderPage({
     // 보다 코드 모델이 더 정확. 가공 후 prop drill.
     const f = formulaRow as unknown as {
       cycle_number: number
-      formula: { lineRatios: Formula['lineRatios']; toppers: Formula['toppers'] }
+      formula: {
+        lineRatios: Formula['lineRatios']
+        toppers: Formula['toppers']
+        needsConsultation?: boolean
+      }
       reasoning: Formula['reasoning']
       transition_strategy: Formula['transitionStrategy']
       algorithm_version: string
       daily_kcal: number
       daily_grams: number
       user_adjusted: boolean
+    }
+
+    // ★안전 게이트 — 판매 레시피가 전부 알레르기라 자동 추천이 불가한 강아지는
+    // 결제로 못 넘어간다. 분석 페이지의 상담 안내(카톡 문의)로 돌려보낸다
+    // (2026-07-24: 이 게이트 없으면 알레르기 성분 박스가 결제까지 갔다).
+    if (f.formula.needsConsultation) {
+      redirect(`/dogs/${dogId}/analysis`)
     }
     formula = {
       lineRatios: f.formula.lineRatios,

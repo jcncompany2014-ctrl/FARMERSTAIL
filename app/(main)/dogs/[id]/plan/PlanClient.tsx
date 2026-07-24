@@ -185,6 +185,12 @@ export default function PlanClient({
           setState({ s: 'empty' })
           return
         }
+        // 안전 게이트 — 판매 레시피 전부 알레르기면 플랜(오리 표시) 대신
+        // 분석 페이지 상담 안내로 보낸다(2026-07-24). 결제 경로 일원 차단.
+        if (body.needsConsultation) {
+          window.location.replace(`/dogs/${dogId}/analysis`)
+          return
+        }
         setState({ s: 'ready', formula: body.formula })
       } catch {
         if (!cancelled) setState({ s: 'empty' })
