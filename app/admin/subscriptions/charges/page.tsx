@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { AlertTriangle, CheckCircle2, Clock, X } from 'lucide-react'
 import { formatKstShortDateTime as formatDateTime } from '@/lib/datetime-kst'
-import { AdminTabs } from '@/components/admin/ui'
+import { AdminTabs, StatCard } from '@/components/admin/ui'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -159,29 +159,32 @@ export default async function SubscriptionChargesPage({
 
       {/* 요약 카드 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <SummaryCard
+        <StatCard
           label="오늘 시도"
-          value={`${todayCounts.total}건`}
+          value={todayCounts.total}
+          unit="건"
           sub={`성공 ${todayCounts.succeeded} · 실패 ${todayCounts.failed}`}
         />
-        <SummaryCard
+        <StatCard
           label="30일 성공률"
           value={`${successRate.toFixed(1)}%`}
           sub={`${last30dSuccess.length} / ${
             last30dSuccess.length + last30dFailed.length
           }건`}
-          tone={successRate >= 95 ? 'moss' : successRate >= 85 ? 'gold' : 'sale'}
+          tone={successRate >= 95 ? 'green' : successRate >= 85 ? 'amber' : 'red'}
         />
-        <SummaryCard
+        <StatCard
           label="30일 누적 매출"
-          value={`${last30dRevenue.toLocaleString()}원`}
+          value={last30dRevenue.toLocaleString()}
+          unit="원"
           sub="성공 건만 합산"
         />
-        <SummaryCard
+        <StatCard
           label="30일 실패"
-          value={`${last30dFailed.length}건`}
+          value={last30dFailed.length}
+          unit="건"
           sub="후속 조치 필요"
-          tone={last30dFailed.length > 0 ? 'sale' : 'moss'}
+          tone={last30dFailed.length > 0 ? 'red' : 'green'}
         />
       </div>
 
@@ -311,41 +314,6 @@ export default async function SubscriptionChargesPage({
           )}
         </div>
       </div>
-    </div>
-  )
-}
-
-function SummaryCard({
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  label: string
-  value: string
-  sub: string
-  tone?: 'moss' | 'gold' | 'sale'
-}) {
-  const color =
-    tone === 'moss'
-      ? 'var(--moss)'
-      : tone === 'gold'
-        ? 'var(--gold)'
-        : tone === 'sale'
-          ? 'var(--sale)'
-          : 'var(--ink)'
-  return (
-    <div className="bg-white rounded-xl border border-zinc-200 p-4">
-      <p className="text-[10.5px] font-bold text-muted uppercase tracking-widest">
-        {label}
-      </p>
-      <p
-        className="font-sans text-[22px] font-black mt-1.5 tabular-nums"
-        style={{ color, letterSpacing: '-0.02em', lineHeight: 1.1 }}
-      >
-        {value}
-      </p>
-      <p className="text-[10.5px] text-muted mt-1">{sub}</p>
     </div>
   )
 }

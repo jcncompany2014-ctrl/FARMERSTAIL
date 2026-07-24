@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
-import { AdminTabs } from '@/components/admin/ui'
+import { AdminTabs, StatCard } from '@/components/admin/ui'
 import { SETTINGS_TABS } from '@/components/admin/tabGroups'
 import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react'
 
@@ -148,23 +148,25 @@ export default async function AdminCronHealthPage() {
 
       {/* Hero stat 3-grid */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <SummaryCard
+        <StatCard
           label={`${WINDOW_DAYS}일 총 실행`}
-          value={`${rows.length.toLocaleString()}건`}
+          value={rows.length.toLocaleString()}
+          unit="건"
           sub={`성공 ${successCount.toLocaleString()} · 실패 ${errorRows.length.toLocaleString()}`}
         />
-        <SummaryCard
+        <StatCard
           label={`${WINDOW_DAYS}일 실패`}
-          value={`${errorRows.length.toLocaleString()}건`}
+          value={errorRows.length.toLocaleString()}
+          unit="건"
           sub={errorRows.length > 0 ? '원인 확인 필요' : '실패 없음'}
-          tone={errorRows.length > 0 ? 'sale' : 'moss'}
+          tone={errorRows.length > 0 ? 'red' : 'green'}
         />
-        <SummaryCard
+        <StatCard
           label="성공률"
           value={`${successRate.toFixed(1)}%`}
           sub={`${successCount.toLocaleString()} / ${rows.length.toLocaleString()}건`}
           tone={
-            successRate >= 99 ? 'moss' : successRate >= 90 ? 'gold' : 'sale'
+            successRate >= 99 ? 'green' : successRate >= 90 ? 'amber' : 'red'
           }
         />
       </div>
@@ -321,41 +323,6 @@ export default async function AdminCronHealthPage() {
           </div>
         )}
       </section>
-    </div>
-  )
-}
-
-function SummaryCard({
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  label: string
-  value: string
-  sub: string
-  tone?: 'moss' | 'gold' | 'sale'
-}) {
-  const color =
-    tone === 'moss'
-      ? 'var(--moss)'
-      : tone === 'gold'
-        ? 'var(--gold)'
-        : tone === 'sale'
-          ? 'var(--sale)'
-          : 'var(--ink)'
-  return (
-    <div className="bg-white rounded-xl border border-zinc-200 p-4">
-      <p className="text-[10.5px] font-bold text-muted uppercase tracking-widest">
-        {label}
-      </p>
-      <p
-        className="font-sans text-[22px] font-black mt-1.5 tabular-nums"
-        style={{ color, letterSpacing: '-0.02em', lineHeight: 1.1 }}
-      >
-        {value}
-      </p>
-      <p className="text-[10.5px] text-muted mt-1">{sub}</p>
     </div>
   )
 }

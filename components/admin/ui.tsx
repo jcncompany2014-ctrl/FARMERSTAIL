@@ -158,12 +158,15 @@ const STAT_TONE_TEXT: Record<StatTone, string> = {
 export function StatCard({
   label,
   value,
+  unit,
   sub,
   help,
   tone = 'neutral',
 }: {
   label: ReactNode
   value: ReactNode
+  /** value 뒤에 붙는 작은 단위(건·원·% 등). 마스터피스 통합(2026-07-25)에서 추가. */
+  unit?: ReactNode
   sub?: ReactNode
   help?: string
   tone?: StatTone
@@ -176,6 +179,11 @@ export function StatCard({
       </p>
       <p className={`mt-1.5 font-bold tracking-tight text-2xl ${STAT_TONE_TEXT[tone]}`}>
         {value}
+        {unit != null && (
+          <span className="ml-1 text-[12px] font-semibold text-zinc-400 align-baseline">
+            {unit}
+          </span>
+        )}
       </p>
       {sub != null && <p className="mt-1 text-[11px] text-zinc-500 leading-snug">{sub}</p>}
     </div>

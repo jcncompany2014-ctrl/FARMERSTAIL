@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { AdminTabs } from '@/components/admin/ui'
+import { AdminTabs, StatCard } from '@/components/admin/ui'
 import { PUSH_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -137,29 +137,23 @@ export default async function PushStatsPage() {
 
       {/* KPI cards — admin/page.tsx 의 MetricCard grid 와 동일한 gap-4 */}
       <section className="grid grid-cols-4 gap-4 mb-6">
-        <KpiCard
-          label="총 발송"
-          value={totalSent.toLocaleString()}
-          unit="건"
-          tone="ink"
-        />
-        <KpiCard
+        <StatCard label="총 발송" value={totalSent.toLocaleString()} unit="건" />
+        <StatCard
           label="총 읽음"
           value={totalRead.toLocaleString()}
           unit="건"
-          tone="moss"
+          tone="green"
         />
-        <KpiCard
+        <StatCard
           label="평균 읽음률"
           value={overallReadRate.toFixed(1)}
           unit="%"
-          tone="terracotta"
+          tone="amber"
         />
-        <KpiCard
+        <StatCard
           label="누적 수신 디바이스"
           value={totalRecipients.toLocaleString()}
           unit="대"
-          tone="muted"
         />
       </section>
 
@@ -269,45 +263,7 @@ export default async function PushStatsPage() {
   )
 }
 
-function KpiCard({
-  label,
-  value,
-  unit,
-  tone,
-}: {
-  label: string
-  value: string
-  unit: string
-  tone: 'ink' | 'moss' | 'terracotta' | 'muted'
-}) {
-  const toneColor =
-    tone === 'ink'
-      ? 'var(--ink)'
-      : tone === 'moss'
-        ? 'var(--moss)'
-        : tone === 'terracotta'
-          ? 'var(--terracotta)'
-          : 'var(--muted)'
-  return (
-    <div className="bg-white rounded-lg border border-zinc-200 p-5">
-      <div
-        className="text-[9px] uppercase tracking-[0.18em] font-bold"
-        style={{ color: toneColor }}
-      >
-        {label}
-      </div>
-      <div className="flex items-baseline gap-1 mt-2">
-        <span
-          className="text-[24px] font-black tabular-nums"
-          style={{ color: toneColor, letterSpacing: '-0.02em' }}
-        >
-          {value}
-        </span>
-        <span className="text-[11px] text-muted">{unit}</span>
-      </div>
-    </div>
-  )
-}
+// KpiCard 로컬 정의 제거(2026-07-25 마스터피스) — ui.tsx StatCard 로 통합.
 
 function ReadRateBar({ rate }: { rate: number }) {
   const clamped = Math.min(100, Math.max(0, rate))
