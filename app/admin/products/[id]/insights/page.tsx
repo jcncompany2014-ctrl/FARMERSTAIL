@@ -17,6 +17,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { StatCard } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -187,24 +188,22 @@ export default async function ProductInsightsPage({
 
       {/* KPI grid */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <Kpi
-          label="구매자 수"
-          value={`${buyerCount.toLocaleString()}명`}
-        />
-        <Kpi
+        <StatCard label="구매자 수" value={buyerCount.toLocaleString()} unit="명" />
+        <StatCard
           label="평균 LTV"
-          value={`${Math.round(avgLtv).toLocaleString()}원`}
-          hint="이 제품 산 유저의 총 결제 평균"
+          value={Math.round(avgLtv).toLocaleString()}
+          unit="원"
+          sub="이 제품 산 유저의 총 결제 평균"
         />
-        <Kpi
+        <StatCard
           label="이 제품 매출 점유"
           value={`${avgShare.toFixed(1)}%`}
-          hint="평균 LTV 중 이 제품 비중"
+          sub="평균 LTV 중 이 제품 비중"
         />
-        <Kpi
+        <StatCard
           label="재구매율"
           value={`${avgRepeatRate.toFixed(1)}%`}
-          hint="이 제품 2회+ 구매자 비율"
+          sub="이 제품 2회+ 구매자 비율"
         />
       </section>
 
@@ -290,24 +289,4 @@ export default async function ProductInsightsPage({
   )
 }
 
-function Kpi({
-  label,
-  value,
-  hint,
-}: {
-  label: string
-  value: string
-  hint?: string
-}) {
-  // R57 — KPI 카드 padding p-3 → p-4 (16px), label-value mt-1 → mt-1.5,
-  // value-hint mt-1 → mt-1.5. text-xl(32px) 큰 텍스트라 mt-1 (4px) 은 좁음.
-  return (
-    <div className="rounded border border-line p-4">
-      <div className="text-[10px] uppercase tracking-wider text-muted font-semibold">
-        {label}
-      </div>
-      <div className="text-xl text-ink mt-1.5">{value}</div>
-      {hint && <div className="text-[10px] text-muted mt-1.5">{hint}</div>}
-    </div>
-  )
-}
+// Kpi 로컬 정의 제거(2026-07-25 마스터피스) — ui.tsx StatCard 로 통합.
