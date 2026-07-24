@@ -18,6 +18,7 @@ import {
 } from '@/lib/nutrition/confidence-interval'
 import {
   riskFlagLabel,
+  riskFlagTerm,
   riskFlagDesc,
   riskFlagSeverity,
 } from '@/lib/nutrition/risk-flags'
@@ -527,6 +528,14 @@ export default function AnalysisView({
                           >
                             {riskFlagLabel(f)}
                           </span>
+                          {riskFlagTerm(f) && (
+                            <span
+                              className="text-[10px] ml-1.5 align-middle"
+                              style={{ color: 'var(--muted)' }}
+                            >
+                              {riskFlagTerm(f)}
+                            </span>
+                          )}
                           {riskFlagDesc(f) && (
                             <p
                               className="text-[12px] leading-relaxed mt-0.5"

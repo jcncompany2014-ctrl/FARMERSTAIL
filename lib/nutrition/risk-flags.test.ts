@@ -64,9 +64,9 @@ describe('RISK_FLAG_INFO — 핵심 매핑', () => {
 
 describe('riskFlagLabel', () => {
   it('알려진 flag → 한국어 라벨', () => {
-    assert.equal(riskFlagLabel('REFEEDING_RISK'), '응급 — 심한 저체중')
-    assert.equal(riskFlagLabel('OVERWEIGHT'), '과체중')
-    assert.equal(riskFlagLabel('GIANT_BREED'), '거대견 (50kg+)')
+    assert.equal(riskFlagLabel('REFEEDING_RISK'), '응급 · 심하게 마른 상태')
+    assert.equal(riskFlagLabel('OVERWEIGHT'), '조금 통통해요')
+    assert.equal(riskFlagLabel('GIANT_BREED'), '대형견 (50kg 이상)')
   })
 
   it('알 수 없는 flag → raw 그대로 fallback (시스템 안 깨짐)', () => {
