@@ -23,6 +23,17 @@ export default async function AdminProductEditPage({
 
   if (error || !product) notFound()
 
+  // 야간점검(2026-07-25): 라벨 링크가 UUID 로 걸려 있어 라벨 페이지(SKU 코드
+  // 기대)가 항상 404 였다 → slug→SKU 역매핑으로 수정. 화식 4종 외(레거시
+  // 상품)는 라벨이 없으니 버튼 숨김. 정본 매핑은 label/[sku] SKU_TO_SLUG.
+  const SLUG_TO_SKU: Record<string, string> = {
+    'chicken-basic': 'C01',
+    'duck-weight': 'D02',
+    'pork-joint': 'P04',
+    'beef-premium': 'B05',
+  }
+  const labelSku = SLUG_TO_SKU[(product as { slug?: string }).slug ?? '']
+
   return (
     <div>
       <div className="mb-6">
@@ -49,12 +60,14 @@ export default async function AdminProductEditPage({
           >
             LTV 인사이트 →
           </Link>
-          <Link
-            href={`/admin/label/${id}`}
-            className="rounded border border-line px-3 py-1.5 hover:border-terracotta hover:text-terracotta"
-          >
-            라벨 PDF →
-          </Link>
+          {labelSku && (
+            <Link
+              href={`/admin/label/${labelSku}`}
+              className="rounded border border-line px-3 py-1.5 hover:border-terracotta hover:text-terracotta"
+            >
+              라벨 PDF →
+            </Link>
+          )}
         </div>
       </div>
 
