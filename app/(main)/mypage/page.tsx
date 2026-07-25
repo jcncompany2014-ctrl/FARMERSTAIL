@@ -4,6 +4,7 @@
 // (이전: client useEffect 미인증 무시 → 빈 stat 노출 가능).
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { isAdmin } from '@/lib/auth/admin'
 import MypageClient from './MypageClient'
 
 type Profile = {
@@ -55,12 +56,17 @@ export default async function MyPage() {
   ])
 
   const profile = (profileRes.data as Profile | null) ?? null
+  // 운영자 본인만 보이는 관리자 진입점(2026-07-25) — 지금은 admin 주소를 직접
+  // 쳐야 들어갈 수 있어서, 앱에서 폰으로 운영할 때 불편했다. 판정은 서버에서만
+  // (클라에 role 을 내려주지 않는다 — 화면 노출 여부만 boolean 으로 전달).
+  const admin = await isAdmin(supabase, user)
   return (
     <MypageClient
       email={user.email ?? null}
       profile={profile}
       orderCount={orderCountRes.count ?? 0}
       subCount={subCountRes.count ?? 0}
+      isAdmin={admin}
     />
   )
 }
