@@ -2219,11 +2219,11 @@ export type Database = {
         Row: {
           address: string | null
           address_detail: string | null
+          admin_note: string | null
           agree_email: boolean | null
           agree_email_at: string | null
           agree_sms: boolean | null
           agree_sms_at: string | null
-          admin_note: string | null
           birth_day: number | null
           birth_month: number | null
           birth_year: number | null
@@ -2249,11 +2249,11 @@ export type Database = {
         Insert: {
           address?: string | null
           address_detail?: string | null
+          admin_note?: string | null
           agree_email?: boolean | null
           agree_email_at?: string | null
           agree_sms?: boolean | null
           agree_sms_at?: string | null
-          admin_note?: string | null
           birth_day?: number | null
           birth_month?: number | null
           birth_year?: number | null
@@ -2279,11 +2279,11 @@ export type Database = {
         Update: {
           address?: string | null
           address_detail?: string | null
+          admin_note?: string | null
           agree_email?: boolean | null
           agree_email_at?: string | null
           agree_sms?: boolean | null
           agree_sms_at?: string | null
-          admin_note?: string | null
           birth_day?: number | null
           birth_month?: number | null
           birth_year?: number | null
@@ -3238,14 +3238,6 @@ export type Database = {
       }
     }
     Functions: {
-      accept_dog_invitation: {
-        Args: { p_token: string }
-        Returns: {
-          dog_id: string
-          message: string
-          ok: boolean
-        }[]
-      }
       apply_point_delta: {
         Args: {
           p_delta: number
@@ -3308,7 +3300,10 @@ export type Database = {
       fetch_photo_request: { Args: { p_token: string }; Returns: Json }
       fetch_vet_share: { Args: { p_token: string }; Returns: Json }
       fn_compute_tier: { Args: { stamp_count: number }; Returns: string }
+      fn_expire_stamps: { Args: never; Returns: number }
+      fn_lock_completed_cards: { Args: { uid: string }; Returns: undefined }
       fn_refresh_stamp_count: { Args: { uid: string }; Returns: undefined }
+      fn_tier_rank: { Args: { t: string }; Returns: number }
       has_dog_access: { Args: { p_dog_id: string }; Returns: boolean }
       has_dog_role: {
         Args: { p_dog_id: string; p_min_role: string }
@@ -3329,20 +3324,6 @@ export type Database = {
       }
       increment_blog_view: { Args: { post_slug: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
-      lookup_invitation_by_token: {
-        Args: { p_token: string }
-        Returns: {
-          accepted_at: string
-          created_at: string
-          declined_at: string
-          dog_id: string
-          email: string
-          expires_at: string
-          id: string
-          invited_by: string
-          role: string
-        }[]
-      }
       pending_promotion_rate: { Args: { p_user_id: string }; Returns: number }
       record_reward_event: {
         Args: {
@@ -3353,16 +3334,6 @@ export type Database = {
           p_user_id?: string
         }
         Returns: string
-      }
-      refund_order_points: {
-        Args: {
-          p_order_id: string
-          p_reason: string
-          p_reference_id: string
-          p_request: number
-          p_user_id: string
-        }
-        Returns: number
       }
       reserve_order_stock: { Args: { items: Json }; Returns: Json }
       restore_stock: {
@@ -3386,20 +3357,6 @@ export type Database = {
       }
       sum_anthropic_calls_today: { Args: never; Returns: number }
       sweep_rate_limit_counters: { Args: never; Returns: number }
-      upsert_cart_item: {
-        Args: {
-          p_max_qty?: number
-          p_product_id: string
-          p_quantity: number
-          p_user_id: string
-          p_variant_id: string
-        }
-        Returns: {
-          id: string
-          quantity: number
-          was_existing: boolean
-        }[]
-      }
     }
     Enums: {
       [_ in never]: never
