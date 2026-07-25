@@ -22,6 +22,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 1.0,
     },
+    // 퍼널 진입점 — 모든 진입 CTA 가 여기로 모이고 robots index 도 허용인데
+    // sitemap 에만 빠져 있었다(계획 D1, 2026-07-25). 홈 다음으로 중요한 URL.
+    {
+      url: `${siteUrl}/start`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
     {
       url: `${siteUrl}/blog`,
       lastModified: now,

@@ -127,11 +127,24 @@ export default async function AccountSubscriptionsPage({
           // 토큰을 앱 톤으로 스코프 스왑 — 로직 무손상, presentation만(2026-07-18).
           // 실제로 다른 값은 이 3개뿐(pine 초록↔ink 고동, muted 회녹↔회갈, line).
           // 배경·크림·코랄(offwhite/cream/coral)은 앱/웹 동일 hex라 스왑 불필요.
+          //
+          // 계획 C2(2026-07-25) — 색에 이어 **모서리 반경**도 스왑한다.
+          // 본문이 쓰던 14/10/8/18px 은 FD 웹 값이라 앱에서 유독 둥글어 웹 화면
+          // 처럼 보였다(사장님 "앱 느낌 최우선"). v3 앱 스케일은 카드·행=4(sm
+          // signature), 바텀시트=12(md). 웹 기본값은 그대로 두고 앱일 때만 바꾼다.
+          '--fd-r-card': '14px',
+          '--fd-r-row': '10px',
+          '--fd-r-thumb': '8px',
+          '--fd-r-sheet': '18px',
           ...(isApp
             ? {
                 '--fd-pine': 'var(--ink)',
                 '--fd-muted': 'var(--muted)',
                 '--fd-line': 'var(--rule)',
+                '--fd-r-card': '4px',
+                '--fd-r-row': '4px',
+                '--fd-r-thumb': '4px',
+                '--fd-r-sheet': '12px',
               }
             : {}),
         }}

@@ -280,7 +280,7 @@ export default function SubscriptionsWebClient({
   if (visibleSubs.length === 0) {
     return (
       <div
-        className="rounded-[14px] px-6 py-10 md:px-10 md:py-12 text-center"
+        className="rounded-[var(--fd-r-card)] px-6 py-10 md:px-10 md:py-12 text-center"
         style={{ background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
       >
         <span
@@ -336,7 +336,7 @@ export default function SubscriptionsWebClient({
           <div
             key={sub.id}
             id={`sub-${sub.id}`}
-            className="rounded-[14px] overflow-hidden"
+            className="rounded-[var(--fd-r-card)] overflow-hidden"
             style={{
               background: '#FFFFFF',
               boxShadow: `inset 0 0 0 1px ${needsRenewal ? 'var(--fd-coral)' : 'var(--fd-line)'}`,
@@ -443,7 +443,7 @@ export default function SubscriptionsWebClient({
               {sub.subscription_items.map((it, idx) => (
                 <div key={idx} className="flex items-center gap-3">
                   <span
-                    className="relative w-11 h-11 rounded-[8px] overflow-hidden shrink-0"
+                    className="relative w-11 h-11 rounded-[var(--fd-r-thumb)] overflow-hidden shrink-0"
                     style={{ background: 'var(--fd-cream)' }}
                   >
                     {it.product_image_url ? (
@@ -624,7 +624,7 @@ function CancelModal({
     >
       <div
         ref={panelRef}
-        className="w-full md:max-w-md rounded-t-[18px] md:rounded-[18px] p-6"
+        className="w-full md:max-w-md rounded-t-[var(--fd-r-sheet)] md:rounded-[var(--fd-r-sheet)] p-6"
         style={{ background: '#FFFFFF' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -649,7 +649,7 @@ function CancelModal({
             type="button"
             onClick={onSkipInstead}
             disabled={loading}
-            className="flex items-center justify-between px-4 py-3 rounded-[10px] text-left transition active:scale-[0.99] disabled:opacity-50"
+            className="flex items-center justify-between px-4 py-3 rounded-[var(--fd-r-row)] text-left transition active:scale-[0.99] disabled:opacity-50"
             style={{ boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
           >
             <span>
@@ -666,7 +666,7 @@ function CancelModal({
             type="button"
             onClick={onPauseInstead}
             disabled={loading}
-            className="flex items-center justify-between px-4 py-3 rounded-[10px] text-left transition active:scale-[0.99] disabled:opacity-50"
+            className="flex items-center justify-between px-4 py-3 rounded-[var(--fd-r-row)] text-left transition active:scale-[0.99] disabled:opacity-50"
             style={{ boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
           >
             <span>

@@ -4,7 +4,7 @@ import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { AlertTriangle, CheckCircle2, Clock, X } from 'lucide-react'
 import { formatKstShortDateTime as formatDateTime } from '@/lib/datetime-kst'
-import { AdminTabs, StatCard, Hl, Em } from '@/components/admin/ui'
+import { AdminTabs, StatCard, Hl, Em, FilterChip } from '@/components/admin/ui'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -321,26 +321,5 @@ export default async function SubscriptionChargesPage({
   )
 }
 
-function FilterChip({
-  href,
-  active,
-  label,
-}: {
-  href: string
-  active: boolean
-  label: string
-}) {
-  return (
-    <Link
-      href={href}
-      className={
-        'shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-bold transition ' +
-        (active
-          ? 'bg-ink text-white'
-          : 'bg-white text-zinc-800 border border-zinc-200 hover:border-zinc-800')
-      }
-    >
-      {label}
-    </Link>
-  )
-}
+// 로컬 FilterChip 제거(계획 B5-1, 2026-07-25) — ui.tsx 공통 컴포넌트로 통합.
+// 활성색이 여기만 웜 토큰 `bg-ink` 였는데 admin 정본인 zinc-900 으로 맞춰졌다.

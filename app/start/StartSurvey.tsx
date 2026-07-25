@@ -27,6 +27,12 @@ import {
   saveAutosignupDraft,
 } from '@/lib/autosignup-draft'
 import { computeStartTeaser, draftToNutritionInput } from '@/lib/start-teaser'
+import {
+  trackStartSurveyStarted,
+  trackStartSurveyStep,
+  trackStartResultViewed,
+  trackStartSignupOpened,
+} from '@/lib/analytics'
 import { computeStartPlan } from '@/lib/start-plan'
 import type { WebRecipe } from '@/lib/web-recipes'
 import { petName } from '@/lib/korean'
@@ -375,6 +381,11 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
 
   function goNext() {
     if (!canNext) return
+    // 계획 D3(2026-07-25) — 익명 웹 퍼널 계측. 첫 진행 = 진짜 시작한 사람,
+    // 스텝별 = 이탈 질문 특정. 실패해도 설문은 계속돼야 하므로 safeGtag 가
+    // 내부에서 전부 삼킨다(lib/analytics).
+    if (idx === 0) trackStartSurveyStarted()
+    trackStartSurveyStep(idx, cur.key)
     if (!last) {
       setIdx(idx + 1)
       return
@@ -382,6 +393,12 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
     // 마지막 질문 → 결과. 초안(answers) 즉시 저장 — 카카오 클릭 전 영속 보장
     // (디바운스 누락 방지). dog 기본은 StartClient 가 이미 저장함.
     saveAutosignupDraft({ answers })
+    // 결과 도달 1회 발화 — 렌더 중이 아니라 전이 시점에 쏜다(재렌더마다 중복 발화
+    // 방지). 저장 직후라 computeStartTeaser 가 방금 답변을 읽는다.
+    // hasRecommendation=false = 알레르기로 추천 가능한 단백질이 0개 → 상담 안내.
+    // 이 비율이 올라가면 레시피 라인업을 늘려야 한다는 신호다.
+    const t = computeStartTeaser()
+    trackStartResultViewed((t?.proteins.length ?? 0) > 0)
     setShowResult(true)
   }
 
@@ -662,7 +679,10 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
               <div style={{ textAlign: 'center', marginTop: 12 }}>
                 <button
                   type="button"
-                  onClick={() => setShowEmailForm((s) => !s)}
+                  onClick={() => {
+                    if (!showEmailForm) trackStartSignupOpened('email')
+                    setShowEmailForm((s) => !s)
+                  }}
                   aria-expanded={showEmailForm}
                   style={{ appearance: 'none', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: 'rgba(245,240,230,0.85)', textDecoration: 'underline', textUnderlineOffset: 2 }}
                 >

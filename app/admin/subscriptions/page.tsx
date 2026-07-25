@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import { nextShipDate } from '@/lib/shipping-schedule'
-import { AdminTabs, Hl, Em } from '@/components/admin/ui'
+import { AdminTabs, Hl, Em, FilterChip } from '@/components/admin/ui'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 type SubscriptionRow = {
@@ -169,22 +169,18 @@ export default function AdminSubscriptionsPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1.5 flex-wrap">
           {TABS.map((t) => (
-            <button
+            <FilterChip
               key={t.value}
               onClick={() => setTab(t.value)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
-                tab === t.value
-                  ? 'bg-zinc-900 text-white'
-                  : 'bg-white text-zinc-600 border border-zinc-200 hover:border-zinc-400'
-              }`}
+              active={tab === t.value}
+              label={t.label}
             >
-              {t.label}
               {t.value === 'upcoming' && upcomingCount > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 rounded-full bg-terracotta text-white text-[10px]">
                   {upcomingCount}
                 </span>
               )}
-            </button>
+            </FilterChip>
           ))}
         </div>
         <input

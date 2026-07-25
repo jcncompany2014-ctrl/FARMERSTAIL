@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/types'
 import ProductRowActions from './ProductRowActions'
 import AdminPagination from '@/components/admin/AdminPagination'
-import { Hl, Warn } from '@/components/admin/ui'
+import { Hl, Warn, FilterChip } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -142,17 +142,12 @@ export default async function AdminProductsPage({
             if (f.key !== 'all') sp.set('active', f.key)
             if (q) sp.set('q', q)
             return (
-              <Link
+              <FilterChip
                 key={f.key}
                 href={`/admin/products?${sp.toString()}`}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
-                  isActive
-                    ? 'bg-[#2A2118] text-white'
-                    : 'bg-white text-zinc-800 border border-zinc-200 hover:border-terracotta'
-                }`}
-              >
-                {f.label}
-              </Link>
+                active={isActive}
+                label={f.label}
+              />
             )
           })}
         </div>

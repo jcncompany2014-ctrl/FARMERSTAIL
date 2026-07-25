@@ -205,6 +205,42 @@ export function trackSurveyCompleted(dogId: string) {
   safeGtag('event', 'survey_completed', { dog_id: dogId })
 }
 
+// ── 웹 퍼널(/start) 전용 (계획 D3, 2026-07-25) ───────────────────────────
+//
+// 위 survey_* 이벤트들은 전부 dogId 를 받는 **앱 안** 설문용이다. 그런데 실제
+// 유입(인스타·오프라인 QR)은 익명 웹 설문 `/start` 로 들어오고, 거기엔 계측이
+// 하나도 없어서 **어느 질문에서 이탈하는지 볼 수가 없었다**. 익명이라 dogId 가
+// 없으므로 별도 이벤트로 두고, 앱 설문과 GA 에서 구분되게 이름을 나눈다.
+
+/** 웹 설문 첫 답변 — 진짜 시작한 사람 수(페이지뷰와 다르다). */
+export function trackStartSurveyStarted() {
+  safeGtag('event', 'start_survey_started')
+}
+
+/** 웹 설문 스텝 진행 — 질문별 이탈 지점을 보려면 이게 핵심이다. */
+export function trackStartSurveyStep(stepIndex: number, stepId: string) {
+  safeGtag('event', 'start_survey_step', {
+    step_index: stepIndex,
+    step_id: stepId,
+  })
+}
+
+/**
+ * 웹 설문 완주 → 결과 도달.
+ * `hasRecommendation=false` 는 알레르기로 추천 가능한 단백질이 없어 상담 안내로
+ * 빠진 경우 — 이 비율이 높아지면 레시피 라인업을 늘려야 한다는 신호다.
+ */
+export function trackStartResultViewed(hasRecommendation: boolean) {
+  safeGtag('event', 'start_result_viewed', {
+    has_recommendation: hasRecommendation,
+  })
+}
+
+/** 결과 화면에서 가입으로 넘어간 시점 — 퍼널 마지막 관문. */
+export function trackStartSignupOpened(method: 'kakao' | 'email' | 'apple') {
+  safeGtag('event', 'start_signup_opened', { method })
+}
+
 /** 분석 페이지 진입. */
 export function trackAnalysisViewed(dogId: string) {
   safeGtag('event', 'analysis_viewed', { dog_id: dogId })

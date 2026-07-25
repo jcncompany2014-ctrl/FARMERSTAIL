@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
+import * as Sentry from '@sentry/nextjs'
 import { Package, ShoppingBag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
@@ -114,6 +115,11 @@ export default async function OrdersPage() {
     .limit(50)
 
   if (error) {
+    // 고객에게는 안 보여주되 나는 알아야 한다 — 원본은 Sentry 로만.
+    Sentry.captureException(
+      new Error(`[mypage.orders] ${error.message}`),
+      { tags: { area: 'mypage-orders' } },
+    )
     return (
       <AuthAwareShell>
         <main className="pb-8 mx-auto" style={{ maxWidth: 1024 }}>
@@ -122,7 +128,13 @@ export default async function OrdersPage() {
               <p className="text-[13px] font-bold text-sale">
                 주문 내역을 불러오지 못했어요
               </p>
-              <p className="text-[11px] text-muted mt-1.5">{error.message}</p>
+              {/* 계획 C5 — DB 원본 에러(error.message)를 고객에게 그대로 보여주던
+                  자리. 테이블·컬럼명 같은 내부 정보가 새고 고객은 읽어도 뭘
+                  해야 할지 모른다. 할 수 있는 행동만 알려준다(audit #69 패턴). */}
+              <p className="text-[11px] text-muted mt-1.5">
+                잠시 후 새로고침해 주세요. 계속 이러면 마이페이지 &gt; 문의하기로
+                알려주시면 바로 확인할게요.
+              </p>
             </div>
           </div>
         </main>

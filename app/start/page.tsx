@@ -26,6 +26,17 @@ export const metadata: Metadata = {
   // 카카오 우선 퍼널 완성 → 색인 허용(사장님 2026-06-16). 이제 모든 진입 CTA 가
   // 이 페이지로 모이는 실제 퍼널 시작점.
   robots: { index: true, follow: true },
+  // 계획 D1(2026-07-25) — OG 를 안 주면 root layout 의 사이트 기본값이 그대로
+  // 쓰인다. Next 는 page 의 title/description 을 openGraph 로 자동 복사하지
+  // 않기 때문. 인스타·카톡으로 이 링크를 뿌리는데 미리보기에 "파머스테일"
+  // 이라는 일반 문구만 떠서 뭘 누르는 건지 알 수 없었다. 이미지는 사이트
+  // 기본(/api/og)을 그대로 상속한다.
+  openGraph: {
+    title: '무료 맞춤 분석 — 2분이면 끝나요',
+    description:
+      '가입 없이 2분이면, 우리 아이에게 맞는 수의영양 기반 식단을 받아볼 수 있어요.',
+    url: '/start',
+  },
 }
 
 // [n, 제목, 설명, 라벨(alt), 이미지 src] — 이미지는 2026-07-03 AI 생성(힉스필드,

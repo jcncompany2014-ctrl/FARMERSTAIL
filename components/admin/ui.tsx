@@ -123,6 +123,57 @@ export function AdminTabs({
   )
 }
 
+/**
+ * 목록 상단 상태 필터 칩 (계획 B5-1 — 2026-07-25 공통화).
+ *
+ * 주문·상품·정기배송·자동결제 4곳이 같은 칩을 제각각 만들어 쓰면서 활성 색이
+ * `bg-[#2A2118]`(웜 하드코딩) / `bg-ink`(웜 토큰) / `bg-zinc-900` 세 갈래로
+ * 갈렸다. admin 정본은 zinc 이므로 `bg-zinc-900` 으로 통일하고 여기 하나로 모은다.
+ *
+ * 링크형(서버 컴포넌트 · 쿼리스트링 필터)과 버튼형(클라이언트 state 필터)을
+ * 모두 지원한다 — `href` 를 주면 Link, `onClick` 을 주면 button.
+ * 오른쪽에 개수 배지를 붙이려면 children 으로 넘긴다.
+ */
+export function FilterChip({
+  label,
+  active,
+  href,
+  onClick,
+  children,
+}: {
+  label: ReactNode
+  active: boolean
+  href?: string
+  onClick?: () => void
+  children?: ReactNode
+}) {
+  const cls =
+    'shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition ' +
+    (active
+      ? 'bg-zinc-900 text-white'
+      : 'bg-white text-zinc-600 border border-zinc-200 hover:border-zinc-400')
+
+  if (href) {
+    return (
+      <Link href={href} aria-current={active ? 'true' : undefined} className={cls}>
+        {label}
+        {children}
+      </Link>
+    )
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cls}
+    >
+      {label}
+      {children}
+    </button>
+  )
+}
+
 export type BadgeTone = 'neutral' | 'green' | 'red' | 'amber' | 'blue'
 
 const BADGE_TONES: Record<BadgeTone, string> = {

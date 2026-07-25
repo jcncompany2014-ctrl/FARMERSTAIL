@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import AdminPagination from '@/components/admin/AdminPagination'
-import { Hl, Em } from '@/components/admin/ui'
+import { Hl, Em, FilterChip } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -167,17 +167,12 @@ export default async function AdminOrdersPage({
                 ? `/admin/orders${q ? `?q=${encodeURIComponent(q)}` : ''}`
                 : `/admin/orders?status=${f.key}${q ? `&q=${encodeURIComponent(q)}` : ''}`
             return (
-              <Link
+              <FilterChip
                 key={f.key}
                 href={href}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
-                  active
-                    ? 'bg-[#2A2118] text-white'
-                    : 'bg-white text-zinc-800 border border-zinc-200 hover:border-terracotta'
-                }`}
-              >
-                {f.label}
-              </Link>
+                active={active}
+                label={f.label}
+              />
             )
           })}
         </div>
