@@ -45,6 +45,36 @@ App Router 는 admin 페이지끼리 **클라이언트 네비게이션**할 때 
 admin 에서 service_role 사용처가 늘어날 때. 그때는 미들웨어를 넣고 프리페치를
 `prefetch={false}` 로 끄는 조합으로 간다.
 
+## DB 보안 어드바이저 정기 점검 (계획 E2) — 2026-07-25
+
+`get_advisors(security)` 실행. **새로 조치할 WARN 0건.** 린터가 올리는 WARN 은
+전부 "GRANT 가 존재한다"는 사실만 보는 것이고, 해당 함수들은 **내부에서
+fail-closed 가드**를 갖고 있다. 직접 정의를 떠서 확인했다:
+
+| 함수 | 린터 경고 | 실제 가드 | 판정 |
+|---|---|---|---|
+| `cohort_retention_weekly` · `cohort_ltv_weekly` | authenticated 실행 가능 | `IF NOT is_admin() THEN RAISE 'forbidden'` | ✅ 안전 |
+| `dashboard_user_snapshot(p_user_id)` | authenticated 실행 가능 | `IF v_caller IS NULL OR v_caller <> p_user_id THEN RAISE` | ✅ 안전 (예전 fail-open IDOR 이 고쳐진 상태) |
+| `has_dog_access` · `has_dog_role` | anon 실행 가능 | `IF v_uid IS NULL THEN RETURN FALSE` | ✅ 안전 |
+| `set_consent_level` | anon 실행 가능 | `v_uid IS NULL → {ok:false,'로그인이 필요해요'}` | ✅ 안전 |
+| `set_marketing_consent` | anon 실행 가능 | `v_uid IS NULL → raise 'UNAUTHORIZED'` | ✅ 안전 |
+| `fetch_photo_request` · `submit_photo_request` · `fetch_vet_share` | anon 실행 가능 | **의도적** — 토큰으로 여는 공유/업로드 링크 | ✅ 설계대로 |
+| `increment_blog_view` · `is_admin` | anon 실행 가능 | 공개 조회수 / 호출자 본인 여부만 반환 | ✅ 무해 |
+
+INFO 3건(`anthropic_usage`·`email_suppressions`·`rate_limit_counters` = RLS 켜짐 +
+정책 없음)은 **service_role 전용 테이블이라 의도한 상태**다. 정책이 없다는 건
+anon·authenticated 에게 전면 거부라는 뜻이라 오히려 올바른 자세.
+
+새로 추가된 도장판 함수 3종(`fn_expire_stamps`·`fn_lock_completed_cards`·
+`fn_tier_rank`)은 경고 목록에 **없다** = EXECUTE 가 제대로 revoke 돼 있다.
+
+### ⚠️ 사장님이 직접 켜셔야 하는 것 1건
+**유출 비밀번호 차단(Leaked Password Protection)이 꺼져 있다.** Supabase 가
+HaveIBeenPwned 목록과 대조해 이미 털린 비밀번호로는 가입/변경을 막아주는 기능이다.
+Supabase 대시보드 → Authentication → Policies 에서 토글. 코드 변경 불요이고,
+이메일 가입 경로가 살아 있는 한 켜 두는 편이 낫다. (계정 설정이라 제가 대신
+바꾸지 않았습니다.)
+
 ## 기록만 (조치 불요)
 
 - `daily-briefing` 수신자 선정이 `profiles.role='admin'` 기준 — 판정 SSOT 인

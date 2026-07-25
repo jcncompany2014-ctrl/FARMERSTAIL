@@ -57,6 +57,19 @@ const maruBuri = localFont({
   ],
   display: "swap",
   variable: "--font-serif",
+  // preload 끔 (계획 D2, 2026-07-25 프로덕션 실측).
+  //
+  // next/font 는 기본이 preload:true 라 root layout 에 변수를 붙이는 것만으로
+  // **모든 라우트**에 <link rel=preload> 3개가 박힌다. 실측 결과 퍼널 진입점
+  // /start 는 Pretendard 만 쓰는데(요소 218개 전부) MaruBuri 3종
+  // **1.32MB 를 받아놓고 한 글자도 안 썼다** — 모바일 전체 전송량 4.2MB 중
+  // 3분의 1이 순수 낭비였다. 앱 컨텍스트도 MaruBuri 를 아예 안 쓴다.
+  //
+  // preload:false 로 두면 @font-face 는 그대로 남고, CSS 가 실제로 매칭될 때만
+  // (=웹 랜딩의 serif 헤드라인) 받는다. display:swap 이라 그동안 폴백으로
+  // 먼저 그려지므로 글자가 사라지지 않는다. 헤드라인이 잠깐 폴백으로 보였다
+  // 바뀌는 대신, 그 페이지들도 1.32MB 가볍게 시작한다.
+  preload: false,
 });
 
 // Cormorant Garamond — 웹의 에디토리얼 이탤릭 디스플레이 (No. 01, 까지, 중간).
