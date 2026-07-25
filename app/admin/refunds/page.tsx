@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { redirect } from 'next/navigation'
 import {
@@ -35,9 +35,7 @@ export const metadata: Metadata = {
  */
 export default async function AdminRefundsPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
   if (!user) redirect('/login?next=/admin/refunds')
   if (!(await isAdmin(supabase, user))) redirect('/admin')
 
@@ -140,7 +138,7 @@ export default async function AdminRefundsPage() {
       </div>
 
       {/* Hero stat 3-grid */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
         <StatCard
           kicker="이번 달 환불"
           value={monthCount}

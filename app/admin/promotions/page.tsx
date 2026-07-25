@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { AdminHeader } from '@/components/admin/ui'
@@ -26,9 +26,7 @@ export const metadata: Metadata = {
 
 export default async function AdminPromotionsPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
   if (!user) redirect('/login?next=/admin/promotions')
   if (!(await isAdmin(supabase, user))) redirect('/')
 

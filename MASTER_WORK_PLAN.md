@@ -40,6 +40,14 @@ npm test                  # 1373개 전부 pass. fail → 원인 고치거나 �
   `<Em>` = 숫자·기준·조건(잘못 읽으면 안 되는 값, 여러 개 OK).
   `<Warn>` = 되돌릴 수 없거나 고객에게 바로 나가는 동작.
   형광펜 2개 이상 = 강조 소멸. 새 admin 페이지를 만들면 설명문에 이걸 적용할 것.
+- **다열 그리드는 반드시 반응형** — `grid-cols-3` 처럼 프리픽스 없이 쓰면 폰에서도
+  3열이라 칸이 130px 로 눌려 글자가 한 단어씩 세로로 쪼개진다(2026-07-25 제보).
+  폼 2/1 분할은 `grid-cols-1 lg:grid-cols-3` + `lg:col-span-2`. **col-span 도 같이
+  반응형이어야 한다** — 1열 그리드의 `col-span-2` 는 암묵적 2번째 컬럼을 만든다.
+  지표 카드는 `grid-cols-2 md:grid-cols-4`.
+- **service_role(`createAdminClient`) 을 쓰는 admin 페이지는 자체 가드 필수** —
+  RLS 를 우회하므로 layout 가드만 믿으면 안 된다. 자세한 근거는
+  ADMIN_SECURITY_REVIEW.md.
 - **표는 반드시 `overflow-x-auto` 래퍼 안에** — globals.css 의
   `.admin-body table { min-width: 720px }` 때문에 래퍼 없는 표 하나가 페이지
   전체를 옆으로 밀어낸다. 히트맵 색은 연속 alpha 금지, **배경·글자색 고정 쌍**

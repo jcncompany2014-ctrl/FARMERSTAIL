@@ -231,10 +231,18 @@ export default function ProductForm({
     router.refresh()
   }
 
+  // 폰에서 1열로 접힌다(2026-07-25 사장님 제보). 예전엔 프리픽스 없는
+  // grid-cols-3 이라 390px 폰에서도 3열 → 오른쪽 사이드 칸이 130px 로 눌려
+  // "외부 채널 상품은…" 안내가 한 단어씩 세로로 쪼개졌다. col-span 도 같이
+  // 반응형이어야 한다 — 1열 그리드에서 col-span-2 는 암묵적 2번째 컬럼을
+  // 만들어내서 접기가 무효가 된다.
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-3 gap-6">
+    <form
+      onSubmit={handleSubmit}
+      className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+    >
       {/* 왼쪽: 기본 정보 */}
-      <div className="col-span-2 space-y-4">
+      <div className="lg:col-span-2 space-y-4">
         <Section title="기본 정보">
           <Field label="상품명 *">
             <input
@@ -298,7 +306,7 @@ export default function ProductForm({
       </div>
 
       {/* 오른쪽: 가격 / 재고 / 상태 */}
-      <div className="col-span-1 space-y-4">
+      <div className="lg:col-span-1 space-y-4">
         <Section title="가격 & 재고">
           {form.category === '화식' && (
             <p className="text-[11px] leading-relaxed rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 mb-1">

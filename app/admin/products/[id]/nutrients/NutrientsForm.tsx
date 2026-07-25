@@ -80,7 +80,7 @@ export default function NutrientsForm({
       {/* AAFCO 평가 카드 */}
       <div className="rounded border border-zinc-200 bg-zinc-100 p-4 text-sm">
         <div className="font-semibold text-zinc-900 mb-2">AAFCO Adult Maintenance 평가</div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <Stat label="미달" value={evalResult.below.length} color="sale" />
           <Stat label="초과" value={evalResult.above.length} color="sale" />
           <Stat label="미입력 (min 항목)" value={evalResult.missing.length} color="mute" />

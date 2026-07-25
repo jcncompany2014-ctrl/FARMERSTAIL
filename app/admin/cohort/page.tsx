@@ -8,7 +8,7 @@ import {
   ClipboardCheck,
   PieChart as PieIcon,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { HelpTip, Hl } from '@/components/admin/ui'
@@ -51,9 +51,7 @@ export const metadata: Metadata = {
  */
 export default async function AdminCohortPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
   if (!user) redirect('/login?next=/admin/cohort')
   if (!(await isAdmin(supabase, user))) redirect('/admin')
 

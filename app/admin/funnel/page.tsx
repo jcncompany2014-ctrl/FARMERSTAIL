@@ -19,7 +19,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
@@ -40,9 +40,7 @@ export default async function FunnelPage({
   const days = Math.max(1, Math.min(parseInt(sp.days ?? '30', 10) || 30, 365))
 
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
   if (!user) redirect('/login?next=/admin/funnel')
   if (!(await isAdmin(supabase, user))) redirect('/')
 

@@ -8,7 +8,7 @@ import {
   Coins,
   Calendar,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { isAdmin } from '@/lib/auth/admin'
 import { HelpTip, AdminTabs, Hl } from '@/components/admin/ui'
@@ -42,9 +42,7 @@ export default async function AdminReportsPage({
   searchParams: SearchParams
 }) {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
   if (!user) redirect('/login?next=/admin/reports')
   if (!(await isAdmin(supabase, user))) redirect('/admin')
 

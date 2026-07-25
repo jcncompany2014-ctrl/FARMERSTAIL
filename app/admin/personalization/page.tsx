@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import SimulatorClient from './SimulatorClient'
 import V3SimulatorClient from './V3SimulatorClient'
@@ -31,9 +31,7 @@ export default async function AdminPersonalizationPage({
   const { dev } = await searchParams
   const showDevTools = dev === '1'
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
   if (!user) redirect('/login?next=/admin/personalization')
   if (!(await isAdmin(supabase, user))) redirect('/')
 
@@ -151,7 +149,7 @@ export default async function AdminPersonalizationPage({
       </div>
 
       {/* KPI — 동의 대기(이 페이지의 목적)가 첫 카드 */}
-      <section className="grid grid-cols-4 gap-3 mb-6">
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <KpiCard
           label="동의 대기"
           value={pendingCount ?? 0}

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import OrderRealtimeBell from '@/components/admin/OrderRealtimeBell'
 import AdminShell from '@/components/admin/AdminShell'
@@ -24,9 +24,9 @@ export default async function AdminLayout({
 }) {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // getRequestUser = 요청 1회 캐시. layout 과 각 page 가 같은 요청에서 부르므로
+  // auth 서버 왕복이 2회 → 1회로 준다(2026-07-25 렉 대응). 가드는 양쪽 다 유지.
+  const user = await getRequestUser()
 
   if (!user) {
     redirect('/login?next=/admin')

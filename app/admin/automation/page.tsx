@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { getAutomationSettings } from '@/lib/automation-settings'
@@ -24,9 +24,7 @@ export const dynamic = 'force-dynamic'
  */
 export default async function AdminAutomationPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
   if (!user) redirect('/login?next=/admin/automation')
   if (!(await isAdmin(supabase, user))) redirect('/')
 

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { SKU_META, type SkuKey } from '@/lib/allergy-sku-matrix'
 import LabelPrintButton from './LabelPrintButton'
@@ -83,9 +83,7 @@ export default async function LabelPdfPage({
   const skuKey = sku.toUpperCase() as SkuKey
 
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
   if (!user) redirect(`/login?next=/admin/label/${sku}`)
   if (!(await isAdmin(supabase, user))) redirect('/admin')
 

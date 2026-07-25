@@ -314,10 +314,10 @@ export default function BlogPostForm({
   return (
     <form
       onSubmit={(e) => handleSubmit(e)}
-      className="grid grid-cols-3 gap-6"
+      className="grid grid-cols-1 lg:grid-cols-3 gap-6"
     >
       {/* 왼쪽: 본문 */}
-      <div className="col-span-2 space-y-4">
+      <div className="lg:col-span-2 space-y-4">
         <Section title="기본 정보">
           <AiDraftHelper
             onApply={(draft) => {
@@ -504,7 +504,7 @@ export default function BlogPostForm({
       </div>
 
       {/* 오른쪽: 메타 + 발행 */}
-      <div className="col-span-1 space-y-4">
+      <div className="lg:col-span-1 space-y-4">
         <Section title="발행">
           <div className="space-y-2">
             <div

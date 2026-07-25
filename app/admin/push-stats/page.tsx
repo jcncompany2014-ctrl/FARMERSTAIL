@@ -137,7 +137,7 @@ export default async function PushStatsPage() {
       </header>
 
       {/* KPI cards — admin/page.tsx 의 MetricCard grid 와 동일한 gap-4 */}
-      <section className="grid grid-cols-4 gap-4 mb-6">
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <StatCard label="총 발송" value={totalSent.toLocaleString()} unit="건" />
         <StatCard
           label="총 읽음"

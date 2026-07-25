@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { ToggleRight, ToggleLeft, AlertCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { getAllFlags, envVarFor } from '@/lib/invention-flags'
 import { AdminTabs } from '@/components/admin/ui'
@@ -17,9 +17,7 @@ export const dynamic = 'force-dynamic'
  */
 export default async function InventionFlagsPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
   if (!user) redirect('/login?next=/admin/invention-flags')
   if (!(await isAdmin(supabase, user))) redirect('/')
 

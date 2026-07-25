@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import BetaCohortPrintButton from './BetaCohortPrintButton'
@@ -27,9 +27,7 @@ export const metadata: Metadata = {
  */
 export default async function BetaCohortPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
   if (!user) redirect('/login?next=/admin/beta-cohort')
   if (!(await isAdmin(supabase, user))) redirect('/admin')
 

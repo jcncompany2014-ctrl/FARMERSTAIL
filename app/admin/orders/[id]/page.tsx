@@ -85,9 +85,9 @@ export default async function AdminOrderDetailPage({
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 왼쪽: 주문 정보 */}
-        <div className="col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4">
           {/* 주문 상품 */}
           <section className="p-6 rounded-lg bg-white border border-zinc-200">
             <h2 className="text-sm font-bold text-zinc-900 mb-4">
@@ -191,7 +191,7 @@ export default async function AdminOrderDetailPage({
         </div>
 
         {/* 오른쪽: 관리 액션 */}
-        <div className="col-span-1 space-y-4">
+        <div className="lg:col-span-1 space-y-4">
           {/* 주문자 정보 */}
           <section className="p-6 rounded-lg bg-white border border-zinc-200">
             <h2 className="text-sm font-bold text-zinc-900 mb-4">주문자</h2>

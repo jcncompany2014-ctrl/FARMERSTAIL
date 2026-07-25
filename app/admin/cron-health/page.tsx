@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { AdminTabs, StatCard, Hl, Em, Warn } from '@/components/admin/ui'
 import { SETTINGS_TABS } from '@/components/admin/tabGroups'
@@ -65,9 +65,7 @@ function formatDuration(ms: number | null): string {
 
 export default async function AdminCronHealthPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
   if (!user) redirect('/login?next=/admin/cron-health')
   if (!(await isAdmin(supabase, user))) redirect('/admin')
 
@@ -147,7 +145,7 @@ export default async function AdminCronHealthPage() {
       </div>
 
       {/* Hero stat 3-grid */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
         <StatCard
           label={`${WINDOW_DAYS}일 총 실행`}
           value={rows.length.toLocaleString()}

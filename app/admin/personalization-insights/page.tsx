@@ -4,7 +4,7 @@ import {
   TrendingUp,
   Sparkles,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { isoDaysAgo } from '@/lib/persona'
 import { Hl } from '@/components/admin/ui'
@@ -23,9 +23,7 @@ export const dynamic = 'force-dynamic'
  */
 export default async function PersonalizationInsightsPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
   if (!user) redirect('/login?next=/admin/personalization-insights')
   if (!(await isAdmin(supabase, user))) redirect('/')
 

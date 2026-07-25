@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { AlertTriangle, CheckCircle2, Clock, X } from 'lucide-react'
 import { formatKstShortDateTime as formatDateTime } from '@/lib/datetime-kst'
@@ -68,9 +68,7 @@ export default async function SubscriptionChargesPage({
   searchParams: Promise<{ status?: string; page?: string }>
 }) {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
   if (!user) redirect('/login')
   if (!(await isAdmin(supabase, user))) redirect('/')
 
