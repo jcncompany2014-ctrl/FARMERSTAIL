@@ -102,19 +102,69 @@ function StockEditor({
     )
   }
 
+  // 계획 A-F3 — 빠른 조정. 조리 후 재고 보충이 잦은데 매번 클릭→타이핑→저장은
+  // 번거롭다. 델타 버튼은 현재 값 기준으로 즉시 저장(0 미만은 0으로 클램프).
+  async function bump(delta: number) {
+    const next = Math.max(0, initialValue + delta)
+    if (next === initialValue) return
+    setLoading(true)
+    const { error } = await supabase
+      .from('products')
+      .update({ stock: next })
+      .eq('id', productId)
+    setLoading(false)
+    if (error) {
+      toast.error('재고 변경 실패: ' + error.message)
+      return
+    }
+    toast.success(`재고 ${initialValue} → ${next}`)
+    startTransition(() => router.refresh())
+  }
+
   const color =
     initialValue === 0
       ? 'text-sale'
       : initialValue < 10
       ? 'text-terracotta'
-      : 'text-ink'
+      : 'text-zinc-900'
 
   return (
+    <div className="group flex items-center justify-center gap-0.5">
+      <QuickBump label="−10" onClick={() => bump(-10)} disabled={loading} />
+      <QuickBump label="−1" onClick={() => bump(-1)} disabled={loading} />
+      <button
+        onClick={() => setEditing(true)}
+        disabled={loading}
+        title="클릭해서 직접 입력"
+        className={`min-w-[2.5rem] text-center text-sm font-semibold hover:bg-zinc-100 rounded px-2 py-1 transition ${color}`}
+      >
+        {initialValue}
+      </button>
+      <QuickBump label="+1" onClick={() => bump(1)} disabled={loading} />
+      <QuickBump label="+10" onClick={() => bump(10)} disabled={loading} />
+    </div>
+  )
+}
+
+/** 재고 델타 버튼 — 평소엔 옅게, 행 hover 시 또렷하게(표가 시끄러워지지 않게). */
+function QuickBump({
+  label,
+  onClick,
+  disabled,
+}: {
+  label: string
+  onClick: () => void
+  disabled: boolean
+}) {
+  return (
     <button
-      onClick={() => setEditing(true)}
-      className={`w-full text-center text-sm font-semibold hover:bg-rule rounded px-2 py-1 transition ${color}`}
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={`재고 ${label}`}
+      className="rounded px-1.5 py-1 text-[11px] font-bold text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-700 group-hover:text-zinc-500 disabled:opacity-40"
     >
-      {initialValue}
+      {label}
     </button>
   )
 }
