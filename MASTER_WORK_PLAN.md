@@ -92,7 +92,7 @@ COMMENT ON COLUMN public.profiles.admin_note IS 'admin 전용 운영 메모(계�
 ### A-F7. ✉️ CS 템플릿 관리형 확장
 **왜**: 1:1 메시지 템플릿 3개(환불·지연·결제실패)가 하드코딩 — 사장님이 자주 쓰는 문구를 스스로 추가 못 함.
 **구현(가벼운 버전)**: MessageComposer 의 TEMPLATES 배열을 `automation_settings` 같은 싱글턴이 아니라 **localStorage 커스텀 템플릿**(추가/삭제 UI)과 병합 표시. DB 불필요.
-- [ ] 구현 → 검증 → 커밋 `(계획 A-F7)`
+- [x] 완료 2026-07-25 — 기본3종+커스텀(localStorage `admin:cs-templates`) 병합, '현재 문구 저장'/칩 ✕ 삭제. 저장→표시→삭제 라이브 검증 `(계획 A-F7)`
 
 ### (보류 — 조건 충족 시) A-F8. 주문 일괄 배송처리 + 운송장: **택배사 계약 확정 후** Fable 이 스펙 작성.
 

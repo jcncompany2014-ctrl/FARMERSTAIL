@@ -1,10 +1,28 @@
 'use client'
 
-import { useState } from 'react'
-import { Send, Loader2, Bell } from 'lucide-react'
+import { useState, useSyncExternalStore } from 'react'
+import { Send, Loader2, Bell, Plus, X } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 
-const TEMPLATES: { label: string; title: string; body: string }[] = [
+type Template = { label: string; title: string; body: string }
+
+/**
+ * 커스텀 템플릿 (계획 A-F7) — 사장님이 자주 쓰는 문구를 직접 추가.
+ *
+ * 기본 3종은 코드에 두고(자주 쓰는 CS 표준 문구), 그 외는 이 기기의
+ * localStorage 에 쌓는다. DB 를 쓰지 않는 이유: 운영자 1인 · 문구는 개인 메모에
+ * 가깝고 · 실수로 지워도 손해가 없다(다시 쓰면 됨). 나중에 여러 명이 되면
+ * 그때 automation_settings 같은 곳으로 승격하면 된다.
+ */
+const CUSTOM_KEY = 'admin:cs-templates'
+
+function subscribeToStorage(onChange: () => void): () => void {
+  if (typeof window === 'undefined') return () => {}
+  window.addEventListener('storage', onChange)
+  return () => window.removeEventListener('storage', onChange)
+}
+
+const TEMPLATES: Template[] = [
   {
     label: '환불 안내',
     title: '환불 안내드려요',
@@ -34,9 +52,63 @@ export default function MessageComposer({ userId }: { userId: string }) {
   const [lastResult, setLastResult] =
     useState<{ sent: number; dead: number; reason?: string } | null>(null)
 
-  function applyTemplate(t: (typeof TEMPLATES)[number]) {
+  function applyTemplate(t: Template) {
     setTitle(t.title)
     setBody(t.body)
+  }
+
+  // ── 커스텀 템플릿 (계획 A-F7) ──
+  const [customVersion, setCustomVersion] = useState(0)
+  const customRaw = useSyncExternalStore(
+    subscribeToStorage,
+    () => {
+      void customVersion
+      try {
+        return localStorage.getItem(CUSTOM_KEY) ?? ''
+      } catch {
+        return ''
+      }
+    },
+    () => '',
+  )
+  const customTemplates: Template[] = (() => {
+    if (!customRaw) return []
+    try {
+      const parsed = JSON.parse(customRaw)
+      return Array.isArray(parsed) ? (parsed as Template[]) : []
+    } catch {
+      return []
+    }
+  })()
+
+  function writeCustom(next: Template[]) {
+    try {
+      if (next.length === 0) localStorage.removeItem(CUSTOM_KEY)
+      else localStorage.setItem(CUSTOM_KEY, JSON.stringify(next))
+    } catch {
+      /* 저장 실패해도 화면은 동작 */
+    }
+    setCustomVersion((v) => v + 1)
+  }
+
+  function saveCurrentAsTemplate() {
+    const t = title.trim()
+    const b = body.trim()
+    if (!t || !b) {
+      toast.error('제목과 본문을 먼저 채워주세요')
+      return
+    }
+    const label = t.length > 12 ? `${t.slice(0, 12)}…` : t
+    if (customTemplates.some((x) => x.label === label)) {
+      toast.error('같은 이름의 템플릿이 이미 있어요')
+      return
+    }
+    writeCustom([...customTemplates, { label, title: t, body: b }])
+    toast.success(`'${label}' 템플릿으로 저장했어요`)
+  }
+
+  function removeCustom(label: string) {
+    writeCustom(customTemplates.filter((x) => x.label !== label))
   }
 
   async function send() {
@@ -110,21 +182,60 @@ export default function MessageComposer({ userId }: { userId: string }) {
     <div className="bg-white rounded-lg border border-zinc-200 p-5 space-y-4">
       {/* 템플릿 */}
       <div>
-        <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
-          템플릿 (자주 쓰는 메시지)
-        </label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em]">
+            템플릿 (자주 쓰는 메시지)
+          </label>
+          {/* 계획 A-F7 — 지금 쓴 문구를 템플릿으로 저장(이 기기에만) */}
+          <button
+            type="button"
+            onClick={saveCurrentAsTemplate}
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-500 hover:text-zinc-800"
+          >
+            <Plus className="h-3 w-3" strokeWidth={2.6} />
+            현재 문구 저장
+          </button>
+        </div>
         <div className="flex flex-wrap gap-1.5">
           {TEMPLATES.map((t) => (
             <button
               key={t.label}
               type="button"
               onClick={() => applyTemplate(t)}
-              className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-zinc-200 bg-white text-text hover:border-text transition"
+              className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-zinc-200 bg-white text-zinc-800 hover:border-zinc-800 transition"
             >
               {t.label}
             </button>
           ))}
+          {customTemplates.map((t) => (
+            <span
+              key={t.label}
+              className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 pl-3 pr-1 py-1.5 text-[11px] font-bold text-emerald-800"
+            >
+              <button
+                type="button"
+                onClick={() => applyTemplate(t)}
+                className="hover:underline"
+                title={t.body}
+              >
+                {t.label}
+              </button>
+              <button
+                type="button"
+                onClick={() => removeCustom(t.label)}
+                aria-label={`${t.label} 템플릿 삭제`}
+                className="ml-1 rounded-full p-0.5 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-900"
+              >
+                <X className="h-3 w-3" strokeWidth={2.6} />
+              </button>
+            </span>
+          ))}
         </div>
+        {customTemplates.length > 0 && (
+          <p className="mt-1.5 text-[10.5px] text-zinc-400">
+            초록색은 직접 만든 템플릿이에요 (이 기기에만 저장돼요).
+          </p>
+        )}
       </div>
 
       <div>
