@@ -174,7 +174,7 @@ export default async function AdminCronHealthPage() {
       {/* 실패 큐 — 가장 중요. status='error' 행 최신순. */}
       <section className="mb-6">
         <div className="flex items-center gap-2 mb-3">
-          <span className="kicker">실패 기록 · 최근 {WINDOW_DAYS}일</span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">실패 기록 · 최근 {WINDOW_DAYS}일</span>
         </div>
         {errorRows.length === 0 ? (
           <div className="rounded-xl border border-zinc-200 px-5 py-12 text-center bg-white">
@@ -233,7 +233,7 @@ export default async function AdminCronHealthPage() {
       {/* cron 별 요약 — path 별 성공/실패 + 마지막 실행 결과. */}
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <span className="kicker">Cron 별 요약 · 최근 {WINDOW_DAYS}일</span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">Cron 별 요약 · 최근 {WINDOW_DAYS}일</span>
         </div>
         {summaries.length === 0 ? (
           <div className="rounded-xl border border-zinc-200 px-5 py-12 text-center bg-white">

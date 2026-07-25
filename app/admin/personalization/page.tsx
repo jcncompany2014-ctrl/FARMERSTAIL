@@ -8,16 +8,19 @@ import V3SimulatorClient from './V3SimulatorClient'
 export const dynamic = 'force-dynamic'
 
 /**
- * /admin/personalization — 알고리즘 시뮬레이터 + 운영 통계.
+ * /admin/personalization — **레시피 승인(동의) 현황** (대개편 v2 R4).
  *
- * 알고리즘 (decideFirstBox / decideNextBox) 를 임의 입력으로 시뮬레이션하고
- * 결과를 즉시 확인. 운영자가 "이 강아지에겐 어떤 비율?" 검증, 새 룰 검토,
- * 클레임 대응 시 사용.
+ * 주인공은 "고객이 다음 박스 레시피에 동의했는가" — 동의 대기 큐(5일 타임아웃,
+ * 임박 건은 상단 경고 섹션)와 승인 KPI 가 페이지의 중심이다.
  *
- * 추가 통계:
+ * 함께 보는 통계:
  *  - 케어 목표 분포 (수요 예측)
- *  - user_adjusted 비율 (알고리즘 정확도 KPI)
- *  - cycle 별 응답률 (체크인 incentive 효과 측정)
+ *  - 고객 직접 조정 비율 (낮을수록 추천이 정확)
+ *  - 체크인 응답 수 · 만족도 분포
+ *
+ * 알고리즘 시뮬레이터 2종(v2 firstBox/nextBox · v3)은 개발용이라 `?dev=1`
+ * 게이트 뒤에 숨겨 둔다. (접이식 <details> 로 뒀더니 펼칠 때 렌더러가 얼어붙는
+ * 문제가 재현돼 서버 조건부 렌더로 교체했다 — 2026-07-24.)
  */
 export default async function AdminPersonalizationPage({
   searchParams,

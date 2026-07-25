@@ -295,7 +295,7 @@ export default async function AdminReportsPage({
 
       {/* 차감 합계 */}
       <section className="bg-white rounded-xl border border-zinc-200 px-5 py-4 mb-6 print:break-inside-avoid">
-        <span className="kicker kicker-muted">
+        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">
           차감 항목
           <HelpTip
             text={
@@ -337,7 +337,7 @@ export default async function AdminReportsPage({
       {/* Top 5 상품 */}
       {topProducts.length > 0 && (
         <section className="mb-6 print:break-inside-avoid">
-          <span className="kicker mb-2 block">많이 팔린 상품</span>
+          <span className="block mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">많이 팔린 상품</span>
           <ol className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
             {topProducts.map((p, i) => (
               <li
@@ -381,7 +381,7 @@ export default async function AdminReportsPage({
       {/* 결제수단 분포 */}
       {methodCount.size > 0 && (
         <section className="mb-6 print:break-inside-avoid">
-          <span className="kicker mb-2 block">결제수단</span>
+          <span className="block mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">결제수단</span>
           <div className="bg-white rounded-xl border border-zinc-200 px-4 py-3">
             {Array.from(methodCount.entries()).map(([method, count]) => {
               const pct =
