@@ -2223,6 +2223,7 @@ export type Database = {
           agree_email_at: string | null
           agree_sms: boolean | null
           agree_sms_at: string | null
+          admin_note: string | null
           birth_day: number | null
           birth_month: number | null
           birth_year: number | null
@@ -2252,6 +2253,7 @@ export type Database = {
           agree_email_at?: string | null
           agree_sms?: boolean | null
           agree_sms_at?: string | null
+          admin_note?: string | null
           birth_day?: number | null
           birth_month?: number | null
           birth_year?: number | null
@@ -2281,6 +2283,7 @@ export type Database = {
           agree_email_at?: string | null
           agree_sms?: boolean | null
           agree_sms_at?: string | null
+          admin_note?: string | null
           birth_day?: number | null
           birth_month?: number | null
           birth_year?: number | null

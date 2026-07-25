@@ -82,7 +82,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS admin_note text;
 COMMENT ON COLUMN public.profiles.admin_note IS 'admin 전용 운영 메모(계획 A-F5). RLS: 기존 profiles 정책상 본인 row select 가능하므로 고객에게 보일 수 있는 내용 금지 — UI 에 그 경고 문구 표시.';
 ```
 **UI**: `app/admin/users/[id]/message/page.tsx` 상단(프로필 아래)에 메모 textarea + 저장 버튼(클라 컴포넌트). 회원 목록(users/page.tsx) 행에는 메모 있으면 📌 아이콘만. **경고 문구 필수**: "⚠️ 고객 본인 조회 가능성 있는 필드 — 민감한 표현 금지".
-- [ ] SQL 적용 → UI 구현 → 검증 → 커밋 `(계획 A-F5)`
+- [x] 완료 2026-07-25 — profiles.admin_note 마이그레이션 + AdminNoteCard(1:1 메시지 최상단·본인노출 경고) `(계획 A-F5)`
 
 ### A-F6. 📅 배송 캘린더 날짜 클릭 → 그날 박스 목록
 **왜**: 캘린더에서 날짜의 배송 상세를 보려면 지금은 구독 목록으로 이동해 찾아야 함.
@@ -136,7 +136,7 @@ blog/draft · blog/upload · events/upload · orders/[id]/partial-cancel · orde
 
 ## §C. 고객 앱 트랙 (출시 전 점검·작업)
 
-- [ ] C1 `lib/supabase/types.ts` 재생성(드롭 함수 4개 타입 잔재 제거): `npx supabase gen types typescript --project-id adynmnrzffidoilnxutg --schema public > lib/supabase/types.ts` → tsc 에러 시 `git checkout -- lib/supabase/types.ts` 후 에러 내용 기록.
+- [~] C1 (부분) types.ts 에 profiles.admin_note 수기 삽입 완료(2026-07-25). CLI 인증 필요해 전체 재생성은 미실행 — 드롭 함수 4개 타입 잔재는 남아 있음: `lib/supabase/types.ts` 재생성(드롭 함수 4개 타입 잔재 제거): `npx supabase gen types typescript --project-id adynmnrzffidoilnxutg --schema public > lib/supabase/types.ts` → tsc 에러 시 `git checkout -- lib/supabase/types.ts` 후 에러 내용 기록.
 - [ ] C2 `/account/subscriptions` 웹톤 잔재 제거(기존 태스크 #8) — 앱 컨텍스트에서 웹 카드 스타일 남은 부분을 v3 톤으로(AGENTS.md 분리 규칙 준수, `isAppContextServer` 분기 패턴).
 - [ ] C3 모바일 웹뷰 QA 체크리스트 실행·기록(`MOBILE_QA.md` 신규): 설문 전 스텝 · 분석 · 플랜 · 로그인/가입 · 마이페이지 — 375px에서 스크린샷 찍고 깨짐/오버플로 기록(수정은 admin 규칙과 동일하게 안전한 것만).
 - [ ] C4 PWA 점검: manifest.json(이름·아이콘·theme_color)·오프라인 fallback 존재 여부·홈화면 설치 흐름 — 기록 후 안전한 수정.

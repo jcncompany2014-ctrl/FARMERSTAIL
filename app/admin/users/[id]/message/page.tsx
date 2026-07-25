@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import MessageComposer from './MessageComposer'
+import AdminNoteCard from './AdminNoteCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +30,7 @@ export default async function AdminUserMessagePage({
     await Promise.all([
       supabase
         .from('profiles')
-        .select('id, email, name, phone')
+        .select('id, email, name, phone, admin_note')
         .eq('id', id)
         .maybeSingle(),
       supabase
@@ -93,6 +94,14 @@ export default async function AdminUserMessagePage({
           ← 회원 목록
         </Link>
       </header>
+
+      {/* 계획 A-F5 — 이 고객과 대화하기 전에 맥락부터 보이게 최상단. */}
+      <AdminNoteCard
+        userId={id}
+        initial={
+          (profile as { admin_note?: string | null }).admin_note ?? null
+        }
+      />
 
       {/* CS 양방향 thread — 사용자 답장 + admin 답변 history */}
       {thread.length > 0 && (
