@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-type SearchParamsT = Promise<{ ym?: string }>
+type SearchParamsT = Promise<{ ym?: string; day?: string }>
 
 const WEEK_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -50,7 +50,7 @@ export default async function SubscriptionsCalendarPage({
 }: {
   searchParams: SearchParamsT
 }) {
-  const { ym } = await searchParams
+  const { ym, day: dayParam } = await searchParams
   const { year, month } = parseYm(ym)
 
   const monthStart = new Date(year, month - 1, 1)
@@ -266,10 +266,15 @@ export default async function SubscriptionsCalendarPage({
                           </div>
                         </Link>
                       ))}
-                      {c.items.length > 3 && (
-                        <div className="text-[10px] text-muted px-1.5">
-                          +{c.items.length - 3}건 더
-                        </div>
+                      {/* 계획 A-F6 — 3개 넘게 있으면 잘려서 안 보였다. 클릭하면
+                          아래 '그날 전체' 목록으로(같은 페이지 ?day= 분기). */}
+                      {c.items.length > 3 && c.date && (
+                        <Link
+                          href={`/admin/subscriptions/calendar?ym=${year}-${pad(month)}&day=${c.date}#day-detail`}
+                          className="block text-[10px] font-bold text-terracotta px-1.5 hover:underline"
+                        >
+                          +{c.items.length - 3}건 더 보기
+                        </Link>
                       )}
                     </div>
                   </>
@@ -279,6 +284,66 @@ export default async function SubscriptionsCalendarPage({
           })}
         </div>
       </div>
+
+      {/* 계획 A-F6 — 그날 전체 배송 목록. 셀은 3개까지만 보여줘서 나머지가
+          안 보이던 문제 해결. 이미 가져온 subsByDay 를 재사용(추가 쿼리 없음). */}
+      {dayParam && (
+        <section
+          id="day-detail"
+          className="mt-6 rounded-lg border border-zinc-200 bg-white p-5"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-[15px] font-bold text-zinc-900">
+                {dayParam} 배송 전체
+              </h2>
+              <p className="text-[12px] text-zinc-500 mt-0.5">
+                이 날짜에 나갈 정기배송 {(subsByDay.get(dayParam) ?? []).length}
+                건이에요.
+              </p>
+            </div>
+            <Link
+              href={`/admin/subscriptions/calendar?ym=${year}-${pad(month)}`}
+              className="text-[11px] font-bold text-zinc-500 hover:text-zinc-800 shrink-0"
+            >
+              닫기 ✕
+            </Link>
+          </div>
+          {(subsByDay.get(dayParam) ?? []).length === 0 ? (
+            <p className="text-[13px] text-zinc-500">
+              이 날짜에 예정된 배송이 없어요.
+            </p>
+          ) : (
+            <ul className="divide-y divide-zinc-100">
+              {(subsByDay.get(dayParam) ?? []).map((it) => (
+                <li key={it.id} className="py-2.5">
+                  <Link
+                    href={`/admin/subscriptions?focus=${it.id}`}
+                    className="flex flex-wrap items-center gap-x-3 gap-y-1 hover:opacity-80"
+                  >
+                    <span className="text-[13px] font-bold text-zinc-900">
+                      {it.recipient_name ?? it.profiles?.name ?? '수령인 미지정'}
+                    </span>
+                    {it.status === 'paused' && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                        일시정지
+                      </span>
+                    )}
+                    <span className="text-[12px] text-zinc-500">
+                      {(it.subscription_items ?? [])
+                        .map((x) => `${x.product_name}×${x.quantity}`)
+                        .join(', ') || '구성 미등록'}
+                    </span>
+                    <span className="ml-auto text-[12px] font-bold text-zinc-700 tabular-nums">
+                      {(it.total_amount ?? 0).toLocaleString()}원
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {/* 범례 */}
       <div className="mt-4 flex items-center gap-4 text-[11px] text-muted">
