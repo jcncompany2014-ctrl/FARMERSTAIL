@@ -35,6 +35,15 @@ npm test                  # 1373개 전부 pass. fail → 원인 고치거나 �
 - 헤더: `text-[22px] font-bold tracking-tight text-zinc-900 leading-tight` + 설명 `text-[13px] text-zinc-500 mt-1` ("~하는 곳이에요" 톤)
 - 카드: `rounded-lg bg-white border border-zinc-200` · KPI = ui.tsx `StatCard`
 - 색: zinc 중립 + terracotta 액센트. moss/sale/gold 는 상태색으로만 · 탭: `AdminTabs`
+- **설명문 강조 (2026-07-25 추가)** — ui.tsx 의 `Hl`·`Em`·`Warn` 만 쓴다.
+  `<Hl>` 형광펜 = **문단당 딱 하나**, "이 페이지가 뭐 하는 곳인가"의 핵심.
+  `<Em>` = 숫자·기준·조건(잘못 읽으면 안 되는 값, 여러 개 OK).
+  `<Warn>` = 되돌릴 수 없거나 고객에게 바로 나가는 동작.
+  형광펜 2개 이상 = 강조 소멸. 새 admin 페이지를 만들면 설명문에 이걸 적용할 것.
+- **표는 반드시 `overflow-x-auto` 래퍼 안에** — globals.css 의
+  `.admin-body table { min-width: 720px }` 때문에 래퍼 없는 표 하나가 페이지
+  전체를 옆으로 밀어낸다. 히트맵 색은 연속 alpha 금지, **배경·글자색 고정 쌍**
+  (`CohortRetentionTable` 의 `RETENTION_SCALE` 패턴)으로 대비를 보장할 것.
 
 ### 0-5. 사장님 운영 리듬 (신기능은 이 흐름을 돕는 것)
 일요일 주문 마감 → **월요일 원료 확정·손질** → **화요일 조리·포장·발송** → 수시 CS/재고/알림. 솔로 운영, 주 사용기기 = 폰.
