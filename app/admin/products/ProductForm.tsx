@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import NumberInput from '@/components/admin/NumberInput'
 
 type ProductData = {
   id?: string
@@ -317,34 +318,28 @@ export default function ProductForm({
             </p>
           )}
           <Field label="정가 (원) *">
-            <input
-              type="number"
+            <NumberInput
               value={form.price}
-              onChange={(e) => update('price', Number(e.target.value))}
+              onChange={(v) => update('price', v ?? 0)}
+              emptyAs={0}
               className={inputClass}
               min={0}
             />
           </Field>
           <Field label="할인가 (원)">
-            <input
-              type="number"
-              value={form.sale_price ?? ''}
-              onChange={(e) =>
-                update(
-                  'sale_price',
-                  e.target.value ? Number(e.target.value) : null
-                )
-              }
+            <NumberInput
+              value={form.sale_price}
+              onChange={(v) => update('sale_price', v)}
               className={inputClass}
               placeholder="없으면 비우기"
               min={0}
             />
           </Field>
           <Field label="재고">
-            <input
-              type="number"
+            <NumberInput
               value={form.stock}
-              onChange={(e) => update('stock', Number(e.target.value))}
+              onChange={(v) => update('stock', v ?? 0)}
+              emptyAs={0}
               className={inputClass}
               min={0}
             />
@@ -383,10 +378,10 @@ export default function ProductForm({
             </select>
           </Field>
           <Field label="정렬 순서 (낮을수록 위)">
-            <input
-              type="number"
+            <NumberInput
               value={form.sort_order}
-              onChange={(e) => update('sort_order', Number(e.target.value))}
+              onChange={(v) => update('sort_order', v ?? 0)}
+              emptyAs={0}
               className={inputClass}
             />
           </Field>
@@ -467,31 +462,19 @@ export default function ProductForm({
               />
             </Field>
             <Field label="소비기한 (제조일 기준 일수)">
-              <input
-                type="number"
-                min="0"
-                value={form.shelf_life_days ?? ''}
-                onChange={(e) =>
-                  update(
-                    'shelf_life_days',
-                    e.target.value ? Number(e.target.value) : null,
-                  )
-                }
+              <NumberInput
+                min={0}
+                value={form.shelf_life_days}
+                onChange={(v) => update('shelf_life_days', v)}
                 placeholder="예: 90"
                 className={inputClass}
               />
             </Field>
             <Field label="용량 (g)">
-              <input
-                type="number"
-                min="0"
-                value={form.net_weight_g ?? ''}
-                onChange={(e) =>
-                  update(
-                    'net_weight_g',
-                    e.target.value ? Number(e.target.value) : null,
-                  )
-                }
+              <NumberInput
+                min={0}
+                value={form.net_weight_g}
+                onChange={(v) => update('net_weight_g', v)}
                 placeholder="예: 200"
                 className={inputClass}
               />

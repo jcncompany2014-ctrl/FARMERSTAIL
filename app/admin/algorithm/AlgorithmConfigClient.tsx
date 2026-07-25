@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/Toast'
 import { formatKstDateTime } from '@/lib/datetime-kst'
 import { createClient } from '@/lib/supabase/client'
 import type { FoodLineRow, ChronicRow, BreedRow } from './page'
+import NumberInput from '@/components/admin/NumberInput'
 
 const LINE_LABELS: Record<FoodLineRow['line'], string> = {
   basic: 'Basic · 닭 균형식',
@@ -719,14 +720,14 @@ function NumField({
           </button>
         )}
       </div>
-      <input
-        type="number"
-        value={isNull ? '' : value}
+      <NumberInput
+        value={isNull ? null : value}
         step={step}
         min={min}
         max={max}
         disabled={isNull}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(v) => onChange(v ?? 0)}
+        emptyAs={0}
         className="w-full rounded-lg border outline-none transition-colors font-mono text-[12.5px]"
         style={{
           padding: '7px 10px',

@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 import { Hl } from '@/components/admin/ui'
+import NumberInput from '@/components/admin/NumberInput'
 
 /**
  * /admin/faqs — FAQ CRUD 클라이언트.
@@ -336,10 +337,10 @@ export default function AdminFaqsClient({
 
               <div className="grid grid-cols-2 gap-4">
                 <Field label="정렬 순서" hint="낮을수록 먼저">
-                  <input
-                    type="number"
+                  <NumberInput
                     value={sortOrder}
-                    onChange={(ev) => setSortOrder(parseInt(ev.target.value || '0', 10))}
+                    onChange={(v) => setSortOrder(v ?? 0)}
+                    emptyAs={0}
                     className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono"
                   />
                 </Field>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, Trash2, Save } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import NumberInput from '@/components/admin/NumberInput'
 
 type Category = {
   id: string
@@ -109,12 +110,12 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
                   key={c.id}
                   className="flex items-center gap-2 p-3 rounded-lg bg-zinc-50"
                 >
-                  <input
-                    type="number"
+                  <NumberInput
                     value={c.sort_order}
-                    onChange={(e) =>
-                      updateItem(c.id, { sort_order: Number(e.target.value) })
+                    onChange={(v) =>
+                      updateItem(c.id, { sort_order: v ?? 0 })
                     }
+                    emptyAs={0}
                     className="w-14 px-2 py-1.5 rounded bg-white text-xs text-center text-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta"
                     aria-label="정렬 순서"
                   />

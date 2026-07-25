@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import NumberInput from '@/components/admin/NumberInput'
 
 type Props =
   | {
@@ -82,11 +83,14 @@ function StockEditor({
   if (editing) {
     return (
       <div className="flex items-center justify-center gap-1">
-        <input
-          type="number"
+        {/* NumberInput 사용 — 예전 raw <input> 은 칸을 비우면 Number('')=0 이라
+            0 이 박혀 지워지지 않았다(2026-07-26 사장님 제보). */}
+        <NumberInput
           value={value}
-          onChange={(e) => setValue(Number(e.target.value))}
-          onBlur={save}
+          onChange={(v) => setValue(v ?? 0)}
+          emptyAs={0}
+          min={0}
+          onBlur={() => void save()}
           onKeyDown={(e) => {
             if (e.key === 'Enter') void save()
             if (e.key === 'Escape') {

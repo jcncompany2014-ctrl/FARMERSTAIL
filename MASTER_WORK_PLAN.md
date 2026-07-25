@@ -35,6 +35,14 @@ npm test                  # 1373개 전부 pass. fail → 원인 고치거나 �
 - 헤더: `text-[22px] font-bold tracking-tight text-zinc-900 leading-tight` + 설명 `text-[13px] text-zinc-500 mt-1` ("~하는 곳이에요" 톤)
 - 카드: `rounded-lg bg-white border border-zinc-200` · KPI = ui.tsx `StatCard`
 - 색: zinc 중립 + terracotta 액센트. moss/sale/gold 는 상태색으로만 · 탭: `AdminTabs`
+- **숫자 입력은 `components/admin/NumberInput` 만 쓴다 (2026-07-26)** —
+  raw `<input type="number">` 에 `onChange={(e) => set(Number(e.target.value))}`
+  를 쓰면 **칸을 비웠을 때 `Number('')` 가 0 이라 0 이 박히고 지워지지 않는다**
+  (사장님 제보: 20 → 150 으로 못 고침). NumberInput 은 편집 중 글자를 직접
+  들고 있어 빈 칸이 유지되고, 휠 스크롤로 값이 바뀌는 것도 막는다.
+  필수 항목은 `emptyAs={0}`, 비워도 되는 항목은 생략(=null).
+  규칙은 `lib/number-field.ts` + 테스트 8개로 고정돼 있다.
+  예외: `?dev=1` 뒤의 시뮬레이터 — 타입 캐스트가 얽혀 있고 사장님이 쓰지 않는다.
 - **개발자 용어를 화면에 그대로 찍지 말 것 (2026-07-26 사장님 지적)** —
   `cron · pending → cancelled` 이나 `{"reason": "..."}` JSON 덩어리가 그대로
   보이면 사장님은 못 읽는다. DB 원본값은 **반드시 라벨 표를 거친다**:
