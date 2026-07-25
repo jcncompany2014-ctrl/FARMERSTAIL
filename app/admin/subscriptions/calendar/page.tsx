@@ -160,27 +160,27 @@ export default async function SubscriptionsCalendarPage({
         <div className="flex items-center gap-2">
           <Link
             href={`/admin/subscriptions/calendar?ym=${prevYm}`}
-            className="p-2 rounded-lg border border-zinc-200 hover:bg-bg transition"
+            className="p-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 transition"
             aria-label="이전 달"
           >
-            <ChevronLeft className="w-4 h-4 text-ink" strokeWidth={2} />
+            <ChevronLeft className="w-4 h-4 text-zinc-900" strokeWidth={2} />
           </Link>
           <h2
-            className="font-bold tracking-tight text-xl text-ink min-w-[140px] text-center"
+            className="font-bold tracking-tight text-xl text-zinc-900 min-w-[140px] text-center"
             style={{ letterSpacing: '0.02em' }}
           >
             {year}.{pad(month)}
           </h2>
           <Link
             href={`/admin/subscriptions/calendar?ym=${nextYm}`}
-            className="p-2 rounded-lg border border-zinc-200 hover:bg-bg transition"
+            className="p-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 transition"
             aria-label="다음 달"
           >
-            <ChevronRight className="w-4 h-4 text-ink" strokeWidth={2} />
+            <ChevronRight className="w-4 h-4 text-zinc-900" strokeWidth={2} />
           </Link>
           <Link
             href="/admin/subscriptions/calendar"
-            className="ml-2 px-3 py-2 rounded-lg border border-zinc-200 text-[11px] hover:bg-bg transition"
+            className="ml-2 px-3 py-2 rounded-lg border border-zinc-200 text-[11px] hover:bg-zinc-50 transition"
           >
             오늘
           </Link>
@@ -199,7 +199,7 @@ export default async function SubscriptionsCalendarPage({
                   ? 'text-sale'
                   : i === 6
                   ? 'text-terracotta'
-                  : 'text-muted'
+                  : 'text-zinc-500'
               }`}
             >
               {label}
@@ -218,7 +218,7 @@ export default async function SubscriptionsCalendarPage({
                 key={idx}
                 className={`relative min-h-[110px] border-r border-b border-zinc-200 p-2 ${
                   c.isToday ? 'bg-terracotta/5' : ''
-                } ${c.date === null ? 'bg-bg/60' : ''}`}
+                } ${c.date === null ? 'bg-zinc-50/60' : ''}`}
                 style={{
                   borderRight:
                     weekday === 6 ? 'none' : '1px solid var(--rule)',
@@ -346,7 +346,7 @@ export default async function SubscriptionsCalendarPage({
       )}
 
       {/* 범례 */}
-      <div className="mt-4 flex items-center gap-4 text-[11px] text-muted">
+      <div className="mt-4 flex items-center gap-4 text-[11px] text-zinc-500">
         <span className="inline-flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded bg-moss" />
           구독 중

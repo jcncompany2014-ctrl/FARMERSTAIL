@@ -38,14 +38,14 @@ export default async function AdminProductNutrientsPage({
       <div className="mb-5">
         <Link
           href={`/admin/products/${id}`}
-          className="text-xs text-muted hover:text-terracotta"
+          className="text-xs text-zinc-500 hover:text-terracotta"
         >
           ← 제품 편집
         </Link>
         <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-2">
           영양 정보
         </h1>
-        <p className="text-xs text-muted mt-1">
+        <p className="text-xs text-zinc-500 mt-1">
           {product.name} · 38 영양소 (AAFCO Adult Maintenance 기준)
         </p>
       </div>

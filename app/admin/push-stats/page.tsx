@@ -129,7 +129,7 @@ export default async function PushStatsPage() {
         </div>
         <Link
           href="/admin"
-          className="text-[11px] text-muted hover:text-terracotta font-semibold"
+          className="text-[11px] text-zinc-500 hover:text-terracotta font-semibold"
         >
           ← 대시보드
         </Link>
@@ -159,18 +159,18 @@ export default async function PushStatsPage() {
 
       {/* 카테고리별 표 */}
       <section className="mb-6">
-        <h2 className="text-[13px] font-black text-text mb-3">
+        <h2 className="text-[13px] font-black text-zinc-800 mb-3">
           카테고리별 성과
         </h2>
         {categoryRows.length === 0 ? (
           <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
-            <p className="text-[12px] text-muted">최근 30일 발송 기록이 없어요.</p>
+            <p className="text-[12px] text-zinc-500">최근 30일 발송 기록이 없어요.</p>
           </div>
         ) : (
           <div className="bg-white rounded-lg border border-zinc-200 overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead className="bg-zinc-50">
-                <tr className="text-left text-[10px] uppercase tracking-widest text-muted font-bold">
+                <tr className="text-left text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
                   <th className="px-4 py-3">카테고리</th>
                   <th className="px-4 py-3 text-right">발송</th>
                   <th className="px-4 py-3 text-right">읽음</th>
@@ -185,7 +185,7 @@ export default async function PushStatsPage() {
                     key={c.category}
                     className="border-t border-zinc-200 hover:bg-zinc-50/40"
                   >
-                    <td className="px-4 py-3 font-bold text-text">
+                    <td className="px-4 py-3 font-bold text-zinc-800">
                       {c.category}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
@@ -197,12 +197,12 @@ export default async function PushStatsPage() {
                     <td className="px-4 py-3 text-right tabular-nums">
                       <ReadRateBar rate={c.readRate} />
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-muted">
+                    <td className="px-4 py-3 text-right tabular-nums text-zinc-500">
                       {c.avgReactionMin === null
                         ? '—'
                         : formatMinutes(c.avgReactionMin)}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-muted">
+                    <td className="px-4 py-3 text-right tabular-nums text-zinc-500">
                       {c.avgRecipients.toFixed(1)}
                     </td>
                   </tr>
@@ -215,18 +215,18 @@ export default async function PushStatsPage() {
 
       {/* 일자별 추이 (최근 14일) */}
       <section>
-        <h2 className="text-[13px] font-black text-text mb-3">
+        <h2 className="text-[13px] font-black text-zinc-800 mb-3">
           일자별 추이 (최근 14일)
         </h2>
         {dayRows.length === 0 ? (
           <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
-            <p className="text-[12px] text-muted">발송 기록이 없어요.</p>
+            <p className="text-[12px] text-zinc-500">발송 기록이 없어요.</p>
           </div>
         ) : (
           <div className="bg-white rounded-lg border border-zinc-200 overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead className="bg-zinc-50">
-                <tr className="text-left text-[10px] uppercase tracking-widest text-muted font-bold">
+                <tr className="text-left text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
                   <th className="px-4 py-3">날짜</th>
                   <th className="px-4 py-3 text-right">발송</th>
                   <th className="px-4 py-3 text-right">읽음</th>
@@ -241,7 +241,7 @@ export default async function PushStatsPage() {
                       key={day}
                       className="border-t border-zinc-200 hover:bg-zinc-50/40"
                     >
-                      <td className="px-4 py-3 font-mono text-text">{day}</td>
+                      <td className="px-4 py-3 font-mono text-zinc-800">{day}</td>
                       <td className="px-4 py-3 text-right tabular-nums">
                         {agg.sent}
                       </td>

@@ -448,7 +448,7 @@ export default function BlogPostForm({
                 onClick={() => setPreview(false)}
                 className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded ${
                   !preview
-                    ? 'bg-text text-white'
+                    ? 'bg-zinc-900 text-white'
                     : 'text-zinc-500 hover:bg-zinc-50'
                 } transition font-bold`}
               >
@@ -460,7 +460,7 @@ export default function BlogPostForm({
                 onClick={() => setPreview(true)}
                 className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded ${
                   preview
-                    ? 'bg-text text-white'
+                    ? 'bg-zinc-900 text-white'
                     : 'text-zinc-500 hover:bg-zinc-50'
                 } transition font-bold`}
               >
@@ -832,8 +832,8 @@ function AiDraftHelper({
               onClick={() => setLength(opt.key)}
               className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition ${
                 length === opt.key
-                  ? 'bg-text text-white border-transparent'
-                  : 'bg-white border-zinc-200 text-zinc-800 hover:border-text'
+                  ? 'bg-zinc-900 text-white border-transparent'
+                  : 'bg-white border-zinc-200 text-zinc-800 hover:border-zinc-800'
               }`}
             >
               {opt.label}

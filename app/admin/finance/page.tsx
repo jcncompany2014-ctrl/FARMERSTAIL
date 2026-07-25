@@ -130,7 +130,7 @@ export default async function AdminFinancePage({
               className={`rounded border px-3 py-1.5 ${
                 days === d
                   ? 'border-terracotta text-terracotta bg-terracotta/5'
-                  : 'border-line hover:border-ink/40'
+                  : 'border-zinc-200 hover:border-ink/40'
               }`}
             >
               {d}일
@@ -171,10 +171,10 @@ export default async function AdminFinancePage({
       </section>
 
       {/* 일별 매출 차트 + 표 */}
-      <section className="rounded border border-line p-4">
-        <h2 className="text-sm font-semibold text-ink mb-3">일별 순매출</h2>
+      <section className="rounded border border-zinc-200 p-4">
+        <h2 className="text-sm font-semibold text-zinc-900 mb-3">일별 순매출</h2>
         {dayList.length === 0 ? (
-          <p className="text-xs text-muted py-5 text-center">
+          <p className="text-xs text-zinc-500 py-5 text-center">
             기간 내 결제 이벤트가 없어요.
           </p>
         ) : (
@@ -184,18 +184,18 @@ export default async function AdminFinancePage({
               return (
                 <div key={d.date} className="text-xs">
                   <div className="flex justify-between mb-0.5">
-                    <span className="text-ink font-mono">{d.date}</span>
-                    <span className="text-muted">
+                    <span className="text-zinc-900 font-mono">{d.date}</span>
+                    <span className="text-zinc-500">
                       결제 {d.paid.toLocaleString()}원
                       {d.refunded > 0 && (
                         <span className="text-sale ml-2">
                           -{d.refunded.toLocaleString()}원
                         </span>
                       )}
-                      <span className="ml-2 text-ink font-semibold">
+                      <span className="ml-2 text-zinc-900 font-semibold">
                         순매출 {d.net.toLocaleString()}원
                       </span>
-                      <span className="ml-2 text-muted">
+                      <span className="ml-2 text-zinc-500">
                         ({d.orderCount.size}건)
                       </span>
                     </span>

@@ -49,7 +49,7 @@ const TABS = [
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   active: { label: '구독 중', cls: 'bg-moss/10 text-moss' },
   paused: { label: '일시정지', cls: 'bg-gold/10 text-gold' },
-  cancelled: { label: '해지', cls: 'bg-muted/10 text-muted' },
+  cancelled: { label: '해지', cls: 'bg-muted/10 text-zinc-500' },
 }
 
 

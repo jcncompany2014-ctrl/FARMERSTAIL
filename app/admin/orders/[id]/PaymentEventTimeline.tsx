@@ -78,14 +78,14 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
   return (
     <section className="p-6 rounded-lg bg-white border border-zinc-200">
       <div className="flex justify-between items-baseline mb-4">
-        <h2 className="text-sm font-bold text-ink">결제 원장 (Payment Events)</h2>
-        <div className="text-xs text-muted">
-          잔액: <span className="font-mono font-semibold text-ink">{balance.toLocaleString()}원</span>
+        <h2 className="text-sm font-bold text-zinc-900">결제 원장 (Payment Events)</h2>
+        <div className="text-xs text-zinc-500">
+          잔액: <span className="font-mono font-semibold text-zinc-900">{balance.toLocaleString()}원</span>
         </div>
       </div>
 
       {events.length === 0 ? (
-        <p className="text-xs text-muted py-4 text-center">
+        <p className="text-xs text-zinc-500 py-4 text-center">
           기록된 이벤트가 없어요. 결제·환불이 발생하면 자동으로 누적됩니다.
         </p>
       ) : (
@@ -95,7 +95,7 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
             return (
               <li
                 key={e.id}
-                className="flex gap-3 pb-3 border-b border-line last:border-0 last:pb-0"
+                className="flex gap-3 pb-3 border-b border-zinc-200 last:border-0 last:pb-0"
               >
                 <div
                   className={`w-2 h-2 rounded-full mt-2 shrink-0 ${
@@ -104,18 +104,18 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline">
-                    <span className="text-[13px] font-semibold text-ink">
+                    <span className="text-[13px] font-semibold text-zinc-900">
                       {EVENT_LABEL[e.event_type] ?? e.event_type}
                     </span>
                     <span
                       className={`font-mono text-[13px] font-semibold ${
-                        isRefund ? 'text-sale' : 'text-ink'
+                        isRefund ? 'text-sale' : 'text-zinc-900'
                       }`}
                     >
                       {e.amount > 0 ? '+' : ''}{e.amount.toLocaleString()}원
                     </span>
                   </div>
-                  <div className="text-[10.5px] text-muted mt-0.5">
+                  <div className="text-[10.5px] text-zinc-500 mt-0.5">
                     {formatDateTime(e.created_at)}
                     {' · '}
                     출처: {SOURCE_LABEL[e.source] ?? e.source}
@@ -127,7 +127,7 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
                     )}
                   </div>
                   {e.metadata && Object.keys(e.metadata).length > 0 && (
-                    <pre className="mt-1.5 text-[10px] bg-zinc-100 rounded p-2 font-mono text-muted overflow-x-auto leading-snug">
+                    <pre className="mt-1.5 text-[10px] bg-zinc-100 rounded p-2 font-mono text-zinc-500 overflow-x-auto leading-snug">
                       {JSON.stringify(e.metadata, null, 2)}
                     </pre>
                   )}

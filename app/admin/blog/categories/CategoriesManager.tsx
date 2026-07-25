@@ -97,7 +97,7 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
       {/* 목록 */}
       <div className="p-6 rounded-lg bg-white border border-zinc-200">
         {items.length === 0 ? (
-          <p className="text-center text-sm text-muted py-6">
+          <p className="text-center text-sm text-zinc-500 py-6">
             카테고리가 없어요
           </p>
         ) : (
@@ -107,7 +107,7 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
               return (
                 <div
                   key={c.id}
-                  className="flex items-center gap-2 p-3 rounded-lg bg-bg"
+                  className="flex items-center gap-2 p-3 rounded-lg bg-zinc-50"
                 >
                   <input
                     type="number"
@@ -115,31 +115,31 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
                     onChange={(e) =>
                       updateItem(c.id, { sort_order: Number(e.target.value) })
                     }
-                    className="w-14 px-2 py-1.5 rounded bg-white text-xs text-center text-ink focus:outline-none focus:ring-2 focus:ring-terracotta"
+                    className="w-14 px-2 py-1.5 rounded bg-white text-xs text-center text-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta"
                     aria-label="정렬 순서"
                   />
                   <input
                     type="text"
                     value={c.name}
                     onChange={(e) => updateItem(c.id, { name: e.target.value })}
-                    className="flex-1 px-3 py-1.5 rounded bg-white text-sm text-ink focus:outline-none focus:ring-2 focus:ring-terracotta"
+                    className="flex-1 px-3 py-1.5 rounded bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta"
                     placeholder="이름"
                   />
                   <input
                     type="text"
                     value={c.slug}
                     onChange={(e) => updateItem(c.id, { slug: e.target.value })}
-                    className="w-40 px-3 py-1.5 rounded bg-white text-xs font-mono text-ink focus:outline-none focus:ring-2 focus:ring-terracotta"
+                    className="w-40 px-3 py-1.5 rounded bg-white text-xs font-mono text-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta"
                     placeholder="slug"
                   />
-                  <span className="text-[10px] text-muted w-14 text-right">
+                  <span className="text-[10px] text-zinc-500 w-14 text-right">
                     {count}개 글
                   </span>
                   <button
                     type="button"
                     onClick={() => saveOne(c)}
                     disabled={loading}
-                    className="p-2 rounded bg-text text-white hover:bg-[#5C4130] transition disabled:opacity-50"
+                    className="p-2 rounded bg-zinc-900 text-white hover:bg-zinc-700 transition disabled:opacity-50"
                     aria-label="저장"
                   >
                     <Save className="w-3.5 h-3.5" strokeWidth={2.25} />
@@ -165,7 +165,7 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
         onSubmit={addCategory}
         className="p-6 rounded-lg bg-white border border-zinc-200"
       >
-        <h3 className="text-sm font-bold text-ink mb-3">
+        <h3 className="text-sm font-bold text-zinc-900 mb-3">
           새 카테고리 추가
         </h3>
         <div className="flex items-center gap-2">
@@ -174,14 +174,14 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="이름 (예: 훈련 팁)"
-            className="flex-1 px-3 py-2 rounded-lg bg-bg text-sm text-ink focus:outline-none focus:ring-2 focus:ring-terracotta"
+            className="flex-1 px-3 py-2 rounded-lg bg-zinc-50 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta"
           />
           <input
             type="text"
             value={newSlug}
             onChange={(e) => setNewSlug(e.target.value)}
             placeholder="slug (예: training-tips)"
-            className="w-48 px-3 py-2 rounded-lg bg-bg text-xs font-mono text-ink focus:outline-none focus:ring-2 focus:ring-terracotta"
+            className="w-48 px-3 py-2 rounded-lg bg-zinc-50 text-xs font-mono text-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta"
           />
           <button
             type="submit"

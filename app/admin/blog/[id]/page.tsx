@@ -31,14 +31,14 @@ export default async function AdminBlogEditPage({
         <div>
           <Link
             href="/admin/blog"
-            className="text-xs text-muted hover:text-terracotta"
+            className="text-xs text-zinc-500 hover:text-terracotta"
           >
             ← 매거진
           </Link>
           <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-2">
             글 수정
           </h1>
-          <p className="text-xs text-muted mt-1 font-mono">{post.slug}</p>
+          <p className="text-xs text-zinc-500 mt-1 font-mono">{post.slug}</p>
         </div>
         {post.is_published && (
           <Link

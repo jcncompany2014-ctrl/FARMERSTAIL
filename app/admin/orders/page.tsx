@@ -40,7 +40,7 @@ function statusBadge(paymentStatus: string, orderStatus: string) {
     }
     return {
       label: labelMap[paymentStatus] ?? paymentStatus,
-      color: 'bg-rule text-text',
+      color: 'bg-rule text-zinc-800',
     }
   }
   switch (orderStatus) {
@@ -53,7 +53,7 @@ function statusBadge(paymentStatus: string, orderStatus: string) {
     case 'cancelled':
       return { label: '취소', color: 'bg-sale text-white' }
     default:
-      return { label: orderStatus, color: 'bg-rule text-text' }
+      return { label: orderStatus, color: 'bg-rule text-zinc-800' }
   }
 }
 
@@ -148,7 +148,7 @@ export default async function AdminOrdersPage({
           // 으로 파일명을 지정하지만, 구형 Safari/Edge 에서 href 그대로 네비게이션
           // 되는 이슈를 방지.
           download
-          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-white border border-zinc-200 text-ink hover:border-terracotta hover:text-terracotta transition"
+          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-white border border-zinc-200 text-zinc-900 hover:border-terracotta hover:text-terracotta transition"
         >
           <span>⬇</span>
           <span>CSV 내보내기</span>
@@ -171,7 +171,7 @@ export default async function AdminOrdersPage({
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
                   active
                     ? 'bg-[#2A2118] text-white'
-                    : 'bg-white text-text border border-zinc-200 hover:border-terracotta'
+                    : 'bg-white text-zinc-800 border border-zinc-200 hover:border-terracotta'
                 }`}
               >
                 {f.label}
@@ -211,7 +211,7 @@ export default async function AdminOrdersPage({
         {error ? (
           <p className="text-sale text-sm">에러: {error.message}</p>
         ) : !orders || orders.length === 0 ? (
-          <p className="text-center text-sm text-muted py-10">
+          <p className="text-center text-sm text-zinc-500 py-10">
             조건에 맞는 주문이 없어요
           </p>
         ) : (
@@ -256,7 +256,7 @@ export default async function AdminOrdersPage({
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-muted border-b border-zinc-200">
+                <tr className="text-[11px] text-zinc-500 border-b border-zinc-200">
                   <th className="text-left py-2 font-medium">주문번호</th>
                   <th className="text-left py-2 font-medium">주문자</th>
                   <th className="text-left py-2 font-medium">연락처</th>
@@ -272,16 +272,16 @@ export default async function AdminOrdersPage({
                   return (
                     <tr
                       key={o.id}
-                      className="border-b border-zinc-200/50 hover:bg-bg transition"
+                      className="border-b border-zinc-200/50 hover:bg-zinc-50 transition"
                     >
-                      <td className="py-3 font-mono text-[11px] text-ink">
+                      <td className="py-3 font-mono text-[11px] text-zinc-900">
                         {o.order_number}
                       </td>
-                      <td className="py-3 text-ink">{o.recipient_name}</td>
-                      <td className="py-3 text-[11px] text-text">
+                      <td className="py-3 text-zinc-900">{o.recipient_name}</td>
+                      <td className="py-3 text-[11px] text-zinc-800">
                         {o.recipient_phone}
                       </td>
-                      <td className="py-3 text-right font-semibold text-ink">
+                      <td className="py-3 text-right font-semibold text-zinc-900">
                         {o.total_amount.toLocaleString()}원
                       </td>
                       <td className="py-3 text-center">
@@ -295,7 +295,7 @@ export default async function AdminOrdersPage({
                           {badge.label}
                         </span>
                       </td>
-                      <td className="py-3 text-right text-[11px] text-muted">
+                      <td className="py-3 text-right text-[11px] text-zinc-500">
                         {formatDate(o.created_at)}
                       </td>
                       <td className="py-3 text-center">

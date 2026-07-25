@@ -201,7 +201,7 @@ export default async function AdminPersonalizationPage({
                   key={r.id}
                   className="flex items-center justify-between text-[12px] py-1.5 px-3 bg-white rounded-lg"
                 >
-                  <span className="text-text">
+                  <span className="text-zinc-800">
                     강아지 <span className="font-mono">{r.dog_id.slice(0, 8)}</span> ·{' '}
                     {r.cycle_number}번째 박스
                   </span>
@@ -211,7 +211,7 @@ export default async function AdminPersonalizationPage({
                         ? 'text-terracotta'
                         : daysLeft === 1
                           ? 'text-gold'
-                          : 'text-muted'
+                          : 'text-zinc-500'
                     }`}
                   >
                     {daysLeft === 0 ? '오늘 마감' : `${daysLeft}일 남음`}
@@ -227,7 +227,7 @@ export default async function AdminPersonalizationPage({
       <section className="grid grid-cols-2 gap-3 mb-6">
         {totalSatisfaction > 0 && (
           <div className="bg-white border border-zinc-200 rounded-lg p-5">
-            <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-text mb-3">
+            <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-800 mb-3">
               체크인 만족도 (5점 만점 · {totalSatisfaction}건)
             </h3>
             <ul className="space-y-2">
@@ -242,7 +242,7 @@ export default async function AdminPersonalizationPage({
                       : 'var(--terracotta)'
                 return (
                   <li key={score} className="flex items-center gap-2 text-[11.5px]">
-                    <span className="w-3 font-mono text-muted">{score}</span>
+                    <span className="w-3 font-mono text-zinc-500">{score}</span>
                     <div className="flex-1 h-2 rounded-full bg-rule overflow-hidden">
                       <span
                         className="block h-full"
@@ -252,7 +252,7 @@ export default async function AdminPersonalizationPage({
                         }}
                       />
                     </div>
-                    <span className="w-10 text-right font-bold text-text font-mono">
+                    <span className="w-10 text-right font-bold text-zinc-800 font-mono">
                       {count}
                     </span>
                   </li>
@@ -264,7 +264,7 @@ export default async function AdminPersonalizationPage({
 
         {Object.keys(responseByCycle).length > 0 && (
           <div className="bg-white border border-zinc-200 rounded-lg p-5">
-            <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-text mb-3">
+            <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-800 mb-3">
               박스별 체크인 응답
             </h3>
             <ul className="space-y-1.5">
@@ -275,10 +275,10 @@ export default async function AdminPersonalizationPage({
                     key={cycle}
                     className="flex items-center text-[11.5px]"
                   >
-                    <span className="w-20 text-muted">{cycle}번째 박스</span>
+                    <span className="w-20 text-zinc-500">{cycle}번째 박스</span>
                     <span className="flex-1 inline-flex gap-1.5 items-center">
                       <span className="text-moss font-bold">2주차 {counts.week_2}</span>
-                      <span className="text-muted">·</span>
+                      <span className="text-zinc-500">·</span>
                       <span className="text-terracotta font-bold">4주차 {counts.week_4}</span>
                     </span>
                   </li>
@@ -291,7 +291,7 @@ export default async function AdminPersonalizationPage({
       {/* 케어 목표 분포 */}
       {Object.keys(goalCounts).length > 0 && (
         <section className="mb-6 bg-white border border-zinc-200 rounded-lg p-5">
-          <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-text mb-3">
+          <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-800 mb-3">
             고객들이 고른 케어 목표
           </h3>
           <ul className="space-y-1.5">
@@ -300,7 +300,7 @@ export default async function AdminPersonalizationPage({
               .map(([goal, count]) => (
                 <li
                   key={goal}
-                  className="flex items-center text-[12.5px] text-text"
+                  className="flex items-center text-[12.5px] text-zinc-800"
                 >
                   <span className="flex-1">{CARE_GOAL_LABEL[goal] ?? goal}</span>
                   <span className="font-black text-terracotta">{count}</span>
@@ -382,7 +382,7 @@ function KpiCard({
       <div
         className={
           'text-[10px] font-bold tracking-[0.2em] uppercase ' +
-          (warn ? 'text-terracotta' : 'text-muted')
+          (warn ? 'text-terracotta' : 'text-zinc-500')
         }
       >
         {label}
@@ -397,10 +397,10 @@ function KpiCard({
         >
           {value}
         </span>
-        {unit && <span className="text-[11px] text-muted">{unit}</span>}
+        {unit && <span className="text-[11px] text-zinc-500">{unit}</span>}
       </div>
       {hint && (
-        <p className="text-[11px] text-muted mt-1.5 leading-relaxed">{hint}</p>
+        <p className="text-[11px] text-zinc-500 mt-1.5 leading-relaxed">{hint}</p>
       )}
     </div>
   )

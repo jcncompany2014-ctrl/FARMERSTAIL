@@ -146,7 +146,7 @@ export default async function AdminProductsPage({
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
                   isActive
                     ? 'bg-[#2A2118] text-white'
-                    : 'bg-white text-text border border-zinc-200 hover:border-terracotta'
+                    : 'bg-white text-zinc-800 border border-zinc-200 hover:border-terracotta'
                 }`}
               >
                 {f.label}
@@ -184,7 +184,7 @@ export default async function AdminProductsPage({
         {error ? (
           <p className="text-sale text-sm">에러: {error.message}</p>
         ) : !products || products.length === 0 ? (
-          <p className="text-center text-sm text-muted py-10">
+          <p className="text-center text-sm text-zinc-500 py-10">
             {q || active !== 'all'
               ? '조건에 맞는 상품이 없어요'
               : '등록된 상품이 없어요'}
@@ -193,7 +193,7 @@ export default async function AdminProductsPage({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-muted border-b border-zinc-200">
+                <tr className="text-[11px] text-zinc-500 border-b border-zinc-200">
                   <th className="text-left py-2 font-medium w-16">이미지</th>
                   <th className="text-left py-2 font-medium">상품명</th>
                   <th className="text-left py-2 font-medium">카테고리</th>
@@ -207,10 +207,10 @@ export default async function AdminProductsPage({
                 {(products as ProductRow[]).map((p) => (
                   <tr
                     key={p.id}
-                    className="border-b border-zinc-200/50 hover:bg-bg transition"
+                    className="border-b border-zinc-200/50 hover:bg-zinc-50 transition"
                   >
                     <td className="py-3">
-                      <div className="w-12 h-12 rounded-lg bg-bg overflow-hidden flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-lg bg-zinc-50 overflow-hidden flex items-center justify-center">
                         {p.image_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -224,18 +224,18 @@ export default async function AdminProductsPage({
                       </div>
                     </td>
                     <td className="py-3">
-                      <p className="text-ink font-medium">{p.name}</p>
-                      <p className="text-[10px] text-muted font-mono mt-0.5">
+                      <p className="text-zinc-900 font-medium">{p.name}</p>
+                      <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
                         {p.slug}
                       </p>
                     </td>
-                    <td className="py-3 text-text text-xs">
+                    <td className="py-3 text-zinc-800 text-xs">
                       {p.category ?? '-'}
                     </td>
                     <td className="py-3 text-right">
                       {p.sale_price ? (
                         <div>
-                          <p className="text-[10px] text-muted line-through">
+                          <p className="text-[10px] text-zinc-500 line-through">
                             {p.price.toLocaleString()}원
                           </p>
                           <p className="font-semibold text-terracotta">
@@ -243,7 +243,7 @@ export default async function AdminProductsPage({
                           </p>
                         </div>
                       ) : (
-                        <p className="font-semibold text-ink">
+                        <p className="font-semibold text-zinc-900">
                           {p.price.toLocaleString()}원
                         </p>
                       )}

@@ -100,8 +100,8 @@ export default function ShippingControl({
 
   return (
     <section className="p-6 rounded-lg bg-white border border-zinc-200">
-      <h2 className="text-sm font-bold text-ink mb-1">발송 처리</h2>
-      <p className="text-[11px] text-muted mb-4">
+      <h2 className="text-sm font-bold text-zinc-900 mb-1">발송 처리</h2>
+      <p className="text-[11px] text-zinc-500 mb-4">
         {isShipping
           ? '현재 발송 완료된 주문이에요.'
           : '택배사와 송장번호를 입력하면 배송 중으로 전환됩니다.'}
@@ -109,12 +109,12 @@ export default function ShippingControl({
 
       <div className="space-y-3">
         <label className="block">
-          <span className="block text-[11px] text-muted mb-1">택배사</span>
+          <span className="block text-[11px] text-zinc-500 mb-1">택배사</span>
           <select
             value={carrier}
             onChange={(e) => setCarrier(e.target.value as CarrierCode)}
             disabled={isShipping || loading}
-            className="w-full px-3 py-2 rounded-lg bg-bg border border-zinc-200 text-sm disabled:opacity-50"
+            className="w-full px-3 py-2 rounded-lg bg-zinc-50 border border-zinc-200 text-sm disabled:opacity-50"
           >
             {CARRIER_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -125,7 +125,7 @@ export default function ShippingControl({
         </label>
 
         <label className="block">
-          <span className="block text-[11px] text-muted mb-1">송장번호</span>
+          <span className="block text-[11px] text-zinc-500 mb-1">송장번호</span>
           <input
             type="text"
             inputMode="numeric"
@@ -133,7 +133,7 @@ export default function ShippingControl({
             onChange={(e) => setTrackingNumber(e.target.value)}
             disabled={isShipping || loading}
             placeholder="송장번호를 입력하세요"
-            className="w-full px-3 py-2 rounded-lg bg-bg border border-zinc-200 text-sm font-mono disabled:opacity-50"
+            className="w-full px-3 py-2 rounded-lg bg-zinc-50 border border-zinc-200 text-sm font-mono disabled:opacity-50"
           />
         </label>
 

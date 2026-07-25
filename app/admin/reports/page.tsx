@@ -201,7 +201,7 @@ export default async function AdminReportsPage({
       {/* 월 navigate */}
       <div className="flex items-center justify-between mb-5 px-1">
         <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-text" strokeWidth={2} />
+          <Calendar className="w-4 h-4 text-zinc-800" strokeWidth={2} />
           <span
             className="font-sans"
             style={{
@@ -217,13 +217,13 @@ export default async function AdminReportsPage({
         <div className="flex items-center gap-2 no-print">
           <Link
             href={prevHref}
-            className="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold hover:border-text transition"
+            className="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold hover:border-zinc-800 transition"
           >
             ← 이전 달
           </Link>
           <Link
             href={nextHref}
-            className="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold hover:border-text transition"
+            className="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold hover:border-zinc-800 transition"
           >
             다음 달 →
           </Link>
@@ -311,22 +311,22 @@ export default async function AdminReportsPage({
           }`}
         >
           <div>
-            <span className="text-muted">할인</span>
-            <div className="font-bold tabular-nums text-text">
+            <span className="text-zinc-500">할인</span>
+            <div className="font-bold tabular-nums text-zinc-800">
               -{totalDiscount.toLocaleString()}원
             </div>
           </div>
           {/* 포인트는 폐지된 제도(2026-07-16) — 과거 이력이 있을 때만 표시. */}
           {totalPointsUsed > 0 && (
             <div>
-              <span className="text-muted">포인트 사용 (폐지)</span>
-              <div className="font-bold tabular-nums text-text">
+              <span className="text-zinc-500">포인트 사용 (폐지)</span>
+              <div className="font-bold tabular-nums text-zinc-800">
                 -{totalPointsUsed.toLocaleString()}원
               </div>
             </div>
           )}
           <div>
-            <span className="text-muted">환불</span>
+            <span className="text-zinc-500">환불</span>
             <div className="font-bold tabular-nums text-sale">
               -{refundTotal.toLocaleString()}원
             </div>
@@ -360,7 +360,7 @@ export default async function AdminReportsPage({
                   >
                     {i + 1}
                   </span>
-                  <span className="text-[13px] font-bold text-text truncate">
+                  <span className="text-[13px] font-bold text-zinc-800 truncate">
                     {p.name}
                   </span>
                 </div>
@@ -368,7 +368,7 @@ export default async function AdminReportsPage({
                   <div className="text-[12px] font-bold text-terracotta tabular-nums">
                     {p.revenue.toLocaleString()}원
                   </div>
-                  <div className="text-[10px] text-muted tabular-nums">
+                  <div className="text-[10px] text-zinc-500 tabular-nums">
                     {p.qty}개 판매
                   </div>
                 </div>
@@ -389,10 +389,10 @@ export default async function AdminReportsPage({
               return (
                 <div key={method} className="mb-2 last:mb-0">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11.5px] font-bold text-text">
+                    <span className="text-[11.5px] font-bold text-zinc-800">
                       {method}
                     </span>
-                    <span className="text-[10.5px] text-muted tabular-nums">
+                    <span className="text-[10.5px] text-zinc-500 tabular-nums">
                       {count}건 · {pct}%
                     </span>
                   </div>
@@ -415,7 +415,7 @@ export default async function AdminReportsPage({
         </section>
       )}
 
-      <p className="text-[10px] text-muted text-center mt-8 no-print">
+      <p className="text-[10px] text-zinc-500 text-center mt-8 no-print">
         * 결제 완료 주문과 환불 완료 건을 기준으로 해요. 입금 대기(가상계좌)는
         입금된 날짜로 자동 합산돼요.
       </p>
@@ -470,12 +470,12 @@ function ReportStat({
         }}
       >
         {value.toLocaleString()}
-        <span className="text-[10px] text-muted ml-0.5 font-sans">
+        <span className="text-[10px] text-zinc-500 ml-0.5 font-sans">
           {unit}
         </span>
       </div>
       {sub && (
-        <div className="text-[10px] text-muted mt-0.5 tabular-nums">{sub}</div>
+        <div className="text-[10px] text-zinc-500 mt-0.5 tabular-nums">{sub}</div>
       )}
     </div>
   )

@@ -62,11 +62,11 @@ export default async function AdminAlgorithmPage() {
         <div className="flex flex-col gap-1.5 items-end">
           <Link
             href="/admin/personalization"
-            className="text-[11px] text-muted hover:text-terracotta"
+            className="text-[11px] text-zinc-500 hover:text-terracotta"
           >
             ← Simulator
           </Link>
-          <Link href="/admin" className="text-[11px] text-muted hover:text-text">
+          <Link href="/admin" className="text-[11px] text-zinc-500 hover:text-zinc-800">
             Admin home
           </Link>
         </div>

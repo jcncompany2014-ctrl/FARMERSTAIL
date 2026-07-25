@@ -120,7 +120,7 @@ export default async function AdminUsersPage({
           {q && (
             <Link
               href="/admin/users"
-              className="px-4 py-2 rounded-full text-xs font-semibold bg-white border border-zinc-200 text-text hover:border-terracotta transition"
+              className="px-4 py-2 rounded-full text-xs font-semibold bg-white border border-zinc-200 text-zinc-800 hover:border-terracotta transition"
             >
               초기화
             </Link>
@@ -136,13 +136,13 @@ export default async function AdminUsersPage({
             <p className="text-sale text-sm">
               회원 정보를 불러오지 못했어요.
             </p>
-            <p className="text-xs text-muted mt-2">
+            <p className="text-xs text-zinc-500 mt-2">
               잠시 후 다시 시도해 주세요. 계속 안 되면 개발 담당에게 이 화면을
               알려주세요. (회원 조회 권한 설정 문제일 수 있어요.)
             </p>
           </div>
         ) : !users || users.length === 0 ? (
-          <p className="text-center text-sm text-muted py-10">
+          <p className="text-center text-sm text-zinc-500 py-10">
             {q ? '조건에 맞는 회원이 없어요' : '가입한 회원이 없어요'}
           </p>
         ) : (
@@ -214,7 +214,7 @@ export default async function AdminUsersPage({
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-muted border-b border-zinc-200">
+                <tr className="text-[11px] text-zinc-500 border-b border-zinc-200">
                   <th className="text-left py-2 font-medium">이메일</th>
                   <th className="text-left py-2 font-medium">이름</th>
                   <th className="text-left py-2 font-medium">연락처</th>
@@ -243,16 +243,16 @@ export default async function AdminUsersPage({
                   return (
                     <tr
                       key={u.id}
-                      className="border-b border-zinc-200/50 hover:bg-bg transition"
+                      className="border-b border-zinc-200/50 hover:bg-zinc-50 transition"
                     >
-                      <td className="py-3 text-[11px] text-ink">
+                      <td className="py-3 text-[11px] text-zinc-900">
                         {u.email ?? '-'}
                       </td>
-                      <td className="py-3 text-ink">{u.name ?? '-'}</td>
-                      <td className="py-3 text-[11px] text-text">
+                      <td className="py-3 text-zinc-900">{u.name ?? '-'}</td>
+                      <td className="py-3 text-[11px] text-zinc-800">
                         {u.phone ?? '-'}
                       </td>
-                      <td className="py-3 text-[11px] text-text max-w-xs truncate">
+                      <td className="py-3 text-[11px] text-zinc-800 max-w-xs truncate">
                         {u.address
                           ? `${u.address}${u.address_detail ? ' ' + u.address_detail : ''}`
                           : '-'}
@@ -263,16 +263,16 @@ export default async function AdminUsersPage({
                             ADMIN
                           </span>
                         ) : (
-                          <span className="text-[11px] text-muted">user</span>
+                          <span className="text-[11px] text-zinc-500">user</span>
                         )}
                       </td>
-                      <td className="py-3 text-right text-ink font-semibold">
+                      <td className="py-3 text-right text-zinc-900 font-semibold">
                         {stats.count}건
                       </td>
                       <td className="py-3 text-right font-semibold text-terracotta">
                         {stats.total.toLocaleString()}원
                       </td>
-                      <td className="py-3 text-right text-[11px] text-muted">
+                      <td className="py-3 text-right text-[11px] text-zinc-500">
                         {formatDate(u.created_at)}
                       </td>
                       <td className="py-3 text-center">
@@ -304,8 +304,8 @@ export default async function AdminUsersPage({
       )}
 
       {/* 안내 */}
-      <div className="mt-4 p-4 rounded-xl bg-bg border border-zinc-200">
-        <p className="text-[11px] text-text">
+      <div className="mt-4 p-4 rounded-xl bg-zinc-50 border border-zinc-200">
+        <p className="text-[11px] text-zinc-800">
           ℹ️ 개인정보 보호를 위해 회원 정보는 조회만 가능해요. 수정이 필요하면
           회원 본인이 직접 마이페이지에서 변경해야 해요. 관리자 권한 부여는
           Supabase SQL Editor에서 직접 처리하세요.

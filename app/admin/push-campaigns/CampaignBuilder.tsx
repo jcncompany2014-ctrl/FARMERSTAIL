@@ -108,7 +108,7 @@ export default function CampaignBuilder() {
     <div className="bg-white rounded-lg border border-zinc-200 p-5 space-y-4">
       {/* Segment 선택 */}
       <div>
-        <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
+        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em] mb-1.5">
           보낼 대상
         </label>
         <div className="space-y-1.5">
@@ -120,19 +120,19 @@ export default function CampaignBuilder() {
               className={`w-full text-left px-3.5 py-2.5 rounded-xl border transition ${
                 segment === s.key
                   ? 'border-terracotta bg-terracotta/5'
-                  : 'border-zinc-200 hover:border-text'
+                  : 'border-zinc-200 hover:border-zinc-800'
               }`}
             >
-              <p className="text-[12px] font-bold text-text">{s.label}</p>
-              <p className="text-[10.5px] text-muted mt-0.5">{s.desc}</p>
+              <p className="text-[12px] font-bold text-zinc-800">{s.label}</p>
+              <p className="text-[10.5px] text-zinc-500 mt-0.5">{s.desc}</p>
             </button>
           ))}
         </div>
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
-          제목 <span className="text-muted/70">({title.length}/80)</span>
+        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em] mb-1.5">
+          제목 <span className="text-zinc-500/70">({title.length}/80)</span>
         </label>
         <input
           type="text"
@@ -145,8 +145,8 @@ export default function CampaignBuilder() {
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
-          본문 <span className="text-muted/70">({body.length}/240)</span>
+        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em] mb-1.5">
+          본문 <span className="text-zinc-500/70">({body.length}/240)</span>
         </label>
         <textarea
           value={body}
@@ -159,7 +159,7 @@ export default function CampaignBuilder() {
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
+        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em] mb-1.5">
           이동할 URL (선택)
         </label>
         <input
@@ -178,13 +178,13 @@ export default function CampaignBuilder() {
               <Bell className="w-3.5 h-3.5 text-white" strokeWidth={2} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-widest text-muted font-bold">
+              <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
                 Preview · 사용자가 보게 될 모습
               </p>
-              <p className="text-[12.5px] font-bold text-text mt-0.5">
+              <p className="text-[12.5px] font-bold text-zinc-800 mt-0.5">
                 {title ? `[광고] ${title}` : '(제목)'}
               </p>
-              <p className="text-[11px] text-muted mt-0.5 line-clamp-3">
+              <p className="text-[11px] text-zinc-500 mt-0.5 line-clamp-3">
                 {body || '(본문)'}
               </p>
             </div>
@@ -196,7 +196,7 @@ export default function CampaignBuilder() {
         type="button"
         onClick={send}
         disabled={sending || !title.trim() || !body.trim()}
-        className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-text text-white text-[13px] font-black active:scale-[0.98] transition disabled:opacity-50"
+        className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-zinc-900 text-white text-[13px] font-black active:scale-[0.98] transition disabled:opacity-50"
       >
         {sending ? (
           <>

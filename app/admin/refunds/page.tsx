@@ -120,7 +120,7 @@ export default async function AdminRefundsPage() {
         <div>
           <Link
             href="/admin"
-            className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-text font-semibold mb-3"
+            className="inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-800 font-semibold mb-3"
           >
             <ArrowLeft className="w-3 h-3" strokeWidth={2.5} />
             대시보드
@@ -181,19 +181,19 @@ export default async function AdminRefundsPage() {
               >
                 <Link
                   href={`/admin/orders/${d.order_id}`}
-                  className="font-mono text-[12px] text-text hover:text-terracotta truncate"
+                  className="font-mono text-[12px] text-zinc-800 hover:text-terracotta truncate"
                 >
                   주문 #{String(d.order_id).slice(0, 8)} ·{' '}
                   {Number(d.amount).toLocaleString()}원
                 </Link>
-                <span className="text-[10px] text-muted shrink-0">
+                <span className="text-[10px] text-zinc-500 shrink-0">
                   {d.attempts}회 실패
                   {d.last_error ? ` · ${String(d.last_error).slice(0, 28)}` : ''}
                 </span>
               </li>
             ))}
           </ul>
-          <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
+          <p className="text-[10.5px] text-zinc-500 mt-2 leading-relaxed">
             자동 재시도가 모두 실패했어요. Toss 콘솔에서 직접 환불 후 해당 주문을
             처리해 주세요. (이 목록은 비어 있는 게 정상이에요)
           </p>
@@ -208,13 +208,13 @@ export default async function AdminRefundsPage() {
         {list.length === 0 ? (
           <div className="rounded-xl border border-zinc-200 px-5 py-12 text-center bg-white">
             <RefreshCcw
-              className="w-10 h-10 text-muted mx-auto mb-3"
+              className="w-10 h-10 text-zinc-500 mx-auto mb-3"
               strokeWidth={1.3}
             />
-            <p className="text-[13px] font-bold text-text">
+            <p className="text-[13px] font-bold text-zinc-800">
               아직 환불 내역이 없어요
             </p>
-            <p className="text-[11px] text-muted mt-1">
+            <p className="text-[11px] text-zinc-500 mt-1">
               고객이 직접 환불하거나 관리자가 부분취소하면 여기에 기록돼요
             </p>
           </div>
@@ -287,7 +287,7 @@ function StatCard({
         >
           {value.toLocaleString()}
         </span>
-        <span className="text-[11px] text-muted">{unit}</span>
+        <span className="text-[11px] text-zinc-500">{unit}</span>
       </div>
     </div>
   )
@@ -319,7 +319,7 @@ function RefundRow({
     <li>
       <Link
         href={`/admin/orders/${refund.order_id}`}
-        className="block bg-white rounded-xl border border-zinc-200 px-4 py-3 hover:border-text transition"
+        className="block bg-white rounded-xl border border-zinc-200 px-4 py-3 hover:border-zinc-800 transition"
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -369,18 +369,18 @@ function RefundRow({
                   {statusMeta.label}
                 </span>
               </div>
-              <div className="text-[10.5px] text-muted mt-0.5 truncate">
+              <div className="text-[10.5px] text-zinc-500 mt-0.5 truncate">
                 주문 #{refund.order_id.slice(0, 8)}
                 {refund.reason && ` · ${refund.reason}`}
               </div>
             </div>
           </div>
           <div className="text-right shrink-0">
-            <div className="text-[10px] text-muted font-mono tabular-nums">
+            <div className="text-[10px] text-zinc-500 font-mono tabular-nums">
               {formatDate(refund.refunded_at)}
             </div>
             {refund.refunded_by === null && (
-              <div className="text-[10.5px] text-muted mt-0.5">고객 직접 환불</div>
+              <div className="text-[10.5px] text-zinc-500 mt-0.5">고객 직접 환불</div>
             )}
           </div>
         </div>

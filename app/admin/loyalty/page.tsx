@@ -98,12 +98,12 @@ export default async function AdminLoyaltyPage() {
         {error ? (
           <div>
             <p className="text-sale text-sm">멤버십 정보를 불러오지 못했어요.</p>
-            <p className="text-xs text-muted mt-2">
+            <p className="text-xs text-zinc-500 mt-2">
               잠시 후 다시 시도해 주세요. 계속 안 되면 개발 담당에게 알려주세요.
             </p>
           </div>
         ) : rows.length === 0 ? (
-          <p className="text-center text-sm text-muted py-10">
+          <p className="text-center text-sm text-zinc-500 py-10">
             스탬프 {MIN_STAMPS}개 이상인 손님이 아직 없어요.
           </p>
         ) : (
@@ -119,7 +119,7 @@ export default async function AdminLoyaltyPage() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-[11px] text-muted border-b border-zinc-200">
+                  <tr className="text-[11px] text-zinc-500 border-b border-zinc-200">
                     <th className="text-left py-2 font-medium">이름</th>
                     <th className="text-left py-2 font-medium">이메일</th>
                     <th className="text-center py-2 font-medium">등급</th>
@@ -136,12 +136,12 @@ export default async function AdminLoyaltyPage() {
                     return (
                       <tr
                         key={r.id}
-                        className="border-b border-zinc-200/50 hover:bg-bg transition"
+                        className="border-b border-zinc-200/50 hover:bg-zinc-50 transition"
                       >
-                        <td className="py-3 text-ink font-medium">
+                        <td className="py-3 text-zinc-900 font-medium">
                           {r.name ?? '(이름 미등록)'}
                         </td>
-                        <td className="py-3 text-[11px] text-text">
+                        <td className="py-3 text-[11px] text-zinc-800">
                           {r.email ?? '-'}
                         </td>
                         <td className="py-3 text-center">
@@ -150,10 +150,10 @@ export default async function AdminLoyaltyPage() {
                         <td className="py-3 text-right font-bold text-zinc-900 tabular-nums">
                           {sc}
                         </td>
-                        <td className="py-3 pl-4 text-[11px] text-text tabular-nums">
+                        <td className="py-3 pl-4 text-[11px] text-zinc-800 tabular-nums">
                           {card.cardNumber}판 · {card.filled}/{STAMP_CARD_SIZE}
                         </td>
-                        <td className="py-3 text-right text-[11px] text-muted">
+                        <td className="py-3 text-right text-[11px] text-zinc-500">
                           {formatDate(r.tier_updated_at)}
                         </td>
                       </tr>
@@ -166,8 +166,8 @@ export default async function AdminLoyaltyPage() {
         )}
       </div>
 
-      <div className="mt-4 p-4 rounded-xl bg-bg border border-zinc-200">
-        <p className="text-[11px] text-text leading-relaxed">
+      <div className="mt-4 p-4 rounded-xl bg-zinc-50 border border-zinc-200">
+        <p className="text-[11px] text-zinc-800 leading-relaxed">
           ℹ️ 등급은 <b>한번 올라가면 내려가지 않아요</b>(2026-07-22). 스탬프는 찍힌 날부터
           1년 유효하지만, 등급을 만든 스탬프(판을 완성한 것)는 잠겨서 만료되지 않아요.
           오래 쉬면 현재 판의 스탬프만 빠지고(카드가 비고) 등급은 유지돼요. 만료 반영은
@@ -179,7 +179,7 @@ export default async function AdminLoyaltyPage() {
 }
 
 function TierPill({ meta }: { meta: ReturnType<typeof tierMeta> }) {
-  if (!meta) return <span className="text-[11px] text-muted">곧 씨앗</span>
+  if (!meta) return <span className="text-[11px] text-zinc-500">곧 씨앗</span>
   return (
     <span
       className="inline-flex items-center text-[11px] font-bold px-2.5 py-1 rounded-full"

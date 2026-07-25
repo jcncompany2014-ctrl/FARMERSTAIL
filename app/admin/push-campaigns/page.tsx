@@ -49,14 +49,14 @@ export default async function AdminPushCampaignsPage() {
       <header className="mb-6 flex items-end justify-between">
         <div>
           <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">알림 보내기</h1>
-          <p className="text-[12px] text-muted mt-1">
+          <p className="text-[12px] text-zinc-500 mt-1">
             보낼 고객 그룹을 고르고 한 번에 알림을 보내요. 광고성 알림은 수신
             동의한 분에게만 나가고, 밤 시간대(22~08시)엔 자동으로 멈춰요.
           </p>
         </div>
         <Link
           href="/admin"
-          className="text-[11px] text-muted hover:text-terracotta font-semibold"
+          className="text-[11px] text-zinc-500 hover:text-terracotta font-semibold"
         >
           ← 대시보드
         </Link>
@@ -64,10 +64,10 @@ export default async function AdminPushCampaignsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <section>
-          <h2 className="text-[13px] font-black text-text mb-3">새 캠페인</h2>
+          <h2 className="text-[13px] font-black text-zinc-800 mb-3">새 캠페인</h2>
           <CampaignBuilder />
           <div className="mt-3 p-3 rounded-xl bg-zinc-50 border border-zinc-200">
-            <p className="text-[11px] text-text leading-relaxed">
+            <p className="text-[11px] text-zinc-800 leading-relaxed">
               ⚠️ 광고성 알림 — 법(정보통신망법 §50④)에 따라 제목 앞에
               <strong> [광고]</strong> 가 자동으로 붙어요. 알림 설정에서
               마케팅을 끈 분이나 밤 시간대(22:00~08:00)인 분은 자동으로
@@ -77,12 +77,12 @@ export default async function AdminPushCampaignsPage() {
         </section>
 
         <section>
-          <h2 className="text-[13px] font-black text-text mb-3">
+          <h2 className="text-[13px] font-black text-zinc-800 mb-3">
             발송 이력 (최근 50건)
           </h2>
           {campaigns.length === 0 ? (
             <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
-              <p className="text-[12px] text-muted">
+              <p className="text-[12px] text-zinc-500">
                 아직 발송한 캠페인이 없어요.
               </p>
             </div>
@@ -99,18 +99,18 @@ export default async function AdminPushCampaignsPage() {
                     className="border-b border-zinc-200 last:border-b-0 px-4 py-3"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-[12.5px] font-bold text-text">
+                      <p className="text-[12.5px] font-bold text-zinc-800">
                         {c.title}
                       </p>
                       <span className="text-[9px] text-terracotta font-bold uppercase tracking-widest shrink-0">
                         {segmentLabel[c.segment]}
                       </span>
                     </div>
-                    <p className="text-[11px] text-muted mt-1 line-clamp-2">
+                    <p className="text-[11px] text-zinc-500 mt-1 line-clamp-2">
                       {c.body}
                     </p>
                     <div className="flex items-center gap-3 mt-2 text-[10px] tabular-nums">
-                      <span className="text-text">
+                      <span className="text-zinc-800">
                         대상 {c.recipient_count.toLocaleString()}명
                       </span>
                       <span className="text-moss font-bold">
@@ -125,7 +125,7 @@ export default async function AdminPushCampaignsPage() {
                         {successRate.toFixed(1)}%
                       </span>
                     </div>
-                    <p className="text-[10px] text-muted font-mono mt-1">
+                    <p className="text-[10px] text-zinc-500 font-mono mt-1">
                       {new Date(c.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
                     </p>
                   </li>

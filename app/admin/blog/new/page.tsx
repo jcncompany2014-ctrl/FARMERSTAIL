@@ -16,7 +16,7 @@ export default async function AdminBlogNewPage() {
       <div className="mb-6">
         <Link
           href="/admin/blog"
-          className="text-xs text-muted hover:text-terracotta"
+          className="text-xs text-zinc-500 hover:text-terracotta"
         >
           ← 매거진
         </Link>

@@ -283,8 +283,8 @@ export default function ProductForm({
           </Field>
           {form.image_url && (
             <div className="mt-2">
-              <p className="text-[10px] text-muted mb-1">미리보기</p>
-              <div className="w-32 h-32 rounded-lg bg-bg overflow-hidden">
+              <p className="text-[10px] text-zinc-500 mb-1">미리보기</p>
+              <div className="w-32 h-32 rounded-lg bg-zinc-50 overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={form.image_url}
@@ -383,7 +383,7 @@ export default function ProductForm({
             />
           </Field>
 
-          <label className="flex items-center gap-2 text-sm text-ink cursor-pointer pt-2">
+          <label className="flex items-center gap-2 text-sm text-zinc-900 cursor-pointer pt-2">
             <input
               type="checkbox"
               checked={form.is_active}
@@ -393,7 +393,7 @@ export default function ProductForm({
             활성화 (판매 중)
           </label>
 
-          <label className="flex items-center gap-2 text-sm text-ink cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-zinc-900 cursor-pointer">
             <input
               type="checkbox"
               checked={form.is_subscribable}
@@ -586,7 +586,7 @@ export default function ProductForm({
 }
 
 const inputClass =
-  'w-full px-3 py-2 rounded-lg bg-bg text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta'
+  'w-full px-3 py-2 rounded-lg bg-zinc-50 text-sm text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-terracotta'
 
 function Section({
   title,
@@ -597,7 +597,7 @@ function Section({
 }) {
   return (
     <section className="p-5 rounded-lg bg-white border border-zinc-200">
-      <h2 className="text-sm font-bold text-ink mb-3">{title}</h2>
+      <h2 className="text-sm font-bold text-zinc-900 mb-3">{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>
   )
@@ -612,7 +612,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold text-text mb-1">
+      <label className="block text-[11px] font-semibold text-zinc-800 mb-1">
         {label}
       </label>
       {children}

@@ -216,7 +216,7 @@ export default async function SubscriptionChargesPage({
       {/* 리스트 */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <table className="w-full text-[13px]">
-          <thead className="bg-zinc-50 text-muted text-[11px] uppercase tracking-widest">
+          <thead className="bg-zinc-50 text-zinc-500 text-[11px] uppercase tracking-widest">
             <tr>
               <th className="text-left px-4 py-2.5 font-bold">시도일</th>
               <th className="text-left px-4 py-2.5 font-bold">상태</th>
@@ -229,7 +229,7 @@ export default async function SubscriptionChargesPage({
           <tbody>
             {list.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-12 text-muted">
+                <td colSpan={6} className="text-center py-12 text-zinc-500">
                   결과가 없어요
                 </td>
               </tr>
@@ -240,9 +240,9 @@ export default async function SubscriptionChargesPage({
                 return (
                   <tr
                     key={row.id}
-                    className="border-t border-zinc-200 hover:bg-bg/40"
+                    className="border-t border-zinc-200 hover:bg-zinc-50/40"
                   >
-                    <td className="px-4 py-3 text-text">
+                    <td className="px-4 py-3 text-zinc-800">
                       {formatDateTime(row.attempted_at)}
                     </td>
                     <td className="px-4 py-3">
@@ -257,8 +257,8 @@ export default async function SubscriptionChargesPage({
                     <td className="px-4 py-3 text-right font-mono tabular-nums">
                       {row.amount.toLocaleString()}원
                     </td>
-                    <td className="px-4 py-3 text-muted">{row.scheduled_for}</td>
-                    <td className="px-4 py-3 text-[11.5px] text-muted">
+                    <td className="px-4 py-3 text-zinc-500">{row.scheduled_for}</td>
+                    <td className="px-4 py-3 text-[11.5px] text-zinc-500">
                       {row.error_code && (
                         <span className="font-mono mr-1.5">
                           {row.error_code}
@@ -275,7 +275,7 @@ export default async function SubscriptionChargesPage({
                           주문 보기 →
                         </Link>
                       ) : (
-                        <span className="text-muted/60">—</span>
+                        <span className="text-zinc-500/60">—</span>
                       )}
                     </td>
                   </tr>
@@ -288,7 +288,7 @@ export default async function SubscriptionChargesPage({
 
       {/* 페이지네이션 — 단순 prev/next */}
       <div className="mt-4 flex items-center justify-between">
-        <p className="text-[11.5px] text-muted">
+        <p className="text-[11.5px] text-zinc-500">
           페이지 {pageNum} · {list.length}건 표시 · 페이지당 {PAGE_SIZE}건
         </p>
         <div className="flex gap-2">
@@ -334,7 +334,7 @@ function FilterChip({
         'shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-bold transition ' +
         (active
           ? 'bg-ink text-white'
-          : 'bg-white text-text border border-zinc-200 hover:border-text')
+          : 'bg-white text-zinc-800 border border-zinc-200 hover:border-zinc-800')
       }
     >
       {label}

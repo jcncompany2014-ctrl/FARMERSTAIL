@@ -174,12 +174,12 @@ function Distribution({
   const sorted = Array.from(data.entries()).sort((a, b) => b[1] - a[1])
   if (sorted.length === 0) {
     return (
-      <div className="text-[11.5px] text-muted">{title}: 데이터 없음</div>
+      <div className="text-[11.5px] text-zinc-500">{title}: 데이터 없음</div>
     )
   }
   return (
     <div>
-      <div className="text-[10.5px] font-bold uppercase tracking-wider text-muted mb-1.5">
+      <div className="text-[10.5px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
         {title} ({total}건)
       </div>
       <div className="space-y-1">
@@ -206,7 +206,7 @@ function Distribution({
                 />
               </div>
               <span
-                className="font-mono text-muted tabular-nums w-16 text-right"
+                className="font-mono text-zinc-500 tabular-nums w-16 text-right"
               >
                 {count} ({pct}%)
               </span>

@@ -122,10 +122,10 @@ export default async function InventionFlagsPage() {
                       {on ? 'ON' : 'OFF'}
                     </span>
                   </div>
-                  <p className="text-[11.5px] leading-relaxed mt-0.5 text-muted">
+                  <p className="text-[11.5px] leading-relaxed mt-0.5 text-zinc-500">
                     {row.description}
                   </p>
-                  <p className="text-[10.5px] mt-1 font-mono text-muted">
+                  <p className="text-[10.5px] mt-1 font-mono text-zinc-500">
                     {envVar}={on ? 'on' : 'off / unset'}
                   </p>
                 </div>
@@ -151,7 +151,7 @@ export default async function InventionFlagsPage() {
           <p className="font-bold" style={{ color: 'var(--ink)' }}>
             PCT 출원 전 정책
           </p>
-          <p className="mt-1 text-text/80">
+          <p className="mt-1 text-zinc-800/80">
             default 모두 OFF. 명시적 <code className="font-mono">on</code>{' '}
             으로 설정해야 동작. PCT 출원 결정 후 또는 신규성 grace period
             내에서만 ON 권장.

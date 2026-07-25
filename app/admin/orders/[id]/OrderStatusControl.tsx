@@ -48,7 +48,7 @@ export default function OrderStatusControl({
         <h2 className="text-sm font-bold text-sale mb-1">
           주문 상태에 문제가 있어요
         </h2>
-        <p className="text-[11px] text-muted">
+        <p className="text-[11px] text-zinc-500">
           이 주문의 상태 값이 정상 범위를 벗어났어요. 개발 담당에게 이
           주문번호를 알려주세요.
         </p>
@@ -96,8 +96,8 @@ export default function OrderStatusControl({
 
   return (
     <section className="p-6 rounded-lg bg-white border border-zinc-200">
-      <h2 className="text-sm font-bold text-ink mb-1">주문 상태 관리</h2>
-      <p className="text-[11px] text-muted mb-4">
+      <h2 className="text-sm font-bold text-zinc-900 mb-1">주문 상태 관리</h2>
+      <p className="text-[11px] text-zinc-500 mb-4">
         {allowed.length === 0
           ? '이 주문은 더 이상 상태를 변경할 수 없어요'
           : '클릭해서 상태를 변경하세요'}
@@ -115,7 +115,7 @@ export default function OrderStatusControl({
               className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition text-left flex items-center justify-between ${
                 active
                   ? `${STATUS_COLOR[s]} text-white`
-                  : 'bg-bg text-text hover:bg-rule'
+                  : 'bg-zinc-50 text-zinc-800 hover:bg-rule'
               } disabled:opacity-40 disabled:cursor-not-allowed`}
             >
               <span>{ORDER_STATUS_LABEL[s]}</span>

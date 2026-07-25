@@ -84,7 +84,7 @@ export default async function AdminCsInboxPage() {
         </div>
         <Link
           href="/admin"
-          className="text-[11px] text-muted hover:text-terracotta font-semibold"
+          className="text-[11px] text-zinc-500 hover:text-terracotta font-semibold"
         >
           ← 대시보드
         </Link>
@@ -93,13 +93,13 @@ export default async function AdminCsInboxPage() {
       {grouped.length === 0 ? (
         <div className="bg-white rounded-lg border border-zinc-200 p-12 text-center">
           <Inbox
-            className="w-10 h-10 text-muted mx-auto mb-3"
+            className="w-10 h-10 text-zinc-500 mx-auto mb-3"
             strokeWidth={1.3}
           />
-          <p className="text-[13px] font-bold text-text">
+          <p className="text-[13px] font-bold text-zinc-800">
             모든 답장을 확인했어요
           </p>
-          <p className="text-[11px] text-muted mt-1">
+          <p className="text-[11px] text-zinc-500 mt-1">
             사용자가 보낸 새 메시지가 들어오면 여기에 표시됩니다.
           </p>
         </div>
@@ -119,7 +119,7 @@ export default async function AdminCsInboxPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="text-[13px] font-bold text-text">
+                        <p className="text-[13px] font-bold text-zinc-800">
                           {p?.name ?? '(이름 없음)'}
                         </p>
                         {g.unreadCount > 1 && (
@@ -127,14 +127,14 @@ export default async function AdminCsInboxPage() {
                             +{g.unreadCount - 1}
                           </span>
                         )}
-                        <span className="text-[10px] text-muted font-mono">
+                        <span className="text-[10px] text-zinc-500 font-mono">
                           {p?.email ?? '—'}
                         </span>
                       </div>
-                      <p className="text-[12px] text-text leading-relaxed line-clamp-2">
+                      <p className="text-[12px] text-zinc-800 leading-relaxed line-clamp-2">
                         {g.body}
                       </p>
-                      <p className="text-[10px] text-muted font-mono mt-1">
+                      <p className="text-[10px] text-zinc-500 font-mono mt-1">
                         {new Date(g.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
                       </p>
                     </div>

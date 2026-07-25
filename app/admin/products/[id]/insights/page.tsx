@@ -173,7 +173,7 @@ export default async function ProductInsightsPage({
       <div className="mb-5">
         <Link
           href={`/admin/products/${id}`}
-          className="inline-flex items-center gap-1 text-xs text-muted hover:text-terracotta font-semibold"
+          className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-terracotta font-semibold"
         >
           <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
           제품 편집
@@ -181,7 +181,7 @@ export default async function ProductInsightsPage({
         <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-2">
           상품 분석
         </h1>
-        <p className="text-xs text-muted mt-1">
+        <p className="text-xs text-zinc-500 mt-1">
           {product.name} · LTV · 재구매율 · buyer 분포
         </p>
       </div>
@@ -208,8 +208,8 @@ export default async function ProductInsightsPage({
       </section>
 
       {/* LTV histogram */}
-      <section className="rounded border border-line p-4 mb-5">
-        <h2 className="text-sm font-semibold text-ink mb-3">LTV 분포</h2>
+      <section className="rounded border border-zinc-200 p-4 mb-5">
+        <h2 className="text-sm font-semibold text-zinc-900 mb-3">LTV 분포</h2>
         <div className="space-y-2">
           {histogram.map((count: number, i: number) => {
             const lo = buckets[i]!
@@ -223,8 +223,8 @@ export default async function ProductInsightsPage({
             return (
               <div key={i} className="text-xs">
                 <div className="flex justify-between mb-0.5">
-                  <span className="text-ink">{label}</span>
-                  <span className="text-muted">
+                  <span className="text-zinc-900">{label}</span>
+                  <span className="text-zinc-500">
                     {count}명 ({pct.toFixed(0)}%)
                   </span>
                 </div>
@@ -241,13 +241,13 @@ export default async function ProductInsightsPage({
       </section>
 
       {/* Top 10 buyers */}
-      <section className="rounded border border-line p-4">
-        <h2 className="text-sm font-semibold text-ink mb-3">
+      <section className="rounded border border-zinc-200 p-4">
+        <h2 className="text-sm font-semibold text-zinc-900 mb-3">
           Top 10 buyers (LTV 기준)
         </h2>
         <table className="w-full text-xs min-w-[560px]">
-          <thead className="text-muted">
-            <tr className="border-b border-line">
+          <thead className="text-zinc-500">
+            <tr className="border-b border-zinc-200">
               <th className="text-left py-2.5 px-3 font-semibold">User</th>
               <th className="text-right py-2.5 px-3 font-semibold">총 LTV</th>
               <th className="text-right py-2.5 px-3 font-semibold">이 제품 매출</th>
@@ -257,8 +257,8 @@ export default async function ProductInsightsPage({
           </thead>
           <tbody>
             {topBuyers.map((b) => (
-              <tr key={b.userId} className="border-b border-line/60">
-                <td className="py-2.5 px-3 text-ink font-mono text-[10.5px]">
+              <tr key={b.userId} className="border-b border-zinc-200/60">
+                <td className="py-2.5 px-3 text-zinc-900 font-mono text-[10.5px]">
                   {b.userId.slice(0, 8)}…
                 </td>
                 <td className="py-2.5 px-3 text-right">
@@ -268,7 +268,7 @@ export default async function ProductInsightsPage({
                   {b.productRevenue.toLocaleString()}원
                 </td>
                 <td className="py-2.5 px-3 text-right">{b.orderCount}</td>
-                <td className="py-2.5 px-3 text-right text-muted">
+                <td className="py-2.5 px-3 text-right text-zinc-500">
                   {b.firstOrderAt
                     ? new Date(b.firstOrderAt).toLocaleDateString('ko-KR', {
                         timeZone: 'Asia/Seoul',
@@ -280,7 +280,7 @@ export default async function ProductInsightsPage({
           </tbody>
         </table>
         {buyerCount === 0 && (
-          <p className="text-xs text-muted py-5 text-center">
+          <p className="text-xs text-zinc-500 py-5 text-center">
             아직 구매 기록이 없어요.
           </p>
         )}

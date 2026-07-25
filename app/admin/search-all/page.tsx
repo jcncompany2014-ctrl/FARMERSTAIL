@@ -115,7 +115,7 @@ export default async function AdminUnifiedSearch({
       <form action="/admin/search-all" method="get" className="flex gap-2 mb-6">
         <div className="relative flex-1 max-w-xl">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500"
             strokeWidth={2}
           />
           <input
@@ -136,11 +136,11 @@ export default async function AdminUnifiedSearch({
 
       {!query ? (
         <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
-          <p className="text-[12px] text-muted">검색어를 입력해 주세요.</p>
+          <p className="text-[12px] text-zinc-500">검색어를 입력해 주세요.</p>
         </div>
       ) : totalHits === 0 ? (
         <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
-          <p className="text-[12px] text-muted">
+          <p className="text-[12px] text-zinc-500">
             &ldquo;{query}&rdquo; 결과가 없어요.
           </p>
         </div>
@@ -165,10 +165,10 @@ export default async function AdminUnifiedSearch({
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="text-[12.5px] font-bold text-text">
+                          <p className="text-[12.5px] font-bold text-zinc-800">
                             {p.name ?? '(이름 없음)'}
                           </p>
-                          <p className="text-[11px] text-muted truncate">
+                          <p className="text-[11px] text-zinc-500 truncate">
                             {p.email ?? '—'} · {p.phone ?? '—'}
                           </p>
                         </div>
@@ -202,10 +202,10 @@ export default async function AdminUnifiedSearch({
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="text-[12.5px] font-bold text-text font-mono">
+                          <p className="text-[12.5px] font-bold text-zinc-800 font-mono">
                             {o.order_number}
                           </p>
-                          <p className="text-[11px] text-muted">
+                          <p className="text-[11px] text-zinc-500">
                             {o.recipient_name ?? '—'} ·{' '}
                             {o.total_amount.toLocaleString()}원 ·{' '}
                             <span className="font-bold text-terracotta">
@@ -244,13 +244,13 @@ export default async function AdminUnifiedSearch({
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="text-[12.5px] font-bold text-text">
+                          <p className="text-[12.5px] font-bold text-zinc-800">
                             {s.profiles?.name ?? '(이름 없음)'} ·{' '}
-                            <span className="text-muted font-mono text-[11px]">
+                            <span className="text-zinc-500 font-mono text-[11px]">
                               {s.id.slice(0, 8)}
                             </span>
                           </p>
-                          <p className="text-[11px] text-muted">
+                          <p className="text-[11px] text-zinc-500">
                             {s.profiles?.email ?? '—'} ·{' '}
                             {s.total_amount.toLocaleString()}원/2주 ·{' '}
                             <span className="font-bold text-terracotta">
@@ -294,8 +294,8 @@ function ResultSection({
     <section>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-terracotta">{icon}</span>
-        <h2 className="text-[13px] font-black text-text">{title}</h2>
-        <span className="text-[10px] text-muted">{count}건</span>
+        <h2 className="text-[13px] font-black text-zinc-800">{title}</h2>
+        <span className="text-[10px] text-zinc-500">{count}건</span>
       </div>
       {children}
     </section>

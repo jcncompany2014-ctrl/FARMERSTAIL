@@ -239,8 +239,8 @@ export default function MessageComposer({ userId }: { userId: string }) {
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
-          제목 <span className="text-muted/70">({title.length}/80)</span>
+        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em] mb-1.5">
+          제목 <span className="text-zinc-500/70">({title.length}/80)</span>
         </label>
         <input
           type="text"
@@ -253,8 +253,8 @@ export default function MessageComposer({ userId }: { userId: string }) {
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
-          본문 <span className="text-muted/70">({body.length}/240)</span>
+        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em] mb-1.5">
+          본문 <span className="text-zinc-500/70">({body.length}/240)</span>
         </label>
         <textarea
           value={body}
@@ -267,7 +267,7 @@ export default function MessageComposer({ userId }: { userId: string }) {
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-muted uppercase tracking-[0.15em] mb-1.5">
+        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em] mb-1.5">
           이동할 URL (선택)
         </label>
         <input
@@ -287,13 +287,13 @@ export default function MessageComposer({ userId }: { userId: string }) {
               <Bell className="w-3.5 h-3.5 text-white" strokeWidth={2} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-widest text-muted font-bold">
+              <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
                 Preview · 미리보기
               </p>
-              <p className="text-[12.5px] font-bold text-text mt-0.5 truncate">
+              <p className="text-[12.5px] font-bold text-zinc-800 mt-0.5 truncate">
                 {title || '(제목)'}
               </p>
-              <p className="text-[11px] text-muted mt-0.5 line-clamp-3">
+              <p className="text-[11px] text-zinc-500 mt-0.5 line-clamp-3">
                 {body || '(본문)'}
               </p>
             </div>
@@ -305,7 +305,7 @@ export default function MessageComposer({ userId }: { userId: string }) {
         type="button"
         onClick={send}
         disabled={sending || !title.trim() || !body.trim()}
-        className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-text text-white text-[13px] font-black active:scale-[0.98] transition disabled:opacity-50"
+        className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-zinc-900 text-white text-[13px] font-black active:scale-[0.98] transition disabled:opacity-50"
       >
         {sending ? (
           <>
@@ -321,7 +321,7 @@ export default function MessageComposer({ userId }: { userId: string }) {
       </button>
 
       {lastResult && (
-        <div className="text-[11px] text-muted text-center">
+        <div className="text-[11px] text-zinc-500 text-center">
           마지막 발송 결과 · 성공 {lastResult.sent}대 / 만료 토큰 정리{' '}
           {lastResult.dead}대
           {lastResult.reason ? ` · ${lastResult.reason}` : ''}
