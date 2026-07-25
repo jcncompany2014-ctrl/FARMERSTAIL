@@ -106,31 +106,31 @@ COMMENT ON COLUMN public.profiles.admin_note IS 'admin 전용 운영 메모(계�
 sed -i 's/text-ink\b/text-zinc-900/g; s/text-text\b/text-zinc-800/g; s/text-muted\b/text-zinc-500/g; s/bg-bg\b/bg-zinc-50/g; s/border-line\b/border-zinc-200/g; s/bg-text\b/bg-zinc-900/g; s/hover:bg-\[#5C4130\]/hover:bg-zinc-700/g' <파일>
 ```
 `var(--terracotta|--moss)`·`text-sale/moss/gold/terracotta` 는 유지. `label/[sku]` 제외.
-- [ ] B1-1: users/page · products/[id]/insights · reports · personalization/page · orders/[id]/PartialCancelPanel
-- [ ] B1-2: users/[id]/message(page·MessageComposer) · search-all · refunds · push-campaigns/CampaignBuilder
-- [ ] B1-3: nutrients/NutrientsForm · orders/page · blog/categories/CategoriesManager · push-stats · loyalty
-- [ ] B1-4: subscriptions/calendar · push-campaigns/page · products/page · charges · ProductForm
-- [ ] B1-5: PaymentEventTimeline · finance · cs-inbox · ShippingControl · products/[id]/page
-- [ ] B1-6(나머지 12): OrderStatusControl · personalization-insights · invention-flags · BlogPostForm(잔여3) · algorithm · products/new · nutrients/page · blog/categories/page · blog/[id] · subscriptions/page · ProductRowActions · blog/new
+- [x] B1-1(완료 2026-07-25): users/page · products/[id]/insights · reports · personalization/page · orders/[id]/PartialCancelPanel
+- [x] B1-2: users/[id]/message(page·MessageComposer) · search-all · refunds · push-campaigns/CampaignBuilder
+- [x] B1-3: nutrients/NutrientsForm · orders/page · blog/categories/CategoriesManager · push-stats · loyalty
+- [x] B1-4: subscriptions/calendar · push-campaigns/page · products/page · charges · ProductForm
+- [x] B1-5: PaymentEventTimeline · finance · cs-inbox · ShippingControl · products/[id]/page
+- [x] B1-6(완료·DoD 0줄): OrderStatusControl · personalization-insights · invention-flags · BlogPostForm(잔여3) · algorithm · products/new · nutrients/page · blog/categories/page · blog/[id] · subscriptions/page · ProductRowActions · blog/new
 **DoD**: `grep -rE "text-ink|text-muted|text-text|bg-bg\b|border-line|bg-text\b" app/admin --include="*.tsx" | grep -v label` → 0줄.
 
 ### B2. `.kicker` 클래스 잔재 → zinc 라벨
 사용처(`grep -rn "kicker" app/admin`)를 `text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500` 로 교체(HelpTip 유지). globals.css 정의는 그대로.
-- [ ] B2 완료 → DoD: admin 내 kicker 0줄.
+- [x] B2 완료 2026-07-25 — className='kicker' 7곳 zinc 유틸로. DoD 0줄 달성.
 
 ### B3. docstring 현행화 (주석만)
-- [ ] B3-1 `personalization/page.tsx` 상단 — "레시피 승인(동의) 현황 페이지. 시뮬레이터는 ?dev=1 게이트(접이식은 렌더러 freeze 로 서버 조건부 대체)" 취지로 교체.
-- [ ] B3-2 `AdminNav.tsx` 상단 그룹 설명이 옛 구조면 "매일/돈/가끔/추후 개발(2026-07-24 v2)" 로.
-- [ ] B3-3 `grep -rn "쿠폰|포인트 적립|위시리스트|무료배송" app/admin` — 주석이면 "(폐기 2026-07)" 부기.
+- [x] B3-1 완료 2026-07-25 — `personalization/page.tsx` 상단 — "레시피 승인(동의) 현황 페이지. 시뮬레이터는 ?dev=1 게이트(접이식은 렌더러 freeze 로 서버 조건부 대체)" 취지로 교체.
+- [x] B3-2 확인 — `AdminNav.tsx` 이미 v2 최신(수정 불요) 상단 그룹 설명이 옛 구조면 "매일/돈/가끔/추후 개발(2026-07-24 v2)" 로.
+- [x] B3-3 확인 — 폐기 개념 주석은 이미 정정 표기됨. `grep -rn "쿠폰|포인트 적립|위시리스트|무료배송" app/admin` — 주석이면 "(폐기 2026-07)" 부기.
 
 ### B4. admin API 라우트 점검 (11개)
 blog/draft · blog/upload · events/upload · orders/[id]/partial-cancel · orders/[id]/status · orders/export · products/upload · promotions/qr · promotions · push-campaigns · users/[id]/message
-- [ ] B4-1 각 라우트 표 작성 → `ADMIN_API_REVIEW.md`: | 라우트 | isAdmin 가드 | 입력 검증 | 에러 형식 | rate limit | 원본 DB에러 노출 | 비고 |
-- [ ] B4-2 수정: (a) isAdmin 가드 누락 라우트에 추가 (b) 원본 DB 에러 노출 → console.error + 일반 문구(audit #69 패턴). 그 외 개선도 재량으로 가능하되 **동작(성공 응답 shape) 변경 금지**.
+- [x] B4-1 완료 2026-07-25 → ADMIN_API_REVIEW.md. 각 라우트 표 작성 → `ADMIN_API_REVIEW.md`: | 라우트 | isAdmin 가드 | 입력 검증 | 에러 형식 | rate limit | 원본 DB에러 노출 | 비고 |
+- [x] B4-2 완료 — isAdmin 누락 0건 확인, promotions DB에러 노출 3곳 dbError 적용. 수정: (a) isAdmin 가드 누락 라우트에 추가 (b) 원본 DB 에러 노출 → console.error + 일반 문구(audit #69 패턴). 그 외 개선도 재량으로 가능하되 **동작(성공 응답 shape) 변경 금지**.
 
 ### B5. 공통화
 - [ ] B5-1 FilterChip(charges 로컬) ↔ orders 인라인 필터 — ui.tsx 로 공통 추출 후 두 곳 적용(시각은 현행 orders 스타일 기준 통일).
-- [ ] B5-2 `AdminHeader` 미사용 페이지 목록화(ADMIN_API_REVIEW.md 하단) — 마이그레이션은 선택(할 경우 시각 동일 유지).
+- [x] B5-2 완료 — ADMIN_API_REVIEW.md 하단 기록(문자열 표준 통일돼 시각 차 없음). `AdminHeader` 미사용 페이지 목록화(ADMIN_API_REVIEW.md 하단) — 마이그레이션은 선택(할 경우 시각 동일 유지).
 
 ---
 

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { normalizePromoCode } from '@/lib/promotions'
+import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -52,7 +53,8 @@ export async function GET() {
     .select('*')
     .order('created_at', { ascending: false })
   if (error) {
-    return NextResponse.json({ code: 'DB_ERROR', message: error.message }, { status: 500 })
+    // audit #69 패턴 — 원본 DB message 는 Sentry 로만, 클라엔 일반 문구(계획 B4).
+    return dbError(error, 'admin_promotions_list', '프로모션 목록을 불러오지 못했어요')
   }
 
   const rows = (data ?? []) as PromoRow[]
@@ -175,7 +177,7 @@ export async function POST(req: Request) {
         { status: 409 },
       )
     }
-    return NextResponse.json({ code: 'DB_ERROR', message: error.message }, { status: 500 })
+    return dbError(error, 'admin_promotions_create', '프로모션을 만들지 못했어요')
   }
 
   return NextResponse.json({ ok: true, promotion: data })
@@ -209,7 +211,7 @@ export async function PATCH(req: Request) {
     .update({ active: body.active })
     .eq('id', body.id)
   if (error) {
-    return NextResponse.json({ code: 'DB_ERROR', message: error.message }, { status: 500 })
+    return dbError(error, 'admin_promotions_update', '프로모션을 수정하지 못했어요')
   }
   return NextResponse.json({ ok: true })
 }
