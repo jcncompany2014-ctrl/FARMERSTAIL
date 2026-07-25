@@ -11,7 +11,13 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
-import { HelpTip } from '@/components/admin/ui'
+import { HelpTip, Hl } from '@/components/admin/ui'
+import CohortRetentionTable, {
+  type CohortRow,
+} from '@/components/admin/CohortRetentionTable'
+import CohortLtvTable, {
+  type LtvRow,
+} from '@/components/admin/CohortLtvTable'
 import {
   CohortReasonPie,
   CohortSkuRatingBar,
@@ -96,6 +102,32 @@ export default async function AdminCohortPage() {
   ])
 
   const outcomes = (outcomesRaw ?? []) as OutcomeRow[]
+
+  // 재구매율·생애가치 표 — 2026-07-25 admin 홈에서 이리로 이전.
+  // RPC 가 prod 에 없으면(마이그레이션 미적용) 빈 배열 fallback, UI 가 빈 상태 처리.
+  // audit #79: 두 RPC 모두 generated types 에 없어 cast 필요.
+  let cohortRows: CohortRow[] = []
+  try {
+    const { data } = await (
+      supabase as unknown as {
+        rpc: (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: unknown }>
+      }
+    ).rpc('cohort_retention_weekly', { p_max_cohorts: 12 })
+    cohortRows = ((data as unknown) ?? []) as CohortRow[]
+  } catch {
+    /* 마이그레이션 미적용 / 권한 미확보 */
+  }
+
+  let ltvRows: LtvRow[] = []
+  try {
+    const { data } = await supabase.rpc('cohort_ltv_weekly', { weeks_back: 12 })
+    ltvRows = (data ?? []) as LtvRow[]
+  } catch {
+    /* 동상 */
+  }
 
   // ────────────────────────────────────────────────────────
   // 집계
@@ -197,8 +229,8 @@ export default async function AdminCohortPage() {
       </h1>
       <p className="text-[13px] text-zinc-500 mt-1">
         같은 주에 가입한 고객끼리 묶어서, 시기별로 재주문·환불·별점·체크인
-        응답이 어떻게 다른지 비교하는 곳이에요. &lsquo;언제 들어온 손님이 오래
-        남는가&rsquo;를 볼 때 써요.
+        응답이 어떻게 다른지 비교하는 곳이에요.{' '}
+        <Hl>언제 들어온 손님이 오래 남는가</Hl>를 볼 때 써요.
       </p>
 
       {/* 핵심 KPI 4종 */}
@@ -231,6 +263,12 @@ export default async function AdminCohortPage() {
           sub={`${checkinResponseCount} / ${checkinEligible}`}
           help="사료 급여 후 '잘 먹었나요?' 물어보는 체크인에 응답한 비율이에요."
         />
+      </div>
+
+      {/* 가입 주별 재구매율 · 생애가치 — admin 홈에서 이전(2026-07-25) */}
+      <div className="mt-5 space-y-5">
+        <CohortRetentionTable rows={cohortRows} />
+        <CohortLtvTable rows={ltvRows} />
       </div>
 
       {/* 코호트 × source 매트릭스 */}

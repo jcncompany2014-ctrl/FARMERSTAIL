@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { AlertTriangle, CheckCircle2, Clock, X } from 'lucide-react'
 import { formatKstShortDateTime as formatDateTime } from '@/lib/datetime-kst'
-import { AdminTabs, StatCard } from '@/components/admin/ui'
+import { AdminTabs, StatCard, Hl, Em } from '@/components/admin/ui'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -152,8 +152,9 @@ export default async function SubscriptionChargesPage({
           자동결제 이력
         </h1>
         <p className="text-[13px] text-zinc-500 mt-1">
-          정기배송 카드 자동결제가 언제 성공·실패했는지 보는 곳이에요. 실패한
-          결제는 자동으로 재시도되고, 계속 실패하면 대시보드 처리 대기에 떠요.
+          <Hl>정기배송 카드 자동결제가 언제 성공·실패했는지</Hl> 보는 곳이에요.
+          실패한 결제는 <Em>자동으로 재시도</Em>되고, 계속 실패하면 대시보드
+          처리 대기에 떠요.
         </p>
       </div>
 
@@ -214,7 +215,10 @@ export default async function SubscriptionChargesPage({
       </div>
 
       {/* 리스트 */}
+      {/* overflow-hidden 만 있으면 admin 공통 표 min-width(720px) 가 그냥 잘려서
+          오른쪽 컬럼이 아예 안 보인다 — 안쪽에 가로 스크롤 래퍼(2026-07-25). */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-[13px]">
           <thead className="bg-zinc-50 text-zinc-500 text-[11px] uppercase tracking-widest">
             <tr>
@@ -284,6 +288,7 @@ export default async function SubscriptionChargesPage({
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* 페이지네이션 — 단순 prev/next */}

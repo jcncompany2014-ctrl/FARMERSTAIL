@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import BetaCohortPrintButton from './BetaCohortPrintButton'
-import { HelpTip } from '@/components/admin/ui'
+import { HelpTip, Hl } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -170,8 +170,8 @@ export default async function BetaCohortPage() {
             베타 테스트 현황
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            2026 비공개 베타(강아지 30마리)의 진행 현황을 관리하는 곳이에요.
-            정부 발표·수의영양 검수용 자료도 여기서 인쇄해요.
+            <Hl>2026 비공개 베타(강아지 30마리)의 진행 현황</Hl>을 관리하는
+            곳이에요. 정부 발표·수의영양 검수용 자료도 여기서 인쇄해요.
           </p>
         </div>
         <BetaCohortPrintButton />

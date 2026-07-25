@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Inbox, ArrowRight } from 'lucide-react'
-import { AdminTabs } from '@/components/admin/ui'
+import { AdminTabs, Hl } from '@/components/admin/ui'
 import { CUSTOMER_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -78,8 +78,9 @@ export default async function AdminCsInboxPage() {
             고객 답장
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            고객이 1:1 메시지에 답장을 보냈는데 아직 사장님이 안 읽은 것들이에요.
-            여기 쌓이면 답을 기다리는 중이니 빨리 봐주세요. — {grouped.length}명
+            고객이 1:1 메시지에 답장을 보냈는데{' '}
+            <Hl>아직 사장님이 안 읽은 것들</Hl>이에요. 여기 쌓이면 답을 기다리는
+            중이니 빨리 봐주세요. — {grouped.length}명
           </p>
         </div>
         <Link

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
-import { AdminTabs, StatCard } from '@/components/admin/ui'
+import { AdminTabs, StatCard, Hl, Em, Warn } from '@/components/admin/ui'
 import { SETTINGS_TABS } from '@/components/admin/tabGroups'
 import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react'
 
@@ -140,9 +140,9 @@ export default async function AdminCronHealthPage() {
           자동작업 상태
         </h1>
         <p className="text-[13px] text-zinc-500 mt-1">
-          결제·배송·알림처럼 뒤에서 자동으로 도는 작업들이 잘 돌아갔는지 보는
-          곳이에요. 빨간 게 있으면 뭔가 멈춘 거라 확인이 필요해요 (최근{' '}
-          {WINDOW_DAYS}일).
+          <Hl>뒤에서 자동으로 도는 작업들이 잘 돌아갔는지</Hl> 보는 곳이에요
+          (결제·배송·알림). <Warn>빨간 게 있으면 뭔가 멈춘 것</Warn>이라 확인이
+          필요해요 (최근 <Em>{WINDOW_DAYS}일</Em>).
         </p>
       </div>
 

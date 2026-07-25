@@ -245,6 +245,9 @@ export default async function ProductInsightsPage({
         <h2 className="text-sm font-semibold text-zinc-900 mb-3">
           Top 10 buyers (LTV 기준)
         </h2>
+        {/* 가로 스크롤 래퍼 필수 — admin 공통 표 min-width(720px) 가 래퍼 없이는
+            페이지 전체를 오른쪽으로 밀어낸다(2026-07-25). */}
+        <div className="overflow-x-auto">
         <table className="w-full text-xs min-w-[560px]">
           <thead className="text-zinc-500">
             <tr className="border-b border-zinc-200">
@@ -279,6 +282,7 @@ export default async function ProductInsightsPage({
             ))}
           </tbody>
         </table>
+        </div>
         {buyerCount === 0 && (
           <p className="text-xs text-zinc-500 py-5 text-center">
             아직 구매 기록이 없어요.

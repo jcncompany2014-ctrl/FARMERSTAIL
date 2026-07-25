@@ -6,6 +6,7 @@ import { Plus, Trash2, Pencil, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
+import { Hl } from '@/components/admin/ui'
 
 /**
  * /admin/faqs — FAQ CRUD 클라이언트.
@@ -156,8 +157,8 @@ export default function AdminFaqsClient({
             자주 묻는 질문
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            고객이 보는 /faq 페이지의 질문·답변을 관리하는 곳이에요. 문의가 자주
-            들어오는 내용을 여기 넣어두면 CS를 줄일 수 있어요. — 총{' '}
+            <Hl>고객이 보는 /faq 페이지의 질문·답변</Hl>을 관리하는 곳이에요.
+            문의가 자주 들어오는 내용을 여기 넣어두면 CS를 줄일 수 있어요. — 총{' '}
             {initialFaqs.length}개
           </p>
         </div>

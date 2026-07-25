@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import AdminPagination from '@/components/admin/AdminPagination'
+import { Hl, Em } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -137,9 +138,10 @@ export default async function AdminOrdersPage({
             주문 관리
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            들어온 주문을 결제·배송 상태별로 찾고 관리하는 곳이에요. 정기배송
-            자동결제도 결제될 때마다 여기에 주문 한 건으로 쌓여요. 주문번호를
-            누르면 상세에서 배송 상태 변경·환불을 처리할 수 있어요.
+            <Hl>들어온 주문을 결제·배송 상태별로 찾고 관리</Hl>하는 곳이에요.
+            정기배송 자동결제도 결제될 때마다 여기에 주문 한 건으로 쌓여요.{' '}
+            <Em>주문번호를 누르면</Em> 상세에서 배송 상태 변경·환불을 처리할 수
+            있어요.
           </p>
         </div>
         <a

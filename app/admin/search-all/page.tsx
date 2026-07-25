@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Search, User, Package, Repeat } from 'lucide-react'
 import { ORDER_STATUS_LABEL, type OrderStatus } from '@/lib/commerce/order-fsm'
 import { STATUS_MAP as SUB_STATUS_MAP } from '@/lib/v3-helpers/subscriptions'
-import { AdminTabs } from '@/components/admin/ui'
+import { AdminTabs, Hl, Em } from '@/components/admin/ui'
 import { CUSTOMER_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -106,9 +106,9 @@ export default async function AdminUnifiedSearch({
           전체 검색
         </h1>
         <p className="text-[13px] text-zinc-500 mt-1">
-          고객이 전화나 메시지로 문의할 때 빠르게 찾는 곳이에요 —
-          이메일·이름·연락처·주문번호 아무거나 넣으면 회원·주문·정기배송을 한 번에
-          찾아줘요.
+          <Hl>고객이 전화나 메시지로 문의할 때 빠르게 찾는 곳</Hl>이에요 —{' '}
+          <Em>이메일·이름·연락처·주문번호 아무거나</Em> 넣으면 회원·주문·정기배송을
+          한 번에 찾아줘요.
         </p>
       </header>
 

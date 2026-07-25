@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import MessageComposer from './MessageComposer'
 import AdminNoteCard from './AdminNoteCard'
+import { Hl } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,7 +83,7 @@ export default async function AdminUserMessagePage({
             1:1 메시지 — {profile.name ?? '(이름 없음)'}
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            이 고객에게 앱 알림으로 직접 메시지를 보내는 곳이에요. 고객이
+            <Hl>이 고객에게 앱 알림으로 직접 메시지를 보내는 곳</Hl>이에요. 고객이
             답장하면 &lsquo;고객 답장&rsquo; 탭에 떠요. —{' '}
             {profile.email ?? '—'} · {profile.phone ?? '—'}
           </p>

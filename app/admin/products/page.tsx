@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/types'
 import ProductRowActions from './ProductRowActions'
 import AdminPagination from '@/components/admin/AdminPagination'
+import { Hl, Warn } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -89,9 +90,10 @@ export default async function AdminProductsPage({
             제품 관리
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            판매하는 화식 레시피(제품)를 관리하는 곳이에요. 여기 등록된 100g
-            단가가 고객 청구 금액의 기준(정본)이라, 가격을 바꾸면 새 결제부터
-            바로 반영돼요. — 총 {total.toLocaleString()}개
+            판매하는 화식 레시피(제품)를 관리하는 곳이에요. 여기 등록된{' '}
+            <Hl>100g 단가가 고객 청구 금액의 기준(정본)</Hl>이라,{' '}
+            <Warn>가격을 바꾸면 새 결제부터 바로 반영</Warn>돼요. — 총{' '}
+            {total.toLocaleString()}개
           </p>
         </div>
         <Link

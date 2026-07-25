@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import SimulatorClient from './SimulatorClient'
 import V3SimulatorClient from './V3SimulatorClient'
+import { Hl, Em } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -137,8 +138,8 @@ export default async function AdminPersonalizationPage({
             레시피 승인
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            고객에게 제안한 다음 박스 레시피에 고객이 동의했는지 보는 곳이에요.
-            5일 안에 응답이 없으면 이전 레시피가 유지돼요.
+            <Hl>고객에게 제안한 다음 박스 레시피에 고객이 동의했는지</Hl> 보는
+            곳이에요. <Em>5일</Em> 안에 응답이 없으면 이전 레시피가 유지돼요.
           </p>
         </div>
         <Link

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { AdminTabs } from '@/components/admin/ui'
+import { AdminTabs, Hl, Warn } from '@/components/admin/ui'
 import { CONTENT_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -89,8 +89,8 @@ export default async function AdminBlogPostsPage({
             블로그
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            웹사이트에 올라가는 블로그 글을 쓰고 관리하는 곳이에요. 발행하면
-            고객이 보는 /blog 페이지에 바로 노출돼요. —{' '}
+            <Hl>웹사이트에 올라가는 블로그 글</Hl>을 쓰고 관리하는 곳이에요.{' '}
+            <Warn>발행하면 고객이 보는 /blog 페이지에 바로 노출</Warn>돼요. —{' '}
             {hasFilter ? `검색 결과 ${rows.length}개` : `총 ${rows.length}개`}
           </p>
         </div>

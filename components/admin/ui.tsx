@@ -9,6 +9,39 @@ import Link from 'next/link'
  * 페이지는 이걸 import 해서 시각을 일관화한다.
  */
 
+/**
+ * 설명문 강조 3종 (2026-07-25 사장님 요청 — "중요 포인트만 폰트색을 다르게
+ * 한다던가 형광펜을 칠한다던가").
+ *
+ * 어드민 설명문은 13px zinc-500 회색 한 덩어리라 다 읽어야 뜻을 알 수 있었다.
+ * 한 문단에서 눈이 먼저 닿아야 할 곳을 세 단계로 나눈다:
+ *
+ *   <Hl>    형광펜 — 그 문단에서 **딱 하나**, "이 페이지가 뭐 하는 곳인가"의 핵심.
+ *   <Em>    색 강조 — 숫자·기준·조건처럼 잘못 읽으면 안 되는 값. 여러 개 OK.
+ *   <Warn>  경고 — 되돌릴 수 없거나 고객에게 바로 나가는 동작.
+ *
+ * 형광펜을 두 개 이상 칠하면 강조가 사라지고 그냥 알록달록해진다. 한 문단
+ * 한 개 원칙을 지킬 것. 색(amber/zinc/red)은 admin 의 terracotta 포인트와
+ * 겹치지 않게 고른 것 — 링크·활성 상태와 헷갈리면 안 된다.
+ */
+export function Hl({ children }: { children: ReactNode }) {
+  return (
+    <mark className="bg-amber-100 text-zinc-800 rounded px-1 font-bold">
+      {children}
+    </mark>
+  )
+}
+
+/** 색 강조 — 숫자·기준·조건 등 정확히 읽어야 하는 값. 한 문단에 여러 개 OK. */
+export function Em({ children }: { children: ReactNode }) {
+  return <b className="text-zinc-800 font-bold">{children}</b>
+}
+
+/** 경고성 강조 — 되돌릴 수 없거나 고객에게 바로 나가는 동작. 절제해서 쓸 것. */
+export function Warn({ children }: { children: ReactNode }) {
+  return <b className="text-red-700 font-bold">{children}</b>
+}
+
 /** 페이지 상단 헤더 — 제목 + 부제 + 우측 액션 슬롯. */
 export function AdminHeader({
   title,

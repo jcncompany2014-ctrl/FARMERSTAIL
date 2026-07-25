@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { AdminTabs } from '@/components/admin/ui'
+import { AdminTabs, Hl, Em } from '@/components/admin/ui'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 /**
@@ -150,9 +150,9 @@ export default async function SubscriptionsCalendarPage({
             배송 캘린더
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            앞으로 나갈 배송을 달력으로 봐요 (발송은 매주 화요일 하루예요).
-            날짜를 보고 몇 박스를 준비해야 할지 미리 가늠할 수 있어요. — 이번 달
-            예정 {monthTotalCount}건 · 합계{' '}
+            <Hl>앞으로 나갈 배송을 달력으로</Hl> 봐요 (발송은{' '}
+            <Em>매주 화요일 하루</Em>예요). 날짜를 보고 몇 박스를 준비해야 할지
+            미리 가늠할 수 있어요. — 이번 달 예정 {monthTotalCount}건 · 합계{' '}
             {monthTotalRevenue.toLocaleString('ko-KR')}원
           </p>
         </div>

@@ -15,6 +15,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
+import { Hl } from '@/components/admin/ui'
 
 /**
  * /admin/partners — 산지/공급자 CRUD 클라이언트.
@@ -188,8 +189,8 @@ export default function AdminPartnersClient({
             산지·공급자
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            원물을 어디서 받아오는지(산지·농장) 정보를 관리하는 곳이에요. 고객이
-            보는 /partners 페이지에 &lsquo;믿을 수 있는 재료&rsquo; 근거로
+            <Hl>원물을 어디서 받아오는지(산지·농장)</Hl> 관리하는 곳이에요.
+            고객이 보는 /partners 페이지에 &lsquo;믿을 수 있는 재료&rsquo; 근거로
             노출돼요. — 총 {initialPartners.length}개
           </p>
         </div>

@@ -1849,3 +1849,12 @@ select {
 .admin-body td {
   word-break: keep-all;
 }
+
+/* 위 min-width 의 전제는 "각 표가 overflow-x-auto 래퍼 안에 있다" 인데, 래퍼를
+   빠뜨린 표 하나가 admin 페이지 전체를 오른쪽으로 밀어낸다(2026-07-25 사장님
+   홈화면 제보). 래퍼 누락 2건은 개별로 고쳤고, 이건 재발 방지용 가드다.
+   overflow-x: hidden 이 아니라 clip 인 이유 — hidden 은 스크롤 컨테이너를
+   만들어서 안쪽 position:sticky 를 망가뜨린다. clip 은 안 만든다. */
+.admin-body {
+  overflow-x: clip;
+}

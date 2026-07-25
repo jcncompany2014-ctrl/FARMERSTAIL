@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import AlgorithmConfigClient from './AlgorithmConfigClient'
-import { AdminTabs } from '@/components/admin/ui'
+import { AdminTabs, Hl, Warn } from '@/components/admin/ui'
 import { SETTINGS_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -54,9 +54,10 @@ export default async function AdminAlgorithmPage() {
             알고리즘 계수
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1.5 leading-relaxed">
-            맞춤 추천이 쓰는 계산 계수를 직접 손보는 고급 설정이에요 — 라인별
-            영양 구성·질환 강도 등. 저장하면 다음 계산부터 바로 반영되니
-            신중하게 바꿔주세요.
+            <Hl>맞춤 추천이 쓰는 계산 계수를 직접 손보는 고급 설정</Hl>이에요 —
+            라인별 영양 구성·질환 강도 등.{' '}
+            <Warn>저장하면 다음 계산부터 바로 반영</Warn>되니 신중하게
+            바꿔주세요.
           </p>
         </div>
         <div className="flex flex-col gap-1.5 items-end">

@@ -11,7 +11,7 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { isAdmin } from '@/lib/auth/admin'
-import { HelpTip, AdminTabs } from '@/components/admin/ui'
+import { HelpTip, AdminTabs, Hl } from '@/components/admin/ui'
 import { REVENUE_TABS } from '@/components/admin/tabGroups'
 import PrintButtonClient from './PrintButtonClient'
 
@@ -191,8 +191,9 @@ export default async function AdminReportsPage({
             매출 리포트
           </h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            장사가 얼마나 됐는지 달별로 보는 곳이에요 — 매출·환불·정기배송 수·
-            많이 나간 레시피를 한눈에 봐요. 오른쪽 인쇄 버튼으로 저장할 수 있어요.
+            <Hl>장사가 얼마나 됐는지 달별로</Hl> 보는 곳이에요 — 매출·환불·정기배송
+            수· 많이 나간 레시피를 한눈에 봐요. 오른쪽 인쇄 버튼으로 저장할 수
+            있어요.
           </p>
         </div>
         <PrintButtonClient />

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { AdminTabs, StatCard } from '@/components/admin/ui'
+import { AdminTabs, StatCard, Hl, Em } from '@/components/admin/ui'
 import { PUSH_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -123,8 +123,9 @@ export default async function PushStatsPage() {
         <div>
           <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">알림 통계</h1>
           <p className="text-[13px] text-zinc-500 mt-1">
-            보낸 알림을 고객이 얼마나 열어봤는지 보는 곳이에요 — 어떤 종류의
-            알림이 잘 읽히는지 알면 다음 알림을 더 잘 쓸 수 있어요 (최근 30일).
+            <Hl>보낸 알림을 고객이 얼마나 열어봤는지</Hl> 보는 곳이에요 — 어떤
+            종류의 알림이 잘 읽히는지 알면 다음 알림을 더 잘 쓸 수 있어요 (최근{' '}
+            <Em>30일</Em>).
           </p>
         </div>
         <Link

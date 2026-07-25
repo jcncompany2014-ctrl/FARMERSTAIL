@@ -5,12 +5,6 @@ import RevenueChart, { type RevenuePoint } from '@/components/admin/RevenueChart
 import FoodInfoCompletion, {
   type ProductInfoLite,
 } from '@/components/admin/FoodInfoCompletion'
-import CohortRetentionTable, {
-  type CohortRow,
-} from '@/components/admin/CohortRetentionTable'
-import CohortLtvTable, {
-  type LtvRow,
-} from '@/components/admin/CohortLtvTable'
 import ActionsPanel from '@/components/admin/ActionsPanel'
 import { AdminHeader, StatCard, SectionTitle } from '@/components/admin/ui'
 import {
@@ -279,34 +273,9 @@ export default async function AdminHome() {
     .limit(200)
   const productInfo = (foodInfoProducts ?? []) as ProductInfoLite[]
 
-  // 코호트 리텐션 — RPC. RPC 함수가 prod 에 없으면 (마이그레이션 미적용)
-  // 빈 배열로 fallback. admin 가드는 RPC 자체가 함.
-  // audit #79: cohort_retention_weekly RPC 가 generated types 에 없음.
-  let cohortRows: CohortRow[] = []
-  try {
-    const { data: cohortData } = await (
-      supabase as unknown as {
-        rpc: (
-          fn: string,
-          args: Record<string, unknown>,
-        ) => Promise<{ data: unknown }>
-      }
-    ).rpc('cohort_retention_weekly', { p_max_cohorts: 12 })
-    cohortRows = ((cohortData as unknown) ?? []) as CohortRow[]
-  } catch {
-    /* 마이그레이션 미적용 / 권한 미확보 — UI 가 빈 상태 처리 */
-  }
-
-  // 코호트 LTV — D7/D30/D90 평균. cohort_ltv_weekly RPC.
-  let ltvRows: LtvRow[] = []
-  try {
-    const { data: ltvData } = await supabase.rpc('cohort_ltv_weekly', {
-      weeks_back: 12,
-    })
-    ltvRows = (ltvData ?? []) as LtvRow[]
-  } catch {
-    /* RPC 미적용 또는 권한 미확보 */
-  }
+  // 코호트 리텐션/LTV RPC 는 홈에서 제거(2026-07-25). 표를 안 그리므로 조회할
+  // 이유가 없다 — 홈 로딩에서 무거운 RPC 2건이 빠진다. 두 지표는
+  // /admin/cohort 에서 그대로 본다.
 
   const totalRevenue =
     paidOrdersRes.data?.reduce(
@@ -577,24 +546,10 @@ export default async function AdminHome() {
         <FoodInfoCompletion products={productInfo} />
       </div>
 
-      {/* 코호트 리텐션 — 가입 주별 재구매율. W4 가 정기배송 conversion 신호. */}
-      <div className="mb-6">
-        <p className="text-[12px] text-zinc-500 mb-2 leading-snug">
-          아래 표는{' '}
-          <b className="text-zinc-700">가입한 시기별로 고객이 계속 사는지</b>를
-          보여줘요. 오른쪽 칸 숫자가 높을수록 오래 남는 단골이에요. (어려우면 넘어가도 괜찮아요.)
-        </p>
-        <CohortRetentionTable rows={cohortRows} />
-      </div>
-
-      <div className="mb-6">
-        <p className="text-[12px] text-zinc-500 mb-2 leading-snug">
-          아래 표는{' '}
-          <b className="text-zinc-700">한 고객이 가입 후 평균 얼마를 쓰는지</b>
-          (생애가치)를 보여줘요.
-        </p>
-        <CohortLtvTable rows={ltvRows} />
-      </div>
+      {/* 코호트 리텐션·LTV 표는 홈에서 제거(사장님 2026-07-25).
+          ① 주차 컬럼이 7개인 넓은 표라 폰에서 홈 전체가 옆으로 밀렸다.
+          ② 매일 볼 지표가 아니다 — /admin/cohort(가입 시기별 분석)로 옮겼다.
+          거기서 시인성(고정 팔레트·대비 보장)까지 고쳐 두었다. */}
 
       {/* Top 상품 + 재고 경고 — 2-column */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">

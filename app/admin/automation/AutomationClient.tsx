@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { AutomationSettings } from '@/lib/automation-settings'
 import type { AutomationPreview } from './page'
+import { Hl, Em } from '@/components/admin/ui'
 
 /**
  * 운영 자동화 스위치 편집 UI. 기존 AlgorithmConfigClient 와 같은 방식으로
@@ -62,9 +63,9 @@ export default function AutomationClient({
           설정 · 자동화
         </h1>
         <p className="text-[13px] text-zinc-500 mt-1">
-          자동으로 나가는 알림·재제안을 켜고 끄거나 시각을 조절하는 곳이에요.
-          코드를 건드리지 않고 여기서 바꿀 수 있어요 (재검토 주기 박스 3개·승인
-          대기 5일은 안전을 위해 고정돼 있어요).
+          <Hl>자동으로 나가는 알림·재제안을 켜고 끄거나 시각을 조절</Hl>하는
+          곳이에요. 코드를 건드리지 않고 여기서 바꿀 수 있어요 (재검토 주기{' '}
+          <Em>박스 3개</Em>·승인 대기 <Em>5일</Em>은 안전을 위해 고정돼 있어요).
         </p>
       </header>
 

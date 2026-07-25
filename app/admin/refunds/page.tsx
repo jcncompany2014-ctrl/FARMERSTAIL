@@ -13,6 +13,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
+import { Hl, Em } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -132,8 +133,8 @@ export default async function AdminRefundsPage() {
             </h1>
           </div>
           <p className="text-[13px] text-zinc-500 mt-1">
-            지금까지 처리한 환불 내역을 보는 곳이에요. 각 건은 토스 거래번호와
-            연결돼 있어요. 환불 자체는 주문 상세에서 처리해요.
+            <Hl>지금까지 처리한 환불 내역</Hl>을 보는 곳이에요. 각 건은 토스
+            거래번호와 연결돼 있어요. <Em>환불 자체는 주문 상세에서 처리</Em>해요.
           </p>
         </div>
       </div>

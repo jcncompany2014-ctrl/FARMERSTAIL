@@ -7,6 +7,7 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { isoDaysAgo } from '@/lib/persona'
+import { Hl } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -103,8 +104,8 @@ export default async function PersonalizationInsightsPage() {
         맞춤 분석
       </h1>
       <p className="text-[13px] text-zinc-500 mt-1 leading-relaxed">
-        맞춤 추천이 잘 돌아가는지 뒤에서 점검하는 곳이에요. 고객들이 체중을
-        어떤 방식으로 재는지, 계산이 얼마나 믿을 만한지 같은 내부 품질
+        <Hl>맞춤 추천이 잘 돌아가는지 뒤에서 점검</Hl>하는 곳이에요. 고객들이
+        체중을 어떤 방식으로 재는지, 계산이 얼마나 믿을 만한지 같은 내부 품질
         지표를 봐요.
       </p>
 

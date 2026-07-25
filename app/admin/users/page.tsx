@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import AdminPagination from '@/components/admin/AdminPagination'
-import { AdminTabs } from '@/components/admin/ui'
+import { AdminTabs, Hl, Em } from '@/components/admin/ui'
 import { CUSTOMER_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -94,10 +94,11 @@ export default async function AdminUsersPage({
           회원 관리
         </h1>
         <p className="text-[13px] text-zinc-500 mt-1">
-          가입한 고객 명단이에요. 주문 횟수·누적 금액·연락처를 한눈에 보고
-          &lsquo;메시지&rsquo;로 1:1 대화를 시작할 수 있어요. 특정 고객의
-          주문·정기배송을 찾을 땐 옆의 &lsquo;전체 검색&rsquo; 탭이 빨라요. —
-          총 {total.toLocaleString()}명
+          <Hl>가입한 고객 명단</Hl>이에요. 주문 횟수·누적 금액·연락처를 한눈에
+          보고 &lsquo;메시지&rsquo;로 1:1 대화를 시작할 수 있어요. 특정 고객의
+          주문·정기배송을 찾을 땐 옆의{' '}
+          <Em>&lsquo;전체 검색&rsquo; 탭</Em>이 빨라요. — 총{' '}
+          {total.toLocaleString()}명
         </p>
       </div>
 
