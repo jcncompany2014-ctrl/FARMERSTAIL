@@ -5,11 +5,12 @@ import { isAdmin } from '@/lib/auth/admin'
 import { AdminTabs, StatCard, Hl, Em, Warn } from '@/components/admin/ui'
 import { SETTINGS_TABS } from '@/components/admin/tabGroups'
 import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react'
+import { cronLabel } from '@/lib/cron-labels'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Cron 헬스 — Admin',
+  title: '자동작업 상태 — Admin',
   robots: { index: false, follow: false },
 }
 
@@ -195,7 +196,7 @@ export default async function AdminCronHealthPage() {
                   <th className="text-left px-4 py-2.5 font-bold">실행 시각</th>
                   <th className="text-left px-4 py-2.5 font-bold">자동작업</th>
                   <th className="text-right px-4 py-2.5 font-bold">소요</th>
-                  <th className="text-left px-4 py-2.5 font-bold">에러 메시지</th>
+                  <th className="text-left px-4 py-2.5 font-bold">무슨 문제였나</th>
                 </tr>
               </thead>
               <tbody>
@@ -207,9 +208,11 @@ export default async function AdminCronHealthPage() {
                     <td className="px-4 py-3 text-zinc-800 whitespace-nowrap tabular-nums">
                       {formatKst(row.executed_at)}
                     </td>
+                    {/* 경로(/api/cron/…) 대신 한국어 이름. 라벨 미등록이면
+                        cronLabel 이 원본을 돌려주므로 빠진 게 눈에 띈다. */}
                     <td className="px-4 py-3">
-                      <span className="font-mono text-[11.5px] text-zinc-800 break-all">
-                        {row.path}
+                      <span className="text-[12.5px] font-semibold text-zinc-800 break-keep">
+                        {cronLabel(row.path)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right text-zinc-500 font-mono tabular-nums whitespace-nowrap">
@@ -268,8 +271,8 @@ export default async function AdminCronHealthPage() {
                       className="border-t border-zinc-200 hover:bg-zinc-50/40"
                     >
                       <td className="px-4 py-3">
-                        <span className="font-mono text-[11.5px] text-zinc-800 break-all">
-                          {s.path}
+                        <span className="text-[12.5px] font-semibold text-zinc-800 break-keep">
+                          {cronLabel(s.path)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">

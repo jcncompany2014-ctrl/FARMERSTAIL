@@ -35,6 +35,13 @@ npm test                  # 1373개 전부 pass. fail → 원인 고치거나 �
 - 헤더: `text-[22px] font-bold tracking-tight text-zinc-900 leading-tight` + 설명 `text-[13px] text-zinc-500 mt-1` ("~하는 곳이에요" 톤)
 - 카드: `rounded-lg bg-white border border-zinc-200` · KPI = ui.tsx `StatCard`
 - 색: zinc 중립 + terracotta 액센트. moss/sale/gold 는 상태색으로만 · 탭: `AdminTabs`
+- **개발자 용어를 화면에 그대로 찍지 말 것 (2026-07-26 사장님 지적)** —
+  `cron · pending → cancelled` 이나 `{"reason": "..."}` JSON 덩어리가 그대로
+  보이면 사장님은 못 읽는다. DB 원본값은 **반드시 라벨 표를 거친다**:
+  상태값 → `STATUS_LABEL`, 자동작업 경로 → `lib/cron-labels.ts` 의 `cronLabel()`,
+  metadata JSON → `라벨: 값` 줄로 풀고 내부 식별자(paymentKey 등)는 감춘다.
+  새 이벤트·크론을 추가하면 라벨 표에도 한 줄 추가할 것(빠지면 원본이 노출돼
+  바로 눈에 띈다). `master switch`·`payload`·`grace period` 같은 영문 기술어도 금지.
 - **설명문 강조 (2026-07-25 추가)** — ui.tsx 의 `Hl`·`Em`·`Warn` 만 쓴다.
   `<Hl>` 형광펜 = **문단당 딱 하나**, "이 페이지가 뭐 하는 곳인가"의 핵심.
   `<Em>` = 숫자·기준·조건(잘못 읽으면 안 되는 값, 여러 개 OK).

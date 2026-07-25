@@ -44,6 +44,14 @@ const FOCUS_PATHS = ['/survey', '/checkin', '/approve']
 // 구독전환: /cart·/products 폐지(redirect). 탭 루트 = 홈·강아지·내정보만.
 const TAB_ROOTS = new Set(['/dashboard', '/dogs', '/mypage'])
 
+/**
+ * 앱을 켰을 때 처음 떨어지는 화면. public/manifest.json 의 `start_url` 과
+ * **반드시 같아야 한다** — 관리자 모드 자동 복귀가 "시작 화면일 때만" 동작하는
+ * 판정에 쓰인다(딥링크로 들어온 걸 가로채지 않기 위해).
+ * manifest 를 바꾸면 여기도 같이 바꿀 것.
+ */
+const APP_START_PATH = '/dashboard'
+
 const DEEP_TITLES: Record<string, string> = {
   '/dogs/new': '강아지 등록',
   '/dogs/:id': '우리 아이',
@@ -189,6 +197,11 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   // /admin 이면 켜진 것으로 본다(주소로 직접 들어온 경우도 스위치가 맞게 보임).
   const [adminModeStored, setAdminModeStored] = useState(false)
   const adminMode = adminModeStored || pathname.startsWith('/admin')
+  // 앱 실행당 1회만 시작화면→/admin 자동 이동(아래 효과 참고). 화면 전환마다
+  // 재실행되는 값이 아니어야 해서 state 가 아니라 ref.
+  const bootRedirectDone = useRef(false)
+  // ↓ 아래 fetchDogs 효과가 관리자 모드 복귀에 쓰므로 **효과보다 위**에서 선언.
+  const router = useRouter()
   const dogMenuRef = useRef<HTMLDivElement | null>(null)
 
   // R-feel: 활성 강아지 칩 데이터 — 사용자의 강아지(id/이름/사진) fetch.
@@ -225,12 +238,33 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
         const { data: adminFlag } = await supabase.rpc('is_admin')
         if (mounted && adminFlag === true) {
           setIsAdmin(true)
+          let storedOn = false
           try {
-            setAdminModeStored(
-              window.localStorage.getItem('ft_admin_mode') === '1',
-            )
+            storedOn = window.localStorage.getItem('ft_admin_mode') === '1'
           } catch {
             /* 저장소 접근 불가 — 기본 꺼짐 */
+          }
+          setAdminModeStored(storedOn)
+
+          // ── 앱을 껐다 켜면 관리자 모드가 풀리던 버그 (2026-07-26 사장님 제보)
+          // 앱 시작 경로는 manifest start_url = '/dashboard' 로 **고정**이다.
+          // 그래서 콜드 스타트하면 늘 일반 화면에 떨어지는데, 위에서
+          // localStorage 를 읽어 스위치만 ON 으로 켜졌다. 결과: "토글은 켜져
+          // 있는데 화면은 일반" → 껐다 켜야 관리자로 넘어감.
+          //
+          // 켜둔 상태였으면 시작 화면에서 한 번만 /admin 으로 넘긴다.
+          //   · 앱 실행당 1회 (bootRedirectDone) — 이후 사장님이 직접
+          //     일반 화면으로 이동한 걸 되돌리지 않는다.
+          //   · **시작 화면일 때만** — 알림을 눌러 특정 화면으로 들어온
+          //     경우(딥링크)를 가로채면 안 된다.
+          //   · replace 로 — 뒤로가기가 /dashboard 로 되돌아가지 않게.
+          if (
+            storedOn &&
+            !bootRedirectDone.current &&
+            window.location.pathname === APP_START_PATH
+          ) {
+            bootRedirectDone.current = true
+            router.replace('/admin')
           }
         }
       } catch {
@@ -246,7 +280,8 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       mounted = false
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [supabase])
+    // router 는 App Router 에서 안정 참조라 재구독을 유발하지 않는다.
+  }, [supabase, router])
 
   // Top header gets a hairline + shadow once the user scrolls past the
   // viewport top — subtle separation from content without a heavy border
@@ -292,7 +327,6 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const activeDog = dogs.find((d) => d.id === activeDogId) ?? dogs[0] ?? null
 
   // R-feel: 화면별 헤더 — 깊은 화면이면 ← 뒤로 + 제목(탭 루트면 null).
-  const router = useRouter()
   const screenTitle = screenTitleForPath(pathname)
   const isDeep = screenTitle !== null
 

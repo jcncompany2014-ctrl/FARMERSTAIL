@@ -28,35 +28,39 @@ export default async function InventionFlagsPage() {
     label: string
     description: string
   }> = [
+    // 라벨·설명은 **사장님이 읽는 문장**이다(2026-07-26 지적). 예전엔
+    // 'master switch', 'Pearl framework do-calculus', 'algorithm_meta_weights
+    // 적재' 처럼 개발자 용어 그대로였다. 모듈 기호(H·G·B)는 특허 서류와
+    // 맞춰야 해서 괄호로만 남긴다.
     {
       key: 'core',
-      label: 'Core',
+      label: '전체 켜고 끄기',
       description:
-        '전체 발명 기능 master switch. OFF 면 sub feature 모두 자동 OFF.',
+        '아래 기능 전부를 한 번에 끄는 스위치예요. 이게 꺼져 있으면 나머지도 전부 꺼져요.',
     },
     {
       key: 'meta_learning',
-      label: 'Meta Learning (모듈 H)',
+      label: '추천이 스스로 학습 (모듈 H)',
       description:
-        '메타학습 가중치 갱신 cron + algorithm_meta_weights 적재.',
+        '고객 반응을 모아서, 추천 계산에 쓰는 가중치를 주기적으로 자동으로 다듬어요.',
     },
     {
       key: 'counterfactual',
-      label: 'Counterfactual (모듈 G)',
+      label: '가정 비교 분석 (모듈 G)',
       description:
-        'Pearl framework do-calculus sensitivity analysis + 주간 snapshot cron.',
+        '"다른 레시피였다면 어땠을까"를 통계로 비교해서 주간 기록을 남겨요.',
     },
     {
       key: 'persona',
-      label: '4 페르소나 클러스터링',
+      label: '보호자 유형별 화면',
       description:
-        'data_lover / emotional / convenience / vet_dependent 분기 UI.',
+        '보호자를 4가지 유형(데이터 중시·정서 중시·간편 중시·수의사 의존)으로 나눠 화면을 조금씩 다르게 보여줘요.',
     },
     {
       key: 'w_image',
-      label: 'W_image (모듈 B)',
+      label: '사진 신뢰도 점수 (모듈 B)',
       description:
-        '이미지 신뢰도 점수 산출 (촬영 각도·자세·털길이 가중치).',
+        '보내주신 사진의 각도·자세·털 길이를 보고, 사진으로 판단한 체형을 얼마나 믿을지 점수를 매겨요.',
     },
   ]
 
@@ -124,7 +128,7 @@ export default async function InventionFlagsPage() {
                     {row.description}
                   </p>
                   <p className="text-[10.5px] mt-1 font-mono text-zinc-500">
-                    {envVar}={on ? 'on' : 'off / unset'}
+                    설정 이름 {envVar} · 현재 {on ? '켜짐' : '꺼짐(또는 미설정)'}
                   </p>
                 </div>
               </div>
@@ -147,12 +151,12 @@ export default async function InventionFlagsPage() {
         />
         <div className="flex-1 text-[12px] leading-relaxed">
           <p className="font-bold" style={{ color: 'var(--ink)' }}>
-            PCT 출원 전 정책
+            특허 출원 전에는 꺼두는 게 원칙이에요
           </p>
           <p className="mt-1 text-zinc-800/80">
-            default 모두 OFF. 명시적 <code className="font-mono">on</code>{' '}
-            으로 설정해야 동작. PCT 출원 결정 후 또는 신규성 grace period
-            내에서만 ON 권장.
+            아무 설정도 안 하면 전부 꺼진 상태예요. 켜려면 설정값을 직접
+            &lsquo;on&rsquo; 으로 바꿔야 해요. 특허를 낼지 정한 뒤,
+            또는 공개해도 특허에 지장 없는 기간 안에서만 켜는 걸 권해요.
           </p>
         </div>
       </section>

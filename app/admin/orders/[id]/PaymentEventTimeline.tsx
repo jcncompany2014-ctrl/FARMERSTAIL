@@ -26,26 +26,75 @@ interface EventRow {
   created_at: string
 }
 
+/**
+ * 이 화면의 규칙 (2026-07-26 사장님 지적):
+ * **개발자 용어를 그대로 찍지 않는다.** 예전엔 `cron · pending → cancelled` 과
+ * `{"reason": "..."}` JSON 덩어리가 그대로 보여서 읽을 수가 없었다.
+ * DB 원본값(status·source·metadata)은 전부 아래 표를 거쳐 한국어로 바꾼다.
+ * 표에 없는 값이 들어오면 원본이 보이므로, 새 이벤트를 추가하면 여기도 추가할 것.
+ */
 const EVENT_LABEL: Record<string, string> = {
   paid: '결제 완료',
   refunded: '전체 환불',
   partial_refunded: '부분 환불',
   failed: '결제 실패',
-  cancel_requested: '취소 요청',
-  webhook_received: 'Toss webhook',
-  admin_action: '관리자 조작',
+  cancel_requested: '취소 처리',
+  webhook_received: '토스에서 알려옴',
+  admin_action: '관리자가 직접 처리',
   cron_refund_queue: '자동 환불 재시도',
 }
 
 const SOURCE_LABEL: Record<string, string> = {
-  user_checkout: '사용자 결제',
-  toss_webhook: 'Toss webhook',
-  user_cancel: '사용자 취소',
+  user_checkout: '고객 결제',
+  toss_webhook: '토스 알림',
+  user_cancel: '고객이 취소',
   partial_cancel: '부분 취소',
-  cron_refund_queue: '환불 재시도 cron',
-  cron_subscription_charge: '정기구독 cron',
-  cron_order_expire: '주문 만료 cron',
-  admin_panel: '관리자',
+  cron_refund_queue: '자동 환불 재시도',
+  cron_subscription_charge: '정기배송 자동결제',
+  cron_order_expire: '자동 만료 처리',
+  admin_panel: '관리자 화면',
+}
+
+/** 결제 상태 DB 값 → 사람 말. `pending → cancelled` 같은 게 안 보이게. */
+const STATUS_LABEL: Record<string, string> = {
+  pending: '결제 대기',
+  paid: '결제 완료',
+  failed: '결제 실패',
+  cancelled: '취소됨',
+  expired: '기간 만료',
+  refunded: '환불 완료',
+  partially_refunded: '부분 환불',
+  ready: '결제 준비',
+}
+
+/** metadata JSON 키 → 사람 말. reason 은 이미 한국어 문장이라 그대로 쓴다. */
+const META_LABEL: Record<string, string> = {
+  reason: '사유',
+  cancel_reason: '취소 사유',
+  refund_amount: '환불 금액',
+  requested_by: '요청자',
+  retry_count: '재시도 횟수',
+  error_code: '오류 코드',
+  error_message: '오류 내용',
+}
+
+/** 사람이 못 읽는 내부 식별자 — 화면에서 감춘다(필요하면 Sentry·DB 에서 본다). */
+const META_HIDDEN = new Set([
+  'paymentKey',
+  'payment_key',
+  'orderId',
+  'order_id',
+  'idempotencyKey',
+  'idempotency_key',
+  'transactionKey',
+])
+
+function formatMetaValue(v: unknown): string {
+  if (v === null || v === undefined) return '—'
+  if (typeof v === 'number') return v.toLocaleString()
+  if (typeof v === 'boolean') return v ? '예' : '아니오'
+  if (typeof v === 'string') return v
+  return JSON.stringify(v)
 }
 
 export default async function PaymentEventTimeline({ orderId }: Props) {
@@ -122,15 +171,36 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
                     {e.prev_status && e.new_status && (
                       <>
                         {' · '}
-                        {e.prev_status} → {e.new_status}
+                        {STATUS_LABEL[e.prev_status] ?? e.prev_status} →{' '}
+                        {STATUS_LABEL[e.new_status] ?? e.new_status}
                       </>
                     )}
                   </div>
-                  {e.metadata && Object.keys(e.metadata).length > 0 && (
-                    <pre className="mt-1.5 text-[10px] bg-zinc-100 rounded p-2 font-mono text-zinc-500 overflow-x-auto leading-snug">
-                      {JSON.stringify(e.metadata, null, 2)}
-                    </pre>
-                  )}
+                  {(() => {
+                    // JSON 덩어리 대신 '라벨: 값' 줄로. 내부 식별자는 감춘다.
+                    const entries = Object.entries(e.metadata ?? {}).filter(
+                      ([k]) => !META_HIDDEN.has(k),
+                    )
+                    if (entries.length === 0) return null
+                    return (
+                      <ul className="mt-1.5 rounded bg-zinc-50 border border-zinc-200 px-2.5 py-1.5 space-y-0.5">
+                        {entries.map(([k, v]) => (
+                          <li
+                            key={k}
+                            className="text-[11px] text-zinc-600 leading-snug break-keep"
+                          >
+                            <span className="text-zinc-500">
+                              {META_LABEL[k] ?? k}
+                            </span>
+                            {' — '}
+                            <span className="text-zinc-800">
+                              {formatMetaValue(v)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )
+                  })()}
                 </div>
               </li>
             )
