@@ -71,7 +71,7 @@ npm test                  # 1373개 전부 pass. fail → 원인 고치거나 �
 **왜**: 아침에 admin 안 열어도 오늘 할 일을 폰에서 봄.
 **구현**: 새 크론 `app/api/cron/daily-briefing/route.ts` — 기존 크론 골격(`isAuthorizedCronRequest`+`trackCron`) 복사. 집계는 대시보드 ActionsPanel 과 동일 쿼리(미발송24h+·결제실패·답장대기·재고부족·오늘 화요일이면 발송 박스 수). 발송은 `lib/push` 의 기존 발송 헬퍼로 **admin(사장님) 계정에만** (profiles.role='admin' 대상, category='order'). 전부 0건이면 "오늘 처리할 일 없음 ☀️"도 발송.
 **등록**: `vercel.json` cron 배열에 `0 0 * * *`(UTC 0시 = KST 09시) 추가.
-- [ ] 구현 → 검증 → 커밋 `(계획 A-F4)`
+- [x] 완료 2026-07-25 — /api/cron/daily-briefing + vercel cron `0 0 * * *`(KST 09시). admin 계정 푸시(카테고리 게이트 우회)·url='/admin' 딥링크·0건도 발송. 기존 ops-digest(장애 이메일)와 역할 다름 `(계획 A-F4)`
 
 ### A-F5. 🗒️ 고객 운영 메모 (CS 기억 보조)
 **왜**: "이 고객 지난번 배송 이슈로 사과드렸던 분" 같은 걸 머리로 기억 중.

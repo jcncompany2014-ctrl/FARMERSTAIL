@@ -137,6 +137,10 @@
       "schedule": "0 23 * * *"
     },
     {
+      "path": "/api/cron/daily-briefing",
+      "schedule": "0 0 * * *"
+    },
+    {
       "path": "/api/cron/quarterly-report",
       "schedule": "0 0 1 1,4,7,10 *"
     },
