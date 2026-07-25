@@ -21,6 +21,7 @@ import {
 } from '@/components/admin/ui'
 import PickingListExport, { type PickingRow } from './PickingListExport'
 import ShippingLabels from './ShippingLabels'
+import PackingChecklist from './PackingChecklist'
 
 export const dynamic = 'force-dynamic'
 
@@ -322,7 +323,8 @@ export default async function PickingListPage({
           </p>
         </AdminCard>
       ) : (
-        <div className="space-y-3">
+        // 계획 A-F2 — 패킹 체크 모드. 카드 렌더는 그대로 두고 체크 토글만 얹는다.
+        <PackingChecklist shipDate={shipDate} subIds={rows.map((r) => r.subId)}>
           {rows.map((r) => (
             <AdminCard key={r.subId} className="overflow-hidden">
               <div className="flex flex-wrap items-center gap-2">
@@ -392,7 +394,7 @@ export default async function PickingListPage({
               </div>
             </AdminCard>
           ))}
-        </div>
+        </PackingChecklist>
       )}
 
       {/* 합계 푸터 */}
