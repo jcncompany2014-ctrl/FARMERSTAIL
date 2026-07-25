@@ -29,9 +29,6 @@ import {
   Shield,
   Crown,
   TrendingUp,
-  LayoutDashboard,
-  ClipboardList,
-  Boxes,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import StampCard from '@/components/account/StampCard'
@@ -52,8 +49,6 @@ type Props = {
   profile: Profile | null
   orderCount: number
   subCount: number
-  /** 운영자 본인일 때만 true — 관리자 진입 메뉴 노출용(서버 판정). */
-  isAdmin?: boolean
 }
 
 export default function MypageClient({
@@ -61,7 +56,6 @@ export default function MypageClient({
   profile,
   orderCount,
   subCount,
-  isAdmin = false,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -314,31 +308,6 @@ export default function MypageClient({
         {/* 받은 알림·알림 설정·광고 수신 3개를 '알림' 한 페이지(탭)로 통합(2026-07-16). */}
         <MenuItem href="/notifications" Icon={Bell} label="알림" last />
       </MenuGroup>
-
-      {/* 운영자 전용 — 이 계정이 admin 일 때만 렌더된다(서버 판정 isAdmin).
-          앱에서 폰으로 운영할 때 주소를 직접 치지 않고 바로 들어가기 위한 통로.
-          admin 페이지 자체도 서버에서 다시 권한을 확인하므로 이 메뉴는 '지름길'
-          일 뿐 권한 경계가 아니다. */}
-      {isAdmin && (
-        <MenuGroup kicker="Admin · 운영" topPad={20}>
-          <MenuItem
-            href="/admin"
-            Icon={LayoutDashboard}
-            label="관리자 홈"
-          />
-          <MenuItem
-            href="/admin/orders"
-            Icon={ClipboardList}
-            label="주문 관리"
-          />
-          <MenuItem
-            href="/admin/personalization/picking-list"
-            Icon={Boxes}
-            label="박스 패킹"
-            last
-          />
-        </MenuGroup>
-      )}
 
       <MenuGroup kicker="Help · 도움말" topPad={20}>
         {/* AI 영양 상담 — 사장님 2026-07-16 "나중에 쓸 수도 있어서 일단 숨김".

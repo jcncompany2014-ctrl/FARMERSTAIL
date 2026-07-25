@@ -182,6 +182,13 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const [dogMenuOpen, setDogMenuOpen] = useState(false)
   // fetch 완료 전 '강아지 등록' 칩이 잘못 깜빡이지 않게 — 로드 후에만 렌더.
   const [dogsLoaded, setDogsLoaded] = useState(false)
+  // 운영자 본인일 때만 강아지 메뉴에 '관리자 모드' 스위치를 띄운다(2026-07-25
+  // 사장님 요청). 판정은 DB is_admin() RPC — role 값을 클라가 들고 있지 않는다.
+  const [isAdmin, setIsAdmin] = useState(false)
+  // 관리자 모드 on/off — 한 번 켜면 끌 때까지 유지(localStorage). 현재 위치가
+  // /admin 이면 켜진 것으로 본다(주소로 직접 들어온 경우도 스위치가 맞게 보임).
+  const [adminModeStored, setAdminModeStored] = useState(false)
+  const adminMode = adminModeStored || pathname.startsWith('/admin')
   const dogMenuRef = useRef<HTMLDivElement | null>(null)
 
   // R-feel: 활성 강아지 칩 데이터 — 사용자의 강아지(id/이름/사진) fetch.
@@ -212,6 +219,23 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       const active = list.find((d) => d.id === stored) ?? list[0] ?? null
       setActiveDogId(active?.id ?? null)
       setDogsLoaded(true)
+
+      // 관리자 여부 — 실패하면 조용히 false(헤더가 깨지면 안 됨).
+      try {
+        const { data: adminFlag } = await supabase.rpc('is_admin')
+        if (mounted && adminFlag === true) {
+          setIsAdmin(true)
+          try {
+            setAdminModeStored(
+              window.localStorage.getItem('ft_admin_mode') === '1',
+            )
+          } catch {
+            /* 저장소 접근 불가 — 기본 꺼짐 */
+          }
+        }
+      } catch {
+        /* 일반 사용자거나 조회 실패 — 스위치 미노출 */
+      }
     }
     void fetchDogs()
     const onVisible = () => {
@@ -316,6 +340,26 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     // 홈으로 이동 + 서버 재렌더(refresh)로 선택한 아이 정보 반영.
     router.push('/dashboard')
     router.refresh()
+  }
+
+  /**
+   * 관리자 모드 토글 (2026-07-25 사장님 요청) — 강아지 전환 메뉴에서 켜고 끈다.
+   *
+   * 켜면 관리자 홈으로, 끄면 앱 홈으로 이동한다. 선택은 localStorage 에 남아
+   * **다시 끄기 전까지 유지**된다(앱을 껐다 켜도 그대로). 이 스위치는 화면 전환
+   * 편의일 뿐 권한 경계가 아니다 — /admin 은 서버가 매번 권한을 확인한다.
+   * 운영 알림(아침 브리핑 등)은 이 스위치와 무관하게 항상 온다.
+   */
+  function toggleAdminMode() {
+    const next = !adminMode
+    setAdminModeStored(next)
+    try {
+      window.localStorage.setItem('ft_admin_mode', next ? '1' : '0')
+    } catch {
+      /* 저장 불가 — 이번 세션만 적용 */
+    }
+    setDogMenuOpen(false)
+    router.push(next ? '/admin' : '/dashboard')
   }
 
   return (
@@ -609,6 +653,81 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                           강아지 추가
                         </span>
                       </Link>
+
+                      {/* 관리자 모드 스위치 — 운영자 본인에게만(2026-07-25).
+                          켜면 관리자 화면으로 이동하고, 끌 때까지 그대로다
+                          (선택은 localStorage ft_admin_mode 에 남는다).
+                          알림은 이 스위치와 무관하게 항상 받는다. */}
+                      {isAdmin && (
+                        <>
+                          <div
+                            aria-hidden
+                            style={{
+                              height: 1,
+                              margin: '4px 8px',
+                              background: 'var(--ink-rule, rgba(22,20,15,0.10))',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            role="menuitemcheckbox"
+                            aria-checked={adminMode}
+                            onClick={toggleAdminMode}
+                            className="flex items-center w-full text-left"
+                            style={{
+                              gap: 8,
+                              padding: '11px 12px',
+                              borderRadius: 4,
+                              background: adminMode
+                                ? 'color-mix(in srgb, var(--accent) 8%, transparent)'
+                                : 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontFamily: 'var(--font-sans)',
+                                fontSize: 13.5,
+                                fontWeight: adminMode ? 700 : 500,
+                                color: adminMode ? 'var(--accent)' : 'var(--ink-mute)',
+                                letterSpacing: '-0.01em',
+                              }}
+                            >
+                              관리자 모드
+                            </span>
+                            {/* 미니 스위치 — 켜짐/꺼짐이 한눈에 */}
+                            <span
+                              aria-hidden
+                              style={{
+                                marginLeft: 'auto',
+                                width: 30,
+                                height: 17,
+                                borderRadius: 999,
+                                background: adminMode
+                                  ? 'var(--accent)'
+                                  : 'rgba(22,20,15,0.18)',
+                                position: 'relative',
+                                transition: 'background 160ms ease',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  top: 2,
+                                  left: adminMode ? 15 : 2,
+                                  width: 13,
+                                  height: 13,
+                                  borderRadius: 999,
+                                  background: '#fff',
+                                  transition: 'left 160ms ease',
+                                }}
+                              />
+                            </span>
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
