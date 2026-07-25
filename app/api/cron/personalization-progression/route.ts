@@ -7,9 +7,12 @@ import { treatCalorieFraction } from '@/lib/nutrition'
 import {
   deriveAvailableLines,
   deriveAvailableToppers,
+  gateAvailability,
   LINE_TO_SLUG,
   TOPPER_TO_SLUG,
 } from '@/lib/personalization/skuMap'
+import { SKU_MODEL, LEGACY_LINE_TO_PROTEIN } from '@/lib/personalization/skuModel'
+import { ALL_LINES } from '@/lib/personalization/lines'
 import type { AlgorithmInput, Checkin, Formula } from '@/lib/personalization/types'
 import { recipeName } from '@/lib/personalization/format'
 import { petName } from '@/lib/korean'
@@ -569,6 +572,52 @@ export async function GET(req: Request) {
         cycleNumber: cur.cycle_number + 1,
       })
 
+      // ── cycle 2+ 안전 게이트 (계획 §F-2, 2026-07-25) ──────────────────
+      // compute route 의 5.5a·5.5c 가 cycle 1 에만 있어서 cycle 2+ 는 무방비였다.
+      // 여기서 대칭으로 맞춘다.
+      //
+      // (1) 판매중 제품으로 게이트 — decideNextBox 결과에 연어(deferred·미판매)가
+      //     남으면 저장·표시되는 처방과 실제 박스가 어긋난다(cycle 1 에서 겪은
+      //     "분석은 연어 100%, 박스는 오리" 버그). 저장 전에 한 번 돌린다.
+      //     activeSlugs 가 비어 있으면(제품 조회 실패 등) 게이트가 "판매중인 게
+      //     하나도 없다"로 읽어 처방을 통째로 뭉갤 수 있다. 무인 크론이라 그
+      //     경우엔 건드리지 않고 넘어가는 편이 안전하다.
+      if (activeSlugs.length > 0) {
+        const gated = gateAvailability(next.lineRatios, next.toppers, {
+          availableLines: deriveAvailableLines(activeSlugs),
+          availableToppers: deriveAvailableToppers(activeSlugs),
+          reasoning: next.reasoning,
+        })
+        next.lineRatios = gated.lineRatios
+        next.toppers = gated.toppers
+      }
+
+      // (2) 알레르기 누출 감지 — nextBox.ts 는 차단 라인을 0% 로 만들지만,
+      //     **전부 0이 되면 정규화 fallback 이 차단된 라인 하나를 100% 로 강제**
+      //     한다(nextBox.ts 271줄 주석에 명시). cycle 1 에서 퍼저가 잡은 것과
+      //     같은 경로다. 원인 불문 "출고 라인의 차단성분 ∩ 선언 알레르기" 로 판정.
+      const shippedAllergenLeak = ALL_LINES.some(
+        (l) =>
+          (next.lineRatios[l] ?? 0) > 0 &&
+          SKU_MODEL[LEGACY_LINE_TO_PROTEIN[l]].blockingAllergies.some((b) =>
+            surveyInput.allergies.includes(b),
+          ),
+      )
+      if (shippedAllergenLeak) {
+        // 조용히 넘어가면 안 되는 종류의 사건 — 알림부터 띄운다.
+        captureBusinessEvent(
+          'error',
+          'personalization.next_box_allergen_leak',
+          {
+            dogId: cur.dog_id,
+            userId: cur.user_id,
+            cycleNumber: next.cycleNumber,
+            allergies: surveyInput.allergies.join(','),
+            lineRatios: JSON.stringify(next.lineRatios),
+          },
+        )
+      }
+
       // Option A — 의미 있는 변화 vs 미세 조정 판정.
       // 미세 조정 → auto_applied 즉시 적용 (기존 동작).
       // 의미 있는 변화 → pending_approval, push 별도 카피, 결제 안 됨.
@@ -603,8 +652,15 @@ export async function GET(req: Request) {
       // 강제 변경(알레르기·건강)도 **금액이 오르면** 동의 게이트로 — 자동적용 X.
       // (사장님 2026-07-23: "동의받고 결제 / 거부하면 이전 유지". §13의2 정합.)
       // 금액 변동 없는 강제(무료 안전 조정)만 종전대로 자동적용.
+      // 알레르기 누출이면 **절대 자동 적용하지 않는다** — 오늘까지는 그대로
+      // auto_applied 로 나가 알레르기 성분이 배송될 수 있었다. 승인 대기로
+      // 돌리면 최소한 자동 배송은 멈추고 보호자에게 통지가 간다.
+      // ⚠️ 남은 판단(사장님): 모든 라인이 차단된 경우엔 **이전 처방도 안전하지
+      //    않다**. 그때 구독을 자동 일시정지할지, 상담 후 수동 처리할지는 운영
+      //    정책 결정이라 여기서 임의로 정하지 않았다.
       const requiresApproval =
-        diff.meaningful && (!diff.forced || diff.priceChanged)
+        shippedAllergenLeak ||
+        (diff.meaningful && (!diff.forced || diff.priceChanged))
 
       // 실제로 바뀐 게 있나 (사장님 2026-07-17: "굳이 레시피나 칼로리가
       // 변경될 이유가 없다면 냅둬"). 이전엔 변화가 0이어도 매 cycle
@@ -637,6 +693,15 @@ export async function GET(req: Request) {
         formula: {
           lineRatios: next.lineRatios,
           toppers: next.toppers,
+          // cycle 1(compute route)과 같은 필드·같은 의미 — 분석·플랜·주문이
+          // 이걸 읽어 결제를 막는다. cycle 2+ 에도 같은 계약을 쓴다.
+          ...(shippedAllergenLeak
+            ? {
+                needsConsultation: true,
+                consultationReason:
+                  '입력하신 알레르기로 지금 판매하는 레시피가 모두 제외됐어요. 맞춤 상담을 도와드릴게요.',
+              }
+            : {}),
           // 금액이 바뀌는 제안(몸무게·알레르기·건강 무엇이든) 동의 대기 표식 —
           // 구독페이지 모달·3일 타임아웃이 이걸로 일반(무금액) 승인과 구분한다.
           // forced=알레르기·건강(안전 프레이밍+거부 경고), false=몸무게 등(담백).
@@ -713,7 +778,17 @@ export async function GET(req: Request) {
       let pushTitle: string
       let pushBody: string
       let pushUrl: string
-      if (requiresApproval && diff.priceChanged && price) {
+      if (shippedAllergenLeak) {
+        // ★이 분기가 없으면 아래 일반 승인 문구("이번 박스 구성이 바뀔 수 있어요
+        //   — 확인해 주세요")가 나가서, **알레르기가 든 박스를 승인하라고
+        //   권하는 꼴**이 된다. 승인 화면이 아니라 분석 화면으로 보낸다 —
+        //   거기가 needsConsultation 을 읽어 상담 안내를 띄우는 곳이다.
+        //   문구는 브랜드 보이스대로: 처방·전문용어 없이, 사장님이 뭘 할지 명확히.
+        pushTitle = `[중요] ${petName(dogTyped.name)} 다음 박스는 상담이 필요해요`
+        pushBody =
+          '알려주신 알레르기로 지금 준비할 수 있는 레시피가 없어요. 결제는 잠시 멈춰둘게요 — 확인 후 함께 방법을 찾아요.'
+        pushUrl = `/dogs/${cur.dog_id}/analysis`
+      } else if (requiresApproval && diff.priceChanged && price) {
         // 금액이 바뀌는 제안(몸무게·알레르기·건강) → 구독페이지 동의 모달.
         // 3일 안에 동의/거부, 무반응=거부. 모달은 pending 상태를 감지해 뜬다.
         if (diff.forced) {
@@ -753,7 +828,9 @@ export async function GET(req: Request) {
       // best-effort. agree_email=false 인 사용자는 sendEmail 이 알아서 차단.
       // 단 금액변경 동의 대기(모달 처리)는 아직 확정이 아니라 "준비됐어요"
       // 메일을 보내지 않는다 — 푸시가 "확인 필요"를 이미 전달.
-      if (!(requiresApproval && diff.priceChanged))
+      // 알레르기 누출 건도 메일 제외 — notifyPersonalizationCycle 은 "다음 박스"
+      // 안내 템플릿이라 방금 보낸 "상담이 필요해요" 푸시와 정면으로 모순된다.
+      if (!(requiresApproval && diff.priceChanged) && !shippedAllergenLeak)
         void (async () => {
         try {
           const { data: profile } = await supabase
