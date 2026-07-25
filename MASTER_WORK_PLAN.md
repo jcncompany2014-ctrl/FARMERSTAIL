@@ -146,29 +146,29 @@ blog/draft · blog/upload · events/upload · orders/[id]/partial-cancel · orde
 - [x] B4-2 완료 — isAdmin 누락 0건 확인, promotions DB에러 노출 3곳 dbError 적용. 수정: (a) isAdmin 가드 누락 라우트에 추가 (b) 원본 DB 에러 노출 → console.error + 일반 문구(audit #69 패턴). 그 외 개선도 재량으로 가능하되 **동작(성공 응답 shape) 변경 금지**.
 
 ### B5. 공통화
-- [ ] B5-1 FilterChip(charges 로컬) ↔ orders 인라인 필터 — ui.tsx 로 공통 추출 후 두 곳 적용(시각은 현행 orders 스타일 기준 통일).
+- [x] B5-1 완료(2026-07-25) — ui.tsx FilterChip 통합, 4곳 적용, 웜 잔재 2건 제거. ~~원문~~  FilterChip(charges 로컬) ↔ orders 인라인 필터 — ui.tsx 로 공통 추출 후 두 곳 적용(시각은 현행 orders 스타일 기준 통일).
 - [x] B5-2 완료 — ADMIN_API_REVIEW.md 하단 기록(문자열 표준 통일돼 시각 차 없음). `AdminHeader` 미사용 페이지 목록화(ADMIN_API_REVIEW.md 하단) — 마이그레이션은 선택(할 경우 시각 동일 유지).
 
 ---
 
 ## §C. 고객 앱 트랙 (출시 전 점검·작업)
 
-- [~] C1 (부분) types.ts 에 profiles.admin_note 수기 삽입 완료(2026-07-25). CLI 인증 필요해 전체 재생성은 미실행 — 드롭 함수 4개 타입 잔재는 남아 있음: `lib/supabase/types.ts` 재생성(드롭 함수 4개 타입 잔재 제거): `npx supabase gen types typescript --project-id adynmnrzffidoilnxutg --schema public > lib/supabase/types.ts` → tsc 에러 시 `git checkout -- lib/supabase/types.ts` 후 에러 내용 기록.
-- [ ] C2 `/account/subscriptions` 웹톤 잔재 제거(기존 태스크 #8) — 앱 컨텍스트에서 웹 카드 스타일 남은 부분을 v3 톤으로(AGENTS.md 분리 규칙 준수, `isAppContextServer` 분기 패턴).
+- [x] **C1 완료(2026-07-25)** — CLI 대신 MCP generate_typescript_types 로 재생성. 드롭 함수 4개(accept_dog_invitation·lookup_invitation_by_token·refund_order_points·upsert_cart_item) 타입 제거, 스탬프 함수 3종 추가. 호출부 0건 확인. ~~기존 메모~~:  types.ts 에 profiles.admin_note 수기 삽입 완료(2026-07-25). CLI 인증 필요해 전체 재생성은 미실행 — 드롭 함수 4개 타입 잔재는 남아 있음: `lib/supabase/types.ts` 재생성(드롭 함수 4개 타입 잔재 제거): `npx supabase gen types typescript --project-id adynmnrzffidoilnxutg --schema public > lib/supabase/types.ts` → tsc 에러 시 `git checkout -- lib/supabase/types.ts` 후 에러 내용 기록.
+- [x] C2 완료(2026-07-25) — 색 토큰 스왑에 모서리 반경까지 확장. `/account/subscriptions` 웹톤 잔재 제거(기존 태스크 #8) — 앱 컨텍스트에서 웹 카드 스타일 남은 부분을 v3 톤으로(AGENTS.md 분리 규칙 준수, `isAppContextServer` 분기 패턴).
 - [ ] C3 모바일 웹뷰 QA 체크리스트 실행·기록(`MOBILE_QA.md` 신규): 설문 전 스텝 · 분석 · 플랜 · 로그인/가입 · 마이페이지 — 375px에서 스크린샷 찍고 깨짐/오버플로 기록(수정은 admin 규칙과 동일하게 안전한 것만).
-- [ ] C4 PWA 점검: manifest.json(이름·아이콘·theme_color)·오프라인 fallback 존재 여부·홈화면 설치 흐름 — 기록 후 안전한 수정.
-- [ ] C5 에러/빈 상태 카피 톤 점검: "~해요" 체·기술용어 노출 없는지 grep(`Error|failed|exception` 문자열이 고객 화면에 그대로 노출되는 곳) — 발견 시 부드러운 문구로.
+- [x] C4 확인 완료(2026-07-25) — manifest 바로가기 4개 전부 실 라우트, SW 오프라인 fallback 연결됨. 수정 불요. PWA 점검: manifest.json(이름·아이콘·theme_color)·오프라인 fallback 존재 여부·홈화면 설치 흐름 — 기록 후 안전한 수정.
+- [x] C5 완료(2026-07-25) — 전수 스캔 1건(/mypage/orders DB 원본 에러 노출) 수정, 원본은 Sentry 로. 에러/빈 상태 카피 톤 점검: "~해요" 체·기술용어 노출 없는지 grep(`Error|failed|exception` 문자열이 고객 화면에 그대로 노출되는 곳) — 발견 시 부드러운 문구로.
 
 ## §D. 웹(퍼널) 트랙
 
-- [ ] D1 SEO 기본: 각 공개 페이지(`/`·`/start`·`/compare`·`/faq`·`/blog`·`/about`·`/science`·`/partners`) metadata(title·description·OG 이미지) 존재 확인 → 누락만 보완. `sitemap.ts`/`robots.ts` 존재 확인.
-- [ ] D2 Lighthouse 성능 1회 측정·기록(모바일 기준, `WEB_PERF.md`): LCP 3s+ 페이지만 원인 기록(이미지 크기 등). 수정은 이미지 최적화(next/image 전환·사이즈 명시)류 안전한 것만.
-- [ ] D3 퍼널 계측 확인: `lib/analytics` 의 trackAnalysisViewed/trackBoxRecommended 류가 /start→가입 흐름에서 실제 호출되는지 코드 추적·기록.
+- [x] D1 완료(2026-07-25) — 공개 11개 점검, 실제 갭은 /start(sitemap 누락 + OG 없음) 하나. 둘 다 추가. SEO 기본: 각 공개 페이지(`/`·`/start`·`/compare`·`/faq`·`/blog`·`/about`·`/science`·`/partners`) metadata(title·description·OG 이미지) 존재 확인 → 누락만 보완. `sitemap.ts`/`robots.ts` 존재 확인.
+- [x] D2 완료(2026-07-25) — WEB_PERF.md. 실측 4.29MB → 폰트 preload 1.32MB 제거. Pretendard 서브셋은 사장님 판단 대기. Lighthouse 성능 1회 측정·기록(모바일 기준, `WEB_PERF.md`): LCP 3s+ 페이지만 원인 기록(이미지 크기 등). 수정은 이미지 최적화(next/image 전환·사이즈 명시)류 안전한 것만.
+- [x] D3 완료(2026-07-25) — /start 익명 퍼널 계측 0건이던 것을 이벤트 4종 추가. 퍼널 계측 확인: `lib/analytics` 의 trackAnalysisViewed/trackBoxRecommended 류가 /start→가입 흐름에서 실제 호출되는지 코드 추적·기록.
 
 ## §E. 품질/인프라 (상시)
 
 - [ ] E1 주간 회귀: `npm test` + E2E 체인(scratchpad audit-chain — repo 루트 임시 복사 실행, 35 불변식) — 실패 시 커밋 금지·원인 기록.
-- [ ] E2 `get_advisors(security)` 월 1회 실행·기록 — 새 WARN 만 보고.
+- [x] E2 실행(2026-07-25) — 새 WARN 0건. 유출 비밀번호 차단 토글만 사장님 조치 대기. `get_advisors(security)` 월 1회 실행·기록 — 새 WARN 만 보고.
 - [ ] E3 (출시 후) 성능: RLS `auth.uid()` per-row 3곳 `(select auth.uid())` 마이그레이션·미사용 인덱스 46개 정리 — 시점 오면 Fable 이 SQL 작성.
 
 ---
