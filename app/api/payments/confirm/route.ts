@@ -331,8 +331,16 @@ export async function POST(req: Request) {
         }
       }
     }
+    // DB 원본 에러를 고객에게 그대로 주지 않는다(2026-07-26) — 테이블·컬럼명이
+    // 새고, 고객은 읽어도 할 수 있는 게 없다. 원본은 위 captureBusinessEvent 로
+    // 이미 Sentry 에 갔다. 여기서는 **돈이 어떻게 됐는지**를 알려주는 게 핵심.
     return NextResponse.json(
-      { code: 'DB_UPDATE_FAILED', message: updateError.message },
+      {
+        code: 'DB_UPDATE_FAILED',
+        message: isActuallyPaid
+          ? '결제는 됐지만 주문 저장에 실패했어요. 결제하신 금액은 자동으로 취소 처리했어요 — 카드사에 따라 환불까지 영업일 기준 3~5일 걸릴 수 있어요.'
+          : '주문 처리 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.',
+      },
       { status: 500 }
     )
   }

@@ -8,6 +8,10 @@ import FoodInfoCompletion, {
 import ActionsPanel from '@/components/admin/ActionsPanel'
 import { AdminHeader, StatCard, SectionTitle } from '@/components/admin/ui'
 import {
+  tossKeyStatus,
+  describeTossKeyStatus,
+} from '@/lib/payments/key-mode'
+import {
   formatKstShortDateTime as formatDate,
   todayKstIsoDate,
 } from '@/lib/datetime-kst'
@@ -420,6 +424,35 @@ export default async function AdminHome() {
         title="대시보드"
         sub={`${todayKst.slice(0, 4)}년 ${Number(todayKst.slice(5, 7))}월 ${Number(todayKst.slice(8, 10))}일 기준 — 오늘 처리할 일과 매출·구독 현황을 한눈에 봐요. 바로 아래 '처리 대기'에 뜨는 건 그날 꼭 확인해 주세요.`}
       />
+
+      {/* 결제 모드 — 지금 진짜 돈이 오가는 설정인지(2026-07-26 결제 경로 감사).
+          테스트키인 채로 출시하면 "결제 완료" 인데 입금이 없고, 키 짝이 안 맞으면
+          고객이 카드를 긁은 뒤 승인이 거부된다. 둘 다 첫 실결제에서만 드러나는
+          종류라 항상 보이는 자리에 띄운다. 정상(실결제 모드)일 땐 조용히 한 줄. */}
+      {(() => {
+        const s = tossKeyStatus(
+          process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
+          process.env.TOSS_SECRET_KEY,
+        )
+        const d = describeTossKeyStatus(s)
+        const tone =
+          d.tone === 'ok'
+            ? 'border-zinc-200 bg-white text-zinc-500'
+            : d.tone === 'warn'
+              ? 'border-amber-300 bg-amber-50 text-amber-900'
+              : 'border-red-300 bg-red-50 text-red-900'
+        return (
+          <div className={`mb-4 rounded-lg border px-4 py-3 ${tone}`}>
+            <p className="text-[13px] font-bold">
+              {d.tone === 'ok' ? '✅ ' : d.tone === 'warn' ? '⚠️ ' : '🚨 '}
+              {d.title}
+            </p>
+            {d.tone !== 'ok' && (
+              <p className="text-[12px] mt-1 leading-relaxed">{d.detail}</p>
+            )}
+          </div>
+        )
+      })()}
 
       {/* 처리 대기 큐 — admin hot path. 0건이면 회색, 있으면 sale 강조. */}
       <div className="mb-6">
