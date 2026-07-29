@@ -197,10 +197,8 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   // /admin 이면 켜진 것으로 본다(주소로 직접 들어온 경우도 스위치가 맞게 보임).
   const [adminModeStored, setAdminModeStored] = useState(false)
   const adminMode = adminModeStored || pathname.startsWith('/admin')
-  // 앱 실행당 1회만 시작화면→/admin 자동 이동(아래 효과 참고). 화면 전환마다
-  // 재실행되는 값이 아니어야 해서 state 가 아니라 ref.
-  const bootRedirectDone = useRef(false)
   // ↓ 아래 fetchDogs 효과가 관리자 모드 복귀에 쓰므로 **효과보다 위**에서 선언.
+  // (앱 실행당 1회 복귀 판정은 ref 가 아니라 sessionStorage 로 한다 — 효과 안 참고)
   const router = useRouter()
   const dogMenuRef = useRef<HTMLDivElement | null>(null)
 
@@ -252,19 +250,38 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           // localStorage 를 읽어 스위치만 ON 으로 켜졌다. 결과: "토글은 켜져
           // 있는데 화면은 일반" → 껐다 켜야 관리자로 넘어감.
           //
-          // 켜둔 상태였으면 시작 화면에서 한 번만 /admin 으로 넘긴다.
-          //   · 앱 실행당 1회 (bootRedirectDone) — 이후 사장님이 직접
-          //     일반 화면으로 이동한 걸 되돌리지 않는다.
-          //   · **시작 화면일 때만** — 알림을 눌러 특정 화면으로 들어온
-          //     경우(딥링크)를 가로채면 안 된다.
-          //   · replace 로 — 뒤로가기가 /dashboard 로 되돌아가지 않게.
-          if (
-            storedOn &&
-            !bootRedirectDone.current &&
-            window.location.pathname === APP_START_PATH
-          ) {
-            bootRedirectDone.current = true
-            router.replace('/admin')
+          // 켜둔 상태였으면 **앱을 켠 직후 딱 한 번만** /admin 으로 넘긴다.
+          //
+          // ★버그 수정(2026-07-26 사장님 제보): 예전엔 useRef 로 "1회"를 셌는데,
+          //   /admin(AdminShell) ↔ /dashboard(AppChrome) 를 오갈 때마다 AppChrome
+          //   이 **새로 마운트**되며 ref 가 false 로 리셋됐다. 그래서 관리자 화면
+          //   에서 일반 화면으로 돌아가면 곧바로 fetchDogs 가 다시 돌아 /admin 으로
+          //   강제로 끌고 왔다("돌아가기 해도 다시 관리자로 돌아옴").
+          //
+          //   sessionStorage 는 이 웹뷰 세션 전체에서 유지되고 **앱을 완전히
+          //   종료할 때만** 지워진다(백그라운드 복귀·앱 내 이동에는 유지). 그래서:
+          //     · 앱 켠 직후(콜드 스타트) → 플래그 없음 → 1회 복귀
+          //     · 그 뒤 대시보드로 이동 → 플래그 있음 → **그대로 머문다**
+          //     · 앱 완전 종료 후 재시작 → 플래그 지워짐 → 다시 관리자로
+          //   = 사장님이 원한 "종료 후 재시작하면 관리자, 그 외엔 내가 정한 화면".
+          let bootHandled = false
+          try {
+            bootHandled = window.sessionStorage.getItem('ft_admin_boot') === '1'
+          } catch {
+            /* 저장소 접근 불가 — 이번엔 복귀 시도 안 함(강제 이동이 더 위험) */
+            bootHandled = true
+          }
+          if (!bootHandled) {
+            try {
+              window.sessionStorage.setItem('ft_admin_boot', '1')
+            } catch {
+              /* noop */
+            }
+            // 시작 화면일 때만 — 알림 딥링크로 특정 화면에 들어온 걸 가로채지 않게.
+            // replace 로 — 뒤로가기가 /dashboard 로 되돌아가지 않게.
+            if (storedOn && window.location.pathname === APP_START_PATH) {
+              router.replace('/admin')
+            }
           }
         }
       } catch {

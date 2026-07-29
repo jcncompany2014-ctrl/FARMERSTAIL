@@ -226,6 +226,30 @@ export async function POST(req: Request) {
     )
   }
 
+  // 이 아이가 실제로 파머스테일을 먹고 있나(2026-07-26) — AI 코멘트가 새 강아지
+  // 에게 "잘 따라오고 계세요" 같은 급여 중 전제 표현을 쓰던 버그 방지.
+  // 위 subscribed 는 쿨다운·구독자 판정용이라 조건부로만 조회된다(첫 분석 경로
+  // 에선 없음). 여기서 급여 단계용으로 무조건 한 번 판정한다:
+  //   카드 등록 구독(active/paused) OR 결제완료 주문이 하나라도 있으면 '급여 중'.
+  let feedingStarted = false
+  {
+    const [{ count: subCount }, { count: paidCount }] = await Promise.all([
+      supabase
+        .from('subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('dog_id', analysis.dog_id)
+        .eq('user_id', user.id)
+        .in('status', ['active', 'paused'])
+        .not('billing_key', 'is', null),
+      supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('payment_status', 'paid'),
+    ])
+    feedingStarted = (subCount ?? 0) > 0 || (paidCount ?? 0) > 0
+  }
+
   const ctx: AiAnalysisContext = {
     dogName: dog.name,
     breed: dog.breed ?? '믹스',
@@ -262,6 +286,7 @@ export async function POST(req: Request) {
     daysSinceLast,
     daysUntilBirthday: bday?.daysUntil ?? null,
     turningAge: bday?.turningAge ?? null,
+    feedingStarted,
   }
 
   const prompt = buildAnalysisPrompt(ctx)
