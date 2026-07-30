@@ -146,6 +146,32 @@ test('★ 규칙7: vercel.json 크론은 전부 하루 1회 이하', () => {
   )
 })
 
+test('★ 규칙11: 금액 합산은 boxPricing 밖에서 하지 않는다', () => {
+  // 주문 화면이 `items.reduce((s, it) => s + it.cycleTotal, 0)` 로 직접 합하고
+  // 저장·청구는 `priceBox(items)`(품절·구독불가 제외)를 써서 **화면 금액 >
+  // 실제 청구액**이 됐다. 화면에서 본 금액이 그 뒤 모든 화면의 금액과 영구히
+  // 달라지는 상태였다. 합산 규칙(라인 최종가 기준·올림 위치)의 정본은 하나다.
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'lib')))) {
+    const r = rel(file)
+    if (r.endsWith('lib/personalization/boxPricing.ts')) continue
+    const src = readFileSync(file, 'utf8')
+    const lines = src.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i] ?? ''
+      if (/(reduce|\+=)/.test(line) && /cycleTotal/.test(line)) {
+        offenders.push(`${r}:${i + 1} :: ${line.trim()}`)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'cycleTotal 합산은 priceBox(boxPricing) 하나만 한다 — 화면과 청구가 갈라진다.\n' +
+      offenders.join('\n'),
+  )
+})
+
 test('★ 규칙8: lib/push.ts 는 service_role 클라이언트를 쓴다', () => {
   // 쿠키 클라이언트로 돌아가면 크론에서 auth.uid() 가 NULL 이 되고, 관련 4개
   // 테이블이 전부 self-only RLS 라서 **모든 조회가 0행** → 알림이 한 건도 나가지

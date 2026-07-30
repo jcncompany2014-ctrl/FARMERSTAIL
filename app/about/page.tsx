@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
 import Reveal from '@/components/landing/Reveal'
+// 멈추기 시점 문구 정본 — 화면마다 다르게 말하면 실제보다 엄한 마감이 생긴다.
+import { STOP_TIMING_COPY } from '@/lib/shipping-schedule'
 import FdSlider from '@/components/web/fd/FdSlider'
 import StickyCta from '@/components/web/fd/StickyCta'
 import {
@@ -403,7 +405,13 @@ export default async function AboutPage() {
                 </Display>
                 <p className="pt-4 mx-auto text-[15px] md:text-[16px]" style={{ maxWidth: 440, lineHeight: 1.65, color: 'rgba(255,255,255,0.92)' }}>
                   견종과 활동량을 알려주면, 수의영양학 기반의 맞춤 식단을 제안합니다.
-                  첫 박스부터 부담 없이 — 해지는 일요일까지 신청하면 다음 박스부터 적용돼요.
+                  {/* ★ 예전 문구: "해지는 일요일까지 신청하면 다음 박스부터 적용돼요".
+                      실제보다 엄한 마감이었다 — 해지는 status 를 바꾸는 순간 반영되고
+                      청구 크론은 active 인 것만 고른다. 일요일 마감은 **박스 구성
+                      변경**에 붙는 것이다(월요일 원료 손질). 월요일에 저 문구를 읽은
+                      고객은 이미 늦었다고 생각해 원치 않는 박스를 한 번 더 받는다.
+                      문구 정본: lib/shipping-schedule 의 STOP_TIMING_COPY. */}
+                  첫 박스부터 부담 없이 — {STOP_TIMING_COPY}
                 </p>
                 <div className="pt-8 flex flex-col sm:flex-row justify-center gap-3">
                   <Button href={planHref(isAuthed)} tone="cream" size="lg">

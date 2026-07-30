@@ -104,7 +104,27 @@ export function gateAvailability(
     reasoning?: Reasoning[]
   } = {},
 ): GateResult {
-  const lines: Record<FoodLine, Ratio> = { ...lineRatios }
+  /**
+   * ★ 없는 라인 키를 0 으로 채운다 (2026-07-30).
+   *
+   * 타입은 5개 라인이 **전부 있는** 레코드를 요구하지만, 실제 입력은
+   * `dog_formulas.formula` 를 **캐스팅해서** 들어온다(DB JSON 은 타입 검사를
+   * 받지 않는다). 키가 하나라도 빠지면 아래 루프에서
+   *   moved = lines[line]        // undefined
+   *   lines[target] += moved     // 숫자 + undefined = NaN
+   * 이 되어 **살아 있던 라인의 비율까지 NaN 으로 오염**된다. 그러면
+   * computeBoxItems 의 `ratio <= 0` 판정이 false 를 내면서도 mealG 가 NaN 이 되어
+   * 박스에서 그 단백질이 조용히 사라진다 — 이 파일이 막으려고 만들어진
+   * 바로 그 사고(가용하지 않은 라인의 비율 증발 → 과소급여)다.
+   */
+  const lines: Record<FoodLine, Ratio> = ALL_LINES.reduce(
+    (acc, line) => {
+      const v = lineRatios[line]
+      acc[line] = typeof v === 'number' && Number.isFinite(v) ? v : 0
+      return acc
+    },
+    {} as Record<FoodLine, Ratio>,
+  )
   const outToppers = { ...toppers }
 
   // ── 라인 게이트 ──

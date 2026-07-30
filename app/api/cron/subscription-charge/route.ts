@@ -13,13 +13,9 @@ import { notifySubscriptionChargeFailed } from '@/lib/email'
 import { pushToUser } from '@/lib/push'
 import { traceBusiness, captureBusinessEvent } from '@/lib/sentry/trace'
 import { trackCron } from '@/lib/cron-tracking'
-import {
-  computeAutoDiscount,
-  applyDiscount,
-  type DiscountReason,
-} from '@/lib/discount'
-import { pickBetterDiscount } from '@/lib/promotions'
-import { tierMeta } from '@/lib/tiers'
+// 할인 계산은 lib/payments/auto-discount 하나 — 화면 미리보기가 같은 함수를
+// 쓴다(2026-07-30). 크론에만 있던 탓에 화면 금액이 실제 청구액과 달랐다.
+import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 import {
   priceForFormula,
   type BoxProduct,
@@ -237,79 +233,6 @@ async function recomputeChargeBase(
   return total > 0 ? total : null
 }
 
-/**
- * 정기결제 1건의 자동 할인 계산.
- *
- * # 축이 둘이다 — 등급 · 프로모션
- *  · **등급**: 나무(스탬프 50개) 매 주문 10%. 그게 전부다(lib/discount.ts).
- *  · **프로모션**: 오프라인·인스타 이벤트로 가입한 계정의 첫 주문 할인
- *    (lib/promotions.ts + promotion_claims). 등급과 무관한 별도 축.
- *
- * **절대 더하지 않는다** — `pickBetterDiscount` 로 더 큰 쪽 하나만.
- * 두 축을 한 파일에 섞지 않은 이유: 섞는 순간 "무엇이 우선인가·겹치면·슬롯은" 같은
- * 규칙이 자란다(2026-07-16 에 150→80줄로 걷어낸 게 정확히 그것).
- *
- * # 안전 폴백
- * 조회가 실패하면 **정가 청구**. 실패를 "할인 대상"으로 오해하는 것보다 안전하다
- * (과할인은 환불이 필요하고, 미할인은 사과 후 보정하면 된다).
- */
-async function resolveAutoDiscount(
-  supabase: ReturnType<typeof createAdminClient>,
-  sub: SubscriptionRow,
-): Promise<{
-  reason: DiscountReason | 'promotion'
-  discountAmount: number
-  chargeAmount: number
-  promoClaimed: boolean
-}> {
-  const subtotal = sub.total_amount
-  const fullCharge = {
-    reason: 'none' as const,
-    discountAmount: 0,
-    chargeAmount: subtotal,
-    promoClaimed: false,
-  }
-
-  const { data: prof, error } = await supabase
-    .from('profiles')
-    .select('tier')
-    .eq('id', sub.user_id)
-    .maybeSingle()
-  if (error) return fullCharge
-
-  // tierMeta 는 모르는 값/없음이면 null — 등급 없음(스탬프 10개 미만)이 그대로 전달된다.
-  const tier = tierMeta((prof as { tier?: string | null } | null)?.tier)?.key ?? null
-  const tierDiscount = computeAutoDiscount({ tier })
-
-  // 아직 안 쓴 프로모션이 있나. 조회 실패는 '없음'으로 — 프로모션이 없어서 정가를
-  // 내는 건 회복 가능하지만, 있지도 않은 할인을 주면 마진이 샌다.
-  let promoRate = 0
-  try {
-    const { data: r } = await (
-      supabase as unknown as {
-        rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }>
-      }
-    ).rpc('pending_promotion_rate', { p_user_id: sub.user_id })
-    const n = Number(r)
-    if (Number.isFinite(n) && n > 0) promoRate = Math.min(1, n)
-  } catch {
-    /* 없음으로 간주 */
-  }
-
-  const picked = pickBetterDiscount(
-    { rate: tierDiscount.rate, label: tierDiscount.label },
-    promoRate > 0 ? { rate: promoRate, label: '이벤트 할인' } : null,
-  )
-  const discountAmount = applyDiscount(subtotal, picked.rate)
-  return {
-    reason: picked.reason === 'promotion' ? 'promotion' : tierDiscount.reason,
-    discountAmount,
-    chargeAmount: subtotal - discountAmount,
-    // 프로모션을 실제로 **쓴** 경우에만 소진 표시 대상. 등급이 더 커서 안 쓴
-    // 프로모션은 남겨 둔다 — 다음 기회에 쓸 수 있어야 한다.
-    promoClaimed: picked.reason === 'promotion',
-  }
-}
 
 const MAX_PER_RUN = 100
 const MAX_FAILED = 3
@@ -468,7 +391,7 @@ async function runSubscriptionCharge(): Promise<Response> {
     const trustedSubtotal = amountCheck.chargeBase
 
     const { reason: discountReason, discountAmount, chargeAmount, promoClaimed } =
-      await resolveAutoDiscount(supabase, { ...sub, total_amount: trustedSubtotal })
+      await resolveAutoDiscount({ userId: sub.user_id, subtotal: trustedSubtotal })
 
     // ★결제 감사 #7 (2026-07-29): 0원 이하 청구 금지. 100% 프로모션이 허용돼
     //   있어(pct <= 100) chargeAmount 가 0 이 될 수 있는데, 카드 결제는 최소
@@ -628,10 +551,19 @@ async function runSubscriptionCharge(): Promise<Response> {
     // 2-b-2) subscription_items → order_items 복사 (audit fix).
     // 이전: order row 만 만들고 items 누락 → 사용자/admin 이 주문 상세에서
     // 상품 안 보임 + 발송 운영 시 어떤 상품 보낼지 모름.
-    const { data: subItems } = await supabase
+    const { data: subItems, error: subItemsErr } = await supabase
       .from('subscription_items')
       .select('product_id, product_name, product_image_url, quantity, unit_price')
       .eq('subscription_id', sub.id)
+    // 조회 실패를 "품목 없음"으로 읽으면 아래 insert 를 통째로 건너뛰어
+    // **품목 없는 주문**이 남는다 — 바로 이 블록이 고치려던 그 상태다.
+    if (subItemsErr) {
+      captureBusinessEvent('error', 'subscription.charge.items_query_failed', {
+        subscriptionId: sub.id,
+        orderId: orderRow!.id,
+        dbError: subItemsErr.message,
+      })
+    }
     const subItemsArr = (subItems ?? []) as Array<{
       product_id: string | null
       product_name: string
@@ -645,9 +577,11 @@ async function runSubscriptionCharge(): Promise<Response> {
     const validItems = subItemsArr.filter((it) => it.product_id != null)
     if (validItems.length > 0) {
       // audit #79: order_items insert payload cast (product_id nullable 등 추론 차이).
-      await (supabase as unknown as {
+      const { error: itemsInsErr } = await (supabase as unknown as {
         from: (t: string) => {
-          insert: (r: Record<string, unknown>[]) => Promise<unknown>
+          insert: (
+            r: Record<string, unknown>[],
+          ) => Promise<{ error: { message: string } | null }>
         }
       })
         .from('order_items')
@@ -662,6 +596,17 @@ async function runSubscriptionCharge(): Promise<Response> {
             line_total: it.unit_price * it.quantity,
           })),
         )
+      // 결제는 이미 됐다(청구 아래). 품목이 안 들어가면 고객 주문내역이 비고
+      // 발송 운영이 무엇을 담을지 모른다 → 사람이 봐야 한다. 흐름은 계속한다:
+      // 여기서 멈추면 결제만 되고 주문이 없는 더 나쁜 상태가 된다.
+      if (itemsInsErr) {
+        captureBusinessEvent('error', 'subscription.charge.order_items_failed', {
+          subscriptionId: sub.id,
+          orderId: orderRow!.id,
+          itemCount: validItems.length,
+          dbError: itemsInsErr.message,
+        })
+      }
     }
 
     // ★청구 윈도우 원자적 선점 (2026-07-30 — 주석만 있고 구현이 없던 것을 실제로 구현)

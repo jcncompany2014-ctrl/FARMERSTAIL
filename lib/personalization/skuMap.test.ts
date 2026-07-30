@@ -13,7 +13,8 @@ import {
   LINE_TO_SLUG,
   TOPPER_TO_SLUG,
 } from './skuMap.ts'
-import type { Reasoning } from './types.ts'
+import type { Reasoning, FoodLine } from './types.ts'
+import { computeBoxItems } from './boxPricing.ts'
 
 const NO_TOPPER = { protein: 0, vegetable: 0 }
 
@@ -122,4 +123,49 @@ describe('skuMap 상수 — 출시 contract', () => {
   it('protein 토퍼 → farm-protein-mix (현재 활성)', () => {
     assert.equal(TOPPER_TO_SLUG.protein, 'farm-protein-mix')
   })
+})
+
+describe('부분 레코드 방어 (DB JSON 캐스팅 경로)', () => {
+  it('★ 라인 키가 빠진 처방이 들어와도 살아있는 비율이 NaN 이 되지 않는다', () => {
+  // 타입은 5개 라인 전부를 요구하지만 실제 입력은 `dog_formulas.formula` 를
+  // **캐스팅해서** 들어온다(DB JSON 은 타입 검사를 안 받는다). 예전엔 키가
+  // 빠지면 `lines[target] += undefined` 로 **정상 라인까지 NaN** 이 됐고,
+  // 그러면 박스에서 그 단백질이 조용히 사라져 과소급여가 된다 — 이 파일이
+  // 막으려고 만들어진 바로 그 사고다.
+  const partial = { premium: 1 } as unknown as Record<FoodLine, number>
+  const g = gateAvailability(partial, { protein: 0, vegetable: 0 }, {
+    availableLines: ['premium'],
+    availableToppers: [],
+  })
+  for (const [line, v] of Object.entries(g.lineRatios)) {
+    assert.ok(Number.isFinite(v), `${line} 이 숫자가 아니다: ${v}`)
+  }
+  assert.equal(g.lineRatios.premium, 1, '살아있는 라인의 비율은 그대로여야 한다')
+})
+
+  it('부분 레코드로도 실제 박스가 만들어진다 (라인이 증발하지 않는다)', () => {
+  const slug = LINE_TO_SLUG.premium!
+  const products = {
+    [slug]: {
+      slug,
+      price: 1000,
+      sale_price: 850,
+      stock: 100,
+      is_subscribable: true,
+      nutrition_facts: null,
+    },
+  }
+  const items = computeBoxItems({
+    formula: {
+      lineRatios: { premium: 1 } as unknown as Record<FoodLine, number>,
+      toppers: { protein: 0, vegetable: 0 },
+      dailyKcal: 500,
+    },
+    freshRatio: 100,
+    products,
+  })
+  assert.equal(items.length, 1, '프리미엄 라인이 박스에 남아야 한다')
+  assert.ok(Number.isFinite(items[0]!.mealG), 'mealG 가 NaN 이면 안 된다')
+  assert.ok(items[0]!.mealG > 0, `mealG = ${items[0]!.mealG}`)
+})
 })

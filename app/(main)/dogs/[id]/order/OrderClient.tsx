@@ -48,6 +48,7 @@ import {
   subscribableItems,
   TOPPER_KCAL_PER_100G,
 } from '@/lib/personalization/boxPricing'
+import { subscriptionItemRows } from '@/lib/personalization/subscriptionItems'
 import { trackBeginCheckout, type AnalyticsItem } from '@/lib/analytics'
 import './order.css'
 
@@ -321,15 +322,29 @@ export default function OrderClient({
     ? computeBoxItems({ formula, freshRatio, products })
     : []
 
-  // 합산은 cycleTotal(라인 최종가) — 팩당 표시가(10원 올림)로 합치면 올림이
-  // 팩수만큼 증폭돼 청구 정본(priceBox)과 갈라진다(사장님 2026-07-19 규칙).
-  const subtotal = items.reduce((sum, it) => sum + it.cycleTotal, 0)
-  // 정가 합계 — "500g 팩 정가 앵커에서 구독 15% 할인" 시각화용(표시 전용, 청구 무관).
-  const listSubtotal = items.reduce((sum, it) => sum + it.listCycleTotal, 0)
+  /**
+   * ★ 화면에 쓰는 금액은 **청구 정본과 같은 함수·같은 항목**에서 나와야 한다
+   * (2026-07-30 수정).
+   *
+   * 예전엔 화면이 `items.reduce(...)` 로 **전 품목**을 합했고, 저장·청구는
+   * `priceBox(items)` 가 내부에서 `subscribableItems` 로 **품절·구독불가를 걸러낸**
+   * 합을 썼다. 그래서 품절이 하나라도 섞이면 **화면 숫자 > 실제 청구액** 이 됐다.
+   * 돈이 더 빠져나가는 방향은 아니지만, 주문 화면에서 본 금액이 그 뒤 모든
+   * 화면(구독 관리·마이페이지·주문내역)의 금액과 **영구히 달라진다** — 고객은
+   * 무엇이 맞는 값인지 알 수 없고, 우리도 화면만 보고는 알 수 없다.
+   *
+   * 합산은 cycleTotal(라인 최종가) 기준이다 — 팩당 표시가(10원 올림)로 합치면
+   * 올림이 팩수만큼 증폭돼 갈라진다(사장님 2026-07-19 규칙). priceBox 가 그 규칙의
+   * 정본이므로 화면도 그걸 부른다.
+   */
+  const billable = subscribableItems(items)
+  const { subtotal, shipping: shippingFee, total: totalAmount } = priceBox(items)
+  // 정가 합계 — "정가 앵커에서 구독 할인" 시각화용(표시 전용, 청구 무관).
+  // 청구 대상만 합해야 위 subtotal 과 같은 항목을 비교한다.
+  const listSubtotal = billable.reduce((sum, it) => sum + it.listCycleTotal, 0)
   const subDiscount = Math.max(0, listSubtotal - subtotal)
-  const shippingFee = 0
-  const totalAmount = subtotal + shippingFee
-  const totalCycleG = items.reduce((s, it) => s + it.deliveredG, 0)
+  // 실제로 보내는 중량도 청구 대상 기준 — 품절분은 박스에 안 들어간다.
+  const totalCycleG = billable.reduce((s, it) => s + it.deliveredG, 0)
 
   // GA4 begin_checkout — 주문 화면 진입 1회(마운트 시 초기 구성 기준). 가입
   // (sign_up)→주문 진입(begin_checkout)→결제(purchase) 퍼널의 가운데 단계.
@@ -419,10 +434,13 @@ export default function OrderClient({
         return
       }
 
-      // 청구액 = 정본 계산(priceBox). 승인 화면의 재산정과 **같은 함수**여야
-      // "주문서 금액 ≠ 승인 금액" 이 안 생긴다.
-      const { subtotal: subSubtotal, shipping: subShipping, total: subTotal } =
-        priceBox(items)
+      // 청구액 = 화면이 보여준 **그 값 그대로**. 여기서 priceBox 를 한 번 더
+      // 부르면(예전 코드) 나중에 한쪽만 고쳐 "주문서 금액 ≠ 저장 금액"이 될 수
+      // 있다 — 실제로 그렇게 갈라져 있었다(화면은 전 품목, 저장은 품절 제외).
+      // 위에서 priceBox(items) 로 만든 값을 그대로 쓴다.
+      const subSubtotal = subtotal
+      const subShipping = shippingFee
+      const subTotal = totalAmount
 
       const customerKey =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -501,17 +519,10 @@ export default function OrderClient({
         setErr('정기배송을 신청하지 못했어요. 다시 시도해 주세요.')
         return
       }
-      const itemRows = subscribable.map((it) => {
-        const portionTag = it.line ? `${it.mealG}g 한 끼` : `${it.packG}g 팩`
-        return {
-          subscription_id: (sub as { id: string }).id,
-          product_id: it.product.id,
-          quantity: it.quantity,
-          unit_price: it.pricePerPack,
-          product_name: `${it.product.name} (${portionTag})`,
-          product_image_url: it.product.image_url,
-        }
-      })
+      // 행 모양은 lib/personalization/subscriptionItems 하나에 둔다 — 처방을
+      // 승인할 때도 같은 함수로 다시 만든다(2026-07-30). 두 곳에서 각자 만들면
+      // 승인 후 화면·주문내역이 옛 레시피에 멈춘 채 갈라진다(실제로 그랬다).
+      const itemRows = subscriptionItemRows((sub as { id: string }).id, subscribable)
       const { error: itemErr } = await supabase
         .from('subscription_items')
         .insert(itemRows)

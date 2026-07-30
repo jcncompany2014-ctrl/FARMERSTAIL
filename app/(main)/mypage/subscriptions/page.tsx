@@ -12,6 +12,7 @@ import {
 import { billingMethodSummary } from '@/lib/payments/billing-methods'
 import { billingAuthFallbackHref } from '@/lib/payments/billing-urls'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
+import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 import { weekdayKo } from '@/lib/shipping-schedule'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import { petName } from '@/lib/korean'
@@ -203,11 +204,34 @@ export default async function AppSubscriptionsSummaryPage({
     .map((s) => s.next_delivery_date!)
     .sort()
     .at(0)
-  const nextAmount = nextDate
-    ? chargeable
-        .filter((s) => s.next_delivery_date === nextDate)
-        .reduce((sum, s) => sum + (s.total_amount ?? 0), 0)
-    : 0
+  const dueNext = nextDate
+    ? chargeable.filter((s) => s.next_delivery_date === nextDate)
+    : []
+  const nextSubtotal = dueNext.reduce((sum, s) => sum + (s.total_amount ?? 0), 0)
+
+  /**
+   * ★ 실제로 빠져나갈 금액 — 자동 할인까지 적용한 값 (2026-07-30).
+   *
+   * `subscriptions.total_amount` 는 할인 **전** 금액이고, 등급·이벤트 할인은
+   * 카드를 긁는 순간에만 적용됐다. 그래서 나무 등급 고객은 이 화면에서
+   * "153,100원" 을 보고 실제로는 137,790원이 나갔다 — **화면에 적힌 금액이 실제
+   * 청구액이 아니었다.** 등급 화면이 약속한 혜택을 확인할 방법도 영수증뿐이었다.
+   *
+   * 청구 크론이 쓰는 `resolveAutoDiscount` 를 그대로 부른다 — 미리보기와 실제가
+   * 같은 함수에서 나와야 갈라지지 않는다.
+   *
+   * **구독별로** 계산해서 더한다. 청구도 구독 1건씩 따로 하므로, 합계에 할인을
+   * 한 번 적용하면 원 단위 반올림이 어긋난다.
+   */
+  const discounts = await Promise.all(
+    dueNext.map((s) =>
+      resolveAutoDiscount({ userId: user.id, subtotal: s.total_amount ?? 0 }),
+    ),
+  )
+  const nextDiscount = discounts.reduce((sum, d) => sum + d.discountAmount, 0)
+  const nextAmount = discounts.reduce((sum, d) => sum + d.chargeAmount, 0)
+  // 같은 사용자라 할인 사유는 하나다. 이름은 첫 항목에서 가져온다.
+  const discountLabel = discounts.find((d) => d.label)?.label ?? null
 
   // ── 결제수단: 살아있는 구독들이 같은 수단이면 한 줄로, 다르면 줄마다 보여준다.
   const methods = new Set(
@@ -372,6 +396,22 @@ export default async function AppSubscriptionsSummaryPage({
           >
             <HeroAmount value={nextAmount} />
           </p>
+          {/* 할인이 있으면 무엇이 빠졌는지 한 줄. 원래 금액은 취소선으로 —
+              비율(%)은 쓰지 않는다(사장님 브랜드 보이스 규칙). */}
+          {nextDiscount > 0 && (
+            <p className="mt-1.5 text-[12px]" style={{ color: V3.sage }}>
+              <span
+                style={{
+                  color: V3.inkFaint,
+                  textDecoration: 'line-through',
+                  marginRight: 6,
+                }}
+              >
+                {krw(nextSubtotal)}
+              </span>
+              {discountLabel ?? '할인'} −{krw(nextDiscount)}
+            </p>
+          )}
           <p className="mt-2 text-[12.5px]" style={{ color: V3.ink }}>
             {dateLabel(nextDate)}
           </p>

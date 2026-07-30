@@ -30,6 +30,8 @@ import {
   personaCardSpec,
 } from '@/lib/persona'
 import type { Json } from '@/lib/supabase/types'
+// 배송 문구 정본 — next_delivery_date 는 **발송일**이다(도착 아님).
+import { shipTimingLabel } from '@/lib/shipping-schedule'
 
 /**
  * Dashboard — 로그인 후 홈 화면.
@@ -529,17 +531,15 @@ export default async function DashboardPage() {
             },
             {
               // 값+단위로 분리 — "D-14 예정"(4+2글자)이 metric 칸을 넘쳐 규격이
-              // 깨지던 문제(사장님 2026-07-14). "14 일 후" / "곧 도착" / "-- 예정".
+              // 깨지던 문제(사장님 2026-07-14).
+              // 문구는 lib/shipping-schedule 정본 — 이 날짜는 **발송일**이다
+              // (예전엔 '도착'이라고 써서 하루 앞당겨 약속했다, 2026-07-30).
               key: '배송',
               value: upcomingDelivery
-                ? upcomingDelivery.daysUntil <= 0
-                  ? '곧'
-                  : String(upcomingDelivery.daysUntil)
+                ? shipTimingLabel(upcomingDelivery.daysUntil).metric.value
                 : '--',
               sub: upcomingDelivery
-                ? upcomingDelivery.daysUntil <= 0
-                  ? '도착'
-                  : '일 후'
+                ? shipTimingLabel(upcomingDelivery.daysUntil).metric.unit
                 : '예정',
               tone: 'accent',
             },
@@ -584,19 +584,11 @@ export default async function DashboardPage() {
       {/* 다음 배송 D-N strip (구독 활성 시). */}
       {upcomingDelivery && (
         <DeliveryStripCard
-          dLabel={
-            upcomingDelivery.daysUntil <= 0
-              ? '곧 도착'
-              : `D-${upcomingDelivery.daysUntil}`
-          }
+          dLabel={shipTimingLabel(upcomingDelivery.daysUntil).dLabel}
           channelLabel="정기배송"
-          arrivalLabel={
-            upcomingDelivery.daysUntil <= 0
-              ? '곧 도착해요'
-              : upcomingDelivery.daysUntil === 1
-                ? '내일 새벽 도착'
-                : `${upcomingDelivery.daysUntil}일 후 도착`
-          }
+          // ★ 이 날짜는 발송일이다. 예전 문구("내일 새벽 도착")는 하루를 앞당기고
+          //   우리가 알 수 없는 시각까지 단정했다 — 도착은 지역에 따라 다르다.
+          arrivalLabel={shipTimingLabel(upcomingDelivery.daysUntil).detail}
           itemLabel={upcomingDelivery.productLabel}
           href="/mypage/subscriptions"
         />
