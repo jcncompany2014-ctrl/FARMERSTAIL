@@ -9,6 +9,10 @@ import {
   type AnalyticsItem,
 } from '@/lib/analytics'
 import { createClient } from '@/lib/supabase/client'
+import {
+  billingMethodFlags,
+  resolveBillingMethod,
+} from '@/lib/payments/billing-methods'
 
 /**
  * /subscribe/billing-success
@@ -16,10 +20,14 @@ import { createClient } from '@/lib/supabase/client'
  * Toss billingAuth successUrl. query 로 `authKey`, `customerKey`, `subscriptionId`
  * 를 받아 서버에 영구 billingKey 교환 요청.
  *
+ * billing-auth 가 심어 보낸 `method`(card | tosspay) 도 함께 온다 — 토스페이는
+ * 카드사명·카드번호가 안 올 수 있어서 화면 문구와 저장 라벨이 "무엇으로
+ * 등록했는지"를 알아야 한다. 값이 없거나 모르는 값이면 카드로 낙하한다.
+ *
  * 사용자에게 보이는 화면:
- *   - exchanging: "카드 등록 중이에요" spinner
- *   - succeeded: "카드 등록 완료" + 카드 정보 + "구독 시작하기" CTA
- *   - failed: 에러 메시지 + "다시 시도하기" 링크
+ *   - exchanging: "등록 처리 중이에요" spinner
+ *   - succeeded: "카드 등록 완료" / "토스페이 연결 완료" + 수단 정보 + CTA
+ *   - failed: 에러 메시지 + "다시 시도하기" 링크(선택 화면으로 되돌아감)
  */
 
 type Status = 'exchanging' | 'succeeded' | 'failed'
@@ -30,6 +38,7 @@ function BillingSuccessInner() {
   const authKey = params.get('authKey')
   const customerKey = params.get('customerKey')
   const subscriptionId = params.get('subscriptionId')
+  const method = resolveBillingMethod(params.get('method'), billingMethodFlags())
 
   // 잘못된 진입을 useState initializer 에서 derive — useEffect 안에서 동기
   // setState 를 부르면 React 19 `react-hooks/set-state-in-effect` 룰이
@@ -53,7 +62,12 @@ function BillingSuccessInner() {
         const res = await fetch('/api/payments/billing-issue', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ authKey, customerKey, subscriptionId }),
+          body: JSON.stringify({
+            authKey,
+            customerKey,
+            subscriptionId,
+            method: method.id,
+          }),
         })
         const data = (await res.json()) as {
           ok?: boolean
@@ -64,7 +78,7 @@ function BillingSuccessInner() {
         if (cancelled) return
         if (!res.ok || !data.ok) {
           setStatus('failed')
-          setErrorMsg(data.message ?? '카드 등록에 실패했어요')
+          setErrorMsg(data.message ?? '등록에 실패했어요')
           return
         }
         setCard({ brand: data.cardBrand ?? null, last4: data.last4 ?? null })
@@ -126,7 +140,7 @@ function BillingSuccessInner() {
     return () => {
       cancelled = true
     }
-  }, [authKey, customerKey, subscriptionId, isInvalidEntry])
+  }, [authKey, customerKey, subscriptionId, isInvalidEntry, method.id])
 
   return (
     <main
@@ -147,7 +161,7 @@ function BillingSuccessInner() {
               className="text-[14px]"
               style={{ color: 'var(--text)', fontWeight: 700 }}
             >
-              카드 등록 처리 중이에요
+              등록 처리 중이에요
             </p>
             <p
               className="text-[11.5px] mt-1.5"
@@ -170,7 +184,7 @@ function BillingSuccessInner() {
               className="font-serif text-[22px] font-black"
               style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
             >
-              카드 등록 완료
+              {method.doneTitle}
             </p>
             {(card?.brand || card?.last4) && (
               <p
@@ -185,7 +199,7 @@ function BillingSuccessInner() {
               className="text-[12.5px] leading-relaxed mt-4"
               style={{ color: 'var(--text)' }}
             >
-              다음 배송일에 등록한 카드로 자동 결제돼요.
+              다음 배송일에 {method.label}로 자동 결제돼요.
               <br />
               마이페이지에서 다음 결제 전까지 해지할 수 있어요.
             </p>
@@ -212,7 +226,7 @@ function BillingSuccessInner() {
               className="font-serif text-[20px] font-black"
               style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
             >
-              카드 등록에 실패했어요
+              등록에 실패했어요
             </p>
             <p
               className="text-[12px] mt-3 leading-relaxed"

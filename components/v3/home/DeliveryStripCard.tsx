@@ -31,9 +31,10 @@ export default function DeliveryStripCard({
   channelLabel = '정기배송',
   arrivalLabel,
   itemLabel,
-  // 정기배송 관리 정본 라우트 = /account/subscriptions (옛 /mypage/subscriptions 는
-  // 이 경로로 리다이렉트되는 호환용). 호출부 미지정 시에도 안전한 정본 기본값.
-  href = '/account/subscriptions',
+  // 앱 정기배송 정본 = /mypage/subscriptions (앱 전용 결제정보 요약 화면,
+  // 2026-07-30 신설). /account/subscriptions 는 **웹 전용**이라 앱에서 열면
+  // 웹 화면이 뜬다 — 그래서 앱 컴포넌트인 여기 기본값은 /mypage 쪽이다.
+  href = '/mypage/subscriptions',
 }: DeliveryStripCardProps) {
   const inner = (
     <div

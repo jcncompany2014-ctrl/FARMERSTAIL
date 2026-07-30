@@ -60,7 +60,7 @@ const STATE_FD: Record<SubState, { label: string; color: string }> = {
   needs_card: { label: '시작 전', color: 'var(--fd-coral)' },
   active: { label: '구독 중', color: 'var(--fd-green)' },
   paused: { label: '일시정지', color: '#C28A2B' },
-  card_failed: { label: '카드 재등록 필요', color: 'var(--fd-coral)' },
+  card_failed: { label: '결제수단 재등록 필요', color: 'var(--fd-coral)' },
   cancelled: { label: '해지됨', color: 'var(--fd-muted)' },
 }
 
@@ -185,13 +185,16 @@ export default function SubscriptionsWebClient({
     }
     if (sub.requires_billing_key_renewal) {
       toast.info(
-        '카드 재등록이 필요해요. 결제 카드를 다시 등록한 뒤 자동으로 다시 시작돼요.',
+        '결제수단 재등록이 필요해요. 다시 등록하면 자동으로 다시 시작돼요.',
       )
       setActionLoading(null)
       return
     }
-    if (!sub.billing_card_last4) {
-      toast.info('결제 카드 등록이 필요해요. 카드를 등록하면 정기배송이 시작돼요.')
+    // 등록 여부는 **billing_key** 로 본다. 카드번호(last4)로 판정하면 토스페이로
+    // 등록한 고객은 카드번호가 없어서 영원히 '미등록'이 되고, 재개를 누를 때마다
+    // 등록 화면으로 돌려보내진다 (2026-07-30 토스페이 추가 시 발견).
+    if (!sub.billing_key) {
+      toast.info('결제수단 등록이 필요해요. 등록하면 정기배송이 시작돼요.')
       const customerKey = sub.billing_customer_key ?? generateFallbackCustomerKey()
       router.push(
         `/subscribe/billing-auth?subscriptionId=${sub.id}&customerKey=${encodeURIComponent(customerKey)}`,
@@ -409,7 +412,7 @@ export default function SubscriptionsWebClient({
                   <div className="flex-1 min-w-0">
                     <div className="text-[12.5px] font-bold" style={{ color: 'var(--fd-coral-text)' }}>
                       {needsRenewal
-                        ? '카드 정보를 다시 등록해 주세요'
+                        ? '결제수단을 다시 등록해 주세요'
                         : sub.next_retry_at
                           ? '결제가 일시 실패했어요'
                           : `결제 ${sub.failed_charge_count}회 실패`}
@@ -533,7 +536,7 @@ export default function SubscriptionsWebClient({
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold transition active:scale-[0.98]"
                     style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
                   >
-                    카드 등록하고 시작하기
+                    결제수단 등록하고 시작하기
                   </button>
                 )}
                 {isActive && (

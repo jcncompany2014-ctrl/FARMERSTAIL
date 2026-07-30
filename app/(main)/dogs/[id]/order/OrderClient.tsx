@@ -218,6 +218,22 @@ export default function OrderClient({
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState('')
 
+  /**
+   * '이미 진행중인 정기배송이 있어요' 안내 뒤 1.5초 후 자동 이동하는 타이머.
+   *
+   * # 왜 ref 로 붙잡아 두나 (사장님 제보 2026-07-30 "갑자기 또 넘어가는데")
+   * 정리 없이 setTimeout 만 걸어두면, 사용자가 그 1.5초 안에 이 화면을 떠나도
+   * 타이머는 살아 있다가 **다른 화면에서 사용자를 끌고 간다.** 실제로 주문
+   * 화면에서 나간 뒤 엉뚱한 시점에 정기배송 화면으로 튀는 증상이 있었다.
+   * 언마운트 시 반드시 취소한다.
+   */
+  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    return () => {
+      if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current)
+    }
+  }, [])
+
   // 정기배송 입력 — 배송·결제 무조건 2주마다, 화식 비율(30/50/100)만 선택.
   // 분석 카드 CTA 의 ?fresh=30|50|100 를 server 가 initialFresh 로 내려줌.
   const [freshRatio, setFreshRatio] = useState<FreshRatio>(
@@ -373,10 +389,11 @@ export default function OrderClient({
         setErr(
           '이 강아지에 진행중인 정기배송이 이미 있어요. 마이페이지에서 관리해 주세요.',
         )
-        setTimeout(
-          // /account/subscriptions 는 focus 파라미터로 해당 구독을 강조한다.
-          // 옛 경로+highlight= 는 리다이렉트에서 파라미터가 버려져 강조가 안 됐다(정정).
-          () => router.push('/account/subscriptions?focus=' + existingId),
+        // 앱 정기배송 화면(/mypage/subscriptions)은 focus 파라미터로 해당
+        // 구독 줄을 강조한다. 웹 화면으로 보내면 앱에서 웹 톤이 뜬다.
+        // 타이머는 ref 에 담아 언마운트 시 취소한다(위 leaveTimerRef 주석 참조).
+        leaveTimerRef.current = setTimeout(
+          () => router.push('/mypage/subscriptions?focus=' + existingId),
           1500,
         )
         return
@@ -505,7 +522,7 @@ export default function OrderClient({
           memo_provided: deliveryMemo != null,
         })
       }
-      toast.success('카드 등록 페이지로 이동할게요')
+      toast.success('결제수단 등록으로 이동할게요')
       router.push(
         `/subscribe/billing-auth?subscriptionId=${(sub as { id: string }).id}` +
           `&customerKey=${encodeURIComponent(customerKey)}`,

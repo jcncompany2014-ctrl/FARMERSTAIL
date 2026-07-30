@@ -59,6 +59,7 @@ import {
   trackSubscriptionCancelled,
 } from '@/lib/analytics'
 import { generateFallbackCustomerKey } from '@/lib/v3-helpers/subscriptions'
+import { billingMethodSummary } from '@/lib/payments/billing-methods'
 import './subscription.css'
 
 export type DogSub = SubLike & {
@@ -70,6 +71,8 @@ export type DogSub = SubLike & {
   recipient_name: string | null
   address: string | null
   address_detail: string | null
+  /** 등록 여부 정본. 카드번호(last4)는 토스페이 등록 시 안 온다. */
+  billing_key: string | null
   billing_card_brand: string | null
   billing_card_last4: string | null
   billing_customer_key: string | null
@@ -202,7 +205,11 @@ export default function DogSubscriptionClient({
         totalDeliveries: sub?.total_deliveries ?? 0,
       })
       setCancelId(null)
-      toast.success('정기배송을 해지했어요.')
+      toast.success(
+        (sub?.total_deliveries ?? 0) > 0
+          ? '정기배송을 해지했어요.'
+          : '정기배송 신청을 취소했어요.',
+      )
     }
     setBusy(null)
   }
@@ -239,7 +246,11 @@ export default function DogSubscriptionClient({
           {past.map((sub) => (
             <div className="sub-past-row" key={sub.id}>
               <span>{sub.created_at.slice(0, 10).replace(/-/g, '.')} 신청</span>
-              <span>{sub.total_deliveries}회 배송 후 해지</span>
+              <span>
+                {sub.total_deliveries > 0
+                  ? `${sub.total_deliveries}회 배송 후 해지`
+                  : '신청 취소'}
+              </span>
             </div>
           ))}
         </details>
@@ -248,6 +259,7 @@ export default function DogSubscriptionClient({
       {cancelId && (
         <CancelSheet
           name={name}
+          started={(subs.find((s) => s.id === cancelId)?.total_deliveries ?? 0) > 0}
           busy={busy === cancelId}
           onClose={() => setCancelId(null)}
           onConfirm={() => cancel(cancelId)}
@@ -294,9 +306,9 @@ function SubCard({
         <div className="sub-alert">
           <AlertTriangle size={14} strokeWidth={2.4} />
           <div>
-            <b>카드 결제가 되지 않았어요.</b>
+            <b>결제가 되지 않았어요.</b>
             <p>
-              카드를 다시 등록하면 정기배송이 이어져요.
+              결제수단을 다시 등록하면 정기배송이 이어져요.
               {sub.last_failed_charge_reason
                 ? ` (${sub.last_failed_charge_reason})`
                 : ''}
@@ -312,8 +324,8 @@ function SubCard({
           <div>
             <b>아직 시작 전이에요.</b>
             <p>
-              카드를 등록하면 첫 배송일이 잡혀요. 등록 전까지는 아무것도 결제되지
-              않아요.
+              결제수단을 등록하면 첫 배송일이 잡혀요. 등록 전까지는 아무것도
+              결제되지 않아요.
             </p>
           </div>
         </div>
@@ -342,18 +354,18 @@ function SubCard({
             {sub.next_delivery_date ? (
               <strong>{dateLabel(sub.next_delivery_date)}</strong>
             ) : (
-              <span className="sub-dim">카드 등록 후 정해져요</span>
+              <span className="sub-dim">결제수단 등록 후 정해져요</span>
             )}
           </dd>
         </div>
         <div>
-          <dt>결제 카드</dt>
+          <dt>결제수단</dt>
           <dd>
-            {sub.billing_card_last4 ? (
-              `${sub.billing_card_brand ?? '카드'} ····${sub.billing_card_last4}`
-            ) : (
-              <span className="sub-dim">등록 전</span>
-            )}
+            {billingMethodSummary({
+              registered: !!sub.billing_key,
+              brand: sub.billing_card_brand,
+              last4: sub.billing_card_last4,
+            }) ?? <span className="sub-dim">등록 전</span>}
           </dd>
         </div>
         {sub.total_deliveries > 0 && (
@@ -376,7 +388,7 @@ function SubCard({
         {(state === 'needs_card' || state === 'card_failed') && (
           <button type="button" className="sub-btn is-primary" onClick={onCard}>
             <CreditCard size={13} strokeWidth={2.4} />
-            {state === 'card_failed' ? '카드 다시 등록' : '카드 등록하고 시작'}
+            {state === 'card_failed' ? '결제수단 다시 등록' : '결제수단 등록하고 시작'}
           </button>
         )}
 
@@ -407,7 +419,9 @@ function SubCard({
 
         {state !== 'cancelled' && (
           <button type="button" className="sub-btn is-quiet" onClick={onCancel} disabled={busy}>
-            해지
+            {/* 결제 이력이 없으면 '해지'가 아니라 '취소'다 — 멈출 게 없다
+                (사장님 2026-07-30 "결제 전인데 왜 해지로 뜨는거야"). */}
+            {sub.total_deliveries > 0 ? '해지' : '취소'}
           </button>
         )}
       </div>
@@ -441,13 +455,22 @@ function EmptyStart({ name, startHref }: { name: string; startHref: string }) {
 
 // ── 해지 확인 ───────────────────────────────────────────────────────────────
 
+/**
+ * 파괴적 확인 시트.
+ *
+ * @param started 결제 이력이 있는가(total_deliveries > 0). 없으면 '해지'가 아니라
+ *   **'취소'** 로 말한다 — 결제된 게 없으니 "다음 박스부터 멈춰요" 가 성립하지
+ *   않는다(사장님 2026-07-30).
+ */
 function CancelSheet({
   name,
+  started,
   busy,
   onClose,
   onConfirm,
 }: {
   name: string
+  started: boolean
   busy: boolean
   onClose: () => void
   onConfirm: () => void
@@ -468,10 +491,11 @@ function CancelSheet({
         >
           <X size={16} strokeWidth={2.2} />
         </button>
-        <h3>정말 해지할까요?</h3>
+        <h3>정말 {started ? '해지' : '취소'}할까요?</h3>
         <p>
-          해지하면 {name}의 다음 박스부터 배송과 결제가 멈춰요. 지금까지의 기록과
-          분석은 그대로 남아 있고, 나중에 다시 시작할 수 있어요.
+          {started
+            ? `해지하면 ${name}의 다음 박스부터 배송과 결제가 멈춰요. 지금까지의 기록과 분석은 그대로 남아 있고, 나중에 다시 시작할 수 있어요.`
+            : `아직 결제된 게 없어서 그냥 없어져요. ${name}의 기록과 분석은 그대로 남아 있고, 나중에 다시 신청할 수 있어요.`}
         </p>
         <div className="sub-sheet-btns">
           <button type="button" className="sub-btn" onClick={onClose}>
@@ -488,7 +512,7 @@ function CancelSheet({
             ) : (
               <>
                 <Check size={13} strokeWidth={2.6} />
-                해지하기
+                {started ? '해지하기' : '취소하기'}
               </>
             )}
           </button>

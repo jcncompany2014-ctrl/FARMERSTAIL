@@ -3,12 +3,18 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
 
 /**
  * /subscribe/billing-fail
  *
- * Toss billingAuth failUrl. 사용자가 카드 등록 화면에서 취소하거나 실패한
- * 케이스. 친절한 안내 + 재시도 옵션.
+ * Toss billingAuth failUrl. 사용자가 등록 화면에서 취소하거나 실패한 케이스.
+ * 친절한 안내 + 재시도 옵션.
+ *
+ * 문구는 수단 중립이어야 한다 — 토스페이로 등록하다 실패한 사람에게 "카드
+ * 등록에 실패" 라고 하면 무슨 말인지 모른다 (2026-07-30 토스페이 추가).
+ * '다시 시도하기'는 `method` 를 싣지 않아 **선택 화면으로** 돌아간다 — 실패한
+ * 수단을 또 시도하게 만들지 않고 다른 수단으로 바꿀 수 있게.
  */
 
 function BillingFailInner() {
@@ -18,10 +24,13 @@ function BillingFailInner() {
   const subscriptionId = params.get('subscriptionId')
   const customerKey = params.get('customerKey')
 
-  const friendly =
-    code === 'USER_CANCEL'
-      ? '카드 등록을 취소하셨어요'
-      : (message ?? '카드 등록에 실패했어요')
+  // 취소 판정은 코드·메시지를 함께 본다(lib/payments/cancel-detect) — 토스가
+  // USER_CANCEL 대신 다른 취소 코드나 "취소되었습니다." 메시지만 보낼 때도
+  // 실패처럼 보이지 않게. 실패 사유가 섞인 메시지는 그대로 실패로 남는다.
+  const cancelled = isUserCancelledPayment({ code, message })
+  const friendly = cancelled
+    ? '등록을 취소하셨어요'
+    : (message ?? '등록에 실패했어요')
 
   return (
     <main
@@ -45,8 +54,8 @@ function BillingFailInner() {
           className="text-[12px] mt-3 leading-relaxed"
           style={{ color: 'var(--muted)' }}
         >
-          정기배송은 카드가 등록되어야 자동 결제가 진행돼요. 지금 다시 시도하거나
-          마이페이지에서 나중에 등록할 수 있어요.
+          정기배송은 결제수단이 등록되어야 자동 결제가 진행돼요. 지금 다시
+          시도하거나 마이페이지에서 나중에 등록할 수 있어요.
         </p>
         <div className="mt-6 flex flex-col gap-2">
           {/* billing-auth 는 customerKey 필수('잘못된 접근' 가드) — 둘 다 있을 때만

@@ -825,7 +825,9 @@ export async function GET(req: Request) {
           pushTitle = `${petName(dogTyped.name)} 다음 박스 확인이 필요해요`
           pushBody = `몸무게 변화를 반영하면 2주 결제가 ${won(price.prevTotal)} → ${won(price.nextTotal)}원이 돼요. 3일 안에 동의 또는 이전 유지를 골라주세요.`
         }
-        pushUrl = `/account/subscriptions`
+        // 푸시는 앱으로 간다 → 앱 전용 정기배송 화면. 이 화면이 금액변경
+        // 동의 모달을 띄운다(2026-07-30 신설, 웹 화면에만 있던 게이트를 이관).
+        pushUrl = `/mypage/subscriptions`
       } else if (requiresApproval) {
         // 금액 변동 없는 제안 → 기존 승인 화면(/approve) 유지.
         pushTitle = `${petName(dogTyped.name)} 다음 박스 확인이 필요해요`

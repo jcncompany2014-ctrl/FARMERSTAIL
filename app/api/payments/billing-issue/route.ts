@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { issueBillingKey } from '@/lib/payments/toss'
+import { billingBrandLabel } from '@/lib/payments/billing-methods'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
@@ -21,6 +22,7 @@ export const dynamic = 'force-dynamic'
  *   - customerKey: 우리가 발급한 UUID (subscriptions.billing_customer_key 와
  *     일치해야 함)
  *   - subscriptionId: 어느 구독에 카드를 연결할지
+ *   - method: 무엇으로 등록했는지 (card | tosspay, 생략 가능) — 표시 라벨 전용
  *
  * 보안:
  *   - 본인 구독인지 RLS 우회 검증 (user.id == subscriptions.user_id)
@@ -32,6 +34,13 @@ const zBillingIssue = z.object({
   authKey: z.string().min(8).max(200),
   customerKey: z.string().uuid('잘못된 customerKey'),
   subscriptionId: z.string().uuid('잘못된 subscription ID'),
+  /**
+   * 무엇으로 등록했는지 (card | tosspay). billing-auth 가 successUrl 에 실어
+   * 보낸 값이라 **클라이언트 제공값**이다 — 그래서 화면 표시 라벨로만 쓴다.
+   * 실제 결제 능력은 토스가 발급한 billingKey 가 결정하므로 이 값이 틀려도
+   * 돈에는 영향이 없다. 없으면 카드로 낙하(기존 호출 무손상).
+   */
+  method: z.enum(['card', 'tosspay']).optional(),
 })
 
 export async function POST(req: Request) {
@@ -51,6 +60,7 @@ export async function POST(req: Request) {
   const parsed = await parseRequest(req, zBillingIssue)
   if (!parsed.ok) return parsed.response
   const { authKey, customerKey, subscriptionId } = parsed.data
+  const method = parsed.data.method ?? 'card'
 
   const supabase = await createClient()
   tagSentryRoute('subscription.billing.issue')
@@ -102,6 +112,10 @@ export async function POST(req: Request) {
   const last4 = result.cardNumber
     ? result.cardNumber.replace(/\*/g, '').slice(-4)
     : null
+  // 토스페이로 등록하면 카드사명이 안 올 수 있다(고객이 토스 안에서 고른 수단이
+  // 카드가 아닐 수도 있다). 그때 이름이 비면 화면에 아무것도 안 뜨므로 수단
+  // 이름('토스페이')으로 대체한다. 카드는 토스가 늘 카드사를 주므로 그대로.
+  const brand = billingBrandLabel(method, result.cardCompany)
 
   // 카드 등록(또는 재등록) 시 retry/renewal 상태 reset.
   // - paused 면서 requires_billing_key_renewal=true 였던 구독은 자동 active 화
@@ -148,7 +162,7 @@ export async function POST(req: Request) {
     .update({
       billing_key: result.billingKey,
       billing_customer_key: customerKey,
-      billing_card_brand: result.cardCompany ?? null,
+      billing_card_brand: brand,
       billing_card_last4: last4,
       requires_billing_key_renewal: false,
       failed_charge_count: 0,
@@ -164,7 +178,7 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     ok: true,
-    cardBrand: result.cardCompany ?? null,
+    cardBrand: brand,
     last4,
     resumed: shouldResume,
   })

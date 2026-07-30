@@ -34,7 +34,7 @@ const STATE_META: Record<
   needs_card: { label: '시작 전', badge: 'bg-terracotta/15 text-terracotta' },
   active: { label: '진행중', badge: 'bg-moss/15 text-moss' },
   paused: { label: '일시정지', badge: 'bg-muted/15 text-muted' },
-  card_failed: { label: '카드 재등록 필요', badge: 'bg-sale/15 text-sale' },
+  card_failed: { label: '결제수단 재등록 필요', badge: 'bg-sale/15 text-sale' },
   cancelled: { label: '해지됨', badge: 'bg-muted/15 text-muted' },
 }
 export default function SubscriptionCard({
@@ -68,7 +68,7 @@ export default function SubscriptionCard({
           </div>
           {subscriptions.length > 0 && (
             <Link
-              href="/account/subscriptions"
+              href="/mypage/subscriptions"
               className="text-[10.5px] text-muted hover:text-text"
             >
               전체 관리
@@ -160,7 +160,7 @@ export default function SubscriptionCard({
                     <span className="inline-flex items-center gap-1">
                       <CalendarDays className="w-2.5 h-2.5" strokeWidth={2.4} />
                       {state === 'needs_card'
-                        ? '카드 등록 후 첫 배송일이 잡혀요'
+                        ? '결제수단을 등록하면 첫 배송일이 잡혀요'
                         : state === 'paused'
                           ? '재개 시 재계산'
                           : s.next_delivery_date && dDay !== null
@@ -181,8 +181,8 @@ export default function SubscriptionCard({
                     >
                       <Bell className="w-3 h-3" strokeWidth={2.4} />
                       {state === 'card_failed'
-                        ? '카드 다시 등록하기'
-                        : '카드 등록하고 시작하기'}
+                        ? '결제수단 다시 등록하기'
+                        : '결제수단 등록하고 시작하기'}
                       <ArrowRight className="w-3 h-3" strokeWidth={2.4} />
                     </Link>
                   )}
