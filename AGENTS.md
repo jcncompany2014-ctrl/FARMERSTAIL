@@ -126,6 +126,15 @@ Even with proper exit-code handling, `npx tsc --noEmit` and `next build` are not
 
 When a Vercel build fails on something local tsc missed, before assuming it's flaky:
 - `rm -rf .next && npx next build` — reproduces Vercel's exact check locally (~90s).
+  **⚠️ Stop the dev server first.** The dev server keeps its state in `.next/dev/`.
+  Deleting `.next` underneath a running dev server breaks it — every request 500s
+  with `ENOENT .next/dev/routes-manifest.json` and
+  `Cannot find module '../chunks/ssr/[turbopack]_runtime.js'`. The tell that two
+  Turbopack processes are fighting over one directory is
+  `Persisting failed: Another write batch or compaction is already active`.
+  (Hit this 2026-07-30 — the owner saw a wall of 500s and thought the port had
+  changed. It hadn't: the port stays 3000, only the cache was gone.)
+  Recovery: stop dev server → `rm -rf .next` → start dev server.
 - If that passes but Vercel still fails, then it's a Vercel environment issue (Node version, env var, etc). Otherwise, the bug is real.
 
 # Commit / push checklist

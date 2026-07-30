@@ -18,7 +18,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  Package,
   Repeat,
   Bell,
   ChevronRight,
@@ -248,15 +247,18 @@ export default function MypageClient({
       </section>
 
       {/* ──────────────────────────────────────────────────────────────
-          Stat grid — orders / subs / dogs (3-col).
+          Stat grid — 주문 / 구독 2칸.
           (쿠폰·찜 열은 그 기능들이 폐지되며 사라졌다 — 2026-07-16 주석 정정)
+          열 수를 3 → 2 로 고쳤다(2026-07-30): 셀은 2개인데 3열이라 오른쪽에
+          **빈 칸 하나**가 남아 두 칸이 화면 2/3만 쓰고 있었다. 'dogs' 칸이
+          빠질 때 열 수를 안 줄인 잔재다.
           ────────────────────────────────────────────────────────────── */}
       {(orderCount > 0 || subCount > 0) && (
         <section style={{ padding: '10px 20px 0' }}>
           <div
             className="grid"
             style={{
-              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridTemplateColumns: 'repeat(2, 1fr)',
               gap: 0,
               background: V3.paperHi,
               border: `1px solid ${V3.rule}`,
@@ -287,11 +289,14 @@ export default function MypageClient({
           Menu groups — kicker + paperHi 카드 + ink rule
           ────────────────────────────────────────────────────────────── */}
       <MenuGroup kicker="Orders · 주문 & 배송" topPad={28}>
-        <MenuItem href="/mypage/orders" Icon={Package} label="주문 내역" />
+        {/* '주문 내역' + '정기배송 관리' 를 한 줄로 합쳤다(사장님 2026-07-30).
+            목적지는 정기배송 화면 — 거기서 다음 결제·진행 중 구독을 보여주고
+            맨 아래 '결제·주문 내역' 줄로 /mypage/orders 로 넘어간다. 두 줄이
+            나란히 있으면 어느 쪽을 눌러야 하는지 매번 고민하게 된다. */}
         <MenuItem
           href="/mypage/subscriptions"
           Icon={Repeat}
-          label="정기배송 관리"
+          label="정기배송 · 주문 내역"
           last
         />
         {/* 배송지 관리는 프로필(/account/profile)로 편입(2026-07-16). */}

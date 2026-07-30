@@ -20,18 +20,19 @@ import {
 const OFF = { tosspay: false }
 const ON = { tosspay: true }
 
-test('★ 환경변수를 안 넣으면 토스페이가 켜져 있다 (기본 켜짐)', () => {
-  // 옵트인으로 뒀다가 Vercel 환경변수를 잊으면 운영에서 조용히 사라진다.
-  // 사장님 계약 확인 완료(2026-07-30) → 기본 켜짐이 정상 상태.
+test('★ 환경변수가 없으면 토스페이는 꺼져 있다 (기본 꺼짐)', () => {
+  // 2026-07-30 실기기: 토스가 "토스페이 자동결제 결제수단 설정이 없습니다" 로
+  // 거절했다. 상점 설정이 되기 전에 노출하면 고객이 누르는 순간 실패한다 —
+  // **작동하지 않는 걸 보여주는 쪽이 훨씬 나쁘다**. 그래서 옵트인이 정상 상태.
   delete process.env.NEXT_PUBLIC_TOSSPAY_BILLING
-  assert.deepEqual(billingMethodFlags(), { tosspay: true })
+  assert.deepEqual(billingMethodFlags(), { tosspay: false })
 })
 
-test("비상 스위치 — 'off' 를 명시하면 꺼진다", () => {
-  process.env.NEXT_PUBLIC_TOSSPAY_BILLING = 'off'
-  assert.deepEqual(billingMethodFlags(), { tosspay: false })
+test("'on' 을 명시하면 켜진다 (토스 설정 확인 후)", () => {
   process.env.NEXT_PUBLIC_TOSSPAY_BILLING = 'on'
   assert.deepEqual(billingMethodFlags(), { tosspay: true })
+  process.env.NEXT_PUBLIC_TOSSPAY_BILLING = 'off'
+  assert.deepEqual(billingMethodFlags(), { tosspay: false })
   delete process.env.NEXT_PUBLIC_TOSSPAY_BILLING
 })
 
@@ -80,6 +81,14 @@ test('토스페이 등록창 파라미터 — DIRECT + TOSSPAY 여야 자체창�
     flowMode: 'DIRECT',
     easyPay: 'TOSSPAY',
   })
+})
+
+test('★ 토스페이는 브랜드 색을 갖는다 — 카드와 눈에 띄게 달라야 한다', () => {
+  // 사장님 2026-07-30 "신용카드 등록이랑 토스페이랑 너무 똑같애".
+  // 두 화면(주문 선택기·등록 화면)이 이 값을 함께 읽으므로 여기서 고정한다.
+  assert.equal(billingMethod('tosspay').brandColor, '#3182F6')
+  // 카드는 우리 앱 색을 쓴다 — 브랜드 색을 주면 앱 톤이 깨진다.
+  assert.equal(billingMethod('card').brandColor, null)
 })
 
 test('카드 등록창 파라미터 — flowMode 를 넣지 않는다(기본 카드창)', () => {

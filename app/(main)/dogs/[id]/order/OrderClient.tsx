@@ -972,12 +972,31 @@ export default function OrderClient({
                           role="radio"
                           aria-checked={on}
                           className={'ord-fresh-btn' + (on ? ' is-on' : '')}
+                          // 토스페이는 브랜드 색으로 구분한다 — 회색 칸 두 개면
+                          // 무엇이 다른지 안 보인다(사장님 2026-07-30 "너무 똑같애").
+                          // 여기선 라디오라 통째로 파랗게 칠하지 않는다(안 골랐는데
+                          // 고른 것처럼 보인다) — 이름 색 + 선택 시 테두리만.
+                          style={
+                            m.brandColor && on
+                              ? {
+                                  borderColor: m.brandColor,
+                                  background: `color-mix(in srgb, ${m.brandColor} 7%, transparent)`,
+                                }
+                              : undefined
+                          }
                           onClick={() => {
                             haptic('tick')
                             setPayMethod(m.id)
                           }}
                         >
-                          <span className="ord-fresh-btn-name">{m.label}</span>
+                          <span
+                            className="ord-fresh-btn-name"
+                            style={
+                              m.brandColor ? { color: m.brandColor } : undefined
+                            }
+                          >
+                            {m.label}
+                          </span>
                           <span className="ord-fresh-btn-sub">
                             {m.pickerHint}
                           </span>

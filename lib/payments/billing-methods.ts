@@ -19,20 +19,19 @@
  * 고객이 없는 상태로 청구해야 하므로 **저장(빌링키)** 이 필수 → 카드번호가
  * 필요하다. 카드번호 입력을 없애는 유일한 길이 간편결제(토스페이)다.
  *
- * # 플래그 — 기본 켜짐, 끄는 스위치만 남겼다
- * 토스페이 자동결제는 **사장님이 토스에 계약을 확인해 켜기로 확정했다
- * (2026-07-30)**. 그래서 기본값이 켜짐이고, 문제가 생겼을 때 끌 수 있는
- * 비상 스위치만 남겼다: `NEXT_PUBLIC_TOSSPAY_BILLING=off`.
+ * # 플래그 — 지금은 **꺼짐**. 토스 쪽 설정이 아직 안 됐다.
+ * 2026-07-30 실기기 시도에서 토스가 이렇게 답했다:
+ *   **"토스페이 자동결제 결제수단 설정이 없습니다"**
+ * 계약·신청과 별개로 **상점 설정에 토스페이 자동결제 수단이 등록되어야** 창이
+ * 열린다. 그 전엔 고객이 토스페이를 누르는 순간 실패한다 — 그래서 옵트인으로
+ * 되돌렸다. 토스가 설정을 켜주면 Vercel 환경변수에
+ * `NEXT_PUBLIC_TOSSPAY_BILLING=on` 을 넣고 재배포하면 된다(코드 수정 불필요).
  *
- * 리포의 다른 플래그(`NEXT_PUBLIC_INVENTION_*`)는 `=== 'on'` 옵트인이지만
- * 이건 **반대로** 뒀다 — 그쪽은 실험이고 이건 이미 출시한 기능이다. 옵트인으로
- * 두면 Vercel 환경변수 한 줄을 잊는 순간 운영에서 조용히 사라지고, 사장님은
- * "만든 게 안 보인다"고 겪게 된다.
+ * 꺼져 있으면 수단이 카드 하나 → 선택 화면 없이 카드 등록창이 바로 열린다.
  *
- * 끄면 수단이 카드 하나 → 선택 화면 없이 카드 등록창이 바로 열린다(옛 흐름).
- *
- * 끌 상황: ① 토스페이 등록이 실제로 실패하기 시작 ② 네이티브 앱 웹뷰에서
- * 토스 앱 열기가 막히는 게 확인됨(NATIVE_APP_SETUP.md 참조).
+ * (기본 켜짐으로 뒀던 이유는 "환경변수 한 줄을 잊으면 만든 게 조용히 사라진다"
+ *  였는데, **작동하지 않는 걸 노출하는 쪽이 훨씬 나쁘다**. 켜기 전 확인은
+ *  PAYMENT_REHEARSAL.md §1-B 에.)
  */
 
 export type BillingMethodId = 'card' | 'tosspay'
@@ -55,6 +54,14 @@ export type BillingMethodDef = {
   /** 등록 완료 화면 제목 */
   doneTitle: string
   /**
+   * 그 수단의 브랜드 색. 선택 UI 에서 **눈에 띄게 구분**하는 데 쓴다
+   * (사장님 2026-07-30 "신용카드 등록이랑 토스페이랑 너무 똑같애").
+   * 카드는 우리 앱 색을 쓰므로 null. 로고 이미지는 브랜드 자산이라 임의로
+   * 만들지 않는다 — 색과 이름만. 두 화면(주문·등록)이 이 값을 함께 읽어
+   * 색이 서로 어긋나지 않게 한다.
+   */
+  brandColor: string | null
+  /**
    * 토스가 카드사명을 안 돌려줄 때 화면에 쓸 이름.
    * 카드는 null(= 토스가 늘 카드사를 준다), 토스페이는 '토스페이'.
    */
@@ -68,6 +75,7 @@ const CARD: BillingMethodDef = {
   hint: '카드번호를 입력해 등록해요',
   pickerHint: '카드번호 입력',
   doneTitle: '카드 등록 완료',
+  brandColor: null,
   fallbackBrand: null,
   params: { method: 'CARD' },
 }
@@ -78,6 +86,8 @@ const TOSSPAY: BillingMethodDef = {
   hint: '토스에 등록된 결제수단에서 고르면 돼요',
   pickerHint: '토스에서 선택',
   doneTitle: '토스페이 연결 완료',
+  // 토스 브랜드 블루.
+  brandColor: '#3182F6',
   fallbackBrand: '토스페이',
   // flowMode: 'DIRECT' = 통합 카드창이 아니라 토스페이 자체창을 연다.
   // easyPay 는 DIRECT 일 때만 유효하다(SDK 주석).
@@ -90,11 +100,11 @@ const ALL: BillingMethodDef[] = [CARD, TOSSPAY]
 export type BillingMethodFlags = { tosspay: boolean }
 
 /**
- * 빌드 시점 플래그 읽기. 기본 켜짐 — `'off'` 를 명시할 때만 끈다.
- * (환경변수를 안 넣는 것이 정상 상태다. 위 docstring 의 '플래그' 절 참조.)
+ * 빌드 시점 플래그 읽기. **기본 꺼짐** — `'on'` 을 명시할 때만 켠다.
+ * 토스 상점 설정이 확인된 뒤에 켠다(위 docstring 의 '플래그' 절 참조).
  */
 export function billingMethodFlags(): BillingMethodFlags {
-  return { tosspay: process.env.NEXT_PUBLIC_TOSSPAY_BILLING !== 'off' }
+  return { tosspay: process.env.NEXT_PUBLIC_TOSSPAY_BILLING === 'on' }
 }
 
 /** 지금 고객에게 보여줄 수단들. 카드는 항상 포함된다. */

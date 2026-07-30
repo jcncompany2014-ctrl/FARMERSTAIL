@@ -70,15 +70,16 @@ function BillingAuthInner() {
       ? resolveBillingMethod(requestedMethod, FLAGS).id
       : null,
   )
-  const [launching, setLaunching] = useState(false)
+  /** 지금 창을 여는 중인 수단. 두 번 눌러 창이 두 번 열리는 것도 이걸로 막는다. */
+  const [launchingId, setLaunchingId] = useState<BillingMethodId | null>(null)
   const [error, setError] = useState<string | null>(
     isInvalidEntry ? '잘못된 접근이에요' : null,
   )
 
-  /** "다음" 클릭 — 이 클릭이 곧 사용자 제스처다(위 docstring ① 참조). */
+  /** 버튼 클릭 → 곧바로 토스 창. 이 클릭이 사용자 제스처다(docstring ① 참조). */
   async function launch(methodId: BillingMethodId) {
-    if (launching) return // 두 번 눌러 창이 두 번 열리는 것 방지
-    setLaunching(true)
+    if (launchingId) return
+    setLaunchingId(methodId)
     try {
       // 주문 화면과 **같은 헬퍼**를 쓴다 — successUrl/failUrl 규칙이 두 곳에서
       // 갈리면 등록은 됐는데 빌링키가 안 남는 식으로 조용히 깨진다.
@@ -93,11 +94,11 @@ function BillingAuthInner() {
       // 빨간 "취소되었습니다." 막다른 화면이 떴다(사장님 제보 2026-07-30).
       // 조용히 확인 화면으로 되돌려 다시 누르거나 다른 수단을 고를 수 있게 한다.
       if (isUserCancelledPayment(e)) {
-        setLaunching(false)
+        setLaunchingId(null)
         return
       }
       setError(e instanceof Error ? e.message : '등록 화면을 띄우지 못했어요')
-      setLaunching(false)
+      setLaunchingId(null)
     }
   }
 
@@ -105,7 +106,7 @@ function BillingAuthInner() {
   const method = chosen ? billingMethod(chosen) : null
   // 선택 화면으로 되돌아갈 수 있을 때만 '뒤로'. 수단이 하나뿐이면 되돌아갈
   // 곳이 없으므로 닫기(✕)를 보여준다 — 앱에서 막다른 화살표는 혼란스럽다.
-  const canGoBack = !!method && !onlyOne && !launching
+  const canGoBack = !!method && !onlyOne && !launchingId
 
   return (
     <main
@@ -165,7 +166,16 @@ function BillingAuthInner() {
               </button>
             </>
           ) : !method ? (
-            /* ── 1단계: 고르기 ── */
+            /* ── 고르기 = 곧바로 열기 ──────────────────────────────────
+               예전엔 고른 뒤 "○○로 등록하려면 다음을 눌러주세요" 확인 화면을
+               한 번 더 뒀다. 두 가지가 문제였다(사장님 2026-07-30):
+                ① 그 문구가 **토스 자체 화면의 문구와 거의 같아서**, 우리
+                   화면을 토스 화면으로 착각하게 만들었다("우리 앱 컬러로
+                   나와버리는데 왜이래"). 남의 화면을 흉내내면 안 된다.
+                ② 토스페이는 토스가 이미 같은 안내 화면을 띄운다 → '다음'을
+                   두 번 누르게 된다.
+               **버튼을 누르는 것 자체가 사용자 제스처**라, 여기서 바로 열어도
+               iOS 이동 차단에 걸리지 않는다. 확인 화면은 없앴다. */
             <>
               <p
                 className="text-[19px] font-black"
@@ -182,34 +192,44 @@ function BillingAuthInner() {
                 다음 결제 전까지 해지할 수 있어요.
               </p>
               <div className="mt-6 flex flex-col gap-2.5 text-left">
-                {AVAILABLE.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setChosen(m.id)}
-                    className="w-full px-5 py-4 border text-left transition-opacity active:opacity-70"
-                    // radius 18 = 웹 editorial 톤 기본값(AGENTS.md R14). 이 라우트는
-                    // web/app 공용이라 v3 전용 스케일(rounded-2xl 등)을 쓰지 않는다.
-                    // Tailwind 임의값 대신 inline — dev(Turbopack)에서 새로 생성되는
-                    // CSS 가 반영 안 되는 문제를 피한다(reference_turbopack_css_staleness).
-                    // radius 4 = 앱 v3 서명값(AGENTS.md). 18(웹 editorial)은
-                    // 앱에서 유독 둥글어 생성형 카드처럼 보였다(사장님 2026-07-30).
-                    style={{ borderColor: 'var(--rule)', borderRadius: 4 }}
-                  >
-                    <span
-                      className="block text-[14px] font-bold"
-                      style={{ color: 'var(--ink)' }}
+                {AVAILABLE.map((m) => {
+                  // 토스페이는 **토스 브랜드 색**으로 — 카드와 나란히 두면
+                  // 회색 카드 두 장이라 구분이 안 됐다(사장님 "너무 똑같애").
+                  // 로고 이미지는 토스 브랜드 자산이라 임의로 만들지 않는다.
+                  const brand = m.brandColor
+                  const busy = launchingId === m.id
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => void launch(m.id)}
+                      disabled={!!launchingId}
+                      className="w-full px-5 py-4 border text-left transition-opacity active:opacity-70 disabled:opacity-60"
+                      style={{
+                        borderColor: brand ?? 'var(--rule)',
+                        background: brand ?? 'transparent',
+                        borderRadius: 4,
+                      }}
                     >
-                      {m.label}
-                    </span>
-                    <span
-                      className="block text-[11.5px] mt-1"
-                      style={{ color: 'var(--muted)' }}
-                    >
-                      {m.hint}
-                    </span>
-                  </button>
-                ))}
+                      <span
+                        className="block text-[14px] font-bold"
+                        style={{ color: brand ? '#fff' : 'var(--ink)' }}
+                      >
+                        {busy ? '여는 중이에요...' : m.label}
+                      </span>
+                      <span
+                        className="block text-[11.5px] mt-1"
+                        style={{
+                          color: brand
+                            ? 'rgba(255,255,255,0.82)'
+                            : 'var(--muted)',
+                        }}
+                      >
+                        {m.hint}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
               <button
                 type="button"
@@ -221,18 +241,18 @@ function BillingAuthInner() {
               </button>
             </>
           ) : (
-            /* ── 2단계: 확인 → "다음" 이 토스를 띄운다 ── */
+            /* ── 수단이 하나뿐이거나 ?method= 로 지정돼 들어온 경우 ──
+               고를 게 없어 클릭할 대상이 없다 → 열기 버튼 하나를 둔다.
+               문구는 **우리 말투로** 쓴다(토스 화면 흉내 금지). */
             <>
               <p
-                className="text-[19px] font-black leading-snug"
+                className="text-[19px] font-black"
                 style={{ color: 'var(--ink)', letterSpacing: '-0.025em' }}
               >
-                {method.label}로 등록하려면
-                <br />
-                다음을 눌러주세요
+                결제수단 등록
               </p>
               <p
-                className="text-[12px] mt-3 leading-relaxed"
+                className="text-[12px] mt-2 leading-relaxed"
                 style={{ color: 'var(--muted)' }}
               >
                 {method.hint}.
@@ -242,17 +262,17 @@ function BillingAuthInner() {
               <button
                 type="button"
                 onClick={() => void launch(method.id)}
-                disabled={launching}
+                disabled={!!launchingId}
                 className="mt-7 w-full py-4 text-[14px] font-bold disabled:opacity-60"
                 style={{
-                  background: 'var(--ink)',
-                  color: 'var(--bg)',
+                  background: method.brandColor ?? 'var(--ink)',
+                  color: method.brandColor ? '#fff' : 'var(--bg)',
                   borderRadius: 4,
                 }}
               >
-                {launching ? '이동 중이에요...' : '다음'}
+                {launchingId ? '여는 중이에요...' : `${method.label} 등록하기`}
               </button>
-              {!onlyOne && !launching && (
+              {!onlyOne && !launchingId && (
                 <button
                   type="button"
                   onClick={() => setChosen(null)}

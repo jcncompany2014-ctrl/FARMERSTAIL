@@ -68,7 +68,9 @@ const DEEP_TITLES: Record<string, string> = {
   '/faq': '자주 묻는 질문',
   '/help': '고객센터',
   '/mypage/orders': '주문 내역',
-  '/mypage/subscriptions': '정기배송',
+  // 마이페이지 메뉴에서 '주문 내역' 과 합쳐진 화면이라 제목도 같이 간다
+  // (2026-07-30). 메뉴 라벨과 헤더가 다르면 잘못 들어온 것처럼 느껴진다.
+  '/mypage/subscriptions': '정기배송 · 주문 내역',
   '/account/subscriptions': '정기배송',
   '/mypage/addresses': '배송지 관리',
   '/mypage/membership': '멤버십',
