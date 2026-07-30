@@ -176,7 +176,9 @@ export default function WeightInputSheet({
               fontFamily:
                 "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
               fontSize: 13.5,
-              color: V3.accent,
+              // 13.5px 는 본문 기준(4.5:1) — accent 3.41 미달 → accentDeep.
+              // 위 34px 히어로 제목의 accent 는 큰 글자(3:1) 기준이라 그대로 둔다.
+              color: V3.accentDeep,
               letterSpacing: '0.16em',
               wordSpacing: '-0.12em',
               marginLeft: 8,

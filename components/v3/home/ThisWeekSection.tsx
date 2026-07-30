@@ -185,11 +185,13 @@ export default function ThisWeekSection({
                 fontFamily: 'var(--font-sans)',
                 fontWeight: V3FontWeight.bold,
                 fontSize: V3FontSize.sm,
-                color: V3.accent,
+                // accent(3.41:1) 는 12px 본문에서 AA 미달 → accentDeep(8.71:1).
+                // 같은 계열 딥 톤이라 톤은 유지된다(2026-07-30).
+                color: V3.accentDeep,
               }}
             >
               오늘 기록하기
-              <ArrowRight size={12} color={V3.accent} strokeWidth={2.2} />
+              <ArrowRight size={12} color={V3.accentDeep} strokeWidth={2.2} />
             </Link>
           )}
         </div>

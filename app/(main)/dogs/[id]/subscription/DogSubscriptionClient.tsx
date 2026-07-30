@@ -378,6 +378,17 @@ function SubCard({
               <Pause size={13} strokeWidth={2.4} />
               일시정지
             </button>
+            {/* ★ 정상 구독에도 결제수단 교체를 준다 (2026-07-30).
+                예전엔 needs_card·card_failed 에서만 이 버튼이 떴다 — 즉 **카드가
+                잘 걸린 사람은 카드를 바꿀 방법이 없었다.** 그런데 FAQ 는 "마이페이지
+                → 정기배송에서 새 카드로 교체하면 다음 회차부터 새 카드로 결제돼요"
+                라고 안내하고 있었다. 이동하는 화면(goCard)과 교체 로직은 이미 있어서
+                진입점만 없던 상태였다 — 카드가 만료되기 **전에** 바꾸려는 사람이
+                결제 실패를 기다려야 했다. */}
+            <button type="button" className="sub-btn" onClick={onCard} disabled={busy}>
+              <CreditCard size={13} strokeWidth={2.4} />
+              결제수단 바꾸기
+            </button>
           </>
         )}
 

@@ -551,6 +551,23 @@ export default function SubscriptionsWebClient({
                     일시정지
                   </button>
                 )}
+                {/* ★ 정상 구독에도 결제수단 교체 (2026-07-30). 예전엔 카드 미등록·
+                    실패 상태에서만 이 버튼이 떴다 — **카드가 잘 걸린 사람은 카드를
+                    바꿀 방법이 없었다.** FAQ 는 교체가 된다고 안내하고 있었고,
+                    이동 로직(handleReRegisterCard)도 이미 있어서 진입점만 없었다.
+                    시각은 위 '일시정지' 버튼과 **같은 클래스·같은 토큰** — 웹 톤 보존. */}
+                {isActive && (
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => handleReRegisterCard(sub)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
+                    style={{ color: 'var(--fd-pine)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
+                  >
+                    <CreditCard className="w-3.5 h-3.5" strokeWidth={2} />
+                    결제수단 바꾸기
+                  </button>
+                )}
                 {isPaused && (
                   <button
                     type="button"
@@ -644,7 +661,7 @@ function CancelModal({
         </div>
         <p className="mt-2.5 text-[13px] leading-relaxed" style={{ color: 'var(--fd-muted)' }}>
           해지하면 다음 배송이 진행되지 않아요. 잠시 쉬어가는 거라면 일시정지나
-          건너뛰기를 추천드려요.
+          2주 미루기를 추천드려요.
         </p>
 
         <div className="mt-5 flex flex-col gap-2">
@@ -657,7 +674,9 @@ function CancelModal({
           >
             <span>
               <span className="block text-[13.5px] font-bold" style={{ color: 'var(--fd-pine)' }}>
-                2주 건너뛰기
+                {/* 앱은 '2주 미루기' 였다 — 같은 동작을 두 이름으로 부르고 있어
+                    FAQ 도 어느 쪽을 따라야 할지 갈렸다(2026-07-30 통일). */}
+                2주 미루기
               </span>
               <span className="block text-[11.5px]" style={{ color: 'var(--fd-muted)' }}>
                 다음 배송만 미루고 구독은 유지

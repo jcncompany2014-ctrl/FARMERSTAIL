@@ -155,8 +155,10 @@ export const V3_CONTRAST_PAIRS = [
     bg: V3.paper,
     use: 'deco',
     purpose:
-      '3.41:1 — 테두리·아이콘·강조 띠 전용. 텍스트는 accentDeep(8.71:1). ' +
-      '⚠️ 지금 accent 를 글자색으로 쓰는 곳이 15군데 남아 있다(디자인 동결 중이라 사장님 확인 후 일괄 교체).',
+      '3.41:1 — 아이콘·테두리·큰 글자(≥18.66px bold) 전용. 작은 글자는 accentDeep(8.71:1). ' +
+      '2026-07-30 전수: 글자색으로 쓰던 27곳 중 본문 3곳만 accentDeep 으로 교체. ' +
+      '남긴 것과 이유 — 34px display 제목(큰 글자 3:1 통과) · 아이콘 3개(UI 컴포넌트 3:1 통과) · ' +
+      'AppShowcase 19곳(웹 랜딩의 폰 목업 일러스트, 6~10px, 읽는 텍스트가 아니고 웹 시각이라 불변).',
   },
   {
     name: 'sageSoft/paper',

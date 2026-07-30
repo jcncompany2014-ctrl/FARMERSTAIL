@@ -410,7 +410,9 @@ export default function OrdersAppView({
                                 fontFamily: 'var(--font-sans)',
                                 fontSize: 15,
                                 fontWeight: V3FontWeight.black,
-                                color: V3.accent,
+                                // 15px bold 는 WCAG large-text(18.66px bold) 미달 →
+                                // 본문 기준 4.5:1 이 필요하다. accent 3.41 → accentDeep 8.71.
+                                color: V3.accentDeep,
                                 letterSpacing: '-0.02em',
                               }}
                             >
