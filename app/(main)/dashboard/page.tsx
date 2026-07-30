@@ -181,9 +181,11 @@ export default async function DashboardPage() {
     // 메모리에서 고른다(내림차순 정렬 → 첫 매칭).
     supabase
       .from('dog_formulas')
-      .select('dog_id, cycle_number, daily_grams')
+      .select('dog_id, cycle_number, daily_grams, created_at')
       .eq('user_id', user.id)
-      .order('cycle_number', { ascending: false }),
+      // ★created_at 정렬 — 회차 번호가 큰 것이 최신이 아니다(2026-07-30 감사).
+      // 청구·피킹 리스트와 같은 처방을 가리켜야 급여량이 실제 박스와 맞는다.
+      .order('created_at', { ascending: false }),
     // 화식 비율(30/50/100) — 구독에서. 없으면 완전화식(100%) 기준으로 표기.
     supabase
       .from('subscriptions')

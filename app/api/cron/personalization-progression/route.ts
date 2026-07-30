@@ -160,6 +160,14 @@ export async function GET(req: Request) {
     .or(
       `applied_from.lte.${prefilterBefore},and(applied_from.is.null,created_at.lt.${prefilterBefore}T00:00:00Z)`,
     )
+    // ★여기만 cycle_number 정렬을 유지한다 (2026-07-30 감사 예외).
+    //   다른 곳(청구·피킹·홈·강아지 상세)은 created_at 으로 바꿨다 — 회차 번호가
+    //   큰 것이 최신이 아니어서(실측: cycle 2 가 cycle 1 보다 5일 먼저 생성) 서로
+    //   다른 처방을 가리켰기 때문이다.
+    //   그런데 이 라우트는 아래에서 **`cur.cycle_number + 1` 로 다음 회차 번호를
+    //   만든다**(:266, :572). created_at 으로 고르면 cycle 1 을 집고 next=2 가 되어
+    //   이미 있는 cycle 2 와 **번호가 충돌**한다. 그래서 번호 산술의 기준은 회차여야
+    //   한다. 근본 해결은 회차 번호가 시간순이 되도록 데이터를 정리하는 것 — 후속.
     .order('cycle_number', { ascending: false })
     .limit(MAX_PER_RUN * 3) // dedup 위해 여유롭게
 

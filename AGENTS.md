@@ -95,6 +95,80 @@ function MyComponent({ variant = 'web' }: { variant?: 'web' | 'app' }) {
 2. variant prop 지원 컴포넌트인가? → **`isApp ? 'app' : 'web'` 패스만 OK**
 3. 그 외 공유 영역이면: web default 톤 보존 + variant 추가하거나 컨텍스트 분기.
 
+# ⛔ 돈·데이터를 다루는 코드 — 2026-07-30 최종감사로 못 박은 규칙
+
+하루에 "critical 수정 완료"를 두 번 보고했고 **둘 다 불완전**했다. 아래는 그
+실패에서 나온 것이고, 전부 **실제로 틀렸던 방식**이다(가정 아님).
+
+## 1) Supabase 호출은 `error` 를 반드시 꺼낸다 — "데이터 없음" ≠ "실패"
+
+```ts
+const { data } = await supabase.from('x').select()       // ⛔ 금지
+const { data, error } = await supabase.from('x').select() // ✅
+```
+`data` 만 받으면 **오류와 빈 결과가 구분되지 않는다.** 실제 피해 두 건:
+- 웹훅이 DB 오류를 "이미 처리됨"으로 읽고 토스에 **200** 을 돌려줘 재시도를
+  끊었다. 멱등 기록까지 남아 수동 재시도도 막혀 **복구 경로가 0개**가 됐다.
+- 새 정기배송 화면이 조회 실패를 "구독 없음"으로 표시해, 결제가 걸린 고객에게
+  "정기배송을 시작할 수 있어요"를 안내했다.
+
+`update(...).select()` 도 같다. **0행이 "이미 처리됨"인지 "오류"인지 먼저 가른다.**
+
+## 2) "검증 못 하면 통과"를 쓰기 전에 그 조건의 생성 주체를 확인한다
+
+청구 검문소에 "재계산 못 하면 검사 건너뜀"을 넣었다. 그런데 재계산에 필요한
+`fresh_ratio` 가 **고객이 쓸 수 있는 칸**이어서, `{"total_amount":100,
+"fresh_ratio":0}` 로 검문소가 그대로 비켜섰다 — **막으려던 critical 이 필드
+하나로 열려 있었다.**
+
+→ 방어를 만들면 **탈출구를 열거하고, 그 조건을 사용자가 만들 수 있는지** 본다.
+
+## 3) 값을 검사하기 전에 "쓸 수 없게" 만드는 층위를 먼저 본다
+
+같은 문제의 옳은 해법은 애플리케이션 검사가 아니라 **DB 컬럼 권한 회수**였다
+(`20260730000000_subscriptions_lock_money_columns.sql`).
+`subscriptions` 는 **화이트리스트**다 — 고객은 4칸만 UPDATE 할 수 있고,
+**새 칸은 자동으로 차단**된다. 고객이 써야 하는 칸이 생기면 그때 명시적으로
+GRANT 하고, 그 리뷰가 목적이다.
+
+## 4) 주석이 주장하는 방어는 grep 으로 실물을 확인한다
+
+`"UPDATE-with-RETURNING 으로 atomically 선점(last_charge_lock_at 마킹)"` 이라는
+주석이 있었지만 **코드는 SELECT** 였고 그 컬럼명은 저장소 전체에서 **그 주석 한
+줄이 유일한 등장**이었다. 없는 방어를 있다고 믿게 만드는 주석이 코드가 없는
+것보다 위험하다 — 나도 그 파일을 여러 번 고치면서 읽고 넘어갔다.
+
+## 5) 금액은 **저장값으로 청구**한다. 재계산으로 깎거나 막지 않는다
+
+`lib/payments/charge-amount-guard.ts` 는 **알림 전용**이다. 재계산이 정당하게
+어긋나는 경우가 여럿이고(재고 변동 · 플랜 화면 레시피 선택 미저장 · 처방 회차
+차이) 그 크기가 조작과 구분되지 않는다(실측 40%). `min()` 으로 낮춰 청구하면
+저청구(실측 −40.6%), `refuse` 로 막으면 정상 고객의 박스가 멈춘다.
+**저장 금액 = 고객이 동의하고 모든 화면이 보여주는 값.** 그것으로 긁고, 어긋나면
+사람에게 알린다. 불변식 테스트가 이걸 지킨다.
+
+## 6) 처방(dog_formulas)을 고를 때 `cycle_number` 로 정렬하지 않는다
+
+회차 번호가 큰 것이 최신이 아니다 — 프로덕션 실측으로 cycle 2 가 cycle 1 보다
+**5일 먼저** 생성돼 있었다. `created_at DESC` 를 쓴다.
+그리고 **주문 화면은 cycle 1 고정**이다(사장님 제보로 고친 것). 금액을 만든
+기준과 대조하는 기준이 다르면 조용히 저청구가 된다.
+
+## 7) 배포가 반영 안 되면 **GitHub 커밋 status 부터** 본다
+
+Vercel 이 크론 요금 한도로 **빌드 시작을 거부**하면 Vercel 쪽에 배포 기록이
+아예 안 생긴다. 유일한 신호가 GitHub 커밋 status 의
+`Vercel — Deployment failed.` + 링크였다. 웹훅·계정을 뒤지기 전에 그것부터.
+`vercel.json` 의 크론은 **전부 하루 1회 이하**로 유지한다.
+
+## 8) 검증은 부작용 없는 조회로 한다
+
+권한 확인은 `has_column_privilege()` 같은 순수 함수로. 프로덕션을 **바꿔서**
+확인하지 않는다. 불가피하면 롤백하는 트랜잭션 안에서.
+배포 확인용 신호(카나리아)는 쓰기 전에 **"바뀌면 초록"과 "안 바뀌면 빨강"을 둘 다**
+검산한다 — 두 번 연속 무효한 신호로 잘못 결론냈다(FAQ 는 DB 에서 오고, 다른
+하나는 사이트 봇차단 403 페이지를 검사하고 있었다).
+
 # Verification before push — DO NOT shortcut this
 
 **The exit-code-via-pipe trap.** Commands like `npx tsc --noEmit 2>&1 | head -30` return the exit code of `head`, NOT `tsc`. tsc can print 20 type errors and exit 1, but `| head` returns 0 and the shell reports "success." This silently broke ~10 Vercel builds before being caught.

@@ -142,7 +142,8 @@ async function runDetect(): Promise<Response> {
             .from('dog_formulas')
             .select('daily_kcal')
             .eq('dog_id', dog.id)
-            .order('cycle_number', { ascending: false })
+            // ★created_at 정렬 — 회차 번호가 큰 것이 최신이 아니다(2026-07-30 감사).
+            .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle(),
           admin

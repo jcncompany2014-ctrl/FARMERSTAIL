@@ -135,7 +135,12 @@ export default async function PickingListPage({
                 'transition_strategy, user_adjusted, approval_status',
             )
             .in('dog_id', dogIds)
-            .order('cycle_number', { ascending: false })
+            // ★처방 정렬은 created_at — cycle_number 가 아니다 (2026-07-30 최종감사).
+            // 회차 번호가 큰 것이 최신이 아니다: 프로덕션 실측으로 cycle 2 가 cycle 1
+            // 보다 5일 **먼저** 생성돼 있었다. 회차로 고르면 청구(subscription-charge)와
+            // 다른 처방을 집어 "청구한 금액과 담는 박스가 다른 처방" 이 된다 —
+            // 사장님이 과거 지적한 "닭으로 추천받았는데 오리랑 소를 받아" 와 같은 부류.
+            .order('created_at', { ascending: false })
         : Promise.resolve({ data: [] as unknown[] }),
       supabase
         .from('products')
