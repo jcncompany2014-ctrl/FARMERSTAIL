@@ -41,7 +41,6 @@ import {
   Check,
   Loader2,
   PackageOpen,
-  CalendarDays,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -294,87 +293,64 @@ function SubCard({
   const meta = STATE_META[state]
   const recipes = sub.subscription_items.map((i) => i.product_name).join(' · ')
 
+  const method = billingMethodSummary({
+    registered: !!sub.billing_key,
+    brand: sub.billing_card_brand,
+    last4: sub.billing_card_last4,
+  })
+
+  /** 금액 아래 한 줄 — 언제 무슨 일이 일어나는지. */
+  const when =
+    state === 'active' && sub.next_delivery_date
+      ? `${dateLabel(sub.next_delivery_date)} 결제 예정`
+      : state === 'paused'
+        ? '일시정지 중 · 재개하면 다음 화요일부터'
+        : sub.next_delivery_date
+          ? `다음 배송 ${dateLabel(sub.next_delivery_date)}`
+          : '2주에 한 번'
+
+  /** 박스 내용 한 줄 — 옛 '받는 박스' + '화식 비율' 두 행을 합쳤다. */
+  const boxLine = [recipes || '레시피 정보 없음']
+    .concat(sub.fresh_ratio != null ? [freshTierLabel(sub.fresh_ratio)] : [])
+    .join(' · ')
+
+  /** 두 번째 줄 — 상태마다 지금 알아야 할 것 하나만. */
+  const subLine =
+    state === 'needs_card'
+      ? '첫 배송은 결제수단 등록 후 정해져요'
+      : [method, sub.total_deliveries > 0 ? `${sub.total_deliveries}번째 박스까지 받았어요` : null]
+          .filter(Boolean)
+          .join(' · ')
+
   return (
     <section className={'sub-card is-' + meta.tone}>
-      <header className="sub-card-head">
-        <span className={'sub-badge is-' + meta.tone}>{meta.label}</span>
-        <span className="sub-amount">{sub.total_amount.toLocaleString()}원</span>
-      </header>
+      {/* 상태 → 금액 → 언제. 위에서 아래로 한 번에 읽힌다.
+          옛 구조는 배지와 금액을 좌우로 벌려놓고 그 아래 안내 상자 + label:값
+          4행이 있었다 — 정보는 같은데 부피만 두 배였다(사장님 2026-07-30). */}
+      <span className={'sub-state is-' + meta.tone}>{meta.label}</span>
+      <span className="sub-amount">
+        {sub.total_amount.toLocaleString('ko-KR')}
+        <span className="sub-won">원</span>
+      </span>
+      <p className="sub-when">{when}</p>
 
-      {/* 결제 실패 — 가장 먼저, 가장 크게. 이걸 놓치면 배송이 멈춘다. */}
+      {/* 결제 실패만 경고로 남긴다 — 상자가 아니라 한 줄. */}
       {state === 'card_failed' && (
-        <div className="sub-alert">
-          <AlertTriangle size={14} strokeWidth={2.4} />
-          <div>
-            <b>결제가 되지 않았어요.</b>
-            <p>
-              결제수단을 다시 등록하면 정기배송이 이어져요.
-              {sub.last_failed_charge_reason
-                ? ` (${sub.last_failed_charge_reason})`
-                : ''}
-            </p>
-          </div>
-        </div>
+        <p className="sub-warn">
+          <AlertTriangle size={13} strokeWidth={2.4} />
+          <span>
+            결제가 되지 않았어요. 결제수단을 다시 등록하면 이어져요.
+            {sub.last_failed_charge_reason
+              ? ` (${sub.last_failed_charge_reason})`
+              : ''}
+          </span>
+        </p>
       )}
 
-      {/* 시작 전 — 왜 아직 아무 일도 안 일어나는지 먼저 말한다. */}
-      {state === 'needs_card' && (
-        <div className="sub-alert is-wait">
-          <CreditCard size={14} strokeWidth={2.4} />
-          <div>
-            <b>아직 시작 전이에요.</b>
-            <p>
-              결제수단을 등록하면 첫 배송일이 잡혀요. 등록 전까지는 아무것도
-              결제되지 않아요.
-            </p>
-          </div>
-        </div>
-      )}
-
-      <dl className="sub-facts">
-        <div>
-          <dt>
-            <PackageOpen size={12} strokeWidth={2.2} />
-            받는 박스
-          </dt>
-          <dd>{recipes || '레시피 정보 없음'}</dd>
-        </div>
-        {sub.fresh_ratio != null && (
-          <div>
-            <dt>화식 비율</dt>
-            <dd>{freshTierLabel(sub.fresh_ratio)}</dd>
-          </div>
-        )}
-        <div>
-          <dt>
-            <CalendarDays size={12} strokeWidth={2.2} />
-            다음 배송
-          </dt>
-          <dd>
-            {sub.next_delivery_date ? (
-              <strong>{dateLabel(sub.next_delivery_date)}</strong>
-            ) : (
-              <span className="sub-dim">결제수단 등록 후 정해져요</span>
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>결제수단</dt>
-          <dd>
-            {billingMethodSummary({
-              registered: !!sub.billing_key,
-              brand: sub.billing_card_brand,
-              last4: sub.billing_card_last4,
-            }) ?? <span className="sub-dim">등록 전</span>}
-          </dd>
-        </div>
-        {sub.total_deliveries > 0 && (
-          <div>
-            <dt>지금까지</dt>
-            <dd>{sub.total_deliveries}번째 박스까지 받았어요</dd>
-          </div>
-        )}
-      </dl>
+      <div className="sub-lines">
+        <p>{boxLine}</p>
+        {subLine && <p>{subLine}</p>}
+      </div>
 
       {/* 액션 — 상태별로 '할 수 있는 것'만. 시작도 안 한 구독에 일시정지·
           건너뛰기를 주지 않는다(그게 이 화면의 옛 문제였다). */}
@@ -429,7 +405,9 @@ function SubCard({
       <p className="sub-foot">
         {state === 'active'
           ? `${iGa(name)} 먹는 속도에 맞춰 다음 결제 전까지 미루거나 멈출 수 있어요.`
-          : '다음 결제 전까지 바꾸거나 그만둘 수 있어요. 위약금은 없어요.'}
+          : state === 'needs_card'
+            ? '등록 전까지는 아무것도 결제되지 않아요. 위약금도 없어요.'
+            : '다음 결제 전까지 바꾸거나 그만둘 수 있어요. 위약금은 없어요.'}
       </p>
     </section>
   )

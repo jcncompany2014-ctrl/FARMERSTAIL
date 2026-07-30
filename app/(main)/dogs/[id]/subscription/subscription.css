@@ -1,6 +1,17 @@
 /**
- * 강아지 구독 탭 — 앱 카드 언어(/order 의 ord-* 와 같은 톤: 흰 카드 · radius 16 ·
- * 1px rule · 14px 리듬). 2026-07-16 재작성.
+ * 강아지 구독 탭.
+ *
+ * # 2026-07-30 덜어내기 (사장님 "디자인도 너무 ai 스럽고 별로야")
+ * 걷어낸 것 — 전부 생성형 디자인의 전형적인 패턴이다:
+ *  · 카드 왼쪽 **색 띠**(inset box-shadow rail)
+ *  · **알약 배지** (연한 톤 배경 + 둥근 pill)
+ *  · **연한 톤 안내 상자** (카드 안의 카드)
+ *  · **label:값 4행 + 얇은 구분선** — 설정 화면처럼 보였다
+ *  · **알약 버튼**
+ * 남긴 것 — 흰 바탕 · 1px rule · radius 4 · 금액이 주인공 · 행동 하나.
+ *
+ * radius 는 16 → **4**. 4가 앱 v3 서명값이고(AGENTS.md 'sm signature'),
+ * 마이페이지·홈 카드도 이미 4다. 16 은 이 화면과 주문 화면만 쓰던 예외였다.
  */
 
 .sub-page {
@@ -11,97 +22,94 @@
 .sub-card {
   background: var(--surface-card-elevated, #fff);
   border: 1px solid var(--rule);
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 14px;
-}
-/* 상태별 힌트는 왼쪽 얇은 띠로만 — 카드 전체를 물들이면 시끄럽다. */
-.sub-card.is-on { box-shadow: inset 3px 0 0 var(--moss); }
-.sub-card.is-wait { box-shadow: inset 3px 0 0 var(--gold, #E0B341); }
-.sub-card.is-bad { box-shadow: inset 3px 0 0 var(--terracotta); }
-.sub-card.is-off { opacity: 0.75; }
-
-.sub-card-head {
-  display: flex; align-items: center; justify-content: space-between;
+  border-radius: 4px;
+  padding: 18px 16px 16px;
   margin-bottom: 12px;
 }
-.sub-badge {
-  display: inline-flex; align-items: center;
-  padding: 4px 10px; border-radius: 99px;
-  font-size: 11px; font-weight: 800;
+.sub-card.is-off { opacity: 0.7; }
+
+/* 상태 — 알약이 아니라 작은 글씨. 색으로만 구분한다. */
+.sub-state {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
 }
-.sub-badge.is-on { background: color-mix(in srgb, var(--moss) 12%, transparent); color: var(--moss); }
-.sub-badge.is-wait { background: color-mix(in srgb, var(--gold, #E0B341) 18%, transparent); color: #8a6a12; }
-.sub-badge.is-bad { background: color-mix(in srgb, var(--terracotta) 12%, transparent); color: var(--terracotta); }
-.sub-badge.is-off { background: var(--bg-2); color: var(--muted); }
+.sub-state.is-on { color: var(--moss); }
+.sub-state.is-wait { color: #8a6a12; }
+.sub-state.is-bad { color: var(--terracotta); }
+.sub-state.is-off { color: var(--muted); }
+
+/* 금액 = 이 카드의 주인공.
+ *
+ * 두 번 고쳤다(사장님 2026-07-30):
+ *  ① **mono 금지** — 숫자는 JetBrains Mono 로, '원' 은 한글이라 폴백 서체로
+ *     그려져 한 덩어리 안에서 서체가 갈렸다("폰트가 달라서 이상해").
+ *  ② **tabular-nums 도 금지** — 그건 숫자를 **열로 정렬**할 때 쓰는 것이다.
+ *     모든 숫자가 같은 폭을 강제로 차지하니, 좁은 '1' 이 '0' 만큼 자리를 먹어
+ *     "153,100" 앞이 벌어지고 쉼표 주변이 헐렁해졌다("숫자부분이 좀 어색").
+ *     히어로 숫자 하나엔 **비례숫자**(기본값)가 맞다.
+ * 열로 세로 정렬되는 곳(목록·표)에서만 tabular 를 쓴다.
+ */
 .sub-amount {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 15px; font-weight: 700; color: var(--ink);
+  display: block; margin-top: 5px;
+  font-size: 30px; font-weight: 800; color: var(--ink);
+  letter-spacing: -0.02em; line-height: 1.05;
+}
+/* '원' 은 단위라 숫자보다 작고 가볍게 — 같은 크기면 숫자와 경쟁한다. */
+.sub-won {
+  font-size: 0.58em; font-weight: 700;
+  margin-left: 2px; letter-spacing: 0;
+}
+.sub-when {
+  margin: 4px 0 0;
+  font-size: 12px; color: var(--muted);
 }
 
-/* ── 배너 (결제 실패 / 시작 전) ────────────────────────────────────────── */
-.sub-alert {
-  display: flex; align-items: flex-start; gap: 8px;
-  padding: 11px 12px; border-radius: 12px;
-  margin-bottom: 12px;
-  background: color-mix(in srgb, var(--terracotta) 8%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--terracotta) 28%, transparent);
-  color: var(--terracotta);
+/* 한 줄 요약 — 옛 label:값 4행(구분선 포함)을 두 줄로 접었다. */
+.sub-lines { margin: 15px 0 0; }
+.sub-lines p {
+  margin: 0;
+  font-size: 12.5px; line-height: 1.6; color: var(--text); font-weight: 600;
 }
-.sub-alert.is-wait {
-  background: var(--bg-2);
-  box-shadow: inset 0 0 0 1px var(--rule);
-  color: var(--muted);
+.sub-lines p + p {
+  margin-top: 3px;
+  font-size: 12px; color: var(--muted); font-weight: 500;
 }
-.sub-alert b { display: block; font-size: 12.5px; font-weight: 800; color: var(--ink); }
-.sub-alert p { margin: 3px 0 0; font-size: 11px; line-height: 1.55; color: var(--muted); }
-.sub-alert svg { flex-shrink: 0; margin-top: 2px; }
 
-/* ── 사실 목록 ─────────────────────────────────────────────────────────── */
-.sub-facts { margin: 0; }
-.sub-facts > div {
-  display: flex; align-items: baseline; justify-content: space-between;
-  gap: 12px; padding: 8px 0;
-  border-bottom: 1px solid var(--rule);
+/* 결제 실패만 남긴 경고 — 상자가 아니라 한 줄. 이걸 놓치면 배송이 멈춘다. */
+.sub-warn {
+  display: flex; align-items: flex-start; gap: 6px;
+  margin: 13px 0 0;
+  font-size: 12px; line-height: 1.55; color: var(--terracotta); font-weight: 600;
 }
-.sub-facts > div:last-child { border-bottom: 0; }
-.sub-facts dt {
-  display: inline-flex; align-items: center; gap: 5px;
-  flex-shrink: 0;
-  font-size: 11.5px; color: var(--muted);
-}
-.sub-facts dd {
-  margin: 0; text-align: right;
-  font-size: 12.5px; color: var(--text); font-weight: 600;
-  min-width: 0; word-break: keep-all;
-}
-.sub-facts dd strong { color: var(--ink); font-weight: 800; }
-.sub-dim { color: var(--muted); font-weight: 500; }
+.sub-warn svg { flex-shrink: 0; margin-top: 2px; }
 
 /* ── 액션 ──────────────────────────────────────────────────────────────── */
 .sub-actions {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 7px;
-  margin-top: 14px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-top: 16px;
 }
 .sub-btn {
   appearance: none; cursor: pointer; font-family: inherit;
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 9px 14px; border-radius: 99px;
-  font-size: 12px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border-radius: 4px;
+  font-size: 12.5px; font-weight: 700;
   border: 1px solid var(--rule);
   background: var(--surface-card-elevated, #fff);
   color: var(--text);
   text-decoration: none;
-  transition: transform 120ms, border-color 140ms;
+  transition: opacity 120ms, border-color 140ms;
 }
-.sub-btn:active { transform: scale(0.97); }
+.sub-btn:active { opacity: 0.7; }
 .sub-btn:disabled { opacity: 0.5; cursor: default; }
+/* 주 행동은 전폭 하나 — 무엇을 눌러야 하는지 고민할 여지를 없앤다. */
 .sub-btn.is-primary {
+  flex: 1 1 100%;
+  padding: 13px 14px; font-size: 13px;
   background: var(--terracotta); border-color: var(--terracotta); color: #fff;
 }
 .sub-btn.is-quiet {
-  border-color: transparent; color: var(--muted); margin-left: auto;
-  font-weight: 600;
+  border-color: transparent; background: transparent;
+  color: var(--muted); font-weight: 500; margin-left: auto;
+  padding-left: 6px; padding-right: 6px;
 }
 .sub-btn.is-danger {
   background: var(--terracotta); border-color: var(--terracotta); color: #fff;
@@ -120,7 +128,7 @@
   padding: 40px 24px;
   background: var(--surface-card-elevated, #fff);
   border: 1px solid var(--rule);
-  border-radius: 16px;
+  border-radius: 4px;
   color: var(--muted);
 }
 .sub-empty h2 { margin: 6px 0 0; font-size: 14.5px; font-weight: 800; color: var(--ink); }
@@ -138,7 +146,7 @@
 .sub-past > summary::-webkit-details-marker { display: none; }
 .sub-past-row {
   display: flex; justify-content: space-between;
-  padding: 10px 14px; border-radius: 10px;
+  padding: 10px 12px; border-radius: 4px;
   background: var(--bg-2);
   font-size: 11px; color: var(--muted);
   margin-bottom: 6px;
@@ -154,7 +162,8 @@
   left: 50%; bottom: 0; transform: translateX(-50%);
   width: min(520px, 100%);
   background: var(--surface-card-elevated, #fff);
-  border-radius: 18px 18px 0 0;
+  /* 바텀시트만 12 — v3 md tier(모달·시트). 카드 4와 구분되는 것이 의도. */
+  border-radius: 12px 12px 0 0;
   padding: 22px 20px calc(22px + env(safe-area-inset-bottom));
 }
 .sub-sheet h3 { margin: 0 0 8px; font-size: 16px; font-weight: 800; color: var(--ink); }
@@ -168,4 +177,7 @@
 .sub-sheet-btns {
   display: flex; gap: 8px; margin-top: 18px;
 }
-.sub-sheet-btns .sub-btn { flex: 1 1 0; justify-content: center; }
+.sub-sheet-btns .sub-btn { flex: 1 1 0; }
+/* 시트 안에서는 주 버튼도 나란히 — 전폭 규칙을 끈다. */
+.sub-sheet-btns .sub-btn.is-primary,
+.sub-sheet-btns .sub-btn.is-danger { flex: 1 1 0; }

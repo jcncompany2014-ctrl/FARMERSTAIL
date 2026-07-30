@@ -16,6 +16,12 @@ const eslintConfig = defineConfig([
     // They intentionally ship unescaped entities and use globals like
     // IOSDevice from a sibling <script> tag. Linting them is noise.
     ".claude-design/**",
+    // Claude Code 가 배경 작업용으로 만드는 **중첩 git worktree**.
+    // 저장소를 통째로 다시 체크아웃한 것이라 ① 모든 파일을 두 번 linting 하고
+    // ② 그 안의 .storybook/*.ts 가 이 프로젝트 tsconfig include 밖이라
+    // projectService 가 parse 못 해 **에러로 커밋·푸시가 막힌다**(실제로 막혔다,
+    // 2026-07-30). git 도 이미 제외한다(.git/info/exclude) — lint 도 같이 제외.
+    ".claude/worktrees/**",
     // Storybook config — main.ts / preview.ts 는 tsconfig include 밖이라
     // projectService 가 parse 못 함. stories 자체는 정상.
     ".storybook/**",

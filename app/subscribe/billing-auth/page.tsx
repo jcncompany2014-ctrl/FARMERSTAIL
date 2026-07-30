@@ -154,8 +154,12 @@ function BillingAuthInner() {
               <button
                 type="button"
                 onClick={close}
-                className="px-5 py-2.5 rounded-full text-[13px] font-bold"
-                style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+                className="px-5 py-2.5 text-[13px] font-bold"
+                style={{
+                  background: 'var(--ink)',
+                  color: 'var(--bg)',
+                  borderRadius: 4,
+                }}
               >
                 구독 관리로 돌아가기
               </button>
@@ -164,8 +168,8 @@ function BillingAuthInner() {
             /* ── 1단계: 고르기 ── */
             <>
               <p
-                className="font-serif text-[20px] font-black"
-                style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
+                className="text-[19px] font-black"
+                style={{ color: 'var(--ink)', letterSpacing: '-0.025em' }}
               >
                 결제수단을 골라주세요
               </p>
@@ -188,7 +192,9 @@ function BillingAuthInner() {
                     // web/app 공용이라 v3 전용 스케일(rounded-2xl 등)을 쓰지 않는다.
                     // Tailwind 임의값 대신 inline — dev(Turbopack)에서 새로 생성되는
                     // CSS 가 반영 안 되는 문제를 피한다(reference_turbopack_css_staleness).
-                    style={{ borderColor: 'var(--rule)', borderRadius: 18 }}
+                    // radius 4 = 앱 v3 서명값(AGENTS.md). 18(웹 editorial)은
+                    // 앱에서 유독 둥글어 생성형 카드처럼 보였다(사장님 2026-07-30).
+                    style={{ borderColor: 'var(--rule)', borderRadius: 4 }}
                   >
                     <span
                       className="block text-[14px] font-bold"
@@ -218,8 +224,8 @@ function BillingAuthInner() {
             /* ── 2단계: 확인 → "다음" 이 토스를 띄운다 ── */
             <>
               <p
-                className="font-serif text-[20px] font-black leading-snug"
-                style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
+                className="text-[19px] font-black leading-snug"
+                style={{ color: 'var(--ink)', letterSpacing: '-0.025em' }}
               >
                 {method.label}로 등록하려면
                 <br />
@@ -237,8 +243,12 @@ function BillingAuthInner() {
                 type="button"
                 onClick={() => void launch(method.id)}
                 disabled={launching}
-                className="mt-7 w-full py-4 rounded-full text-[14px] font-bold disabled:opacity-60"
-                style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+                className="mt-7 w-full py-4 text-[14px] font-bold disabled:opacity-60"
+                style={{
+                  background: 'var(--ink)',
+                  color: 'var(--bg)',
+                  borderRadius: 4,
+                }}
               >
                 {launching ? '이동 중이에요...' : '다음'}
               </button>

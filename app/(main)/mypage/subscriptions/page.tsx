@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronRight, CreditCard, AlertTriangle, Receipt } from 'lucide-react'
+import { ChevronRight, AlertTriangle, Receipt } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { V3, V3Radius } from '@/lib/design/tokens'
 import {
@@ -10,6 +10,7 @@ import {
   type SubState,
 } from '@/lib/subscription-state'
 import { billingMethodSummary } from '@/lib/payments/billing-methods'
+import { billingAuthFallbackHref } from '@/lib/payments/billing-urls'
 import { weekdayKo } from '@/lib/shipping-schedule'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import { petName } from '@/lib/korean'
@@ -64,6 +65,27 @@ function krw(n: number): string {
   return `${n.toLocaleString('ko-KR')}원`
 }
 
+/**
+ * 히어로 금액 — 숫자와 단위('원')를 나눠 그린다.
+ *
+ * `tabular-nums` 를 **쓰지 않는다**: 그건 숫자를 열로 정렬할 때 쓰는 것이고,
+ * 큰 금액 하나에 쓰면 좁은 '1' 이 '0' 만큼 자리를 먹어 "153,100" 앞이 벌어진다
+ * (사장님 2026-07-30 "숫자부분이 좀 어색"). '원' 은 단위라 작고 가볍게 —
+ * 같은 크기면 숫자와 경쟁한다.
+ */
+function HeroAmount({ value }: { value: number }) {
+  return (
+    <span>
+      {value.toLocaleString('ko-KR')}
+      <span
+        style={{ fontSize: '0.58em', fontWeight: 700, marginLeft: 2 }}
+      >
+        원
+      </span>
+    </span>
+  )
+}
+
 const STATE_CHIP: Record<SubState, { label: string; color: string }> = {
   needs_card: { label: '시작 전', color: V3.yellow },
   active: { label: '구독 중', color: V3.sage },
@@ -91,11 +113,23 @@ export default async function AppSubscriptionsSummaryPage({
     .order('created_at', { ascending: false })
   const all = (data ?? []) as Subscription[]
 
-  // 보여줄 것 = 사장님 확정 규칙(lib/subscription-state) — 카드도 안 걸고 만든
-  // '유령' 구독은 숨긴다. 숨겨진 게 있으면 빈 화면에서 안내만 해준다.
-  const visible = all.filter(isSubscriptionVisibleToUser)
-  const hiddenNotStarted = all.filter(
-    (s) => !isSubscriptionVisibleToUser(s) && subscriptionState(s) === 'needs_card',
+  /**
+   * 보여줄 구독.
+   *
+   * # ★ '시작 전'(needs_card)도 보여준다 (사장님 제보 2026-07-30)
+   * 처음엔 `isSubscriptionVisibleToUser` 하나로 걸렀는데, 그 규칙은 needs_card 를
+   * 숨긴다. 그래서 결제수단만 안 넣은 구독이 있는 사람에게 **화면이 통째로 비어**
+   * "아직 시작한 정기배송이 없어요" 가 떴다 — 정작 153,100원짜리 구독이 결제만
+   * 기다리고 있는데. 게다가 위 경고 배너는 바로 그 needs_card 를 알려주려고 만든
+   * 것이라, 필터가 배너까지 같이 죽였다. 빈 화면에 '등록하러 가기' 버튼 하나만
+   * 남아서 한 번 더 눌러 강아지 화면으로 건너가야 했다("너무 비효율적이지 않냐").
+   *
+   * 원래 규칙이 막으려던 건 **'유령'** 이다 — 결제 한 번 없이 해지된 것
+   * (cancelled + 0회). 그건 계속 숨긴다. 살아 있는 needs_card 는 고객이 **조치할
+   * 게 있는** 상태라 반드시 보여야 한다.
+   */
+  const visible = all.filter(
+    (s) => isSubscriptionVisibleToUser(s) || subscriptionState(s) === 'needs_card',
   )
 
   // 문제 있는 것 먼저 — 조치가 필요한 걸 스크롤 없이 보게.
@@ -213,9 +247,18 @@ export default async function AppSubscriptionsSummaryPage({
         .map((s) => {
           const st = subscriptionState(s)
           const dog = s.dogs?.name ? petName(s.dogs.name) : '우리 아이'
-          const href = s.dog_id
-            ? `/dogs/${s.dog_id}/subscription`
-            : '/mypage/subscriptions'
+          // ★ 강아지 화면을 거치지 않고 **바로 등록 화면**으로 보낸다
+          //   (사장님 2026-07-30 "등록하기 누르면 또 넘어가 너무 비효율적").
+          //   customerKey 가 없으면 등록 화면이 '잘못된 접근' 으로 막히므로
+          //   그때만 강아지 화면(키를 새로 발급해 주는 곳)으로 우회한다.
+          const href = s.billing_customer_key
+            ? billingAuthFallbackHref({
+                subscriptionId: s.id,
+                customerKey: s.billing_customer_key,
+              })
+            : s.dog_id
+              ? `/dogs/${s.dog_id}/subscription`
+              : '/mypage/orders'
           return (
             <Link
               key={`alert-${s.id}`}
@@ -255,82 +298,40 @@ export default async function AppSubscriptionsSummaryPage({
           )
         })}
 
-      {/* ── 주인공: 결제 정보 ── */}
+      {/* ── 주인공: 결제 정보 ──
+          'NEXT PAYMENT' 킥커·구분선·설명 문단을 걷어냈다(사장님 2026-07-30
+          "덜어내기"). 날짜 → 금액 → 결제수단 세 줄이면 다 읽힌다. */}
       {nextDate ? (
         <section className="px-5 py-5" style={card}>
-          <p
-            className="text-[10.5px] font-bold"
-            style={{ color: V3.inkMute, letterSpacing: '0.16em' }}
-          >
-            NEXT PAYMENT
+          <p className="text-[11px] font-bold" style={{ color: V3.inkMute }}>
+            다음 결제
           </p>
           <p
-            className="mt-2 text-[22px] font-black leading-snug"
-            style={{ color: V3.ink, letterSpacing: '-0.02em' }}
+            className="mt-1.5 text-[30px] font-black"
+            style={{ color: V3.ink, letterSpacing: '-0.02em', lineHeight: 1.05 }}
           >
+            <HeroAmount value={nextAmount} />
+          </p>
+          <p className="mt-2 text-[12.5px]" style={{ color: V3.ink }}>
             {dateLabel(nextDate)}
           </p>
-          <p
-            className="mt-1 text-[16px] font-bold"
-            style={{ color: V3.ink, fontVariantNumeric: 'tabular-nums' }}
-          >
-            {krw(nextAmount)}
-          </p>
-
-          <div
-            className="mt-4 pt-4 flex items-center gap-2"
-            style={{ borderTop: `1px solid ${V3.ruleSoft}` }}
-          >
-            <CreditCard
-              className="w-3.5 h-3.5 shrink-0"
-              strokeWidth={2.4}
-              style={{ color: V3.inkMute }}
-            />
-            <span className="text-[12px]" style={{ color: V3.inkMute }}>
-              결제수단
-            </span>
-            <span
-              className="flex-1 text-right text-[12.5px] font-bold"
-              style={{ color: V3.ink }}
-            >
-              {oneMethod ?? '구독별로 달라요'}
-            </span>
-          </div>
-          <p
-            className="mt-2.5 text-[11px] leading-relaxed"
-            style={{ color: V3.inkMute }}
-          >
-            결제수단 변경·건너뛰기·해지는 아래에서 강아지를 선택하면 할 수 있어요.
+          <p className="mt-0.5 text-[12px]" style={{ color: V3.inkMute }}>
+            {oneMethod ?? '구독별로 결제수단이 달라요'}
           </p>
         </section>
       ) : (
-        <section className="px-5 py-6 text-center" style={card}>
+        /* 결제 예정이 없을 때. '시작 전' 구독이 아래 목록에 뜨고 위에 조치
+           배너도 있으므로 여기서는 짧게만 말한다 — 예전엔 이 자리가 통째로
+           빈 화면이 되어 버튼 하나만 남았다(사장님 제보). */
+        <section className="px-5 py-6" style={card}>
           <p className="text-[13px] font-bold" style={{ color: V3.ink }}>
-            {hiddenNotStarted.length > 0
-              ? '아직 시작한 정기배송이 없어요'
-              : '진행 중인 정기배송이 없어요'}
+            {rows.length > 0 ? '아직 결제 예정이 없어요' : '진행 중인 정기배송이 없어요'}
           </p>
-          <p
-            className="mt-1.5 text-[11.5px] leading-relaxed"
-            style={{ color: V3.inkMute }}
-          >
-            {hiddenNotStarted.length > 0
-              ? '강아지 화면에서 결제수단을 등록하면 첫 배송일이 잡혀요.'
+          <p className="mt-1.5 text-[12px]" style={{ color: V3.inkMute }}>
+            {rows.length > 0
+              ? '결제수단을 등록하면 첫 결제일이 정해져요.'
               : '강아지 화면에서 정기배송을 시작할 수 있어요.'}
           </p>
-          {hiddenNotStarted[0]?.dog_id && (
-            <Link
-              href={`/dogs/${hiddenNotStarted[0].dog_id}/subscription`}
-              className="inline-block mt-4 px-5 py-2.5 text-[12.5px] font-bold"
-              style={{
-                background: V3.ink,
-                color: V3.paper,
-                borderRadius: V3Radius.pill,
-              }}
-            >
-              등록하러 가기
-            </Link>
-          )}
         </section>
       )}
 
@@ -338,10 +339,10 @@ export default async function AppSubscriptionsSummaryPage({
       {rows.length > 0 && (
         <>
           <p
-            className="mt-7 mb-2 px-1 text-[10.5px] font-bold"
-            style={{ color: V3.inkMute, letterSpacing: '0.16em' }}
+            className="mt-7 mb-2 px-1 text-[11px] font-bold"
+            style={{ color: V3.inkMute }}
           >
-            SUBSCRIPTIONS · {rows.length}건
+            정기배송 {rows.length}건
           </p>
           <ul className="overflow-hidden" style={card}>
             {rows.map((s, i) => {
