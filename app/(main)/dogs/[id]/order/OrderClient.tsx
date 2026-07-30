@@ -215,6 +215,13 @@ export type OrderClientProps = {
   profile: OrderProfileInitial
   /** 분석 카드 CTA 의 ?fresh=30|60|100 (화식 비율 초기 선택). 없으면 30(곁들임). */
   initialFresh?: number
+  /**
+   * 플랜에서 보호자가 고른 레시피(`?recipes=`). 서버가 이미 formula.lineRatios 에
+   * 반영해서 내려주지만, **생성 라우트가 같은 변환을 다시 해야** 하므로 원본
+   * 목록도 함께 받아 그대로 실어 보낸다. 안 보내면 서버는 알고리즘 원본 비율로
+   * 계산하고, 금액이 달라져 가입이 거부된다.
+   */
+  pickedRecipes?: FoodLine[]
 }
 
 export default function OrderClient({
@@ -225,6 +232,7 @@ export default function OrderClient({
   products,
   profile,
   initialFresh,
+  pickedRecipes,
 }: OrderClientProps) {
   const router = useRouter()
   const supabase = createClient()
@@ -466,6 +474,7 @@ export default function OrderClient({
           address: recipientAddress.trim(),
           addressDetail: recipientAddressDetail.trim() || null,
           deliveryMemo,
+          recipes: pickedRecipes ?? [],
           expectedTotal: totalAmount,
           saveToProfile: addressEdited && saveAddressToProfile,
         }),

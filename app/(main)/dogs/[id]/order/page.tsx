@@ -79,6 +79,8 @@ export default async function OrderPage({
 
   // formula null 일 때는 client 가 empty CTA 노출 — page redirect 안 함.
   let formula: Formula | null = null
+  /** 플랜에서 고른 레시피 — 생성 라우트가 같은 비율을 재현하는 데 쓴다. */
+  let pickedRecipes: FoodLine[] = []
   if (formulaRow) {
     // audit #79: dog_formulas formula/reasoning 컬럼은 jsonb — generated type
     // 보다 코드 모델이 더 정확. 가공 후 prop drill.
@@ -130,6 +132,11 @@ export default async function OrderPage({
     if (picked.length > 0) {
       formula = { ...formula, lineRatios: ratiosFromPicks(picked) }
     }
+    // ★ 고른 목록을 클라이언트로도 내려보낸다 — 구독 생성 라우트가 **같은 변환**을
+    //   다시 해야 하기 때문이다. 서버가 알고리즘 원본 비율로 계산하면 금액이
+    //   달라져 검산에서 거부되고, 플랜에서 레시피를 고른 고객은 가입 자체가
+    //   막힌다(2026-07-30 점검에서 발견).
+    pickedRecipes = picked
   }
 
   // products map (slug → row). formula 없으면 empty 로 진입해도 client 가 어차피
@@ -193,6 +200,7 @@ export default async function OrderPage({
       products={products}
       profile={profile}
       initialFresh={initialFresh}
+      pickedRecipes={pickedRecipes}
     />
   )
 }

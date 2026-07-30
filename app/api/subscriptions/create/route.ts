@@ -16,7 +16,9 @@ import {
   subscriptionItemRows,
   type ItemProduct,
 } from '@/lib/personalization/subscriptionItems'
-import type { Formula } from '@/lib/personalization/types'
+import type { Formula, FoodLine } from '@/lib/personalization/types'
+import { ALL_LINES } from '@/lib/personalization/lines'
+import { MAX_PICKS, ratiosFromPicks } from '@/lib/personalization/boxPicks'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -69,6 +71,21 @@ const zCreate = z.object({
   address: z.string().trim().min(4).max(200),
   addressDetail: z.string().trim().max(100).nullable(),
   deliveryMemo: z.string().trim().max(400).nullable(),
+  /**
+   * 플랜에서 보호자가 직접 고른 레시피(주문 화면의 `?recipes=`).
+   *
+   * ★ 이걸 안 받으면 **그 경로로 온 고객의 가입이 전부 막힌다.** 주문 페이지는
+   * picks 가 있으면 `ratiosFromPicks` 로 처방 비율을 덮어써서 박스와 금액을
+   * 만드는데, 서버가 알고리즘 원본 비율로 계산하면 금액이 달라져 아래
+   * expectedTotal 검산에서 거부된다.
+   *
+   * 금액을 정하는 값이 아니라 **선택지**다 — 화면에서 고를 수 있는 것과 같은
+   * 제약(유효한 라인, 최대 2종)을 서버가 그대로 건다.
+   */
+  recipes: z
+    .array(z.enum(ALL_LINES as unknown as [FoodLine, ...FoodLine[]]))
+    .max(MAX_PICKS)
+    .optional(),
   /** 주문 화면이 보여준 총액 — 청구 근거가 아니라 **검산용**. */
   expectedTotal: z.number().int().min(0),
   saveToProfile: z.boolean().optional(),
@@ -142,9 +159,33 @@ export async function POST(req: Request) {
     )
   }
   const f = formulaRow as unknown as {
-    formula: { lineRatios: Formula['lineRatios']; toppers: Formula['toppers'] }
+    formula: {
+      lineRatios: Formula['lineRatios']
+      toppers: Formula['toppers']
+      needsConsultation?: boolean
+    }
     daily_kcal: number
   }
+
+  // ★ 안전 게이트 — 판매 레시피가 전부 알레르기라 자동 추천이 불가한 강아지는
+  //   결제로 넘어가면 안 된다. 주문 **화면**은 이 검사로 분석 페이지에 돌려보내지만,
+  //   화면이 막는 것은 화면일 뿐이다 — 이 API 를 직접 부르면 알레르기 성분 박스가
+  //   결제까지 갈 수 있었다. 승인 라우트와 같은 게이트를 여기에도 둔다.
+  if (f.formula.needsConsultation === true) {
+    return NextResponse.json(
+      {
+        code: 'CONSULTATION_REQUIRED',
+        message:
+          '알려주신 알레르기 때문에 이 구성은 그대로 시작할 수 없어요. 함께 안전한 방법을 찾아드릴게요 — 카카오톡으로 문의해 주세요.',
+      },
+      { status: 409 },
+    )
+  }
+
+  // 플랜에서 고른 레시피가 있으면 그것이 이긴다 — 주문 화면과 **같은 변환**.
+  const picks = body.recipes ?? []
+  const lineRatios =
+    picks.length > 0 ? ratiosFromPicks(picks) : f.formula.lineRatios
 
   // ── 제품: 활성 제품만 (주문 화면과 같은 조회) ───────────────────────
   const allSlugs = [
@@ -169,7 +210,7 @@ export async function POST(req: Request) {
   // ── 금액: 순수함수 정본. 화면 값은 검산에만 쓴다 ────────────────────
   const items = computeBoxItems({
     formula: {
-      lineRatios: f.formula.lineRatios,
+      lineRatios,
       toppers: f.formula.toppers,
       dailyKcal: f.daily_kcal,
     },
