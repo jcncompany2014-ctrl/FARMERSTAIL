@@ -27,7 +27,10 @@ test('parseSchedule — 이 리포의 실제 형태들', () => {
   assert.deepEqual(parseSchedule('0 0 1 1,4,7,10 *'), {
     minute: 0, hour: 0, dayOfMonth: [1], month: [1, 4, 7, 10], dayOfWeek: null,
   })
-  // 매시간 — 환불 재시도가 이 형태(결제 감사 #6 로 하루1회→매시간 변경)
+  // 매시간 형태. **지금 vercel.json 에는 없다** — 환불 재시도를 매시간으로
+  // 바꿨더니 Vercel 이 크론 요금 한도로 **배포 자체를 거부**해서 하루 1회로
+  // 되돌렸다(2026-07-30). 파서 지원은 남겨둔다: Pro 업글 후 다시 매시간으로
+  // 올릴 때 워치독이 바로 감시해야 하므로.
   assert.deepEqual(parseSchedule('30 * * * *'), {
     minute: 30, hour: null, dayOfMonth: null, month: null, dayOfWeek: null,
   })
