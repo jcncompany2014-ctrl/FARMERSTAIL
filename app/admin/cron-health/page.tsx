@@ -234,7 +234,7 @@ export default async function AdminCronHealthPage() {
       {/* cron 별 요약 — path 별 성공/실패 + 마지막 실행 결과. */}
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">Cron 별 요약 · 최근 {WINDOW_DAYS}일</span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">자동작업별 요약 · 최근 {WINDOW_DAYS}일</span>
         </div>
         {summaries.length === 0 ? (
           <div className="rounded-xl border border-zinc-200 px-5 py-12 text-center bg-white">
@@ -243,10 +243,10 @@ export default async function AdminCronHealthPage() {
               strokeWidth={1.3}
             />
             <p className="text-[13px] font-bold text-zinc-800">
-              최근 {WINDOW_DAYS}일 cron 실행 기록이 없어요
+              최근 {WINDOW_DAYS}일 자동작업 실행 기록이 없어요
             </p>
             <p className="text-[11px] text-zinc-500 mt-1">
-              cron 이 실행되면 cron_health 에 기록돼 여기에 요약돼요
+              자동작업이 돌기 시작하면 여기에 요약이 쌓여요
             </p>
           </div>
         ) : (

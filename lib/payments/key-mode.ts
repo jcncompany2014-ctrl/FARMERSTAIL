@@ -99,7 +99,7 @@ export function describeTossKeyStatus(s: TossKeyStatus): {
     tone: 'warn',
     title: '테스트 모드예요',
     detail:
-      '지금은 테스트 키라 결제가 성공해도 **실제 입금이 없어요.** ' +
+      '지금은 테스트 키라 결제가 성공해도 실제 입금이 없어요. ' +
       '토스 심사가 끝나면 운영키로 바꿔야 해요.',
   }
 }

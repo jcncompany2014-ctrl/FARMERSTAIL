@@ -10,6 +10,7 @@ import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 type SubscriptionRow = {
   id: string
+  billing_key: string | null
   user_id: string
   status: 'active' | 'paused' | 'cancelled'
   interval_weeks: number
@@ -126,9 +127,18 @@ export default function AdminSubscriptionsPage() {
     }
     if (newStatus === 'active') {
       const sub = subs.find(s => s.id === subId)
-      if (sub) {
+      // ★최종감사 #4 (2026-07-29): 카드 등록(billing_key) 여부를 반드시 본다.
+      //   예전엔 무조건 다음 화요일을 박았는데, 카드 미등록 구독은 청구 크론이
+      //   영원히 건너뛰므로(billing_key null 스킵) 그 날짜는 ① 고객 홈에 실제로
+      //   오지 않을 배송일을 표시하고(절대 규칙: 카드 등록 전 = null 위반)
+      //   ② 날짜가 과거로 밀리며 매주 피킹 리스트에 유령 박스로 계속 떴다.
+      //   카드 미등록이면 null 유지 — 카드가 등록되는 순간 billing-issue 가
+      //   첫 배송을 잡는 기존 흐름 그대로.
+      if (sub?.billing_key) {
         // 배송 주기는 2주 하나로 고정 — 재개는 다음 화요일부터(2026-07-16).
         updates.next_delivery_date = nextShipDate()
+      } else {
+        updates.next_delivery_date = null
       }
     }
     // audit #79: subscriptions update Record cast.

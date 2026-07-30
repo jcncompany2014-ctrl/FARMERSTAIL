@@ -26,7 +26,14 @@ function sinceIso(days: number): string {
 }
 
 function dayKey(iso: string): string {
-  return iso.slice(0, 10) // YYYY-MM-DD
+  // ★최종감사 #12 (2026-07-29): UTC 그대로 자르면 KST 00:00~08:59 결제가
+  //   전날 버킷에 들어간다. 특히 정기결제는 화요일 새벽 KST 크론이라(= UTC
+  //   월요일 밤) 주력 매출이 매주 월요일로 밀려 기록됐다 — 대시보드(KST)와
+  //   숫자가 안 맞아 "결제가 안 됐나?" 오판을 만든다. admin/page.tsx ·
+  //   reports 와 같은 +9h 방식으로 통일.
+  return new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10)
 }
 
 export default async function AdminFinancePage({

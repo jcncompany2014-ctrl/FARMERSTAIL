@@ -604,6 +604,33 @@ export async function GET(req: Request) {
           ),
       )
       if (shippedAllergenLeak) {
+        // ★최종감사 #5 (2026-07-29): 아래 푸시가 "결제는 잠시 멈춰둘게요"라고
+        //   **약속**하는데, 실제로 멈추는 코드가 없었다 — 다음 화요일에 이전
+        //   처방(모든 라인 차단 케이스에선 그것도 알레르겐 포함)이 그대로
+        //   결제·배송됐다. 구독을 일시정지해 약속과 행동을 일치시킨다.
+        //   청구 크론은 status='active' 만 집으므로 pause = 결제 정지.
+        //   (해지가 아니라 정지 — 상담 후 사장님/고객이 언제든 재개 가능.
+        //    next_delivery_date 는 남겨둔다: 재개 시 기준점이 되고, 고객 홈
+        //    구독 카드는 paused 상태를 먼저 읽어 배송일을 표시하지 않는다.)
+        const billingForPause = billingByDog.get(cur.dog_id)
+        if (billingForPause) {
+          const { error: pauseErr } = await supabase
+            .from('subscriptions')
+            .update({ status: 'paused' })
+            .eq('id', billingForPause.subId)
+            .eq('status', 'active')
+          if (pauseErr) {
+            captureBusinessEvent(
+              'error',
+              'personalization.leak_pause_failed',
+              {
+                dogId: cur.dog_id,
+                subscriptionId: billingForPause.subId,
+                dbError: pauseErr.message,
+              },
+            )
+          }
+        }
         // 조용히 넘어가면 안 되는 종류의 사건 — 알림부터 띄운다.
         captureBusinessEvent(
           'error',
@@ -810,7 +837,9 @@ export async function GET(req: Request) {
         pushUrl = `/dogs/${cur.dog_id}/analysis`
       }
 
-      pushToUser(
+      // ★최종감사 #32: fire-and-forget 이면 배치 마지막 순번의 푸시가 함수
+      //   반환과 경합해 간헐 유실된다(subscription-charge R83-6 과 동일 이유).
+      await pushToUser(
         cur.user_id,
         {
           title: pushTitle,
@@ -831,7 +860,7 @@ export async function GET(req: Request) {
       // 알레르기 누출 건도 메일 제외 — notifyPersonalizationCycle 은 "다음 박스"
       // 안내 템플릿이라 방금 보낸 "상담이 필요해요" 푸시와 정면으로 모순된다.
       if (!(requiresApproval && diff.priceChanged) && !shippedAllergenLeak)
-        void (async () => {
+        await (async () => {
         try {
           const { data: profile } = await supabase
             .from('profiles')

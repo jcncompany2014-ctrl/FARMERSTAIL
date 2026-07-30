@@ -48,37 +48,42 @@ type Item = {
 export default function ActionsPanel(props: ActionsPanelProps) {
   const items: Item[] = [
     {
-      href: '/admin/orders?filter=unshipped',
+      // ★최종감사 #13 (2026-07-29): 예전 ?filter= 파라미터는 대상 페이지들이
+      //   아예 읽지 않아 클릭해도 조용히 무시됐다. 각 페이지가 실제로 읽는
+      //   파라미터(orders/charges 는 ?status=, products 는 ?active=)로 교체.
+      //   전용 필터가 없는 항목(카드 재등록·환불 대기)은 그 조건을 보여주는
+      //   화면으로 바로 착지시킨다.
+      href: '/admin/orders?status=preparing',
       icon: Package,
       label: '미발송 (24시간+)',
       count: props.unshippedCount,
     },
     {
-      href: '/admin/orders?filter=stuck',
+      href: '/admin/orders?status=shipping',
       icon: Truck,
       label: '배송 지연 (7일+)',
       count: props.shippingStuckCount,
     },
     {
-      href: '/admin/subscriptions?filter=renewal',
+      href: '/admin/subscriptions',
       icon: CreditCard,
       label: '카드 재등록 대기',
       count: props.cardRenewalCount,
     },
     {
-      href: '/admin/subscriptions/charges?filter=failed',
+      href: '/admin/subscriptions/charges?status=failed',
       icon: AlertTriangle,
       label: '24시간 내 결제 실패',
       count: props.recentFailedCount,
     },
     {
-      href: '/admin/orders?filter=refunds-pending',
+      href: '/admin/refunds',
       icon: RefreshCcw,
       label: '환불 대기',
       count: props.refundsPendingCount,
     },
     {
-      href: '/admin/products?filter=out',
+      href: '/admin/products?active=active',
       icon: Clock,
       label: '품절 상품',
       count: props.stockOutCount,

@@ -96,7 +96,7 @@ export default function PriceChangeConsentModal({
     >
       <div
         ref={panelRef}
-        className="w-full md:max-w-md rounded-t-[18px] md:rounded-[18px] p-6"
+        className="w-full md:max-w-md rounded-t-[var(--fd-r-sheet)] md:rounded-[var(--fd-r-sheet)] p-6"
         style={{ background: '#FFFFFF' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -166,7 +166,7 @@ export default function PriceChangeConsentModal({
                 type="button"
                 disabled={busy}
                 onClick={() => submit('approve')}
-                className="h-11 rounded-[10px] text-[13px] font-bold inline-flex items-center justify-center gap-1.5 transition active:scale-[0.98] disabled:opacity-60"
+                className="h-11 rounded-[var(--fd-r-row)] text-[13px] font-bold inline-flex items-center justify-center gap-1.5 transition active:scale-[0.98] disabled:opacity-60"
                 style={{ background: 'var(--fd-pine)', color: '#FFFFFF' }}
               >
                 {loading === 'approve' ? (
@@ -179,7 +179,7 @@ export default function PriceChangeConsentModal({
                 type="button"
                 disabled={busy}
                 onClick={() => (proposal.forced ? setStep('declineWarn') : submit('decline'))}
-                className="h-11 rounded-[10px] text-[13px] font-bold inline-flex items-center justify-center transition active:scale-[0.98] disabled:opacity-60"
+                className="h-11 rounded-[var(--fd-r-row)] text-[13px] font-bold inline-flex items-center justify-center transition active:scale-[0.98] disabled:opacity-60"
                 style={{ background: '#FFFFFF', color: 'var(--fd-pine)', border: '0.5px solid var(--fd-line)' }}
               >
                 {loading === 'decline' ? (
@@ -199,7 +199,7 @@ export default function PriceChangeConsentModal({
               {name} 레시피를 바꿔도 될까요?
             </h2>
             <div
-              className="mt-4 rounded-[10px] p-3.5"
+              className="mt-4 rounded-[var(--fd-r-row)] p-3.5"
               style={{ background: 'rgba(200,107,69,0.08)', border: '0.5px solid var(--fd-coral)' }}
             >
               <div
@@ -220,7 +220,7 @@ export default function PriceChangeConsentModal({
                 type="button"
                 disabled={busy}
                 onClick={() => submit('decline')}
-                className="h-11 rounded-[10px] text-[13px] font-bold inline-flex items-center justify-center transition active:scale-[0.98] disabled:opacity-60"
+                className="h-11 rounded-[var(--fd-r-row)] text-[13px] font-bold inline-flex items-center justify-center transition active:scale-[0.98] disabled:opacity-60"
                 style={{ background: '#FFFFFF', color: 'var(--fd-coral-ink)', border: '0.5px solid var(--fd-coral)' }}
               >
                 {loading === 'decline' ? (
@@ -233,7 +233,7 @@ export default function PriceChangeConsentModal({
                 type="button"
                 disabled={busy}
                 onClick={() => setStep('main')}
-                className="h-11 rounded-[10px] text-[13px] font-bold inline-flex items-center justify-center transition active:scale-[0.98] disabled:opacity-60"
+                className="h-11 rounded-[var(--fd-r-row)] text-[13px] font-bold inline-flex items-center justify-center transition active:scale-[0.98] disabled:opacity-60"
                 style={{ background: 'var(--fd-pine)', color: '#FFFFFF' }}
               >
                 아니요, 바꿀래요

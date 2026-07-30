@@ -233,21 +233,38 @@ export async function POST(req: Request) {
   //   카드 등록 구독(active/paused) OR 결제완료 주문이 하나라도 있으면 '급여 중'.
   let feedingStarted = false
   {
-    const [{ count: subCount }, { count: paidCount }] = await Promise.all([
-      supabase
-        .from('subscriptions')
-        .select('id', { count: 'exact', head: true })
-        .eq('dog_id', analysis.dog_id)
-        .eq('user_id', user.id)
-        .in('status', ['active', 'paused'])
-        .not('billing_key', 'is', null),
-      supabase
+    // ★최종감사 #14 (2026-07-29): 주문 카운트도 **이 강아지** 스코프여야 한다.
+    //   예전엔 user_id + paid 만 봐서, 다둥이 가정에서 강아지 A 의 주문이
+    //   있으면 새로 등록한 강아지 B 도 '급여 중'으로 오판했다 — 잡으려던
+    //   버그가 다견 가구에서 그대로 재현. orders 에 dog_id 가 없으므로
+    //   이 강아지의 구독 id 들을 거쳐 orders.subscription_id 로 잇는다.
+    const { data: dogSubs } = await supabase
+      .from('subscriptions')
+      .select('id, billing_key, status')
+      .eq('dog_id', analysis.dog_id)
+      .eq('user_id', user.id)
+    const subs = (dogSubs ?? []) as Array<{
+      id: string
+      billing_key: string | null
+      status: string
+    }>
+    const hasCardOnSub = subs.some(
+      (s) => ['active', 'paused'].includes(s.status) && s.billing_key !== null,
+    )
+    let hasPaidOrder = false
+    if (subs.length > 0) {
+      const { count } = await supabase
         .from('orders')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .eq('payment_status', 'paid'),
-    ])
-    feedingStarted = (subCount ?? 0) > 0 || (paidCount ?? 0) > 0
+        .eq('payment_status', 'paid')
+        .in(
+          'subscription_id',
+          subs.map((s) => s.id),
+        )
+      hasPaidOrder = (count ?? 0) > 0
+    }
+    feedingStarted = hasCardOnSub || hasPaidOrder
   }
 
   const ctx: AiAnalysisContext = {

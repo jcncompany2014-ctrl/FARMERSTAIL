@@ -232,6 +232,22 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       setDogsLoaded(true)
 
       // 관리자 여부 — 실패하면 조용히 false(헤더가 깨지면 안 됨).
+      //
+      // ★최종감사 #23 (2026-07-29): boot 플래그 소진을 RPC **앞**으로 옮겼다.
+      //   예전엔 adminFlag===true 블록 안에서만 플래그를 찍어서, 콜드 스타트에
+      //   RPC 가 일시 실패하면 플래그가 안 찍힌 채 넘어갔다 — 그러면 나중에
+      //   백그라운드 복귀(visibilitychange)로 fetchDogs 가 재실행돼 RPC 가
+      //   성공하는 순간, **세션 한중간에** /admin 으로 끌려갈 수 있었다.
+      //   "앱 켠 직후 딱 한 번"이라는 계약은 시도 1회를 뜻한다 — 그 시도가
+      //   실패하면 이번 세션의 자동 복귀는 포기한다(사장님이 토글로 가면 됨).
+      let bootHandled = false
+      try {
+        bootHandled = window.sessionStorage.getItem('ft_admin_boot') === '1'
+        window.sessionStorage.setItem('ft_admin_boot', '1')
+      } catch {
+        /* 저장소 접근 불가 — 복귀 시도 안 함(강제 이동이 더 위험) */
+        bootHandled = true
+      }
       try {
         const { data: adminFlag } = await supabase.rpc('is_admin')
         if (mounted && adminFlag === true) {
@@ -264,24 +280,15 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           //     · 그 뒤 대시보드로 이동 → 플래그 있음 → **그대로 머문다**
           //     · 앱 완전 종료 후 재시작 → 플래그 지워짐 → 다시 관리자로
           //   = 사장님이 원한 "종료 후 재시작하면 관리자, 그 외엔 내가 정한 화면".
-          let bootHandled = false
-          try {
-            bootHandled = window.sessionStorage.getItem('ft_admin_boot') === '1'
-          } catch {
-            /* 저장소 접근 불가 — 이번엔 복귀 시도 안 함(강제 이동이 더 위험) */
-            bootHandled = true
-          }
-          if (!bootHandled) {
-            try {
-              window.sessionStorage.setItem('ft_admin_boot', '1')
-            } catch {
-              /* noop */
-            }
-            // 시작 화면일 때만 — 알림 딥링크로 특정 화면에 들어온 걸 가로채지 않게.
-            // replace 로 — 뒤로가기가 /dashboard 로 되돌아가지 않게.
-            if (storedOn && window.location.pathname === APP_START_PATH) {
-              router.replace('/admin')
-            }
+          // (플래그 읽기·소진은 위 — RPC 실패와 무관하게 세션당 1회만 시도)
+          // 시작 화면일 때만 — 알림 딥링크로 특정 화면에 들어온 걸 가로채지 않게.
+          // replace 로 — 뒤로가기가 /dashboard 로 되돌아가지 않게.
+          if (
+            !bootHandled &&
+            storedOn &&
+            window.location.pathname === APP_START_PATH
+          ) {
+            router.replace('/admin')
           }
         }
       } catch {

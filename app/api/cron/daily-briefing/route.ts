@@ -4,7 +4,19 @@ import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { pushToUser } from '@/lib/push'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
-import { weekdayOf, nextShipDate } from '@/lib/shipping-schedule'
+import { weekdayOf, SHIP_WEEKDAY } from '@/lib/shipping-schedule'
+
+/**
+ * 다가오는 발송일(화요일) — **마감 리드타임 없이**. nextShipDate 는 '지금 주문하면
+ * 언제 받나'(리드타임 2일 포함)라 월요일에 다음주를 가리킨다. 브리핑이 원하는 건
+ * '눈앞의 화요일에 몇 박스 나가나'이므로 순수 다음 화요일을 쓴다(최종감사 #11).
+ */
+function upcomingShipDate(fromIso: string): string {
+  const gap = (SHIP_WEEKDAY - weekdayOf(fromIso) + 7) % 7 || 7
+  const d = new Date(fromIso + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + gap)
+  return d.toISOString().slice(0, 10)
+}
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -62,6 +74,7 @@ async function runDailyBriefing(): Promise<Response> {
     stockOut,
     unreadCs,
     todayBoxes,
+    chargedToday,
   ] = await Promise.all([
     supabase
       .from('orders')
@@ -97,20 +110,34 @@ async function runDailyBriefing(): Promise<Response> {
       .select('id', { count: 'exact', head: true })
       .eq('sender', 'user')
       .is('read_at', null),
-    // 오늘이 발송일이면 오늘 나갈 박스, 아니면 다음 발송일 박스 수.
+    // ★최종감사 #11 (2026-07-29): 이 카운트가 정작 발송일 아침에 틀렸다.
+    //   ① 화요일 09시 브리핑은 04시 청구 크론이 성공분의 next_delivery_date 를
+    //      이미 +14 로 밀어낸 **뒤**라, '오늘 발송' = 청구 실패분만 세어졌다
+    //      (구독 5명인 화요일에 "처리할 일 없어요 ☀️"). 성공 청구는
+    //      subscription_charges(scheduled_for=오늘, succeeded)로 센다 —
+    //      피킹 리스트의 chargedBumpDate 와 같은 논리.
+    //   ② 월요일(원료 준비일)의 nextShipDate 는 마감 리드타임(2일) 때문에
+    //      **다음주** 화요일을 가리켰다 — 내일 나갈 박스 대신 다음주 물량이
+    //      와서 원료 준비 판단이 틀어진다. 리드타임 없는 '다가오는 화요일'로.
     supabase
       .from('subscriptions')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'active')
       .not('billing_key', 'is', null)
-      .eq('next_delivery_date', isShipDay ? today : nextShipDate(today)),
+      .eq('next_delivery_date', isShipDay ? today : upcomingShipDate(today)),
+    // 발송일엔 이미 청구 성공한 오늘 박스 수도 합산해야 한다(위 ① 참고).
+    supabase
+      .from('subscription_charges')
+      .select('id', { count: 'exact', head: true })
+      .eq('scheduled_for', today)
+      .eq('status', 'succeeded'),
   ])
 
   const n = (r: { count: number | null }) => r.count ?? 0
   const items: string[] = []
 
   // 발송 관련이 제일 위 — 화요일 아침엔 이게 오늘의 일이다.
-  const boxes = n(todayBoxes)
+  const boxes = n(todayBoxes) + (isShipDay ? n(chargedToday) : 0)
   if (boxes > 0) {
     items.push(
       isShipDay ? `📦 오늘 발송 ${boxes}박스` : `📦 다음 발송 ${boxes}박스`,

@@ -36,6 +36,7 @@ import { tierMeta, resolveTierKey, stampsToFirstTier } from '@/lib/tiers'
 import { V3, V3FontSize, V3FontWeight, V3Radius } from '@/lib/design/tokens'
 import { Mono, Modal, Badge } from '@/components/v3'
 import DogPawMark from '@/components/DogPawMark'
+import { withHonorific } from '@/lib/korean'
 
 type Profile = {
   name: string | null
@@ -118,7 +119,7 @@ export default function MypageClient({
                 lineHeight: 1.1,
               }}
             >
-              {displayName}님
+              {withHonorific(displayName)}
             </div>
             <div
               className="truncate"

@@ -297,7 +297,7 @@ export default function AnalysisView({
   // FOOD_LINE_META 매핑: basic=닭 / weight=오리 / skin=연어 / premium=소 / joint=돼지.
   const MAG_LINE_SUB: Record<string, string> = {
     basic: '단일 단백원 · 소화 부담 낮음',
-    weight: '저칼로리 · 단호박 · BCS 6+',
+    weight: '저칼로리 · 단호박 · 통통한 체형에',
     skin: 'Omega-3 · 피부·털',
     premium: '헴 철분 · 아연 · 활동량 多',
     joint: 'B1·콜린 · 관절·시니어',

@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import DogPawMark from '@/components/DogPawMark'
 import { downscaleImage } from '@/lib/imageDownscale'
-import { petName } from '@/lib/korean'
+import { petName, withHonorific } from '@/lib/korean'
 
 type Initial =
   | {
@@ -136,7 +136,9 @@ export default function PhotoUploadClient({
               사진을 보냈어요
             </h1>
             <p className="mt-2 text-[12.5px] leading-relaxed text-text/70">
-              {ownerName}님께 전달됐어요. 고마워요!
+              {/* withHonorific 은 한글 이름에만 '님'을 붙인다 — '님께'가 되도록
+                  '에게'로 조사 통일(영문 이름 'John에게'도 자연스럽다). */}
+              {withHonorific(ownerName)}에게 전달됐어요. 고마워요!
             </p>
           </div>
         ) : (

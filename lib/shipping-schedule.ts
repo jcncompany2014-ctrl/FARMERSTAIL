@@ -69,6 +69,27 @@ export function nextCycleDate(shipIso: string, intervalWeeks = 2): string {
   return addDaysKst(shipIso, intervalWeeks * 7)
 }
 
+/**
+ * 다음 주기 배송일 — **화요일 정렬 자가치유 + 미래 보장** 판 (최종감사 #3).
+ *
+ * `nextCycleDate` 는 "입력이 화요일이면 출력도 화요일"만 보장한다. 그런데
+ * 자동결제 크론은 밀린 날 따라잡기(.lte)를 허용하므로, 크론이 화요일에 안 돈
+ * 주에는 실행일 기준 +14 가 비화요일을 만들 수 있었다(실측: 07-07 화 미실행).
+ * 비화요일 next_delivery_date 는 피킹 리스트(화요일만 조회)에서 그 고객의
+ * 박스를 영영 누락시킨다 — 결제만 되고 박스가 안 나간다.
+ *
+ * 그래서 여기서는 **원래 예정일(dueIso)** 기준 +14 를 앵커로 쓰되:
+ *   ① 과거 데이터·수동 입력으로 이미 이탈한 날짜도 발송 요일로 스냅(자가치유)
+ *   ② 크론이 여러 주 밀렸어도 결과가 반드시 todayIso 초과가 되도록 전진
+ *      (과거로 잡히면 다음날 크론이 곧바로 또 청구한다)
+ */
+export function nextCycleDateAligned(dueIso: string, todayIso: string): string {
+  const gap = (SHIP_WEEKDAY - weekdayOf(dueIso) + 7) % 7
+  let next = nextCycleDate(addDaysKst(dueIso, gap))
+  while (next <= todayIso) next = nextCycleDate(next)
+  return next
+}
+
 export type ShipDay = {
   /** 0=일 … 6=토 */
   dow: number

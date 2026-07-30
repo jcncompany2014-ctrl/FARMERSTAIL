@@ -8,6 +8,8 @@ type Props = {
   next?: string
   /** "로그인" vs "회원가입" context — only affects button text. */
   variant?: 'login' | 'signup'
+  /** 리다이렉트 직전 1회 — GA 계측 등. 예외는 삼켜진다. */
+  onBeforeRedirect?: () => void
 }
 
 /**
@@ -17,12 +19,19 @@ type Props = {
 export default function KakaoLoginButton({
   next = '/dashboard',
   variant = 'login',
+  onBeforeRedirect,
 }: Props) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   async function handleClick() {
+    // 계측 등 부수 훅 — 실패해도 로그인 흐름을 막지 않는다(최종감사 #16).
+    try {
+      onBeforeRedirect?.()
+    } catch {
+      /* noop */
+    }
     setError('')
     setLoading(true)
     const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(

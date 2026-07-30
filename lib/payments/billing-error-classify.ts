@@ -109,3 +109,39 @@ const TRANSIENT_CODES = new Set<string>([
 
 /** retry 쿨다운 (transient 분류 시 next_retry_at 에 더할 시간). */
 export const RETRY_COOLDOWN_MS = 24 * 60 * 60 * 1000
+
+/**
+ * "토스가 **확실히 거절**했다"(= 돈이 절대 안 나갔다)고 단정할 수 있는 코드
+ * (2026-07-29 최종감사 #2).
+ *
+ * # 왜 필요한가 — 멱등키 딜레마
+ * 자동결제 멱등키는 주기(next_delivery_date) 기준으로 고정된다. 그래야
+ * 타임아웃(돈이 나갔는지 모름) 후 재시도가 같은 키로 원결제 결과를 돌려받아
+ * **이중청구가 없다.** 그런데 토스는 멱등키 응답을 15일간 저장해 재생하므로,
+ * 첫 시도가 **잔액부족 같은 확정 거절**이었으면 고객이 잔액을 채워도
+ * 같은 키의 재시도는 저장된 거절만 돌려받는다 — 결제가 15일간 조용히 멈춘다.
+ *
+ * # 해법
+ * 직전 실패가 이 목록(확정 거절 = 돈 안 나감이 보장)이면 재시도에 **새 키**를
+ * 써도 이중청구 위험이 0 이다. 반대로 타임아웃·네트워크류(결과 불명)는 원래대로
+ * 같은 키를 유지한다 — 안전(이중청구 방지)이 회복(재시도 성공)보다 우선.
+ *
+ * PAY_PROCESS_TIMEOUT / NETWORK_ERROR / TIMEOUT / PROVIDER_ERROR / null 은
+ * **절대 여기 넣지 말 것** — 돈이 나갔을 수 있다.
+ */
+const DEFINITIVE_DECLINE_CODES = new Set<string>([
+  'INSUFFICIENT_FUNDS',
+  'INSUFFICIENT_BALANCE',
+  'EXCEED_LIMIT',
+  'EXCEED_LIMIT_AMOUNT',
+  'EXCEED_DAILY_PAYMENT_LIMIT',
+  'EXCEED_PAYMENT_AMOUNT_LIMIT',
+  'REJECT_CARD_COMPANY',
+  'REJECT_CARD_PAYMENT',
+])
+
+/** 직전 실패 코드가 확정 거절인가 — 재시도에 새 멱등키를 써도 안전한가. */
+export function isDefinitiveDecline(code: string | null | undefined): boolean {
+  if (!code) return false
+  return DEFINITIVE_DECLINE_CODES.has(code.toUpperCase())
+}

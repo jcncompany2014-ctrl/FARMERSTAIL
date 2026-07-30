@@ -44,7 +44,12 @@ export async function trackCron<T extends Response>(
     } catch {
       // body 가 JSON 아니면 summary 없이 통과
     }
-    void recordHealth(path, 'success', durationMs, null, summary)
+    // ★최종감사 #21 (2026-07-29): void(fire-and-forget)였는데, Vercel 함수는
+    //   응답 반환 시 백그라운드 promise 를 절단할 수 있다(이 리포의 R83-6 이
+    //   push/email 을 같은 이유로 await 로 바꾼 전례). 특히 실패 경로는 throw
+    //   직후 500 이 나가 insert 절단 확률이 더 높았다 — cron_health 전 기간
+    //   error 행 0건이 이것과 부합. 기록은 반드시 완료 후 반환한다.
+    await recordHealth(path, 'success', durationMs, null, summary)
     return result
   } catch (err) {
     const durationMs = Date.now() - start
@@ -54,11 +59,11 @@ export async function trackCron<T extends Response>(
       err instanceof Error ? err.message : 'unknown cron error',
       500,
     )
-    void recordHealth(path, 'error', durationMs, message, null)
+    await recordHealth(path, 'error', durationMs, message, null)
     // R87-C5 (D14): cron 실패는 매일 admin 대시보드 직접 확인이 필요 — 알림 보강.
     // Sentry breadcrumb + captureBusinessEvent 로 운영자에게 즉시 가시화.
     // Sentry alert rule 에서 `cron.error` 태그로 Slack/email 발화 (B7 user action).
-    void notifyCronError(path, message, durationMs)
+    await notifyCronError(path, message, durationMs)
     throw err
   }
 }

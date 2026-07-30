@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
-import { nextCycleDate } from '@/lib/shipping-schedule'
+import { nextCycleDateAligned } from '@/lib/shipping-schedule'
 import { chargeBillingKey } from '@/lib/payments/toss'
 import {
   classifyBillingError,
   describeBillingError,
+  isDefinitiveDecline,
   RETRY_COOLDOWN_MS,
 } from '@/lib/payments/billing-error-classify'
 import { notifySubscriptionChargeFailed } from '@/lib/email'
@@ -72,6 +73,7 @@ type SubscriptionRow = {
   dog_id: string | null
   total_deliveries: number
   next_retry_at: string | null
+  last_failed_charge_code: string | null
   requires_billing_key_renewal: boolean | null
 }
 
@@ -230,11 +232,22 @@ function todayKstIsoDate(): string {
  * /subscribe 흐름은 도달 불가라 삭제했다. 분기가 남아 있으면 옛 데이터나 손으로
  * 넣은 값이 다른 주기를 되살린다.
  *
- * 오늘(=청구일)은 항상 화요일이다(billing-issue 가 첫 배송을 화요일로 잡고, 14일 =
- * 정확히 2주라 요일이 보존된다). 그래서 +14 만으로 화요일 정렬이 유지된다.
+ * ★최종감사 #3 (2026-07-29): 예전엔 `nextCycleDate(today)` — "청구일은 항상
+ * 화요일"이라는 전제였다. 그런데 대상 조회는 `.lte('next_delivery_date', today)`
+ * 로 **밀린 날 따라잡기**를 허용하고, cron_health 실측상 크론이 화요일에 안 돈
+ * 날이 실제로 있었다(07-07 화 미실행 → 07-09 목 실행). 그 순간 목요일 청구가
+ * next_delivery_date 를 목요일로 박고, 이후 +14 씩만 밀려 **화요일 정렬이 영구
+ * 이탈**했다 — 피킹 리스트는 화요일만 조회하므로 그 고객의 박스는 리스트에서
+ * 영영 사라진다(결제만 되고 박스는 안 나감).
+ *
+ * 해법: 실행일이 아니라 **원래 예정일(dueIso — 귀납적으로 항상 화요일)** 에서
+ * +14 를 앵커한다. 늦게 청구돼도 주기는 화요일에 남는다. 여기에 두 겹 자가치유:
+ *   ① 과거 데이터·수동 입력으로 앵커가 이탈했어도 다음 화요일로 스냅
+ *   ② 여러 주 밀렸어도 결과가 반드시 미래가 되도록 전진 (과거로 잡히면
+ *      다음날 크론이 곧바로 또 청구한다)
  */
-function nextDeliveryDate(todayIso: string): string {
-  return nextCycleDate(todayIso)
+function nextDeliveryDate(dueIso: string, todayIso: string): string {
+  return nextCycleDateAligned(dueIso, todayIso)
 }
 
 export async function GET(req: Request) {
@@ -265,7 +278,8 @@ async function runSubscriptionCharge(): Promise<Response> {
       `id, user_id, next_delivery_date, total_amount,
        billing_key, billing_customer_key, failed_charge_count,
        recipient_phone, interval_weeks, coverage_weeks, dog_id,
-       total_deliveries, next_retry_at, requires_billing_key_renewal`,
+       total_deliveries, next_retry_at, requires_billing_key_renewal,
+       last_failed_charge_code`,
     )
     .eq('status', 'active')
     .eq('requires_billing_key_renewal', false)
@@ -413,6 +427,15 @@ async function runSubscriptionCharge(): Promise<Response> {
       .toUpperCase()}`
     const orderInsertPayload: Record<string, unknown> = {
       user_id: sub.user_id,
+      // ★최종감사 #1 (2026-07-29, critical): 이 한 줄이 빠져 있었다.
+      //   orders.subscription_id 를 전제하는 소비자가 둘인데 —
+      //   ① 재제안 크론의 배송 회차 카운트(.eq('subscription_id', subId))가
+      //      항상 0 → isCycleDue 영원히 false → cycle 2+ 재제안·체크인·
+      //      알레르기 게이트 전체가 한 번도 실행되지 못함
+      //   ② 도장판 트리거 tg_orders_stamp 가 subscription_id null 이면
+      //      즉시 return → 결제를 아무리 해도 도장 0개
+      //   컬럼은 DB·types.ts 에 이미 존재. 채우기만 하면 둘 다 살아난다.
+      subscription_id: sub.id,
       order_number: orderNumber,
       order_status: 'pending',
       payment_status: 'pending',
@@ -553,7 +576,17 @@ async function runSubscriptionCharge(): Promise<Response> {
     //   전까지 안 밀리므로 같은 주기의 모든 재시도가 같은 키를 공유 → Toss가
     //   원결제 결과를 그대로 돌려줘 재청구가 없다(캡처된 결제는 자동 회복).
     //   confirm/cancel 키가 트랜잭션 기반으로 안정적인 것과 같은 원리.
-    const idempotencyKey = `sub-charge:${sub.id}:${sub.next_delivery_date}`
+    // ★최종감사 #2 (2026-07-29): 주기 고정 키의 부작용 보정.
+    //   토스는 멱등키 응답을 15일간 저장·재생한다. 첫 시도가 **잔액부족 같은
+    //   확정 거절**(돈이 절대 안 나간 게 보장되는 코드)이었으면, 고객이 잔액을
+    //   채워도 같은 키의 재시도는 저장된 거절만 돌려받아 결제가 15일간 멈춘다.
+    //   직전 실패가 확정 거절일 때만 날짜를 붙여 새 키로 — 돈이 안 나갔음이
+    //   보장되므로 이중청구 위험 0. 타임아웃·네트워크류(결과 불명)는 종전대로
+    //   같은 키 유지(원결제 결과 재생 = 이중청구 방지가 우선).
+    const retrySuffix = isDefinitiveDecline(sub.last_failed_charge_code)
+      ? `:r${today}`
+      : ''
+    const idempotencyKey = `sub-charge:${sub.id}:${sub.next_delivery_date}${retrySuffix}`
 
     // 2-c) Toss 청구. 비즈니스 span 으로 wrap — Sentry 트랜잭션에서 실패율 +
     //      latency 추적.
@@ -581,7 +614,7 @@ async function runSubscriptionCharge(): Promise<Response> {
       // 성공하면 모든 retry/renewal 플래그를 0/false 로 reset (이전에 실패해서
       // 카드 재등록 받은 후 정상화 케이스 포함).
       const successIso = new Date().toISOString()
-      const nextDate = nextDeliveryDate(today)
+      const nextDate = nextDeliveryDate(sub.next_delivery_date, today)
 
       // R61 — 결제 원장 event (정기구독 자동 결제).
       {

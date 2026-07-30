@@ -41,16 +41,15 @@ export async function GET(req: Request) {
       { status: 401 },
     )
   }
-  // 발명 핵심 — counterfactual flag OFF 면 skip. cron 동작 자체를 차단.
-  if (!isInventionEnabled('counterfactual')) {
-    return NextResponse.json({
-      ok: true,
-      skipped: true,
-      reason: 'INVENTION_COUNTERFACTUAL_DISABLED',
-    })
-  }
   // R83-E3 (D3): trackCron wrap.
   return trackCron('sensitivity-snapshots', async () => {
+    // ★최종감사 #20 (2026-07-29): 플래그 스킵을 trackCron **안**에서 — 예전엔
+    //   trackCron 진입 전에 return 해서 cron_health 에 아무것도 안 남았고,
+    //   화면에서 '한 번도 안 돈 크론'(고장)과 구분이 불가능했다. progression 의
+    //   kill switch 와 같은 패턴: skipped 도 실행 기록이다.
+    if (!isInventionEnabled('counterfactual')) {
+      return NextResponse.json({ ok: true, skipped: true, reason: 'INVENTION_FLAG_OFF' })
+    }
     const supabase = createAdminClient()
 
   // 활성 dog 의 최신 analysis + dog 메타 join

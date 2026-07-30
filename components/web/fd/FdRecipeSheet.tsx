@@ -112,12 +112,19 @@ export default function FdRecipeSheet({
     .split('·')
     .map((s) => s.trim())
     .filter(Boolean)
-  // 성분 분석 행 — 건물(DM) 기준. 점추정값(R&D)이라 min/max 대신 단일값.
+  // 성분 분석 행 — 건물(DM) 기준.
+  // ★최종감사 #7 (2026-07-29): 점값('조단백질 49.5%') 그대로 노출 금지 —
+  //   항구 규칙(2026-07-18, 정확한 영양소% 비노출). 고객 노출 성분은
+  //   floor+'이상' / ceil+'이하' 방향 보증만. 점값은 R&D 추정치라 실측이
+  //   조금만 달라도 표시 위반(보증성분 미달)이 되고, 이 시트는 비로그인
+  //   공개 퍼널이라 누구든 캡처할 수 있다. 앱 분석 화면과 동일 표기
+  //   (AnalysisMagazineSection: floor+'이상').
+  //   지방은 '이하'(ceil) — 저지방을 기대하는 보호자에게 상한이 보증이다.
   const analysis: Array<{ k: string; v: string }> = [
-    { k: '조단백질', v: `${n.protein_pct}%` },
-    { k: '조지방', v: `${n.fat_pct}%` },
-    { k: '칼슘 : 인', v: `${n.ca_p_ratio.toFixed(2)} : 1` },
-    { k: '오메가-3 (EPA+DHA)', v: `${n.epa_dha_pct}%` },
+    { k: '조단백질', v: `${Math.floor(n.protein_pct)}% 이상` },
+    { k: '조지방', v: `${Math.ceil(n.fat_pct)}% 이하` },
+    { k: '칼슘 : 인', v: `${n.ca_p_ratio.toFixed(1)} : 1 균형` },
+    { k: '오메가-3 (EPA+DHA)', v: `${Math.floor(n.epa_dha_pct * 10) / 10}% 이상` },
   ]
 
   return (

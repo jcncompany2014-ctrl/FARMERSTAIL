@@ -108,6 +108,27 @@ export async function POST(req: Request) {
     )
   }
 
+  // ★최종감사 #6 (2026-07-29): 상담 필요(needsConsultation) 처방은 고객
+  //   승인으로 적용될 수 없다. 예전엔 approval_status 만 봐서, 알레르기 누출로
+  //   상담 라우팅된 처방을 고객이 승인 화면·금액동의 모달에서 [동의] 탭 한 번에
+  //   approved 로 만들 수 있었다 — 그 순간 피킹 리스트가 알레르겐 포함 박스를
+  //   포장한다. 서버에서 원천 차단한다(화면 분기는 늦게 따라올 수 있으므로
+  //   여기가 진짜 게이트다). 거절(decline)은 허용 — 이전 처방 유지는 안전 판단을
+  //   바꾸지 않고, 구독은 누출 감지 시점에 이미 일시정지돼 있다.
+  const consultationNeeded =
+    (pending.formula as { needsConsultation?: boolean } | null)
+      ?.needsConsultation === true
+  if (consultationNeeded && decision === 'approve') {
+    return NextResponse.json(
+      {
+        code: 'CONSULTATION_REQUIRED',
+        message:
+          '알려주신 알레르기 때문에 이 구성은 그대로 시작할 수 없어요. 함께 안전한 방법을 찾아드릴게요 — 카카오톡으로 문의해 주세요.',
+      },
+      { status: 409 },
+    )
+  }
+
   const now = new Date()
   const today = now.toISOString().slice(0, 10)
   const plus28 = new Date(now.getTime() + 28 * 24 * 60 * 60 * 1000)

@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/client'
 import { calculateNutrition, getSupplements } from '@/lib/nutrition'
 import { draftToNutritionInput } from '@/lib/start-teaser'
 import { isDogDraftComplete, type AutosignupDraft } from '@/lib/autosignup-draft'
+import { translateDraftAllergies } from '@/lib/start-allergy-labels'
 
 // 라이트 건강 관심사 키 → saveAndGoResult legacyHealthConcerns 한글 라벨(보충제 매핑).
 const HEALTH_KR: Record<string, string> = {
@@ -31,6 +32,16 @@ export async function applyAutosignupDraft(
   if (!isDogDraftComplete(dog)) return null
   const m = draftToNutritionInput(draft)
   if (!m) return null
+  // ★이관 경계에서 알레르기를 정본 한글 라벨로 번역 (2026-07-29 최종감사 #0 —
+  //   영문 키가 그대로 저장돼 알레르기 차단 게이트 전체가 무력화되던 critical).
+  //   왜·어떻게은 lib/start-allergy-labels.ts 참고.
+  // (티저는 영문 키로 이미 계산이 끝났으므로 여기서 바꿔도 사용자가 본 수치와
+  //  저장 분석이 갈라지지 않는다. calculateNutrition 은 알레르기를 안 쓴다 —
+  //  lib/nutrition.ts 에 .allergies 소비 0건 확인.)
+  m.answers = {
+    ...m.answers,
+    allergies: translateDraftAllergies(m.answers.allergies ?? []),
+  }
 
   const supabase = createClient()
 

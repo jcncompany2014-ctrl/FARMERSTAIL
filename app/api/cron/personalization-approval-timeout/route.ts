@@ -86,6 +86,18 @@ export async function GET(req: Request) {
       // 경과분을 다 가져왔으니 모달건은 전부 대상, 일반은 5일 지난 것만 처리.
       const isModal = !!row.formula?.priceChange
       if (!isModal && row.proposed_at >= fiveDaysAgo) continue
+      // ★최종감사 #5 (2026-07-29): 상담 필요 건은 타임아웃 처리하지 않는다.
+      //   이 크론의 마감 처리 = "이전 식단 그대로 유지" 인데, 알레르기 누출
+      //   케이스에선 이전 식단도 새로 선언된 알레르겐을 포함할 수 있다.
+      //   게다가 고객에겐 이미 "결제 멈춰둘게요 · 상담" 푸시가 나갔는데 5일 뒤
+      //   "이전 식단 유지할게요" 푸시가 겹치면 정면 모순이다. 구독은 누출 감지
+      //   시점에 일시정지됐으므로 pending 으로 놔둬도 결제·배송은 안 나간다 —
+      //   상담에서 사람이 풀어야 하는 건이다.
+      if (
+        (row.formula as { needsConsultation?: boolean } | null)
+          ?.needsConsultation === true
+      )
+        continue
       // 1) 본 row 를 declined 로 전환.
       const { error: updErr } = await supabase
         .from('dog_formulas')
@@ -128,7 +140,9 @@ export async function GET(req: Request) {
           {
             title: '이전 식단 그대로 유지할게요',
             body:
-              '5일 동안 응답이 없어 지난번과 같은 맞춤 식단을 그대로 다음 박스에 적용해요. 알림 센터에서 확인할 수 있어요.',
+              // 금액변경 모달 건은 3일 마감이라고 안내했으므로 푸시도 3일로
+              // 말해야 한다(최종감사 #33 — "3일이라더니 5일?" 신뢰 흠집 방지).
+              `${isModal ? '3일' : '5일'} 동안 응답이 없어 지난번과 같은 맞춤 식단을 그대로 다음 박스에 적용해요. 알림 센터에서 확인할 수 있어요.`,
             url: `/dogs/${row.dog_id}/formulas`,
           },
           { category: 'order' },

@@ -137,6 +137,11 @@ export async function POST(req: Request) {
       // Step 25/26: age-gate + consent audit columns — clear them so
       // no residual demographic/marketing data remains after 탈퇴.
       birth_year: null,
+      // ★최종감사 #18 (2026-07-29): 생일(월·일)과 사장님 운영 메모도 개인정보다.
+      //   admin_note 엔 전화·상담 내용이 들어갈 수 있어 PIPA 즉시파기 대상.
+      birth_month: null,
+      birth_day: null,
+      admin_note: null,
       agree_email_at: null,
       agree_sms_at: null,
       marketing_policy_version: null,
@@ -166,6 +171,12 @@ export async function POST(req: Request) {
     admin.from('newsletter_subscribers').delete().eq('user_id', user.id),
     admin.from('addresses').delete().eq('user_id', user.id),
     admin.from('push_log').delete().eq('user_id', user.id),
+    // ★최종감사 #18·#19 (2026-07-29): 빠져 있던 개인정보 테이블 2종.
+    //   · chatbot_messages — AI 상담 대화 원문(강아지 투병·가정사가 담김).
+    //     FK 없이 user_id 만 있어 계정 hard-delete cascade 로도 안 지워졌다.
+    //   · user_integrations — 외부 서비스 OAuth 토큰(평문). 탈퇴 즉시 말소.
+    admin.from('chatbot_messages').delete().eq('user_id', user.id),
+    admin.from('user_integrations').delete().eq('user_id', user.id),
   ])
   // R101-E: 부분 실패 가시화. Supabase 쿼리는 보통 reject 대신 {error} 를 resolve
   // 하므로 rejected(네트워크)와 fulfilled 의 error 를 모두 검사. 이전엔 Promise.all
@@ -239,6 +250,18 @@ export async function POST(req: Request) {
     .from('subscriptions')
     .update(anonymizePayload)
     .eq('user_id', user.id)
+    .then((raw: unknown) => {
+      // ★최종감사 #9: 이 UPDATE 가 실패하면 탈퇴자 구독이 살아남아 카드
+      //   청구가 계속된다 — 조용히 넘어가면 안 되는 종류. 에러를 반드시 본다.
+      const res = raw as { error?: { message?: string } | null } | null
+      if (res?.error) {
+        captureBusinessEvent('error', 'account.delete.sub_anonymize_failed', {
+          userId: user.id,
+          dbError: res.error.message ?? 'unknown',
+        })
+      }
+      return raw
+    })
 
   // product_qna / reviews — 작성자 user_id 는 보존 (다른 사용자에게 도움이
   // 되는 컨텐츠). profile.name 이 익명화 ("탈퇴회원") 됐으니 join 결과는

@@ -497,13 +497,18 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
           <div style={{ marginTop: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: 'var(--fd-muted)', textTransform: 'uppercase', marginBottom: 8 }}>권장 영양 구성</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              {/* ★최종감사 #15 (2026-07-29): Math.round 정확 %('단백질 32%')
+                  노출 금지 — 항구 규칙(정확 영양소% 비노출). round 는 49.5→50
+                  처럼 '이상'을 거짓으로 만들 수 있어 floor/ceil 방향 보증만.
+                  앱 분석 화면(AnalysisMagazineSection '단백 N% 이상')과 동일 표기.
+                  지방은 '이하' — 상한이 보호자에게 의미 있는 보증이다. */}
               {[
-                { label: '단백질', val: nu.protein.pct },
-                { label: '지방', val: nu.fat.pct },
-                { label: '탄수화물', val: nu.carb.pct },
+                { label: '단백질', text: `${Math.floor(nu.protein.pct)}% 이상` },
+                { label: '지방', text: `${Math.ceil(nu.fat.pct)}% 이하` },
+                { label: '탄수화물', text: `${Math.ceil(nu.carb.pct)}% 이하` },
               ].map((x) => (
                 <div key={x.label} className="rounded-[10px] px-2 py-3 text-center" style={{ background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--fd-pine)', fontVariantNumeric: 'tabular-nums' }}>{Math.round(x.val)}%</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--fd-pine)', fontVariantNumeric: 'tabular-nums' }}>{x.text}</div>
                   <div style={{ fontSize: 11, color: 'var(--fd-muted)', fontWeight: 700, marginTop: 2 }}>{x.label}</div>
                 </div>
               ))}
@@ -674,7 +679,14 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
               </p>
               <div style={{ marginTop: 14 }}>
                 {/* 카카오 = 메인 저장 경로. 복귀 시 /start/claim 이 초안을 계정으로 이관. */}
-                <KakaoLoginButton variant="login" next="/start/claim" />
+                <KakaoLoginButton
+                  variant="login"
+                  next="/start/claim"
+                  // ★최종감사 #16: 메인 CTA(카카오)만 계측이 빠져 있어 GA 의
+                  //   가입 관문 수치가 이메일(보조 경로)만 세고 있었다 —
+                  //   "결과 화면이 전환을 못 시킨다"는 오판을 만드는 구멍.
+                  onBeforeRedirect={() => trackStartSignupOpened('kakao')}
+                />
               </div>
               <div style={{ textAlign: 'center', marginTop: 12 }}>
                 <button
