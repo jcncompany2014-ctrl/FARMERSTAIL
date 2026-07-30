@@ -588,7 +588,7 @@ export default async function DashboardPage() {
           channelLabel="정기배송"
           // ★ 이 날짜는 발송일이다. 예전 문구("내일 새벽 도착")는 하루를 앞당기고
           //   우리가 알 수 없는 시각까지 단정했다 — 도착은 지역에 따라 다르다.
-          arrivalLabel={shipTimingLabel(upcomingDelivery.daysUntil).detail}
+          timingLabel={shipTimingLabel(upcomingDelivery.daysUntil).detail}
           itemLabel={upcomingDelivery.productLabel}
           href="/mypage/subscriptions"
         />

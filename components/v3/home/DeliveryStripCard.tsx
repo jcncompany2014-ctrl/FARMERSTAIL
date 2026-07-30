@@ -19,8 +19,16 @@ interface DeliveryStripCardProps {
   /** "정기배송" / "이번 주문" 등. */
   channelLabel?: string
   /** 도착 라벨 — "내일 새벽 도착". */
-  arrivalLabel: string
-  /** 도착 상품 — "닭가슴살 1.5kg" 등. */
+  /**
+   * 배송 시점 한 줄. **발송 기준**이다 — `next_delivery_date` 는 발송일(화)이고
+   * 도착은 지역에 따라 그 다음 날부터다(lib/shipping-schedule).
+   *
+   * 예전 이름은 `arrivalLabel`, 예시는 "내일 새벽 도착" 이었다. 그 이름 때문에
+   * **발송일을 도착일로 말하는 문구**가 들어갔다(하루 앞당겨 약속 + 우리가 알
+   * 수도 없는 시각을 단정). 2026-07-30 정정 — 문구는 `shipTimingLabel` 정본에서.
+   */
+  timingLabel: string
+  /** 담긴 상품 — "닭가슴살 1.5kg" 등. */
   itemLabel: string
   /** 상세로 이동할 href. */
   href?: string
@@ -29,7 +37,7 @@ interface DeliveryStripCardProps {
 export default function DeliveryStripCard({
   dLabel,
   channelLabel = '정기배송',
-  arrivalLabel,
+  timingLabel,
   itemLabel,
   // 앱 정기배송 정본 = /mypage/subscriptions (앱 전용 결제정보 요약 화면,
   // 2026-07-30 신설). /account/subscriptions 는 **웹 전용**이라 앱에서 열면
@@ -74,7 +82,7 @@ export default function DeliveryStripCard({
             wordBreak: 'keep-all',
           }}
         >
-          {arrivalLabel} · {itemLabel}
+          {timingLabel} · {itemLabel}
         </div>
       </div>
       <ArrowRight size={14} color={V3.inkMute} strokeWidth={2} />
