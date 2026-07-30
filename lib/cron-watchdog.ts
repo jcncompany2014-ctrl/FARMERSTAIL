@@ -13,8 +13,9 @@
  * 소비자는 daily-briefing — 아침 푸시에 "어제 안 돈 자동작업" 줄이 붙는다.
  *
  * # 파서 범위
- * 이 리포의 스케줄 형태만 지원한다: 분·시 = 고정 숫자, 일·월·요일 = '*' ·
- * 고정 숫자 · 콤마 목록 (예: "0 0 * * *" · "0 9 * * 2" · "0 0 1 1,4,7,10 *").
+ * 이 리포의 스케줄 형태만 지원한다: 분 = 고정 숫자, 시 = 고정 숫자 또는 '*'
+ * (매시간), 일·월·요일 = '*' · 고정 숫자 · 콤마 목록.
+ * 예: "0 0 * * *" · "0 9 * * 2" · "0 0 1 1,4,7,10 *" · "30 * * * *"(매시간).
  * 범위(1-5)·간격(*\/2)은 이 리포에 없으므로 **의도적으로 미지원** —
  * 만나면 null 을 돌려주고 워치독이 그 크론을 건너뛴다(오탐보다 낫다).
  * vercel.json 에 새 형태를 쓰면 lib/cron-watchdog.test.ts 가 알려준다.
@@ -24,7 +25,7 @@ export type CronEntry = { path: string; schedule: string }
 
 type ParsedSchedule = {
   minute: number
-  hour: number
+  hour: number | null // null = * (매시간)
   dayOfMonth: number[] | null // null = *
   month: number[] | null // 콤마 목록 지원 (분기 리포트 "1,4,7,10")
   dayOfWeek: number[] | null // 0=일 … 6=토 (UTC 기준 — Vercel cron 은 UTC)
@@ -43,11 +44,11 @@ export function parseSchedule(schedule: string): ParsedSchedule | null {
     return undefined // 지원 밖 (범위·간격)
   }
   const m = single(min)
-  const h = single(hour)
+  // 시는 고정 숫자 또는 '*'(매시간). 분은 고정 숫자만 — 분단위 크론은 없다.
+  const h = hour === '*' ? null : single(hour)
   const d = list(dom)
   const mo = list(mon)
   const w = list(dow)
-  // 분·시는 고정 숫자만 지원 ('* * …' 분단위 크론은 이 리포에 없음)
   if (m === undefined || h === undefined) return null
   if (d === undefined || mo === undefined || w === undefined) return null
   return { minute: m, hour: h, dayOfMonth: d, month: mo, dayOfWeek: w }
@@ -76,24 +77,28 @@ export function expectedRunsInWindow(
       startUtc.getUTCDate(),
     ),
   )
+  // 시가 '*' 면 그 날의 0~23시 전부가 후보다(매시간 크론).
+  const hours = parsed.hour === null ? [...Array(24).keys()] : [parsed.hour]
   while (cursor < limit) {
-    const instant = new Date(
-      Date.UTC(
-        cursor.getUTCFullYear(),
-        cursor.getUTCMonth(),
-        cursor.getUTCDate(),
-        parsed.hour,
-        parsed.minute,
-      ),
-    )
-    const domOk =
-      parsed.dayOfMonth === null || parsed.dayOfMonth.includes(instant.getUTCDate())
-    const monOk =
-      parsed.month === null || parsed.month.includes(instant.getUTCMonth() + 1)
-    const dowOk =
-      parsed.dayOfWeek === null || parsed.dayOfWeek.includes(instant.getUTCDay())
-    if (domOk && monOk && dowOk && instant >= startUtc && instant < limit) {
-      runs.push(instant)
+    for (const hh of hours) {
+      const instant = new Date(
+        Date.UTC(
+          cursor.getUTCFullYear(),
+          cursor.getUTCMonth(),
+          cursor.getUTCDate(),
+          hh,
+          parsed.minute,
+        ),
+      )
+      const domOk =
+        parsed.dayOfMonth === null || parsed.dayOfMonth.includes(instant.getUTCDate())
+      const monOk =
+        parsed.month === null || parsed.month.includes(instant.getUTCMonth() + 1)
+      const dowOk =
+        parsed.dayOfWeek === null || parsed.dayOfWeek.includes(instant.getUTCDay())
+      if (domOk && monOk && dowOk && instant >= startUtc && instant < limit) {
+        runs.push(instant)
+      }
     }
     cursor.setUTCDate(cursor.getUTCDate() + 1)
   }

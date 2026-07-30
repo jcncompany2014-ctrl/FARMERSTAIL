@@ -20,6 +20,15 @@ import {
 } from '@/lib/discount'
 import { pickBetterDiscount } from '@/lib/promotions'
 import { tierMeta } from '@/lib/tiers'
+import {
+  priceForFormula,
+  type BoxProduct,
+} from '@/lib/personalization/boxPricing'
+import {
+  LINE_TO_SLUG as PRICE_LINE_TO_SLUG,
+  TOPPER_TO_SLUG as PRICE_TOPPER_TO_SLUG,
+} from '@/lib/personalization/skuMap'
+import { checkChargeAmount } from '@/lib/payments/charge-amount-guard'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -74,6 +83,7 @@ type SubscriptionRow = {
   total_deliveries: number
   next_retry_at: string | null
   last_failed_charge_code: string | null
+  fresh_ratio: number | null
   requires_billing_key_renewal: boolean | null
 }
 
@@ -137,6 +147,67 @@ async function resolveShippingTarget(
   }
 
   return null
+}
+
+/**
+ * ★청구액 서버 재계산 (2026-07-29 결제 감사 critical).
+ *
+ * `subscriptions.total_amount` 는 고객이 REST 로 직접 쓸 수 있다(RLS 가 소유자
+ * UPDATE 를 컬럼 제한 없이 허용 + authenticated 에 UPDATE 권한 실측). 그래서
+ * 청구 전에 **신뢰할 수 있는 원천**으로 다시 계산해 대조한다.
+ * `subscription_items.unit_price` 도 고객이 쓸 수 있으므로 items 합은 근거가
+ * 못 되고, 관리자만 쓰는 `products` 만 신뢰한다 — 승인 라우트(priceForApproved)
+ * 와 정확히 같은 경로(처방 + products → priceForFormula).
+ *
+ * 계산 근거가 없으면 null — 호출부가 검사를 건너뛴다(돈을 추측하지 않는다).
+ */
+async function recomputeChargeBase(
+  supabase: ReturnType<typeof createAdminClient>,
+  sub: SubscriptionRow,
+): Promise<number | null> {
+  if (!sub.dog_id || sub.fresh_ratio == null || !(sub.fresh_ratio > 0)) return null
+
+  // 현재 적용 중인 처방 — 청구 기준. 없으면 재계산 불가.
+  const { data: fRow } = await supabase
+    .from('dog_formulas')
+    .select('formula, daily_kcal, approval_status, cycle_number')
+    .eq('dog_id', sub.dog_id)
+    .neq('approval_status', 'pending_approval')
+    .neq('approval_status', 'declined')
+    .order('cycle_number', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const formulaRow = fRow as unknown as {
+    formula: { lineRatios: Record<string, number>; toppers: Record<string, number> }
+    daily_kcal: number
+  } | null
+  if (!formulaRow?.formula || !(formulaRow.daily_kcal > 0)) return null
+
+  const slugs = [
+    ...Object.values(PRICE_LINE_TO_SLUG).filter((s): s is string => s !== null),
+    ...Object.values(PRICE_TOPPER_TO_SLUG),
+  ]
+  const { data: prodList } = await supabase
+    .from('products')
+    .select('slug, price, sale_price, stock, is_subscribable, nutrition_facts')
+    .in('slug', slugs)
+    .eq('is_active', true)
+  const products: Record<string, BoxProduct> = {}
+  for (const pr of ((prodList ?? []) as unknown) as BoxProduct[]) {
+    products[pr.slug] = pr
+  }
+  if (Object.keys(products).length === 0) return null
+
+  const { total } = priceForFormula({
+    formula: {
+      lineRatios: formulaRow.formula.lineRatios as never,
+      toppers: formulaRow.formula.toppers as never,
+      dailyKcal: formulaRow.daily_kcal,
+    },
+    freshRatio: sub.fresh_ratio,
+    products,
+  })
+  return total > 0 ? total : null
 }
 
 /**
@@ -279,7 +350,7 @@ async function runSubscriptionCharge(): Promise<Response> {
        billing_key, billing_customer_key, failed_charge_count,
        recipient_phone, interval_weeks, coverage_weeks, dog_id,
        total_deliveries, next_retry_at, requires_billing_key_renewal,
-       last_failed_charge_code`,
+       last_failed_charge_code, fresh_ratio`,
     )
     .eq('status', 'active')
     .eq('requires_billing_key_renewal', false)
@@ -341,8 +412,44 @@ async function runSubscriptionCharge(): Promise<Response> {
     // 2-0b) 자동 할인 계산 — subtotal(구독 단가)에서 할인 차감한 실제 청구액 결정.
     //       쿠폰 없음(lib/discount). 첫주문/등급(슬롯)/생일 자동 판정. charge·order·
     //       billing 전부 이 chargeAmount 로 일관 기록(subtotal 은 정가 유지).
+    // ★청구액 검문소 (2026-07-29 결제 감사 critical) — 고객이 REST 로 낮춰놓은
+    //   total_amount 로 카드를 긁지 않는다. products(관리자 전용)를 원천으로
+    //   서버가 다시 계산해 대조하고, 조작 가능성이면 **청구하지 않고 알린다**.
+    const recomputed = await recomputeChargeBase(supabase, sub)
+    const amountVerdict = checkChargeAmount(sub.total_amount, recomputed)
+    if (amountVerdict.verdict === 'refuse') {
+      captureBusinessEvent('error', 'subscription.charge.amount_tampered', {
+        subscriptionId: sub.id,
+        userId: sub.user_id,
+        storedAmount: amountVerdict.stored,
+        recomputedAmount: amountVerdict.recomputed,
+      })
+      skipped += 1
+      continue
+    }
+    // 검사를 통과했으면 재계산값(있으면)을 기준액으로 — 저장값이 더 크면
+    // 재계산값으로 낮춰 청구한다(과청구 방지). 근거 없으면 기존 값 유지.
+    const trustedSubtotal =
+      amountVerdict.verdict === 'ok' ? amountVerdict.chargeBase : sub.total_amount
+
     const { reason: discountReason, discountAmount, chargeAmount, promoClaimed } =
-      await resolveAutoDiscount(supabase, sub)
+      await resolveAutoDiscount(supabase, { ...sub, total_amount: trustedSubtotal })
+
+    // ★결제 감사 #7 (2026-07-29): 0원 이하 청구 금지. 100% 프로모션이 허용돼
+    //   있어(pct <= 100) chargeAmount 가 0 이 될 수 있는데, 카드 결제는 최소
+    //   금액 미달로 **거절**된다 → unknown 분류로 3-strike 카운트가 쌓여 구독이
+    //   정지되고 프로모션까지 소진된다. "첫 박스 무료"는 0원 청구가 아니라 별도
+    //   기획으로 풀어야 하는 일이므로, 여기서는 청구를 건너뛰고 알린다.
+    if (!(chargeAmount > 0)) {
+      captureBusinessEvent('error', 'subscription.charge.zero_amount', {
+        subscriptionId: sub.id,
+        subtotal: trustedSubtotal,
+        discountAmount,
+        discountReason,
+      })
+      skipped += 1
+      continue
+    }
 
     // 2-a) charge row insert. UNIQUE (subscription_id, scheduled_for) 충돌 시
     //      이미 처리됨 — skip.
@@ -439,7 +546,8 @@ async function runSubscriptionCharge(): Promise<Response> {
       order_number: orderNumber,
       order_status: 'pending',
       payment_status: 'pending',
-      subtotal: sub.total_amount,
+      // 검문소를 통과한 신뢰 금액 — 조작된 total_amount 가 주문에 남지 않게.
+      subtotal: trustedSubtotal,
       total_amount: chargeAmount,
       discount_amount: discountAmount,
       discount_reason: discountReason,
@@ -480,39 +588,6 @@ async function runSubscriptionCharge(): Promise<Response> {
         .eq('id', chargeRow!.id)
       failed += 1
       continue
-    }
-
-    // 2-b-1) 프로모션 소진 표시 — **주문이 만들어진 직후.**
-    //
-    // 안 하면 이 계정은 **매 결제마다 50% 할인**을 받는다(첫 주문 할인인데).
-    // 주문 id 가 있어야 "어느 주문에 썼는지" 를 남길 수 있어서 여기서 한다.
-    // `redeemed_order_id IS NULL` 조건이 **재실행에도 안전**하게 만든다 — 이미
-    // 표시된 건 건드리지 않는다.
-    // 실패해도 결제는 계속한다(할인은 이미 금액에 반영됐고, 소진 표시 누락은
-    // admin 에서 보정할 수 있다 — 결제를 멈추는 게 더 나쁘다).
-    if (promoClaimed) {
-      try {
-        await (
-          supabase as unknown as {
-            from: (t: string) => {
-              update: (r: Record<string, unknown>) => {
-                eq: (c: string, v: string) => {
-                  is: (c: string, v: null) => Promise<unknown>
-                }
-              }
-            }
-          }
-        )
-          .from('promotion_claims')
-          .update({
-            redeemed_order_id: orderRow.id,
-            redeemed_at: new Date().toISOString(),
-          })
-          .eq('user_id', sub.user_id)
-          .is('redeemed_order_id', null)
-      } catch {
-        /* 소진 표시 실패 — 결제는 진행. admin 보정 대상. */
-      }
     }
 
     // 2-b-2) subscription_items → order_items 복사 (audit fix).
@@ -602,7 +677,12 @@ async function runSubscriptionCharge(): Promise<Response> {
         chargeBillingKey({
           billingKey: sub.billing_key,
           customerKey: sub.billing_customer_key,
-          orderId: orderRow.id,
+          // ★결제 감사 #2 (2026-07-29): 토스에 보내는 orderId 는 **주문번호**여야
+          //   한다. 예전엔 orders.id(UUID)를 보내서 ① 웹훅이 order_number 로
+          //   조회하므로 **모든 정기결제 웹훅이 주문을 못 찾고 조용히 버려졌다**
+          //   (토스 대시보드 환불이 우리 DB 에 반영 안 됨 → 환불한 고객에게 박스
+          //   발송) ② 토스 대시보드 주문번호가 UUID 로 찍혀 CS 대조가 불가능했다.
+          orderId: orderRow.order_number,
           orderName,
           amount: chargeAmount,
           idempotencyKey,
@@ -610,6 +690,38 @@ async function runSubscriptionCharge(): Promise<Response> {
     )
 
     if (result.ok) {
+      // ★결제 감사 #3 (2026-07-29): 프로모션 소진을 **청구 성공 후로** 옮겼다.
+      //   예전엔 주문 row 생성 직후 소진 표시를 했는데, 그 뒤 청구가 실패하면
+      //   주문은 취소되지만 claim 은 그 취소된 주문에 묶인 채 남았다.
+      //   pending_promotion_rate 는 redeemed_order_id IS NULL 만 보므로 재시도는
+      //   **정가 청구** — 50% 이벤트로 가입한 고객이 잔액부족 한 번에 할인을
+      //   영구히 잃고 다음날 100% 결제되는 경로였다. '썼다'는 실제로 그 할인으로
+      //   결제가 됐을 때만 참이다.
+      if (promoClaimed) {
+        try {
+          await (
+            supabase as unknown as {
+              from: (t: string) => {
+                update: (r: Record<string, unknown>) => {
+                  eq: (c: string, v: string) => {
+                    is: (c: string, v: null) => Promise<unknown>
+                  }
+                }
+              }
+            }
+          )
+            .from('promotion_claims')
+            .update({
+              redeemed_order_id: orderRow!.id,
+              redeemed_at: new Date().toISOString(),
+            })
+            .eq('user_id', sub.user_id)
+            .is('redeemed_order_id', null)
+        } catch {
+          /* 소진 표시 실패 — 결제는 이미 성공. admin 보정 대상. */
+        }
+      }
+
       // 2-d) 성공 → orders / charge / subscription 업데이트.
       // 성공하면 모든 retry/renewal 플래그를 0/false 로 reset (이전에 실패해서
       // 카드 재등록 받은 후 정상화 케이스 포함).

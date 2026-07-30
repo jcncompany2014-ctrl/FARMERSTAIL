@@ -27,6 +27,10 @@ test('parseSchedule — 이 리포의 실제 형태들', () => {
   assert.deepEqual(parseSchedule('0 0 1 1,4,7,10 *'), {
     minute: 0, hour: 0, dayOfMonth: [1], month: [1, 4, 7, 10], dayOfWeek: null,
   })
+  // 매시간 — 환불 재시도가 이 형태(결제 감사 #6 로 하루1회→매시간 변경)
+  assert.deepEqual(parseSchedule('30 * * * *'), {
+    minute: 30, hour: null, dayOfMonth: null, month: null, dayOfWeek: null,
+  })
   // 지원 밖 형태는 null — 워치독이 건너뛴다(오탐 방지)
   assert.equal(parseSchedule('*/5 * * * *'), null)
   assert.equal(parseSchedule('0 1-5 * * *'), null)
@@ -121,4 +125,16 @@ test('창에 예정이 없는 크론(주간·월간)은 조용하다', () => {
     new Date('2026-07-30T00:00:00Z'),
   )
   assert.deepEqual(missed, [])
+})
+
+test('매시간 크론은 창 안의 매 시각이 예정으로 잡힌다', () => {
+  const runs = expectedRunsInWindow(
+    '30 * * * *',
+    new Date('2026-07-28T00:00:00Z'),
+    new Date('2026-07-28T05:00:00Z'),
+  )
+  assert.deepEqual(
+    runs.map((d) => d.toISOString().slice(11, 16)),
+    ['00:30', '01:30', '02:30', '03:30', '04:30'],
+  )
 })

@@ -130,7 +130,10 @@ export async function POST(req: Request) {
 
   // 사장님은 '%' 로 생각한다. 저장은 0~1 비율.
   const pct = Number(body.discountPct)
-  if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
+  // ★결제 감사 #7 (2026-07-29): 100% 는 막는다. 청구액이 0원이 되면 카드
+  //   결제가 최소금액 미달로 거절되고, 실패 3회로 구독이 정지되며 프로모션까지
+  //   소진된다. "첫 박스 무료"는 0원 청구가 아니라 별도 기획으로 풀어야 한다.
+  if (!Number.isFinite(pct) || pct <= 0 || pct >= 100) {
     return NextResponse.json(
       { code: 'INVALID_RATE', message: '할인율은 1~100 사이 숫자예요' },
       { status: 400 },

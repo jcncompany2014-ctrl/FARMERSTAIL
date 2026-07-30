@@ -92,15 +92,32 @@ export async function POST(req: Request) {
     )
   }
 
-  // 2) Find our order row using order_number (what we sent to Toss as orderId).
+  // 2) 주문 찾기 — 우리가 토스에 보낸 orderId 로.
+  //
+  // ★결제 감사 #2 (2026-07-29): 정기결제 크론이 orders.id(UUID)를 보내고 있어서
+  //   order_number 조회가 **한 건도 못 맞혔다**(모든 주문이 크론에서 나오므로
+  //   웹훅이 사실상 100% 무효 — 대시보드 환불 미반영·원장 어긋남). 크론은
+  //   주문번호를 보내도록 고쳤고, 여기서는 **양쪽 다 받는다**: 과거에 UUID 로
+  //   보낸 결제의 웹훅(재시도·지연 도착)도 정상 처리되게.
   const supabase = createAdminClient()
-  const { data: order, error: orderErr } = await supabase
+  const ORDER_COLS =
+    'id, user_id, order_number, total_amount, payment_status, order_status, paid_at, shipping_fee, recipient_name'
+  const isUuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)
+  let { data: order, error: orderErr } = await supabase
     .from('orders')
-    .select(
-      'id, user_id, order_number, total_amount, payment_status, order_status, paid_at, shipping_fee, recipient_name'
-    )
+    .select(ORDER_COLS)
     .eq('order_number', orderId)
     .maybeSingle()
+  if (!order && isUuid) {
+    const byId = await supabase
+      .from('orders')
+      .select(ORDER_COLS)
+      .eq('id', orderId)
+      .maybeSingle()
+    order = byId.data
+    orderErr = byId.error
+  }
 
   if (orderErr || !order) {
     // Not our order. Acknowledge with 200 so Toss stops retrying —
