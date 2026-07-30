@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { nextCycleDateAligned } from '@/lib/shipping-schedule'
-import { chargeBillingKey } from '@/lib/payments/toss'
+import { chargeBillingKey, cancelPayment } from '@/lib/payments/toss'
 import {
   classifyBillingError,
   describeBillingError,
@@ -167,14 +167,28 @@ async function recomputeChargeBase(
 ): Promise<number | null> {
   if (!sub.dog_id || sub.fresh_ratio == null || !(sub.fresh_ratio > 0)) return null
 
-  // 현재 적용 중인 처방 — 청구 기준. 없으면 재계산 불가.
+  // 현재 적용 중인 처방 — 대조 기준. 없으면 대조 불가.
+  //
+  // ★ 정렬을 `cycle_number DESC` → `created_at DESC` 로 고쳤다 (2026-07-30 감사).
+  //   회차 번호가 큰 것이 항상 최신이 아니다 — 프로덕션 실측:
+  //     cycle 2 = 2026-07-10 생성 (관절 0.8 + 체중 0.2, 568kcal)
+  //     cycle 1 = 2026-07-15 생성 (프리미엄 1.0, 745kcal)  ← 이게 최신
+  //   회차 번호로 고르면 **5일 오래된 처방**을 집어 8/4 청구가 153,100원 대신
+  //   90,900원(−40.6%)이 될 예정이었다.
+  //
+  //   그리고 금액을 만든 주문 화면은 **cycle 1 고정**이다. 그 파일 주석이 이유를
+  //   적어놨다 — "여기만 최신 cycle 을 읽어서 진행 cron 이 만든 옛 cycle 2 를
+  //   보여줬다 → 같은 강아지인데 화면마다 레시피가 달랐다"(사장님 제보).
+  //   즉 그 화면이 일부러 피한 함정을 돈 경로가 다시 밟고 있었다.
+  //   `created_at` 기준이면 정상 케이스(회차가 시간순)와 이 이상 케이스가 모두
+  //   "가장 최근에 적용된 처방"으로 일치한다.
   const { data: fRow } = await supabase
     .from('dog_formulas')
     .select('formula, daily_kcal, approval_status, cycle_number')
     .eq('dog_id', sub.dog_id)
     .neq('approval_status', 'pending_approval')
     .neq('approval_status', 'declined')
-    .order('cycle_number', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
   const formulaRow = fRow as unknown as {
@@ -412,25 +426,33 @@ async function runSubscriptionCharge(): Promise<Response> {
     // 2-0b) 자동 할인 계산 — subtotal(구독 단가)에서 할인 차감한 실제 청구액 결정.
     //       쿠폰 없음(lib/discount). 첫주문/등급(슬롯)/생일 자동 판정. charge·order·
     //       billing 전부 이 chargeAmount 로 일관 기록(subtotal 은 정가 유지).
-    // ★청구액 검문소 (2026-07-29 결제 감사 critical) — 고객이 REST 로 낮춰놓은
-    //   total_amount 로 카드를 긁지 않는다. products(관리자 전용)를 원천으로
-    //   서버가 다시 계산해 대조하고, 조작 가능성이면 **청구하지 않고 알린다**.
+    // ★청구액 대조 (2026-07-30 재설계) — **항상 저장된 금액으로 청구**하고,
+    //   서버 재계산과 어긋나면 알린다. 청구를 막지도, 금액을 낮추지도 않는다.
+    //
+    //   왜 자동 차단·자동 하향을 뺐나 (최종감사):
+    //    · 하향(min)이 실제로 저청구를 만들었다 — 8/4 건 153,100 → 90,900원
+    //    · 차단(refuse)은 정상 고객을 막았다 — 품절 중 주문 후 재입고하면
+    //      재계산이 커져 "조작"으로 분류되고, 박스는 계속 나가면서 청구만 멈춘다
+    //    · 재계산이 정당하게 어긋나는 경우(재고 변동·플랜화면 레시피 선택 미저장·
+    //      회차 기준)의 크기가 조작과 구분되지 않는다(실측 40%)
+    //   조작 자체는 이제 **DB 권한**으로 막는다 —
+    //   20260730000000_subscriptions_lock_money_columns.sql 이 고객의
+    //   total_amount·fresh_ratio·billing_key UPDATE 권한을 회수했다.
+    //   (남은 경로는 구독 생성 시점 뿐이고, 그건 서버 라우트 이관이 정답 — 후속.)
     const recomputed = await recomputeChargeBase(supabase, sub)
-    const amountVerdict = checkChargeAmount(sub.total_amount, recomputed)
-    if (amountVerdict.verdict === 'refuse') {
-      captureBusinessEvent('error', 'subscription.charge.amount_tampered', {
+    const amountCheck = checkChargeAmount(sub.total_amount, recomputed)
+    if (amountCheck.mismatch) {
+      captureBusinessEvent('warning', 'subscription.charge.amount_mismatch', {
         subscriptionId: sub.id,
         userId: sub.user_id,
-        storedAmount: amountVerdict.stored,
-        recomputedAmount: amountVerdict.recomputed,
+        storedAmount: sub.total_amount,
+        recomputedAmount: String(amountCheck.recomputed),
+        direction: String(amountCheck.direction),
+        note: '저장 금액으로 청구했다. 재고 변동·처방 회차 차이면 정상, 아니면 확인 필요.',
       })
-      skipped += 1
-      continue
     }
-    // 검사를 통과했으면 재계산값(있으면)을 기준액으로 — 저장값이 더 크면
-    // 재계산값으로 낮춰 청구한다(과청구 방지). 근거 없으면 기존 값 유지.
-    const trustedSubtotal =
-      amountVerdict.verdict === 'ok' ? amountVerdict.chargeBase : sub.total_amount
+    // 청구 기준은 **항상** 저장 금액 = 고객이 동의하고 모든 화면이 보여주는 값.
+    const trustedSubtotal = amountCheck.chargeBase
 
     const { reason: discountReason, discountAmount, chargeAmount, promoClaimed } =
       await resolveAutoDiscount(supabase, { ...sub, total_amount: trustedSubtotal })
@@ -629,17 +651,23 @@ async function runSubscriptionCharge(): Promise<Response> {
         )
     }
 
-    // R85-B3: chargeBillingKey 직전 status 재확인. 이전엔 cron 시작 시 active
-    //   조회 후 loop 안에서 사용자가 self-cancel 해도 stale in-memory sub 으로
-    //   결제 진행 → 취소된 구독에 청구. UPDATE-with-RETURNING 으로 active 사용자
-    //   만 atomically 청구 윈도우 진입 (last_charge_lock_at 마킹 — 다른 cron run
-    //   과 self-cancel 간 윈도우 좁힘).
-    const { data: stillActive } = await supabase
+    // ★청구 윈도우 원자적 선점 (2026-07-30 — 주석만 있고 구현이 없던 것을 실제로 구현)
+    //
+    //   이전 코드는 여기서 `select('status')` 로 **읽기만** 했다. 그런데 위 주석은
+    //   "UPDATE-with-RETURNING 으로 atomically 진입 (last_charge_lock_at 마킹)" 이라고
+    //   적혀 있었고, 그 컬럼 이름은 저장소 전체에서 **그 주석 한 줄이 유일한 등장**
+    //   이었다. 없는 방어를 있다고 믿게 만드는 주석이었다(최종감사 critical).
+    //
+    //   읽기만으로는 배치 조회(:346~) 시점과 여기 사이의 변화만 잡고, 여러 run 이
+    //   겹쳤을 때 둘 다 통과할 수 있다. UPDATE 는 행 잠금을 잡으므로 하나만 통과한다.
+    //   0행 = 그 사이 status 가 바뀌었거나 다른 run 이 선점 → 청구하지 않는다.
+    const { data: claimed, error: claimErr } = await supabase
       .from('subscriptions')
-      .select('status')
+      .update({ last_charge_lock_at: new Date().toISOString() })
       .eq('id', sub.id)
-      .maybeSingle()
-    if (!stillActive || stillActive.status !== 'active') {
+      .eq('status', 'active')
+      .select('id')
+    if (claimErr || !claimed || claimed.length === 0) {
       skipped++
       continue
     }
@@ -744,6 +772,68 @@ async function runSubscriptionCharge(): Promise<Response> {
             idempotencyKey,
           },
         })
+      }
+
+      // ★청구 후 상태 재확인 (2026-07-30 최종감사) — 토스 응답을 최대 30초
+      //   기다리는 사이에 고객이 해지·정지했을 수 있다. 선점(위 last_charge_lock_at)은
+      //   "긁기 시작할 때 active 였음"만 보장하고, 긁는 **동안**의 해지는 못 막는다.
+      //
+      //   그때 일어나는 일: 돈은 나갔는데 피킹 리스트는 구독 status='active' 만
+      //   뽑으므로(admin/personalization/picking-list) 박스가 자동 발송 목록에서
+      //   빠진다 → **고객은 결제만 되고 아무것도 못 받는다.** 게다가 주문이
+      //   'preparing' 으로 남아 관리자 주문 목록에 뜨니 사람이 보고 보낼 수도 있다.
+      //
+      //   그래서 해지가 감지되면 ① 주문을 발송 대기로 올리지 않고 ② 즉시 환불하고
+      //   ③ 실패하면 환불 큐에 넣는다(confirm 라우트의 race 처리와 같은 패턴).
+      const { data: afterCharge } = await supabase
+        .from('subscriptions')
+        .select('status')
+        .eq('id', sub.id)
+        .maybeSingle()
+      const stillActiveAfterCharge =
+        (afterCharge as { status?: string } | null)?.status === 'active'
+
+      if (!stillActiveAfterCharge) {
+        captureBusinessEvent('error', 'subscription.charge.cancelled_mid_charge', {
+          subscriptionId: sub.id,
+          userId: sub.user_id,
+          orderId: orderRow.id,
+          paymentKey: String(result.paymentKey),
+          amount: chargeAmount,
+          statusAfter: String((afterCharge as { status?: string } | null)?.status),
+          note: '카드 청구 도중 고객이 해지·정지했다. 환불 시도 후 주문은 발송 대기로 올리지 않는다.',
+        })
+        const refund = await cancelPayment({
+          paymentKey: result.paymentKey!,
+          cancelReason: '청구 도중 고객 해지 — 자동 환불',
+        })
+        if (!refund.ok) {
+          // 즉시 환불 실패 → 큐로. refund-retry 크론이 이어받는다.
+          await (supabase as unknown as {
+            from: (t: string) => {
+              insert: (r: Record<string, unknown>) => Promise<{ error: unknown }>
+            }
+          })
+            .from('payment_refund_queue')
+            .insert({
+              order_id: orderRow.id,
+              payment_key: result.paymentKey,
+              amount: chargeAmount,
+              reason: 'cancelled_mid_charge',
+            })
+        }
+        // 주문은 결제됨으로 기록하되 발송 대기로 올리지 않는다(order_status 유지).
+        await supabase
+          .from('orders')
+          .update({
+            payment_status: refund.ok ? 'cancelled' : 'paid',
+            payment_key: result.paymentKey,
+            paid_at: successIso,
+            cancel_reason: refund.ok ? '청구 도중 고객 해지 — 자동 환불' : null,
+          })
+          .eq('id', orderRow.id)
+        skipped += 1
+        continue
       }
 
       // 2-d) orders / subscription 업데이트 — 결과(error)를 검사한다. 돈은 이미

@@ -183,6 +183,59 @@ export async function POST(req: Request) {
   }
   // 42P01(테이블 미적용) 등 그 외 오류는 무시하고 진행 — 기존 상태기반 멱등이
   // 여전히 동작하므로 결제 처리를 막지 않는다(가용성 우선).
+  const dedupRecorded = !dedup.error
+
+  /**
+   * ★DB 쓰기가 실패했을 때 (2026-07-30 최종감사 critical)
+   *
+   * 이전에는 update 결과에서 `error` 를 아예 꺼내지 않아 **DB 오류와 "이미 다른
+   * 흐름이 처리함"이 구분되지 않았다.** 둘 다 `data` 가 비어 보이기 때문이다.
+   * 그래서 오류인데도 토스에 200 을 돌려줬고 —
+   *   · 토스는 성공으로 알고 **다시 보내지 않는다**
+   *   · 위 멱등 기록은 이미 들어가 있어 **수동 재시도도 duplicate 로 막힌다**
+   * 결과: 카드사 환불은 끝났는데 우리 DB 는 'paid/준비중' → 환불한 고객에게
+   * 박스가 나가고 원장에도 환불이 안 남는다. **복구 경로가 0개였다.**
+   *
+   * 그래서 실패 시 ① 멱등 기록을 지워 재시도가 통하게 하고 ② 5xx 를 돌려
+   * 토스가 다시 보내게 한다. 토스 재시도가 이 경로의 유일한 자동 복구 수단이다.
+   */
+  // 클로저 안에서는 위의 null 체크가 유지되지 않으므로 값을 미리 붙잡는다.
+  const targetOrderId = order.id
+  async function failAndAskRetry(
+    stage: string,
+    dbError: { message?: string; code?: string } | null,
+  ) {
+    captureBusinessEvent('error', 'payment.webhook.db_write_failed', {
+      orderId: targetOrderId,
+      paymentKey,
+      tossStatus: String(payment.status),
+      stage,
+      dbError: String(dbError?.message ?? dbError?.code ?? 'unknown'),
+      note: '멱등 기록을 되돌리고 5xx 로 응답 — 토스 재시도로 복구한다.',
+    })
+    if (dedupRecorded) {
+      // 이 기록이 남으면 토스 재시도가 duplicate 로 걸러진다 → 반드시 되돌린다.
+      await (
+        supabase as unknown as {
+          from: (t: string) => {
+            delete: () => {
+              eq: (c: string, v: string) => {
+                eq: (c: string, v: string) => Promise<unknown>
+              }
+            }
+          }
+        }
+      )
+        .from('webhook_events')
+        .delete()
+        .eq('provider', 'toss')
+        .eq('event_key', `${paymentKey}:${payment.status}`)
+    }
+    return NextResponse.json(
+      { ok: false, error: 'db_write_failed', stage },
+      { status: 500 },
+    )
+  }
 
   // 4) Apply state transition based on Toss status.
   switch (payment.status) {
@@ -192,7 +245,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, skipped: 'already_paid' })
       }
 
-      await supabase
+      const paidUpd = await supabase
         .from('orders')
         .update({
           payment_status: 'paid',
@@ -207,6 +260,8 @@ export async function POST(req: Request) {
           receipt_url: payment.receipt?.url ?? null,
         })
         .eq('id', order.id)
+      // ★ 여기서 실패하면 "입금됐는데 미결제로 남는다" — 도장 트리거도 안 돈다.
+      if (paidUpd.error) return await failAndAskRetry('orders.paid', paidUpd.error)
 
       // R60 — 결제 원장 event. 가상계좌 입금 완료 또는 confirm 누락 케이스.
       {
@@ -288,7 +343,7 @@ export async function POST(req: Request) {
       // 를 바꿨으면 0-row 로 bail. 점검 fix: 이전엔 read-snapshot 가드(293)만 있어
       // cancel 라우트와 동시 진입 시 아래 recovery 의 쿠폰 회수가 이중 실행될 수
       // 있었다(다른 취소 경로는 모두 이 0-row 가드를 둠).
-      const { data: cancelRows } = await supabase
+      const { data: cancelRows, error: cancelErr } = await supabase
         .from('orders')
         .update({
           payment_status: isPartial ? 'partially_refunded' : 'cancelled',
@@ -299,7 +354,10 @@ export async function POST(req: Request) {
         .eq('id', order.id)
         .eq('payment_status', order.payment_status)
         .select('id')
+      // ★ error 를 먼저 본다 — 오류와 '이미 처리됨'은 다르다(위 failAndAskRetry 주석).
+      if (cancelErr) return await failAndAskRetry('orders.cancel', cancelErr)
       if (!cancelRows || cancelRows.length === 0) {
+        // 0행 = 다른 흐름(취소 라우트 등)이 먼저 처리했다. 정상 skip.
         return NextResponse.json({ ok: true, skipped: 'already_processed' })
       }
 
@@ -356,10 +414,12 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, skipped: 'already_failed' })
       }
       const prevStatus = order.payment_status
-      await supabase
+      const failedUpd = await supabase
         .from('orders')
         .update({ payment_status: 'failed' })
         .eq('id', order.id)
+      if (failedUpd.error)
+        return await failAndAskRetry('orders.failed', failedUpd.error)
       // R60 결제 원장 (payment_events) — 실패 이벤트도 insert-only ledger 에
       // 기록. 환불/조정 시 어떤 결제가 어떤 사유로 실패했는지 reconciliation
       // 가능. amount=0 (실패라 금전 이동 X).

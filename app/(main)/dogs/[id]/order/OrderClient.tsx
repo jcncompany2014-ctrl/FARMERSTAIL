@@ -481,6 +481,23 @@ export default function OrderClient({
         .select('id')
         .single()
       if (subErr || !sub) {
+        // ★ 23505 = unique 위반. 2026-07-30 부터 DB 인덱스
+        //   `subscriptions_one_live_per_dog` 가 "강아지당 진행 중 구독 1개"를
+        //   막는다. 위쪽 조회 가드(:400~)를 통과했는데 여기서 걸렸다면 **경합**이다
+        //   — 폰과 PC 에서 거의 동시에 눌러 둘 다 "없음"을 본 경우. 그때 알 수 없는
+        //   오류를 보여주면 고객이 계속 다시 누른다. 사람 말로 안내하고 그 구독으로
+        //   보낸다(위 가드와 같은 문구·같은 목적지).
+        const code = (subErr as { code?: string } | null)?.code
+        if (code === '23505') {
+          setErr(
+            '이 강아지에 진행중인 정기배송이 이미 있어요. 마이페이지에서 관리해 주세요.',
+          )
+          leaveTimerRef.current = setTimeout(
+            () => router.push('/mypage/subscriptions'),
+            1500,
+          )
+          return
+        }
         setErr('정기배송을 신청하지 못했어요. 다시 시도해 주세요.')
         return
       }

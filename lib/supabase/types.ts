@@ -2845,6 +2845,7 @@ export type Database = {
           fresh_ratio: number | null
           id: string
           interval_weeks: number
+          last_charge_lock_at: string | null
           last_charged_at: string | null
           last_delivery_date: string | null
           last_failed_charge_at: string | null
@@ -2884,6 +2885,7 @@ export type Database = {
           fresh_ratio?: number | null
           id?: string
           interval_weeks?: number
+          last_charge_lock_at?: string | null
           last_charged_at?: string | null
           last_delivery_date?: string | null
           last_failed_charge_at?: string | null
@@ -2923,6 +2925,7 @@ export type Database = {
           fresh_ratio?: number | null
           id?: string
           interval_weeks?: number
+          last_charge_lock_at?: string | null
           last_charged_at?: string | null
           last_delivery_date?: string | null
           last_failed_charge_at?: string | null
