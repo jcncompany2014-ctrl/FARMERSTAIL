@@ -51,10 +51,18 @@ export function isAdminByJwt(user: User | null | undefined): boolean {
 }
 
 /**
- * JWT + profiles 이중 경로 admin 체크. JWT로 확정되면 DB는 안 건드림.
+ * admin 체크 — **`app_metadata.role` 하나만 본다.** DB 라운드트립 없음.
  *
- * 반환값은 `boolean`. 실패 이유가 필요하면 직접 {@link isAdminByJwt}와 DB 조회를
- * 조합해서 쓰자. 대부분의 호출자는 admin인지 아닌지만 알면 된다.
+ * ⚠️ 이 주석은 예전에 "JWT + profiles 이중 경로"라고 적혀 있었지만, 아래 구현은
+ * R101-C 에서 profiles fallback 을 이미 제거한 상태였다(2026-07-31 정정).
+ * 없는 경로를 있다고 적어두면 다음 사람이 "빠졌네" 하고 **되살릴 수 있다** —
+ * `profiles.role` 은 고객이 보는 표시용 컬럼이라 그걸 권한 판정에 쓰면 그 순간
+ * 권한 상승 경로가 된다.
+ *
+ * 실측 대조(2026-07-31): DB `is_admin()` 도 `raw_app_meta_data ->> 'role'` 만
+ * 보고, `trg_prevent_profile_role_change` 트리거가 활성 상태다 — 코드·DB 동일 기준.
+ *
+ * `_supabase` 인자는 호출처 시그니처 호환을 위해 남아 있다(쓰지 않는다).
  */
 export async function isAdmin(
   _supabase: SupabaseClient,

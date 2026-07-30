@@ -146,6 +146,55 @@ test('★ 규칙7: vercel.json 크론은 전부 하루 1회 이하', () => {
   )
 })
 
+test('★ 규칙13: 화이트리스트 밖 칸을 쓰는 UPDATE 는 service_role 로 한다', () => {
+  /**
+   * 2026-07-31 — 이 규칙이 없어서 **프로덕션 카드 등록이 조용히 죽어 있었다.**
+   *
+   * 20260730000000 이 `subscriptions` UPDATE 를 4칸으로 잠갔는데
+   * (status · next_delivery_date · reminder_enabled · last_failed_charge_reason)
+   * `/api/payments/billing-issue` 가 **로그인 클라이언트**로 billing_key 등 9칸을
+   * 쓰고 있었다. 권한 오류로 통째로 실패했고, error 를 안 받아 `ok:true` 를
+   * 돌려줬다 → 고객은 "카드 등록 완료"를 보는데 billing_key 가 없어 영원히
+   * 청구되지 않는다(토스엔 빌링키가 있고 우리만 모르는 상태).
+   * 같은 사고가 `/api/personalization/approve` 의 total_amount 갱신에도 있었다.
+   *
+   * 권한을 잠그면 **그 칸을 쓰던 코드가 조용히 죽는다.** 잠금과 호출부는 반드시
+   * 같이 본다 — 그게 이 테스트다.
+   */
+  const ALLOWED = new Set([
+    'status',
+    'next_delivery_date',
+    'reminder_enabled',
+    'last_failed_charge_reason',
+  ])
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app'))
+    .concat(walk(join(ROOT, 'components')))
+    .concat(walk(join(ROOT, 'lib')))) {
+    const src = readFileSync(file, 'utf8')
+    if (!src.includes("from('subscriptions')")) continue
+    // 파일이 admin 클라이언트를 아예 안 만들면, 그 파일의 모든 쓰기는
+    // 로그인 클라이언트다 — 화이트리스트 밖 칸을 쓰면 실패한다.
+    if (src.includes('createAdminClient')) continue
+    const re = /from\(\s*'subscriptions'\s*\)\s*\.update\(\s*\{([\s\S]*?)\}\s*\)/g
+    for (const m of src.matchAll(re)) {
+      const cols = [...(m[1] ?? '').matchAll(/(\w+)\s*:/g)].map((x) => x[1]!)
+      const outside = cols.filter((c) => !ALLOWED.has(c))
+      if (outside.length > 0) {
+        const line = src.slice(0, m.index ?? 0).split('\n').length
+        offenders.push(`${rel(file)}:${line} :: ${outside.join(', ')}`)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'subscriptions 의 잠긴 칸은 service_role 로만 쓸 수 있다 — 로그인 클라이언트로 ' +
+      '쓰면 권한 오류로 **조용히 실패**한다(카드 등록이 실제로 그렇게 죽었다).\n' +
+      offenders.join('\n'),
+  )
+})
+
 test('★ 규칙12: 구독은 클라이언트가 만들지 않는다 (금액을 서버가 정한다)', () => {
   // 주문 화면이 `subscriptions` 를 직접 insert 하던 시절, 금액·상태·배송횟수가
   // 전부 브라우저에서 온 값이었다. UPDATE 권한만 잠갔던 1차로는 부족했다 —

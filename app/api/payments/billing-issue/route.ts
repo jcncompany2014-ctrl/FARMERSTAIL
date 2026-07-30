@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { issueBillingKey } from '@/lib/payments/toss'
 import { billingBrandLabel } from '@/lib/payments/billing-methods'
 import { parseRequest } from '@/lib/api/parseRequest'
@@ -157,7 +159,27 @@ export async function POST(req: Request) {
     firstDeliveryIso = nextShipDate()
   }
 
-  await supabase
+  /**
+   * ★★ service_role 로 쓴다 — 로그인 클라이언트로는 **저장이 안 된다** (2026-07-31).
+   *
+   * 20260730000000 이 `subscriptions` UPDATE 를 4칸 화이트리스트로 잠갔는데
+   * (status · next_delivery_date · reminder_enabled · last_failed_charge_reason)
+   * 이 블록이 쓰는 12칸 중 **9칸이 그 밖**이다 — billing_key · billing_customer_key ·
+   * billing_card_brand · billing_card_last4 · requires_billing_key_renewal ·
+   * failed_charge_count · next_retry_at · last_failed_charge_at ·
+   * last_failed_charge_code (실측: has_column_privilege 전부 false).
+   *
+   * 그래서 이 UPDATE 는 권한 오류로 **통째로 실패**했고, 아래 응답은 그걸 모른 채
+   * `ok: true` 를 돌려줬다(예전엔 `await supabase...` 로 error 를 아예 안 받았다).
+   * 결과: 고객은 "카드 등록 완료"를 보는데 billing_key 가 안 남아 **영원히 청구되지
+   * 않는다.** 토스에는 빌링키가 발급돼 있고 우리만 모르는 상태 — 최악의 조합이다.
+   *
+   * 이 라우트는 위(:80~:97)에서 **본인 구독 + customerKey 일치**를 이미 확인했다.
+   * 범위는 그 검증이 책임지고, 쓰기는 서버 권한으로 한다. `.eq('user_id')` 는
+   * 이중 안전장치로 남긴다.
+   */
+  const admin = createAdminClient()
+  const { error: saveErr } = await admin
     .from('subscriptions')
     .update({
       billing_key: result.billingKey,
@@ -175,6 +197,29 @@ export async function POST(req: Request) {
     })
     .eq('id', subscriptionId)
     .eq('user_id', user.id)
+
+  if (saveErr) {
+    /**
+     * 저장 실패를 **성공으로 말하지 않는다.** 토스에는 이미 빌링키가 있는데
+     * 우리 DB 에 없으면, 고객은 등록됐다고 믿고 우리는 청구하지 못한다 —
+     * 아무도 모르는 채 배송만 멈춘다. 반드시 사람이 봐야 하고, 고객에겐
+     * 다시 시도할 수 있다고 말해야 한다.
+     */
+    captureBusinessEvent('error', 'billing.issue.save_failed', {
+      userId: user.id,
+      subscriptionId,
+      method,
+      dbError: saveErr.message,
+    })
+    return NextResponse.json(
+      {
+        code: 'SAVE_FAILED',
+        message:
+          '카드 확인은 됐는데 저장에 실패했어요. 잠시 후 다시 등록해 주세요 — 지금은 결제되지 않아요.',
+      },
+      { status: 500 },
+    )
+  }
 
   return NextResponse.json({
     ok: true,

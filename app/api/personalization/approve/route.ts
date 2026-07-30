@@ -175,9 +175,18 @@ export async function POST(req: Request) {
     let priceUpdated = false
     let itemsUpdated = false
     if (box) {
+      /**
+       * ★★ 쓰기는 service_role 로 한다 — 로그인 클라이언트로는 **저장이 안 된다**
+       * (2026-07-31 점검에서 발견). 20260730000000 이 subscriptions UPDATE 를
+       * 4칸 화이트리스트로 잠갔고 `total_amount` 는 그 밖이다(실측:
+       * has_column_privilege = false). 그래서 이 갱신은 권한 오류로 실패하고,
+       * 아래 분기가 로그만 남긴 채 **새 처방에 옛 금액**이 그대로 남았다.
+       * 소유권은 위 pending 조회(user_id 로 걸러진 것)가 이미 책임진다.
+       */
+      const admin = createAdminClient()
       // ★ 구독 **id** 로 갱신한다. 예전엔 `.eq('dog_id', ...)` 라서 같은 강아지의
       //   **해지된 구독까지** 새 금액으로 덮어썼다(과거 원장 오염).
-      const { error: priceErr } = await supabase
+      const { error: priceErr } = await admin
         .from('subscriptions')
         .update({ total_amount: box.total })
         .eq('id', box.subscriptionId)
@@ -210,7 +219,6 @@ export async function POST(req: Request) {
        * 지우고 다시 넣는다 — 라인 구성 자체가 바뀌므로(단백질 교체·토퍼 추가)
        * 행 단위 upsert 로는 없어진 라인이 남는다.
        */
-      const admin = createAdminClient()
       const { error: delErr } = await admin
         .from('subscription_items')
         .delete()
