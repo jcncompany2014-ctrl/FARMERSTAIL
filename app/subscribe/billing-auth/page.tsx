@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { loadTossPayments } from '@tosspayments/tosspayments-sdk'
+import { openBillingWindow } from '@/lib/payments/open-billing-window'
 import { ChevronLeft, X } from 'lucide-react'
 import {
   availableBillingMethods,
@@ -79,37 +79,13 @@ function BillingAuthInner() {
   async function launch(methodId: BillingMethodId) {
     if (launching) return // 두 번 눌러 창이 두 번 열리는 것 방지
     setLaunching(true)
-    const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
-    if (!clientKey) {
-      setError('결제 시스템이 설정되지 않았어요. 잠시 후 다시 시도해 주세요.')
-      setLaunching(false)
-      return
-    }
     try {
-      const tossPayments = await loadTossPayments(clientKey)
-      const origin = window.location.origin
-      // method 를 함께 실어 보낸다 — 토스페이는 카드사명·카드번호가 안 올 수
-      // 있어서, 완료 화면과 저장 라벨이 "무엇으로 등록했는지"를 알아야 한다.
-      const successUrl =
-        `${origin}/subscribe/billing-success` +
-        `?subscriptionId=${encodeURIComponent(subscriptionId!)}` +
-        `&method=${encodeURIComponent(methodId)}`
-      // customerKey 를 failUrl 에도 실어 보낸다 — 실패 페이지의 "다시 시도하기"가
-      // 이 키 없이 billing-auth 로 돌아오면 '잘못된 접근' 막다른 길 (2026-07-03 감사).
-      // method 는 일부러 안 싣는다: 실패 후엔 다른 수단으로 바꿀 수 있게
-      // 선택 화면으로 돌아가는 것이 맞다.
-      const failUrl =
-        `${origin}/subscribe/billing-fail` +
-        `?subscriptionId=${encodeURIComponent(subscriptionId!)}` +
-        `&customerKey=${encodeURIComponent(customerKey!)}`
-
-      // 비로그인 (= ANONYMOUS) 플로우 사용 안 함 — 본인 카드 등록은 customer
-      // 식별이 필수. customerKey 는 server 가 발급한 UUID.
-      const billing = tossPayments.payment({ customerKey: customerKey! })
-      await billing.requestBillingAuth({
-        ...billingMethod(methodId).params,
-        successUrl,
-        failUrl,
+      // 주문 화면과 **같은 헬퍼**를 쓴다 — successUrl/failUrl 규칙이 두 곳에서
+      // 갈리면 등록은 됐는데 빌링키가 안 남는 식으로 조용히 깨진다.
+      await openBillingWindow({
+        subscriptionId: subscriptionId!,
+        customerKey: customerKey!,
+        method: methodId,
       })
       // Toss SDK 가 화면을 넘긴다 — 정상 흐름은 여기 도달 안 함.
     } catch (e) {

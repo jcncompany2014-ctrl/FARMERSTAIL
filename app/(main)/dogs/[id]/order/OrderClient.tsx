@@ -21,6 +21,14 @@ import {
   CreditCard,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import {
+  availableBillingMethods,
+  billingMethodFlags,
+  type BillingMethodId,
+} from '@/lib/payments/billing-methods'
+import { openBillingWindow } from '@/lib/payments/open-billing-window'
+import { billingAuthFallbackHref } from '@/lib/payments/billing-urls'
+import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
 import { useToast } from '@/components/ui/Toast'
 import { haptic } from '@/lib/haptic'
 import { formatPhone } from '@/lib/formatters'
@@ -42,6 +50,13 @@ import {
 } from '@/lib/personalization/boxPricing'
 import { trackBeginCheckout, type AnalyticsItem } from '@/lib/analytics'
 import './order.css'
+
+/**
+ * 고를 수 있는 결제수단. 플래그는 빌드 시점 상수라 모듈 스코프에서 한 번만
+ * 읽는다. 카드는 항상 첫 번째(누구나 쓸 수 있는 길) — `PAY_METHODS[0]` 이
+ * 기본값이 되는 것이 의도된 동작이다.
+ */
+const PAY_METHODS = availableBillingMethods(billingMethodFlags())
 
 /**
  * /dogs/[id]/order client 부분 — 분량/가격 계산, 주소 form, Toss billing-auth
@@ -217,6 +232,11 @@ export default function OrderClient({
 
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState('')
+  /**
+   * 배송지와 함께 고르는 결제수단. 기본은 **카드** — 어떤 고객이든 쓸 수 있는
+   * 길이고 `availableBillingMethods` 가 항상 포함한다(그래서 상수로 둔다).
+   */
+  const [payMethod, setPayMethod] = useState<BillingMethodId>('card')
 
   /**
    * '이미 진행중인 정기배송이 있어요' 안내 뒤 1.5초 후 자동 이동하는 타이머.
@@ -522,11 +542,38 @@ export default function OrderClient({
           memo_provided: deliveryMemo != null,
         })
       }
-      toast.success('결제수단 등록으로 이동할게요')
-      router.push(
-        `/subscribe/billing-auth?subscriptionId=${(sub as { id: string }).id}` +
-          `&customerKey=${encodeURIComponent(customerKey)}`,
-      )
+      // ── 결제수단 등록창을 **이 클릭 안에서 바로** 띄운다 ──────────────
+      // 중간 확인 페이지를 두지 않는다(사장님 2026-07-30): 토스페이는 토스가
+      // 이미 "다음을 눌러주세요" 안내 화면을 띄우므로, 우리 확인 화면을 더
+      // 두면 '다음'을 두 번 누르게 된다. 카드도 곧바로 카드번호 입력창이다.
+      //
+      // ★ 클릭 핸들러 안에서 부르는 것이 중요하다 — iOS 는 사용자가 직접 누르지
+      //   않은 화면 이동을 막을 수 있다. 페이지를 한 번 거치면 그 제스처가
+      //   끊기므로, 여기서 바로 부르는 편이 오히려 더 안전하다.
+      const subId = (sub as { id: string }).id
+      try {
+        await openBillingWindow({
+          subscriptionId: subId,
+          customerKey,
+          method: payMethod,
+        })
+        // 토스가 화면을 넘긴다 — 아래로 내려오지 않는다.
+      } catch (e) {
+        // 고객이 창을 닫은 것은 실패가 아니다. 구독은 이미 만들어져 있으니
+        // (카드 미등록 상태) 안내만 하고 화면에 머문다 — 다시 누르면 된다.
+        // 등록 없이 방치된 구독은 subscription-cleanup 크론이 1시간 뒤 정리한다.
+        if (isUserCancelledPayment(e)) {
+          setErr('결제수단 등록을 취소했어요. 다시 등록하시면 시작돼요.')
+          return
+        }
+        // 창을 못 띄운 경우(SDK 로드 실패·자동 이동 차단 등)는 '다음' 버튼이
+        // 있는 등록 화면으로 넘긴다. 그 버튼 클릭이 확실한 사용자 제스처라
+        // 자동 실행이 막히는 환경에서도 뚫린다.
+        toast.info('결제수단 등록 화면으로 이동할게요')
+        router.push(
+          billingAuthFallbackHref({ subscriptionId: subId, customerKey }),
+        )
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : '정기배송 신청 실패')
     } finally {
@@ -890,6 +937,58 @@ export default function OrderClient({
               )}
             </div>
           </section>
+
+          {/* 결제수단 — 배송지 바로 아래. 별도 페이지로 빼지 않는다(사장님
+              2026-07-30 "배송지 입력부분에 결제수단 선택까지 자연스럽게").
+              여기서 고른 수단으로 아래 CTA 가 **곧바로** 토스 창을 띄운다:
+              토스페이는 토스 자체 안내 화면, 카드는 카드번호 입력창.
+              수단이 하나뿐이면(토스페이 꺼짐) 고를 게 없으므로 섹션을 숨긴다. */}
+          {PAY_METHODS.length > 1 && (
+            <section className="ord-section">
+              <h2 className="ord-section-h">
+                <CreditCard size={13} strokeWidth={2.2} color="var(--moss)" />
+                결제수단
+              </h2>
+              <div className="ord-form">
+                <div className="ord-fresh">
+                  <div className="ord-fresh-lbl">어떻게 등록할까요</div>
+                  <div
+                    className="ord-fresh-seg"
+                    // 화식 비율 선택기(3칸)와 같은 관용구를 재사용한다 — 새 CSS 를
+                    // 만들지 않아 dev(Turbopack)에서 스타일이 빠지는 문제도 없다.
+                    // 칸 수만 수단 개수에 맞춘다.
+                    style={{
+                      gridTemplateColumns: `repeat(${PAY_METHODS.length}, 1fr)`,
+                    }}
+                    role="radiogroup"
+                    aria-label="결제수단 선택"
+                  >
+                    {PAY_METHODS.map((m) => {
+                      const on = payMethod === m.id
+                      return (
+                        <button
+                          type="button"
+                          key={m.id}
+                          role="radio"
+                          aria-checked={on}
+                          className={'ord-fresh-btn' + (on ? ' is-on' : '')}
+                          onClick={() => {
+                            haptic('tick')
+                            setPayMethod(m.id)
+                          }}
+                        >
+                          <span className="ord-fresh-btn-name">{m.label}</span>
+                          <span className="ord-fresh-btn-sub">
+                            {m.pickerHint}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* 결제 요약 */}
           <section className="ord-summary">

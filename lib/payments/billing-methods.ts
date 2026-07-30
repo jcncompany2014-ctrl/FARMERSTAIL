@@ -50,6 +50,8 @@ export type BillingMethodDef = {
   label: string
   /** 선택 화면 한 줄 설명 — 무엇이 다른지만 말한다 */
   hint: string
+  /** 주문 화면 선택기용 **짧은** 문구. 2칸 그리드라 길면 줄이 쪼개진다. */
+  pickerHint: string
   /** 등록 완료 화면 제목 */
   doneTitle: string
   /**
@@ -64,6 +66,7 @@ const CARD: BillingMethodDef = {
   id: 'card',
   label: '신용·체크카드',
   hint: '카드번호를 입력해 등록해요',
+  pickerHint: '카드번호 입력',
   doneTitle: '카드 등록 완료',
   fallbackBrand: null,
   params: { method: 'CARD' },
@@ -73,6 +76,7 @@ const TOSSPAY: BillingMethodDef = {
   id: 'tosspay',
   label: '토스페이',
   hint: '토스에 등록된 결제수단에서 고르면 돼요',
+  pickerHint: '토스에서 선택',
   doneTitle: '토스페이 연결 완료',
   fallbackBrand: '토스페이',
   // flowMode: 'DIRECT' = 통합 카드창이 아니라 토스페이 자체창을 연다.
