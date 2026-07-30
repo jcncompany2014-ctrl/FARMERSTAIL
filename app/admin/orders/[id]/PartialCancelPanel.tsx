@@ -168,6 +168,9 @@ export default function PartialCancelPanel({
             <div className="flex gap-2">
               <input
                 type="number"
+                // 환불 금액 위에서 휠을 굴리면 값이 바뀌는 브라우저 기본 동작
+                // 차단 — 실제 돈이 나가는 칸이다(최종감사 #8).
+                onWheel={(e) => e.currentTarget.blur()}
                 min={0}
                 max={remaining}
                 step={1}
