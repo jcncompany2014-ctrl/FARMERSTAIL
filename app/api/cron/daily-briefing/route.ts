@@ -5,6 +5,9 @@ import { trackCron } from '@/lib/cron-tracking'
 import { pushToUser } from '@/lib/push'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { weekdayOf, SHIP_WEEKDAY } from '@/lib/shipping-schedule'
+import { findMissedCrons, type CronEntry } from '@/lib/cron-watchdog'
+import { cronLabel } from '@/lib/cron-labels'
+import vercelConfig from '@/vercel.json'
 
 /**
  * 다가오는 발송일(화요일) — **마감 리드타임 없이**. nextShipDate 는 '지금 주문하면
@@ -134,7 +137,41 @@ async function runDailyBriefing(): Promise<Response> {
   ])
 
   const n = (r: { count: number | null }) => r.count ?? 0
+  // ── 크론 워치독 (2026-07-29 최종감사 #10) ──────────────────────────
+  // Vercel 이 크론을 조용히 거른다(청구 크론 30일 중 25일 실행 실측). 실행률
+  // 자체는 코드로 못 고치므로, "어제 돌았어야 했는데 기록이 없는 자동작업"을
+  // 매일 아침 여기서 알린다. 창 = 지금-25h ~ 지금-1h (직전 1시간은 지터 유예,
+  // 브리핑 자신도 이 유예 덕에 자기 자신을 오탐하지 않는다).
+  let missedCrons: string[] = []
+  try {
+    const windowEnd = new Date(Date.now() - 60 * 60 * 1000)
+    const windowStart = new Date(windowEnd.getTime() - 24 * 60 * 60 * 1000)
+    const { data: healthRows } = await supabase
+      .from('cron_health')
+      .select('path, executed_at')
+      // 지터 허용치(3h)만큼 창보다 넓게 가져와야 경계 실행이 인정된다
+      .gte('executed_at', new Date(windowStart.getTime() - 30 * 60 * 1000).toISOString())
+      .limit(2000)
+    missedCrons = findMissedCrons(
+      (vercelConfig as { crons: CronEntry[] }).crons,
+      (healthRows ?? []) as { path: string; executed_at: string }[],
+      windowStart,
+      windowEnd,
+    )
+  } catch {
+    /* 워치독 실패가 브리핑 자체를 막으면 안 됨 — 이번 회차만 침묵 */
+  }
+
   const items: string[] = []
+  // 안 돈 자동작업이 제일 먼저 — 결제·발송이 멈춘 것일 수 있다.
+  if (missedCrons.length > 0) {
+    items.push(
+      `🚨 어제 안 돈 자동작업 ${missedCrons.length}개: ${missedCrons
+        .slice(0, 4)
+        .map((c) => cronLabel(c))
+        .join(', ')}${missedCrons.length > 4 ? ' 외' : ''}`,
+    )
+  }
 
   // 발송 관련이 제일 위 — 화요일 아침엔 이게 오늘의 일이다.
   const boxes = n(todayBoxes) + (isShipDay ? n(chargedToday) : 0)
