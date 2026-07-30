@@ -1,6 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { billingRedirectUrls, billingAuthFallbackHref } from './billing-urls.ts'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import {
+  billingRedirectUrls,
+  billingAuthFallbackHref,
+  billingReturnHref,
+} from './billing-urls.ts'
 
 /**
  * 이 규칙이 어긋나면 **결제가 조용히 깨진다.** 호출부가 두 곳(주문 화면 직행 ·
@@ -66,4 +72,31 @@ test('폴백 주소는 등록 화면 + 두 키 (선택 화면이 뜨도록 metho
   assert.match(href, /subscriptionId=11111111/)
   assert.match(href, /customerKey=22222222/)
   assert.equal(href.includes('method='), false)
+})
+
+test('billingReturnHref — 웹과 앱이 서로 다른 화면으로 간다', () => {
+  // 이 함수가 생긴 이유: /subscribe/* 세 화면이 top-level(웹+앱 공용)인데
+  // 돌아가는 링크가 전부 앱 전용 경로였다 → 웹 사용자는 '/app-required' 벽.
+  assert.equal(billingReturnHref(true), '/mypage/subscriptions')
+  assert.equal(billingReturnHref(false), '/account/subscriptions')
+})
+
+test('★ 웹 목적지는 앱 전용 경로가 아니다 (proxy.ts 와 대조)', () => {
+  // proxy.ts 의 APP_ONLY_PREFIXES 를 **실제로 읽어** 대조한다. 목록에 경로가
+  // 추가되면 여기서 깨진다 — 손으로 적은 기대값이면 조용히 낡는다.
+  const proxy = readFileSync(join(process.cwd(), 'proxy.ts'), 'utf8')
+  // `= [` 로 앵커해야 한다 — `: readonly string[] =` 의 `[]` 가 먼저 잡히면
+  // 캡처가 비어 목록이 0개가 되고, 그러면 "위반 없음"으로 조용히 통과한다.
+  const block = /APP_ONLY_PREFIXES[^=]*=\s*\[([\s\S]*?)\n\]/.exec(proxy)
+  assert.ok(block?.[1], 'proxy.ts 에서 APP_ONLY_PREFIXES 를 못 찾았다')
+  const prefixes = [...block[1].matchAll(/'([^']+)'/g)].map((m) => m[1]!)
+  assert.ok(prefixes.length > 0, '앱 전용 prefix 목록이 비어 있다')
+
+  const webHref = billingReturnHref(false)
+  const blocked = prefixes.filter((p) => webHref.startsWith(p))
+  assert.deepEqual(
+    blocked,
+    [],
+    `웹 사용자를 앱 전용 경로로 보내고 있다: ${webHref} (${blocked.join(', ')})`,
+  )
 })

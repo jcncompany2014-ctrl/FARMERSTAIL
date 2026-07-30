@@ -86,7 +86,9 @@ test('토스페이 등록창 파라미터 — DIRECT + TOSSPAY 여야 자체창�
 test('★ 토스페이는 브랜드 색을 갖는다 — 카드와 눈에 띄게 달라야 한다', () => {
   // 사장님 2026-07-30 "신용카드 등록이랑 토스페이랑 너무 똑같애".
   // 두 화면(주문 선택기·등록 화면)이 이 값을 함께 읽으므로 여기서 고정한다.
-  assert.equal(billingMethod('tosspay').brandColor, '#3182F6')
+  // 2026-07-30: Blue 500(#3182F6) → Blue 600(#1B64DA). 500 위의 흰 글씨가
+  // 3.72:1 로 AA 미달이었다. 비율 자체는 contrast.test.ts 가 지킨다.
+  assert.equal(billingMethod('tosspay').brandColor, '#1B64DA')
   // 카드는 우리 앱 색을 쓴다 — 브랜드 색을 주면 앱 톤이 깨진다.
   assert.equal(billingMethod('card').brandColor, null)
 })

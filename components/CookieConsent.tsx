@@ -3,6 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { Cookie, Check, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { useIsAppContext } from '@/lib/app-context-client'
 import {
   readConsent,
   writeConsent,
@@ -10,26 +11,15 @@ import {
   type CookieConsent as Consent,
 } from '@/lib/cookies'
 
-/**
- * 앱 컨텍스트(`ft_app=1` 쿠키) 감지 — 클라이언트에서 document.cookie 검사.
- * 앱 사용자에겐 별도 쿠키 동의 배너가 뜨지 않는다 — signup / 설치 단계에서
- * 약관 동의를 이미 받았다고 가정. 첫 진입 시에는 자동으로 "필수만 허용"
- * (분석/마케팅 false) 로 기록해 다음 방문에 배너가 다시 안 뜨게.
+/*
+ * 앱 컨텍스트 판정은 `lib/app-context-client` 의 `useIsAppContext` 로 옮겼다
+ * (2026-07-30). 같은 로직이 여기 사문화돼 있는 동안 결제 화면들은 판정을 아예
+ * 하지 않아 **웹 사용자를 앱 전용 경로로 보냈다**(/app-required 벽).
+ *
+ * 이 화면에서의 쓰임: 앱 사용자에겐 쿠키 동의 배너를 띄우지 않는다 — signup /
+ * 설치 단계에서 약관 동의를 이미 받았다고 가정. 첫 진입 시 자동으로 "필수만
+ * 허용"(분석/마케팅 false) 으로 기록해 다음 방문에 배너가 다시 안 뜨게 한다.
  */
-function useIsAppContext(): boolean {
-  const [isApp, setIsApp] = useState(false)
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-    const cookies = document.cookie.split(';').map((c) => c.trim())
-    const flag = cookies.some((c) => c.startsWith('ft_app=1'))
-    // 외부 시스템(document.cookie) 의 1회 동기화 — useEffect 의 정상 사용 패턴.
-    // React 19 `react-hooks/set-state-in-effect` 룰은 cascading render 를
-    // 우려하지만 이 setState 는 deps=[] 라 마운트 직후 1회만 발생한다.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsApp(flag)
-  }, [])
-  return isApp
-}
 
 /**
  * "동의 변경" / "재설정" 이벤트를 subscribe 해서 현재 동의 상태를 useSyncExternalStore

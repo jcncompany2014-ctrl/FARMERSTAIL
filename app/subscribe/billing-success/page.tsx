@@ -13,6 +13,8 @@ import {
   billingMethodFlags,
   resolveBillingMethod,
 } from '@/lib/payments/billing-methods'
+import { billingReturnHref } from '@/lib/payments/billing-urls'
+import { useIsAppContext } from '@/lib/app-context-client'
 
 /**
  * /subscribe/billing-success
@@ -35,6 +37,10 @@ type Status = 'exchanging' | 'succeeded' | 'failed'
 function BillingSuccessInner() {
   const params = useSearchParams()
   const router = useRouter()
+  // 웹/앱 목적지가 다르다 — 앱 전용 경로로 보내면 웹 사용자가 '/app-required'
+  // 벽을 맞는다(등록은 끝났는데 확인할 데가 없어진다).
+  const isApp = useIsAppContext()
+  const subsHref = billingReturnHref(isApp)
   const authKey = params.get('authKey')
   const customerKey = params.get('customerKey')
   const subscriptionId = params.get('subscriptionId')
@@ -205,7 +211,7 @@ function BillingSuccessInner() {
             </p>
             <button
               type="button"
-              onClick={() => router.push('/mypage/subscriptions?new=1')}
+              onClick={() => router.push(`${subsHref}?new=1`)}
               className="mt-6 w-full py-3.5 rounded-full text-[13px] font-bold"
               style={{ background: 'var(--ink)', color: 'var(--bg)' }}
             >
@@ -239,7 +245,7 @@ function BillingSuccessInner() {
                 href={
                   subscriptionId
                     ? `/subscribe/billing-auth?subscriptionId=${subscriptionId}&customerKey=${customerKey ?? ''}`
-                    : '/mypage/subscriptions'
+                    : subsHref
                 }
                 className="w-full py-3 rounded-full text-[13px] font-bold text-center"
                 style={{ background: 'var(--ink)', color: 'var(--bg)' }}
@@ -247,7 +253,7 @@ function BillingSuccessInner() {
                 다시 시도하기
               </Link>
               <Link
-                href="/mypage/subscriptions"
+                href={subsHref}
                 className="w-full py-3 rounded-full text-[13px] font-bold text-center border"
                 style={{
                   borderColor: 'var(--rule)',

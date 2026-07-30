@@ -33,7 +33,9 @@
   font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
 }
 .sub-state.is-on { color: var(--moss); }
-.sub-state.is-wait { color: #8a6a12; }
+/* 대기 상태 노랑 — hex 를 직접 쓰지 않는다(tokens.ts 원칙 1). 마이페이지 요약
+   화면의 '시작 전' 칩과 **같은 값**이어야 한다(2026-07-30 통일). */
+.sub-state.is-wait { color: var(--yellow-ink); }
 .sub-state.is-bad { color: var(--terracotta); }
 .sub-state.is-off { color: var(--muted); }
 

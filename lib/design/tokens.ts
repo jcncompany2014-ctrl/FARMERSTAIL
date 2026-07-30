@@ -38,8 +38,18 @@ export const V3 = {
   accent: '#C86B45',
   accentDeep: '#782E22', // = --fd-coral-ink (텍스트/hover 딥)
 
-  // Highlight — 노란 마커 (텍스트 강조).
+  // Highlight — 노란 마커. **배경으로만** 쓴다(marker 하이라이트·도장 등).
+  // paper 위 글자색으로 쓰면 1.69:1 로 사실상 안 보인다 → yellowInk 를 쓸 것.
   yellow: '#e6b942',
+  /**
+   * paper 위에서 읽히는 노랑 (4.64:1, WCAG AA 통과).
+   *
+   * `yellow` 를 '시작 전' 상태 칩의 **글자색**으로 쓴 것을 고치며 추가했다
+   * (2026-07-30). 마커용 색을 텍스트에 쓴 것이 원인 — 마스터피스 P1-A2 에서
+   * `inkMute` 를 darken 한 것과 같은 종류의 수정이다.
+   * 같은 값이 강아지 구독 탭 CSS 에 hex 로 박혀 있었다(`--yellow-ink` 로 통일).
+   */
+  yellowInk: '#8a6a12',
 
   // Sage — 안정 / 완료 / 사용 가능 (2026-06-17 웹 FD 정렬, = --fd-green).
   sage: '#3C725E',

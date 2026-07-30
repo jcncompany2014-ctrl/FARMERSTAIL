@@ -215,6 +215,16 @@ set -o pipefail; npx tsc --noEmit 2>&1 | tail -30
 
 **Never** do `npx tsc --noEmit | head` / `| tail` / `| wc` and check `$?`. The exit code belongs to the last command in the pipe.
 
+**`npx tsx --test <file>` is not `npm test`.** `npm test` runs
+`node --experimental-strip-types`, which resolves imports the way Node does:
+a **value** import of a sibling module needs the explicit `.ts` extension
+(`from './tokens.ts'`), or it dies with `ERR_MODULE_NOT_FOUND`. `tsx` resolves
+extensionless imports happily, so a single file can pass under `tsx` and fail
+under `npm test` (hit 2026-07-30 — `lib/design/contrast.ts` importing
+`'./tokens'`). `import type` is erased, so those are unaffected.
+Use `tsx` for a fast inner loop if you like, but **the green that counts is
+`npm test`** — run it before you say a test passes.
+
 **Pre-commit hook is installed** (`scripts/install-git-hooks.mjs` writes to `.git/hooks/pre-commit`, runs `npm run precommit` = eslint + tsc with full exit code). If a fresh clone, run `npm run install:hooks` once. Skip only with `git commit --no-verify` and only when you know why.
 
 # Why Vercel still catches things `npx tsc` doesn't

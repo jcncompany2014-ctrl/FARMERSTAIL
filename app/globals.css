@@ -146,7 +146,12 @@
      safe-area 는 사용처에서 calc 로 더할 것. */
   --ft-header-h: 64px;
 
+  /* 마커 하이라이트 **배경** 전용. paper 위 글자색으로 쓰면 1.69:1 로 안 보인다. */
   --yellow: #e6b942;
+  /* paper 위에서 읽히는 노랑 — 4.64:1 (WCAG AA). '시작 전' 같은 대기 상태 텍스트용.
+     --ink-mute 를 darken 한 것과 같은 종류의 수정(2026-07-30). 이 값이 강아지
+     구독 탭 CSS 에 hex 로 박혀 있어서 화면마다 노랑이 달랐다 → 여기로 통일. */
+  --yellow-ink: #8a6a12;
 
   --sage: #3C725E;          /* = 웹 --fd-green (미디엄 그린) */
   --sage-soft: #7A8B7B;     /* = 웹 --fd-green-soft (세이지) */

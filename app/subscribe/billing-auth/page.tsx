@@ -12,6 +12,8 @@ import {
   type BillingMethodId,
 } from '@/lib/payments/billing-methods'
 import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
+import { billingReturnHref } from '@/lib/payments/billing-urls'
+import { useIsAppContext } from '@/lib/app-context-client'
 
 /**
  * /subscribe/billing-auth — 자동결제 등록 화면 (카드 / 토스페이).
@@ -51,6 +53,7 @@ const AVAILABLE = availableBillingMethods(FLAGS)
 
 function BillingAuthInner() {
   const router = useRouter()
+  const isApp = useIsAppContext()
   const params = useSearchParams()
   const subscriptionId = params.get('subscriptionId')
   const customerKey = params.get('customerKey')
@@ -102,7 +105,10 @@ function BillingAuthInner() {
     }
   }
 
-  const close = () => router.push('/mypage/subscriptions')
+  // ★ 웹/앱 목적지가 다르다. 이 화면은 top-level 이라 둘 다 들어오는데
+  //   앱 전용 경로로 보내면 웹 사용자가 '/app-required' 벽을 맞는다
+  //   (2026-07-30 — 카드 등록 끝에 "앱을 설치하세요"가 떴다).
+  const close = () => router.push(billingReturnHref(isApp))
   const method = chosen ? billingMethod(chosen) : null
   // 선택 화면으로 되돌아갈 수 있을 때만 '뒤로'. 수단이 하나뿐이면 되돌아갈
   // 곳이 없으므로 닫기(✕)를 보여준다 — 앱에서 막다른 화살표는 혼란스럽다.
@@ -115,9 +121,19 @@ function BillingAuthInner() {
     >
       {/* 우리 도메인 화면이므로 헤더를 우리가 그린다 — 앱에서 브라우저처럼
           보이지 않게. 토스 화면의 도메인 표시는 iOS 가 붙이는 것이라 별개다. */}
+      {/* ★ safe-area 를 헤더에 더한다 (2026-07-30 누락 수정).
+          홈 화면에 설치한 앱(standalone)은 상태바 아래로 화면이 시작하지 않는다 —
+          노치·상태바가 이 헤더를 덮어 닫기(✕) 버튼이 반쯤 가려졌다. 앱 껍데기가
+          아니라 top-level 라우트라 AppChrome 의 safe-area 처리를 못 받는다.
+          웹 브라우저에서는 inset 이 0 이라 아무 변화가 없다. */}
       <header
-        className="sticky top-0 z-10 flex items-center h-14 px-2"
-        style={{ background: 'var(--bg)' }}
+        className="sticky top-0 z-10 flex items-center px-2"
+        style={{
+          background: 'var(--bg)',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          // h-14(3.5rem) + 노치. 클래스로 두면 inline height 와 겹쳐 헷갈린다.
+          height: 'calc(3.5rem + env(safe-area-inset-top, 0px))',
+        }}
       >
         <button
           type="button"

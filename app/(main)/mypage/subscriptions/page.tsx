@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ChevronRight, AlertTriangle, Receipt } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSafeUser } from '@/lib/supabase/server'
 import { V3, V3Radius } from '@/lib/design/tokens'
 import {
   subscriptionState,
@@ -11,6 +11,7 @@ import {
 } from '@/lib/subscription-state'
 import { billingMethodSummary } from '@/lib/payments/billing-methods'
 import { billingAuthFallbackHref } from '@/lib/payments/billing-urls'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { weekdayKo } from '@/lib/shipping-schedule'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import { petName } from '@/lib/korean'
@@ -87,7 +88,9 @@ function HeroAmount({ value }: { value: number }) {
 }
 
 const STATE_CHIP: Record<SubState, { label: string; color: string }> = {
-  needs_card: { label: '시작 전', color: V3.yellow },
+  // yellow(마커 배경색)를 글자색으로 쓰면 1.69:1 로 사실상 안 보인다 →
+  // yellowInk(4.64:1). 강아지 구독 탭의 '시작 전'과 **같은 값**이다(2026-07-30).
+  needs_card: { label: '시작 전', color: V3.yellowInk },
   active: { label: '구독 중', color: V3.sage },
   paused: { label: '일시정지', color: V3.inkMute },
   card_failed: { label: '결제 문제', color: V3.sale },
@@ -101,16 +104,63 @@ export default async function AppSubscriptionsSummaryPage({
 }) {
   const sp = await searchParams
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // getSafeUser — 쿠키의 refresh token 이 만료면 getUser() 는 **throw** 한다
+  // (에러 반환이 아니라 예외). 그대로 두면 로그인 화면 대신 500 이 뜬다.
+  const user = await getSafeUser(supabase)
   if (!user) redirect('/login?next=/mypage/subscriptions')
 
-  const { data } = await supabase
+  const { data, error: subsErr } = await supabase
     .from('subscriptions')
     .select('*, subscription_items(*), dogs(id, name)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+
+  /**
+   * ★ 조회 실패를 "구독 없음"으로 그리지 않는다 (2026-07-30).
+   *
+   * `error` 를 안 받으면 실패와 빈 결과가 같은 모양(`data === null`)이 된다.
+   * 그러면 **결제가 걸려 매주 돈이 빠져나가는 고객에게** "진행 중인 정기배송이
+   * 없어요 · 강아지 화면에서 시작할 수 있어요" 가 뜬다 — 이미 하고 있는 걸
+   * 시작하라고 권하는 화면이다. 중복 신청까지 유도할 수 있다.
+   * 이 화면은 상태를 보는 곳이므로, 못 읽었으면 **못 읽었다고 말한다.**
+   */
+  if (subsErr) {
+    return (
+      <main className="px-5 pt-4 pb-10" style={{ background: V3.paper }}>
+        <section
+          className="px-5 py-6"
+          style={{
+            background: V3.paperHi,
+            border: `1px solid ${V3.sale}`,
+            borderRadius: V3Radius.sm,
+          }}
+        >
+          <p className="text-[13px] font-bold" style={{ color: V3.ink }}>
+            정기배송 정보를 불러오지 못했어요
+          </p>
+          <p
+            className="mt-1.5 text-[12px] leading-relaxed"
+            style={{ color: V3.inkMute }}
+          >
+            잠시 뒤에 다시 열어봐 주세요. 계속 이러면 알려주세요 — 진행 중인
+            정기배송은 그대로 있어요.
+          </p>
+          <Link
+            href="/mypage/orders"
+            className="inline-block mt-4 px-4 py-2.5 text-[12.5px] font-bold"
+            style={{
+              background: V3.ink,
+              color: V3.paper,
+              borderRadius: V3Radius.sm,
+            }}
+          >
+            결제·주문 내역 보기
+          </Link>
+        </section>
+      </main>
+    )
+  }
+
   const all = (data ?? []) as Subscription[]
 
   /**
@@ -174,12 +224,22 @@ export default async function AppSubscriptionsSummaryPage({
   // ── 금액 변경 동의 게이트 (웹 페이지와 동일 로직 — 앱에서 사라지면 안 된다).
   let priceProposal: PriceChangeProposal | null = null
   {
-    const { data: pendingRows } = await supabase
+    const { data: pendingRows, error: pendingErr } = await supabase
       .from('dog_formulas')
       .select('dog_id, cycle_number, formula, reasoning')
       .eq('user_id', user.id)
       .eq('approval_status', 'pending_approval')
       .order('created_at', { ascending: false })
+    // 이 조회가 실패하면 **금액 변경 동의 모달이 조용히 사라진다** — 동의 없이
+    // 금액이 바뀔 수 있는 상태다. 화면은 계속 그리되(구독 정보는 봐야 한다)
+    // 사람이 알 수 있게 올린다. 동의 게이트 자체는 청구 쪽에서 3일 타임아웃으로
+    // 다시 걸리므로 여기서 화면을 막지는 않는다.
+    if (pendingErr) {
+      captureBusinessEvent('error', 'subscription.price_consent.query_failed', {
+        userId: user.id,
+        dbError: pendingErr.message,
+      })
+    }
     type PendingRow = {
       dog_id: string
       cycle_number: number
@@ -436,7 +496,14 @@ export default async function AppSubscriptionsSummaryPage({
       </Link>
 
       {/* 동의 모달은 웹 FD 토큰을 쓰므로 앱 톤으로 스코프 스왑해 감싼다
-          (/account/subscriptions/page.tsx 와 같은 방식). 로직은 손대지 않는다. */}
+          (/account/subscriptions/page.tsx 와 같은 방식). 로직은 손대지 않는다.
+
+          ★ radius 토큰을 **빠짐없이** 준다 (2026-07-30 수정).
+          색 토큰(--fd-coral·--fd-cream·--fd-coral-ink)은 globals.css 의 :root 에
+          있어 앱에서도 해석되지만, **radius 4종은 :root 에 없다** — 웹 페이지가
+          자기 래퍼 div 에서 선언한다. 처음엔 --fd-r-sheet 하나만 줘서 모달 안의
+          행(row)이 `border-radius: var(--fd-r-row)` → 정의 없음으로 떨어졌다.
+          앱은 radius 4 가 서명값이므로(AGENTS.md 'sm signature') 전부 4 로. */}
       {priceProposal && (
         <div
           style={
@@ -444,6 +511,9 @@ export default async function AppSubscriptionsSummaryPage({
               '--fd-pine': V3.ink,
               '--fd-muted': V3.inkMute,
               '--fd-line': V3.rule,
+              '--fd-r-card': '4px',
+              '--fd-r-row': '4px',
+              '--fd-r-thumb': '4px',
               '--fd-r-sheet': '12px',
             } as React.CSSProperties
           }

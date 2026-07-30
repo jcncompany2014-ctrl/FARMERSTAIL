@@ -4,6 +4,8 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
+import { billingReturnHref } from '@/lib/payments/billing-urls'
+import { useIsAppContext } from '@/lib/app-context-client'
 
 /**
  * /subscribe/billing-fail
@@ -18,6 +20,9 @@ import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
  */
 
 function BillingFailInner() {
+  // 웹/앱 목적지가 다르다 — 앱 전용 경로로 보내면 웹 사용자가 '/app-required'
+  // 벽을 맞는다(실패 화면에서 벽으로 이어지는 최악의 조합).
+  const isApp = useIsAppContext()
   const params = useSearchParams()
   const code = params.get('code')
   const message = params.get('message')
@@ -70,7 +75,7 @@ function BillingFailInner() {
             </Link>
           )}
           <Link
-            href="/mypage/subscriptions"
+            href={billingReturnHref(isApp)}
             className="w-full py-3 rounded-full text-[13px] font-bold text-center border"
             style={{
               borderColor: 'var(--rule)',

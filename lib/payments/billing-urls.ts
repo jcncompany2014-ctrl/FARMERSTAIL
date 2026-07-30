@@ -40,6 +40,24 @@ export function billingRedirectUrls(input: {
 }
 
 /**
+ * 등록을 마치거나 그만둘 때 돌아갈 **구독 화면** — 플랫폼별로 다르다.
+ *
+ * # ★ 왜 필요한가 — 웹에서 결제 도중 벽을 만났다 (2026-07-30)
+ * `/subscribe/*` 세 화면(billing-auth·success·fail)은 **top-level** 이라 웹과 앱이
+ * 함께 쓴다. 그런데 그 화면들의 "구독 관리로 돌아가기"가 전부
+ * `/mypage/subscriptions` 로 갔다. 그 경로는 proxy.ts 의 `APP_ONLY_PREFIXES` 에
+ * 있어서 **웹 사용자는 `/app-required` 로 튕긴다** — 브라우저에서 카드를 등록하던
+ * 사람이 마지막에 "앱을 설치하세요" 벽을 맞는다. 등록은 성공했는데 확인할 방법이
+ * 없는 상태다.
+ *
+ * 웹의 짝은 `/account/subscriptions` 다(웹 전용으로 남겨둔 화면).
+ * AGENTS.md '웹/앱 절대 분리' — 반쪽만 분기하면 이렇게 된다.
+ */
+export function billingReturnHref(isApp: boolean): string {
+  return isApp ? '/mypage/subscriptions' : '/account/subscriptions'
+}
+
+/**
  * 토스 창을 못 띄웠을 때 되돌아갈 곳 — '다음' 버튼이 있는 등록 화면.
  * (버튼 클릭이 곧 사용자 제스처라, 자동 실행이 막히는 환경에서도 뚫린다.)
  */
