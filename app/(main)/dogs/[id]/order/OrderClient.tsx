@@ -48,7 +48,6 @@ import {
   subscribableItems,
   TOPPER_KCAL_PER_100G,
 } from '@/lib/personalization/boxPricing'
-import { subscriptionItemRows } from '@/lib/personalization/subscriptionItems'
 import { trackBeginCheckout, type AnalyticsItem } from '@/lib/analytics'
 import './order.css'
 
@@ -338,7 +337,8 @@ export default function OrderClient({
    * 정본이므로 화면도 그걸 부른다.
    */
   const billable = subscribableItems(items)
-  const { subtotal, shipping: shippingFee, total: totalAmount } = priceBox(items)
+  // shipping 은 구독가에 번들되어 항상 0 이라 화면에서 쓰지 않는다(서버가 저장).
+  const { subtotal, total: totalAmount } = priceBox(items)
   // 정가 합계 — "정가 앵커에서 구독 할인" 시각화용(표시 전용, 청구 무관).
   // 청구 대상만 합해야 위 subtotal 과 같은 항목을 비교한다.
   const listSubtotal = billable.reduce((sum, it) => sum + it.listCycleTotal, 0)
@@ -434,81 +434,58 @@ export default function OrderClient({
         return
       }
 
-      // 청구액 = 화면이 보여준 **그 값 그대로**. 여기서 priceBox 를 한 번 더
-      // 부르면(예전 코드) 나중에 한쪽만 고쳐 "주문서 금액 ≠ 저장 금액"이 될 수
-      // 있다 — 실제로 그렇게 갈라져 있었다(화면은 전 품목, 저장은 품절 제외).
-      // 위에서 priceBox(items) 로 만든 값을 그대로 쓴다.
-      const subSubtotal = subtotal
-      const subShipping = shippingFee
-      const subTotal = totalAmount
-
-      const customerKey =
-        typeof crypto !== 'undefined' && 'randomUUID' in crypto
-          ? crypto.randomUUID()
-          : `c-${Date.now()}-${Math.random().toString(36).slice(2)}`
-
-      // 요청사항 2칸 → delivery_memo 하나로 합쳐 저장. 라벨을 붙여 둬야 나중에
+      /**
+       * ★ 구독 생성을 **서버 라우트로** 옮겼다 (2026-07-30).
+       *
+       * 예전엔 이 화면이 `subscriptions` 를 직접 insert 했다 — 즉 금액·상태·
+       * 배송횟수가 전부 브라우저에서 온 값이었다. 1차에서 UPDATE 권한은 잠갔지만
+       * INSERT 는 열려 있어서 `{"total_amount": 100}` 으로 구독을 만들면 청구
+       * 크론이 그 저장값을 그대로 긁었다(그게 정본 규칙이다).
+       *
+       * 이제 서버가 같은 순수함수로 금액을 **직접 계산**하고, 우리가 보낸
+       * `expectedTotal` 은 **검산**에만 쓰인다 — 화면에 보여준 금액과 다르면
+       * 서버가 거부한다(가격이 바뀐 채 동의 없는 금액을 청구하지 않기 위해).
+       * customerKey 도 서버가 만든다.
+       */
+      // 요청사항 2칸 → delivery_memo 하나로 합쳐 보낸다. 라벨을 붙여 둬야 나중에
       // 어느 쪽에 쓴 말인지 구분된다(주문=우리, 배송=기사).
       const memoParts: string[] = []
       if (orderRequest.trim()) memoParts.push(`[주문] ${orderRequest.trim()}`)
       if (deliveryRequest.trim()) memoParts.push(`[배송] ${deliveryRequest.trim()}`)
       const deliveryMemo = memoParts.length ? memoParts.join(' · ') : null
 
-      // audit #79: subscriptions schema-drift cast.
-      const { data: sub, error: subErr } = await (
-        supabase as unknown as {
-          from: (t: string) => {
-            insert: (r: Record<string, unknown>) => {
-              select: (cols: string) => {
-                single: () => Promise<{
-                  data: { id: string } | null
-                  error: { message?: string } | null
-                }>
-              }
-            }
-          }
-        }
-      )
-        .from('subscriptions')
-        .insert({
-          user_id: userId,
-          dog_id: dogId,
-          // 무조건 2주마다 배송·결제. coverage_weeks=2 = 크론 biweekly 판정 키.
-          interval_weeks: 2,
-          coverage_weeks: 2,
-          // 화식 비율 티어 (30/50/100) — 표시·관리용.
-          fresh_ratio: freshRatio,
-          status: 'active',
-          // 카드 등록 전 = 배송 일정 없음(null). 카드 등록(billing-issue) 성공 시
-          // +14일로 스케줄. 홈 hasActiveSub 가 next_delivery_date 로 판정하므로,
-          // 카드 없는 구독이 '결제됨/활성'으로 잘못 뜨던 문제 차단(사장님 2026-07-14).
-          next_delivery_date: null,
-          total_deliveries: 0,
-          recipient_name: recipientName,
-          recipient_phone: recipientPhone,
-          // R84-D1: DB schema = zip/address/address_detail (no recipient_ prefix).
-          zip: recipientZip,
-          address: recipientAddress,
-          address_detail: recipientAddressDetail,
-          delivery_memo: deliveryMemo,
-          subtotal: subSubtotal,
-          shipping_fee: subShipping,
-          total_amount: subTotal,
-          billing_customer_key: customerKey,
-        })
-        .select('id')
-        .single()
-      if (subErr || !sub) {
-        // ★ 23505 = unique 위반. 2026-07-30 부터 DB 인덱스
-        //   `subscriptions_one_live_per_dog` 가 "강아지당 진행 중 구독 1개"를
-        //   막는다. 위쪽 조회 가드(:400~)를 통과했는데 여기서 걸렸다면 **경합**이다
-        //   — 폰과 PC 에서 거의 동시에 눌러 둘 다 "없음"을 본 경우. 그때 알 수 없는
-        //   오류를 보여주면 고객이 계속 다시 누른다. 사람 말로 안내하고 그 구독으로
-        //   보낸다(위 가드와 같은 문구·같은 목적지).
-        const code = (subErr as { code?: string } | null)?.code
-        if (code === '23505') {
+      const res = await fetch('/api/subscriptions/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dogId,
+          freshRatio,
+          recipientName: recipientName.trim(),
+          recipientPhone: recipientPhone.trim(),
+          zip: recipientZip.trim(),
+          address: recipientAddress.trim(),
+          addressDetail: recipientAddressDetail.trim() || null,
+          deliveryMemo,
+          expectedTotal: totalAmount,
+          saveToProfile: addressEdited && saveAddressToProfile,
+        }),
+      })
+      const payload = (await res.json().catch(() => null)) as {
+        ok?: boolean
+        code?: string
+        message?: string
+        subscriptionId?: string
+        customerKey?: string
+      } | null
+
+      if (!res.ok || !payload?.subscriptionId || !payload?.customerKey) {
+        // 이미 있는 구독으로 안내 — 위 조회 가드를 통과했는데 여기서 걸렸다면
+        // 경합이다(폰과 PC 에서 거의 동시에 누른 경우). 알 수 없는 오류를
+        // 보여주면 고객이 계속 다시 누른다.
+        if (payload?.code === 'ALREADY_SUBSCRIBED') {
           setErr(
-            '이 강아지에 진행중인 정기배송이 이미 있어요. 마이페이지에서 관리해 주세요.',
+            payload.message ??
+              '이 강아지에 진행중인 정기배송이 이미 있어요. 마이페이지에서 관리해 주세요.',
           )
           leaveTimerRef.current = setTimeout(
             () => router.push('/mypage/subscriptions'),
@@ -516,44 +493,12 @@ export default function OrderClient({
           )
           return
         }
-        setErr('정기배송을 신청하지 못했어요. 다시 시도해 주세요.')
+        setErr(payload?.message ?? '정기배송을 신청하지 못했어요. 다시 시도해 주세요.')
         return
       }
-      // 행 모양은 lib/personalization/subscriptionItems 하나에 둔다 — 처방을
-      // 승인할 때도 같은 함수로 다시 만든다(2026-07-30). 두 곳에서 각자 만들면
-      // 승인 후 화면·주문내역이 옛 레시피에 멈춘 채 갈라진다(실제로 그랬다).
-      const itemRows = subscriptionItemRows((sub as { id: string }).id, subscribable)
-      const { error: itemErr } = await supabase
-        .from('subscription_items')
-        .insert(itemRows)
-      if (itemErr) {
-        // 롤백 — subscription 만 생성되고 items 가 비어있으면 cron 청구는
-        // 정상가로 진행되지만 발송할 상품 정보가 없음 → orphan. 즉시 취소.
-        await supabase
-          .from('subscriptions')
-          .update({
-            status: 'cancelled',
-            last_failed_charge_reason: 'item-insert-failed',
-          })
-          .eq('id', (sub as { id: string }).id)
-          .eq('user_id', userId)
-        setErr('주문 상품을 담지 못했어요. 다시 시도해 주세요.')
-        return
-      }
-      // 사용자가 옵트인했으면 profiles 도 업데이트 — 다음 정기배송 / 단건
-      // 주문에 자동 prefill. fire-and-forget (실패해도 구독은 계속).
-      if (addressEdited && saveAddressToProfile) {
-        void supabase
-          .from('profiles')
-          .update({
-            name: recipientName,
-            phone: recipientPhone,
-            zip: recipientZip,
-            address: recipientAddress,
-            address_detail: recipientAddressDetail,
-          })
-          .eq('id', userId)
-      }
+
+      const subId = payload.subscriptionId
+      const customerKey = payload.customerKey
       haptic('confirm')
       // GA4 — box 정기배송 신청
       if (typeof window !== 'undefined' && 'gtag' in window) {
@@ -566,19 +511,10 @@ export default function OrderClient({
           interval_weeks: 2,
           fresh_ratio: freshRatio,
           item_count: subscribable.length,
-          subtotal: subSubtotal,
+          subtotal,
           memo_provided: deliveryMemo != null,
         })
       }
-      // ── 결제수단 등록창을 **이 클릭 안에서 바로** 띄운다 ──────────────
-      // 중간 확인 페이지를 두지 않는다(사장님 2026-07-30): 토스페이는 토스가
-      // 이미 "다음을 눌러주세요" 안내 화면을 띄우므로, 우리 확인 화면을 더
-      // 두면 '다음'을 두 번 누르게 된다. 카드도 곧바로 카드번호 입력창이다.
-      //
-      // ★ 클릭 핸들러 안에서 부르는 것이 중요하다 — iOS 는 사용자가 직접 누르지
-      //   않은 화면 이동을 막을 수 있다. 페이지를 한 번 거치면 그 제스처가
-      //   끊기므로, 여기서 바로 부르는 편이 오히려 더 안전하다.
-      const subId = (sub as { id: string }).id
       try {
         await openBillingWindow({
           subscriptionId: subId,

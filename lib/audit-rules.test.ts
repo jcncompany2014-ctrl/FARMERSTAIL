@@ -146,6 +146,38 @@ test('★ 규칙7: vercel.json 크론은 전부 하루 1회 이하', () => {
   )
 })
 
+test('★ 규칙12: 구독은 클라이언트가 만들지 않는다 (금액을 서버가 정한다)', () => {
+  // 주문 화면이 `subscriptions` 를 직접 insert 하던 시절, 금액·상태·배송횟수가
+  // 전부 브라우저에서 온 값이었다. UPDATE 권한만 잠갔던 1차로는 부족했다 —
+  // `{"total_amount": 100}` 으로 **만들면** 청구 크론이 그 저장값을 그대로
+  // 긁는다(저장 금액으로 청구하는 것이 정본 규칙이므로).
+  // 이제 POST /api/subscriptions/create 가 같은 순수함수로 직접 계산한다.
+  // DB 권한도 회수했지만(20260730000500), 코드에서 시도하면 런타임에 조용히
+  // 실패하므로 여기서도 막는다.
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app')).concat(
+    walk(join(ROOT, 'components')),
+  )) {
+    const src = readFileSync(file, 'utf8')
+    if (!src.startsWith("'use client'")) continue
+    const lines = src.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      if (!/from\(\s*['"]subscriptions?(_items)?['"]/.test(lines[i] ?? '')) continue
+      for (let j = i; j < Math.min(i + 6, lines.length); j++) {
+        if (/\.insert\(/.test(lines[j] ?? '')) {
+          offenders.push(`${rel(file)}:${j + 1}`)
+        }
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '구독·구독품목 생성은 서버 라우트에서만 한다 — 클라이언트가 만들면 금액을 ' +
+      '정할 수 있다. AGENTS.md 규칙3 계열.\n' + offenders.join('\n'),
+  )
+})
+
 test('★ 규칙11: 금액 합산은 boxPricing 밖에서 하지 않는다', () => {
   // 주문 화면이 `items.reduce((s, it) => s + it.cycleTotal, 0)` 로 직접 합하고
   // 저장·청구는 `priceBox(items)`(품절·구독불가 제외)를 써서 **화면 금액 >

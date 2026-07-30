@@ -194,6 +194,12 @@ export default function DogDetailClient({
     router.refresh()
   }
 
+  /**
+   * 진행 중(active·paused) 정기배송이 있나. 서버 조회가 그 두 상태만 가져오므로
+   * 길이만 보면 된다 — DB 트리거(20260730000400)의 판정 집합과 **같다**.
+   */
+  const hasLiveSub = subscriptions.length > 0
+
   async function handleDelete() {
     setDeleting(true)
 
@@ -213,6 +219,18 @@ export default function DogDetailClient({
       .select('id')
 
     if (error) {
+      // FT100 = 진행 중 정기배송이 있어 DB 트리거가 거부한 것(20260730000400).
+      // 화면이 이미 막지만, 다른 기기에서 방금 구독을 만든 경우 목록이 낡아
+      // 여기까지 올 수 있다. DB 원문 대신 무엇을 해야 하는지 알려준다.
+      if ((error as { code?: string }).code === 'FT100') {
+        toast.error(
+          '정기배송이 진행 중이라 지울 수 없어요. 정기배송을 먼저 정리해 주세요.',
+        )
+        setShowDeleteConfirm(false)
+        router.push(`/dogs/${dogId}/subscription`)
+        setDeleting(false)
+        return
+      }
       toast.error('삭제하지 못했어요')
       setDeleting(false)
       return
@@ -683,28 +701,44 @@ export default function DogDetailClient({
               id="delete-modal-desc"
               className="text-[12px] text-muted text-center mb-6 leading-relaxed"
             >
-              {petName(dog.name)}의 모든 정보가 삭제돼요.
-              <br />
-              이 작업은 되돌릴 수 없어요.
-              {subscriptions.length > 0 && (
+              {/* ★ 예전엔 여기서 "자동으로 해지되지 않아요" 라고 **경고만 하고**
+                  아래 버튼으로 그대로 삭제가 됐다. 그러면 구독은 dog_id 만 NULL 이
+                  된 채 살아남아(FK SET NULL) 계속 청구되는데 강아지도 처방도 없어
+                  담을 게 없다 — **돈은 나가고 박스는 안 온다.**
+                  이제 DB 트리거가 거부하므로(20260730000400) 화면도 같은 판정을
+                  해서 누를 수 없게 하고, 갈 곳을 알려준다. 조회 집합도 트리거와
+                  같다(active·paused). */}
+              {hasLiveSub ? (
                 <>
+                  {petName(dog.name)}의 정기배송이 아직 진행 중이에요.
                   <br />
+                  먼저 정기배송을 정리하면 삭제할 수 있어요.
+                </>
+              ) : (
+                <>
+                  {petName(dog.name)}의 모든 정보가 삭제돼요.
                   <br />
-                  <span className="text-terracotta font-bold">
-                    ⚠ 진행중인 정기배송 {subscriptions.length}건은 자동으로
-                    해지되지 않아요. 마이페이지에서 먼저 해지해 주세요.
-                  </span>
+                  이 작업은 되돌릴 수 없어요.
                 </>
               )}
             </p>
             <div className="space-y-2">
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="w-full py-3 rounded bg-sale text-white text-[13.5px] font-black active:scale-[0.98] transition disabled:opacity-50"
-              >
-                {deleting ? '삭제 중...' : '네, 삭제할래요'}
-              </button>
+              {hasLiveSub ? (
+                <Link
+                  href={`/dogs/${dog.id}/subscription`}
+                  className="block w-full py-3 rounded bg-ink text-bg text-[13.5px] font-black text-center active:scale-[0.98] transition"
+                >
+                  정기배송 보러가기
+                </Link>
+              ) : (
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="w-full py-3 rounded bg-sale text-white text-[13.5px] font-black active:scale-[0.98] transition disabled:opacity-50"
+                >
+                  {deleting ? '삭제 중...' : '네, 삭제할래요'}
+                </button>
+              )}
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleting}

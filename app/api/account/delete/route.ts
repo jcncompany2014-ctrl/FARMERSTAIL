@@ -149,6 +149,62 @@ export async function POST(req: Request) {
     })
     .eq('id', user.id)
 
+  /**
+   * ★ 구독 해지·카드 토큰 삭제를 **가장 먼저** 한다 (2026-07-30 순서 변경).
+   *
+   * 예전엔 이 블록이 아래 삭제 배치(dogs 포함) **뒤에** 있었다. 그러면 강아지
+   * 삭제만 성공하고 여기서 실패했을 때 **탈퇴한 사람의 카드가 계속 긁힌다** —
+   * 강아지도 처방도 없는데 청구는 도는 최악의 조합이다(주석은 그 위험을 알고
+   * 있었지만 순서가 그걸 만들고 있었다).
+   *
+   * 게다가 20260730000400 트리거가 '진행 중 구독이 있는 강아지'의 삭제를
+   * 막으므로, 옛 순서로는 **탈퇴 자체가 실패**한다. 돈을 먼저 멈춘 뒤 데이터를
+   * 지우는 것이 원래 옳은 순서다.
+   */
+  // billing_key 카드 토큰 즉시 해제 + cancel 처리. 전자상거래법
+  // 보관 의무 (subscription_charges) 와 별개로 토큰은 결제수단 정보라 즉시
+  // 삭제. 카드사에 알리는 별도 절차는 필요 없음 (Toss 측에서 토큰 invalidation
+  // 은 미사용 기간 자동 만료).
+  // audit #79: subscriptions 익명화 payload — generated types 가 NOT NULL 로
+  // 추론하는 컬럼들이 있어 cast (의도는 NULL 로 익명화).
+  const anonymizePayload: Record<string, unknown> = {
+    status: 'cancelled',
+    billing_key: null,
+    billing_customer_key: null,
+    billing_card_brand: null,
+    billing_card_last4: null,
+    requires_billing_key_renewal: false,
+    next_retry_at: null,
+    next_delivery_date: null,
+    // audit launch-fix: subscriptions 에는 recipient_name / recipient_zip /
+    // recipient_address / recipient_address_detail 컬럼이 없음.
+    // recipient_phone 만 존재 — 그것만 null 처리. 나머지 PII anonymize 는
+    // profiles / addresses 에서 별도 처리됨.
+    recipient_phone: null,
+  }
+  await (admin as unknown as {
+    from: (t: string) => {
+      update: (r: Record<string, unknown>) => {
+        eq: (c: string, v: string) => Promise<unknown>
+      }
+    }
+  })
+    .from('subscriptions')
+    .update(anonymizePayload)
+    .eq('user_id', user.id)
+    .then((raw: unknown) => {
+      // ★최종감사 #9: 이 UPDATE 가 실패하면 탈퇴자 구독이 살아남아 카드
+      //   청구가 계속된다 — 조용히 넘어가면 안 되는 종류. 에러를 반드시 본다.
+      const res = raw as { error?: { message?: string } | null } | null
+      if (res?.error) {
+        captureBusinessEvent('error', 'account.delete.sub_anonymize_failed', {
+          userId: user.id,
+          dbError: res.error.message ?? 'unknown',
+        })
+      }
+      return raw
+    })
+
   // Hard-delete data that is 100% personal and has no transaction
   // record-keeping requirement. Includes Step 20/24/26 tables:
   //   • push_preferences — category opt-in flags
@@ -219,49 +275,6 @@ export async function POST(req: Request) {
     })
   }
 
-  // 정기배송 — billing_key 카드 토큰 즉시 해제 + cancel 처리. 전자상거래법
-  // 보관 의무 (subscription_charges) 와 별개로 토큰은 결제수단 정보라 즉시
-  // 삭제. 카드사에 알리는 별도 절차는 필요 없음 (Toss 측에서 토큰 invalidation
-  // 은 미사용 기간 자동 만료).
-  // audit #79: subscriptions 익명화 payload — generated types 가 NOT NULL 로
-  // 추론하는 컬럼들이 있어 cast (의도는 NULL 로 익명화).
-  const anonymizePayload: Record<string, unknown> = {
-    status: 'cancelled',
-    billing_key: null,
-    billing_customer_key: null,
-    billing_card_brand: null,
-    billing_card_last4: null,
-    requires_billing_key_renewal: false,
-    next_retry_at: null,
-    next_delivery_date: null,
-    // audit launch-fix: subscriptions 에는 recipient_name / recipient_zip /
-    // recipient_address / recipient_address_detail 컬럼이 없음.
-    // recipient_phone 만 존재 — 그것만 null 처리. 나머지 PII anonymize 는
-    // profiles / addresses 에서 별도 처리됨.
-    recipient_phone: null,
-  }
-  await (admin as unknown as {
-    from: (t: string) => {
-      update: (r: Record<string, unknown>) => {
-        eq: (c: string, v: string) => Promise<unknown>
-      }
-    }
-  })
-    .from('subscriptions')
-    .update(anonymizePayload)
-    .eq('user_id', user.id)
-    .then((raw: unknown) => {
-      // ★최종감사 #9: 이 UPDATE 가 실패하면 탈퇴자 구독이 살아남아 카드
-      //   청구가 계속된다 — 조용히 넘어가면 안 되는 종류. 에러를 반드시 본다.
-      const res = raw as { error?: { message?: string } | null } | null
-      if (res?.error) {
-        captureBusinessEvent('error', 'account.delete.sub_anonymize_failed', {
-          userId: user.id,
-          dbError: res.error.message ?? 'unknown',
-        })
-      }
-      return raw
-    })
 
   // product_qna / reviews — 작성자 user_id 는 보존 (다른 사용자에게 도움이
   // 되는 컨텐츠). profile.name 이 익명화 ("탈퇴회원") 됐으니 join 결과는
