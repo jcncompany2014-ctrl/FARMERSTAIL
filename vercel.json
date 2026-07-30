@@ -39,7 +39,7 @@
     },
     {
       "path": "/api/cron/subscription-charge",
-      "schedule": "0 19 * * *"
+      "schedule": "10 0 * * *"
     },
     {
       "path": "/api/cron/dog-age-update",
@@ -47,11 +47,11 @@
     },
     {
       "path": "/api/cron/personalization-progression",
-      "schedule": "0 20 * * *"
+      "schedule": "10 1 * * *"
     },
     {
       "path": "/api/cron/personalization-approval-timeout",
-      "schedule": "0 18 * * *"
+      "schedule": "40 23 * * *"
     },
     {
       "path": "/api/cron/weight-reminder",
@@ -87,7 +87,7 @@
     },
     {
       "path": "/api/cron/tracking-poll",
-      "schedule": "0 16 * * *"
+      "schedule": "30 9 * * *"
     },
     {
       "path": "/api/cron/onboarding-funnel",

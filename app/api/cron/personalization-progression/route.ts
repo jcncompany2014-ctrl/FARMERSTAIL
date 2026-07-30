@@ -35,15 +35,16 @@ export const dynamic = 'force-dynamic'
 /**
  * GET /api/cron/personalization-progression
  *
- * 매일 새벽 (KST 04:00 권장) 실행. cycle 만료된 강아지의 다음 처방 생성.
+ * 매일 오전 (KST 10:10) 실행. cycle 만료된 강아지의 다음 처방 생성.
  *
  * # 실행 조건 (2026-07-17 — 날짜 → **배송 회차** 기준으로 전환)
  * 강아지의 가장 최신 dog_formulas 가 적용된 뒤 **박스가 BOXES_PER_CYCLE(3)개 나갔고**,
  * **그 강아지의 구독이 active** 일 때만 다음 cycle 처방 생성.
  * (박스 = orders row. 결제 성공해야 생기므로 "실제로 나간 박스"와 일치.)
  *
- * ⚠️ **subscription-charge 다음에 돌아야 한다** (charge=KST4시 / 이 크론=KST5시).
+ * ⚠️ **subscription-charge 다음에 돌아야 한다** (charge=KST 09:10 / 이 크론=KST 10:10).
  * 같은 시각이면 3번째 박스의 order 를 못 보고 한 주기를 통째로 미룬다.
+ * (2026-07-30 둘을 함께 옮겼다 — 1시간 간격과 순서는 그대로 유지.)
  *
  * # 사장님 규칙 (2026-07-17)
  *  1. **구독 중인 사람에게만 제안** — 이전엔 구독 확인이 아예 없어서 구독도
@@ -242,7 +243,7 @@ export async function GET(req: Request) {
   //
   // ⚠️ 그래서 이 크론은 **subscription-charge 다음에** 돌아야 한다. 같은 시각이면
   //    3번째 박스의 order 를 못 보고 지나쳐 한 주기를 통째로 미룬다(조용한 지연).
-  //    → vercel.json 에서 charge=KST4시 / 이 크론=KST5시 로 분리했다.
+  //    → vercel.json 에서 charge=KST 09:10 / 이 크론=KST 10:10 로 분리했다.
   const dogIds = subscribedDogIds.slice(0, MAX_PER_RUN)
   const targets: FormulaRow[] = []
   let notEnoughBoxes = 0

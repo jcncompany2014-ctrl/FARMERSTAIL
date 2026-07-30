@@ -15,9 +15,18 @@ export const dynamic = 'force-dynamic'
  * shipping 상태 + carrier + tracking_number 가 있는 주문을 Delivery Tracker
  * 공개 GraphQL API 로 조회 → state=delivered 면 자동 marking + 알림.
  *
- * # 실행 주기
- * 30분 간격 (vercel cron 표현식). Tracker API 는 무료 + 무인증이지만
- * 폭주 방지로 한 번에 50건 (MAX_PER_RUN), 호출 사이 200ms 딜레이.
+ * # 실행 주기 — 주석이 주장하던 "30분 간격"은 사실이 아니었다
+ * 실제 vercel.json 은 **하루 1회**다. Vercel Hobby 플랜이 하루 1회를 넘는 크론을
+ * 허용하지 않아 내려온 것이고(넘으면 빌드 시작 자체가 거부된다), 주석만 옛 값에
+ * 남아 있었다. Tracker API 는 무료 + 무인증이지만 폭주 방지로 한 번에 50건
+ * (MAX_PER_RUN), 호출 사이 200ms 딜레이.
+ *
+ * 시각: **KST 18:30 (UTC 09:30)**. 2026-07-30 에 KST 01:00 에서 옮겼다.
+ *  · 01:00 은 조용시간(기본 22–08) 안이라 "배송 완료" 푸시가 영구히 안 나갔다.
+ *  · 18:30 은 당일 배송이 대부분 끝난 뒤라 하루 1회로도 같은 날 안에 잡힌다.
+ *
+ * ⚠️ 하루 1회의 한계: 저녁 이후 도착한 건은 **다음 날** 알림이 된다.
+ *    Pro 업그레이드 시 30분~1시간 간격으로 되돌릴 첫 후보 (PAYMENT_REHEARSAL.md).
  *
  * # 처리 흐름
  *   1. shipping + tracking 정보 있는 주문 select (delivered_at IS NULL)

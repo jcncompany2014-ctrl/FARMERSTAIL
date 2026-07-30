@@ -146,6 +146,58 @@ test('★ 규칙7: vercel.json 크론은 전부 하루 1회 이하', () => {
   )
 })
 
+test('★ 규칙8: lib/push.ts 는 service_role 클라이언트를 쓴다', () => {
+  // 쿠키 클라이언트로 돌아가면 크론에서 auth.uid() 가 NULL 이 되고, 관련 4개
+  // 테이블이 전부 self-only RLS 라서 **모든 조회가 0행** → 알림이 한 건도 나가지
+  // 않으면서 크론은 성공으로 집계된다. 실제로 그 상태였다(2026-07-30).
+  const src = readFileSync(join(ROOT, 'lib/push.ts'), 'utf8')
+  assert.equal(
+    src.includes('createAdminClient'),
+    true,
+    'lib/push.ts 는 createAdminClient() 를 써야 한다. AGENTS.md 규칙8.',
+  )
+  assert.equal(
+    /from\s+'@\/lib\/supabase\/server'/.test(src),
+    false,
+    '쿠키 기반 createClient 를 쓰면 크론에서 0건 발송이 된다. AGENTS.md 규칙8.',
+  )
+})
+
+test('★ 규칙9: 푸시를 보내는 크론은 조용시간(KST 22–08)에 두지 않는다', () => {
+  // 푸시 클라이언트를 고쳐 알림이 실제로 나가게 되면, 조용시간에 예약된 크론은
+  // 그 즉시 **정당하게 차단**된다("고객이 껐으니 안 보낸 것"). 두 문제는 반드시
+  // 같이 고쳐야 한다 — 하나만 고치면 조용한 실패가 정당화되기만 한다.
+  // 조용시간 기본값은 설정 화면 토글이 넣는 22→8 (PreferencesPanel).
+  const cfg = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8')) as {
+    crons: Array<{ path: string; schedule: string }>
+  }
+  const offenders: string[] = []
+  for (const c of cfg.crons) {
+    const name = c.path.replace('/api/cron/', '')
+    let src: string
+    try {
+      src = readFileSync(join(ROOT, 'app/api/cron', name, 'route.ts'), 'utf8')
+    } catch {
+      continue
+    }
+    if (!src.includes('pushToUser')) continue
+
+    const utcHour = Number(c.schedule.trim().split(/\s+/)[1])
+    if (Number.isNaN(utcHour)) continue
+    const kstHour = (utcHour + 9) % 24
+    // isWithinQuietHours(22, 8) 와 같은 판정: h >= 22 || h < 8
+    if (kstHour >= 22 || kstHour < 8) {
+      offenders.push(`${name}: UTC ${c.schedule} → KST ${kstHour}시`)
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '이 크론은 알림을 보내는데 KST 조용시간에 예약돼 있다 — 조용시간을 켠 고객에겐 ' +
+      '영구히 안 나간다. AGENTS.md 규칙9.\n' + offenders.join('\n'),
+  )
+})
+
 test('★ 규칙3: subscriptions 금액·빌링 칸을 클라이언트가 UPDATE 하지 않는다', () => {
   // DB 권한(화이트리스트, 20260730000000)이 실제 방어선이지만, 코드가 시도하면
   // 런타임에 조용히 실패한다. 코드에서도 막는다.

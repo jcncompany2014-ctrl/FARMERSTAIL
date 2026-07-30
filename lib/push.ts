@@ -1,5 +1,6 @@
 import webpush from 'web-push'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 
 /**
  * Web Push helper.
@@ -25,6 +26,28 @@ import { createClient } from '@/lib/supabase/server'
  * 위장해 나갔다 → 보호자가 배송 알림을 끄면 건강 경보까지 꺼졌다.
  * 카테고리는 "보내는 쪽 사정"이 아니라 **보호자가 끄고 싶어 하는 단위**로
  * 나눈다. 그 단위가 늘지 않으면 카테고리도 늘리지 않는다.
+ *
+ * ⚠️ 왜 service_role 클라이언트인가 — 안 그러면 **한 건도 안 나간다** (2026-07-30)
+ * 이 파일은 쿠키 기반 `createClient()` 를 쓰고 있었다. 그런데 이 함수를 부르는
+ * 곳은 대부분 **크론과 웹훅**이고, 거기엔 로그인 쿠키가 없다 → `auth.uid()` 가
+ * NULL 이다. 관련 4개 테이블(push_subscriptions · push_preferences ·
+ * push_log · native_push_tokens)의 RLS 는 전부 `auth.uid() = user_id`
+ * self-only 라서(실측), 크론에서는 **모든 조회가 0행**이 된다:
+ *
+ *   구독 0행 → `rows.length === 0` → `{ ok: true, sent: 0 }` 로 조용히 성공 반환
+ *
+ * "받는 사람이 없음"과 "볼 권한이 없음"이 같은 모양이어서, 배송·결제·건강 알림이
+ * 전부 나가지 않으면서 **모든 크론이 성공으로 집계**됐다.
+ * `push_log` 는 더해서 INSERT 정책이 아예 없다(SELECT·UPDATE 만) — 기록도 거부돼
+ * 알림 센터가 영구히 비어 있었고, 그 오류는 아래 catch 가 삼켰다.
+ *
+ * → 이 함수는 `userId` 를 인자로 받아 스스로 `.eq('user_id', userId)` 로 범위를
+ *   좁힌다. RLS 로 대신 좁힐 필요가 없고, 크론에서는 좁힐 수도 없다.
+ *   **service_role 로 조회하고 범위는 코드가 책임진다.**
+ *   서버 전용이다(webpush 는 node 모듈이라 클라이언트 번들에 들어가지 않는다).
+ *
+ * 지금은 구독자가 0명이라 실제 피해가 없었다(실측: web 0 · native 0 · 로그 0건).
+ * 첫 고객이 알림을 허용하는 순간 드러날 문제였다.
  */
 
 export type PushCategory = 'order' | 'health' | 'marketing'
@@ -109,17 +132,35 @@ export async function pushToUser(
     return { ok: false, sent: 0, dead: 0, reason: 'VAPID_NOT_CONFIGURED' }
   }
 
-  const supabase = await createClient()
+  // service_role 키가 없는 환경(로컬 dev 등)에서 throw 로 호출부를 깨지 않는다 —
+  // 이 파일의 기존 graceful degradation(VAPID_NOT_CONFIGURED)과 같은 방식.
+  let supabase: ReturnType<typeof createAdminClient>
+  try {
+    supabase = createAdminClient()
+  } catch {
+    return { ok: false, sent: 0, dead: 0, reason: 'ADMIN_CLIENT_UNAVAILABLE' }
+  }
 
   // 카테고리 게이트 — 선호 행이 없으면 기본값으로 대체.
   if (opts?.category) {
-    const { data: pref } = await supabase
+    const { data: pref, error: prefErr } = await supabase
       .from('push_preferences')
       .select(
         'notify_order, notify_health, notify_marketing, quiet_hours_start, quiet_hours_end'
       )
       .eq('user_id', userId)
       .maybeSingle()
+
+    // 조회 실패는 "선호 없음"과 다르다. 다만 여기서 막아버리면 결제·배송 통지가
+    // 사라지므로, **기본값으로 진행하고 사람에게 알린다**(marketing 은 기본 OFF 라
+    // 광고만 자동으로 잠긴다 — 유리한 쪽으로 닫힌다).
+    if (prefErr) {
+      captureBusinessEvent('warning', 'push.preferences.query_failed', {
+        userId,
+        category: opts.category,
+        dbError: prefErr.message,
+      })
+    }
 
     const flag = pref
       ? {
@@ -147,24 +188,46 @@ export async function pushToUser(
   // 않으므로 상한과 무관하게 항상 나간다.
   if (opts?.nudge) {
     const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
-    const { count } = await supabase
+    const { count, error: countErr } = await supabase
       .from('push_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('nudge', true)
       .gte('sent_at', sevenDaysAgo)
+    // 셀 수 없으면 상한을 보장할 수 없다. 권유성 알림은 **안 보내는 쪽**으로 —
+    // 경보는 nudge 를 안 붙이므로 이 분기에 걸리지 않는다(잔소리만 잠긴다).
+    if (countErr) {
+      captureBusinessEvent('warning', 'push.nudge_cap.query_failed', {
+        userId,
+        dbError: countErr.message,
+      })
+      return { ok: true, sent: 0, dead: 0, reason: 'NUDGE_CAP_UNVERIFIABLE' }
+    }
     if ((count ?? 0) >= 2) {
       return { ok: true, sent: 0, dead: 0, reason: 'RATE_LIMITED_WEEKLY' }
     }
   }
 
-  const { data: subs } = await supabase
+  const { data: subs, error: subsErr } = await supabase
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth')
     .eq('user_id', userId)
 
+  // ★ 조회 실패를 "받는 사람 없음"으로 보고하면 안 된다 — 그게 이 파일의 원래 버그다.
+  if (subsErr) {
+    captureBusinessEvent('error', 'push.subscriptions.query_failed', {
+      userId,
+      dbError: subsErr.message,
+    })
+    return { ok: false, sent: 0, dead: 0, reason: 'SUBS_QUERY_FAILED' }
+  }
+
   const rows = (subs ?? []) as SubRow[]
-  if (rows.length === 0) return { ok: true, sent: 0, dead: 0 }
+
+  // ⚠️ 여기에 `if (rows.length === 0) return` 을 두지 말 것 (2026-07-30 제거).
+  // 그 조기 반환이 **네이티브 팬아웃 앞에** 있었다 → 웹 푸시 구독이 없고 APNs/FCM
+  // 토큰만 있는 사용자(= 앱스토어로 설치한 iOS/Android 사용자 대부분)에게는
+  // 단 한 건도 안 나갔다. 웹 0건은 정상 상태이고 종료 조건이 아니다.
 
   // 정보통신망법 §50④ — 광고성 정보 발송 시 매체에 (광고) 표기 의무.
   // 푸시는 모바일 알림센터/잠금화면에 노출되므로 광고 매체로 분류.
@@ -204,59 +267,97 @@ export async function pushToUser(
   )
 
   if (dead.length > 0) {
-    await supabase.from('push_subscriptions').delete().in('id', dead)
+    const { error: delErr } = await supabase
+      .from('push_subscriptions')
+      .delete()
+      .in('id', dead)
+    // 못 지우면 다음 발송에서 또 410 을 받는다 — 발송 자체는 성공이므로 알리고 진행.
+    if (delErr) {
+      captureBusinessEvent('warning', 'push.dead_subscription.delete_failed', {
+        userId,
+        count: dead.length,
+        dbError: delErr.message,
+      })
+    }
   }
 
   // ── Native (APNs/FCM) fan-out ─────────────────────────────────────────
   // 같은 user 의 native 토큰들에도 같은 알림 발송. 환경변수 미설정 시
   // sendNativePush 가 즉시 실패 반환 — 정상 흐름 유지.
-  const { sendNativePush } = await import('./push/native')
-  const { data: nativeRows } = await supabase
+  const { data: nativeRows, error: nativeErr } = await supabase
     .from('native_push_tokens')
     .select('id, platform, token')
     .eq('user_id', userId)
+  if (nativeErr) {
+    captureBusinessEvent('error', 'push.native_tokens.query_failed', {
+      userId,
+      dbError: nativeErr.message,
+    })
+  }
   type NativeRow = { id: string; platform: 'ios' | 'android'; token: string }
   const nativeList = (nativeRows ?? []) as NativeRow[]
   const deadNative: string[] = []
   let nativeSent = 0
-  await Promise.all(
-    nativeList.map(async (row) => {
-      const result = await sendNativePush(row.platform, row.token, {
-        title: payload.title,
-        body: payload.body ?? '',
-        url: payload.url,
-        threadId: payload.tag,
-      })
-      if (result.ok) {
-        nativeSent += 1
-      } else if (result.unregistered) {
-        deadNative.push(row.id)
-      }
-    }),
-  )
+  if (nativeList.length > 0) {
+    const { sendNativePush } = await import('./push/native')
+    await Promise.all(
+      nativeList.map(async (row) => {
+        // native 도 광고 표기가 붙은 제목을 쓴다 — 웹만 붙던 것 함께 정리.
+        const result = await sendNativePush(row.platform, row.token, {
+          title: stampedPayload.title,
+          body: stampedPayload.body ?? '',
+          url: stampedPayload.url,
+          threadId: stampedPayload.tag,
+        })
+        if (result.ok) {
+          nativeSent += 1
+        } else if (result.unregistered) {
+          deadNative.push(row.id)
+        }
+      }),
+    )
+  }
   if (deadNative.length > 0) {
-    await supabase
+    const { error: delNativeErr } = await supabase
       .from('native_push_tokens')
       .delete()
       .in('id', deadNative)
+    if (delNativeErr) {
+      captureBusinessEvent('warning', 'push.dead_native_token.delete_failed', {
+        userId,
+        count: deadNative.length,
+        dbError: delNativeErr.message,
+      })
+    }
   }
 
   // 알림 센터 (`/notifications`) 가 조회할 push_log 에 이력 저장. 0건 발송
   // (sub 없음) 도 기록 — 발송 시도/실패 자체가 디버깅 신호. RLS 가 self-only
   // select 라 다른 사용자에 노출 안 됨.
+  //
+  // ⚠️ 여기는 try/catch 로 감싸도 아무것도 잡지 못했다 — `.insert()` 는 throw 가
+  // 아니라 `{ error }` 를 돌려준다. 그래서 "실패는 무시" 주석과 달리 **오류가
+  // 통째로 버려졌다.** push_log 에는 INSERT 정책이 아예 없어서(SELECT·UPDATE 만)
+  // 이 insert 는 늘 거부되고 있었고, 알림 센터가 왜 비어 있는지 아무 흔적도
+  // 남지 않았다. service_role 로 바뀌어 이제 통과하지만, 오류는 드러낸다.
+  // 발송 자체엔 영향 없으니 흐름은 그대로 진행한다.
   const totalSent = sent + nativeSent
-  try {
-    await supabase.from('push_log').insert({
-      user_id: userId,
-      title: stampedPayload.title,
-      body: stampedPayload.body ?? '',
-      url: stampedPayload.url ?? null,
+  const { error: logErr } = await supabase.from('push_log').insert({
+    user_id: userId,
+    title: stampedPayload.title,
+    body: stampedPayload.body ?? '',
+    url: stampedPayload.url ?? null,
+    category: opts?.category ?? null,
+    nudge: opts?.nudge ?? false,
+    sent_count: totalSent,
+  })
+  if (logErr) {
+    captureBusinessEvent('warning', 'push.log.insert_failed', {
+      userId,
       category: opts?.category ?? null,
-      nudge: opts?.nudge ?? false,
-      sent_count: totalSent,
+      sentCount: totalSent,
+      dbError: logErr.message,
     })
-  } catch {
-    // 로그 실패는 발송 자체에 영향 안 줌 — silently ignore.
   }
 
   return {

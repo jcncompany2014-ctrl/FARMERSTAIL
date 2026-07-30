@@ -26,7 +26,10 @@ export const dynamic = 'force-dynamic'
  *  - admin client (service_role) 사용 — RLS bypass
  *
  * # 일정
- *  매일 03:00 KST — 다른 cron 과 분산.
+ *  매일 08:40 KST (UTC 23:40). 2026-07-30 에 03:00 → 08:40 으로 옮겼다.
+ *  이 크론은 보호자에게 "이전 비율 유지하기로 결정" 푸시를 보내는데, 조용시간
+ *  기본값(22–08)에 걸려 있어 그 알림이 영구히 안 나갔다. 08시 종료 직후로 옮겨
+ *  **subscription-charge(09:10) 보다 먼저**라는 기존 순서도 유지한다.
  */
 export async function GET(req: Request) {
   // 모든 환경에서 cron secret 강제 (timing-safe 비교).
