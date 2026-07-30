@@ -146,6 +146,67 @@ test('★ 규칙7: vercel.json 크론은 전부 하루 1회 이하', () => {
   )
 })
 
+test('★ 규칙14: .select() 가 없는 컬럼을 부르지 않는다', () => {
+  /**
+   * 2026-07-31 — 이것 때문에 **두 기능이 통째로 죽어 있었다.**
+   *  · 주문 CSV 내보내기: `shipping_memo` · `tracking_carrier` (실제는
+   *    delivery_memo · carrier) → 쿼리 실패 → CSV 가 한 번도 안 만들어짐
+   *  · 고객 영수증 페이지: `shipping_address/_detail/_zip/_memo` (실제는
+   *    address / address_detail / zip / delivery_memo) → 쿼리 실패 →
+   *    order 가 null → notFound() → **모든 영수증이 404**
+   *
+   * 없는 컬럼은 tsc 가 못 잡는다(select 문자열이라). 실패도 조용하다 — 둘 다
+   * error 를 안 받아서 "데이터 없음"처럼 보였다.
+   * 생성된 타입(lib/supabase/types.ts)을 스키마 정본으로 삼아 대조한다.
+   */
+  const typesSrc = readFileSync(join(ROOT, 'lib/supabase/types.ts'), 'utf8')
+
+  // types.ts 에서 테이블별 Row 키를 뽑는다.
+  const tableCols = new Map<string, Set<string>>()
+  const tableRe = /^ {6}(\w+): \{\n {8}Row: \{\n([\s\S]*?)\n {8}\}/gm
+  for (const m of typesSrc.matchAll(tableRe)) {
+    const cols = new Set(
+      [...(m[2] ?? '').matchAll(/^ {10}(\w+)\??:/gm)].map((x) => x[1]!),
+    )
+    if (cols.size > 0) tableCols.set(m[1]!, cols)
+  }
+  assert.ok(
+    tableCols.size > 20,
+    `types.ts 파싱 실패 — 테이블 ${tableCols.size}개만 읽혔다(정규식 확인)`,
+  )
+
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app'))
+    .concat(walk(join(ROOT, 'lib')))
+    .concat(walk(join(ROOT, 'components')))) {
+    const src = readFileSync(file, 'utf8')
+    const re = /\.from\(\s*'(\w+)'\s*\)\s*\n?\s*\.select\(\s*([`'"])([\s\S]*?)\2/g
+    for (const m of src.matchAll(re)) {
+      const table = m[1]!
+      const known = tableCols.get(table)
+      if (!known) continue // 뷰·RPC·미지 테이블은 건너뛴다
+      // 중첩 관계 `rel(a, b)` 는 통째로 제거하고 최상위 컬럼만 본다.
+      const body = (m[3] ?? '').replace(/\w+\s*\([^)]*\)/g, ' ')
+      for (const raw of body.split(',')) {
+        const col = raw.trim()
+        // 별칭(alias:col)·`*`·빈 칸·템플릿 조각은 검사 대상 밖.
+        if (!/^[a-z_][a-z0-9_]*$/.test(col)) continue
+        if (!known.has(col)) {
+          const line = src.slice(0, m.index ?? 0).split('\n').length
+          offenders.push(`${rel(file)}:${line} :: ${table}.${col} 없음`)
+        }
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'select 에 없는 컬럼이 있다 — 쿼리가 통째로 실패하고, error 를 안 받으면 ' +
+      '"데이터 없음"처럼 보인다(영수증이 전부 404 였던 이유).\n' +
+      offenders.join('\n'),
+  )
+})
+
 test('★ 규칙13: 화이트리스트 밖 칸을 쓰는 UPDATE 는 service_role 로 한다', () => {
   /**
    * 2026-07-31 — 이 규칙이 없어서 **프로덕션 카드 등록이 조용히 죽어 있었다.**

@@ -47,10 +47,13 @@ type OrderRow = {
   paid_at: string | null
   recipient_name: string
   recipient_phone: string | null
-  shipping_address: string | null
-  shipping_address_detail: string | null
-  shipping_zip: string | null
-  shipping_memo: string | null
+  // ★ 실제 orders 컬럼명 (2026-07-31 정정). 예전엔 shipping_* 로 적혀 있었는데
+  //   그 이름은 orders 에 **없어서** select 가 통째로 실패했고, order 가 null 이
+  //   되어 아래 notFound() 로 빠졌다 — **모든 영수증이 404** 였다.
+  address: string | null
+  address_detail: string | null
+  zip: string | null
+  delivery_memo: string | null
   user_id: string
   order_items: OrderItemRow[]
 }
@@ -97,8 +100,8 @@ export default async function ReceiptPage({
       `
       id, order_number, total_amount, shipping_fee, payment_status,
       payment_method, order_status, created_at, paid_at, recipient_name,
-      recipient_phone, shipping_address, shipping_address_detail,
-      shipping_zip, shipping_memo, user_id,
+      recipient_phone, address, address_detail,
+      zip, delivery_memo, user_id,
       order_items(id, product_name, variant_name, quantity, unit_price, line_total)
       `,
     )
@@ -229,25 +232,25 @@ export default async function ReceiptPage({
                 {o.recipient_phone}
               </div>
             )}
-            {(o.shipping_address || o.shipping_address_detail) && (
+            {(o.address || o.address_detail) && (
               <>
                 <Label style={{ marginTop: 12 }}>배송지</Label>
                 <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-                  {o.shipping_zip && `(${o.shipping_zip}) `}
-                  {o.shipping_address}
-                  {o.shipping_address_detail && (
+                  {o.zip && `(${o.zip}) `}
+                  {o.address}
+                  {o.address_detail && (
                     <>
                       <br />
-                      {o.shipping_address_detail}
+                      {o.address_detail}
                     </>
                   )}
                 </div>
               </>
             )}
-            {o.shipping_memo && (
+            {o.delivery_memo && (
               <>
                 <Label style={{ marginTop: 12 }}>배송 메모</Label>
-                <div style={{ fontSize: 12 }}>{o.shipping_memo}</div>
+                <div style={{ fontSize: 12 }}>{o.delivery_memo}</div>
               </>
             )}
           </div>

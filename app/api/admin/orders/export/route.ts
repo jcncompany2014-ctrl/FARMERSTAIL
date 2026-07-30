@@ -37,8 +37,11 @@ type OrderRow = {
   zip: string | null
   address: string | null
   address_detail: string | null
-  shipping_memo: string | null
-  tracking_carrier: string | null
+  // ★ 실제 컬럼명은 delivery_memo · carrier 다 (2026-07-31 정정).
+  //   예전 이름(shipping_memo · tracking_carrier)은 orders 에 **없어서**
+  //   select 가 통째로 실패했고 CSV 가 한 번도 만들어지지 않았다.
+  delivery_memo: string | null
+  carrier: string | null
   tracking_number: string | null
   order_items:
     | {
@@ -108,8 +111,8 @@ export async function GET(request: Request) {
       payment_status, payment_method, order_status,
       created_at, paid_at,
       recipient_name, recipient_phone, zip,
-      address, address_detail, shipping_memo,
-      tracking_carrier, tracking_number,
+      address, address_detail, delivery_memo,
+      carrier, tracking_number,
       order_items (product_name, quantity, unit_price, line_total)
     `,
     )
@@ -168,13 +171,13 @@ export async function GET(request: Request) {
       연락처: o.recipient_phone ?? '',
       우편번호: o.zip ?? '',
       주소: address,
-      배송메모: o.shipping_memo ?? '',
+      배송메모: o.delivery_memo ?? '',
       상품요약: itemsSummary,
       상품수: items.reduce((s, it) => s + it.quantity, 0),
       상품금액: o.subtotal ?? '',
       배송비: o.shipping_fee ?? '',
       결제금액: o.total_amount,
-      택배사: sanitizeCarrier(o.tracking_carrier),
+      택배사: sanitizeCarrier(o.carrier),
       송장번호: o.tracking_number ?? '',
     }
   })

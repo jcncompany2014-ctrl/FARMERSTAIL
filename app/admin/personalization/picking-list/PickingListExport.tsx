@@ -25,6 +25,16 @@ export type PickingRow = {
   userAdjusted: boolean
   transition: string
   noFormula: boolean
+  /**
+   * **결제가 일어날 수 없는 구독** — 카드가 없거나(billing_key null) 영구 거절
+   * 상태(requires_billing_key_renewal)다. 청구 크론의 대상 조건과 같은 판정이라,
+   * true 면 이 박스는 **돈을 받지 않고 나간다**.
+   *
+   * 예전엔 피킹 리스트가 status='active' + 날짜만 봐서 이런 구독이 아무 표시
+   * 없이 포장 대상에 섞였다(2026-07-31). 특히 어드민 '재개' 가 영구 거절 구독에
+   * 배송일을 박아주고 있어 그 조합이 실제로 만들어졌다.
+   */
+  cannotCharge: boolean
   charged: boolean
   overdue: boolean
   totalAmount: number

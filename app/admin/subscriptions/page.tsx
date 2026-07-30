@@ -11,6 +11,13 @@ import { SUBS_TABS } from '@/components/admin/tabGroups'
 type SubscriptionRow = {
   id: string
   billing_key: string | null
+  /**
+   * 카드가 **영구 거절**되어 고객의 재등록이 필요한 상태. 청구 크론이 대상에서
+   * 제외하는 기준이라(`.eq('requires_billing_key_renewal', false)`), 이 값을
+   * 안 보면 "카드 있음"으로 오판해 청구되지 않을 구독에 배송일을 박게 된다.
+   * 영구 거절 시에도 billing_key 는 남으므로 **billing_key 만으로는 판정 불가**.
+   */
+  requires_billing_key_renewal: boolean | null
   user_id: string
   status: 'active' | 'paused' | 'cancelled'
   interval_weeks: number
@@ -134,24 +141,63 @@ export default function AdminSubscriptionsPage() {
       //   ② 날짜가 과거로 밀리며 매주 피킹 리스트에 유령 박스로 계속 떴다.
       //   카드 미등록이면 null 유지 — 카드가 등록되는 순간 billing-issue 가
       //   첫 배송을 잡는 기존 흐름 그대로.
-      if (sub?.billing_key) {
+      /**
+       * ★★ `requires_billing_key_renewal` 도 반드시 본다 (2026-07-31).
+       *
+       * 카드가 **영구 거절**되면 청구 크론은 status='paused' +
+       * requires_billing_key_renewal=true 로 표시하는데, **billing_key 는 지우지
+       * 않는다**(subscription-charge :878~900 — 지우는 코드가 없다). 그래서
+       * `sub?.billing_key` 만 보면 "카드 있음"으로 판정돼 배송일이 박혔다.
+       *
+       * 그런데 청구 크론의 대상 조회는 `.eq('requires_billing_key_renewal', false)`
+       * (:306) 라 그 구독을 **영원히 건너뛴다.** 결과:
+       *   · 어드민 목록 = '구독 중'  · 피킹 리스트 = '발송일 아침 청구 예정'
+       *   · 고객 앱 = '카드 실패'(subscription-state :46 이 이 플래그를 먼저 본다)
+       *   · 실제 = 박스만 나가고 **결제는 0원**
+       *
+       * 플래그를 여기서 지우지 않는다 — 카드는 정말 죽었고, 되살릴 수 있는 건
+       * 고객의 재등록(billing-issue)뿐이다. 대신 '카드 없음'과 **같은 취급**을
+       * 해서 배송일을 잡지 않고, 사장님께 왜 그런지 알린다.
+       * (이 두 칸은 화이트리스트 안이라 여기서 그대로 쓸 수 있다 — 규칙13.)
+       */
+      const cardUsable = !!sub?.billing_key && !sub?.requires_billing_key_renewal
+      if (cardUsable) {
         // 배송 주기는 2주 하나로 고정 — 재개는 다음 화요일부터(2026-07-16).
         updates.next_delivery_date = nextShipDate()
       } else {
         updates.next_delivery_date = null
+        if (sub?.requires_billing_key_renewal) {
+          alert(
+            '이 구독은 카드가 영구 거절된 상태예요. 활성으로 되돌리더라도 고객이 ' +
+              '결제수단을 다시 등록하기 전까지는 청구되지 않습니다 — 배송일을 ' +
+              '잡지 않았어요. 박스가 나가지 않도록 피킹 리스트에도 뜨지 않습니다.',
+          )
+        }
       }
     }
     // audit #79: subscriptions update Record cast.
-    await (supabase as unknown as {
+    // ★ error 를 받는다 (2026-07-31). 예전엔 `await ...` 로 결과를 버려서, 이
+    //   조작이 실패해도 목록만 다시 그려지고 **사장님은 성공한 줄 알았다.**
+    //   특히 2026-07-30 부터 subscriptions 는 4칸만 고객/관리자가 UPDATE 할 수
+    //   있어(20260730000000), 잠긴 칸을 추가하면 여기서 조용히 실패한다.
+    const { error: upErr } = await (supabase as unknown as {
       from: (t: string) => {
         update: (r: Record<string, unknown>) => {
-          eq: (c: string, v: string) => Promise<unknown>
+          eq: (
+            c: string,
+            v: string,
+          ) => Promise<{ error: { message: string } | null }>
         }
       }
     })
       .from('subscriptions')
       .update(updates)
       .eq('id', subId)
+    if (upErr) {
+      alert(`상태를 바꾸지 못했어요: ${upErr.message}`)
+      setActionLoading(null)
+      return
+    }
     await loadAll()
     setActionLoading(null)
   }

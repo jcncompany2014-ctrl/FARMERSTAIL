@@ -67,6 +67,9 @@ type SubRow = {
   address_detail: string | null
   delivery_memo: string | null
   total_deliveries: number | null
+  /** 청구 가능 판정용 — 이 둘이 없으면 청구 크론이 건너뛴다. */
+  billing_key: string | null
+  requires_billing_key_renewal: boolean | null
 }
 
 type PickProduct = {
@@ -106,7 +109,7 @@ export default async function PickingListPage({
     .select(
       'id, dog_id, user_id, fresh_ratio, next_delivery_date, total_amount, ' +
         'recipient_name, recipient_phone, zip, address, address_detail, ' +
-        'delivery_memo, total_deliveries',
+        'delivery_memo, total_deliveries, billing_key, requires_billing_key_renewal',
     )
     .eq('status', 'active')
     .or(
@@ -214,6 +217,9 @@ export default async function PickingListPage({
       userAdjusted: f?.user_adjusted ?? false,
       transition: f?.transition_strategy ?? '',
       noFormula: !f,
+      // 청구 크론과 **같은 조건**. 이게 false 면 결제 없이 박스만 나간다.
+      cannotCharge:
+        !sub.billing_key || sub.requires_billing_key_renewal === true,
       charged: sub.next_delivery_date === chargedBumpDate,
       overdue:
         sub.next_delivery_date != null && sub.next_delivery_date < shipDate,
@@ -240,7 +246,11 @@ export default async function PickingListPage({
   )
   const totalGrams = rows.reduce((s, r) => s + r.boxTotalG, 0)
   const totalAmountSum = rows.reduce((s, r) => s + r.totalAmount, 0)
-  const problemCount = rows.filter((r) => r.noFormula || r.overdue).length
+  // ★ 청구 불가도 '확인 필요' 다 — 예전엔 noFormula/overdue 만 세어서,
+  //   결제되지 않을 박스가 아무 표시 없이 포장 대상에 섞였다(2026-07-31).
+  const problemCount = rows.filter(
+    (r) => r.noFormula || r.overdue || r.cannotCharge,
+  ).length
 
   const prevShip = addDaysKst(shipDate, -7)
   const nextShip = addDaysKst(shipDate, 7)
@@ -345,7 +355,12 @@ export default async function PickingListPage({
                   <Badge tone="neutral">cycle {r.cycleNumber}</Badge>
                 )}
                 {r.userAdjusted && <Badge tone="neutral">보호자 조정</Badge>}
-                {r.charged ? (
+                {/* ★ 청구 불가를 **가장 먼저** 판정한다 (2026-07-31).
+                    예전엔 이 구독에도 '발송일 아침 청구 예정' 이 떴다 — 청구
+                    크론이 영원히 건너뛰는데도. 사실이 아닌 안내였다. */}
+                {r.cannotCharge ? (
+                  <Badge tone="red">청구 불가 — 발송하지 마세요</Badge>
+                ) : r.charged ? (
                   <Badge tone="green">오늘 아침 청구 완료</Badge>
                 ) : r.overdue ? (
                   <Badge tone="red">청구 지연 — 재시도 중</Badge>
@@ -353,6 +368,14 @@ export default async function PickingListPage({
                   <Badge tone="amber">발송일 아침 청구 예정</Badge>
                 )}
               </div>
+
+              {r.cannotCharge && (
+                <p className="mt-3 text-[12.5px] font-semibold text-red-600">
+                  ⚠ 결제수단이 없거나 카드가 영구 거절된 구독이에요. 자동결제가
+                  일어나지 않으니 <strong>이 박스는 보내지 마세요.</strong> 고객이
+                  결제수단을 다시 등록하면 다음 회차부터 정상 발송됩니다.
+                </p>
+              )}
 
               {r.noFormula ? (
                 <p className="mt-3 text-[12.5px] font-semibold text-red-600">
