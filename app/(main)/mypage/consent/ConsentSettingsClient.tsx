@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, Mail, MessageSquare, Check, AlertCircle } from 'lucide-react'
+import { Loader2, Mail, MessageSquare, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { MARKETING_POLICY_VERSION, CONSENT_LABEL } from '@/lib/consent'
 
@@ -11,19 +11,15 @@ import { MARKETING_POLICY_VERSION, CONSENT_LABEL } from '@/lib/consent'
  * 구조:
  *   • 상단 메타 (현재 상태 + 동의 일자)
  *   • 채널별 토글 (이메일 / SMS)
- *   • 최근 변경 이력 (consent_log 10건)
  *
  * 저장은 `set_marketing_consent` RPC 를 호출해 profiles + consent_log 동시 갱신.
  * 실패 시 원복 낙관적 업데이트.
+ *
+ * 변경 이력은 **화면에 안 보인다**(사장님 2026-07-31). 기록은 계속 남는다 —
+ * 법정 보관 자료이고 /mypage/privacy 의 개인정보 다운로드(§35)로 받을 수 있다.
  */
 
 type Channel = 'email' | 'sms'
-
-/** 동의 이력 source 코드 → 한글 라벨. 미지 값은 원문 그대로(향후 소스 확장 대비). */
-const CONSENT_SOURCE_LABEL: Record<string, string> = {
-  signup: '가입 시',
-  mypage: '설정 변경',
-}
 
 type Initial = {
   agree_email: boolean
@@ -33,29 +29,17 @@ type Initial = {
   marketing_policy_version: string | null
 }
 
-type HistoryRow = {
-  id: string
-  channel: Channel
-  granted: boolean
-  granted_at: string
-  policy_version: string | null
-  source: string | null
-}
-
 export default function ConsentSettingsClient({
   initial,
-  history,
   embedded,
 }: {
   initial: Initial
-  history: HistoryRow[]
   /** 통합 알림 페이지 탭 안에서 렌더될 때 true — 자체 헤더 숨김. */
   embedded?: boolean
 }) {
   const supabase = createClient()
 
   const [state, setState] = useState<Initial>(initial)
-  const [hist, setHist] = useState<HistoryRow[]>(history)
   const [saving, setSaving] = useState<Channel | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -101,32 +85,6 @@ export default function ConsentSettingsClient({
       })
     }
 
-    // 이력 리로드 — 최신 10건.
-    const { data: fresh } = await supabase
-      .from('consent_log')
-      .select('id, channel, granted, granted_at, policy_version, source')
-      .order('granted_at', { ascending: false })
-      .limit(10)
-    if (fresh) {
-      type ConsentRow = {
-        id: string
-        channel: string
-        granted: boolean
-        granted_at: string
-        policy_version: string | null
-        source: string | null
-      }
-      setHist(
-        (fresh as ConsentRow[]).map((r) => ({
-          id: r.id,
-          channel: r.channel as Channel,
-          granted: Boolean(r.granted),
-          granted_at: r.granted_at,
-          policy_version: r.policy_version ?? null,
-          source: r.source ?? null,
-        })),
-      )
-    }
     setSaving(null)
   }
 
@@ -183,49 +141,7 @@ export default function ConsentSettingsClient({
       )}
 
       <section className="px-5 mt-6">
-        <div className="mb-2">
-          <span className="kicker kicker-muted">History</span>
-        </div>
-        {hist.length === 0 ? (
-          <div className="bg-bg-3 rounded border border-dashed border-rule-2 p-6 text-center">
-            <p className="text-[10.5px] text-muted">변경 이력이 없어요.</p>
-          </div>
-        ) : (
-          <ul className="space-y-2">
-            {hist.map((h) => (
-              <li
-                key={h.id}
-                className="bg-bg-3 rounded border border-rule px-4 py-3 flex items-start gap-3"
-              >
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                    h.granted ? 'bg-moss/10' : 'bg-bg'
-                  }`}
-                >
-                  {h.granted ? (
-                    <Check className="w-3 h-3 text-moss" strokeWidth={3} />
-                  ) : (
-                    <span className="text-muted text-[10.5px] font-black">
-                      ✕
-                    </span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-bold text-text">
-                    {CONSENT_LABEL[h.channel]}{' '}
-                    {h.granted ? '동의' : '철회'}
-                  </p>
-                  <p className="text-[10.5px] text-muted mt-0.5">
-                    {new Date(h.granted_at).toLocaleString('ko-KR')}
-                    {h.policy_version ? ` · ${h.policy_version}` : ''}
-                    {h.source ? ` · ${CONSENT_SOURCE_LABEL[h.source] ?? h.source}` : ''}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="text-[10.5px] text-muted mt-3 leading-relaxed">
+        <p className="text-[10.5px] text-muted leading-relaxed">
           수신동의는 언제든 철회할 수 있으며, 철회 즉시 해당 채널의 광고·마케팅
           정보 발송이 중단됩니다.
         </p>

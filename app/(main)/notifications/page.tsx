@@ -21,7 +21,10 @@ export default async function NotificationsPage({
     redirect('/login?next=/notifications')
   }
 
-  const [inboxRes, pushSubsRes, profileRes, consentHistoryRes] =
+  // 변경 이력(consent_log)은 화면에서 뺐다(사장님 2026-07-31) — 조회도 안 한다.
+  // 기록은 set_marketing_consent RPC 가 계속 남긴다: 법정 보관 자료이고,
+  // 고객은 /mypage/privacy 의 개인정보 다운로드(§35 열람권)로 받아볼 수 있다.
+  const [inboxRes, pushSubsRes, profileRes] =
     await Promise.all([
       // 받은 알림 (인박스)
       supabase
@@ -44,13 +47,6 @@ export default async function NotificationsPage({
         )
         .eq('id', user.id)
         .maybeSingle(),
-      // 광고 수신 — 변경 이력
-      supabase
-        .from('consent_log')
-        .select('id, channel, granted, granted_at, policy_version, source')
-        .eq('user_id', user.id)
-        .order('granted_at', { ascending: false })
-        .limit(10),
     ])
 
   const profile = profileRes.data
@@ -75,14 +71,6 @@ export default async function NotificationsPage({
                 profile?.marketing_policy_version ?? null,
             }
       }
-      consentHistory={(consentHistoryRes.data ?? []).map((r) => ({
-        id: r.id,
-        channel: r.channel as 'email' | 'sms',
-        granted: Boolean(r.granted),
-        granted_at: r.granted_at,
-        policy_version: r.policy_version ?? null,
-        source: r.source ?? null,
-      }))}
     />
   )
 }

@@ -28,7 +28,6 @@ export default function AlertsClient({
   pushSubs,
   vapidPublicKey,
   consentInitial,
-  consentHistory,
   initialTab,
 }: {
   inboxRows: Row[]
@@ -36,7 +35,6 @@ export default function AlertsClient({
   vapidPublicKey: SettingsProps['vapidPublicKey']
   /** null = 동의 현황 조회 실패. '미동의' 로 그리면 안 된다 — 아래 렌더 주석 참고. */
   consentInitial: ConsentProps['initial'] | null
-  consentHistory: ConsentProps['history']
   initialTab?: string
 }) {
   const [tab, setTab] = useState(
@@ -97,11 +95,7 @@ export default function AlertsClient({
             </div>
           </div>
         ) : (
-          <ConsentSettingsClient
-            initial={consentInitial}
-            history={consentHistory}
-            embedded
-          />
+          <ConsentSettingsClient initial={consentInitial} embedded />
         ))}
     </div>
   )

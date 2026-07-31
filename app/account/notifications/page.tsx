@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import { isAppContextServer } from '@/lib/app-context'
 import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
-import ConsentWebClient, { type ConsentHistoryRow } from './ConsentWebClient'
+import ConsentWebClient from './ConsentWebClient'
 
 /**
  * /account/notifications — 웹 사용자용 광고·마케팅 수신 설정.
@@ -23,7 +23,7 @@ import ConsentWebClient, { type ConsentHistoryRow } from './ConsentWebClient'
  * AppChrome(모바일 폰 프레임 + 하단 탭바)으로 감싼다. 데스크톱 브라우저에
  * 폰 프레임이 뜨는 건 app-only 게이트가 존재하는 이유 그 자체다.
  * → `/account/subscriptions` 와 같은 패턴: **웹 전용 client 를 따로 두고**
- *   서버 계약(set_marketing_consent RPC · consent_log)만 공유한다.
+ *   서버 계약(set_marketing_consent RPC)만 공유한다.
  *
  * # 범위 — 광고 수신 동의만
  * 푸시 설정(기기·카테고리·조용시간)은 넣지 않았다. 웹 푸시는 실측 구독자 0명이고
@@ -35,7 +35,7 @@ import ConsentWebClient, { type ConsentHistoryRow } from './ConsentWebClient'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '알림 · 수신 설정 | 파머스테일',
+  title: '알림 · 수신 설정',
   description: '광고·마케팅 정보 수신 여부를 채널별로 관리합니다.',
   alternates: { canonical: '/account/notifications' },
   robots: { index: false, follow: false },
@@ -51,21 +51,15 @@ export default async function AccountNotificationsPage() {
     redirect('/login?next=/account/notifications')
   }
 
-  const [profileRes, historyRes] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select(
-        'agree_email, agree_sms, agree_email_at, agree_sms_at, marketing_policy_version',
-      )
-      .eq('id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('consent_log')
-      .select('id, channel, granted, granted_at, policy_version, source')
-      .eq('user_id', user.id)
-      .order('granted_at', { ascending: false })
-      .limit(10),
-  ])
+  // 변경 이력(consent_log)은 화면에 안 띄운다(사장님 2026-07-31). 기록은 RPC 가
+  // 계속 남긴다 — 고객은 /mypage/privacy 의 개인정보 다운로드(§35)로 받는다.
+  const profileRes = await supabase
+    .from('profiles')
+    .select(
+      'agree_email, agree_sms, agree_email_at, agree_sms_at, marketing_policy_version',
+    )
+    .eq('id', user.id)
+    .maybeSingle()
 
   const isApp = await isAppContextServer()
 
@@ -123,24 +117,6 @@ export default async function AccountNotificationsPage() {
     agree_sms_at: string | null
     marketing_policy_version: string | null
   } | null
-
-  const history: ConsentHistoryRow[] = (
-    (historyRes.data ?? []) as Array<{
-      id: string
-      channel: string
-      granted: boolean
-      granted_at: string
-      policy_version: string | null
-      source: string | null
-    }>
-  ).map((r) => ({
-    id: r.id,
-    channel: r.channel === 'sms' ? 'sms' : 'email',
-    granted: Boolean(r.granted),
-    granted_at: r.granted_at,
-    policy_version: r.policy_version ?? null,
-    source: r.source ?? null,
-  }))
 
   return (
     <AuthAwareShell>
@@ -207,7 +183,6 @@ export default async function AccountNotificationsPage() {
               marketing_policy_version:
                 profile?.marketing_policy_version ?? null,
             }}
-            history={history}
           />
         </Container>
       </main>
