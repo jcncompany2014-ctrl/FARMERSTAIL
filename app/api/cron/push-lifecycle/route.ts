@@ -74,6 +74,14 @@ interface CampaignResult {
   sent: number
   skipped: number
   errors: number
+  /**
+   * 대상자 조회 자체가 실패했을 때의 DB 오류. 이게 있으면 `sent: 0` 은
+   * "보낼 사람이 없었다" 가 아니라 **"누가 대상인지 알아내지 못했다"** 다.
+   * 예전엔 `error` 를 안 받아 둘이 같은 모양(`rows ?? []`)이었고, 그래서
+   * 조회가 깨져도 크론은 매일 초록으로 집계됐다(규칙1 — 건강 알림 3종이
+   * 같은 이유로 배포 이래 한 건도 안 나간 적이 있다).
+   */
+  queryError?: string
 }
 
 export async function GET(req: Request): Promise<Response> {
@@ -123,11 +131,22 @@ async function runWelcome(
   // KST 자정 경계를 +09:00 오프셋으로 명시 → UTC 로 변환해 timestamptz 와 비교.
   const since = new Date(`${yesterdayKst}T00:00:00+09:00`).toISOString()
   const until = new Date(`${todayKst}T00:00:00+09:00`).toISOString()
-  const { data: rows } = await supabase
+  const { data: rows, error: rowsErr } = await supabase
     .from('profiles')
     .select('id, name')
     .gte('created_at', since)
     .lt('created_at', until)
+
+  // 대상자를 못 읽었으면 '0명' 이 아니라 '모름' 이다 — 0 으로 접으면 조용한 미발송.
+  if (rowsErr) {
+    return {
+      campaign: 'd1_welcome',
+      sent: 0,
+      skipped: 0,
+      errors: 1,
+      queryError: rowsErr.message,
+    }
+  }
 
   let sent = 0,
     errors = 0
@@ -153,22 +172,56 @@ async function runAnalysisReminder(
 ): Promise<CampaignResult> {
   const since = new Date(now.getTime() - 8 * 24 * 3600 * 1000).toISOString()
   const until = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString()
-  const { data: rows } = await supabase
+  const { data: rows, error: rowsErr } = await supabase
     .from('profiles')
     .select('id')
     .gte('created_at', since)
     .lt('created_at', until)
 
+  // 대상자를 못 읽었으면 '0명' 이 아니라 '모름' 이다 — 0 으로 접으면 조용한 미발송.
+  if (rowsErr) {
+    return {
+      campaign: 'd7_analysis',
+      sent: 0,
+      skipped: 0,
+      errors: 1,
+      queryError: rowsErr.message,
+    }
+  }
+
   let sent = 0,
     skipped = 0,
     errors = 0
   for (const p of (rows ?? []) as Array<{ id: string }>) {
-    const { data: analyses } = await supabase
+    /**
+     * ★ "이미 분석한 사람은 건너뛴다" 가 한 번도 작동하지 않았다 (2026-07-31).
+     *
+     * 세 가지가 겹쳐 있었다:
+     *  ① `head: true` 는 **본문을 안 준다** — 개수는 `count` 로 오고 `data` 는
+     *     항상 null 이다. 그런데 `data` 를 받아 길이를 쟀다.
+     *  ② `(analyses?.length ?? 0 > 0)` 는 `??` 가 `>` 보다 **뒤에** 묶여서
+     *     `analyses?.length ?? (0 > 0)` = `undefined ?? false` = **항상 false**.
+     *     (행이 있었다면 `length` 가 1 이라 우연히 맞았을 것이다 — 그래서 더
+     *     오래 살아남았다.)
+     *  ③ `error` 를 안 받아 조회 실패도 "분석 없음"과 구분되지 않았다(규칙1).
+     *
+     * 결과: **이미 무료 분석을 본 사람에게도** "아직 강아지 분석을 못 보셨네요"
+     * 광고 푸시가 나갔다. 사실이 아닌 광고이고, `skipped` 는 늘 0이라 지표로도
+     * 안 보였다. D+30(구독자 제외)은 같은 부류를 이미 한 번 고쳤는데
+     * (R85-E3 주석) D+7 만 남아 있었다 — 같은 병을 옆에서 고치고도 놓친 것.
+     *
+     * 조회가 실패하면 **보내지 않는다.** 안 보내면 나중에 보낼 수 있지만,
+     * 잘못 보낸 광고는 되돌릴 수 없다.
+     */
+    const { count: analysisCount, error: analysisErr } = await supabase
       .from('analyses')
       .select('id', { head: true, count: 'exact' })
       .eq('user_id', p.id)
-      .limit(1)
-    if ((analyses as unknown[] | null)?.length ?? 0 > 0) {
+    if (analysisErr) {
+      errors++
+      continue
+    }
+    if ((analysisCount ?? 0) > 0) {
       skipped++
       continue
     }
@@ -193,11 +246,22 @@ async function runSubscribeNudge(
 ): Promise<CampaignResult> {
   const since = new Date(now.getTime() - 31 * 24 * 3600 * 1000).toISOString()
   const until = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
-  const { data: rows } = await supabase
+  const { data: rows, error: rowsErr } = await supabase
     .from('profiles')
     .select('id')
     .gte('created_at', since)
     .lt('created_at', until)
+
+  // 대상자를 못 읽었으면 '0명' 이 아니라 '모름' 이다 — 0 으로 접으면 조용한 미발송.
+  if (rowsErr) {
+    return {
+      campaign: 'd30_subscribe',
+      sent: 0,
+      skipped: 0,
+      errors: 1,
+      queryError: rowsErr.message,
+    }
+  }
 
   let sent = 0,
     skipped = 0,
@@ -206,12 +270,18 @@ async function runSubscribeNudge(
     // R85-E3: 이전엔 존재하지 않는 `dog_subscriptions` 테이블 조회 → PostgREST
     // 404 → subs 항상 빈 배열 → 이미 구독중인 사용자도 D+30 마케팅 푸시 받음
     // (legal: 정통망법 §50 동의 + 광고성 표시 + UX 신뢰도). 실제 테이블 `subscriptions`.
-    const { data: subs } = await supabase
+    // 조회가 실패하면 보내지 않는다 — 구독 중인 사람에게 "구독하세요" 광고가
+    // 나가는 것이 미발송보다 나쁘다. 안 보낸 건 나중에 보낼 수 있다. (규칙1)
+    const { data: subs, error: subsErr } = await supabase
       .from('subscriptions')
       .select('id')
       .eq('user_id', p.id)
       .eq('status', 'active')
       .limit(1)
+    if (subsErr) {
+      errors++
+      continue
+    }
     if (((subs as unknown[] | null) ?? []).length > 0) {
       skipped++
       continue
@@ -243,11 +313,22 @@ async function runMedicationReminder(
   //   미발송. KST hour 로 비교.
   const kstHour = new Date(now.getTime() + 9 * 60 * 60 * 1000).getUTCHours()
   const hh = String(kstHour).padStart(2, '0')
-  const { data: rows } = await supabase
+  const { data: rows, error: rowsErr } = await supabase
     .from('dog_medications')
     .select('id, user_id, dog_id, name, time')
     .eq('enabled', true)
     .eq('schedule', 'daily')
+
+  // 대상자를 못 읽었으면 '0명' 이 아니라 '모름' 이다 — 0 으로 접으면 조용한 미발송.
+  if (rowsErr) {
+    return {
+      campaign: 'medication',
+      sent: 0,
+      skipped: 0,
+      errors: 1,
+      queryError: rowsErr.message,
+    }
+  }
 
   let sent = 0,
     skipped = 0,

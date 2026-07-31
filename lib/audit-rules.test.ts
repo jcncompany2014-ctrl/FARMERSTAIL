@@ -665,3 +665,74 @@ test('★ 규칙17: 서버가 orders 를 셀 때 결제 상태로 거른다', ()
       offenders.join('\n'),
   )
 })
+
+test('★ 규칙18: head:true 로 조회하고 data 를 읽지 않는다', () => {
+  /**
+   * # 왜
+   * PostgREST 의 `head: true` 는 **본문을 보내지 않는다** — 개수는 `count` 로
+   * 오고 `data` 는 항상 `null` 이다. 그런데 `data` 를 받아 길이를 재던 코드가
+   * 있었다(push-lifecycle D+7).
+   *
+   * 거기에 `(x?.length ?? 0 > 0)` 이 겹쳤다. `??` 는 `>` 보다 **뒤에** 묶이므로
+   * 이건 `x?.length ?? (0 > 0)` = `undefined ?? false` = **항상 false** 다.
+   * 두 실수가 서로를 가려서, "이미 분석한 사람은 건너뛴다" 가 **한 번도 작동한
+   * 적이 없었다** — 이미 무료 분석을 본 사람에게 "아직 분석을 못 보셨네요"
+   * 광고 푸시가 나갔고, `skipped` 는 늘 0이라 지표로도 안 보였다.
+   *
+   * 행이 있었다면 `length` 가 1 이라 우연히 맞았을 것이다 — 그래서 조용히
+   * 오래 살아남았다. 이런 건 눈으로 못 잡는다.
+   */
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'lib')))) {
+    const src = read(file)
+    if (!src.includes('head: true')) continue
+    const lines = src.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      if (!/head:\s*true/.test(lines[i] ?? '')) continue
+      // 이 select 를 받는 구조분해는 보통 2~3줄 **위**에 있다.
+      const head = lines.slice(Math.max(0, i - 4), i + 1).join('\n')
+      const m = /const\s*\{([^}]*)\}\s*=\s*await/.exec(head)
+      if (!m) continue
+      const bound = m[1] ?? ''
+      // `data` 를 받으면 위반. `count`·`error` 만 받는 것이 옳다.
+      if (/\bdata\b/.test(bound)) {
+        offenders.push(`${rel(file)}:${i + 1}`)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    "head: true 는 본문을 안 준다 — data 는 항상 null 이다. 개수는 count 로 받을 것.\n" +
+      offenders.join('\n'),
+  )
+})
+
+test('★ 규칙19: `?? 0 > 0` 처럼 ?? 와 비교를 괄호 없이 섞지 않는다', () => {
+  /**
+   * `a ?? 0 > 0` 은 `a ?? (0 > 0)` 로 묶인다 — 읽는 사람이 기대하는
+   * `(a ?? 0) > 0` 이 아니다. 실제로 D+7 광고 푸시의 건너뛰기 판정이 이것 때문에
+   * 항상 false 였다. TypeScript 는 이걸 오류로 보지 않는다(양쪽 다 유효한 식이라
+   * 타입도 맞는다). 그래서 테스트로 잡는다.
+   */
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'lib')))) {
+    const src = read(file)
+    if (!src.includes('??')) continue
+    const lines = src.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i] ?? ''
+      if (/^\s*(\*|\/\/)/.test(line)) continue
+      // `?? <피연산자> <비교연산자>` — 괄호로 묶였으면 `) >` 형태라 안 걸린다.
+      if (/\?\?\s*[\w.'"[\]]+\s*(===|!==|==|!=|>=|<=|>|<)/.test(line)) {
+        offenders.push(`${rel(file)}:${i + 1} :: ${line.trim().slice(0, 90)}`)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '`??` 는 비교연산자보다 **뒤에** 묶인다 — `(a ?? 0) > 0` 로 괄호를 칠 것.\n' +
+      offenders.join('\n'),
+  )
+})
