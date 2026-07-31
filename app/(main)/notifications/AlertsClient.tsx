@@ -34,7 +34,8 @@ export default function AlertsClient({
   inboxRows: Row[]
   pushSubs: SettingsProps['initialSubs']
   vapidPublicKey: SettingsProps['vapidPublicKey']
-  consentInitial: ConsentProps['initial']
+  /** null = 동의 현황 조회 실패. '미동의' 로 그리면 안 된다 — 아래 렌더 주석 참고. */
+  consentInitial: ConsentProps['initial'] | null
   consentHistory: ConsentProps['history']
   initialTab?: string
 }) {
@@ -72,13 +73,36 @@ export default function AlertsClient({
           embedded
         />
       )}
-      {tab === 'consent' && (
-        <ConsentSettingsClient
-          initial={consentInitial}
-          history={consentHistory}
-          embedded
-        />
-      )}
+      {tab === 'consent' &&
+        /**
+         * ★ 조회 실패(null)를 '미동의' 로 그리지 않는다 (규칙1, 2026-07-31).
+         *
+         * 예전엔 서버가 `Boolean(profile?.agree_email)` 로 넘겨서 **실패와
+         * 미동의가 같은 false** 였다. 그러면 지금도 광고 메일을 받는 사람에게
+         * "현재 미동의" 가 뜬다 — 수신거부하러 온 사람이 **이미 꺼져 있다고
+         * 믿고 나간다.** 메일은 계속 가고 본인은 껐다고 알고 있는 상태가 되어,
+         * 정보통신망법 §50 신고로 이어지는 모양이다. 그래서 안내를 띄운다.
+         */
+        (consentInitial === null ? (
+          <div className="px-5 pt-6">
+            <div className="bg-bg-3 rounded border border-rule p-5">
+              <p className="text-[13.5px] font-black text-text">
+                수신 설정을 불러오지 못했어요
+              </p>
+              <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
+                지금 상태를 알 수 없어서 화면을 그리지 않았어요 — 잘못
+                보여드리면 이미 껐다고 오해하실 수 있어서예요. 잠시 뒤 다시
+                열어봐 주세요.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <ConsentSettingsClient
+            initial={consentInitial}
+            history={consentHistory}
+            embedded
+          />
+        ))}
     </div>
   )
 }

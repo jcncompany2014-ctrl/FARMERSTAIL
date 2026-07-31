@@ -61,13 +61,20 @@ export default async function NotificationsPage({
       inboxRows={((inboxRes.data ?? []) as unknown) as Row[]}
       pushSubs={pushSubsRes.data ?? []}
       vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
-      consentInitial={{
-        agree_email: Boolean(profile?.agree_email),
-        agree_sms: Boolean(profile?.agree_sms),
-        agree_email_at: profile?.agree_email_at ?? null,
-        agree_sms_at: profile?.agree_sms_at ?? null,
-        marketing_policy_version: profile?.marketing_policy_version ?? null,
-      }}
+      // ★ 조회 실패는 null 로 넘긴다 — Boolean(undefined)=false 로 뭉개면
+      //   수신 중인 사람에게 '현재 미동의' 가 뜬다(규칙1, AlertsClient 주석 참고).
+      consentInitial={
+        profileRes.error
+          ? null
+          : {
+              agree_email: Boolean(profile?.agree_email),
+              agree_sms: Boolean(profile?.agree_sms),
+              agree_email_at: profile?.agree_email_at ?? null,
+              agree_sms_at: profile?.agree_sms_at ?? null,
+              marketing_policy_version:
+                profile?.marketing_policy_version ?? null,
+            }
+      }
       consentHistory={(consentHistoryRes.data ?? []).map((r) => ({
         id: r.id,
         channel: r.channel as 'email' | 'sms',

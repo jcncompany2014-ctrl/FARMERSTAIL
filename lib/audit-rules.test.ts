@@ -23,6 +23,22 @@ function walk(dir: string, out: string[] = []): string[] {
 
 const ROOT = process.cwd()
 
+/**
+ * 파일을 읽되 **CRLF 를 LF 로 정규화**한다.
+ *
+ * 왜 한 곳으로 모으나 (2026-07-31): 이 파일의 규칙 다수가 개행을 직접 다룬다 —
+ * `split('\n')` 으로 줄번호를 세고, 규칙14 는 `/^ {6}(\w+): \{\n {8}Row/` 로
+ * types.ts 를 파싱한다. Windows 에서 **새로 체크아웃하면** git 이 CRLF 로 쓰므로
+ * 그 정규식이 하나도 안 맞는다 — 규칙14 는 테이블 0개를 읽고 자기 가드에 걸려
+ * 터졌다(다른 워크트리에서 실제로 그렇게 죽어 있었다).
+ *
+ * 내 작업 트리는 어쩌다 LF 라서 초록이었다. 즉 **나한테만 도는 규칙**이었다.
+ * 규칙마다 정규식을 CRLF 로 고치면 다음에 추가하는 규칙이 또 샌다 — 입구를 막는다.
+ */
+function read(path: string): string {
+  return readFileSync(path, 'utf8').replace(/\r\n/g, '\n')
+}
+
 /** 저장소 상대 경로 (슬래시 통일) — 비교·메시지용. */
 function rel(file: string): string {
   return file.replace(ROOT, '').replace(/\\/g, '/').replace(/^\//, '')
@@ -50,7 +66,7 @@ const CYCLE_ORDER_ALLOWED: Array<{ file: string; why: string }> = [
 test('★ 규칙6: dog_formulas 에서 "최신 하나"를 회차 번호로 고르지 않는다', () => {
   const offenders: string[] = []
   for (const file of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'lib')))) {
-    const src = readFileSync(file, 'utf8')
+    const src = read(file)
     if (!src.includes('dog_formulas')) continue
     const r = rel(file)
     if (CYCLE_ORDER_ALLOWED.some((a) => r.endsWith(a.file))) continue
@@ -79,10 +95,8 @@ test('★ 규칙6: dog_formulas 에서 "최신 하나"를 회차 번호로 고�
 })
 
 test('★ 규칙5: 청구액 가드는 알림 전용 — 금액을 바꾸거나 막지 않는다', () => {
-  const src = readFileSync(
-    join(ROOT, 'lib/payments/charge-amount-guard.ts'),
-    'utf8',
-  )
+  const src = read(
+    join(ROOT, 'lib/payments/charge-amount-guard.ts'))
   // 옛 설계의 흔적이 돌아오면 저청구(min)·정상고객 차단(refuse)이 함께 돌아온다.
   assert.equal(
     /verdict:\s*'refuse'/.test(src),
@@ -107,7 +121,7 @@ test('★ 규칙1: 결제 경로의 Supabase update 는 error 를 꺼낸다', ()
   ]
   const offenders: string[] = []
   for (const t of targets) {
-    const src = readFileSync(join(ROOT, t), 'utf8')
+    const src = read(join(ROOT, t))
     const re =
       /const\s*\{\s*data:\s*\w+\s*\}\s*=\s*await\s+supabase[\s\S]{0,200}?\.update\(/g
     for (const m of src.matchAll(re)) {
@@ -126,7 +140,7 @@ test('★ 규칙1: 결제 경로의 Supabase update 는 error 를 꺼낸다', ()
 test('★ 규칙7: vercel.json 크론은 전부 하루 1회 이하', () => {
   // 넘으면 Vercel 이 요금 한도로 **빌드 시작을 거부**한다. Vercel 쪽에 배포 기록이
   // 아예 안 생겨서 진단이 어렵다(2026-07-30 실제로 겪음 — 커밋 3개가 조용히 미반영).
-  const cfg = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8')) as {
+  const cfg = JSON.parse(read(join(ROOT, 'vercel.json'))) as {
     crons: Array<{ path: string; schedule: string }>
   }
   const tooOften = cfg.crons.filter((c) => {
@@ -159,7 +173,7 @@ test('★ 규칙14: .select() 가 없는 컬럼을 부르지 않는다', () => {
    * error 를 안 받아서 "데이터 없음"처럼 보였다.
    * 생성된 타입(lib/supabase/types.ts)을 스키마 정본으로 삼아 대조한다.
    */
-  const typesSrc = readFileSync(join(ROOT, 'lib/supabase/types.ts'), 'utf8')
+  const typesSrc = read(join(ROOT, 'lib/supabase/types.ts'))
 
   // types.ts 에서 테이블별 Row 키를 뽑는다.
   const tableCols = new Map<string, Set<string>>()
@@ -179,7 +193,7 @@ test('★ 규칙14: .select() 가 없는 컬럼을 부르지 않는다', () => {
   for (const file of walk(join(ROOT, 'app'))
     .concat(walk(join(ROOT, 'lib')))
     .concat(walk(join(ROOT, 'components')))) {
-    const src = readFileSync(file, 'utf8')
+    const src = read(file)
     const re = /\.from\(\s*'(\w+)'\s*\)\s*\n?\s*\.select\(\s*([`'"])([\s\S]*?)\2/g
     for (const m of src.matchAll(re)) {
       const table = m[1]!
@@ -212,7 +226,7 @@ test('★ 규칙14: .select() 가 없는 컬럼을 부르지 않는다', () => {
   for (const file of walk(join(ROOT, 'app'))
     .concat(walk(join(ROOT, 'lib')))
     .concat(walk(join(ROOT, 'components')))) {
-    const src = readFileSync(file, 'utf8')
+    const src = read(file)
     for (const m of src.matchAll(/\.from\(\s*'(\w+)'\s*\)([\s\S]{0,900})/g)) {
       const known = tableCols.get(m[1]!)
       if (!known) continue
@@ -258,7 +272,7 @@ test('★ 규칙16: 메일 링크는 앱 전용 경로를 가리키지 않는다
    * 앱 전용 목록은 **proxy.ts 를 실제로 읽어** 대조한다. 손으로 적으면 목록이
    * 바뀔 때 조용히 낡는다(오늘 /mypage/delete 를 그 목록에서 뺐다).
    */
-  const proxy = readFileSync(join(ROOT, 'proxy.ts'), 'utf8')
+  const proxy = read(join(ROOT, 'proxy.ts'))
   const block = /APP_ONLY_PREFIXES[^=]*=\s*\[([\s\S]*?)\n\]/.exec(proxy)
   assert.ok(block?.[1], 'proxy.ts 에서 APP_ONLY_PREFIXES 를 못 찾았다')
   const appOnly = [...block[1].matchAll(/'([^']+)'/g)].map((m) => m[1]!)
@@ -287,7 +301,7 @@ test('★ 규칙16: 메일 링크는 앱 전용 경로를 가리키지 않는다
 
   const offenders: string[] = []
   for (const file of walk(join(ROOT, 'lib/email'))) {
-    const src = readFileSync(file, 'utf8')
+    const src = read(file)
     const lines = src.split('\n')
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i] ?? ''
@@ -335,7 +349,7 @@ test('★ 규칙15: 잠긴 표(orders)를 쿠키 클라이언트로 쓰지 않�
   for (const file of walk(join(ROOT, 'app'))
     .concat(walk(join(ROOT, 'lib')))
     .concat(walk(join(ROOT, 'components')))) {
-    const src = readFileSync(file, 'utf8')
+    const src = read(file)
     if (!src.includes("from('orders')")) continue
     const re = /(\w+)\s*\n?\s*\)?\s*\.from\(\s*'orders'\s*\)\s*\.(update|delete|upsert)\(/g
     for (const m of src.matchAll(re)) {
@@ -404,7 +418,7 @@ test('★ 규칙13: 화이트리스트 밖 칸을 쓰는 UPDATE 는 service_role
   for (const file of walk(join(ROOT, 'app'))
     .concat(walk(join(ROOT, 'components')))
     .concat(walk(join(ROOT, 'lib')))) {
-    const src = readFileSync(file, 'utf8')
+    const src = read(file)
     if (!src.includes("from('subscriptions')")) continue
     // 파일이 admin 클라이언트를 아예 안 만들면, 그 파일의 모든 쓰기는
     // 로그인 클라이언트다 — 화이트리스트 밖 칸을 쓰면 실패한다.
@@ -440,7 +454,7 @@ test('★ 규칙12: 구독은 클라이언트가 만들지 않는다 (금액을 
   for (const file of walk(join(ROOT, 'app')).concat(
     walk(join(ROOT, 'components')),
   )) {
-    const src = readFileSync(file, 'utf8')
+    const src = read(file)
     if (!src.startsWith("'use client'")) continue
     const lines = src.split('\n')
     for (let i = 0; i < lines.length; i++) {
@@ -469,7 +483,7 @@ test('★ 규칙11: 금액 합산은 boxPricing 밖에서 하지 않는다', () 
   for (const file of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'lib')))) {
     const r = rel(file)
     if (r.endsWith('lib/personalization/boxPricing.ts')) continue
-    const src = readFileSync(file, 'utf8')
+    const src = read(file)
     const lines = src.split('\n')
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i] ?? ''
@@ -490,7 +504,7 @@ test('★ 규칙8: lib/push.ts 는 service_role 클라이언트를 쓴다', () =
   // 쿠키 클라이언트로 돌아가면 크론에서 auth.uid() 가 NULL 이 되고, 관련 4개
   // 테이블이 전부 self-only RLS 라서 **모든 조회가 0행** → 알림이 한 건도 나가지
   // 않으면서 크론은 성공으로 집계된다. 실제로 그 상태였다(2026-07-30).
-  const src = readFileSync(join(ROOT, 'lib/push.ts'), 'utf8')
+  const src = read(join(ROOT, 'lib/push.ts'))
   assert.equal(
     src.includes('createAdminClient'),
     true,
@@ -508,7 +522,7 @@ test('★ 규칙9: 푸시를 보내는 크론은 조용시간(KST 22–08)에 �
   // 그 즉시 **정당하게 차단**된다("고객이 껐으니 안 보낸 것"). 두 문제는 반드시
   // 같이 고쳐야 한다 — 하나만 고치면 조용한 실패가 정당화되기만 한다.
   // 조용시간 기본값은 설정 화면 토글이 넣는 22→8 (PreferencesPanel).
-  const cfg = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8')) as {
+  const cfg = JSON.parse(read(join(ROOT, 'vercel.json'))) as {
     crons: Array<{ path: string; schedule: string }>
   }
   const offenders: string[] = []
@@ -516,7 +530,7 @@ test('★ 규칙9: 푸시를 보내는 크론은 조용시간(KST 22–08)에 �
     const name = c.path.replace('/api/cron/', '')
     let src: string
     try {
-      src = readFileSync(join(ROOT, 'app/api/cron', name, 'route.ts'), 'utf8')
+      src = read(join(ROOT, 'app/api/cron', name, 'route.ts'))
     } catch {
       continue
     }
@@ -552,7 +566,7 @@ test('★ 규칙3: subscriptions 금액·빌링 칸을 클라이언트가 UPDATE
   for (const file of walk(join(ROOT, 'app')).concat(
     walk(join(ROOT, 'components')),
   )) {
-    const src = readFileSync(file, 'utf8')
+    const src = read(file)
     if (!src.startsWith("'use client'")) continue
     if (!src.includes("from('subscriptions')")) continue
     for (const m of src.matchAll(/\.update\(\s*\{([\s\S]{0,600}?)\}\s*\)/g)) {

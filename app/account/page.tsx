@@ -9,6 +9,7 @@ import {
   Activity,
   Smartphone,
   UserCog,
+  BellRing,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
@@ -139,6 +140,14 @@ export default async function AccountPage() {
       icon: UserCog,
       label: '내 프로필',
       description: '이름·연락처',
+    },
+    // 메일 푸터의 수신거부 링크가 여기로 온다(2026-07-31) — 허브에서도 찾을 수
+    // 있어야 "메일에서만 갈 수 있는 페이지" 가 되지 않는다.
+    {
+      href: '/account/notifications',
+      icon: BellRing,
+      label: '알림 · 수신 설정',
+      description: '광고·마케팅 정보 수신 여부',
     },
   ]
 
