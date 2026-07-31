@@ -5,17 +5,7 @@ import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { dbError } from '@/lib/api/errors'
 import type { Formula } from '@/lib/personalization/types'
-import { LINE_TO_SLUG, TOPPER_TO_SLUG } from '@/lib/personalization/skuMap'
-import {
-  computeBoxItems,
-  priceForFormula,
-  subscribableItems,
-} from '@/lib/personalization/boxPricing'
-import {
-  subscriptionItemRows,
-  type ItemProduct,
-  type SubscriptionItemRow,
-} from '@/lib/personalization/subscriptionItems'
+import type { SubscriptionItemRow } from '@/lib/personalization/subscriptionItems'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 
@@ -26,6 +16,7 @@ type ApprovedBox = {
   itemRows: SubscriptionItemRow[]
 }
 import { subscriptionState, type SubLike } from '@/lib/subscription-state'
+import { quoteBox } from '@/lib/subscription/boxQuote'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -345,46 +336,18 @@ async function boxForApproved(
   if (subscriptionState(sub) !== 'active') return null
   if (sub.fresh_ratio == null || sub.fresh_ratio <= 0) return null
 
-  const allSlugs = [
-    ...Object.values(LINE_TO_SLUG).filter((s): s is string => s !== null),
-    ...Object.values(TOPPER_TO_SLUG),
-  ]
-  // id·name·image_url 을 함께 받는다 — subscription_items 행을 다시 만들 때 쓴다.
-  const { data: prodList, error: prodErr } = await supabase
-    .from('products')
-    .select(
-      'id, name, image_url, slug, price, sale_price, stock, is_subscribable, nutrition_facts',
-    )
-    .in('slug', allSlugs)
-    .eq('is_active', true)
-  if (prodErr) {
-    console.error('[personalization/approve] 제품 조회 실패:', prodErr.message)
-    return null
-  }
-  const products: Record<string, ItemProduct> = {}
-  for (const p of ((prodList ?? []) as unknown) as ItemProduct[]) {
-    products[p.slug] = p
-  }
-  if (Object.keys(products).length === 0) return null
-
-  const input = {
-    formula: {
-      lineRatios: row.formula.lineRatios,
-      toppers: row.formula.toppers,
-      dailyKcal: row.daily_kcal,
-    },
+  // ★ 계산은 공용 헬퍼로 (2026-07-31). 화식 비율 변경 라우트가 **같은 계산**을
+  //   비율만 바꿔서 쓴다 — 복사하면 금액을 만드는 곳이 둘이 된다.
+  const quote = await quoteBox(supabase, {
+    subscriptionId: sub.id,
+    formula: row.formula,
+    dailyKcal: row.daily_kcal,
     freshRatio: sub.fresh_ratio,
-    products,
-  }
-  const { total } = priceForFormula(input)
-  // 0원/음수가 나오면 계산이 깨진 것 — 청구액을 망가뜨리느니 그대로 둔다.
-  if (!(total > 0)) return null
-
-  // 같은 입력으로 품목도 만든다 — 금액과 내용물이 같은 계산에서 나와야 한다.
-  const items = subscribableItems(computeBoxItems(input))
+  })
+  if (!quote) return null
   return {
     subscriptionId: sub.id,
-    total,
-    itemRows: subscriptionItemRows(sub.id, items),
+    total: quote.total,
+    itemRows: quote.itemRows,
   }
 }

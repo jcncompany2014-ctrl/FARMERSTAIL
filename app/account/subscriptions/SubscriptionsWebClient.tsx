@@ -44,6 +44,7 @@ import {
   type SubState,
 } from '@/lib/subscription-state'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
+import FreshRatioSheet from '@/components/subscription/FreshRatioSheet'
 import PriceChangeConsentModal, {
   type PriceChangeProposal,
 } from './PriceChangeConsentModal'
@@ -88,6 +89,8 @@ export default function SubscriptionsWebClient({
   const [subs, setSubs] = useState<Subscription[]>(initialSubs)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [cancelSubId, setCancelSubId] = useState<string | null>(null)
+  // 화식 비율 변경 시트 (2026-07-31 신설) — 열려 있는 구독 id.
+  const [ratioSubId, setRatioSubId] = useState<string | null>(null)
 
   // focus=id 진입 시 해당 카드로 스크롤 + 잠깐 하이라이트
   useEffect(() => {
@@ -594,6 +597,21 @@ export default function SubscriptionsWebClient({
                     다시 시작
                   </button>
                 )}
+                {/* 화식 비율 변경 (2026-07-31 신설) — 예전엔 신청할 때 고른 값을
+                    영영 못 바꿔서, 올리고 싶은 사람도 낮추고 싶은 사람도
+                    '해지 후 재신청' 말고는 길이 없었다(실제로는 그냥 해지로 끝난다). */}
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => setRatioSubId(sub.id)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
+                  style={{
+                    color: 'var(--fd-pine)',
+                    boxShadow: 'inset 0 0 0 1px var(--fd-line)',
+                  }}
+                >
+                  화식 비율
+                </button>
                 <button
                   type="button"
                   disabled={isLoading}
@@ -608,6 +626,31 @@ export default function SubscriptionsWebClient({
           </div>
         )
       })}
+
+      {/* 화식 비율 변경 — 금액이 함께 바뀌므로 시트가 세 티어 금액을 다 보여준다.
+          계산·저장은 전부 서버(/api/subscriptions/[id]/fresh-ratio). */}
+      {ratioSubId && (
+        <div
+          className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-4 md:pb-0"
+          style={{ background: 'rgba(0,0,0,0.35)' }}
+          onClick={() => setRatioSubId(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-[var(--fd-r-sheet,18px)] p-5"
+            style={{ background: '#FFFFFF' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <FreshRatioSheet
+              subscriptionId={ratioSubId}
+              onClose={() => setRatioSubId(null)}
+              onChanged={() => {
+                toast.success('화식 비율을 바꿨어요')
+                void reload()
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* 해지 확인 모달 */}
       {cancelSubId && (
