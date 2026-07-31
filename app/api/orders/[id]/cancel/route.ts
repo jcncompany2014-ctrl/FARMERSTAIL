@@ -10,7 +10,11 @@ import { cancelPayment } from '@/lib/payments/toss'
 import { notifyOrderCancelled } from '@/lib/email'
 import { zOrderCancel } from '@/lib/api/schemas'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
-import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
+import {
+  tagSentryUser,
+  tagSentryRoute,
+  captureBusinessEvent,
+} from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -164,7 +168,21 @@ export async function POST(
   //   에 .eq('payment_status', order.payment_status) 가드 추가하고 0-row 면 bail.
   const nowIso = new Date().toISOString()
   const refundAmount = order.payment_status === 'paid' ? order.total_amount : 0
-  const { data: cancelRows } = await supabase
+  /**
+   * ★★ 쓰기는 service_role 로, 그리고 **error 를 반드시 가른다** (2026-07-31).
+   *
+   * 예전엔 쿠키 클라이언트로 쓰고 `const { data: cancelRows }` 로 error 를
+   * 버렸다. 그래서 UPDATE 가 실패하면 cancelRows 가 null 이 되어 아래
+   * "이미 처리된 주문이에요"(409) 분기로 빠졌다 — **토스 환불은 이미 성공한
+   * 뒤다.** 즉 돈은 돌려주고 주문은 결제완료로 남으며, 고객에게는 엉뚱한
+   * 안내가 나간다. 우리 장부와 토스 장부가 갈라지고 아무도 모른다.
+   *
+   * 게다가 `orders` 는 20260731000000 에서 컬럼 UPDATE 권한을 회수했으므로
+   * 쿠키 클라이언트로는 **이제 반드시 실패**한다. 본인 주문 검증은 위(:74~)에서
+   * 이미 끝났고, 그 검증이 범위를 책임진다.
+   */
+  const admin = createAdminClient()
+  const { data: cancelRows, error: cancelErr } = await admin
     .from('orders')
     .update({
       payment_status: 'cancelled',
@@ -177,6 +195,28 @@ export async function POST(
     .eq('user_id', user.id)
     .eq('payment_status', order.payment_status)
     .select('id')
+
+  if (cancelErr) {
+    /**
+     * ★ 실패를 '이미 처리됨'으로 말하지 않는다. 환불은 이미 나갔으므로 이건
+     * **사람이 즉시 봐야 하는** 상태다 — 우리 주문은 결제완료로 남아 있고
+     * 고객 돈은 돌아갔다.
+     */
+    captureBusinessEvent('error', 'order.cancel.db_update_failed', {
+      orderId: order.id,
+      userId: user.id,
+      refundAmount,
+      dbError: cancelErr.message,
+    })
+    return NextResponse.json(
+      {
+        code: 'CANCEL_SAVE_FAILED',
+        message:
+          '결제 취소는 됐는데 주문 상태 저장에 실패했어요. 고객센터로 알려주시면 바로 정리해 드릴게요.',
+      },
+      { status: 500 },
+    )
+  }
 
   if (!cancelRows || cancelRows.length === 0) {
     // 다른 요청 (더블클릭 두 번째 / admin cancel / cron expire) 이 이미 처리.
@@ -192,7 +232,15 @@ export async function POST(
   // R60 — 결제 원장 event. 환불은 음수 amount (sum=0 = 완전 환불).
   {
     const { recordPaymentEvent } = await import('@/lib/payment-events')
-    await recordPaymentEvent(supabase, {
+    /**
+     * ★ admin 으로 기록한다 (2026-07-31). `payment_events` 는 RLS 가 켜져 있고
+     * **authenticated INSERT 정책이 없다**(lib/payment-events.ts 주석이 그렇게
+     * 명시한다: "service_role 만 INSERT"). 쿠키 클라이언트로 넘기면 insert 가
+     * 거부되고, 이 함수는 best-effort 라 반환값도 버려져 **환불이 결제 원장에
+     * 한 줄도 안 남았다** — SUM(amount)=0 으로 완전 환불을 검증하는 구조인데
+     * 그 검증이 성립하지 않는다.
+     */
+    const ledger = await recordPaymentEvent(admin, {
       orderId: order.id,
       paymentKey: order.payment_key ?? null,
       eventType: refundAmount > 0 ? 'refunded' : 'cancel_requested',
@@ -203,12 +251,22 @@ export async function POST(
       actorUserId: user.id,
       metadata: { reason: body.reason || '고객 요청' },
     })
+    if (!ledger.ok) {
+      // 원장은 best-effort 라 흐름을 막지 않는다(환불·주문 상태는 이미 정리됐다).
+      // 다만 조용히 넘기지 않는다 — SUM(amount)=0 으로 완전 환불을 검증하는
+      // 구조라, 한 줄이 빠지면 그 검증이 영영 성립하지 않는다.
+      captureBusinessEvent('error', 'order.cancel.ledger_write_failed', {
+        orderId: order.id,
+        userId: user.id,
+        refundAmount,
+        reason: ledger.reason,
+      })
+    }
   }
 
   // 2b) 항목 단위 cancelled_at 마킹 + stock 복원 + refunds audit row.
   // RLS 우회 필요 작업 (stock RPC + refunds insert) 은 admin client.
   // 본인 주문 검증은 위에서 이미 완료.
-  const admin = createAdminClient()
   const { data: items } = await admin
     .from('order_items')
     .select('id, product_id, quantity, line_total')

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { isAdmin } from '@/lib/auth/admin'
 import { dbError } from '@/lib/api/errors'
@@ -172,9 +173,18 @@ export async function POST(
     // 되돌리기(shipping → preparing)는 드물지만 허용. 발송 타임스탬프는 남겨 둡니다.
   }
 
-  // audit #79: orders update payload schema-drift cast.
+  /**
+   * ★ 쓰기는 service_role 로 (2026-07-31).
+   *
+   * `orders` 는 결제 원장이라 컬럼 UPDATE 권한을 회수했다(20260731000000).
+   * 이 라우트는 쿠키 클라이언트를 쓰고 있어서, 회수 후에는 order_status·
+   * shipped_at·carrier 같은 칸을 못 써 **관리자 주문 상태 변경이 통째로
+   * 죽는다** — 권한을 잠글 때 그 칸을 쓰던 코드가 조용히 죽는 것이 오늘 실제로
+   * 겪은 사고다(카드 등록이 그렇게 죽어 있었다).
+   * 관리자 인증은 위(:64~)에서 이미 끝났고, RLS 대신 그 검증이 범위를 책임진다.
+   */
   const { error: updateError } = await (
-    supabase as unknown as {
+    createAdminClient() as unknown as {
       from: (t: string) => {
         update: (r: Record<string, unknown>) => {
           eq: (c: string, v: string) => Promise<{ error: { message?: string } | null }>

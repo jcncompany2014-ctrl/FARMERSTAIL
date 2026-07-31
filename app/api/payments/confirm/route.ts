@@ -44,6 +44,16 @@ export async function POST(req: Request) {
   const { paymentKey, orderId, amount } = parsed.data
 
   const supabase = await createClient()
+  /**
+   * ★ `orders` 쓰기는 service_role 로 (2026-07-31).
+   * 20260731000000 이 orders 의 컬럼 UPDATE 권한을 회수했다 — 결제 원장을
+   * 고객이 직접 못 고치게 하기 위해서다. 이 라우트는 쿠키 클라이언트로
+   * payment_status·paid_at·payment_key 를 쓰고 있었으므로 그대로 두면
+   * **결제 승인 저장이 통째로 실패**한다(권한을 잠글 때 그 칸을 쓰던 코드가
+   * 조용히 죽는 사고를 오늘 카드 등록에서 이미 겪었다 — 규칙13).
+   * 주문 소유권은 아래 조회가 user_id 로 검증한다.
+   */
+  const ordersAdmin = createAdminClient()
   const rl = await rateLimitDB({
     supabase,
     bucket: 'payments-confirm',
@@ -177,10 +187,18 @@ export async function POST(req: Request) {
   if (!result.ok) {
     const prevStatus = order.payment_status
     // 승인 실패 → 주문 상태 failed로
-    await supabase
+    const { error: failErr } = await ordersAdmin
       .from('orders')
       .update({ payment_status: 'failed' })
       .eq('id', order.id)
+    if (failErr) {
+      // 승인 실패를 기록조차 못 하면 주문이 pending 으로 남아 만료 크론이
+      // 다시 건드린다 — 조용히 넘기지 않는다.
+      captureBusinessEvent('error', 'payment.confirm.mark_failed_failed', {
+        orderId: order.id,
+        dbError: failErr.message,
+      })
+    }
 
     // R60 결제 원장 — 사용자 체크아웃 단계 실패도 ledger 기록.
     // 환불/조정 시 추적 가능. amount=0 (실제 청구 안 됨).
@@ -236,7 +254,7 @@ export async function POST(req: Request) {
   // (status='cancelled' + 재고 복원 + 쿠폰 revoke + 포인트 환급) → 그 후
   // confirm 이 도착해 'paid' 로 덮어씀 → 결제 + 환불 동시 상태 → 고객은 돈도
   // 내고 환불도 받음. .eq + .select() 로 0-row 감지 시 자동 환불.
-  const { data: updateRows, error: updateError } = await supabase
+  const { data: updateRows, error: updateError } = await ordersAdmin
     .from('orders')
     .update({
       payment_status: isActuallyPaid ? 'paid' : 'pending',

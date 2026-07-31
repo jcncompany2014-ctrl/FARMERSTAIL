@@ -240,6 +240,70 @@ test('★ 규칙14: .select() 가 없는 컬럼을 부르지 않는다', () => {
   )
 })
 
+test('★ 규칙15: 잠긴 표(orders)를 쿠키 클라이언트로 쓰지 않는다', () => {
+  /**
+   * 2026-07-31 — `orders` 의 컬럼 UPDATE 권한을 회수했다(20260731000000).
+   * 그 순간, 쿠키 클라이언트로 orders 를 쓰던 코드는 **전부 조용히 죽는다**:
+   *  · `/api/payments/confirm` — 결제 승인 저장
+   *  · `/api/orders/[id]/cancel` — 취소·환불 후 주문 상태
+   *  · `/api/admin/orders/[id]/status` — 관리자 배송 상태 변경
+   * 같은 날 카드 등록이 정확히 그렇게 죽어 있었다(규칙13). 잠금과 호출부는
+   * 반드시 같이 본다 — 그래서 표 단위로도 한 번 더 건다.
+   *
+   * ★ 판정은 **수신자 변수**로 한다. 처음엔 "파일에 createAdminClient 가 있으면
+   * 통과"로 썼는데, 검산해 보니 **오늘 찾은 버그를 하나도 못 잡았다** —
+   * confirm·cancel 둘 다 다른 용도로 admin 을 이미 import 하고 있었고, 문제는
+   * orders 를 쓰는 그 한 줄이 `supabase`(쿠키)였다는 것이다.
+   * 그래서 `X.from('orders').update(` 의 X 가 createAdminClient 에서 왔는지를 본다.
+   */
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app'))
+    .concat(walk(join(ROOT, 'lib')))
+    .concat(walk(join(ROOT, 'components')))) {
+    const src = readFileSync(file, 'utf8')
+    if (!src.includes("from('orders')")) continue
+    const re = /(\w+)\s*\n?\s*\)?\s*\.from\(\s*'orders'\s*\)\s*\.(update|delete|upsert)\(/g
+    for (const m of src.matchAll(re)) {
+      const recv = m[1]!
+      const line = src.slice(0, m.index ?? 0).split('\n').length
+      const lineText = src.split('\n')[line - 1] ?? ''
+      // 주석·docstring 안의 예시는 제외.
+      if (/^\s*(\*|\/\/)/.test(lineText)) continue
+      /**
+       * 수신자가 admin 에서 왔나. **한 단계 캐스팅까지 따라간다** —
+       * 이 저장소는 스키마 드리프트 때문에
+       * `const untyped = supabase as unknown as {...}` 패턴을 자주 쓴다.
+       * 그걸 못 따라가면 admin 인데도 오탐으로 잡힌다(실제로 그랬다).
+       */
+      const resolve = (name: string, depth = 0): boolean => {
+        if (name === 'admin') return true
+        if (depth > 2) return false
+        if (
+          new RegExp(
+            `(const|let)\\s+${name}\\s*=[\\s\\S]{0,120}?createAdminClient`,
+          ).test(src)
+        ) {
+          return true
+        }
+        // `const X = Y as unknown as ...` → Y 를 따라간다.
+        const alias = new RegExp(
+          `(?:const|let)\\s+${name}\\s*=\\s*\\(?\\s*(\\w+)\\s+as\\s+unknown`,
+        ).exec(src)
+        return alias?.[1] ? resolve(alias[1], depth + 1) : false
+      }
+      if (!resolve(recv)) {
+        offenders.push(`${rel(file)}:${line} :: ${recv}.from('orders').${m[2]}`)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'orders 는 컬럼 UPDATE 권한이 회수돼 있다 — service_role 로만 쓸 수 있다. ' +
+      '쿠키 클라이언트로 쓰면 권한 오류로 조용히 실패한다.\n' + offenders.join('\n'),
+  )
+})
+
 test('★ 규칙13: 화이트리스트 밖 칸을 쓰는 UPDATE 는 service_role 로 한다', () => {
   /**
    * 2026-07-31 — 이 규칙이 없어서 **프로덕션 카드 등록이 조용히 죽어 있었다.**
