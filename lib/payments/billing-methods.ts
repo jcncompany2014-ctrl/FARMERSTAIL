@@ -115,7 +115,22 @@ export type BillingMethodFlags = { tosspay: boolean }
  * 토스 상점 설정이 확인된 뒤에 켠다(위 docstring 의 '플래그' 절 참조).
  */
 export function billingMethodFlags(): BillingMethodFlags {
-  return { tosspay: process.env.NEXT_PUBLIC_TOSSPAY_BILLING === 'on' }
+  /**
+   * ★ 2026-07-31 — 사장님 지시로 **기본 켜짐**으로 되돌렸다.
+   *   "걍 켜. 어차피 실 고객들이 보기 전까지는 나만 계속 보면서 운영할 거니까."
+   *
+   * 즉 지금은 **출시 전이라 감수하는 노출**이다. 토스가 아직
+   * "토스페이 자동결제 결제수단 설정이 없습니다" 로 거절하므로, 실제로 누르면
+   * 실패한다. 사장님이 화면을 계속 보시려면 켜져 있어야 해서 켠 것이고,
+   * **실 고객이 들어오기 전에 둘 중 하나를 반드시 해야 한다:**
+   *   ① 토스가 상점 설정을 해 줬다 → 폰으로 1회 등록해 확인하고 그대로 둔다
+   *   ② 아직이다 → `NEXT_PUBLIC_TOSSPAY_BILLING=off` 로 끈다
+   * 이 확인은 `lib/audit-rules.test.ts` 규칙23 과 PAYMENT_REHEARSAL.md §1-B 가
+   * 함께 붙잡는다 — 코드에만 적으면 출시 날 잊는다.
+   *
+   * `off` 를 명시하면 언제든 끌 수 있다(코드 수정 없이 환경변수 한 줄).
+   */
+  return { tosspay: process.env.NEXT_PUBLIC_TOSSPAY_BILLING !== 'off' }
 }
 
 /** 지금 고객에게 보여줄 수단들. 카드는 항상 포함된다. */

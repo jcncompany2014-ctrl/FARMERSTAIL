@@ -20,19 +20,25 @@ import {
 const OFF = { tosspay: false }
 const ON = { tosspay: true }
 
-test('★ 환경변수가 없으면 토스페이는 꺼져 있다 (기본 꺼짐)', () => {
-  // 2026-07-30 실기기: 토스가 "토스페이 자동결제 결제수단 설정이 없습니다" 로
-  // 거절했다. 상점 설정이 되기 전에 노출하면 고객이 누르는 순간 실패한다 —
-  // **작동하지 않는 걸 보여주는 쪽이 훨씬 나쁘다**. 그래서 옵트인이 정상 상태.
+test('★ 지금은 기본 켜짐 — 출시 전 확인이 필요한 상태다', () => {
+  /**
+   * 2026-07-30 에는 기본 꺼짐이었다. 토스가 "토스페이 자동결제 결제수단 설정이
+   * 없습니다" 로 거절해서, 작동하지 않는 걸 노출하지 않으려고 옵트인으로 뒀다.
+   *
+   * 2026-07-31 사장님 지시로 **기본 켜짐**으로 되돌렸다 — "걍 켜. 어차피 실
+   * 고객들이 보기 전까지는 나만 계속 보면서 운영할 거니까." 즉 **출시 전이라
+   * 감수하는 노출**이고, 실 고객이 들어오기 전에 토스 설정 확인 또는 끄기가
+   * 필요하다. 그 확인을 잊지 않게 audit-rules 규칙23 이 체크리스트와 묶는다.
+   */
   delete process.env.NEXT_PUBLIC_TOSSPAY_BILLING
-  assert.deepEqual(billingMethodFlags(), { tosspay: false })
+  assert.deepEqual(billingMethodFlags(), { tosspay: true })
 })
 
-test("'on' 을 명시하면 켜진다 (토스 설정 확인 후)", () => {
-  process.env.NEXT_PUBLIC_TOSSPAY_BILLING = 'on'
-  assert.deepEqual(billingMethodFlags(), { tosspay: true })
+test("★ 'off' 를 명시하면 꺼진다 — 출시 전 끄는 길(코드 수정 불필요)", () => {
   process.env.NEXT_PUBLIC_TOSSPAY_BILLING = 'off'
   assert.deepEqual(billingMethodFlags(), { tosspay: false })
+  process.env.NEXT_PUBLIC_TOSSPAY_BILLING = 'on'
+  assert.deepEqual(billingMethodFlags(), { tosspay: true })
   delete process.env.NEXT_PUBLIC_TOSSPAY_BILLING
 })
 
