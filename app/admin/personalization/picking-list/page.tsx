@@ -81,6 +81,9 @@ type PickProduct = {
   is_subscribable: boolean | null
 }
 
+/** 판매중지분까지 포함 — 빠진 이유를 말해 주기 위한 조회에만 쓴다. */
+type PickProductAll = PickProduct & { is_active: boolean | null }
+
 /** 오늘 포함 다가오는 화요일(발송일). ?date= 없을 때 기본값. */
 function upcomingShipDate(): string {
   const today = todayKstIsoDate()
@@ -125,8 +128,12 @@ export default async function PickingListPage({
     ...Object.values(LINE_TO_SLUG).filter((s): s is string => s !== null),
     ...Object.values(TOPPER_TO_SLUG),
   ]
-  const [{ data: dogsRaw }, { data: formulasRaw }, { data: prodRaw }] =
-    await Promise.all([
+  const [
+    { data: dogsRaw },
+    { data: formulasRaw },
+    { data: prodRaw },
+    { data: prodAllRaw },
+  ] = await Promise.all([
       dogIds.length
         ? supabase.from('dogs').select('id, name').in('id', dogIds)
         : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
@@ -150,6 +157,25 @@ export default async function PickingListPage({
         .select('slug, name, price, sale_price, stock, is_subscribable')
         .in('slug', allSlugs)
         .eq('is_active', true),
+      /**
+       * ★ 같은 슬러그를 **필터 없이** 한 번 더 읽는다 (2026-07-31).
+       *
+       * 포장 대상은 위 조회(is_active=true)가 그대로 정한다 — 무엇을 담을지는
+       * 안 바뀐다. 이건 **무엇이 빠졌는지 설명하기 위한** 조회다.
+       *
+       * 왜 필요한가: 팩 구성은 `computeBoxItems` → `subscribableItems` 를 거치는데
+       * 그 두 단계가 **말없이 버린다** — 판매중지(products 조회에서 탈락하여
+       * `if (!product) continue`, boxPricing:189)거나 재고 0·구독불가면
+       * `subscribableItems`(:259)가 걸러낸다. 그래서 레시피가 3종을 부르는데
+       * 리스트엔 2종만 뜨고, 사장님은 **빠진 걸 모른 채 포장해서 보낸다.**
+       * 금액은 저장된 total_amount 로 그대로 청구되므로(규칙5) 고객은 제값을
+       * 내고 덜 받는다. 조용히 빠지는 게 문제지 빠지는 것 자체가 문제가 아니다 —
+       * 사람이 보고 판단할 수 있게 이름과 이유를 같이 띄운다.
+       */
+      supabase
+        .from('products')
+        .select('slug, name, price, sale_price, stock, is_subscribable, is_active')
+        .in('slug', allSlugs),
     ])
 
   const dogNames: Record<string, string> = {}
@@ -173,6 +199,22 @@ export default async function PickingListPage({
     products[p.slug] = p
   }
 
+  // 판매중지·재고0 까지 포함한 전체 — "무엇이 왜 빠졌는지" 설명 전용.
+  // 포장 대상(products)에는 넣지 않는다.
+  const productsAll: Record<string, PickProductAll> = {}
+  for (const p of ((prodAllRaw ?? []) as unknown) as PickProductAll[]) {
+    productsAll[p.slug] = p
+  }
+
+  /** 빠진 이유를 사람 말로. 순서가 곧 우선순위 — 판매중지가 재고보다 근본적이다. */
+  function missingReason(p: PickProductAll | undefined): string {
+    if (!p) return '상품 없음'
+    if (p.is_active === false) return '판매중지'
+    if ((p.stock ?? 0) <= 0) return '재고 0'
+    if (p.is_subscribable === false) return '구독 불가'
+    return '알 수 없음'
+  }
+
   // 3) 구독 → 팩 구성 (boxPricing 정본).
   const rows: PickingRow[] = subs.map((sub) => {
     const dogName = (sub.dog_id && dogNames[sub.dog_id]) || '(강아지 미상)'
@@ -180,17 +222,18 @@ export default async function PickingListPage({
     const freshRatio = sub.fresh_ratio ?? 100
 
     let packs: PickingRow['packs'] = []
+    let missing: PickingRow['missing'] = []
     if (f) {
+      const boxInput = {
+        formula: {
+          lineRatios: f.formula.lineRatios,
+          toppers: f.formula.toppers ?? { vegetable: 0, protein: 0 },
+          dailyKcal: f.daily_kcal,
+        },
+        freshRatio,
+      }
       const items = subscribableItems(
-        computeBoxItems({
-          formula: {
-            lineRatios: f.formula.lineRatios,
-            toppers: f.formula.toppers ?? { vegetable: 0, protein: 0 },
-            dailyKcal: f.daily_kcal,
-          },
-          freshRatio,
-          products,
-        }),
+        computeBoxItems({ ...boxInput, products }),
       )
       packs = items.map((it: BoxItem<PickProduct>) => ({
         name: it.product.name,
@@ -198,6 +241,30 @@ export default async function PickingListPage({
         count: it.quantity,
         totalG: it.deliveredG,
       }))
+
+      /**
+       * ★ 레시피가 부른 것과 실제 담기는 것을 대조한다 (2026-07-31).
+       *
+       * `computeBoxItems` 는 상품 행이 없으면 `continue`(boxPricing:189),
+       * `subscribableItems` 는 재고 0·구독불가를 `filter` 로 버린다(:259).
+       * 둘 다 **말없이** 버려서, 레시피가 3종을 부르는데 리스트엔 2종만 뜨고
+       * 사장님은 빠진 걸 모른 채 포장한다. 금액은 저장된 total_amount 로 그대로
+       * 나가므로(규칙5) 고객은 제값을 내고 덜 받는다.
+       *
+       * 같은 순수 함수를 **판매중지분까지 포함한 목록**으로 한 번 더 돌려서
+       * "원래 들어갔어야 할 것"을 만들고 차집합을 낸다. 비율 계산을 여기서
+       * 다시 짜지 않는 게 핵심이다 — 그러면 정본이 둘이 되어 조용히 갈라진다.
+       */
+      const intended = computeBoxItems({ ...boxInput, products: productsAll })
+      const packedSlugs = new Set(items.map((it) => it.product.slug))
+      missing = intended
+        .filter((it) => !packedSlugs.has(it.product.slug))
+        .map((it: BoxItem<PickProductAll>) => ({
+          name: it.product.name,
+          packG: it.packG,
+          count: it.quantity,
+          reason: missingReason(productsAll[it.product.slug]),
+        }))
     }
 
     return {
@@ -225,6 +292,7 @@ export default async function PickingListPage({
         sub.next_delivery_date != null && sub.next_delivery_date < shipDate,
       totalAmount: sub.total_amount,
       packs,
+      missing,
       boxTotalG: packs.reduce((s, p) => s + p.totalG, 0),
     }
   })
@@ -249,8 +317,17 @@ export default async function PickingListPage({
   // ★ 청구 불가도 '확인 필요' 다 — 예전엔 noFormula/overdue 만 세어서,
   //   결제되지 않을 박스가 아무 표시 없이 포장 대상에 섞였다(2026-07-31).
   const problemCount = rows.filter(
-    (r) => r.noFormula || r.overdue || r.cannotCharge,
+    (r) => r.noFormula || r.overdue || r.cannotCharge || r.missing.length > 0,
   ).length
+
+  /**
+   * 레시피가 부를 수 있는 슬러그인데 **products 에 행 자체가 없는** 것.
+   *
+   * 이건 행별 경고로 안 잡힌다 — 행이 없으면 `computeBoxItems` 가 '원래 담겼어야
+   * 할 것' 목록에도 못 넣기 때문이다(비교 대상 자체가 안 생긴다). 설정 문제라
+   * 드물지만, 나면 그 라인을 쓰는 **모든 박스**에서 한 종이 통째로 조용히 빠진다.
+   */
+  const unknownSlugs = allSlugs.filter((sl) => !productsAll[sl])
 
   const prevShip = addDaysKst(shipDate, -7)
   const nextShip = addDaysKst(shipDate, 7)
@@ -294,10 +371,26 @@ export default async function PickingListPage({
           label="확인 필요"
           value={problemCount}
           tone={problemCount > 0 ? 'red' : 'green'}
-          sub={problemCount > 0 ? '처방 없음·지연 청구' : '문제 없음'}
-          help="처방이 없거나(포장 불가) 청구가 밀린(카드 문제) 박스 수예요."
+          sub={problemCount > 0 ? '처방 없음·지연 청구·품절' : '문제 없음'}
+          help="처방이 없거나(포장 불가), 청구가 밀렸거나(카드 문제), 레시피 항목을 담을 수 없는(품절·판매중지) 박스 수예요."
         />
       </div>
+
+      {unknownSlugs.length > 0 && (
+        <AdminCard className="mb-6 border-red-300 bg-red-50">
+          <p className="text-[13px] font-bold text-red-800">
+            ⚠ 상품 등록이 빠진 레시피 항목이 있어요
+          </p>
+          <p className="mt-1 text-[12.5px] text-red-700">
+            아래 항목은 레시피가 부를 수 있는데 상품 목록에 없어요. 이 라인을 쓰는
+            <strong> 모든 박스에서 한 종이 통째로 빠진 채</strong> 포장됩니다 —
+            상품을 먼저 등록해 주세요.
+          </p>
+          <p className="mt-1.5 text-[12px] font-mono text-red-800">
+            {unknownSlugs.join(' · ')}
+          </p>
+        </AdminCard>
+      )}
 
       {/* 조리 합계 — 주방용. 제품별로 이날 만들 총량. */}
       {cookTotals.size > 0 && (
@@ -375,6 +468,29 @@ export default async function PickingListPage({
                   일어나지 않으니 <strong>이 박스는 보내지 마세요.</strong> 고객이
                   결제수단을 다시 등록하면 다음 회차부터 정상 발송됩니다.
                 </p>
+              )}
+
+              {/* ★ 조용히 빠진 항목을 드러낸다 (2026-07-31). 예전엔 그냥
+                  사라져서 3종 레시피가 2종으로 포장돼 나갔다 — 금액은 그대로. */}
+              {r.missing.length > 0 && (
+                <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-3">
+                  <p className="text-[12.5px] font-bold text-amber-900">
+                    ⚠ 레시피에 있는데 담을 수 없는 항목이 {r.missing.length}개
+                    있어요 — 이대로 보내면 <strong>제값 받고 덜 나갑니다.</strong>
+                  </p>
+                  <ul className="mt-1.5 flex flex-col gap-1">
+                    {r.missing.map((m) => (
+                      <li key={m.name} className="text-[12px] text-amber-900">
+                        · <strong>{m.name}</strong> {m.packG}g × {m.count}팩 —{' '}
+                        {m.reason}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-1.5 text-[11.5px] text-amber-800">
+                    재고를 채워 다시 열거나, 발송을 미루거나, 고객에게 알리고
+                    조정해 주세요.
+                  </p>
+                </div>
               )}
 
               {r.noFormula ? (

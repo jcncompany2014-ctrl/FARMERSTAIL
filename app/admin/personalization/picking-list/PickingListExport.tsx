@@ -39,6 +39,12 @@ export type PickingRow = {
   overdue: boolean
   totalAmount: number
   packs: Array<{ name: string; packG: number; count: number; totalG: number }>
+  /**
+   * 레시피는 부르는데 **박스에 못 담기는** 항목 — 판매중지·재고0·구독불가.
+   * 예전엔 그냥 사라져서, 3종 레시피가 2종으로 포장돼 나갔다(2026-07-31).
+   * 금액은 저장된 total_amount 로 그대로 청구되므로 고객은 제값을 내고 덜 받는다.
+   */
+  missing: Array<{ name: string; packG: number; count: number; reason: string }>
   boxTotalG: number
 }
 
