@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import { isAppContextServer } from '@/lib/app-context'
 import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
+import { subscriptionState, type SubLike } from '@/lib/subscription-state'
 
 /**
  * /account/dogs — 웹 사용자용 "우리 아이" 간략 목록.
@@ -55,13 +56,41 @@ export default async function AccountDogsPage() {
     redirect('/login?next=/account/dogs')
   }
 
-  const { data } = await supabase
-    .from('dogs')
-    .select('id, name, breed, photo_url, age_value, age_unit')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: true })
+  const [{ data }, { data: subRows, error: subErr }] = await Promise.all([
+    supabase
+      .from('dogs')
+      .select('id, name, breed, photo_url, age_value, age_unit')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true }),
+    // 강아지별 정기배송 유무 — 카드의 CTA 를 '신청' 과 '관리' 로 가른다.
+    supabase
+      .from('subscriptions')
+      .select(
+        'dog_id, status, billing_key, next_delivery_date, ' +
+          'failed_charge_count, requires_billing_key_renewal',
+      )
+      .eq('user_id', user.id),
+  ])
 
   const dogs = (data ?? []) as DogRow[]
+
+  /**
+   * 이미 정기배송이 있는 강아지 — 판정은 정본 헬퍼 `subscriptionState` 로만.
+   * status 컬럼 직접 비교는 '유령 활성'(카드 없이 status=active)을 못 거른다.
+   *
+   * ★조회가 실패하면 **빈 집합으로 두지 않는다**(규칙1). 빈 집합이면 구독 중인
+   * 강아지에게도 "정기배송 신청" 이 떠서 중복 신청으로 유도한다. 실패했을 땐
+   * 아예 CTA 를 안 그린다 — 잘못 권하는 것보다 안 권하는 게 낫다.
+   */
+  type SubWithDog = SubLike & { dog_id: string | null }
+  const subscribedDogIds = subErr
+    ? null
+    : new Set(
+        (((subRows ?? []) as unknown) as SubWithDog[])
+          .filter((x) => subscriptionState(x) !== 'cancelled')
+          .map((x) => x.dog_id)
+          .filter((x): x is string => Boolean(x)),
+      )
 
   return (
     <AuthAwareShell>
@@ -231,6 +260,29 @@ export default async function AccountDogsPage() {
                         >
                           {[d.breed, age].filter(Boolean).join(' · ') || '정보 없음'}
                         </div>
+                        {/*
+                          웹에서도 정기배송을 시작할 수 있게 (사장님 2026-07-31).
+                          예전엔 신청 화면이 앱 전용이라 웹 사용자는 여기까지
+                          와서 아무 데도 못 갔다.
+                          구독 조회가 실패했으면(null) **아무 것도 안 그린다** —
+                          구독 중인 아이에게 "신청"을 권하면 중복 신청이 된다.
+                        */}
+                        {subscribedDogIds !== null && (
+                          <Link
+                            href={
+                              subscribedDogIds.has(d.id)
+                                ? '/account/subscriptions'
+                                : `/account/subscribe/${d.id}`
+                            }
+                            className="mt-2 inline-flex items-center gap-1 text-[11.5px] md:text-[12.5px] font-bold"
+                            style={{ color: 'var(--fd-coral-text)' }}
+                          >
+                            {subscribedDogIds.has(d.id)
+                              ? '정기배송 관리'
+                              : '정기배송 신청'}
+                            <ChevronRight className="w-3 h-3" strokeWidth={2.5} />
+                          </Link>
+                        )}
                       </div>
                     </div>
                   )

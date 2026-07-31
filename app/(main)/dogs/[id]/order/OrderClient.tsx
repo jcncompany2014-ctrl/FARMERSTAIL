@@ -204,6 +204,16 @@ type LineItem = {
 }
 
 export type OrderClientProps = {
+  /**
+   * 앱(폰 프레임) 컨텍스트 여부. **기본 true 라 앱 동작은 그대로다.**
+   *
+   * 2026-07-31 — 웹에서도 구독 신청이 되게 만들면서 추가(사장님 지시). 이 화면을
+   * 웹용으로 **복사하지 않는 것**이 요점이다: 여기엔 금액 계산·주소 저장·토스 창
+   * 열기·첫 배송일 산정이 다 들어 있어서, 복사본이 생기면 한쪽만 고쳐지는 순간
+   * 청구와 화면이 갈라진다(오늘만 그 부류를 네 번 고쳤다).
+   * 갈라지는 건 **앱 전용 경로로 나가는 링크 두 곳**뿐이다.
+   */
+  isApp?: boolean
   dogId: string
   userId: string
   dogName: string
@@ -225,6 +235,7 @@ export type OrderClientProps = {
 }
 
 export default function OrderClient({
+  isApp = true,
   dogId,
   userId,
   dogName,
@@ -434,11 +445,13 @@ export default function OrderClient({
         )
         // 앱 정기배송 화면(/mypage/subscriptions)은 focus 파라미터로 해당
         // 구독 줄을 강조한다. 웹 화면으로 보내면 앱에서 웹 톤이 뜬다.
+        // ★웹(2026-07-31)에선 반대다 — /mypage/subscriptions 는 앱 전용이라
+        //   신청 직후 **앱 설치 벽**을 맞는다. 웹 관리 화면도 focus 를 받는다.
         // 타이머는 ref 에 담아 언마운트 시 취소한다(위 leaveTimerRef 주석 참조).
-        leaveTimerRef.current = setTimeout(
-          () => router.push('/mypage/subscriptions?focus=' + existingId),
-          1500,
-        )
+        const manageHref = isApp
+          ? '/mypage/subscriptions?focus=' + existingId
+          : '/account/subscriptions?focus=' + existingId
+        leaveTimerRef.current = setTimeout(() => router.push(manageHref), 1500)
         return
       }
 
@@ -497,7 +510,10 @@ export default function OrderClient({
               '이 강아지에 진행중인 정기배송이 이미 있어요. 마이페이지에서 관리해 주세요.',
           )
           leaveTimerRef.current = setTimeout(
-            () => router.push('/mypage/subscriptions'),
+            () =>
+              router.push(
+                isApp ? '/mypage/subscriptions' : '/account/subscriptions',
+              ),
             1500,
           )
           return
@@ -604,8 +620,13 @@ export default function OrderClient({
       {!formula && (
         <div className="ord-empty">
           <p>{err || '아직 박스 추천이 없어요.'}</p>
-          <Link href={`/dogs/${dogId}/analysis`} className="ord-empty-cta">
-            분석 보러가기 →
+          {/* 분석 화면은 앱 전용(/dogs/*) — 웹에선 우리 아이 목록으로 보낸다.
+              앱 설치 벽으로 보내면 "분석 보러가기"가 거짓말이 된다(2026-07-31). */}
+          <Link
+            href={isApp ? `/dogs/${dogId}/analysis` : '/account/dogs'}
+            className="ord-empty-cta"
+          >
+            {isApp ? '분석 보러가기 →' : '우리 아이 보기 →'}
           </Link>
         </div>
       )}
@@ -683,13 +704,19 @@ export default function OrderClient({
             <div className="ord-fold-body">
             <div className="ord-boxcard-head">
               <span className="ord-boxcard-title">담긴 레시피</span>
-              <Link
-                href={`/dogs/${dogId}/plan?fresh=${freshRatio}`}
-                className="ord-boxcard-edit"
-              >
-                레시피 변경
-                <ArrowRight size={11} strokeWidth={2.4} />
-              </Link>
+              {/* 레시피 고르기(/dogs/[id]/plan)는 앱 전용이라 웹에선 감춘다.
+                  결제 도중에 앱 설치 벽으로 보내는 것이 최악이라, 링크를 옮기는
+                  대신 **안 보이게** 한다 — 웹은 추천 레시피 그대로 신청한다.
+                  (웹에서도 고르게 할지는 별건 — 사장님 확인 대기.) */}
+              {isApp && (
+                <Link
+                  href={`/dogs/${dogId}/plan?fresh=${freshRatio}`}
+                  className="ord-boxcard-edit"
+                >
+                  레시피 변경
+                  <ArrowRight size={11} strokeWidth={2.4} />
+                </Link>
+              )}
             </div>
 
             <div className="ord-boxcard-recipes">
