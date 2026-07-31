@@ -119,6 +119,29 @@ export async function POST(req: Request) {
   // 이름('토스페이')으로 대체한다. 카드는 토스가 늘 카드사를 주므로 그대로.
   const brand = billingBrandLabel(method, result.cardCompany)
 
+  /**
+   * ★ 빌링키는 받았는데 카드 정보가 하나도 없으면 남긴다 (2026-07-31).
+   *
+   * 사장님 실기기 테스트에서 "카드 등록 완료" 는 떴는데 **카드사·끝4자리가
+   * 아무것도 안 보였다.** 등록 자체는 `billing_key` 로 판정하므로 결제엔 지장이
+   * 없지만, 고객도 사장님도 **어떤 카드가 걸렸는지 알 수 없는** 상태가 된다.
+   *
+   * 토스 응답의 카드 정보는 최상위(`cardCompany`/`cardNumber`)로 오기도 하고
+   * `card` 객체 안에만 오기도 해서 둘 다 읽게 고쳤다(lib/payments/toss.ts).
+   * 그래도 비면 **토스가 정말 안 주는 것**이므로, 추측 대신 기록을 남겨
+   * 다음 테스트 한 번으로 판별한다.
+   * (카드 번호·키 값은 절대 안 남긴다 — 유무만.)
+   */
+  if (!brand && !last4) {
+    captureBusinessEvent('warning', 'billing.issue.card_meta_missing', {
+      userId: user.id,
+      subscriptionId,
+      method,
+      hasCardCompany: Boolean(result.cardCompany),
+      hasCardNumber: Boolean(result.cardNumber),
+    })
+  }
+
   // 카드 등록(또는 재등록) 시 retry/renewal 상태 reset.
   // - paused 면서 requires_billing_key_renewal=true 였던 구독은 자동 active 화
   //   (사용자가 카드 다시 등록하는 의도 = 다시 정기배송 받겠다).

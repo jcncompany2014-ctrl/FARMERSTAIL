@@ -360,10 +360,25 @@ export async function issueBillingKey(input: {
       },
     )
 
+    /**
+     * 카드 정보는 **두 가지 모양**으로 온다 (2026-07-31).
+     * 토스 응답에 최상위 `cardCompany`/`cardNumber` 가 오는 버전과, `card`
+     * 객체 안에만 담겨 오는 버전이 있다. 최상위만 읽고 있어서 실기기 테스트에서
+     * 빌링키는 발급됐는데 **화면에 카드사·끝4자리가 아무것도 안 떴다**
+     * (사장님 2026-07-31 스크린샷). 둘 다 읽는다 — 최상위가 있으면 그걸 쓴다.
+     *
+     * ⚠️ `issuerCode` 는 '11' 같은 **숫자 코드**라 이름 대신 쓰면 안 된다.
+     *    화면에 "11" 이 뜨느니 비는 편이 낫다. 브랜드는 이름이 올 때만 쓴다.
+     */
     type IssueResponse = {
       billingKey?: string
       cardCompany?: string
       cardNumber?: string // masked, e.g. "536160******1234"
+      card?: {
+        number?: string
+        company?: string
+        issuerCode?: string
+      }
       code?: string
       message?: string
     }
@@ -382,8 +397,9 @@ export async function issueBillingKey(input: {
     return {
       ok: true,
       billingKey: data.billingKey,
-      cardCompany: data.cardCompany,
-      cardNumber: data.cardNumber,
+      // 이름이 오는 필드만 브랜드로 인정한다(issuerCode 는 숫자 코드라 제외).
+      cardCompany: data.cardCompany ?? data.card?.company,
+      cardNumber: data.cardNumber ?? data.card?.number,
     }
   } catch (err) {
     return {
