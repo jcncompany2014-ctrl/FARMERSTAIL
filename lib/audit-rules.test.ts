@@ -845,3 +845,34 @@ test('★ 규칙21: 웹 전용 화면의 링크가 앱 전용 경로를 가리�
       offenders.join('\n'),
   )
 })
+
+test('★ 규칙22: 구독 신청 데이터는 cycle 1 을 고정하고 상담 게이트를 통과한다', () => {
+  /**
+   * # 왜
+   * 이 로더(`lib/subscription/orderPageData.ts`)에는 **과거에 실제로 사고가 났던
+   * 규칙 두 개**가 들어 있다. 앱·웹이 같이 쓰므로 여기가 무너지면 양쪽이 같이
+   * 무너진다:
+   *
+   *  ① `.eq('cycle_number', 1)` — 최신 cycle 을 읽으면 진행 크론이 만들어 둔
+   *     옛 cycle 2 를 집는다. 사장님 제보: "분명히 닭으로 추천받고 넘어갔는데
+   *     최종 배송 정보에서는 오리랑 소를 받아." 분석·플랜은 compute 라우트가
+   *     항상 cycle 1 을 read-or-create 하므로 "지금의 추천" = cycle 1 이다.
+   *
+   *  ② `needsConsultation` 게이트 — 판매 레시피가 전부 알레르기라 자동 추천이
+   *     불가한 강아지가 **결제까지 갔다**(2026-07-24). 이 게이트가 빠지면
+   *     알레르기 성분이 든 박스를 결제시키게 된다.
+   *
+   * 둘 다 "없어도 화면은 잘 뜬다" — 그래서 조용히 사라진다.
+   */
+  const src = stripComments(read(join(ROOT, 'lib/subscription/orderPageData.ts')))
+  assert.match(
+    src,
+    /\.eq\(\s*'cycle_number'\s*,\s*1\s*\)/,
+    '구독 신청은 cycle 1 고정이다 — 최신 cycle 을 읽으면 화면과 다른 레시피를 청구한다',
+  )
+  assert.match(
+    src,
+    /needsConsultation/,
+    '알레르기 상담 게이트가 없다 — 자동 추천 불가 강아지가 결제로 넘어간다',
+  )
+})
