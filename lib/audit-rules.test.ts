@@ -976,3 +976,47 @@ test('★ 규칙24: fetch 가 없는 API 라우트를 부르지 않는다', () =
       '"실패했어요" 만 띄워서 원인이 안 보인다.\n' + offenders.join('\n'),
   )
 })
+
+test('★ 규칙25: 재고를 되돌리려면 차감하는 코드가 있어야 한다', () => {
+  /**
+   * # 왜
+   * `order-expire` 가 만료 주문의 재고를 `restore_stock` 으로 되돌린다. 그 전제는
+   * "주문할 때 `reserve_order_stock` 으로 차감했다" 인데, **낱개 커머스가 폐지되며
+   * 그 호출이 사라졌다.** 반면 구독 청구는 `order_items` 를 계속 만든다.
+   * → 구독 주문이 pending 으로 남으면 **차감한 적 없는 재고가 늘어난다**(유령 증가).
+   *   피킹 리스트가 품절을 못 잡고 어드민 재고가 거짓이 된다(2026-07-31 발견).
+   *
+   * 지금은 `subscription_id === null` 일 때만 복원하도록 막아 뒀다. 이 규칙은
+   * **그 짝이 유지되는지**를 본다: 복원하는 코드가 있으면 차감하는 코드도 있어야
+   * 하고, 없다면 복원이 조건 분기 안에 있어야 한다.
+   */
+  const src = stripComments(read(join(ROOT, 'app/api/cron/order-expire/route.ts')))
+  if (!/restore_stock/.test(src)) return // 복원을 안 하면 볼 것이 없다
+
+  /**
+   * 저장소 어딘가에 예약(차감) **호출**이 있는가?
+   *
+   * ★ 이름이 등장하는지만 보면 안 된다 — 카나리아에서 이 규칙이 통과해 버렸다.
+   *   `lib/supabase/types.ts` 는 **DB 함수 전체를 선언**하므로
+   *   `reserve_order_stock: { Args… }` 가 늘 들어 있다. 그래서 "차감하는 코드가
+   *   있다"가 항상 참이 되어 조기 return 했다 — **규칙이 잡으려던 상태를 규칙이
+   *   통과시켰다**(오늘 세 번째로 같은 모양). 실제 `rpc(...)` 호출만 센다.
+   */
+  let reservesSomewhere = false
+  for (const file of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'lib')))) {
+    if (rel(file) === 'lib/supabase/types.ts') continue
+    if (/rpc\(\s*['"]reserve_order_stock['"]/.test(stripComments(read(file)))) {
+      reservesSomewhere = true
+      break
+    }
+  }
+  if (reservesSomewhere) return // 짝이 맞다 — 복원해도 된다
+
+  assert.match(
+    src,
+    /reservedStock/,
+    '재고를 차감하는 코드(reserve_order_stock)가 저장소에 없는데 order-expire 가 ' +
+      '무조건 복원한다 — 차감한 적 없는 재고가 늘어난다. 예약했던 주문만 ' +
+      '복원하도록 분기할 것(reservedStock).',
+  )
+})

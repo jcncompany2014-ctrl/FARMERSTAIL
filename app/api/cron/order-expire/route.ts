@@ -12,10 +12,17 @@ export const dynamic = 'force-dynamic'
  * 30분+ 미결제 (payment_status='pending', order_status='pending') 주문을
  * expired 로 전환 + 예약된 stock 을 복원.
  *
- * # 왜 필요한가
- * CheckoutForm 이 reserve_order_stock RPC 로 사전 차감하므로 사용자가 Toss
- * 페이지에서 이탈하면 stock 이 묶임. 정해진 만료 시간에 cron 이 회수해야
- * 다른 사용자가 살 수 있다.
+ * # 왜 필요한가 — **근거가 절반은 옛말이다** (2026-07-31 정정)
+ * 원래 이유: "CheckoutForm 이 reserve_order_stock RPC 로 사전 차감하므로
+ * 사용자가 Toss 페이지에서 이탈하면 stock 이 묶인다."
+ * → **지금 그 예약을 하는 코드가 없다.** 낱개 커머스 폐지로
+ *   `reserve_order_stock` 호출처가 0이 됐다(DB 함수와 이 주석만 남았다).
+ *
+ * 그래도 이 크론은 필요하다: 구독 청구(subscription-charge)가 **토스를 긁기
+ * 전에** pending 주문을 만들기 때문에, 그 사이 크론이 타임아웃·크래시하면
+ * pending 주문이 남는다. 그걸 정리하는 것이 지금의 역할이다.
+ * ⚠️ 다만 그 주문은 재고를 예약한 적이 없으므로 **복원하면 안 된다** —
+ *    아래 복원 루프의 `reservedStock` 분기 참조.
  *
  * # 30분 기준
  * Toss 결제창 timeout 기본 ~30분. virtual account (24h) 는 별도 — 가상계좌는
@@ -56,7 +63,7 @@ async function runOrderExpire(): Promise<Response> {
   // 가상계좌는 24h 입금 대기라 expire 대상 아님 — 별도 webhook 만 처리.
   const { data: orders, error: fetchErr } = await supabase
     .from('orders')
-    .select('id, user_id, order_number')
+    .select('id, user_id, order_number, subscription_id')
     .eq('payment_status', 'pending')
     .eq('order_status', 'pending')
     .lt('created_at', cutoff)
@@ -74,6 +81,8 @@ async function runOrderExpire(): Promise<Response> {
     id: string
     user_id: string
     order_number: string
+    /** 구독 청구가 만든 주문인지 — 재고 복원 여부가 갈린다(아래 주석). */
+    subscription_id: string | null
   }>
 
   let expired = 0
@@ -122,11 +131,32 @@ async function runOrderExpire(): Promise<Response> {
       line_total: number
     }>
 
+    /**
+     * ★ 재고는 **예약했던 주문만** 되돌린다 (2026-07-31).
+     *
+     * 이 크론의 존재 이유는 "CheckoutForm 이 `reserve_order_stock` 으로 사전
+     * 차감하니 이탈하면 회수해야 한다" 였다. 그런데 **지금 그 예약을 하는 코드가
+     * 없다** — 낱개 커머스가 폐지되면서 `reserve_order_stock` 호출처가 0이 됐다
+     * (DB 함수와 이 주석만 남았다).
+     *
+     * 반면 구독 청구는 `order_items` 를 **만든다**(subscription-charge). 그래서
+     * 구독 주문이 30분 넘게 pending 으로 남으면(주문 생성 직후 크론이 타임아웃·
+     * 크래시한 경우) 여기서 **차감한 적 없는 재고가 늘어난다** — 조용한 유령 증가다.
+     * 그러면 피킹 리스트가 품절을 못 잡고 어드민 재고가 거짓이 된다.
+     *
+     * 그래서 `subscription_id` 가 있는 주문은 **복원하지 않는다.** 품목의
+     * `cancelled_at` 마킹은 그대로 한다 — 그건 재고와 무관한 이력이다.
+     * (낱개 카탈로그가 부활해 예약을 다시 하게 되면, 그 주문에는
+     *  subscription_id 가 없으므로 이 분기 그대로 복원된다.)
+     */
+    const reservedStock = ord.subscription_id === null
     for (const it of itemsArr) {
-      await supabase.rpc('restore_stock', {
-        p_product_id: it.product_id,
-        p_qty: it.quantity,
-      })
+      if (reservedStock) {
+        await supabase.rpc('restore_stock', {
+          p_product_id: it.product_id,
+          p_qty: it.quantity,
+        })
+      }
       await supabase
         .from('order_items')
         .update({ cancelled_at: nowIso })
