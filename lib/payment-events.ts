@@ -1,7 +1,7 @@
 /**
  * R60 — 결제 원장 (payment_events) helper.
  *
- * 모든 결제 상태 변경 시 이 함수로 한 줄 insert. orders.status 의 UPDATE
+ * 모든 결제 상태 변경 시 이 함수로 한 줄 insert. orders 의 상태 컬럼(order_status·payment_status) UPDATE
  * 와 같이 호출되어 이력 영원히 남김.
  *
  * # 불변성 보장
@@ -10,7 +10,7 @@
  *
  * # 호출 패턴
  *  ```ts
- *  // 1. orders.status 변경
+ *  // 1. orders 상태 컬럼 변경
  *  await supabase.from('orders').update({ payment_status: 'paid' }).eq('id', orderId)
  *  // 2. 같이 event 한 줄 insert (best-effort, 실패해도 결제 흐름 막지 X)
  *  await recordPaymentEvent(supabase, {

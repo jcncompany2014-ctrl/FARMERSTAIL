@@ -909,3 +909,70 @@ test('★ 규칙23: 토스페이 기본 켜짐이면 출시 전 확인 문단이
       '출시하지 않으려면 끄는 길이 적혀 있어야 한다',
   )
 })
+
+test('★ 규칙24: fetch 가 없는 API 라우트를 부르지 않는다', () => {
+  /**
+   * # 왜
+   * `fetch('/api/...')` 는 문자열이라 tsc 가 못 잡는다. 라우트를 옮기거나 지우면
+   * 호출부는 그대로 남고, 404 를 받은 화면은 대개 "실패했어요" 한 줄만 띄운다 —
+   * **기능이 죽었는데 원인이 안 보인다.** 실제로 D+30 광고 푸시가 없는 테이블을
+   * 조회해 404 → 빈 배열 → 구독자에게도 광고가 나간 적이 있다(R85-E3).
+   * 라우트도 같은 방식으로 조용히 어긋난다.
+   *
+   * 2026-07-31 전수 결과: 라우트 86개 / 깨진 호출 0건. **지금 초록인 것을 못 박는다.**
+   */
+  const routes: string[] = []
+  const collect = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name)
+      if (statSync(p).isDirectory()) collect(p)
+      else if (name === 'route.ts' || name === 'route.tsx') {
+        routes.push(rel(dir).replace(/^app/, ''))
+      }
+    }
+  }
+  collect(join(ROOT, 'app/api'))
+  assert.ok(routes.length > 20, `API 라우트 파싱 실패 — ${routes.length}개`)
+
+  const seg = (s: string) => s.split('/').filter(Boolean)
+  const known = (call: string) =>
+    routes.some((r) => {
+      const a = seg(call)
+      const b = seg(r)
+      return (
+        a.length === b.length &&
+        a.every((x, i) => b[i]!.startsWith('[') || x === b[i])
+      )
+    })
+
+  /**
+   * 변수 세그먼트가 **실제로는 한 값뿐**이라 항상 실존 라우트로 풀리는 호출.
+   * 스캐너는 `${provider}` 를 X 로 치환하므로 매칭에 실패한다.
+   * 값이 늘어나면 그때 라우트도 같이 만들어야 하니, 여기 적어 두고 그때 확인한다.
+   */
+  const API_CALL_ALLOWED: Array<{ at: string; why: string }> = [
+    {
+      at: '/api/integrations/X/disconnect',
+      why: "provider 타입이 'tractive' 하나뿐이라 항상 app/api/integrations/tractive/disconnect 로 풀린다 (provider 를 추가하면 라우트도 같이 만들 것)",
+    },
+  ]
+
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'components')))) {
+    const code = stripComments(read(file))
+    for (const m of code.matchAll(/fetch\(\s*[`'"](\/api\/[^`'"?]+)/g)) {
+      const call = (m[1] ?? '').replace(/\$\{[^}]*\}/g, 'X')
+      if (API_CALL_ALLOWED.some((a) => a.at === call)) continue
+      if (!known(call)) {
+        const line = code.slice(0, m.index ?? 0).split('\n').length
+        offenders.push(`${rel(file)}:${line} :: ${call}`)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'fetch 가 존재하지 않는 API 라우트를 부른다 — 404 를 받은 화면은 대개 ' +
+      '"실패했어요" 만 띄워서 원인이 안 보인다.\n' + offenders.join('\n'),
+  )
+})
