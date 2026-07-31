@@ -16,7 +16,23 @@ import { useToast } from '@/components/ui/Toast'
 import { V3, V3FontWeight, V3FontSize, V3Radius } from '@/lib/design/tokens'
 import { Mono, Modal, Badge } from '@/components/v3'
 
-export default function AddressesClient({ initial }: { initial: Address[] }) {
+/**
+ * `isApp=false` 로 렌더되면 편집 링크를 **앱 안내로** 바꾼다 (2026-07-31).
+ *
+ * 이 컴포넌트는 앱 화면(/mypage/addresses)뿐 아니라 **웹 프로필 화면
+ * (/account/profile)에도 그대로 렌더**된다. 그런데 '수정' 이 가리키는
+ * `/mypage/addresses/[id]/edit` 는 proxy 의 앱 전용 경로라, 웹에서 누르면
+ * 편집 폼이 아니라 앱 설치 안내로 튕겼다 — 목록은 보이는데 손댈 수는 없고,
+ * 버튼은 손댈 수 있는 것처럼 보였다.
+ * 기본값을 true 로 둬 **앱 동작은 그대로**다.
+ */
+export default function AddressesClient({
+  initial,
+  isApp = true,
+}: {
+  initial: Address[]
+  isApp?: boolean
+}) {
   const router = useRouter()
   const toast = useToast()
   const [list, setList] = useState<Address[]>(initial)
@@ -181,7 +197,11 @@ export default function AddressesClient({ initial }: { initial: Address[] }) {
               </button>
             )}
             <Link
-              href={`/mypage/addresses/${a.id}/edit`}
+              href={
+                isApp
+                  ? `/mypage/addresses/${a.id}/edit`
+                  : '/app-required?from=%2Fmypage%2Faddresses'
+              }
               className="flex-1 inline-flex items-center justify-center transition"
               style={{
                 gap: 4,

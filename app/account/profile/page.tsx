@@ -178,8 +178,14 @@ export default async function ProfileEditPage() {
             <h2 className="text-[14px] font-bold" style={{ color: 'var(--fd-pine)' }}>
               배송지
             </h2>
+            {/* /mypage/addresses/* 는 앱 전용이라 웹에선 앱 안내로 — 버튼이
+                "추가" 라고 해 놓고 추가를 못 하게 하던 것(2026-07-31). */}
             <Link
-              href="/mypage/addresses/new"
+              href={
+                isApp
+                  ? '/mypage/addresses/new'
+                  : '/app-required?from=%2Fmypage%2Faddresses'
+              }
               className="inline-flex items-center gap-1 text-[11.5px] font-bold"
               style={{ color: 'var(--fd-coral-text)' }}
             >
@@ -192,7 +198,7 @@ export default async function ProfileEditPage() {
               저장된 배송지가 없어요. 추가하면 체크아웃에서 자동 선택돼요.
             </p>
           ) : (
-            <AddressesClient initial={addresses} />
+            <AddressesClient initial={addresses} isApp={isApp} />
           )}
         </section>
 

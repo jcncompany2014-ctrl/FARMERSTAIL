@@ -162,14 +162,25 @@ export default async function AccountDogsPage() {
               >
                 2분 설문이면 우리 아이에게 맞는 식단을 설계해 드려요.
               </p>
-              {/* ★로그인 상태라 /start(비로그인 설문→가입) 금지 — 우리 아이 등록
-                  /dogs/new 로(사장님 2026-07-23). */}
+              {/*
+                ★로그인 상태라 /start(비로그인 설문→가입) 금지 — 우리 아이 등록
+                /dogs/new 로(사장님 2026-07-23).
+
+                ★단, `/dogs/new` 는 **앱 전용**이다(proxy APP_ONLY_PREFIXES).
+                웹에서 이 버튼을 누르면 등록 폼이 아니라 앱 설치 안내로 튕겼다 —
+                "우리 아이 등록하기" 라고 써 놓고 등록을 못 하게 하는 셈이라
+                버튼이 거짓말을 하고 있었다(2026-07-31).
+                목적지(/app-required)는 안내가 잘 돼 있어 그대로 두고, **웹에선
+                문구를 사실대로** 바꾼다. 웹 등록 폼을 새로 만드는 건 별건이다 —
+                강아지 케어 화면 전체가 앱 전용이라는 제품 결정(R84-2)과 함께
+                판단할 일이라 사장님 확인이 필요하다.
+              */}
               <Link
-                href="/dogs/new"
+                href={isApp ? '/dogs/new' : '/app-required?from=%2Fdogs%2Fnew'}
                 className="mt-6 inline-flex items-center gap-1.5 px-6 py-3 rounded-full text-[13px] font-bold transition hover:brightness-[0.94] active:scale-[0.98]"
                 style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
               >
-                우리 아이 등록하기
+                {isApp ? '우리 아이 등록하기' : '앱에서 우리 아이 등록하기'}
                 <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />
               </Link>
             </div>

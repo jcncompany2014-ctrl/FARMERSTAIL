@@ -52,6 +52,12 @@ type Props = {
   initialSubs: Subscription[]
   focusSubId: string | null
   priceProposal: PriceChangeProposal | null
+  /**
+   * 앱(PWA/Capacitor) 컨텍스트 여부 — **서버가 계산해 내려준다.**
+   * 클라이언트 훅(useIsAppContext)은 SSR·하이드레이션 시 null 이라, 첫 렌더에
+   * 잘못된 링크가 잠깐 보였다가 바뀐다. 링크 목적지가 갈리는 값이라 그러면 안 된다.
+   */
+  isApp: boolean
 }
 
 // ★ status 컬럼이 아니라 subscriptionState() 로 판정 — '유령 활성'(카드 없이
@@ -73,6 +79,7 @@ export default function SubscriptionsWebClient({
   initialSubs,
   focusSubId,
   priceProposal,
+  isApp,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -304,15 +311,22 @@ export default function SubscriptionsWebClient({
         >
           우리 아이 맞춤 식단을 설계하고 정기배송을 시작해 보세요.
         </p>
-        {/* ★로그인 상태(이 페이지는 auth 필수)라 비로그인 설문 퍼널 /start(→가입)로
-            보내면 안 됨(사장님 2026-07-23). 우리 아이 허브 /dogs 로 — 강아지가 있으면
-            골라서 플랜, 없으면 등록으로 자연 분기. */}
+        {/*
+          ★로그인 상태(이 페이지는 auth 필수)라 비로그인 설문 퍼널 /start(→가입)로
+          보내면 안 됨(사장님 2026-07-23). 우리 아이 허브 /dogs 로 — 강아지가 있으면
+          골라서 플랜, 없으면 등록으로 자연 분기.
+
+          ★단, `/dogs` 는 **앱 전용**이다(proxy APP_ONLY_PREFIXES, R84-2).
+          웹에서 "우리 아이 식단 시작하기" 를 누르면 식단이 아니라 앱 설치
+          안내로 튕겼다 — 버튼이 거짓말을 하고 있었다(2026-07-31).
+          목적지는 그대로 두고 **웹에선 문구를 사실대로** 바꾼다.
+        */}
         <Link
-          href="/dogs"
+          href={isApp ? '/dogs' : '/app-required?from=%2Fdogs'}
           className="mt-6 inline-flex items-center gap-1.5 px-6 py-3 rounded-full text-[13px] font-bold transition hover:brightness-[0.94] active:scale-[0.98]"
           style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
         >
-          우리 아이 식단 시작하기
+          {isApp ? '우리 아이 식단 시작하기' : '앱에서 우리 아이 식단 시작하기'}
           <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
         </Link>
       </div>

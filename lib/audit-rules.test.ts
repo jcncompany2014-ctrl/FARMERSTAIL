@@ -798,3 +798,50 @@ test('★ 규칙20: auth.signUp 을 부르는 화면은 "세션 즉시 발급"�
       offenders.join('\n'),
   )
 })
+
+test('★ 규칙21: 웹 전용 화면의 링크가 앱 전용 경로를 가리키지 않는다', () => {
+  /**
+   * # 왜
+   * `/account/*` 는 **웹 사용자를 위해 따로 만든 화면**이다(app-only 게이트를
+   * 우회하려고 존재한다). 그런데 그 안의 CTA 가 `/dogs/new`·`/dogs` 처럼 앱 전용
+   * 경로를 가리키고 있었다 — 웹에서 "우리 아이 등록하기" 를 누르면 등록 폼이
+   * 아니라 앱 설치 안내로 튕긴다. **버튼이 거짓말을 한다.**
+   *
+   * 목적지 자체는 틀리지 않았다(강아지 케어는 앱 전용이라는 제품 결정 R84-2).
+   * 틀린 건 웹에서도 앱과 같은 문구·같은 링크를 쓴 것이다. 그래서 고친 방식은
+   * `isApp ? 앱경로 : '/app-required?from=…'` 분기 + 문구 분기다.
+   *
+   * 이 규칙은 **분기 없이 그냥 앱 경로를 가리키는 것**만 잡는다 —
+   * `isApp ?` 삼항 안에 있으면 통과시킨다.
+   *
+   * (메일은 규칙16 이 따로 본다. 푸시는 앱에서 열리므로 대상 아님.)
+   */
+  const proxy = read(join(ROOT, 'proxy.ts'))
+  const block = /APP_ONLY_PREFIXES[^=]*=\s*\[([\s\S]*?)\n\]/.exec(proxy)
+  assert.ok(block?.[1], 'proxy.ts 에서 APP_ONLY_PREFIXES 를 못 찾았다')
+  const appOnly = [...block[1].matchAll(/'([^']+)'/g)].map((m) => m[1]!)
+
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app/account'))) {
+    const src = read(file)
+    const lines = stripComments(src).split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i] ?? ''
+      const m = /href=(?:"([^"]+)"|\{'([^']+)'\})/.exec(line)
+      const path = m?.[1] ?? m?.[2]
+      if (!path || !path.startsWith('/')) continue
+      // isApp 분기 안이면 의도된 것 — 같은 줄이나 바로 위/아래에 삼항이 있다.
+      const around = lines.slice(Math.max(0, i - 2), i + 3).join('\n')
+      if (/isApp\s*\?/.test(around)) continue
+      const hit = appOnly.find((p) => path === p || path.startsWith(`${p}/`))
+      if (hit) offenders.push(`${rel(file)}:${i + 1} :: ${path} (앱 전용 ${hit})`)
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '/account/* 는 웹 사용자용 화면인데 링크가 앱 전용 경로를 가리킨다 — 누르면 ' +
+      '앱 설치 안내로 튕긴다. `isApp ? 앱경로 : "/app-required?from=…"` 로 갈라라.\n' +
+      offenders.join('\n'),
+  )
+})

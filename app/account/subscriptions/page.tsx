@@ -261,6 +261,7 @@ export default async function AccountSubscriptionsPage({
             initialSubs={initialSubs}
             focusSubId={sp.focus ?? null}
             priceProposal={priceProposal}
+            isApp={isApp}
           />
         </Container>
       </main>
