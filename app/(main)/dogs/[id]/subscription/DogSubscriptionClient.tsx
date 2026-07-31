@@ -16,7 +16,12 @@
  * # 이 화면의 규칙
  * 상태마다 **할 수 있는 것만** 보여준다. 상태는 lib/subscription-state 가 판정.
  *  · needs_card   → 카드 등록 하나만. 나머지 액션 없음.
- *  · active       → 건너뛰기 · 일시정지 · 해지
+ *  · active       → 건너뛰기 · 일시정지 · **화식 비율** · 결제수단 교체 · 해지
+ *                   (화식 비율은 2026-07-31 신설 — 이 파일 위쪽 역할 설명이
+ *                    "건너뛰기·일시정지·해지·화식비율·결제수단 등록" 이라고
+ *                    적고 있었는데 화식비율만 실물이 없었다. 웹 화면과 **같은
+ *                    컴포넌트·같은 API** 를 쓴다: 금액을 보여주는 곳이 둘이 되면
+ *                    갈라진다.)
  *  · paused       → 재개 · 해지
  *  · card_failed  → 카드 재등록 (배너)
  *  · cancelled    → 다시 시작
@@ -41,7 +46,9 @@ import {
   Check,
   Loader2,
   PackageOpen,
+  SlidersHorizontal,
 } from 'lucide-react'
+import FreshRatioSheet from '@/components/subscription/FreshRatioSheet'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { petName, iGa } from '@/lib/korean'
@@ -108,6 +115,9 @@ export default function DogSubscriptionClient({
   const [subs, setSubs] = useState<DogSub[]>(initialSubs)
   const [busy, setBusy] = useState<string | null>(null)
   const [cancelId, setCancelId] = useState<string | null>(null)
+  // 화식 비율 변경 (2026-07-31) — 이 화면 docstring 이 역할에 '화식비율' 을
+  // 적어 두고도 실물이 없었다. 웹(/account/subscriptions)과 **같은 시트·같은 API**.
+  const [ratioId, setRatioId] = useState<string | null>(null)
 
   const name = petName(dogName)
   // 해지된 것만 남았으면 '다시 시작' 안내가 주인공 — 살아있는 구독만 위로.
@@ -234,6 +244,7 @@ export default function DogSubscriptionClient({
           onPause={() => pause(sub)}
           onResume={() => resume(sub)}
           onCancel={() => setCancelId(sub.id)}
+          onRatio={() => setRatioId(sub.id)}
         />
       ))}
 
@@ -253,6 +264,38 @@ export default function DogSubscriptionClient({
             </div>
           ))}
         </details>
+      )}
+
+      {/* 화식 비율 시트 — 웹(/account/subscriptions)과 **같은 컴포넌트·같은 API**.
+          시트는 --fd-* 토큰만 쓰고, 아래 래퍼가 그걸 앱 v3 값으로 스왑한다.
+          (복사본을 만들면 금액을 보여주는 곳이 둘이 된다.) */}
+      {ratioId && (
+        <>
+          <div className="sub-scrim" onClick={() => setRatioId(null)} />
+          <div
+            className="sub-sheet"
+            style={
+              {
+                '--fd-pine': 'var(--ink)',
+                '--fd-muted': 'var(--muted)',
+                '--fd-line': 'var(--rule)',
+                '--fd-coral': 'var(--terracotta)',
+                '--fd-coral-text': 'var(--terracotta)',
+                '--fd-offwhite': 'var(--bg-2)',
+                '--fd-r-row': '4px',
+              } as React.CSSProperties
+            }
+          >
+            <FreshRatioSheet
+              subscriptionId={ratioId}
+              onClose={() => setRatioId(null)}
+              onChanged={() => {
+                toast.success('화식 비율을 바꿨어요')
+                router.refresh()
+              }}
+            />
+          </div>
+        </>
       )}
 
       {cancelId && (
@@ -279,6 +322,7 @@ function SubCard({
   onPause,
   onResume,
   onCancel,
+  onRatio,
 }: {
   sub: DogSub
   name: string
@@ -288,6 +332,7 @@ function SubCard({
   onPause: () => void
   onResume: () => void
   onCancel: () => void
+  onRatio: () => void
 }) {
   const state = subscriptionState(sub)
   const meta = STATE_META[state]
@@ -377,6 +422,12 @@ function SubCard({
             <button type="button" className="sub-btn" onClick={onPause} disabled={busy}>
               <Pause size={13} strokeWidth={2.4} />
               일시정지
+            </button>
+            {/* 화식 비율 — 금액이 함께 바뀌므로 진행 중인 구독에만 준다.
+                시트가 세 티어 금액을 다 보여주고, 계산·저장은 서버가 한다. */}
+            <button type="button" className="sub-btn" onClick={onRatio} disabled={busy}>
+              <SlidersHorizontal size={13} strokeWidth={2.4} />
+              화식 비율
             </button>
             {/* ★ 정상 구독에도 결제수단 교체를 준다 (2026-07-30).
                 예전엔 needs_card·card_failed 에서만 이 버튼이 떴다 — 즉 **카드가
