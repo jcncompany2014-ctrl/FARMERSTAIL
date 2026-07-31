@@ -72,6 +72,17 @@ export async function POST(req: Request) {
 
   // 1) Segment 별 user_id 목록.
   const userIds = await collectSegmentUserIds(admin, segment)
+  if (userIds === null) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'recipients_query_failed',
+        message:
+          '받는 사람 목록을 불러오지 못했어요. 아무에게도 발송하지 않았습니다 — 잠시 후 다시 시도해 주세요.',
+      },
+      { status: 500 },
+    )
+  }
   if (userIds.length > MAX_RECIPIENTS) {
     return NextResponse.json(
       {
@@ -167,20 +178,49 @@ export async function POST(req: Request) {
 }
 
 /**
- * Segment 별 push_subscriptions 보유 user_id 목록.
- * 모든 segment 가 push_subscriptions 1개 이상 보유 사용자 기준 (안 받는
- * 사람에겐 보낼 곳 없음). 그 위에 segment 별 추가 필터.
+ * Segment 별 수신 대상 user_id 목록.
+ *
+ * 기준은 **웹푸시 구독 또는 네이티브 토큰을 하나라도 가진 사용자**다
+ * (안 받는 사람에겐 보낼 곳이 없다). 그 위에 segment 별 추가 필터.
+ * 예전 주석은 "push_subscriptions 보유" 라고만 적혀 있었고 코드도 그랬다 —
+ * 그래서 앱 사용자가 통째로 빠졌다(2026-07-31 정정).
+ *
+ * @returns 조회 실패 시 **null**. 0명과 구분해야 한다 — 실패를 0명으로 읽으면
+ *   "0명에게 보냈어요" 가 되어 발송 실패가 성공처럼 보인다.
  */
 async function collectSegmentUserIds(
   admin: ReturnType<typeof createAdminClient>,
   segment: 'all' | 'inactive_30d' | 'active_subscribers',
-): Promise<string[]> {
-  const { data: subs } = await admin
-    .from('push_subscriptions')
-    .select('user_id')
-  const subscribedSet = new Set(
-    ((subs ?? []) as Array<{ user_id: string }>).map((s) => s.user_id),
-  )
+): Promise<string[] | null> {
+  /**
+   * ★ 수신자 명단은 **웹푸시 + 네이티브 토큰의 합집합**이다 (2026-07-31 수정).
+   *
+   * 예전엔 `push_subscriptions`(웹푸시) 만 열거했다. 그런데 앱스토어로 설치해
+   * 앱 알림만 허용한 고객은 `native_push_tokens` 에만 행이 생긴다 — 그 사람들은
+   * **명단에 아예 안 들어가** 공지·프로모션을 한 건도 못 받았다. 화면은 '전체
+   * 구독자 / 알림을 켠 모든 고객' 이라고 말하면서.
+   *
+   * 발송 함수(lib/push.ts)는 2026-07-30 에 두 채널로 팬아웃하도록 고쳤는데,
+   * **명단을 만드는 이쪽이 같이 안 고쳐졌다** — 같은 버그의 나머지 절반이다.
+   *
+   * 두 표 모두 user_id 로 묶이므로 합집합이 곧 '알림을 켠 사람' 이다.
+   * 조회 실패를 0명으로 읽지 않는다 — 그러면 "0명에게 보냈어요"가 되어
+   * 발송이 안 된 사실이 성공처럼 보인다.
+   */
+  const [webRes, nativeRes] = await Promise.all([
+    admin.from('push_subscriptions').select('user_id'),
+    admin.from('native_push_tokens').select('user_id'),
+  ])
+  if (webRes.error || nativeRes.error) {
+    // 호출부가 사람 말로 안내한다 — throw 하면 사장님은 500 만 본다.
+    return null
+  }
+  const subscribedSet = new Set<string>([
+    ...((webRes.data ?? []) as Array<{ user_id: string }>).map((s) => s.user_id),
+    ...((nativeRes.data ?? []) as Array<{ user_id: string }>).map(
+      (s) => s.user_id,
+    ),
+  ])
 
   if (segment === 'all') {
     return [...subscribedSet]

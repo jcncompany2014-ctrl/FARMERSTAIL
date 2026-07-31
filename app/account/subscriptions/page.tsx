@@ -5,6 +5,7 @@ import { ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import { isAppContextServer } from '@/lib/app-context'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
 import SubscriptionsWebClient from './SubscriptionsWebClient'
 import { subscriptionState } from '@/lib/subscription-state'
@@ -53,11 +54,60 @@ export default async function AccountSubscriptionsPage({
     redirect('/login?next=/account/subscriptions')
   }
 
-  const { data } = await supabase
+  const { data, error: subsErr } = await supabase
     .from('subscriptions')
     .select('*, subscription_items(*), dogs(id, name)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+
+  /**
+   * ★ 조회 실패를 '구독 없음' 으로 그리지 않는다 (2026-07-31).
+   *
+   * error 를 안 받으면 실패와 빈 결과가 같은 모양(`data === null`)이 된다.
+   * 그러면 **결제가 걸려 매주 돈이 빠져나가는 고객에게** "아직 정기배송이
+   * 없어요 · 시작해 보세요" 가 뜬다 — 이미 하고 있는 걸 권하는 화면이고,
+   * 중복 신청까지 유도할 수 있다.
+   * 앱 화면(/mypage/subscriptions)은 2026-07-30 에 같은 이유로 먼저 고쳤다.
+   * 이 화면은 웹 전용이라 그때 빠졌다 — 같은 결함의 나머지 절반.
+   */
+  if (subsErr) {
+    return (
+      <AuthAwareShell>
+        <main className="min-h-screen" style={{ background: 'var(--fd-offwhite)' }}>
+          <div className="mx-auto max-w-2xl px-5 py-16">
+            <div
+              className="px-6 py-8 rounded-[var(--fd-r-card,14px)]"
+              style={{
+                background: '#FFFFFF',
+                boxShadow: 'inset 0 0 0 1px var(--fd-line)',
+              }}
+            >
+              <h1
+                className="text-[17px] font-bold"
+                style={{ color: 'var(--fd-pine)' }}
+              >
+                정기배송 정보를 불러오지 못했어요
+              </h1>
+              <p
+                className="mt-2 text-[13.5px] leading-relaxed"
+                style={{ color: 'var(--fd-muted)' }}
+              >
+                잠시 뒤에 다시 열어봐 주세요. 계속 이러면 알려주세요 — 진행 중인
+                정기배송은 그대로 있어요.
+              </p>
+              <Link
+                href="/mypage/orders"
+                className="mt-5 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-[13px] font-bold"
+                style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
+              >
+                결제·주문 내역 보기
+              </Link>
+            </div>
+          </div>
+        </main>
+      </AuthAwareShell>
+    )
+  }
 
   const initialSubs = (data ?? []) as Subscription[]
   // ★ '유령 활성'(카드 없이 status=active) 제외 — subscriptionState 로 진짜 진행 중만.
@@ -74,12 +124,22 @@ export default async function AccountSubscriptionsPage({
   // 링크가 아니라 상태로 뜨므로 페이지 방문마다 뜬다(사장님 2026-07-23).
   let priceProposal: PriceChangeProposal | null = null
   {
-    const { data: pendingRows } = await supabase
+    const { data: pendingRows, error: pendingErr } = await supabase
       .from('dog_formulas')
       .select('dog_id, cycle_number, formula, reasoning')
       .eq('user_id', user.id)
       .eq('approval_status', 'pending_approval')
       .order('created_at', { ascending: false })
+    // 이 조회가 실패하면 **금액 변경 동의 모달이 조용히 사라진다** — 동의 없이
+    // 금액이 바뀔 수 있는 상태다. 화면은 계속 그리되 사람이 알 수 있게 올린다
+    // (앱 화면은 2026-07-30 에 같은 처리를 넣었다 — 웹만 빠져 있었다).
+    if (pendingErr) {
+      captureBusinessEvent('error', 'subscription.price_consent.query_failed', {
+        userId: user.id,
+        surface: 'web',
+        dbError: pendingErr.message,
+      })
+    }
     type PendingRow = {
       dog_id: string
       cycle_number: number
