@@ -180,7 +180,8 @@ const APP_ONLY_PREFIXES: readonly string[] = [
   '/mypage/points',
   '/mypage/notifications',
   '/mypage/consent',
-  '/mypage/delete',
+  // /mypage/delete 는 웹도 들어와야 한다 — 개인정보처리방침이 약속한 탈퇴
+  //   경로다(2026-07-31). 앱 전용으로 두면 웹 방문자가 앱 설치 벽을 맞는다.
 ]
 
 /** Web 가 진입 가능한 mypage exception — 정확 매치 (prefix 아님). */

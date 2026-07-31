@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StickyNote, Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 
 /**
@@ -26,7 +25,6 @@ export default function AdminNoteCard({
   initial: string | null
 }) {
   const router = useRouter()
-  const supabase = createClient()
   const toast = useToast()
   const [value, setValue] = useState(initial ?? '')
   const [saving, setSaving] = useState(false)
@@ -36,14 +34,24 @@ export default function AdminNoteCard({
 
   async function save() {
     setSaving(true)
-    const { error } = await supabase
-      .from('profiles')
-      .update({ admin_note: value.trim() || null })
-      .eq('id', userId)
+    /**
+     * ★ 서버 라우트로 저장한다 (2026-07-31).
+     *
+     * 예전엔 여기서 쿠키 클라이언트로 `profiles.admin_note` 를 직접 썼다.
+     * 그런데 profiles 는 모든 칸이 authenticated 에게 열려 있었고 RLS 는 본인
+     * 행 UPDATE 를 허용해서 — **고객이 자기 admin_note 를 지우거나 위조할 수
+     * 있었다.** 사장님이 그 고객에 대해 적어 둔 상담 내용이 당사자 손에 있었던 셈.
+     * 20260731000100 이 admin_note 를 고객 권한에서 뺐고, 쓰기는 관리자 검증을
+     * 거친 서버 라우트가 한다.
+     */
+    const res = await fetch(`/api/admin/users/${userId}/note`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note: value.trim() || null }),
+    })
     setSaving(false)
-    if (error) {
+    if (!res.ok) {
       toast.error('메모 저장에 실패했어요')
-      console.error('[admin-note] save error:', error.message)
       return
     }
     setSavedValue(value)

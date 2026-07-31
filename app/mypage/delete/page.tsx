@@ -2,7 +2,23 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import AuthAwareShell from '@/components/AuthAwareShell'
 import DeleteAccountForm from './DeleteAccountForm'
+
+/**
+ * /mypage/delete — 회원 탈퇴. **웹·앱 공용** (2026-07-31 이관).
+ *
+ * # 왜 앱 전용에서 뺐나
+ * 공개·색인되는 개인정보처리방침(/legal/privacy)이 "회원 탈퇴(동의 철회) 요구"
+ * 항목에서 이 경로로 링크한다. 그런데 이 화면이 `app/(main)/` 안에 있고
+ * proxy.ts 의 APP_ONLY_PREFIXES 에도 있어서, **웹 방문자는 탈퇴 링크를 누르면
+ * '앱을 설치하세요' 벽**을 맞았다. 개인정보처리방침이 약속한 권리를 그 문서를
+ * 읽는 화면에서 행사할 수 없는 상태였다.
+ *
+ * `/mypage/orders` 와 같은 top-level 공유 라우트로 옮기고 AuthAwareShell 로
+ * chrome 을 분기한다. 본문이 쓰는 토큰(--text·--muted·--terracotta·--bg-3)은
+ * 웹/앱 스코프에서 각자 값으로 풀리므로 톤은 자동으로 맞는다.
+ */
 
 export const dynamic = 'force-dynamic'
 
@@ -39,7 +55,8 @@ export default async function DeleteAccountPage() {
   ])
 
   return (
-    <div className="pb-10">
+    <AuthAwareShell>
+      <div className="pb-10 mx-auto w-full" style={{ maxWidth: 560 }}>
       <section className="px-5 pt-6 pb-2">
         <div className="flex items-center gap-2 mt-3">
           <AlertTriangle
@@ -168,6 +185,7 @@ export default async function DeleteAccountPage() {
           </Link>
         </section>
       )}
-    </div>
+      </div>
+    </AuthAwareShell>
   )
 }
