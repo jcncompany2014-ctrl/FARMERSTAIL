@@ -1020,3 +1020,57 @@ test('★ 규칙25: 재고를 되돌리려면 차감하는 코드가 있어야 �
       '복원하도록 분기할 것(reservedStock).',
   )
 })
+
+test('★ 규칙26: 크론 주석의 KST 시각이 vercel.json 과 어긋나지 않는다', () => {
+  /**
+   * # 왜
+   * 크론 파일 헤더가 "KST 04:00 에 돈다" 같은 시각을 적어 두는데, 스케줄을 옮길 때
+   * **vercel.json 만 고치고 주석은 남는다.** 오늘만 두 건 나왔다:
+   *  · account-purge — 주석 "KST 04:00 (UTC 19:00)" / 실제 `0 16 1 * *` = KST 01:00
+   *  · refund-retry  — 주석 "15분 간격"          / 실제 하루 1회
+   * 시각이 틀리면 "왜 안 나갔지" 를 엉뚱한 데서 찾는다. 실제로 복약 알림이
+   * UTC/KST 시차 때문에 **08시 것만 나가고 나머지가 영영 미발송**이던 적이 있다.
+   *
+   * # 검사
+   * 헤더(파일 앞 2600자)에서 `KST HH:MM` 을 뽑아, vercel.json 의 그 크론
+   * 스케줄을 KST 로 환산한 값과 **하나라도 일치**하면 통과.
+   * 여러 시각을 언급하는 파일(옛 값을 기록으로 남긴 경우)도 있으므로 "포함" 으로 본다.
+   */
+  const cfg = JSON.parse(read(join(ROOT, 'vercel.json'))) as {
+    crons: Array<{ path: string; schedule: string }>
+  }
+  const offenders: string[] = []
+  for (const c of cfg.crons) {
+    const file = join(ROOT, `app${c.path}/route.ts`)
+    let src: string
+    try {
+      src = read(file)
+    } catch {
+      continue
+    }
+    const head = stripComments(src).length === src.length ? '' : src.slice(0, 2600)
+    if (!head) continue
+    const parts = c.schedule.trim().split(/\s+/)
+    const hour = parts[1] ?? ''
+    if (!/^\d+$/.test(hour)) continue // 매시간·목록형은 대상 아님
+    const min = (parts[0] ?? '0').padStart(2, '0')
+    const kstHour = String((Number(hour) + 9) % 24).padStart(2, '0')
+    const actual = `${kstHour}:${min}`
+
+    const mentioned = [...head.matchAll(/KST\s*(\d{1,2}):(\d{2})/g)].map(
+      (m) => `${m[1]!.padStart(2, '0')}:${m[2]}`,
+    )
+    if (mentioned.length === 0) continue // 시각을 안 적었으면 볼 것 없음
+    if (!mentioned.includes(actual)) {
+      offenders.push(
+        `${c.path} :: 주석 ${mentioned.join('·')} / 실제 KST ${actual} (${c.schedule})`,
+      )
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '크론 주석의 KST 시각이 vercel.json 과 다르다 — 시각이 틀리면 "왜 안 나갔지" 를 ' +
+      '엉뚱한 데서 찾는다. vercel.json 이 정본이다.\n' + offenders.join('\n'),
+  )
+})

@@ -20,12 +20,20 @@ export const dynamic = 'force-dynamic'
  *   2. account_deletions audit row 의 purged_at 마킹 (재가입 detect 만 유지)
  *   3. profiles row 도 삭제 (이미 익명화 상태라 hash 만 audit 에 남음)
  *
- * # 보안
- * Bearer CRON_SECRET. 매월 1일 새벽 KST 04:00 (UTC 19:00) 실행 권장.
+ * # 보안 · 실행 시각
+ * Bearer CRON_SECRET.
+ * 실제 스케줄: `"0 16 1 * *"` = **매월 1일 UTC 16:00 = KST 01:00**
+ * (2026-07-31 정정 — "KST 04:00 (UTC 19:00) 권장" 이라고 적혀 있었으나 둘 다
+ *  실제와 다르다. vercel.json 이 정본이다.)
+ * 새벽 시각이어도 문제없다: 이 크론은 **알림을 보내지 않는다**(조용시간 규칙9
+ * 대상 아님). 파기는 되돌릴 수 없는 작업이라 트래픽이 가장 적은 때가 낫다.
  *
  * # 잔여
- * - reviews / product_qna 는 다른 사용자에게 보이는 콘텐츠 + 익명화 표시 가능.
+ * - product_qna 는 다른 사용자에게 보이는 콘텐츠 + 익명화 표시 가능.
  *   → 보존. 명시적 삭제 요청 시 별도 처리.
+ *   (reviews 는 2026-07-16 리뷰 시스템 폐기로 **테이블 자체가 없다** — 목록에서
+ *    뺐다. `deleteStep` 이 "relation does not exist" 를 견디므로 남아 있어도
+ *    터지진 않았지만, 없는 것을 "보존한다" 고 적어 두면 다음 사람이 찾는다.)
  * - subscription_charges 는 결제 기록이라 5년 보관 필수 — orders 와 함께 삭제.
  */
 
