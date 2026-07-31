@@ -20,6 +20,7 @@
 //   (카카오 경로는 age-gate 가 강제하므로 여기서 안 받아도 됨.)
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { ArrowRight, Check, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -158,6 +159,7 @@ function humanizeSignupError(raw: string): string {
 }
 
 export default function StartSurvey({ dogName }: { dogName: string }) {
+  const router = useRouter()
   const [idx, setIdx] = useState(0)
   // 설문 답 — localStorage 초안에 저장(PII 아님).
   const [answers, setAnswers] = useState<Record<string, string | string[]>>(
@@ -438,9 +440,26 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
     // 비밀번호 즉시 폐기(메모리 잔류 최소화).
     setPassword('')
     setConfirmPassword('')
-    // 이메일확인 ON → data.session === null. draft(dog+answers)는 localStorage
-    // 유지 → 메일 인증 후 첫 로그인 시 login 훅이 이관(B5). 여기선 DB write 안 함.
-    if (data.user && !data.session) setEmailSent(true)
+    /**
+     * ★ 세션이 **즉시 나오는 경우**를 처리한다 (2026-07-31).
+     *
+     * 이메일확인 ON 이면 `data.session === null` 이라 "메일 보냈어요" 안내로
+     * 끝난다(초안은 localStorage 에 남고 메일 인증 후 첫 로그인 때 login 훅이
+     * 이관). 그런데 확인이 OFF 면 signUp 이 **세션을 바로 준다** — 그때 이
+     * 코드는 `setEmailSent` 도 안 하고 이동도 안 해서, 화면이 폼 그대로 멈춘다.
+     * 실제로는 로그인이 된 상태인데 사용자는 아무 반응이 없다고 느끼고 떠나며,
+     * 설문 초안도 계정으로 안 옮겨간다 — **가입은 됐는데 결과가 사라진다.**
+     *
+     * 앱 경로(`/start/join`)에는 이 분기가 이미 있었다(`/start/onboard` 로 이동).
+     * 웹만 빠져 있었다 — 같은 규칙이 두 곳에 살면서 한쪽만 고쳐진 경우.
+     * 웹의 착지 허브는 `/start/claim` 이고, 거기가 초안 이관과 웹/앱 목적지
+     * 분기(`/start/done` vs `/dogs/[id]/analysis`)를 이미 전부 한다.
+     */
+    if (data.session) {
+      router.push('/start/claim')
+      return // saving 을 유지해 이동 중 버튼 재클릭을 막는다
+    }
+    if (data.user) setEmailSent(true)
     setSaving(false)
   }
 

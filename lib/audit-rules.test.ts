@@ -39,6 +39,21 @@ function read(path: string): string {
   return readFileSync(path, 'utf8').replace(/\r\n/g, '\n')
 }
 
+/**
+ * 주석을 걷어낸다 — **규칙이 주석에 속지 않게.**
+ *
+ * 2026-07-31: 규칙20 카나리아가 통과해 버렸다. 버그를 되돌려 놨는데도 초록이었고,
+ * 이유는 내가 그 위에 써 둔 설명 주석에 `data.session` 이 들어 있어서 규칙이
+ * 그걸 "처리했다"는 증거로 셌기 때문이다. 즉 **설명을 잘 써 둘수록 규칙이
+ * 무력해지는** 구조였다(규칙17 에서도 체인 중간 주석 때문에 한 번 겪었다).
+ * 소스를 문자열로 훑는 규칙은 이걸 먼저 통과시킨다.
+ */
+function stripComments(src: string): string {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:'"`\\])\/\/[^\n]*/g, '$1')
+}
+
 /** 저장소 상대 경로 (슬래시 통일) — 비교·메시지용. */
 function rel(file: string): string {
   return file.replace(ROOT, '').replace(/\\/g, '/').replace(/^\//, '')
@@ -733,6 +748,53 @@ test('★ 규칙19: `?? 0 > 0` 처럼 ?? 와 비교를 괄호 없이 섞지 않�
     offenders,
     [],
     '`??` 는 비교연산자보다 **뒤에** 묶인다 — `(a ?? 0) > 0` 로 괄호를 칠 것.\n' +
+      offenders.join('\n'),
+  )
+})
+
+test('★ 규칙20: auth.signUp 을 부르는 화면은 "세션 즉시 발급"을 처리한다', () => {
+  /**
+   * # 왜
+   * Supabase 의 이메일 확인 설정에 따라 `signUp` 의 결과가 갈린다:
+   *   · 확인 ON  → `data.session === null`  ("메일 보냈어요" 안내로 끝)
+   *   · 확인 OFF → **세션을 바로 준다**      (이미 로그인된 상태)
+   *
+   * 웹 설문 가입(StartSurvey)이 뒤쪽을 안 다뤄서, 세션이 나오면 안내도 이동도
+   * 없이 **폼 화면이 그대로 멈췄다.** 사용자는 반응이 없다고 느끼고 떠나고,
+   * 설문 초안은 계정으로 안 옮겨간다 — 가입은 됐는데 결과가 사라진다.
+   * 앱 경로(/start/join)엔 그 분기가 이미 있었다. 웹만 빠져 있었다.
+   *
+   * 이 설정은 **Supabase 대시보드에서 언제든 바뀔 수 있다** — 코드 변경 없이
+   * 화면이 죽는다는 뜻이다. 그래서 두 경로 모두 두 갈래를 다 다뤄야 한다.
+   */
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'components')))) {
+    const src = read(file)
+    if (!src.includes('auth.signUp(')) continue
+    const code = stripComments(src)
+    const at = code.indexOf('auth.signUp(')
+    if (at < 0) continue
+    const after = code.slice(at)
+    /**
+     * ★ **부정형만 있는 것**을 잡아야 한다 (카나리아로 두 번째에 알아냈다).
+     *
+     * 처음엔 `data.session` 이 등장하는지만 봤는데, 버그 코드가
+     * `if (data.user && !data.session) setEmailSent(true)` 라서 그 문자열이
+     * 들어 있었다 — **규칙이 잡으려던 바로 그 코드를 통과시켰다.**
+     * `!data.session` 은 "세션이 없을 때"만 다룬 것이다. 세션이 **있을 때**를
+     * 다뤘다는 증거는 부정 기호가 붙지 않은 `data.session` 이다.
+     */
+    const positive = /(^|[^!\w.])data\.session\b/m.test(after)
+    if (!positive) {
+      const line = src.slice(0, at).split('\n').length
+      offenders.push(`${rel(file)}:${line}`)
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'signUp 후 data.session 이 있는 경우(이메일 확인 OFF)를 다루지 않으면 ' +
+      '화면이 멈춘다 — 로그인은 됐는데 아무 일도 안 일어난다.\n' +
       offenders.join('\n'),
   )
 })
