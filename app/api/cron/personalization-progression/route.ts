@@ -40,7 +40,10 @@ export const dynamic = 'force-dynamic'
  * # 실행 조건 (2026-07-17 — 날짜 → **배송 회차** 기준으로 전환)
  * 강아지의 가장 최신 dog_formulas 가 적용된 뒤 **박스가 BOXES_PER_CYCLE(3)개 나갔고**,
  * **그 강아지의 구독이 active** 일 때만 다음 cycle 처방 생성.
- * (박스 = orders row. 결제 성공해야 생기므로 "실제로 나간 박스"와 일치.)
+ * (박스 = **결제된** orders row — `payment_status in (paid, partially_refunded)`
+ *  이면서 취소·만료가 아닌 것. 청구 크론이 토스를 긁기 전에 pending 행을 먼저
+ *  만들고 실패해도 지우지 않으므로, 필터 없이 세면 결제 실패·취소분까지
+ *  "나간 박스"가 된다 — 2026-07-31 수정. 자세한 근거는 아래 카운트 지점 주석.)
  *
  * ⚠️ **subscription-charge 다음에 돌아야 한다** (charge=KST 09:10 / 이 크론=KST 10:10).
  * 같은 시각이면 3번째 박스의 order 를 못 보고 한 주기를 통째로 미룬다.
@@ -238,8 +241,20 @@ export async function GET(req: Request) {
   // ── 만기 판정 = **배송 회차** (사장님 2026-07-17: "박스 3개마다") ──
   //
   // 이 처방이 적용된 뒤 실제로 나간 박스를 센다. orders.subscription_id +
-  // created_at 으로 세므로 **DB 마이그레이션이 필요 없다**. 결제가 성공해야
-  // orders row 가 생기므로 "실제로 나간 박스"와 일치한다.
+  // created_at 으로 세므로 **DB 마이그레이션이 필요 없다**.
+  //
+  // ⚠️ 예전 주석은 "결제가 성공해야 orders row 가 생기므로 실제로 나간 박스와
+  //    일치한다" 고 적혀 있었는데 **정반대였다**(2026-07-31 수정). 청구 크론은
+  //    토스를 긁기 **전에** `order_status:'pending' / payment_status:'pending'`
+  //    으로 행을 먼저 만들고(subscription-charge :504), 결제가 실패하면 그 행을
+  //    지우지 않고 `cancelled/failed` 로 **표시만** 한다(:914). 고객 셀프 취소·
+  //    order-expire 크론도 마찬가지로 행을 남긴다.
+  //    → 필터가 없으면 **카드가 세 번 거절당한 강아지도 "박스 3개 먹었다"** 가
+  //      되어 새 처방을 제안한다. 그 제안이 금액을 바꾸면 동의 모달까지 뜬다 —
+  //      한 박스도 못 받은 사람에게.
+  //    저장소의 다른 "받은 주문" 집계는 전부 payment_status='paid' 로 거른다
+  //    (lib/feeding-outcomes · analysis/structured · daily-briefing). 여기만
+  //    빠져 있었다.
   //
   // ⚠️ 그래서 이 크론은 **subscription-charge 다음에** 돌아야 한다. 같은 시각이면
   //    3번째 박스의 order 를 못 보고 지나쳐 한 주기를 통째로 미룬다(조용한 지연).
@@ -247,6 +262,8 @@ export async function GET(req: Request) {
   const dogIds = subscribedDogIds.slice(0, MAX_PER_RUN)
   const targets: FormulaRow[] = []
   let notEnoughBoxes = 0
+  // 박스 수를 못 센 건(조회 실패) 별도로 센다 — 0박스와 섞으면 조용한 정지가 된다.
+  let countFailed = 0
   for (const dogId of dogIds) {
     const cur = latestByDog.get(dogId)!
     const billing = billingByDog.get(dogId)
@@ -256,11 +273,33 @@ export async function GET(req: Request) {
     const since = cur.applied_from
       ? `${cur.applied_from}T00:00:00+09:00`
       : cur.created_at
-    const { count: boxesShipped } = await supabase
+    const { count: boxesShipped, error: boxesErr } = await supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('subscription_id', billing.subId)
       .gte('created_at', since)
+      // 결제가 실제로 된 것만. 부분환불은 박스가 나간 뒤 일부를 돌려준 것이라
+      // 센다. 전액환불('refunded')은 박스를 회수·취소한 경우라 빼는 쪽이 안전하다.
+      .in('payment_status', ['paid', 'partially_refunded'])
+      // paid 인데 뒤늦게 취소·만료된 것도 뺀다(이중 안전망).
+      .not('order_status', 'in', '("cancelled","expired")')
+
+    /**
+     * ★ 조회 실패를 0박스로 읽지 않는다 (규칙1).
+     *
+     * `count ?? 0` 이면 실패가 "아직 박스가 모자람"이 되어 **영원히 조용히
+     * 건너뛴다** — 크론은 매일 성공으로 집계되는데 그 강아지만 재제안이 멈춘다.
+     * 셀 수 없으면 이번 회차는 건드리지 않고 사람이 볼 수 있게 올린다.
+     */
+    if (boxesErr) {
+      captureBusinessEvent('error', 'personalization.progression.count_failed', {
+        dogId,
+        subscriptionId: billing.subId,
+        dbError: boxesErr.message,
+      })
+      countFailed += 1
+      continue
+    }
 
     if (!isCycleDue(boxesShipped ?? 0)) {
       notEnoughBoxes += 1
@@ -917,6 +956,7 @@ export async function GET(req: Request) {
       skippedNoSubscription,
       /** 아직 박스가 3개 안 나가 만기가 아닌 수 (정상 — 대기 중). */
       notEnoughBoxes,
+      countFailed,
       /** 변화가 없어 알림을 보내지 않은 수 (row 는 생성됨). */
       silentNoChange,
     })

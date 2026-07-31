@@ -585,3 +585,83 @@ test('★ 규칙3: subscriptions 금액·빌링 칸을 클라이언트가 UPDATE
       'AGENTS.md 규칙3.\n' + offenders.join('\n'),
   )
 })
+
+test('★ 규칙17: 서버가 orders 를 셀 때 결제 상태로 거른다', () => {
+  /**
+   * # 왜
+   * `orders` row 는 **결제 전에** 만들어진다. 청구 크론이 토스를 긁기 전에
+   * `order_status:'pending' / payment_status:'pending'` 으로 먼저 insert 하고
+   * (subscription-charge), 결제가 실패하면 그 행을 **지우지 않고** cancelled/failed
+   * 로 표시만 한다. 고객 셀프 취소·order-expire 도 행을 남긴다.
+   *
+   * 그래서 필터 없이 세면 "주문 건수"가 아니라 "시도 건수"가 된다. 재제안 크론이
+   * 정확히 그 상태였다: **카드가 세 번 거절당한 강아지도 "박스 3개 먹었다"** 가
+   * 되어 새 처방을 제안했고, 그 제안이 금액을 바꾸면 동의 모달까지 떴다 —
+   * 한 박스도 못 받은 사람에게.
+   *
+   * 저장소의 다른 집계는 전부 이미 걸렀다(lib/feeding-outcomes ·
+   * api/analysis/structured · cron/daily-briefing). **한 곳만 빠져 있었다** —
+   * 이 규칙은 새 관례를 만드는 게 아니라 이미 있는 관례가 새지 않게 하는 것이다.
+   *
+   * # 범위
+   * 서버 업무 로직(app/api/** · lib/**)만. 화면의 "내 주문 N건" 같은 표시용
+   * 카운트는 시도까지 보여주는 게 맞을 수 있어 제외한다 — 그건 돈·처방 판단을
+   * 바꾸지 않는다.
+   */
+  /**
+   * 배송 상태로만 거르는 게 **맞는** 집계. 그 상태값들(preparing·shipping·
+   * delivered)은 결제가 끝난 뒤에만 붙으므로 payment_status 를 다시 볼 필요가 없다.
+   * 위치가 바뀌면 규칙이 다시 잡는다 — 그때 여기도 같이 본다(그게 목적이다).
+   */
+  const ORDER_COUNT_SHIPPING_OK: Array<{ at: string; why: string }> = [
+    {
+      at: 'app/api/cron/daily-briefing/route.ts:89',
+      why: "'발송했는데 7일째 배송중' 집계 — order_status='shipping' 자체가 결제 완료 이후 상태다",
+    },
+  ]
+
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app/api')).concat(walk(join(ROOT, 'lib')))) {
+    const src = read(file)
+    if (!src.includes("from('orders')")) continue
+    // .from('orders').select(..., { count: 'exact' }) 뒤에 이어지는 필터 체인을 본다.
+    const re = /\.from\('orders'\)\s*\n?\s*\.select\([^\n]*count:\s*'exact'/g
+    for (const m of src.matchAll(re)) {
+      const start = (m.index ?? 0) + m[0].length
+      // 체인이 끝날 때까지(= 다음 줄이 .필터 가 아닐 때까지) 모은다.
+      const rest = src.slice(start).split('\n')
+      const chain: string[] = []
+      for (const ln of rest.slice(1)) {
+        // 체인 중간의 주석·빈 줄은 건너뛴다. 이걸 빼먹었더니 스캐너가 **방금 고친
+        // 재제안 크론을** 위반으로 잡았다 — 필터 바로 위에 왜 거르는지 적어 뒀기
+        // 때문이다. "설명을 달면 규칙에 걸린다" 는 최악의 유인이다.
+        if (/^\s*$/.test(ln) || /^\s*(\/\/|\/\*|\*)/.test(ln)) continue
+        if (!/^\s*\.(eq|in|not|neq|gte|lte|gt|lt|is|or|filter|match)\(/.test(ln)) break
+        chain.push(ln)
+      }
+      const text = chain.join('\n')
+      /**
+       * `payment_status` 를 **필수**로 본다. 처음엔 `order_status` 도 인정했는데,
+       * 카나리아에서 payment_status 필터만 빼도 규칙이 통과했다 — `order_status`
+       * 에는 `'pending'`(= 결제 전) 이 있어서 그것만으론 돈이 오갔는지 알 수 없다.
+       * 규칙이 잡으려던 바로 그 상태를 규칙이 통과시키고 있었다.
+       *
+       * 배송 상태로만 거르는 정당한 집계(예: '발송했는데 7일째 배송중')는
+       * ORDER_COUNT_SHIPPING_OK 에 이유와 함께 적는다 — 그 상태값들은 결제가
+       * 끝난 뒤에만 붙으므로 payment_status 를 다시 볼 필요가 없다.
+       */
+      const line = src.slice(0, m.index ?? 0).split('\n').length
+      const here = `${rel(file)}:${line}`
+      if (ORDER_COUNT_SHIPPING_OK.some((x) => x.at === here)) continue
+      if (!/payment_status/.test(text)) offenders.push(here)
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'orders 를 세는데 payment_status·order_status 필터가 없다 — orders row 는 ' +
+      '결제 전에 만들어지고 실패해도 남는다. 필터가 없으면 "시도 건수"를 세게 ' +
+      '되어, 카드가 거절당한 고객이 "박스를 받은 고객"으로 집계된다.\n' +
+      offenders.join('\n'),
+  )
+})
