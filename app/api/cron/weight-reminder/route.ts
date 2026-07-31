@@ -4,6 +4,7 @@ import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { petName } from '@/lib/korean'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,11 +61,21 @@ export async function GET(req: Request) {
   // RPC 미구현 환경 — fallback inline query (느림, 200 dog 까진 OK).
   let targets: DogRow[] = []
   if (error || !rows) {
-    const { data: dogs } = await supabase
+    /**
+     * ★ `dogs` 에는 **deleted_at 컬럼이 없다** (2026-07-31 프로덕션 실측).
+     * 이 필터 때문에 쿼리가 통째로 실패했고, error 를 안 받아 **매번 0마리 처리 후
+     * '성공'** 으로 집계됐다 — 체중 재기 리마인더가 한 번도 나가지 않았다.
+     * 강아지 삭제는 hard delete 다(soft delete 컬럼 자체가 없다).
+     */
+    const { data: dogs, error: dogsErr } = await supabase
       .from('dogs')
       .select('id, user_id, name')
-      .is('deleted_at', null)
       .limit(500)
+    if (dogsErr) {
+      captureBusinessEvent('error', 'cron.weight_reminder.dogs_query_failed', {
+        dbError: dogsErr.message,
+      })
+    }
     const dogList = ((dogs ?? []) as unknown) as Array<{
       id: string
       user_id: string

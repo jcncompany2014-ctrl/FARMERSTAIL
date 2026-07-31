@@ -88,27 +88,31 @@ export async function GET(req: Request) {
     supabase.from('dog_reminders').select('*').eq('user_id', user.id),
     supabase.from('addresses').select('*').eq('user_id', user.id),
     supabase.from('orders').select('*').eq('user_id', user.id),
-    // audit #79: order_items / subscription_items 는 generated types 에서
-    // user_id 컬럼 없음 (orders/subscriptions 통한 RLS). untyped cast 유지.
-    (
-      supabase as unknown as {
-        from: (t: string) => {
-          select: (cols: string) => {
-            eq: (c: string, v: string) => Promise<{ data: unknown }>
-          }
-        }
-      }
-    ).from('order_items').select('*').eq('user_id', user.id),
+    /**
+     * ★ 주문 품목·구독 품목은 **부모를 통해** 가져온다 (2026-07-31 수정).
+     *
+     * 예전 코드는 `.eq('user_id', user.id)` 였다 — 그런데 바로 위 주석이
+     * "user_id 컬럼 없음" 이라고 **스스로 밝히고 있었다.** 없는 컬럼으로
+     * 거르니 쿼리가 실패했고, 타입 캐스트가 TS 경고까지 막아 놔서
+     * `?? []` 로 흘러 **항상 빈 배열**이 나갔다.
+     *
+     * 즉 개인정보 다운로드(개인정보보호법 §35 열람권)가 **무엇을 주문했고
+     * 어떤 구성을 받았는지**를 통째로 빼고 내보내고 있었다.
+     * 실측 확인: `select ... from order_items where user_id = ...` →
+     * `ERROR: column "user_id" does not exist`.
+     *
+     * 부모 id 로 조회해도 RLS 가 남의 주문/구독을 막으므로 범위는 그대로다
+     * (order_items·subscription_items 정책이 부모의 user_id 를 확인한다).
+     */
+    supabase
+      .from('order_items')
+      .select('*, orders!inner(user_id)')
+      .eq('orders.user_id', user.id),
     supabase.from('subscriptions').select('*').eq('user_id', user.id),
-    (
-      supabase as unknown as {
-        from: (t: string) => {
-          select: (cols: string) => {
-            eq: (c: string, v: string) => Promise<{ data: unknown }>
-          }
-        }
-      }
-    ).from('subscription_items').select('*').eq('user_id', user.id),
+    supabase
+      .from('subscription_items')
+      .select('*, subscriptions!inner(user_id)')
+      .eq('subscriptions.user_id', user.id),
     supabase.from('subscription_charges').select('*').eq('user_id', user.id),
     supabase.from('point_ledger').select('*').eq('user_id', user.id),
     supabase.from('consent_log').select('*').eq('user_id', user.id),

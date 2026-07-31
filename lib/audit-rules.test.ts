@@ -198,11 +198,44 @@ test('★ 규칙14: .select() 가 없는 컬럼을 부르지 않는다', () => {
       }
     }
   }
+  /**
+   * ★ 필터(.eq/.is/.in ...)도 같이 본다 — select 만 봐서는 못 잡는다.
+   * 2026-07-31 실제 피해:
+   *  · 건강 알림 크론 3개가 `dogs.deleted_at` 으로 필터 — 그 컬럼은 **없다**.
+   *    쿼리가 실패했고 error 를 안 받아 **매번 0마리 처리 후 '성공'** 집계.
+   *    체중 리마인더·급변 경보·DCM 안내가 한 번도 나가지 않았다.
+   *  · 개인정보 다운로드가 `order_items.user_id` 로 필터 — 없는 컬럼이라
+   *    **항상 빈 배열**. 주문 품목·구독 구성이 통째로 빠진 채 내보내졌다
+   *    (개인정보보호법 §35 열람권). 심지어 바로 위 주석이 "user_id 컬럼 없음"
+   *    이라고 스스로 밝히고 있었는데 코드는 그대로였다.
+   */
+  for (const file of walk(join(ROOT, 'app'))
+    .concat(walk(join(ROOT, 'lib')))
+    .concat(walk(join(ROOT, 'components')))) {
+    const src = readFileSync(file, 'utf8')
+    for (const m of src.matchAll(/\.from\(\s*'(\w+)'\s*\)([\s\S]{0,900})/g)) {
+      const known = tableCols.get(m[1]!)
+      if (!known) continue
+      let chunk = m[2] ?? ''
+      const nxt = chunk.indexOf(".from('")
+      if (nxt > 0) chunk = chunk.slice(0, nxt)
+      const filterRe =
+        /\.(eq|neq|is|in|gt|gte|lt|lte|like|ilike|contains|order|not)\(\s*'(\w+)'/g
+      for (const fm of chunk.matchAll(filterRe)) {
+        const col = fm[2]!
+        // 관계 필터(`orders.user_id`)는 점이 들어가 이 정규식에 안 걸린다.
+        if (known.has(col)) continue
+        const line = src.slice(0, m.index ?? 0).split('\n').length
+        offenders.push(`${rel(file)}:${line} :: ${m[1]}.${col} 없음 (${fm[1]})`)
+      }
+    }
+  }
+
   assert.deepEqual(
     offenders,
     [],
-    'select 에 없는 컬럼이 있다 — 쿼리가 통째로 실패하고, error 를 안 받으면 ' +
-      '"데이터 없음"처럼 보인다(영수증이 전부 404 였던 이유).\n' +
+    'select·필터에 없는 컬럼이 있다 — 쿼리가 통째로 실패하고, error 를 안 받으면 ' +
+      '"데이터 없음"처럼 보인다(영수증 404 · 건강 알림 0건 발송이 그 이유였다).\n' +
       offenders.join('\n'),
   )
 })

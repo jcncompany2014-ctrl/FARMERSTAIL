@@ -5,6 +5,7 @@ import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { DCM_RISK_BREEDS } from '@/lib/chronic-sku-mapper'
 import { petName } from '@/lib/korean'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -46,12 +47,25 @@ async function runReminder(): Promise<Response> {
 
   // DCM 호발 견종 dog 픽업.
   // breed 컬럼은 lib/breeds/registry.ts 의 code 와 매핑 (텍스트).
-  const { data: dogsRaw } = await admin
+  /**
+   * ★ `dogs` 에는 **deleted_at 컬럼이 없다** (2026-07-31 프로덕션 실측:
+   * `ERROR: 42703: column "deleted_at" does not exist`).
+   *
+   * 그래서 `.is('deleted_at', null)` 이 붙어 있는 동안 이 쿼리는 **통째로
+   * 실패**했고, error 를 안 받아 `dogsRaw ?? []` 로 흘러 **매번 0마리 처리 후
+   * '성공'** 으로 집계됐다 — DCM 검진 안내가 한 번도 나가지 않았다.
+   * 강아지 삭제는 hard delete 다(soft delete 컬럼 자체가 없다).
+   */
+  const { data: dogsRaw, error: dogsErr } = await admin
     .from('dogs')
     .select('id, user_id, name, breed')
-    .is('deleted_at', null)
     .in('breed', DCM_RISK_BREEDS)
     .limit(300)
+  if (dogsErr) {
+    captureBusinessEvent('error', 'cron.dcm_screening.dogs_query_failed', {
+      dbError: dogsErr.message,
+    })
+  }
 
   const dogs = (dogsRaw ?? []) as Array<{
     id: string
