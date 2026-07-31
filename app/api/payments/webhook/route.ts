@@ -16,14 +16,20 @@ export const dynamic = 'force-dynamic'
  * Toss Payments webhook receiver.
  *
  * Why this exists (even though /api/payments/confirm already records paid orders):
- *   • Virtual account (가상계좌) customers complete the flow LATER —
- *     sometimes days after closing the browser. The confirm call only
- *     gives us a "WAITING_FOR_DEPOSIT" response. The actual deposit
- *     arrives as a webhook.
  *   • Users who close the tab mid-card-flow don't trigger confirm.
  *     Toss still sends the webhook so we can finalize state.
  *   • Refunds initiated via Toss dashboard (manual ops) only surface
  *     through the webhook.
+ *
+ * ★ 2026-07-31 주석 정정 — 예전엔 **가상계좌(입금 대기)를 첫 번째 이유**로 적고
+ *   있었다. 지금 우리 흐름에서는 가상계좌가 생기지 않는다: 구독 전용이라 결제는
+ *   전부 빌링키(카드·토스페이)이고(lib/payments/billing-methods), 낱개 커머스는
+ *   폐지됐다. `orders.payment_method` 는 **토스가 준 값을 그대로 저장**할 뿐
+ *   우리가 고르지 않는다(confirm·webhook 두 곳).
+ *   저장소 곳곳의 가상계좌 분기(order-expire · self-cancel · partial-cancel)는
+ *   **지우지 않는다** — 토스 대시보드에서 수동으로 만든 결제가 웹훅으로 들어올
+ *   수 있고, 환불에 수신 계좌가 필요한 것도 그 경우 맞다. 다만 그건 **휴면 가드**
+ *   이지 상시 경로가 아니다. 이 구분이 흐려지면 "가상계좌를 지원한다"고 오해한다.
  *
  * Security model:
  *   Toss does NOT sign webhooks with HMAC. The official recommendation

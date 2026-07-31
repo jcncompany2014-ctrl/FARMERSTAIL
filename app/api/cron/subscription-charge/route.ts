@@ -34,19 +34,36 @@ export const dynamic = 'force-dynamic'
  *
  * 매일 오전 (KST 09:10) 실행. 다음 조건의 구독을 자동 결제:
  *   - status = 'active'
- *   - next_delivery_date = 오늘 (KST)
+ *   - next_delivery_date **≤ 오늘** (KST) — `=` 이 아니다(2026-07-31 주석 정정).
+ *     실제 코드는 `.lte(...)` 다. 크론이 하루 걸러도 다음 실행이 **따라잡는다**;
+ *     `=` 였다면 놓친 구독은 영영 청구되지 않는다. 아래 "시간대" 절 참조.
  *   - billing_key IS NOT NULL
- *   - 같은 (subscription_id, today) 로 subscription_charges 에 row 가 없음
- *     (멱등 — 같은 날 두 번 결제 안 됨)
+ *
+ * # 멱등은 **두 층**이다 (2026-07-31 주석 정정 — 예전엔 한 층만 적혀 있었다)
+ *   ① 같은 날 두 번: `subscription_charges` 에 `(subscription_id, scheduled_for=today)`
+ *      로 insert. UNIQUE 충돌이면 skip → 한 날에 두 번 안 긁는다.
+ *   ② 날짜를 건너뛴 재시도: 토스 `idempotencyKey` 가 **주기(next_delivery_date)
+ *      기준**이다 — 실행일이 아니다. ①의 키가 `today` 라서 다음 날 재시도는
+ *      우리 쪽 UNIQUE 를 그냥 통과한다. 그때 이중청구를 막는 건 토스 키다.
+ *   ⚠️ 그러므로 ①의 `scheduled_for` 를 next_delivery_date 로 "통일" 하면 안 된다 —
+ *      확정 거절 뒤 재시도 경로(:r{today} 접미사)가 같이 막힌다. 자세한 근거는
+ *      idempotencyKey 를 만드는 지점의 주석에.
  *
  * 처리 흐름:
  *   1) 대상 구독 select
  *   2) 각 구독에 대해 charge attempt:
  *      a. subscription_charges row insert (status='pending', UNIQUE 충돌 시 skip)
- *      b. orders row insert (status='pending', payment_status='pending')
+ *      b. orders row insert (`order_status='pending'` · `payment_status='pending'`)
+ *         ★ **청구보다 먼저** 만들어지고, 실패해도 지우지 않는다 — `cancelled` /
+ *           `failed` 로 표시만 한다(e). 즉 **orders 행이 있다고 돈이 오간 것이
+ *           아니다.** 재제안 크론이 이걸 반대로 알고("결제가 성공해야 row 가
+ *           생긴다") 상태 필터 없이 세는 바람에, 카드가 세 번 거절당한 강아지가
+ *           "박스 3개 먹었다"로 집계돼 새 처방을 제안받았다(2026-07-31 수정).
+ *           orders 를 세는 코드는 반드시 payment_status 로 거른다 — 규칙17.
  *      c. Toss billingKey 청구
  *      d. 성공 → orders/charge update + subscriptions.next_delivery_date 갱신
- *      e. 실패 → failed_charge_count += 1, 3회 누적 시 status='paused'
+ *      e. 실패 → failed_charge_count += 1, MAX_FAILED(3) 누적 시 status='paused'
+ *         (orders 는 `order_status='cancelled'` · `payment_status='failed'` 로 표시)
  *   3) 결과 집계 반환
  *
  * 보안: CRON_SECRET bearer.
