@@ -116,7 +116,7 @@ function BillingAuthInner() {
 
   return (
     <main
-      className="min-h-screen flex flex-col"
+      className="min-h-[100dvh] flex flex-col"
       style={{ background: 'var(--bg)' }}
     >
       {/* 우리 도메인 화면이므로 헤더를 우리가 그린다 — 앱에서 브라우저처럼
@@ -311,7 +311,7 @@ export default function BillingAuthPage() {
     <Suspense
       fallback={
         <main
-          className="min-h-screen flex items-center justify-center"
+          className="min-h-[100dvh] flex items-center justify-center"
           style={{ background: 'var(--bg)' }}
         >
           <div

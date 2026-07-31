@@ -8,6 +8,7 @@ import OrderClient, {
   type OrderProduct,
 } from '@/app/(main)/dogs/[id]/order/OrderClient'
 import { business } from '@/lib/business'
+import EnsureFormula from './EnsureFormula'
 
 /**
  * /account/subscribe/[dogId] — **웹 사용자용 정기배송 신청.**
@@ -152,6 +153,20 @@ export default async function WebSubscribePage({
           '--bg-2': 'var(--fd-cream)',
         } as React.CSSProperties}
       >
+        {/*
+          ★ 처방이 없으면 **여기서 만든다** (2026-07-31 사장님 제보: 웹에서 설문하고
+          강아지를 등록했는데 "추천 박스가 없다").
+
+          웹 설문 경로는 `dog_formulas` 를 만들지 않는다 — 화면의 추천은
+          `computeStartTeaser`(localStorage 초안으로 브라우저에서 계산한 티저)라
+          DB 엔 없다. 앱은 분석 화면의 RecommendationBox 가 마운트될 때 compute 를
+          부르는데, **웹엔 그 화면이 없어서 아무도 안 불렀다.**
+          OrderClient 에 formula=null 로 넘기면 "아직 박스 추천이 없어요" 만 뜨고
+          고객은 갈 곳이 없다 — 그 자리에서 만들어 주고 다시 그린다.
+        */}
+        {data.formula === null ? (
+          <EnsureFormula dogId={dogId} />
+        ) : (
         <OrderClient
           isApp={false}
           dogId={dogId}
@@ -163,6 +178,7 @@ export default async function WebSubscribePage({
           initialFresh={data.initialFresh}
           pickedRecipes={data.pickedRecipes}
         />
+        )}
       </div>
     </AuthAwareShell>
   )

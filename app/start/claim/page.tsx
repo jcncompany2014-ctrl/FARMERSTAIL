@@ -90,7 +90,7 @@ export default function StartClaimPage() {
             router.replace(
               isApp
                 ? `/dogs/${dogId}/analysis?fromSurvey=1`
-                : `/start/done?name=${encodeURIComponent(dogName)}`,
+                : `/start/done?name=${encodeURIComponent(dogName)}&dog=${dogId}`,
             )
             return
           }

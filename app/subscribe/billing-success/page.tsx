@@ -150,8 +150,15 @@ function BillingSuccessInner() {
 
   return (
     <main
-      className="min-h-screen flex items-center justify-center px-6"
-      style={{ background: 'var(--bg)' }}
+      className="min-h-[100dvh] flex items-center justify-center px-6"
+      style={{
+        background: 'var(--bg)',
+        // 짧은 화면(가로 모드·작은 폰)에서 내용이 가장자리에 붙지 않게.
+        // safe-area 는 top-level 라우트라 AppChrome 이 안 챙겨 준다
+        // (billing-auth 헤더가 같은 이유로 이미 inset 을 더하고 있다).
+        paddingTop: 'calc(32px + env(safe-area-inset-top, 0px))',
+        paddingBottom: 'calc(32px + env(safe-area-inset-bottom, 0px))',
+      }}
     >
       <div className="text-center max-w-sm w-full">
         {status === 'exchanging' && (
@@ -181,13 +188,13 @@ function BillingSuccessInner() {
         {status === 'succeeded' && (
           <>
             <div
-              className="w-14 h-14 mx-auto mb-5 rounded-full flex items-center justify-center text-2xl"
+              className="w-16 h-16 mx-auto mb-7 rounded-full flex items-center justify-center text-[26px]"
               style={{ background: 'var(--moss)', color: 'var(--bg)' }}
             >
               ✓
             </div>
             <p
-              className="font-serif text-[22px] font-black"
+              className="font-serif text-[23px] font-black leading-tight"
               style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
             >
               {method.doneTitle}
@@ -202,7 +209,7 @@ function BillingSuccessInner() {
               </p>
             )}
             <p
-              className="text-[12.5px] leading-relaxed mt-4"
+              className="text-[13px] leading-[1.75] mt-5"
               style={{ color: 'var(--text)' }}
             >
               다음 배송일에 {method.label}로 자동 결제돼요.
@@ -212,7 +219,7 @@ function BillingSuccessInner() {
             <button
               type="button"
               onClick={() => router.push(`${subsHref}?new=1`)}
-              className="mt-6 w-full py-3.5 rounded-full text-[13px] font-bold"
+              className="mt-9 w-full py-4 rounded-full text-[13.5px] font-bold"
               style={{ background: 'var(--ink)', color: 'var(--bg)' }}
             >
               내 정기배송 보기
@@ -223,7 +230,7 @@ function BillingSuccessInner() {
         {status === 'failed' && (
           <>
             <div
-              className="w-14 h-14 mx-auto mb-5 rounded-full flex items-center justify-center text-2xl"
+              className="w-16 h-16 mx-auto mb-7 rounded-full flex items-center justify-center text-[26px]"
               style={{ background: 'var(--sale)', color: 'var(--bg)' }}
             >
               !
@@ -275,7 +282,7 @@ export default function BillingSuccessPage() {
     <Suspense
       fallback={
         <main
-          className="min-h-screen flex items-center justify-center"
+          className="min-h-[100dvh] flex items-center justify-center"
           style={{ background: 'var(--bg)' }}
         >
           <div

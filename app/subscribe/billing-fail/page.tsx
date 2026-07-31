@@ -39,7 +39,7 @@ function BillingFailInner() {
 
   return (
     <main
-      className="min-h-screen flex items-center justify-center px-6"
+      className="min-h-[100dvh] flex items-center justify-center px-6"
       style={{ background: 'var(--bg)' }}
     >
       <div className="text-center max-w-sm w-full">
@@ -95,7 +95,7 @@ export default function BillingFailPage() {
     <Suspense
       fallback={
         <main
-          className="min-h-screen flex items-center justify-center"
+          className="min-h-[100dvh] flex items-center justify-center"
           style={{ background: 'var(--bg)' }}
         >
           <div

@@ -7,7 +7,13 @@
 // "가입 완료 → 정밀 분석은 앱에서" 핸드오프를 보여준다.
 //   • 앱(PWA/Capacitor) 사용자: /start/claim·login 이 곧장 /dogs/{id}/analysis 로 보냄.
 //   • 웹 사용자: 여기로 와서 완료 안내 + 앱 유도.
-// ※ FD식 웹 결제(Your Plan→Checkout)는 토스 PG 통과 + 결제 불변영역 해제 후 별도.
+//
+// ★2026-07-31 — 전제가 바뀌었다(사장님: "웹에서도 제품 구독 정도는 되어야 한다").
+//   `/account/subscribe/[dogId]` 신설로 **웹에서 신청이 끝까지 이어진다.**
+//   그런데 이 화면은 여전히 "정밀 분석과 맞춤 레시피는 앱에서" 로 끝나고 링크가
+//   `/login` 하나뿐이었다 — 설문을 마친 사람이 **결제로 갈 길이 없었다**
+//   (사장님 제보: "추천레시피가 결제로 안 이어져").
+//   이제 신청 CTA 가 주인공이고, 앱 안내는 보조로 내린다.
 
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -19,6 +25,9 @@ import { Section, Container, Display, Eyebrow, PhotoSlot } from '@/components/we
 function DoneInner() {
   const params = useSearchParams()
   const name = (params.get('name') || '').trim() || '우리 아이'
+  // claim 이 넘겨준 강아지 id — 있으면 곧바로 신청 화면으로 보낸다.
+  // 없으면(옛 링크·직접 진입) 우리 아이 목록으로 — 거기서도 신청할 수 있다.
+  const dogId = (params.get('dog') || '').trim()
 
   return (
     <WebChrome>
@@ -42,9 +51,28 @@ function DoneInner() {
                 className="pt-4 text-[14.5px] md:text-[16px] mx-auto"
                 style={{ maxWidth: 440, lineHeight: 1.7, color: 'var(--fd-muted)' }}
               >
-                <b style={{ color: 'var(--fd-pine)' }}>{name}</b> 맞춤 분석이 준비됐어요.
-                38개 영양소 정밀 분석과 맞춤 레시피는 앱에서 이어져요.
+                <b style={{ color: 'var(--fd-pine)' }}>{name}</b> 맞춤 식단이 준비됐어요.
+                바로 정기배송을 시작할 수 있어요.
               </p>
+
+              {/* ★ 신청 CTA — 이 화면의 주인공 (2026-07-31).
+                  예전엔 링크가 /login 하나뿐이라 설문을 마친 사람이 결제로 갈 길이
+                  없었다. 웹 신청 화면이 생겼으니 곧장 보낸다. */}
+              <div className="pt-7">
+                <Link
+                  href={dogId ? `/account/subscribe/${dogId}` : '/account/dogs'}
+                  className="inline-flex items-center justify-center px-7 py-3.5 rounded-full text-[14px] font-bold transition hover:brightness-[0.94] active:scale-[0.98]"
+                  style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
+                >
+                  정기배송 신청하기
+                </Link>
+                <p
+                  className="pt-3 text-[12.5px]"
+                  style={{ color: 'var(--fd-muted)' }}
+                >
+                  38개 영양소 정밀 분석·일일 케어는 앱에서 이어져요.
+                </p>
+              </div>
 
               {/* 앱 다운로드 — 실제 스토어 배지는 출시 시 주입(PhotoSlot src). */}
               <div className="pt-7 grid grid-cols-2 gap-3 mx-auto" style={{ maxWidth: 360 }}>
