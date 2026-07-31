@@ -2,14 +2,30 @@
  * Farmer's Tail — 정기배송 알림 메일.
  *
  * 트리거: 매일 1회 cron 이 `next_delivery_date` 가 `reminder_days_before` 일
- * 후인 활성 구독을 스캔해 발송. 사용자가 /mypage/subscriptions 에서 알림 토글
- * 한 경우만 (reminder_enabled = true).
+ * 후인 활성 구독을 스캔해 발송. 사용자가 알림 토글한 경우만
+ * (reminder_enabled = true).
+ *
+ * # ★ 메일 CTA 는 반드시 **웹 경로**를 쓴다 (2026-07-31)
+ * 메일은 대부분 **브라우저**에서 열린다(딥링크 미설정). 그런데 여기 CTA 가
+ * `/mypage/subscriptions` 를 가리키고 있었고, 그 경로는 proxy.ts 의
+ * `APP_ONLY_PREFIXES` 에 있어 `ft_app` 쿠키 없는 브라우저는 `/app-required` 로
+ * 307 리다이렉트된다 → 고객이 "구독 관리하기" 를 누르면 관리 화면이 아니라
+ * **앱 설치 안내**가 뜬다. 결제 실패 메일에서는 더 나쁘다 — 카드를 다시 등록하러
+ * 온 사람이 등록 화면에 닿지 못한다.
+ *
+ * 웹 정기배송 **관리** 화면은 `/account/subscriptions` 다(일시정지·재개·해지·
+ * 카드 재등록). proxy.ts 주석도 "웹 구독관리는 별도 /account/subscriptions —
+ * app-only 아님" 이라고 의도를 명시해 두었다. `personalization-cycle.ts` 는
+ * 이미 그 경로를 쓰고 있었다 — 이 파일이 관례를 벗어난 예외였다.
+ *
+ * ⚠️ **푸시 알림 URL 은 반대다.** 푸시는 앱 안에서 열리므로 `/mypage/*` 가 맞다
+ * (구독 크론들의 push url 은 건드리지 말 것).
  *
  * # 심미 가이드
  *   - 히어로 아이콘: 🚚 (배송 임박 시각 단서). 거래 메일이라 스팸 영향 거의 X.
  *   - Callout: moss — "정기적/안정" 톤. 정기배송 대시보드 카드와 같은 색.
- *   - CTA: "구독 관리" — /mypage/subscriptions. 잠시 멈춤 / 변경 / 해지를
- *     원할 수 있는 사용자가 한 번에 닿게.
+ *   - CTA: "구독 관리" — 잠시 멈춤 / 변경 / 해지를 원할 수 있는 사용자가
+ *     한 번에 닿게.
  */
 import { block, escape, renderLayout, SITE_URL } from '../layout'
 
@@ -77,7 +93,7 @@ export function renderSubscriptionReminder(input: {
     body,
     cta: {
       label: '구독 관리하기',
-      href: `${SITE_URL}/mypage/subscriptions`,
+      href: `${SITE_URL}/account/subscriptions`,
     },
   })
 
@@ -213,7 +229,7 @@ export function renderSubscriptionChargeFailed(input: {
     body,
     cta: {
       label: isPermanent ? '카드 다시 등록하기' : '카드 정보 업데이트',
-      href: `${SITE_URL}/mypage/subscriptions`,
+      href: `${SITE_URL}/account/subscriptions`,
     },
   })
 

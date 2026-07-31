@@ -135,7 +135,7 @@ export function renderLayout({
                 </div>
                 <div style="margin-top:10px;font-size:10px;color:#9A9A9A;">
                   본 메일은 거래 안내용으로, 주문 및 회원 활동에 따라 자동 발송됩니다.
-                  수신을 원치 않으시면 <a href="${escape(SITE_URL)}/mypage/notifications" style="color:#715C4A;text-decoration:underline;">알림 설정</a> 에서 변경하실 수 있어요.
+                  수신을 원치 않으시면 <a href="${escape(SITE_URL)}/notifications?tab=push" style="color:#715C4A;text-decoration:underline;">알림 설정</a> 에서 변경하실 수 있어요.
                 </div>
               </td>
             </tr>
@@ -229,7 +229,7 @@ export function marketingFooterRow(): string {
     </div>
     <div style="margin-top:10px;font-size:10px;color:#715C4A;line-height:1.5;">
       본 메일은 마케팅 정보 수신에 동의하신 분께 발송했어요. 수신 거부는
-      <a href="${escape(SITE_URL)}/mypage/notifications" style="color:#715C4A;text-decoration:underline;">알림 설정</a>
+      <a href="${escape(SITE_URL)}/notifications?tab=push" style="color:#715C4A;text-decoration:underline;">알림 설정</a>
       에서 변경하실 수 있어요.
     </div>
   </td></tr>`

@@ -240,6 +240,81 @@ test('★ 규칙14: .select() 가 없는 컬럼을 부르지 않는다', () => {
   )
 })
 
+test('★ 규칙16: 메일 링크는 앱 전용 경로를 가리키지 않는다', () => {
+  /**
+   * 메일은 대부분 **브라우저**에서 열린다(딥링크 미설정). 앱 전용 경로를 링크하면
+   * `ft_app` 쿠키가 없어 `/app-required` 로 307 리다이렉트된다 — 고객은
+   * "구독 관리하기" 를 눌렀는데 **앱 설치 안내**를 본다.
+   *
+   * 2026-07-31 실제로 그랬다: `subscription.ts` 의 CTA 2곳이
+   * `/mypage/subscriptions`(앱 전용) 였다. 결제 실패 메일에서는 카드를 다시
+   * 등록하러 온 사람이 등록 화면에 닿지 못했다.
+   * (`personalization-cycle.ts` 는 이미 `/account/subscriptions` 를 쓰고 있었다 —
+   *  그 파일이 관례였고 subscription.ts 가 예외였다.)
+   *
+   * ⚠️ 푸시(app/api/cron/**)는 **반대**다 — 앱 안에서 열리므로 /mypage/* 가 맞다.
+   * 그래서 검사 범위를 `lib/email/**` 로 한정한다.
+   *
+   * 앱 전용 목록은 **proxy.ts 를 실제로 읽어** 대조한다. 손으로 적으면 목록이
+   * 바뀔 때 조용히 낡는다(오늘 /mypage/delete 를 그 목록에서 뺐다).
+   */
+  const proxy = readFileSync(join(ROOT, 'proxy.ts'), 'utf8')
+  const block = /APP_ONLY_PREFIXES[^=]*=\s*\[([\s\S]*?)\n\]/.exec(proxy)
+  assert.ok(block?.[1], 'proxy.ts 에서 APP_ONLY_PREFIXES 를 못 찾았다')
+  const appOnly = [...block[1].matchAll(/'([^']+)'/g)].map((m) => m[1]!)
+  assert.ok(appOnly.length > 0, '앱 전용 prefix 목록이 비어 있다')
+
+  // 웹도 들어갈 수 있는 예외(정확 매치 + 하위 경로).
+  const webAllowed = [
+    ...(/MYPAGE_WEB_ALLOWED[^=]*=\s*new Set\(\[([\s\S]*?)\]\)/.exec(proxy)?.[1] ?? '')
+      .matchAll(/'([^']+)'/g),
+  ].map((m) => m[1]!)
+
+  /**
+   * 의도된 예외 — 앱 설치 안내가 **목적지로서 맞는** 경우.
+   *
+   * `/dogs/*`(기록·분석·복약 등 풀 케어)는 R84-2 에서 의도적으로 app-only 로
+   * 되돌렸다: 모바일-first v3 화면이라 데스크톱 웹에서 어색하고, 웹 사용자는
+   * PWA 안내로 보낸다는 제품 결정이다(proxy.ts 주석). 웹 대응물인
+   * `/account/dogs` 는 **읽기전용 간략 목록**이라 "전체 분석 리포트" CTA 의
+   * 목적지가 될 수 없다 — 거기로 보내면 오히려 더 큰 거짓말이 된다.
+   * 그래서 이 경우 /app-required 가 정직한 목적지다.
+   *
+   * 반대로 `/mypage/subscriptions`·`/mypage/notifications` 는 **웹에서 닿을 수
+   * 있는 실물 화면이 있는데도** 앱 전용 경로를 쓴 것이라 버그였다.
+   */
+  const INTENDED_APP_ONLY = ['/dogs']
+
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'lib/email'))) {
+    const src = readFileSync(file, 'utf8')
+    const lines = src.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i] ?? ''
+      // 주석 안의 설명은 대상 아님 — 실제 링크만.
+      if (/^\s*(\*|\/\/)/.test(line)) continue
+      for (const m of line.matchAll(/(?:SITE_URL[)}\s]*)(\/[A-Za-z0-9_\-/[\]${}.]*)/g)) {
+        const path = (m[1] ?? '').replace(/\$\{[^}]*\}/g, 'X')
+        if (webAllowed.some((w) => path === w || path.startsWith(`${w}/`))) continue
+        if (
+          INTENDED_APP_ONLY.some((p) => path === p || path.startsWith(`${p}/`))
+        ) {
+          continue
+        }
+        const hit = appOnly.find((p) => path === p || path.startsWith(`${p}/`))
+        if (hit) offenders.push(`${rel(file)}:${i + 1} :: ${path} (앱 전용 ${hit})`)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '메일 링크가 앱 전용 경로를 가리킨다 — 브라우저로 열면 앱 설치 안내로 튕긴다. ' +
+      '웹 경로(/account/*)를 쓸 것. 푸시는 반대이니 이 규칙 밖이다.\n' +
+      offenders.join('\n'),
+  )
+})
+
 test('★ 규칙15: 잠긴 표(orders)를 쿠키 클라이언트로 쓰지 않는다', () => {
   /**
    * 2026-07-31 — `orders` 의 컬럼 UPDATE 권한을 회수했다(20260731000000).

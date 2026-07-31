@@ -92,7 +92,7 @@ export function renderUnsubscribeAck(input: {
     body,
     cta: {
       label: '알림 설정 보기',
-      href: `${SITE_URL}/mypage/notifications`,
+      href: `${SITE_URL}/notifications?tab=push`,
     },
   })
 
