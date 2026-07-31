@@ -393,10 +393,20 @@ function CompleteMealPlan({ isAuthed }: { isAuthed: boolean }) {
             </Display>
           </div>
         </Reveal>
-        <div className="pt-10 md:pt-14 grid md:grid-cols-2 gap-4 md:gap-6">
+        {/* 카드가 하나 남아 2열 그리드는 빈칸이 생긴다 — 가운데 한 장으로 둔다.
+            영양제 카드를 되살리면 md:grid-cols-2 로 되돌린다. */}
+        <div className="pt-10 md:pt-14 grid gap-4 md:gap-6 mx-auto" style={{ maxWidth: 560 }}>
           {[
             { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/meal-recipe.webp', alt: '파머스테일 블랙포크 레시피 화식 파우치' },
-            { label: '영양제 소스 사진', sub: '한 끼에 더하는 영양 소스', k: '플러스', t: '영양제 소스', d: '하루 한 캡슐, 목적별 영양을 한 끼에 더하는 데일리 소스.', img: '/supplement-box.webp', alt: '파머스테일 영양제 패키지' },
+            // ⛔ '영양제 소스' 카드 제거 (2026-07-31 사장님) — **아직 출시 안 한
+            //    제품**이다. 랜딩에 있으면 없는 걸 파는 것처럼 보인다.
+            //    (2026-07-13 에 이미 분석 화면의 '맞춤 영양제 박스'를 같은 이유로
+            //     내렸는데, 랜딩만 남아 있었다 — 한쪽만 고쳐진 그 부류.)
+            //    영양제 라인이 실제로 나오면 이 줄을 되살리면 된다:
+            //    { label: '영양제 소스 사진', sub: '한 끼에 더하는 영양 소스',
+            //      k: '플러스', t: '영양제 소스', d: '하루 한 캡슐, 목적별 영양을
+            //      한 끼에 더하는 데일리 소스.', img: '/supplement-box.webp',
+            //      alt: '파머스테일 영양제 패키지' },
           ].map((p, i) => (
             <Reveal key={p.t} delay={i * 80}>
               <div style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>

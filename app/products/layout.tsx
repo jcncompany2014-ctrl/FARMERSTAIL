@@ -3,14 +3,18 @@ import AuthAwareShell from '@/components/AuthAwareShell'
 import { ogImageUrl } from '@/lib/seo/jsonld'
 
 /**
- * 카탈로그 리스트 (/products) 의 기본 메타. /products/[slug] 는 자체
- * generateMetadata 로 덮어쓴다 — Next metadata 는 layout → page 순으로 병합
- * 되며 같은 필드는 page 값이 우선한다. OG 카드에는 공통 브랜드 이미지
- * (`/api/og`) 를 써 카카오 공유 미리보기가 일관되게 보이도록 한다.
+ * ⚠️ /products 는 **리다이렉트 스텁**이다 — 구독 전용 전환(2026-06-26)으로 낱개
+ * 카탈로그를 폐지하고 `/start` 로 보낸다. page 가 redirect() 하므로 이 메타는
+ * 실제로 렌더되지 않는다.
+ *
+ * 그런데 문구가 팔지 않는 제품 세 가지를 나열하고 있었다(2026-07-31 사장님:
+ * "출시 안 했는데 영양제가 보인다"). robots 도 `index: true` 라, 되살아나면
+ * 없는 제품을 광고하며 색인되라고 말하는 상태였다.
+ * 사실에 맞추고 noindex 로 둔다. 카탈로그가 부활하면 그때 다시 쓴다.
  */
 const PRODUCTS_OG = ogImageUrl({
   title: '제품 카탈로그',
-  subtitle: '수의영양학 기반 레시피 · 화식, 간식, 영양제, 체험팩',
+  subtitle: '수의영양학 기반 레시피 · 우리 아이 맞춤 화식',
   tag: 'Products',
   variant: 'product',
 })
@@ -18,24 +22,25 @@ const PRODUCTS_OG = ogImageUrl({
 export const metadata: Metadata = {
   title: '제품',
   description:
-    '파머스테일 전체 제품 카탈로그 — 수의영양학 기반 레시피로 만든 화식, 간식, 영양제, 체험팩. 농장에서 꼬리까지.',
+    '파머스테일 — 수의영양학 기반 레시피로 만든 우리 아이 맞춤 화식 정기배송. 농장에서 꼬리까지.',
   alternates: { canonical: '/products' },
   openGraph: {
     type: 'website',
     url: '/products',
     title: '제품 | 파머스테일',
     description:
-      '수의영양학 기반 레시피로 만든 프리미엄 반려견 식품 — 화식, 간식, 영양제, 체험팩.',
+      '수의영양학 기반 레시피로 만든 우리 아이 맞춤 화식 정기배송.',
     images: [{ url: PRODUCTS_OG, width: 1200, height: 630, alt: '제품 카탈로그' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: '제품 | 파머스테일',
     description:
-      '수의영양학 기반 레시피로 만든 프리미엄 반려견 식품 — 화식, 간식, 영양제, 체험팩.',
+      '수의영양학 기반 레시피로 만든 우리 아이 맞춤 화식 정기배송.',
     images: [PRODUCTS_OG],
   },
-  robots: { index: true, follow: true },
+  // 리다이렉트 스텁이라 색인 대상이 아니다.
+  robots: { index: false, follow: true },
 }
 
 /**

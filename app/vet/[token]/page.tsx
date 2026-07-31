@@ -5,7 +5,6 @@ import {
   Stethoscope,
   Scale,
   ClipboardList,
-  Pill,
   AlertTriangle,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
@@ -32,7 +31,9 @@ type Params = Promise<{ token: string }>
  * # 표시
  *  - 보호자 이름 + 강아지 메타 (이름, 종, 성별, 중성화, 나이, 체중)
  *  - 알레르기 / 만성 질환
- *  - 최신 분석 결과 (RER, MER, BCS, 단백·지방·탄수, 처방 supplements, risk flags)
+ *  - 최신 분석 결과 (RER, MER, BCS, 단백·지방·탄수, risk flags)
+ *    ※ '권장 보조제'는 2026-07-31 에 숨겼다 — 폐지한 영양제 라인의 데이터라
+ *      우리가 팔지도 보증하지도 않는 것을 권하는 모양이 된다(아래 주석 참조).
  *  - 최근 체중 측정
  *
  * # 데이터 신뢰성 표시
@@ -203,17 +204,19 @@ export default async function VetSharePage({
               <Field label="일일 권장" value={`${analysis.feed_g} g`} />
               <Field label="Ca:P" value={analysis.ca_p_ratio?.toString() ?? '—'} />
             </div>
-            {analysis.supplements && analysis.supplements.length > 0 && (
-              <div className="mt-3">
-                <p className="text-[11px] uppercase tracking-wider font-bold text-muted flex items-center gap-1">
-                  <Pill className="w-3 h-3" strokeWidth={2.2} />
-                  권장 보조제
-                </p>
-                <p className="mt-1 text-[12.5px]" style={{ color: 'var(--ink)' }}>
-                  {analysis.supplements.join(', ')}
-                </p>
-              </div>
-            )}
+            {/*
+              ⛔ '권장 보조제' 숨김 (2026-07-31 사장님 "출시 안 한 영양제가 보인다").
+
+              이 값(`analyses.supplements`)은 **폐지한 맞춤 영양제 박스**를 위해
+              만든 데이터다. 2026-07-13 에 분석 화면의 그 박스를 내렸고,
+              2026-07-16 엔 AI 프롬프트에서도 뺐다("영양제를 팔지 않는데 AI 가
+              없는 제품을 권한다") — 그런데 **이 수의사 리포트만 남아 있었다.**
+              한쪽만 고쳐진 그 부류다.
+
+              데이터·계산(getSupplements)은 그대로 살려 둔다. 영양제 라인이
+              나오거나, 임상 참고용으로 수의사에게는 보여주는 게 낫다고 판단하면
+              이 블록만 되살리면 된다.
+            */}
             {analysis.risk_flags && analysis.risk_flags.length > 0 && (
               <div className="mt-3 rounded-lg px-3 py-2" style={{ background: 'color-mix(in srgb, var(--sale) 8%, white)' }}>
                 <p className="text-[11px] uppercase tracking-wider font-bold" style={{ color: 'var(--sale)' }}>
