@@ -209,22 +209,34 @@ function ValueProp({ isAuthed }: { isAuthed: boolean }) {
     // 리듬 파괴(2026-08-01): 가운데 정렬 band → 비대칭 에디토리얼.
     // 초대형 고스트 워터마크 + 제목 좌 / 본문·CTA 우측 오프셋. 문구는 그대로.
     <Section bg="cream" pad="md" className="relative overflow-hidden">
-      <div
-        aria-hidden
-        className="fv-ghost font-chunky"
-        style={{ fontSize: 'clamp(110px, 20vw, 260px)', transform: 'translate(-1.5%, -14%)' }}
-      >
-        WHY FRESH
-      </div>
       <Container size="lg">
         <div className="relative grid md:grid-cols-12 gap-8 md:gap-6 md:items-end">
           <div className="md:col-span-7">
             <Reveal variant="left">
-              <Eyebrow>WHY FRESH</Eyebrow>
-              <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-                제품을 파는 게 아니라,
-                <br />한 끼를 책임집니다
-              </Display>
+              {/* 고스트는 **제목에 붙인다** (사장님 2026-08-01). 섹션 배경에 깔았더니
+                  모바일에서 글자가 중간에 잘려 정체불명 네모 블록으로 보였다 —
+                  워터마크는 단어 전체가 한눈에 읽혀야 성립한다. 제목 위에 살짝
+                  겹치는 크기로, 잘리지 않게, 모바일에선 숨긴다. */}
+              <div className="relative">
+                <span
+                  aria-hidden
+                  className="fv-ghost font-chunky hidden md:block"
+                  style={{
+                    fontSize: 'clamp(56px, 7.5vw, 96px)',
+                    top: '-0.52em',
+                    left: '-0.04em',
+                    bottom: 'auto',
+                    right: 'auto',
+                  }}
+                >
+                  WHY FRESH
+                </span>
+                <Eyebrow>WHY FRESH</Eyebrow>
+                <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
+                  제품을 파는 게 아니라,
+                  <br />한 끼를 책임집니다
+                </Display>
+              </div>
             </Reveal>
           </div>
           <div className="md:col-span-5 md:pb-2">

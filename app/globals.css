@@ -1234,10 +1234,6 @@ i,
    시그니처. 장식이므로 항상 aria-hidden + 선택 불가. */
 .fv-ghost {
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: flex-start;
-  overflow: hidden;
   pointer-events: none;
   user-select: none;
   font-family: var(--font-chunky, inherit);
@@ -1247,6 +1243,14 @@ i,
   color: var(--fd-pine);
   opacity: 0.05;
   white-space: nowrap;
+}
+/* 워터마크는 단어 **전체**가 한눈에 보여야 성립한다 — 좁은 화면에서 잘리면
+   정체불명 블록으로 읽힌다(2026-08-01 사장님 스크린샷). 숨김은 유틸 클래스가
+   아니라 프리미티브 자신이 책임진다(display 충돌 방지). */
+@media (max-width: 767px) {
+  .fv-ghost {
+    display: none;
+  }
 }
 
 /* 연결선 드로우 — 스텝 사이 선이 스크롤 진입 시 자라난다.
