@@ -648,7 +648,7 @@ function HowItWorks({ isAuthed }: { isAuthed: boolean }) {
         <div className="pt-10 md:pt-16 grid md:grid-cols-3 gap-8 md:gap-10">
           {STEPS.map((s, i) => (
             <Reveal key={s.n} delay={i * 80}>
-              <div className="text-center md:text-left">
+              <div data-gsap-step className="text-center md:text-left">
                 {/* 다크 위 텍스트 포인트 = 골드(로고 톤) — 코랄 텍스트는 파인 위에서
                     떨린다(사장님 2026-08-01). 코랄은 채운 CTA 필로만 다크 위에 남는다. */}
                 <span className="font-chunky" style={{ fontSize: 'clamp(40px, 9vw, 58px)', color: 'var(--fd-gold)', lineHeight: 1 }}>{s.n}</span>

@@ -167,6 +167,58 @@ export default function LandingMotion() {
                 },
               )
             })
+
+          // ⑤ 3단계 섹션 = **핀 고정 + 순차 점등**(2차-B).
+          //    스크롤이 타임라인이 되는, GSAP 을 쓰는 진짜 이유. 1→2→3 은 실제
+          //    순서가 있는 내용이라(설문→분석→배송) 순차 진행이 장식이 아니다.
+          //
+          //    ★모바일 제외 — 스크롤을 잡아채는 연출은 좁은 화면에서 "멈췄나?"
+          //    로 읽히고, 전환이 일어나는 곳이 모바일이다. 데스크톱에서만 만들고,
+          //    창을 줄이면 GSAP 이 알아서 되돌린다.
+          //
+          //    ★API 주의: `ScrollTrigger.matchMedia({...})` 는 3.11 부터 폐기됐다
+          //    (types/scroll-trigger.d.ts:271 "Deprecated in favor of
+          //    gsap.matchMedia()"). 그걸로 짰더니 **핀 스페이서는 만들어지는데
+          //    핀이 안 걸렸다** — 조용히 죽어서 더 위험했다. 현행은 gsap.matchMedia().
+          const mm = gsap.matchMedia()
+          teardown.push(() => mm.revert())
+          mm.add('(min-width: 768px)', () => {
+              // 핀 대상은 단계들이 든 <section>. 공유 <Section> 컴포넌트는 rest
+              // props 를 안 넘기므로 거기에 data-* 를 달 수 없다 — 이 연출 하나
+              // 때문에 web/app 공유 컴포넌트를 고치지 않는다. closest 로 찾는다.
+              const steps = Array.from(
+                document.querySelectorAll<HTMLElement>('[data-gsap-step]'),
+              )
+              const first = steps[0]
+              if (!first) return
+              const pinned = first.closest('section')
+              if (!pinned) return
+
+              const tl = gsap.timeline({
+                scrollTrigger: {
+                  trigger: pinned,
+                  start: 'center center',
+                  // 단계당 화면 절반씩 — 3단계면 1.5 화면. 짧게 잡아야
+                  // "갇혔다"가 아니라 "천천히 읽는다"가 된다.
+                  end: () => `+=${window.innerHeight * 0.5 * steps.length}`,
+                  pin: true,
+                  scrub: 0.6,
+                  // 핀 하는 동안 앵커가 밀리므로, 이미지 로드 후 재계산.
+                  invalidateOnRefresh: true,
+                },
+              })
+              // 셋 다 어둡게 "도착"시켜 둔다. 타임라인 안에서 fromTo 로 하면
+              // 1 단계는 타임라인 0 초에 걸려 스크럽이 시작되기도 전에 이미 밝아져
+              // 있었다(최저 0.97 실측) — 3 단계 중 2 개만 켜지는 꼴이었다.
+              gsap.set(steps, { opacity: 0.22, y: 18 })
+              steps.forEach((step, i) => {
+                tl.to(
+                  step,
+                  { opacity: 1, y: 0, ease: 'power2.out', duration: 1 },
+                  i * 0.9 + 0.25, // 0.25 리드인 후 차례차례
+                )
+              })
+          })
         })
       } catch {
         /* GSAP 로드 실패 → 정적 표시로 조용히 폴백 */
