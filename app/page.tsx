@@ -387,7 +387,9 @@ function Comparison() {
           {/* 파머스테일 */}
           <Reveal variant="right" delay={90}>
             <div className="h-full" style={{ background: 'var(--fd-pine)', borderRadius: 10, padding: '22px 22px' }}>
-              <div className="flex items-center gap-2" style={{ color: 'var(--fd-coral)' }}>
+              {/* 다크 위 텍스트 포인트 = 골드 (색 문법 — 사장님 2026-08-01 두 번째 지적).
+                  파인 카드 위 코랄 라벨이 정확히 그 떨리는 조합이었다. */}
+              <div className="flex items-center gap-2" style={{ color: 'var(--fd-gold)' }}>
                 <Check size={18} strokeWidth={3} aria-hidden />
                 <span className="text-[13px]" style={{ fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>파머스테일</span>
               </div>

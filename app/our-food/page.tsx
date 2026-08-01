@@ -321,7 +321,8 @@ function Comparison() {
           </Reveal>
           <Reveal delay={90}>
             <div className="h-full" style={{ background: 'var(--fd-pine)', borderRadius: 10, padding: '22px 22px' }}>
-              <div className="flex items-center gap-2" style={{ color: 'var(--fd-coral)' }}>
+              {/* 다크 위 텍스트 포인트 = 골드 (색 문법, globals.css 토큰 정의 참조 — 2026-08-01) — 랜딩 비교 카드와 같은 수정(복제된 패턴, 둘 다 고침) */}
+              <div className="flex items-center gap-2" style={{ color: 'var(--fd-gold)' }}>
                 <Check size={18} strokeWidth={3} />
                 <span className="text-[13px]" style={{ fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>파머스테일</span>
               </div>

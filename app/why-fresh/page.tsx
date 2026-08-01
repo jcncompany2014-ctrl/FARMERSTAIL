@@ -201,7 +201,7 @@ export default async function WhyFreshPage() {
                       >
                         <span
                           className="mt-[7px] inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-                          style={{ background: 'var(--fd-coral)' }}
+                          style={{ background: 'var(--fd-gold)' }}
                         />
                         {t}
                       </li>

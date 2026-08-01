@@ -331,7 +331,8 @@ export default async function AboutPage() {
                     className="h-full"
                     style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 8, padding: '20px 18px' }}
                   >
-                    <span style={{ fontSize: 11, letterSpacing: '0.2em', color: 'var(--fd-coral)', fontWeight: 800 }}>
+                    {/* 다크 위 텍스트 포인트 = 골드 (색 문법, globals.css 토큰 정의 참조 — 2026-08-01) */}
+                    <span style={{ fontSize: 11, letterSpacing: '0.2em', color: 'var(--fd-gold)', fontWeight: 800 }}>
                       NO
                     </span>
                     <h3 className="pt-1.5 text-[17px] md:text-[19px]" style={{ fontWeight: 800, color: '#FFFFFF' }}>

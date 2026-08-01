@@ -192,7 +192,8 @@ export default async function SciencePage() {
         <Section bg="pine" pad="md">
           <Container size="md">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" strokeWidth={2} color="var(--fd-coral)" />
+              {/* 다크 위 텍스트 포인트 = 골드 (색 문법, globals.css 토큰 정의 참조 — 2026-08-01) */}
+              <AlertTriangle className="w-5 h-5" strokeWidth={2} color="var(--fd-gold)" />
               <Eyebrow color="var(--fd-green-soft)">LIMITS</Eyebrow>
             </div>
             <Display size="md" className="pt-3" style={{ color: '#FFFFFF' }}>
