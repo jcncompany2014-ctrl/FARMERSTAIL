@@ -58,13 +58,22 @@ export const WEB_RECIPES: Record<WebRecipe['protein'], WebRecipe> = {
   },
 }
 
-// 추천 우선순위 — start-teaser PROTEIN_ORDER(duck·salmon·lamb·beef·chicken·pork)에서
-// SKU 있는 4종만(연어·양 제외). Our Pick = 알레르기 제외 후 첫 번째.
+/**
+ * 추천 우선순위 — **start-teaser 의 PROTEIN_ORDER 와 같은 순서여야 한다.**
+ *
+ * ★2026-08-01 정렬 (전수 검수에서 발견): 예전 주석은 옛 순서
+ * (duck·salmon·lamb·beef·chicken·pork)에서 파생됐다고 적었는데, start-teaser 가
+ * 알레르기 유병률 오름차순(Mueller 2016: 오리 0.5% < 돼지 2% < 닭 15% < 소 34%)
+ * 으로 바뀔 때 **여기만 안 따라왔다.** 그 결과 결과 화면 한 장 안에서
+ * "추천 단백질: 오리·돼지" 라고 말하면서 카드는 오리·소·닭을 보여줬다 —
+ * 돼지를 추천한다면서 돼지 카드가 없었다.
+ * 두 배열이 같은 순서인지는 web-recipes.test 가 지킨다.
+ */
 export const WEB_RECIPE_ORDER: WebRecipe['protein'][] = [
   'duck',
-  'beef',
-  'chicken',
   'pork',
+  'chicken',
+  'beef',
 ]
 
 /**

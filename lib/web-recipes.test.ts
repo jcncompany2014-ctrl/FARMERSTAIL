@@ -20,7 +20,7 @@ describe('selectSafeRecipes', () => {
     assert.equal(r.length, 3)
     assert.deepEqual(
       r.map((x) => x.protein),
-      ['duck', 'beef', 'chicken'],
+      ['duck', 'pork', 'chicken'], // 티저 순서 정렬(2026-08-01) — 옛 [duck,beef,chicken]
     )
   })
 
@@ -29,7 +29,7 @@ describe('selectSafeRecipes', () => {
     assert.ok(!r.some((x) => x.protein === 'duck'))
     assert.deepEqual(
       r.map((x) => x.protein),
-      ['beef', 'chicken', 'pork'],
+      ['pork', 'chicken', 'beef'], // 티저 순서 정렬(2026-08-01)
     )
   })
 
@@ -51,7 +51,7 @@ describe('selectSafeRecipes', () => {
     assert.equal(r.length, 3)
     assert.deepEqual(
       r.map((x) => x.protein),
-      ['duck', 'beef', 'chicken'],
+      ['duck', 'pork', 'chicken'], // 티저 순서 정렬(2026-08-01)
     )
   })
 
@@ -59,4 +59,20 @@ describe('selectSafeRecipes', () => {
     assert.equal(selectSafeRecipes([], 2).length, 2)
     assert.equal(selectSafeRecipes([], 1).length, 1)
   })
+})
+
+it('★ 카드 순서 = 티저 추천 순서 (같은 화면에서 두 정본 금지)', () => {
+  /**
+   * 2026-08-01 전수 검수에서 발견: 결과 화면이 "추천 단백질 오리·돼지"(티저)와
+   * 카드 오리·소·닭(여기)을 **한 화면에** 보여줬다 — 우선순위 배열이 두 파일에
+   * 따로 살아서다. 티저의 PROTEIN_ORDER 에서 SKU 있는 단백질만 남긴 것이
+   * 정확히 WEB_RECIPE_ORDER 여야 한다.
+   */
+  const TEASER_ORDER = ['duck', 'pork', 'chicken', 'beef'] // lib/start-teaser.ts PROTEIN_ORDER
+  assert.deepEqual(
+    WEB_RECIPE_ORDER,
+    TEASER_ORDER,
+    'web-recipes 카드 순서가 start-teaser 추천 순서와 다르다 — 결과 화면 한 장에서 ' +
+      '"돼지를 추천한다면서 돼지 카드가 없는" 상태가 된다',
+  )
 })
