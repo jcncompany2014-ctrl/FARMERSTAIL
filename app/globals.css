@@ -1174,6 +1174,102 @@ i,
   }
 }
 
+/* ── 랜딩 완성도 업그레이드 (2026-08-01 사장님 "AI 티 안 나게") ─────────────
+   문제 진단: 777줄 랜딩에 모션이 fv-reveal(페이드업) 하나뿐이고 12개 섹션이
+   전부 같은 리듬(가운데 Eyebrow→Display)이었다 — 색·폰트가 아니라 **집행의
+   단조로움**이 AI 티의 정체. 여기 프리미티브들은 그 리듬을 깨는 도구다.
+   전부 fv-* 네임스페이스·reduced-motion 가드 — 기존 관례 그대로. */
+
+/* 방향 변형 — 모든 섹션이 "아래→위" 하나로 뜨는 단조로움을 깬다.
+   Reveal 컴포넌트의 variant prop 이 클래스를 고른다. */
+.fv-reveal-left {
+  opacity: 0;
+  transform: translateX(-28px);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.fv-reveal-right {
+  opacity: 0;
+  transform: translateX(28px);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.fv-reveal-scale {
+  opacity: 0;
+  transform: scale(0.94);
+  transition:
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.fv-reveal-left.is-in,
+.fv-reveal-right.is-in,
+.fv-reveal-scale.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* 마스크 라인 리빌 — 헤드라인이 줄 단위로 "잘린 종이 밑에서 올라오듯" 등장.
+   페이드업보다 훨씬 만들어진 느낌. 줄마다 .fv-line 으로 감싸고 delay 는
+   inline style(--fv-d)로. 첫 로드용(히어로)이라 JS 불필요. */
+.fv-line {
+  display: block;
+  overflow: hidden;
+}
+.fv-line > span {
+  display: block;
+  transform: translateY(110%);
+  animation: fvLineUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--fv-d, 0s);
+}
+@keyframes fvLineUp {
+  to { transform: none; }
+}
+
+/* 카드 호버 리프트 — 커서를 올리면 살짝 떠오르고 그림자가 깊어진다.
+   정적인 카드 그리드가 "만들어진" 느낌이 나는 가장 싼 방법. 터치 기기는
+   hover 미디어쿼리로 제외(끈적임 방지). */
+@media (hover: hover) {
+  .fv-lift {
+    transition:
+      transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .fv-lift:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 18px 40px -18px rgba(23, 59, 51, 0.22);
+  }
+}
+
+/* 히어로 사진 켄번스 — 로드 시 1.06→1 로 아주 느리게 안착. 정지 사진이
+   "살아 있는" 첫인상을 만든다. 한 번만, 과하지 않게. */
+.fv-kenburns {
+  animation: fvKenburns 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes fvKenburns {
+  from { transform: scale(1.06); }
+  to { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fv-reveal-left,
+  .fv-reveal-right,
+  .fv-reveal-scale {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .fv-line > span,
+  .fv-kenburns {
+    animation: none;
+    transform: none;
+  }
+}
+
 /* ── farm v4 카드 시그니처 (Q10 수채 톤 전환) ──────────────────────────
    이전(Q8): 두꺼운 월넛 외곽선 + 위트골드 하드섀도우(스티커/팝 톤) →
    수채화 사실감 방향과 충돌해 "카툰/유치" 로 읽힘 (사장님 지적).

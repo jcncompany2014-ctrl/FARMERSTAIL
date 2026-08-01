@@ -15,11 +15,18 @@ export default function Reveal({
   children,
   delay = 0,
   className,
+  variant = 'up',
 }: {
   children: React.ReactNode
   /** transition-delay (ms) — 카드 stagger 용 */
   delay?: number
   className?: string
+  /**
+   * 등장 방향 (2026-08-01). 전부 'up' 하나였던 것이 12개 섹션을 같은 리듬으로
+   * 만들어 "AI 티"의 원인이었다(사장님). 섹션 구도에 맞는 방향을 고른다 —
+   * 좌우 배치는 left/right, 사진·카드 강조는 scale.
+   */
+  variant?: 'up' | 'left' | 'right' | 'scale'
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [inView, setInView] = useState(false)
@@ -42,10 +49,12 @@ export default function Reveal({
     return () => io.disconnect()
   }, [])
 
+  const base =
+    variant === 'up' ? 'fv-reveal' : `fv-reveal-${variant}`
   return (
     <div
       ref={ref}
-      className={`fv-reveal${inView ? ' is-in' : ''}${className ? ` ${className}` : ''}`}
+      className={`${base}${inView ? ' is-in' : ''}${className ? ` ${className}` : ''}`}
       style={delay ? { transitionDelay: `${delay}ms` } : undefined}
     >
       {children}

@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
 import Reveal from '@/components/landing/Reveal'
+import Parallax from '@/components/landing/Parallax'
 import StickyCta from '@/components/web/fd/StickyCta'
 import { ogImageUrl } from '@/lib/seo/jsonld'
 import {
@@ -87,15 +88,24 @@ function HomeHero({ isAuthed }: { isAuthed: boolean }) {
     <section className="relative overflow-hidden" aria-label="히어로">
       {/* 풀배경 사진(사장님 제공). LCP 후보 — next/image fill+priority 로 포맷(AVIF/
           WebP)·모바일 리사이즈 자동 최적화(2026-07-17 perf). 시각은 동일(object-cover). */}
-      <Image
-        src="/hero-dog.jpg"
-        alt="신선한 화식 한 그릇을 받는 강아지"
-        fill
-        priority
-        sizes="100vw"
-        className="object-cover"
-        style={{ objectPosition: '50% 30%' }}
-      />
+      {/* 켄번스(로드 시 1.06→1 안착) + 패럴랙스(스크롤보다 살짝 느리게) —
+          정지 사진 위 정지 텍스트가 평면적 인상의 첫 원인이었다(2026-08-01).
+          바깥 래퍼를 -6% 키워 패럴랙스 이동 시 가장자리가 안 비게 한다. */}
+      <div aria-hidden className="absolute" style={{ inset: '-6% 0' }}>
+        <Parallax speed={-0.08} className="absolute inset-0">
+          <div className="fv-kenburns absolute inset-0">
+            <Image
+              src="/hero-dog.jpg"
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+              style={{ objectPosition: '50% 30%' }}
+            />
+          </div>
+        </Parallax>
+      </div>
       {/* 텍스트 가독성 — 하단을 어둡게 하는 그라데이션 오버레이 */}
       <div
         aria-hidden
@@ -107,21 +117,28 @@ function HomeHero({ isAuthed }: { isAuthed: boolean }) {
       />
       <Container size="xl">
         <div className="relative flex min-h-[76vh] md:min-h-[82vh] flex-col justify-end pt-20 pb-12 md:pb-16">
-          <Reveal>
-            <div className="max-w-[600px] text-center md:text-left">
-              <Eyebrow color="#FFFFFF">FRESH FOOD FOR DOGS</Eyebrow>
+          {/* 첫 로드 연출(2026-08-01): 헤드라인은 줄 단위 마스크 리빌(.fv-line),
+              아이브로·본문·CTA 는 fv-rise 스태거. 스크롤 Reveal 은 히어로엔
+              부적합 — 첫 화면은 로드 즉시 연출이 시작돼야 한다. */}
+          <div className="max-w-[600px] text-center md:text-left">
+              <div className="fv-rise">
+                <Eyebrow color="#FFFFFF">FRESH FOOD FOR DOGS</Eyebrow>
+              </div>
               <Display
                 as="h1"
                 size="xl"
                 className="pt-3"
                 style={{ color: '#FFFFFF', textShadow: '0 2px 18px rgba(0,0,0,0.35)' }}
               >
-                사료 대신,
-                <br />
-                진짜 음식 한 끼
+                <span className="fv-line" style={{ '--fv-d': '0.08s' } as React.CSSProperties}>
+                  <span>사료 대신,</span>
+                </span>
+                <span className="fv-line" style={{ '--fv-d': '0.2s' } as React.CSSProperties}>
+                  <span>진짜 음식 한 끼</span>
+                </span>
               </Display>
               <p
-                className="pt-4 mx-auto md:mx-0 text-[15px] md:text-[18px]"
+                className="fv-rise fv-rise-2 pt-4 mx-auto md:mx-0 text-[15px] md:text-[18px]"
                 style={{
                   maxWidth: 460,
                   lineHeight: 1.6,
@@ -132,7 +149,7 @@ function HomeHero({ isAuthed }: { isAuthed: boolean }) {
                 사람이 먹을 수 있는 신선한 재료를, 수의영양 기준에 맞춰 우리 아이
                 몸에 딱 맞게. 2분이면 시작해요.
               </p>
-              <div className="pt-7 flex flex-col items-center md:items-start gap-4">
+              <div className="fv-rise fv-rise-3 pt-7 flex flex-col items-center md:items-start gap-4">
                 <Button href={planHref(isAuthed)} tone="coral" size="lg">
                   2분 설문 시작하기
                   <ArrowRight size={19} strokeWidth={2.4} />
@@ -147,7 +164,6 @@ function HomeHero({ isAuthed }: { isAuthed: boolean }) {
                 </Link>
               </div>
             </div>
-          </Reveal>
         </div>
       </Container>
     </section>
@@ -409,7 +425,7 @@ function CompleteMealPlan({ isAuthed }: { isAuthed: boolean }) {
             //      alt: '파머스테일 영양제 패키지' },
           ].map((p, i) => (
             <Reveal key={p.t} delay={i * 80}>
-              <div style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>
+              <div className="fv-lift" style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>
                 <PhotoSlot label={p.label} sub={p.sub} src={p.img} alt={p.alt} ratio="16 / 10" tone="cream" rounded={0} className="w-full" />
                 <div style={{ padding: '20px 22px' }}>
                   <div className="text-[10px]" style={{ fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)' }}>{p.k}</div>
@@ -541,7 +557,9 @@ function ScienceExpertise() {
     <Section bg="offwhite" pad="md">
       <Container size="xl">
         <div className="grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
-          <Reveal>
+          {/* 2단은 좌우에서 마주 들어온다 — 전 섹션이 '아래→위' 하나로 뜨는
+              단조로움이 AI 티의 원인이었다(2026-08-01). */}
+          <Reveal variant="left">
             <div>
               <Eyebrow>THE SCIENCE</Eyebrow>
               <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
@@ -564,8 +582,10 @@ function ScienceExpertise() {
               </div>
             </div>
           </Reveal>
-          <Reveal delay={100}>
+          <Reveal variant="right" delay={100}>
+            <Parallax speed={0.06}>
             <PhotoSlot src="/recipe-analysis.webp" alt="식품 정보 분석 보고서 — 레시피 설계·영양 분석" label="레시피 설계 / 영양 분석" ratio="1600 / 764" tone="green" rounded={10} className="w-full" />
+            </Parallax>
           </Reveal>
         </div>
       </Container>
@@ -649,6 +669,7 @@ function Evidence() {
           {EVIDENCE.map((it, i) => (
             <Reveal key={it.n} delay={i * 80}>
               <div
+                className="fv-lift"
                 style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 8, padding: '20px 18px', height: '100%' }}
               >
                 <span className="font-chunky" style={{ fontSize: 18, color: 'var(--fd-coral)' }}>{it.n}</span>
