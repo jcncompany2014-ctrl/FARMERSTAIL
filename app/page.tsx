@@ -115,6 +115,23 @@ function HomeHero({ isAuthed }: { isAuthed: boolean }) {
             'linear-gradient(to bottom, rgba(22,20,15,0.06) 0%, rgba(22,20,15,0) 28%, rgba(22,20,15,0.48) 70%, rgba(22,20,15,0.82) 100%)',
         }}
       />
+      {/* 레이어 2 — 떠 있는 실사 그릇 (2026-08-01, 데스크톱만).
+          풀배경 사진 + 텍스트 한 장짜리 히어로는 평면적이다. 실제 화식 그릇이
+          흰 매트 액자로 살짝 기울어 떠 있고, 스크롤보다 빠르게 흘러(전경 패럴랙스)
+          깊이를 만든다. 장식이므로 aria-hidden. */}
+      <div
+        aria-hidden
+        className="hidden lg:block absolute"
+        style={{ right: '5%', bottom: '14%', width: 300, zIndex: 2, transform: 'rotate(-3deg)' }}
+      >
+        <Parallax speed={0.14}>
+          <span className="block overflow-hidden" style={{ borderRadius: 14, border: '6px solid #FFFFFF', boxShadow: '0 24px 60px -24px rgba(22,20,15,0.5)' }}>
+            <span className="relative block" style={{ aspectRatio: '4 / 3' }}>
+              <Image src="/fresh-bowl.jpg" alt="" fill sizes="300px" className="object-cover" />
+            </span>
+          </span>
+        </Parallax>
+      </div>
       <Container size="xl">
         <div className="relative flex min-h-[76vh] md:min-h-[82vh] flex-col justify-end pt-20 pb-12 md:pb-16">
           {/* 첫 로드 연출(2026-08-01): 헤드라인은 줄 단위 마스크 리빌(.fv-line),
@@ -245,10 +262,12 @@ function ValueProp({ isAuthed }: { isAuthed: boolean }) {
                   책임집니다" 는 말에 얼굴이 붙어야 브랜드가 된다. 오프셋 프레임
                   (사진 뒤로 살짝 어긋난 코랄 면)이 수공예 디테일. */}
               <div className="relative mb-6" style={{ maxWidth: 400 }}>
+                {/* 액자 매트 — 코랄 틴트는 크림 배경과 부딪혔다(색 역할 규칙:
+                    코랄은 행동·초점 전용, 장식 틴트로 쓰지 않는다). 흰 매트 + 헤어라인. */}
                 <span
                   aria-hidden
                   className="absolute"
-                  style={{ inset: '10px -10px -10px 10px', background: 'var(--fd-coral)', opacity: 0.16, borderRadius: 12 }}
+                  style={{ inset: '10px -10px -10px 10px', background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 12 }}
                 />
                 <span className="relative block overflow-hidden" style={{ aspectRatio: '4 / 3', borderRadius: 12 }}>
                   <Image src="/founder-dog.jpg" alt="파머스테일을 시작하게 한 반려견과 설립자" fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" />
@@ -308,7 +327,8 @@ function FeatureCards() {
               <Reveal key={f.t} delay={i * 80} variant="scale" className={i % 2 === 1 ? 'lg:mt-8' : undefined}>
                 <div className="h-full fv-lift" style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 8, padding: 'clamp(18px,4vw,26px)' }}>
                   <span className="inline-flex items-center justify-center" style={{ width: 52, height: 52, borderRadius: 999, background: '#FFFFFF', border: '1px solid var(--fd-line)' }}>
-                    <Icon size={24} strokeWidth={2} color="var(--fd-coral)" />
+                    {/* 아이콘은 검증의 목소리 = 초록으로 통일(2026-08-01 색 역할 규칙) */}
+                    <Icon size={24} strokeWidth={2} color="var(--fd-green)" />
                   </span>
                   <div className="pt-4 text-[10px]" style={{ fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)' }}>{f.k}</div>
                   <h3 className="pt-1.5 text-[16px] md:text-[18px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>{f.t}</h3>
@@ -677,7 +697,7 @@ function ScienceExpertise() {
               <ul className="pt-6 grid gap-3">
                 {SCIENCE.map((s) => (
                   <li key={s} className="grid items-baseline" style={{ gridTemplateColumns: '20px 1fr', gap: 10 }}>
-                    <Check size={17} strokeWidth={3} color="var(--fd-coral)" />
+                    <Check size={17} strokeWidth={3} color="var(--fd-green)" />
                     <span className="text-[14px] md:text-[15px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>{s}</span>
                   </li>
                 ))}
