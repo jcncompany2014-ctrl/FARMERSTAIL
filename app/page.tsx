@@ -18,6 +18,7 @@ import { createClient, getSafeUser } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
 import Reveal from '@/components/landing/Reveal'
 import Parallax from '@/components/landing/Parallax'
+import LandingMotion from '@/components/landing/LandingMotion'
 import StickyCta from '@/components/web/fd/StickyCta'
 import { ogImageUrl } from '@/lib/seo/jsonld'
 import {
@@ -92,7 +93,8 @@ function HomeHero({ isAuthed }: { isAuthed: boolean }) {
           정지 사진 위 정지 텍스트가 평면적 인상의 첫 원인이었다(2026-08-01).
           바깥 래퍼를 -6% 키워 패럴랙스 이동 시 가장자리가 안 비게 한다. */}
       <div aria-hidden className="absolute" style={{ inset: '-6% 0' }}>
-        <Parallax speed={-0.08} className="absolute inset-0">
+        {/* GSAP 스크럽(yPercent) — rAF 파랄락스보다 스크롤에 정확히 물린다 */}
+        <div data-gsap-y="-10" className="absolute inset-0">
           <div className="fv-kenburns absolute inset-0">
             <Image
               src="/hero-dog.jpg"
@@ -104,7 +106,7 @@ function HomeHero({ isAuthed }: { isAuthed: boolean }) {
               style={{ objectPosition: '50% 30%' }}
             />
           </div>
-        </Parallax>
+        </div>
       </div>
       {/* 텍스트 가독성 — 하단을 어둡게 하는 그라데이션 오버레이 */}
       <div
@@ -124,13 +126,13 @@ function HomeHero({ isAuthed }: { isAuthed: boolean }) {
         className="hidden lg:block absolute"
         style={{ right: '5%', bottom: '14%', width: 300, zIndex: 2, transform: 'rotate(-3deg)' }}
       >
-        <Parallax speed={0.14}>
+        <div data-gsap-y="14">
           <span className="block overflow-hidden" style={{ borderRadius: 14, border: '6px solid #FFFFFF', boxShadow: '0 24px 60px -24px rgba(22,20,15,0.5)' }}>
             <span className="relative block" style={{ aspectRatio: '4 / 3' }}>
               <Image src="/fresh-bowl.jpg" alt="" fill sizes="300px" className="object-cover" />
             </span>
           </span>
-        </Parallax>
+        </div>
       </div>
       <Container size="xl">
         <div className="relative flex min-h-[76vh] md:min-h-[82vh] flex-col justify-end pt-20 pb-12 md:pb-16">
@@ -147,11 +149,12 @@ function HomeHero({ isAuthed }: { isAuthed: boolean }) {
                 className="pt-3"
                 style={{ color: '#FFFFFF', textShadow: '0 2px 18px rgba(0,0,0,0.35)' }}
               >
-                <span className="fv-line" style={{ '--fv-d': '0.08s' } as React.CSSProperties}>
-                  <span>사료 대신,</span>
-                </span>
-                <span className="fv-line" style={{ '--fv-d': '0.2s' } as React.CSSProperties}>
-                  <span>진짜 음식 한 끼</span>
+                {/* GSAP SplitText 가 글자 단위로 쪼개 스태거 등장(LandingMotion).
+                    reduced-motion·JS 실패 시엔 이 평문이 그대로 보인다 — 폴백 무손실. */}
+                <span data-gsap="hero-title" className="block">
+                  사료 대신,
+                  <br />
+                  진짜 음식 한 끼
                 </span>
               </Display>
               <p
@@ -909,6 +912,7 @@ export default async function LandingPage() {
 
   return (
     <WebChrome>
+      <LandingMotion />
       <main>
         <HomeHero isAuthed={isAuthed} />
         <TrustStrip />
