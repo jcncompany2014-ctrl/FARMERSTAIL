@@ -241,6 +241,19 @@ function ValueProp({ isAuthed }: { isAuthed: boolean }) {
           </div>
           <div className="md:col-span-5 md:pb-2">
             <Reveal variant="right" delay={90}>
+              {/* 신념 문구 위에 **설립자와 반려견 실사** (2026-08-01) — "한 끼를
+                  책임집니다" 는 말에 얼굴이 붙어야 브랜드가 된다. 오프셋 프레임
+                  (사진 뒤로 살짝 어긋난 코랄 면)이 수공예 디테일. */}
+              <div className="relative mb-6" style={{ maxWidth: 400 }}>
+                <span
+                  aria-hidden
+                  className="absolute"
+                  style={{ inset: '10px -10px -10px 10px', background: 'var(--fd-coral)', opacity: 0.16, borderRadius: 12 }}
+                />
+                <span className="relative block overflow-hidden" style={{ aspectRatio: '4 / 3', borderRadius: 12 }}>
+                  <Image src="/founder-dog.jpg" alt="파머스테일을 시작하게 한 반려견과 설립자" fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" />
+                </span>
+              </div>
               <p
                 className="text-[15px] md:text-[16px]"
                 style={{ lineHeight: 1.75, color: 'var(--fd-muted)', borderLeft: '2px solid var(--fd-coral)', paddingLeft: 18 }}
@@ -387,10 +400,13 @@ function Comparison() {
 // 6. ========================================================================
 // How we make it healthy — 3단
 // ===========================================================================
+/* 아이콘 → **실사** (2026-08-01 사장님 "지금까지 한 게 최선이야?").
+   public/ 에 사진 34장이 있는데 랜딩이 2장만 쓰고 있었다 — 아이콘 카드투성이가
+   "AI 가 만든 사이트" 인상의 진짜 원인. 각 단계에 실제 사진을 얹는다. 문구 그대로. */
 const MAKE = [
-  { Icon: ShieldCheck, t: '사람 등급 기준', d: '사람이 먹는 등급의 재료를, 사람 식품과 같은 위생 기준으로 다룹니다.' },
-  { Icon: ClipboardList, t: '우리 아이 맞춤', d: '견종·체중·활동량·민감한 음식을 반영해 식단과 정량을 계산해요.' },
-  { Icon: Truck, t: '며칠 내 신선 배송', d: '주문이 확정된 만큼만 조리·냉동해 콜드체인으로 문 앞까지.' },
+  { Icon: ShieldCheck, img: '/raw-ingredients.jpg', alt: '사람이 먹는 등급의 신선한 원물 재료', t: '사람 등급 기준', d: '사람이 먹는 등급의 재료를, 사람 식품과 같은 위생 기준으로 다룹니다.' },
+  { Icon: ClipboardList, img: '/farm-to-kitchen.jpg', alt: '주방에서 맞춤 정량으로 조리하는 모습', t: '우리 아이 맞춤', d: '견종·체중·활동량·민감한 음식을 반영해 식단과 정량을 계산해요.' },
+  { Icon: Truck, img: '/sub-box.jpg', alt: '냉동 포장된 파머스테일 정기배송 박스', t: '며칠 내 신선 배송', d: '주문이 확정된 만큼만 조리·냉동해 콜드체인으로 문 앞까지.' },
 ]
 
 function HowWeMakeIt() {
@@ -410,21 +426,57 @@ function HowWeMakeIt() {
             const Icon = m.Icon
             return (
               <Reveal key={m.t} delay={i * 80}>
-                <div className="text-center px-4 fv-lift" style={{ borderRadius: 12, padding: '18px 16px' }}>
-                  <div className="mx-auto flex items-center justify-center" style={{ width: 64, height: 64, borderRadius: 999, background: '#FFFFFF', border: '1px solid var(--fd-line)' }}>
-                    <Icon size={28} strokeWidth={2} color="var(--fd-green)" />
+                <div className="fv-lift" style={{ borderRadius: 12, overflow: 'hidden', background: '#FFFFFF', border: '1px solid var(--fd-line)', height: '100%' }}>
+                  {/* 사진이 주인공 — 아이콘은 사진 위 작은 배지로 강등 */}
+                  <div className="relative" style={{ aspectRatio: '4 / 3' }}>
+                    <Image src={m.img} alt={m.alt} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
+                    <span
+                      className="absolute flex items-center justify-center"
+                      style={{ left: 14, bottom: 14, width: 44, height: 44, borderRadius: 999, background: 'rgba(255,255,255,0.92)', boxShadow: '0 4px 14px rgba(22,20,15,0.18)' }}
+                    >
+                      <Icon size={21} strokeWidth={2.1} color="var(--fd-green)" />
+                    </span>
                   </div>
-                  <h3 className="pt-4 text-[17px] md:text-[18px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>{m.t}</h3>
-                  <p className="pt-1.5 text-[13.5px] md:text-[14px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.55 }}>{m.d}</p>
+                  <div className="text-left" style={{ padding: '18px 20px 22px' }}>
+                    <h3 className="text-[17px] md:text-[18px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>{m.t}</h3>
+                    <p className="pt-1.5 text-[13.5px] md:text-[14px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.55 }}>{m.d}</p>
+                  </div>
                 </div>
               </Reveal>
             )
           })}
         </div>
       </Container>
+
+      {/* 원물 사진 스트립 (2026-08-01) — 신선식 브랜드의 시그니처. 실제 재료
+          사진 6장이 끊김없이 흐른다. 텍스트 마퀴(신뢰 띠)와 달리 이건 눈으로
+          "진짜 재료"를 증명하는 장식이라 alt 불필요(aria-hidden). */}
+      <div aria-hidden className="fv-marquee mt-10 md:mt-14">
+        <div className="fv-marquee-track" style={{ animationDuration: '36s' }}>
+          {[...INGREDIENT_STRIP, ...INGREDIENT_STRIP].map((src, i) => (
+            <span
+              key={`${src}-${i}`}
+              className="relative shrink-0 overflow-hidden"
+              style={{ width: 168, height: 118, borderRadius: 10, marginRight: 14 }}
+            >
+              <Image src={src} alt="" fill sizes="168px" className="object-cover" />
+            </span>
+          ))}
+        </div>
+      </div>
     </Section>
   )
 }
+
+/** 원물 실사 — public/ing-* 전부. 순서는 색 대비(초록·주황·갈색 교차)로. */
+const INGREDIENT_STRIP = [
+  '/ing-chicken.jpg',
+  '/ing-broccoli.jpg',
+  '/ing-carrot.jpg',
+  '/ing-duck.jpg',
+  '/ing-pumpkin.jpg',
+  '/ing-brownrice.jpg',
+]
 
 // 7. ========================================================================
 // Complete meal plan — 듀얼 제품 쇼케이스
@@ -441,9 +493,25 @@ function CompleteMealPlan({ isAuthed }: { isAuthed: boolean }) {
             </Display>
           </div>
         </Reveal>
-        {/* 카드가 하나 남아 2열 그리드는 빈칸이 생긴다 — 가운데 한 장으로 둔다.
-            영양제 카드를 되살리면 md:grid-cols-2 로 되돌린다. */}
-        <div className="pt-10 md:pt-14 grid gap-4 md:gap-6 mx-auto" style={{ maxWidth: 560 }}>
+        {/* 실사 강화(2026-08-01): 메인 카드 옆에 **레시피 4종 실사** 2×2 갤러리.
+            public/recipe-*.jpg 가 전부 놀고 있었다 — 파는 음식을 눈으로 보여준다.
+            영양제 카드를 되살리면 이 갤러리 자리를 조정한다. */}
+        <div className="pt-10 md:pt-14 grid md:grid-cols-2 gap-4 md:gap-6 mx-auto md:items-stretch" style={{ maxWidth: 980 }}>
+          <Reveal variant="left">
+            <div className="grid grid-cols-2 gap-3 h-full">
+              {[
+                { src: '/recipe-chicken.jpg', alt: '닭고기 화식 레시피 실사' },
+                { src: '/recipe-beef.jpg', alt: '소고기 화식 레시피 실사' },
+                { src: '/recipe-duck.jpg', alt: '오리고기 화식 레시피 실사' },
+                { src: '/recipe-pork.jpg', alt: '돼지고기 화식 레시피 실사' },
+              ].map((r) => (
+                <span key={r.src} className="relative block overflow-hidden fv-lift" style={{ borderRadius: 10, aspectRatio: '1 / 1' }}>
+                  <Image src={r.src} alt={r.alt} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover" />
+                </span>
+              ))}
+            </div>
+          </Reveal>
+          <div className="grid gap-4 md:gap-6 md:content-center">
           {[
             { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/meal-recipe.webp', alt: '파머스테일 블랙포크 레시피 화식 파우치' },
             // ⛔ '영양제 소스' 카드 제거 (2026-07-31 사장님) — **아직 출시 안 한
@@ -467,6 +535,7 @@ function CompleteMealPlan({ isAuthed }: { isAuthed: boolean }) {
               </div>
             </Reveal>
           ))}
+          </div>
         </div>
         <Reveal delay={120}>
           <div className="pt-9 flex justify-center">
