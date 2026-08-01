@@ -1220,6 +1220,17 @@ i,
   opacity: 1;
   transform: none;
 }
+/* ★ 모바일은 위→아래로 폴백 (2026-08-01 전수 검수에서 발견).
+   등장 **전** 상태의 translateX(±28px)가 뷰포트 밖으로 삐져나가
+   랜딩 모바일에 8px 가로 스크롤을 만들었다(375px 실측 scrollWidth 383).
+   좌우 배치는 모바일에서 어차피 세로로 쌓이므로 좌우 진입의 의미도 없다 —
+   방향 연출은 데스크톱 전용. */
+@media (max-width: 767px) {
+  .fv-reveal-left,
+  .fv-reveal-right {
+    transform: translateY(22px);
+  }
+}
 
 /* 마스크 라인 리빌 — 헤드라인이 줄 단위로 "잘린 종이 밑에서 올라오듯" 등장.
    페이드업보다 훨씬 만들어진 느낌. 줄마다 .fv-line 으로 감싸고 delay 는
