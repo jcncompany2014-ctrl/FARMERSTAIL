@@ -644,12 +644,14 @@ function HowItWorks({ isAuthed }: { isAuthed: boolean }) {
           {STEPS.map((s, i) => (
             <Reveal key={s.n} delay={i * 80}>
               <div className="text-center md:text-left">
-                <span className="font-chunky" style={{ fontSize: 'clamp(40px, 9vw, 58px)', color: 'var(--fd-coral)', lineHeight: 1 }}>{s.n}</span>
+                {/* 다크 위 텍스트 포인트 = 골드(로고 톤) — 코랄 텍스트는 파인 위에서
+                    떨린다(사장님 2026-08-01). 코랄은 채운 CTA 필로만 다크 위에 남는다. */}
+                <span className="font-chunky" style={{ fontSize: 'clamp(40px, 9vw, 58px)', color: 'var(--fd-gold)', lineHeight: 1 }}>{s.n}</span>
                 {/* 번호 밑 룰이 진입 시 자라난다(.fv-draw — Reveal is-in 이 발화) */}
                 <span
                   aria-hidden
                   className="fv-draw mx-auto md:mx-0"
-                  style={{ display: 'block', width: 44, height: 3, background: 'var(--fd-coral)', marginTop: 12, opacity: 0.85 }}
+                  style={{ display: 'block', width: 44, height: 3, background: 'var(--fd-gold)', marginTop: 12, opacity: 0.85 }}
                 />
                 <h3 className="pt-3 text-[19px] md:text-[21px]" style={{ fontWeight: 800, color: '#FFFFFF' }}>{s.t}</h3>
                 <p className="pt-2 text-[14px] md:text-[15px]" style={{ color: 'var(--fd-green-soft)', lineHeight: 1.6 }}>{s.d}</p>
