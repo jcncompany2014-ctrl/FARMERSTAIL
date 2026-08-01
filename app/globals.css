@@ -1230,6 +1230,54 @@ i,
   to { transform: none; }
 }
 
+/* 고스트 워터마크 — 섹션 뒤에 깔리는 초대형 반투명 단어. 잡지 레이아웃의
+   시그니처. 장식이므로 항상 aria-hidden + 선택 불가. */
+.fv-ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  font-family: var(--font-chunky, inherit);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 0.82;
+  color: var(--fd-pine);
+  opacity: 0.05;
+  white-space: nowrap;
+}
+
+/* 연결선 드로우 — 스텝 사이 선이 스크롤 진입 시 자라난다.
+   Reveal(.is-in) 자손 셀렉터로 발화 — JS 추가 없음. */
+.fv-draw {
+  transform-origin: left center;
+  transform: scaleX(0);
+  transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.25s;
+  will-change: transform;
+}
+.fv-reveal.is-in .fv-draw,
+.fv-reveal-scale.is-in .fv-draw {
+  transform: scaleX(1);
+}
+
+/* 다크 섹션 '시트' — 앞 섹션 위로 둥근 모서리를 물고 올라온다.
+   평평하게 이어붙던 섹션 경계에 레이어감을 만든다. */
+.fv-sheet-top {
+  border-radius: 28px 28px 0 0;
+  margin-top: -28px;
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fv-draw {
+    transform: none;
+    transition: none;
+  }
+}
+
 /* 카드 호버 리프트 — 커서를 올리면 살짝 떠오르고 그림자가 깊어진다.
    정적인 카드 그리드가 "만들어진" 느낌이 나는 가장 싼 방법. 터치 기기는
    hover 미디어쿼리로 제외(끈적임 방지). */

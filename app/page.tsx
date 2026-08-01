@@ -206,28 +206,46 @@ function TrustStrip() {
 // ===========================================================================
 function ValueProp({ isAuthed }: { isAuthed: boolean }) {
   return (
-    <Section bg="cream" pad="md">
-      <Container size="md">
-        <Reveal>
-          <div className="text-center">
-            <Eyebrow>WHY FRESH</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              제품을 파는 게 아니라,
-              <br />한 끼를 책임집니다
-            </Display>
-            <p className="pt-5 mx-auto text-[15px] md:text-[17px]" style={{ maxWidth: 520, lineHeight: 1.7, color: 'var(--fd-muted)' }}>
-              화식은 ‘일관된 영양’과 ‘신선도’를 동시에 잡는 방식이에요. 우리 아이가
-              평생 먹을 음식이라면, 사람의 식탁과 같은 기준으로 만들어야 한다고
-              생각했어요.
-            </p>
-            <div className="pt-7 flex justify-center">
-              <Button href={planHref(isAuthed)} tone="coral" size="md">
-                맞춤 플랜 만들기
-                <ArrowRight size={18} strokeWidth={2.4} />
-              </Button>
-            </div>
+    // 리듬 파괴(2026-08-01): 가운데 정렬 band → 비대칭 에디토리얼.
+    // 초대형 고스트 워터마크 + 제목 좌 / 본문·CTA 우측 오프셋. 문구는 그대로.
+    <Section bg="cream" pad="md" className="relative overflow-hidden">
+      <div
+        aria-hidden
+        className="fv-ghost font-chunky"
+        style={{ fontSize: 'clamp(110px, 20vw, 260px)', transform: 'translate(-1.5%, -14%)' }}
+      >
+        WHY FRESH
+      </div>
+      <Container size="lg">
+        <div className="relative grid md:grid-cols-12 gap-8 md:gap-6 md:items-end">
+          <div className="md:col-span-7">
+            <Reveal variant="left">
+              <Eyebrow>WHY FRESH</Eyebrow>
+              <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
+                제품을 파는 게 아니라,
+                <br />한 끼를 책임집니다
+              </Display>
+            </Reveal>
           </div>
-        </Reveal>
+          <div className="md:col-span-5 md:pb-2">
+            <Reveal variant="right" delay={90}>
+              <p
+                className="text-[15px] md:text-[16px]"
+                style={{ lineHeight: 1.75, color: 'var(--fd-muted)', borderLeft: '2px solid var(--fd-coral)', paddingLeft: 18 }}
+              >
+                화식은 ‘일관된 영양’과 ‘신선도’를 동시에 잡는 방식이에요. 우리 아이가
+                평생 먹을 음식이라면, 사람의 식탁과 같은 기준으로 만들어야 한다고
+                생각했어요.
+              </p>
+              <div className="pt-6">
+                <Button href={planHref(isAuthed)} tone="coral" size="md">
+                  맞춤 플랜 만들기
+                  <ArrowRight size={18} strokeWidth={2.4} />
+                </Button>
+              </div>
+            </Reveal>
+          </div>
+        </div>
       </Container>
     </Section>
   )
@@ -260,8 +278,10 @@ function FeatureCards() {
           {FEATURES.map((f, i) => {
             const Icon = f.Icon
             return (
-              <Reveal key={f.t} delay={i * 80}>
-                <div className="h-full" style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 8, padding: 'clamp(18px,4vw,26px)' }}>
+              /* 지그재그(홀수 카드 lg:mt-8) — 4장 평평한 그리드가 한 덩어리로
+                 읽히던 것을 리듬 있게. 스케일 진입 + 호버 리프트(2026-08-01). */
+              <Reveal key={f.t} delay={i * 80} variant="scale" className={i % 2 === 1 ? 'lg:mt-8' : undefined}>
+                <div className="h-full fv-lift" style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 8, padding: 'clamp(18px,4vw,26px)' }}>
                   <span className="inline-flex items-center justify-center" style={{ width: 52, height: 52, borderRadius: 999, background: '#FFFFFF', border: '1px solid var(--fd-line)' }}>
                     <Icon size={24} strokeWidth={2} color="var(--fd-coral)" />
                   </span>
@@ -302,8 +322,8 @@ function Comparison() {
           </div>
         </Reveal>
         <div className="pt-9 md:pt-12 grid md:grid-cols-2 gap-3 md:gap-4">
-          {/* 그동안의 사료 */}
-          <Reveal>
+          {/* 그동안의 사료 — 좌에서, 파머스테일은 우에서 마주 들어온다(2026-08-01) */}
+          <Reveal variant="left">
             <div className="h-full" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '22px 22px' }}>
               <div className="flex items-center gap-2" style={{ color: 'var(--fd-muted)' }}>
                 <Minus size={18} strokeWidth={3} aria-hidden />
@@ -320,7 +340,7 @@ function Comparison() {
             </div>
           </Reveal>
           {/* 파머스테일 */}
-          <Reveal delay={90}>
+          <Reveal variant="right" delay={90}>
             <div className="h-full" style={{ background: 'var(--fd-pine)', borderRadius: 10, padding: '22px 22px' }}>
               <div className="flex items-center gap-2" style={{ color: 'var(--fd-coral)' }}>
                 <Check size={18} strokeWidth={3} aria-hidden />
@@ -378,7 +398,7 @@ function HowWeMakeIt() {
             const Icon = m.Icon
             return (
               <Reveal key={m.t} delay={i * 80}>
-                <div className="text-center px-4">
+                <div className="text-center px-4 fv-lift" style={{ borderRadius: 12, padding: '18px 16px' }}>
                   <div className="mx-auto flex items-center justify-center" style={{ width: 64, height: 64, borderRadius: 999, background: '#FFFFFF', border: '1px solid var(--fd-line)' }}>
                     <Icon size={28} strokeWidth={2} color="var(--fd-green)" />
                   </div>
@@ -508,7 +528,8 @@ const STEPS = [
 
 function HowItWorks({ isAuthed }: { isAuthed: boolean }) {
   return (
-    <Section bg="pine" pad="md">
+    <Section bg="pine" pad="md" className="fv-sheet-top overflow-hidden">
+      {/* 다크 섹션이 앞 섹션 위로 둥근 모서리를 물고 올라온다 — 시트 레이어감(2026-08-01) */}
       <Container size="xl">
         <Reveal>
           <div className="text-center">
@@ -523,6 +544,12 @@ function HowItWorks({ isAuthed }: { isAuthed: boolean }) {
             <Reveal key={s.n} delay={i * 80}>
               <div className="text-center md:text-left">
                 <span className="font-chunky" style={{ fontSize: 'clamp(40px, 9vw, 58px)', color: 'var(--fd-coral)', lineHeight: 1 }}>{s.n}</span>
+                {/* 번호 밑 룰이 진입 시 자라난다(.fv-draw — Reveal is-in 이 발화) */}
+                <span
+                  aria-hidden
+                  className="fv-draw mx-auto md:mx-0"
+                  style={{ display: 'block', width: 44, height: 3, background: 'var(--fd-coral)', marginTop: 12, opacity: 0.85 }}
+                />
                 <h3 className="pt-3 text-[19px] md:text-[21px]" style={{ fontWeight: 800, color: '#FFFFFF' }}>{s.t}</h3>
                 <p className="pt-2 text-[14px] md:text-[15px]" style={{ color: 'var(--fd-green-soft)', lineHeight: 1.6 }}>{s.d}</p>
               </div>
@@ -601,7 +628,8 @@ function ScienceExpertise() {
 
 function VetVoices() {
   return (
-    <Section bg="pine" pad="md">
+    // 다크 섹션이 앞 섹션 위로 둥근 모서리를 물고 올라온다 — 시트 레이어감(2026-08-01).
+    <Section bg="pine" pad="md" className="fv-sheet-top overflow-hidden">
       <Container size="xl">
         <Reveal>
           <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
