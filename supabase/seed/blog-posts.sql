@@ -1178,7 +1178,7 @@ insert into public.blog_posts (
 - ASPCA Animal Poison Control Center (888-426-4435) — Toxic Foods Database
 - FDA Center for Veterinary Medicine — Pet Food Safety Bulletins
 - 농림축산검역본부 — 반려동물 응급 가이드',
-  'https://images.unsplash.com/photo-1601758174039-7e95dcd24bd6?w=1600&q=80',
+  '/raw-ingredients.jpg', -- 2026-08-01: 원본 Unsplash 404 → 자체 자산으로 교체(핫링크는 언제든 죽는다)
   (select id from public.blog_categories where slug='health'),
   true,
   now() - interval '14 days'

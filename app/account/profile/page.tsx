@@ -22,7 +22,8 @@ import { Eyebrow } from '@/components/web/fd/ui'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '내 프로필 | 파머스테일',
+  // 루트 template 이 '| 파머스테일' 을 붙인다 — 직접 쓰면 두 번 붙는다(2026-08-01 전수).
+  title: '내 프로필',
   alternates: { canonical: '/account/profile' },
   robots: { index: false, follow: false },
 }
