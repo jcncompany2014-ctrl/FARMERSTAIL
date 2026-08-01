@@ -453,7 +453,7 @@ function HowWeMakeIt() {
               <Reveal key={m.t} delay={i * 80}>
                 <div className="fv-lift" style={{ borderRadius: 12, overflow: 'hidden', background: '#FFFFFF', border: '1px solid var(--fd-line)', height: '100%' }}>
                   {/* 사진이 주인공 — 아이콘은 사진 위 작은 배지로 강등 */}
-                  <div className="relative" style={{ aspectRatio: '4 / 3' }}>
+                  <div data-gsap-img className="relative" style={{ aspectRatio: '4 / 3' }}>
                     <Image src={m.img} alt={m.alt} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
                     <span
                       className="absolute flex items-center justify-center"
@@ -477,7 +477,7 @@ function HowWeMakeIt() {
           사진 6장이 끊김없이 흐른다. 텍스트 마퀴(신뢰 띠)와 달리 이건 눈으로
           "진짜 재료"를 증명하는 장식이라 alt 불필요(aria-hidden). */}
       <div aria-hidden className="fv-marquee mt-10 md:mt-14">
-        <div className="fv-marquee-track" style={{ animationDuration: '36s' }}>
+        <div data-gsap-marquee className="fv-marquee-track" style={{ animationDuration: '36s' }}>
           {[...INGREDIENT_STRIP, ...INGREDIENT_STRIP].map((src, i) => (
             <span
               key={`${src}-${i}`}

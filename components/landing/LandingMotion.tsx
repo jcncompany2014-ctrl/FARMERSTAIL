@@ -22,9 +22,13 @@
  * # 마크업 계약 (page.tsx 쪽 태그)
  *   data-gsap="hero-title"  → SplitText 글자 스태거 등장 (줄 마스크는 .gsap-line)
  *   data-gsap-y="-8"        → 섹션 스크롤 동안 yPercent -8 로 스크럽 이동
+ *   data-gsap-marquee       → 등속 루프 + **스크롤 속도/방향 반응** (2차)
+ *   data-gsap-img           → 액자 안에서 사진만 미끄러진다 (2차)
  */
 
 import { useEffect } from 'react'
+
+import { scrollSpeedFactor } from '@/lib/motion/scroll-speed'
 
 export default function LandingMotion() {
   useEffect(() => {
@@ -32,6 +36,8 @@ export default function LandingMotion() {
 
     let ctx: { revert: () => void } | undefined
     let cancelled = false
+    let idleTimer = 0
+    const teardown: Array<() => void> = []
 
     void (async () => {
       try {
@@ -82,6 +88,85 @@ export default function LandingMotion() {
                 },
               )
             })
+
+          // ③ 재료 스트립 — 등속으로 흐르다가 **스크롤 속도·방향을 탄다**(2차).
+          //    CSS 애니메이션(fvMarquee)을 끄고 GSAP 이 운전대를 잡는다. 트랙은
+          //    재료 6장을 두 번 이어 붙였으므로 xPercent -50 이 정확히 한 바퀴.
+          //    빠르게 내리면 재료가 휙 지나가고, 위로 올리면 **역주행**한다 —
+          //    스크롤이 화면을 움직이는 게 아니라 화면과 대화하는 인상.
+          const track = document.querySelector<HTMLElement>('[data-gsap-marquee]')
+          if (track) {
+            track.style.animation = 'none' // CSS 루프 해제 — 이제 GSAP 소유
+            const loop = gsap.to(track, {
+              xPercent: -50,
+              duration: 36,
+              ease: 'none',
+              repeat: -1,
+            })
+
+            // 마우스를 올리면 멈춘다 — CSS 의 :hover play-state 를 대체한다
+            //   (animation:none 이 되면 그 룰은 더 이상 걸리지 않는다).
+            const frame = track.parentElement
+            if (frame) {
+              const stop = () => loop.pause()
+              const go = () => loop.resume()
+              frame.addEventListener('mouseenter', stop)
+              frame.addEventListener('mouseleave', go)
+              teardown.push(() => {
+                frame.removeEventListener('mouseenter', stop)
+                frame.removeEventListener('mouseleave', go)
+              })
+            }
+
+            ScrollTrigger.create({
+              trigger: frame ?? track,
+              start: 'top bottom',
+              end: 'bottom top',
+              onUpdate: (self) => {
+                // 속도 → 배속. 매핑은 lib/motion/scroll-speed 가 정본이고
+                // 거기 테스트가 역주행·clamp·NaN 을 지킨다(브라우저로는 합성
+                // 스크롤 속도가 튀어 역주행을 눈으로 판정할 수 없었다).
+                const ts = scrollSpeedFactor(self.getVelocity())
+                // ★즉시 반영. 0.35 초 트윈으로 쫓아가게 했더니 트윈이 도착하기
+                //   전에 속도가 식어 매번 덮어써졌고, 목표가 -2.9 여도 실제로는
+                //   0.43 까지밖에 안 내려갔다(실측) — 역주행이 영영 안 나온다.
+                //   속도값은 ScrollTrigger 가 이미 다듬어 주므로 직접 넣어도 곱다.
+                gsap.killTweensOf(loop) // 되돌리기 트윈이 돌고 있으면 먼저 멈춘다
+                loop.timeScale(ts)
+                // 스크롤이 멎으면 등속으로 되돌아온다 — 마지막 배속이 굳어
+                // 영원히 빨리 도는 것을 막는 브레이크.
+                window.clearTimeout(idleTimer)
+                idleTimer = window.setTimeout(() => {
+                  gsap.to(loop, { timeScale: 1, duration: 0.9, overwrite: true })
+                }, 180)
+              },
+            })
+          }
+
+          // ④ 액자 안에서 사진만 미끄러진다(2차) — 카드는 제자리, 내용물이 살아
+          //    있다. 카드가 통째로 움직이는 파랄락스보다 조용하면서 깊이는 더 난다.
+          //    드리프트로 가장자리가 드러나지 않게 1.14 배 확대해 두고 시작한다.
+          document
+            .querySelectorAll<HTMLElement>('[data-gsap-img]')
+            .forEach((el) => {
+              const img = el.querySelector('img')
+              if (!img) return
+              gsap.fromTo(
+                img,
+                { yPercent: -6, scale: 1.14 },
+                {
+                  yPercent: 6,
+                  scale: 1.14,
+                  ease: 'none',
+                  scrollTrigger: {
+                    trigger: el,
+                    start: 'top bottom',
+                    end: 'bottom top',
+                    scrub: true,
+                  },
+                },
+              )
+            })
         })
       } catch {
         /* GSAP 로드 실패 → 정적 표시로 조용히 폴백 */
@@ -90,6 +175,8 @@ export default function LandingMotion() {
 
     return () => {
       cancelled = true
+      window.clearTimeout(idleTimer)
+      teardown.forEach((fn) => fn())
       ctx?.revert()
     }
   }, [])
