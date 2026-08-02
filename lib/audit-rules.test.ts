@@ -1120,3 +1120,43 @@ test('규칙 27 — WebMotion(GSAP)은 앱·어드민 라우트에 들어가면 
       `GSAP 이 앱 번들로 딸려 들어간다.\n${offenders.join('\n')}`,
   )
 })
+
+
+test('규칙 28 — 고객 화면에 개발용 더미/예시 문구가 나가면 안 된다', () => {
+  /**
+   * 2026-08-02 검수. /reviews 에 지어낸 고객 8명(보리·서울·골든리트리버 …)이
+   * "먹어본 아이들이 이 자리에 모여요" 아래 슬라이더로 돌고 있었다. 코드 주석은
+   * "실 데이터 연동 전 화면 확인용" — **개발용 더미가 그대로 고객에게** 나갔다.
+   * 심지어 같은 페이지 윗 문단이 "지어낸 후기는 한 줄도 싣지 않아요" 였다.
+   *
+   * 작은 '테스트 예시' 배지를 달아 뒀지만, 배지는 변명이지 해명이 아니다 —
+   * 화면에 보이는 건 고객 카드 8장이고, 실제 이용자가 아닌 사람을 이용자처럼
+   * 보이게 하는 표시는 표시광고법에서 다툴 거리가 된다.
+   *
+   * 그래서 **렌더되는 텍스트**에서 이 문구들을 금지한다. 주석은 stripComments
+   * 로 걷어내므로 지금 이 설명이나 코드 주석은 걸리지 않는다(규칙 20 에서
+   * 내 주석이 내 규칙에 걸렸던 경험 반영).
+   * 어드민은 제외 — 운영자가 보는 화면이라 예시 표기가 정당하다.
+   */
+  const BANNED = ['테스트 예시', '예시 데이터', '더미 데이터', '샘플 데이터', 'Lorem ipsum']
+  const ADMIN = sep + 'admin' + sep
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'components')))) {
+    if (!file.endsWith('.tsx')) continue
+    if (file.includes(ADMIN)) continue
+    if (file.includes('.test.')) continue
+    const src = stripComments(read(file))
+    for (const word of BANNED) {
+      if (src.includes(word)) {
+        offenders.push(file.replace(ROOT, '').split(sep).join('/') + ' :: ' + word)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '고객 화면에 개발용 더미/예시 문구가 남아 있다 — 배지를 달아도 화면에는 ' +
+      '실제처럼 보인다. 실 데이터가 없으면 빈 자리가 더 정직하다. ' +
+      offenders.join(' / '),
+  )
+})

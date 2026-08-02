@@ -120,80 +120,22 @@ function ReviewsHero({ isAuthed }: { isAuthed: boolean }) {
   )
 }
 
-// 2. Dog roster slider (FD: 아이 이름·지역 로스터)
-// ⚠️ 테스트 예시 데이터 — 실제 후기/고객 아님. 실 데이터 연동 전 화면 확인용.
-const EXAMPLE_DOGS = [
-  { img: '/dog-portrait.jpg', name: '보리', region: '서울 · 골든리트리버' },
-  { img: '/dog-corgi.jpg', name: '초코', region: '경기 · 웰시코기' },
-  { img: '/dog-poodle.jpg', name: '몽이', region: '부산 · 푸들' },
-  { img: '/dog-maltese.jpg', name: '뭉치', region: '인천 · 말티즈' },
-  { img: '/dog-mixed.jpg', name: '해피', region: '대구 · 믹스견' },
-  { img: '/dog-corgi.jpg', name: '두부', region: '광주 · 웰시코기' },
-  { img: '/dog-poodle.jpg', name: '라떼', region: '대전 · 푸들' },
-  { img: '/dog-portrait.jpg', name: '골디', region: '울산 · 리트리버' },
-]
-
-/** 테스트/예시 데이터임을 알리는 작은 배지. 실 데이터 연동 시 제거. */
-function TestBadge() {
-  return (
-    <span
-      style={{
-        fontSize: 10,
-        fontWeight: 800,
-        color: 'var(--fd-muted)',
-        background: 'var(--fd-cream)',
-        border: '1px solid var(--fd-line)',
-        borderRadius: 999,
-        padding: '2px 8px',
-        letterSpacing: '0.02em',
-      }}
-    >
-      테스트 예시
-    </span>
-  )
-}
-
-function DogCard({
-  img,
-  name,
-  region,
-}: {
-  img: string
-  name: string
-  region: string
-}) {
-  return (
-    <div className="snap-start shrink-0 w-[160px] md:w-[180px] text-center" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '16px 14px' }}>
-      <PhotoSlot src={img} alt={name} label="아이 사진" ratio="1 / 1" tone="cream" rounded={999} className="w-full" />
-      <p className="pt-3 text-[13px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>{name}</p>
-      <p className="pt-0.5 text-[11.5px]" style={{ color: 'var(--fd-muted)', fontWeight: 600 }}>{region}</p>
-    </div>
-  )
-}
-
-function DogRoster() {
-  return (
-    <Section bg="cream" pad="sm">
-      <Container size="xl">
-        <Reveal>
-          <p className="text-center text-[13px] flex items-center justify-center gap-2 flex-wrap" style={{ fontWeight: 700, color: 'var(--fd-muted)', letterSpacing: '0.04em' }}>
-            먹어본 아이들이 이 자리에 모여요
-            <TestBadge />
-          </p>
-        </Reveal>
-        <div className="pt-5">
-          <Reveal>
-            <FdSlider ariaLabel="아이 로스터">
-              {EXAMPLE_DOGS.map((d, i) => (
-                <DogCard key={i} {...d} />
-              ))}
-            </FdSlider>
-          </Reveal>
-        </div>
-      </Container>
-    </Section>
-  )
-}
+// 2. 아이 로스터 — **삭제됨**(2026-08-02 검수)
+//
+// 여기엔 보리(서울·골든리트리버)·초코(경기·웰시코기) 등 **지어낸 고객 8명**이
+// "먹어본 아이들이 이 자리에 모여요" 라는 제목 아래 사진·이름·지역과 함께
+// 슬라이더로 돌고 있었다. 코드 주석은 "실 데이터 연동 전 화면 확인용" 이라고
+// 적혀 있었다 — 개발용 더미가 그대로 고객에게 나가 있었던 것.
+//
+// 지울 수밖에 없는 이유 두 가지:
+//  (1) **이 페이지가 스스로 한 약속과 정면으로 어긋난다.** 바로 윗 문단이
+//      "지어낸 후기는 한 줄도 싣지 않아요" 다. 작은 '테스트 예시' 배지를 달아도
+//      화면에 보이는 건 고객 카드 8장이다. 배지는 변명이지 설명이 아니다.
+//  (2) 실제 이용자가 아닌 사람을 이용자처럼 보이게 하는 표시라, 표시광고법상
+//      다툼의 소지가 있다. 지금 토스 PG 심사 중이기도 하다.
+//
+// 실제 후기가 쌓이면 그때 **진짜 데이터로** 되살린다. 그전까지는 빈 자리
+// ("실제 후기가 등록되면 위 자리부터 차례로 채워집니다")가 훨씬 정직하다.
 
 // 3. Category filter tabs (FD 7 카테고리, 시각 placeholder) ==================
 const FILTERS = ['전체 건강', '자견 케어', '시니어 케어', '체중', '소화', '편식', '피부·모질'] as const
@@ -451,7 +393,6 @@ export default async function ReviewsPage() {
       <main>
         <JsonLd id="ld-reviews-crumbs" data={crumbLd} />
         <ReviewsHero isAuthed={isAuthed} />
-        <DogRoster />
         <FilterTabs />
         <ReviewGrid />
         <FeaturedReview />
