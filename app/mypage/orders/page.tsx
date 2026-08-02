@@ -267,9 +267,15 @@ export default async function OrdersPage() {
             <p className="text-[11px] text-muted mt-1.5 leading-relaxed">
               첫 주문을 시작해 보세요
             </p>
-            {/* ★로그인 상태라 /start(비로그인 설문→가입) 금지 — 우리 아이 허브 /dogs 로. */}
+            {/* ★로그인 상태라 /start(비로그인 설문→가입) 금지 — 우리 아이 허브로.
+                단 **웹이면 /dogs 가 아니다**(2026-08-02 검수). /dogs 는 앱 전용
+                라우트(proxy APP_ONLY_PREFIXES)라, 웹 고객이 "정기배송 시작하기"를
+                누르면 구독을 시작하는 대신 **앱 설치 벽(/app-required)** 을 맞았다.
+                이 화면은 웹도 들어오는 몇 안 되는 mypage 라우트다(MYPAGE_WEB_ALLOWED
+                — 환불 정책이 "마이페이지 > 주문내역"으로 안내하는 바로 그 화면).
+                웹의 같은 허브는 /account/dogs — 강아지별 '신청'·'관리' CTA 를 준다. */}
             <Link
-              href="/dogs"
+              href={isApp ? '/dogs' : '/account/dogs'}
               className="mt-5 inline-block px-6 py-2.5 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
               style={{ background: 'var(--ink)', color: 'var(--bg)' }}
             >

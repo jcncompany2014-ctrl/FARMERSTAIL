@@ -1160,3 +1160,111 @@ test('규칙 28 — 고객 화면에 개발용 더미/예시 문구가 나가면
       offenders.join(' / '),
   )
 })
+
+
+test('규칙 29 — 웹이 들어오는 화면에서 앱 전용 라우트로 링크하면 안 된다', () => {
+  /**
+   * 2026-08-02 검수에서 같은 모양 두 건이 나왔다.
+   *
+   *  (1) /tools/raw-calculator · /tools/elimination-diet 이 "대시보드"(=/dashboard,
+   *      앱 전용)로 돌아가는 링크를 단 채 **공개 웹에 열려 있었다.** 앱 화면으로
+   *      만들어졌는데 APP_ONLY_PREFIXES 에 안 들어가 있었던 것.
+   *  (2) /mypage/orders(웹도 들어오는 화면 — 환불 정책이 "마이페이지 > 주문내역"
+   *      으로 안내한다)의 빈 상태 CTA "정기배송 시작하기" 가 /dogs(앱 전용)로
+   *      가고 있었다. 웹 고객은 구독을 시작하는 대신 **앱 설치 벽**을 맞았다.
+   *
+   * 둘 다 "이 화면은 누가 보는가" 와 "이 링크는 누가 갈 수 있는가" 가 어긋난
+   * 경우다. proxy.ts 의 APP_ONLY_PREFIXES 가 정본이고, 이 테스트는 그 목록과
+   * 실제 링크가 맞는지 본다. 분기(isApp ? 앱경로 : 웹경로)는 정상으로 본다.
+   */
+  const proxySrc = read(join(ROOT, 'proxy.ts'))
+  const listStart = proxySrc.indexOf('const APP_ONLY_PREFIXES')
+  assert.ok(listStart > 0, 'proxy.ts 에서 APP_ONLY_PREFIXES 를 못 찾았다')
+  // ★여는 대괄호를 `= [` 로 찾는다. 그냥 indexOf(']') 를 쓰면 타입 표기
+  //   `readonly string[]` 의 대괄호에 먼저 걸려 41자짜리 빈 구간을 읽는다
+  //   (2026-08-02 실측 — 아래 length 검사가 그걸 잡아냈다).
+  const arrStart = proxySrc.indexOf('= [', listStart)
+  assert.ok(arrStart > listStart, 'APP_ONLY_PREFIXES 배열 시작을 못 찾았다')
+  const listBody = proxySrc.slice(arrStart, proxySrc.indexOf(']', arrStart))
+  const appOnly = [...listBody.matchAll(/'(\/[a-z0-9/-]+)'/g)].map((m) => m[1] as string)
+  assert.ok(appOnly.length >= 5, `APP_ONLY_PREFIXES 파싱 실패(${appOnly.length}개)`)
+
+  const covered = (route: string) =>
+    appOnly.some((p) => route === p || route.startsWith(p + '/'))
+
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app'))) {
+    if (!file.endsWith('page.tsx')) continue
+    const rel = file.replace(ROOT, '').split(sep).join('/')
+    if (rel.includes('/admin/')) continue
+    if (rel.includes('/(main)/')) continue // 레이아웃이 이미 앱을 강제하는 그룹
+    const route =
+      '/' +
+      rel
+        .replace('/app/', '')
+        .replace('/page.tsx', '')
+        .split('/')
+        .filter((seg) => seg && !(seg.startsWith('(') && seg.endsWith(')')))
+        .join('/')
+    if (covered(route)) continue // 이 화면 자체가 앱 전용이면 문제 없음
+    const src = stripComments(read(file))
+    for (const target of appOnly) {
+      // 분기 링크(href={isApp ? ...})는 허용 — 하드코딩된 href 만 잡는다
+      if (src.includes(`href="${target}"`) || src.includes(`href='${target}'`)) {
+        offenders.push(`${rel} (${route}) → ${target}`)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '웹 방문자가 볼 수 있는 화면이 앱 전용 라우트로 링크한다 — 누르면 앱 설치 벽을 ' +
+      '맞는다. isApp 분기로 웹 경로를 주거나, 그 화면 자체를 APP_ONLY_PREFIXES 에 ' +
+      '넣어라. ' + offenders.join(' / '),
+  )
+})
+
+
+test('규칙 30 — 앱 전용 라우트는 proxy matcher 에도 들어 있어야 한다', () => {
+  /**
+   * 2026-08-02. /tools 를 APP_ONLY_PREFIXES 에 넣었는데도 페이지가 **비로그인
+   * 웹에서 그대로 200 으로 열렸다.** proxy 의 `config.matcher` 가 별도의
+   * 허용목록이라, 거기 없는 경로는 미들웨어가 아예 실행되지 않기 때문이다.
+   *
+   * 무서운 건 그 사이 감사 테스트가 초록이었다는 것이다(규칙 29 는 prefix 목록만
+   * 봤다). 브라우저로 실제 요청을 보내고서야 알았다 — **"테스트가 초록인데
+   * 막히지 않는" 전형적인 헛통과.** 그래서 두 목록의 일치를 여기서 못 박는다.
+   */
+  const src = read(join(ROOT, 'proxy.ts'))
+
+  const listStart = src.indexOf('const APP_ONLY_PREFIXES')
+  const arrStart = src.indexOf('= [', listStart)
+  assert.ok(arrStart > 0, 'APP_ONLY_PREFIXES 배열을 못 찾았다')
+  const prefixes = [...src.slice(arrStart, src.indexOf(']', arrStart)).matchAll(/'([^']+)'/g)]
+    .map((m) => m[1] as string)
+    .filter((v) => v.startsWith('/'))
+  assert.ok(prefixes.length >= 5, `APP_ONLY_PREFIXES 파싱 실패(${prefixes.length}개)`)
+
+  const mStart = src.indexOf('matcher: [')
+  assert.ok(mStart > 0, 'config.matcher 를 못 찾았다')
+  const matcher = [...src.slice(mStart, src.indexOf(']', mStart)).matchAll(/'([^']+)'/g)]
+    .map((m) => m[1] as string)
+    .filter((v) => v.startsWith('/'))
+  assert.ok(matcher.length >= 5, `matcher 파싱 실패(${matcher.length}개)`)
+
+  /** matcher 항목이 이 prefix 로 시작하는 경로를 실제로 잡는가. */
+  const matcherCovers = (prefix: string) =>
+    matcher.some((m) => {
+      const base = m.replace('/:path*', '')
+      return base === prefix || prefix.startsWith(base + '/')
+    })
+
+  const uncovered = prefixes.filter((p) => !matcherCovers(p))
+  assert.deepEqual(
+    uncovered,
+    [],
+    'APP_ONLY_PREFIXES 에 있는데 proxy config.matcher 에 없다 — 미들웨어가 아예 ' +
+      '실행되지 않아 가드가 조용히 무효가 된다(테스트는 초록인 채로). ' +
+      uncovered.join(' / '),
+  )
+})
