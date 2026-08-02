@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   // layout template "%s | 파머스테일" 가 브랜드명 1회 부착 → 페이지명만(중복 방지, 회차150).
   title: '정기배송',
   description:
-    '2주마다 신선한 화식을 냉동 배송. 곁들임·반반·완전 화식 중 우리 아이에 맞는 비율로. 견적은 2분 설문 후 확정, 언제든 해지.',
+    '2주마다 신선한 화식을 냉동 배송. 곁들임·반반·완전 화식 중 우리 아이에 맞는 비율로. 견적은 2분 설문 후 확정, 다음 결제 전까지 해지.',
   alternates: { canonical: '/plans' },
   openGraph: {
     title: '정기배송 | 파머스테일',
@@ -257,7 +257,7 @@ export default async function PlansPage() {
               ))}
             </div>
             <p className="pt-5 text-[12px]" style={{ color: 'var(--fd-muted)', letterSpacing: '0.02em', lineHeight: 1.6 }}>
-              모든 비율 공통 — 2주마다 냉동 배송, 배송비 구독료 포함, 언제든 해지, 첫 회차 미개봉 시 7일 내 환불.
+              모든 비율 공통 — 2주마다 냉동 배송, 배송비 구독료 포함, 다음 결제 전까지 해지, 첫 회차 미개봉 시 7일 내 환불.
             </p>
           </Container>
         </Section>

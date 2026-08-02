@@ -1268,3 +1268,55 @@ test('규칙 30 — 앱 전용 라우트는 proxy matcher 에도 들어 있어�
       uncovered.join(' / '),
   )
 })
+
+
+test('규칙 31 — 고객 문구에 "언제든 해지/일시정지" 과약속 금지', () => {
+  /**
+   * 사장님 2026-07-23 지시: "언제든 (해지/일시정지/조정) 할 수 있어요" 는 쓰지
+   * 않는다. 마감을 명시하라("다음 결제 전까지"처럼). 사장님 말: "예전에 안
+   * 쓰기로 했는데 메모리에 없어 놓쳤다."
+   *
+   * 그런데 2026-08-02 검수에서 **모든 웹 페이지 상단 배너**에 그대로 있었다
+   * ("무료 분석 먼저, 결제는 그다음 · 언제든 해지"). 문서·메모리에만 적힌 규칙은
+   * 이렇게 또 새어 나온다 — 그래서 테스트로 박는다.
+   *
+   * 마감의 정본:
+   *   · 해지·일시정지 = **다음 결제 전**(일요일 아님). status 를 바꾸는 순간
+   *     next_delivery_date 가 지워지고 청구 크론은 active 만 고른다.
+   *   · 박스 구성 변경 = **일요일 마감**(월요일에 원료를 손질하므로).
+   * 둘을 섞어 쓰지 말 것. lib/shipping-schedule 의 STOP_TIMING_COPY 참조.
+   *
+   * "언제든 재개/다시 시작", "수신동의는 언제든 철회" 등은 **금지 대상이 아니다** —
+   * 멈추는 쪽(해지·일시정지)의 과약속만 잡는다.
+   */
+  // ★인접 문자열만 보면 샌다. 처음엔 '언제든 해지' 같은 붙은 형태만 잡았더니
+  //   "언제든지 **정기배송을** 해지할 수 있습니다"(환불 정책)를 놓쳤다 — 규칙이
+  //   초록인데 문구는 남아 있는 상태. 사이에 말이 끼어도 잡도록 창을 준다.
+  //   줄바꿈도 넘어야 한다 — JSX 는 문장을 아무 데서나 접는다. 실제로
+  //   "언제든지 정기배송을\n 해지할 수 있습니다"(환불 정책)가 \n 때문에 빠져나갔다.
+  const BANNED_RE = /언제든지?[\s\S]{0,28}?(해지|일시정지)/
+  // 뉴스레터·수신동의의 "언제든 구독 해지"는 **정당하다** — 광고성 정보 수신거부는
+  // 실제로 언제든 가능해야 하고(정보통신망법), 여기서 막을 대상이 아니다.
+  // 금지 대상은 **정기배송(제품 구독)** 쪽 과약속이다.
+  const EXEMPT = ['newsletter', 'consent', 'Consent']
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app'))
+    .concat(walk(join(ROOT, 'components')))
+    .concat(walk(join(ROOT, 'lib')))) {
+    if (!/\.tsx?$/.test(file)) continue
+    if (file.includes('.test.')) continue
+    if (EXEMPT.some((e) => file.includes(e))) continue
+    const src = stripComments(read(file))
+    const m = BANNED_RE.exec(src)
+    if (m) {
+      offenders.push(file.replace(ROOT, '').split(sep).join('/') + ' :: ' + m[0])
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '"언제든 해지" 류는 과약속이라 쓰지 않기로 했다(사장님 2026-07-23). ' +
+      '마감을 명시할 것 — 해지는 "다음 결제 전까지", 구성 변경은 "일요일까지". ' +
+      offenders.join(' / '),
+  )
+})

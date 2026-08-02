@@ -639,7 +639,7 @@ function ScreenSubscription() {
           정기배송으로 시작할까요?
         </div>
         <div style={{ fontFamily: sans, fontSize: 8, color: V3.inkSoft, lineHeight: 1.5, marginTop: 5 }}>
-          분석 결과 그대로 만든 박스를 2주마다 보내드려요. 언제든 일시정지·해지할 수 있어요.
+          분석 결과 그대로 만든 박스를 2주마다 보내드려요. 다음 결제 전까지 일시정지·해지할 수 있어요.
         </div>
 
         {/* 2주 결제 카드 — accent 보더 (배송·결제는 무조건 2주마다 화요일) */}

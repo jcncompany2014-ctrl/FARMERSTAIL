@@ -53,7 +53,7 @@ const HOME_OG = ogImageUrl({
 export const metadata: Metadata = {
   title: '파머스테일 — 사료 대신, 진짜 음식 한 끼',
   description:
-    '사람이 먹을 수 있는 신선한 재료를 수의영양 기준에 맞춰. 2분 설문이면 우리 아이 몸에 딱 맞는 맞춤 화식을 시작할 수 있어요. 부담 없이 시작, 언제든 해지.',
+    '사람이 먹을 수 있는 신선한 재료를 수의영양 기준에 맞춰. 2분 설문이면 우리 아이 몸에 딱 맞는 맞춤 화식을 시작할 수 있어요. 부담 없이 시작, 다음 결제 전까지 해지.',
   alternates: { canonical: '/' },
   openGraph: {
     title: '파머스테일 — 사료 대신, 진짜 음식 한 끼',
@@ -193,7 +193,7 @@ function HomeHero({ isAuthed }: { isAuthed: boolean }) {
 // 2. ========================================================================
 // Trust strip — 신뢰 band (가짜 로고/보증 X, 사실 태그)
 // ===========================================================================
-const TRUST = ['수의영양학 기준 설계', '사람이 먹는 등급 원물', '무항생제', '국내 제조 · 정직한 표시', '언제든 해지']
+const TRUST = ['수의영양학 기준 설계', '사람이 먹는 등급 원물', '무항생제', '국내 제조 · 정직한 표시', '다음 결제 전까지 해지']
 
 function TrustStrip() {
   // FD 신뢰 strip — 정적 행이 아니라 가로로 끊김없이 흐르는 마퀴(회차27).
@@ -884,7 +884,7 @@ function FinalCta({ isAuthed }: { isAuthed: boolean }) {
               오늘 시작해요
             </Display>
             <p className="pt-4 mx-auto text-[15px] md:text-[16px]" style={{ maxWidth: 420, lineHeight: 1.65, color: 'rgba(255,255,255,0.92)' }}>
-              무료 분석 먼저, 부담 없이 시작. 언제든 해지.
+              무료 분석 먼저, 부담 없이 시작. 다음 결제 전까지 해지.
             </p>
             <div className="pt-8 flex justify-center">
               <Button href={planHref(isAuthed)} tone="cream" size="lg">
