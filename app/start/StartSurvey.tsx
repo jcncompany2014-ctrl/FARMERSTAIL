@@ -44,7 +44,17 @@ import KakaoLoginButton from '@/components/KakaoLoginButton'
 import { PhotoSlot } from '@/components/web/fd/ui'
 import FdRecipeSheet from '@/components/web/fd/FdRecipeSheet'
 
-type Opt = { v: string; label: string; illust?: string; src?: string; imgW?: number; flip?: boolean; desc?: string }
+/**
+ * 설문 선택지. `illust` 가 있으면 **그림형**(사진 카드), 없으면 텍스트형이다.
+ *
+ * ★illust 와 src 는 반드시 함께 온다 — 유니온으로 정의 단계에서 강제한다.
+ * 예전엔 둘이 따로 놀 수 있어서, src 가 빠지면 화면에 PhotoSlot 자리표시자가
+ * 대신 떴다. 그 자리표시자는 label 을 그대로 그려서 고객이 "닭고기 원물 누끼"
+ * 같은 **디자인 메모**를 읽게 된다(2026-08-02 검수에서 발견).
+ */
+type OptBase = { v: string; label: string; imgW?: number; flip?: boolean; desc?: string }
+type Opt = OptBase &
+  ({ illust: string; src: string } | { illust?: never; src?: never })
 /** 한 페이지 안의 개별 질문(내용 적은 질문들을 한 스텝에 묶을 때 — 입맛+식사). */
 type SubQ = {
   key: string
@@ -298,9 +308,11 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                     {o.src ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={o.src} alt={o.label} loading="lazy" decoding="async" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'contain', display: 'block', transform: o.flip ? 'scaleX(-1)' : undefined }} />
-                    ) : (
-                      <PhotoSlot label={o.illust!} ratio="1 / 1" tone="cream" rounded={9} className="w-full" />
-                    )}
+                    ) : null}
+                    {/* 이미지가 없으면 **아무것도 안 그린다**. 예전엔 여기서
+                        PhotoSlot 자리표시자가 떠서 디자인 메모가 고객에게
+                        노출됐다. 위 Opt 유니온이 애초에 못 일어나게 막지만,
+                        런타임에서도 메모가 새지 않는 쪽으로 둔다. */}
                   </div>
                   {/* 사진 ↔ 텍스트 세로 구분선 */}
                   <div aria-hidden style={{ width: 1, alignSelf: 'stretch', flexShrink: 0, background: active ? 'var(--fd-coral)' : 'var(--fd-line)', opacity: active ? 0.4 : 1 }} />
@@ -494,10 +506,13 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
         <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)', textTransform: 'uppercase' }}>Result · 맞춤 분석</span>
         <h2 className="pt-3" style={{ fontSize: 24, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em', lineHeight: 1.25 }}>{petName(teaser.dogName)}의 맞춤 분석</h2>
         <p className="pt-2" style={{ fontSize: 13.5, color: 'var(--fd-muted)', lineHeight: 1.6 }}>{teaser.bodyComment}</p>
-        {/* 📸 결과 대표 이미지 (강아지 or 상품 누끼) */}
-        <div style={{ marginTop: 14 }}>
-          <PhotoSlot label="맞춤 결과 대표 이미지 (강아지·상품 누끼)" ratio="16 / 6" tone="green" rounded={14} className="w-full" />
-        </div>
+        {/* 결과 대표 이미지 자리 — **자산이 나올 때까지 비워 두지 않는다**(2026-08-02).
+            여기 있던 PhotoSlot 은 src 가 없어서 고객에게 "맞춤 결과 대표 이미지
+            (강아지·상품 누끼)" 라고 적힌 초록 빈 상자로 보였다. 그것도 하필
+            제목과 칼로리 숫자 사이 — 결과를 보러 온 사람이 가장 먼저 만나는 자리다.
+            아래 플랜 섹션에 이미 실사진(/meal-recipe.webp)이 있으므로 화면이
+            휑해지지도 않는다. 누끼 자산이 나오면 여기에 src 를 주고 되살린다. */
+        }
         <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
             { label: '하루 권장 칼로리', val: teaser.merKcal.toLocaleString(), unit: 'kcal' },

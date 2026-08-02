@@ -20,7 +20,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Check } from 'lucide-react'
 import WebChrome from '@/components/WebChrome'
-import { Section, Container, Display, Eyebrow, PhotoSlot } from '@/components/web/fd/ui'
+import { Section, Container, Display, Eyebrow } from '@/components/web/fd/ui'
 
 function DoneInner() {
   const params = useSearchParams()
@@ -74,11 +74,11 @@ function DoneInner() {
                 </p>
               </div>
 
-              {/* 앱 다운로드 — 실제 스토어 배지는 출시 시 주입(PhotoSlot src). */}
-              <div className="pt-7 grid grid-cols-2 gap-3 mx-auto" style={{ maxWidth: 360 }}>
-                <PhotoSlot label="App Store 배지" ratio="5 / 2" tone="pine" rounded={10} className="w-full" />
-                <PhotoSlot label="Google Play 배지" ratio="5 / 2" tone="pine" rounded={10} className="w-full" />
-              </div>
+              {/* 스토어 배지 — **스토어 등재 전까지 내보내지 않는다**(2026-08-02).
+                  여기 있던 PhotoSlot 2 개는 src 가 없어서 "App Store 배지",
+                  "Google Play 배지" 라고 적힌 검은 빈 상자로 보였다. 아직 스토어에
+                  올라가지 않은 앱을 "곧 나와요"도 아니고 미완성 UI 로 알리는 꼴.
+                  등재되면 실제 배지 이미지 + 스토어 링크로 되살린다. */}
 
               <p className="pt-6 text-[12.5px]" style={{ color: 'var(--fd-muted)' }}>
                 이미 앱이 있다면{' '}
