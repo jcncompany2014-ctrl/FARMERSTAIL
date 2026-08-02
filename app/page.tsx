@@ -18,7 +18,7 @@ import { createClient, getSafeUser } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
 import Reveal from '@/components/landing/Reveal'
 import Parallax from '@/components/landing/Parallax'
-import LandingMotion from '@/components/landing/LandingMotion'
+import WebMotion from '@/components/web/motion/WebMotion'
 import StickyCta from '@/components/web/fd/StickyCta'
 import { ogImageUrl } from '@/lib/seo/jsonld'
 import {
@@ -149,7 +149,7 @@ function HomeHero({ isAuthed }: { isAuthed: boolean }) {
                 className="pt-3"
                 style={{ color: '#FFFFFF', textShadow: '0 2px 18px rgba(0,0,0,0.35)' }}
               >
-                {/* GSAP SplitText 가 글자 단위로 쪼개 스태거 등장(LandingMotion).
+                {/* GSAP SplitText 가 글자 단위로 쪼개 스태거 등장(WebMotion).
                     reduced-motion·JS 실패 시엔 이 평문이 그대로 보인다 — 폴백 무손실. */}
                 <span data-gsap="hero-title" className="block">
                   사료 대신,
@@ -912,7 +912,7 @@ export default async function LandingPage() {
 
   return (
     <WebChrome>
-      <LandingMotion />
+      <WebMotion />
       <main>
         <HomeHero isAuthed={isAuthed} />
         <TrustStrip />

@@ -269,6 +269,7 @@ export function PhotoSlot({
   className,
   src,
   alt,
+  motion = false,
 }: {
   label: string
   sub?: string
@@ -279,11 +280,22 @@ export function PhotoSlot({
   /** 실제 이미지 URL. 주어지면 placeholder 대신 사진을 채운다(임시 사진 주입용). */
   src?: string
   alt?: string
+  /**
+   * true 면 스크롤 동안 **액자 안에서 사진만** 미끄러진다(WebMotion 의
+   * data-gsap-img). 액자는 제자리라 레이아웃은 안 흔들린다.
+   *
+   * ★기본 false 인 이유: PhotoSlot 은 9개 페이지가 쓰는 공유 컴포넌트라 여기서
+   * 무조건 켜면 검증하지 않은 화면(설문 퍼널 /start 포함)까지 조용히 번진다.
+   * 큰 대표 사진에만 페이지가 명시적으로 켠다. WebMotion 이 없는 페이지에선
+   * 태그가 있어도 아무 일도 안 일어난다.
+   */
+  motion?: boolean
 }) {
   const t = SLOT_TONE[tone]
   if (src) {
     return (
       <div
+        data-gsap-img={motion ? '' : undefined}
         className={`relative ${className ?? ''}`}
         style={{ aspectRatio: ratio, borderRadius: rounded, overflow: 'hidden', background: t.bg }}
       >

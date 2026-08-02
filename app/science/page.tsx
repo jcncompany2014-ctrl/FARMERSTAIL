@@ -16,6 +16,7 @@ import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
 import { createClient } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
+import WebMotion from '@/components/web/motion/WebMotion'
 import StickyCta from '@/components/web/fd/StickyCta'
 import { Button, Container, Display, Eyebrow, Section } from '@/components/web/fd/ui'
 import Reveal from '@/components/landing/Reveal'
@@ -91,6 +92,7 @@ export default async function SciencePage() {
 
   return (
     <WebChrome>
+      <WebMotion />
       <main>
         <JsonLd id="ld-science-crumbs" data={crumbLd} />
         {/* Hero */}
@@ -98,9 +100,13 @@ export default async function SciencePage() {
           <Container size="lg">
             <Eyebrow>SCIENCE</Eyebrow>
             <Display as="h1" size="xl" className="pt-4" style={{ color: 'var(--fd-pine)' }}>
-              우리가 어떻게
-              <br />
-              <span style={{ color: 'var(--fd-coral)' }}>영양을 설계하는지</span>
+              {/* 글자 단위 스태거 등장(WebMotion). JS·reduced-motion 실패 시엔
+                    이 평문이 그대로 보인다 — 폴백 무손실. */}
+              <span data-gsap="hero-title" className="block">
+                우리가 어떻게
+                <br />
+                <span style={{ color: 'var(--fd-coral)' }}>영양을 설계하는지</span>
+              </span>
             </Display>
             <p className="pt-5 text-[15px] md:text-[17px]" style={{ color: 'var(--fd-muted)', maxWidth: 680, lineHeight: 1.7 }}>
               수의영양학은 의료가 아니라 식이로 건강을 유지하는 학문입니다. 우리는

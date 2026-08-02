@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 
 /**
  * 2026-07-30 최종감사로 못 박은 규칙 중 **기계가 잡을 수 있는 것**을 테스트로.
@@ -1072,5 +1072,51 @@ test('★ 규칙26: 크론 주석의 KST 시각이 vercel.json 과 어긋나지 
     [],
     '크론 주석의 KST 시각이 vercel.json 과 다르다 — 시각이 틀리면 "왜 안 나갔지" 를 ' +
       '엉뚱한 데서 찾는다. vercel.json 이 정본이다.\n' + offenders.join('\n'),
+  )
+})
+
+test('규칙 27 — WebMotion(GSAP)은 앱·어드민 라우트에 들어가면 안 된다', () => {
+  /**
+   * 2026-08-02. WebMotion 은 **웹(브라우저) 전용** 모션 오케스트레이터다.
+   * 앱 화면에 들어가면 두 가지가 동시에 깨진다:
+   *   (1) 웹/앱 분리 — 앱은 네이티브 관용구(바텀시트·계층 up-nav)를 쓴다.
+   *       스크롤 핀·패럴랙스 같은 웹 랜딩 어휘가 섞이면 안 된다.
+   *   (2) 번들 — GSAP 은 동적 import 라 "마운트한 페이지에서만" 내려간다는 게
+   *       전제다. 앱 라우트가 import 하는 순간 그 전제가 깨진다.
+   *
+   * 3차에서 LandingMotion → WebMotion 으로 개명하며 랜딩 밖으로 나갔다. 이름이
+   * 더 이상 "랜딩 전용"이라고 말해 주지 않으니, 경계는 테스트가 지킨다.
+   */
+  const BANNED_DIRS = [
+    join(ROOT, 'app', '(main)'),      // 앱 PWA 라우트 — layout 이 AppChrome 강제
+    join(ROOT, 'app', 'admin'),       // 어드민
+    join(ROOT, 'app', 'dashboard'),   // 앱 전용 홈
+    join(ROOT, 'components', 'v3'),   // 정의상 앱 전용 컴포넌트
+  ]
+  const IMPORTS_WEBMOTION = /from\s+['"][^'"]*WebMotion['"]/
+  // 문자클래스 안의 / 는 이스케이프한다 — 안 하면 Node 의 TS 스트리퍼가
+  // 정규식 리터럴이 거기서 끝난 줄 알고 파스 에러를 낸다(2026-08-02 실측).
+  const USES_WEBMOTION = /<WebMotion[\s\/>]/
+  const offenders: string[] = []
+  for (const dir of BANNED_DIRS) {
+    let files: string[]
+    try {
+      files = walk(dir)
+    } catch {
+      continue // 디렉터리가 없으면 볼 것 없음
+    }
+    for (const file of files) {
+      if (!/\.tsx?$/.test(file)) continue
+      const src = stripComments(read(file))
+      if (IMPORTS_WEBMOTION.test(src) || USES_WEBMOTION.test(src)) {
+        offenders.push(file.replace(ROOT, '').split(sep).join('/'))
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'WebMotion 은 웹 전용이다 — 앱/어드민 라우트에서 쓰면 웹·앱 분리가 깨지고 ' +
+      `GSAP 이 앱 번들로 딸려 들어간다.\n${offenders.join('\n')}`,
   )
 })

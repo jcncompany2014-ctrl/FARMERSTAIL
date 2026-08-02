@@ -1,7 +1,9 @@
 'use client'
 
 /**
- * LandingMotion — GSAP 오케스트레이터 (2026-08-02, 사장님 "GSAP 활용해서 업그레이드").
+ * WebMotion — 웹(브라우저) 화면 전용 GSAP 오케스트레이터.
+ * (2026-08-02, 사장님 "GSAP 활용해서 업그레이드". 3차에서 랜딩 밖으로 나가며
+ *  LandingMotion → WebMotion 개명 — /about 에 LandingMotion 이 붙어 있으면 거짓말.)
  *
  * # 왜 GSAP 인가
  * Webflow 인수 후 **전면 무료**가 됐다(ScrollTrigger·SplitText 포함 — 예전 유료
@@ -11,8 +13,13 @@
  *   · **SplitText** — 글자 단위 분해. 줄 마스크(.fv-line)보다 한 급 위의 등장.
  *
  * # 로딩 원칙 — 앱 번들에 1바이트도 얹지 않는다
- * `import()` 동적 로드라 이 컴포넌트를 마운트한 페이지(웹 랜딩)에서만 내려받는다.
- * 앱(main)/어드민 라우트는 이 파일을 import 하지 않으므로 영향 0.
+ * `import()` 동적 로드라 이 컴포넌트를 마운트한 페이지에서만 내려받는다.
+ * ⛔앱(main)/어드민 라우트는 이 파일을 import 하지 않는다 — 웹/앱 분리.
+ *
+ * # 블록은 전부 "있으면 건다"
+ * 각 연출이 자기 마크업(data-gsap-*)을 찾지 못하면 조용히 건너뛴다. 그래서
+ * 한 컴포넌트를 여러 웹 페이지에 그대로 마운트해도 되고, 페이지는 필요한
+ * 태그만 달면 된다.
  *
  * # 폴백 사다리
  *   reduced-motion → 아무것도 안 함(정적 표시)
@@ -30,7 +37,7 @@ import { useEffect } from 'react'
 
 import { scrollSpeedFactor } from '@/lib/motion/scroll-speed'
 
-export default function LandingMotion() {
+export default function WebMotion() {
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 

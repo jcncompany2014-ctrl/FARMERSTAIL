@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { ArrowRight } from 'lucide-react'
 import WebChrome from '@/components/WebChrome'
+import WebMotion from '@/components/web/motion/WebMotion'
 import { createClient } from '@/lib/supabase/server'
 import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
@@ -101,6 +102,7 @@ export default async function AboutPage() {
 
   return (
     <WebChrome>
+      <WebMotion />
       <main>
         <JsonLd id="ld-about-crumbs" data={crumbLd} />
         {/* Hero — 미션 */}
@@ -109,9 +111,13 @@ export default async function AboutPage() {
             <Reveal>
               <Eyebrow>OUR STORY</Eyebrow>
               <Display as="h1" size="xl" className="pt-4" style={{ color: 'var(--fd-pine)' }}>
-                사람이 먹는 등급으로,
-                <br />
-                농장에서 꼬리까지
+                {/* 글자 단위 스태거 등장(WebMotion). JS·reduced-motion 실패 시엔
+                    이 평문이 그대로 보인다 — 폴백 무손실. */}
+                <span data-gsap="hero-title" className="block">
+                  사람이 먹는 등급으로,
+                  <br />
+                  농장에서 꼬리까지
+                </span>
               </Display>
               <p
                 className="pt-5 text-[15px] md:text-[18px]"
@@ -137,6 +143,7 @@ export default async function AboutPage() {
             <div className="grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
               <Reveal>
                 <PhotoSlot
+                  motion
                   src="/founder-dog.jpg" alt="설립자와 반려견" label="설립자와 반려견 / 농장 사진"
                   sub="브랜드의 시작을 보여주는 컷"
                   ratio="4 / 5"
@@ -289,6 +296,7 @@ export default async function AboutPage() {
                 {/* 2026-07-03: 회색 placeholder → 강아지 실사진(기존 에셋).
                     "내 강아지만을 위한 분석" 헤드라인과 감성 정합. */}
                 <PhotoSlot
+                  motion
                   label="우리 아이"
                   src="/dog-portrait.jpg"
                   alt="분석을 기다리는 강아지"

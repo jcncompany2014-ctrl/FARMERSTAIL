@@ -4,6 +4,7 @@ import { ogImageUrl, buildBreadcrumbJsonLd, buildFaqJsonLd } from '@/lib/seo/jso
 import JsonLd from '@/components/JsonLd'
 import { createClient } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
+import WebMotion from '@/components/web/motion/WebMotion'
 import StickyCta from '@/components/web/fd/StickyCta'
 import {
   Button,
@@ -103,6 +104,7 @@ export default async function WhyFreshPage() {
 
   return (
     <WebChrome>
+      <WebMotion />
       <main>
         <JsonLd id="ld-whyfresh-crumbs" data={crumbLd} />
         <JsonLd
@@ -119,9 +121,13 @@ export default async function WhyFreshPage() {
               <Reveal>
                 <Eyebrow>Why Fresh</Eyebrow>
                 <Display as="h1" size="xl">
-                  사료가 아니라,
-                  <br />
-                  진짜 음식인 이유
+                  {/* 글자 단위 스태거 등장(WebMotion). JS·reduced-motion 실패 시엔
+                    이 평문이 그대로 보인다 — 폴백 무손실. */}
+                  <span data-gsap="hero-title" className="block">
+                    사료가 아니라,
+                    <br />
+                    진짜 음식인 이유
+                  </span>
                 </Display>
                 <p
                   className="mt-5 max-w-[46ch] text-[clamp(15px,1.8vw,18px)] leading-relaxed"
@@ -144,6 +150,7 @@ export default async function WhyFreshPage() {
 
               <Reveal delay={120}>
                 <PhotoSlot
+                  motion
                   src="/fresh-bowl.jpg"
                   alt="수비드 저온 조리 신선식 한 그릇"
                   label="신선식 한 그릇"
