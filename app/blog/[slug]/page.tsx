@@ -46,7 +46,7 @@ type Post = {
 
 const getPost = cache(async (slug: string): Promise<Post | null> => {
   const supabase = await createClient()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('blog_posts')
     .select(
       'id, slug, title, excerpt, content, cover_url, category_id, published_at, views'
@@ -54,6 +54,14 @@ const getPost = cache(async (slug: string): Promise<Post | null> => {
     .eq('slug', slug)
     .eq('is_published', true)
     .maybeSingle()
+  // ★error 를 꺼낸다(AGENTS 규칙1). 예전엔 `const { data }` 만 받아서
+  //   **조회 실패와 "그런 글 없음"이 구분되지 않았다.** 호출부는 null 이면
+  //   notFound() 를 부르므로, DB 가 잠깐 흔들리는 동안 **멀쩡히 발행된 글이
+  //   404** 가 된다. 하필 그때 크롤러가 오면 색인에서 빠진다.
+  //   던지면 500 이 되고(재시도 대상), 진짜 없는 글만 404 로 남는다.
+  if (error) {
+    throw new Error(`blog_posts 조회 실패 (slug=${slug}): ${error.message}`)
+  }
   return (data as Post) ?? null
 })
 
@@ -65,9 +73,11 @@ export async function generateMetadata({
   const { slug } = await params
   const post = await getPost(slug)
 
-  if (!post) {
-    return { title: '글을 찾을 수 없음' }
-  }
+  // 없는 글은 메타데이터 단계에서도 404 로 끊는다(2026-08-02 검수).
+  //   ※이것만으로는 상태가 안 고쳐졌다 — 진짜 원인은 `app/blog/loading.tsx` 였고
+  //     그건 `app/blog/(index)/` 로 옮겨 해결했다(아래 페이지 컴포넌트 주석 참조).
+  //     여기 notFound() 는 없는 글에 메타데이터를 만들지 않기 위한 것이다.
+  if (!post) notFound()
 
   const description =
     post.excerpt ?? post.content.slice(0, 140).replace(/\s+/g, ' ')
@@ -119,6 +129,20 @@ function formatDate(iso: string | null) {
 export default async function BlogPostPage({ params }: { params: Params }) {
   const { slug } = await params
   const post = await getPost(slug)
+  // ★이 notFound() 가 **200 을 내고 있었다**(2026-08-02 검수, 프로덕션 빌드 실측).
+  //   /blog/<없는글> → 200 + 빈 본문. 같은 서버에서 /recipe/<없는것>·임의 경로는
+  //   정상 404 였다. 200 으로 나가는 "글을 찾을 수 없음" 은 검색엔진에 soft 404 —
+  //   존재하지 않는 주소가 멀쩡한 페이지로 색인된다.
+  //
+  //   원인: `app/blog/loading.tsx` 였다. loading.tsx 는 그 세그먼트**와 하위 전부**를
+  //   Suspense 로 감싸므로 [slug] 까지 스트리밍 응답이 된다. 헤더(200)가 먼저
+  //   나간 뒤에 notFound() 가 던져지니 상태를 되돌릴 수 없다.
+  //   (generateMetadata 에서 notFound() 를 불러도 안 고쳐졌다 — 실제로 해보고 확인.)
+  //
+  //   해결: 목록 페이지와 loading.tsx 를 `app/blog/(index)/` 로 옮겼다. 라우트
+  //   그룹은 URL 에 영향이 없어 /blog 는 그대로이고, 로딩 UI 도 목록에서 그대로
+  //   동작한다. 다만 이제 [slug] 를 감싸지 않는다.
+  //   검증: 옮긴 뒤 프로덕션 빌드에서 404 + 정상 404 화면 확인.
   if (!post) notFound()
 
   // Bump view counter — fire-and-forget via RPC so it doesn't slow the
