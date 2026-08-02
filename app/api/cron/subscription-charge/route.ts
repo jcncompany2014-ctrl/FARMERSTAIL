@@ -134,16 +134,27 @@ type ShippingTarget = {
  * 결제 시점에 lookup. 장기 개선: subscribe 라우트가 신청 시 address_id
  * 를 subscriptions 에 저장하게 (이사 등으로 자동 따라가는 문제 방지).
  */
+/**
+ * @returns 배송지 · `null`(진짜 미등록) · `'lookup-failed'`(조회 자체가 실패).
+ *   셋을 구분하는 것이 핵심이다 — 미등록과 조회 실패는 고객에게 할 말도,
+ *   사장님이 볼 곳도, 재시도 여부도 완전히 다르다.
+ */
 async function resolveShippingTarget(
   supabase: ReturnType<typeof createAdminClient>,
   userId: string,
-): Promise<ShippingTarget | null> {
-  const { data: addr } = await supabase
+): Promise<ShippingTarget | null | 'lookup-failed'> {
+  const { data: addr, error: addrErr } = await supabase
     .from('addresses')
     .select('recipient_name, phone, zip, address, address_detail')
     .eq('user_id', userId)
     .eq('is_default', true)
     .maybeSingle()
+  // ★조회 실패를 "주소 없음" 으로 읽지 않는다(AGENTS 규칙1, 2026-08-02 검수).
+  //   예전엔 error 를 안 꺼내서 DB 가 흔들리면 addr 이 null 이 됐고, 호출부는
+  //   그걸 배송지 미등록으로 처리해 **고객에게 "배송지가 등록되지 않아 결제를
+  //   진행할 수 없어요" 를 보냈다** — 주소는 멀쩡히 있는데. 사장님에게 가는
+  //   경보도 no_shipping_address 라 엉뚱한 곳을 보게 된다. 박스는 걸러진다.
+  if (addrErr) return 'lookup-failed'
 
   if (addr && addr.zip && addr.address && addr.recipient_name && addr.phone) {
     return {
@@ -156,11 +167,12 @@ async function resolveShippingTarget(
   }
 
   // fallback to profiles
-  const { data: prof } = await supabase
+  const { data: prof, error: profErr } = await supabase
     .from('profiles')
     .select('name, phone, zip, address, address_detail')
     .eq('id', userId)
     .maybeSingle()
+  if (profErr) return 'lookup-failed'
 
   if (prof && prof.zip && prof.address && prof.name && prof.phone) {
     return {
@@ -208,7 +220,7 @@ async function recomputeChargeBase(
   //   즉 그 화면이 일부러 피한 함정을 돈 경로가 다시 밟고 있었다.
   //   `created_at` 기준이면 정상 케이스(회차가 시간순)와 이 이상 케이스가 모두
   //   "가장 최근에 적용된 처방"으로 일치한다.
-  const { data: fRow } = await supabase
+  const { data: fRow, error: fErr } = await supabase
     .from('dog_formulas')
     .select('formula, daily_kcal, approval_status, cycle_number')
     .eq('dog_id', sub.dog_id)
@@ -217,6 +229,18 @@ async function recomputeChargeBase(
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
+  // ★대조 기준을 "못 구했다" 와 "조회가 실패했다" 를 가른다(2026-08-02 검수).
+  //   이 함수가 null 을 주면 호출부는 금액 대조를 **건너뛴다**. 그 자체는 옳다
+  //   (돈을 추측하지 않는다 — AGENTS 규칙5). 문제는 조회 실패로 null 이 될 때
+  //   **아무도 모른 채 검문소가 꺼진다**는 것이다. 방어를 만들면 탈출구를
+  //   열거하라는 규칙2 가 정확히 이 경우다. 동작은 그대로 두고 신호만 남긴다.
+  if (fErr) {
+    captureBusinessEvent('warning', 'subscription.charge_guard_skipped', {
+      subscriptionId: sub.id,
+      reason: 'dog_formulas_lookup_failed',
+    })
+    return null
+  }
   const formulaRow = fRow as unknown as {
     formula: { lineRatios: Record<string, number>; toppers: Record<string, number> }
     daily_kcal: number
@@ -227,11 +251,18 @@ async function recomputeChargeBase(
     ...Object.values(PRICE_LINE_TO_SLUG).filter((s): s is string => s !== null),
     ...Object.values(PRICE_TOPPER_TO_SLUG),
   ]
-  const { data: prodList } = await supabase
+  const { data: prodList, error: prodErr } = await supabase
     .from('products')
     .select('slug, price, sale_price, stock, is_subscribable, nutrition_facts')
     .in('slug', slugs)
     .eq('is_active', true)
+  if (prodErr) {
+    captureBusinessEvent('warning', 'subscription.charge_guard_skipped', {
+      subscriptionId: sub.id,
+      reason: 'products_lookup_failed',
+    })
+    return null
+  }
   const products: Record<string, BoxProduct> = {}
   for (const pr of ((prodList ?? []) as unknown) as BoxProduct[]) {
     products[pr.slug] = pr
@@ -474,6 +505,27 @@ async function runSubscriptionCharge(): Promise<Response> {
     // audit launch-fix: 배송 주소를 addresses/profiles 에서 lookup. 신청
     // 시점 snapshot 이 없으면 매번 lookup. 둘 다 없으면 결제 자체 skip.
     const ship = await resolveShippingTarget(supabase, sub.user_id)
+    // ★조회 실패와 미등록을 갈라서 처리한다(2026-08-02 검수).
+    //   둘을 합쳐 두면 DB 가 잠깐 흔들린 것뿐인데 고객은 "배송지를 등록해
+    //   주세요" 를 읽고, 사장님 경보도 주소 문제로 뜬다. 고칠 곳을 못 찾는다.
+    if (ship === 'lookup-failed') {
+      await supabase
+        .from('subscription_charges')
+        .update({
+          status: 'failed',
+          error_code: 'ADDRESS_LOOKUP_FAILED',
+          error_message:
+            '일시적인 오류로 이번 결제를 진행하지 못했어요. 곧 다시 시도할게요.',
+        })
+        .eq('id', chargeRow!.id)
+      // error 로 올린다 — 고객 잘못이 아니라 우리 쪽 장애이고, 재시도 대상이다.
+      captureBusinessEvent('error', 'subscription.address_lookup_failed', {
+        subscriptionId: sub.id,
+        userId: sub.user_id,
+      })
+      failed += 1
+      continue
+    }
     if (!ship) {
       await supabase
         .from('subscription_charges')
@@ -760,13 +812,28 @@ async function runSubscriptionCharge(): Promise<Response> {
       //
       //   그래서 해지가 감지되면 ① 주문을 발송 대기로 올리지 않고 ② 즉시 환불하고
       //   ③ 실패하면 환불 큐에 넣는다(confirm 라우트의 race 처리와 같은 패턴).
-      const { data: afterCharge } = await supabase
+      const { data: afterCharge, error: afterErr } = await supabase
         .from('subscriptions')
         .select('status')
         .eq('id', sub.id)
         .maybeSingle()
+      // ★조회 실패를 "해지됨" 으로 읽으면 안 된다(AGENTS 규칙1, 2026-08-02 검수).
+      //   예전엔 error 를 안 꺼내서, DB 가 잠깐 흔들리면 afterCharge 가 null 이
+      //   되고 stillActive 가 false 가 됐다. 그 분기는 **방금 성공한 카드 결제를
+      //   환불하고 주문을 발송 대기로 올리지 않는다.** 즉 멀쩡한 고객의 돈을
+      //   되돌리고 박스를 거른다 — 되돌리기 가장 어려운 방향의 오작동이다.
+      //   모르면 추측하지 않는다: 결제는 이미 성공했으므로 정상 경로를 유지하고
+      //   사람에게 알린다(사장님이 구독 상태만 눈으로 확인하면 되는 상황).
+      if (afterErr) {
+        captureBusinessEvent('error', 'subscription.charge.status_recheck_failed', {
+          subscriptionId: sub.id,
+          userId: sub.user_id,
+          orderId: orderRow.id,
+          note: '청구 직후 구독 상태 재조회 실패. 결제는 성공했으므로 환불하지 않고 정상 진행했다. 해지 중이었는지 수동 확인 필요.',
+        })
+      }
       const stillActiveAfterCharge =
-        (afterCharge as { status?: string } | null)?.status === 'active'
+        afterErr || (afterCharge as { status?: string } | null)?.status === 'active'
 
       if (!stillActiveAfterCharge) {
         captureBusinessEvent('error', 'subscription.charge.cancelled_mid_charge', {
@@ -1003,17 +1070,34 @@ async function runSubscriptionCharge(): Promise<Response> {
 
       // 사용자에게 결제 실패 이메일 발송.
       try {
-        const { data: profile } = await supabase
+        // 실패 알림 수신자 조회. error 를 꺼내는 이유는 흐름을 바꾸려는 게
+        // 아니라, **"메일 주소가 없어서 안 보냄" 과 "조회가 실패해서 못 보냄"이
+        // 지표에서 똑같이 보이는 것**을 막기 위해서다(AGENTS 규칙8 의 교훈 —
+        // 0행을 "받는 사람 없음"으로 읽어 모든 크론이 초록이던 사건).
+        const { data: profile, error: profileErr } = await supabase
           .from('profiles')
           .select('email, name')
           .eq('id', sub.user_id)
           .maybeSingle()
+        if (profileErr) {
+          captureBusinessEvent('warning', 'subscription.charge_failed_notice_skipped', {
+            subscriptionId: sub.id,
+            reason: 'profiles_lookup_failed',
+          })
+        }
         if (profile?.email) {
-          const { data: items } = await supabase
+          const { data: items, error: itemsErr } = await supabase
             .from('subscription_items')
             .select('product_name, quantity')
             .eq('subscription_id', sub.id)
             .limit(2)
+          // 품목명은 알림 문구 장식이라 없으면 기본 라벨로 간다. 다만 조회
+          // 실패였는지는 남긴다 — 계속 뜨면 권한/스키마 문제 신호다.
+          if (itemsErr) {
+            captureBusinessEvent('warning', 'subscription.charge_failed_notice_label_fallback', {
+              subscriptionId: sub.id,
+            })
+          }
           const itemsArr = (items ?? []) as { product_name: string; quantity: number }[]
           const productLabel =
             itemsArr.length === 0

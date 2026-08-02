@@ -1320,3 +1320,70 @@ test('규칙 31 — 고객 문구에 "언제든 해지/일시정지" 과약속 �
       offenders.join(' / '),
   )
 })
+
+
+test('규칙 32 — 돈 경로의 Supabase 호출은 error 를 반드시 꺼낸다', () => {
+  /**
+   * AGENTS.md 1번 규칙("데이터 없음" != "실패")을 **돈 경로에서만** 기계로 지킨다.
+   * 저장소 전체엔 `const { data } = await supabase...` 가 177 곳 있고 대부분은
+   * 화면 조회라 실패해도 빈 목록으로 끝난다. 하지만 청구·결제·주문 취소에서는
+   * 같은 실수가 **틀린 이유를 고객에게 말하고, 검문소를 조용히 끈다.**
+   *
+   * 2026-08-02 검수 실례(subscription-charge):
+   *   · 배송지 조회가 error 를 안 꺼내서, DB 가 흔들리면 "배송지가 등록되지
+   *     않아 결제를 진행할 수 없어요" 가 **주소가 멀쩡한 고객에게** 갔다.
+   *     사장님 경보도 no_shipping_address 라 엉뚱한 곳을 보게 된다.
+   *   · 금액 대조 기준(dog_formulas·products) 조회 실패도 null 이 되어
+   *     **아무도 모르게 청구 검문소가 꺼졌다.**
+   *
+   * 범위를 좁게 잡은 건 의도다 — 전부를 막으면 규칙이 커서 꺼진다.
+   */
+  const MONEY_PATHS = [
+    join(ROOT, 'app', 'api', 'cron', 'subscription-charge'),
+    join(ROOT, 'app', 'api', 'payments'),
+    join(ROOT, 'app', 'api', 'orders'),
+    join(ROOT, 'app', 'api', 'subscriptions'),
+  ]
+  // ★`await` 의 **대상이 supabase 인지**를 규제식 안에서 확인한다.
+  //   처음엔 `const { data } = await ` 만 잡고 "뒤 160자에 supabase 가 있으면
+  //   Supabase 호출" 로 판정했는데, `const { total } = priceForFormula(...)` 같은
+  //   무관한 코드가 8건 걸렸다 — 뒤쪽 다른 줄의 supabase 를 본 것이다.
+  //   느슨한 규칙은 오탐을 내고, 오탐이 쌓이면 규칙 자체가 꺼진다.
+  const NO_ERROR = /const\s*\{\s*data(\s*:\s*\w+)?\s*\}\s*=\s*await\s+supabase\b/g
+  const NEWLINE = String.fromCharCode(10)
+  const offenders: string[] = []
+  for (const dir of MONEY_PATHS) {
+    let files: string[]
+    try {
+      files = walk(dir)
+    } catch {
+      continue
+    }
+    for (const file of files) {
+      if (!file.endsWith('.ts') || file.includes('.test.')) continue
+      const src = stripComments(read(file))
+      for (const m of src.matchAll(NO_ERROR)) {
+        // auth.getUser() 는 예외 — 실패 시 user 가 null 이라 `if (!user)` 로 이미
+        // 갈린다(에러와 미로그인의 처리가 같다: 401).
+        if (src.slice(m.index!, m.index! + 120).includes('auth.getUser')) continue
+        // ★줄 번호를 쓰지 않는다. 여기 src 는 stripComments 를 거친 문자열이라
+        //   줄 번호가 실제 파일과 어긋난다 — 그걸 믿고 파일을 읽었다가 무관한
+        //   코드를 보고 "오탐" 이라 잘못 판단할 뻔했다. 스니펫이 정확하다.
+        const snippet = src
+          .slice(m.index!, m.index! + 110)
+          .split(NEWLINE)
+          .map((l) => l.trim())
+          .filter(Boolean)
+          .join(' ')
+        offenders.push(file.replace(ROOT, '').split(sep).join('/') + ' :: ' + snippet)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '돈 경로에서 Supabase error 를 안 꺼냈다 — 조회 실패가 "데이터 없음" 으로 ' +
+      '둔갑해 고객에게 틀린 이유를 말하거나 검문소를 조용히 끈다. ' +
+      offenders.join(' / '),
+  )
+})

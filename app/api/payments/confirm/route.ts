@@ -132,10 +132,19 @@ export async function POST(req: Request) {
   // 클라이언트가 CheckoutForm 에서 insert 한 total_amount/points_earned 를
   // 그대로 신뢰하지 않는다. order_items 의 unit_price 합 + 등급 적립률 +
   // 쿠폰 할인 + 사용 포인트 + 배송비로 다시 계산해 위변조를 차단.
-  const { data: items } = await supabase
+  const { data: items, error: itemsErr } = await supabase
     .from('order_items')
     .select('unit_price, quantity, line_total')
     .eq('order_id', order.id)
+
+  // 대조 기준을 못 읽었으면 대조는 건너뛴다(돈을 추측하지 않는다). 다만
+  // **조용히** 꺼지지 않게 신호를 남긴다 — 검문소가 언제 꺼졌는지 알아야 한다.
+  if (itemsErr) {
+    captureBusinessEvent('warning', 'order.payment.subtotal_check_skipped', {
+      orderId,
+      reason: 'order_items_lookup_failed',
+    })
+  }
 
   if (items && items.length > 0) {
     const recomputedSubtotal = items.reduce(
@@ -403,12 +412,19 @@ export async function POST(req: Request) {
     try {
       const { isFirstBoxForDog, recordOutcome } = await import('@/lib/feeding-outcomes')
       // dogs 가 여러 마리일 수 있으므로 첫 dog 만 (단순화 — 1주문 = 1대표 견)
-      const { data: dogRow } = await supabase
+      const { data: dogRow, error: dogErr } = await supabase
         .from('dogs')
         .select('id')
         .eq('user_id', user.id)
         .limit(1)
         .maybeSingle()
+      // best-effort 기록이라 흐름은 그대로 두되, 실패를 "강아지 없음" 과 섞지 않는다.
+      if (dogErr) {
+        captureBusinessEvent('warning', 'order.outcome_record_skipped', {
+          orderId,
+          reason: 'dogs_lookup_failed',
+        })
+      }
       if (dogRow) {
         const isFirst = await isFirstBoxForDog(supabase, dogRow.id)
         await recordOutcome(supabase, {

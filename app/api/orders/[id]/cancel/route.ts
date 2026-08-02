@@ -85,7 +85,7 @@ export async function POST(
     )
   }
 
-  const { data: order } = await supabase
+  const { data: order, error: orderErr } = await supabase
     .from('orders')
     .select(
       'id, user_id, order_number, payment_status, order_status, payment_key, payment_method, total_amount, recipient_name'
@@ -94,6 +94,19 @@ export async function POST(
     .eq('user_id', user.id)
     .single()
 
+  // ★조회 실패를 "그런 주문 없음" 으로 말하지 않는다(AGENTS 규칙1, 2026-08-02).
+  //   예전엔 error 를 안 꺼내 DB 가 흔들리면 order 가 null 이 됐고, 주문이
+  //   멀쩡히 있는 고객이 "주문을 찾을 수 없어요" 를 읽었다. 취소하려던 사람에게
+  //   가장 불안한 문장이다. 실패는 실패라고 말하고 재시도를 안내한다.
+  if (orderErr) {
+    return NextResponse.json(
+      {
+        code: 'ORDER_LOOKUP_FAILED',
+        message: '일시적인 오류로 주문을 불러오지 못했어요. 잠시 후 다시 시도해 주세요',
+      },
+      { status: 503 }
+    )
+  }
   if (!order) {
     return NextResponse.json(
       { code: 'ORDER_NOT_FOUND', message: '주문을 찾을 수 없어요' },
@@ -360,12 +373,19 @@ export async function POST(
   if (body.reason_category) {
     try {
       const { recordOutcome } = await import('@/lib/feeding-outcomes')
-      const { data: dogRow } = await supabase
+      // best-effort 기록. 실패를 "강아지 없음" 과 섞지 않도록 error 를 꺼낸다.
+      const { data: dogRow, error: dogErr } = await supabase
         .from('dogs')
         .select('id')
         .eq('user_id', user.id)
         .limit(1)
         .maybeSingle()
+      if (dogErr) {
+        captureBusinessEvent('warning', 'order.cancel.outcome_record_skipped', {
+          orderId: order.id,
+          reason: 'dogs_lookup_failed',
+        })
+      }
       if (dogRow) {
         await recordOutcome(supabase, {
           dog_id: dogRow.id,
