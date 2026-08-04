@@ -1029,11 +1029,15 @@ function PhoneFrame({
     <div
       style={{
         width,
-        aspectRatio: '9 / 19',
-        borderRadius: 46,
+        aspectRatio: '9 / 19.5',
+        // ★베젤 얇게(2026-08-03, 사장님: "핸드폰 목업 프레임이 너무 두꺼워").
+        //   padding 10 은 292px 폭 기준 실제 폰의 3배가 넘는 테두리다 — 요즘
+        //   기기는 화면이 가장자리까지 온다. 4px 로 줄이고 반경도 같이 조인다
+        //   (테두리가 얇아지면 큰 반경은 어색해진다).
+        borderRadius: 40,
         background: '#1E1A14',
-        padding: 10,
-        boxShadow: '0 24px 60px rgba(30,26,20,0.22), inset 0 0 0 2px rgba(255,255,255,0.06)',
+        padding: 4,
+        boxShadow: '0 24px 60px rgba(30,26,20,0.22), inset 0 0 0 1.5px rgba(255,255,255,0.08)',
       }}
     >
       <div
@@ -1041,7 +1045,7 @@ function PhoneFrame({
           position: 'relative',
           width: '100%',
           height: '100%',
-          borderRadius: 37,
+          borderRadius: 36,
           background: V3.paper,
           overflow: 'hidden',
         }}
@@ -1079,8 +1083,15 @@ export default function AppShowcase() {
   useEffect(() => {
     const blocks = blockRefs.current.filter(Boolean) as HTMLDivElement[]
     if (blocks.length === 0) return
-    // 뷰포트 중앙 밴드(상하 -42%)에 들어온 블록을 활성으로 — 스크롤 방향과
-    // 무관하게 "지금 읽고 있는 블록"과 폰 화면이 일치한다.
+    // 뷰포트 중앙 밴드에 들어온 블록을 활성으로 — 스크롤 방향과 무관하게
+    // "지금 읽고 있는 블록"과 폰 화면이 일치한다.
+    //
+    // ★모바일은 밴드를 아래로 내린다(2026-08-03). 거기선 고정 폰이 화면 위쪽
+    //   절반가량을 차지하므로, 데스크톱과 같은 중앙 밴드(29~58%)를 쓰면 **폰
+    //   뒤에 가려진 영역**에서 판정하게 된다 — 읽고 있는 글과 폰 화면이 어긋난다.
+    //   글이 실제로 보이는 구간(대략 화면 아래 절반)에 밴드를 둔다.
+    const band =
+      window.innerWidth < 768 ? '-68% 0px -18% 0px' : '-42% 0px -42% 0px'
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
@@ -1089,7 +1100,7 @@ export default function AppShowcase() {
           if (idx >= 0) setActive(idx)
         }
       },
-      { rootMargin: '-42% 0px -42% 0px', threshold: 0 },
+      { rootMargin: band, threshold: 0 },
     )
     blocks.forEach((b) => io.observe(b))
     return () => io.disconnect()
@@ -1098,7 +1109,43 @@ export default function AppShowcase() {
   return (
     <div className="mx-auto px-5 md:px-8" style={{ maxWidth: 1140 }}>
       <div className="md:grid md:grid-cols-2 md:gap-12">
-        {/* 좌측 — 설명 블록 (모바일에선 폰 인라인 포함) */}
+        {/* ★모바일 고정 폰 — 데스크톱과 같은 동작을 세로 배치로(2026-08-03).
+            화면 위쪽에 폰이 붙어 있고, 아래로 설명이 흐르면서 폰 **속 화면만**
+            바뀐다. 데스크톱은 좌우(글 왼쪽·폰 오른쪽), 모바일은 위아래.
+            활성 화면 판정은 데스크톱과 **같은 IntersectionObserver** 를 쓴다 —
+            판정을 두 벌 만들면 갈라진다.
+            배경을 깔아 두는 이유: 아래 글이 폰 뒤로 지나가야 하는데 투명하면
+            글자가 폰을 뚫고 보인다. */}
+        <div
+          className="md:hidden sticky top-0 z-10 flex flex-col items-center pt-4 pb-3"
+          style={{ background: 'var(--fd-offwhite)' }}
+        >
+          <PhoneFrame width={186}>
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+              {FEATURES.map((f, i) => (
+                <div
+                  key={f.key}
+                  aria-hidden={active !== i}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    opacity: active === i ? 1 : 0,
+                    transform: active === i ? 'translateY(0)' : 'translateY(14px)',
+                    transition: 'opacity 0.45s ease, transform 0.45s ease',
+                    pointerEvents: active === i ? 'auto' : 'none',
+                  }}
+                >
+                  {f.screen}
+                </div>
+              ))}
+            </div>
+          </PhoneFrame>
+          <p className="mt-2" style={{ fontSize: 10, fontWeight: 600, color: 'var(--fd-muted)' }}>
+            이해를 돕기 위한 예시 화면이에요
+          </p>
+        </div>
+
+        {/* 좌측 — 설명 블록 */}
         <div>
           {FEATURES.map((f, i) => (
             <div
@@ -1106,7 +1153,9 @@ export default function AppShowcase() {
               ref={(el) => {
                 blockRefs.current[i] = el
               }}
-              className="flex flex-col justify-center py-14 md:py-0 md:min-h-[88vh]"
+              // 모바일도 블록마다 충분한 높이를 줘야 스크롤하는 동안 화면이
+              // 한 장씩 바뀐다(너무 짧으면 두 장이 한꺼번에 지나간다).
+              className="flex flex-col justify-center min-h-[62vh] py-10 md:py-0 md:min-h-[88vh]"
             >
               <Eyebrow>{f.eyebrow}</Eyebrow>
               <Display as="h3" size="md" className="mt-3" style={{ color: 'var(--fd-pine)' }}>
@@ -1125,26 +1174,11 @@ export default function AppShowcase() {
                 {f.body}
               </p>
 
-              {/* 모바일 전용 — 해당 화면 인라인.
-                  ★2026-08-03 (사장님: "모바일에서는 스크롤 모션 아예 작동 안 돼").
-                  데스크톱은 sticky 폰 + 화면 crossfade 로 스크롤이 곧 화면 전환인데,
-                  모바일은 **정적 폰 4개를 쌓아 둔 것**이 전부였다 — 이 페이지에서
-                  모션이 실제로 0 이었다.
-                  대신 스크롤에 묶어 **기기를 손에서 기울이는** 움직임을 준다
-                  (data-gsap-tilt · WebMotion). 폰 화면에서 프레임은 크게 잡히므로
-                  몇 도만 돌아도 확실히 보이고, 스크롤을 가로채지 않는다.
-                  perspective 는 여기 부모가 준다 — 없으면 rotateY 가 납작해진다. */}
-              <div
-                className="md:hidden mt-8 flex flex-col items-center"
-                style={{ perspective: 900 }}
-              >
-                <div data-gsap-tilt>
-                  <PhoneFrame width={248}>{f.screen}</PhoneFrame>
-                </div>
-                <p className="mt-3" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--fd-muted)' }}>
-                  이해를 돕기 위한 예시 화면이에요
-                </p>
-              </div>
+              {/* 모바일 인라인 폰은 없앴다(2026-08-03) — 상단 고정 폰 하나가
+                  화면을 바꾼다. 예전엔 블록마다 정적 폰을 하나씩 박아 4개를
+                  쌓아 뒀고, 그래서 이 페이지의 모바일 모션이 0 이었다.
+                  (중간에 '기기를 기울이는' 틸트를 넣어 봤는데 사장님 의도는
+                   그게 아니었다 — 데스크톱처럼 **폰은 고정, 화면만 바뀌는 것**.) */}
             </div>
           ))}
         </div>

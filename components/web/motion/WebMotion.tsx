@@ -188,40 +188,6 @@ export default function WebMotion() {
               )
             })
 
-          // ⑥ 폰 목업 틸트 — **모바일 전용**(2026-08-03).
-          //    사장님: "모바일에서는 스크롤 모션 아예 작동 안 돼".
-          //    /why-app 은 실제로 그랬다 — 데스크톱은 sticky 폰 + 화면 crossfade
-          //    로 스크롤이 곧 화면 전환인데, 모바일은 정적 폰 4개를 쌓아 둔 게
-          //    전부였다. 진폭 문제가 아니라 **모션 자체가 없었다.**
-          //
-          //    앱 소개 페이지의 주제는 "손에 든 기기" 다. 그래서 장식적인 페이드가
-          //    아니라 **기기를 기울이는** 움직임을 준다 — 스크롤을 내리는 동안
-          //    프레임이 손에서 돌아가듯 rotateY 가 +7° → −7° 로 지난다.
-          //    데스크톱에는 걸지 않는다: 거기선 sticky 크로스페이드가 이미 그
-          //    역할을 하고, 둘을 겹치면 요란해진다(대담함은 한 곳에).
-          if (isNarrow) {
-            document
-              .querySelectorAll<HTMLElement>('[data-gsap-tilt]')
-              .forEach((el) => {
-                gsap.fromTo(
-                  el,
-                  { rotateY: 7, rotateX: -3, y: 18 },
-                  {
-                    rotateY: -7,
-                    rotateX: 3,
-                    y: -18,
-                    ease: 'none',
-                    scrollTrigger: {
-                      trigger: el,
-                      start: 'top bottom',
-                      end: 'bottom top',
-                      scrub: 0.5,
-                    },
-                  },
-                )
-              })
-          }
-
           // ⑤ 3단계 섹션 = **핀 고정 + 순차 점등**(2차-B).
           //    스크롤이 타임라인이 되는, GSAP 을 쓰는 진짜 이유. 1→2→3 은 실제
           //    순서가 있는 내용이라(설문→분석→배송) 순차 진행이 장식이 아니다.
