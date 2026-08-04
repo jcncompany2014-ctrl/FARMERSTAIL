@@ -1086,12 +1086,14 @@ export default function AppShowcase() {
     // 뷰포트 중앙 밴드에 들어온 블록을 활성으로 — 스크롤 방향과 무관하게
     // "지금 읽고 있는 블록"과 폰 화면이 일치한다.
     //
-    // ★모바일은 밴드를 아래로 내린다(2026-08-03). 거기선 고정 폰이 화면 위쪽
-    //   절반가량을 차지하므로, 데스크톱과 같은 중앙 밴드(29~58%)를 쓰면 **폰
-    //   뒤에 가려진 영역**에서 판정하게 된다 — 읽고 있는 글과 폰 화면이 어긋난다.
-    //   글이 실제로 보이는 구간(대략 화면 아래 절반)에 밴드를 둔다.
+    // ★모바일은 밴드를 **위로** 올린다(2026-08-03). 거기선 고정 폰이 화면
+    //   아래쪽에 붙으므로 글이 실제로 읽히는 곳은 위쪽이다. 데스크톱과 같은
+    //   중앙 밴드(29~58%)를 쓰면 폰에 가려진 구간에서 판정하게 되어, 읽고 있는
+    //   글과 폰 화면이 어긋난다.
+    //   (폰을 위에 붙였던 잠깐 동안은 반대로 내렸었다 — 폰 위치가 바뀌면 밴드도
+    //    같이 움직여야 한다. 둘은 한 쌍이다.)
     const band =
-      window.innerWidth < 768 ? '-68% 0px -18% 0px' : '-42% 0px -42% 0px'
+      window.innerWidth < 768 ? '-14% 0px -62% 0px' : '-42% 0px -42% 0px'
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
@@ -1109,42 +1111,6 @@ export default function AppShowcase() {
   return (
     <div className="mx-auto px-5 md:px-8" style={{ maxWidth: 1140 }}>
       <div className="md:grid md:grid-cols-2 md:gap-12">
-        {/* ★모바일 고정 폰 — 데스크톱과 같은 동작을 세로 배치로(2026-08-03).
-            화면 위쪽에 폰이 붙어 있고, 아래로 설명이 흐르면서 폰 **속 화면만**
-            바뀐다. 데스크톱은 좌우(글 왼쪽·폰 오른쪽), 모바일은 위아래.
-            활성 화면 판정은 데스크톱과 **같은 IntersectionObserver** 를 쓴다 —
-            판정을 두 벌 만들면 갈라진다.
-            배경을 깔아 두는 이유: 아래 글이 폰 뒤로 지나가야 하는데 투명하면
-            글자가 폰을 뚫고 보인다. */}
-        <div
-          className="md:hidden sticky top-0 z-10 flex flex-col items-center pt-4 pb-3"
-          style={{ background: 'var(--fd-offwhite)' }}
-        >
-          <PhoneFrame width={186}>
-            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-              {FEATURES.map((f, i) => (
-                <div
-                  key={f.key}
-                  aria-hidden={active !== i}
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    opacity: active === i ? 1 : 0,
-                    transform: active === i ? 'translateY(0)' : 'translateY(14px)',
-                    transition: 'opacity 0.45s ease, transform 0.45s ease',
-                    pointerEvents: active === i ? 'auto' : 'none',
-                  }}
-                >
-                  {f.screen}
-                </div>
-              ))}
-            </div>
-          </PhoneFrame>
-          <p className="mt-2" style={{ fontSize: 10, fontWeight: 600, color: 'var(--fd-muted)' }}>
-            이해를 돕기 위한 예시 화면이에요
-          </p>
-        </div>
-
         {/* 좌측 — 설명 블록 */}
         <div>
           {FEATURES.map((f, i) => (
@@ -1155,7 +1121,9 @@ export default function AppShowcase() {
               }}
               // 모바일도 블록마다 충분한 높이를 줘야 스크롤하는 동안 화면이
               // 한 장씩 바뀐다(너무 짧으면 두 장이 한꺼번에 지나간다).
-              className="flex flex-col justify-center min-h-[62vh] py-10 md:py-0 md:min-h-[88vh]"
+              // justify-start + 위쪽 여백 — 글이 화면 위쪽(폰에 안 가리는 곳)에
+              // 오게 한다. 가운데 정렬이면 아래로 내려와 폰 뒤로 들어간다.
+              className="flex flex-col justify-start min-h-[58vh] pt-10 pb-4 md:justify-center md:py-0 md:min-h-[88vh]"
             >
               <Eyebrow>{f.eyebrow}</Eyebrow>
               <Display as="h3" size="md" className="mt-3" style={{ color: 'var(--fd-pine)' }}>
@@ -1181,6 +1149,50 @@ export default function AppShowcase() {
                    그게 아니었다 — 데스크톱처럼 **폰은 고정, 화면만 바뀌는 것**.) */}
             </div>
           ))}
+        </div>
+
+        {/* ★모바일 고정 폰 — **화면 아래쪽**에 붙는다(2026-08-03, 사장님:
+            "하단에 고정되어야 하는데 왜 상단에 고정되는 거야, 그것 때문에
+            가려지는 부분이 너무 많고 이상해").
+            처음엔 top-0 으로 붙였는데 폰이 화면 위 절반을 차지해 정작 읽어야 할
+            글이 아래로 밀렸다. 아래에 두면 **글이 위, 기기가 아래** 라 읽는 흐름이
+            자연스럽다 — 설명을 읽는 동안 시선 아래에서 화면이 바뀐다.
+
+            구현: 이 블록이 설명 블록들 **뒤**에 와야 한다. sticky 는 bottom 기준일
+            때 요소를 **위로 끌어올려** 화면 아래에 붙이므로, DOM 순서가 뒤여야
+            컨테이너가 보이는 내내 붙어 있는다. 앞에 두면 위쪽에 빈 자리가 남는다.
+            폭도 186 → 152 로 줄였다 — 가리는 면적이 곧 못 읽는 글이다. */}
+        <div
+          className="md:hidden sticky bottom-0 z-10 flex flex-col items-center pt-3 pb-2"
+          style={{
+            // 위쪽만 부드럽게 — 글이 폰 뒤로 들어갈 때 선이 딱 잘리지 않게.
+            background:
+              'linear-gradient(to bottom, rgba(250,249,245,0) 0%, var(--fd-offwhite) 14%, var(--fd-offwhite) 100%)',
+          }}
+        >
+          <PhoneFrame width={152}>
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+              {FEATURES.map((f, i) => (
+                <div
+                  key={f.key}
+                  aria-hidden={active !== i}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    opacity: active === i ? 1 : 0,
+                    transform: active === i ? 'translateY(0)' : 'translateY(14px)',
+                    transition: 'opacity 0.45s ease, transform 0.45s ease',
+                    pointerEvents: active === i ? 'auto' : 'none',
+                  }}
+                >
+                  {f.screen}
+                </div>
+              ))}
+            </div>
+          </PhoneFrame>
+          <p className="mt-1.5" style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--fd-muted)' }}>
+            이해를 돕기 위한 예시 화면이에요
+          </p>
         </div>
 
         {/* 우측 — 데스크톱 전용 sticky 폰. 화면 4장이 겹쳐진 채 crossfade */}
