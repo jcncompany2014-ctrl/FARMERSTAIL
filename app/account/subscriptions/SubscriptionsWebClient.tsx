@@ -322,14 +322,20 @@ export default function SubscriptionsWebClient({
           ★단, `/dogs` 는 **앱 전용**이다(proxy APP_ONLY_PREFIXES, R84-2).
           웹에서 "우리 아이 식단 시작하기" 를 누르면 식단이 아니라 앱 설치
           안내로 튕겼다 — 버튼이 거짓말을 하고 있었다(2026-07-31).
-          목적지는 그대로 두고 **웹에선 문구를 사실대로** 바꾼다.
+          그때는 목적지를 그대로 두고 **문구를 사실대로** 바꿨다("앱에서 …").
+
+          ★2026-08-03 검수 — 이제 반대로 고친다. 그 뒤 웹 구독 경로가 생겼기
+          때문이다(/account/dogs → /account/subscribe/[dogId] → 결제까지 웹에서
+          끝난다). 여기가 **웹 정기배송 관리 화면**인데 유일한 CTA 가 앱 설치
+          벽으로 보내는 건, 할 수 있는 일을 못 한다고 말하는 것이다.
+          문구를 사실에 맞추는 게 아니라 **목적지를 웹 허브로** 돌린다.
         */}
         <Link
-          href={isApp ? '/dogs' : '/app-required?from=%2Fdogs'}
+          href={isApp ? '/dogs' : '/account/dogs'}
           className="mt-6 inline-flex items-center gap-1.5 px-6 py-3 rounded-full text-[13px] font-bold transition hover:brightness-[0.94] active:scale-[0.98]"
           style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
         >
-          {isApp ? '우리 아이 식단 시작하기' : '앱에서 우리 아이 식단 시작하기'}
+          우리 아이 식단 시작하기
           <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
         </Link>
       </div>

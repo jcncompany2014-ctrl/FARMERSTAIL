@@ -69,6 +69,15 @@ export default async function AccountPage() {
   }
 
   // 카드 표시용 카운트 — 주문(전체/미수령) · 활성 구독 · 강아지
+  //
+  // ★`paid_at IS NOT NULL` 로 거른다(2026-08-03 검수). 이 필터가 없어서 이 화면은
+  //   "주문 내역 **4**" 를 보여주는데 눌러서 들어간 목록은 "아직 주문 내역이
+  //   없어요" 였다 — 결제된 적 없는 유령 주문(체크아웃하다 만 것·실패)을 세고
+  //   있었던 것. 목록(app/mypage/orders)은 이미 그 4건을 일부러 숨긴다.
+  //   사장님이 "결제한 적 없는 주문이 뜬다"고 반복해서 답답해해 목록을 고친
+  //   게 2026-07-22 인데, **배지는 같이 안 고쳐져** 같은 혼란이 한 겹 남아 있었다.
+  //   `paid_at` 이 정본 신호인 이유도 그쪽 주석에 적혀 있다(환불돼도 유지되므로
+  //   payment_status enum 보다 견고).
   const [
     { count: totalOrders },
     { count: pendingOrders },
@@ -78,11 +87,13 @@ export default async function AccountPage() {
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
+      .eq('user_id', user.id)
+      .not('paid_at', 'is', null),
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
+      .not('paid_at', 'is', null)
       // FSM 의 실제 enum: pending → preparing → shipping → delivered.
       // 'confirmed', 'shipped' 는 존재하지 않는 값이라 매번 0건 반환했음.
       .in('order_status', ['pending', 'preparing', 'shipping']),
