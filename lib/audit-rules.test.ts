@@ -1425,3 +1425,43 @@ test('규칙 33 — 휴대폰 검증은 lib/phone 정본만 (자체 정규식 �
       '네 곳이 따로 있다가 넷 다 010 뒤 7자리를 통과시켰다. ' + offenders.join(' / '),
   )
 })
+
+
+test('규칙 34 — 고객에게 박스를 보여줄 땐 snapBox 로 스냅한다', () => {
+  /**
+   * 2026-08-03 사장님: "잠만 저 두번째 박스도 이상한데? 왜 또 네개 조합이야".
+   *
+   * `/dogs/[id]/formulas`("맞춤 박스 구성") 가 **원시 임상 비율**을 그대로
+   * 그리고 있었다 — 오리50·한우30·치킨10·흑돼지10 처럼 4종이 떴다.
+   * 실제로 담기는 박스는 **최대 2종**이다(boxComposition: 1종 100% / 2종 50:50,
+   * 2위가 20% 미만이면 1종). 분석 카드와 플랜 화면은 이미 snapBoxLines 로
+   * 스냅하는데 이 화면만 안 했다. 고객은 4종을 보고 2종을 받는다.
+   *
+   * 원시 비율은 "왜 이 단백질인가"의 **근거**일 뿐 배송·표시용이 아니다
+   * (boxComposition.ts 첫 문단이 그렇게 못 박아 뒀는데도 새 화면이 그걸 몰랐다).
+   *
+   * 그래서: `formula.lineRatios` 를 **화면에 그리는** 파일은 반드시
+   * boxComposition 을 import 해야 한다. 계산·저장 쪽(api·lib)은 대상이 아니다.
+   */
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'components')))) {
+    if (!file.endsWith('.tsx') || file.includes('.test.')) continue
+    const rel = file.replace(ROOT, '').split(sep).join('/')
+    if (rel.includes('/admin/')) continue // 운영자는 원시 비율을 봐야 한다
+    const src = stripComments(read(file))
+    if (!src.includes('lineRatios')) continue
+    // 그리는 화면인지 — 비율을 % 로 찍거나 막대 폭에 쓰면 표시용이다.
+    const renders =
+      src.includes('lineRatios[line]') || src.includes('lineRatios[l]')
+    if (!renders) continue
+    if (src.includes('boxComposition')) continue
+    offenders.push(rel)
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'formula.lineRatios 를 고객 화면에 그대로 그린다 — 실제 박스는 최대 2종이라 ' +
+      '본 것과 받는 것이 달라진다. boxComposition 의 snapBoxLines/snapBoxRatios 를 ' +
+      '거칠 것. ' + offenders.join(' / '),
+  )
+})

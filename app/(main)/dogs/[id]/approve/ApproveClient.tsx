@@ -23,6 +23,7 @@ import type { ApprovePricing } from './page'
 import { haptic } from '@/lib/haptic'
 import { trackBoxDecision } from '@/lib/analytics'
 import './approve.css'
+import { snapBoxRatios } from '@/lib/personalization/boxComposition'
 
 type Props = {
   dogId: string
@@ -287,9 +288,14 @@ function computeLineChanges(
   next: Formula,
 ): Array<{ label: string; delta: number }> {
   const out: Array<{ label: string; delta: number }> = []
+  // 비교도 **박스 기준**으로 한다 — 고객이 체감하는 변화는 원시 임상 비율이
+  // 아니라 실제로 담기는 2종이다. 원시로 비교하면 "오리 10%→0%" 처럼 박스에
+  // 담기지도 않던 라인의 변화가 뜬다.
+  const prevBox = snapBoxRatios(previous.lineRatios)
+  const nextBox = snapBoxRatios(next.lineRatios)
   for (const line of ALL_LINES) {
-    const prev = Math.round(previous.lineRatios[line] * 100)
-    const cur = Math.round(next.lineRatios[line] * 100)
+    const prev = Math.round(prevBox[line] * 100)
+    const cur = Math.round(nextBox[line] * 100)
     if (prev === cur) continue
     out.push({ label: FOOD_LINE_META[line as FoodLine].nameKo, delta: cur - prev })
   }
@@ -341,12 +347,17 @@ function BarRow({
           <b>{totalKcal}</b> kcal
         </span>
       </div>
+      {/* ★박스로 스냅해서 그린다(2026-08-03, 사장님: "왜 또 네개 조합이야").
+          여기는 고객이 "이 구성으로 할게요" 를 누르는 **승인 화면**이다. 원시
+          임상 비율(최대 5종)을 그대로 그리면 동의한 그림과 받는 박스(최대 2종)가
+          달라진다 — 동의를 받는 화면에서 그러면 안 된다.
+          원시 비율은 근거일 뿐 배송·표시용이 아니다(boxComposition.ts 첫 문단). */}
       <div className="ap-bar">
-        {ALL_LINES.filter((l) => formula.lineRatios[l] > 0).map((line) => (
+        {ALL_LINES.filter((l) => snapBoxRatios(formula.lineRatios)[l] > 0).map((line) => (
           <i
             key={line}
             style={{
-              width: `${Math.round(formula.lineRatios[line] * 100)}%`,
+              width: `${Math.round(snapBoxRatios(formula.lineRatios)[line] * 100)}%`,
               background: FOOD_LINE_META[line as FoodLine].color,
             }}
             title={`${FOOD_LINE_META[line as FoodLine].nameKo} ${Math.round(formula.lineRatios[line] * 100)}%`}

@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/server'
 import { petName } from '@/lib/korean'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import type { FoodLine } from '@/lib/personalization/types'
+import { snapBoxRatios } from '@/lib/personalization/boxComposition'
 import './formulas.css'
 
 type FormulaRow = {
@@ -154,13 +155,25 @@ function FormulaCard({
           <span className="fh-date">{dateRange}</span>
         </div>
 
-        <MiniBar lineRatios={row.formula.lineRatios} />
+        {/* ★박스로 스냅해서 그린다(2026-08-03, 사장님: "왜 또 네개 조합이야").
+            이 화면은 제목이 "맞춤 박스 구성"이고 "배송은 2주마다 받고" 라고
+            말하는데, **원시 임상 비율**을 그대로 그리고 있었다 — 오리50·한우30·
+            치킨10·흑돼지10 처럼 4종이 뜬다. 실제로 담기는 박스는 최대 2종이다
+            (boxComposition: 1종 100% / 2종 50:50, 2위가 20% 미만이면 1종).
+            분석 카드(AnalysisView)와 플랜(PlanClient)은 이미 snapBoxLines 로
+            스냅하는데 여기만 안 했다 — 같은 강아지인데 화면마다 박스가 달라 보였고,
+            고객은 4종을 보고 2종을 받는다.
+            원시 비율은 "왜 이 단백질인가"의 근거일 뿐 배송·표시용이 아니다
+            (boxComposition.ts 첫 문단). 근거는 아래 reasoning 칩이 이미 보여준다. */}
+        <MiniBar lineRatios={snapBoxRatios(row.formula.lineRatios as Record<FoodLine, number>)} />
 
         <div className="fh-legend">
-          {ALL_LINES.filter((l) => (row.formula.lineRatios[l] ?? 0) > 0)
-            .sort(
-              (a, b) => (row.formula.lineRatios[b] ?? 0) - (row.formula.lineRatios[a] ?? 0),
+          {(() => {
+            const boxRatios = snapBoxRatios(
+              row.formula.lineRatios as Record<FoodLine, number>,
             )
+            return ALL_LINES.filter((l) => (boxRatios[l] ?? 0) > 0)
+              .sort((a, b) => (boxRatios[b] ?? 0) - (boxRatios[a] ?? 0))
             .map((line) => (
               <span key={line} className="fh-legend-item">
                 <span
@@ -171,10 +184,11 @@ function FormulaCard({
                   {FOOD_LINE_META[line as FoodLine].nameKo}
                 </span>
                 <span className="fh-legend-pct">
-                  {Math.round((row.formula.lineRatios[line] ?? 0) * 100)}%
+                  {Math.round((boxRatios[line] ?? 0) * 100)}%
                 </span>
               </span>
-            ))}
+            ))
+          })()}
         </div>
 
         <div className="fh-meta">
