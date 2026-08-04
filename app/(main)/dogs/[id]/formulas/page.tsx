@@ -16,6 +16,7 @@ import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
 import type { FoodLine } from '@/lib/personalization/types'
 import { snapBoxRatios } from '@/lib/personalization/boxComposition'
 import './formulas.css'
+import { dailyGramsOf } from '@/lib/personalization/dailyGrams'
 
 type FormulaRow = {
   id: string
@@ -197,7 +198,9 @@ function FormulaCard({
           </span>
           <span className="fh-divider" />
           <span>
-            <strong>{row.daily_grams}</strong>g/일
+            {/* 저장된 daily_grams 가 아니라 재계산(2026-08-03) — 그 칸은 만들
+                당시 kcal 밀도로 굳어 있다. lib/personalization/dailyGrams 참조. */}
+            <strong>{dailyGramsOf(row) ?? row.daily_grams}</strong>g/일
           </span>
           {(row.formula.toppers.vegetable > 0 ||
             row.formula.toppers.protein > 0) && (

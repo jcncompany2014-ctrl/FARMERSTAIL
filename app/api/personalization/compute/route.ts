@@ -615,8 +615,13 @@ export async function POST(req: Request) {
     : null
 
   // 5.6) daily_grams 재계산 — 결정된 라인 mix 의 kcalPer100g 가중평균 기준.
-  // nutrition.ts 의 feed_g 는 평균 1.45 kcal/g 추정 (레시피 v2.1). 라인 mix
-  // 결정 후엔 실제 가중평균으로 재계산해 정확도 ↑.
+  //
+  // ★주석 정정(2026-08-03): 예전엔 "nutrition.ts 의 feed_g 는 평균 1.45 kcal/g
+  //   추정(레시피 v2.1)" 이라고 적혀 있었는데 **틀렸다.** 그 상수
+  //   (AVG_ENERGY_DENSITY_KCAL_PER_G)는 2026-07-24 에 v4.0 값 **1.3125**
+  //   (닭1.30·오리1.25·돼지1.25·소1.45 평균)로 이미 고쳐졌다. 없는 옛 값을
+  //   근거로 적은 주석이 남아 있으면 다음 사람이 그 숫자를 진짜로 믿는다.
+  //   라인 mix 확정 전 단일 추정이 그 상수, 확정 후 정확 계산이 여기다.
   const dailyGramsByMix = dailyGramsFromMix(
     formula.lineRatios,
     formula.dailyKcal,

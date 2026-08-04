@@ -34,7 +34,8 @@ export type CurrentFormula = {
   applied_from: string | null
   applied_until: string | null
   formula: { lineRatios: Record<string, number> }
-  daily_grams: number
+  // daily_grams 없음 — 저장값을 화면이 쓰지 않는다(규칙 35). 필요하면
+  // lib/personalization/dailyGrams 의 dailyGramsOf 로 kcal+비율에서 다시 센다.
   daily_kcal: number
   user_adjusted: boolean
 }

@@ -32,6 +32,7 @@ import {
 import type { Json } from '@/lib/supabase/types'
 // 배송 문구 정본 — next_delivery_date 는 **발송일**이다(도착 아님).
 import { shipTimingLabel } from '@/lib/shipping-schedule'
+import { dailyGramsOf } from '@/lib/personalization/dailyGrams'
 
 /**
  * Dashboard — 로그인 후 홈 화면.
@@ -178,12 +179,15 @@ export default async function DashboardPage() {
       .select('dog_id, measured_at')
       .eq('user_id', user.id)
       .gte('measured_at', isoDaysAgo(60)),
-    // '오늘 화식 급여량' 메트릭 — 최신 처방(cycle 최대) daily_grams × 화식비율.
-    // daily_grams 는 100% 화식 기준 하루 권장량(비율 무관). dog_id 별 최신 1건을
-    // 메모리에서 고른다(내림차순 정렬 → 첫 매칭).
+    // '오늘 화식 급여량' 메트릭 — 최신 처방에서 **다시 계산**한다(2026-08-03).
+    // 저장된 daily_grams 는 읽지 않는다: 그 칸은 만들어질 당시의 kcal 밀도로
+    // 굳어 있어서, 밀도가 v4.0 으로 바뀐 뒤에도 옛 숫자가 그대로 나왔다
+    // (푸린: 저장 160g vs 실제 142g — 같은 184kcal 인데 1.15 vs 1.30 kcal/g).
+    // 계산은 lib/personalization/dailyGrams 하나 — 주문 화면·피킹 리스트와
+    // 같은 dailyGramsFromMix 를 쓴다.
     supabase
       .from('dog_formulas')
-      .select('dog_id, cycle_number, daily_grams, created_at')
+      .select('dog_id, cycle_number, daily_kcal, formula, created_at')
       .eq('user_id', user.id)
       // ★created_at 정렬 — 회차 번호가 큰 것이 최신이 아니다(2026-07-30 감사).
       // 청구·피킹 리스트와 같은 처방을 가리켜야 급여량이 실제 박스와 맞는다.
@@ -327,11 +331,15 @@ export default async function DashboardPage() {
   // ── '오늘 화식 급여량' (g) — 최신 처방 daily_grams × 화식비율/100 ──────────
   // OrderClient 의 박스 "하루 Xg" 와 같은 식(daily_grams×freshRatio/100). 구독
   // 전이면 완전화식(100%) 기준. 처방이 없으면(첫 설문 전) null → '--'.
-  const firstDogDailyGrams = firstDog
+  const firstDogFormulaRow = firstDog
     ? ((dogFormulaGrams ?? []) as Array<{
         dog_id: string
-        daily_grams: number | null
-      }>).find((f) => f.dog_id === firstDog.id)?.daily_grams ?? null
+        daily_kcal: number | null
+        formula: { lineRatios: Record<string, number> } | null
+      }>).find((f) => f.dog_id === firstDog.id) ?? null
+    : null
+  const firstDogDailyGrams = firstDogFormulaRow
+    ? dailyGramsOf(firstDogFormulaRow)
     : null
   const firstDogFreshRatio = firstDog
     ? ((dogSubRatios ?? []) as Array<{

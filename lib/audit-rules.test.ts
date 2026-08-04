@@ -1465,3 +1465,40 @@ test('규칙 34 — 고객에게 박스를 보여줄 땐 snapBox 로 스냅한�
       '거칠 것. ' + offenders.join(' / '),
   )
 })
+
+
+test('규칙 35 — 저장된 daily_grams 를 고객 화면에 그대로 쓰지 않는다', () => {
+  /**
+   * 2026-08-03, 사장님: "이건 재계산해서 덮어 / 옛 칼로리 밀도는 이제 없는 거야".
+   *
+   * `daily_grams` 는 `daily_kcal × lineRatios` 에서 나오는 **유도값**인데 DB 에
+   * 따로 저장된다. 유도값을 저장하면 원본이 바뀔 때 갈라진다 — 실제로 갈라졌다:
+   * 밀도 상수가 v4.0(1.3125)으로 고쳐진 건 2026-07-24 인데, 그 전에 저장된 행은
+   * 옛 밀도(1.150·1.200·1.495)로 계산된 숫자를 그대로 들고 있었다.
+   * 6행 전부 어긋나 있었고(백필 실측), 그중 하나는 오히려 **적게** 표시돼
+   * 있었다(210g 저장 vs 240g 실제 — 그만큼 덜 먹이라고 말하고 있었다).
+   *
+   * 상수를 고치고 저장값을 백필해도, **읽는 쪽이 저장값을 믿으면 다음 번에 또**
+   * 같은 일이 난다(사장님 v4.0 실측치 반영이 예정돼 있다). 그래서 고객 화면은
+   * lib/personalization/dailyGrams 의 dailyGramsOf 로 **읽을 때 다시 센다.**
+   * 저장 칸은 어드민·이력·백필용으로 남긴다.
+   */
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'components')))) {
+    if (!/\.tsx?$/.test(file) || file.includes('.test.')) continue
+    const rel = file.replace(ROOT, '').split(sep).join('/')
+    if (rel.includes('/admin/')) continue // 운영자는 저장값 자체를 볼 수 있어야 한다
+    if (rel.includes('/api/')) continue // 계산·저장 쪽은 대상이 아니다
+    const src = stripComments(read(file))
+    if (!src.includes('daily_grams')) continue
+    if (src.includes('dailyGramsOf')) continue
+    offenders.push(rel)
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '저장된 daily_grams 를 고객 화면이 그대로 쓴다 — 그 값은 만들어질 당시 kcal ' +
+      '밀도로 굳어 있어 레시피가 바뀌면 옛 숫자가 나온다. dailyGramsOf 로 다시 셀 것. ' +
+      offenders.join(' / '),
+  )
+})

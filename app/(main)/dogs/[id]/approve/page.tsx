@@ -21,6 +21,7 @@ import {
   type BoxProduct,
 } from '@/lib/personalization/boxPricing'
 import { subscriptionState, type SubLike } from '@/lib/subscription-state'
+import { dailyGramsOf } from '@/lib/personalization/dailyGrams'
 
 type Row = {
   formula: { lineRatios: Formula['lineRatios']; toppers: Formula['toppers'] }
@@ -41,7 +42,8 @@ function toFormula(row: Row): Formula {
     reasoning: row.reasoning,
     transitionStrategy: row.transition_strategy,
     dailyKcal: row.daily_kcal,
-    dailyGrams: row.daily_grams,
+    // 저장값이 아니라 재계산 — 동의 화면이 옛 밀도의 숫자를 보여주면 안 된다.
+    dailyGrams: dailyGramsOf(row) ?? row.daily_grams,
     cycleNumber: row.cycle_number,
     algorithmVersion: row.algorithm_version,
     userAdjusted: row.user_adjusted,

@@ -70,7 +70,10 @@ export default async function DogDetailPage({
         .from('dog_formulas')
         .select(
           'cycle_number, approval_status, applied_from, applied_until, ' +
-            'formula, daily_grams, daily_kcal, user_adjusted',
+            // daily_grams 는 안 뽑는다(2026-08-03) — 이 화면 어디에서도 안 그리는
+            // 죽은 조회였고, 그 칸은 저장 당시 kcal 밀도로 굳어 있어 쓰면 옛
+            // 숫자가 나온다. 필요해지면 dailyGramsOf 로 다시 셀 것(규칙 35).
+            'formula, daily_kcal, user_adjusted',
         )
         .eq('dog_id', dogId)
         .eq('user_id', user.id)
