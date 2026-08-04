@@ -140,7 +140,7 @@ async function computePricing(
   dogId: string,
   pending: Formula,
 ): Promise<ApprovePricing | null> {
-  const { data: subRow } = await supabase
+  const { data: subRow, error: subErr } = await supabase
     .from('subscriptions')
     .select(
       'fresh_ratio, total_amount, status, billing_key, next_delivery_date, ' +
@@ -148,6 +148,15 @@ async function computePricing(
     )
     .eq('dog_id', dogId)
     .maybeSingle()
+  // ★조회 실패로 금액 패널이 **조용히 사라지는** 것을 막는다(2026-08-03 검수).
+  //   null 을 주면 이 화면은 금액 변화를 아예 안 그린다 — 그 자체는 옳다
+  //   (틀린 금액을 보여주느니 안 보여준다, AGENTS 규칙5). 문제는 DB 가 잠깐
+  //   흔들렸을 뿐인데 고객이 **금액이 얼마나 바뀌는지 모른 채 승인**하게 되고,
+  //   우리는 그 사실조차 모른다는 것이다. 동작은 그대로, 신호만 남긴다.
+  if (subErr) {
+    console.error('[dogs/approve] 구독 조회 실패 — 금액 패널 생략:', subErr.message)
+    return null
+  }
   if (!subRow) return null
 
   const sub = subRow as unknown as SubLike & {
@@ -164,11 +173,15 @@ async function computePricing(
     ...Object.values(LINE_TO_SLUG).filter((s): s is string => s !== null),
     ...Object.values(TOPPER_TO_SLUG),
   ]
-  const { data: prodList } = await supabase
+  const { data: prodList, error: prodErr } = await supabase
     .from('products')
     .select('slug, price, sale_price, stock, is_subscribable, nutrition_facts')
     .in('slug', allSlugs)
     .eq('is_active', true)
+  if (prodErr) {
+    console.error('[dogs/approve] 제품 조회 실패 — 금액 패널 생략:', prodErr.message)
+    return null
+  }
   const products: Record<string, BoxProduct> = {}
   for (const p of ((prodList ?? []) as unknown) as BoxProduct[]) {
     products[p.slug] = p
