@@ -15,6 +15,7 @@ import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
+import WebMotion from '@/components/web/motion/WebMotion'
 import AppShowcase from '@/components/web/fd/AppShowcase'
 import {
   Button,
@@ -148,6 +149,7 @@ export default async function WhyAppPage() {
 
   return (
     <WebChrome>
+      <WebMotion />
       <main>
         <JsonLd id="ld-whyapp-crumbs" data={crumbLd} />
 
@@ -158,9 +160,13 @@ export default async function WhyAppPage() {
               <Reveal>
                 <Eyebrow>Farmer&apos;s Tail App</Eyebrow>
                 <Display as="h1" size="xl" className="mt-3">
-                  설문은 3분,
-                  <br />
-                  케어는 매일 — 앱에서
+                  {/* 글자 단위 스태거 등장(WebMotion). JS·reduced-motion 실패
+                      시엔 이 평문이 그대로 보인다 — 폴백 무손실. */}
+                  <span data-gsap="hero-title" className="block">
+                    설문은 3분,
+                    <br />
+                    케어는 매일 — 앱에서
+                  </span>
                 </Display>
                 <p
                   className="mx-auto mt-5 max-w-[44ch] text-[clamp(15px,1.8vw,18px)] leading-relaxed"

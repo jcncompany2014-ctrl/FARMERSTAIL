@@ -473,27 +473,34 @@ function ScreenDog() {
               히스토리 <span style={{ color: V3.accent, fontWeight: 700 }}>상세 →</span>
             </span>
           </div>
+          {/* ★모의 화면도 실제 규칙을 지킨다(2026-08-03 검수). 예전엔 5색 막대에
+              "Basic 30% · Premium 30% · Skin 20%" 라고 적혀 있었는데 세 가지가
+              한꺼번에 틀렸다:
+                ① 박스는 **최대 2종**이다(boxComposition — 1종 100% / 2종 50:50).
+                   5종 막대는 실제로 존재하지 않는 박스다.
+                ② Basic·Premium·Skin 은 **내부 라인 코드**다. 고객 표기는 원물명
+                   (치킨·한우·오리·흑돼지 — skuModel nameKo).
+                ③ 비율 %는 고객 문구에서 금지다(사장님 2026-07-23) — 두 원물이면
+                   무조건 반반이라 %는 오해를 부른다.
+              앱 소개 화면이 앱과 다른 규칙으로 그려져 있으면, 그 그림을 보고 온
+              고객이 실제 앱에서 다른 걸 보게 된다. */}
           <div style={{ display: 'flex', height: 7, borderRadius: 999, overflow: 'hidden', marginTop: 8 }}>
             {[
-              { c: LINE.yellow, w: 20 },
-              { c: LINE.terracotta, w: 30 },
-              { c: LINE.blush, w: 10 },
-              { c: LINE.sage, w: 10 },
-              { c: LINE.wine, w: 30 },
+              { c: LINE.terracotta, w: 50 },
+              { c: LINE.wine, w: 50 },
             ].map((seg, i) => (
               <div key={i} style={{ width: `${seg.w}%`, background: seg.c }} />
             ))}
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 7, flexWrap: 'wrap' }}>
             {[
-              { c: LINE.terracotta, label: 'Basic', pct: '30%' },
-              { c: LINE.wine, label: 'Premium', pct: '30%' },
-              { c: LINE.yellow, label: 'Skin', pct: '20%' },
+              { c: LINE.terracotta, label: '치킨' },
+              { c: LINE.wine, label: '한우' },
             ].map((l) => (
               <span key={l.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                 <span aria-hidden style={{ width: 5, height: 5, borderRadius: 3, background: l.c }} />
                 <span style={{ fontFamily: sans, fontSize: 7.5, color: V3.inkSoft }}>
-                  {l.label} <b>{l.pct}</b>
+                  {l.label}
                 </span>
               </span>
             ))}
@@ -1118,9 +1125,22 @@ export default function AppShowcase() {
                 {f.body}
               </p>
 
-              {/* 모바일 전용 — 해당 화면 인라인 */}
-              <div className="md:hidden mt-8 flex flex-col items-center">
-                <PhoneFrame width={248}>{f.screen}</PhoneFrame>
+              {/* 모바일 전용 — 해당 화면 인라인.
+                  ★2026-08-03 (사장님: "모바일에서는 스크롤 모션 아예 작동 안 돼").
+                  데스크톱은 sticky 폰 + 화면 crossfade 로 스크롤이 곧 화면 전환인데,
+                  모바일은 **정적 폰 4개를 쌓아 둔 것**이 전부였다 — 이 페이지에서
+                  모션이 실제로 0 이었다.
+                  대신 스크롤에 묶어 **기기를 손에서 기울이는** 움직임을 준다
+                  (data-gsap-tilt · WebMotion). 폰 화면에서 프레임은 크게 잡히므로
+                  몇 도만 돌아도 확실히 보이고, 스크롤을 가로채지 않는다.
+                  perspective 는 여기 부모가 준다 — 없으면 rotateY 가 납작해진다. */}
+              <div
+                className="md:hidden mt-8 flex flex-col items-center"
+                style={{ perspective: 900 }}
+              >
+                <div data-gsap-tilt>
+                  <PhoneFrame width={248}>{f.screen}</PhoneFrame>
+                </div>
                 <p className="mt-3" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--fd-muted)' }}>
                   이해를 돕기 위한 예시 화면이에요
                 </p>
