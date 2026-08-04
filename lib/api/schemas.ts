@@ -16,6 +16,7 @@
  * lib/api/parseRequest.ts 로 옮겨졌다 — 호출처는 양쪽 모두 import.
  */
 import { z } from 'zod'
+import { isKoreanMobile, PHONE_ERROR } from '../phone.ts'
 
 // ──────────────────────────────────────────────────────────────────────────
 // Common primitives
@@ -24,10 +25,12 @@ import { z } from 'zod'
 /** UUID v4. Supabase 가 모든 PK 로 사용. */
 export const zUuid = z.string().uuid('잘못된 ID 형식이에요')
 
-/** 한국 휴대폰 (010 / 011 / 016~19) — 하이픈 허용. */
-export const zKrPhone = z
-  .string()
-  .regex(/^01[016789][- ]?\d{3,4}[- ]?\d{4}$/, '올바른 휴대폰 번호가 아니에요')
+/**
+ * 한국 휴대폰 — 판정은 lib/phone 정본 하나로(2026-08-03).
+ * 여기 있던 정규식은 `010-388-7885` 처럼 **뒷자리가 3자리인 010** 을 통과시켰다.
+ * 010 은 도입부터 11자리 고정이라 그런 번호는 존재하지 않는다.
+ */
+export const zKrPhone = z.string().refine(isKoreanMobile, PHONE_ERROR)
 
 /** 5자리 우편번호 */
 export const zKrZip = z.string().regex(/^\d{5}$/, '5자리 우편번호를 입력해 주세요')

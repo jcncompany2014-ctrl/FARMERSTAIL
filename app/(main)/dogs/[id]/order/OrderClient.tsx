@@ -50,6 +50,7 @@ import {
 } from '@/lib/personalization/boxPricing'
 import { trackBeginCheckout, type AnalyticsItem } from '@/lib/analytics'
 import './order.css'
+import { isKoreanMobile, formatKoreanMobile, PHONE_ERROR } from '@/lib/phone'
 
 /**
  * 고를 수 있는 결제수단. 플래그는 빌드 시점 상수라 모듈 스코프에서 한 번만
@@ -409,11 +410,12 @@ export default function OrderClient({
       setErr('수령인 이름·전화·주소를 모두 입력해 주세요.')
       return
     }
-    // 한국 휴대폰 번호 검증 — 010/011/016/017/018/019 + 7-8 자리.
-    // 대시 제거 후 정규식 체크.
-    const phoneDigits = recipientPhone.replace(/[^0-9]/g, '')
-    if (!/^01[016789]\d{7,8}$/.test(phoneDigits)) {
-      setErr('전화번호 형식이 맞지 않아요 (01x-XXXX-XXXX).')
+    // 휴대폰 검증은 lib/phone 정본 하나로(2026-08-03). 여기 있던 자체 정규식은
+    // `010` 뒤 7자리를 통과시켰다 — 사장님 계정의 `010-3887-885` 가 그대로
+    // 저장돼 있었고 결제 버튼도 안 막혔다. 기사님이 전화를 거는 배송이라
+    // 연락 안 되는 번호는 곧 배송 실패다.
+    if (!isKoreanMobile(recipientPhone)) {
+      setErr(PHONE_ERROR)
       return
     }
     if (recipientName.trim().length < 2) {
@@ -482,7 +484,10 @@ export default function OrderClient({
           dogId,
           freshRatio,
           recipientName: recipientName.trim(),
-          recipientPhone: recipientPhone.trim(),
+          // 저장은 정규화 형태(010-1234-5678)로. 검증이 '+82 10 …' 도 받아
+          // 주는데(같은 번호이고 카카오가 그 형태로 준다), 그대로 저장하면
+          // 송장·기사님 화면에 국제표기가 찍힌다.
+          recipientPhone: formatKoreanMobile(recipientPhone.trim()),
           zip: recipientZip.trim(),
           address: recipientAddress.trim(),
           addressDetail: recipientAddressDetail.trim() || null,
@@ -1087,7 +1092,7 @@ export default function OrderClient({
           </p>
           <p className="ord-foot">
             <Check size={11} strokeWidth={2.6} color="var(--moss)" />
-            위약금 없이 일시정지·해지 가능 (발송 1주일 전까지 알려주세요)
+            위약금 없이 일시정지·해지 가능 (다음 결제 전까지)
           </p>
 
           {/* 하단 고정 결제 바 (다크) — 레시피→배송→결제 흐름 통일. 실제 결제(카드

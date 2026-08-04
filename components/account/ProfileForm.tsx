@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Check, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { isKoreanMobile } from '@/lib/phone'
 
 /**
  * ProfileForm — 마이페이지 / 계정 의 기본 프로필 편집 폼.
@@ -32,9 +33,9 @@ function formatPhone(raw: string): string {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
 }
 
+// 빈 값은 허용(선택 입력) — 채웠으면 정본 규칙을 따른다.
 function isValidKoreanMobile(value: string): boolean {
-  const digits = value.replace(/\D/g, '')
-  return digits === '' || /^01[016789]\d{7,8}$/.test(digits)
+  return value.replace(/\D/g, '') === '' || isKoreanMobile(value)
 }
 
 export default function ProfileForm({

@@ -48,9 +48,20 @@ describe('zKrPhone', () => {
     assert.equal(zKrPhone.safeParse('011-123-4567').success, true)
     assert.equal(zKrPhone.safeParse('019-999-8888').success, true)
   })
-  it('rejects 02 / international / non-mobile', () => {
+  it('rejects 02 / non-mobile', () => {
     assert.equal(zKrPhone.safeParse('02-1234-5678').success, false)
-    assert.equal(zKrPhone.safeParse('+82 10 1234 5678').success, false)
+    assert.equal(zKrPhone.safeParse('070-4066-1333').success, false)
+  })
+
+  it('★국제표기(+82)는 같은 번호이므로 받는다 (2026-08-03)', () => {
+    // 예전엔 거절했는데, 카카오 로그인이 전화번호를 '+82 10-…' 형태로 준다
+    // (lib/auth/kakaoProfile 도 +82→0 으로 되돌린다). 같은 번호를 표기 때문에
+    // 막을 이유가 없다. 저장은 호출부가 formatKoreanMobile 로 정규화한다.
+    assert.equal(zKrPhone.safeParse('+82 10 1234 5678').success, true)
+  })
+
+  it('★010 뒤 7자리는 거절 — 존재하지 않는 번호', () => {
+    assert.equal(zKrPhone.safeParse('010-388-7885').success, false)
   })
 })
 

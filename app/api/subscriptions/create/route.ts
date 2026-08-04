@@ -19,6 +19,7 @@ import {
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { ALL_LINES } from '@/lib/personalization/lines'
 import { MAX_PICKS, ratiosFromPicks } from '@/lib/personalization/boxPicks'
+import { isKoreanMobile, PHONE_ERROR } from '@/lib/phone'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -116,10 +117,11 @@ export async function POST(req: Request) {
   if (!parsed.ok) return parsed.response
   const body = parsed.data
 
-  const phoneDigits = body.recipientPhone.replace(/[^0-9]/g, '')
-  if (!/^01[016789]\d{7,8}$/.test(phoneDigits)) {
+  // 휴대폰 검증 정본 = lib/phone (2026-08-03). 화면과 서버가 각자 정규식을
+  // 들고 있으면 갈라진다 — 실제로 네 곳이 따로 있었고 넷 다 같은 구멍이었다.
+  if (!isKoreanMobile(body.recipientPhone)) {
     return NextResponse.json(
-      { code: 'BAD_PHONE', message: '전화번호 형식이 맞지 않아요 (01x-XXXX-XXXX).' },
+      { code: 'BAD_PHONE', message: PHONE_ERROR },
       { status: 400 },
     )
   }

@@ -1387,3 +1387,41 @@ test('규칙 32 — 돈 경로의 Supabase 호출은 error 를 반드시 꺼낸�
       offenders.join(' / '),
   )
 })
+
+
+test('규칙 33 — 휴대폰 검증은 lib/phone 정본만 (자체 정규식 금지)', () => {
+  /**
+   * 2026-08-03 검수. 사장님 계정으로 정기배송 신청 화면을 열었더니 배송
+   * 연락처가 **`010-3887-885`(10자리)** 였다. 한 자리가 빠진 번호인데 저장돼
+   * 있었고 결제 버튼도 안 막혔다. 냉동 배송은 기사님이 전화를 거는 배송이라
+   * 연락 안 되는 번호는 곧 배송 실패다.
+   *
+   * 원인: 검증식이 `010` 뒤 7자리를 허용했다 — /^01[016789]\d{7,8}$/.
+   * `010` 은 도입부터 11자리 고정이라 뒷자리 7자리 번호는 존재하지 않는다.
+   * 7~8 자리를 허용해도 되는 건 옛 식별번호(011·016~019)뿐이다.
+   *
+   * 그리고 같은 규칙이 **네 곳에 따로** 있었고 넷 다 같은 구멍이었다
+   * (주문 화면 · 서버 create 라우트 · 프로필 폼 · zod 스키마).
+   * 고칠 곳이 하나여야 다음에 또 안 갈라진다.
+   */
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app'))
+    .concat(walk(join(ROOT, 'components')))
+    .concat(walk(join(ROOT, 'lib')))) {
+    if (!/\.tsx?$/.test(file)) continue
+    if (file.includes('.test.')) continue
+    const rel = file.replace(ROOT, '').split(sep).join('/')
+    if (rel === '/lib/phone.ts') continue // 정본 자신
+    const src = stripComments(read(file))
+    // 식별번호 나열을 문자클래스로 들고 있으면 자체 검증식이다.
+    if (/01\[0?1[0-9]*6789\]/.test(src) || src.includes('01[016789]') || src.includes('01[16789]')) {
+      offenders.push(rel)
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '휴대폰 검증 정규식을 직접 들고 있다 — lib/phone 의 isKoreanMobile 을 쓸 것. ' +
+      '네 곳이 따로 있다가 넷 다 010 뒤 7자리를 통과시켰다. ' + offenders.join(' / '),
+  )
+})
