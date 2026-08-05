@@ -1077,6 +1077,58 @@ function PhoneFrame({
 export default function AppShowcase() {
   const [active, setActive] = useState(0)
   const blockRefs = useRef<(HTMLDivElement | null)[]>([])
+  // 모바일 핀 쇼케이스 컨테이너 + 마지막 인덱스(60fps onUpdate 에서 setState
+  // 폭주를 막는 가드).
+  const mobRef = useRef<HTMLDivElement | null>(null)
+  const mobLast = useRef(0)
+
+  // ★모바일 = GSAP 핀(2026-08-05). 섹션을 화면에 붙잡고, 스크롤 진행도를
+  //   feature 인덱스로 바꿔 제목·폰 화면을 **함께** 넘긴다 — 데스크톱 IO 와
+  //   같은 active 상태를 쓰므로 crossfade 마크업은 하나다.
+  //   GSAP 로드 실패·reduced-motion 이면 핀 없이 첫 화면이 정적으로 남는다
+  //   (컨테이너는 100svh 한 장 — 깨진 채 겹치는 것보다 낫다).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.innerWidth >= 768) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let cancelled = false
+    let ctx: { revert: () => void } | undefined
+    void (async () => {
+      try {
+        const [{ gsap }, { ScrollTrigger }] = await Promise.all([
+          import('gsap'),
+          import('gsap/ScrollTrigger'),
+        ])
+        if (cancelled || !mobRef.current) return
+        gsap.registerPlugin(ScrollTrigger)
+        ctx = gsap.context(() => {
+          ScrollTrigger.create({
+            trigger: mobRef.current,
+            start: 'top top',
+            // feature 당 620px — 짧으면 화면이 휙휙 넘어가 읽을 틈이 없다.
+            end: () => '+=' + FEATURES.length * 620,
+            pin: true,
+            onUpdate: (self) => {
+              const idx = Math.min(
+                FEATURES.length - 1,
+                Math.floor(self.progress * FEATURES.length),
+              )
+              if (idx !== mobLast.current) {
+                mobLast.current = idx
+                setActive(idx)
+              }
+            },
+          })
+        })
+      } catch {
+        /* GSAP 실패 → 정적 첫 화면 폴백 */
+      }
+    })()
+    return () => {
+      cancelled = true
+      ctx?.revert()
+    }
+  }, [])
 
   // reduced-motion 은 globals.css 전역 @media 가 transition-duration 을 0 으로
   // 강제(!important, 인라인 스타일도 덮음) — JS 분기 불필요.
@@ -1086,14 +1138,9 @@ export default function AppShowcase() {
     // 뷰포트 중앙 밴드에 들어온 블록을 활성으로 — 스크롤 방향과 무관하게
     // "지금 읽고 있는 블록"과 폰 화면이 일치한다.
     //
-    // ★모바일은 밴드를 **위로** 올린다(2026-08-03). 거기선 고정 폰이 화면
-    //   아래쪽에 붙으므로 글이 실제로 읽히는 곳은 위쪽이다. 데스크톱과 같은
-    //   중앙 밴드(29~58%)를 쓰면 폰에 가려진 구간에서 판정하게 되어, 읽고 있는
-    //   글과 폰 화면이 어긋난다.
-    //   (폰을 위에 붙였던 잠깐 동안은 반대로 내렸었다 — 폰 위치가 바뀌면 밴드도
-    //    같이 움직여야 한다. 둘은 한 쌍이다.)
-    const band =
-      window.innerWidth < 768 ? '-14% 0px -62% 0px' : '-42% 0px -42% 0px'
+    // 데스크톱 전용 — 모바일은 GSAP 핀 쇼케이스가 active 를 직접 몬다(아래
+    // useEffect). 이 IO 는 데스크톱 텍스트 블록(hidden md:grid 안)만 본다.
+    const band = '-42% 0px -42% 0px'
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
@@ -1110,7 +1157,102 @@ export default function AppShowcase() {
 
   return (
     <div className="mx-auto px-5 md:px-8" style={{ maxWidth: 1140 }}>
-      <div className="md:grid md:grid-cols-2 md:gap-12">
+      {/* 모바일 핀 쇼케이스 — 화면 하나에 [제목 + 폰] 한 세트. 스크롤이
+          세트를 넘긴다(위 useEffect 가 핀 + 인덱스 구동). 폰은 232px — 목업
+          내부가 248px 기준 설계라 이 아래로 줄이면 깨진다(152px 실증). */}
+      <div
+        ref={mobRef}
+        className="md:hidden flex flex-col items-center justify-center"
+        style={{ height: '100svh', minHeight: 560 }}
+      >
+        {/* 제목 스택 — 폰과 같은 인덱스로 crossfade. 높이를 고정해 폰이 안 튄다. */}
+        <div className="relative w-full" style={{ height: 118 }}>
+          {FEATURES.map((f, i) => (
+            <div
+              key={f.key}
+              aria-hidden={active !== i}
+              className="absolute inset-0 flex flex-col items-center text-center px-6"
+              style={{
+                opacity: active === i ? 1 : 0,
+                transform: active === i ? 'translateY(0)' : 'translateY(10px)',
+                transition: 'opacity 0.4s ease, transform 0.4s ease',
+                pointerEvents: 'none',
+              }}
+            >
+              <Eyebrow>{f.eyebrow}</Eyebrow>
+              <h3
+                className="mt-2"
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 21,
+                  lineHeight: 1.25,
+                  fontWeight: 800,
+                  color: 'var(--fd-pine)',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {f.title}
+              </h3>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4">
+          <PhoneFrame width={232}>
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+              {FEATURES.map((f, i) => (
+                <div
+                  key={f.key}
+                  aria-hidden={active !== i}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    opacity: active === i ? 1 : 0,
+                    transform: active === i ? 'translateY(0)' : 'translateY(14px)',
+                    transition: 'opacity 0.45s ease, transform 0.45s ease',
+                    pointerEvents: active === i ? 'auto' : 'none',
+                  }}
+                >
+                  {f.screen}
+                </div>
+              ))}
+            </div>
+          </PhoneFrame>
+        </div>
+
+        {/* 진행 점 — 지금 몇 번째인지. 레퍼런스들이 다 쓰는 이유가 있다:
+            핀 구간에선 스크롤바가 위치를 말해주지 못한다. */}
+        <div className="mt-4 flex items-center gap-1.5" aria-hidden>
+          {FEATURES.map((f, i) => (
+            <span
+              key={f.key}
+              style={{
+                width: active === i ? 16 : 5,
+                height: 5,
+                borderRadius: 999,
+                background: active === i ? 'var(--fd-coral)' : 'var(--fd-line)',
+                transition: 'width 0.3s ease, background 0.3s ease',
+              }}
+            />
+          ))}
+        </div>
+        <p className="mt-3" style={{ fontSize: 10, fontWeight: 600, color: 'var(--fd-muted)' }}>
+          이해를 돕기 위한 예시 화면이에요
+        </p>
+      </div>
+
+      {/* ★모바일 쇼케이스 전면 재작성(2026-08-05, 사장님: "이게 우리가 생각했던
+          그 페이지의 그림은 아니지 않냐" + 실스크린샷).
+          그동안의 시도가 전부 반쪽이었다:
+            · 블록마다 정적 폰 4개  → 모션 0
+            · 폰 기울이기(틸트)     → 의도 오해
+            · 하단 sticky 폰 152px  → **제목이 폰 뒤에 깔리고**, 248px 기준으로
+              설계된 목업 내부가 152px 에서 깨졌다(인사말 겹침 — 스크린샷 증거).
+          레퍼런스 패턴(토스 홈·Apple 제품 페이지 모바일)은 하나로 수렴한다:
+          **섹션을 핀으로 잡고, 화면 하나에 [짧은 제목 + 큰 폰] 한 세트만.**
+          스크롤이 제목과 폰 화면을 함께 넘긴다. 글과 폰이 공간을 다투지 않는다.
+          그 패턴을 아래 md:hidden 블록이 구현한다. 이 그리드는 데스크톱 전용. */}
+      <div className="hidden md:grid md:grid-cols-2 md:gap-12">
         {/* 좌측 — 설명 블록 */}
         <div>
           {FEATURES.map((f, i) => (
@@ -1119,11 +1261,7 @@ export default function AppShowcase() {
               ref={(el) => {
                 blockRefs.current[i] = el
               }}
-              // 모바일도 블록마다 충분한 높이를 줘야 스크롤하는 동안 화면이
-              // 한 장씩 바뀐다(너무 짧으면 두 장이 한꺼번에 지나간다).
-              // justify-start + 위쪽 여백 — 글이 화면 위쪽(폰에 안 가리는 곳)에
-              // 오게 한다. 가운데 정렬이면 아래로 내려와 폰 뒤로 들어간다.
-              className="flex flex-col justify-start min-h-[58vh] pt-10 pb-4 md:justify-center md:py-0 md:min-h-[88vh]"
+              className="flex flex-col justify-center md:min-h-[88vh]"
             >
               <Eyebrow>{f.eyebrow}</Eyebrow>
               <Display as="h3" size="md" className="mt-3" style={{ color: 'var(--fd-pine)' }}>
@@ -1149,50 +1287,6 @@ export default function AppShowcase() {
                    그게 아니었다 — 데스크톱처럼 **폰은 고정, 화면만 바뀌는 것**.) */}
             </div>
           ))}
-        </div>
-
-        {/* ★모바일 고정 폰 — **화면 아래쪽**에 붙는다(2026-08-03, 사장님:
-            "하단에 고정되어야 하는데 왜 상단에 고정되는 거야, 그것 때문에
-            가려지는 부분이 너무 많고 이상해").
-            처음엔 top-0 으로 붙였는데 폰이 화면 위 절반을 차지해 정작 읽어야 할
-            글이 아래로 밀렸다. 아래에 두면 **글이 위, 기기가 아래** 라 읽는 흐름이
-            자연스럽다 — 설명을 읽는 동안 시선 아래에서 화면이 바뀐다.
-
-            구현: 이 블록이 설명 블록들 **뒤**에 와야 한다. sticky 는 bottom 기준일
-            때 요소를 **위로 끌어올려** 화면 아래에 붙이므로, DOM 순서가 뒤여야
-            컨테이너가 보이는 내내 붙어 있는다. 앞에 두면 위쪽에 빈 자리가 남는다.
-            폭도 186 → 152 로 줄였다 — 가리는 면적이 곧 못 읽는 글이다. */}
-        <div
-          className="md:hidden sticky bottom-0 z-10 flex flex-col items-center pt-3 pb-2"
-          style={{
-            // 위쪽만 부드럽게 — 글이 폰 뒤로 들어갈 때 선이 딱 잘리지 않게.
-            background:
-              'linear-gradient(to bottom, rgba(250,249,245,0) 0%, var(--fd-offwhite) 14%, var(--fd-offwhite) 100%)',
-          }}
-        >
-          <PhoneFrame width={152}>
-            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-              {FEATURES.map((f, i) => (
-                <div
-                  key={f.key}
-                  aria-hidden={active !== i}
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    opacity: active === i ? 1 : 0,
-                    transform: active === i ? 'translateY(0)' : 'translateY(14px)',
-                    transition: 'opacity 0.45s ease, transform 0.45s ease',
-                    pointerEvents: active === i ? 'auto' : 'none',
-                  }}
-                >
-                  {f.screen}
-                </div>
-              ))}
-            </div>
-          </PhoneFrame>
-          <p className="mt-1.5" style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--fd-muted)' }}>
-            이해를 돕기 위한 예시 화면이에요
-          </p>
         </div>
 
         {/* 우측 — 데스크톱 전용 sticky 폰. 화면 4장이 겹쳐진 채 crossfade */}
