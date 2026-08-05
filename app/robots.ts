@@ -60,6 +60,21 @@ export default function robots(): MetadataRoute.Robots {
           // 검색·사이트 링크로는 못 들어오게 색인 차단(QR 진입만).
           '/recipe',
           '/recipe/*',
+          // ★2026-08-05 검수 — 전환·계정 화면이 색인 허용으로 남아 있었다.
+          //   /start 하위는 퍼널 중간 단계다(claim 은 스피너뿐인 라우팅 허브,
+          //   done 은 가입 직후 확인, survey·join 은 /start 를 거쳐야 맥락이
+          //   맞는다). 진입점은 /start 하나만 색인한다.
+          '/start/*',
+          // 계정 화면 — 전부 로그인 필요라 크롤러는 로그인 리다이렉트만 본다.
+          '/account',
+          '/account/*',
+          // 14세 확인·오프라인 안내·비밀번호 재설정 — 검색 결과에 뜰 이유가
+          //   없고, "등록에 실패했어요" 류 스니펫은 브랜드에 해롭다.
+          '/onboarding',
+          '/onboarding/*',
+          '/offline',
+          '/forgot-password',
+          '/reset-password',
         ],
       },
     ],
