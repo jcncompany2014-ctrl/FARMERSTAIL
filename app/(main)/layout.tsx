@@ -46,10 +46,9 @@ export const metadata: Metadata = {
  * 나머지 viewport 키(viewportFit 등)는 루트에서 shallow-merge 상속.
  */
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: dark)', color: '#171310' },
-    { media: '(prefers-color-scheme: light)', color: '#f4ede0' },
-  ],
+  // 다크 분기 제거(2026-08-05) — 앱 화면은 [data-ft-chrome="app"] 이 항상
+  // 라이트로 고정하는데 상태바만 다크였다.
+  themeColor: '#f4ede0',
 }
 
 export default function MainLayout({

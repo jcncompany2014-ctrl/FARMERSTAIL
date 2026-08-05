@@ -242,10 +242,9 @@ export const viewport: Viewport = {
   // audit #110: theme-color media 분기 — 다크모드 OS 사용자의 status bar 아이콘
   // (흰색) 과 terracotta 배경 충돌 방지. 라이트는 시그니처 terracotta 유지,
   // 다크는 --bg 다크 값으로 연속.
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#171310" },
-    { media: "(prefers-color-scheme: light)", color: "#A0452E" },
-  ],
+  // 다크 분기 제거(2026-08-05) — 화면은 항상 라이트인데 OS 다크 사용자만
+  // **상태바가 검게** 떠서 헤더와 어긋났다.
+  themeColor: "#A0452E",
   width: "device-width",
   initialScale: 1,
   // 확대/축소 차단 (2026-07-12 사장님 지시 — "앱 전체 확대 축소 절대 안되게").
@@ -310,19 +309,17 @@ export default function RootLayout({
           href="https://connect.facebook.net"
           crossOrigin="anonymous"
         />
-        {/*
-          다크모드 깜빡임 방지 — SSR 직후 hydration 전에 inline 동기 스크립트로
-          html[data-theme] 을 박아둔다. 과거 저장된 ft_theme(다크/라이트) 이 있으면
-          첫 페인트부터 그 변수로 그려져 flash 가 없음. (수동 테마 토글은 2026-07 폐지
-          — 이제 OS 설정을 CSS prefers-color-scheme 로 자동 추종. 이 스크립트는 옛
-          저장값이 남은 사용자를 위한 호환 게이트로만 유지.)
-          localStorage 차단(Safari private)은 try/catch 로 흡수.
-        */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var c=localStorage.getItem('ft_theme');if(c==='dark'||c==='light'){document.documentElement.setAttribute('data-theme',c);}}catch(e){}})();`,
-          }}
-        />
+        {/* ★다크 테마를 켜는 경로를 없앴다(2026-08-05, 사장님: "다크모드 아예
+            없앴는데").
+            예전엔 여기서 옛 localStorage `ft_theme` 을 읽어 html[data-theme] 을
+            박았다. globals.css 에는 아직 `html[data-theme="dark"]` 규칙이 47곳
+            남아 있어서, **옛날에 다크를 켰던 브라우저는 지금도 다크로 떴다** —
+            사장님이 "없앴다"고 아는 것과 코드가 어긋나 있었다.
+            (그 자리 주석은 "이제 OS 설정을 prefers-color-scheme 로 자동 추종"
+             이라고 주장했는데, 정작 그 @media 는 globals.css 에서 주석 처리돼
+             꺼져 있었다 — 규칙4 그대로다.)
+            읽는 코드를 없앴으니 남은 저장값은 무해하고, 남은 CSS 는 발동 경로가
+            없어 죽은 코드다. 다크를 되살릴 땐 여기부터 다시 만들면 된다. */}
         {/*
           검은 화면 방지 — 앱 아이콘 탭 후 globals.css 가 로드되기 전 첫 페인트가
           기본 검정으로 잠깐 뜨는 FOUC 를 막는다(사장님 리포트 2026-07-13). html
@@ -333,7 +330,7 @@ export default function RootLayout({
         <style
           dangerouslySetInnerHTML={{
             __html:
-              'html{background:#FAF9F5}html[data-theme="dark"]{background:#15110D}',
+              'html{background:#FAF9F5}',
           }}
         />
         {/*

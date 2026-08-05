@@ -1675,3 +1675,43 @@ test('규칙39 — 크론의 Supabase 조회는 error 를 꺼내고 실제로 �
       offenders.join(' / '),
   )
 })
+
+test('규칙40 — 다크 테마를 켜는 경로가 없다(사장님이 없앤 기능)', () => {
+  /**
+   * # 왜
+   * 2026-08-05 사장님: "다크모드 아예 없앴는데 뭔소리야". 확인해 보니 **절반만**
+   * 없앤 상태였다:
+   *   · OS 자동 추종(@media prefers-color-scheme: dark) → 주석 처리돼 꺼짐 ✅
+   *   · `html[data-theme="dark"]` 규칙 47곳 → globals.css 에 그대로 살아 있음
+   *   · 루트 layout 이 옛 localStorage `ft_theme` 을 읽어 그 속성을 박음
+   * 즉 **옛날에 다크를 켰던 브라우저는 지금도 다크로 떴다.** 사장님이 아는
+   * 사실과 코드가 어긋나 있었고, 그 자리 주석은 "이제 OS 설정을 자동 추종"
+   * 이라고 주장했는데 정작 그 @media 는 꺼져 있었다(규칙4 그대로).
+   *
+   * CSS 47곳은 발동 경로가 없으면 죽은 코드다. 그래서 **켜는 쪽**을 지킨다 —
+   * data-theme 을 박는 코드나 다크 themeColor 분기가 다시 생기면 빨간불.
+   * 다크를 정말 되살릴 땐 이 테스트를 함께 지우면 된다(그게 리뷰 지점이다).
+   */
+  const offenders: string[] = []
+  for (const dir of ['app', 'components', 'lib']) {
+    for (const file of walk(join(ROOT, dir))) {
+      if (!/\.tsx?$/.test(file) || file.includes('.test.')) continue
+      const rel = file.replace(ROOT, '').split(sep).join('/')
+      const src = stripComments(read(file))
+      if (/setAttribute\(\s*['"]data-theme['"]/.test(src)) {
+        offenders.push(`${rel} (data-theme 을 박는다)`)
+      }
+      if (/ft_theme/.test(src)) offenders.push(`${rel} (옛 ft_theme 을 읽는다)`)
+      if (/prefers-color-scheme:\s*dark/.test(src)) {
+        offenders.push(`${rel} (다크 themeColor 분기)`)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '다크 테마를 켜는 경로가 다시 생겼다 — 화면은 라이트 고정인데 일부 사용자만 ' +
+      '다크로 보이거나 상태바만 어긋난다. ' +
+      offenders.join(' / '),
+  )
+})
