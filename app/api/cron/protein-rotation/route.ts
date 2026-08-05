@@ -6,6 +6,9 @@ import { trackCron } from '@/lib/cron-tracking'
 import { petName, iGa } from '@/lib/korean'
 
 export const runtime = 'nodejs'
+/** 제목 고정부 = dedup 앵커(2026-08-05). 마케팅 푸시라 `[광고]` 가 앞에 붙는다. */
+const ROTATION_TITLE_ANCHOR = '번째 박스예요'
+
 export const dynamic = 'force-dynamic'
 
 /**
@@ -85,7 +88,11 @@ async function runRotation(): Promise<Response> {
       .select('id', { count: 'exact', head: true })
       .eq('user_id', sub.user_id)
       .eq('category', 'marketing')
-      .ilike('title', '%단백질%rotation%')
+    // ★dedup 앵커는 **발송 제목과 같은 상수**에서 나와야 한다(2026-08-05).
+    //   브랜드 보이스 스윕으로 제목을 바꿀 때 이 필터를 같이 안 바꿔서
+    //   14일 가드가 통째로 죽어 있었다(ilike 가 영원히 0건 → 매주 재발송).
+    //   여기는 "내부 영어 제거" 카피 정리 때 앵커만 영어로 남았다.
+      .ilike('title', `%${ROTATION_TITLE_ANCHOR}%`)
       .gt('sent_at', fourteenDaysAgo)
     if ((recent ?? 0) > 0) {
       skippedSpam += 1
@@ -106,7 +113,7 @@ async function runRotation(): Promise<Response> {
 
     const cycle = Math.floor(sub.total_deliveries / 4)
     // 카피 — 내부 영어(rotation·variety·risk·라인) 제거. 보호자가 읽는 말로.
-    const title = `${iGa(petName(dog.name))} 벌써 ${sub.total_deliveries}번째 박스예요`
+    const title = `${iGa(petName(dog.name))} 벌써 ${sub.total_deliveries}${ROTATION_TITLE_ANCHOR}`
     const body =
       cycle === 1
         ? '한 가지 단백질만 오래 먹으면 그 단백질에 예민해질 수 있어요. 다음 박스엔 다른 레시피도 한번 섞어볼까요?'

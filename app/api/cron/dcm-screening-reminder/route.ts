@@ -8,6 +8,12 @@ import { petName } from '@/lib/korean'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
+/**
+ * 제목 고정부 = dedup 앵커(2026-08-05 규칙37). 리터럴을 ilike 에 직접 박으면
+ * 카피를 바꿀 때 가드가 조용히 죽는다 — 같은 날 세 크론에서 실제로 죽어 있었다.
+ */
+const TITLE_ANCHOR = '미리 살펴두면'
+
 export const dynamic = 'force-dynamic'
 
 /**
@@ -85,7 +91,7 @@ async function runReminder(): Promise<Response> {
       .from('push_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', dog.user_id)
-      .ilike('title', '%미리 살펴두면%')
+      .ilike('title', `%${TITLE_ANCHOR}%`)
       .gt('sent_at', oneEightyDaysAgo)
     if ((recent ?? 0) > 0) {
       skippedSpam += 1
@@ -96,7 +102,7 @@ async function runReminder(): Promise<Response> {
       await pushToUser(
         dog.user_id,
         {
-          title: `${petName(dog.name)} 심장, 미리 살펴두면 좋아요`,
+          title: `${petName(dog.name)} 심장, ${TITLE_ANCHOR} 좋아요`,
           body: '우리 아이 견종은 심장이 조금 예민할 수 있어요. 6개월에 한 번쯤 병원에서 심장을 체크해두면 안심이 돼요. 꼭 지금이 아니어도 괜찮지만, 미리 챙기면 좋은 관리예요.',
           url: `/dogs/${dog.id}`,
           tag,

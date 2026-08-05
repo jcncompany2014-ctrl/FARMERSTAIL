@@ -48,7 +48,16 @@ export function renderQuarterlyReport(
   if (input.merKcal !== null)
     rows.push(block.row('하루 에너지(MER)', escape(fmt(input.merKcal, ' kcal'))))
   if (input.proteinPct !== null)
-    rows.push(block.row('단백질 비율', escape(fmt(input.proteinPct, '%', 1))))
+    // 정확한 영양소 % 는 고객에게 내보내지 않는다(2026-08-05) — 화면은 전부
+    // 방향 보증("30% 이상")으로 통일돼 있는데 이 메일만 소수점까지 찍고 있었다.
+    if (input.proteinPct != null) {
+      rows.push(
+        block.row(
+          '단백질',
+          input.proteinPct >= 30 ? '30% 이상 (권장 범위)' : '권장 범위',
+        ),
+      )
+    }
   if (input.fatPct !== null)
     rows.push(block.row('지방 비율', escape(fmt(input.fatPct, '%', 1))))
 

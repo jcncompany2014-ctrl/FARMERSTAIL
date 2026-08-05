@@ -14,7 +14,9 @@
  *
  * 콘텐츠:
  *   1. 이번 달 영양 인사이트 — BCS 5단계 간단 소개 + 자가 체크 방법
- *   2. 이번 주 베스트 — 오션 오메가 믹스
+ *   2. 이번 주 추천 — 오리 (실제 라인업. 2026-08-05 이전엔 판매하지 않는
+ *      '오션 오메가 믹스(연어·광어)' 를 광고하고 있었다 — 연어는 고객
+ *      카탈로그에서 제거됐고, "국내 농가" 원칙과도 어긋나는 문구였다.)
  *   3. 보호자 Q&A — 화식 전환 시 주의점
  *   4. 다음 호 예고 — 단백질 알레르기 진단법
  *   5. CTA — 무료 분석 시작
@@ -65,10 +67,11 @@ export function renderNewsletterVol01(input: {
     ${block.hr()}
 
     ${section('This Week', '이번 주의 추천 메뉴')}
+    <!-- 라인업은 닭·오리·돼지·소 4종. 없는 메뉴를 쓰면 그대로 허위 광고다. -->
     <p style="margin:0 0 10px 0;">
-      <strong style="color:#173B33;">오션 오메가 믹스</strong> — 노르웨이 연어와
-      국내산 광어를 사람이 먹는 등급으로 손질한 화식이에요. 오메가-3 함량이
-      높아 피부·털 컨디션이 거친 아이에게 자주 추천돼요.
+      <strong style="color:#173B33;">오리</strong> — 사람이 먹는 등급의 오리를
+      저온에서 익혀 만든 화식이에요. 닭이나 소를 먹고 가려워하던 아이에게
+      처음 권해보기 좋은, 비교적 낯선 단백질이에요.
     </p>
     ${block.callout(
       'gold',
@@ -102,7 +105,7 @@ export function renderNewsletterVol01(input: {
     <p style="margin:0;">
       Vol. 02 에서는 <strong style="color:#173B33;">단백질 알레르기 진단법</strong>
       을 다룰 거예요. 닭고기를 의심하는 보호자분이 많은데, 실제로는 다른
-      원인일 때가 많아요. 격주 뒤에 보내드릴게요.
+      원인일 때가 많아요. 다음 달 첫째 주에 보내드릴게요.
     </p>
 
     <div style="margin-top:22px;padding-top:14px;border-top:1px solid #DCD6C4;font-size:10px;color:#9A9A9A;line-height:1.6;">

@@ -124,6 +124,19 @@ export async function POST(req: Request) {
     order = byId.data
     orderErr = byId.error
   }
+  // ★조회 **오류**는 '우리 주문 아님'과 다르다(2026-08-05 병렬 감사).
+  //   이 파일의 쓰기 경로는 그 사고(AGENTS 규칙1 원사례 — DB 오류를 '이미
+  //   처리됨'으로 읽고 200 → 토스 재시도 단절 → 복구 경로 0)를 failAndAskRetry
+  //   로 고쳤는데, 읽기 경로가 같은 모양으로 남아 있었다. 토스 수동 환불
+  //   웹훅이 오는 순간 DB 가 흔들리면 200 을 돌려줘 환불이 영영 미반영된다.
+  //   여기는 아직 멱등 기록 전이라 5xx 로 재시도를 요청하면 그만이다.
+  if (orderErr) {
+    console.error('[webhook] 주문 조회 실패 — 재시도 요청:', orderErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'order_lookup_failed' },
+      { status: 500 },
+    )
+  }
 
   if (orderErr || !order) {
     // Not our order. Acknowledge with 200 so Toss stops retrying —

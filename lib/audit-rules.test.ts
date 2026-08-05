@@ -389,9 +389,11 @@ test('★ 규칙15: 잠긴 표(orders)를 쿠키 클라이언트로 쓰지 않�
         ) {
           return true
         }
-        // `const X = Y as unknown as ...` → Y 를 따라간다.
+        // `const X = Y as unknown as ...` / `const X = Y as any` → Y 를 따라간다.
+        // (2026-08-05: `as any` 형태를 못 따라가 refund-retry 의 adminTyped 가
+        //  오탐으로 잡혔다 — 실제로는 createAdminClient() 별칭이다.)
         const alias = new RegExp(
-          `(?:const|let)\\s+${name}\\s*=\\s*\\(?\\s*(\\w+)\\s+as\\s+unknown`,
+          `(?:const|let)\\s+${name}\\s*=\\s*\\(?\\s*(\\w+)\\s+as\\s+(?:unknown|any)`,
         ).exec(src)
         return alias?.[1] ? resolve(alias[1], depth + 1) : false
       }
@@ -1499,6 +1501,81 @@ test('규칙 35 — 저장된 daily_grams 를 고객 화면에 그대로 쓰지 
     [],
     '저장된 daily_grams 를 고객 화면이 그대로 쓴다 — 그 값은 만들어질 당시 kcal ' +
       '밀도로 굳어 있어 레시피가 바뀌면 옛 숫자가 나온다. dailyGramsOf 로 다시 셀 것. ' +
+      offenders.join(' / '),
+  )
+})
+
+test('규칙36 — dog_formulas 쓰기는 service_role 로만 한다', () => {
+  /**
+   * # 왜
+   * 2026-08-05 병렬 보안 감사에서 나온 **출시 블로커**다. subscriptions·
+   * orders·profiles 를 컬럼 화이트리스트로 잠갔는데, 그 잠긴 칸에 들어갈 값을
+   * 만들어내는 dog_formulas 는 고객이 REST 로 직접 UPDATE 할 수 있었다.
+   * daily_kcal 이 청구액에 **선형 비례**하므로(boxPricing) `{"daily_kcal":1}`
+   * 한 방으로 15만원짜리 박스가 3천원이 됐다. 청구 검문소는 같은 행을
+   * 재계산하므로 stored == recomputed 로 통과해 알림조차 안 뜬다.
+   *
+   * 프로덕션 has_column_privilege 로 실측 확인했고(daily_kcal·formula·
+   * approval_status 전부 true), 20260805000000 마이그레이션이 권한을 회수했다.
+   * 권한을 회수했으니 **쿠키 클라이언트로 쓰면 그 순간 조용히 거부된다** —
+   * 이 테스트는 그 짝을 지킨다(규칙13: 잠금과 호출부는 같이).
+   */
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app', 'api'))) {
+    if (!/\.ts$/.test(file) || file.includes('.test.')) continue
+    const rel = file.replace(ROOT, '').split(sep).join('/')
+    if (rel.includes('/cron/')) continue // 크론은 정의상 service_role
+    const src = stripComments(read(file))
+    // dog_formulas 에 쓰는 구문만 본다(select 는 대상 아님).
+    const re =
+      /(\w+(?:\(\))?)\s*\.from\('dog_formulas'\)\s*\.(update|insert|upsert|delete)\(/g
+    let m: RegExpExecArray | null
+    while ((m = re.exec(src))) {
+      const recv = m[1] ?? ''
+      if (!/[Aa]dmin/.test(recv)) offenders.push(`${rel} (${recv}.${m[2]})`)
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'dog_formulas 를 쿠키 클라이언트로 쓴다 — 고객 UPDATE 권한은 회수됐으므로 ' +
+      '이 쓰기는 조용히 거부된다. createAdminClient() 를 쓰고 소유권은 코드가 확인할 것. ' +
+      offenders.join(' / '),
+  )
+})
+
+test('규칙37 — 알림 dedup 앵커는 발송 제목과 같은 상수를 쓴다', () => {
+  /**
+   * # 왜
+   * 2026-08-05 크론 감사에서 **3건이 동시에** 죽어 있었다. 전부 같은 병이다:
+   * 브랜드 보이스 스윕으로 푸시 제목을 바꿀 때 dedup 조회의 ilike 패턴을 같이
+   * 안 바꿔서, 14일 재발송 가드가 영원히 0건을 반환했다.
+   *   · intervention-alerts — '체중 추세 경보' 로 찾는데 실제 제목은
+   *     '체중 흐름을 살펴봤어요'. 저장소 전체에서 그 필터 한 줄이 유일한 등장이었다.
+   *     경보 category 라 nudge 상한도 안 걸려 **매주 화요일 재발송**됐다.
+   *   · weight-reminder — '체중 측정해보세요' vs '체중을 측정해보세요'.
+   *     조사 '을' 한 글자 차이로 2주 1회가 매주가 됐다.
+   *   · protein-rotation — '%단백질%rotation%' — "내부 영어 제거" 카피 정리 때
+   *     앵커만 영어로 남았다.
+   *
+   * 문자열 리터럴을 ilike 에 직접 박으면 이 병이 재발한다. 제목과 앵커가 **같은
+   * 상수**에서 나와야 한다 — 그러면 문구를 바꿀 때 한 곳만 바뀐다.
+   */
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app', 'api', 'cron'))) {
+    if (!/\.ts$/.test(file) || file.includes('.test.')) continue
+    const rel = file.replace(ROOT, '').split(sep).join('/')
+    const src = stripComments(read(file))
+    // .ilike('title', '...') — 따옴표 리터럴이면 위반. 템플릿(`%${X}%`)은 통과.
+    const re = /\.ilike\(\s*'title'\s*,\s*'([^']*)'/g
+    let m: RegExpExecArray | null
+    while ((m = re.exec(src))) offenders.push(`${rel} ('${m[1]}')`)
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'dedup 조회가 제목 문자열을 직접 박았다 — 카피를 바꾸면 가드가 조용히 죽어 ' +
+      '같은 알림이 매주 재발송된다. 제목 상수를 만들어 발송·조회가 함께 쓸 것. ' +
       offenders.join(' / '),
   )
 })

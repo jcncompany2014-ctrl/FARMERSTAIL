@@ -125,13 +125,34 @@ async function runRefundRetry(): Promise<Response> {
     // 성공 → orders.payment_status = 'paid' 가 됐을 수 있다. 그 경우 환불
     // 시도 자체가 잘못된 false negative (실제론 정상 주문). queue row 만
     // succeeded 로 마무리하고 cancel 호출은 skip.
-    const { data: orderRow } = (await adminTyped
+    const { data: orderRow, error: orderRowErr } = (await adminTyped
       .from('orders')
       .select('payment_status')
       .eq('id', row.order_id)
-      .maybeSingle()) as { data: { payment_status: string | null } | null }
+      .maybeSingle()) as {
+      data: { payment_status: string | null } | null
+      error: { message: string } | null
+    }
+    // ★조회 실패면 이 행을 **건드리지 않고** 다음 실행에 맡긴다(2026-08-05).
+    //   실패를 'paid 아님'으로 읽고 pre-flight 없이 환불로 직행하면, confirm
+    //   회복 케이스에서 정상 주문을 환불하는 반대 사고가 난다. attempts 도
+    //   올리지 않는다 — 우리 쪽 조회 실패는 재시도 소진 사유가 아니다.
+    if (orderRowErr) {
+      console.error('[refund-retry] pre-flight 조회 실패, 보류:', orderRowErr.message)
+      continue
+    }
 
-    if (orderRow?.payment_status === 'paid') {
+    // ★pre-flight 는 confirm 이중호출 회복(reason: confirm 실패류) 전용이다
+    //   (2026-08-05 병렬 감사 — 두 크론이 'paid' 를 정반대 의미로 쓰고 있었다).
+    //   cancelled_mid_charge 는 **의도적으로** 주문을 'paid' 로 남긴다: "돈은
+    //   캡처됐고 환불은 큐가 책임진다"는 표시다. 그걸 '회복됨'으로 읽으면
+    //   토스는 돈을 갖고, 고객은 해지했고, 박스는 안 나가고, 환불은 영영
+    //   재시도되지 않는다 — 원장 reconcile 도 orders paid = ledger +amount 로
+    //   일치라서 못 잡는 완전한 소멸 경로였다.
+    if (
+      orderRow?.payment_status === 'paid' &&
+      row.reason !== 'cancelled_mid_charge'
+    ) {
       await adminTyped
         .from('payment_refund_queue')
         .update({
@@ -161,6 +182,38 @@ async function runRefundRetry(): Promise<Response> {
           last_error: null,
         })
         .eq('id', row.id)
+
+      // ★환불했으면 주문과 장부에도 쓴다(2026-08-05 병렬 감사).
+      //   예전엔 큐 한 줄만 갱신하고 끝나서, 토스 장부는 환불 완료인데 우리
+      //   orders 는 'paid'/'pending' 그대로였다. 실제 돈 흐름 [캡처 +A,
+      //   환불 −A] 중 어느 쪽도 남지 않아 주간 reconcile 이 성립하지 않는다.
+      //   payment_events 에 'cron_refund_queue' 타입·소스가 **정의만 되고
+      //   사용처가 0** 이었던 것도 배선하다 만 흔적이다.
+      const { error: ordErr } = await adminTyped
+        .from('orders')
+        .update({
+          payment_status: 'cancelled',
+          order_status: 'cancelled',
+          refunded_amount: row.amount,
+        })
+        .eq('id', row.order_id)
+      if (ordErr) {
+        // 환불은 이미 됐다 — 되돌릴 수 없으니 사람에게 알린다.
+        captureBusinessEvent('error', 'refund.queue.order_update_failed', {
+          orderId: row.order_id,
+          amount: row.amount,
+          note: '토스 환불은 성공했는데 orders 갱신 실패 — 수동 정정 필요',
+        })
+      }
+      const { recordPaymentEvent } = await import('@/lib/payment-events')
+      await recordPaymentEvent(adminTyped as never, {
+        orderId: row.order_id,
+        paymentKey: row.payment_key,
+        eventType: 'cron_refund_queue',
+        amount: -row.amount, // 음수 = 환불(SUM = 현재 잔액)
+        source: 'cron_refund_queue',
+      })
+
       succeeded += 1
       continue
     }

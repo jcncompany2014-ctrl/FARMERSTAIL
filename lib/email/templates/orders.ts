@@ -188,7 +188,8 @@ export function renderOrderDelivered(
     preview: `${input.orderNumber} 배송이 완료됐어요`,
     body,
     cta: {
-      label: '리뷰 쓰고 500P 받기',
+      // 포인트는 2026-07-16 폐기 — 지급 수단이 없다(옛 '500P' CTA 제거).
+      label: '주문 내역 보기',
       href: `${SITE_URL}/mypage/orders/${input.orderId}`,
     },
   })

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { zPersonalizationAdjust } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
@@ -179,7 +180,14 @@ export async function POST(req: Request) {
     existing.daily_kcal,
   )
 
-  const { error: upErr } = await supabase
+  // ★dog_formulas 쓰기는 service_role 로만(2026-08-05 보안 감사).
+  //   daily_kcal 이 청구액에 **선형 비례**하는데(boxPricing: dailyG =
+  //   ratio × dailyKcal ÷ kcalPer100g) 고객이 REST 로 직접 UPDATE 할 수
+  //   있었다 — subscriptions·orders·profiles 를 컬럼 화이트리스트로 잠가도
+  //   **그 칸에 들어갈 값을 만드는 테이블**이 열려 있으면 소용없다.
+  //   청구 검문소도 같은 행을 재계산하므로 stored == recomputed 로 통과한다.
+  //   소유권은 이 라우트가 위에서 이미 확인했고, 범위는 코드가 책임진다.
+  const { error: upErr } = await createAdminClient()
     .from('dog_formulas')
     .update({
       formula: newFormula,

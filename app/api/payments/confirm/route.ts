@@ -220,7 +220,8 @@ export async function POST(req: Request) {
     // R60 결제 원장 — 사용자 체크아웃 단계 실패도 ledger 기록.
     // 환불/조정 시 추적 가능. amount=0 (실제 청구 안 됨).
     const { recordPaymentEvent } = await import('@/lib/payment-events')
-    await recordPaymentEvent(supabase, {
+    // service_role — 위 paid 기록과 같은 이유(쿠키 클라이언트는 원장 INSERT 거부).
+    await recordPaymentEvent(ordersAdmin, {
       orderId: order.id,
       paymentKey,
       eventType: 'failed',
@@ -384,7 +385,11 @@ export async function POST(req: Request) {
   // best-effort: 실패해도 결제 흐름 막지 X (Sentry 에 잡힘).
   {
     const { recordPaymentEvent } = await import('@/lib/payment-events')
-    await recordPaymentEvent(supabase, {
+    // ★ordersAdmin — payment_events 는 service_role 만 INSERT 가능(원장
+    //   마이그레이션 명시). 쿠키 클라이언트로 부르면 조용히 거부돼 원장이
+    //   비고, 주간 reconcile 이 이 주문을 영구 mismatch 로 올린다. 취소
+    //   라우트는 2026-07-31 에 같은 함정을 고쳤는데 여기만 남아 있었다.
+    await recordPaymentEvent(ordersAdmin, {
       orderId: order.id,
       paymentKey,
       eventType: isActuallyPaid ? 'paid' : 'webhook_received',

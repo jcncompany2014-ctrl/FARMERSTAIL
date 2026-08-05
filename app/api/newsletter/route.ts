@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { zNewsletterSubscribe } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
@@ -45,14 +45,28 @@ export async function POST(req: Request) {
   const email = parsed.data.email.trim().toLowerCase()
   const source = (parsed.data.source ?? 'web').slice(0, 32)
 
-  const supabase = await createClient()
+  // ★admin — 이 조회는 RLS 로 **항상 0행**이었다(2026-08-05 병렬 감사).
+  //   newsletter_subscribers 에는 anon SELECT 정책이 없다(INSERT + admin 뿐).
+  //   그래서 ① 아래 "이미 구독 중" 안내와 재활성화 경로가 한 번도 실행된 적이
+  //   없고(해지한 사람은 영구히 재구독 불가), ② 항상 insert 로 직행해 UNIQUE
+  //   위반 500 이 났다 — 그 500/200 차이로 **어떤 주소가 명단에 있는지**가
+  //   외부에 드러났다. 규칙1("조회 실패 ≠ 데이터 없음")의 RLS 판이다.
+  //   범위는 코드가 책임진다(.eq('email', ...) — 단일 행).
+  const supabase = createAdminClient()
 
   // 1) 기존 row 확인
-  const { data: existing } = await supabase
+  const { data: existing, error: existingErr } = await supabase
     .from('newsletter_subscribers')
     .select('id, status')
     .eq('email', email)
     .maybeSingle()
+  if (existingErr) {
+    console.error('[newsletter] 기존 구독 조회 실패:', existingErr.message)
+    return NextResponse.json(
+      { code: 'LOOKUP_FAILED', message: '신청 중 오류가 발생했어요.' },
+      { status: 500 },
+    )
+  }
 
   if (existing) {
     if (existing.status === 'confirmed') {

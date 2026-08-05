@@ -5,6 +5,12 @@ import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 
 export const runtime = 'nodejs'
+/**
+ * 제목 고정부 = dedup 앵커(2026-08-05 규칙37). 리터럴을 ilike 에 직접 박으면
+ * 카피를 바꿀 때 가드가 조용히 죽는다 — 같은 날 세 크론에서 실제로 죽어 있었다.
+ */
+const TITLE_ANCHOR = '자가품질검사'
+
 export const dynamic = 'force-dynamic'
 
 /**
@@ -74,7 +80,7 @@ async function runReminder(): Promise<Response> {
       .from('push_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', a.id)
-      .ilike('title', '%자가품질검사%')
+      .ilike('title', `%${TITLE_ANCHOR}%`)
       .gt('sent_at', thirtyDaysAgo)
     if ((recent ?? 0) > 0) {
       skippedSpam += 1
@@ -85,7 +91,7 @@ async function runReminder(): Promise<Response> {
       await pushToUser(
         a.id,
         {
-          title: `[관리자] ${year}년 ${month}월 자가품질검사 점검`,
+          title: `[관리자] ${year}년 ${month}월 ${TITLE_ANCHOR} 점검`,
           body: '사료관리법 별표 8 — 6개월 1회 KAPA 자가품질검사 의무. 마지막 검사일과 다음 일정 확인하세요.',
           url: '/admin',
           tag: `quality-check-${year}-${String(month).padStart(2, '0')}`,

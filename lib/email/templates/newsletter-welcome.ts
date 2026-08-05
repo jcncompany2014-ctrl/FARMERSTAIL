@@ -39,7 +39,7 @@ export function renderNewsletterWelcome(input: {
       아이의 그릇까지, 중간 단계를 줄였어요.
     </p>
     <p style="margin:0 0 14px 0;">
-      앞으로 격주로 한 통, 이런 메일을 보내드릴 거예요.
+      앞으로 한 달에 한 통, 이런 메일을 보내드릴 거예요.
     </p>
     ${block.callout(
       'moss',

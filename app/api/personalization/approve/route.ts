@@ -147,7 +147,14 @@ export async function POST(req: Request) {
     // 미상·제품 없음) 금액은 건드리지 않는다(돈은 추측하지 않는다).
     const box = await boxForApproved(supabase, dogId, pending)
 
-    const { error } = await supabase
+      // ★dog_formulas 쓰기는 service_role 로만(2026-08-05 보안 감사).
+    //   daily_kcal 이 청구액에 **선형 비례**하는데(boxPricing: dailyG =
+    //   ratio × dailyKcal ÷ kcalPer100g) 고객이 REST 로 직접 UPDATE 할 수
+    //   있었다 — subscriptions·orders·profiles 를 컬럼 화이트리스트로 잠가도
+    //   **그 칸에 들어갈 값을 만드는 테이블**이 열려 있으면 소용없다.
+    //   청구 검문소도 같은 행을 재계산하므로 stored == recomputed 로 통과한다.
+    //   소유권은 이 라우트가 위에서 이미 확인했고, 범위는 코드가 책임진다.
+    const { error } = await createAdminClient()
       .from('dog_formulas')
       .update({
         approval_status: 'approved',
@@ -246,7 +253,8 @@ export async function POST(req: Request) {
   }
 
   // decline — 이전 cycle 처방의 applied_until 을 +28일 연장.
-  const { error: declineErr } = await supabase
+  // service_role — 위 approve 와 같은 이유(고객 UPDATE 권한 회수).
+  const { error: declineErr } = await createAdminClient()
     .from('dog_formulas')
     .update({
       approval_status: 'declined',
@@ -279,7 +287,7 @@ export async function POST(req: Request) {
       )
         .toISOString()
         .slice(0, 10)
-      await supabase
+      await createAdminClient()
         .from('dog_formulas')
         .update({ applied_until: extended })
         .eq('id', (prev as { id: string }).id)

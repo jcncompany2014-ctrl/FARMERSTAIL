@@ -260,7 +260,8 @@ export async function POST(req: Request) {
       try {
         v3 = await backfillV3(supabase, user.id, dog)
         if (v3) {
-          await supabase
+          // service_role — 아래 upsert 와 같은 이유(고객 쓰기 권한 회수).
+          await createAdminClient()
             .from('dog_formulas')
             .update({
               formula: {
@@ -638,7 +639,10 @@ export async function POST(req: Request) {
   //     (출력이 deterministic 이라 어느 쪽이 이기든 같은 값)
   // created_at 을 반드시 갱신해야 위쪽 staleness 판정(analysis > formula)이 풀린다.
   // 이게 없으면 매 호출마다 stale 로 판정돼 영원히 재계산한다.
-  const { error: insErr } = await supabase.from('dog_formulas').upsert(
+  // ★service_role — dog_formulas 고객 UPDATE/INSERT 권한 회수(2026-08-05).
+  //   daily_kcal 이 청구액에 선형 비례하므로 고객이 못 쓰게 하고, 이 라우트가
+  //   서버 계산 결과만 쓴다. 소유권은 위에서 dog 를 .eq('user_id') 로 확인했다.
+  const { error: insErr } = await createAdminClient().from('dog_formulas').upsert(
     {
       dog_id: dogId,
       user_id: user.id,

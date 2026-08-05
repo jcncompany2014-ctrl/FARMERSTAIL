@@ -24,6 +24,12 @@ import { trackCron } from '@/lib/cron-tracking'
 import { evaluateInterventionWindow } from '@/lib/intervention-window'
 
 export const runtime = 'nodejs'
+/**
+ * 제목의 고정부 = dedup 앵커. 둘이 갈라지면 14일 가드가 죽는다(2026-08-05).
+ * 문구를 바꿀 땐 여기만 바꾼다 — 발송과 조회가 같은 문자열을 쓴다.
+ */
+const ALERT_TITLE_ANCHOR = '체중 흐름을 살펴봤어요'
+
 export const dynamic = 'force-dynamic'
 
 interface DogRow {
@@ -102,7 +108,11 @@ async function runAlerts(): Promise<Response> {
   const { data: recentPushesRaw } = await admin
     .from('push_log')
     .select('user_id, title, sent_at')
-    .ilike('title', '%체중 추세 경보%')
+    // ★dedup 앵커는 **발송 제목과 같은 상수**에서 나와야 한다(2026-08-05).
+    //   브랜드 보이스 스윕으로 제목을 바꿀 때 이 필터를 같이 안 바꿔서
+    //   14일 가드가 통째로 죽어 있었다(ilike 가 영원히 0건 → 매주 재발송).
+    //   여기 경보는 nudge 상한도 안 걸려서 매주 화요일마다 반복됐다.
+    .ilike('title', `%${ALERT_TITLE_ANCHOR}%`)
     .gte('sent_at', fourteenDaysAgo)
   const recentPushes = (recentPushesRaw ?? []) as Array<{ user_id: string }>
   const recentlyPushed = new Set(recentPushes.map((p) => p.user_id))
@@ -154,7 +164,7 @@ async function runAlerts(): Promise<Response> {
         await pushToUser(
           dog.user_id,
           {
-            title: `${petName(dog.name)} 체중 흐름을 살펴봤어요`,
+            title: `${petName(dog.name)} ${ALERT_TITLE_ANCHOR}`,
             body: window.userMessage,
             // 사용자용 /simulate 페이지는 미구현(시뮬레이터는 admin 전용)이라
             // 탭 시 404 였음. 자매 cron weight-change-detect 과 동일하게 실존

@@ -6,6 +6,12 @@ import { trackCron } from '@/lib/cron-tracking'
 import { petName } from '@/lib/korean'
 
 export const runtime = 'nodejs'
+/**
+ * 제목 고정부 = dedup 앵커(2026-08-05 규칙37). 리터럴을 ilike 에 직접 박으면
+ * 카피를 바꿀 때 가드가 조용히 죽는다 — 같은 날 세 크론에서 실제로 죽어 있었다.
+ */
+const TITLE_ANCHOR = '다음 영양 진단'
+
 export const dynamic = 'force-dynamic'
 
 /**
@@ -103,7 +109,7 @@ async function runReminder(): Promise<Response> {
       .from('push_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', r.user_id)
-      .ilike('title', '%다음 영양 진단%')
+      .ilike('title', `%${TITLE_ANCHOR}%`)
       .gt('sent_at', thirtyDaysAgo)
     if ((recent ?? 0) > 0) {
       skippedSpam += 1
@@ -117,7 +123,7 @@ async function runReminder(): Promise<Response> {
       await pushToUser(
         r.user_id,
         {
-          title: `${petName(dogName)}의 다음 영양 진단 시기예요`,
+          title: `${petName(dogName)}의 ${TITLE_ANCHOR} 시기예요`,
           body: '지난 분석 후 6개월이 지났어요. 체중·활동량 변화가 있을 수 있어 재진단을 추천드려요.',
           url: `/dogs/${r.dog_id}/survey`,
           tag: `reanalysis-6m-${r.dog_id}`,

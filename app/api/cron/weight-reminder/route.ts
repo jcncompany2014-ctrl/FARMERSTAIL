@@ -7,6 +7,9 @@ import { petName } from '@/lib/korean'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
+/** 제목 고정부 = dedup 앵커(2026-08-05). 갈라지면 14일 가드가 죽는다. */
+const REMINDER_TITLE_ANCHOR = '체중을 측정해보세요'
+
 export const dynamic = 'force-dynamic'
 
 /**
@@ -120,7 +123,11 @@ export async function GET(req: Request) {
       .from('push_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .ilike('title', '%체중 측정해보세요%')
+    // ★dedup 앵커는 **발송 제목과 같은 상수**에서 나와야 한다(2026-08-05).
+    //   브랜드 보이스 스윕으로 제목을 바꿀 때 이 필터를 같이 안 바꿔서
+    //   14일 가드가 통째로 죽어 있었다(ilike 가 영원히 0건 → 매주 재발송).
+    //   여기는 조사 '을' 한 글자 차이였다("체중 측정" vs "체중을 측정").
+      .ilike('title', `%${REMINDER_TITLE_ANCHOR}%`)
       .gt(
         'sent_at',
         new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
@@ -137,8 +144,8 @@ export async function GET(req: Request) {
     const more = dogs.length > 3 ? ` 외 ${dogs.length - 3}` : ''
     const title =
       dogs.length === 1
-        ? `${petName(dogNames)} 체중을 측정해보세요`
-        : `${dogNames}${more} 체중을 측정해보세요`
+        ? `${petName(dogNames)} ${REMINDER_TITLE_ANCHOR}`
+        : `${dogNames}${more} ${REMINDER_TITLE_ANCHOR}`
     const body =
       '4주마다 측정하면 더 정확한 맞춤 식단을 만들 수 있어요.'
 
