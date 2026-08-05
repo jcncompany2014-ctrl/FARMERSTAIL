@@ -17,6 +17,8 @@ const DISMISS_KEY = 'ft_install_prompt_dismissed_at'
 const RESURFACE_MS = 14 * 24 * 60 * 60 * 1000
 // Only surface after the user has had at least one meaningful navigation to
 // avoid popping on a cold first-load.
+import { isStandaloneApp } from '@/lib/standalone'
+
 const MIN_DELAY_MS = 4000
 
 /**
@@ -35,13 +37,9 @@ function cookieConsentPending(): boolean {
   }
 }
 
-function isStandalone(): boolean {
-  if (typeof window === 'undefined') return false
-  if (window.matchMedia?.('(display-mode: standalone)').matches) return true
-  // iOS Safari
-  const navAny = window.navigator as Navigator & { standalone?: boolean }
-  return Boolean(navAny.standalone)
-}
+// standalone 판정은 lib/standalone 정본을 쓴다(2026-08-05) — 같은 규칙이
+// 여기와 VetReportPrintButton 두 곳에 따로 있으면 갈라진다.
+const isStandalone = isStandaloneApp
 
 function detectIOS(): boolean {
   if (typeof window === 'undefined') return false

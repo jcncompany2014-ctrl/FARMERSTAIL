@@ -52,6 +52,12 @@ export default function AnalysisStickySummary({
       } catch {
         toast.error('공유하지 못했어요')
       }
+    } else {
+      // ★두 경로가 다 없으면 **아무 일도 일어나지 않았다**(2026-08-05).
+      //   share 도 clipboard 도 보안 컨텍스트·브라우저에 따라 없을 수 있는데
+      //   else 가 없어서 버튼을 눌러도 화면이 그대로였다 — 고객에게 무반응은
+      //   고장과 구분되지 않는다. 실패는 실패라고 말한다.
+      toast.info('이 브라우저에서는 공유가 안 돼요. 주소창의 링크를 복사해 주세요')
     }
   }
 
