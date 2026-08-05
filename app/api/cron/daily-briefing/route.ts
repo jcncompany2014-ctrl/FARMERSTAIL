@@ -136,7 +136,20 @@ async function runDailyBriefing(): Promise<Response> {
       .eq('status', 'succeeded'),
   ])
 
+  // ★조회 실패를 0건으로 접지 않는다(2026-08-05 병렬 감사).
+  //   전에는 `r.count ?? 0` 하나로 끝나서, DB 가 흔들린 아침엔 미발송·결제
+  //   실패·환불 대기가 전부 0 으로 접혀 사장님 폰에 **"오늘 처리할 일이
+  //   없어요 ☀️"** 가 갔다. 발송일(화) 아침 브리핑이 유일한 운영 신호인데
+  //   그게 거짓말을 하면 하루가 통째로 날아간다. 규칙1 그대로다.
+  //   못 센 항목이 있으면 브리핑 맨 위에 그렇게 적는다 — 사람은 "0"과
+  //   "못 셌음"을 구분해야 판단할 수 있다.
+  const countFailures: string[] = []
   const n = (r: { count: number | null }) => r.count ?? 0
+  const nOf = (label: string, r: { count: number | null; error?: unknown }) => {
+    const err = (r as { error?: { message?: string } | null }).error
+    if (err) countFailures.push(`${label}: ${err.message ?? '조회 실패'}`)
+    return r.count ?? 0
+  }
   // ── 크론 워치독 (2026-07-29 최종감사 #10) ──────────────────────────
   // Vercel 이 크론을 조용히 거른다(청구 크론 30일 중 25일 실행 실측). 실행률
   // 자체는 코드로 못 고치므로, "어제 돌았어야 했는데 기록이 없는 자동작업"을
@@ -180,19 +193,33 @@ async function runDailyBriefing(): Promise<Response> {
       isShipDay ? `📦 오늘 발송 ${boxes}박스` : `📦 다음 발송 ${boxes}박스`,
     )
   }
-  if (n(unshipped) > 0) items.push(`🚚 미발송 ${n(unshipped)}건`)
-  if (n(shippingStuck) > 0) items.push(`⏳ 배송 지연 ${n(shippingStuck)}건`)
-  if (n(failedCharge) > 0) items.push(`💳 결제 실패 ${n(failedCharge)}건`)
-  if (n(cardRenewal) > 0) items.push(`🔁 카드 재등록 대기 ${n(cardRenewal)}건`)
-  if (n(refundsPending) > 0) items.push(`↩️ 환불 대기 ${n(refundsPending)}건`)
-  if (n(unreadCs) > 0) items.push(`✉️ 답장 대기 ${n(unreadCs)}건`)
-  if (n(stockOut) > 0) items.push(`📉 품절 ${n(stockOut)}개`)
+  const cUnshipped = nOf('미발송', unshipped)
+  if (cUnshipped > 0) items.push(`🚚 미발송 ${cUnshipped}건`)
+  const cStuck = nOf('배송 지연', shippingStuck)
+  if (cStuck > 0) items.push(`⏳ 배송 지연 ${cStuck}건`)
+  const cFailed = nOf('결제 실패', failedCharge)
+  if (cFailed > 0) items.push(`💳 결제 실패 ${cFailed}건`)
+  const cRenewal = nOf('카드 재등록 대기', cardRenewal)
+  if (cRenewal > 0) items.push(`🔁 카드 재등록 대기 ${cRenewal}건`)
+  const cRefund = nOf('환불 대기', refundsPending)
+  if (cRefund > 0) items.push(`↩️ 환불 대기 ${cRefund}건`)
+  const cCs = nOf('답장 대기', unreadCs)
+  if (cCs > 0) items.push(`✉️ 답장 대기 ${cCs}건`)
+  const cStock = nOf('품절', stockOut)
+  if (cStock > 0) items.push(`📉 품절 ${cStock}개`)
+
+  // 못 센 항목은 맨 앞에 — 아래 숫자가 전부가 아닐 수 있다는 걸 먼저 말한다.
+  if (countFailures.length > 0) {
+    items.unshift(`⚠️ ${countFailures.length}개 항목을 못 셌어요(어드민에서 직접 확인 필요)`)
+  }
 
   const title = isShipDay ? '오늘은 발송일이에요 📦' : '오늘의 운영 브리핑'
   const body =
     items.length > 0
       ? items.join(' · ')
-      : '오늘 처리할 일이 없어요 ☀️ 편하게 시작하세요.'
+      : // ★"할 일 없음"은 **전부 정상적으로 세어 0이었을 때만** 할 수 있는 말이다.
+        //   못 센 게 있으면 위 unshift 로 items 가 비지 않으므로 여기 안 온다.
+        '오늘 처리할 일이 없어요 ☀️ 편하게 시작하세요.'
 
   // admin 계정 전부(현재는 사장님 1명).
   const { data: admins } = await supabase

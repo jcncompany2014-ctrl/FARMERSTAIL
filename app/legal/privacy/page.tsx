@@ -15,7 +15,12 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-const EFFECTIVE_DATE = '2026-05-27'
+// ★2026-08-05 개정 — 기재를 실물에 맞춘 정정이다(내용상 불이익 변경 아님).
+//   privacy: 카카오 수집항목(이름·출생연도)·Apple 로그인 누락 보완.
+//   terms:   발송 시기(매주 화요일)·배송비(구독료 포함, 추가 없음) 정정.
+//   출시 전이라 공지 대상 회원이 없다. 회원이 생긴 뒤의 개정은 약관 제3조대로
+//   시행일 7일(불리한 변경 30일) 전 공지가 필요하다.
+const EFFECTIVE_DATE = '2026-08-05'
 
 /**
  * 개인정보처리방침.
@@ -62,9 +67,25 @@ export default function PrivacyPage() {
             필수 항목
           </p>
           <UL>
+            {/* ★2026-08-05 정정 — 기재가 실제 수집과 달랐다.
+                · 카카오: 심사 통과 항목은 이름·출생연도이고 코드도 출생연도를
+                  파싱해 저장한다(lib/auth/kakaoProfile · auth/callback). 방침엔
+                  '프로필 닉네임'만 적혀 있고 이름·출생연도가 없었다.
+                  전화번호는 카카오 심사 반려로 동의항목에서 뺐다(가입 단계
+                  미수집) — 주문 화면에서 받으므로 아래 '주문/배송 시'에 있다.
+                · 애플: 가입 동선에 실재하는데(AppleLoginButton — 로그인·
+                  간편가입 두 곳) 수집항목·위탁·국외이전 어디에도 없었다.
+                개인정보보호법 제30조(기재 정확성) 문제라 실물에 맞춰 고쳤다. */}
             <li>
-              <b>회원가입 시:</b> 이메일, 비밀번호, 카카오 로그인 시
-              카카오 계정 식별자 및 프로필 닉네임
+              <b>회원가입 시:</b> 이메일, 비밀번호
+            </li>
+            <li>
+              <b>카카오 로그인 시:</b> 카카오 계정 식별자, 이메일, 이름,
+              출생연도 (전화번호는 수집하지 않습니다)
+            </li>
+            <li>
+              <b>Apple 로그인 시:</b> Apple 계정 식별자, 이메일(회원이 선택한
+              경우 Apple 이 제공하는 비공개 전달 주소), 이름
             </li>
             <li>
               <b>주문/배송 시:</b> 수령인 이름, 전화번호, 배송지 주소,
@@ -453,6 +474,33 @@ export default function PrivacyPage() {
                     이메일 발송 시점
                     <br />
                     HTTPS API 호출
+                  </td>
+                </tr>
+                {/* ★Apple 추가(2026-08-05) — 가입 동선에 Apple 로그인이 실재하는데
+                    이 표에 빠져 있었다. 소셜 로그인은 인증 과정에서 계정 정보가
+                    해당 사업자로 오가므로 국외 이전 고지 대상이다. */}
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--fd-line)' }}
+                  >
+                    Apple Inc.
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--fd-line)' }}
+                  >
+                    미국
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--fd-line)' }}
+                  >
+                    Apple 계정 식별자, 이메일, 이름
+                    <br />
+                    Apple 로그인 시점
+                    <br />
+                    HTTPS(OAuth) 통신
                   </td>
                 </tr>
                 <tr>
