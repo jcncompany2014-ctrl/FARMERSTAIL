@@ -248,11 +248,25 @@ When a Vercel build fails on something local tsc missed, before assuming it's fl
   Recovery: stop dev server → `rm -rf .next` → start dev server.
 - If that passes but Vercel still fails, then it's a Vercel environment issue (Node version, env var, etc). Otherwise, the bug is real.
 
+# `npm run verify` 는 CI 와 같은 게이트여야 한다 (2026-08-05)
+
+이번 세션에 **커밋 20개가 연속으로 CI 빨간불**이었고, 사장님 메일함이 실패
+알림으로 찼다. 나는 매번 tsc·eslint·테스트·프로덕션 빌드를 돌리고 "검증
+통과"라고 보고했는데, CI 에는 **job 이 하나 더** 있었다:
+
+    npm audit --omit=dev --audit-level=high     ← 로컬 verify 에 없던 것
+
+로컬에서 아무리 초록이어도 CI 가 보는 게이트가 더 넓으면 소용없다. 그래서
+`verify` 에 `audit:ci` 를 넣어 **로컬 체인 = CI 체인**으로 맞췄다.
+CI(.github/workflows/ci.yml)에 job 을 추가하면 `verify` 에도 같이 넣는다.
+(실제로 막힌 것: next 16.2.6 의 Middleware/Proxy bypass 등 high 9건. 우리는
+proxy.ts 로 앱/웹 분리와 admin 가드를 하므로 직접 해당했다.)
+
 # Commit / push checklist
 
 Before `git push`, mentally run through:
 
-1. `npm run verify` — passes? (or at minimum `npx tsc --noEmit` no-pipe)
+1. `npm run verify` — passes? (eslint + tsc + tests + **prod audit**)
 2. Pre-commit hook ran on `git commit`? (look for `[pre-commit] eslint + tsc...` in commit output)
 3. Touched a server↔client boundary or route signature? → consider `rm -rf .next && npx next build` once before push.
 
