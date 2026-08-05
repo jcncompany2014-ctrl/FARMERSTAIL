@@ -52,28 +52,55 @@ export async function GET(req: Request) {
     const supabase = createAdminClient()
 
   // 1) 활성 정기구독 list + items 한 번에.
-  const { data: subsRaw } = await supabase
+  const { data: subsRaw, error: subsRawErr } = await supabase
     .from('subscriptions')
     .select('id, status, next_delivery_date, total_amount')
     .eq('status', 'active')
     .limit(1000)
+  // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
+  // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
+  if (subsRawErr) {
+    console.error('[inventory-forecast] 구독 목록 조회 실패:', subsRawErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'subsRaw', error: subsRawErr.message },
+      { status: 500 },
+    )
+  }
   const subs = (subsRaw ?? []) as SubscriptionRow[]
   if (subs.length === 0) {
     return NextResponse.json({ ok: true, message: 'no active subs' })
   }
 
   const subIds = subs.map((s) => s.id)
-  const { data: itemsRaw } = await supabase
+  const { data: itemsRaw, error: itemsRawErr } = await supabase
     .from('subscription_items')
     .select('subscription_id, product_id, quantity')
     .in('subscription_id', subIds)
+  // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
+  // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
+  if (itemsRawErr) {
+    console.error('[inventory-forecast] 구독 품목 조회 실패:', itemsRawErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'itemsRaw', error: itemsRawErr.message },
+      { status: 500 },
+    )
+  }
   const items = (itemsRaw ?? []) as SubItemRow[]
 
   const productIds = Array.from(new Set(items.map((i) => i.product_id)))
-  const { data: productsRaw } = await supabase
+  const { data: productsRaw, error: productsRawErr } = await supabase
     .from('products')
     .select('id, name, stock, net_weight_g')
     .in('id', productIds)
+  // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
+  // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
+  if (productsRawErr) {
+    console.error('[inventory-forecast] 제품 조회 실패:', productsRawErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'productsRaw', error: productsRawErr.message },
+      { status: 500 },
+    )
+  }
   const products = (productsRaw ?? []) as ProductRow[]
   const prodById = new Map(products.map((p) => [p.id, p]))
 

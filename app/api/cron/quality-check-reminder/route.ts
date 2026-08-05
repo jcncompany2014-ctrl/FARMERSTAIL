@@ -46,12 +46,21 @@ async function runReminder(): Promise<Response> {
   const admin = supabase as any
 
   // admin user 픽업 — profiles.role='admin'.
-  const { data: adminProfiles } = await admin
+  const { data: adminProfiles, error: adminProfilesErr } = await admin
     .from('profiles')
     .select('id, name')
     .eq('role', 'admin')
     .limit(20)
 
+  // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
+  // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
+  if (adminProfilesErr) {
+    console.error('[quality-check-reminder] 운영자 프로필 조회 실패:', adminProfilesErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'quality-check-reminder', error: adminProfilesErr.message },
+      { status: 500 },
+    )
+  }
   const admins = (adminProfiles ?? []) as Array<{ id: string; name: string | null }>
 
   if (admins.length === 0) {

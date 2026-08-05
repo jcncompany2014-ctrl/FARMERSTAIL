@@ -85,13 +85,19 @@ export async function GET(req: Request) {
       name: string
     }>
     for (const dog of dogList) {
-      const { data: last } = await supabase
+      const { data: last, error: lastErr } = await supabase
         .from('weight_logs')
         .select('measured_at')
         .eq('dog_id', dog.id)
         .order('measured_at', { ascending: false })
         .limit(1)
         .maybeSingle()
+      // 실패를 "기록 없음"으로 읽으면 **방금 체중을 잰 보호자에게** 측정
+      // 알림이 간다. 모르면 안 보낸다.
+      if (lastErr) {
+        console.error('[weight-reminder] 마지막 기록 조회 실패, 건너뜀:', lastErr.message)
+        continue
+      }
       const lastDate =
         (last as { measured_at?: string } | null)?.measured_at ?? null
       if (!lastDate || lastDate <= cutoff) {

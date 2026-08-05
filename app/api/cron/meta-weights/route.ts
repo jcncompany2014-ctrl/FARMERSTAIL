@@ -41,12 +41,21 @@ export async function GET(req: Request) {
 
   // 최근 30일 sensitivity_snapshots
   const since = new Date(Date.now() - 30 * 86_400_000).toISOString()
-  const { data: snapshots } = await supabase
+  const { data: snapshots, error: snapshotsErr } = await supabase
     .from('dog_sensitivity_snapshots')
     .select('top_variable, top_delta')
     .gte('snapshot_at', since)
     .limit(10_000)
 
+  // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
+  // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
+  if (snapshotsErr) {
+    console.error('[meta-weights] 민감도 스냅샷 조회 실패:', snapshotsErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'snapshots', error: snapshotsErr.message },
+      { status: 500 },
+    )
+  }
   const histogram: Record<string, { count: number; avgDelta: number }> = {}
   const rows = (snapshots ?? []) as Array<{
     top_variable: string

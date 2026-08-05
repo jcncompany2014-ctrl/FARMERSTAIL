@@ -67,7 +67,7 @@ async function runReport(): Promise<Response> {
   const { key: quarterKey, label: quarterLabel } = quarterInfo(new Date())
 
   // 1) 강아지별 최신 분석 (created_at DESC dedup) — N+1 회피, 1 round-trip.
-  const { data: analyses } = await admin
+  const { data: analyses, error: analysesErr } = await admin
     .from('analyses')
     .select(
       'dog_id, user_id, created_at, protein_pct, fat_pct, mer, feed_g, bcs_label, dogs(name, weight)',
@@ -89,6 +89,15 @@ async function runReport(): Promise<Response> {
       | Array<{ name: string | null; weight: number | null }>
       | null
   }
+  // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
+  // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
+  if (analysesErr) {
+    console.error('[quarterly-report] 분석 이력 조회 실패:', analysesErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'quarterly-report', error: analysesErr.message },
+      { status: 500 },
+    )
+  }
   const rows = (analyses ?? []) as Row[]
   const latestByDog = new Map<string, Row>()
   for (const r of rows) {
@@ -101,11 +110,20 @@ async function runReport(): Promise<Response> {
   const eligible = new Map<string, { email: string; name: string }>()
   for (let i = 0; i < userIds.length; i += PROFILE_CHUNK) {
     const chunk = userIds.slice(i, i + PROFILE_CHUNK)
-    const { data: profiles } = await admin
+    const { data: profiles, error: profilesErr } = await admin
       .from('profiles')
       .select('id, email, name, tier')
       .in('id', chunk)
       .in('tier', SPROUT_OR_HIGHER_TIERS)
+    // ★분기 1회 크론이라, 여기서 접히면 등급 혜택 리포트가 **3개월 통째로**
+    //   조용히 유실된다. 다음 기회가 90일 뒤다.
+    if (profilesErr) {
+      console.error('[quarterly-report] 수신자 프로필 조회 실패:', profilesErr.message)
+      return NextResponse.json(
+        { ok: false, reason: 'profiles_lookup_failed', error: profilesErr.message },
+        { status: 500 },
+      )
+    }
     for (const p of (profiles ?? []) as Array<{
       id: string
       email: string | null

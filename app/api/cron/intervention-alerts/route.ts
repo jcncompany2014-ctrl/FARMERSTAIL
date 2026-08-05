@@ -64,10 +64,19 @@ async function runAlerts(): Promise<Response> {
   const admin = supabase as any
 
   // 1) 활성 dog (지난 30일 active dog — sub 또는 weight log 존재)
-  const { data: dogsRaw } = await admin
+  const { data: dogsRaw, error: dogsRawErr } = await admin
     .from('dogs')
     .select('id, user_id, name, weight')
     .limit(500)
+  // ★조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1). 여기서 접히면
+  //   "경보 대상이 없었다"가 되어 크론은 초록인데 체중 이상이 방치된다.
+  if (dogsRawErr) {
+    console.error('[intervention-alerts] 강아지 조회 실패:', dogsRawErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'dogsRaw', error: dogsRawErr.message },
+      { status: 500 },
+    )
+  }
   const dogs = (dogsRaw ?? []) as DogRow[]
   if (dogs.length === 0) {
     return NextResponse.json({ ok: true, message: 'no dogs' })
@@ -76,12 +85,21 @@ async function runAlerts(): Promise<Response> {
   // 2) 최근 6개월 체중 — 한 번에 fetch
   const sinceIso = new Date(Date.now() - 180 * 86_400_000).toISOString()
   const dogIds = dogs.map((d) => d.id)
-  const { data: weightsRaw } = await admin
+  const { data: weightsRaw, error: weightsRawErr } = await admin
     .from('weight_logs')
     .select('dog_id, measured_at, weight')
     .in('dog_id', dogIds)
     .gte('measured_at', sinceIso)
     .order('measured_at', { ascending: true })
+  // ★조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1). 여기서 접히면
+  //   "경보 대상이 없었다"가 되어 크론은 초록인데 체중 이상이 방치된다.
+  if (weightsRawErr) {
+    console.error('[intervention-alerts] 체중 기록 조회 실패:', weightsRawErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'weightsRaw', error: weightsRawErr.message },
+      { status: 500 },
+    )
+  }
   const weights = (weightsRaw ?? []) as WeightRow[]
   const weightsByDog = new Map<string, WeightRow[]>()
   for (const w of weights) {
@@ -91,11 +109,20 @@ async function runAlerts(): Promise<Response> {
   }
 
   // 3) 최근 survey — 한 번에 fetch (dog 별 최신 1건은 client 에서 reduce)
-  const { data: surveysRaw } = await admin
+  const { data: surveysRaw, error: surveysRawErr } = await admin
     .from('surveys')
     .select('dog_id, answers, created_at')
     .in('dog_id', dogIds)
     .order('created_at', { ascending: false })
+  // ★조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1). 여기서 접히면
+  //   "경보 대상이 없었다"가 되어 크론은 초록인데 체중 이상이 방치된다.
+  if (surveysRawErr) {
+    console.error('[intervention-alerts] 설문 조회 실패:', surveysRawErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'surveysRaw', error: surveysRawErr.message },
+      { status: 500 },
+    )
+  }
   const surveys = (surveysRaw ?? []) as SurveyRow[]
   const latestSurveyByDog = new Map<string, SurveyRow>()
   for (const s of surveys) {
@@ -105,7 +132,7 @@ async function runAlerts(): Promise<Response> {
   // 4) 14일 dedupe — push_log.title pattern 으로 검색 (push_log.category 는
   //    PushCategory enum 제한이라 자체 dedupe key 못 쓰는 점 우회).
   const fourteenDaysAgo = new Date(Date.now() - 14 * 86_400_000).toISOString()
-  const { data: recentPushesRaw } = await admin
+  const { data: recentPushesRaw, error: recentPushesRawErr } = await admin
     .from('push_log')
     .select('user_id, title, sent_at')
     // ★dedup 앵커는 **발송 제목과 같은 상수**에서 나와야 한다(2026-08-05).
@@ -114,6 +141,15 @@ async function runAlerts(): Promise<Response> {
     //   여기 경보는 nudge 상한도 안 걸려서 매주 화요일마다 반복됐다.
     .ilike('title', `%${ALERT_TITLE_ANCHOR}%`)
     .gte('sent_at', fourteenDaysAgo)
+  // ★조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1). 여기서 접히면
+  //   "경보 대상이 없었다"가 되어 크론은 초록인데 체중 이상이 방치된다.
+  if (recentPushesRawErr) {
+    console.error('[intervention-alerts] 최근 발송 이력 조회 실패:', recentPushesRawErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'recentPushesRaw', error: recentPushesRawErr.message },
+      { status: 500 },
+    )
+  }
   const recentPushes = (recentPushesRaw ?? []) as Array<{ user_id: string }>
   const recentlyPushed = new Set(recentPushes.map((p) => p.user_id))
 

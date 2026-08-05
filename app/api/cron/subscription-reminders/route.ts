@@ -102,10 +102,19 @@ export async function GET(req: Request) {
 
   // 수신자 프로필 일괄 조회 (in-list).
   const userIds = [...new Set(dueSubs.map((d) => d.sub.user_id))]
-  const { data: profiles } = await admin
+  const { data: profiles, error: profilesErr } = await admin
     .from('profiles')
     .select('id, name, email')
     .in('id', userIds)
+  // 프로필 조회 실패를 빈 맵으로 접으면 **이메일만 조용히 누락**되고 푸시는
+  // 나간다 — 받는 사람은 절반만 받은 걸 알 수 없다(2026-08-05 · 규칙1).
+  if (profilesErr) {
+    console.error('[subscription-reminders] 수신자 프로필 조회 실패:', profilesErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'profiles_lookup_failed', error: profilesErr.message },
+      { status: 500 },
+    )
+  }
   const profileById = new Map<string, ProfileRow>(
     ((profiles ?? []) as ProfileRow[]).map((p) => [p.id, p]),
   )

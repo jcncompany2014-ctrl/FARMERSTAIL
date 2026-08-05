@@ -376,7 +376,13 @@ async function runSubscriptionCharge(): Promise<Response> {
     //      하지 않는다. 재청구 가드가 next_delivery_date 한 곳에만 의존하면, 후속
     //      update 실패로 날짜가 안 밀릴 때 다음날 cron 이 다른 scheduled_for/
     //      idempotencyKey 로 카드를 2회 청구하는 사고가 난다.
-    const { data: pendingCharges } = await (
+    //      ★이 조회의 error 를 반드시 본다(2026-08-05 병렬 감사). 예전 캐스트
+    //      타입에는 `error` 필드가 아예 없어서 **구조적으로 오류를 볼 수 없었고**,
+    //      조회가 실패하면 pendingCharges 가 null → `?? []` → find 가 undefined
+    //      → **가드가 조용히 통과**했다. DB 불안정은 뭉쳐서 오므로, 후속 update 가
+    //      실패한 바로 그 상황에서 이 조회도 실패할 확률이 높다 — 즉 가드가 가장
+    //      필요한 순간에 열린다. 규칙32 정규식도 `await (` 형태는 못 잡는다.
+    const { data: pendingCharges, error: pendingErr } = await (
       supabase as unknown as {
         from: (t: string) => {
           select: (c: string) => {
@@ -384,6 +390,7 @@ async function runSubscriptionCharge(): Promise<Response> {
               eq: (col2: string, v2: string) => {
                 limit: (n: number) => Promise<{
                   data: Array<{ id: string; payment_key: string | null }> | null
+                  error: { message: string } | null
                 }>
               }
             }
@@ -396,6 +403,16 @@ async function runSubscriptionCharge(): Promise<Response> {
       .eq('subscription_id', sub.id)
       .eq('status', 'pending')
       .limit(5)
+    // 조회 실패 = 미확정 청구가 있는지 **모른다**. 모르면 긁지 않는다 —
+    // 이 구독은 건너뛰고 다음 실행에 맡긴다(하루 늦는 것 < 이중청구).
+    if (pendingErr) {
+      captureBusinessEvent('error', 'subscription.charge.guard_lookup_failed', {
+        subscriptionId: sub.id,
+        note: '미확정 청구 조회 실패 — 이중청구 방지를 위해 이번 회차 건너뜀',
+      })
+      skipped++
+      continue
+    }
     const unresolved = (pendingCharges ?? []).find((c) => c.payment_key)
     if (unresolved) {
       // 돈은 청구됐는데 주문/구독 미확정 → 재청구 금지 + 알림(수동/reconcile 처리).

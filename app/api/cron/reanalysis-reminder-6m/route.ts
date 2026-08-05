@@ -64,7 +64,7 @@ async function runReminder(): Promise<Response> {
   // 2) 같은 dog 의 row 중 가장 최신 created_at 만 dedup.
   // 3) 그 최신 created_at 이 [210d ago, 180d ago] window 면 candidate.
   // 이렇게 하면 candidate 마다 추가 쿼리 없음 (1 round-trip).
-  const { data: analyses } = await admin
+  const { data: analyses, error: analysesErr } = await admin
     .from('analyses')
     .select('dog_id, user_id, created_at, dogs(name)')
     .gte('created_at', twoTenDaysAgo) // 210일 이전은 cutoff
@@ -79,6 +79,15 @@ async function runReminder(): Promise<Response> {
       | { name: string | null }
       | Array<{ name: string | null }>
       | null
+  }
+  // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
+  // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
+  if (analysesErr) {
+    console.error('[reanalysis-reminder-6m] 분석 이력 조회 실패:', analysesErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'reanalysis-reminder-6m', error: analysesErr.message },
+      { status: 500 },
+    )
   }
   const rows = (analyses ?? []) as Row[]
 

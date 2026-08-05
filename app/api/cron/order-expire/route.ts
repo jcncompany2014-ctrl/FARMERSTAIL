@@ -97,7 +97,7 @@ async function runOrderExpire(): Promise<Response> {
     //   복원 → 결제 성사 주문이 사라지고 재고가 유령 증가했다. confirm 라우트는
     //   반대 방향(.eq('payment_status','pending'))을 자체 가드하므로, 선점 가드를
     //   여기에 추가하면 양방향 레이스가 닫힌다.
-    const { data: claimed } = await supabase
+    const { data: claimed, error: claimedErr } = await supabase
       .from('orders')
       .update({
         payment_status: 'cancelled',
@@ -113,17 +113,31 @@ async function runOrderExpire(): Promise<Response> {
       .eq('payment_status', 'pending')
       .eq('order_status', 'pending')
       .select('id')
+    // 선점 실패를 "만료할 주문 없음"으로 읽으면 미결제 주문이 영영 안 닫힌다.
+    if (claimedErr) {
+      console.error('[order-expire] 만료 대상 선점 실패:', claimedErr.message)
+      return NextResponse.json(
+        { ok: false, reason: 'claim_failed', error: claimedErr.message },
+        { status: 500 },
+      )
+    }
     if (!claimed || claimed.length === 0) {
       // 사용자가 그 사이 결제 완료(confirm → paid) → 건드리지 않고 다음 주문.
       continue
     }
 
     // 1) 항목 fetch + stock 복원. (선점 성공한 주문만)
-    const { data: items } = await supabase
+    const { data: items, error: itemsErr } = await supabase
       .from('order_items')
       .select('id, product_id, quantity, line_total')
       .eq('order_id', ord.id)
       .is('cancelled_at', null)
+    // 재고 복구용 품목 조회 — 실패를 "품목 없음"으로 읽으면 재고가 영영
+    // 안 돌아온다. 주문은 이미 취소됐으니 이 건만 남기고 사람에게 알린다.
+    if (itemsErr) {
+      console.error('[order-expire] 주문 품목 조회 실패(재고 미복구):', ord.id, itemsErr.message)
+      continue
+    }
     const itemsArr = (items ?? []) as Array<{
       id: string
       product_id: string

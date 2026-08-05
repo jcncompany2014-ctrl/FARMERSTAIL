@@ -114,7 +114,7 @@ export async function GET(req: Request) {
 
       // 2) 이전 cycle 의 applied_until 을 +28d 연장 (이전 처방 유지).
       if (row.cycle_number > 1) {
-        const { data: prev } = await supabase
+        const { data: prev, error: prevErr } = await supabase
           .from('dog_formulas')
           .select('id, applied_until')
           .eq('dog_id', row.dog_id)
@@ -124,6 +124,11 @@ export async function GET(req: Request) {
           id: string
           applied_until: string | null
         } | null
+        // 실패를 "직전 회차 없음"으로 읽으면 연장이 조용히 누락된다.
+        if (prevErr) {
+          console.error('[personalization-approval-timeout] 직전 회차 조회 실패:', prevErr.message)
+          continue
+        }
         if (prevTyped && prevTyped.applied_until) {
           const newUntil = new Date(prevTyped.applied_until)
           newUntil.setDate(newUntil.getDate() + 28)

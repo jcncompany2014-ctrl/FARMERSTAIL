@@ -89,7 +89,7 @@ async function runDetect(): Promise<Response> {
 
   for (const dog of dogList) {
     // 최근 weight (지난 7일 이내 측정만 — 너무 오래되면 의미 없음)
-    const { data: latestRow } = await admin
+    const { data: latestRow, error: latestRowErr } = await admin
       .from('weight_logs')
       .select('weight, measured_at')
       .eq('dog_id', dog.id)
@@ -98,6 +98,12 @@ async function runDetect(): Promise<Response> {
       .limit(1)
       .maybeSingle()
 
+    // 실패를 "기록 없음"으로 읽으면 체중 변화를 못 본 채 정상 처리된다.
+    if (latestRowErr) {
+      console.error('[weight-change-detect] 최근 체중 조회 실패, 건너뜀:', latestRowErr.message)
+      skippedNoData += 1
+      continue
+    }
     const latest = latestRow as { weight: number; measured_at: string } | null
     if (!latest) {
       skippedNoData += 1
@@ -105,7 +111,7 @@ async function runDetect(): Promise<Response> {
     }
 
     // baseline — 21~35일 전 측정 1건.
-    const { data: baselineRow } = await admin
+    const { data: baselineRow, error: baselineRowErr } = await admin
       .from('weight_logs')
       .select('weight, measured_at')
       .eq('dog_id', dog.id)
@@ -115,6 +121,11 @@ async function runDetect(): Promise<Response> {
       .limit(1)
       .maybeSingle()
 
+    if (baselineRowErr) {
+      console.error('[weight-change-detect] 기준 체중 조회 실패, 건너뜀:', baselineRowErr.message)
+      skippedNoData += 1
+      continue
+    }
     const baseline = baselineRow as { weight: number; measured_at: string } | null
     if (!baseline) {
       skippedNoData += 1

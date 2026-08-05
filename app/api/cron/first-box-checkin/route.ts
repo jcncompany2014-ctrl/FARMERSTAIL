@@ -74,26 +74,45 @@ async function runCheckinReminder(): Promise<Response> {
 
   for (const order of candidates) {
     // 사용자의 첫 dog 픽업 (단순화 — 1주문 = 대표 1마리)
-    const { data: dog } = (await adminTyped
+    const { data: dog, error: dogErr } = (await adminTyped
       .from('dogs')
       .select('id, name')
       .eq('user_id', order.user_id)
       .limit(1)
-      .maybeSingle()) as { data: { id: string; name: string } | null }
+      .maybeSingle()) as {
+      data: { id: string; name: string } | null
+      error: { message: string } | null
+    }
 
+    // 조회 실패를 "강아지 없음"으로 읽지 않는다(규칙1) — 다음 실행에 맡긴다.
+    if (dogErr) {
+      console.error('[first-box-checkin] 강아지 조회 실패, 건너뜀:', dogErr.message)
+      skipped += 1
+      continue
+    }
     if (!dog) {
       skipped += 1
       continue
     }
 
     // 이미 체크인 row 있는지 확인 (재푸시 방지)
-    const { data: existing } = (await adminTyped
+    const { data: existing, error: existingErr } = (await adminTyped
       .from('feeding_outcomes')
       .select('id')
       .eq('dog_id', dog.id)
       .eq('source', 'first_box_checkin')
-      .maybeSingle()) as { data: { id: string } | null }
+      .maybeSingle()) as {
+      data: { id: string } | null
+      error: { message: string } | null
+    }
 
+    // ★여기서 접히면 **재푸시 방지가 풀린다** — 조회 실패를 "아직 응답 없음"
+    //   으로 읽으면 이미 답한 사람에게 체크인 푸시가 다시 간다. 모르면 안 보낸다.
+    if (existingErr) {
+      console.error('[first-box-checkin] 기존 응답 조회 실패, 건너뜀:', existingErr.message)
+      skipped += 1
+      continue
+    }
     if (existing) {
       skipped += 1
       continue

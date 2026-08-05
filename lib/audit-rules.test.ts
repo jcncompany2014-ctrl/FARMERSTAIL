@@ -1628,3 +1628,50 @@ test('규칙38 — 선택적 핸들러를 버튼에 꽂을 땐 없을 때 숨긴
       offenders.join(' / '),
   )
 })
+
+test('규칙39 — 크론의 Supabase 조회는 error 를 꺼내고 실제로 쓴다', () => {
+  /**
+   * # 왜
+   * 2026-08-05 병렬 감사에서 크론 라우트 전체를 훑으니 **37곳**이 `const { data }`
+   * 만 받고 있었다. 크론은 사람이 안 보는 곳에서 도는데, 조회 실패가 빈 배열로
+   * 접히면 "대상 없음"이 되어 **아무 일도 안 한 것이 정상으로 집계**된다.
+   * 실제로 드러난 것들:
+   *   · ops-digest      — 세 집계가 접혀 이상 0건 → **메일 자체를 안 보냄**.
+   *                       "Sentry 가 죽어도 이메일로는 도달한다"가 존재 이유인
+   *                       크론이 자기 실패에 침묵했다.
+   *   · daily-briefing  — 9개 카운트가 0으로 접혀 발송일 아침에
+   *                       **"오늘 처리할 일이 없어요 ☀️"** 가 갔다.
+   *   · subscription-charge 2-0 가드 — 캐스트 타입에 error 필드가 **아예 없어**
+   *                       구조적으로 오류를 볼 수 없었다. 미확정 청구 조회가
+   *                       실패하면 이중청구 백스톱이 조용히 열린다.
+   *   · first-box-checkin — 기존 응답 조회가 접히면 재푸시 방지가 풀린다.
+   *   · weight-reminder  — 마지막 기록 조회가 접히면 **방금 잰 보호자에게**
+   *                       측정 알림이 간다.
+   * AGENTS 규칙1("데이터 없음 ≠ 실패")의 크론 판이고, 규칙32(돈 경로)가
+   * 커버하지 않던 영역이다.
+   *
+   * error 를 꺼내기만 하고 안 쓰면 같은 일이 난다 — eslint 의 no-unused-vars 가
+   * 그건 잡으므로, 여기서는 **꺼냈는지**만 본다.
+   */
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app', 'api', 'cron'))) {
+    if (!/route\.ts$/.test(file)) continue
+    const rel = file.replace(ROOT, '').split(sep).join('/')
+    const src = stripComments(read(file))
+    for (const m of src.matchAll(
+      /const\s*\{\s*(data[^}]*)\}\s*=\s*\(?\s*await/g,
+    )) {
+      const inner = m[1] ?? ''
+      if (inner.includes('error')) continue
+      const line = src.slice(0, m.index).split(String.fromCharCode(10)).length
+      offenders.push(`${rel}:${line}`)
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '크론이 Supabase 조회의 error 를 안 꺼냈다 — 실패가 빈 결과로 접혀 ' +
+      '"대상 없음"이 되고, 아무 일도 안 한 것이 초록으로 집계된다. ' +
+      offenders.join(' / '),
+  )
+})

@@ -107,7 +107,7 @@ export async function GET(req: Request) {
     const supabase = createAdminClient()
 
   // 단계 1: 가입 24h+ + 강아지 0
-  const { data: signupOnly } = await supabase
+  const { data: signupOnly, error: signupOnlyErr } = await supabase
     .from('profiles')
     .select('id')
     .eq('agree_email', true)
@@ -119,6 +119,15 @@ export async function GET(req: Request) {
 
   let stage1Sent = 0
   let stage1Skipped = 0
+  // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
+  // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
+  if (signupOnlyErr) {
+    console.error('[onboarding-funnel] 가입만 한 사용자 조회 실패:', signupOnlyErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'onboarding-funnel', error: signupOnlyErr.message },
+      { status: 500 },
+    )
+  }
   for (const p of (signupOnly ?? []) as Array<{ id: string }>) {
     const { count } = await supabase
       .from('dogs')
@@ -143,7 +152,7 @@ export async function GET(req: Request) {
   }
 
   // 단계 2: 강아지 등록 24h+ + 분석 0
-  const { data: dogsOnly } = await supabase
+  const { data: dogsOnly, error: dogsOnlyErr } = await supabase
     .from('dogs')
     .select('id, user_id, name')
     .lte('created_at', isoDaysAgo(1))
@@ -152,6 +161,15 @@ export async function GET(req: Request) {
 
   let stage2Sent = 0
   let stage2Skipped = 0
+  // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
+  // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
+  if (dogsOnlyErr) {
+    console.error('[onboarding-funnel] 강아지만 등록한 사용자 조회 실패:', dogsOnlyErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'onboarding-funnel', error: dogsOnlyErr.message },
+      { status: 500 },
+    )
+  }
   for (const dog of (dogsOnly ?? []) as Array<{
     id: string
     user_id: string

@@ -209,7 +209,7 @@ export async function GET(req: Request) {
     { subId: string; freshRatio: number | null; currentTotal: number }
   >()
   if (allDogIds.length > 0) {
-    const { data: subs } = await supabase
+    const { data: subs, error: subsErr } = await supabase
       .from('subscriptions')
       .select(
         'id, dog_id, status, billing_key, next_delivery_date, ' +
@@ -217,6 +217,16 @@ export async function GET(req: Request) {
           'fresh_ratio, total_amount',
       )
       .in('dog_id', allDogIds)
+    // ★여기서 접히면 전원이 "구독 없음"으로 분류돼 **재제안이 전면 조용 정지**
+    //   한다. 같은 파일이 박스 카운트 실패엔 countFailed 를 따로 세는데(규칙1을
+    //   명시적으로 지킨 곳) 이 조회만 비대칭이었다.
+    if (subsErr) {
+      console.error('[personalization-progression] 활성 구독 조회 실패:', subsErr.message)
+      return NextResponse.json(
+        { ok: false, reason: 'subs_lookup_failed', error: subsErr.message },
+        { status: 500 },
+      )
+    }
     for (const s of (subs ?? []) as unknown as Array<
       SubLike & {
         id: string
@@ -307,12 +317,18 @@ export async function GET(req: Request) {
     }
 
     // 다음 cycle 이 이미 존재하는 강아지 제외 — race / 수동 진행 방지.
-    const { data: nextExists } = await supabase
+    const { data: nextExists, error: nextExistsErr } = await supabase
       .from('dog_formulas')
       .select('id')
       .eq('dog_id', dogId)
       .eq('cycle_number', cur.cycle_number + 1)
       .maybeSingle()
+    // ★실패를 "다음 회차 없음"으로 읽으면 이미 있는 회차를 또 만든다.
+    //   UNIQUE 가 2차 방어지만, 모르면 만들지 않는 게 맞다.
+    if (nextExistsErr) {
+      console.error('[personalization-progression] 다음 회차 확인 실패, 건너뜀:', nextExistsErr.message)
+      continue
+    }
     if (!nextExists) targets.push(cur)
   }
 
@@ -383,12 +399,21 @@ export async function GET(req: Request) {
   ]
   // 가용성 게이트용 slug + 금액 재산정용 가격 필드를 한 번에 가져온다.
   // (금액은 `boxPricing` 정본이 계산 — 주문 화면·승인 화면과 같은 함수.)
-  const { data: activeProd } = await supabase
+  const { data: activeProd, error: activeProdErr } = await supabase
     .from('products')
     .select('slug, price, sale_price, stock, is_subscribable, nutrition_facts')
     .eq('is_active', true)
     .in('slug', boxSlugs)
   const activeProducts: Record<string, BoxProduct> = {}
+  // 제품 목록 조회 실패를 "활성 제품 없음"으로 읽으면 게이트가 전부 막혀
+  // 처방이 빈 채로 만들어진다.
+  if (activeProdErr) {
+    console.error('[personalization-progression] 활성 제품 조회 실패:', activeProdErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'products_lookup_failed', error: activeProdErr.message },
+      { status: 500 },
+    )
+  }
   for (const p of ((activeProd ?? []) as unknown) as BoxProduct[]) {
     activeProducts[p.slug] = p
   }
@@ -912,11 +937,16 @@ export async function GET(req: Request) {
       if (!(requiresApproval && diff.priceChanged) && !shippedAllergenLeak)
         await (async () => {
         try {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileErr } = await supabase
             .from('profiles')
             .select('email, name')
             .eq('id', cur.user_id)
             .maybeSingle()
+          // 실패를 "이메일 없음"으로 읽으면 안내 메일이 조용히 안 나간다.
+          if (profileErr) {
+            console.error('[personalization-progression] 수신자 조회 실패:', profileErr.message)
+            return
+          }
           if (!profile?.email) return
           await notifyPersonalizationCycle({
             email: profile.email,

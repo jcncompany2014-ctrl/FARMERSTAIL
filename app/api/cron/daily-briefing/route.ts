@@ -159,12 +159,18 @@ async function runDailyBriefing(): Promise<Response> {
   try {
     const windowEnd = new Date(Date.now() - 60 * 60 * 1000)
     const windowStart = new Date(windowEnd.getTime() - 24 * 60 * 60 * 1000)
-    const { data: healthRows } = await supabase
+    const { data: healthRows, error: healthRowsErr } = await supabase
       .from('cron_health')
       .select('path, executed_at')
       // 지터 허용치(3h)만큼 창보다 넓게 가져와야 경계 실행이 인정된다
       .gte('executed_at', new Date(windowStart.getTime() - 30 * 60 * 1000).toISOString())
       .limit(2000)
+    // 실행 기록 조회가 실패하면 "빠진 크론 없음"이 되어 워치독이 무력화된다.
+    // 이 블록은 try 안이라 흐름을 끊지 않고, 대신 못 봤다는 사실을 남긴다.
+    if (healthRowsErr) {
+      console.error('[daily-briefing] 크론 실행 기록 조회 실패:', healthRowsErr.message)
+      countFailures.push(`크론 실행 기록: ${healthRowsErr.message}`)
+    }
     missedCrons = findMissedCrons(
       (vercelConfig as { crons: CronEntry[] }).crons,
       (healthRows ?? []) as { path: string; executed_at: string }[],
@@ -222,11 +228,20 @@ async function runDailyBriefing(): Promise<Response> {
         '오늘 처리할 일이 없어요 ☀️ 편하게 시작하세요.'
 
   // admin 계정 전부(현재는 사장님 1명).
-  const { data: admins } = await supabase
+  const { data: admins, error: adminsErr } = await supabase
     .from('profiles')
     .select('id')
     .eq('role', 'admin')
 
+  // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
+  // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
+  if (adminsErr) {
+    console.error('[daily-briefing] 수신자 조회 실패:', adminsErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'daily-briefing', error: adminsErr.message },
+      { status: 500 },
+    )
+  }
   const targets = (admins ?? []) as Array<{ id: string }>
   let sent = 0
   for (const a of targets) {

@@ -53,7 +53,7 @@ async function runRotation(): Promise<Response> {
 
   // active 정기구독 + 최근 7일 배송 완료 + total_deliveries > 0.
   // total_deliveries % 4 == 0 은 JS 측에서 필터 (Supabase 모듈로 query 미지원).
-  const { data: subsRaw } = await admin
+  const { data: subsRaw, error: subsRawErr } = await admin
     .from('subscriptions')
     .select('id, user_id, dog_id, total_deliveries, last_delivery_date')
     .eq('status', 'active')
@@ -61,6 +61,15 @@ async function runRotation(): Promise<Response> {
     .gte('last_delivery_date', sevenDaysAgo.slice(0, 10))
     .limit(500)
 
+  // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
+  // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
+  if (subsRawErr) {
+    console.error('[protein-rotation] 구독 목록 조회 실패:', subsRawErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'protein-rotation', error: subsRawErr.message },
+      { status: 500 },
+    )
+  }
   const subs = (subsRaw ?? []) as Array<{
     id: string
     user_id: string
@@ -100,11 +109,17 @@ async function runRotation(): Promise<Response> {
     }
 
     // 강아지 이름 조회
-    const { data: dogRow } = await admin
+    const { data: dogRow, error: dogRowErr } = await admin
       .from('dogs')
       .select('name')
       .eq('id', sub.dog_id)
       .maybeSingle()
+    // 실패를 "강아지 없음"으로 읽으면 조용히 건너뛴 게 정상으로 집계된다.
+    if (dogRowErr) {
+      console.error('[protein-rotation] 강아지 조회 실패, 건너뜀:', dogRowErr.message)
+      skipped += 1
+      continue
+    }
     const dog = dogRow as { name: string } | null
     if (!dog) {
       skipped += 1

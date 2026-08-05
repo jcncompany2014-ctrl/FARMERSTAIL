@@ -47,7 +47,7 @@ export async function GET(req: Request) {
     const supabase = createAdminClient()
 
   // 분석 1건 이상 있는 dog 의 최신 analysis
-  const { data: analyses } = await supabase
+  const { data: analyses, error: analysesErr } = await supabase
     .from('analyses')
     .select(
       'dog_id, user_id, rer, stage, created_at, dogs(weight, age_value, age_unit, birth_date)',
@@ -75,6 +75,15 @@ export async function GET(req: Request) {
           birth_date: string | null
         }>
       | null
+  }
+  // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
+  // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
+  if (analysesErr) {
+    console.error('[reanalyze-trigger] 분석 이력 조회 실패:', analysesErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'reanalyze-trigger', error: analysesErr.message },
+      { status: 500 },
+    )
   }
   const rows = (analyses ?? []) as Row[]
 
