@@ -1023,7 +1023,8 @@ function PhoneFrame({
   width = 292,
 }: {
   children: React.ReactNode
-  width?: number
+  /** px 숫자 또는 CSS 길이 문자열(calc/min 허용 — 모바일 쇼케이스가 svh 기반으로 줌). */
+  width?: number | string
 }) {
   return (
     <div
@@ -1160,10 +1161,18 @@ export default function AppShowcase() {
       {/* 모바일 핀 쇼케이스 — 화면 하나에 [제목 + 폰] 한 세트. 스크롤이
           세트를 넘긴다(위 useEffect 가 핀 + 인덱스 구동). 폰은 232px — 목업
           내부가 248px 기준 설계라 이 아래로 줄이면 깨진다(152px 실증). */}
+      {/* ★레이아웃(2026-08-05, 사장님 피드백 2건):
+          ① "제목이 아예 가려져" — 원인은 사이트 헤더(프로모바+내비, 고정 ~92px)가
+             핀 컨테이너 위를 덮는 것. paddingTop 으로 그 아래에서 시작한다.
+          ② "핸드폰 아래쪽 20%를 아래쪽에 숨기는 그림" — 폰 래퍼를 바닥에 붙이고
+             translateY(20%), 컨테이너 overflow hidden 으로 그 20% 를 뷰포트
+             아래로 잠근다. 폰이 바닥에서 솟아오른 그림 — 화면 위쪽이 온전히
+             제목 몫이 된다. 잠긴 만큼 폰을 키울 수 있다(272px, 작은 기기는
+             svh 기반으로 자동 축소 — 0.577 = 9/19.5÷0.8 역산). */}
       <div
         ref={mobRef}
-        className="md:hidden flex flex-col items-center justify-center"
-        style={{ height: '100svh', minHeight: 560 }}
+        className="md:hidden flex flex-col items-center overflow-hidden"
+        style={{ height: '100svh', minHeight: 560, paddingTop: 104 }}
       >
         {/* 제목 스택 — 폰과 같은 인덱스로 crossfade. 높이를 고정해 폰이 안 튄다. */}
         <div className="relative w-full" style={{ height: 118 }}>
@@ -1197,8 +1206,27 @@ export default function AppShowcase() {
           ))}
         </div>
 
-        <div className="mt-4">
-          <PhoneFrame width={232}>
+        {/* 진행 점 + 캡션 — 제목 바로 아래. 폰 아래는 뷰포트 밖이라 못 둔다. */}
+        <div className="mt-2 flex items-center gap-1.5" aria-hidden>
+          {FEATURES.map((f, i) => (
+            <span
+              key={f.key}
+              style={{
+                width: active === i ? 16 : 5,
+                height: 5,
+                borderRadius: 999,
+                background: active === i ? 'var(--fd-coral)' : 'var(--fd-line)',
+                transition: 'width 0.3s ease, background 0.3s ease',
+              }}
+            />
+          ))}
+        </div>
+        <p className="mt-2" style={{ fontSize: 10, fontWeight: 600, color: 'var(--fd-muted)' }}>
+          이해를 돕기 위한 예시 화면이에요
+        </p>
+
+        <div style={{ marginTop: 'auto', transform: 'translateY(20%)' }}>
+          <PhoneFrame width={'min(272px, calc((100svh - 300px) * 0.577))'}>
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
               {FEATURES.map((f, i) => (
                 <div
@@ -1220,25 +1248,6 @@ export default function AppShowcase() {
           </PhoneFrame>
         </div>
 
-        {/* 진행 점 — 지금 몇 번째인지. 레퍼런스들이 다 쓰는 이유가 있다:
-            핀 구간에선 스크롤바가 위치를 말해주지 못한다. */}
-        <div className="mt-4 flex items-center gap-1.5" aria-hidden>
-          {FEATURES.map((f, i) => (
-            <span
-              key={f.key}
-              style={{
-                width: active === i ? 16 : 5,
-                height: 5,
-                borderRadius: 999,
-                background: active === i ? 'var(--fd-coral)' : 'var(--fd-line)',
-                transition: 'width 0.3s ease, background 0.3s ease',
-              }}
-            />
-          ))}
-        </div>
-        <p className="mt-3" style={{ fontSize: 10, fontWeight: 600, color: 'var(--fd-muted)' }}>
-          이해를 돕기 위한 예시 화면이에요
-        </p>
       </div>
 
       {/* ★모바일 쇼케이스 전면 재작성(2026-08-05, 사장님: "이게 우리가 생각했던
