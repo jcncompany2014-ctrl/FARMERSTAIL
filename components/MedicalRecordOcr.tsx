@@ -51,7 +51,13 @@ export default function MedicalRecordOcr({
 }: {
   dogId?: string
   /** 사용자가 "이대로 반영" 클릭 시 호출. 호출처가 DB 반영 책임. */
-  onConfirm?: (extract: MedicalRecordExtract) => void | Promise<void>
+  /**
+   * ★필수다(2026-08-05 규칙38). optional 이면 호출부가 안 넘겨도 컴파일이
+   * 통과하고, 그때 "확인" 버튼은 눌러도 **아무것도 저장하지 않는다** — 이
+   * 컴포넌트는 읽어낸 값을 스스로 저장하지 않고 전부 호출부에 맡기기 때문이다.
+   * 같은 날 분석 화면의 "결과 공유" 버튼이 정확히 그렇게 죽어 있었다.
+   */
+  onConfirm: (extract: MedicalRecordExtract) => void | Promise<void>
 }) {
   const toast = useToast()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -111,7 +117,7 @@ export default function MedicalRecordOcr({
   async function confirm() {
     if (status.kind !== 'success') return
     try {
-      await onConfirm?.(status.data)
+      await onConfirm(status.data)
       toast.success('진료 기록을 참고 자료로 저장했어요')
       reset()
     } catch {

@@ -1579,3 +1579,52 @@ test('규칙37 — 알림 dedup 앵커는 발송 제목과 같은 상수를 쓴�
       offenders.join(' / '),
   )
 })
+
+test('규칙38 — 선택적 핸들러를 버튼에 꽂을 땐 없을 때 숨긴다(죽은 버튼 금지)', () => {
+  /**
+   * # 왜
+   * 2026-08-05 사장님 제보: "분석화면 버튼중에 pdf공유하기라고 써져있어서".
+   * 분석 화면의 **"결과 공유 · PDF · 링크"** 버튼이 죽어 있었다.
+   *   CTAStack:  onShare?: () => void      … optional 선언
+   *              <button onClick={onShare}>
+   *   호출부:    <MagCTA p={magP} consultHref="/contact" />   ← onShare 안 넘김
+   * 결과는 `onClick={undefined}` — 눌러도 **아무 일도 일어나지 않는다.**
+   * optional 이라 타입 검사도 통과하고, 라벨은 "PDF · 링크"라고 적혀 있어서
+   * **없는 기능을 광고하면서 무반응이기까지** 했다. 고객에게 무반응은 고장과
+   * 구분되지 않는다.
+   *
+   * 올바른 패턴은 같은 저장소에 이미 있다 — survey/steps/Loading.tsx 는
+   * `{err && onBack && (<button onClick={onBack}>…)}` 로, 핸들러가 없으면
+   * 버튼 자체를 그리지 않는다. 그 패턴을 규칙으로 만든다.
+   *
+   * 필수로 만들 수 있으면 그게 낫다(CTAStack 은 reportHref 를 필수로 바꿨다).
+   * 선택으로 둬야 한다면 없을 때 버튼을 숨겨라.
+   */
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'components')))) {
+    if (!/\.tsx$/.test(file) || file.includes('.test.')) continue
+    const rel = file.replace(ROOT, '').split(sep).join('/')
+    if (rel.includes('/admin/')) continue // 운영 화면은 대상 밖
+    const src = stripComments(read(file))
+    const optional = new Set(
+      [...src.matchAll(/\b(on[A-Z]\w*)\?\s*:\s*\(/g)].map((m) => m[1] ?? ''),
+    )
+    for (const prop of optional) {
+      if (!prop) continue
+      if (!new RegExp(`onClick=\\{${prop}\\}`).test(src)) continue
+      // 없을 때 숨기는 가드가 있으면 정상: `{onX && (` 또는 `onX ? (`
+      const guarded =
+        new RegExp(`${prop}\\s*&&`).test(src) ||
+        new RegExp(`${prop}\\s*\\?\\s*\\(`).test(src)
+      if (!guarded) offenders.push(`${rel} (${prop})`)
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '선택적 핸들러가 가드 없이 버튼에 꽂혔다 — 호출부가 안 넘기면 눌러도 아무 일도 ' +
+      '안 나는 죽은 버튼이 되고 타입 검사도 통과한다. 필수 prop 으로 바꾸거나 ' +
+      '핸들러가 없을 때 버튼을 그리지 말 것. ' +
+      offenders.join(' / '),
+  )
+})

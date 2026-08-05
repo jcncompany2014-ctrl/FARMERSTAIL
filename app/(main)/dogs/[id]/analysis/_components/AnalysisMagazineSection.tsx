@@ -200,7 +200,11 @@ export default function AnalysisMagazineSection({
       {/* 맞춤 영양제 박스 제거(2026-07-13 사장님) — 판매할 영양제 제품이 아직
           없어 추천이 이르다. getSupplements/analysis.supplements 배선은 향후
           영양제 라인 출시 대비해 그대로 유지(데이터·매핑은 살아 있음). */}
-      <MagCTA p={magP} consultHref="/contact" />
+      <MagCTA
+        p={magP}
+        consultHref="/contact"
+        reportHref={`/dogs/${dogId}/vet-report`}
+      />
       <div style={{ height: 12, background: magP.bg }} />
     </div>
   )
