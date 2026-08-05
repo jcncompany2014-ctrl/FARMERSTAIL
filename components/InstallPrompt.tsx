@@ -19,6 +19,22 @@ const RESURFACE_MS = 14 * 24 * 60 * 60 * 1000
 // avoid popping on a cold first-load.
 const MIN_DELAY_MS = 4000
 
+/**
+ * ★쿠키 동의 배너와 같은 자리를 다투지 않는다(2026-08-05 감사).
+ * 둘 다 `fixed bottom z-[60]` 이라, 신규 모바일 방문자(= 퍼널 입구)에게
+ * **동시에** 떴다: 쿠키 카드가 DOM 후순위라 위에 그려지고 설치 배너는 그 뒤에
+ * 깔려 읽을 수도 누를 수도 없었다. 서로의 노출 상태를 전혀 참조하지 않았다.
+ * 순서는 명확하다 — 동의가 먼저다(법적 고지). 결정 전엔 설치 배너를 띄우지 않는다.
+ */
+function cookieConsentPending(): boolean {
+  if (typeof window === 'undefined') return true
+  try {
+    return !window.localStorage.getItem('ft_cookie_consent')
+  } catch {
+    return false // 저장소 접근 불가 = 배너도 못 뜬다 → 막을 이유 없음
+  }
+}
+
 function isStandalone(): boolean {
   if (typeof window === 'undefined') return false
   if (window.matchMedia?.('(display-mode: standalone)').matches) return true
@@ -155,7 +171,11 @@ export default function InstallPrompt() {
     function onBeforeInstallPrompt(e: Event) {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
-      window.setTimeout(() => setVisible(true), MIN_DELAY_MS)
+      // 쿠키 동의 미결정이면 띄우지 않는다(위 cookieConsentPending 주석 참조).
+      // 동의 후 다음 방문에 자연히 뜬다 — 배너 두 장을 겹치는 것보단 낫다.
+      window.setTimeout(() => {
+        if (!cookieConsentPending()) setVisible(true)
+      }, MIN_DELAY_MS)
     }
 
     function onAppInstalled() {
@@ -175,7 +195,9 @@ export default function InstallPrompt() {
     // after the delay, unless we're trapped in an in-app webview.
     let iosTimer: number | undefined
     if (detectedIos && !inApp) {
-      iosTimer = window.setTimeout(() => setVisible(true), MIN_DELAY_MS)
+      iosTimer = window.setTimeout(() => {
+        if (!cookieConsentPending()) setVisible(true)
+      }, MIN_DELAY_MS)
     }
 
     return () => {

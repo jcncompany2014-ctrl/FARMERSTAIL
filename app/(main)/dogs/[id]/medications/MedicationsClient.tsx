@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Pill, Trash2, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Select, useConfirm, Toggle } from '@/components/v3'
+import { V3 } from '@/lib/design/tokens'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { SheetField, SheetInput } from '@/components/v3/sheet/SheetField'
 import {
@@ -29,6 +30,7 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
   const [time, setTime] = useState('')
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
   // fetch 실패를 빈 상태('없어요')로 위장하던 버그 방지(2026-07-17) — 실패 시 에러 UI.
   const [loadError, setLoadError] = useState(false)
   const confirm = useConfirm()
@@ -55,6 +57,7 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
 
   async function handleAdd() {
     if (!name || saving) return
+    setErr(null)
     setSaving(true)
     try {
       const {
@@ -80,7 +83,7 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
       setNote('')
     } catch (e) {
       console.error('insertMedication', e)
-      toast.error('저장하지 못했어요. 잠시 후 다시 시도해 주세요')
+      setErr('저장하지 못했어요. 잠시 후 다시 시도해 주세요')
     } finally {
       setSaving(false)
     }
@@ -131,7 +134,10 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
       <section className="px-5 mt-4">
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setErr(null)
+            setOpen(true)
+          }}
           className="w-full rounded border border-rule bg-bg-3 py-3 inline-flex items-center justify-center gap-2 text-[13.5px] font-bold text-text active:scale-[0.99] transition"
         >
           <Plus className="w-4 h-4" strokeWidth={2.5} />
@@ -289,6 +295,23 @@ export default function MedicationsClient({ dogId }: { dogId: string }) {
               placeholder="예: 밥 직후 복용"
             />
           </SheetField>
+          {/* ★시트 안에서는 토스트를 쓰지 않는다(2026-08-05 감사).
+              BottomSheet 는 <dialog>.showModal() 이라 브라우저 **top layer**
+              로 올라가고 나머지 문서는 inert 가 된다 — z-index 와 무관하게
+              항상 위다. 그래서 시트가 열린 채 띄운 toast.error 는 통째로 가려져,
+              고객은 저장 버튼을 눌렀는데 **아무 반응 없는 화면**을 봤다.
+              (popover 로 토스트를 top layer 에 올리는 방법도 재봤지만, 모달이
+               문서를 inert 로 만드는 탓에 이 조합에서 신뢰할 수 없었다 —
+               검증 못 한 방어는 넣지 않는다.)
+              QuickHealthSheet 가 이미 쓰는 인라인 에러 패턴으로 통일한다. */}
+          {err && (
+            <p
+              role="alert"
+              style={{ margin: '10px 0 0', fontSize: 12, color: V3.sale }}
+            >
+              {err}
+            </p>
+          )}
         </BottomSheet.Body>
         <BottomSheet.Footer>
           <button

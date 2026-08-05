@@ -6,6 +6,8 @@ import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { decideFirstBox } from '@/lib/personalization/firstBox'
 import { treatCalorieFraction } from '@/lib/nutrition'
+import { isPlausibleMer } from '@/lib/personalization/merSanity'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 import {
   dailyGramsFromMix,
   FOOD_LINE_META,
@@ -77,6 +79,11 @@ async function backfillV3(
   } | null
   const analysis = analysisResp.data as unknown as { mer: number } | null
   if (!survey || !analysis) return null
+  // ★저장된 mer 이 그 체중에서 나올 수 있는 값인지 본다(2026-08-05 보안 감사).
+  //   analyses 는 브라우저가 직접 INSERT 하므로 mer 을 임의로 넣을 수 있고,
+  //   그 값이 dailyKcal → daily_kcal → 청구액으로 흐른다. 금액을 재계산해
+  //   깎지는 않고(규칙5), 물리적으로 불가능한 값만 거른다.
+  if (!isPlausibleMer(analysis.mer, dog.weight)) return null
 
   const answers =
     (survey.answers as {
@@ -356,6 +363,21 @@ export async function POST(req: Request) {
         code: 'NO_SURVEY',
         message: '설문과 분석이 먼저 필요해요',
       },
+      { status: 400 },
+    )
+  }
+
+  // ★저장된 mer 의 물리적 타당성(2026-08-05 보안 감사) — 위 backfillV3 와 같은 이유.
+  //   analyses 는 브라우저가 직접 INSERT 하므로 mer 이 청구액으로 흐르는 입력이다.
+  //   재계산으로 깎지 않고(규칙5), RER 배수 범위 밖만 거부한다. 정상 고객은 어떤
+  //   조합으로도 안 걸린다(허용 0.4~6.0 vs 실제 factor 0.5~5.0).
+  if (!isPlausibleMer(analysis.mer, dog.weight)) {
+    captureBusinessEvent('error', 'personalization.compute.implausible_mer', {
+      dogId,
+      note: '저장된 mer 이 체중 기준 RER 배수 범위를 벗어남 — 조작 또는 데이터 손상',
+    })
+    return NextResponse.json(
+      { code: 'INVALID_ANALYSIS', message: '분석을 다시 진행해 주세요' },
       { status: 400 },
     )
   }
