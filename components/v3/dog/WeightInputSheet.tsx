@@ -16,6 +16,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import { V3, V3FontWeight } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 import BottomSheet from '@/components/ui/BottomSheet'
@@ -74,7 +75,7 @@ export default function WeightInputSheet({
       await onSave(val)
     } catch (err) {
       // R83-9: 이전엔 catch 누락 → sheet 가 안 닫히고 사용자 침묵 → 반복 시도.
-      const msg = err instanceof Error ? err.message : '체중 저장에 실패했어요'
+      const msg = userFacingError(err, '체중 저장에 실패했어요')
       setErrorMsg(msg)
     } finally {
       setSaving(false)

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import {
   Bell,
   BellOff,
@@ -100,7 +101,7 @@ export default function NotificationSettingsClient({
         setMsg('네이티브 앱 알림이 활성화됐어요')
         return
       } catch (e) {
-        setMsg(e instanceof Error ? e.message : '알림 등록 실패')
+        setMsg(userFacingError(e, '알림 등록 실패'))
         setStatus('off')
         return
       }
@@ -160,7 +161,7 @@ export default function NotificationSettingsClient({
       setStatus('on')
       setMsg('알림을 켰어요')
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : '알림 켜는 데 실패했어요. 잠시 후 다시 시도해 주세요')
+      setMsg(userFacingError(err, '알림 켜는 데 실패했어요. 잠시 후 다시 시도해 주세요'))
       setStatus('off')
     }
   }
@@ -185,7 +186,7 @@ export default function NotificationSettingsClient({
       setStatus('off')
       setMsg('알림을 껐어요')
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : '알림 끄는 데 실패했어요. 잠시 후 다시 시도해 주세요')
+      setMsg(userFacingError(err, '알림 끄는 데 실패했어요. 잠시 후 다시 시도해 주세요'))
     }
   }
 

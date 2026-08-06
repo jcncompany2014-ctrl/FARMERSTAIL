@@ -4,6 +4,7 @@
 // redirect. page.tsx (server) 가 dog ownership + formula + profile + products
 // 를 server prefetch 후 prop drill. 빈 spinner 800ms+ 제거.
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { petName } from '@/lib/korean'
@@ -569,7 +570,7 @@ export default function OrderClient({
         )
       }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : '정기배송 신청 실패')
+      setErr(userFacingError(e, '정기배송 신청 실패'))
     } finally {
       setSubmitting(false)
     }

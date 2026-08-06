@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import Image from 'next/image'
 import {
@@ -181,7 +182,7 @@ export default function DiaryClient({
       setDraftNote('')
       setDraftMood(null)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '저장하지 못했어요')
+      toast.error(userFacingError(err, '저장하지 못했어요'))
     } finally {
       setSubmitting(false)
       submittingRef.current = false

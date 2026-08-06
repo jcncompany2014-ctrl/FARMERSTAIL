@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import Link from 'next/link'
 import { ArrowRight, Info, MessageCircle } from 'lucide-react'
 import { business } from '@/lib/business'
@@ -116,9 +117,7 @@ export default function RecommendationBox({
           setState({
             status: 'error',
             message:
-              e instanceof Error
-                ? e.message
-                : '네트워크가 불안정해요. 다시 시도해 주세요',
+              userFacingError(e, '네트워크가 불안정해요. 다시 시도해 주세요'),
           })
         }
       }

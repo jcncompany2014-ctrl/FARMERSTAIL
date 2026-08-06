@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { X, Loader2, AlertCircle } from 'lucide-react'
@@ -74,7 +75,7 @@ export default function CancelOrderButton({ orderId }: { orderId: string }) {
       setOpen(false)
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : '취소 실패')
+      setError(userFacingError(err, '취소 실패'))
     } finally {
       setLoading(false)
     }

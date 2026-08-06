@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import { Loader2, Check, AlertCircle, Save, ToggleLeft, ToggleRight } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { formatKstDateTime } from '@/lib/datetime-kst'
@@ -57,7 +58,7 @@ export default function AlgorithmConfigClient({
       if (error) throw error
       toast.success(`${LINE_LABELS[row.line]} 저장됨`)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : '저장하지 못했어요')
+      toast.error(userFacingError(e, '저장하지 못했어요'))
     } finally {
       setSavingLine(null)
     }
@@ -78,7 +79,7 @@ export default function AlgorithmConfigClient({
       if (error) throw error
       toast.success(`${row.korean_label} 저장됨`)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : '저장하지 못했어요')
+      toast.error(userFacingError(e, '저장하지 못했어요'))
     } finally {
       setSavingBreed(null)
     }
@@ -99,7 +100,7 @@ export default function AlgorithmConfigClient({
       if (error) throw error
       toast.success(`${row.korean_label} 저장됨`)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : '저장하지 못했어요')
+      toast.error(userFacingError(e, '저장하지 못했어요'))
     } finally {
       setSavingCond(null)
     }

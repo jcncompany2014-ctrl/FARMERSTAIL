@@ -3,6 +3,7 @@
 // audit #101 — ApproveClient: decide button (approve / decline) 만 client.
 // page.tsx (server) 가 auth/dog/pending/previous formula 를 prefetch.
 import { useState } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -78,7 +79,7 @@ export default function ApproveClient({
       }
       router.push(`/dogs/${dogId}/analysis`)
     } catch (e) {
-      setErr(e instanceof Error ? e.message : '네트워크가 불안정해요. 다시 시도해 주세요')
+      setErr(userFacingError(e, '네트워크가 불안정해요. 다시 시도해 주세요'))
     } finally {
       setSubmitting(null)
     }

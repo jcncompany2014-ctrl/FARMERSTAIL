@@ -128,6 +128,8 @@ export default function AnalysisView({
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  // 실패를 "결과 없음"으로 위장하지 않기 위한 상태(2026-08-05).
+  const [loadError, setLoadError] = useState(false)
   // 2026-05-21: Magazine BoxMixCard 를 실제 추천 알고리즘과 연동.
   // RecommendationBox 도 자체 fetch 중이라 중복 호출이지만 첫 박스 시점
   // formula 는 deterministic — 가벼운 작업이라 두 번 호출 허용.
@@ -222,7 +224,18 @@ export default function AnalysisView({
     // 끊김 / Supabase 5xx / RLS 거부) 시 setLoading(false) 미도달 → 무한
     // 스피너 먹통이었음. rejected promise 를 .catch 로 잡아 loading 해제 →
     // AnalysisEmptyState (돌아가기 + 설문 CTA) 로 graceful 후퇴.
-    void load().catch(() => setLoading(false))
+    // ★2026-08-05 — 스피너는 풀었지만 **오류 상태를 안 만들어서**, analysis 가
+    //   null 이면 AnalysisEmptyState 가 떴다. 그 화면은 "분석 결과가 없어요 /
+    //   설문을 완료하면…" + **"설문 시작하기"** 버튼이다.
+    //   즉 잠깐 데이터가 끊긴 **유료 구독자가 자기 분석이 사라진 줄 알고 설문을
+    //   다시 돌리게** 된다(새 analyses 행 + 재제안 카운트 오염).
+    //   빈 상태와 실패는 다른 화면이어야 한다 — MedicationsClient 가 이미
+    //   loadError 로 그렇게 하고 있다.
+    void load().catch((e) => {
+      console.error('analysis load', e)
+      setLoadError(true)
+      setLoading(false)
+    })
   }, [dogId, analysisId, router, supabase])
 
   // formula fetch — Magazine BoxMixCard 가 dog 별 동적 lineRatios 표시 위해.
@@ -257,6 +270,26 @@ export default function AnalysisView({
         <div className="w-8 h-8 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
       </div>
     )
+
+  // 불러오기 실패 — "없음"이 아니라 "못 불러왔음"이라고 말한다.
+  if (loadError) {
+    return (
+      <div className="px-5 py-16 text-center">
+        <p className="text-[13.5px] text-text leading-relaxed">
+          분석을 불러오지 못했어요.
+          <br />
+          잠시 후 다시 시도해 주세요.
+        </p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-3 text-[12px] font-bold text-terracotta underline underline-offset-2"
+        >
+          다시 시도
+        </button>
+      </div>
+    )
+  }
 
   if (!analysis || !dog) {
     return <AnalysisEmptyState dogId={dogId} />

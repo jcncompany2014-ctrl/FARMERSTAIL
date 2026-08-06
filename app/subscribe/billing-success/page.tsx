@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -65,6 +66,12 @@ function BillingSuccessInner() {
 
     async function exchange() {
       try {
+        // ★타임아웃이 없으면 **영원히 기다린다**(2026-08-05 감사).
+        //   이 화면은 "등록 처리 중이에요 / 페이지를 닫지 마세요"로 고객을
+        //   붙잡아 놓는다. 응답이 안 오면 그 상태로 멈춘 채 아무 일도 안
+        //   일어난다 — 돈이 걸린 화면에서 가장 나쁜 조합이다.
+        //   결제 승인 쪽(checkout/success)은 이미 25초 타임아웃 + 원인별
+        //   한국어 안내로 잘 짜여 있다. 그 패턴을 그대로 가져온다.
         const res = await fetch('/api/payments/billing-issue', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -74,6 +81,7 @@ function BillingSuccessInner() {
             subscriptionId,
             method: method.id,
           }),
+          signal: AbortSignal.timeout(25_000),
         })
         const data = (await res.json()) as {
           ok?: boolean
@@ -138,7 +146,14 @@ function BillingSuccessInner() {
       } catch (e) {
         if (cancelled) return
         setStatus('failed')
-        setErrorMsg(e instanceof Error ? e.message : '네트워크가 불안정해요. 다시 시도해 주세요')
+        // 타임아웃과 연결 실패를 가른다 — 고객이 할 일이 다르다.
+        // 타임아웃은 서버에서 등록이 끝났을 수도 있어 "다시 시도"가 위험하다.
+        const timedOut = e instanceof DOMException && e.name === 'TimeoutError'
+        setErrorMsg(
+          timedOut
+            ? '등록 확인이 늦어지고 있어요. 정기배송 화면에서 결제수단이 등록됐는지 확인해 주세요.'
+            : userFacingError(e, '네트워크가 불안정해요. 다시 시도해 주세요'),
+        )
       }
     }
 

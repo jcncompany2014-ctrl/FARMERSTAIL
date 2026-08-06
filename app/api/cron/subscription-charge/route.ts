@@ -6,7 +6,6 @@ import { chargeBillingKey, cancelPayment } from '@/lib/payments/toss'
 import {
   classifyBillingError,
   describeBillingError,
-  isDefinitiveDecline,
   chargeRetrySuffix,
   RETRY_COOLDOWN_MS,
 } from '@/lib/payments/billing-error-classify'

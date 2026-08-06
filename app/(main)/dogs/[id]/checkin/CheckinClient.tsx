@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -82,6 +83,8 @@ export default function CheckinClient({
 
   const [dogName, setDogName] = useState('')
   const [loading, setLoading] = useState(true)
+  // 조회 실패를 "데이터 없음"으로 위장하지 않기 위한 상태(2026-08-05).
+  const [loadError, setLoadError] = useState(false)
   const [existing, setExisting] = useState<null | {
     stoolScore: number | null
     coatScore: number | null
@@ -110,6 +113,13 @@ export default function CheckinClient({
   useEffect(() => {
     let cancelled = false
     ;(async () => {
+      // ★try/catch/finally 가 없으면 **무한 스피너**다(2026-08-05 감사).
+      //   auth.getUser() 나 아래 두 조회 중 하나만 throw 해도(오프라인·5xx·
+      //   타임아웃) setLoading(false) 에 도달하지 못해 "체크인 정보 불러오는
+      //   중…" 에 영구히 갇힌다 — 재시도도, 오류 문구도, 탈출구도 없다.
+      //   같은 버그를 AnalysisView 는 이미 고쳤다("무한 스피너 먹통이었음"
+      //   주석까지 달려 있다). 2주 체크인은 구독 리텐션 루프의 핵심 화면이다.
+      try {
       const {
         data: { user },
       } = await supabase.auth.getUser()
@@ -182,7 +192,13 @@ export default function CheckinClient({
           if (!cancelled) setPhotoPreview(previews)
         }
       }
-      setLoading(false)
+      } catch (e) {
+        console.error('checkin load', e)
+        // 실패를 "데이터 없음"으로 위장하지 않는다 — 화면이 사유와 재시도를 준다.
+        if (!cancelled) setLoadError(true)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     })()
     return () => {
       cancelled = true
@@ -230,7 +246,7 @@ export default function CheckinClient({
       }
       haptic('tap')
     } catch (e) {
-      setErr(e instanceof Error ? e.message : '업로드를 마치지 못했어요')
+      setErr(userFacingError(e, '업로드를 마치지 못했어요'))
     } finally {
       setUploading(false)
     }
@@ -247,7 +263,7 @@ export default function CheckinClient({
         return next
       })
     } catch (e) {
-      setErr(e instanceof Error ? e.message : '사진을 지우지 못했어요')
+      setErr(userFacingError(e, '사진을 지우지 못했어요'))
     }
   }
 
@@ -300,7 +316,7 @@ export default function CheckinClient({
         router.push(`/dogs/${dogId}/analysis`)
       }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : '네트워크가 불안정해요. 다시 시도해 주세요')
+      setErr(userFacingError(e, '네트워크가 불안정해요. 다시 시도해 주세요'))
     } finally {
       setSaving(false)
     }
@@ -312,6 +328,28 @@ export default function CheckinClient({
         <div className="ck-state">
           <Spinner size={18} />
           체크인 정보 불러오는 중...
+        </div>
+      </div>
+    )
+  }
+
+  // 불러오기 실패 — 사유와 탈출구를 준다. 스피너에 갇히지 않는다.
+  if (loadError) {
+    return (
+      <div className="ck-page">
+        <div className="ck-state" style={{ flexDirection: 'column', gap: 12 }}>
+          <p className="text-[13.5px] text-text text-center">
+            체크인 정보를 불러오지 못했어요.
+            <br />
+            잠시 후 다시 시도해 주세요.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="text-[12px] font-bold text-terracotta underline underline-offset-2"
+          >
+            다시 시도
+          </button>
         </div>
       </div>
     )

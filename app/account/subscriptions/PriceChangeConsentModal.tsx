@@ -24,6 +24,7 @@
  */
 
 import { useRef, useState } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, ShieldCheck, RefreshCw, X } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
@@ -86,7 +87,7 @@ export default function PriceChangeConsentModal({
       setDismissed(true)
       router.refresh()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : '처리하지 못했어요')
+      toast.error(userFacingError(e, '처리하지 못했어요'))
       setLoading(null)
     }
   }

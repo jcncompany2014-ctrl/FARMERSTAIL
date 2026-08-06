@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useState } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { openBillingWindow } from '@/lib/payments/open-billing-window'
 import { ChevronLeft, X } from 'lucide-react'
@@ -100,7 +101,7 @@ function BillingAuthInner() {
         setLaunchingId(null)
         return
       }
-      setError(e instanceof Error ? e.message : '등록 화면을 띄우지 못했어요')
+      setError(userFacingError(e, '등록 화면을 띄우지 못했어요'))
       setLaunchingId(null)
     }
   }

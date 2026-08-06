@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import { Loader2, Check, AlertCircle, KeyRound } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -40,7 +41,7 @@ export default function PasswordChangeButton({ email }: { email: string }) {
       }
       setDone(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '발송하지 못했어요')
+      setError(userFacingError(err, '발송하지 못했어요'))
     } finally {
       setBusy(false)
     }

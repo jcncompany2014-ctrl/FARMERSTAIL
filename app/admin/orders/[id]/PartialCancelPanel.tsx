@@ -15,6 +15,7 @@
  *   • 실행 전 한 번 더 confirm — 되돌릴 수 없음
  */
 import { useState } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
 
@@ -127,7 +128,7 @@ export default function PartialCancelPanel({
       setAccountNumber('')
       setHolderName('')
     } catch (e) {
-      setError(e instanceof Error ? e.message : '환불 요청 중 오류')
+      setError(userFacingError(e, '환불 요청 중 오류'))
     } finally {
       setSubmitting(false)
     }

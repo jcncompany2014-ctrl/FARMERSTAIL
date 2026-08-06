@@ -1720,3 +1720,42 @@ test('규칙40 — 다크 테마를 켜는 경로가 없다(사장님이 없앤 
       offenders.join(' / '),
   )
 })
+
+test('규칙41 — 고객 화면이 브라우저 영문 오류를 그대로 보여주지 않는다', () => {
+  /**
+   * # 왜
+   * 2026-08-05 예외 UX 감사. 화면 **15곳**이 이렇게 적혀 있었다:
+   *     catch (e) { setErr(e instanceof Error ? e.message : '한국어 폴백') }
+   * 삼항이 뒤집혀 있다. 이 catch 에 도달하는 건 거의 항상 fetch 실패이고
+   * 그건 TypeError = Error 인스턴스다 → 고객은 **`Failed to fetch`(크롬) /
+   * `Load failed`(iOS 사파리)** 를 본다. 준비된 한국어는 영영 안 뜨는 죽은
+   * 코드였고, 승인·주문취소·금액변경 동의 같은 **돈 화면**이 다 포함됐다.
+   *
+   * 서버가 주는 친절한 한국어는 그 위 `if (!res.ok)` 에서 이미 처리된다 —
+   * catch 가 잡는 건 네트워크 끊김·JSON 파싱 실패뿐이다.
+   * lib/error-message 의 `userFacingError(e, '폴백')` 이 정본: 한글이 있으면
+   * 우리가 던진 것이라 보여주고, 아니면 폴백.
+   * (어드민은 예외 — 운영자에겐 원본 메시지가 진단에 유용하다.)
+   */
+  const offenders: string[] = []
+  for (const dir of ['app', 'components']) {
+    for (const file of walk(join(ROOT, dir))) {
+      if (!/\.tsx$/.test(file) || file.includes('.test.')) continue
+      const rel = file.replace(ROOT, '').split(sep).join('/')
+      if (rel.includes('/admin/')) continue
+      const src = stripComments(read(file))
+      for (const m of src.matchAll(
+        /(\w+)\s+instanceof\s+Error\s*\?\s*\1\.message\s*:/g,
+      )) {
+        offenders.push(`${rel} (${m[1]})`)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '고객 화면이 Error.message 를 그대로 보여준다 — fetch 실패면 ' +
+      '"Failed to fetch" 가 화면에 뜬다. userFacingError(e, 한국어폴백) 를 쓸 것. ' +
+      offenders.join(' / '),
+  )
+})

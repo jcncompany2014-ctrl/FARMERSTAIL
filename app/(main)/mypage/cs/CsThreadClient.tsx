@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import { Send, Loader2, MessageCircle } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { formatKstShortDateTime } from '@/lib/datetime-kst'
@@ -60,7 +61,8 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
       // 성공 — 그대로 두고 다음 GET 에서 정확한 ID 로 교체될 것.
     } catch (err) {
       toast.error('보내지 못했어요', {
-        description: err instanceof Error ? err.message : undefined,
+        // 영문 원본을 보여주느니 아무 말도 안 하는 게 낫다 — 제목이 이미 사유를 말한다.
+        description: userFacingError(err, ''),
       })
       setMessages((prev) => prev.filter((m) => m.id !== tempId))
     } finally {

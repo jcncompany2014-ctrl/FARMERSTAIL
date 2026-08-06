@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { userFacingError } from '@/lib/error-message'
 import {
   X,
   Check,
@@ -172,9 +173,7 @@ export default function AdjustSheet({
       onClose()
     } catch (e) {
       setErr(
-        e instanceof Error
-          ? e.message
-          : '네트워크가 불안정해요. 다시 시도해 주세요',
+        userFacingError(e, '네트워크가 불안정해요. 다시 시도해 주세요'),
       )
     } finally {
       setSaving(false)
