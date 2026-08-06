@@ -92,7 +92,7 @@ async function runRotation(): Promise<Response> {
     }
 
     // 14일 spam 차단
-    const { count: recent } = await admin
+    const { count: recent, error: recentErr } = await admin
       .from('push_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', sub.user_id)
@@ -103,6 +103,15 @@ async function runRotation(): Promise<Response> {
     //   여기는 "내부 영어 제거" 카피 정리 때 앵커만 영어로 남았다.
       .ilike('title', `%${ROTATION_TITLE_ANCHOR}%`)
       .gt('sent_at', fourteenDaysAgo)
+    // ★dedup 조회 실패를 "안 보냈음"으로 읽으면 14일 재발송 가드가 **열린다**
+    //   (2026-08-05). 규칙39 는 `const { data }` 형태만 봐서 이 count 조회를
+    //   구조적으로 못 잡았다 — 정작 가드가 여기 있는데.
+    //   모르면 안 보낸다. 하루 늦는 것 < 같은 알림 두 번.
+    if (recentErr) {
+      console.error('[protein-rotation] 재발송 가드 조회 실패, 건너뜀:', recentErr.message)
+      skipped += 1
+      continue
+    }
     if ((recent ?? 0) > 0) {
       skippedSpam += 1
       continue

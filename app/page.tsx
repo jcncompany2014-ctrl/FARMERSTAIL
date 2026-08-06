@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
+import { isAppContextServer } from '@/lib/app-context'
 import WebChrome from '@/components/WebChrome'
 import Reveal from '@/components/landing/Reveal'
 import Parallax from '@/components/landing/Parallax'
@@ -75,14 +76,26 @@ export const metadata: Metadata = {
   },
 }
 
-function planHref(isAuthed: boolean) {
-  return isAuthed ? '/dogs/new' : '/start'
+/**
+ * 홈 CTA 목적지.
+ *
+ * ★2026-08-05 — 로그인 상태면 `/dogs/new` 였는데, 그건 **앱 전용 경로**다
+ *   (proxy APP_ONLY_PREFIXES). 웹으로 가입한 고객이 홈에 다시 오면 CTA **7개가
+ *   전부** /app-required 앱 설치 벽으로 튕겼다. 버튼은 "2분 설문 시작하기"라고
+ *   써 있는데 설문이 안 열린다.
+ *   같은 결함을 /account/dogs 와 /mypage/orders 에서는 이미 고쳐 뒀는데
+ *   (웹이면 웹 경로로) **가장 많이 밟는 홈만 남아 있었다.**
+ *   웹 고객은 /account/dogs 로 — 거기서 강아지를 고르거나 등록 안내를 받는다.
+ */
+function planHref(isAuthed: boolean, isApp: boolean) {
+  if (!isAuthed) return '/start'
+  return isApp ? '/dogs/new' : '/account/dogs'
 }
 
 // 1. ========================================================================
 // Hero — 풀폭 2단 + 듀얼 CTA
 // ===========================================================================
-function HomeHero({ isAuthed }: { isAuthed: boolean }) {
+function HomeHero({ ctaHref }: { ctaHref: string }) {
   // FD식 풀배경 사진 히어로(사장님 2026-06-15). 사진 위 하단 정렬 흰 텍스트 +
   // 코랄 CTA + 'Or give us a call' 식 작은 흰 밑줄 링크('우리 음식 보기').
   return (
@@ -170,7 +183,7 @@ function HomeHero({ isAuthed }: { isAuthed: boolean }) {
                 몸에 딱 맞게. 2분이면 시작해요.
               </p>
               <div className="fv-rise fv-rise-3 pt-7 flex flex-col items-center md:items-start gap-4">
-                <Button href={planHref(isAuthed)} tone="coral" size="lg">
+                <Button href={ctaHref} tone="coral" size="lg">
                   2분 설문 시작하기
                   <ArrowRight size={19} strokeWidth={2.4} />
                 </Button>
@@ -224,7 +237,7 @@ function TrustStrip() {
 // 3. ========================================================================
 // Value proposition — 신념 band + CTA
 // ===========================================================================
-function ValueProp({ isAuthed }: { isAuthed: boolean }) {
+function ValueProp({ ctaHref }: { ctaHref: string }) {
   return (
     // 리듬 파괴(2026-08-01): 가운데 정렬 band → 비대칭 에디토리얼.
     // 초대형 고스트 워터마크 + 제목 좌 / 본문·CTA 우측 오프셋. 문구는 그대로.
@@ -285,7 +298,7 @@ function ValueProp({ isAuthed }: { isAuthed: boolean }) {
                 생각했어요.
               </p>
               <div className="pt-6">
-                <Button href={planHref(isAuthed)} tone="coral" size="md">
+                <Button href={ctaHref} tone="coral" size="md">
                   맞춤 플랜 만들기
                   <ArrowRight size={18} strokeWidth={2.4} />
                 </Button>
@@ -506,7 +519,7 @@ const INGREDIENT_STRIP = [
 // 7. ========================================================================
 // Complete meal plan — 듀얼 제품 쇼케이스
 // ===========================================================================
-function CompleteMealPlan({ isAuthed }: { isAuthed: boolean }) {
+function CompleteMealPlan({ ctaHref }: { ctaHref: string }) {
   return (
     <Section bg="white" pad="md">
       <Container size="xl">
@@ -564,7 +577,7 @@ function CompleteMealPlan({ isAuthed }: { isAuthed: boolean }) {
         </div>
         <Reveal delay={120}>
           <div className="pt-9 flex justify-center">
-            <Button href={planHref(isAuthed)} tone="coral" size="lg">
+            <Button href={ctaHref} tone="coral" size="lg">
               우리 아이 구성 보기
               <ArrowRight size={19} strokeWidth={2.4} />
             </Button>
@@ -632,7 +645,7 @@ const STEPS = [
   { n: '03', t: '더 건강한 하루', d: '잘 먹고, 잘 싸고, 컨디션 좋은 매일. 잘 맞으면 정기배송으로.' },
 ]
 
-function HowItWorks({ isAuthed }: { isAuthed: boolean }) {
+function HowItWorks({ ctaHref }: { ctaHref: string }) {
   return (
     <Section bg="pine" pad="md" className="fv-sheet-top overflow-hidden">
       {/* 다크 섹션이 앞 섹션 위로 둥근 모서리를 물고 올라온다 — 시트 레이어감(2026-08-01) */}
@@ -666,7 +679,7 @@ function HowItWorks({ isAuthed }: { isAuthed: boolean }) {
         </div>
         <Reveal delay={120}>
           <div className="pt-11 md:pt-14 flex justify-center">
-            <Button href={planHref(isAuthed)} tone="coral" size="lg">
+            <Button href={ctaHref} tone="coral" size="lg">
               2분 설문 시작하기
               <ArrowRight size={19} strokeWidth={2.4} />
             </Button>
@@ -872,7 +885,7 @@ function SocialProof() {
 // 12. =======================================================================
 // Final CTA
 // ===========================================================================
-function FinalCta({ isAuthed }: { isAuthed: boolean }) {
+function FinalCta({ ctaHref }: { ctaHref: string }) {
   return (
     <Section bg="coral" pad="md">
       <Container size="md">
@@ -887,7 +900,7 @@ function FinalCta({ isAuthed }: { isAuthed: boolean }) {
               무료 분석 먼저, 부담 없이 시작. 다음 결제 전까지 해지.
             </p>
             <div className="pt-8 flex justify-center">
-              <Button href={planHref(isAuthed)} tone="cream" size="lg">
+              <Button href={ctaHref} tone="cream" size="lg">
                 2분 설문 시작하기
                 <ArrowRight size={19} strokeWidth={2.4} />
               </Button>
@@ -909,27 +922,30 @@ export default async function LandingPage() {
   const supabase = await createClient()
   const user = await getSafeUser(supabase)
   const isAuthed = !!user
+  // 앱 컨텍스트를 함께 봐야 한다 — 로그인 CTA 목적지가 앱 전용 경로이기 때문.
+  const isApp = await isAppContextServer()
+  const ctaHref = planHref(isAuthed, isApp)
 
   return (
     <WebChrome>
       <WebMotion />
       <main>
-        <HomeHero isAuthed={isAuthed} />
+        <HomeHero ctaHref={ctaHref} />
         <TrustStrip />
-        <ValueProp isAuthed={isAuthed} />
+        <ValueProp ctaHref={ctaHref} />
         <FeatureCards />
         <Comparison />
         <HowWeMakeIt />
-        <CompleteMealPlan isAuthed={isAuthed} />
+        <CompleteMealPlan ctaHref={ctaHref} />
         <PlanBenefits />
-        <HowItWorks isAuthed={isAuthed} />
+        <HowItWorks ctaHref={ctaHref} />
         <ScienceExpertise />
         <VetVoices />
         <Evidence />
         <SocialProof />
-        <FinalCta isAuthed={isAuthed} />
+        <FinalCta ctaHref={ctaHref} />
       </main>
-      <StickyCta href={planHref(isAuthed)} />
+      <StickyCta href={ctaHref} />
     </WebChrome>
   )
 }

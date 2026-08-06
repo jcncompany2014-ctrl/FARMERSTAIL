@@ -24,6 +24,7 @@
  * insert. RLS 는 select 만 admin 으로 제한, write 는 service_role 자동 통과.
  */
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isFailureStatus } from './cron-status.ts'
 import { sanitizeLogText } from '@/lib/log-sanitize'
 
 export async function trackCron<T extends Response>(
@@ -49,6 +50,25 @@ export async function trackCron<T extends Response>(
     //   push/email 을 같은 이유로 await 로 바꾼 전례). 특히 실패 경로는 throw
     //   직후 500 이 나가 insert 절단 확률이 더 높았다 — cron_health 전 기간
     //   error 행 0건이 이것과 부합. 기록은 반드시 완료 후 반환한다.
+    // ★반환된 5xx 도 실패로 기록한다(2026-08-05).
+    //   전에는 핸들러가 **throw 할 때만** error 였다. 그런데 2026-08-05 에
+    //   크론 37곳에 넣은 조회 실패 가드는 전부 `NextResponse.json(..., 500)`
+    //   을 **반환**한다 — 즉 "실패가 초록으로 집계된다"를 고치려던 수정이
+    //   cron_health·ops-digest·Sentry 세 층 모두에서 여전히 초록이었다.
+    //   (ops-digest 는 `.eq('status','error')` 로만 보고, daily-briefing 의
+    //    워치독은 행 존재 여부만 보므로 성공 행이 있으면 "누락"도 아니다.)
+    //   가드 37곳을 각각 고치는 대신 여기 한 곳에서 덮는다.
+    const status = (result as unknown as { status?: number })?.status
+    if (isFailureStatus(status)) {
+      const reason =
+        (summary && (summary.reason ?? summary.error)) ?? `HTTP ${status}`
+      const message = sanitizeLogText(String(reason), 500)
+      await recordHealth(path, 'error', durationMs, message, summary)
+      // throw 경로와 동일하게 Sentry 도 울린다 — 기록만 하고 조용하면
+      // "사람에게 알린다"는 이 가드들의 목적이 반만 달성된다.
+      await notifyCronError(path, message, durationMs)
+      return result
+    }
     await recordHealth(path, 'success', durationMs, null, summary)
     return result
   } catch (err) {

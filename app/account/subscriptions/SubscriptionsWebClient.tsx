@@ -288,7 +288,21 @@ export default function SubscriptionsWebClient({
 
   // '결제 완료·진행중인 것만' 노출 — 카드도 안 걸고 해지된 유령 구독("0회 배송
   // 후 해지")은 숨긴다(사장님 2026-07-22). 판정은 subscription-state 정본.
-  const visibleSubs = subs.filter(isSubscriptionVisibleToUser)
+  //
+  // ★needs_card 는 숨기지 않는다(2026-08-05). 앱 화면은 2026-07-30 에 사장님
+  //   제보로 이미 고쳤는데 **웹만 그대로였다** — 같은 규칙이 두 곳에 따로 있으면
+  //   갈라진다는 이 저장소의 고질병이 또 나왔다.
+  //   웹에서 생기던 일: 신청 후 토스 창을 닫으면 구독 행은 needs_card 로 남는데,
+  //   /account/dogs 는 그걸 "구독 중"으로 세어 카드 링크를 "정기배송 관리"로
+  //   바꾼다(신청 링크는 사라진다). 그런데 그 관리 화면이 needs_card 를 숨겨
+  //   "아직 정기배송이 없어요" → 유일한 CTA 가 다시 /account/dogs.
+  //   **완전한 순환**이고, 아래 '결제수단 등록하고 시작하기' 버튼은 정작 그게
+  //   필요한 사람에게만 안 보이는 죽은 코드였다. 탈출구는 하루 1회 도는 정리
+  //   크론뿐이라 최대 ~24시간 갇혔다.
+  //   숨겨야 할 건 '유령'(cancelled + 0회)이지, 고객이 조치할 게 남은 구독이 아니다.
+  const visibleSubs = subs.filter(
+    (x) => isSubscriptionVisibleToUser(x) || subscriptionState(x) === 'needs_card',
+  )
 
   if (visibleSubs.length === 0) {
     return (

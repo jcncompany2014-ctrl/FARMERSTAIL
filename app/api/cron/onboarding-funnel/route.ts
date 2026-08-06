@@ -91,7 +91,14 @@ async function alreadySent(
     .eq('body', body)
     .gte('sent_at', isoDaysAgo(FUNNEL_WINDOW_DAYS))
   if (url) q = q.eq('url', url)
-  const { count } = await q
+  const { count, error } = await q
+  // ★조회 실패를 "안 보냈음"으로 읽으면 dedup 이 열려 **같은 알림이 또 나간다**
+  //   (2026-08-05). 모르면 "이미 보냈다"고 답한다 — 한 번 덜 가는 것이
+  //   두 번 가는 것보다 낫다. 이 파일 주석이 경고한 dedup 무력화의 다른 형태다.
+  if (error) {
+    console.error('[onboarding-funnel] dedup 조회 실패 — 보내지 않음:', error.message)
+    return true
+  }
   return (count ?? 0) > 0
 }
 
@@ -129,10 +136,17 @@ export async function GET(req: Request) {
     )
   }
   for (const p of (signupOnly ?? []) as Array<{ id: string }>) {
-    const { count } = await supabase
+    const { count, error: countErr } = await supabase
       .from('dogs')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', p.id)
+    // ★실패를 0 으로 접으면 **강아지가 이미 있는 고객에게 "등록하세요"** 가
+    //   간다(2026-08-05). 이 count 가 곧 타겟팅 조건이다. 모르면 안 보낸다.
+    if (countErr) {
+      console.error('[onboarding-funnel] 강아지 수 조회 실패, 건너뜀:', countErr.message)
+      stage1Skipped += 1
+      continue
+    }
     if ((count ?? 0) > 0) continue
     if (await alreadySent(supabase, p.id, STAGE1.body)) {
       stage1Skipped += 1
@@ -175,10 +189,16 @@ export async function GET(req: Request) {
     user_id: string
     name: string
   }>) {
-    const { count } = await supabase
+    const { count, error: countErr } = await supabase
       .from('analyses')
       .select('id', { count: 'exact', head: true })
       .eq('dog_id', dog.id)
+    // 실패를 0 으로 접으면 이미 분석한 강아지에게 "설문하세요"가 간다.
+    if (countErr) {
+      console.error('[onboarding-funnel] 분석 수 조회 실패, 건너뜀:', countErr.message)
+      stage2Skipped += 1
+      continue
+    }
     if ((count ?? 0) > 0) continue
     // url 까지 보면 dedup 이 **강아지별** — 2마리가 각각 미분석이면 각각 1회.
     const url = `/dogs/${dog.id}/survey`

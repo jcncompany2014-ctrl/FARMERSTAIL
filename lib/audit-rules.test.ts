@@ -1658,8 +1658,13 @@ test('규칙39 — 크론의 Supabase 조회는 error 를 꺼내고 실제로 �
     if (!/route\.ts$/.test(file)) continue
     const rel = file.replace(ROOT, '').split(sep).join('/')
     const src = stripComments(read(file))
+    // data 뿐 아니라 **count 조회도** 본다(2026-08-05 회귀 감사).
+    // 처음엔 `data` 로 시작하는 구조분해만 잡았는데, 알림 재발송을 막는
+    // dedup 가드는 정작 `const { count: recent } = await …` 형태였다 —
+    // 실패를 "안 보냈음"으로 읽으면 그 가드가 열려 같은 알림이 또 나간다.
+    // 규칙이 가장 중요한 곳을 구조적으로 못 보고 있었다.
     for (const m of src.matchAll(
-      /const\s*\{\s*(data[^}]*)\}\s*=\s*\(?\s*await/g,
+      /const\s*\{\s*((?:data|count)[^}]*)\}\s*=\s*\(?\s*await/g,
     )) {
       const inner = m[1] ?? ''
       if (inner.includes('error')) continue

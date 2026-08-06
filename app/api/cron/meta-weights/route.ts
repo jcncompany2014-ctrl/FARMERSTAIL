@@ -69,7 +69,8 @@ export async function GET(req: Request) {
   }
 
   // 수의사 데이터 비율 — calibration 신호
-  const { count: vetRecords } = await supabase
+  // 실패를 0 으로 접으면 "수의사 데이터 0%" 라는 **틀린 보정 신호**가 저장된다.
+  const { count: vetRecords, error: vetRecordsErr } = await supabase
     .from('medical_records')
     .select('id', { count: 'exact', head: true })
     .eq('source', 'vet')
@@ -82,7 +83,8 @@ export async function GET(req: Request) {
   const weights = {
     snapshotCount: rows.length,
     topVariableHistogram: histogram,
-    vetRecordsLast30d: vetRecords ?? 0,
+    // 못 셌으면 0 이 아니라 null — "수의사 데이터가 없다"와 "못 셌다"는 다르다.
+    vetRecordsLast30d: vetRecordsErr ? null : (vetRecords ?? 0),
     note: 'placeholder skeleton — 실 calibration 알고리즘은 PCT 후',
   }
 

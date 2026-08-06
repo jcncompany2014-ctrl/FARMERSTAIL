@@ -225,12 +225,18 @@ async function runDetect(): Promise<Response> {
     // 미스매치라 dedup이 무력화됐었다(#77 weight-reminder 와 동일 버그). title은
     // 방향(증가/감소)으로 가변 + "체중"이 weight-reminder 와 충돌하므로, 이 cron
     // 고유·불변인 body 문구로 dedup.
-    const { count: recentPush } = await admin
+    const { count: recentPush, error: recentPushErr } = await admin
       .from('push_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', dog.user_id)
       .ilike('body', '%4주 만에 변화가 있었네요%')
       .gt('sent_at', fourteenDaysAgo)
+    // ★실패를 "안 보냈음"으로 읽으면 14일 가드가 열려 같은 알림이 또 간다.
+    if (recentPushErr) {
+      console.error('[weight-change-detect] 재발송 가드 조회 실패, 건너뜀:', recentPushErr.message)
+      skippedSpam += 1
+      continue
+    }
     if ((recentPush ?? 0) > 0) {
       skippedSpam += 1
       continue
