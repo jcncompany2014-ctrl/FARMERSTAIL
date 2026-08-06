@@ -6,6 +6,8 @@ import { AdminTabs, StatCard, Hl, Em, Warn, LoadError } from '@/components/admin
 import { SETTINGS_TABS } from '@/components/admin/tabGroups'
 import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react'
 import { cronLabel } from '@/lib/cron-labels'
+import { findMissedCrons, type CronEntry } from '@/lib/cron-watchdog'
+import vercelConfig from '@/vercel.json'
 
 export const dynamic = 'force-dynamic'
 
@@ -124,6 +126,35 @@ export default async function AdminCronHealthPage() {
       })
     }
   }
+  /**
+   * ★"돌았어야 하는데 기록이 없는" 크론 (2026-08-08 크론 감사).
+   *
+   * 이 화면은 여태 **행이 있는 것만** 그렸다. 그런데 크론이 죽는 가장 흔한
+   * 방식은 실패가 아니라 **아예 안 도는 것**이다:
+   *  · CRON_SECRET 이 없으면 29개가 전부 401 인데, 401 은 trackCron 진입
+   *    **전**이라 cron_health 에 행이 아예 안 생긴다 → 화면에서 그냥 사라진다
+   *  · Vercel 크론 요금 한도로 배포가 거부돼도 마찬가지
+   *
+   * 유일한 감지기였던 워치독은 daily-briefing **안**에서만 돌았다 — 그것도
+   * 크론이라 같이 죽고, 결과는 관리자 푸시로만 나갔다. 여기서 한 번 더 본다.
+   * 이 화면은 크론이 아니라 사장님이 여는 페이지라 크론이 전부 죽어도 뜬다.
+   */
+  const missedCrons = (() => {
+    try {
+      const endUtc = new Date(nowMs - 60 * 60 * 1000) // 마지막 1시간은 유예
+      const startUtc = new Date(nowMs - 25 * 60 * 60 * 1000)
+      return findMissedCrons(
+        (vercelConfig as { crons: CronEntry[] }).crons,
+        rows.map((r) => ({ path: r.path, executed_at: r.executed_at })),
+        startUtc,
+        endUtc,
+      )
+    } catch {
+      // 워치독이 못 돌아도 이 화면 자체는 떠야 한다.
+      return []
+    }
+  })()
+
   // 실패가 있는 cron 을 위로, 그다음 path 알파벳순.
   const summaries = Array.from(summaryMap.values()).sort((a, b) => {
     if ((b.error > 0 ? 1 : 0) !== (a.error > 0 ? 1 : 0)) {
@@ -136,6 +167,22 @@ export default async function AdminCronHealthPage() {
     <div>
       {/* 대개편 v2 T6 — 설정 그룹 탭 (뒤로가기 링크 대체·헤더 zinc 통일) */}
       <AdminTabs tabs={SETTINGS_TABS} active="/admin/cron-health" />
+      {!rowsError && missedCrons.length > 0 && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sale text-sm font-bold">
+            안 돈 자동작업 {missedCrons.length}건 — 어제 이 시각 이후 기록이 없어요
+          </p>
+          <p className="text-xs text-zinc-700 mt-1.5 leading-relaxed">
+            실패한 게 아니라 <strong>아예 실행되지 않았다</strong>는 뜻이에요.
+            결제·발송·알림이 멈춰 있을 수 있어요. 가장 흔한 원인은 Vercel 환경변수
+            <code className="mx-1 px-1 bg-white rounded">CRON_SECRET</code>
+            누락(전부 401)과 크론 요금 한도로 인한 배포 거부예요.
+          </p>
+          <p className="text-[11px] text-zinc-600 mt-2 font-mono break-all">
+            {missedCrons.join(' · ')}
+          </p>
+        </div>
+      )}
       {rowsError && (
         <div className="mb-4">
           <LoadError

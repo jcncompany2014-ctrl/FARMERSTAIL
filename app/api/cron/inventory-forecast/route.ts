@@ -6,8 +6,15 @@
  *   2) 향후 7/14/30일 동안 SKU 별 필요량 계산
  *   3) products.stock 과 비교 → 부족 SKU 식별
  *   4) Sentry 이벤트로 기록 (captureBusinessEvent). 별도 직접 메일 발송은
- *      안 한다 — 매일 ops-digest cron 이 cron_health 등 운영 이상을 모아
- *      운영자(business.email)에게 종합 메일을 보낸다.
+ *      안 한다 — 재고 부족 자체는 **ops-digest 가 products 를 직접 조회해**
+ *      매일 메일에 싣는다(2026-08-08).
+ *
+ *      ⚠️ 그 전까지 이 주석은 "ops-digest 가 보낸다" 고만 적혀 있었고
+ *      **ops-digest 는 재고를 보고 있지 않았다** — 이 크론은 200 + Sentry
+ *      이벤트만 남기므로 trackCron 은 success 로 적고, Sentry 알림 룰이
+ *      없으면 품절이 사장님에게 도달하는 경로가 0 이었다(규칙4).
+ *      여기서 계산한 **예측**(향후 7/14/30일 부족)은 여전히 Sentry 전용이다 —
+ *      메일에 실리는 건 현재 재고 수준이다.
  *
  * 솔로 운영자 의존도 ↓ — 매일 자동 점검으로 품절 직전 알림.
  *

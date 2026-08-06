@@ -43,6 +43,7 @@ import { trackCron } from '@/lib/cron-tracking'
 import { sendEmail } from '@/lib/email/client'
 import { renderLayout, block, escape, SITE_URL } from '@/lib/email/layout'
 import { business } from '@/lib/business'
+import { STOCK_LOW_THRESHOLD } from '@/lib/products/stock'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -131,10 +132,39 @@ async function runOpsDigest(): Promise<Response> {
   if (staleErr) failures.push(`orders 조회 실패: ${staleErr.message}`)
   const staleOrders = (staleOrdersRaw ?? []) as StalePendingOrderRow[]
 
+  /**
+   * ── 4) 재고 부족 (2026-08-08 크론 감사) ──
+   *
+   * ★inventory-forecast·payment-ledger-reconcile 두 크론이 자기 주석에
+   *   "직접 메일은 안 보낸다 — ops-digest 가 종합 메일을 보낸다" 고 적어
+   *   뒀는데, **ops-digest 는 그 둘을 보고 있지 않았다**(문자열 0회).
+   *   두 크론은 200 + Sentry 이벤트만 남기므로 trackCron 은 success 로 적고,
+   *   Sentry 알림 룰이 없으면 사장님은 영영 모른다 — 이 파일 헤더가 스스로
+   *   경고해 둔 바로 그 상태였다(AGENTS.md 규칙4).
+   *
+   *   원장 대조는 계산이 무거워 여기서 다시 돌리지 않는다. 대신 그 크론이
+   *   남긴 cron_health 기록을 위 ①이 이미 본다(실패면 error 로 잡힌다).
+   *   재고는 조회 한 번이면 되므로 여기서 직접 본다 — 품절이면 그날 박스가
+   *   못 나간다.
+   */
+  const { data: lowStockRaw, error: lowStockErr } = await supabase
+    .from('products')
+    .select('name, slug, stock')
+    .eq('is_active', true)
+    .lte('stock', STOCK_LOW_THRESHOLD)
+    .order('stock', { ascending: true })
+    .limit(MAX_ROWS + 1)
+  if (lowStockErr) failures.push(`재고 조회 실패: ${lowStockErr.message}`)
+  const lowStock = (lowStockRaw ?? []) as LowStockRow[]
+
   // 집계 실패 = 그 자체가 알려야 할 사건. 0건과 같은 취급을 하면
   // "이상 없음"으로 위장된다.
   const issueCount =
-    cronErrors.length + refundRows.length + staleOrders.length + failures.length
+    cronErrors.length +
+    refundRows.length +
+    staleOrders.length +
+    lowStock.length +
+    failures.length
 
   // ── 이상 0건 → 발송 skip (스팸 방지). 실패가 하나라도 있으면 여기 안 걸린다. ──
   if (issueCount === 0) {
@@ -149,11 +179,12 @@ async function runOpsDigest(): Promise<Response> {
     refundPending,
     refundPermFailed,
     staleOrders,
+    lowStock,
     generatedAt: now,
   })
 
   const totalIssues =
-    cronErrors.length + refundRows.length + staleOrders.length
+    cronErrors.length + refundRows.length + staleOrders.length + lowStock.length
   const result = await sendEmail({
     to: business.email,
     subject: `[파머스테일 운영] 점검 필요 ${totalIssues}건 — ${formatKstDate(now)}`,
@@ -213,6 +244,12 @@ function hoursAgo(iso: string, now: number): string {
 }
 
 // ── 다이제스트 HTML ──
+type LowStockRow = {
+  name: string | null
+  slug: string | null
+  stock: number | null
+}
+
 function renderDigest(input: {
   /** 집계 자체가 실패한 항목 — 숫자를 못 믿는다는 경고를 맨 위에 싣는다. */
   failures: string[]
@@ -221,10 +258,18 @@ function renderDigest(input: {
   refundPending: number
   refundPermFailed: number
   staleOrders: StalePendingOrderRow[]
+  lowStock: LowStockRow[]
   generatedAt: number
 }): string {
-  const { failures, cronErrors, refundRows, refundPending, refundPermFailed, staleOrders } =
-    input
+  const {
+    failures,
+    cronErrors,
+    refundRows,
+    refundPending,
+    refundPermFailed,
+    staleOrders,
+    lowStock,
+  } = input
   const now = input.generatedAt
 
   const sections: string[] = []
@@ -253,6 +298,7 @@ function renderDigest(input: {
     )
   if (staleOrders.length > 0)
     summaryItems.push(`미결제 적체 ${staleOrders.length}건`)
+  if (lowStock.length > 0) summaryItems.push(`재고 부족 ${lowStock.length}종`)
 
   sections.push(
     block.callout(
@@ -365,6 +411,31 @@ function renderDigest(input: {
           ? `외 ${staleOrders.length - MAX_ROWS}건 더 있어요.`
           : null,
         { label: '주문 관리에서 보기', href: `${SITE_URL}/admin/orders` },
+      ),
+    )
+  }
+
+  if (lowStock.length > 0) {
+    const shown = lowStock.slice(0, MAX_ROWS)
+    const rowsHtml = shown
+      .map(
+        (p) => `<tr>
+          <td style="padding:8px 0;font-size:12px;color:#1E1A14;border-bottom:1px solid #F0EADB;">
+            <div style="font-weight:700;">${escape(p.name ?? p.slug ?? '(이름 없음)')}</div>
+            <div style="font-size:11px;color:#7A7A7A;margin-top:2px;">남은 재고 ${p.stock ?? 0}개</div>
+          </td>
+        </tr>`,
+      )
+      .join('')
+    sections.push(
+      sectionBlock(
+        `📦 재고 부족 (${lowStock.length}종)`,
+        `${STOCK_LOW_THRESHOLD}개 이하로 남은 판매중 상품이에요. 화요일 발송분에 이 레시피가 들어가면 박스가 못 나갑니다.`,
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">${rowsHtml}</table>`,
+        lowStock.length > MAX_ROWS
+          ? `외 ${lowStock.length - MAX_ROWS}종 더 있어요.`
+          : null,
+        { label: '상품 관리에서 보기', href: `${SITE_URL}/admin/products` },
       ),
     )
   }

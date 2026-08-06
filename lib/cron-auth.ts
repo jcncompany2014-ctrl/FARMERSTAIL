@@ -17,7 +17,19 @@ import { timingSafeEqual } from 'node:crypto'
 export function isAuthorizedCronRequest(req: Request): boolean {
   const secret = process.env.CRON_SECRET
   // dev 환경 + secret 미설정 → 우회 (로컬 cron 트리거 편의).
-  // production 에선 env.ts 가 secret 누락을 startup 차단 (process.exit).
+  //
+  // ⛔ **프로덕션에서 secret 이 없으면 29개 크론이 전부 401 이 된다.**
+  //   예전 이 자리 주석은 "production 에선 env.ts 가 startup 차단(process.exit)"
+  //   이라고 적혀 있었는데 **그런 방어는 없다** — lib/env.ts:197 은 console.error
+  //   만 한다(사이트 전체를 죽이지 않으려고 의도적으로 그렇게 둔 것이다).
+  //   AGENTS.md 규칙4 그대로: 없는 방어를 주장하는 주석.
+  //
+  //   그리고 401 은 trackCron **진입 전**에 반환되므로 cron_health 에 행이
+  //   아예 안 생긴다 → /admin/cron-health 는 그 크론이 **빨간불이 되는 게
+  //   아니라 화면에서 사라진다.** 그래서 감지는 "행이 있는데 error" 가 아니라
+  //   **"돌았어야 하는데 행이 없다"** 로 해야 한다 —
+  //   lib/cron-watchdog.findMissedCrons 가 그 판정이고,
+  //   /admin/cron-health 가 크론과 무관하게 그걸 화면에 띄운다.
   if (!secret) {
     return process.env.NODE_ENV !== 'production'
   }

@@ -120,7 +120,7 @@ async function runCheckinReminder(): Promise<Response> {
 
     // 푸시 발송 (실패는 best-effort)
     try {
-      await pushToUser(
+      const pushResult = await pushToUser(
         order.user_id,
         {
           title: `${petName(dog.name)}는 어떠신가요? 🐾`,
@@ -132,7 +132,11 @@ async function runCheckinReminder(): Promise<Response> {
         // 나가고 있었다. 다만 안 보내도 되는 권유성이라 nudge.
         { category: 'health', nudge: true },
       )
-      sent += 1
+      // ★실제로 나간 것만 센다 (2026-08-08 크론 감사).
+      //  pushToUser 는 실패해도 throw 하지 않고 { ok:false, sent:0 } 을
+      //  돌려준다 — VAPID 키 미설정이면 한 건도 안 나가는데 지표는
+      //  "sent: N" 초록이었다(규칙8 과 같은 실패 모양).
+      if ((pushResult?.sent ?? 0) > 0) sent += 1
     } catch {
       skipped += 1
     }

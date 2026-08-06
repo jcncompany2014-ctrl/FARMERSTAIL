@@ -8,7 +8,9 @@ import { isAuthorizedCronRequest } from './cron-auth.ts'
  * 회귀 가드:
  *  - secret 매치 시 true
  *  - secret 미설정 + dev → true (로컬 편의)
- *  - secret 미설정 + prod → false (env.ts 가 startup 차단하지만 방어)
+ *  - secret 미설정 + prod → false (env.ts 는 console.error 만 한다 —
+ *    startup 을 막지 않으므로 이 false 가 유일한 방어다. 감지는
+ *    /admin/cron-health 의 '안 돈 자동작업'이 한다.)
  *  - timing-safe 비교 (길이 다르면 빠른 false, 같은 길이만 timingSafeEqual)
  *  - "Bearer " 접두사 강제
  */

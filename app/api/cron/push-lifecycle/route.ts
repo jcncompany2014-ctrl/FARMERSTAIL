@@ -56,8 +56,18 @@ import { getAutomationSettings } from '@/lib/automation-settings'
 //   · 복약 알림 — KST 10시 복약만 발송됨(사용자 지정 시각 미지원). 출시 전이라
 //     실사용 0. **Pro 업그레이드(월 $20) 시**: vercel.json 을 hourly 로 되돌리고
 //     CRON_IS_HOURLY=true 로 바꾸면 전부 원복 — 사장님 결정 대기.
-// ⚠️ 크론을 hourly 로 되돌릴 땐 반드시 CRON_IS_HOURLY 도 true 로 — 안 그러면
-//    마케팅 3종이 24× 과발송(정통망법 §50)된다.
+// ⚠️ hourly 로 되돌릴 땐 **세 가지를 같이** 바꿔야 한다 (2026-08-08 크론 감사).
+//    둘만 하면 배포가 아예 안 나가거나, 고객에게 24× 과발송된다.
+//
+//    ① vercel.json 의 이 크론 스케줄 → "0 * * * *"
+//    ② 아래 CRON_IS_HOURLY → true
+//       (안 하면 마케팅 3종이 24× 과발송 — 정보통신망법 §50)
+//    ③ lib/audit-rules.test.ts 규칙7(크론은 하루 1회 이하)에 이 크론 예외 추가
+//       — 안 하면 `npm run verify` 와 CI 가 **빨간불**이라 배포가 못 나간다.
+//         규칙7 자체는 남겨 둔다: Vercel 이 크론 요금 한도로 빌드를 거부하면
+//         배포 기록조차 안 생긴다(AGENTS.md 규칙7).
+//
+//    ③을 빼먹으면 ①②를 제대로 해도 배포가 막히므로, 셋을 한 커밋에 넣을 것.
 const CRON_IS_HOURLY = false
 
 // dog_subscriptions / dog_medications 는 lib/supabase/types.ts 가 자동 재생성되지

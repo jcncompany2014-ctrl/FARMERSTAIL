@@ -116,6 +116,13 @@ async function runTrackingPoll(): Promise<Response> {
   let delivered = 0
   let polled = 0
   let errors = 0
+  /**
+   * 배송완료 저장이 실패한 건수 — **택배사 조회 실패(errors)와 다르다.**
+   * 조회 실패는 다음 회차에 자연히 재시도되지만, 저장 실패는 같은 주문을
+   * 매일 다시 후보로 만든다(알림은 이제 저장 성공 뒤에만 나가므로 중복 발송은
+   * 막혔지만, 그 주문은 영원히 '배송 중'으로 남는다). 사람이 알아야 한다.
+   */
+  let saveFailed = 0
 
   for (const ord of targets) {
     polled += 1
@@ -157,7 +164,16 @@ async function runTrackingPoll(): Promise<Response> {
     }
 
     const deliveredAt = lastEvent?.time ?? new Date().toISOString()
-    await supabase
+
+    /**
+     * ★UPDATE 를 먼저 확인하고 알림은 그 뒤에 (2026-08-08 크론 감사).
+     *
+     * 예전엔 error 를 안 받고 곧장 푸시·메일을 보냈다. UPDATE 가 실패하면
+     * `delivered_at` 이 NULL 로 남아 **다음 실행에서 같은 주문이 또 후보**가
+     * 되고, 고객에게 "배송이 완료됐어요" 가 **성공할 때까지 매일** 간다.
+     * 그런데 크론은 계속 초록이었다(규칙1 의 알림 쪽 짝).
+     */
+    const { error: deliveredErr } = await supabase
       .from('orders')
       .update({
         order_status: 'delivered',
@@ -165,7 +181,21 @@ async function runTrackingPoll(): Promise<Response> {
       })
       .eq('id', ord.id)
 
-    pushToUser(
+    if (deliveredErr) {
+      console.error(
+        '[tracking-poll] 배송완료 저장 실패 — 알림 보내지 않음',
+        ord.id,
+        deliveredErr.message,
+      )
+      errors += 1
+      saveFailed += 1
+      await new Promise((r) => setTimeout(r, 200))
+      continue
+    }
+
+    // ★await — fire-and-forget 이면 배치 마지막 순번의 알림이 함수 반환과
+    //  경합해 유실된다(R83-6 에서 다른 크론들은 이미 고쳤는데 여기만 남았다).
+    await pushToUser(
       ord.user_id,
       {
         title: '배송이 완료됐어요 🐾',
@@ -174,18 +204,36 @@ async function runTrackingPoll(): Promise<Response> {
         tag: `order-${ord.id}-delivered`,
       },
       { category: 'order' },
-    ).catch(() => {})
+    ).catch(() => null)
 
-    notifyOrderDelivered(supabase, {
+    await notifyOrderDelivered(supabase, {
       orderId: ord.id,
       userId: ord.user_id,
       orderNumber: ord.order_number,
       recipientName: ord.recipient_name ?? null,
       totalAmount: ord.total_amount,
-    }).catch(() => {})
+    }).catch(() => null)
 
     delivered += 1
     await new Promise((r) => setTimeout(r, 200))
+  }
+
+  // ★저장 실패는 5xx 로 알린다 — trackCron 이 5xx 를 error 로 기록하고
+  //  notifyCronError 를 띄운다(lib/cron-tracking). 200 으로 돌려주면
+  //  "조용한 성공"이 되어 아무도 모른다.
+  if (saveFailed > 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: 'DELIVERED_SAVE_FAILED',
+        message: `배송완료 저장 실패 ${saveFailed}건 — 해당 주문이 '배송 중'에 남아 있어요`,
+        polled,
+        delivered,
+        errors,
+        saveFailed,
+      },
+      { status: 500 },
+    )
   }
 
   return NextResponse.json({

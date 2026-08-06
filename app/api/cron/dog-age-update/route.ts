@@ -123,13 +123,18 @@ export async function GET(req: Request) {
       birthDay === todayDay &&
       years >= 0.083 // 약 1개월 이상 — 너무 어린 강아지 첫 입력 직후 생일 알림 회피
     ) {
-      pushToUser(dog.user_id, {
+      // ★await 필수 (2026-08-08 크론 감사). fire-and-forget 이면 라우트가
+      //  응답한 뒤 Vercel 이 람다를 얼려 **발송과 push_log 기록이 유실**되고
+      //  dedup 도 무력화된다 — 같은 실수를 subscription-charge·
+      //  subscription-reminders 에서 이미 고쳤는데 여기만 남아 있었다.
+      //  그리고 실제로 나간 것만 센다(pushToUser 는 실패해도 throw 하지 않는다).
+      const pushResult = await pushToUser(dog.user_id, {
         title: `🎂 ${petName(dog.name)} 생일 축하해요!`,
         body: `${petName(dog.name)}가 ${nextValue}${nextUnit === 'years' ? '살' : '개월'}이 됐어요. 새 영양 분석을 받아 보세요.`,
         url: `/dogs/${dog.id}`,
         tag: `dog-birthday-${dog.id}-${todayMonth}-${todayDay}`,
-      }).catch(() => {})
-      birthdays += 1
+      }).catch(() => null)
+      if ((pushResult?.sent ?? 0) > 0) birthdays += 1
     }
   }
 

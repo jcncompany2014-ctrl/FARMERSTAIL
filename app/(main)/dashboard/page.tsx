@@ -182,11 +182,26 @@ export default async function DashboardPage() {
     profile: { name: string | null } | null
     dogs: DogRow[]
     subscription: SubscriptionRow | null
+    /**
+     * 조치가 필요한 구독 하나 (20260808000000 에서 추가).
+     * 옵셔널인 이유: 마이그레이션 적용 전 RPC 는 이 키를 안 준다.
+     * subscription_items 는 배너에 안 쓰므로 RPC 도 보내지 않는다 —
+     * 타입이 실제 payload 보다 넓으면 없는 필드를 있다고 믿게 된다.
+     */
+    attention?: {
+      id: string
+      status: string
+      has_billing_key?: boolean
+      failed_charge_count?: number
+      requires_billing_key_renewal?: boolean
+      next_delivery_date: string | null
+    } | null
   }
   const snapshot = (snapshotData ?? {
     profile: null,
     dogs: [],
     subscription: null,
+    attention: null,
   }) as SnapshotShape
 
   // UI audit H4: email 에서 derive 한 userName 이 너무 길면 (예: 'park.jieun.kim')
@@ -215,42 +230,60 @@ export default async function DashboardPage() {
   const subscription = snapshot.subscription
 
   /**
-   * 홈이 말하는 구독 상태 — 다른 화면과 **같은 판정**을 쓴다.
-   * (마이페이지·강아지 카드·구독 탭은 이미 이걸 썼는데 홈만 입력이 없었다.)
+   * ★배송 정보와 조치 알림은 **서로 다른 질문**이라 RPC 가 따로 돌려준다
+   * (20260808000000). 한 행으로 답하려 했더니, 강아지 두 마리 중 하나가
+   * 멈춰 있으면 **살아 있는 다른 아이의 배송이 홈에서 사라졌다.**
+   *
+   * `subscription` = 실제로 청구가 도는 구독(배송 D-day 용)
+   * `attention`    = 고객이 손을 써야 하는 구독(배너용). 없으면 null.
    */
-  const subState = subscription
+  const attention = snapshot.attention ?? null
+
+  // ★마이그레이션 적용 전에도 홈이 깨지지 않게 한다.
+  //  RPC 가 아직 판정 칸을 안 주면 `has_billing_key` 가 undefined 인데, 그걸
+  //  '카드 없음' 으로 읽으면 **모든 구독자에게 "결제수단을 등록해 주세요"** 가
+  //  뜨고 배송 D-day 가 통째로 사라진다(2026-08-08 검토에서 잡힘).
+  //  칸이 안 오면 판정을 하지 않는다 — 모르는 것을 단정하지 않는다.
+  const hasBillingFields =
+    subscription != null && subscription.has_billing_key !== undefined
+
+  const attentionState = attention
     ? subscriptionState({
         status:
-          subscription.status === 'active' || subscription.status === 'paused'
-            ? subscription.status
+          attention.status === 'active' || attention.status === 'paused'
+            ? attention.status
             : 'cancelled',
         // SubLike 는 string|null 을 받는다 — 실제 키는 서버 밖으로 내보내지
         // 않으므로 존재 여부만 그 모양으로 넘긴다.
-        billing_key: subscription.has_billing_key ? 'set' : null,
-        next_delivery_date: subscription.next_delivery_date,
-        failed_charge_count: subscription.failed_charge_count ?? 0,
+        billing_key: attention.has_billing_key ? 'set' : null,
+        next_delivery_date: attention.next_delivery_date ?? null,
+        failed_charge_count: attention.failed_charge_count ?? 0,
         requires_billing_key_renewal:
-          subscription.requires_billing_key_renewal ?? false,
+          attention.requires_billing_key_renewal ?? false,
       })
     : null
 
-  // ★"활성" 은 실제로 청구가 도는 것만. 카드가 없거나 깨졌으면 활성이 아니다.
-  const hasActiveSub =
-    subState === 'active' && subscription?.next_delivery_date != null
+  // "활성" = 청구가 실제로 도는 구독이 있고 배송일이 잡혀 있다.
+  //  판정 칸이 없는 옛 RPC 에서는 예전처럼 배송일 유무로만 본다.
+  const hasActiveSub = hasBillingFields
+    ? subscription?.next_delivery_date != null &&
+      subscription.has_billing_key === true &&
+      subscription.requires_billing_key_renewal !== true
+    : subscription != null && subscription.next_delivery_date != null
 
   // 고객이 손을 써야 하는 상태 — 홈 상단에 한 줄로 알린다.
   const billingAlert =
-    subState === 'needs_card'
+    attentionState === 'needs_card'
       ? {
           text: '정기배송을 시작하려면 결제수단을 등록해 주세요.',
           cta: '결제수단 등록하기',
         }
-      : subState === 'card_failed'
+      : attentionState === 'card_failed'
         ? {
             text: '결제가 확인되지 않아 정기배송이 멈춰 있어요.',
             cta: '결제수단 확인하기',
           }
-        : subState === 'paused'
+        : attentionState === 'paused'
           ? {
               text: '정기배송이 일시정지 상태예요.',
               cta: '정기배송 보기',

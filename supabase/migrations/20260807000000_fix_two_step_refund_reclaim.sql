@@ -36,6 +36,10 @@ create or replace function public.tg_orders_increment_sales_count()
 returns trigger
 language plpgsql
 security definer
+-- ★SET 절을 다시 적는다. create or replace 는 소유권·권한만 보존하고
+--   **그 외 속성은 이 명령에 명시된 값으로 재설정**한다 — 안 적으면
+--   20260512000000 이 세운 search_path 잠금이 조용히 풀린다(security definer 함수).
+set search_path = public, pg_catalog
 as $$
 declare
   rec record;
@@ -83,6 +87,7 @@ create or replace function public.tg_orders_apply_tier_spend()
 returns trigger
 language plpgsql
 security definer
+set search_path = public, pg_catalog
 as $$
 declare
   uid uuid;
@@ -109,12 +114,31 @@ begin
       and old.payment_status in ('paid', 'partially_refunded')
       and new.payment_status in ('cancelled', 'refunded'))
   then
-    -- 원본과 동일하게 new.total_amount 를 쓴다(부분환불에서 total_amount 는
-    -- 바뀌지 않고 refunded_amount 만 오르므로 old/new 가 같다).
-    amount := coalesce(new.total_amount, 0);
-    update public.profiles
-       set cumulative_spend = greatest(0, cumulative_spend - amount)
-     where id = uid;
+    -- ★★ **이미 회수된 만큼은 빼지 않는다.**
+    --
+    -- 처음 이 마이그레이션을 쓸 때 주석에 "중복 차감이 아니다 — 부분환불의
+    -- 비례 차감은 tg_refunds_apply_partial 이 따로 한다" 고 적었는데,
+    -- **그게 바로 이중 차감이 되는 이유였다**(2026-08-08 검토에서 잡힘).
+    --
+    -- 2단 환불 실측:
+    --   1차 부분환불 A1 → tg_refunds_apply_partial(20260527000005:63-68)이
+    --                     cumulative_spend -= A1
+    --   2차 잔액전액   → refunds 행이 is_partial=false 라 그쪽은 조기 반환.
+    --                     여기서 total 을 또 빼면 총 (A1 + total) 이 빠진다.
+    --                     더한 건 total 하나뿐이다.
+    -- greatest(0,...) 클램프가 단일 주문에선 우연히 가려 주지만, 다른 주문이
+    -- 쌓인 계정에선 A1 만큼 그대로 어긋난다.
+    --
+    -- old.refunded_amount = 이 전이 **직전까지** 이미 회수된 금액.
+    amount := greatest(
+      0,
+      coalesce(new.total_amount, 0) - coalesce(old.refunded_amount, 0)
+    );
+    if amount > 0 then
+      update public.profiles
+         set cumulative_spend = greatest(0, cumulative_spend - amount)
+       where id = uid;
+    end if;
   end if;
 
   return new;
@@ -126,6 +150,7 @@ create or replace function public.tg_orders_stamp()
 returns trigger
 language plpgsql
 security definer
+set search_path to 'public', 'pg_catalog'
 as $$
 begin
   if new.user_id is null or new.subscription_id is null then
@@ -137,7 +162,7 @@ begin
          and old.payment_status is distinct from 'paid'
          and new.payment_status = 'paid')
   then
-    insert into public.stamps (user_id, order_id, earned_at, expires_at)
+    insert into public.stamps (user_id, order_id, stamped_at, expires_at)
     values (
       new.user_id,
       new.id,
@@ -149,11 +174,24 @@ begin
     perform public.fn_lock_completed_cards(new.user_id);
   end if;
 
-  -- ★ 2단 환불 + 부분환불 전이까지 회수 대상(위 주석 참조).
+  -- ★ 회수 조건 — **금액으로 판정한다**(2026-08-08 검토에서 좁힘).
+  --
+  -- 처음엔 `partially_refunded` 로 가는 전이도 무조건 회수 대상에 넣었다.
+  -- 그러면 153,100원 중 **100원**만 환불해도 도장이 사라진다 — 그 주문은
+  -- 다시 paid 로 전이되지 않으므로 **영구 소멸이고 복구 경로가 없다.**
+  -- (품절 1종 부분환불은 박스가 정상적으로 나간 주문이다.)
+  --
+  -- 도장은 "이 결제가 유효한가" 의 표시다. 그래서 라벨(payment_status)이
+  -- 아니라 **실제로 돈이 다 돌아갔는지**로 본다:
+  --   · cancelled / refunded 로 가는 전이 (전액 무효)
+  --   · 또는 환불 누계가 결제액 이상 (라벨과 무관하게 사실상 전액 환불)
   if (tg_op = 'UPDATE'
       and old.payment_status in ('paid', 'partially_refunded')
-      and new.payment_status in ('cancelled', 'refunded', 'partially_refunded')
-      and new.payment_status is distinct from old.payment_status)
+      and new.payment_status is distinct from old.payment_status
+      and (
+        new.payment_status in ('cancelled', 'refunded')
+        or coalesce(new.refunded_amount, 0) >= coalesce(new.total_amount, 0)
+      ))
   then
     delete from public.stamps where order_id = new.id;
     perform public.fn_refresh_stamp_count(new.user_id);

@@ -197,7 +197,7 @@ async function runAlerts(): Promise<Response> {
     // (weight-change-detect 와 동일 패턴 — 사용자 push_preferences gating).
     if (window.verdict === 'urgent' && !recentlyPushed.has(dog.user_id)) {
       try {
-        await pushToUser(
+        const pushResult = await pushToUser(
           dog.user_id,
           {
             title: `${petName(dog.name)} ${ALERT_TITLE_ANCHOR}`,
@@ -210,7 +210,11 @@ async function runAlerts(): Promise<Response> {
           },
           { category: 'health' },
         )
-        pushedCount++
+        // ★실제로 나간 것만 센다 (2026-08-08 크론 감사).
+      //  pushToUser 는 실패해도 throw 하지 않고 { ok:false, sent:0 } 을
+      //  돌려준다 — VAPID 키 미설정이면 한 건도 안 나가는데 지표는
+      //  "sent: N" 초록이었다(규칙8 과 같은 실패 모양).
+      if ((pushResult?.sent ?? 0) > 0) pushedCount++
         // 같은 user 가 다견을 가진 경우 한 cron 에서 1회만 push (sapm 방지).
         recentlyPushed.add(dog.user_id)
       } catch {

@@ -16,6 +16,8 @@ import {
   todayKstIsoDate,
 } from '@/lib/datetime-kst'
 import { PAID_STATUSES, netPaidAmount } from '@/lib/commerce/paid-status'
+import { findMissedCrons, type CronEntry } from '@/lib/cron-watchdog'
+import vercelConfig from '@/vercel.json'
 
 export const dynamic = 'force-dynamic'
 
@@ -278,6 +280,28 @@ export default async function AdminHome() {
       .limit(500),
   ])
 
+  /**
+   * 안 돈 자동작업 — 실패와 다른 문제다(위 cronFailRes 는 status='error' 만 센다).
+   * 크론이 401 로 막히면 cron_health 에 행이 아예 안 생겨 "실패 0건"이 된다.
+   */
+  const { data: cronRecentRows } = await supabase
+    .from('cron_health')
+    .select('path, executed_at')
+    .gte('executed_at', new Date(now.getTime() - 26 * 60 * 60 * 1000).toISOString())
+    .limit(2000)
+  const missedCronCount = (() => {
+    try {
+      return findMissedCrons(
+        (vercelConfig as { crons: CronEntry[] }).crons,
+        ((cronRecentRows ?? []) as Array<{ path: string; executed_at: string }>),
+        new Date(now.getTime() - 25 * 60 * 60 * 1000),
+        new Date(now.getTime() - 60 * 60 * 1000),
+      ).length
+    } catch {
+      return 0
+    }
+  })()
+
   // 답 안 한 문의 = **사람 수**(문의함 화면과 같은 단위).
   const csUnansweredUserCount = new Set(
     ((csUnansweredRes.data ?? []) as Array<{ user_id: string }>).map(
@@ -481,6 +505,7 @@ export default async function AdminHome() {
           stockOutCount={stockOutRes.count ?? 0}
           cronFailureCount={cronFailRes.count ?? 0}
           csUnansweredCount={csUnansweredUserCount}
+          missedCronCount={missedCronCount}
         />
       </div>
 

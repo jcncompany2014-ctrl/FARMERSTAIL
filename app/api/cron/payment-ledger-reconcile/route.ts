@@ -13,8 +13,16 @@
  *
  * # Side effects
  *  - 불일치 row 식별 → Sentry 이벤트 기록 (captureBusinessEvent, warning).
- *    직접 메일 발송은 안 한다 — 운영 이상 통보는 매일 ops-digest cron 이
- *    cron_health 등과 함께 운영자(business.email)에게 종합 메일로 보낸다.
+ *
+ *  ⚠️ **이 크론의 불일치는 아직 메일로 도달하지 않는다** (2026-08-08 감사).
+ *     예전 주석은 "ops-digest 가 종합 메일로 보낸다" 고 적었지만 ops-digest 는
+ *     이 결과를 보고 있지 않았다(규칙4 — 없는 방어를 주장하는 주석).
+ *     현재 도달 경로는 두 가지뿐이다:
+ *       ① Sentry 알림 룰(콘솔에서 켜야 함)
+ *       ② 이 크론이 **실패**하면 cron_health error → ops-digest 가 싣는다
+ *     즉 "크론은 성공했는데 불일치를 찾은" 경우가 조용하다.
+ *     원장 대조는 계산이 무거워 ops-digest 에서 다시 돌리지 않았다 —
+ *     불일치 건수를 DB 에 남기고 그걸 읽는 쪽이 정공이다(출시 후 과제).
  *
  * # 보안 — Bearer CRON_SECRET
  */

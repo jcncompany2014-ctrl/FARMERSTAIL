@@ -42,6 +42,14 @@ export type ActionsPanelProps = {
    * 약속한다.
    */
   csUnansweredCount?: number
+  /**
+   * "돌았어야 하는데 기록이 없는" 크론 수 (lib/cron-watchdog).
+   *
+   * ★실패(status='error')와 **다른 문제**다. 크론이 죽는 가장 흔한 방식은
+   * 아예 안 도는 것인데(CRON_SECRET 누락 → 29개 전부 401, 크론 요금 한도로
+   * 배포 거부), 그때는 cron_health 에 행이 안 생겨서 "실패 0건"으로 보인다.
+   */
+  missedCronCount?: number
 }
 
 type Item = {
@@ -109,6 +117,12 @@ export default function ActionsPanel(props: ActionsPanelProps) {
       icon: Activity,
       label: '자동작업 실패 (24시간)',
       count: props.cronFailureCount ?? 0,
+    },
+    {
+      href: '/admin/cron-health',
+      icon: Activity,
+      label: '안 돈 자동작업',
+      count: props.missedCronCount ?? 0,
     },
   ]
 

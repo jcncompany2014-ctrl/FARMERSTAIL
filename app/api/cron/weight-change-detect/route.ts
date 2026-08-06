@@ -246,7 +246,7 @@ async function runDetect(): Promise<Response> {
     const direction = pct >= 0 ? '증가' : '감소'
     const sign = pct >= 0 ? '+' : ''
     try {
-      await pushToUser(
+      const pushResult = await pushToUser(
         dog.user_id,
         {
           title: `${petName(dog.name)}가 체중 ${sign}${pct.toFixed(1)}% ${direction}`,
@@ -261,7 +261,11 @@ async function runDetect(): Promise<Response> {
         // 경보 — nudge 아님. 잔소리 상한에 밀려 잘리면 안 된다.
         { category: 'health' },
       )
-      pushed += 1
+      // ★실제로 나간 것만 센다 (2026-08-08 크론 감사).
+      //  pushToUser 는 실패해도 throw 하지 않고 { ok:false, sent:0 } 을
+      //  돌려준다 — VAPID 키 미설정이면 한 건도 안 나가는데 지표는
+      //  "sent: N" 초록이었다(규칙8 과 같은 실패 모양).
+      if ((pushResult?.sent ?? 0) > 0) pushed += 1
     } catch {
       /* push 실패 silent */
     }

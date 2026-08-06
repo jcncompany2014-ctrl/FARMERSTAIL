@@ -144,7 +144,7 @@ async function runRotation(): Promise<Response> {
         : '슬슬 다른 단백질도 맛보여 줄 때예요. 어떤 레시피가 맞을지 같이 골라봐요.'
 
     try {
-      await pushToUser(
+      const pushResult = await pushToUser(
         sub.user_id,
         {
           title,
@@ -157,7 +157,11 @@ async function runRotation(): Promise<Response> {
         },
         { category: 'marketing' },
       )
-      sent += 1
+      // ★실제로 나간 것만 센다 (2026-08-08 크론 감사).
+      //  pushToUser 는 실패해도 throw 하지 않고 { ok:false, sent:0 } 을
+      //  돌려준다 — VAPID 키 미설정이면 한 건도 안 나가는데 지표는
+      //  "sent: N" 초록이었다(규칙8 과 같은 실패 모양).
+      if ((pushResult?.sent ?? 0) > 0) sent += 1
     } catch {
       /* silent — 다음 cron 재시도 */
     }

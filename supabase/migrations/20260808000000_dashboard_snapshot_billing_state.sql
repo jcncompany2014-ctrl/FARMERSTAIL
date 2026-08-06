@@ -39,6 +39,7 @@ declare
   v_profile jsonb;
   v_dogs jsonb;
   v_subscription jsonb;
+  v_attention jsonb;
 begin
   -- ★가드는 fail-closed 다 (2026-07-16). 예전엔 fail-open 이라 anon 이 남의
   --   프로필·강아지·구독을 통째로 뽑을 수 있었다(실증).
@@ -56,13 +57,24 @@ begin
     from public.dogs where user_id = p_user_id order by created_at asc limit 50
   ) d;
 
+  /**
+   * ★두 개를 따로 돌려준다 (2026-08-08 검토에서 잡힘).
+   *
+   * 처음엔 한 행만 뽑으면서 "멈춘 것 우선" 으로 정렬했는데, 강아지가 여러
+   * 마리면 **살아 있는 배송이 홈에서 사라진다**:
+   *   코코 = active · 카드 정상 · D-3   /   몽이 = paused
+   * → 몽이가 뽑혀 "일시정지 상태예요" 만 뜨고 코코의 D-3 배송 스트립이
+   *   통째로 없어진다. 화요일에 진짜 박스가 나가는데 홈은 멈췄다고 말한다.
+   *
+   * 배송 정보(subscription)와 조치 알림(attention)은 서로 다른 질문이므로
+   * 한 행으로 답할 수 없다.
+   */
+
+  -- ① 배송 정보 — 실제로 청구가 도는 구독. (옛 동작 보존)
   select to_jsonb(s) into v_subscription
   from (
     select
-      s.id,
-      s.status,
-      s.next_delivery_date,
-      -- 판정용 — 홈이 subscriptionState() 를 부를 수 있게.
+      s.id, s.status, s.next_delivery_date,
       (s.billing_key is not null) as has_billing_key,
       coalesce(s.failed_charge_count, 0) as failed_charge_count,
       coalesce(s.requires_billing_key_renewal, false) as requires_billing_key_renewal,
@@ -71,19 +83,49 @@ begin
                '[]'::jsonb) as subscription_items
     from public.subscriptions s
     where s.user_id = p_user_id
-      -- ★paused 도 가져온다 — 3회 실패로 멈춘 구독이 홈에서 사라지면
-      --   고객은 정기배송이 멈춘 걸 알 방법이 없다.
-      and s.status in ('active', 'paused')
-    order by
-      -- 조치가 필요한 것(멈춤)을 우선 — 홈은 한 건만 보여준다.
-      case when s.status = 'paused' then 0 else 1 end,
-      s.created_at desc
+      and s.status = 'active'
+      -- 청구 크론과 같은 조건 — 이게 아니면 박스가 오지 않는다.
+      and s.billing_key is not null
+      and s.requires_billing_key_renewal = false
+      and s.next_delivery_date is not null
+    order by s.next_delivery_date asc, s.created_at desc
     limit 1
   ) s;
 
+  -- ② 조치 알림 — 고객이 손을 써야 하는 구독 하나. 없으면 null.
+  --    급한 순서: 결제 깨짐 > 카드 미등록 > 일시정지.
+  select to_jsonb(a) into v_attention
+  from (
+    select
+      s.id, s.status,
+      (s.billing_key is not null) as has_billing_key,
+      coalesce(s.failed_charge_count, 0) as failed_charge_count,
+      coalesce(s.requires_billing_key_renewal, false) as requires_billing_key_renewal,
+      s.next_delivery_date
+    from public.subscriptions s
+    where s.user_id = p_user_id
+      and s.status in ('active', 'paused')
+      and (
+        s.billing_key is null                       -- 시작 전
+        or s.requires_billing_key_renewal = true    -- 카드 재등록 필요
+        or coalesce(s.failed_charge_count, 0) > 0   -- 결제 실패 누적
+        or s.status = 'paused'                      -- 멈춤
+      )
+    order by
+      case
+        when s.requires_billing_key_renewal = true then 0
+        when coalesce(s.failed_charge_count, 0) > 0 then 1
+        when s.billing_key is null then 2
+        else 3
+      end,
+      s.created_at desc
+    limit 1
+  ) a;
+
   return jsonb_build_object('profile', coalesce(v_profile, 'null'::jsonb),
                             'dogs', v_dogs,
-                            'subscription', coalesce(v_subscription, 'null'::jsonb));
+                            'subscription', coalesce(v_subscription, 'null'::jsonb),
+                            'attention', coalesce(v_attention, 'null'::jsonb));
 end;
 $function$;
 

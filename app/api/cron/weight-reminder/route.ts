@@ -156,7 +156,7 @@ export async function GET(req: Request) {
       '4주마다 측정하면 더 정확한 맞춤 식단을 만들 수 있어요.'
 
     try {
-      await pushToUser(
+      const pushResult = await pushToUser(
         userId,
         {
           title,
@@ -169,7 +169,11 @@ export async function GET(req: Request) {
         // 안 보내도 되는 잔소리 → nudge. 주 2건 상한에 걸린다.
         { category: 'health', nudge: true },
       )
-      sent += 1
+      // ★실제로 나간 것만 센다 (2026-08-08 크론 감사).
+      //  pushToUser 는 실패해도 throw 하지 않고 { ok:false, sent:0 } 을
+      //  돌려준다 — VAPID 키 미설정이면 한 건도 안 나가는데 지표는
+      //  "sent: N" 초록이었다(규칙8 과 같은 실패 모양).
+      if ((pushResult?.sent ?? 0) > 0) sent += 1
     } catch {
       // 발송 실패 — 다음 cron 에 재시도.
     }
