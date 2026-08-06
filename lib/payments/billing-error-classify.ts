@@ -173,3 +173,36 @@ export function chargeRetrySuffix(
   const n = Number.isFinite(failedChargeCount) ? Math.max(0, failedChargeCount) : 0
   return `:r${n}`
 }
+
+/**
+ * 연속 실패 몇 번이면 구독을 멈추나 (3-strike).
+ *
+ * # 왜 여기로 옮겼나 (2026-08-07 고객 실패경로 감사)
+ * 이 값이 청구 크론 안에만 있었고, **카드 재등록 시 자동 재개 판정**은 그걸
+ * 몰라서 다른 조건(`requires_billing_key_renewal`)만 봤다. 그 플래그는
+ * **permanent(카드 만료)** 에서만 켜진다. 즉:
+ *
+ *   원인 불명 3회 실패 → 자동 일시정지 → 메일: "카드 등록 시 자동 해제돼요"
+ *   → 고객이 카드 재등록 → **재개되지 않는다.**
+ *
+ * 메일과 화면이 약속한 것을 코드가 안 지켰다. 두 곳이 같은 숫자를 보게 한다.
+ */
+export const MAX_FAILED_CHARGES = 3
+
+/**
+ * 이 구독이 **결제 실패 때문에** 멈춘 것인가 — 카드 재등록으로 되살릴 대상.
+ *
+ * 고객이 스스로 누른 일시정지와 구분해야 한다. 그건 카드를 새로 넣었다고
+ * 마음대로 재개하면 안 된다.
+ */
+export function isPausedByBillingFailure(sub: {
+  status?: string | null
+  requires_billing_key_renewal?: boolean | null
+  failed_charge_count?: number | null
+}): boolean {
+  if (sub.status !== 'paused') return false
+  // 카드 만료 등 영구 거절 — 크론이 이 플래그를 켠다.
+  if (sub.requires_billing_key_renewal === true) return true
+  // 원인 불명 3-strike — 플래그는 안 켜지지만 멈춘 이유는 같다.
+  return (sub.failed_charge_count ?? 0) >= MAX_FAILED_CHARGES
+}

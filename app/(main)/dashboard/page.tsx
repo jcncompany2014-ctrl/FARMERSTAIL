@@ -25,6 +25,8 @@ import { daysSinceIso, isoDaysAgo } from '@/lib/persona'
 import type { Json } from '@/lib/supabase/types'
 // 배송 문구 정본 — next_delivery_date 는 **발송일**이다(도착 아님).
 import { shipTimingLabel } from '@/lib/shipping-schedule'
+import { subscriptionState } from '@/lib/subscription-state'
+import Link from 'next/link'
 import { dailyGramsOf } from '@/lib/personalization/dailyGrams'
 import { formatKg } from '@/lib/korean'
 
@@ -68,6 +70,18 @@ type SubscriptionRow = {
   id: string
   status: string
   next_delivery_date: string | null
+  /**
+   * 결제 상태 판정용 (2026-08-08 마이그레이션으로 RPC 가 함께 돌려준다).
+   *
+   * 예전엔 이 세 칸이 오지 않아서 홈이 `subscriptionState()` 를 **부를 수가
+   * 없었다** — 카드가 깨진 구독을 "활성 · 정기배송" 이라 말하고 D-day 까지
+   * 붙였고, 3회 실패로 멈춘 구독은 RPC 필터에 걸려 홈에서 통째로 사라졌다.
+   *
+   * billing_key 값 자체는 내보내지 않는다(결제 자격증명). 있나 없나만 온다.
+   */
+  has_billing_key?: boolean
+  failed_charge_count?: number
+  requires_billing_key_renewal?: boolean
   subscription_items: { product_name: string }[]
 }
 
@@ -199,8 +213,49 @@ export default async function DashboardPage() {
     return [list[idx]!, ...list.slice(0, idx), ...list.slice(idx + 1)]
   })()
   const subscription = snapshot.subscription
+
+  /**
+   * 홈이 말하는 구독 상태 — 다른 화면과 **같은 판정**을 쓴다.
+   * (마이페이지·강아지 카드·구독 탭은 이미 이걸 썼는데 홈만 입력이 없었다.)
+   */
+  const subState = subscription
+    ? subscriptionState({
+        status:
+          subscription.status === 'active' || subscription.status === 'paused'
+            ? subscription.status
+            : 'cancelled',
+        // SubLike 는 string|null 을 받는다 — 실제 키는 서버 밖으로 내보내지
+        // 않으므로 존재 여부만 그 모양으로 넘긴다.
+        billing_key: subscription.has_billing_key ? 'set' : null,
+        next_delivery_date: subscription.next_delivery_date,
+        failed_charge_count: subscription.failed_charge_count ?? 0,
+        requires_billing_key_renewal:
+          subscription.requires_billing_key_renewal ?? false,
+      })
+    : null
+
+  // ★"활성" 은 실제로 청구가 도는 것만. 카드가 없거나 깨졌으면 활성이 아니다.
   const hasActiveSub =
-    subscription !== null && subscription.next_delivery_date !== null
+    subState === 'active' && subscription?.next_delivery_date != null
+
+  // 고객이 손을 써야 하는 상태 — 홈 상단에 한 줄로 알린다.
+  const billingAlert =
+    subState === 'needs_card'
+      ? {
+          text: '정기배송을 시작하려면 결제수단을 등록해 주세요.',
+          cta: '결제수단 등록하기',
+        }
+      : subState === 'card_failed'
+        ? {
+            text: '결제가 확인되지 않아 정기배송이 멈춰 있어요.',
+            cta: '결제수단 확인하기',
+          }
+        : subState === 'paused'
+          ? {
+              text: '정기배송이 일시정지 상태예요.',
+              cta: '정기배송 보기',
+            }
+          : null
 
   // Server component 는 매 요청마다 실행돼 Date.now() 사용이 정상이지만
   // react-hooks/purity 룰이 hook 가정으로 잡음. 이 컴포넌트는 force-dynamic
@@ -419,6 +474,37 @@ export default async function DashboardPage() {
         userName={userName ?? '보호자'}
         familyCount={dogs.length}
       />
+
+      {/* ★결제가 멈췄으면 홈에서 먼저 말한다 (2026-08-07).
+          예전엔 홈에 결제 상태를 알려주는 자리가 한 곳도 없어서, 카드가
+          깨진 고객이 "활성 · 정기배송" 만 보고 박스가 오는 줄 알았다. */}
+      {billingAlert && (
+        <div className="px-5 mt-1">
+          <Link
+            href="/mypage/subscriptions"
+            className="flex items-center gap-2 rounded px-4 py-3 active:opacity-70"
+            style={{
+              background: 'color-mix(in srgb, var(--sale) 10%, var(--paper))',
+              border: '1px solid color-mix(in srgb, var(--sale) 35%, transparent)',
+            }}
+          >
+            <span className="min-w-0 flex-1">
+              <span
+                className="block text-[13px] font-bold"
+                style={{ color: 'var(--ink)' }}
+              >
+                {billingAlert.text}
+              </span>
+              <span
+                className="block text-[11.5px] mt-0.5"
+                style={{ color: 'var(--sale)' }}
+              >
+                {billingAlert.cta} →
+              </span>
+            </span>
+          </Link>
+        </div>
+      )}
 
       {/* 2. ActiveDog 카드 — 첫 강아지 spotlight */}
       {firstDog && (

@@ -147,7 +147,26 @@ export function shipTimingLabel(daysUntilShip: number): {
   /** 숫자 칸 + 단위 칸으로 쪼개 쓰는 화면용(홈 metric). */
   metric: { value: string; unit: string }
 } {
-  if (daysUntilShip <= 0) {
+  /**
+   * ★날짜가 **지났으면** 발송을 약속하지 않는다 (2026-08-07 고객 실패경로 감사).
+   *
+   * 예전엔 `<= 0` 이 전부 "오늘 발송" 이었다. 그런데 결제가 한 번 미끄러지면
+   * (잔액 부족 같은 transient 실패) 청구 크론이 `next_delivery_date` 를
+   * **갱신하지 않는다** — status 도 그대로 active 다. 그래서 그 날짜가 과거로
+   * 흘러가는데 화면은 **매일** "오늘 발송돼요" 라고 말했다. 홈·강아지 카드·
+   * 구독 탭·마이페이지·웹 다섯 곳이 같은 거짓말을 했다.
+   *
+   * 모르는 것을 단정하지 않는다 — 왜 밀렸는지는 이 함수가 알 수 없으므로
+   * "확인 중" 이라고만 하고 다음 행동은 화면이 붙인다.
+   */
+  if (daysUntilShip < 0) {
+    return {
+      dLabel: '확인 중',
+      detail: '예정일이 지났어요. 결제나 배송에 문제가 없는지 확인하고 있어요.',
+      metric: { value: '확인', unit: '중' },
+    }
+  }
+  if (daysUntilShip === 0) {
     return {
       dLabel: '오늘 발송',
       detail: '오늘 발송돼요. 도착은 지역에 따라 하루에서 이틀 걸려요.',

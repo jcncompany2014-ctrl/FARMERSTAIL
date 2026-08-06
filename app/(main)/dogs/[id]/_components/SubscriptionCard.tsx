@@ -175,9 +175,14 @@ export default function SubscriptionCard({
                         : state === 'paused'
                           ? '재개 시 재계산'
                           : s.next_delivery_date && dDay !== null
-                            ? dDay <= 0
-                              ? '오늘 발송 예정'
-                              : `${dDay}일 후 (${nextLabel})`
+                            ? // ★예정일이 지난 경우를 '오늘' 로 뭉뚱그리지 않는다
+                              //  (2026-08-07). 결제가 미끄러지면 이 날짜가 과거로
+                              //  흘러가는데 매일 "오늘 발송 예정" 이라고 말했다.
+                              dDay < 0
+                              ? '확인 중'
+                              : dDay === 0
+                                ? '오늘 발송 예정'
+                                : `${dDay}일 후 (${nextLabel})`
                             : '-'}
                     </span>
                     <span className="inline-flex items-center gap-1">

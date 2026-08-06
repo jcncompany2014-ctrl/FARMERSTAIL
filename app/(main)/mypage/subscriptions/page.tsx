@@ -15,6 +15,7 @@ import { billingAuthFallbackHref } from '@/lib/payments/billing-urls'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 import { weekdayKo } from '@/lib/shipping-schedule'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import { petName } from '@/lib/korean'
 import { recipeName, friendlyChangeReason } from '@/lib/personalization/format'
@@ -416,8 +417,12 @@ export default async function AppSubscriptionsSummaryPage({
               {discountLabel ?? '할인'} −{krw(nextDiscount)}
             </p>
           )}
+          {/* ★지난 날짜를 "다음 결제" 로 보여주지 않는다 (2026-08-07).
+              결제가 미끄러지면 next_delivery_date 가 갱신되지 않는다. */}
           <p className="mt-2 text-[12.5px]" style={{ color: V3.ink }}>
-            {dateLabel(nextDate)}
+            {nextDate < todayKstIsoDate()
+              ? `${dateLabel(nextDate)} 예정이었어요 · 확인 중`
+              : dateLabel(nextDate)}
           </p>
           <p className="mt-0.5 text-[12px]" style={{ color: V3.inkMute }}>
             {oneMethod ?? '구독별로 결제수단이 달라요'}

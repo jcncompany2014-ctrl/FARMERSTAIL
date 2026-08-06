@@ -9,6 +9,7 @@ import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
 import { nextShipDate } from '@/lib/shipping-schedule'
+import { isPausedByBillingFailure } from '@/lib/payments/billing-error-classify'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -149,8 +150,10 @@ export async function POST(req: Request) {
   // 다음 cron 사이클에서 정상 결제 시도 → 성공 시 next_delivery_date 갱신.
   const wasInRenewal = await supabase
     .from('subscriptions')
+    // ★failed_charge_count 를 빼면 isPausedByBillingFailure 가 3-strike 를
+    //  영영 못 본다(undefined → 0). 판정에 쓰는 칸은 반드시 select 한다.
     .select(
-      'status, requires_billing_key_renewal, next_delivery_date, dog_id',
+      'status, requires_billing_key_renewal, failed_charge_count, next_delivery_date, dog_id',
     )
     .eq('id', subscriptionId)
     .eq('user_id', user.id)
@@ -177,11 +180,24 @@ export async function POST(req: Request) {
   const cur = wasInRenewal.data as {
     status?: string
     requires_billing_key_renewal?: boolean
+    failed_charge_count?: number | null
     next_delivery_date?: string | null
     dog_id?: string | null
   } | null
-  const shouldResume =
-    cur?.status === 'paused' && cur?.requires_billing_key_renewal === true
+  /**
+   * ★자동 재개 조건을 넓혔다 (2026-08-07 고객 실패경로 감사).
+   *
+   * 예전엔 `requires_billing_key_renewal === true` 만 봤는데, 그 플래그는
+   * **permanent(카드 만료 등)** 에서만 켜진다. 원인 불명 3회 실패로 자동
+   * 일시정지된 구독은 플래그가 안 켜져서, 고객이 메일 안내대로 카드를 다시
+   * 등록해도 **paused 그대로**였다 — 시킨 대로 다 했는데 박스가 안 온다.
+   * 게다가 그 순간 failed_charge_count 가 0 이 되며 화면의 '결제수단 다시
+   * 등록' 버튼이 '다시 시작' 으로 바뀌어, 눌러야 할 버튼이 하나 더 생겼다.
+   *
+   * 판정은 lib/payments/billing-error-classify 하나 — 고객이 스스로 누른
+   * 일시정지는 제외한다(그건 마음대로 재개하면 안 된다).
+   */
+  const shouldResume = isPausedByBillingFailure(cur ?? {})
   // 최초 카드 등록 = 배송 일정 없음(null)이던 신규 구독 → 카드 확정 시점에 첫
   // 배송 스케줄. 이미 일정 있는 재등록(카드 갱신)은 그대로 유지. (OrderClient·
   // SubscribeClient 는 카드 등록 전엔 next_delivery_date=null 로 생성 — 홈에서

@@ -68,6 +68,7 @@ import {
 import { generateFallbackCustomerKey } from '@/lib/v3-helpers/subscriptions'
 import { billingMethodSummary } from '@/lib/payments/billing-methods'
 import './subscription.css'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 
 export type DogSub = SubLike & {
   id: string
@@ -338,10 +339,20 @@ function SubCard({
     last4: sub.billing_card_last4,
   })
 
-  /** 금액 아래 한 줄 — 언제 무슨 일이 일어나는지. */
+  /**
+   * 금액 아래 한 줄 — 언제 무슨 일이 일어나는지.
+   *
+   * ★지난 날짜를 "결제 예정" 이라 부르지 않는다 (2026-08-07). 결제가 한 번
+   *  미끄러지면 next_delivery_date 가 갱신되지 않은 채 과거로 흘러간다.
+   */
+  const overdue =
+    sub.next_delivery_date != null &&
+    sub.next_delivery_date < todayKstIsoDate()
   const when =
     state === 'active' && sub.next_delivery_date
-      ? `${dateLabel(sub.next_delivery_date)} 결제 예정`
+      ? overdue
+        ? `${dateLabel(sub.next_delivery_date)} 예정이었어요 · 확인 중`
+        : `${dateLabel(sub.next_delivery_date)} 결제 예정`
       : state === 'paused'
         ? '일시정지 중 · 재개하면 다음 화요일부터'
         : sub.next_delivery_date

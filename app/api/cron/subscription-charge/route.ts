@@ -8,6 +8,7 @@ import {
   describeBillingError,
   chargeRetrySuffix,
   RETRY_COOLDOWN_MS,
+  MAX_FAILED_CHARGES,
 } from '@/lib/payments/billing-error-classify'
 import { notifySubscriptionChargeFailed } from '@/lib/email'
 import { pushToUser } from '@/lib/push'
@@ -283,7 +284,9 @@ async function recomputeChargeBase(
 
 
 const MAX_PER_RUN = 100
-const MAX_FAILED = 3
+// 3-strike 상수는 lib/payments/billing-error-classify 정본 — 카드 재등록 시
+// 자동 재개 판정(isPausedByBillingFailure)이 같은 숫자를 봐야 한다.
+const MAX_FAILED = MAX_FAILED_CHARGES
 
 function todayKstIsoDate(): string {
   // KST = UTC+9. 단순 계산: 현재 UTC 에 9h 더해서 date 부분만.

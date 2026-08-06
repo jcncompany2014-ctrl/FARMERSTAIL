@@ -28,6 +28,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { nextShipDate, nextCycleDate } from '@/lib/shipping-schedule'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 import {
   trackSubscriptionPaused,
   trackSubscriptionResumed,
@@ -426,7 +427,8 @@ export default function SubscriptionsWebClient({
                     month: 'long',
                     day: 'numeric',
                   })}{' '}
-                  배송
+                  {/* 지난 날짜를 "배송" 이라 단정하지 않는다(2026-08-07). */}
+                  {sub.next_delivery_date < todayKstIsoDate() ? '예정 · 확인 중' : '배송'}
                 </span>
               )}
             </div>
