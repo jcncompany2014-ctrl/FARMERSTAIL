@@ -188,10 +188,19 @@ export default function Onboarding() {
               overflow: 'hidden',
             }}
           >
+            {/* ★첫 장만 즉시, 나머지는 지연 로드(2026-08-05).
+                4장 합계 518KB(01-welcome 225KB…)가 **첫 화면에서 한꺼번에**
+                받아졌다. 첫 설치 = 캐시 없음 + 모바일 망이라, 하필 브랜드
+                첫인상 화면이 가장 느리게 떴다. 캐러셀은 스크롤로 넘기므로
+                2~4장은 필요할 때 받으면 된다.
+                decoding="async" — 디코딩이 첫 페인트를 막지 않게. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={s.img}
               alt=""
+              loading={i === 0 ? 'eager' : 'lazy'}
+              fetchPriority={i === 0 ? 'high' : 'low'}
+              decoding="async"
               style={{
                 position: 'absolute',
                 inset: 0,
