@@ -45,9 +45,15 @@ export default function PreferencesPanel() {
         const data = await res.json().catch(() => null)
         if (!mounted) return
         if (data?.prefs) setPrefs(data.prefs as Prefs)
-        else setError('설정을 불러오지 못했어요')
+        else
+          setError(
+            '설정을 불러오지 못했어요. 화면을 새로고침해 주세요 — 지금 상태를 알 수 없어서 그리지 않았어요.',
+          )
       } catch {
-        if (mounted) setError('설정을 불러오지 못했어요')
+        if (mounted)
+          setError(
+            '설정을 불러오지 못했어요. 화면을 새로고침해 주세요 — 지금 상태를 알 수 없어서 그리지 않았어요.',
+          )
       }
     })()
     return () => {

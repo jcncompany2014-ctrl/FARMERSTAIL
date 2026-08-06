@@ -42,6 +42,7 @@ import type { Subscription } from './types'
 import {
   subscriptionState,
   isSubscriptionVisibleToUser,
+  SUB_STATE_LABEL,
   type SubState,
 } from '@/lib/subscription-state'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
@@ -64,12 +65,18 @@ type Props = {
 
 // ★ status 컬럼이 아니라 subscriptionState() 로 판정 — '유령 활성'(카드 없이
 //   status=active)을 '구독 중'으로 오표시하던 버그(사장님 2026-07-16) 차단.
-const STATE_FD: Record<SubState, { label: string; color: string }> = {
-  needs_card: { label: '시작 전', color: 'var(--fd-coral)' },
-  active: { label: '구독 중', color: 'var(--fd-green)' },
-  paused: { label: '일시정지', color: '#C28A2B' },
-  card_failed: { label: '결제수단 재등록 필요', color: 'var(--fd-coral)' },
-  cancelled: { label: '해지됨', color: 'var(--fd-muted)' },
+//
+// ★라벨은 lib/subscription-state 정본을 쓴다 (2026-08-07). 여기만 자체 맵을
+//   갖고 있어서, 결제가 깨진 고객이 메일→웹("결제수단 재등록 필요")을 보고
+//   앱을 열면("결제 확인 필요") 다른 문제인 줄 알았다. 결제 실패 메일의 CTA 가
+//   규칙16 때문에 **의도적으로 웹**이라, 이 둘은 실제로 연달아 보인다.
+//   색만 FD 톤으로 여기서 고른다.
+const STATE_COLOR_FD: Record<SubState, string> = {
+  needs_card: 'var(--fd-coral)',
+  active: 'var(--fd-green)',
+  paused: '#C28A2B',
+  card_failed: 'var(--fd-coral)',
+  cancelled: 'var(--fd-muted)',
 }
 
 
@@ -362,7 +369,10 @@ export default function SubscriptionsWebClient({
       {priceProposal && <PriceChangeConsentModal proposal={priceProposal} />}
       {visibleSubs.map((sub) => {
         const state = subscriptionState(sub)
-        const status = STATE_FD[state]
+        const status = {
+          label: SUB_STATE_LABEL[state],
+          color: STATE_COLOR_FD[state],
+        }
         const isActive = state === 'active'
         const isPaused = state === 'paused'
         const isCancelled = state === 'cancelled'
@@ -758,7 +768,7 @@ function CancelModal({
                 2주 미루기
               </span>
               <span className="block text-[11.5px]" style={{ color: 'var(--fd-muted)' }}>
-                다음 배송만 미루고 구독은 유지
+                다음 배송만 미루고 정기배송은 유지
               </span>
             </span>
             <ChevronRight className="w-4 h-4" strokeWidth={2} style={{ color: 'var(--fd-muted)' }} />

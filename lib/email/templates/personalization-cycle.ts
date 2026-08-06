@@ -6,7 +6,7 @@
  * 받게).
  */
 import { block, escape, renderLayout, SITE_URL } from '../layout'
-import { petName } from '@/lib/korean'
+import { petName, withHonorific } from '@/lib/korean'
 
 export type PersonalizationCycleEmailInput = {
   recipientName: string
@@ -53,7 +53,7 @@ export function renderPersonalizationCycle(
 
   const body = `
     <p style="margin:0 0 14px 0;">
-      ${escape(input.recipientName)}님, 안녕하세요.
+      ${escape(withHonorific(input.recipientName))}, 안녕하세요.
     </p>
     <p style="margin:0 0 18px 0;">
       <strong style="color:#173B33;">${escape(petName(input.dogName))}의

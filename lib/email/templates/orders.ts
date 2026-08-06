@@ -8,6 +8,7 @@
 import { block, escape, renderLayout, SITE_URL } from '../layout'
 import { carrierLabel, carrierTrackerUrl } from '@/lib/tracking'
 import { bankCodeLabel, formatDueDate } from '@/lib/payments/toss'
+import { withHonorific } from '@/lib/korean'
 
 export type OrderEmailItem = {
   product_name: string
@@ -49,7 +50,7 @@ export function renderOrderConfirmation(
 
   const html = renderLayout({
     kicker: 'Order Placed · 주문 접수',
-    heading: `${input.recipientName}님, 주문이 접수됐어요`,
+    heading: `${withHonorific(input.recipientName)}, 주문이 접수됐어요`,
     icon: '🐾',
     preview: `총 ${input.totalAmount.toLocaleString()}원 주문을 잘 받았어요`,
     body: `
@@ -219,7 +220,7 @@ export function renderOrderCancelled(
 
   const body = `
     <p style="margin:0 0 14px 0;">
-      ${escape(input.recipientName)}님의 주문이 취소됐어요. 결제 금액은 3~5 영업일 안에
+      ${escape(withHonorific(input.recipientName))}의 주문이 취소됐어요. 결제 금액은 3~5 영업일 안에
       원 결제 수단으로 환불돼요.
     </p>
     ${block.dl(rows)}
@@ -245,7 +246,7 @@ export function renderWelcome(input: {
   const subject = '[파머스테일] 반가워요, 가족이 되어주셔서 감사해요 🐾'
   const body = `
     <p style="margin:0 0 14px 0;">
-      ${escape(input.recipientName)}님, 반가워요! 파머스테일은 반려견이
+      ${escape(withHonorific(input.recipientName))}, 반가워요! 파머스테일은 반려견이
       "이건 진짜 맛있다" 고 눈을 반짝이는 음식만 골라 담아요.
     </p>
     <p style="margin:0 0 8px 0;">

@@ -136,10 +136,15 @@ export async function GET(req: Request) {
     })
 
     if (!res.ok) {
+      // 화면에서 뺀 상태코드는 여기 남긴다 — 진단 근거를 잃으면 안 된다.
+      console.error('[tracking] 택배사 응답 실패', res.status)
       return NextResponse.json(
         {
           code: 'UPSTREAM_ERROR',
-          message: `조회에 실패했어요 (HTTP ${res.status})`,
+          // HTTP 상태코드는 고객에게 아무 의미가 없다(2026-08-07 문구 감사).
+          // 진단은 서버 로그로, 화면엔 다음 행동을 준다.
+          message:
+            '택배사에서 배송 정보를 받지 못했어요. 잠시 후 다시 확인해 주세요.',
         },
         { status: 502 }
       )

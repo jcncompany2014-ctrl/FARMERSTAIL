@@ -10,7 +10,7 @@
  * 푸터를 그대로 사용한다.
  */
 import { block, escape, renderLayout, SITE_URL } from '../layout'
-import { petName } from '@/lib/korean'
+import { petName, withHonorific } from '@/lib/korean'
 
 export type QuarterlyReportEmailInput = {
   recipientName: string
@@ -72,7 +72,7 @@ export function renderQuarterlyReport(
 
   const body = `
     <p style="margin:0 0 14px 0;">
-      ${escape(input.recipientName)}님, 안녕하세요.
+      ${escape(withHonorific(input.recipientName))}, 안녕하세요.
     </p>
     <p style="margin:0 0 18px 0;">
       <strong style="color:#173B33;">${escape(name)}의 ${escape(input.quarterLabel)} 맞춤 영양 리포트</strong>가

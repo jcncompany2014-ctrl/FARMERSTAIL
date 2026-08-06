@@ -229,7 +229,7 @@ function BillingAuthInner() {
                   borderRadius: 4,
                 }}
               >
-                구독 관리로 돌아가기
+                정기배송 관리로 돌아가기
               </button>
             </>
           ) : !method ? (

@@ -28,6 +28,7 @@
  *     한 번에 닿게.
  */
 import { block, escape, renderLayout, SITE_URL } from '../layout'
+import { withHonorific } from '@/lib/korean'
 
 export type SubscriptionReminderItem = {
   productName: string
@@ -63,7 +64,7 @@ export function renderSubscriptionReminder(input: {
 
   const body = `
     <p style="margin:0 0 14px 0;">
-      ${escape(input.recipientName)}님, ${
+      ${escape(withHonorific(input.recipientName))}, ${
         input.daysBefore === 0
           ? '오늘'
           : input.daysBefore === 1
@@ -96,7 +97,7 @@ export function renderSubscriptionReminder(input: {
     preview: `${dateLabel} 발송 예정 · ${itemCountLabel}`,
     body,
     cta: {
-      label: '구독 관리하기',
+      label: '정기배송 관리하기',
       href: `${SITE_URL}/account/subscriptions`,
     },
   })
@@ -212,7 +213,7 @@ export function renderSubscriptionChargeFailed(input: {
 
   const body = `
     <p style="margin:0 0 14px 0;">
-      ${escape(input.recipientName)}님, 안녕하세요.
+      ${escape(withHonorific(input.recipientName))}, 안녕하세요.
     </p>
     ${mainBody}
     ${block.callout(

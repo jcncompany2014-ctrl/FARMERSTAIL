@@ -599,7 +599,7 @@ function PlanView({
             >
               {dailyPay.toLocaleString()}원
             </strong>
-            <span>· 구독가 기준</span>
+            <span>· 정기배송가 기준</span>
           </div>
         )}
       </div>

@@ -1961,3 +1961,48 @@ test('규칙45 — 이메일이 발송일을 "도착"이라 부르지 않는다'
       offenders.join(' / '),
   )
 })
+
+test('규칙46 — 구독 상태 라벨을 화면마다 따로 적지 않는다', () => {
+  /**
+   * # 왜
+   * 2026-08-07 감사. `subscriptionState()` 로 **판정**은 한 곳에 모았는데
+   * **라벨은 화면마다 ad-hoc** 이었다. 같은 구독이 화면을 옮기면 이름이 바뀐다:
+   *
+   *   상태          강아지 카드   구독 탭    마이페이지   웹
+   *   active        진행중        구독 중    구독 중      구독 중
+   *   card_failed   재등록 필요   결제 실패  결제 문제    재등록 필요
+   *
+   * 결제가 깨진 고객은 실제로 연달아 두 이름을 본다 — 실패 메일의 CTA 가
+   * 규칙16 때문에 **의도적으로 웹**이고, 고객은 그 뒤 앱을 연다.
+   *
+   * 정본은 lib/subscription-state 의 `SUB_STATE_LABEL` 하나.
+   * 색·배지 클래스는 화면 톤(app v3 / web FD)이 달라 각자 골라도 된다 —
+   * **label 만** 정본을 쓴다.
+   */
+  const offenders: string[] = []
+  for (const dir of ['app', 'components']) {
+    for (const file of walk(join(ROOT, dir))) {
+      if (!/\.tsx?$/.test(file) || file.includes('.test.')) continue
+      const rel = file.replace(ROOT, '').split(sep).join('/')
+      if (rel.includes('/admin/')) continue
+      const src = stripComments(read(file))
+      // Record<SubState, ...> 선언 **직후 블록 안**에 label 이 **문자열 리터럴**로
+      // 적혀 있으면 라벨을 따로 쓴 것이다.
+      // ★`label: SUB_STATE_LABEL[state]` 처럼 정본을 참조하는 건 정상 —
+      //   파일 전체에서 `label:` 을 찾으면 그것까지 잡아 규칙이 과탐지한다
+      //   (처음 그렇게 써서 정본을 **쓰는** 두 파일이 걸렸다).
+      for (const m of src.matchAll(/Record<\s*SubState\s*,[\s\S]{0,600}?\n\}/g)) {
+        if (/\blabel\s*:\s*['"`]/.test(m[0])) {
+          offenders.push(`${rel} (Record<SubState, …> 안에 label 을 직접 적었다)`)
+        }
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '구독 상태 라벨을 화면에서 따로 적는다 — 같은 구독이 화면마다 다른 이름이 된다. ' +
+      'lib/subscription-state 의 SUB_STATE_LABEL 을 쓸 것(색은 따로 골라도 된다). ' +
+      offenders.join(' / '),
+  )
+})

@@ -1040,7 +1040,7 @@ export default function OrderClient({
                   </span>
                 </div>
                 <div className="ord-summary-row">
-                  <span>구독 할인 ({SUBSCRIPTION_DISCOUNT_PCT}%)</span>
+                  <span>정기배송 할인 ({SUBSCRIPTION_DISCOUNT_PCT}%)</span>
                   <span style={{ color: 'var(--sage)', fontWeight: 700 }}>
                     −{subDiscount.toLocaleString()}원
                   </span>
@@ -1105,7 +1105,7 @@ export default function OrderClient({
               </span>
               <span className="ord-paybar-price">
                 {totalAmount.toLocaleString()}원
-                <span className="ord-paybar-badge">구독가</span>
+                <span className="ord-paybar-badge">정기배송가</span>
               </span>
             </div>
             <button

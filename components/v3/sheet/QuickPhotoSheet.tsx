@@ -119,7 +119,9 @@ export default function QuickPhotoSheet({
           .from('dog-diary-photos')
           .upload(filename, blob, { contentType: 'image/webp', upsert: false })
         if (upErr) {
-          setErr('사진 업로드에 실패했어요')
+          // 무엇을 하면 되는지까지 (2026-08-07 문구 감사).
+          setErr('사진을 올리지 못했어요. 잠시 후 다시 시도해 주세요.')
+          console.error('[quick-photo] 업로드 실패', upErr.message)
           return
         }
         const { data: signed } = await supabase.storage
