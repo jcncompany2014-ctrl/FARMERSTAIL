@@ -48,6 +48,7 @@ import {
   User,
 } from 'lucide-react'
 import { V3, V3Font } from '@/lib/design/tokens'
+import { stickyScreenIndex } from '@/lib/motion/sticky-progress'
 import { Eyebrow, Display } from '@/components/web/fd/ui'
 
 // 라인 컬러 — lib/personalization skuModel 실값(소=와인·돼지=블러시) + V3.
@@ -1083,51 +1084,46 @@ export default function AppShowcase() {
   const mobRef = useRef<HTMLDivElement | null>(null)
   const mobLast = useRef(0)
 
-  // ★모바일 = GSAP 핀(2026-08-05). 섹션을 화면에 붙잡고, 스크롤 진행도를
-  //   feature 인덱스로 바꿔 제목·폰 화면을 **함께** 넘긴다 — 데스크톱 IO 와
-  //   같은 active 상태를 쓰므로 crossfade 마크업은 하나다.
-  //   GSAP 로드 실패·reduced-motion 이면 핀 없이 첫 화면이 정적으로 남는다
-  //   (컨테이너는 100svh 한 장 — 깨진 채 겹치는 것보다 낫다).
+  // ★모바일 = CSS sticky + 스크롤 진행도(2026-08-05 재작성).
+  //   처음엔 GSAP ScrollTrigger 의 pin 을 썼는데, **pin 은 고정하는 순간의
+  //   크기를 인라인으로 박는다.** 그래서 창을 넓히거나 폰을 가로로 돌리면
+  //   컨테이너는 옛 폭(실측 335px)에 멈춰 있고 폰만 CSS calc 로 커져
+  //   (350px) 화면 밖으로 밀려났다. invalidateOnRefresh + 수동 refresh 로도
+  //   인라인 폭이 안 풀렸다(실측).
+  //   position: sticky 는 리사이즈 대응이 **브라우저 기본 동작**이라 그 문제가
+  //   구조적으로 없다. 인덱스는 스크롤 위치를 읽는 순수 계산이라 라이브러리도
+  //   필요 없다 — reduced-motion 이나 JS 실패 시에도 sticky 는 그대로 돌고,
+  //   화면만 첫 장에 머문다(깨지지 않는다).
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (window.innerWidth >= 768) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    let cancelled = false
-    let ctx: { revert: () => void } | undefined
-    void (async () => {
-      try {
-        const [{ gsap }, { ScrollTrigger }] = await Promise.all([
-          import('gsap'),
-          import('gsap/ScrollTrigger'),
-        ])
-        if (cancelled || !mobRef.current) return
-        gsap.registerPlugin(ScrollTrigger)
-        ctx = gsap.context(() => {
-          ScrollTrigger.create({
-            trigger: mobRef.current,
-            start: 'top top',
-            // feature 당 620px — 짧으면 화면이 휙휙 넘어가 읽을 틈이 없다.
-            end: () => '+=' + FEATURES.length * 620,
-            pin: true,
-            onUpdate: (self) => {
-              const idx = Math.min(
-                FEATURES.length - 1,
-                Math.floor(self.progress * FEATURES.length),
-              )
-              if (idx !== mobLast.current) {
-                mobLast.current = idx
-                setActive(idx)
-              }
-            },
-          })
-        })
-      } catch {
-        /* GSAP 실패 → 정적 첫 화면 폴백 */
+    const el = mobRef.current
+    if (!el) return
+    // 진행도 → 인덱스. 스크롤 위치만 읽는 순수 계산이라 라이브러리가 필요 없다.
+    const onScroll = () => {
+      if (window.innerWidth >= 768) return
+      const track = el.parentElement // 스크롤 길이를 가진 바깥 트랙
+      if (!track) return
+      const r = track.getBoundingClientRect()
+      // 산수는 lib/motion/sticky-progress 가 정본 — 이 파일은 배선만 한다.
+      // (개발 패널에서는 scroll 이벤트가 안 와서 배선을 실측할 수 없다.
+      //  그래서 틀릴 수 있는 계산만 떼어내 테스트로 고정했다.)
+      const idx = stickyScreenIndex(
+        r.top,
+        r.height,
+        window.innerHeight,
+        FEATURES.length,
+      )
+      if (idx !== mobLast.current) {
+        mobLast.current = idx
+        setActive(idx)
       }
-    })()
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll, { passive: true })
     return () => {
-      cancelled = true
-      ctx?.revert()
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
     }
   }, [])
 
@@ -1169,11 +1165,28 @@ export default function AppShowcase() {
              아래로 잠근다. 폰이 바닥에서 솟아오른 그림 — 화면 위쪽이 온전히
              제목 몫이 된다. 잠긴 만큼 폰을 키울 수 있다(272px, 작은 기기는
              svh 기반으로 자동 축소 — 0.577 = 9/19.5÷0.8 역산). */}
+      {/* 바깥 트랙 — 스크롤 길이를 만든다(feature 당 620px + 화면 한 장).
+          안쪽 sticky 가 그 동안 화면에 붙어 있고, 진행도가 화면을 넘긴다. */}
+      <div className="md:hidden" style={{ height: `calc(100svh + ${FEATURES.length * 620}px)` }}>
       <div
         ref={mobRef}
-        className="md:hidden flex flex-col items-center overflow-hidden"
-        style={{ height: '100svh', minHeight: 560, paddingTop: 104 }}
+        className="flex flex-col items-center overflow-hidden sticky top-0"
+        style={{ height: '100svh', minHeight: 560, paddingTop: 96 }}
       >
+        {/* ★내용 폭 상한(2026-08-05, 사장님: "반응형 제대로 안 먹히고").
+            이 블록은 md 미만 전부(≈320~767px)가 쓰는데, 폰은 272px 고정이라
+            폭이 넓어질수록 좌우가 휑해졌다 — 767px 실측에서 **여백이 폰보다
+            넓었다**(한쪽 248px, 폰 대비 182%). 제목도 567px 로 늘어나 한 줄에
+            다 들어가면서 리듬이 무너졌다.
+            2단 그리드를 더 일찍 켜는 것도 재봤지만 640px 에선 글 칼럼이
+            288px 이라 한국어 본문이 읽기 나쁘다.
+            그래서 **내용만 420px 로 모으고 가운데 정렬**한다 — 좁은 폰에서는
+            그대로고, 태블릿·좁힌 데스크톱에서는 모바일 화면이 가운데 놓인
+            자연스러운 구도가 된다. 흔한 패턴이고 가장 적은 변경이다. */}
+        <div
+          className="flex flex-col items-center w-full"
+          style={{ maxWidth: 420, flex: 1, minHeight: 0 }}
+        >
         {/* 제목 스택 — 폰과 같은 인덱스로 crossfade. 높이를 고정해 폰이 안 튄다. */}
         <div className="relative w-full" style={{ height: 118 }}>
           {FEATURES.map((f, i) => (
@@ -1225,8 +1238,24 @@ export default function AppShowcase() {
           이해를 돕기 위한 예시 화면이에요
         </p>
 
-        <div style={{ marginTop: 'auto', transform: 'translateY(20%)' }}>
-          <PhoneFrame width={'min(272px, calc((100svh - 300px) * 0.577))'}>
+        {/* ★폰은 캡션 **바로 아래**에 붙인다(2026-08-05).
+            전에는 marginTop:auto 로 바닥에 밀어붙였는데, 그러면 남는 세로가
+            전부 캡션↔폰 사이 빈칸이 된다 — 607px 실측 130~151px. 화면이
+            휑해 보이던 두 번째 원인이다.
+            고정 간격으로 붙이면 폰 하단이 자연히 화면 밖으로 나가 "바닥에서
+            솟아오른" 구도는 그대로 유지되고, 잠기는 양은 기기 세로에 따라
+            0~15% 로 알아서 정해진다(전에는 폰이 상한에 걸려 30%까지 잠겼다). */}
+        <div style={{ marginTop: 24 }}>
+          {/* 세로 예산에서 역산한 크기 — 세 제약의 최솟값.
+              · 350px  : 상한(그 이상은 목업이 커도 이득이 없다)
+              · 100vw-72: 좁은 폰에서 좌우 최소 36px 확보
+              · svh 식  : 제목·점·캡션을 뺀 남은 세로에 딱 맞게(0.577 = 9/19.5÷0.8,
+                          하단 20% 잠김을 감안한 역산)
+              286→208 로 낮춘 이유: 607px 실측에서 캡션↔폰 사이가 130px 떠서
+              화면이 휑했다. 폰이 그만큼 작았다는 뜻이라 세로를 다 쓰게 했다. */}
+          <PhoneFrame
+            width={'min(350px, calc(100vw - 72px), calc((100svh - 208px) * 0.577))'}
+          >
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
               {FEATURES.map((f, i) => (
                 <div
@@ -1247,7 +1276,9 @@ export default function AppShowcase() {
             </div>
           </PhoneFrame>
         </div>
+        </div>
 
+      </div>
       </div>
 
       {/* ★모바일 쇼케이스 전면 재작성(2026-08-05, 사장님: "이게 우리가 생각했던
