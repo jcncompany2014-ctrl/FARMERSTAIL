@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -86,6 +87,8 @@ async function runOrderExpire(): Promise<Response> {
   }>
 
   let expired = 0
+  // 품목을 못 읽어 재고 복원이 누락된 건 — 안 세면 조용히 사라진다.
+  let itemsFailed = 0
   for (const ord of targets) {
     const nowIso = new Date().toISOString()
 
@@ -135,7 +138,17 @@ async function runOrderExpire(): Promise<Response> {
     // 재고 복구용 품목 조회 — 실패를 "품목 없음"으로 읽으면 재고가 영영
     // 안 돌아온다. 주문은 이미 취소됐으니 이 건만 남기고 사람에게 알린다.
     if (itemsErr) {
+      // ★주문은 이미 위에서 cancelled 로 선점됐다. 다음 실행은
+      //   payment_status='pending' 조건이 안 맞아 **이 주문을 다시 못 잡는다**
+      //   → 재고 복원·cancelled_at 마킹이 영구 누락된다.
+      //   그래서 여기서 끝내되, 주석이 약속한 대로 **실제로** 사람에게 알린다
+      //   (전엔 console.error 뿐이었다 — 규칙4: 없는 방어를 주장하는 주석).
       console.error('[order-expire] 주문 품목 조회 실패(재고 미복구):', ord.id, itemsErr.message)
+      captureBusinessEvent('error', 'order.expire.items_lookup_failed', {
+        orderId: ord.id,
+        note: '주문은 취소됐는데 품목을 못 읽어 재고 복원·항목 마킹이 누락됨 — 수동 확인 필요',
+      })
+      itemsFailed += 1
       continue
     }
     const itemsArr = (items ?? []) as Array<{
@@ -202,5 +215,6 @@ async function runOrderExpire(): Promise<Response> {
     cutoff,
     checked: targets.length,
     expired,
+    itemsFailed,
   })
 }

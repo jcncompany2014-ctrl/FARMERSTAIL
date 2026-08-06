@@ -67,6 +67,8 @@ type SubRow = {
   address_detail: string | null
   delivery_memo: string | null
   total_deliveries: number | null
+  /** active | paused — paused 는 "결제 후 정지" 경고 표시용(2026-08-07). */
+  status: string
   /** 청구 가능 판정용 — 이 둘이 없으면 청구 크론이 건너뛴다. */
   billing_key: string | null
   requires_billing_key_renewal: boolean | null
@@ -107,18 +109,29 @@ export default async function PickingListPage({
   const chargedBumpDate = addDaysKst(shipDate, 14)
 
   // 1) 발송 대상 구독 — 카드 미등록 구독은 next_delivery_date=null 이라 자동 제외.
-  const { data: subsRaw } = await supabase
+  // ★paused 도 함께 가져온다(2026-08-07 재감사).
+  //   청구(KST 09:10) 한 시간 뒤 personalization-progression(10:10)이 알레르기
+  //   누출을 감지하면 status='paused' 로 바꾼다. 그런데 이 목록은 'active' 만
+  //   봤으므로 **한 시간 전에 결제된 박스가 포장 목록에서 사라졌다** — 주문은
+  //   'preparing' 으로 남아 admin 주문 목록엔 보이니, 두 화면이 같은 건을
+  //   정반대로 말했다(안 보냄 vs 보내야 함). 환불도 없다.
+  //   돈을 받았으면 사장님이 그 사실을 알아야 한다 — 아래에서 경고로 표시한다.
+  const { data: subsRaw, error: subsErr } = await supabase
     .from('subscriptions')
     .select(
-      'id, dog_id, user_id, fresh_ratio, next_delivery_date, total_amount, ' +
+      'id, dog_id, user_id, status, fresh_ratio, next_delivery_date, total_amount, ' +
         'recipient_name, recipient_phone, zip, address, address_detail, ' +
         'delivery_memo, total_deliveries, billing_key, requires_billing_key_renewal',
     )
-    .eq('status', 'active')
+    .in('status', ['active', 'paused'])
     .or(
       `next_delivery_date.lte.${shipDate},next_delivery_date.eq.${chargedBumpDate}`,
     )
     .order('created_at', { ascending: true })
+  if (subsErr) {
+    // 조회 실패를 "출고할 게 없음"으로 읽으면 그날 발송이 통째로 빠진다.
+    throw new Error(`구독 조회 실패 — 목록을 신뢰할 수 없어요: ${subsErr.message}`)
+  }
   const subs = ((subsRaw ?? []) as unknown) as SubRow[]
 
   const dogIds = [...new Set(subs.map((s) => s.dog_id).filter(Boolean))] as string[]
@@ -284,6 +297,11 @@ export default async function PickingListPage({
       userAdjusted: f?.user_adjusted ?? false,
       transition: f?.transition_strategy ?? '',
       noFormula: !f,
+      // ★결제는 됐는데 그 뒤 정지된 건(2026-08-07). 청구(09:10) 한 시간 뒤
+      //   재제안 크론(10:10)이 알레르기 누출을 감지하면 status 를 paused 로
+      //   바꾼다 — 돈은 이미 받았다. 목록에서 지우지 말고 **사장님이 판단**하게
+      //   보여준다(보낼지, 환불할지).
+      pausedAfterCharge: sub.status === 'paused',
       // 청구 크론과 **같은 조건**. 이게 false 면 결제 없이 박스만 나간다.
       cannotCharge:
         !sub.billing_key || sub.requires_billing_key_renewal === true,
@@ -317,7 +335,12 @@ export default async function PickingListPage({
   // ★ 청구 불가도 '확인 필요' 다 — 예전엔 noFormula/overdue 만 세어서,
   //   결제되지 않을 박스가 아무 표시 없이 포장 대상에 섞였다(2026-07-31).
   const problemCount = rows.filter(
-    (r) => r.noFormula || r.overdue || r.cannotCharge || r.missing.length > 0,
+    (r) =>
+      r.noFormula ||
+      r.overdue ||
+      r.cannotCharge ||
+      r.pausedAfterCharge ||
+      r.missing.length > 0,
   ).length
 
   /**
@@ -451,7 +474,9 @@ export default async function PickingListPage({
                 {/* ★ 청구 불가를 **가장 먼저** 판정한다 (2026-07-31).
                     예전엔 이 구독에도 '발송일 아침 청구 예정' 이 떴다 — 청구
                     크론이 영원히 건너뛰는데도. 사실이 아닌 안내였다. */}
-                {r.cannotCharge ? (
+                {r.pausedAfterCharge ? (
+                  <Badge tone="amber">결제 후 정지됨 — 확인 필요</Badge>
+                ) : r.cannotCharge ? (
                   <Badge tone="red">청구 불가 — 발송하지 마세요</Badge>
                 ) : r.charged ? (
                   <Badge tone="green">오늘 아침 청구 완료</Badge>
@@ -461,6 +486,15 @@ export default async function PickingListPage({
                   <Badge tone="amber">발송일 아침 청구 예정</Badge>
                 )}
               </div>
+
+              {r.pausedAfterCharge && (
+                <p className="mt-3 text-[12.5px] font-semibold text-amber-800">
+                  ⚠ 결제는 됐는데 그 뒤 구독이 <strong>정지</strong>됐어요(대개
+                  알레르기 누출이 감지되면 자동으로 멈춥니다). 돈은 이미 받았으니
+                  그냥 사라지면 안 됩니다 — <strong>보낼지 환불할지 판단</strong>해
+                  주세요. 레시피가 안전한지부터 확인하시는 게 좋습니다.
+                </p>
+              )}
 
               {r.cannotCharge && (
                 <p className="mt-3 text-[12.5px] font-semibold text-red-600">

@@ -61,7 +61,12 @@ export default async function VetSharePage({
       }
     | { ok: false; error: string; message: string }
 
-  const result = (data ?? { ok: false, error: 'unknown', message: '응답 없음' }) as RpcResult
+  // '응답 없음' 은 개발자용 내부 문자열이었다 — 수의사 화면에 그대로 찍혔다.
+  const result = (data ?? {
+    ok: false,
+    error: 'unknown',
+    message: '링크를 확인하지 못했어요. 잠시 후 다시 열어봐 주세요.',
+  }) as RpcResult
 
   if (!result.ok) {
     return (

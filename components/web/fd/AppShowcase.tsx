@@ -1083,6 +1083,8 @@ export default function AppShowcase() {
   // 폭주를 막는 가드).
   const mobRef = useRef<HTMLDivElement | null>(null)
   const mobLast = useRef(0)
+  // active 를 effect 의존성에 넣으면 전환마다 리스너가 재등록된다 — ref 로 읽는다.
+  const activeRef = useRef(0)
 
   // ★모바일 = CSS sticky + 스크롤 진행도(2026-08-05 재작성).
   //   처음엔 GSAP ScrollTrigger 의 pin 을 썼는데, **pin 은 고정하는 순간의
@@ -1094,6 +1096,10 @@ export default function AppShowcase() {
   //   구조적으로 없다. 인덱스는 스크롤 위치를 읽는 순수 계산이라 라이브러리도
   //   필요 없다 — reduced-motion 이나 JS 실패 시에도 sticky 는 그대로 돌고,
   //   화면만 첫 장에 머문다(깨지지 않는다).
+  useEffect(() => {
+    activeRef.current = active
+  }, [active])
+
   useEffect(() => {
     if (typeof window === 'undefined') return
     const el = mobRef.current
@@ -1113,7 +1119,12 @@ export default function AppShowcase() {
         window.innerHeight,
         FEATURES.length,
       )
-      if (idx !== mobLast.current) {
+      // ★ref 가 아니라 실제 active 와 비교한다(2026-08-07 회귀 감사).
+      //   데스크톱 경로(IO)가 active 를 k 로 바꾼 뒤 뷰포트가 768px 아래로
+      //   내려오면(폰을 가로→세로로 돌리면), 스크롤 계산이 0 을 내도
+      //   `0 === mobLast.current`(초기 0) 라 setActive 가 안 불려 **제목·폰이
+      //   k 번 화면에 고정**된다. 첫 경계를 지나야 풀린다.
+      if (idx !== mobLast.current || idx !== activeRef.current) {
         mobLast.current = idx
         setActive(idx)
       }

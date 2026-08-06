@@ -34,6 +34,8 @@ export type PickingRow = {
    * 없이 포장 대상에 섞였다(2026-07-31). 특히 어드민 '재개' 가 영구 거절 구독에
    * 배송일을 박아주고 있어 그 조합이 실제로 만들어졌다.
    */
+  /** 결제 후 정지된 건 — 돈은 받았는데 구독이 멈췄다(2026-08-07). */
+  pausedAfterCharge: boolean
   cannotCharge: boolean
   charged: boolean
   overdue: boolean

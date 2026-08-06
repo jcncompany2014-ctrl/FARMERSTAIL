@@ -9,7 +9,6 @@ import assert from 'node:assert/strict'
 import {
   formatPhone,
   stripHyphens,
-  isValidMobilePhone,
   formatZip,
   isValidZip,
   formatBizNumber,
@@ -66,31 +65,6 @@ describe('stripHyphens', () => {
   })
 })
 
-describe('isValidMobilePhone', () => {
-  it('accepts 010 numbers with or without hyphens', () => {
-    assert.equal(isValidMobilePhone('01012345678'), true)
-    assert.equal(isValidMobilePhone('010-1234-5678'), true)
-    assert.equal(isValidMobilePhone('010 1234 5678'), true)
-  })
-
-  it('accepts 10-digit 010 numbers (older 010-XXX-XXXX)', () => {
-    assert.equal(isValidMobilePhone('0101234567'), true)
-  })
-
-  it('rejects non-010 prefixes', () => {
-    assert.equal(isValidMobilePhone('011-1234-5678'), false)
-    assert.equal(isValidMobilePhone('02-1234-5678'), false)
-  })
-
-  it('rejects too short / too long', () => {
-    assert.equal(isValidMobilePhone('010123'), false)
-    assert.equal(isValidMobilePhone('0101234567890'), false)
-  })
-
-  it('rejects letters or special characters', () => {
-    assert.equal(isValidMobilePhone('010-abcd-5678'), false)
-  })
-})
 
 describe('formatZip', () => {
   it('extracts 5 digits', () => {

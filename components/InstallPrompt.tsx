@@ -18,6 +18,7 @@ const RESURFACE_MS = 14 * 24 * 60 * 60 * 1000
 // Only surface after the user has had at least one meaningful navigation to
 // avoid popping on a cold first-load.
 import { isStandaloneApp } from '@/lib/standalone'
+import { readConsent } from '@/lib/cookies'
 
 const MIN_DELAY_MS = 4000
 
@@ -31,7 +32,11 @@ const MIN_DELAY_MS = 4000
 function cookieConsentPending(): boolean {
   if (typeof window === 'undefined') return true
   try {
-    return !window.localStorage.getItem('ft_cookie_consent')
+    // ★배너와 **같은 판정**을 쓴다(2026-08-07). raw 키 존재만 보면,
+    //   COOKIE_POLICY_VERSION 을 올리는 순간(파일 주석에 계획이 있다) 배너는
+    //   다시 뜨는데 여기선 "동의 완료"로 읽어 두 배너가 다시 겹친다.
+    //   손상된 JSON 도 마찬가지. readConsent 가 버전·파싱까지 본다.
+    return readConsent() === null
   } catch {
     return false // 저장소 접근 불가 = 배너도 못 뜬다 → 막을 이유 없음
   }

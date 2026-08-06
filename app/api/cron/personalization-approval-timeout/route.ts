@@ -81,6 +81,8 @@ export async function GET(req: Request) {
   const rows = (pending ?? []) as unknown as PendingRow[]
   let declined = 0
   let extended = 0
+  // 이번 회차에 손대지 않고 다음 실행으로 넘긴 건 — 안 세면 조용히 사라진다.
+  let deferred = 0
   let failed = 0
 
   for (const row of rows) {
@@ -101,6 +103,33 @@ export async function GET(req: Request) {
           ?.needsConsultation === true
       )
         continue
+      // ★직전 회차를 **전환 전에** 읽는다(2026-08-07 재감사).
+      //   전에는 declined 로 바꾼 뒤에 읽고, 실패하면 continue 했다. 그런데
+      //   그 시점엔 이미 approval_status 가 'declined' 라 다음 실행의
+      //   'pending_approval' 필터에 안 걸린다 → 일시적 DB 오류 한 번이면
+      //   **직전 회차 +28일 연장이 영영 누락**되고(활성 처방 공백) 고객 푸시
+      //   ("이전 식단 그대로 유지할게요")까지 건너뛴다. 수정 전에는 최소한
+      //   푸시는 나갔으니, 어제 넣은 그 가드가 **새 유실을 만든 것**이었다.
+      //   전환 전에 읽으면 실패해도 row 가 그대로라 다음 실행이 이어받는다.
+      let prevRow: { id: string; applied_until: string | null } | null = null
+      if (row.cycle_number > 1) {
+        const { data: prev, error: prevErr } = await supabase
+          .from('dog_formulas')
+          .select('id, applied_until')
+          .eq('dog_id', row.dog_id)
+          .eq('cycle_number', row.cycle_number - 1)
+          .maybeSingle()
+        if (prevErr) {
+          console.error(
+            '[personalization-approval-timeout] 직전 회차 조회 실패 — 이번 회차 보류:',
+            prevErr.message,
+          )
+          deferred += 1
+          continue
+        }
+        prevRow = prev as unknown as { id: string; applied_until: string | null } | null
+      }
+
       // 1) 본 row 를 declined 로 전환.
       const { error: updErr } = await supabase
         .from('dog_formulas')
@@ -112,32 +141,15 @@ export async function GET(req: Request) {
       if (updErr) throw updErr
       declined += 1
 
-      // 2) 이전 cycle 의 applied_until 을 +28d 연장 (이전 처방 유지).
-      if (row.cycle_number > 1) {
-        const { data: prev, error: prevErr } = await supabase
+      // 2) 이전 cycle 의 applied_until 을 +28d 연장 (위에서 미리 읽어 둔 값).
+      if (prevRow && prevRow.applied_until) {
+        const newUntil = new Date(prevRow.applied_until)
+        newUntil.setDate(newUntil.getDate() + 28)
+        await supabase
           .from('dog_formulas')
-          .select('id, applied_until')
-          .eq('dog_id', row.dog_id)
-          .eq('cycle_number', row.cycle_number - 1)
-          .maybeSingle()
-        const prevTyped = prev as unknown as {
-          id: string
-          applied_until: string | null
-        } | null
-        // 실패를 "직전 회차 없음"으로 읽으면 연장이 조용히 누락된다.
-        if (prevErr) {
-          console.error('[personalization-approval-timeout] 직전 회차 조회 실패:', prevErr.message)
-          continue
-        }
-        if (prevTyped && prevTyped.applied_until) {
-          const newUntil = new Date(prevTyped.applied_until)
-          newUntil.setDate(newUntil.getDate() + 28)
-          await supabase
-            .from('dog_formulas')
-            .update({ applied_until: newUntil.toISOString().slice(0, 10) })
-            .eq('id', prevTyped.id)
-          extended += 1
-        }
+          .update({ applied_until: newUntil.toISOString().slice(0, 10) })
+          .eq('id', prevRow.id)
+        extended += 1
       }
 
       // 3) push 알림 — "5일 무응답으로 이전 비율 유지" — 보호자 알림.
@@ -168,6 +180,7 @@ export async function GET(req: Request) {
       ok: true,
       pending: rows.length,
       declined,
+      deferred,
       extended,
       failed,
     })

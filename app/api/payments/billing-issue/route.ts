@@ -155,6 +155,25 @@ export async function POST(req: Request) {
     .eq('id', subscriptionId)
     .eq('user_id', user.id)
     .maybeSingle()
+  // ★조회 실패를 "해당 없음"으로 읽으면 두 갈래가 동시에 틀어진다(2026-08-07):
+  //   ① shouldResume=false → 카드를 다시 등록해도 **paused 그대로 = 영구 정지**
+  //      (응답은 ok:true 라 고객은 성공한 줄 안다. 화면 안내는 "다시 등록하면
+  //       자동으로 다시 시작돼요"라고 말한다.)
+  //   ② !cur?.next_delivery_date 가 참 → **기존 배송일을 다음 화요일로 덮어씀**
+  //      (주기가 최대 12일 당겨진다).
+  //   규칙32 정규식은 `const { data } = await supabase` 형태만 봐서 이
+  //   `const x = await …; x.data` 패턴을 구조적으로 못 잡았다.
+  if (wasInRenewal.error) {
+    console.error('[billing-issue] 구독 상태 조회 실패:', wasInRenewal.error.message)
+    return NextResponse.json(
+      {
+        ok: false,
+        code: 'LOOKUP_FAILED',
+        message: '등록 상태를 확인하지 못했어요. 정기배송 화면에서 확인해 주세요.',
+      },
+      { status: 500 },
+    )
+  }
   const cur = wasInRenewal.data as {
     status?: string
     requires_billing_key_renewal?: boolean

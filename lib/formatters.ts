@@ -44,15 +44,13 @@ export function stripHyphens(input: string): string {
   return (input ?? '').replace(/[\s-]+/g, '')
 }
 
-/**
- * 휴대폰 번호 형식 검증. 사용자 입력 마지막 단계에서.
- *   true: "010-1234-5678", "01012345678"
- *   false: 그 외 (010 외 prefix, 자리수 부족, 한글 등)
- */
-export function isValidMobilePhone(input: string): boolean {
-  const d = stripHyphens(input)
-  return /^010\d{7,8}$/.test(d)
-}
+// isValidMobilePhone 은 2026-08-07 에 삭제했다.
+//   · 사용처 0건(자기 테스트만)
+//   · 내용물이 `/^010\d{7,8}$/` — 사장님이 2026-08-03 실제 사고로 고친 바로
+//     그 구멍(010 뒤 7자리 허용, 10자리 번호가 결제까지 통과)을 그대로 보유.
+//     살려두면 누가 다시 쓰는 순간 그 사고가 부활한다.
+//   · 규칙33 은 `01[016789]` 문자클래스 패턴만 잡아서 이 형태를 통과시켰다.
+//   정본은 lib/phone 의 isKoreanMobile 하나다.
 
 // ──────────────────────────────────────────────────────────────────────────
 // Postal code — 우편번호 (KR 5자리)
