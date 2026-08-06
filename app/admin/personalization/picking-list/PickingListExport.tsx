@@ -40,6 +40,8 @@ export type PickingRow = {
   charged: boolean
   overdue: boolean
   totalAmount: number
+  /** 이번 출고분 미발송 주문 — 포장 중 송장 입력으로 바로 가는 링크용. */
+  order: { id: string; orderNumber: string } | null
   packs: Array<{ name: string; packG: number; count: number; totalG: number }>
   /**
    * 레시피는 부르는데 **박스에 못 담기는** 항목 — 판매중지·재고0·구독불가.

@@ -7,6 +7,7 @@ import {
   Package,
   RefreshCcw,
   Activity,
+  MessageCircle,
 } from 'lucide-react'
 
 /**
@@ -32,6 +33,15 @@ export type ActionsPanelProps = {
   stockOutCount: number
   /** 24h 내 실패한 cron 횟수 (cron_health). 0 이면 카드 회색 (정상). */
   cronFailureCount?: number
+  /**
+   * 답 안 한 1:1 문의 수 (cs_messages, sender='user' AND read_at IS NULL).
+   *
+   * ★대시보드에 없던 유일한 '고객이 기다리는 일'이었다(2026-08-07 감사).
+   * 문의는 /admin/cs-inbox 를 직접 열어야만 보였고, 대시보드만 보고 하루를
+   * 끝내면 답장이 며칠 밀린다. 앱은 "영업일 기준 24시간 이내 답변"이라고
+   * 약속한다.
+   */
+  csUnansweredCount?: number
 }
 
 type Item = {
@@ -87,6 +97,12 @@ export default function ActionsPanel(props: ActionsPanelProps) {
       icon: Clock,
       label: '품절 상품',
       count: props.stockOutCount,
+    },
+    {
+      href: '/admin/cs-inbox',
+      icon: MessageCircle,
+      label: '답 안 한 문의',
+      count: props.csUnansweredCount ?? 0,
     },
     {
       href: '/admin/cron-health',

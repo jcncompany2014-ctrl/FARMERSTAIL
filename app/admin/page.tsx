@@ -216,6 +216,7 @@ export default async function AdminHome() {
     stockOutRes,
     cronFailRes,
     noCardSubsRes,
+    csUnansweredRes,
   ] = await Promise.all([
     // preparing + 결제됨 + 24h+ → 발송 stale (부분 환불 포함)
     supabase
@@ -265,6 +266,12 @@ export default async function AdminHome() {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'active')
       .is('billing_key', null),
+    // 답 안 한 1:1 문의 — 고객이 기다리는 일인데 대시보드에 없었다(2026-08-07).
+    supabase
+      .from('cs_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('sender', 'user')
+      .is('read_at', null),
   ])
 
   // 식품정보고시 14항목 채움률 — 별도 쿼리. 100개 이하 가정.
@@ -462,6 +469,7 @@ export default async function AdminHome() {
           refundsPendingCount={refundsPendingRes.count ?? 0}
           stockOutCount={stockOutRes.count ?? 0}
           cronFailureCount={cronFailRes.count ?? 0}
+          csUnansweredCount={csUnansweredRes.count ?? 0}
         />
       </div>
 

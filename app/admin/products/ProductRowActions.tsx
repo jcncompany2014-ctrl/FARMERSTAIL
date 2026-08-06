@@ -111,6 +111,11 @@ function StockEditor({
   async function bump(delta: number) {
     const next = Math.max(0, initialValue + delta)
     if (next === initialValue) return
+    // ±10 은 오탭했을 때 되돌리기가 번거롭다(다시 정확히 -10 을 눌러야 한다).
+    // ±1 은 확인 없이 — 확인을 다 붙이면 빠른 조정의 의미가 사라진다.
+    if (Math.abs(delta) >= 10) {
+      if (!confirm(`재고를 ${initialValue} → ${next} 로 바꿀까요?`)) return
+    }
     setLoading(true)
     const { error } = await supabase
       .from('products')
@@ -140,7 +145,7 @@ function StockEditor({
         onClick={() => setEditing(true)}
         disabled={loading}
         title="클릭해서 직접 입력"
-        className={`min-w-[2.5rem] text-center text-sm font-semibold hover:bg-zinc-100 rounded px-2 py-1 transition ${color}`}
+        className={`inline-flex items-center justify-center min-w-[2.5rem] min-h-[36px] text-sm font-semibold hover:bg-zinc-100 rounded px-2 transition ${color}`}
       >
         {initialValue}
       </button>
@@ -150,7 +155,18 @@ function StockEditor({
   )
 }
 
-/** 재고 델타 버튼 — 평소엔 옅게, 행 hover 시 또렷하게(표가 시끄러워지지 않게). */
+/**
+ * 재고 델타 버튼.
+ *
+ * # 왜 hover 의존을 뺐나 (2026-08-07 어드민 감사)
+ * 평소 `text-zinc-300`, 행 hover 시에만 `group-hover:text-zinc-500` 로 또렷해지는
+ * 구조였다. 그런데 **폰에는 hover 가 없다** — 이 어드민은 폰 운영용으로 만든
+ * 것이고(드로어화), 폰에서는 이 버튼들이 끝까지 흐린 채였다. 크기도
+ * px-1.5 py-1 = 약 22×24px 라 손가락으로 정확히 누르기 어려웠다.
+ *
+ * 44px 는 표가 너무 시끄러워지므로 36px 로 타협하고(표 행 안의 보조 액션),
+ * 색은 항상 읽히는 zinc-500 으로 고정한다.
+ */
 function QuickBump({
   label,
   onClick,
@@ -166,7 +182,7 @@ function QuickBump({
       onClick={onClick}
       disabled={disabled}
       aria-label={`재고 ${label}`}
-      className="rounded px-1.5 py-1 text-[11px] font-bold text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-700 group-hover:text-zinc-500 disabled:opacity-40"
+      className="inline-flex items-center justify-center min-w-[36px] min-h-[36px] rounded text-[12px] font-bold text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 active:bg-zinc-200 disabled:opacity-40"
     >
       {label}
     </button>

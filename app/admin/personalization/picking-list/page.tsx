@@ -10,6 +10,7 @@ import {
 } from '@/lib/personalization/boxPricing'
 import type { Formula } from '@/lib/personalization/types'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { addDaysKst, todayKstIsoDate } from '@/lib/datetime-kst'
 import { weekdayOf, weekdayKo, SHIP_WEEKDAY } from '@/lib/shipping-schedule'
 import {
@@ -19,6 +20,7 @@ import {
   StatCard,
   SectionTitle,
 } from '@/components/admin/ui'
+import CopyField from '@/components/admin/CopyField'
 import PickingListExport, { type PickingRow } from './PickingListExport'
 import ShippingLabels from './ShippingLabels'
 import PackingChecklist from './PackingChecklist'
@@ -135,6 +137,43 @@ export default async function PickingListPage({
   const subs = ((subsRaw ?? []) as unknown) as SubRow[]
 
   const dogIds = [...new Set(subs.map((s) => s.dog_id).filter(Boolean))] as string[]
+
+  /**
+   * 이번 출고분 주문 — 포장하다 바로 송장을 넣으러 갈 수 있게 (2026-08-07 감사).
+   *
+   * 예전엔 피킹 리스트에 주문으로 가는 링크가 없어서, 포장할 때마다 주문 목록을
+   * 따로 열고 수령인 이름으로 검색해 찾아야 했다. 매주 화요일 반복되는 손실이다.
+   *
+   * 구독당 **가장 최근** 미발송 주문 하나만 붙인다. 없으면(=아직 청구 전) 링크를
+   * 안 보여준다 — 없는 링크를 만들어 막다른 길을 주는 것보다 낫다.
+   */
+  const subIds = subs.map((s) => s.id)
+  const orderBySubId = new Map<string, { id: string; orderNumber: string }>()
+  if (subIds.length > 0) {
+    const { data: orderRows, error: ordersErr } = await supabase
+      .from('orders')
+      .select('id, order_number, subscription_id, created_at')
+      .in('subscription_id', subIds)
+      .in('payment_status', PAID_STATUSES)
+      .eq('order_status', 'preparing')
+      .order('created_at', { ascending: false })
+    if (ordersErr) {
+      // 링크가 없는 건 견딜 수 있지만, 조용히 없는 것처럼 보이면 안 된다.
+      console.error('[picking-list] 주문 조회 실패', ordersErr.message)
+    }
+    for (const o of (orderRows ?? []) as Array<{
+      id: string
+      order_number: string
+      subscription_id: string | null
+    }>) {
+      if (o.subscription_id && !orderBySubId.has(o.subscription_id)) {
+        orderBySubId.set(o.subscription_id, {
+          id: o.id,
+          orderNumber: o.order_number,
+        })
+      }
+    }
+  }
 
   // 2) 강아지 이름 + 최신 승인 처방 + 제품(정본 계산용) 병렬 로드.
   const allSlugs = [
@@ -309,6 +348,7 @@ export default async function PickingListPage({
       overdue:
         sub.next_delivery_date != null && sub.next_delivery_date < shipDate,
       totalAmount: sub.total_amount,
+      order: orderBySubId.get(sub.id) ?? null,
       packs,
       missing,
       boxTotalG: packs.reduce((s, p) => s + p.totalG, 0),
@@ -554,15 +594,26 @@ export default async function PickingListPage({
                 </div>
               )}
 
-              <div className="mt-3 pt-3 border-t border-zinc-100 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-zinc-500">
-                <span>
-                  [{r.zip}] {r.addressLine}
-                </span>
-                {r.phone && <span>{r.phone}</span>}
+              {/* 주소·전화는 눌러서 복사 — 폰으로 드래그 선택하다 잘못 복사하면
+                  엉뚱한 곳으로 박스가 간다(2026-08-07 감사). */}
+              <div className="mt-3 pt-3 border-t border-zinc-100 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-zinc-500">
+                <CopyField
+                  value={`[${r.zip}] ${r.addressLine}`}
+                  label={`[${r.zip}] ${r.addressLine}`}
+                />
+                {r.phone && <CopyField value={r.phone} />}
                 {r.memo && (
                   <span className="text-amber-700 font-semibold">
                     메모: {r.memo}
                   </span>
+                )}
+                {r.order && (
+                  <Link
+                    href={`/admin/orders/${r.order.id}`}
+                    className="font-bold text-terracotta underline underline-offset-2"
+                  >
+                    주문 {r.order.orderNumber} →
+                  </Link>
                 )}
                 <span className="ml-auto font-bold text-zinc-700">
                   {r.totalAmount.toLocaleString()}원
