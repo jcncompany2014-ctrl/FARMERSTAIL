@@ -19,7 +19,7 @@
  *              (NOW FEATURING·80² 사진·4-col 스탯 체중/연속/분석/배송) + 이번 주
  *     우리아이 = 딥헤더(←) + 탭바(개요·기록·분석·구독) + DOG PROFILE 원형사진
  *              + 정보 rows(성별~활동량) + 현재 박스 컬러바(Basic/Premium/Skin)
- *     분석   = 딥헤더 + 탭바 + kcal/급여량/BCS 스트립 + 오늘의 영양 진단
+ *     분석   = 딥헤더 + 탭바 + kcal/급여량/BCS 스트립 + 오늘의 영양 분석
  *              (dashed 링 사진·배지 칩·강조 카피·AAFCO/NRC) + MER 331
  *     구독   = 딥헤더 + 탭바 + CUSTOM BOX 키커 + 2주 결제 카드 + 화식 비율 선택
  *              (곁들임/반반/완전) + 추천 박스 구성(Duck 50%)
@@ -519,7 +519,7 @@ function ScreenDog() {
 }
 
 // ---------------------------------------------------------------------------
-// ③ 영양 분석 — kcal 스트립 + 오늘의 영양 진단 + 배지/강조 카피 + MER
+// ③ 영양 분석 — kcal 스트립 + 오늘의 영양 분석 + 배지/강조 카피 + MER
 // ---------------------------------------------------------------------------
 function ScreenAnalysis() {
   return (
@@ -543,13 +543,13 @@ function ScreenAnalysis() {
       >
         <span>
           <b style={{ color: V3.accent }}>331 kcal</b>
-          {'  ·  '}⚖ 217g{'  ·  '}BCS 5/9
+          {'  ·  '}⚖ 217g{'  ·  '}체형 5/9
         </span>
         <span style={{ color: V3.inkMute }}>2026년 6월 19일</span>
       </div>
 
       <div style={{ padding: '12px 12px 0', textAlign: 'center' }}>
-        <MonoText color={V3.accent} size={7.5} ls="0.32em">오늘의 영양 진단</MonoText>
+        <MonoText color={V3.accent} size={7.5} ls="0.32em">오늘의 영양 분석</MonoText>
         <div
           style={{
             width: 62,
@@ -574,7 +574,7 @@ function ScreenAnalysis() {
               성견 (유지기)
             </span>
             <span style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.ink, background: V3.paperDeep, borderRadius: 999, padding: '3px 7px' }}>
-              BCS 5/9
+              체형 5/9
             </span>
             <span style={{ fontFamily: sans, fontSize: 7.5, fontWeight: 700, color: V3.ink, background: V3.paperDeep, borderRadius: 999, padding: '3px 7px' }}>
               단백 32% 이상
@@ -584,7 +584,7 @@ function ScreenAnalysis() {
             단백질은 <span style={{ color: V3.accent }}>넉넉히</span>, 지방은{' '}
             <span style={{ color: '#B8860B' }}>균형 있게</span>
             <br />
-            콩이의 BCS 5/9 체형에{' '}
+            콩이의 체형(5/9)에{' '}
             <mark style={{ background: V3.yellow, color: V3.ink, padding: '0 2px' }}>맞춤 식단을 준비했어요.</mark>
           </div>
           <div
@@ -606,7 +606,7 @@ function ScreenAnalysis() {
 
         {/* DAILY ENERGY · MER (하단 클립) */}
         <V3Card radius={10} style={{ padding: '10px 11px 4px', marginTop: 8, textAlign: 'left' }}>
-          <MonoText size={7} ls="0.24em">Daily Energy · MER</MonoText>
+          <MonoText size={7} ls="0.24em">Daily Energy</MonoText>
           <div style={{ fontFamily: sans, fontSize: 8, color: V3.inkSoft, marginTop: 4 }}>
             콩이가 하루 체중 유지에 필요한 에너지
           </div>
@@ -865,7 +865,7 @@ function ScreenVet() {
         <V3Card style={{ marginTop: 10, padding: '2px 10px' }}>
           {[
             { k: '체중', v: '5.2kg' },
-            { k: '체형 (BCS)', v: '5/9 · 정상' },
+            { k: '체형', v: '5/9 · 정상' },
             { k: '하루 급여량', v: '252g' },
             { k: '화식 구성', v: '완전 화식' },
           ].map((r, i) => (
@@ -971,7 +971,7 @@ const FEATURES: Feature[] = [
         정밀 영양 분석
       </>
     ),
-    body: '체형 점수(BCS)와 하루 필요 에너지(MER), 급여량, 잘 맞는 단백질 구성까지 — 오늘의 영양 진단 리포트로 확인해요. 알레르기 응답은 레시피에서 자동으로 빠지고, AAFCO·NRC 기준 충족 여부도 리포트에 그대로 적혀 있어요. 기록이 쌓여 체중 변화가 감지되면 재분석으로 이어져요.',
+    body: '체형 점수와 하루 필요 에너지, 급여량, 잘 맞는 단백질 구성까지 — 오늘의 영양 분석 리포트로 확인해요. 알레르기 응답은 레시피에서 자동으로 빠지고, AAFCO·NRC 기준 충족 여부도 리포트에 그대로 적혀 있어요. 기록이 쌓여 체중 변화가 감지되면 재분석으로 이어져요.',
     screen: <ScreenAnalysis />,
   },
   {

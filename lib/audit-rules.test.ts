@@ -1851,3 +1851,113 @@ test('규칙43 — 발송 처리에는 운송장이 필요하다', () => {
       'shipping→preparing→재발송 말고 방법이 없고, 그러면 배송 시작 알림이 두 번 간다.',
   )
 })
+
+test('규칙44 — 고객 문구에 임상 약어를 그대로 쓰지 않는다', () => {
+  /**
+   * # 왜
+   * 2026-08-07 문구 감사. `docs/voice-guidelines.md` 가 전문용어 금지를
+   * 정해 뒀고 `lib/chatbot-system-prompt.ts` 는 AI 에게 BCS 를 쓰지 말라고
+   * 지시하는데, **우리 하드코딩이 그대로 내보내고 있었다**:
+   *   · lib/chat/proactive-nudges — "○○의 BCS 가 7/9 로…" (챗봇 선제 메시지)
+   *   · components/analysis/magazine — "Daily Energy · MER"
+   *   · components/web/fd/AppShowcase — "BCS 5/9", "체형 점수(BCS)와 … (MER)"
+   *   · lib/email/templates/quarterly-report — "체형 평가(BCS)", "하루 에너지(MER)"
+   *
+   * 고객은 BCS·MER 이 무엇인지 모른다. 숫자만 보고 나쁜 뜻인지 좋은 뜻인지
+   * 판단하려다 불안해진다.
+   *
+   * # 제외
+   *  · admin — 운영자에겐 약어가 정확하고 짧다.
+   *  · vet-report / app/vet — 수의사에게 보내는 자료다. 오히려 약어가 정본.
+   *  · app/science — 방법론 공개 페이지. 계산식을 그대로 밝히는 게 목적이다.
+   *  · 뉴스레터 — 용어를 풀어 설명하는 교육 콘텐츠(본문에서 정의한다).
+   *  · 주석·변수명 — 코드가 무엇을 다루는지는 정확히 적어야 한다.
+   */
+  const BANNED = /\b(BCS|MER|Bristol|IRIS|DCM|IBD)\b/
+  const EXEMPT = [
+    '/admin/',
+    '/vet-report',
+    '/app/vet/',
+    '/science/',
+    'newsletter',
+  ]
+  /**
+   * 스캔 범위 = **고객에게 렌더되는 표면**만.
+   *
+   * 계산 엔진(lib/personalization·lib/nutrition·lib/diet-simulation 등)의
+   * 한국어 문자열은 내부 판정 근거·어드민 표시용이라 약어가 오히려 정확하다.
+   * 그것까지 넣으면 규칙이 시끄러워져서 무시하게 된다 — 규칙은 지킬 수 있는
+   * 범위로 좁게 시작한다. (엔진 라벨 정리는 별도 작업으로 남겼다.)
+   */
+  const offenders: string[] = []
+  for (const dir of [
+    'app/(main)',
+    'app/start',
+    'app/account',
+    'components/v3',
+    'components/web',
+    'components/analysis',
+    'lib/email',
+    'lib/chat',
+    'lib/v3-helpers',
+  ]) {
+    for (const file of walk(join(ROOT, dir))) {
+      if (!/\.tsx?$/.test(file) || file.includes('.test.')) continue
+      const rel = file.replace(ROOT, '').split(sep).join('/')
+      if (EXEMPT.some((e) => rel.includes(e))) continue
+      const src = stripComments(read(file))
+      // 렌더되는 한국어 문자열 안에 약어가 섞인 경우만 — 한글이 같은 따옴표
+      // 안에 함께 있으면 그건 고객에게 보여주는 문장이다.
+      for (const m of src.matchAll(/'([^'\n]*[가-힣][^'\n]*)'|`([^`\n]*[가-힣][^`\n]*)`/g)) {
+        const text = m[1] ?? m[2] ?? ''
+        if (BANNED.test(text)) {
+          offenders.push(`${rel} (${text.slice(0, 60)})`)
+        }
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '고객 문구에 임상 약어가 그대로 있다 — 고객은 BCS·MER 이 뭔지 모른다. ' +
+      '한국어로 풀어 쓸 것(예: "체형이 9단계 중 7단계"). ' +
+      offenders.join(' / '),
+  )
+})
+
+test('규칙45 — 이메일이 발송일을 "도착"이라 부르지 않는다', () => {
+  /**
+   * # 왜
+   * 2026-08-07 문구 감사. `next_delivery_date` 는 **발송일**이다
+   * (lib/shipping-schedule: 화=발송, 수=문 앞 도착). 그런데 정기배송 리마인더
+   * 메일이 그 날짜를 `"${dateLabel} 도착 예정"` 이라 썼다 — 하루를 앞당겨
+   * 약속한 셈이고, 같은 메일 **제목이 "출발해요"** 라 자기모순이었다.
+   *
+   * 게다가 도착일은 지역마다 다르다(수도권 익일 · 그 외 48시간 · 도서산간
+   * 하루 더). 우리는 고객 지역으로 도착일을 계산하지 않으므로 **단정할 근거가
+   * 없다.** 아는 것(발송)은 단정하고 모르는 것(도착)은 범위로 말한다.
+   *
+   * 같은 감사에서 personalization-cycle 메일의
+   * "박스가 도착하기 약 일주일 전에 정기 결제가 진행돼요" 도 사실이 아니었다
+   * (청구는 발송일 **당일** — subscription-charge 의 `.lte(next_delivery_date, today)`).
+   */
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'lib/email'))) {
+    if (!/\.ts$/.test(file) || file.includes('.test.')) continue
+    const rel = file.replace(ROOT, '').split(sep).join('/')
+    const src = stripComments(read(file))
+    if (/도착 예정/.test(src)) {
+      offenders.push(`${rel} (발송일을 "도착 예정" 이라 부른다)`)
+    }
+    if (/도착하기 약 일주일 전에 정기 결제/.test(src)) {
+      offenders.push(`${rel} (결제는 발송일 당일이다)`)
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '이메일이 발송일을 도착일처럼 말한다 — 하루 앞당겨 약속하는 것이고, ' +
+      '도착일은 지역마다 달라 단정할 근거가 없다. ' +
+      offenders.join(' / '),
+  )
+})

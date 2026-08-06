@@ -10,14 +10,19 @@ export const runtime = 'nodejs'
  * 제목 고정부 = dedup 앵커(2026-08-05 규칙37). 리터럴을 ilike 에 직접 박으면
  * 카피를 바꿀 때 가드가 조용히 죽는다 — 같은 날 세 크론에서 실제로 죽어 있었다.
  */
-const TITLE_ANCHOR = '다음 영양 진단'
+// ★'진단' → '분석' (2026-08-07 문구 감사). 표시광고법 자문 대기 중인 용어를
+//   고객 알림 제목에 쓰고 있었다.
+//   앵커가 바뀌면 30일 재발송 가드는 **바뀌기 전에 보낸 알림을 못 본다**.
+//   출시 전이라 실제 발송 이력이 없어 무해하지만, 운영 중이었다면 앵커 변경은
+//   구 앵커도 함께 조회하는 이행 기간이 필요하다.
+const TITLE_ANCHOR = '다음 영양 분석'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/cron/reanalysis-reminder-6m
  *
- * R80-P2 (2026-05-27): 6개월 재진단 알림.
+ * R80-P2 (2026-05-27): 6개월 재분석 알림.
  *
  * # 배경
  *   비용 통제 위해 survey/page.tsx 에서 30일 이내 재분석 차단.
@@ -142,11 +147,15 @@ async function runReminder(): Promise<Response> {
         r.user_id,
         {
           title: `${petName(dogName)}의 ${TITLE_ANCHOR} 시기예요`,
-          body: '지난 분석 후 6개월이 지났어요. 체중·활동량 변화가 있을 수 있어 재진단을 추천드려요.',
+          body: '지난 분석 후 6개월이 지났어요. 체중·활동량이 달라졌을 수 있어 다시 분석해 보시면 좋아요.',
           url: `/dogs/${r.dog_id}/survey`,
           tag: `reanalysis-6m-${r.dog_id}`,
         },
-        { category: 'order' }, // 정보성 — quiet hours 무관 발송
+        // ★category 정정 (2026-08-07). 'order'(배송)로 보내고 있었는데 이건
+        //  주문 알림이 아니다 — 고객의 '건강 알림' 토글이 이걸 제어해야 한다.
+        //  그리고 주석의 "quiet hours 무관"은 **사실이 아니었다**: lib/push.ts 는
+        //  카테고리와 무관하게 조용시간을 적용한다(AGENTS.md 규칙9).
+        { category: 'health' },
       )
       sent += 1
     } catch {

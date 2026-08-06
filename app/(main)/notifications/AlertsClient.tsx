@@ -90,7 +90,8 @@ export default function AlertsClient({
               <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
                 지금 상태를 알 수 없어서 화면을 그리지 않았어요 — 잘못
                 보여드리면 이미 껐다고 오해하실 수 있어서예요. 잠시 뒤 다시
-                열어봐 주세요.
+                열어봐 주세요. 급하시면 story@farmerstail.kr 로 알려주시면
+                저희가 바로 꺼드릴게요.
               </p>
             </div>
           </div>

@@ -42,11 +42,11 @@ export function renderQuarterlyReport(
   if (input.weightKg !== null)
     rows.push(block.row('현재 체중', escape(fmt(input.weightKg, 'kg', 1))))
   if (input.bcsLabel)
-    rows.push(block.row('체형 평가(BCS)', escape(input.bcsLabel)))
+    rows.push(block.row('체형 평가', escape(input.bcsLabel)))
   if (input.feedG !== null)
     rows.push(block.row('하루 권장 급여량', escape(fmt(input.feedG, 'g'))))
   if (input.merKcal !== null)
-    rows.push(block.row('하루 에너지(MER)', escape(fmt(input.merKcal, ' kcal'))))
+    rows.push(block.row('하루 에너지', escape(fmt(input.merKcal, ' kcal'))))
   if (input.proteinPct !== null)
     // 정확한 영양소 % 는 고객에게 내보내지 않는다(2026-08-05) — 화면은 전부
     // 방향 보증("30% 이상")으로 통일돼 있는데 이 메일만 소수점까지 찍고 있었다.
@@ -58,8 +58,15 @@ export function renderQuarterlyReport(
         ),
       )
     }
+  // 단백질과 같은 이유로 정확한 % 를 안 내보낸다 — 2026-08-05 에 단백질만
+  // 고치고 지방 줄을 빠뜨렸다(2026-08-07 문구 감사).
   if (input.fatPct !== null)
-    rows.push(block.row('지방 비율', escape(fmt(input.fatPct, '%', 1))))
+    rows.push(
+      block.row(
+        '지방',
+        input.fatPct >= 12 ? '12% 이상 (권장 범위)' : '권장 범위',
+      ),
+    )
 
   const statsTable = rows.length > 0 ? block.dl(rows) : ''
 
@@ -78,7 +85,7 @@ export function renderQuarterlyReport(
     <p style="margin:22px 0 0 0;font-size:13px;color:#173B33;line-height:1.7;">
       라인별 분배·결정 근거·체크인 추세까지 더 자세한 분석은 아래에서 확인할 수
       있어요. 계절이 바뀌면 활동량·체중도 달라질 수 있으니, 변화가 느껴지면
-      재진단을 추천드려요.
+      다시 분석해 보세요.
     </p>
   `
 

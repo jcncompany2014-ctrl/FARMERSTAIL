@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { userFacingError } from '@/lib/error-message'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { openBillingWindow } from '@/lib/payments/open-billing-window'
@@ -15,6 +15,8 @@ import {
 import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
 import { billingReturnHref } from '@/lib/payments/billing-urls'
 import { useIsAppContext } from '@/lib/app-context-client'
+import { createClient } from '@/lib/supabase/client'
+import { nextShipDate, weekdayKo } from '@/lib/shipping-schedule'
 
 /**
  * /subscribe/billing-auth — 자동결제 등록 화면 (카드 / 토스페이).
@@ -74,6 +76,54 @@ function BillingAuthInner() {
       ? resolveBillingMethod(requestedMethod, FLAGS).id
       : null,
   )
+  /**
+   * 정기결제 고지 — **금액 · 주기 · 첫 결제일**.
+   *
+   * ★왜 이 화면에 필요한가 (2026-08-07 법정 고지 감사)
+   * 주문 화면에는 다 있는데(2주 결제 · 금액 · 첫 발송일), **실제로 자동결제
+   * 수단을 등록하는 이 화면**엔 "배송일마다 자동으로 결제돼요" 한 줄뿐이었다.
+   * 금액도, 주기(2주)도, 첫 결제일도 없다. 카드 등록 링크는 메일·푸시에서도
+   * 바로 열리므로, 주문 화면을 안 거치고 여기로 오는 사람이 있다.
+   * 전자상거래법상 정기결제 고지이고, 토스 PG 정기결제 심사가 보는 화면이다.
+   */
+  const [terms, setTerms] = useState<{
+    amount: number | null
+    firstChargeDate: string | null
+  } | null>(null)
+
+  useEffect(() => {
+    if (isInvalidEntry) return
+    let alive = true
+    void (async () => {
+      const supabase = createClient()
+      const { data, error: qErr } = await supabase
+        .from('subscriptions')
+        .select('total_amount, next_delivery_date')
+        .eq('id', subscriptionId!)
+        .maybeSingle()
+      if (!alive) return
+      // 조회가 실패해도 등록은 막지 않는다 — 고지가 빠질 뿐이고, 그건
+      // 아래에서 '금액은 주문 화면에서 확인' 문구로 대체한다.
+      if (qErr || !data) {
+        setTerms({ amount: null, firstChargeDate: null })
+        return
+      }
+      const row = data as {
+        total_amount: number | null
+        next_delivery_date: string | null
+      }
+      setTerms({
+        amount: row.total_amount,
+        // 카드 등록 전 구독은 next_delivery_date 가 null 이다(홈 오노출 차단).
+        // 그때 첫 결제일은 '다음 화요일' — billing-issue 가 그렇게 잡는다.
+        firstChargeDate: row.next_delivery_date ?? nextShipDate(),
+      })
+    })()
+    return () => {
+      alive = false
+    }
+  }, [isInvalidEntry, subscriptionId])
+
   /** 지금 창을 여는 중인 수단. 두 번 눌러 창이 두 번 열리는 것도 이걸로 막는다. */
   const [launchingId, setLaunchingId] = useState<BillingMethodId | null>(null)
   const [error, setError] = useState<string | null>(
@@ -204,10 +254,43 @@ function BillingAuthInner() {
                 className="text-[12px] mt-2 leading-relaxed"
                 style={{ color: 'var(--muted)' }}
               >
-                등록해두면 배송일마다 자동으로 결제돼요.
+                등록해두면 <strong>2주마다</strong> 자동으로 결제돼요.
                 <br />
                 다음 결제 전까지 해지할 수 있어요.
               </p>
+
+              {/* 정기결제 고지 — 금액 · 주기 · 첫 결제일 */}
+              <div
+                className="mt-4 px-4 py-3 text-left"
+                style={{
+                  background: 'var(--bg-3)',
+                  border: '1px solid var(--rule)',
+                }}
+              >
+                <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
+                  결제 금액
+                </p>
+                <p
+                  className="text-[15px] font-black mt-0.5"
+                  style={{ color: 'var(--ink)' }}
+                >
+                  {terms?.amount != null
+                    ? `${terms.amount.toLocaleString()}원 · 2주마다`
+                    : '주문 화면에서 확인한 금액 · 2주마다'}
+                </p>
+                <p
+                  className="text-[11.5px] mt-1.5 leading-relaxed"
+                  style={{ color: 'var(--muted)' }}
+                >
+                  {terms?.firstChargeDate
+                    ? `첫 결제 ${Number(terms.firstChargeDate.slice(5, 7))}월 ${Number(
+                        terms.firstChargeDate.slice(8, 10),
+                      )}일(${weekdayKo(terms.firstChargeDate)}) · 이후 2주마다 같은 요일`
+                    : '첫 결제는 다음 발송일(화요일)에 진행돼요'}
+                  <br />
+                  결제일에 금액이 바뀌면 미리 알려드리고 동의를 받아요.
+                </p>
+              </div>
               <div className="mt-6 flex flex-col gap-2.5 text-left">
                 {AVAILABLE.map((m) => {
                   // 토스페이는 **토스 브랜드 색**으로 — 카드와 나란히 두면

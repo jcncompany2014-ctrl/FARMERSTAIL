@@ -92,7 +92,12 @@ function AgeGateInner() {
         return
       }
       setSaving(false)
-      setError('저장에 실패했어요: ' + updErr.message)
+      // 원본 DB 오류를 고객에게 그대로 보여주지 않는다 — 가입 첫 화면이다
+      // (2026-08-07 문구 감사). 무엇을 하면 되는지까지 말한다.
+      setError(
+        '저장하지 못했어요. 잠시 후 다시 시도해 주세요. 계속 안 되면 story@farmerstail.kr 로 알려주시면 바로 도와드릴게요.',
+      )
+      console.error('[age-gate] 저장 실패', updErr.message)
       return
     }
     // GA4/Meta sign_up 전환 — OAuth(카카오/Apple) 신규 가입자만 이 화면에

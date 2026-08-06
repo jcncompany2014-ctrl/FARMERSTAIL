@@ -45,7 +45,11 @@ export default function KakaoLoginButton({
 
     if (oauthError) {
       setLoading(false)
-      setError('카카오 로그인에 실패했어요: ' + oauthError.message)
+      // 영문 OAuth 원문을 서비스 첫 관문에 노출하지 않는다(2026-08-07 감사).
+      setError(
+        '카카오 로그인이 되지 않았어요. 잠시 후 다시 시도하거나 이메일로 로그인해 주세요.',
+      )
+      console.error('[kakao-login] 실패', oauthError.message)
       return
     }
     // Browser will navigate to Kakao — no further UI update needed.

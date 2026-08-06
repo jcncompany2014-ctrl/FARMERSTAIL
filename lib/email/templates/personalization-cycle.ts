@@ -82,7 +82,7 @@ export function renderPersonalizationCycle(
     </p>
 
     <p style="margin:18px 0 0 0;font-size:11px;color:#5A6C61;line-height:1.65;">
-      박스가 도착하기 약 일주일 전에 정기 결제가 진행돼요. 바꾸고 싶은 게 있다면
+      결제는 발송일 당일에 진행돼요. 바꾸고 싶은 게 있다면
       <a href="${SITE_URL}/account/subscriptions" style="color:#B63619;">구독 관리</a>
       에서 그 전까지 조정할 수 있어요.
     </p>

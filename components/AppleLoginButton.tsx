@@ -82,8 +82,9 @@ export default function AppleLoginButton({
       // 운영자에게 설정 안내, 사용자에겐 단순 안내로.
       const msg = oauthError.message?.includes('not enabled')
         ? 'Apple 로그인을 준비 중이에요. 잠시 후 다시 시도해 주세요.'
-        : 'Apple 로그인에 실패했어요: ' + oauthError.message
+        : 'Apple 로그인이 되지 않았어요. 잠시 후 다시 시도하거나 이메일로 로그인해 주세요.'
       setError(msg)
+      console.error('[apple-login] 실패', oauthError.message)
     }
   }
 

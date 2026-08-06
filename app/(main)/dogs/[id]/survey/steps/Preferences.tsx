@@ -29,7 +29,7 @@ const CARE_GOAL_OPTIONS: Array<{
   {
     v: 'weight_management',
     label: '체중 관리',
-    desc: '감량 / 유지 / 증량 — BCS 가 5점에서 멀수록 적극 조정',
+    desc: '감량 / 유지 / 증량 — 체형이 표준(9단계 중 5)에서 멀수록 더 적극적으로 조정해요',
     img: '/survey/icons/care-weight.png',
   },
   {

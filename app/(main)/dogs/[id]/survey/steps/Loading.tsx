@@ -49,8 +49,8 @@ export default function Loading({
       <ul className="s-stages">
         {[
           '체형 평가',
-          'RER · MER 계산',
-          'AAFCO 매크로 비교',
+          '하루 필요 에너지 계산',
+          '영양 기준 대조',
           '맞춤 보충제 매핑',
         ].map((s, i, arr) => {
           // 로딩 화면이 떠 있는 동안 마지막 단계가 '완료(체크)'로 보이면

@@ -39,7 +39,7 @@ export function renderSubscriptionReminder(input: {
   items: SubscriptionReminderItem[]
   /** 'YYYY-MM-DD' 또는 ISO. 한국어 날짜 + 요일로 렌더. */
   nextDeliveryDate: string
-  /** 0 = 오늘 도착, 1 = 내일, 2-... = D-N. */
+  /** 0 = 오늘 발송, 1 = 내일, 2-... = D-N. */
   daysBefore: number
 }): { subject: string; html: string } {
   const dateLabel = formatKoDate(input.nextDeliveryDate)
@@ -73,7 +73,11 @@ export function renderSubscriptionReminder(input: {
     </p>
     ${block.callout(
       'moss',
-      `<strong>${escape(dateLabel)} 도착 예정</strong><br/>${itemCountLabel}`,
+      // ★next_delivery_date 는 **발송일**이다 (2026-08-07 문구 감사).
+      //  "도착 예정" 이라 쓰면 하루를 앞당겨 약속하는 셈이고, 바로 위 제목이
+      //  "출발해요" 라 한 메일 안에서 자기모순이었다. 도착은 지역마다 달라
+      //  우리가 단정할 근거가 없다(lib/shipping-schedule 주석 참조).
+      `<strong>${escape(dateLabel)} 발송 예정</strong><br/>${itemCountLabel}`,
     )}
     <div style="height:14px;"></div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
@@ -89,7 +93,7 @@ export function renderSubscriptionReminder(input: {
     kicker: 'Subscription · 정기배송',
     heading,
     icon: '🚚',
-    preview: `${dateLabel} 도착 예정 · ${itemCountLabel}`,
+    preview: `${dateLabel} 발송 예정 · ${itemCountLabel}`,
     body,
     cta: {
       label: '구독 관리하기',

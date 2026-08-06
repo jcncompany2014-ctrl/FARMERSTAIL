@@ -69,15 +69,19 @@ export function computeChatNudge(ctx: NudgeContext): ChatNudge | null {
   if (ctx.latestBcs != null && ctx.latestBcs >= 7 && !inGrace) {
     return {
       reason: 'bcs_high',
-      message: `${name}의 BCS 가 ${ctx.latestBcs}/9 로 약간 높게 나왔어요. 살을 부드럽게 빼는 식단을 같이 정리해볼까요?`,
-      promptSuggestion: `${petName(name)}가 BCS ${ctx.latestBcs}인데 어떤 식단이 좋을까요?`,
+      // ★약어를 그대로 던지지 않는다 (2026-08-07 문구 감사).
+      //  lib/chatbot-system-prompt 가 AI 에게 금지한 바로 그 용어를 우리
+      //  하드코딩이 내보내고 있었고, voice-guidelines 의 3단계 점진 공개도
+      //  건너뛰고 1단계에서 수치를 던졌다.
+      message: `${name}의 체형이 9단계 중 ${ctx.latestBcs}단계로 조금 통통한 편이에요. 살을 부드럽게 빼는 식단을 같이 정리해볼까요?`,
+      promptSuggestion: `${petName(name)} 살을 빼려면 어떤 식단이 좋을까요?`,
     }
   }
   // BCS 3 이하 (저체중)
   if (ctx.latestBcs != null && ctx.latestBcs <= 3 && !inGrace) {
     return {
       reason: 'bcs_low',
-      message: `${name}의 BCS 가 ${ctx.latestBcs}/9 — 살을 살짝 더 붙일 수 있는 식단 어떨까요?`,
+      message: `${name}의 체형이 9단계 중 ${ctx.latestBcs}단계예요 — 살을 살짝 더 붙일 수 있는 식단 어떨까요?`,
       promptSuggestion: `${name}의 체중을 늘리는 식단 추천해주세요`,
     }
   }

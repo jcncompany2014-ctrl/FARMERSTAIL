@@ -57,7 +57,7 @@ export function HeroSection({
             letterSpacing: '0.22em',
           }}
         >
-          오늘의 영양 진단
+          오늘의 영양 분석
         </div>
       </Reveal>
 

@@ -51,7 +51,7 @@ export function mapSupplements(
   return raw.slice(0, 3).map((label) => {
     const lower = label.toLowerCase()
     if (/오메가|epa|dha|피쉬|fish/.test(lower)) {
-      return { name: label, tag: '피부·모질', reason: 'BCS·피모 윤기 보강', icon: 'drop' as const }
+      return { name: label, tag: '피부·모질', reason: '체형·피모 윤기 보강', icon: 'drop' as const }
     }
     if (/프로바이오|장|gi|소화|probiotic/.test(lower)) {
       return { name: label, tag: '장 건강', reason: '단백 소화 보조', icon: 'leaf' as const }

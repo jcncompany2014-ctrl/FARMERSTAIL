@@ -515,7 +515,7 @@ export default function SurveyClient({
   function validateStep(): boolean {
     setErr('')
     if (currentStep === 'body' && bcs === null) {
-      setErr('체형(BCS)을 선택해 주세요')
+      setErr('체형을 선택해 주세요')
       return false
     }
     if (currentStep === 'meal') {
