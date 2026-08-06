@@ -145,3 +145,31 @@ export function isDefinitiveDecline(code: string | null | undefined): boolean {
   if (!code) return false
   return DEFINITIVE_DECLINE_CODES.has(code.toUpperCase())
 }
+
+/**
+ * 청구 멱등키의 재시도 접미사.
+ *
+ * # 왜 필요한가
+ * 토스는 멱등키 응답을 15일 저장·재생한다. 그래서 키 하나로 고정하면 잔액부족
+ * 같은 **확정 거절**이 저장돼 고객이 잔액을 채워도 15일간 결제가 멈춘다.
+ * 반대로 매번 새 키를 쓰면 타임아웃(카드는 긁혔는데 응답 유실) 재시도가
+ * 새 청구가 되어 **이중청구**다.
+ *
+ * # 앵커를 날짜로 두면 안 되는 이유 (2026-08-05 감사)
+ * `:r{오늘날짜}` 는 **키가 되돌아간다**. 확정거절 → (새 키로) 타임아웃 →
+ * 다음 날 직전 코드가 비확정이라 접미사가 빠지며 **원래 키로 복귀** → 그
+ * 다음 확정거절에서 또 새 날짜 키 → 두 번째 캡처.
+ *
+ * `failed_charge_count` 는 확정거절·unknown 에만 오르고 **transient(타임아웃류)
+ * 에는 안 오른다**(subscription-charge 실패 분기). 그래서 이 값을 앵커로 쓰면
+ * "돈이 안 나갔음이 보장된 거절 때만 키를 갈아탄다"가 정확히 표현되고,
+ * 결과 불명인 재시도는 같은 키를 유지한다 — 단조 증가라 되돌아가지 않는다.
+ */
+export function chargeRetrySuffix(
+  lastFailedCode: string | null | undefined,
+  failedChargeCount: number,
+): string {
+  if (!isDefinitiveDecline(lastFailedCode)) return ''
+  const n = Number.isFinite(failedChargeCount) ? Math.max(0, failedChargeCount) : 0
+  return `:r${n}`
+}

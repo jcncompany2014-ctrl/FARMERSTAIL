@@ -114,6 +114,7 @@ async function runRefundRetry(): Promise<Response> {
   }
 
   let succeeded = 0
+  let deferred = 0
   let retried = 0
   let failed = 0
 
@@ -139,6 +140,9 @@ async function runRefundRetry(): Promise<Response> {
     //   올리지 않는다 — 우리 쪽 조회 실패는 재시도 소진 사유가 아니다.
     if (orderRowErr) {
       console.error('[refund-retry] pre-flight 조회 실패, 보류:', orderRowErr.message)
+      // 보류도 세어 응답에 남긴다 — 안 세면 processed 와 합이 어긋나고,
+      // 같은 행이 매일 보류돼도 신호가 없다.
+      deferred += 1
       continue
     }
 
@@ -169,51 +173,20 @@ async function runRefundRetry(): Promise<Response> {
     // 두 번 보내도 Toss 는 첫 결과 그대로 반환.
     const result = await cancelPayment({
       paymentKey: row.payment_key,
-      cancelReason: `자동 환불 (${row.reason}) — 재시도 ${attempts}`,
+      // ★사유에 재시도 횟수를 넣지 않는다(2026-08-05).
+      //   토스 취소 멱등키는 `cancel:{paymentKey}:{amount}:{사유앞200자}` 라
+      //   사유가 바뀌면 **키가 바뀐다** — 즉 시도마다 새 키였다. 이 파일 상단
+      //   주석은 "같은 row 를 N번 재시도해도 토스가 같은 응답 → 중복 환불 X"
+      //   라고 단언하는데 실물이 반대였다(규칙4).
+      //   지금 큐에 들어오는 금액이 전부 전액이라 잔액 0 으로 토스가 거절해
+      //   우연히 살아 있었을 뿐, 부분 금액 행이 하나 생기면 중복 환불이다.
+      //   횟수는 로그·큐 행에 남으니 사유에서 뺀다.
+      cancelReason: `자동 환불 (${row.reason})`,
       cancelAmount: row.amount,
     })
 
     if (result.ok) {
-      await adminTyped
-        .from('payment_refund_queue')
-        .update({
-          status: 'succeeded',
-          attempts,
-          last_error: null,
-        })
-        .eq('id', row.id)
-
-      // ★환불했으면 주문과 장부에도 쓴다(2026-08-05 병렬 감사).
-      //   예전엔 큐 한 줄만 갱신하고 끝나서, 토스 장부는 환불 완료인데 우리
-      //   orders 는 'paid'/'pending' 그대로였다. 실제 돈 흐름 [캡처 +A,
-      //   환불 −A] 중 어느 쪽도 남지 않아 주간 reconcile 이 성립하지 않는다.
-      //   payment_events 에 'cron_refund_queue' 타입·소스가 **정의만 되고
-      //   사용처가 0** 이었던 것도 배선하다 만 흔적이다.
-      const { error: ordErr } = await adminTyped
-        .from('orders')
-        .update({
-          payment_status: 'cancelled',
-          order_status: 'cancelled',
-          refunded_amount: row.amount,
-        })
-        .eq('id', row.order_id)
-      if (ordErr) {
-        // 환불은 이미 됐다 — 되돌릴 수 없으니 사람에게 알린다.
-        captureBusinessEvent('error', 'refund.queue.order_update_failed', {
-          orderId: row.order_id,
-          amount: row.amount,
-          note: '토스 환불은 성공했는데 orders 갱신 실패 — 수동 정정 필요',
-        })
-      }
-      const { recordPaymentEvent } = await import('@/lib/payment-events')
-      await recordPaymentEvent(adminTyped as never, {
-        orderId: row.order_id,
-        paymentKey: row.payment_key,
-        eventType: 'cron_refund_queue',
-        amount: -row.amount, // 음수 = 환불(SUM = 현재 잔액)
-        source: 'cron_refund_queue',
-      })
-
+      await settleRefunded(adminTyped, row, attempts, null)
       succeeded += 1
       continue
     }
@@ -231,14 +204,13 @@ async function runRefundRetry(): Promise<Response> {
       errCode === 'NOT_CANCELABLE_PAYMENT' ||
       errCode === 'NOT_FOUND_PAYMENT'
     if (alreadySettled) {
-      await adminTyped
-        .from('payment_refund_queue')
-        .update({
-          status: 'succeeded',
-          attempts,
-          last_error: `toss_already_settled:${errCode}`,
-        })
-        .eq('id', row.id)
+      // ★여기도 같은 마무리를 한다(2026-08-05 재감사).
+      //   전에는 큐만 닫고 끝나서, cancelled_mid_charge 행은 주문이 'paid' 로
+      //   남고 원장엔 +금액만 있어 **reconcile 이 정합으로 읽었다**. 도장
+      //   회수 트리거도 안 돌아 환불된 결제로 도장이 남았다.
+      //   타임아웃 1번이면 이 분기에 도달한다(2차 실행에서 토스가
+      //   ALREADY_CANCELED 를 준다) — 드문 경로가 아니다.
+      await settleRefunded(adminTyped, row, attempts, `toss_already_settled:${errCode}`)
       succeeded += 1
       continue
     }
@@ -286,8 +258,68 @@ async function runRefundRetry(): Promise<Response> {
   return NextResponse.json({
     ok: true,
     processed: queue.length,
+    deferred,
     succeeded,
     retried,
     failed,
   })
+}
+
+/**
+ * 환불이 확정된 뒤의 마무리 — **장부 먼저, 큐 마감 마지막**.
+ *
+ * 순서가 중요하다. 전에는 큐를 먼저 succeeded 로 닫고 orders·원장을 나중에
+ * 썼는데, 그 사이에 함수가 죽으면 **큐는 닫혔는데 장부는 빈다**(다시 잡을
+ * 방법이 없다). 반대 순서면 중간에 죽어도 큐가 열려 있어 다음 실행이 이어받고,
+ * 토스는 같은 멱등키로 같은 응답을 돌려준다.
+ *
+ * 두 성공 분기(정상 환불 · 토스가 이미 처리함)가 **같은 마무리를 공유**한다 —
+ * 한쪽만 고쳐서 장부가 갈라졌던 게 2026-08-05 재감사의 발견이었다.
+ */
+async function settleRefunded(
+  admin: ReturnType<typeof createAdminClient>,
+  row: { id: string; order_id: string; payment_key: string; amount: number },
+  attempts: number,
+  lastError: string | null,
+): Promise<void> {
+  const { error: ordErr } = await admin
+    .from('orders')
+    .update({
+      payment_status: 'cancelled',
+      order_status: 'cancelled',
+      refunded_amount: row.amount,
+    })
+    .eq('id', row.order_id)
+  if (ordErr) {
+    // 환불은 이미 됐다 — 되돌릴 수 없으니 사람에게 알린다.
+    captureBusinessEvent('error', 'refund.queue.order_update_failed', {
+      orderId: row.order_id,
+      amount: row.amount,
+      note: '토스 환불은 성공했는데 orders 갱신 실패 — 수동 정정 필요',
+    })
+  }
+
+  const { recordPaymentEvent } = await import('@/lib/payment-events')
+  const ev = await recordPaymentEvent(admin as never, {
+    orderId: row.order_id,
+    paymentKey: row.payment_key,
+    eventType: 'cron_refund_queue',
+    amount: -row.amount, // 음수 = 환불(SUM = 현재 잔액)
+    source: 'cron_refund_queue',
+  })
+  // 반환값을 버리면 원장 누락이 조용히 지나가고, 주간 대사에서 익명
+  // mismatch 로만 드러난다 — 그때는 원인을 못 찾는다.
+  if (!ev.ok) {
+    captureBusinessEvent('error', 'refund.queue.ledger_write_failed', {
+      orderId: row.order_id,
+      amount: row.amount,
+      reason: ev.reason ?? 'unknown',
+    })
+  }
+
+  // 마지막에 큐를 닫는다.
+  await admin
+    .from('payment_refund_queue')
+    .update({ status: 'succeeded', attempts, last_error: lastError })
+    .eq('id', row.id)
 }

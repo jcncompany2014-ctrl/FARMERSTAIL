@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   classifyBillingError,
   describeBillingError,
+  chargeRetrySuffix,
   RETRY_COOLDOWN_MS,
 } from './billing-error-classify.ts'
 
@@ -177,5 +178,48 @@ describe('describeBillingError — 한국어 사유', () => {
 describe('RETRY_COOLDOWN_MS', () => {
   it('24 시간 (transient retry 간격)', () => {
     assert.equal(RETRY_COOLDOWN_MS, 24 * 60 * 60 * 1000)
+  })
+})
+
+describe('chargeRetrySuffix — 멱등키 앵커', () => {
+  /**
+   * 2026-08-05 감사가 서술한 4일 시나리오를 그대로 재현한다.
+   * 앵커가 날짜였을 때 3일차에 키가 **되돌아가고** 4일차에 두 번째 캡처가 났다.
+   * 앵커가 failed_charge_count 면 되돌아갈 수 없다(단조 증가).
+   */
+  it('★확정거절 → 타임아웃 → 재시도에서 키가 되돌아가지 않는다', () => {
+    // 1일차: 아직 실패 없음 → 접미사 없음(기본 키)
+    assert.equal(chargeRetrySuffix(null, 0), '')
+    // 1일차 잔액부족(확정거절) → count 1
+    // 2일차: 확정거절이었으니 새 키
+    const day2 = chargeRetrySuffix('INSUFFICIENT_FUNDS', 1)
+    assert.equal(day2, ':r1')
+    // 2일차 타임아웃(카드는 긁혔을 수 있음) → transient 라 count 유지(1)
+    // 3일차: 직전 코드가 비확정이므로 접미사 없음 — 여기까지는 옛 동작과 같다
+    assert.equal(chargeRetrySuffix('PAY_PROCESS_TIMEOUT', 1), '')
+    // ★핵심: 3일차도 확정거절이 나오면 count 2 → :r2.
+    //   날짜 앵커였다면 :r{그날짜} 가 되어 2일차 키(:r1)와 무관한 새 키였다.
+    //   count 앵커는 2일차 키를 건너뛰지 않고 그 다음 번호를 쓴다.
+    const day4 = chargeRetrySuffix('INSUFFICIENT_FUNDS', 2)
+    assert.equal(day4, ':r2')
+    assert.notEqual(day4, day2)
+  })
+
+  it('같은 상태에서 여러 번 돌아도 키가 같다 — 하루 두 번 실행돼도 안전', () => {
+    const a = chargeRetrySuffix('INSUFFICIENT_FUNDS', 3)
+    const b = chargeRetrySuffix('INSUFFICIENT_FUNDS', 3)
+    assert.equal(a, b)
+    assert.equal(a, ':r3')
+  })
+
+  it('결과 불명(타임아웃·네트워크)은 키를 갈아타지 않는다 — 이중청구 방지 우선', () => {
+    for (const code of ['PAY_PROCESS_TIMEOUT', 'TIMEOUT', 'PROVIDER_ERROR', null, undefined]) {
+      assert.equal(chargeRetrySuffix(code, 5), '', `${code}`)
+    }
+  })
+
+  it('이상한 카운트에도 키를 만든다 — 청구가 멈추면 안 된다', () => {
+    assert.equal(chargeRetrySuffix('INSUFFICIENT_FUNDS', -1), ':r0')
+    assert.equal(chargeRetrySuffix('INSUFFICIENT_FUNDS', NaN), ':r0')
   })
 })

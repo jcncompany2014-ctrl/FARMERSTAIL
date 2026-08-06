@@ -7,6 +7,7 @@ import {
   classifyBillingError,
   describeBillingError,
   isDefinitiveDecline,
+  chargeRetrySuffix,
   RETRY_COOLDOWN_MS,
 } from '@/lib/payments/billing-error-classify'
 import { notifySubscriptionChargeFailed } from '@/lib/email'
@@ -730,9 +731,22 @@ async function runSubscriptionCharge(): Promise<Response> {
     //   직전 실패가 확정 거절일 때만 날짜를 붙여 새 키로 — 돈이 안 나갔음이
     //   보장되므로 이중청구 위험 0. 타임아웃·네트워크류(결과 불명)는 종전대로
     //   같은 키 유지(원결제 결과 재생 = 이중청구 방지가 우선).
-    const retrySuffix = isDefinitiveDecline(sub.last_failed_charge_code)
-      ? `:r${today}`
-      : ''
+    // ★2026-08-05 — 접미사 앵커를 `today` 에서 `failed_charge_count` 로.
+    //   날짜를 쓰면 **키가 되돌아간다**:
+    //     1일차  키 A            → 잔액부족(확정거절)
+    //     2일차  키 A:r08-06     → 타임아웃(토스는 카드를 긁었는데 응답 유실).
+    //                              실패로 기록되고 last_code 는 비확정이 된다.
+    //     3일차  접미사 없음 → **키 A 로 복귀**. 2일차 캡처와 대조가 안 되고
+    //                              토스는 1일차 거절을 재생.
+    //     4일차  다시 확정거절 → :r08-08 새 키 → **두 번째로 카드가 긁힌다.**
+    //   `failed_charge_count` 는 확정거절·unknown 에만 오르고 **transient(타임아웃
+    //   류)에는 안 오른다**(아래 실패 분기). 그래서 "돈이 안 나갔음이 보장된
+    //   거절 때만 키를 갈아탄다"는 원래 의도를 정확히 표현하면서, 결과 불명인
+    //   재시도는 같은 키를 유지해 원결제 결과를 재생받는다 — 되돌아가지 않는다.
+    const retrySuffix = chargeRetrySuffix(
+      sub.last_failed_charge_code,
+      sub.failed_charge_count,
+    )
     const idempotencyKey = `sub-charge:${sub.id}:${sub.next_delivery_date}${retrySuffix}`
 
     // 2-c) Toss 청구. 비즈니스 span 으로 wrap — Sentry 트랜잭션에서 실패율 +
