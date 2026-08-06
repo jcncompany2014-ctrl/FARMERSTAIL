@@ -15,6 +15,7 @@ import {
   formatKstShortDateTime as formatDate,
   todayKstIsoDate,
 } from '@/lib/datetime-kst'
+import { PAID_STATUSES, netPaidAmount } from '@/lib/commerce/paid-status'
 
 export const dynamic = 'force-dynamic'
 
@@ -99,11 +100,13 @@ export default async function AdminHome() {
     churnedSubsRes,
     todayRevenueRes,
   ] = await Promise.all([
-    // 누적 매출 (paid만)
+    // 누적 매출 — 부분 환불분을 뺀 실수령액(lib/commerce/paid-status).
+    // 예전엔 'paid' 만 세서 1,000원만 부분 환불해도 그 주문 전액이 매출에서
+    // 사라졌다.
     supabase
       .from('orders')
-      .select('total_amount', { count: 'exact' })
-      .eq('payment_status', 'paid'),
+      .select('total_amount, refunded_amount', { count: 'exact' })
+      .in('payment_status', PAID_STATUSES),
 
     // 오늘 주문 수
     supabase
@@ -111,11 +114,11 @@ export default async function AdminHome() {
       .select('id', { count: 'exact', head: true })
       .gte('created_at', todayStart),
 
-    // 배송 대기 (preparing 상태)
+    // 배송 대기 (preparing 상태) — 부분 환불된 주문도 박스는 나가야 한다.
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .eq('payment_status', 'paid')
+      .in('payment_status', PAID_STATUSES)
       .eq('order_status', 'preparing'),
 
     // 전체 회원 수
@@ -133,8 +136,8 @@ export default async function AdminHome() {
     // 최근 30일 매출 (일별 차트 + Top 상품 원자료)
     supabase
       .from('orders')
-      .select('id, total_amount, created_at, order_items(product_id, product_name, product_image_url, quantity, line_total)')
-      .eq('payment_status', 'paid')
+      .select('id, total_amount, refunded_amount, created_at, order_items(product_id, product_name, product_image_url, quantity, line_total)')
+      .in('payment_status', PAID_STATUSES)
       .gte('created_at', thirtyDaysAgo),
 
     // 활성 구독 — MRR 추정. ★카드 등록(billing_key) 된 구독만: 카드 미등록
@@ -158,15 +161,15 @@ export default async function AdminHome() {
     // 최근 7일 주문 매출
     supabase
       .from('orders')
-      .select('total_amount')
-      .eq('payment_status', 'paid')
+      .select('total_amount, refunded_amount')
+      .in('payment_status', PAID_STATUSES)
       .gte('created_at', sevenDaysAgo),
 
     // 전전주 (14~7일 전) 주문 매출 — WoW 비교
     supabase
       .from('orders')
-      .select('total_amount')
-      .eq('payment_status', 'paid')
+      .select('total_amount, refunded_amount')
+      .in('payment_status', PAID_STATUSES)
       .gte('created_at', fourteenDaysAgo)
       .lt('created_at', sevenDaysAgo),
 
@@ -192,11 +195,11 @@ export default async function AdminHome() {
       .eq('status', 'cancelled')
       .gte('updated_at', thirtyDaysAgo),
 
-    // 오늘 매출 — payment_status='paid' AND created_at >= 오늘 0시
+    // 오늘 매출 — 실수령액 기준(부분 환불분 차감), created_at >= 오늘 0시
     supabase
       .from('orders')
-      .select('total_amount')
-      .eq('payment_status', 'paid')
+      .select('total_amount, refunded_amount')
+      .in('payment_status', PAID_STATUSES)
       .gte('created_at', todayStart),
   ])
 
@@ -214,11 +217,11 @@ export default async function AdminHome() {
     cronFailRes,
     noCardSubsRes,
   ] = await Promise.all([
-    // preparing + paid + 24h+ → 발송 stale
+    // preparing + 결제됨 + 24h+ → 발송 stale (부분 환불 포함)
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .eq('payment_status', 'paid')
+      .in('payment_status', PAID_STATUSES)
       .eq('order_status', 'preparing')
       .lt('created_at', oneDayAgo),
     // shipping + 7d+ → 배송 stuck (택배사 이슈 가능)
@@ -282,10 +285,7 @@ export default async function AdminHome() {
   // /admin/cohort 에서 그대로 본다.
 
   const totalRevenue =
-    paidOrdersRes.data?.reduce(
-      (sum, o: { total_amount: number | null }) => sum + (o.total_amount ?? 0),
-      0
-    ) ?? 0
+    paidOrdersRes.data?.reduce((sum, o) => sum + netPaidAmount(o), 0) ?? 0
   const totalPaidCount = paidOrdersRes.count ?? 0
   const todayOrderCount = todayOrdersRes.count ?? 0
   const pendingShipCount = pendingShipRes.count ?? 0
@@ -330,23 +330,20 @@ export default async function AdminHome() {
     churnDenom > 0 ? (churnedSubsCount / churnDenom) * 100 : 0
 
   // 오늘 매출
-  const todayRevenue =
-    (todayRevenueRes.data ?? []).reduce(
-      (s, o: { total_amount: number | null }) => s + (o.total_amount ?? 0),
-      0,
-    ) ?? 0
+  const todayRevenue = (todayRevenueRes.data ?? []).reduce(
+    (s, o) => s + netPaidAmount(o),
+    0,
+  )
 
   // WoW 매출 변화
-  const lastWeekRevenue =
-    (lastWeekOrdersRes.data ?? []).reduce(
-      (s, o: { total_amount: number | null }) => s + (o.total_amount ?? 0),
-      0,
-    ) ?? 0
-  const prevWeekRevenue =
-    (prevWeekOrdersRes.data ?? []).reduce(
-      (s, o: { total_amount: number | null }) => s + (o.total_amount ?? 0),
-      0,
-    ) ?? 0
+  const lastWeekRevenue = (lastWeekOrdersRes.data ?? []).reduce(
+    (s, o) => s + netPaidAmount(o),
+    0,
+  )
+  const prevWeekRevenue = (prevWeekOrdersRes.data ?? []).reduce(
+    (s, o) => s + netPaidAmount(o),
+    0,
+  )
   const wowDelta =
     prevWeekRevenue > 0
       ? ((lastWeekRevenue - prevWeekRevenue) / prevWeekRevenue) * 100
@@ -358,6 +355,7 @@ export default async function AdminHome() {
   type ThirtyDayOrder = {
     created_at: string
     total_amount: number
+    refunded_amount: number | null
     order_items: OrderItemLite[] | null
   }
   const thirtyDayOrders =
@@ -380,7 +378,7 @@ export default async function AdminHome() {
   thirtyDayOrders.forEach((o) => {
     const key = fmtDateKey(new Date(o.created_at))
     if (dailyMap.has(key)) {
-      dailyMap.set(key, (dailyMap.get(key) ?? 0) + o.total_amount)
+      dailyMap.set(key, (dailyMap.get(key) ?? 0) + netPaidAmount(o))
     }
   })
   const dailyChartData: RevenuePoint[] = Array.from(dailyMap.entries()).map(

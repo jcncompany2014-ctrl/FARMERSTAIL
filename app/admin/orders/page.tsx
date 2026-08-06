@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import AdminPagination from '@/components/admin/AdminPagination'
 import { Hl, Em, FilterChip } from '@/components/admin/ui'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 
 export const dynamic = 'force-dynamic'
 
@@ -95,7 +96,12 @@ export default async function AdminOrdersPage({
     status === 'delivered' ||
     status === 'cancelled'
   ) {
-    query = query.eq('payment_status', 'paid').eq('order_status', status)
+    // ★결제됨 = paid + partially_refunded. 부분 환불된 주문도 박스는 나가야
+    //  하는데 예전엔 'paid' 만 걸러서 발송 큐에서 통째로 사라졌다
+    //  (lib/commerce/paid-status).
+    query = query
+      .in('payment_status', PAID_STATUSES)
+      .eq('order_status', status)
   }
 
   // 검색 — 주문번호 / 수령자명 / 전화번호 3중. 운영팀이 고객 문의 받을 때

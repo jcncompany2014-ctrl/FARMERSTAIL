@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
-import { AdminTabs, StatCard, Hl, Em, Warn } from '@/components/admin/ui'
+import { AdminTabs, StatCard, Hl, Em, Warn, LoadError } from '@/components/admin/ui'
 import { SETTINGS_TABS } from '@/components/admin/tabGroups'
 import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react'
 import { cronLabel } from '@/lib/cron-labels'
@@ -80,13 +80,15 @@ export default async function AdminCronHealthPage() {
 
   // 한 번의 조회로 최근 7일 전체 행을 가져와 클라이언트 측 집계.
   // cron 은 하루 수십 건 수준이라 7일 ≈ 수백 행 — 메모리 집계가 충분히 저렴.
-  const { data: rowsData } = await supabase
+  const { data: rowsData, error: rowsError } = await supabase
     .from('cron_health')
     .select('id, path, status, duration_ms, error_message, executed_at')
     .gte('executed_at', windowStart)
     .order('executed_at', { ascending: false })
     .limit(1000)
 
+  // ★조회 실패를 '실행 0건' 으로 읽으면 성공률이 100% 로 표시된다 —
+  //  자동작업이 전부 죽어 있어도 화면은 초록이다(AGENTS.md 규칙1·8).
   const rows = (rowsData ?? []) as CronRow[]
 
   const errorRows = rows.filter((r) => r.status === 'error')
@@ -134,6 +136,14 @@ export default async function AdminCronHealthPage() {
     <div>
       {/* 대개편 v2 T6 — 설정 그룹 탭 (뒤로가기 링크 대체·헤더 zinc 통일) */}
       <AdminTabs tabs={SETTINGS_TABS} active="/admin/cron-health" />
+      {rowsError && (
+        <div className="mb-4">
+          <LoadError
+            what="자동작업 기록"
+            hint="아래 성공률·목록은 믿을 수 없어요. 조회가 실패한 것이지 작업이 안 돈 게 아닙니다."
+          />
+        </div>
+      )}
       <div className="mb-6">
         <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
           자동작업 상태

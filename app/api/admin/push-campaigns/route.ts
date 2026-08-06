@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { isAdmin } from '@/lib/auth/admin'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { pushToUser } from '@/lib/push'
@@ -230,11 +231,15 @@ async function collectSegmentUserIds(
     // 마지막 paid order 가 30일+ 전인 사용자 = 이탈 win-back.
     // paid orders 없는 사용자 (가입만 함) 도 포함 — push_subscriptions 가 있다면 첫 구매 유도.
     const cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
-    const { data: recentBuyers } = await admin
+    const { data: recentBuyers, error: recentErr } = await admin
       .from('orders')
       .select('user_id')
-      .eq('payment_status', 'paid')
+      .in('payment_status', PAID_STATUSES)
       .gte('created_at', cutoff)
+    // ★조회 실패를 '최근 구매자 0명' 으로 읽으면 제외 대상이 사라져서
+    //  **방금 결제한 고객에게까지 이탈 win-back 푸시가 나간다.** 위 명단
+    //  조회와 같은 규칙으로 null 을 돌려 호출부가 사람 말로 안내하게 한다.
+    if (recentErr) return null
     const recentSet = new Set(
       ((recentBuyers ?? []) as Array<{ user_id: string }>).map((b) => b.user_id),
     )
@@ -242,10 +247,11 @@ async function collectSegmentUserIds(
   }
 
   // active_subscribers
-  const { data: activeSubs } = await admin
+  const { data: activeSubs, error: activeErr } = await admin
     .from('subscriptions')
     .select('user_id')
     .eq('status', 'active')
+  if (activeErr) return null
   const activeSet = new Set(
     ((activeSubs ?? []) as Array<{ user_id: string }>).map((s) => s.user_id),
   )

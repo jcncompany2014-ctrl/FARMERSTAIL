@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Inbox, ArrowRight } from 'lucide-react'
-import { AdminTabs, Hl } from '@/components/admin/ui'
+import { AdminTabs, Hl, LoadError } from '@/components/admin/ui'
 import { CUSTOMER_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -18,7 +18,7 @@ export default async function AdminCsInboxPage() {
 
   // 사용자별 마지막 unread 메시지 1개씩만 그룹핑 — 같은 사용자가 여러 번 답장
   // 보냈을 때 inbox 가 도배되지 않게.
-  const { data: rawMessages } = await supabase
+  const { data: rawMessages, error: messagesError } = await supabase
     .from('cs_messages')
     .select('id, user_id, body, created_at')
     .eq('sender', 'user')
@@ -91,7 +91,9 @@ export default async function AdminCsInboxPage() {
         </Link>
       </header>
 
-      {grouped.length === 0 ? (
+      {messagesError ? (
+        <LoadError what="문의" hint="문의가 없는 게 아니라 조회가 실패했어요. 새로고침해 주세요." />
+      ) : grouped.length === 0 ? (
         <div className="bg-white rounded-lg border border-zinc-200 p-12 text-center">
           <Inbox
             className="w-10 h-10 text-zinc-500 mx-auto mb-3"

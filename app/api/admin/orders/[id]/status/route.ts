@@ -85,7 +85,7 @@ export async function POST(
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .select(
-      'id, order_number, user_id, payment_status, order_status, total_amount, shipped_at, delivered_at, cancelled_at, recipient_name, refunded_amount'
+      'id, order_number, user_id, payment_status, order_status, total_amount, shipped_at, delivered_at, cancelled_at, recipient_name, refunded_amount, carrier, tracking_number'
     )
     .eq('id', id)
     .single()
@@ -121,7 +121,32 @@ export async function POST(
   const now = new Date().toISOString()
   const update: Record<string, unknown> = { order_status: orderStatus }
 
+  // 발송 알림에 실을 운송장 — body 에 없으면 이미 저장된 값을 쓴다.
+  let shipCarrier: string | null = null
+  let shipTracking: string | null = null
+
   if (orderStatus === 'shipping') {
+    // ★송장 없이 발송 처리하지 않는다 (2026-08-07 어드민 감사).
+    //  '주문 상태 관리' 패널은 carrier/trackingNumber 없이 이 라우트를 부를 수
+    //  있었다. 그러면 고객에게 "배송이 시작됐어요" 가 나가는데 운송장은 비어
+    //  있고, 조회할 방법이 없다. 발송은 '발송 처리' 패널에서 송장과 함께 한다.
+    const nextTracking =
+      trackingNumber !== undefined
+        ? (trackingNumber ?? '').trim()
+        : (order.tracking_number ?? '')
+    const nextCarrier =
+      carrier !== undefined ? (carrier ?? '').trim() : (order.carrier ?? '')
+    if (!nextTracking || !nextCarrier) {
+      return NextResponse.json(
+        {
+          code: 'TRACKING_REQUIRED',
+          message:
+            '발송 처리에는 택배사와 송장번호가 필요해요. 주문 상세의 “발송 처리” 패널에서 입력해 주세요.',
+        },
+        { status: 400 },
+      )
+    }
+
     update.shipped_at = order.shipped_at ?? now
     // 택배사/송장번호는 선택 입력 — 값이 넘어오면 저장, 공란이면 명시적으로 null 로.
     // carrier 코드는 lib/tracking::isCarrierCode 로 화이트리스트 검증.
@@ -137,6 +162,9 @@ export async function POST(
     }
     if (trackingNumber !== undefined)
       update.tracking_number = trackingNumber?.trim() || null
+
+    shipCarrier = nextCarrier
+    shipTracking = nextTracking
   } else if (orderStatus === 'delivered') {
     update.delivered_at = order.delivered_at ?? now
     // delivered는 shipping 을 건너뛰고 바로 찍혀도 되지만, shipped_at은 한 번은 남겨둡니다.
@@ -206,8 +234,8 @@ export async function POST(
     orderStatus === 'delivered' ||
     orderStatus === 'cancelled'
   ) {
-    const carrierName = carrierLabel(carrier ?? null)
-    const trimmedTracking = (trackingNumber ?? '').trim()
+    const carrierName = carrierLabel(shipCarrier)
+    const trimmedTracking = shipTracking ?? ''
 
     const title =
       orderStatus === 'shipping'
@@ -248,8 +276,8 @@ export async function POST(
         orderNumber: order.order_number,
         recipientName: order.recipient_name ?? null,
         totalAmount: order.total_amount,
-        carrier: typeof carrier === 'string' ? carrier.trim() || null : carrier ?? null,
-        trackingNumber: trackingNumber?.trim() || null,
+        carrier: shipCarrier,
+        trackingNumber: shipTracking,
       }).catch(() => {})
     } else if (orderStatus === 'delivered') {
       notifyOrderDelivered(supabase, {

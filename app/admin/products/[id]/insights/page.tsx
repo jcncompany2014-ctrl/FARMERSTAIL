@@ -17,6 +17,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { StatCard } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
@@ -61,7 +62,7 @@ export default async function ProductInsightsPage({
     `,
     )
     .eq('product_id', id)
-    .eq('orders.payment_status', 'paid')
+    .in('orders.payment_status', PAID_STATUSES)
     .limit(5000)
 
   const items = ((itemsRaw ?? []) as unknown) as OrderItemRow[]
@@ -118,7 +119,7 @@ export default async function ProductInsightsPage({
       .from('orders')
       .select('user_id, total_amount, payment_status, created_at')
       .in('user_id', buyerIds)
-      .eq('payment_status', 'paid')
+      .in('payment_status', PAID_STATUSES)
       .limit(20000)
     const allOrders = (allOrdersRaw ?? []) as Array<{
       user_id: string

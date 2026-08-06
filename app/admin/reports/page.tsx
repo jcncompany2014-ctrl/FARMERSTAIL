@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { isAdmin } from '@/lib/auth/admin'
 import { HelpTip, AdminTabs, Hl } from '@/components/admin/ui'
 import { REVENUE_TABS } from '@/components/admin/tabGroups'
@@ -72,7 +73,9 @@ export default async function AdminReportsPage({
       .select(
         'id, total_amount, points_used, discount_amount, shipping_fee, paid_at, payment_method, order_items(product_id, product_name, quantity, line_total)',
       )
-      .eq('payment_status', 'paid')
+      // ★gross 는 부분 환불 주문도 포함해야 한다 — 환불액은 아래 refunds 에서
+      //  따로 빼기 때문에, 여기서 빼면 이중으로 차감된다.
+      .in('payment_status', PAID_STATUSES)
       .gte('paid_at', monthStart)
       .lt('paid_at', monthEnd)
       .order('paid_at', { ascending: false }),

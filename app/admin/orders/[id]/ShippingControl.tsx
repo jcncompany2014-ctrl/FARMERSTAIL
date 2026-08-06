@@ -19,9 +19,13 @@ import {
  * FSM 상 shipping 진입이 허용될 때만 폼이 활성화된다. 결제 미완/취소/배송완료 주문은
  * 안내 문구만 노출.
  *
- * shipping 상태에서 다시 렌더되면 운송장 번호 수정(같은 엔드포인트로 orderStatus='shipping'
- * 재전송) 이 가능하다. FSM은 from==to 전환을 거부하지만 carrier/tracking 업데이트만
- * 원할 때 별도 엔드포인트 없이 편집할 수 있도록 수정 모드를 지원한다.
+ * 이미 발송한 주문(shipping/delivered)은 **운송장만** 고친다 —
+ * `PATCH /api/admin/orders/[id]/tracking`. 상태 전이가 아니므로 FSM 을 타지 않고,
+ * 배송 시작 푸시/메일도 다시 나가지 않는다.
+ *
+ * 2026-08-07 이전엔 이 자리가 `수정 기능은 곧 열려요` 였고 그 엔드포인트가 없어서,
+ * 송장을 잘못 넣으면 shipping→preparing→재발송 말고는 방법이 없었다(고객에게
+ * 배송 시작 알림이 두 번 갔다).
  */
 export default function ShippingControl({
   orderId,
@@ -51,15 +55,21 @@ export default function ShippingControl({
     return null
   }
 
-  const isShipping = currentOrderStatus === 'shipping'
+  // 이미 발송된 주문 — 운송장 정정만 가능.
+  const isShipped =
+    currentOrderStatus === 'shipping' || currentOrderStatus === 'delivered'
   const canShipNow = canTransitionOrderStatus(
     currentOrderStatus,
     'shipping',
     { payment_status: paymentStatus, actor: 'admin' },
   ).ok
 
-  // preparing 도, shipping(편집) 도 아니면 패널 노출 안 함.
-  if (!isShipping && !canShipNow) return null
+  // 발송 전(전환 가능) 도, 발송 후(정정) 도 아니면 패널 노출 안 함.
+  if (!isShipped && !canShipNow) return null
+
+  const dirty =
+    trackingNumber.trim() !== (currentTrackingNumber ?? '') ||
+    carrier !== currentCarrier
 
   async function submit() {
     const trimmed = trackingNumber.trim()
@@ -70,29 +80,30 @@ export default function ShippingControl({
     setError(null)
     setLoading(true)
 
-    // shipping 에서 다시 "수정" 하는 경우 FSM이 from==to를 막으므로,
-    // 서버가 carrier/tracking 만 갱신하도록 status를 생략하는 별도 엔드포인트를
-    // 두지 않고, 여기서는 준비→발송 전환 시점에만 호출한다.
-    // (편집은 일단 막고 다음 단계에서 PATCH 엔드포인트 추가.)
-    if (isShipping) {
-      setLoading(false)
-      setError('이미 발송된 주문이에요. 수정 기능은 곧 열려요.')
-      return
-    }
-
-    const res = await fetch(`/api/admin/orders/${orderId}/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        orderStatus: 'shipping',
-        carrier,
-        trackingNumber: trimmed,
-      }),
-    })
+    // 발송 후에는 상태 전이가 아니라 운송장 정정이다. 배송 시작 알림은 다시
+    // 나가지 않는다.
+    const res = isShipped
+      ? await fetch(`/api/admin/orders/${orderId}/tracking`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ carrier, trackingNumber: trimmed }),
+        })
+      : await fetch(`/api/admin/orders/${orderId}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderStatus: 'shipping',
+            carrier,
+            trackingNumber: trimmed,
+          }),
+        })
     setLoading(false)
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      setError(data?.message ?? '발송 처리에 실패했어요')
+      setError(
+        data?.message ??
+          (isShipped ? '운송장 수정에 실패했어요' : '발송 처리에 실패했어요'),
+      )
       return
     }
     startTransition(() => router.refresh())
@@ -100,10 +111,12 @@ export default function ShippingControl({
 
   return (
     <section className="p-6 rounded-lg bg-white border border-zinc-200">
-      <h2 className="text-sm font-bold text-zinc-900 mb-1">발송 처리</h2>
+      <h2 className="text-sm font-bold text-zinc-900 mb-1">
+        {isShipped ? '운송장 수정' : '발송 처리'}
+      </h2>
       <p className="text-[11px] text-zinc-500 mb-4">
-        {isShipping
-          ? '현재 발송 완료된 주문이에요.'
+        {isShipped
+          ? '잘못 입력한 송장을 고칠 수 있어요. 배송 시작 알림은 다시 가지 않고, 번호가 바뀌면 변경 안내만 한 번 갑니다.'
           : '택배사와 송장번호를 입력하면 배송 중으로 전환됩니다.'}
       </p>
 
@@ -113,7 +126,7 @@ export default function ShippingControl({
           <select
             value={carrier}
             onChange={(e) => setCarrier(e.target.value as CarrierCode)}
-            disabled={isShipping || loading}
+            disabled={loading}
             className="w-full px-3 py-2 rounded-lg bg-zinc-50 border border-zinc-200 text-sm disabled:opacity-50"
           >
             {CARRIER_OPTIONS.map((opt) => (
@@ -131,7 +144,7 @@ export default function ShippingControl({
             inputMode="numeric"
             value={trackingNumber}
             onChange={(e) => setTrackingNumber(e.target.value)}
-            disabled={isShipping || loading}
+            disabled={loading}
             placeholder="송장번호를 입력하세요"
             className="w-full px-3 py-2 rounded-lg bg-zinc-50 border border-zinc-200 text-sm font-mono disabled:opacity-50"
           />
@@ -144,10 +157,16 @@ export default function ShippingControl({
         <button
           type="button"
           onClick={submit}
-          disabled={isShipping || loading}
+          disabled={loading || (isShipped && !dirty)}
           className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold bg-moss text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-moss/90 transition"
         >
-          {loading ? '처리 중…' : isShipping ? '발송 완료' : '배송 시작'}
+          {loading
+            ? '처리 중…'
+            : isShipped
+              ? dirty
+                ? '운송장 저장'
+                : '수정할 내용 없음'
+              : '배송 시작'}
         </button>
       </div>
     </section>

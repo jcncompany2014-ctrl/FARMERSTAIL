@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import { nextShipDate } from '@/lib/shipping-schedule'
-import { AdminTabs, Hl, Em, FilterChip } from '@/components/admin/ui'
+import { AdminTabs, Hl, Em, FilterChip, LoadError } from '@/components/admin/ui'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 type SubscriptionRow = {
@@ -66,6 +66,8 @@ export default function AdminSubscriptionsPage() {
 
   const [subs, setSubs] = useState<SubscriptionRow[]>([])
   const [loading, setLoading] = useState(true)
+  // ★조회 실패를 '구독 없음' 으로 보여주지 않는다 (AGENTS.md 규칙1).
+  const [loadError, setLoadError] = useState(false)
   const [tab, setTab] = useState('all')
   const [search, setSearch] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -77,13 +79,15 @@ export default function AdminSubscriptionsPage() {
 
   async function loadAll() {
     setLoading(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('subscriptions')
       .select('*, profiles(name, email), subscription_items(*), dogs(id, name)')
       .order('created_at', { ascending: false })
 
+    setLoadError(Boolean(error))
     // audit #79: generated row vs domain SubscriptionRow nullable 차이 — unknown cast.
     if (data) setSubs(data as unknown as SubscriptionRow[])
+    else if (error) setSubs([])
     setLoading(false)
   }
 
@@ -253,6 +257,8 @@ export default function AdminSubscriptionsPage() {
           <Spinner size={16} />
           <span className="text-[12px]">불러오는 중...</span>
         </div>
+      ) : loadError ? (
+        <LoadError what="구독 목록" />
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border border-zinc-200 bg-white p-10 text-center text-sm text-zinc-400">
           해당하는 구독이 없어요

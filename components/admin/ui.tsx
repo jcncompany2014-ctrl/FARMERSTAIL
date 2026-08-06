@@ -331,3 +331,37 @@ export function AdminButton({
     </button>
   )
 }
+
+/**
+ * 조회 실패 배너 — **"데이터 없음"과 "조회 실패"를 절대 같게 보이지 않게 한다.**
+ *
+ * # 왜 있는가 (2026-08-07 어드민 감사)
+ * admin 화면 여러 곳이 `const { data } = await supabase...` 로 error 를 버리고
+ * `data ?? []` 로 렌더했다. 그러면 권한 문제나 DB 장애로 조회가 **실패**했을 때
+ * 화면은 조용히 **"아직 없어요"** 라고 말한다. 구독 목록·CS 문의함·크론 상태가
+ * 전부 그랬다 — 오지 않은 문의와 볼 수 없는 문의가 같은 화면이었다.
+ *
+ * AGENTS.md 규칙1(데이터 없음 ≠ 실패)의 화면 쪽 짝이다. 조회부에서 error 를
+ * 꺼냈으면 이걸 렌더한다.
+ */
+export function LoadError({
+  what,
+  hint,
+}: {
+  /** 무엇을 못 불러왔는지 — "구독 목록", "문의" 처럼 사람 말로. */
+  what: string
+  /** 추가 안내. 없으면 기본 문구. */
+  hint?: string
+}) {
+  return (
+    <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+      <p className="text-sale text-sm font-bold">
+        {what}을(를) 불러오지 못했어요.
+      </p>
+      <p className="text-xs text-zinc-600 mt-1.5 leading-relaxed">
+        {hint ??
+          '화면을 새로고침해 주세요. 계속 안 되면 개발 담당에게 알려주세요 — 데이터가 없는 게 아니라 조회가 실패한 상태예요.'}
+      </p>
+    </div>
+  )
+}

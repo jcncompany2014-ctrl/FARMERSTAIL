@@ -1759,3 +1759,78 @@ test('규칙41 — 고객 화면이 브라우저 영문 오류를 그대로 보�
       offenders.join(' / '),
   )
 })
+
+test('규칙42 — 어드민이 "결제됨"을 paid 하나로 판정하지 않는다', () => {
+  /**
+   * # 왜
+   * 2026-08-07 어드민 감사. 발송 큐 세 곳이 전부 `payment_status = 'paid'`
+   * 만 셌다(대시보드 "발송할 주문" · 처리대기 "미발송 24시간+" ·
+   * /admin/orders?status=preparing). 그런데 품절 1종을 부분 환불하면
+   * 상태가 **'partially_refunded'** 가 된다 — **돈은 일부만 돌려주고 박스는
+   * 여전히 보내야 하는 주문이 오늘 보낼 목록 세 군데에서 동시에 사라졌다.**
+   *
+   * 매출도 같은 이유로 어긋났다: 1,000원만 부분 환불해도 그 주문 10만원
+   * **전체**가 매출에서 증발했다.
+   *
+   * 정본은 lib/commerce/paid-status 의 `PAID_STATUSES` 하나다. 같은 규칙이
+   * 여러 파일에 흩어지면 갈라진다 — 이 저장소에서 이미 여러 번 겪었다
+   * (전화번호 검증 4곳 · kcal 웹/앱 · needs_card 앱/웹).
+   */
+  const offenders: string[] = []
+  for (const dir of ['app/admin', 'app/api/admin']) {
+    for (const file of walk(join(ROOT, dir))) {
+      if (!/\.tsx?$/.test(file) || file.includes('.test.')) continue
+      const rel = file.replace(ROOT, '').split(sep).join('/')
+      const src = stripComments(read(file))
+      // .eq('payment_status', 'paid') / .eq('orders.payment_status', 'paid')
+      for (const m of src.matchAll(
+        /\.eq\(\s*['"][\w.]*payment_status['"]\s*,\s*['"]paid['"]\s*\)/g,
+      )) {
+        offenders.push(`${rel} (${m[0]})`)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '어드민이 결제됨을 paid 하나로 판정한다 — 부분 환불된 주문이 발송 큐와 ' +
+      '매출에서 통째로 사라진다. lib/commerce/paid-status 의 PAID_STATUSES 를 쓸 것. ' +
+      offenders.join(' / '),
+  )
+})
+
+test('규칙43 — 발송 처리에는 운송장이 필요하다', () => {
+  /**
+   * # 왜
+   * 2026-08-07 어드민 감사. '주문 상태 관리' 패널이 carrier/trackingNumber
+   * 없이 `orderStatus: 'shipping'` 을 던질 수 있었고, 상태 라우트는
+   * `if (carrier !== undefined)` 일 때만 저장했다. 결과: 고객에게 **"배송이
+   * 시작됐어요"** 푸시와 메일이 나가는데 운송장은 비어 있다. 게다가 그때는
+   * 송장을 나중에 넣을 경로조차 없었다(`수정 기능은 곧 열려요`).
+   *
+   * 그래서 두 가지를 같이 박는다:
+   *   ① 상태 라우트에 TRACKING_REQUIRED 가드
+   *   ② 발송 후 정정용 PATCH /api/admin/orders/[id]/tracking
+   * 둘 중 하나만 있으면 반쪽이다 — 가드만 있으면 오타를 못 고치고,
+   * 정정만 있으면 빈 송장으로 알림이 먼저 나간다.
+   */
+  const statusRoute = read(
+    join(ROOT, 'app/api/admin/orders/[id]/status/route.ts'),
+  )
+  assert.match(
+    statusRoute,
+    /TRACKING_REQUIRED/,
+    '상태 라우트에서 송장 없는 발송 가드가 사라졌다 — 운송장 없이 ' +
+      '"배송이 시작됐어요" 알림이 고객에게 나간다.',
+  )
+
+  const trackingRoute = read(
+    join(ROOT, 'app/api/admin/orders/[id]/tracking/route.ts'),
+  )
+  assert.match(
+    trackingRoute,
+    /export async function PATCH/,
+    '운송장 정정 엔드포인트가 없다 — 송장을 잘못 넣으면 ' +
+      'shipping→preparing→재발송 말고 방법이 없고, 그러면 배송 시작 알림이 두 번 간다.',
+  )
+})

@@ -9,6 +9,7 @@ import {
   PieChart as PieIcon,
 } from 'lucide-react'
 import { createClient, getRequestUser } from '@/lib/supabase/server'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { HelpTip, Hl } from '@/components/admin/ui'
@@ -88,14 +89,14 @@ export default async function AdminCohortPage() {
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .eq('payment_status', 'paid'),
+      .in('payment_status', PAID_STATUSES),
     supabase
       .from('dogs')
       .select('id', { count: 'exact', head: true }),
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .eq('payment_status', 'paid')
+      .in('payment_status', PAID_STATUSES)
       .not('delivered_at', 'is', null),
   ])
 

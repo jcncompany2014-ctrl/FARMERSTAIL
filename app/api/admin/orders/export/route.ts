@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { toCsvWithBom } from '@/lib/csv'
 import { dbError } from '@/lib/api/errors'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -129,7 +130,10 @@ export async function GET(request: Request) {
     status === 'delivered' ||
     status === 'cancelled'
   ) {
-    query = query.eq('payment_status', 'paid').eq('order_status', status)
+    // 화면(app/admin/orders/page.tsx)의 필터와 동일해야 한다 — 부분 환불 포함.
+    query = query
+      .in('payment_status', PAID_STATUSES)
+      .eq('order_status', status)
   }
 
   if (q) {
