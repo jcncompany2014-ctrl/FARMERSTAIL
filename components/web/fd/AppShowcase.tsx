@@ -1209,12 +1209,15 @@ export default function AppShowcase() {
             >
               <Eyebrow>{f.eyebrow}</Eyebrow>
               <h3
-                className="mt-2"
+                // mt-2(8) → 14: 사장님 "아주 살짝만 아래로". 제목 칸(118) 안에서
+                // 미는 거라 세로 예산(PHONE_TOP_RESERVED 272)은 그대로다 —
+                // 컨테이너 패딩을 건드리면 폰 크기가 같이 어긋난다.
                 style={{
+                  marginTop: 14,
                   fontFamily: 'var(--font-display)',
                   fontSize: 21,
                   lineHeight: 1.25,
-                  fontWeight: 800,
+                  fontWeight: 850, // "살짝만 볼드하게" — 800 → 850
                   color: 'var(--fd-pine)',
                   letterSpacing: '-0.02em',
                 }}
