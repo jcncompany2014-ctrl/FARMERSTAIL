@@ -10,7 +10,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 import DogPawMark from '@/components/DogPawMark'
-import { petName } from '@/lib/korean'
+import { petName, formatKg } from '@/lib/korean'
 import {
   Moon,
   Footprints,
@@ -270,7 +270,9 @@ export default function DogDetailClient({
           <Link
             href={`/dogs/${dog.id}/edit`}
             aria-label={`${petName(dog.name)} 정보 수정`}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-bg flex items-center justify-center text-muted hover:text-text hover:bg-bg border border-transparent hover:border-rule transition"
+            // 44px — 이 화면의 **유일한** 정보 수정 진입점인데 32px 였다
+            // (2026-08-07 감사). 아이콘 크기는 그대로, 누를 면적만 넓힌다.
+            className="absolute top-1.5 right-1.5 w-11 h-11 rounded-full bg-bg flex items-center justify-center text-muted hover:text-text hover:bg-bg border border-transparent hover:border-rule transition"
           >
             <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
           </Link>
@@ -338,7 +340,7 @@ export default function DogDetailClient({
                 : '-'
             }
           />
-          <InfoRow label="체중" value={dog.weight ? `${dog.weight}kg` : '-'} />
+          <InfoRow label="체중" value={dog.weight ? formatKg(dog.weight) : '-'} />
           <InfoRow
             label="활동량"
             valueNode={(() => {
@@ -429,7 +431,7 @@ export default function DogDetailClient({
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-text">
-                          {log.weight}kg
+                          {formatKg(log.weight)}
                         </span>
                         {next && (
                           <span
@@ -511,7 +513,7 @@ export default function DogDetailClient({
                   autoFocus
                   value={newWeight}
                   onChange={(e) => setNewWeight(e.target.value)}
-                  placeholder={dog.weight ? `이전: ${dog.weight}kg` : '예: 5.4'}
+                  placeholder={dog.weight ? `이전: ${formatKg(dog.weight)}` : '예: 5.4'}
                   inputMode="decimal"
                   enterKeyHint="next"
                   className="w-full px-4 py-3 rounded-lg border border-rule bg-bg-3 text-text text-sm focus:outline-none focus:border-terracotta transition"

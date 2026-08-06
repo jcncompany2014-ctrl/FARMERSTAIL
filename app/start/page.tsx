@@ -90,6 +90,8 @@ export default async function StartPage() {
                   tone="cream"
                   rounded={18}
                   className="w-full"
+                  // 폴드 안 대표 사진 — lazy 면 LCP 가 그대로 밀린다.
+                  eager
                 />
               </Reveal>
             </div>

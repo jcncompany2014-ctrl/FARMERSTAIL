@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Loader2, Mail, MessageSquare, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { MARKETING_POLICY_VERSION, CONSENT_LABEL } from '@/lib/consent'
+import { formatKstLongDate } from '@/lib/datetime-kst'
 
 /**
  * 광고·마케팅 수신동의 — **웹 톤** client.
@@ -193,7 +194,7 @@ function ConsentCard({
             style={{ color: 'var(--fd-muted)' }}
           >
             {on && at
-              ? `${new Date(at).toLocaleDateString('ko-KR')} 동의`
+              ? `${formatKstLongDate(at)} 동의`
               : on
                 ? '수신 중'
                 : '현재 미동의'}

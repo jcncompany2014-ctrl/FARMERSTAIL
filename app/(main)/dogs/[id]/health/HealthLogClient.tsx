@@ -34,28 +34,42 @@ export type HealthLog = {
   created_at: string
 }
 
-const POOP_LABEL: Record<string, { label: string; color: string }> = {
-  good: { label: '정상', color: 'var(--moss)' },
-  loose: { label: '무름', color: 'var(--gold)' },
-  hard: { label: '단단', color: 'var(--muted)' },
-  diarrhea: { label: '설사', color: 'var(--sale)' },
+/**
+ * 칩 색 — 배경(color)과 **글자색(ink)** 을 쌍으로 둔다.
+ *
+ * ★왜 ink 가 따로 필요한가 (2026-08-07 앱 화면 감사)
+ * 예전엔 전부 흰 글자였는데, `--gold`(앱에서 #e6b942)에 흰 글자는 **1.86:1** 로
+ * 사실상 안 보인다. 하필 그 색을 쓰는 게 **'무름'·'피곤'·'적음'** — 보호자가
+ * 제일 먼저 읽어야 할 이상 신호들이었다.
+ * AGENTS.md 가 같은 실수를 한 번 잡았지만(yellow 를 글자색으로 → yellowInk 신설)
+ * 배경으로 쓴 이쪽이 남아 있었다. 밝은 배경엔 ink 를 얹는다.
+ */
+type ChipTone = { label: string; color: string; ink: string }
+const ON_DARK = '#fff'
+const ON_GOLD = 'var(--ink)'
+
+const POOP_LABEL: Record<string, ChipTone> = {
+  good: { label: '정상', color: 'var(--moss)', ink: ON_DARK },
+  loose: { label: '무름', color: 'var(--gold)', ink: ON_GOLD },
+  hard: { label: '단단', color: 'var(--muted)', ink: ON_DARK },
+  diarrhea: { label: '설사', color: 'var(--sale)', ink: ON_DARK },
 }
-const ACTIVITY_LABEL: Record<string, { label: string; color: string }> = {
-  low: { label: '적음', color: 'var(--muted)' },
-  normal: { label: '보통', color: 'var(--moss)' },
-  high: { label: '활발', color: 'var(--terracotta)' },
+const ACTIVITY_LABEL: Record<string, ChipTone> = {
+  low: { label: '적음', color: 'var(--muted)', ink: ON_DARK },
+  normal: { label: '보통', color: 'var(--moss)', ink: ON_DARK },
+  high: { label: '활발', color: 'var(--terracotta)', ink: ON_DARK },
 }
-const MOOD_LABEL: Record<string, { label: string; color: string }> = {
-  happy: { label: '행복', color: 'var(--moss)' },
-  normal: { label: '평온', color: 'var(--muted)' },
-  tired: { label: '피곤', color: 'var(--gold)' },
-  sick: { label: '아픔', color: 'var(--sale)' },
+const MOOD_LABEL: Record<string, ChipTone> = {
+  happy: { label: '행복', color: 'var(--moss)', ink: ON_DARK },
+  normal: { label: '평온', color: 'var(--muted)', ink: ON_DARK },
+  tired: { label: '피곤', color: 'var(--gold)', ink: ON_GOLD },
+  sick: { label: '아픔', color: 'var(--sale)', ink: ON_DARK },
 }
-const APPETITE_LABEL: Record<string, { label: string; color: string }> = {
-  good: { label: '좋음', color: 'var(--moss)' },
-  normal: { label: '보통', color: 'var(--muted)' },
-  low: { label: '적음', color: 'var(--gold)' },
-  none: { label: '거부', color: 'var(--sale)' },
+const APPETITE_LABEL: Record<string, ChipTone> = {
+  good: { label: '좋음', color: 'var(--moss)', ink: ON_DARK },
+  normal: { label: '보통', color: 'var(--muted)', ink: ON_DARK },
+  low: { label: '적음', color: 'var(--gold)', ink: ON_GOLD },
+  none: { label: '거부', color: 'var(--sale)', ink: ON_DARK },
 }
 
 function todayIso() {
@@ -527,12 +541,13 @@ function LogRow({
   onDelete: () => void
 }) {
   const [open, setOpen] = useState(false)
-  const chips: { key: string; color: string; label: string }[] = []
+  const chips: { key: string; color: string; ink: string; label: string }[] = []
   if (log.poop_quality) {
     const entry = POOP_LABEL[log.poop_quality]
     if (entry) chips.push({
       key: 'poop',
       color: entry.color,
+      ink: entry.ink,
       label: `변 ${entry.label}`,
     })
   }
@@ -541,6 +556,7 @@ function LogRow({
     if (entry) chips.push({
       key: 'activity',
       color: entry.color,
+      ink: entry.ink,
       label: `활동 ${entry.label}`,
     })
   }
@@ -549,6 +565,7 @@ function LogRow({
     if (entry) chips.push({
       key: 'mood',
       color: entry.color,
+      ink: entry.ink,
       label: `기분 ${entry.label}`,
     })
   }
@@ -557,6 +574,7 @@ function LogRow({
     if (entry) chips.push({
       key: 'appetite',
       color: entry.color,
+      ink: entry.ink,
       label: `식욕 ${entry.label}`,
     })
   }
@@ -575,8 +593,8 @@ function LogRow({
             {chips.slice(0, 3).map((c) => (
               <span
                 key={c.key}
-                className="inline-block text-[9.5px] font-bold text-white px-1.5 py-0.5 rounded-full whitespace-nowrap"
-                style={{ backgroundColor: c.color }}
+                className="inline-block text-[9.5px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap"
+                style={{ backgroundColor: c.color, color: c.ink }}
               >
                 {c.label}
               </span>
@@ -602,8 +620,8 @@ function LogRow({
               {chips.map((c) => (
                 <span
                   key={c.key}
-                  className="inline-block text-[9.5px] font-bold text-white px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: c.color }}
+                  className="inline-block text-[9.5px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: c.color, color: c.ink }}
                 >
                   {c.label}
                 </span>

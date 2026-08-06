@@ -270,6 +270,7 @@ export function PhotoSlot({
   src,
   alt,
   motion = false,
+  eager = false,
 }: {
   label: string
   sub?: string
@@ -290,6 +291,16 @@ export function PhotoSlot({
    * 태그가 있어도 아무 일도 안 일어난다.
    */
   motion?: boolean
+  /**
+   * 첫 화면(above the fold) 대표 사진이면 true.
+   *
+   * ★기본이 lazy 인 이유와 이걸 둔 이유 (2026-08-07 성능 감사):
+   * PhotoSlot 은 9개 페이지가 쓰는 공유 컴포넌트라 대부분은 폴드 아래에 있고
+   * lazy 가 맞다. 그런데 /start 히어로는 폴드 안인데도 lazy 라서, 브라우저가
+   * **레이아웃이 확정될 때까지 요청 자체를 미룬다** — 퍼널 진입점의 LCP 가
+   * 그만큼 그대로 밀렸다. 폴드 안 사진은 페이지가 명시적으로 켠다.
+   */
+  eager?: boolean
 }) {
   const t = SLOT_TONE[tone]
   if (src) {
@@ -299,7 +310,18 @@ export function PhotoSlot({
         className={`relative ${className ?? ''}`}
         style={{ aspectRatio: ratio, borderRadius: rounded, overflow: 'hidden', background: t.bg }}
       >
-        <img src={src} alt={alt ?? label} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+        {/* eslint-disable-next-line @next/next/no-img-element -- next/image 로 바꾸려면
+            9개 페이지 공유 컴포넌트의 레이아웃(aspect-ratio 액자 + object-cover)을
+            전부 다시 검증해야 한다. 디자인 동결 중이라 폴드 안 사진의 우선순위만
+            바로잡는다(2026-08-07 성능 감사). */}
+        <img
+          src={src}
+          alt={alt ?? label}
+          loading={eager ? 'eager' : 'lazy'}
+          fetchPriority={eager ? 'high' : undefined}
+          decoding={eager ? 'sync' : 'async'}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
       </div>
     )
   }

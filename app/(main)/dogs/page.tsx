@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { Plus, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import DogPawMark from '@/components/DogPawMark'
+import { formatKg } from '@/lib/korean'
 
 type Dog = {
   id: string
@@ -179,7 +180,7 @@ export default async function DogsPage() {
                       {dog.weight && (
                         <>
                           <span style={{ color: 'var(--rule-2)' }}>·</span>
-                          <span>{dog.weight}kg</span>
+                          <span>{formatKg(dog.weight)}</span>
                         </>
                       )}
                     </div>

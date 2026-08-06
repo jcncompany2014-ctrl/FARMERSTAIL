@@ -74,3 +74,47 @@ export function isSubscriptionVisibleToUser(
   const st = subscriptionState(sub)
   return st === 'active' || st === 'paused' || st === 'card_failed'
 }
+
+/**
+ * 상태의 **이름** — 판정과 같은 곳에 둔다 (2026-08-07 앱 화면 감사).
+ *
+ * # 왜
+ * `subscriptionState()` 로 판정은 한 곳에 모았는데 **라벨은 화면마다 따로**
+ * 적혀 있었다. 같은 구독이 화면을 옮기면 이름이 바뀌었다:
+ *
+ *   상태          강아지 카드        구독 탭        마이페이지
+ *   active        진행중             구독 중        구독 중
+ *   card_failed   결제수단 재등록 필요  결제 실패      결제 문제
+ *
+ * 결제가 깨진 고객은 한 번에 세 이름을 볼 수 있었다(강아지 카드 → 구독 탭 →
+ * 마이페이지). 무엇을 해야 하는지가 화면마다 다르게 들린다.
+ *
+ * 표기 원칙(브랜드 보이스):
+ *  · '실패' 는 고객 잘못처럼 들린다 → 무슨 일인지 + 무엇을 하면 되는지.
+ *  · '진행중' 은 배송 진행과 헷갈린다 → 구독 상태는 '구독 중'.
+ */
+export const SUB_STATE_LABEL: Record<SubState, string> = {
+  needs_card: '시작 전',
+  active: '구독 중',
+  paused: '일시정지',
+  card_failed: '결제 확인 필요',
+  cancelled: '해지됨',
+}
+
+/**
+ * 상태 톤 — 색을 화면마다 다르게 고르지 않게.
+ *
+ * 'wait'  시작 전·일시정지 (기다림, 나쁘지 않음)
+ * 'on'    구독 중
+ * 'bad'   조치가 필요함
+ * 'off'   끝남
+ */
+export type SubStateTone = 'wait' | 'on' | 'bad' | 'off'
+
+export const SUB_STATE_TONE: Record<SubState, SubStateTone> = {
+  needs_card: 'wait',
+  active: 'on',
+  paused: 'wait',
+  card_failed: 'bad',
+  cancelled: 'off',
+}

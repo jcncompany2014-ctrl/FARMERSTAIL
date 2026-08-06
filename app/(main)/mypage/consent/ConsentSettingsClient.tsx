@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Loader2, Mail, MessageSquare, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { MARKETING_POLICY_VERSION, CONSENT_LABEL } from '@/lib/consent'
+import { formatKstLongDate } from '@/lib/datetime-kst'
 
 /**
  * 광고·마케팅 수신동의 관리 UI.
@@ -179,7 +180,7 @@ function ConsentRow({
           <p className="text-[13.5px] font-black text-text">{label}</p>
           <p className="text-[10.5px] text-muted mt-0.5 leading-relaxed">
             {on && at
-              ? `${new Date(at).toLocaleDateString('ko-KR')} 동의`
+              ? `${formatKstLongDate(at)} 동의`
               : '현재 미동의'}
           </p>
         </div>

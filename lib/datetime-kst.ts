@@ -116,3 +116,22 @@ export function formatKstDate(iso: string | null | undefined): string {
   const p = kstParts(KST_DATE_FMT, d)
   return `${p.year}.${p.month}.${p.day}`
 }
+
+/**
+ * ISO timestamp → KST "2026년 8월 6일". null/invalid → '-'.
+ *
+ * # 왜 필요한가 (2026-08-07 앱 화면 감사)
+ * 동의 이력·알림 기기 목록이 `toLocaleDateString('ko-KR')` 을 옵션 없이 써서
+ * **"2026. 8. 6."** 로 나왔다. 앱의 다른 화면은 전부 "2026년 8월 4일" /
+ * "8월 4일 (화)" 라 그 두 화면만 시스템 기본 포맷처럼 튀었다.
+ *
+ * 옵션 없는 toLocaleDateString 은 **브라우저 로컬 시간대**도 함께 쓴다 —
+ * 해외에서 접속하면 날짜가 하루 어긋난다. 여기선 KST 로 고정한다.
+ */
+export function formatKstLongDate(iso: string | null | undefined): string {
+  if (!iso) return '-'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '-'
+  const p = kstParts(KST_DATE_FMT, d)
+  return `${p.year}년 ${Number(p.month)}월 ${Number(p.day)}일`
+}

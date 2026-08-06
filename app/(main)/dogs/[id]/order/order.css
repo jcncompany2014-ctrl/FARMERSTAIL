@@ -244,7 +244,9 @@
   letter-spacing: 0.04em;
 }
 .ord-strength-main { background: var(--terracotta); color: #fff; }
-.ord-strength-sub  { background: var(--gold); color: #fff; }
+/* gold 위 흰 글자는 1.86:1 — 9.5px 에선 사실상 안 보인다(2026-08-07 감사).
+   밝은 배경엔 ink 를 얹는다. */
+.ord-strength-sub  { background: var(--gold); color: var(--ink); }
 .ord-strength-mini { background: var(--bg-2); color: var(--muted); }
 
 /* 품절 / 미지원 SKU */

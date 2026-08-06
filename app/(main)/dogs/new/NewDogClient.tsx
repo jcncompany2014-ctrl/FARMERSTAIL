@@ -285,7 +285,12 @@ export default function NewDogClient({ userId }: { userId: string }) {
     <div className="min-h-[100dvh]">
       <form
         onSubmit={handleSubmit}
-        className="px-5 pt-[max(18px,env(safe-area-inset-top))] pb-12"
+        // ★safe-area 를 여기서 다시 더하지 않는다 (2026-08-07 앱 화면 감사).
+        //  AppChrome 헤더가 이미 paddingTop: env(safe-area-inset-top) 을 넣고
+        //  flow 에 자리를 차지한다. /dogs/new 는 focusMode 가 아니라 그 헤더가
+        //  렌더되므로, 여기서 또 더하면 노치 아이폰에서 폼 위에 45~59px 빈
+        //  공간이 더 생긴다.
+        className="px-5 pt-[18px] pb-12"
       >
         {/* 헤더 — 친근한 앱 톤(옛 대문자 kicker 폐기) */}
         <div className="text-center pt-1 pb-1">

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { petName } from '@/lib/korean'
+import { petName, kgNumber } from '@/lib/korean'
 import {
   ClipboardList,
   TrendingUp,
@@ -296,7 +296,7 @@ export default async function AnalysesTimelinePage({
                           체중
                         </div>
                         <div className="text-[13.5px] font-black text-text mt-0.5 leading-none">
-                          {weight.toFixed(1)}
+                          {kgNumber(weight)}
                           <span className="text-[9px] text-muted font-sans ml-0.5">
                             kg
                           </span>
@@ -435,7 +435,7 @@ function LatestAnalysisHero({
         >
           <HeroStat kicker="일일 칼로리" value={`${Math.round(analysis.mer)}`} unit="kcal" />
           <HeroStat kicker="권장 급여량" value={`${analysis.feed_g}`} unit="g/일" divider />
-          <HeroStat kicker="체중" value={weight.toFixed(1)} unit="kg" divider />
+          <HeroStat kicker="체중" value={kgNumber(weight)} unit="kg" divider />
         </div>
 
         {/* 영양소 분포 — 토큰 색(단백=accent·지방=gold·탄수=sage). */}

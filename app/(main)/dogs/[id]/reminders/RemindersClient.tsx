@@ -550,7 +550,7 @@ export default function RemindersClient({
             <p className="text-[12px] text-muted">
               아직 등록된 리마인더가 없어요.
             </p>
-            <p className="text-[10.5px] text-muted/70 mt-1">
+            <p className="text-[10.5px] text-muted mt-1">
               첫 예방접종, 심장사상충 약 등을 등록해 보세요.
             </p>
           </div>
@@ -684,11 +684,15 @@ function ReminderRow({
               마지막 완료 · {formatNextDate(r.last_done_date)}
             </p>
           )}
-          <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+          {/* ★터치 타깃 44px + 파괴적 액션 분리 (2026-08-07 앱 화면 감사).
+              예전엔 완료·일시중지·삭제 세 버튼이 전부 ~28px 높이에 6px 간격으로
+              붙어 있었다 — 일시중지를 누르려다 삭제를 누르기 쉬웠다.
+              삭제는 ml-auto 로 반대쪽에 둔다. */}
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
             {r.enabled && (
               <button
                 onClick={onDone}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-moss text-white text-[10.5px] font-bold active:scale-[0.98] transition"
+                className="inline-flex items-center justify-center gap-1 min-h-[44px] px-4 rounded-full bg-moss text-white text-[12px] font-bold active:scale-[0.98] transition"
               >
                 <Check className="w-3 h-3" strokeWidth={2.5} />
                 완료
@@ -696,7 +700,7 @@ function ReminderRow({
             )}
             <button
               onClick={onToggle}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-bg-3 text-text border border-rule text-[10.5px] font-bold hover:border-text transition"
+              className="inline-flex items-center justify-center gap-1 min-h-[44px] px-4 rounded-full bg-bg-3 text-text border border-rule text-[12px] font-bold hover:border-text transition"
             >
               {r.enabled ? (
                 <>
@@ -712,7 +716,7 @@ function ReminderRow({
             </button>
             <button
               onClick={onDelete}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-bg-3 text-sale border border-rule text-[10.5px] font-bold hover:border-sale transition"
+              className="ml-auto inline-flex items-center justify-center gap-1 min-h-[44px] px-4 rounded-full bg-bg-3 text-sale border border-rule text-[12px] font-bold hover:border-sale transition"
             >
               <Trash2 className="w-3 h-3" strokeWidth={2} />
               삭제

@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Sparkline } from '@/components/v3'
+import { formatKg } from '@/lib/korean'
 
 export const dynamic = 'force-dynamic'
 
@@ -139,7 +140,7 @@ export default async function CompareDogsPage() {
               <Row
                 label="체중"
                 dogs={dogs}
-                pick={(d) => (d.weight != null ? `${d.weight} kg` : '—')}
+                pick={(d) => (d.weight != null ? formatKg(d.weight) : '—')}
               />
               <Row
                 label="체형"

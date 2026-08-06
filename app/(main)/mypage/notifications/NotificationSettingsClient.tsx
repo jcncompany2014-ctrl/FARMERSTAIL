@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import PreferencesPanel from './PreferencesPanel'
 import { isNativeApp, registerAndSyncNativePush } from '@/lib/capacitor'
+import { formatKstLongDate } from '@/lib/datetime-kst'
 
 type SubRow = {
   id: string
@@ -413,7 +414,7 @@ export default function NotificationSettingsClient({
                       )}
                     </div>
                     <p className="text-[10.5px] text-muted mt-0.5">
-                      {new Date(s.created_at).toLocaleDateString('ko-KR')}
+                      {formatKstLongDate(s.created_at)}
                     </p>
                   </div>
                 </li>

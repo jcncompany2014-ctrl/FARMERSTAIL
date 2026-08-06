@@ -9,7 +9,12 @@ import {
 } from 'lucide-react'
 import type { ActiveSubscription } from './types'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
-import { subscriptionState, type SubState } from '@/lib/subscription-state'
+import {
+  subscriptionState,
+  SUB_STATE_LABEL,
+  type SubState,
+} from '@/lib/subscription-state'
+import { weekdayKo } from '@/lib/shipping-schedule'
 
 /**
  * 진행중 정기배송 카드 — 강아지 단위.
@@ -27,15 +32,15 @@ import { subscriptionState, type SubState } from '@/lib/subscription-state'
  * dog_formulas(추천 알고리즘)가 아니라 subscription_items(실제 배송 박스)를 보여준다.
  * 예전엔 CurrentFormulaCard 가 옛 추천 비율을 '현재 박스'라 잘못 표기했다.
  */
-const STATE_META: Record<
-  SubState,
-  { label: string; badge: string }
-> = {
-  needs_card: { label: '시작 전', badge: 'bg-terracotta/15 text-terracotta' },
-  active: { label: '진행중', badge: 'bg-moss/15 text-moss' },
-  paused: { label: '일시정지', badge: 'bg-muted/15 text-muted' },
-  card_failed: { label: '결제수단 재등록 필요', badge: 'bg-sale/15 text-sale' },
-  cancelled: { label: '해지됨', badge: 'bg-muted/15 text-muted' },
+// 라벨은 lib/subscription-state 정본. 여기선 배지 색만 고른다.
+// (예전엔 여기만 '진행중'·'결제수단 재등록 필요' 라고 달리 불렀다 — 같은
+//  구독이 강아지 카드·구독 탭·마이페이지에서 세 이름으로 보였다.)
+const STATE_BADGE: Record<SubState, string> = {
+  needs_card: 'bg-terracotta/15 text-terracotta',
+  active: 'bg-moss/15 text-moss',
+  paused: 'bg-muted/15 text-muted',
+  card_failed: 'bg-sale/15 text-sale',
+  cancelled: 'bg-muted/15 text-muted',
 }
 export default function SubscriptionCard({
   subscriptions,
@@ -108,11 +113,17 @@ export default function SubscriptionCard({
                 : null
               // 날짜 라벨 — KST date 문자열에서 직접 뽑는다(Date 로 파싱해 서버 tz 로
               // 포맷하면 KST 자정이 전날로 밀려 '하루 전'을 표시한다).
+              // 요일까지 — 발송은 화요일 고정이라 요일이 곧 "언제 오는지"의
+              // 핵심 정보다. 구독 탭·마이페이지는 이미 요일을 보여주는데 여기만
+              // 빠져 있었다(2026-08-07 감사).
               const nextLabel = s.next_delivery_date
-                ? `${Number(s.next_delivery_date.slice(5, 7))}월 ${Number(s.next_delivery_date.slice(8, 10))}일`
+                ? `${Number(s.next_delivery_date.slice(5, 7))}월 ${Number(s.next_delivery_date.slice(8, 10))}일 (${weekdayKo(s.next_delivery_date)})`
                 : ''
               const state = subscriptionState(s)
-              const meta = STATE_META[state]
+              const meta = {
+                label: SUB_STATE_LABEL[state],
+                badge: STATE_BADGE[state],
+              }
               const needsCard = state === 'needs_card' || state === 'card_failed'
               // 카드 등록 링크 — billing-auth 는 customerKey 가 필수라, 안 실으면
               // '잘못된 접근이에요' 막다른 길이 된다(2026-07-17 수정). 구독 생성 시

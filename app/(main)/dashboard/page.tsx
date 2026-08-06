@@ -17,22 +17,16 @@ import {
 import { StreakRewards } from '@/components/v3'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import OnboardingTutorial from '@/components/dashboard/OnboardingTutorial'
-import { currentMilestone } from '@/lib/dashboard/milestones'
 import {
   computeDailyStreak,
   kstDayKeyFromTs,
-  type CheckinRow,
 } from '@/lib/dashboard/streaks'
-import {
-  computePersona,
-  daysSinceIso,
-  isoDaysAgo,
-  personaCardSpec,
-} from '@/lib/persona'
+import { daysSinceIso, isoDaysAgo } from '@/lib/persona'
 import type { Json } from '@/lib/supabase/types'
 // 배송 문구 정본 — next_delivery_date 는 **발송일**이다(도착 아님).
 import { shipTimingLabel } from '@/lib/shipping-schedule'
 import { dailyGramsOf } from '@/lib/personalization/dailyGrams'
+import { formatKg } from '@/lib/korean'
 
 /**
  * Dashboard — 로그인 후 홈 화면.
@@ -98,13 +92,8 @@ export default async function DashboardPage() {
   //   - 가시성: Sentry 로 보내서 운영자는 인지. 사용자 경로는 유지.
   const [
     { data: snapshotData, error: snapshotErr },
-    { data: dogAnalysesData },
     { data: onboardData },
-    { data: checkinsData },
     { data: dogMetaData },
-    { count: chatCount },
-    { count: diaryCount },
-    { data: pastSnapshotData },
     { data: healthLogDates },
     { data: activityLogDates },
     { data: weightLogDates },
@@ -112,25 +101,12 @@ export default async function DashboardPage() {
     { data: dogSubRatios },
   ] = await Promise.all([
     supabase.rpc('dashboard_user_snapshot', { p_user_id: user.id }),
-    // 각 강아지의 분석 존재 여부. 분석 0 인 강아지 picking 용.
-    supabase
-      .from('analyses')
-      .select('dog_id')
-      .eq('user_id', user.id),
     // 가입 후 첫 진입 튜토리얼 노출 여부 — onboarded_at IS NULL 이면 모달 띄움.
     supabase
       .from('profiles')
       .select('onboarded_at')
       .eq('id', user.id)
       .maybeSingle(),
-    // 체크인 스트릭 계산용 — 첫 dog 의 cycle 만 client filter. user-level 전체
-    // row 라 다중 견에도 호환. cycle_number 오름차순으로 받아 streak 계산이
-    // 그대로 통과. 사용자당 통상 수십 row → 비용 무시 가능.
-    supabase
-      .from('dog_checkins')
-      .select('dog_id, created_at, cycle_number, checkpoint')
-      .eq('user_id', user.id)
-      .order('cycle_number', { ascending: true }),
     // Phase D7.4 + D7.5 + P7 — 페르소나 + 맞춤도 계산용 dog meta.
     // snapshot RPC 가 select 안 하는 컬럼이라 별도 fetch.
     supabase
@@ -139,27 +115,6 @@ export default async function DashboardPage() {
         'id, photo_url, allergies_source, weight_method, activity_method, feed_method, weight_measured_at, accuracy_user_boost, user_method_lock',
       )
       .eq('user_id', user.id),
-    // chatbot 사용자 발화 수 — 챗봇 의존 신호
-    supabase
-      .from('chatbot_messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('role', 'user'),
-    // 일지 작성 수 — 감성형 신호
-    supabase
-      .from('dog_diary')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
-    // P8 — 지난주(7일 전) sensitivity snapshot. 변화율 chip 표시용.
-    // 최신 1건만 가져와 현재와 비교.
-    supabase
-      .from('dog_sensitivity_snapshots')
-      .select('snapshot_at, baseline_state, top_variable, top_delta')
-      .eq('user_id', user.id)
-      .lte('snapshot_at', isoDaysAgo(6))
-      .order('snapshot_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
     // ── 일별 기록 스트릭/그리드 (2026-07-17) — 식사·산책·체중 중 하나라도 남긴
     // 날을 '완료'로 센다. cycle 체크인(2주마다)이 아니라 실제 일상 기록 기준.
     // firstDog 은 아직 미확정(쿠키 재정렬 후)이라 user-scope 로 받고 메모리 필터.
@@ -247,13 +202,6 @@ export default async function DashboardPage() {
   const hasActiveSub =
     subscription !== null && subscription.next_delivery_date !== null
 
-  // 강아지 ID set — ActiveDog 카드의 "분석 N/전체" 메트릭용.
-  const dogIdsWithAnalyses = new Set(
-    ((dogAnalysesData ?? []) as Array<{ dog_id: string }>).map(
-      (a) => a.dog_id,
-    ),
-  )
-
   // Server component 는 매 요청마다 실행돼 Date.now() 사용이 정상이지만
   // react-hooks/purity 룰이 hook 가정으로 잡음. 이 컴포넌트는 force-dynamic
   // 으로 캐시 안 됨 — 의도된 동작. (배송 D-day 계산용.)
@@ -283,18 +231,7 @@ export default async function DashboardPage() {
         })()
       : null
 
-  // 마일스톤 축하 — 가입 후 30/100/365/730/1095일 도달 시점 7일 노출.
-  // 첫 강아지 기준 (가족 다중 견은 추후 phase). voice-guidelines §10 정책.
   const firstDog = dogs[0]
-  const milestone = currentMilestone(userCreatedAt)
-
-  // cycle 체크인 — 페르소나 추론(checkinCount)용으로만 유지. 홈 "연속/이번주"
-  // 지표는 아래 일별 기록(recordDayKeys) 기반으로 바뀌었다(2026-07-17).
-  type CheckinRowFull = CheckinRow & { dog_id: string }
-  const allCheckins = (checkinsData ?? []) as CheckinRowFull[]
-  const firstDogCheckins = firstDog
-    ? allCheckins.filter((c) => c.dog_id === firstDog.id)
-    : []
 
   // ── 일별 기록 연속/그리드 (2026-07-17) ────────────────────────────────
   // 첫 강아지의 식사(health_logs)·산책(activity_logs)·체중(weight_logs) 기록이
@@ -372,33 +309,10 @@ export default async function DashboardPage() {
     user_method_lock: Json | null
   }
   const dogMetaList = (dogMetaData ?? []) as DogMetaRow[]
-  const firstDogMeta = firstDog
-    ? dogMetaList.find((d) => d.id === firstDog.id) ?? null
-    : null
-
-  const daysSinceSignup = daysSinceIso(userCreatedAt)
-
-  const personaResult = computePersona({
-    chatCount: chatCount ?? 0,
-    analysisCount: dogIdsWithAnalyses.size,
-    checkinCount: firstDogCheckins.length,
-    diaryCount: diaryCount ?? 0,
-    hasPhoto: !!firstDogMeta?.photo_url,
-    hasSubscription: hasActiveSub,
-    allergiesSource: firstDogMeta?.allergies_source ?? null,
-    daysSinceSignup,
-  })
-  const personaSpec = personaResult.dominant
-    ? personaCardSpec(personaResult.dominant, firstDog?.id ?? null)
-    : null
 
   // [2026-06-11] 변수별 맞춤도(AccuracyBreakdown)는 홈에서 분리해 마이페이지
   // 전용 화면(/mypage/accuracy)으로 이동(사장님 지시 — 홈 시각 위계 정리).
   // 계산식은 동일하게 그 페이지에서 활성 강아지 기준으로 수행.
-
-  // 분석 받은 강아지가 1마리도 없으면 = 신규 사용자 / 첫 설문 안 한 상태.
-  // 참고용 — 모든 강아지의 분석 존재 여부. v3 후속 라운드에서 분기에 사용.
-  const hasAnyAnalysis = dogIdsWithAnalyses.size > 0
 
   // ── v3 데이터 매핑 (R3 - 2026-05-21) ───────────────────────────
   // 위에서 모은 데이터 → 아래 v3 sections 의 props 로 풀어 넣음. 비교
@@ -423,7 +337,7 @@ export default async function DashboardPage() {
   const activeDogMetaLine = firstDog
     ? [
         firstDog.breed ?? '품종',
-        firstDog.weight != null ? `${firstDog.weight}kg` : null,
+        firstDog.weight != null ? formatKg(firstDog.weight) : null,
         userCreatedAt
           ? `${Math.max(0, daysSinceIso(userCreatedAt))}일 함께`
           : null,
@@ -479,7 +393,7 @@ export default async function DashboardPage() {
     },
     {
       label: '체중',
-      sub: firstDog?.weight != null ? `${firstDog.weight}kg` : '미입력',
+      sub: firstDog?.weight != null ? formatKg(firstDog.weight) : '미입력',
       kind: 'weight',
       tone: 'ink',
       href: firstDog ? `/dogs/${firstDog.id}?weight=open` : '/dogs/new',
@@ -610,14 +524,6 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* persona / milestone — 후속 라운드에서 v3 surface 로
-          재도입 예정. lint 침묵 위해 noop reference. */}
-      <span style={{ display: 'none' }} aria-hidden>
-        {milestone ? '·' : ''}
-        {personaSpec ? '·' : ''}
-        {pastSnapshotData ? '·' : ''}
-        {hasAnyAnalysis ? '1' : '0'}
-      </span>
     </div>
   )
 }

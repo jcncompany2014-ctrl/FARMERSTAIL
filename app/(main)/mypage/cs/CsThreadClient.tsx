@@ -90,7 +90,7 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
             <p className="text-[12px] text-muted">
               아직 받은 메시지가 없어요.
             </p>
-            <p className="text-[10.5px] text-muted/70 mt-1">
+            <p className="text-[10.5px] text-muted mt-1">
               궁금한 점이 있으면 아래 입력창에 자유롭게 남겨주세요.
             </p>
           </div>
@@ -123,7 +123,8 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
               type="button"
               onClick={send}
               disabled={sending || !input.trim()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-terracotta text-white text-[10.5px] font-bold active:scale-[0.97] transition disabled:opacity-50"
+              // 터치 타깃 44px (2026-08-07 감사) — 문의 보내기가 ~28px 였다.
+              className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-full bg-terracotta text-white text-[12px] font-bold active:scale-[0.97] transition disabled:opacity-50"
             >
               {sending ? (
                 <>

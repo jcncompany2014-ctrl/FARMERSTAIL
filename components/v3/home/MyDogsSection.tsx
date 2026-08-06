@@ -14,6 +14,7 @@ import { Plus } from 'lucide-react'
 import { V3, V3FontWeight, V3FontSize } from '@/lib/design/tokens'
 import { Mono } from '@/components/v3'
 import DogPawMark from '@/components/DogPawMark'
+import { formatKg } from '@/lib/korean'
 
 export interface DogCardData {
   id: string
@@ -201,7 +202,7 @@ export default function MyDogsSection({
                 }}
               >
                 {d.breed}
-                {d.weightKg !== null && ` · ${d.weightKg}kg`}
+                {d.weightKg !== null && ` · ${formatKg(d.weightKg)}`}
               </div>
               {(d.mealStat || d.walkStat) && (
                 <div

@@ -63,3 +63,33 @@ export function withHonorific(name: string | null | undefined): string {
   if (/^[A-Za-z][A-Za-z\s'-]*$/.test(trimmed)) return trimmed
   return `${trimmed}님`
 }
+
+/**
+ * 몸무게 표기 정본 — "4kg" (붙여쓰기, 불필요한 소수점 없음).
+ *
+ * # 왜 필요한가 (2026-08-07 앱 화면 감사)
+ * 같은 강아지(4kg)가 화면을 옮길 때마다 다르게 보였다:
+ *   홈 "4kg" · 비교 "4 kg" · 분석 "4.0 kg" · 저장 버튼 "4.0kg으로 저장"
+ * 네 가지가 섞여 있으면 같은 값인지 확신이 안 서고, 소수점 강제(`toFixed(1)`)는
+ * 4kg 를 "4.0" 으로 보여 실제보다 정밀해 보이게 만든다.
+ *
+ * 규칙:
+ *  · 정수면 소수점 없이 — 4kg
+ *  · 소수가 있으면 첫째 자리까지 — 4.5kg  (0.05 단위 입력은 반올림)
+ *  · 단위는 붙여쓴다 — 한국어 UI 관용(3kg, 5만원)
+ */
+export function formatKg(kg: number | null | undefined): string {
+  if (kg == null || !Number.isFinite(kg)) return '-'
+  const rounded = Math.round(kg * 10) / 10
+  return Number.isInteger(rounded) ? `${rounded}kg` : `${rounded.toFixed(1)}kg`
+}
+
+/**
+ * 몸무게의 **숫자만** — 단위를 따로 그리는 화면용(큰 숫자 + 작은 'kg').
+ * 반올림 규칙은 formatKg 와 같다: 4 → "4", 4.5 → "4.5".
+ */
+export function kgNumber(kg: number | null | undefined): string {
+  if (kg == null || !Number.isFinite(kg)) return '-'
+  const rounded = Math.round(kg * 10) / 10
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)
+}

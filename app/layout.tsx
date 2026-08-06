@@ -80,6 +80,13 @@ const cormorantGaramond = Cormorant_Garamond({
   style: ["italic", "normal"],
   display: "swap",
   variable: "--font-display",
+  // preload 끔 (2026-08-07 성능 감사) — MaruBuri 와 같은 이유.
+  // 실제 사용처는 components/web/fd/AppShowcase.tsx **한 곳**(/why-app)뿐인데
+  // root layout 에 변수를 붙이는 것만으로 **모든 라우트**가 normal+italic
+  // 77KB 를 preload 했다. 퍼널 진입점 /start 는 이 서체를 한 글자도 안 쓴다.
+  // (italic 은 globals.css 가 font-style:normal !important 로 전역 무력화까지
+  //  해 두어 더 확실히 낭비였다.)
+  preload: false,
 });
 
 // Archivo Black — farm v4 영문 넘버링(001~005)·로고 전용 (Q9, 기획서 스펙).
@@ -89,6 +96,12 @@ const archivoBlack = Archivo_Black({
   weight: ["400"],
   display: "swap",
   variable: "--font-archivo",
+  // preload 끔 (2026-08-07 성능 감사).
+  // `.font-archivo` 유틸을 쓰는 .tsx 가 **0개**이고, `.font-chunky` 안에서는
+  // Bungee **다음** 폴백이라 라틴 글리프에선 절대 도달하지 않는다. 그런데도
+  // 전 라우트가 10KB 를 preload 했다. @font-face 는 남으므로 나중에
+  // .font-archivo 를 쓰면 그때 받는다.
+  preload: false,
 });
 
 // Bungee — farm v5 영문/숫자 디스플레이 (2026-06-13, Monchies 레퍼런스 채택).

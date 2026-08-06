@@ -608,7 +608,7 @@ export default function AnalysisView({
         <div className="px-5 mt-6 text-center">
           <Link
             href={`/dogs/${dogId}/analyses`}
-            className="text-[11px] text-muted/70 hover:text-muted underline underline-offset-4 transition"
+            className="text-[11px] text-muted hover:text-text underline underline-offset-4 transition"
           >
             이전 분석 기록 {totalCount}회 보기
           </Link>

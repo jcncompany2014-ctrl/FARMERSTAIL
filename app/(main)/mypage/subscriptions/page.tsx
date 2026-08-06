@@ -7,6 +7,7 @@ import { V3, V3Radius } from '@/lib/design/tokens'
 import {
   subscriptionState,
   isSubscriptionVisibleToUser,
+  SUB_STATE_LABEL,
   type SubState,
 } from '@/lib/subscription-state'
 import { billingMethodSummary } from '@/lib/payments/billing-methods'
@@ -88,14 +89,17 @@ function HeroAmount({ value }: { value: number }) {
   )
 }
 
-const STATE_CHIP: Record<SubState, { label: string; color: string }> = {
-  // yellow(마커 배경색)를 글자색으로 쓰면 1.69:1 로 사실상 안 보인다 →
-  // yellowInk(4.64:1). 강아지 구독 탭의 '시작 전'과 **같은 값**이다(2026-07-30).
-  needs_card: { label: '시작 전', color: V3.yellowInk },
-  active: { label: '구독 중', color: V3.sage },
-  paused: { label: '일시정지', color: V3.inkMute },
-  card_failed: { label: '결제 문제', color: V3.sale },
-  cancelled: { label: '해지됨', color: V3.inkFaint },
+// 라벨은 lib/subscription-state 정본. 여기선 색만 고른다.
+// yellow(마커 배경색)를 글자색으로 쓰면 1.69:1 로 사실상 안 보인다 →
+// yellowInk(4.64:1). 강아지 구독 탭의 '시작 전'과 **같은 값**이다(2026-07-30).
+// ★cancelled 에 inkFaint(1.9:1) 를 쓰던 것도 고쳤다 — AGENTS.md 가 "텍스트
+//  금지"라 못 박은 색이고, 10px 칩이 배경에 그대로 녹았다(2026-08-07).
+const STATE_COLOR: Record<SubState, string> = {
+  needs_card: V3.yellowInk,
+  active: V3.sage,
+  paused: V3.inkMute,
+  card_failed: V3.sale,
+  cancelled: V3.inkMute,
 }
 
 export default async function AppSubscriptionsSummaryPage({
@@ -447,7 +451,7 @@ export default async function AppSubscriptionsSummaryPage({
           <ul className="overflow-hidden" style={card}>
             {rows.map((s, i) => {
               const st = subscriptionState(s)
-              const chip = STATE_CHIP[st]
+              const chipColor = STATE_COLOR[st]
               const focused = sp.focus === s.id
               const method = billingMethodSummary({
                 registered: !!s.billing_key,
@@ -482,12 +486,12 @@ export default async function AppSubscriptionsSummaryPage({
                         <span
                           className="shrink-0 text-[10px] font-bold px-1.5 py-0.5"
                           style={{
-                            color: chip.color,
-                            border: `1px solid ${chip.color}`,
+                            color: chipColor,
+                            border: `1px solid ${chipColor}`,
                             borderRadius: V3Radius.xs,
                           }}
                         >
-                          {chip.label}
+                          {SUB_STATE_LABEL[st]}
                         </span>
                       </span>
                       <span

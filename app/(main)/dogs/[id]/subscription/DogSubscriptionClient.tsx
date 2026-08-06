@@ -56,7 +56,8 @@ import { nextShipDate, nextCycleDate, weekdayKo } from '@/lib/shipping-schedule'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import {
   subscriptionState,
-  type SubState,
+  SUB_STATE_LABEL,
+  SUB_STATE_TONE,
   type SubLike,
 } from '@/lib/subscription-state'
 import {
@@ -90,14 +91,6 @@ export type DogSub = SubLike & {
 /** yyyy-mm-dd → "8월 4일 (화)". */
 function dateLabel(iso: string): string {
   return `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일 (${weekdayKo(iso)})`
-}
-
-const STATE_META: Record<SubState, { label: string; tone: string }> = {
-  needs_card: { label: '시작 전', tone: 'wait' },
-  active: { label: '구독 중', tone: 'on' },
-  paused: { label: '일시정지', tone: 'wait' },
-  card_failed: { label: '결제 실패', tone: 'bad' },
-  cancelled: { label: '해지됨', tone: 'off' },
 }
 
 export default function DogSubscriptionClient({
@@ -335,7 +328,8 @@ function SubCard({
   onRatio: () => void
 }) {
   const state = subscriptionState(sub)
-  const meta = STATE_META[state]
+  // 라벨·톤은 lib/subscription-state 정본 — 화면마다 다른 이름을 붙이지 않는다.
+  const meta = { label: SUB_STATE_LABEL[state], tone: SUB_STATE_TONE[state] }
   const recipes = sub.subscription_items.map((i) => i.product_name).join(' · ')
 
   const method = billingMethodSummary({
