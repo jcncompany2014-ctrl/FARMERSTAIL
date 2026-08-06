@@ -5,10 +5,10 @@
  * (lib/email/index.ts) 에서. 템플릿을 순수 함수로 유지하면 단위 테스트에서
  * 메일 바디 회귀 스냅샷도 찍기 쉬움.
  */
-import { block, escape, renderLayout, SITE_URL } from '../layout'
-import { carrierLabel, carrierTrackerUrl } from '@/lib/tracking'
-import { bankCodeLabel, formatDueDate } from '@/lib/payments/toss'
-import { withHonorific } from '@/lib/korean'
+import { block, escape, renderLayout, SITE_URL } from '../layout.ts'
+import { carrierLabel, carrierTrackerUrl } from '../../tracking.ts'
+import { bankCodeLabel, formatDueDate } from '../../payments/toss.ts'
+import { withHonorific } from '../../korean.ts'
 
 export type OrderEmailItem = {
   product_name: string

@@ -16,7 +16,7 @@
  *   라는 단어 X — 정확도/정밀도 사용. 회사 표기는 lib/business.ts 의
  *   companyName ("파머스테일 (Farmer's Tail)") 가 single source.
  */
-import { renderLayout, escape, SITE_URL, block } from '../layout'
+import { renderLayout, escape, SITE_URL, block } from '../layout.ts'
 
 export function renderNewsletterWelcome(input: {
   email: string

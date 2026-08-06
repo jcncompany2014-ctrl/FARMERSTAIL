@@ -12,7 +12,7 @@
  *   cron job / edge function 으로 빼는 게 맞다 (미래 과제).
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { sendEmail } from './client'
+import { sendEmail } from './client.ts'
 import {
   renderOrderCancelled,
   renderOrderConfirmation,
@@ -21,21 +21,21 @@ import {
   renderVirtualAccountWaiting,
   renderWelcome,
   type OrderEmailItem,
-} from './templates/orders'
+} from './templates/orders.ts'
 import {
   renderSubscriptionReminder,
   renderSubscriptionChargeFailed,
   type SubscriptionReminderItem,
-} from './templates/subscription'
+} from './templates/subscription.ts'
 import {
   renderNewsletterConfirm,
   renderUnsubscribeAck,
-} from './templates/newsletter'
-import { renderNewsletterWelcome } from './templates/newsletter-welcome'
-import { renderNewsletterVol01 } from './templates/newsletter-vol-01'
-import { renderPersonalizationCycle } from './templates/personalization-cycle'
-import { renderQuarterlyReport } from './templates/quarterly-report'
-import { paymentMethodLabel } from '@/lib/payments/toss'
+} from './templates/newsletter.ts'
+import { renderNewsletterWelcome } from './templates/newsletter-welcome.ts'
+import { renderNewsletterVol01 } from './templates/newsletter-vol-01.ts'
+import { renderPersonalizationCycle } from './templates/personalization-cycle.ts'
+import { renderQuarterlyReport } from './templates/quarterly-report.ts'
+import { paymentMethodLabel } from '../payments/toss.ts'
 
 export { sendEmail }
 

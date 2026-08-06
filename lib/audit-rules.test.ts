@@ -40,6 +40,23 @@ function read(path: string): string {
 }
 
 /**
+ * 이 파일이 클라이언트 컴포넌트인가.
+ *
+ * # 왜 함수로 뺐나 (2026-08-08 테스트 감사)
+ * 예전엔 `src.startsWith("'use client'")` 였다. 그런데:
+ *  · 파일 맨 위에 **주석 헤더**가 있으면 지시어가 첫 바이트가 아니다
+ *  · `"use client"`(쌍따옴표)도 유효한데 못 잡는다
+ * 그 두 경우에 규칙이 **파일을 통째로 스킵**한다 — 실측으로 클라이언트 파일
+ * 181개 중 12개가 이미 검사 대상 밖이었다. 규칙이 초록인 이유가 "위반이
+ * 없어서"가 아니라 "안 봐서" 인 상태다.
+ */
+function isUseClient(src: string): boolean {
+  // 앞쪽 주석·공백을 걷어낸 뒤 첫 지시어를 본다.
+  const head = src.replace(/^(?:\s|\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)*/, '')
+  return /^['"]use client['"]/.test(head)
+}
+
+/**
  * 주석을 걷어낸다 — **규칙이 주석에 속지 않게.**
  *
  * 2026-07-31: 규칙20 카나리아가 통과해 버렸다. 버그를 되돌려 놨는데도 초록이었고,
@@ -209,7 +226,7 @@ test('★ 규칙14: .select() 가 없는 컬럼을 부르지 않는다', () => {
     .concat(walk(join(ROOT, 'lib')))
     .concat(walk(join(ROOT, 'components')))) {
     const src = read(file)
-    const re = /\.from\(\s*'(\w+)'\s*\)\s*\n?\s*\.select\(\s*([`'"])([\s\S]*?)\2/g
+    const re = /\.from\(\s*['"](\w+)['"]\s*\)\s*\n?\s*\.select\(\s*([`'"])([\s\S]*?)\2/g
     for (const m of src.matchAll(re)) {
       const table = m[1]!
       const known = tableCols.get(table)
@@ -242,7 +259,7 @@ test('★ 규칙14: .select() 가 없는 컬럼을 부르지 않는다', () => {
     .concat(walk(join(ROOT, 'lib')))
     .concat(walk(join(ROOT, 'components')))) {
     const src = read(file)
-    for (const m of src.matchAll(/\.from\(\s*'(\w+)'\s*\)([\s\S]{0,900})/g)) {
+    for (const m of src.matchAll(/\.from\(\s*['"](\w+)['"]\s*\)([\s\S]{0,900})/g)) {
       const known = tableCols.get(m[1]!)
       if (!known) continue
       let chunk = m[2] ?? ''
@@ -365,8 +382,11 @@ test('★ 규칙15: 잠긴 표(orders)를 쿠키 클라이언트로 쓰지 않�
     .concat(walk(join(ROOT, 'lib')))
     .concat(walk(join(ROOT, 'components')))) {
     const src = read(file)
-    if (!src.includes("from('orders')")) continue
-    const re = /(\w+)\s*\n?\s*\)?\s*\.from\(\s*'orders'\s*\)\s*\.(update|delete|upsert)\(/g
+    // ★게이트도 따옴표 중립이어야 한다 (2026-08-08). 아래 정규식은 쌍따옴표를
+    //  허용하도록 넓혔는데 이 조기 return 이 작은따옴표만 봐서, 넓힌 게
+    //  무효였다 — 카나리아로 확인했다(쌍따옴표 위반이 초록으로 통과).
+    if (!/\.from\(\s*['"]orders['"]/.test(src)) continue
+    const re = /(\w+)\s*\n?\s*\)?\s*\.from\(\s*['"]orders['"]\s*\)\s*\.(update|delete|upsert)\(/g
     for (const m of src.matchAll(re)) {
       const recv = m[1]!
       const line = src.slice(0, m.index ?? 0).split('\n').length
@@ -472,7 +492,10 @@ test('★ 규칙12: 구독은 클라이언트가 만들지 않는다 (금액을 
     walk(join(ROOT, 'components')),
   )) {
     const src = read(file)
-    if (!src.startsWith("'use client'")) continue
+    // ★파일 첫 바이트 비교는 취약하다 (2026-08-08 테스트 감사).
+    //  주석 헤더가 앞에 오거나 쌍따옴표를 쓰면 규칙이 통째로 스킵된다 —
+    //  실측으로 클라이언트 파일 181개 중 12개가 이미 검사 대상 밖이었다.
+    if (!isUseClient(src)) continue
     const lines = src.split('\n')
     for (let i = 0; i < lines.length; i++) {
       if (!/from\(\s*['"]subscriptions?(_items)?['"]/.test(lines[i] ?? '')) continue
@@ -584,7 +607,10 @@ test('★ 규칙3: subscriptions 금액·빌링 칸을 클라이언트가 UPDATE
     walk(join(ROOT, 'components')),
   )) {
     const src = read(file)
-    if (!src.startsWith("'use client'")) continue
+    // ★파일 첫 바이트 비교는 취약하다 (2026-08-08 테스트 감사).
+    //  주석 헤더가 앞에 오거나 쌍따옴표를 쓰면 규칙이 통째로 스킵된다 —
+    //  실측으로 클라이언트 파일 181개 중 12개가 이미 검사 대상 밖이었다.
+    if (!isUseClient(src)) continue
     if (!src.includes("from('subscriptions')")) continue
     for (const m of src.matchAll(/\.update\(\s*\{([\s\S]{0,600}?)\}\s*\)/g)) {
       const body = m[1] ?? ''
@@ -642,7 +668,7 @@ test('★ 규칙17: 서버가 orders 를 셀 때 결제 상태로 거른다', ()
     const src = read(file)
     if (!src.includes("from('orders')")) continue
     // .from('orders').select(..., { count: 'exact' }) 뒤에 이어지는 필터 체인을 본다.
-    const re = /\.from\('orders'\)\s*\n?\s*\.select\([^\n]*count:\s*'exact'/g
+    const re = /\.from\(['"]orders['"]\)\s*\n?\s*\.select\([^\n]*count:\s*['"]exact['"]/g
     for (const m of src.matchAll(re)) {
       const start = (m.index ?? 0) + m[0].length
       // 체인이 끝날 때까지(= 다음 줄이 .필터 가 아닐 때까지) 모은다.
@@ -1528,7 +1554,7 @@ test('규칙36 — dog_formulas 쓰기는 service_role 로만 한다', () => {
     const src = stripComments(read(file))
     // dog_formulas 에 쓰는 구문만 본다(select 는 대상 아님).
     const re =
-      /(\w+(?:\(\))?)\s*\.from\('dog_formulas'\)\s*\.(update|insert|upsert|delete)\(/g
+      /(\w+(?:\(\))?)\s*\.from\(['"]dog_formulas['"]\)\s*\.(update|insert|upsert|delete)\(/g
     let m: RegExpExecArray | null
     while ((m = re.exec(src))) {
       const recv = m[1] ?? ''

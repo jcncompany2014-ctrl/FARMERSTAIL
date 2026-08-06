@@ -21,7 +21,7 @@
  *   4. 다음 호 예고 — 단백질 알레르기 진단법
  *   5. CTA — 무료 분석 시작
  */
-import { renderLayout, escape, SITE_URL, block } from '../layout'
+import { renderLayout, escape, SITE_URL, block } from '../layout.ts'
 
 export function renderNewsletterVol01(input: {
   email: string

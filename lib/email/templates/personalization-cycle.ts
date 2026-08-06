@@ -5,8 +5,8 @@
  * row 를 생성한 직후. push 알림과 함께 발송 (push 가 OFF 인 사용자도 메일은
  * 받게).
  */
-import { block, escape, renderLayout, SITE_URL } from '../layout'
-import { petName, withHonorific } from '@/lib/korean'
+import { block, escape, renderLayout, SITE_URL } from '../layout.ts'
+import { petName, withHonorific } from '../../korean.ts'
 
 export type PersonalizationCycleEmailInput = {
   recipientName: string

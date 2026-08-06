@@ -29,8 +29,12 @@
  *     발송에 ~25초 걸려요.
  */
 import { createClient } from '@supabase/supabase-js'
-import { broadcastNewsletterVol01, sendEmail } from '../lib/email'
-import { renderNewsletterVol01 } from '../lib/email/templates/newsletter-vol-01'
+// ★확장자 필수 (2026-08-08 테스트 감사). package.json 이 이 스크립트를
+//  `node --experimental-strip-types` 로 돌리는데, 그건 노드 방식으로 경로를
+//  푼다 — 확장자 없는 상대 value import 는 ERR_MODULE_NOT_FOUND 다.
+//  즉 `npm run newsletter:vol-01:*` 세 개가 **한 번도 돈 적이 없다.**
+import { broadcastNewsletterVol01, sendEmail } from '../lib/email/index.ts'
+import { renderNewsletterVol01 } from '../lib/email/templates/newsletter-vol-01.ts'
 
 async function main() {
   const args = process.argv.slice(2)

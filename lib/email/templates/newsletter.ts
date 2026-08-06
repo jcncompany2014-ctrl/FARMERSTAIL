@@ -9,7 +9,7 @@
  * - confirm 메일: 사용자가 직접 신청한 절차의 응답 → 거래성 (광고 표기 X)
  * - unsubscribe 결과 메일: 동일 — 거래성 (광고 표기 X)
  */
-import { renderLayout, escape, SITE_URL, block } from '../layout'
+import { renderLayout, escape, SITE_URL, block } from '../layout.ts'
 
 /**
  * 뉴스레터 가입 confirm 메일.

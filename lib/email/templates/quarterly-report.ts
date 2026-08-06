@@ -9,8 +9,8 @@
  * 거래/정보성 메일(본인 강아지 데이터, 광고 없음) — renderLayout 의 정보성
  * 푸터를 그대로 사용한다.
  */
-import { block, escape, renderLayout, SITE_URL } from '../layout'
-import { petName, withHonorific } from '@/lib/korean'
+import { block, escape, renderLayout, SITE_URL } from '../layout.ts'
+import { petName, withHonorific } from '../../korean.ts'
 
 export type QuarterlyReportEmailInput = {
   recipientName: string

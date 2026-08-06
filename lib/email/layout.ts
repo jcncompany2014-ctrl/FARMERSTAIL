@@ -17,8 +17,8 @@
  *   (moss/gold/sale 상태 callout 색은 semantic 으로 유지)
  */
 
-import { business } from '@/lib/business'
-import { escape } from './escape'
+import { business } from '../business.ts'
+import { escape } from './escape.ts'
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://www.farmerstail.kr'

@@ -27,8 +27,8 @@
  *   - CTA: "구독 관리" — 잠시 멈춤 / 변경 / 해지를 원할 수 있는 사용자가
  *     한 번에 닿게.
  */
-import { block, escape, renderLayout, SITE_URL } from '../layout'
-import { withHonorific } from '@/lib/korean'
+import { block, escape, renderLayout, SITE_URL } from '../layout.ts'
+import { withHonorific } from '../../korean.ts'
 
 export type SubscriptionReminderItem = {
   productName: string

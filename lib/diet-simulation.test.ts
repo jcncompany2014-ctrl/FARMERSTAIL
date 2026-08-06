@@ -143,7 +143,36 @@ describe('simulateScenario — 가드 / edge case', () => {
 })
 
 describe('simulateScenario — verdict', () => {
-  it('예상 BCS >= 7 → risk', () => {
+  /**
+   * ★조건부 단언은 조건이 거짓이 되면 **조용히 아무것도 안 한다**
+   * (2026-08-08 테스트 감사). 예전 이 테스트는 bcs 6 + 지방 +5 + 간식 +2 로
+   * 시뮬레이션한 뒤 `if (result.predictedBcs >= 7)` 안에서만 단언했는데,
+   * 실측 predictedBcs 는 **6.3** 이라 그 if 가 거짓이었다 —
+   * **단언이 한 줄도 실행되지 않는데 이름은 "risk 를 검증한다"** 고 말했다.
+   * 시뮬레이션 계수가 바뀌어도 영원히 초록이었다.
+   *
+   * 실제로 risk 가 나오는 입력으로 바꾸고, if 를 없앤다.
+   * (bcs 7 + 지방 +8 + 간식 +3 → predictedBcs 7.5, verdict 'risk' 실측)
+   */
+  it('예상 BCS 7 이상이면 risk', () => {
+    const result = simulateScenario(baseline({ bcs: 7 }), {
+      id: 't',
+      label: '',
+      description: '',
+      fatDelta: 8,
+      snackDelta: 3,
+    })
+    // 전제부터 단언한다 — 계수가 바뀌어 7 미만이 되면 여기서 빨간불이 뜨고,
+    // 그때 이 테스트를 다시 조정하라는 신호가 된다(조용히 통과하지 않는다).
+    assert.ok(
+      result.predictedBcs >= 7,
+      `이 입력은 BCS 7 이상을 만들어야 한다 (실제 ${result.predictedBcs})`,
+    )
+    assert.equal(result.verdict, 'risk')
+    assert.match(result.verdictReason, /과체중/)
+  })
+
+  it('예상 BCS 7 미만이면 risk 가 아니다 (경계 반대편)', () => {
     const result = simulateScenario(baseline({ bcs: 6 }), {
       id: 't',
       label: '',
@@ -151,10 +180,8 @@ describe('simulateScenario — verdict', () => {
       fatDelta: 5,
       snackDelta: 2,
     })
-    if (result.predictedBcs >= 7) {
-      assert.equal(result.verdict, 'risk')
-      assert.match(result.verdictReason, /과체중/)
-    }
+    assert.ok(result.predictedBcs < 7, `실제 ${result.predictedBcs}`)
+    assert.notEqual(result.verdict, 'risk')
   })
 
   it('BCS 7 → 6 으로 이동 (이상 5 쪽으로) → improvement', () => {
