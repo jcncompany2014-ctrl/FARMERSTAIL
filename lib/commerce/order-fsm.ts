@@ -29,6 +29,8 @@
  * delivered/cancelled 에서의 역행은 금지(환불은 별도 액션으로).
  */
 
+import { isPaidStatus } from './paid-status.ts'
+
 export type PaymentStatus =
   | 'pending'
   | 'paid'
@@ -164,7 +166,14 @@ export function canTransitionOrderStatus(
   }
 
   // 결제 미완 주문을 배송/완료로 보내는 건 금지.
-  if ((to === 'shipping' || to === 'delivered') && ctx.payment_status !== 'paid') {
+  //
+  // ★'paid' 하나로 보지 않는다 (2026-08-07). 부분 환불된 주문은
+  //  payment_status 가 'partially_refunded' 인데, **돈은 일부만 돌려주고 박스는
+  //  여전히 보내야 하는** 상태다. 여기서 막으면 발송 큐에 보이기만 하고
+  //  아무 조작도 안 되는 주문이 되어, 처리 대기에 영원히 남는다
+  //  (실제로 그렇게 만들었다 — 큐 필터만 넓히고 이 줄을 안 고쳤다).
+  //  판정은 lib/commerce/paid-status 정본 하나.
+  if ((to === 'shipping' || to === 'delivered') && !isPaidStatus(ctx.payment_status)) {
     return {
       ok: false,
       reason: '결제 완료 전에는 발송/완료 처리할 수 없어요',

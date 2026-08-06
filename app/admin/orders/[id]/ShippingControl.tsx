@@ -47,6 +47,8 @@ export default function ShippingControl({
   const [trackingNumber, setTrackingNumber] = useState(
     currentTrackingNumber ?? '',
   )
+  // 택배사를 사람이 직접 골랐나 — 초기 폴백('cj')과 구분한다.
+  const [carrierTouched, setCarrierTouched] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [, startTransition] = useTransition()
@@ -67,14 +69,29 @@ export default function ShippingControl({
   // 발송 전(전환 가능) 도, 발송 후(정정) 도 아니면 패널 노출 안 함.
   if (!isShipped && !canShipNow) return null
 
+  /**
+   * 저장할 게 있나.
+   *
+   * ★택배사는 **사람이 실제로 고른 경우에만** 변경으로 친다 (2026-08-07 재감사).
+   * `carrier` 초기값은 저장된 값이 없으면 'cj' 로 떨어지는데, 그걸 그대로
+   * 비교하면 아무것도 안 건드렸는데 버튼이 활성이 된다. 그 상태로 누르면
+   * **사장님이 고르지 않은 CJ** 가 저장되고, 고객에게 "운송장 정보가
+   * 업데이트됐어요 · CJ대한통운" 이 나간다.
+   */
   const dirty =
     trackingNumber.trim() !== (currentTrackingNumber ?? '') ||
-    carrier !== currentCarrier
+    (carrierTouched && carrier !== currentCarrier)
 
   async function submit() {
     const trimmed = trackingNumber.trim()
     if (!trimmed) {
       setError('송장번호를 입력해 주세요')
+      return
+    }
+    // 저장된 택배사가 없는데 고르지도 않았으면, 폴백('cj')이 조용히 저장되고
+    // 그 이름이 고객 알림에 실린다. 명시적으로 고르게 한다.
+    if (!currentCarrier && !carrierTouched) {
+      setError('택배사를 골라 주세요')
       return
     }
     setError(null)
@@ -119,13 +136,22 @@ export default function ShippingControl({
           ? '잘못 입력한 송장을 고칠 수 있어요. 배송 시작 알림은 다시 가지 않고, 번호가 바뀌면 변경 안내만 한 번 갑니다.'
           : '택배사와 송장번호를 입력하면 배송 중으로 전환됩니다.'}
       </p>
+      {isShipped && !currentCarrier && (
+        <p className="text-[11px] text-amber-700 font-semibold mb-3">
+          이 주문에는 택배사가 저장돼 있지 않아요. 아래에서 실제 택배사를 골라
+          주세요 — 기본값이 그대로 저장되지 않습니다.
+        </p>
+      )}
 
       <div className="space-y-3">
         <label className="block">
           <span className="block text-[11px] text-zinc-500 mb-1">택배사</span>
           <select
             value={carrier}
-            onChange={(e) => setCarrier(e.target.value as CarrierCode)}
+            onChange={(e) => {
+              setCarrier(e.target.value as CarrierCode)
+              setCarrierTouched(true)
+            }}
             disabled={loading}
             className="w-full px-3 py-2 rounded-lg bg-zinc-50 border border-zinc-200 text-sm disabled:opacity-50"
           >

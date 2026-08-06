@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
-import { PAID_STATUSES } from '@/lib/commerce/paid-status'
+import { COLLECTED_STATUSES } from '@/lib/commerce/paid-status'
 import { isAdmin } from '@/lib/auth/admin'
 import { HelpTip, AdminTabs, Hl } from '@/components/admin/ui'
 import { REVENUE_TABS } from '@/components/admin/tabGroups'
@@ -73,9 +73,11 @@ export default async function AdminReportsPage({
       .select(
         'id, total_amount, points_used, discount_amount, shipping_fee, paid_at, payment_method, order_items(product_id, product_name, quantity, line_total)',
       )
-      // ★gross 는 부분 환불 주문도 포함해야 한다 — 환불액은 아래 refunds 에서
-      //  따로 빼기 때문에, 여기서 빼면 이중으로 차감된다.
-      .in('payment_status', PAID_STATUSES)
+      // ★gross 는 **환불된 주문까지** 포함해야 한다 — 환불액은 아래 refunds 에서
+      //  따로 빼기 때문에, 여기서도 빼면 이중 차감이 된다. 부분 환불만 넣고
+      //  전액 환불·고객 취소를 빼 두면 그 달 net 이 그 금액만큼 마이너스로
+      //  어긋난다(2026-08-07). paid_at 범위 필터가 미결제 주문을 이미 거른다.
+      .in('payment_status', COLLECTED_STATUSES)
       .gte('paid_at', monthStart)
       .lt('paid_at', monthEnd)
       .order('paid_at', { ascending: false }),

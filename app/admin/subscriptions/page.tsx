@@ -219,8 +219,12 @@ export default function AdminSubscriptionsPage() {
           <p className="text-[13px] text-zinc-500 mt-1">
             <Hl>고객들의 정기배송(2주마다 · 화요일 발송)</Hl>을 조회·관리하는
             곳이에요. 결제와 배송 예약은 자동으로 돌아가서,{' '}
-            <Em>문제 있는 구독만</Em> 손보면 돼요. — 전체 {subs.length}건 · 활성{' '}
-            {subs.filter((s) => s.status === 'active').length}
+            <Em>문제 있는 구독만</Em> 손보면 돼요.
+            {/* ★조회가 실패했으면 "전체 0건" 이라고 말하지 않는다 — 배너 바로
+                위에서 숫자가 거짓말하면 배너를 안 읽는다(2026-08-07). */}
+            {loadError
+              ? ' — 건수를 불러오지 못했어요'
+              : ` — 전체 ${subs.length}건 · 활성 ${subs.filter((x) => x.status === 'active').length}`}
           </p>
         </div>
       </div>

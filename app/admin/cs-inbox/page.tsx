@@ -80,7 +80,8 @@ export default async function AdminCsInboxPage() {
           <p className="text-[13px] text-zinc-500 mt-1">
             고객이 1:1 메시지에 답장을 보냈는데{' '}
             <Hl>아직 사장님이 안 읽은 것들</Hl>이에요. 여기 쌓이면 답을 기다리는
-            중이니 빨리 봐주세요. — {grouped.length}명
+            중이니 빨리 봐주세요.
+            {messagesError ? ' — 건수를 불러오지 못했어요' : ` — ${grouped.length}명`}
           </p>
         </div>
         <Link

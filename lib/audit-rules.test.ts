@@ -1783,12 +1783,29 @@ test('규칙42 — 어드민이 "결제됨"을 paid 하나로 판정하지 않�
       const rel = file.replace(ROOT, '').split(sep).join('/')
       const src = stripComments(read(file))
       // .eq('payment_status', 'paid') / .eq('orders.payment_status', 'paid')
+      // 여러 줄로 흩어진 형태도 잡는다(트레일링 콤마 포함).
       for (const m of src.matchAll(
-        /\.eq\(\s*['"][\w.]*payment_status['"]\s*,\s*['"]paid['"]\s*\)/g,
+        /\.eq\(\s*['"][\w.]*payment_status['"]\s*,\s*['"]paid['"]\s*,?\s*\)/g,
       )) {
-        offenders.push(`${rel} (${m[0]})`)
+        offenders.push(`${rel} (${m[0].replace(/\s+/g, ' ')})`)
       }
     }
+  }
+
+  /**
+   * ★FSM 도 같이 본다 (2026-08-07, 첫 수정이 반쪽이었던 이유).
+   *
+   * 큐 필터만 넓히고 `lib/commerce/order-fsm.ts` 의 발송 게이트를 안 고쳐서,
+   * 부분 환불 주문이 **보이기만 하고 발송은 못 하는** 상태가 됐다 —
+   * 처리 대기 큐에서 절대 0 이 되지 않는 항목이 됐으니 전보다 나빴다.
+   * 규칙이 app/admin 만 스캔해서 카나리아가 초록인 채로 통과했다.
+   */
+  const fsm = stripComments(read(join(ROOT, 'lib/commerce/order-fsm.ts')))
+  if (/payment_status\s*!==\s*['"]paid['"]/.test(fsm)) {
+    offenders.push(
+      'lib/commerce/order-fsm.ts (발송 게이트가 payment_status 를 paid 하나로 ' +
+        '비교한다 — 부분 환불 주문을 발송할 수 없다. isPaidStatus() 를 쓸 것)',
+    )
   }
   assert.deepEqual(
     offenders,

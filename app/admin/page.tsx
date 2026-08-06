@@ -267,12 +267,23 @@ export default async function AdminHome() {
       .eq('status', 'active')
       .is('billing_key', null),
     // 답 안 한 1:1 문의 — 고객이 기다리는 일인데 대시보드에 없었다(2026-08-07).
+    // ★단위는 **사람 수**다. /admin/cs-inbox 가 사용자별로 묶어 "N명" 을
+    //  보여주므로, 여기서 메시지 행 수를 세면 한 고객이 3번 보냈을 때
+    //  대시보드 "3" / 문의함 "1명" 으로 두 화면이 다른 말을 한다.
     supabase
       .from('cs_messages')
-      .select('id', { count: 'exact', head: true })
+      .select('user_id')
       .eq('sender', 'user')
-      .is('read_at', null),
+      .is('read_at', null)
+      .limit(500),
   ])
+
+  // 답 안 한 문의 = **사람 수**(문의함 화면과 같은 단위).
+  const csUnansweredUserCount = new Set(
+    ((csUnansweredRes.data ?? []) as Array<{ user_id: string }>).map(
+      (m) => m.user_id,
+    ),
+  ).size
 
   // 식품정보고시 14항목 채움률 — 별도 쿼리. 100개 이하 가정.
   const { data: foodInfoProducts } = await supabase
@@ -469,7 +480,7 @@ export default async function AdminHome() {
           refundsPendingCount={refundsPendingRes.count ?? 0}
           stockOutCount={stockOutRes.count ?? 0}
           cronFailureCount={cronFailRes.count ?? 0}
-          csUnansweredCount={csUnansweredRes.count ?? 0}
+          csUnansweredCount={csUnansweredUserCount}
         />
       </div>
 

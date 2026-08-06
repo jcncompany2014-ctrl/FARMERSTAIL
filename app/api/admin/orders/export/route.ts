@@ -130,10 +130,17 @@ export async function GET(request: Request) {
     status === 'delivered' ||
     status === 'cancelled'
   ) {
-    // 화면(app/admin/orders/page.tsx)의 필터와 동일해야 한다 — 부분 환불 포함.
-    query = query
-      .in('payment_status', PAID_STATUSES)
-      .eq('order_status', status)
+    // ★결제됨 = paid + partially_refunded. 부분 환불된 주문도 박스는 나가야
+    //  하는데 예전엔 'paid' 만 걸러서 발송 큐에서 통째로 사라졌다
+    //  (lib/commerce/paid-status).
+    //
+    //  단 'cancelled' 는 예외다 — 취소된 주문은 결제도 함께 무효가 되므로
+    //  payment_status 가 refunded/cancelled 다. 결제 필터를 걸면 이 칩은
+    //  **구조적으로 항상 0건**이 된다(2026-08-07 재감사). 상태로만 거른다.
+    query =
+      status === 'cancelled'
+        ? query.eq('order_status', status)
+        : query.in('payment_status', PAID_STATUSES).eq('order_status', status)
   }
 
   if (q) {

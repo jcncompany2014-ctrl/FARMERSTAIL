@@ -64,6 +64,8 @@ export default function CampaignBuilder() {
         sent?: number
         failed?: number
         error?: string
+        /** 서버가 실어 보내는 한국어 안내. 있으면 이게 우선이다. */
+        message?: string
         count?: number
         limit?: number
       } = await res.json()
@@ -76,8 +78,15 @@ export default function CampaignBuilder() {
           too_many_recipients: `대상이 너무 많아요 (${data.count}명, 한도 ${data.limit}명)`,
           insert_failed: '캠페인 기록을 저장하지 못했어요',
         }
+        // ★서버의 한국어 `message` 를 먼저 읽는다 (2026-08-07).
+        //  예전엔 errLabel 표만 보고 없으면 `data.error` 를 그대로 띄워서,
+        //  서버가 정성껏 쓴 한국어는 읽히지 않는 죽은 문자열이고 화면엔
+        //  `recipients_query_failed` 같은 영문 코드가 떴다.
         toast.error('발송하지 못했어요', {
-          description: errLabel[data.error ?? ''] ?? data.error,
+          description:
+            errLabel[data.error ?? ''] ??
+            data.message ??
+            '잠시 후 다시 시도해 주세요. 계속 안 되면 개발 담당에게 알려주세요.',
         })
         return
       }

@@ -49,3 +49,27 @@ export function netPaidAmount(o: {
   const refunded = o.refunded_amount ?? 0
   return Math.max(0, total - refunded)
 }
+
+/**
+ * **한 번이라도 돈을 받은** 주문 상태 — 원장(ledger) 집계 전용.
+ *
+ * # PAID_STATUSES 와 뭐가 다른가
+ * `PAID_STATUSES` 는 "지금 돈이 남아 있나" 다 — 발송 대상 판정·현재 매출용.
+ * 이건 "돈이 들어왔던 적이 있나" 다. 환불된 주문도 포함한다.
+ *
+ * # 왜 필요한가 (2026-08-07)
+ * `/admin/reports` 월간 원장은 gross 에서 **refunds 테이블의 환불액을 따로**
+ * 뺀다. 그런데 orders 쪽 필터가 환불된 주문을 제외하고 있어서, 전액 환불이나
+ * 고객 취소가 한 건이라도 있으면 **gross 에서 빠지고 refundTotal 에서 또
+ * 빠졌다** — 그 달 netRevenue 가 그 금액만큼 마이너스로 어긋난다.
+ * 고객 셀프 취소는 예외가 아니라 정상 동선이라 매달 생긴다.
+ *
+ * 이 목록은 **환불을 따로 빼는 집계에서만** 쓴다. 발송 큐에 쓰면 환불된 주문을
+ * 보내게 된다.
+ */
+export const COLLECTED_STATUSES = [
+  'paid',
+  'partially_refunded',
+  'refunded',
+  'cancelled',
+] as const

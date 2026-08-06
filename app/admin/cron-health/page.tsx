@@ -157,25 +157,50 @@ export default async function AdminCronHealthPage() {
 
       {/* Hero stat 3-grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+        {/* ★조회가 실패했으면 숫자를 말하지 않는다 (2026-08-07).
+            배너만 얹고 "성공률 100% · 실패 없음" 을 초록으로 두면, 한 화면이
+            동시에 "못 불러왔어요"와 "정상"을 말한다 — 눈에 먼저 들어오는 건
+            큰 초록 숫자다. 모르면 모른다고 한다. */}
         <StatCard
           label={`${WINDOW_DAYS}일 총 실행`}
-          value={rows.length.toLocaleString()}
-          unit="건"
-          sub={`성공 ${successCount.toLocaleString()} · 실패 ${errorRows.length.toLocaleString()}`}
+          value={rowsError ? '—' : rows.length.toLocaleString()}
+          unit={rowsError ? undefined : '건'}
+          sub={
+            rowsError
+              ? '조회 실패'
+              : `성공 ${successCount.toLocaleString()} · 실패 ${errorRows.length.toLocaleString()}`
+          }
+          tone={rowsError ? 'amber' : 'neutral'}
         />
         <StatCard
           label={`${WINDOW_DAYS}일 실패`}
-          value={errorRows.length.toLocaleString()}
-          unit="건"
-          sub={errorRows.length > 0 ? '원인 확인 필요' : '실패 없음'}
-          tone={errorRows.length > 0 ? 'red' : 'green'}
+          value={rowsError ? '—' : errorRows.length.toLocaleString()}
+          unit={rowsError ? undefined : '건'}
+          sub={
+            rowsError
+              ? '알 수 없음'
+              : errorRows.length > 0
+                ? '원인 확인 필요'
+                : '실패 없음'
+          }
+          tone={rowsError ? 'amber' : errorRows.length > 0 ? 'red' : 'green'}
         />
         <StatCard
           label="성공률"
-          value={`${successRate.toFixed(1)}%`}
-          sub={`${successCount.toLocaleString()} / ${rows.length.toLocaleString()}건`}
+          value={rowsError ? '—' : `${successRate.toFixed(1)}%`}
+          sub={
+            rowsError
+              ? '조회가 실패해 계산할 수 없어요'
+              : `${successCount.toLocaleString()} / ${rows.length.toLocaleString()}건`
+          }
           tone={
-            successRate >= 99 ? 'green' : successRate >= 90 ? 'amber' : 'red'
+            rowsError
+              ? 'amber'
+              : successRate >= 99
+                ? 'green'
+                : successRate >= 90
+                  ? 'amber'
+                  : 'red'
           }
         />
       </div>
@@ -185,7 +210,16 @@ export default async function AdminCronHealthPage() {
         <div className="flex items-center gap-2 mb-3">
           <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">실패 기록 · 최근 {WINDOW_DAYS}일</span>
         </div>
-        {errorRows.length === 0 ? (
+        {rowsError ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-8 text-center">
+            <p className="text-[13px] font-bold text-amber-900">
+              기록을 못 불러와서 실패가 있었는지 알 수 없어요
+            </p>
+            <p className="text-[11px] text-amber-800 mt-1">
+              실패가 없는 것과 다릅니다. 새로고침해 주세요.
+            </p>
+          </div>
+        ) : errorRows.length === 0 ? (
           <div className="rounded-xl border border-zinc-200 px-5 py-12 text-center bg-white">
             <CheckCircle2
               className="w-10 h-10 text-moss mx-auto mb-3"
