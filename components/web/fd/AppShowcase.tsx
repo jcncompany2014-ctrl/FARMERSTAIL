@@ -1187,8 +1187,14 @@ export default function AppShowcase() {
           className="flex flex-col items-center w-full"
           style={{ maxWidth: 420, flex: 1, minHeight: 0 }}
         >
-        {/* 제목 스택 — 폰과 같은 인덱스로 crossfade. 높이를 고정해 폰이 안 튄다. */}
-        <div className="relative w-full" style={{ height: 118 }}>
+        {/* 제목 스택 — 폰과 같은 인덱스로 crossfade. 높이를 고정해 폰이 안 튄다.
+            ★flexShrink 0 이 없으면 세로가 짧은 기기에서 **118 → 0 으로 완전히
+            찌그러진다**(393×660 실측). 그러면 안쪽 absolute 제목이 박스 밖으로
+            튀어나와 캡션 위에 겹치고, 폰까지 위로 당겨져 제목을 덮는다 —
+            사장님 실기기 스크린샷이 정확히 그 그림이었다.
+            내 검증은 812·814 세로만 봤다. Safari 주소창이 차지하는 실효 세로
+            (≈660)에서만 나타나는 조건이라 못 잡았다. */}
+        <div className="relative w-full" style={{ height: 118, flexShrink: 0 }}>
           {FEATURES.map((f, i) => (
             <div
               key={f.key}
@@ -1220,7 +1226,7 @@ export default function AppShowcase() {
         </div>
 
         {/* 진행 점 + 캡션 — 제목 바로 아래. 폰 아래는 뷰포트 밖이라 못 둔다. */}
-        <div className="mt-2 flex items-center gap-1.5" aria-hidden>
+        <div className="mt-2 flex items-center gap-1.5 shrink-0" aria-hidden>
           {FEATURES.map((f, i) => (
             <span
               key={f.key}
@@ -1234,7 +1240,10 @@ export default function AppShowcase() {
             />
           ))}
         </div>
-        <p className="mt-2" style={{ fontSize: 10, fontWeight: 600, color: 'var(--fd-muted)' }}>
+        <p
+          className="mt-2 shrink-0"
+          style={{ fontSize: 10, fontWeight: 600, color: 'var(--fd-muted)' }}
+        >
           이해를 돕기 위한 예시 화면이에요
         </p>
 
@@ -1245,16 +1254,18 @@ export default function AppShowcase() {
             고정 간격으로 붙이면 폰 하단이 자연히 화면 밖으로 나가 "바닥에서
             솟아오른" 구도는 그대로 유지되고, 잠기는 양은 기기 세로에 따라
             0~15% 로 알아서 정해진다(전에는 폰이 상한에 걸려 30%까지 잠겼다). */}
-        <div style={{ marginTop: 24 }}>
+        <div style={{ marginTop: 24, flexShrink: 0 }}>
           {/* 세로 예산에서 역산한 크기 — 세 제약의 최솟값.
               · 350px  : 상한(그 이상은 목업이 커도 이득이 없다)
               · 100vw-72: 좁은 폰에서 좌우 최소 36px 확보
               · svh 식  : 제목·점·캡션을 뺀 남은 세로에 딱 맞게(0.577 = 9/19.5÷0.8,
                           하단 20% 잠김을 감안한 역산)
-              286→208 로 낮춘 이유: 607px 실측에서 캡션↔폰 사이가 130px 떠서
-              화면이 휑했다. 폰이 그만큼 작았다는 뜻이라 세로를 다 쓰게 했다. */}
+              272 = 위쪽 고정분(패딩 96 + 제목 118 + 점·캡션·간격 ≈58). 이 값을
+              208 로 낮췄던 적이 있는데(빈칸이 커 보여서), 그건 marginTop:auto 가
+              빈칸을 벌린 게 원인이었고 폰이 커지자 **세로 660 기기에서 32% 나
+              잘렸다**. 원인을 고쳤으니 예산도 제자리로 돌린다. */}
           <PhoneFrame
-            width={'min(350px, calc(100vw - 72px), calc((100svh - 208px) * 0.577))'}
+            width={'min(350px, calc(100vw - 72px), calc((100svh - 272px) * 0.577))'}
           >
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
               {FEATURES.map((f, i) => (

@@ -1,6 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { stickyScreenIndex } from './sticky-progress.ts'
+import {
+  stickyScreenIndex,
+  phoneWidthForHeight,
+  PHONE_TOP_RESERVED,
+} from './sticky-progress.ts'
 
 // 실제 값 — 607×814 화면, feature 6장(장당 620px): 트랙 4534, 스팬 3720.
 const H = 814
@@ -46,4 +50,28 @@ test('★화면 크기가 달라져도 같은 비율에서 같은 화면 — 리
     )
     assert.deepEqual(got, [0, 1, 2, 3, 4, 5], `vh=${vh}`)
   }
+})
+
+test('★폰은 어떤 세로에서도 하단 20% 만 잠긴다 — 짧은 화면에서 32% 잘렸던 회귀', () => {
+  /**
+   * 사장님 실기기 스크린샷의 결함. 내 검증은 812·814 세로만 봤는데, Safari
+   * 주소창이 차지하고 남은 실효 세로(≈660)에서만 폰이 과하게 잘렸다.
+   * 예산 상수를 감으로 정하면 특정 세로에서만 어긋난다 — 비율로 고정한다.
+   */
+  for (const vh of [640, 660, 700, 780, 812, 814, 900, 1024]) {
+    const w = phoneWidthForHeight(vh)
+    const phoneHeight = w * (19.5 / 9)
+    const visible = vh - PHONE_TOP_RESERVED
+    const hiddenPct = ((phoneHeight - visible) / phoneHeight) * 100
+    assert.ok(
+      Math.abs(hiddenPct - 20) < 0.5,
+      `vh=${vh} 에서 잠김 ${hiddenPct.toFixed(1)}% (20% 여야 함)`,
+    )
+  }
+})
+
+test('세로가 예산보다 짧으면 0 — 음수 폭을 만들지 않는다', () => {
+  assert.equal(phoneWidthForHeight(PHONE_TOP_RESERVED), 0)
+  assert.equal(phoneWidthForHeight(200), 0)
+  assert.equal(phoneWidthForHeight(0), 0)
 })

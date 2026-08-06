@@ -34,3 +34,26 @@ export function stickyScreenIndex(
   const p = Math.min(1, Math.max(0, -trackTop / total))
   return Math.min(count - 1, Math.floor(p * count))
 }
+
+/**
+ * 세로 예산에서 폰 목업 폭을 역산한다 — 화면 하단에 20%만 잠기게.
+ * (2026-08-05, 사장님 실기기 스크린샷)
+ *
+ * # 왜 상수를 그냥 고르면 안 되나
+ * 처음엔 "빼는 값"을 감으로 208 로 잡았다. 세로 814 기기에서는 멀쩡했는데
+ * **세로 660(Safari 주소창이 차지한 실효 높이)에서 폰이 32% 나 잘렸다.**
+ * 위쪽 고정분(패딩·제목·점·캡션)을 정확히 빼야 어떤 세로에서도 같은 비율이 된다.
+ */
+/** 폰 위에 항상 놓이는 것들의 합 — 패딩 96 + 제목 118 + 점·캡션·간격 ≈58. */
+export const PHONE_TOP_RESERVED = 272
+/** 9/19.5 비율에서 하단 20% 를 잠글 때의 폭 계수 (= 9/19.5 ÷ 0.8). */
+export const PHONE_WIDTH_FACTOR = 0.577
+
+/**
+ * @returns 세로 예산이 허용하는 폰 폭(px). 음수가 되면 0 —
+ *   호출부는 상한(350)·가로 제약(100vw-72)과 함께 min 을 취한다.
+ */
+export function phoneWidthForHeight(viewportHeight: number): number {
+  const usable = viewportHeight - PHONE_TOP_RESERVED
+  return usable > 0 ? usable * PHONE_WIDTH_FACTOR : 0
+}
