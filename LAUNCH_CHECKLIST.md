@@ -253,19 +253,59 @@ WHERE table_schema='public'
 - [ ] Region: `icn1` (서울) 권장
 
 #### Cron 스케줄 (Vercel 은 UTC) ↔ KST 매핑
-| Path | UTC | KST |
-|---|---|---|
-| `/api/cron/subscription-reminders` | 00:00 | 09:00 |
-| `/api/cron/birthday-coupons` | 00:00 | 09:00 |
-| `/api/cron/restock-alerts` | 01:00 | 10:00 |
-| `/api/cron/review-prompts` | 01:00 | 10:00 |
-| `/api/cron/cart-recovery` | 09:00 | 18:00 |
-| `/api/cron/subscription-charge` | 19:00 | 04:00 (다음날) |
-| `/api/cron/dog-age-update` | 00:30 | 09:30 |
-| `/api/cron/coupon-expiry` | 02:00 | 11:00 |
-| `/api/cron/personalization-progression` | 19:00 | 04:00 (다음날) — 28일 cycle 만료 자동 진행 |
 
-스케줄 변경 시 이 표도 함께 갱신. 총 **10 cron**.
+> ⚠️ **이 표는 `vercel.json` 에서 생성한 것이다** (2026-08-08).
+> 그 전까지 이 자리에는 **존재하지 않는 크론 5개**(birthday-coupons ·
+> restock-alerts · review-prompts · cart-recovery · coupon-expiry)가 적혀 있었고,
+> subscription-charge 시각도 04:00 KST 로 틀려 있었으며(실제 09:10),
+> "총 10 cron" 이라 했지만 실제로는 29개다.
+> **이 표대로 출시 점검을 하면 엉뚱한 걸 확인하게 된다.**
+>
+> 스케줄을 바꾸면 이 표도 같이 갱신할 것. 정본은 언제나 `vercel.json` 이고,
+> 안 돈 크론은 `/admin/cron-health` 의 "안 돈 자동작업" 이 잡는다.
+
+| Path | cron (UTC) | KST | 주기 |
+|---|---|---|---|
+| `/api/cron/stamps-expire` | `0 15 * * *` | 00:00 (+1일) | 매일 |
+| `/api/cron/account-purge` | `0 16 1 * *` | 01:00 (+1일) | 매월 1일 |
+| `/api/cron/order-expire` | `0 17 * * *` | 02:00 (+1일) | 매일 |
+| `/api/cron/subscription-cleanup` | `30 18 * * *` | 03:30 (+1일) | 매일 |
+| `/api/cron/refund-retry` | `30 19 * * *` | 04:30 (+1일) | 매일 |
+| `/api/cron/ops-digest` | `0 23 * * *` | 08:00 (+1일) | 매일 |
+| `/api/cron/personalization-approval-timeout` | `40 23 * * *` | 08:40 (+1일) | 매일 |
+| `/api/cron/subscription-reminders` | `0 0 * * *` | 09:00 | 매일 |
+| `/api/cron/weight-reminder` | `0 0 * * 1` | 09:00 | 매주 월 |
+| `/api/cron/quality-check-reminder` | `0 0 1 * *` | 09:00 | 매월 1일 |
+| `/api/cron/reanalysis-reminder-6m` | `0 0 * * *` | 09:00 | 매일 |
+| `/api/cron/daily-briefing` | `0 0 * * *` | 09:00 | 매일 |
+| `/api/cron/quarterly-report` | `0 0 1 1,4,7,10 *` | 09:00 | 1,4,7,10월 1일 |
+| `/api/cron/subscription-charge` | `10 0 * * *` | 09:10 | 매일 |
+| `/api/cron/dog-age-update` | `30 0 * * *` | 09:30 | 매일 |
+| `/api/cron/weight-change-detect` | `0 1 * * 1` | 10:00 | 매주 월 |
+| `/api/cron/onboarding-funnel` | `0 1 * * *` | 10:00 | 매일 |
+| `/api/cron/push-lifecycle` | `0 1 * * *` | 10:00 | 매일 |
+| `/api/cron/personalization-progression` | `10 1 * * *` | 10:10 | 매일 |
+| `/api/cron/protein-rotation` | `0 2 * * 2` | 11:00 | 매주 화 |
+| `/api/cron/dcm-screening-reminder` | `0 2 * * 3` | 11:00 | 매주 수 |
+| `/api/cron/first-box-checkin` | `0 2 * * *` | 11:00 | 매일 |
+| `/api/cron/payment-ledger-reconcile` | `0 3 * * 0` | 12:00 | 매주 일 |
+| `/api/cron/sensitivity-snapshots` | `0 4 * * 1` | 13:00 | 매주 월 |
+| `/api/cron/meta-weights` | `0 5 1 * *` | 14:00 | 매월 1일 |
+| `/api/cron/reanalyze-trigger` | `0 6 * * 1` | 15:00 | 매주 월 |
+| `/api/cron/inventory-forecast` | `0 8 * * *` | 17:00 | 매일 |
+| `/api/cron/intervention-alerts` | `0 9 * * 2` | 18:00 | 매주 화 |
+| `/api/cron/tracking-poll` | `30 9 * * *` | 18:30 | 매일 |
+
+총 **29 cron**. 전부 하루 1회 이하 — Vercel 크론 요금 한도로 **빌드가
+거부되면 배포 기록조차 안 생긴다**(AGENTS.md 규칙7). `lib/audit-rules.test.ts`
+규칙7 이 이걸 지킨다.
+
+- `account-purge` 는 cron 표기상 "매월 1일" 이지만 UTC 16:00 이라 **KST 로는
+  매월 2일 01:00** 이다.
+- `push-lifecycle` 안의 **복약 알림은 지금 KST 10시 약만 나간다**(하루 1회
+  스케줄이라 그 시각만 매칭). hourly 로 되돌릴 땐 ① vercel.json
+  ② `CRON_IS_HOURLY = true` ③ 규칙7 테스트 예외 — **셋을 한 커밋에**.
+
 
 ---
 

@@ -2032,3 +2032,45 @@ test('규칙46 — 구독 상태 라벨을 화면마다 따로 적지 않는다'
       offenders.join(' / '),
   )
 })
+
+test('규칙47 — 출시 체크리스트의 크론 표가 vercel.json 과 일치한다', () => {
+  /**
+   * # 왜
+   * 2026-08-08 크론 감사. LAUNCH_CHECKLIST.md 의 크론 표가 통째로 옛것이었다:
+   *  · 존재하지 않는 크론 5개(birthday-coupons·restock-alerts·review-prompts·
+   *    cart-recovery·coupon-expiry)
+   *  · subscription-charge 를 04:00 KST 라 적음 (실제 09:10)
+   *  · "총 10 cron" (실제 29개)
+   *
+   * 출시 점검을 이 표대로 하면 **엉뚱한 걸 확인하게 된다** — 체크리스트가
+   * 있다는 사실이 오히려 안심시킨다. 문서는 코드처럼 낡는다.
+   *
+   * 표의 서식까지 검사하진 않는다(그러면 문서를 못 고친다).
+   * **경로 집합이 같은지**만 본다 — 없는 크론을 적거나, 있는 크론을 빠뜨리면
+   * 빨간불.
+   */
+  const checklist = read(join(ROOT, 'LAUNCH_CHECKLIST.md'))
+  const vercel = JSON.parse(read(join(ROOT, 'vercel.json'))) as {
+    crons: Array<{ path: string }>
+  }
+  const real = new Set(vercel.crons.map((c) => c.path))
+
+  // 체크리스트 안에서 언급된 크론 경로 전부.
+  const mentioned = new Set<string>()
+  for (const m of checklist.matchAll(/\/api\/cron\/[a-z0-9-]+/g)) {
+    mentioned.add(m[0])
+  }
+  // 와일드카드 표기(/api/cron/*)는 경로가 아니다.
+  mentioned.delete('/api/cron/')
+
+  const ghosts = [...mentioned].filter((p) => !real.has(p)).sort()
+  const missing = [...real].filter((p) => !mentioned.has(p)).sort()
+
+  assert.deepEqual(
+    { ghosts, missing },
+    { ghosts: [], missing: [] },
+    'LAUNCH_CHECKLIST.md 의 크론 표가 vercel.json 과 다르다 — ' +
+      '없는 크론을 적었거나(ghosts) 있는 크론을 빠뜨렸다(missing). ' +
+      '이 표대로 출시 점검하면 엉뚱한 걸 확인한다.',
+  )
+})
