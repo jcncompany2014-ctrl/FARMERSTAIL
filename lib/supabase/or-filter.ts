@@ -49,9 +49,13 @@ const LIKE_WILDCARDS = /[%_]/g
  *          되지 않도록 호출부가 판단한다).
  */
 export function safeOrTerm(raw: string, maxLen = 80): string {
+  // ★slice 는 escape **앞에서** (2026-08-08 재검증 2차 #5).
+  //  escape 뒤에 자르면 80자 경계가 `\%` 쌍을 반 갈라 트레일링 `\` 가 남고,
+  //  그 백슬래시가 호출부 템플릿의 마지막 `%` 와일드카드를 literal 로 만들어
+  //  긴 검색어가 조용히 0건이 된다.
   return raw
     .replace(SYNTAX_TOKENS, '')
-    .replace(LIKE_WILDCARDS, (m) => `\\${m}`)
     .trim()
     .slice(0, maxLen)
+    .replace(LIKE_WILDCARDS, (m) => `\\${m}`)
 }

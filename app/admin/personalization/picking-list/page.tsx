@@ -603,7 +603,7 @@ export default async function PickingListPage({
                 {r.pausedAfterCharge ? (
                   <Badge tone="amber">결제 후 정지됨 — 확인 필요</Badge>
                 ) : r.dateMovedAfterCharge ? (
-                  <Badge tone="amber">결제됨 — 고객이 일정을 옮김</Badge>
+                  <Badge tone="amber">결제됨 — 발송 대기 주문 있음</Badge>
                 ) : r.cannotCharge ? (
                   <Badge tone="red">청구 불가 — 발송하지 마세요</Badge>
                 ) : r.charged ? (
@@ -626,11 +626,12 @@ export default async function PickingListPage({
 
               {r.dateMovedAfterCharge && (
                 <p className="mt-3 text-[12.5px] font-semibold text-amber-800">
-                  ⚠ 결제가 끝난 뒤 고객이 배송일을 <strong>미루거나 다시
-                  시작</strong>해서, 날짜만 보면 이번 발송 대상이 아닌 것처럼
-                  보이는 구독이에요. <strong>돈은 이미 받았고 주문이 발송
-                  대기</strong>라 목록에 남겨 뒀어요 — 이번에 보내는 게
-                  기본이고, 애매하면 고객에게 한번 확인해 주세요.
+                  ⚠ <strong>결제된 발송 대기 주문</strong>이 있는데 배송일만
+                  보면 이번 발송 대상이 아닌 것처럼 보이는 구독이에요. 고객이
+                  청구 직후 일정을 옮겼거나, 해지했거나, 지난주에 송장을 안
+                  넣어 남은 것일 수 있어요 — 돈은 이미 받았으니 목록에 남겨
+                  뒀어요. 보내는 게 기본이고, 애매하면 주문 링크에서 결제일을
+                  먼저 확인해 주세요.
                 </p>
               )}
 

@@ -75,15 +75,32 @@ export default function NotificationSettingsClient({
             '@capacitor/push-notifications'
           )
           const perm = await PushNotifications.checkPermissions()
-          setStatus(
-            perm.receive === 'granted'
-              ? 'on'
-              : perm.receive === 'denied'
-                ? 'blocked'
-                : 'off',
+          if (perm.receive === 'denied') {
+            setStatus('blocked')
+            return
+          }
+          if (perm.receive !== 'granted') {
+            setStatus('off')
+            return
+          }
+          // ★OS 권한만으로 ON 을 그리면 거짓말이 된다 (2026-08-08 재검증 2차 #2).
+          //  끄기(토큰 DELETE)·로그아웃(cleanupNativePushOnLogout) 뒤에도 권한은
+          //  granted 로 남는다 — 화면은 ON 인데 발송은 0. 웹이 실구독
+          //  (getSubscription)으로 판정하듯, 서버 토큰 행 존재까지 확인한다.
+          const deviceId = await getDeviceId()
+          if (!deviceId) {
+            setStatus('off')
+            return
+          }
+          const res = await fetch(
+            `/api/push/native-register?deviceId=${encodeURIComponent(deviceId)}`,
           )
+          const body = (await res.json().catch(() => ({}))) as {
+            registered?: boolean
+          }
+          setStatus(res.ok && body.registered ? 'on' : 'off')
         } catch {
-          // 권한 조회 실패 — 켜기 버튼은 살려 둔다(enable 이 다시 시도).
+          // 판정 실패 — 켜기 버튼은 살려 둔다(enable 이 다시 시도).
           setStatus('off')
         }
       })()

@@ -86,13 +86,8 @@ async function runReminder(): Promise<Response> {
 
   for (const a of admins) {
     const { count: recent, error: recentErr } = await admin
-      // ★sent_count > 0 만 dedup 으로 친다 (2026-08-08 diff 재검증).
-      //  push_log 는 팬아웃까지 간 경우 발송 0건이어도 남는다(sent_count 0).
-      //  그 행을 "보냈음"으로 읽으면 VAPID 오설정·일시 장애로 0건이었던
-      //  시도가 dedup 창(14~180일)을 소진해 **재시도가 영영 막힌다**.
       .from('push_log')
       .select('id', { count: 'exact', head: true })
-      .gt('sent_count', 0)
       .eq('user_id', a.id)
       .ilike('title', `%${TITLE_ANCHOR}%`)
       .gt('sent_at', thirtyDaysAgo)

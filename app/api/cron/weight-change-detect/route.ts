@@ -112,27 +112,50 @@ async function runDetect(): Promise<Response> {
   >()
   for (let i = 0; i < dogList.length; i += PAGE) {
     const ids = dogList.slice(i, i + PAGE).map((d) => d.id)
-    const { data: logsRaw, error: logsErr } = await admin
-      .from('weight_logs')
-      .select('dog_id, weight, measured_at')
-      .in('dog_id', ids)
-      .gte('measured_at', thirtyFiveDaysAgo)
-      .order('measured_at', { ascending: true })
-    if (logsErr) {
-      console.error(
-        '[weight-change-detect] 체중 기록 일괄 조회 실패 — 해당 배치는 건너뜀:',
-        logsErr.message,
-      )
-      continue
+    /**
+     * ★배치 안에서도 페이지를 돈다 (2026-08-08 재검증 2차 #3).
+     * PostgREST max-rows(기본 1000)는 limit 을 안 줘도 조용히 자르는데,
+     * **오름차순이라 최신 로그부터 잘린다** — latest 가 7일 밖으로 보여
+     * 경보가 조용히 사라진다. 이 리팩터가 잡았다던 "조용한 누락"과 같은
+     * 종류를 스스로 재도입한 셈이었다. 1000행 단위 range 로 끝까지 받는다.
+     * (measured_at 동률 대비 id 2차 정렬 — 페이지 경계 중복/누락 방지.)
+     */
+    const LOG_PAGE = 1000
+    let from = 0
+    let batchFailed = false
+    for (;;) {
+      const { data: logsRaw, error: logsErr } = await admin
+        .from('weight_logs')
+        .select('dog_id, weight, measured_at')
+        .in('dog_id', ids)
+        .gte('measured_at', thirtyFiveDaysAgo)
+        .order('measured_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + LOG_PAGE - 1)
+      if (logsErr) {
+        console.error(
+          '[weight-change-detect] 체중 기록 일괄 조회 실패 — 해당 배치는 건너뜀:',
+          logsErr.message,
+        )
+        batchFailed = true
+        break
+      }
+      const rows = (logsRaw ?? []) as Array<{
+        dog_id: string
+        weight: number
+        measured_at: string
+      }>
+      for (const row of rows) {
+        const arr = logsByDog.get(row.dog_id)
+        if (arr) arr.push(row)
+        else logsByDog.set(row.dog_id, [row])
+      }
+      if (rows.length < LOG_PAGE) break
+      from += LOG_PAGE
     }
-    for (const row of (logsRaw ?? []) as Array<{
-      dog_id: string
-      weight: number
-      measured_at: string
-    }>) {
-      const arr = logsByDog.get(row.dog_id)
-      if (arr) arr.push(row)
-      else logsByDog.set(row.dog_id, [row])
+    if (batchFailed) {
+      // 반쪽 데이터로 판정하면 "최신 로그 없음"으로 오독한다 — 배치 전체 무효화.
+      for (const id of ids) logsByDog.delete(id)
     }
   }
 
@@ -260,13 +283,8 @@ async function runDetect(): Promise<Response> {
     // 방향(증가/감소)으로 가변 + "체중"이 weight-reminder 와 충돌하므로, 이 cron
     // 고유·불변인 body 문구로 dedup.
     const { count: recentPush, error: recentPushErr } = await admin
-      // ★sent_count > 0 만 dedup 으로 친다 (2026-08-08 diff 재검증).
-      //  push_log 는 팬아웃까지 간 경우 발송 0건이어도 남는다(sent_count 0).
-      //  그 행을 "보냈음"으로 읽으면 VAPID 오설정·일시 장애로 0건이었던
-      //  시도가 dedup 창(14~180일)을 소진해 **재시도가 영영 막힌다**.
       .from('push_log')
       .select('id', { count: 'exact', head: true })
-      .gt('sent_count', 0)
       .eq('user_id', dog.user_id)
       .ilike('body', '%4주 만에 변화가 있었네요%')
       .gt('sent_at', fourteenDaysAgo)

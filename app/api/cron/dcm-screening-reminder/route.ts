@@ -88,13 +88,13 @@ async function runReminder(): Promise<Response> {
     // 180일 이내 같은 알림 보냈으면 skip
     const tag = `dcm-screening-${dog.id}`
     const { count: recent, error: recentErr } = await admin
-      // ★sent_count > 0 만 dedup 으로 친다 (2026-08-08 diff 재검증).
-      //  push_log 는 팬아웃까지 간 경우 발송 0건이어도 남는다(sent_count 0).
-      //  그 행을 "보냈음"으로 읽으면 VAPID 오설정·일시 장애로 0건이었던
-      //  시도가 dedup 창(14~180일)을 소진해 **재시도가 영영 막힌다**.
+      // ★dedup 은 행 존재로 판정한다 — sent_count 필터 금지 (2026-08-08 재검증 2차).
+      //  push_log 행은 발송 0건이어도 고객 **알림함(/notifications)에 그대로
+      //  그려진다** — 즉 행이 있다 = 이미 전달됐다. 한때 .gt('sent_count', 0)
+      //  을 넣었다가(발송 실패 재시도 허용 의도) 푸시 미등록 사용자의 알림함에
+      //  같은 알림이 매 실행마다 무한 누적되는 회귀를 만들었다(적대적 재검증 #1).
       .from('push_log')
       .select('id', { count: 'exact', head: true })
-      .gt('sent_count', 0)
       .eq('user_id', dog.user_id)
       .ilike('title', `%${TITLE_ANCHOR}%`)
       .gt('sent_at', oneEightyDaysAgo)

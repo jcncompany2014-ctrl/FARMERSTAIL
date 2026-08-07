@@ -40,3 +40,10 @@ test('빈 결과 — 기호만 입력하면 빈 문자열 (호출부가 검색�
 test('길이 상한', () => {
   assert.equal(safeOrTerm('a'.repeat(200)).length, 80)
 })
+
+test('상한 경계가 escape 쌍을 반 가르지 않는다 — 트레일링 \\ 금지', () => {
+  // 79번째가 `%` 면: 자르기→escape 순서라 `\%` 가 통째로 살아남거나 통째로
+  // 잘린다. escape→자르기 순서였다면 `...\` 로 끝나 뒤의 %와일드카드를 죽였다.
+  const out = safeOrTerm('a'.repeat(79) + '%zzz')
+  assert.ok(!out.endsWith('\\'), `트레일링 백슬래시: ${out.slice(-5)}`)
+})

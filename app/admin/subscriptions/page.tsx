@@ -321,7 +321,28 @@ export default function AdminSubscriptionsPage() {
         <LoadError what="구독 목록" />
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border border-zinc-200 bg-white p-10 text-center text-sm text-zinc-400">
-          해당하는 구독이 없어요
+          {/* ★0건일 때가 안내가 가장 필요한 순간이다 (2026-08-08 재검증 2차 #4).
+              총계보다 덜 불러온 상태의 0건은 "없다"가 아니라 "여기엔 없다"다 —
+              옛 해지 건·오래된 고객은 최근 200건 밖에 있을 수 있다. */}
+          {totalCount != null && subs.length < totalCount ? (
+            <>
+              <p>
+                불러온 {subs.length}건(전체 {totalCount}건) 안에는 해당하는
+                구독이 없어요.
+              </p>
+              <button
+                onClick={() => void loadMore()}
+                disabled={loadingMore}
+                className="mt-4 px-5 py-2.5 rounded-full bg-white border border-zinc-200 text-zinc-800 text-xs font-semibold hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
+              >
+                {loadingMore
+                  ? '불러오는 중...'
+                  : `더 불러와서 다시 찾기 (${subs.length}/${totalCount})`}
+              </button>
+            </>
+          ) : (
+            '해당하는 구독이 없어요'
+          )}
         </div>
       ) : (
         <>

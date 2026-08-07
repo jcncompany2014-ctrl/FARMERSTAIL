@@ -23,6 +23,46 @@ export const dynamic = 'force-dynamic'
  * - rate limit 분당 5
  * - Zod 검증 (platform, token 길이, deviceId)
  */
+/**
+ * GET /api/push/native-register?deviceId=...
+ *
+ * 이 기기의 토큰이 서버에 실제로 등록돼 있는지 — 설정 화면 초기 표시용
+ * (2026-08-08 재검증 2차 #2). OS 권한(granted)만 보고 ON 을 그리면
+ * 끄기·로그아웃으로 토큰이 지워진 뒤에도 **ON 으로 보이는데 발송은 0** 인
+ * 거짓 화면이 된다. 웹 경로가 pushManager.getSubscription()(실구독)으로
+ * 판정하는 것과 같은 원리로, 네이티브도 서버 행 존재를 본다.
+ * 토큰 값은 돌려주지 않는다 — 존재 여부(boolean)만.
+ */
+export async function GET(req: Request) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json(
+      { code: 'UNAUTHORIZED', message: '로그인이 필요해요' },
+      { status: 401 },
+    )
+  }
+  const url = new URL(req.url)
+  const deviceId = url.searchParams.get('deviceId')
+  if (!deviceId) {
+    return NextResponse.json(
+      { code: 'INVALID_BODY', message: 'deviceId 가 필요해요' },
+      { status: 400 },
+    )
+  }
+  const { count, error } = await supabase
+    .from('native_push_tokens')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('device_id', deviceId)
+  if (error) {
+    return dbError(error, 'push_native_status', '등록 상태를 확인하지 못했어요')
+  }
+  return NextResponse.json({ registered: (count ?? 0) > 0 })
+}
+
 export async function POST(req: Request) {
   const rl = rateLimit({
     bucket: 'native-push-register',

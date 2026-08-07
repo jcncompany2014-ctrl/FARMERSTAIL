@@ -201,7 +201,10 @@ export default function DogDetailClient({
    * 진행 중(active·paused) 정기배송이 있나. 서버 조회가 그 두 상태만 가져오므로
    * 길이만 보면 된다 — DB 트리거(20260730000400)의 판정 집합과 **같다**.
    */
-  const hasLiveSub = subscriptions.length > 0
+  // ★조회 실패면 "구독 있음"으로 가정한다 (2026-08-08 재검증 2차 #7).
+  //  빈 배열을 그대로 믿으면 구독자에게 삭제 확인 버튼이 열린다 — DB 트리거
+  //  (FT100)가 최종 거부하긴 하지만, 열리면 안 되는 문이 열리는 화면이다.
+  const hasLiveSub = subsQueryFailed ? true : subscriptions.length > 0
 
   async function handleDelete() {
     setDeleting(true)

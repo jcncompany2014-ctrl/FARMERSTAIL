@@ -71,6 +71,18 @@ function stripComments(src: string): string {
     .replace(/(^|[^:'"`\\])\/\/[^\n]*/g, '$1')
 }
 
+/**
+ * 줄수 보존형 주석 제거 — 위반 **줄번호**를 보고하는 규칙용.
+ * 규칙14가 주석 속 코드 예시(`.gt(...)` 설명)를 실제 필터로 오인해
+ * 빨간불을 냈다(2026-08-08) — "설명을 달면 규칙에 걸린다"는 규칙17이 이미
+ * 고친 함정과 같은 뿌리다. 블록 주석은 내용만 공백화해 줄을 지킨다.
+ */
+function stripCommentsKeepLines(src: string): string {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/(^|[^:'"`\\])\/\/[^\n]*/g, '$1')
+}
+
 /** 저장소 상대 경로 (슬래시 통일) — 비교·메시지용. */
 function rel(file: string): string {
   return file.replace(ROOT, '').replace(/\\/g, '/').replace(/^\//, '')
@@ -248,7 +260,7 @@ test('★ 규칙14: .select() 가 없는 컬럼을 부르지 않는다', () => {
   for (const file of walk(join(ROOT, 'app'))
     .concat(walk(join(ROOT, 'lib')))
     .concat(walk(join(ROOT, 'components')))) {
-    const src = read(file)
+    const src = stripCommentsKeepLines(read(file))
     const re = /\.from\(\s*['"](\w+)['"]\s*\)\s*\n?\s*\.select\(\s*([`'"])([\s\S]*?)\2/g
     for (const m of src.matchAll(re)) {
       const table = m[1]!
@@ -281,7 +293,7 @@ test('★ 규칙14: .select() 가 없는 컬럼을 부르지 않는다', () => {
   for (const file of walk(join(ROOT, 'app'))
     .concat(walk(join(ROOT, 'lib')))
     .concat(walk(join(ROOT, 'components')))) {
-    const src = read(file)
+    const src = stripCommentsKeepLines(read(file))
     for (const m of src.matchAll(/\.from\(\s*['"](\w+)['"]\s*\)([\s\S]{0,900})/g)) {
       const known = tableCols.get(m[1]!)
       if (!known) continue

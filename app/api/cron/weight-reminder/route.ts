@@ -126,13 +126,8 @@ export async function GET(req: Request) {
     // dedup이 무력화됐었다(매 cron 발송=2배 빈도). 자매 cron intervention-alerts 와
     // 동일하게 title 고정 부분("체중 측정해보세요")으로 dedup.
     const recent = await supabase
-      // ★sent_count > 0 만 dedup 으로 친다 (2026-08-08 diff 재검증).
-      //  push_log 는 팬아웃까지 간 경우 발송 0건이어도 남는다(sent_count 0).
-      //  그 행을 "보냈음"으로 읽으면 VAPID 오설정·일시 장애로 0건이었던
-      //  시도가 dedup 창(14~180일)을 소진해 **재시도가 영영 막힌다**.
       .from('push_log')
       .select('id', { count: 'exact', head: true })
-      .gt('sent_count', 0)
       .eq('user_id', userId)
     // ★dedup 앵커는 **발송 제목과 같은 상수**에서 나와야 한다(2026-08-05).
     //   브랜드 보이스 스윕으로 제목을 바꿀 때 이 필터를 같이 안 바꿔서
