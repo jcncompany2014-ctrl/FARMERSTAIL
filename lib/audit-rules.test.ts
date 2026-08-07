@@ -2231,3 +2231,43 @@ test('규칙49 — .or() 에 정화 안 한 사용자 입력을 넣지 않는다
       offenders.join(' / '),
   )
 })
+
+test('규칙50 — SW 는 개인 정보 페이지 HTML 을 캐시하지 않는다', () => {
+  /**
+   * 2026-08-08 네이티브 감사. sw.js 의 AUTH_PATH_PREFIXES 는 "캐시 대신 매번
+   * 네트워크"로 갈 개인 페이지 목록인데, /account(구독 금액·주소)·
+   * /subscribe(결제수단)·/notifications(알림함)·/reports(건강 리포트)·
+   * /chat(상담)이 빠져 있었다 — 공유 폰에서 옛 사용자의 화면이 새 사용자에게
+   * 그대로 보일 수 있는 목록이다.
+   *
+   * # 판정
+   * public/sw.js 의 AUTH_PATH_PREFIXES 배열 리터럴에 알려진 개인 라우트
+   * 그룹이 전부 들어 있는지 확인한다. 새 개인 라우트 그룹을 만들면 이
+   * 목록에도 추가하고 sw.js 에도 추가할 것 — 한쪽만 하면 이 테스트가 잡는다.
+   */
+  const sw = read(join(ROOT, 'public', 'sw.js'))
+  const m = sw.match(/const AUTH_PATH_PREFIXES = \[([\s\S]*?)\]/)
+  assert.ok(m, 'public/sw.js 에 AUTH_PATH_PREFIXES 배열이 있어야 한다')
+  const listed = [...(m![1] ?? '').matchAll(/'([^']+)'/g)].map((x) => x[1])
+  const REQUIRED = [
+    '/dashboard',
+    '/mypage',
+    '/dogs',
+    '/cart',
+    '/checkout',
+    '/survey',
+    '/admin',
+    '/account',
+    '/subscribe',
+    '/notifications',
+    '/reports',
+    '/chat',
+  ]
+  const missing = REQUIRED.filter((p) => !listed.includes(p))
+  assert.deepEqual(
+    missing,
+    [],
+    'sw.js AUTH_PATH_PREFIXES 에 개인 페이지 프리픽스가 빠졌다(공유 폰에서 ' +
+      '옛 사용자 HTML 노출): ' + missing.join(', '),
+  )
+})

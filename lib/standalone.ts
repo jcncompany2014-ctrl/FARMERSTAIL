@@ -15,6 +15,8 @@
  * 여러 번 확인했다 — 전화번호 검증이 네 곳에서 네 가지로 갈라져 있던 것처럼.
  */
 
+import { isNativeApp } from '@/lib/capacitor'
+
 /**
  * PWA standalone(홈 화면에서 실행) 여부.
  *
@@ -23,6 +25,11 @@
  */
 export function isStandaloneApp(): boolean {
   if (typeof window === 'undefined') return false
+  // ★Capacitor WebView 도 "설치된 앱"이다 (2026-08-08 네이티브 감사).
+  //   display-mode 도 navigator.standalone 도 안 채워져서 false 로 판정됐고,
+  //   그러면 네이티브 앱 안에서 홈화면 설치 배너가 뜨고 인쇄 버튼이
+  //   아무 일도 안 하는 window.print() 를 부른다.
+  if (isNativeApp()) return true
   if (window.matchMedia?.('(display-mode: standalone)').matches) return true
   // iOS Safari 는 display-mode 를 안 채우던 시절이 있어 navigator.standalone 도 본다.
   const navAny = window.navigator as Navigator & { standalone?: boolean }

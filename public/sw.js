@@ -61,6 +61,14 @@ const AUTH_PATH_PREFIXES = [
   '/survey',
   '/admin',
   '/vet/', // 외부 수의사 토큰 페이지
+  // ★2026-08-08 네이티브 감사 — 아래 5개가 빠져 있었다. 전부 개인 정보가
+  //   그려지는 페이지인데 SW 가 HTML 을 캐시해, 공유 폰에서 옛 사용자의
+  //   구독 금액·건강 리포트·상담 내역이 새 사용자에게 보일 수 있었다.
+  '/account', // 웹 정기배송(금액·주소)
+  '/subscribe', // 결제수단 등록 플로우
+  '/notifications', // 알림함
+  '/reports', // 건강 리포트
+  '/chat', // 상담 내역
 ]
 
 function isAuthPath(url) {

@@ -186,6 +186,30 @@ export async function registerAndSyncNativePush(): Promise<boolean> {
 }
 
 /**
+ * 로그아웃 직전 네이티브 푸시 토큰 정리 (2026-08-08 네이티브 감사).
+ *
+ * 안 지우면 토큰 row 가 (이전 user_id 로) 남아 **로그아웃한 기기로 계속
+ * 푸시가 온다** — 가족 공유 폰이면 다음 사용자가 이전 계정의 배송·결제
+ * 알림을 받는다. DELETE 는 본인 세션이 필요하므로 **signOut 전에** 불러야
+ * 한다. 실패해도 조용히 넘어간다 — 로그아웃을 막는 쪽이 더 나쁘다.
+ *
+ * 호출처: components/account/LogoutButton, app/(main)/mypage/MypageClient.
+ */
+export async function cleanupNativePushOnLogout(): Promise<void> {
+  if (!isNativeApp()) return
+  try {
+    const deviceId = await getDeviceId()
+    if (!deviceId) return
+    await fetch(
+      `/api/push/native-register?deviceId=${encodeURIComponent(deviceId)}`,
+      { method: 'DELETE' },
+    )
+  } catch {
+    /* 로그아웃은 계속 진행 */
+  }
+}
+
+/**
  * 네이티브 share sheet — iOS / Android 시스템 공유. 웹에선 navigator.share,
  * 그것도 없으면 클립보드 복사로 폴백.
  */

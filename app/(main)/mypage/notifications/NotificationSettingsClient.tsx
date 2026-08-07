@@ -12,7 +12,11 @@ import {
   Send,
 } from 'lucide-react'
 import PreferencesPanel from './PreferencesPanel'
-import { isNativeApp, registerAndSyncNativePush } from '@/lib/capacitor'
+import {
+  isNativeApp,
+  registerAndSyncNativePush,
+  getDeviceId,
+} from '@/lib/capacitor'
 import { formatKstLongDate } from '@/lib/datetime-kst'
 
 type SubRow = {
@@ -60,6 +64,31 @@ export default function NotificationSettingsClient({
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    // ★네이티브(Capacitor) 분기가 초기 감지에 없었다 (2026-08-08 네이티브 감사).
+    //   WKWebView 엔 PushManager 가 없어 아래 검사가 'unsupported' 로 굳고,
+    //   그러면 켜기 버튼이 disabled 라 enable() 의 네이티브 분기에 **영원히
+    //   도달하지 못했다** — 앱스토어 설치 사용자는 알림을 켤 방법이 없었다.
+    if (isNativeApp()) {
+      ;(async () => {
+        try {
+          const { PushNotifications } = await import(
+            '@capacitor/push-notifications'
+          )
+          const perm = await PushNotifications.checkPermissions()
+          setStatus(
+            perm.receive === 'granted'
+              ? 'on'
+              : perm.receive === 'denied'
+                ? 'blocked'
+                : 'off',
+          )
+        } catch {
+          // 권한 조회 실패 — 켜기 버튼은 살려 둔다(enable 이 다시 시도).
+          setStatus('off')
+        }
+      })()
+      return
+    }
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       setStatus('unsupported')
       return
@@ -170,6 +199,26 @@ export default function NotificationSettingsClient({
   async function disable() {
     setMsg(null)
     setStatus('unsubscribing')
+    // 네이티브 — Web Push 구독이 아니라 서버의 APNs/FCM 토큰 row 를 지운다.
+    // 안 지우면 OFF 로 보이는데 푸시는 계속 온다(2026-08-08 네이티브 감사).
+    if (isNativeApp()) {
+      try {
+        const deviceId = await getDeviceId()
+        if (deviceId) {
+          const res = await fetch(
+            `/api/push/native-register?deviceId=${encodeURIComponent(deviceId)}`,
+            { method: 'DELETE' },
+          )
+          if (!res.ok) throw new Error('푸시 해제에 실패했어요')
+        }
+        setStatus('off')
+        setMsg('알림을 껐어요')
+      } catch (err) {
+        setMsg(userFacingError(err, '알림 끄는 데 실패했어요. 잠시 후 다시 시도해 주세요'))
+        setStatus('on') // 실제로는 아직 켜져 있다 — 버튼이 '처리 중'에 갇히지 않게
+      }
+      return
+    }
     try {
       const reg = await navigator.serviceWorker.getRegistration()
       const existing = await reg?.pushManager.getSubscription()
@@ -188,6 +237,7 @@ export default function NotificationSettingsClient({
       setMsg('알림을 껐어요')
     } catch (err) {
       setMsg(userFacingError(err, '알림 끄는 데 실패했어요. 잠시 후 다시 시도해 주세요'))
+      setStatus('on') // 'unsubscribing' 에 갇히면 두 버튼 다 disabled 로 굳는다
     }
   }
 
@@ -267,8 +317,9 @@ export default function NotificationSettingsClient({
                 strokeWidth={2}
               />
               <span>
-                알림이 차단되어 있어요. 브라우저 설정에서 파머스테일의 알림을
-                허용해 주세요.
+                {isNativeApp()
+                  ? '알림이 꺼져 있어요. 휴대폰 설정 > 파머스테일 > 알림에서 허용해 주세요.'
+                  : '알림이 차단되어 있어요. 브라우저 설정에서 파머스테일의 알림을 허용해 주세요.'}
               </span>
             </div>
           )}

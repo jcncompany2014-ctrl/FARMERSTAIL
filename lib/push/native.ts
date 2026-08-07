@@ -169,6 +169,13 @@ export async function sendApnsPush(
         Authorization: `bearer ${jwt}`,
         'apns-topic': bundleId,
         'apns-push-type': 'alert',
+        // ★같은 threadId 알림은 **교체**되게 (2026-08-08 네이티브 감사).
+        //   Android 는 notification.tag 로 같은 알림을 덮어쓰는데 iOS 는
+        //   thread-id(묶음)만 있어서 리마인더가 갈 때마다 쌓였다.
+        //   apns-collapse-id 는 64바이트 상한 — 넘으면 APNs 가 400 을 준다.
+        ...(payload.threadId
+          ? { 'apns-collapse-id': payload.threadId.slice(0, 64) }
+          : {}),
         'content-type': 'application/json',
       },
       body: JSON.stringify(apsBody),

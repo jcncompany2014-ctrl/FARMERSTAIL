@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LogOut, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { cleanupNativePushOnLogout } from '@/lib/capacitor'
 
 export default function LogoutButton() {
   const router = useRouter()
@@ -12,6 +13,8 @@ export default function LogoutButton() {
 
   async function logout() {
     setBusy(true)
+    // 네이티브 푸시 토큰 정리 — signOut 후엔 세션이 없어 못 지운다.
+    await cleanupNativePushOnLogout()
     await supabase.auth.signOut()
     setBusy(false)
     router.push('/')
