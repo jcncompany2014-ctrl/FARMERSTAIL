@@ -147,7 +147,21 @@ async function computePricing(
         'failed_charge_count, requires_billing_key_renewal',
     )
     .eq('dog_id', dogId)
-    .maybeSingle()
+    /**
+     * ★`.maybeSingle()` 이 아니다 (2026-08-08 금액 감사).
+     *
+     * 해지하고 다시 신청한 강아지는 subscriptions 행이 2~3개다(프로덕션 실측
+     * 2마리). `maybeSingle()` 은 그때 PGRST116 을 내고, 위 `subErr` 분기가
+     * `null` 을 돌려줘 **금액 변화 패널이 통째로 사라진다** — 고객이 금액이
+     * 얼마나 바뀌는지 **모른 채 승인**하게 된다.
+     *
+     * 같은 라우트의 처리 쪽(app/api/personalization/approve:380-387)은 이미
+     * 이걸 고쳐 뒀는데(`.in('status',…).order(created_at).limit(1)`)
+     * **표시 쪽만 옛 코드로 남아 있었다.** 판정 기준을 맞춘다.
+     */
+    .in('status', ['active', 'paused'])
+    .order('created_at', { ascending: false })
+    .limit(1)
   // ★조회 실패로 금액 패널이 **조용히 사라지는** 것을 막는다(2026-08-03 검수).
   //   null 을 주면 이 화면은 금액 변화를 아예 안 그린다 — 그 자체는 옳다
   //   (틀린 금액을 보여주느니 안 보여준다, AGENTS 규칙5). 문제는 DB 가 잠깐
@@ -157,9 +171,11 @@ async function computePricing(
     console.error('[dogs/approve] 구독 조회 실패 — 금액 패널 생략:', subErr.message)
     return null
   }
-  if (!subRow) return null
+  // limit(1) 은 **배열**을 준다 — 첫 행을 꺼낸다.
+  const subFirst = (subRow as unknown as unknown[] | null)?.[0]
+  if (!subFirst) return null
 
-  const sub = subRow as unknown as SubLike & {
+  const sub = subFirst as SubLike & {
     fresh_ratio: number | null
     total_amount: number
   }
@@ -193,7 +209,9 @@ async function computePricing(
     freshRatio: sub.fresh_ratio,
     products,
   })
-  if (!(next.total > 0)) return null
+  // ★`> 0` 만으로는 Infinity 를 못 막는다(`Infinity > 0` 은 참). 금액 가드는
+  //  유한성까지 본다 (2026-08-08 금액 감사).
+  if (!Number.isFinite(next.total) || next.total <= 0) return null
 
   return {
     currentTotal: sub.total_amount,

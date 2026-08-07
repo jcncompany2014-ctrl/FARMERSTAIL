@@ -529,6 +529,22 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
                   : `${order.shipping_fee.toLocaleString()}원`}
               </dd>
             </div>
+            {/* ★할인 줄이 없어서 상품금액과 총결제 차이가 설명 없이 남았다
+                (2026-08-08 금액 감사). 나무 등급 고객은 35,850원이 그냥 사라진
+                것처럼 보였다 — 청구 크론은 이 값을 저장하고 있었는데 읽는
+                화면이 없었다. */}
+            {(order.discount_amount ?? 0) > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-muted">
+                  {order.discount_reason
+                    ? `할인 (${order.discount_reason})`
+                    : '할인'}
+                </dt>
+                <dd className="text-moss font-bold tabular-nums">
+                  −{(order.discount_amount ?? 0).toLocaleString()}원
+                </dd>
+              </div>
+            )}
             <div className="flex justify-between items-center pt-3 border-t border-rule mt-2">
               <dt
                 className="font-bold"

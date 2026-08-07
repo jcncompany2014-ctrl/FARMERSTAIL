@@ -279,7 +279,9 @@ async function recomputeChargeBase(
     freshRatio: sub.fresh_ratio,
     products,
   })
-  return total > 0 ? total : null
+  // ★유한성까지 본다 — 토퍼 kcal 0 이면 Infinity 가 나오고 `> 0` 을 통과한다.
+  //  그러면 charge-amount-guard 가 매일 오탐 알림을 낸다(2026-08-08 금액 감사).
+  return Number.isFinite(total) && total > 0 ? total : null
 }
 
 

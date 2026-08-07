@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { AdminTabs, Hl, Warn } from '@/components/admin/ui'
 import { CONTENT_TABS } from '@/components/admin/tabGroups'
+import { safeOrTerm } from '@/lib/supabase/or-filter'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,7 +64,9 @@ export default async function AdminBlogPostsPage({
 
   const trimmed = q.trim()
   if (trimmed) {
-    const safe = trimmed.replace(/[,()]/g, '')
+    // 정화는 lib/supabase/or-filter 정본 하나 — 곳마다 다른 정규식을 쓰면
+    // 어디는 막고 어디는 새는 상태가 된다(2026-08-08 보안 재감사).
+    const safe = safeOrTerm(trimmed)
     query = query.or(`title.ilike.%${safe}%,slug.ilike.%${safe}%`)
   }
   if (category) {

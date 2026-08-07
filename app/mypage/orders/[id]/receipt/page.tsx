@@ -40,6 +40,9 @@ type OrderRow = {
   order_number: string
   total_amount: number
   shipping_fee: number
+  /** 할인액·사유 — 영수증에 반드시 표시한다(2026-08-08). */
+  discount_amount: number | null
+  discount_reason: string | null
   payment_status: string
   payment_method: string | null
   order_status: string
@@ -98,7 +101,8 @@ export default async function ReceiptPage({
     .from('orders')
     .select(
       `
-      id, order_number, total_amount, shipping_fee, payment_status,
+      id, order_number, total_amount, shipping_fee, discount_amount,
+      discount_reason, payment_status,
       payment_method, order_status, created_at, paid_at, recipient_name,
       recipient_phone, address, address_detail,
       zip, delivery_memo, user_id,
@@ -117,6 +121,22 @@ export default async function ReceiptPage({
     0,
   )
   const shipping = o.shipping_fee ?? 0
+  const discount = o.discount_amount ?? 0
+
+  /**
+   * ★영수증이 안 맞았다 (2026-08-08 금액 감사).
+   *
+   * 상품 합계와 최종 결제 금액만 찍고 **할인 줄이 없었다.** 나무 등급 고객은
+   * 상품합계 357,420원 / 최종결제 321,570원 — 차이 **35,850원이 설명 없이**
+   * 남았다(40kg 견은 99,980원). 청구 크론은 `discount_amount`·
+   * `discount_reason` 을 제대로 저장하고 있었다 — **읽는 화면이 없었을 뿐**이다.
+   *
+   * 할인이 없는 고객도 120원쯤 어긋난다: order_items 의 `line_total` 은
+   * 표시용 팩단가(10원 올림)를 곱한 값이고, `total_amount` 는 라인 총액
+   * 기준(100원 올림)이라 합산 경로가 다르다. 그 차이는 '단가 조정'으로
+   * 명시한다 — 숫자가 안 맞는 영수증은 그 자체로 신뢰를 깎는다.
+   */
+  const rounding = subtotal + shipping - discount - o.total_amount
 
   return (
     <main
@@ -345,6 +365,18 @@ export default async function ReceiptPage({
             label="배송비"
             value={shipping === 0 ? '무료' : `${shipping.toLocaleString()}원`}
           />
+          {discount > 0 && (
+            <SummaryRow
+              label={o.discount_reason ? `할인 (${o.discount_reason})` : '할인'}
+              value={`-${discount.toLocaleString()}원`}
+            />
+          )}
+          {rounding !== 0 && (
+            <SummaryRow
+              label="단가 조정"
+              value={`${rounding > 0 ? '-' : '+'}${Math.abs(rounding).toLocaleString()}원`}
+            />
+          )}
           <div
             style={{
               borderTop: '1px solid #EDE6D8',

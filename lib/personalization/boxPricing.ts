@@ -219,10 +219,27 @@ export function computeBoxItems<P extends BoxProduct>(input: {
     const slug = TOPPER_TO_SLUG[k]
     const product = products[slug]
     if (!product) continue
-    // admin 입력 kcal 우선, 없으면 fallback.
+    /**
+     * admin 입력 kcal 우선, 없으면 fallback.
+     *
+     * ★`??` 로는 부족하다 (2026-08-08 금액 감사). `??` 는 null/undefined 만
+     * 잡으므로 admin 이 **0 을 입력하면** 그 0 이 그대로 분모가 되고
+     * `dailyG = Infinity` → `total = Infinity` 가 된다. 그런데 하류 가드가
+     * 전부 `!(total > 0)` 형태라 **Infinity 는 통과한다**(`Infinity > 0` 은
+     * 참이다). 그러면 청구 검문소가 매일 오탐 알림을 내고, JSON 직렬화에서
+     * `null` 이 되어 NOT NULL 위반으로 엉뚱한 곳에서 터진다.
+     *
+     * 값이 **유한한 양수**일 때만 쓴다. 아니면 fallback.
+     */
+    const topperKcalRaw = product.nutrition_facts?.calories_kcal_per_100g as
+      | number
+      | undefined
     const topperKcal100g =
-      (product.nutrition_facts?.calories_kcal_per_100g as number | undefined) ??
-      TOPPER_KCAL_PER_100G
+      typeof topperKcalRaw === 'number' &&
+      Number.isFinite(topperKcalRaw) &&
+      topperKcalRaw > 0
+        ? topperKcalRaw
+        : TOPPER_KCAL_PER_100G
     const dailyG = ((ratio * dailyKcal) / topperKcal100g) * 100 * freshFactor
     const cycleG = dailyG * cycleDays
     const { packs, deliveredG } = topperPacksForCycle(cycleG)

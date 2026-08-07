@@ -231,7 +231,9 @@ export async function POST(req: Request) {
     )
   }
   const { subtotal, shipping, total } = priceBox(items)
-  if (!(total > 0)) {
+  // ★`> 0` 만으로는 Infinity 를 못 막는다(`Infinity > 0` 은 참).
+  //  토퍼 kcal 이 0 이면 total 이 Infinity 가 됐다(2026-08-08 금액 감사).
+  if (!Number.isFinite(total) || total <= 0) {
     // 계산이 깨진 것 — 0원 구독을 만들지 않는다.
     captureBusinessEvent('error', 'subscription.create.zero_total', {
       userId: user.id,

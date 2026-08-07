@@ -5,6 +5,7 @@ import { ORDER_STATUS_LABEL, type OrderStatus } from '@/lib/commerce/order-fsm'
 import { STATUS_MAP as SUB_STATUS_MAP } from '@/lib/v3-helpers/subscriptions'
 import { AdminTabs, Hl, Em } from '@/components/admin/ui'
 import { CUSTOMER_TABS } from '@/components/admin/tabGroups'
+import { safeOrTerm } from '@/lib/supabase/or-filter'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,7 +64,10 @@ export default async function AdminUnifiedSearch({
   let subs: SubRow[] = []
 
   if (query) {
-    const like = `%${query.replace(/[%_]/g, '\\$&')}%`
+    // ★`%`·`_`(LIKE 와일드카드)만 막고 PostgREST 문법 토큰(`,()`)은 열려
+    //  있었다 — `.or()` 는 표현식 문자열이라 supabase-js 가 escape 하지 않는다
+    //  (2026-08-08 보안 재감사). 정본으로 통일.
+    const like = `%${safeOrTerm(query)}%`
 
     const [pRes, oRes, sRes] = await Promise.all([
       supabase

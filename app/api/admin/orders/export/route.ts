@@ -4,6 +4,7 @@ import { isAdmin } from '@/lib/auth/admin'
 import { toCsvWithBom } from '@/lib/csv'
 import { dbError } from '@/lib/api/errors'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
+import { safeOrTerm } from '@/lib/supabase/or-filter'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -147,7 +148,9 @@ export async function GET(request: Request) {
     // R96-C (D7): PostgREST `.or()` expression string 은 supabase-js 가 escape
     // 하지 않는다 (.ilike() 의 *값* 인자만 escape). 문법 토큰(,()*.%\)을 strip
     // 해 새 filter 절 주입을 차단 — search/suggest 의 sanitizeQuery 와 동일 패턴.
-    const safeQ = q.replace(/[,()*.%\\]/g, '').slice(0, 80)
+    // 2026-08-08: 같은 정화가 곳마다 조금씩 달라 어디는 막고 어디는 새고
+    // 있었다(users 는 완전 미escape). lib/supabase/or-filter 정본 하나로.
+    const safeQ = safeOrTerm(q)
     if (safeQ) {
       query = query.or(
         `order_number.ilike.%${safeQ}%,recipient_name.ilike.%${safeQ}%`,

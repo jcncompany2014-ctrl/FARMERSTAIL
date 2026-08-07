@@ -87,7 +87,9 @@ export async function quoteBox(
   }
   const { total } = priceForFormula(calcInput)
   // 0원/음수가 나오면 계산이 깨진 것 — 청구액을 망가뜨리느니 그대로 둔다.
-  if (!(total > 0)) return null
+  // ★`> 0` 만으로는 Infinity 를 못 막는다(`Infinity > 0` 은 참). 금액 가드는
+  //  유한성까지 본다 (2026-08-08 금액 감사).
+  if (!Number.isFinite(total) || total <= 0) return null
 
   // 같은 입력으로 품목도 만든다 — 금액과 내용물이 같은 계산에서 나와야 한다.
   const items = subscribableItems(computeBoxItems(calcInput))

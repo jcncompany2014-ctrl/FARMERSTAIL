@@ -2167,3 +2167,67 @@ test('규칙48 — 빌링키 값을 브라우저로 내보내지 않는다', () 
       offenders.join(' / '),
   )
 })
+
+test('규칙49 — .or() 에 정화 안 한 사용자 입력을 넣지 않는다', () => {
+  /**
+   * # 왜
+   * 2026-08-08 보안 재감사. supabase-js 는 `.ilike(col, value)` 의 **값 인자만**
+   * escape 한다. `.or('email.ilike.%x%,name.ilike.%x%')` 는 **표현식 문자열**
+   * 이라 그대로 파서에 들어간다 — 입력에 `,` `(` `)` `.` 가 있으면 **필터 절이
+   * 주입**된다.
+   *
+   * 저장소가 이미 다섯 곳에서 정화하고 있었는데 두 곳만 빠져 있었다
+   * (`app/admin/users` 완전 미escape, `app/admin/search-all` 은 LIKE
+   * 와일드카드만). 정본은 `lib/supabase/or-filter` 의 `safeOrTerm()`.
+   *
+   * # 판정
+   * `.or(...)` 인자 안에 **템플릿 보간(`${...}`)** 이 있는데 그 안에
+   * `safeOrTerm` 이 없으면 위반. 서버가 만든 값(날짜·상수)도 보간이지만,
+   * 그건 변수명으로 구분할 수 없으므로 **화이트리스트**로 명시한다 —
+   * 화이트리스트에 없는 새 보간이 생기면 사람이 한 번 보게 하는 게 목적이다.
+   */
+  /**
+   * 판정 방식 — **파일이 정본(safeOrTerm)을 쓰는가**.
+   *
+   * 처음엔 보간 변수명을 화이트리스트로 적었는데(`safeQ`·`like`·`escaped`…),
+   * 그러면 이름을 바꾸는 순간 규칙이 오탐하고 **이미 정화된 코드까지** 잡는다
+   * (실제로 그렇게 써서 정화하고 있던 세 파일이 걸렸다).
+   *
+   * 그래서 "이 파일의 `.or()` 에 보간이 있으면 그 파일이 safeOrTerm 을
+   * import 하고 있어야 한다" 로 판정한다. 정화 방식이 갈리는 것 자체가
+   * 이번 사고의 원인이었으므로(다섯 곳이 각자 다른 정규식), 정본 사용을
+   * 강제하는 게 규칙의 목적에 맞는다.
+   *
+   * 서버가 만든 값만 보간하는 파일은 예외로 명시한다 — 사용자 입력이 아니다.
+   */
+  const SERVER_VALUE_ONLY = [
+    '/app/admin/automation/page.tsx', // applied_from 날짜(서버 계산)
+    '/app/api/cron/personalization-progression/route.ts',
+    '/app/admin/personalization/picking-list/page.tsx', // 정규식 검증된 날짜
+    '/app/api/cron/order-expire/route.ts',
+    '/app/api/cron/subscription-charge/route.ts',
+  ]
+  const offenders: string[] = []
+  for (const dir of ['app', 'lib', 'components']) {
+    for (const file of walk(join(ROOT, dir))) {
+      if (!/\.tsx?$/.test(file) || file.includes('.test.')) continue
+      const rel = file.replace(ROOT, '').split(sep).join('/')
+      if (SERVER_VALUE_ONLY.includes(rel)) continue
+      const src = stripComments(read(file))
+      const usesCanonical = /safeOrTerm/.test(src)
+      for (const m of src.matchAll(/\.or\(\s*`([^`]*)`/g)) {
+        const expr = m[1] ?? ''
+        if (!expr.includes('${')) continue
+        if (usesCanonical) continue
+        offenders.push(`${rel} (${expr.slice(0, 70)})`)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '.or() 표현식에 정화 안 한 보간이 있다 — supabase-js 는 표현식 문자열을 ' +
+      'escape 하지 않는다. lib/supabase/or-filter 의 safeOrTerm() 을 쓸 것. ' +
+      offenders.join(' / '),
+  )
+})

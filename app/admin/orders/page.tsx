@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import AdminPagination from '@/components/admin/AdminPagination'
 import { Hl, Em, FilterChip } from '@/components/admin/ui'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
+import { safeOrTerm } from '@/lib/supabase/or-filter'
 
 export const dynamic = 'force-dynamic'
 
@@ -119,7 +120,10 @@ export default async function AdminOrdersPage({
   // 변경이 필요해 별도 작업.
   const trimmed = q.trim()
   if (trimmed) {
-    const escaped = trimmed.replace(/[\\%_,()]/g, (m) => `\\${m}`)
+    // 정화는 lib/supabase/or-filter 정본 하나 (2026-08-08 보안 재감사).
+    // 백슬래시 이스케이프는 PostgREST 버전에 따라 해석이 갈린 전례가 있어
+    // 정본은 **제거(strip)** 방식을 쓴다.
+    const escaped = safeOrTerm(trimmed)
     query = query.or(
       [
         `order_number.ilike.%${escaped}%`,

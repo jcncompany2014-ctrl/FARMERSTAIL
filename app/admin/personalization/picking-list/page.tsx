@@ -272,11 +272,27 @@ export default async function PickingListPage({
   const rows: PickingRow[] = subs.map((sub) => {
     const dogName = (sub.dog_id && dogNames[sub.dog_id]) || '(강아지 미상)'
     const f = sub.dog_id ? formulaByDog[sub.dog_id] : undefined
-    const freshRatio = sub.fresh_ratio ?? 100
+    /**
+     * ★비율을 **추측하지 않는다** (2026-08-08 금액 감사).
+     *
+     * 예전엔 `sub.fresh_ratio ?? 100` 이었다. 그런데 저장소의 다른 전 경로는
+     * 비율이 없으면 **계산을 거부**한다(`lib/subscription/boxQuote.ts:55`
+     * `if (!(input.freshRatio > 0)) return null`). 여기만 100% 로 가정했다.
+     *
+     * `fresh_ratio` 는 nullable 이다(20260713000000). 값이 없는데 100% 로
+     * 담으면, 30% 요금(85,700원)을 청구한 고객에게 **100% 박스(277,100원어치)
+     * 를 보낸다 — 3.2배**다. 반대 방향이면 제값 내고 3분의 1만 받는다.
+     *
+     * 모르면 담지 않는다. 화면이 사장님께 그 사실을 말하고 판단을 넘긴다.
+     * (화면엔 이미 '비율 미상' 배지가 있었지만, 그 옆에서 팩 구성은 100%
+     *  기준으로 그려지고 있었다 — 배지가 경고가 아니라 각주였다.)
+     */
+    const freshRatio = sub.fresh_ratio
+    const freshUnknown = freshRatio == null
 
     let packs: PickingRow['packs'] = []
     let missing: PickingRow['missing'] = []
-    if (f) {
+    if (f && !freshUnknown) {
       const boxInput = {
         formula: {
           lineRatios: f.formula.lineRatios,
@@ -330,9 +346,9 @@ export default async function PickingListPage({
         [sub.address, sub.address_detail].filter(Boolean).join(' ') ||
         '(주소 미등록)',
       memo: sub.delivery_memo ?? '',
-      freshRatio,
+      freshRatio: freshRatio ?? 0,
       freshLabel: freshTierLabel(sub.fresh_ratio),
-      freshUnknown: sub.fresh_ratio == null,
+      freshUnknown,
       cycleNumber: f?.cycle_number ?? null,
       userAdjusted: f?.user_adjusted ?? false,
       transition: f?.transition_strategy ?? '',
@@ -504,9 +520,10 @@ export default async function PickingListPage({
                 <span className="text-[12px] text-zinc-500">
                   {r.recipientName}
                 </span>
-                <Badge tone={r.freshUnknown ? 'amber' : 'blue'}>
-                  {r.freshLabel} {r.freshRatio}%
-                  {r.freshUnknown ? ' (비율 미상 — 100% 기준)' : ''}
+                <Badge tone={r.freshUnknown ? 'red' : 'blue'}>
+                  {r.freshUnknown
+                    ? '화식 비율 미상'
+                    : `${r.freshLabel} ${r.freshRatio}%`}
                 </Badge>
                 {r.cycleNumber != null && (
                   <Badge tone="neutral">cycle {r.cycleNumber}</Badge>
@@ -568,7 +585,15 @@ export default async function PickingListPage({
                 </div>
               )}
 
-              {r.noFormula ? (
+              {r.freshUnknown ? (
+                /* ★비율을 모르면 팩을 계산하지 않는다(2026-08-08 금액 감사).
+                   추측해서 담으면 청구액과 박스가 최대 3.2배 갈린다. */
+                <p className="mt-3 text-[12.5px] font-semibold text-red-600">
+                  ⚠ 화식 비율이 저장돼 있지 않아 팩 구성을 계산하지 않았어요 —
+                  추측해서 담으면 청구한 금액과 박스가 어긋납니다. 이 구독의
+                  화식 비율을 먼저 확인해 주세요.
+                </p>
+              ) : r.noFormula ? (
                 <p className="mt-3 text-[12.5px] font-semibold text-red-600">
                   ⚠ 승인된 처방이 없어 팩 구성을 계산할 수 없어요 — 이 강아지의
                   처방을 먼저 확인해 주세요.

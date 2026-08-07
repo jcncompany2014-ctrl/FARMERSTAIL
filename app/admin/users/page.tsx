@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import AdminPagination from '@/components/admin/AdminPagination'
 import { AdminTabs, Hl, Em } from '@/components/admin/ui'
 import { CUSTOMER_TABS } from '@/components/admin/tabGroups'
+import { safeOrTerm } from '@/lib/supabase/or-filter'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,9 +47,13 @@ export default async function AdminUsersPage({
     .order('created_at', { ascending: false })
     .range((page - 1) * PER_PAGE, page * PER_PAGE - 1)
 
-  if (q.trim()) {
+  // ★`.or()` 는 표현식 문자열이라 supabase-js 가 escape 하지 않는다 —
+  //  사용자 입력에 `,()` 가 있으면 필터 절이 주입된다(2026-08-08 보안 재감사).
+  //  저장소의 다른 다섯 곳은 이미 정화하고 있었는데 여기만 빠져 있었다.
+  const safeQ = safeOrTerm(q)
+  if (safeQ) {
     query = query.or(
-      `email.ilike.%${q.trim()}%,name.ilike.%${q.trim()}%,phone.ilike.%${q.trim()}%`
+      `email.ilike.%${safeQ}%,name.ilike.%${safeQ}%,phone.ilike.%${safeQ}%`,
     )
   }
 
