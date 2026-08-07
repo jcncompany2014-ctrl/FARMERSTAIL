@@ -137,6 +137,56 @@ export default async function PickingListPage({
   }
   const subs = ((subsRaw ?? []) as unknown) as SubRow[]
 
+  /**
+   * ★청구된 박스는 날짜가 어떻게 바뀌어도 이 목록에 남는다 (2026-08-08 재감사).
+   *
+   * 위 필터는 next_delivery_date 기준이다. 그런데 청구(화 09:10) **직후**
+   * 고객이 '2주 미루기'나 '다시 시작'을 누르면 그 칸이 필터 밖(T+28·T+7)으로
+   * 이동한다 — next_delivery_date 는 고객이 직접 쓸 수 있는 화이트리스트
+   * 4칸 중 하나라 원천 차단이 안 된다. 돈은 받았고 주문은 preparing 인데
+   * **조리·포장 목록에서만 사라졌다.** 발송 대기 주문(결제됨·preparing)을
+   * 역방향 정본으로 삼아, 날짜 필터에 안 걸린 구독을 도로 붙이고 경고를 단다.
+   */
+  const subIdSet = new Set(subs.map((s) => s.id))
+  const { data: strayOrders, error: strayErr } = await supabase
+    .from('orders')
+    .select('subscription_id')
+    .in('payment_status', PAID_STATUSES)
+    .eq('order_status', 'preparing')
+    .not('subscription_id', 'is', null)
+  if (strayErr) {
+    throw new Error(
+      `발송 대기 주문 조회 실패 — 목록을 신뢰할 수 없어요: ${strayErr.message}`,
+    )
+  }
+  const movedIds = [
+    ...new Set(
+      ((strayOrders ?? []) as Array<{ subscription_id: string | null }>)
+        .map((o) => o.subscription_id)
+        .filter((id): id is string => id != null && !subIdSet.has(id)),
+    ),
+  ]
+  const movedSubIds = new Set<string>()
+  if (movedIds.length > 0) {
+    const { data: movedRaw, error: movedErr } = await supabase
+      .from('subscriptions')
+      .select(
+        'id, dog_id, user_id, status, fresh_ratio, next_delivery_date, total_amount, ' +
+          'recipient_name, recipient_phone, zip, address, address_detail, ' +
+          'delivery_memo, total_deliveries, has_billing_key, requires_billing_key_renewal',
+      )
+      .in('id', movedIds)
+    if (movedErr) {
+      throw new Error(
+        `일정 이동 구독 조회 실패 — 목록을 신뢰할 수 없어요: ${movedErr.message}`,
+      )
+    }
+    for (const m of ((movedRaw ?? []) as unknown) as SubRow[]) {
+      subs.push(m)
+      movedSubIds.add(m.id)
+    }
+  }
+
   const dogIds = [...new Set(subs.map((s) => s.dog_id).filter(Boolean))] as string[]
 
   /**
@@ -358,6 +408,9 @@ export default async function PickingListPage({
       //   바꾼다 — 돈은 이미 받았다. 목록에서 지우지 말고 **사장님이 판단**하게
       //   보여준다(보낼지, 환불할지).
       pausedAfterCharge: sub.status === 'paused',
+      // ★청구 후 고객이 일정을 옮겨 날짜 필터 밖으로 나간 건 — 발송 대기
+      //   주문 역추적으로 붙었다. 돈은 받았으니 이번 발송에 포함해야 한다.
+      dateMovedAfterCharge: movedSubIds.has(sub.id),
       // 청구 크론과 **같은 조건**. 이게 false 면 결제 없이 박스만 나간다.
       cannotCharge:
         !sub.has_billing_key || sub.requires_billing_key_renewal === true,
@@ -402,6 +455,7 @@ export default async function PickingListPage({
       r.overdue ||
       r.cannotCharge ||
       r.pausedAfterCharge ||
+      r.dateMovedAfterCharge ||
       r.missing.length > 0,
   ).length
   const excludedFromTotals = rows.filter(
@@ -548,6 +602,8 @@ export default async function PickingListPage({
                     크론이 영원히 건너뛰는데도. 사실이 아닌 안내였다. */}
                 {r.pausedAfterCharge ? (
                   <Badge tone="amber">결제 후 정지됨 — 확인 필요</Badge>
+                ) : r.dateMovedAfterCharge ? (
+                  <Badge tone="amber">결제됨 — 고객이 일정을 옮김</Badge>
                 ) : r.cannotCharge ? (
                   <Badge tone="red">청구 불가 — 발송하지 마세요</Badge>
                 ) : r.charged ? (
@@ -565,6 +621,16 @@ export default async function PickingListPage({
                   알레르기 누출이 감지되면 자동으로 멈춥니다). 돈은 이미 받았으니
                   그냥 사라지면 안 됩니다 — <strong>보낼지 환불할지 판단</strong>해
                   주세요. 레시피가 안전한지부터 확인하시는 게 좋습니다.
+                </p>
+              )}
+
+              {r.dateMovedAfterCharge && (
+                <p className="mt-3 text-[12.5px] font-semibold text-amber-800">
+                  ⚠ 결제가 끝난 뒤 고객이 배송일을 <strong>미루거나 다시
+                  시작</strong>해서, 날짜만 보면 이번 발송 대상이 아닌 것처럼
+                  보이는 구독이에요. <strong>돈은 이미 받았고 주문이 발송
+                  대기</strong>라 목록에 남겨 뒀어요 — 이번에 보내는 게
+                  기본이고, 애매하면 고객에게 한번 확인해 주세요.
                 </p>
               )}
 

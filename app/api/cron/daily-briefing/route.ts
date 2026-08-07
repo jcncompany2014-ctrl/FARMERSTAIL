@@ -8,6 +8,7 @@ import { weekdayOf, SHIP_WEEKDAY } from '@/lib/shipping-schedule'
 import { findMissedCrons, type CronEntry } from '@/lib/cron-watchdog'
 import { cronLabel } from '@/lib/cron-labels'
 import vercelConfig from '@/vercel.json'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 
 /**
  * 다가오는 발송일(화요일) — **마감 리드타임 없이**. nextShipDate 는 '지금 주문하면
@@ -82,7 +83,9 @@ async function runDailyBriefing(): Promise<Response> {
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .eq('payment_status', 'paid')
+      // ★부분환불 주문도 발송 대상이다(규칙42) — 'paid' 단독이면 사장님
+      //  하루 한 번뿐인 운영 신호(미발송 큐)에서 그 박스가 빠진다.
+      .in('payment_status', PAID_STATUSES)
       .eq('order_status', 'preparing')
       .lt('created_at', oneDayAgo),
     supabase

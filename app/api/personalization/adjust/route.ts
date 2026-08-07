@@ -101,6 +101,48 @@ export async function POST(req: Request) {
     )
   }
 
+  /**
+   * ★구독 중인 강아지의 처방은 여기서 못 바꾼다 (2026-08-08 적대적 재감사 #2).
+   *
+   * 위 가드는 approved/declined 만 막는데, **지금 배송되는 처방**의 상태는
+   * auto_applied 라 통과했다. 그런데 이 라우트는 formula 만 바꾸고
+   * `subscriptions.total_amount` 도 `subscription_items` 도 안 만진다 —
+   * 포장(피킹 리스트)은 dog_formulas 를 읽으므로, 닭→소 로 바꾸면 **청구는
+   * 옛 금액, 박스는 새 레시피**가 된다(소가 더 비싸면 매 회차 우리 손해,
+   * 주문내역·구독카드는 옛 레시피를 보여줘 신뢰도 깨진다).
+   *
+   * 정본 정책(lib/shipping-schedule·재제안 규칙): 구독 중 구성 변경은
+   * **재제안 승인 경유** — 그 경로만 금액·품목·동의를 함께 갱신한다.
+   * 구독 전 강아지의 조정(가입 전 미세조정)은 그대로 허용된다 — 그쪽은
+   * 신청 시점에 expectedTotal 검산으로 금액이 맞춰진다.
+   */
+  const { data: liveSub, error: liveSubErr } = await supabase
+    .from('subscriptions')
+    .select('id')
+    .eq('dog_id', data.dogId)
+    .in('status', ['active', 'paused'])
+    .limit(1)
+    .maybeSingle()
+  if (liveSubErr) {
+    return NextResponse.json(
+      {
+        code: 'LOOKUP_FAILED',
+        message: '일시적인 오류가 있어요. 잠시 후 다시 시도해 주세요',
+      },
+      { status: 503 },
+    )
+  }
+  if (liveSub) {
+    return NextResponse.json(
+      {
+        code: 'SUBSCRIBED_LOCKED',
+        message:
+          '정기배송 중인 레시피는 여기서 바꿀 수 없어요. 박스 3개마다 아이 상태에 맞춰 새 레시피를 제안드리고, 동의하시면 다음 박스부터 바뀌어요.',
+      },
+      { status: 409 },
+    )
+  }
+
   // 알레르기 차단 검증 — 최신 surveys 의 알레르기 조회.
   const { data: latestSurvey } = await supabase
     .from('surveys')

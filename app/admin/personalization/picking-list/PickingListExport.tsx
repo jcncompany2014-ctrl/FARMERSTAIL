@@ -36,6 +36,8 @@ export type PickingRow = {
    */
   /** 결제 후 정지된 건 — 돈은 받았는데 구독이 멈췄다(2026-08-07). */
   pausedAfterCharge: boolean
+  /** 청구 후 고객이 배송일을 옮겨 날짜 필터 밖으로 나간 건 — 발송 대기 주문 역추적으로 포함됨. */
+  dateMovedAfterCharge: boolean
   cannotCharge: boolean
   charged: boolean
   overdue: boolean

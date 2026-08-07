@@ -165,8 +165,18 @@ export async function POST(req: Request) {
   // 보관 의무 (subscription_charges) 와 별개로 토큰은 결제수단 정보라 즉시
   // 삭제. 카드사에 알리는 별도 절차는 필요 없음 (Toss 측에서 토큰 invalidation
   // 은 미사용 기간 자동 만료).
-  // audit #79: subscriptions 익명화 payload — generated types 가 NOT NULL 로
-  // 추론하는 컬럼들이 있어 cast (의도는 NULL 로 익명화).
+  /**
+   * ★2026-08-08 캐스트 감사 #3 — 이 payload 가 **통째로 실패하고 있었다.**
+   *
+   * recipient_phone 은 DB 에서 NOT NULL 이다(types.ts: `string`). 여기에
+   * null 을 넣으면 23502 로 UPDATE 전체가 거부돼, 같은 payload 의
+   * status='cancelled' 와 billing_key=null 까지 **전부 미적용**됐다 —
+   * 구독이 있는 탈퇴자는 구독이 active 로 남고 빌링키가 살아서 청구 크론
+   * 대상에 계속 잡혔다. tsc 가 정확히 이걸 잡았는데(#audit79 주석의
+   * "NOT NULL 로 추론") 캐스트로 오류를 덮은 자리다. 옛 주석의
+   * "recipient_name 컬럼이 없음"도 거짓 — 실존 PII 라 orders(:296)와 같은
+   * placeholder 방식으로 익명화한다. NOT NULL 은 placeholder, nullable 은 null.
+   */
   const anonymizePayload: Record<string, unknown> = {
     status: 'cancelled',
     billing_key: null,
@@ -176,11 +186,12 @@ export async function POST(req: Request) {
     requires_billing_key_renewal: false,
     next_retry_at: null,
     next_delivery_date: null,
-    // audit launch-fix: subscriptions 에는 recipient_name / recipient_zip /
-    // recipient_address / recipient_address_detail 컬럼이 없음.
-    // recipient_phone 만 존재 — 그것만 null 처리. 나머지 PII anonymize 는
-    // profiles / addresses 에서 별도 처리됨.
-    recipient_phone: null,
+    recipient_name: '탈퇴회원',
+    recipient_phone: '000-0000-0000',
+    zip: '00000',
+    address: '(주소 익명화 처리됨)',
+    address_detail: null,
+    delivery_memo: null,
   }
   await (admin as unknown as {
     from: (t: string) => {

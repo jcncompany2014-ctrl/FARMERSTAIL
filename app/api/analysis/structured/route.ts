@@ -14,6 +14,7 @@ import {
   checkAnthropicDailyCap,
   recordAnthropicUsage,
 } from '@/lib/anthropic-usage'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -257,7 +258,7 @@ export async function POST(req: Request) {
         .from('orders')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .eq('payment_status', 'paid')
+        .in('payment_status', PAID_STATUSES)
         .in(
           'subscription_id',
           subs.map((s) => s.id),

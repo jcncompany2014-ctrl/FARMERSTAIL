@@ -4,6 +4,7 @@ import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { pushToUser } from '@/lib/push'
 import { petName } from '@/lib/korean'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,7 +48,8 @@ async function runCheckinReminder(): Promise<Response> {
   const { data: candidates, error } = (await adminTyped
     .from('orders')
     .select('id, user_id, delivered_at')
-    .eq('payment_status', 'paid')
+    // ★부분환불(일부 품절 환불) 첫 박스도 배송은 됐다 — 체크인은 가야 한다.
+    .in('payment_status', PAID_STATUSES)
     .gte('delivered_at', eightDaysAgo.toISOString())
     .lt('delivered_at', sevenDaysAgo.toISOString())
     // R97-A (D7): 배치 캡 — 다른 cron 처럼 .limit 추가. 세일 후 배송 폭증

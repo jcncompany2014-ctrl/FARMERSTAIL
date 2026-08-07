@@ -175,7 +175,15 @@ function BillingSuccessInner() {
         paddingBottom: 'calc(32px + env(safe-area-inset-bottom, 0px))',
       }}
     >
-      <div className="text-center max-w-sm w-full">
+      {/* ★상태 전환을 SR 에 발표한다 (2026-08-07 a11y 감사).
+          없으면 "등록 처리 중"만 듣고 성공/실패가 발표되지 않아 —
+          실패를 모른 채 이탈하면 첫 배송이 스케줄되지 않는다.
+          실패 분기는 assertive(즉시 끊고 알림), 나머지는 polite. */}
+      <div
+        className="text-center max-w-sm w-full"
+        role={status === 'failed' ? 'alert' : 'status'}
+        aria-live={status === 'failed' ? 'assertive' : 'polite'}
+      >
         {status === 'exchanging' && (
           <>
             <div

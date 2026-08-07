@@ -136,7 +136,7 @@ export default function SubscriptionsWebClient({
             'total_amount, subtotal, shipping_fee, created_at, ' +
             'has_billing_key, billing_customer_key, billing_card_brand, ' +
             'billing_card_last4, failed_charge_count, next_retry_at, ' +
-            'last_failed_charge_reason, requires_billing_key_renewal, ' +
+            'last_failed_charge_reason, requires_billing_key_renewal, reminder_enabled, ' +
             'subscription_items(*), dogs(id, name)',
       )
       .eq('user_id', user.id)

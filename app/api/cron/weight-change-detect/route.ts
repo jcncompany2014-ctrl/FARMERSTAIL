@@ -51,34 +51,90 @@ async function runDetect(): Promise<Response> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = supabase as any
 
-  // 활성 dog 모두 — limit 500 (운영 초기 < 1k).
   /**
    * ★ `dogs` 에는 **deleted_at 컬럼이 없다** (2026-07-31 프로덕션 실측).
    * 이 필터 때문에 쿼리가 통째로 실패했고, error 를 안 받아 **매번 0마리 처리 후
    * '성공'** 으로 집계됐다 — 체중 급변 경보가 한 번도 나가지 않았다는 뜻이다.
    * 강아지 삭제는 hard delete 다(soft delete 컬럼 자체가 없다).
+   *
+   * ★keyset 순회 (2026-08-07 성능 감사). 예전엔 무정렬 `.limit(500)` 단발이라
+   * 강아지가 500마리를 넘는 순간 **잘린 강아지들은 영원히 검사되지 않았다** —
+   * 성능이 아니라 정확성 문제다. id 오름차순 keyset 으로 전부 수집한다.
+   * PAGE=200 인 이유: 아래 weight_logs 일괄 조회가 `.in(dog_id, ids)` 를
+   * 쓰는데, UUID 200개 ≈ 7KB 로 URL 길이 한도 안에서 여유가 있다.
    */
-  const { data: dogs, error: dogsErr } = await admin
-    .from('dogs')
-    .select('id, user_id, name')
-    .limit(500)
-  if (dogsErr) {
-    captureBusinessEvent('error', 'cron.weight_change.dogs_query_failed', {
-      dbError: dogsErr.message,
-    })
+  const PAGE = 200
+  const dogList: Array<{ id: string; user_id: string; name: string }> = []
+  let lastId: string | null = null
+  for (;;) {
+    let pageQuery = admin
+      .from('dogs')
+      .select('id, user_id, name')
+      .order('id', { ascending: true })
+      .limit(PAGE)
+    if (lastId) pageQuery = pageQuery.gt('id', lastId)
+    const { data: dogs, error: dogsErr } = await pageQuery
+    if (dogsErr) {
+      captureBusinessEvent('error', 'cron.weight_change.dogs_query_failed', {
+        dbError: dogsErr.message,
+      })
+      break
+    }
+    const page = (dogs ?? []) as Array<{
+      id: string
+      user_id: string
+      name: string
+    }>
+    const tail = page[page.length - 1]
+    if (!tail) break
+    dogList.push(...page)
+    lastId = tail.id
+    if (page.length < PAGE) break
   }
 
-  const dogList = (dogs ?? []) as Array<{
-    id: string
-    user_id: string
-    name: string
-  }>
-
   const now = Date.now()
-  const sevenDaysAgo = new Date(now - 7 * 86_400_000).toISOString()
-  const twentyOneDaysAgo = new Date(now - 21 * 86_400_000).toISOString()
+  const sevenDaysAgoMs = now - 7 * 86_400_000
+  const twentyOneDaysAgoMs = now - 21 * 86_400_000
   const thirtyFiveDaysAgo = new Date(now - 35 * 86_400_000).toISOString()
   const fourteenDaysAgo = new Date(now - 14 * 86_400_000).toISOString()
+
+  /**
+   * ★N+1 제거 (2026-08-07 성능 감사) — 예전엔 강아지마다 weight_logs 2쿼리
+   * (최근 7일 + 21~35일 기준선)라 500마리면 1,000쿼리였다. 35일치 기록을
+   * 200마리 단위로 일괄 조회해 메모리에서 가른다. 판정은 동일하다:
+   * latest = 7일 내 최신 1건, baseline = 21~35일 창의 가장 이른 1건.
+   * 일괄 조회가 실패한 배치의 강아지는 Map 에 안 실려 skippedNoData 로
+   * 떨어진다 — 예전의 "조회 실패 → 건너뜀"과 같은 결과이며, 오류는 남긴다.
+   */
+  const logsByDog = new Map<
+    string,
+    Array<{ weight: number; measured_at: string }>
+  >()
+  for (let i = 0; i < dogList.length; i += PAGE) {
+    const ids = dogList.slice(i, i + PAGE).map((d) => d.id)
+    const { data: logsRaw, error: logsErr } = await admin
+      .from('weight_logs')
+      .select('dog_id, weight, measured_at')
+      .in('dog_id', ids)
+      .gte('measured_at', thirtyFiveDaysAgo)
+      .order('measured_at', { ascending: true })
+    if (logsErr) {
+      console.error(
+        '[weight-change-detect] 체중 기록 일괄 조회 실패 — 해당 배치는 건너뜀:',
+        logsErr.message,
+      )
+      continue
+    }
+    for (const row of (logsRaw ?? []) as Array<{
+      dog_id: string
+      weight: number
+      measured_at: string
+    }>) {
+      const arr = logsByDog.get(row.dog_id)
+      if (arr) arr.push(row)
+      else logsByDog.set(row.dog_id, [row])
+    }
+  }
 
   let detected = 0
   let pushed = 0
@@ -88,45 +144,23 @@ async function runDetect(): Promise<Response> {
   let skippedSpam = 0
 
   for (const dog of dogList) {
-    // 최근 weight (지난 7일 이내 측정만 — 너무 오래되면 의미 없음)
-    const { data: latestRow, error: latestRowErr } = await admin
-      .from('weight_logs')
-      .select('weight, measured_at')
-      .eq('dog_id', dog.id)
-      .gte('measured_at', sevenDaysAgo)
-      .order('measured_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    // 일괄 조회 결과에서 이 강아지의 기록(35일치, 오름차순)을 꺼낸다.
+    const logs = logsByDog.get(dog.id) ?? []
 
-    // 실패를 "기록 없음"으로 읽으면 체중 변화를 못 본 채 정상 처리된다.
-    if (latestRowErr) {
-      console.error('[weight-change-detect] 최근 체중 조회 실패, 건너뜀:', latestRowErr.message)
-      skippedNoData += 1
-      continue
-    }
-    const latest = latestRow as { weight: number; measured_at: string } | null
+    // 최근 weight — 지난 7일 이내 측정만(너무 오래되면 의미 없음).
+    // 오름차순이므로 마지막 원소가 최신이고, 그게 7일 밖이면 7일 내 기록은 없다.
+    const last = logs.length > 0 ? logs[logs.length - 1] : undefined
+    const latest =
+      last && Date.parse(last.measured_at) >= sevenDaysAgoMs ? last : null
     if (!latest) {
       skippedNoData += 1
       continue
     }
 
-    // baseline — 21~35일 전 측정 1건.
-    const { data: baselineRow, error: baselineRowErr } = await admin
-      .from('weight_logs')
-      .select('weight, measured_at')
-      .eq('dog_id', dog.id)
-      .gte('measured_at', thirtyFiveDaysAgo)
-      .lte('measured_at', twentyOneDaysAgo)
-      .order('measured_at', { ascending: true })
-      .limit(1)
-      .maybeSingle()
-
-    if (baselineRowErr) {
-      console.error('[weight-change-detect] 기준 체중 조회 실패, 건너뜀:', baselineRowErr.message)
-      skippedNoData += 1
-      continue
-    }
-    const baseline = baselineRow as { weight: number; measured_at: string } | null
+    // baseline — 21~35일 전 창의 가장 이른 측정 1건.
+    // (조회 자체가 35일 하한이라 상한만 확인하면 된다.)
+    const baseline =
+      logs.find((l) => Date.parse(l.measured_at) <= twentyOneDaysAgoMs) ?? null
     if (!baseline) {
       skippedNoData += 1
       continue

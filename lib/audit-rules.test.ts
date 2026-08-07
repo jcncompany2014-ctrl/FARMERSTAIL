@@ -681,8 +681,8 @@ test('★ 규칙17: 서버가 orders 를 셀 때 결제 상태로 거른다', ()
    */
   const ORDER_COUNT_SHIPPING_OK: Array<{ at: string; why: string }> = [
     {
-      at: 'app/api/cron/daily-briefing/route.ts:89',
-      why: "'발송했는데 7일째 배송중' 집계 — order_status='shipping' 자체가 결제 완료 이후 상태다",
+      at: 'app/api/cron/daily-briefing/route.ts:92',
+      why: "'발송했는데 7일째 배송중' 집계 — order_status='shipping' 자체가 결제 완료 이후 상태다 (2026-08-08 미발송 큐에 주석 3줄 추가로 이동, 재확인함)",
     },
   ]
 
@@ -1825,8 +1825,21 @@ test('규칙42 — 어드민이 "결제됨"을 paid 하나로 판정하지 않�
    * 여러 파일에 흩어지면 갈라진다 — 이 저장소에서 이미 여러 번 겪었다
    * (전화번호 검증 4곳 · kcal 웹/앱 · needs_card 앱/웹).
    */
+  /**
+   * ★스캔 범위를 app/lib 전체로 (2026-08-08 적대적 재감사 #5).
+   *
+   * admin 두 디렉터리만 걷던 시절, **범위 밖에서 같은 버그 4개가 초록인 채**
+   * 살아 있었다: daily-briefing(사장님 아침 브리핑의 미발송 큐 — 발송 누락의
+   * 마지막 백스톱이 부분환불 주문을 못 봤다) · first-box-checkin ·
+   * feeding-outcomes · analysis/structured. 규칙의 존재가 "커버됐다"는
+   * 착각을 만들면 규칙이 없는 것보다 나쁘다 — 전체를 걷는다.
+   *
+   * 정당한 'paid' 단독 비교(웹훅 상태 전이 판정 등)는 `.eq()` 필터 형태가
+   * 아니라 `===` 비교라 이 정규식에 안 걸린다. 필터로 'paid' 단독을 쓰는
+   * 곳이 새로 생기면 사람이 한 번 보게 하는 것이 목적이다.
+   */
   const offenders: string[] = []
-  for (const dir of ['app/admin', 'app/api/admin']) {
+  for (const dir of ['app', 'lib']) {
     for (const file of walk(join(ROOT, dir))) {
       if (!/\.tsx?$/.test(file) || file.includes('.test.')) continue
       const rel = file.replace(ROOT, '').split(sep).join('/')

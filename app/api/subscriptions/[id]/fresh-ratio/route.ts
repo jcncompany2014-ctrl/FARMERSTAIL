@@ -9,6 +9,9 @@ import { subscriptionState, type SubLike } from '@/lib/subscription-state'
 import { FRESH_TIERS } from '@/lib/subscription/freshTier'
 import { quoteBox } from '@/lib/subscription/boxQuote'
 import type { Formula } from '@/lib/personalization/types'
+import { SHIP_WEEKDAY, weekdayOf } from '@/lib/shipping-schedule'
+import { addDaysKst, todayKstIsoDate } from '@/lib/datetime-kst'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -117,6 +120,53 @@ async function loadSubAndFormula(
       status: 409,
       code: 'NO_DOG',
       message: '이 정기배송에 연결된 아이가 없어요',
+    }
+  }
+
+  /**
+   * ★구성 변경 마감을 코드로 (2026-08-08 적대적 재감사 #4).
+   *
+   * 정본(lib/shipping-schedule)은 "박스 구성 변경 = **일요일 마감**"이라고
+   * 문서로만 말하고 있었다 — 월요일에 원료를 손질하고 화요일 09:10 에
+   * 청구하기 때문이다. 코드에 마감이 없어서 두 방향 사고가 가능했다:
+   *  · 월~화 청구 전 변경 — 화면은 "다음 결제부터"라는데 **이번 청구에**
+   *    새 금액이 실리고, 주방은 이미 옛 비율로 손질을 시작했다.
+   *  · 화 청구 후 변경 — 긁은 돈은 옛 비율, 피킹 리스트 팩 구성은 새 비율.
+   *    화면 금액도 새 값이라 사장님 눈에는 **어긋남이 보이지도 않는다.**
+   * 잠금 두 겹:
+   *  ① 결제된 발송 대기 주문이 있으면(청구 후 ~ 발송 전) 잠금
+   *  ② 이번 주 발송 대상인데 일요일 마감이 지났으면(월·화) 잠금
+   * 이 잠금이 있어야 기존 안내 문구("다음 결제부터 적용")가 참이 된다.
+   */
+  const { count: pendingBoxCount, error: pendingBoxErr } = await supabase
+    .from('orders')
+    .select('id', { count: 'exact', head: true })
+    .eq('subscription_id', sub.id)
+    .in('payment_status', PAID_STATUSES)
+    .eq('order_status', 'preparing')
+  if (pendingBoxErr) {
+    return {
+      ok: false,
+      status: 503,
+      code: 'LOOKUP_FAILED',
+      message: '일시적인 오류가 있어요. 잠시 후 다시 시도해 주세요',
+    }
+  }
+  const todayKst = todayKstIsoDate()
+  const upcomingShip = addDaysKst(
+    todayKst,
+    (SHIP_WEEKDAY - weekdayOf(todayKst) + 7) % 7,
+  )
+  const sundayDeadline = addDaysKst(upcomingShip, -2)
+  const dueThisWeek =
+    sub.next_delivery_date != null && sub.next_delivery_date <= upcomingShip
+  if ((pendingBoxCount ?? 0) > 0 || (dueThisWeek && todayKst > sundayDeadline)) {
+    return {
+      ok: false,
+      status: 409,
+      code: 'CHANGE_WINDOW_CLOSED',
+      message:
+        '이번 주 박스는 준비가 시작돼 지금은 바꿀 수 없어요. 박스를 받으신 뒤에 바꾸시면 다음 박스부터 적용돼요.',
     }
   }
 

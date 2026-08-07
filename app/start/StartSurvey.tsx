@@ -742,45 +742,45 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
               <div className="rounded-[12px] px-5 py-5" style={{ marginTop: 12, background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
                 <div className="space-y-4">
                   <div>
-                    <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>보호자 이름</label>
-                    <input type="text" value={guardianName} maxLength={20} placeholder="예: 홍길동" autoComplete="name"
+                    <label htmlFor="su-guardian-name" className={labelCls} style={{ color: 'var(--fd-pine)' }}>보호자 이름</label>
+                    <input id="su-guardian-name" type="text" value={guardianName} maxLength={20} placeholder="예: 홍길동" autoComplete="name"
                       onChange={(e) => setGuardianName(e.target.value)} className={inputCls} style={inputStyle} />
                   </div>
                   <div>
-                    <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>이메일</label>
-                    <input type="email" value={email} placeholder="example@email.com" autoComplete="email"
+                    <label htmlFor="su-email" className={labelCls} style={{ color: 'var(--fd-pine)' }}>이메일</label>
+                    <input id="su-email" type="email" value={email} placeholder="example@email.com" autoComplete="email"
                       inputMode="email" autoCapitalize="off" autoCorrect="off" spellCheck={false}
                       onChange={(e) => setEmail(e.target.value)} className={inputCls} style={inputStyle} />
                   </div>
                   <div>
-                    <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>비밀번호</label>
-                    <input type="password" value={password} placeholder="영문·숫자·특수문자 포함 8자 이상" autoComplete="new-password"
+                    <label htmlFor="su-password" className={labelCls} style={{ color: 'var(--fd-pine)' }}>비밀번호</label>
+                    <input id="su-password" type="password" value={password} placeholder="영문·숫자·특수문자 포함 8자 이상" autoComplete="new-password"
                       onChange={(e) => setPassword(e.target.value)} className={inputCls}
                       style={{ ...inputStyle, borderColor: password && !passwordStrong(password) ? 'var(--sale)' : 'var(--fd-line)' }} />
                     {password && !passwordStrong(password) && (
-                      <p className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />영문·숫자·특수문자를 포함해 8자 이상이어야 해요
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>비밀번호 확인</label>
-                    <input type="password" value={confirmPassword} placeholder="비밀번호를 한 번 더 입력" autoComplete="new-password"
+                    <label htmlFor="su-password-confirm" className={labelCls} style={{ color: 'var(--fd-pine)' }}>비밀번호 확인</label>
+                    <input id="su-password-confirm" type="password" value={confirmPassword} placeholder="비밀번호를 한 번 더 입력" autoComplete="new-password"
                       onChange={(e) => setConfirmPassword(e.target.value)} className={inputCls}
                       style={{ ...inputStyle, borderColor: passwordMismatch ? 'var(--sale)' : 'var(--fd-line)' }} />
                     {passwordMismatch && (
-                      <p className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />비밀번호가 일치하지 않아요
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className={labelCls} style={{ color: 'var(--fd-pine)' }}>보호자 출생연도 <span style={{ color: 'var(--fd-muted)' }}>(만 14세 이상)</span></label>
-                    <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4} value={birthYear}
+                    <label htmlFor="su-birth-year" className={labelCls} style={{ color: 'var(--fd-pine)' }}>보호자 출생연도 <span style={{ color: 'var(--fd-muted)' }}>(만 14세 이상)</span></label>
+                    <input id="su-birth-year" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4} value={birthYear}
                       placeholder={`예: ${currentYear - 30}`} onChange={(e) => setBirthYear(e.target.value.replace(/[^0-9]/g, ''))}
                       className={inputCls} style={{ ...inputStyle, borderColor: birthYear && !birthYearValid ? 'var(--sale)' : 'var(--fd-line)', fontVariantNumeric: 'tabular-nums' }} />
                     {birthYear && !birthYearValid && (
-                      <p className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />만 14세 이상만 가입할 수 있어요
                       </p>
                     )}

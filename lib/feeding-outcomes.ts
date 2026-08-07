@@ -20,6 +20,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 
 export type OutcomeSource =
   | 'first_order'
@@ -117,7 +118,7 @@ export async function isFirstBoxForDog(
     .from('orders')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', dog.user_id)
-    .eq('payment_status', 'paid')
+    .in('payment_status', PAID_STATUSES)
 
   return (count ?? 0) <= 1
 }

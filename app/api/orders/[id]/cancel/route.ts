@@ -132,6 +132,31 @@ export async function POST(
     )
   }
 
+  /**
+   * ★부분환불 주문은 셀프 취소를 막는다 (2026-08-07 적대적 재감사 #1).
+   *
+   * 부분환불(partially_refunded)은 어드민이 품절 등으로 일부만 환불한 상태다.
+   * 그대로 이 경로를 태우면 세 가지가 동시에 틀어진다:
+   *  ① 아래 토스 환불 호출이 `paid` 만 보므로 **남은 금액이 환불되지 않고**
+   *  ② `refundAmount = 0` 이 기존 refunded_amount 를 **0 으로 덮어** 원장에서
+   *     이미 나간 환불 기록이 사라지며
+   *  ③ 화면·알림은 "취소 완료"라고 말한다 — 고객 돈은 우리에게 남아 있는데.
+   * 어드민 상태 라우트는 같은 위험을 REFUND_REQUIRED 로 이미 막고 있다 —
+   * 고객 경로에만 그 가드가 없었다. 남은 금액 자동 환불은 부분취소 멱등키
+   * 설계를 그대로 써야 하는 돈 코드라 별도 작업으로 미루고, 지금은 VA 와
+   * 같은 CS 동선으로 안내한다.
+   */
+  if (order.payment_status === 'partially_refunded') {
+    return NextResponse.json(
+      {
+        code: 'PARTIAL_REFUND_NEEDS_CS',
+        message:
+          '이 주문은 일부 금액이 이미 환불된 주문이에요. 남은 금액까지 확인해서 정확히 환불해 드리려면 1:1 문의로 신청해 주세요 — 영업일 기준 1-3일 안에 처리해 드릴게요.',
+      },
+      { status: 400 },
+    )
+  }
+
   // R84-C1: 가상계좌/계좌이체 self-cancel 은 Toss 가 refundReceiveAccount 필수.
   // 현재 UI 가 환불계좌 입력 폼이 없어서 호출 시 Toss 400. 임시: VA 사용자는
   // self-cancel 차단 + 1:1 문의 안내. 본격적인 환불계좌 입력 UI 는 BACKLOG.

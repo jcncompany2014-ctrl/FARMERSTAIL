@@ -223,10 +223,11 @@ export default function StartJoinPage() {
         {/* 이메일 회원가입 — 수집 항목·조건이 한 화면에(카카오 심사 근거). */}
         <div className="space-y-4">
           <div>
-            <label className={labelCls} style={{ color: 'var(--ink)' }}>
+            <label htmlFor="join-guardian-name" className={labelCls} style={{ color: 'var(--ink)' }}>
               보호자 이름
             </label>
             <input
+              id="join-guardian-name"
               type="text"
               value={guardianName}
               maxLength={20}
@@ -239,10 +240,11 @@ export default function StartJoinPage() {
             />
           </div>
           <div>
-            <label className={labelCls} style={{ color: 'var(--ink)' }}>
+            <label htmlFor="join-email" className={labelCls} style={{ color: 'var(--ink)' }}>
               이메일
             </label>
             <input
+              id="join-email"
               type="email"
               value={email}
               placeholder="example@email.com"
@@ -258,10 +260,11 @@ export default function StartJoinPage() {
             />
           </div>
           <div>
-            <label className={labelCls} style={{ color: 'var(--ink)' }}>
+            <label htmlFor="join-password" className={labelCls} style={{ color: 'var(--ink)' }}>
               비밀번호
             </label>
             <input
+              id="join-password"
               type="password"
               value={password}
               placeholder="영문·숫자·특수문자 포함 8자 이상"
@@ -279,6 +282,7 @@ export default function StartJoinPage() {
             />
             {password && !passwordStrong(password) && (
               <p
+                role="alert"
                 className="mt-1 flex items-center gap-1"
                 style={{
                   fontSize: 11,
@@ -292,10 +296,11 @@ export default function StartJoinPage() {
             )}
           </div>
           <div>
-            <label className={labelCls} style={{ color: 'var(--ink)' }}>
+            <label htmlFor="join-password-confirm" className={labelCls} style={{ color: 'var(--ink)' }}>
               비밀번호 확인
             </label>
             <input
+              id="join-password-confirm"
               type="password"
               value={confirmPassword}
               placeholder="비밀번호를 한 번 더 입력"
@@ -310,6 +315,7 @@ export default function StartJoinPage() {
             />
             {passwordMismatch && (
               <p
+                role="alert"
                 className="mt-1 flex items-center gap-1"
                 style={{
                   fontSize: 11,
@@ -323,11 +329,12 @@ export default function StartJoinPage() {
             )}
           </div>
           <div>
-            <label className={labelCls} style={{ color: 'var(--ink)' }}>
+            <label htmlFor="join-birth-year" className={labelCls} style={{ color: 'var(--ink)' }}>
               보호자 출생연도{' '}
               <span style={{ color: 'var(--muted)' }}>(만 14세 이상)</span>
             </label>
             <input
+              id="join-birth-year"
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
@@ -348,6 +355,7 @@ export default function StartJoinPage() {
             />
             {birthYear && !birthYearValid && (
               <p
+                role="alert"
                 className="mt-1 flex items-center gap-1"
                 style={{
                   fontSize: 11,

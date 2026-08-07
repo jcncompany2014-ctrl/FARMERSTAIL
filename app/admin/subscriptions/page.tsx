@@ -40,9 +40,14 @@ type SubscriptionRow = {
   total_deliveries: number
   recipient_name: string | null
   recipient_phone: string | null
-  recipient_address: string | null
-  recipient_address_detail: string | null
-  recipient_zip: string | null
+  /** ★실제 컬럼명은 address/address_detail/zip — recipient_* 는 유령이었다
+   *  (2026-08-08 캐스트 감사 #1). select('*') 시절엔 타입만 틀린 채 NULL 로
+   *  보였는데, select 를 명시 목록으로 좁힌 커밋이 유령 이름을 문자열에
+   *  옮겨 적어 PostgREST 42703 → 화면 전체가 LoadError 로 죽었다.
+   *  캐스트(as unknown as)가 tsc 를 우회시켜 초록인 채 배포됐다. */
+  address: string | null
+  address_detail: string | null
+  zip: string | null
   subtotal: number
   shipping_fee: number
   total_amount: number
@@ -100,8 +105,8 @@ export default function AdminSubscriptionsPage() {
       .select(
         'id, user_id, status, interval_weeks, coverage_weeks, fresh_ratio, ' +
           'next_delivery_date, last_delivery_date, total_deliveries, ' +
-          'recipient_name, recipient_phone, recipient_address, ' +
-          'recipient_address_detail, recipient_zip, subtotal, shipping_fee, ' +
+          'recipient_name, recipient_phone, address, ' +
+          'address_detail, zip, subtotal, shipping_fee, ' +
           'total_amount, created_at, dog_id, requires_billing_key_renewal, ' +
           'billing_card_brand, has_billing_key, ' +
           'profiles(name, email), subscription_items(*), dogs(id, name)',
