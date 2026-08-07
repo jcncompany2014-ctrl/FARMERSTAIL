@@ -162,7 +162,18 @@ export async function POST(req: Request) {
     //   **그 칸에 들어갈 값을 만드는 테이블**이 열려 있으면 소용없다.
     //   청구 검문소도 같은 행을 재계산하므로 stored == recomputed 로 통과한다.
     //   소유권은 이 라우트가 위에서 이미 확인했고, 범위는 코드가 책임진다.
-    const { error } = await createAdminClient()
+    /**
+     * ★CAS — pending_approval 인 행만 전이시킨다 (2026-08-08 동시성 감사).
+     *
+     * 위 pending 검사(SELECT)와 이 UPDATE 사이에 창이 있다. 최악 조합:
+     * 타임아웃 크론(08:40)이 이 행을 declined 로 처리하는 순간 고객이 아침에
+     * 승인 탭을 누르면 — CAS 없이는 **declined 처방 위에 승인 필드가 덮여**
+     * 새 total_amount 와 옛 레시피가 공존하고, 다음 청구가 새 금액으로 옛
+     * 박스를 긁는다. 두 화면이 같은 시간대라 창이 실재한다.
+     *
+     * 0행이면 이미 다른 쪽이 처리한 것 — 오류가 아니라 "늦었다"고 말한다.
+     */
+    const { data: approvedRows, error } = await createAdminClient()
       .from('dog_formulas')
       .update({
         approval_status: 'approved',
@@ -171,9 +182,22 @@ export async function POST(req: Request) {
         applied_until: plus28,
       })
       .eq('id', pending.id)
+      .eq('approval_status', 'pending_approval')
+      .select('id')
 
     if (error) {
       return dbError(error, 'personalization_approve', '확정에 실패했어요')
+    }
+    if (!approvedRows || approvedRows.length === 0) {
+      // 타임아웃 크론이 먼저 마감했거나 다른 기기에서 이미 응답한 것.
+      return NextResponse.json(
+        {
+          code: 'ALREADY_RESOLVED',
+          message:
+            '이 제안은 이미 처리됐어요. 화면을 새로고침해 최신 상태를 확인해 주세요.',
+        },
+        { status: 409 },
+      )
     }
 
     /**
@@ -310,13 +334,26 @@ export async function POST(req: Request) {
 
   // decline — 이전 cycle 처방의 applied_until 을 +28일 연장.
   // service_role — 위 approve 와 같은 이유(고객 UPDATE 권한 회수).
-  const { error: declineErr } = await createAdminClient()
+  // CAS — 승인 쪽과 같은 이유(위 주석). 0행이면 이미 처리된 것.
+  const { data: declinedRows, error: declineErr } = await createAdminClient()
     .from('dog_formulas')
     .update({
       approval_status: 'declined',
       approved_at: null,
     })
     .eq('id', pending.id)
+    .eq('approval_status', 'pending_approval')
+    .select('id')
+  if (!declineErr && (!declinedRows || declinedRows.length === 0)) {
+    return NextResponse.json(
+      {
+        code: 'ALREADY_RESOLVED',
+        message:
+          '이 제안은 이미 처리됐어요. 화면을 새로고침해 최신 상태를 확인해 주세요.',
+      },
+      { status: 409 },
+    )
+  }
   if (declineErr) {
     // audit #69: 원본 DB message 클라이언트 노출 제거 — 서버 로그만(2026-06-20).
     console.error('[personalization/approve] decline db error:', declineErr.message)

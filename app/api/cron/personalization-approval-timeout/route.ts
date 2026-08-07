@@ -81,6 +81,7 @@ export async function GET(req: Request) {
   const rows = (pending ?? []) as unknown as PendingRow[]
   let declined = 0
   let extended = 0
+  let extendFailed = 0
   // 이번 회차에 손대지 않고 다음 실행으로 넘긴 건 — 안 세면 조용히 사라진다.
   let deferred = 0
   let failed = 0
@@ -131,25 +132,48 @@ export async function GET(req: Request) {
       }
 
       // 1) 본 row 를 declined 로 전환.
-      const { error: updErr } = await supabase
+      //
+      // ★CAS — pending_approval 인 행만 (2026-08-08 동시성 감사).
+      //  이 크론(08:40)과 고객의 아침 승인 탭이 같은 시간대다. CAS 없이는
+      //  고객이 **방금 승인한** 행을 여기가 declined 로 덮어, 새 금액과
+      //  옛 레시피가 공존했다. 0행이면 고객이 이겼다 — 건너뛴다.
+      const { data: declinedRows, error: updErr } = await supabase
         .from('dog_formulas')
         .update({
           approval_status: 'declined',
           approved_at: now,
         })
         .eq('id', row.id)
+        .eq('approval_status', 'pending_approval')
+        .select('id')
       if (updErr) throw updErr
+      if (!declinedRows || declinedRows.length === 0) {
+        // 그 사이 고객이 응답했다 — 마감할 것이 없다.
+        continue
+      }
       declined += 1
 
       // 2) 이전 cycle 의 applied_until 을 +28d 연장 (위에서 미리 읽어 둔 값).
       if (prevRow && prevRow.applied_until) {
         const newUntil = new Date(prevRow.applied_until)
         newUntil.setDate(newUntil.getDate() + 28)
-        await supabase
+        // ★error 를 받는다 (2026-08-08). 예전엔 안 받고 extended 를 올렸다 —
+        //  본 row 는 이미 declined 라 다음 실행의 pending 필터에 안 걸리므로,
+        //  연장이 실패하면 **영구 누락**(활성 처방 공백)인데 지표는 초록이었다.
+        const { error: extErr } = await supabase
           .from('dog_formulas')
           .update({ applied_until: newUntil.toISOString().slice(0, 10) })
           .eq('id', prevRow.id)
-        extended += 1
+        if (extErr) {
+          console.error(
+            '[approval-timeout] 이전 회차 연장 실패 — 활성 처방 공백 위험:',
+            row.id,
+            extErr.message,
+          )
+          extendFailed += 1
+        } else {
+          extended += 1
+        }
       }
 
       // 3) push 알림 — "5일 무응답으로 이전 비율 유지" — 보호자 알림.
@@ -175,6 +199,25 @@ export async function GET(req: Request) {
       failed += 1
     }
   }
+
+    // 연장 실패는 활성 처방 공백 위험 — 5xx 로 올려 trackCron 이 error 로
+    // 기록하고 사람이 본다(조용한 200 이면 영구 누락이 초록으로 위장한다).
+    if (extendFailed > 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: 'EXTEND_FAILED',
+          message: `이전 회차 연장 실패 ${extendFailed}건 — 활성 처방 공백 위험`,
+          pending: rows.length,
+          declined,
+          deferred,
+          extended,
+          extendFailed,
+          failed,
+        },
+        { status: 500 },
+      )
+    }
 
     return NextResponse.json({
       ok: true,

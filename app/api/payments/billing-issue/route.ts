@@ -184,6 +184,32 @@ export async function POST(req: Request) {
     next_delivery_date?: string | null
     dog_id?: string | null
   } | null
+
+  /**
+   * ★cancelled 구독에는 빌링키를 저장하지 않는다 (2026-08-08 동시성 감사).
+   *
+   * subscription-cleanup(03:30)이 카드 미등록 1시간+ 구독을 cancelled 로
+   * 정리한다. 고객이 그 시각을 걸치고 토스 카드창에 있으면(수 분), cleanup 이
+   * 먼저 해지하고 **여기가 status 를 안 보고** 빌링키를 저장한 뒤
+   * "카드 등록 완료" 를 돌려줬다. 부활 가드 트리거가 cancelled→active 복구를
+   * 막으므로 **영구 침묵**: 고객은 구독 중이라 믿는데 청구도 박스도 영원히
+   * 없다. cleanup 쪽 재확인과 함께 양쪽에서 막는다 — 한쪽만 고치면 반쪽이다.
+   *
+   * 토스에는 빌링키가 이미 발급됐지만 재신청 시 새 customerKey 로 다시
+   * 발급받으므로 잔재가 문제되지 않는다.
+   */
+  if (cur?.status === 'cancelled') {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: 'SUBSCRIPTION_CANCELLED',
+        message:
+          '이 정기배송 신청은 시간이 지나 취소됐어요. 강아지 화면에서 다시 신청해 주세요 — 1분이면 돼요.',
+      },
+      { status: 409 },
+    )
+  }
+
   /**
    * ★자동 재개 조건을 넓혔다 (2026-08-07 고객 실패경로 감사).
    *

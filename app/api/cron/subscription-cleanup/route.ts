@@ -84,7 +84,20 @@ export async function GET(req: Request) {
   // R84-D5: next_delivery_date 는 NOT NULL 제약. 이전 코드는 null 박아서 update
   // 자체가 fail → cron 실패. status='cancelled' 만 set 하면 cron loop 가 그 row
   // 를 skip 하므로 next_delivery_date 는 그대로 둬도 부하 영향 없음.
-  const { error: upErr } = await supabase
+  /**
+   * ★UPDATE 에서 조건을 **재확인**한다 (2026-08-08 동시성 감사).
+   *
+   * 예전엔 `.in('id', ids)` 로만 덮었다. 그런데 위 SELECT 와 이 UPDATE 사이에
+   * **카드 등록이 커밋되면**(1시간을 넘긴 고객이 03:30 을 걸치고 토스 창에
+   * 있는 경우 — 창이 수 분이다) 방금 카드를 건 구독을 해지해 버린다.
+   * 이어서 billing-issue 는 status 를 검사하지 않아 cancelled 위에 빌링키를
+   * 저장하고 "카드 등록 완료" 를 돌려주고, 부활 가드 트리거가 복구를 막아
+   * **영구 침묵**이 된다: 고객은 구독 중이라 믿는데 청구도 박스도 영원히 없다.
+   *
+   * 조건을 UPDATE 에 다시 걸면 그 사이 billing_key 가 생긴 행은 0행으로
+   * 걸러진다 — SELECT 는 후보 추리기, 판정은 쓰기가 한다.
+   */
+  const { data: cleanedRows, error: upErr } = await supabase
     .from('subscriptions')
     .update({
       status: 'cancelled',
@@ -92,6 +105,9 @@ export async function GET(req: Request) {
       cancelled_at: nowIso,
     })
     .in('id', ids)
+    .is('billing_key', null)
+    .eq('status', 'active')
+    .select('id')
 
   if (upErr) {
     return NextResponse.json(
@@ -102,7 +118,9 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     ok: true,
-    cleaned: rows.length,
+    // 실제로 정리된 수 — 재확인 조건에 걸러진 행(그 사이 카드 등록)은 빠진다.
+    cleaned: (cleanedRows ?? []).length,
+    skippedByRecheck: rows.length - (cleanedRows ?? []).length,
     cleanedAt: nowIso,
   })
   })

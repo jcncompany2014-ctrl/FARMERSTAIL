@@ -88,7 +88,7 @@ export async function POST(
   const { data: order, error: orderErr } = await supabase
     .from('orders')
     .select(
-      'id, user_id, order_number, payment_status, order_status, payment_key, payment_method, total_amount, recipient_name'
+      'id, user_id, order_number, payment_status, order_status, payment_key, payment_method, total_amount, recipient_name, subscription_id'
     )
     .eq('id', id)
     .eq('user_id', user.id)
@@ -300,11 +300,24 @@ export async function POST(
         itemsArr.map((it) => it.id),
       )
     // refunded_amount = line_total 일괄 업데이트
+    /**
+     * ★재고 복원은 **예약이 있었던 주문만** (2026-08-08 동시성 감사).
+     *
+     * 구독 청구가 만든 주문은 재고를 **차감하지 않는다**(reserve_order_stock
+     * 호출처가 낱개 커머스 폐지로 0이 됐다). 그런데 취소는 무조건
+     * restore_stock 을 불러서 — **결제된 주문을 취소할 때마다 재고가 유령
+     * 증가**했다. 경합이 아니라 취소마다 확정 발생이다.
+     * order-expire 는 같은 이유로 `subscription_id === null` gate 를 이미
+     * 달았다(그쪽 주석 참조) — 여기만 남아 있었다.
+     */
+    const reservedStock =
+      (order as { subscription_id?: string | null }).subscription_id == null
     for (const it of itemsArr) {
       await admin
         .from('order_items')
         .update({ refunded_amount: it.line_total })
         .eq('id', it.id)
+      if (!reservedStock) continue
       // stock 복원
       await admin.rpc('restore_stock', {
         p_product_id: it.product_id,

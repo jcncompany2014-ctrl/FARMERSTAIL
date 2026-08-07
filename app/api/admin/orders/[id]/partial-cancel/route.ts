@@ -95,7 +95,7 @@ export async function POST(
   const { data: order, error: orderErr } = await admin
     .from('orders')
     .select(
-      'id, user_id, payment_status, payment_method, payment_key, total_amount, refunded_amount'
+      'id, user_id, payment_status, payment_method, payment_key, total_amount, refunded_amount, subscription_id'
     )
     .eq('id', id)
     .single()
@@ -293,7 +293,13 @@ export async function POST(
       product_id: string
       quantity: number
     }>
+    // ★구독 청구 주문은 재고를 차감하지 않았으므로 복원도 없다 — 무조건
+    //  복원하면 취소마다 재고가 유령 증가한다(2026-08-08 동시성 감사,
+    //  고객 취소 라우트·order-expire 와 같은 gate).
+    const reservedStock =
+      (order as { subscription_id?: string | null }).subscription_id == null
     for (const it of restoreArr) {
+      if (!reservedStock) break
       await admin.rpc('restore_stock', {
         p_product_id: it.product_id,
         p_qty: it.quantity,
