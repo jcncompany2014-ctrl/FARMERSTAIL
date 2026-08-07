@@ -18,6 +18,7 @@ import {
   PhotoSlot,
   Section,
 } from '@/components/web/fd/ui'
+import { planHref } from '@/lib/funnel-cta'
 
 /**
  * /about — 브랜드 이야기 (farm v6 = FD 톤 리스타일, 2026-06-13).
@@ -60,9 +61,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-function planHref(isAuthed: boolean) {
-  return isAuthed ? '/dogs/new' : '/start'
-}
+
 
 // 실제 계약 농가·인증 확보 전까지는 구체 출처 대신 "원료를 고르는 기준"을 표기.
 // (실 계약 시 '재료 → 농가·등급' 형태로 복원 — partners 페이지와 동일 정책, 2026-06)
@@ -423,7 +422,7 @@ export default async function AboutPage() {
                   첫 박스부터 부담 없이 — {STOP_TIMING_COPY}
                 </p>
                 <div className="pt-8 flex flex-col sm:flex-row justify-center gap-3">
-                  <Button href={planHref(isAuthed)} tone="cream" size="lg">
+                  <Button href={planHref(isAuthed, false)} tone="cream" size="lg">
                     2분 설문 시작하기
                     <ArrowRight size={19} strokeWidth={2.4} />
                   </Button>
@@ -436,7 +435,7 @@ export default async function AboutPage() {
           </Container>
         </Section>
       </main>
-      <StickyCta href={planHref(isAuthed)} />
+      <StickyCta href={planHref(isAuthed, false)} />
     </WebChrome>
   )
 }

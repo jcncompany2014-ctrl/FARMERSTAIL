@@ -9,6 +9,7 @@ import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
 import { Container, Display, Eyebrow, Section } from '@/components/web/fd/ui'
 import StickyCta from '@/components/web/fd/StickyCta'
+import { planHref } from '@/lib/funnel-cta'
 
 /**
  * /blog — 매거진 인덱스 (farm v6 = FD 톤 리스타일, 2026-06-13).
@@ -264,7 +265,7 @@ export default async function BlogIndexPage({
         </Section>
       </main>
       {/* 모바일 sticky 설문 CTA — 다른 마케팅 페이지와 동일(회차98 재추가, blog 정상화 후) */}
-      <StickyCta href={isAuthed ? '/dogs/new' : '/start'} />
+      <StickyCta href={planHref(!!isAuthed, false)} />
     </WebChrome>
   )
 }

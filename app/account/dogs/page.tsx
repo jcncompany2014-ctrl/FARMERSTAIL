@@ -66,7 +66,7 @@ export default async function AccountDogsPage() {
     supabase
       .from('subscriptions')
       .select(
-        'dog_id, status, billing_key, next_delivery_date, ' +
+        'dog_id, status, has_billing_key, next_delivery_date, ' +
           'failed_charge_count, requires_billing_key_renewal',
       )
       .eq('user_id', user.id),

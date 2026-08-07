@@ -10,7 +10,19 @@ import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 type SubscriptionRow = {
   id: string
-  billing_key: string | null
+  /**
+   * ★빌링키 **값** 은 브라우저로 내리지 않는다 (2026-08-08 보안 재감사).
+   *
+   * 이 화면은 `'use client'` 인데 `select('*')` 를 하고 있었다 — 즉
+   * **전 고객의 `billing_key`·`billing_customer_key` 가 어드민 브라우저의
+   * 네트워크 응답과 메모리에 통째로 올라갔다.** 어드민 기기 침해·악성 확장·
+   * XSS 하나면 전 고객 결제 자격증명이 한 번에 나간다.
+   *
+   * 그런데 이 화면이 실제로 쓰는 건 `!!billing_key`(등록 여부) 하나뿐이다.
+   * 20260808000000 이 홈 RPC 에서 이미 정한 패턴(`has_billing_key` 불리언)과
+   * 같은 모양으로 맞춘다.
+   */
+  has_billing_key: boolean
   /**
    * 카드가 **영구 거절**되어 고객의 재등록이 필요한 상태. 청구 크론이 대상에서
    * 제외하는 기준이라(`.eq('requires_billing_key_renewal', false)`), 이 값을
@@ -79,9 +91,21 @@ export default function AdminSubscriptionsPage() {
 
   async function loadAll() {
     setLoading(true)
+    // ★`select('*')` 금지 — 위 has_billing_key 주석 참조. 쓸 칸만 명시한다.
+    //  `billing_key`·`billing_customer_key` 외에 `last_charge_lock_at`·
+    //  `next_retry_at`·`last_failed_charge_code` 같은 서버 전용 칸도 함께
+    //  빠진다(별표는 그것들까지 전부 내보냈다).
     const { data, error } = await supabase
       .from('subscriptions')
-      .select('*, profiles(name, email), subscription_items(*), dogs(id, name)')
+      .select(
+        'id, user_id, status, interval_weeks, coverage_weeks, fresh_ratio, ' +
+          'next_delivery_date, last_delivery_date, total_deliveries, ' +
+          'recipient_name, recipient_phone, recipient_address, ' +
+          'recipient_address_detail, recipient_zip, subtotal, shipping_fee, ' +
+          'total_amount, created_at, dog_id, requires_billing_key_renewal, ' +
+          'billing_card_brand, has_billing_key, ' +
+          'profiles(name, email), subscription_items(*), dogs(id, name)',
+      )
       .order('created_at', { ascending: false })
 
     setLoadError(Boolean(error))
@@ -164,7 +188,8 @@ export default function AdminSubscriptionsPage() {
        * 해서 배송일을 잡지 않고, 사장님께 왜 그런지 알린다.
        * (이 두 칸은 화이트리스트 안이라 여기서 그대로 쓸 수 있다 — 규칙13.)
        */
-      const cardUsable = !!sub?.billing_key && !sub?.requires_billing_key_renewal
+      const cardUsable =
+        !!sub?.has_billing_key && !sub?.requires_billing_key_renewal
       if (cardUsable) {
         // 배송 주기는 2주 하나로 고정 — 재개는 다음 화요일부터(2026-07-16).
         updates.next_delivery_date = nextShipDate()

@@ -80,7 +80,7 @@ export type DogSub = SubLike & {
   address: string | null
   address_detail: string | null
   /** 등록 여부 정본. 카드번호(last4)는 토스페이 등록 시 안 온다. */
-  billing_key: string | null
+  has_billing_key: boolean
   billing_card_brand: string | null
   billing_card_last4: string | null
   billing_customer_key: string | null
@@ -334,7 +334,7 @@ function SubCard({
   const recipes = sub.subscription_items.map((i) => i.product_name).join(' · ')
 
   const method = billingMethodSummary({
-    registered: !!sub.billing_key,
+    registered: !!sub.has_billing_key,
     brand: sub.billing_card_brand,
     last4: sub.billing_card_last4,
   })

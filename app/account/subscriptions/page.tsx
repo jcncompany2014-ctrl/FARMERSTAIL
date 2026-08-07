@@ -67,7 +67,18 @@ export default async function AccountSubscriptionsPage({
 
   const { data, error: subsErr } = await supabase
     .from('subscriptions')
-    .select('*, subscription_items(*), dogs(id, name)')
+    // ★`select('*')` 금지 (2026-08-08 보안 재감사) — 빌링키·서버 전용 칸이
+    //  통째로 브라우저로 갔다. 쓰는 칸만 명시하고, 카드 등록 여부는
+    //  has_billing_key 계산 컬럼(20260808000100)으로 받는다.
+    .select(
+      'id, dog_id, status, interval_weeks, coverage_weeks, fresh_ratio, ' +
+        'next_delivery_date, last_delivery_date, total_deliveries, ' +
+        'total_amount, subtotal, shipping_fee, created_at, ' +
+        'has_billing_key, billing_customer_key, billing_card_brand, ' +
+        'billing_card_last4, failed_charge_count, next_retry_at, ' +
+        'last_failed_charge_reason, requires_billing_key_renewal, ' +
+        'subscription_items(*), dogs(id, name)',
+    )
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -120,7 +131,10 @@ export default async function AccountSubscriptionsPage({
     )
   }
 
-  const initialSubs = (data ?? []) as Subscription[]
+  // ★`as unknown as` — has_billing_key 는 PostgREST **계산 컬럼**(20260808000100)
+  //  이라 lib/supabase/types.ts(테이블 스키마 생성물)에 없다. 생성 타입과
+  //  도메인 타입이 겹치지 않으므로 한 단계 경유한다.
+  const initialSubs = (data ?? []) as unknown as Subscription[]
   // ★ '유령 활성'(카드 없이 status=active) 제외 — subscriptionState 로 진짜 진행 중만.
   const activeCount = initialSubs.filter(
     (s) => subscriptionState(s) === 'active',

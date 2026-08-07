@@ -87,6 +87,18 @@ export function loadAutosignupDraft(): AutosignupDraft | null {
       ts: typeof parsed.ts === 'number' ? parsed.ts : Date.now(),
       dog: parsed.dog ?? {},
       answers: parsed.answers ?? {},
+      // ★promo 를 반드시 복원한다 (2026-08-08 웹 퍼널 감사).
+      //
+      //  안 돌려주면 **두 겹으로** 깨진다:
+      //   ① claimPromotionOnSignup 이 `loadAutosignupDraft()?.promo` 를 읽는데
+      //      항상 undefined → claim_promotion RPC 가 한 번도 안 불린다.
+      //   ② saveAutosignupDraft 가 `prev?.promo` 로 보존하려 하는데 그 prev 가
+      //      이 함수의 반환값이라, **다음 저장 때 localStorage 에서도 지워진다.**
+      //      /start?p=code 로 들어와 이름 한 글자만 쳐도 0.4초 뒤 코드가 사라졌다.
+      //  타입이 optional 이라 tsc 도 통과했다.
+      ...(typeof parsed.promo === 'string' && parsed.promo
+        ? { promo: parsed.promo }
+        : {}),
       ...(parsed.surveyDeferred ? { surveyDeferred: true } : {}),
     }
   } catch {

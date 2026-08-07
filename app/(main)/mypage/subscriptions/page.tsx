@@ -117,7 +117,18 @@ export default async function AppSubscriptionsSummaryPage({
 
   const { data, error: subsErr } = await supabase
     .from('subscriptions')
-    .select('*, subscription_items(*), dogs(id, name)')
+    // ★`select('*')` 금지 (2026-08-08 보안 재감사) — 빌링키·서버 전용 칸이
+    //  통째로 브라우저로 갔다. 카드 등록 여부는 has_billing_key 계산
+    //  컬럼(20260808000100)으로 받는다.
+    .select(
+      'id, dog_id, status, interval_weeks, coverage_weeks, fresh_ratio, ' +
+        'next_delivery_date, last_delivery_date, total_deliveries, ' +
+        'total_amount, subtotal, shipping_fee, created_at, ' +
+        'has_billing_key, billing_customer_key, billing_card_brand, ' +
+        'billing_card_last4, failed_charge_count, next_retry_at, ' +
+        'last_failed_charge_reason, requires_billing_key_renewal, ' +
+        'subscription_items(*), dogs(id, name)',
+    )
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -167,7 +178,10 @@ export default async function AppSubscriptionsSummaryPage({
     )
   }
 
-  const all = (data ?? []) as Subscription[]
+  // ★`as unknown as` — has_billing_key 는 PostgREST **계산 컬럼**(20260808000100)
+  //  이라 lib/supabase/types.ts(테이블 스키마 생성물)에 없다. 생성 타입과
+  //  도메인 타입이 겹치지 않으므로 한 단계 경유한다.
+  const all = (data ?? []) as unknown as Subscription[]
 
   /**
    * 보여줄 구독.
@@ -203,7 +217,10 @@ export default async function AppSubscriptionsSummaryPage({
   // ── 다음 결제 = 카드가 걸린 구독 중 가장 가까운 날짜, 금액은 그 날짜 합계.
   //    (강아지가 여러 마리면 같은 날 함께 빠져나가므로 합계가 맞다.)
   const chargeable = visible.filter(
-    (s) => s.billing_key && s.next_delivery_date && subscriptionState(s) === 'active',
+    (s) =>
+      s.has_billing_key &&
+      s.next_delivery_date &&
+      subscriptionState(s) === 'active',
   )
   const nextDate = chargeable
     .map((s) => s.next_delivery_date!)
@@ -459,7 +476,7 @@ export default async function AppSubscriptionsSummaryPage({
               const chipColor = STATE_COLOR[st]
               const focused = sp.focus === s.id
               const method = billingMethodSummary({
-                registered: !!s.billing_key,
+                registered: !!s.has_billing_key,
                 brand: s.billing_card_brand,
                 last4: s.billing_card_last4,
               })

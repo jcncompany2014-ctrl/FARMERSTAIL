@@ -85,7 +85,7 @@ export default async function DogDetailPage({
         .from('subscriptions')
         .select(
           'id, status, interval_weeks, coverage_weeks, fresh_ratio, next_delivery_date, ' +
-            'total_deliveries, total_amount, billing_key, created_at, ' +
+            'total_deliveries, total_amount, has_billing_key, created_at, ' +
             // subscriptionState() 정확 판정용 — 없으면 '시작 전'을 '일시정지'로 오표시.
             'failed_charge_count, requires_billing_key_renewal, ' +
             // needs_card 카드등록 링크에 실을 customerKey (없으면 막다른 길이 됐음, 2026-07-17).

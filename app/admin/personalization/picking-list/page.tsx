@@ -72,7 +72,8 @@ type SubRow = {
   /** active | paused — paused 는 "결제 후 정지" 경고 표시용(2026-08-07). */
   status: string
   /** 청구 가능 판정용 — 이 둘이 없으면 청구 크론이 건너뛴다. */
-  billing_key: string | null
+  /** 카드 등록 여부만 — 키 값은 서버 밖으로 안 나간다(20260808000100). */
+  has_billing_key: boolean
   requires_billing_key_renewal: boolean | null
 }
 
@@ -123,7 +124,7 @@ export default async function PickingListPage({
     .select(
       'id, dog_id, user_id, status, fresh_ratio, next_delivery_date, total_amount, ' +
         'recipient_name, recipient_phone, zip, address, address_detail, ' +
-        'delivery_memo, total_deliveries, billing_key, requires_billing_key_renewal',
+        'delivery_memo, total_deliveries, has_billing_key, requires_billing_key_renewal',
     )
     .in('status', ['active', 'paused'])
     .or(
@@ -343,7 +344,7 @@ export default async function PickingListPage({
       pausedAfterCharge: sub.status === 'paused',
       // 청구 크론과 **같은 조건**. 이게 false 면 결제 없이 박스만 나간다.
       cannotCharge:
-        !sub.billing_key || sub.requires_billing_key_renewal === true,
+        !sub.has_billing_key || sub.requires_billing_key_renewal === true,
       charged: sub.next_delivery_date === chargedBumpDate,
       overdue:
         sub.next_delivery_date != null && sub.next_delivery_date < shipDate,

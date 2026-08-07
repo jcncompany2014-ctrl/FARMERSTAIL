@@ -17,6 +17,7 @@ import {
   Stat,
 } from '@/components/web/fd/ui'
 import { cred } from '@/lib/copy/credibility'
+import { planHref } from '@/lib/funnel-cta'
 
 /**
  * 웹 후기 — /reviews (The Farmer's Dog /reviews 실구조 복제, 2026-06-13 재구축).
@@ -61,9 +62,7 @@ export const metadata: Metadata = {
   },
 }
 
-function planHref(isAuthed: boolean) {
-  return isAuthed ? '/dogs/new' : '/start'
-}
+
 
 function StarDots() {
   // 정직: 평점 미공개 상태이므로 '빈' 아웃라인 dots(채운 별 = 5점 평점 암시 금지).
@@ -105,7 +104,7 @@ function ReviewsHero({ isAuthed }: { isAuthed: boolean }) {
             {/* 듀얼 CTA — 홈 hero 와 동일 패턴(주 설문 + 보조 '우리 음식 보기').
                 보조는 아직 설문 전인 방문자를 위한 learn-more 경로 겸 내부링크. */}
             <div className="pt-7 flex flex-wrap justify-center gap-3">
-              <Button href={planHref(isAuthed)} tone="coral" size="lg">
+              <Button href={planHref(isAuthed, false)} tone="coral" size="lg">
                 2분 설문 시작하기
                 <ArrowRight size={19} strokeWidth={2.4} />
               </Button>
@@ -363,7 +362,7 @@ function FinalCta({ isAuthed }: { isAuthed: boolean }) {
               지금 시작해요.
             </p>
             <div className="pt-8 flex justify-center">
-              <Button href={planHref(isAuthed)} tone="cream" size="lg">
+              <Button href={planHref(isAuthed, false)} tone="cream" size="lg">
                 2분 설문 시작하기
                 <ArrowRight size={19} strokeWidth={2.4} />
               </Button>
@@ -402,7 +401,7 @@ export default async function ReviewsPage() {
         <StatBand />
         <FinalCta isAuthed={isAuthed} />
       </main>
-      <StickyCta href={planHref(isAuthed)} />
+      <StickyCta href={planHref(isAuthed, false)} />
     </WebChrome>
   )
 }

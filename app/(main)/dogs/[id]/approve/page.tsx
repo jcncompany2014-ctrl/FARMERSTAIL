@@ -143,7 +143,7 @@ async function computePricing(
   const { data: subRow, error: subErr } = await supabase
     .from('subscriptions')
     .select(
-      'fresh_ratio, total_amount, status, billing_key, next_delivery_date, ' +
+      'fresh_ratio, total_amount, status, has_billing_key, next_delivery_date, ' +
         'failed_charge_count, requires_billing_key_renewal',
     )
     .eq('dog_id', dogId)

@@ -6,6 +6,7 @@ import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
 import WebChrome from '@/components/WebChrome'
 import StickyCta from '@/components/web/fd/StickyCta'
+import { planHref } from '@/lib/funnel-cta'
 
 /**
  * /partners — 농장 파트너 소개 페이지.
@@ -64,9 +65,7 @@ type Partner = {
 // (실 계약·인증 확보 시 위 형태로 데이터만 채우면 자동 복원 — 회차 정리 2026-06)
 const FALLBACK_PARTNERS: Partner[] = []
 
-function planHref(isAuthed: boolean) {
-  return isAuthed ? '/dogs/new' : '/start'
-}
+
 
 export default async function PartnersPage() {
   const supabase = await createClient()
@@ -338,7 +337,7 @@ export default async function PartnersPage() {
         </div>
       </section>
     </main>
-      <StickyCta href={planHref(isAuthed)} />
+      <StickyCta href={planHref(isAuthed, false)} />
     </WebChrome>
   )
 }

@@ -34,17 +34,39 @@ export type SubState =
 
 export type SubLike = {
   status: 'active' | 'paused' | 'cancelled'
-  billing_key: string | null
+  /**
+   * 카드가 등록됐나.
+   *
+   * ★두 형태를 받는다 (2026-08-08 보안 재감사).
+   *  · `has_billing_key: boolean` — **권장**. PostgREST 계산 컬럼
+   *    (20260808000100) 또는 홈 RPC 가 주는 값.
+   *  · `billing_key: string | null` — 옛 형태. 실제 **빌링키 값**이다.
+   *
+   * 빌링키는 결제 자격증명이라 브라우저까지 갈 이유가 없는데, 화면 네 곳이
+   * `select('*')` 로 통째로 내려받고 있었다(어드민 화면은 **전 고객** 것을).
+   * 정작 쓰는 건 전부 `!!billing_key` 하나였다.
+   *
+   * 호출부가 20곳이라 이름을 한 번에 바꾸는 건 출시 직전에 위험해서, **판정은
+   * 한 곳에 두고 입력 형태만 넓혔다.** 새 코드는 `has_billing_key` 를 쓴다.
+   */
+  has_billing_key?: boolean
+  billing_key?: string | null
   next_delivery_date: string | null
   failed_charge_count: number
   requires_billing_key_renewal: boolean
+}
+
+/** 카드 등록 여부 — 두 입력 형태를 여기 한 곳에서 흡수한다. */
+function hasCard(sub: SubLike): boolean {
+  if (typeof sub.has_billing_key === 'boolean') return sub.has_billing_key
+  return !!sub.billing_key
 }
 
 export function subscriptionState(sub: SubLike): SubState {
   if (sub.status === 'cancelled') return 'cancelled'
   // 카드 재등록 요구 플래그가 켜졌거나, 실패가 쌓였는데 아직 카드가 남아 있는 상태.
   if (sub.requires_billing_key_renewal) return 'card_failed'
-  if (!sub.billing_key) return 'needs_card'
+  if (!hasCard(sub)) return 'needs_card'
   if (sub.failed_charge_count > 0) return 'card_failed'
   if (sub.status === 'paused') return 'paused'
   return 'active'

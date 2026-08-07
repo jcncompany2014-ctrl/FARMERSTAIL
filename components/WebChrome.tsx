@@ -13,6 +13,7 @@ import SiteFooter from '@/components/SiteFooter'
 import InstallPrompt from '@/components/InstallPrompt'
 import FdFooter from '@/components/web/fd/FdFooter'
 import { cred } from '@/lib/copy/credibility'
+import { planHref } from '@/lib/funnel-cta'
 
 /**
  * WebChrome — Web (브라우저) 사용자용 chrome. Phase Q (2026-06-12) 피벗:
@@ -303,7 +304,7 @@ export default function WebChrome({
                 />
               </Link>
               <Link
-                href={isAuthed ? '/dogs/new' : '/start'}
+                href={planHref(!!isAuthed, false)}
                 className="ml-3 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[12.5px] font-bold transition hover:brightness-[0.94] active:scale-[0.98]"
                 style={{
                   background: 'var(--fd-coral)',
@@ -388,7 +389,7 @@ export default function WebChrome({
                 2026-07-17: '첫 주문 50% 할인' 문구 제거 — 블랭킷 50% 폐지(50%류는
                 이벤트 페이지 신규가입자만·admin 설정). 기본 CTA 는 무료 분석 훅. */}
             <Link
-              href={isAuthed ? '/dogs/new' : '/start'}
+              href={planHref(!!isAuthed, false)}
               aria-hidden={showLogo}
               tabIndex={showLogo ? -1 : undefined}
               className="absolute left-1/2 top-1/2 z-10 inline-flex items-center justify-center whitespace-nowrap rounded-full px-7 h-10 text-[14px] font-extrabold no-underline"
@@ -488,7 +489,7 @@ export default function WebChrome({
           {/* 하단 풀폭 그린 pill — 설문 CTA (FD bottom CTA 대응) */}
           <div className="p-4" style={{ borderTop: '1px solid var(--fd-line)' }}>
             <Link
-              href={isAuthed ? '/dogs/new' : '/start'}
+              href={planHref(!!isAuthed, false)}
               onClick={() => setMobileMenuOpen(false)}
               className="flex w-full items-center justify-center gap-2 rounded-full py-4 text-[15px] font-extrabold no-underline"
               style={{
@@ -512,7 +513,7 @@ export default function WebChrome({
       <div id="main" className="flex-1">{children}</div>
 
       {/* FD 마케팅 푸터 (nav/브랜드) → 그 아래 법정 SiteFooter(불변) */}
-      <FdFooter planHref={isAuthed ? '/dogs/new' : '/start'} />
+      <FdFooter planHref={planHref(!!isAuthed, false)} />
       {/* 푸터 — 사업자 정보 + 고객 문의 */}
       <SiteFooter />
 

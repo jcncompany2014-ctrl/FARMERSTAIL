@@ -8,6 +8,7 @@ import AuthAwareShell from '@/components/AuthAwareShell'
 import { isAppContextServer } from '@/lib/app-context'
 import StickyCta from '@/components/web/fd/StickyCta'
 import { Button, Container, Display, Eyebrow, Section } from '@/components/web/fd/ui'
+import { planHref } from '@/lib/funnel-cta'
 
 /**
  * /faq — 자주 묻는 질문 (farm v6 = FD 톤 리스타일, 2026-06-13).
@@ -437,7 +438,7 @@ export default async function FaqPage() {
                   2분 설문이면 우리 아이에게 맞는 식단을 바로 확인할 수 있어요.
                 </p>
                 <div className="pt-7 flex justify-center">
-                  <Button href={isAuthed ? '/dogs/new' : '/start'} tone="coral" size="lg">
+                  <Button href={planHref(!!isAuthed, false)} tone="coral" size="lg">
                     2분 설문 시작하기
                     <ArrowRight size={19} strokeWidth={2.4} />
                   </Button>
@@ -447,7 +448,7 @@ export default async function FaqPage() {
           </Section>
         )}
       </main>
-      {!isApp && <StickyCta href={isAuthed ? '/dogs/new' : '/start'} />}
+      {!isApp && <StickyCta href={planHref(!!isAuthed, false)} />}
     </AuthAwareShell>
   )
 }

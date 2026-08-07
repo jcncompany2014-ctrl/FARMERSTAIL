@@ -125,10 +125,22 @@ export default function SubscriptionsWebClient({
     }
     const { data } = await supabase
       .from('subscriptions')
-      .select('*, subscription_items(*), dogs(id, name)')
+      // ★`select('*')` 금지 (2026-08-08 보안 재감사) — 빌링키·서버 전용 칸이
+      //  통째로 브라우저로 갔다. 카드 등록 여부는 has_billing_key 계산
+      //  컬럼(20260808000100)으로 받는다.
+      .select(
+        'id, dog_id, status, interval_weeks, coverage_weeks, fresh_ratio, ' +
+            'next_delivery_date, last_delivery_date, total_deliveries, ' +
+            'total_amount, subtotal, shipping_fee, created_at, ' +
+            'has_billing_key, billing_customer_key, billing_card_brand, ' +
+            'billing_card_last4, failed_charge_count, next_retry_at, ' +
+            'last_failed_charge_reason, requires_billing_key_renewal, ' +
+            'subscription_items(*), dogs(id, name)',
+      )
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-    if (data) setSubs(data as Subscription[])
+    // has_billing_key 는 계산 컬럼이라 생성 타입에 없다(20260808000100).
+    if (data) setSubs(data as unknown as Subscription[])
   }
 
   async function requireUid(): Promise<string | null> {
@@ -211,7 +223,7 @@ export default function SubscriptionsWebClient({
     // 등록 여부는 **billing_key** 로 본다. 카드번호(last4)로 판정하면 토스페이로
     // 등록한 고객은 카드번호가 없어서 영원히 '미등록'이 되고, 재개를 누를 때마다
     // 등록 화면으로 돌려보내진다 (2026-07-30 토스페이 추가 시 발견).
-    if (!sub.billing_key) {
+    if (!sub.has_billing_key) {
       toast.info('결제수단 등록이 필요해요. 등록하면 정기배송이 시작돼요.')
       const customerKey = sub.billing_customer_key ?? generateFallbackCustomerKey()
       router.push(

@@ -221,6 +221,29 @@ test('★ 규칙14: .select() 가 없는 컬럼을 부르지 않는다', () => {
     `types.ts 파싱 실패 — 테이블 ${tableCols.size}개만 읽혔다(정규식 확인)`,
   )
 
+  /**
+   * PostgREST **계산 컬럼** — 테이블을 인자로 받는 함수라 types.ts(테이블
+   * 스키마 생성물)에는 없지만 select 에 쓸 수 있다.
+   *
+   * 마이그레이션에서 자동으로 뽑는다. 손으로 목록을 적으면 다음 계산 컬럼이
+   * 생겼을 때 이 규칙이 **정상 코드를 빨간불로 만들고**, 그러면 사람이 규칙을
+   * 무시하기 시작한다.
+   */
+  // ★walk() 는 .ts/.tsx 만 돌려준다 — 마이그레이션은 직접 읽는다.
+  //  (처음에 walk 로 썼더니 파일을 0개 보고도 조용히 지나갔다.)
+  const migDir = join(ROOT, 'supabase/migrations')
+  for (const name of readdirSync(migDir)) {
+    if (!name.endsWith('.sql')) continue
+    const sql = read(join(migDir, name))
+    for (const m of sql.matchAll(
+      /create\s+(?:or\s+replace\s+)?function\s+public\.(\w+)\s*\(\s*public\.(\w+)\s*\)/gi,
+    )) {
+      const fnName = m[1]
+      const tableName = m[2]
+      if (fnName && tableName) tableCols.get(tableName)?.add(fnName)
+    }
+  }
+
   const offenders: string[] = []
   for (const file of walk(join(ROOT, 'app'))
     .concat(walk(join(ROOT, 'lib')))
@@ -2072,5 +2095,75 @@ test('규칙47 — 출시 체크리스트의 크론 표가 vercel.json 과 일�
     'LAUNCH_CHECKLIST.md 의 크론 표가 vercel.json 과 다르다 — ' +
       '없는 크론을 적었거나(ghosts) 있는 크론을 빠뜨렸다(missing). ' +
       '이 표대로 출시 점검하면 엉뚱한 걸 확인한다.',
+  )
+})
+
+test('규칙48 — 빌링키 값을 브라우저로 내보내지 않는다', () => {
+  /**
+   * # 왜
+   * 2026-08-08 보안 재감사. 구독을 조회하는 화면 **네 곳**이 `select('*')` 를
+   * 썼다. 그중 `app/admin/subscriptions/page.tsx` 는 `'use client'` 라
+   * **전 고객의 `billing_key`·`billing_customer_key` 가 어드민 브라우저의
+   * 네트워크 응답과 메모리에 통째로 올라갔다.** 어드민 기기 침해·악성 확장·
+   * XSS 하나면 전 고객 결제 자격증명이 한 번에 나간다.
+   *
+   * 그런데 그 화면들이 실제로 쓰는 건 전부 `!!billing_key` — 등록 여부
+   * 불리언 하나다. 값이 필요 없다.
+   *
+   * 20260808000100 이 PostgREST 계산 컬럼 `has_billing_key` 를 만들었다.
+   * 새 코드는 그걸 쓴다.
+   *
+   * # 이 규칙이 막는 두 가지
+   *  ① `subscriptions` 를 `select('*')` — 별표는 앞으로 추가될 칸까지 전부
+   *    내보낸다. 지금 안전해도 다음 마이그레이션에서 새는 구조다.
+   *  ② select 문자열에 `billing_key` 를 명시적으로 넣는 것.
+   *
+   * # 제외
+   *  · 서버 전용 경로(app/api/**, lib/**) — 청구·카드등록은 실제 키가 필요하다.
+   *  · 마이그레이션·테스트.
+   */
+  const offenders: string[] = []
+  for (const dir of ['app', 'components']) {
+    for (const file of walk(join(ROOT, dir))) {
+      if (!/\.tsx?$/.test(file) || file.includes('.test.')) continue
+      const rel = file.replace(ROOT, '').split(sep).join('/')
+      // 서버 전용 라우트는 실제 키를 다뤄야 한다.
+      if (rel.startsWith('/app/api/')) continue
+      const src = stripComments(read(file))
+      if (!/\.from\(\s*['"]subscriptions['"]/.test(src)) continue
+
+      // ① 별표 select
+      if (
+        /\.from\(\s*['"]subscriptions['"]\s*\)[\s\S]{0,200}?\.select\(\s*['"`]\s*\*/.test(
+          src,
+        )
+      ) {
+        offenders.push(`${rel} (subscriptions 를 select('*') 로 조회)`)
+      }
+      // ② `.select(...)` **안에** billing_key 를 명시한 것.
+      //
+      // ★필터는 값을 내보내지 않는다 — 처음엔 파일 전체에서 문자열을 찾게
+      //  써서 `.not('billing_key','is',null)` · `.is('billing_key', null)` ·
+      //  `.or('billing_key.not.is.null,…')` 같은 **조회 조건**까지 잡았다.
+      //  그건 "카드가 있는 구독만 세라"는 뜻이지 키를 내려보내는 게 아니다.
+      //  select 인자 영역만 본다.
+      for (const m of src.matchAll(/\.select\(([\s\S]{0,600}?)\)\s*(?:\.|;|$)/g)) {
+        const arg = m[1] ?? ''
+        if (!/\bbilling_key\b/.test(arg)) continue
+        // requires_billing_key_renewal · has_billing_key 는 키 값이 아니다.
+        const stripped = arg
+          .replace(/requires_billing_key_renewal/g, '')
+          .replace(/has_billing_key/g, '')
+        if (!/\bbilling_key\b/.test(stripped)) continue
+        offenders.push(`${rel} (select 에 billing_key)`)
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '빌링키 값이 브라우저로 나간다 — 결제 자격증명이고, 화면이 쓰는 건 ' +
+      '등록 여부뿐이다. has_billing_key 계산 컬럼(20260808000100)을 쓸 것. ' +
+      offenders.join(' / '),
   )
 })

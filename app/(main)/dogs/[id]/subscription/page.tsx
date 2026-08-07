@@ -38,7 +38,7 @@ export default async function DogSubscriptionPage({
         .from('subscriptions')
         .select(
           'id, status, interval_weeks, fresh_ratio, next_delivery_date, total_deliveries, ' +
-            'total_amount, recipient_name, address, address_detail, billing_key, ' +
+            'total_amount, recipient_name, address, address_detail, has_billing_key, ' +
             'billing_card_brand, billing_card_last4, billing_customer_key, ' +
             'failed_charge_count, last_failed_charge_reason, ' +
             'requires_billing_key_renewal, created_at, subscription_items(product_name, quantity)',

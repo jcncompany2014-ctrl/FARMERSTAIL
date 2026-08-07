@@ -24,6 +24,7 @@ import {
   Section,
 } from '@/components/web/fd/ui'
 import { cred } from '@/lib/copy/credibility'
+import { planHref } from '@/lib/funnel-cta'
 
 /**
  * 웹 /our-food — "우리 음식" (The Farmer's Dog /dog-food 실구조 복제, 2026-06-13 재구축).
@@ -73,9 +74,7 @@ export const metadata: Metadata = {
   },
 }
 
-function planHref(isAuthed: boolean) {
-  return isAuthed ? '/dogs/new' : '/start'
-}
+
 
 // 1. Hero ====================================================================
 function FoodHero({ isAuthed }: { isAuthed: boolean }) {
@@ -96,7 +95,7 @@ function FoodHero({ isAuthed }: { isAuthed: boolean }) {
                 보존제 없이 신선하게, 뭐가 들었는지 다 보이는 한 끼.
               </p>
               <div className="pt-7 flex flex-col sm:flex-row items-center md:items-start gap-3">
-                <Button href={planHref(isAuthed)} tone="coral" size="lg">
+                <Button href={planHref(isAuthed, false)} tone="coral" size="lg">
                   2분 설문 시작하기
                   <ArrowRight size={19} strokeWidth={2.4} />
                 </Button>
@@ -383,7 +382,7 @@ function DualProduct({ isAuthed }: { isAuthed: boolean }) {
         </div>
         <Reveal delay={120}>
           <div className="pt-9 flex justify-center">
-            <Button href={planHref(isAuthed)} tone="coral" size="lg">
+            <Button href={planHref(isAuthed, false)} tone="coral" size="lg">
               우리 아이 구성 보기
               <ArrowRight size={19} strokeWidth={2.4} />
             </Button>
@@ -412,7 +411,7 @@ function FoodPersonalized({ isAuthed }: { isAuthed: boolean }) {
               맞는 구성과 하루 정량을 계산해드려요.
             </p>
             <div className="pt-8 flex justify-center">
-              <Button href={planHref(isAuthed)} tone="cream" size="lg">
+              <Button href={planHref(isAuthed, false)} tone="cream" size="lg">
                 2분 설문 시작하기
                 <ArrowRight size={19} strokeWidth={2.4} />
               </Button>
@@ -563,7 +562,7 @@ function FinalCta({ isAuthed }: { isAuthed: boolean }) {
               첫 박스부터 부담 없이. 다음 결제 전까지 해지.
             </p>
             <div className="pt-8 flex justify-center">
-              <Button href={planHref(isAuthed)} tone="cream" size="lg">
+              <Button href={planHref(isAuthed, false)} tone="cream" size="lg">
                 2분 설문 시작하기
                 <ArrowRight size={19} strokeWidth={2.4} />
               </Button>
@@ -612,7 +611,7 @@ export default async function OurFoodPage() {
         <FoodFaq />
         <FinalCta isAuthed={isAuthed} />
       </main>
-      <StickyCta href={planHref(isAuthed)} />
+      <StickyCta href={planHref(isAuthed, false)} />
     </WebChrome>
   )
 }

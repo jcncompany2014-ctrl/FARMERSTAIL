@@ -97,3 +97,62 @@ describe('autosignup-draft', () => {
     assert.equal(isDogDraftComplete(undefined), false)
   })
 })
+
+describe('promo — 프로모션 코드 생존 (2026-08-08 감사)', () => {
+  beforeEach(() => {
+    clearAutosignupDraft()
+  })
+
+  /**
+   * ★이 파일에 promo 테스트가 **하나도 없어서** 버그가 통과했다.
+   *
+   * loadAutosignupDraft 가 반환 객체에 promo 를 안 담고 있었다. 그래서:
+   *  ① claimPromotionOnSignup 의 `loadAutosignupDraft()?.promo` 가 항상
+   *     undefined → claim_promotion RPC 가 한 번도 안 불렸다.
+   *  ② saveAutosignupDraft 가 `prev?.promo` 로 보존하려 하는데 그 prev 가
+   *     loadAutosignupDraft() 의 반환값이라, **다음 저장에서 localStorage
+   *     에서도 지워졌다.**
+   * 즉 /start?p=code 로 들어와 이름 한 글자만 쳐도 0.4초 뒤 코드가 사라졌고,
+   * QR·인스타 프로모션이 전부 0원 할인으로 나갔다. 타입이 optional 이라
+   * tsc 도 통과했다.
+   */
+  it('★save → load 라운드트립', () => {
+    saveAutosignupDraft({ promo: 'busan1102' })
+    assert.equal(loadAutosignupDraft()?.promo, 'busan1102')
+  })
+
+  it('★다음 저장에서도 살아남는다 (지워지던 자리)', () => {
+    saveAutosignupDraft({ promo: 'busan1102' })
+    saveAutosignupDraft({ dog: { name: '콩이' } })
+    saveAutosignupDraft({ answers: { bodyShape: 'ideal' } })
+    assert.equal(
+      loadAutosignupDraft()?.promo,
+      'busan1102',
+      '설문을 진행하는 동안 프로모션 코드가 사라졌다',
+    )
+  })
+
+  it('먼저 박힌 코드가 이긴다 (링크를 여러 개 타고 와도)', () => {
+    saveAutosignupDraft({ promo: 'first' })
+    saveAutosignupDraft({ promo: 'second' })
+    assert.equal(loadAutosignupDraft()?.promo, 'first')
+  })
+
+  it('코드가 없으면 promo 키 자체가 없다', () => {
+    saveAutosignupDraft({ dog: { name: '콩이' } })
+    assert.equal(loadAutosignupDraft()?.promo, undefined)
+  })
+
+  it('빈 문자열·비문자열은 코드로 치지 않는다', () => {
+    localStorage.setItem(
+      AUTOSIGNUP_DRAFT_KEY,
+      JSON.stringify({ v: 1, ts: Date.now(), dog: {}, answers: {}, promo: '' }),
+    )
+    assert.equal(loadAutosignupDraft()?.promo, undefined)
+    localStorage.setItem(
+      AUTOSIGNUP_DRAFT_KEY,
+      JSON.stringify({ v: 1, ts: Date.now(), dog: {}, answers: {}, promo: 123 }),
+    )
+    assert.equal(loadAutosignupDraft()?.promo, undefined)
+  })
+})
