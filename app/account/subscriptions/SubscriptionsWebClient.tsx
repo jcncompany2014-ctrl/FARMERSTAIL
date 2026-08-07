@@ -123,7 +123,9 @@ export default function SubscriptionsWebClient({
       router.push('/login')
       return
     }
-    const { data } = await supabase
+    // ★error 를 꺼낸다(규칙1) — 실패를 무시하면 액션 후 화면이 낡은 상태로
+    //  남는데 사용자는 반영된 줄 안다(2026-08-08 diff 재검증).
+    const { data, error: reloadErr } = await supabase
       .from('subscriptions')
       // ★`select('*')` 금지 (2026-08-08 보안 재감사) — 빌링키·서버 전용 칸이
       //  통째로 브라우저로 갔다. 카드 등록 여부는 has_billing_key 계산
@@ -140,6 +142,10 @@ export default function SubscriptionsWebClient({
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
     // has_billing_key 는 계산 컬럼이라 생성 타입에 없다(20260808000100).
+    if (reloadErr) {
+      toast.error('최신 상태를 불러오지 못했어요. 새로고침해 주세요.')
+      return
+    }
     if (data) setSubs(data as unknown as Subscription[])
   }
 

@@ -226,8 +226,13 @@ async function runDetect(): Promise<Response> {
     // 방향(증가/감소)으로 가변 + "체중"이 weight-reminder 와 충돌하므로, 이 cron
     // 고유·불변인 body 문구로 dedup.
     const { count: recentPush, error: recentPushErr } = await admin
+      // ★sent_count > 0 만 dedup 으로 친다 (2026-08-08 diff 재검증).
+      //  push_log 는 팬아웃까지 간 경우 발송 0건이어도 남는다(sent_count 0).
+      //  그 행을 "보냈음"으로 읽으면 VAPID 오설정·일시 장애로 0건이었던
+      //  시도가 dedup 창(14~180일)을 소진해 **재시도가 영영 막힌다**.
       .from('push_log')
       .select('id', { count: 'exact', head: true })
+      .gt('sent_count', 0)
       .eq('user_id', dog.user_id)
       .ilike('body', '%4주 만에 변화가 있었네요%')
       .gt('sent_at', fourteenDaysAgo)

@@ -67,9 +67,14 @@ export default async function AdminUnifiedSearch({
     // ★`%`·`_`(LIKE 와일드카드)만 막고 PostgREST 문법 토큰(`,()`)은 열려
     //  있었다 — `.or()` 는 표현식 문자열이라 supabase-js 가 escape 하지 않는다
     //  (2026-08-08 보안 재감사). 정본으로 통일.
-    const like = `%${safeOrTerm(query)}%`
+    const safeQ = safeOrTerm(query)
+    const like = `%${safeQ}%`
 
-    const [pRes, oRes, sRes] = await Promise.all([
+    // 기호만 입력하면 정화 후 빈 문자열 = '%%' 전량 매치 — 검색을 걸지 않는다
+    // (정본 docstring 의 계약. 2026-08-08 diff 재검증에서 잡힘).
+    const [pRes, oRes, sRes] = !safeQ
+      ? [{ data: [] }, { data: [] }, { data: [] }]
+      : await Promise.all([
       supabase
         .from('profiles')
         .select('id, email, name, phone, created_at')

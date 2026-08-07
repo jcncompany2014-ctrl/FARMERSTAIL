@@ -59,6 +59,8 @@ type Props = {
   currentFormula: CurrentFormula | null
   checkinStatus: CheckinStatus
   subscriptions: ActiveSubscription[]
+  /** 구독 조회 실패 — true 면 카드를 아예 안 그린다(틀린 CTA 방지). */
+  subsQueryFailed?: boolean
   /** 개요 인사이트 멘트 — server 에서 체중 기록으로 산출(lib/dog-insight). */
   insight: DogInsight
   /**
@@ -76,6 +78,7 @@ export default function DogDetailClient({
   currentFormula,
   checkinStatus,
   subscriptions,
+  subsQueryFailed,
   insight,
   aiComment,
   gracePhase,
@@ -383,13 +386,16 @@ export default function DogDetailClient({
         />
       )}
 
-      {/* 진행중 정기배송 카드 */}
+      {/* 진행중 정기배송 카드 — 조회가 실패했으면 그리지 않는다(2026-08-08).
+          빈 배열로 그리면 구독자에게 '정기배송 시작' CTA 가 뜬다. */}
+      {!subsQueryFailed && (
       <SubscriptionCard
         subscriptions={subscriptions}
         dogName={dog.name}
         dogId={dogId}
         hasFormula={!!currentFormula}
       />
+      )}
 
       {/* 체중 추이 카드 */}
       <section className="px-5 mt-3">

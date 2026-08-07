@@ -135,6 +135,7 @@ async function runAlerts(): Promise<Response> {
   const { data: recentPushesRaw, error: recentPushesRawErr } = await admin
     .from('push_log')
     .select('user_id, title, sent_at')
+    .gt('sent_count', 0)
     // ★dedup 앵커는 **발송 제목과 같은 상수**에서 나와야 한다(2026-08-05).
     //   브랜드 보이스 스윕으로 제목을 바꿀 때 이 필터를 같이 안 바꿔서
     //   14일 가드가 통째로 죽어 있었다(ilike 가 영원히 0건 → 매주 재발송).

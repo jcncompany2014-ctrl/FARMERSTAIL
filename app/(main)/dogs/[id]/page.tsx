@@ -139,9 +139,25 @@ export default async function DogDetailPage({
   // '결제 완료·진행중인 것만' — 카드도 안 걸고 해지된 유령 구독은 카드에서 숨김
   // (사장님 2026-07-22, subscription-state 정본). 필터 후 비면 SubscriptionCard 가
   // 자동으로 '정기배송 시작' CTA(처방 있을 때) 로 폴백.
-  const subscriptions = (
-    (subsRes.data ?? []) as unknown as ActiveSubscription[]
-  ).filter(isSubscriptionVisibleToUser)
+  /**
+   * ★조회 실패를 "구독 없음"으로 읽지 않는다 (2026-08-08 diff 재검증).
+   *
+   * 여기서 error 를 안 보면, 조회가 실패했을 때 빈 배열이 되어
+   * SubscriptionCard 가 **구독자에게 '정기배송 시작' CTA** 를 그린다 —
+   * 이미 하고 있는 걸 시작하라고 권하고 중복 신청까지 유도하는 화면이다
+   * (AGENTS 규칙1 이 두 번 기록한 바로 그 사고). has_billing_key 마이그레이션
+   * 적용 전 배포에서 실제로 이 상태가 프로덕션에 떴다.
+   * 실패면 카드 자체를 숨긴다 — 틀린 안내보다 빈 자리가 낫다.
+   */
+  if (subsRes.error) {
+    console.error('[dogs/[id]] 구독 조회 실패:', subsRes.error.message)
+  }
+  const subscriptions = subsRes.error
+    ? []
+    : (
+        (subsRes.data ?? []) as unknown as ActiveSubscription[]
+      ).filter(isSubscriptionVisibleToUser)
+  const subsQueryFailed = Boolean(subsRes.error)
 
   // 체크인 상태 — 현재 cycle 의 week_2 / week_4 응답 여부. formula 가 있을 때만.
   const checkinStatus: CheckinStatus = { week_2: false, week_4: false }
@@ -206,6 +222,7 @@ export default async function DogDetailPage({
       currentFormula={currentFormula}
       checkinStatus={checkinStatus}
       subscriptions={subscriptions}
+      subsQueryFailed={subsQueryFailed}
       insight={insight}
       aiComment={aiComment}
       gracePhase={gracePhase}

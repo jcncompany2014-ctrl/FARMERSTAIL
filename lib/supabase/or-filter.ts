@@ -26,8 +26,19 @@
  * 손실도 사실상 없다(이름·이메일·전화에 `,()` 를 넣어 찾는 사람은 없다).
  */
 
-/** PostgREST or() 표현식과 LIKE 패턴에서 의미를 갖는 문자들. */
-const UNSAFE = /[,()*.%\\_:"']/g
+/**
+ * PostgREST or() **문법** 토큰 — 이것들만 필터 절 주입에 쓰인다.
+ *
+ * ★`.` `_` `%` `:` 는 지우지 않는다 (2026-08-08 diff 재검증에서 잡힘).
+ * 처음엔 넓게 지웠는데, `.` 을 지우니 **이메일 검색이 항상 0건**이 됐다
+ * (`hello@x.com` → `hello@xcom`). CS 의 가장 흔한 동선이 어드민 회원 검색에
+ * 이메일을 붙여넣는 것이다. or() 표현식에서 위험한 건 절을 가르는 `,` 와
+ * 괄호·따옴표·백슬래시뿐이고, **value 위치의 `.` 은 무해하다.**
+ * LIKE 와일드카드(`%` `_`)는 제거 대신 escape 한다 — 지우면 언더스코어가
+ * 든 이메일(`a_b@x.com`)도 못 찾는다.
+ */
+const SYNTAX_TOKENS = /[,()"'\\]/g
+const LIKE_WILDCARDS = /[%_]/g
 
 /**
  * `.or()` 안에 넣을 검색어를 정화한다.
@@ -38,5 +49,9 @@ const UNSAFE = /[,()*.%\\_:"']/g
  *          되지 않도록 호출부가 판단한다).
  */
 export function safeOrTerm(raw: string, maxLen = 80): string {
-  return raw.replace(UNSAFE, '').trim().slice(0, maxLen)
+  return raw
+    .replace(SYNTAX_TOKENS, '')
+    .replace(LIKE_WILDCARDS, (m) => `\\${m}`)
+    .trim()
+    .slice(0, maxLen)
 }

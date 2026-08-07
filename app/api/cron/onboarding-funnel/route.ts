@@ -87,6 +87,7 @@ async function alreadySent(
   let q = supabase
     .from('push_log')
     .select('id', { count: 'exact', head: true })
+    .gt('sent_count', 0)
     .eq('user_id', userId)
     .eq('body', body)
     .gte('sent_at', isoDaysAgo(FUNNEL_WINDOW_DAYS))

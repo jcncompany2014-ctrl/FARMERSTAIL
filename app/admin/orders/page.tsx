@@ -124,7 +124,8 @@ export default async function AdminOrdersPage({
     // 백슬래시 이스케이프는 PostgREST 버전에 따라 해석이 갈린 전례가 있어
     // 정본은 **제거(strip)** 방식을 쓴다.
     const escaped = safeOrTerm(trimmed)
-    query = query.or(
+    // 빈 문자열이면 '%%' 전량 매치 — 검색을 걸지 않는다(정본 계약).
+    if (escaped) query = query.or(
       [
         `order_number.ilike.%${escaped}%`,
         `recipient_name.ilike.%${escaped}%`,

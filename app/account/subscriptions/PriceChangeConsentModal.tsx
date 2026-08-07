@@ -75,15 +75,29 @@ export default function PriceChangeConsentModal({
           decision,
         }),
       })
+      const b = (await res.json().catch(() => ({}))) as {
+        message?: string
+        amountMismatch?: boolean
+      }
       if (!res.ok) {
-        const b = (await res.json().catch(() => ({}))) as { message?: string }
         throw new Error(b.message ?? '처리하지 못했어요')
       }
-      toast.success(
-        decision === 'approve'
-          ? '새 레시피로 바꿨어요. 다음 정기결제부터 반영돼요.'
-          : '이전 그대로 유지할게요.',
-      )
+      // ★서버가 200 이어도 금액 검산이 어긋나면 amountMismatch 를 준다
+      //  (2026-08-08 diff 재검증 — 전엔 이 응답을 안 읽어서, 금액이 그대로인데
+      //  "다음 정기결제부터 반영돼요"라고 말하는 화면이 됐다).
+      //  처방은 확정됐으니 성공이 맞지만, 금액 안내는 서버 문구로 바꾼다.
+      if (decision === 'approve' && b.amountMismatch) {
+        toast.info(
+          b.message ??
+            '처방은 확정했어요. 금액은 확인 후 다시 안내드릴게요.',
+        )
+      } else {
+        toast.success(
+          decision === 'approve'
+            ? '새 레시피로 바꿨어요. 다음 정기결제부터 반영돼요.'
+            : '이전 그대로 유지할게요.',
+        )
+      }
       setDismissed(true)
       router.refresh()
     } catch (e) {

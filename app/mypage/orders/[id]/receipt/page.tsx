@@ -137,6 +137,21 @@ export default async function ReceiptPage({
    * 명시한다 — 숫자가 안 맞는 영수증은 그 자체로 신뢰를 깎는다.
    */
   const rounding = subtotal + shipping - discount - o.total_amount
+  /**
+   * ★'단가 조정'은 반올림 경로 차이(±120원 수준)를 설명하는 이름이다.
+   * 그런데 상한 없이 쓰면 **데이터가 실제로 어긋난 주문**(항목 누락·금액 오염)
+   * 까지 이 한 줄이 조용히 삼킨다 — 수만 원 차이가 '단가 조정 -35,850원'으로
+   * 인쇄되면 영수증이 사고를 정상처럼 포장하는 셈이다(2026-08-08 diff 재검증).
+   * 1,000원을 넘으면 반올림일 수 없으니 그 줄을 빼고(합계 불일치가 눈에 보이게)
+   * 서버 로그로 남긴다. 고객에게 틀린 설명을 붙이는 것보다 낫다.
+   */
+  const roundingExplainable = Math.abs(rounding) <= 1000
+  if (!roundingExplainable) {
+    console.error(
+      '[receipt] 합계 불일치가 반올림 범위를 넘는다 — 데이터 확인 필요:',
+      { orderId: o.id, orderNumber: o.order_number, diff: rounding },
+    )
+  }
 
   return (
     <main
@@ -371,7 +386,7 @@ export default async function ReceiptPage({
               value={`-${discount.toLocaleString()}원`}
             />
           )}
-          {rounding !== 0 && (
+          {rounding !== 0 && roundingExplainable && (
             <SummaryRow
               label="단가 조정"
               value={`${rounding > 0 ? '-' : '+'}${Math.abs(rounding).toLocaleString()}원`}

@@ -391,13 +391,21 @@ export default async function PickingListPage({
   const totalAmountSum = rows.reduce((s, r) => s + r.totalAmount, 0)
   // ★ 청구 불가도 '확인 필요' 다 — 예전엔 noFormula/overdue 만 세어서,
   //   결제되지 않을 박스가 아무 표시 없이 포장 대상에 섞였다(2026-07-31).
+  // ★freshUnknown 도 문제다 (2026-08-08 diff 재검증). 행 단위는 빨간 경고를
+  //  달았는데 이 카운트에서 빠져 '확인 필요' 타일이 그 박스를 안 셌다 —
+  //  팩이 0g 으로 계산 제외되는데 상단 요약(총 조리량)은 그 사실을 안 말해서,
+  //  주방이 요약 기준으로 조리하면 그만큼 부족했다.
   const problemCount = rows.filter(
     (r) =>
       r.noFormula ||
+      r.freshUnknown ||
       r.overdue ||
       r.cannotCharge ||
       r.pausedAfterCharge ||
       r.missing.length > 0,
+  ).length
+  const excludedFromTotals = rows.filter(
+    (r) => r.noFormula || r.freshUnknown,
   ).length
 
   /**
@@ -451,8 +459,14 @@ export default async function PickingListPage({
           label="확인 필요"
           value={problemCount}
           tone={problemCount > 0 ? 'red' : 'green'}
-          sub={problemCount > 0 ? '처방 없음·지연 청구·품절' : '문제 없음'}
-          help="처방이 없거나(포장 불가), 청구가 밀렸거나(카드 문제), 레시피 항목을 담을 수 없는(품절·판매중지) 박스 수예요."
+          sub={
+            problemCount > 0
+              ? excludedFromTotals > 0
+                ? `처방·비율 미상 ${excludedFromTotals}박스는 아래 합계에서 빠져 있어요`
+                : '처방 없음·지연 청구·품절'
+              : '문제 없음'
+          }
+          help="처방이 없거나(포장 불가), 화식 비율이 저장돼 있지 않거나(계산 불가), 청구가 밀렸거나(카드 문제), 레시피 항목을 담을 수 없는(품절·판매중지) 박스 수예요. 처방·비율이 없는 박스는 총 조리량 합계에 포함되지 않으니 그만큼 따로 계산해 주세요."
         />
       </div>
 

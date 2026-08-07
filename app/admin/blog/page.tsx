@@ -67,7 +67,8 @@ export default async function AdminBlogPostsPage({
     // 정화는 lib/supabase/or-filter 정본 하나 — 곳마다 다른 정규식을 쓰면
     // 어디는 막고 어디는 새는 상태가 된다(2026-08-08 보안 재감사).
     const safe = safeOrTerm(trimmed)
-    query = query.or(`title.ilike.%${safe}%,slug.ilike.%${safe}%`)
+    // 빈 문자열이면 '%%' 전량 매치 — 검색을 걸지 않는다(정본 계약).
+    if (safe) query = query.or(`title.ilike.%${safe}%,slug.ilike.%${safe}%`)
   }
   if (category) {
     query = query.eq('category_id', category)
