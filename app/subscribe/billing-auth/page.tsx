@@ -15,7 +15,6 @@ import {
 import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
 import { billingReturnHref } from '@/lib/payments/billing-urls'
 import { useIsAppContext } from '@/lib/app-context-client'
-import { createClient } from '@/lib/supabase/client'
 import { nextShipDate, weekdayKo } from '@/lib/shipping-schedule'
 
 /**
@@ -88,6 +87,8 @@ function BillingAuthInner() {
    */
   const [terms, setTerms] = useState<{
     amount: number | null
+    discountLabel: string | null
+    listAmount: number | null
     firstChargeDate: string | null
   } | null>(null)
 
@@ -95,28 +96,44 @@ function BillingAuthInner() {
     if (isInvalidEntry) return
     let alive = true
     void (async () => {
-      const supabase = createClient()
-      const { data, error: qErr } = await supabase
-        .from('subscriptions')
-        .select('total_amount, next_delivery_date')
-        .eq('id', subscriptionId!)
-        .maybeSingle()
+      /**
+       * ★할인 **후** 금액을 서버에서 받는다 (2026-08-08 금액 감사).
+       *
+       * 예전엔 여기서 `total_amount`(할인 전)를 직접 읽었다. 나무 등급
+       * 고객은 화면이 153,100원이라 말하는데 실제로는 137,790원이 출금됐다 —
+       * **정기결제 동의를 받는 자리**라 화면 금액과 실제 출금액이 달라선
+       * 안 된다. 할인 계산(resolveAutoDiscount)은 서버 전용이라 라우트를
+       * 경유한다 — 청구 크론과 같은 함수를 쓰므로 값이 갈라지지 않는다.
+       */
+      const res = await fetch(
+        `/api/subscriptions/billing-terms?subscriptionId=${encodeURIComponent(subscriptionId!)}`,
+      ).catch(() => null)
+      if (!alive) return
+      const data = res?.ok
+        ? ((await res.json().catch(() => null)) as {
+            amount?: number | null
+            discountLabel?: string | null
+            listAmount?: number | null
+            firstChargeDate?: string | null
+          } | null)
+        : null
       if (!alive) return
       // 조회가 실패해도 등록은 막지 않는다 — 고지가 빠질 뿐이고, 그건
       // 아래에서 '금액은 주문 화면에서 확인' 문구로 대체한다.
-      if (qErr || !data) {
-        setTerms({ amount: null, firstChargeDate: null })
+      if (!data) {
+        setTerms({
+          amount: null,
+          discountLabel: null,
+          listAmount: null,
+          firstChargeDate: null,
+        })
         return
       }
-      const row = data as {
-        total_amount: number | null
-        next_delivery_date: string | null
-      }
       setTerms({
-        amount: row.total_amount,
-        // 카드 등록 전 구독은 next_delivery_date 가 null 이다(홈 오노출 차단).
-        // 그때 첫 결제일은 '다음 화요일' — billing-issue 가 그렇게 잡는다.
-        firstChargeDate: row.next_delivery_date ?? nextShipDate(),
+        amount: data.amount ?? null,
+        discountLabel: data.discountLabel ?? null,
+        listAmount: data.listAmount ?? null,
+        firstChargeDate: data.firstChargeDate ?? nextShipDate(),
       })
     })()
     return () => {
@@ -274,9 +291,21 @@ function BillingAuthInner() {
                   className="text-[15px] font-black mt-0.5"
                   style={{ color: 'var(--ink)' }}
                 >
-                  {terms?.amount != null
-                    ? `${terms.amount.toLocaleString()}원 · 2주마다`
-                    : '주문 화면에서 확인한 금액 · 2주마다'}
+                  {terms?.amount != null ? (
+                    <>
+                      {terms.discountLabel && terms.listAmount != null && (
+                        <span
+                          className="mr-1.5 line-through"
+                          style={{ color: 'var(--muted)', fontWeight: 600 }}
+                        >
+                          {terms.listAmount.toLocaleString()}원
+                        </span>
+                      )}
+                      {`${terms.amount.toLocaleString()}원 · 2주마다`}
+                    </>
+                  ) : (
+                    '주문 화면에서 확인한 금액 · 2주마다'
+                  )}
                 </p>
                 <p
                   className="text-[11.5px] mt-1.5 leading-relaxed"
@@ -288,6 +317,9 @@ function BillingAuthInner() {
                       )}일(${weekdayKo(terms.firstChargeDate)}) · 이후 2주마다 같은 요일`
                     : '첫 결제는 다음 발송일(화요일)에 진행돼요'}
                   <br />
+                  {terms?.discountLabel
+                    ? `${terms.discountLabel}이 적용된 금액이에요. `
+                    : ''}
                   결제일에 금액이 바뀌면 미리 알려드리고 동의를 받아요.
                 </p>
               </div>
