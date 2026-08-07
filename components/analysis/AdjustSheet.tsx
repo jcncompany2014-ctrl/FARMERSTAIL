@@ -30,6 +30,7 @@ import {
 } from '@/lib/personalization/nutrientPanel'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { haptic } from '@/lib/haptic'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
 import { trackBoxAdjusted } from '@/lib/analytics'
 
 /**
@@ -91,6 +92,10 @@ export default function AdjustSheet({
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const sheetRef = useRef<HTMLDivElement | null>(null)
+  // ★자체 구현 시트에 모달 동작이 비어 있었다 (2026-08-08 a11y 감사).
+  //  Esc 미지원·포커스 트랩 없음·배경 Tab 누수·스크롤락 없음 — 결제 금액에
+  //  직결되는 시트(분석→박스 구성)가 유일하게 정본(useModalA11y)을 안 썼다.
+  useModalA11y({ open, onClose, containerRef: sheetRef })
   const [dragY, setDragY] = useState(0)
   const dragStart = useRef<{ y: number; time: number } | null>(null)
 
@@ -214,6 +219,9 @@ export default function AdjustSheet({
         ref={sheetRef}
         className="adj-sheet adj-open"
         style={{ transform: `translateY(${dragY}px)` }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="레시피 고르기"
       >
         {/* drag handle */}
         <div

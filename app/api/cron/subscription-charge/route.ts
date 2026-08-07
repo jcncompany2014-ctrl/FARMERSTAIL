@@ -203,6 +203,7 @@ async function resolveShippingTarget(
 async function recomputeChargeBase(
   supabase: ReturnType<typeof createAdminClient>,
   sub: SubscriptionRow,
+  guardProducts: Record<string, BoxProduct> | null,
 ): Promise<number | null> {
   if (!sub.dog_id || sub.fresh_ratio == null || !(sub.fresh_ratio > 0)) return null
 
@@ -248,26 +249,18 @@ async function recomputeChargeBase(
   } | null
   if (!formulaRow?.formula || !(formulaRow.daily_kcal > 0)) return null
 
-  const slugs = [
-    ...Object.values(PRICE_LINE_TO_SLUG).filter((s): s is string => s !== null),
-    ...Object.values(PRICE_TOPPER_TO_SLUG),
-  ]
-  const { data: prodList, error: prodErr } = await supabase
-    .from('products')
-    .select('slug, price, sale_price, stock, is_subscribable, nutrition_facts')
-    .in('slug', slugs)
-    .eq('is_active', true)
-  if (prodErr) {
+  // ★products 는 호출부가 루프 앞에서 1회 조회해 주입한다 (2026-08-08 성능
+  //  감사). 예전엔 이 함수가 매 구독마다 **완전히 같은 쿼리**(같은 slug 목록,
+  //  같은 결과)를 반복했다 — 100건 청구면 같은 조회 100번. 조회 실패(null)의
+  //  의미는 예전과 같다: 대조 기준을 못 구했으니 검문을 건너뛰되 신호를 남긴다.
+  if (guardProducts == null) {
     captureBusinessEvent('warning', 'subscription.charge_guard_skipped', {
       subscriptionId: sub.id,
       reason: 'products_lookup_failed',
     })
     return null
   }
-  const products: Record<string, BoxProduct> = {}
-  for (const pr of ((prodList ?? []) as unknown) as BoxProduct[]) {
-    products[pr.slug] = pr
-  }
+  const products = guardProducts
   if (Object.keys(products).length === 0) return null
 
   const { total } = priceForFormula({
@@ -371,6 +364,26 @@ async function runSubscriptionCharge(): Promise<Response> {
 
   // audit #79: SubscriptionRow 가 generated types schema 와 다름 (recipient_zip 등).
   const targets = ((subs ?? []) as unknown) as SubscriptionRow[]
+
+  // 청구액 대조용 products — 모든 구독이 같은 목록을 쓰므로 루프 앞에서 1회.
+  // 실패하면 null 로 두고, recomputeChargeBase 가 구독별로 skip 신호를 남긴다
+  // (검문소가 꺼진 것을 아무도 모르는 상태를 만들지 않는다 — 규칙2).
+  const guardSlugs = [
+    ...Object.values(PRICE_LINE_TO_SLUG).filter((x): x is string => x !== null),
+    ...Object.values(PRICE_TOPPER_TO_SLUG),
+  ]
+  const { data: guardProdList, error: guardProdErr } = await supabase
+    .from('products')
+    .select('slug, price, sale_price, stock, is_subscribable, nutrition_facts')
+    .in('slug', guardSlugs)
+    .eq('is_active', true)
+  let guardProducts: Record<string, BoxProduct> | null = null
+  if (!guardProdErr) {
+    guardProducts = {}
+    for (const pr of ((guardProdList ?? []) as unknown) as BoxProduct[]) {
+      guardProducts[pr.slug] = pr
+    }
+  }
   let succeeded = 0
   let failed = 0
   let skipped = 0
@@ -445,7 +458,7 @@ async function runSubscriptionCharge(): Promise<Response> {
     //   20260730000000_subscriptions_lock_money_columns.sql 이 고객의
     //   total_amount·fresh_ratio·billing_key UPDATE 권한을 회수했다.
     //   (남은 경로는 구독 생성 시점 뿐이고, 그건 서버 라우트 이관이 정답 — 후속.)
-    const recomputed = await recomputeChargeBase(supabase, sub)
+    const recomputed = await recomputeChargeBase(supabase, sub, guardProducts)
     const amountCheck = checkChargeAmount(sub.total_amount, recomputed)
     if (amountCheck.mismatch) {
       captureBusinessEvent('warning', 'subscription.charge.amount_mismatch', {

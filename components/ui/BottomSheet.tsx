@@ -217,9 +217,10 @@ function BottomSheetRoot({
                   aria-label="닫기"
                   className="shrink-0 flex items-center justify-center active:scale-95 transition"
                   style={{
-                    width: 32,
-                    height: 32,
-                    marginRight: -4,
+                    /* 44px 히트영역 — 시각 크기는 아이콘이 정한다 (a11y). */
+                    width: 44,
+                    height: 44,
+                    marginRight: -10,
                     background: 'none',
                     border: 'none',
                     outline: 'none',

@@ -78,11 +78,18 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 }
 
 
+const PER_PAGE = 200
+
 export default function AdminSubscriptionsPage() {
   const supabase = createClient()
 
   const [subs, setSubs] = useState<SubscriptionRow[]>([])
   const [loading, setLoading] = useState(true)
+  // ★무제한 전체 조회 금지 (2026-08-08 성능 감사). 해지 이력까지 남는
+  //  테이블이라 가입자 수만큼 큰다 — 200건씩 누적 로드 + '더 불러오기'.
+  //  탭·검색은 지금처럼 클라이언트 필터라, 아래 미로드분 안내를 함께 둔다.
+  const [totalCount, setTotalCount] = useState<number | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
   // ★조회 실패를 '구독 없음' 으로 보여주지 않는다 (AGENTS.md 규칙1).
   const [loadError, setLoadError] = useState(false)
   const [tab, setTab] = useState('all')
@@ -100,7 +107,18 @@ export default function AdminSubscriptionsPage() {
     //  `billing_key`·`billing_customer_key` 외에 `last_charge_lock_at`·
     //  `next_retry_at`·`last_failed_charge_code` 같은 서버 전용 칸도 함께
     //  빠진다(별표는 그것들까지 전부 내보냈다).
-    const { data, error } = await supabase
+    const { data, error, count } = await subsQuery().range(0, PER_PAGE - 1)
+
+    setLoadError(Boolean(error))
+    // audit #79: generated row vs domain SubscriptionRow nullable 차이 — unknown cast.
+    if (data) setSubs(data as unknown as SubscriptionRow[])
+    else if (error) setSubs([])
+    setTotalCount(count ?? null)
+    setLoading(false)
+  }
+
+  function subsQuery() {
+    return supabase
       .from('subscriptions')
       .select(
         'id, user_id, status, interval_weeks, coverage_weeks, fresh_ratio, ' +
@@ -110,14 +128,22 @@ export default function AdminSubscriptionsPage() {
           'total_amount, created_at, dog_id, requires_billing_key_renewal, ' +
           'billing_card_brand, has_billing_key, ' +
           'profiles(name, email), subscription_items(*), dogs(id, name)',
+        { count: 'exact' },
       )
       .order('created_at', { ascending: false })
+  }
 
-    setLoadError(Boolean(error))
-    // audit #79: generated row vs domain SubscriptionRow nullable 차이 — unknown cast.
-    if (data) setSubs(data as unknown as SubscriptionRow[])
-    else if (error) setSubs([])
-    setLoading(false)
+  async function loadMore() {
+    setLoadingMore(true)
+    const { data, error } = await subsQuery().range(
+      subs.length,
+      subs.length + PER_PAGE - 1,
+    )
+    // 추가 로드 실패는 목록을 지우지 않는다 — 이미 보이는 것은 유효하다.
+    if (!error && data) {
+      setSubs((prev) => [...prev, ...(data as unknown as SubscriptionRow[])])
+    }
+    setLoadingMore(false)
   }
 
   // 필터링
@@ -339,6 +365,26 @@ export default function AdminSubscriptionsPage() {
               />
             ))}
           </div>
+
+          {totalCount != null && subs.length < totalCount && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => void loadMore()}
+                disabled={loadingMore}
+                className="px-5 py-2.5 rounded-full bg-white border border-zinc-200 text-zinc-800 text-xs font-semibold hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
+              >
+                {loadingMore
+                  ? '불러오는 중...'
+                  : `더 불러오기 (${subs.length}/${totalCount})`}
+              </button>
+              {search && (
+                <p className="mt-2 text-[11px] text-zinc-500">
+                  검색은 불러온 {subs.length}건 안에서만 찾아요 — 못 찾으면 더
+                  불러온 뒤 다시 검색해 주세요.
+                </p>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>

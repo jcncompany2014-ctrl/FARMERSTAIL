@@ -582,7 +582,7 @@ export default function SubscriptionsWebClient({
                   role="switch"
                   aria-checked={sub.reminder_enabled}
                   onClick={() => handleToggleReminder(sub.id, !sub.reminder_enabled)}
-                  className="relative w-10 h-6 rounded-full transition"
+                  className="relative w-10 h-6 rounded-full transition before:absolute before:-inset-2.5 before:content-['']"
                   style={{ background: sub.reminder_enabled ? 'var(--fd-green)' : 'var(--fd-line)' }}
                 >
                   <span
@@ -600,7 +600,7 @@ export default function SubscriptionsWebClient({
                   <button
                     type="button"
                     onClick={() => handleReRegisterCard(sub)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold transition active:scale-[0.98]"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-[12px] font-bold transition active:scale-[0.98]"
                     style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
                   >
                     결제수단 등록하고 시작하기
@@ -611,7 +611,7 @@ export default function SubscriptionsWebClient({
                     type="button"
                     disabled={isLoading}
                     onClick={() => handlePause(sub.id)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
                     style={{ color: 'var(--fd-pine)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
                   >
                     <Pause className="w-3.5 h-3.5" strokeWidth={2} />
@@ -628,7 +628,7 @@ export default function SubscriptionsWebClient({
                     type="button"
                     disabled={isLoading}
                     onClick={() => handleReRegisterCard(sub)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
                     style={{ color: 'var(--fd-pine)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
                   >
                     <CreditCard className="w-3.5 h-3.5" strokeWidth={2} />
@@ -640,7 +640,7 @@ export default function SubscriptionsWebClient({
                     type="button"
                     disabled={isLoading}
                     onClick={() => handleResume(sub.id)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
                     style={{ background: 'var(--fd-green)', color: '#FFFFFF' }}
                   >
                     <Play className="w-3.5 h-3.5" strokeWidth={2} />
@@ -654,7 +654,7 @@ export default function SubscriptionsWebClient({
                   type="button"
                   disabled={isLoading}
                   onClick={() => setRatioSubId(sub.id)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
                   style={{
                     color: 'var(--fd-pine)',
                     boxShadow: 'inset 0 0 0 1px var(--fd-line)',
