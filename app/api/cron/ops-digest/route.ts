@@ -322,7 +322,7 @@ function renderDigest(input: {
             )} · ${escape(hoursAgo(c.executed_at, now))}</div>
             ${
               c.error_message
-                ? `<div style="font-size:11px;color:#C44B3A;margin-top:3px;word-break:break-all;">${escape(
+                ? `<div style="font-size:11px;color:#C44B3A;margin-top:3px;word-break:break-word;">${escape(
                     c.error_message.slice(0, 240),
                   )}</div>`
                 : ''
@@ -365,7 +365,7 @@ function renderDigest(input: {
             )} 등록 · ${escape(hoursAgo(r.created_at, now))}</div>
             ${
               r.last_error
-                ? `<div style="font-size:11px;color:#C44B3A;margin-top:3px;word-break:break-all;">${escape(
+                ? `<div style="font-size:11px;color:#C44B3A;margin-top:3px;word-break:break-word;">${escape(
                     r.last_error.slice(0, 200),
                   )}</div>`
                 : ''

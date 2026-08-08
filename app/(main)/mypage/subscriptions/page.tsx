@@ -517,7 +517,7 @@ export default async function AppSubscriptionsSummaryPage({
                         </span>
                       </span>
                       <span
-                        className="block mt-1 text-[11.5px] truncate"
+                        className="block mt-1 text-[11.5px] leading-snug"
                         style={{ color: V3.inkMute }}
                       >
                         {krw(s.total_amount)}

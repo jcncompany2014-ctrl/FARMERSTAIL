@@ -266,7 +266,7 @@ export default async function SubscriptionChargesPage({
                           {row.error_code}
                         </span>
                       )}
-                      <span className="line-clamp-1">{row.error_message}</span>
+                      <span className="line-clamp-1" title={row.error_message ?? undefined}>{row.error_message}</span>
                     </td>
                     <td className="px-4 py-3">
                       {row.order_id ? (

@@ -165,7 +165,7 @@ function renderAdminEmail({
   message: string
 }): string {
   return `<!DOCTYPE html>
-<html><body style="font-family:system-ui,-apple-system,sans-serif;background:#FAF6EE;padding:24px;color:#2C2A26;">
+<html><body style="font-family:system-ui,-apple-system,sans-serif;background:#FAF6EE;padding:24px;color:#2C2A26;word-break:keep-all;overflow-wrap:break-word;">
   <table style="max-width:560px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #E6DDC8;">
     <tr><td style="padding:24px 28px;">
       <div style="font-size:11px;letter-spacing:0.18em;color:#7A7A7A;text-transform:uppercase;font-weight:700;">새 문의 · Contact</div>
@@ -192,7 +192,7 @@ function renderUserEmail({
   message: string
 }): string {
   return `<!DOCTYPE html>
-<html><body style="font-family:system-ui,-apple-system,sans-serif;background:#FAF6EE;padding:24px;color:#2C2A26;">
+<html><body style="font-family:system-ui,-apple-system,sans-serif;background:#FAF6EE;padding:24px;color:#2C2A26;word-break:keep-all;overflow-wrap:break-word;">
   <table style="max-width:560px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #E6DDC8;">
     <tr><td style="padding:28px 28px 24px;">
       <div style="font-size:11px;letter-spacing:0.18em;color:#B5533A;text-transform:uppercase;font-weight:700;">파머스테일 · 문의 접수</div>
