@@ -84,9 +84,62 @@ export default function ProductForm({
 
   const [form, setForm] = useState<ProductData>(initialData ?? EMPTY)
   const [loading, setLoading] = useState(false)
+  // 사진 업로드 상태 — 블로그 커버와 같은 패턴 (2026-08-08 사장님 요청).
+  // 업로드 라우트(/api/admin/products/upload)는 이미 있었는데 폼에 URL
+  // 붙여넣기 칸만 있고 소비자가 없었다 — 실사 촬영본이 오면 여기로 올린다.
+  const [imgUpload, setImgUpload] = useState<
+    { status: 'idle' } | { status: 'uploading' } | { status: 'error'; message: string }
+  >({ status: 'idle' })
 
   function update<K extends keyof ProductData>(key: K, value: ProductData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  async function handleImageUpload(file: File) {
+    setImgUpload({ status: 'uploading' })
+    const previousUrl = form.image_url
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('slug', form.slug || 'product')
+    const res = await fetch('/api/admin/products/upload', {
+      method: 'POST',
+      body: fd,
+    })
+    if (!res.ok) {
+      const err = (await res.json().catch(() => null)) as {
+        message?: string
+      } | null
+      setImgUpload({
+        status: 'error',
+        message: err?.message ?? '업로드에 실패했어요',
+      })
+      return
+    }
+    const data = (await res.json()) as { url: string }
+    update('image_url', data.url)
+    setImgUpload({ status: 'idle' })
+    // 새 사진이 안전히 올라간 뒤 옛 파일 정리 (fire-and-forget).
+    // 외부 URL 은 서버가 버킷 마커 미스로 조용히 건너뛴다.
+    if (previousUrl && previousUrl !== data.url) {
+      fetch('/api/admin/products/upload', {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: previousUrl }),
+      }).catch(() => {})
+    }
+  }
+
+  /** 미리보기 X: 폼 비우고 우리 버킷 파일이면 Storage 도 정리. */
+  function clearImage() {
+    const previousUrl = form.image_url
+    update('image_url', '')
+    if (previousUrl) {
+      fetch('/api/admin/products/upload', {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: previousUrl }),
+      }).catch(() => {})
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -281,25 +334,64 @@ export default function ProductForm({
               placeholder="상품 상세 설명 (마크다운 가능)"
             />
           </Field>
-          <Field label="이미지 URL">
+          <Field label="대표 사진">
+            <div className="flex items-center gap-2">
+              <label
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition ${
+                  imgUpload.status === 'uploading'
+                    ? 'bg-zinc-100 text-zinc-400 cursor-wait'
+                    : 'bg-zinc-900 text-white hover:bg-zinc-700'
+                }`}
+              >
+                {imgUpload.status === 'uploading' ? '올리는 중...' : '사진 업로드'}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+                  className="hidden"
+                  disabled={imgUpload.status === 'uploading'}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    // 같은 파일을 다시 골라도 change 가 뜨게 초기화.
+                    e.target.value = ''
+                    if (file) void handleImageUpload(file)
+                  }}
+                />
+              </label>
+              <span className="text-[10px] text-zinc-500">
+                JPG·PNG·WebP · 최대 8MB
+              </span>
+            </div>
+            {imgUpload.status === 'error' && (
+              <p role="alert" className="mt-1.5 text-[11px] font-semibold text-sale">
+                {imgUpload.message}
+              </p>
+            )}
             <input
               type="text"
               value={form.image_url ?? ''}
               onChange={(e) => update('image_url', e.target.value)}
-              className={`${inputClass} font-mono text-xs`}
-              placeholder="https://..."
+              className={`${inputClass} font-mono text-xs mt-2`}
+              placeholder="또는 이미지 URL 직접 입력 (https://...)"
             />
           </Field>
           {form.image_url && (
             <div className="mt-2">
               <p className="text-[10px] text-zinc-500 mb-1">미리보기</p>
-              <div className="w-32 h-32 rounded-lg bg-zinc-50 overflow-hidden">
+              <div className="relative w-32 h-32 rounded-lg bg-zinc-50 overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={form.image_url}
                   alt="preview"
                   className="w-full h-full object-cover"
                 />
+                <button
+                  type="button"
+                  onClick={clearImage}
+                  aria-label="사진 제거"
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-zinc-900/70 text-white text-xs font-bold flex items-center justify-center hover:bg-zinc-900"
+                >
+                  ×
+                </button>
               </div>
             </div>
           )}
