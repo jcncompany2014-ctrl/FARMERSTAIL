@@ -41,7 +41,7 @@
     "cap:open:ios": "npx cap open ios",
     "cap:dev:android": "powershell -Command \"$env:CAPACITOR_SERVER_URL='http://10.0.2.2:3000'; npx cap sync android; npx cap run android\"",
     "cap:dev:ios": "CAPACITOR_SERVER_URL=http://localhost:3000 npx cap sync ios && npx cap run ios",
-    "cap:assets": "npx -p @capacitor/assets@latest cap-assets generate --iconBackgroundColor '#F5F0E6' --iconBackgroundColorDark '#171310' --splashBackgroundColor '#F5F0E6' --splashBackgroundColorDark '#171310'"
+    "cap:assets": "npx -y @capacitor/assets generate --iconBackgroundColor \"#F5F0E6\" --iconBackgroundColorDark \"#171310\" --splashBackgroundColor \"#F5F0E6\" --splashBackgroundColorDark \"#171310\""
   },
   "dependencies": {
     "@capacitor/android": "^8.3.1",
