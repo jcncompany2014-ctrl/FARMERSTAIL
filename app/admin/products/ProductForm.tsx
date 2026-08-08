@@ -172,7 +172,13 @@ export default function ProductForm({
 
   /** 저장이 성공했을 때만 부른다 — 미뤄 둔 옛 파일을 실제로 정리. */
   function flushRetiredImages() {
-    for (const url of pendingDelete.current) discardFile(url)
+    for (const url of pendingDelete.current) {
+      // ★저장된 최종 URL 과 같으면 지우지 않는다 (2026-08-09 재검토).
+      //  X 로 지웠다가 같은 URL 을 직접 붙여넣고 저장하면, 방금 DB 가 다시
+      //  가리키게 된 파일을 여기서 지워 404 를 만드는 극단 케이스가 있었다.
+      if (url === form.image_url?.trim()) continue
+      discardFile(url)
+    }
     pendingDelete.current = []
   }
 
