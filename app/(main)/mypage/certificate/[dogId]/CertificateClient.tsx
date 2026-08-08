@@ -471,7 +471,8 @@ function Row({
           color: 'var(--ink)',
           fontFamily: mono ? 'JetBrains Mono, monospace' : 'inherit',
           letterSpacing: mono ? '0.05em' : '-0.005em',
-          wordBreak: 'break-all',
+          // mono(ID·코드)만 break-all — 한글 값(이름·견종)은 단어 단위 유지.
+          wordBreak: mono ? 'break-all' : 'keep-all',
         }}
       >
         {value}

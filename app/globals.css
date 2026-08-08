@@ -1008,11 +1008,15 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   letter-spacing: -0.005em;
-  /* 한국어 우선 줄바꿈 — 단어가 끝나는 곳에서만 줄을 끊고, 영문이 길면
-     break-all 로 fallback. CJK 가 영문에 비해 너무 자주 덧대 여러 줄 깨지는
-     문제 회피 — 본문 / 카드 내부에서 자연스러운 호흡. */
+  /* 한국어 우선 줄바꿈 — 단어가 끝나는 곳에서만 줄을 끊는다.
+     ★`overflow-wrap: anywhere` 금지 (2026-08-08 사장님 제보 — "안녕하세/요"
+     식 글자 단위 줄바뀜). `anywhere` 는 긴급 줄바꿈뿐 아니라 **min-content
+     폭 계산을 글자 1개 단위로** 만들어서, flex·grid 에서 눌린 텍스트가
+     keep-all 을 무시하고 세로로 무너진다. `break-word` 는 진짜로 한 단어가
+     줄보다 길 때만 자르고 min-content 는 단어 단위를 유지한다.
+     (긴 토큰이 흔한 mono/코드 영역만 아래에서 anywhere 를 유지.) */
   word-break: keep-all;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   line-break: strict;
 }
 

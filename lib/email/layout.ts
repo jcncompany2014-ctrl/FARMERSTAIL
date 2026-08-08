@@ -63,7 +63,7 @@ export function renderLayout({
     <meta name="color-scheme" content="light only" />
     <title>${escape(heading)}</title>
   </head>
-  <body style="margin:0;padding:0;background:#F7F5F0;font-family:Pretendard,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#2E1F14;">
+  <body style="margin:0;padding:0;background:#F7F5F0;font-family:Pretendard,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#2E1F14;word-break:keep-all;overflow-wrap:break-word;">
     <!-- Preview text (inbox preview 에만 노출) -->
     <div style="display:none;max-height:0;overflow:hidden;color:#F7F5F0;opacity:0;">
       ${escape(previewText)}
