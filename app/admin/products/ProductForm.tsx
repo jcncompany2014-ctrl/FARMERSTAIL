@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -95,51 +95,85 @@ export default function ProductForm({
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
-  async function handleImageUpload(file: File) {
-    setImgUpload({ status: 'uploading' })
-    const previousUrl = form.image_url
-    const fd = new FormData()
-    fd.append('file', file)
-    fd.append('slug', form.slug || 'product')
-    const res = await fetch('/api/admin/products/upload', {
-      method: 'POST',
-      body: fd,
-    })
-    if (!res.ok) {
-      const err = (await res.json().catch(() => null)) as {
-        message?: string
-      } | null
-      setImgUpload({
-        status: 'error',
-        message: err?.message ?? '업로드에 실패했어요',
-      })
-      return
-    }
-    const data = (await res.json()) as { url: string }
-    update('image_url', data.url)
-    setImgUpload({ status: 'idle' })
-    // 새 사진이 안전히 올라간 뒤 옛 파일 정리 (fire-and-forget).
-    // 외부 URL 은 서버가 버킷 마커 미스로 조용히 건너뛴다.
-    if (previousUrl && previousUrl !== data.url) {
-      fetch('/api/admin/products/upload', {
-        method: 'DELETE',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url: previousUrl }),
-      }).catch(() => {})
+  /**
+   * ★옛 파일 정리는 **저장 성공 뒤에만** (2026-08-08 RC 재검증 F1).
+   *
+   * 첫 구현은 교체·X 즉시 Storage 를 지웠다 — 그러면 수정 모드에서 새 사진을
+   * 올려보고 **저장 없이 이탈**하는 순간, DB 는 옛 URL 을 그대로 가리키는데
+   * 파일은 사라져 고객 카탈로그 대표사진이 404 가 된다. 그래서:
+   *  · DB 가 아는 파일(= 마운트 시점 image_url) → pendingDelete 에 쌓아 두고
+   *    저장이 성공한 뒤에 지운다.
+   *  · 저장된 적 없는 방금 업로드 파일 → 진짜 고아라 즉시 지워도 안전.
+   * 외부 URL 은 서버가 버킷 마커 미스로 조용히 건너뛴다.
+   */
+  const dbImageUrl = initialData?.image_url ?? null
+  const pendingDelete = useRef<string[]>([])
+
+  function discardFile(url: string) {
+    fetch('/api/admin/products/upload', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ url }),
+    }).catch(() => {})
+  }
+
+  function retireOldImage(previousUrl: string | null) {
+    if (!previousUrl) return
+    if (previousUrl === dbImageUrl) {
+      if (!pendingDelete.current.includes(previousUrl)) {
+        pendingDelete.current.push(previousUrl)
+      }
+    } else {
+      discardFile(previousUrl) // 저장된 적 없는 업로드 — 즉시 정리 안전
     }
   }
 
-  /** 미리보기 X: 폼 비우고 우리 버킷 파일이면 Storage 도 정리. */
+  async function handleImageUpload(file: File) {
+    setImgUpload({ status: 'uploading' })
+    const previousUrl = form.image_url
+    // ★try/catch — 네트워크 단절·JSON 파싱 실패가 throw 되면 'uploading' 에
+    //  갇혀 버튼이 영구 비활성이 됐다(RC 재검증 F2).
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('slug', form.slug || 'product')
+      const res = await fetch('/api/admin/products/upload', {
+        method: 'POST',
+        body: fd,
+      })
+      if (!res.ok) {
+        const err = (await res.json().catch(() => null)) as {
+          message?: string
+        } | null
+        setImgUpload({
+          status: 'error',
+          message: err?.message ?? '업로드에 실패했어요',
+        })
+        return
+      }
+      const data = (await res.json()) as { url: string }
+      update('image_url', data.url)
+      setImgUpload({ status: 'idle' })
+      if (previousUrl && previousUrl !== data.url) retireOldImage(previousUrl)
+    } catch {
+      setImgUpload({
+        status: 'error',
+        message: '업로드에 실패했어요. 연결을 확인하고 다시 시도해 주세요',
+      })
+    }
+  }
+
+  /** 미리보기 X: 폼만 비운다 — Storage 정리는 저장 성공 뒤(retire 규칙). */
   function clearImage() {
     const previousUrl = form.image_url
     update('image_url', '')
-    if (previousUrl) {
-      fetch('/api/admin/products/upload', {
-        method: 'DELETE',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url: previousUrl }),
-      }).catch(() => {})
-    }
+    if (previousUrl) retireOldImage(previousUrl)
+  }
+
+  /** 저장이 성공했을 때만 부른다 — 미뤄 둔 옛 파일을 실제로 정리. */
+  function flushRetiredImages() {
+    for (const url of pendingDelete.current) discardFile(url)
+    pendingDelete.current = []
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -247,6 +281,7 @@ export default function ProductForm({
         return
       }
       toast.success('상품을 등록했어요')
+      flushRetiredImages()
       router.push(`/admin/products/${data!.id}`)
       router.refresh()
     } else {
@@ -261,6 +296,7 @@ export default function ProductForm({
         return
       }
       toast.success('저장했어요')
+      flushRetiredImages()
       router.refresh()
     }
   }
