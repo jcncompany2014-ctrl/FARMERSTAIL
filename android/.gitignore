@@ -53,16 +53,21 @@ captures/
 .idea/navEditor.xml
 
 # Keystore files
-# Uncomment the following lines if you do not want to check your keystore files in.
-#*.jks
-#*.keystore
+# ★주석 해제함 (2026-08-09). Capacitor 기본 템플릿은 이 두 줄이 주석이라,
+#   릴리즈 키스토어를 android/ 안에 두면 **공개 저장소에 서명 키가 커밋된다.**
+#   서명 키가 유출되면 제3자가 우리 앱을 사칭한 업데이트를 만들 수 있다.
+*.jks
+*.keystore
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
 .cxx/
 
 # Google Services (e.g. APIs or Firebase)
-# google-services.json
+# google-services.json 은 비밀값이 아니라(클라이언트 설정) 커밋해도 되지만,
+# 프로젝트 식별자가 드러나므로 기본은 무시한다. 빌드는 파일이 있을 때만
+# 플러그인을 적용하므로(app/build.gradle:48) 없어도 통과한다.
+google-services.json
 
 # Freeline
 freeline.py
