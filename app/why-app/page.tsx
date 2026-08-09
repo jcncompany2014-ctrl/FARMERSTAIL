@@ -382,9 +382,6 @@ export default async function WhyAppPage() {
                   무료 분석으로 시작하기
                   <ArrowRight size={18} strokeWidth={2.4} />
                 </Button>
-                <p className="mt-4" style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.62)' }}>
-                  파머스테일 앱은 가입 후 안내에 따라 홈 화면에 추가할 수 있어요.
-                </p>
               </Reveal>
             </div>
           </Container>

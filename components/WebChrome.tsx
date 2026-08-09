@@ -10,7 +10,6 @@ import {
   Truck,
 } from 'lucide-react'
 import SiteFooter from '@/components/SiteFooter'
-import InstallPrompt from '@/components/InstallPrompt'
 import FdFooter from '@/components/web/fd/FdFooter'
 import { cred } from '@/lib/copy/credibility'
 import { planHref } from '@/lib/funnel-cta'
@@ -516,9 +515,6 @@ export default function WebChrome({
       <FdFooter planHref={planHref(!!isAuthed, false)} />
       {/* 푸터 — 사업자 정보 + 고객 문의 */}
       <SiteFooter />
-
-      {/* PWA 설치 프롬프트 — 모바일 웹 전용(컴포넌트 내부서 모바일·미설치·14일 해제 가드) */}
-      <InstallPrompt />
 
     </div>
   )

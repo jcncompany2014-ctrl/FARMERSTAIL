@@ -10,9 +10,11 @@
  * 코드에 실패 경로가 없으니 안내조차 못 했다.
  *
  * # 왜 파일로 뺐나
- * 같은 판정이 이미 두 곳에 따로 있었다(InstallPrompt 의 isStandalone,
- * AppSplash 의 CSS 게이트). 규칙이 여러 곳에 있으면 갈라진다는 걸 이 저장소에서
- * 여러 번 확인했다 — 전화번호 검증이 네 곳에서 네 가지로 갈라져 있던 것처럼.
+ * 같은 판정이 여러 곳에 흩어져 있었다(옛 InstallPrompt 의 isStandalone —
+ * 2026-08-10 스토어 앱 전환으로 삭제됨, AppSplash 의 CSS 게이트). 규칙이
+ * 여러 곳에 있으면 갈라진다는 걸 이 저장소에서 여러 번 확인했다 —
+ * 전화번호 검증이 네 곳에서 네 가지로 갈라져 있던 것처럼.
+ * 현재 소비자: VetReportPrintButton(인쇄 가능 여부), lib/capacitor 경유 판정.
  */
 
 import { isNativeApp } from '@/lib/capacitor'

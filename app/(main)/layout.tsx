@@ -7,7 +7,7 @@
  * 이동되어 WebChrome 으로 일관되게 wrap 된다.
  *
  * 이 layout 의 책임:
- *   AppChrome 으로 항상 wrap — 모바일 폰 프레임 + 하단 탭바 + InstallPrompt
+ *   AppChrome 으로 항상 wrap — 모바일 폰 프레임 + 하단 탭바
  *
  * # 인증
  * 인증 체크는 **이 레이아웃이 하지 않는다**. 다음 두 곳에서 이미 처리:
