@@ -185,13 +185,28 @@ test('★ 규칙1: 결제 경로의 Supabase update 는 error 를 꺼낸다', ()
   )
 })
 
-test('★ 규칙7: vercel.json 크론은 전부 하루 1회 이하', () => {
-  // 넘으면 Vercel 이 요금 한도로 **빌드 시작을 거부**한다. Vercel 쪽에 배포 기록이
-  // 아예 안 생겨서 진단이 어렵다(2026-07-30 실제로 겪음 — 커밋 3개가 조용히 미반영).
+test('★ 규칙7: vercel.json 크론은 하루 1회 이하 (의도적 예외만 허용)', () => {
+  // Hobby 플랜에선 하루 1회를 넘기면 Vercel 이 요금 한도로 **빌드 시작을 거부**한다
+  // (2026-07-30 실측 — 커밋 3개 조용히 미반영). Pro 에선 잦은 크론이 허용되지만,
+  // 런어웨이 크론(비용·과발송)을 막으려고 규칙은 남기고 **의도적 예외만** 아래에
+  // 이유와 함께 둔다. 목록에 없는데 하루 1회를 넘으면 실수로 본다.
+  //
+  // ✅ 2026-08-11 Vercel Pro 업그레이드. 아래 둘은 원래 sub-daily 설계였고 Hobby
+  //    때문에 daily 로 강등했던 것을 원복한 것이다.
+  const FREQUENT_ALLOWED: Record<string, string> = {
+    '/api/cron/push-lifecycle':
+      'hourly(0 * * * *) — 복약 알림이 사용자 지정 시각에 발화해야 함. 마케팅 3종은 ' +
+      'CRON_IS_HOURLY 게이트로 설정 시각 1회만(24× 과발송 방지).',
+    '/api/cron/refund-retry':
+      'hourly(30 * * * *) — 환불 실패 backoff(5분→15분→1시간→6시간). 매시간이면 ' +
+      '5분·15분 단계는 ~1시간 내, 이후는 표대로(실효 반나절). 하루 1회면 4~5일. ' +
+      '분단위 인터벌 크론은 cron-watchdog 이 파싱 못 해 매시간이 상한.',
+  }
   const cfg = JSON.parse(read(join(ROOT, 'vercel.json'))) as {
     crons: Array<{ path: string; schedule: string }>
   }
   const tooOften = cfg.crons.filter((c) => {
+    if (c.path in FREQUENT_ALLOWED) return false
     const hour = c.schedule.trim().split(/\s+/)[1] ?? ''
     return (
       hour === '*' ||
@@ -203,8 +218,8 @@ test('★ 규칙7: vercel.json 크론은 전부 하루 1회 이하', () => {
   assert.deepEqual(
     tooOften.map((c) => `${c.path} (${c.schedule})`),
     [],
-    '하루 1회를 넘는 크론이 있으면 배포가 거부된다. Pro 업그레이드 후 되돌릴 ' +
-      '목록은 PAYMENT_REHEARSAL.md 최상단. AGENTS.md 규칙7.',
+    '하루 1회를 넘는 크론이 있다. 의도적 예외는 FREQUENT_ALLOWED 에 이유와 함께 ' +
+      '추가(Pro 필요). AGENTS.md 규칙7.',
   )
 })
 

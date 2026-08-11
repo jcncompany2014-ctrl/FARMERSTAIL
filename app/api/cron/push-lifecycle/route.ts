@@ -68,7 +68,12 @@ import { getAutomationSettings } from '@/lib/automation-settings'
 //         배포 기록조차 안 생긴다(AGENTS.md 규칙7).
 //
 //    ③을 빼먹으면 ①②를 제대로 해도 배포가 막히므로, 셋을 한 커밋에 넣을 것.
-const CRON_IS_HOURLY = false
+//
+// ✅ 2026-08-11 — Vercel Pro 업그레이드로 hourly 원복 완료. ① vercel.json
+//    "0 * * * *" · ② 아래 true · ③ audit 규칙7 예외(push-lifecycle) 를 한 커밋에
+//    반영. 마케팅 3종은 아래 게이트(currentKstHour === marketingPushHour)로 24×
+//    과발송을 막고, 복약 알림은 사용자 지정 시각에 매시간 발화한다.
+const CRON_IS_HOURLY = true
 
 // dog_subscriptions / dog_medications 는 lib/supabase/types.ts 가 자동 재생성되지
 // 않아 Database 제네릭에 미포함 (lib/dog-records.ts 의 정책과 같음). 그래서 admin

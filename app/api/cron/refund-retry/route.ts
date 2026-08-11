@@ -26,29 +26,22 @@ export const dynamic = 'force-dynamic'
  *      - 실패 → attempts++ + last_error 기록 + next_retry_at = exponential backoff
  *      - attempts >= MAX_ATTEMPTS → status='permanently_failed' + Sentry alert
  *
- * # backoff — **지금은 표대로 안 돈다** (2026-07-31 주석 정정)
- *   코드가 넣는 `next_retry_at` 은 아래 간격이지만, **크론이 하루 1회**라
- *   (vercel.json: `"30 19 * * *"` = KST 04:30) 그 시각이 지났는지와 무관하게
- *   **다음 실행은 다음 날**이다. 즉 실효 간격은 전부 ~24시간이다.
- *     코드값:  5분 → 15분 → 1시간 → 6시간 → permanently_failed
- *     실효:    ~24h → ~24h → ~24h → ~24h  (= 5회 소진에 **약 4~5일**)
+ * # backoff — ✅ 시간 단위로 산다 (2026-08-11 Vercel Pro 원복)
+ *   크론이 **매시간**(vercel.json: 매시 :30)이라, next_retry_at 이 지난 건을
+ *   다음 정시에 재시도한다. 5분·15분 단계는 최대 ~1시간 내로, 1시간·6시간
+ *   단계는 거의 표대로 실효화된다:
+ *     5분 → 15분 → 1시간 → 6시간 → permanently_failed  (5회 소진 ~반나절)
  *
- *   ⚠️ 고객 입장에서 이 말은 **환불이 한 번 실패하면 최소 하루를 기다린다**는
- *      뜻이다. 표만 보고 "몇 시간이면 끝난다" 고 안내하면 안 된다.
- *
- *   왜 하루 1회인가: Vercel Hobby 는 하루 1회 크론만 허용한다. 넘기면 **빌드
- *   시작 자체를 거부**한다(AGENTS.md 규칙7 — 실제로 38시간 배포가 멈춘 적 있다).
- *   Pro 업그레이드 시 vercel.json 의 이 크론을 잦게 되돌리면 위 표가 살아난다 —
- *   출시 체크리스트 항목이다. **코드는 안 고쳐도 된다**(간격은 이미 짧게 박혀 있다).
+ *   (2026-07-19~08-11 Hobby 제약으로 하루 1회였고 실효 4~5일이었다. Pro 로
+ *    매시간 원복. 분 단위 인터벌 크론은 cron-watchdog 이 파싱 못 해 매시간이 상한.)
  *
  * # 멱등성
  *   cancelPayment 의 idempotencyKey 가 payment_key + amount + reason 조합이라
  *   같은 row 를 N번 재시도해도 Toss 가 같은 응답 반환 → 중복 환불 X.
  *
- * # 스케줄 — **하루 1회** (vercel.json: `"30 19 * * *"` = KST 04:30)
- *   "15분 간격으로 시작" 이라고 적혀 있었으나 사실이 아니다(2026-07-31 정정).
- *   Vercel Hobby 는 하루 1회 크론만 허용하고, 넘기면 빌드가 아예 거부된다.
- *   Pro 업그레이드 시 여기를 잦게 되돌리는 것이 출시 체크리스트 항목이다.
+ * # 스케줄 — **매시간** (vercel.json: `"30 * * * *"` = 매시 :30, 2026-08-11 Pro 원복)
+ *   하루 1회면 backoff 가 전부 ~24시간이 된다. 매시간으로 올려 시간 단위로 산다.
+ *   audit 규칙7 의 FREQUENT_ALLOWED 에 예외로 등록돼 있다.
  *
  * # 보안
  *   isAuthorizedCronRequest 통과 후 service_role 로 row 잡고 update.
