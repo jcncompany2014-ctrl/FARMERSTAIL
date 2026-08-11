@@ -4,6 +4,7 @@ import {
   paymentMethodLabel,
   bankCodeLabel,
   formatDueDate,
+  reasonKeyFragment,
 } from './toss.ts'
 
 /**
@@ -91,6 +92,45 @@ describe('bankCodeLabel', () => {
   it('매핑 없는 코드 → 원문 (안전 fallback)', () => {
     assert.equal(bankCodeLabel('99'), '99')
     assert.equal(bankCodeLabel('XX'), 'XX')
+  })
+})
+
+describe('reasonKeyFragment — 취소 멱등키의 한글 사유 축약', () => {
+  /**
+   * ★2026-08-11 go-live 감사에서 잡힌 실버그의 회귀 가드.
+   * 취소 멱등키에 한글 사유("고객 요청" 등)가 그대로 들어가 HTTP 헤더 생성이
+   * TypeError 로 터졌다 — 헤더는 Latin-1(ByteString)만 허용한다. 그 결과 모든
+   * 환불이 토스에 도달하기도 전에 "TOSS_NETWORK" 로 위장 실패했다.
+   * 사유는 sha256 16자(hex)로 축약해 싣는다.
+   */
+  it('한글 사유 → ASCII hex 16자 (헤더 안전)', () => {
+    const frag = reasonKeyFragment('고객 요청')
+    assert.match(frag, /^[0-9a-f]{16}$/)
+  })
+
+  it('결정적 — 같은 사유는 항상 같은 조각 (멱등 의미 보존)', () => {
+    assert.equal(reasonKeyFragment('고객 요청'), reasonKeyFragment('고객 요청'))
+    assert.notEqual(reasonKeyFragment('고객 요청'), reasonKeyFragment('오배송'))
+  })
+
+  it('★재현 케이스: 실제 취소 멱등키 형태가 Headers 에 실린다 (원버그는 여기서 throw)', () => {
+    const key = `cancel:pk_abc123:full:${reasonKeyFragment('청구 도중 고객 해지 — 자동 환불')}`
+    // 한글이 남아 있으면 이 생성자가 TypeError 로 던진다 — 그게 원래 버그였다.
+    assert.doesNotThrow(() => new Headers({ 'Idempotency-Key': key }))
+  })
+
+  it('호출처 5곳의 실제 한글 사유 전부 헤더 안전', () => {
+    const reasons = [
+      '고객 요청',
+      '주문 상태 race — 결제 후 만료 감지',
+      'DB 업데이트 실패에 의한 자동 환불',
+      '청구 도중 고객 해지 — 자동 환불',
+      '자동 환불 (부분 취소 후 재시도)',
+    ]
+    for (const r of reasons) {
+      const key = `cancel:pk_x:5000:${reasonKeyFragment(r)}`
+      assert.doesNotThrow(() => new Headers({ 'Idempotency-Key': key }), r)
+    }
   })
 })
 

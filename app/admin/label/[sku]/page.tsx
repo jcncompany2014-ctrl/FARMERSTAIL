@@ -5,6 +5,7 @@ import { ChevronLeft } from 'lucide-react'
 import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { SKU_META, type SkuKey } from '@/lib/allergy-sku-matrix'
+import { business as bizInfo } from '@/lib/business'
 import LabelPrintButton from './LabelPrintButton'
 
 export const dynamic = 'force-dynamic'
@@ -120,7 +121,10 @@ export default async function LabelPdfPage({
       // 점검 fix: 사업자등록증 기준 정확 주소(28번길 50). 이전 fallback 의 '28번길
       // 28' 은 오기로, lib/business.ts(전상법 표시)와 불일치했다. 단일 값으로 통일.
       '인천광역시 연수구 송도과학로28번길 50, 더샵 송도트리플타워 West 1층 121호',
-    phone: process.env.NEXT_PUBLIC_BUSINESS_PHONE ?? '[전화번호 등록 후 입력]',
+    // ★2026-08-11 go-live 감사: ENV 미등록이면 placeholder 가 그대로 라벨에
+    //   인쇄되고 있었다(이 페이지만 lib/business.ts 정본을 안 씀). 정본의
+    //   실전화번호로 fallback — 전 표면과 같은 값을 보장한다.
+    phone: process.env.NEXT_PUBLIC_BUSINESS_PHONE ?? bizInfo.phone,
     biz_reg_no: process.env.NEXT_PUBLIC_FEED_BIZ_REG_NO ?? '243-06-03606',
   }
 

@@ -179,6 +179,14 @@ export async function POST(req: Request) {
   // race 를 봉쇄한다. 상태기반 멱등(아래 switch)만으로는 두 요청이 거의 동시에
   // "아직 paid 아님"을 읽으면 둘 다 적립하는 틈이 남는데, unique INSERT 는 한
   // 쪽만 성공(23505 충돌)이라 직렬화된다. 테이블 미적용(42P01)이면 폴백(무영향).
+  // ★부분취소는 같은 결제에 여러 번 올 수 있다(운영자가 두 번에 나눠 환불).
+  //   status 만으로 키를 만들면 2회째부터 duplicate 로 통째로 skip 되어 원장에
+  //   안 남는다(2026-08-11 go-live 감사). 잔액(balanceAmount)은 부분취소마다
+  //   줄어들어 전이마다 유일하므로 구분자로 쓴다.
+  const eventKey =
+    payment.status === 'PARTIAL_CANCELED'
+      ? `${paymentKey}:${payment.status}:${payment.balanceAmount ?? 'na'}`
+      : `${paymentKey}:${payment.status}`
   const dedup = await (
     supabase as unknown as {
       from: (t: string) => {
@@ -191,7 +199,7 @@ export async function POST(req: Request) {
     .from('webhook_events')
     .insert({
       provider: 'toss',
-      event_key: `${paymentKey}:${payment.status}`,
+      event_key: eventKey,
       order_id: order.id,
       payment_key: paymentKey,
       status: payment.status,
@@ -234,12 +242,15 @@ export async function POST(req: Request) {
     })
     if (dedupRecorded) {
       // 이 기록이 남으면 토스 재시도가 duplicate 로 걸러진다 → 반드시 되돌린다.
-      await (
+      const rollback = await (
         supabase as unknown as {
           from: (t: string) => {
             delete: () => {
               eq: (c: string, v: string) => {
-                eq: (c: string, v: string) => Promise<unknown>
+                eq: (
+                  c: string,
+                  v: string,
+                ) => Promise<{ error: { message?: string; code?: string } | null }>
               }
             }
           }
@@ -248,7 +259,23 @@ export async function POST(req: Request) {
         .from('webhook_events')
         .delete()
         .eq('provider', 'toss')
-        .eq('event_key', `${paymentKey}:${payment.status}`)
+        .eq('event_key', eventKey)
+      // ★롤백 자체가 실패하면(DB 가 흔들리는 상황이면 충분히 같이 실패한다)
+      //   멱등 기록이 남은 채 500 이 나가고, 토스 재시도는 전부 duplicate 로
+      //   걸러진다 — 이 파일이 고치려던 "복구 경로 0" 사고가 한 겹 아래에서
+      //   재현되는 것. 자동 복구는 불가능하므로 event_key 를 담아 fatal 로
+      //   남긴다: 운영자가 webhook_events 에서 이 행을 지우면 토스 재시도가
+      //   다시 통한다(수동 복구 절차).
+      if (rollback.error) {
+        captureBusinessEvent('error', 'payment.webhook.dedup_rollback_failed', {
+          orderId: targetOrderId,
+          paymentKey,
+          eventKey,
+          dbError: String(rollback.error.message ?? rollback.error.code ?? 'unknown'),
+          note:
+            '수동 복구: webhook_events 에서 이 event_key 행을 삭제하면 토스 재시도가 다시 처리된다.',
+        })
+      }
     }
     return NextResponse.json(
       { ok: false, error: 'db_write_failed', stage },
@@ -334,7 +361,9 @@ export async function POST(req: Request) {
       // 엣지 케이스(탭 닫음)를 대비해 여기서도 업데이트 한 번 더.
       const va = payment.virtualAccount
       if (va) {
-        await supabase
+        // 규칙1 — { error } 를 꺼낸다. 실패해도 결정적 상태 전이가 아니라
+        // (VA 안내 필드 보강일 뿐) 500 재시도 대신 기록만 남긴다.
+        const vaUpd = await supabase
           .from('orders')
           .update({
             payment_method: payment.method ?? null,
@@ -345,6 +374,13 @@ export async function POST(req: Request) {
             virtual_account_holder: va.customerName ?? null,
           })
           .eq('id', order.id)
+        if (vaUpd.error) {
+          captureBusinessEvent('warning', 'payment.webhook.va_update_failed', {
+            orderId: order.id,
+            paymentKey,
+            dbError: String(vaUpd.error.message ?? 'unknown'),
+          })
+        }
       }
       break
     }
@@ -390,9 +426,15 @@ export async function POST(req: Request) {
         const tossCancels = (payment as unknown as {
           cancels?: Array<{ cancelAmount: number }>
         }).cancels
+        // ★cancels 는 시간순 누적 배열 — **이번 전이의 금액은 마지막 원소**다.
+        //   [0](최초 취소)을 읽으면 부분환불 2회째부터 항상 첫 금액이 기록되고,
+        //   부분환불 뒤 전액취소를 -total_amount 로 적으면 이미 원장에 있는
+        //   부분환불과 합쳐 과대 기록된다(2026-08-11 go-live 감사). 전액취소도
+        //   마지막 취소 건 = 남은 잔액이라 그걸 쓴다(없으면 total 폴백).
+        const latestCancel = tossCancels?.[tossCancels.length - 1]
         const cancelAmt = isPartial
-          ? (tossCancels?.[0]?.cancelAmount ?? 0)
-          : order.total_amount
+          ? (latestCancel?.cancelAmount ?? 0)
+          : (latestCancel?.cancelAmount ?? order.total_amount)
         const { recordPaymentEvent } = await import('@/lib/payment-events')
         await recordPaymentEvent(supabase, {
           orderId: order.id,

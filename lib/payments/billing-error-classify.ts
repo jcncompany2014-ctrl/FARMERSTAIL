@@ -161,16 +161,26 @@ export function isDefinitiveDecline(code: string | null | undefined): boolean {
  * 다음 확정거절에서 또 새 날짜 키 → 두 번째 캡처.
  *
  * `failed_charge_count` 는 확정거절·unknown 에만 오르고 **transient(타임아웃류)
- * 에는 안 오른다**(subscription-charge 실패 분기). 그래서 이 값을 앵커로 쓰면
- * "돈이 안 나갔음이 보장된 거절 때만 키를 갈아탄다"가 정확히 표현되고,
- * 결과 불명인 재시도는 같은 키를 유지한다 — 단조 증가라 되돌아가지 않는다.
+ * 에는 안 오른다**(subscription-charge 실패 분기 — ★2026-08-11 정합 수정: 이
+ * 문장이 주장만 하고 코드는 확정거절을 transient 로 묶어 count 를 안 올리고
+ * 있었다. 그 결과 접미사가 :r0 에 고정 → 2회째 거절부터 토스가 저장된 거절을
+ * 15일 재생 → 고객이 잔액을 채워도 결제 동결. 크론 쪽에서 확정거절 시 count 를
+ * 올리도록 고쳤다). 이 값을 앵커로 쓰면 "돈이 안 나갔음이 보장된 거절 때만
+ * 키를 갈아탄다"가 정확히 표현되고, 결과 불명인 재시도는 같은 키를 유지한다.
+ *
+ * ★단조성(2026-08-11): count ≥ 1 이면 **직전 코드가 무엇이든** 접미사를 유지
+ * 한다. 확정거절(:rN) 뒤 타임아웃이 끼면 직전 코드가 비확정이 되는데, 그때
+ * 접미사를 떼면 키가 base 로 **되돌아가** 이미 저장된 응답을 재생하거나(최선)
+ * 15일 뒤 같은 키로 새 청구가 되어 이중청구 위험(최악)이 생긴다. count 는
+ * 성공 시에만 0 으로 리셋되고 성공하면 next_delivery_date 가 바뀌어 base 키
+ * 자체가 달라지므로, 접미사가 큰 쪽으로만 움직이면 키 충돌이 없다.
  */
 export function chargeRetrySuffix(
   lastFailedCode: string | null | undefined,
   failedChargeCount: number,
 ): string {
-  if (!isDefinitiveDecline(lastFailedCode)) return ''
   const n = Number.isFinite(failedChargeCount) ? Math.max(0, failedChargeCount) : 0
+  if (n === 0 && !isDefinitiveDecline(lastFailedCode)) return ''
   return `:r${n}`
 }
 

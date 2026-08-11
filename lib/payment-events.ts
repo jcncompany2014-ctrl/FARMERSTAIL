@@ -40,6 +40,9 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+// 상대경로+.ts — npm test(node strip-types)는 '@/' 별칭 value import 를 못 푼다
+// (AGENTS.md 'npx tsx ≠ npm test' 함정. 실제로 이 import 가 @/ 였을 때 깨졌다).
+import { captureBusinessEvent } from './sentry/trace.ts'
 
 export type PaymentEventType =
   | 'paid'
@@ -79,12 +82,35 @@ export interface PaymentEventInput {
  * 결제 원장에 한 줄 insert. Best-effort — 실패해도 throw 안 함
  * (결제 흐름 막지 않으려고). 대신 Sentry 에 캡쳐.
  *
+ * ★2026-08-11 go-live 감사: 위 "Sentry 에 캡쳐" 약속이 주석뿐이고 실물이
+ *   없었다(호출처 대부분이 반환값도 버린다 → 원장 insert 실패가 완전 무음).
+ *   원장이 비면 reconcile 크론의 잔액 검산이 어긋나는데 그 원인이 기록 실패인지
+ *   실제 이중청구인지 구분할 단서가 없어진다. 여기서 직접 캡쳐한다.
+ *
  * @returns ok / fail (호출처가 알 필요 있으면)
  */
 export async function recordPaymentEvent(
   supabase: SupabaseClient,
   input: PaymentEventInput,
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const fail = (reason: string): { ok: false; reason: string } => {
+    // 캡처 자체도 best-effort — Sentry SDK 가 없거나 죽어도(테스트 환경 포함)
+    // 이 함수의 "절대 throw 안 함" 계약을 깨면 안 된다.
+    try {
+      captureBusinessEvent('error', 'payment.ledger.insert_failed', {
+        orderId: input.orderId,
+        paymentKey: input.paymentKey ?? null,
+        eventType: input.eventType,
+        amount: input.amount,
+        source: input.source,
+        reason,
+        note: '원장(payment_events) 기록 실패 — reconcile mismatch 의 원인 후보.',
+      })
+    } catch {
+      /* capture 실패는 무시 — 반환값(ok:false)이 1차 신호다 */
+    }
+    return { ok: false, reason }
+  }
   try {
     // generated types 에 아직 payment_events 없음 (방금 migration) → cast 우회.
     const { error } = await (
@@ -105,10 +131,10 @@ export async function recordPaymentEvent(
       actor_user_id: input.actorUserId ?? null,
     })
 
-    if (error) return { ok: false, reason: error.message }
+    if (error) return fail(error.message)
     return { ok: true }
   } catch (e) {
-    return { ok: false, reason: e instanceof Error ? e.message : 'unknown' }
+    return fail(e instanceof Error ? e.message : 'unknown')
   }
 }
 

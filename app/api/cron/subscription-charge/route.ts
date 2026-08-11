@@ -7,6 +7,7 @@ import {
   classifyBillingError,
   describeBillingError,
   chargeRetrySuffix,
+  isDefinitiveDecline,
   RETRY_COOLDOWN_MS,
   MAX_FAILED_CHARGES,
 } from '@/lib/payments/billing-error-classify'
@@ -899,9 +900,11 @@ async function runSubscriptionCharge(): Promise<Response> {
         })
         if (!refund.ok) {
           // 즉시 환불 실패 → 큐로. refund-retry 크론이 이어받는다.
-          await (supabase as unknown as {
+          const queued = await (supabase as unknown as {
             from: (t: string) => {
-              insert: (r: Record<string, unknown>) => Promise<{ error: unknown }>
+              insert: (
+                r: Record<string, unknown>,
+              ) => Promise<{ error: { message?: string; code?: string } | null }>
             }
           })
             .from('payment_refund_queue')
@@ -911,6 +914,20 @@ async function runSubscriptionCharge(): Promise<Response> {
               amount: chargeAmount,
               reason: 'cancelled_mid_charge',
             })
+          // ★규칙1 — 큐 insert 가 실패하면 이 환불은 어떤 크론도 이어받지 못한다
+          //   (돈은 빠졌는데 환불 경로 0). 무음으로 두면 영영 모르므로 fatal 로
+          //   남긴다: 운영자가 payment_refund_queue 에 수동 insert 하면 복구된다.
+          if (queued.error) {
+            captureBusinessEvent('error', 'subscription.charge.refund_queue_insert_failed', {
+              subscriptionId: sub.id,
+              orderId: orderRow.id,
+              paymentKey: String(result.paymentKey),
+              amount: chargeAmount,
+              dbError: String(queued.error.message ?? queued.error.code ?? 'unknown'),
+              note:
+                '환불 큐 적재 실패 — refund-retry 가 이어받지 못한다. payment_refund_queue 수동 insert 로 복구.',
+            })
+          }
         }
         // 주문은 결제됨으로 기록하되 발송 대기로 올리지 않는다(order_status 유지).
         await supabase
@@ -1013,8 +1030,17 @@ async function runSubscriptionCharge(): Promise<Response> {
         // permanent 는 count 증가 의미 없음 — 1회 카운트만 찍어 history 보전.
         nextFailedCount = sub.failed_charge_count + 1
       } else if (errorClass === 'transient') {
-        // count 증가 안 함 — 사용자가 같은 카드로 시간 지나면 결제 가능.
         nextRetryAt = new Date(Date.now() + RETRY_COOLDOWN_MS).toISOString()
+        if (isDefinitiveDecline(errorCode)) {
+          // ★확정 거절(잔액부족류)은 count 를 올린다 — chargeRetrySuffix 가 이
+          //   값을 앵커로 다음 재시도에 새 멱등키를 쓰기 때문. 안 올리면 접미사가
+          //   :r0 에 고정돼 2회째 거절부터 토스가 저장된 거절을 15일간 재생 —
+          //   고객이 잔액을 채워도 결제가 계속 실패했다(2026-08-11 go-live 감사).
+          //   일시정지는 안 한다(3-strike 는 unknown 전용) — 회복 가능한 거절이다.
+          nextFailedCount = sub.failed_charge_count + 1
+        }
+        // 그 외 transient(타임아웃류)는 count 유지 — 같은 멱등키 재사용이 맞다
+        // (결과 불명 재시도가 새 청구가 되면 이중청구).
       } else {
         // unknown: 기존 3-strike.
         nextFailedCount = sub.failed_charge_count + 1

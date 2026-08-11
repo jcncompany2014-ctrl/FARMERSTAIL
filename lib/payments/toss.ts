@@ -11,8 +11,15 @@
  *     키로 들어온 반복 요청에는 동일한 200 결과를 돌려준다.
  *   - 승인 키는 `${orderId}:${paymentKey}` 로 잡는다 — 두 값 모두 동일 트랜잭션
  *     에서만 조합되므로 재시도 시 자동으로 같은 키가 나온다.
- *   - 취소 키는 `cancel:${paymentKey}[:{amount}|:full]:${cancelReason}` — 부분
+ *   - 취소 키는 `cancel:${paymentKey}[:{amount}|:full]:${sha256(이유)}` — 부분
  *     취소는 금액까지 키에 포함해 같은 (키·금액·이유) 조합만 dedupe 된다.
+ *
+ * ★ 멱등키는 HTTP 헤더로 실린다 — 헤더 값은 Latin-1(ByteString)만 허용해서
+ *   한글이 그대로 들어가면 fetch 가 요청을 보내기도 전에 TypeError 로 터진다
+ *   (2026-08-11 go-live 감사에서 실측 재현 — 모든 환불 경로의 사유가 한글이라
+ *   환불이 100% "TOSS_NETWORK" 로 위장 실패하던 버그). 그래서 사유는 sha256
+ *   16자로 축약해 싣는다: 같은 사유 → 같은 해시(멱등 의미 보존) + ASCII 고정.
+ *   body 의 cancelReason 은 JSON UTF-8 이라 한글 그대로 간다(토스 화면 표시용).
  *
  * 호출처:
  *   - app/api/payments/confirm/route.ts   → confirmPayment
@@ -20,7 +27,17 @@
  *   - app/api/payments/webhook/route.ts   → fetchPayment (진실의 원천 재조회)
  */
 
+import { createHash } from 'node:crypto'
+
 const TOSS_API_BASE = 'https://api.tosspayments.com/v1'
+
+/**
+ * 취소 사유 → 멱등키 조각. 헤더는 Latin-1 만 허용하므로(위 ★ 참조) 한글 사유를
+ * sha256 hex 16자로 축약한다. 같은 사유 → 같은 조각이라 멱등 의미가 보존된다.
+ */
+export function reasonKeyFragment(reason: string): string {
+  return createHash('sha256').update(reason).digest('hex').slice(0, 16)
+}
 
 export type TossPaymentStatus =
   | 'READY'
@@ -186,7 +203,8 @@ export async function cancelPayment(input: {
     {
       method: 'POST',
       body: JSON.stringify(body),
-      idempotencyKey: `cancel:${input.paymentKey}${keyAmountPart}:${reasonShort}`,
+      // ★사유는 해시로 — 한글이 헤더에 실리면 fetch 가 전송 전에 터진다(상단 ★).
+      idempotencyKey: `cancel:${input.paymentKey}${keyAmountPart}:${reasonKeyFragment(reasonShort)}`,
     },
   )
 }

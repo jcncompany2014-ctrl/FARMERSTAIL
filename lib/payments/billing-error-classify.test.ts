@@ -187,7 +187,7 @@ describe('chargeRetrySuffix — 멱등키 앵커', () => {
    * 앵커가 날짜였을 때 3일차에 키가 **되돌아가고** 4일차에 두 번째 캡처가 났다.
    * 앵커가 failed_charge_count 면 되돌아갈 수 없다(단조 증가).
    */
-  it('★확정거절 → 타임아웃 → 재시도에서 키가 되돌아가지 않는다', () => {
+  it('★확정거절 → 타임아웃 → 재시도에서 키가 되돌아가지 않는다 (단조성)', () => {
     // 1일차: 아직 실패 없음 → 접미사 없음(기본 키)
     assert.equal(chargeRetrySuffix(null, 0), '')
     // 1일차 잔액부족(확정거절) → count 1
@@ -195,11 +195,13 @@ describe('chargeRetrySuffix — 멱등키 앵커', () => {
     const day2 = chargeRetrySuffix('INSUFFICIENT_FUNDS', 1)
     assert.equal(day2, ':r1')
     // 2일차 타임아웃(카드는 긁혔을 수 있음) → transient 라 count 유지(1)
-    // 3일차: 직전 코드가 비확정이므로 접미사 없음 — 여기까지는 옛 동작과 같다
-    assert.equal(chargeRetrySuffix('PAY_PROCESS_TIMEOUT', 1), '')
-    // ★핵심: 3일차도 확정거절이 나오면 count 2 → :r2.
-    //   날짜 앵커였다면 :r{그날짜} 가 되어 2일차 키(:r1)와 무관한 새 키였다.
-    //   count 앵커는 2일차 키를 건너뛰지 않고 그 다음 번호를 쓴다.
+    // ★3일차: 직전 코드가 비확정이어도 count ≥ 1 이면 **접미사를 유지**한다
+    //   (2026-08-11 수정 — 옛 동작은 여기서 '' 로 base 키에 되돌아갔고, 그러면
+    //   2일차 타임아웃 키(:r1)의 결과를 영영 재확인하지 않는다. 같은 :r1 을
+    //   다시 쓰면 토스가 그 키의 저장 응답을 재생 — 캡처됐었다면 성공으로
+    //   드러나고, 도달 못 했었다면 새 시도가 된다. 정확한 멱등 의미).
+    assert.equal(chargeRetrySuffix('PAY_PROCESS_TIMEOUT', 1), ':r1')
+    // 3일차도 확정거절이면 count 2 → :r2 (새 키).
     const day4 = chargeRetrySuffix('INSUFFICIENT_FUNDS', 2)
     assert.equal(day4, ':r2')
     assert.notEqual(day4, day2)
@@ -213,9 +215,24 @@ describe('chargeRetrySuffix — 멱등키 앵커', () => {
   })
 
   it('결과 불명(타임아웃·네트워크)은 키를 갈아타지 않는다 — 이중청구 방지 우선', () => {
+    // 실패 이력이 없으면(base 키로 시도했다 타임아웃) base 키 그대로.
     for (const code of ['PAY_PROCESS_TIMEOUT', 'TIMEOUT', 'PROVIDER_ERROR', null, undefined]) {
-      assert.equal(chargeRetrySuffix(code, 5), '', `${code}`)
+      assert.equal(chargeRetrySuffix(code, 0), '', `${code}`)
     }
+    // 실패 이력이 있으면(마지막 시도 키가 :r5) 그 키를 그대로 재사용 — 갈아타지도,
+    // base 로 되돌아가지도 않는다.
+    for (const code of ['PAY_PROCESS_TIMEOUT', 'TIMEOUT', 'PROVIDER_ERROR', null, undefined]) {
+      assert.equal(chargeRetrySuffix(code, 5), ':r5', `${code}`)
+    }
+  })
+
+  it('★:r0 고정 회귀 가드 — 연속 확정거절은 반드시 서로 다른 키를 쓴다', () => {
+    // 2026-08-11 go-live 감사: 확정거절이 transient 로 묶여 count 가 안 올라
+    // 접미사가 :r0 에 고정 → 토스가 저장된 거절을 15일 재생 → 고객이 잔액을
+    // 채워도 결제 동결. 크론이 확정거절마다 count 를 올리므로 키가 전진한다.
+    const first = chargeRetrySuffix('INSUFFICIENT_FUNDS', 0) // :r0
+    const second = chargeRetrySuffix('INSUFFICIENT_FUNDS', 1) // :r1
+    assert.notEqual(first, second)
   })
 
   it('이상한 카운트에도 키를 만든다 — 청구가 멈추면 안 된다', () => {

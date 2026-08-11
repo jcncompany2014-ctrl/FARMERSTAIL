@@ -33,7 +33,9 @@
 
 ### 3. Toss 웹훅 URL 등록
 - **어디**: Toss 대시보드 → 설정 → 결제 → 웹훅
-- **등록 URL**: `https://farmerstail.kr/api/payments/webhook`
+- **등록 URL**: `https://www.farmerstail.kr/api/payments/webhook`
+  (★www 포함이 정본 — apex 는 Vercel 엣지에서 www 로 307 리다이렉트되는데,
+   웹훅 발신자가 307 을 안 따라가면 유실된다. TOSS_GO_LIVE.md 와 통일, 2026-08-11)
 - **수신 이벤트**: 전체 체크 (결제 완료/취소/가상계좌 입금/만료)
 - **왜**: 가상계좌 입금 완료, 부분 환불, Toss 대시보드 수동 취소가 이걸 통해서만 동기화됨
 
