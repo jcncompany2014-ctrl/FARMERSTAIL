@@ -20,25 +20,21 @@ import {
 const OFF = { tosspay: false }
 const ON = { tosspay: true }
 
-test('★ 지금은 기본 켜짐 — 출시 전 확인이 필요한 상태다', () => {
-  /**
-   * 2026-07-30 에는 기본 꺼짐이었다. 토스가 "토스페이 자동결제 결제수단 설정이
-   * 없습니다" 로 거절해서, 작동하지 않는 걸 노출하지 않으려고 옵트인으로 뒀다.
-   *
-   * 2026-07-31 사장님 지시로 **기본 켜짐**으로 되돌렸다 — "걍 켜. 어차피 실
-   * 고객들이 보기 전까지는 나만 계속 보면서 운영할 거니까." 즉 **출시 전이라
-   * 감수하는 노출**이고, 실 고객이 들어오기 전에 토스 설정 확인 또는 끄기가
-   * 필요하다. 그 확인을 잊지 않게 audit-rules 규칙23 이 체크리스트와 묶는다.
-   */
+test('★ 토스페이 영구 꺼짐 — 빌링은 카드 전용 (2026-08-11 토스 확정)', () => {
+  // 토스가 "자동결제(빌링)는 카드 등록 전용 — 계좌이체·간편결제 미지원"이라고
+  // 확정. env 값과 무관하게 꺼져 있어야 한다(NEXT_PUBLIC_TOSSPAY_BILLING 토글 폐기).
   delete process.env.NEXT_PUBLIC_TOSSPAY_BILLING
-  assert.deepEqual(billingMethodFlags(), { tosspay: true })
+  assert.deepEqual(billingMethodFlags(), { tosspay: false })
 })
 
-test("★ 'off' 를 명시하면 꺼진다 — 출시 전 끄는 길(코드 수정 불필요)", () => {
-  process.env.NEXT_PUBLIC_TOSSPAY_BILLING = 'off'
-  assert.deepEqual(billingMethodFlags(), { tosspay: false })
+test('★ env 값과 무관하게 토스페이는 제공되지 않는다 (토글 폐기)', () => {
+  // 예전엔 'on' 이면 켜졌다. 이제 어떤 값이어도 카드 전용이다.
   process.env.NEXT_PUBLIC_TOSSPAY_BILLING = 'on'
-  assert.deepEqual(billingMethodFlags(), { tosspay: true })
+  assert.deepEqual(billingMethodFlags(), { tosspay: false })
+  assert.deepEqual(
+    availableBillingMethods(billingMethodFlags()).map((m) => m.id),
+    ['card'],
+  )
   delete process.env.NEXT_PUBLIC_TOSSPAY_BILLING
 })
 
@@ -50,11 +46,12 @@ test('플래그 꺼짐 — 수단은 카드 하나 (기존 흐름과 동일)', (
   )
 })
 
-test('플래그 켜짐 — 카드가 먼저, 토스페이가 뒤', () => {
+test('★ 토스페이는 제공 목록에서 빠졌다 — 플래그가 켜져 있어도 카드 하나', () => {
+  // ALL 이 카드만 담는다(빌링=카드 전용, 2026-08-11). 플래그를 켜도 안 뜬다.
   const list = availableBillingMethods(ON)
   assert.deepEqual(
     list.map((m) => m.id),
-    ['card', 'tosspay'],
+    ['card'],
   )
 })
 
@@ -70,8 +67,8 @@ test('★ 플래그 꺼진 상태에서 ?method=tosspay 를 손으로 붙여도 
   assert.equal(resolveBillingMethod('tosspay', OFF).id, 'card')
 })
 
-test('플래그 켜짐 — tosspay 요청이 그대로 통한다', () => {
-  assert.equal(resolveBillingMethod('tosspay', ON).id, 'tosspay')
+test('★ ?method=tosspay 는 플래그가 켜져 있어도 카드로 막힌다 (제공 목록 밖)', () => {
+  assert.equal(resolveBillingMethod('tosspay', ON).id, 'card')
 })
 
 test('모르는 값은 카드로 낙하 (에러 대신 안전한 기본값)', () => {

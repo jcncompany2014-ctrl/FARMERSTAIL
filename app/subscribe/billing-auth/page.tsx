@@ -18,12 +18,16 @@ import { useIsAppContext } from '@/lib/app-context-client'
 import { nextShipDate, weekdayKo } from '@/lib/shipping-schedule'
 
 /**
- * /subscribe/billing-auth — 자동결제 등록 화면 (카드 / 토스페이).
+ * /subscribe/billing-auth — 자동결제 등록 화면 (카드 전용).
+ *
+ * ★ 토스가 "빌링은 카드 등록 전용 — 계좌이체·간편결제 미지원"이라 확정(2026-08-11)
+ *   → 제공 수단은 카드 하나. 아래 "고르기" 단계는 항상 건너뛰고 카드창이 바로
+ *   열린다. (수단이 늘면 선택 화면이 되살아나도록 로직은 일반형으로 남겨둔다.)
  *
  * 흐름:
  *   1) 진입점(주문 화면·구독 관리 등 5곳)이 구독 row 생성 + customerKey 발급 →
  *      이 페이지로 `?subscriptionId=X&customerKey=Y` 로 redirect.
- *   2) **고르기** — 수단이 둘 이상이면 선택 화면. 하나뿐이면 건너뛴다.
+ *   2) **고르기** — 수단이 둘 이상이면 선택 화면. 하나뿐이면 건너뛴다(현재 카드 전용).
  *   3) **확인** — "다음"을 누르면 그때 토스 창을 띄운다.
  *   4) Toss 가 successUrl=/subscribe/billing-success 로 `?authKey=&customerKey=`
  *      를 붙여 redirect. 우리가 심은 `subscriptionId`·`method` 도 함께 실려온다.

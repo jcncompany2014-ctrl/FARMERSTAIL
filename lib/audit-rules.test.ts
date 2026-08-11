@@ -2,6 +2,10 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, sep } from 'node:path'
+import {
+  availableBillingMethods,
+  billingMethodFlags,
+} from './payments/billing-methods.ts'
 
 /**
  * 2026-07-30 최종감사로 못 박은 규칙 중 **기계가 잡을 수 있는 것**을 테스트로.
@@ -940,36 +944,24 @@ test('★ 규칙22: 구독 신청 데이터는 cycle 1 을 고정하고 상담 �
   )
 })
 
-test('★ 규칙23: 토스페이 기본 켜짐이면 출시 전 확인 문단이 살아 있어야 한다', () => {
+test('★ 규칙23: 빌링 제공 수단은 카드 전용이다 (토스페이/계좌이체 재노출 금지)', () => {
   /**
-   * # 왜
-   * 토스페이는 토스가 아직 거절한다("토스페이 자동결제 결제수단 설정이 없습니다").
-   * 그런데 사장님이 화면을 계속 보셔야 해서 **기본 켜짐**으로 돌렸다
-   * (2026-07-31, 출시 전이라 감수하는 노출).
+   * 토스가 "자동결제(빌링)는 카드 등록 전용 — 계좌이체·간편결제 미지원"이라고
+   * 확정(2026-08-11 사장님 확인). 그래서 고객에게 제공하는 결제수단은 카드
+   * 하나여야 한다.
    *
-   * 위험은 **잊는 것**이다 — 출시 날 고객이 토스페이를 누르면 그 자리에서 실패한다.
-   * 그래서 코드 기본값과 리허설 문서의 "출시 전 반드시" 문단을 **묶는다**:
-   * 기본이 켜짐인 동안 그 문단이 사라지면 테스트가 깨진다.
-   *
-   * 나중에 토스가 설정을 켜 주거나 기본을 다시 끄면, 이 규칙도 같이 정리한다 —
-   * 그때는 문단이 없어져도 되는 상태다.
+   * 예전 규칙23 은 "토스페이 기본 켜짐이면 리허설 문서 문단이 있어야 한다"였고,
+   * `defaultsOn` 이 거짓이면 `return` 으로 조용히 무단언했다(게이트 있는 규칙).
+   * 정책이 카드 전용으로 굳었으니, 그 게이트를 없애고 **항상 단언**한다 —
+   * 카드 외 수단이 제공 목록에 끼면 그 자리에서 깨진다. (게이트가 거짓 되면
+   * 규칙이 썩는다는 교훈: AGENTS.md "if 안 단언은 썩는다".)
    */
-  const src = stripComments(read(join(ROOT, 'lib/payments/billing-methods.ts')))
-  const defaultsOn = /NEXT_PUBLIC_TOSSPAY_BILLING\s*!==\s*'off'/.test(src)
-  if (!defaultsOn) return // 기본 꺼짐으로 되돌렸다면 이 규칙은 할 일이 없다
-
-  const doc = read(join(ROOT, 'PAYMENT_REHEARSAL.md'))
-  assert.match(
-    doc,
-    /출시 전 반드시 확인: 토스페이 노출/,
-    '토스페이가 기본 켜짐인데 리허설 문서의 "출시 전 반드시 확인" 문단이 없다 — ' +
-      '토스가 아직 거절하는 수단이라, 이 안내가 사라지면 출시 날 고객이 실패를 만난다',
-  )
-  assert.match(
-    doc,
-    /NEXT_PUBLIC_TOSSPAY_BILLING=off/,
-    '끄는 방법(NEXT_PUBLIC_TOSSPAY_BILLING=off)이 문서에 없다 — 켜 둔 채로 ' +
-      '출시하지 않으려면 끄는 길이 적혀 있어야 한다',
+  const offered = availableBillingMethods(billingMethodFlags()).map((m) => m.id)
+  assert.deepEqual(
+    offered,
+    ['card'],
+    '빌링 제공 수단이 카드 전용이 아니다 — 토스는 자동결제에 계좌이체·간편결제를 ' +
+      '지원하지 않는다(2026-08-11 확정). 토스페이/계좌이체를 다시 노출하지 말 것.',
   )
 })
 
