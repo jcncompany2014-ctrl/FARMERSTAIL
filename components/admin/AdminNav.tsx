@@ -2,6 +2,27 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import {
+  LayoutDashboard,
+  Package,
+  Repeat,
+  ChefHat,
+  ClipboardCheck,
+  Users,
+  Undo2,
+  TrendingUp,
+  Award,
+  ShoppingBag,
+  PenLine,
+  Megaphone,
+  Ticket,
+  SlidersHorizontal,
+  Filter,
+  CalendarRange,
+  Brain,
+  FlaskConical,
+  type LucideIcon,
+} from 'lucide-react'
 
 /**
  * AdminNav — 관리자 사이드바 네비게이션 (client island).
@@ -21,7 +42,17 @@ import { usePathname } from 'next/navigation'
 
 interface NavLink {
   href: string
-  icon: string
+  /**
+   * ★lucide 컴포넌트만 — 이모지 금지 (2026-08-10 사장님 제보로 교체).
+   *
+   * 예전엔 아이콘이 **이모지 문자열**이었다. 이모지는 OS 가 자기
+   * 팔레트로 그리기 때문에 ① 색이 제각각이고(3D·플랫·채도 혼재) ② 폰트마다
+   * 크기·베이스라인이 달라 줄이 안 맞는다. 나머지 admin 이 회색조+terracotta
+   * 절제 톤인데 사이드바만 알록달록해서 **화면 전체가 조잡해 보였다.**
+   * lucide 는 `currentColor` 를 상속하므로 메뉴 상태(활성/비활성)에 따라
+   * 색이 자동으로 따라오고, strokeWidth 로 굵기까지 통일된다.
+   */
+  icon: LucideIcon
   label: string
 }
 
@@ -41,40 +72,40 @@ const GROUPS: NavGroup[] = [
   {
     label: '매일',
     items: [
-      { href: '/admin', icon: '📊', label: '대시보드' },
-      { href: '/admin/orders', icon: '📦', label: '주문 관리' },
-      { href: '/admin/subscriptions', icon: '🔁', label: '정기배송' },
+      { href: '/admin', icon: LayoutDashboard, label: '대시보드' },
+      { href: '/admin/orders', icon: Package, label: '주문 관리' },
+      { href: '/admin/subscriptions', icon: Repeat, label: '정기배송' },
       // 발송 화요일마다 쓰는 핵심 화면.
-      { href: '/admin/personalization/picking-list', icon: '🧑‍🍳', label: '박스 패킹' },
-      { href: '/admin/personalization', icon: '✅', label: '레시피 승인' },
-      { href: '/admin/users', icon: '👥', label: '고객' },
-      { href: '/admin/refunds', icon: '↩️', label: '환불 관리' },
+      { href: '/admin/personalization/picking-list', icon: ChefHat, label: '박스 패킹' },
+      { href: '/admin/personalization', icon: ClipboardCheck, label: '레시피 승인' },
+      { href: '/admin/users', icon: Users, label: '고객' },
+      { href: '/admin/refunds', icon: Undo2, label: '환불 관리' },
     ],
   },
   {
     label: '돈',
     items: [
-      { href: '/admin/reports', icon: '📈', label: '매출·결제' },
-      { href: '/admin/loyalty', icon: '🏅', label: '멤버십·스탬프' },
+      { href: '/admin/reports', icon: TrendingUp, label: '매출·결제' },
+      { href: '/admin/loyalty', icon: Award, label: '멤버십·스탬프' },
     ],
   },
   {
     label: '가끔',
     items: [
-      { href: '/admin/products', icon: '🛍️', label: '제품 관리' },
-      { href: '/admin/blog', icon: '✍️', label: '콘텐츠' },
-      { href: '/admin/push-campaigns', icon: '📣', label: '알림' },
-      { href: '/admin/promotions', icon: '🎟️', label: '이벤트 · 프로모션' },
-      { href: '/admin/automation', icon: '🎛️', label: '설정' },
+      { href: '/admin/products', icon: ShoppingBag, label: '제품 관리' },
+      { href: '/admin/blog', icon: PenLine, label: '콘텐츠' },
+      { href: '/admin/push-campaigns', icon: Megaphone, label: '알림' },
+      { href: '/admin/promotions', icon: Ticket, label: '이벤트 · 프로모션' },
+      { href: '/admin/automation', icon: SlidersHorizontal, label: '설정' },
     ],
   },
   {
     label: '추후 개발',
     items: [
-      { href: '/admin/funnel', icon: '🪜', label: '가입 여정 분석' },
-      { href: '/admin/cohort', icon: '🧪', label: '가입 시기별 분석' },
-      { href: '/admin/personalization-insights', icon: '🧠', label: '맞춤 분석' },
-      { href: '/admin/beta-cohort', icon: '🧬', label: '베타 테스트' },
+      { href: '/admin/funnel', icon: Filter, label: '가입 여정 분석' },
+      { href: '/admin/cohort', icon: CalendarRange, label: '가입 시기별 분석' },
+      { href: '/admin/personalization-insights', icon: Brain, label: '맞춤 분석' },
+      { href: '/admin/beta-cohort', icon: FlaskConical, label: '베타 테스트' },
     ],
   },
 ]
@@ -103,11 +134,14 @@ export default function AdminNav() {
     <nav className="px-3 py-4 space-y-4" aria-label="관리자 메뉴">
       {GROUPS.map((group) => (
         <div key={group.label} className="space-y-0.5">
-          <p className="px-3 pb-1 text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+          {/* 한글 라벨이라 uppercase 는 효과가 없고 tracking-[0.18em] 은 자간만
+              벌려 "매 일" 처럼 읽힌다. 9px 도 과하게 작았다(2026-08-10). */}
+          <p className="px-3 pb-1 text-[10.5px] font-bold text-zinc-400">
             {group.label}
           </p>
           {group.items.map((item) => {
             const isActive = item.href === active
+            const Icon = item.icon
             return (
               <Link
                 key={item.href}
@@ -119,7 +153,13 @@ export default function AdminNav() {
                     : 'border-transparent text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
                 }`}
               >
-                <span className="text-[15px] leading-none">{item.icon}</span>
+                <Icon
+                  className={`h-[17px] w-[17px] shrink-0 ${
+                    isActive ? 'text-terracotta' : 'text-zinc-400'
+                  }`}
+                  strokeWidth={isActive ? 2.2 : 1.9}
+                  aria-hidden="true"
+                />
                 <span className="truncate">{item.label}</span>
               </Link>
             )
