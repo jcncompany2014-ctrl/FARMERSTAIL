@@ -407,7 +407,17 @@ export default async function PickingListPage({
       //   재제안 크론(10:10)이 알레르기 누출을 감지하면 status 를 paused 로
       //   바꾼다 — 돈은 이미 받았다. 목록에서 지우지 말고 **사장님이 판단**하게
       //   보여준다(보낼지, 환불할지).
-      pausedAfterCharge: sub.status === 'paused',
+      //
+      // ★2026-08-12 반증감사: 예전엔 `status === 'paused'` 만 봤다. 그런데
+      //   일시정지는 next_delivery_date 를 **안 지운다**(해지만 지운다) — 그래서
+      //   고객이 청구 전에 스스로 멈춘 구독(=한 푼도 안 받음)이 이 목록에 남아
+      //   "돈은 이미 받았으니 보낼지 판단하세요" 로 뜨고, 정지가 풀릴 때까지
+      //   매주 재등장했다. 무료 박스가 나갈 수 있는 자리다.
+      //   판정을 추측이 아니라 **증거**로 바꾼다 — orderBySubId 는 이 구독의
+      //   '결제됨 + 발송대기(preparing)' 주문이다. 그게 있어야 돈을 받은 것이다.
+      pausedAfterCharge: sub.status === 'paused' && orderBySubId.has(sub.id),
+      // 청구 전에 고객이 멈춘 건 — 보내면 안 된다(대금 없음).
+      pausedBeforeCharge: sub.status === 'paused' && !orderBySubId.has(sub.id),
       // ★청구 후 고객이 일정을 옮겨 날짜 필터 밖으로 나간 건 — 발송 대기
       //   주문 역추적으로 붙었다. 돈은 받았으니 이번 발송에 포함해야 한다.
       dateMovedAfterCharge: movedSubIds.has(sub.id),
@@ -600,7 +610,12 @@ export default async function PickingListPage({
                 {/* ★ 청구 불가를 **가장 먼저** 판정한다 (2026-07-31).
                     예전엔 이 구독에도 '발송일 아침 청구 예정' 이 떴다 — 청구
                     크론이 영원히 건너뛰는데도. 사실이 아닌 안내였다. */}
-                {r.pausedAfterCharge ? (
+                {r.pausedBeforeCharge ? (
+                  // ★청구 전에 고객이 멈춘 것 — 대금이 없다. 가장 먼저 판정해
+                  //   'cannotCharge(청구 불가)' 보다 앞세운다(둘 다 발송 금지지만
+                  //   사유가 다르고, 이쪽이 고객의 명시적 의사라 더 확실하다).
+                  <Badge tone="red">고객이 정지 — 미결제, 보내지 마세요</Badge>
+                ) : r.pausedAfterCharge ? (
                   <Badge tone="amber">결제 후 정지됨 — 확인 필요</Badge>
                 ) : r.dateMovedAfterCharge ? (
                   <Badge tone="amber">결제됨 — 발송 대기 주문 있음</Badge>
@@ -614,6 +629,15 @@ export default async function PickingListPage({
                   <Badge tone="amber">발송일 아침 청구 예정</Badge>
                 )}
               </div>
+
+              {r.pausedBeforeCharge && (
+                <p className="mt-3 text-[12.5px] font-semibold text-red-600">
+                  ⛔ 고객이 <strong>결제 전에 직접 일시정지</strong>한 구독이에요.
+                  이번 회차는 <strong>청구되지 않았습니다</strong> — 조리·발송하지
+                  마세요. (일시정지는 배송일을 지우지 않아서 목록에 남습니다.
+                  고객이 다시 시작하면 그때 정상 청구돼요.)
+                </p>
+              )}
 
               {r.pausedAfterCharge && (
                 <p className="mt-3 text-[12.5px] font-semibold text-amber-800">

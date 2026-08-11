@@ -92,12 +92,32 @@ export async function POST(req: Request) {
 
   // 2) Block deletion while an order is mid-fulfillment. Cancelled
   //    and delivered orders are fine — we only care about in-flight work.
-  const { data: openOrders } = await supabase
+  const { data: openOrders, error: openOrdersErr } = await supabase
     .from('orders')
     .select('id, order_status')
     .eq('user_id', user.id)
     .in('order_status', ['preparing', 'shipping'])
     .limit(1)
+
+  /**
+   * ★규칙1 — 조회 실패를 "진행 중 주문 없음"으로 읽으면 안 된다(2026-08-12 반증감사).
+   *
+   * 예전엔 `error` 를 안 꺼내서, DB 가 잠깐 흔들리는 순간 이 **유일한 안전
+   * 게이트가 조용히 열렸다.** 통과하면 아래 익명화(:299~)가 order_status 필터
+   * 없이 돌아 **결제까지 끝나고 배송 중인 박스의 수령인·전화·주소를 되돌릴 수
+   * 없이 지운다** — 돈은 받았는데 어디로 보낼지도, 누구에게 연락할지도 모르게 된다.
+   * 모르면 탈퇴시키지 않는다.
+   */
+  if (openOrdersErr) {
+    return NextResponse.json(
+      {
+        code: 'ORDER_CHECK_FAILED',
+        message:
+          '진행 중인 주문을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.',
+      },
+      { status: 500 },
+    )
+  }
 
   if (openOrders && openOrders.length > 0) {
     return NextResponse.json(

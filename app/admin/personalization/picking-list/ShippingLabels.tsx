@@ -30,7 +30,12 @@ function esc(s: string): string {
 
 function labelHtml(rows: PickingRow[], date: string): string {
   const sender = `파머스테일 ${business.phone ?? ''}`.trim()
+  // ★청구 전에 고객이 멈춘 구독은 라벨을 뽑지 않는다(2026-08-12 반증감사).
+  //   일시정지는 배송일을 지우지 않아 목록엔 남는데, 라벨이 나오면 그대로
+  //   포장·발송돼 무료 박스가 된다. 화면에는 빨간 경고로 남아 있으므로
+  //   "왜 라벨이 없지?" 가 되지 않는다.
   const cards = rows
+    .filter((r) => !r.pausedBeforeCharge)
     .map((r) => {
       const packSummary =
         r.packs.length > 0

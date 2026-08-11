@@ -32,13 +32,16 @@ export default async function DeleteAccountPage() {
   // Pre-check for blocking conditions so we can show them inline —
   // the API will re-check, but a prominent warning beats a rejection
   // toast after the confirm flow.
-  const { data: openOrders } = await supabase
+  const { data: openOrders, error: openOrdersErr } = await supabase
     .from('orders')
     .select('id, order_number, order_status')
     .eq('user_id', user.id)
     .in('order_status', ['preparing', 'shipping'])
 
-  const hasOpen = (openOrders ?? []).length > 0
+  // ★규칙1 — 조회 실패를 "진행 중 주문 없음"으로 읽지 않는다(2026-08-12 반증감사).
+  //   실패했는데 0건처럼 보이면 배송 중인 고객에게 탈퇴 버튼을 그대로 내주게 된다.
+  //   모르면 막는 쪽으로(안전한 방향) 판정한다 — API 도 같은 이유로 500 을 낸다.
+  const hasOpen = openOrdersErr ? true : (openOrders ?? []).length > 0
 
   // Give the user a summary of what will happen so there's no
   // surprise. These counts come from tables the user can read; we

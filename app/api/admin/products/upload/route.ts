@@ -9,6 +9,12 @@ export const dynamic = 'force-dynamic'
 // Size limit — browsers shouldn't POST multi-MB product shots for a 1200-wide
 // PDP, and Vercel Edge/Node routes have implicit body limits anyway. 8 MB is
 // a comfortable ceiling for modern JPEG/WebP hero images.
+//
+// ★이 값은 Storage 버킷의 file_size_limit 과 **반드시 같아야 한다**
+//   (products 버킷 = 8MB, 마이그레이션 20260812000000). 코드가 더 크면
+//   우리 검증을 통과한 파일이 Supabase 에서 거부되는데, 그 오류는 우리 말이
+//   아니라 스토리지 원문이라 사장님이 이유를 알 수 없다(2026-08-12 반증감사 —
+//   코드 8MB / 버킷 5MB 로 어긋나 있었다). 한쪽을 바꾸면 다른 쪽도 바꿀 것.
 const MAX_BYTES = 8 * 1024 * 1024
 const ALLOWED = new Set([
   'image/jpeg',

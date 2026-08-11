@@ -1413,6 +1413,11 @@ test('규칙 32 — 돈 경로의 Supabase 호출은 error 를 반드시 꺼낸�
     join(ROOT, 'app', 'api', 'payments'),
     join(ROOT, 'app', 'api', 'orders'),
     join(ROOT, 'app', 'api', 'subscriptions'),
+    // ★2026-08-12 반증감사로 추가. 탈퇴 라우트의 '진행 중 주문 차단'이
+    //   error 를 안 꺼내 **조회 실패 시 게이트가 열려 있었다** — 통과하면
+    //   배송 중인 박스의 주소·수령인을 되돌릴 수 없이 익명화한다. 돈 경로가
+    //   아니라고 빼 뒀던 자리에서 정확히 규칙1 사고가 났다.
+    join(ROOT, 'app', 'api', 'account'),
   ]
   // ★`await` 의 **대상이 supabase 인지**를 규제식 안에서 확인한다.
   //   처음엔 `const { data } = await ` 만 잡고 "뒤 160자에 supabase 가 있으면

@@ -34,8 +34,18 @@ export type PickingRow = {
    * 없이 포장 대상에 섞였다(2026-07-31). 특히 어드민 '재개' 가 영구 거절 구독에
    * 배송일을 박아주고 있어 그 조합이 실제로 만들어졌다.
    */
-  /** 결제 후 정지된 건 — 돈은 받았는데 구독이 멈췄다(2026-08-07). */
+  /**
+   * 결제 후 정지된 건 — 돈은 받았는데 구독이 멈췄다(2026-08-07).
+   * ★판정은 '결제됨+preparing 주문 존재'가 증거다(2026-08-12 반증감사) —
+   *   status='paused' 만으로는 청구 전에 고객이 멈춘 건과 구분되지 않는다.
+   */
   pausedAfterCharge: boolean
+  /**
+   * ★청구 **전에** 고객이 스스로 멈춘 건 — 대금이 없다. 일시정지는
+   * next_delivery_date 를 안 지우므로 목록에 남는데, 보내면 무료 발송이 된다.
+   * 라벨·CSV 에서 제외하고 화면에는 빨간 경고로 남긴다(사장님이 이유를 알아야 함).
+   */
+  pausedBeforeCharge: boolean
   /** 청구 후 고객이 배송일을 옮겨 날짜 필터 밖으로 나간 건 — 발송 대기 주문 역추적으로 포함됨. */
   dateMovedAfterCharge: boolean
   cannotCharge: boolean
@@ -87,13 +97,22 @@ export default function PickingListExport({
       `${r.freshLabel} ${r.freshRatio}%`,
       r.cycleNumber == null ? '' : String(r.cycleNumber),
       r.userAdjusted ? '✓' : '',
-      r.noFormula
-        ? '처방없음'
-        : r.charged
-          ? '청구완료'
-          : r.overdue
-            ? '청구지연'
-            : '청구예정',
+      // ★상태는 화면 배지와 같은 우선순위로 판정한다(2026-08-12 반증감사).
+      //   예전엔 미결제 정지 건이 '청구예정'으로 나와 CSV 를 믿고 포장하면
+      //   무료 발송이 됐다. CSV 는 발송물이 아니라 데이터라 제외 대신 표기.
+      r.pausedBeforeCharge
+        ? '미결제-고객정지(발송금지)'
+        : r.pausedAfterCharge
+          ? '결제후정지(확인필요)'
+          : r.cannotCharge
+            ? '청구불가(발송금지)'
+            : r.noFormula
+              ? '처방없음'
+              : r.charged
+                ? '청구완료'
+                : r.overdue
+                  ? '청구지연'
+                  : '청구예정',
       r.packs.map((p) => `${p.name} ${p.packG}g×${p.count}`).join(' / '),
       String(r.boxTotalG),
       String(r.totalAmount),
