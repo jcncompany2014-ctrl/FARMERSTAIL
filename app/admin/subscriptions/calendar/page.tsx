@@ -194,7 +194,7 @@ export default async function SubscriptionsCalendarPage({
           {WEEK_LABELS.map((label, i) => (
             <div
               key={label}
-              className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-center ${
+              className={`px-3 py-2 text-[10px] font-bold text-center ${
                 i === 0
                   ? 'text-sale'
                   : i === 6

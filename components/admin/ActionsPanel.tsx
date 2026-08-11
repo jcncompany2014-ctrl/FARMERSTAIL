@@ -128,6 +128,20 @@ export default function ActionsPanel(props: ActionsPanelProps) {
 
   const totalActions = items.reduce((s, it) => s + it.count, 0)
 
+  /**
+   * ★할 일이 있는 항목만 그린다 (2026-08-10 사장님 제보 — "짜친다").
+   *
+   * 예전엔 9칸을 **항상** 3×3 으로 깔았다. 출시 전이라 전부 0인 지금은
+   * 화면 최상단(제일 좋은 자리)을 "할 일 없음" 아홉 칸이 차지했다.
+   * 처리 대기는 **목록**이지 대시보드 지표가 아니다 — 0건짜리 줄을 남겨 둘
+   * 이유가 없다. 매출 차트가 0원일 때 그래프를 안 그리는 것과 같은 원리.
+   *   · 전부 0  → 헤더 한 줄("모두 처리됨")로 끝. 그리드 없음.
+   *   · 일부 0  → 0 아닌 것만. 나머지는 아래 한 줄로 요약.
+   * 각 항목의 관리 화면은 사이드바로 갈 수 있으니 진입 경로도 안 잃는다.
+   */
+  const pending = items.filter((it) => it.count > 0)
+  const clearedCount = items.length - pending.length
+
   return (
     <section
       className="rounded-lg border overflow-hidden"
@@ -136,7 +150,11 @@ export default function ActionsPanel(props: ActionsPanelProps) {
         borderColor: totalActions > 0 ? 'var(--sale)' : 'var(--rule)',
       }}
     >
-      <div className="px-5 py-3 flex items-center justify-between border-b border-zinc-200">
+      <div
+        className={`px-5 py-3 flex items-center justify-between ${
+          pending.length > 0 ? 'border-b border-zinc-200' : ''
+        }`}
+      >
         <div className="flex items-center gap-2">
           <AlertTriangle
             className={totalActions > 0 ? 'text-sale' : 'text-muted'}
@@ -154,8 +172,9 @@ export default function ActionsPanel(props: ActionsPanelProps) {
           {totalActions === 0 ? '모두 처리됨' : `${totalActions}건`}
         </span>
       </div>
+      {pending.length > 0 && (
       <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-rule">
-        {items.map((it) => {
+        {pending.map((it) => {
           const Icon = it.icon
           const active = it.count > 0
           return (
@@ -186,6 +205,12 @@ export default function ActionsPanel(props: ActionsPanelProps) {
           )
         })}
       </div>
+      )}
+      {pending.length > 0 && clearedCount > 0 && (
+        <p className="px-5 py-2.5 text-[11px] text-muted border-t border-zinc-200">
+          나머지 {clearedCount}개 항목은 처리할 게 없어요.
+        </p>
+      )}
     </section>
   )
 }

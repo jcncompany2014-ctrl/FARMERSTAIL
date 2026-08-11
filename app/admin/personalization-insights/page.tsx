@@ -153,7 +153,7 @@ function Card({
     >
       <div className="flex items-center gap-2 mb-3" style={{ color: 'var(--terracotta)' }}>
         {icon}
-        <h2 className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
+        <h2 className="text-[11px] font-bold" style={{ color: 'var(--muted)' }}>
           {title}
         </h2>
       </div>
@@ -178,7 +178,7 @@ function Distribution({
   }
   return (
     <div>
-      <div className="text-[10.5px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+      <div className="text-[10.5px] font-bold text-zinc-500 mb-1.5">
         {title} ({total}건)
       </div>
       <div className="space-y-1">

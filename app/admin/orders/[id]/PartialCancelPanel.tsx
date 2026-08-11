@@ -144,7 +144,7 @@ export default function PartialCancelPanel({
       </div>
 
       <div className="px-4 py-3 rounded-lg bg-zinc-50 mb-4">
-        <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">
+        <div className="text-[10px] text-zinc-500 font-semibold">
           환불 가능 잔액
         </div>
         <div className="text-lg font-black text-terracotta mt-0.5">

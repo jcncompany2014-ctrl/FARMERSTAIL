@@ -171,7 +171,7 @@ export default async function PushStatsPage() {
           <div className="bg-white rounded-lg border border-zinc-200 overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead className="bg-zinc-50">
-                <tr className="text-left text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
+                <tr className="text-left text-[10px] text-zinc-500 font-bold">
                   <th className="px-4 py-3">카테고리</th>
                   <th className="px-4 py-3 text-right">발송</th>
                   <th className="px-4 py-3 text-right">읽음</th>
@@ -227,7 +227,7 @@ export default async function PushStatsPage() {
           <div className="bg-white rounded-lg border border-zinc-200 overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead className="bg-zinc-50">
-                <tr className="text-left text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
+                <tr className="text-left text-[10px] text-zinc-500 font-bold">
                   <th className="px-4 py-3">날짜</th>
                   <th className="px-4 py-3 text-right">발송</th>
                   <th className="px-4 py-3 text-right">읽음</th>

@@ -787,7 +787,7 @@ function AiDraftHelper({
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
+        <label className="block text-[10px] font-bold text-zinc-500 mb-1">
           주제 / 키워드 *
         </label>
         <input
@@ -801,7 +801,7 @@ function AiDraftHelper({
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
+        <label className="block text-[10px] font-bold text-zinc-500 mb-1">
           타겟 독자 (선택)
         </label>
         <input
@@ -815,7 +815,7 @@ function AiDraftHelper({
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
+        <label className="block text-[10px] font-bold text-zinc-500 mb-1">
           본문 길이
         </label>
         <div className="flex gap-1.5">

@@ -171,7 +171,7 @@ export default async function LabelPdfPage({
       >
         {/* 1. 제품명 */}
         <header className="border-b-2 border-ink pb-3 mb-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted">
+          <p className="text-[10px] font-bold text-muted">
             제품명
           </p>
           <h2 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-0.5">
@@ -317,7 +317,7 @@ function Section({
 }) {
   return (
     <section className="mt-4 print:break-inside-avoid">
-      <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted border-b border-zinc-200 pb-1 mb-2">
+      <h3 className="text-[10px] font-bold text-muted border-b border-zinc-200 pb-1 mb-2">
         {title}
       </h3>
       {children}

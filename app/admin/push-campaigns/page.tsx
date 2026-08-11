@@ -102,7 +102,7 @@ export default async function AdminPushCampaignsPage() {
                       <p className="text-[12.5px] font-bold text-zinc-800">
                         {c.title}
                       </p>
-                      <span className="text-[9px] text-terracotta font-bold uppercase tracking-widest shrink-0">
+                      <span className="text-[9px] text-terracotta font-bold shrink-0">
                         {segmentLabel[c.segment]}
                       </span>
                     </div>

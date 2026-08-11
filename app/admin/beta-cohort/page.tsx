@@ -214,7 +214,7 @@ export default async function BetaCohortPage() {
 
       {/* dog 별 표 */}
       <section className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 print:break-inside-avoid">
-        <h2 className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-3">
+        <h2 className="text-[11px] font-bold text-zinc-500 mb-3">
           강아지별 진행 상황
         </h2>
         <div className="overflow-x-auto">
@@ -307,7 +307,7 @@ function Kpi({
 }) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-3.5 print:break-inside-avoid">
-      <p className="flex items-center text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+      <p className="flex items-center text-[10px] font-bold text-zinc-500">
         {label}
         {help && <HelpTip text={help} />}
       </p>

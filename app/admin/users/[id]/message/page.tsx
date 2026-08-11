@@ -125,7 +125,7 @@ export default async function AdminUserMessagePage({
                         : 'bg-zinc-50 text-zinc-800 rounded-bl-md border border-zinc-200'
                     }`}
                   >
-                    <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5 opacity-70">
+                    <p className="text-[10px] font-bold mb-0.5 opacity-70">
                       {mine ? 'admin' : '사용자'}
                     </p>
                     <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap break-keep">
@@ -183,7 +183,7 @@ export default async function AdminUserMessagePage({
                       {r.title}
                     </p>
                     <span
-                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                      className={`text-[10.5px] font-bold px-1.5 py-0.5 rounded-full ${
                         r.read_at
                           ? 'bg-moss/10 text-moss'
                           : 'bg-rule text-zinc-500'
@@ -197,7 +197,7 @@ export default async function AdminUserMessagePage({
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     {r.category && (
-                      <span className="text-[9px] uppercase tracking-widest font-bold text-terracotta">
+                      <span className="text-[10.5px] font-bold text-terracotta">
                         {r.category}
                       </span>
                     )}

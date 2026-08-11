@@ -121,7 +121,7 @@ export default function AdminShell({
         </div>
 
         <div className="shrink-0 px-5 py-4 border-t border-zinc-200">
-          <p className="text-[10px] text-zinc-400 uppercase tracking-wider">로그인 계정</p>
+          <p className="text-[10px] text-zinc-400">로그인 계정</p>
           <p className="text-xs text-zinc-700 mt-0.5 truncate">{userEmail}</p>
           <Link
             href="/dashboard"

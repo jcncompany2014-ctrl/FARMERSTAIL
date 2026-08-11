@@ -187,7 +187,7 @@ export default function CampaignBuilder() {
               <Bell className="w-3.5 h-3.5 text-white" strokeWidth={2} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
+              <p className="text-[10px] text-zinc-500 font-bold">
                 Preview · 사용자가 보게 될 모습
               </p>
               <p className="text-[12.5px] font-bold text-zinc-800 mt-0.5">

@@ -268,7 +268,7 @@ function StatCard({
           strokeWidth={2.5}
         />
         <span
-          className="text-[10px] font-bold uppercase tracking-widest"
+          className="text-[10px] font-bold"
           style={{ color: accent }}
         >
           {kicker}

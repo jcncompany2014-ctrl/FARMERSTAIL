@@ -147,7 +147,7 @@ export default function OrderRealtimeBell() {
             className="px-4 py-3 flex items-center justify-between"
             style={{ borderBottom: '1px solid var(--rule)' }}
           >
-            <span className="text-[11px] font-bold uppercase tracking-widest text-muted">
+            <span className="text-[11px] font-bold text-muted">
               실시간 주문
             </span>
             <Link

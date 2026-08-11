@@ -282,7 +282,7 @@ export default async function AdminCohortPage() {
             <table className="w-full text-[11.5px]">
               <thead>
                 <tr className="text-left text-zinc-500 border-b border-zinc-200">
-                  <th className="py-1.5 pr-3 font-bold uppercase tracking-wider">그룹</th>
+                  <th className="py-1.5 pr-3 font-bold">그룹</th>
                   {sourceTypes.map((s) => (
                     <th key={s} className="py-1.5 px-2 font-bold text-right">
                       {SOURCE_SHORT[s] ?? s}
@@ -477,7 +477,7 @@ function Kpi({
     <div className="rounded-xl border border-zinc-200 bg-white p-3.5">
       <div className="flex items-center gap-1.5 mb-1">
         <span className="text-terracotta flex items-center">{icon}</span>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+        <span className="text-[10px] font-bold text-zinc-500">
           {label}
         </span>
         {help && <HelpTip text={help} />}
@@ -503,7 +503,7 @@ function Card({
     <section className="mt-5 rounded-lg border border-zinc-200 bg-white p-5">
       <div className="flex items-center gap-2 mb-3 text-terracotta">
         {icon}
-        <h2 className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">
+        <h2 className="text-[11px] font-bold text-zinc-500">
           {title}
         </h2>
       </div>

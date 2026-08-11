@@ -230,13 +230,13 @@ export default function PromotionsClient({
               {/* 성과 — 광고 추적이 없는 지금, 채널 성과를 읽는 유일한 창 */}
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div className="rounded bg-zinc-50 px-3 py-2">
-                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                  <div className="text-[10px] font-bold text-zinc-500">
                     가입
                   </div>
                   <div className="text-[20px] font-bold tabular-nums">{p.signups}명</div>
                 </div>
                 <div className="rounded bg-zinc-50 px-3 py-2">
-                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                  <div className="text-[10px] font-bold text-zinc-500">
                     첫 결제
                   </div>
                   <div className="text-[20px] font-bold tabular-nums">{p.orders}명</div>

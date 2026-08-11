@@ -287,7 +287,7 @@ export default function MessageComposer({ userId }: { userId: string }) {
               <Bell className="w-3.5 h-3.5 text-white" strokeWidth={2} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
+              <p className="text-[10px] text-zinc-500 font-bold">
                 Preview · 미리보기
               </p>
               <p className="text-[12.5px] font-bold text-zinc-800 mt-0.5 truncate">

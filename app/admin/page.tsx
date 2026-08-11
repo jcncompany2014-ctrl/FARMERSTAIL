@@ -510,7 +510,7 @@ export default async function AdminHome() {
       </div>
 
       {/* 오늘·전체 한눈에 — 쉬운 라벨 + 도움말(?) */}
-      <p className="text-[12px] font-bold text-zinc-400 uppercase tracking-wider mb-2 mt-2">
+      <p className="text-[12px] font-bold text-zinc-400 mb-2 mt-2">
         한눈에 보기
       </p>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
@@ -540,7 +540,7 @@ export default async function AdminHome() {
       </div>
 
       {/* 구독 현황 — 정기배송이 이 사업의 핵심 매출원 */}
-      <p className="text-[12px] font-bold text-zinc-400 uppercase tracking-wider mb-2 mt-5">
+      <p className="text-[12px] font-bold text-zinc-400 mb-2 mt-5">
         구독 현황
       </p>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
@@ -585,7 +585,7 @@ export default async function AdminHome() {
       </div>
 
       {/* 운영 체크 — 매일 확인하면 좋은 숫자 */}
-      <p className="text-[12px] font-bold text-zinc-400 uppercase tracking-wider mb-2 mt-5">
+      <p className="text-[12px] font-bold text-zinc-400 mb-2 mt-5">
         운영 체크
       </p>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">

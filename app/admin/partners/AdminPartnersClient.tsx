@@ -451,7 +451,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
+      <label className="block text-[11px] font-bold text-zinc-500 mb-1.5">
         {label}
       </label>
       {children}
