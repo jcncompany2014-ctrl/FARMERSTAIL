@@ -466,7 +466,11 @@ function HowWeMakeIt() {
               <Reveal key={m.t} delay={i * 80}>
                 <div className="fv-lift" style={{ borderRadius: 12, overflow: 'hidden', background: '#FFFFFF', border: '1px solid var(--fd-line)', height: '100%' }}>
                   {/* 사진이 주인공 — 아이콘은 사진 위 작은 배지로 강등 */}
-                  <div data-gsap-img className="relative" style={{ aspectRatio: '4 / 3' }}>
+                  {/* ★overflow:hidden 필수 — data-gsap-img 는 WebMotion 이 사진을
+                      ±drift 미끄러뜨리고 1.26배(모바일) 확대한다. 액자가 안 자르면
+                      사진이 카드 안 제목·본문을 덮는다(2026-08-11 폰 실증 — 정본
+                      PhotoSlot(ui.tsx)엔 있는데 이 인라인 액자에만 빠져 있었다). */}
+                  <div data-gsap-img className="relative" style={{ aspectRatio: '4 / 3', overflow: 'hidden' }}>
                     <Image src={m.img} alt={m.alt} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
                     <span
                       className="absolute flex items-center justify-center"
