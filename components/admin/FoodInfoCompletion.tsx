@@ -67,9 +67,9 @@ export default function FoodInfoCompletion({
 }) {
   if (products.length === 0) {
     return (
-      <section className="bg-white rounded-xl border border-zinc-200 p-5">
-        <h3 className="text-[12px] font-bold text-muted uppercase tracking-widest mb-2">
-          Food Info · 식품정보고시 채움률
+      <section className="bg-white rounded-lg border border-zinc-200 p-5">
+        <h3 className="text-[13px] font-bold text-text mb-2">
+          식품정보고시 채움률
         </h3>
         <p className="text-[13px] text-muted">상품이 없어요.</p>
       </section>
@@ -114,10 +114,14 @@ export default function FoodInfoCompletion({
         : 'var(--moss)'
 
   return (
-    <section className="bg-white rounded-xl border border-zinc-200 p-5">
+    <section className="bg-white rounded-lg border border-zinc-200 p-5">
       <div className="flex items-baseline justify-between mb-3">
-        <h3 className="text-[12px] font-bold text-muted uppercase tracking-widest">
-          Food Info · 식품정보고시 채움률
+        {/* ★영문 kicker("Food Info ·") 제거 + 한글 uppercase/자간 정리
+            (2026-08-10). 한글엔 uppercase 가 효과가 없고 tracking-widest 는
+            자간만 벌려 "식 품 정 보"처럼 읽힌다. 영문 머리말은 템플릿 티만
+            나고 뜻을 더하지 않는다. */}
+        <h3 className="text-[13px] font-bold text-text">
+          식품정보고시 채움률
         </h3>
         <span className="text-[10.5px] text-muted">
           전자상거래법 §13 + 사료관리법
@@ -127,7 +131,7 @@ export default function FoodInfoCompletion({
       {/* 큰 숫자 + progress bar */}
       <div className="flex items-baseline gap-3">
         <span
-          className="font-serif text-[36px] font-black tabular-nums"
+          className="text-[32px] font-black tabular-nums"
           style={{ color: tone, letterSpacing: '-0.02em', lineHeight: 1 }}
         >
           {completionPct.toFixed(1)}%
@@ -149,7 +153,7 @@ export default function FoodInfoCompletion({
       {/* 누락 가장 많은 항목 Top 3 */}
       {(missingByField[0]?.missing ?? 0) > 0 && (
         <div className="mt-5">
-          <p className="text-[11px] font-bold text-muted uppercase tracking-wider mb-2">
+          <p className="text-[11.5px] font-bold text-muted mb-2">
             가장 많이 빠진 항목
           </p>
           <ul className="space-y-1.5">
@@ -171,7 +175,7 @@ export default function FoodInfoCompletion({
       {/* 누락 많은 상품 Top 3 */}
       {missingByProduct.length > 0 && (
         <div className="mt-5">
-          <p className="text-[11px] font-bold text-muted uppercase tracking-wider mb-2">
+          <p className="text-[11.5px] font-bold text-muted mb-2">
             먼저 채워야 할 상품
           </p>
           <ul className="space-y-1.5">
