@@ -26,6 +26,19 @@ export function todayKstIsoDate(): string {
   return kst.toISOString().slice(0, 10)
 }
 
+/**
+ * timestamptz(UTC ISO) → **KST 달력 날짜** 'YYYY-MM-DD'.
+ *
+ * `iso.slice(0,10)` 로 자르면 UTC 날짜라 KST 00:00~09:00 사이 기록이 전날로
+ * 밀린다("어제 실패한 건가?" 오판). 날짜 비교는 항상 이걸 거친다.
+ * (lib/dashboard/streaks 의 kstDayKeyFromTs 와 같은 계산 — 여기가 정본이다.)
+ */
+export function kstDateOf(iso: string): string {
+  return new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10)
+}
+
 /** ISO yyyy-mm-dd 에 days 일 추가. 음수로 빼기. */
 export function addDaysKst(isoDate: string, days: number): string {
   // 입력은 KST 의미의 date string. UTC midnight 으로 계산하면 일 단위라 timezone

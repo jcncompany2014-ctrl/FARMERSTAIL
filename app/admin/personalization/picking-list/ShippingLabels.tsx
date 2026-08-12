@@ -2,6 +2,7 @@
 
 import { Tag } from 'lucide-react'
 import { business } from '@/lib/business'
+import { isShippable } from '@/lib/admin/ship-block'
 import type { PickingRow } from './PickingListExport'
 
 /**
@@ -30,12 +31,13 @@ function esc(s: string): string {
 
 function labelHtml(rows: PickingRow[], date: string): string {
   const sender = `파머스테일 ${business.phone ?? ''}`.trim()
-  // ★청구 전에 고객이 멈춘 구독은 라벨을 뽑지 않는다(2026-08-12 반증감사).
-  //   일시정지는 배송일을 지우지 않아 목록엔 남는데, 라벨이 나오면 그대로
-  //   포장·발송돼 무료 박스가 된다. 화면에는 빨간 경고로 남아 있으므로
-  //   "왜 라벨이 없지?" 가 되지 않는다.
+  // ★돈을 못 받은 박스는 라벨을 뽑지 않는다(2026-08-12 반증감사 2·3라운드).
+  //   화면엔 빨간 경고가 뜨는데 라벨은 그대로 인쇄돼, 라벨을 기준으로 포장하면
+  //   경고를 못 보고 무료 박스가 나간다 — 특히 '청구 불가(카드 영구거절)' 는
+  //   화면이 "발송하지 마세요" 라고 말하면서 라벨은 뽑아 주고 있었다.
+  //   금지 사유는 화면 배지와 **같은 목록**을 쓴다(판정이 갈리면 또 어긋난다).
   const cards = rows
-    .filter((r) => !r.pausedBeforeCharge)
+    .filter(isShippable)
     .map((r) => {
       const packSummary =
         r.packs.length > 0

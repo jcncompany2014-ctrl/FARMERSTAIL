@@ -11,7 +11,8 @@ import {
 import type { Formula } from '@/lib/personalization/types'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
-import { addDaysKst, todayKstIsoDate } from '@/lib/datetime-kst'
+import { addDaysKst, todayKstIsoDate, kstDateOf } from '@/lib/datetime-kst'
+import { isShippable } from '@/lib/admin/ship-block'
 import { weekdayOf, weekdayKo, SHIP_WEEKDAY } from '@/lib/shipping-schedule'
 import {
   AdminHeader,
@@ -75,6 +76,14 @@ type SubRow = {
   /** 카드 등록 여부만 — 키 값은 서버 밖으로 안 나간다(20260808000100). */
   has_billing_key: boolean
   requires_billing_key_renewal: boolean | null
+  /**
+   * ★오늘 청구가 실패했는지 판정용(2026-08-12 3라운드 감사).
+   * 청구 실패는 next_delivery_date 를 **안 민다** → charged=false, overdue=false 라
+   * 배지가 최종 else 인 "발송일 아침 청구 예정" 으로 떨어졌다. 이미 실패한 뒤인데
+   * 예정이라고 말하니 그대로 조리·포장·발송됐다(무료 박스).
+   */
+  last_failed_charge_at: string | null
+  last_failed_charge_code: string | null
 }
 
 type PickProduct = {
@@ -124,7 +133,8 @@ export default async function PickingListPage({
     .select(
       'id, dog_id, user_id, status, fresh_ratio, next_delivery_date, total_amount, ' +
         'recipient_name, recipient_phone, zip, address, address_detail, ' +
-        'delivery_memo, total_deliveries, has_billing_key, requires_billing_key_renewal',
+        'delivery_memo, total_deliveries, has_billing_key, requires_billing_key_renewal, ' +
+        'last_failed_charge_at, last_failed_charge_code',
     )
     .in('status', ['active', 'paused'])
     .or(
@@ -173,7 +183,8 @@ export default async function PickingListPage({
       .select(
         'id, dog_id, user_id, status, fresh_ratio, next_delivery_date, total_amount, ' +
           'recipient_name, recipient_phone, zip, address, address_detail, ' +
-          'delivery_memo, total_deliveries, has_billing_key, requires_billing_key_renewal',
+          'delivery_memo, total_deliveries, has_billing_key, requires_billing_key_renewal, ' +
+        'last_failed_charge_at, last_failed_charge_code',
       )
       .in('id', movedIds)
     if (movedErr) {
@@ -427,6 +438,17 @@ export default async function PickingListPage({
       charged: sub.next_delivery_date === chargedBumpDate,
       overdue:
         sub.next_delivery_date != null && sub.next_delivery_date < shipDate,
+      /**
+       * ★오늘 청구가 실패했다 (2026-08-12 3라운드 감사).
+       * 실패는 next_delivery_date 를 안 밀기 때문에 charged=false·overdue=false 가
+       * 되어 배지가 "발송일 아침 청구 예정" 으로 떨어졌다 — **이미 실패한 뒤인데**
+       * 예정이라 말하니 그대로 조리·발송됐다. last_failed_charge_at 의 KST 날짜가
+       * 오늘이면 오늘 청구가 깨진 것이다.
+       */
+      chargeFailedToday:
+        sub.last_failed_charge_at != null &&
+        kstDateOf(sub.last_failed_charge_at) === todayKstIsoDate(),
+      failedCode: sub.last_failed_charge_code,
       totalAmount: sub.total_amount,
       order: orderBySubId.get(sub.id) ?? null,
       packs,
@@ -436,8 +458,14 @@ export default async function PickingListPage({
   })
 
   // 4) 조리 합계 — 제품별 총 팩수·총 그램 (그날 주방이 만들 전체 물량).
+  //
+  // ★발송 금지 건은 빼고 센다(2026-08-12 3라운드 감사). 돈을 못 받은 박스까지
+  //   합계에 넣으면 **그만큼 재료를 사고 조리한다** — 화면 배지가 "보내지
+  //   마세요" 라고 말해도 합계가 이미 그 물량을 시켰다. 라벨 필터와 **같은
+  //   목록**을 쓴다(판정이 갈리면 또 어긋난다).
+  const shippable = rows.filter(isShippable)
   const cookTotals = new Map<string, { packs: number; grams: number }>()
-  for (const r of rows) {
+  for (const r of shippable) {
     for (const p of r.packs) {
       const cur = cookTotals.get(p.name) ?? { packs: 0, grams: 0 }
       cookTotals.set(p.name, {
@@ -446,11 +474,11 @@ export default async function PickingListPage({
       })
     }
   }
-  const totalPacks = rows.reduce(
+  const totalPacks = shippable.reduce(
     (s, r) => s + r.packs.reduce((x, p) => x + p.count, 0),
     0,
   )
-  const totalGrams = rows.reduce((s, r) => s + r.boxTotalG, 0)
+  const totalGrams = shippable.reduce((s, r) => s + r.boxTotalG, 0)
   const totalAmountSum = rows.reduce((s, r) => s + r.totalAmount, 0)
   // ★ 청구 불가도 '확인 필요' 다 — 예전엔 noFormula/overdue 만 세어서,
   //   결제되지 않을 박스가 아무 표시 없이 포장 대상에 섞였다(2026-07-31).
@@ -610,17 +638,22 @@ export default async function PickingListPage({
                 {/* ★ 청구 불가를 **가장 먼저** 판정한다 (2026-07-31).
                     예전엔 이 구독에도 '발송일 아침 청구 예정' 이 떴다 — 청구
                     크론이 영원히 건너뛰는데도. 사실이 아닌 안내였다. */}
-                {r.pausedBeforeCharge ? (
-                  // ★청구 전에 고객이 멈춘 것 — 대금이 없다. 가장 먼저 판정해
-                  //   'cannotCharge(청구 불가)' 보다 앞세운다(둘 다 발송 금지지만
-                  //   사유가 다르고, 이쪽이 고객의 명시적 의사라 더 확실하다).
+                {/* ★판정 순서 = **발송 금지 사유 먼저**(2026-08-12 3라운드 감사).
+                    예전엔 paused 가 맨 앞이라 '청구 불가'(카드 영구거절 등)를
+                    가렸고, 청구가 **실패**한 건은 어떤 가지에도 안 걸려 최종
+                    else 인 "청구 예정" 으로 떨어져 그대로 발송됐다. 돈을 못 받는
+                    사유를 전부 앞에 세우고, 마지막 else 는 진짜 '아직 청구 전'
+                    일 때만 남게 한다. */}
+                {r.cannotCharge ? (
+                  <Badge tone="red">청구 불가 — 발송하지 마세요</Badge>
+                ) : r.chargeFailedToday ? (
+                  <Badge tone="red">오늘 청구 실패 — 보내지 마세요</Badge>
+                ) : r.pausedBeforeCharge ? (
                   <Badge tone="red">고객이 정지 — 미결제, 보내지 마세요</Badge>
                 ) : r.pausedAfterCharge ? (
                   <Badge tone="amber">결제 후 정지됨 — 확인 필요</Badge>
                 ) : r.dateMovedAfterCharge ? (
                   <Badge tone="amber">결제됨 — 발송 대기 주문 있음</Badge>
-                ) : r.cannotCharge ? (
-                  <Badge tone="red">청구 불가 — 발송하지 마세요</Badge>
                 ) : r.charged ? (
                   <Badge tone="green">오늘 아침 청구 완료</Badge>
                 ) : r.overdue ? (
@@ -629,6 +662,15 @@ export default async function PickingListPage({
                   <Badge tone="amber">발송일 아침 청구 예정</Badge>
                 )}
               </div>
+
+              {r.chargeFailedToday && !r.cannotCharge && (
+                <p className="mt-3 text-[12.5px] font-semibold text-red-600">
+                  ⛔ <strong>오늘 아침 청구가 실패</strong>했어요
+                  {r.failedCode ? ` (${r.failedCode})` : ''}. 돈을 못 받았으니
+                  조리·발송하지 마세요. 카드 문제면 고객이 카드를 바꾼 뒤 자동으로
+                  다시 청구돼요 — 그때 발송하시면 됩니다.
+                </p>
+              )}
 
               {r.pausedBeforeCharge && (
                 <p className="mt-3 text-[12.5px] font-semibold text-red-600">

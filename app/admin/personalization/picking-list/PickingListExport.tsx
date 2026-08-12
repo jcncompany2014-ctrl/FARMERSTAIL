@@ -1,6 +1,7 @@
 'use client'
 
 import { Download } from 'lucide-react'
+import { shipBlockReason, SHIP_BLOCK_LABEL } from '@/lib/admin/ship-block'
 
 /**
  * 피킹 리스트 CSV — 한 줄 = 한 박스. 팩 구성은 "제품 165g×14" 형태로 한 컬럼에
@@ -46,6 +47,14 @@ export type PickingRow = {
    * 라벨·CSV 에서 제외하고 화면에는 빨간 경고로 남긴다(사장님이 이유를 알아야 함).
    */
   pausedBeforeCharge: boolean
+  /**
+   * ★오늘 아침 청구가 실패했다(2026-08-12 3라운드 감사). 청구 실패는
+   * next_delivery_date 를 안 밀어 charged·overdue 가 모두 false 가 되므로,
+   * 이 플래그가 없으면 배지가 "발송일 아침 청구 예정" 으로 떨어져 그대로 발송된다.
+   */
+  chargeFailedToday: boolean
+  /** 실패 코드(INSUFFICIENT_FUNDS 등) — 사장님이 원인을 바로 보게. */
+  failedCode: string | null
   /** 청구 후 고객이 배송일을 옮겨 날짜 필터 밖으로 나간 건 — 발송 대기 주문 역추적으로 포함됨. */
   dateMovedAfterCharge: boolean
   cannotCharge: boolean
@@ -100,13 +109,16 @@ export default function PickingListExport({
       // ★상태는 화면 배지와 같은 우선순위로 판정한다(2026-08-12 반증감사).
       //   예전엔 미결제 정지 건이 '청구예정'으로 나와 CSV 를 믿고 포장하면
       //   무료 발송이 됐다. CSV 는 발송물이 아니라 데이터라 제외 대신 표기.
-      r.pausedBeforeCharge
-        ? '미결제-고객정지(발송금지)'
+      // 발송 금지 사유는 정본(lib/admin/ship-block)이 판정한다 — 화면 배지·
+      // 라벨 필터·조리 합계와 **같은 함수**라 넷이 갈라질 수 없다.
+      shipBlockReason(r)
+        ? SHIP_BLOCK_LABEL[shipBlockReason(r)!] +
+          (shipBlockReason(r) === 'charge_failed_today' && r.failedCode
+            ? `:${r.failedCode}`
+            : '')
         : r.pausedAfterCharge
           ? '결제후정지(확인필요)'
-          : r.cannotCharge
-            ? '청구불가(발송금지)'
-            : r.noFormula
+          : r.noFormula
               ? '처방없음'
               : r.charged
                 ? '청구완료'
