@@ -187,6 +187,10 @@ function pickSummary(json: Record<string, unknown>): Record<string, unknown> {
     'mailFailed',
     'mailSent',
     'paidSkipped',
+    // ★고객 사유(카드 거절·주소 미비). 지표로는 보이되 **실패로는 안 센다** —
+    //   FAILURE_KEYS 에 넣으면 잔액부족 고객 한 명이 매일 크론을 빨갛게 만든다.
+    'declined',
+    'mailSkipped',
   ]
   const out: Record<string, unknown> = {}
   for (const k of allow) {

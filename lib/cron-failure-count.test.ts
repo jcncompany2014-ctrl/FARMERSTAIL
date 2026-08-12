@@ -35,6 +35,21 @@ describe('failureCountOf — 부분 실패를 성공으로 집계하지 않는�
     assert.equal(failureCountOf({ errors: 1, failed: 2, mailFailed: 3 }), 6)
   })
 
+  it('★카드 거절은 실패가 아니다 — 정상 운영 이벤트다 (2026-08-12 자기회귀 가드)', () => {
+    // 어제 이 규칙을 넣으면서 subscription-charge 의 `failed`(= 카드 거절 수)를
+    // 그대로 실패로 셌다. 잔액부족 고객 한 명이 매일 재청구→매일 거절→매일 빨간불이
+    // 되고, 그 알림을 무시하기 시작하면 진짜 실패까지 묻힌다. 거절은 declined 로 분리.
+    assert.equal(
+      failureCountOf({ ok: true, checked: 12, succeeded: 7, declined: 5 }),
+      0,
+    )
+    // 단, 우리 쪽 실패가 섞여 있으면 여전히 빨간불이어야 한다.
+    assert.equal(
+      failureCountOf({ checked: 12, succeeded: 7, declined: 5, failed: 1 }),
+      1,
+    )
+  })
+
   it('★skipped 는 실패가 아니다 — 이걸 세면 매일 빨간불이라 규칙이 꺼진다', () => {
     // 대상이 아니라 건너뛴 것은 정상 동작이다(청구 대상 없음 등).
     assert.equal(failureCountOf({ checked: 50, skipped: 50, sent: 0 }), 0)

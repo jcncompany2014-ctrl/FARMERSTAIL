@@ -387,10 +387,23 @@ async function runSubscriptionCharge(): Promise<Response> {
   }
   let succeeded = 0
   let failed = 0
+  /**
+   * ★고객 사유(카드 거절·주소 미비)는 '우리 쪽 실패'가 아니다 (2026-08-12 4라운드 감사).
+   *
+   * 어제 크론 부분실패 판정(failureCountOf)을 넣으면서 이 크론의 `failed` 를 그대로
+   * 실패로 세게 했는데, 여기 `failed` 에는 **정상 운영 이벤트인 카드 거절**이 섞여
+   * 있었다. 잔액부족 고객 한 명이 매일 재청구→매일 거절→**매일 크론 빨간불**이 되고,
+   * 사장님이 그 알림을 무시하기 시작하면 진짜 실패(메일 전멸·주문 생성 실패)까지 같이
+   * 묻힌다 — 그 커밋이 스스로 주석에 적어 둔 실패 방식을 그 커밋이 만들었다.
+   * 고객 사유는 declined 로 따로 센다(지표로는 보이되 빨간불은 아니다).
+   */
+  let declined = 0
   let skipped = 0
   // 결제완료 메일 — 0 이면 '돈은 받았는데 아무 연락 안 감'이라 지표로 낸다.
   let mailSent = 0
   let mailFailed = 0
+  // 보낼 수 없는 상태(수신거부·미설정·수신자 없음) — 실패가 아니라 별도 지표.
+  let mailSkippedCount = 0
 
   for (const sub of targets) {
     // 2-0) 이중청구 가드(점검 high): 이미 Toss 청구됐으나 후속 update 실패로
@@ -580,7 +593,8 @@ async function runSubscriptionCharge(): Promise<Response> {
         subscriptionId: sub.id,
         userId: sub.user_id,
       })
-      failed += 1
+      // 고객이 주소를 안 넣은 것 — 크론 고장이 아니다(위 declined 주석).
+      declined += 1
       continue
     }
 
@@ -1011,25 +1025,47 @@ async function runSubscriptionCharge(): Promise<Response> {
          * 알림)가 이미 await 를 쓰는 이유와 같다: 응답이 끝나면 서버리스
          * 인스턴스가 죽어 미완료 promise 가 사라진다.
          */
-        try {
-          await notifyOrderPlaced(supabase, {
-            orderId: orderRow!.id,
-            userId: sub.user_id,
-            orderNumber: orderRow!.order_number,
-            // subscriptions 에 recipient_name 컬럼이 없다(위 SubRow 주석) —
-            // null 을 주면 resolveRecipient 가 프로필에서 이름을 찾는다.
-            recipientName: null,
-            totalAmount: chargeAmount,
-            shippingFee: 0, // 배송비는 구독료에 포함(별도 청구 없음)
-            paymentMethod: '카드',
-          })
+        /**
+         * ★반환값으로 판정한다 (2026-08-12 4라운드 감사).
+         * 이 함수는 실패해도 throw 하지 않으므로 try/catch 로는 아무것도 못 센다
+         * (mailFailed 가 구조적으로 0 이었다). ok 를 직접 본다.
+         *
+         * 단 `skipped`(수신거부 suppression·RESEND_API_KEY 미설정)는 **실패로 세지
+         * 않는다** — 프리뷰 환경이나 하드바운스 고객 때문에 크론이 영구 빨간불이
+         * 되면 규칙이 꺼진다(cron-failure-count 의 skipped 금기와 같은 이유).
+         */
+        const mailRes = await notifyOrderPlaced(supabase, {
+          orderId: orderRow!.id,
+          userId: sub.user_id,
+          orderNumber: orderRow!.order_number,
+          // subscriptions 에 recipient_name 컬럼이 없다(위 SubRow 주석) —
+          // null 을 주면 resolveRecipient 가 프로필에서 이름을 찾는다.
+          recipientName: null,
+          totalAmount: chargeAmount,
+          shippingFee: 0, // 배송비는 구독료에 포함(별도 청구 없음)
+          paymentMethod: '카드',
+        }).catch((e) => ({
+          ok: false as const,
+          skipped: false as const,
+          status: 0,
+          error: e instanceof Error ? e.message : 'unknown',
+        }))
+        const mailSkipped =
+          'skipped' in mailRes && mailRes.skipped === true
+        if (mailRes.ok === true) {
           mailSent += 1
-        } catch (e) {
+        } else if (mailSkipped) {
+          // 보낼 수 없는 상태(수신거부·미설정·수신자 없음) — 지표에는 남기고
+          // 크론 실패로는 세지 않는다. 원인은 email.* Sentry 이벤트에 있다.
+          mailSkippedCount += 1
+        } else {
           mailFailed += 1
           captureBusinessEvent('error', 'subscription.charge.mail_failed', {
             subscriptionId: sub.id,
             orderId: orderRow!.id,
-            reason: e instanceof Error ? e.message : 'unknown',
+            reason: String(
+              ('error' in mailRes && mailRes.error) || 'unknown',
+            ).slice(0, 200),
             note: '결제는 성공했는데 결제완료 메일 발송이 실패했다.',
           })
         }
@@ -1154,7 +1190,13 @@ async function runSubscriptionCharge(): Promise<Response> {
           errorClass,
         },
       )
-      failed += 1
+      // 확정 거절(잔액부족·한도초과)·카드 만료 = 고객 사유. 토스 장애/타임아웃 같은
+      // 결과 불명(unknown)만 우리 쪽 실패로 센다.
+      if (errorClass === 'permanent' || isDefinitiveDecline(errorCode)) {
+        declined += 1
+      } else {
+        failed += 1
+      }
 
       // 푸시 알림 — order 카테고리 (push_preferences + quiet hours 자동 검사).
       // 이메일과 별개로 push ON 사용자에게도 닿게. permanent / transient /
@@ -1256,8 +1298,10 @@ async function runSubscriptionCharge(): Promise<Response> {
     today,
     checked: targets.length,
     succeeded,
+    declined,
     mailSent,
     mailFailed,
+    mailSkipped: mailSkippedCount,
     failed,
     skipped,
   })

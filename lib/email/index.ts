@@ -86,8 +86,21 @@ export async function notifyOrderPlaced(
     paymentMethod: string | null
   },
 ) {
+  /**
+   * ★결과를 **반환한다** (2026-08-12 4라운드 감사).
+   *
+   * 예전엔 void 였다. 그래서 청구 크론이 `try { await notifyOrderPlaced(); mailSent++ }
+   * catch { mailFailed++ }` 로 세도, 이 함수는 어떤 실패에도 throw 하지 않아
+   * **mailFailed 가 구조적으로 항상 0** 이었다 — Resend 키가 죽어 한 통도 안 나가도
+   * 지표는 "전부 보냄". 어제 고친 '결제 성공인데 연락 0통'이 지표상 초록인 채로
+   * 그대로 재현되던 자리다. 형제 함수들(notifySubscriptionReminder 등)은 이미
+   * `return sendEmail(...)` 패턴이라 여기만 예외였다.
+   */
   const recipient = await resolveRecipient(supabase, input.userId, input.recipientName)
-  if (!recipient) return
+  // 수신자를 못 찾은 것도 '안 나갔다' 다 — 조용히 성공으로 세지 않게 사유를 준다.
+  if (!recipient) {
+    return { ok: false as const, skipped: true as const, reason: 'no_recipient' as const }
+  }
   const items = await loadOrderItems(supabase, input.orderId)
   const { subject, html } = renderOrderConfirmation({
     recipientName: recipient.name,
@@ -98,7 +111,7 @@ export async function notifyOrderPlaced(
     paymentMethodLabel: paymentMethodLabel(input.paymentMethod),
     items,
   })
-  await sendEmail({
+  return sendEmail({
     to: recipient.email,
     subject,
     html,
