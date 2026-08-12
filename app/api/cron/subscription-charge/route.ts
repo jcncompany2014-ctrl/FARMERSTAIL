@@ -11,7 +11,7 @@ import {
   RETRY_COOLDOWN_MS,
   MAX_FAILED_CHARGES,
 } from '@/lib/payments/billing-error-classify'
-import { notifySubscriptionChargeFailed } from '@/lib/email'
+import { notifySubscriptionChargeFailed, notifyOrderPlaced } from '@/lib/email'
 import { pushToUser } from '@/lib/push'
 import { traceBusiness, captureBusinessEvent } from '@/lib/sentry/trace'
 import { trackCron } from '@/lib/cron-tracking'
@@ -388,6 +388,9 @@ async function runSubscriptionCharge(): Promise<Response> {
   let succeeded = 0
   let failed = 0
   let skipped = 0
+  // 결제완료 메일 — 0 이면 '돈은 받았는데 아무 연락 안 감'이라 지표로 낸다.
+  let mailSent = 0
+  let mailFailed = 0
 
   for (const sub of targets) {
     // 2-0) 이중청구 가드(점검 high): 이미 Toss 청구됐으나 후속 update 실패로
@@ -995,6 +998,52 @@ async function runSubscriptionCharge(): Promise<Response> {
           amount: chargeAmount,
           attemptCount: sub.failed_charge_count + 1,
         })
+
+        /**
+         * ★결제 완료를 고객에게 알린다 (2026-08-12 3라운드 감사).
+         *
+         * 예전엔 이 크론이 **실패 알림만** 보냈다(notifySubscriptionChargeFailed).
+         * 즉 결제가 성공하면 메일도 푸시도 0통 — 돈은 빠져나가는데 아무 연락이
+         * 없었다. 첫 고객 입장에선 "돈만 가져가고 연락 없는 회사"이고,
+         * 전자상거래법 제13조(계약내용 확인 통지) 관점에서도 위험하다.
+         *
+         * 크론이라 fire-and-forget 을 쓰지 않는다 — 이 함수(그리고 아래 실패
+         * 알림)가 이미 await 를 쓰는 이유와 같다: 응답이 끝나면 서버리스
+         * 인스턴스가 죽어 미완료 promise 가 사라진다.
+         */
+        try {
+          await notifyOrderPlaced(supabase, {
+            orderId: orderRow!.id,
+            userId: sub.user_id,
+            orderNumber: orderRow!.order_number,
+            // subscriptions 에 recipient_name 컬럼이 없다(위 SubRow 주석) —
+            // null 을 주면 resolveRecipient 가 프로필에서 이름을 찾는다.
+            recipientName: null,
+            totalAmount: chargeAmount,
+            shippingFee: 0, // 배송비는 구독료에 포함(별도 청구 없음)
+            paymentMethod: '카드',
+          })
+          mailSent += 1
+        } catch (e) {
+          mailFailed += 1
+          captureBusinessEvent('error', 'subscription.charge.mail_failed', {
+            subscriptionId: sub.id,
+            orderId: orderRow!.id,
+            reason: e instanceof Error ? e.message : 'unknown',
+            note: '결제는 성공했는데 결제완료 메일 발송이 실패했다.',
+          })
+        }
+        // 푸시는 있으면 좋은 것 — 실패해도 흐름을 막지 않는다(VAPID 미등록이면
+        // ensureConfigured 가 no-op 으로 돌려준다).
+        await pushToUser(
+          sub.user_id,
+          {
+            title: '결제가 완료됐어요',
+            body: `${chargeAmount.toLocaleString()}원 · 곧 박스를 준비할게요`,
+            url: `/mypage/orders/${orderRow!.id}`,
+          },
+          { category: 'order' },
+        ).catch(() => {})
       } else {
         // 돈은 청구됐는데 주문/구독 갱신 실패 → 즉시 알림(수동 재정산 필요).
         captureBusinessEvent('error', 'subscription.charge.post_update_failed', {
@@ -1207,6 +1256,8 @@ async function runSubscriptionCharge(): Promise<Response> {
     today,
     checked: targets.length,
     succeeded,
+    mailSent,
+    mailFailed,
     failed,
     skipped,
   })

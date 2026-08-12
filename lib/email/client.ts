@@ -23,6 +23,8 @@
 // 것 처럼 오인된다 (실제로는 빌드 머신에 키가 없어서 throw).
 // `admin.ts` 와 같은 전략으로, 런타임에 undefined 를 허용하고 조용히 no-op.
 
+import { captureBusinessEvent } from '@/lib/sentry/trace'
+
 const RESEND_ENDPOINT = 'https://api.resend.com/emails'
 
 export type SendEmailInput = {
@@ -76,6 +78,15 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   // R101-F: suppression 체크 — 하드바운스/스팸신고 주소엔 발송 안 함(도메인 평판).
   // fail-open: 조회 실패(테이블 부재/네트워크)면 그냥 발송(메일 누락 < 평판 리스크).
   if (await isAnyEmailSuppressed(input.to)) {
+    // ★suppression 은 트랜잭션 메일(주문·발송·환불)까지 영구 차단한다.
+    // 해제 화면이 없어 SQL 로만 풀 수 있으므로, 최소한 '막혔다'는 사실은 남긴다.
+    try {
+      captureBusinessEvent('warning', 'email.suppressed_skip', {
+        tag: input.tag ?? null,
+      })
+    } catch {
+      /* 관측 실패가 메일 경로를 막지 않는다 */
+    }
     return { ok: false, skipped: true, reason: 'suppressed' }
   }
 
@@ -122,24 +133,46 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
     if (!res.ok) {
       const body = await res.text().catch(() => '')
-      return {
-        ok: false,
-        skipped: false,
-        status: res.status,
-        error: body || `HTTP ${res.status}`,
-      }
+      return failSend(input, res.status, body || `HTTP ${res.status}`)
     }
 
     const data = (await res.json().catch(() => ({}))) as { id?: string }
     return { ok: true, id: data.id ?? '' }
   } catch (e) {
-    return {
-      ok: false,
-      skipped: false,
-      status: 0,
-      error: e instanceof Error ? e.message : 'unknown',
-    }
+    return failSend(input, 0, e instanceof Error ? e.message : 'unknown')
   }
+}
+
+/**
+ * 발송 실패를 **관측 가능하게** 만든다 (2026-08-12 3라운드 감사).
+ *
+ * # 왜
+ * 이 파일은 실패를 값으로만 돌려줬고, notify* 6종은 그 값을 전부 버리며,
+ * 호출처는 `.catch(() => {})` 로 promise 까지 삼켰다. 그래서 API 키 폐기·
+ * 일일 한도 초과·429·타임아웃 어느 경우든 **메일이 한 통도 안 나간 사실이
+ * 어디에도 안 남았다** — 대시보드는 초록인데 고객은 아무것도 못 받는다.
+ * (푸시가 0행을 '받는 사람 없음'으로 읽어 모든 크론이 초록이던 규칙8 사고의
+ * 이메일판이다. lib/sentry/trace 의 `email.*` 규약도 선언만 있고 발송 코드가
+ * 한 번도 쓰지 않았다 — 규칙4.)
+ *
+ * 수신자 주소는 넣지 않는다(sendDefaultPii=false 정책). 태그·상태·사유 앞머리만.
+ */
+function failSend(
+  input: { to: string | string[]; tag?: string },
+  status: number,
+  error: string,
+): { ok: false; skipped: false; status: number; error: string } {
+  try {
+    captureBusinessEvent('error', 'email.send.failed', {
+      tag: input.tag ?? null,
+      status,
+      recipients: Array.isArray(input.to) ? input.to.length : 1,
+      reasonHead: error.slice(0, 120),
+    })
+  } catch {
+    /* 캡처 실패가 메일 경로를 막으면 안 된다 */
+  }
+  return { ok: false, skipped: false, status, error }
 }
 
 /**

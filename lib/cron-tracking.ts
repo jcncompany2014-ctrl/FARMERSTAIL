@@ -25,6 +25,7 @@
  */
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isFailureStatus } from './cron-status.ts'
+import { failureCountOf } from './cron-failure-count.ts'
 import { sanitizeLogText } from '@/lib/log-sanitize'
 
 export async function trackCron<T extends Response>(
@@ -66,6 +67,30 @@ export async function trackCron<T extends Response>(
       await recordHealth(path, 'error', durationMs, message, summary)
       // throw 경로와 동일하게 Sentry 도 울린다 — 기록만 하고 조용하면
       // "사람에게 알린다"는 이 가드들의 목적이 반만 달성된다.
+      await notifyCronError(path, message, durationMs)
+      return result
+    }
+    /**
+     * ★"200 인데 실패 카운트가 있는" 크론도 실패로 본다 (2026-08-12 3라운드 감사).
+     *
+     * 2026-08-05 에 5xx **반환** 경로를 덮었는데, 그 사이로 다른 얼굴이 남아
+     * 있었다: 크론이 실패를 **세어 body 에 담고 200 을 돌려주는** 경우다.
+     *   · subscription-reminders: `{ sent, errors }` → errors 12 여도 200
+     *   · quarterly-report:       `{ sent, failed }` → 전부 실패해도 200
+     * 그러면 cron_health 는 success, ops-digest(status='error' 만 본다)는 침묵.
+     * "오늘 리마인더가 한 통도 안 나갔다"가 어디에도 안 남는다.
+     *
+     * 크론 하나하나를 고치는 대신(그 방식이 2026-08-05 에 이미 한 번 새어서)
+     * 집계 지점인 여기서 한 번에 판정한다. summary 의 실패 카운터는
+     * pickSummary 가 이미 allow 목록으로 통과시킨 값들이다.
+     */
+    const failCount = failureCountOf(summary)
+    if (failCount > 0) {
+      const message = sanitizeLogText(
+        `부분 실패 ${failCount}건 (HTTP 200 이지만 실패 카운터가 있음)`,
+        500,
+      )
+      await recordHealth(path, 'error', durationMs, message, summary)
       await notifyCronError(path, message, durationMs)
       return result
     }
@@ -155,6 +180,13 @@ function pickSummary(json: Record<string, unknown>): Record<string, unknown> {
     'today',
     'cutoff',
     'reason',
+    // ★실패 카운터 — failureCountOf 가 이 값들을 보고 '200 인데 부분 실패'를
+    //   판정한다. allow 에 없으면 summary 에서 잘려 나가 판정이 무력해진다
+    //   (규칙을 넣고 입력을 막는 실수 — 여기서 함께 관리한다).
+    'itemsFailed',
+    'mailFailed',
+    'mailSent',
+    'paidSkipped',
   ]
   const out: Record<string, unknown> = {}
   for (const k of allow) {
