@@ -189,6 +189,48 @@ export async function POST(req: Request) {
   const lineRatios =
     picks.length > 0 ? ratiosFromPicks(picks) : f.formula.lineRatios
 
+  /**
+   * ★고른 레시피를 **처방에 반영해 저장**한다 (2026-08-12 3라운드 감사).
+   *
+   * 예전엔 picks 를 이 요청 안에서만 쓰고 어디에도 저장하지 않았다. 그래서
+   * 금액·subscription_items·주문내역·구독카드는 고객이 고른 2종을 보여주는데,
+   * **화요일 피킹 리스트는 dog_formulas 를 정본으로 다시 계산**해 단일 단백질
+   * 100% 로 떴다(compute 가 cycle 1 을 collapseToSingle 로 저장하기 때문).
+   * 누락 대조도 같은 기준이라 경고 배지조차 안 붙었다 — 첫 고객의 첫 박스가
+   * **산 것과 다르게** 나가고, 주문내역과 실물이 갈려 CS 가 판정 불가.
+   *
+   * 처방을 고객 선택으로 갱신하면 처방·금액·품목·포장이 다시 한 정본이 된다.
+   * adjust 라우트와 같은 의미이므로 user_adjusted 를 켠다(사람이 정한 값이라
+   * 재제안 로직이 함부로 덮지 않게).
+   */
+  if (picks.length > 0) {
+    const nextFormula = { ...f.formula, lineRatios }
+    // ★규칙36 — dog_formulas 는 **고객 UPDATE 권한이 회수된 표**다(청구액 입력이라
+    //   2026-08 보안감사에서 잠갔다). 쿠키 클라이언트로 쓰면 조용히 거부되므로
+    //   service_role 로 쓰고, 소유권은 위 조회(user_id 일치)와 아래 eq 로 코드가
+    //   책임진다. (규칙36 테스트가 이 실수를 즉시 잡아냈다 — 처음엔 supabase 로
+    //   썼고, 그대로 뒀으면 저장이 안 된 채 "고쳤다"고 믿을 뻔했다.)
+    const { error: syncErr } = await createAdminClient()
+      .from('dog_formulas')
+      .update({ formula: nextFormula, user_adjusted: true })
+      .eq('dog_id', body.dogId)
+      .eq('user_id', user.id)
+      .eq('cycle_number', 1)
+    // 규칙1 — 여기서 실패하면 "고객이 산 박스"와 "포장할 박스"가 갈린다.
+    //   금액은 아래에서 lineRatios 로 정확히 계산되므로 결제는 진행하되,
+    //   갈림을 조용히 두지 않고 알린다(사장님이 발송 전에 손볼 수 있게).
+    if (syncErr) {
+      captureBusinessEvent('error', 'subscription.create.formula_sync_failed', {
+        dogId: body.dogId,
+        userId: user.id,
+        picks: picks.join(','),
+        dbError: String(syncErr.message ?? 'unknown'),
+        note:
+          '고객이 고른 레시피를 처방에 반영하지 못했다 — 피킹 리스트가 다른 구성을 뽑을 수 있다. 발송 전 확인 필요.',
+      })
+    }
+  }
+
   // ── 제품: 활성 제품만 (주문 화면과 같은 조회) ───────────────────────
   const allSlugs = [
     ...Object.values(LINE_TO_SLUG).filter((s): s is string => s !== null),

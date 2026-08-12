@@ -78,13 +78,91 @@ async function runOrderExpire(): Promise<Response> {
     )
   }
 
-  const targets = (orders ?? []) as Array<{
+  const allCandidates = (orders ?? []) as Array<{
     id: string
     user_id: string
     order_number: string
     /** 구독 청구가 만든 주문인지 — 재고 복원 여부가 갈린다(아래 주석). */
     subscription_id: string | null
   }>
+
+  /**
+   * ★결제 흔적이 있는 주문은 만료시키지 않는다 (2026-08-12 3라운드 감사).
+   *
+   * 구독 청구(KST 09:10)는 **카드를 먼저 긁고** orders 를 paid/preparing 으로
+   * 올린다. 그 UPDATE 가 실패하면 주문은 pending/pending 으로 남는데, 17시간 뒤
+   * 이 크론이 그걸 "30분 결제 미완료" 로 취소했다. 결과:
+   *  · 카드는 긁혔는데 고객 주문내역엔 '취소됨'
+   *  · 피킹 리스트의 유실 방지 역추적은 order_status='preparing' 조건이라 못 잡음
+   *    → **박스가 영영 안 나감**
+   *  · 주간 원장 대조도 cancelled 를 정상으로 읽어 초록 통과
+   *  · 다음 회차는 unresolved 가드에 걸려 영구 skip → 구독이 조용히 멈춤
+   *
+   * 원장(payment_events, amount>0)이 **돈이 움직였다는 증거**다. 그게 있으면
+   * 만료 대상에서 빼고 운영자에게 알린다 — 조용히 취소하는 것보다 낫다.
+   */
+  const targets: typeof allCandidates = []
+  let paidSkipped = 0
+  if (allCandidates.length > 0) {
+    const { data: paidEv, error: paidEvErr } = await (
+      supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => {
+            in: (
+              c: string,
+              v: string[],
+            ) => {
+              gt: (
+                c: string,
+                v: number,
+              ) => Promise<{
+                data: Array<{ order_id: string }> | null
+                error: { message?: string } | null
+              }>
+            }
+          }
+        }
+      }
+    )
+      .from('payment_events')
+      .select('order_id')
+      .in(
+        'order_id',
+        allCandidates.map((o) => o.id),
+      )
+      .gt('amount', 0)
+    // 규칙1 — 조회 실패를 "결제 흔적 없음"으로 읽으면 결제된 주문을 취소한다.
+    //   확인 못 하면 이번 회차는 아무것도 만료시키지 않는다(안전한 쪽).
+    if (paidEvErr) {
+      captureBusinessEvent('error', 'order.expire.paid_check_failed', {
+        candidates: allCandidates.length,
+        dbError: String(paidEvErr.message ?? 'unknown'),
+        note: '결제 흔적 조회 실패 — 이번 회차 만료를 전부 건너뛴다(결제된 주문 취소 방지).',
+      })
+      return NextResponse.json({
+        ok: true,
+        expired: 0,
+        skipped: allCandidates.length,
+        reason: 'paid_check_failed',
+      })
+    }
+    const paidIds = new Set((paidEv ?? []).map((e) => e.order_id))
+    for (const ord of allCandidates) {
+      if (paidIds.has(ord.id)) {
+        paidSkipped += 1
+        captureBusinessEvent('error', 'order.expire.paid_order_skipped', {
+          orderId: ord.id,
+          orderNumber: ord.order_number,
+          subscriptionId: ord.subscription_id,
+          note:
+            '결제 원장이 있는데 주문이 pending 이다 — 청구 후 orders UPDATE 가 실패한 건. ' +
+            '만료시키지 않았다. 수동으로 paid/preparing 으로 올려야 박스가 나간다.',
+        })
+        continue
+      }
+      targets.push(ord)
+    }
+  }
 
   let expired = 0
   // 품목을 못 읽어 재고 복원이 누락된 건 — 안 세면 조용히 사라진다.
@@ -216,5 +294,8 @@ async function runOrderExpire(): Promise<Response> {
     checked: targets.length,
     expired,
     itemsFailed,
+    // 결제 원장이 있는데 pending 인 주문 — 청구 후 orders UPDATE 실패의 흔적.
+    // 0 이 아니면 사람이 손봐야 한다(박스가 안 나가고 다음 회차도 멈춘다).
+    paidSkipped,
   })
 }
