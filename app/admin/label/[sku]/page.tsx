@@ -6,6 +6,7 @@ import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { SKU_META, type SkuKey } from '@/lib/allergy-sku-matrix'
 import { business as bizInfo } from '@/lib/business'
+import { SKU_MODEL, type ProteinKey } from '@/lib/personalization/skuModel'
 import LabelPrintButton from './LabelPrintButton'
 
 export const dynamic = 'force-dynamic'
@@ -107,6 +108,15 @@ export default async function LabelPdfPage({
   if (!productRow) notFound()
   const product = productRow as unknown as LabelProduct
   const n = product.nutrition_facts ?? {}
+
+  /**
+   * 알고리즘 정본(skuModel v4.0)의 kcal — 아래 라벨 경고가 대조 기준으로 쓴다.
+   * 앱이 급여량을 계산할 때 쓰는 바로 그 숫자다. 라벨(DB)과 다르면 봉투와 앱이
+   * 서로 다른 양을 말하게 되므로 인쇄를 막는다.
+   */
+  const codeKcal: number | null = meta
+    ? (SKU_MODEL[meta.protein_en as ProteinKey]?.profile.kcalPer100g ?? null)
+    : null
 
   // R38b (#31) — 영업등록번호만 ENV/상수 (products 컬럼 아님).
   // 제조원·소재지는 products 우선, 없으면 ENV/상수 fallback.
@@ -244,6 +254,27 @@ export default async function LabelPdfPage({
                   : '—'
               }
             />
+            {/* ★DB 값과 알고리즘 정본이 어긋나면 **인쇄 전에** 막는다
+                (2026-08-12 4라운드 감사). 실측: DB 오리150·흑돼지140·한우160 인데
+                코드 정본(skuModel v4.0)은 125·125·145 다. 이 kcal 로 계산된
+                feeding_guide 가 봉투에 인쇄되면 앱이 지시하는 급여량과 최대 20%
+                어긋난 표시가 나간다(오리 246g vs 앱 ~302g).
+                값은 여기서 고치지 않는다 — 보장분석·kcal·급여표는 한 세트라
+                하나만 갈면 표시사항이 자기모순에 빠진다. 사장님 결정대로 성분
+                의뢰검사 실측이 나오면 **한 커밋에** DB·코드를 함께 v4.0 으로
+                맞춘다(마이그 20260603000003 주석 참조). 그때까지는 경고로 막는다. */}
+            {codeKcal != null &&
+              n.calories_kcal_per_100g != null &&
+              Math.abs(Number(n.calories_kcal_per_100g) - codeKcal) > 0.5 && (
+                <p className="mt-2 rounded border border-red-300 bg-red-50 px-2 py-1.5 text-[10.5px] font-bold leading-relaxed text-red-700">
+                  ⛔ 인쇄하지 마세요 — 이 라벨의 열량(
+                  {String(n.calories_kcal_per_100g)} kcal/100g)이 앱 급여량
+                  계산의 정본({codeKcal} kcal/100g)과 다릅니다. 이대로 인쇄하면
+                  봉투 급여표와 앱 안내가 어긋납니다. 성분 실측 결과로 DB
+                  nutrition_facts·feeding_guide 와 코드 %DM 을 함께 갱신한 뒤
+                  인쇄해 주세요.
+                </p>
+              )}
           </div>
           {product.allergens && product.allergens.length > 0 && (
             <p className="text-[10.5px] text-muted mt-2">

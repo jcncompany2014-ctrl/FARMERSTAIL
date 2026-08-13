@@ -57,6 +57,71 @@ import { nextShipDate, weekdayKo } from '@/lib/shipping-schedule'
 const FLAGS = billingMethodFlags()
 const AVAILABLE = availableBillingMethods(FLAGS)
 
+type BillingTerms = {
+  amount: number | null
+  discountLabel: string | null
+  listAmount: number | null
+  firstChargeDate: string | null
+} | null
+
+/**
+ * 정기결제 고지 — **금액 · 주기 · 첫 결제일**.
+ *
+ * ★2026-08-12 4라운드 감사: 이 고지가 **결제수단 선택 화면 안에만** 있었다.
+ * 그런데 2026-08-11 카드 전용으로 바꾸면서 선택 화면을 건너뛰게 됐다
+ * (AVAILABLE.length === 1 → 곧바로 '등록하기' 화면). 즉 코드는 있는데
+ * **도달 불가 분기에 있어 고객에게 한 번도 안 보였다.** 전자상거래법상 고지이고
+ * 토스 정기결제 심사가 보는 화면이라, 카드 전용 화면에도 같은 컴포넌트를 렌더한다.
+ * (선택 화면 쪽 인라인 블록은 그대로 두되, 새 화면은 이 정본을 쓴다 — 문구가
+ *  갈라지면 어느 쪽이 맞는지 알 수 없게 되므로 다음 정리 때 둘을 합친다.)
+ */
+function RecurringTerms({ terms }: { terms: BillingTerms }) {
+  return (
+    <div
+      className="mt-4 px-4 py-3 text-left"
+      style={{ background: 'var(--bg-3)', border: '1px solid var(--rule)' }}
+    >
+      <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
+        결제 금액
+      </p>
+      <p
+        className="text-[15px] font-black mt-0.5"
+        style={{ color: 'var(--ink)' }}
+      >
+        {terms?.amount != null ? (
+          <>
+            {terms.discountLabel && terms.listAmount != null && (
+              <span
+                className="mr-1.5 line-through"
+                style={{ color: 'var(--muted)', fontWeight: 600 }}
+              >
+                {terms.listAmount.toLocaleString()}원
+              </span>
+            )}
+            {`${terms.amount.toLocaleString()}원 · 2주마다`}
+          </>
+        ) : (
+          '주문 화면에서 확인한 금액 · 2주마다'
+        )}
+      </p>
+      <p
+        className="text-[11.5px] mt-1.5 leading-relaxed"
+        style={{ color: 'var(--muted)' }}
+      >
+        {terms?.firstChargeDate
+          ? `첫 결제 ${Number(terms.firstChargeDate.slice(5, 7))}월 ${Number(
+              terms.firstChargeDate.slice(8, 10),
+            )}일(${weekdayKo(terms.firstChargeDate)}) · 이후 2주마다 같은 요일`
+          : '첫 결제는 다음 발송일(화요일)에 진행돼요'}
+        <br />
+        {terms?.discountLabel ? `${terms.discountLabel}이 적용된 금액이에요. ` : ''}
+        결제일에 금액이 바뀌면 미리 알려드리고 동의를 받아요. 다음 결제 전까지
+        해지할 수 있어요.
+      </p>
+    </div>
+  )
+}
+
 function BillingAuthInner() {
   const router = useRouter()
   const isApp = useIsAppContext()
@@ -395,6 +460,9 @@ function BillingAuthInner() {
                 <br />
                 등록만 하는 단계라 지금 결제되지 않아요.
               </p>
+              {/* ★법정 고지 — 이 화면이 실제로 카드를 등록하는 자리다.
+                  선택 화면에만 있던 고지가 카드 전용 전환 후 도달 불가가 됐다. */}
+              <RecurringTerms terms={terms} />
               <button
                 type="button"
                 onClick={() => void launch(method.id)}
