@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   // 쓰인다. Next 는 page 의 title/description 을 openGraph 로 자동 복사하지
   // 않기 때문. 인스타·카톡으로 이 링크를 뿌리는데 미리보기에 "파머스테일"
   // 이라는 일반 문구만 떠서 뭘 누르는 건지 알 수 없었다. 이미지는 사이트
-  // 기본(/api/og)을 그대로 상속한다.
+  // 기본(/og)을 그대로 상속한다.
   openGraph: {
     title: '무료 맞춤 분석 — 2분이면 끝나요',
     description:

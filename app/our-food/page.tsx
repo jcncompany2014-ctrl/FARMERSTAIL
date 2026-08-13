@@ -39,7 +39,7 @@ import { planHref } from '@/lib/funnel-cta'
 export const revalidate = 3600
 
 // R99-A 패턴: Next openGraph 는 shallow-merge 라 페이지가 images 미지정 시 layout
-// 기본 OG(/api/og)를 상속 못 함 → 공유 카드 썸네일 0. 명시 OG 추가(회차160).
+// 기본 OG(/og)를 상속 못 함 → 공유 카드 썸네일 0. 명시 OG 추가(회차160).
 const OUR_FOOD_OG = ogImageUrl({
   title: '우리 음식',
   subtitle: '사람이 먹는 등급, 수비드 저온 조리 완전·균형 한 끼',

@@ -192,7 +192,7 @@ export const metadata: Metadata = {
       "우리 아이를 위한 프리미엄 반려견 식품 — 수의영양학 기반 레시피, Farm to Tail",
     images: [
       {
-        url: "/api/og",
+        url: "/og",
         width: 1200,
         height: 630,
         alt: "파머스테일 — 우리 아이를 위한 프리미엄 반려견 식품",
@@ -204,7 +204,7 @@ export const metadata: Metadata = {
     title: "파머스테일 | Farmer's Tail",
     description:
       "우리 아이를 위한 프리미엄 반려견 식품 — 수의영양학 기반 레시피, Farm to Tail",
-    images: ["/api/og"],
+    images: ["/og"],
   },
   other: {
     // Kakao in-app browser reads this specifically for rich share cards.

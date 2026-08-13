@@ -1,8 +1,8 @@
 // R16-E45: 견별 동적 OG 이미지 — 강아지 이름 + breed + photo.
 //
-// GET /api/og/dog?id=<uuid>
+// GET /og/dog?id=<uuid>
 //   또는
-// GET /api/og/dog?name=초롱&breed=포메라니안&photo=<url>
+// GET /og/dog?name=초롱&breed=포메라니안&photo=<url>
 //
 // id 가 있으면 Supabase 에서 견 정보 fetch (RLS — 본인 견만 보임).
 // 외부 share 용도일 경우 query string 으로 직접 — 데이터 노출 X.
@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase/server'
 export const runtime = 'nodejs' // Supabase 사용 → edge X
 
 // FD 브랜드 팔레트 inline mirror — ImageResponse 는 var(--fd-*) 못 씀.
-// globals.css 바뀌면 수동 동기화(회차172: 옛 v4 → FD. /api/og 와 통일).
+// globals.css 바뀌면 수동 동기화(회차172: 옛 v4 → FD. /og 와 통일).
 const CREAM = '#F7F5F0' // --fd-offwhite
 const INK = '#173B33' // --fd-pine
 const TERRA = '#B63619' // --fd-coral-text (AA)

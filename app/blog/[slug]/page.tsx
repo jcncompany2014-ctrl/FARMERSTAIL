@@ -82,9 +82,9 @@ export async function generateMetadata({
   const description =
     post.excerpt ?? post.content.slice(0, 140).replace(/\s+/g, ' ')
 
-  // Reuse /api/og fallback so every article has a branded Kakao share card
+  // Reuse /og fallback so every article has a branded Kakao share card
   // even when the admin forgot to set a cover.
-  const ogFallback = `/api/og?variant=editorial&title=${encodeURIComponent(
+  const ogFallback = `/og?variant=editorial&title=${encodeURIComponent(
     post.title
   )}&subtitle=${encodeURIComponent(description.slice(0, 100))}&tag=${encodeURIComponent('Magazine')}`
 
@@ -96,7 +96,9 @@ export async function generateMetadata({
     : [{ url: ogFallback, width: 1200, height: 630, alt: post.title }]
 
   return {
-    title: `${post.title} | 파머스테일 매거진`,
+    // ★루트 layout 의 template('%s | 파머스테일')이 브랜드를 한 번 더 붙여
+    //   "제목 | 파머스테일 매거진 | 파머스테일" 이 됐다. absolute 로 고정한다.
+    title: { absolute: `${post.title} | 파머스테일 매거진` },
     description,
     alternates: { canonical: `/blog/${slug}` },
     openGraph: {

@@ -37,7 +37,7 @@ export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.farmerstail.kr'
 
 /**
- * /api/og 의 dynamic share card URL 을 만들어 주는 헬퍼.
+ * /og 의 dynamic share card URL 을 만들어 주는 헬퍼.
  *
  * metadata.openGraph.images 에 상대경로를 넣으면 layout 의 metadataBase 가
  * 자동으로 절대 URL 로 붙여 주므로 여기서는 path + query 만 조립한다.
@@ -60,7 +60,7 @@ export function ogImageUrl(input: {
   if (input.variant && input.variant !== 'default') {
     params.set('variant', input.variant)
   }
-  return `/api/og?${params.toString()}`
+  return `/og?${params.toString()}`
 }
 
 const SITE_NAME = '파머스테일'

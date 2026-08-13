@@ -12,6 +12,11 @@ export const metadata: Metadata = {
   title: '개인정보처리방침',
   description:
     '파머스테일의 개인정보 수집·이용·제공·파기에 관한 방침. 개인정보보호법 제30조에 따라 처리 목적, 보유 기간, 제3자 제공, 정보주체의 권리를 공개합니다.',
+  // ★canonical 자기선언 (2026-08-12 4라운드 감사) — 없으면 루트 layout 의
+  //   metadataBase alternates 를 상속해 **홈을 정본으로 선언**한다. 그러면
+  //   sitemap 은 이 URL 을 올리는데 페이지는 '나는 홈이다' 라고 말해
+  //   검색엔진이 색인에서 뺀다(법정 문서는 심사·분쟁 때 접근 가능해야 한다).
+  alternates: { canonical: '/legal/privacy' },
   robots: { index: true, follow: true },
 }
 

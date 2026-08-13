@@ -405,10 +405,39 @@ export default function OrderClient({
     }).open()
   }, [])
 
+  /**
+   * ★검증 실패를 **눈에 보이는 곳**에 띄운다 (2026-08-12 4라운드 감사).
+   *
+   * 예전엔 setErr() 만 했다. 그런데 오류 문구가 그려지는 자리(.ord-err)는
+   * 배송지 폼·결제수단·주문요약 **아래**이고, 정작 누르는 결제 버튼은
+   * `position: fixed; bottom: 0` 으로 화면 하단에 늘 떠 있다. 즉 폼을 위로
+   * 스크롤한 상태에서 결제를 누르면 **아무 일도 안 일어난 것처럼 보인다** —
+   * 고객은 버튼이 고장 났다고 생각하고 이탈한다(첫 결제에서 돈이 새는 자리).
+   * 토스트는 고정 레이어라 스크롤 위치와 무관하게 뜬다. 인라인 문구는 재확인용.
+   */
+  function failValidation(msg: string, focusId?: string) {
+    setErr(msg)
+    toast.error(msg)
+    if (focusId) {
+      const el = document.getElementById(focusId)
+      if (el) {
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        ;(el as HTMLInputElement).focus?.()
+      }
+    }
+  }
+
   async function handleSubscribe() {
     if (items.length === 0) return
     if (!recipientName.trim() || !recipientPhone.trim() || !recipientAddress.trim()) {
-      setErr('수령인 이름·전화·주소를 모두 입력해 주세요.')
+      failValidation(
+        '수령인 이름·전화·주소를 모두 입력해 주세요.',
+        !recipientName.trim()
+          ? 'ord-name'
+          : !recipientPhone.trim()
+            ? 'ord-phone'
+            : 'ord-address',
+      )
       return
     }
     // 휴대폰 검증은 lib/phone 정본 하나로(2026-08-03). 여기 있던 자체 정규식은
@@ -416,16 +445,18 @@ export default function OrderClient({
     // 저장돼 있었고 결제 버튼도 안 막혔다. 기사님이 전화를 거는 배송이라
     // 연락 안 되는 번호는 곧 배송 실패다.
     if (!isKoreanMobile(recipientPhone)) {
-      setErr(PHONE_ERROR)
+      failValidation(PHONE_ERROR, 'ord-phone')
       return
     }
     if (recipientName.trim().length < 2) {
-      setErr('수령인 이름은 2자 이상이어야 해요.')
+      failValidation('수령인 이름은 2자 이상이어야 해요.', 'ord-name')
       return
     }
     const subscribable = subscribableItems(items)
     if (subscribable.length === 0) {
-      setErr('지금은 정기배송 가능한 레시피가 없어요. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.')
+      failValidation(
+        '지금은 정기배송 가능한 레시피가 없어요. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.',
+      )
       return
     }
     setSubmitting(true)
@@ -871,9 +902,17 @@ export default function OrderClient({
                 <label className="ord-label">주소</label>
                 <button
                   type="button"
+                  id="ord-address"
                   className="ord-addr-search"
                   onClick={openAddressSearch}
-                  aria-label="주소 검색"
+                  /* ★aria-label 을 "주소 검색" 으로 고정하면 스크린리더가 **선택된
+                     주소를 못 읽는다**(라벨이 내용을 덮는다). 주소가 정해지면 그
+                     값을 읽어 주고, 비었을 때만 검색 안내를 읽는다. */
+                  aria-label={
+                    recipientAddress
+                      ? `배송 주소: ${recipientZip} ${recipientAddress}. 눌러서 변경`
+                      : '주소 검색'
+                  }
                 >
                   {recipientAddress ? (
                     <span className="ord-addr-search-val">
@@ -889,6 +928,9 @@ export default function OrderClient({
                 </button>
                 <input
                   type="text"
+                  /* ★라벨이 없어 스크린리더가 "편집 텍스트" 로만 읽던 칸.
+                     placeholder 는 라벨이 아니다(입력 시작하면 사라진다). */
+                  aria-label="상세 주소 (동·호수)"
                   className="ord-input ord-input-detail"
                   placeholder="상세 주소 (동·호수)"
                   value={recipientAddressDetail}

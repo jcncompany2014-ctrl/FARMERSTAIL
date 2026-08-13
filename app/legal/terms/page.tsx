@@ -12,6 +12,11 @@ export const metadata: Metadata = {
   title: '이용약관',
   description:
     '파머스테일 서비스 이용약관. 회원가입, 주문·결제·배송·환불, 회원 의무, 책임 제한, 분쟁 해결 절차를 규정합니다.',
+  // ★canonical 자기선언 (2026-08-12 4라운드 감사) — 없으면 루트 layout 의
+  //   metadataBase alternates 를 상속해 **홈을 정본으로 선언**한다. 그러면
+  //   sitemap 은 이 URL 을 올리는데 페이지는 '나는 홈이다' 라고 말해
+  //   검색엔진이 색인에서 뺀다(법정 문서는 심사·분쟁 때 접근 가능해야 한다).
+  alternates: { canonical: '/legal/terms' },
   robots: { index: true, follow: true },
 }
 
