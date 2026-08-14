@@ -19,6 +19,10 @@ type SearchParams = Promise<{ from?: string }>
  *
  * 디자인: 마케팅 + 파머스독(FD) 톤. 강한 다운로드 CTA + 앱이 무엇을 주는지 짧게.
  */
+/** 스토어 URL — 출시 전에는 비어 있고, 그때는 배지를 아예 안 그린다. */
+const IOS_URL = process.env.NEXT_PUBLIC_IOS_APP_URL ?? ''
+const ANDROID_URL = process.env.NEXT_PUBLIC_ANDROID_APP_URL ?? ''
+
 export default async function AppRequiredPage({
   searchParams,
 }: {
@@ -127,36 +131,50 @@ export default async function AppRequiredPage({
           />
         </ul>
 
-        {/* 다운로드 배지 (실제 스토어 링크는 출시 후 채움) */}
-        <div className="mt-10 md:mt-14 flex flex-col md:flex-row gap-3 md:gap-4 md:max-w-md md:mx-auto">
-          <a
-            href="https://apps.apple.com/app/farmerstail"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full py-3.5 md:py-4 rounded-2xl text-[14px] md:text-[15px] font-bold active:scale-[0.98] transition"
-            style={{
-              background: 'var(--ink)',
-              color: 'var(--bg)',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            App Store에서 받기
-          </a>
-          <a
-            href="https://play.google.com/store/apps/details?id=com.farmerstail.app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full py-3.5 md:py-4 rounded-2xl text-[14px] md:text-[15px] font-bold border active:scale-[0.98] transition"
-            style={{
-              background: 'var(--bg)',
-              color: 'var(--ink)',
-              borderColor: 'var(--ink)',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            Google Play에서 받기
-          </a>
-        </div>
+        {/**
+         * 다운로드 배지 — **스토어 출시 전에는 감춘다** (2026-08-12 4라운드 감사).
+         *
+         * 앱이 아직 스토어에 없어 두 링크가 모두 404 다. 이 화면은 앱 전용 경로로
+         * 들어온 웹 고객이 도착하는 벽이고, 메일·푸시 CTA 도 여기로 온다 — 즉
+         * **유일한 행동이 죽은 링크**였다. 출시하면 env 두 개를 채운다:
+         *   NEXT_PUBLIC_IOS_APP_URL · NEXT_PUBLIC_ANDROID_APP_URL
+         * 값이 없으면 아래 대체 안내(웹으로 계속하기)만 남는다.
+         */}
+        {(IOS_URL || ANDROID_URL) && (
+          <div className="mt-10 md:mt-14 flex flex-col md:flex-row gap-3 md:gap-4 md:max-w-md md:mx-auto">
+            {IOS_URL && (
+              <a
+                href={IOS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full py-3.5 md:py-4 rounded-2xl text-[14px] md:text-[15px] font-bold active:scale-[0.98] transition"
+                style={{
+                  background: 'var(--ink)',
+                  color: 'var(--bg)',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                App Store에서 받기
+              </a>
+            )}
+            {ANDROID_URL && (
+              <a
+                href={ANDROID_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full py-3.5 md:py-4 rounded-2xl text-[14px] md:text-[15px] font-bold border active:scale-[0.98] transition"
+                style={{
+                  background: 'var(--bg)',
+                  color: 'var(--ink)',
+                  borderColor: 'var(--ink)',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Google Play에서 받기
+              </a>
+            )}
+          </div>
+        )}
 
         {/* 웹으로 계속 — 앱 소개(/why-app) + 마케팅 페이지 회귀 */}
         <div className="mt-8 flex items-center justify-center gap-5">

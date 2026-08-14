@@ -23,6 +23,7 @@ import {
 } from '@/lib/autosignup-draft'
 import { applyAutosignupDraft } from '@/lib/auth/applyAutosignupDraft'
 import { claimPromotionOnSignup } from '@/lib/auth/claimPromotionOnSignup'
+import { safeNextPath } from '@/lib/auth/safe-next'
 
 // PWA/Capacitor(앱) 여부 — 행선지(app=/dashboard vs web=/mypage/orders) 분기용.
 // useIsAppContext 훅은 SSR/하이드레이션 시 null 이라 이 전환 페이지(effect 1회)
@@ -59,7 +60,21 @@ export default function StartClaimPage() {
       }
 
       const isApp = readIsApp()
-      const home = isApp ? '/dashboard' : '/mypage/orders'
+      /**
+       * ★로그인 전에 보던 화면으로 되돌려 보낸다 (2026-08-12 4라운드 감사).
+       *
+       * 소셜 로그인 버튼이 이 허브로 `?to=` 를 실어 보낸다(login/page.tsx).
+       * 허브는 프로모션 박기·초안 이관·"설문 없이 가입 불가" 를 마친 뒤
+       * 그 목적지로 보낸다 — 우회하면 그 셋이 전부 빠진다.
+       *
+       * ⚠️ **여기서 다시 검증한다.** /auth/callback 이 검증한 것은 바깥쪽
+       * next(='/start/claim?to=...') 뿐이고, to 는 그 안에 들어 있어 검사를
+       * 받지 않았다. 같은 정본(safeNextPath)으로 한 번 더 거른다.
+       */
+      const to = safeNextPath(
+        new URLSearchParams(window.location.search).get('to'),
+      )
+      const home = to ?? (isApp ? '/dashboard' : '/mypage/orders')
 
       // 프로모션 박기 — **이관 분기보다 먼저.** ①(강아지 이미 보유 → 이관 스킵)로
       // 빠지는 사람도 링크를 타고 왔다면 할인은 받아야 한다. 계정당 1회는 DB 가 강제.

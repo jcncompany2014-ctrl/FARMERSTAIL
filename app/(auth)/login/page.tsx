@@ -21,6 +21,7 @@ import {
   clearAutosignupDraft,
 } from '@/lib/autosignup-draft'
 import { trackSignUp } from '@/lib/analytics'
+import { safeNextPath } from '@/lib/auth/safe-next'
 
 /**
  * /login — 기존 계정 로그인 (FD 2단 split 재설계, 회차129).
@@ -75,6 +76,23 @@ function LoginInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+
+  /**
+   * 소셜 로그인이 돌아갈 곳 — 허브(/start/claim)를 **통과시키되 목적지를 실어** 보낸다.
+   *
+   * ★2026-08-12 4라운드 감사: 카카오·애플 버튼이 next 를 '/start/claim' 으로
+   *   **하드코딩**해 고객의 ?next= 를 버렸다. 보호 경로 40여 곳이
+   *   `/login?next=...` 로 보내는데(금액변경 동의 화면·구독 관리 등), 소셜로
+   *   로그인하면 원래 보던 화면으로 못 돌아갔다. 이메일 경로만 제대로 돌아갔다.
+   *
+   *   허브를 우회하면 안 된다 — /start/claim 이 프로모션 박기·설문 초안 이관·
+   *   "설문 없이 가입 불가" 를 담당한다. 그래서 목적지를 to 로 넘겨 허브가
+   *   제 일을 마친 뒤 그리로 보내게 한다.
+   */
+  const socialNext = (() => {
+    const to = safeNextPath(searchParams.get('next'))
+    return to ? `/start/claim?to=${encodeURIComponent(to)}` : '/start/claim'
+  })()
   // app/web 분리 모델: 로그인 후 행선지가 다르다.
   //   • App (PWA / Capacitor) → /dashboard (케어 다이어리 home)
   //   • Web (브라우저)         → /mypage/orders (주문 확인 — 웹 접근 가능 surface)
@@ -230,13 +248,10 @@ function LoginInner() {
     // ?next= 가 명시되어 있으면 그쪽 우선 (예: /checkout 으로 가다가 로그인 통과).
     // R101-B: /api 경로는 redirect 금지 (인증 직후 GET 으로 부작용 엔드포인트 유도 방어).
     const nextParam = searchParams.get('next')
-    const safeNext =
-      nextParam &&
-      nextParam.startsWith('/') &&
-      !nextParam.startsWith('//') &&
-      !nextParam.startsWith('/api')
-        ? nextParam
-        : null
+    // 검증은 정본 하나로(lib/auth/safe-next). 여기 자체 검사는 콜백과 달리
+    // 백슬래시 변형(`/\evil.com`)이 빠져 있었다 — 같은 규칙이 세 곳에 흩어지면
+    // 이렇게 갈라진다.
+    const safeNext = safeNextPath(nextParam)
     let destination = safeNext ?? (isApp ? '/dashboard' : '/mypage/orders')
     // 설문(=강아지) 없이 로그인한 신규/미완성 유저는 설문으로 (사장님 2026-06-16:
     // 설문 없이 진입 불가). 명시적 ?next=(예: /checkout) 가 있으면 그쪽 우선.
@@ -379,10 +394,10 @@ function LoginInner() {
             으로 보내 "설문 없이 가입 불가" 보장(사장님 2026-06-16). 기존 카카오
             회원은 강아지 보유 → 홈으로. */}
         <div className="mt-9 space-y-3">
-          <KakaoLoginButton variant="login" next="/start/claim" />
+          <KakaoLoginButton variant="login" next={socialNext} />
           {/* Apple Guideline 4.8 — Kakao 와 동등 비중. iOS 빌드는 거부 사유
               해소 위해 동일 화면 노출, 웹은 미국/일본 사용자 도움. */}
-          <AppleLoginButton variant="login" next="/start/claim" />
+          <AppleLoginButton variant="login" next={socialNext} />
         </div>
 
         {/* 디바이더 — FD처럼 간결하게 "또는". 넉넉한 상하 여백으로 소셜/이메일 분리. */}
