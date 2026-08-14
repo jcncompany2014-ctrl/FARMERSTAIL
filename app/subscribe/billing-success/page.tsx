@@ -14,7 +14,10 @@ import {
   billingMethodFlags,
   resolveBillingMethod,
 } from '@/lib/payments/billing-methods'
-import { billingReturnHref } from '@/lib/payments/billing-urls'
+import {
+  billingAuthFallbackHref,
+  billingReturnHref,
+} from '@/lib/payments/billing-urls'
 import { useIsAppContext } from '@/lib/app-context-client'
 
 /**
@@ -34,6 +37,60 @@ import { useIsAppContext } from '@/lib/app-context-client'
  */
 
 type Status = 'exchanging' | 'succeeded' | 'failed'
+
+/**
+ * 이 authKey 로 교환에 성공했다는 기록 — **새로고침·뒤로가기 재교환 차단용.**
+ *
+ * # 왜 (2026-08-14 4라운드 감사)
+ * authKey 는 **1회용**이라 두 번째 교환은 토스가 거절한다. 그런데 이 화면은
+ * "등록 처리 중이에요 / 페이지를 닫지 마세요" 로 고객을 붙잡아 두므로 응답이
+ * 조금만 늦어도 새로고침 유혹이 크고, iOS 는 bfcache 가 축출되면 **뒤로가기가
+ * 곧 재실행**이다. 그러면 카드가 정상 등록됐는데도 '등록에 실패했어요' 가 뜬다 —
+ * 고객은 실패한 줄 알고 다시 등록하거나 이탈한다.
+ *
+ * 서버에서 "빌링키가 있으니 성공으로 치자" 로 덮으면 **카드 교체 실패가
+ * 은폐**된다(옛 카드가 그대로인데 새 카드로 바뀐 줄 안다). 그래서 판정은
+ * 서버가 아니라 여기서, **정확히 같은 authKey 일 때만** 한다.
+ *
+ * sessionStorage 는 탭 범위·same-origin 이고, authKey 는 어차피 주소창과
+ * 히스토리에 이미 있는 값이라 노출이 늘지 않는다.
+ */
+type IssuedMemo = {
+  authKey: string
+  brand: string | null
+  last4: string | null
+}
+
+function issuedMemoKey(subscriptionId: string): string {
+  return `ft-billing-issued:${subscriptionId}`
+}
+
+function readIssuedMemo(subscriptionId: string | null): IssuedMemo | null {
+  if (!subscriptionId) return null
+  try {
+    const raw = sessionStorage.getItem(issuedMemoKey(subscriptionId))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<IssuedMemo>
+    return typeof parsed?.authKey === 'string'
+      ? {
+          authKey: parsed.authKey,
+          brand: parsed.brand ?? null,
+          last4: parsed.last4 ?? null,
+        }
+      : null
+  } catch {
+    // storage 차단·JSON 깨짐 — 기록이 없는 것과 같게 취급(교환을 시도한다).
+    return null
+  }
+}
+
+function writeIssuedMemo(subscriptionId: string, memo: IssuedMemo): void {
+  try {
+    sessionStorage.setItem(issuedMemoKey(subscriptionId), JSON.stringify(memo))
+  } catch {
+    /* storage 차단 — 재교환 가드만 없어지고 첫 등록은 정상 */
+  }
+}
 
 function BillingSuccessInner() {
   const params = useSearchParams()
@@ -58,6 +115,14 @@ function BillingSuccessInner() {
   const [errorMsg, setErrorMsg] = useState<string | null>(
     isInvalidEntry ? '잘못된 접근이에요' : null,
   )
+  /**
+   * 실패의 **종류**. 화면이 내밀 다음 행동이 서로 다르다.
+   *  · 'auth'    — 로그인이 풀렸다. '다시 시도하기'는 같은 401 로 되돌아오므로
+   *                내밀면 안 된다. 로그인이 1순위.
+   *  · 'already' — 이미 등록된 결제수단이 있다. 재시도가 아니라 확인이 할 일.
+   *  · 'retry'   — 그 외(네트워크·토스 오류). 기존대로 재시도.
+   */
+  const [failKind, setFailKind] = useState<'retry' | 'auth' | 'already'>('retry')
 
   useEffect(() => {
     if (isInvalidEntry) return
@@ -66,6 +131,17 @@ function BillingSuccessInner() {
 
     async function exchange() {
       try {
+        // ★재교환 차단 — 이 authKey 로 이미 성공했으면 서버를 부르지 않는다.
+        //   (authKey 는 1회용이라 두 번째 호출은 토스가 거절한다 → 정상 등록인데
+        //    '등록에 실패했어요'.) IssuedMemo docstring 참조.
+        const memo = readIssuedMemo(subscriptionId)
+        if (memo && memo.authKey === authKey) {
+          if (cancelled) return
+          setCard({ brand: memo.brand, last4: memo.last4 })
+          setStatus('succeeded')
+          // 전환 이벤트는 다시 쏘지 않는다 — 같은 등록 1건이다.
+          return
+        }
         // ★타임아웃이 없으면 **영원히 기다린다**(2026-08-05 감사).
         //   이 화면은 "등록 처리 중이에요 / 페이지를 닫지 마세요"로 고객을
         //   붙잡아 놓는다. 응답이 안 오면 그 상태로 멈춘 채 아무 일도 안
@@ -85,6 +161,7 @@ function BillingSuccessInner() {
         })
         const data = (await res.json()) as {
           ok?: boolean
+          code?: string
           cardBrand?: string | null
           last4?: string | null
           message?: string
@@ -93,10 +170,25 @@ function BillingSuccessInner() {
         if (!res.ok || !data.ok) {
           setStatus('failed')
           setErrorMsg(data.message ?? '등록에 실패했어요')
+          // 401 은 '다시 시도'가 구조적으로 안 통한다 — billing-auth 에는 인증
+          // 검사가 없어 토스 창이 다시 뜨고, 돌아와서 또 401 이다(무한 왕복).
+          setFailKind(
+            res.status === 401
+              ? 'auth'
+              : data.code === 'ALREADY_REGISTERED'
+                ? 'already'
+                : 'retry',
+          )
           return
         }
         setCard({ brand: data.cardBrand ?? null, last4: data.last4 ?? null })
         setStatus('succeeded')
+        // 성공을 남긴다 — 새로고침·뒤로가기가 같은 authKey 로 재교환하지 않게.
+        writeIssuedMemo(subscriptionId!, {
+          authKey: authKey!,
+          brand: data.cardBrand ?? null,
+          last4: data.last4 ?? null,
+        })
         // GA4 — Toss billing key 등록 성공. subscription_started 와 함께 funnel
         // 핵심 step (실제 매출이 시작되는 시점).
         trackSubscriptionBillingCompleted({
@@ -262,7 +354,11 @@ function BillingSuccessInner() {
               className="font-serif text-[20px] font-black"
               style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
             >
-              등록에 실패했어요
+              {failKind === 'auth'
+                ? '로그인이 풀렸어요'
+                : failKind === 'already'
+                  ? '이미 등록돼 있어요'
+                  : '등록에 실패했어요'}
             </p>
             <p
               className="text-[12px] mt-3 leading-relaxed"
@@ -271,27 +367,71 @@ function BillingSuccessInner() {
               {errorMsg ?? '잠시 후 다시 시도해 주세요.'}
             </p>
             <div className="mt-6 flex flex-col gap-2">
-              <Link
-                href={
-                  subscriptionId
-                    ? `/subscribe/billing-auth?subscriptionId=${subscriptionId}&customerKey=${customerKey ?? ''}`
-                    : subsHref
-                }
-                className="w-full py-3 rounded-full text-[13px] font-bold text-center"
-                style={{ background: 'var(--ink)', color: 'var(--bg)' }}
-              >
-                다시 시도하기
-              </Link>
-              <Link
-                href={subsHref}
-                className="w-full py-3 rounded-full text-[13px] font-bold text-center border"
-                style={{
-                  borderColor: 'var(--rule)',
-                  color: 'var(--text)',
-                }}
-              >
-                나중에 등록할게요
-              </Link>
+              {/**
+               * ★1순위 버튼을 실패 원인에 맞춘다 (2026-08-14 4라운드 감사).
+               *
+               * 전에는 어떤 실패든 '다시 시도하기'(→ billing-auth)가 1순위였다.
+               * 그런데 세션이 끊겨 401 이 난 경우 billing-auth 에는 인증 검사가
+               * 없어서 토스 창이 다시 뜨고, 돌아와 또 401 이 난다 — **화면
+               * 어디에도 로그인 링크가 없어** 카드 등록이 무한 왕복이 됐다.
+               * 결제 직전 단계라 여기서 막히면 그대로 이탈이다.
+               *
+               * next 는 **통째로 encodeURIComponent** 한다. 날것으로 붙이면
+               * `&customerKey` 가 /login 의 형제 파라미터로 파싱돼 next 가
+               * `?subscriptionId=..` 까지만 잘리고, billing-auth 의
+               * isInvalidEntry 가 '잘못된 접근이에요' 라는 **새 막다른 길**을
+               * 만든다(고치려다 더 나빠지는 형태).
+               */}
+              {failKind === 'auth' ? (
+                <Link
+                  href={
+                    subscriptionId && customerKey
+                      ? `/login?next=${encodeURIComponent(
+                          billingAuthFallbackHref({
+                            subscriptionId,
+                            customerKey,
+                          }),
+                        )}`
+                      : '/login'
+                  }
+                  className="w-full py-3 rounded-full text-[13px] font-bold text-center"
+                  style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+                >
+                  로그인하고 이어서 등록하기
+                </Link>
+              ) : failKind === 'already' ? (
+                <Link
+                  href={subsHref}
+                  className="w-full py-3 rounded-full text-[13px] font-bold text-center"
+                  style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+                >
+                  등록된 결제수단 확인하기
+                </Link>
+              ) : (
+                <Link
+                  href={
+                    subscriptionId && customerKey
+                      ? billingAuthFallbackHref({ subscriptionId, customerKey })
+                      : subsHref
+                  }
+                  className="w-full py-3 rounded-full text-[13px] font-bold text-center"
+                  style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+                >
+                  다시 시도하기
+                </Link>
+              )}
+              {failKind !== 'already' && (
+                <Link
+                  href={subsHref}
+                  className="w-full py-3 rounded-full text-[13px] font-bold text-center border"
+                  style={{
+                    borderColor: 'var(--rule)',
+                    color: 'var(--text)',
+                  }}
+                >
+                  나중에 등록할게요
+                </Link>
+              )}
             </div>
           </>
         )}

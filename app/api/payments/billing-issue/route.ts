@@ -102,6 +102,38 @@ export async function POST(req: Request) {
   // billingKey 발급.
   const result = await issueBillingKey({ authKey, customerKey })
   if (!result.ok || !result.billingKey) {
+    /**
+     * ★이미 결제수단이 있는 상태의 교환 실패는 **다른 사건**이다 (2026-08-14
+     * 4라운드 감사).
+     *
+     * authKey 는 1회용이라, 완료 화면을 새로고침하거나 뒤로 갔다 오면 같은 키로
+     * 두 번째 교환이 일어나고 토스가 거절한다. 그러면 카드가 멀쩡히 등록됐는데도
+     * '카드 등록에 실패했어요' 가 떴다 — 고객은 실패한 줄 알고 다시 등록하거나
+     * 이탈한다. (재교환 자체는 billing-success 의 sessionStorage 가드가 막는다.
+     *  여기는 그 가드가 없는 경로 — 다른 탭·storage 차단 — 를 위한 안전망이다.)
+     *
+     * ⚠️ 그렇다고 `ok: true` 로 덮으면 **카드 교체 실패가 은폐**된다: 옛 카드가
+     *    그대로인데 새 카드로 바뀐 줄 알게 된다. 그래서 성공이라고 말하지 않고,
+     *    "새 카드가 등록됐다"는 문장도 쓰지 않는다. 별도 코드로 화면이 다음
+     *    행동(재시도 대신 확인)을 바꾸게만 한다.
+     */
+    if (sub.billing_key) {
+      captureBusinessEvent('warning', 'billing.issue.exchange_failed_but_registered', {
+        userId: user.id,
+        subscriptionId,
+        method,
+        tossCode: result.error?.code ?? null,
+      })
+      return NextResponse.json(
+        {
+          ok: false,
+          code: 'ALREADY_REGISTERED',
+          message:
+            '이 구독에는 이미 등록된 결제수단이 있어요. 정기배송 화면에서 확인해 주세요 — 바꾸시려면 거기서 다시 등록할 수 있어요.',
+        },
+        { status: 409 },
+      )
+    }
     return NextResponse.json(
       {
         code: result.error?.code ?? 'BILLING_ISSUE_FAILED',
