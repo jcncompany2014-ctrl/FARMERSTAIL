@@ -14,13 +14,13 @@ import {
 } from '@/lib/nutrition/guidelines'
 import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
-import { createClient } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
 import WebMotion from '@/components/web/motion/WebMotion'
 import StickyCta from '@/components/web/fd/StickyCta'
 import { Button, Container, Display, Eyebrow, Section } from '@/components/web/fd/ui'
 import Reveal from '@/components/landing/Reveal'
 import { cred } from '@/lib/copy/credibility'
+import FunnelCta from '@/components/web/FunnelCta'
 
 /**
  * /science — 수의영양학 방법론 권위 페이지 (farm v6 = FD 톤, 2026-06-13).
@@ -76,11 +76,6 @@ const LIMITS = [
 ]
 
 export default async function SciencePage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const planHref = user ? '/dogs/new' : '/start'
 
   const conditionKeys = Object.keys(CHRONIC_CONDITION_LABELS) as Array<keyof typeof CHRONIC_CONDITION_LABELS>
 
@@ -230,10 +225,10 @@ export default async function SciencePage() {
                 신호 + 식단 전환 플랜을 받아요.
               </p>
               <div className="pt-7 flex flex-col sm:flex-row justify-center gap-3">
-                <Button href={planHref} tone="cream" size="lg">
+                <FunnelCta tone="cream" size="lg">
                   2분 설문 시작하기
                   <ArrowRight size={19} strokeWidth={2.4} />
-                </Button>
+                </FunnelCta>
                 <Button href="/our-food" tone="outlineLight" size="lg">
                   우리 음식 보기
                 </Button>
@@ -253,7 +248,7 @@ export default async function SciencePage() {
           </Container>
         </Section>
       </main>
-      <StickyCta href={planHref} />
+      <StickyCta href="/start" />
     </WebChrome>
   )
 }

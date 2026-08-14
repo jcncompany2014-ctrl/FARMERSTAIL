@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { ArrowRight, Leaf, ShieldCheck, Sparkles, Repeat } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
 import StickyCta from '@/components/web/fd/StickyCta'
 import JsonLd from '@/components/JsonLd'
@@ -13,6 +12,7 @@ import {
 import { Button, Container, Display, Eyebrow, PhotoSlot, Section } from '@/components/web/fd/ui'
 import Reveal from '@/components/landing/Reveal'
 import { cred } from '@/lib/copy/credibility'
+import FunnelCta from '@/components/web/FunnelCta'
 
 /**
  * /brand — 와이드 브랜드 스토리 (farm v6 = FD 톤, 2026-06-13).
@@ -123,11 +123,6 @@ function Chapter({
 }
 
 export default async function BrandPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const planHref = user ? '/dogs/new' : '/start'
 
   const aboutLd = buildAboutPageJsonLd({
     name: '브랜드 이야기 — 파머스테일',
@@ -296,17 +291,17 @@ export default async function BrandPage() {
             라인, 노령견을 위한 라인이 차례로 추가될 예정입니다.
           </p>
           <div className="mt-7 flex flex-col sm:flex-row gap-3">
-            <Button href={planHref} tone="coral" size="lg">
+            <FunnelCta tone="coral" size="lg">
               2분 설문 시작하기
               <ArrowRight size={19} strokeWidth={2.4} />
-            </Button>
+            </FunnelCta>
             <Button href="/our-food" tone="outline" size="lg">
               우리 음식 보기
             </Button>
           </div>
         </Chapter>
       </main>
-      <StickyCta href={planHref} />
+      <StickyCta href="/start" />
     </WebChrome>
   )
 }

@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { ArrowRight } from 'lucide-react'
 import { ogImageUrl, buildBreadcrumbJsonLd, buildFaqJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
-import { createClient } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
 import WebMotion from '@/components/web/motion/WebMotion'
 import StickyCta from '@/components/web/fd/StickyCta'
@@ -15,6 +14,7 @@ import {
   Section,
 } from '@/components/web/fd/ui'
 import Reveal from '@/components/landing/Reveal'
+import FunnelCta from '@/components/web/FunnelCta'
 
 /**
  * /why-fresh — "왜 신선한 화식인가" 교육 페이지 (FD /why-fresh 대응, 회차195~).
@@ -91,11 +91,6 @@ const WHYFRESH_FAQ = [
 
 export default async function WhyFreshPage() {
   // 모든 CTA → 설문 퍼널: 로그인 시 /dogs/new, 비로그인 /signup (전 마케팅 페이지 동일).
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const planHref = user ? '/dogs/new' : '/start'
 
   const crumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },
@@ -138,10 +133,10 @@ export default async function WhyFreshPage() {
                   모습까지 — 무엇이 어떻게 다른지 솔직하게 보여드릴게요.
                 </p>
                 <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <Button href={planHref} size="lg">
+                  <FunnelCta size="lg">
                     2분 설문으로 시작하기
                     <ArrowRight size={18} strokeWidth={2.4} />
-                  </Button>
+                  </FunnelCta>
                   <Button href="/our-food" tone="outline" size="lg">
                     우리 음식 보기
                   </Button>
@@ -446,17 +441,17 @@ export default async function WhyFreshPage() {
                   드려요. 무료 분석 먼저, 부담 없이 시작하고 다음 결제 전까지 해지.
                 </p>
                 <div className="mt-8 flex justify-center">
-                  <Button href={planHref} size="lg">
+                  <FunnelCta size="lg">
                     2분 설문 시작하기
                     <ArrowRight size={18} strokeWidth={2.4} />
-                  </Button>
+                  </FunnelCta>
                 </div>
               </div>
             </Reveal>
           </Container>
         </Section>
       </main>
-      <StickyCta href={planHref} />
+      <StickyCta href="/start" />
     </WebChrome>
   )
 }

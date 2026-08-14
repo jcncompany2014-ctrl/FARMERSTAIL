@@ -26,6 +26,7 @@ import {
 } from '@/components/web/fd/ui'
 import { Polaroid } from '@/components/web/fd/Polaroid'
 import Reveal from '@/components/landing/Reveal'
+import FunnelCta from '@/components/web/FunnelCta'
 
 /**
  * /why-app — "왜 파머스테일 앱인가" 스크롤 쇼케이스 (2026-07-02, 사장님 지시).
@@ -138,9 +139,6 @@ const START_STEPS: { icon: React.ReactNode; title: string; body: string }[] = [
 
 export default async function WhyAppPage() {
   // 전 마케팅 페이지 동일 관례 — authed → /dogs/new, anon → /start.
-  const supabase = await createClient()
-  const user = await getSafeUser(supabase)
-  const planHref = user ? '/dogs/new' : '/start'
 
   const crumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },
@@ -177,10 +175,10 @@ export default async function WhyAppPage() {
                   파머스테일 앱 하나에 담겨 있어요.
                 </p>
                 <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                  <Button href={planHref} size="lg">
+                  <FunnelCta size="lg">
                     무료 분석으로 시작하기
                     <ArrowRight size={18} strokeWidth={2.4} />
-                  </Button>
+                  </FunnelCta>
                 </div>
               </Reveal>
             </div>
@@ -378,10 +376,10 @@ export default async function WhyAppPage() {
             </div>
             <div className="mt-12 text-center">
               <Reveal>
-                <Button href={planHref} tone="cream" size="lg">
+                <FunnelCta tone="cream" size="lg">
                   무료 분석으로 시작하기
                   <ArrowRight size={18} strokeWidth={2.4} />
-                </Button>
+                </FunnelCta>
               </Reveal>
             </div>
           </Container>

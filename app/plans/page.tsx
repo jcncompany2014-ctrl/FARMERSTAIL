@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 import { ArrowRight } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
 import { ogImageUrl, buildBreadcrumbJsonLd, buildFaqJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
 import { Button, Container, Display, Eyebrow, PhotoSlot, Section } from '@/components/web/fd/ui'
 import StickyCta from '@/components/web/fd/StickyCta'
 import Reveal from '@/components/landing/Reveal'
+import FunnelCta from '@/components/web/FunnelCta'
 
 /**
  * /plans — 정기배송 안내 (farm v6 = FD 톤, 2026-06-13).
@@ -126,7 +126,7 @@ const FAQS = [
   { q: '가격은 어떻게 결정되나요?', a: '견종·체중·활동량 기반으로 1일 권장 칼로리를 계산한 뒤, 고른 화식 비율에 맞춰 견적이 산출됩니다. 2분 설문 후 정확한 금액을 확인하실 수 있어요.' },
 ]
 
-function PlanCard({ plan, planHref }: { plan: Plan; planHref: string }) {
+function PlanCard({ plan }: { plan: Plan }) {
   return (
     <article style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 8, overflow: 'hidden', position: 'relative' }}>
       <div style={{ background: 'var(--fd-cream)', padding: '18px 18px 16px', position: 'relative' }}>
@@ -157,10 +157,10 @@ function PlanCard({ plan, planHref }: { plan: Plan; planHref: string }) {
           ))}
         </ul>
         <div className="mt-5">
-          <Button href={planHref} tone="coral" full size="md">
+          <FunnelCta tone="coral" full size="md">
             이 비율로 시작
             <ArrowRight size={17} strokeWidth={2.4} />
-          </Button>
+          </FunnelCta>
         </div>
       </div>
     </article>
@@ -168,11 +168,6 @@ function PlanCard({ plan, planHref }: { plan: Plan; planHref: string }) {
 }
 
 export default async function PlansPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const planHref = user ? '/dogs/new' : '/start'
 
   const crumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },
@@ -207,10 +202,10 @@ export default async function PlansPage() {
                   제품을 파는 게 아니라, 한 해 동안 이어지는 식탁을 제안합니다.
                 </p>
                 <div className="pt-7">
-                  <Button href={planHref} tone="coral" size="lg">
+                  <FunnelCta tone="coral" size="lg">
                     2분 설문 시작하기
                     <ArrowRight size={19} strokeWidth={2.4} />
-                  </Button>
+                  </FunnelCta>
                 </div>
               </Reveal>
               <Reveal delay={120} className="w-full">
@@ -252,7 +247,7 @@ export default async function PlansPage() {
             <div className="pt-7 grid grid-cols-1 md:grid-cols-3 gap-4">
               {PLANS.map((p, i) => (
                 <Reveal key={p.id} delay={i * 90}>
-                  <PlanCard plan={p} planHref={planHref} />
+                  <PlanCard plan={p} />
                 </Reveal>
               ))}
             </div>
@@ -314,10 +309,10 @@ export default async function PlansPage() {
                 2분 만에 끝나는 맞춤 분석이 우선이에요. 결과를 보고 화식 비율을 골라도 늦지 않아요.
               </p>
               <div className="pt-7 flex flex-col sm:flex-row justify-center gap-3">
-                <Button href={planHref} tone="cream" size="lg">
+                <FunnelCta tone="cream" size="lg">
                   2분 설문 시작하기
                   <ArrowRight size={19} strokeWidth={2.4} />
-                </Button>
+                </FunnelCta>
                 <Button href="/about" tone="outlineLight" size="lg">
                   브랜드 이야기
                 </Button>
@@ -326,7 +321,7 @@ export default async function PlansPage() {
           </Container>
         </Section>
       </main>
-      <StickyCta href={planHref} />
+      <StickyCta href="/start" />
     </WebChrome>
   )
 }
