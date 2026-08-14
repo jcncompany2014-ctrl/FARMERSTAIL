@@ -2335,3 +2335,99 @@ test('규칙51 — 라벨 kcal 이 알고리즘 정본과 어긋나면 인쇄 �
     'kcal 불일치 시 인쇄를 막는 경고 문구가 없다',
   )
 })
+
+test('규칙52 — 크론이 아무도 안 쓰는 컬럼에 걸려 조용히 0건이 되지 않는다', () => {
+  /**
+   * # 왜 (2026-08-14 4라운드 감사)
+   * protein-rotation 이 `subscriptions.last_delivery_date` 로 대상을 걸렀는데,
+   * 그 컬럼은 **저장소 전체에서 쓰기가 0건**이었다(화면 3곳이 select 만 했고,
+   * 프로덕션 pg_proc 전수 조회에도 이 컬럼을 건드리는 함수·트리거가 없다).
+   * 구독 9행 전부 NULL 이고, PostgREST 의 `gte` 는 NULL 행을 배제하므로
+   * **후보가 언제나 0행**이었다. 그런데 그건 "대상 없음"과 모양이 같아서
+   * 크론은 매주 초록이었다 — cron_health 6회 실행 전부 status='success'.
+   *
+   * 규칙1(오류 ≠ 빈 결과)의 사촌이다. 거기선 실패가 0건으로 접혔고, 여기선
+   * **조건 자체가 영원히 거짓**이라 실패라는 사건이 아예 안 생긴다. 오류
+   * 처리를 아무리 잘해도 안 잡힌다.
+   *
+   * # 판정
+   * app/api/cron/**\/route.ts 의 날짜 필터(`.gte/.gt/.lte/.lt('*_at'|'*_date')`)를
+   * 모으고, 각 컬럼에 **쓰는 곳이 하나라도 있는지** 확인한다. 인정하는 증거:
+   *   · TS 객체 리터럴 대입   `col: 값`      (타입 선언 `col: string` 은 제외)
+   *   · TS 프로퍼티 대입      `.col = 값`    (admin 주문 상태 변경이 이 형태)
+   *   · SQL DEFAULT now()     (INSERT 시 DB 가 채운다)
+   *   · SQL `set col =` / `NEW.col :=` (트리거·함수)
+   *
+   * 실측 검산: 이 규칙을 만든 시점의 크론 필터 컬럼 13개는 전부 통과하고,
+   * 고장난 last_delivery_date 하나만 걸린다(초록/빨강 양쪽 확인).
+   */
+  const cronDir = join(ROOT, 'app', 'api', 'cron')
+  const cronFiles = walk(cronDir).filter((p) => p.endsWith(`${sep}route.ts`))
+  assert.ok(cronFiles.length > 5, `크론 route 를 못 찾았다(${cronFiles.length}개)`)
+
+  // 크론이 날짜 컬럼으로 거는 필터를 모은다 (컬럼 → 그렇게 거는 파일들).
+  const gates = new Map<string, string[]>()
+  for (const f of cronFiles) {
+    const src = stripComments(read(f))
+    for (const m of src.matchAll(
+      /\.(?:gte|gt|lte|lt)\(\s*'([a-z_]+(?:_at|_date))'/g,
+    )) {
+      const col = m[1]!
+      gates.set(col, [...(gates.get(col) ?? []), f.slice(ROOT.length + 1)])
+    }
+  }
+  assert.ok(gates.size > 5, `날짜 게이트를 못 찾았다(${gates.size}개) — 정규식이 썩었나`)
+
+  // 저장소 전체 소스 (쓰기 증거 탐색용).
+  const tsSrc = walk(ROOT)
+    .map((p) => read(p))
+    .join('\n')
+  const sqlDir = join(ROOT, 'supabase')
+  const sqlFiles: string[] = []
+  const collectSql = (dir: string): void => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name)
+      if (statSync(p).isDirectory()) collectSql(p)
+      else if (name.endsWith('.sql')) sqlFiles.push(p)
+    }
+  }
+  collectSql(sqlDir)
+  const sqlSrc = sqlFiles.map((p) => read(p)).join('\n')
+
+  const unwritten: string[] = []
+  for (const [col, files] of gates) {
+    /**
+     * ⚠️ 정규식은 **String.raw** 로 쓴다. 일반 템플릿 리터럴에 `\s`·`\b` 를
+     * 넣으면 TS 가 먼저 이스케이프로 먹어 `s`·백스페이스 문자가 된다 —
+     * 그러면 규칙은 조용히 **아무것도 안 맞히고 전부 위반으로 보고**한다.
+     * (이 규칙을 쓰다 실제로 밟았다. 셸 heredoc 이 `\\` 를 한 겹 벗겨서
+     *  reference_shell_backslash_trap 과 같은 자리로 굴러떨어졌다.)
+     * 백틱은 `\x60` 으로 넣는다 — String.raw 안에서는 `` \` `` 가 백슬래시를
+     * 남겨 문자 클래스를 망친다.
+     */
+    const hasWriter =
+      // `col: 값` — 타입 선언(`col: string | null`)은 부정 전방탐색으로 뺀다.
+      new RegExp(
+        String.raw`\b${col}\s*:\s*(?!(?:string|number|boolean|Date|unknown|any|null)\b)[A-Za-z_$'"\x60\[{(]`,
+      ).test(tsSrc) ||
+      // `.col = 값` (대입). `==`/`===` 비교는 뒤 문자로 배제.
+      new RegExp(String.raw`\.${col}\s*=[^=]`).test(tsSrc) ||
+      // DB DEFAULT now() — INSERT 때 DB 가 채운다.
+      new RegExp(
+        String.raw`\b${col}\b[^,;]{0,120}?\bdefault\s+(?:now\(\)|current_)`,
+        'i',
+      ).test(sqlSrc) ||
+      // 트리거·함수의 쓰기.
+      new RegExp(String.raw`\bset\b[^;]{0,400}?\b${col}\s*=`, 'is').test(sqlSrc) ||
+      new RegExp(String.raw`\bNEW\.${col}\s*:?=`, 'i').test(sqlSrc)
+    if (!hasWriter) unwritten.push(`${col} (${files.join(', ')})`)
+  }
+
+  assert.deepEqual(
+    unwritten,
+    [],
+    '크론이 **아무도 쓰지 않는 컬럼**으로 대상을 거르고 있다 — 조건이 영원히 ' +
+      '거짓이라 "대상 없음"으로 접혀 크론은 계속 초록이다:\n  ' +
+      unwritten.join('\n  '),
+  )
+})

@@ -21,7 +21,6 @@ export type Subscription = {
   /** 화식 비율 티어 (30/50/100). 레거시 구독은 null. */
   fresh_ratio: number | null
   next_delivery_date: string | null
-  last_delivery_date: string | null
   total_deliveries: number
   subtotal: number
   shipping_fee: number

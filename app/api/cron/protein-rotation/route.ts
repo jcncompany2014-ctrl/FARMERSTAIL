@@ -28,7 +28,7 @@ export const dynamic = 'force-dynamic'
  * # 조건
  *   - status='active' 정기구독
  *   - total_deliveries > 0 AND total_deliveries % 4 == 0
- *   - last_delivery_date 가 최근 7일 이내 (배송 직후가 효과 최대)
+ *   - last_charged_at 이 최근 7일 이내 (배송 직후가 효과 최대)
  *   - 14일 spam 차단 — push_log category='marketing' AND title 패턴
  *
  * # 일정
@@ -51,14 +51,28 @@ async function runRotation(): Promise<Response> {
   const sevenDaysAgo = new Date(now - 7 * 86_400_000).toISOString()
   const fourteenDaysAgo = new Date(now - 14 * 86_400_000).toISOString()
 
-  // active 정기구독 + 최근 7일 배송 완료 + total_deliveries > 0.
+  // active 정기구독 + 최근 7일 청구 완료 + total_deliveries > 0.
   // total_deliveries % 4 == 0 은 JS 측에서 필터 (Supabase 모듈로 query 미지원).
+  //
+  // ★게이트를 `last_delivery_date` → `last_charged_at` 으로 교체 (2026-08-14
+  //   4라운드 감사). **아무도 쓰지 않는 컬럼에 걸려 영구히 0건**이었다.
+  //   `subscriptions.last_delivery_date` 는 저장소 전체에서 읽기만 있고
+  //   (화면 3곳 + 이 크론) **쓰기가 0건**이다 — 프로덕션 pg_proc 전수 조회에서도
+  //   이 컬럼을 건드리는 함수·트리거가 없고, 구독 9행 전부 NULL 이다.
+  //   PostgREST 의 `gte` 는 NULL 행을 배제하므로 후보가 언제나 0행 →
+  //   "대상 없음"으로 접혀 크론은 매주 초록이었다(cron_health 6회 전부 success).
+  //
+  //   `last_charged_at` 은 subscription-charge 의 **`total_deliveries + 1` 과
+  //   같은 UPDATE 문**에서 기록된다(route.ts:975~987). 같은 사건·같은 행·같은
+  //   문장이라 두 조건의 시계가 갈라질 수 없고, 새 writer 도 새 실패 모드도
+  //   안 생긴다. (배송일이 아니라 청구일 기준이 되지만, 이 저장소에서 배송은
+  //   청구 뒤 고정 주기라 "배송 직후" 창은 그대로 유지된다.)
   const { data: subsRaw, error: subsRawErr } = await admin
     .from('subscriptions')
-    .select('id, user_id, dog_id, total_deliveries, last_delivery_date')
+    .select('id, user_id, dog_id, total_deliveries, last_charged_at')
     .eq('status', 'active')
     .gt('total_deliveries', 0)
-    .gte('last_delivery_date', sevenDaysAgo.slice(0, 10))
+    .gte('last_charged_at', sevenDaysAgo)
     .limit(500)
 
   // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
@@ -75,7 +89,7 @@ async function runRotation(): Promise<Response> {
     user_id: string
     dog_id: string | null
     total_deliveries: number
-    last_delivery_date: string | null
+    last_charged_at: string | null
   }>
 
   // % 4 == 0 필터
@@ -169,7 +183,10 @@ async function runRotation(): Promise<Response> {
 
   return NextResponse.json({
     ok: true,
-    candidates: targets.length,
+    // `checked` 는 cron-tracking 의 pickSummary allow 목록에 있는 이름이다 —
+    // `candidates` 로 두면 cron_health 에서 잘려 나가 "후보가 몇이었는지"가
+    // 기록에 안 남는다(이 크론이 영구 0건이던 걸 늦게 안 이유 중 하나).
+    checked: targets.length,
     sent,
     skipped,
     skipped_spam: skippedSpam,

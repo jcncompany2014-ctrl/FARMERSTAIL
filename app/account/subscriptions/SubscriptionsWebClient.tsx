@@ -132,7 +132,7 @@ export default function SubscriptionsWebClient({
       //  컬럼(20260808000100)으로 받는다.
       .select(
         'id, dog_id, status, interval_weeks, coverage_weeks, fresh_ratio, ' +
-            'next_delivery_date, last_delivery_date, total_deliveries, ' +
+            'next_delivery_date, total_deliveries, ' +
             'total_amount, subtotal, shipping_fee, created_at, ' +
             'has_billing_key, billing_customer_key, billing_card_brand, ' +
             'billing_card_last4, failed_charge_count, next_retry_at, ' +

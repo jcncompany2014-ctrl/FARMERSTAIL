@@ -86,7 +86,9 @@ export const dynamic = 'force-dynamic'
 
 interface CampaignResult {
   campaign: string
+  /** **실제로 단말에 나간 건수.** 시도 횟수가 아니다 — pushOutcome 참조. */
   sent: number
+  /** 보내지 않은 건 — 업무 규칙 제외(이미 분석함·이미 구독중) + 발송 억제. */
   skipped: number
   errors: number
   /**
@@ -97,6 +99,27 @@ interface CampaignResult {
    * 같은 이유로 배포 이래 한 건도 안 나간 적이 있다).
    */
   queryError?: string
+}
+
+/**
+ * 발송 1건의 결과를 분류한다 — **실제로 나간 것만 'sent'**.
+ *
+ * # 왜 (2026-08-14 4라운드 감사)
+ * 네 캠페인이 전부 `if (ok?.ok) sent++ else errors++` 였다. 그런데 pushToUser 는
+ * **보낼 곳이 없어도 `{ ok: true, sent: 0 }`** 을 돌려준다(구독 0건은 정상 상태라
+ * 오류가 아니다). 카테고리 OFF · 조용시간 · 주 2건 상한도 마찬가지로 ok:true 다.
+ * 그래서 한 건도 안 나간 날에도 지표는 `sent: N` 초록이었다 — 규칙8 이 경고한
+ * 바로 그 실패 모양이고, protein-rotation 은 2026-08-08 에 같은 것을 이미
+ * 고쳤는데(`pushResult.sent > 0`) 이 파일만 남아 있었다.
+ *
+ * ok:false(VAPID 미설정·admin 없음·구독 조회 실패)와 throw 만 오류로 센다 —
+ * 구독을 아직 허용하지 않은 고객이 크론을 빨갛게 만들면 안 된다.
+ */
+function pushOutcome(
+  res: { ok: boolean; sent?: number } | null,
+): 'sent' | 'skipped' | 'error' {
+  if (!res?.ok) return 'error'
+  return (res.sent ?? 0) > 0 ? 'sent' : 'skipped'
 }
 
 export async function GET(req: Request): Promise<Response> {
@@ -123,7 +146,39 @@ export async function GET(req: Request): Promise<Response> {
       results.push(await runSubscribeNudge(supabase, now)) // D+30 정기배송 권유
     }
 
-    return NextResponse.json({ ok: true, results })
+    /**
+     * ★집계를 **최상위로 평탄화**한다 (2026-08-14 4라운드 감사).
+     *
+     * 전에는 `{ ok: true, results }` 만 돌려줬다. 그런데 cron-tracking 의
+     * pickSummary 는 **allow 목록에 있는 최상위 키만** 통과시키고 `results`
+     * 는 목록에 없다 — 그래서 cron_health 에 남는 건 언제나 `{"ok": true}`
+     * 하나였고, failureCountOf 가 볼 값이 **구조적으로 0개**였다.
+     * 프로덕션 실측: 이 크론 127회 실행 전부 `{"ok": true}` · status='success'.
+     *
+     * 즉 dog_medications 조회가 매시간 실패해도(그 경우를 위해 queryError 를
+     * 일부러 만들어 뒀는데) 영원히 초록이었다. 규칙1 을 지키려고 만든 필드가
+     * 집계 지점에 도달하지 못해 무력했던 것 — 실패를 **세기만 하고 안 올리면**
+     * 안 세는 것과 같다.
+     *
+     * `results` 는 그대로 남긴다(Vercel 로그에서 캠페인별 내역 확인용).
+     * cron_health 에는 어차피 잘려 들어가지 않는다.
+     */
+    const sent = results.reduce((a, r) => a + r.sent, 0)
+    const skipped = results.reduce((a, r) => a + r.skipped, 0)
+    const errors = results.reduce((a, r) => a + r.errors, 0)
+    const queryErrors = results
+      .filter((r) => r.queryError)
+      .map((r) => `${r.campaign}: ${r.queryError}`)
+
+    return NextResponse.json({
+      ok: true,
+      sent,
+      skipped,
+      errors,
+      // reason 도 allow 목록에 있다 — 빨간불 옆에 '왜'가 같이 남는다.
+      ...(queryErrors.length ? { reason: queryErrors.join(' | ') } : {}),
+      results,
+    })
   })
 }
 
@@ -164,9 +219,10 @@ async function runWelcome(
   }
 
   let sent = 0,
+    skipped = 0,
     errors = 0
   for (const p of (rows ?? []) as Array<{ id: string; name: string | null }>) {
-    const ok = await pushToUser(
+    const res = await pushToUser(
       p.id,
       {
         title: '파머스테일 — 어제 가입해주셨네요',
@@ -175,10 +231,12 @@ async function runWelcome(
       },
       { category: 'marketing' },
     ).catch(() => null)
-    if (ok?.ok) sent++
+    const outcome = pushOutcome(res)
+    if (outcome === 'sent') sent++
+    else if (outcome === 'skipped') skipped++
     else errors++
   }
-  return { campaign: 'd1_welcome', sent, skipped: 0, errors }
+  return { campaign: 'd1_welcome', sent, skipped, errors }
 }
 
 async function runAnalysisReminder(
@@ -240,7 +298,7 @@ async function runAnalysisReminder(
       skipped++
       continue
     }
-    const ok = await pushToUser(
+    const res = await pushToUser(
       p.id,
       {
         title: '아직 강아지 분석을 못 보셨네요',
@@ -249,7 +307,9 @@ async function runAnalysisReminder(
       },
       { category: 'marketing' },
     ).catch(() => null)
-    if (ok?.ok) sent++
+    const outcome = pushOutcome(res)
+    if (outcome === 'sent') sent++
+    else if (outcome === 'skipped') skipped++
     else errors++
   }
   return { campaign: 'd7_analysis', sent, skipped, errors }
@@ -301,7 +361,7 @@ async function runSubscribeNudge(
       skipped++
       continue
     }
-    const ok = await pushToUser(
+    const res = await pushToUser(
       p.id,
       {
         title: '정기배송으로 더 편하게',
@@ -312,7 +372,9 @@ async function runSubscribeNudge(
       },
       { category: 'marketing' },
     ).catch(() => null)
-    if (ok?.ok) sent++
+    const outcome = pushOutcome(res)
+    if (outcome === 'sent') sent++
+    else if (outcome === 'skipped') skipped++
     else errors++
   }
   return { campaign: 'd30_subscribe', sent, skipped, errors }
@@ -364,7 +426,7 @@ async function runMedicationReminder(
       skipped++
       continue
     }
-    const ok = await pushToUser(
+    const res = await pushToUser(
       m.user_id,
       {
         title: `복약 시간 — ${m.name}`,
@@ -378,7 +440,9 @@ async function runMedicationReminder(
       // 약속이라 주 2건 상한에 밀려선 안 된다.
       { category: 'health' },
     ).catch(() => null)
-    if (ok?.ok) sent++
+    const outcome = pushOutcome(res)
+    if (outcome === 'sent') sent++
+    else if (outcome === 'skipped') skipped++
     else errors++
   }
   return { campaign: 'medication', sent, skipped, errors }

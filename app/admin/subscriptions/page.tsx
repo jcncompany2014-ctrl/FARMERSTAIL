@@ -36,7 +36,6 @@ type SubscriptionRow = {
   coverage_weeks: number | null
   fresh_ratio: number | null
   next_delivery_date: string | null
-  last_delivery_date: string | null
   total_deliveries: number
   recipient_name: string | null
   recipient_phone: string | null
@@ -122,7 +121,7 @@ export default function AdminSubscriptionsPage() {
       .from('subscriptions')
       .select(
         'id, user_id, status, interval_weeks, coverage_weeks, fresh_ratio, ' +
-          'next_delivery_date, last_delivery_date, total_deliveries, ' +
+          'next_delivery_date, total_deliveries, ' +
           'recipient_name, recipient_phone, address, ' +
           'address_detail, zip, subtotal, shipping_fee, ' +
           'total_amount, created_at, dog_id, requires_billing_key_renewal, ' +
