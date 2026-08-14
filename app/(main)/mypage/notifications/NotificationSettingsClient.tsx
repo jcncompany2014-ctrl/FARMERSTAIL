@@ -84,7 +84,7 @@ export default function NotificationSettingsClient({
             return
           }
           // ★OS 권한만으로 ON 을 그리면 거짓말이 된다 (2026-08-08 재검증 2차 #2).
-          //  끄기(토큰 DELETE)·로그아웃(cleanupNativePushOnLogout) 뒤에도 권한은
+          //  끄기(토큰 DELETE)·로그아웃(cleanupPushOnLogout) 뒤에도 권한은
           //  granted 로 남는다 — 화면은 ON 인데 발송은 0. 웹이 실구독
           //  (getSubscription)으로 판정하듯, 서버 토큰 행 존재까지 확인한다.
           const deviceId = await getDeviceId()

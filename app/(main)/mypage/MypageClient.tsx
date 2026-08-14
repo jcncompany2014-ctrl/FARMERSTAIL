@@ -36,7 +36,7 @@ import { V3, V3FontSize, V3FontWeight, V3Radius } from '@/lib/design/tokens'
 import { Mono, Modal, Badge } from '@/components/v3'
 import DogPawMark from '@/components/DogPawMark'
 import { withHonorific } from '@/lib/korean'
-import { cleanupNativePushOnLogout } from '@/lib/capacitor'
+import { cleanupPushOnLogout } from '@/lib/capacitor'
 
 type Profile = {
   name: string | null
@@ -66,8 +66,8 @@ export default function MypageClient({
 
   async function performLogout() {
     setLoggingOut(true)
-    // 네이티브 푸시 토큰 정리 — signOut 후엔 세션이 없어 못 지운다.
-    await cleanupNativePushOnLogout()
+    // 푸시 정리(네이티브 토큰 + 웹 구독) — signOut 후엔 세션이 없어 못 지운다.
+    await cleanupPushOnLogout()
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()

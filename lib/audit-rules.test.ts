@@ -2282,7 +2282,16 @@ test('규칙50 — SW 는 개인 정보 페이지 HTML 을 캐시하지 않는�
    * 그룹이 전부 들어 있는지 확인한다. 새 개인 라우트 그룹을 만들면 이
    * 목록에도 추가하고 sw.js 에도 추가할 것 — 한쪽만 하면 이 테스트가 잡는다.
    */
-  const sw = read(join(ROOT, 'public', 'sw.js'))
+  /**
+   * ★주석을 먼저 걷어낸다 (2026-08-14 — 이 규칙의 카나리아가 잡아냈다).
+   *
+   * 목록에 항목을 추가하고 "빼면 빨간불이 뜨나" 검산하려고 그 줄을 **주석
+   * 처리**했는데 규칙은 그대로 초록이었다. 따옴표만 보고 세는 바람에
+   * `// '/start/done',` 도 "있다"로 셌기 때문이다. 즉 누가 항목을 지우는 대신
+   * 주석 처리하면 이 규칙은 아무 말도 안 한다 — 이 파일이 stripComments 를
+   * 만든 이유(규칙20)와 같은 병이 여기 남아 있었다.
+   */
+  const sw = stripComments(read(join(ROOT, 'public', 'sw.js')))
   const m = sw.match(/const AUTH_PATH_PREFIXES = \[([\s\S]*?)\]/)
   assert.ok(m, 'public/sw.js 에 AUTH_PATH_PREFIXES 배열이 있어야 한다')
   const listed = [...(m![1] ?? '').matchAll(/'([^']+)'/g)].map((x) => x[1])
@@ -2299,6 +2308,11 @@ test('규칙50 — SW 는 개인 정보 페이지 HTML 을 캐시하지 않는�
     '/notifications',
     '/reports',
     '/chat',
+    // 2026-08-14 4라운드 감사 — 퍼널 끝 두 곳. sw.js 목록엔 있는데 여기엔 없던
+    // '/vet/' 비대칭도 같이 정리했다(한쪽에만 있으면 지우는 회귀를 못 잡는다).
+    '/vet/',
+    '/start/done',
+    '/photo-upload',
   ]
   const missing = REQUIRED.filter((p) => !listed.includes(p))
   assert.deepEqual(

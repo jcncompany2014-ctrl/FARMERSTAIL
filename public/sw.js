@@ -33,7 +33,7 @@
 // 내용이 변경되면 브라우저가 새 sw.js 받아 → install → activate → 옛 캐시
 // 자동 정리. 사용자가 PWA 다시 켤 때 toast "새 버전이 준비됐어요" 노출.
 // (audit #85 후반 — R29 에서 prebuild 자동화 완성)
-const CACHE_NAME = 'farmerstail-8f32f42af428-mssf9ooq'
+const CACHE_NAME = 'farmerstail-5cfd33905d4b-mssfgrix'
 
 const NAV_CACHE_MAX_ENTRIES = 60
 const ASSET_CACHE_MAX_ENTRIES = 80
@@ -69,6 +69,13 @@ const AUTH_PATH_PREFIXES = [
   '/notifications', // 알림함
   '/reports', // 건강 리포트
   '/chat', // 상담 내역
+  // ★2026-08-14 4라운드 감사 — 퍼널 끝에 개인 정보가 그려지는 두 곳이 빠져 있었다.
+  '/start/done', // 강아지 이름·레시피명·하루 급여량·2주 박스 금액 + URL 에 ?name=
+  '/photo-upload', // 토큰 링크에 강아지 이름·보호자 이름이 그려진다
+  // ⚠️ '/start' 를 통째로 넣지 말 것 — /start·/start/survey 는 **익명 설문**이라
+  //    HTML 에 개인 정보가 없고(초안은 localStorage), 프리픽스를 통으로 막으면
+  //    퍼널 입구의 오프라인 진입만 잃는다. 매칭은 startsWith 라 '/start/done'
+  //    만 정확히 걸린다.
 ]
 
 function isAuthPath(url) {

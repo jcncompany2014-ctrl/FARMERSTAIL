@@ -193,9 +193,9 @@ export async function registerAndSyncNativePush(): Promise<boolean> {
  * 알림을 받는다. DELETE 는 본인 세션이 필요하므로 **signOut 전에** 불러야
  * 한다. 실패해도 조용히 넘어간다 — 로그아웃을 막는 쪽이 더 나쁘다.
  *
- * 호출처: components/account/LogoutButton, app/(main)/mypage/MypageClient.
+ * ⚠️ 직접 부르지 말 것 — `cleanupPushOnLogout()` 을 부른다(아래 이유).
  */
-export async function cleanupNativePushOnLogout(): Promise<void> {
+async function cleanupNativePushOnLogout(): Promise<void> {
   if (!isNativeApp()) return
   try {
     const deviceId = await getDeviceId()
@@ -207,6 +207,56 @@ export async function cleanupNativePushOnLogout(): Promise<void> {
   } catch {
     /* 로그아웃은 계속 진행 */
   }
+}
+
+/**
+ * 로그아웃 직전 **웹 푸시 구독** 정리 (2026-08-14 4라운드 감사).
+ *
+ * 위 네이티브 정리를 넣은 커밋(d4dc435)이 바로 이 이유 — "공유 폰이면 다음
+ * 사용자가 이전 계정 알림을 받는다" — 를 적어 놓고 **웹 경로만 빠뜨렸다.**
+ * 웹은 push_subscriptions row 가 이전 user_id 로 그대로 남아:
+ *   ① 로그아웃한 사람의 배송·결제 알림이 그 브라우저로 계속 온다
+ *   ② 같은 브라우저의 **다음 사용자는 알림을 켤 수조차 없다** — /api/push/
+ *      subscribe 가 같은 endpoint 로 부딪히기 때문(엔드포인트는 브라우저당
+ *      하나다).
+ *
+ * 순서가 중요하다: 서버 DELETE 는 본인 세션이 필요하므로 **signOut 전에**,
+ * 그리고 서버를 먼저 지운 뒤 브라우저 구독을 해제한다. `sub.unsubscribe()` 를
+ * 빼면 브라우저에는 구독이 남아 다음 사용자 화면의 알림 토글이 'ON' 으로
+ * 보이는데 실제로는 아무 데도 연결돼 있지 않다.
+ */
+async function cleanupWebPushOnLogout(): Promise<void> {
+  if (isNativeApp()) return
+  try {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return
+    const reg = await navigator.serviceWorker.getRegistration()
+    const sub = await reg?.pushManager.getSubscription()
+    if (!sub) return
+    await fetch('/api/push/unsubscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: sub.endpoint }),
+    })
+    await sub.unsubscribe()
+  } catch {
+    /* 로그아웃은 계속 진행 — 막는 쪽이 더 나쁘다 */
+  }
+}
+
+/**
+ * 로그아웃 직전 푸시 정리 — **네이티브·웹 양쪽.**
+ *
+ * # 왜 하나로 합쳤나
+ * 두 정리를 따로 두면 호출처(로그아웃 버튼 2곳)가 **한쪽만 부르는 실수**를
+ * 반복한다. 실제로 그랬다: 네이티브만 부르고 웹은 6개월간 빠져 있었다.
+ * 각 함수가 자기 환경이 아니면 스스로 빠지므로(`isNativeApp` 분기), 호출처는
+ * 이것 하나만 알면 된다.
+ *
+ * 호출처: components/account/LogoutButton, app/(main)/mypage/MypageClient.
+ */
+export async function cleanupPushOnLogout(): Promise<void> {
+  await cleanupNativePushOnLogout()
+  await cleanupWebPushOnLogout()
 }
 
 /**

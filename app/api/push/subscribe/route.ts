@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { isPushConfigured } from '@/lib/push'
 import { zPushSubscribe } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
@@ -53,9 +54,29 @@ export async function POST(req: Request) {
   const p256dh = keys.p256dh
   const auth = keys.auth
 
-  // Upsert by endpoint (endpoint has a unique index from the migration).
+  /**
+   * ★endpoint 충돌 upsert 는 **service_role 로** 한다 (2026-08-14 4라운드 감사).
+   *
+   * push_subscriptions 에는 SELECT·INSERT·DELETE 정책만 있고 **UPDATE 정책이
+   * 없다**(프로덕션 pg_policies 실측). 그런데 이건 `onConflict: 'endpoint'`
+   * upsert 라 충돌 시 ON CONFLICT DO UPDATE 를 타고, 그 UPDATE 가 RLS 에
+   * 걸린다. 롤백 트랜잭션으로 재현한 결과:
+   *   · 본인이 같은 브라우저에서 알림을 **다시 켜기**        → 42501 거부
+   *   · 공유 폰의 **다음 사용자**가 알림 켜기                 → 42501 거부
+   * 화면에는 '푸시 구독 등록에 실패했어요' 만 뜬다. endpoint 는 브라우저당
+   * 하나라, 한 번 남은 행이 그 브라우저의 알림을 영구히 잠갔다.
+   *
+   * 고객용 UPDATE 정책을 새로 열지 않는다 — 열어도 **다른 사용자의 행을
+   * 넘겨받는 경우(공유 폰)** 는 USING 이 막아서 여전히 못 고치고, 대신 고객이
+   * 쓸 수 있는 칸만 늘어난다(규칙3: 값을 검사하기 전에 못 쓰게 하는 층위).
+   * endpoint 를 제시했다는 것 자체가 그 브라우저의 구독을 쥐고 있다는 뜻이고,
+   * 소유자 판정은 위에서 검증한 세션의 `user.id` 가 책임진다 — 규칙8 의
+   * "service_role 로 쓰고 범위는 코드가 책임진다" 와 같은 형태다.
+   * (단일 문장이라 원자적이다. delete→insert 로 쪼개면 사이에서 죽었을 때
+   *  구독이 사라진다.)
+   */
   const userAgent = req.headers.get('user-agent') ?? null
-  const { error } = await supabase.from('push_subscriptions').upsert(
+  const { error } = await createAdminClient().from('push_subscriptions').upsert(
     {
       user_id: user.id,
       endpoint,
