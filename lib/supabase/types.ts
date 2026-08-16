@@ -792,6 +792,7 @@ export type Database = {
           applied_until: string | null
           approval_status: string
           approved_at: string | null
+          computed_at: string
           created_at: string
           cycle_number: number
           daily_grams: number
@@ -812,6 +813,7 @@ export type Database = {
           applied_until?: string | null
           approval_status?: string
           approved_at?: string | null
+          computed_at?: string
           created_at?: string
           cycle_number: number
           daily_grams: number
@@ -832,6 +834,7 @@ export type Database = {
           applied_until?: string | null
           approval_status?: string
           approved_at?: string | null
+          computed_at?: string
           created_at?: string
           cycle_number?: number
           daily_grams?: number

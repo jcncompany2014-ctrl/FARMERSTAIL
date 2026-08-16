@@ -209,7 +209,7 @@ export async function POST(req: Request) {
   const { data: existing } = await supabase
     .from('dog_formulas')
     .select(
-      'formula, reasoning, transition_strategy, algorithm_version, daily_kcal, daily_grams, user_adjusted, cycle_number, created_at',
+      'formula, reasoning, transition_strategy, algorithm_version, daily_kcal, daily_grams, user_adjusted, cycle_number, created_at, computed_at',
     )
     .eq('dog_id', dogId)
     .eq('cycle_number', 1)
@@ -226,8 +226,12 @@ export async function POST(req: Request) {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-    const formulaAt = existing.created_at
-      ? new Date(existing.created_at as string).getTime()
+    // ★기준은 computed_at(마지막 재계산 시각) — created_at 은 2026-08-16부터
+    //   행 생성 시각으로 불변이다(아래 upsert docstring). 마이그레이션이
+    //   기존 행을 백필했으므로 폴백은 이론상 안 타지만, 컬럼 추가 전 코드가
+    //   잠깐 남아 있는 배포 경계를 위해 남긴다.
+    const formulaAt = (existing.computed_at ?? existing.created_at)
+      ? new Date((existing.computed_at ?? existing.created_at) as string).getTime()
       : 0
     const analysisAt = latestAna?.created_at
       ? new Date(latestAna.created_at as string).getTime()
@@ -659,8 +663,18 @@ export async function POST(req: Request) {
   //     한다. insert 였을 때 23505 가 나서 저장이 조용히 실패했다.
   //  2. 경쟁 삽입: 두 화면이 동시에 compute 를 호출해도 마지막 값으로 수렴한다.
   //     (출력이 deterministic 이라 어느 쪽이 이기든 같은 값)
-  // created_at 을 반드시 갱신해야 위쪽 staleness 판정(analysis > formula)이 풀린다.
-  // 이게 없으면 매 호출마다 stale 로 판정돼 영원히 재계산한다.
+  // ★computed_at 을 반드시 갱신해야 위쪽 staleness 판정(analysis > formula)이
+  //   풀린다. 이게 없으면 매 호출마다 stale 로 판정돼 영원히 재계산한다.
+  //
+  //   created_at 은 **더 이상 여기서 쓰지 않는다** (2026-08-16 4라운드 감사).
+  //   전엔 created_at 을 매 upsert 마다 덮어썼는데, 그 한 컬럼이 (a) 재계산
+  //   시각과 (b) "가장 새 처방" 정렬 키를 겸하는 바람에 행 생성 시각이 거짓이
+  //   됐고, v3 이전 잔재 cycle 2 가 새 cycle 1 보다 먼저 생성된 강아지에서
+  //   cycle_number 정렬(재제안 크론)과 created_at 정렬(청구·피킹·홈)이 서로
+  //   다른 처방을 가리켰다. PostgREST upsert 는 충돌 UPDATE 에서 누락 컬럼을
+  //   건드리지 않으므로, created_at 을 빼면 행 생성 시각으로 불변 고정된다.
+  //   (재설문로 cycle 1 을 재계산해도 승인된 상위 회차가 정렬에서 밀리지
+  //    않게 되는 부수 교정도 있다.)
   // ★service_role — dog_formulas 고객 UPDATE/INSERT 권한 회수(2026-08-05).
   //   daily_kcal 이 청구액에 선형 비례하므로 고객이 못 쓰게 하고, 이 라우트가
   //   서버 계산 결과만 쓴다. 소유권은 위에서 dog 를 .eq('user_id') 로 확인했다.
@@ -683,7 +697,7 @@ export async function POST(req: Request) {
       user_adjusted: false,
       daily_kcal: formula.dailyKcal,
       daily_grams: dailyGramsByMix,
-      created_at: new Date().toISOString(),
+      computed_at: new Date().toISOString(),
     },
     { onConflict: 'dog_id,cycle_number' },
   )
