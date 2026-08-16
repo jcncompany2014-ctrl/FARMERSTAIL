@@ -27,7 +27,7 @@
  *   GSAP 로드 실패 → catch 로 조용히 정적 유지
  *
  * # 마크업 계약 (page.tsx 쪽 태그)
- *   data-gsap="hero-title"  → SplitText 글자 스태거 등장 (줄 마스크는 .gsap-line)
+ *   data-gsap="hero-title"  → SplitText 어절(words) 스태거 등장
  *   data-gsap-y="-8"        → 섹션 스크롤 동안 yPercent -8 로 스크럽 이동
  *   data-gsap-marquee       → 등속 루프 + **스크롤 속도/방향 반응** (2차)
  *   data-gsap-img           → 액자 안에서 사진만 미끄러진다 (2차)
@@ -57,18 +57,30 @@ export default function WebMotion() {
         gsap.registerPlugin(ScrollTrigger, SplitText)
 
         ctx = gsap.context(() => {
-          // ① 히어로 헤드라인 — 글자 스태거. 줄 래퍼(.gsap-line)가 마스크가 된다.
+          // ① 히어로 헤드라인 — 어절 스태거 (한국어 조판 안전 — 아래 docstring).
           const title = document.querySelector('[data-gsap="hero-title"]')
           if (title) {
-            const split = new SplitText(title, {
-              type: 'lines,chars',
-              linesClass: 'gsap-line',
-            })
-            gsap.from(split.chars, {
+            /**
+             * ★글자(chars) 분해 → 어절(words) 분해 (2026-08-16, 사장님 제보
+             * "문자 배열이 안 맞는다").
+             *
+             * 한국어에서 chars 분해는 두 방식으로 조판을 깨뜨렸다:
+             *  · 글자마다 inline-block 스팬이 되면 keep-all 이 무력해져
+             *    **어절 중간에서 줄이 꺾인다** (모바일에서 특히).
+             *  · 'lines' 모드는 분해 시점 폭으로 줄을 **구워 놓는데** 그 과정에서
+             *    마크업의 <br/> 을 무시한다 — 페이지가 의도한 2줄 개행이
+             *    임의 개행으로 대체됐다.
+             * words 분해는 어절 단위 스팬이라 keep-all 과 같은 지점에서만
+             * 줄이 바뀌고, <br/> 도 그대로 남는다. 스태거 간격만 어절에 맞게
+             * 키웠다 — 연출 밀도는 거의 같다.
+             */
+            const split = new SplitText(title, { type: 'words' })
+            gsap.from(split.words, {
               yPercent: 112,
-              duration: 0.85,
+              opacity: 0,
+              duration: 0.8,
               ease: 'power4.out',
-              stagger: 0.018,
+              stagger: 0.07,
               delay: 0.12,
             })
           }
