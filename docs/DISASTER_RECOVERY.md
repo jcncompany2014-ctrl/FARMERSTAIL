@@ -93,22 +93,30 @@ select * from pg_stat_activity where state = 'active' order by query_start;
 ## 3. 백업 & 복원
 
 ### 자동 백업
-- **Supabase**: 일 단위 자동 백업 (Free tier 7일 보관, Pro 30일)
+- **Supabase: 자동 백업 없음 (현재 Free 플랜 — 2026-08-16 org plan 실측).**
+  복구 지점은 마지막 수동 pg_dump 덤프뿐. 자동 일일 백업은 **Pro 이상**(7일
+  보관, Team 14일 / Enterprise 30일), PITR 은 Pro 에 포함이 아니라 **별도 유료
+  애드온**이다. Pro 업그레이드는 소급 복구 지점을 만들지 않는다 — 첫 백업은
+  업그레이드 다음 날 생긴다. **라이브 결제 시작 전날까지 업그레이드 완료할 것.**
 - **Vercel**: Git 기반이라 자동 복원 가능. `git revert` 또는 `vercel rollback`
 
-### 수동 백업 (월 1회 권장)
+### 수동 백업 (Free 플랜에서는 이것이 유일한 복구 지점 — 주 1회 이상)
 ```bash
-# DB 덤프 (Supabase → 로컬 SQL 파일)
-pg_dump "$DATABASE_URL" > backup-$(date +%Y%m%d).sql
+# Supabase CLI 가 연결(풀러 호스트·버전)을 알아서 처리한다.
+# ⚠️ pg_dump 직결은 이 PC 에서 실패할 수 있다 — free 프로젝트의
+#    db.<ref>.supabase.co:5432 직결 호스트는 IPv6 전용이고, 로컬 pg_dump 가
+#    서버(Postgres 17) 미만 버전이면 거부된다.
+npx supabase db dump --db-url "$DATABASE_URL" -f backup-$(date +%Y%m%d).sql
 
-# 백업 파일 압축 + 안전한 곳 (Google Drive, 외장 HDD) 에 보관
+# 백업 파일 압축 + 안전한 곳 (Google Drive, 외장 HDD) 에 보관.
+# 보관 위치를 여기에 기입: <아직 없음 — 첫 덤프 후 기입>
 gzip backup-*.sql
 ```
 
 ### 복원 (응급)
 ```bash
-# Supabase 콘솔 → Database → Backups → 원하는 시점 선택 → Restore
-# 또는 SQL 덤프에서 복원
+# ⚠️ Free 플랜에는 콘솔 Backups→Restore 화면이 **없다** (비어 있음).
+# 복원 경로는 SQL 덤프뿐:
 psql "$DATABASE_URL" < backup-20260527.sql
 ```
 

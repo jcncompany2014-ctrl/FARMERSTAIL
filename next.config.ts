@@ -125,6 +125,23 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@sentry/nextjs'],
   },
+  async redirects() {
+    return [
+      {
+        /**
+         * 폐지된 낱개커머스를 광고하던 블로그 글 (2026-08-16 4라운드 감사).
+         * 본문의 6개 정책(단품 비교·주기 4종·5~10% 할인·무료배송·배송비·24시간
+         * 변경)이 전부 현행(구독 전용·2주 고정·15%+나무10%·일요일 마감)과
+         * 어긋나 비공개 전환했다(blog_posts.is_published=false). 슬러그 자체가
+         * '정기 vs 낱개' 프레임이라 재작성 대상이 아니다 — 2026-05-07부터
+         * sitemap 에 있었으므로 색인된 링크는 301 로 블로그 홈에 넘긴다.
+         */
+        source: '/blog/subscription-vs-onetime-pet-food',
+        destination: '/blog',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [
       {

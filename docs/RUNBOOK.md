@@ -170,8 +170,9 @@ supabase db lint
 ## 9. 백업 / 복구
 
 ### Supabase 자동 백업
-- **Pro 플랜 이상**: 일별 자동 백업 7일 보관.
-- Free / Hobby: 수동 export 필수.
+- **Pro 플랜 이상**: 일별 자동 백업 7일 보관. PITR 은 별도 유료 애드온.
+- **Free(현재 플랜, 2026-08-16 실측): 자동 백업 없음 — 수동 export 가 유일한
+  복구 지점.** 명령·주의사항은 DISASTER_RECOVERY.md §3 이 정본.
 
 ### 수동 export
 ```bash
