@@ -1,5 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   contrastRatio,
   luminance,
@@ -86,4 +88,49 @@ describe('contrast', () => {
   it('handles invalid hex gracefully', () => {
     assert.doesNotThrow(() => contrastRatio('bogus', '#fff'))
   })
+
+  it('★FD 웹 컨트롤 경계 — globals.css 실측값으로 3:1 (1.4.11)', () => {
+    /**
+     * # 왜 (2026-08-17 접근성 감사)
+     * 설문 화면의 선택지 카드(라디오 역할)·라디오 원·입력칸이 전부
+     * --fd-line(#DCD6C4)으로 그려져 있었다. white 위 1.45:1 — 미선택
+     * 선택지의 유일한 식별 단서가 그 테두리인데 사실상 안 보이는 수준이다.
+     * V3_CONTRAST_PAIRS 는 앱(V3) 토큰만 열거해 이 화면을 아무도 안 봤다.
+     *
+     * # 왜 hex 를 안 적고 globals.css 를 파싱하나
+     * 위 V3 표의 교훈 그대로다 — hex 를 손으로 적으면 토큰이 바뀔 때 표만
+     * 낡는다. FD 토큰의 정본은 globals.css 하나이므로 **그 파일을 읽어서**
+     * 검사한다. 토큰을 바꾸면 이 테스트가 즉시 따라온다.
+     */
+    const css = readFileSync(join(process.cwd(), 'app', 'globals.css'), 'utf8')
+    const token = (name: string): string => {
+      // String.raw — 일반 문자열로 쓰면 '\s' 가 그냥 's' 로 죽는다(같은 함정을
+      // audit-rules 규칙52 에서도 밟았다 — reference_shell_backslash_trap).
+      const m = css.match(new RegExp('--' + name + String.raw`:\s*(#[0-9A-Fa-f]{6})`))
+      assert.ok(m, 'globals.css 에 --' + name + ' 토큰이 있어야 한다')
+      return m![1]!
+    }
+    const lineStrong = token('fd-line-strong')
+    const coral = token('fd-coral')
+    const bgs: Array<[string, string]> = [
+      ['white', '#FFFFFF'],
+      ['offwhite', token('fd-offwhite')],
+      ['cream', token('fd-cream')],
+    ]
+    // 컨트롤 경계(미선택 상태) — 세 배경 전부 3:1
+    for (const [bgName, bg] of bgs) {
+      const r = contrastRatio(lineStrong, bg)
+      assert.ok(
+        r >= 3,
+        'fd-line-strong/' + bgName + ' = ' + r.toFixed(2) + ':1 — 컨트롤 경계는 3:1 이상이어야 한다',
+      )
+    }
+    // 선택 상태 경계(coral) — white 위 3:1
+    const rc = contrastRatio(coral, '#FFFFFF')
+    assert.ok(rc >= 3, 'fd-coral/white = ' + rc.toFixed(2) + ':1 — 선택 상태 경계 3:1 미달')
+    // 그리고 --fd-line 이 왜 컨트롤에 못 쓰이는지 근거를 남긴다(장식 전용 확인).
+    const rl = contrastRatio(token('fd-line'), '#FFFFFF')
+    assert.ok(rl < 3, 'fd-line 이 3:1 을 넘게 됐다면 line-strong 이원화가 더는 필요 없다 — 주석 갱신할 것')
+  })
+
 })

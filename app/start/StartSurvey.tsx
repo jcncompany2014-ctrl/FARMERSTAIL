@@ -261,7 +261,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                     appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', position: 'relative',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14,
                     padding: '16px 8px', borderRadius: 12, border: '1.5px solid',
-                    borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line)',
+                    borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line-strong)',
                     background: active ? 'color-mix(in srgb, var(--fd-coral) 6%, #FFFFFF)' : '#FFFFFF',
                     transition: 'border-color .12s, background .12s',
                   }}
@@ -298,7 +298,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                     appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%',
                     // 옵션당 단일 카드 1개(구분감 유지) — 내부 사진타일 없앰(이중 박스 방지).
                     padding: '11px 14px', borderRadius: 14, border: '1.5px solid',
-                    borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line)',
+                    borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line-strong)',
                     background: active ? 'color-mix(in srgb, var(--fd-coral) 6%, #FFFFFF)' : '#FFFFFF',
                     transition: 'border-color .12s, background .12s',
                     display: 'flex', alignItems: 'center', gap: 12,
@@ -315,13 +315,13 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                         런타임에서도 메모가 새지 않는 쪽으로 둔다. */}
                   </div>
                   {/* 사진 ↔ 텍스트 세로 구분선 */}
-                  <div aria-hidden style={{ width: 1, alignSelf: 'stretch', flexShrink: 0, background: active ? 'var(--fd-coral)' : 'var(--fd-line)', opacity: active ? 0.4 : 1 }} />
+                  <div aria-hidden style={{ width: 1, alignSelf: 'stretch', flexShrink: 0, background: active ? 'var(--fd-coral)' : 'var(--fd-line-strong)', opacity: active ? 0.4 : 1 }} />
                   <div style={{ flex: 1, textAlign: 'left', paddingLeft: 2 }}>
                     <div style={{ fontSize: 15.5, fontWeight: 800, color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)' }}>{o.label}</div>
                     {o.desc && <div style={{ marginTop: 3, fontSize: 11.5, fontWeight: 500, color: 'var(--fd-muted)', lineHeight: 1.35 }}>{o.desc}</div>}
                   </div>
                   {/* 우측 선택 라디오 — 항상 노출 */}
-                  <span aria-hidden style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 999, border: '1.5px solid', borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line)', background: active ? 'var(--fd-coral)' : 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all .12s' }}>
+                  <span aria-hidden style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 999, border: '1.5px solid', borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line-strong)', background: active ? 'var(--fd-coral)' : 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all .12s' }}>
                     {active && <Check className="w-3.5 h-3.5" strokeWidth={3} color="#fff" />}
                   </span>
                 </button>
@@ -340,7 +340,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
               style={{
                 appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%',
                 marginTop: 10, padding: '13px 16px', borderRadius: 12, border: '1.5px solid',
-                borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line)',
+                borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line-strong)',
                 background: active ? 'var(--fd-cream)' : 'var(--fd-offwhite)',
                 color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)',
                 fontSize: 13.5, fontWeight: 700, transition: 'all .12s',
@@ -367,7 +367,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
               style={{
                 appearance: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 padding: '14px 14px', borderRadius: 12, border: '1.5px solid',
-                borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line)',
+                borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line-strong)',
                 background: active ? 'var(--fd-cream)' : '#FFFFFF',
                 color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)',
                 fontSize: 14, fontWeight: 700, transition: 'all .12s',
@@ -482,7 +482,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
 
   // FD 입력 스타일(signup baseInput 패턴 — 16px iOS zoom 방지).
   const inputCls = 'w-full px-4 py-3 rounded-lg border text-[16px] focus:outline-none transition'
-  const inputStyle = { borderColor: 'var(--fd-line)' as const, background: '#FFFFFF', color: 'var(--fd-pine)' }
+  const inputStyle = { borderColor: 'var(--fd-line-strong)' as const, background: '#FFFFFF', color: 'var(--fd-pine)' }
   const labelCls = 'block text-[11px] font-bold mb-1.5'
 
   // ───────────────────────── 결과(티저 + 저장) ─────────────────────────
@@ -741,24 +741,46 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
             {showEmailForm && (
               <div className="rounded-[12px] px-5 py-5" style={{ marginTop: 12, background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
                 <div className="space-y-4">
+                  {/* ★가입 버튼이 왜 안 눌리는지(2026-08-17 접근성 감사) — 6개
+                      유효성 중 이름·이메일·필수동의 3개가 **무안내**였다. 버튼은
+                      opacity 0.5 로만 죽어 있고, 스크린리더로는 이유를 알 길이
+                      없었다. 기존 `{값 && !유효 && role="alert"}` 관용구를 그대로
+                      확장하고 aria-invalid/aria-describedby 를 연결한다. */}
                   <div>
                     <label htmlFor="su-guardian-name" className={labelCls} style={{ color: 'var(--fd-pine)' }}>보호자 이름</label>
                     <input id="su-guardian-name" type="text" value={guardianName} maxLength={20} placeholder="예: 홍길동" autoComplete="name"
-                      onChange={(e) => setGuardianName(e.target.value)} className={inputCls} style={inputStyle} />
+                      aria-invalid={Boolean(guardianName) && guardianName.trim().length < 2}
+                      aria-describedby="su-guardian-name-err"
+                      onChange={(e) => setGuardianName(e.target.value)} className={inputCls}
+                      style={{ ...inputStyle, borderColor: guardianName && guardianName.trim().length < 2 ? 'var(--sale)' : 'var(--fd-line-strong)' }} />
+                    {guardianName && guardianName.trim().length < 2 && (
+                      <p id="su-guardian-name-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                        <AlertCircle className="w-3 h-3" strokeWidth={2.5} />이름을 2자 이상 입력해 주세요
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="su-email" className={labelCls} style={{ color: 'var(--fd-pine)' }}>이메일</label>
                     <input id="su-email" type="email" value={email} placeholder="example@email.com" autoComplete="email"
                       inputMode="email" autoCapitalize="off" autoCorrect="off" spellCheck={false}
-                      onChange={(e) => setEmail(e.target.value)} className={inputCls} style={inputStyle} />
+                      aria-invalid={Boolean(email) && !emailValid(email)}
+                      aria-describedby="su-email-err"
+                      onChange={(e) => setEmail(e.target.value)} className={inputCls}
+                      style={{ ...inputStyle, borderColor: email && !emailValid(email) ? 'var(--sale)' : 'var(--fd-line-strong)' }} />
+                    {email && !emailValid(email) && (
+                      <p id="su-email-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                        <AlertCircle className="w-3 h-3" strokeWidth={2.5} />이메일 주소 형식을 확인해 주세요
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="su-password" className={labelCls} style={{ color: 'var(--fd-pine)' }}>비밀번호</label>
                     <input id="su-password" type="password" value={password} placeholder="영문·숫자·특수문자 포함 8자 이상" autoComplete="new-password"
+                      aria-invalid={Boolean(password) && !passwordStrong(password)} aria-describedby="su-password-err"
                       onChange={(e) => setPassword(e.target.value)} className={inputCls}
-                      style={{ ...inputStyle, borderColor: password && !passwordStrong(password) ? 'var(--sale)' : 'var(--fd-line)' }} />
+                      style={{ ...inputStyle, borderColor: password && !passwordStrong(password) ? 'var(--sale)' : 'var(--fd-line-strong)' }} />
                     {password && !passwordStrong(password) && (
-                      <p role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p id="su-password-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />영문·숫자·특수문자를 포함해 8자 이상이어야 해요
                       </p>
                     )}
@@ -766,21 +788,22 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                   <div>
                     <label htmlFor="su-password-confirm" className={labelCls} style={{ color: 'var(--fd-pine)' }}>비밀번호 확인</label>
                     <input id="su-password-confirm" type="password" value={confirmPassword} placeholder="비밀번호를 한 번 더 입력" autoComplete="new-password"
+                      aria-invalid={passwordMismatch} aria-describedby="su-password-confirm-err"
                       onChange={(e) => setConfirmPassword(e.target.value)} className={inputCls}
-                      style={{ ...inputStyle, borderColor: passwordMismatch ? 'var(--sale)' : 'var(--fd-line)' }} />
+                      style={{ ...inputStyle, borderColor: passwordMismatch ? 'var(--sale)' : 'var(--fd-line-strong)' }} />
                     {passwordMismatch && (
-                      <p role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p id="su-password-confirm-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />비밀번호가 일치하지 않아요
                       </p>
                     )}
                   </div>
                   <div>
                     <label htmlFor="su-birth-year" className={labelCls} style={{ color: 'var(--fd-pine)' }}>보호자 출생연도 <span style={{ color: 'var(--fd-muted)' }}>(만 14세 이상)</span></label>
-                    <input id="su-birth-year" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4} value={birthYear}
+                    <input id="su-birth-year" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4} value={birthYear} aria-invalid={Boolean(birthYear) && !birthYearValid} aria-describedby="su-birth-year-err"
                       placeholder={`예: ${currentYear - 30}`} onChange={(e) => setBirthYear(e.target.value.replace(/[^0-9]/g, ''))}
-                      className={inputCls} style={{ ...inputStyle, borderColor: birthYear && !birthYearValid ? 'var(--sale)' : 'var(--fd-line)', fontVariantNumeric: 'tabular-nums' }} />
+                      className={inputCls} style={{ ...inputStyle, borderColor: birthYear && !birthYearValid ? 'var(--sale)' : 'var(--fd-line-strong)', fontVariantNumeric: 'tabular-nums' }} />
                     {birthYear && !birthYearValid && (
-                      <p role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p id="su-birth-year-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />만 14세 이상만 가입할 수 있어요
                       </p>
                     )}
@@ -802,6 +825,19 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                       </span>
                     </label>
                   </div>
+
+                  {/* 다른 5개가 다 찼는데 필수 동의만 남은 순간 — 정확히 그때만
+                      이유를 말한다(처음부터 띄우면 소음이다). */}
+                  {!agreeRequired &&
+                    guardianName.trim().length >= 2 &&
+                    emailValid(email) &&
+                    passwordStrong(password) &&
+                    password === confirmPassword &&
+                    birthYearValid && (
+                      <p role="alert" className="flex items-center gap-1" style={{ fontSize: 12, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2.5} />위의 필수 동의에 체크하면 가입할 수 있어요
+                      </p>
+                    )}
 
                   {signupError && (
                     <div role="alert" className="flex items-start gap-2" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fd-coral-text)' }}>

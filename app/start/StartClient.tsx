@@ -126,7 +126,9 @@ export default function StartClient({ isApp = false }: { isApp?: boolean }) {
   // FD input 스타일 (signup baseInput 패턴 — 16px 로 iOS focus zoom 방지).
   const inputCls = 'w-full px-4 py-3 rounded-lg border text-[16px] focus:outline-none transition'
   const inputStyle = {
-    borderColor: 'var(--fd-line)' as const,
+    // 컨트롤 경계는 line-strong — --fd-line 은 white 위 1.45:1 로 1.4.11 미달
+    // (2026-08-17 접근성 감사, contrast.test FD 블록이 지킨다).
+    borderColor: 'var(--fd-line-strong)' as const,
     background: '#FFFFFF',
     color: 'var(--fd-pine)',
   }
@@ -136,7 +138,7 @@ export default function StartClient({ isApp = false }: { isApp?: boolean }) {
   function chipStyle(active: boolean) {
     return active
       ? { background: 'var(--fd-coral)', color: '#fff', borderColor: 'var(--fd-coral)' }
-      : { background: 'var(--fd-offwhite)', color: 'var(--fd-pine)', borderColor: 'var(--fd-line)' }
+      : { background: 'var(--fd-offwhite)', color: 'var(--fd-pine)', borderColor: 'var(--fd-line-strong)' }
   }
 
   return (
