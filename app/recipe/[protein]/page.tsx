@@ -3,10 +3,10 @@ import { notFound } from 'next/navigation'
 import {
   ArrowRight,
   Leaf,
-  ShieldCheck,
   Soup,
   Snowflake,
   Check,
+  Eye,
   FlaskConical,
   Thermometer,
   Refrigerator,
@@ -24,7 +24,12 @@ import {
   Section,
 } from '@/components/web/fd/ui'
 import { WEB_RECIPES, WEB_RECIPE_ORDER, type WebRecipe } from '@/lib/web-recipes'
-import { RECIPE_DETAIL, RECIPE_LEDGER } from '@/lib/recipe-detail'
+import {
+  RECIPE_DETAIL,
+  RECIPE_FAQ,
+  RECIPE_LEDGER,
+  RECIPE_STORY,
+} from '@/lib/recipe-detail'
 
 /**
  * /recipe/[protein] — 제품 뒷면 QR 전용 레시피 상세 (2026-07-06, 사장님 지시).
@@ -121,23 +126,73 @@ const TRANSITION_PHASES = [
   { day: '7일~', fill: 4, label: '완전히 전환 — 이제 화식이 매일의 식사예요' },
 ] as const
 
-/** 급여 순간의 질문들 — 파우치를 든 보호자가 실제로 검색하는 것. */
+/**
+ * 급여 순간의 질문들 — 파우치를 든 보호자가 실제로 검색하는 것.
+ * 공통 8문항 + 레시피별 2문항(RECIPE_FAQ)이 이어 붙는다.
+ */
 const FEEDING_FAQ = [
   {
     q: '처음인데 잘 안 먹으려고 해요',
-    a: '냉장 해동 직후엔 향이 약할 수 있어요. 미온수에 봉투째 몇 분 담가 살짝만 데워 보세요 — 향이 살아나요. 전자레인지는 고르게 데워지지 않아 권하지 않아요.',
+    a: '냉장 해동 직후엔 향이 약할 수 있어요. 미온수에 봉투째 몇 분 담가 살짝만 데워 보세요 — 향이 살아나요. 전자레인지는 고르게 데워지지 않아 권하지 않아요. 그래도 낯설어하면 기존 사료 위에 화식을 조금만 얹어 향부터 익히게 해 주세요. 며칠에 걸쳐 비중을 늘리면 대부분 자연스럽게 넘어와요.',
   },
   {
     q: '하루에 얼마나 줘야 하나요?',
-    a: '체중·나이·활동량에 따라 아이마다 달라요. 2분 설문을 마치면 우리 아이의 하루 급여량을 계산해 드리고, 정기배송 중이라면 앱 홈에서 언제나 확인할 수 있어요.',
+    a: '체중·나이·중성화 여부·활동량·체형에 따라 아이마다 달라요. 같은 5kg 이라도 활발한 두 살과 조용한 열 살의 하루 필요 열량은 꽤 다르거든요. 2분 설문을 마치면 우리 아이 기준의 하루 급여량을 그램 단위로 계산해 드리고, 정기배송 중이라면 앱 홈에서 늘 확인할 수 있어요.',
   },
   {
     q: '박스에 온 두 레시피, 섞이거나 번갈아도 되나요?',
-    a: '네. 박스에는 두 가지 레시피가 함께 담겨요 — 끼니마다 번갈아 주셔도, 한 봉투를 다 쓰고 다음으로 넘어가셔도 좋아요. 한 가지 단백질만 오래 먹는 것보다 여러 단백질을 경험하는 편이 좋아요.',
+    a: '네. 박스에는 두 가지 레시피가 함께 담겨요 — 끼니마다 번갈아 주셔도, 한 봉투를 다 쓰고 다음으로 넘어가셔도 좋아요. 한 가지 단백질만 오래 먹는 것보다 여러 단백질을 경험하는 편이 좋아요. 어느 쪽을 더 잘 먹는지 지켜보는 것도 다음 박스를 고르는 좋은 힌트가 돼요.',
   },
   {
     q: '개봉한 뒤엔 언제까지 줄 수 있나요?',
-    a: '개봉 후엔 밀봉해 냉장 보관하고 3일 안에 급여해 주세요. 개봉 전엔 냉동(-18℃)에서 표기된 유통기한까지 보관할 수 있어요.',
+    a: '개봉 후엔 밀봉해 냉장 보관하고 3일 안에 급여해 주세요. 개봉 전엔 냉동(-18℃)에서 봉투에 표기된 유통기한까지 보관할 수 있어요. 한 번 해동한 봉투를 다시 얼리는 건 권하지 않아요 — 품질도 식감도 떨어져요.',
+  },
+  {
+    q: '전환하고 나서 변이 달라졌어요',
+    a: '식단이 바뀌면 변도 함께 바뀌는 게 자연스러워요. 화식은 소화 흡수율이 높아 변 양 자체가 줄고 색이 진해지는 경우가 많아요. 전환기 며칠간 살짝 무른 정도는 지켜봐도 괜찮지만, 물설사·구토가 함께 오거나 며칠 넘게 이어지면 급여를 멈추고 수의사와 상의해 주세요.',
+  },
+  {
+    q: '물을 예전보다 덜 마시는 것 같아요',
+    a: '화식은 건사료보다 수분이 훨씬 많아요. 밥에서 이미 수분을 섭취하니 물그릇 찾는 횟수가 줄어드는 건 흔한 변화예요. 다만 물그릇은 늘 신선하게 채워 두세요 — 마시는 양은 줄어도 마실 수 있어야 하니까요.',
+  },
+  {
+    q: '간식은 계속 줘도 되나요?',
+    a: '주셔도 돼요. 다만 간식은 하루 칼로리의 10% 이내로 유지해 주세요 — 그 이상이 되면 애써 맞춘 식단의 균형이 간식 쪽으로 기울어요. 설문에서 간식 급여 빈도를 알려주시면 급여량 계산에 반영해 드려요.',
+  },
+  {
+    q: '사람이 먹어도 되는 건가요?',
+    a: '재료는 사람이 먹을 수 있는 등급을 쓰고 사람 식품과 같은 위생 기준으로 다루지만, 간은 하지 않고 영양 균형이 강아지 기준으로 설계돼 있어요. 그러니 한 입 맛보셔도 큰일은 없지만, 맛은 심심하실 거예요 — 이 밥의 주인공은 따로 있으니까요.',
+  },
+] as const
+
+/**
+ * 시기별 관찰 포인트 — "이런 효과가 있어요" 가 아니라 **"이런 점을 지켜봐
+ * 주세요"**. 효능 단정 없이 보호자에게 관찰 프레임만 준다.
+ */
+const OBSERVE_TIMELINE = [
+  {
+    period: '첫 일주일',
+    points: [
+      '변 상태 — 전환기엔 살짝 무를 수 있어요. 물설사가 아니면 지켜봐 주세요.',
+      '먹는 속도 — 향을 맡는 시간이 길어도 괜찮아요. 새 음식 앞의 신중함이에요.',
+      '물 마시는 양 — 수분 많은 밥이라 자연스럽게 줄 수 있어요.',
+    ],
+  },
+  {
+    period: '2주 ~ 한 달',
+    points: [
+      '변이 일정해지는지 — 모양과 주기가 자리를 잡는 시기예요.',
+      '밥그릇 앞 태도 — 밥시간을 기다리기 시작하는 아이가 많아요.',
+      '체중 — 2주에 한 번 기록해 주세요. 앱이 변화에 맞춰 급여량을 다시 살펴요.',
+    ],
+  },
+  {
+    period: '그 후로',
+    points: [
+      '모질·피부 — 식단의 변화가 겉으로 드러나기까지는 털갈이 주기만큼의 시간이 걸려요. 조급해하지 않아도 돼요.',
+      '활력 — 산책 때의 걸음, 놀이의 지속력 같은 일상의 신호를 봐 주세요.',
+      '기록 — 앱 일기에 남겨 두시면 다음 박스 추천이 더 정확해져요.',
+    ],
   },
 ] as const
 
@@ -147,7 +202,9 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
   const recipe = WEB_RECIPES[key]
   const d = RECIPE_DETAIL[key]
   const ledger = RECIPE_LEDGER[key]
-  if (!recipe || !d || !ledger) notFound()
+  const story = RECIPE_STORY[key]
+  const extraFaq = RECIPE_FAQ[key]
+  if (!recipe || !d || !ledger || !story || !extraFaq) notFound()
 
   // kcal 스펙트럼 — 4종 정본(kcal/100g)을 막대로. 0 기준 폭이라 과장이 없다
   // (실제로 서로 비슷한 값이고, 그 "비슷하지만 다르다"가 급여량이 달라지는 이유).
@@ -253,6 +310,36 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
                   ))}
                 </dl>
               </div>
+            </div>
+          </Container>
+        </Section>
+
+        {/* ── 탄생 이야기 — 페르소나 서사. 스펙이 아니라 "왜 만들었나"부터. ── */}
+        <Section bg="cream" pad="md">
+          <Container size="sm">
+            <div className="text-center">
+              <Eyebrow>Our Story · 탄생 이야기</Eyebrow>
+              <Hand
+                className="block mt-4"
+                style={{ fontSize: 'clamp(26px, 5vw, 36px)' }}
+              >
+                {story.hand}
+              </Hand>
+            </div>
+            <div className="mt-8 space-y-6">
+              {story.paragraphs.map((para, i) => (
+                <p
+                  key={i}
+                  style={{
+                    fontSize: 15,
+                    lineHeight: 1.9,
+                    color: 'var(--fd-pine)',
+                    letterSpacing: '-0.005em',
+                  }}
+                >
+                  {para}
+                </p>
+              ))}
             </div>
           </Container>
         </Section>
@@ -404,6 +491,75 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
           </Container>
         </Section>
 
+        {/* ── 영양 설계 — 기준·마진·급여량이 정해지는 방식을 풀어서 ── */}
+        <Section bg="white" pad="md">
+          <Container size="md">
+            <Eyebrow>Formulation · 영양 설계</Eyebrow>
+            <Display as="h2" size="lg" className="mt-3" style={{ color: 'var(--fd-pine)' }}>
+              감이 아니라 기준으로
+              <br />
+              설계했어요
+            </Display>
+            <p
+              className="mt-5"
+              style={{ maxWidth: 560, fontSize: 14.5, lineHeight: 1.8, color: 'var(--fd-muted)' }}
+            >
+              &ldquo;몸에 좋은 재료를 넣었다&rdquo;와 &ldquo;완전한 한 끼&rdquo;는
+              다른 말이에요. 좋은 재료를 모아도 영양 균형이 어긋나면 매일 먹는
+              주식이 될 수 없어요. 그래서 이 레시피는 재료 선정보다 먼저,
+              충족해야 할 기준부터 정해 두고 시작했어요.
+            </p>
+            <div className="mt-9 space-y-0">
+              {[
+                {
+                  k: '기준',
+                  t: '세 나라의 표준을 동시에',
+                  b:
+                    '반려동물 영양 표준은 나라마다 조금씩 달라요 — 미국 AAFCO, 유럽 FEDIAF, 한국 NIAS. 어느 하나만 맞추는 대신 셋을 겹쳐 놓고, 세 기준을 전부 통과하는 영역 안에서만 설계해요. 기준끼리 어긋나는 항목은 더 엄격한 쪽을 따라요.',
+                },
+                {
+                  k: '여유',
+                  t: '기준선이 아니라 +15% 위에서',
+                  b:
+                    '표준의 최소치에 턱걸이로 맞추면, 조리·보관 과정의 자연스러운 변동만으로도 기준 아래로 내려갈 수 있어요. 그래서 필수 영양소는 기준보다 15% 여유를 두고 설계해요. 서류상 합격이 아니라, 실제 그릇에서의 합격이 목표니까요.',
+                },
+                {
+                  k: '급여량',
+                  t: '레시피가 아니라 아이 기준으로',
+                  b:
+                    '하루 급여량은 이 봉투가 아니라 우리 아이가 정해요. 체중·나이·중성화 여부·활동량·체형에서 하루 필요 열량을 계산하고, 그걸 이 레시피의 열량 밀도로 나눠 그램이 나와요. 위 스펙트럼에서 보셨듯 레시피마다 열량이 달라서, 같은 아이라도 레시피가 바뀌면 급여량이 함께 바뀌어요.',
+                },
+                {
+                  k: '원칙',
+                  t: '원물 먼저, 보충은 최소한',
+                  b:
+                    '타우린이 필요하면 타우린 분말이 아니라 심장을 넣는 것 — 그게 이 주방의 순서예요. 자연 원물로 채울 수 있는 건 원물로 먼저 채우고, 그래도 남는 미량 영양소만 전용 프리믹스로 메워요. 봉투 뒷면 원재료 목록이 짧고 읽기 쉬운 이유예요.',
+                },
+              ].map((row) => (
+                <div
+                  key={row.k}
+                  className="grid sm:grid-cols-[92px_1fr] gap-x-8 gap-y-1 py-6"
+                  style={{ borderBottom: '1px solid var(--fd-line)' }}
+                >
+                  <div
+                    style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', color: 'var(--fd-coral-text)', paddingTop: 4 }}
+                  >
+                    {row.k}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 16.5, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.01em' }}>
+                      {row.t}
+                    </div>
+                    <p className="mt-2" style={{ fontSize: 13.5, lineHeight: 1.75, color: 'var(--fd-muted)' }}>
+                      {row.b}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Container>
+        </Section>
+
         {/* ── 수비드 공정 — 실제 만드는 순서(번호가 곧 정보) ── */}
         <Section bg="offwhite" pad="md">
           <Container size="lg">
@@ -460,48 +616,50 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
           </Container>
         </Section>
 
-        {/* ── 기준 + 보장성분(정직한 자리) ── */}
-        <Section bg="white" pad="md">
+        {/* ── 보장성분 — 정직한 자리 + 읽는 법 안내(숫자 없이도 내용이 있게) ── */}
+        <Section bg="cream" pad="md">
           <Container size="md">
-            <Eyebrow>Standard · 지키는 기준</Eyebrow>
-            <ul className="mt-5 grid gap-4 sm:grid-cols-2">
-              {[
-                { Icon: ShieldCheck, t: '3중 영양 표준 충족', dd: '미국(AAFCO)·유럽(FEDIAF)·한국(NIAS) 기준을 동시에 충족하고, 여기에 15% 안전 마진을 더했어요.' },
-                { Icon: Leaf, t: '사람이 먹는 등급 원물', dd: '사람이 먹을 수 있는 등급의 재료를, 사람 식품과 같은 위생 기준으로 다뤄요.' },
-              ].map(({ Icon, t, dd }) => (
-                <li key={t} className="rounded-[12px] px-5 py-5 h-full" style={{ background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
-                  <div className="flex items-center justify-center" style={{ width: 40, height: 40, borderRadius: 999, background: '#FFFFFF', color: 'var(--fd-green)' }}>
-                    <Icon size={20} strokeWidth={2.2} aria-hidden />
-                  </div>
-                  <div className="mt-3" style={{ fontSize: 15.5, fontWeight: 800, color: 'var(--fd-pine)' }}>{t}</div>
-                  <p className="mt-1.5" style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--fd-muted)' }}>{dd}</p>
-                </li>
-              ))}
-            </ul>
+            <Eyebrow>Analysis · 보장성분</Eyebrow>
+            <Display as="h2" size="md" className="mt-3" style={{ color: 'var(--fd-pine)' }}>
+              추정치 대신,
+              <br />
+              실측을 기다려요
+            </Display>
+            <p className="mt-4" style={{ maxWidth: 560, fontSize: 14, lineHeight: 1.75, color: 'var(--fd-muted)' }}>
+              보장성분 분석표는 공인 기관의 검사 결과가 나오는 대로 이 자리에
+              그대로 공개할 거예요. 계산상 추정치를 먼저 적어 둘 수도 있지만,
+              저희는 그 방식이 싫었어요 — 숫자는 실측이어야 숫자니까요.
+              봉투 라벨의 표기가 언제나 기준이에요.
+            </p>
             <div
-              className="mt-4 rounded-[12px] px-6 py-6"
-              style={{ background: 'var(--fd-cream)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
+              className="mt-7 rounded-[12px] px-6 py-6"
+              style={{ background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
             >
-              <div className="flex items-start gap-3">
-                <span className="flex items-center justify-center shrink-0" style={{ width: 40, height: 40, borderRadius: 999, background: '#FFFFFF', color: 'var(--fd-green)' }}>
-                  <FlaskConical size={19} strokeWidth={2.2} aria-hidden />
+              <div className="flex items-center gap-2.5">
+                <FlaskConical size={17} strokeWidth={2.2} style={{ color: 'var(--fd-green)' }} aria-hidden />
+                <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--fd-pine)' }}>
+                  분석표가 오면, 이렇게 읽으시면 돼요
                 </span>
-                <div>
-                  <p style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--fd-pine)' }}>
-                    보장성분 분석표는 공인 검사 결과가 나오는 대로 이 자리에 공개해요
-                  </p>
-                  <p className="mt-1.5" style={{ fontSize: 12.5, color: 'var(--fd-muted)', lineHeight: 1.65 }}>
-                    조단백·조지방·수분·칼슘·인 — 추정치를 먼저 적는 대신, 실측
-                    결과를 기다려요. 봉투 라벨의 표기가 언제나 기준이에요.
-                  </p>
-                </div>
               </div>
+              <dl className="mt-4 space-y-3">
+                {[
+                  ['조단백', '단백질의 총량이에요. 근육과 모질의 재료 — 화식은 원물 단백질 비중이 높아요.'],
+                  ['조지방', '에너지원이자 피부·모질의 윤기 재료예요. 많다고 좋은 게 아니라 아이에게 맞아야 해요.'],
+                  ['수분', '화식이 사료와 가장 다른 지점이에요. 갓 지은 밥처럼 수분이 살아 있어요.'],
+                  ['칼슘 · 인', '뼈를 지키는 두 미네랄 — 양보다 두 값의 균형이 중요해서 함께 봐야 해요.'],
+                ].map(([t, dd]) => (
+                  <div key={t} className="grid grid-cols-[64px_1fr] gap-x-4">
+                    <dt style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--fd-coral-text)' }}>{t}</dt>
+                    <dd style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--fd-muted)' }}>{dd}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
           </Container>
         </Section>
 
         {/* ── 처음 2주 가이드 — 전환 램프 + 해동·보관 ── */}
-        <Section bg="cream" pad="md">
+        <Section bg="white" pad="md">
           <Container size="md">
             <div className="text-center">
               <Eyebrow>First 2 Weeks · 처음 2주</Eyebrow>
@@ -519,7 +677,7 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
             {/* 전환 램프 — %는 쓰지 않는다. 채움 칸(1~4/4)만으로 "점점"을 전한다. */}
             <ol className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {TRANSITION_PHASES.map((ph) => (
-                <li key={ph.day} className="rounded-[12px] px-5 py-5" style={{ background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
+                <li key={ph.day} className="rounded-[12px] px-5 py-5" style={{ background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
                   <div className="flex items-center gap-2">
                     <CalendarDays size={15} strokeWidth={2.4} style={{ color: 'var(--fd-green)' }} aria-hidden />
                     <span style={{ fontSize: 13.5, fontWeight: 900, color: 'var(--fd-pine)' }}>{ph.day}</span>
@@ -532,7 +690,7 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
                           height: 8,
                           flex: 1,
                           borderRadius: 999,
-                          background: n <= ph.fill ? 'var(--fd-coral)' : 'var(--fd-offwhite)',
+                          background: n <= ph.fill ? 'var(--fd-coral)' : '#FFFFFF',
                           boxShadow: n <= ph.fill ? undefined : 'inset 0 0 0 1px var(--fd-line)',
                         }}
                       />
@@ -542,14 +700,22 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
                 </li>
               ))}
             </ol>
-            {/* 해동 · 보관 */}
+            {/* 해동 · 보관 — 매일의 루틴이 되도록 구체적으로 */}
             <ul className="mt-6 grid gap-4 sm:grid-cols-2">
               {[
-                { Icon: Thermometer, t: '해동', dd: '급여 전날 냉장실로 옮겨 자연 해동하세요. 급할 땐 미온수에 봉투째 담가 데워 주세요 — 전자레인지는 권하지 않아요.' },
-                { Icon: Refrigerator, t: '보관', dd: '개봉 전엔 냉동(-18℃), 개봉 후엔 밀봉해 냉장 3일 이내 급여를 권해요.' },
+                {
+                  Icon: Thermometer,
+                  t: '해동',
+                  dd: '전날 밤, 다음 날 먹일 봉투를 냉장실로 옮겨 두세요 — 저녁 산책 후 옮기는 걸 루틴으로 만들면 잊지 않아요. 급할 땐 미온수에 봉투째 담가 데워 주세요. 전자레인지는 고르게 데워지지 않아 권하지 않고, 한 번 해동한 봉투는 다시 얼리지 않아요.',
+                },
+                {
+                  Icon: Refrigerator,
+                  t: '보관',
+                  dd: '박스가 도착하면 바로 냉동실(-18℃)로 옮겨 주세요. 2주 분량이 들어갈 자리를 미리 비워 두시면 편해요. 개봉 전엔 봉투에 표기된 유통기한까지, 개봉 후엔 밀봉해 냉장 3일 이내 급여를 권해요.',
+                },
               ].map(({ Icon, t, dd }) => (
-                <li key={t} className="rounded-[12px] px-5 py-5 flex items-start gap-3" style={{ background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
-                  <span className="flex items-center justify-center shrink-0" style={{ width: 40, height: 40, borderRadius: 999, background: 'var(--fd-offwhite)', color: 'var(--fd-green)' }}>
+                <li key={t} className="rounded-[12px] px-5 py-5 flex items-start gap-3" style={{ background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
+                  <span className="flex items-center justify-center shrink-0" style={{ width: 40, height: 40, borderRadius: 999, background: '#FFFFFF', color: 'var(--fd-green)' }}>
                     <Icon size={19} strokeWidth={2.2} aria-hidden />
                   </span>
                   <div>
@@ -562,19 +728,65 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
           </Container>
         </Section>
 
-        {/* ── FAQ — 파우치를 든 순간의 질문들. details/summary 라 JS 불필요. ── */}
+        {/* ── 관찰 포인트 — 효능 약속이 아니라 지켜볼 것들 ── */}
         <Section bg="offwhite" pad="md">
+          <Container size="md">
+            <Eyebrow>What to Watch · 지켜봐 주세요</Eyebrow>
+            <Display as="h2" size="md" className="mt-3" style={{ color: 'var(--fd-pine)' }}>
+              몸은 천천히,
+              <br />
+              정직하게 답해요
+            </Display>
+            <p className="mt-4" style={{ maxWidth: 540, fontSize: 14, lineHeight: 1.75, color: 'var(--fd-muted)' }}>
+              새 식단의 답은 하루 만에 오지 않아요. 대신 아이의 몸이 곳곳에서
+              신호를 보내요 — 무엇을 언제 지켜보면 되는지 정리했어요. 앱 일기에
+              기록해 두시면 다음 박스 추천이 그만큼 정확해져요.
+            </p>
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              {OBSERVE_TIMELINE.map((stage) => (
+                <div
+                  key={stage.period}
+                  className="rounded-[12px] px-5 py-5"
+                  style={{ background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Eye size={15} strokeWidth={2.4} style={{ color: 'var(--fd-green)' }} aria-hidden />
+                    <span style={{ fontSize: 13.5, fontWeight: 900, color: 'var(--fd-pine)' }}>
+                      {stage.period}
+                    </span>
+                  </div>
+                  <ul className="mt-3 space-y-2.5">
+                    {stage.points.map((pt) => (
+                      <li
+                        key={pt}
+                        className="grid grid-cols-[10px_1fr] gap-x-2"
+                        style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--fd-muted)' }}
+                      >
+                        <span aria-hidden style={{ color: 'var(--fd-coral)', fontWeight: 900 }}>·</span>
+                        {pt}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </Container>
+        </Section>
+
+        {/* ── FAQ — 파우치를 든 순간의 질문들(공통 8 + 레시피별 2).
+             details/summary 라 JS 불필요. ── */}
+        <Section bg="white" pad="md">
           <Container size="md">
             <Eyebrow>FAQ · 자주 묻는 질문</Eyebrow>
             <Display as="h2" size="md" className="mt-3" style={{ color: 'var(--fd-pine)' }}>
               급여 전에 자주 묻는 것들
             </Display>
             <div className="mt-6 space-y-3">
-              {FEEDING_FAQ.map((f) => (
+              {[...FEEDING_FAQ, ...extraFaq].map((f) => (
                 <details
                   key={f.q}
                   className="group rounded-[12px] overflow-hidden"
-                  style={{ background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
+                  style={{ background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
                 >
                   <summary
                     className="flex items-center justify-between gap-4 px-6 py-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden"
