@@ -77,58 +77,38 @@ export async function GET(req: Request) {
   let purged = 0
   let failed = 0
   for (const p of targets) {
-    // R83-7: sequential delete (이전 Promise.all 은 race 위험).
-    // R83-8 에서 refunds.order_id FK 를 RESTRICT 로 바꿨으므로 순서가 중요:
-    //   refunds / payment_refund_queue → orders 순서로 삭제.
-    // 한 row 라도 실패하면 이 user 는 다음 cron 에서 재시도 (purged_at 미박힘).
-    // R83-7: 환경별 schema 차이 회피 위해 generic table arg — 강한 타입은
-    // supabase-js 의 union 제약을 우회하기 위해 cast.
-    const deleteStep = async (table: string, col: string = 'user_id') => {
-      const { error } = await (
-        supabase.from(
-          table as 'profiles', // any-of-tables placeholder; runtime 만 사용.
-        ) as unknown as {
-          delete: () => {
-            eq: (
-              c: string,
-              v: string,
-            ) => Promise<{ error: { message: string } | null }>
-          }
-        }
-      )
-        .delete()
-        .eq(col, p.id)
-      if (
-        error &&
-        !/(does not exist|relation .* does not exist)/i.test(error.message)
-      ) {
-        throw new Error(`${table} delete failed: ${error.message}`)
-      }
-    }
-
+    /**
+     * ★테이블별 deleteStep → 단일 RPC `purge_user` (2026-08-17 4라운드 감사 #21).
+     *
+     * 예전 방식은 **구조적으로 절대 성공할 수 없었다**:
+     *  · point_ledger 는 no_delete/no_update 트리거가 무조건 RAISE (insert-only
+     *    원장, 20260526103123) — 행이 있는 사용자는 여기서 영구 실패.
+     *  · payment_events 는 같은 불변 트리거 + orders 로 FK RESTRICT — 결제한 적
+     *    있는 계정의 orders 는 어떤 순서로도 삭제 불가.
+     *  · 덤: payment_refund_queue 엔 user_id 컬럼 자체가 없어(order_id 뿐)
+     *    deleteStep('payment_refund_queue') 는 42703 로 죽는 코드였다 —
+     *    롤백 트랜잭션 카나리아가 잡아냈다.
+     * deleteStep 의 예외 통과는 "does not exist" 뿐이라 전부 catch → failed →
+     * 영원한 재시도 루프가 됐을 것이다(최초 발화 ≈2031, 아직 대상 0).
+     *
+     * purge_user(SECURITY DEFINER, service_role 전용)는 파기 전체를 **한
+     * 트랜잭션**으로 하고, 불변 트리거는 함수 안에서만 내렸다 되살린다.
+     * 컷오프(1825일)는 함수가 스스로 재검증한다 — 호출자 인자를 믿지 않는다.
+     * 검산(2026-08-17, 롤백 트랜잭션): 합성 결제 계정 풀그래프 생성 → 보관
+     * 기간 중 호출은 거부 → 5년 경과 호출은 orders·payment_events·
+     * point_ledger·profiles 전부 삭제 → 불변 트리거 원복 확인.
+     */
     try {
-      // 1) FK RESTRICT 가 걸린 audit 테이블 먼저 (orders 보다 먼저).
-      await deleteStep('refunds')
-      await deleteStep('payment_refund_queue')
+      const { error: rpcErr } = await supabase.rpc('purge_user', {
+        p_user: p.id,
+      })
+      if (rpcErr) throw new Error(`purge_user rpc failed: ${rpcErr.message}`)
 
-      // 2) user_id 직접 보유한 보조 테이블.
-      await deleteStep('subscription_charges')
-      await deleteStep('point_ledger')
-
-      // 3) orders / subscriptions — 이제 FK 위반 위험 없음.
-      await deleteStep('orders')
-      await deleteStep('subscriptions')
-
-      // 4) consent_log 는 동의 입증 용 → 5년 + α 보존이라 보수적으로 함께 삭제.
-      await deleteStep('consent_log')
-
-      // 5) profile row 도 삭제 (이미 익명화 상태).
-      await deleteStep('profiles', 'id')
-
-      // 6) R83-C3 (D2): auth.users hard-delete.
+      // R83-C3 (D2): auth.users hard-delete.
       // 5년 보존 후 PIPA §21 즉시 파기 의무 — auth.users 도 익명화 아니라 hard-delete.
-      // admin.auth.admin.deleteUser 사용. 실패해도 다른 데이터는 이미 삭제됐으므로
-      // 다음 cron 에서 재시도 — auth row 만 남은 상태 (사용자 로그인 불가).
+      // 실패해도 다른 데이터는 이미 삭제됐으므로 다음 cron 에서 재시도.
+      // (RPC 가 profiles 를 지웠으므로 다음 실행의 대상 조회에는 안 잡힌다 —
+      //  auth 잔재는 로그인 불가 상태의 빈 껍데기라 개인정보 위험이 없다.)
       try {
         const { error: authErr } = await supabase.auth.admin.deleteUser(p.id)
         if (authErr && !/not.*found|user.*does.*not.*exist/i.test(authErr.message)) {

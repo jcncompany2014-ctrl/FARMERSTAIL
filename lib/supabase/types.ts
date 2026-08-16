@@ -3244,6 +3244,10 @@ export type Database = {
       }
     }
     Functions: {
+      purge_user: {
+        Args: { p_user: string }
+        Returns: Json
+      }
       apply_point_delta: {
         Args: {
           p_delta: number
