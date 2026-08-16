@@ -3,7 +3,6 @@ import localFont from "next/font/local";
 import {
   Archivo_Black,
   Bungee,
-  Cormorant_Garamond,
   Gaegu,
   JetBrains_Mono,
 } from "next/font/google";
@@ -74,18 +73,37 @@ const maruBuri = localFont({
 
 // Cormorant Garamond — 웹의 에디토리얼 이탤릭 디스플레이 (No. 01, 까지, 중간).
 // 앱에서는 사용 X.
-const cormorantGaramond = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  style: ["italic", "normal"],
+//
+// ★2026-08-16 next/font/google → 셀프호스팅 전환 — **빌드가 실제로 깨졌다.**
+// next/font/google 은 이 Next 포크가 고정해 둔 v21 파일 URL 을 빌드 때
+// 내려받는데, 구글이 이 서체를 가변(variable) 폰트로 회전시키면서 옛 정적
+// woff2 들이 404 가 됐다. 캐시가 있는 빌드는 살고 **캐시 미스 빌드만 죽는**
+// 구조라(로컬 rm -rf .next 재현), Vercel 이 빌드 캐시를 비우는 날 배포가
+// 그대로 멈추는 시한폭탄이었다. 현재 구글이 서빙하는 가변 파일(latin,
+// wght 300–700)을 받아 두 파일로 셀프호스팅한다 — MaruBuri·Pretendard 와
+// 같은 패턴, 이제 외부 의존이 없다.
+// (Gaegu 등 남은 구글 폰트는 한글 subset 이 슬라이스 수십 개라 같은 전환이
+//  무겁다 — 아직 URL 이 살아 있어 유지. 같은 증상이 나면 이 주석부터 볼 것.)
+//
+// preload 끔 (2026-08-07 성능 감사) — MaruBuri 와 같은 이유.
+// 실제 사용처는 components/web/fd/AppShowcase.tsx **한 곳**(/why-app)뿐인데
+// root layout 에 변수를 붙이는 것만으로 **모든 라우트**가 preload 했다.
+// 퍼널 진입점 /start 는 이 서체를 한 글자도 안 쓴다.
+const cormorantGaramond = localFont({
+  src: [
+    {
+      path: "./fonts/CormorantGaramond-latin.woff2",
+      weight: "300 700",
+      style: "normal",
+    },
+    {
+      path: "./fonts/CormorantGaramond-latin-italic.woff2",
+      weight: "300 700",
+      style: "italic",
+    },
+  ],
   display: "swap",
   variable: "--font-display",
-  // preload 끔 (2026-08-07 성능 감사) — MaruBuri 와 같은 이유.
-  // 실제 사용처는 components/web/fd/AppShowcase.tsx **한 곳**(/why-app)뿐인데
-  // root layout 에 변수를 붙이는 것만으로 **모든 라우트**가 normal+italic
-  // 77KB 를 preload 했다. 퍼널 진입점 /start 는 이 서체를 한 글자도 안 쓴다.
-  // (italic 은 globals.css 가 font-style:normal !important 로 전역 무력화까지
-  //  해 두어 더 확실히 낭비였다.)
   preload: false,
 });
 

@@ -8,6 +8,140 @@
 
 import type { WebRecipe } from './web-recipes'
 
+/**
+ * 원물 원장(ledger) — 상세페이지의 "전체 재료" 를 카테고리별 행으로.
+ *
+ * ★공개 수준 유지: lib/web-recipes 의 mainIngredients(사장님 결정 "레시피명+
+ * 주재료만") + 이미 공개된 공통 두 줄(연어유·프리믹스)만 행으로 편다.
+ * 배합 %·프리믹스 사양은 여기에도 절대 없다. note 는 효능 단정 없이
+ * "케어/도움/설계" 톤 — 기존 카피에서 이미 검토된 표현을 재사용한다.
+ */
+export type LedgerRow = { name: string; note: string }
+export type LedgerGroup = { label: string; rows: LedgerRow[] }
+
+/** 4종 공통 꼬리 — 오일·보충. (본문 카피와 같은 사실만.) */
+const LEDGER_COMMON: LedgerGroup = {
+  label: '오일 · 보충',
+  rows: [
+    { name: '연어유', note: '오메가-3 지방산 — 피부와 모질을 살피는 오일' },
+    {
+      name: '미네랄·비타민 프리믹스',
+      note: '자연 원물로 채우기 어려운 미량 영양소만 최소한으로 보충해요',
+    },
+  ],
+}
+
+export const RECIPE_LEDGER: Record<WebRecipe['protein'], LedgerGroup[]> = {
+  chicken: [
+    {
+      label: '주단백질',
+      rows: [
+        { name: '닭가슴살', note: '닭에서 가장 기름기 적은 부위 — 저지방 고단백의 기본' },
+      ],
+    },
+    {
+      label: '내장 원물',
+      rows: [
+        { name: '간', note: '철분과 비타민 A가 풍부한 자연 원물 — 소량으로 영양 밀도를 높여요' },
+        { name: '심장', note: '자연 타우린 — 심장 건강을 위한 아미노산을 원물 그대로' },
+      ],
+    },
+    {
+      label: '컨셉 토핑',
+      rows: [{ name: '강황', note: '커큐민 — 관절·노화 케어를 돕는 토핑' }],
+    },
+    {
+      label: '채소 · 곡물',
+      rows: [
+        { name: '당근', note: '베타카로틴이 풍부한 뿌리채소' },
+        { name: '현미', note: '천천히 소화되는 통곡물 — 에너지를 오래 유지해요' },
+      ],
+    },
+    LEDGER_COMMON,
+  ],
+  duck: [
+    {
+      label: '주단백질',
+      rows: [
+        { name: '오리 안심', note: '닭·소를 완전히 배제한 단일 단백질 — 예민한 아이의 기본식' },
+      ],
+    },
+    {
+      label: '내장 원물',
+      rows: [
+        { name: '오리 간', note: '철·구리가 풍부 — 순한 단백질에 영양을 보완해요' },
+        { name: '심장', note: '자연 타우린 — 심장 건강을 위한 아미노산을 원물 그대로' },
+      ],
+    },
+    {
+      label: '컨셉 토핑',
+      rows: [{ name: '사과', note: '펙틴 — 장내 환경을 부드럽게 돕는 토핑' }],
+    },
+    {
+      label: '채소 · 곡물',
+      rows: [
+        { name: '단호박', note: '식이섬유가 풍부해 장에 부드러운 채소' },
+        { name: '현미', note: '천천히 소화되는 통곡물 — 에너지를 오래 유지해요' },
+      ],
+    },
+    LEDGER_COMMON,
+  ],
+  pork: [
+    {
+      label: '주단백질',
+      rows: [
+        { name: '흑돼지 안심', note: '풍미 좋은 저지방 부위 — 입 짧은 아이도 반기는 단백질' },
+      ],
+    },
+    {
+      label: '내장 원물',
+      rows: [
+        { name: '간', note: '철분과 비타민 A가 풍부한 자연 원물 — 소량으로 영양 밀도를 높여요' },
+        { name: '심장', note: '자연 타우린 — 나이 든 아이의 심장을 살피는 아미노산' },
+      ],
+    },
+    {
+      label: '컨셉 토핑',
+      rows: [{ name: '무', note: '디아스타제 — 소화를 돕는 효소가 든 뿌리채소' }],
+    },
+    {
+      label: '채소 · 곡물',
+      rows: [
+        { name: '당근', note: '베타카로틴이 풍부한 뿌리채소' },
+        { name: '현미', note: '천천히 소화되는 통곡물 — 에너지를 오래 유지해요' },
+      ],
+    },
+    LEDGER_COMMON,
+  ],
+  beef: [
+    {
+      label: '주단백질',
+      rows: [
+        { name: '무항생제 한우 목심', note: '헴철·비타민 B12 — 활동량 많은 아이의 진한 단백질' },
+      ],
+    },
+    {
+      label: '내장 원물',
+      rows: [
+        { name: '간', note: '철분과 비타민 A가 풍부한 자연 원물 — 소량으로 영양 밀도를 높여요' },
+        { name: '심장', note: '타우린·CoQ10 — 활동견의 심장을 살피는 원물' },
+      ],
+    },
+    {
+      label: '컨셉 토핑',
+      rows: [{ name: '블루베리', note: '안토시아닌 — 운동 뒤 회복을 살피는 항산화 토핑' }],
+    },
+    {
+      label: '채소 · 곡물',
+      rows: [
+        { name: '시금치', note: '엽산과 철분을 더하는 잎채소' },
+        { name: '현미', note: '천천히 소화되는 통곡물 — 에너지를 오래 유지해요' },
+      ],
+    },
+    LEDGER_COMMON,
+  ],
+}
+
 export type RecipeHero = {
   /** 제품 표기명 — 검정증명서 명칭과 정합. */
   displayName: string
