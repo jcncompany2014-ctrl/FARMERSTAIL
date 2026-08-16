@@ -35,9 +35,21 @@ export default function EnsureFormula({ dogId }: { dogId: string }) {
   const router = useRouter()
   const [state, setState] = useState<'working' | 'failed'>('working')
   const [reason, setReason] = useState<string | null>(null)
+  /**
+   * 실패의 **종류** — 다음 행동이 다르다 (2026-08-16 4라운드 감사).
+   *  · 'survey' — 서버가 "만들 수 없는 이유"를 답한 경우(설문·분석 없음 등).
+   *               할 일은 설문이다.
+   *  · 'retry'  — 네트워크·파싱 실패. 설문 문제가 아니므로 설문 CTA 를 띄우면
+   *               멀쩡한 설문을 다시 하게 만든다. 할 일은 재시도다.
+   */
+  const [failKind, setFailKind] = useState<'survey' | 'retry'>('survey')
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let cancelled = false
+    // 'working' 복귀는 재시도 버튼의 이벤트 핸들러가 한다 — effect 안 동기
+    // setState 는 React 19 룰(cascading render)이 막고, 초회는 초기값이 이미
+    // 'working' 이라 불필요하다.
     void (async () => {
       try {
         const { httpOk, body } = await fetchComputedFormula(dogId)
@@ -52,10 +64,12 @@ export default function EnsureFormula({ dogId }: { dogId: string }) {
           (body as { message?: string } | null)?.message ??
             '아직 식단을 만들 수 없어요',
         )
+        setFailKind('survey')
         setState('failed')
       } catch {
         if (!cancelled) {
           setReason('식단을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')
+          setFailKind('retry')
           setState('failed')
         }
       }
@@ -63,7 +77,7 @@ export default function EnsureFormula({ dogId }: { dogId: string }) {
     return () => {
       cancelled = true
     }
-  }, [dogId, router])
+  }, [dogId, router, attempt])
 
   if (state === 'working') {
     return (
@@ -83,7 +97,7 @@ export default function EnsureFormula({ dogId }: { dogId: string }) {
   return (
     <div className="max-w-md mx-auto px-5 py-16 text-center">
       <p className="text-[15px] font-bold" style={{ color: 'var(--fd-pine)' }}>
-        아직 식단을 만들 수 없어요
+        {failKind === 'retry' ? '잠시 연결이 매끄럽지 않아요' : '아직 식단을 만들 수 없어요'}
       </p>
       <p
         className="mt-2 text-[13px] leading-relaxed"
@@ -91,13 +105,56 @@ export default function EnsureFormula({ dogId }: { dogId: string }) {
       >
         {reason}
       </p>
-      <Link
-        href="/start"
-        className="mt-6 inline-flex items-center px-5 py-3 rounded-full text-[13px] font-bold"
-        style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
-      >
-        설문 다시 하기
-      </Link>
+      {/**
+       * ★CTA 를 /start 로 보내지 않는다 (2026-08-16 4라운드 감사).
+       *
+       * /start 는 **비로그인 설문→가입** 퍼널이다. 여기 도달한 고객은 이미
+       * 로그인 상태인데, /start 로 보내면 설문을 처음부터 다 하고 마지막
+       * 가입 단계에서 /start/claim 이 "이미 강아지 있음"으로 판정해
+       * **초안을 삭제하고** 홈으로 보낸다 — 설문을 다시 다 해도 결과가
+       * 사라지는 순환이다. "로그인 상태면 /start 금지"는 저장소에 세 번
+       * 명문화돼 있었는데(mypage/orders · account/dogs · (main)/not-found)
+       * 이 화면만 남아 있었다.
+       *
+       * 진짜 설문 목적지는 앱의 /dogs/[id]/survey(RecommendationBox 와 같은
+       * 정본)다. 이 화면은 웹 전용(/account/*)이라 /app-required 를 거치는
+       * 정직한 패턴(account/dogs 전례 — 문구도 "앱에서")을 쓴다. 앱 사용자가
+       * 혹시 이 링크를 타도 AppRequiredAutoRecover 가 설문으로 되돌린다.
+       *
+       * 네트워크 실패(retry)는 설문 문제가 아니다 — 재시도 버튼으로.
+       */}
+      {failKind === 'retry' ? (
+        <button
+          type="button"
+          onClick={() => {
+            setState('working')
+            setAttempt((n) => n + 1)
+          }}
+          className="mt-6 inline-flex items-center px-5 py-3 rounded-full text-[13px] font-bold"
+          style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
+        >
+          다시 시도하기
+        </button>
+      ) : (
+        <Link
+          href={`/app-required?from=${encodeURIComponent(`/dogs/${dogId}/survey`)}`}
+          className="mt-6 inline-flex items-center px-5 py-3 rounded-full text-[13px] font-bold"
+          style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
+        >
+          앱에서 설문하기
+        </Link>
+      )}
+      <p className="mt-4 text-[12px]" style={{ color: 'var(--fd-muted)' }}>
+        계속 안 되면{' '}
+        <Link
+          href="/contact"
+          className="font-bold underline underline-offset-2"
+          style={{ color: 'var(--fd-coral-text)' }}
+        >
+          문의하기
+        </Link>
+        로 알려주세요 — 바로 도와드릴게요.
+      </p>
     </div>
   )
 }

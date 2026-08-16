@@ -2445,3 +2445,40 @@ test('규칙52 — 크론이 아무도 안 쓰는 컬럼에 걸려 조용히 0�
       unwritten.join('\n  '),
   )
 })
+
+test('규칙53 — 로그인 화면이 비로그인 설문 퍼널(/start)로 보내지 않는다', () => {
+  /**
+   * # 왜 (2026-08-16 4라운드 감사)
+   * /start 는 **비로그인 설문 → 결과 직전 가입** 퍼널이다. 이미 로그인한
+   * 고객을 거기로 보내면: 설문을 처음부터 다 하고, 마지막에 /start/claim 이
+   * "이미 강아지 있음"으로 판정해 **초안을 삭제**하고 홈으로 보낸다 —
+   * 설문을 다 해도 결과가 사라지는 순환이다.
+   *
+   * 이 금지는 주석으로 **세 번** 명문화돼 있었다(mypage/orders ·
+   * account/dogs · (main)/not-found). 그런데도 웹 구독 신청 실패 화면
+   * (account/subscribe/EnsureFormula)의 유일한 CTA 가 /start 였다 —
+   * 문서는 같은 날에도 어겨진다. 규칙은 테스트로만 산다.
+   *
+   * # 판정
+   * 로그인 전제 라우트 그룹(app/account · app/(main) · app/mypage)의 소스에서
+   * /start 정확 일치 링크·네비게이션을 금지한다. /start/claim 등 하위 경로는
+   * 별개 판단이라 정확 일치만 본다. 주석은 stripComments 로 걷는다.
+   */
+  const AUTHED_DIRS = ['app/account', 'app/(main)', 'app/mypage']
+  const offenders: string[] = []
+  for (const dir of AUTHED_DIRS) {
+    for (const f of walk(join(ROOT, dir))) {
+      const src = stripComments(read(f))
+      // href="/start" · href={'/start'} · href={`/start`} · push('/start') ·
+      // replace("/start") — 뒤에 경로가 더 붙는 /start/... 는 제외(부정 전방탐색).
+      const re = /(?:href=\{?|push\(|replace\()\s*['"`]\/start['"`?]/g
+      if (re.test(src)) offenders.push(f.slice(ROOT.length + 1))
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    '로그인 전제 화면이 비로그인 설문 퍼널(/start)로 보낸다 — 설문을 다 해도 ' +
+      'claim 이 초안을 삭제하는 순환이 된다: ' + offenders.join(', '),
+  )
+})
