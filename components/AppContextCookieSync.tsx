@@ -17,7 +17,14 @@ const COOKIE_MAX_AGE_S = 60 * 60 * 24 * 365 // 1년
  *     이 컴포넌트가 마운트되면서 쿠키 set → 다음 navigation 부터 middleware
  *     가 정상 통과시킴. 첫 요청은 client-side hook 로도 한 번 더 보장.
  *
- * 한 번만 set 하고 끝. 이미 정확한 값이면 no-op.
+ * ★앱이면 **마운트마다 다시 쓴다** (2026-08-16 4라운드 감사 — 이전엔 "이미
+ * 정확한 값이면 no-op"). iOS(ITP)는 document.cookie 로 심은 쿠키의 수명을
+ * max-age 와 무관하게 **7일로 깎는다.** no-op 최적화 때문에 만료가 갱신되지
+ * 않아, PWA 를 일주일 안 열면 ft_app 이 사라지고 다음 실행의 첫 요청
+ * (start_url=/dashboard)이 proxy 에서 /app-required "앱 설치하세요" 벽으로
+ * 튕겼다 — **앱 안에서 앱을 설치하라는 화면**이다. 매 마운트 재기록이면 앱을
+ * 쓰는 한 만료가 계속 미뤄진다. 비용은 document.cookie 대입 1회뿐.
+ * (벽에 이미 떨어진 경우의 복구는 AppRequiredAutoRecover 가 맡는다 — 두 겹.)
  *
  * SameSite=Lax — OAuth callback redirect 같은 cross-site 진입에도 보존.
  * Secure — production https 만. 개발 localhost 도 secure 미설정으로 safe.
@@ -36,7 +43,7 @@ export default function AppContextCookieSync() {
       .find((c) => c.startsWith(`${COOKIE_NAME}=`))
       ?.split('=')[1]
 
-    if (isApp && current === COOKIE_VALUE_APP) return // 이미 정확
+    // 앱이면 값이 이미 맞아도 재기록(만료 갱신 — 위 docstring). 웹은 no-op 유지.
     if (!isApp && !current) return // 이미 정확
 
     // Set or clear

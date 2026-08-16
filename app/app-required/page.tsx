@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Smartphone, ArrowRight, Heart, Bell, BookOpen } from 'lucide-react'
+import AppRequiredAutoRecover from '@/components/AppRequiredAutoRecover'
 
 export const metadata: Metadata = {
   title: '앱에서 사용 가능한 기능이에요',
@@ -36,6 +37,9 @@ export default async function AppRequiredPage({
       className="min-h-screen flex flex-col items-center justify-center px-6 py-16 md:py-24"
       style={{ background: 'var(--bg)' }}
     >
+      {/* ★진짜 앱 사용자가 이 벽에 떨어진 경우(첫 실행·쿠키 만료) 자동 복구.
+          웹 사용자에겐 아무 일도 안 일어난다 — 컴포넌트 docstring 참조. */}
+      <AppRequiredAutoRecover />
       <div className="max-w-md md:max-w-2xl w-full text-center">
         {/* 큰 아이콘 */}
         <div
