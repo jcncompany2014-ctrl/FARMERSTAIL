@@ -17,7 +17,16 @@ import {
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
-    if (name === 'node_modules' || name === '.next' || name === '.git') continue
+    // .claude = 격리 에이전트가 남긴 **낡은 워크트리 사본**이 들어 있다
+    // (2026-08-19 규칙57 이 잡아냈다 — 옛 코드가 규칙을 오탐시킨다). 소스가
+    // 아니므로 모든 규칙에서 제외한다.
+    if (
+      name === 'node_modules' ||
+      name === '.next' ||
+      name === '.git' ||
+      name === '.claude'
+    )
+      continue
     const p = join(dir, name)
     if (statSync(p).isDirectory()) walk(p, out)
     else if (/\.(ts|tsx)$/.test(name) && !/\.test\.ts$/.test(name)) out.push(p)
@@ -2564,5 +2573,44 @@ test('규칙56 — 청구 크론이 TOSS_SECRET_KEY 부재를 고객 실패로 �
     src,
     /secretMode === 'missing' \|\| secretMode === 'unknown'/,
     '프리플라이트가 부재(missing)만 막고 형식 오류(unknown)를 통과시킨다 — 오타 키가 3-strike 를 탄다',
+  )
+})
+
+test('규칙57 — 모든 CSV export 가 정본 lib/csv 를 거친다 (수식 인젝션 방어)', () => {
+  /**
+   * # 왜 (2026-08-19 5라운드 감사)
+   * lib/csv 의 escapeCell 은 OWASP CSV 수식 인젝션(선두 =,+,-,@,탭,CR)을 막는데,
+   * 피킹리스트 export 만 이 헬퍼를 안 쓰고 자체 직렬화라 뚫려 있었다. 배송메모·
+   * 강아지이름·수령인이 전부 고객 자유텍스트라, 고객이 `=IMPORTXML(...)` 를
+   * 저장하면 사장님이 화요일 피킹리스트를 열 때 수식이 실행돼 인접 셀(다른 고객
+   * PII)을 유출·피싱할 수 있었다.
+   *
+   * # 판정
+   * CSV 를 만드는 클라이언트/서버 파일(Blob type text/csv 또는 .csv 다운로드)이
+   * 자체 이스케이프(`replace(/"/g,'""')`)를 직접 쓰지 않고 lib/csv 를 import 하는지
+   * 확인한다. 자체 직렬화 흔적이 있으면서 lib/csv 를 안 쓰는 파일을 잡는다.
+   */
+  const offenders: string[] = []
+  for (const f of walk(ROOT)) {
+    const rel = f.slice(ROOT.length + 1)
+    const src = stripComments(read(f))
+    // CSV 를 실제로 만드는 파일만 대상: text/csv Blob 또는 .csv 다운로드.
+    const makesCsv =
+      /text\/csv/.test(src) || /\.csv['"`]/.test(src) || /toCsvWithBom|toCsv\(/.test(src)
+    if (!makesCsv) continue
+    // lib/csv 자신은 제외. (경로 구분자 정규화 — split/join 으로 백슬래시 회피)
+    if (rel.split(sep).join('/').endsWith('lib/csv.ts')) continue
+    const usesCanonical = /from ['"]@\/lib\/csv['"]/.test(src)
+    // 자체 직렬화 흔적: 손수 따옴표 이스케이프.
+    const handRolled = /replace\(\/"\/g,\s*['"]""['"]\)/.test(src)
+    if (!usesCanonical && (handRolled || /text\/csv/.test(src))) {
+      offenders.push(rel)
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'CSV export 가 정본 lib/csv 를 안 거친다 — 수식 인젝션 방어 누락 가능:\n  ' +
+      offenders.join('\n  '),
   )
 })

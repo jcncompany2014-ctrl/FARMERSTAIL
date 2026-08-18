@@ -2,6 +2,7 @@
 
 import { Download } from 'lucide-react'
 import { shipBlockReason, SHIP_BLOCK_LABEL } from '@/lib/admin/ship-block'
+import { toCsvWithBom } from '@/lib/csv'
 
 /**
  * 피킹 리스트 CSV — 한 줄 = 한 박스. 팩 구성은 "제품 165g×14" 형태로 한 컬럼에
@@ -81,7 +82,15 @@ export default function PickingListExport({
   date: string
 }) {
   function downloadCsv() {
-    const headers = [
+    // ★직렬화는 **정본 lib/csv** 로 (2026-08-19 5라운드 감사). 예전엔 자체
+    //   직렬화라 선두 `= + - @` 를 무력화하지 않아 CSV 수식 인젝션에 뚫려
+    //   있었다 — 배송메모·강아지이름·수령인이 전부 고객 자유텍스트라, 고객이
+    //   `=IMPORTXML(...)` 를 저장하면 사장님이 화요일 피킹리스트를 Excel/시트로
+    //   여는 순간 수식이 실행돼 인접 셀(다른 고객 PII)을 유출·피싱할 수 있었다.
+    //   주문 export 는 이미 lib/csv 를 쓰는데 실포장에 쓰는 피킹리스트만 구멍이
+    //   었다. toCsvWithBom 의 escapeCell 이 OWASP 수식 인젝션 방어 + BOM 을
+    //   함께 처리한다(자체 이스케이프·자체 BOM 붙이기 제거).
+    const columns = [
       '강아지',
       '수령인',
       '전화',
@@ -96,22 +105,22 @@ export default function PickingListExport({
       '박스 총량(g)',
       '청구액(원)',
     ]
-    const csvRows = rows.map((r) => [
-      r.dogName,
-      r.recipientName,
-      r.phone,
-      r.zip,
-      r.addressLine,
-      r.memo,
-      `${r.freshLabel} ${r.freshRatio}%`,
-      r.cycleNumber == null ? '' : String(r.cycleNumber),
-      r.userAdjusted ? '✓' : '',
+    const csvRows = rows.map((r) => ({
+      강아지: r.dogName,
+      수령인: r.recipientName,
+      전화: r.phone,
+      우편: r.zip,
+      주소: r.addressLine,
+      배송메모: r.memo,
+      화식비율: `${r.freshLabel} ${r.freshRatio}%`,
+      cycle: r.cycleNumber == null ? '' : String(r.cycleNumber),
+      보호자조정: r.userAdjusted ? '✓' : '',
       // ★상태는 화면 배지와 같은 우선순위로 판정한다(2026-08-12 반증감사).
       //   예전엔 미결제 정지 건이 '청구예정'으로 나와 CSV 를 믿고 포장하면
       //   무료 발송이 됐다. CSV 는 발송물이 아니라 데이터라 제외 대신 표기.
       // 발송 금지 사유는 정본(lib/admin/ship-block)이 판정한다 — 화면 배지·
       // 라벨 필터·조리 합계와 **같은 함수**라 넷이 갈라질 수 없다.
-      shipBlockReason(r)
+      상태: shipBlockReason(r)
         ? SHIP_BLOCK_LABEL[shipBlockReason(r)!] +
           (shipBlockReason(r) === 'charge_failed_today' && r.failedCode
             ? `:${r.failedCode}`
@@ -119,30 +128,21 @@ export default function PickingListExport({
         : r.pausedAfterCharge
           ? '결제후정지(확인필요)'
           : r.noFormula
-              ? '처방없음'
-              : r.charged
-                ? '청구완료'
-                : r.overdue
-                  ? '청구지연'
-                  : '청구예정',
-      r.packs.map((p) => `${p.name} ${p.packG}g×${p.count}`).join(' / '),
-      String(r.boxTotalG),
-      String(r.totalAmount),
-    ])
-    const csv = [headers, ...csvRows]
-      .map((row) =>
-        row
-          .map((cell) => {
-            const s = String(cell ?? '')
-            if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
-            return s
-          })
-          .join(','),
-      )
-      .join('\r\n')
+            ? '처방없음'
+            : r.charged
+              ? '청구완료'
+              : r.overdue
+                ? '청구지연'
+                : '청구예정',
+      '팩 구성': r.packs
+        .map((p) => `${p.name} ${p.packG}g×${p.count}`)
+        .join(' / '),
+      '박스 총량(g)': String(r.boxTotalG),
+      '청구액(원)': String(r.totalAmount),
+    }))
+    const csv = toCsvWithBom(csvRows, columns)
 
-    // 한글 깨짐 방지 BOM (UTF-8 BOM = EF BB BF).
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

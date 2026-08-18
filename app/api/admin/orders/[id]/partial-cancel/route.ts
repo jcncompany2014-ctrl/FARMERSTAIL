@@ -236,7 +236,16 @@ export async function POST(
   const isFullyRefunded = nextRefunded >= order.total_amount
   const nextStatus = isFullyRefunded ? 'refunded' : 'partially_refunded'
 
-  const { error: updateErr } = await admin
+  // ★원자 선점 (2026-08-19 5라운드 감사). 예전엔 `.eq('id')` 만이라, 동시
+  //   부분환불(데스크톱+모바일 드로어 두 탭·응답 지연 후 재시도)이 겹치면 둘 다
+  //   같은 refunded_amount 를 읽어 **같은 멱등키**로 토스에 가 실제 환불은 1회지만
+  //   (돈은 안전), 아래 refunds·payment_events 원장에 **각각 2행**이 남았다 —
+  //   재무 대시보드 환불액·환불율이 부풀고 순매출이 깎여 원장이 갈라진다.
+  //   재고 복구(restore_stock)는 이미 R100-3 에서 원자 선점을 붙였는데 원장만
+  //   빠져 있었다. UPDATE 조건에 스냅샷 시점의 refunded_amount·payment_status 를
+  //   걸어, 그 사이 다른 요청이 선점했으면 0행으로 bail 한다. (두 컬럼 모두
+  //   NOT NULL default 0 — null 분기 불필요.)
+  const { data: claimed, error: updateErr } = await admin
     .from('orders')
     .update({
       refunded_amount: nextRefunded,
@@ -251,12 +260,21 @@ export async function POST(
         : {}),
     })
     .eq('id', order.id)
+    .eq('refunded_amount', order.refunded_amount)
+    .eq('payment_status', order.payment_status)
+    .select('id')
 
   if (updateErr) {
     return NextResponse.json(
       { code: 'DB_UPDATE_FAILED', message: updateErr.message },
       { status: 500 }
     )
+  }
+  // ★error 와 0행을 구분한다(규칙1). 0행 = 다른 요청이 먼저 선점 — 토스 환불은
+  //   멱등키로 1회만 실행됐고 원장도 그쪽이 이미 기록했으므로, 여기서는
+  //   refunds·재고·payment_events 를 **한 번도 더 쓰지 않고** 조용히 성공 반환한다.
+  if (!claimed || claimed.length === 0) {
+    return NextResponse.json({ ok: true, alreadyProcessed: true })
   }
 
   // 점검 medium: refunds 원장 기록. 고객용 cancel 은 refunds 에 적지만
