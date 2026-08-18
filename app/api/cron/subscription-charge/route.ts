@@ -329,6 +329,31 @@ export async function GET(req: Request) {
 }
 
 async function runSubscriptionCharge(): Promise<Response> {
+  // ★프리플라이트 — 서버 설정 오류를 '고객 결제 실패'로 오분류하지 않는다
+  //   (2026-08-19 5라운드 감사).
+  //
+  // TOSS_SECRET_KEY 가 없거나 오타면 chargeBillingKey 는 매 구독마다
+  // { code:'TOSS_SECRET_MISSING' } 를 돌려주는데, 이 코드는 permanent/transient
+  // 목록에 없어 classifyBillingError 가 **'unknown'** 으로 분류한다 → 3-strike
+  // 경로를 타 정상 고객의 failed_charge_count 가 오르고 3일이면 전원 일시정지된다.
+  // 출시일 운영키 교체(TOSS_GO_LIVE.md) 때 키를 한 글자 흘리면 카드에 아무
+  // 문제 없는 고객 전원이 '결제 실패' 처리되는 것 — 되돌리기 어려운 사고다.
+  //
+  // 그래서 한 명이라도 건드리기 전에 여기서 끊는다. 500 을 반환하면 trackCron 이
+  // error 로 집계(크론 빨간불 + Sentry)해 사장님이 즉시 본다. 고객 데이터는
+  // 무손상 — 다음 실행에서 키가 정상이면 그대로 청구된다.
+  if (!process.env.TOSS_SECRET_KEY) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: 'toss_secret_missing',
+        errors: 1,
+        note: 'TOSS_SECRET_KEY 부재/오타 — 청구를 시작하지 않고 중단. 환경변수 확인 필요.',
+      },
+      { status: 500 },
+    )
+  }
+
   const supabase = createAdminClient()
   const today = todayKstIsoDate()
 

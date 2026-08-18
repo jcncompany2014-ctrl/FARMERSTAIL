@@ -2482,3 +2482,79 @@ test('규칙53 — 로그인 화면이 비로그인 설문 퍼널(/start)로 보
       'claim 이 초안을 삭제하는 순환이 된다: ' + offenders.join(', '),
   )
 })
+
+test('규칙54 — 결제 웹훅이 결제↔주문 결합을 토스 재조회 orderId 로 검증한다', () => {
+  /**
+   * # 왜 (2026-08-19 5라운드 감사)
+   * 웹훅은 body 의 orderId 로 주문을 찾고 토스 재조회로는 paymentKey 만
+   * 대조했다 — "이 결제가 이 주문의 결제인가"(결합)는 아무도 안 봤다.
+   * body.orderId 는 공격자가 쓰는 값이라, 같은 금액 주문 2개를 만들고 자기
+   * paymentKey 로 두 번째 주문에 웹훅을 위조하면 결제 1회에 박스 2개가 나갔다.
+   * 토스 재조회 응답의 payment.orderId(paymentKey 에 묶여 위조 불가)를 조회된
+   * 주문과 대조해야 결합이 증명된다.
+   *
+   * # 판정
+   * webhook 라우트가 payment.orderId 를 order.order_number(또는 UUID 폴백
+   * order.id)와 대조하고, 불일치 시 상태 전이(switch) 전에 bail 하는지 확인한다.
+   */
+  const src = stripComments(read(join(ROOT, 'app/api/payments/webhook/route.ts')))
+  assert.match(
+    src,
+    /payment\.orderId\s*!==\s*order\.order_number/,
+    '웹훅이 토스 재조회 orderId 를 주문번호와 대조하지 않는다 — 결합 위조 가능',
+  )
+  // 대조가 amount check·switch 보다 앞에 있어야 위조가 상태를 못 바꾼다.
+  const guardAt = src.indexOf('payment.orderId !== order.order_number')
+  const switchAt = src.indexOf('switch (payment.status)')
+  assert.ok(
+    guardAt > 0 && guardAt < switchAt,
+    '결합 검증이 상태 전이(switch) 뒤에 있다 — 위조가 이미 반영된 뒤라 늦다',
+  )
+})
+
+test('규칙55 — 결제 웹훅 DONE 이 종결 상태(취소·실패)를 조용히 덮지 않는다', () => {
+  /**
+   * # 왜 (2026-08-19 5라운드 감사)
+   * DONE 분기는 `.eq('id')` 만으로 무조건 paid 로 UPDATE 해, 그 사이 주문이
+   * cancelled/failed 로 바뀌어도(예: order-expire 오만료) 덮어썼다 — 취소
+   * 분기(:401)는 `.eq('payment_status', ...)` 0-row 가드가 있는데 비대칭이었다.
+   * 결과: payment_status='paid' + order_status='cancelled' 로 굳어 발송 없는
+   * 과금이 된다. 종결 상태는 사람이 봐야 하므로(환불/복구 판단) 조용히 덮지
+   * 않고 fatal 로 남긴다.
+   *
+   * # 판정
+   * DONE 분기에 종결 상태 차단(done_on_terminal 이벤트) + UPDATE 의 원자
+   * payment_status 가드가 둘 다 있는지 확인한다.
+   */
+  const src = stripComments(read(join(ROOT, 'app/api/payments/webhook/route.ts')))
+  assert.match(
+    src,
+    /order\.webhook\.done_on_terminal/,
+    'DONE 분기에 종결-상태 충돌 알림이 없다 — 취소/실패를 조용히 paid 로 덮는다',
+  )
+  // DONE UPDATE 에도 원자 가드(.eq payment_status)가 있어야 한다. 취소 분기에
+  // 이미 하나 있으므로 2개 이상이면 DONE 에도 추가된 것.
+  const guards = [...src.matchAll(/\.eq\(\s*'payment_status'\s*,\s*order\.payment_status\s*\)/g)]
+  assert.ok(
+    guards.length >= 2,
+    `payment_status 원자 가드가 ${guards.length}개 — DONE·취소 양쪽에 있어야 한다(≥2)`,
+  )
+})
+
+test('규칙56 — 청구 크론이 TOSS_SECRET_KEY 부재를 고객 실패로 오분류하지 않는다', () => {
+  /**
+   * # 왜 (2026-08-19 5라운드 감사)
+   * TOSS_SECRET_MISSING 은 permanent/transient 목록에 없어 'unknown' 으로
+   * 분류돼 3-strike 를 탄다 — 키 오타 하나로 카드에 문제 없는 고객 전원의
+   * failed_charge_count 가 오르고 3일이면 일시정지된다. 한 명이라도 건드리기
+   * 전에 크론 시작에서 끊어야 한다(500 → 크론 빨간불, 고객 무손상).
+   */
+  const src = stripComments(
+    read(join(ROOT, 'app/api/cron/subscription-charge/route.ts')),
+  )
+  assert.match(
+    src,
+    /!process\.env\.TOSS_SECRET_KEY/,
+    '청구 크론에 TOSS_SECRET_KEY 프리플라이트가 없다 — 키 오타 시 정상 고객 전원 3-strike',
+  )
+})

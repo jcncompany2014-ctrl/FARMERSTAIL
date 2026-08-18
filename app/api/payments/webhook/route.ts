@@ -147,6 +147,40 @@ export async function POST(req: Request) {
     )
   }
 
+  // 2.5) ★결제↔주문 **결합** 검증 (2026-08-19 5라운드 감사).
+  //
+  // 지금까지는 body 의 orderId 로 주문을 찾고, 토스 재조회로는 paymentKey 만
+  // 대조했다(위 :94). 그런데 **"이 결제가 이 주문의 결제인가"** 는 아무도 안
+  // 봤다 — body.orderId 는 공격자가 쓴 값이다. 토스 재조회 응답의
+  // `payment.orderId`(= 결제 시점에 우리가 토스에 보낸 주문번호, paymentKey 에
+  // 묶여 위조 불가)를 우리가 찾은 주문과 대조해야 결합이 증명된다.
+  //
+  // 안 하면: 고객이 같은 금액 주문 2개(구독 박스는 금액이 균일)를 만들고 1개만
+  // 결제해 자기 paymentKey 를 얻은 뒤, 그 paymentKey + 두 번째 주문번호로
+  // 웹훅을 위조 전송 → 재조회 status=DONE·금액 일치 → 두 번째 주문도 paid 로
+  // 승격돼 **결제 1회에 박스 2개**가 나간다. confirm 경로는 webhook_events 에
+  // 기록하지 않으므로 아래 멱등 게이트도 이 위조를 막지 못한다.
+  //
+  // order_number 정상 경로 + 과거 크론이 UUID(orders.id)를 보낸 케이스(:103)
+  // 둘 다 허용한다.
+  if (
+    payment.orderId !== order.order_number &&
+    payment.orderId !== order.id
+  ) {
+    captureBusinessEvent('error', 'order.webhook.orderid_mismatch', {
+      bodyOrderId: orderId,
+      tossOrderId: payment.orderId,
+      matchedOrderNumber: order.order_number,
+      paymentKey,
+      note: '토스 재조회 orderId 가 조회된 주문과 불일치 — 결합 위조 의심.',
+    })
+    // 재시도해도 결코 일치하지 않으므로 200 으로 끊는다(멱등 기록 전이라 잔재 없음).
+    return NextResponse.json(
+      { ok: false, reason: 'orderid_mismatch' },
+      { status: 200 },
+    )
+  }
+
   // 3) Amount check — if it doesn't match we have a serious problem.
   // Still ack with 200 (retries won't help), but log + Sentry for ops.
   if (payment.totalAmount !== order.total_amount) {
@@ -291,6 +325,35 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, skipped: 'already_paid' })
       }
 
+      // ★종결 상태(취소·실패)를 조용히 paid 로 덮지 않는다 (2026-08-19 5라운드 감사).
+      //
+      // 취소 분기(:401)는 `.eq('payment_status', ...)` 0-row 가드로 동시 전이를
+      // 막는데 DONE 분기엔 그게 없어, 주문이 그 사이 cancelled/failed 로 바뀌어도
+      // `.eq('id')` 만으로 무조건 paid 로 덮었다. 실제 경로: 고객이 결제 후 탭을
+      // 닫아 confirm 미실행 → 웹훅 첫 시도가 DB 순단으로 500 → 토스가 수 시간
+      // 재시도. 그 사이 order-expire 크론이 주문을 만료(cancelled). 재시도 성공 시
+      // payment_status='paid' 인데 order_status='cancelled' 로 굳는다 — 고객은
+      // 돈을 냈는데 발송 큐엔 없다(발송 없는 과금).
+      //
+      // 토스는 DONE 인데 우리가 이미 취소/실패로 종결했다면, 그건 우리 쪽 오처리
+      // (오만료 등)일 수 있어 **사람이 봐야 한다** — 환불할지 되살릴지는 금액이
+      // 오간 판단이라 자동으로 정할 수 없다. 조용히 덮는 대신 fatal 로 남긴다.
+      if (
+        order.payment_status === 'cancelled' ||
+        order.payment_status === 'failed'
+      ) {
+        captureBusinessEvent('error', 'order.webhook.done_on_terminal', {
+          orderId: order.id,
+          paymentKey,
+          orderPaymentStatus: order.payment_status,
+          note: '토스는 DONE 인데 주문은 이미 취소/실패로 종결 — 오만료 의심. 사람 확인 필요(환불 또는 복구).',
+        })
+        return NextResponse.json(
+          { ok: false, reason: 'terminal_state_conflict' },
+          { status: 200 },
+        )
+      }
+
       const paidUpd = await supabase
         .from('orders')
         .update({
@@ -306,8 +369,16 @@ export async function POST(req: Request) {
           receipt_url: payment.receipt?.url ?? null,
         })
         .eq('id', order.id)
+        // ★원자 전이 가드 — 스냅샷 이후 상태가 바뀌었으면 0-row 로 bail
+        //   (취소 분기와 대칭). 위 종결-상태 차단과 함께 이중 방어.
+        .eq('payment_status', order.payment_status)
+        .select('id')
       // ★ 여기서 실패하면 "입금됐는데 미결제로 남는다" — 도장 트리거도 안 돈다.
       if (paidUpd.error) return await failAndAskRetry('orders.paid', paidUpd.error)
+      if (!paidUpd.data || paidUpd.data.length === 0) {
+        // 0행 = 그 사이 다른 흐름이 상태를 바꿨다. 재시도 아닌 정상 skip.
+        return NextResponse.json({ ok: true, skipped: 'already_processed' })
+      }
 
       // R60 — 결제 원장 event. 가상계좌 입금 완료 또는 confirm 누락 케이스.
       {
