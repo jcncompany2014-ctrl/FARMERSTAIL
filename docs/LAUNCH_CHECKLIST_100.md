@@ -39,6 +39,23 @@ R81~R88 (8 라운드) 코드 audit 후, 코드 외 영역 + 운영 SOP 정리.
 - [ ] **B11** NEXT_PUBLIC_SITE_URL = production domain (https://farmerstail.kr)
 - [ ] **B12** CRON_SECRET 강도 (32+ 문자) + Vercel cron header 일치
 
+### B-Auth. Supabase Auth 설정 (2026-08-19 5라운드 감사 — 대시보드에서만 가능)
+
+- [ ] **BA1** **Confirm email 토글 정책 확정.** 현재 프로덕션은 **꺼짐**(가입 즉시
+      자동 confirm — auth.users 전원 생성 0.05초 내 confirmed 로 실측). 코드·
+      confirm-signup 템플릿·README 는 켜짐을 가정하니, ON 으로 켜거나(권장:
+      이메일 오타로 결제 고객이 계정에서 잠기는 것 방지) OFF 를 정책으로 두고
+      confirm-signup 템플릿·join 페이지의 "가입 메일 보냈어요" 분기를 정리한다.
+- [ ] **BA2** **Email Templates 4종 붙여넣기.** Authentication → Email Templates
+      에 `supabase/email-templates/` 의 reset-password·confirm-signup·magic-link·
+      change-email 을 붙여넣는다. ★reset-password 는 이걸 안 하면 "다른 브라우저
+      에서 링크 열기"가 계속 깨진다(코드는 배포됨, 템플릿이 반쪽).
+- [ ] **BA3** **Email OTP Expiration = 1시간** 확인(템플릿 문구가 전부 1시간으로
+      통일됨 — 설정이 다르면 링크가 예고보다 일찍/늦게 만료).
+- [ ] **BA4** **Redirect URLs 허용목록**: 프로덕션 도메인 + `/auth/callback` +
+      PWA + **Capacitor 네이티브 origin**(capacitor://localhost 등). 네이티브
+      빌드의 카카오/애플 OAuth 가 여기 없으면 실패한다.
+
 ---
 
 ## C. 법적 / 규제 final check (8)

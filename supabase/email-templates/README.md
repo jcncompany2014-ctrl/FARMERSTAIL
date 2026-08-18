@@ -23,7 +23,10 @@ Supabase 가 자동 치환하는 변수:
 - 답장 가능: 발신자 이메일은 customer-support 별칭으로 (Settings → SMTP).
 - 모바일 친화: 단일 컬럼, 폰트 sans-serif, 본문 14px+.
 - 브랜드: terracotta (#C66B3D) accent, ink (#1E1A14) 본문.
-- 만료 안내: 모든 confirmation 링크는 24h 후 만료 명시.
+- 만료 안내: 모든 링크는 **1시간** 후 만료 명시. (Supabase 는 이메일 OTP
+  만료를 단일 설정 MAILER_OTP_EXP 로 confirmation·recovery·magic-link 에
+  공유하므로 템플릿 문구가 서로 달라선 안 된다 — 2026-08-19 감사: confirm-signup
+  이 24시간이라 적어 reset/magic 의 1시간과 모순이었다.)
 
 ## 운영 메모
 

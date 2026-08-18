@@ -147,7 +147,12 @@ export default function DiaryClient({
 
       // 1) 각 사진 resize + upload
       const today = todayKstIsoDate()
-      const uploadedUrls: string[] = []
+      // ★DB 엔 **스토리지 경로**만 저장한다 (2026-08-19 5라운드 감사). 예전엔
+      //   1년 signed URL 을 박제해 1년 뒤 사진이 통째로 깨졌다. 조회 시점에
+      //   page.tsx 가 재서명한다(체크인 사진과 같은 패턴). 방금 올린 사진의
+      //   즉시 표시용으로만 짧은 signed URL 을 따로 만들어 낙관적 갱신에 쓴다.
+      const uploadedPaths: string[] = []
+      const displayUrls: string[] = []
       for (const file of draftFiles) {
         const blob = await resizeImage(file)
         const filename = `${user.id}/${dogId}/${today}-${crypto.randomUUID()}.webp`
@@ -155,26 +160,33 @@ export default function DiaryClient({
           .from('dog-diary-photos')
           .upload(filename, blob, { contentType: 'image/webp', upsert: false })
         if (upErr) throw upErr
+        uploadedPaths.push(filename)
         const { data: signed } = await supabase.storage
           .from('dog-diary-photos')
-          .createSignedUrl(filename, 60 * 60 * 24 * 365) // 1년 — bucket 이 private 라 signed URL 필요
-        if (signed?.signedUrl) uploadedUrls.push(signed.signedUrl)
+          .createSignedUrl(filename, 60 * 60) // 표시용 짧은 TTL (DB 엔 경로 저장)
+        if (signed?.signedUrl) displayUrls.push(signed.signedUrl)
       }
 
-      // 2) entry insert
+      // 2) entry insert — photo_urls 엔 경로를 저장한다.
       const { data, error } = await supabase
         .from('dog_diary')
         .insert({
           dog_id: dogId,
           user_id: user.id,
-          photo_urls: uploadedUrls,
+          photo_urls: uploadedPaths,
           note: draftNote.trim() || null,
           mood: draftMood,
         })
         .select('id, photo_urls, note, mood, created_at')
         .single()
       if (error) throw error
-      if (data) setEntries((prev) => [data as Entry, ...prev])
+      // 낙관적 갱신은 표시용 signed URL 로 (DB 의 photo_urls 는 경로라 그대로
+      // 렌더하면 안 열린다). 다음 페이지 로드부터는 page.tsx 가 재서명한다.
+      if (data)
+        setEntries((prev) => [
+          { ...(data as Entry), photo_urls: displayUrls },
+          ...prev,
+        ])
 
       toast.success('일기를 저장했어요')
       setShowNew(false)

@@ -162,25 +162,45 @@ export async function GET(req: Request) {
         : days === 1
           ? '내일 정기배송이 출발해요 🐾'
           : `D-${days} · 정기배송 알림`
-    // R84-D4: 이전엔 fire-and-forget (.then/.catch) → Vercel function 종료 시
-    //   background promise 절단 가능. R83-6 에서 subscription-charge 는 잡았는데
-    //   reminders 는 누락. await 으로 안전화 + try/catch 격리.
-    try {
-      const res = await pushToUser(
-        sub.user_id,
-        {
-          title: pushTitle,
-          body: itemCountLabel,
-          // ?focus 로 해당 구독 카드까지 자동 스크롤 + highlight + skip/pause 강조.
-          // 결제 전 마지막 컨트롤 권한 — 1탭으로 도달.
-          url: `/mypage/subscriptions?focus=${sub.id}`,
-          tag: `sub-reminder-${sub.id}-${sub.next_delivery_date}`,
-        },
-        { category: 'order' },
-      )
-      if (res.ok && res.sent > 0) pushed++
-    } catch {
-      /* push 실패 — 다음 cycle 에 retry */
+    // ★재실행 dedup — 같은 리마인더가 같은 날 두 번 나가지 않게 (2026-08-19
+    //   5라운드 감사). 이메일은 Resend idempotencyKey(sub:date)로 이미 dedup
+    //   되는데 푸시만 빠져 있어, 크론이 수동+예약으로 겹치거나 재시도되면 배송
+    //   알림이 2번 갔다(payload 의 tag 는 클라 표시 병합 힌트일 뿐 두 번째 발생을
+    //   못 막는다). push_log 엔 sub·tag 컬럼이 없어 user_id + 정확한 title(=
+    //   day-offset 을 구분한다) + 20시간 창으로 앵커한다 — 같은 날 재실행만 막고
+    //   D-3/D-1/D-0 시퀀스(각 다른 날·다른 title)와 다음 주기는 통과시킨다.
+    //   조회 실패 시 푸시를 건너뛴다(모르면 안 보낸다 — 하루 늦는 것 < 두 번).
+    const { count: alreadyPushed, error: dedupErr } = await admin
+      .from('push_log')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', sub.user_id)
+      .eq('title', pushTitle)
+      .gt('sent_at', new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString())
+    if (dedupErr) {
+      console.error('[cron/subscription-reminders] push dedup 조회 실패, 건너뜀', {
+        subscriptionId: sub.id,
+        err: dedupErr.message,
+      })
+    } else if ((alreadyPushed ?? 0) === 0) {
+      // R84-D4: 이전엔 fire-and-forget (.then/.catch) → Vercel function 종료 시
+      //   background promise 절단 가능. await 으로 안전화 + try/catch 격리.
+      try {
+        const res = await pushToUser(
+          sub.user_id,
+          {
+            title: pushTitle,
+            body: itemCountLabel,
+            // ?focus 로 해당 구독 카드까지 자동 스크롤 + highlight + skip/pause 강조.
+            // 결제 전 마지막 컨트롤 권한 — 1탭으로 도달.
+            url: `/mypage/subscriptions?focus=${sub.id}`,
+            tag: `sub-reminder-${sub.id}-${sub.next_delivery_date}`,
+          },
+          { category: 'order' },
+        )
+        if (res.ok && res.sent > 0) pushed++
+      } catch {
+        /* push 실패 — 다음 cycle 에 retry */
+      }
     }
   }
 
