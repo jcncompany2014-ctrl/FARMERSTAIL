@@ -2552,9 +2552,17 @@ test('규칙56 — 청구 크론이 TOSS_SECRET_KEY 부재를 고객 실패로 �
   const src = stripComments(
     read(join(ROOT, 'app/api/cron/subscription-charge/route.ts')),
   )
+  // keyMode 기반 프리플라이트 — 부재(missing)뿐 아니라 형식 오류(unknown)까지
+  // 첫 구독 전에 끊어야 한다. process.env.TOSS_SECRET_KEY 를 keyMode 에 통과시키고
+  // missing/unknown 을 막는지 확인.
   assert.match(
     src,
-    /!process\.env\.TOSS_SECRET_KEY/,
-    '청구 크론에 TOSS_SECRET_KEY 프리플라이트가 없다 — 키 오타 시 정상 고객 전원 3-strike',
+    /keyMode\(process\.env\.TOSS_SECRET_KEY\)/,
+    '청구 크론이 keyMode 로 프리플라이트하지 않는다 — 키 오타/부재 시 정상 고객 전원 3-strike',
+  )
+  assert.match(
+    src,
+    /secretMode === 'missing' \|\| secretMode === 'unknown'/,
+    '프리플라이트가 부재(missing)만 막고 형식 오류(unknown)를 통과시킨다 — 오타 키가 3-strike 를 탄다',
   )
 })

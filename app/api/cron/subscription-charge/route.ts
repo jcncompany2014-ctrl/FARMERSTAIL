@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { nextCycleDateAligned } from '@/lib/shipping-schedule'
 import { chargeBillingKey, cancelPayment } from '@/lib/payments/toss'
+import { keyMode } from '@/lib/payments/key-mode'
 import {
   classifyBillingError,
   describeBillingError,
@@ -332,23 +333,25 @@ async function runSubscriptionCharge(): Promise<Response> {
   // ★프리플라이트 — 서버 설정 오류를 '고객 결제 실패'로 오분류하지 않는다
   //   (2026-08-19 5라운드 감사).
   //
-  // TOSS_SECRET_KEY 가 없거나 오타면 chargeBillingKey 는 매 구독마다
-  // { code:'TOSS_SECRET_MISSING' } 를 돌려주는데, 이 코드는 permanent/transient
-  // 목록에 없어 classifyBillingError 가 **'unknown'** 으로 분류한다 → 3-strike
-  // 경로를 타 정상 고객의 failed_charge_count 가 오르고 3일이면 전원 일시정지된다.
-  // 출시일 운영키 교체(TOSS_GO_LIVE.md) 때 키를 한 글자 흘리면 카드에 아무
-  // 문제 없는 고객 전원이 '결제 실패' 처리되는 것 — 되돌리기 어려운 사고다.
+  // TOSS_SECRET_KEY 가 없거나 **오타**(선행 공백·접두사 잘림 등)면 청구가
+  // 인증 거부되는데, 그 에러코드는 classifyBillingError 의 permanent/transient
+  // 목록에 없어 **'unknown'** 으로 분류돼 3-strike 를 탄다 → 카드에 아무 문제
+  // 없는 고객의 failed_charge_count 가 오르고 3일이면 전원 일시정지된다.
+  // 출시일 운영키 교체(TOSS_GO_LIVE.md) 때 키를 한 글자 흘리는 사고가 정확히
+  // 이 경로다 — 되돌리기 어렵다.
   //
-  // 그래서 한 명이라도 건드리기 전에 여기서 끊는다. 500 을 반환하면 trackCron 이
-  // error 로 집계(크론 빨간불 + Sentry)해 사장님이 즉시 본다. 고객 데이터는
-  // 무손상 — 다음 실행에서 키가 정상이면 그대로 청구된다.
-  if (!process.env.TOSS_SECRET_KEY) {
+  // keyMode 로 판정해 **부재(missing)뿐 아니라 형식 오류(unknown)까지** 한
+  // 명이라도 건드리기 전에 끊는다(test_/live_ 정상 키는 통과). 500 을 반환하면
+  // trackCron 이 error 로 집계(크론 빨간불 + Sentry)해 사장님이 즉시 본다.
+  // 고객 데이터는 무손상 — 다음 실행에서 키가 정상이면 그대로 청구된다.
+  const secretMode = keyMode(process.env.TOSS_SECRET_KEY)
+  if (secretMode === 'missing' || secretMode === 'unknown') {
     return NextResponse.json(
       {
         ok: false,
-        reason: 'toss_secret_missing',
+        reason: secretMode === 'missing' ? 'toss_secret_missing' : 'toss_secret_malformed',
         errors: 1,
-        note: 'TOSS_SECRET_KEY 부재/오타 — 청구를 시작하지 않고 중단. 환경변수 확인 필요.',
+        note: 'TOSS_SECRET_KEY 부재 또는 형식 오류(test_/live_ 접두사 아님) — 청구를 시작하지 않고 중단. 환경변수 확인 필요.',
       },
       { status: 500 },
     )

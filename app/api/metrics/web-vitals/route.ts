@@ -3,7 +3,9 @@ import * as Sentry from '@sentry/nextjs'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
-export const runtime = 'edge'
+// ★edge → nodejs (2026-08-19 5라운드 감사). Edge Runtime 폐기 확정 대비 —
+//   이 라우트는 Sentry 기록 + rate-limit 만 하므로 nodejs 에서 동일 동작.
+export const runtime = 'nodejs'
 
 /**
  * POST /api/metrics/web-vitals

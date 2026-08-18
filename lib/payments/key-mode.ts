@@ -78,6 +78,20 @@ export function describeTossKeyStatus(s: TossKeyStatus): {
             : '시크릿 키가 없어요. 결제창은 떠도 승인이 안 됩니다.',
     }
   }
+  // ★오타(unknown) 를 명시 처리 (2026-08-19 5라운드 감사). 예전엔 아래 else 로
+  //   떨어져 "테스트 모드예요"(warn)로 위장됐다 — 운영키 교체 때 키를 한 글자
+  //   흘려 붙여넣으면(선행 공백·접두사 잘림) 대시보드가 '심사 전 상태'로 보이던
+  //   amber 를 그대로 띄워 사장님이 지나쳤다. 실제로는 test_/live_ 로 시작하지
+  //   않아 모든 청구가 인증 거부된다. incomplete(완전 부재) 다음으로 급하다.
+  if (s.client === 'unknown' || s.secret === 'unknown') {
+    return {
+      tone: 'danger',
+      title: '결제 키 형식이 이상해요',
+      detail:
+        '키가 test_ 또는 live_ 로 시작하지 않아요. 붙여넣을 때 앞에 공백이 들어갔거나 ' +
+        '글자가 빠졌는지 확인해 주세요. 이 상태로 두면 결제가 전부 거부돼요.',
+    }
+  }
   if (s.mismatched) {
     return {
       tone: 'danger',

@@ -7,8 +7,8 @@
  * # 데이터 source
  * - profiles (가입)
  * - surveys (설문 시작 / 완료)
- * - analyses (분석 view = analyses row 존재)
- * - subscriptions (정기구독 결제 — first_charged_at OR status='active')
+ * - analyses (분석 view = analyses row 존재, distinct user_id)
+ * - subscriptions (정기구독 결제 — last_charged_at 존재 = 1회+ 청구, distinct user_id)
  *
  * # 기간
  * URL query `?days=30|60|90` 또는 기본 30일.
@@ -53,12 +53,19 @@ export default async function FunnelPage({
     .select('id', { count: 'exact', head: true })
     .gte('created_at', since)
 
-  // Stage 2: 설문 시작 — surveys row 존재 (created_at, completed_at 무관)
-  // 'surveys' 테이블이 없을 가능성 → 안전 fallback (analyses 가 설문 완료 시그널).
-  const { count: surveyStarts } = await supabase
+  // Stage 2: 설문 시작 — **사람 수**(distinct user_id), 행 수가 아니다.
+  //   ★2026-08-19 5라운드 감사: count(exact) 는 analyses **행 수**를 세는데,
+  //   분석은 강아지당·재설문마다 여러 행이 생겨 가입자 수를 넘긴다(실측 90일:
+  //   가입 4 vs analyses 행 8 = 설문 200%, 막대 100% 초과). 퍼널 분모가 사람
+  //   (가입자)이므로 이 단계도 사람 수여야 한다. 베타 규모라 select 후 Set 으로
+  //   distinct 를 세는 것이 정확하고 가볍다.
+  const { data: analysisRows } = await supabase
     .from('analyses')
-    .select('user_id', { count: 'exact', head: true })
+    .select('user_id')
     .gte('created_at', since)
+  const surveyStarts = new Set(
+    (analysisRows ?? []).map((r) => (r as { user_id: string }).user_id),
+  ).size
 
   // Stage 3: 설문 완료 = 분석 row (analyses) — 동일 (현재 모델)
   const surveyCompletes = surveyStarts
@@ -66,13 +73,20 @@ export default async function FunnelPage({
   // Stage 4: 분석 view — analyses 가 곧 view 가능 (별도 view tracking 없음)
   const analysisViews = surveyCompletes
 
-  // Stage 5: 정기구독 결제 (subscriptions status='active' OR last_charged_at >= since)
-  const { count: subscribedRaw } = await supabase
+  // Stage 5: 정기구독 **결제** — 실제 1회+ 청구된 구독의 사람 수.
+  //   ★2026-08-19 5라운드 감사: 예전엔 status='active' 만 셌다. 그러면 (a) 결제
+  //   후 해지한 사람은 cancelled 라 **결제 사실이 증발**하고, (b) 카드 미등록
+  //   '신청만' 한 active 구독은 결제한 것으로 **거짓 집계**됐다. 이 단계의 뜻은
+  //   "첫 결제까지 간 사람"이므로 last_charged_at 존재(= subscription-charge 가
+  //   성공 시 기록)로 판정하고 status 는 보지 않는다. 사람 수로 distinct.
+  const { data: chargedRows } = await supabase
     .from('subscriptions')
-    .select('id', { count: 'exact', head: true })
+    .select('user_id')
     .gte('created_at', since)
-    .eq('status', 'active')
-  const subscribed = subscribedRaw ?? 0
+    .not('last_charged_at', 'is', null)
+  const subscribed = new Set(
+    (chargedRows ?? []).map((r) => (r as { user_id: string }).user_id),
+  ).size
 
   const total = signups ?? 0
   const stages = [

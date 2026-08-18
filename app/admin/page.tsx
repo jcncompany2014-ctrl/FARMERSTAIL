@@ -15,7 +15,7 @@ import {
   formatKstShortDateTime as formatDate,
   todayKstIsoDate,
 } from '@/lib/datetime-kst'
-import { PAID_STATUSES, netPaidAmount } from '@/lib/commerce/paid-status'
+import { PAID_STATUSES, isPaidStatus, netPaidAmount } from '@/lib/commerce/paid-status'
 import { findMissedCrons, type CronEntry } from '@/lib/cron-watchdog'
 import vercelConfig from '@/vercel.json'
 
@@ -48,8 +48,22 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 function statusBadge(paymentStatus: string, orderStatus: string) {
-  if (paymentStatus !== 'paid') {
+  // ★결제 상태 판정은 정본(isPaidStatus)으로 (2026-08-19 5라운드 감사).
+  //   예전엔 `paymentStatus !== 'paid'` 자체 판정이라, 부분환불(박스는 나가는
+  //   결제됨 주문)과 전액취소가 전부 회색 '결제 전'으로 떴다 — 홈 최근주문 표가
+  //   결제 이력을 거짓 표시하고, 발송할 주문 카드 숫자와 배지가 모순됐다.
+  if (paymentStatus === 'cancelled') {
+    return { label: '취소', color: 'bg-sale text-white' }
+  }
+  if (paymentStatus === 'failed') {
+    return { label: '결제 실패', color: 'bg-sale text-white' }
+  }
+  if (!isPaidStatus(paymentStatus)) {
+    // pending 등 — 아직 결제 안 됨.
     return { label: '결제 전', color: 'bg-rule text-zinc-800' }
+  }
+  if (paymentStatus === 'partially_refunded') {
+    return { label: '부분환불', color: 'bg-gold text-white' }
   }
   switch (orderStatus) {
     case 'preparing':
@@ -188,14 +202,15 @@ export default async function AdminHome() {
       .select('id', { count: 'exact', head: true })
       .gte('created_at', thirtyDaysAgo),
 
-    // 30일 해지 구독 — status='cancelled' AND updated_at 30일 내
-    // (status 변경 시점이 곧 해지 시점이라는 가정 — 트리거가 다른 컬럼을 건드릴
-    // 가능성이 있으면 cancelled_at 컬럼을 추가하는 게 정확)
+    // 30일 해지 구독 — cancelled_at 30일 내 (2026-08-19 5라운드 감사).
+    //   ★예전엔 updated_at 근사였다. updated_at 은 배치 UPDATE 마다 갱신돼
+    //   마이그레이션이 돌 때마다 과거 해지가 '최근 30일'로 재집계됐다(존재하지
+    //   않는 해지 급증). cancelled_at 은 트리거가 해지 시점에만 찍으므로 정확.
     supabase
       .from('subscriptions')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'cancelled')
-      .gte('updated_at', thirtyDaysAgo),
+      .gte('cancelled_at', thirtyDaysAgo),
 
     // 오늘 매출 — 실수령액 기준(부분 환불분 차감), created_at >= 오늘 0시
     supabase

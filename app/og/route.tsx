@@ -1,8 +1,13 @@
 import { ImageResponse } from 'next/og'
 
-export const runtime = 'edge'
+// ★edge → nodejs (2026-08-19 5라운드 감사). Edge Runtime 은 이 Next 포크에서
+//   폐기 확정이라 다음 업그레이드에서 빌드가 깨질 수 있었다. /og 는 카톡·인스타
+//   공유 카드의 원천이라 깨지면 전 링크의 미리보기가 사라진다. 커스텀 폰트
+//   로딩이 없고(시스템 폰트만) Supabase 도 안 써서 nodejs 전환에 동작 차이가
+//   없다 — 이웃 /og/dog·/opengraph-image 도 nodejs 다.
+export const runtime = 'nodejs'
 
-// FD 브랜드 팔레트 — ImageResponse(edge)는 globals var(--fd-*) 를 못 쓰므로
+// FD 브랜드 팔레트 — ImageResponse 는 globals var(--fd-*) 를 못 쓰므로
 // 헥스 inline mirror. globals.css 가 바뀌면 여기도 맞춰야 한다(회차171: 옛 v4
 // warm-brown → FD 동기화. 공유 카드가 옛 브랜드색으로 렌더되던 결손 해소).
 const CREAM = '#F7F5F0' // --fd-offwhite

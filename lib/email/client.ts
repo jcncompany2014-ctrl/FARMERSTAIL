@@ -72,6 +72,23 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   const from = process.env.EMAIL_FROM
   const replyTo = process.env.EMAIL_REPLY_TO
   if (!apiKey || !from) {
+    // ★무발송을 관측 가능하게 (2026-08-19 5라운드 감사). 예전엔 조용히 return
+    //   이라, RESEND_API_KEY/EMAIL_FROM 을 지우거나 오타내면(스키마상 optional
+    //   이라 부팅·빌드 통과) 주문확인·결제실패 안내·카드 재등록 요청 등 거래메일
+    //   전체가 멈추는데 Sentry 이벤트가 하나도 안 남아 '한 통도 안 나간 사실'이
+    //   어디에도 안 보였다. suppressed 스킵(:84)은 이미 이벤트를 남기는데 이
+    //   경로만 빠져 있었다. 같은 이벤트는 Sentry 가 1개 이슈로 묶으므로 노이즈
+    //   부담 없이 "메일 시스템 꺼짐"을 알린다.
+    try {
+      captureBusinessEvent('error', 'email.not_configured', {
+        hasApiKey: Boolean(apiKey),
+        hasFrom: Boolean(from),
+        tag: input.tag ?? null,
+        note: 'RESEND_API_KEY/EMAIL_FROM 부재 — 거래메일 무발송. 환경변수 확인 필요.',
+      })
+    } catch {
+      /* 캡처 실패가 메일 경로를 막으면 안 된다 */
+    }
     return { ok: false, skipped: true, reason: 'not_configured' }
   }
 
