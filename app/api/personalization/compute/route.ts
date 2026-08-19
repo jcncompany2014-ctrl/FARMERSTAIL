@@ -206,7 +206,7 @@ export async function POST(req: Request) {
 
   // 2) 이미 cycle 1 처방이 있으면 그대로 반환 — 같은 결과를 매번 재계산할
   //    필요 없음. 출력이 deterministic 이라 안전.
-  const { data: existing } = await supabase
+  const { data: existing, error: existingErr } = await supabase
     .from('dog_formulas')
     .select(
       'formula, reasoning, transition_strategy, algorithm_version, daily_kcal, daily_grams, user_adjusted, cycle_number, created_at, computed_at',
@@ -214,18 +214,38 @@ export async function POST(req: Request) {
     .eq('dog_id', dogId)
     .eq('cycle_number', 1)
     .maybeSingle()
+  // ★조회 실패를 '처방 없음'으로 읽지 않는다 (2026-08-20 6라운드 감사, 규칙1).
+  //   error 를 안 꺼내면 일시적 조회 실패에도 existing=undefined 가 되어 아래
+  //   재계산+upsert 로 넘어가, 멀쩡히 있는 처방을 재계산 값으로 덮고 고객이
+  //   AdjustSheet 로 저장한 user_adjusted 조정을 소실시킨다. '모름'은 재시도 신호.
+  if (existingErr) {
+    console.error('[personalization/compute] 처방 조회 실패:', existingErr.message)
+    return NextResponse.json(
+      { code: 'LOOKUP_FAILED', message: '식단 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.' },
+      { status: 503 },
+    )
+  }
   if (existing) {
     // 점검 high(임상 안전): 재설문/재분석으로 더 새로운 analysis 가 생기면 이
     // cycle-1 formula 는 stale 이다 — 옛 알레르기 게이팅·체중·비율을 그대로 캐시
     // 반환하면 새 알레르기가 박스 처방에 반영되지 않는다. 최신 analysis 가
     // formula 보다 새로우면 캐시를 무효화하고 아래에서 재계산(삭제 후 재삽입).
-    const { data: latestAna } = await supabase
+    const { data: latestAna, error: latestAnaErr } = await supabase
       .from('analyses')
       .select('created_at')
       .eq('dog_id', dogId)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
+    // ★조회 실패를 '분석 없음(analysisAt=0)'으로 떨어뜨리면 stale 처방을 신선으로
+    //   오판해 옛 알레르기 게이팅이 그대로 배송된다(규칙1). '모름'은 재시도 신호.
+    if (latestAnaErr) {
+      console.error('[personalization/compute] 분석 조회 실패:', latestAnaErr.message)
+      return NextResponse.json(
+        { code: 'LOOKUP_FAILED', message: '식단 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.' },
+        { status: 503 },
+      )
+    }
     // ★기준은 computed_at(마지막 재계산 시각) — created_at 은 2026-08-16부터
     //   행 생성 시각으로 불변이다(아래 upsert docstring). 마이그레이션이
     //   기존 행을 백필했으므로 폴백은 이론상 안 타지만, 컬럼 추가 전 코드가

@@ -847,27 +847,42 @@ async function runSubscriptionCharge(): Promise<Response> {
       //   영구히 잃고 다음날 100% 결제되는 경로였다. '썼다'는 실제로 그 할인으로
       //   결제가 됐을 때만 참이다.
       if (promoClaimed) {
-        try {
-          await (
-            supabase as unknown as {
-              from: (t: string) => {
-                update: (r: Record<string, unknown>) => {
-                  eq: (c: string, v: string) => {
-                    is: (c: string, v: null) => Promise<unknown>
-                  }
+        // ★소진 표시 실패를 **관측 가능하게** (2026-08-20 6라운드 감사). 예전엔
+        //   try/catch 로 감쌌는데 supabase-js 는 DB 오류를 throw 하지 않고
+        //   `{ error }` 로 돌려주므로(규칙1) catch 가 애초에 못 잡았고, error 를
+        //   꺼내지도 않아 완전 무음이었다. 이 마킹이 실패하면 프로모션이 소진되지
+        //   않은 채 남아(redeemed_order_id NULL) 다음 회차에 50% 할인이 재적용될
+        //   수 있다 — 유일하게 무신호인 금전 이벤트였다. try/catch 는 마킹을 결제와
+        //   원자적으로 묶지 못하므로 관측성 보강이 목적(사장님이 admin 보정 가능).
+        const { error: promoErr } = await (
+          supabase as unknown as {
+            from: (t: string) => {
+              update: (r: Record<string, unknown>) => {
+                eq: (c: string, v: string) => {
+                  is: (
+                    c: string,
+                    v: null,
+                  ) => Promise<{ error: { message?: string } | null }>
                 }
               }
             }
-          )
-            .from('promotion_claims')
-            .update({
-              redeemed_order_id: orderRow!.id,
-              redeemed_at: new Date().toISOString(),
-            })
-            .eq('user_id', sub.user_id)
-            .is('redeemed_order_id', null)
-        } catch {
-          /* 소진 표시 실패 — 결제는 이미 성공. admin 보정 대상. */
+          }
+        )
+          .from('promotion_claims')
+          .update({
+            redeemed_order_id: orderRow!.id,
+            redeemed_at: new Date().toISOString(),
+          })
+          .eq('user_id', sub.user_id)
+          .is('redeemed_order_id', null)
+        if (promoErr) {
+          captureBusinessEvent('error', 'subscription.charge.promo_mark_failed', {
+            subscriptionId: sub.id,
+            userId: sub.user_id,
+            orderId: orderRow!.id,
+            dbError: String(promoErr.message ?? 'unknown'),
+            note: '프로모션 소진 표시 실패 — 다음 회차 할인 재적용 위험. admin 수동 보정 필요.',
+          })
         }
       }
 

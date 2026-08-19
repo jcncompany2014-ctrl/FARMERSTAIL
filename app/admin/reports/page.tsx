@@ -81,12 +81,18 @@ export default async function AdminReportsPage({
       .gte('paid_at', monthStart)
       .lt('paid_at', monthEnd)
       .order('paid_at', { ascending: false }),
+    // ★환불 합계는 **payment_events 원장**(음수 amount)에서 뺀다 (2026-08-20
+    //   6라운드 감사). 예전엔 refunds 테이블만 봤는데, refunds 에 행을 남기는 건
+    //   고객 self-cancel·admin partial-cancel 둘뿐이고 **자동환불 경로**
+    //   (subscription-charge 청구중해지·refund-retry)는 payment_events 만 쓴다.
+    //   그래서 자동환불이 net 에서 안 빠져 순매출이 그만큼 과대계상됐다. 모든
+    //   환불 경로가 예외 없이 남기는 원장을 기준으로 통일한다("원장=1차 진실").
     supabase
-      .from('refunds')
-      .select('amount, refunded_at, is_partial')
-      .eq('status', 'succeeded')
-      .gte('refunded_at', monthStart)
-      .lt('refunded_at', monthEnd),
+      .from('payment_events')
+      .select('amount, created_at')
+      .lt('amount', 0)
+      .gte('created_at', monthStart)
+      .lt('created_at', monthEnd),
     supabase
       .from('subscription_charges')
       .select('amount, attempted_at, status')
@@ -111,15 +117,12 @@ export default async function AdminReportsPage({
     }> | null
   }
   const orders = (paidOrders ?? []) as Order[]
-  const refundList = (refunds ?? []) as Array<{
-    amount: number
-    refunded_at: string
-    is_partial: boolean
-  }>
+  const refundEvents = (refunds ?? []) as Array<{ amount: number }>
   const charges = (subCharges ?? []) as Array<{ amount: number }>
 
   const grossRevenue = orders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
-  const refundTotal = refundList.reduce((s, r) => s + r.amount, 0)
+  // 원장의 음수 amount 합의 절대값 = 그 달 실제 환불 총액.
+  const refundTotal = refundEvents.reduce((s, e) => s + Math.abs(e.amount ?? 0), 0)
   const netRevenue = grossRevenue - refundTotal
   const orderCount = orders.length
   const subRevenue = charges.reduce((s, c) => s + c.amount, 0)

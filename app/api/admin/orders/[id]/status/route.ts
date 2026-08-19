@@ -211,11 +211,30 @@ export async function POST(
    * 겪은 사고다(카드 등록이 그렇게 죽어 있었다).
    * 관리자 인증은 위(:64~)에서 이미 끝났고, RLS 대신 그 검증이 범위를 책임진다.
    */
-  const { error: updateError } = await (
+  // ★원자적 선점(CAS) — 스냅샷 이후 다른 요청(고객 취소·부분환불·만료 크론)이
+  //   상태를 바꿨으면 0행으로 bail (2026-08-20 6라운드 감사). 형제 라우트
+  //   (orders/cancel · partial-cancel · order-expire)는 전부 이 가드가 있는데
+  //   어드민 상태변경만 `.eq('id')` 뿐이라, 예: 고객이 먼저 취소해 'cancelled'
+  //   가 된 주문을 어드민이 'shipping' 으로 덮어 취소된 주문을 발송할 수 있었다.
+  const { data: claimed, error: updateError } = await (
     createAdminClient() as unknown as {
       from: (t: string) => {
         update: (r: Record<string, unknown>) => {
-          eq: (c: string, v: string) => Promise<{ error: { message?: string } | null }>
+          eq: (c: string, v: string) => {
+            eq: (c: string, v: string) => {
+              eq: (
+                c: string,
+                v: string,
+              ) => {
+                select: (
+                  c: string,
+                ) => Promise<{
+                  data: Array<{ id: string }> | null
+                  error: { message?: string } | null
+                }>
+              }
+            }
+          }
         }
       }
     }
@@ -223,9 +242,23 @@ export async function POST(
     .from('orders')
     .update(update)
     .eq('id', id)
+    .eq('order_status', order.order_status)
+    .eq('payment_status', order.payment_status)
+    .select('id')
 
   if (updateError) {
     return dbError(updateError, 'admin_order_status', '주문 상태 변경에 실패했어요')
+  }
+  if (!claimed || claimed.length === 0) {
+    // 0행 = 그 사이 다른 흐름이 상태를 바꿨다. 덮어쓰지 않고 알린다.
+    return NextResponse.json(
+      {
+        code: 'CONFLICT',
+        message:
+          '그 사이 주문 상태가 바뀌었어요. 새로고침 후 현재 상태를 확인해 주세요.',
+      },
+      { status: 409 },
+    )
   }
 
   // 5) 고객 푸시 알림 (배송 시작 · 배송 완료 · 취소). 실패해도 전환은 성공.
