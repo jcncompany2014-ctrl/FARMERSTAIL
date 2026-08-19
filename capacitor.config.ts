@@ -72,7 +72,37 @@ const config: CapacitorConfig = {
     // iOS 에서 ATS (App Transport Security) 가 https 만 허용 — http localhost
     // 는 Info.plist 에서 NSAppTransportSecurity > NSAllowsArbitraryLoads 로
     // 별도 풀어야 함 (개발 빌드만).
-    allowNavigation: ['farmerstail.kr', '*.farmerstail.kr'],
+    /**
+     * WebView 안에서 **이동을 허용**할 도메인. 여기 없는 곳으로 이동하면
+     * Capacitor 가 막거나 외부 브라우저로 튕겨 흐름이 끊긴다.
+     *
+     * ★2026-08-20 6라운드 감사 유예분 처리 — 예전엔 우리 도메인만 있어서
+     *   **네이티브 앱에서 결제와 소셜 로그인이 통째로 막혔다**:
+     *    · 토스 결제창(카드 등록)은 js.tosspayments.com → 카드사 인증 페이지로
+     *      이동한다. 우리 도메인이 아니라 첫 화면부터 안 열린다.
+     *    · 카카오/애플 로그인은 Supabase(*.supabase.co) → kauth.kakao.com /
+     *      appleid.apple.com 을 거쳐 우리 /auth/callback 으로 돌아온다.
+     *      중간 한 곳만 막혀도 로그인이 끝나지 않는다.
+     *   웹/PWA 에서는 이 제약이 없어 지금까지 드러나지 않았다 — 앱 스토어
+     *   빌드에서 처음 발현되는 종류라 **실기기 테스트 전에 반드시** 필요하다.
+     *
+     * ⚠️ 넓히기만 하면 안 된다 — 여기 적힌 도메인은 앱 안에서 우리 세션 쿠키와
+     *   같은 WebView 를 쓴다. 결제·인증에 **실제로 필요한 곳만** 적고,
+     *   마케팅·분석 도메인은 넣지 않는다.
+     */
+    allowNavigation: [
+      'farmerstail.kr',
+      '*.farmerstail.kr',
+      // 결제 — 토스 SDK·결제창·카드사 인증 리다이렉트
+      '*.tosspayments.com',
+      // 인증 — Supabase OAuth 중계
+      '*.supabase.co',
+      // 인증 — 카카오 로그인(동의 화면·계정)
+      '*.kakao.com',
+      '*.kakaocdn.net',
+      // 인증 — Apple 로그인
+      'appleid.apple.com',
+    ],
   },
 
   ios: {

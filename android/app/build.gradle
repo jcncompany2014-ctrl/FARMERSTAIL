@@ -1,5 +1,34 @@
 apply plugin: 'com.android.application'
 
+/**
+ * 릴리스 서명 (2026-08-20 — Play Console 출시 준비).
+ *
+ * 키스토어 자체와 비밀번호는 **저장소에 넣지 않는다**(android/.gitignore 가
+ * *.jks/*.keystore 를 이미 막는다). 대신 android/keystore.properties 파일이나
+ * 환경변수로 주입한다 — 파일이 없으면 signingConfig 를 아예 안 만들고,
+ * release 빌드는 서명 없이 나온다(디버그·CI 는 그대로 동작).
+ *
+ * 로컬 서명 방법:
+ *   1) 키스토어 생성(한 번만, 분실하면 앱 업데이트 불가 — 반드시 백업 2곳):
+ *      keytool -genkey -v -keystore farmerstail-release.jks -keyalg RSA \
+ *        -keysize 2048 -validity 10000 -alias farmerstail
+ *   2) android/keystore.properties 작성(이 파일도 커밋 금지):
+ *      storeFile=../farmerstail-release.jks
+ *      storePassword=***
+ *      keyAlias=farmerstail
+ *      keyPassword=***
+ *   3) ./gradlew bundleRelease  → android/app/build/outputs/bundle/release/*.aab
+ *
+ * ⚠️ Play App Signing 을 쓰면 구글이 최종 서명키를 보관하므로 이 업로드 키를
+ *    잃어버려도 재발급 신청으로 복구할 수 있다. 그래도 백업이 시간을 아낀다.
+ */
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+def hasKeystore = keystorePropertiesFile.exists()
+if (hasKeystore) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.farmerstail.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,10 +45,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (hasKeystore) {
+            release {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // keystore.properties 가 있을 때만 서명한다 — 없으면 서명 없는
+            // release 빌드(로컬 확인용). CI·다른 사람 클론이 안 깨진다.
+            if (hasKeystore) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
