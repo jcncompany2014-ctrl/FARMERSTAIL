@@ -435,7 +435,18 @@ export default async function PickingListPage({
       // 청구 크론과 **같은 조건**. 이게 false 면 결제 없이 박스만 나간다.
       cannotCharge:
         !sub.has_billing_key || sub.requires_billing_key_renewal === true,
-      charged: sub.next_delivery_date === chargedBumpDate,
+      // ★청구 완료 판정을 **결제 증거로 게이트**한다 (2026-08-20 6라운드 감사).
+      //   예전엔 날짜(next_delivery_date === chargedBumpDate)만 봤는데, skip(2주
+      //   미루기)한 구독도 날짜가 shipDate+14 로 같아 '청구 완료'로 오인됐다.
+      //   실제 청구된 구독만 '결제됨+preparing 주문'(orderBySubId)이 있다.
+      charged:
+        sub.next_delivery_date === chargedBumpDate && orderBySubId.has(sub.id),
+      // ★날짜는 청구분처럼 보이는데(chargedBumpDate) 결제 주문이 없는 활성 구독
+      //   = 고객이 이번 배송을 미룬 것. 발송하면 무료 박스가 나간다(ship-block).
+      skippedNotCharged:
+        sub.status === 'active' &&
+        sub.next_delivery_date === chargedBumpDate &&
+        !orderBySubId.has(sub.id),
       overdue:
         sub.next_delivery_date != null && sub.next_delivery_date < shipDate,
       /**
@@ -492,6 +503,9 @@ export default async function PickingListPage({
       r.freshUnknown ||
       r.overdue ||
       r.cannotCharge ||
+      r.chargeFailedToday ||
+      r.pausedBeforeCharge ||
+      r.skippedNotCharged ||
       r.pausedAfterCharge ||
       r.dateMovedAfterCharge ||
       r.missing.length > 0,
@@ -650,6 +664,8 @@ export default async function PickingListPage({
                   <Badge tone="red">오늘 청구 실패 — 보내지 마세요</Badge>
                 ) : r.pausedBeforeCharge ? (
                   <Badge tone="red">고객이 정지 — 미결제, 보내지 마세요</Badge>
+                ) : r.skippedNotCharged ? (
+                  <Badge tone="red">고객이 미룸 — 미청구, 보내지 마세요</Badge>
                 ) : r.pausedAfterCharge ? (
                   <Badge tone="amber">결제 후 정지됨 — 확인 필요</Badge>
                 ) : r.dateMovedAfterCharge ? (

@@ -146,12 +146,21 @@ export async function POST(
    * 설계를 그대로 써야 하는 돈 코드라 별도 작업으로 미루고, 지금은 VA 와
    * 같은 CS 동선으로 안내한다.
    */
-  if (order.payment_status === 'partially_refunded') {
+  // ★이미 환불된(전액/부분) 주문의 셀프취소를 막는다 (2026-08-20 6라운드 감사).
+  //   예전엔 'partially_refunded' 만 막아서, 어드민이 미발송 주문을 **전액환불**
+  //   (payment_status='refunded')한 뒤 order_status='preparing' 이 남으면 고객
+  //   화면에 취소 버튼이 노출됐고, 누르면 아래 UPDATE 가 refundAmount=0(paid 아님)
+  //   으로 refunded_amount 를 0 으로 덮어 실제 환불 기록이 사라졌다. UI 판정
+  //   (isCancellable)에도 결제 종결을 더했지만, API 직접 호출 대비 여기서도 막는다.
+  if (
+    order.payment_status === 'partially_refunded' ||
+    order.payment_status === 'refunded'
+  ) {
     return NextResponse.json(
       {
-        code: 'PARTIAL_REFUND_NEEDS_CS',
+        code: 'ALREADY_REFUNDED_NEEDS_CS',
         message:
-          '이 주문은 일부 금액이 이미 환불된 주문이에요. 남은 금액까지 확인해서 정확히 환불해 드리려면 1:1 문의로 신청해 주세요 — 영업일 기준 1-3일 안에 처리해 드릴게요.',
+          '이 주문은 이미 환불이 처리된 주문이에요. 추가로 확인이 필요하시면 1:1 문의로 신청해 주세요 — 영업일 기준 1-3일 안에 처리해 드릴게요.',
       },
       { status: 400 },
     )

@@ -109,8 +109,18 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
   const currentStepIndex = steps.findIndex((s) => s.key === order.order_status)
   const isPaid = order.payment_status === 'paid'
   const isCancelled = order.order_status === 'cancelled'
+  // ★결제 상태가 이미 종결(환불·부분환불·취소)이면 셀프취소 버튼을 숨긴다
+  //   (2026-08-20 6라운드 감사). 어드민이 미발송 주문을 전액환불하면
+  //   payment_status='refunded' 인데 order_status 는 'preparing' 그대로라(이력
+  //   보존), 예전엔 취소 버튼이 남아 고객이 누르면 refunded_amount 가 0으로
+  //   덮여 실제 환불 기록이 사라졌다. order_status 만 보던 판정에 결제 종결을 더한다.
+  const paymentSettled =
+    order.payment_status === 'refunded' ||
+    order.payment_status === 'partially_refunded' ||
+    order.payment_status === 'cancelled'
   const isCancellable =
     !isCancelled &&
+    !paymentSettled &&
     (order.order_status === 'pending' || order.order_status === 'preparing')
 
   return (

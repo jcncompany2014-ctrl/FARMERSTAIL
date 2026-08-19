@@ -54,6 +54,12 @@ export type PickingRow = {
    * 이 플래그가 없으면 배지가 "발송일 아침 청구 예정" 으로 떨어져 그대로 발송된다.
    */
   chargeFailedToday: boolean
+  /**
+   * ★고객이 이번 배송을 '미루기(skip)'해 날짜가 chargedBumpDate 로 밀렸지만
+   * 결제 주문이 없는 활성 구독 (2026-08-20 6라운드 감사). ship-block 이
+   * 발송금지로 판정한다 — 날짜만으론 청구분과 구분이 안 돼 무료 박스가 나갔다.
+   */
+  skippedNotCharged: boolean
   /** 실패 코드(INSUFFICIENT_FUNDS 등) — 사장님이 원인을 바로 보게. */
   failedCode: string | null
   /** 청구 후 고객이 배송일을 옮겨 날짜 필터 밖으로 나간 건 — 발송 대기 주문 역추적으로 포함됨. */

@@ -23,22 +23,34 @@ export type ShipBlockInput = {
   chargeFailedToday: boolean
   /** 청구 전에 고객이 스스로 멈췄다 — paused + 결제된 주문 없음. */
   pausedBeforeCharge: boolean
+  /**
+   * ★고객이 이번 배송을 '미루기(skip)'해 날짜가 +14 로 밀렸지만 결제된 주문이
+   * 없는 활성 구독 (2026-08-20 6라운드 감사). skip 은 next_delivery_date 를
+   * shipDate+14 로 미는데, 그 값이 **이번 아침 청구된 구독의 날짜(chargedBumpDate)
+   * 와 완전히 같다** — 날짜로는 구분이 안 된다. 그래서 피킹 리스트가 skip 건을
+   * '청구 완료'로 오인해 무료 박스를 발송했다. 결제 증거(결제됨+preparing 주문)가
+   * 없으면 발송하지 않는다는 이 파일의 원칙이 charged 경로에서만 깨져 있었다.
+   */
+  skippedNotCharged: boolean
 }
 
 export type ShipBlockReason =
   | 'cannot_charge'
   | 'charge_failed_today'
   | 'paused_before_charge'
+  | 'skipped_not_charged'
   | null
 
 /**
  * 발송을 막아야 하는 사유. null 이면 발송 가능.
- * 우선순위 = 확실한 것부터(카드 자체가 못 쓰는 상태 → 오늘 실패 → 고객 정지).
+ * 우선순위 = 확실한 것부터(카드 자체가 못 쓰는 상태 → 오늘 실패 → 고객 정지 →
+ * 고객 미룸). 어느 사유든 공통 = **돈 받은 증거가 없다**.
  */
 export function shipBlockReason(input: ShipBlockInput): ShipBlockReason {
   if (input.cannotCharge) return 'cannot_charge'
   if (input.chargeFailedToday) return 'charge_failed_today'
   if (input.pausedBeforeCharge) return 'paused_before_charge'
+  if (input.skippedNotCharged) return 'skipped_not_charged'
   return null
 }
 
@@ -55,4 +67,5 @@ export const SHIP_BLOCK_LABEL: Record<
   cannot_charge: '청구불가(발송금지)',
   charge_failed_today: '청구실패(발송금지)',
   paused_before_charge: '미결제-고객정지(발송금지)',
+  skipped_not_charged: '고객미룸-미청구(발송금지)',
 }

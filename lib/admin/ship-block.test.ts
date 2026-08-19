@@ -17,6 +17,7 @@ const OK: ShipBlockInput = {
   cannotCharge: false,
   chargeFailedToday: false,
   pausedBeforeCharge: false,
+  skippedNotCharged: false,
 }
 
 describe('shipBlockReason — 돈을 못 받은 박스는 반드시 막힌다', () => {
@@ -46,10 +47,24 @@ describe('shipBlockReason — 돈을 못 받은 박스는 반드시 막힌다', 
     assert.equal(isShippable(r), false)
   })
 
+  it('★재현4: 고객이 이번 배송을 미룸(skip) — 날짜가 청구분과 같아 "청구 완료" 로 뜨던 건 (2026-08-20 6라운드)', () => {
+    // skip 은 next_delivery_date 를 shipDate+14 로 미는데, 그 값이 이번 아침
+    // 청구된 구독의 날짜(chargedBumpDate)와 완전히 같아 날짜로는 구분이 안 됐다.
+    // 결제 증거(orderBySubId)가 없으면 발송 금지.
+    const r = { ...OK, skippedNotCharged: true }
+    assert.equal(shipBlockReason(r), 'skipped_not_charged')
+    assert.equal(isShippable(r), false)
+  })
+
   it('★사유가 겹치면 가장 확실한 것부터 — 정지가 청구불가를 가리지 않는다', () => {
     // 예전 배지 체인은 paused 를 맨 앞에 둬서, 카드가 영구 거절된 구독을
     // "고객이 정지" 로만 보여주고 '청구 불가' 경고를 가렸다.
-    const r = { cannotCharge: true, chargeFailedToday: true, pausedBeforeCharge: true }
+    const r = {
+      cannotCharge: true,
+      chargeFailedToday: true,
+      pausedBeforeCharge: true,
+      skippedNotCharged: true,
+    }
     assert.equal(shipBlockReason(r), 'cannot_charge')
   })
 
@@ -58,27 +73,31 @@ describe('shipBlockReason — 돈을 못 받은 박스는 반드시 막힌다', 
       'cannot_charge',
       'charge_failed_today',
       'paused_before_charge',
+      'skipped_not_charged',
     ] as const) {
       assert.ok(SHIP_BLOCK_LABEL[reason].includes('발송금지'), reason)
     }
   })
 
   it('★불변식: 금지 사유가 하나라도 있으면 절대 발송 가능이 아니다', () => {
-    // 조합 8가지 전수 — 하나라도 true 면 isShippable=false 여야 한다.
+    // 조합 16가지 전수 — 하나라도 true 면 isShippable=false 여야 한다.
     for (const a of [false, true]) {
       for (const b of [false, true]) {
         for (const c of [false, true]) {
-          const input = {
-            cannotCharge: a,
-            chargeFailedToday: b,
-            pausedBeforeCharge: c,
+          for (const d of [false, true]) {
+            const input = {
+              cannotCharge: a,
+              chargeFailedToday: b,
+              pausedBeforeCharge: c,
+              skippedNotCharged: d,
+            }
+            const anyBlocked = a || b || c || d
+            assert.equal(
+              isShippable(input),
+              !anyBlocked,
+              JSON.stringify(input),
+            )
           }
-          const anyBlocked = a || b || c
-          assert.equal(
-            isShippable(input),
-            !anyBlocked,
-            JSON.stringify(input),
-          )
         }
       }
     }

@@ -974,16 +974,67 @@ async function runSubscriptionCharge(): Promise<Response> {
             })
           }
         }
-        // 주문은 결제됨으로 기록하되 발송 대기로 올리지 않는다(order_status 유지).
-        await supabase
-          .from('orders')
-          .update({
-            payment_status: refund.ok ? 'cancelled' : 'paid',
-            payment_key: result.paymentKey,
-            paid_at: successIso,
-            cancel_reason: refund.ok ? '청구 도중 고객 해지 — 자동 환불' : null,
+        if (refund.ok) {
+          // ★즉시 환불 성공 — 원장과 refunded_amount 를 **반드시 함께** 남긴다
+          //   (2026-08-20 6라운드 감사). 예전엔 payment_status='cancelled' 만 쓰고
+          //   refunded_amount 도 -chargeAmount 원장도 안 남겨서, 앞서 :883 에서
+          //   기록한 paid(+X)만 원장에 남고 refunded_amount=0 이 됐다. 그러면
+          //   원장 SUM=+X≠0 이라 reconcile 의 특례(cancelled && ledger===0 → net 0)
+          //   가 안 걸려 **전액 환불된 주문이 'X원 보유'로 장부에 남고 아무도
+          //   못 잡는다**(토스는 취소, 우리는 보유 — 영구 불일치·무알림). 정본인
+          //   refund-retry settleRefunded 와 동일하게 처리한다.
+          const { error: ordErr } = await supabase
+            .from('orders')
+            .update({
+              payment_status: 'cancelled',
+              order_status: 'cancelled',
+              payment_key: result.paymentKey,
+              paid_at: successIso,
+              refunded_amount: chargeAmount,
+              cancel_reason: '청구 도중 고객 해지 — 자동 환불',
+            })
+            .eq('id', orderRow.id)
+          if (ordErr) {
+            // 환불은 이미 됐다 — 되돌릴 수 없으니 사람에게 알린다(규칙1).
+            captureBusinessEvent('error', 'subscription.charge.refund_order_update_failed', {
+              subscriptionId: sub.id,
+              orderId: orderRow.id,
+              amount: chargeAmount,
+              dbError: String(ordErr.message ?? 'unknown'),
+              note: '토스 환불은 성공했는데 orders 갱신 실패 — 수동 정정 필요',
+            })
+          }
+          const { recordPaymentEvent } = await import('@/lib/payment-events')
+          const ev = await recordPaymentEvent(supabase, {
+            orderId: orderRow.id,
+            paymentKey: result.paymentKey!,
+            eventType: 'refunded',
+            amount: -chargeAmount, // 음수 = 환불. 앞의 +X paid 와 상쇄해 SUM=0.
+            prevStatus: 'paid',
+            newStatus: 'cancelled',
+            source: 'cron_subscription_charge',
+            metadata: { subscriptionId: sub.id, reason: 'cancelled_mid_charge' },
           })
-          .eq('id', orderRow.id)
+          if (!ev.ok) {
+            captureBusinessEvent('error', 'subscription.charge.refund_ledger_write_failed', {
+              subscriptionId: sub.id,
+              orderId: orderRow.id,
+              amount: chargeAmount,
+              reason: ev.reason ?? 'unknown',
+            })
+          }
+        } else {
+          // 즉시 환불 실패 → payment_status='paid' 로 두고(위에서 큐 적재),
+          //   refund-retry 크론이 이어받아 settleRefunded 로 정합화한다.
+          await supabase
+            .from('orders')
+            .update({
+              payment_status: 'paid',
+              payment_key: result.paymentKey,
+              paid_at: successIso,
+            })
+            .eq('id', orderRow.id)
+        }
         skipped += 1
         continue
       }
