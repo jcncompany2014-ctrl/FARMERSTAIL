@@ -55,6 +55,9 @@ R81~R88 (8 라운드) 코드 audit 후, 코드 외 영역 + 운영 SOP 정리.
 - [ ] **BA4** **Redirect URLs 허용목록**: 프로덕션 도메인 + `/auth/callback` +
       PWA + **Capacitor 네이티브 origin**(capacitor://localhost 등). 네이티브
       빌드의 카카오/애플 OAuth 가 여기 없으면 실패한다.
+- [ ] **BA5** **유출 비밀번호 차단 켜기** (Pro 기능). Authentication → Policies →
+      "Leaked password protection" ON. HaveIBeenPwned 대조로 이미 유출된 비밀번호
+      가입/변경을 막는다. (2026-08-20 어드바이저 WARN — 저비용 보안 강화.)
 
 ---
 

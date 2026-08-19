@@ -10,6 +10,7 @@
 create or replace function public.set_subscription_cancelled_at()
 returns trigger
 language plpgsql
+set search_path = public, pg_temp
 as $$
 begin
   if new.status = 'cancelled'
