@@ -155,6 +155,53 @@ export async function POST(req: Request) {
     // 미상·제품 없음) 금액은 건드리지 않는다(돈은 추측하지 않는다).
     const box = await boxForApproved(supabase, dogId, pending)
 
+    /**
+     * ★동의 금액 검산을 **처방 전이 전에** 한다 (2026-08-20 6라운드 감사).
+     *
+     * 예전엔 이 검산이 approved 전이 **뒤**에 있어서, 금액이 어긋나면 처방은
+     * 이미 approved 인데 total_amount·subscription_items 는 옛 값으로 남아
+     * 갈라졌다. 게다가 옛 주석은 "옛 금액이 남으면 우리가 차액을 흡수 → 고객에
+     * 불리하지 않다"고 단언했는데, 이는 **가격 인상 제안일 때만** 참이다 —
+     * 가격 **인하** 제안이 어긋나면 옛(높은) 금액으로 계속 청구돼 고객이 동의한
+     * 인하가 조용히 미적용된다(과청구). 어긋나면 처방도 승인하지 않고
+     * (pending_approval 유지) 재제안·타임아웃 크론이 새 금액으로 다시 처리하게
+     * 둔다 — 그래야 처방·금액·품목이 갈라지지 않는다.
+     *
+     * (제안[크론]과 승인[여기]은 다른 시점이고 동의 유효기간이 3일이라, 그 사이
+     * 재고·단가가 바뀌면 재계산 값이 모달이 보여준 값과 달라진다. 실측: 품절 중
+     * 제안 177,100원 → 재입고 후 승인 → 453,700원 재계산.)
+     */
+    const agreedTotal = pending.formula?.priceChange?.to
+    if (
+      box &&
+      typeof agreedTotal === 'number' &&
+      Number.isFinite(agreedTotal) &&
+      agreedTotal !== box.total
+    ) {
+      captureBusinessEvent('warning', 'approve_amount_mismatch', {
+        subscriptionId: box.subscriptionId,
+        dogId,
+        agreedTotal,
+        recomputedTotal: box.total,
+        diff: box.total - agreedTotal,
+      })
+      console.error(
+        '[personalization/approve] 동의 금액과 재계산 금액이 다르다 — 처방 승인·금액 갱신 모두 보류:',
+        { agreedTotal, recomputed: box.total },
+      )
+      return NextResponse.json({
+        ok: true,
+        decision,
+        priceUpdated: false,
+        itemsUpdated: false,
+        amountMismatch: true,
+        // ★처방도 전이하지 않았음(pending 유지) — 재제안 크론이 새 금액으로 재처리.
+        notApproved: true,
+        message:
+          '안내드린 금액과 지금 계산한 금액이 달라 이번 변경은 보류했어요 — 확인 후 다시 안내드릴게요.',
+      })
+    }
+
       // ★dog_formulas 쓰기는 service_role 로만(2026-08-05 보안 감사).
     //   daily_kcal 이 청구액에 **선형 비례**하는데(boxPricing: dailyG =
     //   ratio × dailyKcal ÷ kcalPer100g) 고객이 REST 로 직접 UPDATE 할 수
@@ -200,56 +247,9 @@ export async function POST(req: Request) {
       )
     }
 
-    /**
-     * 보호자가 금액을 보고 승인했으므로 청구액을 새 처방 기준으로 갱신.
-     *
-     * ★★ **동의받은 금액과 대조한다** (2026-08-08 금액 감사).
-     *
-     * 예전 주석은 "승인 화면이 보여준 값과 같은 함수·같은 입력 → 값 일치"
-     * 라고 **주장만** 했다. 실물 검산이 없었다(AGENTS.md 규칙4).
-     *
-     * 실제로는 갈라진다. 제안(크론)과 승인(여기)은 **다른 시점**이고 동의
-     * 유효기간이 3일이다. 그 사이 재고가 돌아오거나 단가가 바뀌면 여기서
-     * 다시 계산한 값이 모달이 보여준 값과 달라지는데, 그대로 저장했다.
-     * 실측: 품절 중 제안(177,100원) → 재입고 후 승인 → **453,700원 저장**
-     * (+276,600, 2.56배). 고객은 177,100원에 동의했다.
-     *
-     * `app/api/subscriptions/create` 는 정확히 이 이유로 `expectedTotal`
-     * 검산을 하고 있다(:244) — 승인 경로에만 없었다.
-     *
-     * 어긋나면 **금액은 건드리지 않는다**(처방 승인은 유효). 옛 금액이 남으면
-     * 우리가 차액을 흡수하는 쪽이라 고객에게 불리하지 않고, 사람이 보고
-     * 판단할 수 있게 사건으로 남긴다.
-     */
-    const agreedTotal = pending.formula?.priceChange?.to
-    if (
-      box &&
-      typeof agreedTotal === 'number' &&
-      Number.isFinite(agreedTotal) &&
-      agreedTotal !== box.total
-    ) {
-      captureBusinessEvent('warning', 'approve_amount_mismatch', {
-        subscriptionId: box.subscriptionId,
-        dogId,
-        agreedTotal,
-        recomputedTotal: box.total,
-        diff: box.total - agreedTotal,
-      })
-      console.error(
-        '[personalization/approve] 동의 금액과 재계산 금액이 다르다 — 금액 갱신 보류:',
-        { agreedTotal, recomputed: box.total },
-      )
-      return NextResponse.json({
-        ok: true,
-        decision,
-        priceUpdated: false,
-        itemsUpdated: false,
-        amountMismatch: true,
-        message:
-          '처방은 확정했어요. 다만 안내드린 금액과 지금 계산한 금액이 달라서 금액은 그대로 두었어요 — 확인 후 다시 안내드릴게요.',
-      })
-    }
-
+    // 보호자가 금액을 보고 승인했고, 위에서 동의 금액 == 재계산 금액을 이미
+    // 확인했다(어긋났으면 처방 전이 전에 보류·return 했다). 이제 청구액을 새
+    // 처방 기준으로 갱신한다.
     let priceUpdated = false
     let itemsUpdated = false
     if (box) {

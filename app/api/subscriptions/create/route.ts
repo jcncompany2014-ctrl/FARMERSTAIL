@@ -17,7 +17,7 @@ import {
   type ItemProduct,
 } from '@/lib/personalization/subscriptionItems'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
-import { ALL_LINES } from '@/lib/personalization/lines'
+import { ALL_LINES, FOOD_LINE_META } from '@/lib/personalization/lines'
 import { MAX_PICKS, ratiosFromPicks } from '@/lib/personalization/boxPicks'
 import { isKoreanMobile, PHONE_ERROR } from '@/lib/phone'
 
@@ -203,31 +203,45 @@ export async function POST(req: Request) {
    * adjust 라우트와 같은 의미이므로 user_adjusted 를 켠다(사람이 정한 값이라
    * 재제안 로직이 함부로 덮지 않게).
    */
+  // ★고른 레시피가 이 강아지의 알레르기 라인과 충돌하지 않는지 **서버가
+  //   재검증**한다 (2026-08-20 6라운드 감사). 예전엔 recipes 를 zod(유효
+  //   FoodLine·최대 2종)로만 보고 알레르기 차단은 화면 blocked set 에만 있었다 —
+  //   일부만 알레르기인 강아지(needsConsultation=false)는 서버 게이트를 통과해,
+  //   적대적 직접 호출이나 화면 버그 시 알레르기 단백질 박스가 결제까지 갔다.
+  //   adjust 라우트와 같은 검증(최신 surveys.answers.allergies × blockingAllergies).
   if (picks.length > 0) {
-    const nextFormula = { ...f.formula, lineRatios }
-    // ★규칙36 — dog_formulas 는 **고객 UPDATE 권한이 회수된 표**다(청구액 입력이라
-    //   2026-08 보안감사에서 잠갔다). 쿠키 클라이언트로 쓰면 조용히 거부되므로
-    //   service_role 로 쓰고, 소유권은 위 조회(user_id 일치)와 아래 eq 로 코드가
-    //   책임진다. (규칙36 테스트가 이 실수를 즉시 잡아냈다 — 처음엔 supabase 로
-    //   썼고, 그대로 뒀으면 저장이 안 된 채 "고쳤다"고 믿을 뻔했다.)
-    const { error: syncErr } = await createAdminClient()
-      .from('dog_formulas')
-      .update({ formula: nextFormula, user_adjusted: true })
+    const { data: latestSurvey, error: surveyErr } = await supabase
+      .from('surveys')
+      .select('answers')
       .eq('dog_id', body.dogId)
       .eq('user_id', user.id)
-      .eq('cycle_number', 1)
-    // 규칙1 — 여기서 실패하면 "고객이 산 박스"와 "포장할 박스"가 갈린다.
-    //   금액은 아래에서 lineRatios 로 정확히 계산되므로 결제는 진행하되,
-    //   갈림을 조용히 두지 않고 알린다(사장님이 발송 전에 손볼 수 있게).
-    if (syncErr) {
-      captureBusinessEvent('error', 'subscription.create.formula_sync_failed', {
-        dogId: body.dogId,
-        userId: user.id,
-        picks: picks.join(','),
-        dbError: String(syncErr.message ?? 'unknown'),
-        note:
-          '고객이 고른 레시피를 처방에 반영하지 못했다 — 피킹 리스트가 다른 구성을 뽑을 수 있다. 발송 전 확인 필요.',
-      })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (surveyErr) {
+      // 규칙1 — 알레르기를 확인 못 하면 통과시키지 않는다(안전 우선).
+      return NextResponse.json(
+        { code: 'LOOKUP_FAILED', message: '설문 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.' },
+        { status: 503 },
+      )
+    }
+    const allergies = Array.isArray(
+      (latestSurvey?.answers as { allergies?: unknown })?.allergies,
+    )
+      ? ((latestSurvey?.answers as { allergies: string[] }).allergies as string[])
+      : []
+    for (const line of ALL_LINES) {
+      const meta = FOOD_LINE_META[line]
+      const conflict = meta.blockingAllergies.find((a) => allergies.includes(a))
+      if (conflict && lineRatios[line] > 0) {
+        return NextResponse.json(
+          {
+            code: 'ALLERGY_BLOCKED',
+            message: `${meta.name} 라인은 ${conflict} 알레르기로 담을 수 없어요. 다시 골라 주세요.`,
+          },
+          { status: 400 },
+        )
+      }
     }
   }
 
@@ -391,6 +405,44 @@ export async function POST(req: Request) {
       { code: 'ITEMS_FAILED', message: '주문 상품을 담지 못했어요. 다시 시도해 주세요.' },
       { status: 500 },
     )
+  }
+
+  // ★고른 레시피를 처방(dog_formulas cycle1)에 반영 — **구독 생성이 확정된
+  //   뒤에만** (2026-08-20 6라운드 감사). 예전엔 이 sync 가 subscriptions INSERT
+  //   **이전**이라, INSERT 가 23505(강아지당 1구독)로 거부돼도 dog_formulas 는
+  //   이미 새 레시피+user_adjusted=true 로 덮여 **기존 활성 구독의 처방이 조용히
+  //   바뀌었다**(다음 청구 박스가 달라짐). sub.id 를 확보하고 품목까지 넣은 뒤로
+  //   옮겨, 실패 경로에선 처방을 건드리지 않는다.
+  //
+  //   왜 반영하나: 예전엔 picks 를 저장 안 해서, 금액·품목·주문내역은 고객이 고른
+  //   2종인데 화요일 피킹 리스트는 dog_formulas 를 정본으로 다시 계산해 단일
+  //   단백질 100% 로 떴다(첫 박스가 산 것과 다르게 나감). 처방을 고객 선택으로
+  //   갱신하면 처방·금액·품목·포장이 다시 한 정본이 된다.
+  //
+  //   규칙36 — dog_formulas 는 고객 UPDATE 권한이 회수된 표라 service_role 로
+  //   쓰고, 소유권은 위 조회(user_id 일치)와 아래 eq 로 코드가 책임진다.
+  if (picks.length > 0) {
+    const nextFormula = { ...f.formula, lineRatios }
+    const { error: syncErr } = await admin
+      .from('dog_formulas')
+      .update({ formula: nextFormula, user_adjusted: true })
+      .eq('dog_id', body.dogId)
+      .eq('user_id', user.id)
+      .eq('cycle_number', 1)
+    // 규칙1 — 여기서 실패하면 "고객이 산 박스"와 "포장할 박스"가 갈린다. 금액·
+    //   품목은 이미 lineRatios 로 저장됐으므로 구독은 유지하되(환불보다 낫다),
+    //   갈림을 조용히 두지 않고 알린다(사장님이 발송 전에 손볼 수 있게).
+    if (syncErr) {
+      captureBusinessEvent('error', 'subscription.create.formula_sync_failed', {
+        dogId: body.dogId,
+        userId: user.id,
+        subscriptionId: sub.id,
+        picks: picks.join(','),
+        dbError: String(syncErr.message ?? 'unknown'),
+        note:
+          '고객이 고른 레시피를 처방에 반영하지 못했다 — 피킹 리스트가 다른 구성을 뽑을 수 있다. 발송 전 확인 필요.',
+      })
+    }
   }
 
   // 다음 주문에 자동 채우기 — 실패해도 구독은 계속(부가 기능).
