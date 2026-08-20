@@ -69,10 +69,10 @@
      ```
 
 ### 데이터 복구 (롤백 필요한 경우)
-> **⚠️ 현재 Free 플랜 — Dashboard Backups 탭은 비어 있다.** 복구 지점은
-> 마지막 수동 덤프뿐이다(DISASTER_RECOVERY.md §3 의 덤프·복원 명령 참조).
-> Pro 업그레이드 후에만 아래 콘솔 절차가 생긴다.
-1. (Pro 이상) Supabase Dashboard → Database → **Backups** 탭
+> **Pro 플랜(2026-08-19~) — 일일 자동 백업 7일 보관.** 단 8/19 이전 시점은
+> 복구 지점이 없다(업그레이드는 소급 생성 안 됨). 그 이전 데이터가 필요하면
+> 수동 덤프본을 쓴다(DISASTER_RECOVERY.md §3).
+1. Supabase Dashboard → Database → **Backups** 탭
 2. 가장 최근 정상 시점 선택 → **Restore**
 3. 복구 후 일관성 검증 sql:
    ```sql
@@ -84,8 +84,8 @@
    ```
 
 ### Point-in-time recovery
-PITR 은 **Pro 포함 기능이 아니라 별도 유료 애드온**이다(현재 미가입).
-무료 플랜엔 daily snapshot 도 **없다** — 수동 덤프가 전부다.
+PITR 은 **Pro 포함이 아니라 별도 유료 애드온**이다 — 현재 미가입.
+따라서 복구 단위는 '일일 백업 시점'이고, 그 사이 시각으로는 못 돌아간다.
 
 ---
 

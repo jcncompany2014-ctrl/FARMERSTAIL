@@ -170,9 +170,10 @@ supabase db lint
 ## 9. 백업 / 복구
 
 ### Supabase 자동 백업
-- **Pro 플랜 이상**: 일별 자동 백업 7일 보관. PITR 은 별도 유료 애드온.
-- **Free(현재 플랜, 2026-08-16 실측): 자동 백업 없음 — 수동 export 가 유일한
-  복구 지점.** 명령·주의사항은 DISASTER_RECOVERY.md §3 이 정본.
+- **현재 Pro 플랜(2026-08-19 업그레이드)**: 일별 자동 백업 7일 보관.
+- ⚠️ **8/19 이전 시점은 복구 불가**(업그레이드는 소급 복구 지점을 안 만든다).
+- PITR(임의 시점)은 별도 유료 애드온 — **미가입**. 복구 단위는 일일 백업 시점.
+- 명령·주의사항은 DISASTER_RECOVERY.md §3 이 정본.
 
 ### 수동 export
 ```bash
@@ -184,8 +185,9 @@ gzip backup-*.sql
 ```
 
 ### Point-in-time Recovery (PITR)
-- Pro 플랜 사용 시 7일 이내 임의 시점 복구 가능.
-- Dashboard → Database → Backups → Point in Time Recovery.
+- ⚠️ **미가입.** PITR 은 Pro 에 포함이 아니라 **별도 유료 애드온**이다.
+  지금 복구 단위는 '일일 백업 시점'이며 그 사이 시각으로는 못 돌아간다.
+- 가입하면 Dashboard → Database → Backups → Point in Time Recovery 에서 사용.
 
 ---
 

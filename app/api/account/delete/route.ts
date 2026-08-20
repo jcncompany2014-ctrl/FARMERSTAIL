@@ -256,6 +256,20 @@ export async function POST(req: Request) {
     admin.from('dog_checkins').delete().eq('user_id', user.id),
     admin.from('native_push_tokens').delete().eq('user_id', user.id),
     admin.from('newsletter_subscribers').delete().eq('user_id', user.id),
+    /**
+     * ★이메일 기준으로도 지운다 (2026-08-20 7라운드 감사).
+     *
+     * 위 user_id 기준 삭제는 **구조적으로 아무것도 못 지운다** — 뉴스레터 신청
+     * 라우트(app/api/newsletter/route.ts)가 admin(service_role) 클라이언트로
+     * `auth.getUser()` 를 부르는데 그 클라이언트엔 세션이 없어 항상 null 이고,
+     * 결과적으로 newsletter_subscribers.user_id 는 **언제나 NULL** 로 저장된다.
+     * 그래서 탈퇴해도 구독이 남아 광고 메일이 계속 갔다(PIPA 파기 의무 위반).
+     * 이메일이 실제 조인 키이므로 그걸로도 지운다. 배치 안에 두어야 아래
+     * 부분실패 감시(captureBusinessEvent)가 이 삭제도 덮는다.
+     */
+    ...(originalEmail
+      ? [admin.from('newsletter_subscribers').delete().eq('email', originalEmail)]
+      : []),
     admin.from('addresses').delete().eq('user_id', user.id),
     admin.from('push_log').delete().eq('user_id', user.id),
     // ★최종감사 #18·#19 (2026-07-29): 빠져 있던 개인정보 테이블 2종.

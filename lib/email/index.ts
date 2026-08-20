@@ -13,6 +13,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail } from './client.ts'
+import { captureBusinessEvent } from '../sentry/trace.ts'
 import {
   renderOrderCancelled,
   renderOrderConfirmation,
@@ -437,8 +438,44 @@ export async function broadcastNewsletterVol01(
     last_sent_at: string | null
   }
   const subscribers = rows as Row[]
+
+  /**
+   * ★마케팅 수신동의를 **철회한 사람에게 보내지 않는다** (2026-08-20 7라운드 감사).
+   *
+   * 예전엔 newsletter_subscribers.status='confirmed' 만 봤다. 그런데 철회 경로
+   * (set_marketing_consent RPC)는 **profiles.agree_email 만 끄고**
+   * newsletter_subscribers 는 건드리지 않는다 — 두 표가 이어져 있지 않다.
+   * 즉 고객이 앱에서 "마케팅 수신 동의"를 끄고 "발송이 중단됩니다" 안내까지
+   * 받았는데도 뉴스레터는 계속 나갔다. 정보통신망법 §50 위반 소지이고,
+   * 우리가 서면으로 약속한 것을 어기는 것이라 첫 발송 전에 반드시 막아야 한다.
+   *
+   * 규칙1 — 조회 실패를 "거부자 없음"으로 접으면 안 된다. 모르면 **아무에게도
+   * 안 보낸다**(안 보낸 건 다음에 보낼 수 있지만, 거부자에게 보낸 건 못 되돌린다).
+   */
+  const optedOutEmails = new Set<string>()
+  if (subscribers.length > 0) {
+    const emails = subscribers.map((r) => r.email.toLowerCase())
+    const { data: optedOut, error: optErr } = await supabase
+      .from('profiles')
+      .select('email')
+      .in('email', emails)
+      .eq('agree_email', false)
+    if (optErr) {
+      captureBusinessEvent('error', 'newsletter.optout_lookup_failed', {
+        dbError: String(optErr.message ?? 'unknown'),
+        note: '수신거부자 확인 실패 — 발송을 통째로 중단했다(거부자에게 보내는 것보다 안전).',
+      })
+      return { total: subscribers.length, sent: 0, failed: 0, skipped: subscribers.length }
+    }
+    for (const p of (optedOut ?? []) as Array<{ email: string | null }>) {
+      if (p.email) optedOutEmails.add(p.email.toLowerCase())
+    }
+  }
+
   const eligible = subscribers.filter(
-    (r) => !r.last_sent_at || r.last_sent_at < cutoff,
+    (r) =>
+      !optedOutEmails.has(r.email.toLowerCase()) &&
+      (!r.last_sent_at || r.last_sent_at < cutoff),
   )
   const skipped = subscribers.length - eligible.length
 

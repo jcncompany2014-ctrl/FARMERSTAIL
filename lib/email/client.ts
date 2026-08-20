@@ -97,10 +97,30 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   if (await isAnyEmailSuppressed(input.to)) {
     // ★suppression 은 트랜잭션 메일(주문·발송·환불)까지 영구 차단한다.
     // 해제 화면이 없어 SQL 로만 풀 수 있으므로, 최소한 '막혔다'는 사실은 남긴다.
+    //
+    // ★거래메일이 막힌 건 **error 로 올린다** (2026-08-20 7라운드 감사).
+    //   스팸신고 1건이면 그 고객의 주문확인·발송·환불 안내까지 전부 영구
+    //   차단되는데, 예전엔 광고 메일과 똑같이 warning 이라 묻혔다. 고객은
+    //   "결제됐는데 아무 메일도 안 온다"가 되고 우리는 모른다. 광고(newsletter·
+    //   marketing)는 차단이 정상 동작이므로 warning 그대로 둔다.
+    const tag = input.tag ?? ''
+    const isTransactional =
+      tag.startsWith('order') ||
+      tag.startsWith('subscription') ||
+      tag.startsWith('va-') ||
+      tag.startsWith('personalization')
     try {
-      captureBusinessEvent('warning', 'email.suppressed_skip', {
-        tag: input.tag ?? null,
-      })
+      captureBusinessEvent(
+        isTransactional ? 'error' : 'warning',
+        'email.suppressed_skip',
+        {
+          tag: input.tag ?? null,
+          transactional: isTransactional,
+          note: isTransactional
+            ? '거래메일이 수신차단 목록 때문에 발송되지 않았다 — 고객은 주문·결제 안내를 못 받는다. email_suppressions 확인 필요.'
+            : undefined,
+        },
+      )
     } catch {
       /* 관측 실패가 메일 경로를 막지 않는다 */
     }

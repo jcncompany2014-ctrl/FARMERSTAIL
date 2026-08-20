@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { zNewsletterSubscribe } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
@@ -107,15 +108,32 @@ export async function POST(req: Request) {
 
   // 2) 신규 insert
   const confirmToken = crypto.randomUUID().replace(/-/g, '')
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  /**
+   * ★사용자 확인은 **쿠키 클라이언트**로 (2026-08-20 7라운드 감사).
+   *
+   * 위 `supabase` 는 service_role admin 클라이언트라 세션이 없다(persistSession
+   * false·쿠키 없음). 그래서 여기서 getUser() 를 부르면 로그인한 사람이
+   * 신청해도 **항상 null** 이었고, user_id 가 언제나 NULL 로 저장됐다.
+   * 그 결과 탈퇴 시 user_id 기준 삭제가 한 건도 못 지워 광고 메일이 계속 갔다
+   * (규칙8 의 거울상 — 거기선 쿠키 클라이언트를 크론에서 써서 0행이 됐다).
+   * 비로그인 신청도 정상 경로이므로 실패는 조용히 null 로 둔다.
+   */
+  let userId: string | null = null
+  try {
+    const cookieClient = await createClient()
+    const {
+      data: { user },
+    } = await cookieClient.auth.getUser()
+    userId = user?.id ?? null
+  } catch {
+    /* 비로그인·세션 오류 — user_id 없이 진행(이메일이 조인 키다) */
+  }
 
   const { error: insErr } = await supabase
     .from('newsletter_subscribers')
     .insert({
       email,
-      user_id: user?.id ?? null,
+      user_id: userId,
       status: 'pending',
       confirm_token: confirmToken,
       source,
