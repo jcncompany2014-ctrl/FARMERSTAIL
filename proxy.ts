@@ -27,6 +27,7 @@ import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { isAppRequest } from '@/lib/app-context-request'
+import { hasSupabaseSessionCookie } from '@/lib/auth/session-cookie'
 
 type Rule = {
   /** 경로 prefix. 정확 매칭이 아니라 startsWith. */
@@ -389,13 +390,19 @@ export async function proxy(request: NextRequest) {
   // 설문은 **익명**으로 끝까지 가므로 로그인 강요가 아니다. (이전 주석의
   // 걱정은 "무조건 /dashboard → /login 강제"였고, 그 경로가 아니다.)
   //
-  // Supabase 세션 쿠키 (`sb-*-auth-token`) 존재 여부로 빠르게 판정 — DB
-  // 라운드트립 없이 cookie 만 검사. 위조된 쿠키여도 dashboard 가 자체 가드.
+  // Supabase 세션 쿠키 존재 여부로 빠르게 판정 — DB 라운드트립 없이 cookie
+  // 이름만 검사. 위조된 쿠키여도 dashboard 가 자체 가드.
+  //
+  // ★2026-08-22 — 예전 판정(`endsWith('-auth-token')`)은 **조각난 쿠키를
+  // 놓쳤다.** @supabase/ssr 는 큰 세션을 `sb-…-auth-token.0/.1` 로 쪼개고
+  // 그때 원래 이름의 쿠키는 없다. 카카오 로그인이 정확히 그 경우라,
+  // **로그인한 앱 사용자가 미로그인 판정**을 받아 /welcome 온보딩으로
+  // 보내졌다(사장님 재현). 판정은 lib/auth/session-cookie 정본으로.
   if (pathname === '/') {
     if (fromApp(request)) {
-      const hasSession = request.cookies
-        .getAll()
-        .some((c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'))
+      const hasSession = hasSupabaseSessionCookie(
+        request.cookies.getAll().map((c) => c.name),
+      )
       const url = request.nextUrl.clone()
       url.pathname = hasSession ? '/dashboard' : '/welcome'
       return NextResponse.redirect(url)
