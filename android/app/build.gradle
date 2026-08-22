@@ -45,8 +45,10 @@ android {
         //                    배경색 크림.
         //    4 (2026-08-22): 주소검색 daum 도메인 allowNavigation — 3(1.0.2)이
         //                    이미 업로드된 뒤 나온 수정이라 번호를 올린다.
-        versionCode 4
-        versionName "1.0.3"
+        //    5 (2026-08-22): postcode.map.daum.net 명시 — `*.daum.net` 은
+        //                    단계수 불일치로 4단계 호스트를 못 잡는다(HostMask).
+        versionCode 5
+        versionName "1.0.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

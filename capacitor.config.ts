@@ -128,6 +128,13 @@ const config: CapacitorConfig = {
       // 안 본다 — 실측). 여기 없으면 postcode.map.daum.net iframe 이
       // **외부 앱 선택 팝업으로 튕기고 iframe 은 빈 채로 남는다**
       // (사장님 재현: "연결프로그램 팝업이 뜨는데 선택도 안 되고").
+      //
+      // ⚠️ `*` 는 **한 단계만** 대응한다(HostMask.java: 단계 수 정확 일치 요구).
+      //    `*.daum.net`(3단계)은 postcode.map.daum.net(4단계)을 **못** 잡는다 —
+      //    이걸 몰라서 같은 증상이 한 번 더 반복됐다. 필수 호스트의 실제 통과는
+      //    lib/native-allow-navigation.test.ts 가 자바 알고리즘 복제로 고정한다.
+      'postcode.map.daum.net',
+      '*.map.daum.net',
       '*.daum.net',
       '*.daumcdn.net',
     ],
