@@ -2653,4 +2653,26 @@ test('규칙58: 앱/웹 판정은 isAppRequest 정본을 거치고, UA 표식은
     `proxy.ts 가 ft_app 쿠키를 ${direct.length}곳에서 직접 읽는다 — fromApp() 하나만 읽어야 한다 ` +
       '(직접 읽으면 UA 표식을 놓쳐 네이티브 첫 요청이 웹으로 새어나간다)',
   )
+
+  // ★저장소 전체 — .get('ft_app') 직접 읽기는 정본 두 파일 밖에선 금지.
+  //
+  // 처음엔 proxy.ts 만 검사했다. 그 좁은 범위가 바로 사고가 된 경로다:
+  // proxy 는 고쳐서 라우팅은 통과되는데 **AuthAwareShell 이 여전히 쿠키만
+  // 읽어서** v2 앱에서도 화면이 웹으로 떴다(사장님이 두 번째로 재현).
+  // "판정을 정본으로 모았다"는 주장 자체를 저장소 전체에서 강제해야 한다.
+  const FT_APP_READ_ALLOWED = new Set(['proxy.ts', 'lib/app-context.ts'])
+  const readOffenders: string[] = []
+  for (const f of walk(ROOT)) {
+    const rel = f.slice(ROOT.length + 1).split(sep).join('/')
+    if (FT_APP_READ_ALLOWED.has(rel)) continue
+    const src = stripComments(read(f))
+    if (/\.get\(\s*['"]ft_app['"]\s*\)/.test(src)) readOffenders.push(rel)
+  }
+  assert.deepEqual(
+    readOffenders,
+    [],
+    'ft_app 쿠키를 직접 읽어 앱/웹을 판정하는 파일 — isAppContextServer()/isAppRequest 정본을 거쳐야 한다 ' +
+      '(직접 읽으면 UA 표식을 놓쳐 네이티브 첫 화면이 웹으로 렌더된다):\n  ' +
+      readOffenders.join('\n  '),
+  )
 })

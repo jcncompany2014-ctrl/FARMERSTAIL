@@ -1,6 +1,6 @@
-import { cookies } from 'next/headers'
 import WebChrome from '@/components/WebChrome'
 import AppChrome from '@/components/AppChrome'
+import { isAppContextServer } from '@/lib/app-context'
 
 /**
  * AuthAwareShell — 컨텍스트 기반 chrome dispatcher.
@@ -13,11 +13,15 @@ import AppChrome from '@/components/AppChrome'
  *   • 웹 (브라우저)        → WebChrome — 풀와이드 파머스독(FD) 톤
  *   • 앱 (PWA/Capacitor)   → AppChrome — 폰 프레임 + 하단 탭바
  *
- * 컨텍스트 감지: `ft_app` 쿠키.
- *   • `components/AppContextCookieSync.tsx` 가 PWA standalone / Capacitor
- *     네이티브 감지 시 client-side 에서 set.
- *   • SSR 첫 요청에는 쿠키가 없을 수 있어 (cold install) WebChrome 으로
- *     fallback. 두 번째 요청부터는 정확.
+ * 컨텍스트 감지: `isAppContextServer()` **정본** (쿠키 + UA 표식).
+ *
+ * ★2026-08-22 — 예전엔 여기서 `ft_app` 쿠키를 **직접** 읽고 "첫 요청에는
+ * 쿠키가 없어 WebChrome 으로 fallback, 두 번째 요청부터 정확" 이라고 적어
+ * 두었다. 네이티브 앱에서는 그 "fallback" 이 **앱의 첫인상 전체**다 —
+ * 스토어에서 받은 앱을 켰는데 웹 화면이 떴다(사장님이 v2 에서도 재현).
+ * proxy.ts 는 UA 표식을 보도록 고쳐졌는데 이 파일이 남아 있었다 — 판정이
+ * 두 벌이면 반드시 이렇게 갈라진다. 지금은 정본 한 곳만 쓴다(규칙58 이
+ * 직접 읽기 재발을 저장소 전체에서 막는다).
  *
  * # 어디 쓰이나
  *
@@ -40,8 +44,7 @@ export default async function AuthAwareShell({
   /** @deprecated 사용 안 함. */
   publicBackLabel?: string
 }) {
-  const cookieStore = await cookies()
-  const isApp = cookieStore.get('ft_app')?.value === '1'
+  const isApp = await isAppContextServer()
 
   if (isApp) {
     return <AppChrome>{children}</AppChrome>

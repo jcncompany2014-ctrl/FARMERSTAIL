@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { APP_USER_AGENT_MARKER } from './app-context-request'
 
 /**
  * useIsAppContext — 클라이언트 컴포넌트에서 앱(PWA / Capacitor) 진입인지 판정.
@@ -24,10 +25,16 @@ export function useIsAppContext(): boolean {
   const [isApp, setIsApp] = useState(false)
   useEffect(() => {
     if (typeof document === 'undefined') return
-    const flag = document.cookie
-      .split(';')
-      .map((c) => c.trim())
-      .some((c) => c.startsWith('ft_app=1'))
+    // ★2026-08-22 — 쿠키 **또는** UA 표식. 네이티브 첫 실행은 쿠키가 아직
+    // 없다(AppContextCookieSync 의 effect 와 이 effect 의 순서 보장도 없다).
+    // WebView UA 에는 표식이 항상 있으므로 그걸 함께 본다 — 서버 판정
+    // (lib/app-context-request 의 isAppRequest)과 같은 두 신호다.
+    const flag =
+      document.cookie
+        .split(';')
+        .map((c) => c.trim())
+        .some((c) => c.startsWith('ft_app=1')) ||
+      navigator.userAgent.includes(APP_USER_AGENT_MARKER)
     // 외부 시스템(document.cookie) 의 1회 동기화 — useEffect 의 정상 사용 패턴.
     // React 19 `react-hooks/set-state-in-effect` 룰은 cascading render 를
     // 우려하지만 이 setState 는 deps=[] 라 마운트 직후 1회만 발생한다.
