@@ -81,6 +81,17 @@ export default function NativeShellBridge() {
               new CustomEvent(NATIVE_BACK_EVENT, { cancelable: true }),
             )
             if (!notIntercepted) return
+            // ★2026-08-22 — 일반 방어: 열려 있는 <dialog>(바텀시트·모달)가
+            // 있으면 화면 이동 대신 그것만 닫는다. 개별 컴포넌트가
+            // useNativeBackClose 를 깜빡해도 여기서 잡힌다 — 실제로 주소
+            // 입력 시트가 떠 있는데 뒤로가기가 화면을 통째로 넘겨버렸다
+            // (사장님 재현). close() 는 dialog 의 'close' 이벤트를 발화하므로
+            // 각 시트의 onClose 상태 동기화가 그대로 따라온다.
+            const openDialog = document.querySelector('dialog[open]')
+            if (openDialog instanceof HTMLDialogElement) {
+              openDialog.close()
+              return
+            }
             if (canGoBack) {
               router.back()
               return

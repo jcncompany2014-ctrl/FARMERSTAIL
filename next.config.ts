@@ -159,12 +159,14 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy-Report-Only',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.tosspayments.com https://*.toss.im https://*.vercel-insights.com https://*.vercel.app",
+              // t1.daumcdn.net — Daum 우편번호 위젯 스크립트 (AddressSearch).
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.tosspayments.com https://*.toss.im https://*.vercel-insights.com https://*.vercel.app https://t1.daumcdn.net",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tosspayments.com https://*.toss.im https://*.sentry.io https://*.ingest.sentry.io https://api.anthropic.com",
-              "frame-src 'self' https://*.tosspayments.com https://*.toss.im",
+              // postcode.map.daum.net — Daum 우편번호 embed iframe (앱 주소검색).
+              "frame-src 'self' https://*.tosspayments.com https://*.toss.im https://postcode.map.daum.net https://*.daumcdn.net",
               "frame-ancestors 'self'",
               "object-src 'none'",
               "base-uri 'self'",

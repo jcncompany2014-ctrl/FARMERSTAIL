@@ -40,8 +40,11 @@ android {
         //    업로드가 거부된다(되돌릴 수도 없다 — 쓴 번호는 영구 소모).
         //    2 (2026-08-22): 앱/웹 분기 수정 — UA 표식이 이 빌드에 들어간다.
         //                    v1 은 앱을 켜도 웹 화면이 떴다.
-        versionCode 2
-        versionName "1.0.1"
+        //    3 (2026-08-22): 스플래시 교체 — FT 아이콘 임시물 → 브랜드 워드마크
+        //                    (크림/검은커피 라이트·다크 2종) + 시스템 스플래시
+        //                    배경색 크림.
+        versionCode 3
+        versionName "1.0.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

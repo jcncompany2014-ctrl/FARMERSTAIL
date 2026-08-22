@@ -17,6 +17,10 @@
 
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <!-- Android 12+ 시스템 스플래시(첫 ~0.5초, 앱아이콘 원형)는 OS 강제라
+             이미지를 못 바꾼다. 배경색만 브랜드 크림으로 맞춰 그 다음
+             풀스크린 스플래시(워드마크)와 이어지게 한다. -->
+        <item name="windowSplashScreenBackground">#F5F0E6</item>
         <item name="android:background">@drawable/splash</item>
     </style>
 </resources>
