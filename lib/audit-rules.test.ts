@@ -2676,3 +2676,28 @@ test('규칙58: 앱/웹 판정은 isAppRequest 정본을 거치고, UA 표식은
       readOffenders.join('\n  '),
   )
 })
+
+test('규칙59: useIsStandalone 은 lib/standalone 정본에 위임한다 (복제 금지)', () => {
+  /**
+   * # 왜 (2026-08-22 — "앱인데 웹이 뜬다"의 마지막 조각)
+   * lib/standalone.ts 는 2026-08-08 "Capacitor WebView 도 설치된 앱" 수정을
+   * 받았는데, hooks/useIsStandalone.ts 가 같은 로직을 **복제**하면서 그 수정이
+   * 빠졌다. 그래서 네이티브 첫 실행이 브라우저 방문으로 판정돼 OnboardingGate
+   * 가 /welcome 으로 보내지 않았다. 훅은 정본을 import 해서 써야 한다 —
+   * 정본이 고쳐지면 훅도 같이 고쳐지도록.
+   */
+  const src = stripComments(read(join(ROOT, 'hooks', 'useIsStandalone.ts')))
+  assert.ok(
+    /from ['"]@\/lib\/standalone['"]/.test(src),
+    'hooks/useIsStandalone.ts 가 lib/standalone 정본을 import 하지 않는다',
+  )
+  assert.ok(
+    /isStandaloneApp\(\)/.test(src),
+    'hooks/useIsStandalone.ts 의 판정이 isStandaloneApp() 을 호출하지 않는다',
+  )
+  // 판정 로직 복제의 특징 신호: read 경로에서 navigator.standalone 을 직접 본다.
+  assert.ok(
+    !/navigator as Navigator & \{ standalone/.test(src),
+    'hooks/useIsStandalone.ts 가 판정 로직을 다시 복제했다 — 정본에 위임할 것',
+  )
+})
