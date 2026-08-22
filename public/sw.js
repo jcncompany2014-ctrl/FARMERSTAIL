@@ -31,9 +31,16 @@
 // 으로 git SHA + timestamp 주입. 이 placeholder 'farmerstail-v5' 는 dev 용
 // 기본값이며 build 시점에 'farmerstail-<sha12>-<ts>' 로 교체됨. SW 자체
 // 내용이 변경되면 브라우저가 새 sw.js 받아 → install → activate → 옛 캐시
-// 자동 정리. 사용자가 PWA 다시 켤 때 toast "새 버전이 준비됐어요" 노출.
-// (audit #85 후반 — R29 에서 prebuild 자동화 완성)
-const CACHE_NAME = 'farmerstail-44e14bc5c5af-mt1awfxm'
+// 자동 정리. (audit #85 후반 — R29 에서 prebuild 자동화 완성)
+//
+// ★2026-08-20 주석 정정 — 여기엔 "사용자가 PWA 다시 켤 때 toast
+// '새 버전이 준비됐어요' 노출" 이라고 적혀 있었지만 **그 토스트는 없다.**
+// 2026-07-12 사장님 요청으로 제거했고(거슬린다), 지금은 새 버전이 조용히
+// install → waiting 상태로 있다가 앱을 완전히 껐다 켜는 다음 실행에서
+// 활성화된다(강제 리로드 없음 → 결제·설문 입력이 안 끊긴다).
+// 실제로 이 주석 때문에 "그거 이제 필요 없지 않냐"는 질문이 나왔다 —
+// 없는 동작을 있다고 주장하는 주석은 코드가 없는 것보다 나쁘다(AGENTS.md 규칙4).
+const CACHE_NAME = 'farmerstail-876bf667268a-mt3w2fyz'
 
 const NAV_CACHE_MAX_ENTRIES = 60
 const ASSET_CACHE_MAX_ENTRIES = 80
@@ -131,7 +138,11 @@ self.addEventListener('install', (event) => {
   )
 })
 
-// SKIP_WAITING — 사용자 명시 액션 후 ServiceWorkerRegister 가 메시지 보냄.
+// SKIP_WAITING — ⚠️ **현재 호출하는 곳이 없다(死코드).**
+// 예전엔 "새로고침" 토스트를 누르면 ServiceWorkerRegister 가 이 메시지를
+// 보냈지만, 그 토스트를 2026-07-12 에 없앴다(위 CACHE_NAME 주석 참조).
+// 핸들러만 남겨 둔다 — 지우면 SW 를 한 번 더 갱신시켜야 하는데 얻는 게 없다.
+// 다시 쓰려면 보내는 쪽부터 만들어야 한다. "있으니 동작하겠지"로 읽지 말 것.
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting()
