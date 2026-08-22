@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useIsAppContext } from '@/hooks/useIsAppContext'
+import { isNativeApp } from '@/lib/capacitor'
 
 const COOKIE_NAME = 'ft_app'
 const COOKIE_VALUE_APP = '1'
@@ -31,6 +33,7 @@ const COOKIE_MAX_AGE_S = 60 * 60 * 24 * 365 // 1년
  */
 export default function AppContextCookieSync() {
   const isApp = useIsAppContext()
+  const router = useRouter()
 
   useEffect(() => {
     if (typeof document === 'undefined') return
@@ -56,6 +59,18 @@ export default function AppContextCookieSync() {
       document.cookie =
         `${COOKIE_NAME}=${COOKIE_VALUE_APP}; path=/; max-age=${COOKIE_MAX_AGE_S}; ` +
         `SameSite=Lax${secure}`
+
+      // ★2026-08-22 — 쿠키를 **처음** 심은 순간엔 이미 서버가 이 화면을 "웹"
+      // 으로 렌더한 뒤다. 다시 그리지 않으면 앱 안인데 웹 화면이 그대로 남는다.
+      //
+      // 네이티브(Capacitor)는 UA 표식 덕분에 첫 요청부터 앱으로 렌더되므로
+      // 새로고침이 필요 없다 — 여기서 refresh 하면 괜히 한 번 깜빡인다.
+      // 표식이 없는 **설치된 PWA** 만 이 경로가 필요하다.
+      //
+      // 루프 걱정 없음: refresh 후엔 current === '1' 이라 다시 안 들어온다.
+      if (current !== COOKIE_VALUE_APP && !isNativeApp()) {
+        router.refresh()
+      }
     } else {
       // 웹 컨텍스트로 돌아온 경우 (앱 사용자가 같은 브라우저로 사이트 방문 등 — 드물다)
       // 명시적으로 만료. 만일 동일 디바이스에서 PWA + 일반 브라우저 둘 다 쓰면
@@ -63,7 +78,7 @@ export default function AppContextCookieSync() {
       document.cookie =
         `${COOKIE_NAME}=; path=/; max-age=0; SameSite=Lax${secure}`
     }
-  }, [isApp])
+  }, [isApp, router])
 
   return null
 }

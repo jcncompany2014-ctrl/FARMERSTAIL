@@ -26,6 +26,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { isAppRequest } from '@/lib/app-context-request'
 
 type Rule = {
   /** 경로 prefix. 정확 매칭이 아니라 startsWith. */
@@ -215,6 +216,23 @@ function isAppOnlyPath(pathname: string): boolean {
 }
 
 /**
+ * 이 요청이 앱(네이티브/설치된 PWA)에서 왔는가 — 판정은 `isAppRequest` 정본에
+ * 위임한다.
+ *
+ * ★2026-08-22 — 예전엔 아래 세 게이트가 각자 `request.cookies.get('ft_app')`
+ * 를 직접 읽었다. 네이티브 앱의 **첫 요청에는 쿠키가 없어서** 셋 다 어긋났다:
+ * 앱 전용 라우트는 "앱을 설치하세요" 벽으로 튕기고, `/` 는 로그인돼 있어도
+ * /dashboard 로 안 넘어가고, chrome 은 웹으로 그려졌다. UA 표식을 함께 보면
+ * 첫 요청부터 맞는다. 규칙58 이 직접 읽기 재발을 막는다.
+ */
+function fromApp(request: NextRequest): boolean {
+  return isAppRequest({
+    appCookie: request.cookies.get('ft_app')?.value,
+    userAgent: request.headers.get('user-agent'),
+  })
+}
+
+/**
  * `/admin` 진입 시 Supabase JWT app_metadata.role === 'admin' 검증.
  *
  * 라우트별 isAdmin() 가드(lib/auth/admin.ts) 는 이미 application-level 에서
@@ -333,8 +351,7 @@ export async function proxy(request: NextRequest) {
   // 1) 앱 전용 라우트 보호 — rate limit 보다 먼저. 웹 사용자에겐 곧장
   // /app-required 로 redirect.
   if (isAppOnlyPath(pathname)) {
-    const appCookie = request.cookies.get('ft_app')?.value
-    if (appCookie !== '1') {
+    if (!fromApp(request)) {
       const url = request.nextUrl.clone()
       url.pathname = '/app-required'
       url.search = `?from=${encodeURIComponent(pathname + request.nextUrl.search)}`
@@ -350,8 +367,7 @@ export async function proxy(request: NextRequest) {
     !isWebAllowedMypage(pathname) &&
     !isAppOnlyPath(pathname) // 위에서 이미 처리됨
   ) {
-    const appCookie = request.cookies.get('ft_app')?.value
-    if (appCookie !== '1' && pathname === '/mypage') {
+    if (!fromApp(request) && pathname === '/mypage') {
       const url = request.nextUrl.clone()
       url.pathname = '/mypage/orders'
       return NextResponse.redirect(url)
@@ -371,8 +387,7 @@ export async function proxy(request: NextRequest) {
   // Supabase 세션 쿠키 (`sb-*-auth-token`) 존재 여부로 빠르게 판정 — DB
   // 라운드트립 없이 cookie 만 검사. 위조된 쿠키여도 dashboard 가 자체 가드.
   if (pathname === '/') {
-    const appCookie = request.cookies.get('ft_app')?.value
-    if (appCookie === '1') {
+    if (fromApp(request)) {
       const hasSession = request.cookies
         .getAll()
         .some((c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'))
@@ -448,3 +463,5 @@ export const config = {
     '/tools/:path*',
   ],
 }
+
+

@@ -60,6 +60,26 @@ const config: CapacitorConfig = {
   // (현재 디렉토리에 빈 out 폴더가 있어야 cap CLI 가 통과 — npm script 가 생성)
   webDir: 'capacitor-web',
 
+  /**
+   * ★2026-08-22 — WebView User-Agent 끝에 표식을 붙인다.
+   *
+   * # 왜 (사장님: "지금 그냥 웹으로 들어가지는데?")
+   * 앱을 켜면 WebView 가 우리 사이트를 **쿠키 하나 없이** 요청한다. 서버는
+   * `ft_app` 쿠키로만 앱/웹을 갈랐기 때문에 **첫 화면을 웹으로 렌더**했고,
+   * 그 뒤 클라이언트가 쿠키를 심어도 이미 그려진 화면은 그대로였다.
+   * UA 표식은 **첫 요청의 헤더에 이미 들어 있어** 서버가 왕복 없이 안다.
+   *
+   * ⚠️ `lib/app-context-request.ts` 의 `APP_USER_AGENT_MARKER` 와 **같은
+   * 문자열이어야 한다.** 이 파일은 Capacitor CLI 가 따로 로드해서 `@/` 별칭을
+   * 못 쓰므로 값을 복제한다 — 대신 규칙58(lib/audit-rules.test.ts)이 두 값의
+   * 일치를 강제한다.
+   *
+   * `overrideUserAgent` 가 아니라 `append` 인 것이 중요하다. UA 를 통째로
+   * 바꾸면 토스 결제창·카카오 로그인이 브라우저 판정을 못 해 깨질 수 있다.
+   * 뒤에 토큰 하나만 덧붙이는 건 표준 관행이다.
+   */
+  appendUserAgent: 'FarmerstailApp',
+
   server: {
     // 운영: Vercel 도메인을 그대로 로드. NEXT_PUBLIC_SITE_URL 와 일치.
     // 빈 값이면 webDir 의 정적 파일을 로드 (정적 export 모드 — 미사용).

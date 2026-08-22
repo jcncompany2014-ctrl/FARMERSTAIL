@@ -2614,3 +2614,43 @@ test('규칙57 — 모든 CSV export 가 정본 lib/csv 를 거친다 (수식 �
       offenders.join('\n  '),
   )
 })
+
+test('규칙58: 앱/웹 판정은 isAppRequest 정본을 거치고, UA 표식은 한 값이다', () => {
+  /**
+   * # 왜 (2026-08-22 — 사장님: "지금 그냥 웹으로 들어가지는데?")
+   *
+   * proxy.ts 의 세 게이트가 각자 `request.cookies.get('ft_app')` 를 직접
+   * 읽었다. 네이티브 앱의 **첫 요청에는 쿠키가 없어서** 셋 다 어긋났다:
+   * 첫 화면이 웹으로 렌더되고, 로그인돼 있어도 / → /dashboard 가 안 되고,
+   * 앱 전용 라우트로 콜드 스타트하면 "앱을 설치하세요" 벽이 앱 안에서 떴다.
+   *
+   * 판정을 lib/app-context-request 로 모았으니, 직접 읽기가 다시 생기면
+   * 조용히 갈라진다. 그리고 UA 표식은 capacitor.config.ts 와 lib 양쪽에
+   * 값이 **복제**돼 있다(Capacitor CLI 가 @/ 별칭을 못 쓴다) — 복제는
+   * 갈라지므로 여기서 일치를 강제한다.
+   */
+  const marker = read(join(ROOT, 'lib', 'app-context-request.ts')).match(
+    /APP_USER_AGENT_MARKER\s*=\s*['"]([^'"]+)['"]/,
+  )?.[1]
+  assert.ok(marker, 'lib/app-context-request.ts 에서 APP_USER_AGENT_MARKER 를 못 찾았다')
+
+  const capCfg = read(join(ROOT, 'capacitor.config.ts'))
+  const appended = capCfg.match(/appendUserAgent:\s*['"]([^'"]+)['"]/)?.[1]
+  assert.ok(appended, 'capacitor.config.ts 에 appendUserAgent 가 없다 — 네이티브 첫 요청이 웹으로 렌더된다')
+  assert.equal(
+    appended,
+    marker,
+    `UA 표식이 갈라졌다: capacitor.config.ts="${appended}" vs lib="${marker}". ` +
+      '둘이 다르면 서버가 앱을 못 알아본다.',
+  )
+
+  // proxy.ts 는 ft_app 쿠키를 직접 읽지 않는다 (fromApp → isAppRequest 경유).
+  const proxySrc = stripComments(read(join(ROOT, 'proxy.ts')))
+  const direct = proxySrc.match(/cookies\.get\(\s*['"]ft_app['"]\s*\)/g) ?? []
+  assert.equal(
+    direct.length,
+    1,
+    `proxy.ts 가 ft_app 쿠키를 ${direct.length}곳에서 직접 읽는다 — fromApp() 하나만 읽어야 한다 ` +
+      '(직접 읽으면 UA 표식을 놓쳐 네이티브 첫 요청이 웹으로 새어나간다)',
+  )
+})
