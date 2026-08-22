@@ -40,7 +40,7 @@
 // 활성화된다(강제 리로드 없음 → 결제·설문 입력이 안 끊긴다).
 // 실제로 이 주석 때문에 "그거 이제 필요 없지 않냐"는 질문이 나왔다 —
 // 없는 동작을 있다고 주장하는 주석은 코드가 없는 것보다 나쁘다(AGENTS.md 규칙4).
-const CACHE_NAME = 'farmerstail-d4f14ad529dc-mt464e0w'
+const CACHE_NAME = 'farmerstail-6fa30b08b2a3-mt46l05f'
 
 const NAV_CACHE_MAX_ENTRIES = 60
 const ASSET_CACHE_MAX_ENTRIES = 80

@@ -369,10 +369,17 @@ export default function RootLayout({
           iOS 레거시 standalone 감지 — display-mode media query 를 아직 반영 못 하는
           iOS PWA 도 navigator.standalone 으로 잡아 html.ft-standalone 부여 →
           AppSplash 가 첫 페인트부터 노출된다(globals.css .ft-splash 게이트).
+
+          ★2026-08-22 — Capacitor 네이티브도 같은 클래스를 받는다(같은 병 4번째:
+          "Capacitor WebView 도 설치된 앱"). 안드로이드 12+ 는 네이티브 스플래시
+          이미지를 시스템이 아이콘 동그라미로 강제해 풀스크린 브랜드 스플래시를
+          못 보여준다(@capacitor/splash-screen showWithAndroid12API 실측) —
+          그 몫을 이 웹 스플래시(로고 모션)가 맡는다. 네이티브 브리지는 문서
+          시작 시점에 주입되므로 head 인라인에서 동기적으로 읽을 수 있다.
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{if(window.navigator&&window.navigator.standalone===true){document.documentElement.classList.add('ft-standalone');}}catch(e){}})();`,
+            __html: `(function(){try{var n=window.navigator&&window.navigator.standalone===true;var c=window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform()===true;if(n||c){document.documentElement.classList.add('ft-standalone');}}catch(e){}})();`,
           }}
         />
       </head>
