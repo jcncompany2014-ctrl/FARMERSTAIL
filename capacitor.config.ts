@@ -138,7 +138,20 @@ const config: CapacitorConfig = {
       // 노치/다이내믹 아일랜드 영역에 컨텐츠 안 들어감.
       overlaysWebView: false,
       backgroundColor: '#F5F0E6',
-      style: 'DEFAULT',
+      /**
+       * ★2026-08-20 — 'DEFAULT' 에서 'LIGHT' 로.
+       *
+       * Capacitor 의 이름이 헷갈린다(패키지 정의 실측):
+       *   Dark    = 어두운 배경용 **밝은 글자**
+       *   Light   = 밝은 배경용 **어두운 글자**   ← 우리가 원하는 것
+       *   Default = **기기 테마를 따라간다** — 다크모드면 글자가 밝아진다
+       *
+       * 우리 앱은 항상 라이트 톤이다(globals.css 에서 다크 자동전환을 사장님
+       * 요청으로 꺼 뒀다). 배경은 크림색(#F5F0E6) 고정인데 'DEFAULT' 로 두면
+       * **폰을 다크모드로 쓰는 사용자 전원에게 흰 글자 + 크림 배경**이 되어
+       * 시계·배터리가 안 보인다. 배경이 고정이므로 글자도 고정해야 한다.
+       */
+      style: 'LIGHT',
     },
     PushNotifications: {
       // iOS APNs 권한은 사용자가 처음 알림 토글 (예: /mypage/notifications)

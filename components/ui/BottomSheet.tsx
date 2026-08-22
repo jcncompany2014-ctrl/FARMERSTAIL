@@ -30,6 +30,7 @@
 
 import { useCallback, useEffect, useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
+import { useNativeBackClose } from '@/lib/native-back'
 
 type BottomSheetProps = {
   open: boolean
@@ -124,6 +125,10 @@ function BottomSheetRoot({
       }, 200)
     }
   }, [onClose])
+
+  // 안드로이드 하드웨어 뒤로가기 → 화면 이동 대신 **시트 닫기**.
+  // 네이티브 앱에서만 이벤트가 오므로 웹/PWA 동작·시각은 그대로다.
+  useNativeBackClose(open, onClose)
 
   // ESC / dialog native close → onClose 호출. native close 는 사용자의 ESC,
   // form method=dialog submit, 스크립트의 .close() 등으로 발화.

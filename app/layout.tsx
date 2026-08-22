@@ -25,6 +25,7 @@ import ConsentBootstrap from "@/components/ConsentBootstrap";
 import JsonLd from "@/components/JsonLd";
 import WebVitalsReporter from "@/components/WebVitalsReporter";
 import AppContextCookieSync from "@/components/AppContextCookieSync";
+import NativeShellBridge from "@/components/NativeShellBridge";
 import {
   buildOrganizationJsonLd,
   buildWebSiteJsonLd,
@@ -410,6 +411,9 @@ export default function RootLayout({
             라우트 (/dashboard, /dogs/* 등) 진입을 분기. PWA standalone /
             Capacitor 네이티브 감지 시 쿠키 자동 set, 웹 사용자에겐 unset. */}
         <AppContextCookieSync />
+        {/* 네이티브 셸 연결 — 푸시 탭 라우팅 · App Links · 하드웨어 뒤로가기.
+            웹/PWA 에서는 isNativeApp() 에서 즉시 빠져 아무 일도 안 한다. */}
+        <NativeShellBridge />
         {/* Core Web Vitals beacon — Sentry 로 poor LCP/INP/CLS 알림 전송 */}
         <WebVitalsReporter />
         {/* 이미 저장된 쿠키 동의를 마운트 즉시 tracker 에 반영 */}
