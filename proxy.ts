@@ -376,13 +376,18 @@ export async function proxy(request: NextRequest) {
 
   // 1-b) App 사용자가 marketing 랜딩 ("/") 으로 진입하면:
   //   • 로그인됨 → /dashboard (케어 다이어리)
-  //   • 미로그인 → 그대로 / (marketing landing 노출)
+  //   • 미로그인 → /welcome (앱 온보딩·설문 입구)
   //
-  // 이전엔 ft_app=1 만 보고 무조건 /dashboard 로 리다이렉트했는데, 그러면
-  // /dashboard 가 다시 /login 으로 보내 로그인 강제 흐름이 됐다. Apple App
-  // Store Guideline 5.1.1(i) "Login Services" — 핵심 기능이 아닌데 로그인을
-  // 강요하면 거부 사유. 게스트가 둘러볼 수 있도록 미인증 시 marketing 랜딩
-  // 그대로 노출.
+  // ★2026-08-22 — 미로그인 분기가 "marketing 랜딩 그대로 노출"이었다.
+  // 랜딩(app/page.tsx)은 WebChrome 하드코딩이라, **앱을 두 번째로 켜면
+  // 웹 화면이 떴다**(첫 실행은 OnboardingGate 가 /welcome 으로 보내지만,
+  // 온보딩을 한 번 본 뒤엔 게이트가 침묵한다 — 사장님이 재현). "웹화면이
+  // 앱에 보이면 안 된다"는 분리 원칙 위반. 이제 미로그인 앱 사용자의 홈은
+  // /welcome 이다 — 캐러셀에서 설문(/start)·로그인 둘 다 갈 수 있다.
+  //
+  // Apple Guideline 5.1.1(i) "Login Services" 는 계속 지켜진다: /welcome →
+  // 설문은 **익명**으로 끝까지 가므로 로그인 강요가 아니다. (이전 주석의
+  // 걱정은 "무조건 /dashboard → /login 강제"였고, 그 경로가 아니다.)
   //
   // Supabase 세션 쿠키 (`sb-*-auth-token`) 존재 여부로 빠르게 판정 — DB
   // 라운드트립 없이 cookie 만 검사. 위조된 쿠키여도 dashboard 가 자체 가드.
@@ -391,12 +396,9 @@ export async function proxy(request: NextRequest) {
       const hasSession = request.cookies
         .getAll()
         .some((c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'))
-      if (hasSession) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/dashboard'
-        return NextResponse.redirect(url)
-      }
-      // 미로그인 + ft_app=1 → marketing 랜딩 그대로 노출 (게스트 browse 허용)
+      const url = request.nextUrl.clone()
+      url.pathname = hasSession ? '/dashboard' : '/welcome'
+      return NextResponse.redirect(url)
     }
   }
 
