@@ -122,6 +122,14 @@ const config: CapacitorConfig = {
       '*.kakaocdn.net',
       // 인증 — Apple 로그인
       'appleid.apple.com',
+      // 주소 검색 — Daum 우편번호 embed iframe (2026-08-22).
+      // Capacitor 는 iframe 네비게이션도 이 목록으로 검사한다
+      // (BridgeWebViewClient.shouldOverrideUrlLoading 이 isForMainFrame 을
+      // 안 본다 — 실측). 여기 없으면 postcode.map.daum.net iframe 이
+      // **외부 앱 선택 팝업으로 튕기고 iframe 은 빈 채로 남는다**
+      // (사장님 재현: "연결프로그램 팝업이 뜨는데 선택도 안 되고").
+      '*.daum.net',
+      '*.daumcdn.net',
     ],
   },
 
