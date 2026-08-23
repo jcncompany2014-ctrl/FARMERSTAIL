@@ -48,8 +48,10 @@ android {
         //    5 (2026-08-22): postcode.map.daum.net 명시 — `*.daum.net` 은
         //                    단계수 불일치로 4단계 호스트를 못 잡는다(HostMask).
         //    6 (2026-08-23): 런처 아이콘 FT→도장 로고 전면 교체 (사장님 지시).
-        versionCode 6
-        versionName "1.0.5"
+        //    7 (2026-08-23): 아이콘 크기 — 생성기 이중축소로 가시영역 73%만
+        //                    채우던 것을 92%로 (사장님: "너무 작은데").
+        versionCode 7
+        versionName "1.0.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
