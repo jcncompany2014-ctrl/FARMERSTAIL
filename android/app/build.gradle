@@ -54,8 +54,10 @@ android {
         //                    (potrace) 2048 렌더 기반 축소로 교체.
         //    9 (2026-08-23): 아이콘 정본 교체 — 사장님 원본 AI/PDF 벡터(2048 렌더)
         //                    잉크 추출 기반. 화질 문제 종결.
-        versionCode 9
-        versionName "1.0.8"
+        //    10 (2026-08-23): 아이콘 뿌연 색 — 알파 추출이 질감을 반투명화하던
+        //                     것을 원색 보존+배경만 제거로 교체.
+        versionCode 10
+        versionName "1.0.9"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
