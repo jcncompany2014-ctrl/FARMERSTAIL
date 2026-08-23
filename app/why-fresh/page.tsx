@@ -146,7 +146,7 @@ export default async function WhyFreshPage() {
               <Reveal delay={120}>
                 <PhotoSlot
                   motion
-                  src="/fresh-bowl.jpg"
+                  src="/bowl-fresh.jpg"
                   alt="수비드 저온 조리 신선식 한 그릇"
                   label="신선식 한 그릇"
                   sub="수비드 저온 조리 화식 클로즈업"

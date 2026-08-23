@@ -366,7 +366,7 @@ function DualProduct({ isAuthed }: { isAuthed: boolean }) {
         </Reveal>
         <div className="pt-10 md:pt-14 grid gap-4 md:gap-6 max-w-2xl mx-auto">
           {[
-            { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/product-main.jpg' },
+            { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/pouch-ft.webp' },
           ].map((p, i) => (
             <Reveal key={p.t} delay={i * 90}>
               <div style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>

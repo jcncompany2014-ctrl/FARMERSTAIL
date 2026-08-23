@@ -110,13 +110,13 @@ function HomeHero({ ctaHref }: { ctaHref: string }) {
         <div data-gsap-y="-10" className="absolute inset-0">
           <div className="fv-kenburns absolute inset-0">
             <Image
-              src="/hero-dog.jpg"
+              src="/hero-home.jpg"
               alt=""
               fill
               priority
               sizes="100vw"
               className="object-cover"
-              style={{ objectPosition: '50% 30%' }}
+              style={{ objectPosition: '62% 60%' }}
             />
           </div>
         </div>
@@ -142,7 +142,7 @@ function HomeHero({ ctaHref }: { ctaHref: string }) {
         <div data-gsap-y="14">
           <span className="block overflow-hidden" style={{ borderRadius: 14, border: '6px solid #FFFFFF', boxShadow: '0 24px 60px -24px rgba(22,20,15,0.5)' }}>
             <span className="relative block" style={{ aspectRatio: '4 / 3' }}>
-              <Image src="/fresh-bowl.jpg" alt="" fill sizes="300px" className="object-cover" />
+              <Image src="/bowl-fresh.jpg" alt="" fill sizes="300px" className="object-cover" />
             </span>
           </span>
         </div>
@@ -286,7 +286,7 @@ function ValueProp({ ctaHref }: { ctaHref: string }) {
                   style={{ inset: '10px -10px -10px 10px', background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 12 }}
                 />
                 <span className="relative block overflow-hidden" style={{ aspectRatio: '4 / 3', borderRadius: 12 }}>
-                  <Image src="/founder-dog.jpg" alt="파머스테일을 시작하게 한 반려견과 설립자" fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" />
+                  <Image src="/founder-field.jpg" alt="밭길을 반려견과 함께 걷는 설립자의 뒷모습" fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" />
                 </span>
               </div>
               <p
@@ -555,7 +555,7 @@ function CompleteMealPlan({ ctaHref }: { ctaHref: string }) {
           </Reveal>
           <div className="grid gap-4 md:gap-6 md:content-center">
           {[
-            { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/meal-recipe.webp', alt: '파머스테일 블랙포크 레시피 화식 파우치' },
+            { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/pouch-ft.webp', alt: '파머스테일 레시피 파우치' },
             // ⛔ '영양제 소스' 카드 제거 (2026-07-31 사장님) — **아직 출시 안 한
             //    제품**이다. 랜딩에 있으면 없는 걸 파는 것처럼 보인다.
             //    (2026-07-13 에 이미 분석 화면의 '맞춤 영양제 박스'를 같은 이유로

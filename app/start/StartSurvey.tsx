@@ -510,7 +510,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
             여기 있던 PhotoSlot 은 src 가 없어서 고객에게 "맞춤 결과 대표 이미지
             (강아지·상품 누끼)" 라고 적힌 초록 빈 상자로 보였다. 그것도 하필
             제목과 칼로리 숫자 사이 — 결과를 보러 온 사람이 가장 먼저 만나는 자리다.
-            아래 플랜 섹션에 이미 실사진(/meal-recipe.webp)이 있으므로 화면이
+            아래 플랜 섹션에 이미 상품 사진(/pouch-ft-wide.webp)이 있으므로 화면이
             휑해지지도 않는다. 누끼 자산이 나오면 여기에 src 를 주고 되살린다. */
         }
         <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -620,10 +620,10 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                     ? `하루 약 ${plan.dailyKrw.toLocaleString()}원부터 · 맞춤 레시피는 상담으로 안내해 드려요`
                     : `추천 레시피 ${plan.recipes.length}종 · 하루 약 ${plan.dailyKrw.toLocaleString()}원부터`}
                 </p>
-                {/* 📸 신선식 상품 사진 — 랜딩과 동일 실사진 재사용(2026-07-03 UX 감사,
-                    placeholder 해소). 실촬영 누끼 밀팩 나오면 교체. */}
+                {/* 📸 신선식 상품 사진 — 사장님 파우치 목업(2026-08-23). 16:7 슬롯용
+                    좌우 확장판(pouch-ft-wide)을 쓴다 — 원본은 4:3이라 크롭되면 잘림. */}
                 <div style={{ marginTop: 12 }}>
-                  <PhotoSlot label="신선식 상품 사진" src="/meal-recipe.webp" alt="파머스테일 신선 화식 레시피" ratio="16 / 7" tone="cream" rounded={12} className="w-full" />
+                  <PhotoSlot label="신선식 상품 사진" src="/pouch-ft-wide.webp" alt="파머스테일 신선 화식 레시피" ratio="16 / 7" tone="cream" rounded={12} className="w-full" />
                 </div>
                 {plan.noSafeRecipe ? (
                   // 선택한 알레르기로 추천 가능한 레시피가 0종 — 알레르겐을 가짜로
