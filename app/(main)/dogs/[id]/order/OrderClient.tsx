@@ -31,6 +31,12 @@ import { openBillingWindow } from '@/lib/payments/open-billing-window'
 import { billingAuthFallbackHref } from '@/lib/payments/billing-urls'
 import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
 import { useToast } from '@/components/ui/Toast'
+import {
+  AddressSearchSheet,
+  loadDaumPostcodeScript,
+  openDaumPostcodePopup,
+} from '@/components/AddressSearchSheet'
+import { isStandaloneApp } from '@/lib/standalone'
 import { haptic } from '@/lib/haptic'
 import { formatPhone } from '@/lib/formatters'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
@@ -126,42 +132,16 @@ export type OrderProfileInitial = {
   prefilled: boolean
 }
 
-type DaumPostcodeData = {
-  userSelectedType: 'R' | 'J'
-  roadAddress: string
-  jibunAddress: string
-  zonecode: string
-  buildingName: string
-}
-
-let daumScriptLoaded = false
-let daumScriptLoading = false
-const daumCallbacks: (() => void)[] = []
-
-function loadDaumPostcode(): Promise<void> {
-  return new Promise((resolve) => {
-    if (daumScriptLoaded) {
-      resolve()
-      return
-    }
-    if (daumScriptLoading) {
-      daumCallbacks.push(resolve)
-      return
-    }
-    daumScriptLoading = true
-    const s = document.createElement('script')
-    s.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
-    s.async = true
-    s.onload = () => {
-      daumScriptLoaded = true
-      daumScriptLoading = false
-      resolve()
-      daumCallbacks.forEach((cb) => cb())
-      daumCallbacks.length = 0
-    }
-    document.head.appendChild(s)
-  })
-}
+/**
+ * ★2026-08-23 — 이 파일에 있던 Daum 우편번호 **복제본**(로더 + `.open()` 팝업)을
+ * 삭제하고 components/AddressSearchSheet 정본으로 교체했다.
+ *
+ * 그 복제본이 "앱에서 주소검색 불능" 5번 왕복의 진짜 원인이었다: 공용
+ * AddressSearch 를 세 차례 고치는 동안, 사장님이 실제로 밟는 **주문 화면은
+ * 이 복제본을 쓰고 있어서** 무엇을 고쳐도 증상이 그대로였다. `.open()` 팝업은
+ * WebView 에서 구조적으로 불능이다(에뮬레이터 재현: "팝업을 열 수 없습니다").
+ * 여기서 daum.Postcode 를 다시 만들지 말 것 — 규칙60이 막는다.
+ */
 
 /**
  * ⚠️ 분량·가격 계산은 `lib/personalization/boxPricing.ts` **정본**으로 이동했다
@@ -322,7 +302,7 @@ export default function OrderClient({
   }, [])
 
   useEffect(() => {
-    void loadDaumPostcode()
+    void loadDaumPostcodeScript()
   }, [])
 
   // 첫 발송일 — '오늘 + 5일' 어림짐작이었는데 실제 발송은 화요일 하루뿐이라
@@ -389,21 +369,35 @@ export default function OrderClient({
     (it) => it.product.is_subscribable === false,
   ).length
 
+  // 주소 선택 결과 적용 — 팝업(웹)·시트(앱) 공통 경로.
+  const applyAddress = useCallback(
+    (a: { zip: string; address: string; buildingName: string }) => {
+      setZipRef.current(a.zip)
+      setAddrRef.current(a.address)
+      if (a.buildingName) {
+        setDetailRef.current(a.buildingName)
+      }
+      setAddressEdited(true)
+    },
+    [],
+  )
+
+  // 설치된 앱의 embed 주소검색 시트 (정본: components/AddressSearchSheet).
+  const [addrSheetOpen, setAddrSheetOpen] = useState(false)
+
   const openAddressSearch = useCallback(async () => {
-    await loadDaumPostcode()
-    new (window as unknown as { daum: { Postcode: new (cfg: unknown) => { open: () => void } } }).daum.Postcode({
-      oncomplete(data: DaumPostcodeData) {
-        const addr =
-          data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress
-        setZipRef.current(data.zonecode)
-        setAddrRef.current(addr)
-        if (data.buildingName) {
-          setDetailRef.current(data.buildingName)
-        }
-        setAddressEdited(true)
-      },
-    }).open()
-  }, [])
+    // 설치된 앱은 팝업 불능(WebView) — embed 시트로. 파일 상단 정정 주석 참조.
+    if (isStandaloneApp()) {
+      setAddrSheetOpen(true)
+      return
+    }
+    await loadDaumPostcodeScript()
+    try {
+      openDaumPostcodePopup(applyAddress)
+    } catch {
+      toast.error('주소 검색 서비스를 잠시 불러오지 못했어요. 잠시 후 다시 시도해 주세요')
+    }
+  }, [applyAddress, toast])
 
   /**
    * ★검증 실패를 **눈에 보이는 곳**에 띄운다 (2026-08-12 4라운드 감사).
@@ -1168,6 +1162,13 @@ export default function OrderClient({
           </div>
         </>
       )}
+
+      {/* 설치된 앱의 주소검색 — 화면 안 embed 시트 (정본, 웹 팝업과 같은 결과 적용). */}
+      <AddressSearchSheet
+        open={addrSheetOpen}
+        onClose={() => setAddrSheetOpen(false)}
+        onComplete={applyAddress}
+      />
     </div>
   )
 }
@@ -1232,4 +1233,5 @@ function ShipRhythmCard({ firstShipIso }: { firstShipIso: string | null }) {
     </details>
   )
 }
+
 

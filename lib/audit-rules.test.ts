@@ -2701,3 +2701,31 @@ test('규칙59: useIsStandalone 은 lib/standalone 정본에 위임한다 (복�
     'hooks/useIsStandalone.ts 가 판정 로직을 다시 복제했다 — 정본에 위임할 것',
   )
 })
+
+test('규칙60: daum.Postcode 생성은 AddressSearchSheet 정본 한 곳에서만', () => {
+  /**
+   * # 왜 (2026-08-23 — 주소검색 5번 왕복의 원인)
+   * 같은 주소검색이 공용 컴포넌트와 주문 화면(OrderClient)에 **두 벌** 있었다.
+   * 앱에서 불능이라는 제보에 공용 쪽만 세 번 고쳤는데, 사장님이 밟는 화면은
+   * 복제본이라 무엇을 고쳐도 증상이 그대로였다. 팝업(.open())은 WebView 에서
+   * 구조적으로 불능(에뮬레이터 재현: "팝업을 열 수 없습니다")이므로, 위젯
+   * 생성을 정본 한 파일로 강제한다 — 복제본이 다시 생기면 여기서 빨간불.
+   */
+  const CANON = 'components/AddressSearchSheet.tsx'
+  const offenders: string[] = []
+  for (const f of walk(ROOT)) {
+    const rel = f.slice(ROOT.length + 1).split(sep).join('/')
+    if (rel === CANON) continue
+    const src = stripComments(read(f))
+    if (/daum\s*\.\s*Postcode\s*\(|daum\.Postcode\b/.test(src) && /new\b/.test(src) && /Postcode\s*\(/.test(src)) {
+      // 생성 흔적: new ...daum.Postcode( — 타입 선언·주석은 stripComments 로 제외됨
+      if (/new[^;]{0,120}Postcode\s*\(/.test(src)) offenders.push(rel)
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'daum.Postcode 를 정본 밖에서 생성한다 — 앱에서 주소검색이 조용히 죽는 복제 경로:\n  ' +
+      offenders.join('\n  '),
+  )
+})
