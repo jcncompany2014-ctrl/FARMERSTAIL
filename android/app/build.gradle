@@ -56,8 +56,10 @@ android {
         //                    잉크 추출 기반. 화질 문제 종결.
         //    10 (2026-08-23): 아이콘 뿌연 색 — 알파 추출이 질감을 반투명화하던
         //                     것을 원색 보존+배경만 제거로 교체.
-        versionCode 10
-        versionName "1.0.9"
+        //    11 (2026-08-23): 진짜 원인 종결 — cap:assets 가 adaptive 레이어를
+        //                     절반 해상도(192px)로 뽑던 버그. 수제 생성(규칙61)으로 432px.
+        versionCode 11
+        versionName "1.0.10"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

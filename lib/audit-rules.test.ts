@@ -2729,3 +2729,22 @@ test('규칙60: daum.Postcode 생성은 AddressSearchSheet 정본 한 곳에서�
       offenders.join('\n  '),
   )
 })
+
+test('규칙61: adaptive 아이콘 레이어는 108dp 규격 크기 (생성기 버그 우회 검증)', async () => {
+  /**
+   * @capacitor/assets 가 adaptive foreground 를 레거시 48dp 크기로 뽑는 버그가
+   * 있다 — xxxhdpi 가 432px 여야 하는데 192px 로 나와, 기기가 2.25배 확대해
+   * 그리며 **모든 기기에서 아이콘이 흐릿**했다(2026-08-23, 사장님 3회 재현 끝에
+   * 실측 확정). 아이콘은 scripts/gen-android-icons.mjs 로만 생성한다.
+   * 누군가 cap:assets 를 다시 돌리면 이 테스트가 즉시 빨간불을 낸다.
+   */
+  const sharp = (await import('sharp')).default
+  const expect: Record<string, number> = { mdpi: 108, hdpi: 162, xhdpi: 216, xxhdpi: 324, xxxhdpi: 432 }
+  const wrong: string[] = []
+  for (const [d, px] of Object.entries(expect)) {
+    const f = join(ROOT, 'android', 'app', 'src', 'main', 'res', `mipmap-${d}`, 'ic_launcher_foreground.png')
+    const m = await sharp(f).metadata()
+    if (m.width !== px || m.height !== px) wrong.push(`${d}: ${m.width}px (규격 ${px}px)`)
+  }
+  assert.deepEqual(wrong, [], 'adaptive foreground 크기가 규격 미달 — cap:assets 를 아이콘에 돌렸는가?\n  ' + wrong.join('\n  '))
+})
