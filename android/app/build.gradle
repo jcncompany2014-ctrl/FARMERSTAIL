@@ -50,8 +50,10 @@ android {
         //    6 (2026-08-23): 런처 아이콘 FT→도장 로고 전면 교체 (사장님 지시).
         //    7 (2026-08-23): 아이콘 크기 — 생성기 이중축소로 가시영역 73%만
         //                    채우던 것을 92%로 (사장님: "너무 작은데").
-        versionCode 7
-        versionName "1.0.6"
+        //    8 (2026-08-23): 아이콘 화질 — 512 원본 확대로 깨지던 것을 벡터화
+        //                    (potrace) 2048 렌더 기반 축소로 교체.
+        versionCode 8
+        versionName "1.0.7"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
