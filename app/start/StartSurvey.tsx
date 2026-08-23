@@ -162,7 +162,7 @@ function humanizeSignupError(raw: string): string {
   if (m.includes('already') || m.includes('registered') || m.includes('duplicate') || m.includes('exists'))
     return '가입을 완료하지 못했어요. 입력 정보를 확인하시거나, 이미 계정이 있다면 로그인을 시도해 주세요.'
   if (m.includes('password') || m.includes('weak'))
-    return '비밀번호가 정책에 맞지 않아요. 영문·숫자 포함 6자 이상으로 다시 입력해 주세요.'
+    return '비밀번호가 정책에 맞지 않아요. 영문·숫자 포함 8자 이상으로 다시 입력해 주세요.'
   if (m.includes('rate') || m.includes('too many')) return '잠시 후 다시 시도해 주세요.'
   if (m.includes('email') && m.includes('invalid')) return '이메일 형식이 올바르지 않아요.'
   return '가입에 실패했어요. 잠시 후 다시 시도해 주세요.'
