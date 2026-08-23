@@ -18,11 +18,11 @@
               가입을 완료하려면 아래 버튼을 눌러 이메일 인증을 진행해주세요. 링크는 <strong>1시간 후 만료</strong>됩니다.
             </p>
             <div style="margin:24px 0 8px;">
-              <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;background:#1E1A14;color:#FFFFFF;text-decoration:none;border-radius:999px;font-size:14px;font-weight:700;">이메일 인증하기</a>
+              <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup" style="display:inline-block;padding:14px 28px;background:#1E1A14;color:#FFFFFF;text-decoration:none;border-radius:999px;font-size:14px;font-weight:700;">이메일 인증하기</a>
             </div>
             <p style="margin:18px 0 0;font-size:12px;line-height:1.7;color:#7A7165;">
               버튼이 작동하지 않으면 이 주소를 복사해서 브라우저에 붙여 넣어주세요:<br>
-              <span style="word-break:break-all;color:#C66B3D;">{{ .ConfirmationURL }}</span>
+              <span style="word-break:break-all;color:#C66B3D;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup</span>
             </p>
           </td>
         </tr>
