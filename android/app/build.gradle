@@ -47,8 +47,9 @@ android {
         //                    이미 업로드된 뒤 나온 수정이라 번호를 올린다.
         //    5 (2026-08-22): postcode.map.daum.net 명시 — `*.daum.net` 은
         //                    단계수 불일치로 4단계 호스트를 못 잡는다(HostMask).
-        versionCode 5
-        versionName "1.0.4"
+        //    6 (2026-08-23): 런처 아이콘 FT→도장 로고 전면 교체 (사장님 지시).
+        versionCode 6
+        versionName "1.0.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
