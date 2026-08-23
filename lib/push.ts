@@ -128,9 +128,12 @@ export async function pushToUser(
   payload: PushPayload,
   opts?: { category?: PushCategory; nudge?: boolean }
 ): Promise<{ ok: boolean; sent: number; dead: number; reason?: string }> {
-  if (!ensureConfigured()) {
-    return { ok: false, sent: 0, dead: 0, reason: 'VAPID_NOT_CONFIGURED' }
-  }
+  // ★2026-08-23 — 웹 푸시(VAPID) 미설정이 **네이티브 발송까지 인질로** 잡았다.
+  //   예전엔 여기서 조기 반환했는데, 프로덕션에 VAPID 가 빠져 있던 날 FCM 키를
+  //   전부 넣고도 테스트 푸시가 503 이었다 — FCM 은 시도조차 못 했다.
+  //   규칙8의 친척: 한 채널(웹)의 설정 문제가 다른 채널(네이티브)을 죽이면
+  //   안 된다. 웹 발사 루프만 건너뛰고 네이티브 팬아웃은 항상 진행한다.
+  const webConfigured = ensureConfigured()
 
   // service_role 키가 없는 환경(로컬 dev 등)에서 throw 로 호출부를 깨지 않는다 —
   // 이 파일의 기존 graceful degradation(VAPID_NOT_CONFIGURED)과 같은 방식.
@@ -246,25 +249,35 @@ export async function pushToUser(
   const dead: string[] = []
   let sent = 0
 
-  await Promise.all(
-    rows.map(async (row) => {
-      try {
-        await webpush.sendNotification(
-          {
-            endpoint: row.endpoint,
-            keys: { p256dh: row.p256dh, auth: row.auth },
-          },
-          body
-        )
-        sent += 1
-      } catch (err: unknown) {
-        const status = (err as { statusCode?: number })?.statusCode
-        if (status === 404 || status === 410) {
-          dead.push(row.id)
+  // 웹 발사는 VAPID 가 설정된 경우에만 — 미설정이어도 아래 네이티브 팬아웃은
+  // 그대로 진행된다(위 webConfigured 주석 참조).
+  if (webConfigured) {
+    await Promise.all(
+      rows.map(async (row) => {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: row.endpoint,
+              keys: { p256dh: row.p256dh, auth: row.auth },
+            },
+            body
+          )
+          sent += 1
+        } catch (err: unknown) {
+          const status = (err as { statusCode?: number })?.statusCode
+          if (status === 404 || status === 410) {
+            dead.push(row.id)
+          }
         }
-      }
+      })
+    )
+  } else if (rows.length > 0) {
+    // 웹 구독자가 있는데 키가 없다 — 조용히 빠지면 규칙8 재발이므로 흔적을 남긴다.
+    captureBusinessEvent('error', 'push.web.vapid_not_configured', {
+      userId,
+      webSubscriptions: rows.length,
     })
-  )
+  }
 
   if (dead.length > 0) {
     const { error: delErr } = await supabase
