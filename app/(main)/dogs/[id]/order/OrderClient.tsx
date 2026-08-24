@@ -1131,6 +1131,20 @@ export default function OrderClient({
             <Check size={11} strokeWidth={2.6} color="var(--moss)" />
             위약금 없이 일시정지·해지 가능 (다음 결제 전까지)
           </p>
+          {/* 사장님 2026-08-24: "언제 결제되는지 + 그 전까지 무료 취소" 고지가
+              신규 가입 주경로(이 화면)에만 없었다. 버튼이 '결제하기'라 지금 돈이
+              나가는 걸로 읽히는데 실제로는 카드 등록만 되고, 첫 청구는 첫 발송일
+              아침 크론이 한다(subscription-charge, lte(next_delivery_date)). */}
+          <p className="ord-foot">
+            <Check size={11} strokeWidth={2.6} color="var(--moss)" />
+            오늘은 카드 등록만 해요 — 첫 결제는{' '}
+            {firstShipIso
+              ? `첫 발송일인 ${Number(firstShipIso.slice(5, 7))}월 ${Number(
+                  firstShipIso.slice(8, 10),
+                )}일(${weekdayKo(firstShipIso)}) 아침에 이뤄져요`
+              : '첫 발송일(화요일) 아침에 이뤄져요'}
+            . 그 전까지는 무료로 취소할 수 있어요.
+          </p>
 
           {/* 하단 고정 결제 바 (다크) — 레시피→배송→결제 흐름 통일. 실제 결제(카드
               등록)는 billing-auth 로. 상세 시트 없음 — 늘 노출. */}
