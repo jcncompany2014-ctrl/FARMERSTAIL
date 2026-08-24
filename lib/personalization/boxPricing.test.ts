@@ -21,26 +21,34 @@ import {
  *  4. 반올림·내림은 어디에도 없다
  */
 
-describe('mealPortionG — 5g 단위 무조건 올림', () => {
-  test('164g → 165g (올림)', () => {
-    assert.equal(mealPortionG(164), 165)
+describe('mealPortionG — 처방 그대로 (1g 올림만, 사장님 2026-08-24 처방=팩 동일)', () => {
+  /**
+   * 5g 올림 규칙(2026-07-19) 폐지 이력: "하루 42g 처방인데 45g 팩 값을 내는 건
+   * 고객 입장에서 억울하다"(사장님 2026-08-24). 처방·팩·표시·청구가 한 숫자여야
+   * 한다. 소수점 g 은 계량·표시가 불가능하니 1g 올림만 남긴다(내림 금지 유지).
+   */
+  test('42g → 42g (정수 처방은 그대로 = 팩과 동일)', () => {
+    assert.equal(mealPortionG(42), 42)
   })
-  test('161g → 165g (내림처럼 보이는 구간도 올림)', () => {
-    assert.equal(mealPortionG(161), 165)
+  test('42.4g → 43g (소수점만 1g 올림)', () => {
+    assert.equal(mealPortionG(42.4), 43)
   })
-  test('165g → 165g (경계값은 그대로)', () => {
-    assert.equal(mealPortionG(165), 165)
+  test('164g → 164g (옛 5g 규칙이면 165였을 값)', () => {
+    assert.equal(mealPortionG(164), 164)
+  })
+  test('부동소수 잔재는 올림으로 오인하지 않는다', () => {
+    assert.equal(mealPortionG(45.000000000001), 45)
   })
   test('0 이하 → 0', () => {
     assert.equal(mealPortionG(0), 0)
     assert.equal(mealPortionG(-3), 0)
   })
-  test('불변식: 결과는 항상 입력 이상 + 5g 배수', () => {
-    for (let g = 1; g <= 500; g += 7) {
+  test('불변식: 결과는 항상 입력 이상(내림 금지) + 정수 + 과잉 올림 없음', () => {
+    for (let g = 0.3; g <= 500; g += 6.7) {
       const out = mealPortionG(g)
-      assert.ok(out >= g, `${g} → ${out} 내림 발생`)
-      assert.equal(out % 5, 0, `${g} → ${out} 5g 배수 아님`)
-      assert.ok(out - g < 5, `${g} → ${out} 과잉 올림`)
+      assert.ok(out >= g - 1e-9, `${g} → ${out} 내림 발생`)
+      assert.equal(out % 1, 0, `${g} → ${out} 정수 아님`)
+      assert.ok(out - g < 1, `${g} → ${out} 과잉 올림`)
     }
   })
 })
@@ -135,15 +143,17 @@ describe('computeBoxItems + priceBox — 정본 일관성', () => {
     const displaySum = items.reduce((s, it) => s + it.pricePerPack * it.quantity, 0)
     assert.ok(displaySum >= total)
   })
-  test('각 항목: 표시가×팩수 ≥ cycleTotal, cycleTotal은 100원 배수, 팩그램 5g 배수', () => {
+  test('각 항목: 표시가×팩수 ≥ cycleTotal, cycleTotal은 100원 배수, 팩그램=처방 1g 올림', () => {
     for (const fresh of [30, 60, 100]) {
       const items = computeBoxItems({ formula, freshRatio: fresh, products })
       assert.equal(items.length, 2, `fresh=${fresh}: 항목 0개면 아래 루프가 안 돈다`)
       for (const it of items) {
         assert.ok(it.pricePerPack * it.quantity >= it.cycleTotal)
         assert.equal(it.cycleTotal % 100, 0)
-        assert.equal(it.packG % 5, 0)
-        assert.ok(it.packG >= it.dailyG, '팩이 처방 일일량 미만')
+        // 처방=팩 동일(사장님 2026-08-24): 정수 + 처방 이상 + 1g 미만 초과
+        assert.equal(it.packG % 1, 0)
+        assert.ok(it.packG >= it.dailyG - 1e-9, '팩이 처방 일일량 미만')
+        assert.ok(it.packG - it.dailyG < 1, '팩이 처방보다 1g 이상 큼 — 억울 구간')
       }
     }
   })
