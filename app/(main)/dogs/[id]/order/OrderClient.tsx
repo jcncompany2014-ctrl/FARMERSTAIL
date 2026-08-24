@@ -790,7 +790,14 @@ export default function OrderClient({
                     <div className="ord-recipe-portion">
                       <span className="ord-recipe-plbl">하루</span>
                       <span className="ord-recipe-pval">
-                        {Math.round(it.dailyG)}g · {dailyKcal}kcal
+                        {/* 사장님 2026-08-24: "42g×14팩인데 왜 630g?" — 급여량과
+                            팩 규격(5g 올림, mealPortionG)이 달라서 나온 혼란.
+                            팩 규격을 같이 보여줘야 결제 요약의 총중량이 계산된다. */}
+                        {Math.round(it.dailyG)}g
+                        {it.packG > Math.round(it.dailyG)
+                          ? ` (${it.packG}g 팩)`
+                          : ''}{' '}
+                        · {dailyKcal}kcal
                       </span>
                     </div>
                     {(isOOS || notSub) && (
@@ -1065,6 +1072,17 @@ export default function OrderClient({
                 {items.reduce((s, it) => s + it.quantity, 0)}팩
               </strong>
             </div>
+            {/* 급여량(예: 하루 42g)과 팩 규격(45g 팩)이 달라 총중량이 급여량×14와
+                안 맞아 보인다(사장님 2026-08-24 제보). 올림 발송인 경우에만 설명. */}
+            {items.some((it) => it.packG > Math.round(it.dailyG)) && (
+              <div className="ord-summary-row ord-summary-info">
+                <Check size={11} strokeWidth={2.2} color="var(--moss)" />
+                <span>
+                  팩은 하루 급여량을 5g 단위로 올려 여유 있게 담아요 — 처방량보다
+                  적게 받는 일이 없도록요.
+                </span>
+              </div>
+            )}
             {/* 정가 앵커 → 구독 15% 할인 시각화 (2026-07-11 확정 가격표). 표시 전용 —
                 청구는 sale_price 기반 subtotal 그대로. */}
             {subDiscount > 0 && (
