@@ -27,7 +27,8 @@ import type { Json } from '@/lib/supabase/types'
 import { shipTimingLabel } from '@/lib/shipping-schedule'
 import { subscriptionState } from '@/lib/subscription-state'
 import Link from 'next/link'
-import { dailyGramsOf } from '@/lib/personalization/dailyGrams'
+import { dailyPortionTotalG } from '@/lib/personalization/boxPricing'
+import type { FoodLine } from '@/lib/personalization/types'
 import { formatKg } from '@/lib/korean'
 
 /**
@@ -363,9 +364,6 @@ export default async function DashboardPage() {
         formula: { lineRatios: Record<string, number> } | null
       }>).find((f) => f.dog_id === firstDog.id) ?? null
     : null
-  const firstDogDailyGrams = firstDogFormulaRow
-    ? dailyGramsOf(firstDogFormulaRow)
-    : null
   const firstDogFreshRatio = firstDog
     ? ((dogSubRatios ?? []) as Array<{
         dog_id: string
@@ -373,9 +371,17 @@ export default async function DashboardPage() {
       }>).find((s) => s.dog_id === firstDog.id && s.fresh_ratio != null)
         ?.fresh_ratio ?? null
     : null
+  // ★처방=팩=화면 한 숫자 (사장님 2026-08-24): 정확값 반올림이 아니라 **팩
+  //   규격의 합**(dailyPortionTotalG = 라인별 mealPortionG 합)을 보여준다.
+  //   주문 화면·실제 팩과 같은 숫자가 나온다 — 총량×비율 반올림은 42 vs 팩 40
+  //   처럼 갈라졌다(사장님 제보).
   const freshFeedGrams =
-    firstDogDailyGrams != null
-      ? Math.round((firstDogDailyGrams * (firstDogFreshRatio ?? 100)) / 100)
+    firstDogFormulaRow?.daily_kcal && firstDogFormulaRow.formula?.lineRatios
+      ? dailyPortionTotalG(
+          firstDogFormulaRow.formula.lineRatios as Record<FoodLine, number>,
+          firstDogFormulaRow.daily_kcal,
+          firstDogFreshRatio ?? 100,
+        )
       : null
 
   // ── Phase D7.4 — 페르소나 추론 + 카드 ──────────────────────────────────

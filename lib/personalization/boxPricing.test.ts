@@ -2,6 +2,7 @@ import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   mealPortionG,
+  dailyPortionTotalG,
   lineCycleTotal,
   displayPricePerPack,
   topperPacksForCycle,
@@ -234,5 +235,29 @@ describe('★ 조용히 빠지는 항목 — 피킹 리스트가 대조하는 �
     const intended = computeBoxItems({ formula, freshRatio: 100, products: full })
     const packedSlugs = new Set(packed.map((it) => it.product.slug))
     assert.deepEqual(intended.filter((it) => !packedSlugs.has(it.product.slug)), [])
+  })
+})
+
+describe('dailyPortionTotalG — 화면 급여량 = 팩 합 (사장님 2026-08-24 제보)', () => {
+  /**
+   * 앱 홈 '오늘 화식 Xg' 이 정확값 반올림(예: 42g)을 쓰고, 팩은 mealPortionG
+   * 5g 반올림(40g)이라 서로 달랐다. 화면이 보여주는 급여량은 **팩 규격의 합**
+   * 이어야 처방=팩=화면 한 숫자 원칙이 지켜진다.
+   */
+  test('단일 라인: 팩 규격과 동일 (5g 반올림)', () => {
+    // weight 100%, kcal→g 환산이 140.3 이 되는 kcal: 140.3 = kcal/130*100
+    const g = dailyPortionTotalG({ basic: 0, weight: 1, skin: 0, premium: 0, joint: 0 }, 182.39, 30)
+    // 라인 dailyG = 1 × 182.39/130 × 100 × 0.3 = 42.09 → mealPortionG → 40
+    assert.equal(g, 40)
+  })
+  test('두 라인: 각 라인 팩 규격의 합', () => {
+    const ratios = { basic: 0.5, weight: 0.5, skin: 0, premium: 0, joint: 0 }
+    const g = dailyPortionTotalG(ratios, 400, 100)
+    // basic(오리125): 0.5×400/125×100 = 160 → 160 / weight(닭130): 0.5×400/130×100 = 153.8 → 155
+    assert.equal(g, 160 + 155)
+  })
+  test('비율 0 라인은 무시, kcal 0 이하는 0', () => {
+    assert.equal(dailyPortionTotalG({ basic: 0, weight: 0, skin: 0, premium: 0, joint: 0 }, 300, 50), 0)
+    assert.equal(dailyPortionTotalG({ basic: 1, weight: 0, skin: 0, premium: 0, joint: 0 }, 0, 50), 0)
   })
 })

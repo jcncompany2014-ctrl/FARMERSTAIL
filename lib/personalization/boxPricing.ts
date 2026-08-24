@@ -115,6 +115,35 @@ export function mealPortionG(dailyG: number): number {
 }
 
 /**
+ * 화면에 보여줄 **하루 급여량 = 팩 규격의 합** (사장님 2026-08-24 제보 수정).
+ *
+ * 앱 홈 '오늘 화식 Xg' 이 정확 계산값을 반올림(42g)해서 팩 규격(40g)과 달랐다.
+ * 처방=팩=화면=청구 한 숫자 원칙: 고객이 보는 급여량은 어디서든 이 함수 —
+ * computeBoxItems 의 라인별 dailyG 공식과 동일한 환산에 mealPortionG 를 적용해
+ * 합한다. (상품 품절로 박스에서 라인이 빠지는 경우는 주문 화면 몫 — 여기는
+ * 처방 기준 급여 안내라 상품 가용성을 보지 않는다.)
+ *
+ * @param freshRatioPct 화식 비율 % (30/50/100). 0 이하면 0.
+ */
+export function dailyPortionTotalG(
+  lineRatios: Record<FoodLine, number>,
+  dailyKcal: number,
+  freshRatioPct: number,
+): number {
+  if (!(dailyKcal > 0) || !(freshRatioPct > 0)) return 0
+  const freshFactor = freshRatioPct / 100
+  let total = 0
+  for (const line of ALL_LINES) {
+    const ratio = lineRatios[line] ?? 0
+    if (ratio <= 0) continue
+    const kcalPer100g = FOOD_LINE_META[line].kcalPer100g
+    const dailyG = ((ratio * dailyKcal) / kcalPer100g) * 100 * freshFactor
+    total += mealPortionG(dailyG)
+  }
+  return total
+}
+
+/**
  * 토퍼 — 100g 동결건조 고정 팩. 사이클 총 필요량을 100g 팩 단위로 **무조건
  * 올림** (사장님 2026-07-19: 절대 내림 없음. 이전엔 사료관리법 ±5% 내 floor
  * 허용이었으나 폐지 — 처방량 미만 발송 자체를 없앤다).
