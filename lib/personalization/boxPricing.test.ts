@@ -21,34 +21,50 @@ import {
  *  4. 반올림·내림은 어디에도 없다
  */
 
-describe('mealPortionG — 처방 그대로 (1g 올림만, 사장님 2026-08-24 처방=팩 동일)', () => {
+describe('mealPortionG — 5g 반올림, 편차 7% 상한 (사장님 2026-08-24 최종)', () => {
   /**
-   * 5g 올림 규칙(2026-07-19) 폐지 이력: "하루 42g 처방인데 45g 팩 값을 내는 건
-   * 고객 입장에서 억울하다"(사장님 2026-08-24). 처방·팩·표시·청구가 한 숫자여야
-   * 한다. 소수점 g 은 계량·표시가 불가능하니 1g 올림만 남긴다(내림 금지 유지).
+   * 규칙 변천사 (하루에 두 번 바뀐 건 사장님의 결정 진화다):
+   *  · 2026-07-19: 5g 무조건 올림 — "처방보다 덜 받는 일 없게"
+   *  · 2026-08-24 오전: 올림 폐지, 처방 그대로(1g) — "42g 처방에 45g 값은 억울"
+   *  · 2026-08-24 최종: **애초에 처방을 5g 반올림해서 한 숫자로** — 고객은
+   *    반올림된 그 숫자만 보므로 억울할 일이 없고, 주방 계량도 5g 로 돌아온다.
+   *    "7프로 정도로 억울해하진 않을 거" → 그 7% 를 편차 상한으로 박는다:
+   *    5g 반올림 편차가 7% 를 넘는 초소형 분량만 1g 반올림으로 정밀하게.
    */
-  test('42g → 42g (정수 처방은 그대로 = 팩과 동일)', () => {
-    assert.equal(mealPortionG(42), 42)
+  test('42g → 40g (가장 가까운 5g, 편차 4.8% ≤ 7%)', () => {
+    assert.equal(mealPortionG(42), 40)
   })
-  test('42.4g → 43g (소수점만 1g 올림)', () => {
-    assert.equal(mealPortionG(42.4), 43)
+  test('43g → 45g (반올림 위쪽)', () => {
+    assert.equal(mealPortionG(43), 45)
   })
-  test('164g → 164g (옛 5g 규칙이면 165였을 값)', () => {
-    assert.equal(mealPortionG(164), 164)
+  test('165g → 165g (5g 배수는 그대로)', () => {
+    assert.equal(mealPortionG(165), 165)
   })
-  test('부동소수 잔재는 올림으로 오인하지 않는다', () => {
+  test('22g → 22g (5g 반올림이면 20g = 편차 9% > 7% → 1g 정밀)', () => {
+    assert.equal(mealPortionG(22), 22)
+  })
+  test('2g → 2g (5로 반올림하면 +150% → 1g 정밀)', () => {
+    assert.equal(mealPortionG(2), 2)
+  })
+  test('부동소수 잔재에 흔들리지 않는다', () => {
     assert.equal(mealPortionG(45.000000000001), 45)
   })
   test('0 이하 → 0', () => {
     assert.equal(mealPortionG(0), 0)
     assert.equal(mealPortionG(-3), 0)
   })
-  test('불변식: 결과는 항상 입력 이상(내림 금지) + 정수 + 과잉 올림 없음', () => {
-    for (let g = 0.3; g <= 500; g += 6.7) {
+  test('불변식: 정수 + 편차 ≤ max(7%, 0.5g) + 양수 입력이면 최소 1g', () => {
+    for (let g = 0.3; g <= 500; g += 3.7) {
       const out = mealPortionG(g)
-      assert.ok(out >= g - 1e-9, `${g} → ${out} 내림 발생`)
       assert.equal(out % 1, 0, `${g} → ${out} 정수 아님`)
-      assert.ok(out - g < 1, `${g} → ${out} 과잉 올림`)
+      assert.ok(out >= 1, `${g} → ${out} 최소 1g 미달`)
+      const dev = Math.abs(out - g)
+      // 1g 미만 입력은 최소 팩 1g 바닥에 걸린다(0.3g 팩은 존재할 수 없음) —
+      // 그 경우만 바닥 예외, 나머지는 7%(또는 반올림 반경 0.5g) 상한.
+      assert.ok(
+        dev <= Math.max(0.07 * g, 0.5) + 1e-9 || (out === 1 && g < 1),
+        `${g} → ${out} 편차 ${dev.toFixed(2)}g — 7% 상한 초과`,
+      )
     }
   })
 })
@@ -150,10 +166,12 @@ describe('computeBoxItems + priceBox — 정본 일관성', () => {
       for (const it of items) {
         assert.ok(it.pricePerPack * it.quantity >= it.cycleTotal)
         assert.equal(it.cycleTotal % 100, 0)
-        // 처방=팩 동일(사장님 2026-08-24): 정수 + 처방 이상 + 1g 미만 초과
+        // 처방=팩 한 숫자(사장님 2026-08-24): 정수 + 계산값과의 편차 ≤ max(7%, 0.5g)
         assert.equal(it.packG % 1, 0)
-        assert.ok(it.packG >= it.dailyG - 1e-9, '팩이 처방 일일량 미만')
-        assert.ok(it.packG - it.dailyG < 1, '팩이 처방보다 1g 이상 큼 — 억울 구간')
+        assert.ok(
+          Math.abs(it.packG - it.dailyG) <= Math.max(0.07 * it.dailyG, 0.5) + 1e-9,
+          `팩 ${it.packG}g 이 계산값 ${it.dailyG}g 에서 7% 넘게 벗어남`,
+        )
       }
     }
   })

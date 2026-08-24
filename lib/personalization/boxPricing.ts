@@ -97,17 +97,21 @@ export type BoxItem<P extends BoxProduct = BoxProduct> = {
 
 /**
  * 메인 라인 — 1팩 = 1일 한끼 분량.
- * ★ 2026-08-24 사장님: **처방 = 팩 규격 = 청구, 한 숫자.** "하루 42g 처방인데
- * 45g 팩 값을 내는 건 고객 입장에서 억울하다" — 5g 단위 올림(2026-07-19) 폐지.
- * 소수점 g 은 계량·표시가 불가능하니 **1g 올림만** 남긴다. 내림 금지(처방량보다
- * 덜 받는 일 없음)와 표시량 이상 발송(사료관리법)은 그대로 유지된다 — 올림
- * 폭만 5g → 1g 로 줄었다.
- * 예: 42 → 42, 42.4 → 43, 164 → 164.
- * epsilon: 부동소수 잔재(45.000…01)를 46 으로 올리면 안 된다.
+ * ★ 2026-08-24 사장님 최종: **처방을 애초에 5g 반올림해서 한 숫자로.**
+ * 처방 = 팩 = 표시 = 청구가 전부 이 함수의 결과 하나다 — 고객은 반올림된
+ * 숫자만 보므로 "42g 처방인데 45g 값" 같은 억울 구간이 없고, 주방 계량도
+ * 5g 단위로 깔끔하다. "7프로 정도로 억울해하진 않을 거" → 그 7% 가 편차
+ * 상한: 5g 반올림 편차가 7% 를 넘는 초소형 분량(예: 22g→20g 은 9%)만
+ * 1g 반올림으로 정밀하게 간다.
+ * 예: 42 → 40, 43 → 45, 165 → 165, 22 → 22.
+ * (2026-07-19 의 5g 무조건 올림, 같은 날 오전의 1g 올림을 대체한 3번째 규칙 —
+ *  변천 이유는 boxPricing.test.ts 의 mealPortionG describe 주석에 기록)
  */
 export function mealPortionG(dailyG: number): number {
   if (dailyG <= 0) return 0
-  return Math.ceil(dailyG - 1e-9)
+  const to5 = Math.max(5, Math.round(dailyG / 5) * 5)
+  if (Math.abs(to5 - dailyG) <= 0.07 * dailyG + 1e-9) return to5
+  return Math.max(1, Math.round(dailyG))
 }
 
 /**

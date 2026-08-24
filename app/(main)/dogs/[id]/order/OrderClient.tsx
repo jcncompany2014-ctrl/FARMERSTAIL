@@ -792,8 +792,8 @@ export default function OrderClient({
                       <span className="ord-recipe-plbl">하루</span>
                       <span className="ord-recipe-pval">
                         {/* 처방=팩=청구 한 숫자 (사장님 2026-08-24). 표시는 팩
-                            규격(packG = 처방 1g 올림) — dailyG 원값을 쓰면
-                            소수점 처방에서 42 vs 43 이 또 갈라진다. */}
+                            규격(packG = 처방 5g 반올림·7% 상한) — dailyG 원값을 쓰면
+                            계산 원값과 반올림 숫자가 또 갈라진다. */}
                         {it.packG}g · {dailyKcal}kcal
                       </span>
                     </div>
