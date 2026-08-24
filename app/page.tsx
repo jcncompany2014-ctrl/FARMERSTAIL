@@ -110,13 +110,13 @@ function HomeHero({ ctaHref }: { ctaHref: string }) {
         <div data-gsap-y="-10" className="absolute inset-0">
           <div className="fv-kenburns absolute inset-0">
             <Image
-              src="/hero-home.jpg"
+              src="/hero-farm.jpg"
               alt=""
               fill
               priority
               sizes="100vw"
               className="object-cover"
-              style={{ objectPosition: '62% 60%' }}
+              style={{ objectPosition: '68% 62%' }}
             />
           </div>
         </div>
