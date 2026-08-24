@@ -238,6 +238,14 @@ export type Formula = {
   /** 첫 박스 전환 전략. */
   transitionStrategy: TransitionStrategy
 
+  /**
+   * 첫 박스 단일 단백질의 **선호 최우선** 선택 결과 (사장님 2026-08-24).
+   * 값이 있으면 collapseToSingle 이 비율 1위 대신 이 라인으로 접는다.
+   * null = 선호 없음/전부 차단 → 기존 1위 비율 접기.
+   * (옛 저장 formula JSON 엔 이 필드가 없다 — undefined 도 null 과 동일 취급)
+   */
+  firstBoxLine?: FoodLine | null
+
   /** 영양 calc 그대로 — 박스 분량 산정에 사용. */
   dailyKcal: number
   dailyGrams: number

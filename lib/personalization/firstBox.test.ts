@@ -1255,3 +1255,64 @@ describe('decideFirstBox — 복합 시나리오', () => {
     assert.equal(f.transitionStrategy, 'conservative')
   })
 })
+
+describe('decideFirstBox — 첫 박스 선호 최우선 (사장님 2026-08-24)', () => {
+  /**
+   * 배경: 기존 +5% 가산은 quantize(10% 단위)에 항상 흡수돼 **결과가 0 변화**
+   * 였다(칩만 발화). 사장님 제보 "돼지 선호인데 뭘 해도 닭" → 실행 검증으로
+   * 확인 후 정책 확정: **차단(알레르기·가용성)만 아니면 첫 박스 = 선호 단백질.**
+   * 여러 개면: 비율 높은 것 → 동률이면 알레르기 유병률(Mueller) 낮은 것.
+   */
+  it('선호=돼지 → firstBoxLine joint (일반 목표)', () => {
+    const f = decideFirstBox({ ...baseInput(), preferredProteins: ['pork'] })
+    assert.equal(f.firstBoxLine, 'joint')
+  })
+  it('선호=돼지 + 체중관리 목표 → 목표보다 선호가 이긴다', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      preferredProteins: ['pork'],
+      careGoal: 'weight_management',
+    })
+    assert.equal(f.firstBoxLine, 'joint')
+  })
+  it('선호 다수(돼지·소, 비율 동률) → 유병률 낮은 돼지', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      preferredProteins: ['pork', 'beef'],
+    })
+    assert.equal(f.firstBoxLine, 'joint')
+  })
+  it('선호 다수(소·오리) → 비율 높은 오리(basic 0.5)', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      preferredProteins: ['beef', 'duck'],
+    })
+    assert.equal(f.firstBoxLine, 'basic')
+  })
+  it('선호=닭인데 닭 알레르기 → 차단 유지, null 폴백', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      preferredProteins: ['chicken'],
+      allergies: ['닭·칠면조'],
+    })
+    assert.equal(f.firstBoxLine, null)
+  })
+  it('선호 라인이 가용 목록에 없으면 후보 제외', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      preferredProteins: ['pork'],
+      availableLines: ['basic', 'weight', 'premium'],
+    })
+    assert.equal(f.firstBoxLine, null)
+  })
+  it('선호 없음 → null (기존 1위 비율 접기 그대로)', () => {
+    const f = decideFirstBox(baseInput())
+    assert.equal(f.firstBoxLine, null)
+  })
+  it('선호 반영 시 reasoning 칩 발화 (거짓 칩 금지 — 반영된 경우에만)', () => {
+    const yes = decideFirstBox({ ...baseInput(), preferredProteins: ['pork'] })
+    assert.ok(yes.reasoning.some((r) => r.ruleId === 'preferred-first-box'))
+    const no = decideFirstBox(baseInput())
+    assert.ok(!no.reasoning.some((r) => r.ruleId === 'preferred-first-box'))
+  })
+})

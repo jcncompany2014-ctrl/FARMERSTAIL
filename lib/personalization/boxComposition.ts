@@ -41,6 +41,12 @@ export const SECOND_LINE_MIN = 0.2
  */
 export function collapseToSingle(
   lineRatios: Record<FoodLine, Ratio>,
+  /**
+   * 선호 최우선 결과 (Formula.firstBoxLine, 사장님 2026-08-24). 주어지면
+   * 비율 1위 대신 이 라인으로 접는다 — 알레르기·가용성 차단은 decideFirstBox
+   * 가 이미 걸렀으므로 여기선 무조건 신뢰한다. null/undefined = 기존 동작.
+   */
+  preferredLine?: FoodLine | null,
 ): Record<FoodLine, Ratio> {
   const out: Record<FoodLine, Ratio> = {
     basic: 0,
@@ -48,6 +54,10 @@ export function collapseToSingle(
     skin: 0,
     premium: 0,
     joint: 0,
+  }
+  if (preferredLine) {
+    out[preferredLine] = 1
+    return out
   }
   const top = ALL_LINES.map((line) => ({ line, ratio: lineRatios[line] ?? 0 }))
     .filter((x) => x.ratio > 0)

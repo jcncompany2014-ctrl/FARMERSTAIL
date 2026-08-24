@@ -120,7 +120,7 @@ export default function SimulatorClient() {
   // 위 lineRatios(최대 5종)는 "왜 이 단백질인가"의 내부 근거일 뿐, 출고 박스가 아님.
   const shippedLines = useMemo(() => {
     if (mode === 'first') {
-      const single = collapseToSingle(result.lineRatios)
+      const single = collapseToSingle(result.lineRatios, result.firstBoxLine ?? null)
       return ALL_LINES.filter((l) => single[l] > 0).map((l) => ({
         line: l,
         ratio: single[l],

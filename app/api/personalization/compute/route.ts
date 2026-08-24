@@ -624,7 +624,8 @@ export async function POST(req: Request) {
   //
   // ⚠️ 여기서(처방 자체를) 합쳐야 분석·플랜·주문·레시피 시트가 전부 같은 걸
   //    본다. 화면마다 따로 합치면 또 갈린다 — 방금 그 버그를 겪었다.
-  const singleRatios = collapseToSingle(formula.lineRatios)
+  // firstBoxLine = 선호 최우선 결과(사장님 2026-08-24) — 있으면 비율 1위 대신 선호로.
+  const singleRatios = collapseToSingle(formula.lineRatios, formula.firstBoxLine ?? null)
   const collapsedFrom = ALL_LINES.filter((l) => (formula.lineRatios[l] ?? 0) > 0)
   formula.lineRatios = singleRatios
   if (collapsedFrom.length > 1) {

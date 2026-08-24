@@ -45,6 +45,7 @@ import {
   getLineFat,
 } from './lines.ts'
 import { gateAvailability } from './skuMap.ts'
+import { SKU_MODEL, LEGACY_LINE_TO_PROTEIN } from './skuModel.ts'
 import { quantizeAndNormalize } from './quantize.ts'
 import { transferToTarget } from './transfers.ts'
 import {
@@ -148,10 +149,21 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
     })
   }
 
+  // Step 10.8 — 첫 박스 선호 최우선 (사장님 2026-08-24). 기존 +5% 가산(Step 8)은
+  // quantize 에 항상 흡수돼 결과 무변화였다(실행 검증). 차단·가용성만 아니면
+  // 첫 박스 단일 단백질 = 선호. collapseToSingle 이 이 값을 우선한다.
+  const firstBoxLine = pickPreferredFirstBoxLine(
+    gated.lineRatios,
+    blocked,
+    input,
+    reasoning,
+  )
+
   // Step 11 — 전환 전략.
   const transitionStrategy = decideTransition(input)
 
   return {
+    firstBoxLine,
     lineRatios: gated.lineRatios,
     toppers: gated.toppers,
     reasoning: reasoning.sort((a, b) => a.priority - b.priority),
@@ -1683,6 +1695,63 @@ function applyPreferredProteinBonus(
     })
   }
   return out
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Step 10.8 — 첫 박스 선호 최우선 (사장님 2026-08-24)
+// ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * 첫 박스 단일 단백질을 **고객 선호로** 고른다.
+ *
+ * # 왜 이 단계가 따로 있나
+ * Step 8 의 +5% 가산은 quantize(10% 단위)에 항상 흡수돼 **결과가 0 변화**였다
+ * — "돼지 선호인데 뭘 해도 닭"(사장님 제보, 실행으로 재현). 첫 박스는 어차피
+ * 1종으로 접으므로(collapseToSingle), 비율 미세조정이 아니라 **선택 자체**를
+ * 선호에 넘긴다. 정책 확정: 차단만 아니면 선호가 목표 룰보다 우선.
+ *
+ * # 후보 제외 (안전 불변)
+ *  · 알레르기 차단 라인 (Step 1 blocked)
+ *  · 가용성 제외 라인 (availableLines — 연어 보류 등)
+ *  · SKU 없는 단백질 (lamb 등 — PROTEIN_TO_LINE 미등재)
+ *
+ * # 여러 개 선호 시
+ *  임상 비율 높은 라인 → 동률이면 알레르기 유병률(Mueller 2016) 낮은 라인.
+ *  (첫 박스는 1종이고, 2박스째(2종)부터는 비율 상위 2종이 자연스럽게 후보)
+ *
+ * @returns 후보가 없으면 null — collapseToSingle 이 기존 1위 비율 접기로 폴백.
+ */
+function pickPreferredFirstBoxLine(
+  ratios: Record<FoodLine, Ratio>,
+  blocked: Set<FoodLine>,
+  input: AlgorithmInput,
+  reasoning: Reasoning[],
+): FoodLine | null {
+  if (input.preferredProteins.length === 0) return null
+  const avail = input.availableLines
+  const candidates = input.preferredProteins
+    .map((p) => ({ protein: p, line: PROTEIN_TO_LINE[p] }))
+    .filter((x): x is { protein: string; line: FoodLine } => Boolean(x.line))
+    .filter((x) => !blocked.has(x.line))
+    .filter((x) => !avail || avail.includes(x.line))
+  if (candidates.length === 0) return null
+  candidates.sort((a, b) => {
+    const byRatio = (ratios[b.line] ?? 0) - (ratios[a.line] ?? 0)
+    if (byRatio !== 0) return byRatio
+    return (
+      SKU_MODEL[LEGACY_LINE_TO_PROTEIN[a.line]].muellerAllergyRate -
+      SKU_MODEL[LEGACY_LINE_TO_PROTEIN[b.line]].muellerAllergyRate
+    )
+  })
+  const winner = candidates[0]!
+  reasoning.push({
+    trigger: `선호 단백질: ${input.preferredProteins.join(', ')}`,
+    action: `첫 박스는 선호하신 ${FOOD_LINE_META[winner.line].nameKo} 레시피로 시작해요. 적응을 본 뒤 다음 박스부터 추천 비율을 반영해요.`,
+    chipLabel: `첫 박스 · 선호 ${FOOD_LINE_META[winner.line].nameKo}`,
+    priority: 7,
+    ruleId: 'preferred-first-box',
+  })
+  return winner.line
 }
 
 // ──────────────────────────────────────────────────────────────────────────
