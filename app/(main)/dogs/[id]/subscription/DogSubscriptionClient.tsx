@@ -283,8 +283,19 @@ export default function DogSubscriptionClient({
             <FreshRatioSheet
               subscriptionId={ratioId}
               onClose={() => setRatioId(null)}
-              onChanged={() => {
+              onChanged={({ ratio, amount }) => {
                 toast.success('화식 비율을 바꿨어요')
+                // ★즉시 반영 (사장님 제보 2026-08-24): subs 는 useState(initialSubs)
+                //   라 router.refresh() 가 내려준 새 props 로는 **갱신되지 않는다**
+                //   (useState 는 최초 1회만 초기화). 시트가 돌려준 서버 확정값을
+                //   로컬 state 에 직접 반영 — pause/cancel(아래 setSubs)과 같은 패턴.
+                setSubs((prev) =>
+                  prev.map((s) =>
+                    s.id === ratioId
+                      ? { ...s, fresh_ratio: ratio, total_amount: amount }
+                      : s,
+                  ),
+                )
                 router.refresh()
               }}
             />
