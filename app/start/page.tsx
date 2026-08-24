@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import WebChrome from '@/components/WebChrome'
 import StartAppShell from '@/components/start/StartAppShell'
 import { isAppContextServer } from '@/lib/app-context'
+import { createClient, getSafeUser } from '@/lib/supabase/server'
+import { planHref } from '@/lib/funnel-cta'
 import Reveal from '@/components/landing/Reveal'
 import { Section, Container, Display, Eyebrow, PhotoSlot } from '@/components/web/fd/ui'
 import StartClient from './StartClient'
@@ -52,6 +55,13 @@ export default async function StartPage() {
   //   앱에서 "무료 맞춤분석" 눌렀을 때 웹 화면이 뜨던 것 차단(사장님 B안,
   //   2026-07-19). 웹은 기존 WebChrome 그대로.
   const isApp = await isAppContextServer()
+  // ★ 익명 전용 퍼널 가드 (사장님 제보 2026-08-24, 규칙62): 이 퍼널의 끝은
+  //   가입 폼이라 로그인 사용자는 끝까지 가도 "이미 가입된 이메일" 에서 막힌다.
+  //   CTA 는 planHref 가 이미 분기하지만 직접 진입(북마크·QR)은 CTA 를 안
+  //   거치므로 페이지가 직접 가드한다. 목적지는 planHref 정본 그대로.
+  const supabase = await createClient()
+  const user = await getSafeUser(supabase)
+  if (user) redirect(planHref(true, isApp))
   const body = (
       <main>
         {/* Hero */}

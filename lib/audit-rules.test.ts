@@ -2748,3 +2748,30 @@ test('규칙61: adaptive 아이콘 레이어는 108dp 규격 크기 (생성기 �
   }
   assert.deepEqual(wrong, [], 'adaptive foreground 크기가 규격 미달 — cap:assets 를 아이콘에 돌렸는가?\n  ' + wrong.join('\n  '))
 })
+
+test('★ 규칙62: /start 는 익명 전용 퍼널 — 로그인 사용자는 planHref 로 돌려보낸다', () => {
+  /**
+   * # 왜 (사장님 제보 2026-08-24)
+   * 로그인하고 강아지까지 있는 계정으로 /start 에 들어갔더니 "새로 오셨어요?
+   * 가입은 나중에 해도 괜찮아요" 가 떴다. 이 퍼널의 끝은 **가입 폼**이라
+   * 로그인 사용자는 끝까지 가도 "이미 가입된 이메일이에요" 에서 막힌다 —
+   * 동선 자체가 신규 전용인데 페이지가 로그인 상태를 안 봤다.
+   *
+   * CTA(planHref)는 이미 로그인 사용자를 /account/dogs·/dogs/new 로 보내지만,
+   * 직접 진입(북마크·프로모 QR·뒤로가기)은 CTA 를 안 거친다. 그래서 페이지
+   * 서버 컴포넌트가 직접 가드해야 한다. 목적지는 planHref 정본을 그대로 쓴다 —
+   * 목적지 삼항을 여기 또 쓰면 규칙21 이 잡던 복제본 병이 도진다.
+   */
+  const src = stripComments(read(join(ROOT, 'app/start/page.tsx')))
+  assert.match(
+    src,
+    /getSafeUser/,
+    '/start 페이지가 로그인 상태를 읽지 않는다 — 로그인 사용자가 익명 가입 퍼널에 갇힌다',
+  )
+  assert.match(
+    src,
+    /redirect\(\s*planHref\(\s*true\s*,\s*isApp\s*\)\s*\)/,
+    '/start 로그인 가드가 planHref 정본으로 리다이렉트하지 않는다 — 목적지를 ' +
+      '직접 쓰면 앱/웹 경로 분기(규칙21 부류)가 또 갈라진다',
+  )
+})
