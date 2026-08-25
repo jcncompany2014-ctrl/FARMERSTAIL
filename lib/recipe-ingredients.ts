@@ -1,20 +1,23 @@
 /**
  * 고객에게 보여줄 **원재료명 목록** — 4 SKU 정본 (이름만, 배합% 없음).
  *
- * # 출처 (2026-08-25 대조 확인)
- * 사장님 마스터 문서 `파머스테일_화식_제조공정_표준`(v8 배합표) · 사료성분등록
- * 서류 `붙임2_화식`(정부 제출) · 프로덕션 `products.ingredients` — **세 곳이
- * 일치**한다. 이 파일은 그 이름 순서(함량 많은 순)를 그대로 옮긴 것이다.
+ * # 출처 — 사장님 확정 배합표 (v4.0 LAST · 생 기준 · 정제수 0% · 육즙 분산)
+ * 2026-08-25 사장님이 직접 보여준 마스터 표가 유일한 정본이다.
  *
- * # 왜 하드코딩된 옛 목록을 버렸나
- * PlanClient 안에 있던 목록은 **정본과 달랐다**: 존재하지 않는 토핑(브로콜리·
- * 비트·애호박·양배추)을 넣고, 강황을 4종 전부에 붙이고, 정제수까지 적었다.
- * 원재료 표시는 사료관리법 표시사항이라 화면이 서류와 달라선 안 된다.
+ * ## ★내가 틀렸던 것 (2026-08-25, 사장님 지적)
+ * 구글드라이브의 **옛 문서**(제조공정 표준 v8)만 보고 "강황은 닭 전용"이라고
+ * 단정해 강황을 3종에서 빼고, 컨셉 토핑(브로콜리·비트·애호박·양배추·사과·
+ * 블루베리)까지 "배합표에 없는 유령 재료"로 몰아 지웠다. **전부 실재하는
+ * 재료였다.** 확정 배합표에는:
+ *   · 강황 0.10% — **전 SKU 공통** (사장님 기억이 맞았다)
+ *   · 컨셉 토핑이 **2종**이다 — hero 1.5%(4종 전부 다름) + support 1.0%
+ *   · 난각분말 0.53% — v4 신규(Ca:P 교정), 전 SKU 공통
+ * 옛 문서를 정본으로 삼은 것이 원인이다. 배합은 사장님 확정 표만 본다.
  *
- * # ★강황은 닭 SKU 전용이다
- * 사장님 기억("전 재료 전부 강황")과 달리 마스터·서류·DB 모두 **닭에만** 강황
- * 0.5% 다. 나머지는 SKU 토핑이 각각 사과(오리)·무(돼지)·블루베리(소)다.
- * 4종이 다 노란 것은 강황이 아니라 공통 채소(단호박·고구마·당근) 때문이다.
+ * ## 확정 배합표 구조 (이름만 옮김 — %는 여기 두지 않는다)
+ *   메인 단백질 · 내장 2종(간·심장) · 채소 3종(당근·단호박·시금치) ·
+ *   곡물 2종(현미·고구마) · 오일 2종(올리브유·연어유) · 강황(공통) ·
+ *   컨셉 토핑 hero + support · 프리믹스 v1.4 · 난각분말
  *
  * # 배합% 는 여기에 절대 넣지 않는다
  * 배합비는 대외비(영업비밀)이고 어드민 라벨 화면(`/admin/label/[sku]`)만
@@ -27,67 +30,73 @@ export type RecipeIngredients = {
   main: string
   /** 내장 2종(간·심장). */
   organs: string[]
-  /** 공통 채소·곡물 (4종 동일). */
+  /** 컨셉 토핑 — [hero, support]. hero 는 4종 전부 다르다. */
+  toppings: [string, string]
+  /** 공통 채소·곡물. */
   veg: string[]
-  /** 오일·보충 (4종 동일). */
+  /** 공통 오일·보충(강황·프리믹스·난각분말 포함). */
   base: string[]
-  /** 이 SKU 만의 토핑 1종 — 여기가 SKU 성격을 가른다. */
-  topping: string
 }
 
-/** 4종 공통 — 마스터 v8 배합표의 채소·곡물. */
-const COMMON_VEG = ['현미', '고구마', '당근', '단호박', '시금치']
-/** 4종 공통 — 오일 2종 + 자체 프리믹스(사장님 2026-08-25 브랜드명). */
+/** 4종 공통 — 확정 배합표의 채소 3종 + 곡물 2종. */
+const COMMON_VEG = ['당근', '단호박', '시금치', '현미', '고구마']
+/**
+ * 4종 공통 — 오일 2종 + **강황(전 SKU 공통)** + 자체 프리믹스 + 난각분말.
+ * 프리믹스는 사장님 지시로 브랜드명(2026-08-25), 난각분말은 v4 신규.
+ */
 const COMMON_BASE = [
   '올리브유',
   '연어유',
+  '강황',
   '파머스테일 뉴트리 코어(비타민·미네랄 프리믹스)',
+  '난각분말',
 ]
 
 export const RECIPE_INGREDIENTS: Record<FoodLine, RecipeIngredients | null> = {
   weight: {
     main: '닭가슴살',
     organs: ['닭간', '닭염통'],
+    toppings: ['브로콜리', '블루베리'],
     veg: COMMON_VEG,
     base: COMMON_BASE,
-    topping: '강황',
   },
   basic: {
     main: '오리 안심',
     organs: ['오리간', '오리염통'],
+    toppings: ['애호박', '사과'],
     veg: COMMON_VEG,
     base: COMMON_BASE,
-    topping: '사과',
   },
   joint: {
+    // 부위 변경 — 안심 → 뒷다리살 (사장님 2026-08-25)
     main: '흑돼지 뒷다리살',
     organs: ['흑돼지간', '흑돼지염통'],
+    toppings: ['무', '양배추'],
     veg: COMMON_VEG,
     base: COMMON_BASE,
-    topping: '무',
   },
   premium: {
     main: '한우 목심',
     organs: ['한우간', '한우염통'],
+    toppings: ['비트', '블루베리'],
     veg: COMMON_VEG,
     base: COMMON_BASE,
-    topping: '블루베리',
   },
   // 연어(skin)는 판매 SKU 가 아니다 — 없는 레시피의 재료를 지어내지 않는다.
   skin: null,
 }
 
 /**
- * 카드 노출용 발췌 — 메인 + 내장 + 그 SKU 토핑.
+ * 카드 노출용 발췌 — 메인 + 내장 + 컨셉 토핑 2종.
  * 전체가 아니므로 호출부가 끝에 '등'을 붙인다(사장님 2026-08-25).
  */
 export function cardIngredientNames(line: FoodLine): string[] {
   const r = RECIPE_INGREDIENTS[line]
-  return r ? [r.main, ...r.organs, r.topping] : []
+  return r ? [r.main, ...r.organs, ...r.toppings] : []
 }
 
-/** 상세 시트용 전체 목록 — 서류 순서(함량 많은 순)에 맞춰 이름만. */
+/** 상세 시트용 전체 목록 — 이름만. */
 export function fullIngredientNames(line: FoodLine): string[] {
   const r = RECIPE_INGREDIENTS[line]
-  return r ? [r.main, ...r.organs, ...r.veg, ...r.base, r.topping] : []
+  return r ? [r.main, ...r.organs, ...r.veg, ...r.toppings, ...r.base] : []
 }

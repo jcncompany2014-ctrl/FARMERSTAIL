@@ -9,13 +9,15 @@ import type { FoodLine } from './personalization/types.ts'
 
 const SELLING: FoodLine[] = ['weight', 'basic', 'joint', 'premium']
 
-describe('★ 규칙63: 고객 원재료 목록은 등록 서류와 일치하고 배합%를 누설하지 않는다', () => {
+describe('★ 규칙63: 고객 원재료 목록 = 사장님 확정 배합표, 배합% 누설 금지', () => {
   /**
-   * 2026-08-25 에 실제로 틀려 있던 것들(PlanClient 하드코딩):
-   *  · 존재하지 않는 토핑(브로콜리·비트·애호박·양배추)을 적었다
-   *  · 강황을 4종 전부에 붙였다 — 마스터·서류·DB 는 **닭 전용**이다
-   *  · 정제수를 적었다 — 어디에도 없다(v4 에서 삭제된 공정)
-   * 원재료 표시는 사료관리법 표시사항이라 화면이 서류와 달라지면 안 된다.
+   * # 이 규칙이 생긴 두 번의 사고 (둘 다 2026-08-25)
+   *  ① 앱이 **정제수**를 적고 있었다 — v4 공정에서 삭제된 것(사장님 지적)
+   *  ② 내가 그걸 고치면서 **옛 문서**(제조공정 표준 v8)를 정본으로 삼아
+   *     강황을 3종에서 빼고 컨셉 토핑 6종을 "유령 재료"로 지웠다.
+   *     확정 배합표에는 **강황이 전 SKU 공통(0.10%)** 이고 토핑은 hero+support
+   *     **2종**이다. 고치려다 더 나쁘게 만든 전형이다.
+   * → 그래서 이 테스트는 "무엇이 있어야 하는가"를 양방향으로 못 박는다.
    */
   test('배합% 숫자가 고객 목록에 섞이지 않는다 (영업비밀)', () => {
     for (const line of SELLING) {
@@ -29,39 +31,37 @@ describe('★ 규칙63: 고객 원재료 목록은 등록 서류와 일치하고
     }
   })
 
-  test('★강황은 닭(weight) SKU 에만 (마스터 v8·붙임2·DB 일치)', () => {
-    const withTurmeric = SELLING.filter((l) =>
-      fullIngredientNames(l).includes('강황'),
-    )
-    assert.deepEqual(withTurmeric, ['weight'])
+  test('★강황은 4종 전부에 들어간다 (전 SKU 공통 — 내가 틀렸던 지점)', () => {
+    for (const line of SELLING) {
+      assert.ok(
+        fullIngredientNames(line).includes('강황'),
+        `${line}: 강황 누락 — 확정 배합표는 전 SKU 공통이다`,
+      )
+    }
   })
 
-  test('SKU 별 토핑이 서류와 같다 (닭=강황·오리=사과·돼지=무·소=블루베리)', () => {
-    assert.equal(RECIPE_INGREDIENTS.weight?.topping, '강황')
-    assert.equal(RECIPE_INGREDIENTS.basic?.topping, '사과')
-    assert.equal(RECIPE_INGREDIENTS.joint?.topping, '무')
-    assert.equal(RECIPE_INGREDIENTS.premium?.topping, '블루베리')
+  test('★컨셉 토핑은 SKU 마다 2종 (hero + support) — 지우지 말 것', () => {
+    assert.deepEqual(RECIPE_INGREDIENTS.weight?.toppings, ['브로콜리', '블루베리'])
+    assert.deepEqual(RECIPE_INGREDIENTS.basic?.toppings, ['애호박', '사과'])
+    assert.deepEqual(RECIPE_INGREDIENTS.joint?.toppings, ['무', '양배추'])
+    assert.deepEqual(RECIPE_INGREDIENTS.premium?.toppings, ['비트', '블루베리'])
+    // hero(첫 번째)는 4종 전부 달라야 한다 — SKU 차별점
+    const heroes = SELLING.map((l) => RECIPE_INGREDIENTS[l]!.toppings[0])
+    assert.equal(new Set(heroes).size, 4, 'hero 토핑이 겹친다')
   })
 
-  test('정제수는 어디에도 없다 (v4 공정에서 삭제 — 육즙 회수로 대체)', () => {
+  test('난각분말(v4 신규 Ca:P 교정)이 4종 전부에 있다', () => {
+    for (const line of SELLING) {
+      assert.ok(fullIngredientNames(line).includes('난각분말'), `${line}: 난각분말 누락`)
+    }
+  })
+
+  test('정제수는 없다 (v4 공정에서 삭제 — 수비드 육즙으로 대체)', () => {
     for (const line of SELLING) {
       assert.ok(
         !fullIngredientNames(line).some((n) => n.includes('정제수')),
         `${line}: 정제수가 적혀 있다`,
       )
-    }
-  })
-
-  test('없는 재료를 적지 않는다 (옛 하드코딩 잔재 차단)', () => {
-    const notInAnyRecipe = ['브로콜리', '비트', '애호박', '양배추']
-    for (const line of SELLING) {
-      const names = fullIngredientNames(line)
-      for (const ghost of notInAnyRecipe) {
-        assert.ok(
-          !names.includes(ghost),
-          `${line}: "${ghost}" 는 배합표에 없는 재료다`,
-        )
-      }
     }
   })
 
@@ -79,11 +79,20 @@ describe('★ 규칙63: 고객 원재료 목록은 등록 서류와 일치하고
     }
   })
 
-  test('카드 발췌 = 메인+내장+토핑, 전체 목록의 부분집합', () => {
+  test('공통 채소·곡물 5종이 4종 전부에 있다', () => {
+    for (const line of SELLING) {
+      const names = fullIngredientNames(line)
+      for (const v of ['당근', '단호박', '시금치', '현미', '고구마']) {
+        assert.ok(names.includes(v), `${line}: ${v} 누락`)
+      }
+    }
+  })
+
+  test('카드 발췌 = 메인+내장2+토핑2, 전체 목록의 부분집합', () => {
     for (const line of SELLING) {
       const card = cardIngredientNames(line)
       const full = fullIngredientNames(line)
-      assert.equal(card.length, 4, `${line}: 카드는 메인1+내장2+토핑1`)
+      assert.equal(card.length, 5, `${line}: 카드는 메인1+내장2+토핑2`)
       for (const n of card) assert.ok(full.includes(n), `${line}: ${n} 이 전체에 없다`)
     }
   })
