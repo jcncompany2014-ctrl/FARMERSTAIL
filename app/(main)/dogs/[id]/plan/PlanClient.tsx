@@ -727,6 +727,36 @@ function RecipeDetail({
         )}
       </div>
 
+      {/* 완성 그릇 + 연출샷 고지 (사장님 2026-08-25).
+          화식 사진은 실제 원물로 만든 **연출샷**이라, 실물과 다르게 보일 수
+          있다는 걸 사진 바로 옆에서 밝힌다 — 표시광고 오인 방지이자 "왜 갈려
+          있나"를 미리 답해 주는 자리다. 원형 썸네일이라 카드·주문 화면의 그
+          사진과 같은 것임을 알아본다. */}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 18 }}>
+        <span
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            overflow: 'hidden',
+            flexShrink: 0,
+            boxShadow: `0 0 0 1px color-mix(in srgb, ${meta.color} 26%, transparent)`,
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- 고정 크기 원형 썸네일 */}
+          <img
+            src={bowlImageForLine(line)}
+            alt={`${meta.nameKo} 화식 완성 그릇`}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            decoding="async"
+          />
+        </span>
+        <p style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>
+          사진은 실제 들어가는 원물로 연출한 컷이에요. 실제 제품은 같은 원물을
+          소화가 편하도록 곱게 갈아서 담아 드려요.
+        </p>
+      </div>
+
       {/* 이 레시피는요 — 고객용 설명(사장님 2026-07-13). */}
       {RECIPE_DESCRIPTIONS[line] && (
         <p style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 16 }}>

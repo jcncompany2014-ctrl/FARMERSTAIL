@@ -931,3 +931,13 @@
   margin: 8px 0 0;
   font-size: 10px; color: var(--muted);
 }
+
+/* 연출샷 고지 (사장님 2026-08-25) — 레시피 사진 바로 아래 한 줄.
+   ord-foot 보다 한 톤 더 작고 조용하게(정보 고지이지 판매 문구가 아니다). */
+.ord-photo-note {
+  display: block;
+  margin-top: 8px;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}

@@ -823,6 +823,14 @@ export default function OrderClient({
               })}
             </div>
 
+            {/* 연출샷 고지 (사장님 2026-08-25) — 위 원형 사진이 실제 원물로 만든
+                연출샷이라는 것과, 실물은 갈려서 온다는 것을 사진 바로 아래에서
+                밝힌다. 표시광고 오인 방지 + "왜 갈려 있나" 선답. */}
+            <p className="ord-foot ord-photo-note">
+              사진은 실제 들어가는 원물로 연출한 컷이에요. 실제 제품은 같은 원물을
+              소화가 편하도록 곱게 갈아서 담아 드려요.
+            </p>
+
             {/* 화식 비율 — 컴팩트 세그먼트. 탭하면 분량·가격 즉시 갱신. */}
             <div className="ord-fresh">
               <div className="ord-fresh-lbl">얼마나 화식으로</div>
