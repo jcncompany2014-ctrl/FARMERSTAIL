@@ -55,6 +55,7 @@ import {
   subscribableItems,
   TOPPER_KCAL_PER_100G,
 } from '@/lib/personalization/boxPricing'
+import { packageImageForLine } from '@/lib/personalization/packageImage'
 import { trackBeginCheckout, type AnalyticsItem } from '@/lib/analytics'
 import './order.css'
 import { isKoreanMobile, formatKoreanMobile, PHONE_ERROR } from '@/lib/phone'
@@ -772,6 +773,8 @@ export default function OrderClient({
                       'ord-recipe' + (isOOS || notSub ? ' ord-recipe-off' : '')
                     }
                   >
+                    {/* 원형 슬롯 — 사장님 실촬영 패키지(2026-08-25). 사진이 없는
+                        라인(연어 등)은 기존 이모지로 폴백한다. */}
                     <span
                       className="ord-recipe-slot"
                       style={{
@@ -780,7 +783,18 @@ export default function OrderClient({
                       }}
                       aria-hidden
                     >
-                      🍲
+                      {packageImageForLine(it.line) ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- 46px 고정 슬롯, next/image 이득 없음
+                        <img
+                          src={packageImageForLine(it.line)!}
+                          alt=""
+                          className="ord-recipe-pkg"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        '🍲'
+                      )}
                     </span>
                     <div className="ord-recipe-body">
                       <div className="ord-recipe-name">

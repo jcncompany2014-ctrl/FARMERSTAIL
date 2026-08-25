@@ -667,6 +667,12 @@
   width: 46px; height: 46px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 21px; flex-shrink: 0;
+  overflow: hidden;
+}
+/* 패키지 실사(사장님 2026-08-25) — 원형 안에 파우치 전체가 보이게 contain.
+   cover 로 채우면 글자가 잘려 무슨 제품인지 못 읽는다. */
+.ord-recipe-pkg {
+  width: 100%; height: 100%; object-fit: contain; padding: 3px;
 }
 .ord-recipe-body { flex: 1; min-width: 0; }
 .ord-recipe-name {

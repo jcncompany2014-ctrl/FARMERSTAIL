@@ -22,6 +22,7 @@ import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight, Info } from
 import { petName } from '@/lib/korean'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
+import { packageImageForLine } from '@/lib/personalization/packageImage'
 import {
   computeBoxItems,
   priceBox,
@@ -682,7 +683,7 @@ function RecipeDetail({
     : []
   return (
     <div>
-      {/* 제품 사진 자리 — 실사 누끼로 교체 예정(현재 placeholder). */}
+      {/* 제품 사진 — 사장님 실촬영 패키지(2026-08-25). 사진 없는 라인은 이모지 폴백. */}
       <div
         style={{
           width: '100%',
@@ -694,9 +695,21 @@ function RecipeDetail({
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: 20,
+          overflow: 'hidden',
         }}
       >
-        <span style={{ fontSize: 56 }} aria-hidden>🍲</span>
+        {packageImageForLine(line, true) ? (
+          // eslint-disable-next-line @next/next/no-img-element -- 시트 안 고정 비율 슬롯
+          <img
+            src={packageImageForLine(line, true)!}
+            alt={`${meta.nameKo} 화식 패키지`}
+            style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 10 }}
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <span style={{ fontSize: 56 }} aria-hidden>🍲</span>
+        )}
       </div>
 
       {/* 이 레시피는요 — 고객용 설명(사장님 2026-07-13). */}
