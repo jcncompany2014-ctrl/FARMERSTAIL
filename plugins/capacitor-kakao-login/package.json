@@ -7,18 +7,14 @@
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
   "files": [
-    "android/src/main/",
-    "android/build.gradle",
     "dist/",
     "ios/Sources",
     "Package.swift"
   ],
+  "//": "★iOS 전용이다. android 를 일부러 뺐다 — 이 기능은 iOS 에만 필요하고(안드로이드는 웹 방식으로도 카카오톡 전환이 된다), 안드로이드는 이미 스토어 심사 중이라 iOS 전용 기능 때문에 카카오 SDK 가 APK 에 들어가면 안 된다. 나중에 안드로이드도 네이티브로 가려면 원본 패키지의 android/ 를 되살리고 AuthCodeHandlerActivity·키 해시를 등록한 뒤 여기 capacitor.android 를 다시 넣는다.",
   "capacitor": {
     "ios": {
       "src": "ios"
-    },
-    "android": {
-      "src": "android"
     }
   },
   "peerDependencies": {

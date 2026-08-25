@@ -2775,3 +2775,49 @@ test('★ 규칙62: /start 는 익명 전용 퍼널 — 로그인 사용자는 p
       '직접 쓰면 앱/웹 경로 분기(규칙21 부류)가 또 갈라진다',
   )
 })
+
+test('규칙63: 카카오 네이티브 앱 키는 capacitor.config 와 Info.plist 가 같은 값', () => {
+  /**
+   * # 왜 (2026-08-26 카카오톡 앱 전환 로그인 도입)
+   *
+   * 같은 앱 키가 **두 파일에 복제**돼 있다:
+   *   · capacitor.config.ts    → 카카오 SDK 초기화용 `app_key`
+   *   · ios/App/App/Info.plist → 카카오톡이 앱으로 돌아올 주소 `kakao{앱키}`
+   * Capacitor CLI 는 `@/` 별칭을 못 쓰고 Info.plist 는 XML 이라 값을 공유할 수단이
+   * 없다 — 규칙58 의 UA 표식과 똑같은 사정이라 똑같이 테스트로 묶는다.
+   *
+   * 한쪽만 바뀌면 **카카오톡은 열리는데 앱으로 돌아오지 못한다.** 화면은 계속
+   * '연결 중…' 이고 오류도 안 뜬다 — 사람이 가장 눈치채기 어려운 형태다.
+   * (실제로 2026-08-25 에 audience 불일치로 같은 증상을 한 번 겪었다.)
+   */
+  const cap = read(join(ROOT, 'capacitor.config.ts'))
+  const appKey = cap.match(
+    // `[^}]` 는 줄바꿈도 포함하므로 dotAll(s) 플래그가 필요 없다
+    // (넣으면 tsconfig target 때문에 TS1501 로 막힌다).
+    /CapacitorKakaoLogin:\s*\{[^}]*?app_key:\s*['"]([^'"]+)['"]/,
+  )?.[1]
+  assert.ok(
+    appKey,
+    'capacitor.config.ts 에서 CapacitorKakaoLogin.app_key 를 못 찾았다 — ' +
+      '카카오 SDK 가 초기화되지 않아 앱 로그인이 통째로 죽는다',
+  )
+
+  const plist = read(join(ROOT, 'ios', 'App', 'App', 'Info.plist'))
+  const schemes = [...plist.matchAll(/<string>(kakao[0-9a-f]+)<\/string>/g)].map(
+    (m) => m[1],
+  )
+  assert.ok(
+    schemes.length > 0,
+    'Info.plist 에 kakao URL scheme 이 없다 — 카카오톡이 열려도 앱으로 못 돌아온다',
+  )
+  assert.ok(
+    schemes.includes('kakao' + appKey),
+    '카카오 앱 키가 갈라졌다: capacitor.config="' +
+      appKey +
+      '" 이면 Info.plist 에 "kakao' +
+      appKey +
+      '" 이 있어야 하는데 실제는 ' +
+      JSON.stringify(schemes) +
+      ' — 카카오톡에서 앱으로 복귀가 안 된다',
+  )
+})
