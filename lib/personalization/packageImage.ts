@@ -41,3 +41,13 @@ export function packageImageForLine(
   if (!line) return null
   return packageImageForProtein(LEGACY_LINE_TO_PROTEIN[line], wide)
 }
+
+/**
+ * 완성된 화식 그릇 사진 (원형 크롭·투명 배경) — **4종 공용 한 장**.
+ *
+ * 사장님 2026-08-25: "4가지 다 이 화식 사진 하나로 통일해." 레시피별 구분은
+ * 사진이 아니라 **패키지와 라인 색**이 맡는다(원형 테두리 색·상세의 파우치).
+ * 실제로도 4종은 같은 강황 베이스라 겉모습이 비슷하다 — 없는 차이를 사진으로
+ * 지어내지 않는 편이 정직하고, 사진 한 장만 관리하면 된다.
+ */
+export const FRESH_BOWL_IMAGE = '/bowl/fresh.webp'

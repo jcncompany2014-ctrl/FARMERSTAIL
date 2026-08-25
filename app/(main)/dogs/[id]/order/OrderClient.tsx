@@ -55,7 +55,7 @@ import {
   subscribableItems,
   TOPPER_KCAL_PER_100G,
 } from '@/lib/personalization/boxPricing'
-import { packageImageForLine } from '@/lib/personalization/packageImage'
+import { FRESH_BOWL_IMAGE } from '@/lib/personalization/packageImage'
 import { trackBeginCheckout, type AnalyticsItem } from '@/lib/analytics'
 import './order.css'
 import { isKoreanMobile, formatKoreanMobile, PHONE_ERROR } from '@/lib/phone'
@@ -783,22 +783,20 @@ export default function OrderClient({
                       }}
                       aria-hidden
                     >
-                      {packageImageForLine(it.line) ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- 46px 고정 슬롯, next/image 이득 없음
-                        // ★loading="lazy" 금지 (2026-08-25 에뮬레이터 실측):
-                        //   화면 안에 있어도(top 462, inView) 안드로이드 WebView
-                        //   에서 영영 로드되지 않았다 — naturalWidth 0·complete
-                        //   false 고정. eager 로 바꾸자 즉시 400x400 로드.
-                        //   사장님이 "사진이 안 뜬다"고 한 그 증상이다.
-                        <img
-                          src={packageImageForLine(it.line)!}
-                          alt=""
-                          className="ord-recipe-pkg"
-                          decoding="async"
-                        />
-                      ) : (
-                        '🍲'
-                      )}
+                      {/* 원형 = 완성된 화식 그릇(4종 공용 한 장, 사장님 2026-08-25).
+                          레시피 구분은 사진이 아니라 **테두리 색**이 맡는다 —
+                          4종 다 강황 베이스라 실제로 겉모습이 비슷하고, 없는
+                          차이를 사진으로 지어내지 않는 편이 정직하다.
+                          ★loading="lazy" 금지 (에뮬레이터 실측): 화면 안에
+                          있어도(top 462·inView) 안드로이드 WebView 에서 영영
+                          로드되지 않았다(naturalWidth 0). eager 로 즉시 로드. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element -- 46px 고정 슬롯 */}
+                      <img
+                        src={FRESH_BOWL_IMAGE}
+                        alt=""
+                        className="ord-recipe-pkg"
+                        decoding="async"
+                      />
                     </span>
                     <div className="ord-recipe-body">
                       <div className="ord-recipe-name">

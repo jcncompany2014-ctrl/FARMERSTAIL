@@ -22,7 +22,7 @@ import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight, Info } from
 import { petName } from '@/lib/korean'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
-import { packageImageForLine } from '@/lib/personalization/packageImage'
+import { packageImageForLine, FRESH_BOWL_IMAGE } from '@/lib/personalization/packageImage'
 import {
   computeBoxItems,
   priceBox,
@@ -712,12 +712,21 @@ function RecipeDetail({
         }}
       >
         {packageImageForLine(line, true) ? (
+          /* 배경 없이 파우치만 — 살짝 기울이고 자연스러운 그림자(사장님 2026-08-25).
+             그림자는 CSS drop-shadow 라 파우치 실제 윤곽을 따라 떨어진다(사각형
+             그림자 아님). lazy 금지 — 안드로이드 WebView 에서 안 뜬다(실측). */
           // eslint-disable-next-line @next/next/no-img-element -- 시트 안 고정 비율 슬롯
           <img
             src={packageImageForLine(line, true)!}
             alt={`${meta.nameKo} 화식 패키지`}
-            style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 10 }}
-            loading="lazy"
+            style={{
+              width: '86%',
+              height: '86%',
+              objectFit: 'contain',
+              transform: 'rotate(-2.5deg)',
+              borderRadius: 6,
+              filter: 'drop-shadow(0 10px 16px rgba(40,32,20,0.22)) drop-shadow(0 2px 4px rgba(40,32,20,0.12))',
+            }}
             decoding="async"
           />
         ) : (
@@ -808,8 +817,15 @@ function HeroCard({
         <span style={{ position: 'absolute', top: 0, right: 0, fontSize: 9.5, fontWeight: 700, color: '#fff', background: 'var(--moss, #4f6a48)', padding: '4px 12px', borderBottomLeftRadius: 12 }}>★ 추천</span>
       )}
       <div style={{ display: 'flex', gap: 13, alignItems: 'center' }}>
-        <div style={heroCircle(`color-mix(in srgb, ${meta.color} 14%, transparent)`, meta.color)}>
-          <span style={{ fontSize: 32 }} aria-hidden>🍲</span>
+        {/* 카드 원형 = 완성된 화식 그릇(4종 공용). 구분은 테두리 색(meta.color). */}
+        <div style={{ ...heroCircle(`color-mix(in srgb, ${meta.color} 14%, transparent)`, meta.color), overflow: 'hidden' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- 고정 크기 원형 슬롯 */}
+          <img
+            src={FRESH_BOWL_IMAGE}
+            alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            decoding="async"
+          />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
