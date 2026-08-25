@@ -23,6 +23,7 @@ import { petName } from '@/lib/korean'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
 import { packageImageForLine, FRESH_BOWL_IMAGE } from '@/lib/personalization/packageImage'
+import { cardIngredientNames, fullIngredientNames } from '@/lib/recipe-ingredients'
 import {
   computeBoxItems,
   priceBox,
@@ -52,37 +53,13 @@ const RECIPE_LINES: FoodLine[] = ['weight', 'premium', 'basic', 'joint']
 // 실제 재료 (사장님 배합표 2026-07-13). main=메인 단백질, organs=내장,
 // toppings=컨셉 토핑, veg=채소·탄수. 카드에는 main+organs+toppings 만,
 // 전체(+veg·오일)는 "재료 전체" 상세에서. (소는 내장도 한우 표기 — 사장님)
-const RECIPES: Record<string, { main: string; organs: string[]; toppings: string[]; veg: string[] }> = {
-  weight: { main: '닭가슴살', organs: ['닭간', '닭심장'], toppings: ['브로콜리', '블루베리'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
-  premium: { main: '한우 목심', organs: ['한우 간', '한우 심장'], toppings: ['비트', '블루베리'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
-  basic: { main: '오리 안심', organs: ['오리 간', '오리 심장'], toppings: ['애호박', '사과'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
-  joint: { main: '흑돼지 뒷다리살', organs: ['돼지 간', '돼지 심장'], toppings: ['무', '양배추'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
-}
-/** 카드 노출용 — 메인 단백질 + 내장 + 컨셉 토핑. */
-function cardIngredients(line: string): string[] {
-  const r = RECIPES[line]
-  return r ? [r.main, ...r.organs, ...r.toppings] : []
-}
-/** 상세 시트용 — 전체 재료 (+채소·탄수·오일·프리믹스). */
-function fullIngredients(line: string): string[] {
-  const r = RECIPES[line]
-  return r
-    // ★정제수 제거 (사장님 2026-08-25): 실제 레시피에 안 들어간다 — DB 원장
-    //   (products.ingredients) 4종 어디에도 없다. 고객이 보는 재료 목록에 없는
-    //   것을 적으면 표시광고 문제다. 강황은 4종 전부 실제로 들어간다(유지).
-    ? [
-        r.main,
-        ...r.organs,
-        ...r.veg,
-        ...r.toppings,
-        '올리브유',
-        '연어유',
-        '강황',
-        // 사장님 2026-08-25: 자체 배합이라 브랜드명으로 부른다.
-        '파머스테일 뉴트리 코어(비타민·미네랄 프리믹스)',
-      ]
-    : []
-}
+// ★2026-08-25 — 여기 있던 하드코딩 목록을 lib/recipe-ingredients 정본으로 옮겼다.
+//   그 목록은 등록 서류와 **달랐다**: 없는 토핑(브로콜리·비트·애호박·양배추),
+//   4종 전부에 붙인 강황(실제로는 닭 전용), 정제수(v4 공정에서 삭제됨).
+//   원재료 표시는 사료관리법 표시사항이라 마스터·붙임2·DB 와 같아야 한다.
+//   규칙63 테스트가 이 성질(숫자 유출 금지·강황 닭 전용·유령 재료 금지)을 잠근다.
+const cardIngredients = cardIngredientNames
+const fullIngredients = fullIngredientNames
 
 // 등록성분(as-fed 보장분석, 사장님 표 2026-07-13). line→단백질: weight=닭·basic=오리·
 // joint=돼지(흑돼지)·premium=소(한우). 제조국가 전부 한국.
