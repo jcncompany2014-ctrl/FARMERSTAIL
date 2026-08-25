@@ -56,7 +56,9 @@ const SLIDES: Slide[] = [
     punch: '맞춤 레시피가 나와요',
     note: '필요한 열량과 하루 급여량까지 그램 단위로 계산해요',
     badges: [
-      { kind: 'chip', text: '그램 단위 급여량', tone: 'accent', side: 'left', top: '14%' },
+      // 14% 는 요약 바(288kcal·209g)를 정면으로 덮었다. 칩이 가리키는 숫자를
+      // 칩이 가리면 안 된다 — 요약 바 바로 아래로 내린다.
+      { kind: 'chip', text: '그램 단위 급여량', tone: 'accent', side: 'left', top: '21%' },
       { kind: 'photo', src: '/bowl/chicken.webp', side: 'right', top: '30%' },
     ],
   },
