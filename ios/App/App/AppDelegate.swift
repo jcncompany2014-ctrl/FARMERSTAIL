@@ -1,6 +1,7 @@
 import UIKit
 import Capacitor
 import WebKit
+import KakaoSDKAuth
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -76,6 +77,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         // Called when the app was launched with a url. Feel free to add additional processing here,
         // but if you want the App API to support tracking app url opens, make sure to keep this call
+
+        // 카카오톡에서 로그인을 마치고 우리 앱으로 돌아오는 주소를 먼저 가로챈다.
+        // 이걸 빼먹으면 카카오톡은 열리는데 **결과를 받지 못해 영원히 대기**한다.
+        // (Capacitor 프록시로 넘기면 카카오 SDK 가 응답을 못 본다.)
+        if AuthApi.isKakaoTalkLoginUrl(url) {
+            return AuthController.handleOpenUrl(url: url)
+        }
+
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
     }
 

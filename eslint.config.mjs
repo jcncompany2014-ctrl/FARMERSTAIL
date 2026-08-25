@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 벤더링한 Capacitor 플러그인의 **빌드 산출물**. 우리가 쓴 코드가 아니라
+    // 남의 컴파일 결과물이라(node_modules 와 같은 성격) 검사 대상이 아니다.
+    // 우리가 손댄 것은 Package.swift·package.json 뿐이며 소스는 ios/Sources 에 있다.
+    "plugins/*/dist/**",
     // Claude Design handoff bundles — reference prototypes, not source code.
     // They intentionally ship unescaped entities and use globals like
     // IOSDevice from a sibling <script> tag. Linting them is noise.

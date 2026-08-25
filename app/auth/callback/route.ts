@@ -54,16 +54,33 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=${code}`)
   }
 
+  const supabase = await createClient()
+
+  // ★2026-08-26 — code 없이 오는 정상 경로가 하나 생겼다: **네이티브 카카오 로그인**.
+  //
+  // 카카오톡 앱 전환 로그인(iOS)은 브라우저 리다이렉트가 아니라 앱끼리 주고받아
+  // 끝나므로 `code` 가 없다. 클라이언트가 `signInWithIdToken` 으로 세션을 이미
+  // 만든 뒤 이 라우트로 들어온다 — 목적은 아래 **로그인 후 공통 처리**(탈퇴 계정
+  // 차단 · 출생연도 기록 · 만 14세 게이트)를 그대로 태우기 위해서다.
+  // 그 처리를 네이티브용으로 따로 복제하면 두 정본이 생겨 조용히 갈라진다.
+  //
+  // 세션도 code 도 없으면 종전대로 오류다(설정 오류·직접 접근).
   if (!code) {
-    Sentry.captureMessage('oauth callback: missing code', {
-      level: 'warning',
-      tags: { provider, step: 'incoming' },
-    })
-    return NextResponse.redirect(`${origin}/login?error=oauth_missing_code`)
+    const {
+      data: { user: existing },
+    } = await supabase.auth.getUser()
+    if (!existing) {
+      Sentry.captureMessage('oauth callback: missing code', {
+        level: 'warning',
+        tags: { provider, step: 'incoming' },
+      })
+      return NextResponse.redirect(`${origin}/login?error=oauth_missing_code`)
+    }
   }
 
-  const supabase = await createClient()
-  const { error } = await supabase.auth.exchangeCodeForSession(code)
+  const { error } = code
+    ? await supabase.auth.exchangeCodeForSession(code)
+    : { error: null }
 
   if (error) {
     // 가장 흔한 케이스: 코드 만료 (사용자가 한참 후 새 탭에서 재방문),

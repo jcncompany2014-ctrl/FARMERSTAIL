@@ -3,6 +3,10 @@
 import { useCallback, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useResetLoadingOnRestore } from '@/lib/useResetLoadingOnRestore'
+import {
+  isNativeKakaoAvailable,
+  loginWithKakaoNative,
+} from '@/lib/auth/kakaoNative'
 
 type Props = {
   /** Where to land after the OAuth dance finishes. Default: /dashboard */
@@ -41,6 +45,34 @@ export default function KakaoLoginButton({
     const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
       next
     )}`
+
+    // ★네이티브(앱)에서는 카카오톡 앱 전환 로그인. 웹 방식은 iOS 에서 카카오톡을
+    //   못 열기 때문이다 — 근거·함정은 lib/auth/kakaoNative.ts docstring 참조.
+    //   실패하면 아래 웹 OAuth 로 **그대로 흘려보낸다**(카카오톡 미설치·플러그인
+    //   이상 등에서 로그인 자체가 막히면 안 된다).
+    if (isNativeKakaoAvailable()) {
+      const native = await loginWithKakaoNative()
+      if (native.ok) {
+        const { error: idErr } = await supabase.auth.signInWithIdToken({
+          provider: 'kakao',
+          token: native.idToken,
+        })
+        if (!idErr) {
+          // 세션은 만들어졌다. 로그인 후 공통 처리(탈퇴가드·출생연도·만14세)는
+          // /auth/callback 정본이 담당하므로 그리로 넘긴다.
+          window.location.href = redirectTo
+          return
+        }
+        console.error('[kakao-login] id_token 교환 실패', idErr.message)
+      } else if (native.reason === 'cancelled') {
+        // 사용자가 카카오톡에서 취소 — 조용히 원상복귀(오류 문구 없음).
+        setLoading(false)
+        return
+      } else {
+        console.error('[kakao-login] 네이티브 실패', native.reason)
+      }
+      // 여기까지 왔으면 네이티브가 안 된 것 — 웹 방식으로 폴백.
+    }
 
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'kakao',

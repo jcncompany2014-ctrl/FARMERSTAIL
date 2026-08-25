@@ -22,6 +22,25 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- 카카오톡이 로그인 끝나고 우리 앱으로 돌아올 때 쓰는 주소.
+				     'kakao' + 네이티브 앱 키 형식이 카카오 규격이다. -->
+				<string>kakao1deb4a646cc4d0b442842d29efd26b2c</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<!-- iOS 는 다른 앱을 열기 전에 '그 앱이 있는지' 물어보는데, 여기 적어두지
+		     않으면 그 질문 자체가 거부돼 카카오톡이 설치돼 있어도 없다고 나온다. -->
+		<string>kakaokompassauth</string>
+		<string>kakaotalk</string>
+		<string>kakaolink</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>

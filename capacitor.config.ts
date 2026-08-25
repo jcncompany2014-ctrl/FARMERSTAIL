@@ -197,6 +197,23 @@ const config: CapacitorConfig = {
       // 그룹 식별자 — iOS 라면 App Group 으로 위젯/확장과 공유 가능 (미래).
       group: 'NativeStorage',
     },
+    /**
+     * ★2026-08-25 — 카카오톡 앱 전환 로그인 (iOS).
+     *
+     * # 왜 네이티브가 필요한가
+     * 웹 방식(Supabase OAuth → kauth.kakao.com)은 **iOS 에서 카카오톡 앱을 절대
+     * 못 연다.** 카카오가 로그인 페이지에 `showWebTalkLogin:false` 를 내려보내고,
+     * 문서상 모바일 웹의 카카오톡 간편로그인은 **안드로이드 전용**이다(실측 확인:
+     * UA 를 사파리로 바꿔도 동일). 한국 사용자는 카카오 비밀번호를 기억 못 해
+     * 이탈하므로 전환율 문제다.
+     *
+     * # app_key 는 비밀이 아니다
+     * 네이티브 앱 키는 앱 바이너리에 embed 되는 공개 식별자다(웹의 JS 키와 같은
+     * 성격). REST API 키·Admin 키와 **다른 키**이며 그 둘은 절대 여기 넣지 않는다.
+     */
+    CapacitorKakaoLogin: {
+      app_key: '1deb4a646cc4d0b442842d29efd26b2c',
+    },
   },
 }
 

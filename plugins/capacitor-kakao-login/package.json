@@ -1,0 +1,27 @@
+{
+  "name": "@farmerstail/capacitor-kakao-login",
+  "version": "8.0.0",
+  "description": "카카오톡 앱 전환 로그인 (iOS/Android). @hanhokim/capacitor-kakao-login 8.0.0 을 저장소로 가져와 SPM 빌드가 되도록 고친 것 — plugins/capacitor-kakao-login/README.md 참조",
+  "private": true,
+  "main": "dist/plugin.cjs.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "files": [
+    "android/src/main/",
+    "android/build.gradle",
+    "dist/",
+    "ios/Sources",
+    "Package.swift"
+  ],
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    },
+    "android": {
+      "src": "android"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}
