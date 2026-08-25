@@ -17,8 +17,9 @@
  *
  * # 내용은 브랜드 소개가 아니라 앱 소개
  * 설치한 사람은 웹 설문·인스타를 거쳐 와서 브랜드를 이미 안다. 정작 모르는
- * "이 앱으로 뭘 하나"를 보여준다. 순서는 사장님 지정:
- * ①맞춤 분석 ②건강 일지 ③수의사 보고서 ④구독 관리(+CTA).
+ * "이 앱으로 뭘 하나"를 보여준다. 순서(사장님 지정):
+ * ①홈 ②맞춤 분석 ③수의사 보고서 ④구독 관리(+CTA).
+ * 건강 일지 장은 사장님 지시로 뺐고, 그 자리를 실제 홈 화면이 대신한다.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -306,7 +307,7 @@ const btnPrimary: React.CSSProperties = {
  * 베젤은 **패딩이 아니라 바깥 링**(box-shadow spread)으로 그린다.
  *
  * 패딩으로 그리면 안쪽 화면 비율이 `(W-2·베젤)/(H-2·베젤)` 이 되어 스크린샷
- * 비율(720:1600)과 어긋나고, object-fit:cover 가 그 차이를 **좌우를 잘라서**
+ * 비율(SHOT_ASPECT)과 어긋나고, object-fit:cover 가 그 차이를 **좌우를 잘라서**
  * 메운다(실측 한쪽 3.5%씩). 링으로 그리면 요소 자체가 곧 화면이라 비율이
  * 정확히 일치해 잘림이 0 이고, 베젤 바깥 모서리는 `SCREEN_RADIUS + BEZEL` 로
  * 자동으로 따라온다 — 모서리가 어색했던 원인이 여기였다.
@@ -344,6 +345,9 @@ function PhoneStage({ slide, eager }: { slide: Slide; eager: boolean }) {
           top: 0,
           height: '114%',
           aspectRatio: SHOT_ASPECT,
+          // 아주 좁고 긴 화면(세로/가로 비 > 약 1.56)에서만 걸리는 안전장치.
+          // 걸리면 폭이 잘려 aspect-ratio 가 무시되고 cover 가 좌우를 조금 자른다 —
+          // 슬라이드 밖으로 폰이 삐져나가는 것보다는 낫다는 판단.
           maxWidth: '84%',
           left: '50%',
           transform: 'translateX(-50%)',

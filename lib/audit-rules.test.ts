@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, sep } from 'node:path'
 import {
   availableBillingMethods,
@@ -2883,4 +2883,70 @@ test('규칙65: 카카오 네이티브 로그인은 iOS 전용 — 안드로이�
     'kakaoNative.ts 가 iOS 를 명시적으로 확인하지 않는다 — isNativePlatform() 만으로는 ' +
       '안드로이드도 통과해 스토어에 올라간 앱의 카카오 로그인이 깨진다',
   )
+})
+
+/** WebP 헤더에서 가로·세로만 읽는다 — 테스트에 이미지 라이브러리를 끌어오지 않으려고. */
+function webpSize(file: string): { width: number; height: number } {
+  const b = readFileSync(file)
+  assert.equal(b.toString('ascii', 0, 4), 'RIFF', `${file}: RIFF 헤더가 아니다`)
+  assert.equal(b.toString('ascii', 8, 12), 'WEBP', `${file}: WEBP 가 아니다`)
+  const kind = b.toString('ascii', 12, 16)
+  if (kind === 'VP8 ') {
+    return { width: b.readUInt16LE(26) & 0x3fff, height: b.readUInt16LE(28) & 0x3fff }
+  }
+  if (kind === 'VP8X') {
+    return { width: b.readUIntLE(24, 3) + 1, height: b.readUIntLE(27, 3) + 1 }
+  }
+  throw new Error(`${file}: 아직 다루지 않는 WebP 종류 ${kind}`)
+}
+
+test('규칙66: 온보딩 스크린샷 자산은 SHOT_ASPECT 와 같은 비율이어야 한다', () => {
+  /**
+   * 2026-08-26 실측으로 생긴 규칙.
+   *
+   * 온보딩의 기기 프레임은 `aspect-ratio: SHOT_ASPECT` 로 폭을 만들고, 그 안의
+   * 스크린샷은 `object-fit: cover` 다. 둘의 비율이 어긋나면 cover 가 그 차이를
+   * **화면 좌우를 잘라서** 메운다 — 처음 만들 때 한쪽당 3.5% 씩 잘려 나가고
+   * 있었고, 눈으로는 "좀 좁네" 정도라 못 잡았다.
+   *
+   * 자산을 다시 찍을 때 크롭 값(상태바 제거 높이 등)을 바꾸면 비율이 조용히
+   * 달라진다. 그때 이 테스트가 깨져서 SHOT_ASPECT 도 같이 고치게 만든다.
+   *
+   * 덤으로 SLIDES 가 가리키는 파일이 실제로 있는지도 본다 — 파일명을 바꾸고
+   * 코드를 안 고치면 온보딩에 빈 사각형이 뜬다.
+   */
+  const src = read(join(ROOT, 'components', 'Onboarding.tsx'))
+
+  const aspect = src.match(/const SHOT_ASPECT = '(\d+)\s*\/\s*(\d+)'/)
+  assert.ok(aspect, 'Onboarding.tsx 에서 SHOT_ASPECT 상수를 찾지 못했다')
+  const expected = Number(aspect[1]) / Number(aspect[2])
+
+  // SLIDES 가 실제로 참조하는 파일만 검사한다(안 쓰는 자산은 상관없다).
+  const shots = [...src.matchAll(/shot:\s*'(\/onboarding\/[^']+)'/g)]
+    .map((m) => m[1])
+    .filter((s): s is string => !!s)
+  assert.equal(shots.length, 4, `온보딩 슬라이드가 4장이 아니다 (${shots.length}장)`)
+
+  for (const shot of shots) {
+    const file = join(ROOT, 'public', ...shot.split('/').filter(Boolean))
+    assert.ok(existsSync(file), `${shot} 파일이 없다 — 온보딩에 빈 사각형이 뜬다`)
+    const { width, height } = webpSize(file)
+    const ratio = width / height
+    assert.ok(
+      Math.abs(ratio - expected) < 0.002,
+      `${shot} 은 ${width}x${height} (비율 ${ratio.toFixed(4)}) 인데 ` +
+        `SHOT_ASPECT 는 ${aspect[1]}/${aspect[2]} (${expected.toFixed(4)}) 다 — ` +
+        'object-fit:cover 가 화면 좌우를 잘라낸다. 둘 중 하나를 맞춰라',
+    )
+  }
+
+  // 배지 사진(원형)도 실제로 있어야 한다.
+  for (const m of src.matchAll(/src:\s*'(\/(?:bowl|pkg)\/[^']+)'/g)) {
+    const p = m[1]
+    if (!p) continue
+    assert.ok(
+      existsSync(join(ROOT, 'public', ...p.split('/').filter(Boolean))),
+      `배지 사진 ${p} 이 없다`,
+    )
+  }
 })
