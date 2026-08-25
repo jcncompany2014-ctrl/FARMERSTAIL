@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useResetLoadingOnRestore } from '@/lib/useResetLoadingOnRestore'
 
 type Props = {
   /** Where to land after the OAuth dance finishes. Default: /dashboard */
@@ -24,6 +25,9 @@ export default function KakaoLoginButton({
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // 카카오 화면에서 뒤로(iOS 가장자리 스와이프 등) 돌아오면 '연결 중…'이 굳는다.
+  useResetLoadingOnRestore(useCallback(() => setLoading(false), []))
 
   async function handleClick() {
     // 계측 등 부수 훅 — 실패해도 로그인 흐름을 막지 않는다(최종감사 #16).

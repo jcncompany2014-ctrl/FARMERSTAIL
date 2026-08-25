@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useResetLoadingOnRestore } from '@/lib/useResetLoadingOnRestore'
 
 type Props = {
   /** OAuth dance 완료 후 이동할 경로. 기본: /dashboard */
@@ -46,6 +47,8 @@ export default function AppleLoginButton({
 }: Props) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  // 애플 화면에서 뒤로 돌아오면 로딩 상태가 굳는다 — 카카오와 같은 처리.
+  useResetLoadingOnRestore(useCallback(() => setLoading(false), []))
   const [error, setError] = useState('')
   // NEXT_PUBLIC_* 는 build-time 에 inline 되므로 useState lazy initializer 로
   // 1회만 평가하면 충분. 이전엔 useEffect 안에서 setState 하다가 React 19
