@@ -13,7 +13,8 @@ import Image from 'next/image'
 import { Bone, Droplet, Sparkles, Leaf, ArrowRight } from 'lucide-react'
 import { petName } from '@/lib/korean'
 import { Skeleton } from '@/components/ui/Skeleton'
-import type { Reasoning } from '@/lib/personalization/types'
+import type { Reasoning, FoodLine } from '@/lib/personalization/types'
+import { bowlImageForLine } from '@/lib/personalization/packageImage'
 import type { MagazinePalette, BoxLineKey } from './palette'
 import { lineColors } from './palette'
 import { Reveal, useReveal } from './primitives'
@@ -236,6 +237,16 @@ function BoxRow({
         : item.key === 'weight'
           ? Leaf
           : Bone
+  /**
+   * 원형 슬롯 사진 — 라인별 화식 그릇 실사(사장님 2026-08-25).
+   *
+   * 이 자리는 `photoUrl` 이 오면 사진, 없으면 아이콘 placeholder 였는데
+   * **photoUrl 을 넣어주는 호출부가 한 곳도 없었다** — 그래서 분석 화면에서
+   * 흑돼지 옆에 Sparkles(✨), 닭 옆에 Leaf 가 뜨고 있었다(사장님 제보:
+   * "이상한 스파클 이모티콘"). 이제 라인이 있으면 그릇 사진을 기본으로 쓰고,
+   * 아이콘은 사진이 없는 라인(연어 등)에만 남는다.
+   */
+  const photo = item.photoUrl ?? bowlImageForLine(item.key as FoodLine)
   return (
     <div
       style={{
@@ -264,13 +275,15 @@ function BoxRow({
           position: 'relative',
         }}
       >
-        {item.photoUrl ? (
+        {photo ? (
           <Image
-            src={item.photoUrl}
+            src={photo}
             alt={item.ko}
             fill
             sizes="48px"
-            style={{ objectFit: 'contain' }}
+            /* 그릇이 정사각 프레임을 꽉 채운 이미지라 cover — contain 이면
+               원형 안에 사각 여백이 생긴다(플랜·주문 화면과 같은 규칙). */
+            style={{ objectFit: 'cover' }}
           />
         ) : (
           <IconComp size={22} color={color} strokeWidth={1.9} />
