@@ -73,7 +73,8 @@ const SLIDES: Slide[] = [
     punch: '앱에서 몇 번이면 끝',
     note: '화식 비율·배송일 변경, 일시정지와 해지 모두 앱에서 해요',
     badges: [
-      { kind: 'chip', text: '언제든 일시정지', tone: 'accent', side: 'left', top: '6%' },
+      // 규칙31 — "언제든 해지/일시정지"는 과약속. 마감을 명시하거나 중립 표기.
+      { kind: 'chip', text: '일시정지·해지', tone: 'accent', side: 'left', top: '6%' },
       { kind: 'photo', src: '/pkg/pork.webp', side: 'right', top: '27%' },
     ],
   },
