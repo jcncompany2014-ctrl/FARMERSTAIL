@@ -27,6 +27,10 @@ import Link from 'next/link'
 import { X, Check, ArrowRight } from 'lucide-react'
 import { PhotoSlot } from './ui'
 import { SKU_NUTRITION } from '@/lib/sku-nutrition-matrix'
+import {
+  packageImageForProtein,
+  bowlImageForProtein,
+} from '@/lib/personalization/packageImage'
 import type { SkuKey } from '@/lib/allergy-sku-matrix'
 import type { WebRecipe } from '@/lib/web-recipes'
 
@@ -214,16 +218,48 @@ export default function FdRecipeSheet({
           추천 · {recipe.recommendedFor}
         </p>
 
-        {/* 누끼 사진 (밀팩) */}
+        {/* 제품 사진 — 파우치 실사(사장님 촬영). 예전엔 src 없는 PhotoSlot 이라
+            **설문 결과 화면에 카메라 자리표시가 그대로 노출**되고 있었다
+            (2026-08-25 자리표시 전수 점검). 사진 없는 단백질은 기존 자리표시. */}
         <div style={{ marginTop: 12 }}>
           <PhotoSlot
-            label={`${recipe.name} 누끼 사진`}
+            label={`${recipe.name} 제품 사진`}
+            src={packageImageForProtein(recipe.protein, true) ?? undefined}
+            alt={`파머스테일 ${recipe.name} 파우치`}
             ratio="16 / 10"
             tone="cream"
             rounded={12}
             className="w-full"
           />
         </div>
+
+        {/* 완성 그릇 + 연출샷 고지 (사장님 2026-08-25) — 앱과 같은 규칙. */}
+        {bowlImageForProtein(recipe.protein) && (
+          <div style={{ marginTop: 10, display: 'flex', gap: 10, alignItems: 'center' }}>
+            <span
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                overflow: 'hidden',
+                flexShrink: 0,
+                border: '1px solid var(--fd-line)',
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- 고정 크기 원형 썸네일 */}
+              <img
+                src={bowlImageForProtein(recipe.protein)!}
+                alt={`${recipe.name} 완성 그릇`}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                decoding="async"
+              />
+            </span>
+            <p style={{ fontSize: 11, color: 'var(--fd-muted)', lineHeight: 1.6, margin: 0 }}>
+              사진은 실제 들어가는 원물로 연출한 컷이에요. 실제 제품은 같은 원물을
+              소화가 편하도록 곱게 갈아서 담아 드려요.
+            </p>
+          </div>
+        )}
 
         {/* 원재료 — 공개 주재료 칩 (FD Ingredients 콜아웃) */}
         <div style={{ marginTop: 16 }}>

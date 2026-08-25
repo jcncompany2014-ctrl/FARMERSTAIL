@@ -72,3 +72,16 @@ export function bowlImageForLine(line: FoodLine | null | undefined): string {
   if (!line) return FRESH_BOWL_IMAGE
   return BOWL_BY_PROTEIN[LEGACY_LINE_TO_PROTEIN[line]] ?? FRESH_BOWL_IMAGE
 }
+
+/**
+ * 단백질 키 → 화식 그릇 사진. 웹(설문 결과·레시피 시트)은 라인이 아니라
+ * 단백질 키를 다루므로 이 입구를 쓴다. 사진이 없으면 **null** —
+ * 라인판(bowlImageForLine)이 공용 원본으로 폴백하는 것과 달리, 웹은
+ * 호출부가 "없으면 아예 안 그린다"를 고를 수 있어야 한다.
+ */
+export function bowlImageForProtein(
+  protein: string | null | undefined,
+): string | null {
+  if (!protein) return null
+  return BOWL_BY_PROTEIN[protein] ?? null
+}
