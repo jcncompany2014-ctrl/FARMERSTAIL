@@ -1,53 +1,81 @@
 'use client'
 
 /**
- * Farmer's Tail — 첫 설치 온보딩 (2026-07-19 전면 리디자인, 사장님 "아예 새로 이쁘게").
+ * Farmer's Tail — 첫 설치 온보딩 (2026-08-25 전면 개편, 사장님 지시).
  *
- * 옛 6슬라이드(종이톤 플레이스홀더 타일)를 폐기하고 **풀블리드 이미지 캐러셀**
- * 4장으로. 이미지는 Higgsfield 생성(브랜드 톤: 강아지+신선 화식). 각 슬라이드
- * = 전면 사진 + 하단 그라데이션 + 카피, 마지막 슬라이드에 CTA. 가로 스크롤-스냅
- * 스와이프 + 상단 진행 점 + 건너뛰기.
+ * # 왜 갈아엎었나
+ * 이전 4장은 전부 **브랜드 소개**였다("진짜 밥 / 2분 분석 / 정기배송 / 시작").
+ * 그런데 앱을 설치한 사람은 이미 우리 브랜드를 안다 — 웹 설문·인스타·검색을
+ * 거쳐 왔기 때문이다. 정작 처음 보는 궁금증인 **"이 앱으로 뭘 할 수 있나"**
+ * 는 한 장도 없었다. 실제로 앱에는 건강 일지·체중 추이·수의사 진료 보고서·
+ * 구독 관리가 다 있는데 온보딩이 하나도 안 알려줬다(사장님: "브랜드 소개서
+ * 같아서 — 앱 소개서로 바꾸자").
  *
- * OnboardingGate 가 첫 설치(standalone) 1회만 /welcome 으로 보내고, 이 컴포넌트가
- * 완료/스킵 시 markOnboarded() 후 /start(앱 설문) 또는 /login 으로 이동한다.
- * position:fixed 전체화면 takeover — 어떤 chrome 위에도 덮인다.
+ * # 그래서 지금은
+ * **실제 앱 화면 스크린샷**(에뮬레이터 실촬영, `public/onboarding/app-*.webp`)
+ * 을 폰 프레임에 넣고, 손그림 화살표·형광펜으로 그 화면에서 무엇을 보면
+ * 되는지 짚어 준다. 앱스토어 스크린샷 방식 — 정직하고("이게 진짜 되네"),
+ * 생성 이미지가 아니라 UI 가 바뀌면 다시 찍기만 하면 된다.
+ *
+ * 순서는 사장님 지정: ①맞춤 분석 결과 ②건강 일지·체중 추이
+ * ③수의사 진료 보고서 ④편한 구독 관리(+CTA).
+ *
+ * OnboardingGate 가 첫 설치(standalone) 1회만 /welcome 으로 보내고, 이
+ * 컴포넌트가 완료/스킵 시 markOnboarded() 후 /start 또는 /login 으로 이동한다.
+ * position:fixed 전체화면 takeover.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { markOnboarded } from '@/lib/onboarding'
 
+/** 손그림 강조 — 슬라이드마다 다른 위치를 짚는다. */
+type Accent = {
+  /** 폰 프레임 기준 % 좌표 — 화살표가 가리키는 지점. */
+  x: number
+  y: number
+  /** 화살표 옆 라벨(짧게). */
+  label: string
+  /** 라벨이 화살표 왼쪽/오른쪽 어디에 붙는지. */
+  side: 'left' | 'right'
+}
+
 type Slide = {
-  img: string
+  shot: string
   kicker: string
   title: string
   sub: string
+  accent: Accent
 }
 
 const SLIDES: Slide[] = [
   {
-    img: '/onboarding/01-welcome.jpg',
-    kicker: "FARMER'S TAIL",
-    title: '우리 아이에게,\n진짜 밥을',
-    sub: '수의영양 기준으로 만든\n신선 화식을 집으로.',
+    shot: '/onboarding/app-analysis.webp',
+    kicker: '맞춤 분석',
+    title: '우리 아이 몸에 맞는\n하루 한 끼',
+    sub: '체형·건강·기호를 분석해 필요한 열량과\n레시피를 계산해요. 급여량까지 그램 단위로.',
+    accent: { x: 72, y: 33, label: '하루 급여량', side: 'left' },
   },
   {
-    img: '/onboarding/02-analysis.jpg',
-    kicker: 'STEP 1 · 맞춤 분석',
-    title: '2분이면,\n딱 맞는 식단',
-    sub: '체형·건강·기호를 분석해\n우리 아이만을 위한 레시피를 찾아요.',
+    shot: '/onboarding/app-health.webp',
+    kicker: '건강 일지',
+    title: '오늘 컨디션,\n한 줄이면 끝',
+    sub: '변 상태·활동량·기분을 톡 눌러 기록하면\n지난 30일 변화가 한눈에 쌓여요.',
+    accent: { x: 50, y: 26, label: '7일 요약', side: 'right' },
   },
   {
-    img: '/onboarding/03-delivery.jpg',
-    kicker: 'STEP 2 · 정기배송',
-    title: '떨어질 때쯤,\n알아서 도착',
-    sub: '2주마다 신선하게 만들어\n화요일에 문 앞으로 보내드려요.',
+    shot: '/onboarding/app-vet.webp',
+    kicker: '수의사 보고서',
+    title: '병원 갈 때,\n종이 한 장이면',
+    sub: '12개월 체중 추이·식이·분석을 A4 한 장으로.\n수의사에게 그대로 보여드리면 돼요.',
+    accent: { x: 55, y: 44, label: '체중 추이', side: 'left' },
   },
   {
-    img: '/onboarding/04-start.jpg',
-    kicker: 'START',
-    title: '이제,\n시작해요',
-    sub: '우리 아이 맞춤 화식을\n지금 만나보세요.',
+    shot: '/onboarding/app-subscription.webp',
+    kicker: '구독 관리',
+    title: '바꾸고 미루는 게\n제일 쉬워요',
+    sub: '화식 비율·배송일 변경, 일시정지와 해지까지\n앱에서 몇 번만 누르면 끝나요.',
+    accent: { x: 50, y: 30, label: '다음 배송일', side: 'right' },
   },
 ]
 const LAST = SLIDES.length - 1
@@ -70,7 +98,6 @@ export default function Onboarding() {
     setIdx((prev) => (prev === i ? prev : i))
   }, [])
 
-  // 뒤로가기(안드로이드 하드웨어/제스처)로 온보딩을 벗어나지 않게 — 첫 설치 흐름.
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -90,26 +117,11 @@ export default function Onboarding() {
         position: 'fixed',
         inset: 0,
         zIndex: 100,
-        background: '#2A1810',
+        // 크림 배경 — 앱 화면(밝은 톤)을 얹으므로 어두운 배경보다 이어진다.
+        background: 'var(--bg, #FAF7F2)',
         overflow: 'hidden',
       }}
     >
-      {/* 상단 스크림 — 밝은 이미지 위에서도 흰 점·건너뛰기 가독. */}
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 140,
-          zIndex: 6,
-          pointerEvents: 'none',
-          background:
-            'linear-gradient(to bottom, rgba(42,24,16,0.42), rgba(42,24,16,0))',
-        }}
-      />
-
       {/* 진행 점 + 건너뛰기 (고정) */}
       <div
         style={{
@@ -125,9 +137,9 @@ export default function Onboarding() {
         }}
       >
         <div style={{ display: 'flex', gap: 6 }}>
-          {SLIDES.map((_, i) => (
+          {SLIDES.map((s, i) => (
             <button
-              key={i}
+              key={s.shot}
               type="button"
               onClick={() => goTo(i)}
               aria-label={`${i + 1}번 슬라이드`}
@@ -138,7 +150,8 @@ export default function Onboarding() {
                 border: 'none',
                 padding: 0,
                 cursor: 'pointer',
-                background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
+                background:
+                  i === idx ? 'var(--terracotta, #C86B45)' : 'rgba(60,40,26,0.22)',
                 transition: 'width 240ms ease, background 240ms ease',
               }}
             />
@@ -151,7 +164,7 @@ export default function Onboarding() {
             visibility: idx < LAST ? 'visible' : 'hidden',
             background: 'transparent',
             border: 'none',
-            color: 'rgba(255,255,255,0.85)',
+            color: 'var(--muted, #7A6A58)',
             fontSize: 13,
             fontWeight: 700,
             cursor: 'pointer',
@@ -162,7 +175,6 @@ export default function Onboarding() {
         </button>
       </div>
 
-      {/* 캐러셀 — 각 슬라이드에 이미지+카피+버튼을 함께 담아 같이 스와이프. */}
       <div
         ref={scrollerRef}
         onScroll={onScroll}
@@ -178,7 +190,7 @@ export default function Onboarding() {
       >
         {SLIDES.map((s, i) => (
           <section
-            key={s.img}
+            key={s.shot}
             style={{
               position: 'relative',
               flex: '0 0 100%',
@@ -186,143 +198,70 @@ export default function Onboarding() {
               height: '100%',
               scrollSnapAlign: 'start',
               overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              padding:
+                'max(56px, calc(env(safe-area-inset-top) + 44px)) 22px calc(22px + env(safe-area-inset-bottom))',
             }}
           >
-            {/* ★첫 장만 즉시, 나머지는 지연 로드(2026-08-05).
-                4장 합계 518KB(01-welcome 225KB…)가 **첫 화면에서 한꺼번에**
-                받아졌다. 첫 설치 = 캐시 없음 + 모바일 망이라, 하필 브랜드
-                첫인상 화면이 가장 느리게 떴다. 캐러셀은 스크롤로 넘기므로
-                2~4장은 필요할 때 받으면 된다.
-                decoding="async" — 디코딩이 첫 페인트를 막지 않게. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={s.img}
-              alt=""
-              loading={i === 0 ? 'eager' : 'lazy'}
-              fetchPriority={i === 0 ? 'high' : 'low'}
-              decoding="async"
-              style={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
-            />
-            {/* 하단 그라데이션 — 카피/버튼 가독. */}
-            <div
-              aria-hidden
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: '82%',
-                pointerEvents: 'none',
-                // ★순수 2색 선형(스톱 2개) — 기울기가 일정해 마하밴드(가로줄)가
-                // 수학적으로 안 생긴다. 멀티스톱은 스톱마다 기울기가 꺾여 밝은
-                // 이미지 위에서 직선이 보였다(사장님 폰). 진한 고동색 #2A1810.
-                // 글자 가독성은 그라데이션이 아니라 아래 textShadow 로 보장.
-                background:
-                  'linear-gradient(to top, rgba(42,24,16,0.92), rgba(42,24,16,0))',
-              }}
-            />
+            {/* 카피 — 화면 위쪽. 스크린샷보다 먼저 읽히게. */}
+            <div style={{ flexShrink: 0 }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: '0.16em',
+                  color: 'var(--terracotta, #C86B45)',
+                }}
+              >
+                {s.kicker}
+              </span>
+              <h1
+                style={{
+                  margin: '8px 0 0',
+                  fontSize: 27,
+                  lineHeight: 1.2,
+                  fontWeight: 800,
+                  letterSpacing: '-0.03em',
+                  color: 'var(--ink, #2A1F16)',
+                  whiteSpace: 'pre-line',
+                }}
+              >
+                {s.title}
+              </h1>
+              <p
+                style={{
+                  margin: '9px 0 0',
+                  fontSize: 13.5,
+                  lineHeight: 1.6,
+                  color: 'var(--muted, #7A6A58)',
+                  whiteSpace: 'pre-line',
+                  fontWeight: 500,
+                }}
+              >
+                {s.sub}
+              </p>
+            </div>
 
-            {/* 카피 + 버튼 — 한 컬럼(겹침 없음), 이미지와 함께 스와이프. */}
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                bottom: 0,
-                padding: '0 24px calc(26px + env(safe-area-inset-bottom)) 24px',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <div style={{ marginBottom: 18 }}>
-                <span
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 800,
-                    letterSpacing: '0.18em',
-                    color: '#F0C766',
-                    textTransform: 'uppercase',
-                    textShadow: '0 1px 10px rgba(20,12,8,0.55)',
-                  }}
-                >
-                  {s.kicker}
-                </span>
-                <h1
-                  style={{
-                    margin: '12px 0 0',
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 32,
-                    lineHeight: 1.14,
-                    fontWeight: 800,
-                    letterSpacing: '-0.03em',
-                    color: '#fff',
-                    whiteSpace: 'pre-line',
-                    textShadow: '0 2px 18px rgba(20,12,8,0.5)',
-                  }}
-                >
-                  {s.title}
-                </h1>
-                <p
-                  style={{
-                    margin: '12px 0 0',
-                    fontSize: 14.5,
-                    lineHeight: 1.6,
-                    color: 'rgba(255,255,255,0.88)',
-                    whiteSpace: 'pre-line',
-                    fontWeight: 500,
-                    textShadow: '0 1px 14px rgba(20,12,8,0.5)',
-                  }}
-                >
-                  {s.sub}
-                </p>
-              </div>
+            {/* 폰 프레임 + 실제 앱 화면 + 손그림 강조 */}
+            <PhoneShot slide={s} eager={i === 0} />
 
+            {/* 버튼 — 항상 바닥. */}
+            <div style={{ flexShrink: 0, marginTop: 14 }}>
               {i < LAST ? (
                 <button
                   type="button"
                   onClick={() => goTo(i + 1)}
-                  style={{
-                    width: '100%',
-                    height: 56,
-                    borderRadius: 999,
-                    border: 'none',
-                    background: 'var(--terracotta, #C86B45)',
-                    color: '#fff',
-                    fontSize: 15,
-                    fontWeight: 800,
-                    letterSpacing: '-0.01em',
-                    cursor: 'pointer',
-                    boxShadow: '0 10px 28px -10px rgba(200,107,69,0.7)',
-                  }}
+                  style={btnPrimary}
                 >
                   다음
                 </button>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                   <button
                     type="button"
                     onClick={() => complete('/start')}
-                    style={{
-                      width: '100%',
-                      height: 56,
-                      borderRadius: 999,
-                      border: 'none',
-                      background: 'var(--terracotta, #C86B45)',
-                      color: '#fff',
-                      fontSize: 15,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      boxShadow: '0 10px 28px -10px rgba(200,107,69,0.7)',
-                    }}
+                    style={btnPrimary}
                   >
                     무료로 시작하기
                   </button>
@@ -331,11 +270,11 @@ export default function Onboarding() {
                     onClick={() => complete('/login')}
                     style={{
                       width: '100%',
-                      height: 52,
+                      height: 48,
                       borderRadius: 999,
-                      border: '1.5px solid rgba(255,255,255,0.5)',
+                      border: '1.5px solid var(--rule, #E4DBCE)',
                       background: 'transparent',
-                      color: '#fff',
+                      color: 'var(--ink, #2A1F16)',
                       fontSize: 14,
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -343,22 +282,124 @@ export default function Onboarding() {
                   >
                     이미 계정이 있어요
                   </button>
-                  <p
-                    style={{
-                      margin: '4px 0 0',
-                      textAlign: 'center',
-                      fontSize: 11,
-                      lineHeight: 1.5,
-                      color: 'rgba(255,255,255,0.6)',
-                    }}
-                  >
-                    계속 진행하면 이용약관·개인정보처리방침에 동의하게 됩니다.
-                  </p>
                 </div>
               )}
             </div>
           </section>
         ))}
+      </div>
+    </div>
+  )
+}
+
+const btnPrimary: React.CSSProperties = {
+  width: '100%',
+  height: 54,
+  borderRadius: 999,
+  border: 'none',
+  background: 'var(--terracotta, #C86B45)',
+  color: '#fff',
+  fontSize: 15,
+  fontWeight: 800,
+  letterSpacing: '-0.01em',
+  cursor: 'pointer',
+  boxShadow: '0 10px 26px -12px rgba(200,107,69,0.75)',
+}
+
+/**
+ * 폰 프레임 안의 실제 앱 화면 + 손그림 강조.
+ *
+ * 스크린샷은 위에서 잘린 형태로 보여준다(아래로 이어지는 느낌) — 화면 전체를
+ * 축소해 넣으면 글씨가 뭉개져 무슨 화면인지 안 보인다.
+ */
+function PhoneShot({ slide, eager }: { slide: Slide; eager: boolean }) {
+  const { x, y, label, side } = slide.accent
+  return (
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        marginTop: 16,
+        position: 'relative',
+        display: 'flex',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        style={{
+          position: 'relative',
+          height: '100%',
+          aspectRatio: '9 / 17',
+          borderRadius: 26,
+          border: '7px solid var(--ink, #2A1F16)',
+          background: '#fff',
+          overflow: 'hidden',
+          boxShadow: '0 22px 44px -20px rgba(42,31,22,0.45)',
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- 고정 프레임, next/image 이득 없음 */}
+        <img
+          src={slide.shot}
+          alt=""
+          loading={eager ? 'eager' : 'lazy'}
+          fetchPriority={eager ? 'high' : 'low'}
+          decoding="async"
+          style={{
+            width: '100%',
+            display: 'block',
+            // 위에서부터 보여주고 아래는 프레임 밖으로 — '더 있다'는 느낌.
+            objectFit: 'cover',
+            objectPosition: 'top center',
+            height: '100%',
+          }}
+        />
+
+        {/* 손그림 강조 — 화살표 + 라벨. 화면 안 특정 지점을 짚는다. */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            left: `${x}%`,
+            top: `${y}%`,
+            transform: 'translate(-50%, -50%)',
+            display: 'flex',
+            alignItems: 'center',
+            flexDirection: side === 'left' ? 'row-reverse' : 'row',
+            gap: 4,
+            pointerEvents: 'none',
+          }}
+        >
+          {/* 형광펜 동그라미 */}
+          <svg width="66" height="34" viewBox="0 0 66 34" style={{ flexShrink: 0 }}>
+            <ellipse
+              cx="33"
+              cy="17"
+              rx="30"
+              ry="14"
+              fill="none"
+              stroke="var(--terracotta, #C86B45)"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeDasharray="70 12"
+              transform="rotate(-4 33 17)"
+              opacity="0.9"
+            />
+          </svg>
+          <span
+            style={{
+              fontSize: 10.5,
+              fontWeight: 800,
+              color: '#fff',
+              background: 'var(--terracotta, #C86B45)',
+              padding: '3px 8px',
+              borderRadius: 999,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 12px -4px rgba(200,107,69,0.8)',
+            }}
+          >
+            {label}
+          </span>
+        </div>
       </div>
     </div>
   )
