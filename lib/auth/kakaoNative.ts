@@ -25,10 +25,23 @@ import { Capacitor } from '@capacitor/core'
  * 안 그러면 "로그인은 됐는데 회원 처리가 조용히 안 되는" 상태가 된다.
  */
 
-/** 카카오 플러그인이 실제로 붙어 있는 네이티브 환경인가. */
+/**
+ * 네이티브 카카오 로그인을 **써야 하는** 환경인가.
+ *
+ * ⚠️ **iOS 로 한정한다. `isNativePlatform()` 만 보면 안드로이드도 참이다.**
+ *  · 안드로이드는 **웹 방식으로도 카카오톡 앱 전환이 된다**(카카오가 안드로이드
+ *    모바일 웹만 지원하는 기능 — 애초에 이 작업이 iOS 전용인 이유). 즉 네이티브가
+ *    필요 없다.
+ *  · 그리고 안드로이드 네이티브 설정(AndroidManifest 의 AuthCodeHandlerActivity,
+ *    Kakao 콘솔 키 해시 등록)을 하지 않았으므로 시도하면 실패한다. 실패는
+ *    `cancelled` 로 취급돼 **아무 일도 일어나지 않는 화면**이 된다 — 이미 스토어에
+ *    올라간 안드로이드 앱에 회귀를 내는 셈이다.
+ *  나중에 안드로이드도 네이티브로 가려면 위 설정을 먼저 하고 이 조건을 넓힌다.
+ */
 export function isNativeKakaoAvailable(): boolean {
   return (
     Capacitor.isNativePlatform() &&
+    Capacitor.getPlatform() === 'ios' &&
     Capacitor.isPluginAvailable('CapacitorKakaoLogin')
   )
 }
@@ -57,8 +70,13 @@ export async function loginWithKakaoNative(): Promise<NativeKakaoResult> {
       void CapacitorKakaoLogin.addListener('callback', (data) => {
         clearTimeout(timer)
         if (!data?.success) {
-          // 사용자가 카카오톡에서 취소한 경우가 대부분 — 오류로 시끄럽게 굴지 않는다.
-          resolve({ ok: false, reason: 'cancelled' })
+          // ⚠️ 실패와 '사용자가 취소' 를 구분한다. 둘 다 취소로 뭉뚱그리면 진짜
+          //    실패했을 때 **눌러도 아무 일 안 일어나는 화면**이 된다(폴백을 안 타서).
+          //    확실히 취소일 때만 조용히 멈추고, 애매하면 웹 로그인으로 흘려보낸다
+          //    — 로그인이 아예 막히는 것보다 낫다(되돌아오기는 가장자리 스와이프로 가능).
+          const msg = (data?.error ?? '').toLowerCase()
+          const userCancelled = /cancel|취소/.test(msg)
+          resolve({ ok: false, reason: userCancelled ? 'cancelled' : 'failed' })
           return
         }
         const idToken = (data.id_token ?? '').trim()
