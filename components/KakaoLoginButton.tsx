@@ -50,26 +50,36 @@ export default function KakaoLoginButton({
     //   못 열기 때문이다 — 근거·함정은 lib/auth/kakaoNative.ts docstring 참조.
     //   실패하면 아래 웹 OAuth 로 **그대로 흘려보낸다**(카카오톡 미설치·플러그인
     //   이상 등에서 로그인 자체가 막히면 안 된다).
+    // ⚠️ 전체를 try 로 감싼다. 여기서 예외가 새면 loading 이 true 로 남아
+    //    **버튼이 영영 비활성('연결 중…')** 이 되고 오류 문구도 안 뜬다.
+    //    화면 이동이 없으니 pageshow 복구도 안 걸린다. 실제 발생 경로가 있다:
+    //    플러그인 import 는 **클릭 시점에 네트워크로 청크를 받아오는 동적 import**라
+    //    (원격 URL WebView) 통신이 끊기면 그대로 throw 한다.
     if (isNativeKakaoAvailable()) {
-      const native = await loginWithKakaoNative()
-      if (native.ok) {
-        const { error: idErr } = await supabase.auth.signInWithIdToken({
-          provider: 'kakao',
-          token: native.idToken,
-        })
-        if (!idErr) {
-          // 세션은 만들어졌다. 로그인 후 공통 처리(탈퇴가드·출생연도·만14세)는
-          // /auth/callback 정본이 담당하므로 그리로 넘긴다.
-          window.location.href = redirectTo
+      try {
+        const native = await loginWithKakaoNative()
+        if (native.ok) {
+          const { error: idErr } = await supabase.auth.signInWithIdToken({
+            provider: 'kakao',
+            token: native.idToken,
+          })
+          if (!idErr) {
+            // 세션은 만들어졌다. 로그인 후 공통 처리(탈퇴가드·출생연도·만14세)는
+            // /auth/callback 정본이 담당하므로 그리로 넘긴다.
+            window.location.href = redirectTo
+            return
+          }
+          console.error('[kakao-login] id_token 교환 실패', idErr.message)
+        } else if (native.reason === 'cancelled') {
+          // 사용자가 카카오톡에서 취소 — 조용히 원상복귀(오류 문구 없음).
+          setLoading(false)
           return
+        } else {
+          console.error('[kakao-login] 네이티브 실패', native.reason)
         }
-        console.error('[kakao-login] id_token 교환 실패', idErr.message)
-      } else if (native.reason === 'cancelled') {
-        // 사용자가 카카오톡에서 취소 — 조용히 원상복귀(오류 문구 없음).
-        setLoading(false)
-        return
-      } else {
-        console.error('[kakao-login] 네이티브 실패', native.reason)
+      } catch (e) {
+        // 폴백이 있으므로 사용자에게 알리지 않고 웹 방식으로 넘어간다.
+        console.error('[kakao-login] 네이티브 예외', e)
       }
       // 여기까지 왔으면 네이티브가 안 된 것 — 웹 방식으로 폴백.
     }

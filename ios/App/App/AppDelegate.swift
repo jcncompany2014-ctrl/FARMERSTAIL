@@ -81,11 +81,48 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // 카카오톡에서 로그인을 마치고 우리 앱으로 돌아오는 주소를 먼저 가로챈다.
         // 이걸 빼먹으면 카카오톡은 열리는데 **결과를 받지 못해 영원히 대기**한다.
         // (Capacitor 프록시로 넘기면 카카오 SDK 가 응답을 못 본다.)
-        if AuthApi.isKakaoTalkLoginUrl(url) {
+        //
+        // ⚠️ 스킴을 먼저 우리 손으로 거른다. `isKakaoTalkLoginUrl` 은 내부에서
+        //    `KakaoSDK.shared.redirectUri()` 를 부르고 그 안에 **`try!`** 가 있어,
+        //    SDK 가 초기화되지 않은 상태면 **앱이 그 자리에서 죽는다.**
+        //    이 메서드에는 토스 복귀·유니버설 링크 등 카카오와 무관한 URL 도 전부
+        //    들어오므로, 그것들까지 카카오 SDK 를 건드리게 두면 안 된다.
+        if url.scheme?.lowercased().hasPrefix("kakao") == true,
+           AuthApi.isKakaoTalkLoginUrl(url) {
             return AuthController.handleOpenUrl(url: url)
         }
 
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+    }
+
+    /**
+     * APNs 토큰을 Capacitor 푸시 플러그인에 전달한다.
+     *
+     * # 없으면 무슨 일이 벌어지나 (2026-08-26 자기검토에서 발견)
+     * `@capacitor/push-notifications` 는 토큰을 **오직 이 NotificationCenter 알림으로만**
+     * 받는다(플러그인 소스에서 `.capacitorDidRegisterForRemoteNotifications` 를 구독).
+     * `ApplicationDelegateProxy` 는 이걸 대신 해주지 않는다 — openURL 과
+     * continueUserActivity 만 처리한다.
+     *
+     * 즉 이 두 메서드가 없으면 **iOS 는 토큰을 영원히 못 받는다.** 그런데
+     * `PushNotifications.register()` 는 성공으로 resolve 하므로 아무도 실패를 모른다:
+     * 알림 설정 토글은 계속 돌기만 하고, `native_push_tokens` 에 행이 안 생기고,
+     * 그런데도 발송 크론은 "보낼 대상 0명"으로 **초록**을 찍는다.
+     * AGENTS 규칙8("조용한 실패가 지표를 초록으로 만든다")과 같은 형태다.
+     * 오늘 aps-environment·remote-notification 을 켜면서 이 경로가 실제로 열렸다.
+     */
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        NotificationCenter.default.post(
+            name: .capacitorDidRegisterForRemoteNotifications,
+            object: deviceToken,
+        )
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        NotificationCenter.default.post(
+            name: .capacitorDidFailToRegisterForRemoteNotifications,
+            object: error,
+        )
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {

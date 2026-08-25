@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSafeUser } from '@/lib/supabase/server'
 import { pickKakaoBirthYear } from '@/lib/auth/kakaoProfile'
 
 export const runtime = 'nodejs'
@@ -66,9 +66,11 @@ export async function GET(request: Request) {
   //
   // 세션도 code 도 없으면 종전대로 오류다(설정 오류·직접 접근).
   if (!code) {
-    const {
-      data: { user: existing },
-    } = await supabase.auth.getUser()
+    // ⚠️ `getUser()` 를 직접 부르지 않는다. 쿠키의 refresh token 이 만료·회전된
+    //    상태면 **에러 반환이 아니라 throw** 한다(2026-07-01 프로덕션 500 사고로
+    //    확인된 동작, 그래서 getSafeUser 헬퍼가 있다). 이 라우트엔 try/catch 가
+    //    없으므로 직접 부르면 낡은 쿠키를 가진 방문자가 500 을 본다.
+    const existing = await getSafeUser(supabase)
     if (!existing) {
       Sentry.captureMessage('oauth callback: missing code', {
         level: 'warning',
@@ -119,15 +121,25 @@ export async function GET(request: Request) {
   // 에서 profiles.deleted_at 만 set 한 경우 (account_purge cron 이전 단계)
   // OAuth 로그인은 그대로 통과. 여기서 deleted_at 도 함께 검사.
   const supabaseAfter = await createClient()
-  const {
-    data: { user },
-  } = await supabaseAfter.auth.getUser()
+  // getUser() 직접 호출은 낡은 refresh 쿠키에서 throw 한다 — 위와 같은 이유로 헬퍼 경유.
+  const user = await getSafeUser(supabaseAfter)
   if (user) {
-    const { data: profile } = await supabaseAfter
+    const { data: profile, error: profileError } = await supabaseAfter
       .from('profiles')
       .select('birth_year, deleted_at')
       .eq('id', user.id)
       .maybeSingle()
+    // ⚠️ 조회 실패를 '해당 없음' 으로 읽으면 안 된다(AGENTS 규칙1).
+    //    여기서 실패하면 아래 탈퇴 가드가 **통과**돼 버린다. 다만 fail-closed 로
+    //    바꾸면 일시적 DB 오류에 정상 사용자가 전원 로그인 차단되므로, 이 가드는
+    //    2차 방어라는 점(1차는 account/delete 의 banned_until=infinity)을 감안해
+    //    **동작은 유지하고 침묵만 없앤다** — 그래야 조용히 새는 일이 없다.
+    if (profileError) {
+      Sentry.captureException(profileError, {
+        tags: { provider, step: 'post_login_profile' },
+        extra: { message: profileError.message },
+      })
+    }
     // 탈퇴 처리된 계정 — 즉시 signOut + 안내 화면.
     if (profile?.deleted_at) {
       await supabaseAfter.auth.signOut()

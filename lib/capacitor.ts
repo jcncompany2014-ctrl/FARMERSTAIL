@@ -69,9 +69,27 @@ export async function registerNativePush(): Promise<
       return { ok: false, reason: 'denied' }
     }
     return new Promise((resolve) => {
+      /**
+       * ⏱ 시간 제한이 **반드시** 있어야 한다 (2026-08-26 추가).
+       *
+       * 이 Promise 는 registration / registrationError / register() 거절,
+       * 셋 중 하나로만 끝난다. 그런데 셋 다 안 오는 상태가 실재한다 —
+       * AppDelegate 가 APNs 토큰을 NotificationCenter 로 넘겨주지 않으면
+       * `register()` 는 성공으로 끝나고 **이벤트는 영영 오지 않는다**
+       * (실제로 iOS 플랫폼 생성 직후 그 상태였다). 그러면 알림 설정 토글이
+       * 무한히 돌기만 하고 사용자도 우리도 원인을 모른다.
+       * 시간 제한이 있으면 최소한 '실패'로 드러나 원인을 찾을 수 있다.
+       */
+      const timeout = setTimeout(() => {
+        void success.then((s) => s.remove())
+        void error.then((e) => e.remove())
+        resolve({ ok: false, reason: 'apns_token_timeout' })
+      }, 20_000)
+
       // registration 이벤트가 와야 토큰을 알 수 있음. 이벤트 핸들러는 한
       // 번만 unbind 해서 메모리 누수 방지.
       const success = PushNotifications.addListener('registration', (t) => {
+        clearTimeout(timeout)
         void success.then((s) => s.remove())
         void error.then((e) => e.remove())
         resolve({ ok: true, token: t.value })
@@ -79,12 +97,14 @@ export async function registerNativePush(): Promise<
       const error = PushNotifications.addListener(
         'registrationError',
         (err) => {
+          clearTimeout(timeout)
           void success.then((s) => s.remove())
           void error.then((e) => e.remove())
           resolve({ ok: false, reason: err.error })
         },
       )
       PushNotifications.register().catch((err: Error) => {
+        clearTimeout(timeout)
         void success.then((s) => s.remove())
         void error.then((e) => e.remove())
         resolve({ ok: false, reason: err.message })

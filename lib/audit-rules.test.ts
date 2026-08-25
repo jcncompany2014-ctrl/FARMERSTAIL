@@ -2821,3 +2821,66 @@ test('규칙63: 카카오 네이티브 앱 키는 capacitor.config 와 Info.plis
       ' — 카카오톡에서 앱으로 복귀가 안 된다',
   )
 })
+
+test('규칙64: iOS AppDelegate 의 손으로 넣은 배선 3종이 남아 있다', () => {
+  /**
+   * # 왜 (2026-08-26 자기검토)
+   *
+   * `AppDelegate.swift` 는 `npx cap add ios` 가 만드는 **템플릿 파일**이다.
+   * 플랫폼을 다시 만들거나 덮어쓰면 아래가 통째로 사라지는데, **셋 다 사라져도
+   * 빌드는 성공한다** — 그래서 사람이 알아채지 못한다.
+   *
+   *  ① APNs 토큰 전달 — 없으면 `@capacitor/push-notifications` 가 토큰을 영영
+   *     못 받는다. 플러그인은 이 NotificationCenter 알림으로만 토큰을 받고
+   *     ApplicationDelegateProxy 는 대신 해주지 않는다. 그런데 register() 는
+   *     성공으로 끝나서 **알림 설정은 무한 로딩, 크론은 초록**(규칙8 형태).
+   *     실제로 iOS 플랫폼 생성 직후 이 상태였다.
+   *  ② 카카오 복귀 URL 처리 — 없으면 카카오톡은 열리는데 결과가 안 돌아온다.
+   *  ③ 외부 페이지 탈출용 스와이프 — 없으면 카카오·토스 화면에서 못 빠져나온다
+   *     (사장님 실기기 제보로 넣은 것).
+   */
+  const src = read(join(ROOT, 'ios', 'App', 'App', 'AppDelegate.swift'))
+
+  assert.match(
+    src,
+    /capacitorDidRegisterForRemoteNotifications/,
+    'AppDelegate 에 APNs 토큰 전달이 없다 — iOS 푸시가 토큰을 영영 못 받는데 ' +
+      '등록은 성공으로 끝나 아무도 실패를 모른다(알림 설정 무한 로딩)',
+  )
+  assert.match(
+    src,
+    /capacitorDidFailToRegisterForRemoteNotifications/,
+    'AppDelegate 에 APNs 등록 실패 전달이 없다 — 실패해도 계속 기다리기만 한다',
+  )
+  assert.match(
+    src,
+    /isKakaoTalkLoginUrl/,
+    'AppDelegate 에 카카오 복귀 URL 처리가 없다 — 카카오톡은 열리는데 앱으로 결과가 안 온다',
+  )
+  assert.match(
+    src,
+    /allowsBackForwardNavigationGestures/,
+    'AppDelegate 에 외부 페이지 탈출 제스처가 없다 — 카카오·토스 화면에 갇힌다',
+  )
+})
+
+test('규칙65: 카카오 네이티브 로그인은 iOS 전용 — 안드로이드로 새면 안 된다', () => {
+  /**
+   * # 왜 (2026-08-26)
+   *
+   * `Capacitor.isNativePlatform()` 은 **안드로이드에서도 참**이다. 플랫폼 조건이
+   * 빠지면 이미 스토어에 올라간 안드로이드 앱이 네이티브 경로를 타는데, 안드로이드
+   * 쪽 설정(AuthCodeHandlerActivity·키 해시)을 하지 않았으므로 실패한다.
+   * 그리고 안드로이드는 **웹 방식으로도 카카오톡 전환이 되므로** 애초에 필요 없다
+   * (카카오가 모바일 웹 간편로그인을 안드로이드만 지원 — 이 기능이 iOS 전용인 이유).
+   *
+   * 이 한 줄이 사라지면 살아있는 안드로이드 앱의 로그인이 깨진다. 규칙으로 박는다.
+   */
+  const src = stripComments(read(join(ROOT, 'lib', 'auth', 'kakaoNative.ts')))
+  assert.match(
+    src,
+    /getPlatform\(\)\s*===\s*['"]ios['"]/,
+    'kakaoNative.ts 가 iOS 를 명시적으로 확인하지 않는다 — isNativePlatform() 만으로는 ' +
+      '안드로이드도 통과해 스토어에 올라간 앱의 카카오 로그인이 깨진다',
+  )
+})
