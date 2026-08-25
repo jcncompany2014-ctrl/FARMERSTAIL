@@ -1,67 +1,81 @@
 'use client'
 
 /**
- * Farmer's Tail — 첫 설치 온보딩 (2026-08-25 전면 개편, 사장님 지시).
+ * Farmer's Tail — 첫 설치 온보딩.
  *
- * # 왜 갈아엎었나
- * 이전 4장은 전부 **브랜드 소개**였다("진짜 밥 / 2분 분석 / 정기배송 / 시작").
- * 그런데 앱을 설치한 사람은 이미 우리 브랜드를 안다 — 웹 설문·인스타·검색을
- * 거쳐 왔기 때문이다. 정작 처음 보는 궁금증인 **"이 앱으로 뭘 할 수 있나"**
- * 는 한 장도 없었다. 실제로 앱에는 건강 일지·체중 추이·수의사 진료 보고서·
- * 구독 관리가 다 있는데 온보딩이 하나도 안 알려줬다(사장님: "브랜드 소개서
- * 같아서 — 앱 소개서로 바꾸자").
+ * # 레이아웃 정본 = 국내 앱스토어 스크린샷 문법 (사장님 레퍼런스: 필라이즈)
+ *   ① 큰 두 줄 헤드라인 — 1줄 조건/행동, 2줄 결과(더 굵고 진하게).
+ *   ② 폰이 아래로 잘려 나간다 — 여백 안에 얌전히 들어가면 작아 보인다.
+ *      흰 패널이 폰을 아래에서 자르므로 "카드 밖으로 이어진다"로 읽힌다.
+ *   ③ 폰 가장자리에 뜨는 배지 — 기능은 텍스트 칩, 제품은 원형 실사진.
  *
- * # 그래서 지금은
- * **실제 앱 화면 스크린샷**(에뮬레이터 실촬영, `public/onboarding/app-*.webp`)
- * 을 **실사 기기 목업**(생성) 화면 안에 sharp 로 끼워넣은 `mock-*.webp` 를
- * 쓴다. 앱스토어 스크린샷 방식 — 정직하고("이게 진짜 되네"), UI 가 바뀌면
- * 다시 찍어 합성만 하면 된다.
- * ⚠️ 화면 내용·폰트는 **AI 로 다시 그리지 않는다** — 한글이 뭉개진다.
- *    기기(베젤·그림자)만 생성물이고, 화면은 원본 픽셀 그대로다.
+ * # 화면 이미지
+ * 실촬영 앱 스크린샷(`app-*.webp`)을 실사 기기 목업 안에 sharp 로 끼워넣은
+ * `mock-*.webp`. ⚠️ 화면 내용·폰트는 **AI 로 다시 그리지 않는다**(한글이 뭉개짐).
+ * 기기(베젤·그림자)만 생성물이고 화면은 원본 픽셀 그대로다.
  *
- * 순서는 사장님 지정: ①맞춤 분석 결과 ②건강 일지·체중 추이
- * ③수의사 진료 보고서 ④편한 구독 관리(+CTA).
- *
- * OnboardingGate 가 첫 설치(standalone) 1회만 /welcome 으로 보내고, 이
- * 컴포넌트가 완료/스킵 시 markOnboarded() 후 /start 또는 /login 으로 이동한다.
- * position:fixed 전체화면 takeover.
+ * # 내용은 브랜드 소개가 아니라 앱 소개
+ * 설치한 사람은 웹 설문·인스타를 거쳐 와서 브랜드를 이미 안다. 정작 모르는
+ * "이 앱으로 뭘 하나"를 보여준다. 순서는 사장님 지정:
+ * ①맞춤 분석 ②건강 일지 ③수의사 보고서 ④구독 관리(+CTA).
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { markOnboarded } from '@/lib/onboarding'
 
+type Badge =
+  | { kind: 'chip'; text: string; tone: 'accent' | 'plain'; side: 'left' | 'right'; top: string }
+  | { kind: 'photo'; src: string; side: 'left' | 'right'; top: string }
+
 type Slide = {
   shot: string
-  kicker: string
-  title: string
-  sub: string
+  lead: string
+  punch: string
+  note: string
+  badges: Badge[]
 }
 
 const SLIDES: Slide[] = [
   {
     shot: '/onboarding/mock-analysis.webp',
-    kicker: '맞춤 분석',
-    title: '우리 아이 몸에 맞는\n하루 한 끼',
-    sub: '체형·건강·기호를 분석해 필요한 열량과\n레시피를 계산해요. 급여량까지 그램 단위로.',
+    lead: '체형·건강·기호를 입력하면',
+    punch: '맞춤 레시피가 나와요',
+    note: '필요한 열량과 하루 급여량까지 그램 단위로 계산해요',
+    badges: [
+      { kind: 'chip', text: '그램 단위 급여량', tone: 'accent', side: 'left', top: '5%' },
+      { kind: 'photo', src: '/bowl/chicken.webp', side: 'right', top: '25%' },
+    ],
   },
   {
     shot: '/onboarding/mock-health.webp',
-    kicker: '건강 일지',
-    title: '오늘 컨디션,\n한 줄이면 끝',
-    sub: '변 상태·활동량·기분을 톡 눌러 기록하면\n지난 30일 변화가 한눈에 쌓여요.',
+    lead: '오늘 컨디션 톡 누르면',
+    punch: '건강 기록이 쌓여요',
+    note: '변 상태·활동량·기분과 체중 추이를 한 화면에서 봐요',
+    badges: [
+      { kind: 'chip', text: '체중 추이', tone: 'plain', side: 'right', top: '8%' },
+      { kind: 'chip', text: '30일 변화', tone: 'accent', side: 'left', top: '38%' },
+    ],
   },
   {
     shot: '/onboarding/mock-vet.webp',
-    kicker: '수의사 보고서',
-    title: '병원 갈 때,\n종이 한 장이면',
-    sub: '12개월 체중 추이·식이·분석을 A4 한 장으로.\n수의사에게 그대로 보여드리면 돼요.',
+    lead: '병원 갈 때는',
+    punch: '종이 한 장이면 끝나요',
+    note: '12개월 체중·식이·분석 기록을 A4 한 장으로 정리해 드려요',
+    badges: [
+      { kind: 'chip', text: '12개월 기록', tone: 'accent', side: 'left', top: '6%' },
+      { kind: 'chip', text: 'PDF 저장', tone: 'plain', side: 'right', top: '34%' },
+    ],
   },
   {
     shot: '/onboarding/mock-subscription.webp',
-    kicker: '구독 관리',
-    title: '바꾸고 미루는 게\n제일 쉬워요',
-    sub: '화식 비율·배송일 변경, 일시정지와 해지까지\n앱에서 몇 번만 누르면 끝나요.',
+    lead: '바꾸고 미루는 것까지',
+    punch: '앱에서 몇 번이면 끝',
+    note: '화식 비율·배송일 변경, 일시정지와 해지 모두 앱에서 해요',
+    badges: [
+      { kind: 'chip', text: '언제든 일시정지', tone: 'accent', side: 'left', top: '6%' },
+      { kind: 'photo', src: '/pkg/pork.webp', side: 'right', top: '27%' },
+    ],
   },
 ]
 const LAST = SLIDES.length - 1
@@ -98,21 +112,11 @@ export default function Onboarding() {
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 100,
-        // 크림 배경 — 앱 화면(밝은 톤)을 얹으므로 어두운 배경보다 이어진다.
-        background: 'var(--bg, #FAF7F2)',
-        overflow: 'hidden',
-      }}
-    >
-      {/* 진행 점 + 건너뛰기 (고정) */}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--bg, #FAF7F2)', overflow: 'hidden' }}>
       <div
         style={{
           position: 'absolute',
-          top: 'max(14px, env(safe-area-inset-top))',
+          top: 'max(16px, env(safe-area-inset-top))',
           left: 0,
           right: 0,
           zIndex: 7,
@@ -136,8 +140,7 @@ export default function Onboarding() {
                 border: 'none',
                 padding: 0,
                 cursor: 'pointer',
-                background:
-                  i === idx ? 'var(--terracotta, #C86B45)' : 'rgba(60,40,26,0.22)',
+                background: i === idx ? 'var(--terracotta, #C86B45)' : 'rgba(60,40,26,0.22)',
                 transition: 'width 240ms ease, background 240ms ease',
               }}
             />
@@ -183,72 +186,63 @@ export default function Onboarding() {
               width: '100%',
               height: '100%',
               scrollSnapAlign: 'start',
-              overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              padding:
-                'max(56px, calc(env(safe-area-inset-top) + 44px)) 22px calc(22px + env(safe-area-inset-bottom))',
+              paddingTop: 'max(44px, calc(env(safe-area-inset-top) + 30px))',
+              paddingBottom: 'calc(18px + env(safe-area-inset-bottom))',
             }}
           >
-            {/* 카피 — 화면 위쪽. 스크린샷보다 먼저 읽히게. */}
-            <div style={{ flexShrink: 0 }}>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  letterSpacing: '0.16em',
-                  color: 'var(--terracotta, #C86B45)',
-                }}
-              >
-                {s.kicker}
-              </span>
+            {/* 흰 패널 — 헤드라인 + 폰. 아래 모서리가 폰을 자른다. */}
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                background: '#fff',
+                borderRadius: '0 0 30px 30px',
+                boxShadow: '0 18px 40px -30px rgba(60,40,26,0.5)',
+              }}
+            >
               <h1
                 style={{
-                  margin: '8px 0 0',
-                  fontSize: 27,
-                  lineHeight: 1.2,
-                  fontWeight: 800,
-                  letterSpacing: '-0.03em',
-                  color: 'var(--ink, #2A1F16)',
-                  whiteSpace: 'pre-line',
+                  flexShrink: 0,
+                  margin: 0,
+                  padding: '26px 22px 0',
+                  fontSize: 22,
+                  lineHeight: 1.34,
+                  letterSpacing: '-0.035em',
+                  textAlign: 'center',
                 }}
               >
-                {s.title}
+                <span style={{ display: 'block', fontWeight: 700, color: '#5A4A3A' }}>{s.lead}</span>
+                <span style={{ display: 'block', fontWeight: 800, color: 'var(--ink, #2A1F16)' }}>{s.punch}</span>
               </h1>
+
+              <PhoneStage slide={s} eager={i === 0} />
+            </div>
+
+            <div style={{ flexShrink: 0, padding: '16px 22px 0' }}>
               <p
                 style={{
-                  margin: '9px 0 0',
-                  fontSize: 13.5,
-                  lineHeight: 1.6,
+                  margin: '0 0 14px',
+                  fontSize: 12.5,
+                  lineHeight: 1.5,
+                  textAlign: 'center',
                   color: 'var(--muted, #7A6A58)',
-                  whiteSpace: 'pre-line',
                   fontWeight: 500,
                 }}
               >
-                {s.sub}
+                {s.note}
               </p>
-            </div>
-
-            {/* 폰 프레임 + 실제 앱 화면 + 손그림 강조 */}
-            <PhoneShot slide={s} eager={i === 0} />
-
-            {/* 버튼 — 항상 바닥. */}
-            <div style={{ flexShrink: 0, marginTop: 14 }}>
               {i < LAST ? (
-                <button
-                  type="button"
-                  onClick={() => goTo(i + 1)}
-                  style={btnPrimary}
-                >
+                <button type="button" onClick={() => goTo(i + 1)} style={btnPrimary}>
                   다음
                 </button>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                  <button
-                    type="button"
-                    onClick={() => complete('/start')}
-                    style={btnPrimary}
-                  >
+                  <button type="button" onClick={() => complete('/start')} style={btnPrimary}>
                     무료로 시작하기
                   </button>
                   <button
@@ -256,7 +250,7 @@ export default function Onboarding() {
                     onClick={() => complete('/login')}
                     style={{
                       width: '100%',
-                      height: 48,
+                      height: 46,
                       borderRadius: 999,
                       border: '1.5px solid var(--rule, #E4DBCE)',
                       background: 'transparent',
@@ -280,7 +274,7 @@ export default function Onboarding() {
 
 const btnPrimary: React.CSSProperties = {
   width: '100%',
-  height: 54,
+  height: 52,
   borderRadius: 999,
   border: 'none',
   background: 'var(--terracotta, #C86B45)',
@@ -293,29 +287,15 @@ const btnPrimary: React.CSSProperties = {
 }
 
 /**
- * 기기 목업 이미지 — 실사 기기 사진 안에 **실제 앱 화면 픽셀이 그대로** 박혀
- * 있다(`scripts` 없이 sharp 로 합성, 원본은 `app-*.webp`).
- *
- * 이전엔 CSS 로 테두리를 그리고 SVG 동그라미로 강조했는데 사장님 평가는
- * "폰 레이어도 못생겼고 동그라미도 못생겼다 — 완성도가 떨어진다". 맞는 말이라
- * 기기는 생성 목업(실사 그림자·베젤)으로, 강조는 아예 걷어냈다. 화면 내용과
- * 폰트는 손대지 않았다 — AI 가 다시 그리면 한글이 뭉개지므로 **절대 금지**.
+ * 폰은 **높이 기준**으로 키워 스테이지보다 크게 만든다(height:116%). 그래야
+ * 화면 폭과 무관하게 항상 아래로 잘려 나가고, 잘린 자리는 흰 패널의 둥근 아래
+ * 모서리가 받아 준다. 폭 기준으로 잡으면 긴 화면에서 바닥에 떠 그림자가 드러난다.
  */
-function PhoneShot({ slide, eager }: { slide: Slide; eager: boolean }) {
+function PhoneStage({ slide, eager }: { slide: Slide; eager: boolean }) {
   return (
-    <div
-      style={{
-        flex: 1,
-        minHeight: 0,
-        marginTop: 10,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'flex-start',
-      }}
-    >
-      {/* ★loading="lazy" 금지 (2026-08-25 실측): 안드로이드 WebView 에서 가로
-          캐러셀의 2~4번째 장이 영영 로드되지 않았다(naturalWidth 0). 4장 합계
-          135KB 라 전부 eager 로 받아도 부담 없다 — 첫 장만 우선순위를 높인다. */}
+    <div style={{ position: 'relative', flex: 1, minHeight: 0, marginTop: 16 }}>
+      {/* ★loading="lazy" 금지 (실측): 안드로이드 WebView 에서 가로 캐러셀의
+          2~4번째 장이 영영 로드되지 않는다(naturalWidth 0). 전부 eager. */}
       {/* eslint-disable-next-line @next/next/no-img-element -- 목업 이미지, next/image 이득 없음 */}
       <img
         src={slide.shot}
@@ -323,12 +303,79 @@ function PhoneShot({ slide, eager }: { slide: Slide; eager: boolean }) {
         fetchPriority={eager ? 'high' : 'low'}
         decoding="async"
         style={{
-          maxHeight: '100%',
-          maxWidth: '100%',
-          objectFit: 'contain',
-          objectPosition: 'top center',
+          position: 'absolute',
+          top: 0,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          height: '116%',
+          width: 'auto',
+          maxWidth: '94%',
         }}
       />
+      {slide.badges.map((b) => (
+        <BadgeView key={b.kind === 'chip' ? b.text : b.src} badge={b} />
+      ))}
     </div>
+  )
+}
+
+/**
+ * 칩 = 기능 이름, 원형 = 제품 실사진. 손으로 그린 SVG 동그라미는 사장님이
+ * "못생겼다"고 반려했으므로 도형으로 뭘 가리키지 않는다 — 배지는 그 자체로
+ * 정보만 담고, 아이콘·이모지로 자리를 때우지 않는다.
+ */
+function BadgeView({ badge }: { badge: Badge }) {
+  const anchor: React.CSSProperties = {
+    position: 'absolute',
+    top: badge.top,
+    ...(badge.side === 'left' ? { left: '2%' } : { right: '2%' }),
+    zIndex: 3,
+  }
+
+  if (badge.kind === 'photo') {
+    return (
+      <div
+        style={{
+          ...anchor,
+          width: 76,
+          height: 76,
+          borderRadius: '50%',
+          overflow: 'hidden',
+          border: '4px solid #fff',
+          boxShadow: '0 14px 26px -10px rgba(60,40,26,0.45)',
+          background: '#fff',
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- 정사각 자산, CSS 가 원형을 만든다 */}
+        <img
+          src={badge.src}
+          alt=""
+          decoding="async"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+      </div>
+    )
+  }
+
+  const accent = badge.tone === 'accent'
+  return (
+    <span
+      style={{
+        ...anchor,
+        display: 'inline-block',
+        padding: '8px 14px',
+        borderRadius: 999,
+        fontSize: 12.5,
+        fontWeight: 800,
+        letterSpacing: '-0.02em',
+        whiteSpace: 'nowrap',
+        background: accent ? 'var(--terracotta, #C86B45)' : '#fff',
+        color: accent ? '#fff' : 'var(--ink, #2A1F16)',
+        border: accent ? 'none' : '1px solid #EFE7DA',
+        boxShadow: accent ? '0 12px 24px -10px rgba(200,107,69,0.6)' : '0 12px 24px -10px rgba(60,40,26,0.4)',
+      }}
+    >
+      {badge.text}
+    </span>
   )
 }
