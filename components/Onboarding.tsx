@@ -56,8 +56,8 @@ const SLIDES: Slide[] = [
     punch: '맞춤 레시피가 나와요',
     note: '필요한 열량과 하루 급여량까지 그램 단위로 계산해요',
     badges: [
-      { kind: 'photo', src: '/bowl/chicken.webp', side: 'right', top: '18%' },
-      { kind: 'chip', text: '그램 단위 급여량', tone: 'accent', side: 'left', top: '44%' },
+      { kind: 'chip', text: '그램 단위 급여량', tone: 'accent', side: 'left', top: '14%' },
+      { kind: 'photo', src: '/bowl/chicken.webp', side: 'right', top: '30%' },
     ],
   },
   {
@@ -66,8 +66,9 @@ const SLIDES: Slide[] = [
     punch: '종이 한 장이면 끝나요',
     note: '12개월 체중 추이·식이·분석을 A4 한 장으로 정리해 드려요',
     badges: [
-      { kind: 'chip', text: 'PDF 저장', tone: 'plain', side: 'right', top: '8%' },
-      { kind: 'chip', text: '12개월 체중 추이', tone: 'accent', side: 'left', top: '48%' },
+      { kind: 'chip', text: 'PDF 저장', tone: 'plain', side: 'right', top: '5%' },
+      // 44% — 체중 그래프(자산 기준 53~60%)를 덮지 않도록 그 바로 위에 세운다.
+      { kind: 'chip', text: '12개월 체중 추이', tone: 'accent', side: 'left', top: '44%' },
     ],
   },
   {
@@ -77,9 +78,10 @@ const SLIDES: Slide[] = [
     note: '화식 비율·배송일 변경, 일시정지와 해지 모두 앱에서 해요',
     badges: [
       // 규칙31 — "언제든 해지/일시정지"는 과약속. 마감을 명시하거나 중립 표기.
-      { kind: 'chip', text: '2주 미루기·일시정지', tone: 'accent', side: 'left', top: '42%' },
-      // 구독 카드 아래가 비어 보여서, 그 자리를 파우치 사진이 채우게 내렸다.
-      { kind: 'photo', src: '/pkg/pork.webp', side: 'right', top: '62%' },
+      // 구독 카드는 자산의 위 53% 만 쓰고 아래가 빈다. 배지 둘을 그 빈 자리에
+      // 내려 균형을 맞춘다 — 카드 위에 겹치면 버튼 글자를 가린다.
+      { kind: 'chip', text: '2주 미루기·일시정지', tone: 'accent', side: 'left', top: '58%' },
+      { kind: 'photo', src: '/pkg/pork.webp', side: 'right', top: '70%' },
     ],
   },
 ]
