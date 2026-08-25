@@ -46,8 +46,10 @@ const SLIDES: Slide[] = [
     badges: [
       // top 값은 **화면(스크린샷) 높이 기준 비율**이다. 가리키려는 UI 가 스크린샷
       // 세로 어디쯤인지 재서 맞춘다 — 감으로 잡으면 강아지 얼굴을 덮는다(실제로 덮었다).
-      { kind: 'chip', text: '여러 마리 전환', tone: 'plain', side: 'right', top: '4%' },
-      { kind: 'chip', text: '오늘 급여량', tone: 'accent', side: 'left', top: '55%' },
+      // 27% = 전환 드롭다운(9~27%) 바로 아래. 위에 두면 드롭다운이나 로고를 덮는다.
+      { kind: 'chip', text: '여러 마리 전환', tone: 'plain', side: 'right', top: '27%' },
+      // 62% = 통계 줄(53~61%)과 '이번 주' 제목(68%) 사이 빈 틈. 겹치면 체중 칸이 통째로 사라진다.
+      { kind: 'chip', text: '오늘 급여량', tone: 'accent', side: 'left', top: '62%' },
     ],
   },
   {
@@ -69,9 +71,10 @@ const SLIDES: Slide[] = [
     note: '12개월 체중 추이·식이·분석을 A4 한 장으로 정리해 드려요',
     badges: [
       // 화면에 이미 "브라우저에서 저장하기" 검은 버튼이 있어 PDF 칩은 뺐다 —
-      // 같은 말을 두 번 하면 시선만 갈라진다.
-      { kind: 'chip', text: '12개월 요약', tone: 'accent', side: 'right', top: '20%' },
-      { kind: 'chip', text: '수의사에게 그대로', tone: 'plain', side: 'left', top: '70%' },
+      // 같은 말을 두 번 하면 시선만 갈라진다. 그 검은 버튼(30~38%) 옆에 진한 칩을
+      // 또 세우면 어두운 덩어리가 겹쳐 보이므로, 칩은 보고서 카드 쪽으로 내린다.
+      { kind: 'chip', text: '12개월 요약', tone: 'accent', side: 'left', top: '46%' },
+      { kind: 'chip', text: '체중·식이·분석', tone: 'plain', side: 'right', top: '66%' },
     ],
   },
   {
