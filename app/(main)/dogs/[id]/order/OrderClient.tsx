@@ -785,11 +785,15 @@ export default function OrderClient({
                     >
                       {packageImageForLine(it.line) ? (
                         // eslint-disable-next-line @next/next/no-img-element -- 46px 고정 슬롯, next/image 이득 없음
+                        // ★loading="lazy" 금지 (2026-08-25 에뮬레이터 실측):
+                        //   화면 안에 있어도(top 462, inView) 안드로이드 WebView
+                        //   에서 영영 로드되지 않았다 — naturalWidth 0·complete
+                        //   false 고정. eager 로 바꾸자 즉시 400x400 로드.
+                        //   사장님이 "사진이 안 뜬다"고 한 그 증상이다.
                         <img
                           src={packageImageForLine(it.line)!}
                           alt=""
                           className="ord-recipe-pkg"
-                          loading="lazy"
                           decoding="async"
                         />
                       ) : (

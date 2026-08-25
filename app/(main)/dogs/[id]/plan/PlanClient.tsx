@@ -56,7 +56,7 @@ const RECIPES: Record<string, { main: string; organs: string[]; toppings: string
   weight: { main: '닭가슴살', organs: ['닭간', '닭심장'], toppings: ['브로콜리', '블루베리'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
   premium: { main: '한우 목심', organs: ['한우 간', '한우 심장'], toppings: ['비트', '블루베리'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
   basic: { main: '오리 안심', organs: ['오리 간', '오리 심장'], toppings: ['애호박', '사과'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
-  joint: { main: '돼지 안심', organs: ['돼지 간', '돼지 심장'], toppings: ['무', '양배추'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
+  joint: { main: '흑돼지 뒷다리살', organs: ['돼지 간', '돼지 심장'], toppings: ['무', '양배추'], veg: ['당근', '단호박', '시금치', '현미', '고구마'] },
 }
 /** 카드 노출용 — 메인 단백질 + 내장 + 컨셉 토핑. */
 function cardIngredients(line: string): string[] {
@@ -67,7 +67,20 @@ function cardIngredients(line: string): string[] {
 function fullIngredients(line: string): string[] {
   const r = RECIPES[line]
   return r
-    ? [r.main, ...r.organs, ...r.veg, ...r.toppings, '올리브유', '연어유', '강황', '프리믹스 분말', '정제수']
+    // ★정제수 제거 (사장님 2026-08-25): 실제 레시피에 안 들어간다 — DB 원장
+    //   (products.ingredients) 4종 어디에도 없다. 고객이 보는 재료 목록에 없는
+    //   것을 적으면 표시광고 문제다. 강황은 4종 전부 실제로 들어간다(유지).
+    ? [
+        r.main,
+        ...r.organs,
+        ...r.veg,
+        ...r.toppings,
+        '올리브유',
+        '연어유',
+        '강황',
+        // 사장님 2026-08-25: 자체 배합이라 브랜드명으로 부른다.
+        '파머스테일 뉴트리 코어(비타민·미네랄 프리믹스)',
+      ]
     : []
 }
 
@@ -92,7 +105,7 @@ const RECIPE_DESCRIPTIONS: Record<string, string> = {
   basic:
     '닭·소가 잘 안 맞는 아이도 편하게 먹는 노블 단백질이에요. 흔한 알레르겐이 아니라 부담이 낮으면서도, 담백한 감칠맛이 있어 기호성이 좋아요. 무항생제 오리 안심을 씁니다.',
   joint:
-    '예민한 아이에게 부드러운 저알러지 단백질이에요. 소화가 편하고, 제주산 흑돼지 특유의 고소한 풍미로 잘 먹어요. 지방이 적은 안심 부위를 메인으로 담습니다.',
+    '예민한 아이에게 부드러운 저알러지 단백질이에요. 소화가 편하고, 제주산 흑돼지 특유의 고소한 풍미로 잘 먹어요. 지방이 적은 뒷다리살 부위를 메인으로 담습니다.',
 }
 
 // 레시피 제목 (사장님 지정 2026-07-13). line→단백질: weight=닭·premium=소·basic=오리·joint=돼지.
@@ -109,7 +122,7 @@ const RECIPE_WHY: Record<string, string> = {
   weight: '단백질이 진한 닭가슴살이라 근육 지키며 체중 관리에 좋아요',
   premium: '고단백·헴철분이 풍부해 활력과 근육에 좋아요',
   basic: '흔한 알레르겐이 아니라 예민한 속에도 부담이 적어요',
-  joint: '저지방 흑돼지 안심이라 부드럽고 소화가 편해요',
+  joint: '저지방 흑돼지 뒷다리살이라 부드럽고 소화가 편해요',
 }
 
 // 플랜 = 실제로 고르는 상품 페이지라 '자세하게'(배지·설명·안내). 분석 결과지는
@@ -858,7 +871,9 @@ function HeroCard({
         </div>
       )}
       <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 9, lineHeight: 1.55 }}>
-        {ings.join(', ')}
+        {/* 카드는 발췌(메인+내장+토핑)라 '등'을 붙여 전체가 아님을 밝힌다
+            (사장님 2026-08-25). 전체 목록은 '재료 전체' 시트에 있다. */}
+        {ings.join(', ')} 등
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--rule)' }}>
         <button

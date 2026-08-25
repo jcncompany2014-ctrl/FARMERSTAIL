@@ -56,7 +56,7 @@ const WEB_RECIPE_COPY: Record<WebRecipe['protein'], Omit<WebRecipe, 'kcalPer100g
     name: '돼지 화식',
     concept: '기호성·신경 케어',
     recommendedFor: '노견 · 입 짧은 아이',
-    mainIngredients: '돼지안심 · 간 · 심장 · 무 · 당근 · 현미',
+    mainIngredients: '흑돼지 뒷다리살 · 간 · 심장 · 무 · 당근 · 현미',
   },
   beef: {
     protein: 'beef',

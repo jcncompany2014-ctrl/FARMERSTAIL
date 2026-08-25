@@ -75,7 +75,7 @@ describe('v3PicksToLineRatios — 단백질→라인 1:1', () => {
 })
 
 describe('decideFirstBox + v3 시드 (안전망 보존)', () => {
-  it('시드가 시작 비율로 사용됨 + goal- ruleId(애널리틱스) + v3 칩', () => {
+  it('시드가 시작 비율로 사용됨 + goal- ruleId(애널리틱스) + 베이스 칩', () => {
     const seed = v3PicksToLineRatios([pick('chicken', 1)]) // weight:1
     const f = decideFirstBox(input({ baseRatiosOverride: seed }))
     assert.ok(f.lineRatios.weight > 0)
@@ -83,7 +83,13 @@ describe('decideFirstBox + v3 시드 (안전망 보존)', () => {
       f.reasoning.some((r) => r.ruleId.startsWith('goal-')),
       'careGoal 추출용 goal- ruleId 보존',
     )
-    assert.ok(f.reasoning.some((r) => r.chipLabel === 'v3 맞춤 베이스'))
+    // 고객 화면 문구에서 내부 버전(v3) 제거 (사장님 2026-08-25) — 칩은 유지되
+    // 어야 하고 이름만 바뀐다. 버전은 dog_formulas.algorithm_version 에 남는다.
+    assert.ok(f.reasoning.some((r) => r.chipLabel === '맞춤 베이스'))
+    assert.ok(
+      !f.reasoning.some((r) => /v\d/.test(r.chipLabel) || /v\d/.test(r.trigger)),
+      '고객 문구에 내부 버전 표기가 새어나오면 안 된다',
+    )
     assert.ok(Math.abs(sumLines(f.lineRatios) - 1) < 0.001, '합 1 보존')
   })
 

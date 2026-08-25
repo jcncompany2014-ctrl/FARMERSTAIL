@@ -98,7 +98,7 @@ export const BASE_SKUS: readonly BaseSku[] = [
       {
         text: '기호성이 높아 입맛이 까다롭거나 회복기인 아이에게',
         grade: 'positioning',
-        basis: '돼지 안심 기호성 — 매칭용(효능 아님)',
+        basis: '흑돼지 뒷다리살 기호성 — 매칭용(효능 아님)',
       },
     ],
     excludeIfAllergy: ['돼지고기'],

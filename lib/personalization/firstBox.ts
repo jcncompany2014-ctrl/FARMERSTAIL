@@ -337,9 +337,12 @@ function applyV3Base(
 
   const goal = input.careGoal ?? 'general_upgrade'
   reasoning.push({
-    trigger: '맞춤 추천(v3) 베이스',
+    // 고객 화면에 그대로 나가는 문구 — 내부 알고리즘 버전(v3)은 노출하지 않는다
+    // (사장님 2026-08-25). 버전은 dog_formulas.algorithm_version 에 남아 있고
+    // 어드민·이력 화면이 그걸 본다.
+    trigger: '맞춤 추천 베이스',
     action: `초기 비율: ${formatRatios(ratios)} (근거 기반 단백질 선택)`,
-    chipLabel: 'v3 맞춤 베이스',
+    chipLabel: '맞춤 베이스',
     priority: 1,
     ruleId: `goal-${goal}`,
   })
