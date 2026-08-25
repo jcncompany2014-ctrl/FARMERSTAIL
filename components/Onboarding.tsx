@@ -44,8 +44,10 @@ const SLIDES: Slide[] = [
     punch: '앱 하나에 모여요',
     note: '오늘 급여량·기록·다음 배송일까지 한 화면에서 봐요',
     badges: [
-      { kind: 'chip', text: '여러 마리 전환', tone: 'plain', side: 'right', top: '4%' },
-      { kind: 'chip', text: '오늘 급여량', tone: 'accent', side: 'left', top: '38%' },
+      // top 값은 **화면(스크린샷) 높이 기준 비율**이다. 가리키려는 UI 가 스크린샷
+      // 세로 어디쯤인지 재서 맞춘다 — 감으로 잡으면 강아지 얼굴을 덮는다(실제로 덮었다).
+      { kind: 'chip', text: '여러 마리 전환', tone: 'plain', side: 'right', top: '8%' },
+      { kind: 'chip', text: '오늘 급여량', tone: 'accent', side: 'left', top: '45%' },
     ],
   },
   {
@@ -54,8 +56,8 @@ const SLIDES: Slide[] = [
     punch: '맞춤 레시피가 나와요',
     note: '필요한 열량과 하루 급여량까지 그램 단위로 계산해요',
     badges: [
-      { kind: 'chip', text: '그램 단위 급여량', tone: 'accent', side: 'left', top: '5%' },
-      { kind: 'photo', src: '/bowl/chicken.webp', side: 'right', top: '26%' },
+      { kind: 'photo', src: '/bowl/chicken.webp', side: 'right', top: '18%' },
+      { kind: 'chip', text: '그램 단위 급여량', tone: 'accent', side: 'left', top: '44%' },
     ],
   },
   {
@@ -64,8 +66,8 @@ const SLIDES: Slide[] = [
     punch: '종이 한 장이면 끝나요',
     note: '12개월 체중 추이·식이·분석을 A4 한 장으로 정리해 드려요',
     badges: [
-      { kind: 'chip', text: 'PDF 저장', tone: 'plain', side: 'right', top: '5%' },
-      { kind: 'chip', text: '12개월 체중 추이', tone: 'accent', side: 'left', top: '42%' },
+      { kind: 'chip', text: 'PDF 저장', tone: 'plain', side: 'right', top: '8%' },
+      { kind: 'chip', text: '12개월 체중 추이', tone: 'accent', side: 'left', top: '48%' },
     ],
   },
   {
@@ -75,8 +77,9 @@ const SLIDES: Slide[] = [
     note: '화식 비율·배송일 변경, 일시정지와 해지 모두 앱에서 해요',
     badges: [
       // 규칙31 — "언제든 해지/일시정지"는 과약속. 마감을 명시하거나 중립 표기.
-      { kind: 'chip', text: '2주 미루기·일시정지', tone: 'accent', side: 'left', top: '5%' },
-      { kind: 'photo', src: '/pkg/pork.webp', side: 'right', top: '30%' },
+      { kind: 'chip', text: '2주 미루기·일시정지', tone: 'accent', side: 'left', top: '42%' },
+      // 구독 카드 아래가 비어 보여서, 그 자리를 파우치 사진이 채우게 내렸다.
+      { kind: 'photo', src: '/pkg/pork.webp', side: 'right', top: '62%' },
     ],
   },
 ]
@@ -299,8 +302,13 @@ const btnPrimary: React.CSSProperties = {
  */
 const BEZEL = 7
 const SCREEN_RADIUS = 35
-/** 스크린샷 원본 비율 — `public/onboarding/app-*.webp` 는 전부 720×1600. */
-const SHOT_ASPECT = '720 / 1600'
+/**
+ * 스크린샷 비율 — `app-*.webp` 는 전부 720×1520.
+ * 원본 1080×2400 에서 **안드로이드 상태바(시계·와이파이·배터리) 위 120px 을
+ * 잘라낸** 크기다(사장님 지시). 자산을 다시 만들 때 크롭 값을 바꾸면 이 비율도
+ * 같이 고쳐야 한다 — 어긋나면 object-fit:cover 가 좌우를 잘라 먹는다.
+ */
+const SHOT_ASPECT = '9 / 19'
 
 /**
  * 기기는 **CSS 로 그린다**(생성 목업 사진 폐기, 2026-08-26 사장님 지시).
@@ -338,7 +346,8 @@ function PhoneStage({ slide, eager }: { slide: Slide; eager: boolean }) {
             borderRadius: SCREEN_RADIUS,
             overflow: 'hidden',
             background: '#F4EFE7',
-            boxShadow: `0 0 0 ${BEZEL}px #FFFFFF, 0 0 0 ${BEZEL + 1}px rgba(60,40,26,0.10), 0 26px 48px -22px rgba(60,40,26,0.55)`,
+            // 흰 베젤이 흰 패널에 묻히지 않도록 테두리 실선을 또렷하게 준다.
+            boxShadow: `0 0 0 ${BEZEL}px #FFFFFF, 0 0 0 ${BEZEL + 1}px rgba(60,40,26,0.20), 0 22px 42px -18px rgba(60,40,26,0.5), 0 4px 10px -4px rgba(60,40,26,0.18)`,
           }}
         >
           {/* ★loading="lazy" 금지 (실측): 안드로이드 WebView 에서 가로 캐러셀의
