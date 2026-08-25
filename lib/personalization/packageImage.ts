@@ -43,11 +43,32 @@ export function packageImageForLine(
 }
 
 /**
- * 완성된 화식 그릇 사진 (원형 크롭·투명 배경) — **4종 공용 한 장**.
+ * 완성된 화식 그릇 사진 (원형 크롭·투명 배경) — **레시피별 4종**.
  *
- * 사장님 2026-08-25: "4가지 다 이 화식 사진 하나로 통일해." 레시피별 구분은
- * 사진이 아니라 **패키지와 라인 색**이 맡는다(원형 테두리 색·상세의 파우치).
- * 실제로도 4종은 같은 강황 베이스라 겉모습이 비슷하다 — 없는 차이를 사진으로
- * 지어내지 않는 편이 정직하고, 사진 한 장만 관리하면 된다.
+ * # 왜 4종인가 (사장님 2026-08-25)
+ * 처음엔 사장님 실촬영 한 장을 4종 공용으로 썼는데 "다 똑같이 생겼다 — 각각
+ * 다른 느낌이 나는 요소가 있어야 한다"는 지적. 실제로 4 SKU 를 가르는 것은
+ * **컨셉 토핑**(hero+support)이라, 그 토핑이 그릇 위에 보이게 만들었다:
+ *   닭=브로콜리·블루베리 · 오리=애호박·사과 · 돼지=무·양배추 · 소=비트·블루베리
+ *
+ * # 어떻게 만들었나 (정직성)
+ * 사장님 실촬영 그릇 사진을 **레퍼런스로 넣어**(Higgsfield) 접시·배경·조명·
+ * 각도·음식 질감을 그대로 유지하고 토핑만 바꿨다. 스튜디오 재촬영 전까지의
+ * 임시물이고, 보여주는 토핑은 전부 그 레시피에 **실제로 들어가는** 재료다
+ * (없는 재료를 그리지 않는다 — 확정 배합표 기준).
  */
+const BOWL_BY_PROTEIN: Record<string, string> = {
+  chicken: '/bowl/chicken.webp',
+  duck: '/bowl/duck.webp',
+  pork: '/bowl/pork.webp',
+  beef: '/bowl/beef.webp',
+}
+
+/** 사장님 실촬영 원본(토핑 미표시) — 라인을 모를 때의 폴백. */
 export const FRESH_BOWL_IMAGE = '/bowl/fresh.webp'
+
+/** 라인(FoodLine) → 그 레시피의 화식 그릇 사진. 모르면 공용 원본. */
+export function bowlImageForLine(line: FoodLine | null | undefined): string {
+  if (!line) return FRESH_BOWL_IMAGE
+  return BOWL_BY_PROTEIN[LEGACY_LINE_TO_PROTEIN[line]] ?? FRESH_BOWL_IMAGE
+}

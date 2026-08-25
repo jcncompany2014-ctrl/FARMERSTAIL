@@ -22,7 +22,7 @@ import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight, Info } from
 import { petName } from '@/lib/korean'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
-import { packageImageForLine, FRESH_BOWL_IMAGE } from '@/lib/personalization/packageImage'
+import { packageImageForLine, bowlImageForLine } from '@/lib/personalization/packageImage'
 import { cardIngredientNames, fullIngredientNames } from '@/lib/recipe-ingredients'
 import {
   computeBoxItems,
@@ -413,7 +413,7 @@ function PlanView({
                       /* 추천 카드와 같은 화식 그릇 사진(4종 공용) — 이모지 대체 */
                       // eslint-disable-next-line @next/next/no-img-element -- 고정 크기 원형 슬롯
                       <img
-                        src={FRESH_BOWL_IMAGE}
+                        src={bowlImageForLine(line)}
                         alt=""
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         decoding="async"
@@ -814,7 +814,7 @@ function HeroCard({
         <div style={{ ...heroCircle(`color-mix(in srgb, ${meta.color} 14%, transparent)`, meta.color), overflow: 'hidden' }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- 고정 크기 원형 슬롯 */}
           <img
-            src={FRESH_BOWL_IMAGE}
+            src={bowlImageForLine(line)}
             alt=""
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             decoding="async"

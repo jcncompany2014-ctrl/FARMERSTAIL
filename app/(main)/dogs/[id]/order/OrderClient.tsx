@@ -55,7 +55,7 @@ import {
   subscribableItems,
   TOPPER_KCAL_PER_100G,
 } from '@/lib/personalization/boxPricing'
-import { FRESH_BOWL_IMAGE } from '@/lib/personalization/packageImage'
+import { bowlImageForLine } from '@/lib/personalization/packageImage'
 import { trackBeginCheckout, type AnalyticsItem } from '@/lib/analytics'
 import './order.css'
 import { isKoreanMobile, formatKoreanMobile, PHONE_ERROR } from '@/lib/phone'
@@ -792,7 +792,7 @@ export default function OrderClient({
                           로드되지 않았다(naturalWidth 0). eager 로 즉시 로드. */}
                       {/* eslint-disable-next-line @next/next/no-img-element -- 46px 고정 슬롯 */}
                       <img
-                        src={FRESH_BOWL_IMAGE}
+                        src={bowlImageForLine(it.line)}
                         alt=""
                         className="ord-recipe-pkg"
                         decoding="async"
