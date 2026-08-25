@@ -424,8 +424,24 @@ function PlanView({
                     opacity: isBlocked ? 0.8 : 1,
                   }}
                 >
-                  <div style={miniCircle(isBlocked ? 'rgba(120,120,120,.1)' : `color-mix(in srgb, ${meta.color} 13%, transparent)`)}>
-                    {isBlocked ? <Lock size={17} strokeWidth={2} color="var(--muted)" /> : <span style={{ fontSize: 19 }} aria-hidden>🍲</span>}
+                  <div
+                    style={{
+                      ...miniCircle(isBlocked ? 'rgba(120,120,120,.1)' : `color-mix(in srgb, ${meta.color} 13%, transparent)`),
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {isBlocked ? (
+                      <Lock size={17} strokeWidth={2} color="var(--muted)" />
+                    ) : (
+                      /* 추천 카드와 같은 화식 그릇 사진(4종 공용) — 이모지 대체 */
+                      // eslint-disable-next-line @next/next/no-img-element -- 고정 크기 원형 슬롯
+                      <img
+                        src={FRESH_BOWL_IMAGE}
+                        alt=""
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        decoding="async"
+                      />
+                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
