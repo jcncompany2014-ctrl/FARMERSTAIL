@@ -10,9 +10,10 @@
  *   ③ 폰 가장자리에 뜨는 배지 — 기능은 텍스트 칩, 제품은 원형 실사진.
  *
  * # 화면 이미지
- * 실촬영 앱 스크린샷(`app-*.webp`)을 실사 기기 목업 안에 sharp 로 끼워넣은
- * `mock-*.webp`. ⚠️ 화면 내용·폰트는 **AI 로 다시 그리지 않는다**(한글이 뭉개짐).
- * 기기(베젤·그림자)만 생성물이고 화면은 원본 픽셀 그대로다.
+ * 에뮬레이터에서 실촬영한 앱 화면 `public/onboarding/app-*.webp` 를 **그대로**
+ * 쓴다. 기기 프레임은 사진이 아니라 CSS 다(PhoneStage 주석 참조).
+ * ⚠️ 화면 내용·폰트를 **AI 로 다시 그리지 않는다** — 한글이 뭉개진다.
+ * UI 가 바뀌면 다시 찍어 같은 파일명으로 덮으면 끝이다.
  *
  * # 내용은 브랜드 소개가 아니라 앱 소개
  * 설치한 사람은 웹 설문·인스타를 거쳐 와서 브랜드를 이미 안다. 정작 모르는
@@ -38,44 +39,44 @@ type Slide = {
 
 const SLIDES: Slide[] = [
   {
-    shot: '/onboarding/mock-analysis.webp',
-    lead: '체형·건강·기호를 입력하면',
+    shot: '/onboarding/app-home.webp',
+    lead: '우리 아이 하루가',
+    punch: '앱 하나에 모여요',
+    note: '오늘 급여량·기록·다음 배송일까지 한 화면에서 봐요',
+    badges: [
+      { kind: 'chip', text: '여러 마리 전환', tone: 'plain', side: 'right', top: '4%' },
+      { kind: 'chip', text: '오늘 급여량', tone: 'accent', side: 'left', top: '38%' },
+    ],
+  },
+  {
+    shot: '/onboarding/app-analysis.webp',
+    lead: '체형·건강·기호를 넣으면',
     punch: '맞춤 레시피가 나와요',
     note: '필요한 열량과 하루 급여량까지 그램 단위로 계산해요',
     badges: [
       { kind: 'chip', text: '그램 단위 급여량', tone: 'accent', side: 'left', top: '5%' },
-      { kind: 'photo', src: '/bowl/chicken.webp', side: 'right', top: '25%' },
+      { kind: 'photo', src: '/bowl/chicken.webp', side: 'right', top: '26%' },
     ],
   },
   {
-    shot: '/onboarding/mock-health.webp',
-    lead: '오늘 컨디션 톡 누르면',
-    punch: '건강 기록이 쌓여요',
-    note: '변 상태·활동량·기분과 체중 추이를 한 화면에서 봐요',
-    badges: [
-      { kind: 'chip', text: '체중 추이', tone: 'plain', side: 'right', top: '8%' },
-      { kind: 'chip', text: '30일 변화', tone: 'accent', side: 'left', top: '38%' },
-    ],
-  },
-  {
-    shot: '/onboarding/mock-vet.webp',
+    shot: '/onboarding/app-vet.webp',
     lead: '병원 갈 때는',
     punch: '종이 한 장이면 끝나요',
-    note: '12개월 체중·식이·분석 기록을 A4 한 장으로 정리해 드려요',
+    note: '12개월 체중 추이·식이·분석을 A4 한 장으로 정리해 드려요',
     badges: [
-      { kind: 'chip', text: '12개월 기록', tone: 'accent', side: 'left', top: '6%' },
-      { kind: 'chip', text: 'PDF 저장', tone: 'plain', side: 'right', top: '34%' },
+      { kind: 'chip', text: 'PDF 저장', tone: 'plain', side: 'right', top: '5%' },
+      { kind: 'chip', text: '12개월 체중 추이', tone: 'accent', side: 'left', top: '42%' },
     ],
   },
   {
-    shot: '/onboarding/mock-subscription.webp',
+    shot: '/onboarding/app-subscription.webp',
     lead: '바꾸고 미루는 것까지',
     punch: '앱에서 몇 번이면 끝',
     note: '화식 비율·배송일 변경, 일시정지와 해지 모두 앱에서 해요',
     badges: [
       // 규칙31 — "언제든 해지/일시정지"는 과약속. 마감을 명시하거나 중립 표기.
-      { kind: 'chip', text: '일시정지·해지', tone: 'accent', side: 'left', top: '6%' },
-      { kind: 'photo', src: '/pkg/pork.webp', side: 'right', top: '27%' },
+      { kind: 'chip', text: '2주 미루기·일시정지', tone: 'accent', side: 'left', top: '5%' },
+      { kind: 'photo', src: '/pkg/pork.webp', side: 'right', top: '30%' },
     ],
   },
 ]
@@ -288,34 +289,79 @@ const btnPrimary: React.CSSProperties = {
 }
 
 /**
- * 폰은 **높이 기준**으로 키워 스테이지보다 크게 만든다(height:116%). 그래야
- * 화면 폭과 무관하게 항상 아래로 잘려 나가고, 잘린 자리는 흰 패널의 둥근 아래
- * 모서리가 받아 준다. 폭 기준으로 잡으면 긴 화면에서 바닥에 떠 그림자가 드러난다.
+ * 베젤은 **패딩이 아니라 바깥 링**(box-shadow spread)으로 그린다.
+ *
+ * 패딩으로 그리면 안쪽 화면 비율이 `(W-2·베젤)/(H-2·베젤)` 이 되어 스크린샷
+ * 비율(720:1600)과 어긋나고, object-fit:cover 가 그 차이를 **좌우를 잘라서**
+ * 메운다(실측 한쪽 3.5%씩). 링으로 그리면 요소 자체가 곧 화면이라 비율이
+ * 정확히 일치해 잘림이 0 이고, 베젤 바깥 모서리는 `SCREEN_RADIUS + BEZEL` 로
+ * 자동으로 따라온다 — 모서리가 어색했던 원인이 여기였다.
+ */
+const BEZEL = 7
+const SCREEN_RADIUS = 35
+/** 스크린샷 원본 비율 — `public/onboarding/app-*.webp` 는 전부 720×1600. */
+const SHOT_ASPECT = '720 / 1600'
+
+/**
+ * 기기는 **CSS 로 그린다**(생성 목업 사진 폐기, 2026-08-26 사장님 지시).
+ *
+ * 사진 목업은 세 가지가 동시에 틀어졌다 — ① 화면 모서리 곡률이 스크린샷과 안
+ * 맞아 어색했고 ② 목업 사진 자체의 배경이 폰 주위에 네모로 남았고 ③ 배지를
+ * 폰이 아니라 슬라이드 기준으로 붙여 위치가 제멋대로였다. 프레임을 코드로
+ * 그리면 셋 다 사라진다 — 모서리는 같은 상수에서 나오고, 배경은 아예 없으며,
+ * 배지는 프레임의 자식이라 항상 기기 가장자리에 붙는다.
+ *
+ * 크기는 `height:114%` 로 **높이를 확정**하고 폭은 `aspect-ratio` 가 만든다.
+ * 그래야 화면이 길든 짧든 폰이 항상 흰 패널 아래로 잘려 나간다 — 폭 기준으로
+ * 잡으면 긴 화면에서 폰이 바닥에 떠 그림자 선이 드러난다.
  */
 function PhoneStage({ slide, eager }: { slide: Slide; eager: boolean }) {
   return (
     <div style={{ position: 'relative', flex: 1, minHeight: 0, marginTop: 16 }}>
-      {/* ★loading="lazy" 금지 (실측): 안드로이드 WebView 에서 가로 캐러셀의
-          2~4번째 장이 영영 로드되지 않는다(naturalWidth 0). 전부 eager. */}
-      {/* eslint-disable-next-line @next/next/no-img-element -- 목업 이미지, next/image 이득 없음 */}
-      <img
-        src={slide.shot}
-        alt=""
-        fetchPriority={eager ? 'high' : 'low'}
-        decoding="async"
+      {/* 기기 = 화면 크기 그 자체. 높이를 확정하고 폭은 비율에서 나온다. */}
+      <div
         style={{
           position: 'absolute',
           top: 0,
+          height: '114%',
+          aspectRatio: SHOT_ASPECT,
+          maxWidth: '84%',
           left: '50%',
           transform: 'translateX(-50%)',
-          height: '116%',
-          width: 'auto',
-          maxWidth: '94%',
         }}
-      />
-      {slide.badges.map((b) => (
-        <BadgeView key={b.kind === 'chip' ? b.text : b.src} badge={b} />
-      ))}
+      >
+        {/* 화면 — overflow 로 자르되 배지는 형제라 잘리지 않는다. */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: SCREEN_RADIUS,
+            overflow: 'hidden',
+            background: '#F4EFE7',
+            boxShadow: `0 0 0 ${BEZEL}px #FFFFFF, 0 0 0 ${BEZEL + 1}px rgba(60,40,26,0.10), 0 26px 48px -22px rgba(60,40,26,0.55)`,
+          }}
+        >
+          {/* ★loading="lazy" 금지 (실측): 안드로이드 WebView 에서 가로 캐러셀의
+              2~4번째 장이 영영 로드되지 않는다(naturalWidth 0). 전부 eager. */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- 화면 스크린샷, next/image 이득 없음 */}
+          <img
+            src={slide.shot}
+            alt=""
+            fetchPriority={eager ? 'high' : 'low'}
+            decoding="async"
+            style={{
+              display: 'block',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'top center',
+            }}
+          />
+        </div>
+        {slide.badges.map((b) => (
+          <BadgeView key={b.kind === 'chip' ? b.text : b.src} badge={b} />
+        ))}
+      </div>
     </div>
   )
 }
@@ -326,10 +372,13 @@ function PhoneStage({ slide, eager }: { slide: Slide; eager: boolean }) {
  * 정보만 담고, 아이콘·이모지로 자리를 때우지 않는다.
  */
 function BadgeView({ badge }: { badge: Badge }) {
+  // 기준은 **화면** 가장자리다. 베젤 링(BEZEL)이 그 바깥에 그려지므로 링을
+  // 넘어 걸쳐 보이려면 오프셋이 BEZEL 보다 커야 한다.
+  const overhang = badge.kind === 'photo' ? -(BEZEL + 22) : -(BEZEL + 11)
   const anchor: React.CSSProperties = {
     position: 'absolute',
     top: badge.top,
-    ...(badge.side === 'left' ? { left: '2%' } : { right: '2%' }),
+    ...(badge.side === 'left' ? { left: overhang } : { right: overhang }),
     zIndex: 3,
   }
 
