@@ -46,8 +46,8 @@ const SLIDES: Slide[] = [
     badges: [
       // top 값은 **화면(스크린샷) 높이 기준 비율**이다. 가리키려는 UI 가 스크린샷
       // 세로 어디쯤인지 재서 맞춘다 — 감으로 잡으면 강아지 얼굴을 덮는다(실제로 덮었다).
-      { kind: 'chip', text: '여러 마리 전환', tone: 'plain', side: 'right', top: '8%' },
-      { kind: 'chip', text: '오늘 급여량', tone: 'accent', side: 'left', top: '45%' },
+      { kind: 'chip', text: '여러 마리 전환', tone: 'plain', side: 'right', top: '4%' },
+      { kind: 'chip', text: '오늘 급여량', tone: 'accent', side: 'left', top: '55%' },
     ],
   },
   {
@@ -56,10 +56,10 @@ const SLIDES: Slide[] = [
     punch: '맞춤 레시피가 나와요',
     note: '필요한 열량과 하루 급여량까지 그램 단위로 계산해요',
     badges: [
-      // 14% 는 요약 바(288kcal·209g)를 정면으로 덮었다. 칩이 가리키는 숫자를
-      // 칩이 가리면 안 된다 — 요약 바 바로 아래로 내린다.
-      { kind: 'chip', text: '그램 단위 급여량', tone: 'accent', side: 'left', top: '21%' },
-      { kind: 'photo', src: '/bowl/chicken.webp', side: 'right', top: '30%' },
+      // 요약 바(288kcal·209g)는 왼쪽에 붙어 있다. 왼쪽 칩은 그 숫자를 덮으므로
+      // 오른쪽(날짜·공유 아이콘 쪽)에 세운다 — 칩이 가리키는 숫자를 칩이 가리면 안 된다.
+      { kind: 'chip', text: '그램 단위 급여량', tone: 'accent', side: 'right', top: '19%' },
+      { kind: 'photo', src: '/bowl/chicken.webp', side: 'left', top: '42%' },
     ],
   },
   {
@@ -68,9 +68,10 @@ const SLIDES: Slide[] = [
     punch: '종이 한 장이면 끝나요',
     note: '12개월 체중 추이·식이·분석을 A4 한 장으로 정리해 드려요',
     badges: [
-      { kind: 'chip', text: 'PDF 저장', tone: 'plain', side: 'right', top: '5%' },
-      // 44% — 체중 그래프(자산 기준 53~60%)를 덮지 않도록 그 바로 위에 세운다.
-      { kind: 'chip', text: '12개월 체중 추이', tone: 'accent', side: 'left', top: '44%' },
+      // 화면에 이미 "브라우저에서 저장하기" 검은 버튼이 있어 PDF 칩은 뺐다 —
+      // 같은 말을 두 번 하면 시선만 갈라진다.
+      { kind: 'chip', text: '12개월 요약', tone: 'accent', side: 'right', top: '20%' },
+      { kind: 'chip', text: '수의사에게 그대로', tone: 'plain', side: 'left', top: '70%' },
     ],
   },
   {
@@ -80,10 +81,11 @@ const SLIDES: Slide[] = [
     note: '화식 비율·배송일 변경, 일시정지와 해지 모두 앱에서 해요',
     badges: [
       // 규칙31 — "언제든 해지/일시정지"는 과약속. 마감을 명시하거나 중립 표기.
-      // 구독 카드는 자산의 위 53% 만 쓰고 아래가 빈다. 배지 둘을 그 빈 자리에
+      // 구독 카드는 자산의 위 62% 만 쓰고 아래가 빈다. 배지 둘을 그 빈 자리에
       // 내려 균형을 맞춘다 — 카드 위에 겹치면 버튼 글자를 가린다.
-      { kind: 'chip', text: '2주 미루기·일시정지', tone: 'accent', side: 'left', top: '58%' },
-      { kind: 'photo', src: '/pkg/pork.webp', side: 'right', top: '70%' },
+      // 문구는 화면의 버튼 이름을 되풀이하지 않고, 규칙31 대로 마감을 명시한다.
+      { kind: 'chip', text: '다음 결제 전까지 변경', tone: 'accent', side: 'left', top: '66%' },
+      { kind: 'photo', src: '/pkg/pork.webp', side: 'right', top: '74%' },
     ],
   },
 ]
