@@ -4,6 +4,9 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
+import { billingFailMessage } from '@/lib/payments/billing-fail-message'
+import * as Sentry from '@sentry/nextjs'
+import { useEffect } from 'react'
 import { billingReturnHref } from '@/lib/payments/billing-urls'
 import { useIsAppContext } from '@/lib/app-context-client'
 
@@ -33,9 +36,19 @@ function BillingFailInner() {
   // USER_CANCEL 대신 다른 취소 코드나 "취소되었습니다." 메시지만 보낼 때도
   // 실패처럼 보이지 않게. 실패 사유가 섞인 메시지는 그대로 실패로 남는다.
   const cancelled = isUserCancelledPayment({ code, message })
-  const friendly = cancelled
-    ? '등록을 취소하셨어요'
-    : (message ?? '등록에 실패했어요')
+  // 토스는 message 에 코드를 붙여 보낸다(사장님 실기기: 'A0: 카드번호 오류').
+  // 그대로 렌더하면 결제 첫 관문에서 개발자 문자열이 노출된다 — 고객 말로 바꾼다.
+  const friendly = cancelled ? '등록을 취소하셨어요' : billingFailMessage({ code, message })
+
+  // 화면에서만 지우고 진단은 남긴다 — 어떤 코드로 실패했는지 못 보면 고칠 수 없다.
+  useEffect(() => {
+    if (cancelled) return
+    Sentry.captureMessage('billing auth failed', {
+      level: 'warning',
+      tags: { step: 'billing_auth_fail', tossCode: code ?? 'none' },
+      extra: { tossMessage: message ?? null },
+    })
+  }, [cancelled, code, message])
 
   return (
     <main
