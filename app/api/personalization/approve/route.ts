@@ -270,12 +270,33 @@ export async function POST(req: Request) {
         .eq('id', box.subscriptionId)
         .eq('user_id', user.id)
       if (priceErr) {
-        // 처방은 이미 승인됨 → 금액만 옛 값으로 남는다(= 우리가 원가 흡수,
-        // 고객에게 불리하지 않은 방향). 조용히 넘기지 말고 남긴다.
-        console.error(
-          '[personalization/approve] total_amount 갱신 실패 — 새 처방·옛 금액 상태:',
-          priceErr.message,
-        )
+        /**
+         * ★2026-09-01 감사 — 옛 주석은 "금액만 옛 값으로 남으니 우리가 원가를
+         * 흡수하는 것이고 고객에게 불리하지 않다"고 단정했다. **사실이 아니다.**
+         * 처방이 바뀌면 금액은 내려갈 수도 있다(비율 하향·체중 감소). 그러면
+         * 고객은 승인 화면에서 본 새 금액이 아니라 **옛 비싼 금액**을 계속 낸다.
+         * 청구는 저장값으로 나가므로(AGENTS.md 규칙5) 이 실패가 곧 잘못된 청구다.
+         *
+         * 한 번 더 시도해 보고, 그래도 안 되면 Sentry 로 올린다(console.error 는
+         * 아무도 안 본다). 승인 자체는 이미 커밋됐으므로 되돌리지 않고, 응답의
+         * priceUpdated=false 로 호출 측이 알 수 있게 둔다.
+         */
+        const retry = await supabase
+          .from('subscriptions')
+          .update({ total_amount: box.total })
+          .eq('id', box.subscriptionId)
+          .eq('user_id', user.id)
+        if (retry.error) {
+          captureBusinessEvent('error', 'approve.total_amount_update_failed', {
+            subscriptionId: box.subscriptionId,
+            intendedTotal: box.total,
+            firstError: priceErr.message,
+            retryError: retry.error.message,
+            note: '새 처방인데 청구 금액은 옛 값 — 고객이 동의한 금액과 다르게 청구된다',
+          })
+        } else {
+          priceUpdated = true
+        }
       } else {
         priceUpdated = true
       }

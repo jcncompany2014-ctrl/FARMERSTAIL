@@ -184,18 +184,54 @@ async function runRefundRetry(): Promise<Response> {
       continue
     }
 
-    // Toss "이미 취소/처리된 결제" 응답을 succeeded 로 매핑.
-    // 코드 후보: ALREADY_PROCESSED_PAYMENT / ALREADY_CANCELED_PAYMENT /
-    //   NOT_CANCELABLE_PAYMENT (이미 환불 완료) / NOT_FOUND_PAYMENT (사라짐) /
-    //   ALREADY_REFUNDED_PAYMENT. Toss 가 idempotency 보장하지 않는 케이스라
-    //   에러로 오지만 실제론 우리가 원하는 최종 상태.
     const errCode = (result.error.code ?? '').toUpperCase()
+
+    /**
+     * ★"이미 환불됨"으로 볼 수 있는 코드만 여기 넣는다 (2026-09-01 감사).
+     *
+     * 예전엔 NOT_CANCELABLE_PAYMENT 와 NOT_FOUND_PAYMENT 도 이 목록에 있었다.
+     * 그런데 그 둘은 **환불이 됐다는 증거가 아니다**:
+     *   · NOT_CANCELABLE_PAYMENT — "지금 취소할 수 없는 상태"다. 이미 전액
+     *     취소됐을 수도 있지만, 정산이 끝났거나 가상계좌 미입금 같은 이유일 수도
+     *     있다. 주석은 "이미 환불 완료"라고 단정했지만 토스가 그렇게 말한 적 없다.
+     *   · NOT_FOUND_PAYMENT — 그 결제키가 토스에 없다는 뜻이다. 우리가 잘못된
+     *     키를 들고 있다는 신호지, 돈이 돌아갔다는 뜻이 전혀 아니다.
+     * 이 둘을 succeeded 로 처리하면 refunded_amount 를 쓰고 주문을 환불 완료로
+     * 바꾼다 — **고객 돈은 안 돌아갔는데 장부만 닫힌다.** 아무도 모른다.
+     */
     const alreadySettled =
       errCode === 'ALREADY_PROCESSED_PAYMENT' ||
       errCode === 'ALREADY_CANCELED_PAYMENT' ||
-      errCode === 'ALREADY_REFUNDED_PAYMENT' ||
-      errCode === 'NOT_CANCELABLE_PAYMENT' ||
-      errCode === 'NOT_FOUND_PAYMENT'
+      errCode === 'ALREADY_REFUNDED_PAYMENT'
+
+    /**
+     * 재시도해도 소용없고 **사람이 봐야 하는** 코드. 큐를 닫되 성공으로 세지 않는다.
+     * MAX_ATTEMPTS 를 기다리지 않는 이유: 같은 요청을 5번 더 보내도 같은 답이 온다.
+     */
+    if (errCode === 'NOT_CANCELABLE_PAYMENT' || errCode === 'NOT_FOUND_PAYMENT') {
+      await adminTyped
+        .from('payment_refund_queue')
+        .update({
+          status: 'permanently_failed',
+          attempts,
+          last_error: sanitizeLogText(`${errCode}: ${result.error.message}`),
+        })
+        .eq('id', row.id)
+      captureBusinessEvent('error', 'refund_queue.needs_manual_check', {
+        orderId: row.order_id,
+        paymentKey: row.payment_key,
+        errCode,
+        note: '환불이 됐다고 단정할 수 없는 코드 — 토스 대시보드에서 실제 환불 여부 확인 필요',
+      })
+      alertRefundFailure({
+        orderId: row.order_id,
+        attempts,
+        lastError: `${errCode} — 환불 여부를 토스에서 직접 확인해야 합니다`,
+      })
+      failed += 1
+      continue
+    }
+
     if (alreadySettled) {
       // ★여기도 같은 마무리를 한다(2026-08-05 재감사).
       //   전에는 큐만 닫고 끝나서, cancelled_mid_charge 행은 주문이 'paid' 로
