@@ -118,6 +118,31 @@ function RecurringTerms({ terms }: { terms: BillingTerms }) {
         결제일에 금액이 바뀌면 미리 알려드리고 동의를 받아요. 다음 결제 전까지
         해지할 수 있어요.
       </p>
+      {/* 법정 고지 링크 (2026-09-01 출시 전 감사) — 이 화면은 AuthAwareShell 을
+          쓰지 않아 푸터가 없다. 전자상거래법 §13 은 결제 전에 읽을 수 있어야 한다.
+          ★새 창으로 연다 — 카드 등록 **도중**이라 같은 창에서 나가면 흐름을 잃는다. */}
+      <p
+        className="text-[11px] mt-2.5 leading-relaxed"
+        style={{ color: 'var(--muted)' }}
+      >
+        {[
+          ['/legal/terms', '이용약관'],
+          ['/legal/refund', '환불·청약철회'],
+          ['/legal/privacy', '개인정보처리방침'],
+        ].map(([href, label], i) => (
+          <span key={href}>
+            {i > 0 && <span aria-hidden="true"> · </span>}
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--muted)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+            >
+              {label}
+            </a>
+          </span>
+        ))}
+      </p>
     </div>
   )
 }

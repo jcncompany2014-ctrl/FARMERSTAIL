@@ -629,6 +629,22 @@
   opacity: 0.85;
   line-height: 1.5;
 }
+/* 법정 고지 링크 — 앱은 SiteFooter 를 숨기므로 결제 동선에서 약관·청약철회로
+   가는 길이 이 줄뿐이다. 조용하되 눌리는 것으로 보여야 한다(밑줄 유지). */
+.ord-foot-legal {
+  margin-top: 10px;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ord-foot-legal a {
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+}
+.ord-foot-legal a:hover { color: var(--ink); }
 
 /* ══ 배송(/order) 리뉴얼 (2026-07-14 사장님) ══════════════════════════ */
 

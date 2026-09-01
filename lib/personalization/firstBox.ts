@@ -799,7 +799,9 @@ function applyChronicAdjustments(
     ratios = next
     reasoning.push({
       trigger: '알레르기성 피부염',
-      action: `Skin ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}% (오메가-3 항염)`,
+      // ⚠️ 고객 화면에 그대로 렌더된다(approve 화면·분석 카드). 사료관리법 §13 /
+      //    표시광고법 §3 — 의약품 효능 오인 표현('항염' 등) 금지. 성분·배합으로 쓴다.
+      action: `Skin ${(before * 100).toFixed(0)}% → ${(finalValue * 100).toFixed(0)}% (오메가-3 보강)`,
       chipLabel: '피부염 · 피부·털 보강',
       priority: 3,
       ruleId: 'chronic-allergy-skin',
@@ -1432,8 +1434,10 @@ function applyChronicComboAdjustments(
     if (ratios.skin >= 0.2 && ratios.joint >= 0.2) {
       reasoning.push({
         trigger: '피부염 + 관절염',
-        action: '오메가-3 (Skin) + GAG (Joint) 항염증 시너지 적용 중',
-        chipLabel: '피부+관절 → 항염증',
+        // 근거(위 주석의 연구)는 내부에 남기되, 고객에게는 효능이 아니라
+        // 무엇을 넣었는지로 말한다 — 의약품 효능 오인 표현 금지.
+        action: '오메가-3(Skin)와 GAG(Joint)를 함께 보강했어요',
+        chipLabel: '피부+관절 함께 보강',
         priority: 3,
         ruleId: 'chronic-combo-skin-arthritis',
       })

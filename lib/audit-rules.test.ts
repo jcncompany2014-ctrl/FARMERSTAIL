@@ -2950,3 +2950,85 @@ test('규칙66: 온보딩 스크린샷 자산은 SHOT_ASPECT 와 같은 비율�
     )
   }
 })
+
+test('규칙67: 고객 화면에 의약품 효능 오인 표현을 쓰지 않는다 (사료관리법 §13 / 표시광고법 §3)', () => {
+  /**
+   * 2026-09-01 출시 전 감사에서 실제로 걸린 것 — "체중관리·항염"(웹 레시피 3곳 렌더)과
+   * "피부+관절 → 항염증"(앱 승인 화면·분석 카드)이 고객 화면에 그대로 나가고 있었다.
+   *
+   * 우리 약관이 스스로 약속한다 — app/legal/terms "의약품으로 오인할 수 있는 표현을
+   * 사용하지 않으며". lib/nutrition.ts 도 같은 규칙을 주석으로 적어 뒀는데, 주석은
+   * 다른 파일을 못 막는다. 그래서 테스트로 옮긴다.
+   *
+   * 근거·연구 인용은 **주석에 남겨도 된다**(stripComments 로 걸러낸다). 막는 것은
+   * 고객에게 렌더되는 문자열이다.
+   */
+  const BANNED = /항염|소염|진통|통증\s*완화|염증\s*(?:완화|억제|개선)|면역력\s*(?:증진|강화)|(?:질병|질환)\s*(?:치료|개선)/
+
+  // 고객이 실제로 보는 표면만. 어드민·내부 도구는 대상이 아니다.
+  const SURFACES = [
+    join(ROOT, 'app', '(main)'),
+    join(ROOT, 'app', 'start'),
+    join(ROOT, 'app', 'recipe'),
+    join(ROOT, 'app', 'plans'),
+    join(ROOT, 'components', 'web'),
+    join(ROOT, 'components', 'analysis'),
+  ]
+  const FILES = [
+    join(ROOT, 'lib', 'web-recipes.ts'),
+    join(ROOT, 'lib', 'personalization', 'skuModel.ts'),
+    join(ROOT, 'lib', 'personalization', 'firstBox.ts'),
+  ]
+
+  const targets: string[] = [...FILES.filter((f) => existsSync(f))]
+  for (const dir of SURFACES) {
+    if (!existsSync(dir)) continue
+    for (const f of walk(dir)) {
+      if (/\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f)) targets.push(f)
+    }
+  }
+  assert.ok(targets.length > 20, `검사 대상이 ${targets.length}개뿐 — 경로가 바뀌었는지 확인할 것`)
+
+  const hits: string[] = []
+  for (const file of targets) {
+    const body = stripComments(read(file))
+    for (const [i, lineText] of body.split('\n').entries()) {
+      const m = lineText.match(BANNED)
+      if (m) hits.push(`${file.replace(ROOT, '').replace(/\\/g, '/')}:${i + 1} :: ${m[0]}`)
+    }
+  }
+  assert.deepEqual(
+    hits,
+    [],
+    '고객 화면 문자열에 의약품 효능 오인 표현이 있다. 효능이 아니라 **무엇을 넣었는지**로 ' +
+      '바꿔라(예: "항염" → "오메가-3 보강"). 연구 근거는 주석에 남기면 된다:\n' +
+      hits.join('\n'),
+  )
+})
+
+test('규칙68: 결제 동선 화면은 약관·청약철회·처리방침 링크를 품는다 (전자상거래법 §13)', () => {
+  /**
+   * 2026-09-01 출시 전 감사 — 앱에는 이 링크가 **한 개도** 없었다.
+   * AppChrome 이 앱 컨텍스트에서 SiteFooter 를 숨기는데(의도된 동작), 결제 화면들이
+   * 그 푸터에 기대고 있었다. 웹 경로에는 있어서 눈으로는 안 보이는 결함이었다.
+   *
+   * 두 화면 모두 결제 직전이다 — 주문(카드 등록으로 넘어가는 CTA)과 카드 등록.
+   */
+  const SCREENS = [
+    join(ROOT, 'app', '(main)', 'dogs', '[id]', 'order', 'OrderClient.tsx'),
+    join(ROOT, 'app', 'subscribe', 'billing-auth', 'page.tsx'),
+  ]
+  const NEEDED = ['/legal/terms', '/legal/refund', '/legal/privacy']
+
+  for (const file of SCREENS) {
+    assert.ok(existsSync(file), `결제 화면 ${file} 이 없다 — 경로가 바뀌었으면 이 규칙도 고쳐라`)
+    const body = stripComments(read(file))
+    for (const href of NEEDED) {
+      assert.ok(
+        body.includes(href),
+        `${file.replace(ROOT, '').replace(/\\/g, '/')} 에 ${href} 링크가 없다 — ` +
+          '앱은 푸터가 없어서 결제 전에 약관·청약철회를 볼 방법이 사라진다',
+      )
+    }
+  }
+})

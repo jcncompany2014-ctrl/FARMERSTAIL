@@ -1173,6 +1173,17 @@ export default function OrderClient({
               : '첫 발송일(화요일) 아침에 이뤄져요'}
             . 그 전까지는 무료로 취소할 수 있어요.
           </p>
+          {/* 법정 고지 링크 (2026-09-01 출시 전 감사) — 앱은 AppChrome 이
+              SiteFooter 를 숨기므로 이 화면에서 약관·청약철회·처리방침으로 가는
+              길이 아예 없었다. 전자상거래법 §13(계약 전 정보제공)은 결제 전에
+              읽을 수 있어야 한다고 본다. 규칙68 이 이 줄을 지킨다. */}
+          <p className="ord-foot ord-foot-legal">
+            <Link href="/legal/terms">이용약관</Link>
+            <span aria-hidden="true">·</span>
+            <Link href="/legal/refund">환불·청약철회</Link>
+            <span aria-hidden="true">·</span>
+            <Link href="/legal/privacy">개인정보처리방침</Link>
+          </p>
 
           {/* 하단 고정 결제 바 (다크) — 레시피→배송→결제 흐름 통일. 실제 결제(카드
               등록)는 billing-auth 로. 상세 시트 없음 — 늘 노출. */}

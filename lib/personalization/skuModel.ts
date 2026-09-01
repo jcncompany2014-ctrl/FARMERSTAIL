@@ -117,7 +117,8 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     name: 'Chicken',
     nameKo: '치킨',
     persona: '모찌',
-    concept: '체중관리·항염',
+    // '항염'은 의약품 효능 오인 표현이라 성분 표기로 쓴다(사료관리법 §13).
+    concept: '체중관리·오메가3',
     subtitle: '프레시 치킨 레시피',
     benefit: '4종 중 단백질이 가장 진해요. 근육 지키며 체중 관리에.',
     topping: '브로콜리',
