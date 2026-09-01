@@ -19,6 +19,7 @@
  * - FCM v1 도 비슷한 NOT_FOUND / INVALID_ARGUMENT 응답.
  */
 import crypto from 'node:crypto'
+import http2 from 'node:http2'
 
 export type NativePushPayload = {
   title: string
@@ -162,46 +163,75 @@ export async function sendApnsPush(
     ...(payload.url ? { url: payload.url } : {}),
   }
 
+  // ★★2026-09-01 — fetch 금지. **APNs 는 HTTP/2 전용**이라 Node 전역 fetch
+  //   (undici, HTTP/1.1)로는 어떤 요청도 성공할 수 없다. 실기기 첫 테스트에서
+  //   전 발송이 NETWORK_ERROR('Response does not match the HTTP/1.1 protocol')
+  //   로 죽어 '0개 기기로 전송'이 됐고, 같은 키·토큰이 HTTP/2(curl --http2)로는
+  //   200 + 실제 수신됐다 — 재현으로 확정. FCM 은 HTTP/1.1 을 받아서 안드로이드만
+  //   멀쩡했던 것. 그래서 여기만 node:http2 를 쓴다.
   try {
-    const res = await fetch(`${host}/3/device/${token}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `bearer ${jwt}`,
-        'apns-topic': bundleId,
-        'apns-push-type': 'alert',
-        // ★같은 threadId 알림은 **교체**되게 (2026-08-08 네이티브 감사).
-        //   Android 는 notification.tag 로 같은 알림을 덮어쓰는데 iOS 는
-        //   thread-id(묶음)만 있어서 리마인더가 갈 때마다 쌓였다.
-        //   apns-collapse-id 는 64바이트 상한 — 넘으면 APNs 가 400 을 준다.
-        ...(payload.threadId
-          ? { 'apns-collapse-id': payload.threadId.slice(0, 64) }
-          : {}),
-        'content-type': 'application/json',
+    const result = await new Promise<{ status: number; body: string }>(
+      (resolve, reject) => {
+        const session = http2.connect(host)
+        const fail = (err: Error) => {
+          session.destroy()
+          reject(err)
+        }
+        session.setTimeout(10_000, () => fail(new Error('APNS_TIMEOUT')))
+        session.on('error', fail)
+
+        const req = session.request({
+          ':method': 'POST',
+          ':path': `/3/device/${token}`,
+          authorization: `bearer ${jwt}`,
+          'apns-topic': bundleId,
+          'apns-push-type': 'alert',
+          // ★같은 threadId 알림은 **교체**되게 (2026-08-08 네이티브 감사).
+          //   Android 는 notification.tag 로 같은 알림을 덮어쓰는데 iOS 는
+          //   thread-id(묶음)만 있어서 리마인더가 갈 때마다 쌓였다.
+          //   apns-collapse-id 는 64바이트 상한 — 넘으면 APNs 가 400 을 준다.
+          ...(payload.threadId
+            ? { 'apns-collapse-id': payload.threadId.slice(0, 64) }
+            : {}),
+          'content-type': 'application/json',
+        })
+        req.setTimeout(10_000, () => fail(new Error('APNS_TIMEOUT')))
+        req.on('error', fail)
+
+        let status = 0
+        req.on('response', (headers) => {
+          status = Number(headers[':status'] ?? 0)
+        })
+        const chunks: Buffer[] = []
+        req.on('data', (c: Buffer) => chunks.push(c))
+        req.on('end', () => {
+          session.close()
+          resolve({ status, body: Buffer.concat(chunks).toString('utf8') })
+        })
+        req.end(JSON.stringify(apsBody))
       },
-      body: JSON.stringify(apsBody),
-      // APNs 는 idle 시 빠름. 하지만 connection setup 에 5s 정도 걸릴 수 있어 10s.
-      signal: AbortSignal.timeout(10_000),
-    })
-    if (res.ok) {
-      return { ok: true, status: res.status }
+    )
+
+    if (result.status >= 200 && result.status < 300) {
+      return { ok: true, status: result.status }
     }
     // 410 Unregistered / 400 BadDeviceToken — 토큰 stale.
     let errCode = ''
     try {
-      const j = (await res.json()) as { reason?: string }
+      const j = JSON.parse(result.body) as { reason?: string }
       errCode = j.reason ?? ''
     } catch {
       /* */
     }
     const unregistered =
-      res.status === 410 ||
+      result.status === 410 ||
       errCode === 'BadDeviceToken' ||
       errCode === 'Unregistered'
     return {
       ok: false,
       unregistered,
-      status: res.status,
-      errorCode: errCode || `HTTP_${res.status}`,
+      status: result.status,
+      errorCode: errCode || `HTTP_${result.status}`,
     }
   } catch (err) {
     return {

@@ -3070,3 +3070,26 @@ test('규칙68: 결제 동선 화면은 약관·청약철회·처리방침 링�
     }
   }
 })
+
+test('규칙70: APNs 발송은 node:http2 로만 — fetch 는 어떤 요청도 성공 못 한다', () => {
+  /**
+   * # 왜 (2026-09-01 실기기 첫 푸시 테스트에서 발견 — 두 번째 iOS 푸시 P0)
+   *
+   * **APNs 는 HTTP/2 전용**이다. Node 전역 fetch(undici)는 HTTP/1.1 이라
+   * 모든 발송이 NETWORK_ERROR('Response does not match the HTTP/1.1 protocol')
+   * 로 죽고, 화면에는 "0개 기기로 전송"만 남는다. 같은 키·토큰이 HTTP/2 로는
+   * 200 + 실수신 — 재현으로 확정했다. FCM 은 HTTP/1.1 을 받아 안드로이드만
+   * 멀쩡했으므로, 누가 "fetch 로 통일"하는 정리를 하면 iOS 만 조용히 죽는다.
+   */
+  const src = stripComments(read(join(ROOT, 'lib', 'push', 'native.ts')))
+  assert.match(
+    src,
+    /from 'node:http2'/,
+    'lib/push/native.ts 가 node:http2 를 안 쓴다 — APNs 는 HTTP/2 전용이라 fetch 로는 전멸한다',
+  )
+  const apnsSection = src.slice(0, src.indexOf('FCM'))
+  assert.ok(
+    !/fetch\s*\(/.test(apnsSection),
+    'APNs 발송 경로에 fetch 가 다시 들어왔다 — HTTP/1.1 이라 모든 iOS 푸시가 죽는다',
+  )
+})
