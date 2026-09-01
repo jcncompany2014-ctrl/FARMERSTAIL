@@ -467,6 +467,34 @@ export async function POST(req: Request) {
     }
   }
 
+  /**
+   * ★DB 오버라이드 kcal 이 코드 정본에서 멀어지면 알린다 (2026-09-01 감사).
+   *
+   * 이 표는 admin 튜닝용인데 **코드 값을 이긴다**(lines.ts 의 `override ?? META`).
+   * 2026-07-10 에 시드된 kcal 이 7/18 v4.0 개정을 못 따라가, 두 달 가까이 급여량이
+   * 라인별로 4~21% 크게 계산됐다 — 닭 115 vs 130 이라 **체중관리 라인이 13% 더**
+   * 나갔다. updated_by 가 null(사람이 만진 적 없는 시드값)이라 아무도 몰랐고,
+   * 소스 테스트로는 DB 값을 볼 수 없어 규칙으로도 못 잡는다. 그래서 런타임 감시다.
+   *
+   * kcal 은 튜닝 손잡이가 아니라 **레시피의 물리적 사실**이라 의도적으로 다르게 둘
+   * 이유가 없다. 추천은 막지 않는다 — 경고 때문에 고객 화면이 멈추면 안 된다.
+   */
+  const kcalDrift: string[] = []
+  for (const line of ALL_LINES) {
+    const code = FOOD_LINE_META[line]?.kcalPer100g
+    const db = foodLineMetaOverride[line]?.kcalPer100g
+    if (!code || !db) continue
+    const gap = Math.abs(db - code) / code
+    if (gap > 0.05) {
+      kcalDrift.push(`${line}: DB ${db} vs 코드 ${code} (${Math.round(gap * 100)}%)`)
+    }
+  }
+  if (kcalDrift.length > 0) {
+    captureBusinessEvent('warning', 'personalization.food_line_kcal_drift', {
+      drift: kcalDrift.join(' / '),
+    })
+  }
+
   // 4) AlgorithmInput 조립.
   // audit #79: dog.age_value / weight / neutered / activity_level 가 generated
   // types 에서 nullable — 필수 입력이라 default fallback.
