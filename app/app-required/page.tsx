@@ -143,6 +143,13 @@ export default async function AppRequiredPage({
          * **유일한 행동이 죽은 링크**였다. 출시하면 env 두 개를 채운다:
          *   NEXT_PUBLIC_IOS_APP_URL · NEXT_PUBLIC_ANDROID_APP_URL
          * 값이 없으면 아래 대체 안내(웹으로 계속하기)만 남는다.
+         *
+         * ★2026-09-01 현재 — 안드로이드는 프로덕션 출시됐고
+         *   NEXT_PUBLIC_ANDROID_APP_URL 을 Vercel Production 에 넣었다.
+         *   그 전까지는 **배지가 하나도 없어 웹→앱 동선이 전부 막다른 길**이었다
+         *   (출시 전 감사 실측). iOS 는 심사 통과 후 같은 방식으로 채운다.
+         *   ⚠️ NEXT_PUBLIC_* 은 **빌드 시점에 박힌다** — env 만 넣고 재배포를
+         *   안 하면 화면은 그대로 비어 있다.
          */}
         {(IOS_URL || ANDROID_URL) && (
           <div className="mt-10 md:mt-14 flex flex-col md:flex-row gap-3 md:gap-4 md:max-w-md md:mx-auto">
