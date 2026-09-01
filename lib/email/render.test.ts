@@ -40,6 +40,50 @@ describe('메일 렌더 — 실제 출력', () => {
     assert.ok(!subject.includes('도착'))
   })
 
+  it('★정기배송 리마인더 — 품목을 "0원"으로 그리지 않는다', () => {
+    // 2026-09-01 감사: block.orderItem(..., 0) 을 쓰고 있어 **모든 품목이 0원**으로
+    // 렌더됐다. 금액 열이 없는 블록으로 바꿨고, 실제 청구액은 콜아웃이 말한다.
+    const { html } = renderSubscriptionReminder({
+      recipientName: '김철수',
+      nextDeliveryDate: '2026-09-01',
+      daysBefore: 2,
+      items: [
+        { productName: '프레시 치킨 레시피', quantity: 1 },
+        { productName: '프레시 흑돼지 레시피', quantity: 1 },
+      ],
+      chargeAmount: 37200,
+    })
+    // ⚠️ `html.includes('0원')` 로 쓰면 안 된다 — "37,200원" 에도 "0원" 이 들어간다.
+    //    버그의 실제 모양은 **셀 내용이 통째로 "0원"** 인 것이라 그걸 본다.
+    assert.doesNotMatch(html, />\s*0원\s*</, '품목가가 "0원"으로 렌더됐다')
+    assert.ok(html.includes('프레시 치킨 레시피'), '품목명이 빠졌다')
+  })
+
+  it('★정기배송 리마인더 — 결제 금액·시점·해지 마감을 고지한다 (정기결제 사전고지)', () => {
+    const { html } = renderSubscriptionReminder({
+      recipientName: '김철수',
+      nextDeliveryDate: '2026-09-01',
+      daysBefore: 2,
+      items: [{ productName: '프레시 치킨 레시피', quantity: 1 }],
+      chargeAmount: 37200,
+    })
+    assert.ok(html.includes('37,200원'), '청구 금액이 없다')
+    assert.match(html, /결제/, '결제된다는 사실이 없다')
+    assert.match(html, /해지|미루/, '해지·미루기 안내가 없다')
+  })
+
+  it('금액을 모르면 틀린 금액을 말하느니 금액 문장을 뺀다', () => {
+    const { html } = renderSubscriptionReminder({
+      recipientName: '김철수',
+      nextDeliveryDate: '2026-09-01',
+      daysBefore: 2,
+      items: [{ productName: '프레시 치킨 레시피', quantity: 1 }],
+      chargeAmount: null,
+    })
+    assert.doesNotMatch(html, />\s*0원\s*</, '금액 미상인데 0원이라고 썼다')
+    assert.match(html, /자동 결제돼요/, '결제 사실 고지까지 사라지면 안 된다')
+  })
+
   it('호칭이 두 번 붙지 않는다', () => {
     const { html } = renderOrderConfirmation({
       ...orderBase,

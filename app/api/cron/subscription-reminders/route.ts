@@ -39,6 +39,8 @@ type SubscriptionRow = {
   user_id: string
   next_delivery_date: string
   reminder_days_before: number
+  /** 실제 청구액 — 정기결제 사전고지에 금액을 넣기 위해 조회한다(2026-09-01 감사). */
+  total_amount: number | null
   subscription_items: { product_name: string; quantity: number }[]
 }
 
@@ -69,7 +71,7 @@ export async function GET(req: Request) {
   const { data: subs, error } = await admin
     .from('subscriptions')
     .select(
-      'id, user_id, next_delivery_date, reminder_days_before, subscription_items(product_name, quantity)',
+      'id, user_id, next_delivery_date, reminder_days_before, total_amount, subscription_items(product_name, quantity)',
     )
     .eq('status', 'active')
     .eq('reminder_enabled', true)
@@ -138,6 +140,7 @@ export async function GET(req: Request) {
           })),
           nextDeliveryDate: sub.next_delivery_date,
           daysBefore: days,
+          chargeAmount: sub.total_amount,
         })
         if (result.ok) sent++
         else errors++
@@ -189,7 +192,12 @@ export async function GET(req: Request) {
           sub.user_id,
           {
             title: pushTitle,
-            body: itemCountLabel,
+            // 정기결제 사전고지 — 푸시로만 받는 고객도 금액·결제 사실을 알아야
+            // 한다(2026-09-01 감사: 이전엔 품목명 한 줄뿐이었다).
+            body:
+              typeof sub.total_amount === 'number' && sub.total_amount > 0
+                ? `${itemCountLabel} · 발송일 아침 ${sub.total_amount.toLocaleString()}원 결제 예정`
+                : itemCountLabel,
             // ?focus 로 해당 구독 카드까지 자동 스크롤 + highlight + skip/pause 강조.
             // 결제 전 마지막 컨트롤 권한 — 1탭으로 도달.
             url: `/mypage/subscriptions?focus=${sub.id}`,

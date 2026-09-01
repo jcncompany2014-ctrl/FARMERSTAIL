@@ -192,6 +192,23 @@ export const block = {
     return `<div style="height:1px;background:#ECEAE2;margin:16px 0;"></div>`
   },
 
+  /**
+   * 배송 예정 품목 1줄 — **금액 열이 없다**.
+   *
+   * orderItem 에 0 을 넘겨 쓰던 자리가 있었는데, 그러면 모든 품목이 "0원"으로
+   * 렌더됐다(2026-09-01 감사). 정기배송 알림처럼 품목별 단가를 확정해 말할 수
+   * 없는 자리는 이 블록을 쓰고, 실제 청구액은 콜아웃으로 한 번만 말한다
+   * (할인이 붙으면 품목 합계 ≠ 청구액이라 둘을 나란히 두면 더 헷갈린다).
+   */
+  deliveryItem(name: string, qty: number): string {
+    return `<tr>
+      <td style="padding:8px 0;font-size:12px;color:#2E1F14;">
+        <div style="font-weight:700;">${escape(name)}</div>
+        <div style="font-size:11px;color:#715C4A;margin-top:2px;">수량 ${qty}개</div>
+      </td>
+    </tr>`
+  },
+
   /** 주문 아이템 1줄. */
   orderItem(name: string, qty: number, lineTotal: number): string {
     return `<tr>

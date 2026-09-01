@@ -42,6 +42,13 @@ export function renderSubscriptionReminder(input: {
   nextDeliveryDate: string
   /** 0 = 오늘 발송, 1 = 내일, 2-... = D-N. */
   daysBefore: number
+  /**
+   * 실제로 청구될 금액(subscriptions.total_amount). 정기결제는 **결제 전에**
+   * 금액·시점·해지 방법을 알려야 한다 — 이 메일이 그 고지다(2026-09-01 감사:
+   * 이전에는 금액도 결제 사실도 한 줄 없었다).
+   * 조회하지 못한 경우 null 이면 금액 문장을 통째로 뺀다(틀린 금액을 말하느니).
+   */
+  chargeAmount?: number | null
 }): { subject: string; html: string } {
   const dateLabel = formatKoDate(input.nextDeliveryDate)
   const itemCountLabel =
@@ -58,8 +65,9 @@ export function renderSubscriptionReminder(input: {
 
   const subject = `[파머스테일] ${heading}`
 
+  // 금액 열 없는 블록 — 예전엔 orderItem(..., 0) 이라 전 품목이 "0원"으로 찍혔다.
   const itemRows = input.items
-    .map((it) => block.orderItem(it.productName, it.quantity, 0))
+    .map((it) => block.deliveryItem(it.productName, it.quantity))
     .join('')
 
   const body = `
@@ -84,9 +92,26 @@ export function renderSubscriptionReminder(input: {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
       ${itemRows}
     </table>
+    ${
+      // 정기결제 사전고지 — 금액·시점·해지 마감을 한 문단에.
+      // 청구는 발송일 아침 크론이 한다(subscription-charge, KST 09:10)이므로
+      // 결제일 = 발송일이다. 금액을 모르면 금액 문장만 빼고 나머지는 남긴다.
+      typeof input.chargeAmount === 'number' && input.chargeAmount > 0
+        ? block.callout(
+            'terracotta',
+            `<strong>${escape(dateLabel)} 아침에 ${input.chargeAmount.toLocaleString()}원이 결제돼요</strong>` +
+              `<br/>등록하신 카드로 자동 결제돼요. 그 전까지 정기배송 관리에서 미루거나 해지하면 청구되지 않아요.`,
+          )
+        : block.callout(
+            'terracotta',
+            `<strong>${escape(dateLabel)} 아침에 자동 결제돼요</strong>` +
+              `<br/>금액은 정기배송 관리에서 확인할 수 있어요. 그 전까지 미루거나 해지하면 청구되지 않아요.`,
+          )
+    }
     <p style="margin:14px 0 0 0;font-size:11px;color:#7A7A7A;line-height:1.6;">
-      잠시 멈춤·화식 비율 변경·해지는 마이페이지에서 가능해요. 도움이 필요하면
-      답장 주세요.
+      잠시 멈춤·화식 비율 변경·해지는
+      <a href="${SITE_URL}/account/subscriptions" style="color:#7A7A7A;">정기배송 관리</a>
+      에서 가능해요. 도움이 필요하면 답장 주세요.
     </p>
   `
 

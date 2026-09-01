@@ -285,12 +285,15 @@ export async function notifySubscriptionReminder(input: {
   items: SubscriptionReminderItem[]
   nextDeliveryDate: string
   daysBefore: number
+  /** 정기결제 사전고지용 실제 청구액(subscriptions.total_amount). */
+  chargeAmount?: number | null
 }) {
   const { subject, html } = renderSubscriptionReminder({
     recipientName: input.name ?? '보호자',
     items: input.items,
     nextDeliveryDate: input.nextDeliveryDate,
     daysBefore: input.daysBefore,
+    chargeAmount: input.chargeAmount,
   })
   return sendEmail({
     to: input.email,
