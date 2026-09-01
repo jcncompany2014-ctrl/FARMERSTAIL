@@ -3006,6 +3006,44 @@ test('규칙67: 고객 화면에 의약품 효능 오인 표현을 쓰지 않는
   )
 })
 
+test('규칙69: 광고성 알림은 야간(21~08시)에 나갈 수 없다 (정보통신망법 §50⑧)', () => {
+  /**
+   * 2026-09-01 감사 — 마케팅 발송 시각을 0~23 아무 때나 고를 수 있었고, 어드민 UI 는
+   * 21 시를 "적절한 시각이에요"라고 안내까지 했다. 조용시간(push_preferences)은
+   * **기본 NULL**(꺼짐)이라 방어가 되지 못했다.
+   *
+   * 방어는 두 겹이어야 한다:
+   *   ① 설정이 야간을 아예 못 받는다 (automation-settings 의 범위 상수)
+   *   ② 크론이 설정과 무관하게 야간을 막는다 — daily 강등 모드에선 시각 게이트가
+   *      없어서 **크론 시각이 곧 발송 시각**이 되기 때문이다.
+   */
+  const settings = read(join(ROOT, 'lib', 'automation-settings.ts'))
+  const minMatch = settings.match(/MARKETING_HOUR_MIN\s*=\s*(\d+)/)
+  const maxMatch = settings.match(/MARKETING_HOUR_MAX\s*=\s*(\d+)/)
+  assert.ok(minMatch && maxMatch, 'automation-settings 에 MARKETING_HOUR_MIN/MAX 가 없다')
+  const min = Number(minMatch[1])
+  const max = Number(maxMatch[1])
+  assert.ok(min >= 8, `광고 발송 하한이 ${min} 시 — 08 시 이전은 야간이라 안 된다`)
+  assert.ok(max <= 20, `광고 발송 상한이 ${max} 시 — 21 시부터는 야간이라 안 된다`)
+
+  const body = stripComments(settings)
+  assert.match(
+    body,
+    /marketing_push_hour\s*>=\s*MARKETING_HOUR_MIN/,
+    'coerce 가 하한 상수를 안 쓴다 — 상수만 바꾸면 실제 검증이 안 따라온다',
+  )
+  assert.match(body, /marketing_push_hour\s*<=\s*MARKETING_HOUR_MAX/, 'coerce 가 상한 상수를 안 쓴다')
+
+  // ② 크론의 하드 가드 — 설정과 무관하게 막아야 한다.
+  const cron = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'push-lifecycle', 'route.ts')))
+  assert.match(
+    cron,
+    /MARKETING_HOUR_MIN/,
+    'push-lifecycle 에 야간 하드 가드가 없다 — daily 모드에선 크론 시각이 곧 발송 시각이다',
+  )
+  assert.match(cron, /MARKETING_HOUR_MAX/, 'push-lifecycle 야간 가드에 상한이 빠졌다')
+})
+
 test('규칙68: 결제 동선 화면은 약관·청약철회·처리방침 링크를 품는다 (전자상거래법 §13)', () => {
   /**
    * 2026-09-01 출시 전 감사 — 앱에는 이 링크가 **한 개도** 없었다.

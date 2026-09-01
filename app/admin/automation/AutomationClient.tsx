@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { AutomationSettings } from '@/lib/automation-settings'
+import { MARKETING_HOUR_MAX, MARKETING_HOUR_MIN } from '@/lib/automation-settings'
 import type { AutomationPreview } from './page'
 import { Hl, Em } from '@/components/admin/ui'
 
@@ -116,16 +117,23 @@ export default function AutomationClient({
             onChange={(e) => setHour(Number(e.target.value))}
             className="border border-zinc-300 rounded-md px-3 py-2 text-[14px] font-semibold text-zinc-900 bg-white"
           >
-            {Array.from({ length: 24 }, (_, h) => (
+            {/* 8~20 시만 고를 수 있다 — 정보통신망법 §50⑧ 은 21:00~08:00 광고
+                전송에 **별도 동의**를 요구하는데 우리는 그 동의를 안 받는다.
+                예전엔 0~23 이 다 열려 있었고 21 시를 '적절한 시각'이라 안내까지
+                했다(2026-09-01 감사). 서버도 같은 범위로 막는다
+                (lib/automation-settings MARKETING_HOUR_MIN/MAX). */}
+            {Array.from(
+              { length: MARKETING_HOUR_MAX - MARKETING_HOUR_MIN + 1 },
+              (_, i) => MARKETING_HOUR_MIN + i,
+            ).map((h) => (
               <option key={h} value={h}>
                 {String(h).padStart(2, '0')}:00 KST
               </option>
             ))}
           </select>
           <span className="text-[12px] text-zinc-500">
-            {hour >= 22 || hour < 8
-              ? '⚠️ 야간엔 조용시간(22–08시)에 걸려 상당수 미발송될 수 있어요.'
-              : '적절한 시각이에요.'}
+            광고성 알림은 {MARKETING_HOUR_MIN}–{MARKETING_HOUR_MAX}시에만 보낼 수 있어요
+            (야간 전송은 별도 동의가 필요해요).
           </span>
         </div>
       </section>

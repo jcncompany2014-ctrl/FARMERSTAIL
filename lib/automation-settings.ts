@@ -19,9 +19,20 @@ export const DEFAULT_MARKETING_PUSH_HOUR = 10
 export type AutomationSettings = {
   /** 처방 재제안(personalization-progression) 전체 on/off. */
   represcriptionEnabled: boolean
-  /** D+1/D+7/D+30 마케팅 알림이 나가는 KST 시각 (0~23). */
+  /**
+   * D+1/D+7/D+30 마케팅 알림이 나가는 KST 시각.
+   *
+   * ★허용 범위는 0~23 이 아니라 **8~20** 이다(2026-09-01 감사).
+   * 정보통신망법 §50⑧ — 21:00~08:00 에 광고성 정보를 전송하려면 **별도 동의**가
+   * 필요하다. 우리는 그 동의를 받지 않으므로 아예 고를 수 없게 한다.
+   * 20 시를 상한으로 두는 이유: 발송이 21 시로 밀리는 경계를 남기지 않으려고.
+   */
   marketingPushHour: number
 }
+
+/** 광고성 정보를 보낼 수 있는 KST 시간대(양끝 포함). 정보통신망법 §50⑧. */
+export const MARKETING_HOUR_MIN = 8
+export const MARKETING_HOUR_MAX = 20
 
 const DEFAULTS: AutomationSettings = {
   represcriptionEnabled: true,
@@ -34,11 +45,13 @@ function coerce(row: unknown): AutomationSettings {
     represcription_enabled?: unknown
     marketing_push_hour?: unknown
   }
+  // 범위를 벗어나면 clamp 가 아니라 **기본값으로 되돌린다** — 22 시를 21 시로
+  // 조용히 당겨 주면 설정한 사람은 자기 값이 먹힌 줄 안다. 야간은 아예 못 쓴다.
   const hour =
     typeof r.marketing_push_hour === 'number' &&
     Number.isInteger(r.marketing_push_hour) &&
-    r.marketing_push_hour >= 0 &&
-    r.marketing_push_hour <= 23
+    r.marketing_push_hour >= MARKETING_HOUR_MIN &&
+    r.marketing_push_hour <= MARKETING_HOUR_MAX
       ? r.marketing_push_hour
       : DEFAULTS.marketingPushHour
   const enabled =

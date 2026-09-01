@@ -38,7 +38,11 @@ import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { addDaysKst, currentKstHour, todayKstIsoDate } from '@/lib/datetime-kst'
-import { getAutomationSettings } from '@/lib/automation-settings'
+import {
+  getAutomationSettings,
+  MARKETING_HOUR_MAX,
+  MARKETING_HOUR_MIN,
+} from '@/lib/automation-settings'
 
 // 마케팅 3종(D+1·D+7·D+30)이 나가는 KST 시각은 admin 조절값
 // (automation_settings.marketing_push_hour, 기본 10). hourly cron 중 그 시각 1회만
@@ -140,7 +144,21 @@ export async function GET(req: Request): Promise<Response> {
     // 24× 과발송된다). daily 강등 모드(현재)에선 매 실행 = 하루 1회라 게이트
     // 불필요 — 게이트를 걸면 크론 시각≠설정 시각일 때 침묵 미발송된다.
     const settings = await getAutomationSettings(supabase)
-    if (!CRON_IS_HOURLY || currentKstHour() === settings.marketingPushHour) {
+    /**
+     * ★야간 광고 하드 가드 (2026-09-01 감사) — 정보통신망법 §50⑧.
+     * 21:00~08:00 에 광고성 정보를 보내려면 **별도 동의**가 필요한데 우리는 안 받는다.
+     *
+     * 설정값(marketingPushHour)과 무관한 2중 방어다. 설정 쪽은 이미 8~20 만
+     * 받도록 좁혔지만, **daily 강등 모드에선 시각 게이트가 아예 없어** 크론이
+     * 도는 시각이 그대로 발송 시각이 된다 — 크론을 새벽으로 옮기는 순간 새벽에
+     * 광고가 나간다. 그 경로를 여기서 막는다.
+     */
+    const kstHour = currentKstHour()
+    const nightBlocked = kstHour < MARKETING_HOUR_MIN || kstHour > MARKETING_HOUR_MAX
+    if (nightBlocked) {
+      console.warn('[push-lifecycle] 야간이라 마케팅 3종 건너뜀', { kstHour })
+    }
+    if (!nightBlocked && (!CRON_IS_HOURLY || kstHour === settings.marketingPushHour)) {
       results.push(await runWelcome(supabase, now)) // D+1 환영 (어제 가입자)
       results.push(await runAnalysisReminder(supabase, now)) // D+7 분석 리마인드
       results.push(await runSubscribeNudge(supabase, now)) // D+30 정기배송 권유
