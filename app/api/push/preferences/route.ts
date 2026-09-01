@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { MARKETING_POLICY_VERSION } from '@/lib/consent'
 import { dbError } from '@/lib/api/errors'
 
 export const runtime = 'nodejs'
@@ -125,5 +126,36 @@ export async function PATCH(req: Request) {
   if (error) {
     return dbError(error, 'push_preferences', '푸시 설정 저장에 실패했어요')
   }
+
+  /**
+   * 광고성 정보 수신 동의 증적 (정보통신망법 §50) — 2026-09-01 감사.
+   *
+   * 이메일·SMS 는 가입 때 consent_log 에 동의 일시·정책 버전을 남기는데
+   * 푸시만 토글 값 하나로 끝났다. 분쟁이 나면 "동의받았다"를 증명할 수 없다.
+   *
+   * 실제로 값이 **바뀐 경우에만** 남긴다 — 같은 값 재저장으로 로그가 불어나면
+   * 나중에 "언제 동의했나"를 읽어내기 어려워진다.
+   * 저장이 성공한 뒤에 기록한다(저장 실패한 동의를 증적에 남기지 않으려고).
+   */
+  const prevMarketing =
+    (existing as Prefs | null)?.notify_marketing ?? DEFAULTS.notify_marketing
+  if (
+    typeof body.notify_marketing === 'boolean' &&
+    body.notify_marketing !== prevMarketing
+  ) {
+    const { error: consentErr } = await supabase.from('consent_log').insert({
+      user_id: user.id,
+      channel: 'push',
+      granted: body.notify_marketing,
+      policy_version: MARKETING_POLICY_VERSION,
+      source: 'app_settings',
+    })
+    // 증적 실패가 설정 저장을 되돌리지는 않는다(고객은 이미 껐다/켰다).
+    // 대신 조용히 넘기지 않는다 — 증적이 빠진 사실 자체가 문제다.
+    if (consentErr) {
+      console.error('[push/preferences] 광고 수신 동의 증적 기록 실패:', consentErr.message)
+    }
+  }
+
   return NextResponse.json({ ok: true, prefs: next })
 }

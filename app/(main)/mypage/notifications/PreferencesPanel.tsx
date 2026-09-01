@@ -29,7 +29,13 @@ const CATEGORIES: { key: keyof Prefs; label: string; hint: string }[] = [
     label: '건강 알림',
     hint: '체중 재기 · 체중 변화 · 검진 권고',
   },
-  { key: 'notify_marketing', label: '프로모션 · 할인', hint: '할인·새 소식 (선택)' },
+  // 광고성 정보 수신 동의라는 **법정 표현**이 있어야 한다(정보통신망법 §50).
+  // '프로모션 · 할인 / 할인·새 소식' 만으로는 무엇에 동의하는지가 드러나지 않는다.
+  {
+    key: 'notify_marketing',
+    label: '프로모션 · 할인 (광고성 정보 수신 동의)',
+    hint: '할인·새 소식을 앱 푸시로 받아요 (선택) · 08~20시에만 보내요',
+  },
 ]
 
 export default function PreferencesPanel() {
