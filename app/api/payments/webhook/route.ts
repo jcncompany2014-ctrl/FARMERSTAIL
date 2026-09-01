@@ -397,8 +397,18 @@ export async function POST(req: Request) {
 
       // 포인트 적립 제거 (2026-07-16 포인트 전면 폐기).
 
-      // Notify the customer — virtual-account deposits are the key case.
-      pushToUser(
+      /**
+       * ★await 한다 — fire-and-forget 금지 (2026-09-01 감사).
+       *
+       * 서버리스는 핸들러가 응답을 반환하는 순간 인스턴스가 죽는다. `.catch()` 만
+       * 달고 await 를 안 하면 **메일·푸시가 발송 도중에 잘려 나간다.** 같은 문제를
+       * 청구 크론은 이미 await 로 고쳐 뒀는데(subscription-charge R83-6) 웹훅만
+       * 남아 있었다. 게다가 `.catch(()=>{})` 라 실패해도 흔적이 없었다.
+       *
+       * 지연은 문제가 안 된다 — 토스 웹훅은 우리 응답을 기다려 주고, 재시도 정책도
+       * 5xx 기준이다. 몇 백 ms 더 걸리는 것보다 "안 나갔는데 아무도 모르는" 게 나쁘다.
+       */
+      const depositPush = await pushToUser(
         order.user_id,
         {
           title: '입금이 확인됐어요 🐾',
@@ -407,14 +417,12 @@ export async function POST(req: Request) {
           tag: `order-${order.id}`,
         },
         { category: 'order' },
-      ).catch(() => {
-        /* best-effort */
-      })
+      ).catch((e: unknown) => ({ ok: false as const, error: String(e) }))
 
       // 이메일 주문 접수 안내 — 가상계좌 입금 완료 시 최초 "정식 접수" 메일.
       // confirm 단계에서 DONE이 아닌 WAITING_FOR_DEPOSIT으로 빠진 주문은
       // 여기서 비로소 주문 접수 메일을 받는다.
-      notifyOrderPlaced(supabase, {
+      const placedMail = await notifyOrderPlaced(supabase, {
         orderId: order.id,
         userId: order.user_id,
         orderNumber: order.order_number,
@@ -422,7 +430,15 @@ export async function POST(req: Request) {
         totalAmount: order.total_amount,
         shippingFee: order.shipping_fee ?? 0,
         paymentMethod: payment.method ?? null,
-      }).catch(() => {})
+      }).catch((e: unknown) => ({ ok: false as const, reason: String(e) }))
+      if (!placedMail?.ok) {
+        // 결제는 성공했으므로 200 을 돌려주되(재시도하면 중복 처리), 안 나간 사실은 남긴다.
+        captureBusinessEvent('warning', 'payment.webhook.order_placed_mail_failed', {
+          orderId: order.id,
+          reason: JSON.stringify(placedMail ?? null),
+          push: JSON.stringify(depositPush ?? null),
+        })
+      }
       break
     }
 
@@ -465,6 +481,28 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, skipped: 'already_cancelled' })
       }
       const isPartial = payment.status === 'PARTIAL_CANCELED'
+
+      /**
+       * ★환불 누적액을 **토스 응답에서** 계산한다 (2026-09-01 감사).
+       *
+       * 예전엔 orders.refunded_amount 를 아예 갱신하지 않았다. 그래서 사장님이
+       * 토스 대시보드에서 환불하면 상태만 바뀌고 **환불액이 장부에 안 잡혔다** —
+       * 매출·환불 집계가 어긋나고, 부분환불이면 남은 금액도 알 수 없었다.
+       *
+       * `cancels` 는 시간순 **누적** 배열이라 그 합이 곧 지금까지의 총 환불액이다.
+       * "기존값 + 이번 건"으로 더하지 않는 이유: 웹훅은 재전송될 수 있고 그러면
+       * 같은 환불을 두 번 더한다. 합계는 몇 번 받아도 같은 값이라 멱등하다.
+       */
+      const cancelList = (payment as unknown as {
+        cancels?: Array<{ cancelAmount: number }>
+      }).cancels
+      const refundedTotal =
+        cancelList && cancelList.length > 0
+          ? cancelList.reduce((sum, c) => sum + (Number(c.cancelAmount) || 0), 0)
+          : // cancels 가 없는 전액취소 응답 — 전액이 환불된 것이다.
+            isPartial
+            ? null
+            : order.total_amount
       // 원자 전이 가드 — 다른 흐름(cancel 라우트/동시 웹훅)이 이미 payment_status
       // 를 바꿨으면 0-row 로 bail. 점검 fix: 이전엔 read-snapshot 가드(293)만 있어
       // cancel 라우트와 동시 진입 시 아래 recovery 의 쿠폰 회수가 이중 실행될 수
@@ -476,6 +514,8 @@ export async function POST(req: Request) {
           order_status: isPartial ? order.order_status : 'cancelled',
           cancelled_at: isPartial ? null : new Date().toISOString(),
           cancel_reason: isPartial ? null : '결제 취소 (토스)',
+          // 금액을 못 읽었으면 쓰지 않는다 — 틀린 숫자를 장부에 박느니 비워 둔다.
+          ...(refundedTotal != null ? { refunded_amount: refundedTotal } : {}),
         })
         .eq('id', order.id)
         .eq('payment_status', order.payment_status)
@@ -493,10 +533,9 @@ export async function POST(req: Request) {
       // 부분 환불은 cancel_amount 정확값 추출이 어려워 metadata 만 기록,
       // 전액은 -total_amount 금액으로 ledger 잔액 0 으로 정합.
       {
-        // TossPayment 타입에 cancels 없으나 실제 API 응답엔 포함 (PARTIAL_CANCELED 케이스)
-        const tossCancels = (payment as unknown as {
-          cancels?: Array<{ cancelAmount: number }>
-        }).cancels
+        // 위에서 이미 뽑아 둔 것을 그대로 쓴다 — 같은 응답을 두 번 파싱하면
+        // 한쪽만 고칠 때 원장과 refunded_amount 가 갈라진다.
+        const tossCancels = cancelList
         // ★cancels 는 시간순 누적 배열 — **이번 전이의 금액은 마지막 원소**다.
         //   [0](최초 취소)을 읽으면 부분환불 2회째부터 항상 첫 금액이 기록되고,
         //   부분환불 뒤 전액취소를 -total_amount 로 적으면 이미 원장에 있는
@@ -527,15 +566,30 @@ export async function POST(req: Request) {
 
       // 전액 취소일 때만 고객 메일을 보냄 — 부분 환불은 ops 가 별도 커뮤니케이션.
       if (!isPartial) {
-        notifyOrderCancelled(supabase, {
+        /**
+         * ★await 한다 (2026-09-01 감사) — 이 메일이 **유일한 통지 경로**다.
+         *
+         * 사장님이 토스 대시보드에서 환불하면 우리 DB 는 cancelled 로 바뀌는데
+         * 고객에게 알리는 건 여기뿐이다(관리자 상태변경·고객 셀프취소 라우트는
+         * 이 경로에서 안 돈다). fire-and-forget 이라 응답이 끝나면 서버리스가
+         * 죽으면서 메일이 잘려 나갔고, `.catch(()=>{})` 라 흔적도 없었다.
+         * 전자상거래법 §13(계약내용 변경 통지) 대상이다.
+         */
+        const cancelMail = await notifyOrderCancelled(supabase, {
           orderId: order.id,
           userId: order.user_id,
           orderNumber: order.order_number,
           recipientName: order.recipient_name ?? null,
           totalAmount: order.total_amount,
           reason: '결제 취소 (토스)',
-          refundAmount: order.total_amount,
-        }).catch(() => {})
+          refundAmount: refundedTotal ?? order.total_amount,
+        }).catch((e: unknown) => ({ ok: false as const, reason: String(e) }))
+        if (!cancelMail?.ok) {
+          captureBusinessEvent('warning', 'payment.webhook.cancel_mail_failed', {
+            orderId: order.id,
+            reason: JSON.stringify(cancelMail ?? null),
+          })
+        }
       }
       break
     }

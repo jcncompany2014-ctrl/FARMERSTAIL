@@ -3006,6 +3006,32 @@ test('규칙67: 고객 화면에 의약품 효능 오인 표현을 쓰지 않는
   )
 })
 
+test('규칙73: 결제 웹훅의 고객 통지는 await 한다 — fire-and-forget 금지', () => {
+  /**
+   * 2026-09-01 감사 — 웹훅이 메일·푸시를 `.catch()` 만 달고 await 없이 쏘고 바로
+   * 응답을 반환했다. 서버리스는 응답이 끝나면 인스턴스가 죽어 **미완료 promise 가
+   * 통째로 사라진다.** 사장님이 토스 대시보드에서 환불하면 우리 DB 는 cancelled 로
+   * 바뀌는데 고객에게는 아무 안내도 안 갔고, `.catch(()=>{})` 라 흔적도 없었다
+   * (전자상거래법 §13 계약내용 변경 통지).
+   *
+   * 같은 문제를 청구 크론은 이미 await 로 고쳐 뒀는데(R83-6) 웹훅만 남아 있었다.
+   * 형제 코드가 고친 함정은 형제 전체에 적용돼야 한다.
+   */
+  const file = join(ROOT, 'app', 'api', 'payments', 'webhook', 'route.ts')
+  const body = stripComments(read(file))
+  for (const fn of ['notifyOrderPlaced', 'notifyOrderCancelled', 'pushToUser']) {
+    const calls = body.split(`${fn}(`).length - 1
+    if (calls === 0) continue
+    const awaited = body.split(`await ${fn}(`).length - 1
+    assert.equal(
+      awaited,
+      calls,
+      `웹훅의 ${fn} 호출 ${calls}건 중 ${awaited}건만 await 다 — ` +
+        'await 없는 통지는 응답 반환과 함께 잘려 나가고, 안 나간 사실조차 안 남는다',
+    )
+  }
+})
+
 test('규칙72: 멱등키 앵커(charge_key_seq)는 증가만 한다 — 어디서도 리셋하지 않는다', () => {
   /**
    * 2026-09-01 감사 — 이 앵커의 전신은 `failed_charge_count` 였고, 카드 재등록
