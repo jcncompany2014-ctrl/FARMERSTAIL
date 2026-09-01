@@ -17,7 +17,7 @@
 
 | 무엇 | 어떻게 |
 |---|---|
-| **`android/farmerstail-release.jks` + `android/keystore.properties`** | **git 에 없다. AirDrop/USB 로 직접 옮긴다.** 잃어버리면 안드로이드 업데이트 서명이 불가능하다 — 옮긴 뒤에도 1Password 등에 **별도 백업**할 것. 맥에서 안드로이드 릴리즈를 굽지 않을 거라면 최소한 백업만이라도 반드시. |
+| **`farmerstail-release.jks`(★저장소 최상위 — android/ 아님) + `android/keystore.properties`** | **git 에 없다. AirDrop/USB 로 직접 옮긴다.** 잃어버리면 안드로이드 업데이트 서명이 불가능하다 — 옮긴 뒤에도 1Password 등에 **별도 백업**할 것. 맥에서 안드로이드 릴리즈를 굽지 않을 거라면 최소한 백업만이라도 반드시. |
 | **`android/app/google-services.json`** (FCM) | git 에 없다. **없어도 빌드는 성공하고 푸시만 조용히 죽는다** — `android/app/build.gradle` 이 try/catch 로 감싸 `logger.info` 한 줄만 남긴다. 맥에서 안드로이드 릴리즈를 구우면 **푸시 없는 APK 가 스토어에 올라간다.** 옮기거나, Firebase 콘솔에서 다시 받는다. |
 | `.env.local` (26개 키) | **전송하지 말고 Vercel 에서 다시 받는 것을 권장** — 맥에서 `npx vercel login` → `npx vercel link` → `npx vercel env pull .env.local`. 받은 뒤 키 이름을 아래 목록과 대조해 빠진 것만 수동 보충. 수동으로 옮겨야 하면 **AirDrop/USB 만** — 카톡·메일 금지 |
 | Claude Code 메모리 | `C:\Users\A\.claude\projects\C--Users-A-Desktop-projects\memory\` 폴더. 맥에서 프로젝트 폴더로 Claude Code 를 **한 번 실행**하면 `~/.claude/projects/<새-경로-슬러그>/` 가 생긴다 — 그 안에 memory 폴더 내용을 복사 (경로 기반 슬러그라 자동 이전이 안 된다) |
@@ -98,9 +98,14 @@ npx cap open ios                        # Xcode 열림
 > git 에 없고 빌드에도 안 쓰이는 파일은 **판정이 초록이어도 여전히 윈도우에만
 > 있다.** 실제로 이사 당일 맥에 키스토어가 없는 채로 "이사 완료" 판정이 났다.
 > 윈도우를 정리하기 전 체크리스트:
-> - [ ] `android/farmerstail-release.jks` 를 맥으로 옮기고 별도 백업했다
-> - [ ] `android/keystore.properties` 도 함께 옮겼다
-> - [ ] `android/app/google-services.json` 을 옮겼다(없으면 푸시가 조용히 죽는다)
+> - [x] `farmerstail-release.jks` 를 맥으로 옮기고 백업했다 — 2026-09-01 완료.
+>       ★실제 위치는 **저장소 최상위**다(keystore.properties 의 storeFile=../).
+>       ★최상위는 android/.gitignore 밖이라 **무시가 안 되고 있었다** — 루트
+>       .gitignore 에 *.jks 추가로 봉인(공개 저장소라 add -A 한 번이면 유출이었다).
+>       ★형식은 이름과 달리 JKS 가 아니라 **PKCS12** 다(요즘 keytool 기본값).
+>       비밀번호·지문까지 검증: 스토어 등록 지문과 **일치** 확인.
+> - [x] `android/keystore.properties` 도 함께 옮겼다 — 2026-09-01 완료
+> - [x] `android/app/google-services.json` 옮김 — 2026-09-01 완료(패키지명 대조 확인)
 > - [x] Claude Code 메모리 폴더를 옮겼다(위 0절) — 2026-08-25 완료
 > - [ ] 그 밖에 `.gitignore` 에 걸린 파일이 더 없는지 `git status --ignored` 로 훑었다
 >

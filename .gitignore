@@ -73,3 +73,11 @@ next-env.d.ts
 
 # Capacitor 자산 생성 산출물은 commit 함 (스토어 제출 시 필요).
 # 단 source PSD/AI 같은 디자인 원본은 별도 폴더에서 관리.
+
+# ── 안드로이드 서명 키 — 저장소 최상위에 존재한다(keystore.properties 의
+#    storeFile=../farmerstail-release.jks). android/.gitignore 의 *.jks 는
+#    android/ 하위만 덮어서 **최상위 키가 무방비**였다(2026-09-01 맥에서 배치하다
+#    발견 — 공개 저장소라 add -A 한 번이면 서명 키가 공개될 뻔했다).
+*.jks
+*.keystore
+keystore.properties
