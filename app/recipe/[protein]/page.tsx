@@ -264,6 +264,9 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
                 </div>
               </div>
               <div>
+                {/* motion 제거(2026-09-02) — 실촬영 3:2 원본이 슬롯 비율과 정확히
+                    일치하는 완성 구도(파우치+그릇)다. data-gsap-img 의 확대
+                    (PC 1.14/모바일 1.26)가 가장자리 파우치를 잘라먹었다. */}
                 <PhotoSlot
                   label={d.displayName}
                   src={d.heroImg}
@@ -272,7 +275,6 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
                   tone="cream"
                   rounded={14}
                   className="w-full"
-                  motion
                   eager
                 />
                 {/* 퀵팩트 — 봉투에서 가장 먼저 궁금한 4가지.
@@ -577,9 +579,11 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
                   골랐어요. <Hand style={{ fontSize: '1.35em' }}>수비드</Hand>,
                   진공 저온으로 천천히.
                 </p>
+                {/* ★kitchen-cooking.jpg 는 남의 주방을 "파머스테일 주방"이라고
+                    주장하던 AI/스톡 컷 — 실촬영 수비드 컷으로 교체(2026-09-02). */}
                 <PhotoSlot
                   label="주방 — 수비드 조리"
-                  src="/kitchen-cooking.jpg"
+                  src="/kitchen-sousvide.jpg"
                   alt="파머스테일 주방에서 수비드로 조리하는 모습"
                   ratio="4 / 3"
                   tone="cream"

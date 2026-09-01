@@ -206,11 +206,13 @@ export default async function NewsletterPage({
             묶어 매월 첫째 주에 보내드려요.
           </p>
         </div>
+        {/* ★farm-landscape.jpg 는 가짜 타사 브랜드("WHOLESOME NATURAL PET FOOD")
+            포대가 박힌 AI 사진이었다(2026-09-02 실사 검수). 실촬영 컷으로 교체. */}
         <PhotoSlot
-          src="/farm-landscape.jpg"
-          alt="신선한 재료를 기르는 농장 풍경"
-          label="뉴스레터 / 농장 풍경 사진"
-          sub="브랜드 이미지 자리"
+          src="/bowl-eating.jpg"
+          alt="신선한 화식을 맛있게 먹는 강아지"
+          label="뉴스레터 대표 사진"
+          sub="브랜드 이미지"
           ratio="4 / 3"
           tone="cream"
           rounded={12}

@@ -109,8 +109,9 @@ function FoodHero({ isAuthed }: { isAuthed: boolean }) {
             </Reveal>
           </div>
           <Reveal delay={120}>
-            {/* 2026-09-02 실촬영분 — 오리 레시피 완성 컷(파우치 함께). */}
-            <PhotoSlot src="/recipe-duck-fresh.jpg" alt="그릇에 담긴 신선한 화식 한 끼" label="완성된 화식 한 끼 사진" sub="그릇에 담긴 신선식 한 끼" ratio="4 / 5" tone="cream" rounded={10} className="w-full" />
+            {/* 2026-09-02 실촬영분 — 오리 레시피 완성 컷. -45 = 4:5 세로 전용
+                크롭(전체 컷을 cover 하면 왼쪽에 파우치 조각이 걸렸다). */}
+            <PhotoSlot src="/recipe-duck-45.jpg" alt="그릇에 담긴 신선한 화식 한 끼" label="완성된 화식 한 끼 사진" sub="그릇에 담긴 신선식 한 끼" ratio="4 / 5" tone="cream" rounded={10} className="w-full" />
           </Reveal>
         </div>
       </Container>

@@ -173,11 +173,13 @@ export default async function BrandPage() {
 
             <Reveal>
               <div className="mt-10 md:mt-12">
+                {/* ★farm-to-kitchen.jpg 는 가짜 타사 브랜드("HARVEST HOUND") 포대가
+                    박힌 AI 사진이었다(2026-09-02 실사 검수). 실촬영 주방 컷으로 교체. */}
                 <PhotoSlot
-                  src="/farm-to-kitchen.jpg"
-                  alt="농장에서 부엌까지"
+                  src="/kitchen-sousvide.jpg"
+                  alt="수비드 저온으로 조리하는 파머스테일 주방"
                   label="농장에서 부엌까지"
-                  sub="브랜드 이미지 자리 — 실제 사진으로 교체"
+                  sub="실제 조리 주방"
                   ratio="16 / 7"
                   tone="green"
                   rounded={12}

@@ -144,9 +144,10 @@ export default async function WhyFreshPage() {
               </Reveal>
 
               <Reveal delay={120}>
-                {/* 2026-09-02 실촬영분 — 한우 레시피 완성 컷. */}
+                {/* 2026-09-02 실촬영분 — 한우 레시피 완성 컷. motion 제거 —
+                    확대(모바일 1.26배)가 가장자리 파우치를 잘라먹었다(실효 크롭
+                    시트 검수). 정지 원본이 구도 완성형. */}
                 <PhotoSlot
-                  motion
                   src="/recipe-beef-fresh.jpg"
                   alt="수비드 저온 조리 신선식 한 그릇"
                   label="신선식 한 그릇"

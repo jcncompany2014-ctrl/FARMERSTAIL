@@ -211,7 +211,9 @@ export default async function PlansPage() {
                 </div>
               </Reveal>
               <Reveal delay={120} className="w-full">
-                <PhotoSlot src="/sub-box.jpg" alt="정기배송 박스 언박싱" label="정기배송 박스 오프닝 사진" sub="냉동 패키지 언박싱" ratio="4 / 5" tone="cream" rounded={10} className="w-full" />
+                {/* ★sub-box.jpg 는 타사 브랜드 박스가 박힌 AI 사진이었다(2026-09-02
+                    실사 검수). 실촬영 냉동 파우치 컷으로 교체. */}
+                <PhotoSlot src="/pouch-freezer-45.jpg" alt="급속 냉동 파우치로 담기는 파머스테일 정기배송 구성" label="정기배송 파우치 사진" sub="냉동 파우치 구성" ratio="4 / 5" tone="cream" rounded={10} className="w-full" />
               </Reveal>
             </div>
           </Container>
