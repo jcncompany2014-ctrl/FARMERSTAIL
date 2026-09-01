@@ -21,9 +21,13 @@ import { notifyNewsletterConfirm } from '@/lib/email'
  * # 보호
  * - Rate limit: IP 당 분당 5회 — confirm 메일 spam / DB 무제한 insert 방어
  *
- * RLS:
- *   - newsletter_subscribers 의 public insert 정책이 status=pending 만 허용.
- *   - 본 route 는 server-side anon client 를 사용해 정책에 맞게 insert.
+ * RLS (2026-09-01 정정 — 아래 옛 주석은 코드와 어긋나 있었다):
+ *   - 이 route 는 **service_role(createAdminClient)** 로 insert 한다. RLS 를 우회한다.
+ *   - 예전엔 `newsletter public insert`(anon 허용) 정책에 기대는 것처럼 적혀 있었는데,
+ *     실제 코드는 그때도 admin 클라이언트를 쓰고 있었다. 그리고 그 정책은
+ *     **anon 이 임의 이메일 + 자기가 정한 confirm_token 을 넣을 수 있어**
+ *     double opt-in 을 무력화했다 → 20260901000000 마이그레이션에서 제거했다.
+ *   - confirm_token 은 여기(서버)에서 생성한다. 클라이언트가 정할 수 없다.
  */
 
 export async function POST(req: Request) {
