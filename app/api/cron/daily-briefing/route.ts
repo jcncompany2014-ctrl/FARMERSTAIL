@@ -231,10 +231,20 @@ async function runDailyBriefing(): Promise<Response> {
         '오늘 처리할 일이 없어요 ☀️ 편하게 시작하세요.'
 
   // admin 계정 전부(현재는 사장님 1명).
-  const { data: admins, error: adminsErr } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('role', 'admin')
+  // ★2026-09-01 — 예전엔 `profiles.role='admin'` 으로 찾았는데, 관리자 판정 정본은
+  //   R101-C 이후 **app_metadata.role** 하나다(profiles fallback 은 self-elevation
+  //   때문에 제거됐다). 실측 결과 profiles.role='admin' 은 0명이라 이 크론은
+  //   29회 실행 동안 **전부 0명에게** 나갔고, 그런데도 success 로 집계됐다.
+  // lib/supabase/types.ts 는 생성물이라 이 RPC(2026-09-01 추가)가 아직 없다.
+  // 저장소가 쓰는 좁은 캐스트 패턴(cf. webhooks/resend 의 email_suppressions)으로 부른다.
+  const { data: admins, error: adminsErr } = await (
+    supabase as unknown as {
+      rpc: (fn: string) => Promise<{
+        data: Array<{ id: string }> | null
+        error: { message: string } | null
+      }>
+    }
+  ).rpc('admin_user_ids')
 
   // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
   // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
@@ -246,6 +256,15 @@ async function runDailyBriefing(): Promise<Response> {
     )
   }
   const targets = (admins ?? []) as Array<{ id: string }>
+  // 수신자가 0명인 것도 실패다 — 관리자가 한 명도 없을 리 없으므로 판정이
+  // 깨졌다는 뜻이다. 조용히 초록으로 넘어가면 또 29회를 허공에 쏜다.
+  if (targets.length === 0) {
+    console.error('[daily-briefing] 수신자 0명 — 관리자 판정이 깨졌다')
+    return NextResponse.json(
+      { ok: false, reason: 'no_admin_recipients', at: 'daily-briefing' },
+      { status: 500 },
+    )
+  }
   let sent = 0
   for (const a of targets) {
     // category 미지정 = 선호도·조용시간 게이트 우회(운영 알림).

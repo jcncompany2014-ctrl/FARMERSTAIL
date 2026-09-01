@@ -45,12 +45,12 @@ async function runReminder(): Promise<Response> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = supabase as any
 
-  // admin user 픽업 — profiles.role='admin'.
-  const { data: adminProfiles, error: adminProfilesErr } = await admin
-    .from('profiles')
-    .select('id, name')
-    .eq('role', 'admin')
-    .limit(20)
+  // admin user 픽업.
+  // ★2026-09-01 — 예전엔 `profiles.role='admin'` 이었는데 관리자 판정 정본은
+  //   R101-C 이후 app_metadata.role 하나다. 실측 profiles.role='admin' = 0명 →
+  //   이 크론은 매달 0명에게 보내면서 성공으로 집계됐다(자가품질검사는 사료관리법
+  //   의무라 놓치면 안 되는 알림이다).
+  const { data: adminProfiles, error: adminProfilesErr } = await admin.rpc('admin_user_ids')
 
   // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
   // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
@@ -61,14 +61,17 @@ async function runReminder(): Promise<Response> {
       { status: 500 },
     )
   }
-  const admins = (adminProfiles ?? []) as Array<{ id: string; name: string | null }>
+  const admins = (adminProfiles ?? []) as Array<{ id: string }>
 
+  // 수신자 0명을 **성공으로 접지 않는다.** 관리자가 한 명도 없을 리 없으므로
+  // 0명이면 판정이 깨진 것이다 — 예전엔 여기서 ok:true 로 넘어가 매달 조용히
+  // 아무에게도 안 보냈다.
   if (admins.length === 0) {
-    return NextResponse.json({
-      ok: true,
-      reason: 'no_admin_users',
-      sent: 0,
-    })
+    console.error('[quality-check-reminder] 수신자 0명 — 관리자 판정이 깨졌다')
+    return NextResponse.json(
+      { ok: false, reason: 'no_admin_recipients', at: 'quality-check-reminder', sent: 0 },
+      { status: 500 },
+    )
   }
 
   // 30일 spam 차단

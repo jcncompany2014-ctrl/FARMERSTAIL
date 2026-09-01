@@ -55,26 +55,39 @@ async function applySuppression(
     reason: 'hard_bounce' | 'complaint' | 'unsubscribe'
     fullSuppress: boolean
   },
-): Promise<void> {
-  await supabase
+  /**
+   * ★결과를 반드시 위로 올린다 (2026-09-01 감사 · AGENTS.md 규칙1).
+   * 예전엔 `Promise<void>` 라 세 쓰기의 `{ error }` 를 전부 버렸고, 호출자는
+   * 실패를 알 방법이 없어 그대로 200 을 돌려줬다. 그러면 Resend 가 재시도를
+   * 끊는다 — **수신거부한 사람에게 메일이 계속 간다.** 결제 웹훅에서 똑같이
+   * 당했던 그 패턴이다.
+   */
+): Promise<{ ok: true } | { ok: false; step: string; message: string }> {
+  const news = await supabase
     .from('newsletter_subscribers')
     .update({ status: 'unsubscribed', unsubscribed_at: new Date().toISOString() })
     .in('email', lowered)
-  await supabase
+  if (news.error) {
+    return { ok: false, step: 'newsletter_subscribers', message: news.error.message }
+  }
+  const prof = await supabase
     .from('profiles')
     .update({ agree_email: false, agree_email_at: null })
     .in('email', lowered)
+  if (prof.error) {
+    return { ok: false, step: 'profiles', message: prof.error.message }
+  }
   // R101-F: 하드바운스/스팸신고는 email_suppressions 에 등록 → sendEmail 이
   // 트랜잭션 포함 전 발송을 차단(도메인 평판). unsubscribe(마케팅 거부)는
   // 트랜잭션 메일은 계속 가야 하므로 제외(위 profiles.agree_email 로 마케팅만 차단).
   if (opts.fullSuppress && (opts.reason === 'hard_bounce' || opts.reason === 'complaint')) {
-    await (
+    const sup = await (
       supabase as unknown as {
         from: (t: string) => {
           upsert: (
             rows: Array<{ email: string; reason: string }>,
             o: { onConflict: string },
-          ) => Promise<unknown>
+          ) => Promise<{ error: { message: string } | null }>
         }
       }
     )
@@ -83,7 +96,24 @@ async function applySuppression(
         lowered.map((email) => ({ email, reason: opts.reason })),
         { onConflict: 'email' },
       )
+    if (sup?.error) {
+      return { ok: false, step: 'email_suppressions', message: sup.error.message }
+    }
   }
+  return { ok: true }
+}
+
+/**
+ * 수신거부 반영 실패 → **5xx**. 200 을 돌려주면 Resend 가 재시도를 끊고, 그
+ * 사람은 거부 의사를 밝혔는데도 계속 메일을 받는다(정보통신망법 §50).
+ * 결제 웹훅이 DB 오류를 "이미 처리됨"으로 읽어 재시도를 끊었던 사고와 같은 모양.
+ */
+function suppressionFailed(r: { step: string; message: string }) {
+  captureBusinessEvent('error', 'email.suppression_failed', {
+    step: r.step,
+    message: r.message,
+  })
+  return NextResponse.json({ code: 'SUPPRESSION_FAILED', step: r.step }, { status: 500 })
 }
 
 export async function POST(req: Request) {
@@ -186,10 +216,11 @@ export async function POST(req: Request) {
         })
         break
       }
-      await applySuppression(supabase, lowered, {
+      const bounceApplied = await applySuppression(supabase, lowered, {
         reason: 'hard_bounce',
         fullSuppress: true,
       })
+      if (!bounceApplied.ok) return suppressionFailed(bounceApplied)
       captureBusinessEvent('warning', 'email.bounced.permanent', {
         recipients: lowered.length,
         reason: event.data?.bounce?.message ?? event.data?.bounce?.reason,
@@ -199,10 +230,11 @@ export async function POST(req: Request) {
     case 'email.complained': {
       if (lowered.length === 0) break
       // 스팸신고 — 강한 거부 의사. 트랜잭션 포함 전 발송 차단(평판 직결).
-      await applySuppression(supabase, lowered, {
+      const complaintApplied = await applySuppression(supabase, lowered, {
         reason: 'complaint',
         fullSuppress: true,
       })
+      if (!complaintApplied.ok) return suppressionFailed(complaintApplied)
       captureBusinessEvent('warning', 'email.complained', {
         recipients: lowered.length,
       })
@@ -211,10 +243,11 @@ export async function POST(req: Request) {
     case 'email.unsubscribed': {
       if (lowered.length === 0) break
       // List-Unsubscribe — 마케팅 거부. 트랜잭션 메일은 유지(fullSuppress=false).
-      await applySuppression(supabase, lowered, {
+      const unsubApplied = await applySuppression(supabase, lowered, {
         reason: 'unsubscribe',
         fullSuppress: false,
       })
+      if (!unsubApplied.ok) return suppressionFailed(unsubApplied)
       captureBusinessEvent('warning', 'email.unsubscribed', {
         recipients: lowered.length,
       })
