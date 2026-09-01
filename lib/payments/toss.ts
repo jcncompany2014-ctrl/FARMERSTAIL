@@ -321,6 +321,14 @@ export interface BillingChargeResult {
   ok: boolean
   paymentKey?: string
   status?: TossPaymentStatus
+  /**
+   * 토스가 **실제로 승인한 금액**. 2026-09-01 감사 전에는 이 값을 읽지도 않고
+   * 버렸다 — 우리가 보낸 금액과 카드에 찍힌 금액이 갈라져도 알 방법이 없었고,
+   * 주문·원장·영수증이 전부 우리가 보낸 값으로만 적혔다.
+   * 멱등키 재생 응답(같은 키로 재시도)일 때 특히 중요하다: 그때 돌아오는 건
+   * **원결제의 금액**이라 지금 청구하려던 금액과 다를 수 있다.
+   */
+  totalAmount?: number
   error?: { code?: string; message?: string }
 }
 
@@ -496,6 +504,8 @@ export async function chargeBillingKey(input: {
       ok: true,
       paymentKey: data.paymentKey,
       status: data.status,
+      // 실제 승인 금액 — 호출 측이 우리가 보낸 금액과 대조한다.
+      totalAmount: typeof data.totalAmount === 'number' ? data.totalAmount : undefined,
     }
   } catch (err) {
     return {

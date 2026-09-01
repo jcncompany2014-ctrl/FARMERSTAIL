@@ -101,11 +101,10 @@ type SubscriptionRow = {
   billing_key: string
   billing_customer_key: string
   failed_charge_count: number
-  // audit launch-fix: subscriptions 테이블에 recipient_name/zip/address/
-  // address_detail 컬럼이 없음 (recipient_phone 만 존재). 신청 시 snapshot
-  // 안 잡혀 있어 cron 이 매번 select 실패하던 버그 → 그 컬럼들 제거.
-  // 주소는 addresses.is_default=true row 또는 profiles.* fallback 으로
-  // 매 결제 시점에 가져옴.
+  // ★2026-09-01 정정 — 옛 주석은 "subscriptions 에 recipient_name/zip/address/
+  //   address_detail 컬럼이 없다"고 적었는데 **넷 다 있고 앞의 셋은 NOT NULL** 이다.
+  //   여기서 안 뽑는 건 컬럼이 없어서가 아니라, 그 값이 가입 시점에 굳은 뒤
+  //   갱신되지 않아 배송지 진실이 아니기 때문이다(resolveShippingTarget 주석 참조).
   recipient_phone: string | null
   interval_weeks: number
   coverage_weeks: number | null
@@ -139,10 +138,21 @@ type ShippingTarget = {
  *   2) profiles 테이블 (legacy / 가입 시 기본값)
  *   3) 둘 다 없거나 필수 값 누락이면 null → cron 이 그 결제 skip + 알림
  *
- * audit launch-fix: 정기배송 신청 시 subscriptions 에 주소 snapshot 안
- * 잡힘. 출시 후 첫 정기구독 가입자 결제 100% 실패 사태를 막기 위해 매
- * 결제 시점에 lookup. 장기 개선: subscribe 라우트가 신청 시 address_id
- * 를 subscriptions 에 저장하게 (이사 등으로 자동 따라가는 문제 방지).
+ * ★2026-09-01 감사 — 근거 주석이 스키마와 어긋나 있어 정정한다.
+ *
+ * 옛 주석: "정기배송 신청 시 subscriptions 에 주소 snapshot 안 잡힘".
+ * **사실이 아니다.** subscriptions 에는 recipient_name / recipient_phone / zip /
+ * address 가 있고 넷 다 **NOT NULL** 이라 스냅샷 없이는 구독 생성 자체가 안 된다
+ * (address_detail·delivery_memo 는 nullable). 실측 확인.
+ *
+ * 그런데도 여기서 매번 lookup 하는 것이 **지금은 맞다**: 그 스냅샷 컬럼을
+ * 갱신하는 경로가 저장소에 하나도 없기 때문이다(grep 확인). 스냅샷을 쓰도록
+ * 바꾸면 이사한 고객이 옛 주소에 영원히 묶인다 — 지금보다 나쁘다.
+ *
+ * ⚠️ 따라서 `subscriptions.address` 계열은 **가입 시점의 화석**이다. 어드민
+ * 피킹·배송 화면을 포함해 어디서도 배송지 진실로 읽으면 안 된다. 배송지 진실은
+ * 이 함수가 만들어 orders 에 적는 값이다.
+ * 정말로 스냅샷을 쓰려면 먼저 "구독 배송지 변경" 경로부터 만들어야 한다.
  */
 /**
  * @returns 배송지 · `null`(진짜 미등록) · `'lookup-failed'`(조회 자체가 실패).
@@ -852,6 +862,30 @@ async function runSubscriptionCharge(): Promise<Response> {
     )
 
     if (result.ok) {
+      /**
+       * ★토스가 실제로 승인한 금액과 우리가 청구하려던 금액을 대조한다
+       * (2026-09-01 감사). 예전엔 응답의 금액을 읽지도 않고 버렸다 — 카드에 찍힌
+       * 금액과 주문·원장·영수증이 갈라져도 알 방법이 없었다.
+       *
+       * 특히 **멱등키 재생** 응답에서 벌어진다: 같은 키로 재시도하면 토스는
+       * 원결제 결과를 돌려주는데, 그 사이 처방 승인 등으로 total_amount 가 바뀌었으면
+       * 원결제 금액 ≠ 지금 청구하려던 금액이다. 그때 우리 장부에 지금 금액을 적으면
+       * 실제 청구액과 어긋난다.
+       *
+       * 돈은 이미 움직였으므로 **막지 않는다**(AGENTS.md 규칙5 — 재계산으로 깎거나
+       * 막지 않는다). 사람이 볼 수 있게 남기는 것이 이 코드의 전부다.
+       */
+      if (typeof result.totalAmount === 'number' && result.totalAmount !== chargeAmount) {
+        captureBusinessEvent('error', 'subscription.charge.amount_mismatch', {
+          subscriptionId: sub.id,
+          orderId: orderRow.id,
+          intended: chargeAmount,
+          tossCharged: result.totalAmount,
+          idempotencyKey,
+          note: '토스 승인 금액이 우리가 청구하려던 금액과 다르다 — 멱등키 재생일 가능성. 장부 대조 필요',
+        })
+      }
+
       // ★결제 감사 #3 (2026-07-29): 프로모션 소진을 **청구 성공 후로** 옮겼다.
       //   예전엔 주문 row 생성 직후 소진 표시를 했는데, 그 뒤 청구가 실패하면
       //   주문은 취소되지만 claim 은 그 취소된 주문에 묶인 채 남았다.
