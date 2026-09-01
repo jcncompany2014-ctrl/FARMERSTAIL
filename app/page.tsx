@@ -100,26 +100,29 @@ function HomeHero({ ctaHref }: { ctaHref: string }) {
   // 코랄 CTA + 'Or give us a call' 식 작은 흰 밑줄 링크('우리 음식 보기').
   return (
     <section className="relative overflow-hidden" aria-label="히어로">
-      {/* 풀배경 사진(사장님 제공). LCP 후보 — next/image fill+priority 로 포맷(AVIF/
-          WebP)·모바일 리사이즈 자동 최적화(2026-07-17 perf). 시각은 동일(object-cover). */}
-      {/* 켄번스(로드 시 1.06→1 안착) + 패럴랙스(스크롤보다 살짝 느리게) —
-          정지 사진 위 정지 텍스트가 평면적 인상의 첫 원인이었다(2026-08-01).
-          바깥 래퍼를 -6% 키워 패럴랙스 이동 시 가장자리가 안 비게 한다. */}
-      <div aria-hidden className="absolute" style={{ inset: '-6% 0' }}>
-        {/* GSAP 스크럽(yPercent) — rAF 파랄락스보다 스크롤에 정확히 물린다 */}
-        <div data-gsap-y="-10" className="absolute inset-0">
-          <div className="fv-kenburns absolute inset-0">
-            <Image
-              src="/hero-farm.jpg"
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover"
-              style={{ objectPosition: '68% 62%' }}
-            />
-          </div>
-        </div>
+      {/* 풀배경 사진(사장님 실촬영, 2026-09-02 셸티 식탁 컷 — 좌우 반전본).
+          LCP 후보 — next/image fill+priority 로 포맷(AVIF/WebP)·모바일 리사이즈
+          자동 최적화(2026-07-17 perf).
+
+          ★사장님 지시(2026-09-02): "좌우 반전 + 확대하지 마" —
+          - 반전은 CSS 가 아니라 **파일 자체**를 sharp .flop() 으로 구웠다
+            (scaleX(-1) 은 위 오버레이·objectPosition 좌표 감각까지 뒤집는다).
+          - 옛 켄번스(1.06 스케일)와 패럴랙스용 -6% 블리드 래퍼를 제거했다 —
+            둘이 합쳐 사진을 상시 확대해 보여주던 원인. 정지 한 장으로 둔다.
+          파일명이 바뀐 이유: next/image 최적화 캐시가 URL 기준 1년이라 같은
+          이름으로 덮으면 옛 사진이 계속 나온다. */}
+      <div aria-hidden className="absolute inset-0">
+        <Image
+          src="/hero-dinner.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+          // 45%=모바일 가로 크롭에서 얼굴 프레이밍(x — 데스크톱은 가로가 꽉 차
+          // x 무효), 40%=데스크톱 세로 크롭에서 얼굴 프레이밍(y). 라이브 튜닝값.
+          style={{ objectPosition: '45% 40%' }}
+        />
       </div>
       {/* 텍스트 가독성 — 하단을 어둡게 하는 그라데이션 오버레이 */}
       <div
@@ -128,6 +131,31 @@ function HomeHero({ ctaHref }: { ctaHref: string }) {
         style={{
           background:
             'linear-gradient(to bottom, rgba(22,20,15,0.06) 0%, rgba(22,20,15,0) 28%, rgba(22,20,15,0.48) 70%, rgba(22,20,15,0.82) 100%)',
+        }}
+      />
+      {/* 좌측 스크림(데스크톱) — 셸티 식탁 컷(2026-09-02)은 강아지가 화면
+          중앙이라 흰 가슴털이 텍스트 컬럼과 겹친다. 이 사진은 가로가 꽉 차는
+          비율이라 objectPosition 으로는 좌우 이동이 불가(세로만 잘림) — 대신
+          텍스트 뒤만 살짝 어둡게. 모바일은 텍스트가 중앙+하단이라 위 하단
+          그라데이션이 이미 담당한다. */}
+      <div
+        aria-hidden
+        className="hidden md:block absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(to right, rgba(22,20,15,0.52) 0%, rgba(22,20,15,0.28) 30%, rgba(22,20,15,0) 55%)',
+        }}
+      />
+      {/* 모바일 보강 스크림 — 세로 크롭에선 강아지 흰 가슴이 화면 중하단을
+          가득 채워, 기본 하단 그라데이션(70%부터)으로는 헤드라인이 흰 털 위에
+          얹힌다(2026-09-02 실측: 흰 글자가 통째로 사라져 보였다). 얼굴이 있는
+          상단은 건드리지 않고 헤드라인 존부터만 어둡게. */}
+      <div
+        aria-hidden
+        className="md:hidden absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(to bottom, rgba(22,20,15,0) 34%, rgba(22,20,15,0.5) 60%, rgba(22,20,15,0.8) 100%)',
         }}
       />
       {/* 레이어 2 — 떠 있는 실사 그릇 (2026-08-01, 데스크톱만).
@@ -142,7 +170,7 @@ function HomeHero({ ctaHref }: { ctaHref: string }) {
         <div data-gsap-y="14">
           <span className="block overflow-hidden" style={{ borderRadius: 14, border: '6px solid #FFFFFF', boxShadow: '0 24px 60px -24px rgba(22,20,15,0.5)' }}>
             <span className="relative block" style={{ aspectRatio: '4 / 3' }}>
-              <Image src="/bowl-fresh.jpg" alt="" fill sizes="300px" className="object-cover" />
+              <Image src="/bowl-eating.jpg" alt="" fill sizes="300px" className="object-cover" />
             </span>
           </span>
         </div>
