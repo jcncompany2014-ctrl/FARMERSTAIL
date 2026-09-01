@@ -89,13 +89,13 @@ export default async function StartPage() {
                   저장하면 돼요.
                 </p>
               </Reveal>
-              {/* 📸 메인 비주얼 — AI 생성 테스트 이미지(2026-07-03, 힉스필드).
-                  실촬영 나오면 교체. 정면 강아지 + 신선식 그릇(브리프 그대로). */}
+              {/* 📸 메인 비주얼 — 2026-09-02 실촬영분으로 교체(예고됐던 그 교체).
+                  강아지 + 신선식 그릇 + 정량을 덜어 주는 손. */}
               <Reveal delay={120}>
                 <PhotoSlot
                   label="메인 비주얼"
-                  src="/start-hero.jpg"
-                  alt="신선한 화식 한 그릇 앞에 앉아 있는 강아지"
+                  src="/serving-custom.jpg"
+                  alt="신선한 화식을 그릇에 받는 강아지"
                   ratio="4 / 3"
                   tone="cream"
                   rounded={18}

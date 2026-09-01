@@ -280,7 +280,7 @@ export const RECIPE_DETAIL: Record<WebRecipe['protein'], RecipeHero> = {
     headline: ['가볍게 먹어도', '영양은 가득하게'],
     lede:
       '활동량이 적어 살이 쉽게 찌는 아이를 위한 저지방·고단백 데일리 레시피예요. 닭가슴살의 가장 담백한 부위에 강황을 더해, 매일 먹어도 부담 없는 균형 잡힌 한 끼로 설계했어요.',
-    heroImg: '/recipe-chicken.jpg',
+    heroImg: '/recipe-chicken-fresh.jpg',
     forWho: ['실내·소형견', '체중 관리가 필요한 아이', '순한 첫 화식을 찾는 아이'],
     keyIngredients: [
       { name: '닭가슴살', role: '저지방 고단백 — 담백한 데일리 단백질' },
@@ -300,7 +300,7 @@ export const RECIPE_DETAIL: Record<WebRecipe['protein'], RecipeHero> = {
     headline: ['닭도 소도 안 맞는', '예민한 아이를 위해'],
     lede:
       '피부 가려움·잦은 묽은 변으로 사료를 바꿔봐도 잘 안 맞던 민감한 아이를 위한 단일 단백질 레시피예요. 닭과 소를 완전히 배제하고, 사과 펙틴으로 장 환경까지 함께 살폈어요.',
-    heroImg: '/recipe-duck.jpg',
+    heroImg: '/recipe-duck-fresh.jpg',
     forWho: ['닭·소 알러지 의심 아이', '피부·장이 예민한 아이', '단일 단백질이 필요한 아이'],
     keyIngredients: [
       { name: '오리 안심', role: '닭·소 배제한 단일 단백질 — 알러지 케어' },
@@ -320,7 +320,7 @@ export const RECIPE_DETAIL: Record<WebRecipe['protein'], RecipeHero> = {
     headline: ['입 짧은 아이도', '한 그릇 뚝딱'],
     lede:
       '사료를 자주 거부하고 사람 음식만 찾는 까다로운 입맛, 그리고 나이 든 아이를 위한 기호성 레시피예요. 풍미 좋은 흑돼지 뒷다리살에 소화를 돕는 무를 더했어요.',
-    heroImg: '/recipe-pork.jpg',
+    heroImg: '/recipe-pork-fresh.jpg',
     forWho: ['입맛 까다로운 아이', '7세 이상 노령기 아이', '소화가 약한 아이'],
     keyIngredients: [
       { name: '흑돼지 뒷다리살', role: '풍미 좋은 저지방 부위 — 기호성' },
@@ -340,7 +340,7 @@ export const RECIPE_DETAIL: Record<WebRecipe['protein'], RecipeHero> = {
     headline: ['많이 뛰는 아이에게', '가장 좋은 한우 한 끼'],
     lede:
       '매일 산책하고 주말이면 함께 달리는, 활동량 많은 아이를 위한 프리미엄 레시피예요. 무항생제 한우 목심의 헴철과 비타민 B12로 활력을 채우고, 블루베리로 운동 뒤 회복까지 살폈어요.',
-    heroImg: '/recipe-beef.jpg',
+    heroImg: '/recipe-beef-fresh.jpg',
     forWho: ['활동량 많은 중대형견', '함께 운동하는 아이', '프리미엄을 찾는 보호자'],
     keyIngredients: [
       { name: '무항생제 한우 목심', role: '헴철·B12 — 산소 운반과 활력' },

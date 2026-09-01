@@ -470,8 +470,10 @@ function Comparison() {
    public/ 에 사진 34장이 있는데 랜딩이 2장만 쓰고 있었다 — 아이콘 카드투성이가
    "AI 가 만든 사이트" 인상의 진짜 원인. 각 단계에 실제 사진을 얹는다. 문구 그대로. */
 const MAKE = [
-  { Icon: ShieldCheck, img: '/raw-ingredients.jpg', alt: '사람이 먹는 등급의 신선한 원물 재료', t: '사람 등급 기준', d: '사람이 먹는 등급의 재료를, 사람 식품과 같은 위생 기준으로 다룹니다.' },
-  { Icon: ClipboardList, img: '/farm-to-kitchen.jpg', alt: '주방에서 맞춤 정량으로 조리하는 모습', t: '우리 아이 맞춤', d: '견종·체중·활동량·민감한 음식을 반영해 식단과 정량을 계산해요.' },
+  // 2026-09-02 실촬영분 배치(드라이브 '웹 이미지 교체용'): 위생 컷·서빙 컷.
+  // 파일명 신규 — next/image 최적화 캐시가 URL 기준 1년(같은 이름 덮기 금지).
+  { Icon: ShieldCheck, img: '/prep-hygiene.jpg', alt: '위생 장갑을 끼고 사람 등급 원물을 손질하는 모습', t: '사람 등급 기준', d: '사람이 먹는 등급의 재료를, 사람 식품과 같은 위생 기준으로 다룹니다.' },
+  { Icon: ClipboardList, img: '/serving-custom.jpg', alt: '우리 아이 옆에서 맞춤 정량을 덜어 주는 모습', t: '우리 아이 맞춤', d: '견종·체중·활동량·민감한 음식을 반영해 식단과 정량을 계산해요.' },
   { Icon: Truck, img: '/sub-box.jpg', alt: '냉동 포장된 파머스테일 정기배송 박스', t: '며칠 내 신선 배송', d: '주문이 확정된 만큼만 조리·냉동해 콜드체인으로 문 앞까지.' },
 ]
 
@@ -570,10 +572,11 @@ function CompleteMealPlan({ ctaHref }: { ctaHref: string }) {
           <Reveal variant="left">
             <div className="grid grid-cols-2 gap-3 h-full">
               {[
-                { src: '/recipe-chicken.jpg', alt: '닭고기 화식 레시피 실사' },
-                { src: '/recipe-beef.jpg', alt: '소고기 화식 레시피 실사' },
-                { src: '/recipe-duck.jpg', alt: '오리고기 화식 레시피 실사' },
-                { src: '/recipe-pork.jpg', alt: '돼지고기 화식 레시피 실사' },
+                // 2026-09-02 실촬영분(파우치+그릇 컷)으로 교체 — 단백질 1:1 매칭.
+                { src: '/recipe-chicken-fresh.jpg', alt: '닭고기 화식 레시피 실사' },
+                { src: '/recipe-beef-fresh.jpg', alt: '소고기 화식 레시피 실사' },
+                { src: '/recipe-duck-fresh.jpg', alt: '오리고기 화식 레시피 실사' },
+                { src: '/recipe-pork-fresh.jpg', alt: '돼지고기 화식 레시피 실사' },
               ].map((r) => (
                 <span key={r.src} className="relative block overflow-hidden fv-lift" style={{ borderRadius: 10, aspectRatio: '1 / 1' }}>
                   <Image src={r.src} alt={r.alt} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover" />

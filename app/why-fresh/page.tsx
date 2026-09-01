@@ -144,9 +144,10 @@ export default async function WhyFreshPage() {
               </Reveal>
 
               <Reveal delay={120}>
+                {/* 2026-09-02 실촬영분 — 한우 레시피 완성 컷. */}
                 <PhotoSlot
                   motion
-                  src="/bowl-fresh.jpg"
+                  src="/recipe-beef-fresh.jpg"
                   alt="수비드 저온 조리 신선식 한 그릇"
                   label="신선식 한 그릇"
                   sub="수비드 저온 조리 화식 클로즈업"
@@ -288,9 +289,10 @@ export default async function WhyFreshPage() {
               </Reveal>
 
               <Reveal delay={120}>
+                {/* 2026-09-02 실촬영분 — 위생 장갑 끼고 손질 전 원물을 다루는 컷. */}
                 <PhotoSlot
-                  src="/raw-ingredients.jpg"
-                  alt="손질 전 신선한 원물 재료"
+                  src="/prep-hygiene.jpg"
+                  alt="위생 장갑을 끼고 다루는 손질 전 신선한 원물 재료"
                   label="원물 사진"
                   sub="손질 전 신선 재료"
                   ratio="4 / 3"
