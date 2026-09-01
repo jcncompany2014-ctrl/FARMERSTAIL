@@ -7,7 +7,8 @@ import { keyMode } from '@/lib/payments/key-mode'
 import {
   classifyBillingError,
   describeBillingError,
-  chargeRetrySuffix,
+  chargeKeySuffix,
+  shouldAdvanceChargeKey,
   isDefinitiveDecline,
   RETRY_COOLDOWN_MS,
   MAX_FAILED_CHARGES,
@@ -114,6 +115,12 @@ type SubscriptionRow = {
   last_failed_charge_code: string | null
   fresh_ratio: number | null
   requires_billing_key_renewal: boolean | null
+  /**
+   * 멱등키 접미사 앵커. **돈이 안 나간 게 보장된 실패에서만** 오르고 어디서도
+   * 리셋하지 않는다(2026-09-01 감사 — failed_charge_count 를 앵커로 쓰다
+   * unknown 에서 키가 갈아타고 카드 재등록에서 되돌아갔다).
+   */
+  charge_key_seq: number | null
 }
 
 type ShippingTarget = {
@@ -375,7 +382,7 @@ async function runSubscriptionCharge(): Promise<Response> {
        billing_key, billing_customer_key, failed_charge_count,
        recipient_phone, interval_weeks, coverage_weeks, dog_id,
        total_deliveries, next_retry_at, requires_billing_key_renewal,
-       last_failed_charge_code, fresh_ratio`,
+       last_failed_charge_code, fresh_ratio, charge_key_seq`,
     )
     .eq('status', 'active')
     .eq('requires_billing_key_renewal', false)
@@ -802,14 +809,20 @@ async function runSubscriptionCharge(): Promise<Response> {
     //     3일차  접미사 없음 → **키 A 로 복귀**. 2일차 캡처와 대조가 안 되고
     //                              토스는 1일차 거절을 재생.
     //     4일차  다시 확정거절 → :r08-08 새 키 → **두 번째로 카드가 긁힌다.**
-    //   `failed_charge_count` 는 확정거절·unknown 에만 오르고 **transient(타임아웃
-    //   류)에는 안 오른다**(아래 실패 분기). 그래서 "돈이 안 나갔음이 보장된
-    //   거절 때만 키를 갈아탄다"는 원래 의도를 정확히 표현하면서, 결과 불명인
-    //   재시도는 같은 키를 유지해 원결제 결과를 재생받는다 — 되돌아가지 않는다.
-    const retrySuffix = chargeRetrySuffix(
-      sub.last_failed_charge_code,
-      sub.failed_charge_count,
-    )
+    // ★2026-09-01 — 앵커를 `failed_charge_count` 에서 전용 컬럼 `charge_key_seq` 로.
+    //   옛 앵커는 두 곳에서 깨져 있었다:
+    //     ① **unknown 에서도 올랐다.** unknown 은 "토스가 우리 분류표에 없는 코드나
+    //        코드 없는 5xx 를 줬다" 는 뜻이고 그중엔 **카드가 실제로 캡처된 경우**가
+    //        섞인다. 키가 갈아타면 다음 재시도가 토스에게 새 청구다 → 두 번 긁힘.
+    //        (이 자리 옛 주석은 "확정거절·unknown 에만 오른다"고 적으며 그걸 정상인
+    //         것처럼 설명했다. 정작 billing-error-classify 는 "null 은 절대 넣지 말 것
+    //         — 돈이 나갔을 수 있다"고 못 박아 두고 있었다.)
+    //     ② **카드 재등록이 0 으로 리셋했다**(billing-issue) → 접미사가 사라져 이미
+    //        써버린 base 키로 되돌아가고, 토스가 저장한 옛 거절을 재생해 재등록한
+    //        고객의 결제가 계속 실패했다.
+    //   새 앵커는 shouldAdvanceChargeKey(= 돈이 안 나간 게 보장) 에서만 오르고
+    //   **어디서도 리셋하지 않는다.**
+    const retrySuffix = chargeKeySuffix(sub.charge_key_seq ?? 0)
     const idempotencyKey = `sub-charge:${sub.id}:${sub.next_delivery_date}${retrySuffix}`
 
     // 2-c) Toss 청구. 비즈니스 span 으로 wrap — Sentry 트랜잭션에서 실패율 +
@@ -1211,11 +1224,10 @@ async function runSubscriptionCharge(): Promise<Response> {
       } else if (errorClass === 'transient') {
         nextRetryAt = new Date(Date.now() + RETRY_COOLDOWN_MS).toISOString()
         if (isDefinitiveDecline(errorCode)) {
-          // ★확정 거절(잔액부족류)은 count 를 올린다 — chargeRetrySuffix 가 이
-          //   값을 앵커로 다음 재시도에 새 멱등키를 쓰기 때문. 안 올리면 접미사가
-          //   :r0 에 고정돼 2회째 거절부터 토스가 저장된 거절을 15일간 재생 —
-          //   고객이 잔액을 채워도 결제가 계속 실패했다(2026-08-11 go-live 감사).
-          //   일시정지는 안 한다(3-strike 는 unknown 전용) — 회복 가능한 거절이다.
+          // 확정 거절(잔액부족류)도 실패 이력으로 센다. 일시정지는 안 한다
+          // (3-strike 는 unknown 전용) — 회복 가능한 거절이다.
+          // ★2026-09-01 — 예전엔 이 증가의 목적이 "멱등키 앵커를 올리는 것"이었다.
+          //   앵커는 charge_key_seq 로 분리됐으므로(아래) 여기는 이력 전용이다.
           nextFailedCount = sub.failed_charge_count + 1
         }
         // 그 외 transient(타임아웃류)는 count 유지 — 같은 멱등키 재사용이 맞다
@@ -1232,6 +1244,13 @@ async function runSubscriptionCharge(): Promise<Response> {
         last_failed_charge_code: errorCode,
         last_failed_charge_reason: result.error?.message ?? reasonShort,
         next_retry_at: nextRetryAt,
+      }
+      // ★멱등키 앵커는 **돈이 안 나간 게 보장된 실패에서만** 오른다
+      //   (permanent = 카드 거절이라 승인 자체가 없음 · 확정거절 = 잔액부족류).
+      //   unknown·타임아웃·네트워크에서 올리면 다음 재시도가 새 키 = 토스에게
+      //   **새 청구**가 되어 같은 회차에 두 번 긁힌다. 리셋은 어디서도 하지 않는다.
+      if (shouldAdvanceChargeKey(errorClass, errorCode)) {
+        subUpdate.charge_key_seq = (sub.charge_key_seq ?? 0) + 1
       }
       if (shouldPause) subUpdate.status = 'paused'
       if (shouldMarkRenewal) subUpdate.requires_billing_key_renewal = true

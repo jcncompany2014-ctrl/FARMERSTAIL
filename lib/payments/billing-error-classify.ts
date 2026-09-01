@@ -168,20 +168,48 @@ export function isDefinitiveDecline(code: string | null | undefined): boolean {
  * 올리도록 고쳤다). 이 값을 앵커로 쓰면 "돈이 안 나갔음이 보장된 거절 때만
  * 키를 갈아탄다"가 정확히 표현되고, 결과 불명인 재시도는 같은 키를 유지한다.
  *
- * ★단조성(2026-08-11): count ≥ 1 이면 **직전 코드가 무엇이든** 접미사를 유지
- * 한다. 확정거절(:rN) 뒤 타임아웃이 끼면 직전 코드가 비확정이 되는데, 그때
- * 접미사를 떼면 키가 base 로 **되돌아가** 이미 저장된 응답을 재생하거나(최선)
- * 15일 뒤 같은 키로 새 청구가 되어 이중청구 위험(최악)이 생긴다. count 는
- * 성공 시에만 0 으로 리셋되고 성공하면 next_delivery_date 가 바뀌어 base 키
- * 자체가 달라지므로, 접미사가 큰 쪽으로만 움직이면 키 충돌이 없다.
+ * ★단조성(2026-08-11): seq ≥ 1 이면 **직전 코드가 무엇이든** 접미사를 유지한다.
+ * 확정거절(:rN) 뒤 타임아웃이 끼면 직전 코드가 비확정이 되는데, 그때 접미사를
+ * 떼면 키가 base 로 **되돌아가** 이미 저장된 응답을 재생하거나(최선) 15일 뒤
+ * 같은 키로 새 청구가 되어 이중청구 위험(최악)이 생긴다.
+ *
+ * ★앵커 분리(2026-09-01 감사). 예전 앵커는 `failed_charge_count` 였는데 두 곳에서
+ * 깨졌다:
+ *   ① **unknown 에서도 올랐다** — 결과 불명(카드가 긁혔을 수 있다)인데 키를
+ *      갈아타 다음 재시도가 새 청구가 될 수 있었다.
+ *   ② **카드 재등록이 0 으로 리셋했다**(billing-issue) — 그러면 접미사가 사라져
+ *      **이미 써버린 base 키로 되돌아가고**, 토스가 저장한 옛 거절을 재생해
+ *      재등록한 고객의 결제가 계속 실패했다. 위 문단이 "성공 시에만 리셋된다"고
+ *      단언했지만 사실이 아니었다(AGENTS.md 규칙4 — 없는 방어를 주장하는 주석).
+ * 그래서 앵커를 `subscriptions.charge_key_seq` 전용 컬럼으로 분리했다.
+ * 오르는 조건은 `shouldAdvanceChargeKey` 한 곳에만 있고, **어디서도 리셋하지 않는다.**
  */
-export function chargeRetrySuffix(
-  lastFailedCode: string | null | undefined,
-  failedChargeCount: number,
-): string {
-  const n = Number.isFinite(failedChargeCount) ? Math.max(0, failedChargeCount) : 0
-  if (n === 0 && !isDefinitiveDecline(lastFailedCode)) return ''
-  return `:r${n}`
+export function chargeKeySuffix(chargeKeySeq: number): string {
+  const n = Number.isFinite(chargeKeySeq) ? Math.max(0, Math.trunc(chargeKeySeq)) : 0
+  return n === 0 ? '' : `:r${n}`
+}
+
+/**
+ * 이 실패에서 멱등키 앵커를 올려도 되는가 = **돈이 안 나간 게 보장되는가**.
+ *
+ * 이 판정이 한 곳에 있어야 하는 이유(2026-09-01 감사): 예전엔 앵커가
+ * `failed_charge_count` 였는데 그 값은 **unknown 에서도** 올랐다. unknown 은
+ * "토스가 우리 분류표에 없는 코드나 코드 없는 5xx 를 줬다" 는 뜻이고, 그중에는
+ * **카드가 실제로 캡처된 경우**가 섞인다. 앵커가 오르면 다음 재시도가 새 키로
+ * 나가 토스에게 **새 청구**가 된다 — 같은 회차에 두 번 긁힌다.
+ *
+ * 올려도 되는 것은 두 가지뿐이다:
+ *   · permanent — 카드 만료·분실·차단류. 카드가 거절된 것이라 승인 자체가 없다.
+ *   · 확정 거절 — 잔액부족·한도초과류(DEFINITIVE_DECLINE_CODES).
+ * 타임아웃·네트워크·unknown 은 **결과 불명**이므로 같은 키를 유지해 토스가
+ * 원결제 결과를 재생하게 둔다. 안전(이중청구 방지) > 회복(재시도 성공).
+ */
+export function shouldAdvanceChargeKey(
+  errorClass: BillingErrorClass,
+  errorCode: string | null | undefined,
+): boolean {
+  if (errorClass === 'permanent') return true
+  return isDefinitiveDecline(errorCode)
 }
 
 /**

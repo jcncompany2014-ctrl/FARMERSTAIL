@@ -2844,6 +2844,8 @@ export type Database = {
           created_at: string
           delivery_memo: string | null
           dog_id: string | null
+          charge_key_seq: number
+
           failed_charge_count: number
           fresh_ratio: number | null
           id: string
@@ -2884,6 +2886,8 @@ export type Database = {
           created_at?: string
           delivery_memo?: string | null
           dog_id?: string | null
+          charge_key_seq?: number
+
           failed_charge_count?: number
           fresh_ratio?: number | null
           id?: string
@@ -2924,6 +2928,8 @@ export type Database = {
           created_at?: string
           delivery_memo?: string | null
           dog_id?: string | null
+          charge_key_seq?: number
+
           failed_charge_count?: number
           fresh_ratio?: number | null
           id?: string

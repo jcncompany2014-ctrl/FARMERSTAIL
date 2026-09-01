@@ -3006,6 +3006,53 @@ test('규칙67: 고객 화면에 의약품 효능 오인 표현을 쓰지 않는
   )
 })
 
+test('규칙72: 멱등키 앵커(charge_key_seq)는 증가만 한다 — 어디서도 리셋하지 않는다', () => {
+  /**
+   * 2026-09-01 감사 — 이 앵커의 전신은 `failed_charge_count` 였고, 카드 재등록
+   * (billing-issue)이 그걸 0 으로 리셋했다. 그러면 접미사가 사라져 **이미 써버린
+   * base 키로 되돌아가고**, 토스가 저장한 옛 거절(15일 보관)을 재생해 재등록한
+   * 고객의 결제가 계속 실패했다 — 화면과 메일은 "다시 등록하면 자동으로 재개돼요"
+   * 라고 약속하는데.
+   *
+   * 그래서 앵커를 전용 컬럼으로 분리했고, 그 컬럼의 유일한 불변식이 이것이다:
+   * **오직 증가, 리셋 없음.** 누가 "재등록했으니 깨끗하게 0으로" 하고 싶어질
+   * 자리라서 규칙으로 박는다.
+   */
+  const offenders: string[] = []
+  for (const dir of [join(ROOT, 'app'), join(ROOT, 'lib')]) {
+    for (const file of walk(dir)) {
+      if (!/\.tsx?$/.test(file) || /\.test\.tsx?$/.test(file)) continue
+      const body = stripComments(read(file))
+      if (!body.includes('charge_key_seq')) continue
+      for (const [i, lineText] of body.split('\n').entries()) {
+        if (!lineText.includes('charge_key_seq')) continue
+        // 리셋·감소로 읽히는 대입만 잡는다. 타입 선언·select 문자열·증가는 통과.
+        if (/charge_key_seq\s*[:=]\s*(0\b|null)/.test(lineText) || /charge_key_seq\s*[-]{2}/.test(lineText)) {
+          offenders.push(`${file.replace(ROOT, '').replace(/\\/g, '/')}:${i + 1} :: ${lineText.trim()}`)
+        }
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'charge_key_seq 를 0/null 로 되돌리는 코드가 있다. 리셋하면 이미 쓴 멱등키를 ' +
+      '다시 쓰게 되고, 토스가 저장한 옛 거절을 재생해 결제가 영영 실패한다:\n' +
+      offenders.join('\n'),
+  )
+
+  // 증가 지점이 실제로 살아 있는지도 본다 — 규칙이 "없는 것"만 검사하면
+  // 기능이 통째로 사라져도 초록이다.
+  const cron = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.match(
+    cron,
+    /shouldAdvanceChargeKey\(/,
+    '청구 크론이 shouldAdvanceChargeKey 로 앵커 증가를 판정하지 않는다 — ' +
+      'unknown(결과 불명)에서 키가 갈아타면 같은 회차에 두 번 긁힌다',
+  )
+  assert.match(cron, /charge_key_seq\s*=\s*\(?sub\.charge_key_seq[^\n]*\+\s*1/, '앵커 증가 지점이 없다')
+})
+
 test('규칙71: 푸시를 보내면 처리방침에 FCM·APNs 국외 이전이 적혀 있어야 한다', () => {
   /**
    * 2026-09-01 감사 — 네이티브 푸시(FCM·APNs)를 실제로 보내는데 개인정보처리방침의
