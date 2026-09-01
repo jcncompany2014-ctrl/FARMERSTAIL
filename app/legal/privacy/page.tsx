@@ -25,7 +25,15 @@ export const metadata: Metadata = {
 //   terms:   발송 시기(매주 화요일)·배송비(구독료 포함, 추가 없음) 정정.
 //   출시 전이라 공지 대상 회원이 없다. 회원이 생긴 뒤의 개정은 약관 제3조대로
 //   시행일 7일(불리한 변경 30일) 전 공지가 필요하다.
-const EFFECTIVE_DATE = '2026-08-05'
+/**
+ * 2026-09-01 — 푸시 알림 국외 이전(FCM·APNs) 기재를 추가하며 시행일을 올린다.
+ *
+ * 약관 제3조는 '시행 7일 전 공지'를 약속하는데, 이 시점의 실사용 회원은 사장님
+ * 계정과 심사용 계정뿐이라 통지 대상이 없다(사장님 확인). 고객이 생기기 **전에**
+ * 방침을 실제 처리와 맞추는 것이 맞으므로 즉시 시행한다.
+ * 다음 개정부터는 회원이 있으므로 7일 전 공지를 지켜야 한다.
+ */
+const EFFECTIVE_DATE = '2026-09-01'
 
 /**
  * 개인정보처리방침.
@@ -294,7 +302,26 @@ export default function PrivacyPage() {
                     className="px-2 py-1.5"
                     style={{ border: '1px solid var(--fd-line)' }}
                   >
-                    이용 통계 분석 (Google Analytics 4) — 동의 시
+                    푸시 알림 전송 (Firebase Cloud Messaging), 이용 통계 분석
+                    (Google Analytics 4) — 통계 분석은 동의 시
+                  </td>
+                </tr>
+                {/* 2026-09-01 추가 — 앱 푸시를 보내려면 기기 토큰과 알림 본문이
+                    APNs(Apple)·FCM(Google) 서버를 거친다. 그런데 위탁표에는
+                    Apple 이 '로그인'으로만, Google 이 '통계'로만 적혀 있었다.
+                    실제 처리와 방침이 어긋난 상태였다(출시 전 감사). */}
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--fd-line)' }}
+                  >
+                    Apple Inc.
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--fd-line)' }}
+                  >
+                    푸시 알림 전송 (Apple Push Notification service) — iOS 앱 사용 시
                   </td>
                 </tr>
                 <tr>
@@ -506,6 +533,16 @@ export default function PrivacyPage() {
                     Apple 로그인 시점
                     <br />
                     HTTPS(OAuth) 통신
+                    {/* 2026-09-01 추가 — iOS 푸시는 APNs 를 거친다. 로그인만
+                        적혀 있어 실제 처리와 방침이 어긋나 있었다. */}
+                    <br />
+                    <br />
+                    푸시 알림 — 기기 푸시 토큰, 알림 제목·본문(반려견 이름 포함
+                    가능)
+                    <br />
+                    알림 발송 시점
+                    <br />
+                    HTTP/2(APNs) / 암호화
                   </td>
                 </tr>
                 <tr>
@@ -575,6 +612,17 @@ export default function PrivacyPage() {
                     className="px-2 py-1.5"
                     style={{ border: '1px solid var(--fd-line)' }}
                   >
+                    {/* 2026-09-01 추가 — 안드로이드 푸시는 FCM 을 거친다.
+                        기기 토큰과 알림 본문(강아지 이름이 들어갈 수 있다)이
+                        국외로 나가는데 이 표엔 GA4 만 적혀 있었다. */}
+                    푸시 알림 — 기기 푸시 토큰, 알림 제목·본문(반려견 이름 포함
+                    가능)
+                    <br />
+                    알림 발송 시점
+                    <br />
+                    HTTPS(FCM v1 API) / 암호화
+                    <br />
+                    <br />
                     Google Analytics 4 — 익명 식별자(_ga, _gid), 접속 URL,
                     referrer, 디바이스 메타
                     <br />

@@ -3006,6 +3006,49 @@ test('규칙67: 고객 화면에 의약품 효능 오인 표현을 쓰지 않는
   )
 })
 
+test('규칙71: 푸시를 보내면 처리방침에 FCM·APNs 국외 이전이 적혀 있어야 한다', () => {
+  /**
+   * 2026-09-01 감사 — 네이티브 푸시(FCM·APNs)를 실제로 보내는데 개인정보처리방침의
+   * 위탁표에는 Google 이 '통계'로만, Apple 이 '로그인'으로만 적혀 있었다.
+   * 푸시를 보내려면 **기기 토큰과 알림 본문**(반려견 이름이 들어갈 수 있다)이
+   * 국외로 나간다 — 개인정보보호법 §28-8 국외 이전 고지 대상이다.
+   *
+   * 코드(보내는 것)와 문서(적어 둔 것)를 묶어 둔다. 푸시를 걷어내면 이 규칙도
+   * 같이 지우면 되고, 남겨 두는 한 방침에서 지울 수 없다.
+   */
+  const native = join(ROOT, 'lib', 'push', 'native.ts')
+  if (!existsSync(native)) return // 네이티브 푸시를 안 보내면 고지할 것도 없다.
+
+  const sends = stripComments(read(native))
+  const usesFcm = /FCM|fcm\.googleapis|firebase/i.test(sends)
+  const usesApns = /APNs|apns|api\.push\.apple/i.test(sends)
+
+  // ★주석은 반드시 걷어낸다. 처음엔 원문 그대로 검사했더니, 이 변경을 설명하려고
+  //   달아 둔 JSX 주석의 "FCM" 글자를 보고 규칙이 통과했다(카나리아로 잡았다).
+  //   고객에게 **보이는 문서**에 적혀 있어야 의미가 있다.
+  const policy = stripComments(read(join(ROOT, 'app', 'legal', 'privacy', 'page.tsx')))
+  if (usesFcm) {
+    assert.match(
+      policy,
+      /Firebase Cloud Messaging|FCM/,
+      '안드로이드 푸시(FCM)를 보내는데 처리방침에 기재가 없다 — 위탁표·국외이전표 둘 다',
+    )
+  }
+  if (usesApns) {
+    assert.match(
+      policy,
+      /Apple Push Notification|APNs/,
+      'iOS 푸시(APNs)를 보내는데 처리방침에 기재가 없다 — 위탁표·국외이전표 둘 다',
+    )
+  }
+  // 토큰이 나간다는 사실 자체가 적혀 있어야 한다(사업자 이름만으로는 부족).
+  assert.match(
+    policy,
+    /푸시 토큰/,
+    '국외 이전 항목에 "기기 푸시 토큰"이 없다 — 무엇이 나가는지가 고지의 핵심이다',
+  )
+})
+
 test('규칙69: 광고성 알림은 야간(21~08시)에 나갈 수 없다 (정보통신망법 §50⑧)', () => {
   /**
    * 2026-09-01 감사 — 마케팅 발송 시각을 0~23 아무 때나 고를 수 있었고, 어드민 UI 는
