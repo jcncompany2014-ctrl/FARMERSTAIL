@@ -33,6 +33,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<!-- iOS 는 다른 앱을 열기 전에 '그 앱이 있는지' 물어보는데, 여기 적어두지
