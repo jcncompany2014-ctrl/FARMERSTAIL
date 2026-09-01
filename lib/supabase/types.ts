@@ -3244,6 +3244,17 @@ export type Database = {
       }
     }
     Functions: {
+      /**
+       * ⚠️ 손으로 추가한 항목 (2026-09-01).
+       * 이 파일은 `supabase gen types` 생성물이지만, CLI 가 액세스 토큰을 요구해
+       * 이 기기에서 전체 재생성을 못 했다. 100KB 를 통째로 다시 쓰는 대신
+       * 새 RPC 한 개만 손으로 넣었다 — 다음 정식 재생성 때 자동으로 대체된다.
+       * 정의: supabase/migrations/20260901000200_admin_user_ids_rpc.sql
+       */
+      admin_user_ids: {
+        Args: Record<string, never>
+        Returns: { id: string }[]
+      }
       purge_user: {
         Args: { p_user: string }
         Returns: Json

@@ -235,16 +235,7 @@ async function runDailyBriefing(): Promise<Response> {
   //   R101-C 이후 **app_metadata.role** 하나다(profiles fallback 은 self-elevation
   //   때문에 제거됐다). 실측 결과 profiles.role='admin' 은 0명이라 이 크론은
   //   29회 실행 동안 **전부 0명에게** 나갔고, 그런데도 success 로 집계됐다.
-  // lib/supabase/types.ts 는 생성물이라 이 RPC(2026-09-01 추가)가 아직 없다.
-  // 저장소가 쓰는 좁은 캐스트 패턴(cf. webhooks/resend 의 email_suppressions)으로 부른다.
-  const { data: admins, error: adminsErr } = await (
-    supabase as unknown as {
-      rpc: (fn: string) => Promise<{
-        data: Array<{ id: string }> | null
-        error: { message: string } | null
-      }>
-    }
-  ).rpc('admin_user_ids')
+  const { data: admins, error: adminsErr } = await supabase.rpc('admin_user_ids')
 
   // 조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1) — 접히면 "대상 없음"이
   // 되어 크론은 초록인데 아무 일도 안 한 것이 정상으로 기록된다.
