@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { isNativeApp } from '@/lib/capacitor'
-import { nativeTargetPath } from '@/lib/native-nav'
+import { nativeApiUrl, nativeTargetPath } from '@/lib/native-nav'
 import { NATIVE_BACK_EVENT } from '@/lib/native-back'
 
 /**
@@ -58,9 +58,22 @@ export default function NativeShellBridge() {
 
     const go = (raw: unknown) => {
       const path = nativeTargetPath(raw)
+      if (path) {
+        router.push(path)
+        return
+      }
+      // 우리 호스트의 /api/* 링크(메일의 뉴스레터 확인·수신거부)는 SPA 경로가
+      // 아니라 **서버가 실행해야 하는 URL** 이다. 안드로이드 intent-filter 가
+      // 경로 구분 없이 앱을 열어버리므로, 여기서 전체 내비게이션으로 그대로
+      // 실행한다 — 안 하면 링크가 조용히 죽는다(수신거부 불이행). 판정 경계는
+      // nativeApiUrl docstring 참조.
+      const api = nativeApiUrl(raw)
+      if (api) {
+        window.location.assign(api)
+        return
+      }
       // 미심쩍으면 아무 데도 안 간다 — 홈으로 튕기지 않는다. 엉뚱한 화면을
       // 여는 것보다 보던 화면에 그대로 두는 쪽이 낫다.
-      if (path) router.push(path)
     }
 
     void (async () => {

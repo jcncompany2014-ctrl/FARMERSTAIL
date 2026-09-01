@@ -3209,3 +3209,137 @@ test('규칙70: APNs 발송은 node:http2 로만 — fetch 는 어떤 요청도 
     'APNs 발송 경로에 fetch 가 다시 들어왔다 — HTTP/1.1 이라 모든 iOS 푸시가 죽는다',
   )
 })
+
+test('규칙74: apex→www 리다이렉트는 /.well-known/* 을 비켜간다 (App Links·Universal Links)', () => {
+  /**
+   * # 왜 (2026-09-01 실측)
+   *
+   * apex(`farmerstail.kr`) → www 리다이렉트를 **Vercel 도메인 설정**이 하고
+   * 있었고, 그게 `/.well-known/*` 까지 넘겨서 안드로이드 App Links 검증이
+   * apex 에서 실패했다:
+   *   - `curl` : apex → 307, www → 200
+   *   - 기기 : `pm get-app-links` 가 `farmerstail.kr: 1024`(실패),
+   *            `www.farmerstail.kr: verified`
+   *   - 실제 : `https://farmerstail.kr/dashboard` 는 앱이 안 열리고
+   *            홈 화면에 머물렀다. www 는 앱이 열렸다.
+   * 구글·애플 검증기는 **리다이렉트를 따라가지 않는다.** 그래서 도메인 레벨
+   * 리다이렉트를 끄고, 앱 레벨에서 `/.well-known/*` 만 빼고 넘긴다.
+   *
+   * 이 규칙이 지키는 것 세 가지 — 하나라도 무너지면 조용히 옛 상태로 돌아간다:
+   *   ① 예외가 사라지면 → App Links·Universal Links 가 다시 죽는다.
+   *   ② 리다이렉트 자체가 사라지면 → apex 가 사이트를 통째로 중복 서빙한다(SEO).
+   *   ③ has 의 host 가 www 까지 잡으면 → **무한 리다이렉트**로 사이트가 죽는다.
+   *      (Next 는 has.value 를 `^...$` 로 앵커해 컴파일한다 —
+   *       node_modules/next/dist/shared/lib/router/utils/prepare-destination.js)
+   */
+  const code = stripComments(read(join(ROOT, 'next.config.ts')))
+
+  // ① 예외 — /.well-known/* 은 apex 에서도 그대로 서빙돼야 한다.
+  //    패턴은 Next 자신이 trailingSlash 처리에 쓰는 형태(load-custom-routes.js)
+  //    와 같다 — `(?:/.*)?` 가 있어야 슬래시 없는 `/.well-known` 도 제외된다.
+  const catchAllSrc = String.raw`source: '/:path((?!\\.well-known(?:/.*)?).*)'`
+  assert.ok(
+    code.includes(catchAllSrc),
+    'next.config.ts 의 apex 리다이렉트가 /.well-known 예외를 잃었거나 형태가 바뀌었다 — ' +
+      '구글·애플 검증기는 리다이렉트를 안 따라가므로 App Links 가 다시 죽는다. ' +
+      '패턴을 의도적으로 바꿨다면 이 문자열과 아래 성질 검사를 함께 갱신할 것',
+  )
+  // 그 패턴이 실제로 그 성질을 갖는지 — **소스에서 뽑은 실물 패턴**으로 검산.
+  // (`:path` 의 파라미터 정규식은 앞 슬래시를 뗀 경로에 적용된다 — Next 실측.
+  //  소스의 `\\.` 는 파일 텍스트에서 백슬래시 2개라 정규식으로 만들 때 1개로.)
+  const srcInner = /source: '\/:path\(([^']+)\)'/.exec(code)?.[1]
+  assert.ok(srcInner, 'catch-all 의 :path(...) 파라미터 패턴을 소스에서 못 뽑았다')
+  const exclusion = new RegExp(`^${srcInner!.replace(/\\\\/g, '\\')}$`)
+  for (const p of ['.well-known/assetlinks.json', '.well-known/apple-app-site-association', '.well-known']) {
+    assert.ok(!exclusion.test(p), `제외 패턴이 '/${p}' 를 못 거른다 — 검증기가 308 을 받는다`)
+  }
+  assert.ok(exclusion.test('dashboard'), '제외 패턴이 일반 경로까지 걸러 리다이렉트가 전멸했다')
+
+  // ② 리다이렉트 자체 — apex 를 출발지로 잡는 has 규칙이 2개(루트 + catch-all).
+  //    catch-all 의 `:path` 는 빈 문자열도 잡아 루트 규칙은 기술적으로 중복이지만,
+  //    가장 중요한 URL 의 처리를 패턴 해석에 맡기지 않으려고 명시해 둔다.
+  const hostValues = [...code.matchAll(/type: 'host', value: '([^']+)'/g)].flatMap((m) =>
+    m[1] ? [m[1]] : [],
+  )
+  assert.ok(
+    hostValues.length >= 2,
+    'apex→www 리다이렉트 규칙이 2개(루트 + 나머지 경로) 미만이다 — ' +
+      'Vercel 도메인 리다이렉트를 끈 상태에서 이게 없으면 apex 가 사이트를 중복 서빙한다',
+  )
+  assert.ok(
+    code.includes(`source: '/',`),
+    'apex 루트(/) 리다이렉트 규칙이 없다 — 명시 규칙을 지웠으면 catch-all 이 루트를 잡는지 실측 후 이 단언도 같이 정리할 것',
+  )
+
+  // ③ 무한 리다이렉트 방지 — **성질**로 검사한다. Next 는 has.value 를
+  //    `^...$` 로 앵커해 컴파일하지만(prepare-destination.js), 값 자체가
+  //    `.*farmerstail\.kr` 나 `(.*\.)?farmerstail\.kr` 면 앵커가 있어도
+  //    www 에 매치되어 apex→www→www… 무한 루프다. 철자 검사('www' 포함 여부)는
+  //    그 두 표기를 통과시키므로 실제 매칭으로 검산한다.
+  for (const v of hostValues) {
+    const anchored = new RegExp(`^${v.replace(/\\\\/g, '\\')}$`)
+    assert.ok(
+      anchored.test('farmerstail.kr'),
+      `has.host '${v}' 가 apex 에 매치되지 않는다 — 리다이렉트가 발화하지 않아 apex 가 중복 서빙된다`,
+    )
+    assert.ok(
+      !anchored.test('www.farmerstail.kr'),
+      `has.host '${v}' 가 www 에도 매치된다 — apex→www→www… 무한 루프로 사이트 전체가 죽는다`,
+    )
+  }
+  // 목적지는 전부 www 절대 URL 이어야 한다 — apex 로 되돌리면 그 자체가 루프다.
+  const destinations = [...code.matchAll(/destination: '([^']+)'/g)].flatMap((m) =>
+    m[1] ? [m[1]] : [],
+  )
+  for (const d of destinations.filter((d) => d.startsWith('http'))) {
+    assert.ok(
+      d.startsWith('https://www.farmerstail.kr'),
+      `redirects() 의 절대 목적지 '${d}' 가 www 정본이 아니다`,
+    )
+  }
+
+  // 예외가 지키려는 실물이 실제로 있어야 의미가 있다.
+  for (const p of [
+    join(ROOT, 'app', '.well-known', 'assetlinks.json', 'route.ts'),
+    join(ROOT, 'app', '.well-known', 'apple-app-site-association', 'route.ts'),
+  ]) {
+    assert.ok(
+      existsSync(p),
+      `${rel(p)} 가 없다 — 리다이렉트 예외만 남고 검증 파일이 사라지면 404 다`,
+    )
+  }
+})
+
+test('규칙75: 런타임 코드에 apex(https://farmerstail.kr) 하드코딩 금지 — 정본 호스트는 www 하나', () => {
+  /**
+   * # 왜 (2026-09-01 apex 전환 감사)
+   *
+   * `lib/email/index.ts` 두 곳의 env 폴백만 `https://farmerstail.kr`(apex)였고
+   * 나머지 저장소 전부(canonical·sitemap·robots·OG·QR·메일 layout)는 www 였다.
+   * 그 apex 값으로 **List-Unsubscribe 헤더**가 만들어졌다 — 메일 제공자의
+   * 원클릭 수신거부 에이전트는 리다이렉트 추종이 보장되지 않아, 같은 메일
+   * 안에서 본문 링크(www)는 되는데 헤더(apex)는 안 되는 상태가 될 수 있었다.
+   * apex 가 App Links 대상 호스트가 된 뒤로는 "어느 폴백이냐"가 곧 "브라우저가
+   * 열리냐 앱이 열리냐"의 차이이기도 하다.
+   *
+   * 절대 URL 이 필요하면 `NEXT_PUBLIC_SITE_URL` 을 읽고, 폴백은 www 로 —
+   * 메일 쪽은 lib/email/layout.ts 의 `SITE_URL` 을 재사용한다.
+   * (호스트 이름 비교(`=== 'farmerstail.kr'`)나 next.config 의 리다이렉트
+   * 출발지는 스킴이 없어 이 검사에 안 걸린다 — 정확히 의도된 구분이다.)
+   */
+  const offenders: string[] = []
+  for (const file of walk(join(ROOT, 'app'))
+    .concat(walk(join(ROOT, 'lib')))
+    .concat(walk(join(ROOT, 'components')))) {
+    if (!/\.(ts|tsx)$/.test(file) || file.includes('.test.')) continue
+    const src = stripCommentsKeepLines(read(file))
+    src.split('\n').forEach((line, i) => {
+      if (/https:\/\/farmerstail\.kr/.test(line)) offenders.push(`${rel(file)}:${i + 1}`)
+    })
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `apex 하드코딩이 다시 생겼다 — www 정본(NEXT_PUBLIC_SITE_URL 폴백 포함)으로 바꿀 것:\n${offenders.join('\n')}`,
+  )
+})

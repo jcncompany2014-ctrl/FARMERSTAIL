@@ -63,3 +63,42 @@ export function nativeTargetPath(raw: unknown): string | null {
   // `/\evil.com`(백슬래시 변형) 은 safeNextPath 가 막는다.
   return safeNextPath(trimmed)
 }
+
+/**
+ * App Links 로 앱에 들어온 URL 중 **그대로 서버에 실행시켜야 하는 것** —
+ * 우리 호스트의 `/api/*` GET 링크.
+ *
+ * # 왜 (2026-09-01 apex 전환 감사)
+ * AndroidManifest 의 intent-filter 는 경로 구분 없이 우리 호스트 전 경로를
+ * 잡는다(iOS AASA 와 달리 안드로이드엔 exclude 문법이 없다). 그래서 메일
+ * 본문의 뉴스레터 확인·수신거부 링크(`/api/newsletter/confirm?token=…`)를
+ * 앱 설치 사용자가 누르면 브라우저 대신 **앱이 열리는데**, `nativeTargetPath`
+ * 는 `/api` 를 (옳게) 거부하므로 아무 일도 일어나지 않았다 — 더블 옵트인이
+ * 완료되지 않고, 수신거부가 이행되지 않는다(정보통신망법 §50 리스크).
+ *
+ * 이 함수가 그 URL 을 돌려주면 호출처(NativeShellBridge)는 SPA 라우팅 대신
+ * **WebView 전체 내비게이션**으로 URL 을 그대로 연다. 서버 라우트가 실행되고,
+ * 그 응답(예: `/newsletter?status=confirmed` 로 redirect)은 AuthAwareShell 이
+ * 앱 크롬으로 렌더한다 — 웹 화면이 앱에 보이는 일은 없다.
+ *
+ * # 경계
+ * - https + `ALLOWED_HOSTS` 정확 일치 + 경로가 `/api/` 로 시작할 때만.
+ *   그 외에는 전부 null — 기존 보안 태세(미심쩍으면 아무 데도 안 감) 유지.
+ * - 상대 경로 `/api/...` 는 받지 않는다: 푸시 `data.url` 은 우리 서버가 만들고
+ *   화면 경로만 싣는다 — 거기서 `/api` 가 오는 건 버그라 조용히 실행하면 안 된다.
+ */
+export function nativeApiUrl(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (!HAS_SCHEME.test(trimmed)) return null
+  let parsed: URL
+  try {
+    parsed = new URL(trimmed)
+  } catch {
+    return null
+  }
+  if (parsed.protocol !== 'https:') return null
+  if (!ALLOWED_HOSTS.has(parsed.hostname.toLowerCase())) return null
+  if (!parsed.pathname.startsWith('/api/')) return null
+  return parsed.toString()
+}

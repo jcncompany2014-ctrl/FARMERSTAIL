@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { nativeTargetPath } from './native-nav.ts'
+import { nativeApiUrl, nativeTargetPath } from './native-nav.ts'
 
 /**
  * `appUrlOpen` 은 기기의 아무 앱이나 인텐트로 쏠 수 있다 — 이 표가 그
@@ -91,4 +91,45 @@ test('nativeTargetPath: 경로가 아닌 것 · 빈 값은 거부', () => {
 
 test('nativeTargetPath: 앞뒤 공백은 다듬는다', () => {
   assert.equal(nativeTargetPath('  /dogs  '), '/dogs')
+})
+
+/**
+ * `nativeApiUrl` — 안드로이드 intent-filter 가 경로 구분 없이 앱을 열어서,
+ * 메일의 /api 링크(뉴스레터 확인·수신거부)가 앱 안에서 조용히 죽던 것의 수선.
+ * nativeTargetPath 가 null 을 준 것 중 "우리 호스트 https /api/*" 만 살린다.
+ */
+test('nativeApiUrl: 우리 호스트의 /api 절대 URL 만 그대로 돌려준다', () => {
+  // 메일에 실제로 박히는 두 링크 (lib/email/index.ts · templates/newsletter*.ts)
+  const confirm =
+    'https://www.farmerstail.kr/api/newsletter/confirm?token=0123456789abcdef0123456789abcdef'
+  assert.equal(nativeApiUrl(confirm), confirm)
+  const unsub =
+    'https://farmerstail.kr/api/newsletter/unsubscribe?token=0123456789abcdef0123456789abcdef'
+  assert.equal(nativeApiUrl(unsub), unsub)
+})
+
+test('nativeApiUrl: nativeTargetPath 와 겹치지 않는다 — 화면 경로는 null', () => {
+  for (const notApi of [
+    'https://www.farmerstail.kr/dogs',
+    'https://www.farmerstail.kr/',
+    'https://www.farmerstail.kr/apifake', // /api/ 접두사가 아니다
+  ]) {
+    assert.equal(nativeApiUrl(notApi), null, `${notApi} 는 화면 라우팅 몫이다`)
+  }
+})
+
+test('nativeApiUrl: 남의 호스트·비 https·상대 경로는 전부 거부', () => {
+  for (const bad of [
+    'https://evil.com/api/newsletter/confirm?token=x',
+    'https://www.farmerstail.kr.evil.com/api/x',
+    'https://www.farmerstail.kr@evil.com/api/x',
+    'http://www.farmerstail.kr/api/newsletter/confirm', // 평문
+    'javascript:alert(1)',
+    // 상대 /api 는 받지 않는다 — 푸시 data.url 에서 /api 가 오는 건 버그다
+    '/api/newsletter/confirm?token=x',
+    null,
+    '',
+  ]) {
+    assert.equal(nativeApiUrl(bad), null, `${JSON.stringify(bad)} 는 막아야 한다`)
+  }
 })

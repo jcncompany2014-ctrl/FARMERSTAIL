@@ -20,6 +20,15 @@
 import { business } from '../business.ts'
 import { escape } from './escape.ts'
 
+/**
+ * 메일이 만드는 모든 절대 URL 의 base — **export 해서 이 파일 밖에서도 이것만
+ * 쓴다.** lib/email/index.ts 두 곳이 자체 폴백 'https://farmerstail.kr'(apex)을
+ * 갖고 있었고, 그 값으로 List-Unsubscribe 헤더가 만들어졌다(2026-09-01 감사).
+ * apex 는 www 로 리다이렉트되는데 메일 제공자의 원클릭 수신거부 에이전트는
+ * 리다이렉트 추종이 보장되지 않는다 — 폴백이 갈라지면 같은 메일 안에서 헤더와
+ * 본문이 다른 호스트를 가리킨다. 규칙75가 apex 하드코딩 재발을 막는다.
+ * (export 는 파일 맨 아래 `export { SITE_URL }` — 여기 붙이면 중복 선언이다.)
+ */
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://www.farmerstail.kr'
 

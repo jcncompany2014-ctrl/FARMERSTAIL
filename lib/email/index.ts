@@ -13,6 +13,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail } from './client.ts'
+import { SITE_URL } from './layout.ts'
 import { captureBusinessEvent } from '../sentry/trace.ts'
 import {
   renderOrderCancelled,
@@ -382,7 +383,7 @@ export async function notifyNewsletterWelcome(input: {
     email: input.email,
     unsubscribeToken: input.unsubscribeToken,
   })
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
+  const baseUrl = SITE_URL
   return sendEmail({
     to: input.email,
     subject,
@@ -494,7 +495,7 @@ export async function broadcastNewsletterVol01(
         email: r.email,
         unsubscribeToken: r.unsubscribe_token,
       })
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://farmerstail.kr'
+      const baseUrl = SITE_URL
       const result = await sendEmail({
         to: r.email,
         subject,

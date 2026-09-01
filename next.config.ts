@@ -135,9 +135,67 @@ const nextConfig: NextConfig = {
          * 어긋나 비공개 전환했다(blog_posts.is_published=false). 슬러그 자체가
          * '정기 vs 낱개' 프레임이라 재작성 대상이 아니다 — 2026-05-07부터
          * sitemap 에 있었으므로 색인된 링크는 301 로 블로그 홈에 넘긴다.
+         *
+         * ★아래 apex 규칙보다 **앞**에 두고 목적지를 절대 www 로 쓴다 —
+         * 뒤에 두면 apex 로 온 이 URL 이 [apex→www]→[/blog] 2-hop 이 된다
+         * (Next 는 첫 매치 규칙 하나만 적용하고 응답한다). 상대경로 /blog 로
+         * 두면 apex 방문자가 apex/blog 로 남으니 절대 URL 이어야 1-hop 이다.
          */
         source: '/blog/subscription-vs-onetime-pet-food',
-        destination: '/blog',
+        destination: 'https://www.farmerstail.kr/blog',
+        permanent: true,
+      },
+      /**
+       * apex(www 없는 주소) → www 정본화. **단 `/.well-known/*` 은 제외한다.**
+       *
+       * 지금까지 이 리다이렉트는 Vercel 도메인 설정(307)이 하고 있었는데, 그게
+       * `/.well-known/assetlinks.json` 까지 같이 넘겨버려 **안드로이드 App Links
+       * 검증이 apex 에서 실패**했다. 실측:
+       *   - apex → 307, www → 200
+       *   - 기기의 `pm get-app-links`: `farmerstail.kr: 1024`(실패),
+       *     `www.farmerstail.kr: verified`
+       *   - 실제로 `https://farmerstail.kr/dashboard` 는 앱이 안 열렸다.
+       * 구글·애플 검증기는 **리다이렉트를 따라가지 않는다** — 그 주소 그대로
+       * 200 을 받아야 한다. 그래서 도메인 레벨 리다이렉트를 끄고, 경로를 골라
+       * 여기서 넘긴다. iOS Universal Links(apple-app-site-association)도 같은
+       * 이유로 같은 예외에 들어간다.
+       *
+       * 배포 순서(런북): **이 파일이 프로덕션에 먼저 배포된 것을 확인한 뒤에**
+       * Vercel 도메인 리다이렉트를 끈다. Vercel 엣지 리다이렉트가 켜져 있는
+       * 동안 이 규칙은 무해하게 잠들어 있고, 끄는 순간 이어받는다 — 역순이면
+       * apex 가 리다이렉트 없이 전체를 서빙하는 창이 생겨 host-only 세션
+       * 쿠키가 apex 에 심긴다(전환 감사 2026-09-01).
+       *
+       * ⚠️ 이 규칙이 사라지면 apex 가 사이트 전체를 중복 서빙한다(SEO). 규칙74.
+       * ⚠️ `has.value` 는 Next 가 `^...$` 로 앵커해 컴파일하므로
+       *   (node_modules/next/dist/shared/lib/router/utils/prepare-destination.js:101)
+       *   `www.farmerstail.kr` 에는 매치되지 않는다 — 무한 리다이렉트 없음.
+       *   `.` 도 정규식이라 이스케이프한다. 규칙74가 이 성질을 실제 매칭으로
+       *   검산한다(철자 검사가 아니라 — `.*farmerstail\.kr` 같은 표기는 앵커가
+       *   있어도 www 에 매치되어 무한 루프다).
+       * ⚠️ 제외 패턴은 Next 자신이 trailingSlash 처리에 쓰는 형태와 같다
+       *   (`(?!\.well-known(?:/.*)?)`, load-custom-routes.js) — 슬래시 없는
+       *   `/.well-known` 맨몸 경로까지 제외한다.
+       *
+       * `/_next/*` 는 여기 안 적어도 제외된다 — Next 가 모든 커스텀
+       * 리다이렉트의 정규식 앞에 `(?!/_next)` 를 강제로 붙인다
+       * (redirect-status.js modifyRouteRegex). 즉 apex 의 최종 상태는
+       * "`/.well-known/*` 과 `/_next/*` 만 직접 서빙, 나머지는 308"이다.
+       *
+       * 루트(`/`)는 명시성 때문에 별도 규칙로 둔다 — 아래 catch-all 의
+       * `:path` 가 빈 문자열도 잡으므로 없어도 동작은 같지만, 가장 중요한
+       * URL 의 처리를 패턴 해석에 맡기지 않는다.
+       */
+      {
+        source: '/',
+        has: [{ type: 'host', value: 'farmerstail\\.kr' }],
+        destination: 'https://www.farmerstail.kr/',
+        permanent: true,
+      },
+      {
+        source: '/:path((?!\\.well-known(?:/.*)?).*)',
+        has: [{ type: 'host', value: 'farmerstail\\.kr' }],
+        destination: 'https://www.farmerstail.kr/:path',
         permanent: true,
       },
     ]
