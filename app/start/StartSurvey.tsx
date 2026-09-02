@@ -161,8 +161,12 @@ function humanizeSignupError(raw: string): string {
   const m = raw.toLowerCase()
   if (m.includes('already') || m.includes('registered') || m.includes('duplicate') || m.includes('exists'))
     return '가입을 완료하지 못했어요. 입력 정보를 확인하시거나, 이미 계정이 있다면 로그인을 시도해 주세요.'
-  if (m.includes('password') || m.includes('weak'))
-    return '비밀번호가 정책에 맞지 않아요. 영문·숫자 포함 8자 이상으로 다시 입력해 주세요.'
+  // 유출 비밀번호 차단(Supabase pwned 체크)은 길이·구성과 무관 — 이유를 그대로 알려야
+  // 한다. "8자 이상으로" 라고 하면 이미 조건을 채운 사용자가 미로에 갇힌다(2026-09-02 실발생).
+  if (m.includes('weak') || m.includes('easy to guess') || m.includes('pwned'))
+    return '많이 알려져 유출된 적 있는 비밀번호예요. 다른 비밀번호로 바꿔 주세요.'
+  if (m.includes('password'))
+    return '비밀번호는 영문·숫자·특수문자를 포함해 8자 이상이어야 해요.'
   if (m.includes('rate') || m.includes('too many')) return '잠시 후 다시 시도해 주세요.'
   if (m.includes('email') && m.includes('invalid')) return '이메일 형식이 올바르지 않아요.'
   return '가입에 실패했어요. 잠시 후 다시 시도해 주세요.'

@@ -39,7 +39,9 @@ function humanizeSignupError(raw: string): string {
   const s = raw.toLowerCase()
   if (s.includes('already') || s.includes('registered') || s.includes('exists'))
     return '이미 가입된 이메일이에요. 로그인해 주세요.'
-  if (s.includes('password')) return '비밀번호는 영문·숫자 포함 8자 이상이어야 해요.'
+  if (s.includes('weak') || s.includes('easy to guess') || s.includes('pwned'))
+    return '많이 알려져 유출된 적 있는 비밀번호예요. 다른 비밀번호로 바꿔 주세요.'
+  if (s.includes('password')) return '비밀번호는 영문·숫자·특수문자를 포함해 8자 이상이어야 해요.'
   if (s.includes('email')) return '이메일 형식을 확인해 주세요.'
   if (s.includes('rate') || s.includes('too many'))
     return '요청이 많아요. 잠시 후 다시 시도해 주세요.'

@@ -162,10 +162,10 @@ export default function ResetPasswordPage() {
 
     if (error) {
       const raw = (error.message ?? '').toLowerCase()
-      if (raw.includes('weak') || raw.includes('password')) {
-        setUpdateError(
-          '비밀번호 정책에 맞지 않아요. 영문·숫자 포함 8자 이상으로 다시 입력해 주세요.',
-        )
+      if (raw.includes('weak') || raw.includes('easy to guess') || raw.includes('pwned')) {
+        setUpdateError('많이 알려져 유출된 적 있는 비밀번호예요. 다른 비밀번호로 바꿔 주세요.')
+      } else if (raw.includes('password')) {
+        setUpdateError('비밀번호는 영문·숫자·특수문자를 포함해 8자 이상이어야 해요.')
       } else {
         setUpdateError('비밀번호를 변경하지 못했어요. 잠시 후 다시 시도해 주세요.')
       }
