@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Stethoscope,
   ArrowRight,
+  X,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -143,10 +144,15 @@ export default function AnalysisView({
   // R37b — 설문에서 넘어온 직후 (?fromSurvey=1) 스크롤 위치 reset.
   // 라우터 캐시로 인해 이전 페이지의 스크롤 위치가 유지될 수 있음. 결과
   // 페이지는 항상 top 부터 — 사용자 경험상 처음부터 읽도록.
+  // 설문 직후(fromSurvey)는 AppChrome 이 헤더·탭을 숨기는 focusMode(R36)라
+  // 이 화면 스스로 출구를 제공해야 한다 — 없으면 구독 CTA 외엔 나갈 길이 없는
+  // 함정이 된다(앱은 엣지 스와이프 뒤로가기도 막혀 있다. 2026-09-02 사장님 실발생).
+  const [fromSurvey, setFromSurvey] = useState(false)
   useEffect(() => {
     if (typeof window === 'undefined') return
     const q = new URLSearchParams(window.location.search)
     if (q.get('fromSurvey') === '1') {
+      setFromSurvey(true)
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
     }
   }, [])
@@ -360,6 +366,26 @@ export default function AnalysisView({
 
   return (
     <div className="pb-10 pt-1">
+      {fromSurvey && (
+        <button
+          type="button"
+          aria-label="분석 닫고 홈으로"
+          onClick={() => router.replace('/dashboard')}
+          className="fixed z-50 flex items-center justify-center rounded-full border"
+          style={{
+            top: 'calc(env(safe-area-inset-top) + 12px)',
+            right: 16,
+            width: 40,
+            height: 40,
+            background: 'var(--bg-3)',
+            borderColor: 'var(--rule-2)',
+            color: 'var(--muted-strong)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          }}
+        >
+          <X className="w-5 h-5" strokeWidth={2} />
+        </button>
+      )}
       <AnalysisStickySummary
         dogName={dog.name}
         merKcal={analysis.mer}
