@@ -7,6 +7,7 @@ import {
   Scale,
   AlertTriangle,
   ArrowRight,
+  Check,
 } from 'lucide-react'
 import {
   GUIDELINE_CITATIONS,
@@ -237,9 +238,11 @@ export default async function SciencePage() {
               </div>
             </Reveal>
 
-            {/* 서류 카드 2장 — 이미지 비율이 제각각(가로 스크린샷 vs 세로 증서)이라
-                카드 높이가 어긋나던 것을, 같은 높이의 컨테인 액자(16:10, 크림 바닥)
-                로 통일. 문서라 cover 크롭 금지 → object-contain. */}
+            {/* 서류 카드 2장 — 같은 높이의 컨테인 액자(16:10, 크림 바닥)로 통일.
+                문서라 cover 크롭 금지.
+                ★이미지는 반드시 absolute + width/height 100% — aspect-ratio 박스는
+                콘텐츠가 밀면 늘어난다(퍼센트 max-height 가 확정 높이를 못 얻어
+                증서가 액자를 뚫고 나온 사고, 2026-09-04 사장님 제보). */}
             <div className="pt-10 grid md:grid-cols-2 gap-4 md:gap-6 md:items-stretch">
               {[
                 {
@@ -248,28 +251,45 @@ export default async function SciencePage() {
                   alt: '파머스테일 뉴트리 코어 프리믹스 — 식품안전나라 품목보고 조회 화면',
                   t: '정식 품목보고된 프리믹스',
                   b: '비타민·미네랄 프리믹스 ‘파머스테일 뉴트리 코어’는 식품안전나라에 품목보고된 제품입니다.',
+                  // 사장님 요청(2026-09-04): 프리믹스가 왜 필요한지로 여백을 채운다.
+                  points: [
+                    '신선 재료의 미량영양소는 계절·산지에 따라 달라져, 원재료만으로는 43개 영양 항목을 매번 정확히 맞추기 어렵습니다.',
+                    '그래서 부족한 항목만 정밀하게 채우는 전용 프리믹스를 함께 설계했어요 — 교차검증표의 기준 충족을 떠받치는 장치입니다.',
+                    '그 프리믹스 자체도 품목보고를 마친 제품으로 만들었습니다.',
+                  ],
                   delay: 60,
                 },
                 {
                   chip: '수입식품 · 수입신고확인증',
                   src: '/evidence-import-cert.webp',
-                  alt: '비타민·미네랄 원료의 수입식품 수입신고확인증 (개인정보 가림)',
+                  alt: '비타민·미네랄 원료의 수입식품 수입신고확인증',
                   t: '원료까지 신고 서류로',
-                  b: '프리믹스에 쓰이는 원료는 수입식품 안전관리 특별법에 따른 수입신고확인증을 갖춘 것을 사용합니다. 개인정보 보호를 위해 성명·주소는 가렸어요.',
+                  b: '프리믹스에 쓰이는 원료는 수입식품 안전관리 특별법에 따른 수입신고확인증을 갖춘 것을 사용합니다.',
+                  points: [] as string[],
                   delay: 130,
                 },
               ].map((d) => (
                 <Reveal key={d.t} delay={d.delay} className="h-full">
                   <article className="h-full flex flex-col" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 12, overflow: 'hidden' }}>
-                    <div className="relative flex items-center justify-center" style={{ aspectRatio: '16 / 10', background: 'var(--fd-cream)', padding: 14 }}>
+                    <div className="relative" style={{ aspectRatio: '16 / 10', background: 'var(--fd-cream)' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element -- 문서 원장:
                           contain 표시가 필수라 PhotoSlot(cover) 대신 직접 렌더 */}
-                      <img src={d.src} alt={d.alt} loading="lazy" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 4 }} />
+                      <img src={d.src} alt={d.alt} loading="lazy" className="absolute inset-0" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 14, boxSizing: 'border-box' }} />
                       <span className="absolute rounded-full text-[10.5px]" style={{ top: 12, left: 12, padding: '4px 10px', background: 'var(--fd-pine)', color: '#FFFFFF', fontWeight: 800, letterSpacing: '0.03em' }}>{d.chip}</span>
                     </div>
                     <div className="flex-1" style={{ padding: '16px 18px 20px' }}>
                       <h3 className="text-[15px] md:text-[16px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>{d.t}</h3>
                       <p className="mt-1.5 text-[12.5px] md:text-[13px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>{d.b}</p>
+                      {d.points.length > 0 && (
+                        <ul className="mt-4 grid gap-2.5" style={{ borderTop: '1px solid var(--fd-line)', paddingTop: 14 }}>
+                          {d.points.map((p) => (
+                            <li key={p} className="grid items-baseline" style={{ gridTemplateColumns: '18px 1fr', gap: 8 }}>
+                              <Check size={14} strokeWidth={3} color="var(--fd-green)" />
+                              <span className="text-[12px] md:text-[12.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>{p}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   </article>
                 </Reveal>

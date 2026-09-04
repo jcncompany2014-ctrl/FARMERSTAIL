@@ -230,14 +230,16 @@ export default async function AboutPage() {
                 </div>
               </Reveal>
               <Reveal className="order-1 md:order-2">
-                {/* 2026-07-03 디자인 검토: 회색 placeholder → 실제 영양분석
-                    리포트 이미지(랜딩과 동일 에셋). 주제(38영양소 설계) 정합. */}
+                {/* 2026-09-04 사장님 지시: 분석 리포트 → 교차검증표(표만).
+                    합성 원본에서 표 영역만 크롭한 전용 자산 — 문서라 ratio 를
+                    크롭 실비율로(cover 잘림 방지). 세부 가독성은 요구 안 함
+                    ("자세하게 안 나와도 괜찮"), 원문 PDF 는 /science 에. */}
                 <PhotoSlot
-                  label="영양 프로파일 차트"
-                  src="/recipe-analysis.webp"
-                  alt="파머스테일 레시피 설계 · 38가지 필수 영양소 분석 리포트"
-                  sub="38가지 필수 영양소 매트릭스"
-                  ratio="16 / 11"
+                  label="영양 교차검증표"
+                  src="/nutrition-crossval-table.webp"
+                  alt="AAFCO·FEDIAF·NRC 3대 영양기준 교차검증표 — 레시피 4종 전 항목 검증"
+                  sub="3대 국제 기준 교차 대조"
+                  ratio="2600 / 1778"
                   tone="green"
                   rounded={10}
                   className="w-full"
