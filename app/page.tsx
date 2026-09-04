@@ -747,9 +747,9 @@ function ScienceExpertise() {
   return (
     <Section bg="offwhite" pad="md">
       <Container size="xl">
-        <div className="grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
-          {/* 2단은 좌우에서 마주 들어온다 — 전 섹션이 '아래→위' 하나로 뜨는
-              단조로움이 AI 티의 원인이었다(2026-08-01). */}
+        {/* 2단은 좌우에서 마주 들어온다 — 전 섹션이 '아래→위' 하나로 뜨는
+            단조로움이 AI 티의 원인이었다(2026-08-01). */}
+        <div className="grid md:grid-cols-2 md:items-end gap-6 md:gap-14">
           <Reveal variant="left">
             <div>
               <Eyebrow>THE SCIENCE</Eyebrow>
@@ -757,31 +757,65 @@ function ScienceExpertise() {
                 마케팅이 아니라
                 <br />수의영양학으로
               </Display>
-              <ul className="pt-6 grid gap-3">
-                {SCIENCE.map((s) => (
-                  <li key={s} className="grid items-baseline" style={{ gridTemplateColumns: '20px 1fr', gap: 10 }}>
-                    <Check size={17} strokeWidth={3} color="var(--fd-green)" />
-                    <span className="text-[14px] md:text-[15px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>{s}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="pt-7">
-                <Button href="/science" tone="pine" size="md">
-                  영양 설계 근거 보기
-                  <ArrowRight size={18} strokeWidth={2.4} />
-                </Button>
-              </div>
             </div>
           </Reveal>
-          <Reveal variant="right" delay={100}>
-            <Parallax speed={0.06}>
-            {/* 2026-09-04 사장님 제작 교차검증표(AAFCO·FEDIAF·NRC × 레시피 4종)로
-                교체. 문서 이미지라 ratio 를 원본 비율로 정확히 — cover 크롭되면
-                표가 잘린다. 원문 PDF 는 /science 의 실물 근거 섹션에. */}
-            <PhotoSlot src="/nutrition-crossval-landing.webp" alt="AAFCO·FEDIAF·NRC 3대 영양기준 교차검증표 — 레시피 4종 전 항목 검증" label="영양 교차검증표" ratio="3141 / 3010" tone="green" rounded={10} className="w-full" />
-            </Parallax>
+          <Reveal variant="right" delay={80}>
+            <ul className="grid gap-3">
+              {SCIENCE.map((s) => (
+                <li key={s} className="grid items-baseline" style={{ gridTemplateColumns: '20px 1fr', gap: 10 }}>
+                  <Check size={17} strokeWidth={3} color="var(--fd-green)" />
+                  <span className="text-[14px] md:text-[15px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>{s}</span>
+                </li>
+              ))}
+            </ul>
           </Reveal>
         </div>
+
+        {/* 교차검증표(2026-09-04 사장님 제작) — "이미지가 너무 작다" 제보로
+            2단 반쪽 칸에서 꺼내 전폭(최대 880px) 문서 매트로. 문서 이미지라
+            ratio 를 원본 비율로 정확히 — cover 크롭되면 표가 잘린다.
+            원문 PDF 는 /science 의 실물 근거 섹션에. */}
+        <Reveal delay={100}>
+          <div className="relative mx-auto mt-10 md:mt-14" style={{ maxWidth: 880 }}>
+            <Parallax speed={0.05}>
+              <div style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 16, padding: 14, boxShadow: '0 30px 70px -34px rgba(22,20,15,0.35)' }}>
+                <PhotoSlot
+                  src="/nutrition-crossval-landing.webp"
+                  alt="AAFCO·FEDIAF·NRC 3대 영양기준 교차검증표 — 레시피 4종 전 항목 검증"
+                  label="영양 교차검증표"
+                  ratio="3141 / 3010"
+                  tone="green"
+                  rounded={8}
+                  className="w-full"
+                />
+              </div>
+            </Parallax>
+            {/* 도장 배지 — 표 우상단에 살짝 겹치는 검증 스탬프. 수치(43/43)는
+                표 자체의 사실 표기 재인용이라 표시광고 무리 없음. */}
+            <div aria-hidden className="absolute" style={{ top: -16, right: 14, transform: 'rotate(-8deg)', zIndex: 2 }}>
+              <span
+                className="flex flex-col items-center justify-center text-center"
+                style={{ width: 92, height: 92, borderRadius: 999, background: 'var(--fd-coral)', color: '#FFFFFF', border: '3px solid #FFFFFF', boxShadow: '0 10px 24px -10px rgba(22,20,15,0.4)' }}
+              >
+                <span className="font-chunky" style={{ fontSize: 21, lineHeight: 1 }}>43/43</span>
+                <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.08em', marginTop: 4 }}>항목 충족</span>
+              </span>
+            </div>
+          </div>
+        </Reveal>
+        <Reveal delay={140}>
+          <div className="mt-6 md:mt-8 flex flex-col items-center gap-4 text-center">
+            <p className="text-[12px] md:text-[13px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6, maxWidth: 560 }}>
+              레시피 4종 × 43개 영양 항목을 AAFCO·FEDIAF·NRC 기준과 항목별로
+              교차 대조했습니다. 기준치는 칼로리 기반 환산치, 설계값은 재료
+              영양성분 분석에 기반한 추정치예요.
+            </p>
+            <Button href="/science" tone="pine" size="md">
+              영양 설계 근거 보기
+              <ArrowRight size={18} strokeWidth={2.4} />
+            </Button>
+          </div>
+        </Reveal>
       </Container>
     </Section>
   )

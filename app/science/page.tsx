@@ -109,6 +109,22 @@ export default async function SciencePage() {
               어떤 출처를 어떻게 쓰는지, AI 가 어디까지 하고 어디서 멈추는지 — 모두
               공개합니다.
             </p>
+            {/* 스탯 스트립(2026-09-04 디자인 패스) — 페이지의 결론을 첫 화면에서
+                숫자로. 수치는 아래 교차검증표의 사실 표기 재인용. */}
+            <div className="mt-8 grid grid-cols-3 gap-3" style={{ maxWidth: 620 }}>
+              {[
+                { n: '43/43', l: '영양 항목 충족' },
+                { n: '3', l: '국제 기준 교차 대조' },
+                { n: '4', l: '레시피 전 종 검증' },
+              ].map((s, i) => (
+                <Reveal key={s.l} delay={i * 70}>
+                  <div style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '16px 14px 14px' }}>
+                    <div className="font-chunky" style={{ color: 'var(--fd-coral)', fontSize: 24, lineHeight: 1 }}>{s.n}</div>
+                    <div className="mt-2 text-[11.5px] md:text-[12px]" style={{ color: 'var(--fd-muted)', fontWeight: 700 }}>{s.l}</div>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
           </Container>
         </Section>
 
@@ -176,78 +192,88 @@ export default async function SciencePage() {
               서류를 그대로 공개합니다.
             </p>
 
+            {/* 문서 매트 + 도장 배지 — 랜딩과 같은 디자인 언어(2026-09-04 패스). */}
             <Reveal delay={80}>
-              <div className="pt-8">
-                <PhotoSlot
-                  src="/nutrition-crossval-landing.webp"
-                  alt="AAFCO·FEDIAF·NRC 3대 영양기준 교차검증표 — 레시피 4종 전 항목 검증"
-                  label="영양 교차검증표"
-                  ratio="3141 / 3010"
-                  tone="green"
-                  rounded={12}
-                  className="w-full mx-auto"
-                />
-                <p className="pt-3 text-[12px] md:text-[12.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>
-                  기준치는 메뉴별 칼로리 기반 환산치, 설계값은 투입 재료의
-                  영양성분 분석에 기반한 추정치입니다.
-                </p>
-                <div className="pt-5">
-                  {/* FD Button 은 target 을 안 받는다(내부 Link) — 새 탭 PDF 는 순수 <a>. */}
-                  <a
-                    href="/docs/farmerstail-cross-validation.pdf"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full text-[14px] md:text-[15px]"
-                    style={{ padding: '13px 26px', background: 'var(--fd-pine)', color: '#FFFFFF', fontWeight: 800, letterSpacing: '-0.01em' }}
+              <div className="relative mx-auto mt-9" style={{ maxWidth: 820 }}>
+                <div style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 16, padding: 14, boxShadow: '0 30px 70px -34px rgba(22,20,15,0.35)' }}>
+                  <PhotoSlot
+                    src="/nutrition-crossval-landing.webp"
+                    alt="AAFCO·FEDIAF·NRC 3대 영양기준 교차검증표 — 레시피 4종 전 항목 검증"
+                    label="영양 교차검증표"
+                    ratio="3141 / 3010"
+                    tone="green"
+                    rounded={8}
+                    className="w-full"
+                  />
+                </div>
+                <div aria-hidden className="absolute" style={{ top: -16, right: 14, transform: 'rotate(-8deg)', zIndex: 2 }}>
+                  <span
+                    className="flex flex-col items-center justify-center text-center"
+                    style={{ width: 92, height: 92, borderRadius: 999, background: 'var(--fd-coral)', color: '#FFFFFF', border: '3px solid #FFFFFF', boxShadow: '0 10px 24px -10px rgba(22,20,15,0.4)' }}
                   >
-                    교차검증표 원문(PDF) 보기
-                    <ArrowRight size={17} strokeWidth={2.4} />
-                  </a>
+                    <span className="font-chunky" style={{ fontSize: 21, lineHeight: 1 }}>43/43</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.08em', marginTop: 4 }}>항목 충족</span>
+                  </span>
                 </div>
               </div>
             </Reveal>
+            <Reveal delay={120}>
+              <div className="mt-6 flex flex-col items-center gap-4 text-center">
+                <p className="text-[12px] md:text-[12.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6, maxWidth: 560 }}>
+                  기준치는 메뉴별 칼로리 기반 환산치, 설계값은 투입 재료의
+                  영양성분 분석에 기반한 추정치입니다.
+                </p>
+                {/* FD Button 은 target 을 안 받는다(내부 Link) — 새 탭 PDF 는 순수 <a>. */}
+                <a
+                  href="/docs/farmerstail-cross-validation.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full text-[14px] md:text-[15px]"
+                  style={{ padding: '13px 26px', background: 'var(--fd-pine)', color: '#FFFFFF', fontWeight: 800, letterSpacing: '-0.01em' }}
+                >
+                  교차검증표 원문(PDF) 보기
+                  <ArrowRight size={17} strokeWidth={2.4} />
+                </a>
+              </div>
+            </Reveal>
 
-            <div className="pt-10 grid md:grid-cols-2 gap-4 md:gap-6">
-              <Reveal delay={60}>
-                <article style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>
-                  <PhotoSlot
-                    src="/evidence-premix-report.webp"
-                    alt="파머스테일 뉴트리 코어 프리믹스 — 식품안전나라 품목보고 조회 화면"
-                    label="프리믹스 품목보고"
-                    ratio="697 / 385"
-                    tone="cream"
-                    rounded={0}
-                    className="w-full"
-                  />
-                  <div style={{ padding: '16px 18px 20px' }}>
-                    <h3 className="text-[15px] md:text-[16px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>정식 품목보고된 프리믹스</h3>
-                    <p className="mt-1.5 text-[12.5px] md:text-[13px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>
-                      비타민·미네랄 프리믹스 &lsquo;파머스테일 뉴트리 코어&rsquo;는
-                      식품안전나라에 품목보고된 제품입니다.
-                    </p>
-                  </div>
-                </article>
-              </Reveal>
-              <Reveal delay={130}>
-                <article style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>
-                  <PhotoSlot
-                    src="/evidence-import-cert.webp"
-                    alt="비타민·미네랄 원료의 수입식품 수입신고확인증"
-                    label="원료 수입신고확인증"
-                    ratio="1740 / 2205"
-                    tone="cream"
-                    rounded={0}
-                    className="w-full"
-                  />
-                  <div style={{ padding: '16px 18px 20px' }}>
-                    <h3 className="text-[15px] md:text-[16px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>원료까지 신고 서류로</h3>
-                    <p className="mt-1.5 text-[12.5px] md:text-[13px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>
-                      프리믹스에 쓰이는 원료는 수입식품 안전관리 특별법에 따른
-                      수입신고확인증을 갖춘 것을 사용합니다.
-                    </p>
-                  </div>
-                </article>
-              </Reveal>
+            {/* 서류 카드 2장 — 이미지 비율이 제각각(가로 스크린샷 vs 세로 증서)이라
+                카드 높이가 어긋나던 것을, 같은 높이의 컨테인 액자(16:10, 크림 바닥)
+                로 통일. 문서라 cover 크롭 금지 → object-contain. */}
+            <div className="pt-10 grid md:grid-cols-2 gap-4 md:gap-6 md:items-stretch">
+              {[
+                {
+                  chip: '식품안전나라 · 품목보고',
+                  src: '/evidence-premix-report.webp',
+                  alt: '파머스테일 뉴트리 코어 프리믹스 — 식품안전나라 품목보고 조회 화면',
+                  t: '정식 품목보고된 프리믹스',
+                  b: '비타민·미네랄 프리믹스 ‘파머스테일 뉴트리 코어’는 식품안전나라에 품목보고된 제품입니다.',
+                  delay: 60,
+                },
+                {
+                  chip: '수입식품 · 수입신고확인증',
+                  src: '/evidence-import-cert.webp',
+                  alt: '비타민·미네랄 원료의 수입식품 수입신고확인증 (개인정보 가림)',
+                  t: '원료까지 신고 서류로',
+                  b: '프리믹스에 쓰이는 원료는 수입식품 안전관리 특별법에 따른 수입신고확인증을 갖춘 것을 사용합니다. 개인정보 보호를 위해 성명·주소는 가렸어요.',
+                  delay: 130,
+                },
+              ].map((d) => (
+                <Reveal key={d.t} delay={d.delay} className="h-full">
+                  <article className="h-full flex flex-col" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 12, overflow: 'hidden' }}>
+                    <div className="relative flex items-center justify-center" style={{ aspectRatio: '16 / 10', background: 'var(--fd-cream)', padding: 14 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- 문서 원장:
+                          contain 표시가 필수라 PhotoSlot(cover) 대신 직접 렌더 */}
+                      <img src={d.src} alt={d.alt} loading="lazy" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 4 }} />
+                      <span className="absolute rounded-full text-[10.5px]" style={{ top: 12, left: 12, padding: '4px 10px', background: 'var(--fd-pine)', color: '#FFFFFF', fontWeight: 800, letterSpacing: '0.03em' }}>{d.chip}</span>
+                    </div>
+                    <div className="flex-1" style={{ padding: '16px 18px 20px' }}>
+                      <h3 className="text-[15px] md:text-[16px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>{d.t}</h3>
+                      <p className="mt-1.5 text-[12.5px] md:text-[13px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>{d.b}</p>
+                    </div>
+                  </article>
+                </Reveal>
+              ))}
             </div>
           </Container>
         </Section>
