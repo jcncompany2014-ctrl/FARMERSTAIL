@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 import AdminShellNext from '@/components/adminui/admin-shell-next'
 import { Badge } from '@/components/adminui/badge'
@@ -25,13 +25,21 @@ import {
  * 데이터로 새 셸을 렌더한다. 사장님 승인 후 Phase 2 에서 app/admin 에
  * 이식하고 이 페이지는 삭제한다.
  *
- * ⚠️ 프로덕션에서는 404 — 데모 수치가 진짜 지표로 오인되면 안 된다.
+ * 처음엔 프로덕션 404 였으나 사장님이 폰으로 봐야 판단 가능해 공개로 전환
+ * (2026-09-04). 실데이터 0·기능 0 인 순수 목업이라 노출 위험 없음. 색인만
+ * 금지하고, 화면 상단 배너로 '시안·데모 데이터'를 명시한다.
  */
-export default function AdminPreviewPage() {
-  if (process.env.NODE_ENV === 'production') notFound()
+export const metadata: Metadata = {
+  title: '어드민 개편 시안 (데모)',
+  robots: { index: false, follow: false, nocache: true },
+}
 
+export default function AdminPreviewPage() {
   return (
     <div className="admin-scope min-h-screen bg-background font-sans text-foreground antialiased">
+      <div className="bg-primary px-4 py-2 text-center text-[12.5px] font-bold text-primary-foreground">
+        어드민 개편 시안 — 화면의 모든 수치는 데모 데이터입니다
+      </div>
       <AdminShellNext userEmail="ian020529@gmail.com" crumb="대시보드">
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {[
