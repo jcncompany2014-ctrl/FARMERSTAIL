@@ -577,13 +577,14 @@ function CompleteMealPlan({ ctaHref }: { ctaHref: string }) {
           <Reveal variant="left">
             <div className="grid grid-cols-2 gap-3 h-full">
               {[
-                // 2026-09-02 실촬영분 — 단백질 1:1 매칭. *-sq = 1:1 타일 전용
-                // 음식 클로즈업 크롭(전체 컷을 정사각 cover 하면 왼쪽에 파우치가
-                // 반토막으로 걸렸다 — 실효 크롭 시트로 검수 후 그릇 중심 재단).
-                { src: '/recipe-chicken-sq.jpg', alt: '닭고기 화식 레시피 실사' },
-                { src: '/recipe-beef-sq.jpg', alt: '소고기 화식 레시피 실사' },
-                { src: '/recipe-duck-sq.jpg', alt: '오리고기 화식 레시피 실사' },
-                { src: '/recipe-pork-sq.jpg', alt: '돼지고기 화식 레시피 실사' },
+                // 2026-09-02 사장님 지시: 이 2×2 는 **파우치 패키지 목업 4종**으로.
+                // (음식 클로즈업 *-sq 는 하루 살고 교체됨 — 파일은 남겨둠.)
+                // 원본 2000² 에서 중앙 80% 크롭 — 원본 그대로면 파우치가 작아
+                // 떠 보이고, 72% 는 가장자리가 타일에 닿았다(3안 비교 검수).
+                { src: '/pouch-chicken.webp', alt: '파머스테일 닭고기 레시피 파우치 패키지' },
+                { src: '/pouch-hanwoo.webp', alt: '파머스테일 한우 레시피 파우치 패키지' },
+                { src: '/pouch-duck.webp', alt: '파머스테일 오리 레시피 파우치 패키지' },
+                { src: '/pouch-blackpork.webp', alt: '파머스테일 흑돼지 레시피 파우치 패키지' },
               ].map((r) => (
                 <span key={r.src} className="relative block overflow-hidden fv-lift" style={{ borderRadius: 10, aspectRatio: '1 / 1' }}>
                   <Image src={r.src} alt={r.alt} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover" />
