@@ -236,10 +236,12 @@ export default async function AboutPage() {
                     ("자세하게 안 나와도 괜찮"), 원문 PDF 는 /science 에. */}
                 <PhotoSlot
                   label="영양 교차검증표"
-                  src="/nutrition-crossval-table.webp"
+                  // 2026-09-04b: 크롭본 → 드라이브 PDF(표만 원본) 4배율 렌더로 재교체
+                  // (사장님 지시 — 시트 가장자리 티 없이 선명). ratio=렌더 실비율.
+                  src="/nutrition-crossval-sheet.webp"
                   alt="AAFCO·FEDIAF·NRC 3대 영양기준 교차검증표 — 레시피 4종 전 항목 검증"
                   sub="3대 국제 기준 교차 대조"
-                  ratio="2600 / 1778"
+                  ratio="1876 / 2105"
                   tone="green"
                   rounded={10}
                   className="w-full"
