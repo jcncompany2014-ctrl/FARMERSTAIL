@@ -13,6 +13,8 @@
  * app/admin/layout.tsx 의 AdminShell 을 이것으로 교체한다.
  */
 import type { ReactNode } from 'react'
+import Image from 'next/image'
+import { usePathname } from 'next/navigation'
 import {
   Home,
   Package,
@@ -123,27 +125,41 @@ const NAV_GROUPS = [
 
 export default function AdminShellNext({
   userEmail,
-  active = '/admin',
-  crumb = '대시보드',
+  bell,
   children,
 }: {
   userEmail: string
-  active?: string
-  crumb?: string
+  /** 실시간 주문 벨(서버 컴포넌트) — 헤더 우측 슬롯 */
+  bell?: ReactNode
   children: ReactNode
 }) {
+  const pathname = usePathname()
+  // 가장 긴 접두 매치가 활성 메뉴·브레드크럼 라벨의 정본
+  const flat = NAV_GROUPS.flatMap((g) => g.items)
+  const current = flat
+    .filter((it) => pathname === it.href || pathname.startsWith(it.href + '/'))
+    .sort((a, b) => b.href.length - a.href.length)[0]
+  const activeHref = current?.href ?? '/admin'
+  const crumb = pathname === '/admin' ? '대시보드' : (current?.label ?? '관리자')
   return (
     <TooltipProvider>
     <SidebarProvider>
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          <div className="flex items-center gap-2 px-2 py-1.5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary font-black text-primary-foreground">
-              FT
-            </span>
-            <div className="grid leading-tight group-data-[collapsible=icon]:hidden">
-              <span className="text-sm font-extrabold tracking-tight">FARMER&rsquo;S TAIL</span>
-              <span className="text-[11px] text-muted-foreground">관리자 콘솔</span>
+          {/* 정본 로고 — 라이트 사이드바엔 mark(그린 워드마크), 아이콘 접힘
+              상태엔 stamp(원형 도장). "이상한 FT" 지적(2026-09-04) 수정. */}
+          <div className="flex h-12 items-center gap-2 px-2">
+            <Image
+              src="/logo-stamp.png"
+              alt=""
+              width={28}
+              height={28}
+              priority
+              className="hidden shrink-0 group-data-[collapsible=icon]:block"
+            />
+            <div className="grid gap-1 leading-none group-data-[collapsible=icon]:hidden">
+              <Image src="/logo-mark.png" alt="FARMER'S TAIL" width={118} height={20} priority className="h-5 w-auto" />
+              <span className="text-[10.5px] font-bold tracking-[0.08em] text-muted-foreground">관리자 콘솔</span>
             </div>
           </div>
         </SidebarHeader>
@@ -155,7 +171,7 @@ export default function AdminShellNext({
                 <SidebarMenu>
                   {g.items.map((it) => (
                     <SidebarMenuItem key={it.href}>
-                      <SidebarMenuButton asChild isActive={it.href === active} tooltip={it.label}>
+                      <SidebarMenuButton asChild isActive={it.href === activeHref} tooltip={it.label}>
                         <a href={it.href}>
                           <it.icon />
                           <span>{it.label}</span>
@@ -196,6 +212,7 @@ export default function AdminShellNext({
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
+          <div className="ml-auto flex items-center gap-1.5">{bell}</div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
       </SidebarInset>

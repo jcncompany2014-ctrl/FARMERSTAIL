@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import OrderRealtimeBell from '@/components/admin/OrderRealtimeBell'
-import AdminShell from '@/components/admin/AdminShell'
+import AdminShellNext from '@/components/adminui/admin-shell-next'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,11 +39,16 @@ export default async function AdminLayout({
 
   // 셸(사이드바·드로어·본문 프레임) = client — 모바일 드로어 open 상태가 필요.
   // 이 layout 은 auth 조회 때문에 server 여야 하므로 email·벨만 주입한다.
-  // 기능형 클린 어드민(2026-07 Phase B): 중립 다크(#16181d) + 회색조,
-  // terracotta 는 active/포인트에만 절제 사용.
+  //
+  // 2026-09-04 어드민 개편 Phase 2: 수제 AdminShell(내비 4개 노출) →
+  // shadcn 기반 AdminShellNext(39개 라우트 업무 그룹 내비). shadcn 팔레트는
+  // `.admin-scope` 서브트리에서만 유효(globals.css) — 웹/앱 무영향.
+  // 구 셸 파일은 롤백 대비로 보존(components/admin/AdminShell.tsx).
   return (
-    <AdminShell userEmail={user.email ?? ''} bell={<OrderRealtimeBell />}>
-      {children}
-    </AdminShell>
+    <div className="admin-scope min-h-screen bg-background font-sans text-foreground antialiased">
+      <AdminShellNext userEmail={user.email ?? ''} bell={<OrderRealtimeBell />}>
+        {children}
+      </AdminShellNext>
+    </div>
   )
 }

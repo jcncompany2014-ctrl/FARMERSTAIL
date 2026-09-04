@@ -40,20 +40,20 @@ export default function AdminPreviewPage() {
       <div className="bg-primary px-4 py-2 text-center text-[12.5px] font-bold text-primary-foreground">
         어드민 개편 시안 — 화면의 모든 수치는 데모 데이터입니다
       </div>
-      <AdminShellNext userEmail="ian020529@gmail.com" crumb="대시보드">
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+      <AdminShellNext userEmail="ian020529@gmail.com">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
             { t: '오늘 주문', v: '3건', d: '+2 어제 대비', up: true },
             { t: '발송 대기', v: '5박스', d: '화요일 마감 D-2', up: true },
             { t: '이번 주 매출', v: '₩487,600', d: '-4.1% 지난주 대비', up: false },
             { t: '활성 구독', v: '12', d: '+1 이번 주', up: true },
           ].map((s) => (
-            <Card key={s.t}>
-              <CardHeader className="pb-2">
+            <Card key={s.t} className="gap-2 py-4">
+              <CardHeader className="px-4">
                 <CardDescription>{s.t}</CardDescription>
-                <CardTitle className="text-2xl tabular-nums">{s.v}</CardTitle>
+                <CardTitle className="text-xl tabular-nums md:text-2xl">{s.v}</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4">
                 <p className="flex items-center gap-1 text-xs text-muted-foreground">
                   {s.up ? (
                     <ArrowUpRight className="size-3.5 text-primary" />
@@ -67,12 +67,12 @@ export default function AdminPreviewPage() {
           ))}
         </div>
 
-        <Card>
-          <CardHeader>
+        <Card className="gap-3 py-4">
+          <CardHeader className="px-4">
             <CardTitle className="text-base">최근 주문</CardTitle>
             <CardDescription>데모 데이터 — 실제 지표 아님</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4">
             <Table>
               <TableHeader>
                 <TableRow>
